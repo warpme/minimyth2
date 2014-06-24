@@ -1,0 +1,64 @@
+diff -Naur mythtv-master-20130801-g5b93775-old/mythtv/libs/libmythbase/mythcdrom-linux.cpp mythtv-master-20130801-g5b93775-new/mythtv/libs/libmythbase/mythcdrom-linux.cpp
+--- mythtv-master-20130801-g5b93775-old/mythtv/libs/libmythbase/mythcdrom-linux.cpp	2013-08-01 15:15:07.250864456 +0200
++++ mythtv-master-20130801-g5b93775-new/mythtv/libs/libmythbase/mythcdrom-linux.cpp	2013-08-01 15:15:40.547527476 +0200
+@@ -17,13 +17,23 @@
+ #include "mythconfig.h"      // for HAVE_BIGENDIAN
+ #include "mythlogging.h"
+ #include "mythdate.h"
++#include "mythsystem.h"
+ 
+ #ifdef USING_LIBUDF
+ #include <cdio/udf.h>
+ #endif
+ 
++// Qt Headers
++#include <qfile.h>
++#include <qstring.h>
++
++// MythTV headers
++#include "mythmiscutil.h"
++
+ #define LOC     QString("MythCDROMLinux:")
+ 
++#define PATHTO_EJECT QString("/usr/bin/eject")
++
+ // On a mixed-mode disc (audio+data), set this to 0 to mount the data portion:
+ #ifndef ASSUME_WANT_AUDIO
+ #define ASSUME_WANT_AUDIO 1
+@@ -288,6 +298,8 @@
+ 
+ MythMediaError MythCDROMLinux::eject(bool open_close)
+ {
++    QString MountCommand;
++
+     if (!isDeviceOpen())
+     {
+         if (!openDevice())
+@@ -295,8 +307,25 @@
+     }
+ 
+     if (open_close)
+-        return (ioctl(m_DeviceHandle, CDROMEJECT) == 0) ? MEDIAERR_OK
+-                                                        : MEDIAERR_FAILED;
++    {
++        if (QFile(PATHTO_EJECT).exists())
++        {
++            MountCommand = QString("%1 %3")
++                .arg(PATHTO_EJECT)
++                .arg(m_DevicePath);
++            LOG(VB_GENERAL, LOG_ERR, QString("Executing '%1'").arg(MountCommand));
++            if (0 == myth_system(MountCommand)) 
++                return MEDIAERR_OK;
++            else
++                return (ioctl(m_DeviceHandle, CDROMEJECT) == 0) ? MEDIAERR_OK
++                                                                : MEDIAERR_FAILED;
++        }
++        else
++        {
++            return (ioctl(m_DeviceHandle, CDROMEJECT) == 0) ? MEDIAERR_OK
++                                                            : MEDIAERR_FAILED;
++        }
++    }
+     else
+     {
+         // If the tray is empty, this will fail (Input/Output error)

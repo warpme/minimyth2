@@ -1,0 +1,172 @@
+From 776379c4c1d9b3745fcc97cbc5531e43029382b4 Mon Sep 17 00:00:00 2001
+From: Robert Siebert <rsiebert@miroku.no-ip.com>
+Date: Tue, 5 Feb 2013 09:08:39 +0100
+Subject: [PATCH 105/760] Added new service API call to only get the
+ directories from a certain storage group.
+
+Signed-off-by: Stuart Morgan <smorgan@mythtv.org>
+---
+ mythtv/libs/libmythbase/storagegroup.cpp           |   43 +++++++++++++++-----
+ mythtv/libs/libmythbase/storagegroup.h             |    3 +-
+ .../services/contentServices.h                     |    4 +-
+ mythtv/programs/mythbackend/services/content.cpp   |   20 +++++++++
+ mythtv/programs/mythbackend/services/content.h     |    2 +
+ 5 files changed, 59 insertions(+), 13 deletions(-)
+
+diff --git a/mythtv/libs/libmythbase/storagegroup.cpp b/mythtv/libs/libmythbase/storagegroup.cpp
+index 2298150..c935ff9 100644
+--- a/mythtv/libs/libmythbase/storagegroup.cpp
++++ b/mythtv/libs/libmythbase/storagegroup.cpp
+@@ -201,7 +201,7 @@ QString StorageGroup::GetFirstDir(bool appendSlash) const
+ }
+ 
+ QStringList StorageGroup::GetDirFileList(QString dir, QString base,
+-                                         bool recursive)
++                                         bool recursive, bool onlyDirs)
+ {
+     QStringList files;
+     QDir d(dir);
+@@ -228,21 +228,42 @@ QStringList StorageGroup::GetDirFileList(QString dir, QString base,
+         {
+             LOG(VB_FILE, LOG_DEBUG, LOC +
+                 QString("GetDirFileList: Dir: %1/%2").arg(base).arg(*p));
+-            files << GetDirFileList(dir + "/" + *p, base + *p, true);
++
++            if (onlyDirs)
++                files.append(base + *p);
++
++            files << GetDirFileList(dir + "/" + *p, base + *p, true, onlyDirs);
+         }
+     }
+ 
+-    QStringList list = d.entryList(QDir::Files|QDir::Readable);
+-    for (QStringList::iterator p = list.begin(); p != list.end(); ++p)
++    if (!onlyDirs)
+     {
+-        LOG(VB_FILE, LOG_DEBUG, LOC +
+-            QString("GetDirFileList: File: %1%2").arg(base).arg(*p));
+-        if (recursive)
+-            files.append(base + *p);
+-        else
+-            files.append(*p);
++        QStringList list = d.entryList(QDir::Files|QDir::Readable);
++        for (QStringList::iterator p = list.begin(); p != list.end(); ++p)
++        {
++            LOG(VB_FILE, LOG_DEBUG, LOC +
++                QString("GetDirFileList: File: %1%2").arg(base).arg(*p));
++            if (recursive)
++                files.append(base + *p);
++            else
++                files.append(*p);
++        }
+     }
++    return files;
++}
+ 
++QStringList StorageGroup::GetDirList(QString Path, bool recursive)
++{
++    QStringList files;
++    QString tmpDir;
++    QDir d;
++    for (QStringList::Iterator it = m_dirlist.begin(); it != m_dirlist.end(); ++it)
++    {
++        tmpDir = *it + Path;
++        d.setPath(tmpDir);
++        if (d.exists())
++            files << GetDirFileList(tmpDir, Path, recursive, true);
++    }
+     return files;
+ }
+ 
+@@ -258,7 +279,7 @@ QStringList StorageGroup::GetFileList(QString Path, bool recursive)
+ 
+         d.setPath(tmpDir);
+         if (d.exists())
+-            files << GetDirFileList(tmpDir, Path, recursive);
++            files << GetDirFileList(tmpDir, Path, recursive, false);
+     }
+ 
+     return files;
+diff --git a/mythtv/libs/libmythbase/storagegroup.h b/mythtv/libs/libmythbase/storagegroup.h
+index 2db046c..773288c 100644
+--- a/mythtv/libs/libmythbase/storagegroup.h
++++ b/mythtv/libs/libmythbase/storagegroup.h
+@@ -26,7 +26,8 @@ class MBASE_PUBLIC StorageGroup
+     QString GetFirstDir(bool appendSlash = false) const;
+ 
+     QStringList GetDirFileList(QString dir, QString base,
+-                               bool recursive = false);
++                               bool recursive = false, bool onlyDirs = false);
++    QStringList GetDirList(QString Path, bool recursive = false);
+     QStringList GetFileList(QString Path, bool recursive = false);
+     QStringList GetFileInfoList(QString Path);
+     bool FileExists(QString filename);
+diff --git a/mythtv/libs/libmythservicecontracts/services/contentServices.h b/mythtv/libs/libmythservicecontracts/services/contentServices.h
+index 83eeb21d..3ed4029 100644
+--- a/mythtv/libs/libmythservicecontracts/services/contentServices.h
++++ b/mythtv/libs/libmythservicecontracts/services/contentServices.h
+@@ -39,7 +39,7 @@
+ class SERVICE_PUBLIC ContentServices : public Service  //, public QScriptable ???
+ {
+     Q_OBJECT
+-    Q_CLASSINFO( "version"    , "1.33" );
++    Q_CLASSINFO( "version"    , "1.34" );
+     Q_CLASSINFO( "DownloadFile_Method",            "POST" )
+ 
+     public:
+@@ -64,6 +64,8 @@ class SERVICE_PUBLIC ContentServices : public Service  //, public QScriptable ??
+ 
+         virtual QStringList         GetFileList         ( const QString   &StorageGroup ) = 0;
+ 
++        virtual QStringList         GetDirList          ( const QString   &StorageGroup ) = 0;
++
+         virtual QFileInfo           GetRecordingArtwork ( const QString   &Type,
+                                                           const QString   &Inetref,
+                                                           int Season, int Width,
+diff --git a/mythtv/programs/mythbackend/services/content.cpp b/mythtv/programs/mythbackend/services/content.cpp
+index d0fcacf..a20c9c9 100644
+--- a/mythtv/programs/mythbackend/services/content.cpp
++++ b/mythtv/programs/mythbackend/services/content.cpp
+@@ -208,6 +208,26 @@ QFileInfo Content::GetImageFile( const QString &sStorageGroup,
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
++QStringList Content::GetDirList( const QString &sStorageGroup )
++{
++
++    if (sStorageGroup.isEmpty())
++    {
++        QString sMsg( "GetDirList - StorageGroup missing.");
++        LOG(VB_UPNP, LOG_ERR, sMsg);
++
++        throw sMsg;
++    }
++
++    StorageGroup sgroup(sStorageGroup);
++
++    return sgroup.GetDirList("", true);
++}
++
++/////////////////////////////////////////////////////////////////////////////
++//
++/////////////////////////////////////////////////////////////////////////////
++
+ QStringList Content::GetFileList( const QString &sStorageGroup )
+ {
+ 
+diff --git a/mythtv/programs/mythbackend/services/content.h b/mythtv/programs/mythbackend/services/content.h
+index e1eb982..3e2de8f 100644
+--- a/mythtv/programs/mythbackend/services/content.h
++++ b/mythtv/programs/mythbackend/services/content.h
+@@ -49,6 +49,8 @@ class Content : public ContentServices
+ 
+         QStringList         GetFileList         ( const QString   &StorageGroup );
+ 
++        QStringList         GetDirList          ( const QString   &StorageGroup );
++
+         QFileInfo           GetRecordingArtwork ( const QString   &Type,
+                                                   const QString   &Inetref,
+                                                   int Season, int Width,
+-- 
+1.7.10.2
+

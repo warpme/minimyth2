@@ -1,0 +1,225 @@
+#!/bin/sh
+################################################################################
+# mythtv
+#
+# This script configures MythTV.
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    local jumppoints
+    local jumppoints_destination
+    local jumppoints_keylist
+    local keybindings
+    local keybindings_actions
+    local keybindings_context
+    local keybindings_keylist
+    local settings
+    local settings_data
+    local settings_value
+    local TRANSCODE
+    local file
+    local dir
+    local found
+
+    mm_message_output info "configuring MythTV ..."
+
+    # Set OSD fonts.
+    mm_mythdb_settings_set "OSDFont"   "FreeSans.ttf"
+    mm_mythdb_settings_set "OSDCCFont" "FreeSans.ttf"
+
+    # Disable MythTV's use of OpenGL for unstable drivers.
+    case "${MM_X_DRIVER}" in
+        # unichrome_dri.so is unstable.
+        openchrome)
+            mm_mythdb_settings_set "SlideshowUseOpenGL" "0"
+            mm_mythdb_settings_set "ThemePainter" "qt"
+            mm_mythdb_settings_set "UseOpenGLVSync" "0"
+            ;;
+    esac
+
+    # Set the MythTV theme.
+    if /usr/bin/test -n "${MM_THEME_NAME}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Asking MythTV to use theme:${MM_THEME_NAME}"
+        mm_mythdb_settings_set "Theme" "${MM_THEME_NAME}"
+    fi
+    # Try to mount MythTV theme directory.
+    if /usr/bin/test -n "${MM_THEME_URL}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Trying to mount theme from ${MM_THEME_URL}"
+        if ! mm_url_mount "${MM_THEME_URL}" "/usr/share/mythtv/themes/${MM_THEME_NAME}" ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Can't download/mount theme from ${MM_THEME_URL}. Fallback to build-in MythCenter-wide..."
+            mm_message_output info "Can't load theme. Fall-back to build-in MythCenter-wide theme..."
+            mm_mythdb_settings_set "Theme" "MythCenter-wide"
+        else
+            mm_message_output info "Selecting ${MM_THEME_NAME} theme..."
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Theme from ${MM_THEME_URL} successfuly mounted..."
+        fi
+    fi
+
+    # Set the MythTV theme menu.
+    if /usr/bin/test -n "${MM_THEMEMENU_NAME}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Forcing MenuTheme ${MM_THEME_NAME} from config file..."
+        mm_mythdb_settings_set "MenuTheme" "${MM_THEMEMENU_NAME}"
+    fi
+    # Mount MythTV Menu directory.
+    if /usr/bin/test -n "${MM_THEMEMENU_URL}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Mounting MenuTheme from ${MM_THEMEMENU_URL}"
+        if ! mm_url_mount "${MM_THEMEMENU_URL}" "/usr/share/mythtv/themes/${MM_THEMEMENU_NAME}" ; then
+            mm_message_output err "error: mount of 'MM_THEMEMENU_URL=${MM_THEMEMENU_URL}' failed."
+            exit 1
+        fi
+    fi
+
+    # Mount themecache directory.
+    if /usr/bin/test -n "${MM_THEMECACHE_URL}" && \
+       /usr/bin/test -z "${MM_MYTHTV_HOME_URL}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Mounting ThemeCache from ${MM_THEMECACHE_URL}"
+        mm_url_mount "${MM_THEMECACHE_URL}" "/home/minimyth/.mythtv/cache/themecache"
+    fi
+
+    # Configure MythDVD ripping.
+    # Since mythfrontend is run as user 'minimyth', mtd is run as user 'minimyth'.
+    # As a result, it is user 'minimyth' that must have the required read-write access.
+    if /usr/bin/test -n "${MM_MEDIA_DVD_RIP_MOUNTPOINT}" && /usr/bin/test -n "${MM_MEDIA_DVD_RIP_URL}" ; then
+        MTD=`/usr/bin/which mtd`
+        TRANSCODE=`/usr/bin/which transcode`
+        if /usr/bin/test -z "${MTD}" ; then
+            mm_message_output err "error: 'mtd' not found."
+            exit 1
+        fi
+        if /bin/su -c "/usr/bin/test ! -e ${MM_MEDIA_DVD_RIP_MOUNTPOINT}" - minimyth ; then
+            mm_message_output err "error: mount of 'MM_THEME_URL=${MM_THEME_URL}' failed."
+            mm_message_output err "error: '${MM_MEDIA_DVD_RIP_MOUNTPOINT}' does not exist."
+            exit 1
+        fi
+        if /bin/su -c "/usr/bin/test ! -d ${MM_MEDIA_DVD_RIP_MOUNTPOINT}" - minimyth ; then
+            mm_message_output err "error: '${MM_MEDIA_DVD_RIP_MOUNTPOINT}' is not a directory."
+            exit 1
+        fi
+        if /bin/su -c "/usr/bin/test ! -w ${MM_MEDIA_DVD_RIP_MOUNTPOINT}" - minimyth ; then
+            mm_message_output err "error: '${MM_MEDIA_DVD_RIP_MOUNTPOINT}' is not writable by user 'minimyth'."
+            exit 1
+        fi
+        /bin/su -c "/bin/mkdir -p ${MM_MEDIA_DVD_RIP_MOUNTPOINT}/.mtd" - minimyth
+        if /bin/su -c "/usr/bin/test ! -e ${MM_MEDIA_DVD_RIP_MOUNTPOINT}/.mtd" - minimyth ; then
+            mm_message_output err "error: '${MM_MEDIA_DVD_RIP_MOUNTPOINT}/.mtd' does not exist."
+            exit 1
+        fi
+        if /bin/su -c "/usr/bin/test ! -d ${MM_MEDIA_DVD_RIP_MOUNTPOINT}/.mtd" - minimyth ; then
+            mm_message_output err "error: '${MM_MEDIA_DVD_RIP_MOUNTPOINT}/.mtd' is not a directory."
+            exit 1
+        fi
+        if /bin/su -c "/usr/bin/test ! -w ${MM_MEDIA_DVD_RIP_MOUNTPOINT}/.mtd" - minimyth ; then
+            mm_message_output err "error: '${MM_MEDIA_DVD_RIP_MOUNTPOINT}/.mtd' is not writable by user 'minimyth'."
+            exit 1
+        fi
+        mm_mythdb_settings_set "DVDRipLocation" "${MM_MEDIA_DVD_RIP_MOUNTPOINT}/.mtd"
+        mm_mythdb_settings_set "TranscodeCommand" "${TRANSCODE}"
+        /bin/su -c "${MTD} --daemon" - minimyth
+    fi
+
+    # Configure Myth database jumppoints to match MiniMyth frontend.
+    set | /bin/grep -e '^MM_MYTHDB_JUMPPOINTS_[^=]*=' | /bin/sed -e 's%^MM_MYTHDB_JUMPPOINTS_[^=]*=%%' -e "s%^'%%" -e "s%'$%%" | \
+    while read jumppoints ; do
+        jumppoints_destination=`/bin/echo ${jumppoints} | /usr/bin/cut -d '~' -f 1`
+        jumppoints_keylist=`/bin/echo ${jumppoints} | /usr/bin/cut -d '~' -f 2`
+        mm_mythdb_jumppoints_update "${jumppoints_destination}" "${jumppoints_keylist}"
+    done
+
+    # Configure Myth database keybindings to match MiniMyth frontend.
+    set | /bin/grep -e '^MM_MYTHDB_KEYBINDINGS_[^=]*=' | /bin/sed -e 's%^MM_MYTHDB_KEYBINDINGS_[^=]*=%%' -e "s%^'%%" -e "s%'$%%" | \
+    while read keybindings ; do
+        keybindings_context=`/bin/echo ${keybindings} | /usr/bin/cut -d '~' -f 1`
+        keybindings_action=`/bin/echo ${keybindings} | /usr/bin/cut -d '~' -f 2`
+        keybindings_keylist=`/bin/echo ${keybindings} | /usr/bin/cut -d '~' -f 3`
+        mm_mythdb_keybindings_update "${keybindings_context}" "${keybindings_action}" "${keybindings_keylist}"
+    done
+
+    # Configure Myth database settings to match MiniMyth frontend.
+    set | /bin/grep -e '^MM_MYTHDB_SETTINGS_[^=]*=' | /bin/sed -e 's%^MM_MYTHDB_SETTINGS_[^=]*=%%' -e "s%^'%%" -e "s%'$%%" | \
+    while read settings ; do
+        settings_value=`/bin/echo ${settings} | /usr/bin/cut -d '~' -f 1`
+        settings_data=`/bin/echo ${settings} | /usr/bin/cut -d '~' -f 2`
+        mm_mythdb_settings_set "${settings_value}" "${settings_data}"
+    done
+
+    # Delete disabled plugins.
+    if /usr/bin/test "${MM_PLUGIN_OPTICAL_DISK_ENABLED}" = "no" ; then
+        /bin/sed -i -e 's%<!--<depends>disabled</depends>-->%<depends>disabled</depends>%' \
+            /usr/share/mythtv/themes/clasic/videomenu.xml
+        /bin/sed -i -e 's%<!--<depends>disabled</depends>-->%<depends>disabled</depends>%' \
+            /usr/share/mythtv/themes/defaultmenu/mainmenu.xml
+        /bin/sed -i -e 's%<!--<depends>disabled</depends>-->%<depends>disabled</depends>%' \
+            /usr/share/mythtv/themes/mediacentermenu/mainmenu.xml
+    fi
+    if /usr/bin/test "${MM_PLUGIN_BROWSER_ENABLED}"     = "no" ; then
+        /bin/rm -rf /usr/lib/mythtv/plugins/libmythbrowser.so
+    fi
+    if /usr/bin/test "${MM_PLUGIN_GALLERY_ENABLED}"     = "no" ; then
+        /bin/rm -rf /usr/lib/mythtv/plugins/libmythgallery.so
+    fi
+    if /usr/bin/test "${MM_PLUGIN_GAME_ENABLED}"        = "no" ; then
+        /bin/rm -rf /usr/lib/mythtv/plugins/libmythgame.so
+        /bin/rm -rf /usr/share/mythtv/game*
+        /bin/rm -rf /usr/share/mythtv/mythgame*
+    fi
+    if /usr/bin/test "${MM_PLUGIN_MUSIC_ENABLED}"       = "no" ; then
+        /bin/rm -rf /usr/lib/mythtv/plugins/libmythmusic.so
+        /bin/rm -rf /usr/share/mythtv/mythmusic*
+    fi
+    if /usr/bin/test "${MM_PLUGIN_NETVISION_ENABLED}"   = "no" ; then
+        /bin/rm -rf /usr/lib/mythtv/plugins/libmythnetvision.so
+        /bin/rm -rf /usr/share/mythtv/mythnetvision*
+    fi
+    if /usr/bin/test "${MM_PLUGIN_NEWS_ENABLED}"        = "no" ; then
+        /bin/rm -rf /usr/lib/mythtv/plugins/libmythnews.so
+        /bin/rm -rf /usr/share/mythtv/mythnews*
+    fi
+    if /usr/bin/test "${MM_PLUGIN_WEATHER_ENABLED}"     = "no" ; then
+        /bin/rm -rf /usr/lib/mythtv/plugins/libmythweather.so
+        /bin/rm -rf /usr/share/mythtv/mythweather*
+    fi
+    if /usr/bin/test "${MM_PLUGIN_ZONEMINDER_ENABLED}"  = "no" ; then
+        /bin/rm -rf /usr/lib/mythtv/plugins/libmythzoneminder.so
+        /bin/rm -rf /usr/share/mythtv/mythzoneminder*
+    fi
+
+    # Check for libdvdcss.so.2
+    if /usr/bin/test "${MM_PLUGIN_DVD_ENABLED}"     = "yes" || \
+       /usr/bin/test "${MM_PLUGIN_VIDEO_ENABLED}"   = "yes" ; then
+        found=0
+        if /usr/bin/test -e "/etc/ld.so.conf" ; then
+            for dir in `/bin/cat /etc/ld.so.conf` ; do
+                if /usr/bin/test -e "${dir}/libdvdcss.so.2" ; then
+                    found=1
+                fi
+            done
+        fi
+        if /usr/bin/test ${found} -eq 0 ; then
+            /usr/bin/logger -t minimyth -p "local0.warn" \
+                "warning: certain DVDs may not play. see <http://`/bin/hostname`/minimyth/document-faq.html#dvd>"
+        fi
+    fi
+
+    if /usr/bin/test "${MM_RESTART_ON_SLEEP}" = "mythfrontend" ; then
+        mm_mythdb_settings_set "NoPromptOnExit" "0"
+        mm_mythdb_keybindings_update "Main Menu" "EXIT" "Ctrl+Esc"
+    fi
+
+    return 0
+}
+
+stop() {
+
+    /usr/bin/test -n "`/bin/pidof mtd`" && /usr/bin/killall mtd
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0

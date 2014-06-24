@@ -1,0 +1,99 @@
+################################################################################
+# MM_MINIMYTH configuration variables and files.
+################################################################################
+conf_clean_MM_MINIMYTH() {
+    /bin/rm -rf /tmp/init.conf.minimyth
+
+    return 0
+}
+
+conf_check_MM_MINIMYTH() {
+    return 0
+}
+
+conf_default_MM_MINIMYTH() {
+    if /usr/bin/test -z "${MM_MINIMYTH_UPDATE_URL}" ; then
+        MM_MINIMYTH_UPDATE_URL='http://minimyth.org/download/stable/latest/'
+    fi
+    if /usr/bin/test -z "${MM_MINIMYTH_FETCH_MINIMYTH_SCRIPT}" ; then
+        MM_MINIMYTH_FETCH_MINIMYTH_SCRIPT='no'
+    fi
+    if /usr/bin/test -z "${MM_MINIMYTH_LOGROTATE}" ; then
+        MM_MINIMYTH_LOGROTATE='no'
+    fi
+    if /usr/bin/test -z "${MM_AVAHI_ENABLED}" ; then
+        MM_AVAHI_ENABLED='yes'
+    fi
+    if /usr/bin/test -z "${MM_FETCH_SSH_CLIENT_RSA_KEY}" ; then
+        MM_FETCH_SSH_CLIENT_RSA_KEY='no'
+    fi
+    if /usr/bin/test -z "${MM_FETCH_UI_LOCALIZATIONS}" ; then
+        MM_FETCH_UI_LOCALIZATIONS='no'
+    fi
+
+    return 0
+}
+
+conf_write_MM_MINIMYTH() {
+    local conf_file=$1
+
+    conf_variable_write "${conf_file}" MM_MINIMYTH_UPDATE_URL            "${MM_MINIMYTH_UPDATE_URL}"
+    conf_variable_write "${conf_file}" MM_MINIMYTH_BOOT_URL              "${MM_MINIMYTH_BOOT_URL}"
+    conf_variable_write "${conf_file}" MM_MINIMYTH_FETCH_MINIMYTH_SCRIPT "${MM_MINIMYTH_FETCH_MINIMYTH_SCRIPT}"
+    conf_variable_write "${conf_file}" MM_MINIMYTH_LOGROTATE             "${MM_MINIMYTH_LOGROTATE}"
+    conf_variable_write "${conf_file}" MM_AVAHI_ENABLED                  "${MM_AVAHI_ENABLED}"
+    conf_variable_write "${conf_file}" MM_FETCH_SSH_CLIENT_RSA_KEY       "${MM_FETCH_SSH_CLIENT_RSA_KEY}"
+    conf_variable_write "${conf_file}" MM_FETCH_UI_LOCALIZATIONS         "${MM_FETCH_UI_LOCALIZATIONS}"
+    conf_variable_write "${conf_file}" MM_NOTIFY_ABOUT_UPDATES           "${MM_NOTIFY_ABOUT_UPDATES}"
+
+    if /usr/bin/test "${MM_AVAHI_ENABLED}" = "yes" ; then
+        HOST_NAME=`/bin/hostname`
+        /bin/sed -i "s%@HOST_NAME@%${HOST_NAME}%"                        /etc/avahi/avahi-daemon.conf
+    fi
+
+    return 0
+}
+
+conf_fetch_MM_MINIMYTH() {
+    # 'minimyth.script' is special and is fetched by '/etc/rc.d/init.d/conf'.
+    # rather than by this function.
+
+    if /usr/bin/test "${MM_FETCH_SSH_CLIENT_RSA_KEY}" = "yes" ; then
+        /bin/rm -rf /root/.ssh/*
+        /bin/rm -rf /home/minimyth/.ssh/*
+        mm_confro_get id_rsa /root/.ssh/id_rsa
+        if /usr/bin/test ! -e /root/.ssh/id_rsa ; then
+            mm_message_output err "error: failed to fetch 'id_rsa' file."
+        fi
+        /bin/chmod 0600 /root/.ssh/id_rsa
+        cp /root/.ssh/id_rsa /home/minimyth/.ssh/id_rsa
+        /bin/chown minimyth:minimyth /home/minimyth/.ssh/id_rsa
+    fi
+
+    /bin/touch /root/.ssh/known_hosts
+    /bin/touch /home/minimyth/.ssh/known_hosts
+    /bin/chown root:root /root/.ssh/known_hosts
+    /bin/chown minimyth:minimyth /home/minimyth/.ssh/known_hosts
+    /bin/chmod 0600 /root/.ssh/known_hosts
+    /bin/chmod 0600 /home/minimyth/.ssh/known_hosts
+
+    if /usr/bin/test "${MM_FETCH_UI_LOCALIZATIONS}" = "yes" ; then
+        /bin/rm -rf /etc/mm_ui_localizations
+        mm_confro_get mm_ui_localizations /etc/mm_ui_localizations
+        if /usr/bin/test ! -e /etc/mm_ui_localizations ; then
+            mm_message_output err "error: failed to fetch 'mm_ui_localizations' file."
+        fi
+
+        string_list=`/bin/cat /etc/mm_ui_localizations | /bin/sed -e '/^#/ d' -e '/^$/ d' | /bin/sed -e 's/ /+/g' | /bin/sed -e 's/\t//g'`
+        for string in ${string_list} ; do
+            str=`/bin/echo ${string} | /bin/sed -e 's/^\(.*\)=.*/\1/' | /bin/sed -e 's/+//g'`
+            val=`/bin/echo ${string} | /bin/sed -e 's/^.*=+*\(.*\)/\1/'`
+            /bin/sed -e "s/${str}=.*/${str}=${val}/g" -i /etc/mm_ui_localizations_sh
+            /bin/sed -e "s/^our \$${str}\s*=.*/our \$${str}=${val}/g" -i /etc/mm_ui_localizations_perl
+        done
+        /bin/sed -e "s/+/ /g" -i /etc/mm_ui_localizations_sh
+        /bin/sed -e "s/+/ /g" -i /etc/mm_ui_localizations_perl
+    fi
+
+    return 0
+}

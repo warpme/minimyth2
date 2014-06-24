@@ -1,0 +1,1083 @@
+From b966dd59b6eb9bffade2d7193026ab721ebc7c9a Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Mon, 16 Jun 2014 02:06:29 +1000
+Subject: [PATCH 6/7] Add MythUSWCCopy YV12/SV12 conversion utility class
+
+This commit adds Uncacheable Speculative Write Combining memory optimised methods to copy and convert frames.
+USWC are typically used by hardware decoder, in particular it is use by VAAPI and DXVA2.
+Using this method yield significant speed increase when working with USWC memory; however it is significantly slower with standard, cached memory.
+
+So we add a crude detection method by simply checking on which one is the fastest and use the appropriate method for future calls.
+
+More information is available at:
+https://software.intel.com/en-us/articles/copying-accelerated-video-decode-frame-buffers
+---
+ mythtv/libs/libmythtv/mythframe.cpp                |  406 +++++++++++++-
+ mythtv/libs/libmythtv/mythframe.h                  |   19 +
+ .../test/test_copyframes/test_copyframes.h         |  579 +++++++++++++++++++-
+ 3 files changed, 1001 insertions(+), 3 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/mythframe.cpp b/mythtv/libs/libmythtv/mythframe.cpp
+index fbfbd84..0911b10 100644
+--- a/mythtv/libs/libmythtv/mythframe.cpp
++++ b/mythtv/libs/libmythtv/mythframe.cpp
+@@ -24,7 +24,22 @@
+  * Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
+  *****************************************************************************/
+ 
++#include <mythtimer.h>
++#include "mythconfig.h"
+ #include "mythframe.h"
++#include "mythcorecontext.h"
++#include "mythlogging.h"
++
++extern "C" {
++#include "libavcodec/avcodec.h"
++}
++
++#ifndef __MAX
++#   define __MAX(a, b)   ( ((a) > (b)) ? (a) : (b) )
++#endif
++#ifndef __MIN
++#   define __MIN(a, b)   ( ((a) < (b)) ? (a) : (b) )
++#endif
+ 
+ #if ARCH_X86
+ 
+@@ -52,8 +67,8 @@ inline void cpuid(int CPUInfo[4],int InfoType)
+     :"=a" (CPUInfo[0]),
+     [ebx] "=r"(CPUInfo[1]),
+     "=c" (CPUInfo[2]),
+-    "=d" (CPUInfo[3]) :
+-    "a" (InfoType)
++    "=d" (CPUInfo[3])
++    :"a" (InfoType)
+     );
+ }
+ #endif
+@@ -98,6 +113,18 @@ static inline bool sse3_check()
+     return has_sse3;
+ }
+ 
++static inline bool sse4_check()
++{
++    if (has_sse4 != -1)
++    {
++        return has_sse4;
++    }
++
++    sse2_check();
++
++    return has_sse4;
++}
++
+ static inline void SSE_splitplanes(uint8_t* dstu, int dstu_pitch,
+                                    uint8_t* dstv, int dstv_pitch,
+                                    const uint8_t* src, int src_pitch,
+@@ -350,3 +377,378 @@ void framecopy(VideoFrame* dst, const VideoFrame* src, bool useSSE)
+                src->buf + src->offsets[2], pitch2 * height2);
+     }
+ }
++
++/***************************************
++ * USWC Fast Copy
++ *
++ * https://software.intel.com/en-us/articles/copying-accelerated-video-decode-frame-buffers:
++ ***************************************/
++#if ARCH_X86
++#define COPY16(dstp, srcp, load, store) \
++    asm volatile (                      \
++        load "  0(%[src]), %%xmm1\n"    \
++        store " %%xmm1,    0(%[dst])\n" \
++        : : [dst]"r"(dstp), [src]"r"(srcp) : "memory", "xmm1")
++
++#define COPY64(dstp, srcp, load, store) \
++    asm volatile (                      \
++        load "  0(%[src]), %%xmm1\n"    \
++        load " 16(%[src]), %%xmm2\n"    \
++        load " 32(%[src]), %%xmm3\n"    \
++        load " 48(%[src]), %%xmm4\n"    \
++        store " %%xmm1,    0(%[dst])\n" \
++        store " %%xmm2,   16(%[dst])\n" \
++        store " %%xmm3,   32(%[dst])\n" \
++        store " %%xmm4,   48(%[dst])\n" \
++        : : [dst]"r"(dstp), [src]"r"(srcp) : "memory", "xmm1", "xmm2", "xmm3", "xmm4")
++
++/*
++ * Optimized copy from "Uncacheable Speculative Write Combining" memory
++ * as used by some hardware accelerated decoder (VAAPI and DXVA2).
++ */
++static void CopyFromUswc(uint8_t *dst, int dst_pitch,
++                         const uint8_t *src, int src_pitch,
++                         int width, int height)
++{
++    const bool sse4 = sse4_check();
++
++    asm volatile ("mfence");
++
++    for (int y = 0; y < height; y++)
++    {
++        const int unaligned = (-(uintptr_t)src) & 0x0f;
++        int x = unaligned;
++
++        if (sse4)
++        {
++            if (!unaligned)
++            {
++                for (; x+63 < width; x += 64)
++                {
++                    COPY64(&dst[x], &src[x], "movntdqa", "movdqa");
++                }
++            }
++            else
++            {
++                COPY16(dst, src, "movdqu", "movdqa");
++                for (; x+63 < width; x += 64)
++                {
++                    COPY64(&dst[x], &src[x], "movntdqa", "movdqu");
++                }
++            }
++        }
++        else
++        {
++            if (!unaligned)
++            {
++                for (; x+63 < width; x += 64)
++                {
++                    COPY64(&dst[x], &src[x], "movdqa", "movdqa");
++                }
++            }
++            else
++            {
++                COPY16(dst, src, "movdqu", "movdqa");
++                for (; x+63 < width; x += 64)
++                {
++                    COPY64(&dst[x], &src[x], "movdqa", "movdqu");
++                }
++            }
++        }
++
++        for (; x < width; x++)
++        {
++            dst[x] = src[x];
++        }
++
++        src += src_pitch;
++        dst += dst_pitch;
++    }
++    asm volatile ("mfence");
++}
++
++static void Copy2d(uint8_t *dst, int dst_pitch,
++                   const uint8_t *src, int src_pitch,
++                   int width, int height)
++{
++    for (int y = 0; y < height; y++)
++    {
++        int x = 0;
++
++        bool unaligned = ((intptr_t)dst & 0x0f) != 0;
++        if (!unaligned)
++        {
++            for (; x+63 < width; x += 64)
++            {
++                COPY64(&dst[x], &src[x], "movdqa", "movntdq");
++            }
++        }
++        else
++        {
++            for (; x+63 < width; x += 64)
++            {
++                COPY64(&dst[x], &src[x], "movdqa", "movdqu");
++            }
++        }
++
++        for (; x < width; x++)
++        {
++            dst[x] = src[x];
++        }
++
++        src += src_pitch;
++        dst += dst_pitch;
++    }
++}
++
++static void SSE_copyplane(uint8_t *dst, int dst_pitch,
++                          const uint8_t *src, int src_pitch,
++                          uint8_t *cache, size_t cache_size,
++                          unsigned width, unsigned height)
++{
++    const unsigned w16 = (width+15) & ~15;
++    const unsigned hstep = cache_size / w16;
++
++    for (int y = 0; y < height; y += hstep)
++    {
++        const int hblock =  __MIN(hstep, height - y);
++
++        /* Copy a bunch of line into our cache */
++        CopyFromUswc(cache, w16,
++                     src, src_pitch,
++                     width, hblock);
++
++        /* Copy from our cache to the destination */
++        Copy2d(dst, dst_pitch,
++               cache, w16,
++               width, hblock);
++
++        /* */
++        src += src_pitch * hblock;
++        dst += dst_pitch * hblock;
++    }
++}
++
++static void SSE_splitplanes(uint8_t *dstu, int dstu_pitch,
++                            uint8_t *dstv, int dstv_pitch,
++                            const uint8_t *src, int src_pitch,
++                            uint8_t *cache, int cache_size,
++                            int width, int height)
++{
++    const int w16 = (2*width+15) & ~15;
++    const int hstep = cache_size / w16;
++
++    for (int y = 0; y < height; y += hstep)
++    {
++        const int hblock =  __MIN(hstep, height - y);
++
++        /* Copy a bunch of line into our cache */
++        CopyFromUswc(cache, w16, src, src_pitch,
++                     2*width, hblock);
++
++        /* Copy from our cache to the destination */
++        SSE_splitplanes(dstu, dstu_pitch, dstv, dstv_pitch,
++                        cache, w16, width, hblock);
++
++        /* */
++        src  += src_pitch  * hblock;
++        dstu += dstu_pitch * hblock;
++        dstv += dstv_pitch * hblock;
++    }
++}
++#endif // ARCH_X86
++
++MythUSWCCopy::MythUSWCCopy(int width, bool nocache)
++    :m_cache(NULL), m_size(0), m_uswc(-1)
++{
++    if (!nocache)
++    {
++        allocateCache(width);
++    }
++}
++
++MythUSWCCopy::~MythUSWCCopy()
++{
++    m_size = 0;
++    av_freep(&m_cache);
++}
++
++/**
++ * \fn copy
++ * Copy frame src into dst.
++ * Both frames must be of the same dimensions. Pitch can be different
++ * src can be a frame in either YV12 or NV12 format
++ * dst must be a YV12 frane
++ * The first time copy is called, it will attempt to detect which copy
++ * algorithm is the fastest.
++ */
++
++void MythUSWCCopy::copy(VideoFrame *dst, VideoFrame *src)
++{
++    dst->interlaced_frame = src->interlaced_frame;
++    dst->repeat_pict      = src->repeat_pict;
++    dst->top_field_first  = src->top_field_first;
++
++    int width   = src->width;
++    int height  = src->height;
++
++    if (src->codec == FMT_NV12)
++    {
++#if ARCH_X86
++        if (sse2_check())
++        {
++            MythTimer *timer;
++
++            if (m_uswc <= 0 && m_cache)
++            {
++                if (m_uswc < 0)
++                {
++                    timer = new MythTimer(MythTimer::kStartRunning);
++                }
++                SSE_copyplane(dst->buf + dst->offsets[0], dst->pitches[0],
++                              src->buf + src->offsets[0], src->pitches[0],
++                              m_cache, m_size,
++                              width, height);
++                SSE_splitplanes(dst->buf + dst->offsets[1], dst->pitches[1],
++                                dst->buf + dst->offsets[2], dst->pitches[2],
++                                src->buf + src->offsets[1], src->pitches[1],
++                                m_cache, m_size,
++                                (width+1) / 2, (height+1) / 2);
++                if (m_uswc < 0)
++                {
++                    // Measure how long standard method takes
++                    // if shorter, use it in the future
++                    long duration = timer->nsecsElapsed();
++                    timer->restart();
++                    copyplane(dst->buf + dst->offsets[0], dst->pitches[0],
++                              src->buf + src->offsets[0], src->pitches[0],
++                              width, height);
++                    SSE_splitplanes(dst->buf + dst->offsets[1], dst->pitches[1],
++                                    dst->buf + dst->offsets[2], dst->pitches[2],
++                                    src->buf + src->offsets[1], src->pitches[1],
++                                    (width+1) / 2, (height+1) / 2);
++                    m_uswc = timer->nsecsElapsed() < duration;
++                    if (m_uswc == 0)
++                    {
++                        LOG(VB_GENERAL, LOG_DEBUG, "Enabling USWC code acceleration");
++                    }
++                    delete timer;
++                }
++            }
++            else
++            {
++                copyplane(dst->buf + dst->offsets[0], dst->pitches[0],
++                          src->buf + src->offsets[0], src->pitches[0],
++                          width, height);
++                SSE_splitplanes(dst->buf + dst->offsets[1], dst->pitches[1],
++                                dst->buf + dst->offsets[2], dst->pitches[2],
++                                src->buf + src->offsets[1], src->pitches[1],
++                                (width+1) / 2, (height+1) / 2);
++            }
++            asm volatile ("emms");
++            return;
++        }
++#endif
++        copyplane(dst->buf + dst->offsets[0], dst->pitches[0],
++                  src->buf + src->offsets[0], src->pitches[0],
++                  width, height);
++        splitplanes(dst->buf + dst->offsets[1], dst->pitches[1],
++                    dst->buf + dst->offsets[2], dst->pitches[2],
++                    src->buf + src->offsets[1], src->pitches[1],
++                    (width+1) / 2, (height+1) / 2);
++        return;
++    }
++
++#if ARCH_X86
++    if (sse2_check() && m_uswc <= 0 && m_cache)
++    {
++        MythTimer *timer;
++
++        if (m_uswc < 0)
++        {
++            timer = new MythTimer(MythTimer::kStartRunning);
++        }
++        SSE_copyplane(dst->buf + dst->offsets[0], dst->pitches[0],
++                      src->buf + src->offsets[0], src->pitches[0],
++                      m_cache, m_size,
++                      width, height);
++        SSE_copyplane(dst->buf + dst->offsets[1], dst->pitches[1],
++                      src->buf + src->offsets[1], src->pitches[1],
++                      m_cache, m_size,
++                      (width+1) / 2, (height+1) / 2);
++        SSE_copyplane(dst->buf + dst->offsets[2], dst->pitches[2],
++                      src->buf + src->offsets[2], src->pitches[2],
++                      m_cache, m_size,
++                      (width+1) / 2, (height+1) / 2);
++        if (m_uswc < 0)
++        {
++            // Measure how long standard method takes
++            // if shorter, use it in the future
++            long duration = timer->nsecsElapsed();
++            timer->restart();
++            copyplane(dst->buf + dst->offsets[0], dst->pitches[0],
++                      src->buf + src->offsets[0], src->pitches[0],
++                      width, height);
++            copyplane(dst->buf + dst->offsets[1], dst->pitches[1],
++                      src->buf + src->offsets[1], src->pitches[1],
++                      (width+1) / 2, (height+1) / 2);
++            copyplane(dst->buf + dst->offsets[2], dst->pitches[2],
++                      src->buf + src->offsets[2], src->pitches[2],
++                      (width+1) / 2, (height+1) / 2);
++            m_uswc = timer->nsecsElapsed() < duration;
++            if (m_uswc == 0)
++            {
++                LOG(VB_GENERAL, LOG_DEBUG, "Enabling USWC code acceleration");
++            }
++            delete timer;
++        }
++        asm volatile ("emms");
++        return;
++    }
++#endif
++    copyplane(dst->buf + dst->offsets[0], dst->pitches[0],
++              src->buf + src->offsets[0], src->pitches[0],
++              width, height);
++    copyplane(dst->buf + dst->offsets[1], dst->pitches[1],
++              src->buf + src->offsets[1], src->pitches[1],
++              (width+1) / 2, (height+1) / 2);
++    copyplane(dst->buf + dst->offsets[2], dst->pitches[2],
++              src->buf + src->offsets[2], src->pitches[2],
++              (width+1) / 2, (height+1) / 2);
++}
++
++/**
++ * \fn resetUSWCDetection
++ * reset USWC detection. USWC detection will be made during the next copy
++ */
++void MythUSWCCopy::resetUSWCDetection(void)
++{
++    m_uswc = -1;
++}
++
++void MythUSWCCopy::allocateCache(int width)
++{
++    av_freep(&m_cache);
++    m_size  = __MAX((width + 63) & ~63, 4096);
++    m_cache = (uint8_t*)av_malloc(m_size);
++}
++
++/**
++ * \fn setUSWC
++ * disable USWC detection. If true: USWC code will always be used, otherwise
++ * will use generic SSE code (faster with non-USWC memory
++ */
++void MythUSWCCopy::setUSWC(bool uswc)
++{
++    m_uswc = !uswc;
++}
++
++/**
++ * \fn reset
++ * Will reset the cache for a frame with "width" and reset USWC detection.
++ */
++void MythUSWCCopy::reset(int width)
++{
++    allocateCache(width);
++    resetUSWCDetection();
++}
+diff --git a/mythtv/libs/libmythtv/mythframe.h b/mythtv/libs/libmythtv/mythframe.h
+index efe8f6f..258d111 100644
+--- a/mythtv/libs/libmythtv/mythframe.h
++++ b/mythtv/libs/libmythtv/mythframe.h
+@@ -68,6 +68,25 @@ typedef struct VideoFrame_
+ 
+ #ifdef __cplusplus
+ 
++class MTV_PUBLIC MythUSWCCopy
++{
++public:
++    MythUSWCCopy(int width, bool nocache = false);
++    virtual ~MythUSWCCopy();
++
++    void copy(VideoFrame *dst, VideoFrame *src);
++    void reset(int width);
++    void resetUSWCDetection(void);
++    void setUSWC(bool uswc);
++
++private:
++    void allocateCache(int width);
++
++    uint8_t* m_cache;
++    int m_size;
++    int m_uswc;
++};
++
+ void MTV_PUBLIC framecopy(VideoFrame *dst, const VideoFrame *src,
+                           bool useSSE = true);
+ 
+diff --git a/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.h b/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.h
+index 0f6a3de..d91ed6b 100644
+--- a/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.h
++++ b/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.h
+@@ -385,7 +385,7 @@ class TestCopyFrames: public QObject
+         const int ALIGNDST = 0;
+         VideoFrame src, dst;
+         unsigned char* bufsrc =
+-        (unsigned char*)av_malloc(buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN));
++            (unsigned char*)av_malloc(buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN));
+ 
+         init(&src, FMT_NV12, bufsrc + 1, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGN),
+              NULL, NULL, 0, 0, ALIGN);
+@@ -689,4 +689,581 @@ class TestCopyFrames: public QObject
+         av_freep(&bufsrc);
+         av_freep(&bufdst);
+     }
++
++    // YV12 -> YV12 USWC
++    void YV12USWCcopy(void)
++    {
++        VideoFrame src, dst;
++        MythUSWCCopy mythcopy(WIDTH);
++        mythcopy.setUSWC(true);
++        int ALIGN = 64;
++        int ALIGNDST = 0;
++        int sizesrc = buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGN);
++        unsigned char* bufsrc = (unsigned char*)av_malloc(sizesrc);
++
++        init(&src, FMT_YV12, bufsrc, WIDTH, HEIGHT, sizesrc,
++             NULL, NULL, 0, 0, ALIGN);
++
++        int stride = ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH;
++        QCOMPARE(stride, src.pitches[0]);
++        QCOMPARE(stride / 2, src.pitches[1]);
++        QCOMPARE(stride / 2, src.pitches[2]);
++
++        // Fill up the src frame with data
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            memset(src.buf + src.offsets[1] + src.pitches[1] * i, i % 255, WIDTH / 2);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            memset(src.buf + src.offsets[2] + src.pitches[2] * i, i % 255, WIDTH / 2);
++        }
++
++        int sizedst = buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST);
++        unsigned char* bufdst = (unsigned char*)av_malloc(sizedst);
++
++        init(&dst, FMT_YV12, bufdst, WIDTH, HEIGHT, sizedst,
++             NULL, NULL, 0, 0, ALIGNDST);
++        int stride2 = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        // test the stride sizes
++        QCOMPARE(stride2, dst.pitches[0]);
++        QCOMPARE(stride2 / 2, dst.pitches[1]);
++        QCOMPARE(stride2 / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                mythcopy.copy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++            }
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[2] + i * src.pitches[2] + j),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12USWCcopy_data(void)
++    {
++        QTest::addColumn<int>("ALIGN");
++        QTest::newRow("64") << 64;
++        QTest::newRow("32") << 32;
++        QTest::newRow("16") << 16;
++        QTest::newRow("0")  << 0;
++    }
++
++    // NV12 -> YV12 SSE, various stride aligned sizes
++    void NV12USWCcopy(void)
++    {
++        QFETCH(int, ALIGN);
++        const int ALIGNDST = 0;
++        VideoFrame src, dst;
++        MythUSWCCopy mythcopy(WIDTH);
++        mythcopy.setUSWC(true);
++        int sizesrc = buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN);
++        unsigned char* bufsrc = (unsigned char*)av_malloc(sizesrc);
++
++        init(&src, FMT_NV12, bufsrc, WIDTH, HEIGHT, sizesrc,
++             NULL, NULL, 0, 0, ALIGN);
++        int stride = ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH;
++        QCOMPARE(stride, src.pitches[0]);
++        QCOMPARE(stride, src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        int sizedst = buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST);
++        unsigned char* bufdst = (unsigned char*)av_malloc(sizedst);
++        init(&dst, FMT_YV12, bufdst, WIDTH, HEIGHT, sizedst,
++             NULL, NULL, 0, 0, ALIGNDST);
++        int stride2 = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        QCOMPARE(stride2, dst.pitches[0]);
++        QCOMPARE(stride2 / 2, dst.pitches[1]);
++        QCOMPARE(stride2 / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                mythcopy.copy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12USWCStrideAligned_data(void)
++    {
++        QTest::addColumn<int>("ALIGNDST");
++        QTest::newRow("64") << 64;
++        QTest::newRow("32") << 32;
++        QTest::newRow("16") << 16;
++        QTest::newRow("0")  << 0;
++    }
++
++    // NV12 -> YV12 SSE
++    void NV12USWCStrideAligned(void)
++    {
++        QFETCH(int, ALIGNDST);
++        const int ALIGN = 0;
++        VideoFrame src, dst;
++        MythUSWCCopy mythcopy(WIDTH);
++        mythcopy.setUSWC(true);
++        unsigned char* bufsrc =
++            (unsigned char*)av_malloc(buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN));
++
++        init(&src, FMT_NV12, bufsrc, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGN),
++             NULL, NULL, 0, 0, ALIGN);
++        int stride = ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH;
++        QCOMPARE(stride, src.pitches[0]);
++        QCOMPARE(stride, src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        int sizedst = buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST);
++        unsigned char* bufdst = (unsigned char*)av_malloc(sizedst);
++        init(&dst, FMT_YV12, bufdst, WIDTH, HEIGHT, sizedst,
++             NULL, NULL, 0, 0, ALIGNDST);
++
++        int stride2 = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        QCOMPARE(stride2, dst.pitches[0]);
++        QCOMPARE(stride2 / 2, dst.pitches[1]);
++        QCOMPARE(stride2 / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                mythcopy.copy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12USWCcopySrcNotAligned_data(void)
++    {
++        QTest::addColumn<int>("ALIGN");
++        QTest::newRow("64") << 64;
++        QTest::newRow("32") << 32;
++        QTest::newRow("16") << 16;
++        QTest::newRow("0")  << 0;
++    }
++
++    // NV12 -> YV12 SSE
++    void NV12USWCcopySrcNotAligned(void)
++    {
++        QFETCH(int, ALIGN);
++        const int ALIGNDST = 0;
++        VideoFrame src, dst;
++        MythUSWCCopy mythcopy(WIDTH);
++        mythcopy.setUSWC(true);
++        unsigned char* bufsrc =
++            (unsigned char*)av_malloc(buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN));
++
++        init(&src, FMT_NV12, bufsrc + 1, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGN),
++             NULL, NULL, 0, 0, ALIGN);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[0]);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        unsigned char* bufdst =
++            (unsigned char*)av_malloc(buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST));
++
++        init(&dst, FMT_YV12, bufdst, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST),
++             NULL, NULL, 0, 0, ALIGNDST /* align */);
++        int stride = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        QCOMPARE(stride, dst.pitches[0]);
++        QCOMPARE(stride / 2, dst.pitches[1]);
++        QCOMPARE(stride / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                mythcopy.copy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12USWCStrideAligned_DstNotAligned_data(void)
++    {
++        QTest::addColumn<int>("ALIGNDST");
++        QTest::newRow("64") << 64;
++        QTest::newRow("32") << 32;
++        QTest::newRow("16") << 16;
++        QTest::newRow("0")  << 0;
++    }
++
++    // NV12 -> YV12 SSE
++    void NV12USWCStrideAligned_DstNotAligned(void)
++    {
++        QFETCH(int, ALIGNDST);
++        const int ALIGN = 0;
++        VideoFrame src, dst;
++        MythUSWCCopy mythcopy(WIDTH);
++        mythcopy.setUSWC(true);
++        unsigned char* bufsrc =
++            (unsigned char*)av_malloc(buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN));
++
++        init(&src, FMT_NV12, bufsrc, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGN),
++             NULL, NULL, 0, 0, ALIGN);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[0]);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        unsigned char* bufdst =
++            (unsigned char*)av_malloc(buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST));
++
++        init(&dst, FMT_YV12, bufdst + 1, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST),
++             NULL, NULL, 0, 0, ALIGNDST);
++
++        int stride = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        QCOMPARE(stride, dst.pitches[0]);
++        QCOMPARE(stride / 2, dst.pitches[1]);
++        QCOMPARE(stride / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                mythcopy.copy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12USWCStrideAligned_NeitherAligned_data(void)
++    {
++        QTest::addColumn<int>("ALIGNDST");
++        QTest::newRow("64") << 64;
++        QTest::newRow("32") << 32;
++        QTest::newRow("16") << 16;
++        QTest::newRow("7")  << 32;
++        QTest::newRow("0")  << 0;
++    }
++
++    // NV12 -> YV12 SSE
++    void NV12USWCStrideAligned_NeitherAligned(void)
++    {
++        QFETCH(int, ALIGNDST);
++        const int ALIGN = 0;
++        VideoFrame src, dst;
++        MythUSWCCopy mythcopy(WIDTH);
++        mythcopy.setUSWC(true);
++        unsigned char* bufsrc =
++            (unsigned char*)av_malloc(buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN));
++
++        init(&src, FMT_NV12, bufsrc + 1, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGN),
++             NULL, NULL, 0, 0, ALIGN);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[0]);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        unsigned char* bufdst =
++            (unsigned char*)av_malloc(buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST));
++
++        init(&dst, FMT_YV12, bufdst + 1, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST),
++             NULL, NULL, 0, 0, ALIGNDST);
++
++        int stride = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        QCOMPARE(stride, dst.pitches[0]);
++        QCOMPARE(stride / 2, dst.pitches[1]);
++        QCOMPARE(stride / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                mythcopy.copy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12USWCVariousWidth_data(void)
++    {
++        QTest::addColumn<int>("width");
++        QTest::newRow("1080") << 1080;
++        QTest::newRow("1440") << 1440;
++        QTest::newRow("720") << 720;
++        QTest::newRow("600") << 600;
++        QTest::newRow("300") << 300;
++    }
++
++    // NV12 -> YV12
++    void NV12USWCVariousWidth(void)
++    {
++        QFETCH(int, width);
++        int ALIGN = 64;
++        int ALIGNDST = 0;
++        VideoFrame src, dst;
++        MythUSWCCopy mythcopy(WIDTH);
++        mythcopy.setUSWC(true);
++        int sizesrc = buffersize(FMT_NV12, width, HEIGHT, ALIGN);
++        unsigned char* bufsrc = (unsigned char*)av_malloc(sizesrc);
++
++        init(&src, FMT_NV12, bufsrc, width, HEIGHT, sizesrc,
++             NULL, NULL, 0, 0, ALIGN);
++        int stride = ALIGN ? (width + ALIGN - 1) & ~(ALIGN -1) : width;
++        QCOMPARE(stride, src.pitches[0]);
++        QCOMPARE(stride, src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, width);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < width / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        int sizedst = buffersize(FMT_YV12, width, HEIGHT, ALIGNDST);
++        unsigned char* bufdst = (unsigned char*)av_malloc(sizedst);
++        init(&dst, FMT_YV12, bufdst, width, HEIGHT, sizedst,
++             NULL, NULL, 0, 0, ALIGNDST);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                mythcopy.copy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < width; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < width / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
+ };
+-- 
+1.7.10.2
+

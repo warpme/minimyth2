@@ -1,0 +1,78 @@
+#!/bin/sh
+################################################################################
+# time
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    local NTP_SERVER
+    local NTP_SERVERS
+    local NTP_SUCCESS
+
+    if /usr/bin/test -e /etc/localtime ; then
+        timezone=`cat /etc/localtime`
+    fi
+    if /usr/bin/test -z ${timezone} ; then
+        mm_message_output info "autodetecting timezone ..."
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ not set by DHCP or MM_DHCP_TZ. Starting auto-detection..."
+        i=0
+        while /usr/bin/test $i -lt 10 ; do
+            i=$((${i} + 1))
+            rc=`/usr/bin/python /usr/bin/tzupdate`
+            if /usr/bin/test $? -ne 0 ; then
+                /bin/sleep 2
+                if /usr/bin/test $i -lt 10 ; then
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] try ${i}: TZ auto-detection failed! Daemon returns: ${rc}"
+                else
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] try ${i}: TZ auto-detection failed! Daemon returns: ${rc}"
+                    mm_message_output err "error: TZ not set by DHCP or MM_DHCP_TZ. autodetecting timezone also failed..."
+                fi
+            else
+                /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ auto-detection detected: ${rc}"
+                i=10
+            fi
+        done
+    else
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ set by DHCP or MM_DHCP_TZ. Skipping auto-detection..."
+    fi
+
+    # Set time.
+    mm_message_output info "setting time ..."
+    NTP_SERVERS=`/bin/cat /etc/ntp.conf | /bin/grep '^server ' | /bin/sed 's%^server  *%%'`
+    NTP_SUCCESS=0
+    for NTP_SERVER in ${NTP_SERVERS} ; do
+        /usr/bin/ntpdate -b -s "${NTP_SERVER}"
+        if /usr/bin/test $? -eq 0 ; then
+            NTP_SUCCESS=1
+            continue
+        fi
+    done
+    if /usr/bin/test ${NTP_SUCCESS} -eq 0 ; then
+        mm_message_output warn "warning: 'ntpd' failed to synchronize with any NTP server." 
+    fi
+
+    # Start NTP daemon.
+    mm_message_output info "starting NTP daemon ..."
+    /usr/bin/ntpd -p /var/run/ntpd.pid
+
+    return 0
+}
+
+stop() {
+    mm_message_output info "saving time ..."
+
+    if /usr/bin/test -n "`/bin/pidof ntpd`" ; then
+        /usr/bin/killall ntpd
+        /sbin/hwclock -w -u
+    fi
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0

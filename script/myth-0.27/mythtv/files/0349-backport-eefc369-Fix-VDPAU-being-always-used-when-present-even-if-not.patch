@@ -1,0 +1,82 @@
+From eefc369fcd187fa5cb1c7cc84f850205b39bd28e Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Thu, 22 May 2014 02:07:02 +1000
+Subject: [PATCH 07/17] Fix VDPAU being always used when present even if not
+ working (test was always true)
+
+If VDPAU was installed, but not working (like on an intel machine with also VAAPI support), VDPAU would be used regardless
+Simplify VDPAU support detection, no point checking for features if basic detection has failed.
+---
+ mythtv/libs/libmythtv/avformatdecoder.cpp |    8 +++-----
+ mythtv/libs/libmythtv/videoout_vdpau.cpp  |   21 +++++++++++++--------
+ 2 files changed, 16 insertions(+), 13 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/avformatdecoder.cpp b/mythtv/libs/libmythtv/avformatdecoder.cpp
+index e2220fa..8ae0bcd 100644
+--- a/mythtv/libs/libmythtv/avformatdecoder.cpp
++++ b/mythtv/libs/libmythtv/avformatdecoder.cpp
+@@ -2389,7 +2389,7 @@ int AvFormatDecoder::ScanStreams(bool novideo)
+                                                             mpeg_version(enc->codec_id),
+                                                             false);
+ 
+-                if (vdpau_mcid >= video_codec_id)
++                if (codec_is_vdpau(vdpau_mcid))
+                 {
+                     video_codec_id = vdpau_mcid;
+                     foundgpudecoder = true;
+@@ -2406,8 +2406,7 @@ int AvFormatDecoder::ScanStreams(bool novideo)
+                                                                       false,
+                                                                       pix_fmt);
+ 
+-                    if (vaapi_mcid >= video_codec_id &&
+-                        codec_is_vaapi(vaapi_mcid))
++                    if (codec_is_vaapi(vaapi_mcid))
+                     {
+                         video_codec_id = vaapi_mcid;
+                         enc->pix_fmt = pix_fmt;
+@@ -2424,8 +2423,7 @@ int AvFormatDecoder::ScanStreams(bool novideo)
+                         width, height, dec, mpeg_version(enc->codec_id),
+                         false, pix_fmt);
+ 
+-                    if (dxva2_mcid >= video_codec_id  &&
+-                        codec_is_dxva2(dxva2_mcid))
++                    if (codec_is_dxva2(dxva2_mcid))
+                     {
+                         video_codec_id = dxva2_mcid;
+                         enc->pix_fmt = pix_fmt;
+diff --git a/mythtv/libs/libmythtv/videoout_vdpau.cpp b/mythtv/libs/libmythtv/videoout_vdpau.cpp
+index 77d99d4..957f3f5 100644
+--- a/mythtv/libs/libmythtv/videoout_vdpau.cpp
++++ b/mythtv/libs/libmythtv/videoout_vdpau.cpp
+@@ -946,15 +946,20 @@ MythCodecID VideoOutputVDPAU::GetBestSupportedCodec(
+     uint width, uint height, const QString &decoder,
+     uint stream_type, bool no_acceleration)
+ {
+-    bool use_cpu = no_acceleration;
+-
++    bool use_cpu = no_acceleration || (decoder != "vdpau") || getenv("NO_VDPAU");
+     MythCodecID test_cid = (MythCodecID)(kCodec_MPEG1_VDPAU + (stream_type-1));
+-    use_cpu |= !codec_is_vdpau_hw(test_cid);
+-    if (test_cid == kCodec_MPEG4_VDPAU)
+-        use_cpu |= !MythRenderVDPAU::IsMPEG4Available();
+-    if (test_cid == kCodec_H264_VDPAU)
+-        use_cpu |= !MythRenderVDPAU::H264DecoderSizeSupported(width, height);
+-    if ((decoder != "vdpau") || getenv("NO_VDPAU") || use_cpu)
++
++    if (!use_cpu)
++    {
++        use_cpu |= !MythRenderVDPAU::IsVDPAUAvailable();
++        use_cpu |= !codec_is_vdpau_hw(test_cid);
++        if (!use_cpu && test_cid == kCodec_MPEG4_VDPAU)
++            use_cpu |= !MythRenderVDPAU::IsMPEG4Available();
++        if (!use_cpu && test_cid == kCodec_H264_VDPAU)
++            use_cpu |= !MythRenderVDPAU::H264DecoderSizeSupported(width, height);
++    }
++
++    if (use_cpu)
+         return (MythCodecID)(kCodec_MPEG1 + (stream_type-1));
+ 
+     return test_cid;
+-- 
+1.7.10.2
+

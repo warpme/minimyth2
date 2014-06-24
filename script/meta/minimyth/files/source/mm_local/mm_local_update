@@ -1,0 +1,163 @@
+#!/bin/ash
+
+script_file() {
+
+    local HELPER_FILE
+
+    HELPER_FILE=`echo $0 | sed -e 's%^.*/%%g'`
+
+    echo "${HELPER_FILE}"
+}
+
+script_dir() {
+
+    local HELPER_DIR
+
+    HELPER_DIR=`echo $0 | sed -e 's%/[^/]*$%%g'`
+    test ! "${HELPER_DIR}" = ""   || \
+        HELPER_DIR="`pwd`"
+    test ! "${HELPER_DIR}" = "$0" || \
+        HELPER_DIR="`pwd`"
+    HELPER_DIR=`cd ${HELPER_DIR} ; pwd`
+
+    echo "${HELPER_DIR}"
+}
+
+message_output() {
+    local ERROR=$1
+    local MESSAGE=$2
+
+    local SCRIPT_FILE
+
+    test -n "${ERROR}"                                                  || \
+        message_output 1 "message_output: argument 'ERROR' is missing." || \
+        return
+    test -n "${MESSAGE}"                                                  || \
+        message_output 1 "message_output: argument 'MESSAGE' is missing." || \
+        return
+
+    SCRIPT_FILE=`script_file`
+
+    if test ${ERROR} -eq 0 ; then
+        echo "info: ${SCRIPT_FILE}: ${MESSAGE}"
+        true
+        return
+    else
+        echo "error: ${SCRIPT_FILE}: ${MESSAGE}"
+        false
+        return
+    fi
+}
+
+test -e /minimyth                                                        || \
+    message_output 1 "must be run on a local boot MiniMyth istallation." || \
+    exit 1
+
+HELPER_DIR=`script_dir`
+if test ! -e "${HELPER_DIR}/mm_local_helper_old" ; then
+    if test ! -e "${HELPER_DIR}/mm_local_helper" ; then
+        cp "${HELPER_DIR}/mm_local_helper" "${HELPER_DIR}/mm_local_helper_old"
+    fi
+fi
+
+HELPER_OLD="${HELPER_DIR}/mm_local_helper_old"
+test -e "${HELPER_OLD}"                                   || \
+    message_output 1 "'${HELPER_OLD}' script is missing." || \
+    exit 1
+
+test -e /etc/conf.d/minimyth && . /etc/conf.d/minimyth
+
+URL=${MM_MINIMYTH_UPDATE_URL}
+URL=${URL:-${MM_UPDATE_URL}}
+URL=${URL:-"http://minimyth.org/download/stable/latest"}
+BOOT_DIR=/minimyth
+TEMP_DIR=/minimyth_temp
+
+HELPER_DIR=`script_dir`
+
+# Check for mm_local_helper_old.
+HELPER_OLD="${HELPER_DIR}/mm_local_helper_old"
+test -e "${HELPER_OLD}"                                                         || \
+    message_output 1 "command_local_update: '${HELPER_OLD}' script is missing." || \
+    exit 1
+HELPER_OLD="ash ${HELPER_OLD}"
+
+# Check to make sure that we recognize the MiniMyth distribution.
+${HELPER_OLD} check "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+if test $? -ne 0 ; then
+    echo    ''
+    echo -n 'Currently installed distribution is not valid, update anyway [N/y]? '
+    read UPDATE
+    echo    ''
+    test "${UPDATE}" = "y" || test "${UPDATE}" = "Y"                  || \
+        message_output 1 "MiniMyth update aborted at user's request." || \
+        exit 1
+fi
+
+# Fetch the new local helper script (mm_local_helper_new) from the update server.
+${HELPER_OLD} fetch_helper "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+if test $? -ne 0 ; then
+    exit 1
+fi
+
+# Check for mm_local_helper_new.
+HELPER_NEW="${HELPER_DIR}/mm_local_helper_new"
+test -e "${HELPER_NEW}"                                                         || \
+    message_output 1 "command_local_update: '${HELPER_NEW}' script is missing." || \
+    exit 1
+HELPER_NEW="ash ${HELPER_NEW}"
+
+# Check whether or not the user wants to update MiniMyth.
+VERSION_OLD=`${HELPER_OLD} version_old "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"`
+VERSION_NEW=`${HELPER_NEW} version_new "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"`
+echo    ''
+echo    "current MiniMyth version: ${VERSION_OLD}"
+echo    "new     MiniMyth version: ${VERSION_NEW}"
+echo    ''
+echo -n 'update MiniMyth version [N/y]? '
+read UPDATE
+echo    ''
+test "${UPDATE}" = "y" || test "${UPDATE}" = "Y"                  || \
+    message_output 1 "MiniMyth update aborted at user's request." || \
+    exit 1
+
+# Fetch the MiniMyth distribution.
+${HELPER_NEW} fetch "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+if test $? -ne 0 ; then
+    ${HELPER_OLD} backup_delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+    ${HELPER_NEW} temp_delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+    exit 1
+fi
+# Create a back up of the current MiniMyth distribution.
+${HELPER_OLD} backup_create "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+if test $? -ne 0 ; then
+    ${HELPER_OLD} backup_delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+    ${HELPER_NEW} temp_delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+    exit 1
+fi
+# Delete the current MiniMyth distribution.
+${HELPER_OLD} delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+if test $? -ne 0 ; then
+    ${HELPER_OLD} backup_restore "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+    ${HELPER_OLD} backup_delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+    ${HELPER_NEW} temp_delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+    exit 1
+fi
+# Install the new MiniMyth distribution.
+${HELPER_NEW} install "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+if test $? -ne 0 ; then
+    ${HELPER_NEW} delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+    ${HELPER_OLD} backup_restore "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+    ${HELPER_OLD} backup_delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+    ${HELPER_NEW} temp_delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+    exit 1
+fi
+# Delete the back up and temporary files.
+${HELPER_OLD} backup_delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+${HELPER_NEW} temp_delete "${URL}" "${BOOT_DIR}" "${TEMP_DIR}"
+# Sync any buffered file system blocks.
+sync
+# Let user know that the update succeeded.
+echo "MiniMyth update was successful."
+
+exit 0

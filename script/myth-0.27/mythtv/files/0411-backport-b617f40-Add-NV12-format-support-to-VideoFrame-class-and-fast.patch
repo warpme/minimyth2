@@ -1,0 +1,1348 @@
+From b617f4067b29c8c6d7e73f2d69973c1082c131b9 Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Sat, 14 Jun 2014 00:02:12 +1000
+Subject: [PATCH 09/11] Add NV12 format support to VideoFrame class, and fast
+ NV12->YV12 format conversion
+
+Include SSE optimised NV12->YV12 conversion routine.
+SSE deinterleaver is 687% faster on my i7-2600 than the C version.
+
+Add related unit tests and benchmarks
+---
+ mythtv/libs/libmythtv/libmythtv.pro                |    1 +
+ mythtv/libs/libmythtv/mythframe.cpp                |  344 ++++++++++
+ mythtv/libs/libmythtv/mythframe.h                  |   98 +--
+ .../libs/libmythtv/test/test_copyframes/.gitignore |    5 +
+ .../test/test_copyframes/test_copyframes.cpp       |    3 +
+ .../test/test_copyframes/test_copyframes.h         |  692 ++++++++++++++++++++
+ .../test/test_copyframes/test_copyframes.pro       |   67 ++
+ 7 files changed, 1146 insertions(+), 64 deletions(-)
+ create mode 100644 mythtv/libs/libmythtv/mythframe.cpp
+ create mode 100644 mythtv/libs/libmythtv/test/test_copyframes/.gitignore
+ create mode 100644 mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.cpp
+ create mode 100644 mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.h
+ create mode 100644 mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.pro
+
+diff --git a/mythtv/libs/libmythtv/libmythtv.pro b/mythtv/libs/libmythtv/libmythtv.pro
+index e69cf8e..76ad5e5 100644
+--- a/mythtv/libs/libmythtv/libmythtv.pro
++++ b/mythtv/libs/libmythtv/libmythtv.pro
+@@ -171,6 +171,7 @@ SOURCES += avfringbuffer.cpp
+ SOURCES += ringbuffer.cpp           fileringBuffer.cpp
+ SOURCES += streamingringbuffer.cpp  metadataimagehelper.cpp
+ SOURCES += icringbuffer.cpp
++SOURCES += mythframe.cpp
+ 
+ # DiSEqC
+ HEADERS += diseqc.h                 diseqcsettings.h
+diff --git a/mythtv/libs/libmythtv/mythframe.cpp b/mythtv/libs/libmythtv/mythframe.cpp
+new file mode 100644
+index 0000000..ee8e2e1
+--- /dev/null
++++ b/mythtv/libs/libmythtv/mythframe.cpp
+@@ -0,0 +1,344 @@
++//
++//  mythframe.cpp
++//  MythTV
++//
++//  Created by Jean-Yves Avenard on 10/06/2014.
++//  Copyright (c) 2014 Bubblestuff Pty Ltd. All rights reserved.
++//
++// derived from copy.c: Fast YV12/NV12 copy from VLC project
++// portion of SSE Code Copyright (C) 2010 Laurent Aimar
++
++/******************************************************************************
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms of the GNU Lesser General Public License as published by
++ * the Free Software Foundation; either version 2.1 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public License
++ * along with this program; if not, write to the Free Software Foundation,
++ * Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
++ *****************************************************************************/
++
++#include "mythframe.h"
++
++#if ARCH_X86
++
++static int has_sse2     = -1;
++static int has_sse3     = -1;
++static int has_sse4     = -1;
++
++#ifdef _WIN32
++//  Windows
++#define cpuid    __cpuid
++
++#else
++inline void cpuid(int CPUInfo[4],int InfoType)
++{
++    __asm__ __volatile__ (
++    "cpuid":
++    "=a" (CPUInfo[0]),
++    "=b" (CPUInfo[1]),
++    "=c" (CPUInfo[2]),
++    "=d" (CPUInfo[3]) :
++    "a" (InfoType)
++    );
++}
++#endif
++
++static inline bool sse2_check()
++{
++    if (has_sse2 != -1)
++    {
++        return has_sse2;
++    }
++
++    int info[4];
++    cpuid(info, 0);
++    int nIds = info[0];
++
++    //  Detect Features
++    if (nIds >= 0x00000001)
++    {
++        cpuid(info,0x00000001);
++        has_sse2  = (info[3] & ((int)1 << 26)) != 0;
++        has_sse3  = 1;//(info[2] & ((int)1 <<  0)) != 0;
++        has_sse4  = 0;//(info[2] & ((int)1 << 19)) != 0;
++    }
++    else
++    {
++        has_sse2  = 0;
++        has_sse3  = 0;
++        has_sse4  = 0;
++    }
++    return has_sse2;
++}
++
++static inline bool sse3_check()
++{
++    if (has_sse3 != -1)
++    {
++        return has_sse3;
++    }
++
++    sse2_check();
++
++    return has_sse3;
++}
++
++static inline void SSE_splitplanes(uint8_t* dstu, int dstu_pitch,
++                                   uint8_t* dstv, int dstv_pitch,
++                                   const uint8_t* src, int src_pitch,
++                                   int width, int height)
++{
++    const uint8_t shuffle[] = { 0, 2, 4, 6, 8, 10, 12, 14,
++                                1, 3, 5, 7, 9, 11, 13, 15 };
++    const uint8_t mask[] = { 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
++                             0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00 };
++    const bool sse3 = sse3_check();
++
++    asm volatile ("mfence");
++
++#define LOAD64A \
++    "movdqa  0(%[src]), %%xmm0\n" \
++    "movdqa 16(%[src]), %%xmm1\n" \
++    "movdqa 32(%[src]), %%xmm2\n" \
++    "movdqa 48(%[src]), %%xmm3\n"
++
++#define LOAD64U \
++    "movdqu  0(%[src]), %%xmm0\n" \
++    "movdqu 16(%[src]), %%xmm1\n" \
++    "movdqu 32(%[src]), %%xmm2\n" \
++    "movdqu 48(%[src]), %%xmm3\n"
++
++#define STORE2X32 \
++    "movq   %%xmm0,   0(%[dst1])\n" \
++    "movq   %%xmm1,   8(%[dst1])\n" \
++    "movhpd %%xmm0,   0(%[dst2])\n" \
++    "movhpd %%xmm1,   8(%[dst2])\n" \
++    "movq   %%xmm2,  16(%[dst1])\n" \
++    "movq   %%xmm3,  24(%[dst1])\n" \
++    "movhpd %%xmm2,  16(%[dst2])\n" \
++    "movhpd %%xmm3,  24(%[dst2])\n"
++
++    for (int y = 0; y < height; y++)
++    {
++        int x = 0;
++
++        if (((uintptr_t)src & 0xf) == 0)
++        {
++            if (sse3)
++            {
++                for (; x < (width & ~31); x += 32)
++                {
++                    asm volatile (
++                        "movdqu (%[shuffle]), %%xmm7\n"
++                        LOAD64A
++                        "pshufb  %%xmm7, %%xmm0\n"
++                        "pshufb  %%xmm7, %%xmm1\n"
++                        "pshufb  %%xmm7, %%xmm2\n"
++                        "pshufb  %%xmm7, %%xmm3\n"
++                        STORE2X32
++                        : : [dst1]"r"(&dstu[x]), [dst2]"r"(&dstv[x]), [src]"r"(&src[2*x]), [shuffle]"r"(shuffle) : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm7");
++                }
++            }
++            else
++            {
++                for (; x < (width & ~31); x += 32)
++                {
++                    asm volatile (
++                        "movdqu (%[mask]), %%xmm7\n"
++                        LOAD64A
++                        "movdqa   %%xmm0, %%xmm4\n"
++                        "movdqa   %%xmm1, %%xmm5\n"
++                        "movdqa   %%xmm2, %%xmm6\n"
++                        "psrlw    $8,     %%xmm0\n"
++                        "psrlw    $8,     %%xmm1\n"
++                        "pand     %%xmm7, %%xmm4\n"
++                        "pand     %%xmm7, %%xmm5\n"
++                        "pand     %%xmm7, %%xmm6\n"
++                        "packuswb %%xmm4, %%xmm0\n"
++                        "packuswb %%xmm5, %%xmm1\n"
++                        "pand     %%xmm3, %%xmm7\n"
++                        "psrlw    $8,     %%xmm2\n"
++                        "psrlw    $8,     %%xmm3\n"
++                        "packuswb %%xmm6, %%xmm2\n"
++                        "packuswb %%xmm7, %%xmm3\n"
++                        STORE2X32
++                        : : [dst2]"r"(&dstu[x]), [dst1]"r"(&dstv[x]), [src]"r"(&src[2*x]), [mask]"r"(mask) : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7");
++                }
++            }
++        }
++        else
++        {
++            if (sse3)
++            {
++                for (; x < (width & ~31); x += 32)
++                {
++                    asm volatile (
++                        "movdqu (%[shuffle]), %%xmm7\n"
++                        LOAD64U
++                        "pshufb  %%xmm7, %%xmm0\n"
++                        "pshufb  %%xmm7, %%xmm1\n"
++                        "pshufb  %%xmm7, %%xmm2\n"
++                        "pshufb  %%xmm7, %%xmm3\n"
++                        STORE2X32
++                        : : [dst1]"r"(&dstu[x]), [dst2]"r"(&dstv[x]), [src]"r"(&src[2*x]), [shuffle]"r"(shuffle) : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm7");
++                }
++            }
++            else
++            {
++                for (; x < (width & ~31); x += 32)
++                {
++                    asm volatile (
++                        "movdqu (%[mask]), %%xmm7\n"
++                        LOAD64U
++                        "movdqu   %%xmm0, %%xmm4\n"
++                        "movdqu   %%xmm1, %%xmm5\n"
++                        "movdqu   %%xmm2, %%xmm6\n"
++                        "psrlw    $8,     %%xmm0\n"
++                        "psrlw    $8,     %%xmm1\n"
++                        "pand     %%xmm7, %%xmm4\n"
++                        "pand     %%xmm7, %%xmm5\n"
++                        "pand     %%xmm7, %%xmm6\n"
++                        "packuswb %%xmm4, %%xmm0\n"
++                        "packuswb %%xmm5, %%xmm1\n"
++                        "pand     %%xmm3, %%xmm7\n"
++                        "psrlw    $8,     %%xmm2\n"
++                        "psrlw    $8,     %%xmm3\n"
++                        "packuswb %%xmm6, %%xmm2\n"
++                        "packuswb %%xmm7, %%xmm3\n"
++                        STORE2X32
++                        : : [dst2]"r"(&dstu[x]), [dst1]"r"(&dstv[x]), [src]"r"(&src[2*x]), [mask]"r"(mask) : "memory", "xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7");
++                }
++            }
++        }
++
++        for (; x < width; x++)
++        {
++            dstu[x] = src[2*x+0];
++            dstv[x] = src[2*x+1];
++        }
++        src  += src_pitch;
++        dstu += dstu_pitch;
++        dstv += dstv_pitch;
++    }
++    asm volatile ("mfence");
++
++#undef STORE2X32
++#undef LOAD64U
++#undef LOAD64A
++}
++#endif /* ARCH_X86 */
++
++static inline void copyplane(uint8_t* dst, int dst_pitch,
++                             const uint8_t* src, int src_pitch,
++                             int width, int height)
++{
++    for (int y = 0; y < height; y++)
++    {
++        memcpy(dst, src, width);
++        src += src_pitch;
++        dst += dst_pitch;
++    }
++}
++
++static void splitplanes(uint8_t* dstu, int dstu_pitch,
++                        uint8_t* dstv, int dstv_pitch,
++                        const uint8_t* src, int src_pitch,
++                        int width, int height)
++{
++    for (int y = 0; y < height; y++)
++    {
++        for (int x = 0; x < width; x++)
++        {
++            dstu[x] = src[2*x+0];
++            dstv[x] = src[2*x+1];
++        }
++        src  += src_pitch;
++        dstu += dstu_pitch;
++        dstv += dstv_pitch;
++    }
++}
++
++void framecopy(VideoFrame* dst, const VideoFrame* src, bool useSSE)
++{
++    VideoFrameType codec = dst->codec;
++    if (!(dst->codec == src->codec ||
++          (src->codec == FMT_NV12 && dst->codec == FMT_YV12)))
++        return;
++
++    dst->interlaced_frame = src->interlaced_frame;
++    dst->repeat_pict      = src->repeat_pict;
++    dst->top_field_first  = src->top_field_first;
++
++    if (FMT_YV12 == codec)
++    {
++        int width   = src->width;
++        int height  = src->height;
++        int dwidth  = dst->width;
++        int dheight = dst->height;
++
++        if (src->codec == FMT_NV12 &&
++            height == dheight && width == dwidth)
++        {
++            copyplane(dst->buf + dst->offsets[0], dst->pitches[0],
++                      src->buf + src->offsets[0], src->pitches[0],
++                      width, height);
++#if ARCH_X86
++            if (useSSE && sse2_check())
++            {
++                SSE_splitplanes(dst->buf + dst->offsets[1], dst->pitches[1],
++                                dst->buf + dst->offsets[2], dst->pitches[2],
++                                src->buf + src->offsets[1], src->pitches[1],
++                                (width+1) / 2, (height+1) / 2);
++                asm volatile ("emms");
++                return;
++            }
++#endif
++            splitplanes(dst->buf + dst->offsets[1], dst->pitches[1],
++                        dst->buf + dst->offsets[2], dst->pitches[2],
++                        src->buf + src->offsets[1], src->pitches[1],
++                        (width+1) / 2, (height+1) / 2);
++            return;
++        }
++
++        if (height == dheight && width == dwidth &&
++            dst->pitches[0] != src->pitches[0])
++        {
++            // We have a different stride between the two frames
++            // drop the garbage data
++            copyplane(dst->buf + dst->offsets[0], dst->pitches[0],
++                      src->buf + src->offsets[0], src->pitches[0],
++                      width, height);
++            copyplane(dst->buf + dst->offsets[1], dst->pitches[1],
++                      src->buf + src->offsets[1], src->pitches[1],
++                      (width+1) / 2, (height+1) / 2);
++            copyplane(dst->buf + dst->offsets[2], dst->pitches[2],
++                      src->buf + src->offsets[2], src->pitches[2],
++                      (width+1) / 2, (height+1) / 2);
++            return;
++        }
++
++        int height0 = (dst->height < src->height) ? dst->height : src->height;
++        int height1 = (height0+1) >> 1;
++        int height2 = (height0+1) >> 1;
++        int pitch0  = ((dst->pitches[0] < src->pitches[0]) ?
++                       dst->pitches[0] : src->pitches[0]);
++        int pitch1  = ((dst->pitches[1] < src->pitches[1]) ?
++                       dst->pitches[1] : src->pitches[1]);
++        int pitch2  = ((dst->pitches[2] < src->pitches[2]) ?
++                       dst->pitches[2] : src->pitches[2]);
++
++        memcpy(dst->buf + dst->offsets[0],
++               src->buf + src->offsets[0], pitch0 * height0);
++        memcpy(dst->buf + dst->offsets[1],
++               src->buf + src->offsets[1], pitch1 * height1);
++        memcpy(dst->buf + dst->offsets[2],
++               src->buf + src->offsets[2], pitch2 * height2);
++    }
++}
+diff --git a/mythtv/libs/libmythtv/mythframe.h b/mythtv/libs/libmythtv/mythframe.h
+index 89f74ac..bdf8f63 100644
+--- a/mythtv/libs/libmythtv/mythframe.h
++++ b/mythtv/libs/libmythtv/mythframe.h
+@@ -25,6 +25,7 @@ typedef enum FrameType_
+     FMT_VAAPI,
+     FMT_YUY2,
+     FMT_DXVA2,
++    FMT_NV12
+ } VideoFrameType;
+ 
+ typedef struct VideoFrame_
+@@ -66,6 +67,10 @@ typedef struct VideoFrame_
+ #endif
+ 
+ #ifdef __cplusplus
++
++void MTV_PUBLIC framecopy(VideoFrame *dst, const VideoFrame *src,
++                          bool useSSE = true);
++
+ static inline void init(VideoFrame *vf, VideoFrameType _codec,
+                         unsigned char *_buf, int _width, int _height, int _size,
+                         const int *p = 0,
+@@ -128,6 +133,12 @@ static inline void init(VideoFrame *vf, VideoFrameType _codec,
+             vf->pitches[0] = width_aligned;
+             vf->pitches[1] = vf->pitches[2] = width_aligned >> 1;
+         }
++        else if (FMT_NV12 == _codec)
++        {
++            vf->pitches[0] = width_aligned;
++            vf->pitches[1] = width_aligned;
++            vf->pitches[2] = 0;
++        }
+         else
+         {
+             vf->pitches[0] = (width_aligned * vf->bpp) >> 3;
+@@ -153,6 +164,12 @@ static inline void init(VideoFrame *vf, VideoFrameType _codec,
+             vf->offsets[1] = width_aligned * _height;
+             vf->offsets[2] = vf->offsets[1] + (vf->offsets[1] >> 1);
+         }
++        else if (FMT_NV12 == _codec)
++        {
++            vf->offsets[0] = 0;
++            vf->offsets[1] = width_aligned * _height;
++            vf->offsets[2] = 0;
++        }
+         else
+         {
+             vf->offsets[0] = vf->offsets[1] = vf->offsets[2] = 0;
+@@ -165,18 +182,24 @@ static inline void clear(VideoFrame *vf)
+     if (!vf)
+         return;
+ 
++    int uv_height = vf->height >> 1;
+     if (FMT_YV12 == vf->codec)
+     {
+-        int uv_height = vf->height >> 1;
+         memset(vf->buf + vf->offsets[0],   0, vf->pitches[0] * vf->height);
+         memset(vf->buf + vf->offsets[1], 127, vf->pitches[1] * uv_height);
+         memset(vf->buf + vf->offsets[2], 127, vf->pitches[2] * uv_height);
+     }
++    else if (FMT_NV12 == vf->codec)
++    {
++        memset(vf->buf + vf->offsets[0],   0, vf->pitches[0] * vf->height);
++        memset(vf->buf + vf->offsets[1], 127, vf->pitches[1] * uv_height);
++    }
+ }
+ 
+ static inline bool compatible(const VideoFrame *a, const VideoFrame *b)
+ {
+-    if (a->codec == b->codec && a->codec == FMT_YV12)
++    if (a->codec == b->codec &&
++        (a->codec == FMT_YV12 || a->codec == FMT_NV12))
+     {
+         return a && b &&
+             (a->codec      == b->codec)      &&
+@@ -198,69 +221,16 @@ static inline bool compatible(const VideoFrame *a, const VideoFrame *b)
+         (a->pitches[2] == b->pitches[2]);
+ }
+ 
+-static inline void copyplane(unsigned char *dst, int dst_pitch,
+-                             const unsigned char *src, int src_pitch,
+-                             int width, int height)
+-{
+-    for (int y = 0; y < height; y++)
+-    {
+-        memcpy(dst, src, width);
+-        src += src_pitch;
+-        dst += dst_pitch;
+-    }
+-}
+-
++/**
++ * copy: copy one frame into another
++ * copy only works with the following assumptions:
++ * frames are of the same resolution
++ * destination frame is in YV12 format
++ * source frame is either YV12 or NV12 format
++ */
+ static inline void copy(VideoFrame *dst, const VideoFrame *src)
+ {
+-    VideoFrameType codec = dst->codec;
+-    if (dst->codec != src->codec)
+-        return;
+-
+-    dst->interlaced_frame = src->interlaced_frame;
+-    dst->repeat_pict      = src->repeat_pict;
+-    dst->top_field_first  = src->top_field_first;
+-
+-    if (FMT_YV12 == codec)
+-    {
+-        int width   = src->width;
+-        int height  = src->height;
+-        int dwidth  = dst->width;
+-        int dheight = dst->height;
+-
+-        if (height == dheight && width == dwidth &&
+-            dst->pitches[0] != src->pitches[0])
+-        {
+-            // We have a different stride between the two frames
+-            // drop the garbage data
+-            copyplane(dst->buf + dst->offsets[0], dst->pitches[0],
+-                      src->buf + src->offsets[0], src->pitches[0],
+-                      width, height);
+-            copyplane(dst->buf + dst->offsets[1], dst->pitches[1],
+-                      src->buf + src->offsets[1], src->pitches[1],
+-                      width / 2, height / 2);
+-            copyplane(dst->buf + dst->offsets[2], dst->pitches[2],
+-                      src->buf + src->offsets[2], src->pitches[2],
+-                      width / 2, height / 2);
+-            return;
+-        }
+-
+-        int height0 = (dst->height < src->height) ? dst->height : src->height;
+-        int height1 = height0 >> 1;
+-        int height2 = height0 >> 1;
+-        int pitch0  = ((dst->pitches[0] < src->pitches[0]) ?
+-                       dst->pitches[0] : src->pitches[0]);
+-        int pitch1  = ((dst->pitches[1] < src->pitches[1]) ?
+-                       dst->pitches[1] : src->pitches[1]);
+-        int pitch2  = ((dst->pitches[2] < src->pitches[2]) ?
+-                       dst->pitches[2] : src->pitches[2]);
+-
+-        memcpy(dst->buf + dst->offsets[0],
+-               src->buf + src->offsets[0], pitch0 * height0);
+-        memcpy(dst->buf + dst->offsets[1],
+-               src->buf + src->offsets[1], pitch1 * height1);
+-        memcpy(dst->buf + dst->offsets[2],
+-               src->buf + src->offsets[2], pitch2 * height2);
+-    }
++    framecopy(dst, src, true);
+ }
+ 
+ static inline int bitsperpixel(VideoFrameType type)
+@@ -281,6 +251,7 @@ static inline int bitsperpixel(VideoFrameType type)
+             res = 16;
+             break;
+         case FMT_YV12:
++        case FMT_NV12:
+             res = 12;
+             break;
+         case FMT_IA44:
+@@ -319,4 +290,3 @@ static inline uint buffersize(VideoFrameType type, int width, int height,
+ #endif /* __cplusplus */
+ 
+ #endif
+-
+diff --git a/mythtv/libs/libmythtv/test/test_copyframes/.gitignore b/mythtv/libs/libmythtv/test/test_copyframes/.gitignore
+new file mode 100644
+index 0000000..1788749
+--- /dev/null
++++ b/mythtv/libs/libmythtv/test/test_copyframes/.gitignore
+@@ -0,0 +1,5 @@
++test_copyframes
++*.gcda
++*.gcno
++*.gcov
++
+diff --git a/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.cpp b/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.cpp
+new file mode 100644
+index 0000000..82423dd
+--- /dev/null
++++ b/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.cpp
+@@ -0,0 +1,3 @@
++#include "test_copyframes.h"
++
++QTEST_APPLESS_MAIN(TestCopyFrames)
+diff --git a/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.h b/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.h
+new file mode 100644
+index 0000000..0f6a3de
+--- /dev/null
++++ b/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.h
+@@ -0,0 +1,692 @@
++/*
++ *  Class TestCopyFrames
++ *
++ *  Copyright (C) Jean-Yves Avenard / Bubblestuff Pty Ltd 2014
++ *
++ *   This program is free software; you can redistribute it and/or modify
++ *   it under the terms of the GNU General Public License as published by
++ *   the Free Software Foundation; either version 2 of the License, or
++ *   (at your option) any later version.
++ *
++ *   This program is distributed in the hope that it will be useful,
++ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *   GNU General Public License for more details.
++ *
++ *   You should have received a copy of the GNU General Public License
++ *   along with this program; if not, write to the Free Software
++ *   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
++ */
++
++#include <QtTest/QtTest>
++
++#include "mythcorecontext.h"
++#include "mythframe.h"
++
++#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
++#define MSKIP(MSG) QSKIP(MSG, SkipSingle)
++#else
++#define MSKIP(MSG) QSKIP(MSG)
++#endif
++
++#define ITER    48*30
++#define WIDTH   720
++#define HEIGHT  576
++
++class TestCopyFrames: public QObject
++{
++    Q_OBJECT
++
++  private slots:
++    // called at the beginning of these sets of tests
++    void initTestCase(void)
++    {
++        gCoreContext = new MythCoreContext("bin_version", NULL);
++    }
++
++    void YV12copy_data(void)
++    {
++        QTest::addColumn<bool>("SSE");
++        QTest::newRow("SSE") << true;
++        QTest::newRow("Pure C") << false;
++    }
++
++    // YV12 -> YV12 SSE
++    void YV12copy(void)
++    {
++        QFETCH(bool, SSE);
++        VideoFrame src, dst;
++        int ALIGN = 64;
++        int ALIGNDST = 0;
++        int sizesrc = buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGN);
++        unsigned char* bufsrc = (unsigned char*)av_malloc(sizesrc);
++
++        init(&src, FMT_YV12, bufsrc, WIDTH, HEIGHT, sizesrc,
++             NULL, NULL, 0, 0, ALIGN);
++
++        int stride = ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH;
++        QCOMPARE(stride, src.pitches[0]);
++        QCOMPARE(stride / 2, src.pitches[1]);
++        QCOMPARE(stride / 2, src.pitches[2]);
++
++        // Fill up the src frame with data
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            memset(src.buf + src.offsets[1] + src.pitches[1] * i, i % 255, WIDTH / 2);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            memset(src.buf + src.offsets[2] + src.pitches[2] * i, i % 255, WIDTH / 2);
++        }
++
++        int sizedst = buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST);
++        unsigned char* bufdst = (unsigned char*)av_malloc(sizedst);
++
++        init(&dst, FMT_YV12, bufdst, WIDTH, HEIGHT, sizedst,
++             NULL, NULL, 0, 0, ALIGNDST);
++        int stride2 = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        // test the stride sizes
++        QCOMPARE(stride2, dst.pitches[0]);
++        QCOMPARE(stride2 / 2, dst.pitches[1]);
++        QCOMPARE(stride2 / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                framecopy(&dst, &src, SSE);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++            }
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[2] + i * src.pitches[2] + j),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12copy_data(void)
++    {
++        QTest::addColumn<bool>("SSE");
++        QTest::newRow("SSE") << true;
++        QTest::newRow("Pure C") << false;
++    }
++
++    // NV12 -> YV12
++    void NV12copy(void)
++    {
++        QFETCH(bool, SSE);
++        int ALIGN = 64;
++        int ALIGNDST = 0;
++        VideoFrame src, dst;
++        int sizesrc = buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN);
++        unsigned char* bufsrc = (unsigned char*)av_malloc(sizesrc);
++
++        init(&src, FMT_NV12, bufsrc, WIDTH, HEIGHT, sizesrc,
++             NULL, NULL, 0, 0, ALIGN);
++        int stride = ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH;
++        QCOMPARE(stride, src.pitches[0]);
++        QCOMPARE(stride, src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        int sizedst = buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST);
++        unsigned char* bufdst = (unsigned char*)av_malloc(sizedst);
++        init(&dst, FMT_YV12, bufdst, WIDTH, HEIGHT, sizedst,
++             NULL, NULL, 0, 0, ALIGNDST);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                framecopy(&dst, &src, SSE);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12SSEcopy_data(void)
++    {
++        QTest::addColumn<int>("ALIGN");
++        QTest::newRow("64") << 64;
++        QTest::newRow("32") << 32;
++        QTest::newRow("16") << 16;
++        QTest::newRow("0")  << 0;
++    }
++
++    // NV12 -> YV12 SSE, various stride aligned sizes
++    void NV12SSEcopy(void)
++    {
++        QFETCH(int, ALIGN);
++        const int ALIGNDST = 0;
++        VideoFrame src, dst;
++        int sizesrc = buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN);
++        unsigned char* bufsrc = (unsigned char*)av_malloc(sizesrc);
++
++        init(&src, FMT_NV12, bufsrc, WIDTH, HEIGHT, sizesrc,
++             NULL, NULL, 0, 0, ALIGN);
++        int stride = ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH;
++        QCOMPARE(stride, src.pitches[0]);
++        QCOMPARE(stride, src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        int sizedst = buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST);
++        unsigned char* bufdst = (unsigned char*)av_malloc(sizedst);
++        init(&dst, FMT_YV12, bufdst, WIDTH, HEIGHT, sizedst,
++             NULL, NULL, 0, 0, ALIGNDST);
++        int stride2 = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        QCOMPARE(stride2, dst.pitches[0]);
++        QCOMPARE(stride2 / 2, dst.pitches[1]);
++        QCOMPARE(stride2 / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                framecopy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12StrideAligned_data(void)
++    {
++        QTest::addColumn<int>("ALIGNDST");
++        QTest::newRow("64") << 64;
++        QTest::newRow("32") << 32;
++        QTest::newRow("16") << 16;
++        QTest::newRow("0")  << 0;
++    }
++
++    // NV12 -> YV12 SSE
++    void NV12StrideAligned(void)
++    {
++        QFETCH(int, ALIGNDST);
++        const int ALIGN = 0;
++        VideoFrame src, dst;
++        unsigned char* bufsrc =
++            (unsigned char*)av_malloc(buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN));
++
++        init(&src, FMT_NV12, bufsrc, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGN),
++             NULL, NULL, 0, 0, ALIGN);
++        int stride = ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH;
++        QCOMPARE(stride, src.pitches[0]);
++        QCOMPARE(stride, src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        int sizedst = buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST);
++        unsigned char* bufdst = (unsigned char*)av_malloc(sizedst);
++        init(&dst, FMT_YV12, bufdst, WIDTH, HEIGHT, sizedst,
++             NULL, NULL, 0, 0, ALIGNDST);
++
++        int stride2 = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        QCOMPARE(stride2, dst.pitches[0]);
++        QCOMPARE(stride2 / 2, dst.pitches[1]);
++        QCOMPARE(stride2 / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                framecopy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12SSEcopySrcNotAligned_data(void)
++    {
++        QTest::addColumn<int>("ALIGN");
++        QTest::newRow("64") << 64;
++        QTest::newRow("32") << 32;
++        QTest::newRow("16") << 16;
++        QTest::newRow("0")  << 0;
++    }
++
++    // NV12 -> YV12 SSE
++    void NV12SSEcopySrcNotAligned(void)
++    {
++        QFETCH(int, ALIGN);
++        const int ALIGNDST = 0;
++        VideoFrame src, dst;
++        unsigned char* bufsrc =
++        (unsigned char*)av_malloc(buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN));
++
++        init(&src, FMT_NV12, bufsrc + 1, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGN),
++             NULL, NULL, 0, 0, ALIGN);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[0]);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        unsigned char* bufdst =
++            (unsigned char*)av_malloc(buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST));
++
++        init(&dst, FMT_YV12, bufdst, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST),
++             NULL, NULL, 0, 0, ALIGNDST /* align */);
++        int stride = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        QCOMPARE(stride, dst.pitches[0]);
++        QCOMPARE(stride / 2, dst.pitches[1]);
++        QCOMPARE(stride / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                framecopy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12StrideAligned_DstNotAligned_data(void)
++    {
++        QTest::addColumn<int>("ALIGNDST");
++        QTest::newRow("64") << 64;
++        QTest::newRow("32") << 32;
++        QTest::newRow("16") << 16;
++        QTest::newRow("0")  << 0;
++    }
++
++    // NV12 -> YV12 SSE
++    void NV12StrideAligned_DstNotAligned(void)
++    {
++        QFETCH(int, ALIGNDST);
++        const int ALIGN = 0;
++        VideoFrame src, dst;
++        unsigned char* bufsrc =
++            (unsigned char*)av_malloc(buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN));
++
++        init(&src, FMT_NV12, bufsrc, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGN),
++             NULL, NULL, 0, 0, ALIGN);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[0]);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        unsigned char* bufdst =
++            (unsigned char*)av_malloc(buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST));
++
++        init(&dst, FMT_YV12, bufdst + 1, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST),
++             NULL, NULL, 0, 0, ALIGNDST);
++
++        int stride = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        QCOMPARE(stride, dst.pitches[0]);
++        QCOMPARE(stride / 2, dst.pitches[1]);
++        QCOMPARE(stride / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                framecopy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12StrideAligned_NeitherAligned_data(void)
++    {
++        QTest::addColumn<int>("ALIGNDST");
++        QTest::newRow("64") << 64;
++        QTest::newRow("32") << 32;
++        QTest::newRow("16") << 16;
++        QTest::newRow("7")  << 32;
++        QTest::newRow("0")  << 0;
++    }
++
++    // NV12 -> YV12 SSE
++    void NV12StrideAligned_NeitherAligned(void)
++    {
++        QFETCH(int, ALIGNDST);
++        const int ALIGN = 0;
++        VideoFrame src, dst;
++        unsigned char* bufsrc =
++            (unsigned char*)av_malloc(buffersize(FMT_NV12, WIDTH, HEIGHT, ALIGN));
++
++        init(&src, FMT_NV12, bufsrc + 1, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGN),
++             NULL, NULL, 0, 0, ALIGN);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[0]);
++        QCOMPARE(ALIGN ? (WIDTH + ALIGN - 1) & ~(ALIGN -1) : WIDTH , src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, WIDTH);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        unsigned char* bufdst =
++            (unsigned char*)av_malloc(buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST));
++
++        init(&dst, FMT_YV12, bufdst + 1, WIDTH, HEIGHT, buffersize(FMT_YV12, WIDTH, HEIGHT, ALIGNDST),
++             NULL, NULL, 0, 0, ALIGNDST);
++
++        int stride = ALIGNDST ? (WIDTH + ALIGNDST - 1) & ~(ALIGNDST -1) : WIDTH;
++        QCOMPARE(stride, dst.pitches[0]);
++        QCOMPARE(stride / 2, dst.pitches[1]);
++        QCOMPARE(stride / 2, dst.pitches[2]);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                framecopy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < WIDTH; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < WIDTH / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++
++    void NV12VariousWidth_data(void)
++    {
++        QTest::addColumn<int>("width");
++        QTest::newRow("1080") << 1080;
++        QTest::newRow("1440") << 1440;
++        QTest::newRow("720") << 720;
++        QTest::newRow("600") << 600;
++        QTest::newRow("300") << 300;
++    }
++
++    // NV12 -> YV12
++    void NV12VariousWidth(void)
++    {
++        QFETCH(int, width);
++        int ALIGN = 64;
++        int ALIGNDST = 0;
++        VideoFrame src, dst;
++        int sizesrc = buffersize(FMT_NV12, width, HEIGHT, ALIGN);
++        unsigned char* bufsrc = (unsigned char*)av_malloc(sizesrc);
++
++        init(&src, FMT_NV12, bufsrc, width, HEIGHT, sizesrc,
++             NULL, NULL, 0, 0, ALIGN);
++        int stride = ALIGN ? (width + ALIGN - 1) & ~(ALIGN -1) : width;
++        QCOMPARE(stride, src.pitches[0]);
++        QCOMPARE(stride, src.pitches[1]);
++
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            memset(src.buf + src.offsets[0] + src.pitches[0] * i, i % 255, width);
++        }
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < width / 2; j++)
++            {
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2) = i % 255;
++                *(src.buf + src.offsets[1] + src.pitches[1] * i + j * 2 + 1) = i % 255;
++            }
++        }
++
++        int sizedst = buffersize(FMT_YV12, width, HEIGHT, ALIGNDST);
++        unsigned char* bufdst = (unsigned char*)av_malloc(sizedst);
++        init(&dst, FMT_YV12, bufdst, width, HEIGHT, sizedst,
++             NULL, NULL, 0, 0, ALIGNDST);
++
++        QBENCHMARK
++        {
++            for (int i = 0; i < ITER; i++)
++            {
++                framecopy(&dst, &src);
++            }
++        }
++
++        // test the copy was okay
++        // Y channel
++        for (int i = 0; i < HEIGHT; i++)
++        {
++            for (int j = 0; j < width; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[0] + i * src.pitches[0] + j),
++                         *(dst.buf + dst.offsets[0] + i * dst.pitches[0] + j));
++            }
++        }
++        // test deinterleaving of U and V channels was okay
++        for (int i = 0; i < HEIGHT / 2; i++)
++        {
++            for (int j = 0; j < width / 2; j++)
++            {
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2),
++                         *(dst.buf + dst.offsets[1] + i * dst.pitches[1] + j));
++                QCOMPARE(*(src.buf + src.offsets[1] + i * src.pitches[1] + j * 2 + 1),
++                         *(dst.buf + dst.offsets[2] + i * dst.pitches[2] + j));
++            }
++        }
++
++        av_freep(&bufsrc);
++        av_freep(&bufdst);
++    }
++};
+diff --git a/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.pro b/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.pro
+new file mode 100644
+index 0000000..7b23941
+--- /dev/null
++++ b/mythtv/libs/libmythtv/test/test_copyframes/test_copyframes.pro
+@@ -0,0 +1,67 @@
++include ( ../../../../settings.pro )
++
++QT += xml sql network
++
++contains(QT_VERSION, ^4\\.[0-9]\\..*) {
++CONFIG += qtestlib
++}
++contains(QT_VERSION, ^5\\.[0-9]\\..*) {
++QT += testlib
++}
++
++TEMPLATE = app
++TARGET = test_copyframes
++DEPENDPATH += . ../..
++INCLUDEPATH += . ../../ ../../../libmyth ../../../libmythbase
++INCLUDEPATH += . ../../../../external/FFmpeg ../../logging ../../../libmythbase
++
++LIBS += -L../../../libmythbase -lmythbase-$$LIBVERSION
++LIBS += -L../../../libmythui -lmythui-$$LIBVERSION
++LIBS += -L../../../libmythupnp -lmythupnp-$$LIBVERSION
++LIBS += -L../../../libmythservicecontracts -lmythservicecontracts-$$LIBVERSION
++LIBS += -L../../../libmyth -lmyth-$$LIBVERSION
++LIBS += -L../../../../external/FFmpeg/libavcodec -lmythavcodec
++LIBS += -L../../../../external/FFmpeg/libswscale -lmythswscale
++LIBS += -L../../../../external/FFmpeg/libavformat -lmythavformat
++LIBS += -L../../../../external/FFmpeg/libavutil -lmythavutil
++LIBS += -L../../../../external/FFmpeg/libswresample -lmythswresample
++LIBS += -L../../../../external/qjson/lib -lmythqjson
++using_mheg:LIBS += -L../../../libmythfreemheg -lmythfreemheg-$$LIBVERSION
++using_hdhomerun:LIBS += -L../../../../external/libhdhomerun -lmythhdhomerun-$$LIBVERSION
++LIBS += -L../.. -lmythtv-$$LIBVERSION
++
++contains(QMAKE_CXX, "g++") {
++  QMAKE_CXXFLAGS += -O0 -fprofile-arcs -ftest-coverage
++  QMAKE_LFLAGS += -fprofile-arcs
++}
++
++contains(CONFIG_MYTHLOGSERVER, "yes") {
++  LIBS += -L../../../../external/zeromq/src/.libs -lmythzmq
++  LIBS += -L../../../../external/nzmqt/src -lmythnzmqt
++  QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../../external/zeromq/src/.libs/
++  QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../../external/nzmqt/src/
++}
++
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../../external/qjson/lib/
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../../external/FFmpeg/libavutil
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../../external/FFmpeg/libswscale
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../../external/FFmpeg/libavformat
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../../external/FFmpeg/libavcodec
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../../external/FFmpeg/libswresample
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../../external/libhdhomerun
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../libmythbase
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../libmyth
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../libmythui
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../libmythupnp
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../libmythservicecontracts
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../../../libmythfreemheg
++QMAKE_LFLAGS += -Wl,$$_RPATH_$(PWD)/../..
++
++# Input
++HEADERS += test_copyframes.h
++SOURCES += test_copyframes.cpp
++
++QMAKE_CLEAN += $(TARGET) $(TARGETA) $(TARGETD) $(TARGET0) $(TARGET1) $(TARGET2)
++QMAKE_CLEAN += ; rm -f *.gcov *.gcda *.gcno
++
++LIBS += $$EXTRA_LIBS $$LATE_LIBS
+-- 
+1.7.10.2
+

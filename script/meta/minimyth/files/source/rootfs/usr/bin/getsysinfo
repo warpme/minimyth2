@@ -1,0 +1,73 @@
+#!/bin/sh
+
+. /etc/rc.d/functions
+
+file="/tmp/system-info"
+
+echo " "
+echo "Minimyth2 diagnostic tool v1.0"
+echo " "
+echo "  -Diagnostic 'system-info.bz2' file will be uploaded to 'conf-rw/<this host>'"
+echo "  directory on Your PXE server."
+echo "  -It will be also stored locally in /tmp dir on local root partition"
+echo " "
+
+# Close STDOUT file descriptor
+exec 1<&-
+# Close STDERR FD
+exec 2<&-
+# Open STDOUT as $LOG_FILE file for read and write.
+exec 1<>$file
+# Redirect STDERR to STDOUT
+exec 2>&1
+
+store() {
+  echo " "
+  echo "${1}"
+  echo "--------------------------------------------------------------------------------"
+  ${2}
+  echo "--------------------------------------------------------------------------------"
+  echo " "
+  echo " "
+  echo " "
+}
+
+store "/var/log/messgaes"     "cat /var/log/messages"
+store "/var/log/mythfrontend" "cat /var/log/mythfrontend"
+store "/var/log/Xorg.log"     "cat /var/log/Xorg.0.0.log"
+store "lspci"                 "lspci -kbnn"
+store "lsusb"                 "lsusb"
+store "alsa phy devices"      "aplay -l"
+store "alsa logical devices"  "aplay -L"
+store "alsa controls"         "amixer"
+store "vainfo"                "vainfo"
+store "vdpauinfo"             "vdpauinfo"
+store "dmesg"                 "dmesg"
+store "minimyth.conf"         "cat /etc/minimyth.d/minimyth.conf"
+store "xorg.conf"             "cat /etc/X11/xorg.conf"
+store "minimyth vars"         "cat /etc/conf.d/minimyth"
+store "DMI modalias"          "cat /sys/class/dmi/id/modalias"
+store "ifconfig"              "ifconfig"
+store "netstat -r"            "netstat -r"
+store "netstat -Wpant 3306|6543'" "netstat -Wpant | grep '3306|6543'"
+
+
+echo " "
+echo "mm_hw_detect"
+echo "--------------------------------------------------------------------------------"
+files=`find /var/cache/minimyth -type f`
+for f in ${files}; do
+  echo "${f}:"
+  cat ${f}
+  echo " "
+done
+  echo "--------------------------------------------------------------------------------"
+  echo " "
+  echo " "
+  echo " "
+
+rm -rf ${file}.bz2
+bzip2 ${file}
+mm_confrw_put "system-info.bz2" "${file}.bz2"
+
+exit 0

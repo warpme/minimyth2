@@ -1,0 +1,115 @@
+From b257f3c8608856a2aafdf9bd02a4976d3816f8e1 Mon Sep 17 00:00:00 2001
+From: Paul Harrison <pharrison@mythtv.org>
+Date: Tue, 18 Feb 2014 14:48:44 +0000
+Subject: [PATCH 3/7] Myth Protocol: add a MUSIC_CALC_TRACK_LENGTH command
+
+This command will run mythutil to decode a music track to determin it's exact
+length and will then update the database and send a MUSIC_METADATA_CHANGED
+event if it changed.
+
+format: MUSIC_CALC_TRACK_LENGTH <hostname> <songid>
+---
+ mythtv/programs/mythbackend/mainserver.cpp |   67 ++++++++++++++++++++++++++++
+ mythtv/programs/mythbackend/mainserver.h   |    1 +
+ 2 files changed, 68 insertions(+)
+
+diff --git a/mythtv/programs/mythbackend/mainserver.cpp b/mythtv/programs/mythbackend/mainserver.cpp
+index f62e608..ace2b67 100644
+--- a/mythtv/programs/mythbackend/mainserver.cpp
++++ b/mythtv/programs/mythbackend/mainserver.cpp
+@@ -806,6 +806,13 @@ void MainServer::ProcessRequestWork(MythSocket *sock)
+         else
+             HandleMusicTagUpdateVolatile(tokens, pbs);
+     }
++    else if (command == "MUSIC_CALC_TRACK_LENGTH")
++    {
++        if (tokens.size() != 3)
++            LOG(VB_GENERAL, LOG_ERR, "Bad MUSIC_CALC_TRACK_LENGTH");
++        else
++            HandleMusicCalcTrackLen(tokens, pbs);
++    }
+     else if (command == "MUSIC_TAG_UPDATE_METADATA")
+     {
+         if (tokens.size() != 3)
+@@ -5314,6 +5321,66 @@ void MainServer::HandleMusicTagUpdateVolatile(const QStringList &slist, Playback
+         SendResponse(pbssock, strlist);
+ }
+ 
++void MainServer::HandleMusicCalcTrackLen(const QStringList &slist, PlaybackSock *pbs)
++{
++// format: MUSIC_CALC_TRACK_LENGTH <hostname> <songid>
++
++    QStringList strlist;
++
++    MythSocket *pbssock = pbs->getSocket();
++
++    QString hostname = slist[1];
++
++    if (ismaster && hostname != gCoreContext->GetHostName())
++    {
++        // forward the request to the slave BE
++        PlaybackSock *slave = GetMediaServerByHostname(hostname);
++        if (slave)
++        {
++            LOG(VB_GENERAL, LOG_INFO, QString("HandleMusicCalcTrackLen: asking slave '%1' to update the track length").arg(hostname));
++            strlist << slist.join(" ");
++            strlist = slave->ForwardRequest(strlist);
++            slave->DecrRef();
++
++            if (pbssock)
++                SendResponse(pbssock, strlist);
++
++            return;
++        }
++        else
++        {
++            LOG(VB_GENERAL, LOG_INFO,
++                QString("HandleMusicCalcTrackLen: Failed to grab slave socket on '%1'").arg(hostname));
++
++            strlist << "ERROR: slave not found";
++
++            if (pbssock)
++                SendResponse(pbssock, strlist);
++
++            return;
++        }
++    }
++    else
++    {
++        //  run mythutil to calc the tracks length
++        QStringList paramList;
++        paramList.append(QString("--songid='%1'").arg(slist[2]));
++
++        QString command = "mythutil --calctracklen " + paramList.join(" ");
++
++        LOG(VB_GENERAL, LOG_INFO, QString("HandleMusicCalcTrackLen: running %1'").arg(command));
++        QScopedPointer<MythSystem> cmd(MythSystem::Create(command,
++                                                          kMSAutoCleanup | kMSRunBackground |
++                                                          kMSDontDisableDrawing | kMSProcessEvents |
++                                                          kMSDontBlockInputDevs));
++    }
++
++    strlist << "OK";
++
++    if (pbssock)
++        SendResponse(pbssock, strlist);
++}
++
+ void MainServer::HandleMusicTagUpdateMetadata(const QStringList &slist, PlaybackSock *pbs)
+ {
+ // format: MUSIC_TAG_UPDATE_METADATA <hostname> <songid>
+diff --git a/mythtv/programs/mythbackend/mainserver.h b/mythtv/programs/mythbackend/mainserver.h
+index aa02d97..9d9942f 100644
+--- a/mythtv/programs/mythbackend/mainserver.h
++++ b/mythtv/programs/mythbackend/mainserver.h
+@@ -221,6 +221,7 @@ class MainServer : public QObject, public MythSocketCBs
+     void HandleMusicTagUpdateMetadata(const QStringList &slist, PlaybackSock *pbs);
+     void HandleMusicFindAlbumArt(const QStringList &slist, PlaybackSock *pbs);
+     void HandleMusicTagGetImage(const QStringList &slist, PlaybackSock *pbs);
++    void HandleMusicCalcTrackLen(const QStringList &slist, PlaybackSock *pbs);
+     void HandleVersion(MythSocket *socket, const QStringList &slist);
+     void HandleBackendRefresh(MythSocket *socket);
+     void HandleQueryLoad(PlaybackSock *pbs);
+-- 
+1.7.10
+

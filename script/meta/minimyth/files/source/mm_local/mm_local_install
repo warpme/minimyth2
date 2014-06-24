@@ -1,0 +1,280 @@
+#!/bin/bash
+################################################################################
+# mm_local_install
+#
+# This script installs the files needed to make a flash device boot MiniMyth.
+#
+# This script requires that the 'mm_local_helper' or 'mm_local_helper_old'
+# script be located in the same directory as this script.
+#
+# Parameters:
+#     CONF:
+#         The MiniMyth configuration directory.
+#     URL:
+#         The URL where the MiniMyth distribution is located. If it is not
+#         provided, then it will default to URL_DEFAULT.
+#     DEVICE:
+#         The device (e.g. /dev/sda) that will be converted to a MiniMyth boot
+#         device. If it is not provided and there is exactly one removable
+#         SCSI device on the system, then it will default to the the removable
+#         SCSI device.
+################################################################################
+
+# Default value for parameter 'URL'
+URL_DEFAULT='http://www.minimyth.org/download/stable/latest/'
+
+# Local directory used during the installation.
+BASE_DIR='/tmp/mm_local_install'
+
+script_file() {
+
+    local HELPER_FILE
+
+    HELPER_FILE=`echo $0 | sed -e 's%^.*/%%g'`
+
+    echo "${HELPER_FILE}"
+}
+
+script_dir() {
+
+    local HELPER_DIR
+
+    HELPER_DIR=`echo $0 | sed -e 's%/[^/]*$%%g'`
+    test ! "${HELPER_DIR}" = ""   || \
+        HELPER_DIR="`pwd`"
+    test ! "${HELPER_DIR}" = "$0" || \
+        HELPER_DIR="`pwd`"
+    HELPER_DIR=`cd ${HELPER_DIR} ; pwd`
+
+    echo "${HELPER_DIR}"
+}
+
+message_output() {
+    local ERROR=$1
+    local MESSAGE=$2
+
+    local SCRIPT_FILE
+
+    test -n "${ERROR}"                                                  || \
+        message_output 1 "message_output: argument 'ERROR' is missing." || \
+        return
+    test -n "${MESSAGE}"                                                  || \
+        message_output 1 "message_output: argument 'MESSAGE' is missing." || \
+        return
+
+    SCRIPT_FILE=`script_file`
+
+    if test ${ERROR} -eq 0 ; then
+        echo "info: ${SCRIPT_FILE}: ${MESSAGE}"
+        true
+        return
+    else
+        echo "error: ${SCRIPT_FILE}: ${MESSAGE}"
+        false
+        return
+    fi
+}
+
+device_check() {
+    local DEVICE=$1
+
+    test -n "${DEVICE}"                                                || \
+        message_output 1 "device_check: argument 'DEVICE' is missing." || \
+        return
+
+    test -e /dev/${DEVICE}                                                   || \
+        message_output 1 "'/dev/${DEVICE}' does not exist"                   || \
+        return
+    test -d /sys/block/${DEVICE}                                             || \
+        message_output 1 "'${DEVICE}' is not a block device."                || \
+        return
+    test -f /sys/block/${DEVICE}/removable                                   || \
+        message_ouptut 1 "'${DEVICE}' may or may not be a removable device." || \
+        return
+    test `cat /sys/block/${DEVICE}/removable`   -eq 1                        || \
+        message_output 1 "'${DEVICE}' is not a removable device."            || \
+        return
+    test -f /sys/block/${DEVICE}/size                                        || \
+        message_output 1 "'${DEVICE}' size is unknown."                      || \
+        return
+    test `cat /sys/block/${DEVICE}/size`        -gt 0                        || \
+        message_output 1 "'${DEVICE}' size is 0."                            || \
+        return
+    test -f /sys/block/${DEVICE}/device/type                                 || \
+        message_output 1 "'${DEVICE}' type is unknown."                      || \
+        return
+    test `cat /sys/block/${DEVICE}/device/type` -eq 0                        || \
+        message_output 1 "'${DEVICE}' type is not 0."                        || \
+        return
+    test -f /sys/block/${DEVICE}/device/vendor                               || \
+        message_output 1 "'${DEVICE}' vendor is unknown."                    || \
+        return
+    test -f /sys/block/${DEVICE}/device/model                                || \
+        message_output 1 "'${DEVICE}' model is unknown."                     || \
+        return
+
+    true
+    return
+}
+
+# Check for required binaries that are not always installed or in the path.
+BINARIES='md5sum mkfs.msdos mount su sync syslinux umount'
+for BINARY in ${BINARIES} ; do
+    which "${BINARY}" > /dev/null 2>&1                              || \
+        message_output 1 "cannot find required binary '${BINARY}'." || \
+        exit 1
+done
+
+# Set 'CONF' value.
+CONF=$1
+
+# Set 'DEVICE' value.
+DEVICE=$2
+# If no 'DEVICE' command line option was provided, then try to guess the flash device.
+# If there is exactly one removable SCSI device of non-zero size, then assume it is the flash device.
+if test -z "${DEVICE}" ; then
+    DEVICE_DEFAULT=
+    DEVICE_LIST=
+    for DEVICE in `ls -1 /sys/block | grep -e '^sd.$'` ; do
+        device_check "${DEVICE}" > /dev/null 2>& 1
+        if test $? -eq 0 ; then
+            if test -z "${DEVICE_LIST}" ; then
+                DEVICE_LIST="${DEVICE}"
+            else
+                DEVICE_LIST="${DEVICE_LIST} ${DEVICE}"
+            fi
+        fi
+    done
+    DEVICE_LIST_COUNT=`echo "${DEVICE_LIST}" | wc -w`
+    if   test ${DEVICE_LIST_COUNT} -eq 0 ; then
+        message_output 1 "failed to find any flash devices (removable SCSI devices)."
+        exit 1
+    elif test ${DEVICE_LIST_COUNT} -eq 1 ; then
+        DEVICE_DEFAULT=${DEVICE_LIST}
+    else
+        message_output 1 "found more than one flash device (removable SCSI device): ${DEVICE_LIST}."
+    fi
+    DEVICE=${DEVICE_DEFAULT}
+fi
+
+# Set 'URL' value.
+URL=${3:-"${URL_DEFAULT}"}
+
+if test -z "${CONF}" || test -z "${DEVICE}" || test -z "${URL}" ; then
+    SCRIPT=`script_file`
+    echo ""
+    echo "usage:"
+    echo "    ${SCRIPT} <CONF> [ {DEVICE} [ {URL} ] ]"
+    echo "where:"
+    echo "    {CONF}   : Path to the location that contains the MiniMyth conf directory."
+    echo "    {DEVICE} : Flash device (e.g. sda)."
+    echo "    {URL}    : URL that points to the MiniMyth distribution to be used."
+    echo "             : Default is '${URL_DEFAULT}'."
+    echo "example:"
+    echo "    ${SCRIPT} /var/tftpboot/minimyth"
+    echo ""
+    exit 1
+fi
+
+# Check make sure that 'DEVICE' is a removable SCSI device of non-zero size.
+device_check "${DEVICE}" ||
+    exit 1
+
+VENDOR=`cat /sys/block/${DEVICE}/device/vendor | sed 's%^ *%%g'`
+MODEL=`cat /sys/block/${DEVICE}/device/model   | sed 's% *$%%g'`
+
+rm -rf   "${BASE_DIR}"
+mkdir -p "${BASE_DIR}"
+
+HELPER_DIR=`script_dir`
+
+# Configure mm_local_helper_old.
+test ! -e ${HELPER_DIR}/mm_local_helper_old && test -e ${HELPER_DIR}/mm_local_helper && \
+    cd ${HELPER_DIR} ; ln -s mm_local_helper mm_local_helper_old
+# Check for mm_local_helper_old.
+HELPER_OLD="${HELPER_DIR}/mm_local_helper_old"
+test -e "${HELPER_OLD}"                                                   || \
+    message_output 1 "'${HELPER_DIR}/mm_local_helper' script is missing." || \
+    exit 1
+HELPER_OLD="bash ${HELPER_OLD}"
+# Fetch the new local helper script (mm_local_helper_new) from the update server.
+${HELPER_OLD} fetch_helper "${URL}" "${BASE_DIR}/minimyth_stage" "${BASE_DIR}/minimyth_cache" || \
+    message_output 1 "command_local_update: blah blah blah."                                  || \
+    exit 1
+# Check for mm_local_helper_new.
+HELPER_NEW="${HELPER_DIR}/mm_local_helper_new"
+test -e "${HELPER_NEW}"                                   || \
+    message_output 1 "'${HELPER_NEW}' script is missing." || \
+    exit 1
+HELPER_NEW="bash ${HELPER_NEW}"
+
+# Get MiniMyth distribution version.
+VERSION=`${HELPER_NEW} version_new "${URL}" "${BASE_DIR}/minimyth_stage" "${BASE_DIR}/minimyth_cache"`
+
+# Check whether or not the user wants to install MiniMyth.
+echo    ''
+echo    'Making a bootable flash device based on the following information:'
+echo    "    Flash device                    : /dev/${DEVICE}"
+echo    "    Flash device vendor             : ${VENDOR}"
+echo    "    Flash device model              : ${MODEL}"
+echo    "    MiniMyth configuration directory: ${CONF}/conf"
+echo    "    MiniMyth distribution URL       : ${URL}"
+echo    "    MiniMyth version                : ${VERSION}"
+echo -n 'Continue [y/N]? '
+read INSTALL
+echo    '' 
+test "${INSTALL}" = "y"  || test "${INSTALL}" = "Y"                || \
+    message_output 1 "MiniMyth install aborted at user's request." || \
+    exit 0
+echo    '' 
+
+# Fetch the MiniMyth distribution.
+${HELPER_NEW}     fetch       "${URL}" "${BASE_DIR}/minimyth_stage" "${BASE_DIR}/minimyth_cache"
+if test $? -ne 0 ; then
+    ${HELPER_NEW} temp_delete "${URL}" "${BASE_DIR}/minimyth_stage" "${BASE_DIR}/minimyth_cahce"
+    exit 1
+fi
+# Install the new MiniMyth distribution.
+${HELPER_NEW}     install     "${URL}" "${BASE_DIR}/minimyth_stage" "${BASE_DIR}/minimyth_cache"
+if test $? -ne 0 ; then
+    ${HELPER_NEW} temp_delete "${URL}" "${BASE_DIR}/minimyth_stage" "${BASE_DIR}/minimyth_cache"
+    exit 1
+fi
+# Delete the temporary files.
+${HELPER_NEW}     temp_delete "${URL}" "${BASE_DIR}/minimyth_stage" "${BASE_DIR}/minimyth_cache"
+
+# Create SYSlinux configuration file.
+mkdir -p "${BASE_DIR}/minimyth_stage"
+echo "DEFAULT minimyth"                                            \
+	>> ${BASE_DIR}/minimyth_stage/syslinux.cfg
+echo ""                                                            \
+	>> ${BASE_DIR}/minimyth_stage/syslinux.cfg
+echo "LABEL minimyth"                                              \
+	>> ${BASE_DIR}/minimyth_stage/syslinux.cfg
+echo "	KERNEL kernel"                                             \
+	>> ${BASE_DIR}/minimyth_stage/syslinux.cfg
+echo "	APPEND ro root=/dev/ram0 ramdisk_size=96000 initrd=rootfs" \
+	>> ${BASE_DIR}/minimyth_stage/syslinux.cfg
+if [ -e "${CONF}/conf" ] ; then
+    cp -r ${CONF}/conf ${BASE_DIR}/minimyth_stage/
+fi
+
+# Create bootable install on the device form staged install.
+mkdir -p ${BASE_DIR}/minimyth
+su -c "                                                        \
+    umount /dev/${DEVICE}                                    ; \
+    mkfs.msdos -I -F 32 -n minimyth /dev/${DEVICE}           ; \
+    syslinux /dev/${DEVICE}                                  ; \
+    mount /dev/${DEVICE} /${BASE_DIR}/minimyth               ; \
+    cp -r ${BASE_DIR}/minimyth_stage/* ${BASE_DIR}/minimyth/ ; \
+    sync                                                     ; \
+    umount /${BASE_DIR}/minimyth                             ; \
+"
+
+# Clean up.
+rm -rf ${BASE_DIR}
+
+# Let user know that the update succeeded.
+echo "MiniMyth install was successful."
+
+exit 0

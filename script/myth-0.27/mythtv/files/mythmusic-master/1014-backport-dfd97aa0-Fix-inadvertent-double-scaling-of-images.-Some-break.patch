@@ -1,0 +1,236 @@
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythui/mythimage.cpp mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythui/mythimage.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythui/mythimage.cpp	2014-02-05 16:36:43.725857285 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythui/mythimage.cpp	2014-02-05 16:36:55.599136791 +0100
+@@ -256,47 +256,44 @@
+     return false;
+ }
+ 
+-// FIXME: Get rid of LoadScaleImage
+-bool MythImage::Load(const QString &filename, bool scale)
++bool MythImage::Load(const QString &filename)
+ {
+     QImage *im = NULL;
+-    if (scale)
+-        im = GetMythUI()->LoadScaleImage(filename);
+-    else
++    if (filename.startsWith("myth://"))
+     {
+-        if (filename.startsWith("myth://"))
+-        {
+-            im = new QImage();
+-            RemoteFile *rf = new RemoteFile(filename, false, false, 0);
++        im = new QImage();
++        RemoteFile *rf = new RemoteFile(filename, false, false, 0);
+ 
+-            QByteArray data;
+-            bool ret = rf->SaveAs(data);
++        QByteArray data;
++        bool ret = rf->SaveAs(data);
+ 
+-            delete rf;
++        delete rf;
+ 
+-            if (ret)
+-                im->loadFromData(data);
++        if (ret)
++            im->loadFromData(data);
+ #if 0
+-            else
+-                LOG(VB_GENERAL, LOG_ERR,
+-                    QString("MythImage::Load failed to load remote image %1")
+-                        .arg(filename));
++        else
++            LOG(VB_GENERAL, LOG_ERR,
++                QString("MythImage::Load failed to load remote image %1")
++                    .arg(filename));
+ #endif
+ 
+-        }
+-        else if ((filename.startsWith("http://")) ||
+-                 (filename.startsWith("https://")) ||
+-                 (filename.startsWith("ftp://")))
+-        {
+-            im = new QImage();
+-            QByteArray data;
+-            if (GetMythDownloadManager()->download(filename, &data))
+-                im->loadFromData(data);
+-        }
+-        else
+-        {
+-            im = new QImage(filename);
+-        }
++    }
++    else if ((filename.startsWith("http://")) ||
++                (filename.startsWith("https://")) ||
++                (filename.startsWith("ftp://")))
++    {
++        im = new QImage();
++        QByteArray data;
++        if (GetMythDownloadManager()->download(filename, &data))
++            im->loadFromData(data);
++    }
++    else
++    {
++        QString absoluteUrl = filename;
++        if (!absoluteUrl.startsWith('/'))
++            GetMythUI()->FindThemeFile(absoluteUrl);
++        im = new QImage(absoluteUrl);
+     }
+ 
+     SetFileName(filename);
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythui/mythimage.h mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythui/mythimage.h
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythui/mythimage.h	2014-02-05 16:36:43.725857285 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythui/mythimage.h	2014-02-05 16:36:58.255791984 +0100
+@@ -53,7 +53,7 @@
+     void Assign(const QPixmap &pix);
+ 
+     bool Load(MythImageReader *reader);
+-    bool Load(const QString &filename, bool scale = true);
++    bool Load(const QString &filename);
+ 
+     void Resize(const QSize &newSize, bool preserveAspect = false);
+     void Reflect(ReflectAxis axis, int shear, int scale, int length,
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythui/mythuihelper.cpp mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythui/mythuihelper.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythui/mythuihelper.cpp	2014-02-05 16:36:43.722523968 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythui/mythuihelper.cpp	2014-02-05 16:36:58.255791984 +0100
+@@ -1571,7 +1571,7 @@
+                     ret = painter->GetFormatImage();
+ 
+                 // Load file from disk cache to memory cache
+-                if (ret && ret->Load(cachefilepath, false))
++                if (ret && ret->Load(cachefilepath))
+                 {
+                     // Add to ram cache, and skip saving to disk since that is
+                     // where we found this in the first place.
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythui/mythuiimage.cpp mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythui/mythuiimage.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythui/mythuiimage.cpp	2014-02-05 16:36:43.725857285 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythui/mythuiimage.cpp	2014-02-05 16:36:58.255791984 +0100
+@@ -71,6 +71,7 @@
+     reflectLength = 100;
+     reflectShear = 0;
+     reflectSpacing = 0,
++    isThemeImage = false;
+     maskImage = NULL;
+ }
+ 
+@@ -93,6 +94,8 @@
+     reflectShear = other.reflectShear;
+     reflectSpacing = other.reflectSpacing;
+ 
++    isThemeImage = other.isThemeImage;
++
+     SetMaskImage(other.maskImage);
+ }
+ 
+@@ -228,7 +231,7 @@
+         QString filename = imProps.filename;
+         MythImage *image = NULL;
+ 
+-        bool bForceResize = false;
++        bool bResize = false;
+         bool bFoundInCache = false;
+ 
+         int w = -1;
+@@ -242,7 +245,7 @@
+             if (imProps.forceSize.height() != -1)
+                 h = imProps.forceSize.height();
+ 
+-            bForceResize = true;
++            bResize = true;
+         }
+ 
+         if (!imageReader)
+@@ -301,7 +304,23 @@
+ 
+         if (image && !bFoundInCache)
+         {
+-            if (bForceResize)
++            // Even if an explicit size wasn't defined this image may still need
++            // to be scaled because of a difference between the theme resolution
++            // and the screen resolution. We want to avoid scaling twice.
++            if (!bResize && imProps.isThemeImage)
++            {
++                float wmult; // Width multipler
++                float hmult; // Height multipler
++                GetMythUI()->GetScreenSettings(wmult, hmult);
++                if (wmult != 1.0f || hmult != 1.0f)
++                {
++                    w = image->size().width() * wmult;
++                    h = image->size().height() * hmult;
++                    bResize = true;
++                }
++            }
++
++            if (bResize)
+                 image->Resize(QSize(w, h), imProps.preserveAspect);
+ 
+             if (imProps.isMasked)
+@@ -617,6 +636,7 @@
+ 
+     if (m_imageProperties.filename != m_OrigFilename)
+     {
++        m_imageProperties.isThemeImage = true;
+         m_imageProperties.filename = m_OrigFilename;
+ 
+         if (m_animatedImage)
+@@ -659,6 +679,7 @@
+ void MythUIImage::SetFilename(const QString &filename)
+ {
+     QWriteLocker updateLocker(&d->m_UpdateLock);
++    m_imageProperties.isThemeImage = false;
+     m_imageProperties.filename = filename;
+     if (filename == m_OrigFilename)
+         emit DependChanged(true);
+@@ -674,6 +695,7 @@
+                                  int high)
+ {
+     QWriteLocker updateLocker(&d->m_UpdateLock);
++    m_imageProperties.isThemeImage = false;
+     m_imageProperties.filename = filepattern;
+     m_LowNum = low;
+     m_HighNum = high;
+@@ -738,6 +760,7 @@
+         return;
+     }
+ 
++    m_imageProperties.isThemeImage = false;
+     m_imageProperties.filename = img->GetFileName();
+ 
+     img->IncrRef();
+@@ -790,6 +813,8 @@
+     QWriteLocker updateLocker(&d->m_UpdateLock);
+     QSize aSize = GetFullArea().size();
+ 
++    m_imageProperties.isThemeImage = false;
++
+     QVector<MythImage *>::iterator it;
+ 
+     for (it = images->begin(); it != images->end(); ++it)
+@@ -1238,6 +1263,7 @@
+ 
+     if (element.tagName() == "filename")
+     {
++        m_imageProperties.isThemeImage = true; // This is an image distributed with the them
+         m_OrigFilename = m_imageProperties.filename = getFirstText(element);
+ 
+         if (m_imageProperties.filename.endsWith('/'))
+@@ -1274,6 +1300,7 @@
+     }
+     else if (element.tagName() == "filepattern")
+     {
++        m_imageProperties.isThemeImage = true; // This is an image distributed with the theme
+         m_OrigFilename = m_imageProperties.filename = getFirstText(element);
+         QString tmp = element.attribute("low");
+ 
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythui/mythuiimage.h mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythui/mythuiimage.h
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythui/mythuiimage.h	2014-02-05 16:36:43.725857285 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythui/mythuiimage.h	2014-02-05 16:36:58.255791984 +0100
+@@ -63,6 +63,8 @@
+     int reflectShear;
+     int reflectSpacing;
+ 
++    bool isThemeImage;
++
+   private:
+     void Init(void);
+     void Copy(const ImageProperties &other);

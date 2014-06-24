@@ -1,0 +1,84 @@
+# Script automount attached USB HD. Mount point and mode 
+# (ro or rw) is dependent on disk label. 
+#
+# Adding USB HD causes:
+#
+# label=".myth.backup"
+#   script will:
+#     -create ".myth.backup" dir in "/media"
+#     -mount USB HD with rw persmissions
+#     -execute "/usr/bin/mm_backup" script 
+#
+# label="DVD_rip" or "BluRay_rip" or "Movies"
+#   script will:
+#     -create "DVD_rip[BluRay_rip][Movies]" dir in "/myth/video/"
+#     -mount USB HD with ro persmissions
+#
+# label= any other than above
+#   script will:
+#     -create <label> dir in "/media"
+#     -mount USB HD with ro persmissions
+#
+# Removing USB HD causes:
+#   -umount mounted USB HD partition
+#   -remove dir where USB HD was mounted
+#
+# Author: warpme@o2.pl
+#
+# History:
+# 31/10/2009, initial version
+#
+# 23/01/2010
+# -removed in line 44 NAME=%k
+# -changed OPTIONS=last_rule to GOTO=end as new udev is no more
+#  supporting OPTIONS=last_rule
+#
+
+SUBSYSTEM=="block", KERNEL=="sd[a-z][0-9]", GOTO="begin"
+GOTO="end"
+LABEL="begin"
+  ACTION=="add", GOTO="begin-add"
+  ACTION=="remove", GOTO="begin-remove"
+  GOTO="end"
+LABEL="begin-add"
+  SYMLINK+="usbhd-%k", GROUP="root"
+  ENV{ID_FS_LABEL_ENC}="usbhd-%k"
+  IMPORT{program}="/sbin/blkid -o udev -p $tempnode"
+  ENV{ID_FS_LABEL_ENC}==".myth.backup", GOTO="backup-begin"
+  ENV{ID_FS_LABEL_ENC}==".debug", GOTO="debug-begin"
+  ENV{ID_FS_LABEL_ENC}=="DVD_Rip*", GOTO="rips-begin"
+  ENV{ID_FS_LABEL_ENC}=="BluRay_Rip*", GOTO="rips-begin"
+  ENV{ID_FS_LABEL_ENC}=="Movies*", GOTO="rips-begin"
+  GOTO="user-storage-begin"
+LABEL="debug-begin"
+  ENV{MOUNT_DIR}="/media/$env{ID_FS_LABEL_ENC}"
+  RUN+="/bin/mkdir -p $env{MOUNT_DIR}"
+  ENV{ID_FS_TYPE}=="fat", RUN+="/bin/mount -t fat  -o rw,noauto,quiet,uid=0,gid=0,umask=000 /dev/%k $env{MOUNT_DIR}", GOTO="end"
+  ENV{ID_FS_TYPE}=="vfat", RUN+="/bin/mount -t vfat -o rw,noauto,quiet,uid=0,gid=0,umask=000 /dev/%k $env{MOUNT_DIR}", GOTO="end"
+  ENV{ID_FS_TYPE}=="ntfs", RUN+="/bin/mount -t ntfs -o rw,noauto,noatime,uid=0,gid=0,umask=000 /dev/%k $env{MOUNT_DIR}", GOTO="end"
+  RUN+="/bin/mount -t auto -o rw,noauto,noatime /dev/%k $env{MOUNT_DIR}", GOTO="end"
+LABEL="backup-begin"
+  ENV{MOUNT_DIR}="/media/$env{ID_FS_LABEL_ENC}"
+  RUN+="/bin/mkdir -p $env{MOUNT_DIR}"
+  ENV{ID_FS_TYPE}=="fat", RUN+="/bin/mount -t fat  -o rw,noauto,quiet,uid=0,gid=0,umask=000 /dev/%k $env{MOUNT_DIR}", GOTO="backup-mount"
+  ENV{ID_FS_TYPE}=="vfat", RUN+="/bin/mount -t vfat -o rw,noauto,quiet,uid=0,gid=0,umask=000 /dev/%k $env{MOUNT_DIR}", GOTO="backup-mount"
+  ENV{ID_FS_TYPE}=="ntfs", RUN+="/bin/mount -t ntfs -o rw,noauto,noatime,uid=0,gid=0,umask=000 /dev/%k $env{MOUNT_DIR}", GOTO="backup-mount"
+  RUN+="/bin/mount -t auto -o rw,noauto,noatime /dev/%k $env{MOUNT_DIR}"
+LABEL="backup-mount"
+  RUN+="/usr/bin/mm_backup", GOTO="end"
+LABEL="rips-begin"
+  ENV{MOUNT_DIR}="/myth/video/$env{ID_FS_LABEL_ENC}"
+  RUN+="/bin/mkdir -p $env{MOUNT_DIR}"
+  GOTO="mount-ro"
+LABEL="user-storage-begin"
+  ENV{MOUNT_DIR}="/media/$env{ID_FS_LABEL_ENC}"
+  RUN+="/bin/mkdir -p $env{MOUNT_DIR}"
+LABEL="mount-ro"  
+  ENV{ID_FS_TYPE}=="fat", RUN+="/bin/mount -t fat  -o ro,noauto,async,noexec,nodev,quiet,uid=0,gid=0,umask=000 /dev/%k $env{MOUNT_DIR}", GOTO="end"
+  ENV{ID_FS_TYPE}=="vfat", RUN+="/bin/mount -t vfat -o ro,noauto,async,noexec,nodev,quiet,uid=0,gid=0,umask=000 /dev/%k $env{MOUNT_DIR}", GOTO="end"
+  ENV{ID_FS_TYPE}=="ntfs", RUN+="/bin/mount -t ntfs -o ro,noauto,async,noexec,nodev,noatime,uid=0,gid=0,umask=000 /dev/%k $env{MOUNT_DIR}", GOTO="end"
+  RUN+="/bin/mount -t auto -o ro,noauto,async,noexec,nodev,noatime /dev/%k $env{MOUNT_DIR}", GOTO="end"
+LABEL="begin-remove"
+  RUN+="/bin/umount -l $env{MOUNT_DIR}"
+  RUN+="/bin/rmdir $env{MOUNT_DIR}", GOTO="end"
+LABEL="end"

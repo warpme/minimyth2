@@ -1,0 +1,49 @@
+#-------------------------------------------------------------------------------
+# Detect LCDproc devices.
+#
+# An LCDproc device is assumed to
+#     have the name lcd[0-9]* or ttyUSB[0-9]*,
+#     be in the lcd, tty or usb subsystem, and
+#     be a USB device.
+#
+# mm_detect_id has the following format:
+#     usb:<idVendor>:<idProduct>
+# mm_detect_state_lcdproc has the following format:
+#     <driver>
+# where
+#     <driver>     : The LCDproc driver.
+# The state requires the LCDproc device name. However, since it is not yet
+# known, it cannot be added be included in mm_detect_state_lcdproc. Therefore,
+# the mm_detect script will prepend the LCDproc device name to the state.
+#-------------------------------------------------------------------------------
+ACTION=="add|remove", KERNEL=="lcd[0-9]*|ttyUSB[0-9]*", SUBSYSTEM=="lcd|tty|usb", SUBSYSTEMS=="usb", GOTO="begin"
+GOTO="end"
+LABEL="begin"
+
+# Import mm_detect_id.
+IMPORT{program}="/usr/lib/udev/mm_detect_id"
+
+# Initialize state
+ENV{mm_detect_state_lcdproc}=""
+
+#-------------------------------------------------------------------------------
+#
+#-------------------------------------------------------------------------------
+  ENV{mm_detect_id}=="usb:0403:fa01", ENV{mm_detect_state_lcdproc}="MtxOrb"
+  ENV{mm_detect_id}=="usb:0403:fc0d", ENV{mm_detect_state_lcdproc}="CFontzPacket"
+  ENV{mm_detect_id}=="usb:0403:fc60", ENV{mm_detect_state_lcdproc}="irtrans"
+  ENV{mm_detect_id}=="usb:15c2:ffdc", ENV{mm_detect_state_lcdproc}="imon"
+  ENV{mm_detect_id}=="usb:040b:7001", ENV{mm_detect_state_lcdproc}="dm140"
+  ENV{mm_detect_id}=="usb:046d:0a07", ENV{mm_detect_state_lcdproc}="g15"
+  ENV{mm_detect_id}=="usb:15c2:0038", ENV{mm_detect_state_lcdproc}="imonlcd"
+  ENV{mm_detect_id}=="usb:1b3d:0153", ENV{mm_detect_state_lcdproc}="MtxOrb"
+  ENV{mm_detect_id}=="usb:04d8:0002", ENV{mm_detect_state_lcdproc}="picolcd"
+  ENV{mm_detect_id}=="usb:04d8:c001", ENV{mm_detect_state_lcdproc}="picolcd"
+
+# The state has ben set, so give the device a persistent unique identifier when possible.
+ENV{mm_detect_state_lcdproc}=="?*", PROGRAM="/usr/lib/udev/mm_uid", RESULT=="?*", NAME="$env{SUBSYSTEM}-$result", SYMLINK+="%k"
+
+# The state has been set, so save it.
+ENV{mm_detect_state_lcdproc}=="?*", RUN+="/usr/lib/udev/mm_detect lcdproc %k $env{mm_detect_state_lcdproc} state_prepend_devname"
+
+LABEL="end"

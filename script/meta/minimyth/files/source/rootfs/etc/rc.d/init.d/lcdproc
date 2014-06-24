@@ -1,0 +1,72 @@
+#!/bin/sh
+################################################################################
+# lcdproc
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+    mm_message_output info "starting LCD/VFD ..."
+
+    # Only start the LCDd daemon when one is not running already.
+    if /usr/bin/test -z "`/bin/pidof LCDd`" ; then
+        # Load user configured kernel module.
+        if /usr/bin/test -n "${MM_LCDPROC_KERNEL_MODULE}" ; then
+            /sbin/modprobe ${MM_LCDPROC_KERNEL_MODULE} ${MM_LCDPROC_KERNEL_MODULE_OPTIONS}
+            # Wait up to 60 seconds for the device to appear in the device file system.
+            delay=0
+            while /usr/bin/test ! -e ${MM_LCDPROC_DEVICE} && /usr/bin/test ${delay} -lt 60 ; do
+                /bin/sleep 1
+                delay=$((delay + 1))
+                mm_message_output info "waiting for LCD/VFD device (${delay} seconds) ..."
+            done
+            if /usr/bin/test ! -e ${MM_LCDPROC_DEVICE} ; then
+                mm_message_output err "error: timed out waiting for LCD/VFD device."
+                exit 1
+            fi
+        fi
+
+        # Load the LCDproc configuration file.
+        if /usr/bin/test ! -e /etc/LCDd.conf ; then
+            if /usr/bin/test -n "${MM_LCDPROC_DRIVER}" ; then
+                if /usr/bin/test -e /etc/lcdproc.d/LCDd.conf.d/LCDd.conf.${MM_LCDPROC_DRIVER} ; then
+                    cp /etc/lcdproc.d/LCDd.conf.d/LCDd.conf.${MM_LCDPROC_DRIVER} /etc/LCDd.conf
+                else
+                    cp /etc/lcdproc.d/LCDd.conf.d/LCDd.conf                      /etc/LCDd.conf
+                fi
+            fi
+        fi
+
+        if /usr/bin/test -e /etc/LCDd.conf ; then
+            # Set the driver and device.
+            /bin/sed -i "s%@MM_LCDPROC_DRIVER@%${MM_LCDPROC_DRIVER}%" /etc/LCDd.conf
+            /bin/sed -i "s%@MM_LCDPROC_DEVICE@%${MM_LCDPROC_DEVICE}%" /etc/LCDd.conf
+            # Start LCDproc LCDd daemon and Myth LCD server.
+            /usr/sbin/LCDd -c /etc/LCDd.conf
+        fi
+    fi
+
+    # Enable LCD in MythTV.
+    if /usr/bin/test -n "`/bin/pidof LCDd`" ; then
+        mm_mythdb_settings_set "LCDEnable" "1"
+    else
+        mm_mythdb_settings_set "LCDEnable" "0"
+    fi
+
+    return 0
+}
+
+
+stop() {
+    mm_message_output info "stopping LCD/VFD display ..."
+
+    /usr/bin/test -n "`/bin/pidof LCDd`" && /usr/bin/killall LCDd
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0

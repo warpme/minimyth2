@@ -1,0 +1,698 @@
+#!/bin/sh
+################################################################################
+# mm_local_helper
+#
+# This script is used by the MiniMyth system's mm_local_update script. There
+# is a mm_local_helper associated with each MiniMyth distribution (i.e. 
+# version). This allows the installation and removal instructions to be
+# different accross MiniMyth distributions. The version included as part of the
+# MiniMyth root file system is called mm_local_helper_old and enables
+# mm_local_update to backup, delete and restore the old (running) MiniMyth
+# distribution. The version included downloaded from the location pointed to
+# by URL is called mm_flash_helper_new and eables mm_local_update to install
+# and remove the new (downloaded) MiniMyth distribution.
+#
+# The mm_local_update script should execute the following steps:
+#     mm_local_helper_old check
+#     mm_local_helper_old fetch_helper URL
+#     mm_local_helper_new fetch URL
+#     mm_local_helper_old backup_create
+#     mm_local_helper_old delete
+#     mm_local_helper_new install
+#     mm_local_helper_new temp_delete
+# If the update fails at delete, then the mm_local_update stript
+# should execute the following steps:
+#     mm_local_helper_old backup_restore
+# If the update fails at install, then the mm_local_update stript
+# should execute the following steps:
+#     mm_local_helper_new delete
+#     mm_local_helper_old backup_restore
+# At the end, the mm_local_update script should execute the following steps:
+#     mm_local_helper_old backup_delete
+#     mm_local_helper_new temp_delete
+#
+# Parameters:
+#     COMMAND:
+#         The command that will be run. The following commands are:
+#             check:
+#                 Make sure that the MiniMyth distribution is a valid MiniMyth
+#                 distribution. This command can be used when calling
+#                 mm_local_helper_old and mm_local_helper_new.
+#             version_old:
+#                 Return the installed MiniMyth distribution version. This
+#                 command can be used when calling mm_local_helper_old.
+#             version_new:
+#                 Return the fetched MiniMyth distribution version. This
+#                 command can be used when calling mm_local_helper_new.
+#             fetch_helper:
+#                 Download the mm_local_helper script associated with the
+#                 MiniMyth distribution pointed to by URL. This is the first thing
+#                 that is done to ensure that the mm_update_script is compatible
+#                 with the MiniMyth distribution being downloaded and installed.
+#                 This command can be used when calling mm_local_helper_old or
+#                 mm_local_helper_new, because this command's behavior is
+#                 distribution independent.
+#             fetch:
+#                 Download the MiniMyth distribution pointed to by URL.
+#             install:
+#                 Install the MiniMyth distribution downloaded using
+#                 mm_local_helper_new's fetch. This command assumes that
+#                 there is no other MiniMyth distribution installed. Therefore,
+#                 before running the mm_local_helper_new's install command,
+#                 run the mm_local_helper_old's backup_create and delete
+#                 commands. This command should only be used when calling
+#                 mm_local_helper_new.
+#             delete:
+#                 Delete the MiniMyth installation created using the install
+#                 command. This command can be used when calling
+#                 mm_local_helper_old or mm_local_helper_new.
+#             backup_create:
+#                 Back up the MiniMyth installation installed using the install
+#                 command. This command should only be used when calling
+#                 mm_local_helper_old.
+#             backup_delete:
+#                 Delete the back up created using the backup_create command.
+#                 This command should only be used when calling
+#                 mm_local_helper_old.
+#             backup_restore:
+#                 Restore the back up created by backup_create command. This
+#                 command assumes that there is no other MiniMyth distribution
+#                 installed. Therefore, before running the mm_local_helper_old's
+#                 backup_restore command, run the mm_local_helper_new's delete
+#                 command. This command should only be used when calling
+#                 mm_local_helper_old.
+#             temp_delete:
+#                 Delete the fetch temporary files. This command can be used when
+#                 calling mm_local_helper_new.
+#
+#     URL:
+#         The URL that points to the directory containing the MiniMyth
+#         distribution to be installed. This parameter is used by the
+#         fetch_helper and fetch commands. The valid URL protocols are
+#         'http' are 'tftp'.
+#     BOOT_DIR:
+#     TEMP_DIR:
+#
+# Return Value:
+#     0: Command COMMAND succeeded.
+#     1: Command COMMAND failed.
+################################################################################
+
+script_file() {
+
+    local SCRIPT_FILE
+
+    SCRIPT_FILE=`echo $0 | sed -e 's%^.*/%%g'`
+
+    echo "${SCRIPT_FILE}"
+}
+
+script_dir() {
+
+    local SCRIPT_DIR
+
+    SCRIPT_DIR=`echo $0 | sed -e 's%/[^/]*$%%g'`
+    test ! "${SCRIPT_DIR}" = ""   || \
+        SCRIPT_DIR="`pwd`"
+    test ! "${SCRIPT_DIR}" = "$0" || \
+        SCRIPT_DIR="`pwd`"
+    SCRIPT_DIR=`cd ${SCRIPT_DIR} ; pwd`
+
+    echo "${SCRIPT_DIR}"
+}
+
+message_output() {
+    local ERROR=$1
+    local MESSAGE=$2
+
+    local SCRIPT_FILE
+
+    test -n "${ERROR}"                                                  || \
+        message_output 1 "message_output: argument 'ERROR' is missing." || \
+        return
+    test -n "${MESSAGE}"                                                  || \
+        message_output 1 "message_output: argument 'MESSAGE' is missing." || \
+        return
+
+    SCRIPT_FILE=`script_file`
+
+    if test ${ERROR} -eq 0 ; then
+        echo "info: ${SCRIPT_FILE}: ${MESSAGE}"
+        true
+        return
+    else
+        echo "error: ${SCRIPT_FILE}: ${MESSAGE}"
+        false
+        return
+    fi
+}
+
+url_file_fetch () {
+    local LOCAL_FILE=$1
+    local URL_PATH=$2
+
+    test -n "${LOCAL_FILE}"                                                  || \
+        message_output 1 "url_file_fetch: argument 'LOCAL_FILE' is missing." || \
+        return
+    test -n "${URL_PATH}"                                                  || \
+        message_output 1 "url_file_fetch: argument 'URL_PATH' is missing." || \
+        return
+
+    which cp > /dev/null 2>&1                                      || \
+        message_output 1 "url_file_fetch: command 'cp' not found." || \
+        return
+
+    cp -f "${URL_PATH}" "${LOCAL_FILE}" > /dev/null 2>&1 || \
+        return
+}
+
+url_http_fetch () {
+    local LOCAL_FILE=$1
+    local URL_PATH=$2
+    local URL_SERVER=$3
+    local URL=$4
+
+    test -n "${LOCAL_FILE}"                                                  || \
+        message_output 1 "url_http_fetch: argument 'LOCAL_FILE' is missing." || \
+        return
+    test -n "${URL_PATH}"                                                  || \
+        message_output 1 "url_http_fetch: argument 'URL_PATH' is missing." || \
+        return
+    test -n "${URL_SERVER}"                                                  || \
+        message_output 1 "url_http_fetch: argument 'URL_SERVER' is missing." || \
+        return
+    test -n "${URL}"                                                  || \
+        message_output 1 "url_http_fetch: argument 'URL' is missing." || \
+        return
+
+    which curl > /dev/null 2>&1                                      || \
+        message_output 1 "url_http_fetch: command 'curl' not found." || \
+        return
+
+    curl -L -o "${LOCAL_FILE}" "${URL}" > /dev/null 2>&1 || \
+        return
+}
+
+url_tftp_fetch () {
+    local LOCAL_FILE=$1
+    local URL_PATH=$2
+    local URL_SERVER=$3
+    local URL=$4
+
+    test -n "${LOCAL_FILE}"                                                  || \
+        message_output 1 "url_tftp_fetch: argument 'LOCAL_FILE' is missing." || \
+        return
+    test -n "${URL_PATH}"                                                  || \
+        message_output 1 "url_tftp_fetch: argument 'URL_PATH' is missing." || \
+        return
+    test -n "${URL_SERVER}"                                                  || \
+        message_output 1 "url_tftp_fetch: argument 'URL_SERVER' is missing." || \
+        return
+
+    which curl > /dev/null 2>&1                                      || \
+        message_output 1 "url_tftp_fetch: command 'curl' not found." || \
+        return
+
+    curl -L -o "${LOCAL_FILE}" "${URL}" > /dev/null 2>&1 || \
+        return
+}
+
+url_fetch() {
+    local URL=$1
+    local LOCAL_FILE=$2
+
+    test -n "${URL}"                                             || \
+        message_output 1 "url_fetch: argument 'URL' is missing." || \
+        return
+
+    local LOCAL_DIR
+    local URL_OPTIONS
+    local URL_PASSWORD
+    local URL_PATH
+    local URL_PROTOCOL
+    local URL_SERVER
+    local URL_USERNAME
+
+    URL_PROTOCOL=`echo "${URL}" | cut -d? -f1 | \
+                  cut -d: -f1`
+    URL_USERNAME=`echo "${URL}" | cut -d? -f1 | \
+                  sed 's%^[^:]*:%%' | sed 's%^//%%' | sed 's%[^@]*$%%'  | sed 's%@$%%' | cut -d: -f1`
+    URL_PASSWORD=`echo "${URL}" | cut -d? -f1 | \
+                  sed 's%^[^:]*:%%' | sed 's%^//%%' | sed 's%[^@]*$%%'  | sed 's%@$%%' | cut -d: -f2`
+    URL_SERVER=`  echo "${URL}" | cut -d? -f1 | \
+                  sed 's%^[^:]*:%%' | sed 's%^//%%' | sed 's%^[^@]*@%%' | sed 's%/[^/]*%%g'`
+    URL_PATH=`    echo "${URL}" | cut -d? -f1 | \
+                  sed 's%^[^:]*:%%' | sed 's%^//[^/]*/%/%'`
+    URL_OPTIONS=` echo "${URL}"               | \
+                  sed 's%^[^?]*%%'  | sed 's%^?%%'`
+
+    case ${URL_PROTOCOL} in
+        file|http|tftp)
+            if test -n "${LOCAL_FILE}" ; then
+                LOCAL_DIR=`echo "${LOCAL_FILE}" | sed -e 's%[^/]*$%%' -e 's%/$%%'`
+                test -z "${LOCAL_DIR}" || test -d "${LOCAL_DIR}" || mkdir -p "${LOCAL_DIR}" || \
+                    message_output 1 "cannot create directory '${LOCAL_DIR}'"               || \
+                    return
+                rm -fr "${LOCAL_FILE}"                                || \
+                    message_output 1 "cannot remove '${LOCAL_FILE}'." || \
+                    return
+                message_output 0 "fetching file '${URL}'."
+                url_${URL_PROTOCOL}_fetch "${LOCAL_FILE}" "${URL_PATH}" "${URL_SERVER}" "${URL}" || \
+                    return
+            fi
+            return
+            ;;
+        *)
+            message_output 1 "URL protocol '${URL_PROTOCOL}' is not supported." || \
+                return
+            return
+            ;;
+    esac
+}
+
+url_check() {
+    local URL=$1
+
+    test -n "${URL}"                                             || \
+        message_output 1 "url_check: argument 'URL' is missing." || \
+        return
+
+    url_fetch "${URL}" || \
+        return
+}
+
+distribution_check() {
+    local DIST_DIR=$1
+
+    local DIST_FILE
+    local DIST_FILE_LIST
+
+    test -n "${DIST_DIR}"                                                      || \
+        message_output 1 "distribution_check: argument 'DIST_DIR' is missing." || \
+        return
+
+    test -d "${DIST_DIR}"                                                       || \
+        message_output 1 "distribution directory '${DIST_DIR}' does not exist." || \
+        return
+    # Make sure that the source distribution manifest is present.
+    test -r "${DIST_DIR}/minimyth.md5"                                                   || \
+        message_output 1 "cannot read distribution manifest '${DIST_DIR}/minimyth.md5'." || \
+        return
+    # Get distribution file list.
+    DIST_FILE_LIST=`cat "${DIST_DIR}/minimyth.md5" | sed -e 's%  *% %g' | cut -d ' ' -f 2`
+    # Make sure that all source distribution files are present.
+    for DIST_FILE in ${DIST_FILE_LIST} ; do
+        test -e "${DIST_DIR}/${DIST_FILE}"                                                  || \
+            message_output 1 "distribution file '${DIST_DIR}/${DIST_FILE}' does not exist." || \
+            return
+    done
+    # Check distribution checksums.
+    cd "${DIST_DIR}" ; md5sum -c minimyth.md5 > /dev/null 2>&1
+    test $? -eq 0                                                            || \
+        message_output 1 "distribution '${DIST_DIR}' failed checksum check." || \
+        return
+}
+
+distribution_copy() {
+    local SOURCE_DIST_DIR=$1
+    local TARGET_DIST_DIR=$2
+
+    local DIST_FILE
+    local DIST_FILE_DIR
+    local DIST_FILE_LIST
+
+    test -n "${SOURCE_DIST_DIR}"                                                     || \
+        message_output 1 "distribution_copy: argument 'SOURCE_DIST_DIR' is missing." || \
+        return
+    test -n "${TARGET_DIST_DIR}"                                                     || \
+        message_output 1 "distribution_copy: argument 'TARGET_DIST_DIR' is missing." || \
+        return
+
+    # Check the source distribution.
+    distribution_check "${SOURCE_DIST_DIR}"
+    # Get distribution file list.
+    DIST_FILE_LIST=`cat "${SOURCE_DIST_DIR}/minimyth.md5" | sed -e 's%  *% %g' | cut -d ' ' -f 2`
+    # Make sure source distribution will not clobber any files in the target distribution.
+    for DIST_FILE in ${DIST_FILE_LIST} ; do
+        test ! -e "${TARGET_DIST_DIR}/${DIST_FILE}"                               || \
+             message_output 1 "'${TARGET_DIST_DIR}/${DIST_FILE}' already exists." || \
+             return
+    done
+    # Create target distribution (sub)directories.
+    test -d "${TARGET_DIST_DIR}" || mkdir -p "${TARGET_DIST_DIR}"           || \
+        message_output 1 "failed to create directory '${TARGET_DIST_DIR}'." || \
+        return
+    for DIST_FILE in ${DIST_FILE_LIST} ; do
+        DIST_FILE_DIR=`echo "${DIST_FILE}" | sed -e 's%[^/]*$%%' -e 's%/$%%'`
+        test -z "${DIST_FILE_DIR}" || mkdir -p "${TARGET_DIST_DIR}/${DIST_FILE_DIR}"              || \
+             message_output 1 "failed to create directory '${TARGET_DIST_DIR}/${DIST_FILE_DIR}'." || \
+             return
+    done
+    # Copy source distribution files to target distribution.
+    for DIST_FILE in ${DIST_FILE_LIST} ; do
+        cp -fr "${SOURCE_DIST_DIR}/${DIST_FILE}" "${TARGET_DIST_DIR}/${DIST_FILE}"                               || \
+             message_output 1 "failed to copy '${DIST_FILE}' from '${SOURCE_DIST_DIR}' to '${TARGET_DIST_DIR}'." || \
+             return
+    done
+    cp -fr "${SOURCE_DIST_DIR}/minimyth.md5" "${TARGET_DIST_DIR}/minimyth.md5"                               || \
+         message_output 1 "failed to copy 'minimyth.md5' from '${SOURCE_DIST_DIR}' to '${TARGET_DIST_DIR}'." || \
+         return
+}
+
+command_check() {
+    local URL=$1
+    local BOOT_DIR=$2
+    local TEMP_DIR=$3
+
+    test -n "${URL}"                                                 || \
+        message_output 1 "command_check: argument 'URL' is missing." || \
+        return
+    test -n "${BOOT_DIR}"                                                 || \
+        message_output 1 "command_check: argument 'BOOT_DIR' is missing." || \
+        return
+    test -n "${TEMP_DIR}"                                                 || \
+        message_output 1 "command_check: argument 'TEMP_DIR' is missing." || \
+        return
+
+    distribution_check "${BOOT_DIR}"
+}
+
+
+command_fetch_helper() {
+    local URL=$1
+    local BOOT_DIR=$2
+    local TEMP_DIR=$3
+
+    local HELPER_DIR
+
+    test -n "${URL}"                                                        || \
+        message_output 1 "command_fetch_helper: argument 'URL' is missing." || \
+        return
+    test -n "${BOOT_DIR}"                                                        || \
+        message_output 1 "command_fetch_helper: argument 'BOOT_DIR' is missing." || \
+        return
+    test -n "${TEMP_DIR}"                                                        || \
+        message_output 1 "command_fetch_helper: argument 'TEMP_DIR' is missing." || \
+        return
+
+    local HELPER_DIR=`script_dir`
+
+    url_fetch "${URL}/helper.tar.bz2" "${TEMP_DIR}/helper.tar.bz2"  || \
+	message_output 1 "failed to fetch '${URL}/helper.tar.bz2'." || \
+	return
+    cd "${TEMP_DIR}" ; tar -jxf 'helper.tar.bz2'                          || \
+        message_output 1 "failed to extract ${TEMP_DIR}/helper.tar.bz2'." || \
+        return
+    cd "${TEMP_DIR}/helper" ; md5sum -c 'mm_local_helper.md5' > /dev/null 2>&1         || \
+        message_output 1 "file '${TEMP_DIR}/helper/mm_local_helper' failed checksum check." || \
+        return
+    cp -fr "${TEMP_DIR}/helper/mm_local_helper" "${HELPER_DIR}/mm_local_helper_new"    || \
+        message_output 1 "failed to install 'mm_local_helper_new' in '${HELPER_DIR}'." || \
+        return
+    chmod 755 "${HELPER_DIR}/mm_local_helper_new"                                         || \
+        message_output 1 "failed to make '${HELPER_DIR}/mm_local_helper_new' executable." || \
+        return
+    rm -fr "${TEMP_DIR}/helper" || \
+        true
+}
+
+command_version_old () {
+    local URL=$1
+    local BOOT_DIR=$2
+    local TEMP_DIR=$3
+
+    local VERSION
+
+    test -n "${URL}"                                                       || \
+        message_output 1 "command_version_old: argument 'URL' is missing." || \
+        return
+    test -n "${BOOT_DIR}"                                                       || \
+        message_output 1 "command_version_old: argument 'BOOT_DIR' is missing." || \
+        return
+    test -n "${TEMP_DIR}"                                                       || \
+        message_output 1 "command_version_old: argument 'TEMP_DIR' is missing." || \
+        return
+
+    test -e "${BOOT_DIR}/version"                                                      || \
+        message_output 1 "command_version_old: file '${BOOT_DIR}/version' is missing." || \
+        return
+    VERSION=`cat ${BOOT_DIR}/version`
+    echo ${VERSION}
+}
+
+command_version_new () {
+    local URL=$1
+    local BOOT_DIR=$2
+    local TEMP_DIR=$3
+
+    local VERSION
+
+    test -n "${URL}"                                                       || \
+        message_output 1 "command_version_new: argument 'URL' is missing." || \
+        return
+    test -n "${BOOT_DIR}"                                                       || \
+        message_output 1 "command_version_new: argument 'BOOT_DIR' is missing." || \
+        return
+    test -n "${TEMP_DIR}"                                                       || \
+        message_output 1 "command_version_new: argument 'TEMP_DIR' is missing." || \
+        return
+
+    test -e "${TEMP_DIR}/version"                                                            || \
+        url_fetch "${URL}/version" "${TEMP_DIR}/version" > /dev/null 2>&1                    || \
+            message_output 1 "command_version_new: failed to download file '${URL}/version'" || \
+            return
+
+    test -e "${TEMP_DIR}/version"                                                      || \
+        message_output 1 "command_version_new: file '${TEMP_DIR}/version' is missing." || \
+        return
+
+    VERSION=`cat ${TEMP_DIR}/version`
+    echo ${VERSION}
+}
+
+command_fetch() {
+    local URL=$1
+    local BOOT_DIR=$2
+    local TEMP_DIR=$3
+
+    local VERSION
+
+    test -n "${URL}"                                                 || \
+        message_output 1 "command_fetch: argument 'URL' is missing." || \
+        return
+    test -n "${BOOT_DIR}"                                                 || \
+        message_output 1 "command_fetch: argument 'BOOT_DIR' is missing." || \
+        return
+    test -n "${TEMP_DIR}"                                                 || \
+        message_output 1 "command_fetch: argument 'TEMP_DIR' is missing." || \
+        return
+
+    VERSION=`cat ${TEMP_DIR}/version`
+    test -n "${VERSION}"                                              || \
+        message_output 1 "command_fetch: cannot determine 'VERSION'." || \
+        return
+
+    url_fetch "${URL}/ram-minimyth-${VERSION}.tar.bz2.md5" "${TEMP_DIR}/ram-minimyth-${VERSION}.tar.bz2.md5" || \
+        message_output 1 "command_fetch: failed to download file '${URL}/ram-minimyth-${VERSION}.tar.bz2.md5'" || \
+        return
+    url_fetch "${URL}/ram-minimyth-${VERSION}.tar.bz2" "${TEMP_DIR}/ram-minimyth-${VERSION}.tar.bz2" || \
+        message_output 1 "command_fetch: failed to download file '${URL}/ram-minimyth-${VERSION}.tar.bz2'" || \
+        return
+    cd "${TEMP_DIR}" ; md5sum -c "ram-minimyth-${VERSION}.tar.bz2.md5" > /dev/null 2>&1 || \
+        message_output 1 "command_check: file '${TEMP_DIR}/ram-minimyth-${VERSION}.tar.bz2' failed checksum check." || \
+        return
+    rm -fr "${TEMP_DIR}/ram-minimyth-${VERSION}.tar.bz2.md5" || \
+        true
+    cd "${TEMP_DIR}" ; tar -jxf "ram-minimyth-${VERSION}.tar.bz2"                          || \
+        message_output 1 "failed to extract '${TEMP_DIR}/ram-minimyth-${VERSION}.tar.bz2'." || \
+        return
+    rm -fr "${TEMP_DIR}/ram-minimyth-${VERSION}.tar.bz2" || \
+        true
+    mv "${TEMP_DIR}/ram-minimyth-${VERSION}" "${TEMP_DIR}/minimyth-${VERSION}" || 
+        true
+    distribution_check "${TEMP_DIR}/minimyth-${VERSION}"
+}
+
+command_install() {
+    local URL=$1
+    local BOOT_DIR=$2
+    local TEMP_DIR=$3
+
+    local SOURCE_DIST_DIR
+    local VERSION
+
+    test -n "${URL}"                                                   || \
+        message_output 1 "command_install: argument 'URL' is missing." || \
+        return
+    test -n "${BOOT_DIR}"                                                   || \
+        message_output 1 "command_install: argument 'BOOT_DIR' is missing." || \
+        return
+    test -n "${TEMP_DIR}"                                                   || \
+        message_output 1 "command_install: argument 'TEMP_DIR' is missing." || \
+        return
+
+    VERSION=`cat ${TEMP_DIR}/version`
+    test -n "${VERSION}"                                                || \
+        message_output 1 "command_install: cannot determine 'VERSION'." || \
+        return
+
+    SOURCE_DIST_DIR="${TEMP_DIR}/minimyth-${VERSION}"
+    distribution_copy "${SOURCE_DIST_DIR}" "${BOOT_DIR}"
+}
+
+command_delete() {
+    local URL=$1
+    local BOOT_DIR=$2
+    local TEMP_DIR=$3
+
+    local DIST_FILE
+    local DIST_FILE_DIR
+    local DIST_FILE_LIST
+
+    test -n "${URL}"                                                  || \
+        message_output 1 "command_delete: argument 'URL' is missing." || \
+        return
+    test -n "${BOOT_DIR}"                                                  || \
+        message_output 1 "command_delete: argument 'BOOT_DIR' is missing." || \
+        return
+    test -n "${TEMP_DIR}"                                                  || \
+        message_output 1 "command_delete: argument 'TEMP_DIR' is missing." || \
+        return
+
+    test -d "${BOOT_DIR}"                                                       || \
+        message_output 1 "distribution directory '${BOOT_DIR}' does not exist." || \
+        return
+    test -r "${BOOT_DIR}/minimyth.md5"                                                   || \
+        message_output 1 "cannot read distribution manifest '${BOOT_DIR}/minimyth.md5'." || \
+        return
+
+    DIST_FILE_LIST=`cat "${BOOT_DIR}/minimyth.md5" | sed -e 's%  *% %g' | cut -d ' ' -f 2`
+
+    for DIST_FILE in ${DIST_FILE_LIST} ; do
+        if test -e "${BOOT_DIR}/${DIST_FILE}" ; then
+            rm -fr ${BOOT_DIR}/${DIST_FILE}                                                    || \
+                message_output 1 "cannot delete distribution file '${BOOT_DIR}/${DIST_FILE}'." || \
+                return
+            DIST_FILE_DIR=`echo "${DIST_FILE}" | sed -e 's%[^/]*$%%' -e 's%/$%%'`
+            test -z "${DIST_FILE_DIR}"                                   || \
+                rmdir -p "${BOOT_DIR}/${DIST_FILE_DIR}" > /dev/null 2>&1 || \
+                true
+        fi
+    done
+    rm -fr "${BOOT_DIR}/minimyth.md5"                                                      || \
+        message_output 1 "cannot delete distribution manifest '${BOOT_DIR}/minimyth.md5'." || \
+        return
+}
+
+command_backup_create() {
+    local URL=$1
+    local BOOT_DIR=$2
+    local TEMP_DIR=$3
+
+    test -n "${URL}"                                                         || \
+        message_output 1 "command_backup_create: argument 'URL' is missing." || \
+        return
+    test -n "${BOOT_DIR}"                                                         || \
+        message_output 1 "command_backup_create: argument 'BOOT_DIR' is missing." || \
+        return
+    test -n "${TEMP_DIR}"                                                         || \
+        message_output 1 "command_backup_create: argument 'TEMP_DIR' is missing." || \
+        return
+
+    distribution_copy "${BOOT_DIR}" "${TEMP_DIR}/backup"
+}
+
+command_backup_delete() {
+    local URL=$1
+    local BOOT_DIR=$2
+    local TEMP_DIR=$3
+
+    test -n "${URL}"                                                         || \
+        message_output 1 "command_backup_delete: argument 'URL' is missing." || \
+        return
+    test -n "${BOOT_DIR}"                                                         || \
+        message_output 1 "command_backup_delete: argument 'BOOT_DIR' is missing." || \
+        return
+    test -n "${TEMP_DIR}"                                                         || \
+        message_output 1 "command_backup_delete: argument 'TEMP_DIR' is missing." || \
+        return
+
+    test ! -e "${TEMP_DIR}/backup" || rm -fr "${TEMP_DIR}/backup"               || \
+        message_output 1 "cannot delete backup directory '${TEMP_DIR}/backup'." || \
+        return
+}
+
+command_backup_restore() {
+    local URL=$1
+    local BOOT_DIR=$2
+    local TEMP_DIR=$3
+
+    test -n "${URL}"                                                          || \
+        message_output 1 "command_backup_restore: argument 'URL' is missing." || \
+        return
+    test -n "${BOOT_DIR}"                                                          || \
+        message_output 1 "command_backup_restore: argument 'BOOT_DIR' is missing." || \
+        return
+    test -n "${TEMP_DIR}"                                                          || \
+        message_output 1 "command_backup_restore: argument 'TEMP_DIR' is missing." || \
+        return
+
+    distribution_copy "${TEMP_DIR}/backup" "${BOOT_DIR}"
+}
+
+command_temp_delete() {
+    local URL=$1
+    local BOOT_DIR=$2
+    local TEMP_DIR=$3
+
+    test -n "${URL}"                                                       || \
+        message_output 1 "command_temp_delete: argument 'URL' is missing." || \
+        return
+    test -n "${BOOT_DIR}"                                                       || \
+        message_output 1 "command_temp_delete: argument 'BOOT_DIR' is missing." || \
+        return
+    test -n "${TEMP_DIR}"                                                       || \
+        message_output 1 "command_temp_delete: argument 'TEMP_DIR' is missing." || \
+        return
+
+    test ! -e "${TEMP_DIR}" || rm -fr "${TEMP_DIR}"                                || \
+        message_output 1 "failed to remove the temporary directory '${TEMP_DIR}'." || \
+        return
+}
+
+COMMAND=$1
+URL=$2
+BOOT_DIR=$3
+TEMP_DIR=$4
+
+test -n "${COMMAND}"                                  || \
+    message_output 1 "argument 'COMMAND' is missing." || \
+    exit 1
+test -n "${URL}"                                  || \
+    message_output 1 "argument 'URL' is missing." || \
+    exit 1
+test -n "${BOOT_DIR}"                                  || \
+    message_output 1 "argument 'BOOT_DIR' is missing." || \
+    exit 1
+test -n "${TEMP_DIR}"                                  || \
+    message_output 1 "argument 'TEMP_DIR' is missing." || \
+    exit 1
+
+case ${COMMAND} in
+    check|version_old|version_new|fetch_helper|fetch|install|delete|backup_create|backup_delete|backup_restore|temp_delete|local_install|local_update)
+        url_check "${URL}"                                  || \
+            message_output 1 "COMMAND='${COMMAND}' failed." || \
+            exit 1
+        command_${COMMAND} "${URL}" "${BOOT_DIR}" "${TEMP_DIR}" || \
+            message_output 1 "COMMAND='${COMMAND}' failed."     || \
+            exit 1
+        exit 0
+        ;;
+    *)
+        message_output 1 "COMMAND='${COMMAND}' is not a valid command." || \
+            exit 1
+        exit 0
+        ;;
+esac
+
+exit 0

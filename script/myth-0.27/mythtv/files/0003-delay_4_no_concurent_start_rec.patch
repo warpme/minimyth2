@@ -1,0 +1,94 @@
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythtv/tv_rec.cpp mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythtv/tv_rec.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythtv/tv_rec.cpp	2014-05-05 11:47:00.396069519 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythtv/tv_rec.cpp	2014-05-05 11:47:18.182631742 +0200
+@@ -46,6 +46,9 @@
+ /// How many milliseconds the signal monitor should wait between checks
+ const uint TVRec::kSignalMonitoringRate = 50; /* msec */
+ 
++/// How many ms delay staring recording for avoiding concurrent start of recordings
++const uint rec_delay_per_card = 500;
++
+ QMutex            TVRec::cardsLock;
+ QMap<uint,TVRec*> TVRec::cards;
+ 
+@@ -977,6 +980,32 @@
+     autoRunJobs.erase(autoJob);
+ }
+ 
++static int no_capturecards(uint cardid)
++{
++    MSqlQuery query(MSqlQuery::InitCon());
++
++    QString str =
++        "SELECT COUNT(cardid) "
++        "FROM capturecard ";
++
++    if (cardid)
++        str += "WHERE cardid < :CARDID";
++
++    query.prepare(str);
++
++    if (cardid)
++        query.bindValue(":CARDID", cardid);
++
++    if (!query.exec() || !query.isActive())
++    {
++        MythDB::DBError("no_capturecards", query);
++        return -1;
++    }
++    else if (query.next())
++        return query.value(0).toInt();
++    return -1;
++}
++
+ #define TRANSITION(ASTATE,BSTATE) \
+    ((internalState == ASTATE) && (desiredNextState == BSTATE))
+ #define SET_NEXT() do { nextState = desiredNextState; changed = true; } while(0)
+@@ -1034,6 +1063,14 @@
+     }
+     else if (TRANSITION(kState_None, kState_RecordingOnly))
+     {
++        int card_pos = no_capturecards(cardid);
++        int rec_start_delay = rec_delay_per_card * card_pos;
++
++        LOG(VB_RECORD, LOG_INFO, LOC +
++            QString("Delaying start of recording by %1msec").arg(rec_start_delay));
++        usleep(rec_start_delay*1000);
++        LOG(VB_RECORD, LOG_INFO, LOC +
++            "Now start recording...");
+         SetPseudoLiveTVRecording(NULL);
+         tuningRequests.enqueue(TuningRequest(kFlagRecording, curRecording));
+         SET_NEXT();
+@@ -1211,32 +1248,6 @@
+     return false;
+ }
+ 
+-static int no_capturecards(uint cardid)
+-{
+-    MSqlQuery query(MSqlQuery::InitCon());
+-
+-    QString str =
+-        "SELECT COUNT(cardid) "
+-        "FROM capturecard ";
+-
+-    if (cardid)
+-        str += "WHERE cardid < :CARDID";
+-
+-    query.prepare(str);
+-
+-    if (cardid)
+-        query.bindValue(":CARDID", cardid);
+-
+-    if (!query.exec() || !query.isActive())
+-    {
+-        MythDB::DBError("no_capturecards", query);
+-        return -1;
+-    }
+-    else if (query.next())
+-        return query.value(0).toInt();
+-    return -1;
+-}
+-
+ static int eit_start_rand(uint cardid, int eitTransportTimeout)
+ {
+     // randomize start time a bit

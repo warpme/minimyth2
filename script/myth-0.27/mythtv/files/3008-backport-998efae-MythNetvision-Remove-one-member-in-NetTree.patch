@@ -1,0 +1,95 @@
+From 998efae4324e4daa459f41a9f93fc8453e8bf3d4 Mon Sep 17 00:00:00 2001
+From: Jonatan Lindblad <jlindblad@mythtv.org>
+Date: Sun, 8 Jun 2014 01:10:43 +0200
+Subject: [PATCH 14/23] MythNetvision: Remove one member in NetTree
+
+---
+ .../mythnetvision/mythnetvision/nettree.cpp        |   25 +++++++++-----------
+ mythplugins/mythnetvision/mythnetvision/nettree.h  |    1 -
+ 2 files changed, 11 insertions(+), 15 deletions(-)
+
+diff --git a/mythplugins/mythnetvision/mythnetvision/nettree.cpp b/mythplugins/mythnetvision/mythnetvision/nettree.cpp
+index c19ad49..629fd05 100644
+--- a/mythplugins/mythnetvision/mythnetvision/nettree.cpp
++++ b/mythplugins/mythnetvision/mythnetvision/nettree.cpp
+@@ -42,8 +42,8 @@ namespace
+ NetTree::NetTree(DialogType type, MythScreenStack *parent, const char *name)
+     : NetBase(parent, name),
+       m_siteMap(NULL),               m_siteButtonList(NULL),
+-      m_siteGeneric(NULL),           m_rssGeneric(NULL),
+-      m_currentNode(NULL),           m_noSites(NULL),
++      m_siteGeneric(NULL),           m_currentNode(NULL),
++      m_noSites(NULL),
+       m_gdt(new GrabberDownloadThread(this)), m_type(type)
+ {
+     connect(m_gdt, SIGNAL(finished()), SLOT(DoTreeRefresh()));
+@@ -518,17 +518,18 @@ void NetTree::SwitchView()
+ void NetTree::FillTree()
+ {
+     // First let's add all the RSS
+-
+-    m_rssGeneric = new MythGenericTree(
+-                    RSSNode, kSubFolder, false);
++    if (!m_rssList.isEmpty())
++    {
++        MythGenericTree *rssGeneric =
++            new MythGenericTree(RSSNode, kSubFolder, false);
+ 
+     // Add an upfolder
+     if (m_type != DLG_TREE)
+     {
+-        m_rssGeneric->addNode(tr("Back"), kUpFolder, true, false);
++        rssGeneric->addNode(tr("Back"), kUpFolder, true, false);
+     }
+ 
+-    m_rssGeneric->SetData(QString("%1/mythnetvision/icons/rss.png")
++    rssGeneric->SetData(QString("%1/mythnetvision/icons/rss.png")
+          .arg(GetShareDir()));
+ 
+     RSSSite::rssList::iterator i = m_rssList.begin();
+@@ -539,7 +540,7 @@ void NetTree::FillTree()
+         MythGenericTree *ret = new MythGenericTree(
+                    (*i)->GetTitle(), kSubFolder, false);
+         ret->SetData(qVariantFromValue(*i));
+-        m_rssGeneric->addNode(ret);
++        rssGeneric->addNode(ret);
+ 
+         // Add an upfolder
+         if (m_type != DLG_TREE)
+@@ -554,12 +555,7 @@ void NetTree::FillTree()
+         }
+     }
+ 
+-    if (m_rssList.count() > 0)
+-        m_siteGeneric->addNode(m_rssGeneric);
+-    else
+-    {
+-        delete m_rssGeneric;
+-        m_rssGeneric = NULL;
++    m_siteGeneric->addNode(rssGeneric);
+     }
+ 
+     // Now let's add all the grabber trees
+@@ -878,6 +874,7 @@ void NetTree::DoTreeRefresh()
+ 
+ void NetTree::TreeRefresh()
+ {
++    delete m_siteGeneric;
+     m_siteGeneric = new MythGenericTree("site root", 0, false);
+     m_currentNode = m_siteGeneric;
+ 
+diff --git a/mythplugins/mythnetvision/mythnetvision/nettree.h b/mythplugins/mythnetvision/mythnetvision/nettree.h
+index 36e5d8c..83381cf 100644
+--- a/mythplugins/mythnetvision/mythnetvision/nettree.h
++++ b/mythplugins/mythnetvision/mythnetvision/nettree.h
+@@ -79,7 +79,6 @@ class NetTree : public NetBase
+     MythUIButtonTree   *m_siteMap;
+     MythUIButtonList   *m_siteButtonList;
+     MythGenericTree    *m_siteGeneric;
+-    MythGenericTree    *m_rssGeneric;
+     MythGenericTree    *m_currentNode;
+ 
+     MythUIText         *m_noSites;
+-- 
+1.7.10.2
+

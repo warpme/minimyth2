@@ -1,0 +1,25 @@
+#-------------------------------------------------------------------------------
+# Detect kbd devices.
+#
+# An kbd device is assumed to have the name event[0-9]*, be an input device
+# and either be a USB keyboard or use the atkbd driver.
+#
+# The state requires the kbd device name. However, since it is not yet
+# known, it cannot be added be included in mm_detect_state_kbd. Therefore,
+# the mm_detect script will prepend the kbd device name to the state.
+#-------------------------------------------------------------------------------
+ACTION!="add|change|remove", GOTO="end"
+KERNEL=="event[0-9]*",  SUBSYSTEM=="input", GOTO="begin"
+GOTO="end"
+LABEL="begin"
+
+ENV{mm_detect_state_kbd}=""
+
+SUBSYSTEMS=="usb", ATTRS{bInterfaceClass}=="03", ATTRS{bInterfaceProtocol}=="01", ENV{mm_detect_state_kbd}="usb"
+
+DRIVERS=="atkbd", ENV{mm_detect_state_kbd}="ps2"
+
+# The state has been set, so save it.
+ENV{mm_detect_state_kbd}=="?*", RUN+="/usr/lib/udev/mm_detect kbd %k $env{mm_detect_state_kbd} state_prepend_devname"
+
+LABEL="end"

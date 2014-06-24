@@ -1,0 +1,855 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head>
+    <meta name="author" content="Paul Bender" />
+    <meta name="copyright" content="2006-2008 Paul Bender &amp; minimyth.org" />
+    <meta name="keywords" content="Minimyth2,Linux,PVR,Linux,MythTV,diskless,Mini-ITX,ION,ION2,NUC" />
+    <meta name="description" content="" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Minimyth2 - Documents - Boot Instructions</title>
+    <style type="text/css" title="main-styles">
+      @import "css/minimyth.css";
+    </style>
+  </head>
+  <body>
+    <div class="main">
+      <div class="header">
+        <div class="heading">Minimyth2 from <a href="http://minimyth2.linuxd.org">minimyth2.linuxd.org</a></div>
+        <div class="menu">
+          <span class="menuItemFirst"><a href="index.html">Home</a></span>
+          <span class="menuItem"     ><a href="document.html">Documents</a></span>
+          <span class="menuItem"     >Boot</span>
+        </div>
+      </div>
+      <div class="middle">
+        <div class="heading">Boot Instructions</div>
+        <div id="toc" class="section">
+          <div class="heading">Table of contents</div>
+          <dl>
+            <dt><a href="#general">General</a></dt>
+            <dt><a href="#sequence">Boot Sequence</a></dt>
+            <dt><a href="#bootline">Boot Line Parameters</a></dt>
+            <dt><a href="#network">Network Boot</a></dt>
+            <dt><a href="#network-pxelinux">Network Boot using PXELINUX</a></dt>
+            <dt><a href="#network-pxelinux-ram">Network Boot using PXELINUX with a RAM Root File System</a></dt>
+            <dt><a href="#network-pxelinux-nfs">Network boot using PXELINUX with an NFS Root File System</a></dt>
+            <dt><a href="#network-gpxe">Network Boot using gPXE</a></dt>
+            <dt><a href="#network-gpxe-ram">Network Boot using gPXE with a RAM Root File System</a></dt>
+            <dt><a href="#network-gpxe-nfs">Network boot using gPXE with an NFS Root File System</a></dt>
+            <dt><a href="#local">Local Boot</a></dt>
+            <dt><a href="#local-syslinux">Local Boot using SYSLINUX</a></dt>
+            <dt><a href="#local-syslinux-ram-automated">Local Boot using SYSLINUX with a RAM Root File System (automated install)</a></dt>
+            <dt><a href="#local-syslinux-ram-manual">Local Boot using SYSLINUX with a RAM Root File System (manual install)</a></dt>
+          </dl>
+        </div>
+        <div id="general" class="section">
+          <div class="heading">General</div>
+          <p>
+            Minimyth2 supports two boot methods:
+          </p>
+          <ul>
+            <li>network boot and</li>
+            <li>local boot.</li>
+          </ul>
+          <p>
+            Minimyth2 supports two root file system types:
+          </p>
+          <ul>
+            <li>RAM root file system and</li>
+            <li>NFS root file system.</li>
+          </ul>
+          <p>
+            The primary combination is network boot with a RAM root file system.
+            Network boot with an NFS root file system was added to make development and debugging easier.
+            Local boot was added
+            to support networks that use a DHCP server that cannot be configured to support network boot, and
+            to support installations that desire more security than can be provided when the kernel, root file system
+            and configuration files are downloaded from a TFTP server.
+          </p>
+        </div>
+        <div id="sequence" class="section">
+          <div class="heading">Boot Sequence</div>
+          <p>
+            Like most Linux distributions, Minimyth2 must retrieve multiple items when it boots:
+          </p>
+          <ol>
+            <li>the boot loader,</li>
+            <li>the boot loader configuration,</li>
+            <li>the kernel,</li>
+            <li>the initial root file system (if needed),</li>
+            <li>the final root file system (if needed) and</li>
+          </ol>
+          <p>
+            In some cases, the initial root file system contains everything needed by the system.
+            In these cases, there is no need for a separate final root file system,
+            because the initial root file system contains all the functionality required of a final root file system.
+            For example, when the initial root file system contains all the needed application software,
+            there is not need for a separate final root file system.
+            Essentially, in these cases, the initial root file system is the final root file system.
+          </p>
+          <p>
+            For Minimyth2 using a RAM root file system, the RAM root file system is an initial root file system.
+            In addition, there is no final root file system
+            because the RAM root file system contains all the functionality needed to run Minimyth2.
+          </p>
+          <p>
+            In some cases, the kernel does not need any extra software in order to retrieve the final root file system.
+            In these cases, there is no need for a separate initial root file system,
+            because the kernel contains all the functionality required of an initial root file system.
+            For example, when all the kernel modules needed to retrieve the final root file system are compiled into the kernel,
+            there is no need for an initial root file system to contain and load the needed kernel modules.
+            Essentially, in these cases, the kernel is the initial root file system.
+          </p>
+          <p>
+            For Minimyth2 using an NFS root file system, the NFS root file system is a final root file system.
+            In addition, there is no initial root file system
+            because the kernel contains all the functionality needed to mount an NFS root file system.
+          </p>
+          <p>
+            The item retrieval is a chained sequence of events:
+          </p>
+          <ol>
+            <li>the computer BIOS retrieves the boot loader,</li>
+            <li>the boot loader retrieves the boot loader configuration, the kernel and the initial root file system (if needed),</li>
+            <li>the kernel and the initial root file system retrieve the final root file system (if needed) and</li>
+            <li>the root file system retrieves the Minimyth2 configuration.</li>
+          </ol>
+          <p>
+            These items need not be retrieved from the same same location. In fact, these items can be divided into three location groups:
+          </p>
+          <ul>
+            <li>the boot loader, the boot loader configuration, the kernel and the initial root file system (if needed),</li>
+            <li>the final root file system (if needed) and</li>
+            <li>the Minimyth2 configuration.</li>
+          </ul>
+          <p>
+            How and from where these items are retrieved depends on the boot method and the root file system type.
+          </p>
+          <p>
+            For Minimyth2 using network boot,
+            the boot loader, the boot loader configuration, the kernel,
+            the initial root file system (if needed) and the Minimyth2 configuration
+            are retrieved from a server on the network.
+            For Minimyth2 using local boot,
+            the boot loader, the boot loader configuration, the kernel,
+            the initial root file system (if needed) and the Minimyth2 configuration
+            are retrieved from the local storage device.
+          </p>
+          <p>
+            For Minimyth2 using a RAM root file system,
+            there is no final root file system.
+            For Minimyth2 using an NFS root file system,
+            the final root file system is mounted over the network.
+          </p>
+        </div>
+        <div id="bootline" class="section">
+          <div class="heading">Boot Line Parameters</div>
+          <p>
+            You can affect Minimyth2 with boot line (the APPEND line for PXELINUX and SYSLINUX) configuration.
+            You can find more information in the
+            <a href="document-configure.html#bootline">configuration obtained from the boot line</a>
+            section.
+          </p>
+        </div>
+        <div id="network" class="section">
+          <div class="heading">Network Boot</div>
+          <p>
+            For network boot, you must be able to send boot file name n the DHCP's DHCPOFFER message.
+            Most Windows, MacOS, Linux and BSD based DHCP servers support sending the boot file name.
+            However, most DHCP servers found in off-the-shelf home routers do not support sending the boot file name.
+            Therefore, if you are running a computer based DHCP server,
+            then you will likely be able to configure and send the boot file name.
+            However, if you are running an off-the-shelf home router based DHCP server,
+            then you will likely not be able to configure and send the boot file name.
+          </p>
+          <p>
+            In addition, for network boot,
+            you must be able to run a TFTP server on your network.
+            There are TFTP servers for Windows, MacOS, Linux and BSD.
+            Therefore, if you have an always-on computer on your network, then you will likely be able to run a TFTP server.
+            However, if you do not have an always on computer on your network, then you will likely not be able to run a TFTP server.
+          </p>
+          <p>
+            If constraints prevent you from meeting either of these two network boot requirements, then your only option is to use the
+            <a href="#local">local boot</a> method.
+          </p>
+          <p>
+            For network boot, you need a motherboard and network interface adapter that support network boot.
+            While there are other kinds of network boot, the most common is the
+            <a href="http://www.pix.net/software/pxeboot/archive/pxespec.pdf">industry standard</a>
+            <a href="http://en.wikipedia.org/wiki/Preboot_Execution_Environment">PXE (Preboot eXecution Environment)</a>
+            network boot.
+            Most modern motherboards with integrated network interface adapters support PXE network boot.
+            Therefore, this is the network boot method that we will cover.
+          </p>
+          <p>
+            For PXE network boot, you need a PXE boot loader.
+            While their are other PXE boot loaders,
+            one of the most widely used PXE boot loaders is
+            <a href="http://syslinux.zytor.com/pxe.php">PXELINUX</a>
+            and one of the most flexible PXE boot loaders is
+            <a href="http://ipxe.org/">iPXE</a>.
+            Therefore, these are the PXE boot loaders that we will cover.
+          </p>
+        </div>
+        <div id="network-pxelinux" class="section">
+          <div class="heading">Network Boot using PXELINUX</div>
+          <p>
+            For PXELINUX based
+            <a href="#network">network boot</a>,
+            the following sequence occurs:
+          </p>
+          <ul>
+            <li>
+              The computer BIOS sends a BOOTP request to the DHCP server.
+            </li>
+            <li>
+              The DHCP server tells the computer BIOS
+              the IP address of the TFTP server and the location on the TFTP server of the PXELINUX boot loader,
+              and the BIOS retrieves the PXELINUX boot loader from the TFTP server.
+            </li>
+            <li>
+              The PXELINUX boot loader tells the PXELINUX boot loader
+              the location on the TFTP server of the PXELINUX boot loader configuration file,
+              and the PXELINUX boot loader retrieves the PXELINUX boot loader configuration file from the TFTP server.
+            </li>
+            <li>
+              The PXELINUX boot loader configuration file tells the PXELINUX boot loader
+              the location on the TFTP server of the kernel file and initial root file system file (if needed),
+              and the PXELINUX boot loader retrieves the kernel file and the inital root file system (if needed) from the TFTP server.
+            </li>
+            <li>
+              The PXELINUX boot loader configuration file tells the PXELINUX boot loader, the kernel and the initial root file system (if present)
+              the location of the final root file system file (if needed),
+              and the kernel and initial root file system (if present) mount the final root file system (if needed).
+              <ul>
+                <li>
+                  For an NFS root file system,
+                  the location is the IP address of NFS server and the location on the NFS server of the root file system file.
+                </li>
+              </ul>
+            </li>
+          </ul>
+          <p>
+            Givin that most people run their MythTV backend on Linux,
+            the most common scenerio for network boot is a network running the
+            <a href="http://www.isc.org/index.pl?/sw/dhcp/">ISC DHCP</a>
+            server, running a Linux TFTP server and
+            using PXELINUX.
+            There are numerous guides on the Internet for setting up this network boot configuration.
+            I think that the one created for
+            <a href="http://www.viaarena.com/Default.aspx?PageID=5&amp;ArticleID=52">network booting an EPIA M motherboard</a> is the best.
+          </p>
+          <p>
+            However, this guide was not written specifically for Minimyth2.
+            As a result, the contents of the PXELINUX configuration file and the prefered locations of the kernel and root file system are different.
+            Therefore, for this information, be sure to look at the
+            <a href="#network-pxelinux-ram">network boot using PXELINUX with a RAM root file system</a>
+            section or the
+            <a href="#network-pxelinux-nfs">network boot using PXELINUX with an NFS root file system</a>
+            section, depending on which root file system type you have chosen.
+          </p>
+        </div>
+        <div id="network-pxelinux-ram" class="section">
+          <div class="heading">Network Boot using PXELINUX with a RAM Root File System</div>
+          <p>
+            First, follow the instructions
+            for setting up PXE network boot using PXELINUX found in the
+            <a href="#network-pxelinux">network boot using PXELINUX</a> section.
+          </p>
+          <p>
+            Your PXELINUX configuration file should contain the following, where '{version}' is the version of the Minimyth2 distribution (e.g. 0.21.0-53):
+          </p>
+          <pre>
+DEFAULT minimyth-ram
+
+LABEL minimyth-ram
+	KERNEL minimyth-{version}/kernel
+	APPEND ro root=/dev/ram0 ramdisk_size=192000 initrd=minimyth-{version}/rootfs
+          </pre>
+          <p>
+            Once you have set up your DHCP and TFTP servers for network boot,
+            you need to download and install the files for booting a RAM root file system
+            by following these steps:
+          </p>
+          <ol>
+            <li>
+              Download the files that are necessary for booting a RAM root file system.
+              These files can be found in the 'boot-image.tar.bz2' file in a Minimyth2 download page.
+            </li>
+            <li>
+              Extract the 'boot-image.tar.bz2' file
+              by running the command 'tar&nbsp;-jxf&nbsp;boot-image.tar.bz2.
+              This should create the directory 'ram-minimyth-{version}'.
+            </li>
+            <li>
+              Change to the user 'root'.
+            </li>
+            <li>
+              Create a directory named 'minimyth-{version}' in the '{boot}' directory.
+              The '{boot}' directory is the Minimyth2 boot directory on your TFTP server,
+              which is the directory on the TFTP server that contains the PXELINUX boot loader file ('pxelinux.0').
+            </li>
+            <li>
+              Copy the 'kernel' file from the 'ram-minimyth-{version}' directory to the '{boot}/minimyth-{version}' directory.
+            </li>
+            <li>
+              Copy the 'rootfs' file from the 'ram-minimyth-{version}' directory to the '{boot}/minimyth-{version}' directory.
+            </li>
+          </ol>
+          <p>
+            Finally, create an appropriate Minimyth2 read-only configuration directory in the '{boot}' directory.
+            You can find out how to do this in the
+            <a href="document-configure.html">Minimyth2 configuration instructions</a>.
+            If you already have a Minimyth2 read-only configuration directory be sure that it is up-to-date for the version of MiniMyth you plan to run.
+          </p>
+        </div>
+        <div id="network-pxelinux-nfs" class="section">
+          <div class="heading">Network Boot using PXELINUX with an NFS Root File System</div>
+          <p>
+            First, follow the instructions
+            for setting up PXE network boot using PXELINUX found in the
+            <a href="#network-pxelinux">network boot using PXELINUX</a> section.
+          </p>
+          <p>
+            Your PXELINUX configuration file should contain the following, where
+             '{version}' is the version of the Minimyth2 distribution (e.g. 0.21.0-53),
+            '{nfs-server}' is the IPv4 address of the NFS server and
+            '{nfs-directory}/minimyth-{version}' is the Minimyth2 root file system shared by the NFS server:
+          </p>
+          <pre>
+DEFAULT minimyth-nfs
+
+LABEL minimyth-nfs
+	KERNEL minimyth-{version}/kernel
+	APPEND ro root=/dev/nfs ip=dhcp nfsroot={nfs-server}:/{nfs-directory}/minimyth-{version}
+          </pre>
+          <p>
+            Once you have set up your DHCP and TFTP servers for network boot,
+            you need to download and install the files for booting an NFS root file system
+            by following these steps:
+          </p>
+          <ol>
+            <li>
+              Download the files that are necessary for booting an NFS root file system.
+              These files can be found in the 'nfs-minimyth-{version}.tar.bz2' file in a Minimyth2 distribution download directory.
+              The location of the Minimyth2 distribution download directories can be found in the
+              <a href="download.html">Minimyth2 download instructions</a>.
+            </li>
+            <li>
+              Extract the 'nfs-minimyth-{version}.tar.bz2' file
+              by running the command 'tar&nbsp;-jxf&nbsp;nfs-minimyth-{version}.tar.bz2.
+              This should create the directory 'nfs-minimyth-{version}'.
+            </li>
+            <li>
+              Change to the user 'root'.
+            </li>
+            <li>
+              Create a directory named 'minimyth-{version}' in the '{boot}' directory.
+              The '{boot}' directory is the Minimyth2 boot directory on your TFTP server,
+              which is the directory on the TFTP server that contains the PXELINUX boot loader file ('pxelinux.0').
+            </li>
+            <li>
+              Copy the 'kernel' file from the 'nfs-minimyth-{version}' directory to the '{boot}/minimyth-{version}' directory.
+            </li>
+            <li>
+              Extract the 'nfs-minimyth-{version}/rootfs.tar.bz2' file
+              by running the command 'tar&nbsp;-jxf&nbsp;rootfs.tar.bz2' in the 'nfs-minimyth-${version}' directory.
+              This should create the directory nfs-minimyth-{version}/rootfs'.
+            </li>
+            <li>
+               Move the contents of the 'nfs-minimyth-{version}/themes' directory to the
+               'nfs-minimyth-{version}/rootfs/rootfs-ro/usr/share/mythtv/themes' directory.
+            </li>
+            <li>
+              Create a directory named 'minimyth-{version}' in the '{nfs-directory}' directory.
+              The '{nfs-directory}' directory is a directory on your NFS server.
+            </li>
+            <li>
+              Move the contents of the 'nfs-minimyth-{version}/rootfs' directory to the '{nfs-directory}/minimyth-{version}' directory.
+            </li>
+            <li>
+              Share the '{nfs-directory}/minimyth-{version}' directory using NFS.
+              This NFS share can (and should) be read only and squash root.
+            </li>
+          </ol>
+          <p>
+            Finally, create an appropriate Minimyth2 read-only configuration directory in the '{boot}' directory.
+            You can find out how to do this in the
+            <a href="document-configure.html">Minimyth2 configuration instructions</a>.
+            If you already have a Minimyth2 read-only configuration directory be sure that it is up-to-date for the version of MiniMyth you plan to run.
+          </p>
+        </div>
+        <div id="network-gpxe" class="section">
+          <div class="heading">Network Boot using gPXE</div>
+          <p>
+            For iPXE based
+            <a href="#network">network boot</a>,
+            the following sequence occurs:
+          </p>
+          <ul>
+            <li>
+              The computer BIOS sends a BOOTP request to the DHCP server.
+            </li>
+            <li>
+              The DHCP server tells the computer BIOS
+              the IP address of the TFTP server and the location on the TFTP server of the iPXE boot loader,
+              and the BIOS retrieves the iPXE boot loader from the TFTP server.
+            </li>
+            <li>
+              The DHCP server tells the iPXE boot loader
+              the URI of the iPXE boot loader configuration file,
+              and the iPXE boot loader retrieves the iPXE boot loader configuration file found at the URI.
+            </li>
+            <li>
+              The iPXE boot loader configuration file tells the iPXE boot loader
+              the URI of the kernel file and the URI of the initial root file system file (if needed),
+              and the iPXE boot loader retrieves the kernel file and the inital root file system (if needed) found at their respecitve URIs.
+            </li>
+            <li>
+              The iPXE boot loader configuration file tells the iPXE boot loader, the kernel and the initial root file system (if present)
+              the location of the final root file system file (if needed),
+              and the kernel and initial root file system (if present) mount the final root file system (if needed).
+              <ul>
+                <li>
+                  For an NFS root file system,
+                  the location is the IP address of NFS server and the location on the NFS server of the root file system file.
+                </li>
+              </ul>
+            </li>
+          </ul>
+          <p>
+            Givin that most people run their MythTV backend on Linux,
+            the most common scenerio for network boot is a network running the
+            <a href="http://www.isc.org/index.pl?/sw/dhcp/">ISC DHCP</a>
+            server, running a Linux TFTP server and
+            using PXELINUX.
+            There are numerous guides on the Internet for setting up this network boot configuration.
+            Unfortunately, there are few guides on the Internet for network boot on a network running the
+            <a href="http://www.isc.org/index.pl?/sw/dhcp/">ISC DHCP</a>
+            server, running a Linux TFTP,
+            running the
+            <a href="http://httpd.apache.org/">Apache HTTP</a>
+            server and chainloading iPXE.
+          </p>
+        </div>
+        <div id="network-gpxe-ram" class="section">
+          <div class="heading">Network Boot using gPXE with a RAM Root File System</div>
+          <p>
+            First, follow the instructions
+            for setting up PXE network boot using iPXE found in the
+            <a href="#network-gpxe">network boot using iPXE</a> section.
+          </p>
+          <p>
+            Your iPXE configuration file should contain the following, where '{version}' is the version of the Minimyth2 distribution (e.g. 0.21.0-53):
+          </p>
+          <pre>
+#!gpxe
+
+kernel http://tftp.home/minimyth/minimyth-{version}/kernel ro root=/dev/ram0 ramdisk_size=192000
+initrd http://tftp.home/minimyth/minimyth-{version}/rootfs
+
+boot
+          </pre>
+          <p>
+            Once you have set up your DHCP, TFTP and HTTP servers for network boot,
+            you need to download and install the files for booting a RAM root file system
+            by following these steps:
+          </p>
+          <ol>
+            <li>
+              Download the files that are necessary for booting a RAM root file system.
+              These files can be found in the 'boot-image.tar.bz2' file in a Minimyth2 download page.
+            </li>
+            <li>
+              Extract the 'ram-minimyth-{version}.tar.bz2' file
+              by running the command 'tar&nbsp;-jxf&nbsp;boot-image.tar.bz2.
+              This should create the directory 'ram-minimyth-{version}'.
+            </li>
+            <li>
+              Change to the user 'root'.
+            </li>
+            <li>
+              Create a directory named 'minimyth-{version}' in the '{boot}' directory.
+              The '{boot}' directory is the Minimyth2 boot directory on your TFTP server,
+              which is the directory on the TFTP server that contains the iPXE boot loader file ('iPXE.0').
+            </li>
+            <li>
+              Copy the 'kernel' file from the 'ram-minimyth-{version}' directory to the '{boot}/minimyth-{version}' directory.
+            </li>
+            <li>
+              Copy the 'rootfs' file from the 'ram-minimyth-{version}' directory to the '{boot}/minimyth-{version}' directory.
+            </li>
+          </ol>
+          <p>
+            Finally, create an appropriate Minimyth2 read-only configuration directory in the '{boot}' directory.
+            You can find out how to do this in the
+            <a href="document-configure.html">Minimyth2 configuration instructions</a>.
+            If you already have a Minimyth2 read-only configuration directory be sure that it is up-to-date for the version of MiniMyth you plan to run.
+          </p>
+        </div>
+        <div id="network-gpxe-nfs" class="section">
+          <div class="heading">Network Boot using iPXE with an NFS Root File System</div>
+          <p>
+            First, follow the instructions
+            for setting up PXE network boot using iPXE found in the
+            <a href="#network-gpxe">network boot using iPXE</a> section.
+          </p>
+          <p>
+            Your iPXE configuration file should contain the following, where
+             '{version}' is the version of the Minimyth2 distribution (e.g. 0.21.0-53),
+            '{nfs-server}' is the IPv4 address of the NFS server and
+            '{nfs-directory}/minimyth-{version}' is the Minimyth2 root file system shared by the NFS server:
+          </p>
+          <pre>
+#!gpxe
+
+kernel http://tftp.home/minimyth/minimyth-{version}/kernel ro root=/dev/nfs ip=dhcp nfsroot={nfs-server}:/{nfs-directory}/minimyth-{version}
+
+boot
+          </pre>
+          <p>
+            Once you have set up your DHCP, TFTP and HTTP servers for network boot,
+            you need to download and install the files for booting an NFS root file system
+            by following these steps:
+          </p>
+          <ol>
+            <li>
+              Download the files that are necessary for booting an NFS root file system.
+              These files can be found in the 'nfs-minimyth-{version}.tar.bz2' file in a Minimyth2 distribution download directory.
+              The location of the Minimyth2 distribution download directories can be found in the
+              <a href="download.html">Minimyth2 download instructions</a>.
+            </li>
+            <li>
+              Extract the 'nfs-minimyth-{version}.tar.bz2' file
+              by running the command 'tar&nbsp;-jxf&nbsp;nfs-minimyth-{version}.tar.bz2.
+              This should create the directory 'nfs-minimyth-{version}'.
+            </li>
+            <li>
+              Change to the user 'root'.
+            </li>
+            <li>
+              Create a directory named 'minimyth-{version}' in the '{boot}' directory.
+              The '{boot}' directory is the Minimyth2 boot directory on your TFTP server,
+              which is the directory on the TFTP server that contains the gPXE boot loader file ('gpxe.0').
+            </li>
+            <li>
+              Copy the 'kernel' file from the 'nfs-minimyth-{version}' directory to the '{boot}/minimyth-{version}' directory.
+            </li>
+            <li>
+              Extract the 'nfs-minimyth-{version}/rootfs.tar.bz2' file
+              by running the command 'tar&nbsp;-jxf&nbsp;rootfs.tar.bz2' in the 'nfs-minimyth-${version}' directory.
+              This should create the directory nfs-minimyth-{version}/rootfs'.
+            </li>
+            <li>
+              Extract the 'nfs-minimyth-{version}/themes.tar.bz2' file
+              by running the command 'tar&nbsp;-jxf&nbsp;themes.tar.bz2' in the 'nfs-minimyth-${version}' directory.
+              This should create the directory nfs-minimyth-{version}/themes'.
+            </li>
+            <li>
+               Move the contents of the 'nfs-minimyth-{version}/themes' directory to the
+               'nfs-minimyth-{version}/rootfs/rootfs-ro/usr/share/mythtv/themes' directory.
+            </li>
+            <li>
+              Create a directory named 'minimyth-{version}' in the '{nfs-directory}' directory.
+              The '{nfs-directory}' directory is a directory on your NFS server.
+            </li>
+            <li>
+              Move the contents of the 'nfs-minimyth-{version}/rootfs' directory to the '{nfs-directory}/minimyth-{version}' directory.
+            </li>
+            <li>
+              Share the '{nfs-directory}/minimyth-{version}' directory using NFS.
+              This NFS share can (and should) be read only and squash root.
+            </li>
+          </ol>
+          <p>
+            Finally, create an appropriate Minimyth2 read-only configuration directory in the '{boot}' directory.
+            You can find out how to do this in the
+            <a href="document-configure.html">Minimyth2 configuration instructions</a>.
+            If you already have a Minimyth2 read-only configuration directory be sure that it is up-to-date for the version of MiniMyth you plan to run.
+          </p>
+        </div>
+        <div id="local" class="section">
+          <div class="heading">Local Boot</div>
+          <p>
+            Minimyth2 can boot from a local flash device.
+            It can boot from a USB flash disk connected using USB.
+            It can boot from a CompactFlash card connected using a CF-to-IDE adapter.
+            However, it should be noted that people have had trouble
+            with <em>very long</em> loading times for the Minimyth2 kernel and MiniMyth RAM root file system
+            when booting from a USB flash disk.
+          </p>
+          <p>
+            Since Minimyth2 make no assumptions about the media,
+            it should be able to local boot from other types of local storage devices (e.g. a hard disk) as well.
+            However, we have not tested this and this page does not contain instructions for these configuations.
+          </p>
+          <p>
+            For local boot, you can use any boot loader that is able to boot Linux from a FAT partition and has inital RAM disk (initrd) support.
+            Boot loaders that meet these requirements include popular boot loaders such as
+            <a href="http://www.gnu.org/software/grub/">GRUB</a>
+            and
+            <a href="http://lilo.go.dyndns.org/">LILO</a>.
+            However, in this documentation and the automated installation scripts, we use
+            <a href="http://syslinux.zytor.com/faq.php">SYSLINUX</a>,
+            which is a close relative of the
+            <a href="http://syslinux.zytor.com/pxe.php">PXELINUX</a>
+            boot loader that we use to support
+            <a href="#network-pxelinux">network boot using PXELINUX</a>.
+          </p>
+        </div>
+        <div id="local-syslinux" class="section">
+          <div class="heading">Local Boot using SYSLINUX</div>
+          <p>
+            For SYSLINUX based
+            <a href="#local">local boot</a>,
+            the following sequence occurs:
+          </p>
+          <ul>
+            <li>
+              The computer BIOS queries the local storage device for the location on the local storage device of the SYSLINUX boot loader.
+            </li>
+            <li>
+              The boot sector on the local storage device tells the computer BIOS
+              the location on the local storage device of the SYSLINUX boot loader file,
+              and the BIOS retrieves the SYSLINUX boot loader from the local storage device.
+            </li>
+            <li>
+              The SYSLINUX boot loader tells the SYSLINUX boot loader
+              the location on the local storage device of the SYSLINUX boot loader configuration file,
+              and the SYSLINUX boot loader retrieves the SYSLINUX boot loader configuration file.
+            </li>
+            <li>
+              The SYSLINUX boot loader contfiguration file tells the SYSLINUX boot loader
+              the location on the local storage device of the kernel file and initial root file system file (if needed),
+              and the SYSLINUX boot loader retrieves the kernel and the initial root file system image (if needed).
+            </li>
+            <li>
+              The SYSLINUX boot loader contfiguration file tells the SYSLINUX boot loader, the kernel and the initial root file system (if present)
+              the location of the final root file system (if needed),
+              and the kernel and initial root file system (if present) mount the final root file system (if needed).
+            </li>
+          </ul>
+          <p>
+            There is no reason that Minimyth2 cannot local boot the boot loader and kernel while using an NFS root file system.
+            However, we have not tested this and this page does not include instructions for this configuration.
+          </p>
+          <p>
+            There is no reason that Minimyth2 cannot local boot with a regular (non RAM) root file system.
+            However, we have not tested and this page does not include instructions for this configuration.
+          </p>
+          <p>
+            This leaves us with local boot with a RAM root file system.
+          </p>
+          <p>
+            Given that most people run their MythTV backend on Linux,
+            most people should have a computer running Linux.
+            Therefore, we will give instructions for installing local boot Minimyth2 using a computer running Linux.
+          </p>
+          <p>
+            The are two methods for creating a Minimyth2 local boot device with a RAM root file system:
+            <a href="#local-syslinux-ram-automated">automated</a>
+            and
+            <a href="#local-syslinux-ram-manual">manual</a>.
+            We will cover both.
+          </p>
+        </div>
+        <div id="local-syslinux-ram-automated" class="section">
+          <div class="heading">Local Boot using SYSLINUX with a RAM Root File System (automated install)</div>
+          <p>
+          </p>
+          <p>
+            The Minimyth2 distribution contains a shell script that will create a MiniMyth local boot device
+            from a USB connected, flash device.
+            This shell script attempts to detect the flash device and automates the manual steps for creating a Minimyth2 local boot device
+            with a RAM root file system.
+            To run this shell script, do the following:
+          </p>
+          <ol>
+            <li>
+              If you do not already have one,
+              create a Minimyth2 read-only configuration directory with your desired files.
+              You can find out how to do this in the
+              <a href="document-configure.html">Minimyth2 configuration instructions</a>.
+              If you already have a Minimyth2 read-only configuration directory be sure that it is up-to-date for the version of MiniMyth you plan to run.
+            </li>
+            <li>
+              Connect your flash device to the computer running Linux through the USB interface.
+              A USB flash disk can be connected directly.
+              A CompactFlash card can be connected through a USB card reader.
+            </li>
+            <li>
+              Download the 'mm_local_install' and 'mm_local_helper' shell scripts
+              from the Minimyth2 distribution download directory's 'scripts' directory.
+              The location of the Minimyth2 distribution download directories can be found in the
+              <a href="download.html">Minimyth2 download instructions</a>.
+            </li>
+            <li>
+              Run the command 'bash mm_local_install {directory}',
+              where '{directory}' is the directory that contains your Minimyth2 read-only configuration directory.
+            </li>
+            <li>
+              Review the information reported by 'mm_local_install' and decide whether or not allow 'mm_local_install' to continue.
+              If the flash device is not correct or 'mm_local_install' was unable to detect the flash device,
+              then you can provide the desired flash device as the second argument to 'mm_local_install'.
+              If the Minimyth2 distribution download URL is not correct or you want to install a MiniMyth distribution from a different location,
+              then you can provide the URL that points to the desired Minimyth2 distribution as the third argument of 'mm_local_install'.
+            </li>
+            <li>
+              Disconnect your flash device from the computer and connect it to your Minimyth2 frontend.
+            </li>
+          </ol>
+          <p>
+            If you want to see what was installed on the flash device, you can reconnect it and mount it.
+            Essentially, 'mm_local_install' formatted the flash device as FAT,
+            installed the SYSLINUX boot loader and boot loader configuration file,
+            and installed all the files in the 'ram-minimyth-{version}.tar.bz2' file from the Minimyth2 distribution,
+            including the 'minimyth.md5' file, 'kernel' file, the 'rootfs' file and the 'themes' directory.
+          </p>
+        </div>
+        <div id="local-syslinux-ram-manual" class="section">
+          <div class="heading">Local Boot using SYSLINUX with a RAM Root File System (manual install)</div>
+          <p>
+            If there is some reason that you cannot perform (or do not wish to perform) an
+            <a href="local-syslinux-ram-automated">automated install</a>,
+            then you can perform a manual install by following the instructions below:
+          </p>
+          <ol>
+            <li>
+              If you do not already have one,
+              create a Minimyth2 read-only configuration directory with your desired files.
+              You can find out how to do this in the
+              <a href="document-configure.html">Minimyth2 configuration instructions</a>.
+              If you already have a Minimyth2 read-only configuration directory be sure that it is up-to-date for the version of MiniMyth you plan to run.
+            </li>
+            <li>
+              Connect your flash device to the computer through the USB interface.
+              A USB flash disk can be connected directly.
+              A CompactFlash card can be connected through a USB card reader.
+            </li>
+            <li>
+              Download the files that are necessary for booting a RAM root file system.
+              These files can be found in the 'ram-minimyth-{version}.tar.bz2' file in a Minimyth2 distribution download directory.
+              The location of the Minimyth2 distribution download directories can be found in the
+              <a href="download.html">Minimyth2 download instructions</a>.
+            </li>
+            <li>
+              Extract the 'ram-minimyth-{version}.tar.bz2' file
+              by running the command 'tar&nbsp;-jxf&nbsp;ram-minimyth-{version}.tar.bz2.
+              This should create the directory 'ram-minimyth-{version}'.
+            </li>
+            <li>
+              Change to the user 'root'.
+            </li>
+            <li>
+              Make sure that your flash device is not mounted
+              by running the command 'umount&nbsp;/dev/{device}',
+              where '{device}' is your flash device (e.g. sda).
+            </li>
+            <li>
+              Format your flash device with the label 'minimyth' and a FAT file system having lowercase and long file name support
+              by running the command 'mkfs.msdos&nbsp;-I&nbsp;-F&nbsp;32&nbsp;-n&nbsp;minimyth&nbsp;/dev/{device}'.
+              The FAT file system is used because it is supported by both SYSLINUX and Minimyth2.
+              The lowercase and long file name support is needed
+              because configuration file names are case sensitive and do not conform to the 8.3 file format.
+              The label 'minimyth' is used because Minimyth2 identifies any partition labeled 'minimyth' as the MiniMyth boot partition.
+            </li>
+            <li>
+              Install the SYSLINUX boot loader on your flash device
+              by running the command 'syslinux&nbsp;/dev/{device}'.
+            </li>
+            <li>
+              Mount your flash device
+              by running the command 'mount&nbsp;/dev/{device}&nbsp;{boot}',
+              where '{boot}' is a mount point of your choosing.
+            </li>
+            <li>
+              Create the SYSLINUX configuration file '{boot}/syslinux.cfg' containing
+              <pre>
+DEFAULT minimyth-ram
+
+LABEL minimyth-ram
+	KERNEL kernel
+	APPEND ro root=/dev/ram0 ramdisk_size=96000 initrd=rootfs
+              </pre>
+            </li>
+            <li>
+              Copy the 'kernel' file from the 'ram-minimyth-{version}' directory to the '{boot}' directory.
+            </li>
+            <li>
+              Copy the 'rootfs' file from the 'ram-minimyth-{version}' directory to the '{boot}' directory.
+            </li>
+            <li>
+              Copy the 'themes' directory from the 'ram-minimyth-{version}' directory to the '{boot}' directory.
+            </li>
+            <li>
+              Create the Minimyth2 distribution file list
+              by running the command
+              'cd&nbsp;${boot}&nbsp;;&nbsp;md5sum&nbsp;`ls&nbsp;-1&nbsp;kernel&nbsp;rootfs&nbsp;themes/*`&nbsp;&gt;&nbsp;minimyth.md5'.
+              The Minimyth2 distribution file list will be needed in the future
+              when running the local boot update command 'mm_local_update'
+              to update your Minimyth2 distribution to the latest version.
+            </li>
+            <li>
+              Copy your Minimyth2 read-only configuration directory ('conf') to the '{boot}' directory.
+            </li>
+            <li>
+              Make sure that everything has been written to your flash device
+              by running the command 'sync'.
+            </li>
+            <li>
+              Unmount your flash device
+              by running the command 'umount&nbsp;${boot}'.
+            </li>
+            <li>
+              Disconnect your flash device from the computer and connect it to your Minimyth2 frontend.
+            </li>
+          </ol>
+          <p>
+            While we have used the SYSLINUX boot loader,
+            there should be no reason that you cannot use a different boot loader,
+            but we have not tested this.
+            Independent of the boot loader used,
+            you must format the drive/partition as FAT,
+            because that is the only file system recognized by Minimyth2.
+            Independent of the boot loader used,
+            you the file system must support lowercase and long file names,
+            because configuration files are case sensitive and do not conform to the 8.3 file format.
+          </p>
+          <p>
+            While we have used a flash device,
+            there should be no reason that you cannot use a different local storage devcie (e.g. a hard disk),
+            but we have not tested this.
+          </p>
+          <p>
+            While we have used a computer running Linux to perform the manual install,
+            there should be no reason that you cannot use a computer running Windows to perform the manual install,
+            but we have not tested this.
+            <a href="http://syslinux.zytor.com/faq.php">The SYSLINUX website</a>
+            has instructions for installing the SYSLINUX boot loader from a computer running Windows.
+            When creating text files such as the SYSLINUX configuration file and the Minimyth2 configuration file and script,
+            be sure that you use an editor that writes Unix text file format and not DOS text file format.
+          </p>
+        </div>
+      </div>
+      <div class="footer">
+        <hr />
+        <div class="valid-xhtml">
+          <a href="http://validator.w3.org/check?uri=referer"><img
+              src="/image/w3c-valid-xhtml11-blue.gif"
+              alt="Valid XHTML 1.1" height="31" width="88" /></a>
+        </div>
+        <div class="valid-css">
+          <a href="http://jigsaw.w3.org/css-validator/check/referer"><img
+              src="/image/w3c-valid-css2-blue.gif"
+              alt="Valid CSS!"      height="31" width="88" /></a>
+        </div>
+        <div class="version">
+          Last Updated on 2008-11-06
+          <br />
+          &lt;&nbsp;mailto&nbsp;:&nbsp;warpme&nbsp;at&nbsp;o2&nbsp;dot&nbsp;pl&nbsp;&gt;
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

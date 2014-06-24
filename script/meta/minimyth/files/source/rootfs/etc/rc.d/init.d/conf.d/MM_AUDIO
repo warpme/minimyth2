@@ -1,0 +1,80 @@
+################################################################################
+# MM_AUDIO configuration variables and files.
+################################################################################
+. /lib/minimyth/mm_detect
+
+conf_clean_MM_AUDIO() {
+    /bin/rm -rf /tmp/init.conf.audio
+
+    return 0
+}
+
+conf_check_MM_AUDIO() {
+    if /usr/bin/test ! -z "${MM_AUDIO_TYPE}"                    && \
+       /usr/bin/test !    "${MM_AUDIO_TYPE}" = "analog"         && \
+       /usr/bin/test !    "${MM_AUDIO_TYPE}" = "digital"        && \
+       /usr/bin/test !    "${MM_AUDIO_TYPE}" = "digital+analog" ; then
+        mm_message_output err "error: MM_AUDIO_TYPE='${MM_AUDIO_TYPE}' is not valid."
+    fi
+
+    return 0
+}
+
+conf_default_MM_AUDIO() {
+    local AUDIO
+    local AUDIO_CARD_NUMBER
+    local AUDIO_DEVICE_NUMBER
+
+    if /usr/bin/test -z "${MM_AUDIO_TYPE}" ; then
+        MM_AUDIO_TYPE='digital+analog'
+    fi
+
+    if /usr/bin/test "${MM_AUDIO_CARD_NUMBER}" = "auto" ; then
+        MM_AUDIO_CARD_NUMBER=''
+    fi
+    if /usr/bin/test "${MM_AUDIO_DEVICE_NUMBER}" = "auto" ; then
+        MM_AUDIO_DEVICE_NUMBER=''
+    fi
+
+    if /usr/bin/test -z "${MM_AUDIO_CARD_NUMBER}" || /usr/bin/test -z "${MM_AUDIO_DEVICE_NUMBER}" ; then
+        AUDIO=`mm_detect_state_get 'audio' | /usr/bin/cut -d ' ' -f 1`
+        if /usr/bin/test -n "${AUDIO}" ; then
+            AUDIO_CARD_NUMBER="`  /bin/echo ${AUDIO} | /usr/bin/cut -d ',' -f 1`"
+            AUDIO_DEVICE_NUMBER="`/bin/echo ${AUDIO} | /usr/bin/cut -d ',' -f 2`"
+            /usr/bin/logger -t minimyth -p "local0.info" "[conf.d/audio] audio card recognized by udev. card/device numbers are ${AUDIO_CARD_NUMBER},${AUDIO_DEVICE_NUMBER}"
+            if /usr/bin/test -z "${MM_AUDIO_CARD_NUMBER}" ; then
+                MM_AUDIO_CARD_NUMBER=${AUDIO_CARD_NUMBER}
+            fi
+            if /usr/bin/test -z "${MM_AUDIO_DEVICE_NUMBER}" ; then
+                MM_AUDIO_DEVICE_NUMBER=${AUDIO_DEVICE_NUMBER}
+            fi
+        else
+            /usr/bin/logger -t minimyth -p "local0.warn" "[conf.d/audio] audio card is unrecognized by udev..."
+        fi
+    fi
+    if /usr/bin/test -z "${MM_AUDIO_CARD_NUMBER}" ; then
+        /usr/bin/logger -t minimyth -p "local0.warn" "[conf.d/audio] unrecognized audio card. assuming audio card number as '0'."
+        MM_AUDIO_CARD_NUMBER='0'
+    fi
+    if /usr/bin/test -z "${MM_AUDIO_DEVICE_NUMBER}" ; then
+        /usr/bin/logger -t minimyth -p "local0.warn" "[conf.d/audio] unrecognized audio device. assuming audio device number as '0'."
+        MM_AUDIO_DEVICE_NUMBER='0'
+    fi
+
+    return 0
+}
+
+conf_write_MM_AUDIO() {
+    local conf_file=$1
+
+    conf_variable_write "${conf_file}" MM_AUDIO_TYPE                      "${MM_AUDIO_TYPE}"
+    conf_variable_write "${conf_file}" MM_AUDIO_CARD_NUMBER               "${MM_AUDIO_CARD_NUMBER}"
+    conf_variable_write "${conf_file}" MM_AUDIO_DEVICE_NUMBER             "${MM_AUDIO_DEVICE_NUMBER}"
+    conf_variable_write "${conf_file}" MM_AUDIO_RECON_DISP_FOR_RELOAD_ELD "${MM_AUDIO_RECON_DISP_FOR_RELOAD_ELD}"
+
+    return 0
+}
+
+conf_fetch_MM_AUDIO() {
+    return 0
+}

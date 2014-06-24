@@ -1,0 +1,86 @@
+#!/bin/sh
+################################################################################
+# cpu
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    local kernel_module
+    local kernel_module_path
+    local dir
+
+    if /usr/bin/test "${MM_CPU_FETCH_MICROCODE_DAT}" = "yes" ; then
+        mm_message_output info "loading CPU microcode ..."
+
+        if /usr/bin/test ! -e /lib/firmware/microcode.dat ; then
+            mm_message_output err "error: '/lib/firmware/microcode.dat' does not exist."
+            exit 1
+        fi
+
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/cpu] Converting microcode.dat to ucode..."
+        cd /lib/firmware && /usr/bin/intel-microcode2ucode > /dev/null 2>&1
+
+        if /usr/bin/test -e /lib/firmware/intel-ucode ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/cpu] Loading ucode to CPU..."
+            /sbin/modprobe microcode
+        else
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/cpu] Converting microcode.dat to ucode failed..."
+        fi
+    fi
+
+    mm_message_output info "starting CPU frequency scaling ..."
+
+    if /usr/bin/test ! "${MM_CPU_FREQUENCY_GOVERNOR}" = "performance" ; then
+        # Load CPU frequency scaling processor kernel modules.
+        # Kernel modules that do not support the CPU should fail to load.
+        /bin/ls /lib/modules/*/kernel/drivers/cpu/cpufreq/ \
+        | while read kernel_module_path ; do
+            kernel_module=`/usr/bin/basename "${kernel_module_path}" '.ko'`
+            /sbin/modprobe ${kernel_module} || /bin/true
+        done
+        # Load CPU frequency governor kernel module.
+        kernel_module="cpufreq-${MM_CPU_FREQUENCY_GOVERNOR}"
+        if ! /sbin/modprobe ${kernel_module} > /dev/null 2>&1 ; then
+            mm_message_output err "error: failed to load kernel module: ${kernel_module}"
+            exit 1
+        fi
+        # Wait for everything to settle.
+        /usr/bin/udevadm settle --timeout=60
+
+        for dir in /sys/devices/system/cpu/cpu*/cpufreq ; do
+            /bin/echo "${MM_CPU_FREQUENCY_GOVERNOR}" > ${dir}/scaling_governor
+        done
+
+        if /usr/bin/test "${MM_CPU_FREQUENCY_GOVERNOR}" = "userspace" ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/cpu] Starting userspace daemon with ${MM_CPU_USERSPACE_GOV_PARAMS} parameters"
+            /usr/sbin/powernowd ${MM_CPU_USERSPACE_GOV_PARAMS}
+        fi
+    fi
+
+    return 0
+}
+
+stop() {
+
+    local dir
+
+    mm_message_output info "stopping CPU frequency scaling ..."
+
+    if /usr/bin/test -n "`/bin/pidof powernowd`" ; then
+        /usr/bin/killall powernowd
+    fi
+
+    for dir in /sys/devices/system/cpu/cpu*/cpufreq ; do
+        /bin/echo performance > ${dir}/scaling_governor
+    done
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0

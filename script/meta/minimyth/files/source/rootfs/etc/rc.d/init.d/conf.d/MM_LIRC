@@ -1,0 +1,202 @@
+################################################################################
+# MM_LIRC configuration variables and files.
+################################################################################
+. /lib/minimyth/mm_detect
+
+conf_clean_MM_LIRC() {
+    /bin/rm -rf /tmp/init.conf.lirc
+
+    return 0
+}
+
+conf_check_MM_LIRC() {
+    # Check for obsolete value.
+    if /usr/bin/test "${MM_LIRC_DRIVER}"        = "auto"           ; then
+        mm_message_output err "error: 'minimyth.conf' is out of date. MM_LIRC_DRIVER='auto' is obsolete."
+    fi
+    if /usr/bin/test "${MM_LIRC_DRIVER}"        = "mceusbnew"      ; then
+        mm_message_output err "error: 'minimyth.conf' is out of date. MM_LIRC_DRIVER='mceusbnew' is obsolete."
+    fi
+    if /usr/bin/test "${MM_LIRC_KERNEL_MODULE}" = "lirc_mceusbnew" ; then
+        mm_message_output err "error: 'minimyth.conf' is out of date. MM_LIRC_KERNEL_MODULE='lirc_mceusbnew' is obsolete."
+    fi
+
+    if /usr/bin/test -z "${MM_LIRC_DRIVER}" || /usr/bin/test "${MM_LIRC_DRIVER}" = "none" ; then
+        if /usr/bin/test ! -z "${MM_LIRC_DEVICE}" ; then
+            mm_message_output err "error: 'MM_LIRC_DRIVER' must be set when 'MM_LIRC_DEVICE' is set."
+        fi
+        if /usr/bin/test ! -z "${MM_LIRC_KERNEL_MODULE}" ; then
+            mm_message_output err "error: 'MM_LIRC_DRIVER' must be set when 'MM_LIRC_KERNEL_MODULE' is set."
+        fi
+        if /usr/bin/test ! -z "${MM_LIRC_KERNEL_MODULE_OPTIONS}" ; then
+            mm_message_output err "error: 'MM_LIRC_DRIVER' must be set when 'MM_LIRC_KERNEL_MODULE_OPTIONS' is set."
+        fi
+    fi
+}
+
+conf_default_MM_LIRC() {
+
+    local device
+    local device_item
+    local device_list
+
+    if /usr/bin/test -z "${MM_LIRC_DRIVER}" ; then
+        MM_LIRC_DRIVER='none'
+    fi
+    if /usr/bin/test -z "${MM_LIRC_DEVICE}" ; then
+        MM_LIRC_DEVICE='auto'
+    fi
+    if /usr/bin/test -z "${MM_LIRC_KERNEL_MODULE}" ; then
+        MM_LIRC_KERNEL_MODULE='auto'
+    fi
+    if /usr/bin/test -z "${MM_LIRC_KERNEL_MODULE_OPTIONS}" ; then
+        MM_LIRC_KERNEL_MODULE_OPTIONS='auto'
+    fi
+    if /usr/bin/test -z "${MM_LIRC_IREXEC_ENABLED}" ; then
+        MM_LIRC_IREXEC_ENABLED='auto'
+    fi
+    if /usr/bin/test -z "${MM_LIRC_SLEEP_ENABLED}" ; then
+        MM_LIRC_SLEEP_ENABLED='yes'
+    fi
+    if /usr/bin/test -z "${MM_LIRC_WAKEUP_ENABLED}" ; then
+        MM_LIRC_WAKEUP_ENABLED='yes'
+    fi
+
+    if /usr/bin/test -z "${MM_LIRC_FETCH_LIRCD_CONF}" ; then
+        MM_LIRC_FETCH_LIRCD_CONF='no'
+    fi
+    if /usr/bin/test -z "${MM_LIRC_FETCH_IRBLASTER_CONF}" ; then
+        MM_LIRC_FETCH_IRBLASTER_CONF='no'
+    fi
+    if /usr/bin/test -z "${MM_LIRC_FETCH_LIRCRC}"     ; then
+        MM_LIRC_FETCH_LIRCRC='no'
+    fi
+    if /usr/bin/test -z "${MM_LIRC_AUTO_ENABLED}" ; then
+        if /usr/bin/test "${MM_LIRC_DRIVER}" = "none" ; then
+            MM_LIRC_AUTO_ENABLED='yes'
+        else
+            MM_LIRC_AUTO_ENABLED='no'
+        fi
+    fi
+
+    # Read LIRC driver specific configuration file,
+    # but do not allow the values to override values in the MiniMyth configuration file.
+    if /usr/bin/test ! "${MM_LIRC_DRIVER}" = "none" && \
+       /usr/bin/test -r /etc/lirc.d/driver.conf.d/driver.conf.${MM_LIRC_DRIVER} ; then
+        /bin/rm -rf /tmp/driver.conf.${MM_LIRC_DRIVER}~
+        /bin/cat /etc/lirc.d/driver.conf.d/driver.conf.${MM_LIRC_DRIVER} \
+            | /bin/sed -e 's%#.*$%%g' \
+            | /bin/sed -e 's%^  *%%'  \
+            | /bin/sed -e 's%^\(.*\)$%local _\1%' \
+            > /tmp/driver.conf.${MM_LIRC_DRIVER}~
+        . /tmp/driver.conf.${MM_LIRC_DRIVER}~
+        /bin/rm -rf /tmp/driver.conf.${MM_LIRC_DRIVER}~
+ 
+       if /usr/bin/test "${MM_LIRC_DEVICE}" = "auto" ; then
+           MM_LIRC_DEVICE="${_MM_LIRC_DEVICE}"
+       fi
+       if /usr/bin/test "${MM_LIRC_KERNEL_MODULE}" = "auto" ; then
+           MM_LIRC_KERNEL_MODULE="${_MM_LIRC_KERNEL_MODULE}"
+       fi
+       if /usr/bin/test "${MM_LIRC_KERNEL_MODULE_OPTIONS}" = "auto" ; then
+           MM_LIRC_KERNEL_MODULE_OPTIONS="${_MM_LIRC_KERNEL_MODULE_OPTIONS}"
+       fi
+    fi
+
+    # Convert 'auto' to empty.
+    if /usr/bin/test "${MM_LIRC_DEVICE}" = "auto" ; then
+        MM_LIRC_DEVICE=
+    fi
+    if /usr/bin/test "${MM_LIRC_KERNEL_MODULE}" = "auto" ; then
+        MM_LIRC_KERNEL_MODULE=
+    fi
+    if /usr/bin/test "${MM_LIRC_KERNEL_MODULE_OPTIONS}" = "auto" ; then
+        MM_LIRC_KERNEL_MODULE_OPTIONS=
+    fi
+
+    # Convert 'none' to empty.
+    if /usr/bin/test "${MM_LIRC_DRIVER}" = "none" ; then
+        MM_LIRC_DRIVER=
+    fi
+    if /usr/bin/test "${MM_LIRC_DEVICE}" = "none" ; then
+        MM_LIRC_DEVICE=
+    fi
+    if /usr/bin/test "${MM_LIRC_KERNEL_MODULE}" = "none" ; then
+        MM_LIRC_KERNEL_MODULE=
+    fi
+    if /usr/bin/test "${MM_LIRC_KERNEL_MODULE_OPTIONS}" = "none" ; then
+        MM_LIRC_KERNEL_MODULE_OPTIONS=
+    fi
+
+    # If the manual LIRC driver is not 'irtrans',
+    # then create LIRC device list.
+    # If the manually configured LIRC driver is 'irtrans',
+    # then the IRTrans server will act as the LIRC device
+    # so no LIRC device list is created.
+    MM_LIRC_DEVICE_LIST=
+    if /usr/bin/test ! "${MM_LIRC_DRIVER}" = "irtrans" ; then
+        if /usr/bin/test -n "${MM_LIRC_DEVICE}" && /usr/bin/test -n "${MM_LIRC_DRIVER}" ; then
+            MM_LIRC_DEVICE_LIST="${MM_LIRC_DEVICE_LIST} ${MM_LIRC_DEVICE},${MM_LIRC_DRIVER}"
+        fi
+        if /usr/bin/test "${MM_LIRC_AUTO_ENABLED}" = "yes" ; then
+            MM_LIRC_DEVICE_LIST="${MM_LIRC_DEVICE_LIST} `mm_detect_state_get 'lirc' | mm_uniq`"
+        fi
+    fi
+
+    device_list=
+    for device_item in ${MM_LIRC_DEVICE_LIST} ; do
+        device=`/bin/echo "${device_item}" | /usr/bin/cut -d ',' -f 1`
+        if ! /bin/echo " ${MM_LIRC_DEVICE_BLACKLIST} " | /bin/grep -q " ${device} " ; then
+            device_list="${device_list} ${device_item}"
+        fi
+    done
+    MM_LIRC_DEVICE_LIST="${device_list}"
+
+    return 0
+}
+
+conf_write_MM_LIRC() {
+    local conf_file=$1
+
+    conf_variable_write "${conf_file}" MM_LIRC_AUTO_ENABLED          "${MM_LIRC_AUTO_ENABLED}"
+    conf_variable_write "${conf_file}" MM_LIRC_DEVICE_BLACKLIST      "${MM_LIRC_DEVICE_BLACKLIST}"
+    conf_variable_write "${conf_file}" MM_LIRC_DRIVER                "${MM_LIRC_DRIVER}"
+    conf_variable_write "${conf_file}" MM_LIRC_DEVICE                "${MM_LIRC_DEVICE}"
+    conf_variable_write "${conf_file}" MM_LIRC_KERNEL_MODULE         "${MM_LIRC_KERNEL_MODULE}"
+    conf_variable_write "${conf_file}" MM_LIRC_KERNEL_MODULE_OPTIONS "${MM_LIRC_KERNEL_MODULE_OPTIONS}"
+    conf_variable_write "${conf_file}" MM_LIRC_IREXEC_ENABLED        "${MM_LIRC_IREXEC_ENABLED}"
+    conf_variable_write "${conf_file}" MM_LIRC_SLEEP_ENABLED         "${MM_LIRC_SLEEP_ENABLED}"
+    conf_variable_write "${conf_file}" MM_LIRC_WAKEUP_ENABLED        "${MM_LIRC_WAKEUP_ENABLED}"
+    conf_variable_write "${conf_file}" MM_LIRC_FETCH_LIRCD_CONF      "${MM_LIRC_FETCH_LIRCD_CONF}"
+    conf_variable_write "${conf_file}" MM_LIRC_FETCH_IRBLASTER_CONF  "${MM_LIRC_FETCH_IRBLASTER_CONF}"
+    conf_variable_write "${conf_file}" MM_LIRC_FETCH_LIRCRC          "${MM_LIRC_FETCH_LIRCRC}"
+    conf_variable_write "${conf_file}" MM_LIRC_DEVICE_LIST           "${MM_LIRC_DEVICE_LIST}"
+
+    return 0
+}
+
+conf_fetch_MM_LIRC() {
+    if /usr/bin/test "${MM_LIRC_FETCH_LIRCD_CONF}" = "yes" ; then
+        /bin/rm -f /etc/lircd.conf
+        mm_confro_get /lircd.conf /etc/lircd.conf
+        if /usr/bin/test ! -e /etc/lircd.conf ; then
+            mm_message_output err "error: failed to fetch 'lircd.conf' file."
+        fi
+    fi
+    if /usr/bin/test "${MM_LIRC_FETCH_LIRCRC}" = "yes" ; then
+        /bin/rm -f /etc/lircrc
+        mm_confro_get /lircrc /etc/lircrc
+        if /usr/bin/test ! -e /etc/lircrc ; then
+            mm_message_output err "error: failed to fetch 'lircrc' file."
+        fi
+    fi
+    if /usr/bin/test "${MM_LIRC_FETCH_IRBLASTER_CONF}" = "yes" ; then
+        /bin/rm -f /etc/lirc.d/irblaster.conf.d/lircd.conf.user.equipment
+        mm_confro_get /lircd-irblaster.conf /etc/lirc.d/irblaster.conf.d/lircd.conf.user.equipment
+        if /usr/bin/test ! -e /etc/lirc.d/irblaster.conf.d/lircd.conf.user.equipment ; then
+            mm_message_output err "error: failed to fetch 'lircd-irblaster.conf' file."
+        fi
+    fi
+
+    return 0
+}

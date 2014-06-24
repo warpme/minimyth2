@@ -1,0 +1,43 @@
+From 2b9231bb09aa97cf2f6f2f155f6740f2d3d527d5 Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Thu, 19 Jun 2014 04:02:24 +1000
+Subject: [PATCH 07/10] =?UTF-8?q?Return=20an=20error=20when=20the=20file=20c?=
+ =?UTF-8?q?ouldn=E2=80=99t=20be=20successfully=20opened?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Otherwise it just cause the created ringbuffer to keep reading the file over and over
+---
+ mythtv/programs/mythbackend/mainserver.cpp |   13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/mythtv/programs/mythbackend/mainserver.cpp b/mythtv/programs/mythbackend/mainserver.cpp
+index 7b181bb..6eec76e 100644
+--- a/mythtv/programs/mythbackend/mainserver.cpp
++++ b/mythtv/programs/mythbackend/mainserver.cpp
+@@ -1796,10 +1796,19 @@ void MainServer::HandleAnnounce(QStringList &slist, QStringList commands,
+             ft = new FileTransfer(filename, socket, usereadahead, timeout_ms);
+         }
+ 
+-        ft->IncrRef();
+-
+         sockListLock.lockForWrite();
+         controlSocketList.remove(socket);
++        if (!ft->isOpen())
++        {
++            sockListLock.unlock();
++            LOG(VB_GENERAL, LOG_ERR, LOC +
++                QString("Can't open %1").arg(filename));
++            errlist << "filetransfer_unable_to_open_file";
++            socket->WriteStringList(errlist);
++            ft->DecrRef();
++            return;
++        }
++        ft->IncrRef();
+         fileTransferList.push_back(ft);
+         sockListLock.unlock();
+ 
+-- 
+1.7.10.2
+

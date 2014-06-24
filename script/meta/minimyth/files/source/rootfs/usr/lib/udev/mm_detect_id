@@ -1,0 +1,109 @@
+#!/bin/sh
+################################################################################
+# mm_detect_id
+#
+# This script identifies the hardware supporting a device so that it can be
+# used by udev. It outputs the variable 'mm_detect_id'.
+# mm_detect_id has the following formats:
+#     pci:<class>:<class_prog>:<vendor>:<device>:<subsystem_vendor>:<subsystem_device>
+#     usb:<idVendor>:<idProduct>
+################################################################################
+
+script='BEGIN
+        {
+            FS="\n"
+            RS=""
+            mm_detect_id=""
+        }
+        mm_detect_id !~ /^$/ { next }
+        $1 !~ /^ *looking at / { next }
+        {
+            x = 1
+            subsystem=""
+            while ( x < NF ) {
+                x++
+                if ( $x ~ /^ *SUBSYSTEMS?=="pci"/ ) {
+                    subsystem="pci"
+                    break
+                }
+                if ( $x ~ /^ *SUBSYSTEMS?=="usb"/ ) {
+                    subsystem="usb"
+                    break
+                }
+            }
+            if ( subsystem == "pci" ) {
+                class=""
+                class_prog=""
+                vendor=""
+                device=""
+                subsystem_vendor=""
+                subsystem_device=""
+                while ( x < NF ) {
+                    x++
+                    if ( $x ~ /^ *ATTRS?\{class\}==/ ) {
+                        class=$x
+                        sub(/^ *ATTRS?\{class\}=="0x/, "", class)
+                        sub(/"$/, "", class)
+                        class_prog=class
+                        sub(/..$/, "" , class)
+                        sub(/^..../, "" , class_prog)
+                    }
+                    if ( $x ~ /^ *ATTRS?\{vendor\}==/ ) {
+                        vendor=$x
+                        sub(/^ *ATTRS?\{vendor\}=="0x/, "", vendor)
+                        sub(/"$/, "", vendor)
+                    }
+                    if ( $x ~ /^ *ATTRS?\{device\}==/ ) {
+                        device=$x
+                        sub(/^ *ATTRS?\{device\}=="0x/, "", device)
+                        sub(/"$/, "", device)
+                    }
+                    if ( $x ~ /^ *ATTRS?\{subsystem_vendor\}==/ ) {
+                        subsystem_vendor=$x
+                        sub(/^ *ATTRS?\{subsystem_vendor\}=="0x/, "", subsystem_vendor)
+                        sub(/"$/, "", subsystem_vendor)
+                    }
+                    if ( $x ~ /^ *ATTRS?\{subsystem_device\}==/ ) {
+                        subsystem_device=$x
+                        sub(/^ *ATTRS?\{subsystem_device\}=="0x/, "", subsystem_device)
+                        sub(/"$/, "", subsystem_device)
+                    }
+                }
+                if ( class && class_prog && vendor && device && subsystem_vendor && subsystem_device ) {
+                    mm_detect_id="pci:" class ":" class_prog ":" vendor ":" device ":" subsystem_vendor ":" subsystem_device
+                }
+            }
+            if ( subsystem == "usb" ) {
+                idVendor=""
+                idProduct=""
+                while ( x < NF ) {
+                    x++
+                    if ( $x ~ /^ *ATTRS?\{idVendor\}==/ ) {
+                        idVendor=$x
+                        sub(/^ *ATTRS?\{idVendor\}=="/, "", idVendor)
+                        sub(/"$/, "", idVendor)
+                        if ( idVendor == "0000" ) {
+                            idVendor=""
+                        }
+                    }
+                    if ( $x ~ /^ *ATTRS?\{idProduct\}==/ ) {
+                        idProduct=$x
+                        sub(/^ *ATTRS?\{idProduct\}=="/, "", idProduct)
+                        sub(/"$/, "", idProduct)
+                        if ( idProduct == "0000" ) {
+                            idProduct=""
+                        }
+                    }
+                }
+                if ( idVendor && idProduct ) {
+                    mm_detect_id="usb:" idVendor ":" idProduct
+                }
+            }
+            if ( mm_detect_id ) {
+                print "mm_detect_id=" mm_detect_id
+            }
+        }'
+
+/usr/bin/udevadm info --attribute-walk --path ${DEVPATH} | /usr/bin/awk "${script}"
+
+exit 0

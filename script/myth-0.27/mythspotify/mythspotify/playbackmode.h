@@ -1,0 +1,11 @@
+#ifndef PLAYBACKMODE_H
+#define	PLAYBACKMODE_H
+
+typedef enum {
+	PLAYBACKMODE_LINEAR = 0,
+	PLAYBACKMODE_SHUFFLE = 1,
+	PLAYBACKMODE_REPEAT = 2,
+} PlaybackMode;
+
+#endif
+

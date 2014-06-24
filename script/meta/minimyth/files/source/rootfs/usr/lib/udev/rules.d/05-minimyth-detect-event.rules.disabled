@@ -1,0 +1,33 @@
+#-------------------------------------------------------------------------------
+# Detect event devices.
+#
+# mm_detect_state_event has the following format:
+#     <type>
+# where
+#     <type> : The type of event device.
+# The state requires the event device name. However, since it is not yet
+# known, it cannot be added be included in mm_detect_state_event. Therefore, the
+# mm_detect script will prepend the event device name to the state.
+#-------------------------------------------------------------------------------
+ACTION!="add|change|remove", GOTO="end"
+KERNEL=="event[0-9]*", SUBSYSTEM=="input", GOTO="begin"
+GOTO="end"
+LABEL="begin"
+
+ENV{mm_detect_state_event}=""
+
+# Serial or PS2 keyboard device.
+DRIVERS=="atkbd",                                ENV{mm_detect_state_event}="keyboard"
+# Serial or PS2 mouse device.
+DRIVERS=="psmouse",                              ENV{mm_detect_state_event}="mouse"
+# USB HID device.
+SUBSYSTEMS=="usb", ATTRS{bInterfaceClass}=="03", ENV{mm_detect_state_event}="usb-hid"
+# Microsoft
+DRIVERS=="lirc_mceusb",                          ENV{mm_detect_state_event}="mce-keyboard-mouse"
+# Wiimote
+ATTRS{name}=="Nintendo Wiimote",                 ENV{mm_detect_state_event}="wiimote"
+
+# The state has been set, so save it.
+ENV{mm_detect_state_event}=="?*", RUN+="/usr/lib/udev/mm_detect event %k $env{mm_detect_state_event} state_prepend_devname"
+
+LABEL="end"

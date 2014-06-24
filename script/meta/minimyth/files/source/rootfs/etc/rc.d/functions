@@ -1,0 +1,2082 @@
+#!/bin/sh
+################################################################################
+# functions
+################################################################################
+. /etc/conf
+
+/usr/bin/test "${MM_DEBUG}" = "yes" && set -x
+
+#===============================================================================
+# general functions.
+#===============================================================================
+mm_command_run() {
+    local COMMAND=$1
+
+    local LOG_DIR
+    local LOG_FILE
+    local RETURN
+
+    if /usr/bin/test "${MM_DEBUG}" = "yes" ; then
+        LOG_DIR="/var/log"
+        LOG_FILE="/var/log/minimyth.log"
+        if /usr/bin/test ! -e "${LOG_FILE}" && /usr/bin/test -w "${LOG_DIR}" ; then
+            /bin/touch "${LOG_FILE}"
+            /bin/chmod 0666 "${LOG_FILE}"
+        fi
+    else
+        LOG_DIR="/dev"
+        LOG_FILE="/dev/null"
+    fi
+
+    RETURN=0
+    if /usr/bin/test -w "${LOG_FILE}" ; then
+        /bin/echo "--- execution start: ${COMMAND}"  >> "${LOG_FILE}" 2>&1
+        ${COMMAND}                                   >> "${LOG_FILE}" 2>&1
+        RETURN=$?
+        /bin/echo "--- execution end  : ${COMMAND}"  >> "${LOG_FILE}" 2>&1
+    else
+        /bin/echo "--- execution start: ${COMMAND}"                   2>&1
+        ${COMMAND}                                                    2>&1
+        RETURN=$?
+        /bin/echo "--- execution end  : ${COMMAND}"                   2>&1
+    fi
+
+    /usr/bin/test ${RETURN} -eq 0
+    return
+}
+
+#===============================================================================
+# minimyth.conf functions.
+#===============================================================================
+mm_minimyth_conf_include() {
+    local REMOTE_FILE=$1
+
+    local LOCAL_FILE
+
+    LOCAL_FILE="/etc/minimyth.d/${REMOTE_FILE}"
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+
+    /usr/bin/test ! -e "${LOCAL_FILE}" && mm_confro_get "${REMOTE_FILE}" "${LOCAL_FILE}"
+    /usr/bin/test   -e "${LOCAL_FILE}" && . "${LOCAL_FILE}"
+}
+
+#===============================================================================
+# mm_url_*_get functions.
+#===============================================================================
+mm_url_get() {
+    local URL=$1
+    local LOCAL_FILE=$2
+
+    local REMOTE_PROTOCOL
+    local REMOTE_SERVER
+    local REMOTE_FILE
+
+    REMOTE_PROTOCOL=`/bin/echo "${URL}" | /usr/bin/cut -d? -f1 \
+                                        | /usr/bin/cut -d: -f1`
+    REMOTE_SERVER=`  /bin/echo "${URL}" | /usr/bin/cut -d? -f1 \
+                                        | /bin/sed 's%^[^:]*:%%' \
+                                        | /bin/sed 's%^//%%' \
+                                        | /bin/sed 's%^[^@]*@%%' \
+                                        | /bin/sed 's%/[^/]*%%g'`
+    REMOTE_FILE=`    /bin/echo "${URL}" | /usr/bin/cut -d? -f1 \
+                                        | /bin/sed 's%^[^:]*:%%' \
+                                        | /bin/sed 's%^//[^/]*/%/%'`
+
+    case "${REMOTE_PROTOCOL}" in
+        conf|confro|confrw|dist|file|http|hunt|tftp)
+            mm_url_${REMOTE_PROTOCOL}_get "${LOCAL_FILE}" "${REMOTE_FILE}" "${REMOTE_SERVER}" || return
+            ;;
+        cifs|nfs)
+            REMOTE_FILE=`/bin/echo "${URL}" | /bin/sed "s%${MM_MINIMYTH_BOOT_URL}%%"`
+            mm_url_${REMOTE_PROTOCOL}_get "${LOCAL_FILE}" "${REMOTE_FILE}" "${MM_MINIMYTH_BOOT_URL}" || return
+            ;;
+        *)
+            /usr/bin/logger -s -t minimyth -p "local0.info" "mm_url_get: protocol '${REMOTE_PROTOCOL}' is not supported."
+            /bin/false || return
+            ;;
+    esac
+
+    /bin/true
+    return
+}
+
+mm_url_conf_get() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+
+    /usr/bin/logger -s -t minimyth -p "local0.error" \
+        "function 'mm_url_conf_get' is no longer supported. use 'mm_url_confro_get' or 'mm_url_confrw_get' instead."
+
+    /bin/false
+    return
+}
+
+mm_url_confro_get() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+
+    local HOST_NAME
+    local REMOTE_FILE_0
+    local REMOTE_FILE_1
+
+    HOST_NAME=`/bin/hostname`
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%^/%%'`
+    if /usr/bin/test -n "${HOST_NAME}" ; then
+        REMOTE_FILE_0="conf/${HOST_NAME}/${REMOTE_FILE}"
+    fi
+    REMOTE_FILE_1="conf/default/${REMOTE_FILE}"
+
+    /bin/rm -f "${LOCAL_FILE}"
+    ( /usr/bin/test "${LOCAL_FILE}" = "/etc/minimyth.d/minimyth.conf" \
+          && mm_url_get "${MM_TFTP_BOOT_URL}${REMOTE_FILE_0}" "${LOCAL_FILE}" \
+    ) || \
+    ( /usr/bin/test -n "${REMOTE_FILE_0}" \
+          && mm_url_get "${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}" "${LOCAL_FILE}" \
+    ) || \
+    ( /usr/bin/test -n "${REMOTE_FILE_1}" \
+          && mm_url_get "${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_1}" "${LOCAL_FILE}" \
+    ) || \
+    return
+
+    return
+}
+
+mm_url_confrw_get() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+
+    local HOST_NAME
+    local REMOTE_FILE_0
+
+    HOST_NAME=`/bin/hostname`
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%^/%%'`
+    if /usr/bin/test -n "${HOST_NAME}" ; then
+        REMOTE_FILE_0=`/bin/echo ${REMOTE_FILE}`
+        REMOTE_FILE_0="conf-rw/${HOST_NAME}/${REMOTE_FILE_0}"
+    fi
+
+    /bin/rm -f "${LOCAL_FILE}"
+    ( /usr/bin/test -n "${REMOTE_FILE_0}" \
+          && mm_url_get "${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}" "${LOCAL_FILE}" \
+    ) || \
+    return
+
+    return
+}
+
+mm_url_dist_get() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+
+    local REMOTE_FILE_0
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%^/%%'`
+    if /usr/bin/test -n "${MM_ROOTFS_IMAGE}" ; then
+        REMOTE_FILE_0=`/bin/echo ${MM_ROOTFS_IMAGE} | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%[^/]*$%%' | /bin/sed -e 's%/$%%'`
+        REMOTE_FILE_0="${REMOTE_FILE_0}/${REMOTE_FILE}"
+    else
+        REMOTE_FILE_0="/minimyth-${MM_VERSION}/${REMOTE_FILE}"
+    fi
+
+    /bin/rm -f "${LOCAL_FILE}"
+    ( /usr/bin/test -n "${REMOTE_FILE_0}" \
+          && mm_url_get "${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}" "${LOCAL_FILE}" \
+    ) || \
+    return
+
+    return
+}
+
+mm_url_file_get() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+
+    local LOCAL_DIR
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+
+    LOCAL_DIR=`/bin/echo "${LOCAL_FILE}" | /bin/sed -e 's%[^/]*$%%' -e 's%/$%%'`
+    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
+
+    /bin/cp -f "${REMOTE_FILE}" "${LOCAL_FILE}" || return
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "'file:${REMOTE_FILE}' downloaded."
+
+    return
+}
+
+mm_url_http_get() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+    local REMOTE_SERVER=$3
+
+    local LOCAL_DIR
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%^/%%'`
+    REMOTE_FILE="/${REMOTE_FILE}"
+
+    LOCAL_DIR=`/bin/echo "${LOCAL_FILE}" | /bin/sed -e 's%[^/]*$%%' -e 's%/$%%'`
+    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
+
+    /usr/bin/curl -s -f "http://${REMOTE_SERVER}${REMOTE_FILE}" -o "${LOCAL_FILE}" || return
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "'http://${REMOTE_SERVER}${REMOTE_FILE}' downloaded."
+
+    return
+}
+
+mm_url_hunt_get() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+
+    mm_url_dist_get   "${LOCAL_FILE}" "${REMOTE_FILE}" || \
+    mm_url_confro_get "${LOCAL_FILE}" "${REMOTE_FILE}" || \
+    return
+
+    return
+}
+
+mm_url_tftp_get() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+    local REMOTE_SERVER=$3
+
+    local LOCAL_DIR
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%^/%%'`
+    REMOTE_FILE="/${REMOTE_FILE}"
+
+    LOCAL_DIR=`/bin/echo "${LOCAL_FILE}" | /bin/sed -e 's%[^/]*$%%' -e 's%/$%%'`
+    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
+
+    /usr/bin/tftp -g -r "${REMOTE_FILE}" -l "${LOCAL_FILE}" "${REMOTE_SERVER}" || return
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "'tftp://${REMOTE_SERVER}${REMOTE_FILE}' downloaded."
+
+    return
+}
+
+mm_url_cifs_get() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+    local REMOTE_SERVER=$3
+
+    local LOCAL_DIR
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%^/%%'`
+    REMOTE_FILE="/${REMOTE_FILE}"
+
+    LOCAL_DIR=`/bin/echo "${LOCAL_FILE}" | /bin/sed -e 's%[^/]*$%%' -e 's%/$%%'`
+    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
+
+    if /usr/bin/test ! -f "/var/lib/minimyth.bootdir.cifs_mounted" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "Mounting '${REMOTE_SERVER}' share for conf and conf-ro operations"
+        mm_url_mount "${REMOTE_SERVER}" "/var/minimyth.bootdir" || return
+        /bin/touch "/var/lib/minimyth.bootdir.cifs_mounted"
+    fi
+
+    /bin/cp "/var/minimyth.bootdir/${REMOTE_FILE}" "${LOCAL_FILE}" || return
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "File '${REMOTE_SERVER}${REMOTE_FILE}' downloaded."
+
+    return
+}
+
+mm_url_nfs_get() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+    local REMOTE_SERVER=$3
+
+    local LOCAL_DIR
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%^/%%'`
+    REMOTE_FILE="/${REMOTE_FILE}"
+
+    LOCAL_DIR=`/bin/echo "${LOCAL_FILE}" | /bin/sed -e 's%[^/]*$%%' -e 's%/$%%'`
+    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
+
+    if /usr/bin/test ! -f "/var/lib/minimyth.bootdir.nfs_mounted" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "Mounting '${REMOTE_SERVER}' share for conf and conf-ro operations"
+        mm_url_mount "${REMOTE_SERVER}" "/var/minimyth.bootdir/" || return
+        /bin/touch "/var/lib/minimyth.bootdir.nfs_mounted"
+    fi
+
+    /bin/cp "/var/minimyth.bootdir/${REMOTE_FILE}" "${LOCAL_FILE}" || return
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "File '${REMOTE_SERVER}${REMOTE_FILE}' downloaded."
+
+    return
+}
+
+#===============================================================================
+# mm_url_*_put functions.
+#===============================================================================
+mm_url_put() {
+    local URL=$1
+    local LOCAL_FILE=$2
+
+    local REMOTE_PROTOCOL
+    local REMOTE_SERVER
+    local REMOTE_FILE
+
+    REMOTE_PROTOCOL=`/bin/echo "${URL}" | /usr/bin/cut -d? -f1 \
+                                        | /usr/bin/cut -d: -f1`
+    REMOTE_SERVER=`  /bin/echo "${URL}" | /usr/bin/cut -d? -f1 \
+                                        | /bin/sed 's%^[^:]*:%%' \
+                                        | /bin/sed 's%^//%%' \
+                                        | /bin/sed 's%^[^@]*@%%' \
+                                        | /bin/sed 's%/[^/]*%%g'`
+    REMOTE_FILE=`    /bin/echo "${URL}" | /usr/bin/cut -d? -f1 \
+                                        | /bin/sed 's%^[^:]*:%%' \
+                                        | /bin/sed 's%^//[^/]*/%/%'`
+
+    case "${REMOTE_PROTOCOL}" in
+        conf|confrw|file|http|tftp)
+            mm_url_${REMOTE_PROTOCOL}_put "${LOCAL_FILE}" "${REMOTE_FILE}" "${REMOTE_SERVER}" || return
+            ;;
+        cifs|nfs)
+            REMOTE_FILE=`/bin/echo "${URL}" | /bin/sed "s%${MM_MINIMYTH_BOOT_URL}%%"`
+            mm_url_${REMOTE_PROTOCOL}_put "${LOCAL_FILE}" "${REMOTE_FILE}" "${MM_MINIMYTH_BOOT_URL}" || return
+            ;;
+        *)
+            /usr/bin/logger -s -t minimyth -p "local0.info" "mm_url_put: protocol '${REMOTE_PROTOCOL}' is not supported."
+            /bin/false || return
+            ;;
+    esac
+
+    /bin/true
+    return
+}
+
+mm_url_conf_put() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+
+    /usr/bin/logger -s -t minimyth -p "local0.error" \
+        "function 'mm_url_conf_put' is no longer supported. use 'mm_url_confrw_put' instead."
+
+    /bin/false
+    return
+}
+
+mm_url_confrw_put() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+
+    local HOST_NAME
+    local REMOTE_FILE_0
+
+    HOST_NAME=`/bin/hostname`
+
+    if /usr/bin/test ! -f "${LOCAL_FILE}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error"  \
+            "cannot post conf file '${LOCAL_FILE}' because file not found."
+        /bin/false
+        return
+    fi
+    if /usr/bin/test -z "${HOST_NAME}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error"  \
+            "cannot post conf file '${LOCAL_FILE}' because hostname is unknown."
+        /bin/false
+        return
+    fi
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%/$%%'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%^/%%'`
+    if /usr/bin/test -n "${HOST_NAME}" ; then
+        REMOTE_FILE_0=`/bin/echo ${REMOTE_FILE}`
+        REMOTE_FILE_0="conf-rw/${HOST_NAME}/${REMOTE_FILE_0}"
+    fi
+
+    ( /usr/bin/test -n "${REMOTE_FILE_0}" \
+          && mm_url_put "${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}" "${LOCAL_FILE}" \
+          && ( /usr/bin/logger -s -t minimyth -p "local0.info" "'${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}' uploaded." \
+                   || /bin/true \
+             ) \
+    ) || \
+    return
+
+    return
+}
+
+mm_url_file_put() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+
+    local REMOTE_DIR
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g'`
+
+    if /usr/bin/test ! -f "${LOCAL_FILE}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error"  \
+            "cannot post conf file '${LOCAL_FILE}' because file not found."
+        /bin/false
+        return
+    fi
+
+    REMOTE_DIR=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%[^/]*$%%' -e 's%/$%%'`
+    /usr/bin/test -n "${REMOTE_DIR}" && /bin/mkdir -p "${REMOTE_DIR}"
+    /usr/bin/test -n "${REMOTE_DIR}" && /usr/bin/test ! -d "${REMOTE_DIR}" && return
+
+    if /bin/cp -f "${LOCAL_FILE}" "${REMOTE_FILE}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info"  \
+            "'file:${REMOTE_FILE}' posted."
+        /bin/true
+        return
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "'file:${REMOTE_FILE}' failed to post."
+        /bin/false
+        return
+    fi
+
+    return
+}
+
+mm_url_http_put() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+    local REMOTE_SERVER=$3
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%^/%%'`
+    REMOTE_FILE="/${REMOTE_FILE}"
+
+    if /usr/bin/test ! -f "${LOCAL_FILE}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error"  \
+            "[functions/mm_url_http_put] cannot post conf file '${LOCAL_FILE}' because file not found."
+        /bin/false
+        return
+    fi
+
+    if /usr/bin/curl -s -f -T "${LOCAL_FILE}" "http://${REMOTE_SERVER}${REMOTE_FILE}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info"  \
+            "[functions/mm_url_http_put] 'http://${REMOTE_SERVER}${REMOTE_FILE}' posted."
+        /bin/true
+        return
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_url_http_put] 'http://${REMOTE_SERVER}${REMOTE_FILE}' failed to post. Will retry with verbose. For output, look on /var/log/minimyth.err"
+            /usr/bin/curl -v -S -T "${LOCAL_FILE}" "http://${REMOTE_SERVER}${REMOTE_FILE}" > /var/log/minimyth.err 2>&1
+        /bin/false
+        return
+    fi
+
+    return
+}
+
+mm_url_tftp_put() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+    local REMOTE_SERVER=$3
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%^/%%'`
+    REMOTE_FILE="/${REMOTE_FILE}"
+
+    if /usr/bin/test ! -f "${LOCAL_FILE}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error"  \
+            "cannot post conf file '${LOCAL_FILE}' because file not found."
+        /bin/false
+        return
+    fi
+
+    if /usr/bin/tftp -p -l "${LOCAL_FILE}" -r "${REMOTE_FILE}" "${REMOTE_SERVER}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info"  \
+            "'tftp://${REMOTE_SERVER}${REMOTE_FILE}' posted."
+        /bin/true
+        return
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "'tftp://${REMOTE_SERVER}${REMOTE_FILE}' failed to post."
+        /bin/false
+        return
+    fi
+
+    return
+}
+
+mm_url_cifs_put() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+    local REMOTE_SERVER=$3
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%^/%%'`
+    REMOTE_FILE="/${REMOTE_FILE}"
+
+    if /usr/bin/test ! -f "${LOCAL_FILE}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error"  \
+            "cannot post conf file '${LOCAL_FILE}' because file not found."
+        /bin/false
+        return
+    fi
+
+    if /usr/bin/test ! -f "/var/lib/minimyth.bootdir.cifs_mounted" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "Mounting '${REMOTE_SERVER}' share for conf and conf-ro operation"
+        mm_url_mount "${REMOTE_SERVER}" "/var/minimyth.bootdir" || return
+        /bin/touch "/var/lib/minimyth.bootdir.cifs_mounted"
+    fi
+
+    /bin/cp "${LOCAL_FILE}" "/var/minimyth.bootdir/${REMOTE_FILE}"
+
+    /usr/bin/logger -s -t minimyth -p "local0.info"  \
+            "File ${LOCAL_FILE} posted to '${REMOTE_SERVER}${REMOTE_FILE}'."
+
+    return
+}
+
+mm_url_nfs_put() {
+    local LOCAL_FILE=$1
+    local REMOTE_FILE=$2
+    local REMOTE_SERVER=$3
+
+    LOCAL_FILE=`/bin/echo "${LOCAL_FILE}"   | /bin/sed -e 's%//*%/%g'`
+    REMOTE_FILE=`/bin/echo "${REMOTE_FILE}" | /bin/sed -e 's%//*%/%g' | /bin/sed -e 's%^/%%'`
+    REMOTE_FILE="/${REMOTE_FILE}"
+
+    if /usr/bin/test ! -f "${LOCAL_FILE}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error"  \
+            "cannot post conf file '${LOCAL_FILE}' because file not found."
+        /bin/false
+        return
+    fi
+
+    if /usr/bin/test ! -f "/var/lib/minimyth.bootdir.nfs_mounted" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "Mounting '${REMOTE_SERVER}' share for conf and conf-ro operation"
+        mm_url_mount "${REMOTE_SERVER}" "/var/minimyth.bootdir/" || return
+        /bin/touch "/var/lib/minimyth.bootdir.nfs_mounted"
+    fi
+
+    /bin/cp "${LOCAL_FILE}" "/var/minimyth.bootdir/${REMOTE_FILE}"
+
+    /usr/bin/logger -s -t minimyth -p "local0.info"  \
+            "File ${LOCAL_FILE} posted to '${REMOTE_SERVER}${REMOTE_FILE}'."
+
+    return
+}
+
+#===============================================================================
+# mm_confro_* and mm_confrw_* functions.
+#===============================================================================
+mm_conf_get() {
+    local REMOTE_FILE=$1
+    local LOCAL_FILE=$2
+
+    /usr/bin/logger -s -t minimyth -p "local0.error" \
+        "function 'mm_conf_get' is no longer supported. use 'mm_confro_get' or 'mm_confrw_get' instead."
+
+    /bin/false
+    return
+}
+
+mm_confro_get() {
+    local REMOTE_FILE=$1
+    local LOCAL_FILE=$2
+
+    mm_url_confro_get "${LOCAL_FILE}" "${REMOTE_FILE}" || return
+
+    return
+}
+
+mm_confrw_get() {
+    local REMOTE_FILE=$1
+    local LOCAL_FILE=$2
+
+    mm_url_confrw_get "${LOCAL_FILE}" "${REMOTE_FILE}" || return
+
+    return
+}
+
+mm_conf_put() {
+    local REMOTE_FILE=$1
+    local LOCAL_FILE=$2
+
+    /usr/bin/logger -s -t minimyth -p "local0.error" \
+        "function 'mm_conf_put' is no longer supported. use 'mm_confrw_put' instead."
+
+    /bin/false
+    return
+}
+
+mm_confrw_put() {
+    local REMOTE_FILE=$1
+    local LOCAL_FILE=$2
+
+    mm_url_confrw_put "${LOCAL_FILE}" "${REMOTE_FILE}" || return
+
+    return
+}
+
+#===============================================================================
+#
+#===============================================================================
+mm_game_restore() {
+
+    local FILE
+    local REMOTE_FILE
+    local LOCAL_DIR
+    local LOCAL_FILE
+
+    FILE="game.tar"
+    REMOTE_FILE="${FILE}"
+    LOCAL_DIR="${HOME}/tmp"
+    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
+
+    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
+
+    /bin/rm -f "${LOCAL_FILE}"
+
+    mm_confrw_get "${REMOTE_FILE}" "${LOCAL_FILE}"
+
+    if /usr/bin/test -n "${LOCAL_FILE}" ; then
+        cd /home/minimyth
+        /bin/tar -xf "${LOCAL_FILE}"
+        /bin/rm -f "${LOCAL_FILE}"
+    fi
+
+    /bin/rm -f "${LOCAL_FILE}"
+}
+
+mm_game_save() {
+
+    local FILE
+    local REMOTE_FILE
+    local LOCAL_DIR
+    local LOCAL_FILE
+
+    FILE="game.tar"
+    REMOTE_FILE="${FILE}"
+    LOCAL_DIR="${HOME}/tmp"
+    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
+
+    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
+
+    # Enumerate all the files to be saved.
+    local IFS_SAVE
+    local GAME_SAVE_FULL
+    local GAME_SAVE_LIST
+    local GAME_SAVE_ITEM
+    local GAME_SAVE
+    GAME_SAVE_FULL=`/bin/echo ":${MM_GAME_SAVE_LIST}" \
+        | /bin/sed -e 's%:%:/home/minimyth/%g'        \
+        | /bin/sed -e 's%^:%%'`
+    IFS_SAVE=${IFS}
+    IFS=:
+    for GAME_SAVE_ITEM in ${GAME_SAVE_FULL}; do
+        if /usr/bin/test -e "${GAME_SAVE_ITEM}" ; then
+            GAME_SAVE=`/bin/echo "${GAME_SAVE_ITEM}" \
+                | /bin/sed -e 's%^/home/minimyth/%%'`
+            GAME_SAVE_LIST="${GAME_SAVE_LIST}|${GAME_SAVE}"
+        fi
+    done
+    IFS=${IFS_SAVE}
+    GAME_SAVE_LIST=`/bin/echo ${GAME_SAVE_LIST} \
+        | /bin/sed -e 's%^|%%'                  \
+        | /bin/sed -e 's%|%:%g'`
+
+    /bin/rm -f "${LOCAL_FILE}"
+    if /usr/bin/test -n "${GAME_SAVE_LIST}" ; then
+        /bin/mkdir -p /home/minimyth
+        cd /home/minimyth
+        local IFS_SAVE
+        IFS_SAVE=${IFS}
+        IFS=:${IFS}
+        /bin/tar -cf "${LOCAL_FILE}" ${GAME_SAVE_LIST} || /bin/rm -f "${LOCAL_FILE}"
+        IFS=${IFS_SAVE}
+        if /usr/bin/test ! -e "${LOCAL_FILE}" ; then
+            /usr/bin/logger -s -t minimyth -p "local0.error" \
+                "failed to create game files tarball."
+            /bin/false
+            return
+        fi
+        mm_confrw_put "${REMOTE_FILE}" "${LOCAL_FILE}"
+        if /usr/bin/test $? -ne 0 ; then
+            /bin/rm -f "${LOCAL_FILE}"
+            /bin/false
+            return
+        else
+            /bin/rm -f "${LOCAL_FILE}"
+        fi
+    fi
+}
+
+mm_codecs_fetch_and_save() {
+
+    local FILE
+    local REMOTE_FILE
+    local LOCAL_DIR
+    local LOCAL_FILE
+
+    local CODECS_BASE
+    local CODECS_FILE
+    local CODECS_URL
+
+    FILE="codecs.sfs"
+    REMOTE_FILE="${FILE}"
+    LOCAL_DIR="${HOME}/tmp"
+    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
+
+    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
+
+    CODECS_BASE="essential-20061022"
+    CODECS_FILE="${CODECS_BASE}.tar.bz2"
+    CODECS_URL="http://www.mplayerhq.hu/MPlayer/releases/codecs/${CODECS_FILE}"
+    /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
+    /bin/rm -f "${LOCAL_DIR}/${CODECS_FILE}"
+    cd "${LOCAL_DIR}"
+    mm_url_get "${CODECS_URL}" "${CODECS_FILE}"
+    if /usr/bin/test $? -ne 0 ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to create the codecs file because no codecs were downloaded."
+        cd "${HOME}"
+        /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
+        /bin/rm -f "${LOCAL_DIR}/${CODECS_FILE}"
+        /bin/false
+        return
+    fi
+    /bin/tar -jxf "${CODECS_FILE}"
+    /bin/rm -f "${CODECS_FILE}"
+
+    if /usr/bin/test ! -d "${LOCAL_DIR}/${CODECS_BASE}" || /usr/bin/test `/bin/ls -1 "${LOCAL_DIR}/${CODECS_BASE}" | /usr/bin/wc -l` -eq 0 ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to create the codecs file because downloaded codecs file was empty."
+        cd "${HOME}"
+        /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
+        /bin/false
+        return
+    fi
+
+    cd "${LOCAL_DIR}"
+    /bin/chown `/usr/bin/id -u`:`/usr/bin/id -g` ${LOCAL_DIR}/${CODECS_BASE}
+    /bin/chmod 0755                              ${LOCAL_DIR}/${CODECS_BASE}
+    /bin/chown `/usr/bin/id -u`:`/usr/bin/id -g` ${LOCAL_DIR}/${CODECS_BASE}/*
+    /bin/chmod 0644                              ${LOCAL_DIR}/${CODECS_BASE}/*
+
+    /bin/rm -f "${LOCAL_FILE}"
+    /usr/bin/fakeroot /usr/bin/mksquashfs "${LOCAL_DIR}/${CODECS_BASE}" ${LOCAL_FILE} > /dev/null 2>&1
+    if /usr/bin/test $? -ne 0 ; then
+        cd "${HOME}"
+        /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
+        /bin/rm -f ${LOCAL_FILE}
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to create the codecs file because squashfs failed."
+        /bin/false
+        return
+    fi
+
+    mm_confrw_put "${REMOTE_FILE}" "${LOCAL_FILE}"
+    if /usr/bin/test $? -ne 0 ; then
+        cd "${HOME}"
+        /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
+        /bin/rm -f ${LOCAL_FILE}
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to save the codecs file."
+        /bin/false
+        return
+    fi
+
+    cd "${HOME}"
+    /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
+    /bin/rm -f "${LOCAL_FILE}"
+    /bin/true
+}
+
+mm_extras_save() {
+
+    if /usr/bin/test ! -d /usr/local ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to create the extras file because the extras directory does not exist."
+        /bin/false
+        return
+    fi
+    if /usr/bin/test `/bin/ls -1 /usr/local | /usr/bin/wc -l` -eq 0 ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to create the extras file because the extras directory is empty."
+        /bin/false
+        return
+    fi
+
+    local FILE
+    local REMOTE_FILE
+    local LOCAL_DIR
+    local LOCAL_FILE
+
+    FILE="extras.sfs"
+    REMOTE_FILE="${FILE}"
+    LOCAL_DIR="${HOME}/tmp"
+    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
+
+    /bin/rm -f "${LOCAL_FILE}"
+    /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/mksquashfs /usr/local ${LOCAL_FILE} > /dev/null 2>&1
+    if /usr/bin/test $? -ne 0 ; then
+        /bin/rm -f ${LOCAL_FILE}
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to create the extras file because squashfs failed."
+        /bin/false
+        return
+    fi
+
+    mm_confrw_put "${REMOTE_FILE}" "${LOCAL_FILE}"
+    if /usr/bin/test $? -ne 0 ; then
+        /bin/rm -f ${LOCAL_FILE}
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to save the extras file."
+        /bin/false
+        return
+    fi
+
+    /bin/rm -f "${LOCAL_FILE}"
+    /bin/true
+}
+
+mm_themecache_save() {
+
+    if /usr/bin/test ! -d /home/minimyth/.mythtv/cache/themecache ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_themecache_save] failed to create the MythTV themecache file because the MythTV themecache directory does not exist!"
+        /bin/false
+        return
+    fi
+    if /usr/bin/test ! "`cd /home/minimyth/.mythtv/cache/themecache ; /bin/ls -1 | /bin/grep -c *`" = "1" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_themecache_save] failed to create the MythTV themecache file because the MythTV themecache directory seems to be empty!"
+        /bin/false
+        return
+    fi
+
+    local FILE
+    local REMOTE_FILE
+    local LOCAL_DIR
+    local LOCAL_FILE
+
+    # FILE=`cd /home/minimyth/.mythtv/cache/themecache ; /bin/ls`.sfs
+    FILE="themecache.sfs"
+    REMOTE_FILE="${FILE}"
+    LOCAL_DIR="${HOME}/tmp"
+    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
+
+    /bin/rm -f "${LOCAL_FILE}"
+    /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/mksquashfs /home/minimyth/.mythtv/cache/themecache ${LOCAL_FILE} > /dev/null 2>&1
+    if /usr/bin/test $? -ne 0 ; then
+        /bin/rm -f ${LOCAL_FILE}
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_themecache_save] failed to create the MythTV themecache file because squashfs failed."
+        /bin/false
+        return
+    fi
+
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_themecache_save] themecache ${LOCAL_FILE} successfuly prepared..."
+
+    mm_confrw_put "${REMOTE_FILE}" "${LOCAL_FILE}"
+    if /usr/bin/test $? -ne 0 ; then
+        /bin/rm -f ${LOCAL_FILE}
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_themecache_save] failed to upload the MythTV themecache file!"
+        /bin/false
+        return
+    fi
+
+    /bin/rm -f "${LOCAL_FILE}"
+    /bin/true
+}
+
+mm_cookiejar_save() {
+
+    if /usr/bin/test ! -e /home/minimyth/.mythtv/MythBrowser/cookiejar.txt ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_cookiejar_save] failed to save the MythBrowser cookiejar.txt file as file not exists..."
+        /bin/false
+        return
+    fi
+
+    mm_confrw_put "mythbrowser_cookiejar.txt" "/home/minimyth/.mythtv/MythBrowser/cookiejar.txt"
+    if /usr/bin/test $? -ne 0 ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_cookiejar_save] failed to upload the MythBrowser cookiejar.txt file!"
+        /bin/false
+        return
+    fi
+
+    /bin/true
+}
+
+mm_message_output() {
+    local LEVEL=$1
+    local MESSAGE=$2
+
+    if /usr/bin/test `mm_splash_running_test ; /bin/echo $?` -eq 0 ; then
+        # /usr/bin/logger    -t minimyth -p "local0.${LEVEL}" "${MESSAGE}"
+        mm_splash_message_output "${MESSAGE}"
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.${LEVEL}" "${MESSAGE}"
+    fi
+
+    if /usr/bin/test "${LEVEL}" = "err"  ; then
+        /bin/mkdir -p /var/log
+        /bin/touch    /var/log/minimyth.err.log
+        if /usr/bin/test -w /var/log/minimyth.err.log ; then
+            /bin/echo -E "${MESSAGE}" >> /var/log/minimyth.err.log
+            /bin/chmod 0666 /var/log/minimyth.err.log
+        fi
+        mm_splash_command "log ${MESSAGE}"
+    fi
+    if /usr/bin/test "${LEVEL}" = "warn" ; then
+        /bin/mkdir -p /var/log
+        /bin/touch    /var/log/minimyth.warn.log
+        if /usr/bin/test -w /var/log/minimyth.warn.log ; then
+            /bin/echo -E "${MESSAGE}" >> /var/log/minimyth.warn.log
+            /bin/chmod 0666 /var/log/minimyth.warn.log
+        fi
+        mm_splash_command "log ${MESSAGE}"
+    fi
+}
+
+mm_uniq() {
+
+    local ARG
+
+    if /usr/bin/test $# -eq 0 ; then
+        ARG=
+        local line=
+        while read line ; do
+            ARG="${ARG} ${line}"
+        done
+    else
+        ARG=$1
+    fi
+
+    /bin/echo `/bin/echo "${ARG}" | /bin/sed -e 's% %\n%g' | /usr/bin/sort | /usr/bin/uniq | /bin/sed -e :a -e '$!N;s/\n/ /;ta' -e 'P;D'`
+}
+
+#-------------------------------------------------------------------------------
+# mm_url_mount
+#
+# This function mounts a remote directory as a local directory.
+#
+# This function takes three arguments:
+#     URL: required argument:
+#         A URL that points to the remote directory. A URL must have the
+#         following form:
+#             <protocol>://<username>:<password>@<server>/<path>?<options>
+#         where <options> are additional mount options (-o).
+#         For example:
+#             nfs://server.home/home/public/music
+#             cifs://user:pass@server.home/home/public/music,domain=home
+#             confrw:themecaches/G.A.N.T..1024.768.sfs<br/>
+#         The valid protocol values are: 'nfs', 'cifs', 'http', 'tftp',
+#         'confro', 'confrw', 'dist', 'hunt' and 'file'. For 'nfs' and 'cifs'
+#         the URL points to a remote directory. For 'http', 'tftp', 'confro',
+#         'confrw', 'dist' and 'hunt', the URL points to a remote file. For
+#         'file', the URL point to a local directory or file. A directory will
+#         be mounted at the mount point. A file, which can be a squashfs image
+#         (*.sfs.), cramfs image (*.cmg) or a tarball file (*.tar.bz2) will be
+#         downloaded and mounted at (for *.sfs and *.cmg files) or downloaded
+#         and expanded into (for *.tar.bz2 files) the mount point. The 'confro',
+#         'confrw', 'dist' and 'hunt' are special MiniMyth specific URLs. A
+#         'dist' URL causes MiniMyth to look for the file in the MiniMyth
+#         distribution directory (the directory with the MiniMyth root file
+#         system squashfs image). A 'confro' URL causes MiniMyth to look for the
+#         file in the MiniMyth read-only configuration directory. A 'confrw' URL
+#         causes MiniMyth to look for the file in the MiniMyth read-write
+#         configuration directory. A 'hunt' URL causes MiniMyth to look for the
+#         file first in the MiniMyth distribution directory and second in the
+#         MiniMyth read-only configuration directory.
+#     MOUNT_DIR: required argument:
+#         The local directory (e.g. /mnt/music) where the URL will be mounted.
+#-------------------------------------------------------------------------------
+mm_url_mount() {
+    local URL="$1"
+    local MOUNT_DIR="$2"
+
+    local DIR
+    local EXTRA_OPTIONS
+    local FILE
+    local MOUNT_DEVICE
+    local MOUNT_OPTIONS
+    local MOUNT_VFSTYPE
+    local OPTIONS
+    local URL_EXT1
+    local URL_EXT2
+    local URL_EXTMAX
+    local URL_FILE
+    local URL_OPTIONS
+    local URL_PASSWORD
+    local URL_PATH
+    local URL_PROTOCOL
+    local URL_SERVER
+    local URL_USERNAME
+
+    /bin/mkdir -p "${MOUNT_DIR}" || return
+
+    URL_PROTOCOL=`/bin/echo "${URL}" | /usr/bin/cut -d? -f1 | \
+                        /usr/bin/cut -d: -f1`
+    URL_USERNAME=`/bin/echo "${URL}" | /usr/bin/cut -d? -f1 | \
+                        /bin/sed 's%^[^:]*:%%' | /bin/sed 's%^//%%' | /bin/sed 's%[^@]*$%%'  | /bin/sed 's%@$%%' | /usr/bin/cut -d: -f1`
+    URL_PASSWORD=`/bin/echo "${URL}" | /usr/bin/cut -d? -f1 | \
+                        /bin/sed 's%^[^:]*:%%' | /bin/sed 's%^//%%' | /bin/sed 's%[^@]*$%%'  | /bin/sed 's%@$%%' | /usr/bin/cut -d: -f2`
+    URL_SERVER=`  /bin/echo "${URL}" | /usr/bin/cut -d? -f1 | \
+                        /bin/sed 's%^[^:]*:%%' | /bin/sed 's%^//%%' | /bin/sed 's%^[^@]*@%%' | /bin/sed 's%/[^/]*%%g'`
+    URL_PATH=`    /bin/echo "${URL}" | /usr/bin/cut -d? -f1 | \
+                        /bin/sed 's%^[^:]*:%%' | /bin/sed 's%^//[^/]*/%/%'`
+    URL_OPTIONS=` /bin/echo "${URL}"                        | \
+                        /bin/sed 's%^[^?]*%%'  | /bin/sed 's%^?%%'`
+
+    URL_FILE=`    /bin/echo "${URL_PATH}" | /bin/sed 's%^.*/%%'`
+    URL_EXTMAX=`  /bin/echo "${URL_FILE}" | /bin/sed 's%^.*/%%' |/bin/sed 's%[^.]*%%g' | /usr/bin/wc -c` 
+    URL_EXT1=
+    /usr/bin/test ${URL_EXTMAX} -ge 1 && URL_EXT1=`/bin/echo ${URL_FILE} | /bin/sed 's%^.*/%%' | /usr/bin/cut -s -d. -f$((${URL_EXTMAX}-0))`
+    URL_EXT2=
+    /usr/bin/test ${URL_EXTMAX} -ge 2 && URL_EXT2=`/bin/echo ${URL_FILE} | /bin/sed 's%^.*/%%' | /usr/bin/cut -s -d. -f$((${URL_EXTMAX}-1))`
+
+    MOUNT_VFSTYPE=""
+    EXTRA_OPTIONS=""
+    MOUNT_DEVICE=""
+    MOUNT_OPTIONS="${URL_OPTIONS}"
+    if   /usr/bin/test "${URL_PROTOCOL}" = "nfs" ; then
+        MOUNT_VFSTYPE="nfs"
+        MOUNT_DEVICE="${URL_SERVER}:${URL_PATH}"
+        MOUNT_OPTIONS="nolock,${MOUNT_OPTIONS}"
+    elif /usr/bin/test "${URL_PROTOCOL}" = "cifs" ; then
+        MOUNT_VFSTYPE="cifs"
+        MOUNT_DEVICE="//${URL_SERVER}${URL_PATH}"
+        if /usr/bin/test ! "${URL_PASSWORD}" = "" ; then
+            MOUNT_OPTIONS="password=${URL_PASSWORD},${MOUNT_OPTIONS}"
+        fi
+        if /usr/bin/test ! "${URL_USERNAME}" = "" ; then
+            MOUNT_OPTIONS="username=${URL_USERNAME},${MOUNT_OPTIONS}"
+        fi
+    elif ( /usr/bin/test "${URL_PROTOCOL}" = "http"                                   ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "tftp"                                   ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "confro"                                 ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "confrw"                                 ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "dist"                                   ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "hunt"                                   ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "file" && /usr/bin/test -f "${URL_PATH}" ) ; then
+        if   /usr/bin/test "${URL_EXT1}" = "sfs" ; then
+            DIR="/initrd/rw/loopfs/`/bin/echo ${MOUNT_DIR} | /bin/sed 's%//*%~%g'`"
+            FILE="image.sfs"
+            /bin/mkdir -p "${DIR}"
+            /bin/mkdir -p "${DIR}/ro"
+            /bin/mkdir -p "${DIR}/rw"
+            cd "${DIR}"
+            mm_url_${URL_PROTOCOL}_get "${FILE}" "${URL_PATH}" "${URL_SERVER}"          || return
+            /bin/mount -t squashfs -o loop "${DIR}/${FILE}" "${DIR}/ro"                 || return
+            /bin/mount -t overlayfs -o lowerdir=${DIR}/ro,upperdir=${DIR}/rw none "${MOUNT_DIR}" || return
+        elif /usr/bin/test "${URL_EXT1}" = "cmg" ; then
+            DIR="/initrd/rw/loopfs/`/bin/echo ${MOUNT_DIR} | /bin/sed 's%//*%~%g'`"
+            FILE="image.cmg"
+            /bin/mkdir -p "${DIR}"
+            /bin/mkdir -p "${DIR}/ro"
+            /bin/mkdir -p "${DIR}/rw"
+            cd "${DIR}"
+            mm_url_${URL_PROTOCOL}_get "${FILE}" "${URL_PATH}" "${URL_SERVER}"          || return
+            /bin/mount -t cramfs -o loop "${DIR}/${FILE}" "${DIR}/ro"                   || return
+            /bin/mount -t overlayfs -o lowerdir=${DIR}/ro,upperdir=${DIR}/rw none "${MOUNT_DIR}" || return
+        elif /usr/bin/test "${URL_EXT1}" = "bz2" && /usr/bin/test "${URL_EXT2}" = "tar" ; then
+            FILE="tmp.tar.bz2~"
+            cd "${MOUNT_DIR}"
+            mm_url_${URL_PROTOCOL}_get "${FILE}" "${URL_PATH}" "${URL_SERVER}" || return
+            /bin/tar -jxf "${FILE}"                                            || return
+            /bin/rm -f "${FILE}"                                               || return
+        fi
+    elif ( /usr/bin/test "${URL_PROTOCOL}" = "file" && /usr/bin/test -d "${URL_PATH}" ) ; then
+        /bin/mount --rbind "${URL_PATH}" "${MOUNT_DIR}"
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "mm_url_mount: protocol '${URL_PROTOCOL}' is not supported."
+        /bin/false
+        return
+    fi
+
+    if /usr/bin/test -n "${MOUNT_VFSTYPE}" ; then
+        OPTIONS=""
+        MOUNT_OPTIONS=`/bin/echo ${MOUNT_OPTIONS} | /bin/sed 's%^,%%'`
+        MOUNT_OPTIONS=`/bin/echo ${MOUNT_OPTIONS} | /bin/sed 's%,$%%'`
+        MOUNT_OPTIONS=`/bin/echo ${MOUNT_OPTIONS} | /bin/sed 's%^  *%%'`
+        MOUNT_OPTIONS=`/bin/echo ${MOUNT_OPTIONS} | /bin/sed 's%  *$%%'`
+        /usr/bin/test -n "${EXTRA_OPTIONS}" && OPTIONS="${EXTRA_OPTIONS}"
+        /usr/bin/test -n "${MOUNT_OPTIONS}" && OPTIONS="${OPTIONS} -o ${MOUNT_OPTIONS}"
+        OPTIONS=`/bin/echo ${OPTIONS} | /bin/sed 's%^  *%%'`
+        OPTIONS=`/bin/echo ${OPTIONS} | /bin/sed 's%  *$%%'`
+        /bin/mount -n -t "${MOUNT_VFSTYPE}" ${OPTIONS} "${MOUNT_DEVICE}" "${MOUNT_DIR}" || return
+    fi
+
+    return
+}
+
+mm_var_get() {
+    local VAR=$1
+
+    /bin/echo `set | /bin/grep "^${VAR}=" | /bin/sed 's%^[^=]*=%%' | /bin/sed "s%^'%%" | /bin/sed "s%'$%%"`
+}
+
+#===============================================================================
+# splash screen functions
+#===============================================================================
+_mm_var_splash_command='/usr/sbin/fbsplashd'
+_mm_var_splash_command_path=`/bin/echo ${_mm_var_splash_command} | /usr/bin/cut -d ' ' -f 1`
+_mm_var_splash_command_dir=`/usr/bin/dirname ${_mm_var_splash_command_path}`
+_mm_var_splash_command_base=`/usr/bin/basename ${_mm_var_splash_command_path}`
+_mm_var_splash_fifo='/lib/splash/cache/.splash'
+_mm_var_splash_fifo_dir=`/usr/bin/dirname ${_mm_var_splash_fifo}`
+_mm_var_splash_fifo_base=`/usr/bin/basename ${_mm_var_splash_fifo}`
+_mm_var_splash_progress_val=1
+_mm_var_splash_progress_max=1
+
+mm_splash_running_test() {
+    if /usr/bin/test -n "`/bin/pidof ${_mm_var_splash_command_base}`" && /usr/bin/test -e ${_mm_var_splash_fifo} ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+mm_splash_init() {
+    local type=$1
+
+    local message
+
+    local DEPTH
+    local GEOMETRY
+    local LOGLEVEL
+    local SPLASH_ENABLE
+    local VXRES
+    local VYRES
+    local XRES
+    local YRES
+    local XHWTYPE
+
+    SPLASH_ENABLE=yes
+
+    # Disable splash screen when more than kernel critical messages are logged to the console.
+    # That is when the loglevel is greater than 3.
+    if /usr/bin/test "${SPLASH_ENABLE}" = "yes" ; then
+        LOGLEVEL=`/bin/cat /proc/sys/kernel/printk | /usr/bin/cut -f 1`
+        /usr/bin/test -z "${LOGLEVEL}" && SPLASH_ENABLE='no'
+        /usr/bin/test -n "${LOGLEVEL}" && /usr/bin/test ${LOGLEVEL} -gt 3 && SPLASH_ENABLE='no'
+    fi
+
+    # Disable splash screen when there is no framebuffer device.
+    if /usr/bin/test "${SPLASH_ENABLE}" = "yes" ; then
+        /usr/bin/test ! -e '/dev/fb0' && SPLASH_ENABLE='no'
+    fi
+
+    # Disable splash screen when the video resolution is not compatible.
+    # That is when the resolution is not 640x480 or color depth is less than 16.
+    if /usr/bin/test "${SPLASH_ENABLE}" = "yes" ; then
+        GEOMETRY=`/usr/sbin/fbset | /bin/grep geometry`
+        XRES=` /bin/echo ${GEOMETRY} | /usr/bin/cut -d ' ' -f 2`
+        YRES=` /bin/echo ${GEOMETRY} | /usr/bin/cut -d ' ' -f 3`
+        VXRES=`/bin/echo ${GEOMETRY} | /usr/bin/cut -d ' ' -f 4`
+        VYRES=`/bin/echo ${GEOMETRY} | /usr/bin/cut -d ' ' -f 5`
+        DEPTH=`/bin/echo ${GEOMETRY} | /usr/bin/cut -d ' ' -f 6`
+        /usr/bin/test -z "${XRES}"  && SPLASH_ENABLE='no'
+        /usr/bin/test -z "${YRES}"  && SPLASH_ENABLE='no'
+        /usr/bin/test -z "${VXRES}" && SPLASH_ENABLE='no'
+        /usr/bin/test -z "${VYRES}" && SPLASH_ENABLE='no'
+        /usr/bin/test -z "${DEPTH}" && SPLASH_ENABLE='no'
+        /usr/bin/test -n "${XRES}"  && /usr/bin/test ${XRES}  -ne 640 && SPLASH_ENABLE='no'
+        /usr/bin/test -n "${YRES}"  && /usr/bin/test ${YRES}  -ne 480 && SPLASH_ENABLE='no'
+        /usr/bin/test -n "${VXRES}" && /usr/bin/test ${VXRES} -ne 640 && SPLASH_ENABLE='no'
+        /usr/bin/test -n "${VYRES}" && /usr/bin/test ${VYRES} -ne 480 && SPLASH_ENABLE='no'
+        /usr/bin/test -n "${DEPTH}" && /usr/bin/test ${DEPTH} -lt 16  && SPLASH_ENABLE='no'
+    fi
+
+    if /usr/bin/test "${SPLASH_ENABLE}" = "yes" ; then
+        case "${type}" in
+            bootup)   message="starting system ..."      ;;
+            shutdown) message="shutting down system ..." ;;
+            reboot)   message="restarting system ..."    ;;
+            *)        message=""                         ;;
+        esac
+        /usr/bin/logger -t minimyth -p "local0.info" "starting splash screen"
+        /usr/bin/chvt 1
+        /bin/mkdir -p "${_mm_var_splash_fifo_dir}"
+        mm_splash_command "exit"
+        ${_mm_var_splash_command} --theme="minimyth" --progress="0" --mesg="${message}" --type="${type}"
+        mm_splash_command "set mode silent"
+        mm_splash_command "repaint"
+    fi
+
+    mm_splash_progress_set 0 1
+
+    return 0
+}
+
+mm_splash_halt() {
+
+    /usr/bin/logger -t minimyth -p "local0.info" "stopping splash screen"
+
+    mm_splash_command "exit"
+
+    return 0
+}
+
+mm_splash_command()
+{
+    /usr/bin/test `mm_splash_running_test ; /bin/echo $?` -eq 0 && /bin/echo "$1" >> "${_mm_var_splash_fifo}"
+
+    return 0
+}
+
+mm_splash_message_output() {
+    local MESSAGE=$1
+
+    mm_splash_command "set message ${MESSAGE}"
+    mm_splash_command "repaint"
+
+    return 0
+}
+
+mm_splash_progress_set() {
+    _mm_var_splash_progress_val=$1
+    _mm_var_splash_progress_max=$2
+ 
+    /usr/bin/test ${_mm_var_splash_progress_val} -gt ${_mm_var_splash_progress_max} && _mm_var_splash_progress_val=${_mm_var_splash_progress_max}
+    mm_splash_command "progress $(( 65535 * ${_mm_var_splash_progress_val} / ${_mm_var_splash_progress_max} ))"
+    mm_splash_command "repaint"
+
+    return 0
+}
+
+mm_splash_progress_update() {
+    _mm_var_splash_progress_val=$((_mm_var_splash_progress_val + 1))
+    /usr/bin/test ${_mm_var_splash_progress_val} -gt ${_mm_var_splash_progress_max} && _mm_var_splash_progress_val=${_mm_var_splash_progress_max}
+    mm_splash_command "progress $(( 65535 * ${_mm_var_splash_progress_val} / ${_mm_var_splash_progress_max} ))"
+    mm_splash_command "repaint"
+
+    return 0
+}
+
+#===============================================================================
+# mythdb functions.
+#===============================================================================
+mm_mythdb_buffer_write() {
+    local FLUSH=$1
+    local COMMAND=$2
+
+    local RETURN
+
+    RETURN=0
+
+    # If buffering is not enabled, then enable flush.
+    if /usr/bin/test ! -e /var/cache/mythdb/buffer.enable ; then
+        FLUSH=1
+    fi
+
+    # If mythdb cache directory does not exist, then create it.
+    if /usr/bin/test ! -e /var/cache/mythdb/ ; then
+        /bin/mkdir -p /var/cache/mythdb/
+    fi
+
+    # If there is a command, then write it to the buffer.
+    if /usr/bin/test -n "${COMMAND}" ; then
+        /bin/echo "${COMMAND}" >> /var/cache/mythdb/buffer.sql
+    fi
+
+    # If flush enabled and there is a buffer, then flush the buffer.
+    if /usr/bin/test ${FLUSH} -ne 0 ; then
+        if /usr/bin/test -e /var/cache/mythdb/buffer.sql ; then
+            /usr/bin/mysql \
+                --host=${MM_MASTER_SERVER} \
+                --user=${MM_MASTER_DBUSERNAME} \
+                --password=${MM_MASTER_DBPASSWORD} \
+                --database=${MM_MASTER_DBNAME} \
+                < /var/cache/mythdb/buffer.sql
+            RETURN=$?
+            /bin/rm -f /var/cache/mythdb/buffer.sql
+        fi
+    fi
+
+    return ${RETURN}
+}
+
+mm_mythdb_buffer_create() {
+    /bin/mkdir -p /var/cache/mythdb/
+    /bin/touch /var/cache/mythdb/buffer.enable
+
+    return 0
+}
+
+mm_mythdb_buffer_delete() {
+
+    local RETURN
+
+    mm_mythdb_buffer_write 1
+    RETURN=$?
+    /bin/rm -f /var/cache/mythdb/buffer.enable
+
+    return ${RETURN}
+}
+
+mm_mythdb_test() {
+
+    local RETURN
+
+    mm_mythdb_buffer_write 1 ";"
+    RETURN=$?
+
+    return ${RETURN}
+}
+
+mm_mythdb_get() {
+    local COMMAND=$1
+
+    local RETURN
+
+    mm_mythdb_buffer_write 1 "${COMMAND} ;"
+    RETURN=$?
+
+    return ${RETURN}
+}
+
+mm_mythdb_set() {
+    local COMMAND=$1
+
+    local RETURN
+
+    mm_mythdb_buffer_write 0 "${COMMAND} ;"
+    RETURN=$?
+
+    return ${RETURN}
+}
+
+mm_mythdb_jumppoints_delete() {
+    local DESTINATION=$1
+
+    local HOST_NAME
+
+    HOST_NAME=`/bin/hostname`
+
+    if /usr/bin/test -n "${DESTINATION}" ; then
+        mm_mythdb_set "DELETE FROM jumppoints \
+            WHERE hostname=\"${HOST_NAME}\" AND destination=\"${DESTINATION}\""
+    else
+        mm_mythdb_set "DELETE FROM jumppoints \
+            WHERE hostname=\"${HOST_NAME}\""
+    fi
+}
+
+mm_mythdb_jumppoints_dump() {
+    local DESTINATION=$1
+
+    local HOST_NAME
+
+    HOST_NAME=`/bin/hostname`
+
+    if /usr/bin/test -n "${DESTINATION}" ; then
+        mm_mythdb_get "SELECT * FROM jumppoints \
+            WHERE hostname=\"${HOST_NAME}\" AND destination=\"${DESTINATION}\""
+    else
+        mm_mythdb_get "SELECT * FROM jumppoints \
+            WHERE hostname=\"${HOST_NAME}\""
+    fi
+}
+
+mm_mythdb_jumppoints_update() {
+    local DESTINATION=$1
+    local KEYLIST=$2
+
+    local HOST_NAME
+
+    HOST_NAME=`/bin/hostname`
+
+    mm_mythdb_set "UPDATE jumppoints SET keylist=\"${KEYLIST}\" \
+        WHERE hostname=\"${HOST_NAME}\" AND destination=\"${DESTINATION}\""
+}
+
+mm_mythdb_jumppoints_get() {
+    local VALUE=$1
+
+    local DATA
+
+    DATA=`mm_mythdb_jumppoints_dump "$1" | /bin/grep -e "$1" |  /usr/bin/cut -f 3`
+
+    /bin/echo "${DATA}"
+}
+
+mm_mythdb_keybindings_delete() {
+    local CONTEXT=$1
+    local ACTION=$2
+
+    local HOST_NAME
+
+    HOST_NAME=`/bin/hostname`
+
+    if   /usr/bin/test -n "${CONTEXT}" && /usr/bin/test -n "${ACTION}" ; then
+        mm_mythdb_set "DELETE FROM keybindings \
+            WHERE hostname=\"${HOST_NAME}\" AND context=\"${CONTEXT}\" AND action=\"${ACTION}\""
+    elif /usr/bin/test -n "${CONTEXT}" ; then
+        mm_mythdb_set "DELETE FROM keybindings \
+            WHERE hostname=\"${HOST_NAME}\" AND context=\"${CONTEXT}\""
+    else
+        mm_mythdb_set "DELETE FROM keybindings \
+            WHERE hostname=\"${HOST_NAME}\""
+    fi
+}
+
+mm_mythdb_keybindings_dump() {
+    local CONTEXT=$1
+    local ACTION=$2
+
+    local HOST_NAME
+
+    HOST_NAME=`/bin/hostname`
+
+    if   /usr/bin/test -n "${CONTEXT}" && /usr/bin/test -n "${ACTION}" ; then
+        mm_mythdb_get "SELECT * FROM keybindings \
+            WHERE hostname=\"${HOST_NAME}\" AND context=\"${CONTEXT}\" AND action=\"${ACTION}\""
+    elif /usr/bin/test -n "${CONTEXT}" ; then
+        mm_mythdb_get "SELECT * FROM keybindings \
+            WHERE hostname=\"${HOST_NAME}\" AND context=\"${CONTEXT}\""
+    else
+        mm_mythdb_get "SELECT * FROM keybindings \
+            WHERE hostname=\"${HOST_NAME}\""
+    fi
+}
+
+mm_mythdb_keybindings_update() {
+    local CONTEXT=$1
+    local ACTION=$2
+    local KEYLIST=$3
+
+    local HOST_NAME
+
+    HOST_NAME=`/bin/hostname`
+
+    mm_mythdb_set "UPDATE keybindings SET keylist=\"${KEYLIST}\" \
+        WHERE hostname=\"${HOST_NAME}\" AND context=\"${CONTEXT}\" AND action=\"${ACTION}\""
+}
+
+mm_mythdb_music_playlists_dump() {
+    mm_mythdb_set "SELECT * FROM music_playlists"
+}
+
+mm_mythdb_music_playlists_scope() {
+    local MUSICPLAYLIST=$1
+    local SCOPE=$2
+
+    local HOST_NAME
+
+    HOST_NAME=`/bin/hostname`
+
+    case "${SCOPE}" in
+        local)
+            mm_mythdb_set "UPDATE music_playlists SET hostname=\"${HOST_NAME}\" WHERE playlist_name=\"${MUSICPLAYLIST}\""
+            ;;
+        global)
+            mm_mythdb_set "UPDATE music_playlists SET hostname=\"\"             WHERE playlist_name=\"${MUSICPLAYLIST}\""
+            ;;
+    esac
+}
+
+mm_mythdb_settings_delete() {
+    local VALUE=$1
+
+    local HOST_NAME
+
+    HOST_NAME=`/bin/hostname`
+
+    if /usr/bin/test -n "${VALUE}" ; then
+        mm_mythdb_set "DELETE FROM settings WHERE value=\"${VALUE}\" AND hostname=\"${HOST_NAME}\""
+    else
+        mm_mythdb_set "DELETE FROM settings WHERE hostname=\"${HOST_NAME}\""
+    fi
+}
+
+mm_mythdb_settings_dump() {
+    local VALUE=$1
+
+    local HOST_NAME
+
+    HOST_NAME=`/bin/hostname`
+
+    if /usr/bin/test -n "${VALUE}" ; then
+        mm_mythdb_get "SELECT * FROM settings WHERE value=\"${VALUE}\" AND hostname=\"${HOST_NAME}\""
+    else
+        mm_mythdb_get "SELECT * FROM settings WHERE hostname=\"${HOST_NAME}\""
+    fi
+}
+
+mm_mythdb_settings_update() {
+    local VALUE=$1
+    local DATA=$2
+
+    local HOST_NAME
+
+    HOST_NAME=`/bin/hostname`
+
+    mm_mythdb_set "UPDATE settings SET data=\"${DATA}\" WHERE value=\"${VALUE}\" AND hostname=\"${HOST_NAME}\""
+}
+
+mm_mythdb_settings_set() {
+    local VALUE=$1
+    local DATA=$2
+
+    local HOST_NAME
+    local DATA_CURRENT
+
+    HOST_NAME=`/bin/hostname`
+
+    mm_mythdb_settings_delete "${VALUE}"
+    mm_mythdb_set "INSERT INTO settings SET data=\"${DATA}\", value=\"${VALUE}\", hostname=\"${HOST_NAME}\""
+}
+
+mm_mythdb_settings_get() {
+    local VALUE=$1
+
+    local DATA
+
+    DATA=`mm_mythdb_settings_dump "$1" | /bin/grep -e "$1" |  /usr/bin/cut -f 2`
+
+    /bin/echo "${DATA}"
+}
+
+
+#===============================================================================
+# Hardware processing functions.
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+mm_hardware_cpu_process() {
+    local cpu_process_function=$1
+
+    local vendor
+    local family
+    local model
+
+    # We only check the first CPU.
+    # Thus, wea are assuming all other CPU are the same as the first.
+    vendor=`/bin/grep '^vendor_id[[:cntrl:]]*:'  /proc/cpuinfo | /usr/bin/head -n1 | /usr/bin/awk -F ": " '{ print $2 }'`
+    family=`/bin/grep '^cpu family[[:cntrl:]]*:' /proc/cpuinfo | /usr/bin/head -n1 | /usr/bin/awk -F ": " '{ print $2 }'`
+    model=` /bin/grep '^model[[:cntrl:]]*:'      /proc/cpuinfo | /usr/bin/head -n1 | /usr/bin/awk -F ": " '{ print $2 }'`
+
+    /bin/echo `${cpu_process_function} ${vendor} ${family} ${model}` | mm_uniq
+}
+
+mm_hardware_cpu2kernel_map() {
+    local vendor=$1
+    local family=$2
+    local model=$3
+
+    local map
+    local map_kernel_modules
+
+    if /usr/bin/test -n "${vendor}" ; then
+        /bin/cat /etc/hardware.d/cpu2kernel.map                                                                 \
+        | /bin/sed -e 's%#.*$%%g' | /bin/sed -e 's% *, *%,%g' | /bin/sed -e 's%^  *%%' | /bin/sed -e 's%  *$%%' \
+        | /bin/grep -e "^${vendor},"                                                                            \
+        | {
+            while read map ; do
+                if /usr/bin/test -n "${map}" ; then
+                    map_family=`        /bin/echo ${map} | /usr/bin/cut -d ',' -f 2`
+                    map_model=`         /bin/echo ${map} | /usr/bin/cut -d ',' -f 3`
+                    map_kernel_modules=`/bin/echo ${map} | /usr/bin/cut -d ',' -f 4`
+                    if ( /usr/bin/test -z "${map_family}" || /usr/bin/test "${map_family}" = "${family}" ) && \
+                       ( /usr/bin/test -z "${map_model}"  || /usr/bin/test "${map_model}"  = "${model}"  ) ; then
+                        /bin/echo ${map_kernel_modules}
+                    fi
+                fi
+            done
+        }
+    fi
+}
+
+mm_hardware_x2kernel_map() {
+    local x_driver=$1
+
+    local found
+    local map
+    local map_kernel_module
+
+    if /usr/bin/test -n "${x_driver}" ; then
+        /bin/cat /etc/hardware.d/x2kernel.map                                                                   \
+        | /bin/sed -e 's%#.*$%%g' | /bin/sed -e 's% *, *%,%g' | /bin/sed -e 's%^  *%%' | /bin/sed -e 's%  *$%%' \
+        | /bin/grep -e "^${x_driver},"                                                                          \
+        | {
+            found=
+            while read map ; do
+                map_kernel_module=
+                if /usr/bin/test -n "${map}" ; then
+                    map_kernel_module=`/bin/echo ${map} | /usr/bin/cut -d ',' -f 2`
+                fi
+                if /usr/bin/test -z "${found}" ; then
+                    found=1
+                    /bin/echo ${map_kernel_module}
+                fi
+            done
+        }
+    fi
+}
+
+#===============================================================================
+# X functions.
+#===============================================================================
+mm_x_xmacroplay() {
+    program="$1"
+    command="$2"
+
+    # Make sure that the program is running.
+#    if /usr/bin/test -n "`/bin/pidof ${program}`" ; then
+        # Make sure that the X window manager is running, since we depend on it to select the program window.
+        if /usr/bin/test -n "`/bin/pidof ratpoison`" ; then
+            # Set ratpoison to select window by program name.
+            /usr/bin/ratpoison -d :0.0 -c "set winname class"
+            # Select the program window.
+            /usr/bin/ratpoison -d :0.0 -c "select ${program}"
+            # Make sure the program window is selected. 
+            window=`/usr/bin/ratpoison -d :0.0 -c "info" 2> /dev/null`
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions] xmacroplay ratpoison info returns:${window}"
+            window=`/usr/bin/ratpoison -d :0.0 -c "info" 2> /dev/null | /bin/sed -e 's%^.*(\([^()]*\))$%\1%'`
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions] xmacroplay after grep:${window}"
+            /bin/echo "${window}" | /bin/grep -q -i "${program}" 2> /dev/null
+            if /usr/bin/test $? -eq 0 ; then
+                # Send exit key sequence to window.
+                /usr/bin/logger -t minimyth -p "local0.info" "[functions] xmacroplay sending command:${command}"
+                /bin/echo -e "${command}" | /usr/bin/xmacroplay -d 100 :0.0 > /dev/null 2>&1
+            fi
+        else
+            mm_message_output error "cannot command '${program}' without X window manager enabled."
+        fi
+#    fi
+}
+
+# Expand the applications list.
+#
+# The applications list contains names of applications or names of application
+# groups. Application groups are identified by preceeding them with a ':'. The
+# following groups:
+#   :everything
+#   :myth
+#   :game
+#   :terminal
+mm_x_applications_list() {
+    local applications="$@"
+
+    # Remove line breaks and convert all control characters to spaces.
+    applications=`/bin/echo  "${applications}"  | /bin/sed -e :a -e '$!N;s/\n/ /;ta' -e 'P;D'`
+    applications=`/bin/echo  "${applications}"  | /bin/sed -e 's%[[:cntrl:]]% %g'`
+
+    # Convert application groups to application names.
+    applications=`/bin/echo " ${applications} " | /bin/sed -e 's% :everything % :game :terminal :myth %g'`
+    applications=`/bin/echo " ${applications} " | /bin/sed -e 's% :myth % mythfrontend %g'`    
+    applications=`/bin/echo " ${applications} " | /bin/sed -e 's% :game % fceu jzintv mame mess mednafen stella VisualBoyAdvance zsnes %g'`
+    applications=`/bin/echo " ${applications} " | /bin/sed -e 's% :terminal % rxvt %g'`
+
+    # Clean up spaces.
+    applications=`/bin/echo  "${applications}"  | /bin/sed -e 's%  *% %g' -e 's%^ %%' -e 's% $%%'`
+
+    /bin/echo "${applications}"
+}
+
+# Exit all applications in the list, assuming that we know how.
+mm_x_applications_exit() {
+    local applications=`mm_x_applications_list "$@"`
+
+    local application
+    local timeout
+    local window
+    local xmacro
+
+    for application in ${applications} ; do
+        if /usr/bin/test -n "`/bin/pidof ${application}`" ; then
+            window=""
+            xmacro=""
+            case "${application}" in
+                # Myth
+                mythfrontend)
+                    # If mythfrontend is running, then return it to the Main Menu using the Network Control interface.
+                    if /usr/bin/test -n "`/bin/pidof mythfrontend`" ; then
+                        mm_mythfrontend_networkcontrol "jump mainmenu" > /dev/null 2>&1
+                        if /usr/bin/test ! "`mm_mythfrontend_networkcontrol 'query location'`" = "mainmenu" ; then 
+                            mm_x_xmacroplay 'mythfrontend' 'KeyStr Escape\n KeyStr Escape\n KeyStr Escape\n KeyStr Escape\n KeyStr Escape\n' 
+                        fi
+                    fi
+                    ;;
+                # Games
+                fceu)             xmacro='KeyStr Escape\n'                                                                     ;;
+                jzintv)           xmacro='KeyStr F1\n'                                                                         ;;
+                mame)             xmacro='KeyStr Escape\n'                                                                     ;;
+                mess)             xmacro='KeyStr Escape\n'                                                                     ;;
+                mednafen)         xmacro='KeyStr Escape\n'                                                                     ;;
+                stella)           xmacro='KeyStrPress Control_L\n KeyStrPress Q\n KeyStrRelease Q\n KeyStrRelease Control_L\n' ;;
+                VisualBoyAdvance) xmacro='KeyStr Escape\n'                                                                     ;;
+                zsnes)            xmacro='KeyStr Escape\n KeyStr Q\n KeyStr Return\n'                                          ;;
+                # Terminals
+# Does not work because rxvt does not have a key sequence to quit.  Also, the window is named 'xterm' not 'rxvt'.
+#               rxvt)             xmacro=''                                                                                    ;;
+            esac
+            if /usr/bin/test -n "${xmacro}" ; then
+                mm_x_xmacroplay "${application}" "${xmacro}"
+                if /usr/bin/test -n "`/bin/pidof ${application}`" ; then
+                    mm_message_output error "failed to exit '${application}'."
+                fi
+            fi
+        fi
+    done
+}
+
+# Kill all applications in the list.
+mm_x_applications_kill() {
+    local applications=`mm_x_applications_list "$@"`
+
+    local application
+
+    for application in ${applications} ; do
+        pids="`/bin/pidof ${application}`"
+        for pid in ${pids} ; do
+            /bin/kill -SIGTERM ${pid} > /dev/null 2>&1
+        done
+    done
+
+    return 0
+}
+
+# Kill all applications in the list.
+mm_x_applications_kill9() {
+    local applications=`mm_x_applications_list "$@"`
+
+    local application
+
+    for application in ${applications} ; do
+        pids="`/bin/pidof ${application}`"
+        for pid in ${pids} ; do
+            /bin/kill -9 ${pid} > /dev/null 2>&1
+        done
+    done
+
+    return 0
+}
+
+# Wait until all applications in the list are dead.
+mm_x_applications_dead() {
+    local applications=`mm_x_applications_list "$@"`
+
+    local application
+    local dead
+
+    dead=0
+    while /usr/bin/test ${dead} -eq 0 ; do
+        dead=1
+        for application in ${applications} ; do
+            if /usr/bin/test -n "`/bin/pidof ${application}`" ; then
+                dead=0
+                /bin/sleep 1
+            fi
+        done
+    done
+
+    return 0
+}
+
+# Start X.
+mm_x_start() {
+
+    local mailnotifypid
+
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting procedure for start X..."
+
+    # Only root start X.
+    if /usr/bin/test ! `/usr/bin/id -u` -eq 0 ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] X not started because uid=`/usr/bin/id -u` returns not 'root'"
+        return 0
+    fi
+
+    # Only start X if X is enabled.
+    if /usr/bin/test ! "${MM_X_ENABLED}" = "yes" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] X not started because X not enabled in minimyth.conf"
+        return 0
+    fi
+
+    # Only start X if X is not already running.
+    if /usr/bin/test -n "`/bin/pidof X`" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] X not started because X is already running"
+        return 0
+    fi
+
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Kicking Xinit..."
+
+    /bin/su -c "/usr/bin/nohup /usr/bin/xinit > /dev/null 2>&1 &" - minimyth
+
+    if /usr/bin/test "${MM_X_SCREENSAVER_HACK}" = "sleep" ; then
+        if /usr/bin/test -z `/bin/pidof mm_sleep_on_ss` ; then
+            /usr/bin/mm_sleep_on_ss &
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting SLEEP_ON_SS script..."
+        fi
+    fi
+
+    if /usr/bin/test -n "${MM_MAIL_NOTIFY_NEW_MAILS}" ; then
+        mailnotifypid=`/bin/ps ax -o ppid,pid,args | grep '/usr/bin/mailnotifier.pl' | grep -v grep`
+        if /usr/bin/test -z "$mailnotifypid" ; then
+          /usr/bin/perl /usr/bin/mailnotifier.pl ${MM_MAIL_NOTIFY_NEW_MAILS} &
+          /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting MAILNOTIFIER.pl script. Check period is ${MM_MAIL_NOTIFY_NEW_MAILS} sec..."
+        fi
+    fi
+
+    if /usr/bin/test "${MM_X_WATCHDOG_MYTH_PROC}" = "yes" ; then
+        /usr/bin/mm_watchdog &
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting MM_WATCHDOG script..."
+    fi
+
+    if /usr/bin/test "${MM_ACPI_WOL_ENABLED}" = "yes" ; then
+        /usr/sbin/ethtool -s "${MM_ACPI_WOL_INTF}" wol g
+        /bin/echo MMAC > /proc/acpi/wakeup
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Enabling Wake-on-LAN on ${MM_ACPI_WOL_INTF} interface..."
+    fi
+
+    if /usr/bin/test -n "${MM_NOTIFY_ABOUT_UPDATES}" ; then
+        if /usr/bin/test -z `/bin/pidof mm_notify_updates` ; then
+            /usr/bin/mm_notify_updates ${MM_NOTIFY_ABOUT_UPDATES} &
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting NOTIFY_UPDATES daemon. Check period is ${MM_NOTIFY_ABOUT_UPDATES} min..."
+        fi
+    fi
+
+    return 0
+}
+
+# Stop X.
+mm_x_stop() {
+
+    local applications
+
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Starting procedure of stopping X."
+
+    # Only users root and minimyth can stop X.
+    if /usr/bin/test ! `/usr/bin/id -u` -eq 0 ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] X not stopped because uid=`/usr/bin/id -u` returns not 'root'."
+        return 0
+    fi
+
+    if /usr/bin/test -n "`/bin/pidof mm_notify_updates`" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing NOTIFY_UPDATES daemon..."
+        /usr/bin/killall -9 mm_notify_updates > /dev/null 2>&1
+    fi
+
+    if /usr/bin/test -n "`/bin/pidof mm_sleep_on_ss`" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing mm_sleep_on_ss script..."
+        /usr/bin/killall -9 mm_sleep_on_ss
+    fi
+
+    if /usr/bin/test -n "`/bin/pidof xscreensaver`" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing xscreensaver..."
+        /usr/bin/killall xscreensaver
+    fi
+
+    if /usr/bin/test -n "`/bin/pidof xscreensaver-command`" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing xscreensaver-cammand..."
+        /usr/bin/killall xscreensaver-command
+    fi
+
+    if /usr/bin/test -n "`/bin/pidof mm_watchdog`" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing mm_watchdog script..."
+        /usr/bin/killall -9 mm_watchdog
+    fi
+
+    # Only stop X if X is running.
+    if /usr/bin/test ! -n "`/bin/pidof X`" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] X not stopped because X is not running."
+        return 0
+    fi
+
+#    # Exit X applications that are known not to be started by xinit
+#    /usr/bin/logger -t minimyth -p "local0.info" "[functions] Exiting all applications..."
+#    mm_x_applications_exit ':everything'
+#    mm_x_applications_kill ':everything'
+#    mm_x_applications_dead ':everything'
+
+    # Return mythfrontend to the main menu
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Asking MythTV to go to MainMenu..."
+    mm_x_applications_exit 'mythfrontend'
+
+    # Create the list of X applications that may have been started by xinit.
+    applications="${applications} ${MM_X_MYTH_PROGRAM}"
+    applications="${applications} mythfrontend"
+    applications="${applications} mythwelcome"
+    applications="${applications} ratpoison"
+    applications="${applications} X"
+    applications="${applications} x11vnc"
+    applications="${applications} xinit"
+    applications="${applications} xscreensaver"
+
+    # Create the list of known X applications not keeping X alive, kill them and wait for them to die
+    applications=`/bin/echo "${applications}" \
+        | /bin/sed -e 's%  *% %g'             \
+        | /bin/sed -e 's% %\n%g'              \
+        | /usr/bin/sort                       \
+        | /usr/bin/uniq                       \
+        | /bin/grep -v 'xinit'                \
+        | /bin/grep -v 'X'                    \
+        | /bin/grep -v "${MM_X_MYTH_PROGRAM}"`
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Exiting apps. not keeing X alive:[${applications}]"
+    mm_x_applications_kill ${applications}
+    mm_x_applications_dead ${applications}
+
+    # Create the list of xlsclients X applications not keeping X alive, kill them and wait for them to die
+    #   All of these should have been killed when we killed the list of known X applications not keeping X alive.
+    #   However, there may be some unknown X applications not keeping X alive that we need to kill.
+    applications=`/usr/bin/xlsclients -display ':0.0' -a 2> /dev/null \
+        | /bin/sed -e 's%  *% %g'                                     \
+        | /usr/bin/cut -d ' ' -f 2                                    \
+        | /bin/sed -e 's%^.*/%%'                                      \
+        | /usr/bin/sort                                               \
+        | /usr/bin/uniq                                               \
+        | /bin/grep -v 'xinit'                                        \
+        | /bin/grep -v 'X'                                            \
+        | /bin/grep -v "${MM_X_MYTH_PROGRAM}"`
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Exiting apps. keeing X alive:[${applications}]"
+    mm_x_applications_kill ${applications}
+    mm_x_applications_dead ${applications}
+
+    # Create the list of the known X application keeping X alive, kill them and wait for them to die.
+    applications="${MM_X_MYTH_PROGRAM}"
+    mm_x_applications_kill ${applications}
+    mm_x_applications_dead ${applications}
+
+    # Create the list of remaining known X applications and wait for them to die.
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Finally stoping X and xinit."
+    applications="xinit X"
+    mm_x_applications_dead ${applications}
+
+    return 0
+}
+
+mm_show_xosd() {
+    # mm_show_xosd <description> <extra> <type> <timeout>
+    # allowable types are"
+    # "error"
+    # "warning"
+    # "ok"
+    # "message" <- this will show message instead notify
+    # ""        <- this will notify without image
+    local text="${1}"
+    local extra="${2}"
+    local type="${3}"
+    local message="${1}\n${2}"
+    local result
+    local image
+    local timeout=8
+
+    if /usr/bin/test -n ${4} ; then
+        timeout=${4}
+    fi
+
+    if /usr/bin/test $type = "message" ; then
+        /bin/echo -e "<mythmessage version=\"1\"> <text>${message}</text> <timeout>$timeout</timeout> </mythmessage>" | nc -u -w1 127.0.0.1 6948
+    else
+        if /usr/bin/test $type = "error" ; then
+            image="images/mythnotify/error.png"
+        elif /usr/bin/test $type = "warning" ; then
+            image="images/mythnotify/warning.png"
+        elif /usr/bin/test $type = "ok" ; then
+            image="images/mythnotify/check.png"
+        else
+            image=""
+        fi
+
+        /bin/echo -e "
+        <mythnotification version=\"1\">
+          <image>$image</image>
+          <text>System</text>
+          <origin></origin>
+          <description>$text</description>
+          <extra>$extra</extra>
+          <progress_text></progress_text>
+          <progress></progress>
+          <timeout>$timeout</timeout>
+        </mythnotification>" | nc -u -w1 127.0.0.1 6948
+    fi
+}
+
+mm_exec_and_notify() {
+#  echo -e $1 > /var/tmp/out.tmp 2>&1
+#  local title=`cat /var/tmp/out.tmp`
+  local title=`echo -e $1.`
+  local result=`${2} | sed -e "s/::.*//g"`
+  mm_show_xosd "${title}" "${result}" "warning"
+}
+
+mm_notify_and_exec() {
+  local title=`echo -e $1.`
+  mm_show_xosd "${title}"
+  /bin/sleep 5
+  local result=`${2} | sed -e "s/::.*//g"`
+}
+
+
+#===============================================================================
+# mythfrontend functions.
+#===============================================================================
+mm_mythfrontend_networkcontrol() {
+    local command=$1
+
+    local failed
+    local response
+
+    local host
+    local port
+
+    failed=1
+    response=''
+
+
+    if /usr/bin/test -n "`/bin/pidof mythfrontend`" ; then
+        host='localhost'
+        port=`mm_mythdb_settings_get NetworkControlPort`
+
+        response=`/bin/echo -e "${command}\nexit" \
+                  | /usr/bin/hose ${host} ${port} --out --in \
+                    /bin/sh -c "/bin/cat <&3 & \
+                                /bin/grep '^#' \
+                                | /bin/sed 's%[[:cntrl:]]% %' \
+                                | /bin/grep -v '^# *$' \
+                                | /bin/sed 's%^#%%' \
+                                | /bin/sed 's%  *% %' \
+                                | /bin/sed 's%^ %%' \
+                                | /bin/sed 's% $%%' >&4" \
+                    3<&0 4>&1`
+        if /usr/bin/test $? -eq 0 ; then
+            failed=0
+        fi
+    fi
+
+    /bin/echo ${response}
+
+    if /usr/bin/test ${failed} -eq 1 ; then
+        /bin/false
+        return
+    else
+        /bin/true
+        return
+    fi
+}

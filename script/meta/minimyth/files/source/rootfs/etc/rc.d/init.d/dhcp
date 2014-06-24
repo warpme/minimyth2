@@ -1,0 +1,94 @@
+#!/bin/sh
+################################################################################
+# dhcp
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    local DHCLIENT_CONF
+    local INTERFACE
+    local INTERFACE_ITEM
+    local INTERFACE_LIST
+    local IP_ADDRESS
+
+    UDHCPC_CONF='/etc/udhcpc.conf'
+
+    # Create a 'udhcpc.conf' file.
+    /bin/rm -f "${UDHCPC_CONF}~"
+    /bin/mkdir -p "`/usr/bin/dirname ${UDHCPC_CONF}~`"
+    /bin/touch "${UDHCPC_CONF}~"
+    /bin/chmod 644 "${UDHCPC_CONF}~"
+    set | /bin/grep -e '^MM_DHCP_' > "${UDHCPC_CONF}~"
+    /bin/mv -f "${UDHCPC_CONF}~" "${UDHCPC_CONF}"
+
+    # If 'udhcpc' is running, then stop it.
+    if /usr/bin/test -n "`/bin/pidof udhcpc`" ; then
+        mm_message_output info "stopping DHCP client ..."
+        while /usr/bin/test -n "`/bin/pidof udhcpc`" 2> /dev/null ; do
+            /usr/bin/killall udhcpc
+        done
+    fi
+
+    # Start 'udhcpc'.
+    if /usr/bin/test -z "`/bin/pidof udhcpc`" ; then
+        mm_message_output info "starting DHCP client ..."
+        INTERFACE=${MM_NETWORK_INTERFACE}
+        if /usr/bin/test -z "${INTERFACE}" ; then
+            # Locate a connected network interface.
+            # We use the first connected network interface found.
+            INTERFACE_LIST=
+            if /usr/bin/test -e /sys/class/net ; then
+                INTERFACE_LIST=`/bin/ls -1 /sys/class/net | /bin/grep -v '^lo$'`
+            fi
+            INTERFACE=
+            for INTERFACE_ITEM in ${INTERFACE_LIST} ; do
+                /usr/sbin/ifplugstatus -q ${INTERFACE_ITEM}
+                if /usr/bin/test $? -eq 2 ; then
+                    INTERFACE=${INTERFACE_ITEM}
+                    break
+                fi
+            done
+        fi
+        if /usr/bin/test -z "${INTERFACE}" ; then
+            mm_message_output info "selecting eth0 network interface as default."
+            INTERFACE='eth0'
+        fi
+
+        # Start DHCP on the interface.
+        IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
+        if /usr/bin/test -z "${IP_ADDRESS}" ; then
+            /sbin/udhcpc -S -p /var/run/udhcpc.pid -s /etc/udhcpc.script -i ${INTERFACE} -O tcode -O logsrv  > /var/log/udhcpc 2>&1
+        else
+            /sbin/udhcpc -S -p /var/run/udhcpc.pid -s /etc/udhcpc.script -i ${INTERFACE} -r ${IP_ADDRESS}  -O tcode -O logsrv > /var/log/udhcpc 2>&1
+        fi
+        if /usr/bin/test $? -ne 0 ; then
+            mm_message_output err "error: DHCP on interface '${INTERFACE}' failed."
+            exit 1
+        fi
+
+        # Make sure we got an IP address.
+        IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
+        if /usr/bin/test -z "${IP_ADDRESS}" ; then
+            mm_message_output err "error: DHCP on interface '${INTERFACE}' failed."
+            exit 1
+        fi
+    fi
+
+    return 0
+}
+
+stop() {
+
+    mm_message_output info "stopping DHCP client ..."
+    /usr/bin/test -n "`/bin/pidof udhcpc`" && /usr/bin/killall udhcpc
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0

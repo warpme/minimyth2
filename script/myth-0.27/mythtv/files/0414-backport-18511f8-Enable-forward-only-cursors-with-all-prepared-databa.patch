@@ -1,0 +1,40 @@
+From 18511f814933c5f4494f4afd97f159ef2e3bdeed Mon Sep 17 00:00:00 2001
+From: Stuart Morgan <smorgan@mythtv.org>
+Date: Sun, 8 Jun 2014 22:56:58 +0100
+Subject: [PATCH] Enable forward-only cursors with all prepared database
+ connections.
+
+QT docs indicate that there are significant speed ups and a reduction
+in memory usage by enabling forward-only cursors. Since mysql only
+supports forward only cursors QT must cache the entire result set in
+memory in order to support bi-directional iteration and seeking. By
+explicitly telling QT that we only care about iterating forward
+through the result set QT can avoid this caching.
+
+Unconditionally enable this since all existing uses of the database
+iterate forward over the result set.
+---
+ mythtv/libs/libmythbase/mythdbcon.cpp |    7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/mythtv/libs/libmythbase/mythdbcon.cpp b/mythtv/libs/libmythbase/mythdbcon.cpp
+index 8ce68f9..dc7717a 100644
+--- a/mythtv/libs/libmythbase/mythdbcon.cpp
++++ b/mythtv/libs/libmythbase/mythdbcon.cpp
+@@ -823,6 +823,13 @@ bool MSqlQuery::prepare(const QString& query)
+         return false;
+     }
+ 
++    // QT docs indicate that there are significant speed ups and a reduction
++    // in memory usage by enabling forward-only cursors
++    //
++    // Unconditionally enable this since all existing uses of the database
++    // iterate forward over the result set.
++    setForwardOnly(true);
++
+     bool ok = QSqlQuery::prepare(query);
+ 
+     // if the prepare failed with "MySQL server has gone away"
+-- 
+1.7.10.2
+

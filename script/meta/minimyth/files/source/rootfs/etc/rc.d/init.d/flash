@@ -1,0 +1,89 @@
+#!/bin/sh
+################################################################################
+# flash
+#
+# This script installs Adobe Flash Player for MythBrowser.
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    if /usr/bin/test -n "${MM_FLASH_URL}" ; then
+        mm_message_output info "installing Adobe Flash plugin ..."
+        if /usr/bin/test "${MM_FLASH_URL}" = "auto" ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/flash] Trying to install Adobe Flash Player...(auto)"
+            mm_confrw_get "libflashplayer.so" "/usr/lib/browser/plugins/libflashplayer.so"
+            if /usr/bin/test -e "/usr/lib/browser/plugins/libflashplayer.so" ; then
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/flash] libflashplayer.so present. Will install as plugin (auto)"
+            else
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/flash] libflashplayer.so not present (auto)"
+                if /usr/bin/test -e "/lib/ld-linux.so.2" ; then
+                    mm_message_output info "downlading 32-bit plugin from Adobe ..."
+                    mm_url_get "http://get.adobe.com/flashplayer/download/?installer=Flash_Player_11.2_for_other_Linux_%28.tar.gz%29_32-bit&standalone=1" "/tmp/flash.tar.gz"
+                    if /usr/bin/test -e "/tmp/flash.tar.gz" ; then
+                        mm_message_output info "Flash pluging downloaded. Unapcking ..."
+                        /bin/tar -C /tmp -zxf /tmp/flash.tar.gz
+                        /bin/rm -rf  /tmp/flash.tar.gz
+                        mm_message_output info "saving Flash plugin ..."
+                        mm_confrw_put "libflashplayer.so" "/tmp/libflashplayer.so"
+                        /bin/mv -f /tmp/libflashplayer.so /usr/lib/browser/plugins/libflashplayer.so
+                    else
+                       /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/flash] error: Can't download 32-bit flash plugin from Adobe (auto)."
+                    fi
+                else
+                    mm_message_output info "downlading 64-bit plugin from Adobe ..."
+                    mm_url_get "http://get.adobe.com/flashplayer/download/?installer=Flash_Player_11.2_for_other_Linux_%28.tar.gz%29_64-bit&standalone=1" "/tmp/flash.tar.gz"
+                    if /usr/bin/test -e "/tmp/flash.tar.gz" ; then
+                        mm_message_output info "Flash pluging downloaded. Unapcking ..."
+                        /bin/tar -C /tmp -zxf /tmp/flash.tar.gz
+                        /bin/rm -rf  /tmp/flash.tar.gz
+                        mm_message_output info "saving Flash plugin ..."
+                        mm_confrw_put "libflashplayer.so" "/tmp/libflashplayer.so"
+                        /bin/mv -f /tmp/libflashplayer.so /usr/lib/browser/plugins/libflashplayer.so
+                    else
+                       /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/flash] error: Can't download 64-bit flash plugin from Adobe (auto)."
+                    fi
+                fi
+            fi
+        else
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/flash] Trying to install Adobe Flash Player...(URL)"
+            mm_url_get "${MM_FLASH_URL}" "/usr/lib/browser/plugins/libflashplayer.so"
+        fi
+
+        if /usr/bin/test -e "/usr/lib/browser/plugins/libflashplayer.so" ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/flash] Installing libflashplayer.so as plugin..."
+            chmod 0666  "/usr/lib/browser/plugins/libflashplayer.so"
+            if /usr/bin/test -e "/lib/ld-linux.so.2" ; then
+                if ! /lib/ld-linux.so.2 --list "/usr/lib/browser/plugins/libflashplayer.so" > /dev/null 2>&1 ; then
+                    mm_message_output err "error: Adobe Flash Player will fail because libraries are missing."
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/flash] 32-bit libflashplayer.so install failed."
+
+                else
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/flash] 32-bit libflashplayer.so installed as plugin sucessfuly..."
+                fi
+            fi
+            if /usr/bin/test -e "/lib/ld-linux-x86-64.so.2" ; then
+                if ! /lib/ld-linux-x86-64.so.2 --list "/usr/lib/browser/plugins/libflashplayer.so" > /dev/null 2>&1 ; then
+                    mm_message_output err "error: Adobe Flash Player will fail because libraries are missing."
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/flash] 64-bit libflashplayer.so install failed."
+                else
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/flash] 64-bit libflashplayer.so installed as plugin sucessfuly..."
+                fi
+            fi
+
+        fi
+    fi
+
+    return 0
+}
+
+stop() {
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0

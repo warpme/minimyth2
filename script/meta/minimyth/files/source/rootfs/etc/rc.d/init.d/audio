@@ -1,0 +1,145 @@
+#!/bin/sh
+################################################################################
+# audio
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    local amixer_command
+    local control
+    local timeout
+    local buffer=512
+
+    /bin/chmod -R 777 /proc/asound
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Setting buffer to ${buffer} for /proc/asound/card${MM_AUDIO_CARD_NUMBER}/pcm${MM_AUDIO_DEVICE_NUMBER}p/sub0/prealloc"
+    echo ${buffer} | tee /proc/asound/card${MM_AUDIO_CARD_NUMBER}/pcm${MM_AUDIO_DEVICE_NUMBER}p/sub0/prealloc
+    current_buffer=`cat /proc/asound/card${MM_AUDIO_CARD_NUMBER}/pcm${MM_AUDIO_DEVICE_NUMBER}p/sub0/prealloc`
+    if /usr/bin/test ! ${current_buffer} = ${buffer} ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] ERROR: Setting buffer to ${buffer} for /proc/asound/card${MM_AUDIO_CARD_NUMBER}/pcm${MM_AUDIO_DEVICE_NUMBER}p/sub0/prealloc failed!!!"
+    fi
+
+    amixer_command="/usr/bin/amixer -c ${MM_AUDIO_CARD_NUMBER}"
+
+    mm_message_output info "configuring audio ..."
+
+    # Set audio card number and audio card device.
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Adding pcm:hw${MM_AUDIO_CARD_NUMBER},${MM_AUDIO_DEVICE_NUMBER} to asound.conf..."
+    /bin/sed -i "s%@MM_AUDIO_CARD_NUMBER@%${MM_AUDIO_CARD_NUMBER}%"     /etc/asound.conf
+    /bin/sed -i "s%@MM_AUDIO_DEVICE_NUMBER@%${MM_AUDIO_DEVICE_NUMBER}%" /etc/asound.conf
+
+    # Wait for audio driver to load.
+    timeout=10
+    while ! ${amixer_command} > /dev/null 2>&1 && /usr/bin/test ${timeout} -gt 0 ; do
+        /bin/sleep 1
+        timeout=$((timeout-1))
+    done
+    if  ! ${amixer_command} > /dev/null 2>&1 ; then
+        mm_message_output err "error: the audio driver does not appear to be loaded."
+        exit 1
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] ALSA amixer successfuly operating on card ${MM_AUDIO_CARD_NUMBER}"
+    fi
+
+    # Unmute audio.
+    if ${amixer_command} > /dev/null 2>&1 ; then
+        control=
+        if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+analog+'  ; then
+            ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+            while read control ; do
+                case "${control}" in
+                    # General unmuting.
+                    PCM)                         ${amixer_command} set 'PCM'                       90% unmute ;;
+                    Master)                      ${amixer_command} set 'Master'                    90% unmute ;;
+                    Front)                       ${amixer_command} set 'Front'                     90% unmute ;;
+                    Master\ Front)               ${amixer_command} set 'Master Front'              90% unmute ;;
+                    Analog\ Front)               ${amixer_command} set 'Analog Front'              90% unmute ;;
+                    Surround)                    ${amixer_command} set 'Surround'                  90% unmute ;;
+                    Analog\ Side)                ${amixer_command} set 'Analog Side'               90% unmute ;;
+                    Analog\ Rear)                ${amixer_command} set 'Analog Rear'               90% unmute ;;
+                    Center)                      ${amixer_command} set 'Center'                    90% unmute ;;
+                    LFE)                         ${amixer_command} set 'LFE'                       90% unmute ;;
+                    Analog\ Center/LFE)          ${amixer_command} set 'Analog Center/LFE'         90% unmute ;;
+                    # VIA Specific unmuting.
+                    VIA\ DXS)                    ${amixer_command} set 'VIA DXS'                   100%       ;;
+                esac
+            done
+        fi
+        if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+digital+' ; then
+            ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+            while read control ; do
+                case "${control}" in
+                    # General unmuting.
+                    IEC958)
+                        ${amixer_command} set 'IEC958'     on
+                        ${amixer_command} set 'IEC958,1'   on
+                        ;;
+                    IEC958\ Front)               ${amixer_command} set 'IEC958 Front'              90% unmute ;;
+                    IEC958\ Side)                ${amixer_command} set 'IEC958 Side'               90% unmute ;;
+                    IEC958\ Rear)                ${amixer_command} set 'IEC958 Rear'               90% unmute ;;
+                    IEC958\ Center/LFE)          ${amixer_command} set 'IEC958 Center/LFE'         90% unmute ;;
+                    # VIA Specific unmuting.
+                    IEC958\ Playback\ AC97-SPSA) ${amixer_command} set 'IEC958 Playback AC97-SPSA' 0          ;;
+                esac
+            done
+        fi
+    fi
+
+    return 0
+}
+
+stop () {
+
+    local amixer_command
+    local control
+
+    amixer_command="/usr/bin/amixer -c ${MM_AUDIO_CARD_NUMBER}"
+
+    mm_message_output info "muting audio ..."
+
+    # Mute audio.
+    if ${amixer_command} > /dev/null 2>&1 ; then
+        if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+analog+'  ; then
+            ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+            while read control ; do
+                case "${control}" in
+                    # General muting.
+                    PCM)                ${amixer_command} set 'PCM'               0% mute ;;
+                    Master)             ${amixer_command} set 'Master'            0% mute ;;
+                    Front)              ${amixer_command} set 'Front'             0% mute ;;
+                    Analog\ Front)      ${amixer_command} set 'Analog Front'      0% mute ;;
+                    Surround)           ${amixer_command} set 'Surround'          0% mute ;;
+                    Analog\ Side)       ${amixer_command} set 'Analog Sied'       0% mute ;;
+                    Analog\ Rear)       ${amixer_command} set 'Analog Rear'       0% mute ;;
+                    Center)             ${amixer_command} set 'Center'            0% mute ;;
+                    LFE)                ${amixer_command} set 'LFE'               0% mute ;;
+                    Analog\ Center/LFE) ${amixer_command} set 'Analog Center/LFE' 0% mute ;;
+                    # VIA Specific muting.
+                    VIA\ DXS)           ${amixer_command} set 'VIA DXS'           0%      ;;
+                esac
+            done
+        fi
+        if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+digital+' ; then
+            ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+            while read control ; do
+                case "${control}" in
+                    # General unmuting.
+                    IEC958)             ${amixer_command} set 'IEC958'            off     ;;
+                    IEC958\ Front)      ${amixer_command} set 'IEC958 Front'      0% mute ;;
+                    IEC958\ Side)       ${amixer_command} set 'IEC958 Side'       0% mute ;;
+                    IEC958\ Rear)       ${amixer_command} set 'IEC958 Rear'       0% mute ;;
+                    IEC958\ Center/LFE) ${amixer_command} set 'IEC958 Center/LFE' 0% mute ;;
+                esac
+            done
+        fi
+    fi
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0

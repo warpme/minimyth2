@@ -1,0 +1,151 @@
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmyth/backendselect.cpp mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmyth/backendselect.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmyth/backendselect.cpp	2014-05-05 11:59:09.418516244 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmyth/backendselect.cpp	2014-05-05 11:59:22.281776174 +0200
+@@ -1,6 +1,6 @@
+ // -*- Mode: c++ -*-
+ 
+-#include <QCoreApplication>
++#include <QEventLoop>
+ 
+ #include "mythuistatetype.h"
+ #include "mythmainwindow.h"
+@@ -18,8 +18,12 @@
+     MythScreenType(parent, "BackEnd Selection"),
+     m_DBparams(params), m_pConfig(conf), m_exitOnFinish(exitOnFinish),
+     m_backendList(NULL), m_manualButton(NULL), m_saveButton(NULL),
+-    m_cancelButton(NULL), m_backendDecision(kCancelConfigure)
++    m_cancelButton(NULL), m_backendDecision(kCancelConfigure), m_loop(NULL)
+ {
++    if (exitOnFinish)
++    {
++        m_loop = new QEventLoop();
++    }
+ }
+ 
+ BackendSelection::~BackendSelection()
+@@ -34,6 +38,11 @@
+     }
+ 
+     m_devices.clear();
++
++    if (m_exitOnFinish)
++    {
++        delete m_loop;
++    }
+ }
+ 
+ BackendSelection::Decision BackendSelection::Prompt(
+@@ -50,7 +59,7 @@
+     if (backendSettings->Create())
+     {
+         mainStack->AddScreen(backendSettings, false);
+-        qApp->exec();
++        backendSettings->m_loop->exec();
+         ret = backendSettings->m_backendDecision;
+         mainStack->PopScreen(backendSettings, false);
+     }
+@@ -373,7 +382,7 @@
+     m_backendDecision = d;
+ 
+     if (m_exitOnFinish)
+-        qApp->quit();
++        m_loop->quit();
+     else
+         MythScreenType::Close();
+ }
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmyth/backendselect.h mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmyth/backendselect.h
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmyth/backendselect.h	2014-05-05 11:59:09.415182929 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmyth/backendselect.h	2014-05-05 11:59:22.281776174 +0200
+@@ -10,6 +10,7 @@
+ #include "configuration.h"
+ #include "upnpdevice.h"
+ 
++class QEventLoop;
+ class MythUIButtonList;
+ class MythUIButton;
+ 
+@@ -89,6 +90,7 @@
+     QMutex  m_mutex;
+ 
+     BackendDecision m_backendDecision;
++    QEventLoop *m_loop;
+ };
+ 
+ Q_DECLARE_METATYPE(DeviceLocation*)
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmyth/langsettings.cpp mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmyth/langsettings.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmyth/langsettings.cpp	2014-05-05 11:59:09.415182929 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmyth/langsettings.cpp	2014-05-05 11:59:22.281776174 +0200
+@@ -2,10 +2,9 @@
+ #include "langsettings.h"
+ 
+ // qt
+-#include <QApplication>
++#include <QEventLoop>
+ #include <QDir>
+ #include <QFileInfo>
+-#include <QApplication>
+ 
+ // libmythbase
+ #include "mythcorecontext.h"
+@@ -24,14 +23,23 @@
+                  :MythScreenType(parent, "LanguageSelection"),
+                   m_languageList(NULL), m_countryList(NULL),
+                   m_saveButton(NULL), m_cancelButton(NULL),
+-                  m_exitOnFinish(exitOnFinish), m_loaded(false)
++                  m_exitOnFinish(exitOnFinish), m_loaded(false),
++                  m_loop(NULL)
+ {
+     m_language = gCoreContext->GetSetting("Language");
+     m_country = gCoreContext->GetSetting("Country");
++    if (exitOnFinish)
++    {
++        m_loop = new QEventLoop();
++    }
+ }
+ 
+ LanguageSelection::~LanguageSelection()
+ {
++    if (m_exitOnFinish)
++    {
++        delete m_loop;
++    }
+ }
+ 
+ bool LanguageSelection::Create(void)
+@@ -186,7 +194,7 @@
+         if (langSettings->Create())
+         {
+             mainStack->AddScreen(langSettings, false);
+-            qApp->exec();
++            langSettings->m_loop->exec();
+             mainStack->PopScreen(langSettings, false);
+         }
+         else
+@@ -220,7 +228,7 @@
+ void LanguageSelection::Close(void)
+ {
+     if (m_exitOnFinish)
+-        qApp->quit();
++        m_loop->quit();
+     else
+         MythScreenType::Close();
+ }
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmyth/langsettings.h mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmyth/langsettings.h
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmyth/langsettings.h	2014-05-05 11:59:09.418516244 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmyth/langsettings.h	2014-05-05 11:59:22.281776174 +0200
+@@ -12,6 +12,7 @@
+ #include "mythscreentype.h"
+ #include "mythscreenstack.h"
+ 
++class QEventLoop;
+ class MythUIButtonList;
+ class MythUIButtonListItem;
+ class MythUIButton;
+@@ -52,6 +53,7 @@
+     static bool m_languageChanged;
+     QString m_language;
+     QString m_country;
++    QEventLoop *m_loop;
+ };
+ 
+ #endif

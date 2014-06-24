@@ -1,0 +1,41 @@
+GARNAME = pjproject
+GARVERSION = 2.2.1
+CATEGORIES = lib
+MASTER_SITES = http://www.pjsip.org/release/$(GARVERSION)
+DISTFILES = $(DISTNAME).tar.bz2
+LICENSE = GPL2
+
+DESCRIPTION = 
+define BLURB
+endef
+
+DEPENDS   = lang/c
+
+CONFIGURE_SCRIPTS = $(WORKSRC)/configure
+BUILD_SCRIPTS     = $(WORKSRC)/Makefile
+INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+
+CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+  --prefix=/usr \
+  --enable-shared \
+  --disable-opencore-amr \
+  --disable-video \
+  --disable-sdl \
+  --disable-ffmpeg \
+  --disable-v4l2
+
+include ../../gar.mk
+
+CFLAGS   := $(filter-out -O%, $(CFLAGS)) -Os
+CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -Os
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+
+pre-configure:
+	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	@$(MAKECOOKIE)
+
+post-install:
+	@rm -f $(DESTDIR)$(libdir)/libpj*.a
+	@$(MAKECOOKIE)
+

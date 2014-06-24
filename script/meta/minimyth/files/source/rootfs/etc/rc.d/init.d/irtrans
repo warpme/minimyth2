@@ -1,0 +1,54 @@
+#!/bin/sh
+################################################################################
+# irtrans
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    if /usr/bin/test "${MM_LCDPROC_DRIVER}" = "irtrans" || \
+       /usr/bin/test "${MM_LIRC_DRIVER}"    = "irtrans" ; then
+        if /usr/bin/test -n "${MM_LCDPROC_DEVICE}" ; then
+            mm_message_output info "starting IRTrans server ..."
+            # Use IRTrans server's LIRC support if
+            # either the LIRC driver is 'irtrans',
+            # or there is no other LIRC device.
+            if  /usr/bin/test    "${MM_LIRC_DRIVER}" = "irtrans" || \
+                /usr/bin/test -z "${MM_LIRC_DEVICE_LIST}"        ; then
+                /usr/sbin/irserver \
+                    -logfile /var/log/irserver \
+                    -pidfile /var/run/irserver.pid \
+                    -daemon "${MM_LCDPROC_DEVICE}"
+            else
+                /usr/sbin/irserver \
+                    -no_lirc \
+                    -logfile /var/log/irserver \
+                    -pidfile /var/run/irserver.pid \
+                    -daemon "${MM_LCDPROC_DEVICE}"
+            fi
+        fi
+    fi
+
+    return 0
+}
+
+stop() {
+
+    if /usr/bin/test -n "`/bin/pidof irserver`" ; then
+        mm_message_output info "stopping IRTrans server ..."
+        if /usr/bin/test -e /usr/sbin/irclient ; then
+            /usr/sbin/irclient localhost -shutdown
+        else
+            /usr/bin/killall irserver
+        fi
+    fi
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0

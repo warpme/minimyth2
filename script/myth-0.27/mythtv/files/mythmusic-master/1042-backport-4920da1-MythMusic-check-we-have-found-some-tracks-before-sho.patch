@@ -1,0 +1,70 @@
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/main.cpp mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/main.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/main.cpp	2014-02-05 16:40:25.531576306 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/main.cpp	2014-02-05 16:40:34.824962387 +0100
+@@ -94,9 +94,34 @@
+     return true;
+ }
+ 
++/// checks we have some tracks available
++static bool checkMusicAvailable(void)
++{
++    MSqlQuery count_query(MSqlQuery::InitCon());
++    bool foundMusic = false;
++    if (count_query.exec("SELECT COUNT(*) FROM music_songs;"))
++    {
++        if(count_query.next() &&
++            0 != count_query.value(0).toInt())
++        {
++            foundMusic = true;
++        }
++    }
++
++    if (!foundMusic)
++    {
++        ShowOkPopup(qApp->translate("(MythMusicMain)",
++                                    "No music has been found.\n"
++                                    "Please select 'Scan For New Music' "
++                                    "to perform a scan for music."));
++    }
++
++    return foundMusic;
++}
++
+ static void startPlayback(void)
+ {
+-    if (!checkStorageGroup())
++    if (!checkStorageGroup() || !checkMusicAvailable())
+         return;
+ 
+     gMusicData->loadMusic();
+@@ -127,7 +152,7 @@
+ 
+ static void startDatabaseTree(void)
+ {
+-    if (!checkStorageGroup())
++    if (!checkStorageGroup() || !checkMusicAvailable())
+         return;
+ 
+     gMusicData->loadMusic();
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/musicdata.cpp mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/musicdata.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/musicdata.cpp	2014-02-05 16:40:25.531576306 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/musicdata.cpp	2014-02-05 16:40:34.824962387 +0100
+@@ -104,18 +104,6 @@
+     if (initialized)
+         return;
+ 
+-    MSqlQuery count_query(MSqlQuery::InitCon());
+-
+-    bool musicdata_exists = false;
+-    if (count_query.exec("SELECT COUNT(*) FROM music_songs;"))
+-    {
+-        if(count_query.next() &&
+-            0 != count_query.value(0).toInt())
+-        {
+-            musicdata_exists = true;
+-        }
+-    }
+-
+     MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
+     QString message = qApp->translate("(MythMusicMain)",
+                                       "Loading Music. Please wait ...");

@@ -1,0 +1,60 @@
+#-------------------------------------------------------------------------------
+# Detect LIRC devices.
+#
+# An LIRC device is assumed to
+#     have the name lirc[0-9]* or ttyUSB[0-9]*,
+#     be in the lirc or tty subsystem, and
+#     be a USB device.
+#
+# For an LIRC device in the lirc subsystem, the LIRC driver is the default LIRC
+# driver. As a result, no further detection is needed.
+#
+# For an LIRC device not in the lirc subsystem, the LIRC driver is not the
+# default LIRC driver. As a result, further detection is needed. For this
+# detection, mm_detect_id is used.
+#
+# mm_detect_id has the following format:
+#     usb:<idVendor>:<idProduct>
+# mm_detect_state_lirc has the following format:
+#     <driver>
+# where
+#     <driver> : The LIRC driver.
+# The state requires the LIRC device name. However, since it is not yet
+# known, it cannot be added be included in mm_detect_state_lirc. Therefore, the
+# mm_detect script will prepend the LIRC device name to the state.
+#-------------------------------------------------------------------------------
+ACTION=="add|remove", KERNEL=="lirc[0-9]*|ttyUSB[0-9]*", SUBSYSTEM=="lirc|tty", SUBSYSTEMS=="usb", GOTO="begin"
+GOTO="end"
+LABEL="begin"
+
+SUBSYSTEM!="lirc", GOTO="end-lirc"
+
+ENV{mm_detect_state_lirc}="default"
+
+LABEL="end-lirc"
+
+SUBSYSTEM=="lirc", GOTO="end-nonlirc"
+
+# Import mm_detect_id.
+IMPORT{program}="/usr/lib/udev/mm_detect_id"
+
+# Initialize state
+ENV{mm_detect_state_lirc}=""
+
+#-------------------------------------------------------------------------------
+# non-lirc device list
+#-------------------------------------------------------------------------------
+  ENV{mm_detect_id}=="usb:0fe9:9010", ENV{mm_detect_state_lirc}="dvico"
+
+LABEL="end-nonlirc"
+
+# The state has ben set, so give the device a persistent unique identifier when possible.
+ENV{mm_detect_state_lirc}=="?*", PROGRAM="/usr/lib/udev/mm_uid", RESULT=="?*", SYMLINK+="$env{SUBSYSTEM}-$result"
+
+# The state has been set, so save it.
+ENV{mm_detect_state_lirc}=="?*", RUN+="/usr/lib/udev/mm_detect lirc %k $env{mm_detect_state_lirc} state_prepend_devname"
+
+# Run mm_wake_enable for enabling sleep in lirc usb port"
+RUN+="/usr/lib/udev/mm_wake_enable"
+
+LABEL="end"

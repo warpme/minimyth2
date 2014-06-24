@@ -1,0 +1,1132 @@
+From 829e52fc4a39aa84ce225a7a062383773d11fae4 Mon Sep 17 00:00:00 2001
+From: Stuart Morgan <smorgan@mythtv.org>
+Date: Wed, 30 Oct 2013 18:08:31 +0000
+Subject: [PATCH 270/760] Move image thumbnail generation to the backend
+
+This is an imperfect implementation and doesn't fix the other issues
+around thumbnail generation. It is however a step in the right direction.
+---
+ mythtv/libs/libmythmetadata/imagescanthread.cpp    |    1 -
+ mythtv/libs/libmythmetadata/imagescanthread.h      |    2 -
+ .../libs/libmythmetadata/imagethumbgenthread.cpp   |  157 ++++++++++++++++----
+ mythtv/libs/libmythmetadata/imagethumbgenthread.h  |   37 ++++-
+ mythtv/libs/libmythmetadata/imageutils.cpp         |   73 +++++++++
+ mythtv/libs/libmythmetadata/imageutils.h           |    3 +
+ .../services/imageServices.h                       |    7 +
+ .../libs/libmythsoundtouch/cpu_detect_x86_win.cpp  |    2 +-
+ mythtv/programs/mythbackend/services/image.cpp     |  101 +++++++++++--
+ mythtv/programs/mythbackend/services/image.h       |    7 +
+ .../mythfrontend/gallerydatabasehelper.cpp         |   26 ++--
+ .../programs/mythfrontend/gallerydatabasehelper.h  |    2 +-
+ mythtv/programs/mythfrontend/galleryfilehelper.cpp |   86 +++++++++--
+ mythtv/programs/mythfrontend/galleryfilehelper.h   |    5 +
+ mythtv/programs/mythfrontend/galleryview.cpp       |   87 ++++++-----
+ mythtv/programs/mythfrontend/galleryview.h         |    2 +-
+ mythtv/programs/mythfrontend/galleryviewhelper.cpp |   36 ++---
+ 17 files changed, 491 insertions(+), 143 deletions(-)
+
+diff --git a/mythtv/libs/libmythmetadata/imagescanthread.cpp b/mythtv/libs/libmythmetadata/imagescanthread.cpp
+index 5a5be42..84d2291 100644
+--- a/mythtv/libs/libmythmetadata/imagescanthread.cpp
++++ b/mythtv/libs/libmythmetadata/imagescanthread.cpp
+@@ -7,7 +7,6 @@
+ #include "imageutils.h"
+ 
+ 
+-
+ /** \fn     ImageScanThread::ImageScanThread()
+  *  \brief  Constructor
+  *  \return void
+diff --git a/mythtv/libs/libmythmetadata/imagescanthread.h b/mythtv/libs/libmythmetadata/imagescanthread.h
+index e69e826..d18eb58 100644
+--- a/mythtv/libs/libmythmetadata/imagescanthread.h
++++ b/mythtv/libs/libmythmetadata/imagescanthread.h
+@@ -10,8 +10,6 @@
+ #include "mthread.h"
+ #include "imagemetadata.h"
+ 
+-
+-
+ class ImageScanThread : public MThread
+ {
+ public:
+diff --git a/mythtv/libs/libmythmetadata/imagethumbgenthread.cpp b/mythtv/libs/libmythmetadata/imagethumbgenthread.cpp
+index 12f948e..87d4750 100644
+--- a/mythtv/libs/libmythmetadata/imagethumbgenthread.cpp
++++ b/mythtv/libs/libmythmetadata/imagethumbgenthread.cpp
+@@ -13,14 +13,13 @@
+ #include "imageutils.h"
+ #include "imagethumbgenthread.h"
+ 
+-// FIXME: This should be on the backend only, not the frontend!
+-
+ /** \fn     ImageThumbGenThread::ImageThumbGenThread()
+  *  \brief  Constructor
+  *  \return void
+  */
+ ImageThumbGenThread::ImageThumbGenThread()
+-        :   m_width(0), m_height(0),
++        :   m_progressCount(0), m_progressTotalCount(0),
++            m_width(0), m_height(0),
+             m_pause(false), m_fileListSize(0)
+ {
+     QString sgName = IMAGE_STORAGE_GROUP;
+@@ -87,6 +86,8 @@ void ImageThumbGenThread::run()
+             }
+         }
+ 
++        delete im;
++
+         m_mutex.lock();
+         exit = m_fileList.isEmpty();
+         m_mutex.unlock();
+@@ -117,7 +118,6 @@ void ImageThumbGenThread::CreateImageThumbnail(ImageMetadata *im, int id)
+         dir.mkpath(im->m_thumbPath);
+ 
+     QString imageFileName = m_storageGroup.FindFile(im->m_fileName);
+-    LOG(VB_GENERAL, LOG_NOTICE, QString("Creating thumbnail for %1").arg(imageFileName));
+ 
+     // If a folder thumbnail shall be created we need to get
+     // the real filename from the thumbnail filename by removing
+@@ -182,7 +182,10 @@ void ImageThumbGenThread::CreateImageThumbnail(ImageMetadata *im, int id)
+ 
+     // save the image in the thumbnail directory
+     if (image.save(im->m_thumbFileNameList->at(id)))
+-        emit ThumbnailCreated(im, id);
++    {
++        QString msg = "IMAGE_THUMB_CREATED %1";
++        gCoreContext->SendMessage(msg.arg(im->m_id));
++    }
+ }
+ 
+ 
+@@ -225,7 +228,11 @@ void ImageThumbGenThread::CreateVideoThumbnail(ImageMetadata *im)
+ 
+         // save the default image in the thumbnail directory
+         if (image.save(im->m_thumbFileNameList->at(0)))
++        {
+             emit ThumbnailCreated(im, 0);
++            QString msg = "IMAGE_THUMB_CREATED %1";
++            gCoreContext->SendMessage(msg.arg(im->m_id));
++        }
+     }
+ }
+ 
+@@ -239,31 +246,9 @@ void ImageThumbGenThread::CreateVideoThumbnail(ImageMetadata *im)
+  */
+ void ImageThumbGenThread::Resize(QImage &image)
+ {
+-    // If the factor of the width to height of the image is smaller
+-    // than of the widget stretch the image horizontally. The image
+-    // will be higher then the widgets height, so it needs to be cropped.
+-    if ((image.width() / image.height()) < (m_width / m_height))
+-    {
+-        image = image.scaledToWidth(m_width, Qt::SmoothTransformation);
++    QSize size = QSize(m_width, m_height);
+ 
+-        // Copy a part of the image so that
+-        // the copied area has the size of the widget.
+-        if (image.height() > m_height)
+-        {
+-            int offset = (image.height() - m_height) / 2;
+-            image = image.copy(0, offset, m_width, m_height);
+-        }
+-    }
+-    else
+-    {
+-        image = image.scaledToHeight(m_height, Qt::SmoothTransformation);
+-
+-        if (image.width() > m_width)
+-        {
+-            int offset = (image.width() - m_width) / 2;
+-            image = image.copy(offset, 0, m_width, m_height);
+-        }
+-    }
++    image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+ }
+ 
+ 
+@@ -314,7 +299,8 @@ void ImageThumbGenThread::RecreateThumbnail(ImageMetadata *im)
+ void ImageThumbGenThread::cancel()
+ {
+     m_mutex.lock();
+-    m_fileList.clear();
++    while (!m_fileList.isEmpty())
++        delete m_fileList.takeFirst();
+     m_fileListSize = 0;
+     m_mutex.unlock();
+ 
+@@ -358,3 +344,114 @@ void ImageThumbGenThread::SetThumbnailSize(int width, int height)
+     if (height > 0)
+         m_height = height;
+ }
++
++
++//////////////////////////////////////////////////////////////////////////
++
++
++ImageThumbGen* ImageThumbGen::m_instance = NULL;
++
++ImageThumbGen::ImageThumbGen()
++{
++    m_imageThumbGenThread = new ImageThumbGenThread();
++}
++
++
++
++ImageThumbGen::~ImageThumbGen()
++{
++    delete m_imageThumbGenThread;
++    m_imageThumbGenThread = NULL;
++}
++
++
++
++ImageThumbGen* ImageThumbGen::getInstance()
++{
++    if (!m_instance)
++        m_instance = new ImageThumbGen();
++
++    return m_instance;
++}
++
++
++
++void ImageThumbGen::StartThumbGen()
++{
++    if (m_imageThumbGenThread && !m_imageThumbGenThread->isRunning())
++        m_imageThumbGenThread->start();
++}
++
++
++
++void ImageThumbGen::StopThumbGen()
++{
++    if (m_imageThumbGenThread && m_imageThumbGenThread->isRunning())
++        m_imageThumbGenThread->cancel();
++}
++
++
++
++bool ImageThumbGen::ThumbGenIsRunning()
++{
++    if (m_imageThumbGenThread)
++        return m_imageThumbGenThread->isRunning();
++
++    return false;
++}
++
++
++
++int ImageThumbGen::GetCurrent()
++{
++    if (m_imageThumbGenThread)
++        return m_imageThumbGenThread->m_progressCount;
++
++    return 0;
++}
++
++
++
++int ImageThumbGen::GetTotal()
++{
++    if (m_imageThumbGenThread)
++        return m_imageThumbGenThread->m_progressTotalCount;
++
++    return 0;
++}
++
++
++
++bool ImageThumbGen::AddToThumbnailList(ImageMetadata *im)
++{
++    if (!m_imageThumbGenThread)
++        return false;
++
++    m_imageThumbGenThread->AddToThumbnailList(im);
++
++    return true;
++}
++
++
++
++bool ImageThumbGen::RecreateThumbnail(ImageMetadata *im)
++{
++    if (!m_imageThumbGenThread)
++        return false;
++
++    m_imageThumbGenThread->RecreateThumbnail(im);
++
++    return true;
++}
++
++
++
++bool ImageThumbGen::SetThumbnailSize(int width, int height)
++{
++    if (!m_imageThumbGenThread)
++        return false;
++
++    m_imageThumbGenThread->SetThumbnailSize(width, height);
++
++    return true;
++}
+diff --git a/mythtv/libs/libmythmetadata/imagethumbgenthread.h b/mythtv/libs/libmythmetadata/imagethumbgenthread.h
+index 01bd446..450c1e7 100644
+--- a/mythtv/libs/libmythmetadata/imagethumbgenthread.h
++++ b/mythtv/libs/libmythmetadata/imagethumbgenthread.h
+@@ -11,12 +11,11 @@
+ #include "storagegroup.h"
+ #include "mythmetaexp.h"
+ 
+-
+ class META_PUBLIC ImageThumbGenThread : public QThread
+ {
+     Q_OBJECT
+ 
+-public:
++  public:
+     ImageThumbGenThread();
+     ~ImageThumbGenThread();
+ 
+@@ -27,14 +26,17 @@ public:
+     void RecreateThumbnail(ImageMetadata *);
+     void SetThumbnailSize(int, int);
+ 
+-signals:
++    int m_progressCount;
++    int m_progressTotalCount;
++
++  signals:
+     void ThumbnailCreated(ImageMetadata *, int);
+     void UpdateThumbnailProgress(int, int);
+ 
+-protected:
++  protected:
+     void run();
+ 
+-private:
++  private:
+     void CreateImageThumbnail(ImageMetadata *, int);
+     void CreateVideoThumbnail(ImageMetadata *);
+ 
+@@ -55,4 +57,29 @@ private:
+     StorageGroup        m_storageGroup;
+ };
+ 
++class META_PUBLIC ImageThumbGen
++{
++  public:
++    static ImageThumbGen*    getInstance();
++
++    void StartThumbGen();
++    void StopThumbGen();
++    bool ThumbGenIsRunning();
++
++    bool AddToThumbnailList(ImageMetadata *);
++    bool RecreateThumbnail(ImageMetadata *);
++
++    bool SetThumbnailSize(int width, int height);
++
++    int  GetCurrent();
++    int  GetTotal();
++
++  private:
++    ImageThumbGen();
++    ~ImageThumbGen();
++    static ImageThumbGen    *m_instance;
++
++    ImageThumbGenThread     *m_imageThumbGenThread;
++};
++
+ #endif // GALLERYTHUMBGENTHREAD_H
+diff --git a/mythtv/libs/libmythmetadata/imageutils.cpp b/mythtv/libs/libmythmetadata/imageutils.cpp
+index 7377f80..2433720 100644
+--- a/mythtv/libs/libmythmetadata/imageutils.cpp
++++ b/mythtv/libs/libmythmetadata/imageutils.cpp
+@@ -382,6 +382,8 @@ void ImageUtils::LoadDirectoryValues(MSqlQuery &query, ImageMetadata *dm)
+ 
+     // preset all directories as subfolders
+     dm->m_type          = kSubDirectory;
++
++    LoadDirectoryThumbnailValues(dm);
+ }
+ 
+ 
+@@ -408,6 +410,8 @@ void ImageUtils::LoadFileValues(MSqlQuery &query, ImageMetadata *dm)
+     dm->SetZoom(          query.value(11).toInt());
+     dm->m_isHidden      = query.value(12).toInt();
+     dm->SetOrientation(   query.value(13).toInt(), true);
++
++    LoadFileThumbnailValues(dm);
+ }
+ 
+ 
+@@ -829,3 +833,72 @@ bool ImageUtils::HasExifKey(Exiv2::ExifData exifData,
+     // list then the key has not been found
+     return !(it == exifData.end());
+ }
++
++/**
++ *  \brief  Gets four images from the directory from the
++ *          database which will be used as a folder thumbnail
++ *  \param  im Holds the loaded information
++ *  \return void
++ */
++void ImageUtils::LoadDirectoryThumbnailValues(ImageMetadata *im)
++{
++    // Try to get four new thumbnail filenames
++    // from the available images in this folder
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare("SELECT CONCAT_WS('/', path, filename), path FROM gallery_files "
++                          "WHERE path = :PATH "
++                          "AND type = '4' "
++                          "AND hidden = '0' LIMIT :LIMIT");
++    query.bindValue(":PATH", im->m_path);
++    query.bindValue(":LIMIT", kMaxFolderThumbnails);
++
++    if (!query.exec())
++        LOG(VB_GENERAL, LOG_ERR, MythDB::DBErrorMessage(query.lastError()));
++
++    int i = 0;
++    while (query.next())
++    {
++        QString thumbFileName = QString("%1%2")
++                .arg(GetConfDir().append("/tmp/MythImage/"))
++                .arg(query.value(0).toString());
++
++        if (i >= im->m_thumbFileNameList->size())
++            break;
++
++        im->m_thumbFileNameList->replace(i, thumbFileName);
++        im->m_thumbPath = query.value(1).toString();
++        ++i;
++    }
++
++    // Set the path to the thumbnail files. As a default this will be
++    // the path ".mythtv/MythGallery" in the users home directory
++    im->m_thumbPath.prepend(GetConfDir().append("/tmp/MythImage/"));
++}
++
++
++
++/**
++ *  \brief  Sets the thumbnail information for a file
++ *  \param  im Holds the loaded information
++ *  \return void
++ */
++void ImageUtils::LoadFileThumbnailValues(ImageMetadata *im)
++{
++    // Set the path to the thumbnail files. As a default this will be
++    // the path ".mythtv/MythGallery" in the users home directory
++    im->m_thumbPath = im->m_path;
++    im->m_thumbPath.prepend(GetConfDir().append("/tmp/MythImage/"));
++
++    // Create the full path and filename to the thumbnail image
++    QString thumbFileName = QString("%1%2")
++                                .arg(GetConfDir().append("/tmp/MythImage/"))
++                                .arg(im->m_fileName);
++
++    // If the file is a video then append a png, otherwise the preview
++    // image would not be readable due to the video file extension
++    if (im->m_type == kVideoFile)
++        thumbFileName.append(".png");
++
++    im->m_thumbFileNameList->replace(0, thumbFileName);
++}
++
+diff --git a/mythtv/libs/libmythmetadata/imageutils.h b/mythtv/libs/libmythmetadata/imageutils.h
+index c58e37e..e130a79 100644
+--- a/mythtv/libs/libmythmetadata/imageutils.h
++++ b/mythtv/libs/libmythmetadata/imageutils.h
+@@ -67,6 +67,9 @@ private:
+     void LoadDirectoryValues(MSqlQuery &, ImageMetadata *);
+     void LoadFileValues(MSqlQuery &, ImageMetadata *);
+ 
++    void LoadDirectoryThumbnailValues(ImageMetadata *);
++    void LoadFileThumbnailValues(ImageMetadata *);
++
+     bool HasExifKey(Exiv2::ExifData, const QString &);
+ };
+ 
+diff --git a/mythtv/libs/libmythservicecontracts/services/imageServices.h b/mythtv/libs/libmythservicecontracts/services/imageServices.h
+index d6dadf6..dc8acb6 100644
+--- a/mythtv/libs/libmythservicecontracts/services/imageServices.h
++++ b/mythtv/libs/libmythservicecontracts/services/imageServices.h
+@@ -56,6 +56,13 @@ class SERVICE_PUBLIC ImageServices : public Service
+         virtual bool                        StartSync          ( void ) = 0;
+         virtual bool                        StopSync           ( void ) = 0;
+         virtual DTC::ImageSyncInfo*         GetSyncStatus      ( void ) = 0;
++
++        virtual bool                        StartThumbnailGeneration ( void ) = 0;
++        virtual bool                        StopThumbnailGeneration  ( void ) = 0;
++        virtual bool                        CreateThumbnail    ( int   Id ) = 0;
++        virtual bool                        RecreateThumbnail  ( int   Id ) = 0;
++        virtual bool                        SetThumbnailSize   ( int   Width,
++                                                                 int   Height) = 0;
+ };
+ 
+ #endif
+
+diff --git a/mythtv/programs/mythbackend/services/image.cpp b/mythtv/programs/mythbackend/services/image.cpp
+index 6061ed6..f2cae0a 100644
+--- a/mythtv/programs/mythbackend/services/image.cpp
++++ b/mythtv/programs/mythbackend/services/image.cpp
+@@ -16,7 +16,7 @@
+ //
+ // You should have received a copy of the GNU General Public License
+ // along with this program; if not, write to the Free Software
+-// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ //
+ // You should have received a copy of the GNU General Public License
+ // along with this program.  If not, see <http://www.gnu.org/licenses/>.
+@@ -29,6 +29,7 @@
+ #include "storagegroup.h"
+ 
+ #include "imagescan.h"
++#include "imagethumbgenthread.h"
+ #include "imageutils.h"
+ #include "image.h"
+ 
+@@ -236,11 +237,11 @@ DTC::ImageMetadataInfoList* Image::GetImageInfoListByFileName( const QString &fi
+     imInfoList->setSize(fi.size());
+     imInfoList->setExtension(fi.suffix());
+ 
+-    // The resturned stringlist contents are
++    // The returned stringlist contents are
+     // <familyname>, <groupname>, <tagname>, <taglabel>, <value>
+     // Go through all list items and build the response. Create
+     // a new tag and add the tagnames below it. Each tagname
+-    // has these childs: family, group, name, label, value.
++    // has these children: family, group, name, label, value.
+     for (int i = 0; i < valueList.size(); ++i)
+     {
+         QStringList values = valueList.at(i);
+@@ -315,18 +316,18 @@ bool Image::RemoveImage( int id )
+ 
+ 
+ /** \fn     Image::StartSync(void)
+- *  \brief  Starts the syncronization of the images with the database
++ *  \brief  Starts the synchronization of the images with the database
+  *  \return bool True if the sync has started, otherwise false
+  */
+ bool Image::StartSync( void )
+ {
+     // Check that the required image tables exist to avoid
+-    // syncing against non existend tables in the database.
+-    if (gCoreContext->GetNumSetting("DBSchemaVer") < 1311)
++    // syncing against non existent tables in the database.
++    if (gCoreContext->GetNumSetting("DBSchemaVer") < 1317)
+     {
+         LOG(VB_GENERAL, LOG_INFO,
+             "Sync cannot start, the required database tables are missing."
+-            "Please upgrade your database schema to at least 1308.");
++            "Please upgrade your database schema to at least 1318.");
+         return false;
+     }
+ 
+@@ -340,7 +341,7 @@ bool Image::StartSync( void )
+ 
+ 
+ /** \fn     Image::StopSync(void)
+- *  \brief  Stops the image syncronization if its running
++ *  \brief  Stops the image synchronization if its running
+  *  \return bool True if the sync has stopped, otherwise false
+  */
+ bool Image::StopSync( void )
+@@ -355,9 +356,9 @@ bool Image::StopSync( void )
+ 
+ 
+ /** \fn     Image::GetSyncStatus(void)
+- *  \brief  Returns a list with information if the syncronization is
+-            currently running, the already syncronized images and
+-            the total amount of images that shall be syncronized.
++ *  \brief  Returns a list with information if the synchronization is
++            currently running, the already synchronized images and
++            the total amount of images that shall be synchronized.
+  *  \return DTC::ImageSyncInfo The status information
+  */
+ DTC::ImageSyncInfo* Image::GetSyncStatus( void )
+@@ -378,3 +379,81 @@ DTC::ImageSyncInfo* Image::GetSyncStatus( void )
+ 
+     return syncInfo;
+ }
++
++/**
++ *  \brief  Starts thumbnail generation thread for images
++ *  \return bool True if the generation thread has started, otherwise false
++ */
++bool Image::StartThumbnailGeneration(void )
++{
++    // Check that the required image tables exist to avoid
++    // syncing against non existent tables in the database.
++    if (gCoreContext->GetNumSetting("DBSchemaVer") < 1317)
++    {
++        LOG(VB_GENERAL, LOG_INFO,
++            "Thumbnail generation cannot start, the required database tables "
++            "are missing. "
++            "Please upgrade your database schema to at least 1318.");
++        return false;
++    }
++
++    ImageThumbGen *thumbGen = ImageThumbGen::getInstance();
++    if (!thumbGen->ThumbGenIsRunning())
++        thumbGen->StartThumbGen();
++
++    return thumbGen->ThumbGenIsRunning();
++}
++
++
++/**
++ *  \brief  Stops the thumbnail generation if it's running
++ *  \return bool True if the generation has stopped, otherwise false
++ */
++bool Image::StopThumbnailGeneration(void )
++{
++    ImageThumbGen *thumbGen = ImageThumbGen::getInstance();
++    if (thumbGen->ThumbGenIsRunning())
++        thumbGen->StopThumbGen();
++
++    return !thumbGen->ThumbGenIsRunning();
++}
++
++bool Image::CreateThumbnail(int id)
++{
++    ImageMetadata *im = new ImageMetadata();
++    ImageUtils *iu = ImageUtils::getInstance();
++    iu->LoadFileFromDB(im, id);
++
++    if (im->m_fileName.isEmpty())
++    {
++        LOG(VB_GENERAL, LOG_ERR, "QueueCreateThumbnail - File not found");
++        delete im;
++        return false;
++    }
++
++    ImageThumbGen *thumbGen = ImageThumbGen::getInstance();
++    return thumbGen->AddToThumbnailList(im);
++}
++
++bool Image::RecreateThumbnail(int id)
++{
++    ImageMetadata *im = new ImageMetadata();
++    ImageUtils *iu = ImageUtils::getInstance();
++    iu->LoadFileFromDB(im, id);
++
++    if (im->m_fileName.isEmpty())
++    {
++        LOG(VB_GENERAL, LOG_ERR, "QueueCreateThumbnail - File not found");
++        delete im;
++        return false;
++    }
++
++    ImageThumbGen *thumbGen = ImageThumbGen::getInstance();
++    return thumbGen->RecreateThumbnail(im);
++}
++
++bool Image::SetThumbnailSize(int Width, int Height)
++{
++    ImageThumbGen *thumbGen = ImageThumbGen::getInstance();
++    return thumbGen->SetThumbnailSize(Width, Height);
++}
+diff --git a/mythtv/programs/mythbackend/services/image.h b/mythtv/programs/mythbackend/services/image.h
+index 92e0cc1..d8273c8 100644
+--- a/mythtv/programs/mythbackend/services/image.h
++++ b/mythtv/programs/mythbackend/services/image.h
+@@ -59,6 +59,13 @@ public:
+     bool                        StartSync          ( void );
+     bool                        StopSync           ( void );
+     DTC::ImageSyncInfo*         GetSyncStatus      ( void );
++
++    bool                        StartThumbnailGeneration ( void );
++    bool                        StopThumbnailGeneration  ( void );
++    bool                        CreateThumbnail    ( int   Id );
++    bool                        RecreateThumbnail  ( int   Id );
++    bool                        SetThumbnailSize   ( int   Width,
++                                                     int   Height);
+ };
+ 
+ Q_SCRIPT_DECLARE_QMETAOBJECT( Image, QObject*)
+diff --git a/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp b/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
+index af5dea8..9fd449e 100644
+--- a/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
++++ b/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
+@@ -489,7 +489,7 @@ void GalleryDatabaseHelper::LoadDirectoryThumbnailValues(ImageMetadata *im)
+     // Try to get four new thumbnail filenames
+     // from the available images in this folder
+     MSqlQuery query(MSqlQuery::InitCon());
+-    query.prepare("SELECT CONCAT_WS('/', path, filename), path FROM gallery_files "
++    query.prepare("SELECT CONCAT_WS('/', path, filename) FROM gallery_files "
+                           "WHERE path = :PATH "
+                           "AND type = '4' "
+                           "AND hidden = '0' LIMIT :LIMIT");
+@@ -503,20 +503,19 @@ void GalleryDatabaseHelper::LoadDirectoryThumbnailValues(ImageMetadata *im)
+     while (query.next())
+     {
+         QString thumbFileName = QString("%1%2")
+-                .arg(GetConfDir().append("/MythImage/"))
++                .arg("/MythImage/")
+                 .arg(query.value(0).toString());
+ 
++        thumbFileName = gCoreContext->GenMythURL(gCoreContext->GetSetting("MasterServerIP"),
++                                                 gCoreContext->GetNumSetting("MasterServerPort"),
++                                                 thumbFileName, "Temp");
++
+         if (i >= im->m_thumbFileNameList->size())
+             break;
+ 
+         im->m_thumbFileNameList->replace(i, thumbFileName);
+-        im->m_thumbPath = query.value(1).toString();
+         ++i;
+     }
+-
+-    // Set the path to the thumbnail files. As a default this will be
+-    // the path ".mythtv/MythGallery" in the users home directory
+-    im->m_thumbPath.prepend(GetConfDir().append("/MythImage/"));
+ }
+ 
+ 
+@@ -528,14 +527,11 @@ void GalleryDatabaseHelper::LoadDirectoryThumbnailValues(ImageMetadata *im)
+  */
+ void GalleryDatabaseHelper::LoadFileThumbnailValues(ImageMetadata *im)
+ {
+-    // Set the path to the thumbnail files. As a default this will be
+-    // the path ".mythtv/MythGallery" in the users home directory
+-    im->m_thumbPath = im->m_path;
+-    im->m_thumbPath.prepend(GetConfDir().append("/MythImage/"));
+ 
+-    // Create the full path and filename to the thumbnail image
++
++    // Create the relative path and filename to the thumbnail image
+     QString thumbFileName = QString("%1%2")
+-            .arg(GetConfDir().append("/MythImage/"))
++            .arg("/MythImage/")
+             .arg(im->m_fileName);
+ 
+     // If the file is a video then append a png, otherwise the preview
+@@ -543,6 +539,10 @@ void GalleryDatabaseHelper::LoadFileThumbnailValues(ImageMetadata *im)
+     if (im->m_type == kVideoFile)
+         thumbFileName.append(".png");
+ 
++    thumbFileName = gCoreContext->GenMythURL(gCoreContext->GetSetting("MasterServerIP"),
++                                             gCoreContext->GetNumSetting("MasterServerPort"),
++                                             thumbFileName, "Temp");
++
+     im->m_thumbFileNameList->replace(0, thumbFileName);
+ }
+ 
+diff --git a/mythtv/programs/mythfrontend/gallerydatabasehelper.h b/mythtv/programs/mythfrontend/gallerydatabasehelper.h
+index 51b0868..1d70fd5 100644
+--- a/mythtv/programs/mythfrontend/gallerydatabasehelper.h
++++ b/mythtv/programs/mythfrontend/gallerydatabasehelper.h
+@@ -10,7 +10,7 @@
+ #include "gallerytypedefs.h"
+ 
+ 
+-
++// TODO: Merge this into libmythmetadata/imageutils.h and remove
+ class GalleryDatabaseHelper
+ {
+ public:
+diff --git a/mythtv/programs/mythfrontend/galleryfilehelper.cpp b/mythtv/programs/mythfrontend/galleryfilehelper.cpp
+index 8df965f..d6cd96a 100644
+--- a/mythtv/programs/mythfrontend/galleryfilehelper.cpp
++++ b/mythtv/programs/mythfrontend/galleryfilehelper.cpp
+@@ -30,10 +30,6 @@ GalleryFileHelper::GalleryFileHelper()
+     m_backendPort   = gCoreContext->GetNumSetting("BackendStatusPort", 6544);
+ 
+     m_manager = new QNetworkAccessManager();
+-
+-    // Set the proxy for the manager to be the application
+-    // default proxy, which has already been setup
+-    m_manager->setProxy(QNetworkProxy::applicationProxy());
+ }
+ 
+ 
+@@ -44,11 +40,8 @@ GalleryFileHelper::GalleryFileHelper()
+  */
+ GalleryFileHelper::~GalleryFileHelper()
+ {
+-    if (m_manager)
+-    {
+-        delete m_manager;
+-        m_manager = NULL;
+-    }
++    delete m_manager;
++    m_manager = NULL;
+ }
+ 
+ 
+@@ -69,7 +62,7 @@ void GalleryFileHelper::StartSyncImages()
+ 
+ 
+ /** \fn     GalleryFileHelper::StopSyncImages()
+- *  \brief  Starts the image syncronization from the backend
++ *  \brief  Stops the image syncronization from the backend
+  *  \return void
+  */
+ void GalleryFileHelper::StopSyncImages()
+@@ -81,8 +74,6 @@ void GalleryFileHelper::StopSyncImages()
+     SendRequest(url, QNetworkAccessManager::PostOperation);
+ }
+ 
+-
+-
+ /** \fn     GalleryFileHelper::GetSyncStatus()
+  *  \brief  Reads the current image syncronization status
+  *  \return Struct with bool running, int current image, int total images
+@@ -127,6 +118,77 @@ GallerySyncStatus GalleryFileHelper::GetSyncStatus()
+ 
+ 
+ 
++/**
++ *  \brief  Starts the thumbnail generation thread on the backend
++ *  \return void
++ */
++void GalleryFileHelper::StartThumbGen()
++{
++    QUrl url(QString("http://%1:%2/Image/StartThumbnailGeneration")
++             .arg(m_backendHost)
++             .arg(m_backendPort));
++
++    SendRequest(url, QNetworkAccessManager::PostOperation);
++}
++
++
++
++/**
++ *  \brief  Stops the thumbnail generation thread on the backend
++ *  \return void
++ */
++void GalleryFileHelper::StopThumbGen()
++{
++    QUrl url(QString("http://%1:%2/Image/StopThumbnailGeneration")
++             .arg(m_backendHost)
++             .arg(m_backendPort));
++
++    SendRequest(url, QNetworkAccessManager::PostOperation);
++}
++
++
++void GalleryFileHelper::AddToThumbnailList(ImageMetadata* im)
++{
++    if (!im)
++        return;
++
++    int id = im->m_id;
++    QUrl url(QString("http://%1:%2/Image/CreateThumbnail?Id=%3")
++             .arg(m_backendHost)
++             .arg(m_backendPort)
++             .arg(id));
++
++    SendRequest(url, QNetworkAccessManager::PostOperation);
++}
++
++
++void GalleryFileHelper::RecreateThumbnail(ImageMetadata* im)
++{
++    if (!im)
++        return;
++
++    int id = im->m_id;
++    QUrl url(QString("http://%1:%2/Image/RecreateThumbnail?Id=%3")
++             .arg(m_backendHost)
++             .arg(m_backendPort)
++             .arg(id));
++
++    SendRequest(url, QNetworkAccessManager::PostOperation);
++}
++
++
++void GalleryFileHelper::SetThumbnailSize(int width, int height)
++{
++    QUrl url(QString("http://%1:%2/Image/SetThumbnailSize?Width=%3&Height=%4")
++             .arg(m_backendHost)
++             .arg(m_backendPort)
++             .arg(width)
++             .arg(height));
++
++    SendRequest(url, QNetworkAccessManager::PostOperation);
++}
++
++
+ /** \fn     GalleryFileHelper::RenameFile(const int &, const QString &)
+  *  \brief  Renames the file via the service api
+  *  \param  im The image metadata object that contains all required information
+diff --git a/mythtv/programs/mythfrontend/galleryfilehelper.h b/mythtv/programs/mythfrontend/galleryfilehelper.h
+index cc8c8c8..402e728 100644
+--- a/mythtv/programs/mythfrontend/galleryfilehelper.h
++++ b/mythtv/programs/mythfrontend/galleryfilehelper.h
+@@ -30,6 +30,11 @@ public:
+ 
+     void        StartSyncImages();
+     void        StopSyncImages();
++    void        StartThumbGen();
++    void        StopThumbGen();
++    void        AddToThumbnailList(ImageMetadata *);
++    void        RecreateThumbnail(ImageMetadata *);
++    void        SetThumbnailSize(int width, int height);
+     bool        RemoveFile(ImageMetadata *);
+     bool        RenameFile(ImageMetadata *, const QString &);
+     bool        SetImageOrientation(ImageMetadata *);
+diff --git a/mythtv/programs/mythfrontend/galleryview.cpp b/mythtv/programs/mythfrontend/galleryview.cpp
+index 53ff75c..46a496f 100644
+--- a/mythtv/programs/mythfrontend/galleryview.cpp
++++ b/mythtv/programs/mythfrontend/galleryview.cpp
+@@ -32,6 +32,8 @@ GalleryView::GalleryView(MythScreenStack *parent, const char *name)
+       m_syncProgressText(NULL),
+       m_thumbProgressText(NULL)
+ {
++    gCoreContext->addListener(this);
++
+     m_popupStack = GetMythMainWindow()->GetStack("popup stack");
+     m_mainStack = GetMythMainWindow()->GetMainStack();
+ 
+@@ -61,6 +63,8 @@ GalleryView::GalleryView(MythScreenStack *parent, const char *name)
+  */
+ GalleryView::~GalleryView()
+ {
++    gCoreContext->removeListener(this);
++
+     if (m_syncStatusThread)
+     {
+         m_syncStatusThread->quit();
+@@ -149,39 +153,6 @@ bool GalleryView::keyPressEvent(QKeyEvent *event)
+ 
+         if (action == "MENU")
+             MenuMain();
+-        else if (action == "HOME")
+-        {
+-            // get through the entire list of image items and find
+-            // the filename that matches the created thumbnail filename
+-            for (int i = 0; i < m_imageList->GetCount(); i++)
+-            {
+-                MythUIButtonListItem *item = m_imageList->GetItemAt(i);
+-                if (!item)
+-                    continue;
+-
+-                ImageMetadata *im = GetImageMetadataFromButton(item);
+-                if (!im)
+-                    continue;
+-
+-                if (im->m_type != kImageFile &&
+-                    im->m_type != kVideoFile)
+-                {
+-                    m_galleryViewHelper->m_currentNode->setSelectedChild(m_galleryViewHelper->m_currentNode->getChildAt(i));
+-                    UpdateImageItem(item);
+-                    break;
+-                }
+-            }
+-        }
+-        else if (action == "END")
+-        {
+-            int count = m_imageList->GetCount();
+-            MythUIButtonListItem *item = m_imageList->GetItemAt(count);
+-            if (item)
+-            {
+-                m_galleryViewHelper->m_currentNode->setSelectedChild(m_galleryViewHelper->m_currentNode->getChildAt(count));
+-                UpdateImageItem(item);
+-            }
+-        }
+         else if (action == "INFO")
+             MenuInformation();
+         else if (action == "ROTRIGHT")
+@@ -245,7 +216,43 @@ bool GalleryView::keyPressEvent(QKeyEvent *event)
+  */
+ void GalleryView::customEvent(QEvent *event)
+ {
+-    if (event->type() == DialogCompletionEvent::kEventType)
++    if ((MythEvent::Type)(event->type()) == MythEvent::MythEventMessage)
++    {
++        MythEvent *me = (MythEvent *)event;
++        QString message = me->Message();
++
++        if (message.startsWith("IMAGE_THUMB_CREATED"))
++        {
++            QStringList tokens = message.simplified().split(" ");
++            int fileid = 0;
++            if (tokens.size() >= 2)
++            {
++                fileid = tokens[1].toUInt();
++
++                // FIXME: This sucks, must be a better way to do this
++                //
++                // get through the entire list of image items and find
++                // the fileid that matches the created thumbnail filename
++                for (int i = 0; i < m_imageList->GetCount(); i++)
++                {
++                    MythUIButtonListItem *item = m_imageList->GetItemAt(i);
++                    if (!item)
++                        continue;
++
++                    ImageMetadata *im = GetImageMetadataFromButton(item);
++                    if (!im)
++                        continue;
++
++                    if (im->m_id == fileid)
++                    {
++                        UpdateThumbnail(item, true);
++                        break;
++                    }
++                }
++            }
++        }
++    }
++    else if (event->type() == DialogCompletionEvent::kEventType)
+     {
+         DialogCompletionEvent *dce = (DialogCompletionEvent*)(event);
+ 
+@@ -515,11 +522,11 @@ void GalleryView::UpdateImageItem(MythUIButtonListItem *item)
+ 
+ 
+ /** \fn     GalleryView::UpdateThumbnail(MythUIButtonListItem *)
+- *  \brief  Updates the thumbnail image of the current item
++ *  \brief  Updates the thumbnail image of the given item
+  *  \param  item The item that shall be updated
+  *  \return void
+  */
+-void GalleryView::UpdateThumbnail(MythUIButtonListItem *item)
++void GalleryView::UpdateThumbnail(MythUIButtonListItem *item, bool forceReload)
+ {
+     if (!item)
+         return;
+@@ -533,12 +540,12 @@ void GalleryView::UpdateThumbnail(MythUIButtonListItem *item)
+         for (int i = 0; i < im->m_thumbFileNameList->size(); ++i)
+         {
+             item->SetImage(im->m_thumbFileNameList->at(i),
+-                           QString("thumbimage%1").arg(i+1));
++                           QString("thumbimage%1").arg(i+1), forceReload);
+         }
+     }
+     else
+     {
+-        item->SetImage(im->m_thumbFileNameList->at(0));
++        item->SetImage(im->m_thumbFileNameList->at(0), "", forceReload);
+     }
+ }
+ 
+@@ -577,11 +584,11 @@ void GalleryView::UpdateThumbnail(ImageMetadata *thumbImageMetadata, int id)
+                 im->m_type == kSubDirectory)
+             {
+                 item->SetImage(thumbImageMetadata->m_thumbFileNameList->at(id),
+-                               QString("thumbimage%1").arg(id+1));
++                               QString("thumbimage%1").arg(id+1), true);
+             }
+             else
+             {
+-                item->SetImage(thumbImageMetadata->m_thumbFileNameList->at(0));
++                item->SetImage(thumbImageMetadata->m_thumbFileNameList->at(0), "", true);
+             }
+             break;
+         }
+diff --git a/mythtv/programs/mythfrontend/galleryview.h b/mythtv/programs/mythfrontend/galleryview.h
+index bfa336a..a09c91e 100644
+--- a/mythtv/programs/mythfrontend/galleryview.h
++++ b/mythtv/programs/mythfrontend/galleryview.h
+@@ -49,7 +49,7 @@ private slots:
+     void ItemSelected(MythUIButtonListItem *);
+     void UpdateImageItem(MythUIButtonListItem *);
+     void UpdateText(MythUIButtonListItem *);
+-    void UpdateThumbnail(MythUIButtonListItem *);
++    void UpdateThumbnail(MythUIButtonListItem *, bool forceReload = false);
+ 
+     void MenuMain();
+     void MenuInformation();
+diff --git a/mythtv/programs/mythfrontend/galleryviewhelper.cpp b/mythtv/programs/mythfrontend/galleryviewhelper.cpp
+index ae490b3..81fd429 100644
+--- a/mythtv/programs/mythfrontend/galleryviewhelper.cpp
++++ b/mythtv/programs/mythfrontend/galleryviewhelper.cpp
+@@ -21,18 +21,8 @@ GalleryViewHelper::GalleryViewHelper(MythScreenType *parent)
+     m_sgDirList = StorageGroup::getGroupDirs(m_sgName, "");
+ 
+     m_dbHelper = new GalleryDatabaseHelper();
+-    m_thumbGenThread = new ImageThumbGenThread();
+     m_fileHelper  = new GalleryFileHelper();
+ 
+-    connect(m_thumbGenThread,  SIGNAL(ThumbnailCreated(ImageMetadata *, int)),
+-            m_parent, SLOT(UpdateThumbnail(ImageMetadata *, int)));
+-
+-    connect(m_thumbGenThread,  SIGNAL(UpdateThumbnailProgress(int, int)),
+-            m_parent, SLOT(UpdateThumbnailProgress(int, int)));
+-
+-    connect(m_thumbGenThread,  SIGNAL(finished()),
+-            m_parent, SLOT(ResetThumbnailProgress()));
+-
+     // these are the node trees that hold the data and
+     // are used for navigating and finding files
+     m_currentNode = new MythGenericTree("", kBaseDirectory, false);
+@@ -59,15 +49,10 @@ GalleryViewHelper::~GalleryViewHelper()
+         m_currentNode = NULL;
+     }
+ 
+-    if (m_thumbGenThread)
+-    {
+-        m_thumbGenThread->cancel();
+-        delete m_thumbGenThread;
+-        m_thumbGenThread = NULL;
+-    }
+-
+     if (m_fileHelper)
+     {
++        // FIXME Triggers segfault
++        // m_fileHelper->StopThumbGen();
+         delete m_fileHelper;
+         m_fileHelper = NULL;
+     }
+@@ -112,7 +97,7 @@ void GalleryViewHelper::LoadTreeData()
+ 
+     // Stop generating thumbnails
+     // when a new directory is loaded
+-    m_thumbGenThread->cancel();
++    m_fileHelper->StopThumbGen();
+ 
+     // The parent id is the database index of the
+     // directories which subdirectories and files shall be loaded
+@@ -153,7 +138,7 @@ void GalleryViewHelper::LoadTreeData()
+     LoadTreeNodeData(fileList, m_currentNode);
+ 
+     // Start generating thumbnails if required
+-    m_thumbGenThread->start();
++    m_fileHelper->StartThumbGen();
+ 
+     // clean up
+     delete dirList;
+@@ -177,7 +162,7 @@ void GalleryViewHelper::LoadTreeNodeData(QList<ImageMetadata *> *list,
+         ImageMetadata *im = list->at(i);
+         if (im)
+         {
+-            m_thumbGenThread->AddToThumbnailList(im);
++            m_fileHelper->AddToThumbnailList(im);
+ 
+             // Create a new tree node that will hold the data
+             MythGenericTree *treeItem =
+@@ -404,8 +389,8 @@ void GalleryViewHelper::SetFileOrientation(int fileOrientation)
+     if (m_fileHelper->SetImageOrientation(im))
+     {
+         m_dbHelper->UpdateData(im);
+-        m_thumbGenThread->RecreateThumbnail(im);
+-        m_thumbGenThread->start();
++        m_fileHelper->RecreateThumbnail(im);
++        m_fileHelper->StartThumbGen();
+     }
+     else
+     {
+@@ -514,11 +499,10 @@ ImageMetadata *GalleryViewHelper::GetImageMetadataFromNode(int i)
+  */
+ void GalleryViewHelper::SetPreviewImageSize(MythUIButtonList *imageList)
+ {
+-    float width  = (float)imageList->GetArea().width();
+-    float height = width / ((float)imageList->ItemWidth() /
+-                            (float)imageList->ItemHeight());
++    float width  = (float)imageList->ItemWidth();
++    float height = (float)imageList->ItemHeight();
+ 
+-    m_thumbGenThread->SetThumbnailSize((int)width, (int)height);
++    m_fileHelper->SetThumbnailSize((int)width, (int)height);
+ }
+ 
+ 
+-- 
+1.7.10.2
+

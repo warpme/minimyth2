@@ -1,0 +1,84 @@
+################################################################################
+# MM_MYTHTV configuration variables and files.
+################################################################################
+conf_clean_MM_MYTHTV() {
+  /bin/rm -rf /tmp/init.conf.mythtv
+  return 0
+}
+
+conf_check_MM_MYTHTV() {
+  return 0
+}
+
+conf_default_MM_MYTHTV() {
+  if /usr/bin/test -z "${MM_MYTHTV_HOME_URL}" ; then
+    MM_MYTHTV_HOME_URL=''
+  else
+    if /usr/bin/test ! "${MM_MYTHTV_HOME_URL}" = "auto" ; then
+      REMOTE_PROTOCOL=`/bin/echo "${MM_MYTHTV_HOME_URL}" | /usr/bin/cut -d? -f1 \
+                                        | /usr/bin/cut -d: -f1`
+      case "${REMOTE_PROTOCOL}" in
+        nfs)
+          ;;
+        *)
+          MM_MYTHTV_HOME_URL=''
+          mm_message_output info "MM_MYTHTV_HOMEURL: protocol '${REMOTE_PROTOCOL}' is not supported."
+          exit 1
+          ;;
+        esac
+    fi
+  fi
+  if /usr/bin/test -z "${MM_MYTHFRONTEND_CMDLINE}" ; then
+    MM_MYTHFRONTEND_CMDLINE=''
+  fi
+  if /usr/bin/test -z "${MM_AIRPLAY_ENABLED}" ; then
+    MM_AIRPLAY_ENABLED=''
+  fi
+  if /usr/bin/test -z "${MM_WUNDERGROUND_KEY}" ; then
+    MM_WUNDERGROUND_KEY=''
+  fi
+  if /usr/bin/test -z "${MM_LOAD_BROWSER_COOKIES}" ; then
+    MM_LOAD_BROWSER_COOKIES=''
+  fi
+  return 0
+}
+
+conf_write_MM_MYTHTV() {
+  local conf_file=$1
+  conf_variable_write "${conf_file}" MM_MYTHTV_HOME_URL       "${MM_MYTHTV_HOME_URL}"
+  conf_variable_write "${conf_file}" MM_MYTHFRONTEND_CMDLINE  "${MM_MYTHFRONTEND_CMDLINE}"
+  conf_variable_write "${conf_file}" MM_AIRPLAY_ENABLED       "${MM_AIRPLAY_ENABLED}"
+  conf_variable_write "${conf_file}" MM_WUNDERGROUND_KEY      "${MM_WUNDERGROUND_KEY}"
+  conf_variable_write "${conf_file}" MM_LOAD_BROWSER_COOKIES  "${MM_LOAD_BROWSER_COOKIES}"
+  return 0
+}
+
+conf_fetch_MM_MYTHTV() {
+  if /usr/bin/test "${MM_AIRPLAY_ENABLED}" = "yes" ; then
+    /bin/rm -f /home/minimyth/.mythtv/RAOPKey.rsa
+    mm_confro_get RAOPKey.rsa /home/minimyth/.mythtv/RAOPKey.rsa
+    if /usr/bin/test ! -e /home/minimyth/.mythtv/RAOPKey.rsa ; then
+      mm_message_output err "error: failed to fetch 'RAOPKey.rsa' file."
+      exit 1
+    fi
+    /bin/chmod 0400 /home/minimyth/.mythtv/RAOPKey.rsa
+  fi
+  if /usr/bin/test "${MM_WUNDERGROUND_KEY}" = "yes" ; then
+    /bin/rm -f /home/minimyth/.mythtv/MythWeather/wunderground.key
+    mm_confro_get wunderground.key /home/minimyth/.mythtv/MythWeather/wunderground.key
+    if /usr/bin/test ! -e /home/minimyth/.mythtv/MythWeather/wunderground.key ; then
+      mm_message_output err "error: failed to fetch 'wunderground.key' file."
+      exit 1
+    fi
+    /bin/chmod 0400 /home/minimyth/.mythtv/MythWeather/wunderground.key
+  fi
+  if /usr/bin/test "${MM_LOAD_BROWSER_COOKIES}" = "yes" ; then
+    /bin/rm -f /home/minimyth/.mythtv/MythBrowser/cookiejar.txt
+    mm_confrw_get mythbrowser_cookiejar.txt /home/minimyth/.mythtv/MythBrowser/cookiejar.txt
+    if /usr/bin/test ! -e /home/minimyth/.mythtv/MythBrowser/cookiejar.txt ; then
+      mm_message_output info "error: failed to fetch 'mythbrowser_cookiejar.txt' file."
+    fi
+    /bin/chmod 0600 /home/minimyth/.mythtv/MythBrowser/cookiejar.txt
+  fi
+  return 0
+}

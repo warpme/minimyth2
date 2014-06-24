@@ -1,0 +1,163 @@
+diff -Naur mythtv-0.27-20140225-g28b768a-old/mythtv/libs/libmythbase/threadedfilewriter.cpp mythtv-0.27-20140225-g28b768a-new/mythtv/libs/libmythbase/threadedfilewriter.cpp
+--- mythtv-0.27-20140225-g28b768a-old/mythtv/libs/libmythbase/threadedfilewriter.cpp	2014-02-27 10:11:48.907695212 +0100
++++ mythtv-0.27-20140225-g28b768a-new/mythtv/libs/libmythbase/threadedfilewriter.cpp	2014-02-27 10:12:01.827665560 +0100
+@@ -425,6 +425,8 @@
+     MythTimer minWriteTimer;
+     minWriteTimer.start();
+ 
++    uint64_t total_written = 0LL;
++
+     while (!in_dtor)
+     {
+         if (ignore_writes)
+@@ -518,6 +520,10 @@
+             else
+             {
+                 tot += ret;
++                total_written += ret;
++                LOG(VB_FILE, LOG_DEBUG, LOC +
++                    QString("total written so far: %1 bytes")
++                    .arg(total_written));
+             }
+ 
+             locker.relock();
+diff -Naur mythtv-0.27-20140225-g28b768a-old/mythtv/libs/libmythtv/fileringbuffer.cpp mythtv-0.27-20140225-g28b768a-new/mythtv/libs/libmythtv/fileringbuffer.cpp
+--- mythtv-0.27-20140225-g28b768a-old/mythtv/libs/libmythtv/fileringbuffer.cpp	2014-02-27 10:11:48.861028653 +0100
++++ mythtv-0.27-20140225-g28b768a-new/mythtv/libs/libmythtv/fileringbuffer.cpp	2014-02-27 10:12:01.827665560 +0100
+@@ -4,6 +4,7 @@
+ // POSIX C headers
+ #include <sys/types.h>
+ #include <sys/time.h>
++#include <sys/stat.h>
+ #include <unistd.h>
+ #include <fcntl.h>
+ 
+@@ -452,9 +453,49 @@
+     if (stopreads)
+         return 0;
+ 
++    struct stat sb;
++
+     while (tot < sz)
+     {
+-        ret = read(fd2, (char *)data + tot, sz - tot);
++        uint toread     = sz - tot;
++        bool read_ok    = true;
++        bool eof        = false;
++
++        // check that we have some data to read,
++        // so we never attempt to read past the end of file
++        // if fstat errored or isn't a regular file, default to previous behavior
++        ret = fstat(fd2, &sb);
++        if (ret == 0 && S_ISREG(sb.st_mode))
++        {
++            if ((internalreadpos + tot) >= sb.st_size)
++            {
++                // We're at the end, don't attempt to read
++                read_ok = false;
++                eof     = true;
++                LOG(VB_FILE, LOG_DEBUG, LOC + "not reading, reached EOF");
++            }
++            else
++            {
++                toread  =
++                    min(sb.st_size - (internalreadpos + tot), (long long)toread);
++                if (toread < (sz-tot))
++                {
++                    eof = true;
++                    LOG(VB_FILE, LOG_DEBUG,
++                        LOC + QString("About to reach EOF, reading %1 wanted %2")
++                        .arg(toread).arg(sz-tot));
++                }
++            }
++        }
++
++        if (read_ok)
++        {
++            LOG(VB_FILE, LOG_DEBUG, LOC +
++                QString("read(%1) -- begin").arg(toread));
++            ret = read(fd2, (char *)data + tot, toread);
++            LOG(VB_FILE, LOG_DEBUG, LOC +
++                QString("read(%1) -> %2 end").arg(toread).arg(ret));
++        }
+         if (ret < 0)
+         {
+             if (errno == EAGAIN)
+@@ -476,7 +517,7 @@
+         if (oldfile)
+             break;
+ 
+-        if (ret == 0) // EOF returns 0
++        if (ret == 0 || eof) // EOF returns 0
+         {
+             if (tot > 0)
+                 break;
+diff -Naur mythtv-0.27-20140225-g28b768a-old/mythtv/libs/libmythtv/ringbuffer.cpp mythtv-0.27-20140225-g28b768a-new/mythtv/libs/libmythtv/ringbuffer.cpp
+--- mythtv-0.27-20140225-g28b768a-old/mythtv/libs/libmythtv/ringbuffer.cpp	2014-02-27 10:11:48.871028630 +0100
++++ mythtv-0.27-20140225-g28b768a-new/mythtv/libs/libmythtv/ringbuffer.cpp	2014-02-27 10:12:01.827665560 +0100
+@@ -769,6 +769,8 @@
+         if (PauseAndWait())
+         {
+             ignore_for_read_timing = true;
++            LOG(VB_FILE, LOG_DEBUG, LOC +
++                "run: PauseAndWait Not reading continuing");
+             continue;
+         }
+ 
+@@ -783,6 +785,12 @@
+             ignore_for_read_timing |=
+                 (ignorereadpos >= 0) || commserror || stopreads;
+             generalWait.wait(&rwlock, (stopreads) ? 50 : 1000);
++            LOG(VB_FILE, LOG_DEBUG, LOC +
++                QString("run: Not reading continuing: totfree(%1) "
++                        "readsallowed(%2) ignorereadpos(%3) commserror(%4) "
++                        "stopreads(%5)")
++                .arg(totfree).arg(readsallowed).arg(ignorereadpos)
++                .arg(commserror).arg(stopreads));
+             continue;
+         }
+ 
+@@ -898,8 +906,20 @@
+                 }
+                 rbwlock.unlock();
+                 poslock.unlock();
++
++                LOG(VB_FILE, LOG_DEBUG, LOC +
++                    QString("total read so far: %1 bytes")
++                    .arg(internalreadpos));
+             }
+         }
++        else
++        {
++            LOG(VB_FILE, LOG_DEBUG, LOC +
++                QString("We are not reading anything "
++                        "(totfree: %1 commserror:%2 ateof:%3 "
++                        "setswitchtonext:%4")
++                .arg(totfree).arg(commserror).arg(ateof).arg(setswitchtonext));
++        }
+ 
+         int used = bufferSize - ReadBufFree();
+ 
+@@ -1084,17 +1104,18 @@
+             int elapsed = t.elapsed();
+             if (elapsed > 500 && low_buffers && avail >= fill_min)
+                 count = avail;
+-            else if  (((elapsed > 250) && (elapsed < 500))  ||
+-                     ((elapsed >  500) && (elapsed < 750))  ||
++            else if  (((elapsed > 500) && (elapsed < 750))  ||
+                      ((elapsed > 1000) && (elapsed < 1250)) ||
+                      ((elapsed > 2000) && (elapsed < 2250)) ||
+                      ((elapsed > 4000) && (elapsed < 4250)) ||
+                      ((elapsed > 8000) && (elapsed < 8250)) ||
+                      ((elapsed > 9000)))
+             {
+-                LOG(VB_FILE, LOG_INFO, LOC + "Waited " +
++                LOG(VB_FILE, LOG_DEBUG, LOC +
++                    QString("used = %1").arg(bufferSize - ReadBufFree()));
++                LOG(VB_GENERAL, LOG_INFO, LOC + "Waited " +
+                     QString("%1").arg((elapsed / 250) * 0.25f, 3, 'f', 1) +
+-                    " seconds for data \n\t\t\tto become available..." +
++                        " seconds for data \n\t\t\tto become available..." +
+                     QString(" %2 < %3") .arg(avail).arg(count));
+             }
+ 

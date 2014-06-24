@@ -1,0 +1,44 @@
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythtv/avformatdecoder.cpp mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythtv/avformatdecoder.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythtv/avformatdecoder.cpp	2014-05-05 12:04:18.333429395 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythtv/avformatdecoder.cpp	2014-05-05 12:04:33.540010232 +0200
+@@ -3664,6 +3664,7 @@
+     picframe->frameNumber      = framesPlayed;
+     picframe->aspect           = current_aspect;
+     picframe->dummy            = 0;
++    picframe->directrendering  = directrendering ? 1 : 0;
+ 
+     m_parent->ReleaseNextVideoFrame(picframe, temppts);
+     if (private_dec)
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythtv/frame.h mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythtv/frame.h
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythtv/frame.h	2014-05-05 12:04:18.316762824 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythtv/frame.h	2014-05-05 12:04:33.540010232 +0200
+@@ -58,6 +58,7 @@
+     int offsets[3]; // Y, U, & V offsets
+ 
+     int pix_fmt;
++    int directrendering; // 1 if managed by FFmpeg
+ } VideoFrame;
+ 
+ #ifdef __cplusplus
+@@ -101,6 +102,7 @@
+     vf->forcekey         = 0;
+     vf->dummy            = 0;
+     vf->pix_fmt          = 0;
++    vf->directrendering  = 0;
+ 
+     memset(vf->priv, 0, 4 * sizeof(unsigned char *));
+ 
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythtv/videobuffers.cpp mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythtv/videobuffers.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythtv/videobuffers.cpp	2014-05-05 12:04:18.330096080 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythtv/videobuffers.cpp	2014-05-05 12:04:33.543343546 +0200
+@@ -309,7 +309,9 @@
+ 
+     vpos = vbufferMap[frame];
+     limbo.remove(frame);
+-    decode.enqueue(frame);
++    //non directrendering frames are ffmpeg handled
++    if (frame->directrendering != 0)
++        decode.enqueue(frame);
+     used.enqueue(frame);
+ }
+ 

@@ -1,0 +1,179 @@
+#!/bin/sh
+################################################################################
+# x
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    local X_DISPLAYSIZE_X
+    local X_DISPLAYSIZE_Y
+    local X_VIRTUAL_X
+    local X_VIRTUAL_Y
+    local DRI_TRUE
+    local LIB_PATH
+    local LIB_PATHS
+    local LIB
+    local LIBS
+    local NVIDIA_TRUE
+    local KBD_TRUE
+    local MOUSE_TRUE
+
+    mm_message_output info "configuring X ..."
+
+    /bin/rm -fr           /tmp/.ICE-unix/
+    /bin/mkdir -m 1777 -p /tmp/.ICE-unix/
+    /bin/chown root:root  /tmp/.ICE-unix/
+
+    if   /usr/bin/test "${MM_X_SCREENSAVER_HACK}" = "sleep"       ; then
+        /bin/sed -i 's%@MODE@%blank%' /home/minimyth/.xscreensaver
+        /bin/sed -i 's%@SELECTED@%0%' /home/minimyth/.xscreensaver
+    elif /usr/bin/test "${MM_X_SCREENSAVER_HACK}" = "blank"       ; then
+        /bin/sed -i 's%@MODE@%blank%' /home/minimyth/.xscreensaver
+        /bin/sed -i 's%@SELECTED@%0%' /home/minimyth/.xscreensaver
+    elif /usr/bin/test "${MM_X_SCREENSAVER_HACK}" = "glslideshow" ; then
+        /bin/sed -i 's%@MODE@%one%'   /home/minimyth/.xscreensaver
+        /bin/sed -i 's%@SELECTED@%1%' /home/minimyth/.xscreensaver
+    else
+        /bin/sed -i 's%@MODE@%blank%' /home/minimyth/.xscreensaver
+        /bin/sed -i 's%@SELECTED@%0%' /home/minimyth/.xscreensaver
+    fi
+    /bin/sed -i "s%@MM_X_SCREENSAVER_TIMEOUT@%${MM_X_SCREENSAVER_TIMEOUT}%"   /home/minimyth/.xscreensaver
+    /bin/sed -i "s%@MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT@%${MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT}%" /home/minimyth/.xscreensaver
+
+    X_DISPLAYSIZE_X=`/bin/echo ${MM_X_DISPLAYSIZE} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\).*%\1%'`
+    X_DISPLAYSIZE_Y=`/bin/echo ${MM_X_DISPLAYSIZE} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\).*%\2%'`
+
+    X_VIRTUAL_X=`/bin/echo ${MM_X_VIRTUAL} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\).*%\1%'`
+    X_VIRTUAL_Y=`/bin/echo ${MM_X_VIRTUAL} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\).*%\2%'`
+
+    MM_X_DEVICE_NVIDIA=""
+    case "${MM_X_DRIVER}" in
+        intel_810|intel_915)
+            ;;
+        nvidia)
+            if /bin/echo ${MM_X_OUTPUT_TV}  | /bin/grep -q -e '^[0-9]*$' > /dev/null 2>&1 ; then
+                MM_X_DEVICE_NVIDIA="TV-${MM_X_OUTPUT_TV}"
+            elif /usr/bin/test "${MM_X_OUTPUT_TV}"  = "auto" ; then
+                MM_X_DEVICE_NVIDIA="TV"
+            fi
+            if /bin/echo ${MM_X_OUTPUT_VGA} | /bin/grep -q -e '^[0-9]*$' > /dev/null 2>&1 ; then
+                MM_X_DEVICE_NVIDIA="CRT-${MM_X_OUTPUT_VGA}"
+            elif /usr/bin/test "${MM_X_OUTPUT_VGA}" = "auto" ; then
+                MM_X_DEVICE_NVIDIA="CRT"
+            fi
+            if /bin/echo ${MM_X_OUTPUT_DVI} | /bin/grep -q -e '^[0-9]*$' > /dev/null 2>&1 ; then
+                MM_X_DEVICE_NVIDIA="DFP-${MM_X_OUTPUT_DVI}"
+            elif /usr/bin/test "${MM_X_OUTPUT_DVI}" = "auto" ; then
+                MM_X_DEVICE_NVIDIA="DFP"
+            fi
+            ;;
+        vmware)
+            ;;
+    esac
+
+    # Hacks to deal with the fact that the names for proprietary drivers and
+    # open source drivers conflict.
+    #   the proprietary NVIDIA GL libraries conflict with the Open Source Mesa GL libraries.
+    DRI_TRUE=""
+    NVIDIA_TRUE="#"
+    case "${MM_X_DRIVER}" in
+        intel_810)
+            ;;
+        intel_915)
+            ;;
+        nvidia)
+            DRI_TRUE="#"
+            NVIDIA_TRUE=""
+            # Include path to proprietary libraries.
+            LIB_PATHS=`/bin/cat /etc/ld.so.conf`
+            LIB_PATHS="/usr/lib/${MM_X_DRIVER} ${LIB_PATHS}"
+            /bin/echo -n > /etc/ld.so.conf
+            for LIB_PATH in ${LIB_PATHS} ; do
+                /bin/echo "${LIB_PATH}" >> /etc/ld.so.conf
+            done
+            # Remove Open Source libraries that conflict with proprietary libraries.
+            LIBS=`/usr/bin/find /usr/lib/${MM_X_DRIVER} -type f | /bin/sed -e "s%^.*/%%"`
+            for LIB in ${LIBS} ; do
+                LIB_PATH=`/usr/bin/find /usr/lib -name ${LIB} | /bin/sed -e "s%^/usr/lib/${MM_X_DRIVER}/.*\$%%"`
+                if /usr/bin/test -n "${LIB_PATH}" ; then
+                    /bin/rm -f ${LIB_PATH}
+                fi
+            done
+            # Rebuild library cache.
+            /sbin/ldconfig
+            ;;
+        radeon)
+            ;;
+        vmware)
+            ;;
+    esac
+
+    /usr/bin/test "${MM_X_MODE_0}" = "none" && MM_X_MODE_0=''
+    /usr/bin/test "${MM_X_MODE_1}" = "none" && MM_X_MODE_1=''
+    /usr/bin/test "${MM_X_MODE_2}" = "none" && MM_X_MODE_2=''
+
+    # Add quotes to variables that cannot be quoted directly in xorg.conf
+    /usr/bin/test -n "${MM_X_MODE}"   && MM_X_MODE="\"${MM_X_MODE}\""
+    /usr/bin/test -n "${MM_X_MODE_0}" && MM_X_MODE_0="\"${MM_X_MODE_0}\""
+    /usr/bin/test -n "${MM_X_MODE_1}" && MM_X_MODE_1="\"${MM_X_MODE_1}\""
+    /usr/bin/test -n "${MM_X_MODE_2}" && MM_X_MODE_2="\"${MM_X_MODE_2}\""
+
+    KBD_TRUE='#'
+    if /usr/bin/test -n "${MM_X_KBD_DEVICE}" ; then
+        KBD_TRUE=''
+    fi
+    MOUSE_TRUE='#'
+    if /usr/bin/test -n "${MM_X_MOUSE_DEVICE}" ; then
+        MOUSE_TRUE=''
+    fi
+
+    /bin/sed -i "s%@KBD_TRUE@%${KBD_TRUE}%"                     /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_KBD_DEVICE@%${MM_X_KBD_DEVICE}%"       /etc/X11/xorg.conf
+    /bin/sed -i "s%@MOUSE_TRUE@%${MOUSE_TRUE}%"                 /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_MOUSE_DEVICE@%${MM_X_MOUSE_DEVICE}%"   /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_DRIVER@%${MM_X_DRIVER}%"               /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_DEVICE_NVIDIA@%${MM_X_DEVICE_NVIDIA}%" /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_TV_TYPE@%${MM_X_TV_TYPE}%"             /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_TV_OUTPUT@%${MM_X_TV_OUTPUT}%"         /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_TV_OVERSCAN@%${MM_X_TV_OVERSCAN}%"     /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_SYNC@%${MM_X_SYNC}%"                   /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_REFRESH@%${MM_X_REFRESH}%"             /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_MODELINE@%${MM_X_MODELINE}%"           /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_MODELINE_0@%${MM_X_MODELINE_0}%"       /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_MODELINE_1@%${MM_X_MODELINE_1}%"       /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_MODELINE_2@%${MM_X_MODELINE_2}%"       /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_MODE@%${MM_X_MODE}%"                   /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_MODE_0@%${MM_X_MODE_0}%"               /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_MODE_1@%${MM_X_MODE_1}%"               /etc/X11/xorg.conf
+    /bin/sed -i "s%@MM_X_MODE_2@%${MM_X_MODE_2}%"               /etc/X11/xorg.conf
+    /bin/sed -i "s%@X_DISPLAYSIZE_X@%${X_DISPLAYSIZE_X}%"       /etc/X11/xorg.conf
+    /bin/sed -i "s%@X_DISPLAYSIZE_Y@%${X_DISPLAYSIZE_Y}%"       /etc/X11/xorg.conf
+    /bin/sed -i "s%@X_VIRTUAL_X@%${X_VIRTUAL_X}%"               /etc/X11/xorg.conf
+    /bin/sed -i "s%@X_VIRTUAL_Y@%${X_VIRTUAL_Y}%"               /etc/X11/xorg.conf
+    /bin/sed -i "s%@DRI_TRUE@%${DRI_TRUE}%"                     /etc/X11/xorg.conf
+    /bin/sed -i "s%@NVIDIA_TRUE@%${NVIDIA_TRUE}%"               /etc/X11/xorg.conf
+
+    # Make sure that the file ownership is correct.
+    /bin/chown -Rh minimyth:minimyth /home/minimyth
+
+    mm_message_output info "starting X ..."
+    mm_x_start
+
+    return 0
+}
+
+stop() {
+
+    mm_message_output info "stopping X ..."
+    mm_x_stop
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0

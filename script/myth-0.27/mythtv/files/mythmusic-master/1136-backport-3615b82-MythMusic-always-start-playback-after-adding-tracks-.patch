@@ -1,0 +1,176 @@
+diff -Naur mythtv-0.27-20140419-gb93fb14-old/mythplugins/mythmusic/mythmusic/musiccommon.cpp mythtv-0.27-20140419-gb93fb14-new/mythplugins/mythmusic/mythmusic/musiccommon.cpp
+--- mythtv-0.27-20140419-gb93fb14-old/mythplugins/mythmusic/mythmusic/musiccommon.cpp	2014-04-19 14:26:28.000000000 +0200
++++ mythtv-0.27-20140419-gb93fb14-new/mythplugins/mythmusic/mythmusic/musiccommon.cpp	2014-04-19 15:38:48.679709540 +0200
+@@ -1514,7 +1514,7 @@
+             if (resulttext == tr("Replace Tracks"))
+             {
+                 m_playlistOptions.insertPLOption = PL_REPLACE;
+-                doUpdatePlaylist(false);
++                doUpdatePlaylist();
+             }
+             else if (resulttext == tr("Replace Tracks and Play")) 
+             {
+@@ -1522,13 +1522,13 @@
+                 if (gPlayer->getCurrentPlaylist())
+                     trackCount= gPlayer->getCurrentPlaylist()->getTrackCount();
+                 m_playlistOptions.insertPLOption = PL_REPLACE;
+-                doUpdatePlaylist(false);
++                doUpdatePlaylist();
+                 gPlayer->setCurrentTrackPos(trackCount);
+             }
+             else if (resulttext == tr("Add Tracks"))
+             {
+                 m_playlistOptions.insertPLOption = PL_INSERTATEND;
+-                doUpdatePlaylist(false);
++                doUpdatePlaylist();
+             }
+             else if (resulttext == tr("Add Tracks and Play")) 
+             {
+@@ -1536,7 +1536,7 @@
+                 if (gPlayer->getCurrentPlaylist())
+                     trackCount = gPlayer->getCurrentPlaylist()->getTrackCount();
+                 m_playlistOptions.insertPLOption = PL_INSERTATEND;
+-                doUpdatePlaylist(false);
++                doUpdatePlaylist();
+                 gPlayer->setCurrentTrackPos(trackCount);
+             }
+         }
+@@ -2514,7 +2514,7 @@
+     if (gPlayer->getCurrentPlaylist()->getTrackCount() == 0)
+     {
+         m_playlistOptions.insertPLOption = PL_REPLACE;
+-        doUpdatePlaylist(true);
++        doUpdatePlaylist();
+         return;
+     }
+ 
+@@ -2533,7 +2533,7 @@
+         delete menu;
+ }
+ 
+-void MusicCommon::doUpdatePlaylist(bool startPlayback)
++void MusicCommon::doUpdatePlaylist(void)
+ {
+     int curTrackID, trackCount = 0;
+     int curPos = gPlayer->getCurrentTrackPos();
+@@ -2569,7 +2569,10 @@
+ 
+     updateUIPlaylist();
+ 
+-    if (startPlayback || gPlayer->isPlaying())
++    if (m_currentTrack == -1) {
++        usleep(1500000);
++        playFirstTrack(); }
++    else
+     {
+         switch (m_playlistOptions.playPLOption)
+         {
+@@ -2614,44 +2616,6 @@
+             }
+         }
+     }
+-    else
+-    {
+-        switch (m_playlistOptions.playPLOption)
+-        {
+-            case PL_CURRENT:
+-                break;
+-
+-            case PL_FIRST:
+-                m_currentTrack = 0;
+-                break;
+-
+-            case PL_FIRSTNEW:
+-            {
+-                switch (m_playlistOptions.insertPLOption)
+-                {
+-                    case PL_REPLACE:
+-                        m_currentTrack = 0;
+-                        break;
+-
+-                    case PL_INSERTATEND:
+-                        m_currentTrack = 0;
+-                        break;
+-
+-                    case PL_INSERTAFTERCURRENT:
+-                        // this wont work if the track are shuffled
+-                        m_currentTrack = m_currentTrack + 1;
+-                        break;
+-
+-                    default:
+-                        m_currentTrack = 0;
+-                }
+-
+-                break;
+-            }
+-        }
+-
+-        gPlayer->changeCurrentTrack(m_currentTrack);
+-    }
+ 
+     if (gPlayer->getCurrentPlaylist())
+         gPlayer->getCurrentPlaylist()->getStats(&m_playlistTrackCount, &m_playlistMaxTime,
+diff -Naur mythtv-0.27-20140419-gb93fb14-old/mythplugins/mythmusic/mythmusic/musiccommon.h mythtv-0.27-20140419-gb93fb14-new/mythplugins/mythmusic/mythmusic/musiccommon.h
+--- mythtv-0.27-20140419-gb93fb14-old/mythplugins/mythmusic/mythmusic/musiccommon.h	2014-04-19 14:26:28.000000000 +0200
++++ mythtv-0.27-20140419-gb93fb14-new/mythplugins/mythmusic/mythmusic/musiccommon.h	2014-04-19 14:27:39.716659306 +0200
+@@ -98,7 +98,7 @@
+     void byGenre(void);
+     void byYear(void);
+     void byTitle(void);
+-    void doUpdatePlaylist(bool startPlayback);
++    void doUpdatePlaylist(void);
+ 
+   protected:
+     void showExitMenu(void);
+diff -Naur mythtv-0.27-20140419-gb93fb14-old/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp mythtv-0.27-20140419-gb93fb14-new/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp
+--- mythtv-0.27-20140419-gb93fb14-old/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp	2014-04-19 14:26:28.000000000 +0200
++++ mythtv-0.27-20140419-gb93fb14-new/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp	2014-04-19 16:04:43.391702198 +0200
+@@ -318,13 +318,13 @@
+             {
+                 m_playlistOptions.playPLOption = PL_CURRENT;
+                 m_playlistOptions.insertPLOption = PL_REPLACE;
+-                doUpdatePlaylist(false);
++                doUpdatePlaylist();
+             }
+             else if (resulttext == tr("Add Tracks"))
+             {
+                 m_playlistOptions.playPLOption = PL_CURRENT;
+                 m_playlistOptions.insertPLOption = PL_INSERTATEND;
+-                doUpdatePlaylist(false);
++                doUpdatePlaylist();
+             }
+         }
+         else if (resultid == "playlistmenu")
+@@ -352,12 +352,12 @@
+             {
+                 m_playlistOptions.playPLOption = PL_CURRENT;
+                 m_playlistOptions.insertPLOption = PL_REPLACE;
+-                doUpdatePlaylist(false);
++                doUpdatePlaylist();
+             }
+             else if (resulttext == tr("Add Tracks"))
+             {
+                 m_playlistOptions.insertPLOption = PL_INSERTATEND;
+-                doUpdatePlaylist(false);
++                doUpdatePlaylist();
+             }
+         }
+     }
+@@ -503,7 +503,7 @@
+                      {
+                          m_playlistOptions.playPLOption = PL_FIRST;
+                          m_playlistOptions.insertPLOption = PL_REPLACE;
+-                         doUpdatePlaylist(true);
++                         doUpdatePlaylist();
+                      }
+                      else
+                      {
+@@ -557,7 +557,7 @@
+ 
+                         // Put the selected songs at the end of the playlist
+                         m_playlistOptions.insertPLOption = PL_INSERTATEND;
+-                        doUpdatePlaylist(false);
++                        doUpdatePlaylist();
+                     }
+ 
+                     // Set the track number to the trackcount. This would be the

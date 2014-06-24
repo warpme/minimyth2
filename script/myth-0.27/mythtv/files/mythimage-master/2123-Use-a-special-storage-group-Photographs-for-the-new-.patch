@@ -1,0 +1,236 @@
+diff -Naur mythtv-0.27-20140303-gcb3b784-old/mythtv/libs/libmythbase/storagegroup.cpp mythtv-0.27-20140303-gcb3b784-new/mythtv/libs/libmythbase/storagegroup.cpp
+--- mythtv-0.27-20140303-gcb3b784-old/mythtv/libs/libmythbase/storagegroup.cpp	2014-03-05 13:37:02.000000000 +0100
++++ mythtv-0.27-20140303-gcb3b784-new/mythtv/libs/libmythbase/storagegroup.cpp	2014-03-05 13:40:23.634580919 +0100
+@@ -32,6 +32,7 @@
+     <<  QT_TRANSLATE_NOOP("(StorageGroups)", "Banners")
+     <<  QT_TRANSLATE_NOOP("(StorageGroups)", "Music")
+     <<  QT_TRANSLATE_NOOP("(StorageGroups)", "MusicArt")
++    <<  QT_TRANSLATE_NOOP("(StorageGroups)", "Photographs")
+     ;
+ 
+ /****************************************************************************/
+diff -Naur mythtv-0.27-20140303-gcb3b784-old/mythtv/libs/libmythmetadata/imageutils.cpp mythtv-0.27-20140303-gcb3b784-new/mythtv/libs/libmythmetadata/imageutils.cpp
+--- mythtv-0.27-20140303-gcb3b784-old/mythtv/libs/libmythmetadata/imageutils.cpp	2014-03-05 13:18:42.000000000 +0100
++++ mythtv-0.27-20140303-gcb3b784-new/mythtv/libs/libmythmetadata/imageutils.cpp	2014-03-05 13:39:35.300699141 +0100
+@@ -10,8 +10,6 @@
+ // The maximum possible value of the utc time
+ #define MAX_UTCTIME 2147483646;
+ 
+-
+-
+ ImageUtils* ImageUtils::m_instance = NULL;
+ 
+ ImageUtils::ImageUtils()
+@@ -422,9 +420,7 @@
+ {
+     QStringList sgDirList;
+ 
+-    // The name that shall be used for the images storage group. It must be
+-    // specified because its not part of the default storage group names
+-    QString sgName = gCoreContext->GetSetting("GalleryStorageGroupName");
++    QString sgName = IMAGE_STORAGE_GROUP;
+ 
+     if (!sgName.isEmpty())
+     {
+@@ -456,7 +452,7 @@
+                                    int parentId)
+ {
+     data->m_parentId    = parentId;
+-    data->m_fileName	= fileInfo.absoluteFilePath();
++    data->m_fileName    = fileInfo.absoluteFilePath();
+     data->m_name        = fileInfo.fileName();
+     data->m_path        = fileInfo.path();
+     data->m_isHidden    = fileInfo.isHidden();
+@@ -484,7 +480,7 @@
+ void ImageUtils::LoadFileData(QFileInfo &fileInfo,
+                               ImageMetadata *data)
+ {
+-    data->m_fileName	= fileInfo.absoluteFilePath();
++    data->m_fileName    = fileInfo.absoluteFilePath();
+     data->m_name        = fileInfo.fileName();
+     data->m_path        = fileInfo.path();
+     data->m_modTime     = fileInfo.lastModified().toTime_t();
+diff -Naur mythtv-0.27-20140303-gcb3b784-old/mythtv/libs/libmythmetadata/imageutils.h mythtv-0.27-20140303-gcb3b784-new/mythtv/libs/libmythmetadata/imageutils.h
+--- mythtv-0.27-20140303-gcb3b784-old/mythtv/libs/libmythmetadata/imageutils.h	2014-03-05 13:29:38.000000000 +0100
++++ mythtv-0.27-20140303-gcb3b784-new/mythtv/libs/libmythmetadata/imageutils.h	2014-03-05 13:39:35.300699141 +0100
+@@ -15,7 +15,7 @@
+ #include "imagemetadata.h"
+ #include "mythmetaexp.h"
+ 
+-
++#define IMAGE_STORAGE_GROUP "Photographs";
+ 
+ class META_PUBLIC ImageUtils
+ {
+diff -Naur mythtv-0.27-20140303-gcb3b784-old/mythtv/programs/mythfrontend/galleryconfig.cpp mythtv-0.27-20140303-gcb3b784-new/mythtv/programs/mythfrontend/galleryconfig.cpp
+--- mythtv-0.27-20140303-gcb3b784-old/mythtv/programs/mythfrontend/galleryconfig.cpp	2014-03-05 13:25:16.000000000 +0100
++++ mythtv-0.27-20140303-gcb3b784-new/mythtv/programs/mythfrontend/galleryconfig.cpp	2014-03-05 13:39:35.300699141 +0100
+@@ -25,7 +25,6 @@
+  */
+ GalleryConfig::GalleryConfig(MythScreenStack *parent, const char *name)
+     : MythScreenType(parent, name),
+-      m_storageGroupName(NULL),
+       m_sortOrder(NULL),
+       m_slideShowTime(NULL),
+       m_transitionType(NULL),
+@@ -63,7 +62,6 @@
+         return false;
+ 
+     bool err = false;
+-    UIUtilE::Assign(this, m_storageGroupName, "storagegroupname", &err);
+     UIUtilE::Assign(this, m_sortOrder, "sortorder", &err);
+     UIUtilE::Assign(this, m_slideShowTime, "slideshowtime", &err);
+     UIUtilE::Assign(this, m_transitionType, "transitiontype", &err);
+@@ -93,7 +91,7 @@
+ 
+     BuildFocusList();
+ 
+-    SetFocusWidget(m_storageGroupName);
++    SetFocusWidget(m_sortOrder);
+ 
+     return true;
+ }
+@@ -158,8 +156,6 @@
+  */
+ void GalleryConfig::Load()
+ {
+-    m_storageGroupName->SetText(gCoreContext->GetSetting("GalleryStorageGroupName", "Pictures"));
+-
+     new MythUIButtonListItem(m_sortOrder, tr("Name (A-Z alpha)"),
+                              qVariantFromValue(QString::number(kSortByNameAsc)));
+     new MythUIButtonListItem(m_sortOrder, tr("Reverse Name (Z-A alpha)"),
+@@ -205,8 +201,6 @@
+  */
+ void GalleryConfig::Save()
+ {
+-    gCoreContext->SaveSetting("GalleryStorageGroupName",
+-                              m_storageGroupName->GetText());
+     gCoreContext->SaveSetting("GallerySortOrder",
+                               m_sortOrder->GetDataValue().toString());
+     gCoreContext->SaveSetting("GallerySlideShowTime",
+diff -Naur mythtv-0.27-20140303-gcb3b784-old/mythtv/programs/mythfrontend/galleryconfig.h mythtv-0.27-20140303-gcb3b784-new/mythtv/programs/mythfrontend/galleryconfig.h
+--- mythtv-0.27-20140303-gcb3b784-old/mythtv/programs/mythfrontend/galleryconfig.h	2014-03-05 13:25:16.000000000 +0100
++++ mythtv-0.27-20140303-gcb3b784-new/mythtv/programs/mythfrontend/galleryconfig.h	2014-03-05 13:39:35.300699141 +0100
+@@ -23,7 +23,6 @@
+     void configSaved();
+ 
+ private:
+-    MythUITextEdit     *m_storageGroupName;
+     MythUIButtonList   *m_sortOrder;
+     MythUISpinBox      *m_slideShowTime;
+     MythUIButtonList   *m_transitionType;
+diff -Naur mythtv-0.27-20140303-gcb3b784-old/mythtv/programs/mythfrontend/galleryviewhelper.cpp mythtv-0.27-20140303-gcb3b784-new/mythtv/programs/mythfrontend/galleryviewhelper.cpp
+--- mythtv-0.27-20140303-gcb3b784-old/mythtv/programs/mythfrontend/galleryviewhelper.cpp	2014-03-05 13:34:54.000000000 +0100
++++ mythtv-0.27-20140303-gcb3b784-new/mythtv/programs/mythfrontend/galleryviewhelper.cpp	2014-03-05 13:39:35.300699141 +0100
+@@ -4,6 +4,7 @@
+ // MythTV headers
+ #include "mythcontext.h"
+ #include "storagegroup.h"
++#include "imageutils.h"
+ 
+ #include "galleryviewhelper.h"
+ 
+@@ -17,7 +18,7 @@
+ {
+     m_parent = parent;
+ 
+-    m_sgName    = gCoreContext->GetSetting("GalleryStorageGroupName");
++    m_sgName    = IMAGE_STORAGE_GROUP;
+     m_sgDirList = StorageGroup::getGroupDirs(m_sgName, "");
+ 
+     m_dbHelper = new GalleryDatabaseHelper();
+diff -Naur mythtv-0.27-20140303-gcb3b784-old/mythtv/themes/default-wide/image-ui.xml mythtv-0.27-20140303-gcb3b784-new/mythtv/themes/default-wide/image-ui.xml
+--- mythtv-0.27-20140303-gcb3b784-old/mythtv/themes/default-wide/image-ui.xml	2014-03-05 13:26:51.000000000 +0100
++++ mythtv-0.27-20140303-gcb3b784-new/mythtv/themes/default-wide/image-ui.xml	2014-03-05 13:39:35.300699141 +0100
+@@ -12,22 +12,6 @@
+             </textarea>
+         </textarea>
+ 
+-        <!-- The clock that is shown at the top right of each screen -->
+-        <shape name="clock_background">
+-            <area>0,-4,244,36</area>
+-            <type>roundbox</type>
+-            <fill color="#000000" alpha="130" />
+-            <line color="#AAAAAA" alpha="150" width="1" />
+-            <cornerradius>2</cornerradius>
+-        </shape>
+-        <clock name="text">
+-            <area>0,0,244,30</area>
+-            <font>text</font>
+-            <template>%DATE%, %TIME%</template>
+-            <align>allcenter</align>
+-            <alpha>255</alpha>
+-        </clock>
+-
+         <!-- the shape where the imagelist is displayed -->
+         <shape name="gallerybackground">
+             <area>25,60,1230,633</area>
+@@ -432,22 +416,6 @@
+             </textarea>
+         </textarea>
+ 
+-        <!-- The clock that is shown at the top right of each screen -->
+-        <shape name="clock_background">
+-            <area>0,-4,244,36</area>
+-            <type>roundbox</type>
+-            <fill color="#000000" alpha="130" />
+-            <line color="#AAAAAA" alpha="150" width="1" />
+-            <cornerradius>2</cornerradius>
+-        </shape>
+-        <clock name="text">
+-            <area>0,0,244,30</area>
+-            <font>text</font>
+-            <template>%DATE%, %TIME%</template>
+-            <align>allcenter</align>
+-            <alpha>255</alpha>
+-        </clock>
+-
+         <!-- the shape where the imagelist is displayed -->
+         <shape name="galleryconfig_background">
+             <area>160,170,960,460</area>
+@@ -457,39 +425,32 @@
+             <cornerradius>2</cornerradius>
+         </shape>
+ 
+-        <textarea name="sgname_label" from="basetextarea">
++        <textarea name="sortorder_label" from="basetextarea">
+             <area>180,190,540,40</area>
+             <align>right,vcenter</align>
+-            <value>Name of the storage group for the images:</value>
+-        </textarea>
+-        <textarea name="sortorder_label" from="sgname_label">
+-            <position>180,240</position>
+             <value>Sorting order of the shown images:</value>
+         </textarea>
+-        <textarea name="slideshowtime_label" from="sgname_label">
++        <textarea name="slideshowtime_label" from="sortorder_label">
+             <position>180,290</position>
+             <value>Time to display each image during a slideshow (ms):</value>
+         </textarea>
+-        <textarea name="transitiontype_label" from="sgname_label">
++        <textarea name="transitiontype_label" from="sortorder_label">
+             <position>180,340</position>
+             <value>Type of transition between two images:</value>
+         </textarea>
+-        <textarea name="transitiontime_label" from="sgname_label">
++        <textarea name="transitiontime_label" from="sortorder_label">
+             <position>180,390</position>
+             <value>Duration of an image transition (ms):</value>
+         </textarea>
+-        <textarea name="showhiddenfiles_label" from="sgname_label">
++        <textarea name="showhiddenfiles_label" from="sortorder_label">
+             <position>180,440</position>
+             <value>Show files that are marked as hidden:</value>
+         </textarea>
+-        <textarea name="cleardatabase_label" from="sgname_label">
++        <textarea name="cleardatabase_label" from="sortorder_label">
+             <position>180,490</position>
+             <value>Clear database contents (Resync required):</value>
+         </textarea>
+ 
+-        <textedit name="storagegroupname" from="basetextedit">
+-            <position>730,190</position>
+-        </textedit>
+         <buttonlist name="sortorder" from="basewideselector">
+             <position>730,240</position>
+         </buttonlist>

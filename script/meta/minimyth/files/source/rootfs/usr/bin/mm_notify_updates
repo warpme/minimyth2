@@ -1,0 +1,50 @@
+#!/bin/sh
+
+pids=`/bin/pidof mm_notify_updates`
+instances=`/bin/echo ${pids} | /usr/bin/wc -w`
+if /usr/bin/test ${instances} -ne 1 ; then
+    exit 1
+fi
+
+. /etc/rc.d/functions
+. /etc/mm_ui_localizations_sh
+
+trap "_exit_" 0 1 2 3 15
+
+check_period=$1
+check_period=$((${check_period} * 60))
+local updates_list
+
+_exit_()
+{
+    ps -o ppid,pid,args \
+    | sed -e 's%  *% %g' -e 's%^ %%' -e 's% $%%' \
+    | grep "^$$ " \
+    | grep '/bin/sleep [^ ]*$' \
+    | cut -d ' ' -f 2 \
+    | while read pid ; do
+        kill $pid
+    done
+}
+
+/bin/sleep 900
+
+/usr/bin/logger -t minimyth -p "local0.info" "[mm_notify_updates] MM_NOTIFY_UPDATES now checks for updates every ${check_period} sec..."
+
+while true ; do
+  /usr/bin/ssh root@192.168.1.254 pacman -Sy > /dev/null 2>&1
+  updates_list=`/usr/bin/ssh root@192.168.1.254 pacman -Qqu 2> /dev/null`
+  if /usr/bin/test -n ${updates_list} ; then
+    packages=`/bin/echo ${updates_list} | /usr/bin/wc -w`
+    if /usr/bin/test ! ${packages} = 0 ; then
+      /usr/bin/logger -t minimyth -p "local0.info" "[mm_notify_updates] ${packages} updated packages were detected..."
+      # mm_show_xosd "${updates_detected_str}" "${updates_list}" 'warning'
+      mm_show_xosd "${updates_detected_str}" "There is ${packages} updated package(s)..." 'warning' '12'
+    else
+      /usr/bin/logger -t minimyth -p "local0.info" "[mm_notify_updates] No updated packages were detected..."
+    fi
+  fi
+  /bin/sleep ${check_period}
+done
+
+exit 0

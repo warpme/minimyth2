@@ -1,0 +1,9 @@
+mc/
+#mc/skins/default.ini
+#mc/syntax/c.syntax
+#mc/syntax/html.syntax
+#mc/syntax/makefile.syntax
+#mc/syntax/php.syntax
+#mc/syntax/perl.syntax
+#mc/syntax/python.syntax
+#mc/syntax/sh.syntax

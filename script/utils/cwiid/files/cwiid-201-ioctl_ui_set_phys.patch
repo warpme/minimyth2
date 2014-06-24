@@ -1,0 +1,81 @@
+diff -Naur cwiid-201-old/wminput/conf.h cwiid-201-new/wminput/conf.h
+--- cwiid-201-old/wminput/conf.h	2009-07-17 09:11:35.000000000 -0700
++++ cwiid-201-new/wminput/conf.h	2009-07-17 09:12:15.000000000 -0700
+@@ -51,6 +51,8 @@
+ #include <linux/input.h>
+ #include <linux/uinput.h>
+ 
++#include <bluetooth/bluetooth.h>
++
+ #include "cwiid.h"
+ #include "wmplugin.h"
+ #include "y.tab.h"
+@@ -179,6 +181,7 @@
+ 	YYLTYPE yyloc_stack[CONF_MAX_INCLUDE_DEPTH];
+ 	uint8_t rpt_mode_flags;
+ 	struct uinput_user_dev dev;
++	bdaddr_t bdaddr;
+ 	unsigned char ff;
+ 	struct btn_map wiimote_bmap[CONF_WM_BTN_COUNT];
+ 	struct btn_map nunchuk_bmap[CONF_NC_BTN_COUNT];
+diff -Naur cwiid-201-old/wminput/main.c cwiid-201-new/wminput/main.c
+--- cwiid-201-old/wminput/main.c	2009-07-17 09:11:35.000000000 -0700
++++ cwiid-201-new/wminput/main.c	2009-07-17 09:12:15.000000000 -0700
+@@ -237,11 +237,6 @@
+ 		config_search_dirs[2] = plugin_search_dirs[2] = NULL;
+ 	}
+ 
+-	if (conf_load(&conf, config_filename, config_search_dirs,
+-	  plugin_search_dirs)) {
+-		return -1;
+-	}
+-
+ 	/* Determine BDADDR */
+ 	/* priority: command-line option, environment variable, BDADDR_ANY */
+ 	if (optind < argc) {
+@@ -253,7 +248,6 @@
+ 		if (optind < argc) {
+ 			wminput_err("invalid command-line");
+ 			print_usage();
+-			conf_unload(&conf);
+ 			return -1;
+ 		}
+ 	}
+@@ -266,6 +260,12 @@
+ 	else {
+ 		bdaddr = *BDADDR_ANY;
+ 	}
++	bacpy(&conf.bdaddr, &bdaddr);
++
++	if (conf_load(&conf, config_filename, config_search_dirs,
++	  plugin_search_dirs)) {
++		return -1;
++	}
+ 
+ 	sigemptyset(&sigset);
+ 	sigaddset(&sigset, SIGTERM);
+diff -Naur cwiid-201-old/wminput/uinput.c cwiid-201-new/wminput/uinput.c
+--- cwiid-201-old/wminput/uinput.c	2009-07-17 09:11:35.000000000 -0700
++++ cwiid-201-new/wminput/uinput.c	2009-07-17 09:12:15.000000000 -0700
+@@ -54,6 +54,7 @@
+ 	unsigned int i;
+ 	int j;
+ 	int request;
++	char addr[18];
+ 
+ 	/* Open uinput device */
+ 	for (i=0; i < UINPUT_FILENAME_COUNT; i++) {
+@@ -72,6 +73,13 @@
+ 		return -1;
+ 	}
+ 
++	ba2str(&conf->bdaddr, addr);
++	if (ioctl(conf->fd, UI_SET_PHYS, addr) < 0) {
++		wminput_err("error uinput ioctl: UI_SET_PHYS: %s", addr);
++		close(conf->fd);
++		return -1;
++	}
++
+ 	if (conf->ff) {
+ 		if (ioctl(conf->fd, UI_SET_EVBIT, EV_FF) < 0) {
+ 			wminput_err("error on uinput ioctl");

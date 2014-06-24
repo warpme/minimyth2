@@ -1,0 +1,206 @@
+#!/bin/sh
+################################################################################
+# mm_persistent
+#
+# This script provides a persistent device name based on hardware information.
+#
+# The output has the formats:
+#     persistent/<kernel>-pci:<class>:<class_prog>:<vendor>:<device>:<subsystem_vendor>:<subsystem_device>:<bus_id>
+#     persistent/<kernel>-phys:<phys>
+#     persistent/<kernel>-usb:<idVendor>:<idProduct>:<serial>:<bInterfaceNumber>
+#     persistent/<kernel>-wminput:<phys>
+################################################################################
+
+script='BEGIN
+        {
+            FS="\n"
+            RS=""
+            kernel=""
+            mm_persistent=""
+            phys=""
+            bInterfaceNumber=""
+        }
+        mm_persistent !~ /^$/ { next }
+        $1 !~ /^ *looking at / { next }
+        {
+            x = 1
+            kernels=""
+            subsystem=""
+            while ( x < NF ) {
+                x++
+                if ( $x ~ /^ *KERNEL==/ ) {
+                    kernel=$x
+                    sub(/^ *KERNEL=="/, "", kernel)
+                    sub(/"$/, "", kernel)
+                    sub(/[0-9]*$/, "", kernel)
+                }
+                if ( $x ~ /^ *KERNELS==/ ) {
+                    kernels=$x
+                    sub(/^ *KERNELS=="/, "", kernels)
+                    sub(/"$/, "", kernels)
+                }
+                if ( $x ~ /^ *SUBSYSTEMS?=="acpi"/ ) {
+                    subsystem="acpi"
+                    break
+                }
+                if ( $x ~ /^ *SUBSYSTEMS?=="input"/ ) {
+                    subsystem="input"
+                    break
+                }
+                if ( $x ~ /^ *SUBSYSTEMS?=="pci"/ ) {
+                    subsystem="pci"
+                    break
+                }
+                if ( $x ~ /^ *SUBSYSTEMS?=="serio"/ ) {
+                    subsystem="serio"
+                    break
+                }
+                if ( $x ~ /^ *SUBSYSTEMS?=="usb"/ ) {
+                    subsystem="usb"
+                    break
+                }
+            }
+            if ( subsystem == "acpi" ) {
+                while ( x < NF ) {
+                    x++
+                }
+                if ( phys ) {
+                    mm_persistent=kernel "-phys:" phys
+                }
+            }
+            if ( subsystem == "input" ) {
+                driver=""
+                name=""
+                while ( x < NF ) {
+                    x++
+                    if ( $x ~ /^ *DRIVERS?==/ ) {
+                        driver=$x
+                        sub(/^ *DRIVERS?=="/, "", driver)
+                        sub(/"$/, "", driver)
+                    }
+                    if ( $x ~ /^ *ATTRS?\{name\}==/ ) {
+                        name=$x
+                        sub(/^ *ATTRS?\{name\}=="/, "", name)
+                        sub(/"$/, "", name)
+                    }
+                    if ( $x ~ /^ *ATTRS?\{phys\}==/ ) {
+                        phys=$x
+                        sub(/^ *ATTRS?\{phys\}=="/, "", phys)
+                        sub(/"$/, "", phys)
+                        gsub(/\//, ":", phys)
+                    }
+                }
+                if ( ( driver == "" ) && ( name == "lircmd" ) ) {
+                    mm_persistent=kernel "-lircm"
+                }
+                if ( ( driver == "" ) && ( name == "Nintendo Wiimote" ) && ( phys ) ) {
+                    mm_persistent=kernel "-wminput:" phys
+                }
+            }
+            if ( subsystem == "pci" ) {
+                class=""
+                class_prog=""
+                vendor=""
+                device=""
+                subsystem_vendor=""
+                subsystem_device=""
+                bus_id=kernels
+                while ( x < NF ) {
+                    x++
+                    if ( $x ~ /^ *ATTRS?\{class\}==/ ) {
+                        class=$x
+                        sub(/^ *ATTRS?\{class\}=="0x/, "", class)
+                        sub(/.."$/, "", class)
+                        class_prog=$x
+                        sub(/^ *ATTRS?\{class\}=="0x..../, "", class_prog)
+                        sub(/"$/, "", class_prog)
+                    }
+                    if ( $x ~ /^ *ATTRS?\{vendor\}==/ ) {
+                        vendor=$x
+                        sub(/^ *ATTRS?\{vendor\}=="0x/, "", vendor)
+                        sub(/"$/, "", vendor)
+                    }
+                    if ( $x ~ /^ *ATTRS?\{device\}==/ ) {
+                        device=$x
+                        sub(/^ *ATTRS?\{device\}=="0x/, "", device)
+                        sub(/"$/, "", device)
+                    }
+                    if ( $x ~ /^ *ATTRS?\{subsystem_vendor\}==/ ) {
+                        subsystem_vendor=$x
+                        sub(/^ *ATTRS?\{subsystem_vendor\}=="0x/, "", subsystem_vendor)
+                        sub(/"$/, "", subsystem_vendor)
+                    }
+                    if ( $x ~ /^ *ATTRS?\{subsystem_device\}==/ ) {
+                        subsystem_device=$x
+                        sub(/^ *ATTRS?\{subsystem_device\}=="0x/, "", subsystem_device)
+                        sub(/"$/, "", subsystem_device)
+                    }
+                    if ( $x ~ /^ *KERNELS?==/ ) {
+                        bus_id=$x
+                        sub(/^ *KERNELS=="/, "", bus_id)
+                        sub(/"$/, "", bus_id)
+                    }
+                }
+                if ( class && class_prog && vendor && device && subsystem_vendor && subsystem_device && bus_id ) {
+                    mm_persistent=kernel "-pci:" class ":" class_prog ":" vendor ":" device ":" subsystem_vendor ":" subsystem_device ":" bus_id
+                }
+            }
+            if ( subsystem == "serio" ) {
+                while ( x < NF ) {
+                    x++
+                }
+                if ( phys ) {
+                    mm_persistent=kernel "-phys:" phys
+                }
+            }
+            if ( subsystem == "usb" ) {
+                idVendor=""
+                idProduct=""
+                serial=""
+                manufacturer=""
+                while ( x < NF ) {
+                    x++
+                    if ( $x ~ /^ *ATTRS?\{idVendor\}==/ ) {
+                        idVendor=$x
+                        sub(/^ *ATTRS?\{idVendor\}=="/, "", idVendor)
+                        sub(/"$/, "", idVendor)
+                        if ( idVendor == "0000" ) {
+                            idVendor=""
+                        }
+                    }
+                    if ( $x ~ /^ *ATTRS?\{idProduct\}==/ ) {
+                        idProduct=$x
+                        sub(/^ *ATTRS?\{idProduct\}=="/, "", idProduct)
+                        sub(/"$/, "", idProduct)
+                        if ( idProduct == "0000" ) {
+                            idProduct=""
+                        }
+                    }
+                    if ( $x ~ /^ *ATTRS?\{serial\}==/ ) {
+                        serial=$x
+                        sub(/^ *ATTRS?\{serial\}=="/, "", serial)
+                        sub(/"$/, "", serial)
+                    }
+                    if ( $x ~ /^ *ATTRS?\{bInterfaceNumber\}==/ ) {
+                        bInterfaceNumber=$x
+                        sub(/^ *ATTRS?\{bInterfaceNumber\}=="/, "", bInterfaceNumber)
+                        sub(/"$/, "", bInterfaceNumber)
+                    }
+                }
+                if ( idVendor && idProduct ) {
+                    mm_persistent=kernel "-usb:" idVendor ":" idProduct ":" serial ":" bInterfaceNumber
+                }
+            }
+            if ( mm_persistent ) {
+                print mm_persistent
+            }
+        }'
+
+mm_persistent=`/usr/bin/udevadm info --attribute-walk --path ${DEVPATH} | /usr/bin/awk "${script}"`
+if /usr/bin/test -n "${mm_persistent}" ; then
+    mm_persistent="persistent/${mm_persistent}"
+fi
+
+/bin/echo "${mm_persistent}"
+
+exit 0

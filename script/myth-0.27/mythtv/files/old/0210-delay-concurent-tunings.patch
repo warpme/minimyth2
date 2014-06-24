@@ -1,0 +1,69 @@
+diff -Naur mythtv-master-20130829-gb2b7022-old/mythtv/libs/libmythtv/recorders/dvbchannel.cpp mythtv-master-20130829-gb2b7022-new/mythtv/libs/libmythtv/recorders/dvbchannel.cpp
+--- mythtv-master-20130829-gb2b7022-old/mythtv/libs/libmythtv/recorders/dvbchannel.cpp	2013-08-29 15:42:53.711588645 +0200
++++ mythtv-master-20130829-gb2b7022-new/mythtv/libs/libmythtv/recorders/dvbchannel.cpp	2013-08-29 15:43:36.774930079 +0200
+@@ -55,6 +55,9 @@
+ static DTVMultiplex dvbparams_to_dtvmultiplex(
+     DTVTunerType, const dvb_frontend_parameters&);
+ 
++qint64 concurrent_tunings_delay = 1000;
++QDateTime DVBChannel::last_tuning = QDateTime::currentDateTime();
++
+ #define LOC QString("DVBChan[%1](%2): ").arg(GetCardID()).arg(GetDevice())
+ 
+ /** \class DVBChannel
+@@ -96,6 +99,7 @@
+     master_map_lock.unlock();
+ 
+     sigmon_delay = CardUtil::GetMinSignalMonitoringDelay(device);
++
+ }
+ 
+ DVBChannel::~DVBChannel()
+@@ -706,10 +710,25 @@
+ 
+     if (reset || !prev_tuning.IsEqual(tunerType, tuning, 500 * freq_mult))
+     {
++
+         LOG(VB_CHANNEL, LOG_INFO, LOC + QString("Tune(): Tuning to %1%2")
+                 .arg(intermediate_freq ? intermediate_freq : tuning.frequency)
+                 .arg(suffix));
+ 
++        tune_delay_lock.lock();
++
++        if (QDateTime::currentDateTime() < last_tuning)
++        {
++            LOG(VB_GENERAL, LOG_INFO, LOC + QString("Next tuning after less than %1ms. Delaying by %1ms")
++                .arg(concurrent_tunings_delay));
++            usleep(concurrent_tunings_delay * 1000);
++        }
++
++        last_tuning = QDateTime::currentDateTime();
++        last_tuning = last_tuning.addMSecs(concurrent_tunings_delay);
++
++        tune_delay_lock.unlock();
++
+         // send DVB-S setup
+         if (diseqc_tree)
+         {
+@@ -808,6 +827,7 @@
+                     "Tune(): Setting Frontend tuning parameters failed." + ENO);
+                 return false;
+             }
++
+         }
+         else
+ #endif
+diff -Naur mythtv-master-20130829-gb2b7022-old/mythtv/libs/libmythtv/recorders/dvbchannel.h mythtv-master-20130829-gb2b7022-new/mythtv/libs/libmythtv/recorders/dvbchannel.h
+--- mythtv-master-20130829-gb2b7022-old/mythtv/libs/libmythtv/recorders/dvbchannel.h	2013-08-29 15:42:53.698255306 +0200
++++ mythtv-master-20130829-gb2b7022-new/mythtv/libs/libmythtv/recorders/dvbchannel.h	2013-08-29 15:43:36.774930079 +0200
+@@ -144,6 +144,10 @@
+     int               fd_frontend; ///< File descriptor for tuning hardware
+     QString           device;      ///< DVB Device
+     bool              has_crc_bug; ///< true iff our driver munges PMT
++
++    static QDateTime  last_tuning;
++    QMutex            tune_delay_lock;
++
+ };
+ 
+ #endif

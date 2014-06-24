@@ -1,0 +1,274 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head>
+    <meta name="author" content="Paul Bender" />
+    <meta name="copyright" content="2006-2008 Paul Bender &amp; minimyth.org" />
+    <meta name="keywords" content="Minimyth2,Linux,PVR,Linux,MythTV,diskless,Mini-ITX,EPIA" />
+    <meta name="description" content="" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Minimyth2 - Documents - HowTos - LIRC devinput: Using a remote control that appears as keyboard</title>
+    <style type="text/css" title="main-styles">
+      @import "css/minimyth.css";
+    </style>
+  </head>
+  <body>
+    <div class="main">
+      <div class="header">
+        <div class="heading">Minimyth2 from <a href="http://minimyth2.linuxd.org">minimyth2.linuxd.org</a></div>
+        <div class="menu">
+          <span class="menuItemFirst"><a href="index.html">Home</a></span>
+          <span class="menuItem"     ><a href="document.html">Documents</a></span>
+          <span class="menuItem"     ><a href="document-howto.html">HowTos</a></span>
+          <span class="menuItem"     >LIRC devinput</span>
+        </div>
+      </div>
+      <div class="middle">
+        <div class="heading">LIRC devinput: Using a remote control that appears as keyboard</div>
+        <div id="introduction" class="section">
+          <div class="heading">Introduction</div>
+          <p>
+            Some remote controls appear as keyboard devices rather than remote control devices.
+            Specifically, they appear as one or more event input devices.
+            Minimyth2 can treat an event input device as either a remote (handled by LIRC) or a keyboard (handled by Xorg).
+            Because Minimyth2 is better integrated and tested with LIRC than with Xorg as input,
+            I believe that it is better to treat these event input devices as remotes rather than keyboards.
+          </p>
+        </div>
+        <div id="mcekbd" class="section">
+          <div class="heading">Remote Controls that Generate Media Center Edition Keyboard Shortcuts</div>
+          <p>
+            One family of remote controls that appear as keyboard devices is the family of remote controls that generate
+            <a href="http://www.microsoft.com/enable/products/KeyboardSearch_MediaCenter2005XP.aspx">Media Center Edition keyboard shortcuts</a>
+            rather than remote codes.
+            Minimyth2 has built-in support for this family of remote controls.
+            However, your remote control must be auto-detected by Minimyth2 for it to work.
+          </p>
+          <p>
+            If you have one of these remotes but Minimyth2 does not detect it, then please
+            <a href="http://minimyth2.freeforums.org">let us know</a>
+            the remote control vendor and model,
+            the output of 'lsusb' with the remote control connected, and
+            the output of 'cat&nbsp;/proc/bus/input/devices' with the remote control connected.
+          </p>
+        </div>
+        <div id="configuration" class="section">
+          <div class="heading">Configuration</div>
+          <p>
+            If your remote control is not already known to Minimyth2 and
+            does not generate Media Center Edition keyboard shortcuts,
+            then treating it as a remote will require some manual configuration.
+            Specifically, you will need to provide Minimyth2 with
+            the name of the LIRC driver that handles event input devices,
+            the path to the event input device that corresponds to your remote control,
+            the 'lircd.conf' file that maps remote control key presses to key names, and
+            (if needed) the 'lircrc' file that maps key names to per-application actions.
+          </p>
+          <p>
+            LIRC handles input event devices such as keyboards using the devinput driver.
+            You can configure LIRC to use the devinput driver by adding
+            <a href="document-minimyth_conf.html#MM_LIRC_DRIVER">MM_LIRC_DRIVER</a>='devinput'
+            to your
+            <a href="document-configure.html#minimyth_conf">Minimyth2 configuration file</a>.
+          </p>
+          <p>
+            In order to provide LIRC with the path to the event input device that corresponds to your remote control,
+            you must determine the path.
+            You can determine the event input device that corresponds to your remote control
+            by connecting to your Minimyth2 frontend as user 'root' using either
+            <a href="document-use.html#access-telnet">telnet</a>
+            or
+            <a href="document-use.html#access-ssh">ssh</a>
+            and looking at the output of the command
+          </p>
+          <code>
+            cat /proc/bus/input/devices
+          </code>
+          <p>
+            In this output, each input device has a separate record.
+            Each record is separated by a blank line and each field is on its own line.
+            You should be able to recognize the record(s) associated with your device by looking at the name field
+            (the field that starts with 'N:').
+            If your device is recognized as a keyboard event input device,
+            then the handler field (the field that starts with 'H:')
+            will contain the entries 'kbd' and 'eventX', where X is a number.
+            The 'eventX' corresponds to the remote control's device file system entry '/dev/input/eventX'.
+            Therefore, your can configure LIRC to use the device associated with your remote control by adding
+            <a href="document-minimyth_conf.html#MM_LIRC_DEVICE">MM_LIRC_DEVICE</a>='/dev/input/eventX'
+            to your
+            <a href="document-configure.html#minimyth_conf">Minimyth2 configuration file</a>.
+          </p>
+          <p>
+            In order to provide Minimyth2 with an 'lircd.conf' file that maps remote control key presses to key names,
+            you must determine the mapping.
+            Determining the mapping is two step process:
+            (1) use the standard keyboard map (which is built-in to Minimyth2) to determine the standard key name(s) that are generated when a key is pressed, and
+            (2) modify the standard keyboard map so that the key name that is generated corresponds to the key pressed.
+          </p>
+          <p>
+            In order to accomplish step (1), start by rebooting your frontend.
+            If all goes well, lircd should start.
+            You can check that it started
+            by connecting to your Minimyth2 frontend as user 'root' using either
+            <a href="document-use.html#access-telnet">telnet</a>
+            or
+            <a href="document-use.html#access-ssh">ssh</a>
+            and running the command
+          </p>
+          <code>
+            ps x ocmd | grep lircd
+          </code>
+          <p>
+            If 'lircd' is running, then you should see the output
+          </p>
+          <code>
+            /usr/sbin/lircd --device=/dev/input/eventX --driver=devinput ..
+          </code>
+          <p>
+            In addition, it is a good idea to stop mythfrontend (or mythwelcome)
+            so that the remote key presses do not confuse mythfrontend (or mythwelcome),
+            You can stop mythfrontend (or mythwelcome) by connecting to your Minimyth2 frontendas user 'root' using either
+            <a href="document-use.html#access-telnet">telnet</a>
+            or
+            <a href="document-use.html#access-ssh">ssh</a>
+            and running the command
+          </p>
+          <code>
+            mm_command x_stop
+          </code>
+          <p>
+            Now, you can determine the standard key name(s) that are generated when a key is pressed.
+            You can do this by connecting to your Minimyth2 frontend as user 'root' using either
+            <a href="document-use.html#access-telnet">telnet</a>
+            or
+            <a href="document-use.html#access-ssh">ssh</a>,
+            running the command
+          </p>
+          <code>
+            irw
+          </code>
+          <p>
+            successively pressing each key on the remote control and noting the output.
+            When you press a remote control key,
+            you should see a output that has the form
+          </p>
+          <code>
+            0000000000010039 00 KEY_SPACE devinput
+          </code>
+          <p>
+            The key name is the word to the left of 'devinput'.
+            In the above example, the key name is 'KEY_SPACE'.
+          </p>
+          <p>
+            Most remote controls that appear as keyboards will generate one key name output per key press.
+            However, some remote controls
+            (such as remote controls that output Media Center Edition keyboard shortcuts)
+            may generate multiple key name outputs per key press.
+            If none of the keys on your remote control generates more than one key name output per key press,
+            then you will only need to create a custom 'lircd.conf' file.
+            If some of the keys on your remote control generate more than one key name output per key press,
+            then you will need to create a custom 'lircd.conf' file and a custom 'lircrc' file.
+          </p>
+          <p>
+            In order to accomplish step (2), you will need to create a custom 'lircd.conf' file for your remote control.
+            First, get a copy of the 'lircd.conf' file with the standard keyboard map.
+            The '/etc/lirc.d/lircd.conf/devinput' file on your frontend contains the standard keyboard map.
+            You can download this file from your frontend using the
+            <a href="http://minimyth.org/document-use.html#access-http">HTTP access</a>
+            to the frontend.
+            Second, delete all the key name entries from the standard keyboard 'lircd.conf' file
+            that are not needed by your remote control.
+            
+            If your remote control does not generate more than one key name output per key press for any keys,
+            then you should change the key names in the 'lircd.conf' file to key names
+            that most closely correspond to their function
+            as this will enable the 'lircd.conf' file to work with Minimyth2's built-in 'lircrc' files.
+            If your remote control does generate more than one key name output per key press for some keys,
+            then there is no reason to change the key names in the 'lircd.conf' file
+            as you will need to create a custom 'lircd.conf' file anyway.
+            If you want more information on the
+            <a href="http://www.lirc.org/html/configure.html#lircd.conf_format">'lircd.conf' file format</a>,
+            you can find it
+            <a href="http://www.lirc.org/html/configure.html#lircd.conf_format">here</a>.
+          </p>
+          <p>
+            If your remote control does generate more than one key name output per key press for some keys,
+            then you will need to create a custom 'lircrc' file.
+            The reason is that the Minimyth2 built-in 'lircrc' files expect one key name per key press,
+            and there is no way to use 'lircd.conf' to map multiple key names to a single key name.
+            The '/etc/lircrc' file on your frontend file contains a list of file names that are the Minimyth2 built-in 'lircrc' files.
+            You can download these files from your frontend using the
+            <a href="http://minimyth.org/document-use.html#access-http">HTTP access</a>
+            to the frontend.
+            Once you have downloaded the Minimyth2 built-in 'lircrc' files,
+            you can concatenate them into a single 'lircrc' file.
+            After that, you will need to edit this 'lircrc' file,
+            replacing, each 'button&nbsp;=&nbsp;{key_name} line with the one or more 'button&nbsp;=&nbsp;{key_name}' lines
+            for the one or more key names that correspond to the action.
+            For example,
+            if the remote control's fast foward key generates the key name sequence KEY_LEFTCTRL KEY_LEFTSHIFT KEY_F,
+            then you will want to replace each
+            'button&nbsp;=&nbsp;KEY_FORWARD'
+            line with the lines
+            'button&nbsp;=&nbsp;KEY_LEFTCTRL',
+            'button&nbsp;=&nbsp;KEY_LEFTSHIFT' and
+            'button&nbsp;=&nbsp;KEY_F'.
+            If you want more information on the
+            <a href="http://www.lirc.org/html/configure.html#lircrc_format">lircrc file format</a>,
+            you can find it
+            <a href="http://www.lirc.org/html/configure.html#lircrc_format">here</a>.
+          </p>
+          <p>
+            Now that you have a custom 'lircd.conf' and (if needed) a custom 'lircrc' file,
+            you can use the
+            '<a href="document-minimyth_conf.html#MM_LIRC_FETCH_LIRCD_CONF">MM_LIRC_FETCH_LIRCD_CONF</a>'
+            and
+            '<a href="document-minimyth_conf.html#MM_LIRC_FETCH_LIRCRC">MM_LIRC_FETCH_LIRCRC</a>'
+            variables to tell Minimyth2 to fetch the files at boot time.
+          </p>
+          <p>
+            If your remote control was not known to Minimyth2
+            and you took the time to create the 'lircd.conf' file and (if needed) the 'lircrc' file,
+            then please follow the instructions under
+            <a href="document-minimyth_conf.html#MM_LIRC_AUTO_ENABLED">MM_LIRC_AUTO_ENABLED</a>
+            for letting us know so that others can benefit from your efforts.
+          </p>
+          <p>
+            Some remote controls appear as multiple keyboards.
+            If your remote control appears as multiple keyboard event input devices,
+            then there will be multiple records corresponding to your remote control
+            in the output of the command
+          </p>
+          <code>
+            cat /proc/bus/input/devices
+          </code>
+          <p>
+            each with a different eventX value.
+            If your remote control appears as multiple keyboard event input devices,
+            then you will need to repeat the steps for creating the 'lircd.conf' and 'lircrc' for each event input device.
+            Additionally, as Minimyth2's manual configuration only supports configuring one LIRC device,
+            you will only be able to use one of the event input devices created by your remote control until
+            your remote control is known to Minimyth2.
+          </p>
+        </div>
+      </div>
+      <div class="footer">
+        <hr />
+        <div class="valid-xhtml">
+          <a href="http://validator.w3.org/check?uri=referer"><img
+              src="/image/w3c-valid-xhtml11-blue.gif"
+              alt="Valid XHTML 1.1" height="31" width="88" /></a>
+        </div>
+        <div class="valid-css">
+          <a href="http://jigsaw.w3.org/css-validator/check/referer"><img
+              src="/image/w3c-valid-css2-blue.gif"
+              alt="Valid CSS!"      height="31" width="88" /></a>
+        </div>
+        <div class="version">
+          Last Updated on 2008-12-09
+          <br />
+          &lt;&nbsp;mailto&nbsp;:&nbsp;warpme&nbsp;at&nbsp;o2&nbsp;dot&nbsp;pl&nbsp;&gt;
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

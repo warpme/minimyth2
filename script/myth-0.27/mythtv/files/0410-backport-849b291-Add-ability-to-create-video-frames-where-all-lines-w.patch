@@ -1,0 +1,191 @@
+From 849b291cec5e3aedb617312017b2263ed9612b2f Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Thu, 12 Jun 2014 11:06:29 +1000
+Subject: [PATCH 02/11] Add ability to create video frames, where all lines
+ will be X-bytes memory aligned.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This would create a frame, whose strides may not always match its width.
+Disabled at present, as our rendering code doesn’t always properly display those (only Xv, Qt and VDPAU handle those properly). OpenGL being the most problematic.
+For a YV12/YV420P frame to be properly aligned, a value of 64 needs to be used (so chroma planes are 16 bytes aligned).
+---
+ mythtv/libs/libmythtv/mythframe.h      |   46 +++++++++++++++++++++++---------
+ mythtv/libs/libmythtv/videobuffers.cpp |   23 +++++++++++++---
+ mythtv/libs/libmythtv/videobuffers.h   |    3 ++-
+ 3 files changed, 55 insertions(+), 17 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/mythframe.h b/mythtv/libs/libmythtv/mythframe.h
+index 8ee72a6..89f74ac 100644
+--- a/mythtv/libs/libmythtv/mythframe.h
++++ b/mythtv/libs/libmythtv/mythframe.h
+@@ -70,7 +70,8 @@ static inline void init(VideoFrame *vf, VideoFrameType _codec,
+                         unsigned char *_buf, int _width, int _height, int _size,
+                         const int *p = 0,
+                         const int *o = 0,
+-                        float _aspect = -1.0f, double _rate = -1.0f) MUNUSED;
++                        float _aspect = -1.0f, double _rate = -1.0f,
++                        int _aligned = 0) MUNUSED;
+ static inline void clear(VideoFrame *vf);
+ static inline bool compatible(const VideoFrame *a,
+                               const VideoFrame *b) MUNUSED;
+@@ -79,7 +80,7 @@ static inline int  bitsperpixel(VideoFrameType type);
+ static inline void init(VideoFrame *vf, VideoFrameType _codec,
+                         unsigned char *_buf, int _width, int _height,
+                         int _size, const int *p, const int *o,
+-                        float _aspect, double _rate)
++                        float _aspect, double _rate, int _aligned)
+ {
+     vf->bpp    = bitsperpixel(_codec);
+     vf->codec  = _codec;
+@@ -106,6 +107,16 @@ static inline void init(VideoFrame *vf, VideoFrameType _codec,
+ 
+     memset(vf->priv, 0, 4 * sizeof(unsigned char *));
+ 
++    uint width_aligned;
++    if (!_aligned)
++    {
++        width_aligned = _width;
++    }
++    else
++    {
++        width_aligned = (_width + _aligned - 1) & ~(_aligned - 1);
++    }
++
+     if (p)
+     {
+         memcpy(vf->pitches, p, 3 * sizeof(int));
+@@ -114,12 +125,12 @@ static inline void init(VideoFrame *vf, VideoFrameType _codec,
+     {
+         if (FMT_YV12 == _codec || FMT_YUV422P == _codec)
+         {
+-            vf->pitches[0] = _width;
+-            vf->pitches[1] = vf->pitches[2] = _width >> 1;
++            vf->pitches[0] = width_aligned;
++            vf->pitches[1] = vf->pitches[2] = width_aligned >> 1;
+         }
+         else
+         {
+-            vf->pitches[0] = (_width * vf->bpp) >> 3;
++            vf->pitches[0] = (width_aligned * vf->bpp) >> 3;
+             vf->pitches[1] = vf->pitches[2] = 0;
+         }
+     }
+@@ -133,13 +144,13 @@ static inline void init(VideoFrame *vf, VideoFrameType _codec,
+         if (FMT_YV12 == _codec)
+         {
+             vf->offsets[0] = 0;
+-            vf->offsets[1] = _width * _height;
++            vf->offsets[1] = width_aligned * _height;
+             vf->offsets[2] = vf->offsets[1] + (vf->offsets[1] >> 2);
+         }
+         else if (FMT_YUV422P == _codec)
+         {
+             vf->offsets[0] = 0;
+-            vf->offsets[1] = _width * _height;
++            vf->offsets[1] = width_aligned * _height;
+             vf->offsets[2] = vf->offsets[1] + (vf->offsets[1] >> 1);
+         }
+         else
+@@ -280,18 +291,29 @@ static inline int bitsperpixel(VideoFrameType type)
+     return res;
+ }
+ 
+-static inline uint buffersize(VideoFrameType type, int width, int height)
++static inline uint buffersize(VideoFrameType type, int width, int height,
++                              int _aligned = 16)
+ {
+     int  type_bpp = bitsperpixel(type);
+     uint bpp = type_bpp / 4; /* bits per pixel div common factor */
+     uint bpb =  8 / 4; /* bits per byte div common factor */
+ 
+-    // If the buffer sizes are not a multple of 16, adjust.
++    // make sure all our pitches are a multiple of 16 bytes
++    // as U and V channels are half the size of Y channel
++    // This allow for SSE/HW accelerated code on all planes
++    // If the buffer sizes are not 32 bytes aligned, adjust.
+     // old versions of MythTV allowed people to set invalid
+     // dimensions for MPEG-4 capture, no need to segfault..
+-    uint adj_w = (width  + 15) & ~0xF;
+-    uint adj_h = (height + 15) & ~0xF;
+-    return (adj_w * adj_h * bpp + 4/* to round up */) / bpb;
++    uint adj_w;
++    if (!_aligned)
++    {
++        adj_w = width;
++    }
++    else
++    {
++        adj_w = (width  + _aligned - 1) & ~(_aligned - 1);
++    }
++    return (adj_w * height * bpp + 4/* to round up */) / bpb;
+ }
+ 
+ #endif /* __cplusplus */
+diff --git a/mythtv/libs/libmythtv/videobuffers.cpp b/mythtv/libs/libmythtv/videobuffers.cpp
+index 3987de0..aca1ed7 100644
+--- a/mythtv/libs/libmythtv/videobuffers.cpp
++++ b/mythtv/libs/libmythtv/videobuffers.cpp
+@@ -20,17 +20,32 @@ extern "C" {
+ 
+ int next_dbg_str = 0;
+ 
+-YUVInfo::YUVInfo(uint w, uint h, uint sz, const int *p, const int *o)
++YUVInfo::YUVInfo(uint w, uint h, uint sz, const int *p, const int *o,
++                 int aligned)
+     : width(w), height(h), size(sz)
+ {
++    // make sure all our pitches are a multiple of "aligned" bytes
++    // Needs to take into consideration that U and V channels are half
++    // the width of Y channel
++    uint width_aligned;
++
++    if (!aligned)
++    {
++        width_aligned = width;
++    }
++    else
++    {
++        width_aligned = (width + aligned - 1) & ~(aligned - 1);
++    }
++
+     if (p)
+     {
+         memcpy(pitches, p, 3 * sizeof(int));
+     }
+     else
+     {
+-        pitches[0] = width;
+-        pitches[1] = pitches[2] = width >> 1;
++        pitches[0] = width_aligned;
++        pitches[1] = pitches[2] = width_aligned >> 1;
+     }
+ 
+     if (o)
+@@ -40,7 +55,7 @@ YUVInfo::YUVInfo(uint w, uint h, uint sz, const int *p, const int *o)
+     else
+     {
+         offsets[0] = 0;
+-        offsets[1] = width * height;
++        offsets[1] = width_aligned * height;
+         offsets[2] = offsets[1] + (offsets[1] >> 2);
+     }
+ }
+diff --git a/mythtv/libs/libmythtv/videobuffers.h b/mythtv/libs/libmythtv/videobuffers.h
+index 465deae..b1f93c1 100644
+--- a/mythtv/libs/libmythtv/videobuffers.h
++++ b/mythtv/libs/libmythtv/videobuffers.h
+@@ -46,7 +46,8 @@ enum BufferType
+ class YUVInfo
+ {
+   public:
+-    YUVInfo(uint w, uint h, uint size, const int *p, const int *o);
++    YUVInfo(uint w, uint h, uint size, const int *p, const int *o,
++            int aligned = 0);
+ 
+   public:
+     uint width;
+-- 
+1.7.10.2
+

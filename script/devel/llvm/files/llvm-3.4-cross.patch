@@ -1,0 +1,112 @@
+diff -Naur llvm-3.4-old/Makefile llvm-3.4-new/Makefile
+--- llvm-3.4-old/Makefile	2013-10-02 17:42:23.000000000 +0200
++++ llvm-3.4-new/Makefile	2014-02-23 19:20:50.231775598 +0100
+@@ -99,44 +99,6 @@
+   DIRS := $(filter-out unittests, $(DIRS))
+ endif
+ 
+-# If we're cross-compiling, build the build-hosted tools first
+-ifeq ($(LLVM_CROSS_COMPILING),1)
+-all:: cross-compile-build-tools
+-
+-clean::
+-	$(Verb) rm -rf BuildTools
+-
+-cross-compile-build-tools:
+-	$(Verb) if [ ! -f BuildTools/Makefile ]; then \
+-          $(MKDIR) BuildTools; \
+-	  cd BuildTools ; \
+-	  unset CFLAGS ; \
+-	  unset CXXFLAGS ; \
+-	  unset SDKROOT ; \
+-	  unset UNIVERSAL_SDK_PATH ; \
+-	  $(PROJ_SRC_DIR)/configure --build=$(BUILD_TRIPLE) \
+-		--host=$(BUILD_TRIPLE) --target=$(BUILD_TRIPLE) \
+-	        --disable-polly ; \
+-	  cd .. ; \
+-	fi; \
+-	($(MAKE) -C BuildTools \
+-	  BUILD_DIRS_ONLY=1 \
+-	  UNIVERSAL= \
+-	  UNIVERSAL_SDK_PATH= \
+-	  SDKROOT= \
+-	  TARGET_NATIVE_ARCH="$(TARGET_NATIVE_ARCH)" \
+-	  TARGETS_TO_BUILD="$(TARGETS_TO_BUILD)" \
+-	  ENABLE_OPTIMIZED=$(ENABLE_OPTIMIZED) \
+-	  ENABLE_PROFILING=$(ENABLE_PROFILING) \
+-	  ENABLE_COVERAGE=$(ENABLE_COVERAGE) \
+-	  DISABLE_ASSERTIONS=$(DISABLE_ASSERTIONS) \
+-	  ENABLE_EXPENSIVE_CHECKS=$(ENABLE_EXPENSIVE_CHECKS) \
+-	  ENABLE_LIBCPP=$(ENABLE_LIBCPP) \
+-	  CFLAGS= \
+-	  CXXFLAGS= \
+-	) || exit 1;
+-endif
+-
+ # Include the main makefile machinery.
+ include $(LLVM_SRC_ROOT)/Makefile.rules
+ 
+diff -Naur llvm-3.4-old/Makefile.config.in llvm-3.4-new/Makefile.config.in
+--- llvm-3.4-old/Makefile.config.in	2013-06-25 03:12:25.000000000 +0200
++++ llvm-3.4-new/Makefile.config.in	2014-02-23 19:22:55.321159436 +0100
+@@ -130,6 +130,10 @@
+ # call if we're cross-compiling).
+ BUILD_CC=@BUILD_CC@
+ BUILD_CXX=@BUILD_CXX@
++BUILD_CPPFLAGS=@BUILD_CPPFLAGS@
++BUILD_CFLAGS=@BUILD_CFLAGS@
++BUILD_CXXFLAGS=@BUILD_CXXFLAGS@
++BUILD_LDFLAGS=@BUILD_LDFLAGS@
+ 
+ # Triple for configuring build tools when cross-compiling
+ BUILD_TRIPLE=@build@
+diff -Naur llvm-3.4-old/Makefile.rules llvm-3.4-new/Makefile.rules
+--- llvm-3.4-old/Makefile.rules	2013-11-15 00:51:29.000000000 +0100
++++ llvm-3.4-new/Makefile.rules	2014-02-23 19:29:39.585975700 +0100
+@@ -722,16 +722,16 @@
+ endif
+ 
+ Compile.C     = $(Compile.Wrapper) \
+-	          $(CC) $(CPP.Flags) $(C.Flags) $(CFLAGS) $(CPPFLAGS) \
++	          $(CC) $(CPP.Flags) $(C.Flags) $(BUILD_CFLAGS) $(BUILD_CPPFLAGS) \
+                 $(TargetCommonOpts) $(CompileCommonOpts) -c
+ Compile.CXX   = $(Compile.Wrapper) \
+-	          $(CXX) $(CPP.Flags) $(CXX.Flags) $(CXXFLAGS) $(CPPFLAGS) \
++	          $(CXX) $(CPP.Flags) $(CXX.Flags) $(BUILD_CXXFLAGS) $(BUILD_CPPFLAGS) \
+                 $(TargetCommonOpts) $(CompileCommonOpts) -c
+ Preprocess.CXX= $(Compile.Wrapper) \
+-	          $(CXX) $(CPP.Flags) $(TargetCommonOpts) $(CPPFLAGS) \
++	          $(CXX) $(CPP.Flags) $(TargetCommonOpts) $(BUILD_CPPFLAGS) \
+                 $(CompileCommonOpts) $(CXX.Flags) -E
+ Link          = $(Compile.Wrapper) \
+-	          $(CXX) $(CXXFLAGS) $(LD.Flags) $(LDFLAGS) \
++	          $(CXX) $(BUILD_CXXFLAGS) $(LD.Flags) $(BUILD_LDFLAGS) \
+                 $(TargetCommonOpts) $(Strip)
+ 
+ Preprocess.C  = $(CC) $(CPP.Flags) $(C.Flags) $(CPPFLAGS) \
+diff -Naur llvm-3.4-old/autoconf/configure.ac llvm-3.4-new/autoconf/configure.ac
+--- llvm-3.4-old/autoconf/configure.ac	2013-11-20 10:55:44.000000000 +0100
++++ llvm-3.4-new/autoconf/configure.ac	2014-02-23 19:16:16.926522601 +0100
+@@ -466,6 +466,10 @@
+        AC_CHECK_PROG(BUILD_CXX, c++, c++, , , /usr/ucb/c++)
+      fi
+   fi
++  AC_SUBST(BUILD_CPPFLAGS)
++  AC_SUBST(BUILD_CFLAGS)
++  AC_SUBST(BUILD_CXXFLAGS)
++  AC_SUBST(BUILD_LDFLAGS)
+ else
+   AC_SUBST(LLVM_CROSS_COMPILING, [0])
+ fi
+diff -Naur llvm-3.4-old/autoconf/m4/build_exeext.m4 llvm-3.4-new/autoconf/m4/build_exeext.m4
+--- llvm-3.4-old/autoconf/m4/build_exeext.m4	2008-09-26 19:27:58.000000000 +0200
++++ llvm-3.4-new/autoconf/m4/build_exeext.m4	2014-02-23 19:18:07.839290823 +0100
+@@ -18,7 +18,7 @@
+      fi
+   fi
+   test -z "$BUILD_CC" && AC_MSG_ERROR([no acceptable cc found in \$PATH])
+-  ac_build_link='${BUILD_CC-cc} -o conftest $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&AS_MESSAGE_LOG_FD'
++  ac_build_link='${BUILD_CC-cc} -o conftest $BUILD_CFLAGS $BUILD_CPPFLAGS $BUILD_LDFLAGS conftest.$ac_ext $LIBS 1>&AS_MESSAGE_LOG_FD'
+   rm -f conftest*
+   echo 'int main () { return 0; }' > conftest.$ac_ext
+   ac_cv_build_exeext=

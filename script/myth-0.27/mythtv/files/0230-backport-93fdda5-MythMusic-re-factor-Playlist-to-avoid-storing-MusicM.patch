@@ -1,0 +1,887 @@
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/musiccommon.cpp mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/musiccommon.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/musiccommon.cpp	2014-05-05 11:53:45.870374190 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/musiccommon.cpp	2014-05-05 11:53:56.990309953 +0200
+@@ -1531,7 +1531,7 @@
+         updateTrackInfo(gPlayer->getCurrentMetadata());
+ 
+         if (m_noTracksText && gPlayer->getCurrentPlaylist())
+-            m_noTracksText->SetVisible((gPlayer->getCurrentPlaylist()->getSongs().count() == 0));
++            m_noTracksText->SetVisible((gPlayer->getCurrentPlaylist()->getTrackCount() == 0));
+     }
+     else if (event->type() == MusicPlayerEvent::TrackAddedEvent)
+     {
+@@ -1581,7 +1581,7 @@
+                 }
+ 
+                 if (m_noTracksText && gPlayer->getCurrentPlaylist())
+-                    m_noTracksText->SetVisible((gPlayer->getCurrentPlaylist()->getSongs().count() == 0));
++                    m_noTracksText->SetVisible((gPlayer->getCurrentPlaylist()->getTrackCount() == 0));
+             }
+         }
+ 
+@@ -1873,7 +1873,7 @@
+ void MusicCommon::updateUIPlaylist(void)
+ {
+     if (m_noTracksText && gPlayer->getCurrentPlaylist())
+-        m_noTracksText->SetVisible((gPlayer->getCurrentPlaylist()->getSongs().count() == 0));
++        m_noTracksText->SetVisible((gPlayer->getCurrentPlaylist()->getTrackCount() == 0));
+ 
+     if (!m_currentPlaylist)
+         return;
+@@ -1887,12 +1887,9 @@
+     if (!playlist)
+         return;
+ 
+-    QList<MusicMetadata*> songlist = playlist->getSongs();
+-    QList<MusicMetadata*>::iterator it = songlist.begin();
+-
+-    for (; it != songlist.end(); ++it)
++    for (int x = 0; x < playlist->getTrackCount(); x++)
+     {
+-        MusicMetadata *mdata = (*it);
++        MusicMetadata *mdata = playlist->getSongAt(x);
+         if (mdata)
+         {
+             MythUIButtonListItem *item =
+@@ -1959,7 +1956,7 @@
+     int trackCount = 0;
+ 
+     if (gPlayer->getCurrentPlaylist())
+-        trackCount = gPlayer->getCurrentPlaylist()->getSongs().size();
++        trackCount = gPlayer->getCurrentPlaylist()->getTrackCount();
+ 
+     InfoMap map;
+     if (gPlayer->isPlaying() && trackCount > 0)
+@@ -2363,7 +2360,7 @@
+     m_playlistOptions.playPLOption = PL_CURRENT;
+ 
+     // Don't bother showing the dialog if the current playlist is empty
+-    if (gPlayer->getCurrentPlaylist()->getSongs().count() == 0)
++    if (gPlayer->getCurrentPlaylist()->getTrackCount() == 0)
+     {
+         m_playlistOptions.insertPLOption = PL_REPLACE;
+         doUpdatePlaylist(true);
+@@ -2391,7 +2388,7 @@
+     int curPos = gPlayer->getCurrentTrackPos();
+ 
+     if (gPlayer->getCurrentPlaylist())
+-        trackCount = gPlayer->getCurrentPlaylist()->getSongs().count();
++        trackCount = gPlayer->getCurrentPlaylist()->getTrackCount();
+ 
+     // store id of current track
+     if (gPlayer->getCurrentMetadata())
+@@ -2519,9 +2516,9 @@
+ 
+     if (trackID != -1 && gPlayer->getCurrentPlaylist())
+     {
+-        for (int x = 0; x < gPlayer->getCurrentPlaylist()->getSongs().size(); x++)
++        for (int x = 0; x < gPlayer->getCurrentPlaylist()->getTrackCount(); x++)
+         {
+-            MusicMetadata *mdata = gPlayer->getCurrentPlaylist()->getSongs().at(x);
++            MusicMetadata *mdata = gPlayer->getCurrentPlaylist()->getSongAt(x);
+             if (mdata && mdata->ID() == (MusicMetadata::IdType) trackID)
+             {
+                 m_currentTrack = x;
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/musicplayer.cpp mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/musicplayer.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/musicplayer.cpp	2014-05-05 11:53:45.910373959 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/musicplayer.cpp	2014-05-05 11:53:56.990309953 +0200
+@@ -420,7 +420,7 @@
+     else
+         currentTrack++;
+ 
+-    if (currentTrack >= getCurrentPlaylist()->getSongs().size())
++    if (currentTrack >= getCurrentPlaylist()->getTrackCount())
+     {
+         if (m_repeatMode == REPEAT_ALL)
+         {
+@@ -890,7 +890,7 @@
+         if (getResumeMode() > MusicPlayer::RESUME_OFF)
+         {
+             int bookmark = gCoreContext->GetNumSetting("MusicRadioBookmark", 0);
+-            if (bookmark < 0 || bookmark >= getCurrentPlaylist()->getSongs().size())
++            if (bookmark < 0 || bookmark >= getCurrentPlaylist()->getTrackCount())
+                 bookmark = 0;
+ 
+             m_currentTrack = bookmark;
+@@ -905,7 +905,7 @@
+         if (getResumeMode() > MusicPlayer::RESUME_OFF)
+         {
+             int bookmark = gCoreContext->GetNumSetting("MusicBookmark", 0);
+-            if (bookmark < 0 || bookmark >= getCurrentPlaylist()->getSongs().size())
++            if (bookmark < 0 || bookmark >= getCurrentPlaylist()->getTrackCount())
+                 bookmark = 0;
+ 
+             m_currentTrack = bookmark;
+@@ -939,14 +939,14 @@
+     if (moveUp && whichTrack <= 0)
+         return;
+ 
+-    if (!moveUp && whichTrack >=  getCurrentPlaylist()->getSongs().size() - 1)
++    if (!moveUp && whichTrack >=  getCurrentPlaylist()->getTrackCount() - 1)
+         return;
+ 
+-    MusicMetadata *currTrack = getCurrentPlaylist()->getSongs().at(m_currentTrack);
++    MusicMetadata *currTrack = getCurrentPlaylist()->getSongAt(m_currentTrack);
+ 
+     getCurrentPlaylist()->moveTrackUpDown(moveUp, whichTrack);
+ 
+-    m_currentTrack = getCurrentPlaylist()->getSongs().indexOf(currTrack);
++    m_currentTrack = getCurrentPlaylist()->getTrackPosition(currTrack->ID());
+ }
+ 
+ bool MusicPlayer::setCurrentTrackPos(int pos)
+@@ -1000,9 +1000,9 @@
+ 
+     if (getCurrentPlaylist())
+     {
+-        for (int x = 0; x < getCurrentPlaylist()->getSongs().size(); x++)
++        for (int x = 0; x < getCurrentPlaylist()->getTrackCount(); x++)
+         {
+-            if (getCurrentPlaylist()->getSongs().at(x)->ID() == id)
++            if (getCurrentPlaylist()->getSongAt(x)->ID() == id)
+             {
+                 m_currentTrack = x;
+                 break;
+@@ -1059,7 +1059,7 @@
+     m_currentTrack = trackNo;
+ 
+     // sanity check the current track
+-    if (m_currentTrack < 0 || m_currentTrack >= getCurrentPlaylist()->getSongs().size())
++    if (m_currentTrack < 0 || m_currentTrack >= getCurrentPlaylist()->getTrackCount())
+     {
+         LOG(VB_GENERAL, LOG_ERR,
+             QString("MusicPlayer: asked to set the current track to an invalid track no. %1")
+@@ -1097,7 +1097,7 @@
+         return getCurrentMetadata();
+ 
+     // if we are not playing the last track then just return the next track
+-    if (m_currentTrack < getCurrentPlaylist()->getSongs().size() - 1)
++    if (m_currentTrack < getCurrentPlaylist()->getTrackCount() - 1)
+         return getCurrentPlaylist()->getSongAt(m_currentTrack + 1);
+     else
+     {
+@@ -1179,9 +1179,9 @@
+ 
+     if (curTrackID != -1)
+     {
+-        for (int x = 0; x < getCurrentPlaylist()->getSongs().size(); x++)
++        for (int x = 0; x < getCurrentPlaylist()->getTrackCount(); x++)
+         {
+-            MusicMetadata *mdata = getCurrentPlaylist()->getSongs().at(x);
++            MusicMetadata *mdata = getCurrentPlaylist()->getSongAt(x);
+             if (mdata && mdata->ID() == (MusicMetadata::IdType) curTrackID)
+             {
+                 m_currentTrack = x;
+@@ -1367,7 +1367,7 @@
+     }
+ 
+     // if we don't have any tracks to play stop here
+-    if (!getCurrentPlaylist() || getCurrentPlaylist()->getSongs().count() == 0)
++    if (!getCurrentPlaylist() || getCurrentPlaylist()->getTrackCount() == 0)
+     {
+         m_currentTrack = -1;
+         if (isPlaying())
+@@ -1380,9 +1380,9 @@
+     // make sure the current playing track is still valid
+     if (isPlaying() && getDecoderHandler())
+     {
+-        for (int x = 0; x < getCurrentPlaylist()->getSongs().size(); x++)
++        for (int x = 0; x < getCurrentPlaylist()->getTrackCount(); x++)
+         {
+-            if (getCurrentPlaylist()->getSongs().at(x)->ID() == getDecoderHandler()->getMetadata().ID())
++            if (getCurrentPlaylist()->getSongAt(x)->ID() == getDecoderHandler()->getMetadata().ID())
+             {
+                 trackPos = x;
+                 break;
+@@ -1499,7 +1499,7 @@
+     MusicMetadata *mdata = gMusicData->all_music->getMetadata(trackID);
+     if (mdata)
+     {
+-        int trackPos = getCurrentPlaylist()->getSongs().indexOf(mdata);
++        int trackPos = getCurrentPlaylist()->getTrackPosition(mdata->ID());
+         if (m_currentTrack > 0 && m_currentTrack >= trackPos)
+             m_currentTrack--;
+ 
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/playlist.cpp mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/playlist.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/playlist.cpp	2014-05-05 11:53:45.897040702 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/playlist.cpp	2014-05-05 11:53:56.990309953 +0200
+@@ -36,9 +36,9 @@
+ #define LOC_WARN QString("Playlist, Warning: ")
+ #define LOC_ERR  QString("Playlist, Error: ")
+ 
+-bool Playlist::checkTrack(int a_track_id) const
++bool Playlist::checkTrack(MusicMetadata::IdType trackID) const
+ {
+-    if (m_songMap.contains(a_track_id))
++    if (m_songs.contains(trackID))
+         return true;
+ 
+     return false;
+@@ -48,11 +48,14 @@
+ {
+     disableSaves();
+ 
+-    SongList::const_iterator it = m_songs.begin();
+-    for (; it != m_songs.end(); ++it)
++    for (int x = 0; x < m_songs.size(); x++)
+     {
+-        if ((*it)->isDBTrack())
+-            to_ptr->addTrack(*it, update_display);
++        MusicMetadata *mdata = getRawSongAt(x);
++        if (mdata)
++        {
++            if (mdata->isDBTrack())
++                to_ptr->addTrack(mdata->ID(), update_display);
++        }
+     }
+ 
+     enableSaves();
+@@ -61,7 +64,7 @@
+ }
+ 
+ /// Given a tracks ID, add that track to this playlist
+-void Playlist::addTrack(int trackID, bool update_display)
++void Playlist::addTrack(MusicMetadata::IdType trackID, bool update_display)
+ {
+     int repo = ID_TO_REPO(trackID);
+     MusicMetadata *mdata = NULL;
+@@ -72,28 +75,22 @@
+         mdata = gMusicData->all_music->getMetadata(trackID);
+ 
+     if (mdata)
+-        addTrack(mdata, update_display);
+-    else
+-        LOG(VB_GENERAL, LOG_ERR, LOC + "Can't add track, given a bad track ID");
+-}
+-
+-/// Given a tracks metadata, add that track to this playlist
+-void Playlist::addTrack(MusicMetadata *mdata, bool update_display)
+-{
+-    m_songs.push_back(mdata);
+-    m_shuffledSongs.push_back(mdata);
+-    m_songMap.insert(mdata->ID(), mdata);
++    {
++        m_songs.push_back(trackID);
++        m_shuffledSongs.push_back(trackID);
+ 
+-    changed();
++        changed();
+ 
+-    if (update_display)
+-        gPlayer->activePlaylistChanged(mdata->ID(), false);
++        if (update_display)
++            gPlayer->activePlaylistChanged(trackID, false);
++    }
++    else
++        LOG(VB_GENERAL, LOG_ERR, LOC + "Can't add track, given a bad track ID");
+ }
+ 
+ void Playlist::removeAllTracks(void)
+ {
+     m_songs.clear();
+-    m_songMap.clear();
+     m_shuffledSongs.clear();
+ 
+     changed();
+@@ -105,7 +102,9 @@
+     SongList cdTracks;
+     for (int x = 0; x < m_songs.count(); x++)
+     {
+-        if (m_songs.at(x)->isCDTrack())
++        MusicMetadata *mdata = getRawSongAt(x);
++
++        if (mdata && mdata->isCDTrack())
+             cdTracks.append(m_songs.at(x));
+     }
+ 
+@@ -113,52 +112,26 @@
+     for (int x = 0; x < cdTracks.count(); x++)
+     {
+         m_songs.removeAll(cdTracks.at(x));
+-        m_songMap.remove(cdTracks.at(x)->ID());
+         m_shuffledSongs.removeAll(cdTracks.at(x));;
+     }
+ 
+     changed();
+ }
+ 
+-void Playlist::removeTrack(int the_track)
++void Playlist::removeTrack(MusicMetadata::IdType trackID)
+ {
+-    QMap<int, MusicMetadata*>::iterator it = m_songMap.find(the_track);
+-    if (it != m_songMap.end())
+-    {
+-        m_songMap.remove(the_track);
+-        m_songs.removeAll(*it);
+-        m_shuffledSongs.removeAll(*it);
+-    }
++    m_songs.removeAll(trackID);
++    m_shuffledSongs.removeAll(trackID);
+ 
+     changed();
+ 
+-    gPlayer->activePlaylistChanged(the_track, true);
++    gPlayer->activePlaylistChanged(trackID, true);
+ }
+ 
+ void Playlist::moveTrackUpDown(bool flag, int where_its_at)
+ {
+-    MusicMetadata *the_track = m_shuffledSongs.at(where_its_at);
+-
+-    if (!the_track)
+-    {
+-        LOG(VB_GENERAL, LOG_ERR, LOC +
+-            "A playlist was asked to move a track, but can't find it");
+-        return;
+-    }
+-
+-    moveTrackUpDown(flag, the_track);
+-}
+-
+-void Playlist::moveTrackUpDown(bool flag, MusicMetadata* mdata)
+-{
+     uint insertion_point = 0;
+-    int where_its_at = m_shuffledSongs.indexOf(mdata);
+-    if (where_its_at < 0)
+-    {
+-        LOG(VB_GENERAL, LOG_ERR, LOC +
+-            "A playlist was asked to move a track, but can'd find it");
+-        return;
+-    }
++    MusicMetadata::IdType id = m_shuffledSongs.at(where_its_at);
+ 
+     if (flag)
+         insertion_point = ((uint)where_its_at) - 1;
+@@ -166,7 +139,7 @@
+         insertion_point = ((uint)where_its_at) + 1;
+ 
+     m_shuffledSongs.removeAt(where_its_at);
+-    m_shuffledSongs.insert(insertion_point, mdata);
++    m_shuffledSongs.insert(insertion_point, id);
+ 
+     changed();
+ }
+@@ -186,7 +159,6 @@
+ Playlist::~Playlist()
+ {
+     m_songs.clear();
+-    m_songMap.clear();
+     m_shuffledSongs.clear();
+ }
+ 
+@@ -198,15 +170,14 @@
+     {
+         case MusicPlayer::SHUFFLE_RANDOM:
+         {
+-            QMultiMap<int, MusicMetadata*> songMap;
++            QMultiMap<int, MusicMetadata::IdType> songMap;
+ 
+-            SongList::const_iterator it = m_songs.begin();
+-            for (; it != m_songs.end(); ++it)
++            for (int x = 0; x < m_songs.count(); x++)
+             {
+-                songMap.insert(rand(), *it);
++                songMap.insert(rand(), m_songs.at(x));
+             }
+ 
+-            QMultiMap<int, MusicMetadata*>::const_iterator i = songMap.constBegin();
++            QMultiMap<int, MusicMetadata::IdType>::const_iterator i = songMap.constBegin();
+             while (i != songMap.constEnd())
+             {
+                 m_shuffledSongs.append(i.value());
+@@ -231,15 +202,16 @@
+             double lastplayMin = 0.0;
+             double lastplayMax = 0.0;
+ 
+-            uint idx = 0;
+-            SongList::const_iterator it = m_songs.begin();
+-            for (; it != m_songs.end(); ++it, ++idx)
++            for (int x = 0; x < m_songs.count(); x++)
+             {
+-                if (!(*it)->isCDTrack())
++                MusicMetadata *mdata = getRawSongAt(x);
++                if (!mdata)
++                    continue;
++
++                if (!mdata->isCDTrack())
+                 {
+-                    MusicMetadata *mdata = (*it);
+ 
+-                    if (0 == idx)
++                    if (0 == x)
+                     {
+                         // first song
+                         playcountMin = playcountMax = mdata->PlayCount();
+@@ -265,10 +237,10 @@
+             std::map<int,int> ratings;
+             std::map<int,int> ratingCounts;
+             int TotalWeight = RatingWeight + PlayCountWeight + LastPlayWeight;
+-            for (int trackItI = 0; trackItI < m_songs.size(); ++trackItI)
++            for (int x = 0; x < m_songs.size(); x++)
+             {
+-                MusicMetadata *mdata = m_songs[trackItI];
+-                if (!mdata->isCDTrack())
++                MusicMetadata *mdata =  getRawSongAt(x);
++                if (mdata && !mdata->isCDTrack())
+                 {
+                     int rating = mdata->Rating();
+                     int playcount = mdata->PlayCount();
+@@ -340,13 +312,12 @@
+             }
+ 
+             // create a map of tracks sorted by the computed order
+-            QMultiMap<int, MusicMetadata*> songMap;
+-            it = m_songs.begin();
+-            for (; it != m_songs.end(); ++it)
+-                songMap.insert(order[(*it)->ID()], *it);
++            QMultiMap<int, MusicMetadata::IdType> songMap;
++            for (int x = 0; x < m_songs.count(); x++)
++                songMap.insert(order[m_songs.at(x)], m_songs.at(x));
+ 
+             // copy the shuffled tracks to the shuffled song list
+-            QMultiMap<int, MusicMetadata*>::const_iterator i = songMap.constBegin();
++            QMultiMap<int, MusicMetadata::IdType>::const_iterator i = songMap.constBegin();
+             while (i != songMap.constEnd())
+             {
+                 m_shuffledSongs.append(i.value());
+@@ -367,13 +338,15 @@
+ 
+             // pre-fill the album-map with the album name.
+             // This allows us to do album mode in album order
+-            SongList::const_iterator it = m_songs.begin();
+-            for (; it != m_songs.end(); ++it)
++            for (int x = 0; x < m_songs.count(); x++)
+             {
+-                MusicMetadata *mdata = (*it);
+-                album = mdata->Album() + " ~ " + QString("%1").arg(mdata->getAlbumId());
+-                if ((Ialbum = album_map.find(album)) == album_map.end())
+-                    album_map.insert(AlbumMap::value_type(album, 0));
++                MusicMetadata *mdata = getRawSongAt(x);
++                if (mdata)
++                {
++                    album = mdata->Album() + " ~ " + QString("%1").arg(mdata->getAlbumId());
++                    if ((Ialbum = album_map.find(album)) == album_map.end())
++                        album_map.insert(AlbumMap::value_type(album, 0));
++                }
+             }
+ 
+             // populate the sort id into the album map
+@@ -385,12 +358,11 @@
+             }
+ 
+             // create a map of tracks sorted by the computed order
+-            QMultiMap<int, MusicMetadata*> songMap;
+-            it = m_songs.begin();
+-            for (; it != m_songs.end(); ++it)
++            QMultiMap<int, MusicMetadata::IdType> songMap;
++            for (int x = 0;  x < m_songs.count(); x++)
+             {
+                 uint32_t album_order;
+-                MusicMetadata *mdata = (*it);
++                MusicMetadata *mdata = getRawSongAt(x);
+                 if (mdata)
+                 {
+                     album = album = mdata->Album() + " ~ " + QString("%1").arg(mdata->getAlbumId());;
+@@ -408,12 +380,12 @@
+                     }
+                     album_order += mdata->Track();
+ 
+-                    songMap.insert(album_order, *it);
++                    songMap.insert(album_order, m_songs.at(x));
+                 }
+             }
+ 
+             // copy the shuffled tracks to the shuffled song list
+-            QMultiMap<int, MusicMetadata*>::const_iterator i = songMap.constBegin();
++            QMultiMap<int, MusicMetadata::IdType>::const_iterator i = songMap.constBegin();
+             while (i != songMap.constEnd())
+             {
+                 m_shuffledSongs.append(i.value());
+@@ -434,13 +406,15 @@
+ 
+             // pre-fill the album-map with the album name.
+             // This allows us to do artist mode in artist order
+-            SongList::const_iterator it = m_songs.begin();
+-            for (; it != m_songs.end(); ++it)
++            for (int x = 0; x < m_songs.count(); x++)
+             {
+-                MusicMetadata *mdata = (*it);
+-                artist = mdata->Artist() + " ~ " + mdata->Title();
+-                if ((Iartist = artist_map.find(artist)) == artist_map.end())
+-                    artist_map.insert(ArtistMap::value_type(artist,0));
++                MusicMetadata *mdata = getRawSongAt(x);
++                if (mdata)
++                {
++                    artist = mdata->Artist() + " ~ " + mdata->Title();
++                    if ((Iartist = artist_map.find(artist)) == artist_map.end())
++                        artist_map.insert(ArtistMap::value_type(artist,0));
++                }
+             }
+ 
+             // populate the sort id into the artist map
+@@ -452,12 +426,11 @@
+             }
+ 
+             // create a map of tracks sorted by the computed order
+-            QMultiMap<int, MusicMetadata*> songMap;
+-            it = m_songs.begin();
+-            for (; it != m_songs.end(); ++it)
++            QMultiMap<int, MusicMetadata::IdType> songMap;
++            for (int x = 0; x < m_songs.count(); x++)
+             {
+                 uint32_t artist_order;
+-                MusicMetadata *mdata = (*it);
++                MusicMetadata *mdata = getRawSongAt(x);
+                 if (mdata)
+                 {
+                     artist = mdata->Artist() + " ~ " + mdata->Title();
+@@ -475,12 +448,12 @@
+                     }
+                     artist_order += mdata->Track();
+ 
+-                    songMap.insert(artist_order, *it);
++                    songMap.insert(artist_order, m_songs.at(x));
+                 }
+             }
+ 
+             // copy the shuffled tracks to the shuffled song list
+-            QMultiMap<int, MusicMetadata*>::const_iterator i = songMap.constBegin();
++            QMultiMap<int, MusicMetadata::IdType>::const_iterator i = songMap.constBegin();
+             while (i != songMap.constEnd())
+             {
+                 m_shuffledSongs.append(i.value());
+@@ -518,9 +491,8 @@
+ #endif
+ 
+     QString msg;
+-    SongList::const_iterator it = m_songs.begin();
+-    for (; it != m_songs.end(); ++it)
+-        msg += (*it)->ID() + ",";
++    for (int x = 0; x < m_songs.count(); x++)
++        msg += QString("%1,").arg(m_songs.at(x));
+ 
+     LOG(VB_GENERAL, LOG_INFO, LOC + msg);
+ }
+@@ -534,15 +506,13 @@
+     if ((int)currenttrack >= m_shuffledSongs.size())
+         currenttrack = 0;
+ 
+-    uint track = 0;
+-    SongList::const_iterator it = m_shuffledSongs.begin();
+-    for (; it != m_shuffledSongs.end(); ++it, ++track)
++    for (int x = 0; x < m_shuffledSongs.count(); x++)
+     {
+-        MusicMetadata *mdata = (*it);
++        MusicMetadata *mdata = getSongAt(x);
+         if (mdata)
+         {
+             total += mdata->Length();
+-            if (track < currenttrack)
++            if (x < (int)currenttrack)
+                 played += mdata->Length();
+         }
+     }
+@@ -652,11 +622,7 @@
+         {
+             // check this is a valid stream ID
+             if (gMusicData->all_streams->isValidID(id))
+-            {
+-                MusicMetadata *mdata = gMusicData->all_streams->getMetadata(id);
+-                m_songs.push_back(mdata);
+-                m_songMap.insert(id, mdata);
+-            }
++                m_songs.push_back(id);
+             else
+             {
+                 badTrack = true;
+@@ -667,11 +633,7 @@
+         {
+             // check this is a valid track ID
+             if (gMusicData->all_music->isValidID(id))
+-            {
+-                MusicMetadata *mdata = gMusicData->all_music->getMetadata(id);
+-                m_songs.push_back(mdata);
+-                m_songMap.insert(id, mdata);
+-            }
++                m_songs.push_back(id);
+             else
+             {
+                 badTrack = true;
+@@ -864,30 +826,30 @@
+ 
+     if (shuffled)
+     {
+-        SongList::const_iterator it = m_shuffledSongs.begin();
+-        for (; it != m_shuffledSongs.end(); ++it)
++        for (int x = 0; x < m_shuffledSongs.count(); x++)
+         {
++            MusicMetadata::IdType id = m_shuffledSongs.at(x);
+             if (tracksOnly)
+             {
+-                if (ID_TO_REPO((*it)->ID()) == RT_Database)
+-                    rawList += QString(",%1").arg((*it)->ID());
++                if (ID_TO_REPO(id) == RT_Database)
++                    rawList += QString(",%1").arg(id);
+             }
+             else
+-                rawList += QString(",%1").arg((*it)->ID());
++                rawList += QString(",%1").arg(id);
+         }
+     }
+     else
+     {
+-        SongList::const_iterator it = m_songs.begin();
+-        for (; it != m_songs.end(); ++it)
++        for (int x = 0; x < m_songs.count(); x++)
+         {
++            MusicMetadata::IdType id = m_songs.at(x);
+             if (tracksOnly)
+             {
+-                if (ID_TO_REPO((*it)->ID()) == RT_Database)
+-                    rawList += QString(",%1").arg((*it)->ID());
++                if (ID_TO_REPO(id) == RT_Database)
++                    rawList += QString(",%1").arg(id);
+             }
+             else
+-                rawList += QString(",%1").arg((*it)->ID());
++                rawList += QString(",%1").arg(id);
+         }
+     }
+ 
+@@ -1084,12 +1046,40 @@
+     return songlist;
+ }
+ 
+-MusicMetadata* Playlist::getSongAt(int pos)
++MusicMetadata* Playlist::getSongAt(int pos) const
+ {
++    MusicMetadata *mdata = NULL;
++
+     if (pos >= 0 && pos < m_shuffledSongs.size())
+-        return m_shuffledSongs.at(pos);
++    {
++        MusicMetadata::IdType id = m_shuffledSongs.at(pos);
++        int repo = ID_TO_REPO(id);
++
++        if (repo == RT_Radio)
++            mdata = gMusicData->all_streams->getMetadata(id);
++        else
++            mdata = gMusicData->all_music->getMetadata(id);
++    }
+ 
+-    return NULL;
++    return mdata;
++}
++
++MusicMetadata* Playlist::getRawSongAt(int pos) const
++{
++    MusicMetadata *mdata = NULL;
++
++    if (pos >= 0 && pos < m_songs.size())
++    {
++        MusicMetadata::IdType id = m_songs.at(pos);
++        int repo = ID_TO_REPO(id);
++
++        if (repo == RT_Radio)
++            mdata = gMusicData->all_streams->getMetadata(id);
++        else
++            mdata = gMusicData->all_music->getMetadata(id);
++    }
++
++    return mdata;
+ }
+ 
+ 
+@@ -1105,24 +1095,23 @@
+     size_in_MB = 0.0;
+     size_in_sec = 0.0;
+ 
+-    SongList::const_iterator it = m_songs.begin();
+-    for (; it != m_songs.end(); ++it)
++    for (int x = 0; x < m_songs.size(); x++)
+     {
+-        if ((*it)->isCDTrack())
+-            continue;
+-
+-        // Normal track
+-        MusicMetadata *tmpdata = (*it);
+-        if (tmpdata)
++        MusicMetadata *mdata = getRawSongAt(x);
++        if (mdata)
+         {
+-            if (tmpdata->Length() > 0)
+-                size_in_sec += tmpdata->Length();
++            if (mdata->isCDTrack())
++                continue;
++
++            // Normal track
++            if (mdata->Length() > 0)
++                size_in_sec += mdata->Length();
+             else
+                 LOG(VB_GENERAL, LOG_ERR, "Computing track lengths. "
+                                          "One track <=0");
+ 
+             // Check tmpdata->Filename
+-            QFileInfo finfo(tmpdata->Filename());
++            QFileInfo finfo(mdata->Filename());
+ 
+             size_in_MB += finfo.size() / 1000000;
+         }
+@@ -1237,32 +1226,32 @@
+ 
+     QStringList reclist;
+ 
+-    SongList::const_iterator it = m_songs.begin();
+-    for (; it != m_songs.end(); ++it)
++    for (int x = 0; x < m_shuffledSongs.count(); x++)
+     {
+-        if ((*it)->isCDTrack())
+-            continue;
++        MusicMetadata *mdata = getRawSongAt(x);
+ 
+         // Normal track
+-        MusicMetadata *tmpdata = (*it);
+-        if (tmpdata)
++        if (mdata)
+         {
++            if (mdata->isCDTrack())
++                continue;
++
+             // check filename..
+-            QFileInfo testit(tmpdata->Filename());
++            QFileInfo testit(mdata->Filename());
+             if (!testit.exists())
+                 continue;
+             size_in_MB += testit.size() / 1000000.0;
+             QString outline;
+             if (MP3_dir_flag)
+             {
+-                if (tmpdata->Artist().length() > 0)
+-                    outline += tmpdata->Artist() + "/";
+-                if (tmpdata->Album().length() > 0)
+-                    outline += tmpdata->Album() + "/";
++                if (mdata->Artist().length() > 0)
++                    outline += mdata->Artist() + "/";
++                if (mdata->Album().length() > 0)
++                    outline += mdata->Album() + "/";
+             }
+ 
+             outline += "=";
+-            outline += tmpdata->Filename();
++            outline += mdata->Filename();
+ 
+             reclist += outline;
+         }
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/playlist.h mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/playlist.h
+--- mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/playlist.h	2014-05-05 11:53:45.897040702 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/playlist.h	2014-05-05 11:53:56.993643267 +0200
+@@ -36,7 +36,7 @@
+     PlayPLOption playPLOption;
+ };
+ 
+-typedef QList<MusicMetadata*> SongList;
++typedef QList<MusicMetadata::IdType> SongList;
+ 
+ class Playlist : public QObject
+ {
+@@ -72,20 +72,20 @@
+                               int currentTrackID);
+     QString toRawSonglist(bool shuffled = false, bool tracksOnly = false);
+ 
+-    const SongList &getSongs(void) { return m_shuffledSongs; }
+-    MusicMetadata* getSongAt(int pos);
+ 
+-    int getCount(void) { return m_songs.count(); }
++    MusicMetadata* getSongAt(int pos) const;
++
++    int getTrackCount(void) { return m_songs.count(); }
+ 
+     void moveTrackUpDown(bool flag, int where_its_at);
+-    void moveTrackUpDown(bool flag, MusicMetadata *the_track);
+ 
+-    bool checkTrack(int a_track_id) const;
++    bool checkTrack(MusicMetadata::IdType trackID) const;
++
++    void addTrack(MusicMetadata::IdType trackID, bool update_display);
+ 
+-    void addTrack(int trackID, bool update_display);
+-    void addTrack(MusicMetadata *mdata, bool update_display);
++    int getTrackPosition(MusicMetadata::IdType trackID) { return m_shuffledSongs.indexOf(trackID); }
+ 
+-    void removeTrack(int the_track_id);
++    void removeTrack(MusicMetadata::IdType trackID);
+     void removeAllTracks(void);
+     void removeAllCDTracks(void);
+ 
+@@ -117,19 +117,20 @@
+     void processExit(uint retval = 0);
+ 
+   private:
+-
++    MusicMetadata* getRawSongAt(int pos) const;
+     QString removeDuplicateTracks(const QString &orig_songlist, const QString &new_songlist);
+ 
+     int                   m_playlistid;
+     QString               m_name;
++
+     SongList              m_songs;
+     SongList              m_shuffledSongs;
+-    QMap<int, MusicMetadata*>  m_songMap;
++
+     PlaylistContainer    *m_parent;
+     bool                  m_changed;
+     bool                  m_doSave;
+     MythProgressDialog   *m_progress;
+-    MythSystemLegacy           *m_proc;
++    MythSystemLegacy     *m_proc;
+     uint                  m_procExitVal;
+ };
+ 
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp	2014-05-05 11:53:45.877040818 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp	2014-05-05 11:53:56.993643267 +0200
+@@ -571,11 +571,11 @@
+ 
+         if (playlist)
+         {
+-            SongList songlist = playlist->getSongs();
+-
+-            for (int x = 0; x < songlist.count(); x++)
++            for (int x = 0; x < playlist->getTrackCount(); x++)
+             {
+-                m_songList.append(songlist.at(x)->ID());
++                MusicMetadata *mdata = playlist->getSongAt(x);
++                if (mdata)
++                    m_songList.append((int) mdata->ID());
+             }
+         }
+     }
+@@ -1590,11 +1590,10 @@
+ void PlaylistEditorView::getPlaylistTracks(MusicGenericTree *node, int playlistID)
+ {
+     Playlist *playlist = gMusicData->all_playlists->getPlaylist(playlistID);
+-    QList<MusicMetadata*> songs = playlist->getSongs();
+ 
+-    for (int x = 0; x < songs.count(); x++)
++    for (int x = 0; x < playlist->getTrackCount(); x++)
+     {
+-        MusicMetadata *mdata = songs.at(x);
++        MusicMetadata *mdata = playlist->getSongAt(x);
+         if (mdata)
+         {
+             MusicGenericTree *newnode = new MusicGenericTree(node, mdata->Title(), "trackid");
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/streamview.cpp mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/streamview.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythplugins/mythmusic/mythmusic/streamview.cpp	2014-05-05 11:53:45.883707446 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythplugins/mythmusic/mythmusic/streamview.cpp	2014-05-05 11:53:56.993643267 +0200
+@@ -418,9 +418,9 @@
+ 
+     bool foundActiveStream = false;
+ 
+-    for (int x = 0; x < gPlayer->getCurrentPlaylist()->getSongs().count(); x++)
++    for (int x = 0; x < gPlayer->getCurrentPlaylist()->getTrackCount(); x++)
+     {
+-        MusicMetadata *mdata = gPlayer->getCurrentPlaylist()->getSongs().at(x);
++        MusicMetadata *mdata = gPlayer->getCurrentPlaylist()->getSongAt(x);
+         MythUIButtonListItem *item = new MythUIButtonListItem(m_streamList, "", qVariantFromValue(mdata));
+         InfoMap metadataMap;
+         if (mdata)

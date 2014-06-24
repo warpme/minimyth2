@@ -1,0 +1,60 @@
+From 9be71e148aa6839c25d33801f8bcdaa364b07ac9 Mon Sep 17 00:00:00 2001
+From: Paul Harrison <pharrison@mythtv.org>
+Date: Fri, 18 Apr 2014 17:33:43 +0100
+Subject: [PATCH 3/4] CDRip: Fix Coverity ID 1196562 Division or modulo by
+ float zero
+
+Make sure we get a sector count before proceeding with the rip. It's very
+unlikely we would have some tracks but not find any sectors but ...
+---
+ mythplugins/mythmusic/mythmusic/cdrip.cpp |   21 ++++++++++++++-------
+ 1 file changed, 14 insertions(+), 7 deletions(-)
+
+diff --git a/mythplugins/mythmusic/mythmusic/cdrip.cpp b/mythplugins/mythmusic/mythmusic/cdrip.cpp
+index 06d4f40..b779b43 100644
+--- a/mythplugins/mythmusic/mythmusic/cdrip.cpp
++++ b/mythplugins/mythmusic/mythmusic/cdrip.cpp
+@@ -217,12 +217,26 @@ bool CDRipperThread::isCancelled(void)
+ void CDRipperThread::run(void)
+ {
+     RunProlog();
++
+     if (!m_tracks->size() > 0)
+     {
+         RunEpilog();
+         return;
+     }
+ 
++    m_totalSectors = 0;
++    m_totalSectorsDone = 0;
++    for (int trackno = 0; trackno < m_tracks->size(); trackno++)
++    {
++        m_totalSectors += getSectorCount(m_CDdevice, trackno + 1);
++    }
++
++    if (!m_totalSectors)
++    {
++        RunEpilog();
++        return;
++    }
++
+     MusicMetadata *track = m_tracks->at(0)->metadata;
+     QString tots;
+ 
+@@ -249,13 +263,6 @@ void CDRipperThread::run(void)
+     QString encodertype = gCoreContext->GetSetting("EncoderType");
+     bool mp3usevbr = gCoreContext->GetNumSetting("Mp3UseVBR", 0);
+ 
+-    m_totalSectors = 0;
+-    m_totalSectorsDone = 0;
+-    for (int trackno = 0; trackno < m_tracks->size(); trackno++)
+-    {
+-        m_totalSectors += getSectorCount(m_CDdevice, trackno + 1);
+-    }
+-
+     QApplication::postEvent(m_parent,
+         new RipStatusEvent(RipStatusEvent::kOverallStartEvent, m_totalSectors));
+ 
+-- 
+1.7.10.2
+

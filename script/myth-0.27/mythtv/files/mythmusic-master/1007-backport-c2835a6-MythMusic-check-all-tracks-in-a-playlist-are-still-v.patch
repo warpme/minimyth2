@@ -1,0 +1,112 @@
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/musicdata.cpp mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/musicdata.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/musicdata.cpp	2014-02-05 16:35:48.766104237 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/musicdata.cpp	2014-02-05 16:35:56.812734760 +0100
+@@ -98,8 +98,7 @@
+         usleep(50000);
+     }
+ 
+-    //FIXME should resync the playlist here
+-    //all_playlists->resync();
++    all_playlists->resync();
+ 
+     if (busy)
+         busy->Close();
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/playlist.cpp mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/playlist.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/playlist.cpp	2014-02-05 16:35:47.449443480 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/playlist.cpp	2014-02-05 16:35:56.812734760 +0100
+@@ -608,6 +608,35 @@
+     fillSongsFromSonglist(rawSonglist);
+ }
+ 
++/// make sure all tracks are still valid after a scan
++void Playlist::resync(void)
++{
++    bool needUpdate = false;
++
++    for (int x = 0; x < m_songs.count(); x++)
++    {
++        MusicMetadata::IdType id = m_songs.at(x);
++        MusicMetadata *mdata = getRawSongAt(x);
++        if (!mdata)
++        {
++            m_songs.removeAll(id);
++            m_shuffledSongs.removeAll(id);
++            needUpdate = true;
++        }
++    }
++
++    if (needUpdate)
++    {
++        changed();
++
++        gPlayer->playlistChanged(m_playlistid);
++
++        // TODO check we actually need this
++        if (isActivePlaylist())
++            gPlayer->activePlaylistChanged(-1, false);
++    }
++}
++
+ void Playlist::fillSongsFromSonglist(QString songList)
+ {
+     MusicMetadata::IdType id;
+@@ -1084,7 +1113,6 @@
+     return mdata;
+ }
+ 
+-
+ // Here begins CD Writing things. ComputeSize, CreateCDMP3 & CreateCDAudio
+ // FIXME non of this is currently used
+ 
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/playlist.h mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/playlist.h
+--- mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/playlist.h	2014-02-05 16:35:47.449443480 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/playlist.h	2014-02-05 16:35:56.812734760 +0100
+@@ -105,10 +105,12 @@
+ 
+     bool isActivePlaylist(void) { return m_name == DEFAULT_PLAYLIST_NAME; }
+ 
+-    int     getID(void) { return m_playlistid; }
+-    void    setID(int x) { m_playlistid = x; }
++    int  getID(void) { return m_playlistid; }
++    void setID(int x) { m_playlistid = x; }
+ 
+-    void    getStats(uint *trackCount, uint *totalLength, uint currentTrack = 0, uint *playedLength = NULL) const;
++    void getStats(uint *trackCount, uint *totalLength, uint currentTrack = 0, uint *playedLength = NULL) const;
++
++    void resync(void);
+ 
+     void computeSize(double &size_in_MB, double &size_in_sec);
+     int CreateCDMP3(void);
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp	2014-02-05 16:35:47.449443480 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp	2014-02-05 16:35:56.812734760 +0100
+@@ -122,6 +122,18 @@
+     m_doneLoading = true;
+ }
+ 
++// resync all the playlists after a rescan just in case some tracks were removed
++void PlaylistContainer::resync(void)
++{
++    QList<Playlist*>::const_iterator it = m_allPlaylists->begin();
++    for (; it != m_allPlaylists->end(); ++it)
++    {
++        (*it)->resync();
++    }
++
++    m_activePlaylist->resync();
++}
++
+ void PlaylistContainer::describeYourself(void) const
+ {
+     //    Debugging
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/playlistcontainer.h mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/playlistcontainer.h
+--- mythtv-0.27-20140204-g1b7404d-old/mythplugins/mythmusic/mythmusic/playlistcontainer.h	2014-02-05 16:35:47.449443480 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythplugins/mythmusic/mythmusic/playlistcontainer.h	2014-02-05 16:35:56.812734760 +0100
+@@ -36,6 +36,7 @@
+    ~PlaylistContainer();
+ 
+     void            load();
++    void            resync(void);
+     void            describeYourself(void) const;    // debugging
+ 
+     Playlist*       getActive(void) { return m_activePlaylist; }

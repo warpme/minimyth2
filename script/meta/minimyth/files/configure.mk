@@ -1,0 +1,190 @@
+GARNAME    ?= minimyth
+GARVERSION ?= $(mm_VERSION)
+
+all: mm-all
+
+GAR_EXTRA_CONF += kernel-$(mm_KERNEL_VERSION)/linux/package-api.mk perl/perl/package-api.mk python/python/package-api.mk
+include ../../gar.mk
+
+MM_INIT_START := \
+    security \
+    cpu \
+    console \
+    telnet \
+    ssh_server \
+    media \
+    mythdb_buffer_create \
+    cron \
+    game \
+    master \
+    codecs \
+    extras \
+    sensors \
+    acpi \
+    time \
+    web \
+    flash \
+    dbus \
+    audio \
+    video \
+    wiimote \
+    irtrans \
+    iguanair \
+    lirc \
+    g15daemon \
+    lcdproc \
+    aquosserver \
+    avahi \
+    mythtv \
+    font \
+    backend \
+    gtk \
+    mythdb_buffer_delete \
+    x
+MM_INIT_KILL := \
+    x \
+    avahi \
+    sharpaquos \
+    lcdproc \
+    dbus \
+    g15daemon \
+    lirc \
+    iguanair \
+    irtrans \
+    wiimote \
+    audio \
+    web \
+    time \
+    acpi \
+    game \
+    cron \
+    ssh_server \
+    telnet \
+    media \
+    cpu \
+    log \
+    modules_manual \
+    modules_automatic
+
+build_vars := $(filter-out mm_HOME mm_TFTP_ROOT mm_NFS_ROOT mm_LOCAL_FILES,$(sort $(shell cat $(mm_HOME)/script/minimyth.conf.mk | grep -e '^mm_' | sed -e 's%[ =].*%%')))
+
+bindirs_base := \
+	$(extras_sbindir) \
+	$(extras_bindir) \
+	$(esbindir) \
+	$(ebindir) \
+	$(sbindir) \
+	$(bindir) \
+	$(libexecdir) \
+	$(qt4bindir) \
+	$(kdebindir)
+bindirs := \
+	$(bindirs_base) \
+	$(libexecdir)
+libdirs_base := \
+	$(extras_libdir) \
+	$(elibdir) \
+	$(libdir) \
+	$(libexecdir) \
+	$(libdir)/mysql \
+	$(if $(filter $(mm_GRAPHICS),radeon),$(libdir)/vdpau) \
+	$(qt4libdir) \
+	$(kdelibdir)
+libdirs := \
+	$(libdirs_base) \
+	$(libdir)/xorg/modules \
+	$(if $(filter $(mm_GRAPHICS),nvidia),$(libdir)/nvidia)
+etcdirs := \
+	$(extras_sysconfdir) \
+	$(sysconfdir)
+sharedirs := \
+	$(extras_datadir) \
+	$(datadir) \
+	$(kdedatadir)
+
+MM_CONFIG_VARS := $(sort \
+	bindir \
+	bindirs \
+	bindirs_base \
+	build_bindir \
+	build_DESTDIR \
+	build_licensedir \
+	build_rootdir \
+	build_system_bins \
+	build_vars \
+	$(build_vars) \
+	build_versiondir \
+	datadir \
+	DESTDIR \
+	DESTIMG \
+	ebindir \
+	elibdir \
+	esbindir \
+	etcdirs \
+	extras_licensedir \
+	extras_rootdir \
+	extras_versiondir \
+	libdir \
+	libdirs \
+	libdirs_base \
+	licensedir \
+	LINUX_DIR \
+	LINUX_FULL_VERSION \
+	LINUX_MODULESDIR \
+	mm_CONF_VERSION \
+	mm_DEBUG \
+	mm_DEBUG_BUILD \
+	mm_DESTDIR \
+	mm_DISTRIBUTION_LOCAL \
+	mm_DISTRIBUTION_NFS \
+	mm_DISTRIBUTION_RAM \
+	mm_DISTRIBUTION_SHARE \
+	mm_GRAPHICS \
+	mm_HOME \
+	MM_INIT_KILL \
+	MM_INIT_START \
+	mm_INSTALL_LATEST \
+	mm_INSTALL_NFS_BOOT \
+	mm_INSTALL_RAM_BOOT \
+	mm_MYTH_VERSION \
+	mm_NFS_ROOT \
+	mm_SOFTWARE \
+	mm_TFTP_ROOT \
+	mm_LOCAL_FILES \
+	mm_USER_BIN_LIST \
+	mm_USER_ETC_LIST \
+	mm_USER_LIB_LIST \
+	mm_USER_REMOVE_LIST \
+	mm_USER_SHARE_LIST \
+	mm_VERSION_MINIMYTH \
+	mm_VERSION_MYTH \
+	mm_VERSION \
+	OBJDUMP \
+	PERL_libdir \
+	PYTHON_libdir \
+	qt4prefix \
+	rootdir \
+	sharedirs \
+	sourcedir \
+	STRIP \
+	sysconfdir \
+	versiondir )
+
+mm-all: $(WORKSRC)/build/config.mk
+
+$(WORKSRC)/build/config.mk:
+	@mkdir -p $(dir $@)
+	@rm -rf $@~
+	@$(foreach var,$(MM_CONFIG_VARS), echo $(var) = $($(var)) >> $@~ ; )
+	@if [ -e $@ ] ; then \
+		diff -q $@ $@~ 2>&1 > /dev/null ; \
+		if [ $$? -ne 0 ] ; then \
+			rm -rf $@ ; \
+		fi ; \
+	fi
+	@if [ ! -e $@ ] ; then \
+		cp -f $@~ $@ ; \
+	fi
+	@rm -f $@~
+
+.PHONY: all mm-all

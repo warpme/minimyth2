@@ -1,0 +1,95 @@
+diff -Naur irxkeys-1.0-old/irxkeys.c irxkeys-1.0-new/irxkeys.c
+--- irxkeys-1.0-old/irxkeys.c	2006-11-11 15:27:01.000000000 -0800
++++ irxkeys-1.0-new/irxkeys.c	2009-06-25 06:46:25.000000000 -0700
+@@ -2,6 +2,7 @@
+ #include <X11/keysym.h>
+ #include <X11/extensions/XTest.h>
+ 
++#include <stdlib.h>
+ #include <stdio.h>
+ #include <getopt.h>
+ 
+@@ -14,14 +15,15 @@
+ struct lirc_config *config;
+ char *config_file = NULL;
+ 
+-int delay = 10; // Delay for key sends (10 millis)
++int delay = 10; // Delay for key sends (10 milliseconds)
+ 
+ int printUsage()
+ {
+-  printf("Usage: %s [options] %s\n", PROG_NAME);
++  printf("Usage: %s [-hv] [-d delay] [-c file]\n", PROG_NAME);
+   printf("\t -h --help\t\tdisplay usage summary\n");
+   printf("\t -v --version\t\tdisplay version\n");
+-  printf("\t -c --config=<file>\tset config file\n");
++  printf("\t -d --delay=<delay>\tset key send delay in milliseconds\n");
++  printf("\t -c --config=<file>\tset LIRC config file\n");
+ }
+ 
+ int sendkey(char *keyname)
+@@ -72,17 +74,23 @@
+   XSync(display, True);
+ 
+   XTestDiscard(display);
++
++  return 0;
+ }
+ 
+ int initLirc(int argc, char **argv)
+ {
+   if (lirc_init(PROG_NAME, 1) == -1) {
++    fprintf(stderr, "Error, failed to initialize LIRC.\n");
+     return -1;
+   }
+ 
+   if (lirc_readconfig(config_file, &config, NULL) != 0) {
++    fprintf(stderr, "Error, failed to read LIRC configuration file.\n");
+     return -1;
+   }
++
++  return 0;
+ }
+ 
+ int processCommandLine(int argc, char **argv)
+@@ -90,10 +98,10 @@
+   while (1) {
+     int c;
+     static struct option long_options[] = {
+-      {"config", required_argument, NULL, 0},
+-      {"delay", required_argument, NULL, 0},
+-      {"help", no_argument, NULL, 0},
+-      {"version", no_argument, NULL, 0},
++      {"config", required_argument, 0, 'c'},
++      {"delay", required_argument, 0, 'd'},
++      {"help", no_argument, 0, 'd'},
++      {"version", no_argument, 0, 'v'},
+       {0, 0, 0, 0}
+     };
+ 
+@@ -131,6 +139,8 @@
+ 
+     return -1;
+   }
++
++  return 0;
+ }
+ 
+ void mainloop()
+@@ -158,12 +168,16 @@
+   XFlush(display);
+ 
+   XCloseDisplay(display);
++
++  return 0;
+ }
+ 
+ int deinitLirc()
+ {
+   lirc_freeconfig(config);
+   lirc_deinit();
++
++  return 0;
+ }
+ 
+ int main(int argc, char **argv)

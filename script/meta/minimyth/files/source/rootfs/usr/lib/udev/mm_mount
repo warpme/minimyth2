@@ -1,0 +1,102 @@
+#!/bin/sh
+################################################################################
+# mm_mount
+#
+# This script takes six parameters:
+#   action:
+#      The action to be taken.
+#      Valid values are:
+#        add:    create mount point and (optionally) mount device.
+#        remove: unmount device and remove mount point(s).
+#   device:
+#      The path to the device to be mounted/unmounted.
+#   mount:
+#      Whether or not to mount the device or just create the mount point.
+#      Valid values are:
+#        0: create mount point
+#        1: create mount point and mount device
+#      Ignored when action!='add'.
+#   mount_point:
+#      The mount point where ${device} is to be mounted/unmounted.
+#      Ignored when action!='add'.
+#   mount_fstype:
+#      The file system type to use when mounting the device.
+#      Ignored when action!='add'.
+#   mount_options:
+#      Mount options.
+#      Ignored when action!='add'.
+################################################################################
+
+action="$1"
+device="$2"
+mount="$3"
+mount_point="$4"
+mount_fstype="$5"
+mount_options="$6"
+
+mount_points_get()
+{
+    local device="$1"
+
+    local mount_points
+
+    mount_points=
+    if /usr/bin/test -r /proc/mounts ; then
+        mount_points=`/bin/cat /proc/mounts | /bin/grep "^${device}" | /usr/bin/cut -d' ' -f2`
+    fi
+
+    /bin/echo ${mount_points}
+}
+
+device_get()
+{
+    local mount_point="$1"
+
+    local device
+
+    device=
+    if /usr/bin/test -r /proc/mounts ; then
+        device=`/bin/cat /proc/mounts | /bin/grep "^[^ ]* ${mount_point}" | /usr/bin/cut -d' ' -f1`
+    fi
+
+    /bin/echo ${device}
+}
+
+case ${action} in
+    add)
+        if /usr/bin/test ! -e ${mount_point} ; then
+            /bin/mkdir -p ${mount_point}
+            /usr/bin/logger -t minimyth -p "local0.info" "created mount point '${mount_point}'."
+        fi
+        if /usr/bin/test "${mount_fstype}" = "msdos"  ||
+           /usr/bin/test "${mount_fstype}" = "umsdos" ||
+           /usr/bin/test "${mount_fstype}" = "vfat"   ; then
+            mount_options="uid=0,gid=0,umask=0000,dmask=0000,fmask=0111,${mount_options}"
+        fi
+        if /usr/bin/test ${mount} -ne 0 ; then
+            if /usr/bin/test -e "${device}" && /usr/bin/test -d "${mount_point}" && /usr/bin/test -n "${mount_fstype}" ; then
+                if  /usr/bin/test -z "`device_get ${mount_point}`" ; then
+                    if /usr/bin/test -z "${mount_options}" ; then
+                        /bin/mount -t ${mount_fstype}                     ${device} ${mount_point} > /dev/null 2>&1 || /bin/true
+                    else
+                        /bin/mount -t ${mount_fstype} -o ${mount_options} ${device} ${mount_point} > /dev/null 2>&1 || /bin/true
+                    fi
+                    /usr/bin/logger -t minimyth -p "local0.info" "mounted device '${device}' at mount point '${mount_point}'."
+                fi
+            fi
+        fi
+        ;;
+    remove)
+        mount_points=`mount_points_get ${device}`
+        /bin/umount -l ${device} > /dev/null 2>&1 || /bin/true
+        /usr/bin/logger -t minimyth -p "local0.info" "unmounted device '${device}'."
+        for mount_point in ${mount_points} ; do
+            if /usr/bin/test -z "`device_get ${mount_point}`" ; then
+                /bin/rmdir ${mount_point} > /dev/null 2>&1 | /bin/true
+                /usr/bin/logger -t minimyth -p "local0.info" "deleted mount point '${mount_point}'."
+            fi
+        done
+        ;;
+esac
+
+exit 0

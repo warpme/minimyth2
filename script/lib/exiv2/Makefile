@@ -1,0 +1,23 @@
+GARNAME = exiv2
+GARVERSION = 0.24
+CATEGORIES = lib
+MASTER_SITES = http://www.exiv2.org/
+DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
+
+LICENSE = LGPL2
+
+DESCRIPTION = 
+define BLURB
+endef
+
+WORKSRC = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
+
+DEPENDS = lang/c
+
+CONFIGURE_SCRIPTS = $(WORKSRC)/configure
+BUILD_SCRIPTS     = $(WORKSRC)/Makefile
+INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+
+CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST)
+
+include ../../gar.mk

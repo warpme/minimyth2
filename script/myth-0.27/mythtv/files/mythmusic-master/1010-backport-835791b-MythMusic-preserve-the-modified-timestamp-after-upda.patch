@@ -1,0 +1,228 @@
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaio.cpp mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaio.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaio.cpp	2014-02-05 16:36:07.079355272 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaio.cpp	2014-02-05 16:36:18.049305982 +0100
+@@ -1,3 +1,8 @@
++
++// POSIX C headers
++#include <sys/stat.h>
++#include <utime.h>
++
+ // Qt
+ #include <QFileInfo>
+ 
+@@ -21,7 +26,7 @@
+  */
+ MetaIO::MetaIO()
+ {
+-    mFilenameFormat = gCoreContext->GetSetting("NonID3FileNameFormat").toUpper();
++    m_filenameFormat = gCoreContext->GetSetting("NonID3FileNameFormat").toUpper();
+ }
+ 
+ /*!
+@@ -121,7 +126,7 @@
+     // Replace 
+     lfilename.replace('_', ' ');
+     lfilename = lfilename.section('.', 0, -2);
+-    QStringList fmt_list = mFilenameFormat.split("/");
++    QStringList fmt_list = m_filenameFormat.split("/");
+     QStringList::iterator fmt_it = fmt_list.begin();
+ 
+     // go through loop once to get minimum part number
+@@ -201,21 +206,44 @@
+ 
+     if (filename.isEmpty())
+         return;
+-    
++
+     readFromFilename(filename, artist, album, title, genre, tracknum);
+ 
+     if (metadata->Artist().isEmpty())
+         metadata->setArtist(artist);
+-    
++
+     if (metadata->Album().isEmpty())
+         metadata->setAlbum(album);
+-    
++
+     if (metadata->Title().isEmpty())
+         metadata->setTitle(title);
+-    
++
+     if (metadata->Genre().isEmpty())
+         metadata->setGenre(genre);
+-    
++
+     if (metadata->Track() <= 0)
+         metadata->setTrack(tracknum);
+ }
++
++void MetaIO::saveTimeStamps(void)
++{
++    if (stat(m_filename.toLocal8Bit().constData(), &m_fileinfo) == -1)
++    {
++        LOG(VB_GENERAL, LOG_ERR,
++            QString("MetaIO::saveTimeStamps: failed to stat file: %1").arg(m_filename) + ENO);
++    }
++}
++
++void MetaIO::restoreTimeStamps(void)
++{
++    struct utimbuf new_times;
++
++    new_times.actime = m_fileinfo.st_atime;
++    new_times.modtime = m_fileinfo.st_mtime;
++
++    if (utime(m_filename.toLocal8Bit().constData(), &new_times) < 0)
++    {
++        LOG(VB_GENERAL, LOG_ERR,
++            QString("MetaIO::restoreTimeStamps: failed to utime file: %1").arg(m_filename) + ENO);
++    }
++}
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaio.h mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaio.h
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaio.h	2014-02-05 16:36:07.079355272 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaio.h	2014-02-05 16:36:18.049305982 +0100
+@@ -1,6 +1,10 @@
+ #ifndef METAIO_H_
+ #define METAIO_H_
+ 
++// POSIX C headers
++#include <unistd.h>
++#include <fcntl.h>
++
+ // QT
+ #include <QString>
+ 
+@@ -159,12 +163,15 @@
+     static const QString ValidFileExtensions;
+ 
+   protected:
++    void saveTimeStamps(void);
++    void restoreTimeStamps(void);
+ 
+-  private:
+     virtual int getTrackLength(const QString &filename) = 0;
+ 
+-    QString mFilename;
+-    QString mFilenameFormat;
++    QString m_filename;
++    QString m_filenameFormat;
++
++    struct stat m_fileinfo;
+ };
+ 
+ #endif
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaioflacvorbis.cpp mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaioflacvorbis.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaioflacvorbis.cpp	2014-02-05 16:36:10.776006652 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaioflacvorbis.cpp	2014-02-05 16:36:18.052639299 +0100
+@@ -52,7 +52,9 @@
+     if (!mdata)
+         return false;
+ 
+-    TagLib::FLAC::File *flacfile = OpenFile(mdata->Filename());
++    m_filename = mdata->Filename(true);
++
++    TagLib::FLAC::File *flacfile = OpenFile(m_filename);
+ 
+     if (!flacfile)
+         return false;
+@@ -87,7 +89,9 @@
+         tag->removeField("COMPILATION_ARTIST");
+     }
+ 
++    saveTimeStamps();
+     bool result = flacfile->save();
++    restoreTimeStamps();
+ 
+     if (flacfile)
+         delete flacfile;
+@@ -339,6 +343,8 @@
+     if (filename.isEmpty() || !albumart)
+         return false;
+ 
++    m_filename = filename;
++
+     bool retval = false;
+ 
+     // load the image into a QByteArray
+@@ -380,7 +386,9 @@
+ 
+         flacfile->addPicture(pic);
+ 
++        saveTimeStamps();
+         retval = flacfile->save();
++        restoreTimeStamps();
+ 
+         delete flacfile;
+     }
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaioid3.cpp mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaioid3.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaioid3.cpp	2014-02-05 16:36:07.079355272 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaioid3.cpp	2014-02-05 16:36:18.052639299 +0100
+@@ -99,7 +99,9 @@
+     if (!m_file)
+         return false;
+ 
++    saveTimeStamps();
+     bool retval = m_file->save();
++    restoreTimeStamps();
+ 
+     return retval;
+ }
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaioid3.h mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaioid3.h
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaioid3.h	2014-02-05 16:36:07.079355272 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaioid3.h	2014-02-05 16:36:18.052639299 +0100
+@@ -74,7 +74,6 @@
+     QString getExtFromMimeType(const QString &mimeType);
+ 
+     TagLib::File *m_file;
+-    QString m_filename;
+ 
+     typedef enum { kMPEG, kFLAC } TagType;
+     TagType m_fileType;
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaiooggvorbis.cpp mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaiooggvorbis.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaiooggvorbis.cpp	2014-02-05 16:36:07.079355272 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaiooggvorbis.cpp	2014-02-05 16:36:18.052639299 +0100
+@@ -46,7 +46,9 @@
+     if (!mdata)
+         return false;
+ 
+-    TagLib::Ogg::Vorbis::File *oggfile = OpenFile(mdata->Filename());
++    m_filename = mdata->Filename();
++
++    TagLib::Ogg::Vorbis::File *oggfile = OpenFile(m_filename);
+ 
+     if (!oggfile)
+         return false;
+@@ -81,7 +83,9 @@
+         tag->removeField("COMPILATION_ARTIST");
+     }
+ 
++    saveTimeStamps();
+     bool result = oggfile->save();
++    restoreTimeStamps();
+ 
+     if (oggfile)
+         delete oggfile;
+diff -Naur mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaiowavpack.cpp mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaiowavpack.cpp
+--- mythtv-0.27-20140204-g1b7404d-old/mythtv/libs/libmythmetadata/metaiowavpack.cpp	2014-02-05 16:36:07.079355272 +0100
++++ mythtv-0.27-20140204-g1b7404d-new/mythtv/libs/libmythmetadata/metaiowavpack.cpp	2014-02-05 16:36:18.052639299 +0100
+@@ -48,7 +48,9 @@
+     if (!mdata)
+         return false;
+ 
+-    TagLib::WavPack::File *wpfile = OpenFile(mdata->Filename());
++    m_filename = mdata->Filename();
++
++    TagLib::WavPack::File *wpfile = OpenFile(m_filename);
+ 
+     if (!wpfile)
+         return false;
+@@ -74,7 +76,9 @@
+     else
+         tag->removeItem("Album artist");
+ 
++    saveTimeStamps();
+     bool result = wpfile->save();
++    restoreTimeStamps();
+ 
+     if (wpfile)
+         delete wpfile;

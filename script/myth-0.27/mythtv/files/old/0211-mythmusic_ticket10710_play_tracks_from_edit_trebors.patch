@@ -1,0 +1,132 @@
+diff -Naur mythtv-0.27-20131230-g7f548de-old/mythplugins/mythgallery/README mythtv-0.27-20131230-g7f548de-new/mythplugins/mythgallery/README
+--- mythtv-0.27-20131230-g7f548de-old/mythplugins/mythgallery/README	2013-12-30 15:09:47.216955869 +0100
++++ mythtv-0.27-20131230-g7f548de-new/mythplugins/mythgallery/README	2013-12-30 15:09:55.130250782 +0100
+@@ -69,7 +69,7 @@
+ keys.  Escape backs out a level, and hitting 'p' while viewing a
+ single image or while an image icon is highlighted will start a
+ slideshow playback of all images in that directory.  Image rotation
+-can be done by pressing the [ and ] keys. To toggle activating the
++ban be done by pressing the [ and ] keys. To toggle activating the
+ menu on the left in the thumbnail view use the 'm' key.
+ 
+ Default Keys:
+diff -Naur mythtv-0.27-20131230-g7f548de-old/mythplugins/mythmusic/mythmusic/main.cpp mythtv-0.27-20131230-g7f548de-new/mythplugins/mythmusic/mythmusic/main.cpp
+--- mythtv-0.27-20131230-g7f548de-old/mythplugins/mythmusic/mythmusic/main.cpp	2013-12-30 15:09:47.230289139 +0100
++++ mythtv-0.27-20131230-g7f548de-new/mythplugins/mythmusic/mythmusic/main.cpp	2013-12-30 15:09:55.130250782 +0100
+@@ -658,6 +658,8 @@
+         "Switch to the fullscreen visualiser view"), "");
+     REG_KEY("Music", "SWITCHTORADIO",                 QT_TRANSLATE_NOOP("MythControls",
+         "Switch to the radio stream view"), "");
++    REG_KEY("Music", "ADDTRACKSANDPLAY",              QT_TRANSLATE_NOOP("MythControls",
++        "Add selected tracks to playlist and start playback"), "");
+ 
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+         "MythMusic Media Handler 1/2"), "", "", handleCDMedia,
+@@ -694,7 +696,6 @@
+     return 0;
+ }
+ 
+-
+ int mythplugin_run(void)
+ {
+     return runMenu("musicmenu.xml");
+diff -Naur mythtv-0.27-20131230-g7f548de-old/mythplugins/mythmusic/mythmusic/musiccommon.cpp mythtv-0.27-20131230-g7f548de-new/mythplugins/mythmusic/mythmusic/musiccommon.cpp
+--- mythtv-0.27-20131230-g7f548de-old/mythplugins/mythmusic/mythmusic/musiccommon.cpp	2013-12-30 15:09:47.230289139 +0100
++++ mythtv-0.27-20131230-g7f548de-new/mythplugins/mythmusic/mythmusic/musiccommon.cpp	2013-12-30 15:09:55.133584100 +0100
+@@ -1395,11 +1395,25 @@
+                 m_playlistOptions.insertPLOption = PL_REPLACE;
+                 doUpdatePlaylist(false);
+             }
++            else if (resulttext == tr("Replace Tracks and Play")) 
++            {
++                int trackCount = gPlayer->getPlaylist()->getSongs().count();
++                m_playlistOptions.insertPLOption = PL_REPLACE;
++                doUpdatePlaylist(false);
++                gPlayer->setCurrentTrackPos(trackCount);
++            }
+             else if (resulttext == tr("Add Tracks"))
+             {
+                 m_playlistOptions.insertPLOption = PL_INSERTATEND;
+                 doUpdatePlaylist(false);
+             }
++            else if (resulttext == tr("Add Tracks and Play")) 
++            {
++                int trackCount = gPlayer->getPlaylist()->getSongs().count();
++                m_playlistOptions.insertPLOption = PL_INSERTATEND;
++                doUpdatePlaylist(false);
++                gPlayer->setCurrentTrackPos(trackCount);
++            }
+         }
+         else if (resultid == "visualizermenu")
+         {
+@@ -2242,7 +2256,9 @@
+     MythMenu *menu = new MythMenu(label, this, "playlistoptionsmenu");
+ 
+     menu->AddItem(tr("Replace Tracks"));
++    menu->AddItem(tr("Replace Tracks and Play"));
+     menu->AddItem(tr("Add Tracks"));
++    menu->AddItem(tr("Add Tracks and Play"));
+ 
+     return menu;
+ }
+diff -Naur mythtv-0.27-20131230-g7f548de-old/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp mythtv-0.27-20131230-g7f548de-new/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp
+--- mythtv-0.27-20131230-g7f548de-old/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp	2013-12-30 15:09:47.230289139 +0100
++++ mythtv-0.27-20131230-g7f548de-new/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp	2013-12-30 15:09:55.133584100 +0100
+@@ -484,6 +484,57 @@
+                  }
+              }
+         }
++        else if (action == "ADDTRACKSANDPLAY")
++        {
++            int trackCount = gPlayer->getPlaylist()->getSongs().count();
++
++            MythUIButtonListItem *item = m_playlistTree->GetItemCurrent();
++            if (item)
++            {
++                MythGenericTree *node = qVariantValue<MythGenericTree*> (item->GetData());
++                MusicGenericTree *mnode = dynamic_cast<MusicGenericTree*>(node);
++
++                if (mnode)
++                {
++                    if (mnode->getAction() == "trackid")
++                    {
++                        // A single track was selected, check if the track is
++                        // already in the playlist and only if not, add track
++                        // to the current playlist and mark the song as added.
++                        // The playlist will be updated automatically
++                        if (!gPlayer->getPlaylist()->checkTrack(mnode->getInt()))
++                        {
++                            gPlayer->addTrack(mnode->getInt(), true);
++                            mnode->setCheck(MythUIButtonListItem::FullChecked);
++                        }
++                    }
++                    else
++                    {
++                        // A node (album, genre,...) was selected, add all songs
++                        // from this one to the playlist. This functionality
++                        // was previously only available via the menu
++                        m_songList.clear();
++                        MetadataPtrList *tracks = qVariantValue<MetadataPtrList*> (mnode->GetData());
++                        for (int x = 0; x < tracks->count(); x++)
++                        {
++                            MusicMetadata *mdata = tracks->at(x);
++                            if (mdata)
++                                m_songList.append((int)mdata->ID());
++                        }
++
++                        // Put the selected songs at the end of the playlist
++                        m_playlistOptions.insertPLOption = PL_INSERTATEND;
++                        doUpdatePlaylist(false);
++                    }
++
++                    // Set the track number to the trackcount. This would be the
++                    // previously last song plus one. This is then either the
++                    // newly added track or the first track in the album
++                    gPlayer->setCurrentTrackPos(trackCount);
++                }
++            }
++            handled = true;
++        }
+         else
+             handled = false;
+     }

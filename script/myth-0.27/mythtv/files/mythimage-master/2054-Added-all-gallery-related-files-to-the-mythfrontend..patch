@@ -1,0 +1,5203 @@
+From e8d61278fae965848fa6e86d8607856d85c28cb5 Mon Sep 17 00:00:00 2001
+From: Robert Siebert <rsiebert@miroku.no-ip.com>
+Date: Wed, 20 Mar 2013 11:26:59 +0100
+Subject: [PATCH 054/760] Added all gallery related files to the mythfrontend.
+ This includes files that handle the navigation,
+ thumbnail generation, settings, interaction with
+ the database and the actual display of the image or
+ a slideshow.
+
+Signed-off-by: Stuart Morgan <smorgan@mythtv.org>
+---
+ mythtv/programs/mythfrontend/galleryconfig.cpp     |  214 +++
+ mythtv/programs/mythfrontend/galleryconfig.h       |   41 +
+ .../mythfrontend/gallerydatabasehelper.cpp         |  655 +++++++++
+ .../programs/mythfrontend/gallerydatabasehelper.h  |   47 +
+ mythtv/programs/mythfrontend/galleryfilehelper.cpp |  329 +++++
+ mythtv/programs/mythfrontend/galleryfilehelper.h   |   48 +
+ .../mythfrontend/gallerythumbgenthread.cpp         |  366 +++++
+ .../programs/mythfrontend/gallerythumbgenthread.h  |   61 +
+ mythtv/programs/mythfrontend/gallerytypedefs.h     |   37 +
+ mythtv/programs/mythfrontend/galleryview.cpp       | 1438 ++++++++++++++++++++
+ mythtv/programs/mythfrontend/galleryview.h         |  116 ++
+ mythtv/programs/mythfrontend/galleryviewhelper.cpp |  597 ++++++++
+ mythtv/programs/mythfrontend/galleryviewhelper.h   |   77 ++
+ mythtv/programs/mythfrontend/gallerywidget.cpp     |  912 +++++++++++++
+ mythtv/programs/mythfrontend/gallerywidget.h       |  102 ++
+ mythtv/programs/mythfrontend/mythfrontend.pro      |    8 +
+ 16 files changed, 5048 insertions(+)
+ create mode 100644 mythtv/programs/mythfrontend/galleryconfig.cpp
+ create mode 100644 mythtv/programs/mythfrontend/galleryconfig.h
+ create mode 100644 mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
+ create mode 100644 mythtv/programs/mythfrontend/gallerydatabasehelper.h
+ create mode 100644 mythtv/programs/mythfrontend/galleryfilehelper.cpp
+ create mode 100644 mythtv/programs/mythfrontend/galleryfilehelper.h
+ create mode 100644 mythtv/programs/mythfrontend/gallerythumbgenthread.cpp
+ create mode 100644 mythtv/programs/mythfrontend/gallerythumbgenthread.h
+ create mode 100644 mythtv/programs/mythfrontend/gallerytypedefs.h
+ create mode 100644 mythtv/programs/mythfrontend/galleryview.cpp
+ create mode 100644 mythtv/programs/mythfrontend/galleryview.h
+ create mode 100644 mythtv/programs/mythfrontend/galleryviewhelper.cpp
+ create mode 100644 mythtv/programs/mythfrontend/galleryviewhelper.h
+ create mode 100644 mythtv/programs/mythfrontend/gallerywidget.cpp
+ create mode 100644 mythtv/programs/mythfrontend/gallerywidget.h
+
+diff --git a/mythtv/programs/mythfrontend/galleryconfig.cpp b/mythtv/programs/mythfrontend/galleryconfig.cpp
+new file mode 100644
+index 0000000..1dba64f
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/galleryconfig.cpp
+@@ -0,0 +1,214 @@
++// Qt headers
++
++// MythTV headers
++#include "mythcontext.h"
++#include "mythmainwindow.h"
++#include "mythuitextedit.h"
++#include "mythuicheckbox.h"
++#include "mythuibutton.h"
++#include "mythuibuttonlist.h"
++#include "mythuispinbox.h"
++
++#include "galleryconfig.h"
++#include "gallerytypedefs.h"
++
++
++
++enum FileSortOrder {
++    kSortByNameAsc     = 0,
++    kSortByNameDesc    = 1,
++    kSortByModTimeAsc  = 2,
++    kSortByModTimeDesc = 3,
++    kSortByExtAsc      = 4,
++    kSortByExtDesc     = 5,
++    kSortBySizeAsc     = 6,
++    kSortBySizeDesc    = 7,
++    kSortByDateAsc     = 8,
++    kSortByDateDesc    = 9
++};
++
++
++
++/** \fn     GalleryConfig::GalleryConfig(MythScreenStack *, const char *)
++ *  \brief  Constructor
++ *  \param  parent The screen parent
++ *  \param  name The name of the screen
++ *  \return void
++ */
++GalleryConfig::GalleryConfig(MythScreenStack *parent, const char *name)
++    : MythScreenType(parent, name),
++      m_storageGroupName(NULL),
++      m_sortOrder(NULL),
++      m_slideShowTime(NULL),
++      m_transitionType(NULL),
++      m_transitionTime(NULL),
++      m_showHiddenFiles(NULL),
++      m_saveButton(NULL),
++      m_cancelButton(NULL)
++{
++    // preset or load all variables
++    m_sortOrder = 0;
++}
++
++
++
++/** \fn     GalleryConfig::~GalleryConfig()
++ *  \brief  Destructor
++ *  \return void
++ */
++GalleryConfig::~GalleryConfig()
++{
++
++}
++
++
++
++/** \fn     GalleryConfig::Create()
++ *  \brief  Initialises and shows the graphical elements
++ *  \return void
++ */
++bool GalleryConfig::Create()
++{
++    // Load the theme for this screen
++    if (!LoadWindowFromXML("image-ui.xml", "galleryconfig", this))
++        return false;
++
++    bool err = false;
++    UIUtilE::Assign(this, m_storageGroupName, "storagegroupname", &err);
++    UIUtilE::Assign(this, m_sortOrder, "sortorder", &err);
++    UIUtilE::Assign(this, m_slideShowTime, "slideshowtime", &err);
++    UIUtilE::Assign(this, m_transitionType, "transitiontype", &err);
++    UIUtilE::Assign(this, m_transitionTime, "transitiontime", &err);
++    UIUtilE::Assign(this, m_showHiddenFiles, "showhiddenfiles", &err);
++
++    UIUtilE::Assign(this, m_saveButton, "save", &err);
++    UIUtilE::Assign(this, m_cancelButton, "cancel", &err);
++
++    // check if all widgets are present
++    if (err)
++    {
++        LOG(VB_GENERAL, LOG_ERR, "Theme is missing critical theme elements.");
++        return false;
++    }
++
++    // Load the values from the database
++    Load();
++
++    // connect the widgets to their methods
++    connect(m_saveButton, SIGNAL(Clicked()), this, SLOT(Save()));
++    connect(m_cancelButton, SIGNAL(Clicked()), this, SLOT(Exit()));
++
++    BuildFocusList();
++
++    SetFocusWidget(m_storageGroupName);
++
++    return true;
++}
++
++
++
++/** \fn     GalleryConfig::keyPressEvent(QKeyEvent *)
++ *  \brief  Translates the keypresses and keys bound to the
++ *          plugin to specific actions within the plugin
++ *  \param  event The pressed key
++ *  \return bool True if the key was used, otherwise false
++ */
++bool GalleryConfig::keyPressEvent(QKeyEvent *event)
++{
++    if (GetFocusWidget()->keyPressEvent(event))
++        return true;
++
++    bool handled = false;
++
++    if (!handled && MythScreenType::keyPressEvent(event))
++        handled = true;
++
++    return handled;
++}
++
++
++
++/** \fn     GalleryConfig::Load()
++ *  \brief  Load the values from the database and adds them to the widgets
++ *  \return void
++ */
++void GalleryConfig::Load()
++{
++    m_storageGroupName->SetText(gCoreContext->GetSetting("GalleryStorageGroupName", "Pictures"));
++
++    new MythUIButtonListItem(m_sortOrder, tr("Name (A-Z alpha)"),
++                             qVariantFromValue(QString::number(kSortByNameAsc)));
++    new MythUIButtonListItem(m_sortOrder, tr("Reverse Name (Z-A alpha)"),
++                             qVariantFromValue(QString::number(kSortByNameDesc)));
++    new MythUIButtonListItem(m_sortOrder, tr("Mod Time (oldest first)"),
++                             qVariantFromValue(QString::number(kSortByModTimeAsc)));
++    new MythUIButtonListItem(m_sortOrder, tr("Reverse Mod Time (newest first)"),
++                             qVariantFromValue(QString::number(kSortByModTimeDesc)));
++    new MythUIButtonListItem(m_sortOrder, tr("Extension (A-Z alpha)"),
++                             qVariantFromValue(QString::number(kSortByExtAsc)));
++    new MythUIButtonListItem(m_sortOrder, tr("Reverse Extension (Z-A alpha)"),
++                             qVariantFromValue(QString::number(kSortByExtDesc)));
++    new MythUIButtonListItem(m_sortOrder, tr("Filesize (smallest first)"),
++                             qVariantFromValue(QString::number(kSortBySizeAsc)));
++    new MythUIButtonListItem(m_sortOrder, tr("Reverse Filesize (largest first)"),
++                             qVariantFromValue(QString::number(kSortBySizeDesc)));
++    new MythUIButtonListItem(m_sortOrder, tr("Date (oldest first)"),
++                             qVariantFromValue(QString::number(kSortByDateAsc)));
++    new MythUIButtonListItem(m_sortOrder, tr("Reverse Date (neweset first)"),
++                             qVariantFromValue(QString::number(kSortByDateDesc)));
++    m_sortOrder->SetValueByData(gCoreContext->GetNumSetting("GallerySortOrder", kSortByDateAsc));
++
++    m_slideShowTime->SetRange(0, 30000, 500);
++    m_slideShowTime->SetValue(gCoreContext->GetSetting("GallerySlideShowTime", "3000"));
++
++    new MythUIButtonListItem(m_transitionType, tr("None"), qVariantFromValue(0));
++    new MythUIButtonListItem(m_transitionType, tr("Fade"), qVariantFromValue(1));
++    m_transitionType->SetValueByData(gCoreContext->GetNumSetting("GalleryTransitionType", kFade));
++
++    m_transitionTime->SetRange(0, 5000, 100);
++    m_transitionTime->SetValue(gCoreContext->GetSetting("GalleryTransitionTime", "1000"));
++
++    int setting = gCoreContext->GetNumSetting("GalleryShowHiddenFiles", 0);
++    if (setting == 1)
++        m_showHiddenFiles->SetCheckState(MythUIStateType::Full);
++}
++
++
++
++/** \fn     GalleryConfig::Save()
++ *  \brief  Saves the values from the widgets into the database
++ *  \return void
++ */
++void GalleryConfig::Save()
++{
++    gCoreContext->SaveSetting("GalleryStorageGroupName",
++                              m_storageGroupName->GetText());
++    gCoreContext->SaveSetting("GallerySortOrder",
++                              m_sortOrder->GetDataValue().toString());
++    gCoreContext->SaveSetting("GallerySlideShowTime",
++                              m_slideShowTime->GetValue());
++    gCoreContext->SaveSetting("GalleryTransitionType",
++                              m_transitionType->GetDataValue().toString());
++    gCoreContext->SaveSetting("GalleryTransitionTime",
++                              m_transitionTime->GetValue());
++
++    int checkstate = (m_showHiddenFiles->GetCheckState() == MythUIStateType::Full) ? 1 : 0;
++    gCoreContext->SaveSetting("GalleryShowHiddenFiles", checkstate);
++
++    // tell the main view to reload the images
++    // because the storage group dir might have changed
++    emit configSaved();
++
++    Close();
++}
++
++
++
++/** \fn     GalleryConfig::Exit()
++ *  \brief  Exits the configuration screen
++ *  \return void
++ */
++void GalleryConfig::Exit()
++{
++    Close();
++}
+diff --git a/mythtv/programs/mythfrontend/galleryconfig.h b/mythtv/programs/mythfrontend/galleryconfig.h
+new file mode 100644
+index 0000000..f955593
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/galleryconfig.h
+@@ -0,0 +1,41 @@
++#ifndef GALLERYCONFIG_H
++#define GALLERYCONFIG_H
++
++// Qt headers
++
++// MythTV headers
++#include "mythscreentype.h"
++
++
++
++class GalleryConfig : public MythScreenType
++{
++    Q_OBJECT
++public:
++    GalleryConfig(MythScreenStack *parent, const char *name);
++    ~GalleryConfig();
++
++    bool Create();
++    bool keyPressEvent(QKeyEvent *);
++
++signals:
++    void configSaved();
++
++private:
++    MythUITextEdit     *m_storageGroupName;
++    MythUIButtonList   *m_sortOrder;
++    MythUISpinBox      *m_slideShowTime;
++    MythUIButtonList   *m_transitionType;
++    MythUISpinBox      *m_transitionTime;
++    MythUICheckBox     *m_showHiddenFiles;
++
++    MythUIButton       *m_saveButton;
++    MythUIButton       *m_cancelButton;
++
++private slots:
++    void Save();
++    void Exit();
++    void Load();
++};
++
++#endif // GALLERYCONFIG_H
+diff --git a/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp b/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
+new file mode 100644
+index 0000000..9288f8f
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
+@@ -0,0 +1,655 @@
++// Qt headers
++
++// MythTV headers
++#include "mythcontext.h"
++#include "mythdirs.h"
++
++#include "gallerydatabasehelper.h"
++
++
++
++GalleryDatabaseHelper::GalleryDatabaseHelper()
++{
++
++}
++
++
++
++GalleryDatabaseHelper::~GalleryDatabaseHelper()
++{
++
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::GetStorageDirIDs(QStringList)
++ *  \brief  Loads the directory ids of the storage groups from the database
++ *  \param  sgList The list of storage groups
++ *  \return The list with the ids of the found directories
++ */
++QList<int> GalleryDatabaseHelper::GetStorageDirIDs(QStringList sgList)
++{
++    QList<int> sgIDs;
++
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("SELECT dir_id FROM gallery_directories "
++                        "WHERE filename = '%1';")
++                .arg(sgList.join("' OR filename = '")));
++
++
++    if (!query.exec())
++        LOG(VB_GENERAL, LOG_ERR, MythDB::DBErrorMessage(query.lastError()));
++
++    if (query.size() > 0)
++    {
++        while (query.next())
++            sgIDs.append(query.value(0).toInt());
++    }
++
++    return sgIDs;
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::LoadParentDirectory(QList<ImageMetadata *>* , int)
++ *  \brief  Loads the information from the database for a given directory
++ *  \param  dbList The list where the results are stored
++ *  \param  parentId The id of the given directory
++ *  \return void
++ */
++void GalleryDatabaseHelper::LoadParentDirectory(QList<ImageMetadata *>* dbList, int parentId)
++{
++    dbList->clear();
++
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("SELECT "
++                        "dir_id, filename, name, path, parent_id, "
++                        "dir_count, file_count, "
++                        "hidden "
++                        "FROM gallery_directories "
++                        "WHERE dir_id = '%1';")
++                .arg(parentId));
++
++    if (!query.exec())
++        LOG(VB_GENERAL, LOG_ERR, MythDB::DBErrorMessage(query.lastError()));
++
++    if (query.size() > 0)
++    {
++        while (query.next())
++        {
++            ImageMetadata *im = new ImageMetadata();
++            LoadDirectoryValues(query, im);
++
++            // Overwrite the folder type
++            im->m_type = kUpDirectory;
++            dbList->append(im);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::LoadParentDirectory(QMap<QString, ImageMetadata *>*)
++ *  \brief  Loads all directory information from the database
++ *  \param  dbList The list where the results are stored
++ *  \return void
++ */
++void GalleryDatabaseHelper::LoadDirectories(QMap<QString, ImageMetadata *>* dbList)
++{
++    dbList->clear();
++
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("SELECT "
++                        "dir_id, filename, name, path, parent_id, "
++                        "dir_count, file_count, "
++                        "hidden "
++                        "FROM gallery_directories"));
++
++    if (!query.exec())
++        LOG(VB_GENERAL, LOG_ERR, MythDB::DBErrorMessage(query.lastError()));
++
++    if (query.size() > 0)
++    {
++        while (query.next())
++        {
++            ImageMetadata *im = new ImageMetadata();
++            LoadDirectoryValues(query, im);
++            dbList->insert(im->m_fileName, im);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::LoadParentDirectory(QList<ImageMetadata *>* , int)
++ *  \brief  Loads all subdirectory information from the database for a given directory
++ *  \param  dbList The list where the results are stored
++ *  \param  parentId The id of the given directory
++ *  \return void
++ */
++void GalleryDatabaseHelper::LoadDirectories(QList<ImageMetadata *>* dbList, int parentId)
++{
++    dbList->clear();
++
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("SELECT "
++                        "dir_id, filename, name, path, parent_id, "
++                        "dir_count, file_count, "
++                        "hidden "
++                        "FROM gallery_directories "
++                        "WHERE (parent_id = '%1') "
++                        "AND (hidden = '0' OR hidden = '%2') "
++                        "ORDER BY name ASC;")
++                .arg(parentId)
++                .arg(gCoreContext->GetNumSetting("GalleryShowHiddenFiles")));
++
++    if (!query.exec())
++        LOG(VB_GENERAL, LOG_ERR, MythDB::DBErrorMessage(query.lastError()));
++
++    if (query.size() > 0)
++    {
++        while (query.next())
++        {
++            ImageMetadata *im = new ImageMetadata();
++            LoadDirectoryValues(query, im);
++            dbList->append(im);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::LoadFiles(QMap<QString, ImageMetadata *>*)
++ *  \brief  Loads all file information from the database
++ *  \param  dbList The list where the results are stored
++ *  \return void
++ */
++void GalleryDatabaseHelper::LoadFiles(QMap<QString, ImageMetadata *>* dbList)
++{
++    dbList->clear();
++
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("SELECT "
++                        "file_id, filename, name, path, dir_id, "
++                        "type, modtime, size, extension, "
++                        "angle, date, zoom, "
++                        "hidden, orientation "
++                        "FROM gallery_files"));
++
++    if (!query.exec())
++        LOG(VB_GENERAL, LOG_ERR, MythDB::DBErrorMessage(query.lastError()));
++
++    if (query.size() > 0)
++    {
++        while (query.next())
++        {
++            ImageMetadata *im = new ImageMetadata();
++            LoadFileValues(query, im);
++            dbList->insert(im->m_fileName, im);
++        }
++    }
++}
++
++
++
++
++/** \fn     GalleryDatabaseHelper::LoadFiles(QList<ImageMetadata *>* , int)
++ *  \brief  Loads all file information from the database for a given directory
++ *  \param  dbList The list where the results are stored
++ *  \param  parentId The id of the given directory
++ *  \return void
++ */
++void GalleryDatabaseHelper::LoadFiles(QList<ImageMetadata *>* dbList, int parentId)
++{
++    dbList->clear();
++
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("SELECT "
++                        "file_id, filename, name, path, dir_id, "
++                        "type, modtime, size, extension, "
++                        "angle, date, zoom, "
++                        "hidden, orientation "
++                        "FROM gallery_files "
++                        "WHERE (dir_id = '%1') "
++                        "AND (hidden = '0' OR hidden = '%2') "
++                        "ORDER BY %3;")
++                .arg(parentId)
++                .arg(gCoreContext->GetNumSetting("GalleryShowHiddenFiles"))
++                .arg(GetSortOrder()));
++
++    if (!query.exec())
++        LOG(VB_GENERAL, LOG_ERR, MythDB::DBErrorMessage(query.lastError()));
++
++    if (query.size() > 0)
++    {
++        while (query.next())
++        {
++            ImageMetadata *im = new ImageMetadata();
++            LoadFileValues(query, im);
++            dbList->append(im);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::InsertDirectory(ImageMetadata *)
++ *  \brief  Saves information about a given directory in the database
++ *  \param  im Information of the directory
++ *  \return void
++ */
++int GalleryDatabaseHelper::InsertDirectory(ImageMetadata *im)
++{
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("INSERT INTO gallery_directories ("
++                        "filename, name, path, parent_id, "
++                        "dir_count, file_count, "
++                        "hidden "
++                        ") VALUES ("
++                        ":FILENAME, :NAME, :PATH, :PARENT_ID, "
++                        ":DIRCOUNT, :FILECOUNT, "
++                        ":HIDDEN);"));
++    query.bindValue(":FILENAME",    im->m_fileName);
++    query.bindValue(":NAME",        im->m_name);
++    query.bindValue(":PATH",        im->m_path);
++    query.bindValue(":PARENT_ID",   im->m_parentId);
++    query.bindValue(":DIRCOUNT" ,   im->m_dirCount);
++    query.bindValue(":FILECOUNT",   im->m_fileCount);
++    query.bindValue(":HIDDEN",      im->m_isHidden);
++
++    if (!query.exec())
++        MythDB::DBError("Error inserting, query: ", query);
++
++    return query.lastInsertId().toInt();
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::InsertFile(ImageMetadata *)
++ *  \brief  Saves information about a given file in the database
++ *  \param  im Information of the file
++ *  \return void
++ */
++int GalleryDatabaseHelper::InsertFile(ImageMetadata *im)
++{
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("INSERT INTO gallery_files ("
++                        "filename, name, path, dir_id, "
++                        "type, modtime, size, extension, "
++                        "angle, date, zoom, "
++                        "hidden, orientation "
++                        ") VALUES ("
++                        ":FILENAME, :NAME, :PATH, :DIR_ID, "
++                        ":TYPE, :MODTIME, :SIZE, :EXTENSION, "
++                        ":ANGLE, :DATE, :ZOOM, "
++                        ":HIDDEN, :ORIENT)"));
++    query.bindValue(":FILENAME",    im->m_fileName);
++    query.bindValue(":NAME",        im->m_name);
++    query.bindValue(":PATH",        im->m_path);
++    query.bindValue(":DIR_ID",      im->m_parentId);
++    query.bindValue(":TYPE",        im->m_type);
++    query.bindValue(":MODTIME",     im->m_modTime);
++    query.bindValue(":SIZE",        im->m_size);
++    query.bindValue(":EXTENSION",   im->m_extension);
++    query.bindValue(":ANGLE",       im->GetAngle());
++    query.bindValue(":DATE",        im->m_date);
++    query.bindValue(":ZOOM",        im->GetZoom());
++    query.bindValue(":HIDDEN",      im->m_isHidden);
++    query.bindValue(":ORIENT",      im->GetOrientation());
++
++    if (!query.exec())
++        MythDB::DBError("Error inserting, query: ", query);
++
++    return query.lastInsertId().toInt();
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::UpdateDirectory(ImageMetadata *)
++ *  \brief  Updates the information about a given directory in the database
++ *  \param  im Information of the directory
++ *  \return void
++ */
++void GalleryDatabaseHelper::UpdateDirectory(ImageMetadata *im)
++{
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("UPDATE gallery_directories SET "
++                        "filename =     :FILENAME, "
++                        "name =         :NAME, "
++                        "path =         :PATH, "
++                        "parent_id =    :PARENT_ID, "
++                        "dir_count =    :DIR_COUNT, "
++                        "file_count =   :FILE_COUNT, "
++                        "hidden =       :HIDDEN "
++                        "WHERE dir_id = :ID;"));
++    query.bindValue(":FILENAME",    im->m_fileName);
++    query.bindValue(":NAME",        im->m_name);
++    query.bindValue(":PATH",        im->m_path);
++    query.bindValue(":PARENT_ID",   im->m_parentId);
++    query.bindValue(":DIR_COUNT",   im->m_dirCount);
++    query.bindValue(":FILE_COUNT",  im->m_fileCount);
++    query.bindValue(":HIDDEN",      im->m_isHidden);
++    query.bindValue(":ID",          im->m_id);
++
++    if (!query.exec())
++        MythDB::DBError("Error updating, query: ", query);
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::UpdateFile(ImageMetadata *)
++ *  \brief  Updates the information about a given file in the database
++ *  \param  im Information of the file
++ *  \return void
++ */
++void GalleryDatabaseHelper::UpdateFile(ImageMetadata *im)
++{
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("UPDATE gallery_files SET "
++                        "filename       = :FILENAME, "
++                        "name           = :NAME, "
++                        "path           = :PATH, "
++                        "dir_id         = :DIR_ID, "
++                        "type           = :TYPE, "
++                        "modtime        = :MODTIME, "
++                        "size           = :SIZE, "
++                        "extension      = :EXTENSION, "
++                        "angle          = :ANGLE, "
++                        "date           = :DATE, "
++                        "zoom           = :ZOOM, "
++                        "hidden         = :HIDDEN, "
++                        "orientation    = :ORIENT "
++                        "WHERE file_id  = :ID;"));
++    query.bindValue(":FILENAME",    im->m_fileName);
++    query.bindValue(":NAME",        im->m_name);
++    query.bindValue(":PATH",        im->m_path);
++    query.bindValue(":DIR_ID",      im->m_parentId);
++    query.bindValue(":TYPE",        im->m_type);
++    query.bindValue(":MODTIME",     im->m_modTime);
++    query.bindValue(":SIZE",        im->m_size);
++    query.bindValue(":EXTENSION",   im->m_extension);
++    query.bindValue(":ANGLE",       im->GetAngle());
++    query.bindValue(":DATE",        im->m_date);
++    query.bindValue(":ZOOM",        im->GetZoom());
++    query.bindValue(":HIDDEN",      im->m_isHidden);
++    query.bindValue(":ORIENT",      im->GetOrientation());
++    query.bindValue(":ID",          im->m_id);
++
++    if (!query.exec())
++        MythDB::DBError("Error updating, query: ", query);
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::RemoveDirectory(ImageMetadata *)
++ *  \brief  Deletes the information about a given directory in the database
++ *  \param  im Information of the directory
++ *  \return void
++ */
++void GalleryDatabaseHelper::RemoveDirectory(ImageMetadata *im)
++{
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("DELETE from gallery_directories "
++                        "WHERE dir_id = :ID;"));
++    query.bindValue(":ID", im->m_id);
++
++    if (!query.exec())
++        MythDB::DBError("Error removing, query: ", query);
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::RemoveFile(ImageMetadata *)
++ *  \brief  Deletes the information about a given file in the database
++ *  \param  im Information of the directory
++ *  \return void
++ */
++void GalleryDatabaseHelper::RemoveFile(ImageMetadata *im)
++{
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(
++                QString("DELETE from gallery_files "
++                        "WHERE file_id = :ID;"));
++    query.bindValue(":ID", im->m_id);
++
++    if (!query.exec())
++        MythDB::DBError("Error removing, query: ", query);
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::InsertData(ImageMetadata *)
++ *  \brief  Inserts either a new directory or file in the database
++ *  \param  im Information of the given item
++ *  \return void
++ */
++void GalleryDatabaseHelper::InsertData(ImageMetadata *im)
++{
++    if (!im)
++        return;
++
++    if (im->m_type == kSubDirectory || im->m_type == kUpDirectory)
++        InsertDirectory(im);
++
++    if (im->m_type == kImageFile || im->m_type == kVideoFile)
++        InsertFile(im);
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::UpdateData(ImageMetadata *)
++ *  \brief  Updates either a directory or a file in the database
++ *  \param  im Information of the given item
++ *  \return void
++ */
++void GalleryDatabaseHelper::UpdateData(ImageMetadata *im)
++{
++    if (!im)
++        return;
++
++    if (im->m_type == kSubDirectory || im->m_type == kUpDirectory)
++        UpdateDirectory(im);
++
++    if (im->m_type == kImageFile || im->m_type == kVideoFile)
++        UpdateFile(im);
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::InsertData(ImageMetadata *)
++ *  \brief  Deletes either a directory or file from the database
++ *  \param  im Information of the given item
++ *  \return void
++ */
++void GalleryDatabaseHelper::RemoveData(ImageMetadata *im)
++{
++    if (!im)
++        return;
++
++    if (im->m_type == kSubDirectory || im->m_type == kUpDirectory)
++        RemoveDirectory(im);
++
++    if (im->m_type == kImageFile || im->m_type == kVideoFile)
++        RemoveFile(im);
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::LoadDirectoryValues(MSqlQuery &, ImageMetadata *)
++ *  \brief  Loads the directory information from the database
++ *  \param  query Information from the database
++ *  \param  im Holds the loaded information
++ *  \return void
++ */
++void GalleryDatabaseHelper::LoadDirectoryValues(MSqlQuery &query, ImageMetadata *im)
++{
++    im->m_id            = query.value(0).toInt();
++    im->m_fileName      = query.value(1).toString();
++    im->m_name          = query.value(2).toString();
++    im->m_path          = query.value(3).toString();
++    im->m_parentId      = query.value(4).toInt();
++    im->m_dirCount      = query.value(5).toInt();
++    im->m_fileCount     = query.value(6).toInt();
++    im->m_isHidden      = query.value(7).toInt();
++
++    // preset all directories as subfolders
++    im->m_type          = kSubDirectory;
++
++    LoadDirectoryThumbnailValues(im);
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::LoadFileValues(MSqlQuery &, ImageMetadata *)
++ *  \brief  Loads the file information from the database
++ *  \param  query Information from the database
++ *  \param  im Holds the loaded information
++ *  \return void
++ */
++void GalleryDatabaseHelper::LoadFileValues(MSqlQuery &query, ImageMetadata *im)
++{
++    im->m_id            = query.value(0).toInt();
++    im->m_fileName      = query.value(1).toString();
++    im->m_name          = query.value(2).toString();
++    im->m_path          = query.value(3).toString();
++    im->m_parentId      = query.value(4).toInt();
++    im->m_type          = query.value(5).toInt();
++    im->m_modTime       = query.value(6).toInt();
++    im->m_size          = query.value(7).toInt();
++    im->m_extension     = query.value(8).toString();
++    im->SetAngle(         query.value(9).toInt());
++    im->m_date          = query.value(10).toInt();
++    im->SetZoom(          query.value(11).toInt());
++    im->m_isHidden      = query.value(12).toInt();
++    im->SetOrientation(   query.value(13).toInt(), true);
++
++    LoadFileThumbnailValues(im);
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::LoadDirectoryThumbnailValues(ImageMetadata *)
++ *  \brief  Gets four images from the directory from the
++ *          database which will be used as a folder thumbnail
++ *  \param  im Holds the loaded information
++ *  \return void
++ */
++void GalleryDatabaseHelper::LoadDirectoryThumbnailValues(ImageMetadata *im)
++{
++    // Try to get four new thumbnail filenames
++    // from the available images in this folder
++    MSqlQuery query(MSqlQuery::InitCon());
++    query.prepare(QString("SELECT filename, path FROM gallery_files "
++                          "WHERE path LIKE '\%%1\%' "
++                          "AND type = '4' "
++                          "AND hidden = '0' LIMIT %2;")
++                  .arg(im->m_fileName)
++                  .arg(kMaxFolderThumbnails));
++
++    if (!query.exec())
++        LOG(VB_GENERAL, LOG_ERR, MythDB::DBErrorMessage(query.lastError()));
++
++    for (int i = 0; i < query.size(); ++i)
++    {
++        query.next();
++        QString thumbFileName = QString("%1%2")
++                .arg(GetConfDir().append("/MythImage/"))
++                .arg(query.value(0).toString());
++
++        im->m_thumbFileNameList->replace(i, thumbFileName);
++        im->m_thumbPath = query.value(1).toString();
++    }
++
++    // Set the path to the thumbnail files. As a default this will be
++    // the path ".mythtv/MythGallery" in the users home directory
++    im->m_thumbPath.prepend(GetConfDir().append("/MythImage/"));
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::LoadFileThumbnailValues(ImageMetadata *)
++ *  \brief  Sets the thumbnail information for a file
++ *  \param  im Holds the loaded information
++ *  \return void
++ */
++void GalleryDatabaseHelper::LoadFileThumbnailValues(ImageMetadata *im)
++{
++    // Set the path to the thumbnail files. As a default this will be
++    // the path ".mythtv/MythGallery" in the users home directory
++    im->m_thumbPath = im->m_path;
++    im->m_thumbPath.prepend(GetConfDir().append("/MythImage/"));
++
++    // Create the full path and filename to the thumbnail image
++    QString thumbFileName = QString("%1%2")
++            .arg(GetConfDir().append("/MythImage/"))
++            .arg(im->m_fileName);
++
++    // If the file is a video then append a png, otherwise the preview
++    // image would not be readable due to the video file extension
++    if (im->m_type == kVideoFile)
++        thumbFileName.append(".png");
++
++    im->m_thumbFileNameList->replace(0, thumbFileName);
++}
++
++
++
++/** \fn     GalleryDatabaseHelper::GetSortOrder()
++ *  \brief  Prepares the SQL query according to the sorting
++ *          rules specified by the user in the settings.
++ *  \return void
++ */
++QString GalleryDatabaseHelper::GetSortOrder()
++{
++    // prepare the sorting statement
++    QString sort;
++    switch (gCoreContext->GetNumSetting("GallerySortOrder"))
++    {
++    case kSortByNameAsc:
++        sort.append("name ASC ");
++        break;
++    case kSortByNameDesc:
++        sort.append("name DESC ");
++        break;
++    case kSortByModTimeAsc:
++        sort.append("modtime ASC, name ASC ");
++        break;
++    case kSortByModTimeDesc:
++        sort.append("modtime DESC, name ASC ");
++        break;
++    case kSortByExtAsc:
++        sort.append("extension ASC, name ASC ");
++        break;
++    case kSortByExtDesc:
++        sort.append("extension DESC, name ASC ");
++        break;
++    case kSortBySizeAsc:
++        sort.append("size ASC, name ASC ");
++        break;
++    case kSortBySizeDesc:
++        sort.append("size DESC, name ASC ");
++        break;
++    case kSortByDateAsc:
++        sort.append("date ASC, name ASC ");
++        break;
++    case kSortByDateDesc:
++        sort.append("date DESC, name ASC ");
++        break;
++    default:
++        sort.append("name ASC ");
++        break;
++    }
++
++    return sort;
++}
+diff --git a/mythtv/programs/mythfrontend/gallerydatabasehelper.h b/mythtv/programs/mythfrontend/gallerydatabasehelper.h
+new file mode 100644
+index 0000000..0038236
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/gallerydatabasehelper.h
+@@ -0,0 +1,47 @@
++#ifndef GALLERYDATABASEHELPER_H
++#define GALLERYDATABASEHELPER_H
++
++// Qt headers
++
++// MythTV headers
++#include "mythdbcon.h"
++#include "imagemetadata.h"
++
++#include "gallerytypedefs.h"
++
++
++
++class GalleryDatabaseHelper
++{
++public:
++    GalleryDatabaseHelper();
++    ~GalleryDatabaseHelper();
++
++    QList<int> GetStorageDirIDs(QStringList);
++    void LoadParentDirectory(QList<ImageMetadata *>*, int);
++    void LoadDirectories(QMap<QString, ImageMetadata *>*);
++    void LoadDirectories(QList<ImageMetadata *>*, int);
++    void LoadFiles(QMap<QString, ImageMetadata *>*);
++    void LoadFiles(QList<ImageMetadata *>*, int);
++    void RemoveDirectory(ImageMetadata *);
++    void RemoveFile(ImageMetadata *);
++    int InsertDirectory(ImageMetadata *);
++    int InsertFile(ImageMetadata *);
++    void UpdateDirectory(ImageMetadata *);
++    void UpdateFile(ImageMetadata *);
++
++    void InsertData(ImageMetadata *);
++    void UpdateData(ImageMetadata *);
++    void RemoveData(ImageMetadata *);
++
++private:
++    void LoadDirectoryValues(MSqlQuery &, ImageMetadata *);
++    void LoadFileValues(MSqlQuery &, ImageMetadata *);
++
++    void LoadDirectoryThumbnailValues(ImageMetadata *);
++    void LoadFileThumbnailValues(ImageMetadata *);
++
++    QString GetSortOrder();
++};
++
++#endif // GALLERYDATABASEHELPER_H
+diff --git a/mythtv/programs/mythfrontend/galleryfilehelper.cpp b/mythtv/programs/mythfrontend/galleryfilehelper.cpp
+new file mode 100644
+index 0000000..c228510
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/galleryfilehelper.cpp
+@@ -0,0 +1,329 @@
++// Qt headers
++#include <QNetworkAccessManager>
++#include <QXmlStreamReader>
++#include <QNetworkReply>
++#include <QEventLoop>
++
++// MythTV headers
++#include "mythcontext.h"
++#include "storagegroup.h"
++#include "remoteutil.h"
++
++#include "galleryfilehelper.h"
++#include "gallerytypedefs.h"
++
++
++
++/** \fn     GalleryFileHelper::GalleryFileHelper()
++ *  \brief  Constructor
++ *  \return void
++ */
++GalleryFileHelper::GalleryFileHelper()
++{
++    m_backendHost   = gCoreContext->GetSetting("BackendServerIP","localhost");
++    m_backendPort   = gCoreContext->GetNumSetting("BackendStatusPort", 6544);
++
++    m_manager = new QNetworkAccessManager();
++
++    // Set the proxy for the manager to be the application
++    // default proxy, which has already been setup
++    m_manager->setProxy(QNetworkProxy::applicationProxy());
++}
++
++
++
++/** \fn     GalleryFileHelper::~GalleryFileHelper()
++ *  \brief  Destructor
++ *  \return void
++ */
++GalleryFileHelper::~GalleryFileHelper()
++{
++    if (m_manager)
++    {
++        delete m_manager;
++        m_manager = NULL;
++    }
++}
++
++
++
++/** \fn     GalleryFileHelper::SyncImages()
++ *  \brief  Starts the image syncronization from the backend
++ *  \return void
++ */
++void GalleryFileHelper::StartSyncImages()
++{
++    QUrl url(QString("http://%1:%2/Image/StartSync")
++             .arg(m_backendHost)
++             .arg(m_backendPort));
++
++    SendRequest(url, QNetworkAccessManager::PostOperation);
++}
++
++
++
++/** \fn     GalleryFileHelper::SyncImages()
++ *  \brief  Starts the image syncronization from the backend
++ *  \return void
++ */
++void GalleryFileHelper::StopSyncImages()
++{
++    QUrl url(QString("http://%1:%2/Image/StopSync")
++             .arg(m_backendHost)
++             .arg(m_backendPort));
++
++    SendRequest(url, QNetworkAccessManager::PostOperation);
++}
++
++
++
++/** \fn     GalleryFileHelper::GetSyncStatus()
++ *  \brief  Reads the current image syncronization status
++ *  \return Struct with bool running, int current image, int total images
++ */
++GallerySyncStatus GalleryFileHelper::GetSyncStatus()
++{
++    QUrl url(QString("http://%1:%2/Image/GetSyncStatus")
++             .arg(m_backendHost)
++             .arg(m_backendPort));
++
++    GallerySyncStatus status;
++    status.running = false;
++    status.current = 0;
++    status.total = 0;
++
++    QByteArray ba = SendRequest(url, QNetworkAccessManager::GetOperation);
++    if (ba.count() > 0)
++    {
++        bool ok;
++        QXmlStreamReader xml(ba);
++        while (!xml.atEnd())
++        {
++            xml.readNext();
++            if (xml.isStartElement())
++            {
++                if (xml.name() == "Running")
++                {
++                    QString value = xml.readElementText();
++                    if (value.compare("true") == 0)
++                        status.running = true;
++                }
++                else if (xml.name() == "Current")
++                    status.current = xml.readElementText().toInt(&ok);
++                else if (xml.name() == "Total")
++                    status.total = xml.readElementText().toInt(&ok);
++            }
++        }
++    }
++
++    return status;
++}
++
++
++
++/** \fn     GalleryFileHelper::RenameFile(const int &, const QString &)
++ *  \brief  Renames the file via the service api
++ *  \param  id The database id of the file that shall be renamed
++ *  \param  name The new name of the file (only the filename, no path)
++ *  \return True if removal was successful, otherwise false
++ */
++bool GalleryFileHelper::RenameFile(ImageMetadata *im, const QString &name)
++{
++    bool ok = false;
++
++    QUrl url(QString("http://%1:%2/Content/RenameFile")
++             .arg(m_backendHost)
++             .arg(m_backendPort));
++
++    url.addQueryItem("FileName", im->m_fileName);
++    url.addQueryItem("NewName", name);
++
++    QByteArray ba = SendRequest(url, QNetworkAccessManager::PostOperation);
++
++    if (ba.count() > 0)
++    {
++        QXmlStreamReader xml(ba);
++        while (!xml.atEnd())
++        {
++            xml.readNext();
++            if (xml.isStartElement() && xml.name() == "bool")
++            {
++                ok = xml.readElementText().compare("true") == 0;
++
++                LOG(VB_GENERAL, LOG_DEBUG,
++                    QString("RenameFile - Status: %1").arg(ok));
++
++                // The returned data from the service api has only one
++                // value, so we stop when we have hit the first bool string
++                break;
++            }
++        }
++    }
++
++    return ok;
++}
++
++
++
++/** \fn     GalleryFileHelper::RemoveFile(const int &)
++ *  \brief  Deletes the file via the service api
++*  \param   id The database id of the file that shall be renamed
++ *  \return True if removal was successful, otherwise false
++ */
++bool GalleryFileHelper::RemoveFile(ImageMetadata *im)
++{
++    bool ok = false;
++
++    QUrl url(QString("http://%1:%2/Content/DeleteFile")
++             .arg(m_backendHost)
++             .arg(m_backendPort));
++
++    url.addQueryItem("FileName", im->m_fileName);
++
++    QByteArray ba = SendRequest(url, QNetworkAccessManager::PostOperation);
++
++    if (ba.count() > 0)
++    {
++        QXmlStreamReader xml(ba);
++        while (!xml.atEnd())
++        {
++            xml.readNext();
++            if (xml.isStartElement() && xml.name() == "bool")
++            {
++                ok = xml.readElementText().compare("true") == 0;
++
++                LOG(VB_GENERAL, LOG_DEBUG,
++                    QString("RemoveFile - Status: %1").arg(ok));
++
++                // The returned data from the service api has only one
++                // value, so we stop when we have hit the first bool string
++                break;
++            }
++        }
++    }
++
++    return ok;
++}
++
++
++
++/** \fn     GalleryFileHelper::SetExifOrientation(const QString &, const long , bool *)
++ *  \brief  Saves the given value in the orientation exif tag
++ *  \param  fileName The filename that holds the exif data
++ *  \param  orientation The value that shall be saved in the exif data
++ *  \param  ok Will be set to true if the update was ok, otherwise false
++ *  \return True if saving the orientation was successful, otherwise false
++ */
++bool GalleryFileHelper::SetImageOrientation(ImageMetadata *im)
++{
++    // the orientation of the image.
++    // See http://jpegclub.org/exif_orientation.html for details
++    if (im->GetOrientation() < 1 || im->GetOrientation() > 8)
++        return false;
++
++    bool ok = false;
++
++    QUrl url(QString("http://%1:%2/Image/SetImageInfo")
++             .arg(m_backendHost)
++             .arg(m_backendPort));
++
++    url.addQueryItem("Id", QString::number(im->m_id));
++    url.addQueryItem("Tag", "Exif.Image.Orientation");
++    url.addQueryItem("Value", QString::number(im->GetOrientation()));
++
++    QByteArray ba = SendRequest(url, QNetworkAccessManager::PostOperation);
++    if (ba.count() > 0)
++    {
++        QXmlStreamReader xml(ba);
++        while (!xml.atEnd())
++        {
++            xml.readNext();
++            if (xml.isStartElement() && xml.name() == "bool")
++            {
++                ok = xml.readElementText().compare("true") == 0;
++
++                LOG(VB_GENERAL, LOG_DEBUG,
++                    QString("SetExifOrientation - Status: %1").arg(ok));
++
++                // The returned data from the service api has only one
++                // value, so we stop when we have hit the first bool string
++                break;
++            }
++        }
++    }
++
++    return ok;
++}
++
++
++
++/** \fn     GalleryFileHelper::GetExifValues(const int id)
++ *  \brief  Returns the XML data that contains all available exif header
++            tags and values from the image specified by the id.
++ *  \param  id The database id of the file
++ *  \return The returned XML data
++ */
++QByteArray GalleryFileHelper::GetExifValues(ImageMetadata *im)
++{
++    QUrl url(QString("http://%1:%2/Image/GetImageInfoList")
++             .arg(m_backendHost)
++             .arg(m_backendPort));
++
++    url.addQueryItem("Id", QString::number(im->m_id));
++
++    return SendRequest(url, QNetworkAccessManager::GetOperation);
++}
++
++
++
++/** \fn     GalleryFileHelper::SendRequest(QUrl &url, QNetworkAccessManager::Operation type)
++ *  \brief  Calls the url with the given data either via
++            a GET or POST and returns the retrieved data
++ *  \param  url The url with all parameters that shall be called
++ *  \param  type The type of the call, can be either GET or POST
++ *  \return The returned XML data
++ */
++QByteArray GalleryFileHelper::SendRequest(QUrl &url,
++                                          QNetworkAccessManager::Operation type)
++{
++    QByteArray ba;
++    QNetworkReply *reply = NULL;
++    QNetworkRequest request(url);
++
++    if (type == QNetworkAccessManager::GetOperation)
++    {
++        reply = m_manager->get(request);
++    }
++    else if (type == QNetworkAccessManager::PostOperation)
++    {
++        request.setHeader(QNetworkRequest::ContentTypeHeader,
++                          "application/x-www-form-urlencoded");
++        reply = m_manager->post(request, QByteArray());
++    }
++
++    // Create a local event loop that blocks further processing
++    // until the finished signal is emitted from the network manager
++    QEventLoop loop;
++    QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
++    loop.exec();
++
++    // The network manager is done, continue
++    if (reply)
++    {
++        if (reply->error() == QNetworkReply::NoError)
++        {
++            LOG(VB_GENERAL, LOG_DEBUG,
++                QString("GalleryFileHelper SendRequest ok"));
++            ba = reply->readAll();
++        }
++        else
++        {
++            LOG(VB_GENERAL, LOG_DEBUG,
++                QString("GalleryFileHelper SendRequest error: %1")
++                .arg(reply->errorString()));
++        }
++        reply->deleteLater();
++    }
++
++    return ba;
++}
+diff --git a/mythtv/programs/mythfrontend/galleryfilehelper.h b/mythtv/programs/mythfrontend/galleryfilehelper.h
+new file mode 100644
+index 0000000..cc8c8c8
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/galleryfilehelper.h
+@@ -0,0 +1,48 @@
++#ifndef GALLERYFILEHELPER_H
++#define GALLERYFILEHELPER_H
++
++// Qt headers
++#include <QNetworkAccessManager>
++#include <QNetworkProxy>
++#include <QDirIterator>
++#include <QMap>
++#include <QList>
++#include <QUrl>
++
++// MythImage headers
++#include "imagemetadata.h"
++
++
++
++struct GallerySyncStatus {
++    bool running;
++    int  current;
++    int  total;
++};
++
++
++
++class GalleryFileHelper
++{
++public:
++    GalleryFileHelper();
++    ~GalleryFileHelper();
++
++    void        StartSyncImages();
++    void        StopSyncImages();
++    bool        RemoveFile(ImageMetadata *);
++    bool        RenameFile(ImageMetadata *, const QString &);
++    bool        SetImageOrientation(ImageMetadata *);
++
++    GallerySyncStatus   GetSyncStatus();
++    QByteArray          GetExifValues(ImageMetadata *);
++
++private:
++    QByteArray  SendRequest(QUrl &, QNetworkAccessManager::Operation);
++
++    int                         m_backendPort;
++    QString                     m_backendHost;
++    QNetworkAccessManager      *m_manager;
++};
++
++#endif // GALLERYFILEHELPER_H
+diff --git a/mythtv/programs/mythfrontend/gallerythumbgenthread.cpp b/mythtv/programs/mythfrontend/gallerythumbgenthread.cpp
+new file mode 100644
+index 0000000..50b45cb
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/gallerythumbgenthread.cpp
+@@ -0,0 +1,366 @@
++// Qt headers
++#include <QPainter>
++#include <QFile>
++
++// MythTV headers
++#include "mythcontext.h"
++#include "mythdirs.h"
++#include "mythuihelper.h"
++#include "mythsystem.h"
++#include "exitcodes.h"
++
++#include "imagemetadata.h"
++#include "gallerythumbgenthread.h"
++
++
++
++/** \fn     GalleryThumbGenThread::GalleryThumbGenThread()
++ *  \brief  Constructor
++ *  \return void
++ */
++GalleryThumbGenThread::GalleryThumbGenThread()
++{
++    m_fileHelper = new GalleryFileHelper();
++    m_dbHelper = new GalleryDatabaseHelper();
++
++    m_fileListSize = 0;
++    m_pause = false;
++}
++
++
++
++/** \fn     GalleryThumbGenThread::~GalleryThumbGenThread()
++ *  \brief  Destructor
++ *  \return void
++ */
++GalleryThumbGenThread::~GalleryThumbGenThread()
++{
++    cancel();
++    wait();
++
++    if (m_fileHelper)
++    {
++        delete m_fileHelper;
++        m_fileHelper = NULL;
++    }
++
++    if (m_dbHelper)
++    {
++        delete m_dbHelper;
++        m_dbHelper = NULL;
++    }
++}
++
++
++
++/** \fn     GalleryThumbGenThread::run()
++ *  \brief  Called when the thread starts. Tries to generate
++ *          thumbnails from the file list until its empty or aborted.
++ *  \return void
++ */
++void GalleryThumbGenThread::run()
++{
++    volatile bool exit = false;
++
++    m_mutex.lock();
++    m_fileListSize = m_fileList.size();
++    m_mutex.unlock();
++
++    while (!exit)
++    {
++        ImageMetadata *im = NULL;
++
++        m_mutex.lock();
++        if (!m_fileList.isEmpty())
++            im = m_fileList.takeFirst();
++
++        // Update the progressbar even if the thumbnail will not be created
++        emit UpdateThumbnailProgress(m_fileList.size(), m_fileListSize);
++        m_mutex.unlock();
++
++        if (im)
++        {
++            if (im->m_type == kSubDirectory ||
++                im->m_type == kUpDirectory)
++            {
++                for (int i = 0; i < im->m_thumbFileNameList->size(); ++i)
++                    CreateImageThumbnail(im, i);
++            }
++            else if (im->m_type == kImageFile)
++            {
++                CreateImageThumbnail(im, 0);
++            }
++            else if (im->m_type == kVideoFile)
++            {
++                CreateVideoThumbnail(im);
++            }
++        }
++
++        m_mutex.lock();
++        exit = m_fileList.isEmpty();
++        m_mutex.unlock();
++
++        // Allows the thread to be paused when Pause() was called
++        m_mutex.lock();
++        if (m_pause)
++            m_condition.wait(&m_mutex);
++        m_mutex.unlock();
++    }
++}
++
++
++
++/** \fn     GalleryThumbGenThread::CreateImageThumbnail(ImageMetadata *, int)
++ *  \brief  Creates a thumbnail with the correct size and rotation
++ *  \param  im The thumbnail details
++ *  \param  dataid The id of the thumbnail
++ *  \return void
++ */
++void GalleryThumbGenThread::CreateImageThumbnail(ImageMetadata *im, int id)
++{
++    if (QFile(im->m_thumbFileNameList->at(id)).exists())
++        return;
++
++    QDir dir;
++    if (!dir.exists(im->m_thumbPath))
++        dir.mkpath(im->m_thumbPath);
++
++    QString imageFileName = im->m_fileName;
++
++    // If a folder thumbnail shall be created we need to get
++    // the real filename from the thumbnail filename by removing
++    // the configuration directory and the MythImage path
++    if (im->m_type == kSubDirectory ||
++        im->m_type == kUpDirectory)
++    {
++        imageFileName = im->m_thumbFileNameList->at(id);
++        imageFileName = imageFileName.mid(GetConfDir().append("/MythImage/").count());
++    }
++
++    QImage image;
++    if (!image.load(imageFileName))
++        return;
++
++    QMatrix matrix;
++    switch (im->GetOrientation())
++    {
++    case 1: // If the image is in its original state
++        break;
++
++    case 2: // The image is horizontally flipped
++        image = image.mirrored(true, false);
++        break;
++
++    case 3: // The image is rotated 180°
++        matrix.rotate(180);
++        image = image.transformed(matrix, Qt::SmoothTransformation);
++        break;
++
++    case 4: // The image is vertically flipped
++        image = image.mirrored(false, true);
++        break;
++
++    case 5: // The image is transposed (rotated 90° CW flipped horizontally)
++        matrix.rotate(90);
++        image = image.transformed(matrix, Qt::SmoothTransformation);
++        image = image.mirrored(true, false);
++        break;
++
++    case 6: // The image is rotated 90° CCW
++        matrix.rotate(270);
++        image = image.transformed(matrix, Qt::SmoothTransformation);
++        break;
++
++    case 7: // The image is transversed  (rotated 90° CW and flipped vertically)
++        matrix.rotate(90);
++        image = image.transformed(matrix, Qt::SmoothTransformation);
++        image = image.mirrored(false, true);
++        break;
++
++    case 8: // The image is rotated 90° CW
++        matrix.rotate(90);
++        image = image.transformed(matrix, Qt::SmoothTransformation);
++        break;
++
++    default:
++        break;
++    }
++
++    Resize(image);
++
++    // save the image in the thumbnail directory
++    if (image.save(im->m_thumbFileNameList->at(id)))
++        emit ThumbnailCreated(im, id);
++}
++
++
++
++/** \fn     GalleryThumbGenThread::CreateVideoThumbnail(ImageMetadata *)
++ *  \brief  Creates a video preview image with the correct size
++ *  \param  im The thumbnail details
++ *  \return void
++ */
++void GalleryThumbGenThread::CreateVideoThumbnail(ImageMetadata *im)
++{
++    if (QFile(im->m_thumbFileNameList->at(0)).exists())
++        return;
++
++    QDir dir;
++    if (!dir.exists(im->m_thumbPath))
++        dir.mkpath(im->m_thumbPath);
++
++    QString cmd = "mythpreviewgen";
++    QStringList args;
++    args << logPropagateArgs.split(" ", QString::SkipEmptyParts);
++    args << "--infile"  << '"' + im->m_fileName + '"';
++    args << "--outfile" << '"' + im->m_thumbFileNameList->at(0) + '"';
++
++    MythSystem ms(cmd, args, kMSRunShell);
++    ms.SetDirectory(im->m_thumbPath);
++    ms.Run();
++
++    // If the process exited successful
++    // then try to load the thumbnail
++    if (ms.Wait() == GENERIC_EXIT_OK)
++    {
++        QImage image;
++        if (!image.load(im->m_thumbFileNameList->at(0)))
++            return;
++
++        Resize(image);
++
++        // save the default image in the thumbnail directory
++        if (image.save(im->m_thumbFileNameList->at(0)))
++            emit ThumbnailCreated(im, 0);
++    }
++}
++
++
++
++/** \fn     GalleryThumbGenThread::Resize(QImage)
++ *  \brief  Resizes the thumbnail to prevent black areas 
++ *          around the image when its shown in a widget.
++ *  \param  The image that shall be resized
++ *  \return void
++ */
++void GalleryThumbGenThread::Resize(QImage &image)
++{
++    // If the factor of the width to height of the image is smaller
++    // than of the widget stretch the image horizontally. The image
++    // will be higher then the widgets height, so it needs to be cropped.
++    if ((image.width() / image.height()) < (m_width / m_height))
++    {
++        image = image.scaledToWidth(m_width, Qt::SmoothTransformation);
++
++        // Copy a part of the image so that
++        // the copied area has the size of the widget.
++        if (image.height() > m_height)
++        {
++            int offset = (image.height() - m_height) / 2;
++            image = image.copy(0, offset, m_width, m_height);
++        }
++    }
++    else
++    {
++        image = image.scaledToHeight(m_height, Qt::SmoothTransformation);
++
++        if (image.width() > m_width)
++        {
++            int offset = (image.width() - m_width) / 2;
++            image = image.copy(offset, 0, m_width, m_height);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryThumbGenThread::AddToThumbnailList(ImageMetadata *)
++ *  \brief  Adds a file to the thumbnail list
++ *  \param  im The file information
++ *  \return void
++ */
++void GalleryThumbGenThread::AddToThumbnailList(ImageMetadata *im)
++{
++    if (!im)
++        return;
++
++    m_mutex.lock();
++    m_fileList.append(im);
++    m_fileListSize = m_fileList.size();
++    m_mutex.unlock();
++}
++
++
++
++/** \fn     GalleryThumbGenThread::RecreateThumbnail(ImageMetadata *)
++ *  \brief  Deletes the old thumbnail and creates a new one
++ *  \param  im The thumbnail information
++ *  \return void
++ */
++void GalleryThumbGenThread::RecreateThumbnail(ImageMetadata *im)
++{
++    if (!im)
++        return;
++
++    if (QFile::remove(im->m_thumbFileNameList->at(0)))
++    {
++        GetMythUI()->RemoveFromCacheByFile(
++                    im->m_thumbFileNameList->at(0));
++
++        AddToThumbnailList(im);
++    }
++}
++
++
++
++/** \fn     GalleryThumbGenThread::cancel()
++ *  \brief  Clears the thumbnail list so that the thread can exit.
++ *  \return void
++ */
++void GalleryThumbGenThread::cancel()
++{
++    m_mutex.lock();
++    m_fileList.clear();
++    m_fileListSize = 0;
++    m_mutex.unlock();
++
++    emit UpdateThumbnailProgress(0, 0);
++}
++
++
++
++/** \fn     GalleryThumbGenThread::Pause()
++ *  \brief  Stoppes the thumbnail generation
++ *  \return void
++ */
++void GalleryThumbGenThread::Pause()
++{
++    m_pause = true;
++}
++
++
++
++/** \fn     GalleryThumbGenThread::Resume()
++ *  \brief  Resumes the thumbnail generation
++ *  \return void
++ */
++void GalleryThumbGenThread::Resume()
++{
++    m_condition.wakeAll();
++    m_pause = false;
++}
++
++
++
++/** \fn     GalleryThumbGenThread::SetThumbnailSize(int, int)
++ *  \brief  Saves and specifies the size of the thumbnails.
++ *  \return void
++ */
++void GalleryThumbGenThread::SetThumbnailSize(int width, int height)
++{
++    if (width > 0)
++        m_width = width;
++
++    if (height > 0)
++        m_height = height;
++}
+diff --git a/mythtv/programs/mythfrontend/gallerythumbgenthread.h b/mythtv/programs/mythfrontend/gallerythumbgenthread.h
+new file mode 100644
+index 0000000..6e39ba5
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/gallerythumbgenthread.h
+@@ -0,0 +1,61 @@
++#ifndef GALLERYTHUMBGENTHREAD_H
++#define GALLERYTHUMBGENTHREAD_H
++
++// Qt headers
++#include <QThread>
++#include <QMutex>
++
++// MythTV headers
++#include "mythuibuttontree.h"
++#include "imagemetadata.h"
++
++#include "galleryfilehelper.h"
++#include "gallerydatabasehelper.h"
++
++
++
++class GalleryThumbGenThread : public QThread
++{
++    Q_OBJECT
++
++public:
++    GalleryThumbGenThread();
++    ~GalleryThumbGenThread();
++
++    void cancel();
++    void Pause();
++    void Resume();
++    void AddToThumbnailList(ImageMetadata *);
++    void RecreateThumbnail(ImageMetadata *);
++    void SetThumbnailSize(int, int);
++
++signals:
++    void ThumbnailCreated(ImageMetadata *, int);
++    void UpdateThumbnailProgress(int, int);
++
++protected:
++    void run();
++
++private:
++    void CreateImageThumbnail(ImageMetadata *, int);
++    void CreateVideoThumbnail(ImageMetadata *);
++
++    void Resize(QImage &);
++    void Rotate(QImage &);
++    void Combine(QImage &, QImage &, QPoint);
++    void DrawBorder(QImage &);
++
++    QList<ImageMetadata *>    m_fileList;
++    QMutex              m_mutex;
++    GalleryFileHelper         *m_fileHelper;
++    GalleryDatabaseHelper     *m_dbHelper;
++
++    int m_width;
++    int m_height;
++    bool m_pause;
++    int m_fileListSize;
++
++    QWaitCondition      m_condition;
++};
++
++#endif // GALLERYTHUMBGENTHREAD_H
+diff --git a/mythtv/programs/mythfrontend/gallerytypedefs.h b/mythtv/programs/mythfrontend/gallerytypedefs.h
+new file mode 100644
+index 0000000..ae933e2
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/gallerytypedefs.h
+@@ -0,0 +1,37 @@
++#ifndef TYPEDEFS_H
++#define TYPEDEFS_H
++
++
++
++enum ImageLoadStatusType {
++    kStatusOk           = 0,
++    kStatusNoFiles      = 1,
++    kStatusNoBaseDir    = 2
++};
++
++
++enum ImageNodeState {
++    kNodeStateSelect    = 0,
++    kNodeStateDeselect  = 1,
++    kNodeStateInvert    = 2,
++    kNodeStateVisible   = 3,
++    kNodeStateInvisible = 4
++};
++
++
++enum ImageSlideShowType {
++    kNoSlideShow            = 0,
++    kNormalSlideShow        = 1,
++    kRandomSlideShow        = 2,
++    kNormalRecSlideShow     = 3,
++    kRandomRecSlideShow     = 4
++};
++
++
++enum ImageTransitionType {
++    kNoTransition = 0,
++    kFade = 1
++};
++
++
++#endif // TYPEDEFS_H
+diff --git a/mythtv/programs/mythfrontend/galleryview.cpp b/mythtv/programs/mythfrontend/galleryview.cpp
+new file mode 100644
+index 0000000..6f36b8e
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/galleryview.cpp
+@@ -0,0 +1,1438 @@
++// Qt headers
++
++// MythTV headers
++#include "mythcontext.h"
++
++#include "galleryview.h"
++#include "galleryconfig.h"
++#include "imagescan.h"
++
++
++
++/** \fn     GalleryView::GalleryView(MythScreenStack *, const char *)
++ *  \brief  Constructor
++ *  \param  parent The screen parent
++ *  \param  name The name of the screen
++ *  \return void
++ */
++GalleryView::GalleryView(MythScreenStack *parent, const char *name)
++    : MythScreenType(parent, name),
++      m_menuPopup(NULL),
++      m_confirmPopup(NULL),
++      m_imageList(NULL),
++      m_captionText(NULL),
++      m_crumbsText(NULL),
++      m_positionText(NULL),
++      m_imageText(NULL),
++      m_selectedImage(NULL),
++      m_syncProgressText(NULL),
++      m_thumbProgressText(NULL)
++{
++    m_popupStack = GetMythMainWindow()->GetStack("popup stack");
++    m_mainStack = GetMythMainWindow()->GetMainStack();
++
++    // interface between the frontend and the data
++    m_galleryViewHelper = new GalleryViewHelper(this);
++
++    // Fetches the syncronization status in the
++    // background and updates a theme widget
++    m_syncStatusThread = new GallerySyncStatusThread();
++
++    connect(m_syncStatusThread,  SIGNAL(UpdateSyncProgress(int, int)),
++            this,   SLOT(UpdateSyncProgress(int, int)));
++
++    connect(m_syncStatusThread,  SIGNAL(finished()),
++            this,   SLOT(ResetSyncProgress()));
++
++    // Start the sync status thread so that an already 
++    // running  background sync can be seen
++    m_syncStatusThread->start();
++}
++
++
++
++/** \fn     GalleryView::~GalleryView()
++ *  \brief  Destructor
++ *  \return void
++ */
++GalleryView::~GalleryView()
++{
++    if (m_syncStatusThread)
++    {
++        m_syncStatusThread->quit();
++        m_syncStatusThread->wait();
++        delete m_syncStatusThread;
++        m_syncStatusThread = NULL;
++    }
++
++    if (m_galleryViewHelper)
++    {
++        delete m_galleryViewHelper;
++        m_galleryViewHelper = NULL;
++    }
++}
++
++
++
++/** \fn     GalleryView::Create()
++ *  \brief  Initialises and shows the graphical elements
++ *  \return True if successful, otherwise false
++ */
++bool GalleryView::Create()
++{
++    if (!LoadWindowFromXML("image-ui.xml", "gallery", this))
++        return false;
++
++    bool err = false;
++    UIUtilE::Assign(this, m_imageList,     "images", &err);
++    UIUtilW::Assign(this, m_captionText,   "title");
++    UIUtilW::Assign(this, m_imageText,     "noimages");
++    UIUtilW::Assign(this, m_selectedImage, "selectedimage");
++    UIUtilW::Assign(this, m_positionText,  "position");
++    UIUtilW::Assign(this, m_crumbsText,    "breadcrumbs");
++
++    UIUtilW::Assign(this, m_syncProgressText, "syncprogresstext");
++    UIUtilW::Assign(this, m_thumbProgressText, "thumbprogresstext");
++
++    if (err)
++    {
++        LOG(VB_GENERAL, LOG_ERR, "Cannot load screen 'gallery'");
++        return false;
++    }
++
++    // set the size of the preview images (usually the thumbnails)
++    m_galleryViewHelper->SetPreviewImageSize(m_imageList);
++
++    if (m_syncProgressText)
++        m_syncProgressText->SetVisible(false);
++
++    if (m_thumbProgressText)
++        m_thumbProgressText->SetVisible(false);
++
++    BuildFocusList();
++    SetFocusWidget(m_imageList);
++
++    // connect the widgets with their slot methods
++    connect(m_imageList, SIGNAL(itemClicked(MythUIButtonListItem *)),
++            SLOT(ItemSelected(MythUIButtonListItem *)));
++    connect(m_imageList, SIGNAL(itemSelected(MythUIButtonListItem *)),
++            SLOT(UpdateImageItem(MythUIButtonListItem *)));
++
++    return true;
++}
++
++
++
++/** \fn     GalleryView::keyPressEvent(QKeyEvent *)
++ *  \brief  Translates the keypresses and keys bound to the
++ *          plugin to specific actions within the plugin
++ *  \param  event The pressed key
++ *  \return True if key was used, otherwise false
++ */
++bool GalleryView::keyPressEvent(QKeyEvent *event)
++{
++    if (GetFocusWidget()->keyPressEvent(event))
++        return true;
++
++    bool handled = false;
++    QStringList actions;
++    handled = GetMythMainWindow()->TranslateKeyPress("Images", event, actions);
++
++    for (int i = 0; i < actions.size() && !handled; i++)
++    {
++        QString action = actions[i];
++        handled = true;
++
++        if (action == "MENU")
++            MenuMain();
++        else if (action == "HOME")
++        {
++            // get through the entire list of image items and find
++            // the filename that matches the created thumbnail filename
++            for (int i = 0; i < m_imageList->GetCount(); i++)
++            {
++                MythUIButtonListItem *item = m_imageList->GetItemAt(i);
++                if (!item)
++                    continue;
++
++                ImageMetadata *im = GetImageMetadataFromButton(item);
++                if (!im)
++                    continue;
++
++                if (im->m_type != kImageFile &&
++                    im->m_type != kVideoFile)
++                {
++                    m_galleryViewHelper->m_currentNode->setSelectedChild(m_galleryViewHelper->m_currentNode->getChildAt(i));
++                    UpdateImageItem(item);
++                    break;
++                }
++            }
++        }
++        else if (action == "END")
++        {
++            int count = m_imageList->GetCount();
++            MythUIButtonListItem *item = m_imageList->GetItemAt(count);
++            if (item)
++            {
++                m_galleryViewHelper->m_currentNode->setSelectedChild(m_galleryViewHelper->m_currentNode->getChildAt(count));
++                UpdateImageItem(item);
++            }
++        }
++        else if (action == "INFO")
++            MenuInformation();
++        else if (action == "ROTRIGHT")
++            FileRotateCW();
++        else if (action == "ROTLEFT")
++            FileRotateCCW();
++        else if (action == "FLIPHORIZONTAL")
++            FileFlipHorizontal();
++        else if (action == "FLIPVERTICAL")
++            FileFlipVertical();
++        else if (action == "ZOOMIN")
++            FileZoomIn();
++        else if (action == "ZOOMOUT")
++            FileZoomOut();
++        else if (action == "SLIDESHOW")
++            ShowFiles();
++        else if (action == "RANDOMSHOW")
++            ShowRandomFiles();
++        else if (action == "MARK")
++        {
++            ImageMetadata *im = GetImageMetadataFromSelectedButton();
++            if (im)
++            {
++                if (im->m_selected)
++                    FileSelectOne();
++                else
++                    FileDeselectOne();
++            }
++        }
++        else if (action == "ESCAPE")
++        {
++            // If the jumppoint is not active and the first node is of
++            // the type kUpFolder then allow going up one directory
++            if (!GetMythMainWindow()->IsExitingToMain())
++            {
++                ImageMetadata *data = m_galleryViewHelper->GetImageMetadataFromNode(0);
++                if (data && data->m_type == kUpDirectory)
++                    handled = DirSelectUp();
++                else
++                    handled = false;
++            }
++            else
++                handled = false;
++        }
++        else
++            handled = false;
++    }
++
++    if (!handled && MythScreenType::keyPressEvent(event))
++        handled = true;
++
++    return handled;
++}
++
++
++
++/** \fn     GalleryView::customEvent(QEvent *)
++ *  \brief  Translates the keypresses to specific actions within the plugin
++ *  \param  event The custom event
++ *  \return void
++ */
++void GalleryView::customEvent(QEvent *event)
++{
++    if (event->type() == DialogCompletionEvent::kEventType)
++    {
++        DialogCompletionEvent *dce = (DialogCompletionEvent*)(event);
++
++        QString resultid  = dce->GetId();
++        int     buttonnum = dce->GetResult();
++
++        // Confirm current file deletion
++        if (resultid == "confirmdelete")
++        {
++            switch (buttonnum)
++            {
++            case 0 :
++                break;
++            case 1 :
++                FileDelete();
++                break;
++            }
++        }
++
++        // Confirm all selected file deletion
++        if (resultid == "confirmdeleteselected")
++        {
++            switch (buttonnum)
++            {
++            case 0 :
++                break;
++            case 1 :
++                FileDeleteSelected();
++                break;
++            }
++        }
++
++        // Synchronize the database
++        if (resultid == "confirmstartsync")
++        {
++            switch (buttonnum)
++            {
++            case 0 :
++                break;
++            case 1 :
++                // Start the sync, the API call will
++                // check if a sync is running already
++                m_galleryViewHelper->m_fileHelper->StartSyncImages();
++
++                if (!m_syncStatusThread->isRunning())
++                    m_syncStatusThread->start();
++
++                break;
++            }
++        }
++
++        // Stop the database sync
++        if (resultid == "confirmstopsync")
++        {
++            switch (buttonnum)
++            {
++            case 0 :
++                break;
++            case 1 :
++                if (m_syncStatusThread->isRunning())
++                    m_syncStatusThread->quit();
++
++                m_galleryViewHelper->m_fileHelper->StopSyncImages();
++                break;
++            }
++        }
++
++        if (resultid == "filerename")
++        {
++            QString newName = dce->GetResultText();
++            FileRename(newName);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryView::ResetImageItems()
++ *  \brief  Resets the image related widgets by clearing all
++            visible items and removing any shown text.
++ *  \return void
++ */
++void GalleryView::ResetImageItems()
++{
++    m_imageList->Reset();
++
++    if (m_positionText)
++        m_positionText->Reset();
++
++    if (m_captionText)
++        m_captionText->Reset();
++
++    if (m_crumbsText)
++        m_crumbsText->Reset();
++}
++
++
++
++/** \fn     GalleryView::LoadData()
++ *  \brief  Loads the available data from the database.
++            If there is no data available the user needs to rescan.
++ *  \return void
++ */
++void GalleryView::LoadData()
++{
++    ResetImageItems();
++
++    m_imageText->SetText("Loading available images...");
++    m_imageText->SetVisible(true);
++    m_imageList->SetVisible(false);
++
++    // loads the data from the database at the specified path
++    int status = m_galleryViewHelper->LoadData();
++
++    switch (status)
++    {
++    case kStatusNoBaseDir:
++        m_imageText->SetText("No image storage group has been defined.\n"
++                             "Please check the stoage group settings\n"
++                             "and the directory permissions.");
++        break;
++    case kStatusNoFiles:
++        m_imageText->SetText("No images in the database found.\n"
++                             "You need to scan for new images.");
++        break;
++    case kStatusOk:
++        m_imageText->SetText("");
++        m_imageText->SetVisible(false);
++        m_imageList->SetVisible(true);
++
++        // set the first node as the selected node
++        m_galleryViewHelper->m_currentNode->setSelectedChild(m_galleryViewHelper->m_currentNode->getChildAt(0));
++
++        // loads the data from the MythGenericTree into the image list
++        UpdateImageList();
++        break;
++    }
++}
++
++
++
++/** \fn     GalleryView::UpdateImageList()
++ *  \brief  Updates the visible items
++ *  \return void
++ */
++void GalleryView::UpdateImageList()
++{
++    m_imageList->Reset();
++
++    // get all children from the the selected node
++    MythGenericTree *selectedNode = m_galleryViewHelper->m_currentNode->getSelectedChild();
++    QList<MythGenericTree *> *childs = m_galleryViewHelper->m_currentNode->getAllChildren();
++
++    // go through the entire list and update
++    QList<MythGenericTree *>::const_iterator it;
++    for (it = childs->begin(); it != childs->end(); ++it)
++    {
++        if (*it != NULL)
++        {
++            MythUIButtonListItem *item = new MythUIButtonListItem(
++                    m_imageList, QString(), 0,
++                    true, MythUIButtonListItem::NotChecked);
++            item->SetData(qVariantFromValue(*it));
++
++            // assign and display all information about
++            // the current item, like title and subdirectory count
++            UpdateImageItem(item);
++
++            // set the currently active node as selected in the image list
++            if (*it == selectedNode)
++                m_imageList->SetItemCurrent(item);
++        }
++    }
++
++    // when the UpdateImageItem method is called the current node will also
++    // be set to the current image item. After updating all items in the
++    // image list we need to set the current node back to the on it was before
++    m_galleryViewHelper->m_currentNode->setSelectedChild(selectedNode);
++
++    // Updates all other widgets on the screen that show
++    // information about the selected MythUIButtonListItem
++    UpdateText(m_imageList->GetItemCurrent());
++}
++
++
++
++/** \fn     GalleryView::UpdateImageItem(MythUIButtonListItem *)
++ *  \brief  Updates the visible representation of a MythUIButtonListItem
++ *  \param  item The item that shall be updated
++ *  \return void
++ */
++void GalleryView::UpdateImageItem(MythUIButtonListItem *item)
++{
++    if (!item)
++        return;
++
++    MythGenericTree *node = item->GetData().value<MythGenericTree *>();
++    if (!node)
++        return;
++
++    // update the position in the node list
++    m_galleryViewHelper->m_currentNode->setSelectedChild(node);
++
++    ImageMetadata *im = qVariantValue<ImageMetadata *>(node->GetData());
++    if (!im)
++        return;
++
++    // Depending what the themer has done, display a small
++    // icon that shows if the current item is a file or a folder
++    // Also show an additional background image if required. This is
++    // primarily useful when the item is a folder and a folder background
++    // image shall be shown behind the small preview thumbnail images
++    switch (im->m_type)
++    {
++    case kSubDirectory:
++
++        item->SetText(QString::number(im->m_dirCount), "childcount");
++
++        if (im->m_fileCount > 0)
++            item->SetText(QString("%1/%2")
++                          .arg(im->m_dirCount)
++                          .arg(im->m_fileCount), "childcount");
++
++        item->DisplayState("subfolder", "nodetype");
++        break;
++
++    case kUpDirectory:
++        item->DisplayState("upfolder", "nodetype");
++        break;
++
++    case kImageFile:
++        item->DisplayState("image", "nodetype");
++        break;
++
++    case kVideoFile:
++        item->DisplayState("video", "nodetype");
++        break;
++
++    default:
++        break;
++    }
++
++    // set the image as hidden or visible
++    QString state = (im->m_isHidden) ? "hidden" : "visible";
++    item->DisplayState(state, "nodevisibility");
++
++    item->SetText(im->m_name, "title");
++    item->SetText(im->m_name);
++
++    // set the image as selected
++    item->setChecked(MythUIButtonListItem::NotChecked);
++    item->DisplayState("off", "nodecheck");
++    if (im->m_selected)
++    {
++        item->setChecked(MythUIButtonListItem::FullChecked);
++        item->DisplayState("full", "nodecheck");
++    }
++
++    // update the other widgets in the screen
++    if (item == m_imageList->GetItemCurrent())
++        UpdateText(item);
++
++    // set the thumbnail image
++    UpdateThumbnail(item);
++}
++
++
++
++/** \fn     GalleryView::UpdateThumbnail(MythUIButtonListItem *)
++ *  \brief  Updates the thumbnail image of the current item
++ *  \param  item The item that shall be updated
++ *  \return void
++ */
++void GalleryView::UpdateThumbnail(MythUIButtonListItem *item)
++{
++    if (!item)
++        return;
++
++    ImageMetadata *im = GetImageMetadataFromButton(item);
++    if (!im)
++        return;
++
++    if (im->m_type == kUpDirectory || im->m_type == kSubDirectory)
++    {
++        for (int i = 0; i < im->m_thumbFileNameList->size(); ++i)
++        {
++            item->SetImage(im->m_thumbFileNameList->at(i),
++                           QString("thumbimage%1").arg(i+1));
++        }
++    }
++    else
++    {
++        item->SetImage(im->m_thumbFileNameList->at(0));
++    }
++}
++
++
++
++/** \fn     GalleryView::UpdateThumbnail(ImageMetadata *, int)
++ *  \brief  Updates the thumbnail image of an image or
++ *          folder which contains the given image metadata
++ *  \param  item The item that shall be updated
++ *  \param  id The thumbnail id that shall be used,
++ *          there are 4 ids when the item is a folder
++ *  \return void
++ */
++void GalleryView::UpdateThumbnail(ImageMetadata *thumbImageMetadata, int id)
++{
++    // get through the entire list of image items and find
++    // the filename that matches the created thumbnail filename
++    for (int i = 0; i < m_imageList->GetCount(); i++)
++    {
++        MythUIButtonListItem *item = m_imageList->GetItemAt(i);
++        if (!item)
++            continue;
++
++        ImageMetadata *im = GetImageMetadataFromButton(item);
++        if (!im)
++            continue;
++
++        // Set the thumbnail image if the thumbnail
++        // image names at the given index are the same
++        if (thumbImageMetadata->m_thumbFileNameList->at(id).compare(
++                    im->m_thumbFileNameList->at(id)) == 0)
++        {
++            // Set the images for the four thumbnail image widgets in case
++            // the node is a folder. Otherwise set the buttonimage widget.
++            if (im->m_type == kUpDirectory ||
++                im->m_type == kSubDirectory)
++            {
++                item->SetImage(thumbImageMetadata->m_thumbFileNameList->at(id),
++                               QString("thumbimage%1").arg(id+1));
++            }
++            else
++            {
++                item->SetImage(thumbImageMetadata->m_thumbFileNameList->at(0));
++            }
++            break;
++        }
++    }
++}
++
++
++
++/** \fn     GalleryView::ResetThumbnailProgress()
++ *  \brief  Resets the status of the progress text
++ *  \return void
++ */
++void GalleryView::ResetThumbnailProgress()
++{
++    if (m_thumbProgressText)
++        m_thumbProgressText->SetVisible(false);
++}
++
++
++
++/** \fn     GalleryView::ResetSyncProgress()
++ *  \brief  Resets the status of the progress text
++ *  \return void
++ */
++void GalleryView::ResetSyncProgress()
++{
++    if (m_syncProgressText)
++        m_syncProgressText->SetVisible(false);
++
++    LoadData();
++}
++
++
++
++/** \fn     GalleryView::UpdateThumbnailProgress(int, int)
++ *  \brief  Updates the dialog that shows the thumbnail creation progress
++ *  \param  remaining The number of thumbnail still to be created
++ *  \param  total The overall number of thumbnail that will be created
++ *  \return void
++ */
++void GalleryView::UpdateThumbnailProgress(int remaining, int total)
++{
++    int current = total - remaining;
++
++    if (m_thumbProgressText)
++    {
++        m_thumbProgressText->SetVisible(true);
++        m_thumbProgressText->SetText(QString("%1 %2 %3")
++                                     .arg(current)
++                                     .arg(tr("of"))
++                                     .arg(total));
++    }
++}
++
++
++
++/** \fn     GalleryView::UpdateSyncProgress(int, int)
++ *  \brief  Updates the widget that shows the sync progress
++ *  \param  remaining The number of images still to be synced
++ *  \param  total The overall number of images that will be synced
++ *  \return void
++ */
++void GalleryView::UpdateSyncProgress(int current, int total)
++{
++    if (m_syncProgressText)
++    {
++        m_syncProgressText->SetVisible(true);
++        m_syncProgressText->SetText(QString("%1 %2 %3")
++                                     .arg(current)
++                                     .arg(tr("of"))
++                                     .arg(total));
++    }
++}
++
++
++
++/** \fn     GalleryView::UpdateText(MythUIButtonListItem *)
++ *  \brief  Updates all other widgets on the screen that show
++ *          information about the selected MythUIButtonListItem.
++ *  \param  item The item that shall be updated
++ *  \return void.
++ */
++void GalleryView::UpdateText(MythUIButtonListItem *item)
++{
++    ImageMetadata *im = GetImageMetadataFromButton(item);
++    if (im)
++    {
++        // show the name of the image
++        if (m_captionText)
++            m_captionText->SetText(im->m_name);
++
++        // show the position of the image
++        if (m_positionText)
++            m_positionText->SetText(QString("%1 of %2")
++                                    .arg(m_imageList->GetCurrentPos()+1)
++                                    .arg(m_imageList->GetCount()));
++
++        // show the path of the image
++        if (m_crumbsText)
++            m_crumbsText->SetText(im->m_path);
++    }
++}
++
++
++
++/** \fn     GalleryView::ConfirmStartSync()
++ *  \brief  Shows a confirmation dialog so the user can confirm his request
++ *  \return void
++ */
++void GalleryView::ConfirmStartSync()
++{
++    QString msg = QString("Do you really want to synchronize?\n"
++                          "This could take some time.");
++    m_confirmPopup = new MythConfirmationDialog(m_popupStack, msg, true);
++
++    if (m_confirmPopup->Create())
++    {
++        m_confirmPopup->SetReturnEvent(this, "confirmstartsync");
++        m_popupStack->AddScreen(m_confirmPopup);
++    }
++    else
++        delete m_confirmPopup;
++}
++
++
++
++/** \fn     GalleryView::ConfirmStopSync()
++ *  \brief  Shows a confirmation dialog so the user can confirm his request
++ *  \return void
++ */
++void GalleryView::ConfirmStopSync()
++{
++    QString msg = QString("The syncronization of the images with the database "
++                          "is still running. Do you want to stop it or let it "
++                          "run in the background until its complete?");
++    m_confirmPopup = new MythConfirmationDialog(m_popupStack, msg, true);
++    if (m_confirmPopup->Create())
++    {
++        m_confirmPopup->SetReturnEvent(this, "confirmstopsync");
++        m_popupStack->AddScreen(m_confirmPopup);
++    }
++    else
++        delete m_confirmPopup;
++}
++
++
++
++/** \fn     GalleryView::MenuInformation()
++ *  \brief  Shows the menu when the INFO key was pressed
++ *  \return void
++ */
++void GalleryView::MenuInformation()
++{
++    QString label = tr("Image Information");
++    MythMenu *menu = new MythMenu(label, this, "infomenu");
++
++    // only show the slideshow options and details menu when
++    // the item is a video or image file
++    ImageMetadata *im = GetImageMetadataFromSelectedButton();
++    if (im)
++    {
++        if (im->m_type == kImageFile ||
++            im->m_type == kVideoFile)
++        {
++            menu->AddItem(tr("Normal SlideShow"), SLOT(ShowFiles()));
++            menu->AddItem(tr("Random Slideshow"), SLOT(ShowRandomFiles()));
++        }
++
++        if (im->m_type == kImageFile)
++            menu->AddItem(tr("Show Details"), SLOT(FileDetails()));
++    }
++
++    m_menuPopup = new MythDialogBox(menu, m_popupStack, "menuPopup");
++    if (!m_menuPopup->Create())
++    {
++        delete m_menuPopup;
++        m_menuPopup = NULL;
++        return;
++    }
++
++    m_popupStack->AddScreen(m_menuPopup);
++}
++
++
++
++/** \fn     GalleryView::MenuMain()
++ *  \brief  Shows the main menu when the MENU button was pressed
++ *  \return void
++ */
++void GalleryView::MenuMain()
++{
++    // Create the main menu that
++    // will contain the submenus above
++    MythMenu *menu = new MythMenu(tr("Image Options"), this, "mainmenu");
++
++    // Depending on the status of the sync show either the
++    // start sync or stop sync. The user can decide if he
++    // wants to stop the sync before leaving the main screen.
++    if (!m_syncStatusThread->isSyncRunning())
++        menu->AddItem(tr("Start Syncronization"), SLOT(ConfirmStartSync()));
++    else
++        menu->AddItem(tr("Stop Syncronization"), SLOT(ConfirmStopSync()));
++
++    // Add the available submenus to the main menu. The methods will
++    // check if the requirements for showing the menu item is fulfilled
++    MenuMetadata(menu);
++    MenuSelection(menu);
++    MenuFile(menu);
++
++    menu->AddItem(tr("Settings"), SLOT(MenuSettings()));
++
++    m_menuPopup = new MythDialogBox(menu, m_popupStack, "menuPopup");
++    if (!m_menuPopup->Create())
++    {
++        delete m_menuPopup;
++        m_menuPopup = NULL;
++        return;
++    }
++
++    m_popupStack->AddScreen(m_menuPopup);
++}
++
++
++
++/** \fn     GalleryView::MenuMetadata(MythMenu *)
++ *  \brief  Adds a new metadata menu entry into the main menu
++ *  \param  mainMenu Parent that will hold the menu entry
++ *  \return void
++ */
++void GalleryView::MenuMetadata(MythMenu *mainMenu)
++{
++    ImageMetadata *im = GetImageMetadataFromSelectedButton();
++    if (im)
++    {
++        // only show the metadata menu
++        // if the current item is an image
++        if (im->m_type == kImageFile)
++        {
++            MythMenu *menu = new MythMenu(tr("Metadata Options"),
++                                          this, "metadatamenu");
++
++            menu->AddItem(tr("Rotate CW"), SLOT(FileRotateCW()));
++            menu->AddItem(tr("Rotate CCW"), SLOT(FileRotateCCW()));
++            menu->AddItem(tr("Flip Horizontal"), SLOT(FileFlipHorizontal()));
++            menu->AddItem(tr("Flip Vertical"), SLOT(FileFlipVertical()));
++            menu->AddItem(tr("Zoom In"), SLOT(FileZoomIn()));
++            menu->AddItem(tr("Zoom Out"), SLOT(FileZoomOut()));
++
++            mainMenu->AddItem(tr("Meta Data Menu"), NULL, menu);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryView::MenuFile(MythMenu *)
++ *  \brief  Adds a new file menu entry into the main menu
++ *  \param  mainMenu Parent that will hold the menu entry
++ *  \return void
++ */
++void GalleryView::MenuFile(MythMenu *mainMenu)
++{
++    ImageMetadata *im = GetImageMetadataFromSelectedButton();
++    if (im)
++    {
++        // There are no options available for up folders
++        // They are just there to navigate one level up
++        if (im->m_type == kUpDirectory)
++            return;
++
++        QString type = "Directory";
++        if (im->m_type == kImageFile ||
++            im->m_type == kVideoFile)
++            type = "File";
++
++        MythMenu *menu = new MythMenu(tr("%1 Options").arg(type),
++                                      this, "fileactionmenu");
++
++        // Allow renaming and deletion only for files
++        if (im->m_type == kImageFile ||
++            im->m_type == kVideoFile)
++        {
++            menu->AddItem(tr("Delete File"),
++                          SLOT(ConfirmFileDelete()));
++            menu->AddItem(tr("Delete Selected Files"),
++                          SLOT(ConfirmFileDeleteSelected()));
++            menu->AddItem(tr("Rename File"),
++                          SLOT(FileRenameInput()));
++        }
++
++        if (im->m_isHidden)
++            menu->AddItem(tr("Unhide %1").arg(type), SLOT(FileUnhide()));
++        else
++            menu->AddItem(tr("Hide %1").arg(type), SLOT(FileHide()));
++
++        mainMenu->AddItem(tr("File Menu"), NULL, menu);
++    }
++}
++
++
++
++/** \fn     GalleryView::MenuSelection(MythMenu *)
++ *  \brief  Adds a new selection menu entry into the main menu
++ *  \param  mainMenu Parent that will hold the menu entry
++ *  \return void
++ */
++void GalleryView::MenuSelection(MythMenu *mainMenu)
++{
++    ImageMetadata *im = GetImageMetadataFromSelectedButton();
++    if (im)
++    {
++        // Selection / deselection is only
++        // available for images or videos
++        if (im->m_type == kImageFile ||
++            im->m_type == kVideoFile)
++        {
++            MythMenu *menu = new MythMenu(tr("Selection Options"),
++                                          this, "selectionmenu");
++
++            if (!im->m_selected)
++                menu->AddItem(tr("Select File"),
++                              SLOT(FileSelectOne()));
++            else
++                menu->AddItem(tr("Deselect File"),
++                              SLOT(FileDeselectOne()));
++
++            menu->AddItem(tr("Select All Files"), SLOT(FileSelectAll()));
++            menu->AddItem(tr("Deselect All Files"), SLOT(FileDeselectAll()));
++            menu->AddItem(tr("Invert Selection"), SLOT(FileInvertAll()));
++
++            mainMenu->AddItem(tr("Selection Menu"), NULL, menu);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryView::MenuSettings(MythMenu *)
++ *  \brief  Adds a new settings menu entry into the main menu
++ *  \param  mainMenu Parent that will hold the menu entry
++ *  \return void
++ */
++void GalleryView::MenuSettings()
++{
++    GalleryConfig *config = new GalleryConfig(m_mainStack, "galleryconfig");
++    connect(config, SIGNAL(configSaved()), this, SLOT(LoadData()));
++
++    if (config->Create())
++    {
++        m_mainStack->AddScreen(config);
++    }
++    else
++        delete config;
++}
++
++
++
++/** \fn     GalleryView::ItemSelect(MythUIButtonListItem *)
++ *  \brief  A new MythUIButtonListItem has been selected
++ *  \param  item The given button item that has been selected
++ *  \return void
++ */
++void GalleryView::ItemSelected(MythUIButtonListItem *item)
++{
++    if (!item)
++        return;
++
++    ImageMetadata *dm = GetImageMetadataFromButton(item);
++    if (!dm)
++        return;
++
++    switch (dm->m_type)
++    {
++    case kSubDirectory:
++        DirSelectDown();
++        break;
++    case kUpDirectory:
++        DirSelectUp();
++        break;
++    case kImageFile:
++        ShowFile();
++        break;
++    case kVideoFile:
++        ShowFile();
++        break;
++    default:
++        break;
++    };
++}
++
++
++
++/** \fn     GalleryView::ShowFiles()
++ *  \brief  Starts a slideshow with the images in normal order
++ *  \return void
++ */
++void GalleryView::ShowFiles()
++{
++    GalleryWidget *widget = ShowFile();
++
++    if (widget)
++        widget->StartNormalSlideShow();
++}
++
++
++
++/** \fn     GalleryView::ShowFiles()
++ *  \brief  Starts a slide show with the images in random order
++ *  \return void
++ */
++void GalleryView::ShowRandomFiles()
++{
++    GalleryWidget *widget = ShowFile();
++
++    if (widget)
++        widget->StartRandomSlideShow();
++}
++
++
++
++/** \fn     GalleryView::ShowFile()
++ *  \brief  Creates the window that will show the images and slideshows
++ *  \return The created window or NULL
++ */
++GalleryWidget* GalleryView::ShowFile()
++{
++    GalleryWidget *widget = new GalleryWidget(m_mainStack, "gallerywidget", m_galleryViewHelper);
++    if (widget->Create())
++    {
++        ResetThumbnailProgress();
++        m_mainStack->AddScreen(widget);
++        widget->LoadFile();
++    }
++    else
++    {
++        delete widget;
++        widget = NULL;
++    }
++
++    return widget;
++}
++
++
++
++/** \fn     GalleryView::DirSelectUp()
++ *  \brief  Goes up one directory level
++ *  \return void
++ */
++bool GalleryView::DirSelectUp()
++{
++    // Set the first node (upfolder) active
++    m_galleryViewHelper->m_currentNode->setSelectedChild(m_galleryViewHelper->m_currentNode->getChildAt(0));
++
++    // Get the data and with it the kUpFolder directory node
++    int id = m_galleryViewHelper->GetImageMetadataFromSelectedNode()->m_id;
++
++    m_galleryViewHelper->LoadTreeData();
++    ResetThumbnailProgress();
++    UpdateImageList();
++
++    // Go through the entire list of image items and find
++    // the directory id that matches the saved directory id
++    for (int i = 0; i < m_imageList->GetCount(); i++)
++    {
++        MythUIButtonListItem *item = m_imageList->GetItemAt(i);
++        if (!item)
++            continue;
++
++        ImageMetadata *data = GetImageMetadataFromButton(item);
++        if (!data)
++            continue;
++
++        if (data->m_id == id)
++        {
++            m_imageList->SetItemCurrent(item);
++            break;
++        }
++    }
++
++    return true;
++}
++
++
++
++/** \fn     GalleryView::DirSelectDown()
++ *  \brief  Goes one directory level down
++ *  \return void
++ */
++void GalleryView::DirSelectDown()
++{
++    m_galleryViewHelper->LoadTreeData();
++    m_galleryViewHelper->m_currentNode->setSelectedChild(m_galleryViewHelper->m_currentNode->getChildAt(0));
++
++    ResetThumbnailProgress();
++    UpdateImageList();
++}
++
++
++
++/** \fn     GalleryView::FileSelectOne()
++ *  \brief  Marks a single file as selected
++ *  \return void
++ */
++void GalleryView::FileSelectOne()
++{
++    MythUIButtonListItem *item = m_imageList->GetItemCurrent();
++    if (!item)
++        return;
++
++    m_galleryViewHelper->SetNodeSelectionState(kNodeStateSelect, false);
++    UpdateImageItem(item);
++}
++
++
++
++/** \fn     GalleryView::FileSelectOne()
++ *  \brief  Marks a single file as not selected
++ *  \return void
++ */
++void GalleryView::FileDeselectOne()
++{
++    MythUIButtonListItem *item = m_imageList->GetItemCurrent();
++    if (!item)
++        return;
++
++    m_galleryViewHelper->SetNodeSelectionState(kNodeStateDeselect, false);
++    UpdateImageItem(item);
++}
++
++
++
++/** \fn     GalleryView::FileSelectOne()
++ *  \brief  Marks all files as selected
++ *  \return void
++ */
++void GalleryView::FileSelectAll()
++{
++    m_galleryViewHelper->SetNodeSelectionState(kNodeStateSelect, true);
++    UpdateImageList();
++}
++
++
++
++/** \fn     GalleryView::FileDeselectAll()
++ *  \brief  Marks all files as not selected
++ *  \return void
++ */
++void GalleryView::FileDeselectAll()
++{
++    m_galleryViewHelper->SetNodeSelectionState(kNodeStateDeselect, true);
++    UpdateImageList();
++}
++
++
++
++/** \fn     GalleryView::FileInvertAll()
++ *  \brief  Inverts the current selection for all files
++ *  \return void
++ */
++void GalleryView::FileInvertAll()
++{
++    m_galleryViewHelper->SetNodeSelectionState(kNodeStateInvert, true);
++    UpdateImageList();
++}
++
++
++
++/** \fn     GalleryView::FileRotateCW()
++ *  \brief  Rotates the selected file 90 clockwise.
++ *          The thumbnail will also be updated.
++ *  \return void
++ */
++void GalleryView::FileRotateCW()
++{
++    MythUIButtonListItem *item = m_imageList->GetItemCurrent();
++    if (!item)
++        return;
++
++    m_galleryViewHelper->SetFileOrientation(kFileRotateCW);
++    UpdateImageItem(item);
++}
++
++
++
++/** \fn     GalleryView::FileRotateCCW()
++ *  \brief  Rotates the selected file 90 counter clockwise.
++ *          The thumbnail will also be updated.
++ *  \return void
++ */
++void GalleryView::FileRotateCCW()
++{
++    MythUIButtonListItem *item = m_imageList->GetItemCurrent();
++    if (!item)
++        return;
++
++    m_galleryViewHelper->SetFileOrientation(kFileRotateCCW);
++    UpdateImageItem(item);
++}
++
++
++
++/** \fn     GalleryView::FileFlipHorizontal()
++ *  \brief  Flips the file horizontally.
++ *          The thumbnail will also be updated.
++ *  \return void
++ */
++void GalleryView::FileFlipHorizontal()
++{
++    MythUIButtonListItem *item = m_imageList->GetItemCurrent();
++    if (!item)
++        return;
++
++    m_galleryViewHelper->SetFileOrientation(kFileFlipHorizontal);
++    UpdateImageItem(item);
++}
++
++
++
++/** \fn     GalleryView::FileFlipVertical()
++ *  \brief  Flips the file vertically.
++ *          The thumbnail will also be updated.
++ *  \return void
++ */
++void GalleryView::FileFlipVertical()
++{
++    MythUIButtonListItem *item = m_imageList->GetItemCurrent();
++    if (!item)
++        return;
++
++    m_galleryViewHelper->SetFileOrientation(kFileFlipVertical);
++    UpdateImageItem(item);
++}
++
++
++
++/** \fn     GalleryView::FileZoomIn()
++ *  \brief  Zooms into the file. The thumbnail will also be updated.
++ *  \return void
++ */
++void GalleryView::FileZoomIn()
++{
++    MythUIButtonListItem *item = m_imageList->GetItemCurrent();
++    if (!item)
++        return;
++
++    m_galleryViewHelper->SetFileZoom(kFileZoomIn);
++    UpdateImageItem(item);
++}
++
++
++
++/** \fn     GalleryView::FileZoomOut()
++ *  \brief  Zooms out of the file. The thumbnail will also be updated.
++ *  \return void
++ */
++void GalleryView::FileZoomOut()
++{
++    MythUIButtonListItem *item = m_imageList->GetItemCurrent();
++    if (!item)
++        return;
++
++    m_galleryViewHelper->SetFileZoom(kFileZoomOut);
++    UpdateImageItem(item);
++}
++
++
++
++/** \fn     GalleryView::FileHide()
++ *  \brief  Marks the file as hidden and hides it from the visible image list
++ *  \return void
++ */
++void GalleryView::FileHide()
++{
++    m_galleryViewHelper->SetNodeVisibilityState(kNodeStateInvisible);
++    UpdateImageList();
++}
++
++
++
++/** \fn     GalleryView::FileHide()
++ *  \brief  Marks the file as visible and unhides it from the visible image list
++ *  \return void
++ */
++void GalleryView::FileUnhide()
++{
++    m_galleryViewHelper->SetNodeVisibilityState(kNodeStateVisible);
++    UpdateImageList();
++}
++
++
++
++/** \fn     GalleryView::ConfirmFileDelete()
++ *  \brief  Shows a confirmation dialog before
++ *          the user can delete a single file
++ *  \return void
++ */
++void GalleryView::ConfirmFileDelete()
++{
++    // Create a confirmation dialog to confirm the file deletion
++    // of the currently selected image. This is only a safety precausion.
++    ImageMetadata *data = GetImageMetadataFromSelectedButton();
++    if (!data)
++        return;
++
++    QString msg = QString("Do you want to delete '\n%1'").arg(data->m_name);
++    m_confirmPopup = new MythConfirmationDialog(m_popupStack, msg, true);
++
++    if (m_confirmPopup->Create())
++    {
++        m_confirmPopup->SetReturnEvent(this, "confirmdelete");
++        m_popupStack->AddScreen(m_confirmPopup);
++    }
++    else
++        delete m_confirmPopup;
++}
++
++
++
++/** \fn     GalleryView::ConfirmFileDeleteSelected()
++ *  \brief  Shows a confirmation dialog before the
++ *          user can delete all selected files
++ *  \return void
++ */
++void GalleryView::ConfirmFileDeleteSelected()
++{
++    QString msg = QString("Do you want to delete all selected files");
++    m_confirmPopup = new MythConfirmationDialog(m_popupStack, msg, true);
++
++    if (m_confirmPopup->Create())
++    {
++        m_confirmPopup->SetReturnEvent(this, "confirmdeleteselected");
++        m_popupStack->AddScreen(m_confirmPopup);
++    }
++    else
++        delete m_confirmPopup;
++}
++
++
++
++/** \fn     GalleryView::FileDelete()
++ *  \brief  Deletes a single file
++ *  \return void
++ */
++void GalleryView::FileDelete()
++{
++    m_galleryViewHelper->DeleteCurrentNode();
++    UpdateImageList();
++}
++
++
++
++/** \fn     GalleryView::FileDeleteSelected()
++ *  \brief  Deletes all selected files
++ *  \return void
++ */
++void GalleryView::FileDeleteSelected()
++{
++    m_galleryViewHelper->DeleteSelectedNodes();
++    UpdateImageList();
++}
++
++
++
++/** \fn     GalleryView::FileRenameInput()
++ *  \brief  Shows a popup where the user can enter a new filename
++ *  \return void
++ */
++void GalleryView::FileRenameInput()
++{
++    ImageMetadata *im = GetImageMetadataFromSelectedButton();
++    if (im)
++    {
++        QString msg = QString("Enter a new name for '%1'.").arg(im->m_name);
++        m_inputPopup = new MythTextInputDialog(m_popupStack, msg,
++                                               FilterNone, false, im->m_name );
++
++        if (m_inputPopup->Create())
++        {
++            m_inputPopup->SetReturnEvent(this, "filerename");
++            m_popupStack->AddScreen(m_inputPopup);
++        }
++        else
++            delete m_inputPopup;
++    }
++}
++
++
++
++/** \fn     GalleryView::FileRename(QString &)
++ *  \brief  Renames the current filename to the new filename
++            if the new filename does not exist already.
++ *  \return void
++ */
++void GalleryView::FileRename(QString &newName)
++{
++    m_galleryViewHelper->RenameCurrentNode(newName);
++    UpdateImageList();
++}
++
++
++
++/** \fn     GalleryView::FileDetails()
++ *  \brief  Shows details about the single file
++ *  \return void
++ */
++void GalleryView::FileDetails()
++{
++    GalleryWidget *widget = ShowFile();
++
++    if (widget)
++        widget->ShowFileDetails();
++}
++
++
++
++/** \fn     GalleryView::GetImageMetadataFromSelectedButton()
++ *  \brief  Returns the data of the currently selected image list item
++ *  \return ImageMetadata
++ */
++ImageMetadata *GalleryView::GetImageMetadataFromSelectedButton()
++{
++    MythUIButtonListItem *item = m_imageList->GetItemCurrent();
++    if (!item)
++        return NULL;
++
++    MythGenericTree *node = item->GetData().value<MythGenericTree *>();
++    if (!node)
++        return NULL;
++
++    ImageMetadata *data = qVariantValue<ImageMetadata *>(node->GetData());
++    if (!data)
++        return NULL;
++
++    return data;
++}
++
++
++
++/** \fn     GalleryView::GetImageMetadataFromButton(MythUIButtonListItem *)
++ *  \brief  Returns the data of the given image list item
++ *  \param  item The given image list item
++ *  \return ImageMetadata
++ */
++ImageMetadata *GalleryView::GetImageMetadataFromButton(MythUIButtonListItem *item)
++{
++    if (!item)
++        return NULL;
++
++    MythGenericTree *node = item->GetData().value<MythGenericTree *>();
++    if (!node)
++        return NULL;
++
++    ImageMetadata *data = qVariantValue<ImageMetadata *>(node->GetData());
++    if (!data)
++        return NULL;
++
++    return data;
++}
+diff --git a/mythtv/programs/mythfrontend/galleryview.h b/mythtv/programs/mythfrontend/galleryview.h
+new file mode 100644
+index 0000000..bfa336a
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/galleryview.h
+@@ -0,0 +1,116 @@
++#ifndef GALLERYVIEW_H
++#define GALLERYVIEW_H
++
++// Qt headers
++#include <QStringList>
++
++// MythTV headers
++#include "mythscreentype.h"
++#include "mythuitext.h"
++#include "mythuibuttonlist.h"
++#include "mythuiimage.h"
++#include "mythdialogbox.h"
++#include "mythprogressdialog.h"
++#include "mythuitextedit.h"
++#include "imagemetadata.h"
++
++#include "galleryviewhelper.h"
++#include "gallerywidget.h"
++
++
++
++class GalleryView : public MythScreenType
++{
++    Q_OBJECT
++
++public:
++    GalleryView(MythScreenStack *parent, const char *name);
++    ~GalleryView();
++    bool Create();
++
++    GalleryViewHelper     *m_galleryViewHelper;
++
++public slots:
++    void LoadData();
++    void UpdateThumbnail(ImageMetadata *, int);
++    void ResetThumbnailProgress();
++    void UpdateThumbnailProgress(int, int);
++
++    void ResetSyncProgress();
++    void UpdateSyncProgress(int, int);
++
++private:
++    bool keyPressEvent(QKeyEvent *);
++    void customEvent(QEvent*);
++    void UpdateImageList();
++    void ResetImageItems();
++
++private slots:
++    void ItemSelected(MythUIButtonListItem *);
++    void UpdateImageItem(MythUIButtonListItem *);
++    void UpdateText(MythUIButtonListItem *);
++    void UpdateThumbnail(MythUIButtonListItem *);
++
++    void MenuMain();
++    void MenuInformation();
++    void MenuMetadata(MythMenu *);
++    void MenuSelection(MythMenu *);
++    void MenuFile(MythMenu *);
++    void MenuSettings();
++
++    void ShowFiles();
++    void ShowRandomFiles();
++    GalleryWidget* ShowFile();
++
++    bool DirSelectUp();
++    void DirSelectDown();
++
++    void FileDetails();
++    void FileRotateCW();
++    void FileRotateCCW();
++    void FileFlipHorizontal();
++    void FileFlipVertical();
++    void FileZoomIn();
++    void FileZoomOut();
++    void FileSelectOne();
++    void FileDeselectOne();
++    void FileSelectAll();
++    void FileDeselectAll();
++    void FileInvertAll();
++    void FileHide();
++    void FileUnhide();
++    void FileDelete();
++    void FileDeleteSelected();
++    void FileRenameInput();
++    void FileRename(QString &);
++
++    void ConfirmStartSync();
++    void ConfirmStopSync();
++    void ConfirmFileDelete();
++    void ConfirmFileDeleteSelected();
++
++private:
++    ImageMetadata         *GetImageMetadataFromSelectedButton();
++    ImageMetadata         *GetImageMetadataFromButton(MythUIButtonListItem *item);
++
++    GallerySyncStatusThread     *m_syncStatusThread;
++
++    // used to show the menus and other popups
++    MythDialogBox           *m_menuPopup;
++    MythConfirmationDialog  *m_confirmPopup;
++    MythTextInputDialog     *m_inputPopup;
++    MythScreenStack         *m_popupStack;
++    MythScreenStack         *m_mainStack;
++
++    MythUIButtonList   *m_imageList;
++    MythUIText         *m_captionText;
++    MythUIText         *m_crumbsText;
++    MythUIText         *m_positionText;
++    MythUIText         *m_imageText;
++    MythUIImage        *m_selectedImage;
++
++    MythUIText         *m_syncProgressText;
++    MythUIText         *m_thumbProgressText;
++};
++
++#endif // GALLERYVIEW_H
+diff --git a/mythtv/programs/mythfrontend/galleryviewhelper.cpp b/mythtv/programs/mythfrontend/galleryviewhelper.cpp
+new file mode 100644
+index 0000000..d7cac54
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/galleryviewhelper.cpp
+@@ -0,0 +1,597 @@
++// Qt headers
++#include <QFile>
++
++// MythTV headers
++#include "mythcontext.h"
++#include "storagegroup.h"
++
++#include "galleryviewhelper.h"
++
++
++
++/** \fn     GalleryViewHelper::GalleryViewHelper(MythScreenType *)
++ *  \brief  Constructor
++ *  \param  parent The screen parent
++ */
++GalleryViewHelper::GalleryViewHelper(MythScreenType *parent)
++{
++    m_parent = parent;
++
++    m_sgName    = gCoreContext->GetSetting("GalleryStorageGroupName");
++    m_sgDirList = StorageGroup::getGroupDirs(m_sgName, "");
++
++    m_dbHelper = new GalleryDatabaseHelper();
++    m_thumbGenThread = new GalleryThumbGenThread();
++    m_fileHelper  = new GalleryFileHelper();
++
++    connect(m_thumbGenThread,  SIGNAL(ThumbnailCreated(ImageMetadata *, int)),
++            m_parent, SLOT(UpdateThumbnail(ImageMetadata *, int)));
++
++    connect(m_thumbGenThread,  SIGNAL(UpdateThumbnailProgress(int, int)),
++            m_parent, SLOT(UpdateThumbnailProgress(int, int)));
++
++    connect(m_thumbGenThread,  SIGNAL(finished()),
++            m_parent, SLOT(ResetThumbnailProgress()));
++
++    // these are the node trees that hold the data and
++    // are used for navigating and finding files
++    m_currentNode = new MythGenericTree("", kBaseDirectory, false);
++
++    m_allNodesVisible = false;
++}
++
++
++
++/** \fn     GalleryViewHelper::~GalleryViewHelper()
++ *  \brief  Destructor
++ */
++GalleryViewHelper::~GalleryViewHelper()
++{
++    if (m_dbHelper)
++    {
++        delete m_dbHelper;
++        m_dbHelper = NULL;
++    }
++
++    if (m_currentNode)
++    {
++        delete m_currentNode;
++        m_currentNode = NULL;
++    }
++
++    if (m_thumbGenThread)
++    {
++        m_thumbGenThread->cancel();
++        delete m_thumbGenThread;
++        m_thumbGenThread = NULL;
++    }
++
++    if (m_fileHelper)
++    {
++        delete m_fileHelper;
++        m_fileHelper = NULL;
++    }
++}
++
++
++
++/** \fn     GalleryViewHelper::LoadData()
++ *  \brief  Checks the prerequisites are fulfilled
++ *          before the data can be loaded
++ *  \return void
++ */
++int GalleryViewHelper::LoadData()
++{
++    // clear all previously loaded data
++    m_currentNode->deleteAllChildren();
++
++    // get the base directories and check if they are valid
++    if (m_sgDirList.isEmpty())
++        return kStatusNoBaseDir;
++
++    // Fill the MythGenericTree with the data of the first level
++    // This method will be called recursively to further fill the tree
++    LoadTreeData();
++
++    // check if there is any data in the database
++    if (m_currentNode->childCount() == 0)
++        return kStatusNoFiles;
++
++    return kStatusOk;
++}
++
++
++/** \fn     GalleryViewHelper::LoadTreeData()
++ *  \brief  Load all available data from the database and populates the tree.
++ *  \return void
++ */
++void GalleryViewHelper::LoadTreeData()
++{
++    QList<ImageMetadata *> *dirList = new QList<ImageMetadata *>;
++    QList<ImageMetadata *> *fileList = new QList<ImageMetadata *>;
++
++    // Stop generating thumbnails
++    // when a new directory is loaded
++    m_thumbGenThread->cancel();
++
++    // The parent id is the database index of the
++    // directories which subdirectories and files shall be loaded
++    int id = 0;
++
++    // Get the selected node. If there is no data available then the
++    // plugin has been started for the first time, a synchronization
++    // request was made or the settings have changed. In this case
++    // use default parent id of the storage group directories.
++    ImageMetadata *im = GetImageMetadataFromSelectedNode();
++    if (im)
++    {
++        if (im->m_type == kUpDirectory)
++            id = im->m_parentId;
++
++        if (im->m_type == kSubDirectory)
++            id = im->m_id;
++    }
++
++    // The data from the selected node has used.
++    // Clear the list so that it can be populated with new data.
++    m_currentNode->deleteAllChildren();
++
++    // If the parentId is not one of the directories in the storage group
++    // then add a additional directory at the beginning of the list that
++    // is of the type kUpDirectory so that the user can navigate one level up.
++    if (!m_dbHelper->GetStorageDirIDs(m_sgDirList).contains(id))
++    {
++        m_dbHelper->LoadParentDirectory(dirList, id);
++        LoadTreeNodeData(dirList, m_currentNode);
++    }
++
++    m_dbHelper->LoadDirectories(dirList, id);
++    LoadTreeNodeData(dirList, m_currentNode);
++
++    // Load all files with the specified sorting criterias
++    m_dbHelper->LoadFiles(fileList, id);
++    LoadTreeNodeData(fileList, m_currentNode);
++
++    // Start generating thumbnails if required
++    m_thumbGenThread->start();
++
++    // clean up
++    if (dirList)
++        delete dirList;
++
++    if (fileList)
++        delete fileList;
++}
++
++
++
++/** \fn     GalleryViewHelper::LoadNodeTreeData(QList<ImageMetadata *> *, MythGenericTree *)
++ *  \brief  Creates a new generic tree with the information from the database
++ *  \param  list The list with the database file information
++ *  \param  tree The tree that will be populated and shown
++ *  \return void
++ */
++void GalleryViewHelper::LoadTreeNodeData(QList<ImageMetadata *> *list,
++                                       MythGenericTree *tree)
++{
++    // Add all items in the list to the tree
++    for (int i = 0; i < list->size(); ++i)
++    {
++        ImageMetadata *im = list->at(i);
++        if (im)
++        {
++            m_thumbGenThread->AddToThumbnailList(im);
++
++            // Create a new tree node that will hold the data
++            MythGenericTree *treeItem =
++                    new MythGenericTree(im->m_fileName,
++                                        im->m_type, true);
++
++            treeItem->SetData(qVariantFromValue<ImageMetadata *> (im));
++            tree->addNode(treeItem);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryViewHelper::RenameCurrentNode()
++ *  \brief  Renames the file that belongs to the node and updates the database
++ *  \return void
++ */
++void GalleryViewHelper::RenameCurrentNode(QString &newName)
++{
++    bool fileExist = false;
++
++    // Check if the file with the new name already exists in the current directory
++    QList<MythGenericTree *> *nodeTree = m_currentNode->getAllChildren();
++    for (int i = 0; i < nodeTree->size(); i++)
++    {
++        ImageMetadata *im = qVariantValue<ImageMetadata *>(nodeTree->at(i)->GetData());
++        if (im)
++        {
++            if (im->m_name.compare(newName) == 0)
++            {
++                fileExist = true;
++                break;
++            }
++        }
++    }
++
++    // The file with the given new name does not yet exist.
++    // Continue with the renaming of the file
++    if (!fileExist)
++    {
++        ImageMetadata *im = GetImageMetadataFromSelectedNode();
++        if (!im)
++            return;
++
++        if (m_fileHelper->RenameFile(im, newName))
++        {
++            // replace the original filename with the
++            // new one in the pull path + filename variable
++            QString newFileName = im->m_fileName.replace(im->m_name, newName);
++
++            im->m_fileName = newFileName;
++            im->m_name = newName;
++
++            m_dbHelper->UpdateData(im);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryViewHelper::DeleteCurrentNode()
++ *  \brief  Deletes the current node from the generic tree
++ *  \return void
++ */
++void GalleryViewHelper::DeleteCurrentNode()
++{
++    ImageMetadata *im = GetImageMetadataFromSelectedNode();
++    if (!im)
++        return;
++
++    // Delete the file and remove the database entry
++    if (m_fileHelper->RemoveFile(im))
++    {
++        // Remove the entry from the node list
++        m_currentNode->deleteNode(m_currentNode->getSelectedChild());
++
++        // Only remove the first thumbnail when it is an image or video.
++        // If its a folder, it will use thumbnails from other images
++        if (im->m_type == kImageFile || im->m_type == kVideoFile)
++            QFile::remove(im->m_thumbFileNameList->at(0));
++
++        m_dbHelper->RemoveFile(im);
++    }
++}
++
++
++
++/** \fn     GalleryViewHelper::DeleteSelectedNodes()
++ *  \brief  Deletes multiple selected nodes from the generic tree
++ *  \return void
++ */
++void GalleryViewHelper::DeleteSelectedNodes()
++{
++    QList<MythGenericTree *> *nodeTree = m_currentNode->getAllChildren();
++    for (int i = 0; i < nodeTree->size(); i++)
++    {
++        ImageMetadata *im = qVariantValue<ImageMetadata *>(nodeTree->at(i)->GetData());
++        if (im && im->m_selected)
++        {
++            // Delete the file and remove the
++            // database entry only if it was successful
++            if (m_fileHelper->RemoveFile(im))
++            {
++                // Only remove the first thumbnail when it is an image or video.
++                // If its a folder, it will use thumbnails from other images
++                if (im->m_type == kImageFile || im->m_type == kVideoFile)
++                    QFile::remove(im->m_thumbFileNameList->at(0));
++
++                m_dbHelper->RemoveFile(im);
++
++                // Remove the entry from the node list
++                m_currentNode->deleteNode(nodeTree->at(i));
++            }
++        }
++    }
++}
++
++
++
++/** \fn     GalleryViewHelper::SetNodeSelectionState(int, bool)
++ *  \brief  Sets either one or all nodes to the
++            nodeState that the user has specified
++ *  \param  nodeState Can be either selected or unselected
++ *  \param  allNodes Set the selection state for all nodes or not
++ *  \return void
++ */
++void GalleryViewHelper::SetNodeSelectionState(int nodeState, bool allNodes)
++{
++    if (!m_currentNode)
++        return;
++
++    if (!allNodes)
++    {
++        SetNodeSelectionState(m_currentNode->getSelectedChild(), nodeState);
++    }
++    else
++    {
++        QList<MythGenericTree *> *nodeTree = m_currentNode->getAllChildren();
++        for (int i = 0; i < nodeTree->size(); i++)
++            SetNodeSelectionState(nodeTree->at(i), nodeState);
++    }
++}
++
++
++
++/** \fn     GalleryViewHelper::SetNodeSelectionState(MythGenericTree *, int)
++ *  \brief  Sets the given node to the given nodeState
++ *  \param  node The single node that shall be changed
++ *  \param  nodeState Can be either selected or unselected
++ *  \return void
++ */
++void GalleryViewHelper::SetNodeSelectionState(MythGenericTree *node,
++                                            int nodeState)
++{
++    // set the given node as selected / unselected
++    if (node)
++    {
++        ImageMetadata *im = qVariantValue<ImageMetadata *>(node->GetData());
++
++        // Allow a selection / deselection only for images
++        if (im &&
++            im->m_type == kImageFile)
++        {
++            if (nodeState == kNodeStateSelect)
++                im->m_selected = true;
++
++            if (nodeState == kNodeStateDeselect)
++                im->m_selected = false;
++
++            if (nodeState == kNodeStateInvert)
++                im->m_selected = !im->m_selected;
++        }
++    }
++}
++
++
++
++/** \fn     GalleryViewHelper::SetNodeVisibilityState(int)
++ *  \brief  Sets the selected not either to the
++            nodeState that the user has specified
++ *  \param  nodeState Can be either visible or invisible
++ *  \return void
++ */
++void GalleryViewHelper::SetNodeVisibilityState(int nodeState)
++{
++    // set the given node as visible / invisible
++    ImageMetadata *im = GetImageMetadataFromSelectedNode();
++    if (im)
++    {
++        if (nodeState == kNodeStateVisible)
++            im->m_isHidden = false;
++
++        if (nodeState == kNodeStateInvisible)
++            im->m_isHidden = true;
++
++        m_dbHelper->UpdateData(im);
++    }
++}
++
++
++
++/** \fn     GalleryViewHelper::SetFileOrientation(int)
++ *  \brief  Saves the orientation information of the selected node
++ *  \param  fileOrientation The orientation value 1-8
++ *  \return void
++ */
++void GalleryViewHelper::SetFileOrientation(int fileOrientation)
++{
++    ImageMetadata *im = GetImageMetadataFromSelectedNode();
++    if (!im)
++        return;
++
++    int oldFileOrientation = im->GetOrientation();
++
++    // Update the orientation, the new value will
++    // be calculated with this method. This new
++    // value will then be saved in the exif header tag.
++    im->SetOrientation(fileOrientation, false);
++
++    // Update the exif tag, if that fails we can restore the original
++    // orientation so that the database and image file are not out of sync
++    if (m_fileHelper->SetImageOrientation(im))
++    {
++        m_dbHelper->UpdateData(im);
++        m_thumbGenThread->RecreateThumbnail(im);
++        m_thumbGenThread->start();
++    }
++    else
++    {
++        im->SetOrientation(oldFileOrientation, false);
++
++        LOG(VB_GENERAL, LOG_ERR,
++            QString("Could not write the angle %1 into the file %2. "
++                    "The database value has not been updated.")
++            .arg(im->GetAngle()).arg(im->m_fileName));
++    }
++}
++
++
++
++/** \fn     GalleryViewHelper::SetFileZoom(int)
++ *  \brief  Saves the zoom information of the selected node
++ *  \param  zoom The zoom value in percent
++ *  \return void
++ */
++void GalleryViewHelper::SetFileZoom(int zoom)
++{
++    ImageMetadata *im = GetImageMetadataFromSelectedNode();
++    if (!im)
++        return;
++
++    if (zoom == kFileZoomIn)
++        im->SetZoom(20);
++
++    if (zoom == kFileZoomOut)
++        im->SetZoom(-20);
++
++    m_dbHelper->UpdateData(im);
++}
++
++
++
++/** \fn     GalleryViewHelper::GetImageMetadataFromSelectedNode()
++ *  \brief  Returns the data selected node
++ *  \return ImageMetadata
++ */
++ImageMetadata *GalleryViewHelper::GetImageMetadataFromSelectedNode()
++{
++    if (!m_currentNode)
++        return NULL;
++
++    MythGenericTree *node = m_currentNode->getSelectedChild();
++    if (!node)
++        return NULL;
++
++    ImageMetadata *im = qVariantValue<ImageMetadata *>(node->GetData());
++    if (!im)
++        return NULL;
++
++    return im;
++}
++
++
++
++/** \fn     GalleryViewHelper::GetImageMetadataFromNode(MythGenericTree *)
++ *  \brief  Returns the data of the given node
++ *  \param  node The specified node that shall be used
++ *  \return ImageMetadata
++ */
++ImageMetadata *GalleryViewHelper::GetImageMetadataFromNode(MythGenericTree *node)
++{
++    if (!node)
++        return NULL;
++
++    ImageMetadata *im = qVariantValue<ImageMetadata *>(node->GetData());
++    if (!im)
++        return NULL;
++
++    return im;
++}
++
++
++
++/** \fn     GalleryViewHelper::GetImageMetadataFromNode(int)
++ *  \brief  Returns the data of the given node id
++ *  \param  id The specified node id that shall be used
++ *  \return ImageMetadata
++ */
++ImageMetadata *GalleryViewHelper::GetImageMetadataFromNode(int i)
++{
++    if (!m_currentNode)
++        return NULL;
++
++    MythGenericTree *node = m_currentNode->getChildAt(i);
++    if (!node)
++        return NULL;
++
++    ImageMetadata *im = qVariantValue<ImageMetadata *>(node->GetData());
++    if (!im)
++        return NULL;
++
++    return im;
++}
++
++
++
++/** \fn     GalleryViewHelper::SetPreviewImageSize(MythUIButtonList *)
++ *  \brief  Gets and saves the size of the shown image previews which
++ *          will be used to create thumbnails of the given dimensions.
++ *  \param  imageList The widget where the themer has specified the images sizes
++ *  \return void
++ */
++void GalleryViewHelper::SetPreviewImageSize(MythUIButtonList *imageList)
++{
++    float width  = (float)imageList->GetArea().width();
++    float height = width / ((float)imageList->ItemWidth() /
++                            (float)imageList->ItemHeight());
++
++    m_thumbGenThread->SetThumbnailSize((int)width, (int)height);
++}
++
++
++
++/** \fn     DataSyncThread::DataSyncThread()
++ *  \brief  Constructor
++ *  \return void
++ */
++GallerySyncStatusThread::GallerySyncStatusThread()
++{
++
++}
++
++/**
++ * @brief GallerySyncStatusThread::isSyncRunning
++ * @return
++ */
++bool GallerySyncStatusThread::isSyncRunning()
++{
++    GalleryFileHelper *fh = new GalleryFileHelper();
++    GallerySyncStatus status = fh->GetSyncStatus();
++
++    LOG(VB_GENERAL, LOG_DEBUG,
++        QString("GallerySyncStatusThread: Sync status is running: %1").arg(status.running));
++
++    delete fh;
++
++    return status.running;
++}
++
++/** \fn     DataSyncThread::run()
++ *  \brief  Called when the thread is started. Calls the service
++            api to start the syncing and checks the status every 2s.
++ *  \return void
++ */
++void GallerySyncStatusThread::run()
++{
++    volatile bool exit = false;
++    GalleryFileHelper *fh = new GalleryFileHelper();
++
++    // Internal counter that tracks how many
++    // times we have been in the while loop
++    int loopCounter = 0;
++
++    while (!exit)
++    {
++        GallerySyncStatus status = fh->GetSyncStatus();
++
++        LOG(VB_GENERAL, LOG_DEBUG,
++            QString("GallerySyncStatusThread: Sync status is running: %1, Syncing image '%2' of '%3'")
++            .arg(status.running).arg(status.current).arg(status.total));
++
++        // Only update the progress text
++        // if the sync is still running
++        if (status.running)
++            emit UpdateSyncProgress(status.current, status.total);
++
++        // Try at least one time to get the sync
++        // status before checking for the exit condition
++        if (loopCounter >= 1)
++        {
++            if (status.running == false)
++                exit = true;
++        }
++
++        // Wait some time before trying to get and update the status
++        // This also avoids too many calls to the service api.
++        usleep(1000000);
++
++        ++loopCounter;
++    }
++
++    delete fh;
++}
+diff --git a/mythtv/programs/mythfrontend/galleryviewhelper.h b/mythtv/programs/mythfrontend/galleryviewhelper.h
+new file mode 100644
+index 0000000..564e1cc
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/galleryviewhelper.h
+@@ -0,0 +1,77 @@
++#ifndef GALLERYVIEWHELPER_H
++#define GALLERYVIEWHELPER_H
++
++// Qt headers
++#include <QString>
++#include <QList>
++#include <QMap>
++
++// MythTV headers
++#include "mythgenerictree.h"
++#include "imagemetadata.h"
++
++#include "gallerythumbgenthread.h"
++#include "galleryfilehelper.h"
++
++
++
++class GalleryViewHelper : public QObject
++{
++    Q_OBJECT
++
++public:
++    GalleryViewHelper(MythScreenType *);
++    ~GalleryViewHelper();
++
++    MythGenericTree         *m_currentNode;
++    GalleryThumbGenThread   *m_thumbGenThread;
++
++    QStringList m_sgDirList;
++    QString     m_sgName;
++
++    int     LoadData();
++    void    LoadTreeData();
++    void    LoadTreeNodeData(QList<ImageMetadata *>*, MythGenericTree*);
++    void    UpdateAllData();
++    void    RenameCurrentNode(QString &);
++    void    DeleteCurrentNode();
++    void    DeleteSelectedNodes();
++    void    SetNodeSelectionState(int, bool);
++    void    SetNodeVisibilityState(int);
++    void    SetFileOrientation(int);
++    void    SetFileZoom(int);
++    void    SetPreviewImageSize(MythUIButtonList *);
++
++    ImageMetadata*  GetImageMetadataFromSelectedNode();
++    ImageMetadata*  GetImageMetadataFromNode(MythGenericTree *);
++    ImageMetadata*  GetImageMetadataFromNode(int);
++
++    GalleryFileHelper       *m_fileHelper;
++
++private:
++    void    SetNodeSelectionState(MythGenericTree *, int);
++
++    MythScreenType          *m_parent;
++    GalleryDatabaseHelper   *m_dbHelper;
++
++    bool    m_allNodesVisible;
++};
++
++
++
++class GallerySyncStatusThread : public QThread
++{
++    Q_OBJECT
++
++public:
++    GallerySyncStatusThread();
++    bool isSyncRunning();
++
++protected:
++    void run();
++
++signals:
++    void UpdateSyncProgress(int, int);
++};
++
++#endif // GALLERYVIEWHANDLER_H
+diff --git a/mythtv/programs/mythfrontend/gallerywidget.cpp b/mythtv/programs/mythfrontend/gallerywidget.cpp
+new file mode 100644
+index 0000000..f125f70
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/gallerywidget.cpp
+@@ -0,0 +1,912 @@
++// Qt headers
++#include <QByteArray>
++#include <QXmlStreamReader>
++
++// MythTV headers
++#include "mythcontext.h"
++#include "mythmainwindow.h"
++
++#include "gallerywidget.h"
++
++
++
++ImageLoadingThread::ImageLoadingThread() :
++    m_image(NULL),
++    m_imageData(NULL),
++    m_url()
++{
++
++}
++
++void ImageLoadingThread::setImage(MythUIImage *image,
++                                  ImageMetadata *imageData,
++                                  QString &url)
++{
++    m_image = image;
++    m_imageData = imageData;
++    m_url = url;
++}
++
++void ImageLoadingThread::run()
++{
++    if (m_image && m_imageData)
++    {
++        m_image->SetFilename(m_url);
++        m_image->SetOrientation(m_imageData->GetOrientation());
++        m_image->SetZoom(m_imageData->GetZoom());
++        m_image->Load(false);
++    }
++}
++
++
++
++
++/** \fn     GalleryWidget::GalleryWidget(MythScreenStack *,
++ *                       const char *, GalleryViewHelper *
++ *  \brief  Constructor
++ *  \param  parent The screen parent
++ *  \param  name The name of the screen
++ *  \param  ivh Main helper class of the image plugin
++ *  \return void
++ */
++GalleryWidget::GalleryWidget(MythScreenStack *parent,
++                         const char *name,
++                         GalleryViewHelper *ivh) : MythScreenType(parent, name),
++    m_menuPopup(NULL),
++    m_image1(NULL),
++    m_image2(NULL),
++    m_status(NULL),
++    m_infoList(NULL),
++    m_fileList(NULL),
++    m_fileDataList(NULL)
++{
++    m_gvh = ivh;
++    m_fh = new GalleryFileHelper();
++
++    m_ilt = new ImageLoadingThread();
++    connect(m_ilt, SIGNAL(finished()),
++            this, SLOT(HandleImageTransition()));
++
++    m_backendHost = gCoreContext->GetSetting("BackendServerIP","localhost");
++    m_backendPort = gCoreContext->GetSetting("BackendServerPort", "6543");
++
++    m_slideShowType = kNoSlideShow;
++    m_slideShowTime = gCoreContext->GetNumSetting("GallerySlideShowTime", 3000);
++    m_transitionType = gCoreContext->GetNumSetting("GalleryTransitionType", kFade);
++
++    // calculate the alphachange from the specified transition time.
++    // an alphachange of 1 would take approx. 3,64s because the alpha value is
++    // changed 70 times per second. 3,64 * 70 = 255 (max alpha).
++    // example: 2 = abs(36400 / 15000) with transition time of 1500
++    m_transitionTime = abs(((255 / 70) * 10000) /
++                           (gCoreContext->GetNumSetting("GalleryTransitionTime", 1000) * 10));
++
++    m_popupStack = GetMythMainWindow()->GetStack("popup stack");
++
++    // Save the selected image in the gallery view
++    // so that the initially selected image can be
++    // restored when the GalleryWidget is detroyed.
++    m_selectedNode = m_gvh->m_currentNode->getSelectedChild();
++
++    // this timer is used for the slideshow
++    m_timer = new QTimer();
++    m_timer->setSingleShot(true);
++    m_timer->setInterval(m_slideShowTime);
++
++    m_infoVisible = false;
++    m_index = 0;
++
++    m_gvh->m_thumbGenThread->Pause();
++}
++
++
++
++/** \fn     GalleryWidget::~GalleryWidget()
++ *  \brief  Destructor
++ */
++GalleryWidget::~GalleryWidget()
++{
++    if (m_timer)
++    {
++        m_timer->stop();
++        delete m_timer;
++        m_timer = NULL;
++    }
++
++    if (m_fileList)
++    {
++        delete m_fileList;
++        m_fileList = NULL;
++    }
++
++    if (m_fileDataList)
++    {
++        delete m_fileDataList;
++        m_fileDataList = NULL;
++    }
++
++    if (m_fh)
++    {
++        delete m_fh;
++        m_fh = NULL;
++    }
++
++    if (m_ilt)
++    {
++        m_ilt->wait();
++        delete m_ilt;
++        m_ilt = NULL;
++    }
++
++    // Set the selected image in the gallery view to the saved one
++    // so that the initially selected image is the correct one again.
++    m_gvh->m_currentNode->setSelectedChild(m_selectedNode);
++
++    m_gvh->m_thumbGenThread->Resume();
++}
++
++
++
++/** \fn     GalleryWidget::Create()
++ *  \brief  Initialises and shows the graphical elements
++ *  \return True if successful otherwise false
++ */
++bool GalleryWidget::Create()
++{
++    if (!LoadWindowFromXML("image-ui.xml", "slideshow", this))
++        return false;
++
++    bool err = false;
++
++    // Widget for showing the images
++    UIUtilE::Assign(this, m_image1, "first_image", &err);
++    UIUtilE::Assign(this, m_image2, "second_image", &err);
++    UIUtilW::Assign(this, m_status, "status");
++
++    // Widgets to show the details to an image
++    UIUtilE::Assign(this, m_infoList, "infolist", &err);
++
++    if (err)
++    {
++        LOG(VB_GENERAL, LOG_ERR, "Cannot load screen 'slideshow'");
++        return false;
++    }
++
++    HideFileDetails();
++    BuildFocusList();
++    SetFocusWidget(m_image1);
++
++    m_fileDataList = new QList<ImageMetadata *>();
++    m_fileDataList->append(new ImageMetadata());
++    m_fileDataList->append(new ImageMetadata());
++
++    m_fileList = new QList<MythUIImage *>();
++    m_fileList->append(m_image1);
++    m_fileList->append(m_image2);
++
++    return true;
++}
++
++
++
++/** \fn     GalleryWidget::keyPressEvent(QKeyEvent *)
++ *  \brief  Translates the keypresses and keys bound to the
++ *          plugin to specific actions within the plugin
++ *  \param  event The pressed key
++ *  \return True if key was used, otherwise false
++ */
++bool GalleryWidget::keyPressEvent(QKeyEvent *event)
++{
++    if (GetFocusWidget()->keyPressEvent(event))
++        return true;
++
++    bool handled = false;
++    QStringList actions;
++    handled = GetMythMainWindow()->TranslateKeyPress("Images", event, actions);
++
++    for (int i = 0; i < actions.size() && !handled; i++)
++    {
++        QString action = actions[i];
++        handled = true;
++
++        if (action == "LEFT")
++            ShowPrevFile();
++        else if (action == "RIGHT")
++            ShowNextFile();
++        else if (action == "INFO")
++            ShowFileDetails();
++        else if (action == "MENU")
++            MenuMain();
++        else if (action == "PLAY")
++        {
++            // If no slideshow is active and the user presses the play
++            // button then start a normal slideshow. But if a slideshow
++            // is already running then start or pause it.
++            if (m_slideShowType == kNoSlideShow)
++                StartNormalSlideShow();
++            else
++            {
++                if (m_timer->isActive())
++                    PauseSlideShow();
++                else
++                    ResumeSlideShow();
++            }
++        }
++        else if (action == "PAUSE")
++            PauseSlideShow();
++        else if (action == "STOP")
++            StopSlideShow();
++        else if (action == "ROTRIGHT")
++        {
++            m_gvh->SetFileOrientation(kFileRotateCW);
++            LoadFile();
++        }
++        else if (action == "ROTLEFT")
++        {
++            m_gvh->SetFileOrientation(kFileRotateCCW);
++            LoadFile();
++        }
++        else if (action == "FLIPHORIZONTAL")
++        {
++            m_gvh->SetFileOrientation(kFileFlipHorizontal);
++            LoadFile();
++        }
++        else if (action == "FLIPVERTICAL")
++        {
++            m_gvh->SetFileOrientation(kFileFlipVertical);
++            LoadFile();
++        }
++        else if (action == "ZOOMIN")
++        {
++            m_gvh->SetFileZoom(kFileZoomIn);
++            LoadFile();
++        }
++        else if (action == "ZOOMOUT")
++        {
++            m_gvh->SetFileZoom(kFileZoomOut);
++            LoadFile();
++        }
++        else if (action == "ESCAPE")
++        {
++            if (m_infoVisible)
++                HideFileDetails();
++            else
++                handled = false;
++        }
++    }
++
++    if (!handled && MythScreenType::keyPressEvent(event))
++        handled = true;
++
++    return handled;
++}
++
++
++
++/** \fn     GalleryWidget::customEvent(QEvent *event)
++ *  \brief  Translates the keypresses to
++ *          specific actions within the plugin
++ *  \param  event The custom event
++ */
++void GalleryWidget::customEvent(QEvent *event)
++{
++    if (event->type() == DialogCompletionEvent::kEventType)
++    {
++        DialogCompletionEvent *dce = (DialogCompletionEvent*)(event);
++
++        QString resultid  = dce->GetId();
++        int     buttonnum = dce->GetResult();
++
++        if (resultid == "metadatamenu")
++        {
++            switch (buttonnum)
++            {
++            case 0 :
++                m_gvh->SetFileOrientation(kFileRotateCW);
++                LoadFile();
++                break;
++            case 1 :
++                m_gvh->SetFileOrientation(kFileRotateCCW);
++                LoadFile();
++                break;
++            case 2 :
++                m_gvh->SetFileOrientation(kFileFlipHorizontal);
++                LoadFile();
++                break;
++            case 3 :
++                m_gvh->SetFileOrientation(kFileFlipVertical);
++                LoadFile();
++                break;
++            case 4 :
++                m_gvh->SetFileZoom(kFileZoomIn);
++                LoadFile();
++                break;
++            case 5 :
++                m_gvh->SetFileZoom(kFileZoomOut);
++                LoadFile();
++                break;
++            }
++        }
++
++        m_menuPopup = NULL;
++    }
++}
++
++
++
++/** \fn     GalleryView::MenuInformation()
++ *  \brief  Shows a dialog popup with the main menu
++ *  \return void
++ */
++void GalleryWidget::MenuMain()
++{
++    // Create the main menu that will contain the submenus above
++    MythMenu *menu = new MythMenu(tr("Image Information"), this, "mainmenu");
++
++    // If no slideshow type was given show the item to start it
++    // otherwise show the items to stop or resume a slideshow.
++    if (m_slideShowType == kNoSlideShow)
++    {
++        menu->AddItem(tr("Start Normal SlideShow"),
++                      SLOT(StartNormalSlideShow()));
++        menu->AddItem(tr("Start Random SlideShow"),
++                      SLOT(StartRandomSlideShow()));
++    }
++    else
++    {
++        if (m_timer->isActive())
++            menu->AddItem(tr("Pause SlideShow"), SLOT(PauseSlideShow()));
++        else
++        {
++            if (m_slideShowType == kNormalSlideShow)
++                menu->AddItem(tr("Resume SlideShow"),
++                              SLOT(StartNormalSlideShow()));
++
++            if (m_slideShowType == kRandomSlideShow)
++                menu->AddItem(tr("Resume SlideShow"),
++                              SLOT(StartRandomSlideShow()));
++        }
++    }
++
++    MenuMetadata(menu);
++    menu->AddItem(tr("Show Details"),   SLOT(FileDetails()));
++
++    m_menuPopup = new MythDialogBox(menu, m_popupStack, "menuPopup");
++    if (!m_menuPopup->Create())
++    {
++        delete m_menuPopup;
++        m_menuPopup = NULL;
++        return;
++    }
++
++    m_popupStack->AddScreen(m_menuPopup);
++}
++
++
++
++/** \fn     GalleryWidget::MenuMetadata(MythMenu *)
++ *  \brief  Adds a new metadata menu entry into the main menu
++ *  \param  mainMenu Parent that will hold the menu entry
++ *  \return void
++ */
++void GalleryWidget::MenuMetadata(MythMenu *mainMenu)
++{
++    MythMenu *menu = new MythMenu(tr("Metadata Options"),
++                                  this, "metadatamenu");
++
++    menu->AddItem(tr("Rotate CW"));
++    menu->AddItem(tr("Rotate CCW"));
++    menu->AddItem(tr("Flip Horizontal"));
++    menu->AddItem(tr("Flip Vertical"));
++
++    if (m_fileDataList->at(m_index))
++    {
++        if (m_fileDataList->at(m_index)->GetZoom() < 300)
++            menu->AddItem(tr("Zoom In"));
++
++        if (m_fileDataList->at(m_index)->GetZoom() > 0)
++            menu->AddItem(tr("Zoom Out"));
++    }
++
++    mainMenu->AddItem(tr("Meta Data Menu"), NULL, menu);
++}
++
++
++
++/** \fn     GalleryWidget::HideFileDetails()
++ *  \brief  Hides the details of the current file
++ *  \return void
++ */
++void GalleryWidget::HideFileDetails()
++{
++    m_infoList->SetVisible(false);
++    m_infoVisible = false;
++    SetFocusWidget(m_image1);
++}
++
++
++
++/** \fn     GalleryWidget::ShowFileDetails()
++ *  \brief  Shows the available details of the current image file.
++            The details will only be shown if the file is an image.
++ *  \return void
++ */
++void GalleryWidget::ShowFileDetails()
++{
++    ImageMetadata *im = m_fileDataList->at(m_index);
++    if (!im)
++    {
++        delete im;
++        return;
++    }
++
++    if (im->m_type != kImageFile)
++    {
++        delete im;
++        return;
++    }
++
++    // First remove all entries
++    m_infoList->Reset();
++
++    // This map holds all the exif tag values
++    QMap<QString, QString> infoList;
++
++    // Get all the available exif header information from the file
++    // and create a data structure that can be displayed nicely
++    QByteArray ba = m_fh->GetExifValues(im);
++    if (ba.count() > 0)
++    {
++        bool readTagValues = false;
++        QString key, value;
++
++        QXmlStreamReader xml(ba);
++        while (!xml.atEnd())
++        {
++            xml.readNext();
++
++            // Read the general information
++            if (xml.isStartElement() &&
++                    (xml.name() == "Count"  ||
++                     xml.name() == "File"   ||
++                     xml.name() == "Path"   ||
++                     xml.name() == "Size"   ||
++                     xml.name() == "Extension"))
++                infoList.insert(xml.name().toString(), xml.readElementText());
++
++            if (xml.isStartElement() && xml.name() == "ImageMetadataInfo")
++                readTagValues = true;
++
++            if (readTagValues)
++            {
++                if (xml.isStartElement() && xml.name() == "Label")
++                    key = xml.readElementText();
++
++                if (xml.isStartElement() && xml.name() == "Value")
++                    value = xml.readElementText();
++            }
++
++            if (xml.isEndElement() && xml.name() == "ImageMetadataInfo")
++            {
++                readTagValues = false;
++                infoList.insert(key, value);
++            }
++        }
++    }
++
++    // Now go through the info list and create a map for the mythui buttonlist
++    QMap<QString, QString>::const_iterator i = infoList.constBegin();
++    while (i != infoList.constEnd())
++    {
++        MythUIButtonListItem *item = new MythUIButtonListItem(m_infoList, "");
++        InfoMap infoMap;
++        infoMap.insert("name", i.key());
++
++        QString value = tr("Not defined");
++        if (!i.value().isEmpty())
++            value = i.value();
++
++        infoMap.insert("value", value);
++
++        item->SetTextFromMap(infoMap);
++
++        ++i;
++    }
++
++    m_infoList->SetVisible(true);
++
++    // All widgets are visible, remember this
++    m_infoVisible = true;
++    SetFocusWidget(m_infoList);
++
++    delete im;
++}
++
++
++
++/** \fn     GalleryWidget::LoadFile()
++ *  \brief  Stops any slideshow and loads the file
++ *          from disk or memory in the background.
++ *  \return void
++ */
++void GalleryWidget::LoadFile()
++{
++    // Pause the slideshow so that the timer can't fire
++    // until the image loading thread has finished
++    PauseSlideShow();
++
++    // Switch the index
++    m_index = (m_index == 0) ? 1 : 0;
++
++    // Load the new data into the new index, this will be
++    // the new image which will be shown in the foreground
++    m_fileDataList->replace(m_index, m_gvh->GetImageMetadataFromSelectedNode());
++
++    if (m_fileDataList->at(m_index))
++    {
++        // Show an information that
++        // the image is being loaded
++        if (m_status)
++            m_status->SetVisible(true);
++
++        m_fileList->at(m_index)->SetAlpha(0);
++
++        // Get the full path and name of the image
++        // or if its a video the first preview image
++        QString fileName = m_fileDataList->at(m_index)->m_fileName;
++        if (m_fileDataList->at(m_index)->m_type == kVideoFile)
++            fileName = m_fileDataList->at(m_index)->m_thumbFileNameList->at(0);
++
++        QString url = CreateImageUrl(fileName);
++
++        // This thread will loads the image so the UI is not blocked.
++        m_ilt->setImage(m_fileList->at(m_index),
++                        m_fileDataList->at(m_index), url);
++        m_ilt->start();
++    }
++}
++
++
++
++/** \fn     GalleryWidget::CreateImageUrl(QString &fileName)
++ *  \brief
++ *  \return QString
++ */
++QString GalleryWidget::CreateImageUrl(QString &fileName)
++{
++    // TODO another way to get the images could be changin the
++    //      myth://SGNAME@host:Port/filename request to
++    //      http://host:Port/StorageGroup/SGNAME/filename
++
++    // Loop through all directories that belong to the defined storage
++    // group. Check if the current image belongs to one of them an
++    // remove the storage group path from the start of the image path.
++    // Example: If we have a storage group of "/mnt/pictures" and the
++    // path of the image is "/mnt/pictures/animals/mycat.png" then we
++    // want to get "animals/mycat.png" as a result.
++
++    for (int i = 0; i < m_gvh->m_sgDirList.size(); ++i)
++    {
++        // Unfortunately the path of the directory in the storage group
++        // has the format "myth://Bilder@ubuntu/mnt/pictures/" so we need
++        // to remove the stuff before the third slash.
++
++        QString path = m_gvh->m_sgDirList.at(i);
++        path.replace(QString("myth://%1@%2")
++                     .arg(m_gvh->m_sgName)
++                     .arg(gCoreContext->GetHostName()),"");
++
++        if (fileName.startsWith(path))
++        {
++            fileName.replace(path, "");
++            break;
++        }
++    }
++
++    // Prepare the url that will hold the path to the image
++    QString url = QString("myth://%1@%2:%3/%4")
++            .arg(m_gvh->m_sgName)
++            .arg(m_backendHost)
++            .arg(m_backendPort)
++            .arg(fileName);
++
++    LOG(VB_GENERAL, LOG_INFO, QString("Loading image from url '%1'").arg(url));
++
++    return url;
++}
++
++
++
++/** \fn     GalleryWidget::HandleImageTransition()
++ *  \brief  Handles any specified effects between two
++ *          images when the file loading was completed
++ *  \return void
++ */
++void GalleryWidget::HandleImageTransition()
++{
++    // If the image loading is done then resume the slideshow which was
++    // only paused to not to interfere with the loading process.
++    ResumeSlideShow();
++
++    // Also update the file details information in case its visible.
++    if (m_infoVisible)
++        ShowFileDetails();
++
++    // Hide the status information
++    // that can be displayed in the themes
++    if (m_status)
++        m_status->SetVisible(false);
++
++    switch (m_transitionType)
++    {
++    case kFade:
++        HandleFadeTransition();
++        break;
++
++    default:
++        HandleNoTransition();
++        break;
++    }
++}
++
++
++
++/** \fn     GalleryWidget::HandleFadeTransition()
++ *  \brief  Handles the fading between two images
++ *  \return void
++ */
++void GalleryWidget::HandleFadeTransition()
++{
++    int index = (m_index == 0) ? 1 : 0;
++
++    // Fade out the old image if its loaded. This will not be done when
++    // called for the first time because there is no object at this index
++    if (m_fileDataList->at(index))
++        m_fileList->at(index)->AdjustAlpha(1, (m_transitionTime * -1), 0, 255);
++
++    // Fade in the new image and if the next
++    // file is a video then start playing it
++    if (m_fileDataList->at(m_index))
++    {
++        m_fileList->at(m_index)->AdjustAlpha(1, m_transitionTime, 0, 255);
++        if (m_fileDataList->at(m_index)->m_type == kVideoFile)
++        {
++            if (m_fileDataList->at(index))
++                m_fileList->at(index)->SetAlpha(0);
++
++            PauseSlideShow();
++            GetMythMainWindow()->HandleMedia("Internal",
++                                             m_fileDataList->at(m_index)->m_fileName);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryWidget::HandleNoTransition()
++ *  \brief  Just like the HandleFadeTransition() method but without any effects.
++ *  \return void
++ */
++void GalleryWidget::HandleNoTransition()
++{
++    int index = (m_index == 0) ? 1 : 0;
++
++    // Hide the old image if its loaded. This will not be done when
++    // called for the first time because there is no object at this index
++    if (m_fileDataList->at(index))
++        m_fileList->at(index)->SetAlpha(0);
++
++    // Immediately show the new image and if the next
++    // file is a video then start playing it
++    if (m_fileDataList->at(m_index))
++    {
++        m_fileList->at(m_index)->SetAlpha(255);
++        if (m_fileDataList->at(m_index)->m_type == kVideoFile)
++        {
++            PauseSlideShow();
++            GetMythMainWindow()->HandleMedia("Internal",
++                                             m_fileDataList->at(m_index)->m_fileName);
++        }
++    }
++}
++
++
++
++/** \fn     GalleryWidget::ShowPrevFile()
++ *  \brief  Loads the previous image file if possible
++ *  \return void
++ */
++void GalleryWidget::ShowPrevFile()
++{
++    MythGenericTree *node = m_gvh->m_currentNode->getSelectedChild()->prevSibling(1);
++    ImageMetadata *im = m_gvh->GetImageMetadataFromNode(node);
++
++    // If a data object exists then a node must also exist
++    if (im && (im->m_type == kImageFile ||
++                 im->m_type == kVideoFile))
++    {
++        m_gvh->m_currentNode->setSelectedChild(node);
++        LoadFile();
++    }
++    else
++    {
++        QString msg = "You have reached the beginning of the gallery.";
++        ShowInformation(msg);
++    }
++}
++
++
++
++/** \fn     GalleryWidget::ShowNextFile()
++ *  \brief  Loads the next image file if possible
++ *  \return void
++ */
++void GalleryWidget::ShowNextFile()
++{
++    PauseSlideShow();
++
++    MythGenericTree *node = m_gvh->m_currentNode->getSelectedChild()->nextSibling(1);
++    ImageMetadata *im = m_gvh->GetImageMetadataFromNode(node);
++
++    // If a data object exists then a node must also exist
++    if (im && (im->m_type == kImageFile ||
++                 im->m_type == kVideoFile))
++    {
++        m_gvh->m_currentNode->setSelectedChild(node);
++        LoadFile();
++    }
++    else
++    {
++        QString msg = "You have reached the end of the gallery.";
++        ShowInformation(msg);
++    }
++}
++
++
++
++/** \fn     GalleryWidget::ShowRandomFile()
++ *  \brief  Loads a random image
++ *  \return void
++ */
++void GalleryWidget::ShowRandomFile()
++{
++    volatile bool exit = false;
++
++    int size = m_gvh->m_currentNode->getSelectedChild()->siblingCount();
++    int counter = 0;
++    int position = 0;
++
++    MythGenericTree *node = NULL;
++    ImageMetadata *im = NULL;
++
++    PauseSlideShow();
++
++    // Get a random node from the list. If its not an image or
++    // video continue and try to get a new one until its an image
++    // or all siblings have been checked.
++    if (size > 0)
++    {
++        while (!exit)
++        {
++            position = (qrand() % size);
++            counter++;
++
++            node = m_gvh->m_currentNode->getChildAt(position);
++            im = m_gvh->GetImageMetadataFromNode(node);
++
++            if ((im && (im->m_type == kImageFile ||
++                          im->m_type == kVideoFile)) || counter == size)
++                exit = true;
++        }
++
++        // If we have data then is is already an image or
++        // video. This has been checked in the while loop
++        if (im)
++        {
++            m_gvh->m_currentNode->setSelectedChild(node);
++            LoadFile();
++        }
++    }
++    else
++    {
++        QString msg = "There are no images in the current directory.";
++        ShowInformation(msg);
++    }
++}
++
++
++
++/** \fn     GalleryWidget::ShowInformation(QString &msg)
++ *  \brief  Shows a message to the user
++ *  \param  msg The message that shall be shown
++ *  \return void
++ */
++void GalleryWidget::ShowInformation(QString &msg)
++{
++    MythConfirmationDialog *okPopup =
++            new MythConfirmationDialog(m_popupStack, msg, false);
++
++    if (okPopup->Create())
++        m_popupStack->AddScreen(okPopup);
++    else
++        delete okPopup;
++}
++
++
++
++/** \fn     GalleryWidget::StartNormalSlideShow()
++ *  \brief  Starts a slideshow where the images are shown in normal order
++ *  \return void
++ */
++void GalleryWidget::StartNormalSlideShow()
++{
++    if (!m_timer)
++        return;
++
++    StopSlideShow();
++    m_slideShowType = kNormalSlideShow;
++    connect(m_timer, SIGNAL(timeout()), this, SLOT(ShowNextFile()));
++    ResumeSlideShow();
++}
++
++
++
++/** \fn     GalleryWidget::StartRandomSlideShow()
++ *  \brief  Starts a slideshow where the images are shown randomly
++ *  \return void
++ */
++void GalleryWidget::StartRandomSlideShow()
++{
++    if (!m_timer)
++        return;
++
++    StopSlideShow();
++    m_slideShowType = kRandomSlideShow;
++    connect(m_timer, SIGNAL(timeout()), this, SLOT(ShowRandomFile()));
++    ResumeSlideShow();
++}
++
++
++
++/** \fn     GalleryWidget::ResumeSlideShow()
++ *  \brief  Resumes a paused slideshow
++ *  \return void
++ */
++void GalleryWidget::ResumeSlideShow()
++{
++    if (!m_timer)
++        return;
++
++    m_timer->start();
++}
++
++
++
++/** \fn     GalleryWidget::PauseSlideShow()
++ *  \brief  Pauses an active slideshow
++ *  \return void
++ */
++void GalleryWidget::PauseSlideShow()
++{
++    if (!m_timer)
++        return;
++
++    m_timer->stop();
++}
++
++
++
++/** \fn     GalleryWidget::StopSlideShow()
++ *  \brief  Stops an active slideshow
++ *  \return void
++ */
++void GalleryWidget::StopSlideShow()
++{
++    if (!m_timer)
++        return;
++
++    m_timer->stop();
++    m_timer->disconnect();
++
++    m_slideShowType = kNoSlideShow;
++}
+diff --git a/mythtv/programs/mythfrontend/gallerywidget.h b/mythtv/programs/mythfrontend/gallerywidget.h
+new file mode 100644
+index 0000000..e01b9f5
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/gallerywidget.h
+@@ -0,0 +1,102 @@
++#ifndef GALLERYWIDGET_H
++#define GALLERYWIDGET_H
++
++// Qt headers
++#include <QTimer>
++
++// MythTV headers
++#include "mythscreentype.h"
++#include "mythdialogbox.h"
++#include "imagemetadata.h"
++
++#include "galleryviewhelper.h"
++#include "galleryfilehelper.h"
++
++
++
++class ImageLoadingThread : public QThread
++{
++public:
++    ImageLoadingThread();
++    void setImage(MythUIImage *image,
++                  ImageMetadata *imageData,
++                  QString &url);
++    void run();
++
++private:
++    MythUIImage     *m_image;
++    ImageMetadata   *m_imageData;
++    QString          m_url;
++};
++
++
++
++class GalleryWidget : public MythScreenType
++{
++    Q_OBJECT
++public:
++    GalleryWidget(MythScreenStack *parent,
++                const char *name,
++                GalleryViewHelper*);
++    ~GalleryWidget();
++
++    bool Create();
++    bool keyPressEvent(QKeyEvent *);
++    void customEvent(QEvent *);
++    void LoadFile();
++    void ShowFileDetails();
++
++public slots:
++    void StartNormalSlideShow();
++    void StartRandomSlideShow();
++
++private:
++    void HandleFadeTransition();
++    void HandleNoTransition();
++    void ShowInformation(QString &);
++    void HideFileDetails();
++
++    QString CreateImageUrl(QString &);
++
++private slots:
++    void MenuMain();
++    void MenuMetadata(MythMenu *);
++    void ShowPrevFile();
++    void ShowNextFile();
++    void ShowRandomFile();
++    void HandleImageTransition();
++
++    void StopSlideShow();
++    void PauseSlideShow();
++    void ResumeSlideShow();
++
++private:
++    MythDialogBox      *m_menuPopup;
++    MythScreenStack    *m_popupStack;
++    MythUIImage        *m_image1;
++    MythUIImage        *m_image2;
++    MythUIText         *m_status;
++
++    MythUIButtonList       *m_infoList;
++    QList<MythUIImage *>   *m_fileList;
++    QList<ImageMetadata *>       *m_fileDataList;
++
++    GalleryFileHelper  *m_fh;
++    GalleryViewHelper  *m_gvh;
++    MythGenericTree    *m_selectedNode;
++    ImageLoadingThread *m_ilt;
++
++    int                 m_index;
++    int                 m_slideShowType;
++    int                 m_slideShowTime;
++    int                 m_transitionTime;
++    int                 m_transitionType;
++    QTimer             *m_timer;
++
++    QString             m_backendHost;
++    QString             m_backendPort;
++
++    bool                m_infoVisible;
++};
++
++#endif // GALLERYWIDGET_H
+diff --git a/mythtv/programs/mythfrontend/mythfrontend.pro b/mythtv/programs/mythfrontend/mythfrontend.pro
+index 37e3004..945a04c 100644
+--- a/mythtv/programs/mythfrontend/mythfrontend.pro
++++ b/mythtv/programs/mythfrontend/mythfrontend.pro
+@@ -47,6 +47,10 @@ HEADERS += videofilter.h                videolist.h
+ HEADERS += videoplayersettings.h        videodlg.h
+ HEADERS += videoglobalsettings.h        upnpscanner.h
+ HEADERS += commandlineparser.h          idlescreen.h
++HEADERS += galleryview.h                galleryviewhelper.h
++HEADERS += galleryconfig.h              galleryfilehelper.h
++HEADERS += gallerydatabasehelper.h      gallerywidget.h
++HEADERS += gallerythumbgenthread.h      gallerytypedefs.h
+ 
+ SOURCES += main.cpp playbackbox.cpp viewscheduled.cpp audiogeneralsettings.cpp
+ SOURCES += globalsettings.cpp manualschedule.cpp programrecpriority.cpp
+@@ -68,6 +72,10 @@ SOURCES += videofilter.cpp              videolist.cpp
+ SOURCES += videoplayersettings.cpp      videodlg.cpp
+ SOURCES += videoglobalsettings.cpp      upnpscanner.cpp
+ SOURCES += commandlineparser.cpp        idlescreen.cpp
++SOURCES += galleryview.cpp              gallerywidget.cpp
++SOURCES += galleryviewhelper.cpp        galleryconfig.cpp
++SOURCES += gallerydatabasehelper.cpp    gallerythumbgenthread.cpp
++SOURCES += galleryfilehelper.cpp
+ 
+ HEADERS += serviceHosts/frontendServiceHost.h
+ HEADERS += services/frontend.h
+-- 
+1.7.10.2
+

@@ -1,0 +1,51 @@
+#!/bin/sh
+
+pids=`/bin/pidof mm_watchdog`
+instances=`/bin/echo ${pids} | /usr/bin/wc -w`
+if /usr/bin/test ${instances} -ne 1 ; then
+    exit 1
+fi
+
+. /etc/rc.d/functions
+
+trap "_exit_" 0 1 2 3 15
+
+_exit_()
+{
+    ps -o ppid,pid,args \
+    | sed -e 's%  *% %g' -e 's%^ %%' -e 's% $%%' \
+    | grep "^$$ " \
+    | grep '/bin/sleep [^ ]*$' \
+    | cut -d ' ' -f 2 \
+    | while read pid ; do
+        kill $pid
+    done
+}
+
+/bin/sleep 60
+
+/usr/bin/logger -t minimyth -p "local0.info" "[mm_watchdog] MM_WATCHDOG now monitors killed/trapped mythfrontend process..."
+
+while true ; do
+  if /usr/bin/test -z "`/bin/pidof mythfrontend`" ; then
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_watchdog] MM_WATCHDOG detect killed/trapped mythfrontend process. Trigger restart X"
+    cp -rf /var/log/mythfrontend /var/log/mythfrontend.fe-trap.$$
+    cp -rf /var/log/messages /var/log/messages.fe-trap.$$
+    # /usr/bin/mm_manage restart_xserver &
+    # /usr/bin/mm_manage restart_mythfrontend &
+    args="--nologserver > /var/log/mythfrontend"
+    if /usr/bin/test -n "${MM_MYTHFRONTEND_CMDLINE}" ; then
+        args="${MM_MYTHFRONTEND_CMDLINE} > /var/log/mythfrontend"
+     else
+        args="${args}"
+    fi
+    export __GL_SYNC_TO_VBLANK=1
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_watchdog] Relaunching mythfrontend..."
+    /bin/su minimyth -c "/usr/bin/mythfrontend ${args}" &
+    /bin/sleep 60
+  else
+    /bin/sleep 1
+  fi
+done
+
+exit 0

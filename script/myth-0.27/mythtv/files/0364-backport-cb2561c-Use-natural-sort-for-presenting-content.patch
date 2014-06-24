@@ -1,0 +1,153 @@
+From cb2561c41fa7378a16af0de1ccec1dcdb9edc56c Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Tue, 27 May 2014 14:28:33 +1000
+Subject: [PATCH 2/3] Use natural sort for presenting content
+
+Fixes #11796
+---
+ mythtv/libs/libmythmetadata/dbaccess.cpp           |    3 ++-
+ mythtv/libs/libmythmetadata/videometadata.cpp      |    6 +++---
+ mythtv/libs/libmythtv/channelutil.cpp              |    5 +++--
+ mythtv/programs/mythfrontend/editvideometadata.cpp |    3 ++-
+ mythtv/programs/mythfrontend/videofilter.cpp       |    3 ++-
+ mythtv/programs/mythfrontend/videolist.cpp         |    3 ++-
+ 6 files changed, 14 insertions(+), 9 deletions(-)
+
+diff --git a/mythtv/libs/libmythmetadata/dbaccess.cpp b/mythtv/libs/libmythmetadata/dbaccess.cpp
+index 46adb7a..cb24983 100644
+--- a/mythtv/libs/libmythmetadata/dbaccess.cpp
++++ b/mythtv/libs/libmythmetadata/dbaccess.cpp
+@@ -5,6 +5,7 @@
+ #include "mythdb.h"
+ #include "cleanup.h"
+ #include "dbaccess.h"
++#include "mythmiscutil.h"
+ 
+ namespace
+ {
+@@ -150,7 +151,7 @@ class SingleValueImp
+ 
+     virtual bool sort(const entry &lhs, const entry &rhs)
+     {
+-        return QString::localeAwareCompare(lhs.second, rhs.second) < 0;
++        return naturalCompare(lhs.second, rhs.second) < 0;
+     }
+ 
+     void cleanup()
+diff --git a/mythtv/libs/libmythmetadata/videometadata.cpp b/mythtv/libs/libmythmetadata/videometadata.cpp
+index 2b0cc52..4dabcd3 100644
+--- a/mythtv/libs/libmythmetadata/videometadata.cpp
++++ b/mythtv/libs/libmythmetadata/videometadata.cpp
+@@ -34,13 +34,13 @@ struct SortData
+ 
+ static bool operator<(const SortData &lhs, const SortData &rhs)
+ {
+-    int ret = QString::localeAwareCompare(lhs.m_title, rhs.m_title);
++    int ret = naturalCompare(lhs.m_title, rhs.m_title);
+ 
+     if (ret == 0)
+-        ret = QString::localeAwareCompare(lhs.m_filename, rhs.m_filename);
++        ret = naturalCompare(lhs.m_filename, rhs.m_filename);
+ 
+     if (ret == 0)
+-        ret = QString::localeAwareCompare(lhs.m_id, rhs.m_id);
++        ret = naturalCompare(lhs.m_id, rhs.m_id);
+ 
+     return ret < 0;
+ }
+diff --git a/mythtv/libs/libmythtv/channelutil.cpp b/mythtv/libs/libmythtv/channelutil.cpp
+index cfea3ae..3765352 100644
+--- a/mythtv/libs/libmythtv/channelutil.cpp
++++ b/mythtv/libs/libmythtv/channelutil.cpp
+@@ -15,6 +15,7 @@ using namespace std;
+ #include "channelutil.h"
+ #include "mythdb.h"
+ #include "dvbtables.h"
++#include "mythmiscutil.h"
+ 
+ #define LOC QString("ChanUtil: ")
+ 
+@@ -2135,7 +2136,7 @@ vector<uint> ChannelUtil::GetChanIDs(int sourceid)
+ 
+ inline bool lt_callsign(const ChannelInfo &a, const ChannelInfo &b)
+ {
+-    return QString::localeAwareCompare(a.callsign, b.callsign) < 0;
++    return naturalCompare(a.callsign, b.callsign) < 0;
+ }
+ 
+ inline bool lt_smart(const ChannelInfo &a, const ChannelInfo &b)
+@@ -2219,7 +2220,7 @@ inline bool lt_smart(const ChannelInfo &a, const ChannelInfo &b)
+     else
+     {
+         // neither of channels have a numeric channum
+-        cmp = QString::localeAwareCompare(a.channum, b.channum);
++        cmp = naturalCompare(a.channum, b.channum);
+         if (cmp)
+             return cmp < 0;
+     }
+diff --git a/mythtv/programs/mythfrontend/editvideometadata.cpp b/mythtv/programs/mythfrontend/editvideometadata.cpp
+index 30f05be..b126875 100644
+--- a/mythtv/programs/mythfrontend/editvideometadata.cpp
++++ b/mythtv/programs/mythfrontend/editvideometadata.cpp
+@@ -18,6 +18,7 @@
+ #include "mythuiimageresults.h"
+ #include "mythuihelper.h"
+ #include "mythprogressdialog.h"
++#include "mythmiscutil.h"
+ #include "remoteutil.h"
+ #include "globals.h"
+ #include "dbaccess.h"
+@@ -213,7 +214,7 @@ namespace
+     {
+         bool operator()(const T &lhs, const T &rhs)
+         {
+-            return QString::localeAwareCompare(lhs.second, rhs.second) < 0;
++            return naturalCompare(lhs.second, rhs.second) < 0;
+         }
+     };
+ 
+diff --git a/mythtv/programs/mythfrontend/videofilter.cpp b/mythtv/programs/mythfrontend/videofilter.cpp
+index a018d9e..2e82927 100644
+--- a/mythtv/programs/mythfrontend/videofilter.cpp
++++ b/mythtv/programs/mythfrontend/videofilter.cpp
+@@ -6,6 +6,7 @@
+ #include "mythuibutton.h"
+ #include "mythuitext.h"
+ #include "mythuitextedit.h"
++#include "mythmiscutil.h"
+ #include "globals.h"
+ #include "dbaccess.h"
+ #include "videometadatalistmanager.h"
+@@ -466,7 +467,7 @@ bool VideoFilterSettings::meta_less_than(const VideoMetadata &lhs,
+                           lhs.GetFilename().toLower() : lhs.GetFilename());
+             QString rhsfn(sort_ignores_case ?
+                           rhs.GetFilename().toLower() : rhs.GetFilename());
+-            ret = QString::localeAwareCompare(lhsfn, rhsfn) < 0;
++            ret = naturalCompare(lhsfn, rhsfn) < 0;
+             break;
+         }
+         case kOrderByID:
+diff --git a/mythtv/programs/mythfrontend/videolist.cpp b/mythtv/programs/mythfrontend/videolist.cpp
+index 9e3fad8..4fff997 100644
+--- a/mythtv/programs/mythfrontend/videolist.cpp
++++ b/mythtv/programs/mythfrontend/videolist.cpp
+@@ -9,6 +9,7 @@ using namespace std;
+ 
+ #include "mythcontext.h"
+ #include "mythdate.h"
++#include "mythmiscutil.h"
+ 
+ #include "mythgenerictree.h"
+ #include "videometadatalistmanager.h"
+@@ -201,7 +202,7 @@ struct metadata_path_sort
+             lhs_comp = lhs_comp.toLower();
+             rhs_comp = rhs_comp.toLower();
+         }
+-        return QString::localeAwareCompare(lhs_comp, rhs_comp) < 0;
++        return naturalCompare(lhs_comp, rhs_comp) < 0;
+     }
+ 
+     bool m_ignore_case;
+-- 
+1.7.10.2
+

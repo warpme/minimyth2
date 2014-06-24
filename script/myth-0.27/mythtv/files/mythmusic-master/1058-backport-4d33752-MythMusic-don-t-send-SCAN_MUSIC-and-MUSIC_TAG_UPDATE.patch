@@ -1,0 +1,98 @@
+From 4d33752d1a63e3ace9e7400e94753e557d06dc7e Mon Sep 17 00:00:00 2001
+From: Paul Harrison <pharrison@mythtv.org>
+Date: Sun, 9 Feb 2014 15:36:23 +0000
+Subject: [PATCH 2/8] MythMusic: don't send SCAN_MUSIC and
+ MUSIC_TAG_UPDATE_VOLATILE in the UI thread
+
+---
+ mythplugins/mythmusic/mythmusic/musicdata.cpp   |    5 ++++-
+ mythplugins/mythmusic/mythmusic/musicdata.h     |   26 ++++++++++++++++++++++-
+ mythplugins/mythmusic/mythmusic/musicplayer.cpp |    4 ++--
+ 3 files changed, 31 insertions(+), 4 deletions(-)
+
+diff --git a/mythplugins/mythmusic/mythmusic/musicdata.cpp b/mythplugins/mythmusic/mythmusic/musicdata.cpp
+index 5bc2170..35a5d24 100644
+--- a/mythplugins/mythmusic/mythmusic/musicdata.cpp
++++ b/mythplugins/mythmusic/mythmusic/musicdata.cpp
+@@ -51,7 +51,10 @@ MusicData::~MusicData(void)
+ 
+ void MusicData::scanMusic (void)
+ {
+-    gCoreContext->SendReceiveStringList(QStringList() << "SCAN_MUSIC");
++    QStringList strList("SCAN_MUSIC");
++    SendStringListThread *thread = new SendStringListThread(strList);
++    MThreadPool::globalInstance()->start(thread, "Send SCAN_MUSIC");
++
+     LOG(VB_GENERAL, LOG_INFO, "Requested a music file scan");
+ }
+ 
+diff --git a/mythplugins/mythmusic/mythmusic/musicdata.h b/mythplugins/mythmusic/mythmusic/musicdata.h
+index 8031d20..17cefd6 100644
+--- a/mythplugins/mythmusic/mythmusic/musicdata.h
++++ b/mythplugins/mythmusic/mythmusic/musicdata.h
+@@ -1,15 +1,39 @@
+ #ifndef MUSICDATA_H_
+ #define MUSICDATA_H_
+ 
+-//#include <musicmetadata.h>
++
++// qt
++#include <QRunnable>
++
++// myth
+ #include <mythexp.h>
++#include <mythcorecontext.h>
+ 
++// mythmusic
+ #include "playlistcontainer.h"
+ 
+ class PlaylistContainer;
+ class AllMusic;
+ class AllStream;
+ 
++/// send a message to the master BE without blocking the UI thread
++class SendStringListThread : public QRunnable
++{
++  public:
++    SendStringListThread(const QStringList &strList)
++    {
++        m_strList = strList;
++    }
++
++    void run()
++    {
++        gCoreContext->SendReceiveStringList(m_strList);
++    }
++
++  private:
++    QStringList m_strList;
++};
++
+ //----------------------------------------------------------------------------
+ 
+ class MusicData : public QObject
+diff --git a/mythplugins/mythmusic/mythmusic/musicplayer.cpp b/mythplugins/mythmusic/mythmusic/musicplayer.cpp
+index b54b989..b7ba3d6 100644
+--- a/mythplugins/mythmusic/mythmusic/musicplayer.cpp
++++ b/mythplugins/mythmusic/mythmusic/musicplayer.cpp
+@@ -1265,7 +1265,6 @@ void MusicPlayer::updateVolatileMetadata(void)
+             // only write the last played, playcount & rating to the tag if it's enabled by the user
+             if (GetMythDB()->GetNumSetting("AllowTagWriting", 0) == 1)
+             {
+-                // TODO: should move this to it's own thread
+                 QStringList strList;
+                 strList << QString("MUSIC_TAG_UPDATE_VOLATILE %1 %2 %3 %4 %5")
+                                    .arg(getCurrentMetadata()->Hostname())
+@@ -1273,7 +1272,8 @@ void MusicPlayer::updateVolatileMetadata(void)
+                                    .arg(getCurrentMetadata()->Rating())
+                                    .arg(getCurrentMetadata()->Playcount())
+                                    .arg(getCurrentMetadata()->LastPlay().toString(Qt::ISODate));
+-                gCoreContext->SendReceiveStringList(strList);
++                SendStringListThread *thread = new SendStringListThread(strList);
++                MThreadPool::globalInstance()->start(thread, "UpdateVolatile");
+             }
+ 
+             sendTrackStatsChangedEvent(getCurrentMetadata()->ID());
+-- 
+1.7.10
+

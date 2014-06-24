@@ -1,0 +1,107 @@
+#!/bin/sh
+################################################################################
+# master
+#
+# This script configures MythTV master backend communication.
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    local WOLSqlConnectRetry
+    local WOLSqlReconnectWaitTime
+    local WOLSqlCommand
+    local WOLSqlConnectAttempt
+    local WOL_Additional_Delay
+    local HOST_NAME
+
+    HOST_NAME=`/bin/hostname`
+
+    mm_message_output info "configuring MythTV master backend communication ..."
+
+    # Determine broadcast address.
+    MM_MASTER_WOL_BROADCAST=`/sbin/ifconfig ${MM_NETWORK_INTERFACE} | /bin/grep ' Bcast:' | /bin/sed 's%.* Bcast:\([^ ]*\) .*%\1%'`
+
+    # Configure mysql.txt file.
+    /bin/sed -i "s%@MM_HOSTNAME@%${HOST_NAME}%"                                               /home/minimyth/.mythtv/mysql.txt
+    /bin/sed -i "s%@MM_MASTER_SERVER@%${MM_MASTER_SERVER}%"                                   /home/minimyth/.mythtv/mysql.txt
+    /bin/sed -i "s%@MM_MASTER_DBUSERNAME@%${MM_MASTER_DBUSERNAME}%"                           /home/minimyth/.mythtv/mysql.txt
+    /bin/sed -i "s%@MM_MASTER_DBPASSWORD@%${MM_MASTER_DBPASSWORD}%"                           /home/minimyth/.mythtv/mysql.txt
+    /bin/sed -i "s%@MM_MASTER_DBNAME@%${MM_MASTER_DBNAME}%"                                   /home/minimyth/.mythtv/mysql.txt
+    if /usr/bin/test "${MM_MASTER_WOL_ENABLED}" = "yes" ; then
+        /bin/sed -i "s%@MM_MASTER_WOL_FALSE@%\#%"                                             /home/minimyth/.mythtv/mysql.txt
+        /bin/sed -i "s%@MM_MASTER_WOL_TRUE@%%"                                                /home/minimyth/.mythtv/mysql.txt
+    else
+        /bin/sed -i "s%@MM_MASTER_WOL_FALSE@%%"                                               /home/minimyth/.mythtv/mysql.txt
+        /bin/sed -i "s%@MM_MASTER_WOL_TRUE@%\#%"                                              /home/minimyth/.mythtv/mysql.txt
+    fi
+    /bin/sed -i "s%@MM_MASTER_WOLSQLRECONNECTWAITTIME@%${MM_MASTER_WOLSQLRECONNECTWAITTIME}%" /home/minimyth/.mythtv/mysql.txt
+    /bin/sed -i "s%@MM_MASTER_WOLSQLCONNECTRETRY@%${MM_MASTER_WOLSQLCONNECTRETRY}%"           /home/minimyth/.mythtv/mysql.txt
+    /bin/sed -i "s%@MM_MASTER_WOLSQLCOMMAND@%${MM_MASTER_WOLSQLCOMMAND}%"                     /home/minimyth/.mythtv/mysql.txt
+    /bin/sed -i "s%@MM_MASTER_WOL_BROADCAST@%${MM_MASTER_WOL_BROADCAST}%"                     /home/minimyth/.mythtv/mysql.txt
+    /bin/sed -i "s%@MM_MASTER_WOL_MAC@%${MM_MASTER_WOL_MAC}%"                                 /home/minimyth/.mythtv/mysql.txt
+
+    # Configure config.xml file.
+    /bin/sed -i "s%@MM_HOSTNAME@%${HOST_NAME}%"                                               /home/minimyth/.mythtv/config.xml
+    /bin/sed -i "s%@MM_MASTER_SERVER@%${MM_MASTER_SERVER}%"                                   /home/minimyth/.mythtv/config.xml
+    /bin/sed -i "s%@MM_MASTER_DBUSERNAME@%${MM_MASTER_DBUSERNAME}%"                           /home/minimyth/.mythtv/config.xml
+    /bin/sed -i "s%@MM_MASTER_DBPASSWORD@%${MM_MASTER_DBPASSWORD}%"                           /home/minimyth/.mythtv/config.xml
+    /bin/sed -i "s%@MM_MASTER_DBNAME@%${MM_MASTER_DBNAME}%"                                   /home/minimyth/.mythtv/config.xml
+
+    # Configure mythadder.py file.
+    /bin/sed -i "s%@MM_MASTER_SERVER@%${MM_MASTER_SERVER}%"                                   /usr/bin/mythadder.py
+    /bin/sed -i "s%@MM_MASTER_DBUSERNAME@%${MM_MASTER_DBUSERNAME}%"                           /usr/bin/mythadder.py
+    /bin/sed -i "s%@MM_MASTER_DBPASSWORD@%${MM_MASTER_DBPASSWORD}%"                           /usr/bin/mythadder.py
+    /bin/sed -i "s%@MM_MASTER_DBNAME@%${MM_MASTER_DBNAME}%"                                   /usr/bin/mythadder.py
+
+    # If using wake-on-lan, then make sure that the MythTV master backend is awake.
+    if /usr/bin/test "${MM_MASTER_WOL_ENABLED}" = "yes" && ! mm_mythdb_test ; then
+        WOLSqlConnectRetry=` \
+            /bin/cat /home/minimyth/.mythtv/mysql.txt | \
+            /bin/grep '^WOLSqlConnectRetry=' | \
+            /bin/sed 's%WOLSqlConnectRetry=%%'`
+        WOLSqlReconnectWaitTime=` \
+            /bin/cat /home/minimyth/.mythtv/mysql.txt | \
+            /bin/grep '^WOLSqlReconnectWaitTime=' | \
+            /bin/sed 's%WOLSqlReconnectWaitTime=%%'`
+        WOLSqlCommand=` \
+            /bin/cat /home/minimyth/.mythtv/mysql.txt | \
+            /bin/grep '^WOLSqlCommand=' | \
+            /bin/sed 's%WOLSqlCommand=%%'`
+        WOLSqlConnectAttempt=1
+        while /usr/bin/test ${WOLSqlConnectAttempt} -le ${WOLSqlConnectRetry} && ! mm_mythdb_test ; do
+            mm_message_output info "waking MythTV master backend database (${WOLSqlConnectAttempt} of ${WOLSqlConnectRetry} attempts) ..."
+            ${WOLSqlCommand}
+            /bin/sleep ${WOLSqlReconnectWaitTime}
+            WOLSqlConnectAttempt=$((WOLSqlConnectAttempt+1))
+        done
+        # Wait the additional delay after MySQL is awake.
+        if mm_mythdb_test ; then
+            WOL_Additional_Delay=0
+            while /usr/bin/test ${WOL_Additional_Delay} -le ${MM_MASTER_WOL_ADDITIONAL_DELAY} ; do
+                mm_message_output info "waiting while MythTV master backend wakes (${WOL_Additional_Delay} of ${MM_MASTER_WOL_ADDITIONAL_DELAY} seconds) ..."
+                /bin/sleep 1
+                WOL_Additional_Delay=$((WOL_Additional_Delay+1))
+            done
+        fi
+    fi
+
+    # Test Myth database connection.
+    if ! mm_mythdb_test ; then
+        mm_message_output err "error: cannot connect to the MythTV master backend database."
+        exit 1
+    fi
+
+    return 0
+}
+
+stop() {
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0

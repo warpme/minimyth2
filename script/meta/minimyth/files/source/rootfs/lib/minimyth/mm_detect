@@ -1,0 +1,72 @@
+#!/bin/sh
+################################################################################
+# mm_detect
+#
+# Detection related functions.
+################################################################################
+mm_detect_state_file_get() {
+    local group="${1:-'null'}"
+    local name="${2:-'null'}"
+
+    local state_file;
+
+    group=`/bin/echo ${group} | /bin/sed -e 's%^/*%%' -e 's%/%~%g'`
+    name=`/bin/echo ${name} | /bin/sed -e 's%^/*%%' -e 's%/%~%g'`
+
+    /bin/echo "/var/cache/minimyth/detect/${group}/${name}"
+}
+
+mm_detect_state_get() {
+    local group="$1"
+
+    local state_dir
+    local state_file
+    local state_file_list
+    local state_item
+    local state_list
+
+    state_file=`mm_detect_state_file_get "${group}" 'null'`
+    state_dir=`/usr/bin/dirname "${state_file}"`
+    state_file_list=`/bin/ls ${state_dir}/* 2> /dev/null`
+    state_list=
+    for state_file in ${state_file_list} ; do
+        state_item=`/bin/cat "${state_file}"`
+        state_list="${state_list} ${state_item}"
+    done
+    state_list=`/bin/echo "${state_list}" | /bin/sed -e 's%  *% %g' -e 's%^ %%' -e 's% $%%'`
+
+    /bin/echo "${state_list}"
+}
+
+mm_detect_state_set() {
+    local group="$1"
+    local name="$2"
+    local state="$3"
+
+    local state_dir
+    local state_file
+
+    # Write state.
+    state_file=`mm_detect_state_file_get "${group}" "${name}"`
+    state_dir=`/usr/bin/dirname "${state_file}"`
+    if /usr/bin/test ! -e "${state_dir}" ; then
+        /bin/mkdir -p        "${state_dir}"
+        /bin/chown root:root "${state_dir}"
+        /bin/chmod 0755      "${state_dir}"
+    fi
+    /bin/rm -f           "${state_file}"
+    /bin/touch           "${state_file}"
+    /bin/chown root:root "${state_file}"
+    /bin/chmod 0644      "${state_file}"
+    /bin/echo "${state}" >> "${state_file}"
+}
+
+mm_detect_state_unset() {
+    local group="$1"
+    local name="$2"
+
+    if /usr/bin/test -n "${name}" ; then
+        state_file=`mm_detect_state_file_get "${group}" "${name}"`
+        /bin/rm -f "${state_file}"
+    fi
+}

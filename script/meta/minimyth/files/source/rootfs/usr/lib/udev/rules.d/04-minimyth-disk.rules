@@ -1,0 +1,53 @@
+################################################################################
+# Handle disk devices.
+#   On add
+#     Import disk information.
+#     Configure disk access rights.
+#       Group 'cdrom' gets rw access to CD/DVD drives.
+#       Group 'disk'  gets rw access to other driver.
+#     Identify and name MiniMyth local boot/conf device.
+#     Identify and name each removable device.
+#     Mount MiniMyth local boot/conf device.
+#   On delete
+#     Unmount device.
+################################################################################
+SUBSYSTEM=="block", KERNEL=="hd[a-z]*|sd[a-z]*|sr[0-9]*", GOTO="begin"
+GOTO="end"
+LABEL="begin"
+  ACTION=="add|change", GOTO="begin-add"
+  GOTO="end-add"
+  LABEL="begin-add"
+    IMPORT{program}="cdrom_id $tempnode"
+    IMPORT{program}="/sbin/blkid -o udev -p $tempnode"
+    KERNEL=="?*"              , SYMLINK+="disk/by-kernel/%k"
+    ENV{ID_FS_LABEL_ENC}=="?*", SYMLINK+="disk/by-label/$env{ID_FS_LABEL_ENC}"
+    ENV{ID_FS_UUID_ENC}=="?*" , SYMLINK+="disk/by-uuid/$env{ID_FS_UUID_ENC}"
+    LABEL="begin-add-access"
+      ENV{ID_CDROM}=="?*", OWNER="root", GROUP="cdrom", MODE="0660", GOTO="end-add-access"
+      ENV{ID_CDROM}!="?*", OWNER="root", GROUP="disk" , MODE="0660", GOTO="end-add-access"
+    LABEL="end-add-access"
+    LABEL="begin-add-name"
+      PROGRAM="mm_is_boot", SYMLINK+="disk-minimyth", GOTO="end-add-name"
+      ATTR{removable}=="1", GOTO="begin-add-name-removable"
+      GOTO="end-add-name-removable"
+      LABEL="begin-add-name-removable"
+        ENV{ID_CDROM_DVD}=="?*", ENV{ID_CDROM}=="?*", SYMLINK+="dvd-%k dvd cdrom", GOTO="end-add-name"
+        ENV{ID_CDROM_DVD}=="?*", ENV{ID_CDROM}!="?*", SYMLINK+="dvd-%k dvd",       GOTO="end-add-name"
+        ENV{ID_CDROM_DVD}!="?*", ENV{ID_CDROM}=="?*", SYMLINK+="cdrom-%k cdrom",   GOTO="end-add-name"
+        ENV{ID_CDROM_DVD}!="?*", ENV{ID_CDROM}!="?*", SYMLINK+="disk-%k",          GOTO="end-add-name"
+      LABEL="end-add-name-removable"
+    LABEL="end-add-name"
+    ACTION=="add", GOTO="begin-add-mount"
+    GOTO="end-add-mount"
+    LABEL="begin-add-mount"
+      PROGRAM="mm_is_boot", RUN+="mm_mount add $env{DEVNAME} 1 /minimyth $env{ID_FS_TYPE}", GOTO="end-add-mount"
+    LABEL="end-add-mount"
+  LABEL="end-add"
+  ACTION=="delete", GOTO="begin-delete"
+  GOTO="end-delete"
+  LABEL="begin-delete"
+    LABEL="begin-delete-unmount"
+      RUN+="mm_mount remove $env{DEVNAME}", GOTO="end-delete-unmount"
+    LABEL="end-delete-unmount"
+  LABEL="end-delete"
+LABEL="end"

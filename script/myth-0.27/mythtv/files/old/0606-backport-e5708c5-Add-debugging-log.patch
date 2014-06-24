@@ -1,0 +1,59 @@
+From e5708c52ba1a6f492df6ce5b6593abe61f06a960 Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Fri, 11 Apr 2014 21:06:55 +0700
+Subject: [PATCH] Add debugging log
+
+---
+ mythtv/libs/libmythtv/avformatdecoder.cpp |   15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/mythtv/libs/libmythtv/avformatdecoder.cpp b/mythtv/libs/libmythtv/avformatdecoder.cpp
+index 118a2d0..324b322 100644
+--- a/mythtv/libs/libmythtv/avformatdecoder.cpp
++++ b/mythtv/libs/libmythtv/avformatdecoder.cpp
+@@ -1064,6 +1064,9 @@ int AvFormatDecoder::OpenFile(RingBuffer *rbuffer, bool novideo,
+             err = avformat_open_input(&ic, filename, fmt, NULL);
+             if (err < 0)
+             {
++                LOG(VB_PLAYBACK, LOG_DEBUG, LOC +
++                    QString("avformat_open_input failed for in ram data after %1ms, retrying in 50ms")
++                    .arg(timer.elapsed()));
+                 usleep(50 * 1000);  // wait 50ms
+                 continue;
+             }
+@@ -1072,6 +1075,9 @@ int AvFormatDecoder::OpenFile(RingBuffer *rbuffer, bool novideo,
+             if (FindStreamInfo() < 0)
+             {
+                 avformat_close_input(&ic);
++                LOG(VB_PLAYBACK, LOG_DEBUG, LOC +
++                    QString("FindStreamInfo failed for in ram data after %1ms, retrying in 50ms")
++                    .arg(timer.elapsed()));
+                 usleep(50 * 1000);  // wait 50ms
+                 continue;
+             }
+@@ -1084,6 +1090,9 @@ int AvFormatDecoder::OpenFile(RingBuffer *rbuffer, bool novideo,
+                 {
+                     avformat_close_input(&ic);
+                     found = false;
++                    LOG(VB_PLAYBACK, LOG_DEBUG, LOC +
++                        QString("Invalid streams found in ram data after %1ms, retrying in 50ms")
++                        .arg(timer.elapsed()));
+                     usleep(50 * 1000);  // wait 50ms
+                     break;
+                 }
+@@ -1092,6 +1101,12 @@ int AvFormatDecoder::OpenFile(RingBuffer *rbuffer, bool novideo,
+ 
+         avfRingBuffer->SetInInit(false);
+ 
++        if (!found)
++        {
++            LOG(VB_PLAYBACK, LOG_WARNING, LOC +
++                QString("No streams found in ram data after %1ms, defaulting to in-file")
++                .arg(timer.elapsed()));
++        }
+         scanned = found;
+     }
+ 
+-- 
+1.7.10.2
+

@@ -1,0 +1,25 @@
+#-------------------------------------------------------------------------------
+# Detect mouse devices.
+#
+# An mouse device is assumed to have the name event[0-9]*, be an input device
+# and either be a USB mouse or use the psmouse driver.
+#
+# The state requires the mouse device name. However, since it is not yet
+# known, it cannot be added be included in mm_detect_state_mouse. Therefore,
+# the mm_detect script will prepend the mouse device name to the state.
+#-------------------------------------------------------------------------------
+ACTION!="add|change|remove", GOTO="end"
+KERNEL=="event[0-9]*",  SUBSYSTEM=="input", GOTO="begin"
+GOTO="end"
+LABEL="begin"
+
+ENV{mm_detect_state_mouse}=""
+
+SUBSYSTEMS=="usb", ATTRS{bInterfaceClass}=="03", ATTRS{bInterfaceProtocol}=="02", ENV{mm_detect_state_mouse}="usb"
+
+DRIVERS=="psmouse", ENV{mm_detect_state_mouse}="ps2"
+
+# The state has been set, so save it.
+ENV{mm_detect_state_mouse}=="?*", RUN+="/usr/lib/udev/mm_detect mouse %k $env{mm_detect_state_mouse} state_prepend_devname"
+
+LABEL="end"

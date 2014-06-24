@@ -1,0 +1,569 @@
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/Bluray/bdringbuffer.cpp mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/Bluray/bdringbuffer.cpp
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/Bluray/bdringbuffer.cpp	2014-04-03 10:32:47.683578260 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/Bluray/bdringbuffer.cpp	2014-04-03 10:33:02.160410315 +0200
+@@ -80,20 +80,10 @@
+     ClearOverlays();
+ }
+ 
+-long long BDRingBuffer::Seek(long long pos, int whence, bool has_lock)
++long long BDRingBuffer::SeekInternal(long long pos, int whence)
+ {
+-    LOG(VB_FILE, LOG_INFO, LOC + QString("Seek(%1,%2,%3)")
+-            .arg(pos).arg((whence == SEEK_SET) ? "SEEK_SET" :
+-                          ((whence == SEEK_CUR) ? "SEEK_CUR" : "SEEK_END"))
+-            .arg(has_lock ? "locked" : "unlocked"));
+-
+     long long ret = -1;
+ 
+-    // lockForWrite takes priority over lockForRead, so this will
+-    // take priority over the lockForRead in the read ahead thread.
+-    if (!has_lock)
+-        rwlock.lockForWrite();
+-
+     poslock.lockForWrite();
+ 
+     // Optimize no-op seeks
+@@ -104,8 +94,6 @@
+         ret = readpos;
+ 
+         poslock.unlock();
+-        if (!has_lock)
+-            rwlock.unlock();
+ 
+         return ret;
+     }
+@@ -124,7 +112,7 @@
+     }
+     else
+     {
+-        Seek(new_pos);
++        SeekInternal(new_pos);
+         m_currentTime = bd_tell_time(bdnav);
+         ret = new_pos;
+     }
+@@ -152,13 +140,10 @@
+ 
+     generalWait.wakeAll();
+ 
+-    if (!has_lock)
+-        rwlock.unlock();
+-
+     return ret;
+ }
+ 
+-uint64_t BDRingBuffer::Seek(uint64_t pos)
++uint64_t BDRingBuffer::SeekInternal(uint64_t pos)
+ {
+     LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("Seeking to %1.").arg(pos));
+     if (bdnav)
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/Bluray/bdringbuffer.h mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/Bluray/bdringbuffer.h
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/Bluray/bdringbuffer.h	2014-04-03 10:32:47.683578260 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/Bluray/bdringbuffer.h	2014-04-03 10:33:02.160410315 +0200
+@@ -111,9 +111,10 @@
+     bool SwitchPlaylist(uint32_t index);
+     bool SwitchAngle(uint angle);
+ 
++  protected:
+     virtual int safe_read(void *data, uint sz);
+-    virtual long long Seek(long long pos, int whence, bool has_lock);
+-    uint64_t Seek(uint64_t pos);
++    virtual long long SeekInternal(long long pos, int whence);
++    uint64_t SeekInternal(uint64_t pos);
+ 
+   private:
+ 
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/DVD/dvdringbuffer.cpp mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/DVD/dvdringbuffer.cpp
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/DVD/dvdringbuffer.cpp	2014-04-03 10:32:47.700245117 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/DVD/dvdringbuffer.cpp	2014-04-03 10:33:02.160410315 +0200
+@@ -306,20 +306,10 @@
+     rwlock.unlock();
+ }
+ 
+-long long DVDRingBuffer::Seek(long long pos, int whence, bool has_lock)
++long long DVDRingBuffer::SeekInternal(long long pos, int whence)
+ {
+-    LOG(VB_FILE, LOG_INFO, LOC + QString("Seek(%1,%2,%3)")
+-            .arg(pos).arg((whence == SEEK_SET) ? "SEEK_SET":
+-                          ((whence == SEEK_CUR) ? "SEEK_CUR" : "SEEK_END"))
+-            .arg(has_lock ? "locked" : "unlocked"));
+-
+     long long ret = -1;
+ 
+-    // lockForWrite takes priority over lockForRead, so this will
+-    // take priority over the lockForRead in the read ahead thread.
+-    if (!has_lock)
+-        rwlock.lockForWrite();
+-
+     poslock.lockForWrite();
+ 
+     // Optimize no-op seeks
+@@ -330,8 +320,6 @@
+         ret = readpos;
+ 
+         poslock.unlock();
+-        if (!has_lock)
+-            rwlock.unlock();
+ 
+         return ret;
+     }
+@@ -377,9 +365,6 @@
+ 
+     generalWait.wakeAll();
+ 
+-    if (!has_lock)
+-        rwlock.unlock();
+-
+     return ret;
+ }
+ 
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/DVD/dvdringbuffer.h mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/DVD/dvdringbuffer.h
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/DVD/dvdringbuffer.h	2014-04-03 10:32:47.700245117 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/DVD/dvdringbuffer.h	2014-04-03 10:33:02.160410315 +0200
+@@ -173,8 +173,6 @@
+     bool playTrack(int track);
+     bool nextTrack(void);
+     void prevTrack(void);
+-    virtual int safe_read(void *data, uint sz);
+-    virtual long long Seek(long long pos, int whence, bool has_lock);
+     long long NormalSeek(long long time);
+     bool SectorSeek(uint64_t sector);
+     void SkipStillFrame(void);
+@@ -201,6 +199,8 @@
+     void SetParent(MythDVDPlayer *p) { m_parent = p; }
+ 
+   protected:
++    virtual int safe_read(void *data, uint sz);
++    virtual long long SeekInternal(long long pos, int whence);
+ 
+     typedef enum
+     {
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/HLS/httplivestreambuffer.cpp mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/HLS/httplivestreambuffer.cpp
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/HLS/httplivestreambuffer.cpp	2014-04-03 10:32:50.993616087 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/HLS/httplivestreambuffer.cpp	2014-04-03 10:33:02.163743687 +0200
+@@ -2787,7 +2787,7 @@
+     return SizeMedia();
+ }
+ 
+-long long HLSRingBuffer::Seek(long long pos, int whence, bool has_lock)
++long long HLSRingBuffer::SeekInternal(long long pos, int whence)
+ {
+     if (m_error)
+         return -1;
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/HLS/httplivestreambuffer.h mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/HLS/httplivestreambuffer.h
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/HLS/httplivestreambuffer.h	2014-04-03 10:32:51.220285340 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/HLS/httplivestreambuffer.h	2014-04-03 10:33:02.163743687 +0200
+@@ -51,7 +51,6 @@
+     virtual long long GetReadPosition(void) const;
+     virtual bool OpenFile(const QString &lfilename,
+                           uint retry_ms = kDefaultOpenTimeout);
+-    virtual long long Seek(long long pos, int whence, bool has_lock);
+     virtual bool IsStreamed(void)           { return false;   }
+     virtual bool IsSeekingAllowed(void)     { return !m_error; }
+     virtual bool IsBookmarkAllowed(void)    { return true; }
+@@ -67,6 +66,7 @@
+ protected:
+     virtual int safe_read(void *data, uint i_read);
+     virtual long long GetRealFileSizeInternal(void) const;
++    virtual long long SeekInternal(long long pos, int whence);
+ 
+ private:
+     void FreeStreamsList(QList<HLSStream*> *streams) const;
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/dvdstream.cpp mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/dvdstream.cpp
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/dvdstream.cpp	2014-04-03 10:32:47.703578488 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/dvdstream.cpp	2014-04-03 10:33:02.163743687 +0200
+@@ -234,7 +234,7 @@
+ }
+ 
+ //virtual
+-long long DVDStream::Seek(long long pos, int whence, bool has_lock)
++long long DVDStream::SeekInternal(long long pos, int whence)
+ {
+     if (!m_reader)
+         return -1;
+@@ -252,11 +252,6 @@
+         return -1;
+     }
+ 
+-    // lockForWrite takes priority over lockForRead, so this will
+-    // take priority over the lockForRead in the read ahead thread.
+-    if (!has_lock)
+-        rwlock.lockForWrite();
+-
+     poslock.lockForWrite();
+ 
+     m_pos = lb;
+@@ -265,9 +260,6 @@
+ 
+     generalWait.wakeAll();
+ 
+-    if (!has_lock)
+-        rwlock.unlock();
+-
+     return pos;
+ }
+ 
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/dvdstream.h mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/dvdstream.h
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/dvdstream.h	2014-04-03 10:32:47.700245117 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/dvdstream.h	2014-04-03 10:33:02.163743687 +0200
+@@ -30,10 +30,10 @@
+     virtual long long GetReadPosition(void)  const;
+     virtual bool IsOpen(void) const;
+     virtual bool OpenFile(const QString &lfilename, uint retry_ms = 0);
+-    virtual long long Seek(long long pos, int whence, bool has_lock);
+ 
+ protected:
+     virtual int safe_read(void *data, uint sz);
++    virtual long long SeekInternal(long long pos, int whence);
+ 
+     // Implementation
+ private:
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/fileringbuffer.cpp mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/fileringbuffer.cpp
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/fileringbuffer.cpp	2014-04-03 10:32:51.323619858 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/fileringbuffer.cpp	2014-04-03 10:33:02.163743687 +0200
+@@ -611,29 +611,14 @@
+     return ret;
+ }
+ 
+-long long FileRingBuffer::Seek(long long pos, int whence, bool has_lock)
++long long FileRingBuffer::SeekInternal(long long pos, int whence)
+ {
+-    LOG(VB_FILE, LOG_INFO, LOC + QString("Seek(%1,%2,%3)")
+-            .arg(pos).arg((SEEK_SET==whence)?"SEEK_SET":
+-                          ((SEEK_CUR==whence)?"SEEK_CUR":"SEEK_END"))
+-            .arg(has_lock?"locked":"unlocked"));
+-
+     long long ret = -1;
+ 
+-    StopReads();
+-
+-    // lockForWrite takes priority over lockForRead, so this will
+-    // take priority over the lockForRead in the read ahead thread.
+-    if (!has_lock)
+-        rwlock.lockForWrite();
+-
+-    StartReads();
+-
+     if (writemode)
+     {
+         ret = WriterSeek(pos, whence, true);
+-        if (!has_lock)
+-            rwlock.unlock();
++
+         return ret;
+     }
+ 
+@@ -647,8 +632,6 @@
+         ret = readpos;
+ 
+         poslock.unlock();
+-        if (!has_lock)
+-            rwlock.unlock();
+ 
+         return ret;
+     }
+@@ -669,7 +652,7 @@
+                 .arg(rbrpos).arg(rbwpos)
+                 .arg(readpos).arg(internalreadpos));
+         bool used_opt = false;
+-        if ((new_pos < readpos - readOffset))
++        if ((new_pos < readpos))
+         {
+             // Seeking to earlier than current buffer's start, but still in buffer
+             int min_safety = max(fill_min, readblocksize);
+@@ -678,7 +661,7 @@
+             int internal_backbuf =
+                 (rbwpos >= rbrpos) ? rbrpos : rbrpos - rbwpos;
+             internal_backbuf = min(internal_backbuf, free - min_safety);
+-            long long sba = (readpos - readOffset) - new_pos;
++            long long sba = readpos - new_pos;
+             LOG(VB_FILE, LOG_INFO, LOC +
+                 QString("Seek(): internal_backbuf: %1 sba: %2")
+                     .arg(internal_backbuf).arg(sba));
+@@ -686,7 +669,6 @@
+             {
+                 rbrpos = (rbrpos>=sba) ? rbrpos - sba :
+                     bufferSize + rbrpos - sba;
+-                readOffset = 0;
+                 used_opt = true;
+                 LOG(VB_FILE, LOG_INFO, LOC +
+                     QString("Seek(): OPT1 rbrpos: %1 rbwpos: %2"
+@@ -695,16 +677,9 @@
+                         .arg(new_pos).arg(internalreadpos));
+             }
+         }
+-        else if ((new_pos >= (readpos - readOffset)) && (new_pos <= internalreadpos))
++        else if ((new_pos >= readpos) && (new_pos <= internalreadpos))
+         {
+-            if (readInternalMode)
+-            {
+-                readOffset += new_pos - readpos;
+-            }
+-            else
+-            {
+-                rbrpos = (rbrpos + (new_pos - readpos)) % bufferSize;
+-            }
++            rbrpos = (rbrpos + (new_pos - readpos)) % bufferSize;
+             used_opt = true;
+             LOG(VB_FILE, LOG_INFO, LOC +
+                 QString("Seek(): OPT2 rbrpos: %1 sba: %2")
+@@ -715,15 +690,6 @@
+ 
+         if (used_opt)
+         {
+-            if (readInternalMode)
+-            {
+-                ateof = false;
+-                readpos = new_pos;
+-                poslock.unlock();
+-                if (!has_lock)
+-                    rwlock.unlock();
+-                return new_pos;
+-            }
+             if (ignorereadpos >= 0)
+             {
+                 // seek should always succeed since we were at this position
+@@ -756,8 +722,7 @@
+             readpos = new_pos;
+             poslock.unlock();
+             generalWait.wakeAll();
+-            if (!has_lock)
+-                rwlock.unlock();
++
+             return new_pos;
+         }
+     }
+@@ -868,9 +833,6 @@
+ 
+             generalWait.wakeAll();
+ 
+-            if (!has_lock)
+-                rwlock.unlock();
+-
+             return ret;
+         }
+     }
+@@ -913,8 +875,5 @@
+ 
+     generalWait.wakeAll();
+ 
+-    if (!has_lock)
+-        rwlock.unlock();
+-
+     return ret;
+ }
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/fileringbuffer.h mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/fileringbuffer.h
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/fileringbuffer.h	2014-04-03 10:32:51.906960114 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/fileringbuffer.h	2014-04-03 10:33:02.163743687 +0200
+@@ -20,7 +20,6 @@
+     virtual bool OpenFile(const QString &lfilename,
+                           uint retry_ms = kDefaultOpenTimeout);
+     virtual bool ReOpen(QString newFilename = "");
+-    virtual long long Seek(long long pos, int whence, bool has_lock);
+ 
+   protected:
+     FileRingBuffer(const QString &lfilename,
+@@ -39,4 +38,5 @@
+     int safe_read(int fd, void *data, uint sz);
+     int safe_read(RemoteFile *rf, void *data, uint sz);
+     virtual long long GetRealFileSizeInternal(void) const;
++    virtual long long SeekInternal(long long pos, int whence);
+ };
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/icringbuffer.cpp mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/icringbuffer.cpp
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/icringbuffer.cpp	2014-04-03 10:32:51.916959979 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/icringbuffer.cpp	2014-04-03 10:33:02.163743687 +0200
+@@ -86,16 +86,11 @@
+     return m_stream ? m_stream->GetReadPosition() : 0;
+ }
+ 
+-long long ICRingBuffer::Seek(long long pos, int whence, bool has_lock)
++long long ICRingBuffer::SeekInternal(long long pos, int whence)
+ {
+     if (!m_stream)
+         return -1;
+ 
+-    // lockForWrite takes priority over lockForRead, so this will
+-    // take priority over the lockForRead in the read ahead thread.
+-    if (!has_lock)
+-        rwlock.lockForWrite();
+-
+     poslock.lockForWrite();
+ 
+     long long ret;
+@@ -108,8 +103,6 @@
+         ret = readpos;
+ 
+         poslock.unlock();
+-        if (!has_lock)
+-            rwlock.unlock();
+ 
+         return ret;
+     }
+@@ -148,9 +141,6 @@
+ 
+     generalWait.wakeAll();
+ 
+-    if (!has_lock)
+-        rwlock.unlock();
+-
+     return ret;
+ }
+ 
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/icringbuffer.h mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/icringbuffer.h
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/icringbuffer.h	2014-04-03 10:32:51.933626846 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/icringbuffer.h	2014-04-03 10:33:02.163743687 +0200
+@@ -18,7 +18,6 @@
+     virtual long long GetReadPosition(void) const;
+     virtual bool OpenFile(const QString &url,
+                           uint retry_ms = kDefaultOpenTimeout);
+-    virtual long long Seek(long long pos, int whence, bool has_lock);
+     virtual bool IsStreamed(void)       { return false;  }
+     virtual bool IsSeekingAllowed(void) { return true; }
+     virtual bool IsBookmarkAllowed(void) { return false; }
+@@ -26,6 +25,7 @@
+   protected:
+     virtual int safe_read(void *data, uint sz);
+     virtual long long GetRealFileSizeInternal(void) const;
++    virtual long long SeekInternal(long long pos, int whence);
+ 
+     // Operations
+   public:
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/ringbuffer.cpp mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/ringbuffer.cpp
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/ringbuffer.cpp	2014-04-03 10:32:51.950293692 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/ringbuffer.cpp	2014-04-03 10:33:02.163743687 +0200
+@@ -497,6 +497,52 @@
+     return GetRealFileSizeInternal();
+ }
+ 
++long long RingBuffer::Seek(long long pos, int whence, bool has_lock)
++{
++    LOG(VB_FILE, LOG_INFO, LOC + QString("Seek(%1,%2,%3)")
++        .arg(pos).arg((SEEK_SET==whence)?"SEEK_SET":
++                      ((SEEK_CUR==whence)?"SEEK_CUR":"SEEK_END"))
++        .arg(has_lock?"locked":"unlocked"));
++
++    if (!has_lock)
++    {
++        rwlock.lockForWrite();
++    }
++
++    long long ret;
++
++    if (readInternalMode)
++    {
++        poslock.lockForWrite();
++        // only valid for SEEK_SET & SEEK_CUR
++        switch (whence)
++        {
++            case SEEK_SET:
++                readpos = pos;
++                break;
++            case SEEK_CUR:
++                readpos += pos;
++                break;
++            case SEEK_END:
++                readpos = ReadBufAvail() - pos;
++                break;
++        }
++        readOffset = readpos;
++        poslock.unlock();
++        ret = readpos;
++    }
++    else
++    {
++        ret = SeekInternal(pos, whence);
++    }
++
++    if (!has_lock)
++    {
++        rwlock.unlock();
++    }
++    return ret;
++}
++
+ bool RingBuffer::SetReadInternalMode(bool mode)
+ {
+     QWriteLocker lock(&rwlock);
+@@ -509,6 +555,10 @@
+         // reset the read offset as we are exiting the internal read mode
+         readOffset = 0;
+     }
++
++    LOG(VB_FILE, LOG_DEBUG, LOC +
++        QString("SetReadInternalMode: %1").arg(mode ? "on" : "off"));
++
+     return old;
+ }
+ 
+@@ -1393,7 +1443,14 @@
+         return 0;
+     }
+ 
+-    count = min(ReadBufAvail() - readOffset, count);
++    int avail = ReadBufAvail();
++    if (readInternalMode)
++    {
++        LOG(VB_FILE, LOG_DEBUG, LOC +
++            QString("ReadPriv: %1 bytes available, %2 left")
++            .arg(avail).arg(avail-readOffset));
++    }
++    count = min(avail - readOffset, count);
+ 
+     if (count <= 0)
+     {
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/ringbuffer.h mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/ringbuffer.h
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/ringbuffer.h	2014-04-03 10:32:51.950293692 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/ringbuffer.h	2014-04-03 10:33:02.163743687 +0200
+@@ -132,8 +132,7 @@
+                bool resetInternal = false);
+ 
+     /// \brief Seeks to a particular position in the file.
+-    virtual long long Seek(
+-        long long pos, int whence, bool has_lock = false) = 0;
++    long long Seek(long long pos, int whence, bool has_lock = false);
+ 
+     // Pause commands
+     void Pause(void);
+@@ -182,6 +181,7 @@
+     bool WaitForReadsAllowed(void);
+     bool WaitForAvail(int count);
+     virtual long long GetRealFileSizeInternal(void) const { return -1; }
++    virtual long long SeekInternal(long long pos, int whence) = 0;
+ 
+     int ReadBufFree(void) const;
+     int ReadBufAvail(void) const;
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/streamingringbuffer.cpp mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/streamingringbuffer.cpp
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/streamingringbuffer.cpp	2014-04-03 10:32:52.030294601 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/streamingringbuffer.cpp	2014-04-03 10:33:02.163743687 +0200
+@@ -80,11 +80,11 @@
+     }
+ 
+     rwlock.unlock();
+-    
++
+     return true;
+ }
+ 
+-long long StreamingRingBuffer::Seek(long long pos, int whence, bool has_lock)
++long long StreamingRingBuffer::SeekInternal(long long pos, int whence)
+ {
+     if (!m_context)
+         return 0;
+diff -Naur mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/streamingringbuffer.h mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/streamingringbuffer.h
+--- mythtv-0.27-20140402-gb10d885-old/mythtv/libs/libmythtv/streamingringbuffer.h	2014-04-03 10:32:52.056961573 +0200
++++ mythtv-0.27-20140402-gb10d885-new/mythtv/libs/libmythtv/streamingringbuffer.h	2014-04-03 10:33:02.163743687 +0200
+@@ -18,7 +18,6 @@
+     virtual long long GetReadPosition(void) const;
+     virtual bool OpenFile(const QString &lfilename,
+                           uint retry_ms = kDefaultOpenTimeout);
+-    virtual long long Seek(long long pos, int whence, bool has_lock);
+     virtual bool IsStreamed(void)       { return m_streamed;   }
+     virtual bool IsSeekingAllowed(void) { return m_allowSeeks; }
+     virtual bool IsBookmarkAllowed(void) { return false; }
+@@ -26,6 +25,7 @@
+   protected:
+     virtual int safe_read(void *data, uint sz);
+     virtual long long GetRealFileSizeInternal(void) const;
++    virtual long long SeekInternal(long long pos, int whence);
+ 
+   private:
+     URLContext *m_context;

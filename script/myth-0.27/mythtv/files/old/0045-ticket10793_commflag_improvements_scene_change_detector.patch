@@ -1,0 +1,195 @@
+diff -Naur mythtv-0.26-20130707-gcb02cec-old/mythtv/programs/mythcommflag/ClassicCommDetector.cpp mythtv-0.26-20130707-gcb02cec-new/mythtv/programs/mythcommflag/ClassicCommDetector.cpp
+--- mythtv-0.26-20130707-gcb02cec-old/mythtv/programs/mythcommflag/ClassicCommDetector.cpp	2013-07-11 18:07:52.033473983 +0200
++++ mythtv-0.26-20130707-gcb02cec-new/mythtv/programs/mythcommflag/ClassicCommDetector.cpp	2013-07-11 18:08:13.920130955 +0200
+@@ -152,7 +152,7 @@
+     preRoll(0),                                postRoll(0)
+ {
+     commDetectBorder =
+-        gCoreContext->GetNumSetting("CommDetectBorder", 20);
++        gCoreContext->GetNumSetting("CommDetectBorder", 5);
+     commDetectBlankFrameMaxDiff =
+         gCoreContext->GetNumSetting("CommDetectBlankFrameMaxDiff", 25);
+     commDetectDarkBrightness =
+@@ -206,7 +206,7 @@
+             .arg(width).arg(height)
+             .arg(player->GetFrameRate()).arg(commDetectMethod));
+ 
+-    if ((width * height) > 1000000)
++    /*if ((width * height) > 1000000)
+     {
+         horizSpacing = 10;
+         vertSpacing = 10;
+@@ -230,8 +230,11 @@
+     {
+         horizSpacing = 4;
+         vertSpacing = 4;
+-    }
++    }*/
+ 
++    horizSpacing = 1;
++    vertSpacing = 1;
++    
+     LOG(VB_COMMFLAG, LOG_INFO,
+         QString("Using Sample Spacing of %1 horizontal & %2 vertical pixels.")
+             .arg(horizSpacing).arg(vertSpacing));
+@@ -790,13 +793,14 @@
+         {
+             fInfo.aspect = frameInfo[lastFrameNumber].aspect;
+             fInfo.format = frameInfo[lastFrameNumber].format;
++            fInfo.flagMask = COMM_FRAME_SKIPPED;
++            while (++lastFrameNumber < curFrameNumber)
++            {
++                // Only overwrite if there was no info for the frame yet
++                if (!frameInfo.contains(lastFrameNumber))
++                    frameInfo[lastFrameNumber] = fInfo;
++            }
+         }
+-        fInfo.flagMask = COMM_FRAME_SKIPPED;
+-
+-        lastFrameNumber++;
+-        while(lastFrameNumber < curFrameNumber)
+-            frameInfo[lastFrameNumber++] = fInfo;
+-
+         fInfo.flagMask = 0;
+     }
+     lastFrameNumber = curFrameNumber;
+@@ -808,7 +812,7 @@
+ 
+     if (commDetectMethod & COMM_DETECT_SCENE)
+     {
+-        sceneChangeDetector->processFrame(framePtr);
++        sceneChangeDetector->processFrame(curFrameNumber, framePtr);
+     }
+ 
+     stationLogoPresent = false;
+@@ -1397,17 +1401,17 @@
+                 fbp->score += 20;
+             }
+ 
+-            if ((fbp->scRate > 1.0) &&
+-                (fbp->logoCount < (fbp->frames * .90)))
++            if ((fbp->scRate > 0.75) &&
++                (fbp->logoCount < (fbp->frames * .25)))
+             {
+                 if (verboseDebugging)
+-                    LOG(VB_COMMFLAG, LOG_DEBUG, "      scRate > 1.0, -10");
++                    LOG(VB_COMMFLAG, LOG_DEBUG, "      scRate > 0.75, -10");
+                 fbp->score -= 10;
+ 
+-                if (fbp->scRate > 2.0)
++                if (fbp->scRate > 1.5)
+                 {
+                     if (verboseDebugging)
+-                        LOG(VB_COMMFLAG, LOG_DEBUG, "      scRate > 2.0, -10");
++                        LOG(VB_COMMFLAG, LOG_DEBUG, "      scRate > 1.5, -10");
+                     fbp->score -= 10;
+                 }
+             }
+diff -Naur mythtv-0.26-20130707-gcb02cec-old/mythtv/programs/mythcommflag/ClassicSceneChangeDetector.cpp mythtv-0.26-20130707-gcb02cec-new/mythtv/programs/mythcommflag/ClassicSceneChangeDetector.cpp
+--- mythtv-0.26-20130707-gcb02cec-old/mythtv/programs/mythcommflag/ClassicSceneChangeDetector.cpp	2013-07-11 18:07:52.030140659 +0200
++++ mythtv-0.26-20130707-gcb02cec-new/mythtv/programs/mythcommflag/ClassicSceneChangeDetector.cpp	2013-07-11 18:08:13.920130955 +0200
+@@ -8,7 +8,6 @@
+         unsigned int height, unsigned int commdetectborder_in,
+         unsigned int xspacing_in, unsigned int yspacing_in):
+     SceneChangeDetectorBase(width,height),
+-    frameNumber(0),
+     previousFrameWasSceneChange(false),
+     xspacing(xspacing_in),
+     yspacing(yspacing_in),
+@@ -25,7 +24,7 @@
+     SceneChangeDetectorBase::deleteLater();
+ }
+ 
+-void ClassicSceneChangeDetector::processFrame(unsigned char* frame)
++void ClassicSceneChangeDetector::processFrame(unsigned int frameNumber, unsigned char* frame)
+ {
+     histogram->generateFromImage(frame, width, height, commdetectborder,
+                                  width-commdetectborder, commdetectborder,
+@@ -38,7 +37,6 @@
+     previousFrameWasSceneChange = isSceneChange;
+ 
+     std::swap(histogram,previousHistogram);
+-    frameNumber++;
+ }
+ 
+ /* vim: set expandtab tabstop=4 shiftwidth=4: */
+diff -Naur mythtv-0.26-20130707-gcb02cec-old/mythtv/programs/mythcommflag/ClassicSceneChangeDetector.h mythtv-0.26-20130707-gcb02cec-new/mythtv/programs/mythcommflag/ClassicSceneChangeDetector.h
+--- mythtv-0.26-20130707-gcb02cec-old/mythtv/programs/mythcommflag/ClassicSceneChangeDetector.h	2013-07-11 18:07:52.030140659 +0200
++++ mythtv-0.26-20130707-gcb02cec-new/mythtv/programs/mythcommflag/ClassicSceneChangeDetector.h	2013-07-11 18:08:13.920130955 +0200
+@@ -13,7 +13,7 @@
+         unsigned int yspacing);
+     virtual void deleteLater(void);
+ 
+-    void processFrame(unsigned char* frame);
++    void processFrame(unsigned int frameNumber, unsigned char* frame);
+ 
+   private:
+     ~ClassicSceneChangeDetector() {}
+@@ -21,7 +21,6 @@
+   private:
+     Histogram* histogram;
+     Histogram* previousHistogram;
+-    unsigned int frameNumber;
+     bool previousFrameWasSceneChange;
+     unsigned int xspacing, yspacing;
+     unsigned int commdetectborder;
+diff -Naur mythtv-0.26-20130707-gcb02cec-old/mythtv/programs/mythcommflag/Histogram.cpp mythtv-0.26-20130707-gcb02cec-new/mythtv/programs/mythcommflag/Histogram.cpp
+--- mythtv-0.26-20130707-gcb02cec-old/mythtv/programs/mythcommflag/Histogram.cpp	2013-07-11 18:07:52.030140659 +0200
++++ mythtv-0.26-20130707-gcb02cec-new/mythtv/programs/mythcommflag/Histogram.cpp	2013-07-11 18:08:13.920130955 +0200
+@@ -70,18 +70,35 @@
+ 
+ float Histogram::calculateSimilarityWith(const Histogram& other) const
+ {
+-    long similar = 0;
++    const int proximity = 5;
++    long similarity = 0;
+ 
+-    for(unsigned int i = 0; i < 256; i++)
++    similarity += std::min(data[0],
++                           other.data[0]);
++    similarity += std::min(data[0] + data[1],
++                           other.data[0] + other.data[1]);
++    similarity += std::min(data[0] + data[1] + data[2],
++                           other.data[0] + other.data[1] + other.data[2]);
++    
++    for(unsigned int i = 0; i <= 256 - proximity; i++)
+     {
+-        if (data[i] < other.data[i])
+-            similar += data[i];
+-        else
+-            similar += other.data[i];
++        unsigned int mine = 0, others = 0;
++        for (int j = 0; j < proximity; ++j)
++        {
++            mine += data[i+j];
++            others += other.data[i+j];
++        }
++        similarity += std::min(mine, others);
+     }
+-
+-    //Using c style cast for old gcc compatibility.
+-    return static_cast<float>(similar) / static_cast<float>(numberOfSamples);
++    
++    similarity += std::min(data[253] + data[254] + data[255],
++                           other.data[253] + other.data[254] + other.data[255]);
++    similarity += std::min(data[254] + data[255],
++                           other.data[254] + other.data[255]);
++    similarity += std::min(data[255],
++                           other.data[255]);
++    
++    return similarity / static_cast<float>(numberOfSamples * proximity);
+ }
+ 
+ /* vim: set expandtab tabstop=4 shiftwidth=4: */
+diff -Naur mythtv-0.26-20130707-gcb02cec-old/mythtv/programs/mythcommflag/SceneChangeDetectorBase.h mythtv-0.26-20130707-gcb02cec-new/mythtv/programs/mythcommflag/SceneChangeDetectorBase.h
+--- mythtv-0.26-20130707-gcb02cec-old/mythtv/programs/mythcommflag/SceneChangeDetectorBase.h	2013-07-11 18:07:52.033473983 +0200
++++ mythtv-0.26-20130707-gcb02cec-new/mythtv/programs/mythcommflag/SceneChangeDetectorBase.h	2013-07-11 18:08:13.920130955 +0200
+@@ -11,7 +11,7 @@
+     SceneChangeDetectorBase(unsigned int w, unsigned int h) :
+         width(w), height(h) {}
+ 
+-    virtual void processFrame(unsigned char *frame) = 0;
++    virtual void processFrame(unsigned int frameNumber, unsigned char *frame) = 0;
+ 
+   signals:
+     void haveNewInformation(unsigned int framenum, bool scenechange,

@@ -1,0 +1,68 @@
+From 1761bd9973ecabc466146a6bcce0a75c0e5284be Mon Sep 17 00:00:00 2001
+From: rkrishna1 <sun.radha@gmail.com>
+Date: Wed, 5 Jun 2013 19:15:07 +0530
+Subject: [PATCH 1/4] Prevent spurious packets from corrupting the time stamp
+ informaion.
+
+Signed-off-by: John Poet <jpoet@mythtv.org>
+---
+ mythtv/programs/mythutil/mpegutils.cpp |   40 ++++++++++++++++++--------------
+ 1 file changed, 22 insertions(+), 18 deletions(-)
+
+diff --git a/mythtv/programs/mythutil/mpegutils.cpp b/mythtv/programs/mythutil/mpegutils.cpp
+index 40490a4..b78dcdc 100644
+--- a/mythtv/programs/mythutil/mpegutils.cpp
++++ b/mythtv/programs/mythutil/mpegutils.cpp
+@@ -313,27 +313,31 @@ class PTSListener :
+         { return ProcessTSPacket(tspacket); }
+     int64_t GetFirstPTS(void) const
+     {
+-        QMap<uint,uint>::const_iterator it = m_pts_streams.begin();
+-        int64_t pts = -1LL;
+-        for (; it != m_pts_streams.end(); ++it)
+-        {
+-            int64_t v = m_pts_first[*it];
+-            if (v >= 0)
+-                pts = min((pts < 0) ? v : pts, v);
+-        }
+-        return pts;
++    	QMap<uint,uint>::const_iterator it = m_pts_streams.begin();
++    	int64_t pts = -1LL;
++    	uint32_t pts_count = 0;
++    	for (; it != m_pts_streams.end(); ++it)
++    	{
++    		if(m_pts_count[*it] > pts_count){
++    			pts = m_pts_first[*it];
++    			pts_count = m_pts_count[*it];
++    		}
++    	}
++    	return pts;
+     }
+     int64_t GetLastPTS(void) const
+     {
+-        QMap<uint,uint>::const_iterator it = m_pts_streams.begin();
+-        int64_t pts = -1LL;
+-        for (; it != m_pts_streams.end(); ++it)
+-        {
+-            int64_t v = m_pts_last[*it];
+-            if (v >= 0)
+-                pts = max(pts, v);
+-        }
+-        return pts;
++    	QMap<uint,uint>::const_iterator it = m_pts_streams.begin();
++    	int64_t pts = -1LL;
++    	uint32_t pts_count = 0;
++    	for (; it != m_pts_streams.end(); ++it)
++    	{
++    		if(m_pts_count[*it] > pts_count){
++    			pts = m_pts_last[*it];
++    			pts_count = m_pts_count[*it];
++    		}
++    	}
++    	return pts;
+     }
+     int64_t GetElapsedPTS(void) const
+     {
+-- 
+1.7.10.2
+

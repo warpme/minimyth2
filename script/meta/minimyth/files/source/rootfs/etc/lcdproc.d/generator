@@ -1,0 +1,88 @@
+#!/bin/sh
+################################################################################
+# generator
+#
+# This script generates a new 'LCDd.conf.d/LCDd.conf' and new
+# 'driver.conf.d/driver.conf.{device}' files from the lcdproc distribution's
+# 'LCDd.conf' file and the existing 'driver.conf.{device}' files. The new
+# 'LCDd.conf' file is stored in the directory 'LCDd.conf.d.new' and the new
+# 'driver.conf.{device}' files are stored in the directory 'driver.conf.d.new'.
+################################################################################
+
+if test ! -f LCDd.conf ; then
+    echo "error: 'LCDd.conf' file not found."
+    exit 1
+fi
+
+rm -rf   LCDd.conf.d.new
+mkdir -p LCDd.conf.d.new
+
+rm -rf   driver.conf.d.new
+mkdir -p driver.conf.d.new
+
+#rm -rf       LCDd.conf.d.new/LCDd.conf
+#cp LCDd.conf LCDd.conf.d.new/LCDd.conf
+#sed -e 's%#Device=%Device=%' \
+#    -e 's%^Driver=.*$%Driver=@MM_LCDPROC_DRIVER@%' \
+#    -e 's%^Device=.*$%Device=@MM_LCDPROC_DEVICE@%' \
+#    -i LCDd.conf.d.new/LCDd.conf
+
+#line_list=`cat LCDd.conf \
+#    | sed -e 's%#Device=%Device=%' \
+#    | sed -e 's%[[:cntrl:]]% %g' -e 's%#.*$%%' -e 's%  *$%%' \
+#    | sed -e 's%^$%#%' | grep -v -e '^#$' \
+#    | sed -e 's% %~%g'`
+driver=
+device=
+rm -rf LCDd.conf~
+cp -f LCDd.conf LCDd.conf~
+echo "[]" >> LCDd.conf~
+cat LCDd.conf~ \
+| sed -e 's%\\%\\\\%g' \
+| sed -e 's%^ %~%' -e 's% $%~%' \
+| sed -e 's%#Device=%Device=%' \
+| while read line ; do
+#for line in ${line_list} ; do
+    if echo ${line} | grep -q -e '^\[' > /dev/null 2>&1 ; then
+        if test -n "${driver}"            && \
+           test  ! "${driver}" = "server" && \
+           test  ! "${driver}" = "menu"   ; then
+            rm -rf driver.conf.d.new/driver.conf.${driver}
+            if test -f driver.conf.d/driver.conf.${driver} ; then
+                cp driver.conf.d/driver.conf.${driver} driver.conf.d.new/driver.conf.${driver}
+            else
+                rm -rf    driver.conf.d.new/driver.conf.${driver}
+                touch     driver.conf.d.new/driver.conf.${driver}
+                chmod 644 driver.conf.d.new/driver.conf.${driver}
+                echo "MM_LCDPROC_DEVICE=''"                >> driver.conf.d.new/driver.conf.${driver}
+                echo "MM_LCDPROC_KERNEL_MODULE=''"         >> driver.conf.d.new/driver.conf.${driver}
+                echo "MM_LCDPROC_KERNEL_MODULE_OPTIONS=''" >> driver.conf.d.new/driver.conf.${driver}
+            fi
+            chmod 644 driver.conf.d.new/driver.conf.${driver}
+            sed -e "s%^MM_LCDPROC_DEVICE=.*$%MM_LCDPROC_DEVICE='${device}'%" -i driver.conf.d.new/driver.conf.${driver}
+        fi
+        driver=`echo ${line} | sed -e 's%^\[%%' -e 's%\].*$%%'`
+        device=
+    fi
+    if echo ${line} | grep -q -e '^Device=' > /dev/null 2>&1 ; then
+        device=`echo ${line} | sed -e 's%^Device=%%' -e 's%#.*$%%'`
+    fi
+    if echo ${line} | grep -q -e '^Driver=' > /dev/null 2>&1 ; then
+        if test "${driver}" = "server" ; then
+            line=`echo "${line}" | sed -e 's%^Driver=[^ #]*%Driver=@MM_LCDPROC_DRIVER@%'`
+        fi
+    fi
+    if echo ${line} | grep -q -e '^Device=' > /dev/null 2>&1 ; then
+        if test -n "${driver}"            && \
+           test  ! "${driver}" = "server" && \
+           test  ! "${driver}" = "menu"   ; then
+            line=`echo "${line}" | sed -e 's%^Device=[^ #]*%Device=@MM_LCDPROC_DEVICE@%'`
+        fi
+    fi
+    if ! echo ${line} | grep -q -e '^\[\]$' > /dev/null 2>&1 ; then
+        echo -E "${line}" | sed -e 's%^~% %' -e 's%~$% %' >> LCDd.conf.d.new/LCDd.conf
+    fi
+done
+rm -rf LCDd.conf~
+
+exit 0
