@@ -13,7 +13,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 6.7.00.gf4825ca.private
+mm_VERSION_MINIMYTH ?= 6.7.01.gf4825ca.private
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -66,7 +66,7 @@ mm_GARCH                  ?= x86-64
 mm_DISTRIBUTION_RAM       ?= yes
 
 # Indicates whether or not to create the NFS based part of the distribution.
-mm_DISTRIBUTION_NFS       ?= no
+mm_DISTRIBUTION_NFS       ?= yes
 
 # Indicates whether or not to create the local distribution.
 mm_DISTRIBUTION_LOCAL     ?= yes
@@ -114,7 +114,7 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '3.13', '3.14', '3.15'
+# Valid values are '3.13', '3.15'
 mm_KERNEL_HEADERS_VERSION ?= 3.14
 
 # The version of kernel to use.

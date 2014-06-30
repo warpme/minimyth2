@@ -26,7 +26,6 @@ PATCHFILES += 0023-delay-concurent-tunings.patch
 PATCHFILES += 0024-disable_break_when_no_PES_PUSI_set.patch
 
 # Minimyth needed patches
-# PATCHFILES += 0100-zeromq_cross.patch.gar
 PATCHFILES += 0100-minimyth.patch
 PATCHFILES += 0101-programid.patch
 PATCHFILES += 0102-maintain_menu.patch
@@ -170,6 +169,7 @@ PATCHFILES += 0375-backport-df9cf7e-Update-MPEG2fixup-for-new-FFmpeg-APIs.patch
 PATCHFILES += 0376-backport-4ad7dfa-Rename-libmythtv-frame.h-into-libmythtv-mythframe.h.patch
 PATCHFILES += 0377-backport-4902eda-More-FFmpeg-API-updates.patch
 PATCHFILES += 0378-backport-89ede6d-Update-AVFormatWriter-for-new-FFMpeg-APIs.patch
+# v6.5.38
 PATCHFILES += 0380-backport-fee00c3-Remove-hack-forcing-MPEG1-video-to-be-treated-as-MPE.patch
 PATCHFILES += 0381-backport-d90af2d-Don-t-attempt-to-issue-DB-query-if-there-s-nothing-t.patch
 PATCHFILES += 0382-backport-a6b3cfb-Fix-search-of-image-artwork-in-folder.patch
@@ -181,6 +181,7 @@ PATCHFILES += 0387-backport-bce987c-Fix-compilation-without-VAAPI.patch
 PATCHFILES += 0388-backport-01caefe-Update-VDA-and-CrystalHD-decoder-to-get_buffer2-API.patch
 PATCHFILES += 0389-backport-ba8c958-Fix-ATSC-subtitles.patch
 PATCHFILES += 0390-backport-ef770bb..5cb5968-update-ffmpeg-to-2.2.3-and-2.2-fixes.patch
+# v6.6.00
 PATCHFILES += 0392-backport-5c782b8-Add-MythAVFrame-and-mythavutil.h.patch
 PATCHFILES += 0393-backport-3cb5273-Fix-major-leak-during-video-playback.patch
 PATCHFILES += 0394-backport-e5d6d75-Fix-header.patch
@@ -195,17 +196,19 @@ PATCHFILES += 0403-backport-b5ca595-Internet-Content-Fix-manual-update-of-RSS-su
 PATCHFILES += 0405-backport-07183b9-Fix-VAAPI-playback-when-OpenGL2-painter-is-used.patch
 PATCHFILES += 0406-backport-520b8bc-Implement-copying-one-VideoFrame-into-another-where-.patch
 PATCHFILES += 0407-backport-ef54e66-Fix-VAAPI-accelerated-PiP.patch
+# v6.6.01
 PATCHFILES += 0408-xinitthreads.patch
 PATCHFILES += 0409-backport-1582de6-Channel-scanning-unbreak-the-cli.-Teardown-frees-and.patch
-PATCHFILES += 0410-backport-849b291-Add-ability-to-create-video-frames-where-all-lines-w.patch
-PATCHFILES += 0411-backport-b617f40-Add-NV12-format-support-to-VideoFrame-class-and-fast.patch
-PATCHFILES += 0412-backport-c65695c-Add-VAAPI-vaDerive-support-and-re-add-NV12-image-for.patch
-PATCHFILES += 0413-backport-b52b58a-Fix-strides-size-calculation-for-YV12-NV12-frames-wh.patch
+#PATCHFILES += 0410-backport-849b291-Add-ability-to-create-video-frames-where-all-lines-w.patch
+#PATCHFILES += 0411-backport-b617f40-Add-NV12-format-support-to-VideoFrame-class-and-fast.patch
+#PATCHFILES += 0412-backport-c65695c-Add-VAAPI-vaDerive-support-and-re-add-NV12-image-for.patch
+#PATCHFILES += 0413-backport-b52b58a-Fix-strides-size-calculation-for-YV12-NV12-frames-wh.patch
 PATCHFILES += 0414-backport-18511f8-Enable-forward-only-cursors-with-all-prepared-databa.patch
 PATCHFILES += 0415-backport-3518f1b-re-add-extra-cxxflags-that-got-lost-during-a-FFmpeg-.patch
 PATCHFILES += 0416-backport-40451cc-Add-nsecsElapsed-method-to-MythTimer-class.patch
-PATCHFILES += 0417-backport-b966dd5-Add-MythUSWCCopy-YV12-SV12-conversion-utility-class.patch
-PATCHFILES += 0418-backport-bf1cf05-Make-VAAPI-use-new-MythUSWCCopy-class.patch
+#PATCHFILES += 0417-backport-b966dd5-Add-MythUSWCCopy-YV12-SV12-conversion-utility-class.patch
+#PATCHFILES += 0418-backport-bf1cf05-Make-VAAPI-use-new-MythUSWCCopy-class.patch
+# v 6.7.00
 PATCHFILES += 0419-backport-5433b76-Allow-partial-reads.patch
 PATCHFILES += 0420-backport-aa822f5-Fix-a-thinko-in-the-This-time-and-This-day-and-time-.patch
 PATCHFILES += 0421-backport-330ae8a-Increase-myth-filetransfer-timeout-values.patch
@@ -215,7 +218,20 @@ PATCHFILES += 0424-backport-338c49a-Stop-readahead-thread-if-the-file-isn-t-open
 PATCHFILES += 0425-backport-784758a-Fix-small-leak-should-a-ringbuffer-not-be-created-su.patch
 PATCHFILES += 0426-backport-6e5d8cf-Fix-dummy-recording-file-sometimes-not-being-deleted.patch
 PATCHFILES += 0427-backport-2b9231b-Return-an-error-when-the-file-couldn-t-be-successful.patch
+# v 6.7.01
 PATCHFILES += 0428-backport-e3ab9ec-Make-sure-some-recording-rule-failures-get-reported-.patch
+PATCHFILES += 0429-backport-bbcecc4-Fix-PiP-when-using-OpenGL-output.patch
+PATCHFILES += 0430-backport-cc689fd-Fix-incorrect-deletion-of-allocated-buffers.patch
+PATCHFILES += 0431-backport-e2b7d6c-Allocate-VideoFrame-buffer-using-av_malloc-and-mythf.patch
+PATCHFILES += 0432-backport-04e0a17-Uses-16-bytes-aligned-memory-buffer.patch
+#PATCHFILES += 0433-backport-1ef850f-Add-support-for-frames-where-pitch-width.patch
+#PATCHFILES += 0434-backport-db5c40c-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
+PATCHFILES += 0435-backport-d1f044c-Fix-PiP-with-VDPAU-on-mesa-s-drivers.patch
+
+PATCHFILES += 0436-backport-fe61ca2-Properly-handle-when-libmythbluray-is-unable-to-open.patch
+PATCHFILES += 0437-backport-6976233-Fix-mytharchive-compliation.patch
+PATCHFILES += 0438-backport-d2c8307-remove-fourcc.h-from-mythframe.h-so-it-doesn-t-need-.patch
+#PATCHFILES += 0439-backport-b22277e-Fix-compilation-of-mythplugins.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
