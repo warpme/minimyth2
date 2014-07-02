@@ -37,5 +37,5 @@ pre-configure:
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libpj*.a
+	@cp $(WORKSRC)/pjsip-apps/bin/samples/x86_64-minimyth-linux-gnu/auddemo $(DESTDIR)$(bindir)/sip-audio-diagnoze
 	@$(MAKECOOKIE)
-
