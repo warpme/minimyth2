@@ -1,0 +1,41 @@
+From 98bec5c833ba676efa716e2be384eee0ab7fff53 Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Tue, 1 Jul 2014 04:58:50 -0700
+Subject: [PATCH 1/2] Fix backend crash should opening file failed and client
+ dropped the connection
+
+This caused XBMC/cmyth to make the backend crash
+---
+ mythtv/programs/mythbackend/mainserver.cpp |    6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/mythtv/programs/mythbackend/mainserver.cpp b/mythtv/programs/mythbackend/mainserver.cpp
+index 6eec76e..3fa1f88 100644
+--- a/mythtv/programs/mythbackend/mainserver.cpp
++++ b/mythtv/programs/mythbackend/mainserver.cpp
+@@ -1796,19 +1796,19 @@ void MainServer::HandleAnnounce(QStringList &slist, QStringList commands,
+             ft = new FileTransfer(filename, socket, usereadahead, timeout_ms);
+         }
+ 
+-        sockListLock.lockForWrite();
+-        controlSocketList.remove(socket);
+         if (!ft->isOpen())
+         {
+-            sockListLock.unlock();
+             LOG(VB_GENERAL, LOG_ERR, LOC +
+                 QString("Can't open %1").arg(filename));
+             errlist << "filetransfer_unable_to_open_file";
+             socket->WriteStringList(errlist);
++            socket->IncrRef(); // FileTransfer took ownership of the socket, take it back
+             ft->DecrRef();
+             return;
+         }
+         ft->IncrRef();
++        sockListLock.lockForWrite();
++        controlSocketList.remove(socket);
+         fileTransferList.push_back(ft);
+         sockListLock.unlock();
+ 
+-- 
+1.7.10.2
+

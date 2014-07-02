@@ -199,15 +199,15 @@ PATCHFILES += 0407-backport-ef54e66-Fix-VAAPI-accelerated-PiP.patch
 # v6.6.01
 PATCHFILES += 0408-xinitthreads.patch
 PATCHFILES += 0409-backport-1582de6-Channel-scanning-unbreak-the-cli.-Teardown-frees-and.patch
-#PATCHFILES += 0410-backport-849b291-Add-ability-to-create-video-frames-where-all-lines-w.patch
-#PATCHFILES += 0411-backport-b617f40-Add-NV12-format-support-to-VideoFrame-class-and-fast.patch
-#PATCHFILES += 0412-backport-c65695c-Add-VAAPI-vaDerive-support-and-re-add-NV12-image-for.patch
-#PATCHFILES += 0413-backport-b52b58a-Fix-strides-size-calculation-for-YV12-NV12-frames-wh.patch
+ PATCHFILES += 0410-backport-849b291-Add-ability-to-create-video-frames-where-all-lines-w.patch
+ PATCHFILES += 0411-backport-b617f40-Add-NV12-format-support-to-VideoFrame-class-and-fast.patch
+ PATCHFILES += 0412-backport-c65695c-Add-VAAPI-vaDerive-support-and-re-add-NV12-image-for.patch
+ PATCHFILES += 0413-backport-b52b58a-Fix-strides-size-calculation-for-YV12-NV12-frames-wh.patch
 PATCHFILES += 0414-backport-18511f8-Enable-forward-only-cursors-with-all-prepared-databa.patch
 PATCHFILES += 0415-backport-3518f1b-re-add-extra-cxxflags-that-got-lost-during-a-FFmpeg-.patch
 PATCHFILES += 0416-backport-40451cc-Add-nsecsElapsed-method-to-MythTimer-class.patch
-#PATCHFILES += 0417-backport-b966dd5-Add-MythUSWCCopy-YV12-SV12-conversion-utility-class.patch
-#PATCHFILES += 0418-backport-bf1cf05-Make-VAAPI-use-new-MythUSWCCopy-class.patch
+ PATCHFILES += 0417-backport-b966dd5-Add-MythUSWCCopy-YV12-SV12-conversion-utility-class.patch
+ PATCHFILES += 0418-backport-bf1cf05-Make-VAAPI-use-new-MythUSWCCopy-class.patch
 # v 6.7.00
 PATCHFILES += 0419-backport-5433b76-Allow-partial-reads.patch
 PATCHFILES += 0420-backport-aa822f5-Fix-a-thinko-in-the-This-time-and-This-day-and-time-.patch
@@ -224,14 +224,28 @@ PATCHFILES += 0429-backport-bbcecc4-Fix-PiP-when-using-OpenGL-output.patch
 PATCHFILES += 0430-backport-cc689fd-Fix-incorrect-deletion-of-allocated-buffers.patch
 PATCHFILES += 0431-backport-e2b7d6c-Allocate-VideoFrame-buffer-using-av_malloc-and-mythf.patch
 PATCHFILES += 0432-backport-04e0a17-Uses-16-bytes-aligned-memory-buffer.patch
-#PATCHFILES += 0433-backport-1ef850f-Add-support-for-frames-where-pitch-width.patch
-#PATCHFILES += 0434-backport-db5c40c-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
+ PATCHFILES += 0433-backport-1ef850f-Add-support-for-frames-where-pitch-width.patch
+ PATCHFILES += 0434-backport-db5c40c-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
 PATCHFILES += 0435-backport-d1f044c-Fix-PiP-with-VDPAU-on-mesa-s-drivers.patch
-
 PATCHFILES += 0436-backport-fe61ca2-Properly-handle-when-libmythbluray-is-unable-to-open.patch
 PATCHFILES += 0437-backport-6976233-Fix-mytharchive-compliation.patch
 PATCHFILES += 0438-backport-d2c8307-remove-fourcc.h-from-mythframe.h-so-it-doesn-t-need-.patch
-#PATCHFILES += 0439-backport-b22277e-Fix-compilation-of-mythplugins.patch
+ PATCHFILES += 0439-backport-b22277e-Fix-compilation-of-mythplugins.patch
+# v 6.7.02
+PATCHFILES += 0440-backport-bc382fc-fix-compilation-due-to-missing-header.patch
+PATCHFILES += 0440-backport-6a7481b-Use-MythAVFrame-convenience-class.patch
+PATCHFILES += 0441-backport-a4176ca-OSX-Allow-PiP-with-VDA-decoder.patch
+PATCHFILES += 0442-backport-983c8bd-MythUSWCCopy-Change-const-ness-of-argument.patch
+PATCHFILES += 0443-backport-75b438c-Add-MythAVCopy-class.patch
+PATCHFILES += 0444-backport-36d12c8-Remove-any-use-of-myth_sws_img_convert-and-use-new-M.patch
+PATCHFILES += 0445-backport-d6663a5-Audio-Abort-Drain-if-audio-device-is-in-pause.patch
+PATCHFILES += 0446-backport-b645d9c-Don-t-use-reference-to-initially-allocated-avio-buff.patch
+PATCHFILES += 0447-backport-fd14327-Increase-size-of-streaming-buffer.patch
+PATCHFILES += 0448-backport-b7b1606-Let-FFmpeg-determine-how-to-probe-for-format-when-us.patch
+PATCHFILES += 0449-backport-89f2588-Remove-unused-header.patch
+PATCHFILES += 0450-backport-bdba161-Remove-unused-header.patch
+PATCHFILES += 0451-backport-98bec5c-Fix-backend-crash-should-opening-file-failed-and-cli.patch
+PATCHFILES += 0452-backport-dfd7f64-Remove-now-unused-API-use-MythAVCopy-instead.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
@@ -366,7 +380,7 @@ CONFIGURE_ARGS = \
 	--enable-x11 \
 	--x11-path="$(DESTDIR)$(includedir)" \
 	--enable-xrandr \
-	--enable-xv \
+	--disable-xv \
 	--enable-vdpau \
 	--disable-crystalhd \
 	--enable-vaapi \

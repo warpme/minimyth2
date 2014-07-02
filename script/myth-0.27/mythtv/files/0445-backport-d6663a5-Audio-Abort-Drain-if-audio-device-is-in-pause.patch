@@ -1,0 +1,34 @@
+From d6663a5498f1ba1147a801dd4902b779b3afd1f8 Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Mon, 30 Jun 2014 13:13:11 -0700
+Subject: [PATCH 08/12] Audio: Abort Drain if audio device is in pause
+
+Prevent deadlock in MythMusic
+---
+ mythtv/libs/libmyth/audio/audiooutputbase.cpp |    9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/mythtv/libs/libmyth/audio/audiooutputbase.cpp b/mythtv/libs/libmyth/audio/audiooutputbase.cpp
+index e36cc5e..9ee42c4 100644
+--- a/mythtv/libs/libmyth/audio/audiooutputbase.cpp
++++ b/mythtv/libs/libmyth/audio/audiooutputbase.cpp
+@@ -1813,8 +1813,15 @@ int AudioOutputBase::GetAudioData(uchar *buffer, int size, bool full_buffer,
+  */
+ void AudioOutputBase::Drain()
+ {
+-    while (audioready() > fragment_size)
++    while (!pauseaudio && audioready() > fragment_size)
+         usleep(1000);
++    if (pauseaudio)
++    {
++        // Audio is paused and can't be drained, clear ringbuffer
++        QMutexLocker lock(&audio_buflock);
++
++        waud = raud = 0;
++    }
+ }
+ 
+ /**
+-- 
+1.7.10.2
+
