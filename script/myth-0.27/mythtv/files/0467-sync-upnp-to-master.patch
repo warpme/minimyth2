@@ -1,0 +1,2314 @@
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/eventing.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/eventing.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/eventing.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/eventing.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -60,7 +60,7 @@
+ 
+ Eventing::Eventing(const QString &sExtensionName,
+                    const QString &sEventMethodName,
+-                   const QString sSharePath) :
++                   const QString &sSharePath) :
+     HttpServerExtension(sExtensionName, sSharePath),
+     m_sEventMethodName(sEventMethodName),
+     m_nSubscriptionDuration(
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/eventing.h mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/eventing.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/eventing.h	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/eventing.h	2014-02-28 12:19:31.000000000 +0100
+@@ -284,7 +284,7 @@
+     public:
+                  Eventing      ( const QString &sExtensionName,
+                                  const QString &sEventMethodName,
+-                                 const QString sSharePath );
++                                 const QString &sSharePath );
+         virtual ~Eventing      ( );
+ 
+         virtual QStringList GetBasePaths();
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/htmlserver.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/htmlserver.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/htmlserver.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/htmlserver.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -13,6 +13,7 @@
+ #include "mythlogging.h"
+ #include "htmlserver.h"
+ #include "storagegroup.h"
++#include "httprequest.h"
+ 
+ #include <QFileInfo>
+ #include <QDir>
+@@ -22,8 +23,8 @@
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-HtmlServerExtension::HtmlServerExtension( const QString sSharePath,
+-                                          const QString sApplicationPrefix)
++HtmlServerExtension::HtmlServerExtension( const QString &sSharePath,
++                                          const QString &sApplicationPrefix)
+   : HttpServerExtension( "Html" , sSharePath),
+     m_IndexFilename(sApplicationPrefix + "index")
+ {
+@@ -39,6 +40,8 @@
+     }
+ 
+     m_sSharePath =  dir.canonicalPath();
++
++    m_Scripting.SetResourceRootPath( m_sSharePath );
+ }
+ 
+ /////////////////////////////////////////////////////////////////////////////
+@@ -107,18 +110,29 @@
+ 
+                     QString sSuffix = oInfo.suffix().toLower();
+ 
++                    QString sMimeType = HTTPRequest::GetMimeType(sSuffix);
++
++                    if (sMimeType == "text/html")
++                        pRequest->m_eResponseType = ResponseTypeHTML;
++                    else if (sMimeType == "text/xml")
++                        pRequest->m_eResponseType = ResponseTypeXML;
++                    else if (sMimeType == "application/javascript")
++                        pRequest->m_eResponseType = ResponseTypeJS;
++                    else if (sMimeType == "text/css")
++                        pRequest->m_eResponseType = ResponseTypeCSS;
++                    else if (sMimeType == "text/plain")
++                        pRequest->m_eResponseType = ResponseTypeText;
++                    else if (sMimeType == "image/svg+xml" &&
++                              sSuffix != "svgz") // svgz are pre-compressed
++                        pRequest->m_eResponseType = ResponseTypeSVG;
++
+                     if ((sSuffix == "qsp") ||
+                         (sSuffix == "qxml") ||
+                         (sSuffix == "qjs" )) 
+                     {
+-                        if (sSuffix == "qxml")
+-                          pRequest->m_eResponseType = ResponseTypeXML;
+-                        else
+-                          pRequest->m_eResponseType = ResponseTypeHTML;
+-
+                         QTextStream stream( &pRequest->m_response );
+                         
+-                        m_Scripting.EvaluatePage( &stream, sResName, pRequest->m_mapParams );
++                        m_Scripting.EvaluatePage( &stream, sResName, pRequest);
+ 
+                         return true;
+ 
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/htmlserver.h mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/htmlserver.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/htmlserver.h	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/htmlserver.h	2014-02-28 12:19:31.000000000 +0100
+@@ -33,8 +33,8 @@
+         QString             m_IndexFilename;
+ 
+     public:
+-                 HtmlServerExtension( const QString sSharePath,
+-                                      const QString sApplicationPrefix);
++                 HtmlServerExtension( const QString &sSharePath,
++                                      const QString &sApplicationPrefix);
+         virtual ~HtmlServerExtension( );
+ 
+         // Special case, this extension is called if no other extension
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/httprequest.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/httprequest.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/httprequest.cpp	2014-07-04 17:44:38.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/httprequest.cpp	2014-06-04 17:51:46.000000000 +0200
+@@ -20,7 +20,7 @@
+ #include <QDateTime>
+ 
+ #include "mythconfig.h"
+-#if !( CONFIG_DARWIN || CONFIG_CYGWIN || defined(__FreeBSD__) || defined(USING_MINGW))
++#if !( CONFIG_DARWIN || CONFIG_CYGWIN || defined(__FreeBSD__) || defined(_WIN32))
+ #define USE_SETSOCKOPT
+ #include <sys/sendfile.h>
+ #endif
+@@ -29,8 +29,10 @@
+ #include <stdlib.h>
+ #include <fcntl.h>
+ #include <cerrno>
++// FOR DEBUGGING
++#include <iostream>
+ 
+-#ifndef USING_MINGW
++#ifndef _WIN32
+ #include <netinet/tcp.h>
+ #endif
+ 
+@@ -40,6 +42,7 @@
+ #include "mythlogging.h"
+ #include "mythversion.h"
+ #include "mythdate.h"
++#include <mythcorecontext.h>
+ 
+ #include "serializers/xmlSerializer.h"
+ #include "serializers/soapSerializer.h"
+@@ -52,60 +55,76 @@
+ 
+ static MIMETypes g_MIMETypes[] =
+ {
++    // Image Mime Types
+     { "gif" , "image/gif"                  },
+-    { "jpg" , "image/jpeg"                 },
++    { "ico" , "image/x-icon"               },
+     { "jpeg", "image/jpeg"                 },
++    { "jpg" , "image/jpeg"                 },
++    { "mng" , "image/x-mng"                },
+     { "png" , "image/png"                  },
++    { "svg" , "image/svg+xml"              },
++    { "svgz", "image/svg+xml"              },
++    { "tif" , "image/tiff"                 },
++    { "tiff", "image/tiff"                 },
++    // Text Mime Types
+     { "htm" , "text/html"                  },
+     { "html", "text/html"                  },
+     { "qsp" , "text/html"                  },
+-    { "js"  , "application/javascript"     },
+-    { "qjs" , "application/javascript"     },
+     { "txt" , "text/plain"                 },
+     { "xml" , "text/xml"                   },
+     { "qxml", "text/xml"                   },
+     { "xslt", "text/xml"                   },
+-    { "pdf" , "application/pdf"            },
+-    { "avi" , "video/avi"                  },
+     { "css" , "text/css"                   },
++    // Application Mime Types
++    { "doc" , "application/vnd.ms-word"    },
++    { "gz"  , "application/x-tar"          },
++    { "js"  , "application/javascript"     },
++    { "m3u8", "application/x-mpegurl"      }, // HTTP Live Streaming
++    { "ogx" , "application/ogg"            }, // http://wiki.xiph.org/index.php/MIME_Types_and_File_Extensions
++    { "pdf" , "application/pdf"            },
++    { "qjs" , "application/javascript"     },
++    { "rm"  , "application/vnd.rn-realmedia" },
+     { "swf" , "application/x-shockwave-flash" },
+     { "xls" , "application/vnd.ms-excel"   },
+-    { "doc" , "application/vnd.ms-word"    },
++    { "zip" , "application/x-tar"          },
++    // Audio Mime Types:
++    { "aac" , "audio/mp4"                  },
++    { "ac3" , "audio/vnd.dolby.dd-raw"     }, // DLNA?
++    { "flac", "audio/x-flac"               }, // This could be audio/flac or application/flac
++    { "m4a" , "audio/x-m4a"                },
+     { "mid" , "audio/midi"                 },
++    { "mka" , "audio/x-matroska"           },
+     { "mp3" , "audio/mpeg"                 },
+-    { "rm"  , "application/vnd.rn-realmedia" },
++    { "oga" , "audio/ogg"                  }, // Defined: http://wiki.xiph.org/index.php/MIME_Types_and_File_Extensions
++    { "ogg" , "audio/ogg"                  }, // Defined: http://wiki.xiph.org/index.php/MIME_Types_and_File_Extensions
+     { "wav" , "audio/wav"                  },
+-    { "zip" , "application/x-tar"          },
+-    { "gz"  , "application/x-tar"          },
+-    { "mpg" , "video/mpeg"                 },
+-    { "mpg2", "video/mpeg"                 },
++    { "wma" , "audio/x-ms-wma"             },
++    // Video Mime Types
++    { "3gp" , "video/3gpp"                 }, // Also audio/3gpp
++    { "3g2" , "video/3gpp2"                }, // Also audio/3gpp2
++    { "asf" , "video/x-ms-asf"             },
++    { "avi" , "video/avi"                  },
++    { "m4v" , "video/mp4"                  },
+     { "mpeg", "video/mpeg"                 },
+     { "mpeg2","video/mpeg"                 },
+-    { "vob" , "video/mpeg"                 },
+-    { "asf" , "video/x-ms-asf"             },
+-    { "nuv" , "video/nupplevideo"          },
++    { "mpg" , "video/mpeg"                 },
++    { "mpg2", "video/mpeg"                 },
+     { "mov" , "video/quicktime"            },
+     { "mp4" , "video/mp4"                  },
+-    // This formerly was video/x-matroska, but got changed due to #8643
+-    // This was reverted from video/x-mkv, due to #10980
+-    // See http://matroska.org/technical/specs/notes.html#MIME
+-    // If you can't please everyone, may as well be correct as you piss some off
+-    { "mkv" , "video/x-matroska"           },
+-    { "mka" , "audio/x-matroska"           },
+-    { "wmv" , "video/x-ms-wmv"             },
+-    // Defined: http://wiki.xiph.org/index.php/MIME_Types_and_File_Extensions
+-    { "ogg" , "audio/ogg"                  },
+-    { "ogv" , "video/ogg"                  },
+-    { "ogx" , "application/ogg"            },
+-    { "oga" , "audio/ogg"                  },
+-    // Similarly, this could be audio/flac or application/flac:
+-    { "flac", "audio/x-flac"               },
+-    { "m4a" , "audio/x-m4a"                },
+-    // HTTP Live Streaming
+-    { "m3u8", "application/x-mpegurl"      },
+-    { "ts"  , "video/mp2t"                 },
++    { "mkv" , "video/x-matroska"           }, // See http://matroska.org/technical/specs/notes.html#MIME (See NOTE 1)
++    { "nuv" , "video/nupplevideo"          },
++    { "ogv" , "video/ogg"                  }, // Defined: http://wiki.xiph.org/index.php/MIME_Types_and_File_Extensions
++    { "ts"  , "video/mp2t"                 }, // HTTP Live Streaming
++    { "vob" , "video/mpeg"                 },
++    { "wmv" , "video/x-ms-wmv"             }
+ };
+ 
++// NOTE 1
++// This formerly was video/x-matroska, but got changed due to #8643
++// This was reverted from video/x-mkv, due to #10980
++// See http://matroska.org/technical/specs/notes.html#MIME
++// If you can't please everyone, may as well be correct as you piss some off
++
+ static const char *Static400Error =
+     "<!DOCTYPE html>"
+     "<HTML>"
+@@ -126,6 +145,16 @@
+       "<BODY><H1>401 Unauthorized.</H1></BODY>"
+     "</HTML>";
+ 
++static const char *Static505Error =
++    "<!DOCTYPE html>"
++    "<HTML>"
++      "<HEAD>"
++        "<TITLE>Error 505</TITLE>"
++        "<META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=ISO-8859-1\">"
++      "</HEAD>"
++      "<BODY><H1>505 HTTP Version Not Supported.</H1></BODY>"
++    "</HTML>";
++
+ static const int g_nMIMELength = sizeof( g_MIMETypes) / sizeof( MIMETypes );
+ static const int g_on          = 1;
+ static const int g_off         = 0;
+@@ -185,12 +214,12 @@
+     QString sContentType = (m_eResponseType == ResponseTypeOther) ?
+                             m_sResponseTypeText : GetResponseType();
+ 
+-    sHeader = QString( "HTTP/%1.%2 %3\r\n"
+-                       "Date: %4\r\n"
+-                       "Server: %5, UPnP/1.0, MythTV %6\r\n" )
+-        .arg(m_nMajor).arg(m_nMinor).arg(GetResponseStatus())
++    sHeader = QString( "%1 %2\r\n"
++                       "Date: %3\r\n"
++                       "Server: %4\r\n" )
++        .arg(GetResponseProtocol()).arg(GetResponseStatus())
+         .arg(MythDate::current().toString("d MMM yyyy hh:mm:ss"))
+-        .arg(HttpServer::GetPlatform()).arg(MYTH_BINARY_VERSION);
++        .arg(HttpServer::GetServerVersion());
+ 
+     sHeader += GetAdditionalHeaders();
+ 
+@@ -227,21 +256,42 @@
+ 
+     switch( m_eResponseType )
+     {
++        // The following are all eligable for gzip compression
+         case ResponseTypeUnknown:
+         case ResponseTypeNone:
+             LOG(VB_UPNP, LOG_INFO,
+                 QString("HTTPRequest::SendResponse( None ) :%1 -> %2:")
+                     .arg(GetResponseStatus()) .arg(GetPeerAddress()));
+             return( -1 );
++        case ResponseTypeJS:
++        case ResponseTypeCSS:
++        case ResponseTypeText:
++        case ResponseTypeSVG:
++        case ResponseTypeXML:
++        case ResponseTypeHTML:
++            // If the reponse isn't already in the buffer, then load it
++            if (!m_sFileName.isEmpty() &&
++                m_response.buffer().isEmpty())
++            {
++                QByteArray fileBuffer;
++                QFile file(m_sFileName);
++                if (file.exists() && file.size() < (2 * 1024 * 1024) && // For security/stability, limit size of files read into buffer to 2MiB
++                    file.open(QIODevice::ReadOnly | QIODevice::Text))
++                    m_response.buffer() = file.readAll();
+ 
+-        case ResponseTypeFile:
++                if (!m_response.buffer().isEmpty())
++                    break;
++
++                // Let SendResponseFile try or send a 404
++                m_eResponseType = ResponseTypeFile;
++            }
++            else
++                break;
++        case ResponseTypeFile: // Binary files
+             LOG(VB_UPNP, LOG_INFO,
+                 QString("HTTPRequest::SendResponse( File ) :%1 -> %2:")
+                     .arg(GetResponseStatus()) .arg(GetPeerAddress()));
+             return( SendResponseFile( m_sFileName ));
+-
+-        case ResponseTypeXML:
+-        case ResponseTypeHTML:
+         case ResponseTypeOther:
+         default:
+             break;
+@@ -292,6 +342,14 @@
+     QBuffer *pBuffer = &m_response;
+ 
+     // ----------------------------------------------------------------------
++    // DEBUGGING
++    if (getenv("HTTPREQUEST_DEBUG"))
++        cout << m_response.buffer().constData() << endl;
++    // ----------------------------------------------------------------------
++
++    LOG(VB_UPNP, LOG_DEBUG, QString("Reponse Content Length: %1").arg(nContentLen));
++
++    // ----------------------------------------------------------------------
+     // Should we try to return data gzip'd?
+     // ----------------------------------------------------------------------
+ 
+@@ -302,15 +360,63 @@
+         QByteArray compressed = gzipCompress( m_response.buffer() );
+         compBuffer.setData( compressed );
+ 
+-        if (compBuffer.buffer().length() > 0)
++        if (!compBuffer.buffer().isEmpty())
+         {
+             pBuffer = &compBuffer;
+ 
+             m_mapRespHeaders[ "Content-Encoding" ] = "gzip";
++            LOG(VB_UPNP, LOG_DEBUG, QString("Reponse Compressed Content Length: %1").arg(compBuffer.buffer().length()));
+         }
+     }
+ 
+     // ----------------------------------------------------------------------
++    // NOTE: Access-Control-Allow-Origin Wildcard
++    //
++    // This is a REALLY bad idea, so bad in fact that I'm including it here but
++    // commented out in the hope that anyone thinking of adding it in the future
++    // will see it and then read this comment.
++    //
++    // Browsers do not verify that the origin is on the same network. This means
++    // that a malicious script embedded or included into ANY webpage you visit
++    // could then access servers on your local network including MythTV. They
++    // can grab data, delete data including recordings and videos, schedule
++    // recordings and generally ruin your day.
++    //
++    // This might seem paranoid and a remote possibility, but then that's how
++    // a lot of exploits are born. Do NOT allow wildcards.
++    //
++    //m_mapRespHeaders[ "Access-Control-Allow-Origin" ] = "*";
++    // ----------------------------------------------------------------------
++
++    // ----------------------------------------------------------------------
++    // Allow the WebFrontend on the Master backend and ONLY this machine
++    // to access resources on a frontend or slave web server
++    //
++    // http://www.w3.org/TR/cors/#introduction
++    // ----------------------------------------------------------------------
++    QString masterAddrPort = QString("%1:%2").arg(gCoreContext->GetMasterServerIP())
++                                            .arg(gCoreContext->GetMasterServerStatusPort());
++
++    QStringList allowedOrigins;
++    allowedOrigins << QString("http://%1").arg(masterAddrPort);
++    allowedOrigins << QString("https://%2").arg(masterAddrPort);
++
++    if (!m_mapHeaders[ "origin" ].isEmpty())
++    {
++        if (allowedOrigins.contains(m_mapHeaders[ "origin" ]))
++            m_mapRespHeaders[ "Access-Control-Allow-Origin" ] = m_mapHeaders[ "origin" ];
++        else
++            LOG(VB_GENERAL, LOG_CRIT, QString("HTTPRequest: Cross-origin request "
++                                              "received with origin (%1)")
++                                                 .arg(m_mapHeaders[ "origin" ]));
++    }
++
++    // ----------------------------------------------------------------------
++    // Force IE into 'standards' mode
++    // ----------------------------------------------------------------------
++    m_mapRespHeaders[ "X-UA-Compatible" ] = "IE=Edge";
++
++    // ----------------------------------------------------------------------
+     // Write out Header.
+     // ----------------------------------------------------------------------
+ 
+@@ -410,7 +516,7 @@
+         bool    bRange = false;
+         QString sRange = GetHeaderValue( "range", "" );
+ 
+-        if (sRange.length() > 0)
++        if (!sRange.isEmpty())
+         {
+             bRange = ParseRange( sRange, llSize, &llStart, &llEnd );
+ 
+@@ -648,7 +754,7 @@
+                << "<faultstring>" << sFaultString << "</faultstring>";
+     }
+ 
+-    if (sDetails.length() > 0)
++    if (!sDetails.isEmpty())
+     {
+         stream << "<detail>" << sDetails << "</detail>";
+     }
+@@ -760,7 +866,8 @@
+     if (QFile::exists( m_sFileName ))
+     {
+ 
+-        m_eResponseType                   = ResponseTypeFile;
++        if (m_eResponseType == ResponseTypeUnknown)
++            m_eResponseType               = ResponseTypeFile;
+         m_nResponseStatus                 = 200;
+         m_mapRespHeaders["Cache-Control"] = "no-cache=\"Ext\", max-age = 5000";
+     }
+@@ -791,6 +898,38 @@
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
++QString HTTPRequest::GetRequestProtocol() const
++{
++    return QString("%1/%2.%3").arg(m_sProtocol)
++                              .arg(QString::number(m_nMajor))
++                              .arg(QString::number(m_nMinor));
++}
++
++/////////////////////////////////////////////////////////////////////////////
++//
++/////////////////////////////////////////////////////////////////////////////
++
++QString HTTPRequest::GetResponseProtocol() const
++{
++    // RFC 2145
++    //
++    // An HTTP server SHOULD send a response version equal to the highest
++    // version for which the server is at least conditionally compliant, and
++    // whose major version is less than or equal to the one received in the
++    // request.
++
++//     if (m_nMajor == 1)
++//         QString("HTTP/1.1");
++//     else if (m_nMajor == 2)
++//         QString("HTTP/2.0");
++
++    return QString("HTTP/1.1");
++}
++
++/////////////////////////////////////////////////////////////////////////////
++//
++/////////////////////////////////////////////////////////////////////////////
++
+ ContentType HTTPRequest::SetContentType( const QString &sType )
+ {
+     if ((sType == "application/x-www-form-urlencoded"          ) ||
+@@ -853,6 +992,10 @@
+     {
+         case ResponseTypeXML    : return( "text/xml; charset=\"UTF-8\"" );
+         case ResponseTypeHTML   : return( "text/html; charset=\"UTF-8\"" );
++        case ResponseTypeCSS    : return( "text/css; charset=\"UTF-8\"" );
++        case ResponseTypeJS     : return( "application/javascript" );
++        case ResponseTypeText   : return( "text/plain; charset=\"UTF-8\"" );
++        case ResponseTypeSVG    : return( "image/svg+xml" );
+         default: break;
+     }
+ 
+@@ -944,7 +1087,7 @@
+     // breaks anything that is trying to pass & as part of a name or value.
+     sParams.replace( "&amp;", "&" );
+ 
+-    if (sParams.length() > 0)
++    if (!sParams.isEmpty())
+     {
+         QStringList params = sParams.split('&', QString::SkipEmptyParts);
+ 
+@@ -955,12 +1098,14 @@
+             QString sValue = (*it).section( '=', 1 );
+             sValue.replace("+"," ");
+ 
+-            if ((sName.length() != 0) && (sValue.length() !=0))
++            if (!sName.isEmpty() &&
++                !sValue.isEmpty())
+             {
+                 sName  = QUrl::fromPercentEncoding(sName.toUtf8());
+                 sValue = QUrl::fromPercentEncoding(sValue.toUtf8());
+ 
+-                mapParams.insert( sName.trimmed(), sValue );
++                // Make Parameter Names all lower case
++                mapParams.insert( sName.trimmed().toLower(), sValue );
+                 nCount++;
+             }
+         }
+@@ -1047,7 +1192,7 @@
+         // Read first line to determin requestType
+         QString sRequestLine = ReadLine( 2000 );
+ 
+-        if ( sRequestLine.length() == 0)
++        if ( sRequestLine.isEmpty() )
+         {
+             LOG(VB_GENERAL, LOG_ERR, "Timeout reading first line of request." );
+             return false;
+@@ -1057,6 +1202,16 @@
+ 
+         ProcessRequestLine( sRequestLine );
+ 
++        if (m_nMajor > 1 || m_nMajor < 0)
++        {
++            m_eResponseType   = ResponseTypeHTML;
++            m_nResponseStatus = 505;
++
++            m_response.write( Static505Error );
++
++            return true;
++        }
++
+         // Make sure there are a few default values
+ 
+         m_mapHeaders[ "content-length" ] = "0";
+@@ -1067,7 +1222,7 @@
+         bool    bDone = false;
+         QString sLine = ReadLine( 2000 );
+ 
+-        while (( sLine.length() > 0 ) && !bDone )
++        while (( !sLine.isEmpty() ) && !bDone )
+         {
+             if (sLine != "\r\n")
+             {
+@@ -1076,7 +1231,8 @@
+ 
+                 sValue.truncate( sValue.length() - 2 );
+ 
+-                if ((sName.length() != 0) && (sValue.length() !=0))
++                if (!sName.isEmpty() &&
++                    !sValue.isEmpty())
+                 {
+                     m_mapHeaders.insert(sName.toLower(), sValue.trimmed());
+ 
+@@ -1167,7 +1323,7 @@
+ 
+         QString sSOAPAction = GetHeaderValue( "SOAPACTION", "" );
+ 
+-        if (sSOAPAction.length() > 0)
++        if (!sSOAPAction.isEmpty())
+             bSuccess = ProcessSOAPPayload( sSOAPAction );
+         else
+             ExtractMethodFromURL();
+@@ -1236,7 +1392,7 @@
+             // Process any Query String Parameters
+             QString sQueryStr = tokens[1].section( '?', 1, 1 );
+ 
+-            if (sQueryStr.length() > 0)
++            if (!sQueryStr.isEmpty())
+                 GetParameters( sQueryStr, m_mapParams );
+         }
+ 
+@@ -1254,6 +1410,8 @@
+         if (nCount > 1)
+             m_nResponseStatus = tokens[1].toInt();
+     }
++
++
+ }
+ 
+ /////////////////////////////////////////////////////////////////////////////
+@@ -1270,7 +1428,7 @@
+     //          should make work with full spec.
+     // ----------------------------------------------------------------------
+ 
+-    if (sRange.length() == 0)
++    if (sRange.isEmpty())
+         return false;
+ 
+     // ----------------------------------------------------------------------
+@@ -1374,7 +1532,7 @@
+ 
+     m_sMethod = "";
+ 
+-    if (sList.size() > 0)
++    if (!sList.isEmpty())
+     {
+         m_sMethod = sList.last();
+         sList.pop_back();
+@@ -1480,7 +1638,7 @@
+                     sName  = QUrl::fromPercentEncoding(sName.toUtf8());
+                     sValue = QUrl::fromPercentEncoding(sValue.toUtf8());
+ 
+-                    m_mapParams.insert( sName.trimmed(), sValue );
++                    m_mapParams.insert( sName.trimmed().toLower(), sValue );
+                 }
+             }
+ 
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/httprequest.h mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/httprequest.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/httprequest.h	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/httprequest.h	2014-02-28 12:19:31.000000000 +0100
+@@ -63,8 +63,12 @@
+     ResponseTypeUnknown  =  0,
+     ResponseTypeXML      =  1,
+     ResponseTypeHTML     =  2,
+-    ResponseTypeFile     =  3,
+-    ResponseTypeOther    =  4
++    ResponseTypeJS       =  3,
++    ResponseTypeCSS      =  4,
++    ResponseTypeText     =  5,
++    ResponseTypeSVG      =  6,
++    ResponseTypeFile     =  7,
++    ResponseTypeOther    =  8
+ 
+ } ResponseType;
+ 
+@@ -191,6 +195,9 @@
+ 
+         Serializer *    GetSerializer   ();
+ 
++        QString         GetRequestProtocol  () const;
++        QString         GetResponseProtocol () const;
++
+         static QString  GetMimeType     ( const QString &sFileExtension );
+         static QString  TestMimeType    ( const QString &sFileName );
+         static long     GetParameters   ( QString  sParams, QStringMap &mapParams );
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/httpserver.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/httpserver.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/httpserver.cpp	2014-07-04 17:44:38.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/httpserver.cpp	2014-05-26 10:11:13.000000000 +0200
+@@ -16,7 +16,7 @@
+ 
+ // POSIX headers
+ #include <compat.h>
+-#ifndef USING_MINGW
++#ifndef _WIN32
+ #include <sys/utsname.h> 
+ #endif
+ 
+@@ -31,6 +31,7 @@
+ #include "mythdirs.h"
+ #include "mythlogging.h"
+ #include "htmlserver.h"
++#include "mythversion.h"
+ 
+ /////////////////////////////////////////////////////////////////////////////
+ /////////////////////////////////////////////////////////////////////////////
+@@ -47,7 +48,7 @@
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-HttpServer::HttpServer(const QString sApplicationPrefix) :
++HttpServer::HttpServer(const QString &sApplicationPrefix) :
+     ServerPool(), m_sSharePath(GetShareDir()),
+     m_pHtmlServer(new HtmlServerExtension(m_sSharePath, sApplicationPrefix)),
+     m_threadPool("HttpServerPool"), m_running(true)
+@@ -59,7 +60,7 @@
+     // ----------------------------------------------------------------------
+     {
+         QMutexLocker locker(&s_platformLock);
+-#ifdef USING_MINGW
++#ifdef _WIN32
+         s_platform = QString("Windows %1.%2")
+             .arg(LOBYTE(LOWORD(GetVersion())))
+             .arg(HIBYTE(LOWORD(GetVersion())));
+@@ -110,6 +111,16 @@
+ }
+ 
+ /////////////////////////////////////////////////////////////////////////////
++//
++/////////////////////////////////////////////////////////////////////////////
++
++QString HttpServer::GetServerVersion(void)
++{
++    return QString("%1, UPnP/1.0, MythTV %2").arg(HttpServer::GetPlatform())
++                                             .arg(MYTH_SOURCE_VERSION);
++}
++
++/////////////////////////////////////////////////////////////////////////////
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/httpserver.h mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/httpserver.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/httpserver.h	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/httpserver.h	2014-02-28 12:19:31.000000000 +0100
+@@ -16,7 +16,7 @@
+ 
+ // POSIX headers
+ #include <sys/types.h>
+-#ifndef USING_MINGW
++#ifndef _WIN32
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
+ #endif
+@@ -98,7 +98,7 @@
+     static QString          s_platform;
+ 
+   public:
+-    HttpServer(const QString sApplicationPrefix = QString(""));
++    HttpServer(const QString &sApplicationPrefix = QString(""));
+     virtual ~HttpServer();
+ 
+     void RegisterExtension(HttpServerExtension*);
+@@ -123,6 +123,7 @@
+     }
+ 
+     static QString GetPlatform(void);
++    static QString GetServerVersion(void);
+ };
+ 
+ /////////////////////////////////////////////////////////////////////////////
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/libmythupnp.pro mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/libmythupnp.pro
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/libmythupnp.pro	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/libmythupnp.pro	2014-02-28 12:19:31.000000000 +0100
+@@ -35,7 +35,7 @@
+ SOURCES += mmulticastsocketdevice.cpp
+ SOURCES += msocketdevice.cpp
+ unix:SOURCES += msocketdevice_unix.cpp
+-mingw:SOURCES += msocketdevice_win.cpp
++mingw | win32-msvc*:SOURCES += msocketdevice_win.cpp
+ SOURCES += httprequest.cpp upnp.cpp ssdp.cpp taskqueue.cpp upnputil.cpp
+ SOURCES += upnpdevice.cpp upnptasknotify.cpp upnptasksearch.cpp
+ SOURCES += httpserver.cpp upnpcds.cpp upnpcdsobjects.cpp bufferedsocketdevice.cpp
+@@ -58,11 +58,14 @@
+ 
+ LIBS += $$EXTRA_LIBS
+ 
+-mingw {
++mingw | win32-msvc* {
+ 
+     LIBS += -lws2_32
+ }
+ 
++win32-msvc*:LIBS += -lzlib
++
++
+ inc.path = $${PREFIX}/include/mythtv/upnp/
+ 
+ inc.files  = httprequest.h upnp.h ssdp.h taskqueue.h bufferedsocketdevice.h
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/mmulticastsocketdevice.h mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/mmulticastsocketdevice.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/mmulticastsocketdevice.h	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/mmulticastsocketdevice.h	2014-02-28 12:19:31.000000000 +0100
+@@ -18,9 +18,7 @@
+ #endif
+ 
+ #ifdef _WIN32
+-# ifndef _MSC_VER
+-#  include <ws2tcpip.h>
+-# endif
++# include <ws2tcpip.h>
+ #else
+ # include <sys/socket.h>
+ # include <netinet/in.h>
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/msocketdevice_win.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/msocketdevice_win.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/msocketdevice_win.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/msocketdevice_win.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -54,7 +54,7 @@
+ #  include <windows.h>
+ #  include <winsock.h>
+ #else
+-#  if defined (Q_CC_BOR) || defined (Q_CC_GNU)
++#  if defined (Q_CC_BOR) || defined (Q_CC_GNU) || ( _MSC_VER )
+ #    include <winsock2.h>
+ #  elif defined (Q_CC_INTEL)
+ #    include <winsock.h>
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/serializers/serializer.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/serializers/serializer.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/serializers/serializer.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/serializers/serializer.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -45,7 +45,7 @@
+ 
+         sName = sName.section( ":", -1 );
+ 
+-        if (sName.at(0) == 'Q')
++        if ((sName.length() > 0) && (sName.at(0) == 'Q'))
+             sName = sName.mid( 1 );
+     }
+ 
+@@ -69,7 +69,7 @@
+ {
+     QString sName( _sName );
+ 
+-    if (sName.at(0) == 'Q')
++    if ((sName.length() > 0) && sName.at(0) == 'Q')
+         sName = sName.mid( 1 );
+ 
+     m_hash.reset();
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/serializers/xmlSerializer.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/serializers/xmlSerializer.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/serializers/xmlSerializer.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/serializers/xmlSerializer.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -272,7 +272,7 @@
+ {
+     QString sTypeName( sName );
+ 
+-    if (sName.at(0) == 'Q')
++    if ((sName.length() > 0) && (sName.at(0) == 'Q'))
+         sTypeName = sName.mid( 1 );
+ 
+     sTypeName.remove( "DTC::"    );
+@@ -311,7 +311,7 @@
+ 
+     QString sTypeName( sName );    
+ 
+-    if (sName.at(0) == 'Q')        
++    if ((sName.length() > 0) && (sName.at(0) == 'Q'))
+         sTypeName = sName.mid( 1 );    
+ 
+     sTypeName.remove( "DTC::"    );    
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/serverSideScripting.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/serverSideScripting.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/serverSideScripting.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/serverSideScripting.cpp	2014-07-01 07:17:04.000000000 +0200
+@@ -13,9 +13,11 @@
+ #include <QCoreApplication>
+ #include <QFile>
+ #include <QFileInfo>
++#include <QVariant>
+ 
+ #include "serverSideScripting.h"
+ #include "mythlogging.h"
++#include "httpserver.h"
+ 
+ QScriptValue formatStr(QScriptContext *context, QScriptEngine *interpreter);
+ 
+@@ -46,6 +48,7 @@
+ 
+ ServerSideScripting::ServerSideScripting()
+ {
++    Lock();
+     // ----------------------------------------------------------------------
+     // Enable Translation functions
+     // ----------------------------------------------------------------------
+@@ -66,6 +69,7 @@
+     // Q_SCRIPT_DECLARE_QMETAOBJECT( DTC::MythService, QObject*)
+     // QScriptValue oClass = engine.scriptValueFromQMetaObject< DTC::MythService >();
+     // engine.globalObject().setProperty("Myth", oClass);
++    Unlock();
+ }
+ 
+ //////////////////////////////////////////////////////////////////////////////
+@@ -92,14 +96,49 @@
+ //
+ //////////////////////////////////////////////////////////////////////////////
+ 
++QString ServerSideScripting::SetResourceRootPath( const QString &path )
++{
++    Lock();
++    QString sOrig = m_sResRootPath;
++
++    m_sResRootPath = path;
++    Unlock();
++
++    return sOrig;
++}
++
++//////////////////////////////////////////////////////////////////////////////
++//
++//////////////////////////////////////////////////////////////////////////////
++
+ void ServerSideScripting::RegisterMetaObjectType( const QString &sName, 
+                                                   const QMetaObject *pMetaObject,
+                                                   QScriptEngine::FunctionSignature  pFunction)
+ {
++    Lock();
+     QScriptValue ctor = m_engine.newFunction( pFunction );
+ 
+     QScriptValue metaObject = m_engine.newQMetaObject( pMetaObject, ctor );
+     m_engine.globalObject().setProperty( sName, metaObject );
++    Unlock();
++}
++
++//////////////////////////////////////////////////////////////////////////////
++//
++//////////////////////////////////////////////////////////////////////////////
++
++ScriptInfo *ServerSideScripting::GetLoadedScript( const QString &sFileName )
++{
++    ScriptInfo *pInfo = NULL;
++
++    Lock();
++
++    if ( m_mapScripts.contains( sFileName ) )
++        pInfo = m_mapScripts[ sFileName ];
++
++    Unlock();
++
++    return pInfo;
+ }
+ 
+ //////////////////////////////////////////////////////////////////////////////
+@@ -107,23 +146,18 @@
+ //////////////////////////////////////////////////////////////////////////////
+ 
+ bool ServerSideScripting::EvaluatePage( QTextStream *pOutStream, const QString &sFileName,
+-                                        const QStringMap &mapParams )
++                                        HTTPRequest *pRequest)
+ {
+     try
+     {
+-        bool       bFound( false     );
++
+         ScriptInfo *pInfo = NULL;
+ 
+         // ------------------------------------------------------------------
+         // See if page has already been loaded
+         // ------------------------------------------------------------------
+ 
+-        Lock();
+-
+-        if ( (bFound = m_mapScripts.contains( sFileName )) == true )
+-            pInfo = m_mapScripts[ sFileName ];
+-
+-        Unlock();
++        pInfo = GetLoadedScript( sFileName );
+ 
+         // ------------------------------------------------------------------
+         // Load Script File and Create Function
+@@ -132,6 +166,7 @@
+         QFileInfo  fileInfo ( sFileName );
+         QDateTime  dtLastModified = fileInfo.lastModified();
+ 
++        Lock();
+         if ((pInfo == NULL) || (pInfo->m_dtTimeStamp != dtLastModified ))
+         {
+             QString      sCode = CreateMethodFromFile( sFileName );
+@@ -141,11 +176,12 @@
+             if ( m_engine.hasUncaughtException() )
+             {
+                 LOG(VB_GENERAL, LOG_ERR,
+-                    QString("Error Loading QSP File: %1 - (%2)%3")
++                    QString("Error Loading QSP File: %1 - (line %2) %3")
+                         .arg(sFileName)
+                         .arg(m_engine.uncaughtExceptionLineNumber())
+                         .arg(m_engine.uncaughtException().toString()));
+ 
++                Unlock();
+                 return false;
+             }
+ 
+@@ -157,9 +193,7 @@
+             else
+             {
+                 pInfo = new ScriptInfo( func, dtLastModified );
+-                Lock();
+                 m_mapScripts[ sFileName ] = pInfo;
+-                Unlock();
+             }
+         }
+ 
+@@ -167,19 +201,128 @@
+         // Build array of arguments passed to script
+         // ------------------------------------------------------------------
+ 
+-        QString params = "ARGS = { ";
+-        if (mapParams.size())
++        QStringMap mapParams = pRequest->m_mapParams;
++
++        // Valid characters for object property names must contain only
++        // word characters and numbers, _ and $
++        // They must not start with a number - to simplify the regexp, we
++        // restrict the first character to the English alphabet
++        QRegExp validChars = QRegExp("^([a-zA-Z]|_|\\$)(\\w|\\$)+$");
++
++        QVariantMap params;
++        QMap<QString, QString>::const_iterator it = mapParams.begin();
++        QString prevArrayName = "";
++        QVariantMap array;
++        for (; it != mapParams.end(); ++it)
+         {
+-            QMap<QString, QString>::const_iterator it = mapParams.begin();
++            QString key = it.key();
++            QVariant value = QVariant(it.value());
+ 
+-            for (; it != mapParams.end(); ++it)
++            // PHP Style parameter array
++            if (key.contains("["))
+             {
+-                params += QString("%1: '%2', ").arg(it.key()).arg(it.value());
++                QString arrayName = key.section('[',0,0);
++                QString arrayKey = key.section('[',1,1);
++                arrayKey.chop(1); // Remove trailing ]
++                if (prevArrayName != arrayName) // New or different array
++                {
++                    if (!array.isEmpty())
++                    {
++                        params.insert(prevArrayName, QVariant(array));
++                        array.clear();
++                    }
++                    prevArrayName = arrayName;
++                }
++
++                if (!validChars.exactMatch(arrayKey)) // Discard anything that isn't valid for now
++                    continue;
++
++                array.insert(arrayKey, value);
++
++                if ((it + 1) != mapParams.end())
++                    continue;
++            }
++
++            if (!array.isEmpty())
++            {
++                params.insert(prevArrayName, QVariant(array));
++                array.clear();
+             }
++            // End Array handling
++
++            if (!validChars.exactMatch(key)) // Discard anything that isn't valid for now
++                continue;
++
++            params.insert(key, value);
++
+         }
+ 
+-        params += " }";
+-        m_engine.evaluate(params);
++        // ------------------------------------------------------------------
++        // Build array of request headers
++        // ------------------------------------------------------------------
++
++        QStringMap mapHeaders = pRequest->m_mapHeaders;
++
++        QVariantMap requestHeaders;
++        for (it = mapHeaders.begin(); it != mapHeaders.end(); ++it)
++        {
++            QString key = it.key();
++            key = key.replace('-', '_'); // May be other valid chars in a request header that we need to replace
++            QVariant value = QVariant(it.value());
++
++            if (!validChars.exactMatch(key)) // Discard anything that isn't valid for now
++                continue;
++
++            requestHeaders.insert(key, value);
++        }
++
++        // ------------------------------------------------------------------
++        // Build array of information from the server e.g. client IP
++        // See RFC 3875 - The Common Gateway Interface
++        // ------------------------------------------------------------------
++
++        QVariantMap serverVars;
++        serverVars.insert("REMOTE_ADDR", QVariant(pRequest->GetPeerAddress()));
++        serverVars.insert("SERVER_ADDR", QVariant(pRequest->GetHostAddress()));
++        serverVars.insert("SERVER_PROTOCOL", QVariant(pRequest->GetRequestProtocol()));
++        serverVars.insert("SERVER_SOFTWARE", QVariant(HttpServer::GetServerVersion()));
++
++        QHostAddress clientIP = QHostAddress(pRequest->GetPeerAddress());
++        QHostAddress serverIP = QHostAddress(pRequest->GetHostAddress());
++        if (clientIP.protocol() == QAbstractSocket::IPv4Protocol)
++        {
++            serverVars.insert("IP_PROTOCOL", "IPv4");
++        }
++        else if (clientIP.protocol() == QAbstractSocket::IPv6Protocol)
++        {
++            serverVars.insert("IP_PROTOCOL", "IPv6");
++        }
++
++        if (((clientIP.protocol() == QAbstractSocket::IPv4Protocol) &&
++             (clientIP.isInSubnet(QHostAddress("172.16.0.0"), 12) ||
++              clientIP.isInSubnet(QHostAddress("192.168.0.0"), 16) ||
++              clientIP.isInSubnet(QHostAddress("10.0.0.0"), 8))) ||
++            ((clientIP.protocol() == QAbstractSocket::IPv6Protocol) &&
++              clientIP.isInSubnet(serverIP, 64))) // default subnet size is assumed to be /64
++        {
++            serverVars.insert("CLIENT_NETWORK", "local");
++        }
++        else
++        {
++            serverVars.insert("CLIENT_NETWORK", "remote");
++        }
++
++        // ------------------------------------------------------------------
++        // Add the arrays (objects) we've just created to the global scope
++        // They may be accessed as 'Server.REMOTE_ADDR'
++        // ------------------------------------------------------------------
++
++        m_engine.globalObject().setProperty("Parameters",
++                                            m_engine.toScriptValue(params));
++        m_engine.globalObject().setProperty("RequestHeaders",
++                                            m_engine.toScriptValue(requestHeaders));
++        m_engine.globalObject().setProperty("Server",
++                                            m_engine.toScriptValue(serverVars));
+ 
+         // ------------------------------------------------------------------
+         // Execute function to render output
+@@ -189,7 +332,7 @@
+ 
+         QScriptValueList args;
+         args << m_engine.newQObject( &outStream );
+-        args << m_engine.globalObject().property("ARGS");
++        args << m_engine.toScriptValue(params);
+ 
+         pInfo->m_oFunc.call( QScriptValue(), args );
+ 
+@@ -199,14 +342,17 @@
+                 QString("Error calling QSP File: %1 - %2")
+                     .arg(sFileName)
+                     .arg(m_engine.uncaughtException().toString()));
++            Unlock();
+             return false;
+         }
++        Unlock();
+     }
+     catch(...)
+     {
+         LOG(VB_GENERAL, LOG_ERR,
+             QString("Exception while evaluating QSP File: %1") .arg(sFileName));
+ 
++        Unlock();
+         return false;
+     }
+ 
+@@ -217,7 +363,7 @@
+ //
+ //////////////////////////////////////////////////////////////////////////////
+ 
+-QString ServerSideScripting::CreateMethodFromFile( const QString &sFileName )
++QString ServerSideScripting::CreateMethodFromFile( const QString &sFileName ) const
+ {
+     bool        bInCode = false;
+     QString     sBuffer;
+@@ -261,10 +407,39 @@
+ //
+ //////////////////////////////////////////////////////////////////////////////
+ 
++QString ServerSideScripting::ReadFileContents( const QString &sFileName ) const
++{
++    QString  sCode;
++    QFile    scriptFile( sFileName );
++
++    if (!scriptFile.open( QIODevice::ReadOnly ))
++        throw "Unable to open file";
++
++    try
++    {
++        QTextStream stream( &scriptFile );
++
++        sCode = stream.readAll();
++    }
++    catch(...)
++    {
++        LOG(VB_GENERAL, LOG_ERR,
++            QString("Exception while Reading File Contents File: %1") .arg(sFileName));
++    }
++
++    scriptFile.close();
++
++    return sCode;
++}
++
++//////////////////////////////////////////////////////////////////////////////
++//
++//////////////////////////////////////////////////////////////////////////////
++
+ bool ServerSideScripting::ProcessLine( QTextStream &sCode, 
+                                        QString     &sLine, 
+                                        bool         bInCode,
+-                                       QString     &sTransBuffer )
++                                       QString     &sTransBuffer ) const
+ {
+     QString sLowerLine = sLine.toLower();
+ 
+@@ -355,8 +530,49 @@
+                 // Add Code
+     
+                 if (sSegment.startsWith( "=" ))
++                {
++                    // Evaluate statement and render results.
++
+                     sCode << "os.write( " << sSegment.mid( 1 ) << " ); "
+                           << "\n";
++                }
++                else if (sSegment.startsWith( "import" ))
++                {
++                    // Loads supplied path as script file. 
++                    //
++                    // Syntax: import "/relative/path/to/script.js"
++                    //   - must be at start of line (no leading spaces)
++                    //
++
++                    // Extract filename (remove quotes)
++
++                    QStringList sParts = sSegment.split( ' ', QString::SkipEmptyParts );
++
++                    if (sParts.length() > 1 )
++                    {
++                        QString sFileName = sParts[1].mid( 1, sParts[1].length() - 2 );
++
++                        QFileInfo oInfo( m_sResRootPath + sFileName );
++
++                        if (oInfo.exists())
++                        {
++                            sCode << ReadFileContents( oInfo.canonicalFilePath() )
++                                  << "\n";
++                        }
++                        else
++                            LOG(VB_GENERAL, LOG_ERR,
++                                QString("ServerSideScripting::ProcessLine 'import' - File not found: %1%2")
++                                   .arg(m_sResRootPath)
++                                   .arg(sFileName));
++                    }
++                    else
++                    {
++                        LOG(VB_GENERAL, LOG_ERR,
++                            QString("ServerSideScripting::ProcessLine 'import' - Malformed [%1]")
++                                .arg( sSegment ));
++                    }
++
++                }
+                 else
+                     sCode << sSegment << "\n";
+ 
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/serverSideScripting.h mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/serverSideScripting.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/serverSideScripting.h	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/serverSideScripting.h	2014-07-01 07:17:04.000000000 +0200
+@@ -15,6 +15,7 @@
+ 
+ #include "upnpexp.h"
+ #include "upnputil.h"
++#include "httprequest.h"
+ 
+ #include <QString> 
+ #include <QMap>
+@@ -39,38 +40,41 @@
+ 
+ class UPNP_PUBLIC ServerSideScripting
+ {
+-    protected:
+-
+-        QMutex                          m_mutex;
+-        QMap< QString, ScriptInfo* >     m_mapScripts;
+-
+-        void Lock       () { m_mutex.lock();   }
+-        void Unlock     () { m_mutex.unlock(); }
+-
+     public:
+ 
+-         QScriptEngine                   m_engine;
++        QScriptEngine                   m_engine;
+ 
+-    public:
++        ServerSideScripting();
++       ~ServerSideScripting();
+ 
+-         ServerSideScripting();
+-        ~ServerSideScripting();
++        QString SetResourceRootPath( const QString     &path );
+ 
+         void RegisterMetaObjectType( const QString     &sName, 
+                                      const QMetaObject *pMetaObject,
+                                      QScriptEngine::FunctionSignature  pFunction);
+ 
+         bool EvaluatePage( QTextStream *pOutStream, const QString &sFileName,
+-                           const QStringMap &mapParams );
++                           HTTPRequest *pRequest);
+ 
+     protected:
+ 
+-        QString CreateMethodFromFile( const QString &sFileName );
++        QMutex                           m_mutex;
++        QMap< QString, ScriptInfo* >     m_mapScripts;
++        QString                          m_sResRootPath;
++
++        void Lock       () { m_mutex.lock();   }
++        void Unlock     () { m_mutex.unlock(); }
++
++        ScriptInfo *GetLoadedScript ( const QString &sFileName );
++
++        QString ReadFileContents    ( const QString &sFileName ) const;
++
++        QString CreateMethodFromFile( const QString &sFileName ) const;
+ 
+         bool    ProcessLine         ( QTextStream &sCode, 
+                                       QString     &sLine, 
+                                       bool         bInCode,
+-                                      QString     &sTransBuffer );
++                                      QString     &sTransBuffer ) const;
+ };
+ 
+ 
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/servicehost.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/servicehost.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/servicehost.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/servicehost.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -85,7 +85,7 @@
+ 
+         for( int nIdx = 0; nIdx < paramNames.length(); nIdx++ )
+         {
+-            QString sValue     = reqParams[ paramNames[ nIdx ] ];
++            QString sValue     = reqParams[ paramNames[ nIdx ].toLower() ];
+             QString sParamType = paramTypes[ nIdx ];
+ 
+             int     nId        = QMetaType::type( paramTypes[ nIdx ] );
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/soapclient.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/soapclient.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/soapclient.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/soapclient.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -202,7 +202,7 @@
+ 
+     headers.insert("Content-Type", "text/xml; charset=\"utf-8\"");
+     QString soapHeader = QString("\"%1#%2\"").arg(m_sNamespace).arg(sMethod);
+-    headers.insert("SOAPACTION", soapHeader.toAscii());
++    headers.insert("SOAPACTION", soapHeader.toUtf8());
+     headers.insert("User-Agent", "Mozilla/9.876 (X11; U; Linux 2.2.12-20 i686, en) "
+                                  "Gecko/25250101 Netscape/5.432b1");
+     // --------------------------------------------------------------
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/ssdp.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/ssdp.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/ssdp.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/ssdp.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -674,7 +674,7 @@
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-SSDPExtension::SSDPExtension( int nServicePort , const QString sSharePath)
++SSDPExtension::SSDPExtension( int nServicePort , const QString &sSharePath)
+   : HttpServerExtension( "SSDP" , sSharePath),
+     m_nServicePort(nServicePort)
+ {
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/ssdp.h mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/ssdp.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/ssdp.h	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/ssdp.h	2014-02-28 12:19:31.000000000 +0100
+@@ -157,7 +157,7 @@
+         void       GetDeviceList( HTTPRequest *pRequest );
+ 
+     public:
+-                 SSDPExtension( int nServicePort, const QString sSharePath);
++                 SSDPExtension( int nServicePort, const QString &sSharePath);
+         virtual ~SSDPExtension( );
+ 
+         virtual QStringList GetBasePaths();
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/taskqueue.h mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/taskqueue.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/taskqueue.h	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/taskqueue.h	2014-02-28 12:19:31.000000000 +0100
+@@ -15,11 +15,11 @@
+ 
+ // POSIX headers
+ #include <sys/types.h>
+-#ifndef USING_MINGW
++#ifndef _WIN32
+ #include <sys/socket.h>
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
+-#endif // USING_MINGW
++#endif // _WIN32
+ 
+ // C++ headers
+ #include <map>
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnpcds.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnpcds.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnpcds.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnpcds.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -296,17 +296,17 @@
+     UPnpCDSRequest           request;
+ 
+     DetermineClient( pRequest, &request );
+-    request.m_sObjectId         = pRequest->m_mapParams[ "ObjectID"      ];
+-    request.m_sContainerID      = pRequest->m_mapParams[ "ContainerID"   ];
++    request.m_sObjectId         = pRequest->m_mapParams[ "objectid"      ];
++    request.m_sContainerID      = pRequest->m_mapParams[ "containerid"   ];
+     request.m_sParentId         = "0";
+     request.m_eBrowseFlag       =
+-        GetBrowseFlag( pRequest->m_mapParams[ "BrowseFlag"    ] );
+-    request.m_sFilter           = pRequest->m_mapParams[ "Filter"        ];
++        GetBrowseFlag( pRequest->m_mapParams[ "browseflag"    ] );
++    request.m_sFilter           = pRequest->m_mapParams[ "filter"        ];
+     request.m_nStartingIndex    =
+-        pRequest->m_mapParams[ "StartingIndex" ].toLong();
++        pRequest->m_mapParams[ "startingindex" ].toLong();
+     request.m_nRequestedCount   =
+-        pRequest->m_mapParams[ "RequestedCount"].toLong();
+-    request.m_sSortCriteria     = pRequest->m_mapParams[ "SortCriteria"  ];
++        pRequest->m_mapParams[ "requestedcount"].toLong();
++    request.m_sSortCriteria     = pRequest->m_mapParams[ "sortcriteria"  ];
+ 
+ #if 0
+     LOG(VB_UPNP, LOG_DEBUG, QString("UPnpCDS::ProcessRequest \n"
+@@ -493,15 +493,15 @@
+     QString       sResultXML;
+ 
+     DetermineClient( pRequest, &request );
+-    request.m_sObjectId         = pRequest->m_mapParams[ "ObjectID"      ];
+-    request.m_sContainerID      = pRequest->m_mapParams[ "ContainerID"   ];
+-    request.m_sFilter           = pRequest->m_mapParams[ "Filter"        ];
++    request.m_sObjectId         = pRequest->m_mapParams[ "objectid"      ];
++    request.m_sContainerID      = pRequest->m_mapParams[ "containerid"   ];
++    request.m_sFilter           = pRequest->m_mapParams[ "filter"        ];
+     request.m_nStartingIndex    =
+-        pRequest->m_mapParams[ "StartingIndex" ].toLong();
++        pRequest->m_mapParams[ "startingIndex" ].toLong();
+     request.m_nRequestedCount   =
+-        pRequest->m_mapParams[ "RequestedCount"].toLong();
+-    request.m_sSortCriteria     = pRequest->m_mapParams[ "SortCriteria"  ];
+-    request.m_sSearchCriteria   = pRequest->m_mapParams[ "SearchCriteria"];
++        pRequest->m_mapParams[ "requestedcount"].toLong();
++    request.m_sSortCriteria     = pRequest->m_mapParams[ "sortcriteria"  ];
++    request.m_sSearchCriteria   = pRequest->m_mapParams[ "searchcriteria"];
+ 
+     LOG(VB_UPNP, LOG_INFO,
+         QString("UPnpCDS::HandleSearch ObjectID=%1, ContainerId=%2")
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnpcdsobjects.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnpcdsobjects.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnpcdsobjects.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnpcdsobjects.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -15,6 +15,7 @@
+ #include <QUrl>
+ 
+ #include "upnpcds.h"
++#include "mythlogging.h"
+ 
+ inline QString GetBool( bool bVal ) { return( (bVal) ? "1" : "0" ); }
+ 
+@@ -26,9 +27,9 @@
+ /////////////////////////////////////////////////////////////////////////////
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-CDSObject::CDSObject( const QString sId, 
+-                      const QString sTitle, 
+-                      const QString sParentId )
++CDSObject::CDSObject( const QString &sId, 
++                      const QString &sTitle, 
++                      const QString &sParentId )
+     : m_nUpdateId(1), m_eType(OT_Container),
+       m_sId(HTTPRequest::Encode(sId)),
+       m_sParentId(HTTPRequest::Encode(sParentId)),
+@@ -70,13 +71,23 @@
+ {
+     if (pProp)
+     {
+-        Properties::iterator it = m_properties.find(pProp->m_sName);
+-        if (it != m_properties.end())
++        // If this property is allowed multiple times in an object
++        // e.g. Different sizes of artwork, then just insert it
++        // Otherwise remove all existing instances of this property first
++        // NOTE: This requires ALL instances of a property which can exist
++        //       more than once to have m_bAllowMulti set to true.
++        if (pProp->m_bMultiValue)
++            m_properties.insertMulti(pProp->m_sName, pProp);
++        else
+         {
+-            delete *it;
+-            m_properties.erase(it);
++            Properties::iterator it = m_properties.find(pProp->m_sName);
++            while (it != m_properties.end() && it.key() == pProp->m_sName)
++            {
++                delete *it;
++                it = m_properties.erase(it);
++            }
++            m_properties[pProp->m_sName] = pProp;
+         }
+-        m_properties[pProp->m_sName] = pProp;
+     }
+ 
+     return pProp;
+@@ -86,24 +97,33 @@
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-Property *CDSObject::GetProperty( QString sName )
++QList<Property*> CDSObject::GetProperties( const QString &sName )
+ {
++    QList<Property*> props;
+     Properties::iterator it = m_properties.find(sName);
+-    if (it !=  m_properties.end() && *it)
+-        return (*it);
++    while (it != m_properties.end() && it.key() == sName)
++    {
++        if (*it)
++            props.append(*it);
++        ++it;
++    }
+ 
+-    return 0;
++    return props;
+ }
+ 
+ /////////////////////////////////////////////////////////////////////////////
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-void CDSObject::SetPropValue( QString sName, QString sValue )
++void CDSObject::SetPropValue( const QString &sName, const QString &sValue )
+ {
+     Properties::iterator it = m_properties.find(sName);
+     if (it !=  m_properties.end() && *it)
+     {
++        if ((*it)->m_bMultiValue)
++            LOG(VB_UPNP, LOG_WARNING,
++                QString("SetPropValue(%1) called on property with bAllowMulti. "
++                        "Only the last inserted property will be updated."));
+         (*it)->m_sValue = HTTPRequest::Encode(sValue);
+     }
+ }
+@@ -117,7 +137,13 @@
+     Properties::const_iterator it = m_properties.find(sName);
+ 
+     if (it !=  m_properties.end() && *it)
++    {
++        if ((*it)->m_bMultiValue)
++            LOG(VB_UPNP, LOG_WARNING,
++                QString("GetPropValue(%1) called on property with bAllowMulti. "
++                        "Only the last inserted property will be return."));
+         return QUrl::fromPercentEncoding((*it)->m_sValue.toUtf8());
++    }
+     
+     return "";
+ }
+@@ -375,7 +401,10 @@
+     pObject->AddProperty( new Property( "contributor"         , "dc"   ));
+     pObject->AddProperty( new Property( "date"                , "dc"   ));
+ 
+-    pObject->AddProperty( new Property( "albumArtURI"         , "upnp" ));
++    pObject->AddProperty( new Property( "albumArtURI", "upnp", false, "", true)); // TN
++    pObject->AddProperty( new Property( "albumArtURI", "upnp", false, "", true)); // SM
++    pObject->AddProperty( new Property( "albumArtURI", "upnp", false, "", true)); // MED
++    pObject->AddProperty( new Property( "albumArtURI", "upnp", false, "", true)); // LRG
+ 
+     return( pObject );
+ }
+@@ -451,8 +480,11 @@
+     pObject->AddProperty( new Property( "album"          , "upnp" ));
+     pObject->AddProperty( new Property( "date"           , "dc"   ));
+ 
+-    pObject->AddProperty( new Property( "albumArtURI"    , "upnp"   ));
+ 
++    pObject->AddProperty( new Property( "albumArtURI", "upnp", false, "", true )); // TN
++    pObject->AddProperty( new Property( "albumArtURI", "upnp", false, "", true )); // SM
++    pObject->AddProperty( new Property( "albumArtURI", "upnp", false, "", true )); // MED
++    pObject->AddProperty( new Property( "albumArtURI", "upnp", false, "", true )); // LRG
+     return( pObject );
+ }
+ 
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnpcdsobjects.h mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnpcdsobjects.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnpcdsobjects.h	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnpcdsobjects.h	2014-02-28 12:19:31.000000000 +0100
+@@ -48,19 +48,23 @@
+         QString  m_sNameSpace;
+         bool     m_bRequired;
+         QString  m_sValue;
++        bool     m_bMultiValue;
+         NameValues      m_lstAttributes;
+ 
+     public:
+ 
+         explicit Property( const QString &sName,
+-                           const QString &sNameSpace = "",
+-                           bool           bRequired  = false,
+-                           const QString &sValue     = "" )
++                           const QString &sNameSpace  = "",
++                           bool           bRequired   = false,
++                           const QString &sValue      = "",
++                           bool           bMultiValue = false
++                         )
+         {
+-            m_sName      = sName;
+-            m_sNameSpace = sNameSpace;
+-            m_bRequired  = bRequired;
+-            m_sValue     = sValue;
++            m_sName       = sName;
++            m_sNameSpace  = sNameSpace;
++            m_bRequired   = bRequired;
++            m_sValue      = sValue;
++            m_bMultiValue = bMultiValue;
+         }
+ 
+         void AddAttribute( const QString &sName,
+@@ -171,19 +175,19 @@
+ 
+     public:
+ 
+-        explicit      CDSObject( const QString sId = "-1",
+-                                 const QString sTitle = "",
+-                                 const QString sParentId = "-1" );
++        explicit      CDSObject( const QString &sId = "-1",
++                                 const QString &sTitle = "",
++                                 const QString &sParentId = "-1" );
+         virtual      ~CDSObject();
+ 
+-        Property     *AddProperty( Property *pProp  );
+-        Property     *GetProperty( QString sName );
+-        CDSObject    *AddChild   ( CDSObject   *pChild );
++        Property         *AddProperty( Property *pProp  );
++        QList<Property*>  GetProperties( const QString &sName );
++        CDSObject        *AddChild   ( CDSObject   *pChild );
+ 
+         ContainerClass *AddSearchClass( ContainerClass *pClass );
+         ContainerClass *AddCreateClass( ContainerClass *pClass );
+ 
+-        void          SetPropValue( QString sName, QString sValue );
++        void          SetPropValue( const QString &sName, const QString &sValue );
+         QString       GetPropValue( const QString &sName ) const;
+         QString       toXml      ( FilterMap &filter ) const;
+         void          toXml      ( QTextStream &os, FilterMap &filter ) const;
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnptasknotify.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnptasknotify.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnptasknotify.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnptasknotify.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -69,14 +69,13 @@
+     else
+         sUSN = sNT;
+ 
+-    QString sData = QString ( "Server: %1, UPnP/1.0, MythTV %2\r\n"
++    QString sData = QString ( "Server: %1\r\n"
+                               "NTS: %3\r\n"
+                               "NT: %4\r\n"
+                               "USN: %5\r\n"
+                               "CACHE-CONTROL: max-age=%6\r\n"
+                               "Content-Length: 0\r\n\r\n" )
+-                            .arg( HttpServer::GetPlatform() )
+-                            .arg( MYTH_BINARY_VERSION )
++                            .arg( HttpServer::GetServerVersion() )
+                             .arg( GetNTSString()    )
+                             .arg( sNT          )
+                             .arg( sUSN         )
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnptasknotify.h mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnptasknotify.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnptasknotify.h	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnptasknotify.h	2014-02-28 12:19:31.000000000 +0100
+@@ -15,7 +15,7 @@
+ 
+ // POSIX headers
+ #include <sys/types.h>
+-#ifndef USING_MINGW
++#ifndef _WIN32
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
+ #endif
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnptasksearch.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnptasksearch.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnptasksearch.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnptasksearch.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -79,14 +79,13 @@
+     QString sData = QString ( "CACHE-CONTROL: max-age=%1\r\n"
+                               "DATE: %2\r\n"
+                               "EXT:\r\n"
+-                              "Server: %3, UPnP/1.0, MythTV %4\r\n"
+-                              "ST: %5\r\n"
+-                              "USN: %6\r\n"
++                              "Server: %3\r\n"
++                              "ST: %4\r\n"
++                              "USN: %5\r\n"
+                               "Content-Length: 0\r\n\r\n" )
+                               .arg( m_nMaxAge    )
+                               .arg( sDate )
+-                              .arg( HttpServer::GetPlatform() )
+-                              .arg( MYTH_BINARY_VERSION )
++                              .arg( HttpServer::GetServerVersion() )
+                               .arg( sST )
+                               .arg( sUSN );
+ 
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnptasksearch.h mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnptasksearch.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnptasksearch.h	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnptasksearch.h	2014-02-28 12:19:31.000000000 +0100
+@@ -15,7 +15,7 @@
+ 
+ // POSIX headers
+ #include <sys/types.h>
+-#ifndef USING_MINGW
++#ifndef _WIN32
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
+ #endif
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnputil.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnputil.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/libs/libmythupnp/upnputil.cpp	2014-05-19 15:28:55.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/libs/libmythupnp/upnputil.cpp	2014-02-28 12:19:31.000000000 +0100
+@@ -26,10 +26,10 @@
+ #include "mythlogging.h"
+ 
+ // POSIX headers 2, needs to be after compat.h for OS X
+-#ifndef USING_MINGW
++#ifndef _WIN32
+ #include <net/if.h>
+ #include <sys/ioctl.h>
+-#endif // USING_MINGW
++#endif // _WIN32
+ #if HAVE_GETIFADDRS
+ #include <ifaddrs.h>
+ #endif
+@@ -133,7 +133,7 @@
+ 
+ long GetIPAddressList( QStringList &sStrList )
+ {
+-#ifdef USING_MINGW
++#ifdef _WIN32
+     LOG(VB_UPNP, LOG_NOTICE, "GetIPAddressList() not implemented in MinGW");
+     return 0;
+ #else
+@@ -199,7 +199,7 @@
+     }
+ 
+     return( sStrList.count() );
+-#endif // !USING_MINGW
++#endif // !_WIN32
+ }
+ 
+ #endif // HAVE_GETIFADDRS
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/programs/mythbackend/upnpcdsmusic.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/programs/mythbackend/upnpcdsmusic.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/programs/mythbackend/upnpcdsmusic.cpp	2014-07-04 17:44:46.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/programs/mythbackend/upnpcdsmusic.cpp	2014-07-03 12:34:36.000000000 +0200
+@@ -78,13 +78,11 @@
+           "count( song.album_id ) as children "
+             "FROM music_songs song join music_albums a on a.album_id = song.album_id "
+             "%1 "
+-            "GROUP BY a.album_id "
++            "GROUP BY a.album_name "
+             "ORDER BY a.album_name",
+         "WHERE song.album_id=:KEY", "album.album_name" },
+-
+-#if 0
+     {   "By Artist",
+-        "artist_id",
++        "song.artist_id",
+         "SELECT a.artist_id as id, "
+           "a.artist_name as name, "
+           "count( distinct song.artist_id ) as children "
+@@ -95,7 +93,7 @@
+         "WHERE song.artist_id=:KEY", "" },
+ 
+ {   "By Genre",
+-        "genre_id",
++        "song.genre_id",
+         "SELECT g.genre_id as id, "
+           "genre as name, "
+           "count( distinct song.genre_id ) as children "
+@@ -104,7 +102,6 @@
+             "GROUP BY g.genre_id "
+             "ORDER BY g.genre",
+         "WHERE song.genre_id=:KEY", "" },
+-#endif
+ 
+ };
+ 
+@@ -184,7 +181,7 @@
+ 
+     // Xbox360 compatibility code.
+ 
+-    if (pRequest->m_eClient == CDS_ClientXBox && 
++    if (pRequest->m_eClient == CDS_ClientXBox &&
+         pRequest->m_sContainerID == "7")
+     {
+         pRequest->m_sObjectId = "Music";
+@@ -195,7 +192,7 @@
+         return true;
+     }
+ 
+-    if ((pRequest->m_sObjectId.isEmpty()) && 
++    if ((pRequest->m_sObjectId.isEmpty()) &&
+         (!pRequest->m_sContainerID.isEmpty()))
+         pRequest->m_sObjectId = pRequest->m_sContainerID;
+ 
+@@ -217,7 +214,7 @@
+ 
+     // XBox 360 compatibility code
+ 
+-    if (pRequest->m_eClient == CDS_ClientXBox && 
++    if (pRequest->m_eClient == CDS_ClientXBox &&
+         pRequest->m_sContainerID == "7")
+     {
+         pRequest->m_sObjectId       = "Music/1";
+@@ -240,7 +237,7 @@
+         return true;
+     }
+ 
+-    if ((pRequest->m_sObjectId.isEmpty()) && 
++    if ((pRequest->m_sObjectId.isEmpty()) &&
+         (!pRequest->m_sContainerID.isEmpty()))
+         pRequest->m_sObjectId = pRequest->m_sContainerID;
+ 
+@@ -254,7 +251,7 @@
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-void UPnpCDSMusic::AddItem( const UPnpCDSRequest    *pRequest, 
++void UPnpCDSMusic::AddItem( const UPnpCDSRequest    *pRequest,
+                             const QString           &sObjectId,
+                             UPnpCDSExtensionResults *pResults,
+                             bool                     bAddRef,
+@@ -356,6 +353,67 @@
+     pObject->AddProperty( new Property( "date"                , "dc"   ));
+ #endif
+ 
++    QString sArtURI = QString( "%1GetAlbumArt?Id=%2").arg( sURIBase   )
++                                                     .arg( nId );
++
++    QList<Property*> propList = pItem->GetProperties("albumArtURI");
++    if (propList.size() >= 4)
++    {
++        // Prefer JPEG over PNG here, although PNG is allowed JPEG probably
++        // has wider device support and crucially the filesizes are smaller
++        // which speeds up loading times over the network
++
++        // We MUST include the thumbnail size, but since some clients may use the
++        // first image they see and the thumbnail is tiny, instead return the
++        // medium first. The large could be very large, which is no good if the
++        // client is pulling images for an entire list at once!
++
++        // Medium
++        Property *pProp = propList.at(0);
++        if (pProp)
++        {
++            // Must be no more than 1024x768
++            pProp->m_sValue = sArtURI;
++            pProp->m_sValue.append("&amp;Width=1024&amp;Height=768");
++            pProp->AddAttribute("dlna:profileID", "JPG_MED");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
++
++        // Thumbnail
++        pProp = propList.at(1);
++        if (pProp)
++        {
++            // At least one albumArtURI must be a ThumbNail (TN) no larger
++            // than 160x160, and it must also be a jpeg
++            pProp->m_sValue = sArtURI;
++            pProp->m_sValue.append("&amp;Width=160&amp;Height=160");
++            pProp->AddAttribute("dlna:profileID", "JPG_TN");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
++
++        // Small
++        pProp = propList.at(2);
++        if (pProp)
++        {
++            // Must be no more than 640x480
++            pProp->m_sValue = sArtURI;
++            pProp->m_sValue.append("&amp;Width=640&amp;Height=480");
++            pProp->AddAttribute("dlna:profileID", "JPG_SM");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
++
++        // Large
++        pProp = propList.at(3);
++        if (pProp)
++        {
++            // Must be no more than 4096x4096 - for our purposes, just return
++            // a fullsize image
++            pProp->m_sValue = sArtURI;
++            pProp->AddAttribute("dlna:profileID", "JPG_LRG");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
++    }
++
+     pResults->Add( pItem );
+ 
+     // ----------------------------------------------------------------------
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/programs/mythbackend/upnpcdstv.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/programs/mythbackend/upnpcdstv.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/programs/mythbackend/upnpcdstv.cpp	2014-07-04 17:44:46.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/programs/mythbackend/upnpcdstv.cpp	2014-07-03 12:34:36.000000000 +0200
+@@ -147,7 +147,7 @@
+                   "subtitle, description, category, "   \
+                   "hostname, recgroup, filesize, "      \
+                   "basename, progstart, progend, "      \
+-                  "storagegroup "                       \
++                  "storagegroup, inetref "              \
+            "FROM recorded ";
+ }
+ 
+@@ -183,9 +183,9 @@
+     // Xbox360 compatibility code.
+     // ----------------------------------------------------------------------
+ 
+-    if (pRequest->m_eClient == CDS_ClientXBox && 
++    if (pRequest->m_eClient == CDS_ClientXBox &&
+         pRequest->m_sContainerID == "15" &&
+-        gCoreContext->GetSetting("UPnP/WMPSource") != "1") 
++        gCoreContext->GetSetting("UPnP/WMPSource") != "1")
+     {
+         pRequest->m_sObjectId = "Videos/0";
+ 
+@@ -197,8 +197,8 @@
+     // ----------------------------------------------------------------------
+     // WMP11 compatibility code
+     // ----------------------------------------------------------------------
+-    if (pRequest->m_eClient == CDS_ClientWMP && 
+-        pRequest->m_nClientVersion < 12.0 && 
++    if (pRequest->m_eClient == CDS_ClientWMP &&
++        pRequest->m_nClientVersion < 12.0 &&
+         pRequest->m_sContainerID == "13" &&
+         gCoreContext->GetSetting("UPnP/WMPSource") != "1")
+     {
+@@ -229,9 +229,9 @@
+     // XBox 360 compatibility code
+     // ----------------------------------------------------------------------
+ 
+-    if (pRequest->m_eClient == CDS_ClientXBox && 
++    if (pRequest->m_eClient == CDS_ClientXBox &&
+         pRequest->m_sContainerID == "15" &&
+-        gCoreContext->GetSetting("UPnP/WMPSource") !=  "1") 
++        gCoreContext->GetSetting("UPnP/WMPSource") !=  "1")
+     {
+         pRequest->m_sObjectId = "Videos/0";
+ 
+@@ -241,7 +241,7 @@
+     }
+ 
+ 
+-    if ((pRequest->m_sObjectId.isEmpty()) && 
++    if ((pRequest->m_sObjectId.isEmpty()) &&
+         (!pRequest->m_sContainerID.isEmpty()))
+         pRequest->m_sObjectId = pRequest->m_sContainerID;
+ 
+@@ -257,7 +257,7 @@
+     //
+     // ----------------------------------------------------------------------
+ 
+-    if ( bOurs && pRequest->m_eClient == CDS_ClientWMP && 
++    if ( bOurs && pRequest->m_eClient == CDS_ClientWMP &&
+          pRequest->m_nClientVersion < 12.0)
+     {
+         // GetBoolSetting()?
+@@ -265,7 +265,7 @@
+         {
+             pRequest->m_sObjectId = "RecTv/0";
+             // -=>TODO: Not sure why this was added
+-            pRequest->m_sParentId = '8';        
++            pRequest->m_sParentId = '8';
+         }
+         else
+             bOurs = false;
+@@ -278,7 +278,7 @@
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-void UPnpCDSTv::AddItem( const UPnpCDSRequest    *pRequest, 
++void UPnpCDSTv::AddItem( const UPnpCDSRequest    *pRequest,
+                          const QString           &sObjectId,
+                          UPnpCDSExtensionResults *pResults,
+                          bool                     bAddRef,
+@@ -302,6 +302,8 @@
+         MythDate::as_utc(query.value(12).toDateTime());
+     QString        sStorageGrp  = query.value(13).toString();
+ 
++    QString        sInetRef     = query.value(14).toString();
++
+     // ----------------------------------------------------------------------
+     // Cache Host ip Address & Port
+     // ----------------------------------------------------------------------
+@@ -419,7 +421,7 @@
+     uint uiStart = dtProgStart.toTime_t();
+     uint uiEnd   = dtProgEnd.toTime_t();
+     uint uiDur   = uiEnd - uiStart;
+-    
++
+     MSqlQuery query2(MSqlQuery::InitCon());
+     query2.prepare( "SELECT data FROM recordedmarkup WHERE chanid=:CHANID AND "
+                     "starttime=:STARTTIME AND type = 33" );
+@@ -457,22 +459,85 @@
+ */
+ 
+     // ----------------------------------------------------------------------
+-    // Add Preview URI as albumArt
++    // Add Preview URI as <res>
++    // MUST be _TN and 160px
+     // ----------------------------------------------------------------------
+ 
+     sURI = QString( "%1GetPreviewImage%2%3").arg( sURIBase   )
+                                             .arg( sURIParams )
+-                                            .arg( "&amp;Width=160" ); 
++                                            .arg( "&amp;Width=160" );
++
++    // TODO: Must be JPG for minimal compliance
++    sProtocol = QString( "http-get:*:image/png:DLNA.ORG_PN=PNG_TN");
++    pItem->AddResource( sProtocol, sURI );
+ 
+-    pItem->SetPropValue( "albumArtURI", sURI );
+-    Property *pProp = pItem->GetProperty("albumArtURI");
+-    if (pProp)
++    // ----------------------------------------------------------------------
++    // Add Artwork URI as albumArt
++    // ----------------------------------------------------------------------
++
++    sURI = QString( "%1GetRecordingArtwork?Type=coverart&amp;Inetref=%3")
++                                              .arg( sURIBase   )
++                                              .arg( sInetRef   );
++
++    QList<Property*> propList = pItem->GetProperties("albumArtURI");
++    if (propList.size() >= 4)
+     {
+-        pProp->AddAttribute("dlna:profileID", "PNG_TN");
+-        pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+-    
++        // Prefer JPEG over PNG here, although PNG is allowed JPEG probably
++        // has wider device support and crucially the filesizes are smaller
++        // which speeds up loading times over the network
++
++        // We MUST include the thumbnail size, but since some clients may use the
++        // first image they see and the thumbnail is tiny, instead return the
++        // medium first. The large could be very large, which is no good if the
++        // client is pulling images for an entire list at once!
++
++        // Medium
++        Property *pProp = propList.at(0);
++        if (pProp)
++        {
++            // Must be no more than 1024x768
++            pProp->m_sValue = sURI;
++            pProp->m_sValue.append("&amp;Width=1024&amp;Height=768");
++            pProp->AddAttribute("dlna:profileID", "JPG_MED");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
++
++        // Thumbnail
++        pProp = propList.at(1);
++        if (pProp)
++        {
++            // At least one albumArtURI must be a ThumbNail (TN) no larger
++            // than 160x160, and it must also be a jpeg
++            pProp->m_sValue = sURI;
++            pProp->m_sValue.append("&amp;Width=160&amp;Height=160");
++            pProp->AddAttribute("dlna:profileID", "JPG_TN");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
++
++        // Medium
++        pProp = propList.at(2);
++        if (pProp)
++        {
++            // Must be no more than 1024x768
++            pProp->m_sValue = sURI;
++            pProp->m_sValue.append("&amp;Width=1024&amp;Height=768");
++            pProp->AddAttribute("dlna:profileID", "JPG_MED");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
++
++        // Large
++        pProp = propList.at(3);
++        if (pProp)
++        {
++            // Must be no more than 4096x4096 - for our purposes, just return
++            // a fullsize image
++            pProp->m_sValue = sURI;
++            pProp->AddAttribute("dlna:profileID", "JPG_LRG");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
+     }
+ 
++
+ }
+ 
+ // vim:ts=4:sw=4:ai:et:si:sts=4
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/programs/mythbackend/upnpcdstv.h mythtv-0.27-20140519-gf4825ca-new/mythtv/programs/mythbackend/upnpcdstv.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/programs/mythbackend/upnpcdstv.h	2014-05-19 15:29:29.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/programs/mythbackend/upnpcdstv.h	2014-07-04 11:04:42.000000000 +0200
+@@ -25,7 +25,7 @@
+         static int             g_nRootCount;
+ 
+         QStringMap             m_mapBackendIp;
+-        QStringMap             m_mapBackendPort;
++        QMap<QString, int>     m_mapBackendPort;
+ 
+     protected:
+ 
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/programs/mythbackend/upnpcdsvideo.cpp mythtv-0.27-20140519-gf4825ca-new/mythtv/programs/mythbackend/upnpcdsvideo.cpp
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/programs/mythbackend/upnpcdsvideo.cpp	2014-07-04 17:44:46.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/programs/mythbackend/upnpcdsvideo.cpp	2014-07-03 12:34:36.000000000 +0200
+@@ -1,7 +1,7 @@
+ // Program Name: upnpcdsvideo.cpp
+-//                                                                            
++//
+ // Purpose - UPnP Content Directory Extension for MythVideo Videos
+-//                                                                            
++//
+ //////////////////////////////////////////////////////////////////////////////
+ 
+ // POSIX headers
+@@ -21,9 +21,9 @@
+ #define LOC_WARN QString("UPnpCDSVideo, Warning: ")
+ #define LOC_ERR QString("UPnpCDSVideo, Error: ")
+ 
+-UPnpCDSRootInfo UPnpCDSVideo::g_RootNodes[] = 
++UPnpCDSRootInfo UPnpCDSVideo::g_RootNodes[] =
+ {
+-    {   "All Videos", 
++    {   "All Videos",
+         "*",
+         "SELECT 0 as key, "
+           "title as name, "
+@@ -77,7 +77,7 @@
+ QString UPnpCDSVideo::GetItemListSQL( QString sColumn )
+ {
+     return "SELECT intid, title, subtitle, filename, director, plot, "
+-            "rating, year, userrating, length, " 
++            "rating, year, userrating, length, "
+             "season, episode, coverfile, insertdate, host FROM videometadata";
+ 
+ }
+@@ -112,9 +112,9 @@
+     // Xbox360 compatibility code.
+     // ----------------------------------------------------------------------
+ 
+-    if (pRequest->m_eClient == CDS_ClientXBox && 
++    if (pRequest->m_eClient == CDS_ClientXBox &&
+         pRequest->m_sContainerID == "15" &&
+-        gCoreContext->GetSetting("UPnP/WMPSource") == "1") 
++        gCoreContext->GetSetting("UPnP/WMPSource") == "1")
+     {
+         pRequest->m_sObjectId = "Videos/0";
+ 
+@@ -123,7 +123,7 @@
+         return true;
+     }
+ 
+-    if ((pRequest->m_sObjectId.isEmpty()) && 
++    if ((pRequest->m_sObjectId.isEmpty()) &&
+         (!pRequest->m_sContainerID.isEmpty()))
+         pRequest->m_sObjectId = pRequest->m_sContainerID;
+ 
+@@ -135,7 +135,7 @@
+     //
+     // ----------------------------------------------------------------------
+ 
+-    if (pRequest->m_eClient == CDS_ClientWMP && 
++    if (pRequest->m_eClient == CDS_ClientWMP &&
+         pRequest->m_sContainerID == "13" &&
+         pRequest->m_nClientVersion < 12.0 &&
+         gCoreContext->GetSetting("UPnP/WMPSource") == "1")
+@@ -168,9 +168,9 @@
+     // ----------------------------------------------------------------------
+ 
+ 
+-    if (pRequest->m_eClient == CDS_ClientXBox && 
++    if (pRequest->m_eClient == CDS_ClientXBox &&
+         pRequest->m_sContainerID == "15" &&
+-        gCoreContext->GetSetting("UPnP/WMPSource") == "1") 
++        gCoreContext->GetSetting("UPnP/WMPSource") == "1")
+     {
+         pRequest->m_sObjectId = "Videos/0";
+ 
+@@ -179,7 +179,7 @@
+         return true;
+     }
+ 
+-    if ((pRequest->m_sObjectId.isEmpty()) && 
++    if ((pRequest->m_sObjectId.isEmpty()) &&
+         (!pRequest->m_sContainerID.isEmpty()))
+         pRequest->m_sObjectId = pRequest->m_sContainerID;
+ 
+@@ -191,14 +191,14 @@
+     // WMP11 compatibility code
+     // ----------------------------------------------------------------------
+ 
+-    if ( bOurs && pRequest->m_eClient == CDS_ClientWMP && 
++    if ( bOurs && pRequest->m_eClient == CDS_ClientWMP &&
+          pRequest->m_nClientVersion < 12.0 )
+     {
+         if ( gCoreContext->GetSetting("UPnP/WMPSource") == "1")
+         {
+             pRequest->m_sObjectId = "Videos/0";
+             // -=>TODO: Not sure why this was added.
+-            pRequest->m_sParentId = "8"; 
++            pRequest->m_sParentId = "8";
+         }
+         else
+             bOurs = false;
+@@ -232,7 +232,7 @@
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-void UPnpCDSVideo::AddItem( const UPnpCDSRequest    *pRequest, 
++void UPnpCDSVideo::AddItem( const UPnpCDSRequest    *pRequest,
+                             const QString           &sObjectId,
+                             UPnpCDSExtensionResults *pResults,
+                             bool                     bAddRef,
+@@ -268,12 +268,12 @@
+     {
+         if (sHostName.isEmpty())
+         {
+-            m_mapBackendIp[sHostName] = 
++            m_mapBackendIp[sHostName] =
+                 gCoreContext->GetBackendServerIP4();
+         }
+         else
+         {
+-            m_mapBackendIp[sHostName] = 
++            m_mapBackendIp[sHostName] =
+                 gCoreContext->GetBackendServerIP4(sHostName);
+         }
+     }
+@@ -282,17 +282,17 @@
+     {
+         if (sHostName.isEmpty())
+         {
+-            m_mapBackendPort[sHostName] = 
++            m_mapBackendPort[sHostName] =
+                 gCoreContext->GetBackendStatusPort();
+         }
+         else
+         {
+-            m_mapBackendPort[sHostName] = 
++            m_mapBackendPort[sHostName] =
+                 gCoreContext->GetBackendStatusPort(sHostName);
+         }
+     }
+-    
+-    
++
++
+     // ----------------------------------------------------------------------
+     // Build Support Strings
+     // ----------------------------------------------------------------------
+@@ -304,7 +304,7 @@
+     }
+ 
+     QString sURIBase   = QString( "http://%1:%2/Content/" )
+-                            .arg( m_mapBackendIp  [sHostName] ) 
++                            .arg( m_mapBackendIp  [sHostName] )
+                             .arg( m_mapBackendPort[sHostName] );
+ 
+     QString sURIParams = QString( "?Id=%1" ).arg( nVidID );
+@@ -312,10 +312,6 @@
+ 
+     QString sParentID = "Videos/0";
+ 
+-    QString sAlbumArtURI= QString( "%1GetVideoArt%2")
+-                        .arg( sURIBase   )
+-                        .arg( sURIParams );
+-
+     CDSObject *pItem = CDSObject::CreateVideoItem( sId, sName, sParentID );
+ 
+     pItem->m_bRestricted  = false;
+@@ -339,8 +335,68 @@
+     //pItem->SetPropValue( "relation"       , );
+     //pItem->SetPropValue( "region"         , );
+ 
+-    if ((sCoverArt != "") && (sCoverArt != "No Cover"))
+-        pItem->SetPropValue( "albumArtURI"    , sAlbumArtURI);
++    QString sArtURI= QString( "%1GetVideoArtwork%2")
++                        .arg( sURIBase   )
++                        .arg( sURIParams );
++
++    QList<Property*> propList = pItem->GetProperties("albumArtURI");
++    if ((!sCoverArt.isEmpty()) && (sCoverArt != "No Cover")
++                               && propList.size() >= 4)
++    {
++        // Prefer JPEG over PNG here, although PNG is allowed JPEG probably
++        // has wider device support and crucially the filesizes are smaller
++        // which speeds up loading times over the network
++
++        // We MUST include the thumbnail size, but since some clients may use the
++        // first image they see and the thumbnail is tiny, instead return the
++        // medium first. The large could be very large, which is no good if the
++        // client is pulling images for an entire list at once!
++
++        // Medium
++        Property *pProp = propList.at(0);
++        if (pProp)
++        {
++            // Must be no more than 1024x768
++            pProp->m_sValue = sArtURI;
++            pProp->m_sValue.append("&amp;Width=1024&amp;Height=768");
++            pProp->AddAttribute("dlna:profileID", "JPG_MED");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
++
++        // Thumbnail
++        pProp = propList.at(1);
++        if (pProp)
++        {
++            // At least one albumArtURI must be a ThumbNail (TN) no larger
++            // than 160x160, and it must also be a jpeg
++            pProp->m_sValue = sArtURI;
++            pProp->m_sValue.append("&amp;Width=160&amp;Height=160");
++            pProp->AddAttribute("dlna:profileID", "JPG_TN");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
++
++        // Medium
++        pProp = propList.at(2);
++        if (pProp)
++        {
++            // Must be no more than 1024x768
++            pProp->m_sValue = sArtURI;
++            pProp->m_sValue.append("&amp;Width=1024&amp;Height=768");
++            pProp->AddAttribute("dlna:profileID", "JPG_MED");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
++
++        // Large
++        pProp = propList.at(3);
++        if (pProp)
++        {
++            // Must be no more than 4096x4096 - for our purposes, just return
++            // a fullsize image
++            pProp->m_sValue = sArtURI;
++            pProp->AddAttribute("dlna:profileID", "JPG_LRG");
++            pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++        }
++    }
+ 
+     if ( bAddRef )
+     {
+@@ -370,7 +426,7 @@
+     // If we are dealing with a Sony Blu-ray player then we fake the
+     // MIME type to force the video to appear
+     if ( pRequest->m_eClient == CDS_ClientSonyDB )
+-    {   
++    {
+         sMimeType = "video/avi";
+     }
+ 
+diff -Naur mythtv-0.27-20140519-gf4825ca-old/mythtv/programs/mythbackend/upnpcdsvideo.h mythtv-0.27-20140519-gf4825ca-new/mythtv/programs/mythbackend/upnpcdsvideo.h
+--- mythtv-0.27-20140519-gf4825ca-old/mythtv/programs/mythbackend/upnpcdsvideo.h	2014-05-19 15:29:29.000000000 +0200
++++ mythtv-0.27-20140519-gf4825ca-new/mythtv/programs/mythbackend/upnpcdsvideo.h	2014-07-04 11:04:42.000000000 +0200
+@@ -28,7 +28,7 @@
+         static int             g_nRootCount;
+ 
+         QStringMap             m_mapBackendIp;
+-        QStringMap             m_mapBackendPort;
++        QMap<QString, int>     m_mapBackendPort;
+ 
+     protected:
+ 

@@ -1,0 +1,927 @@
+From 700e5be1a09cae23a161ccd7d655c0672a46fa03 Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Tue, 3 Jun 2014 17:59:34 +1000
+Subject: [PATCH] Fix connection to Master Backend where the master IP address
+ is an IPv6 address
+
+Similar problems as fixed in 5594a6f32e73b0519b556b63983786a01a0f2228, if MasterServerIP is an IPv6 address or contains a scope Id, it will prevent frontend and slave backend to connect.
+
+Several fixes:
+* the master backend detects that it is the master by comparing its IP address with the value stored in the MasterServerIP setting. The comparison is made using strings.
+So if MasterServerIP is set to something like 192.168.000.001 it will fail (as we would be comparing with 192.168.0.1). IPv6 can also contains upper or lower case characters.
+* In some cases, like gCoreContext control server socket, or connection between slave backends and master backend  would only ever used the IPv4 address. Use IPV6 if available
+
+Add convenience methods:
+    QString GetBackendServerIP4(void);
+    QString GetBackendServerIP4(const QString &host);
+    QString GetBackendServerIP6(void);
+    QString GetBackendServerIP6(const QString &host);
+    QString GetMasterServerIP(void);
+    int GetMasterServerPort(void);
+    int GetMasterServerStatusPort(void);
+    int GetBackendServerPort(void);
+    int GetBackendServerPort(const QString &host);
+    int GetBackendStatusPort(void);
+    int GetBackendStatusPort(const QString &host);
+
+And use them thorough the code, they will ensure the value read is always correct and usable
+
+Ref #10921
+
+(cherry picked from commit 520ea17ef86e5b85006d58d95a777d0b15056045)
+
+Conflicts:
+	mythtv/programs/mythbackend/mainserver.cpp
+---
+ mythplugins/mytharchive/mytharchivehelper/main.cpp |    4 +-
+ .../mythnetvision/mythnetvision/netcommon.cpp      |   22 +--
+ mythtv/libs/libmyth/programinfo.cpp                |    8 +-
+ mythtv/libs/libmyth/remoteutil.cpp                 |    3 +-
+ mythtv/libs/libmythbase/mythcorecontext.cpp        |  191 ++++++++++++++++----
+ mythtv/libs/libmythbase/mythcorecontext.h          |   11 ++
+ mythtv/libs/libmythbase/remotefile.cpp             |    6 +-
+ .../libs/libmythmetadata/metadataimagedownload.cpp |    5 +-
+ mythtv/libs/libmythmetadata/videoutils.h           |    3 +-
+ .../requesthandler/outboundhandler.cpp             |    4 +-
+ mythtv/libs/libmythtv/HLS/httplivestream.cpp       |    4 +-
+ mythtv/libs/libmythtv/metadataimagehelper.h        |    3 +-
+ mythtv/libs/libmythtv/tv_rec.cpp                   |    2 +-
+ mythtv/programs/mythbackend/httpstatus.cpp         |    4 +-
+ mythtv/programs/mythbackend/main_helpers.cpp       |    9 +-
+ mythtv/programs/mythbackend/mainserver.cpp         |   60 +++---
+ mythtv/programs/mythbackend/upnpcdsmusic.cpp       |    4 +-
+ mythtv/programs/mythbackend/upnpcdstv.cpp          |    4 +-
+ mythtv/programs/mythbackend/upnpcdsvideo.cpp       |    8 +-
+ mythtv/programs/mythfrontend/mediarenderer.cpp     |    5 +-
+ mythtv/programs/mythfrontend/themechooser.cpp      |    8 +-
+ mythtv/programs/mythfrontend/upnpscanner.cpp       |   10 +-
+ mythtv/programs/mythmediaserver/main.cpp           |    5 +-
+ mythtv/programs/mythtranscode/main.cpp             |    9 +-
+ 24 files changed, 251 insertions(+), 141 deletions(-)
+
+diff --git a/mythplugins/mytharchive/mytharchivehelper/main.cpp b/mythplugins/mytharchive/mytharchivehelper/main.cpp
+index c7fb239..3684cca 100644
+--- a/mythplugins/mytharchive/mytharchivehelper/main.cpp
++++ b/mythplugins/mytharchive/mytharchivehelper/main.cpp
+@@ -1001,8 +1001,8 @@ int NativeArchive::importRecording(const QDomElement &itemNode,
+         }
+     }
+ 
+-    QString destFile = gCoreContext->GenMythURL(gCoreContext->GetSetting("MasterServerIP"),
+-                                                gCoreContext->GetSetting("MasterServerPort"),
++    QString destFile = gCoreContext->GenMythURL(gCoreContext->GetMasterServerIP(),
++                                                gCoreContext->GetMasterServerPort(),
+                                                 basename , "Default");
+ 
+     // copy file to recording directory
+diff --git a/mythplugins/mythnetvision/mythnetvision/netcommon.cpp b/mythplugins/mythnetvision/mythnetvision/netcommon.cpp
+index 3d82fae..1397347 100644
+--- a/mythplugins/mythnetvision/mythnetvision/netcommon.cpp
++++ b/mythplugins/mythnetvision/mythnetvision/netcommon.cpp
+@@ -41,26 +41,8 @@ QString GetThumbnailFilename(QString url, QString title)
+ 
+ QString GetMythXMLURL(void)
+ {
+-    // Get MasterServerIP
+-    //   The data for MasterServerIP setting is the same as the data for
+-    //   BackendServerIP setting
+-    QString MasterIP = gCoreContext->GetSetting("MasterServerIP");
+-
+-    MSqlQuery query(MSqlQuery::InitCon());
+-    // Get hostname of Master Server by comparing BackendServerIP to
+-    // the just-retrieved MasterServerIP
+-    query.prepare("SELECT hostname FROM settings "
+-                  " WHERE value = 'BackendServerIP'"
+-                  "   AND data = :IPADDRESS");
+-    query.bindValue(":IPADDRESS", MasterIP);
+-    if (!query.exec() || !query.next())
+-        MythDB::DBError("Find Master Server Hostname", query);
+-
+-    QString MasterHost = query.value(0).toString();
+-
+-    // Use hostname to get BackendStatusPort
+-    int MasterStatusPort = gCoreContext->GetNumSettingOnHost("BackendStatusPort",
+-                                                          MasterHost);
++    QString MasterIP = gCoreContext->GetMasterServerIP();
++    int MasterStatusPort = gCoreContext->GetMasterServerStatusPort();
+ 
+     return QString("http://%1:%2/InternetContent/").arg(MasterIP).arg(MasterStatusPort);
+ }
+diff --git a/mythtv/libs/libmyth/programinfo.cpp b/mythtv/libs/libmyth/programinfo.cpp
+index 7436f70..3107324 100644
+--- a/mythtv/libs/libmyth/programinfo.cpp
++++ b/mythtv/libs/libmyth/programinfo.cpp
+@@ -2368,18 +2368,18 @@ QString ProgramInfo::GetPlaybackURL(
+         (gCoreContext->GetNumSetting("MasterBackendOverride", 0)) &&
+         (RemoteCheckFile(this, false)))
+     {
+-        tmpURL = gCoreContext->GenMythURL(gCoreContext->GetSetting("MasterServerIP"),
+-                                          gCoreContext->GetSetting("MasterServerPort").toInt(),
++        tmpURL = gCoreContext->GenMythURL(gCoreContext->GetMasterServerIP(),
++                                          gCoreContext->GetMasterServerPort(),
+                                           basename);
+ 
+         LOG(VB_FILE, LOG_INFO, LOC +
+             QString("GetPlaybackURL: Found @ '%1'").arg(tmpURL));
+         return tmpURL;
+-        }
++    }
+ 
+     // Fallback to streaming from the backend the recording was created on
+     tmpURL = gCoreContext->GenMythURL(gCoreContext->GetBackendServerIP(hostname),
+-                                      gCoreContext->GetSettingOnHost("BackendServerPort", hostname).toInt(),
++                                      gCoreContext->GetBackendServerPort(hostname),
+                                       basename);
+ 
+     LOG(VB_FILE, LOG_INFO, LOC +
+diff --git a/mythtv/libs/libmyth/remoteutil.cpp b/mythtv/libs/libmyth/remoteutil.cpp
+index 731ace0..fee0429 100644
+--- a/mythtv/libs/libmyth/remoteutil.cpp
++++ b/mythtv/libs/libmyth/remoteutil.cpp
+@@ -458,8 +458,7 @@ bool RemoteGetFileList(QString host, QString path, QStringList* list,
+         QString ann = QString("ANN Playback %1 0")
+                         .arg(gCoreContext->GetHostName());
+         QString addr = gCoreContext->GetBackendServerIP(host);
+-        int port = gCoreContext->GetNumSettingOnHost("BackendServerPort",
+-                                                     host, 6543);
++        int port = gCoreContext->GetBackendServerPort(host);
+         bool mismatch = false;
+ 
+         MythSocket *sock = gCoreContext->ConnectCommandSocket(
+diff --git a/mythtv/libs/libmythbase/mythcorecontext.cpp b/mythtv/libs/libmythbase/mythcorecontext.cpp
+index 176052d..545ab43 100644
+--- a/mythtv/libs/libmythbase/mythcorecontext.cpp
++++ b/mythtv/libs/libmythbase/mythcorecontext.cpp
+@@ -335,8 +335,8 @@ bool MythCoreContext::ConnectToMasterServer(bool blockingClient,
+         return false;
+     }
+ 
+-    QString server = GetSetting("MasterServerIP", "localhost");
+-    int     port   = GetNumSetting("MasterServerPort", 6543);
++    QString server = GetMasterServerIP();
++    int     port   = GetMasterServerPort();
+     bool    proto_mismatch = false;
+ 
+     if (d->m_serverSock && !d->m_serverSock->IsConnected())
+@@ -605,7 +605,7 @@ bool MythCoreContext::IsMasterHost(void)
+ 
+ bool MythCoreContext::IsMasterHost(const QString &host)
+ {
+-    return IsThisHost(GetSetting("MasterServerIP"), host);
++    return IsThisHost(GetMasterServerIP(), host);
+ }
+ 
+ bool MythCoreContext::IsMasterBackend(void)
+@@ -636,10 +636,13 @@ bool MythCoreContext::IsThisHost(const QString &addr)
+ 
+ bool MythCoreContext::IsThisHost(const QString &addr, const QString &host)
+ {
+-    QString thisip = GetSettingOnHost("BackendServerIP", host);
+-    QString thisip6 = GetSettingOnHost("BackendServerIP6", host);
++    QHostAddress addrfix(addr);
++    addrfix.setScopeId(QString());
++    QString addrstr = addrfix.toString();
++    QString thisip  = GetBackendServerIP4(host);
++    QString thisip6 = GetBackendServerIP6(host);
+ 
+-    return ((addr == thisip) || (addr == thisip6));
++    return ((addrstr == thisip) || (addrstr == thisip6));
+ }
+ 
+ bool MythCoreContext::IsFrontendOnly(void)
+@@ -710,10 +713,10 @@ QString MythCoreContext::GenMythURL(QString host, int port, QString path, QStrin
+ QString MythCoreContext::GetMasterHostPrefix(const QString &storageGroup,
+                                              const QString &path)
+ {
+-    return GenMythURL(GetSetting("MasterServerIP"),
+-                        GetNumSetting("MasterServerPort", 6543),
+-                        path,
+-                        storageGroup);
++    return GenMythURL(GetMasterServerIP(),
++                      GetMasterServerPort(),
++                      path,
++                      storageGroup);
+ }
+ 
+ QString MythCoreContext::GetMasterHostName(void)
+@@ -849,30 +852,64 @@ double MythCoreContext::GetFloatSettingOnHost(const QString &key,
+     return d->m_database->GetFloatSettingOnHost(key, host, defaultval);
+ }
+ 
+-#if 0
++/**
++ * \fn QString GetMasterServerIP(void)
++ * Returns the Master Backend IP address
++ * If the address is an IPv6 address, the scope Id is removed.
++ * If no master server address has been defined in the database, return localhost
++ */
+ QString MythCoreContext::GetMasterServerIP(void)
+ {
+-    QString saddr = GetSetting("MasterServerIP");
+-    QHostAddress addr(saddr);
++    QHostAddress addr(GetSetting("MasterServerIP", "localhost"));
++    addr.setScopeId(QString());
+ 
+-    if (!d->m_IPv6.empty() &&
+-            (addr.protocol() == QAbstractSocket::IPv6Protocol))
+-        // we have IPv6 addresses, assume we can connect to them
+-        return saddr;
+-    else if (!d->m_IPv4.empty() &&
+-            (addr.protocol() == QAbstractSocket::IPv4Protocol))
+-        // we have IPv4 addresses, assume we can connect to them
+-        return saddr;
+-    else
+-        return GetBackendServerIP(GetMasterHostName());
++    return addr.toString();
+ }
+-#endif
+ 
++/**
++ * \fn int GetMasterServerPort(void)
++ * Returns the Master Backend control port
++ * If no master server port has been defined in the database, return the default
++ * 6543
++ */
++int MythCoreContext::GetMasterServerPort(void)
++{
++    return GetNumSetting("MasterServerPort", 6543);
++}
++
++/**
++ * \fn int GetMasterServerStatusPort(void)
++ * Returns the Master Backend status port
++ * If no master server status port has been defined in the database,
++ * return the default 65434
++ */
++int MythCoreContext::GetMasterServerStatusPort(void)
++{
++    QString masterhost = GetMasterHostName();
++
++    return GetBackendStatusPort(masterhost);
++}
++
++/**
++ * \fn QString GetBackendServerIP(void)
++ * Returns the IP address of the locally defined backend IP.
++ * See GetBackendServerIP(host)
++ */
+ QString MythCoreContext::GetBackendServerIP(void)
+ {
+     return GetBackendServerIP(d->m_localHostname);
+ }
+ 
++/**
++ * \fn QString GetBackendServerIP(const QString &host)
++ * Returns the IP address of backend "host"
++ * If an IPv6 address has been defined, will use it whenever possible, unless
++ * the IPv6 address is a localhost address, in which case the IPv4 address will
++ * be used.
++ * Will return an empty string if neither an IPv4 nor an IPv6 address has been
++ * defined.
++ * The address returned is free of scope Id if IPv6
++ */
+ QString MythCoreContext::GetBackendServerIP(const QString &host)
+ {
+     QString addr4, addr6;
+@@ -880,22 +917,18 @@ QString MythCoreContext::GetBackendServerIP(const QString &host)
+     if (!ServerPool::DefaultListenIPv6().isEmpty())
+     {
+         // we have IPv6 addresses, assume we can connect to them
+-        addr6 = GetSettingOnHost("BackendServerIP6", host, "");
+-        QHostAddress addr(addr6);
+-        // remove scope Id
+-        addr.setScopeId(QString());
+-        addr6 = addr.toString();
++        addr6 = GetBackendServerIP6(host);
+     }
+ #endif
+     if (!ServerPool::DefaultListenIPv4().isEmpty())
+-        addr4 = GetSettingOnHost("BackendServerIP", host, "");
++        addr4 = GetBackendServerIP4(host);
+ 
+     if (addr6.isEmpty())
+     {
+         if (addr4.isEmpty())
+         {
+             LOG(VB_GENERAL, LOG_ERR, "No address defined for host: "+host);
+-            return "";
++            return QString();
+         }
+ 
+         // IPv6 is empty, so return this regardless
+@@ -911,6 +944,102 @@ QString MythCoreContext::GetBackendServerIP(const QString &host)
+ }
+ 
+ /**
++ * \fn QStringGetBackendServerIP4(void)
++ * Returns the IPv4 address defined for the current host
++ * see GetBackendServerIP4(host)
++ */
++QString MythCoreContext::GetBackendServerIP4(void)
++{
++    return GetBackendServerIP4(d->m_localHostname);
++}
++
++/**
++ * \fn QString GetBackendServerIP4(const QString &host)
++ * Returns the IPv4 address defined for the backend "host".
++ * returns an empty string if the defined IP is invalid
++ */
++QString MythCoreContext::GetBackendServerIP4(const QString &host)
++{
++    QHostAddress addr(GetSettingOnHost("BackendServerIP", host, ""));
++
++    if (!addr.isNull())
++    {
++        return addr.toString();
++    }
++    else
++    {
++        return QString();
++    }
++}
++
++/**
++ * \fn QString GetBackendServerIP6(void)
++ * Returns the IPv6 address defined for the current host
++ * see GetBackendServerIP6(host)
++ */
++QString MythCoreContext::GetBackendServerIP6(void)
++{
++    return GetBackendServerIP4(d->m_localHostname);
++}
++
++/**
++ * \fn QString GetBackendServerIP6(const QString &host)
++ * Returns the IPv6 address defined for the backend "host".
++ * returns an empty string if the defined IP is invalid.
++ * The IP address returned doesn't contain a scope Id
++ */
++QString MythCoreContext::GetBackendServerIP6(const QString &host)
++{
++    QHostAddress addr(GetSettingOnHost("BackendServerIP6", host, ""));
++    if (!addr.isNull())
++    {
++        // remove scope Id
++        addr.setScopeId(QString());
++        return addr.toString();
++    }
++    else
++    {
++        return QString();
++    }
++}
++
++/**
++ * \fn int GetBackendServerPort(void)
++ * Returns the locally defined backend control port
++ */
++int MythCoreContext::GetBackendServerPort(void)
++{
++    return GetBackendServerPort(d->m_localHostname);
++}
++
++/**
++ * \fn vint GetBackendServerPort(const QString &host)
++ * Returns the backend "hosts"'s control port
++ */
++int MythCoreContext::GetBackendServerPort(const QString &host)
++{
++    return GetNumSettingOnHost("BackendServerPort", host, 6543);
++}
++
++/**
++ * \fn int GetBackendStatusPort(void)
++ * Returns the locally defined backend status port
++ */
++int MythCoreContext::GetBackendStatusPort(void)
++{
++    return GetBackendServerPort(d->m_localHostname);
++}
++
++/**
++ * \fn int GetBackendStatusPort(const QString &host)
++ * Returns the backend "hosts"'s status port
++ */
++int MythCoreContext::GetBackendStatusPort(const QString &host)
++{
++    return GetNumSettingOnHost("BackendStatusPort", host, 6544);
++}
++
++/**
+  * \fn void GetScopeForAddress(QHostAddress &addr)
+  * Return the cached scope Id for the given address.
+  * If unknown returns false, else returns true and set scope Id to given address
+diff --git a/mythtv/libs/libmythbase/mythcorecontext.h b/mythtv/libs/libmythbase/mythcorecontext.h
+index 2b661e6..a2a93c9 100644
+--- a/mythtv/libs/libmythbase/mythcorecontext.h
++++ b/mythtv/libs/libmythbase/mythcorecontext.h
+@@ -155,6 +155,17 @@ class MBASE_PUBLIC MythCoreContext : public QObject, public MythObservable, publ
+ 
+     QString GetBackendServerIP(void);
+     QString GetBackendServerIP(const QString &host);
++    QString GetBackendServerIP4(void);
++    QString GetBackendServerIP4(const QString &host);
++    QString GetBackendServerIP6(void);
++    QString GetBackendServerIP6(const QString &host);
++    QString GetMasterServerIP(void);
++    int GetMasterServerPort(void);
++    int GetMasterServerStatusPort(void);
++    int GetBackendServerPort(void);
++    int GetBackendServerPort(const QString &host);
++    int GetBackendStatusPort(void);
++    int GetBackendStatusPort(const QString &host);
+ 
+     bool GetScopeForAddress(QHostAddress &addr) const;
+     void SetScopeForAddress(const QHostAddress &addr);
+diff --git a/mythtv/libs/libmythbase/remotefile.cpp b/mythtv/libs/libmythbase/remotefile.cpp
+index bcfbe43..44d55c7 100644
+--- a/mythtv/libs/libmythbase/remotefile.cpp
++++ b/mythtv/libs/libmythbase/remotefile.cpp
+@@ -121,11 +121,7 @@ MythSocket *RemoteFile::openSocket(bool control)
+ 
+     if (port <= 0)
+     {
+-        port = GetMythDB()->GetSettingOnHost("BackendServerPort", host).toInt();
+-
+-        // if we still have no port use the default
+-        if (port <= 0)
+-            port = 6543;
++        port = gCoreContext->GetBackendServerPort(host);
+     }
+ 
+     if (!lsock->ConnectToHost(host, port))
+diff --git a/mythtv/libs/libmythmetadata/metadataimagedownload.cpp b/mythtv/libs/libmythmetadata/metadataimagedownload.cpp
+index ad447f4..fb31810 100644
+--- a/mythtv/libs/libmythmetadata/metadataimagedownload.cpp
++++ b/mythtv/libs/libmythmetadata/metadataimagedownload.cpp
+@@ -473,9 +473,8 @@ QString getLocalWritePath(MetadataType metadatatype, VideoArtworkType type)
+ QString getStorageGroupURL(VideoArtworkType type, QString host)
+ {
+     QString sgroup;
+-    QString ip = gCoreContext->GetSettingOnHost("BackendServerIP", host);
+-    uint port = gCoreContext->GetSettingOnHost("BackendServerPort",
+-                                               host).toUInt();
++    QString ip = gCoreContext->GetBackendServerIP(host);
++    uint port = gCoreContext->GetBackendServerPort(host);
+ 
+     if (type == kArtworkCoverart)
+         sgroup = "Coverart";
+diff --git a/mythtv/libs/libmythmetadata/videoutils.h b/mythtv/libs/libmythmetadata/videoutils.h
+index 4fd0c25..03f3f15 100644
+--- a/mythtv/libs/libmythmetadata/videoutils.h
++++ b/mythtv/libs/libmythmetadata/videoutils.h
+@@ -66,8 +66,7 @@ inline QString generate_file_url(
+     const QString &storage_group, const QString &host, const QString &path)
+ {
+     QString ip = gCoreContext->GetBackendServerIP(host);
+-    uint port = gCoreContext->GetSettingOnHost("BackendServerPort",
+-                                               host).toUInt();
++    uint port = gCoreContext->GetBackendServerPort(host);
+ 
+     return gCoreContext->GenMythURL(ip,port,path,
+                                     StorageGroup::GetGroupToUse(host, storage_group));
+diff --git a/mythtv/libs/libmythprotoserver/requesthandler/outboundhandler.cpp b/mythtv/libs/libmythprotoserver/requesthandler/outboundhandler.cpp
+index aa1be93..392437b 100644
+--- a/mythtv/libs/libmythprotoserver/requesthandler/outboundhandler.cpp
++++ b/mythtv/libs/libmythprotoserver/requesthandler/outboundhandler.cpp
+@@ -33,9 +33,9 @@ bool OutboundRequestHandler::DoConnectToMaster(void)
+ 
+     m_socket = new MythSocket(-1, m_parent);
+ 
+-    QString server   = gCoreContext->GetSetting("MasterServerIP", "localhost");
++    QString server   = gCoreContext->GetMasterServerIP();
+     QString hostname = gCoreContext->GetMasterHostName();
+-    int port         = gCoreContext->GetNumSetting("MasterServerPort", 6543);
++    int port         = gCoreContext->GetMasterServerPort();
+ 
+     if (!m_socket->ConnectToHost(server, port))
+     {
+diff --git a/mythtv/libs/libmythtv/HLS/httplivestream.cpp b/mythtv/libs/libmythtv/HLS/httplivestream.cpp
+index 3be66cf..e2ca2dc 100644
+--- a/mythtv/libs/libmythtv/HLS/httplivestream.cpp
++++ b/mythtv/libs/libmythtv/HLS/httplivestream.cpp
+@@ -719,8 +719,8 @@ void HTTPLiveStream::SetOutputVars(void)
+ 
+     m_httpPrefix = gCoreContext->GetSetting("HTTPLiveStreamPrefix", QString(
+         "http://%1:%2/StorageGroup/Streaming/")
+-        .arg(gCoreContext->GetSetting("MasterServerIP"))
+-        .arg(gCoreContext->GetSetting("BackendStatusPort")));
++        .arg(gCoreContext->GetMasterServerIP())
++        .arg(gCoreContext->GetMasterServerStatusPort()));
+ 
+     if (!m_httpPrefix.endsWith("/"))
+         m_httpPrefix.append("/");
+diff --git a/mythtv/libs/libmythtv/metadataimagehelper.h b/mythtv/libs/libmythtv/metadataimagehelper.h
+index 3244aa0..017da87 100644
+--- a/mythtv/libs/libmythtv/metadataimagehelper.h
++++ b/mythtv/libs/libmythtv/metadataimagehelper.h
+@@ -49,8 +49,7 @@ inline QString generate_myth_url(
+     const QString &storage_group, const QString &host, const QString &path)
+ {
+     QString ip = gCoreContext->GetBackendServerIP(host);
+-    uint port = gCoreContext->GetSettingOnHost("BackendServerPort",
+-                                               host).toUInt();
++    uint port = gCoreContext->GetBackendServerPort(host);
+ 
+     return gCoreContext->GenMythURL(ip,port,path,
+                                     StorageGroup::GetGroupToUse(host, storage_group));
+diff --git a/mythtv/libs/libmythtv/tv_rec.cpp b/mythtv/libs/libmythtv/tv_rec.cpp
+index ceb5605..48c886a 100644
+--- a/mythtv/libs/libmythtv/tv_rec.cpp
++++ b/mythtv/libs/libmythtv/tv_rec.cpp
+@@ -2616,7 +2616,7 @@ void TVRec::SpawnLiveTV(LiveTVChain *newchain, bool pip, QString startchan)
+ 
+     QString hostprefix = gCoreContext->GenMythURL(
+                     gCoreContext->GetBackendServerIP(),
+-                    gCoreContext->GetSetting("BackendServerPort").toInt());
++                    gCoreContext->GetBackendServerPort());
+ 
+     tvchain->SetHostPrefix(hostprefix);
+     tvchain->SetCardType(genOpt.cardtype);
+diff --git a/mythtv/programs/mythbackend/httpstatus.cpp b/mythtv/programs/mythbackend/httpstatus.cpp
+index ccb372b..c1d6fb2 100644
+--- a/mythtv/programs/mythbackend/httpstatus.cpp
++++ b/mythtv/programs/mythbackend/httpstatus.cpp
+@@ -330,8 +330,8 @@ void HttpStatus::FillStatusXML( QDomDocument *pDoc )
+     {
+         numbes++;
+         QString masterhost = gCoreContext->GetMasterHostName();
+-        QString masterip   = gCoreContext->GetSetting("MasterServerIP");
+-        QString masterport = gCoreContext->GetSettingOnHost("BackendStatusPort", masterhost, "6544");
++        QString masterip   = gCoreContext->GetMasterServerIP();
++        int masterport = gCoreContext->GetMasterServerStatusPort();
+ 
+         QDomElement mbe = pDoc->createElement("Backend");
+         backends.appendChild(mbe);
+diff --git a/mythtv/programs/mythbackend/main_helpers.cpp b/mythtv/programs/mythbackend/main_helpers.cpp
+index 6419fba..abe2ced 100644
+--- a/mythtv/programs/mythbackend/main_helpers.cpp
++++ b/mythtv/programs/mythbackend/main_helpers.cpp
+@@ -430,8 +430,8 @@ int connect_to_master(void)
+ {
+     MythSocket *tempMonitorConnection = new MythSocket();
+     if (tempMonitorConnection->ConnectToHost(
+-            gCoreContext->GetSetting("MasterServerIP", "127.0.0.1"),
+-            gCoreContext->GetNumSetting("MasterServerPort", 6543)))
++            gCoreContext->GetMasterServerIP(),
++            gCoreContext->GetMasterServerPort()))
+     {
+         if (!gCoreContext->CheckProtoVersion(tempMonitorConnection))
+         {
+@@ -565,9 +565,8 @@ int run_backend(MythBackendCommandLineParser &cmdline)
+             return ret;
+     }
+ 
+-    int     port = gCoreContext->GetNumSetting("BackendServerPort", 6543);
+-    if (gCoreContext->GetSetting("BackendServerIP").isEmpty() &&
+-        gCoreContext->GetSetting("BackendServerIP6").isEmpty())
++    int     port = gCoreContext->GetBackendServerPort();
++    if (gCoreContext->GetBackendServerIP().isEmpty())
+     {
+         cerr << "No setting found for this machine's BackendServerIP.\n"
+              << "Please run setup on this machine and modify the first page\n"
+diff --git a/mythtv/programs/mythbackend/mainserver.cpp b/mythtv/programs/mythbackend/mainserver.cpp
+index 72fa84b..267d089 100644
+--- a/mythtv/programs/mythbackend/mainserver.cpp
++++ b/mythtv/programs/mythbackend/mainserver.cpp
+@@ -37,6 +37,7 @@ using namespace std;
+ #include <QTimer>
+ #include <QNetworkInterface>
+ #include <QNetworkProxy>
++#include <QHostAddress>
+ 
+ #include "previewgeneratorqueue.h"
+ #include "mythmiscutil.h"
+@@ -1778,7 +1779,7 @@ void MainServer::HandleQueryRecordings(QString type, PlaybackSock *pbs)
+     QMap<QString, QString> backendIpMap;
+     QMap<QString, QString> backendPortMap;
+     QString ip   = gCoreContext->GetBackendServerIP();
+-    QString port = gCoreContext->GetSetting("BackendServerPort");
++    int port = gCoreContext->GetBackendServerPort();
+ 
+     ProgramList::iterator it = destination.begin();
+     for (it = destination.begin(); it != destination.end(); ++it)
+@@ -1847,18 +1848,18 @@ void MainServer::HandleQueryRecordings(QString type, PlaybackSock *pbs)
+             }
+             else
+             {
+-                ProgramInfo *p = proginfo;
+-                if (!backendIpMap.contains(p->GetHostname()))
+-                    backendIpMap[p->GetHostname()] =
+-                        gCoreContext->GetSettingOnHost("BackendServerIp",
+-                                                   p->GetHostname());
+-                if (!backendPortMap.contains(p->GetHostname()))
+-                    backendPortMap[p->GetHostname()] =
+-                        gCoreContext->GetSettingOnHost("BackendServerPort",
+-                                                   p->GetHostname());
+-                p->SetPathname(gCoreContext->GenMythURL(backendIpMap[p->GetHostname()],
+-                                                        backendPortMap[p->GetHostname()],
+-                                                        p->GetBasename()));
++                ProgramInfo *p      = proginfo;
++                QString hostname    = p->GetHostname();
++
++                if (!backendIpMap.contains(hostname))
++                    backendIpMap[hostname] =
++                        gCoreContext->GetBackendServerIP(hostname);
++                if (!backendPortMap.contains(hostname))
++                    backendPortMap[hostname] =
++                        gCoreContext->GetBackendServerPort(hostname);
++                p->SetPathname(gCoreContext->GenMythURL(backendIpMap[hostname],
++                                                        backendPortMap[hostname],
++                                                        hostname));
+             }
+         }
+ 
+@@ -1934,7 +1935,7 @@ void MainServer::HandleFillProgramInfo(QStringList &slist, PlaybackSock *pbs)
+     {
+         QString lpath = GetPlaybackURL(&pginfo);
+         QString ip    = gCoreContext->GetBackendServerIP();
+-        QString port  = gCoreContext->GetSetting("BackendServerPort");
++        int port  = gCoreContext->GetBackendServerPort();
+ 
+         if (playbackhost == gCoreContext->GetHostName())
+             pginfo.SetPathname(lpath);
+@@ -2135,7 +2136,7 @@ void MainServer::DeleteRecordedFiles(DeleteStruct *ds)
+ 
+             QString url = gCoreContext->GenMythURL(
+                                   gCoreContext->GetBackendServerIP(hostname),
+-                                  gCoreContext->GetSettingOnHost("BackendServerPort", hostname),
++                                  gCoreContext->GetBackendServerPort(hostname),
+                                   basename,
+                                   storagegroup);
+ 
+@@ -3345,6 +3346,7 @@ void MainServer::HandleSGGetFileList(QStringList &sList,
+ 
+     QString host = gCoreContext->GetHostName();
+     QString wantHost = sList.at(1);
++    QHostAddress wantHostaddr(wantHost);
+     QString groupname = sList.at(2);
+     QString path = sList.at(3);
+     bool fileNamesOnly = false;
+@@ -3359,8 +3361,8 @@ void MainServer::HandleSGGetFileList(QStringList &sList,
+             .arg(groupname).arg(host).arg(path).arg(wantHost));
+ 
+     if ((host.toLower() == wantHost.toLower()) ||
+-        (gCoreContext->GetSetting("BackendServerIP") == wantHost) ||
+-        (gCoreContext->GetSetting("BackendServerIP6") == wantHost))
++        (gCoreContext->GetBackendServerIP4() == wantHostaddr.toString()) ||
++        (gCoreContext->GetBackendServerIP6() == wantHostaddr.toString()))
+     {
+         StorageGroup sg(groupname, host);
+         LOG(VB_FILE, LOG_INFO, "HandleSGGetFileList: Getting local info");
+@@ -3416,6 +3418,7 @@ void MainServer::HandleSGFileQuery(QStringList &sList,
+     }
+ 
+     QString wantHost = sList.at(1);
++    QHostAddress wantHostaddr(wantHost);
+     QString groupname = sList.at(2);
+     QString filename = sList.at(3);
+ 
+@@ -3425,8 +3428,8 @@ void MainServer::HandleSGFileQuery(QStringList &sList,
+             .arg(gCoreContext->GenMythURL(wantHost, 0, filename, groupname)));
+ 
+     if ((wantHost.toLower() == gCoreContext->GetHostName().toLower()) ||
+-        (wantHost == gCoreContext->GetSetting("BackendServerIP")) ||
+-        (wantHost == gCoreContext->GetSetting("BackendServerIP6")))
++        (wantHostaddr.toString() == gCoreContext->GetBackendServerIP4()) ||
++        (wantHostaddr.toString() == gCoreContext->GetBackendServerIP6()))
+     {
+         LOG(VB_FILE, LOG_INFO, "HandleSGFileQuery: Getting local info");
+         StorageGroup sg(groupname, gCoreContext->GetHostName());
+@@ -3629,13 +3632,12 @@ void MainServer::HandleGetFreeRecorder(PlaybackSock *pbs)
+         if (encoder->IsLocal())
+         {
+             strlist << gCoreContext->GetBackendServerIP();
+-            strlist << gCoreContext->GetSetting("BackendServerPort");
++            strlist << QString::number(gCoreContext->GetBackendServerPort());
+         }
+         else
+         {
+             strlist << gCoreContext->GetBackendServerIP(encoder->GetHostName());
+-            strlist << gCoreContext->GetSettingOnHost("BackendServerPort",
+-                                                  encoder->GetHostName(), "-1");
++            strlist << QString::number(gCoreContext->GetBackendServerPort(encoder->GetHostName()));
+         }
+     }
+     else
+@@ -3780,13 +3782,12 @@ void MainServer::HandleGetNextFreeRecorder(QStringList &slist,
+         if (encoder->IsLocal())
+         {
+             strlist << gCoreContext->GetBackendServerIP();
+-            strlist << gCoreContext->GetSetting("BackendServerPort");
++            strlist << QString::number(gCoreContext->GetBackendServerPort());
+         }
+         else
+         {
+             strlist << gCoreContext->GetBackendServerIP(encoder->GetHostName());
+-            strlist << gCoreContext->GetSettingOnHost("BackendServerPort",
+-                                                  encoder->GetHostName(), "-1");
++            strlist << QString::number(gCoreContext->GetBackendServerPort(encoder->GetHostName()));
+         }
+     }
+     else
+@@ -5293,13 +5294,12 @@ void MainServer::HandleGetRecorderFromNum(QStringList &slist,
+         if (encoder->IsLocal())
+         {
+             strlist << gCoreContext->GetBackendServerIP();
+-            strlist << gCoreContext->GetSetting("BackendServerPort");
++            strlist << QString::number(gCoreContext->GetBackendServerPort());
+         }
+         else
+         {
+             strlist << gCoreContext->GetBackendServerIP(encoder->GetHostName());
+-            strlist << gCoreContext->GetSettingOnHost("BackendServerPort",
+-                                                  encoder->GetHostName(), "-1");
++            strlist << QString::number(gCoreContext->GetBackendServerPort(encoder->GetHostName()));
+         }
+     }
+     else
+@@ -6237,8 +6237,8 @@ void MainServer::reconnectTimeout(void)
+ {
+     MythSocket *masterServerSock = new MythSocket(-1, this);
+ 
+-    QString server = gCoreContext->GetSetting("MasterServerIP", "127.0.0.1");
+-    int port = gCoreContext->GetNumSetting("MasterServerPort", 6543);
++    QString server = gCoreContext->GetMasterServerIP();
++    int port = gCoreContext->GetMasterServerPort();
+ 
+     LOG(VB_GENERAL, LOG_NOTICE, QString("Connecting to master server: %1:%2")
+                            .arg(server).arg(port));
+diff --git a/mythtv/programs/mythbackend/upnpcdsmusic.cpp b/mythtv/programs/mythbackend/upnpcdsmusic.cpp
+index cd0111f..a46712d 100644
+--- a/mythtv/programs/mythbackend/upnpcdsmusic.cpp
++++ b/mythtv/programs/mythbackend/upnpcdsmusic.cpp
+@@ -298,8 +298,8 @@ void UPnpCDSMusic::AddItem( const UPnpCDSRequest    *pRequest,
+         m_mapBackendPort[ sHostName ] = gCoreContext->GetSettingOnHost("BackendStatusPort", sHostName);
+ #endif
+ 
+-    QString sServerIp = gCoreContext->GetSetting( "BackendServerIp"   );
+-    QString sPort     = gCoreContext->GetSetting( "BackendStatusPort" );
++    QString sServerIp   = gCoreContext->GetBackendServerIP4();
++    int sPort           = gCoreContext->GetBackendStatusPort();
+ 
+     // ----------------------------------------------------------------------
+     // Build Support Strings
+diff --git a/mythtv/programs/mythbackend/upnpcdstv.cpp b/mythtv/programs/mythbackend/upnpcdstv.cpp
+index f2eb55b..7b72969 100644
+--- a/mythtv/programs/mythbackend/upnpcdstv.cpp
++++ b/mythtv/programs/mythbackend/upnpcdstv.cpp
+@@ -307,10 +307,10 @@ void UPnpCDSTv::AddItem( const UPnpCDSRequest    *pRequest,
+     // ----------------------------------------------------------------------
+ 
+     if (!m_mapBackendIp.contains( sHostName ))
+-        m_mapBackendIp[ sHostName ] = gCoreContext->GetSettingOnHost( "BackendServerIp", sHostName);
++        m_mapBackendIp[ sHostName ] = gCoreContext->GetBackendServerIP4(sHostName);
+ 
+     if (!m_mapBackendPort.contains( sHostName ))
+-        m_mapBackendPort[ sHostName ] = gCoreContext->GetSettingOnHost("BackendStatusPort", sHostName);
++        m_mapBackendPort[ sHostName ] = gCoreContext->GetBackendStatusPort(sHostName);
+ 
+     // ----------------------------------------------------------------------
+     // Build Support Strings
+diff --git a/mythtv/programs/mythbackend/upnpcdsvideo.cpp b/mythtv/programs/mythbackend/upnpcdsvideo.cpp
+index 6542a4d..a80b9b9 100644
+--- a/mythtv/programs/mythbackend/upnpcdsvideo.cpp
++++ b/mythtv/programs/mythbackend/upnpcdsvideo.cpp
+@@ -269,12 +269,12 @@ void UPnpCDSVideo::AddItem( const UPnpCDSRequest    *pRequest,
+         if (sHostName.isEmpty())
+         {
+             m_mapBackendIp[sHostName] = 
+-                gCoreContext->GetSetting( "BackendServerIP" );
++                gCoreContext->GetBackendServerIP4();
+         }
+         else
+         {
+             m_mapBackendIp[sHostName] = 
+-                gCoreContext->GetSettingOnHost( "BackendServerIp", sHostName);
++                gCoreContext->GetBackendServerIP4(sHostName);
+         }
+     }
+ 
+@@ -283,12 +283,12 @@ void UPnpCDSVideo::AddItem( const UPnpCDSRequest    *pRequest,
+         if (sHostName.isEmpty())
+         {
+             m_mapBackendPort[sHostName] = 
+-                gCoreContext->GetSetting( "BackendStatusPort" );
++                gCoreContext->GetBackendStatusPort();
+         }
+         else
+         {
+             m_mapBackendPort[sHostName] = 
+-                gCoreContext->GetSettingOnHost("BackendStatusPort", sHostName);
++                gCoreContext->GetBackendStatusPort(sHostName);
+         }
+     }
+     
+diff --git a/mythtv/programs/mythfrontend/mediarenderer.cpp b/mythtv/programs/mythfrontend/mediarenderer.cpp
+index 2b14be2..0d5e344 100644
+--- a/mythtv/programs/mythfrontend/mediarenderer.cpp
++++ b/mythtv/programs/mythfrontend/mediarenderer.cpp
+@@ -60,9 +60,8 @@ class MythFrontendStatus : public HttpServerExtension
+         QString hostname   = gCoreContext->GetHostName();
+         QDateTime qdtNow   = MythDate::current();
+         QString masterhost = gCoreContext->GetMasterHostName();
+-        QString masterip   = gCoreContext->GetSetting("MasterServerIP");
+-        QString masterport = gCoreContext->GetSettingOnHost("BackendStatusPort",
+-                                                            masterhost, "6544");
++        QString masterip   = gCoreContext->GetMasterServerIP();
++        int masterport = gCoreContext->GetMasterServerStatusPort();
+ 
+         QTextStream stream ( &pRequest->m_response );
+         stream.setCodec("UTF-8");
+diff --git a/mythtv/programs/mythfrontend/themechooser.cpp b/mythtv/programs/mythfrontend/themechooser.cpp
+index 771ddfa..2ba8186 100644
+--- a/mythtv/programs/mythfrontend/themechooser.cpp
++++ b/mythtv/programs/mythfrontend/themechooser.cpp
+@@ -984,8 +984,8 @@ ThemeUpdateChecker::ThemeUpdateChecker() :
+         m_mythVersion.replace(QRegExp("\\.[0-9]{8,}.*"), "");
+     }
+ 
+-    m_infoPackage = gCoreContext->GenMythURL(gCoreContext->GetSetting("MasterServerIP"),
+-                                             0,
++    m_infoPackage = gCoreContext->GenMythURL(gCoreContext->GetMasterServerIP(),
++                                             gCoreContext->GetMasterServerPort(),
+                                              "remotethemes/themes.zip",
+                                              "Temp");
+ 
+@@ -1016,8 +1016,8 @@ void ThemeUpdateChecker::checkForUpdate(void)
+     if (RemoteFile::Exists(m_infoPackage))
+     {
+         QString remoteThemeDir =
+-            gCoreContext->GenMythURL(gCoreContext->GetSetting("MasterServerIP"),
+-                                     0,
++            gCoreContext->GenMythURL(gCoreContext->GetMasterServerIP(),
++                                     gCoreContext->GetMasterServerPort(),
+                                      QString("remotethemes/%1/%2")
+                                              .arg(m_mythVersion)
+                                              .arg(GetMythUI()->GetThemeName()),
+diff --git a/mythtv/programs/mythfrontend/upnpscanner.cpp b/mythtv/programs/mythfrontend/upnpscanner.cpp
+index a060dbc..4f7666d 100644
+--- a/mythtv/programs/mythfrontend/upnpscanner.cpp
++++ b/mythtv/programs/mythfrontend/upnpscanner.cpp
+@@ -441,9 +441,8 @@ void UPNPScanner::Start()
+     m_watchdogTimer->start(1000 * 10); // every 10s
+ 
+     // avoid connecting to the master backend
+-    m_masterHost = gCoreContext->GetSetting("MasterServerIP");
+-    m_masterPort = gCoreContext->GetSettingOnHost("BackendStatusPort",
+-                                             m_masterHost, "6544").toInt();
++    m_masterHost = gCoreContext->GetMasterServerIP();
++    m_masterPort = gCoreContext->GetMasterServerStatusPort();
+ 
+     m_lock.unlock();
+     LOG(VB_GENERAL, LOG_INFO, LOC + "Started");
+@@ -925,9 +924,8 @@ void UPNPScanner::AddServer(const QString &usn, const QString &url)
+     // sometimes initialisation is too early and m_masterHost is empty
+     if (m_masterHost.isEmpty())
+     {
+-        m_masterHost = gCoreContext->GetSetting("MasterServerIP");
+-        m_masterPort = gCoreContext->GetSettingOnHost("BackendStatusPort",
+-                                                  m_masterHost, "6544").toInt();
++        m_masterHost = gCoreContext->GetMasterServerIP();
++        m_masterPort = gCoreContext->GetMasterServerStatusPort();
+     }
+ 
+     QUrl qurl(url);
+diff --git a/mythtv/programs/mythmediaserver/main.cpp b/mythtv/programs/mythmediaserver/main.cpp
+index 6f5a009..95ae248 100644
+--- a/mythtv/programs/mythmediaserver/main.cpp
++++ b/mythtv/programs/mythmediaserver/main.cpp
+@@ -141,9 +141,8 @@ int main(int argc, char *argv[])
+         return GENERIC_EXIT_CONNECT_ERROR;
+     }
+ 
+-    int     port = gCoreContext->GetNumSetting("BackendServerPort", 6543);
+-    if (gCoreContext->GetSetting("BackendServerIP").isEmpty() &&
+-        gCoreContext->GetSetting("BackendServerIP6").isEmpty())
++    int     port = gCoreContext->GetBackendServerPort();
++    if (gCoreContext->GetBackendServerIP().isEmpty())
+     {
+         cerr << "No setting found for this machine's BackendServerIP.\n"
+              << "Please run setup on this machine and modify the first page\n"
+diff --git a/mythtv/programs/mythtranscode/main.cpp b/mythtv/programs/mythtranscode/main.cpp
+index de5c2e9..d3fbaed 100644
+--- a/mythtv/programs/mythtranscode/main.cpp
++++ b/mythtv/programs/mythtranscode/main.cpp
+@@ -722,12 +722,13 @@ int main(int argc, char *argv[])
+ 
+ static int transUnlink(QString filename, ProgramInfo *pginfo)
+ {
++    QString hostname = pginfo->GetHostname();
++
+     if (pginfo != NULL && !pginfo->GetStorageGroup().isEmpty() &&
+-        !pginfo->GetHostname().isEmpty())
++        !hostname.isEmpty())
+     {
+-        QString ip = gCoreContext->GetBackendServerIP(pginfo->GetHostname());
+-        QString port = gCoreContext->GetSettingOnHost("BackendServerPort",
+-                                                      pginfo->GetHostname());
++        QString ip = gCoreContext->GetBackendServerIP(hostname);
++        int port = gCoreContext->GetBackendServerPort(hostname);
+         QString basename = filename.section('/', -1);
+         QString uri = gCoreContext->GenMythURL(ip, port, basename,
+                                                pginfo->GetStorageGroup());
+-- 
+1.7.10.2
+
