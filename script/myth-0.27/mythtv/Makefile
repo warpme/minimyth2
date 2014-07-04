@@ -246,6 +246,14 @@ PATCHFILES += 0449-backport-89f2588-Remove-unused-header.patch
 PATCHFILES += 0450-backport-bdba161-Remove-unused-header.patch
 PATCHFILES += 0451-backport-98bec5c-Fix-backend-crash-should-opening-file-failed-and-cli.patch
 PATCHFILES += 0452-backport-dfd7f64-Remove-now-unused-API-use-MythAVCopy-instead.patch
+# v 6.7.03
+PATCHFILES += 0453-backport-10d5820-OpenGL-Optimize-writing-packed-images-to-pixel-buffe.patch
+PATCHFILES += 0456-backport-8e79b0a-Fix-crashes-when-changing-files.patch
+PATCHFILES += 0457-backport-da9b22a-Group-albums-by-album-name-not-album_id.-An-album-to.patch
+PATCHFILES += 0458-backport-373abe4-Re-enable-Artist-and-Genre-groupings-for-upnp.patch
+PATCHFILES += 0459-backport-f1dffbe-Add-support-for-music-album-artwork-to-upnp.patch
+PATCHFILES += 0460-backport-378fe05-UPNP-Support-multiple-artwork-sizes-for-recordings-v.patch
+PATCHFILES += 0461-backport-212d610-Support-insertion-of-multiple-Property-of-the-same-t.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch

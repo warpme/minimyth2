@@ -1,0 +1,166 @@
+From f1dffbe255d0d95d082e0ad9fc58e4daa4d17066 Mon Sep 17 00:00:00 2001
+From: Stuart Morgan <smorgan@mythtv.org>
+Date: Mon, 9 Sep 2013 20:22:44 +0100
+Subject: [PATCH] Add support for music album artwork to upnp.
+
+---
+ mythtv/programs/mythbackend/services/content.cpp |   61 ++++++++++------------
+ mythtv/programs/mythbackend/services/content.h   |    2 +-
+ mythtv/programs/mythbackend/upnpcdsmusic.cpp     |   12 +++++
+ 3 files changed, 41 insertions(+), 34 deletions(-)
+
+diff --git a/mythtv/programs/mythbackend/services/content.cpp b/mythtv/programs/mythbackend/services/content.cpp
+index c489b1e..40f0f83 100644
+--- a/mythtv/programs/mythbackend/services/content.cpp
++++ b/mythtv/programs/mythbackend/services/content.cpp
+@@ -41,9 +41,11 @@
+ #include "mythdate.h"
+ #include "mythdownloadmanager.h"
+ #include "metadataimagehelper.h"
++#include "musicmetadata.h"
+ #include "videometadatalistmanager.h"
+ #include "HLS/httplivestream.h"
+ #include "mythmiscutil.h"
++#include "remotefile.h"
+ 
+ /////////////////////////////////////////////////////////////////////////////
+ //
+@@ -343,44 +345,29 @@ QFileInfo Content::GetVideoArtwork( const QString &sType,
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-QFileInfo Content::GetAlbumArt( int nId, int nWidth, int nHeight )
++QFileInfo Content::GetAlbumArt( int nSongId, int nWidth, int nHeight )
+ {
+-    QString sFullFileName;
+-
+     // ----------------------------------------------------------------------
+     // Read AlbumArt file path from database
+     // ----------------------------------------------------------------------
+ 
+-    MSqlQuery query(MSqlQuery::InitCon());
+-
+-    query.prepare("SELECT CONCAT_WS('/', music_directories.path, "
+-                  "music_albumart.filename) FROM music_albumart "
+-                  "LEFT JOIN music_directories ON "
+-                  "music_directories.directory_id=music_albumart.directory_id "
+-                  "WHERE music_albumart.albumart_id = :ARTID;");
+-
+-    query.bindValue(":ARTID", nId );
++    MusicMetadata *metadata = MusicMetadata::createFromID(nSongId);
+ 
+-    if (!query.exec())
+-        MythDB::DBError("Select ArtId", query);
++    if (!metadata)
++        return QFileInfo();
+ 
+-    QString sMusicBasePath = gCoreContext->GetSetting("MusicLocation", "");
++    QString sFullFileName = metadata->getAlbumArtFile();
+ 
+-    if (query.next())
+-    {
+-        sFullFileName = QString( "%1/%2" )
+-                        .arg( sMusicBasePath )
+-                        .arg( query.value(0).toString() );
+-    }
++    delete metadata;
+ 
+-    if (!QFile::exists( sFullFileName ))
++    if (!RemoteFile::Exists(sFullFileName))
+         return QFileInfo();
+ 
+     if ((nWidth == 0) && (nHeight == 0))
+         return QFileInfo( sFullFileName );
+ 
+-    QString sNewFileName = QString( "%1.%2x%3.png" )
+-                              .arg( sFullFileName )
++    QString sNewFileName = QString( "/tmp/%1.%2x%3.png" )
++                              .arg( QFileInfo(sFullFileName).fileName() )
+                               .arg( nWidth    )
+                               .arg( nHeight   );
+ 
+@@ -396,14 +383,23 @@ QFileInfo Content::GetAlbumArt( int nId, int nWidth, int nHeight )
+     // ----------------------------------------------------------------------
+ 
+     float fAspect = 0.0;
++    QImage img;
++    if (sFullFileName.startsWith("myth://"))
++    {
++        RemoteFile rf(sFullFileName, false, false, 0);
++        QByteArray data;
++        rf.SaveAs(data);
+ 
+-    QImage *pImage = new QImage( sFullFileName);
++        img.loadFromData(data);
++    }
++    else
++        img.load(sFullFileName);
+ 
+-    if (!pImage)
++    if (img.isNull())
+         return QFileInfo();
+ 
+     if (fAspect <= 0)
+-           fAspect = (float)(pImage->width()) / pImage->height();
++           fAspect = (float)(img.width()) / img.height();
+ 
+     if ( nWidth == 0 )
+         nWidth = (int)rint(nHeight * fAspect);
+@@ -411,13 +407,12 @@ QFileInfo Content::GetAlbumArt( int nId, int nWidth, int nHeight )
+     if ( nHeight == 0 )
+         nHeight = (int)rint(nWidth / fAspect);
+ 
+-    QImage img = pImage->scaled( nWidth, nHeight, Qt::IgnoreAspectRatio,
+-                                Qt::SmoothTransformation);
+-
+-    QByteArray fname = sNewFileName.toLatin1();
+-    img.save( fname.constData(), "PNG" );
++    img = img.scaled( nWidth, nHeight, Qt::IgnoreAspectRatio,
++                                       Qt::SmoothTransformation);
+ 
+-    delete pImage;
++    QString fname = sNewFileName.toLatin1().constData();
++    if (!img.save( fname, "PNG" ))
++        return QFileInfo();
+ 
+     return QFileInfo( sNewFileName );
+ }
+diff --git a/mythtv/programs/mythbackend/services/content.h b/mythtv/programs/mythbackend/services/content.h
+index e1eb982..037ba4c 100644
+--- a/mythtv/programs/mythbackend/services/content.h
++++ b/mythtv/programs/mythbackend/services/content.h
+@@ -65,7 +65,7 @@ class Content : public ContentServices
+         QFileInfo           GetVideoArtwork     ( const QString   &Type,
+                                                   int Id, int Width, int Height );
+ 
+-        QFileInfo           GetAlbumArt         ( int Id, int Width, int Height );
++        QFileInfo           GetAlbumArt         ( int SongId, int Width, int Height );
+ 
+         QFileInfo           GetPreviewImage     ( int              ChanId,
+                                                   const QDateTime &StartTime,
+diff --git a/mythtv/programs/mythbackend/upnpcdsmusic.cpp b/mythtv/programs/mythbackend/upnpcdsmusic.cpp
+index e2106af..439e38e 100644
+--- a/mythtv/programs/mythbackend/upnpcdsmusic.cpp
++++ b/mythtv/programs/mythbackend/upnpcdsmusic.cpp
+@@ -352,6 +352,18 @@ void UPnpCDSMusic::AddItem( const UPnpCDSRequest    *pRequest,
+     pObject->AddProperty( new Property( "date"                , "dc"   ));
+ #endif
+ 
++    QString sArtURI = QString( "%1GetAlbumArt?Id=%2").arg( sURIBase   )
++                                                     .arg( nId );
++
++    pItem->SetPropValue( "albumArtURI", sArtURI );
++    Property *pProp = pItem->GetProperty("albumArtURI");
++    if (pProp)
++    {
++        pProp->AddAttribute("dlna:profileID", "PNG_TN");
++        pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
++
++    }
++
+     pResults->Add( pItem );
+ 
+     // ----------------------------------------------------------------------
+-- 
+1.7.10.2
+
