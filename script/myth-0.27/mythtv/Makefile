@@ -213,8 +213,8 @@ PATCHFILES += 0419-backport-5433b76-Allow-partial-reads.patch
 PATCHFILES += 0420-backport-aa822f5-Fix-a-thinko-in-the-This-time-and-This-day-and-time-.patch
 PATCHFILES += 0421-backport-330ae8a-Increase-myth-filetransfer-timeout-values.patch
 PATCHFILES += 0422-backport-6be8c81-Prevent-crash-opening-audio-settings-page-when-inval.patch
-# PATCHFILES += 0423-backport-1532ac0-Abort-early-when-trying-to-open-a-0-bytes-file-size-.patch
-# PATCHFILES += 0424-backport-338c49a-Stop-readahead-thread-if-the-file-isn-t-opened-try-2.patch
+PATCHFILES += 0423-backport-1532ac0-Abort-early-when-trying-to-open-a-0-bytes-file-size-.patch
+PATCHFILES += 0424-backport-338c49a-Stop-readahead-thread-if-the-file-isn-t-opened-try-2.patch
 PATCHFILES += 0425-backport-784758a-Fix-small-leak-should-a-ringbuffer-not-be-created-su.patch
 PATCHFILES += 0426-backport-6e5d8cf-Fix-dummy-recording-file-sometimes-not-being-deleted.patch
 PATCHFILES += 0427-backport-2b9231b-Return-an-error-when-the-file-couldn-t-be-successful.patch
@@ -260,9 +260,17 @@ PATCHFILES += 0464-commit-a5e27e9-Make-MythCoreContext-GetMasterServerIP-returns
 PATCHFILES += 0465-commit-f737a78-MythCoreContext-Fix-bad-copy-paste.patch
 PATCHFILES += 0466-commit-979ea9b-Fix-GetBackendStatusPort.patch
 PATCHFILES += 0467-sync-upnp-to-master.patch
+PATCHFILES += 0469-backport-de991d9-Ignore-IPv6-settings-value-if-it-s-invalid.patch
+PATCHFILES += 0470-backport-9df8bb3-Don-t-attempt-to-play-the-video-streams-for-mp3-flac.patch
+PATCHFILES += 0471-backport-548aaf7-Properly-allocate-VDPAU-PiP-video-buffers-and-fix-me.patch
+PATCHFILES += 0472-backport-64d94c0-Allocate-DeAllocate-video-buffers-using-av_malloc.patch
+PATCHFILES += 0474-backport-f3c40c8-Coverity-CID-1224483.patch
+# v 6.7.04
+PATCHFILES += 0475-backport-pullrequest78-add_different_groupings_for_content_in_video.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
+    PATCHFILES += 1139-backport-03d2e69-MusicCommon-Only-connect-the-Exiting-signal-if-the-n.patch
     PATCHFILES += 2038-2284-mythimage-backport-from-master-20140505.patch
     PATCHFILES += 2285-backport-812bdb6-cppcheck-Invalid-usleep-argument.-The-value-is-10000.patch
 
@@ -281,6 +289,7 @@ ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | gre
     PATCHFILES += 3014-backport-8eb969e-MythNetvision-Set-childcount-and-other-text-fields-i.patch
     PATCHFILES += 3015-backport-64e589e-MythNetvision-Focus-the-search-results-after-a-searc.patch
     PATCHFILES += 3016-backport-220ee25-MythNetvision-Update-thumbnail-and-text-when-switchi.patch
+    PATCHFILES += 3017-backport-aa9066f-MythNetVision-NULL-check-item-in-NetSearch-customEve.patch
 endif
 
 LICENSE = GPL2

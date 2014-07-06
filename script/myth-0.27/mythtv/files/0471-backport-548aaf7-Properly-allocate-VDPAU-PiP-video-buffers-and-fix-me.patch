@@ -1,0 +1,49 @@
+From 548aaf78373cf0360b759b633df10c3690e3f06b Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Sun, 6 Jul 2014 08:57:58 +1000
+Subject: [PATCH 1/5] Properly allocate VDPAU PiP video buffers and fix memory
+ leak
+
+The video buffers were never freed
+---
+ mythtv/libs/libmythtv/videobuffers.cpp       |    6 ++++++
+ mythtv/libs/libmythtv/videoout_nullvdpau.cpp |    4 +---
+ 2 files changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/videobuffers.cpp b/mythtv/libs/libmythtv/videobuffers.cpp
+index a939db1..f0a394f 100644
+--- a/mythtv/libs/libmythtv/videobuffers.cpp
++++ b/mythtv/libs/libmythtv/videobuffers.cpp
+@@ -790,6 +790,12 @@ uint VideoBuffers::AddBuffer(int width, int height, void* data,
+     buffers[num].interlaced_frame = -1;
+     buffers[num].top_field_first  = 1;
+     vbufferMap[At(num)] = num;
++    if (!data)
++    {
++        int size = buffersize(fmt, width, height);
++        data = av_malloc(size);
++        allocated_arrays.push_back((unsigned char*)data);
++    }
+     init(&buffers[num], fmt, (unsigned char*)data, width, height, 0);
+     buffers[num].priv[0] = ffmpeg_hack;
+     buffers[num].priv[1] = ffmpeg_hack;
+diff --git a/mythtv/libs/libmythtv/videoout_nullvdpau.cpp b/mythtv/libs/libmythtv/videoout_nullvdpau.cpp
+index bcee8a4..8952e1b 100644
+--- a/mythtv/libs/libmythtv/videoout_nullvdpau.cpp
++++ b/mythtv/libs/libmythtv/videoout_nullvdpau.cpp
+@@ -299,11 +299,9 @@ void VideoOutputNullVDPAU::DrawSlice(VideoFrame *frame, int x, int y, int w, int
+                                                FMT_VDPAU))
+                         {
+                             created++;
+-                            int size = (m_surfaceSize.width() *
+-                                        m_surfaceSize.height() * 3) / 2;
+                             m_shadowBuffers->AddBuffer(m_surfaceSize.width(),
+                                                        m_surfaceSize.height(),
+-                                                       new unsigned char[size],
++                                                       NULL,
+                                                        FMT_YV12);
+                         }
+                     }
+-- 
+1.7.10.2
+

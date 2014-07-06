@@ -1,0 +1,51 @@
+From 9df8bb364ba56cc34d34af40e5980110193bd334 Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Sun, 6 Jul 2014 01:25:21 +1000
+Subject: [PATCH 2/2] =?UTF-8?q?Don=E2=80=99t=20attempt=20to=20play=20the=20v?=
+ =?UTF-8?q?ideo=20streams=20for=20mp3,=20flac,=20off=20and=20m4a=20container?=
+ =?UTF-8?q?.?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+FFmpeg incorrectly detects the artwork in those file as MJPEG, which myth would then attempt to play.
+A nicer fix would be to display that image instead.
+
+Fixes #11597
+---
+ mythtv/libs/libmythtv/avformatdecoder.cpp |   12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/mythtv/libs/libmythtv/avformatdecoder.cpp b/mythtv/libs/libmythtv/avformatdecoder.cpp
+index 06205e0..4dbf279 100644
+--- a/mythtv/libs/libmythtv/avformatdecoder.cpp
++++ b/mythtv/libs/libmythtv/avformatdecoder.cpp
+@@ -10,6 +10,7 @@
+ using namespace std;
+ 
+ #include <QTextCodec>
++#include <QFileInfo>
+ 
+ // MythTV headers
+ #include "mythtvexp.h"
+@@ -1200,6 +1201,17 @@ int AvFormatDecoder::OpenFile(RingBuffer *rbuffer, bool novideo,
+         av_update_stream_timings_video(ic);
+     }
+ 
++    // FLAC, MP3 or M4A file may contains an artwork image, a single frame MJPEG,
++    // we need to ignore it as we don't handle single frames or images in place of video
++    // TODO: display single frame
++    QString extension = QFileInfo(fnames).suffix();
++    if (!strcmp(fmt->name, "mp3") || !strcmp(fmt->name, "flac") ||
++        !strcmp(fmt->name, "ogg") ||
++        !extension.compare("m4a", Qt::CaseInsensitive))
++    {
++        novideo = true;
++    }
++
+     // Scan for the initial A/V streams
+     int ret = ScanStreams(novideo);
+     if (-1 == ret)
+-- 
+1.7.10.2
+

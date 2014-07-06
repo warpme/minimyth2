@@ -1,0 +1,122 @@
+From 64d94c0dccf4e9d0f26ecb13ddd683f64ce2d2d3 Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Sun, 6 Jul 2014 10:39:41 +1000
+Subject: [PATCH 2/5] Allocate/DeAllocate video buffers using av_malloc
+
+Also ensure frame.qscale_table is freed with av_free as it was allocated with av_malloc by FFmpeg
+---
+ mythtv/libs/libmythtv/videobuffers.cpp    |   12 ++----------
+ mythtv/libs/libmythtv/videoout_opengl.cpp |   14 ++++++++------
+ mythtv/libs/libmythtv/videoout_xv.cpp     |   13 ++++++-------
+ 3 files changed, 16 insertions(+), 23 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/videobuffers.cpp b/mythtv/libs/libmythtv/videobuffers.cpp
+index f0a394f..41220e9 100644
+--- a/mythtv/libs/libmythtv/videobuffers.cpp
++++ b/mythtv/libs/libmythtv/videobuffers.cpp
+@@ -218,11 +218,7 @@ void VideoBuffers::Reset()
+     frame_vector_t::iterator it = buffers.begin();
+     for (;it != buffers.end(); ++it)
+     {
+-        if (it->qscale_table)
+-        {
+-            delete [] it->qscale_table;
+-            it->qscale_table = NULL;
+-        }
++        av_freep(&it->qscale_table);
+     }
+ 
+     available.clear();
+@@ -811,11 +807,7 @@ void VideoBuffers::DeleteBuffers()
+     {
+         buffers[i].buf = NULL;
+ 
+-        if (buffers[i].qscale_table)
+-        {
+-            delete [] buffers[i].qscale_table;
+-            buffers[i].qscale_table = NULL;
+-        }
++        av_freep(&buffers[i].qscale_table);
+     }
+ 
+     for (uint i = 0; i < allocated_arrays.size(); i++)
+diff --git a/mythtv/libs/libmythtv/videoout_opengl.cpp b/mythtv/libs/libmythtv/videoout_opengl.cpp
+index 76af4c3..74a2701 100644
+--- a/mythtv/libs/libmythtv/videoout_opengl.cpp
++++ b/mythtv/libs/libmythtv/videoout_opengl.cpp
+@@ -120,13 +120,11 @@ void VideoOutputOpenGL::DestroyCPUResources(void)
+ 
+     if (av_pause_frame.buf)
+     {
+-        delete [] av_pause_frame.buf;
+-        av_pause_frame.buf = NULL;
++        av_freep(&av_pause_frame.buf);
+     }
+     if (av_pause_frame.qscale_table)
+     {
+-        delete [] av_pause_frame.qscale_table;
+-        av_pause_frame.qscale_table = NULL;
++        av_freep(&av_pause_frame.qscale_table);
+     }
+     gl_context_lock.unlock();
+ }
+@@ -424,11 +422,15 @@ bool VideoOutputOpenGL::CreateBuffers(void)
+ 
+ bool VideoOutputOpenGL::CreatePauseFrame(void)
+ {
++    int size = buffersize(FMT_YV12,
++                          vbuffers.GetScratchFrame()->width,
++                          vbuffers.GetScratchFrame()->height);
++    unsigned char *buffer = (unsigned char *)av_malloc(size);
+     init(&av_pause_frame, FMT_YV12,
+-         new unsigned char[vbuffers.GetScratchFrame()->size + 128],
++         buffer,
+          vbuffers.GetScratchFrame()->width,
+          vbuffers.GetScratchFrame()->height,
+-         vbuffers.GetScratchFrame()->size);
++         size);
+ 
+     av_pause_frame.frameNumber = vbuffers.GetScratchFrame()->frameNumber;
+ 
+diff --git a/mythtv/libs/libmythtv/videoout_xv.cpp b/mythtv/libs/libmythtv/videoout_xv.cpp
+index 20b2226..f6b2da5 100644
+--- a/mythtv/libs/libmythtv/videoout_xv.cpp
++++ b/mythtv/libs/libmythtv/videoout_xv.cpp
+@@ -525,15 +525,16 @@ void VideoOutputXv::CreatePauseFrame(VOSType subtype)
+     if (av_pause_frame.buf)
+     {
+         av_freep(&av_pause_frame.buf);
+-        av_pause_frame.buf = NULL;
+     }
+ 
+-    unsigned char* buf =
+-        (unsigned char*)av_malloc(vbuffers.GetScratchFrame()->size + 128);
++    int size = buffersize(FMT_YV12,
++                          vbuffers.GetScratchFrame()->width,
++                          vbuffers.GetScratchFrame()->height);
++    unsigned char* buf = (unsigned char*)av_malloc(size);
+     init(&av_pause_frame, FMT_YV12, buf,
+          vbuffers.GetScratchFrame()->width,
+          vbuffers.GetScratchFrame()->height,
+-         vbuffers.GetScratchFrame()->size);
++         size);
+ 
+     av_pause_frame.frameNumber = vbuffers.GetScratchFrame()->frameNumber;
+ 
+@@ -1279,12 +1280,10 @@ void VideoOutputXv::DeleteBuffers(VOSType subtype, bool delete_pause_frame)
+         if (av_pause_frame.buf)
+         {
+             av_freep(&av_pause_frame.buf);
+-            av_pause_frame.buf = NULL;
+         }
+         if (av_pause_frame.qscale_table)
+         {
+-            delete [] av_pause_frame.qscale_table;
+-            av_pause_frame.qscale_table = NULL;
++            av_freep(&av_pause_frame.qscale_table);
+         }
+     }
+ 
+-- 
+1.7.10.2
+
