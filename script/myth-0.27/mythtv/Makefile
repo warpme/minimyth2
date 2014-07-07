@@ -271,6 +271,8 @@ PATCHFILES += 0475-backport-pullrequest78-add_different_groupings_for_content_in
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
     PATCHFILES += 1139-backport-03d2e69-MusicCommon-Only-connect-the-Exiting-signal-if-the-n.patch
+    PATCHFILES += 1140-backport-b3c52ec-MytghMusic-check-a-dynamic_cast-in-PlaylistEditorVie.patch
+    PATCHFILES += 1141-backport-050358a-MusicCommon-remove-some-dead-code-from-switchView.patch
     PATCHFILES += 2038-2284-mythimage-backport-from-master-20140505.patch
     PATCHFILES += 2285-backport-812bdb6-cppcheck-Invalid-usleep-argument.-The-value-is-10000.patch
 
