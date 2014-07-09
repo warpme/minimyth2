@@ -1,0 +1,36 @@
+From c1915c7d878b907b1016a135bd5705ad4ea8e8be Mon Sep 17 00:00:00 2001
+From: Paul Harrison <pharrison@mythtv.org>
+Date: Mon, 7 Jul 2014 10:13:36 +0100
+Subject: [PATCH 04/56] MpegRecorder: check the return value from read() for
+ errors in StartRecording()
+
+Fixes Coverity ID 1135491 Ignoring number of bytes read
+---
+ mythtv/libs/libmythtv/recorders/mpegrecorder.cpp |   11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/mythtv/libs/libmythtv/recorders/mpegrecorder.cpp b/mythtv/libs/libmythtv/recorders/mpegrecorder.cpp
+index 42bf708..7f8b06d 100644
+--- a/mythtv/libs/libmythtv/recorders/mpegrecorder.cpp
++++ b/mythtv/libs/libmythtv/recorders/mpegrecorder.cpp
+@@ -1332,7 +1332,16 @@ bool MpegRecorder::StartEncoding(void)
+             // does not reliably start the data flow.  A read() seems
+             // to consistently work, though.
+             uint8_t dummy;
+-            read(readfd, &dummy, 0);
++            ssize_t len = read(readfd, &dummy, 0);
++            if (len < 0)
++            {
++                LOG(VB_GENERAL, LOG_ERR, LOC +
++                    "StartEncoding: read from video device failed." + ENO);
++                _error = "Failed to start recording";
++                close(readfd);
++                readfd = -1;
++                return false;
++            }
+         }
+ 
+         LOG(VB_RECORD, LOG_INFO, LOC + "Encoding started");
+-- 
+1.7.10.2
+

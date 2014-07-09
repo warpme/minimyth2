@@ -1,0 +1,58 @@
+From 2019bb896bc37ba8c99b57709b4f0969be65e8f2 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Sat, 21 Jul 2012 18:47:35 +0200
+Subject: [PATCH 36/56] OpenGL: Reduce video playback overhead
+
+This patch introduces 2 changes to reduce video frame overhead and
+hence reduce CPU load.
+
+1. In MythRenderOpenGL::doneCurrent don't call QGLContext::doneCurrent
+as it's strictly not necessary and causes the next call to makeCurrent
+to take considerably longer.  Saves ~ 11mS per frame.
+
+2. In VideoOutputOpenGL::Show only call gl_context->swapBuffers if
+the current format is double buffered,  Saves ~2mS per frame.
+
+Timings from an Intel i5 661 @ 3.33GHz using onboard graphics with
+Linux 3.4 KMS.
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+Signed-off-by: Jean-Yves Avenard <jyavenard@mythtv.org>
+---
+ mythtv/libs/libmythtv/videoout_opengl.cpp   |    2 +-
+ mythtv/libs/libmythui/mythrender_opengl.cpp |    4 ++++
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/mythtv/libs/libmythtv/videoout_opengl.cpp b/mythtv/libs/libmythtv/videoout_opengl.cpp
+index 74a2701..ce98575 100644
+--- a/mythtv/libs/libmythtv/videoout_opengl.cpp
++++ b/mythtv/libs/libmythtv/videoout_opengl.cpp
+@@ -657,7 +657,7 @@ void VideoOutputOpenGL::Show(FrameScanType scan)
+         return;
+     }
+ 
+-    if (gl_context)
++    if (gl_context && gl_context->format().doubleBuffer())
+         gl_context->swapBuffers();
+ }
+ 
+diff --git a/mythtv/libs/libmythui/mythrender_opengl.cpp b/mythtv/libs/libmythui/mythrender_opengl.cpp
+index 3b02247..b70dd7b 100644
+--- a/mythtv/libs/libmythui/mythrender_opengl.cpp
++++ b/mythtv/libs/libmythui/mythrender_opengl.cpp
+@@ -195,8 +195,12 @@ void MythRenderOpenGL::makeCurrent()
+ void MythRenderOpenGL::doneCurrent()
+ {
+     m_lock_level--;
++    // Calling doneCurrent is strictly not necessary and causes the next call
++    // to makeCurrent to take considerably longer
++#if 0
+     if (m_lock_level == 0)
+         QGLContext::doneCurrent();
++#endif
+     if (m_lock_level < 0)
+         LOG(VB_GENERAL, LOG_ERR, LOC + "Mis-matched calls to makeCurrent()");
+     m_lock.unlock();
+-- 
+1.7.10.2
+

@@ -1,0 +1,51 @@
+From 49df62f1a76f0e617208e261a09f5f8a634b3ce9 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Wed, 4 Jul 2012 16:39:13 +0200
+Subject: [PATCH 39/56] Player: Don't call DoneDisplayingFrame for PiP until
+ next frame is ready
+
+When displaying 'pictute in picture' (PiP), VideoOutput::ShowPIP
+composites the PiP windows onto the main video frame.  To do so, it uses
+the player's GetCurrentFrame method to obtain the most recently displayed
+PiP frame.  However, MythPlayer::DisplayNormalFrames immediately releases
+the last frame displayed back to the decoding queue.  Consequently when
+GetCurrentFrame calls GetLastShownFrame to obtain that frame it may have been
+overwritten by the decoder thread.
+
+This patch defers calling DoneDisplayingFrame if the player is a PiP
+player so that future calls to GetLastShownFrame return an intact frame.
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+Signed-off-by: Jean-Yves Avenard <jyavenard@mythtv.org>
+---
+ mythtv/libs/libmythtv/mythplayer.cpp |    7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/mythtv/libs/libmythtv/mythplayer.cpp b/mythtv/libs/libmythtv/mythplayer.cpp
+index 2814d7d..f14453e 100644
+--- a/mythtv/libs/libmythtv/mythplayer.cpp
++++ b/mythtv/libs/libmythtv/mythplayer.cpp
+@@ -2196,6 +2196,10 @@ void MythPlayer::DisplayNormalFrame(bool check_prebuffer)
+     // clear the buffering state
+     SetBuffering(false);
+ 
++    // If PiP then release the last shown frame to the decoding queue
++    if (player_ctx->IsPIP())
++        videoOutput->DoneDisplayingFrame(videoOutput->GetLastShownFrame());
++
+     // retrieve the next frame
+     bool const bDisplayFrame = videoOutput->ValidVideoFrames() > 0;
+     if (bDisplayFrame)
+@@ -2227,6 +2231,9 @@ void MythPlayer::DisplayNormalFrame(bool check_prebuffer)
+     osdLock.unlock();
+ 
+     AVSync(frame, 0);
++    // If PiP then keep this frame for MythPlayer::GetCurrentFrame
++    if (player_ctx->IsPIP())
++        return;
+     if (bDisplayFrame)
+         videoOutput->DoneDisplayingFrame(frame);
+ }
+-- 
+1.7.10.2
+

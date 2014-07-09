@@ -1,0 +1,65 @@
+From a2b7a45edcb181f1feeaf6e4d44886e976d0de99 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Sun, 23 Mar 2014 15:52:00 +0000
+Subject: [PATCH 53/56] Decoder: Limit buffered audio data to 2000mS for
+ visualiser startup
+
+The decoder thread repetitively calls AvFormatDecoder::GetFrame to
+decode incoming audio and video packets.  The decoder sleeps when video
+or audio buffers are full.  With an audio only stream the decoder runs
+until the audio buffer is full.  This can end up with 10-15 seconds of
+buffered, decoded audio data.
+
+When the visualisation is enabled, new frames are buffered to a max of
+500 when the visualisation is disabled.  If there are more than 500
+frames buffeed then the visualisation is never shown
+
+This patch sets an upper limit of 1000msS of buffered audio data.
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+Signed-off-by: Jean-Yves Avenard <jyavenard@mythtv.org>
+---
+ mythtv/libs/libmythtv/audioplayer.cpp |   10 +++++++++-
+ mythtv/libs/libmythtv/audioplayer.h   |    1 +
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/mythtv/libs/libmythtv/audioplayer.cpp b/mythtv/libs/libmythtv/audioplayer.cpp
+index ed40352..337d4d4 100644
+--- a/mythtv/libs/libmythtv/audioplayer.cpp
++++ b/mythtv/libs/libmythtv/audioplayer.cpp
+@@ -517,11 +517,19 @@ bool AudioPlayer::IsBufferAlmostFull(void)
+     if (GetBufferStatus(ofill, ototal))
+     {
+         othresh =  ((ototal>>1) + (ototal>>2));
+-        return ofill > othresh;
++        if (ofill > othresh)
++            return true;
++        return GetAudioBufferedTime() > 2000;
+     }
+     return false;
+ }
+ 
++int64_t AudioPlayer::GetAudioBufferedTime(void)
++{
++    return m_audioOutput ? m_audioOutput->GetAudioBufferedTime() : 0;
++}
++
++
+ bool AudioPlayer::CanProcess(AudioFormat fmt)
+ {
+     if (!m_audioOutput)
+diff --git a/mythtv/libs/libmythtv/audioplayer.h b/mythtv/libs/libmythtv/audioplayer.h
+index 1efbf53..c4ebf03 100644
+--- a/mythtv/libs/libmythtv/audioplayer.h
++++ b/mythtv/libs/libmythtv/audioplayer.h
+@@ -88,6 +88,7 @@ class MTV_PUBLIC AudioPlayer
+     int64_t LengthLastData(void);
+     bool GetBufferStatus(uint &fill, uint &total);
+     bool IsBufferAlmostFull(void);
++    int64_t GetAudioBufferedTime(void);
+     
+     /**
+      * Return internal AudioOutput object
+-- 
+1.7.10.2
+

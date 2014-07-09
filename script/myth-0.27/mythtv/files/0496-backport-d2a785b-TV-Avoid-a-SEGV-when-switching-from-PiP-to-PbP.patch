@@ -1,0 +1,46 @@
+From d2a785b79196fb8194e60628b756ffc66d79db6c Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Thu, 26 Jun 2014 18:02:16 +0100
+Subject: [PATCH 49/56] TV: Avoid a SEGV when switching from PiP to PbP
+
+If a PiP reaches EOF then it's still possible to select the menu item
+to switch from PiP to PbP.  Then TV::PxPToggleType calls
+GetPlayer(mctx, 1)->SetPIPState(kPBPRight) but GetPlayer(mctx, 1)
+returns NULL.
+
+    0  SetPIPState (change=<optimised out>, this=<optimised out>)
+        at playercontext.h:107
+    1  TV::PxPToggleType (this=0xa9d39f8, mctx=0xae006c8, wantPBP=true)
+        at tv_play.cpp:5881
+    2  0xb7029da6 in TV::HandlePxPTimerEvent (this=0xa9d39f8)
+        at tv_play.cpp:3191
+    3  0xb705b3da in TV::timerEvent (this=0xa9d39f8, te=0x0)
+        at tv_play.cpp:2796
+    4  0xb5379ee7 in QObject::event (this=0xa9d39f8, e=0xbfee4fbc)
+        at kernel/qobject.cpp:1157
+
+This fix checks that the PiP is valid before changing state.
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+Signed-off-by: Jean-Yves Avenard <jyavenard@mythtv.org>
+---
+ mythtv/libs/libmythtv/tv_play.cpp |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/mythtv/libs/libmythtv/tv_play.cpp b/mythtv/libs/libmythtv/tv_play.cpp
+index 39f95b5..3a82037 100644
+--- a/mythtv/libs/libmythtv/tv_play.cpp
++++ b/mythtv/libs/libmythtv/tv_play.cpp
+@@ -5856,7 +5856,8 @@ void TV::PxPToggleType(PlayerContext *mctx, bool wantPBP)
+     if (wantPBP)
+     {
+         GetPlayer(mctx, 0)->SetPIPState(kPBPLeft);
+-        GetPlayer(mctx, 1)->SetPIPState(kPBPRight);
++        if (player.size() > 1)
++            GetPlayer(mctx, 1)->SetPIPState(kPBPRight);
+     }
+     else
+     {
+-- 
+1.7.10.2
+

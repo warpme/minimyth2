@@ -24,6 +24,9 @@ PATCHFILES += 0021-make_EIT_start_at_time.patch
 PATCHFILES += 0022-mythutil-add-an-option-to-check-recordings.patch
 PATCHFILES += 0023-delay-concurent-tunings.patch
 PATCHFILES += 0024-disable_break_when_no_PES_PUSI_set.patch
+PATCHFILES += 0025-backport-f8614bb-BE-Fix-MythSocket-Programmer-error-QEventLoop-isn-t-.patch
+PATCHFILES += 0026-backport-c1915c7-MpegRecorder-check-the-return-value-from-read-for-er.patch
+PATCHFILES += 0027-backport-738114f-libmythtv-Add-a-mutex-to-the-ChannelScanSM-class.patch
 
 # Minimyth needed patches
 PATCHFILES += 0100-minimyth.patch
@@ -74,7 +77,6 @@ PATCHFILES += 0277-backport-1012ad3-HLS-Fix-audio-only-bitrate-to-64k-per-Apple-
 PATCHFILES += 0278-backport-2c71895-HLS-Decrease-segment-size-from-10-to-4-seconds-which.patch
 PATCHFILES += 0279-backport-103d573-Fixes-null-dereference.patch
 PATCHFILES += 0295-backport-b0aa4e5-Allow-capture-of-the-unprocessed-raw-MPTS-from-appro.patch
-PATCHFILES += 0306-ticket10878-mythplayer-Don-t-call-DoneDisplayingFrame-for-PiP.patch
 PATCHFILES += 0307-backport-95652b6-EIT-improvements-for-DVB.patch
 PATCHFILES += 0308-backport-619b008-simplify-handling-of-missing-endtime-at-end-of-file-.patch
 PATCHFILES += 0309-backport-7fd0a20-Fix-some-confusion-over-the-behaviour-purpose-of-IsS.patch
@@ -267,12 +269,46 @@ PATCHFILES += 0472-backport-64d94c0-Allocate-DeAllocate-video-buffers-using-av_m
 PATCHFILES += 0474-backport-f3c40c8-Coverity-CID-1224483.patch
 # v 6.7.04
 PATCHFILES += 0475-backport-pullrequest78-add_different_groupings_for_content_in_video.patch
+# v 6.7.05
+PATCHFILES += 0476-backport-363361a-Fix-0b9470c-Fix-fileringbuffer-locking.patch
+PATCHFILES += 0477-backport-05124c3-VO-Fail-VAAPI-reinit-from-decoder-thread-to-avoid-Qt.patch
+PATCHFILES += 0478-backport-8945e71-Player-Increase-OpenFile-timeout-to-allow-playing-en.patch
+PATCHFILES += 0479-backport-faad748-TV-Quit-the-TV-playback-loop-when-the-primary-player.patch
+PATCHFILES += 0480-backport-67b7ebb-AO-SetStretchFactor-sets-pause-until-buffered-to-smo.patch
+PATCHFILES += 0480-backport-9e56b98-Player-DecoderLoop-sleeps-until-audio-buffers-availa.patch
+PATCHFILES += 0481-backport-d038af7-AO-Pause-resets-PauseUntilBuffered.patch
+PATCHFILES += 0482-backport-bfc6b9e-TV-UnpauseLiveTV-calls-tvchain-SwitchTo-opposed-to-J.patch
+PATCHFILES += 0483-backport-1ab6204-AO-Don-t-disable-Pulse-if-no-valid-output.patch
+PATCHFILES += 0484-backport-2019bb8-OpenGL-Reduce-video-playback-overhead.patch
+PATCHFILES += 0485-backport-2c22c5d-libmyth-Prevent-SEGV-in-avcodec_decode_video2-when-p.patch
+PATCHFILES += 0486-backport-0e0e04c-Player-Improve-low-bit-rate-high-latency-stream-play.patch
+PATCHFILES += 0487-backport-49df62f-Player-Don-t-call-DoneDisplayingFrame-for-PiP-until-.patch
+# PATCHFILES += 0488-backport-d40411e-OSD-Add-a-graphical-display-of-audio-level-to-cut-li.patch
+PATCHFILES += 0489-backport-d3bb512-ringbuffer-Prevent-a-divide-by-0.patch
+PATCHFILES += 0490-backport-5a26ce9-Subtitles-Avoid-changing-subtitle-state-in-the-decod.patch
+PATCHFILES += 0491-backport-9dbbd09-AO-Cache-the-result-of-IsPulseAudioRunning.patch
+PATCHFILES += 0492-backport-604a9d8-Player-Clear-EOF-when-resuming-play.patch
+PATCHFILES += 0493-backport-195eb07-Player-Enable-AVSync-to-recover-quicker-after-a-seek.patch
+PATCHFILES += 0494-backport-f8d7228-Player-Finer-a-v-sync-adjustments.patch
+PATCHFILES += 0495-backport-cc927f6-Player-Amalgamate-and-simplify-SwitchTo-and-JumpToPr.patch
+PATCHFILES += 0496-backport-d2a785b-TV-Avoid-a-SEGV-when-switching-from-PiP-to-PbP.patch
+PATCHFILES += 0497-backport-c63a09c-Player-Allow-seeking-upto-last-frame-when-paused.patch
+# PATCHFILES += 0498-backport-18c4e81-AOG-Support-32-bit-samples-for-HD-channels.patch
+PATCHFILES += 0499-backport-a2b7a45-Decoder-Limit-buffered-audio-data-to-2000mS-for-visu.patch
+PATCHFILES += 0500-backport-0937dac-Transcode-Fix-a-race-condition-in-VideoDecodeBuffer-.patch
+PATCHFILES += 0501-backport-af6f826-Flush-buffers-prior-to-closing-the-codec.patch
+PATCHFILES += 0502-backport-25dd494-MythUIWebBrowser-silence-a-warning-when-we-can-t-fin.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
     PATCHFILES += 1139-backport-03d2e69-MusicCommon-Only-connect-the-Exiting-signal-if-the-n.patch
     PATCHFILES += 1140-backport-b3c52ec-MytghMusic-check-a-dynamic_cast-in-PlaylistEditorVie.patch
     PATCHFILES += 1141-backport-050358a-MusicCommon-remove-some-dead-code-from-switchView.patch
+    PATCHFILES += 1144-backport-491fd8f-MythMusic-Save-the-last-play-date-time-in-the-ID3-ta.patch
+    PATCHFILES += 1145-backport-b639056-MythMusic-If-the-global-POPM-tag-playcount-was-zero-.patch
+    # v 6.7.05
+    PATCHFILES += 1142-backport-6ddc2e5-MythMusic-Avoid-a-floating-point-domain-error-in-the.patch
+    PATCHFILES += 1143-backport-0022b23-MythMusic-Read-Set-an-annonymous-POPM-tag-in-ID3-tag.patch
     PATCHFILES += 2038-2284-mythimage-backport-from-master-20140505.patch
     PATCHFILES += 2285-backport-812bdb6-cppcheck-Invalid-usleep-argument.-The-value-is-10000.patch
 
