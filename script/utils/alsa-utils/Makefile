@@ -1,5 +1,5 @@
 GARNAME = alsa-utils
-GARVERSION = 1.0.27.2
+GARVERSION = 1.0.28
 CATEGORIES = utils
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/utils/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/

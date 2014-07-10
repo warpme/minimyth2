@@ -1,11 +1,10 @@
 GARNAME = alsa-lib
-GARVERSION = 1.0.27.2
+GARVERSION = 1.0.28
 CATEGORIES = lib
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/lib/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = \
-#	$(DISTNAME)-automake_1.13.patch \
 	$(DISTNAME)-sys_types_h.patch
 LICENSE = LGPL2_1
 
