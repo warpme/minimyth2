@@ -270,7 +270,6 @@ PATCHFILES += 0474-backport-f3c40c8-Coverity-CID-1224483.patch
 # v 6.7.04
 PATCHFILES += 0475-backport-pullrequest78-add_different_groupings_for_content_in_video.patch
 # v 6.7.05
-PATCHFILES += 0476-backport-363361a-Fix-0b9470c-Fix-fileringbuffer-locking.patch
 PATCHFILES += 0477-backport-05124c3-VO-Fail-VAAPI-reinit-from-decoder-thread-to-avoid-Qt.patch
 PATCHFILES += 0479-backport-faad748-TV-Quit-the-TV-playback-loop-when-the-primary-player.patch
 PATCHFILES += 0480-backport-67b7ebb-AO-SetStretchFactor-sets-pause-until-buffered-to-smo.patch
@@ -295,6 +294,9 @@ PATCHFILES += 0499-backport-a2b7a45-Decoder-Limit-buffered-audio-data-to-2000mS-
 PATCHFILES += 0500-backport-0937dac-Transcode-Fix-a-race-condition-in-VideoDecodeBuffer-.patch
 PATCHFILES += 0501-backport-af6f826-Flush-buffers-prior-to-closing-the-codec.patch
 PATCHFILES += 0502-backport-25dd494-MythUIWebBrowser-silence-a-warning-when-we-can-t-fin.patch
+PATCHFILES += 0503-backport-90730e5-Do-not-wait-too-quickly-when-reaching-EOF.patch
+PATCHFILES += 0504-83050ac-Limit-bitrate-to-100Mbit-s-and-fill_min-to-half-the-.patch
+PATCHFILES += 0505-e24b793-Player-Increase-OpenFile-timeout-to-allow-playing-is.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
