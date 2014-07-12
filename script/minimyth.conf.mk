@@ -115,11 +115,11 @@ mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
 # Valid values are '3.14', '3.15', '3.16'
-mm_KERNEL_HEADERS_VERSION ?= 3.16
+mm_KERNEL_HEADERS_VERSION ?= 3.15
 
 # The version of kernel to use.
 # Valid values are '3.14', '3.15' and '3.16'.
-mm_KERNEL_VERSION         ?= 3.16
+mm_KERNEL_VERSION         ?= 3.15
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
