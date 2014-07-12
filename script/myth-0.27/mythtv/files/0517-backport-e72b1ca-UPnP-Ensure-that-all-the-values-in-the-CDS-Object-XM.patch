@@ -1,0 +1,347 @@
+From e72b1caf240578318e44ab1eb34d562ad0190d96 Mon Sep 17 00:00:00 2001
+From: Stuart Morgan <smorgan@mythtv.org>
+Date: Sat, 12 Jul 2014 15:47:33 +0100
+Subject: [PATCH 3/3] UPnP: Ensure that all the values in the CDS Object XML
+ are properly encoded.
+
+---
+ mythtv/libs/libmythupnp/httprequest.cpp      |   16 +++++++++++++++
+ mythtv/libs/libmythupnp/httprequest.h        |    1 +
+ mythtv/libs/libmythupnp/upnpcdsobjects.cpp   |   22 ++++++++++----------
+ mythtv/libs/libmythupnp/upnpcdsobjects.h     |   28 +++++++++++++++++++++-----
+ mythtv/programs/mythbackend/upnpcdsmusic.cpp |    9 ++++-----
+ mythtv/programs/mythbackend/upnpcdstv.cpp    |    8 ++++----
+ mythtv/programs/mythbackend/upnpcdsvideo.cpp |    8 ++++----
+ 7 files changed, 63 insertions(+), 29 deletions(-)
+
+diff --git a/mythtv/libs/libmythupnp/httprequest.cpp b/mythtv/libs/libmythupnp/httprequest.cpp
+index 5eca656..f9db0a5 100644
+--- a/mythtv/libs/libmythupnp/httprequest.cpp
++++ b/mythtv/libs/libmythupnp/httprequest.cpp
+@@ -1710,6 +1710,22 @@ QString HTTPRequest::Encode(const QString &sIn)
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
++QString HTTPRequest::Decode(const QString& sIn)
++{
++    QString sStr = sIn;
++    sStr.replace("&amp;", "&");
++    sStr.replace("&lt;", "<");
++    sStr.replace("&gt;", ">");
++    sStr.replace("&quot;", "\"");
++    sStr.replace("&apos;", "'");
++
++    return sStr;
++}
++
++/////////////////////////////////////////////////////////////////////////////
++//
++/////////////////////////////////////////////////////////////////////////////
++
+ QString HTTPRequest::GetETagHash(const QByteArray &data)
+ {
+     QByteArray hash = QCryptographicHash::hash( data.data(), QCryptographicHash::Sha1);
+diff --git a/mythtv/libs/libmythupnp/httprequest.h b/mythtv/libs/libmythupnp/httprequest.h
+index 8b5c721..5dc48f6 100644
+--- a/mythtv/libs/libmythupnp/httprequest.h
++++ b/mythtv/libs/libmythupnp/httprequest.h
+@@ -202,6 +202,7 @@ class UPNP_PUBLIC HTTPRequest
+         static QString  TestMimeType    ( const QString &sFileName );
+         static long     GetParameters   ( QString  sParams, QStringMap &mapParams );
+         static QString  Encode          ( const QString &sIn );
++        static QString  Decode          ( const QString &sIn );
+         static QString  GetETagHash     ( const QByteArray &data );
+ 
+         // ------------------------------------------------------------------
+diff --git a/mythtv/libs/libmythupnp/upnpcdsobjects.cpp b/mythtv/libs/libmythupnp/upnpcdsobjects.cpp
+index 6b1224c..a5874f3 100644
+--- a/mythtv/libs/libmythupnp/upnpcdsobjects.cpp
++++ b/mythtv/libs/libmythupnp/upnpcdsobjects.cpp
+@@ -124,7 +124,7 @@ void CDSObject::SetPropValue( const QString &sName, const QString &sValue )
+             LOG(VB_UPNP, LOG_WARNING,
+                 QString("SetPropValue(%1) called on property with bAllowMulti. "
+                         "Only the last inserted property will be updated."));
+-        (*it)->m_sValue = HTTPRequest::Encode(sValue);
++        (*it)->SetValue(sValue);
+     }
+ }
+ 
+@@ -142,7 +142,7 @@ QString CDSObject::GetPropValue(const QString &sName) const
+             LOG(VB_UPNP, LOG_WARNING,
+                 QString("GetPropValue(%1) called on property with bAllowMulti. "
+                         "Only the last inserted property will be return."));
+-        return QUrl::fromPercentEncoding((*it)->m_sValue.toUtf8());
++        return (*it)->GetValue().toUtf8();
+     }
+     
+     return "";
+@@ -230,7 +230,7 @@ void CDSObject::toXml(QTextStream &os, FilterMap &filter) const
+         {
+             os << "<container id=\"" << m_sId << "\" parentID=\"" << m_sParentId
+                << "\" childCount=\"" << GetChildCount() << "\" restricted=\"" << GetBool( m_bRestricted )
+-               << "\" searchable=\"" << GetBool( m_bSearchable ) << "\" >";
++               << "\" searchable=\"" << GetBool( m_bSearchable ) << "\" >" << endl;
+ 
+             sEndTag = "</container>";
+ 
+@@ -239,7 +239,7 @@ void CDSObject::toXml(QTextStream &os, FilterMap &filter) const
+         case OT_Item:
+         {
+             os << "<item id=\"" << m_sId << "\" parentID=\"" << m_sParentId
+-               << "\" restricted=\"" << GetBool( m_bRestricted ) << "\" >";
++               << "\" restricted=\"" << GetBool( m_bRestricted ) << "\" >" << endl;
+ 
+             sEndTag = "</item>";
+ 
+@@ -248,8 +248,8 @@ void CDSObject::toXml(QTextStream &os, FilterMap &filter) const
+         default: break;
+     }
+ 
+-    os << "<dc:title>"   << m_sTitle << "</dc:title>";
+-    os << "<upnp:class>" << m_sClass << "</upnp:class>";
++    os << "<dc:title>"   << m_sTitle << "</dc:title>" << endl;
++    os << "<upnp:class>" << m_sClass << "</upnp:class>" << endl;
+ 
+     // ----------------------------------------------------------------------
+     // Output all Properties
+@@ -260,7 +260,7 @@ void CDSObject::toXml(QTextStream &os, FilterMap &filter) const
+     {
+         const Property *pProp = *it;
+ 
+-        if (pProp->m_bRequired || (pProp->m_sValue.length() > 0))
++        if (pProp->m_bRequired || (!pProp->GetValue().isEmpty()))
+         {
+             QString sName;
+             
+@@ -279,8 +279,8 @@ void CDSObject::toXml(QTextStream &os, FilterMap &filter) const
+                         os << " " <<(*nit).sName << "=\"" << (*nit).sValue << "\"";
+ 
+                 os << ">";
+-                os << pProp->m_sValue;
+-                os << "</" << sName << ">";
++                os << pProp->GetEncodedValue();
++                os << "</" << sName << ">" << endl;
+             }
+         }
+     }
+@@ -299,7 +299,7 @@ void CDSObject::toXml(QTextStream &os, FilterMap &filter) const
+             os << (*nit).sName << "=\"" << (*nit).sValue << "\" ";
+ 
+         os << ">" << (*rit)->m_sURI;
+-        os << "</res>\r\n";
++        os << "</res>" << endl;
+     }
+ 
+     // ----------------------------------------------------------------------
+@@ -314,7 +314,7 @@ void CDSObject::toXml(QTextStream &os, FilterMap &filter) const
+     // Close Element Tag
+     // ----------------------------------------------------------------------
+ 
+-    os << sEndTag;
++    os << sEndTag << endl;
+     os << flush;
+ }
+ 
+diff --git a/mythtv/libs/libmythupnp/upnpcdsobjects.h b/mythtv/libs/libmythupnp/upnpcdsobjects.h
+index 2b80170..1f2b008 100644
+--- a/mythtv/libs/libmythupnp/upnpcdsobjects.h
++++ b/mythtv/libs/libmythupnp/upnpcdsobjects.h
+@@ -19,6 +19,7 @@
+ #include <QMap>
+ 
+ #include "upnpexp.h"
++#include "httprequest.h"
+ 
+ class CDSObject;
+ class QTextStream;
+@@ -47,7 +48,6 @@ class Property
+         QString  m_sName;
+         QString  m_sNameSpace;
+         bool     m_bRequired;
+-        QString  m_sValue;
+         bool     m_bMultiValue;
+         NameValues      m_lstAttributes;
+ 
+@@ -63,15 +63,33 @@ class Property
+             m_sName       = sName;
+             m_sNameSpace  = sNameSpace;
+             m_bRequired   = bRequired;
+-            m_sValue      = sValue;
++            m_sValue      = HTTPRequest::Encode(sValue);
+             m_bMultiValue = bMultiValue;
+         }
+ 
++        void SetValue(const QString &value)
++        {
++            m_sValue = value;
++        }
++
++        QString GetValue(void) const
++        {
++            return m_sValue;
++        }
++
++        QString GetEncodedValue(void) const
++        {
++            return HTTPRequest::Encode(m_sValue);
++        }
++
+         void AddAttribute( const QString &sName,
+                            const QString &sValue )
+         {
+-            m_lstAttributes.push_back(NameValue(sName, sValue));
++            m_lstAttributes.push_back(NameValue(sName, HTTPRequest::Encode(sValue)));
+         }
++
++    protected:
++        QString  m_sValue;
+ };
+ 
+ typedef QMap<QString,Property*> Properties;
+@@ -96,13 +114,13 @@ class Resource
+                   const QString &sURI )
+         {
+             m_sProtocolInfo = sProtocolInfo;
+-            m_sURI          = sURI;
++            m_sURI          = HTTPRequest::Encode(sURI);
+         }
+ 
+         void AddAttribute( const QString &sName,
+                            const QString &sValue )
+         {
+-            m_lstAttributes.push_back(NameValue(sName, sValue));
++            m_lstAttributes.push_back(NameValue(sName, HTTPRequest::Encode(sValue)));
+         }
+ };
+ 
+diff --git a/mythtv/programs/mythbackend/upnpcdsmusic.cpp b/mythtv/programs/mythbackend/upnpcdsmusic.cpp
+index d271427..68011fa 100644
+--- a/mythtv/programs/mythbackend/upnpcdsmusic.cpp
++++ b/mythtv/programs/mythbackend/upnpcdsmusic.cpp
+@@ -374,7 +374,7 @@ void UPnpCDSMusic::AddItem( const UPnpCDSRequest    *pRequest,
+             QUrl mediumURI = artURI;
+             mediumURI.addQueryItem("Width", "1024");
+             mediumURI.addQueryItem("Height", "768");
+-            pProp->m_sValue = mediumURI.toEncoded();
++            pProp->SetValue(mediumURI.toEncoded());
+             pProp->AddAttribute("dlna:profileID", "JPG_MED");
+             pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+         }
+@@ -388,7 +388,7 @@ void UPnpCDSMusic::AddItem( const UPnpCDSRequest    *pRequest,
+             QUrl thumbURI = artURI;
+             thumbURI.addQueryItem("Width", "160");
+             thumbURI.addQueryItem("Height", "160");
+-            pProp->m_sValue = thumbURI.toEncoded();
++            pProp->SetValue(thumbURI.toEncoded());
+             pProp->AddAttribute("dlna:profileID", "JPG_TN");
+             pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+         }
+@@ -401,7 +401,7 @@ void UPnpCDSMusic::AddItem( const UPnpCDSRequest    *pRequest,
+             QUrl smallURI = artURI;
+             smallURI.addQueryItem("Width", "640");
+             smallURI.addQueryItem("Height", "480");
+-            pProp->m_sValue = smallURI.toEncoded();
++            pProp->SetValue(smallURI.toEncoded());
+             pProp->AddAttribute("dlna:profileID", "JPG_SM");
+             pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+         }
+@@ -412,7 +412,7 @@ void UPnpCDSMusic::AddItem( const UPnpCDSRequest    *pRequest,
+         {
+             // Must be no more than 4096x4096 - for our purposes, just return
+             // a fullsize image
+-            pProp->m_sValue = artURI.toEncoded();
++            pProp->SetValue(artURI.toEncoded());
+             pProp->AddAttribute("dlna:profileID", "JPG_LRG");
+             pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+         }
+@@ -433,7 +433,6 @@ void UPnpCDSMusic::AddItem( const UPnpCDSRequest    *pRequest,
+     resURI.addQueryItem("Id", QString::number(nId));
+ 
+     Resource *pRes = pItem->AddResource( sProtocol, resURI.toEncoded() );
+-    LOG(VB_GENERAL, LOG_NOTICE, resURI.toEncoded());
+     int nLengthSecs = nLengthMS / 1000;
+ 
+     QString sDur;
+diff --git a/mythtv/programs/mythbackend/upnpcdstv.cpp b/mythtv/programs/mythbackend/upnpcdstv.cpp
+index 682a9102..9aae888 100644
+--- a/mythtv/programs/mythbackend/upnpcdstv.cpp
++++ b/mythtv/programs/mythbackend/upnpcdstv.cpp
+@@ -487,7 +487,7 @@ void UPnpCDSTv::AddItem( const UPnpCDSRequest    *pRequest,
+                 QUrl mediumURI = artURI;
+                 mediumURI.addQueryItem("Width", "1024");
+                 mediumURI.addQueryItem("Height", "768");
+-                pProp->m_sValue = mediumURI.toEncoded();
++                pProp->SetValue(mediumURI.toEncoded());
+                 pProp->AddAttribute("dlna:profileID", "JPG_MED");
+                 pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+             }
+@@ -501,7 +501,7 @@ void UPnpCDSTv::AddItem( const UPnpCDSRequest    *pRequest,
+                 QUrl thumbURI = artURI;
+                 thumbURI.addQueryItem("Width", "160");
+                 thumbURI.addQueryItem("Height", "160");
+-                pProp->m_sValue = thumbURI.toEncoded();
++                pProp->SetValue(thumbURI.toEncoded());
+                 pProp->AddAttribute("dlna:profileID", "JPG_TN");
+                 pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+             }
+@@ -514,7 +514,7 @@ void UPnpCDSTv::AddItem( const UPnpCDSRequest    *pRequest,
+                 QUrl smallURI = artURI;
+                 smallURI.addQueryItem("Width", "640");
+                 smallURI.addQueryItem("Height", "480");
+-                pProp->m_sValue = smallURI.toEncoded();
++                pProp->SetValue(smallURI.toEncoded());
+                 pProp->AddAttribute("dlna:profileID", "JPG_SM");
+                 pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+             }
+@@ -525,7 +525,7 @@ void UPnpCDSTv::AddItem( const UPnpCDSRequest    *pRequest,
+             {
+                 // Must be no more than 4096x4096 - for our purposes, just return
+                 // a fullsize image
+-                pProp->m_sValue = artURI.toEncoded();
++                pProp->SetValue(artURI.toEncoded());
+                 pProp->AddAttribute("dlna:profileID", "JPG_LRG");
+                 pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+             }
+diff --git a/mythtv/programs/mythbackend/upnpcdsvideo.cpp b/mythtv/programs/mythbackend/upnpcdsvideo.cpp
+index 9add736..63d2dcd 100644
+--- a/mythtv/programs/mythbackend/upnpcdsvideo.cpp
++++ b/mythtv/programs/mythbackend/upnpcdsvideo.cpp
+@@ -360,7 +360,7 @@ void UPnpCDSVideo::AddItem( const UPnpCDSRequest    *pRequest,
+             QUrl mediumURI = artURI;
+             mediumURI.addQueryItem("Width", "1024");
+             mediumURI.addQueryItem("Height", "768");
+-            pProp->m_sValue = mediumURI.toEncoded();
++            pProp->SetValue(mediumURI.toEncoded());
+             pProp->AddAttribute("dlna:profileID", "JPG_MED");
+             pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+         }
+@@ -374,7 +374,7 @@ void UPnpCDSVideo::AddItem( const UPnpCDSRequest    *pRequest,
+             QUrl thumbURI = artURI;
+             thumbURI.addQueryItem("Width", "160");
+             thumbURI.addQueryItem("Height", "160");
+-            pProp->m_sValue = thumbURI.toEncoded();
++            pProp->SetValue(thumbURI.toEncoded());
+             pProp->AddAttribute("dlna:profileID", "JPG_TN");
+             pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+         }
+@@ -387,7 +387,7 @@ void UPnpCDSVideo::AddItem( const UPnpCDSRequest    *pRequest,
+             QUrl smallURI = artURI;
+             smallURI.addQueryItem("Width", "640");
+             smallURI.addQueryItem("Height", "480");
+-            pProp->m_sValue = smallURI.toEncoded();
++            pProp->SetValue(smallURI.toEncoded());
+             pProp->AddAttribute("dlna:profileID", "JPG_SM");
+             pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+         }
+@@ -398,7 +398,7 @@ void UPnpCDSVideo::AddItem( const UPnpCDSRequest    *pRequest,
+         {
+             // Must be no more than 4096x4096 - for our purposes, just return
+             // a fullsize image
+-            pProp->m_sValue = artURI.toEncoded();
++            pProp->SetValue(artURI.toEncoded());
+             pProp->AddAttribute("dlna:profileID", "JPG_LRG");
+             pProp->AddAttribute("xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0");
+         }
+-- 
+1.7.10.2
+

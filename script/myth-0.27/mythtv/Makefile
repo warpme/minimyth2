@@ -297,6 +297,18 @@ PATCHFILES += 0502-backport-25dd494-MythUIWebBrowser-silence-a-warning-when-we-c
 PATCHFILES += 0503-backport-90730e5-Do-not-wait-too-quickly-when-reaching-EOF.patch
 PATCHFILES += 0504-83050ac-Limit-bitrate-to-100Mbit-s-and-fill_min-to-half-the-.patch
 PATCHFILES += 0505-e24b793-Player-Increase-OpenFile-timeout-to-allow-playing-is.patch
+PATCHFILES += 0506-commit-2d2530c-Mythmedatalookup-set-PYTHONPATH-so-mythmedatalookup-.patch
+PATCHFILES += 0507-commit-1489019-Store-grabber-used-along-with-inetref-to-ensure-corr.patch
+PATCHFILES += 0508-commit-f883275-Make-sure-to-pass-season-and-episode-to-tv-grabber.patch
+PATCHFILES += 0509-commit-6151169-Use-myth-coding-style.patch
+PATCHFILES += 0510-commit-7e8330f-Mythmetadatalookup-Make-sure-we-follow-the-exact-sam.patch
+PATCHFILES += 0511-commit-7292b98-Mythmetadata-Simplify-code-with-a-GetGrabber-utility.patch
+PATCHFILES += 0512-commit-9ddb3d4-metadata-fix-crash-should-grabber-not-be-defined.patch
+PATCHFILES += 0513-commit-e93274a-metadata-get-around-grabber-incorrectly-set-to-an-em.patch
+PATCHFILES += 0514-commit-7e8ca1c-metadata-do-not-use-grabber-cache-if-not-initialised.patch
+PATCHFILES += 0515-backport-d8c0ad9-UPnP-Add-the-fraction-of-a-second-component-to-the-D.patch
+PATCHFILES += 0516-backport-8470591-UPnP-Ensure-resource-URIs-are-properly-encoded-and-f.patch
+PATCHFILES += 0517-backport-e72b1ca-UPnP-Ensure-that-all-the-values-in-the-CDS-Object-XM.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
@@ -308,8 +320,8 @@ ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | gre
     PATCHFILES += 1143-backport-0022b23-MythMusic-Read-Set-an-annonymous-POPM-tag-in-ID3-tag.patch
     PATCHFILES += 1144-backport-491fd8f-MythMusic-Save-the-last-play-date-time-in-the-ID3-ta.patch
     PATCHFILES += 1145-backport-b639056-MythMusic-If-the-global-POPM-tag-playcount-was-zero-.patch
-    PATCHFILES += 2038-2284-mythimage-backport-from-master-20140505.patch
-    PATCHFILES += 2285-backport-812bdb6-cppcheck-Invalid-usleep-argument.-The-value-is-10000.patch
+    #PATCHFILES += 2038-2284-mythimage-backport-from-master-20140505.patch
+    #PATCHFILES += 2285-backport-812bdb6-cppcheck-Invalid-usleep-argument.-The-value-is-10000.patch
 
     PATCHFILES += 3000-backport-ec5a9d3-MythNetvision-pass-const-QStrings-by-reference-cppch.patch
     PATCHFILES += 3002-backport-85b2d6d-Reorganize-cache-and-temporary-directories-under-com.patch

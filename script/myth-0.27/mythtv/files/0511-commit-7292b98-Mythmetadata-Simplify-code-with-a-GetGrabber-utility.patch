@@ -1,0 +1,187 @@
+From 7292b98b24514ce19e7a1c4d937c34757af98a3d Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Thu, 10 Jul 2014 00:18:09 +1000
+Subject: [PATCH 06/15] Mythmetadata: Simplify code with a GetGrabber utility
+ member
+
+(cherry picked from commit aef97a42b3fb577dcb0d83e72c24ec3ac27602fc)
+---
+ mythtv/libs/libmythmetadata/metadatadownload.cpp |   63 +++-------------------
+ mythtv/libs/libmythmetadata/metadatagrabber.cpp  |   31 ++++++++++-
+ mythtv/libs/libmythmetadata/metadatagrabber.h    |    2 +
+ 3 files changed, 39 insertions(+), 57 deletions(-)
+
+diff --git a/mythtv/libs/libmythmetadata/metadatadownload.cpp b/mythtv/libs/libmythmetadata/metadatadownload.cpp
+index a5c9dcf..d085549 100644
+--- a/mythtv/libs/libmythmetadata/metadatadownload.cpp
++++ b/mythtv/libs/libmythmetadata/metadatadownload.cpp
+@@ -453,7 +453,8 @@ MetadataLookupList MetadataDownload::readNFO(QString NFOpath,
+ MetadataLookupList MetadataDownload::handleGame(MetadataLookup *lookup)
+ {
+     MetadataLookupList list;
+-    MetaGrabberScript grabber;
++    MetaGrabberScript grabber =
++        MetaGrabberScript::GetGrabber(kGrabberGame, lookup);
+ 
+     // If the inetref is populated, even in kLookupSearch mode,
+     // become a kLookupData grab and use that.
+@@ -464,19 +465,6 @@ MetadataLookupList MetadataDownload::handleGame(MetadataLookup *lookup)
+         lookup->SetStep(kLookupData);
+     }
+ 
+-    if (!lookup->GetInetref().isEmpty() &&
+-        lookup->GetInetref() != "00000000")
+-    {
+-        // inetref is defined, see if we have a pre-defined grabber
+-        grabber = MetaGrabberScript::FromInetref(lookup->GetInetref());
+-    }
+-
+-    if (!grabber.IsValid())
+-    {
+-        // matching grabber was not found, just use the default
+-        grabber = MetaGrabberScript::GetType(kGrabberGame);
+-    }
+-
+     if (lookup->GetStep() == kLookupSearch)
+     {
+         // we're searching
+@@ -520,19 +508,8 @@ MetadataLookupList MetadataDownload::handleMovie(MetadataLookup *lookup)
+             lookup->SetStep(kLookupData);
+         }
+ 
+-        MetaGrabberScript grabber;
+-
+-        if (!lookup->GetInetref().isEmpty() && lookup->GetInetref() != "00000000")
+-        {
+-            // inetref is defined, see if we have a pre-defined grabber
+-            grabber = MetaGrabberScript::FromInetref(lookup->GetInetref());
+-        }
+-
+-        if (!grabber.IsValid())
+-        {
+-            // matching grabber was not found, just use the default
+-            grabber = MetaGrabberScript::GetType(kGrabberMovie);
+-        }
++        MetaGrabberScript grabber =
++            MetaGrabberScript::GetGrabber(kGrabberMovie, lookup);
+ 
+         if (lookup->GetStep() == kLookupSearch)
+         {
+@@ -551,21 +528,8 @@ MetadataLookupList MetadataDownload::handleMovie(MetadataLookup *lookup)
+ MetadataLookupList MetadataDownload::handleTelevision(MetadataLookup *lookup)
+ {
+     MetadataLookupList list;
+-    MetaGrabberScript grabber;
+-
+-    // for some reason, we can perform a search even when an inetref is defined
+-    // so we'll try to pull the pre-defined grabber first
+-    if (!lookup->GetInetref().isEmpty() &&
+-        lookup->GetInetref() != "00000000")
+-    {
+-        grabber = MetaGrabberScript::FromInetref(lookup->GetInetref());
+-    }
+-
+-    if (!grabber.IsValid())
+-    {
+-        // matching grabber was not found, just use the default
+-        grabber = MetaGrabberScript::GetType(kGrabberTelevision);
+-    }
++    MetaGrabberScript grabber =
++        MetaGrabberScript::GetGrabber(kGrabberTelevision, lookup);
+ 
+     // there's some special logic going on with searches
+     if (lookup->GetStep() == kLookupSearch)
+@@ -612,19 +576,8 @@ MetadataLookupList MetadataDownload::handleTelevision(MetadataLookup *lookup)
+ MetadataLookupList MetadataDownload::handleVideoUndetermined(MetadataLookup *lookup)
+ {
+     MetadataLookupList list;
+-    MetaGrabberScript grabber;
+-
+-    if (!lookup->GetInetref().isEmpty() &&
+-        lookup->GetInetref() != "00000000")
+-    {
+-        grabber = MetaGrabberScript::FromInetref(lookup->GetInetref());
+-    }
+-
+-    if (!grabber.IsValid())
+-    {
+-        // matching grabber was not found, just use the default
+-        grabber = MetaGrabberScript::GetType(kGrabberTelevision);
+-    }
++    MetaGrabberScript grabber =
++        MetaGrabberScript::GetGrabber(kGrabberTelevision, lookup);
+ 
+     if (lookup->GetInetref().isEmpty() || lookup->GetInetref() == "00000000")
+     {
+diff --git a/mythtv/libs/libmythmetadata/metadatagrabber.cpp b/mythtv/libs/libmythmetadata/metadatagrabber.cpp
+index 0197061..b569aa5 100644
+--- a/mythtv/libs/libmythmetadata/metadatagrabber.cpp
++++ b/mythtv/libs/libmythmetadata/metadatagrabber.cpp
+@@ -153,6 +153,33 @@ GrabberList MetaGrabberScript::GetList(GrabberType type,
+     return retGrabberList;
+ }
+ 
++MetaGrabberScript MetaGrabberScript::GetGrabber(GrabberType defaultType,
++                                                const MetadataLookup *lookup)
++{
++    if (!lookup)
++    {
++        return GetType(defaultType);
++    }
++
++    MetaGrabberScript grabber;
++
++    if (!lookup->GetInetref().isEmpty() &&
++        lookup->GetInetref() != "00000000")
++    {
++        // inetref is defined, see if we have a pre-defined grabber
++        MetaGrabberScript grabber = lookup->GetInetref();
++
++        if (grabber.IsValid())
++        {
++            return grabber;
++        }
++        // matching grabber was not found, just use the default
++        // fall through
++    }
++
++    return GetType(defaultType);
++}
++
+ MetaGrabberScript MetaGrabberScript::GetType(const QString &type)
+ {
+     QString tmptype = type.toLower();
+@@ -195,7 +222,7 @@ MetaGrabberScript MetaGrabberScript::GetType(const GrabberType type)
+ }
+ 
+ MetaGrabberScript MetaGrabberScript::FromTag(const QString &tag,
+-                                                    bool absolute)
++                                            bool absolute)
+ {
+     GrabberList list = GetList();
+     GrabberList::const_iterator it = list.begin();
+@@ -226,7 +253,7 @@ MetaGrabberScript MetaGrabberScript::FromTag(const QString &tag,
+ }
+ 
+ MetaGrabberScript MetaGrabberScript::FromInetref(const QString &inetref,
+-                                                        bool absolute)
++                                                 bool absolute)
+ {
+     QMutexLocker lock(&reLock);
+ 
+diff --git a/mythtv/libs/libmythmetadata/metadatagrabber.h b/mythtv/libs/libmythmetadata/metadatagrabber.h
+index 7600b77..cb30581 100644
+--- a/mythtv/libs/libmythmetadata/metadatagrabber.h
++++ b/mythtv/libs/libmythmetadata/metadatagrabber.h
+@@ -42,6 +42,8 @@ class META_PUBLIC MetaGrabberScript : public QObject
+     static GrabberList          GetList(GrabberType type,
+                                         bool refresh=false);
+ 
++    static MetaGrabberScript    GetGrabber(GrabberType defaultType,
++                                           const MetadataLookup *lookup = NULL);
+     static MetaGrabberScript    GetType(const QString &type);
+     static MetaGrabberScript    GetType(GrabberType type);
+     static MetaGrabberScript    FromTag(const QString &tag,
+-- 
+1.7.10.2
+
