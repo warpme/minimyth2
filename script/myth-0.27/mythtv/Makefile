@@ -201,15 +201,15 @@ PATCHFILES += 0407-backport-ef54e66-Fix-VAAPI-accelerated-PiP.patch
 # v6.6.01
 PATCHFILES += 0408-xinitthreads.patch
 PATCHFILES += 0409-backport-1582de6-Channel-scanning-unbreak-the-cli.-Teardown-frees-and.patch
- PATCHFILES += 0410-backport-849b291-Add-ability-to-create-video-frames-where-all-lines-w.patch
- PATCHFILES += 0411-backport-b617f40-Add-NV12-format-support-to-VideoFrame-class-and-fast.patch
- PATCHFILES += 0412-backport-c65695c-Add-VAAPI-vaDerive-support-and-re-add-NV12-image-for.patch
- PATCHFILES += 0413-backport-b52b58a-Fix-strides-size-calculation-for-YV12-NV12-frames-wh.patch
+PATCHFILES += 0410-backport-849b291-Add-ability-to-create-video-frames-where-all-lines-w.patch
+PATCHFILES += 0411-backport-b617f40-Add-NV12-format-support-to-VideoFrame-class-and-fast.patch
+PATCHFILES += 0412-backport-c65695c-Add-VAAPI-vaDerive-support-and-re-add-NV12-image-for.patch
+PATCHFILES += 0413-backport-b52b58a-Fix-strides-size-calculation-for-YV12-NV12-frames-wh.patch
 PATCHFILES += 0414-backport-18511f8-Enable-forward-only-cursors-with-all-prepared-databa.patch
 PATCHFILES += 0415-backport-3518f1b-re-add-extra-cxxflags-that-got-lost-during-a-FFmpeg-.patch
 PATCHFILES += 0416-backport-40451cc-Add-nsecsElapsed-method-to-MythTimer-class.patch
- PATCHFILES += 0417-backport-b966dd5-Add-MythUSWCCopy-YV12-SV12-conversion-utility-class.patch
- PATCHFILES += 0418-backport-bf1cf05-Make-VAAPI-use-new-MythUSWCCopy-class.patch
+PATCHFILES += 0417-backport-b966dd5-Add-MythUSWCCopy-YV12-SV12-conversion-utility-class.patch
+PATCHFILES += 0418-backport-bf1cf05-Make-VAAPI-use-new-MythUSWCCopy-class.patch
 # v 6.7.00
 PATCHFILES += 0419-backport-5433b76-Allow-partial-reads.patch
 PATCHFILES += 0420-backport-aa822f5-Fix-a-thinko-in-the-This-time-and-This-day-and-time-.patch
@@ -226,13 +226,13 @@ PATCHFILES += 0429-backport-bbcecc4-Fix-PiP-when-using-OpenGL-output.patch
 PATCHFILES += 0430-backport-cc689fd-Fix-incorrect-deletion-of-allocated-buffers.patch
 PATCHFILES += 0431-backport-e2b7d6c-Allocate-VideoFrame-buffer-using-av_malloc-and-mythf.patch
 PATCHFILES += 0432-backport-04e0a17-Uses-16-bytes-aligned-memory-buffer.patch
- PATCHFILES += 0433-backport-1ef850f-Add-support-for-frames-where-pitch-width.patch
- PATCHFILES += 0434-backport-db5c40c-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
+PATCHFILES += 0433-backport-1ef850f-Add-support-for-frames-where-pitch-width.patch
+PATCHFILES += 0434-backport-db5c40c-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
 PATCHFILES += 0435-backport-d1f044c-Fix-PiP-with-VDPAU-on-mesa-s-drivers.patch
 PATCHFILES += 0436-backport-fe61ca2-Properly-handle-when-libmythbluray-is-unable-to-open.patch
 PATCHFILES += 0437-backport-6976233-Fix-mytharchive-compliation.patch
 PATCHFILES += 0438-backport-d2c8307-remove-fourcc.h-from-mythframe.h-so-it-doesn-t-need-.patch
- PATCHFILES += 0439-backport-b22277e-Fix-compilation-of-mythplugins.patch
+PATCHFILES += 0439-backport-b22277e-Fix-compilation-of-mythplugins.patch
 # v 6.7.02
 PATCHFILES += 0440-backport-bc382fc-fix-compilation-due-to-missing-header.patch
 PATCHFILES += 0440-backport-6a7481b-Use-MythAVFrame-convenience-class.patch
@@ -261,14 +261,14 @@ PATCHFILES += 0463-commit-280146e-Have-server-pool-and-mythbackend-use-new-MythC
 PATCHFILES += 0464-commit-a5e27e9-Make-MythCoreContext-GetMasterServerIP-returns-local.patch
 PATCHFILES += 0465-commit-f737a78-MythCoreContext-Fix-bad-copy-paste.patch
 PATCHFILES += 0466-commit-979ea9b-Fix-GetBackendStatusPort.patch
-PATCHFILES += 0467-sync-upnp-to-master.patch
-PATCHFILES += 0469-backport-de991d9-Ignore-IPv6-settings-value-if-it-s-invalid.patch
+PATCHFILES += 0467-commit-418deb6-Ignore-IPv6-settings-value-if-it-s-invalid.patch
+PATCHFILES += 0468-sync-upnp-to-master.patch
 PATCHFILES += 0470-backport-9df8bb3-Don-t-attempt-to-play-the-video-streams-for-mp3-flac.patch
 PATCHFILES += 0471-backport-548aaf7-Properly-allocate-VDPAU-PiP-video-buffers-and-fix-me.patch
 PATCHFILES += 0472-backport-64d94c0-Allocate-DeAllocate-video-buffers-using-av_malloc.patch
 PATCHFILES += 0474-backport-f3c40c8-Coverity-CID-1224483.patch
 # v 6.7.04
-PATCHFILES += 0475-backport-pullrequest78-add_different_groupings_for_content_in_video.patch
+PATCHFILES += 0475-backport-d7c236d-UPnP-add-different-groupings-for-content-in-video.patch
 # v 6.7.05
 PATCHFILES += 0477-backport-05124c3-VO-Fail-VAAPI-reinit-from-decoder-thread-to-avoid-Qt.patch
 PATCHFILES += 0479-backport-faad748-TV-Quit-the-TV-playback-loop-when-the-primary-player.patch
@@ -282,7 +282,6 @@ PATCHFILES += 0485-backport-2c22c5d-libmyth-Prevent-SEGV-in-avcodec_decode_video
 PATCHFILES += 0486-backport-0e0e04c-Player-Improve-low-bit-rate-high-latency-stream-play.patch
 PATCHFILES += 0487-backport-49df62f-Player-Don-t-call-DoneDisplayingFrame-for-PiP-until-.patch
 PATCHFILES += 0489-backport-d3bb512-ringbuffer-Prevent-a-divide-by-0.patch
-PATCHFILES += 0490-backport-5a26ce9-Subtitles-Avoid-changing-subtitle-state-in-the-decod.patch
 PATCHFILES += 0491-backport-9dbbd09-AO-Cache-the-result-of-IsPulseAudioRunning.patch
 PATCHFILES += 0492-backport-604a9d8-Player-Clear-EOF-when-resuming-play.patch
 PATCHFILES += 0493-backport-195eb07-Player-Enable-AVSync-to-recover-quicker-after-a-seek.patch
@@ -294,9 +293,11 @@ PATCHFILES += 0499-backport-a2b7a45-Decoder-Limit-buffered-audio-data-to-2000mS-
 PATCHFILES += 0500-backport-0937dac-Transcode-Fix-a-race-condition-in-VideoDecodeBuffer-.patch
 PATCHFILES += 0501-backport-af6f826-Flush-buffers-prior-to-closing-the-codec.patch
 PATCHFILES += 0502-backport-25dd494-MythUIWebBrowser-silence-a-warning-when-we-can-t-fin.patch
+# v 6.7.06
 PATCHFILES += 0503-backport-90730e5-Do-not-wait-too-quickly-when-reaching-EOF.patch
 PATCHFILES += 0504-83050ac-Limit-bitrate-to-100Mbit-s-and-fill_min-to-half-the-.patch
 PATCHFILES += 0505-e24b793-Player-Increase-OpenFile-timeout-to-allow-playing-is.patch
+# v 6.8.01
 PATCHFILES += 0506-commit-2d2530c-Mythmedatalookup-set-PYTHONPATH-so-mythmedatalookup-.patch
 PATCHFILES += 0507-commit-1489019-Store-grabber-used-along-with-inetref-to-ensure-corr.patch
 PATCHFILES += 0508-commit-f883275-Make-sure-to-pass-season-and-episode-to-tv-grabber.patch
@@ -309,6 +310,37 @@ PATCHFILES += 0514-commit-7e8ca1c-metadata-do-not-use-grabber-cache-if-not-initi
 PATCHFILES += 0515-backport-d8c0ad9-UPnP-Add-the-fraction-of-a-second-component-to-the-D.patch
 PATCHFILES += 0516-backport-8470591-UPnP-Ensure-resource-URIs-are-properly-encoded-and-f.patch
 PATCHFILES += 0517-backport-e72b1ca-UPnP-Ensure-that-all-the-values-in-the-CDS-Object-XM.patch
+# v 6.8.02
+PATCHFILES += 0518-commit-9a6d2d6-metadata-Properly-clean-inetref-when-searching-for-c.patch
+PATCHFILES += 0519-commit-b1cd6fb-metadata-Properly-separate-TV-title-subtitle-search-.patch
+PATCHFILES += 0520-commit-5b10d38-metadata-if-video-type-not-known-try-both-movie-and-.patch
+PATCHFILES += 0521-commit-819f423-CoreContext-Fix-IsThisHost.patch
+PATCHFILES += 0521.1-commit-7e83d93-CoreContext-Fix-IsThisHost.patch
+PATCHFILES += 0522-commit-aaae611-metadata-do-not-use-script-name-for-artwork-file-nam.patch
+PATCHFILES += 0523-backport-438d29a-Subtitles-Avoid-changing-subtitle-state-in-the-decod.patch
+PATCHFILES += 0524-backport-33acfaf-Make-seeks-faster-for-slow-decoders-large-keyframe-d.patch
+PATCHFILES += 0525-commit-3fec986-metadata-uses-_-as-separator-in-inetref-in-place-of.patch
+PATCHFILES += 0526-backport-e7b163f-UPnP-Expose-more-metadata-to-UPnP-clients.patch
+# v 6.9.00
+PATCHFILES += 0528-backport-4c5585a-UPnP-Try-to-use-more-specific-containers-where-possi.patch
+PATCHFILES += 0529-backport-b510080..cf2f728-update-FFMPEG-to-2.2.4.patch
+PATCHFILES += 0532-backport-15a6f6d-UPnP-Correctly-sort-tracks-in-the-album-container-by.patch
+PATCHFILES += 0533-backport-27b8c68-UPnP-Properly-sort-the-video-genre-list-alphabetical.patch
+PATCHFILES += 0534-backport-1a66fbb-Fix-indentation-in-devicemaster.xml.patch
+PATCHFILES += 0535-backport-59bc1cd-UPnP-Add-icons-for-the-UPnP-device.patch
+PATCHFILES += 0536-disable-querying-episodenum-total-season-in-upnp.patch
+# v 6.9.01
+PATCHFILES += 0537-commit-ae611ec-metadata-Fix-broken-retrieval-for-screenshots.patch
+PATCHFILES += 0538-commit-71c28ce-metadata-fix-stray-declaration.patch
+PATCHFILES += 0539-commit-8e6341b-metadata-Fix-GetGrabber.patch
+PATCHFILES += 0540-commit-c20107d-metadata-also-set-collectionref-to-new-format.patch
+PATCHFILES += 0541-commit-76aae88-metadata-no-need-to-re-run-the-search-when-a-match-h.patch
+PATCHFILES += 0542-commit-c930a9c-metadata-properly-handle-media-search-type-if-we-alr.patch
+PATCHFILES += 0543-backport-f1cfac4-UPnP-Set-sane-defaults-for-the-required-properties-o.patch
+PATCHFILES += 0544-backport-f285853-UPnP-Make-sure-that-if-no-extensions-handle-sub-clas.patch
+PATCHFILES += 0545-backport-bc5a02d-UPnP-Have-the-video-extension-create-movieGenre-cont.patch
+PATCHFILES += 0546-backport-d9d6873-UPnP-Fix-the-service-IDs-for-CDS-and-CMGR-which-were.patch
+
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
@@ -320,8 +352,11 @@ ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | gre
     PATCHFILES += 1143-backport-0022b23-MythMusic-Read-Set-an-annonymous-POPM-tag-in-ID3-tag.patch
     PATCHFILES += 1144-backport-491fd8f-MythMusic-Save-the-last-play-date-time-in-the-ID3-ta.patch
     PATCHFILES += 1145-backport-b639056-MythMusic-If-the-global-POPM-tag-playcount-was-zero-.patch
-    #PATCHFILES += 2038-2284-mythimage-backport-from-master-20140505.patch
-    #PATCHFILES += 2285-backport-812bdb6-cppcheck-Invalid-usleep-argument.-The-value-is-10000.patch
+    # 6.9.01
+    PATCHFILES += 1146-backport-31614bf-MusicPlayer-On-stop-clear-any-temporary-one-shot-met.patch
+
+    PATCHFILES += 2038-2284-mythimage-backport-from-master-20140505.patch
+    PATCHFILES += 2285-backport-812bdb6-cppcheck-Invalid-usleep-argument.-The-value-is-10000.patch
 
     PATCHFILES += 3000-backport-ec5a9d3-MythNetvision-pass-const-QStrings-by-reference-cppch.patch
     PATCHFILES += 3002-backport-85b2d6d-Reorganize-cache-and-temporary-directories-under-com.patch
