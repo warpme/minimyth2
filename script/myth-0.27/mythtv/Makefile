@@ -340,7 +340,30 @@ PATCHFILES += 0543-backport-f1cfac4-UPnP-Set-sane-defaults-for-the-required-prop
 PATCHFILES += 0544-backport-f285853-UPnP-Make-sure-that-if-no-extensions-handle-sub-clas.patch
 PATCHFILES += 0545-backport-bc5a02d-UPnP-Have-the-video-extension-create-movieGenre-cont.patch
 PATCHFILES += 0546-backport-d9d6873-UPnP-Fix-the-service-IDs-for-CDS-and-CMGR-which-were.patch
-
+# v 6.9.02
+PATCHFILES += 0547-backport-5d3d319-metadata-fix-incorrect-tests.patch
+PATCHFILES += 0548-backport-1abcb6f-Revert-metadata-properly-handle-media-search-type-if.patch
+PATCHFILES += 0549-backport-085c65e-metadata-clear-error-state-once-an-error-has-been-pr.patch
+PATCHFILES += 0551-backport-6954cff-metadata-add-getStorageGroupName.patch
+PATCHFILES += 0552-backport-1e84484-metadata-fix-storage-group-access-when-downloading-a.patch
+PATCHFILES += 0553-backport-823e851-metadata-properly-update-artwork-images-paths.patch
+PATCHFILES += 0554-backport-1f21438-metadata-create-objects-on-stack.patch
+PATCHFILES += 0555-backport-eef41b9-metadata-do-not-attempt-to-download-remaining-artwor.patch
+PATCHFILES += 0556-backport-80c5e45-add-GuessLookupType-for-VideoMetadata-to-match-other.patch
+PATCHFILES += 0557-backport-2d4be81-metadata-use-extended-inetref-if-available-to-determ.patch
+PATCHFILES += 0558-backport-7407adf-metadata-create-Set-GetIsCollection.patch
+PATCHFILES += 0559-backport-2c1e405-metadata-never-overrides-current-video-season-episod.patch
+PATCHFILES += 0560-backport-c2c27e5-frontend-simplify-metadata-search-creation.patch
+PATCHFILES += 0561-backport-f9fef96-frontend-fix-automatic-mode-introduced-in-previous-c.patch
+PATCHFILES += 0562-backport-05f63f5-metadata-complete-refactor-of-search.patch
+PATCHFILES += 0563-backport-e0155b9-metadatalookup-fix-logic-error-introduced-in-5d3d319.patch
+PATCHFILES += 0564-backport-1c89d56-metadata-fix-wrong-test-leading-to-incorrect-hash-ca.patch
+PATCHFILES += 0565-backport-7fa5c4f-mythbackend-fixes-QUERY_FILE_HASH-hanging.patch
+PATCHFILES += 0566-backport-87822fe-protoserver-fixes-QUERY_FILE_HASH-hanging.patch
+# v 6.9.03
+PATCHFILES += 0568-backport-2f9424c-metadata-return-both-movie-and-TV-results-when-in-no.patch
+PATCHFILES += 0569-backport-4e50609-metadata-also-look-for-artwork-when-scanning-a-singl.patch
+PATCHFILES += 0570-backport-41b9be6-frontend-add-search-abilities-to-change-recording-me.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch

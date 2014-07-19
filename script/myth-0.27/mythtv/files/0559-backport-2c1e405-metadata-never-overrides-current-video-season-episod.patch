@@ -1,0 +1,58 @@
+From 2c1e405709270ef165e93346a77deb718831faff Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Thu, 17 Jul 2014 21:32:44 +1000
+Subject: [PATCH 12/16] metadata: never overrides current video season/episode
+ with with retrieved metadata ones
+
+Only do so, if season or episode is 0
+---
+ mythtv/libs/libmythmetadata/metadatacommon.cpp |   25 +++++++++++++++---------
+ 1 file changed, 16 insertions(+), 9 deletions(-)
+
+diff --git a/mythtv/libs/libmythmetadata/metadatacommon.cpp b/mythtv/libs/libmythmetadata/metadatacommon.cpp
+index 2d0a8ae..d28d54e 100644
+--- a/mythtv/libs/libmythmetadata/metadatacommon.cpp
++++ b/mythtv/libs/libmythmetadata/metadatacommon.cpp
+@@ -1177,23 +1177,30 @@ MetadataLookup* ParseMetadataItem(const QDomElement& item,
+         season = lookup->GetSeason();
+         episode = lookup->GetEpisode();
+     }
+-    else
++
++    if (lookup->GetPreferDVDOrdering())
+     {
+-        if (lookup->GetPreferDVDOrdering())
++        if (!season)
+         {
+             season = item.firstChildElement("dvdseason").text().toUInt();
+-            episode = item.firstChildElement("dvdepisode").text().toUInt();
+         }
+-
+-        if ((season == 0) && (episode == 0))
++        if (!episode)
+         {
+-            season = item.firstChildElement("season").text().toUInt();
+-            episode = item.firstChildElement("episode").text().toUInt();
++            episode = item.firstChildElement("dvdepisode").text().toUInt();
+         }
+-        LOG(VB_GENERAL, LOG_INFO, QString("Result Found, Season %1 Episode %2")
+-            .arg(season).arg(episode));
+     }
+ 
++    if (!season)
++    {
++        season = item.firstChildElement("season").text().toUInt();
++    }
++    if (!episode)
++    {
++        episode = item.firstChildElement("episode").text().toUInt();
++    }
++    LOG(VB_GENERAL, LOG_INFO, QString("Result Found, Season %1 Episode %2")
++        .arg(season).arg(episode));
++
+     return new MetadataLookup(lookup->GetType(), lookup->GetSubtype(),
+         lookup->GetData(), lookup->GetStep(), lookup->GetAutomatic(),
+         lookup->GetHandleImages(), lookup->GetAllowOverwrites(),
+-- 
+1.7.10.2
+

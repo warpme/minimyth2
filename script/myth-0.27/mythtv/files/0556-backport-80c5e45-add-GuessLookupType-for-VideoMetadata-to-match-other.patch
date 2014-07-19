@@ -1,0 +1,64 @@
+From 80c5e450b651732c476fbf8f1c47ba71a036f040 Mon Sep 17 00:00:00 2001
+From: Karl Dietz <dekarl@mythtv.org>
+Date: Sat, 31 May 2014 10:18:04 +0200
+Subject: [PATCH] add GuessLookupType for VideoMetadata to match other content
+
+Refactor the lookup so its easier to compare the guessing.
+---
+ mythtv/libs/libmythmetadata/metadatafactory.cpp |   20 ++++++++++++++------
+ mythtv/libs/libmythmetadata/metadatafactory.h   |    1 +
+ 2 files changed, 15 insertions(+), 6 deletions(-)
+
+diff --git a/mythtv/libs/libmythmetadata/metadatafactory.cpp b/mythtv/libs/libmythmetadata/metadatafactory.cpp
+index 66775fe..1239184 100644
+--- a/mythtv/libs/libmythmetadata/metadatafactory.cpp
++++ b/mythtv/libs/libmythmetadata/metadatafactory.cpp
+@@ -135,12 +135,7 @@ void MetadataFactory::Lookup(VideoMetadata *metadata, bool automatic,
+ 
+     lookup->SetStep(kLookupSearch);
+     lookup->SetType(kMetadataVideo);
+-    if (metadata->GetSeason() > 0 || metadata->GetEpisode() > 0)
+-        lookup->SetSubtype(kProbableTelevision);
+-    else if (metadata->GetSubtitle().isEmpty())
+-        lookup->SetSubtype(kProbableMovie);
+-    else
+-        lookup->SetSubtype(kUnknownVideo);
++    lookup->SetSubtype(GuessLookupType(metadata));
+     lookup->SetData(qVariantFromValue(metadata));
+     lookup->SetAutomatic(automatic);
+     lookup->SetHandleImages(getimages);
+@@ -683,6 +678,19 @@ LookupType GuessLookupType(MetadataLookup *lookup)
+     return ret;
+ }
+ 
++LookupType GuessLookupType(VideoMetadata *metadata)
++{
++    LookupType ret = kUnknownVideo;
++
++    if (metadata->GetSeason() > 0 || metadata->GetEpisode() > 0)
++        ret = kProbableTelevision;
++    else if (metadata->GetSubtitle().isEmpty())
++        ret = kProbableMovie;
++    else
++        ret = kUnknownVideo;
++
++    return ret;
++}
+ 
+ LookupType GuessLookupType(RecordingRule *recrule)
+ {
+diff --git a/mythtv/libs/libmythmetadata/metadatafactory.h b/mythtv/libs/libmythmetadata/metadatafactory.h
+index 54de5d2..4b80431 100644
+--- a/mythtv/libs/libmythmetadata/metadatafactory.h
++++ b/mythtv/libs/libmythmetadata/metadatafactory.h
+@@ -152,6 +152,7 @@ class META_PUBLIC MetadataFactory : public QObject
+ 
+ META_PUBLIC LookupType GuessLookupType(ProgramInfo *pginfo);
+ META_PUBLIC LookupType GuessLookupType(MetadataLookup *lookup);
++META_PUBLIC LookupType GuessLookupType(VideoMetadata *metadata);
+ META_PUBLIC LookupType GuessLookupType(RecordingRule *recrule);
+ 
+ #endif
+-- 
+1.7.10.2
+

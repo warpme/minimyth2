@@ -1,0 +1,145 @@
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/editvideometadata.cpp mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/editvideometadata.cpp
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/editvideometadata.cpp	2014-07-17 18:31:41.000000000 +0200
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/editvideometadata.cpp	2014-07-17 18:33:13.252152943 +0200
+@@ -26,6 +26,7 @@
+ #include "videoutils.h"
+ 
+ #include "editvideometadata.h"
++#include "metadatafactory.h"
+ 
+ static const QString _Location = QObject::tr("Metadata Editor");
+ 
+@@ -682,13 +683,8 @@
+ 
+     MetadataLookup *lookup = new MetadataLookup();
+     lookup->SetType(kMetadataVideo);
+-    if (m_workingMetadata->GetSeason() > 0 ||
+-            m_workingMetadata->GetEpisode() > 0)
+-        lookup->SetSubtype(kProbableTelevision);
+-    else if (m_workingMetadata->GetSubtitle().isEmpty())
+-        lookup->SetSubtype(kProbableMovie);
+-    else
+-        lookup->SetSubtype(kUnknownVideo);
++
++    lookup->SetSubtype(GuessLookupType(m_workingMetadata));
+     lookup->SetHost(m_workingMetadata->GetHost());
+     lookup->SetAutomatic(true);
+     lookup->SetData(qVariantFromValue<VideoArtworkType>(type));
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/scheduleeditor.cpp mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/scheduleeditor.cpp
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/scheduleeditor.cpp	2014-07-16 11:43:03.000000000 +0200
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/scheduleeditor.cpp	2014-07-17 20:22:05.925624053 +0200
+@@ -1452,29 +1452,10 @@
+ 
+ void MetadataOptions::PerformQuery()
+ {
+-    MetadataLookup *lookup = new MetadataLookup();
+-
+     CreateBusyDialog(tr("Trying to manually find this "
+                         "recording online..."));
+ 
+-    lookup->SetStep(kLookupSearch);
+-    lookup->SetType(kMetadataRecording);
+-    if ((m_recInfo && m_recInfo->GetCategoryType() == ProgramInfo::kCategoryMovie) ||
+-        (m_seasonSpin->GetIntValue() == 0 &&
+-         m_episodeSpin->GetIntValue() == 0))
+-         lookup->SetSubtype(kProbableMovie);
+-    else
+-        lookup->SetSubtype(kProbableTelevision);
+-    lookup->SetAllowGeneric(true);
+-    lookup->SetAutomatic(false);
+-    lookup->SetHandleImages(false);
+-    lookup->SetHost(gCoreContext->GetMasterHostName());
+-    lookup->SetTitle(m_recordingRule->m_title);
+-    lookup->SetSubtitle(m_recordingRule->m_subtitle);
+-    lookup->SetInetref(m_inetrefEdit->GetText());
+-    lookup->SetCollectionref(m_inetrefEdit->GetText());
+-    lookup->SetSeason(m_seasonSpin->GetIntValue());
+-    lookup->SetEpisode(m_episodeSpin->GetIntValue());
++    MetadataLookup *lookup = CreateLookup(kMetadataRecording);
+ 
+     m_metadataFactory->Lookup(lookup);
+ }
+@@ -1645,28 +1626,35 @@
+     return true;
+ }
+ 
+-void MetadataOptions::FindNetArt(VideoArtworkType type)
++MetadataLookup *MetadataOptions::CreateLookup(MetadataType mtype)
+ {
+-    if (!CanSetArtwork())
+-        return;
+-
+     MetadataLookup *lookup = new MetadataLookup();
+ 
+-    QString msg = tr("Searching for available artwork...");
+-    CreateBusyDialog(msg);
+-
+     lookup->SetStep(kLookupSearch);
+-    lookup->SetType(kMetadataVideo);
+-    lookup->SetAutomatic(true);
+-    lookup->SetHandleImages(false);
+-    if ((m_recInfo && m_recInfo->GetCategoryType() == ProgramInfo::kCategoryMovie) ||
+-        (m_seasonSpin->GetIntValue() == 0 &&
+-         m_episodeSpin->GetIntValue() == 0))
+-         lookup->SetSubtype(kProbableMovie);
++    lookup->SetType(mtype);
++    LookupType type = GuessLookupType(m_inetrefEdit->GetText());
++
++    if (type == kUnknownVideo)
++    {
++        if ((m_recInfo && m_recInfo->GetCategoryType() == ProgramInfo::kCategoryMovie) ||
++            (m_seasonSpin->GetIntValue() == 0 &&
++             m_episodeSpin->GetIntValue() == 0))
++        {
++            lookup->SetSubtype(kProbableMovie);
++        }
++        else
++        {
++            lookup->SetSubtype(kProbableTelevision);
++        }
++    }
+     else
+-        lookup->SetSubtype(kProbableTelevision);
++    {
++        // we could determine the type from the inetref
++        lookup->SetSubtype(type);
++    }
+     lookup->SetAllowGeneric(true);
+-    lookup->SetData(qVariantFromValue<VideoArtworkType>(type));
++    lookup->SetAutomatic(true);
++    lookup->SetHandleImages(false);
+     lookup->SetHost(gCoreContext->GetMasterHostName());
+     lookup->SetTitle(m_recordingRule->m_title);
+     lookup->SetSubtitle(m_recordingRule->m_subtitle);
+@@ -1675,6 +1663,20 @@
+     lookup->SetSeason(m_seasonSpin->GetIntValue());
+     lookup->SetEpisode(m_episodeSpin->GetIntValue());
+ 
++    return lookup;
++}
++
++void MetadataOptions::FindNetArt(VideoArtworkType type)
++{
++    if (!CanSetArtwork())
++        return;
++
++    QString msg = tr("Searching for available artwork...");
++    CreateBusyDialog(msg);
++
++    MetadataLookup *lookup = CreateLookup(kMetadataVideo);
++
++    lookup->SetData(qVariantFromValue<VideoArtworkType>(type));
+     m_imageLookup->addLookup(lookup);
+ }
+ 
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/scheduleeditor.h mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/scheduleeditor.h
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/scheduleeditor.h	2014-07-16 11:43:03.000000000 +0200
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/scheduleeditor.h	2014-07-17 18:33:13.252152943 +0200
+@@ -360,6 +360,7 @@
+     QStringList GetSupportedImageExtensionFilter();
+ 
+     void HandleDownloadedImages(MetadataLookup *lookup);
++    MetadataLookup *CreateLookup(MetadataType mtype);
+ 
+     bool CanSetArtwork(void);
+ 
