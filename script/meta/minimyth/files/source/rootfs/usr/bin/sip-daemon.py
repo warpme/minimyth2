@@ -4,6 +4,7 @@ import sys
 import pjsua as pj
 import threading
 import os
+import glob
 import os.path
 import time
 import re
@@ -18,8 +19,12 @@ rtp_port                     = 10000
 config_cfg                   = "/etc/sip-daemon.conf"
 semaphores_path              = "/tmp"
 
+# If snd_clock_rate set to 0 - clock_rate/ptime will be set to below values
+snd_clock_rate               = 48000
+ptime                        = 20
 
-
+#for 11025 ptime 40
+#for 22050 ptime 20
 
 
 
@@ -29,7 +34,7 @@ current_call = None
 play_voice_mail = 0
 fe_is_paused = 0
 
-print "\nSIP Telephony Daemon v1.0\n(c) Piotr Oniszczuk\n"
+print "\nSIP Telephony Daemon v1.1\n(c) Piotr Oniszczuk\n"
 
 date = datetime.datetime.today()
 print "Started at: " + date.strftime('%d-%b-%Y, %H:%M:%S') + "\n"
@@ -43,18 +48,18 @@ def LoadConfig( cfg_file ):
         if not re.search('^#|^;', line):
             line = re.sub('\n', "", line)
             x = line.split("=")
-            a=x[0]
-            b=x[1]
-            config[a]=b
+            a = x[0]
+            b = x[1]
+            config[a] = b
             if debug:
-                print cfg_file+": "+a+"="+b
+                print cfg_file + ": " + a + "=" + b
     return config;
 
 def SendOSDNotify( title, origin, description, extra, image, progress_text, progress, timeout, style, fe_ip ):
     msg = "<mythnotification version=\"1\"><image>"+image+"</image><text>"+title+"</text><origin>"+origin+"</origin><description>"+description+"</description><extra>"+extra+"</extra><progress_text>"+progress_text+"</progress_text><progress>"+progress+"</progress><timeout>"+timeout+"</timeout>"
     if style:
-        msg = msg+"<style>"+style+"</style>"
-    msg = msg+"</mythnotification>"
+        msg = msg + "<style>" + style + "</style>"
+    msg = msg + "</mythnotification>"
     fe_port = 6948
     if debug:
         print "UDP target IP:", fe_ip
@@ -95,10 +100,15 @@ incoming_call_osd_timeout    = config["incoming_call_osd_timeout"]
 incoming_call_osd_style      = config["incoming_call_osd_style"]
 ongoing_call_image           = config["ongoing_call_image"]
 ongoing_call_osd_timeout     = config["ongoing_call_osd_timeout"]
-ongoing_coll_osd_style       = config["ongoing_coll_osd_style"]
+ongoing_call_osd_style       = config["ongoing_call_osd_style"]
+voicemail_call_image         = config["voicemail_call_image"]
+voicemail_call_osd_timeout   = config["voicemail_call_osd_timeout"]
+voicemail_call_osd_style     = config["voicemail_call_osd_style"]
 end_call_image               = config["end_call_image"]
 end_call_osd_timeout         = config["end_call_osd_timeout"]
 end_call_osd_style           = config["end_call_osd_style"]
+tmo_mainmenu_begin_call      = float(config["tmo_mainmenu_begin_call"])
+sip_domain                   = sip_registrar
 
 #fe_video_playback_pause_cmd  = config["fe_video_playback_pause_cmd"]
 #fe_video_playback_resume_cmd = config["fe_video_playback_resume_cmd"]
@@ -115,20 +125,15 @@ print "  -Audio Dev. IN      : " + str(audio_dev_in)
 print "  -Audio Dev. OUT     : " + str(audio_dev_out)
 print "  -Voicemail ann.     : " + voicemail_ann
 print "  -Voicemail rec.pref.: " + voicemail_recording_pref
+if snd_clock_rate:
+    print "  -Sound CLK.rate    : " + str(snd_clock_rate)
 print " "
 
-if os.path.isfile(semaphores_path + "/exit.sem"):
-    os.remove(semaphores_path + "/exit.sem")
-if os.path.isfile(semaphores_path + "/pickup.sem"):
-    os.remove(semaphores_path + "/pickup.sem")
-if os.path.isfile(semaphores_path + "/voice-mail.sem"):
-    os.remove(semaphores_path + "/voice-mail.sem")
-if os.path.isfile(semaphores_path + "/voice-mail-listen.sem"):
-    os.remove(semaphores_path + "/voice-mail-listen.sem")
-if os.path.isfile(semaphores_path + "/reject.sem"):
-    os.remove(semaphores_path + "/reject.sem")
-if os.path.isfile(semaphores_path + "/hangup.sem"):
-    os.remove(semaphores_path + "/hangup.sem")
+for filePath in glob.glob(semaphores_path + "/*.sem"):
+    if os.path.isfile(filePath):
+        if debug:
+          print "Deleting semaphore:" + filePath
+        os.remove(filePath)
 
 def log_cb(level, str, len):
     print str,
@@ -166,7 +171,7 @@ class MyAccountCallback(pj.AccountCallback):
 
         uri = call.info().remote_uri
         phone = re.sub('<|>|\s|sip:|@.*', "", uri)
-        SendOSDNotify( "TELEFON...", "Przychodzace polaczenie", "Tel: "+phone, "1: Rozmowa 2,3: Voice-mail 4: Zakoncz", incomming_call_image, "", "", incoming_call_osd_timeout, incoming_call_osd_style, "127.0.0.1" )
+        SendOSDNotify( "TELEFON...", "Przychodzace polaczenie", "Tel: "+phone, "1:Rozmowa 2,3:Voice-mail 4:Odrzuc/Zakoncz", incomming_call_image, "", "", incoming_call_osd_timeout, incoming_call_osd_style, "127.0.0.1" )
 
         loc = QueryFELoc()
         if debug:
@@ -205,7 +210,7 @@ class MyCallCallback(pj.CallCallback):
             lib.set_null_snd_dev()
 
             print 'Current call is', current_call
-            SendOSDNotify( "TELEFON...","", "Zakonczone polaczenie", "", end_call_image,"","", end_call_osd_timeout, end_call_osd_style, "127.0.0.1" )
+            SendOSDNotify( "TELEFON...","", "Zakonczono polaczenie", "", end_call_image,"","", end_call_osd_timeout, end_call_osd_style, "127.0.0.1" )
 
             if fe_is_paused:
                 print "FE was paused. Resuming playback..."
@@ -225,6 +230,8 @@ class MyCallCallback(pj.CallCallback):
             if not self.media_opened:
                 self.media_opened = 1
 
+                if os.path.isfile(semaphores_path + "/make-call-*.sem"):
+                    os.remove(semaphores_path + "/make-call-*.sem")
                 if os.path.isfile(semaphores_path + "/pickup.sem"):
                     os.remove(semaphores_path + "/pickup.sem")
                 if os.path.isfile(semaphores_path + "/voice-mail.sem"):
@@ -258,6 +265,7 @@ class MyCallCallback(pj.CallCallback):
                     lib.conf_connect(player_slot, call_slot)
 
                     if play_voice_mail == 2:
+                        print "Connecting playback device to speakers..."
                         lib.set_snd_dev(audio_dev_in, audio_dev_out)
                         lib.conf_connect(call_slot, audio_dev_out)
 
@@ -265,6 +273,9 @@ class MyCallCallback(pj.CallCallback):
                     print "You can talk!"
 
                     lib.set_snd_dev(audio_dev_in, audio_dev_out)
+                    if snd_clock_rate:
+                        lib.snd_clock_rate = snd_clock_rate
+                        lib.ptime = ptime
 
                     lib.conf_connect(call_slot, audio_dev_out)
                     lib.conf_connect(audio_dev_in, call_slot)
@@ -282,6 +293,15 @@ class MyCallCallback(pj.CallCallback):
                 print "Closing Voice-mail recorder..."
 
             print "Media are closed..."
+
+
+def make_call(uri):
+    try:
+        print "Making call to:", uri
+        return acc.make_call(uri, cb=MyCallCallback())
+    except pj.Error, e:
+        print "Exception: " + str(e)
+        return None
 
 lib = pj.Lib()
 
@@ -324,6 +344,7 @@ try:
                 input = sys.stdin.readline().rstrip("\r\n")
                 if input == "":
                     continue
+                input = "sip:" + input + "@" + sip_domain
                 lck = lib.auto_lock()
                 current_call = make_call(input)
                 del lck
@@ -381,7 +402,35 @@ try:
                 acc = None
                 lib.destroy()
                 lib = None
+                os.system("killall -9 sip-daemon.sh")
                 sys.exit(0)
+
+            elif glob.glob(semaphores_path + "/make-call-*.sem"):
+
+                play_voice_mail = 0
+
+                for filePath in glob.glob(semaphores_path + "/make-call-*.sem"):
+
+                    number = re.sub(semaphores_path, "", filePath)
+                    number = re.sub('make-call-|/|.sem|', "", number)
+
+                    while current_call:
+                        print "Need wait! Currently in call with:" + number
+                        time.sleep(5)
+
+                    SendOSDNotify( "TELEFON...","", "Wykonuje polaczenie", "Numer: "+number, ongoing_call_image,"","", ongoing_call_osd_timeout, ongoing_call_osd_style, "127.0.0.1" )
+
+                    number = "sip:" + number + "@" + sip_domain
+                    number = re.sub('\n', "", number)
+
+                    lck = lib.auto_lock()
+                    current_call = make_call(number)
+                    del lck
+
+                    if os.path.isfile(filePath):
+                        if debug:
+                            print "Deleting semaphore:" + filePath
+                        os.remove(filePath)
 
             elif os.path.isfile(semaphores_path + "/pickup.sem") and os.access(semaphores_path + "/pickup.sem", os.R_OK):
                 os.remove(semaphores_path + "/pickup.sem")
@@ -392,12 +441,12 @@ try:
 
                 play_voice_mail = 0
 
-                SendOSDNotify( "TELEFON...","", "Przyjecie polaczenia", "Numer: "+phone, ongoing_call_image,"","", ongoing_call_osd_timeout, ongoing_coll_osd_style, "127.0.0.1" )
+                SendOSDNotify( "TELEFON...","", "Przyjecie polaczenia", "Numer: "+phone, ongoing_call_image,"","", ongoing_call_osd_timeout, ongoing_call_osd_style, "127.0.0.1" )
 
                 print "Will pickup Call. Exiting FE to MainMenu..."
                 TelnetCmdToFE(fe_jump_to_mainmenu)
 
-                time.sleep(2)
+                time.sleep(tmo_mainmenu_begin_call)
 
                 current_call.answer(200)
 
@@ -410,7 +459,7 @@ try:
 
                 play_voice_mail = 1
 
-                SendOSDNotify( "TELEFON...","", "Poczta glosowa", "", "images/mythnotify/phone-hangoff.png","","", "10","", "127.0.0.1" )
+                SendOSDNotify( "TELEFON...","", "Poczta glosowa", "", voicemail_call_image,"","", voicemail_call_osd_timeout, voicemail_call_osd_style, "127.0.0.1" )
 
                 current_call.answer(200)
 
@@ -429,12 +478,12 @@ try:
 
                 play_voice_mail = 2
 
-                SendOSDNotify( "TELEFON...","", "Poczta glosowa", "", "images/mythnotify/phone-hangoff.png","","", "10","", "127.0.0.1" )
+                SendOSDNotify( "TELEFON...","", "Poczta glosowa", "", voicemail_call_image,"","", voicemail_call_osd_timeout, voicemail_call_osd_style, "127.0.0.1" )
 
                 print "Will voice-mail and listen call. Exiting FE to MainMenu..."
                 TelnetCmdToFE(fe_jump_to_mainmenu)
 
-                time.sleep(2)
+                time.sleep(tmo_mainmenu_begin_call)
 
                 current_call.answer(200)
 
@@ -462,11 +511,11 @@ try:
 
                 play_voice_mail = 0
 
-                SendOSDNotify( "TELEFON...","", "Zakonczenie polaczenia", "","images/mythnotify/phone-hangoff.png","","", "10","", "127.0.0.1" )
+                SendOSDNotify( "TELEFON...","", "Koncze polaczenie", "", end_call_image,"","", end_call_osd_timeout, end_call_osd_style, "127.0.0.1" )
 
                 current_call.hangup()
 
-            time.sleep(1)
+            time.sleep(0.5)
 
 except pj.Error, e:
     print "Exception: " + str(e)
