@@ -293,6 +293,7 @@ PATCHFILES += 0499-backport-a2b7a45-Decoder-Limit-buffered-audio-data-to-2000mS-
 PATCHFILES += 0500-backport-0937dac-Transcode-Fix-a-race-condition-in-VideoDecodeBuffer-.patch
 PATCHFILES += 0501-backport-af6f826-Flush-buffers-prior-to-closing-the-codec.patch
 PATCHFILES += 0502-backport-25dd494-MythUIWebBrowser-silence-a-warning-when-we-can-t-fin.patch
+
 # v 6.7.06
 PATCHFILES += 0503-backport-90730e5-Do-not-wait-too-quickly-when-reaching-EOF.patch
 PATCHFILES += 0504-83050ac-Limit-bitrate-to-100Mbit-s-and-fill_min-to-half-the-.patch
@@ -364,6 +365,16 @@ PATCHFILES += 0566-backport-87822fe-protoserver-fixes-QUERY_FILE_HASH-hanging.pa
 PATCHFILES += 0568-backport-2f9424c-metadata-return-both-movie-and-TV-results-when-in-no.patch
 PATCHFILES += 0569-backport-4e50609-metadata-also-look-for-artwork-when-scanning-a-singl.patch
 PATCHFILES += 0570-backport-41b9be6-frontend-add-search-abilities-to-change-recording-me.patch
+# v 6.9.05
+PATCHFILES += 0573-commit-5769905-Subtitles-Fix-cc608-indents.patch
+PATCHFILES += 0574-commit-0dd5ab3-Subtitles-Avoid-trying-to-draw-empty-text-or-backgro.patch
+PATCHFILES += 0575-backport-4f19c08-UPnP-Fix-repeated-error-in-mime-dlna-profile-strings.patch
+# v 6.9.11
+PATCHFILES += 0576-backport-dcb7006-Videos-are-in-storage-groups-now-lets-just-try-to-fi.patch
+PATCHFILES += 0577-backport-d90fd4e-UPnP-Fix-copy-paste-error-spotted-by-Coverity-122878.patch
+PATCHFILES += 0578-backport-e018bbe-Fix-potential-null-pointer-derefence-in-PBB-metadata.patch
+PATCHFILES += 0579-add-phone-entry-in-themes.patch
+PATCHFILES += 0580-commit-5e37f9c-Captions-Delete-all-cc708-windows-in-CC708Reader-Res.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
@@ -397,6 +408,21 @@ ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | gre
     PATCHFILES += 3015-backport-64e589e-MythNetvision-Focus-the-search-results-after-a-searc.patch
     PATCHFILES += 3016-backport-220ee25-MythNetvision-Update-thumbnail-and-text-when-switchi.patch
     PATCHFILES += 3017-backport-aa9066f-MythNetVision-NULL-check-item-in-NetSearch-customEve.patch
+
+    # 6.9.04
+    PATCHFILES += 0571-backport-1b22056-SendReceiveStringList-handle-the-UNKNOWN_COMMAND-res.patch 
+    PATCHFILES += 0572-backport-124a55d-MainServer-send-an-ERROR-response-back-for-malformed.patch
+    # 6.9.05
+    PATCHFILES += 1147-backport-654a4b2-remotefile-Use-more-accurate-MythCoreContext-IsThisH.patch
+    PATCHFILES += 1148-backport-be87ab8-corecontext-Add-IsThisBackend-API.patch
+    PATCHFILES += 1149-backport-ef8694a-remotefile-use-IsThisBackend-API.patch
+    PATCHFILES += 1150-backport-411272f-RemoteFile-add-some-additional-logging-to-CopyFile.patch
+    PATCHFILES += 1151-backport-1dab190-MainServer-add-a-QUERY_FINDFILE-command-to-the-proto.patch
+    PATCHFILES += 1152-backport-7856014-RemoteFile-add-FindFileList-which-uses-the-new-QUERY.patch
+    PATCHFILES += 1153-backport-9c18ef0-MythMusic-update-findIcon-to-use-a-regexp-to-find-th.patch
+    PATCHFILES += 1154-backport-3902c31-MainServer-use-gCoreContext-IsThisHost-hostname-to-c.patch
+    PATCHFILES += 1155-backport-b4dfae9-MythMusic-fix-playback-of-tracks-with-an-in-the-file.patch
+
 endif
 
 LICENSE = GPL2
