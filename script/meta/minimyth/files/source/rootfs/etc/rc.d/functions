@@ -2090,3 +2090,32 @@ mm_mythfrontend_networkcontrol() {
         return
     fi
 }
+
+mm_reload_voip_config() {
+    if /usr/bin/test -n "${MM_VOIP_ENABLED}" ; then
+        if /usr/bin/test "${MM_VOIP_LOAD_CONFIG}" = "yes" ; then
+            /bin/rm -f /etc/sip-daemon.conf
+            mm_confro_get sip-daemon.conf /etc/sip-daemon.conf
+            if /usr/bin/test ! -e /etc/sip-daemon.conf ; then
+                /usr/bin/logger -s -t minimyth -p "local0.error" \
+                    "[functions/mm_reload_voip_config] failed to load sip-daemon.conf file..."
+                /bin/false
+                return
+            fi
+        fi
+        /bin/rm -f /home/minimyth/.mythtv/phone.xml
+        mm_confro_get phone-book.xml /home/minimyth/.mythtv/phone.xml
+        if /usr/bin/test ! -e /home/minimyth/.mythtv/phone.xml ; then
+            /usr/bin/logger -s -t minimyth -p "local0.error" \
+                "[functions/mm_reload_voip_config] failed to load phone-book.xml file..."
+            /bin/false
+            return
+        fi
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_reload_voip_config] restarting sip-daemon.py..."
+        /bin/touch /tmp/exit.sem
+        /bin/sleep 3
+        /usr/bin/sip-daemon.sh &
+        /bin/true
+    fi
+}

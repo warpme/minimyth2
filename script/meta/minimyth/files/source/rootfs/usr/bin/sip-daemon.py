@@ -171,7 +171,7 @@ class MyAccountCallback(pj.AccountCallback):
 
         uri = call.info().remote_uri
         phone = re.sub('<|>|\s|sip:|@.*', "", uri)
-        SendOSDNotify( "TELEFON...", "Przychodzace polaczenie", "Tel: "+phone, "1:Rozmowa 2,3:Voice-mail 4:Odrzuc/Zakoncz", incomming_call_image, "", "", incoming_call_osd_timeout, incoming_call_osd_style, "127.0.0.1" )
+        SendOSDNotify( "TELEFON...", "Przychodzace polaczenie", "Tel: "+phone, "[1]:Rozmowa [2/3]:Voice-mail [4]:Odrzuc/Zakoncz", incomming_call_image, "", "", incoming_call_osd_timeout, incoming_call_osd_style, "127.0.0.1" )
 
         loc = QueryFELoc()
         if debug:
@@ -411,26 +411,29 @@ try:
 
                 for filePath in glob.glob(semaphores_path + "/make-call-*.sem"):
 
+                    if os.path.isfile(filePath):
+                        if debug:
+                            print "Deleting semaphore:" + filePath
+                        os.remove(filePath)
+
                     number = re.sub(semaphores_path, "", filePath)
                     number = re.sub('make-call-|/|.sem|', "", number)
 
-                    while current_call:
-                        print "Need wait! Currently in call with:" + number
-                        time.sleep(5)
-
-                    SendOSDNotify( "TELEFON...","", "Wykonuje polaczenie", "Numer: "+number, ongoing_call_image,"","", ongoing_call_osd_timeout, ongoing_call_osd_style, "127.0.0.1" )
+                    if current_call:
+                        print "Ending current call and making new call to:" + number
+                        current_call.hangup()
+                        SendOSDNotify( "TELEFON...", "Wykonuje polaczenie", "Numer: "+number,"Klawisz [4] - koniec", ongoing_call_image,"","", ongoing_call_osd_timeout, ongoing_call_osd_style, "127.0.0.1" )
+                        time.sleep(2)
+                    else:
+                        SendOSDNotify( "TELEFON...", "Wykonuje polaczenie", "Numer: "+number,"Klawisz [4] - koniec", ongoing_call_image,"","", ongoing_call_osd_timeout, ongoing_call_osd_style, "127.0.0.1" )
 
                     number = "sip:" + number + "@" + sip_domain
-                    number = re.sub('\n', "", number)
+                    number = re.sub('\n|-', "", number)
 
                     lck = lib.auto_lock()
                     current_call = make_call(number)
                     del lck
 
-                    if os.path.isfile(filePath):
-                        if debug:
-                            print "Deleting semaphore:" + filePath
-                        os.remove(filePath)
 
             elif os.path.isfile(semaphores_path + "/pickup.sem") and os.access(semaphores_path + "/pickup.sem", os.R_OK):
                 os.remove(semaphores_path + "/pickup.sem")
