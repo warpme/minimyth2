@@ -13,7 +13,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 6.9.03.gf4825ca.private
+mm_VERSION_MINIMYTH ?= 6.9.11.gf4825ca.private
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -66,7 +66,7 @@ mm_GARCH                  ?= x86-64
 mm_DISTRIBUTION_RAM       ?= yes
 
 # Indicates whether or not to create the NFS based part of the distribution.
-mm_DISTRIBUTION_NFS       ?= yes
+mm_DISTRIBUTION_NFS       ?= no
 
 # Indicates whether or not to create the local distribution.
 mm_DISTRIBUTION_LOCAL     ?= yes
