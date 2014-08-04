@@ -1,0 +1,95 @@
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythprotoserver/requesthandler/fileserverhandler.cpp mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythprotoserver/requesthandler/fileserverhandler.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythprotoserver/requesthandler/fileserverhandler.cpp	2014-05-05 12:00:21.618104685 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythprotoserver/requesthandler/fileserverhandler.cpp	2014-05-05 12:00:38.118010781 +0200
+@@ -1038,6 +1038,12 @@
+             res << "OK";
+         }
+     }
++    else if (slist[1] == "REQUEST_SIZE")
++    {
++        // return size and if the file is not opened for writing
++        res << QString::number(ft->GetFileSize());
++        res << QString::number(!gCoreContext->IsRegisteredFileForWrite(ft->GetFileName()));
++    }
+     else
+     {
+         LOG(VB_GENERAL, LOG_ERR, "Invalid QUERY_FILETRANSFER call");
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythprotoserver/sockethandler/filetransfer.cpp mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythprotoserver/sockethandler/filetransfer.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythprotoserver/sockethandler/filetransfer.cpp	2014-05-05 12:00:26.128079012 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythprotoserver/sockethandler/filetransfer.cpp	2014-05-05 12:00:38.141343981 +0200
+@@ -258,6 +258,14 @@
+     return rbuffer->GetRealFileSize();
+ }
+ 
++QString FileTransfer::GetFileName(void)
++{
++    if (!rbuffer)
++        return QString();
++
++    return rbuffer->GetFilename();
++}
++
+ void FileTransfer::SetTimeout(bool fast)
+ {
+     if (pginfo)
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythprotoserver/sockethandler/filetransfer.h mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythprotoserver/sockethandler/filetransfer.h
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/libs/libmythprotoserver/sockethandler/filetransfer.h	2014-05-05 12:00:26.348077761 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/libs/libmythprotoserver/sockethandler/filetransfer.h	2014-05-05 12:00:38.368009353 +0200
+@@ -40,6 +40,7 @@
+     long long Seek(long long curpos, long long pos, int whence);
+ 
+     uint64_t GetFileSize(void);
++    QString GetFileName(void);
+ 
+     void SetTimeout(bool fast);
+ 
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/programs/mythbackend/filetransfer.cpp mythtv-0.27-20140504-ge2acf0d-new/mythtv/programs/mythbackend/filetransfer.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/programs/mythbackend/filetransfer.cpp	2014-05-05 12:00:26.654742730 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/programs/mythbackend/filetransfer.cpp	2014-05-05 12:00:38.508008562 +0200
+@@ -260,6 +260,14 @@
+     return rbuffer->GetRealFileSize();
+ }
+ 
++QString FileTransfer::GetFileName(void)
++{
++    if (!rbuffer)
++        return QString();
++
++    return rbuffer->GetFilename();
++}
++
+ void FileTransfer::SetTimeout(bool fast)
+ {
+     if (pginfo)
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/programs/mythbackend/filetransfer.h mythtv-0.27-20140504-ge2acf0d-new/mythtv/programs/mythbackend/filetransfer.h
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/programs/mythbackend/filetransfer.h	2014-05-05 12:00:22.734764994 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/programs/mythbackend/filetransfer.h	2014-05-05 12:00:38.734673942 +0200
+@@ -44,6 +44,7 @@
+     long long Seek(long long curpos, long long pos, int whence);
+ 
+     uint64_t GetFileSize(void);
++    QString GetFileName(void);
+ 
+     void SetTimeout(bool fast);
+ 
+diff -Naur mythtv-0.27-20140504-ge2acf0d-old/mythtv/programs/mythbackend/mainserver.cpp mythtv-0.27-20140504-ge2acf0d-new/mythtv/programs/mythbackend/mainserver.cpp
+--- mythtv-0.27-20140504-ge2acf0d-old/mythtv/programs/mythbackend/mainserver.cpp	2014-05-05 12:00:22.728098366 +0200
++++ mythtv-0.27-20140504-ge2acf0d-new/mythtv/programs/mythbackend/mainserver.cpp	2014-05-05 12:00:38.758007140 +0200
+@@ -5208,10 +5208,16 @@
+         ft->SetTimeout(fast);
+         retlist << "OK";
+     }
++    else if (command == "REQUEST_SIZE")
++    {
++        // return size and if the file is not opened for writing
++        retlist << QString::number(ft->GetFileSize());
++        retlist << QString::number(!gCoreContext->IsRegisteredFileForWrite(ft->GetFileName()));
++    }
+     else
+     {
+         LOG(VB_GENERAL, LOG_ERR, QString("Unknown command: %1").arg(command));
+-        retlist << "OK";
++        retlist << "ERROR" << "invalid_call";
+     }
+ 
+     ft->DecrRef();

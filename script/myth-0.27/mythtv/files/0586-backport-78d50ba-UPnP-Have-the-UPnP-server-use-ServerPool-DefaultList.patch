@@ -1,0 +1,586 @@
+From 78d50babff8e118714dd6fd112ee44aed856f453 Mon Sep 17 00:00:00 2001
+From: Stuart Morgan <smorgan@mythtv.org>
+Date: Sat, 2 Aug 2014 13:08:09 +0100
+Subject: [PATCH] UPnP: Have the UPnP server use ServerPool::DefaultListen()
+
+Instead of duplicating the listen address code, re-use the newer QT
+based code which is actively maintained.
+
+There are two major differences between the old and new:
+* DefaultListen() returns the loopback address and GetIPAddresses()
+did not. I don't yet know if this will cause a problem or whether it's
+'legal' for UPnP.
+* DefaultListen() properly supports IPv6 addresses. This hasn't be
+tested, and I'd be surprised if everything just works. Testing by
+those using IPv6 would be appreciated as I'm not in a position to do
+it myself.
+
+Const fixes and remove the dead code.
+UPnP: Prevent m_pHttpServer being set to itself in MediaServer::Init()
+---
+ mythtv/libs/libmythupnp/upnp.cpp               |   12 +--
+ mythtv/libs/libmythupnp/upnp.h                 |    9 +-
+ mythtv/libs/libmythupnp/upnpsubscription.cpp   |   15 ++-
+ mythtv/libs/libmythupnp/upnptasknotify.cpp     |   12 +--
+ mythtv/libs/libmythupnp/upnptasksearch.cpp     |   10 +-
+ mythtv/libs/libmythupnp/upnptasksearch.h       |    8 +-
+ mythtv/libs/libmythupnp/upnputil.cpp           |  137 +-----------------------
+ mythtv/libs/libmythupnp/upnputil.h             |    3 +-
+ mythtv/programs/mythbackend/httpstatus.cpp     |    2 +-
+ mythtv/programs/mythbackend/mediaserver.cpp    |   83 ++++++--------
+ mythtv/programs/mythfrontend/mediarenderer.cpp |   13 +--
+ 11 files changed, 75 insertions(+), 229 deletions(-)
+
+diff --git a/mythtv/libs/libmythupnp/upnp.cpp b/mythtv/libs/libmythupnp/upnp.cpp
+index 1e5ce42..269e44c 100644
+--- a/mythtv/libs/libmythupnp/upnp.cpp
++++ b/mythtv/libs/libmythupnp/upnp.cpp
+@@ -12,14 +12,15 @@
+ 
+ #include "upnptaskcache.h"
+ #include "mythlogging.h"
++#include "serverpool.h"
+ #include "upnp.h"
+ 
+ //////////////////////////////////////////////////////////////////////////////
+ // Global/Class Static variables
+ //////////////////////////////////////////////////////////////////////////////
+ 
+-UPnpDeviceDesc   UPnp::g_UPnpDeviceDesc;
+-QStringList      UPnp::g_IPAddrList;
++UPnpDeviceDesc      UPnp::g_UPnpDeviceDesc;
++QList<QHostAddress> UPnp::g_IPAddrList;
+ 
+ Configuration   *UPnp::g_pConfig        = NULL;
+ 
+@@ -84,10 +85,7 @@ Configuration *UPnp::GetConfiguration()
+ 
+ bool UPnp::Initialize( int nServicePort, HttpServer *pHttpServer )
+ {
+-    QStringList sList;
+-
+-    GetIPAddressList( sList );
+-
++    QList<QHostAddress> sList = ServerPool::DefaultListenIPv4();
+     return Initialize( sList, nServicePort, pHttpServer );
+ }
+ 
+@@ -95,7 +93,7 @@ bool UPnp::Initialize( int nServicePort, HttpServer *pHttpServer )
+ //
+ //////////////////////////////////////////////////////////////////////////////
+ 
+-bool UPnp::Initialize( QStringList &sIPAddrList, int nServicePort, HttpServer *pHttpServer )
++bool UPnp::Initialize( QList<QHostAddress> &sIPAddrList, int nServicePort, HttpServer *pHttpServer )
+ {
+     LOG(VB_UPNP, LOG_DEBUG, "UPnp::Initialize - Begin");
+ 
+diff --git a/mythtv/libs/libmythupnp/upnp.h b/mythtv/libs/libmythupnp/upnp.h
+index 1039403..4b0457f 100644
+--- a/mythtv/libs/libmythupnp/upnp.h
++++ b/mythtv/libs/libmythupnp/upnp.h
+@@ -103,8 +103,8 @@ class UPNP_PUBLIC UPnp
+ 
+     public:
+ 
+-        static UPnpDeviceDesc   g_UPnpDeviceDesc;
+-        static QStringList      g_IPAddrList;
++        static UPnpDeviceDesc       g_UPnpDeviceDesc;
++        static QList<QHostAddress>  g_IPAddrList;
+ 
+     public:
+                  UPnp();
+@@ -114,8 +114,9 @@ class UPNP_PUBLIC UPnp
+         static Configuration* GetConfiguration();
+ 
+         bool Initialize( int nServicePort, HttpServer *pHttpServer );
+-        bool Initialize( QStringList &sIPAddrList, int nServicePort, HttpServer *pHttpServer );
+-        
++        bool Initialize( QList<QHostAddress> &sIPAddrList, int nServicePort,
++                         HttpServer *pHttpServer );
++
+         bool isInitialized() { return (m_pHttpServer != NULL); }
+ 
+         virtual void Start();
+diff --git a/mythtv/libs/libmythupnp/upnpsubscription.cpp b/mythtv/libs/libmythupnp/upnpsubscription.cpp
+index 2378723..43c67e9 100644
+--- a/mythtv/libs/libmythupnp/upnpsubscription.cpp
++++ b/mythtv/libs/libmythupnp/upnpsubscription.cpp
+@@ -36,17 +36,16 @@ UPNPSubscription::UPNPSubscription(const QString &share_path, int port)
+   : HttpServerExtension("UPnPSubscriptionManager", share_path),
+     m_subscriptionLock(QMutex::Recursive), m_callback(QString("NOTSET"))
+ {
+-    QString host;
++    QHostAddress addr;
+     if (!UPnp::g_IPAddrList.isEmpty())
+-        host = UPnp::g_IPAddrList.at(0);
++        addr = UPnp::g_IPAddrList.at(0);
+ 
++    QString host;
+     // taken from MythCoreContext
+-#if !defined(QT_NO_IPV6)
+-    QHostAddress addr(host);
+-    if ((addr.protocol() == QAbstractSocket::IPv6Protocol) ||
+-        (host.contains(":")))
+-        host = "[" + host + "]";
+-#endif
++    if (addr.protocol() == QAbstractSocket::IPv6Protocol)
++        host = "[" + addr.toString() + "]";
++    else
++        host = addr.toString();
+ 
+     m_callback = QString("http://%1:%2/Subscriptions/event?usn=")
+          .arg(host).arg(QString::number(port));
+diff --git a/mythtv/libs/libmythupnp/upnptasknotify.cpp b/mythtv/libs/libmythupnp/upnptasknotify.cpp
+index c444865..947caae 100644
+--- a/mythtv/libs/libmythupnp/upnptasknotify.cpp
++++ b/mythtv/libs/libmythupnp/upnptasknotify.cpp
+@@ -92,20 +92,20 @@ void UPnpNotifyTask::SendNotifyMsg( MSocketDevice *pSocket,
+     // Refresh IP Address List in case of changes
+     // -------------------------------------------------------------------
+ 
+-    QStringList addressList = UPnp::g_IPAddrList;
++    QList<QHostAddress> addressList = UPnp::g_IPAddrList;
+ 
+-    for ( QStringList::Iterator it  = addressList.begin(); 
+-                                it != addressList.end(); 
+-                              ++it ) 
++    for ( QList<QHostAddress>::Iterator it  = addressList.begin();
++                                        it != addressList.end();
++                                        ++it )
+     {
+-        if ((*it).isEmpty())
++        if ((*it).toString().isEmpty())
+         {
+             LOG(VB_GENERAL, LOG_ERR,
+                 "UPnpNotifyTask::SendNotifyMsg - NULL in address list");
+             continue;
+         }
+ 
+-        QString ipaddress = *it;
++        QString ipaddress = (*it).toString();
+ 
+         // If this looks like an IPv6 address, then enclose it in []'s
+         if (ipaddress.contains(":"))
+diff --git a/mythtv/libs/libmythupnp/upnptasksearch.cpp b/mythtv/libs/libmythupnp/upnptasksearch.cpp
+index c054455..8d0fb6e 100644
+--- a/mythtv/libs/libmythupnp/upnptasksearch.cpp
++++ b/mythtv/libs/libmythupnp/upnptasksearch.cpp
+@@ -98,15 +98,17 @@ void UPnpSearchTask::SendMsg( MSocketDevice  *pSocket,
+                         .arg(m_PeerAddress.toString()) .arg(m_nPeerPort));
+ #endif
+ 
+-    for ( QStringList::Iterator it  = m_addressList.begin(); 
++    for ( QList<QHostAddress>::Iterator it  = m_addressList.begin();
+                                 it != m_addressList.end(); 
+                               ++it ) 
+     {
+-        QString ipaddress = *it;
++        QString ipaddress;
+ 
+         // If this looks like an IPv6 address, then enclose it in []'s
+-        if (ipaddress.contains(":"))
+-            ipaddress = "[" + ipaddress + "]";
++        if ((*it).protocol() == QAbstractSocket::IPv6Protocol)
++            ipaddress = "[" + (*it).toString() + "]";
++        else
++            ipaddress = (*it).toString();
+ 
+         QString sHeader = QString ( "HTTP/1.1 200 OK\r\n"
+                                     "LOCATION: http://%1:%2/getDeviceDesc\r\n" )
+diff --git a/mythtv/libs/libmythupnp/upnptasksearch.h b/mythtv/libs/libmythupnp/upnptasksearch.h
+index 38b6331..32d74c7 100644
+--- a/mythtv/libs/libmythupnp/upnptasksearch.h
++++ b/mythtv/libs/libmythupnp/upnptasksearch.h
+@@ -21,7 +21,7 @@
+ #endif
+ 
+ // Qt headers
+-#include <QStringList>
++#include <QList>
+ #include <QHostAddress>
+ 
+ // MythTV headers
+@@ -41,9 +41,9 @@ class UPnpSearchTask : public Task
+ {
+     protected: 
+ 
+-        QStringList     m_addressList;
+-        int             m_nServicePort;
+-        int             m_nMaxAge;
++        QList<QHostAddress>     m_addressList;
++        int                     m_nServicePort;
++        int                     m_nMaxAge;
+ 
+         QHostAddress    m_PeerAddress;
+         int             m_nPeerPort;
+diff --git a/mythtv/libs/libmythupnp/upnputil.cpp b/mythtv/libs/libmythupnp/upnputil.cpp
+index 525ea0a..770689b 100644
+--- a/mythtv/libs/libmythupnp/upnputil.cpp
++++ b/mythtv/libs/libmythupnp/upnputil.cpp
+@@ -29,12 +29,9 @@
+ 
+ // POSIX headers 2, needs to be after compat.h for OS X
+ #ifndef _WIN32
+-#include <net/if.h>
+ #include <sys/ioctl.h>
+ #endif // _WIN32
+-#if HAVE_GETIFADDRS
+-#include <ifaddrs.h>
+-#endif
++
+ 
+ #include "zlib.h"
+ 
+@@ -42,7 +39,7 @@
+ //
+ /////////////////////////////////////////////////////////////////////////////
+ 
+-QString LookupUDN( QString sDeviceType )
++QString LookupUDN( const QString &sDeviceType )
+ {
+     QStringList sList = sDeviceType.split(':', QString::SkipEmptyParts);
+     QString     sLoc  = "LookupUDN(" + sDeviceType + ')';
+@@ -78,135 +75,6 @@ QString LookupUDN( QString sDeviceType )
+ }
+ 
+ /////////////////////////////////////////////////////////////////////////////
+-
+-#if HAVE_GETIFADDRS
+-
+-long GetIPAddressList(QStringList &sStrList)
+-{
+-    QString LOC = "GetIPAddressList() - ";
+-
+-    struct ifaddrs *list, *ifa;
+-
+-
+-    sStrList.clear();
+-
+-    if (getifaddrs(&list) == -1)
+-    {
+-        LOG(VB_UPNP, LOG_ERR, LOC + "getifaddrs failed: " + ENO);
+-        return 0;
+-    }
+-
+-    for (ifa=list; ifa; ifa=ifa->ifa_next)
+-    {
+-        if (!ifa->ifa_addr)
+-            continue;
+-        if (ifa->ifa_addr->sa_family != AF_INET)
+-            continue;
+-        if (ifa->ifa_flags & IFF_LOOPBACK)
+-            continue;
+-        if (!(ifa->ifa_flags & IFF_UP))
+-            continue;
+-
+-
+-        char  address[16];
+-
+-        if (inet_ntop(ifa->ifa_addr->sa_family,
+-                      &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr,
+-                      address, sizeof(address)) == NULL)
+-        {
+-            LOG(VB_UPNP, LOG_ERR, LOC + "inet_ntop failed: " + ENO);
+-            continue;
+-        }
+-
+-        sStrList.append(address);
+-        LOG(VB_UPNP, LOG_DEBUG, LOC + QString("Added %1 as %2")
+-                .arg(ifa->ifa_name).arg(address));
+-    }
+-
+-    freeifaddrs(list);
+-
+-    return(sStrList.count());
+-}
+-
+-#else // HAVE_GETIFADDRS
+-
+-// On some Unixes (e.g. Darwin), this implementation is buggy because
+-// struct ifreq is variable size. Luckily, most of them have getifaddrs()
+-
+-long GetIPAddressList( QStringList &sStrList )
+-{
+-#ifdef _WIN32
+-    LOG(VB_UPNP, LOG_NOTICE, "GetIPAddressList() not implemented in MinGW");
+-    return 0;
+-#else
+-    sStrList.clear();
+-
+-    MSocketDevice socket( MSocketDevice::Datagram );
+-
+-    struct ifreq  ifReqs[ 16 ];
+-    struct ifreq  ifReq;
+-    struct ifconf ifConf;
+-
+-    // ----------------------------------------------------------------------
+-    // Get Configuration information...
+-    // ----------------------------------------------------------------------
+-
+-    ifConf.ifc_len           = sizeof( struct ifreq ) * sizeof( ifReqs );
+-    ifConf.ifc_ifcu.ifcu_req = ifReqs;
+-
+-    if ( ioctl( socket.socket(), SIOCGIFCONF, &ifConf ) < 0)
+-        return( 0 );
+-
+-    long nCount = ifConf.ifc_len / sizeof( struct ifreq );
+-
+-    // ----------------------------------------------------------------------
+-    // Loop through looking for IP addresses.
+-    // ----------------------------------------------------------------------
+-
+-    for (long nIdx = 0; nIdx < nCount; nIdx++ )
+-    {
+-        // ------------------------------------------------------------------
+-        // Is this an interface we want?
+-        // ------------------------------------------------------------------
+-
+-        strcpy ( ifReq.ifr_name, ifReqs[ nIdx ].ifr_name );
+-
+-        if (ioctl ( socket.socket(), SIOCGIFFLAGS, &ifReq ) < 0)
+-            continue;
+-
+-        // ------------------------------------------------------------------
+-        // Skip loopback and down interfaces
+-        // ------------------------------------------------------------------
+-
+-        if ((ifReq.ifr_flags & IFF_LOOPBACK) || (!(ifReq.ifr_flags & IFF_UP)))
+-            continue;
+-
+-        if ( ifReqs[ nIdx ].ifr_addr.sa_family == AF_INET)
+-        {
+-            struct sockaddr_in addr;
+-
+-            // --------------------------------------------------------------
+-            // Get a pointer to the address
+-            // --------------------------------------------------------------
+-
+-            memcpy (&addr, &(ifReqs[ nIdx ].ifr_addr), sizeof( ifReqs[ nIdx ].ifr_addr ));
+-
+-            if (addr.sin_addr.s_addr != htonl( INADDR_LOOPBACK ))
+-            {
+-                QHostAddress address( htonl( addr.sin_addr.s_addr ));
+-
+-                sStrList.append( address.toString() ); 
+-            }
+-        }
+-    }
+-
+-    return( sStrList.count() );
+-#endif // !_WIN32
+-}
+-
+-#endif // HAVE_GETIFADDRS
+-
+-/////////////////////////////////////////////////////////////////////////////
+ //           
+ /////////////////////////////////////////////////////////////////////////////
+ 
+@@ -356,4 +224,3 @@ QStringList GetSinkProtocolInfos()
+ 
+     return protocolList;
+ }
+-
+diff --git a/mythtv/libs/libmythupnp/upnputil.h b/mythtv/libs/libmythupnp/upnputil.h
+index df9ccc3..e3a911b 100644
+--- a/mythtv/libs/libmythupnp/upnputil.h
++++ b/mythtv/libs/libmythupnp/upnputil.h
+@@ -134,8 +134,7 @@ inline void NameValue::AddAttribute(const QString &name, const QString &value)
+ // Global Function Prototypes
+ //////////////////////////////////////////////////////////////////////////////
+ 
+-QString LookupUDN         ( QString      sDeviceType );
+-long    GetIPAddressList  ( QStringList &sStrList    );
++QString LookupUDN         ( const QString     &sDeviceType );
+ 
+ bool operator<            ( TaskTime t1, TaskTime t2 );
+ bool operator==           ( TaskTime t1, TaskTime t2 );
+diff --git a/mythtv/programs/mythbackend/httpstatus.cpp b/mythtv/programs/mythbackend/httpstatus.cpp
+index 3e549bc..f0b77b0 100644
+--- a/mythtv/programs/mythbackend/httpstatus.cpp
++++ b/mythtv/programs/mythbackend/httpstatus.cpp
+@@ -347,7 +347,7 @@ void HttpStatus::FillStatusXML( QDomDocument *pDoc )
+ 
+         QString ipaddress = QString();
+         if (!UPnp::g_IPAddrList.isEmpty())
+-            ipaddress = UPnp::g_IPAddrList.at(0);
++            ipaddress = UPnp::g_IPAddrList.at(0).toString();
+ 
+         EntryMap map;
+         sbes->GetEntryMap(map);
+diff --git a/mythtv/programs/mythbackend/mediaserver.cpp b/mythtv/programs/mythbackend/mediaserver.cpp
+index 5eff338..c60f6a5 100644
+--- a/mythtv/programs/mythbackend/mediaserver.cpp
++++ b/mythtv/programs/mythbackend/mediaserver.cpp
+@@ -73,20 +73,17 @@ void MediaServer::Init(bool bIsMaster, bool bDisableUPnp /* = false */)
+ 
+     int     nPort     = g_pConfig->GetValue( "BackendStatusPort", 6544 );
+ 
+-    if (!m_pHttpServer)
+-    {
+-        m_pHttpServer = new HttpServer();
+-        m_pHttpServer->RegisterExtension(new HttpConfig());
+-    }
++    HttpServer *pHttpServer = new HttpServer();
++    pHttpServer->RegisterExtension(new HttpConfig());
+ 
+-    if (!m_pHttpServer->isListening())
++    if (!pHttpServer->isListening())
+     {
+-        m_pHttpServer->setProxy(QNetworkProxy::NoProxy);
+-        if (!m_pHttpServer->listen(nPort))
++        pHttpServer->setProxy(QNetworkProxy::NoProxy);
++        if (!pHttpServer->listen(nPort))
+         {
+             LOG(VB_GENERAL, LOG_ERR, "MediaServer: HttpServer Create Error");
+-            delete m_pHttpServer;
+-            m_pHttpServer = NULL;
++            delete pHttpServer;
++            pHttpServer = NULL;
+             return;
+         }
+     }
+@@ -114,25 +111,17 @@ void MediaServer::Init(bool bIsMaster, bool bDisableUPnp /* = false */)
+ 
+     LOG(VB_UPNP, LOG_INFO, "MediaServer: Registering Http Server Extensions.");
+ 
+-    m_pHttpServer->RegisterExtension( new InternetContent   ( m_sSharePath ));
++    pHttpServer->RegisterExtension( new InternetContent   ( m_sSharePath ));
+ 
+-    m_pHttpServer->RegisterExtension( new MythServiceHost   ( m_sSharePath ));
+-    m_pHttpServer->RegisterExtension( new GuideServiceHost  ( m_sSharePath ));
+-    m_pHttpServer->RegisterExtension( new ContentServiceHost( m_sSharePath ));
+-    m_pHttpServer->RegisterExtension( new DvrServiceHost    ( m_sSharePath ));
+-    m_pHttpServer->RegisterExtension( new ChannelServiceHost( m_sSharePath ));
+-    m_pHttpServer->RegisterExtension( new VideoServiceHost  ( m_sSharePath ));
+-    m_pHttpServer->RegisterExtension( new CaptureServiceHost( m_sSharePath ));
+-    m_pHttpServer->RegisterExtension( new ImageServiceHost  ( m_sSharePath ));
++    pHttpServer->RegisterExtension( new MythServiceHost   ( m_sSharePath ));
++    pHttpServer->RegisterExtension( new GuideServiceHost  ( m_sSharePath ));
++    pHttpServer->RegisterExtension( new ContentServiceHost( m_sSharePath ));
++    pHttpServer->RegisterExtension( new DvrServiceHost    ( m_sSharePath ));
++    pHttpServer->RegisterExtension( new ChannelServiceHost( m_sSharePath ));
++    pHttpServer->RegisterExtension( new VideoServiceHost  ( m_sSharePath ));
++    pHttpServer->RegisterExtension( new CaptureServiceHost( m_sSharePath ));
++    pHttpServer->RegisterExtension( new ImageServiceHost  ( m_sSharePath ));
+ 
+-    QString sIP = g_pConfig->GetValue( "BackendServerIP"  , ""   );
+-    if (sIP.isEmpty())
+-    {
+-        LOG(VB_GENERAL, LOG_ERR,
+-            "MediaServer: No BackendServerIP Address defined - "
+-            "Disabling UPnP");
+-        return;
+-    }
+ 
+     // ------------------------------------------------------------------
+     // Register Service Types with Scripting Engine
+@@ -144,7 +133,7 @@ void MediaServer::Init(bool bIsMaster, bool bDisableUPnp /* = false */)
+     // ------------------------------------------------------------------
+ 
+ 
+-     QScriptEngine* pEngine = m_pHttpServer->ScriptEngine();
++     QScriptEngine* pEngine = pHttpServer->ScriptEngine();
+ 
+      pEngine->globalObject().setProperty("Myth"   ,
+          pEngine->scriptValueFromQMetaObject< ScriptableMyth    >() );
+@@ -165,14 +154,6 @@ void MediaServer::Init(bool bIsMaster, bool bDisableUPnp /* = false */)
+ 
+     // ------------------------------------------------------------------
+ 
+-    if (sIP == "localhost" || sIP.startsWith("127."))
+-    {
+-        LOG(VB_GENERAL, LOG_NOTICE,
+-            "MediaServer: Loopback address specified - " + sIP +
+-            ". Disabling UPnP");
+-        return;
+-    }
+-
+     if (bDisableUPnp)
+     {
+         LOG(VB_GENERAL, LOG_NOTICE,
+@@ -181,17 +162,20 @@ void MediaServer::Init(bool bIsMaster, bool bDisableUPnp /* = false */)
+         return;
+     }
+ 
+-    // ----------------------------------------------------------------------
+-    // BackendServerIP is only one IP address at this time... Doing Split anyway
+-    // ----------------------------------------------------------------------
+-
+-    QStringList sIPAddrList = sIP.split(';', QString::SkipEmptyParts);
++    QList<QHostAddress> IPAddrList = ServerPool::DefaultListen();
++    if (IPAddrList.isEmpty())
++    {
++        LOG(VB_GENERAL, LOG_ERR,
++            "MediaServer: No Listenable IP Addresses found - "
++            "Disabling UPnP");
++        return;
++    }
+ 
+     // ----------------------------------------------------------------------
+     // Initialize UPnp Stack
+     // ----------------------------------------------------------------------
+ 
+-    if (Initialize( sIPAddrList, nPort, m_pHttpServer ))
++    if (Initialize( IPAddrList, nPort, pHttpServer ))
+     {
+ 
+         // ------------------------------------------------------------------
+@@ -248,13 +232,16 @@ void MediaServer::Init(bool bIsMaster, bool bDisableUPnp /* = false */)
+ 
+ #ifdef USING_LIBDNS_SD
+         // advertise using Bonjour
+-        m_bonjour = new BonjourRegister();
+-        if (m_bonjour)
++        if (gCoreContext)
+         {
+-            QByteArray name("Mythbackend on ");
+-            name.append(gCoreContext->GetHostName());
+-            QByteArray txt(bIsMaster ? "\x06master" : "\x05slave");
+-            m_bonjour->Register(nPort, "_mythbackend._tcp", name, txt);
++            m_bonjour = new BonjourRegister();
++            if (m_bonjour)
++            {
++                QByteArray name("Mythbackend on ");
++                name.append(gCoreContext->GetHostName());
++                QByteArray txt(bIsMaster ? "\x06master" : "\x05slave");
++                m_bonjour->Register(nPort, "_mythbackend._tcp", name, txt);
++            }
+         }
+ #endif
+     }
+diff --git a/mythtv/programs/mythfrontend/mediarenderer.cpp b/mythtv/programs/mythfrontend/mediarenderer.cpp
+index 3636dda..a86ab11 100644
+--- a/mythtv/programs/mythfrontend/mediarenderer.cpp
++++ b/mythtv/programs/mythfrontend/mediarenderer.cpp
+@@ -11,6 +11,7 @@
+ #include <QTextStream>
+ 
+ #include "upnpsubscription.h"
++#include "upnputil.h"
+ #include "mediarenderer.h"
+ #include "mythversion.h"
+ #include "upnpscanner.h"
+@@ -45,17 +46,9 @@ class MythFrontendStatus : public HttpServerExtension
+ 
+         SSDPCacheEntries* cache = NULL;
+         QString ipaddress = QString();
+-/*      QStringList::const_iterator sit = UPnp::g_IPAddrList.begin();
+-        for (; sit != UPnp::g_IPAddrList.end(); ++sit)
+-        {
+-            if (QHostAddress(*sit).protocol() == QAbstractSocket::IPv4Protocol)
+-            {
+-                ipaddress = *sit;
+-                break;
+-            }
+-        }*/
++
+         if (!UPnp::g_IPAddrList.isEmpty())
+-            ipaddress = UPnp::g_IPAddrList.at(0);
++            ipaddress = UPnp::g_IPAddrList.at(0).toString();
+ 
+         QString hostname   = gCoreContext->GetHostName();
+         QDateTime qdtNow   = MythDate::current();
+-- 
+1.7.10.2
+

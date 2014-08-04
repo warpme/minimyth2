@@ -1,0 +1,120 @@
+From ef72dc4aeef10ae0c9f2c3ecc16074d8fef5b4de Mon Sep 17 00:00:00 2001
+From: Stuart Morgan <smorgan@mythtv.org>
+Date: Fri, 1 Aug 2014 23:20:08 +0100
+Subject: [PATCH] Remove definition of m_pHttpServer from MediaRenderer and
+ use the one in the base class, UPnP
+
+---
+ mythtv/libs/libmythupnp/upnp.cpp               |    7 +++++++
+ mythtv/libs/libmythupnp/upnp.h                 |    2 ++
+ mythtv/programs/mythfrontend/main.cpp          |    2 +-
+ mythtv/programs/mythfrontend/mediarenderer.cpp |   12 ++++++------
+ mythtv/programs/mythfrontend/mediarenderer.h   |    6 ------
+ 5 files changed, 16 insertions(+), 13 deletions(-)
+
+diff --git a/mythtv/libs/libmythupnp/upnp.cpp b/mythtv/libs/libmythupnp/upnp.cpp
+index 66e2667..1e5ce42 100644
+--- a/mythtv/libs/libmythupnp/upnp.cpp
++++ b/mythtv/libs/libmythupnp/upnp.cpp
+@@ -99,6 +99,13 @@ bool UPnp::Initialize( QStringList &sIPAddrList, int nServicePort, HttpServer *p
+ {
+     LOG(VB_UPNP, LOG_DEBUG, "UPnp::Initialize - Begin");
+ 
++    if (m_pHttpServer)
++    {
++        LOG(VB_GENERAL, LOG_ERR,
++            "UPnp::Initialize - Already initialized, programmer error.");
++        return false;
++    }
++
+     if (g_pConfig == NULL)
+     {
+         LOG(VB_GENERAL, LOG_ERR,
+diff --git a/mythtv/libs/libmythupnp/upnp.h b/mythtv/libs/libmythupnp/upnp.h
+index de4d50e..1039403 100644
+--- a/mythtv/libs/libmythupnp/upnp.h
++++ b/mythtv/libs/libmythupnp/upnp.h
+@@ -115,6 +115,8 @@ class UPNP_PUBLIC UPnp
+ 
+         bool Initialize( int nServicePort, HttpServer *pHttpServer );
+         bool Initialize( QStringList &sIPAddrList, int nServicePort, HttpServer *pHttpServer );
++        
++        bool isInitialized() { return (m_pHttpServer != NULL); }
+ 
+         virtual void Start();
+ 
+diff --git a/mythtv/programs/mythfrontend/main.cpp b/mythtv/programs/mythfrontend/main.cpp
+index 29f06b3..14328ab 100644
+--- a/mythtv/programs/mythfrontend/main.cpp
++++ b/mythtv/programs/mythfrontend/main.cpp
+@@ -1698,7 +1698,7 @@ int main(int argc, char **argv)
+     if (!cmdline.toBool("noupnp"))
+     {
+         g_pUPnp  = new MediaRenderer();
+-        if (!g_pUPnp->initialized())
++        if (!g_pUPnp->isInitialized())
+         {
+             delete g_pUPnp;
+             g_pUPnp = NULL;
+diff --git a/mythtv/programs/mythfrontend/mediarenderer.cpp b/mythtv/programs/mythfrontend/mediarenderer.cpp
+index 9f6bd9e..a834cd7 100644
+--- a/mythtv/programs/mythfrontend/mediarenderer.cpp
++++ b/mythtv/programs/mythfrontend/mediarenderer.cpp
+@@ -212,16 +212,16 @@ MediaRenderer::MediaRenderer(): m_pUPnpCMGR(NULL)
+ 
+     int nPort = g_pConfig->GetValue( "UPnP/MythFrontend/ServicePort", 6547 );
+ 
+-    m_pHttpServer = new HttpServer();
++    HttpServer *pHttpServer = new HttpServer();
+ 
+-    if (!m_pHttpServer)
++    if (!pHttpServer)
+         return;
+ 
+-    if (!m_pHttpServer->listen(nPort))
++    if (!pHttpServer->listen(nPort))
+     {
+         LOG(VB_GENERAL, LOG_ERR, "MediaRenderer::HttpServer Create Error");
+-        delete m_pHttpServer;
+-        m_pHttpServer = NULL;
++        delete pHttpServer;
++        pHttpServer = NULL;
+         return;
+     }
+ 
+@@ -229,7 +229,7 @@ MediaRenderer::MediaRenderer(): m_pUPnpCMGR(NULL)
+     // Initialize UPnp Stack
+     // ----------------------------------------------------------------------
+ 
+-    if (Initialize( nPort, m_pHttpServer ))
++    if (Initialize( nPort, pHttpServer ))
+     {
+         // ------------------------------------------------------------------
+         // Create device Description
+diff --git a/mythtv/programs/mythfrontend/mediarenderer.h b/mythtv/programs/mythfrontend/mediarenderer.h
+index 9176192..79a77c9 100644
+--- a/mythtv/programs/mythfrontend/mediarenderer.h
++++ b/mythtv/programs/mythfrontend/mediarenderer.h
+@@ -28,10 +28,6 @@
+ 
+ class MediaRenderer : public UPnp
+ {
+-    private:
+-
+-        HttpServer      *m_pHttpServer;
+-
+     protected:
+ 
+         //UPnpControl     *m_pUPnpControl;  // Do not delete (auto deleted)
+@@ -44,8 +40,6 @@ class MediaRenderer : public UPnp
+         DeviceLocation *GetDefaultMaster();
+         void            SetDefaultMaster( DeviceLocation *pDeviceLoc,
+                                           const QString  &sPin );
+-        bool initialized() { return (m_pHttpServer != NULL); }
+-
+ };
+ 
+ #endif
+-- 
+1.7.10.2
+

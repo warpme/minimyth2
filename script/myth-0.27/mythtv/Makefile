@@ -86,27 +86,27 @@ PATCHFILES += 0312-backport-3771b88-Fix-random-SBE-PlaybackSock-timeout-in-MBE.p
 PATCHFILES += 0313-backport-636ca29-Reduce-CPU-usage-while-waiting-for-seek-to-complete.patch
 
 # first set of patches for LiveTV
-PATCHFILES += 0581-backport-ed52e84-Small-optimisation-of-FileRingBuffer-GetRealFileSize.patch
-PATCHFILES += 0582-backport-c24e2e7-Fix-seek-when-close-to-end-of-program.patch
+PATCHFILES += 0981-backport-ed52e84-Small-optimisation-of-FileRingBuffer-GetRealFileSize.patch
+PATCHFILES += 0982-backport-c24e2e7-Fix-seek-when-close-to-end-of-program.patch
 
 # second set of patches for LiveTV
-PATCHFILES += 0583-backport-cad3f0a-Do-not-abort-early-if-not-all-data-is-received-withi.patch
-PATCHFILES += 0584-backport-5f47d69-Add-QUERY_FILETRANSFER-REQUEST_SIZE-command.patch
-PATCHFILES += 0585-backport-6290fd9-Add-RemoteFile-GetRealFileSize.patch
-PATCHFILES += 0586-backport-5d82ba6-Fix-seek-when-close-to-end-of-program-2.patch
-PATCHFILES += 0587-backport-c64141b-Fix-calculation-of-read-block-size.patch
-PATCHFILES += 0588-backport-2980b3d-Return-the-actual-file-size-rather-than-the-one-when.patch
-PATCHFILES += 0589-backport-9883b43-Only-expire-LiveTV-programs-that-are-less-than-30s-a.patch
+PATCHFILES += 0983-backport-cad3f0a-Do-not-abort-early-if-not-all-data-is-received-withi.patch
+PATCHFILES += 0984-backport-5f47d69-Add-QUERY_FILETRANSFER-REQUEST_SIZE-command.patch
+PATCHFILES += 0985-backport-6290fd9-Add-RemoteFile-GetRealFileSize.patch
+PATCHFILES += 0986-backport-5d82ba6-Fix-seek-when-close-to-end-of-program-2.patch
+PATCHFILES += 0987-backport-c64141b-Fix-calculation-of-read-block-size.patch
+PATCHFILES += 0988-backport-2980b3d-Return-the-actual-file-size-rather-than-the-one-when.patch
+PATCHFILES += 0989-backport-9883b43-Only-expire-LiveTV-programs-that-are-less-than-30s-a.patch
 
 # third patches for LiveTV
-PATCHFILES += 0590-backport-dddf14c-Partial-revert-of-c64141b0c0b7118ee28be2441374727a1a.patch
-PATCHFILES += 0591-backport-8c17413-Cache-the-size-of-the-remote-file-for-500ms.patch
-PATCHFILES += 0592-backport-1da2a0e-Set-initial-FileRingBuffer-rawbitrate-to-800.patch
-PATCHFILES += 0593-backport-1ff446a-RingBuffer-Play-encrypted-dvd-s-and-iso-images-from-.patch
+PATCHFILES += 0990-backport-dddf14c-Partial-revert-of-c64141b0c0b7118ee28be2441374727a1a.patch
+PATCHFILES += 0991-backport-8c17413-Cache-the-size-of-the-remote-file-for-500ms.patch
+PATCHFILES += 0992-backport-1da2a0e-Set-initial-FileRingBuffer-rawbitrate-to-800.patch
+PATCHFILES += 0993-backport-1ff446a-RingBuffer-Play-encrypted-dvd-s-and-iso-images-from.patch
 
 # backports from master when jya backport devel/ringbuffer to master
-PATCHFILES += 0608-backport-c519bba-Add-ReadInternalMode-to-RingBuffer-class.patch
-PATCHFILES += 0609-backport-e469043-Try-to-open-the-media-for-1.5s-using-only-the-intern.patch
+PATCHFILES += 0994-backport-c519bba-Add-ReadInternalMode-to-RingBuffer-class.patch
+PATCHFILES += 0995-backport-e469043-Try-to-open-the-media-for-1.5s-using-only-the-intern.patch
 
 PATCHFILES += 0314-backport-ad1361a-Allows-RemoteFile-to-recover-from-connection-drop-or.patch
 PATCHFILES += 0315-backport-305b409-Reset-failures-count-once-a-read-succeed.patch
@@ -375,6 +375,12 @@ PATCHFILES += 0577-backport-d90fd4e-UPnP-Fix-copy-paste-error-spotted-by-Coverit
 PATCHFILES += 0578-backport-e018bbe-Fix-potential-null-pointer-derefence-in-PBB-metadata.patch
 PATCHFILES += 0579-add-phone-entry-in-themes.patch
 PATCHFILES += 0580-commit-5e37f9c-Captions-Delete-all-cc708-windows-in-CC708Reader-Res.patch
+# 6.9.12
+PATCHFILES += 0582-backport-5c76f33-Attempt-to-fix-segfault-in-EITCache-assumed-to-be-du.patch
+# 6.9.13
+PATCHFILES += 0583-backport-ef72dc4-Remove-definition-of-m_pHttpServer-from-MediaRendere.patch
+PATCHFILES += 0584-backport-feff8e7-Alter-UPnP-register-comments-to-use-the-actual-servi.patch
+PATCHFILES += 0585-backport-1393479-UPnP-Construct-the-supported-protocolInfo-lists-from.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
@@ -412,6 +418,12 @@ ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | gre
     # 6.9.04
     PATCHFILES += 0571-backport-1b22056-SendReceiveStringList-handle-the-UNKNOWN_COMMAND-res.patch 
     PATCHFILES += 0572-backport-124a55d-MainServer-send-an-ERROR-response-back-for-malformed.patch
+
+    # 6.9.13
+    PATCHFILES += 0586-backport-78d50ba-UPnP-Have-the-UPnP-server-use-ServerPool-DefaultList.patch
+    PATCHFILES += 0587-backport-a865015-UPnP-Music-Add-some-information-derived-from-the-mim.patch
+    PATCHFILES += 0588-backport-b3e1e21-UPnP-Remove-extraneous-colon-which-slipped-into-the-.patch
+
     # 6.9.05
     PATCHFILES += 1147-backport-654a4b2-remotefile-Use-more-accurate-MythCoreContext-IsThisH.patch
     PATCHFILES += 1148-backport-be87ab8-corecontext-Add-IsThisBackend-API.patch
