@@ -45,10 +45,10 @@ start() {
     if ${amixer_command} > /dev/null 2>&1 ; then
         control=
         if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+analog+'  ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Unmuting all ANALOG audio outputs..."
             ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
             while read control ; do
                 case "${control}" in
-                    # General unmuting.
                     PCM)                         ${amixer_command} set 'PCM'                       90% unmute ;;
                     Master)                      ${amixer_command} set 'Master'                    90% unmute ;;
                     Front)                       ${amixer_command} set 'Front'                     90% unmute ;;
@@ -60,16 +60,14 @@ start() {
                     Center)                      ${amixer_command} set 'Center'                    90% unmute ;;
                     LFE)                         ${amixer_command} set 'LFE'                       90% unmute ;;
                     Analog\ Center/LFE)          ${amixer_command} set 'Analog Center/LFE'         90% unmute ;;
-                    # VIA Specific unmuting.
-                    VIA\ DXS)                    ${amixer_command} set 'VIA DXS'                   100%       ;;
                 esac
             done
         fi
         if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+digital+' ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Unmuting all DIGITAL audio outputs..."
             ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
             while read control ; do
                 case "${control}" in
-                    # General unmuting.
                     IEC958)
                         ${amixer_command} set 'IEC958'     on
                         ${amixer_command} set 'IEC958,1'   on
@@ -78,10 +76,26 @@ start() {
                     IEC958\ Side)                ${amixer_command} set 'IEC958 Side'               90% unmute ;;
                     IEC958\ Rear)                ${amixer_command} set 'IEC958 Rear'               90% unmute ;;
                     IEC958\ Center/LFE)          ${amixer_command} set 'IEC958 Center/LFE'         90% unmute ;;
-                    # VIA Specific unmuting.
-                    IEC958\ Playback\ AC97-SPSA) ${amixer_command} set 'IEC958 Playback AC97-SPSA' 0          ;;
                 esac
             done
+        fi
+        if /usr/bin/test -n "${MM_VOIP_ENABLED}"  ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Unmuting Capture and setting level to ${MM_VOIP_MIC_LEVEL}%..."
+            ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+            while read control ; do
+                case "${control}" in
+                    Capture)                     ${amixer_command} set 'Capture'     ${MM_VOIP_MIC_LEVEL}% cap unmute ;;
+                esac
+            done
+            if /usr/bin/test -n "${MM_VOIP_MIC_BOOST_LEVEL}"  ; then
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Enabling MIC Boost and setting level to ${MM_VOIP_MIC_BOOST_LEVEL}%..."
+                ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+                while read control ; do
+                    case "${control}" in
+                        Mic\ Boost)              ${amixer_command} set 'Mic Boost' ${MM_VOIP_MIC_BOOST_LEVEL}% unmute ;;
+                    esac
+                done
+            fi
         fi
     fi
 
@@ -100,6 +114,7 @@ stop () {
     # Mute audio.
     if ${amixer_command} > /dev/null 2>&1 ; then
         if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+analog+'  ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Muting all ANALOG outputs..."
             ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
             while read control ; do
                 case "${control}" in
@@ -120,6 +135,7 @@ stop () {
             done
         fi
         if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+digital+' ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Muting all Digital outputs..."
             ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
             while read control ; do
                 case "${control}" in
@@ -129,6 +145,16 @@ stop () {
                     IEC958\ Side)       ${amixer_command} set 'IEC958 Side'       0% mute ;;
                     IEC958\ Rear)       ${amixer_command} set 'IEC958 Rear'       0% mute ;;
                     IEC958\ Center/LFE) ${amixer_command} set 'IEC958 Center/LFE' 0% mute ;;
+                esac
+            done
+        fi
+        if /usr/bin/test -n "${MM_VOIP_ENABLED}"  ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Muting Capture and MIC Boost..."
+            ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+            while read control ; do
+                case "${control}" in
+                    Capture)            ${amixer_command} set 'Capture'           0% cap mute ;;
+                    Mic\ Boost)         ${amixer_command} set 'Mic Boost'         0% mute ;;
                 esac
             done
         fi
