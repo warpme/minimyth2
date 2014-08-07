@@ -18,13 +18,9 @@ log_level                    = 3
 rtp_port                     = 10000
 config_cfg                   = "/etc/sip-daemon.conf"
 semaphores_path              = "/tmp"
+no_vad                       = -1
+quality                      = 10
 
-# If snd_clock_rate set to 0 - clock_rate/ptime will be set to below values
-snd_clock_rate               = 48000
-ptime                        = 20
-
-#for 11025 ptime 40
-#for 22050 ptime 20
 
 
 
@@ -34,7 +30,7 @@ current_call = None
 play_voice_mail = 0
 fe_is_paused = 0
 
-print "\nSIP Telephony Daemon v1.1\n(c) Piotr Oniszczuk\n"
+print "\nSIP Telephony Daemon v1.3\n(c) Piotr Oniszczuk\n"
 
 date = datetime.datetime.today()
 print "Started at: " + date.strftime('%d-%b-%Y, %H:%M:%S') + "\n"
@@ -95,6 +91,10 @@ voicemail_ann                = config["voice_mail_ann"]
 voicemail_recording_pref     = config["voicemail_recording_pref"]
 audio_dev_in                 = int(config["audio_dev_in"])
 audio_dev_out                = int(config["audio_dev_out"])
+snd_clock_rate               = int(config["snd_clock_rate"])
+ptime                        = int(config["snd_ptime"])
+echo_cancel_type             = int(config["echo_cancel_type"])
+echo_cancel_tail             = int(config["echo_cancel_tail"])
 incomming_call_image         = config["incomming_call_image"]
 incoming_call_osd_timeout    = config["incoming_call_osd_timeout"]
 incoming_call_osd_style      = config["incoming_call_osd_style"]
@@ -125,8 +125,14 @@ print "  -Audio Dev. IN      : " + str(audio_dev_in)
 print "  -Audio Dev. OUT     : " + str(audio_dev_out)
 print "  -Voicemail ann.     : " + voicemail_ann
 print "  -Voicemail rec.pref.: " + voicemail_recording_pref
-if snd_clock_rate:
+if snd_clock_rate != -1:
     print "  -Sound CLK.rate    : " + str(snd_clock_rate)
+if ptime != -1:
+    print "  -pTime             : " + str(ptime)
+if echo_cancel_type != -1:
+    print "  -Echo Cancel Type  : " + str(echo_cancel_type)
+if echo_cancel_tail != -1:
+    print "  -Echo Cancel Tail  : " + str(echo_cancel_tail)
 print " "
 
 for filePath in glob.glob(semaphores_path + "/*.sem"):
@@ -207,8 +213,6 @@ class MyCallCallback(pj.CallCallback):
         if self.call.info().state == pj.CallState.DISCONNECTED:
             current_call = None
 
-            lib.set_null_snd_dev()
-
             print 'Current call is', current_call
             SendOSDNotify( "TELEFON...","", "Zakonczono polaczenie", "", end_call_image,"","", end_call_osd_timeout, end_call_osd_style, "127.0.0.1" )
 
@@ -248,8 +252,6 @@ class MyCallCallback(pj.CallCallback):
                 if (play_voice_mail == 1 or play_voice_mail == 2):
                     print "Starting voice-mail!"
 
-                    lib.set_null_snd_dev()
-
                     player_id = lib.create_player(voicemail_ann, loop=0)
                     player_slot = lib.player_get_slot(player_id)
                     date = datetime.datetime.today()
@@ -266,16 +268,10 @@ class MyCallCallback(pj.CallCallback):
 
                     if play_voice_mail == 2:
                         print "Connecting playback device to speakers..."
-                        lib.set_snd_dev(audio_dev_in, audio_dev_out)
                         lib.conf_connect(call_slot, audio_dev_out)
 
                 else:
                     print "You can talk!"
-
-                    lib.set_snd_dev(audio_dev_in, audio_dev_out)
-                    if snd_clock_rate:
-                        lib.snd_clock_rate = snd_clock_rate
-                        lib.ptime = ptime
 
                     lib.conf_connect(call_slot, audio_dev_out)
                     lib.conf_connect(audio_dev_in, call_slot)
@@ -285,8 +281,6 @@ class MyCallCallback(pj.CallCallback):
 
         else:
             self.media_opened = 0
-
-            lib.set_null_snd_dev()
 
             if play_voice_mail:
                 lib.recorder_destroy(recorder_id)
@@ -306,9 +300,29 @@ def make_call(uri):
 lib = pj.Lib()
 
 try:
-    lib.init(log_cfg = pj.LogConfig(level=log_level, callback=log_cb))
+    ua_cfg = pj.UAConfig()
 
-    lib.set_null_snd_dev()
+    loging_cfg = pj.LogConfig()
+    loging_cfg.level = log_level
+    loging_cfg.callback = log_cb
+
+    media_cfg = pj.MediaConfig()
+    if snd_clock_rate != -1:
+        media_cfg.clock_rate = snd_clock_rate
+    if ptime != -1:
+        media_cfg.ptime = ptime
+    if echo_cancel_type != -1:
+        media_cfg.ec_options = echo_cancel_type
+    if echo_cancel_tail != -1:
+        media_cfg.ec_tail_len = echo_cancel_tail
+    if no_vad != -1:
+        media_cfg.no_vad = no_vad
+    if quality != -1:
+        media_cfg.quality = quality
+
+    lib.init(ua_cfg, loging_cfg, media_cfg)
+
+    lib.set_snd_dev(audio_dev_in, audio_dev_out)
 
     my_transport_cfg = pj.TransportConfig()
     my_transport_cfg.port = rtp_port
