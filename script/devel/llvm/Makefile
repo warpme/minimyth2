@@ -1,5 +1,5 @@
 GARNAME = llvm
-GARVERSION = 3.4
+GARVERSION = 3.4.2
 CATEGORIES = devel
 MASTER_SITES = http://www.llvm.org/releases/$(GARVERSION)/
 DISTFILES = $(DISTNAME).src.tar.gz
@@ -18,7 +18,7 @@ ifneq ($(DESTIMG),build)
 BUILDDEPS += devel/llvm
 endif
 
-# WORKSRC = $(WORKDIR)/$(DISTNAME).src
+WORKSRC = $(WORKDIR)/$(DISTNAME).src
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -63,15 +63,6 @@ CONFIGURE_ENV = \
 
 
 include ../../gar.mk
-
-# llvm 3.0 fails to compile with gcc 4.7.1's link time optimization enabled.
-#CFLAGS   := $(filter-out -flto, $(CFLAGS))
-#CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-#LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-
-#CFLAGS   := $(filter-out -pipe, $(CFLAGS))
-#CXXFLAGS := $(filter-out -pipe, $(CXXFLAGS))
-#LDFLAGS  := $(filter-out -pipe, $(LDFLAGS))
 
 pre-configure:
 	@cd $(WORKSRC)/autoconf ; aclocal  --force --verbose -I m4
