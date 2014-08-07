@@ -11,7 +11,6 @@ PATCHFILES += $(DISTNAME)-perl.patch.gar
 PATCHFILES += $(DISTNAME)-overlayfs-v23.patch
 PATCHFILES += $(DISTNAME)-disable_dma_for_cfa.patch
 PATCHFILES += $(DISTNAME)-defaults.patch
-# PATCHFILES += $(DISTNAME)-fix-mceusb-usb.patch
 LICENSE = GPL2
 
 DESCRIPTION = 
