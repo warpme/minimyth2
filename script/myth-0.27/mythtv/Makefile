@@ -382,6 +382,15 @@ PATCHFILES += 0583-backport-ef72dc4-Remove-definition-of-m_pHttpServer-from-Medi
 PATCHFILES += 0584-backport-feff8e7-Alter-UPnP-register-comments-to-use-the-actual-servi.patch
 PATCHFILES += 0585-backport-1393479-UPnP-Construct-the-supported-protocolInfo-lists-from.patch
 
+# 6.11.0
+PATCHFILES += 0586-backport-a4c974c-Re-sync-FFmpeg-to-2.2.6.patch
+
+# 6.12.0
+PATCHFILES += 0589-backport-1384812-Resync-to-FFmpeg-2.3.1.patch
+PATCHFILES += 0590-backport-359f8f2-Propagate-new-libswresample-dependency-on-libavcodec.patch
+PATCHFILES += 0591-backport-624e58d-Add-debugging-for-checking-liveTV-transitions.patch
+PATCHFILES += 0592-backport-1fb7b5e-Fix-GetLiveTVIndex.patch
+
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
     PATCHFILES += 1139-backport-03d2e69-MusicCommon-Only-connect-the-Exiting-signal-if-the-n.patch
