@@ -391,6 +391,12 @@ PATCHFILES += 0590-backport-359f8f2-Propagate-new-libswresample-dependency-on-li
 PATCHFILES += 0591-backport-624e58d-Add-debugging-for-checking-liveTV-transitions.patch
 PATCHFILES += 0592-backport-1fb7b5e-Fix-GetLiveTVIndex.patch
 
+# 6.12.2
+PATCHFILES += 0593-backport-Fix-channel-detection.patch
+PATCHFILES += 0594-backport-Have-info-and-playback-screen-show-proper-number-of-.patch
+PATCHFILES += 0595-backport-6b29f59-RingBuffer-Properly-wait-for-readahead-thread-to-sta.patch
+PATCHFILES += 0596-backport-0641cd9-RingBuffer-always-read-directly-from-file-if-read-ah.patch
+
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
     PATCHFILES += 1139-backport-03d2e69-MusicCommon-Only-connect-the-Exiting-signal-if-the-n.patch
