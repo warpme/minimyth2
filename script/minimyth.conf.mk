@@ -13,7 +13,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 6.12.1.gf4825ca.private
+mm_VERSION_MINIMYTH ?= 6.12.2.gf4825ca.private
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -66,7 +66,7 @@ mm_GARCH                  ?= x86-64
 mm_DISTRIBUTION_RAM       ?= yes
 
 # Indicates whether or not to create the NFS based part of the distribution.
-mm_DISTRIBUTION_NFS       ?= no
+mm_DISTRIBUTION_NFS       ?= yes
 
 # Indicates whether or not to create the local distribution.
 mm_DISTRIBUTION_LOCAL     ?= yes
@@ -131,8 +131,8 @@ mm_KERNEL_CONFIG          ?=
 mm_MYTH_VERSION           ?= 0.27
 
 # The version of the NVIDIA driver.
-# Valid values are '331.79', '334.21', '340.24'
-mm_NVIDIA_VERSION         ?= 340.24
+# Valid values are '340.24', '340.32', '340.24'
+mm_NVIDIA_VERSION         ?= 340.32
 
 # The version of xorg to use.
 # Valid values are '7.6'.
@@ -211,7 +211,7 @@ export PATCH_GET
 
 # Set the number of parallel makes to the number of processors.
 PARALLELMFLAGS=-j$(shell cat /proc/cpuinfo | grep -c '^processor[[:cntrl:]]*:')
-# PARALLELMFLAGS=-j1
+#PARALLELMFLAGS=-j1
 export PARALLELMFLAGS
 
 # Get rid of Qt environment variables

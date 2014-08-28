@@ -164,16 +164,16 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_HEADERS_VERSION"
-	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.14" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.15" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.16" ] ; then \
+	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.15" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.16" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.17" ] ; then \
 		echo "error: mm_KERNEL_HEADERS_VERSION=\"$(mm_KERNEL_HEADERS_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "3.14" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "3.15" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "3.16" ] ; then \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "3.15" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "3.16" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "3.17" ] ; then \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
@@ -197,9 +197,9 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_VERSION"
-	@if [ ! "$(mm_NVIDIA_VERSION)" = "334.21"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "337.25"    ] && \
+	@if [ ! "$(mm_NVIDIA_VERSION)" = "337.25"    ] && \
 	    [ ! "$(mm_NVIDIA_VERSION)" = "340.24"    ] && \
+	    [ ! "$(mm_NVIDIA_VERSION)" = "340.32"    ] && \
 	    [ ! "$(mm_NVIDIA_VERSION)" = "3xx.xx"    ] ; then \
 		echo "error: mm_NVIDIA_VERSION=\"$(mm_NVIDIA_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
