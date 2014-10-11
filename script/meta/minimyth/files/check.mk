@@ -189,18 +189,15 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_MYTH_VERSION"
-	@if [ ! "$(mm_MYTH_VERSION)" = "0.26"         ] && \
-	    [ ! "$(mm_MYTH_VERSION)" = "0.27"         ] && \
+	@if [ ! "$(mm_MYTH_VERSION)" = "0.27"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "torc"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "master"       ] ; then \
 		echo "error: mm_MYTH_VERSION=\"$(mm_MYTH_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_VERSION"
-	@if [ ! "$(mm_NVIDIA_VERSION)" = "337.25"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "340.24"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "340.32"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "3xx.xx"    ] ; then \
+	@if [ ! "$(mm_NVIDIA_VERSION)" = "340.32"    ] && \
+	    [ ! "$(mm_NVIDIA_VERSION)" = "340.46"    ] ; then \
 		echo "error: mm_NVIDIA_VERSION=\"$(mm_NVIDIA_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
