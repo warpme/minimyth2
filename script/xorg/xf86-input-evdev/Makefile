@@ -1,5 +1,5 @@
 GARNAME = xf86-input-evdev
-GARVERSION = 2.7.2
+GARVERSION = 2.9.0
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
@@ -15,7 +15,8 @@ DEPENDS = lang/c system/udev \
 	$(CATEGORY)/inputproto \
 	$(CATEGORY)/util-macros \
 	$(CATEGORY)/xorg-server \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/xproto \
+	$(CATEGORY)/libevdev
 BUILDDEPS = \
 	$(CATEGORY)/xorg-sgml-doctools
 
