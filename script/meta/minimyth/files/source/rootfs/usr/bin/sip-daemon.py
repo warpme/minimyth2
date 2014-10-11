@@ -30,10 +30,15 @@ current_call = None
 play_voice_mail = 0
 fe_is_paused = 0
 
-print "\nSIP Telephony Daemon v1.3\n(c) Piotr Oniszczuk\n"
+def log(str):
+    now = time.time()
+    localtime = time.localtime(now)
+    milliseconds = '%03d' % int((now - int(now)) * 1000)
+    timestamp = time.strftime('%H:%M:%S', localtime) + "." + milliseconds
+    print timestamp + " " + str
 
-date = datetime.datetime.today()
-print "Started at: " + date.strftime('%d-%b-%Y, %H:%M:%S') + "\n"
+
+log("SIP Telephony Daemon v1.4 (c) Piotr Oniszczuk\n")
 
 def LoadConfig( cfg_file ):
     file = open(cfg_file,"r")
@@ -138,7 +143,7 @@ print " "
 for filePath in glob.glob(semaphores_path + "/*.sem"):
     if os.path.isfile(filePath):
         if debug:
-          print "Deleting semaphore:" + filePath
+          log("Deleting semaphore:" + filePath)
         os.remove(filePath)
 
 def log_cb(level, str, len):
@@ -166,9 +171,9 @@ class MyAccountCallback(pj.AccountCallback):
             call.answer(486, "Busy")
             return
 
-        print "Incoming call from ", call.info().remote_uri
+        log("Incoming call from:" + call.info().remote_uri)
         if not interactive:
-            print "Put pickup.sem to answer or hangup.sem to hangup..."
+            log("Put pickup.sem to answer or hangup.sem to hangup...")
 
         current_call = call
         call_cb = MyCallCallback(current_call)
@@ -181,17 +186,17 @@ class MyAccountCallback(pj.AccountCallback):
 
         loc = QueryFELoc()
         if debug:
-            print "FE query loc.returns:"+loc
+            log("FE query loc.returns:" + loc)
 
         result = re.search("Playback LiveTV|Playback Recorded|Playback Video|Playback DVD", loc)
         if result:
-            print "FE is in video playback. Checking state..."
+            log("FE is in video playback. Checking state...")
             state = re.search("pause", loc)
             if state:
-                print "FE is paused..."
+                log("FE is paused...")
                 fe_is_paused = 0
             else:
-                print "FE is playing. Pausing playback..."
+                log("FE is playing. Pausing playback...")
                 fe_is_paused = 1
                 TelnetCmdToFE(fe_video_playback_pause_cmd)
 
@@ -204,32 +209,28 @@ class MyCallCallback(pj.CallCallback):
 
     def on_state(self):
         global current_call, fe_is_paused, phone, recorder_id
-
-        print "Call with", self.call.info().remote_uri,
-        print "is", self.call.info().state_text,
-        print "last code =", self.call.info().last_code, 
-        print "(" + self.call.info().last_reason + ")"
+        log("Call_with=" + self.call.info().remote_uri + ", Call_state=" + self.call.info().state_text + ", Last_code=" + str(self.call.info().last_code) + "(" + self.call.info().last_reason + ")")
 
         if self.call.info().state == pj.CallState.DISCONNECTED:
             current_call = None
 
-            print 'Current call is', current_call
+            log("Current call is:" + str(current_call))
             SendOSDNotify( "TELEFON...","", "Zakonczono polaczenie", "", end_call_image,"","", end_call_osd_timeout, end_call_osd_style, "127.0.0.1" )
 
             if fe_is_paused:
-                print "FE was paused. Resuming playback..."
+                log("FE was paused. Resuming playback...")
                 TelnetCmdToFE(fe_video_playback_resume_cmd)
                 fe_is_paused = 0
 
             if play_voice_mail:
                 lib.recorder_destroy(recorder_id)
-                print "Closing Voice-mail recorder..."
+                log("Closing Voice-mail recorder...")
 
 
     def on_media_state(self):
         global lib, voice_mail_ann, voicemail_recording, recorder_id
         if self.call.info().media_state == pj.MediaState.ACTIVE:
-            print "Media now are opened..."
+            log("Media now are opened...")
 
             if not self.media_opened:
                 self.media_opened = 1
@@ -250,7 +251,7 @@ class MyCallCallback(pj.CallCallback):
                 call_slot = self.call.info().conf_slot
 
                 if (play_voice_mail == 1 or play_voice_mail == 2):
-                    print "Starting voice-mail!"
+                    log("Starting voice-mail!")
 
                     player_id = lib.create_player(voicemail_ann, loop=0)
                     player_slot = lib.player_get_slot(player_id)
@@ -258,7 +259,7 @@ class MyCallCallback(pj.CallCallback):
 
                     timestamp = date.strftime('%d-%b-%Y-%H-%M')
                     vmfile = voicemail_recording_pref + "-" + timestamp + ".wav"
-                    print "Creating Voice-mail recorder. Will record to:" + vmfile
+                    log("Creating Voice-mail recorder. Will record to:" + vmfile)
 
                     recorder_id = lib.create_recorder(vmfile)
                     recorder_slot = lib.recorder_get_slot(recorder_id)
@@ -267,34 +268,34 @@ class MyCallCallback(pj.CallCallback):
                     lib.conf_connect(player_slot, call_slot)
 
                     if play_voice_mail == 2:
-                        print "Connecting playback device to speakers..."
+                        log("Connecting playback device to speakers...")
                         lib.conf_connect(call_slot, audio_dev_out)
 
                 else:
-                    print "You can talk!"
+                    log("You can talk!")
 
                     lib.conf_connect(call_slot, audio_dev_out)
                     lib.conf_connect(audio_dev_in, call_slot)
 
             else:
-                print "Media already opened..."
+                log("Media already opened...")
 
         else:
             self.media_opened = 0
 
             if play_voice_mail:
                 lib.recorder_destroy(recorder_id)
-                print "Closing Voice-mail recorder..."
+                log("Closing Voice-mail recorder...")
 
-            print "Media are closed..."
+            log("Media are closed...")
 
 
 def make_call(uri):
     try:
-        print "Making call to:", uri
+        log("Making call to:" + uri)
         return acc.make_call(uri, cb=MyCallCallback())
     except pj.Error, e:
-        print "Exception: " + str(e)
+        log("Exception: " + str(e))
         return None
 
 lib = pj.Lib()
@@ -337,9 +338,7 @@ try:
     acc.set_callback(acc_cb)
     acc_cb.wait()
 
-    print "\n"
-    print "Registration complete, status=", acc.info().reg_status, \
-          "(" + acc.info().reg_reason + ")"
+    log("Registration complete, status=" + str(acc.info().reg_status) + "(" + str(acc.info().reg_reason) + ")")
 
     if interactive:
 
@@ -410,7 +409,7 @@ try:
             if os.path.isfile(semaphores_path + "/exit.sem") and os.access(semaphores_path + "/exit.sem", os.R_OK):
                 os.remove(semaphores_path + "/exit.sem")
 
-                print "exit.sem detected. Exiting..."
+                log("exit.sem detected. Exiting...")
                 transport = None
                 acc.delete()
                 acc = None
@@ -427,14 +426,14 @@ try:
 
                     if os.path.isfile(filePath):
                         if debug:
-                            print "Deleting semaphore:" + filePath
+                            log("Deleting semaphore:" + filePath)
                         os.remove(filePath)
 
                     number = re.sub(semaphores_path, "", filePath)
                     number = re.sub('make-call-|/|.sem|', "", number)
 
                     if current_call:
-                        print "Ending current call and making new call to:" + number
+                        log("Ending current call and making new call to:" + number)
                         current_call.hangup()
                         SendOSDNotify( "TELEFON...", "Wykonuje polaczenie", "Numer: "+number,"Klawisz [4] - koniec", ongoing_call_image,"","", ongoing_call_osd_timeout, ongoing_call_osd_style, "127.0.0.1" )
                         time.sleep(2)
@@ -453,14 +452,14 @@ try:
                 os.remove(semaphores_path + "/pickup.sem")
 
                 if not current_call:
-                    print "There is no call"
+                    log("There is no call")
                     continue
 
                 play_voice_mail = 0
 
                 SendOSDNotify( "TELEFON...","", "Przyjecie polaczenia", "Numer: "+phone, ongoing_call_image,"","", ongoing_call_osd_timeout, ongoing_call_osd_style, "127.0.0.1" )
 
-                print "Will pickup Call. Exiting FE to MainMenu..."
+                log("Will pickup Call. Exiting FE to MainMenu...")
                 TelnetCmdToFE(fe_jump_to_mainmenu)
 
                 time.sleep(tmo_mainmenu_begin_call)
@@ -471,7 +470,7 @@ try:
                 os.remove(semaphores_path + "/voice-mail.sem")
 
                 if not current_call:
-                    print "There is no call"
+                    log("There is no call")
                     continue
 
                 play_voice_mail = 1
@@ -481,7 +480,7 @@ try:
                 current_call.answer(200)
 
                 if fe_is_paused:
-                    print "FE was paused. Resuming playback..."
+                    log("FE was paused. Resuming playback...")
                     TelnetCmdToFE(fe_video_playback_resume_cmd)
                     fe_is_paused = 0
 
@@ -490,14 +489,14 @@ try:
                 os.remove(semaphores_path + "/voice-mail-listen.sem")
 
                 if not current_call:
-                    print "There is no call"
+                    log("There is no call")
                     continue
 
                 play_voice_mail = 2
 
                 SendOSDNotify( "TELEFON...","", "Poczta glosowa", "", voicemail_call_image,"","", voicemail_call_osd_timeout, voicemail_call_osd_style, "127.0.0.1" )
 
-                print "Will voice-mail and listen call. Exiting FE to MainMenu..."
+                log("Will voice-mail and listen call. Exiting FE to MainMenu...")
                 TelnetCmdToFE(fe_jump_to_mainmenu)
 
                 time.sleep(tmo_mainmenu_begin_call)
@@ -509,7 +508,7 @@ try:
                 os.remove(semaphores_path + "/reject.sem")
 
                 if not current_call:
-                    print "There is no call"
+                    log("There is no call")
                     continue
 
                 play_voice_mail = 0
@@ -523,7 +522,7 @@ try:
                 os.remove(semaphores_path + "/hangup.sem")
 
                 if not current_call:
-                    print "There is no call"
+                    log("There is no call")
                     continue
 
                 play_voice_mail = 0
@@ -535,7 +534,7 @@ try:
             time.sleep(0.5)
 
 except pj.Error, e:
-    print "Exception: " + str(e)
+    log("Exception: " + str(e))
 
     transport = None
     acc.delete()
