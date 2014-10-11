@@ -1,7 +1,7 @@
 GARNAME = Mesa
-GARVERSION = 10.2.6
+GARVERSION = 10.3.0
 CATEGORIES = $(CATEGORY)
-MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/$(GARVERSION)/
+MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/10.3/
 DISTFILES = MesaLib-$(GARVERSION).tar.bz2
 LICENSE = LGPL2/MIT
 
@@ -19,13 +19,17 @@ DEPENDS    = lang/c lang/cxx lib/expat X11/libvdpau devel/llvm lib/libelf \
 	$(CATEGORY)/libXdamage \
 	$(CATEGORY)/libXext \
 	$(CATEGORY)/libXfixes \
-	$(CATEGORY)/libXxf86vm
+	$(CATEGORY)/libXxf86vm \
+	$(CATEGORY)/libxshmfence
 
 ifneq ($(DESTIMG),build)
 DEPENDS   += system/udev
 endif
 BUILDDEPS  = lib/libxml2 python/python \
-	$(CATEGORY)/makedepend
+	$(CATEGORY)/makedepend \
+	$(CATEGORY)/dri3proto \
+	$(CATEGORY)/presentproto \
+	$(CATEGORY)/libxshmfence
 ifneq ($(DESTIMG),build)
 BUILDDEPS += $(CATEGORY)/Mesa
 endif
@@ -42,48 +46,36 @@ endif
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
-	$(if $(filter i386  , $(GARCH_FAMILY)),--enable-32-bit) \
-	$(if $(filter x86_64, $(GARCH_FAMILY)),--enable-64-bit) \
 	--disable-static \
 	--enable-shared \
-	--disable-debug \
-	--disable-mangling \
-	--disable-texture-float \
-	--enable-asm \
-	--disable-selinux \
-	--enable-opengl \
+	$(if $(filter i386  , $(GARCH_FAMILY)),--enable-32-bit) \
+	$(if $(filter x86_64, $(GARCH_FAMILY)),--enable-64-bit) \
+	--with-dri-driverdir="$(libdir)/dri" \
+	--with-vdpau-libdir="$(libdir)" \
+	--with-gallium-drivers=r300,r600,radeonsi,svga,swrast \
+	--with-dri-drivers=i915,i965,r200,radeon,swrast \
+	--with-egl-platforms=x11,drm \
+	--enable-llvm-shared-libs \
+	--enable-egl \
+	--disable-gallium-egl \
+	--disable-gallium-gbm \
+	--enable-gbm \
+	--enable-gallium-llvm \
+	--enable-shared-glapi \
+	--enable-glx \
+	--enable-glx-tls \
+	--enable-dri \
 	--disable-gles1 \
 	--disable-gles2 \
-	--disable-openvg \
-	--enable-dri \
-	--enable-glx \
-	--disable-osmesa \
-	--disable-gallium-osmesa \
-	--disable-egl \
+	--enable-texture-float \
 	--enable-xa \
-	--disable-gbm \
-	--disable-xvmc \
 	--enable-vdpau \
 	--disable-opencl \
 	--disable-opencl-icd \
-	--disable-xlib-glx \
-	--disable-gallium-egl \
-	--disable-gallium-gbm \
-	--disable-r600-llvm-compiler \
-	--disable-gallium-tests \
-	--disable-shared-glapi \
-	--disable-dri3 \
-	--enable-driglx-direct \
-	--disable-glx-tls \
-	--enable-gallium-llvm \
-	--with-llvm-shared-libs \
-	--with-gallium-drivers="i915,r300,r600,radeonsi,svga,swrast" \
-	--with-dri-driverdir="$(libdir)/dri" \
-	--with-dri-drivers="i915,i965,r200,radeon,swrast" \
-	--with-vdpau-libdir="$(libdir)/vdpau" \
-	PKG_CONFIG_PATH="$(DESTDIR)$(libdir)/pkgconfig" \
 	LIBUDEV_CFLAGS="$(DESTDIR)$(includedir)" \
 	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so"
+
+#	--with-vdpau-libdir="$(libdir)/vdpau" \
 
 BUILD_ARGS  = \
 	HOST_CC="$(build_CC)" \
@@ -108,6 +100,8 @@ x-checksum-MesaLib-$(GARVERSION).tar.bz2:
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
+	#Hack needed to build Mesa with libxcb1.17
+	@ln -sf $(DESTDIR)$(libdir)/libxcb.la-disabled $(DESTDIR)$(libdir)/libxcb.la
 	@$(MAKECOOKIE)
 
 install-source:
@@ -120,6 +114,13 @@ install-cross:
 	@$(MAKECOOKIE)
 
 post-install:
+	@rm -f $(DESTDIR)$(libdir)/libGL.la
+	@rm -f $(DESTDIR)$(libdir)/libEGL.la
+	@rm -f $(DESTDIR)$(libdir)/libglapi.la
+	@rm -f $(DESTDIR)$(libdir)/libgbm.la
+	@rm -f $(DESTDIR)$(libdir)/libGLESv2.la
+	@rm -f $(DESTDIR)$(libdir)/libGLESv1_CM.la
+	@rm -f $(DESTDIR)$(libdir)/libxatracker.la
 	@rm -f $(DESTDIR)$(libdir)/dri/i915_dri.la
 	@rm -f $(DESTDIR)$(libdir)/dri/i965_dri.la
 	@rm -f $(DESTDIR)$(libdir)/dri/r200_dri.la
@@ -129,8 +130,20 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_dri.la
 	@rm -f $(DESTDIR)$(libdir)/dri/swrast_dri.la
 	@rm -f $(DESTDIR)$(libdir)/dri/vmwgfx_dri.la
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r600.la
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r300.la
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_i915.la
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_swrast.la
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_radeonsi.la
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_vmwgfx.la
 	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_r300.la
 	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_r600.la
 	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_radeonsi.la
 	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_softpipe.la
+	@rm -f $(DESTDIR)$(libdir)/libvdpau_r300.la
+	@rm -f $(DESTDIR)$(libdir)/libvdpau_r600.la
+	@rm -f $(DESTDIR)$(libdir)/libvdpau_radeonsi.la
+	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe.la
+	@#Remove Hack needed to build Mesa with libxcb1.17
+	@rm -f $(DESTDIR)$(libdir)/libxcb.la
 	@$(MAKECOOKIE)
