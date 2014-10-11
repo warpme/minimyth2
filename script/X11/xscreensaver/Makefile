@@ -1,9 +1,10 @@
 GARNAME = xscreensaver
-GARVERSION = 5.20
+GARVERSION = 5.30
 CATEGORIES = X11
 MASTER_SITES = http://www.jwz.org/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME)-intltool_disable.patch $(DISTNAME)-po_disable.patch $(DISTNAME).patch.gar
+PATCHFILES = $(DISTNAME)-po_disable.patch 
+PATCHFILES += $(DISTNAME).patch.gar
 LICENSE = MIT
 
 DESCRIPTION =
@@ -16,6 +17,8 @@ BUILDDEPS = gtk/glib utils/bc
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+
+LDFLAGS  += -lpthread
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--x-includes=$(DESTDIR)$(includedir) \
