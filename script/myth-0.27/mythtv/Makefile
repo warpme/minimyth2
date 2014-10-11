@@ -397,6 +397,20 @@ PATCHFILES += 0594-backport-Have-info-and-playback-screen-show-proper-number-of-
 PATCHFILES += 0595-backport-6b29f59-RingBuffer-Properly-wait-for-readahead-thread-to-sta.patch
 PATCHFILES += 0596-backport-0641cd9-RingBuffer-always-read-directly-from-file-if-read-ah.patch
 
+# 6.12.3
+PATCHFILES += 0597-backport-e528217-Set-the-VID_AVC-flag-where-applicable-recordings-by-.patch
+
+# 6.12.4
+PATCHFILES += 0598-backport-410aebf-Avoid-calling-QFile-exists-on-an-empty-string.patch
+
+# 6.13.0
+PATCHFILES += 0599-backport-77fc304-AVFD-Rescan-audio-stream-when-detecting-audio-change.patch
+PATCHFILES += 0600-backport-f6bddc1-AVFD-Do-not-force-the-number-of-channels-for-AC3.patch
+PATCHFILES += 0601-backport-ea88788-AO-Do-not-reset-audio-card-if-we-can-continue-to-pas.patch
+PATCHFILES += 0602-backport-b4d6129-Playback-digital-passthrough-changes.patch
+
+#PATCHFILES += 0603-backport-50b182f-AirPlay-Fix-iOS-8-not-seeing-video-device.patch
+
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
     PATCHFILES += 1139-backport-03d2e69-MusicCommon-Only-connect-the-Exiting-signal-if-the-n.patch
@@ -449,6 +463,19 @@ ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | gre
     PATCHFILES += 1153-backport-9c18ef0-MythMusic-update-findIcon-to-use-a-regexp-to-find-th.patch
     PATCHFILES += 1154-backport-3902c31-MainServer-use-gCoreContext-IsThisHost-hostname-to-c.patch
     PATCHFILES += 1155-backport-b4dfae9-MythMusic-fix-playback-of-tracks-with-an-in-the-file.patch
+    # 6.12.3
+    PATCHFILES += 1156-backport-4c56125-MythMusic-Fix-out-of-bounds-array-access-in-spectrum.patch
+
+    # 6.12.4
+    PATCHFILES += 1157-backport-16de09f-MythMusic-Add-a-simple-ASX-playlist-parser.patch
+    PATCHFILES += 1159-backport-af9e316-Fix-FindFile-FindFileLists-using-SendRecieveStringLi.patch
+    PATCHFILES += 1160-backport-cb54c9c-More-accurate-error-message-when-an-IP-is-passed-to-.patch
+    PATCHFILES += 1162-428609b-MythMusic-Fix-smart-playlists-uses-lastplay-or-date_.patch
+    PATCHFILES += 1163-e5d6a42-MythMusic-Fix-sql-error-in-SmartPlaylist-editor-when.patch
+    PATCHFILES += 1164-43b799a-MythMusic-Fix-NULL-insert-into-NOT-NULL-column-in-Sm.patch
+    PATCHFILES += 1165-2f3f422-MythMusic-Allow-smart-playlist-to-be-saved-even-if-i.patch
+    PATCHFILES += 1166-7fca780-MythMusic-Fix-another-NULL-insert-into-NOT-NULL-colu.patch
+    PATCHFILES += 1167-backport-5447a50-MythMusic-fix-a-possible-crash-after-scanning-for-mu.patch
 
 endif
 
