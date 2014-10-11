@@ -1,5 +1,5 @@
 GARNAME = libxcb
-GARVERSION = 1.9
+GARVERSION = 1.11
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = http://xcb.freedesktop.org/dist/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -13,7 +13,8 @@ endef
 DEPENDS = lang/c \
 	$(CATEGORY)/libpthread-stubs \
 	$(CATEGORY)/libXau \
-	$(CATEGORY)/xcb-proto
+	$(CATEGORY)/xcb-proto \
+	$(CATEGORY)/util-macros
 BUILDDEPS = \
 	lib/libxslt
 
@@ -32,6 +33,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-damage \
 	--enable-dpms \
 	--enable-dri2 \
+	--enable-dri3 \
 	--enable-glx \
 	--enable-randr \
 	--enable-record \
@@ -62,12 +64,16 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
+	# @rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
+	# Hack needed to build Mesa with libxcb1.17
+	@mv $(DESTDIR)$(libdir)/libxcb.la $(DESTDIR)$(libdir)/libxcb.la-disabled
 	@rm -f $(DESTDIR)$(libdir)/libxcb-composite.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-damage.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-dpms.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-dri2.la
+	@rm -f $(DESTDIR)$(libdir)/libxcb-dri3.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-glx.la
+	@rm -f $(DESTDIR)$(libdir)/libxcb-present.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-randr.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-record.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-render.la
@@ -79,6 +85,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libxcb-xevie.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-xf86dri.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-xfixes.la
+	@rm -f $(DESTDIR)$(libdir)/libxcb-xkb.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-xinerama.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-xtest.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-xv.la
