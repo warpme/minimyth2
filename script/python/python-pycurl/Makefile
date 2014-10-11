@@ -35,6 +35,8 @@ INSTALL_ENV    = \
 ifneq ($(DESTIMG),build)
 BUILD_ARGS += --cross-compile
 BUILD_ENV  += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
+BUILD_ENV  += CC=x86_64-minimyth-linux-gnu-gcc
+BUILD_ENV  += LDSHARED="x86_64-minimyth-linux-gnu-gcc -shared"
 endif
 
 GAR_EXTRA_CONF += python/python/package-api.mk
@@ -50,7 +52,7 @@ LDFLAGS += -L$(DESTDIR)$(libdir)
 
 build-%/setup.py:
 	@echo " ==> Running setup.py build in $*"
-	@cd $* && $(CONFIGURE_ENV) $(BUILD_ENV) python setup.py $(CONFIGURE_ARGS) build $(BUILD_ARGS)
+	@cd $* && $(CONFIGURE_ENV) $(BUILD_ENV) python setup.py $(CONFIGURE_ARGS) build -x $(BUILD_ARGS)
 	@$(MAKECOOKIE)
 
 install-%/setup.py: 
