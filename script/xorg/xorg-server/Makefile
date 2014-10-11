@@ -1,5 +1,5 @@
 GARNAME = xorg-server
-GARVERSION = 1.14.7
+GARVERSION = 1.16.1
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
@@ -72,7 +72,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-sparkle \
 	--disable-install-libxf86config \
 	--enable-visibility \
-	--enable-pc98=auto \
 	--enable-aiglx \
 	--enable-registry \
 	--enable-composite \
@@ -80,7 +79,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-xres \
 	--enable-record \
 	--enable-xv \
-	--enable-xvmc \
+	--disable-xvmc \
 	--enable-dga \
 	--enable-screensaver \
 	--disable-xdmcp \
@@ -88,19 +87,18 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-glx \
 	--enable-dri \
 	--enable-dri2 \
+	--enable-dri3 \
 	--enable-xinerama \
 	--enable-xf86vidmode \
 	--disable-xace \
 	--disable-xselinux \
 	--disable-xcsecurity \
-	--disable-xcalibrate \
 	--disable-tslib \
 	--enable-dbe \
 	--enable-xf86bigfont \
 	--enable-dpms \
 	$(if $(filter build, $(DESTIMG)), --disable-config-udev, --enable-config-udev) \
 	$(if $(filter build, $(DESTIMG)), --disable-config-udev-kms, --enable-config-udev-kms) \
-	--disable-config-dbus \
 	--disable-config-hal \
 	--enable-xfree86-utils \
 	--enable-vgahw \
@@ -133,7 +131,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-serverconfig-path="$(libdir)/xserver" \
 	--without-xmlto \
 	--without-fop \
-	--with-sha1=libcrypto
+	--with-sha1=libcrypto \
+	--enable-glamor
 
 CONFIGURE_ENV = \
 	XORG_SGML_PATH="$(DESTDIR)$(includedir)/xorg"
@@ -144,6 +143,8 @@ include ../../gar.mk
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	#Remove Hack needed to build Mesa with libxcb1.17
+	@rm -f $(DESTDIR)$(libdir)/libxcb.la
 	@$(MAKECOOKIE)
 
 pre-build:
@@ -156,6 +157,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/extensions/libextmod.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/extensions/libglx.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/extensions/librecord.la
+	@rm -f $(DESTDIR)$(libdir)/xorg/modules/libglamoregl.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/libexa.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/libfb.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/libfbdevhw.la
