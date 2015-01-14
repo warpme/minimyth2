@@ -1,7 +1,7 @@
 GARNAME = Mesa
-GARVERSION = 10.3.0
+GARVERSION = 10.4.2
 CATEGORIES = $(CATEGORY)
-MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/10.3/
+MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/$(GARVERSION)/
 DISTFILES = MesaLib-$(GARVERSION).tar.bz2
 LICENSE = LGPL2/MIT
 
@@ -76,6 +76,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so"
 
 #	--with-vdpau-libdir="$(libdir)/vdpau" \
+#	--with-vdpau-libdir="$(libdir)" \
 
 BUILD_ARGS  = \
 	HOST_CC="$(build_CC)" \
