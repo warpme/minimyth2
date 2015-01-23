@@ -157,6 +157,7 @@ mm-all:
 		   [ ! "$${software}" = "mc"             ] && \
 		   [ ! "$${software}" = "dvdcss"         ] && \
 		   [ ! "$${software}" = "bdaacs"         ] && \
+		   [ ! "$${software}" = "makemkv"        ] && \
 		   [ ! "$${software}" = "voip"           ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
@@ -164,16 +165,16 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_HEADERS_VERSION"
-	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.15" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.16" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.17" ] ; then \
+	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.16" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.18" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.19" ] ; then \
 		echo "error: mm_KERNEL_HEADERS_VERSION=\"$(mm_KERNEL_HEADERS_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "3.15" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "3.16" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "3.17" ] ; then \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "3.16" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "3.18" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "3.19" ] ; then \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
@@ -196,8 +197,8 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_VERSION"
-	@if [ ! "$(mm_NVIDIA_VERSION)" = "340.32"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "340.46"    ] ; then \
+	@if [ ! "$(mm_NVIDIA_VERSION)" = "340.58"    ] && \
+	    [ ! "$(mm_NVIDIA_VERSION)" = "340.65"    ] ; then \
 		echo "error: mm_NVIDIA_VERSION=\"$(mm_NVIDIA_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
