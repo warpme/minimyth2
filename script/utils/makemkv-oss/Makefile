@@ -1,0 +1,37 @@
+GARNAME = makemkv-oss
+GARVERSION = 1.9.0
+CATEGORIES = utils
+MASTER_SITES = http://www.makemkv.com/download/
+DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
+LICENSE = GPL2
+
+DESCRIPTION = 
+define BLURB
+endef
+
+DEPENDS = lang/c lib/ffmpeg
+
+CONFIGURE_SCRIPTS = $(WORKSRC)/configure
+BUILD_SCRIPTS     = $(WORKSRC)/Makefile
+INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+
+CONFIGURE_ARGS = $(DIRPATHS) \
+        --build=$(GARBUILD) \
+        --host=$(GARHOST) \
+        --prefix="$(prefix)" \
+        --sysconfdir="$(sysconfdir)" \
+        --libexecdir="$(libexecdir)" \
+        --disable-gui
+
+include ../../gar.mk
+
+CFLAGS   := $(filter-out -flto -fuse-linker-plugin, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto -fuse-linker-plugin, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto -fuse-linker-plugin, $(LDFLAGS))
+
+post-install:
+	@rm -rf $(DESTDIR)$(libdir)/libaacs.so*
+	@rm -rf $(DESTDIR)$(libdir)/libbdplus.so*
+	@ln -s $(DESTDIR)$(libdir)/libmmbd.so.0 $(DESTDIR)$(libdir)/libaacs.so.0
+	@ln -s $(DESTDIR)$(libdir)/libmmbd.so.0 $(DESTDIR)$(libdir)/libbdplus.so.0
+	@$(MAKECOOKIE)
