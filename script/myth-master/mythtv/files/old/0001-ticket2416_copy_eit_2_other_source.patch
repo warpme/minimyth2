@@ -1,0 +1,113 @@
+diff -Naur mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/eithelper.cpp mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/eithelper.cpp
+--- mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/eithelper.cpp	2014-05-06 14:16:36.000000000 +0200
++++ mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/eithelper.cpp	2014-05-06 14:51:59.325803272 +0200
+@@ -33,6 +33,7 @@
+                                     uint networkid, uint transportid);
+ static uint get_chan_id_from_db_dtv(uint sourceid,
+                                     uint programnumber, uint tunedchanid);
++static uint get_mapped_chan_id_from_db(uint serviceid);                                    
+ static void init_fixup(QMap<uint64_t,uint> &fix);
+ 
+ #define LOC QString("EITHelper: ")
+@@ -596,6 +597,22 @@
+             season, episode, totalepisodes);
+ 
+         db_events.enqueue(event);
++
++        uint mapped_chanid = GetMappedChanID(eit->ServiceID());
++
++        if (mapped_chanid > 0)
++        {
++            DBEventEIT *event = new DBEventEIT(mapped_chanid,
++                                         title,     subtitle,      description,
++                                         category,  category_type,
++                                         starttime, endtime,       fix,
++                                         subtitle_type,
++                                         audio_props,
++                                         video_props, stars,
++                                         seriesId,  programId,
++                                         season, episode, totalepisodes);
++            db_events.enqueue(event);
++        }
+     }
+ }
+ 
+@@ -789,10 +806,21 @@
+ 
+     uint chanid = get_chan_id_from_db_dvb(sourceid, serviceid, networkid, tsid);
+     srv_to_chanid[key] = chanid;
++    uint mapped_chanid = get_mapped_chan_id_from_db(serviceid);
++    if(mapped_chanid)
++        serviceid_to_mapped_chanid[serviceid] = mapped_chanid;    
+ 
+     return chanid;
+ }
+ 
++uint EITHelper::GetMappedChanID(uint serviceid)
++{
++    ServiceIDToMappedChanID::const_iterator it = serviceid_to_mapped_chanid.find(serviceid);
++    if (it != serviceid_to_mapped_chanid.end())
++        return max(*it, 0);
++    return 0;
++} 
++
+ uint EITHelper::GetChanID(uint program_number)
+ {
+     uint64_t key;
+@@ -950,6 +978,28 @@
+     return useOnAirGuide ? chanid : 0;
+ }
+ 
++static uint get_mapped_chan_id_from_db(uint serviceid)
++{
++    MSqlQuery query(MSqlQuery::InitCon());
++
++    QString qstr =
++        "SELECT mapped_chanid "
++        "FROM eit_mapping "
++        "WHERE serviceid = :SERVICEID";
++
++    query.prepare(qstr);
++    query.bindValue(":SERVICEID", serviceid);
++    if (!query.exec() || !query.isActive())
++        MythDB::DBError("Looking up mapped chanID", query);
++
++    if (query.next())
++    {
++        return query.value(0).toUInt();
++    }
++
++    return 0;
++}
++
+ static void init_fixup(QMap<uint64_t,uint> &fix)
+ {
+     ///////////////////////////////////////////////////////////////////////////
+diff -Naur mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/eithelper.h mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/eithelper.h
+--- mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/eithelper.h	2014-05-06 14:16:40.000000000 +0200
++++ mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/eithelper.h	2014-05-06 14:51:59.325803272 +0200
+@@ -46,6 +46,7 @@
+ typedef QMap<uint,EventIDToATSCEvent>      ATSCSRCToEvents;
+ typedef QMap<uint,EventIDToETT>            ATSCSRCToETTs;
+ typedef QMap<unsigned long long,uint>      ServiceToChanID;
++typedef QMap<int,int>                      ServiceIDToMappedChanID;
+ 
+ class DBEventEIT;
+ class EITFixUp;
+@@ -100,6 +101,8 @@
+     // any DTV
+     uint GetChanID(uint program_number);
+ 
++    uint GetMappedChanID(uint serviceid);
++
+     void CompleteEvent(uint atsc_major, uint atsc_minor,
+                        const ATSCEvent &event,
+                        const QString   &ett);
+@@ -107,6 +110,7 @@
+         //QListList_Events  eitList;      ///< Event Information Tables List
+     mutable QMutex    eitList_lock; ///< EIT List lock
+     mutable ServiceToChanID srv_to_chanid;
++    mutable ServiceIDToMappedChanID serviceid_to_mapped_chanid;
+ 
+     EITFixUp               *eitfixup;
+     static EITCache        *eitcache;

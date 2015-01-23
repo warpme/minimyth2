@@ -6,18 +6,23 @@ DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  =
 
 # Backend needed patches
-PATCHFILES += 0001-ticket2416_copy_eit_2_other_source.patch
-PATCHFILES += 0002-ticket9480_pl_eit_encodings.patch
+#PATCHFILES += 0001-ticket2416_copy_eit_2_other_source.patch
+#PATCHFILES += 0002-ticket9480_pl_eit_encodings.patch
 PATCHFILES += 0003-delay_4_no_concurent_start_rec.patch
 PATCHFILES += 0004-eit_verbosity.patch
 PATCHFILES += 0005-tid_debug_verbosity.patch
-PATCHFILES += 0007-cardutil_show_displayname.patch
-PATCHFILES += 0009-allow_no_tuners.patch
-PATCHFILES += 0014-SCR_keep_disecq_always_18V.patch
-PATCHFILES += 0019-add_verbose_dvb_lock_info.patch
-PATCHFILES += 0021-make_EIT_start_at_time.patch
-PATCHFILES += 0022-mythutil-add-an-option-to-check-recordings.patch
-PATCHFILES += 0024-disable_break_when_no_PES_PUSI_set.patch
+PATCHFILES += 0006-cardutil_show_displayname.patch
+PATCHFILES += 0007-allow_no_tuners.patch
+PATCHFILES += 0008-SCR_keep_disecq_always_18V.patch
+#PATCHFILES += 0009-make_EIT_start_at_time.patch
+PATCHFILES += 0011-disable_break_when_no_PES_PUSI_set.patch
+PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
+PATCHFILES += 0017-python_bindings_tztime_error.patch
+PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
+PATCHFILES += 0019-mythlink-pretty-with-recgroup-subdir.patch
+PATCHFILES += 0020-h264-seek-table.patch
+PATCHFILES += 0021-ticket12248-livetv-transitions-demonstrate-bad-decoder-start-conditions.patch
+PATCHFILES += 0022-ticket12308-commflag-improvements.patch
 
 # Minimyth needed patches
 PATCHFILES += 0100-minimyth.patch
@@ -30,14 +35,29 @@ PATCHFILES += 0200-ticket9633_progressbar_on_osd.patch
 PATCHFILES += 0202-_LMSC_osd.patch
 PATCHFILES += 0203-udisks_timeout.patch
 PATCHFILES += 0204-netvision_build.patch
-PATCHFILES += 0205-mythmusic_quick_browsing.patch
-PATCHFILES += 0206-python_bindings_tztime_error.patch
-PATCHFILES += 0208-add-mythnotification-custom-styles-support-via-UDP.patch
-PATCHFILES += 0224-add-osd-status-notify-to-mythmediacenter.patch
-PATCHFILES += 0229-add-disable-optical-disc-by-mm-config.patch
-PATCHFILES += 0231-fix-zoneminder-1.26.5.patch
-PATCHFILES += 0232-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
-PATCHFILES += 0253-mythlink-pretty-with-recgroup-subdir.patch
+# PATCHFILES += 0205-mythmusic_quick_browsing.patch
+PATCHFILES += 0206-add-mythnotification-custom-styles-support-via-UDP.patch
+PATCHFILES += 0207-add-osd-status-notify-to-mythmediacenter.patch
+PATCHFILES += 0208-add-disable-optical-disc-by-mm-config.patch
+PATCHFILES += 0209-add-phone-entry-in-themes.patch
+PATCHFILES += 0210-add-option-to-not-remember-last-livetv-chan.patch
+PATCHFILES += 0211-add-optical-rip-to-menu.patch
+PATCHFILES += 0212-ticket12311.patch
+PATCHFILES += 0213-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
+# PATCHFILES += 0214-ticket12015-configure-not-passing-cppxx-flags.patch
+
+# 0215 and 0216: Fixes issue with no muliple notifications durring playback
+PATCHFILES += 0215-revert-3016a7b-Copy-m_added-and-m_created-in-the-MythNotificationSc.patch
+PATCHFILES += 0216-revert-6350a12-Fix-a-couple-more-unintialised-members-in-MythNotifi.patch
+
+# 0217: fixes issue with only 3 entries in mainmenu on MythmediaStream
+PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
+
+# PATCHFILES += 0218-xinitthreads.patch
+
+# 0219: needed to have working #12311. Without revert just after start, is GUI is shoifted by 1px
+PATCHFILES += 0219-revert-1c440ba-Fix-fullscreen-windowing-with-Compiz-Unity.patch
+
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
 endif
@@ -155,7 +175,7 @@ CONFIGURE_ARGS = \
 	--enable-x11 \
 	--x11-path="$(DESTDIR)$(includedir)" \
 	--enable-xrandr \
-	--enable-xv \
+	--disable-xv \
 	--enable-vdpau \
 	--disable-crystalhd \
 	--enable-vaapi \

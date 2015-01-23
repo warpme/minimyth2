@@ -1,0 +1,127 @@
+diff -Naur mythtv-master-20150105-g4216e00-old/mythtv/libs/libmythui/mythmainwindow.cpp mythtv-master-20150105-g4216e00-new/mythtv/libs/libmythui/mythmainwindow.cpp
+--- mythtv-master-20150105-g4216e00-old/mythtv/libs/libmythui/mythmainwindow.cpp	2015-01-10 16:05:20.000000000 +0100
++++ mythtv-master-20150105-g4216e00-new/mythtv/libs/libmythui/mythmainwindow.cpp	2015-01-13 16:09:37.116587038 +0100
+@@ -193,8 +193,7 @@
+         idleTime(0),
+         standby(false),
+         enteringStandby(false),
+-        NC(NULL),
+-        firstinit(true)
++        NC(NULL)
+     {
+     }
+ 
+@@ -290,8 +289,6 @@
+     bool standby;
+     bool enteringStandby;
+     MythNotificationCenter *NC;
+-        // window aspect
+-    bool firstinit;
+ };
+ 
+ // Make keynum in QKeyEvent be equivalent to what's in QKeySequence
+@@ -982,14 +979,7 @@
+     // Set window border based on fullscreen attribute
+     Qt::WindowFlags flags = Qt::Window;
+ 
+-    bool inwindow = GetMythDB()->GetNumSetting("RunFrontendInWindow", 0);
+-    bool fullscreen = d->does_fill_screen && !GetMythUI()->IsGeometryOverridden();
+-
+-    // On Compiz/Unit, when the window is fullscreen and frameless changing
+-    // screen position ends up stuck. Adding a border temporarily prevents this
+-    setWindowFlags(windowFlags() & ~Qt::FramelessWindowHint);
+-
+-    if (!inwindow)
++    if (!GetMythDB()->GetNumSetting("RunFrontendInWindow", 0))
+     {
+         LOG(VB_GENERAL, LOG_INFO, "Using Frameless Window");
+         flags |= Qt::FramelessWindowHint;
+@@ -1000,20 +990,10 @@
+     flags |= Qt::MSWindowsOwnDC;
+ #endif
+ 
+-    if (fullscreen && !inwindow)
++    if (d->does_fill_screen && !GetMythUI()->IsGeometryOverridden())
+     {
+         LOG(VB_GENERAL, LOG_INFO, "Using Full Screen Window");
+-        if (d->firstinit)
+-        {
+-            // During initialization, we force being fullscreen using setWindowState
+-            // otherwise, in ubuntu's unity, the side bar often stays visible
+-            setWindowState(Qt::WindowFullScreen);
+-        }
+-    }
+-    else
+-    {
+-            // reset type
+-        setWindowState(Qt::WindowNoState);
++        setWindowState(Qt::WindowFullScreen);
+     }
+ 
+     if (gCoreContext->GetNumSetting("AlwaysOnTop", false))
+@@ -1022,7 +1002,6 @@
+     }
+ 
+     setWindowFlags(flags);
+-    QTimer::singleShot(1000, this, SLOT(DelayedAction()));
+ 
+     d->screenRect = QRect(d->xbase, d->ybase, d->screenwidth, d->screenheight);
+     d->uiScreenRect = QRect(0, 0, d->screenwidth, d->screenheight);
+@@ -1032,9 +1011,7 @@
+                                         .arg(QString::number(d->screenheight)));
+ 
+     setGeometry(d->xbase, d->ybase, d->screenwidth, d->screenheight);
+-    // remove size constraints
+-    setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+-    resize(d->screenwidth, d->screenheight);
++    setFixedSize(QSize(d->screenwidth, d->screenheight));
+ 
+     GetMythUI()->ThemeWidget(this);
+ #ifdef Q_OS_MAC
+@@ -1158,12 +1135,6 @@
+     }
+ }
+ 
+-void MythMainWindow::DelayedAction(void)
+-{
+-    setFixedSize(QSize(d->screenwidth, d->screenheight));
+-    Show();
+-}
+-
+ void MythMainWindow::InitKeys()
+ {
+     RegisterKey("Global", ACTION_UP, QT_TRANSLATE_NOOP("MythControls",
+@@ -1347,19 +1318,7 @@
+ 
+ void MythMainWindow::Show(void)
+ {
+-    bool inwindow = GetMythDB()->GetNumSetting("RunFrontendInWindow", 0);
+-    bool fullscreen = d->does_fill_screen && !GetMythUI()->IsGeometryOverridden();
+-
+-    if (fullscreen && !inwindow && !d->firstinit)
+-    {
+-        showFullScreen();
+-    }
+-    else
+-    {
+-        show();
+-    }
+-    d->firstinit = false;
+-
++    show();
+ #ifdef Q_WS_MACX_OLDQT
+     if (d->does_fill_screen)
+         HideMenuBar();
+diff -Naur mythtv-master-20150105-g4216e00-old/mythtv/libs/libmythui/mythmainwindow.h mythtv-master-20150105-g4216e00-new/mythtv/libs/libmythui/mythmainwindow.h
+--- mythtv-master-20150105-g4216e00-old/mythtv/libs/libmythui/mythmainwindow.h	2015-01-10 16:05:10.000000000 +0100
++++ mythtv-master-20150105-g4216e00-new/mythtv/libs/libmythui/mythmainwindow.h	2015-01-13 16:09:37.116587038 +0100
+@@ -174,9 +174,6 @@
+     void ShowMouseCursor(bool show);
+ 
+     MythMainWindowPrivate *d;
+-
+-  private slots:
+-    void DelayedAction(void);
+ };
+ 
+ MUI_PUBLIC MythMainWindow *GetMythMainWindow();

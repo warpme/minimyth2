@@ -1,0 +1,173 @@
+diff -Naur mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/eitfixup.h mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/eitfixup.h
+--- mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/eitfixup.h	2014-05-06 14:51:57.405809966 +0200
++++ mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/eitfixup.h	2014-05-06 14:52:10.259098443 +0200
+@@ -63,6 +63,7 @@
+         kEFixForceISO8859_15 = 0x4000,
+         kEFixForceISO8859_9  = 0x80000,
+         kEFixForceISO8859_2  = 0x100000,
++        kEFixForceISO6937    = 0x8000,
+     };
+ 
+     EITFixUp();
+diff -Naur mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/eithelper.cpp mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/eithelper.cpp
+--- mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/eithelper.cpp	2014-05-06 14:51:59.325803272 +0200
++++ mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/eithelper.cpp	2014-05-06 14:52:10.259098443 +0200
+@@ -228,9 +228,17 @@
+     unsigned char enc_2[3]  = { 0x10, 0x00, 0x02 };
+     unsigned char enc_9[3]  = { 0x10, 0x00, 0x09 }; // could use { 0x05 } instead
+     unsigned char enc_15[3] = { 0x10, 0x00, 0x0f }; // could use { 0x0B } instead
++    unsigned char enc_0[1]  = { 0x20 };
+     int enc_len = 0;
+     const unsigned char *enc = NULL;
+ 
++    // Use an encoding override of ISO 6937
++    if (fix & EITFixUp::kEFixForceISO6937)
++    {
++        enc = enc_0;
++        enc_len = sizeof(enc_0);
++    }
++
+     // Is this BellExpressVU EIT (Canada) ?
+     // Use an encoding override of ISO 8859-1 (Latin1)
+     if (fix & EITFixUp::kEFixForceISO8859_1)
+@@ -262,6 +270,8 @@
+         enc = enc_15;
+         enc_len = sizeof(enc_15);
+     }
++    
++    
+ 
+     if (bestShortEvent)
+     {
+@@ -338,14 +348,24 @@
+         return;
+ 
+     uint descCompression = (eit->TableID() > 0x80) ? 2 : 1;
+-    uint fix = fixup.value(eit->OriginalNetworkID() << 16);
++    uint fix = EITFixUp::kFixGenericDVB;
++    if (eit->SourceNetworkID() && eit->SourceTransportID()) {
++        fix |= fixup[1<<15 | eit->SourceNetworkID() << 16];
++        fix |= fixup[1<<15 | (((uint64_t)eit->SourceTransportID()) << 32) |
++                     (eit->SourceNetworkID() << 16)];
++        fix |= fixup[1<<15 | (eit->SourceNetworkID() << 16) | eit->ServiceID()];
++        fix |= fixup[1<<15 | (((uint64_t)eit->SourceTransportID()) << 32) |
++                     (uint64_t)(eit->SourceNetworkID() << 16) |
++                     (uint64_t)eit->ServiceID()];
++    }
++
++    fix |= fixup[eit->OriginalNetworkID() << 16];
+     fix |= fixup.value((((uint64_t)eit->TSID()) << 32) |
+                  (eit->OriginalNetworkID() << 16));
+     fix |= fixup.value((eit->OriginalNetworkID() << 16) | eit->ServiceID());
+     fix |= fixup.value((((uint64_t)eit->TSID()) << 32) |
+                  (uint64_t)(eit->OriginalNetworkID() << 16) |
+-                  (uint64_t)eit->ServiceID());
+-    fix |= EITFixUp::kFixGenericDVB;
++                                  (uint64_t)eit->ServiceID());
+ 
+     uint tableid   = eit->TableID();
+     uint version   = eit->Version();
+@@ -1005,6 +1025,9 @@
+     ///////////////////////////////////////////////////////////////////////////
+     // Fixups to make EIT provided listings more useful
+     // transport_id<<32 | netword_id<<16 | service_id
++    // The service_id is a 13-bit field. Free bit number 15 
++    // is used here to determine that the data releate to 
++    // transponder, which sent the EIT, and not the program.
+ 
+     // Bell Express VU Canada
+     fix[  256U << 16] = EITFixUp::kFixBell;
+@@ -1285,7 +1308,13 @@
+ 
+     // Premiere
+     fix[133 << 16] = EITFixUp::kEFixForceISO8859_15;
+-
++    
++    // Cyfra+ ISO-6937 (source NID)
++    fix[1<<15 | 318<<16] = EITFixUp::kEFixForceISO6937;
++    
++    // Polsat ISO-8859-2 (source NID)
++    fix[1<<15 | 113<<16] = EITFixUp::kEFixForceISO8859_2;
++    
+     // DVB-S Astra 19.2E French channels
+     fix[     1022LL << 32 | 1 << 16 |  6901 ] = // DIRECT 8
+         fix[ 1022LL << 32 | 1 << 16 |  6905 ] = // France 24 (en Francais)
+diff -Naur mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/mpeg/dvbdescriptors.cpp mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/mpeg/dvbdescriptors.cpp
+--- mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/mpeg/dvbdescriptors.cpp	2014-05-06 14:51:56.945811572 +0200
++++ mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/mpeg/dvbdescriptors.cpp	2014-05-06 14:52:10.259098443 +0200
+@@ -76,9 +76,20 @@
+         new unsigned char[raw_length + encoding_override_length];
+ 
+     uint length = 0;
+-    if (encoding_override && src[0] >= 0x20) {
+-        memcpy(dst, encoding_override, encoding_override_length);
+-        length = encoding_override_length;
++    if (encoding_override) {
++        if (src[0] >= 0x20) {
++            memcpy(dst, encoding_override, encoding_override_length);
++            length = encoding_override_length;
++        } else {
++            //incorrect ISO-8859 encoding marker, 
++            //when text has been encoded using ISO-6937
++            if (src[0] >= 0x01 && src[0] <= 0x0B
++                    && encoding_override_length == 1
++                    && encoding_override[0] == 0x20) {
++                src++;
++                raw_length--;
++            }
++        }
+     }
+ 
+     // Strip formatting characters
+diff -Naur mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/mpeg/dvbstreamdata.cpp mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/mpeg/dvbstreamdata.cpp
+--- mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/mpeg/dvbstreamdata.cpp	2014-05-06 14:51:56.945811572 +0200
++++ mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/mpeg/dvbstreamdata.cpp	2014-05-06 14:52:10.259098443 +0200
+@@ -396,7 +396,7 @@
+         SetVersionEIT(psip.TableID(), service_id, psip.Version(),  psip.LastSection());
+         SetEITSectionSeen(psip.TableID(), service_id, psip.Section());
+ 
+-        DVBEventInformationTable eit(psip);
++        DVBEventInformationTable eit(psip, _desired_netid, _desired_tsid);
+         for (uint i = 0; i < _dvb_eit_listeners.size(); i++)
+             _dvb_eit_listeners[i]->HandleEIT(&eit);
+ 
+diff -Naur mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/mpeg/dvbtables.h mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/mpeg/dvbtables.h
+--- mythtv-master-20140506-gd0e25ac-old/mythtv/libs/libmythtv/mpeg/dvbtables.h	2014-05-06 14:51:56.949144893 +0200
++++ mythtv-master-20140506-gd0e25ac-new/mythtv/libs/libmythtv/mpeg/dvbtables.h	2014-05-06 14:52:10.262431766 +0200
+@@ -285,6 +285,15 @@
+ class MTV_PUBLIC DVBEventInformationTable : public PSIPTable
+ {
+   public:
++    DVBEventInformationTable(const PSIPTable& table,
++                             uint SourceNetworkID, 
++                             uint SourceTransportID) : PSIPTable(table)
++    {
++        _source_netid = SourceNetworkID,
++        _source_tsid  = SourceTransportID;
++        assert(IsEIT(TableID()));
++        Parse();
++    }
+     DVBEventInformationTable(const PSIPTable& table) : PSIPTable(table)
+     {
+     // table_id                 8   0.0       0xC7
+@@ -362,9 +371,20 @@
+     void Parse(void) const;
+ 
+     static bool IsEIT(uint table_id);
++    
++    uint SourceNetworkID(void)   const { return _source_netid; }
++    uint SourceTransportID(void) const { return _source_tsid;  }
++    bool ActualTS() const {
++        return (TableID() == TableID::PF_EIT)
++                || ((TableID() > TableID::SC_EITbeg) 
++                     && (TableID() < TableID::SC_EITend));
++    }
++
+ 
+   private:
+     mutable vector<const unsigned char*> _ptrs; // used to parse
++    uint _source_netid;
++    uint _source_tsid;
+ };
+ 
+ /** \class TimeDateTable
