@@ -1,5 +1,5 @@
 GARNAME = libva-intel-driver
-GARVERSION = 1.3.2
+GARVERSION = 1.5.0
 CATEGORIES = X11
 MASTER_SITES = http://www.freedesktop.org/software/vaapi/releases/libva-intel-driver/
 DISTFILES = $(DISTNAME).tar.bz2
