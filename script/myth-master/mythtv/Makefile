@@ -23,6 +23,10 @@ PATCHFILES += 0019-mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0020-h264-seek-table.patch
 PATCHFILES += 0021-ticket12248-livetv-transitions-demonstrate-bad-decoder-start-conditions.patch
 PATCHFILES += 0022-ticket12308-commflag-improvements.patch
+PATCHFILES += 0023-increase-loging-for-failed-tunings.patch
+PATCHFILES += 0024-change-upnp-reported-ver-to-1.patch
+PATCHFILES += 0025-ticket12260-pythonbindings-dataheap-fix.patch
+PATCHFILES += 0026-ticket123xx-fix-python-bindings-after-gb220116.patch
 
 # Minimyth needed patches
 PATCHFILES += 0100-minimyth.patch
