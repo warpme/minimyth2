@@ -2,7 +2,7 @@ GARNAME = xf86-video-vmware
 #GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
 	20120830-007bed3, \
-	13.0.2 ))
+	13.1.0 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
 	git://anongit.freedesktop.org/git/xorg/driver/xf86-video-vmware/ , \
