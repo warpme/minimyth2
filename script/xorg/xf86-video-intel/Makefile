@@ -1,9 +1,10 @@
 GARNAME = xf86-video-intel
-GARVERSION = 2.99.911
+#GARVERSION = 2.99.911
+GARVERSION = 2.99.917
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-pkg_config.patch
+PATCHFILES = $(GARNAME)-pkg_config.patch
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
@@ -52,11 +53,12 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-glamor \
 	--disable-xaa \
 	--disable-dga \
-	--disable-fast-reloc \
-	--disable-handle-lut \
 	--disable-async-swap \
 	--disable-debug \
 	--with-gnu-ld
+
+#	--disable-fast-reloc \
+#	--disable-handle-lut \
 
 CONFIGURE_ENV = \
 	XORG_SGML_PATH="$(DESTDIR)$(includedir)/xorg"
