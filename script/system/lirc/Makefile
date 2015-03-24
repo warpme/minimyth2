@@ -2,8 +2,6 @@ GARNAME = lirc
 GARVERSION = 0.9.0
 CATEGORIES = system
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/LIRC/$(GARVERSION)/
-#MASTER_SITES = http://www.lirc.org/software/snapshots/
-#MASTER_SITES = git://lirc.git.sourceforge.net/gitroot/lirc/lirc/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = \
 	$(DISTNAME)-kernel_err.patch \
@@ -16,7 +14,8 @@ PATCHFILES = \
 	$(DISTNAME)-input_map.patch.gar \
 	$(DISTNAME)-remove_asm_sytem_h.patch \
 	$(DISTNAME)-kernel3.8.13-build.patch \
-	$(DISTNAME)-fix_for_new_automake.patch
+	$(DISTNAME)-fix_for_new_automake.patch \
+	$(DISTNAME)-kernel3.19.1-build.patch
 LICENSE = GPL2
 
 DESCRIPTION =
