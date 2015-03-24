@@ -3,6 +3,7 @@ GARVERSION = 0.24
 CATEGORIES = lib
 MASTER_SITES = http://www.exiv2.org/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
+PATCHFILES= $(GARNAME)-$(GARVERSION)-fix-cross-build.patch
 
 LICENSE = LGPL2
 
