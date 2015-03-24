@@ -1,15 +1,15 @@
-GARNAME = Mesa
-GARVERSION = 10.4.4
+GARNAME = mesa
+GARVERSION = 10.5.1
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/$(GARVERSION)/
-DISTFILES = MesaLib-$(GARVERSION).tar.bz2
+DISTFILES = mesa-$(GARVERSION).tar.xz
 LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS    = lang/c lang/cxx lib/expat X11/libvdpau devel/llvm lib/libelf \
+DEPENDS    = lang/c lang/cxx lib/expat X11/libvdpau devel/llvm lib/libelf python/python-mako \
 	$(CATEGORY)/dri2proto \
 	$(CATEGORY)/xextproto \
 	$(CATEGORY)/glproto \
