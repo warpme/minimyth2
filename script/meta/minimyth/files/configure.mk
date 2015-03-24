@@ -27,18 +27,13 @@ MM_INIT_START := \
     dbus \
     audio \
     video \
-    wiimote \
     irtrans \
-    iguanair \
     lirc \
-    g15daemon \
     lcdproc \
-    aquosserver \
     avahi \
     mythtv \
     font \
     backend \
-    gtk \
     mythdb_buffer_delete \
     x
 MM_INIT_KILL := \
@@ -47,11 +42,8 @@ MM_INIT_KILL := \
     sharpaquos \
     lcdproc \
     dbus \
-    g15daemon \
     lirc \
-    iguanair \
     irtrans \
-    wiimote \
     audio \
     web \
     time \
@@ -76,7 +68,8 @@ bindirs_base := \
 	$(sbindir) \
 	$(bindir) \
 	$(libexecdir) \
-	$(qt4bindir) \
+	$(if $(filter 0.27,$(mm_MYTH_VERSION)), $(qt4bindir)) \
+	$(if $(filter 0.28 master,$(mm_MYTH_VERSION)), $(qt5bindir)) \
 	$(kdebindir)
 bindirs := \
 	$(bindirs_base) \
@@ -88,7 +81,8 @@ libdirs_base := \
 	$(libexecdir) \
 	$(libdir)/mysql \
 	$(if $(filter $(mm_GRAPHICS),radeon),$(libdir)/vdpau) \
-	$(qt4libdir) \
+	$(if $(filter 0.27,$(mm_MYTH_VERSION)), $(qt4libdir)) \
+	$(if $(filter 0.28 master,$(mm_MYTH_VERSION)), $(qt5libdir)) \
 	$(kdelibdir)
 libdirs := \
 	$(libdirs_base) \
@@ -163,6 +157,7 @@ MM_CONFIG_VARS := $(sort \
 	PERL_libdir \
 	PYTHON_libdir \
 	qt4prefix \
+	qt5prefix \
 	rootdir \
 	sharedirs \
 	sourcedir \

@@ -65,6 +65,10 @@ $(DESTIMG)_qt4prefix ?= $(main_qt4prefix)
 $(DESTIMG)_qt4bindir ?= $(main_qt4bindir)
 $(DESTIMG)_qt4includedir ?= $(main_qt4includedir)
 $(DESTIMG)_qt4libdir ?= $(main_qt4libdir)
+$(DESTIMG)_qt5prefix ?= $(main_qt5prefix)
+$(DESTIMG)_qt5bindir ?= $(main_qt5bindir)
+$(DESTIMG)_qt5includedir ?= $(main_qt5includedir)
+$(DESTIMG)_qt5libdir ?= $(main_qt5libdir)
 
 $(DESTIMG)_DESTDIR ?= $(main_DESTDIR)
 
@@ -123,6 +127,10 @@ qt4prefix = $($(DESTIMG)_qt4prefix)
 qt4bindir = $($(DESTIMG)_qt4bindir)
 qt4includedir = $($(DESTIMG)_qt4includedir)
 qt4libdir = $($(DESTIMG)_qt4libdir)
+qt5prefix = $($(DESTIMG)_qt5prefix)
+qt5bindir = $($(DESTIMG)_qt5bindir)
+qt5includedir = $($(DESTIMG)_qt5includedir)
+qt5libdir = $($(DESTIMG)_qt5libdir)
 
 DESTDIR = $($(DESTIMG)_DESTDIR)
 
@@ -180,8 +188,8 @@ BUILD_SYSTEM_PATH := $(if $(BUILD_SYSTEM_PATH),$(BUILD_SYSTEM_PATH),$(PATH))
 GAR_SYSTEM_PATH := $(DESTDIR)$(bindir)-config:$(build_DESTDIR)$(build_esbindir):$(build_DESTDIR)$(build_ebindir):$(build_DESTDIR)$(build_sbindir):$(build_DESTDIR)$(build_bindir):$(build_DESTDIR)$(build_rootdir)/bin-build-system
 PATH := $(if $(wildcard $(build_DESTDIR)$(build_rootdir)/bin-build-system),$(GAR_SYSTEM_PATH),$(GAR_SYSTEM_PATH):$(BUILD_SYSTEM_PATH))
 # this causes pain for all involved once glibc is built.
-LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt4libdir):$(build_DESTDIR)$(build_libdir)/mysql:/lib/$(GARBUILD):/usr/lib/$(GARBUILD)$(strip $(if $(filter i386,$(build_GARCH_FAMILY)),:/lib32:/usr/lib32:/lib:/usr/lib) $(if $(filter x86_64,$(build_GARCH_FAMILY)),:/lib64:/usr/lib64:/lib:/usr/lib))
-LD_LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt4libdir):$(build_DESTDIR)$(build_libdir)/mysql
+LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt5libdir):$(build_DESTDIR)$(build_libdir)/mysql:/lib/$(GARBUILD):/usr/lib/$(GARBUILD)$(strip $(if $(filter i386,$(build_GARCH_FAMILY)),:/lib32:/usr/lib32:/lib:/usr/lib) $(if $(filter x86_64,$(build_GARCH_FAMILY)),:/lib64:/usr/lib64:/lib:/usr/lib))
+LD_LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt5libdir):$(build_DESTDIR)$(build_libdir)/mysql
 # or at least it did before we had DESTDIR and fully-munged
 # builddeps.  The following may be more of a hindrance than a
 # help nowadays:

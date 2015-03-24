@@ -175,12 +175,21 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@# Copy shares.
 	@$(call COPY_FILES, "shares", "share", $(DESTDIR), $@~, $(sharedirs), $(MM_SHARES))
 	@# Copy the QT plugins needed by MythTV.
-	@rm -rf   $@~$(qt4prefix)/plugins
-	@mkdir -p $@~$(qt4prefix)/plugins
-	@cp -pdR $(DESTDIR)$(qt4prefix)/plugins/graphicssystems $@~$(qt4prefix)/plugins
-	@cp -pdR $(DESTDIR)$(qt4prefix)/plugins/iconengines     $@~$(qt4prefix)/plugins
-	@cp -pdR $(DESTDIR)$(qt4prefix)/plugins/imageformats    $@~$(qt4prefix)/plugins
-	@cp -pdR $(DESTDIR)$(qt4prefix)/plugins/sqldrivers      $@~$(qt4prefix)/plugins
+	@if [ $(mm_MYTH_VERSION) = "0.27" ] ; then \
+		rm -rf   $@~$(qt4prefix)/plugins                                               ; \
+		mkdir -p $@~$(qt4prefix)/plugins                                               ; \
+		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/graphicssystems $@~$(qt4prefix)/plugins ; \
+		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/iconengines     $@~$(qt4prefix)/plugins ; \
+		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/imageformats    $@~$(qt4prefix)/plugins ; \
+		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/sqldrivers      $@~$(qt4prefix)/plugins ; \
+	else                                                                                     \
+		rm -rf   $@~$(qt5prefix)/plugins                                               ; \
+		mkdir -p $@~$(qt5prefix)/plugins                                               ; \
+		cp -pdR $(DESTDIR)$(qt5prefix)/plugins/platforms       $@~$(qt5prefix)/plugins ; \
+		cp -pdR $(DESTDIR)$(qt5prefix)/plugins/iconengines     $@~$(qt5prefix)/plugins ; \
+		cp -pdR $(DESTDIR)$(qt5prefix)/plugins/imageformats    $@~$(qt5prefix)/plugins ; \
+		cp -pdR $(DESTDIR)$(qt5prefix)/plugins/sqldrivers      $@~$(qt5prefix)/plugins ; \
+	 fi
 	@# Copy HTML files.
 	@find $(top_source)/html -depth -type d \
 		| sed -e 's%^\$(top_source)/html%$@~/srv/www%' \
@@ -211,7 +220,14 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@GAR_datadir@%$(datadir)%g'                     $@~$(sysconfdir)/fonts/local.conf
 	@sed -i 's%@EXTRAS_ROOTDIR@%$(extras_rootdir)%'            $@~$(sysconfdir)/rc.d/init.d/extras
 	@sed -i 's%@EXTRAS_ROOTDIR@%$(extras_rootdir)%'            $@~$(sysconfdir)/rc.d/init.d/media
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/1024x768.cfg
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/1280x1024.cfg
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/1280x720.cfg
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/1600x1200.cfg
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/1600x900.cfg
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/1920x1080.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/640x480.cfg
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/800x600.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~/srv/www/index.html
 	@sed -i 's%@MM_NVIDIA_VERSION@%$(mm_NVIDIA_VERSION)%g'     $@~/srv/www/index.html
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)-$(mm_GARCH)%g' $@~/etc/os_myth_release

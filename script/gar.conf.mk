@@ -54,6 +54,10 @@ main_qt4prefix = $(main_libdir)/qt4
 main_qt4bindir = $(main_qt4prefix)/bin
 main_qt4includedir = $(main_qt4prefix)/include
 main_qt4libdir = $(main_qt4prefix)/lib
+main_qt5prefix = $(main_libdir)/qt5
+main_qt5bindir = $(main_qt5prefix)/bin
+main_qt5includedir = $(main_qt5prefix)/include
+main_qt5libdir = $(main_qt5prefix)/lib
 
 # Directory config for the "build" image
 build_rootdir ?= $(mm_HOME)/images/build
@@ -84,6 +88,10 @@ build_qt4prefix = $(build_libdir)/qt4
 build_qt4bindir = $(build_qt4prefix)/bin
 build_qt4includedir = $(build_qt4prefix)/include
 build_qt4libdir = $(build_qt4prefix)/lib
+build_qt5prefix = $(build_libdir)/qt5
+build_qt5bindir = $(build_qt5prefix)/bin
+build_qt5includedir = $(build_qt5prefix)/include
+build_qt5libdir = $(build_qt5prefix)/lib
 
 # the DESTDIR is used at INSTALL TIME ONLY to determine what the
 # filesystem root should be.  Each different DESTIMG has its own
@@ -155,7 +163,7 @@ build_NODEPEND += kernel/linux-headers devel/glibc
 SHELL = $(if $(wildcard $(build_DESTDIR)$(build_ebindir)/bash),$(build_DESTDIR)$(build_ebindir)/bash,/bin/sh)
 CONFIG_SHELL = $(SHELL)
 PKG_CONFIG_PATH = 
-PKG_CONFIG_LIBDIR = $(DESTDIR)$(libdir)/pkgconfig:$(DESTDIR)$(datadir)/pkgconfig:$(DESTDIR)$(qt4libdir)/pkgconfig
+PKG_CONFIG_LIBDIR = $(DESTDIR)$(libdir)/pkgconfig:$(DESTDIR)$(datadir)/pkgconfig:$(DESTDIR)$(qt5libdir)/pkgconfig
 PKG_CONFIG_SYSROOT_DIR = $(DESTDIR)
 PERLLIB = 
 PERL5LIB =
