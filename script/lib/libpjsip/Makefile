@@ -3,8 +3,8 @@ GARVERSION = 2.3
 CATEGORIES = lib
 MASTER_SITES = http://www.pjsip.org/release/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
+PATCHFILES = $(DISTNAME)-fix-cross-compile.patch
 LICENSE = GPL2
-#http://www.pjsip.org/release/2.3/pjproject-2.3.tar.bz2
 DESCRIPTION = 
 define BLURB
 endef
@@ -24,14 +24,10 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
   --disable-ffmpeg \
   --disable-v4l2 \
   --enable-resample-dll \
-  --with-external-pa
+  --with-external-pa \
+  --with-gnu-ld
 
 include ../../gar.mk
-
-#CFLAGS   := $(filter-out -O%, $(CFLAGS)) -Os
-#CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -Os
-#CFLAGS   := $(filter-out -flto, $(CFLAGS))
-#CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 
 pre-configure:
 	@touch $(WORKSRC)/pjlib/include/pj/config_site.h
