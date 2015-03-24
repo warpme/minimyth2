@@ -1,22 +1,16 @@
 GARNAME = busybox
-GARVERSION = 1.20.2
+GARVERSION = 1.23.1
 CATEGORIES = utils
 MASTER_SITES = http://www.busybox.net/downloads/
 MASTER_SITES += http://www.busybox.net/downloads/fixes-$(GARVERSION)/
 CONFIGFILE = $(DISTNAME).config
 DISTFILES = $(DISTNAME).tar.bz2 $(CONFIGFILE)
-PATCHFILES  = \
-	$(DISTNAME)-kernel_ver.patch \
-	$(DISTNAME)-ntpd.patch \
-	$(DISTNAME)-pkg-config-selinux.patch \
-	$(DISTNAME)-sys-resource.patch
-PATCHFILES += \
-	$(DISTNAME)-sys_resource_h.patch
-PATCHFILES += \
-	$(DISTNAME)-check_cc.patch \
+PATCHFILES = \
 	$(DISTNAME)-dhcp_log_server.patch \
 	$(DISTNAME)-dhcp_tcode.patch \
 	$(DISTNAME)-tftp_timeout.patch
+#PATCHFILES  += \
+#	$(DISTNAME)-ntpd.patch \
 LICENSE = GPL2
 
 DESCRIPTION =
