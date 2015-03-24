@@ -1,6 +1,6 @@
 MYTHTV_GARVERSION_SHORT = master
-MYTHTV_SVN_VERSION = 20150201-g39fdb96
-MYTHTV_GIT_VERSION = v0.28-pre-2583-g39fdb96
+MYTHTV_SVN_VERSION = 20150321-g0b0a228
+MYTHTV_GIT_VERSION = v0.28-pre-2774-g0b0a228
 
 MYTHTV_VERSION = $(MYTHTV_GARVERSION_SHORT)-$(MYTHTV_SVN_VERSION)
 
@@ -15,7 +15,7 @@ MYTHTV_INSTALL_ENV   = \
 MYTHTV_PLUGINS_CONFIGURE_ARGS = \
 	--prefix="$(DESTDIR)$(prefix)" \
 	--sysroot="$(DESTDIR)$(rootdir)" \
-	--qmake="$(DESTDIR)$(qt4bindir)/qmake" \
+	--qmake="$(DESTDIR)$(qt5bindir)/qmake" \
 	--libdir-name="$(patsubst $(prefix)/%,%,$(libdir))" \
 	--disable-all \
 	--enable-opengl

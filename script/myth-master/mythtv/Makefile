@@ -93,7 +93,7 @@ DEPENDS = \
 	python/python-MySQL-python \
 	python/python-lxml \
 	python/python-urlgrabber \
-	qt/qt4 \
+	qt/qt5 \
 	system/lirc \
 	system/udev \
 	X11/libvdpau \
@@ -140,7 +140,7 @@ CONFIGURE_ARGS = \
 	--cc="$(CC)" \
 	--cxx="$(CXX)" \
 	--ld="$(CC)" \
-	--qmake="$(DESTDIR)$(qt4bindir)/qmake" \
+	--qmake="$(DESTDIR)$(qt5bindir)/qmake" \
 	--host-cc="$(build_CC)" \
 	--host-cflags="$(build_CFLAGS)" \
 	--host-ldflags="$(build_LDFLAGS)" \
@@ -236,10 +236,17 @@ post-install: post-install-mythtv-version
 	@mv $(DESTDIR)$(bindir)/mythavtest $(DESTDIR)$(bindir)/mythtv
 	@$(MAKECOOKIE)
 
-post-configure:
+pre-configure:
+	@ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtWebKit.pc
+	@ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5Script.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtScript.pc
 	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\([0-9]*\.[0-9]*\).*/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
 	@sed -i -e "s/MYTH_SOURCE_PATH.*/MYTH_SOURCE_PATH \"$(mm_MYTH_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
 	@$(MAKECOOKIE)
+
+#post-configure:
+#	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\([0-9]*\.[0-9]*\).*/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
+#	@sed -i -e "s/MYTH_SOURCE_PATH.*/MYTH_SOURCE_PATH \"$(mm_MYTH_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
+#	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -rf $(DESTDIR)$(bindir)/mtd
