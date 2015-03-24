@@ -1,5 +1,5 @@
 GARNAME = vdpauinfo
-GARVERSION = 0.9
+GARVERSION = 1.0
 CATEGORIES = X11
 MASTER_SITES = http://people.freedesktop.org/~aplattner/vdpau/
 DISTFILES = $(DISTNAME).tar.gz
