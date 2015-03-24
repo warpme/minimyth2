@@ -8,12 +8,12 @@
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
 mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter 0.27 ,        $(mm_MYTH_VERSION)),0.27                          ) \
+                                $(if $(filter 0.28 ,        $(mm_MYTH_VERSION)),0.28                          ) \
                                 $(if $(filter master ,      $(mm_MYTH_VERSION)),master                        ) \
-                                $(if $(filter torc ,        $(mm_MYTH_VERSION)),torc                          ) \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 7.1.3.g85af792
+mm_VERSION_MINIMYTH ?= 7.5.1.g0b0a228
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -116,11 +116,11 @@ mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
 # Valid values are '3.16', '3.18'
-mm_KERNEL_HEADERS_VERSION ?= 3.18
+mm_KERNEL_HEADERS_VERSION ?= 3.19
 
 # The version of kernel to use.
 # Valid values are '3.16' and '3.18'.
-mm_KERNEL_VERSION         ?= 3.18
+mm_KERNEL_VERSION         ?= 3.19
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -130,6 +130,7 @@ mm_KERNEL_CONFIG          ?=
 # The version of Myth to use.
 # Valid values are '0.27', 'master'
 mm_MYTH_VERSION           ?= master
+# mm_MYTH_VERSION           ?= 0.27
 
 # The version of the NVIDIA driver.
 # Valid values are '340.58', '340.65'
@@ -212,11 +213,4 @@ export PATCH_GET
 
 # Set the number of parallel makes to the number of processors.
 PARALLELMFLAGS=-j$(shell cat /proc/cpuinfo | grep -c '^processor[[:cntrl:]]*:')
-#PARALLELMFLAGS=-j1
 export PARALLELMFLAGS
-
-# Get rid of Qt environment variables
-#$(foreach var, $(shell set | grep '^QMAKE' | sed 's%=.*$$%%'), $(eval $(var) :=))
-#$(foreach var, $(shell set | grep '^QMAKE' | sed 's%=.*$$%%'), $(eval unexport $(var)))
-#$(foreach var, $(shell set | grep '^QT' | sed 's%=.*$$%%'), $(eval $(var) :=))
-#$(foreach var, $(shell set | grep '^QT' | sed 's%=.*$$%%'), $(eval unexport $(var)))
