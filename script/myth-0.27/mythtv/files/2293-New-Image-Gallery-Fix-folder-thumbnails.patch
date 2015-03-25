@@ -1,0 +1,481 @@
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/libs/libmythmetadata/imagemetadata.h mythtv-0.27-20140716-gf4825ca-new/mythtv/libs/libmythmetadata/imagemetadata.h
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/libs/libmythmetadata/imagemetadata.h	2014-10-30 21:58:32.000000000 +0100
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/libs/libmythmetadata/imagemetadata.h	2014-10-30 22:00:55.000000000 +0100
+@@ -82,6 +82,7 @@
+     // Internal thumbnail information
+     QString         m_thumbPath;
+     QList<QString> *m_thumbFileNameList;
++    QList<int>      m_thumbFileIdList;
+ 
+ private:
+     int         m_zoom;
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/libs/libmythmetadata/imagethumbgenthread.cpp mythtv-0.27-20140716-gf4825ca-new/mythtv/libs/libmythmetadata/imagethumbgenthread.cpp
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/libs/libmythmetadata/imagethumbgenthread.cpp	2014-10-30 21:58:32.000000000 +0100
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/libs/libmythmetadata/imagethumbgenthread.cpp	2014-10-30 22:00:55.000000000 +0100
+@@ -70,15 +70,9 @@
+ 
+         if (im)
+         {
+-            if (im->m_type == kSubDirectory ||
+-                im->m_type == kUpDirectory)
++            if (im->m_type == kImageFile)
+             {
+-                for (int i = 0; i < im->m_thumbFileNameList->size(); ++i)
+-                    CreateImageThumbnail(im, i);
+-            }
+-            else if (im->m_type == kImageFile)
+-            {
+-                CreateImageThumbnail(im, 0);
++                CreateImageThumbnail(im);
+             }
+             else if (im->m_type == kVideoFile)
+             {
+@@ -108,9 +102,9 @@
+  *  \param  dataid The id of the thumbnail
+  *  \return void
+  */
+-void ImageThumbGenThread::CreateImageThumbnail(ImageMetadata *im, int id)
++void ImageThumbGenThread::CreateImageThumbnail(ImageMetadata *im)
+ {
+-    if (QFile(im->m_thumbFileNameList->at(id)).exists())
++    if (QFile(im->m_thumbFileNameList->at(0)).exists())
+         return;
+ 
+     QDir dir;
+@@ -119,16 +113,6 @@
+ 
+     QString imageFileName = m_storageGroup.FindFile(im->m_fileName);
+ 
+-    // If a folder thumbnail shall be created we need to get
+-    // the real filename from the thumbnail filename by removing
+-    // the configuration directory and the MythImage path
+-    if (im->m_type == kSubDirectory ||
+-        im->m_type == kUpDirectory)
+-    {
+-        imageFileName = im->m_thumbFileNameList->at(id);
+-        imageFileName = imageFileName.mid(GetConfDir().append("/MythImage/").count());
+-    }
+-
+     QImage image;
+     if (!image.load(imageFileName))
+     {
+@@ -184,7 +168,7 @@
+     Resize(image);
+ 
+     // save the image in the thumbnail directory
+-    if (image.save(im->m_thumbFileNameList->at(id)))
++    if (image.save(im->m_thumbFileNameList->at(0)))
+     {
+         LOG(VB_FILE, LOG_DEBUG, QString("Created pic thumbnail for %1").arg(imageFileName));
+         QString msg = "IMAGE_THUMB_CREATED %1";
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/libs/libmythmetadata/imagethumbgenthread.h mythtv-0.27-20140716-gf4825ca-new/mythtv/libs/libmythmetadata/imagethumbgenthread.h
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/libs/libmythmetadata/imagethumbgenthread.h	2014-10-30 21:58:32.000000000 +0100
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/libs/libmythmetadata/imagethumbgenthread.h	2014-10-30 22:00:55.000000000 +0100
+@@ -37,7 +37,7 @@
+     void run();
+ 
+   private:
+-    void CreateImageThumbnail(ImageMetadata *, int);
++    void CreateImageThumbnail(ImageMetadata *);
+     void CreateVideoThumbnail(ImageMetadata *);
+ 
+     void Resize(QImage &);
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/libs/libmythmetadata/imageutils.cpp mythtv-0.27-20140716-gf4825ca-new/mythtv/libs/libmythmetadata/imageutils.cpp
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/libs/libmythmetadata/imageutils.cpp	2014-10-30 21:58:32.000000000 +0100
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/libs/libmythmetadata/imageutils.cpp	2014-10-30 22:00:55.000000000 +0100
+@@ -842,11 +842,12 @@
+     // Try to get four new thumbnail filenames
+     // from the available images in this folder
+     MSqlQuery query(MSqlQuery::InitCon());
+-    query.prepare("SELECT CONCAT_WS('/', path, filename), path FROM gallery_files "
++    query.prepare("SELECT CONCAT_WS('/', path, name), path FROM gallery_files "
+                           "WHERE path = :PATH "
+-                          "AND type = '4' "
++                          "AND type = :TYPE "
+                           "AND hidden = '0' LIMIT :LIMIT");
+-    query.bindValue(":PATH", im->m_path);
++    query.bindValue(":PATH", im->m_fileName);
++    query.bindValue(":TYPE", kImageFile);
+     query.bindValue(":LIMIT", kMaxFolderThumbnails);
+ 
+     if (!query.exec())
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp	2014-10-30 21:58:32.000000000 +0100
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp	2014-10-30 22:05:34.000000000 +0100
+@@ -490,31 +490,32 @@
+     // Try to get four new thumbnail filenames
+     // from the available images in this folder
+     MSqlQuery query(MSqlQuery::InitCon());
+-    query.prepare("SELECT CONCAT_WS('/', path, filename) FROM gallery_files "
++    query.prepare("SELECT file_id, CONCAT_WS('/', path, name) "
++                          "FROM gallery_files "
+                           "WHERE path = :PATH "
+-                          "AND type = '4' "
++                          "AND type = :TYPE "
+                           "AND hidden = '0' LIMIT :LIMIT");
+-    query.bindValue(":PATH", im->m_path);
++    query.bindValue(":PATH", im->m_fileName);
++    query.bindValue(":TYPE", kImageFile);
+     query.bindValue(":LIMIT", kMaxFolderThumbnails);
+ 
+     if (!query.exec())
+         LOG(VB_GENERAL, LOG_ERR, MythDB::DBErrorMessage(query.lastError()));
+ 
+     int i = 0;
+-    while (query.next())
++    im->m_thumbFileIdList.clear();
++    while (query.next() && i < im->m_thumbFileNameList->size())
+     {
+         QString thumbFileName = QString("%1%2")
+                 .arg("/MythImage/")
+-                .arg(query.value(0).toString());
++                .arg(query.value(1).toString());
+ 
+         thumbFileName = gCoreContext->GenMythURL(gCoreContext->GetSetting("MasterServerIP"),
+                                                  gCoreContext->GetNumSetting("MasterServerPort"),
+                                                  thumbFileName, "Temp");
+ 
+-        if (i >= im->m_thumbFileNameList->size())
+-            break;
+-
+         im->m_thumbFileNameList->replace(i, thumbFileName);
++        im->m_thumbFileIdList.append(query.value(0).toInt());
+         ++i;
+     }
+ }
+@@ -529,7 +530,6 @@
+ void GalleryDatabaseHelper::LoadFileThumbnailValues(ImageMetadata *im)
+ {
+ 
+-
+     // Create the relative path and filename to the thumbnail image
+     QString thumbFileName = QString("%1%2")
+             .arg("/MythImage/")
+@@ -545,6 +545,7 @@
+                                              thumbFileName, "Temp");
+ 
+     im->m_thumbFileNameList->replace(0, thumbFileName);
++    im->m_thumbFileIdList.insert(0, im->m_id);
+ }
+ 
+ 
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryfilehelper.cpp mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryfilehelper.cpp
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryfilehelper.cpp	2014-10-30 21:58:32.000000000 +0100
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryfilehelper.cpp	2014-10-30 22:00:55.000000000 +0100
+@@ -143,21 +143,30 @@
+ }
+ 
+ 
+-void GalleryFileHelper::AddToThumbnailList(ImageMetadata* im)
++void GalleryFileHelper::AddToThumbnailList(ImageMetadata* im, QSet<int> &done)
+ {
+     if (!im)
+         return;
+ 
+-    int id = im->m_id;
+-    QUrl url(QString("http://%1:%2/Image/CreateThumbnail?Id=%3")
+-             .arg(m_backendHost)
+-             .arg(m_backendPort)
+-             .arg(id));
+-
+-    SendRequest(url, QNetworkAccessManager::PostOperation);
++    // folders use multiple thumbnails
++    for (int i = 0; i < im->m_thumbFileIdList.size(); i++)
++    {
++        int imageId = im->m_thumbFileIdList.at(i);
++
++        if (!done.contains(imageId))
++        {
++            QUrl url(QString("http://%1:%2/Image/CreateThumbnail?Id=%3")
++                     .arg(m_backendHost)
++                     .arg(m_backendPort)
++                     .arg(imageId));
++
++            SendRequest(url, QNetworkAccessManager::PostOperation);
++
++            done.insert(imageId);
++        }
++    }
+ }
+ 
+-
+ void GalleryFileHelper::RecreateThumbnail(ImageMetadata* im)
+ {
+     if (!im)
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryfilehelper.h mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryfilehelper.h
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryfilehelper.h	2014-10-30 21:58:32.000000000 +0100
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryfilehelper.h	2014-10-30 22:00:55.000000000 +0100
+@@ -32,7 +32,7 @@
+     void        StopSyncImages();
+     void        StartThumbGen();
+     void        StopThumbGen();
+-    void        AddToThumbnailList(ImageMetadata *);
++    void        AddToThumbnailList(ImageMetadata *, QSet<int> &);
+     void        RecreateThumbnail(ImageMetadata *);
+     void        SetThumbnailSize(int width, int height);
+     bool        RemoveFile(ImageMetadata *);
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryview.cpp mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryview.cpp
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryview.cpp	2014-10-30 21:58:32.000000000 +0100
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryview.cpp	2014-10-30 22:00:55.000000000 +0100
+@@ -227,13 +227,12 @@
+             {
+                 fileid = tokens[1].toUInt();
+ 
+-                // FIXME: This sucks, must be a better way to do this
+-                //
+-                // get through the entire list of image items and find
+-                // the fileid that matches the created thumbnail filename
+-                for (int i = 0; i < m_imageList->GetCount(); i++)
++                // update all widgets using this image
++                QList<MythUIButtonListItem*> itemList = m_imageMap.values(fileid);
++
++                for (int i = 0; i < itemList.size(); ++i)
+                 {
+-                    MythUIButtonListItem *item = m_imageList->GetItemAt(i);
++                    MythUIButtonListItem *item = itemList.at(i);
+                     if (!item)
+                         continue;
+ 
+@@ -241,11 +240,7 @@
+                     if (!im)
+                         continue;
+ 
+-                    if (im->m_id == fileid)
+-                    {
+-                        UpdateThumbnail(item, true);
+-                        break;
+-                    }
++                    UpdateThumbnail(item, im, true);
+                 }
+             }
+         }
+@@ -336,6 +331,7 @@
+ void GalleryView::ResetImageItems()
+ {
+     m_imageList->Reset();
++    m_imageMap.clear();
+ 
+     if (m_positionText)
+         m_positionText->Reset();
+@@ -399,6 +395,7 @@
+ void GalleryView::UpdateImageList()
+ {
+     m_imageList->Reset();
++    m_imageMap.clear();
+ 
+     // get all children from the the selected node
+     MythGenericTree *selectedNode = m_galleryViewHelper->m_currentNode->getSelectedChild();
+@@ -513,8 +510,12 @@
+     if (item == m_imageList->GetItemCurrent())
+         UpdateText(item);
+ 
++    // register widget as a user of its images
++    for (int i = 0; i < im->m_thumbFileIdList.size(); ++i)
++        m_imageMap.insert(im->m_thumbFileIdList.at(i), item);
++
+     // set the thumbnail image
+-    UpdateThumbnail(item);
++    UpdateThumbnail(item, im);
+ }
+ 
+ 
+@@ -524,77 +525,25 @@
+  *  \param  item The item that shall be updated
+  *  \return void
+  */
+-void GalleryView::UpdateThumbnail(MythUIButtonListItem *item, bool forceReload)
++void GalleryView::UpdateThumbnail(MythUIButtonListItem *item,
++                                  ImageMetadata *im,
++                                  bool forceReload)
+ {
+-    if (!item)
+-        return;
+-
+-    ImageMetadata *im = GetImageMetadataFromButton(item);
+-    if (!im)
+-        return;
+-
+-    if (im->m_type == kUpDirectory || im->m_type == kSubDirectory)
++    if (item && im)
+     {
+-        for (int i = 0; i < im->m_thumbFileNameList->size(); ++i)
++        // directories show multiple thumbnails
++        if (im->m_type == kUpDirectory || im->m_type == kSubDirectory)
+         {
+-            item->SetImage(im->m_thumbFileNameList->at(i),
+-                           QString("thumbimage%1").arg(i+1), forceReload);
++            for (int i = 0; i < im->m_thumbFileNameList->size(); ++i)
++                item->SetImage(im->m_thumbFileNameList->at(i),
++                               QString("thumbimage%1").arg(i+1), forceReload);
+         }
+-    }
+-    else
+-    {
+-        item->SetImage(im->m_thumbFileNameList->at(0), "", forceReload);
++        else
++            item->SetImage(im->m_thumbFileNameList->at(0), "", forceReload);
+     }
+ }
+ 
+ 
+-
+-/** \fn     GalleryView::UpdateThumbnail(ImageMetadata *, int)
+- *  \brief  Updates the thumbnail image of an image or
+- *          folder which contains the given image metadata
+- *  \param  item The item that shall be updated
+- *  \param  id The thumbnail id that shall be used,
+- *          there are 4 ids when the item is a folder
+- *  \return void
+- */
+-void GalleryView::UpdateThumbnail(ImageMetadata *thumbImageMetadata, int id)
+-{
+-    // get through the entire list of image items and find
+-    // the filename that matches the created thumbnail filename
+-    for (int i = 0; i < m_imageList->GetCount(); i++)
+-    {
+-        MythUIButtonListItem *item = m_imageList->GetItemAt(i);
+-        if (!item)
+-            continue;
+-
+-        ImageMetadata *im = GetImageMetadataFromButton(item);
+-        if (!im)
+-            continue;
+-
+-        // Set the thumbnail image if the thumbnail
+-        // image names at the given index are the same
+-        if (thumbImageMetadata->m_thumbFileNameList->at(id).compare(
+-                    im->m_thumbFileNameList->at(id)) == 0)
+-        {
+-            // Set the images for the four thumbnail image widgets in case
+-            // the node is a folder. Otherwise set the buttonimage widget.
+-            if (im->m_type == kUpDirectory ||
+-                im->m_type == kSubDirectory)
+-            {
+-                item->SetImage(thumbImageMetadata->m_thumbFileNameList->at(id),
+-                               QString("thumbimage%1").arg(id+1), true);
+-            }
+-            else
+-            {
+-                item->SetImage(thumbImageMetadata->m_thumbFileNameList->at(0), "", true);
+-            }
+-            break;
+-        }
+-    }
+-}
+-
+-
+-
+ /** \fn     GalleryView::ResetThumbnailProgress()
+  *  \brief  Resets the status of the progress text
+  *  \return void
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryview.h mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryview.h
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryview.h	2014-10-30 21:58:32.000000000 +0100
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryview.h	2014-10-30 22:00:55.000000000 +0100
+@@ -2,7 +2,7 @@
+ #define GALLERYVIEW_H
+ 
+ // Qt headers
+-#include <QStringList>
++#include <QMultiMap>
+ 
+ // MythTV headers
+ #include "mythscreentype.h"
+@@ -17,8 +17,6 @@
+ #include "galleryviewhelper.h"
+ #include "gallerywidget.h"
+ 
+-
+-
+ class GalleryView : public MythScreenType
+ {
+     Q_OBJECT
+@@ -32,7 +30,6 @@
+ 
+ public slots:
+     void LoadData();
+-    void UpdateThumbnail(ImageMetadata *, int);
+     void ResetThumbnailProgress();
+     void UpdateThumbnailProgress(int, int);
+ 
+@@ -49,7 +46,9 @@
+     void ItemSelected(MythUIButtonListItem *);
+     void UpdateImageItem(MythUIButtonListItem *);
+     void UpdateText(MythUIButtonListItem *);
+-    void UpdateThumbnail(MythUIButtonListItem *, bool forceReload = false);
++    void UpdateThumbnail(MythUIButtonListItem *,
++                         ImageMetadata *,
++                         bool forceReload = false);
+ 
+     void MenuMain();
+     void MenuInformation();
+@@ -103,6 +102,7 @@
+     MythScreenStack         *m_mainStack;
+ 
+     MythUIButtonList   *m_imageList;
++    QMultiMap<int, MythUIButtonListItem*> m_imageMap;
+     MythUIText         *m_captionText;
+     MythUIText         *m_crumbsText;
+     MythUIText         *m_positionText;
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryviewhelper.cpp mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryviewhelper.cpp
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryviewhelper.cpp	2014-10-30 21:58:32.000000000 +0100
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryviewhelper.cpp	2014-10-30 22:00:55.000000000 +0100
+@@ -121,21 +121,24 @@
+     // Clear the list so that it can be populated with new data.
+     m_currentNode->deleteAllChildren();
+ 
+-    // If the parent is a root directory
++    // Only create each thumbnail once
++    QSet<int> done;
++
++    // If the node has a parent (ie. not the top level)
+     // then add a additional directory at the beginning of the list that
+     // is of the type kUpDirectory so that the user can navigate one level up.
+     if (id > 0)
+     {
+         m_dbHelper->LoadParentDirectory(dirList, id);
+-        LoadTreeNodeData(dirList, m_currentNode);
++        LoadTreeNodeData(dirList, m_currentNode, done);
+     }
+ 
+     m_dbHelper->LoadDirectories(dirList, id);
+-    LoadTreeNodeData(dirList, m_currentNode);
++    LoadTreeNodeData(dirList, m_currentNode, done);
+ 
+     // Load all files with the specified sorting criterias
+     m_dbHelper->LoadFiles(fileList, id);
+-    LoadTreeNodeData(fileList, m_currentNode);
++    LoadTreeNodeData(fileList, m_currentNode, done);
+ 
+     // Start generating thumbnails if required
+     m_fileHelper->StartThumbGen();
+@@ -154,7 +157,8 @@
+  *  \return void
+  */
+ void GalleryViewHelper::LoadTreeNodeData(QList<ImageMetadata *> *list,
+-                                       MythGenericTree *tree)
++                                       MythGenericTree *tree,
++                                         QSet<int> &done)
+ {
+     // Add all items in the list to the tree
+     for (int i = 0; i < list->size(); ++i)
+@@ -162,7 +166,7 @@
+         ImageMetadata *im = list->at(i);
+         if (im)
+         {
+-            m_fileHelper->AddToThumbnailList(im);
++            m_fileHelper->AddToThumbnailList(im, done);
+ 
+             // Create a new tree node that will hold the data
+             MythGenericTree *treeItem =
+diff -Naur mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryviewhelper.h mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryviewhelper.h
+--- mythtv-0.27-20140716-gf4825ca-old/mythtv/programs/mythfrontend/galleryviewhelper.h	2014-10-30 21:58:32.000000000 +0100
++++ mythtv-0.27-20140716-gf4825ca-new/mythtv/programs/mythfrontend/galleryviewhelper.h	2014-10-30 22:00:55.000000000 +0100
+@@ -30,7 +30,7 @@
+ 
+     int     LoadData();
+     void    LoadTreeData();
+-    void    LoadTreeNodeData(QList<ImageMetadata *>*, MythGenericTree*);
++    void    LoadTreeNodeData(QList<ImageMetadata *>*, MythGenericTree*, QSet<int> &);
+     void    UpdateAllData();
+     void    RenameCurrentNode(QString &);
+     void    DeleteCurrentNode();

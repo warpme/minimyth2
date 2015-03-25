@@ -1,0 +1,92 @@
+From cec7dc9a125251e8ab9af6e34e19817472788f3a Mon Sep 17 00:00:00 2001
+From: Karl Dietz <dekarl@mythtv.org>
+Date: Thu, 4 Dec 2014 00:33:26 +0100
+Subject: [PATCH 08/11] Add draft HEVC descriptor support
+
+---
+ mythtv/libs/libmythtv/mpeg/mpegdescriptors.cpp |    7 ++++
+ mythtv/libs/libmythtv/mpeg/mpegdescriptors.h   |   41 ++++++++++++++++++++++++
+ 2 files changed, 48 insertions(+)
+
+diff --git a/mythtv/libs/libmythtv/mpeg/mpegdescriptors.cpp b/mythtv/libs/libmythtv/mpeg/mpegdescriptors.cpp
+index 7654332..937c887 100644
+--- a/mythtv/libs/libmythtv/mpeg/mpegdescriptors.cpp
++++ b/mythtv/libs/libmythtv/mpeg/mpegdescriptors.cpp
+@@ -435,6 +435,8 @@ QString MPEGDescriptor::toString() const
+         SET_STRING(RevisionDetectionDescriptor);
+     else if (DescriptorID::teletext == DescriptorTag())
+         SET_STRING(TeletextDescriptor);
++    else if (DescriptorID::hevc_video == DescriptorTag())
++        SET_STRING(HEVCVideoDescriptor);
+     /// POSSIBLY UNSAFE ! -- begin
+     else if (PrivateDescriptorID::dvb_logical_channel_descriptor == DescriptorTag())
+         SET_STRING(DVBLogicalChannelDescriptor);
+@@ -626,3 +628,8 @@ QString AVCVideoDescriptor::toString() const
+         .arg(AVCCompatible()).arg(AVCStill()).arg(AVC24HourPicture())
+         .arg(FramePackingSEINotPresentFlag());
+ }
++
++QString HEVCVideoDescriptor::toString() const
++{
++    return QString("HEVC Video: ");
++}
+diff --git a/mythtv/libs/libmythtv/mpeg/mpegdescriptors.h b/mythtv/libs/libmythtv/mpeg/mpegdescriptors.h
+index 692305d..d804cc4 100644
+--- a/mythtv/libs/libmythtv/mpeg/mpegdescriptors.h
++++ b/mythtv/libs/libmythtv/mpeg/mpegdescriptors.h
+@@ -66,6 +66,7 @@ class DescriptorID
+         avc_timing_and_hrd          = 0x2A, /* partial */
+         mpeg2_aac_audio             = 0x2B,
+         flex_mux_timing             = 0x2C,
++        hevc_video                  = 0x38,
+ 
+         // DVB
+         network_name                = 0x40, /* implemented */
+@@ -399,4 +400,44 @@ class AVCTimingAndHRDDescriptor : public MPEGDescriptor
+     // reserved 5 bslbf
+ };
+ 
++/// ISO 13818-1:2013/FDAM 3 (E) page 7
++class HEVCVideoDescriptor : public MPEGDescriptor
++{
++  public:
++    HEVCVideoDescriptor(const unsigned char *data, int len = 300) :
++        MPEGDescriptor(data, len, DescriptorID::avc_video) { }
++    //       Name                      bits  loc  expected value
++    // descriptor_tag                    8   0.0       0x38
++    // descriptor_length                 8   1.0
++
++    // the encoding of the following is specified in Rec. ITU-T H.265 | ISO/IEC 23008-2
++    // profile_space                     2   2.0
++    uint ProfileSpace(void)       const { return _data[2]&0xC0 >> 6; }
++    // tier_flag                         1   2.2
++    bool Tier(void)               const { return _data[2]&0x20; }
++    // profile_idc                       5   2.3
++    uint ProfileIDC(void)         const { return _data[2] >> 3; }
++    // profile_compatibility_indication 32   3.0
++    // progressive_source_flag           1   7.0
++    // interlaced_source_flag            1   7.1
++    // non_packed_constraint_flag        1   7.2
++    // frame_only_constraint_flag        1   7.3
++    // reserved_zero_44bits             44   7.4
++    // level_idc                         8  13.0
++
++    // temporal_layer_subset_flag        1  14.0
++    // HEVC_still_present_flag           1  14.1
++    // HEVC_24hr_picture_present_flag    1  14.2
++    // reserved                          5  14.3
++
++    // if temporal_layer_subset_flag == true and
++    // descriptor_length == 17 instead of 15 then
++    // reserved                          5  15.0
++    // temporal_id_min                   3  15.5
++    // reserved                          5  16.0
++    // temporal_id_max                   3  16.5
++
++    QString toString() const;
++};
++
+ #endif // _MPEG_DESCRIPTORS_H_
+-- 
+1.7.10.2
+

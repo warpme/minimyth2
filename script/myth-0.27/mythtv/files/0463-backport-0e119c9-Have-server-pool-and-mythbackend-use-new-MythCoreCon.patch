@@ -1,0 +1,62 @@
+From 0e119c9a5e8f088d88e4a58646865c8ed5a4de7d Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Sun, 8 Jun 2014 01:39:25 +1000
+Subject: [PATCH 086/945] Have server pool and mythbackend use new
+ MythCoreContext::resolveSettingAddress API
+
+this allows to set a hostname in the mythtv-setup BackendServerIP/6 settings
+---
+ mythtv/libs/libmythbase/serverpool.cpp     |   11 ++++++++---
+ mythtv/programs/mythbackend/mainserver.cpp |   10 ++++++++--
+ 2 files changed, 16 insertions(+), 5 deletions(-)
+
+diff --git a/mythtv/libs/libmythbase/serverpool.cpp b/mythtv/libs/libmythbase/serverpool.cpp
+index 9b617b0..11694b3 100644
+--- a/mythtv/libs/libmythbase/serverpool.cpp
++++ b/mythtv/libs/libmythbase/serverpool.cpp
+@@ -92,11 +92,16 @@ void ServerPool::SelectDefaultListen(bool force)
+     naList_6.clear();
+ 
+     // populate stored IPv4 and IPv6 addresses
+-    // if address is not defined, QHostAddress will be invalid and Null
+-    QHostAddress config_v4(gCoreContext->GetSetting("BackendServerIP"));
++    QHostAddress config_v4(gCoreContext->resolveSettingAddress(
++                                           "BackendServerIP",
++                                           QString(),
++                                           gCoreContext->ResolveIPv4, true));
+     bool v4IsSet = config_v4.isNull() ? true : false;
+ #if !defined(QT_NO_IPV6)
+-    QHostAddress config_v6(gCoreContext->GetSetting("BackendServerIP6"));
++    QHostAddress config_v6(gCoreContext->resolveSettingAddress(
++                                           "BackendServerIP6",
++                                           QString(),
++                                           gCoreContext->ResolveIPv6, true));
+     bool v6IsSet = config_v6.isNull() ? true : false;
+ #endif
+     bool allowLinkLocal = gCoreContext->GetNumSetting("AllowLinkLocal", true) > 0;
+diff --git a/mythtv/programs/mythbackend/mainserver.cpp b/mythtv/programs/mythbackend/mainserver.cpp
+index 1dc0ef7..9378212 100644
+--- a/mythtv/programs/mythbackend/mainserver.cpp
++++ b/mythtv/programs/mythbackend/mainserver.cpp
+@@ -258,10 +258,16 @@ MainServer::MainServer(bool master, int port,
+ 
+     // test to make sure listen addresses are available
+     // no reason to run the backend if the mainserver is not active
+-    QHostAddress config_v4(gCoreContext->GetSetting("BackendServerIP"));
++    QHostAddress config_v4(gCoreContext->resolveSettingAddress(
++                                           "BackendServerIP",
++                                           QString(),
++                                           gCoreContext->ResolveIPv4, true));
+     bool v4IsSet = config_v4.isNull() ? false : true;
+ #if !defined(QT_NO_IPV6)
+-    QHostAddress config_v6(gCoreContext->GetSetting("BackendServerIP6"));
++    QHostAddress config_v6(gCoreContext->resolveSettingAddress(
++                                           "BackendServerIP6",
++                                           QString(),
++                                           gCoreContext->ResolveIPv6, true));
+     bool v6IsSet = config_v6.isNull() ? false : true;
+ #endif
+     QList<QHostAddress> listenAddrs = mythserver->DefaultListen();
+-- 
+1.7.10.2
+

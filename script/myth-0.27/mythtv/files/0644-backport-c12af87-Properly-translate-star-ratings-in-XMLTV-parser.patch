@@ -1,0 +1,41 @@
+From c12af87629629295975fdb1ede28072ad2fc1247 Mon Sep 17 00:00:00 2001
+From: Karl Dietz <dekarl@mythtv.org>
+Date: Tue, 25 Nov 2014 23:37:30 +0100
+Subject: [PATCH] Properly translate star ratings in XMLTV parser.
+
+Convert from zero based star-ratings in XMLTV to one based star-ratings
+in MythTV.
+---
+ mythtv/programs/mythfilldatabase/xmltvparser.cpp |   12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/mythtv/programs/mythfilldatabase/xmltvparser.cpp b/mythtv/programs/mythfilldatabase/xmltvparser.cpp
+index 8c4fe47..618331c 100644
+--- a/mythtv/programs/mythfilldatabase/xmltvparser.cpp
++++ b/mythtv/programs/mythfilldatabase/xmltvparser.cpp
+@@ -374,12 +374,20 @@ ProgInfo *XMLTVParser::parseProgram(QDomElement &element)
+                 // In the case of uk_rt it's not unknown for a recommendation
+                 // to be given to programmes which are 'so bad, you have to
+                 // watch!'
++                //
++                // XMLTV uses zero based ratings and signals no rating by absence.
++                // A rating from 1 to 5 is encoded as 0/4 to 4/4.
++                // MythTV uses zero to signal no rating!
++                // The same rating is encoded as 0.2 to 1.0 with steps of 0.2, it
++                // is not encoded as 0.0 to 1.0 with steps of 0.25 because
++                // 0 signals no rating!
++                // See http://xmltv.cvs.sourceforge.net/viewvc/xmltv/xmltv/xmltv.dtd?revision=1.47&view=markup#l539
+                 item = values.item(0).toElement();
+                 if (!item.isNull())
+                 {
+                     stars = getFirstText(item);
+-                    num = stars.section('/', 0, 0);
+-                    den = stars.section('/', 1, 1);
++                    num = stars.section('/', 0, 0) + 1;
++                    den = stars.section('/', 1, 1) + 1;
+                     if (0.0 < den.toFloat())
+                         rating = num.toFloat()/den.toFloat();
+                 }
+-- 
+1.7.10.2
+

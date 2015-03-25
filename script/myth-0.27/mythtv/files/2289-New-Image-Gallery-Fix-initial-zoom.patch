@@ -1,0 +1,118 @@
+From f0ec2d24c3ec76961f90fd6e545433e292c9fc20 Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Thu, 30 Oct 2014 18:36:09 +0000
+Subject: [PATCH 03/11] New Image Gallery: Fix initial zoom
+
+Zoom is a bit useless at the moment but make it sensible for now
+
+Signed-off-by: Paul Harrison <pharrison@mythtv.org>
+---
+ mythtv/libs/libmythmetadata/imagemetadata.cpp          |   12 +++++++++---
+ mythtv/libs/libmythmetadata/imagemetadata.h            |    2 +-
+ mythtv/libs/libmythmetadata/imageutils.cpp             |    2 +-
+ mythtv/programs/mythfrontend/gallerydatabasehelper.cpp |    2 +-
+ mythtv/programs/mythfrontend/galleryviewhelper.cpp     |    4 ++--
+ mythtv/programs/mythfrontend/gallerywidget.cpp         |    2 +-
+ 6 files changed, 15 insertions(+), 9 deletions(-)
+
+diff --git a/mythtv/libs/libmythmetadata/imagemetadata.cpp b/mythtv/libs/libmythmetadata/imagemetadata.cpp
+index aa734f5..d424b70 100644
+--- a/mythtv/libs/libmythmetadata/imagemetadata.cpp
++++ b/mythtv/libs/libmythmetadata/imagemetadata.cpp
+@@ -74,15 +74,21 @@ void ImageMetadata::SetAngle(int angle)
+  *  \param  zoom The zoom value that shall be saved
+  *  \return void
+  */
+-void ImageMetadata::SetZoom(int zoom)
++void ImageMetadata::SetZoom(int zoom, bool replace)
+ {
++    if (replace)
++    {
++        m_zoom = zoom;
++        return;
++    }
++
+     m_zoom += zoom;
+ 
+     if (m_zoom > 300)
+         m_zoom = 300;
+ 
+-    if (m_zoom < 0)
+-        m_zoom = 0;
++    if (m_zoom < 20)
++        m_zoom = 20;
+ }
+ 
+ 
+diff --git a/mythtv/libs/libmythmetadata/imagemetadata.h b/mythtv/libs/libmythmetadata/imagemetadata.h
+index 1e21bf2..4a7b1fb 100644
+--- a/mythtv/libs/libmythmetadata/imagemetadata.h
++++ b/mythtv/libs/libmythmetadata/imagemetadata.h
+@@ -76,7 +76,7 @@ public:
+     int         GetZoom()   const   { return m_zoom; }
+     int         GetOrientation();
+     void        SetAngle(int);
+-    void        SetZoom(int);
++    void        SetZoom(int, bool);
+     void        SetOrientation(int, bool);
+ 
+     // Internal thumbnail information
+diff --git a/mythtv/libs/libmythmetadata/imageutils.cpp b/mythtv/libs/libmythmetadata/imageutils.cpp
+index 2433720..11e6813 100644
+--- a/mythtv/libs/libmythmetadata/imageutils.cpp
++++ b/mythtv/libs/libmythmetadata/imageutils.cpp
+@@ -407,7 +407,7 @@ void ImageUtils::LoadFileValues(MSqlQuery &query, ImageMetadata *dm)
+     dm->m_extension     = query.value(8).toString();
+     dm->SetAngle(         query.value(9).toInt());
+     dm->m_date          = query.value(10).toInt();
+-    dm->SetZoom(          query.value(11).toInt());
++    dm->SetZoom(          query.value(11).toInt(), true);
+     dm->m_isHidden      = query.value(12).toInt();
+     dm->SetOrientation(   query.value(13).toInt(), true);
+ 
+diff --git a/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp b/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
+index 2d1454b..f346572 100644
+--- a/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
++++ b/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
+@@ -469,7 +469,7 @@ void GalleryDatabaseHelper::LoadFileValues(MSqlQuery &query, ImageMetadata *im)
+     im->m_extension     = query.value(8).toString();
+     im->SetAngle(         query.value(9).toInt());
+     im->m_date          = query.value(10).toInt();
+-    im->SetZoom(          query.value(11).toInt());
++    im->SetZoom(          query.value(11).toInt(), true);
+     im->m_isHidden      = query.value(12).toInt();
+     im->SetOrientation(   query.value(13).toInt(), true);
+ 
+diff --git a/mythtv/programs/mythfrontend/galleryviewhelper.cpp b/mythtv/programs/mythfrontend/galleryviewhelper.cpp
+index aa9472b..b12ada5 100644
+--- a/mythtv/programs/mythfrontend/galleryviewhelper.cpp
++++ b/mythtv/programs/mythfrontend/galleryviewhelper.cpp
+@@ -424,10 +424,10 @@ void GalleryViewHelper::SetFileZoom(int zoom)
+         return;
+ 
+     if (zoom == kFileZoomIn)
+-        im->SetZoom(20);
++        im->SetZoom(20, false);
+ 
+     if (zoom == kFileZoomOut)
+-        im->SetZoom(-20);
++        im->SetZoom(-20, false);
+ 
+     m_dbHelper->UpdateData(im);
+ }
+diff --git a/mythtv/programs/mythfrontend/gallerywidget.cpp b/mythtv/programs/mythfrontend/gallerywidget.cpp
+index b4dea29..58495e5 100644
+--- a/mythtv/programs/mythfrontend/gallerywidget.cpp
++++ b/mythtv/programs/mythfrontend/gallerywidget.cpp
+@@ -32,7 +32,7 @@ void ImageLoadingThread::run()
+     {
+         m_image->SetFilename(m_url);
+         m_image->SetOrientation(m_imageData->GetOrientation());
+-        m_image->SetZoom(m_imageData->GetZoom() / 100);
++        m_image->SetZoom(static_cast<float>(m_imageData->GetZoom()) / 100);
+         m_image->Load(false);
+     }
+ }
+-- 
+1.7.10.2
+

@@ -1,0 +1,50 @@
+From 92c73773d1bb5226bcfe42d230a067f0a3a8697f Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Wed, 5 Nov 2014 09:16:10 +0000
+Subject: [PATCH] New Image gallery: Fix exif updates
+
+Rotating/flipping destroys existing exif data
+
+Signed-off-by: Paul Harrison <pharrison@mythtv.org>
+---
+ mythtv/libs/libmythmetadata/imageutils.cpp |   14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/mythtv/libs/libmythmetadata/imageutils.cpp b/mythtv/libs/libmythmetadata/imageutils.cpp
+index b0a6a04..816bb54 100644
+--- a/mythtv/libs/libmythmetadata/imageutils.cpp
++++ b/mythtv/libs/libmythmetadata/imageutils.cpp
+@@ -665,8 +665,13 @@ QList<QStringList> ImageUtils::GetAllExifValues(const QString &fileName)
+                         values.append(QString::fromStdString(i->tagLabel()));
+                         values.append(QString::fromStdString(i->value().toString()));
+ 
+-                        // Add the exif information to the list
+-                        valueList.append(values);
++                        LOG(VB_FILE, LOG_DEBUG, QString("%1 (Type %2)")
++                            .arg(values.join(" : "))
++                            .arg(i->typeName()));
++
++                        // Add the exif information to the list, ignoring empty labels
++                        if (!values.at(4).isEmpty())
++                            valueList.append(values);
+                     }
+                 }
+             }
+@@ -788,11 +793,12 @@ void ImageUtils::SetExifValue(const QString &fileName,
+ 
+         if (image.get())
+         {
+-            Exiv2::ExifData exifData;
++            image->readMetadata();
++            Exiv2::ExifData &exifData = image->exifData();
++
+             Exiv2::Exifdatum &datum = exifData[exifTag.toLocal8Bit().constData()];
+             datum.setValue(value.toLocal8Bit().constData());
+ 
+-            image->setExifData(exifData);
+             image->writeMetadata();
+ 
+             *ok = true;
+-- 
+1.7.10.2
+

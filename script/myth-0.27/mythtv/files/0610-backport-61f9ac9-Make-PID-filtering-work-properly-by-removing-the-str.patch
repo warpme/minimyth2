@@ -1,0 +1,58 @@
+From 61f9ac9a8d7f6eb5cf1fac74376245e8b82e42f1 Mon Sep 17 00:00:00 2001
+From: Richard Hulme <peper03@mythtv.org>
+Date: Thu, 30 Oct 2014 22:43:05 +0100
+Subject: [PATCH 2/2] Make PID filtering work properly by removing the streams
+ and not just the entries from the PAT.
+
+---
+ mythtv/libs/libmythtv/mpeg/mpegstreamdata.cpp   |    9 +++++++--
+ mythtv/libs/libmythtv/recorders/dtvrecorder.cpp |    5 +++++
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/mpeg/mpegstreamdata.cpp b/mythtv/libs/libmythtv/mpeg/mpegstreamdata.cpp
+index f73425c..abb0ec7 100644
+--- a/mythtv/libs/libmythtv/mpeg/mpegstreamdata.cpp
++++ b/mythtv/libs/libmythtv/mpeg/mpegstreamdata.cpp
+@@ -147,9 +147,8 @@ void MPEGStreamData::SetRecordingType(const QString &recording_type)
+ {
+     _recording_type = recording_type;
+     _recording_type.detach();
+-    uint neededVideo = (_recording_type == "tv")    ? 1 : 0;
+     uint neededAudio = (_recording_type == "audio") ? 1 : 0;
+-    SetVideoStreamsRequired(neededVideo);
++    SetVideoStreamsRequired(0);
+     SetAudioStreamsRequired(neededAudio);
+ }
+ 
+@@ -578,6 +577,12 @@ bool MPEGStreamData::CreatePMTSingleProgram(const ProgramMapTable &pmt)
+             audio_cnt++;
+             audioPIDs.push_back(pid);
+         }
++        else if (_recording_type == "audio" )
++        {
++            // If not an audio PID but we only want audio,
++            // ignore this PID.
++            continue;
++        }
+ 
+ #ifdef DEBUG_MPEG_RADIO
+         if (is_video)
+diff --git a/mythtv/libs/libmythtv/recorders/dtvrecorder.cpp b/mythtv/libs/libmythtv/recorders/dtvrecorder.cpp
+index 08d02e2..ead3b33 100644
+--- a/mythtv/libs/libmythtv/recorders/dtvrecorder.cpp
++++ b/mythtv/libs/libmythtv/recorders/dtvrecorder.cpp
+@@ -1460,6 +1460,11 @@ bool DTVRecorder::ProcessTSPacket(const TSPacket &tspacket)
+         FindOtherKeyframes(&tspacket);
+         _buffer_packets = false;
+     }
++    else if (_stream_id[pid] == 0)
++    {
++        // Ignore this packet if the PID should be stripped
++        return true;
++    }
+     else
+     {
+         // There are audio/video streams. Only write the packet
+-- 
+1.7.10.2
+

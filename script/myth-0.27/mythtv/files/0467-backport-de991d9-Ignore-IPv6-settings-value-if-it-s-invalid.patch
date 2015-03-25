@@ -1,0 +1,76 @@
+From de991d98754bd50045d65080592828631786e161 Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Sat, 5 Jul 2014 23:37:35 +1000
+Subject: [PATCH 261/945] =?UTF-8?q?Ignore=20IPv6=20settings=20value=20if=20i?=
+ =?UTF-8?q?t=E2=80=99s=20invalid?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This would otherwise cause the backend to always believe the requested host was local
+
+Fixes #12172
+---
+ mythtv/libs/libmythbase/mythcorecontext.cpp |    2 +-
+ mythtv/programs/mythbackend/mainserver.cpp  |   17 ++++++++++++-----
+ 2 files changed, 13 insertions(+), 6 deletions(-)
+
+diff --git a/mythtv/libs/libmythbase/mythcorecontext.cpp b/mythtv/libs/libmythbase/mythcorecontext.cpp
+index 4ab022a..eb62efa 100644
+--- a/mythtv/libs/libmythbase/mythcorecontext.cpp
++++ b/mythtv/libs/libmythbase/mythcorecontext.cpp
+@@ -643,7 +643,7 @@ bool MythCoreContext::IsThisHost(const QString &addr, const QString &host)
+     QString thisip  = GetBackendServerIP4(host);
+     QString thisip6 = GetBackendServerIP6(host);
+ 
+-    return ((addrstr == thisip) || (addrstr == thisip6));
++    return ((addrstr == thisip) || (!thisip6.isEmpty() && addrstr == thisip6));
+ }
+ 
+ bool MythCoreContext::IsFrontendOnly(void)
+diff --git a/mythtv/programs/mythbackend/mainserver.cpp b/mythtv/programs/mythbackend/mainserver.cpp
+index af6cf04..a0b5f74 100644
+--- a/mythtv/programs/mythbackend/mainserver.cpp
++++ b/mythtv/programs/mythbackend/mainserver.cpp
+@@ -3518,9 +3518,12 @@ void MainServer::HandleSGGetFileList(QStringList &sList,
+                 " path = %3 wanthost = %4")
+             .arg(groupname).arg(host).arg(path).arg(wantHost));
+ 
++    QString addr4 = gCoreContext->GetBackendServerIP4();
++    QString addr6 = gCoreContext->GetBackendServerIP6();
++
+     if ((host.toLower() == wantHost.toLower()) ||
+-        (gCoreContext->GetBackendServerIP4() == wantHostaddr.toString()) ||
+-        (gCoreContext->GetBackendServerIP6() == wantHostaddr.toString()))
++        (!addr4.isEmpty() && addr4 == wantHostaddr.toString()) ||
++        (!addr6.isEmpty() && addr6 == wantHostaddr.toString()))
+     {
+         StorageGroup sg(groupname, host);
+         LOG(VB_FILE, LOG_INFO, LOC + "HandleSGGetFileList: Getting local info");
+@@ -3578,6 +3581,7 @@ void MainServer::HandleSGFileQuery(QStringList &sList,
+         return;
+     }
+ 
++    QString host = gCoreContext->GetHostName();
+     QString wantHost = sList.at(1);
+     QHostAddress wantHostaddr(wantHost);
+     QString groupname = sList.at(2);
+@@ -3593,9 +3597,12 @@ void MainServer::HandleSGFileQuery(QStringList &sList,
+     LOG(VB_FILE, LOG_INFO, LOC + QString("HandleSGFileQuery: %1")
+             .arg(gCoreContext->GenMythURL(wantHost, 0, filename, groupname)));
+ 
+-    if ((wantHost.toLower() == gCoreContext->GetHostName().toLower()) ||
+-        (wantHostaddr.toString() == gCoreContext->GetBackendServerIP4()) ||
+-        (wantHostaddr.toString() == gCoreContext->GetBackendServerIP6()))
++    QString addr4 = gCoreContext->GetBackendServerIP4();
++    QString addr6 = gCoreContext->GetBackendServerIP6();
++
++    if ((host.toLower() == wantHost.toLower()) ||
++        (!addr4.isEmpty() && addr4 == wantHostaddr.toString()) ||
++        (!addr6.isEmpty() && addr6 == wantHostaddr.toString()))
+     {
+         LOG(VB_FILE, LOG_INFO, LOC + "HandleSGFileQuery: Getting local info");
+         StorageGroup sg(groupname, gCoreContext->GetHostName(), allowFallback);
+-- 
+1.7.10.2
+

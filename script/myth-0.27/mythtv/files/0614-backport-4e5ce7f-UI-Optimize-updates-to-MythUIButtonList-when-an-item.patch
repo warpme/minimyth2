@@ -1,0 +1,156 @@
+From 4e5ce7fe25faf3df617b4f633b0e6c58afa34912 Mon Sep 17 00:00:00 2001
+From: Paul Harrison <pharrison@mythtv.org>
+Date: Mon, 10 Nov 2014 11:19:09 +0000
+Subject: [PATCH] UI: Optimize updates to MythUIButtonList when an item's
+ state changes
+
+This patch checks if a MythUIButtonListItem is visible and only calls
+the parent's Update() if it is visible thus speeding up the update
+and also reduces flicker when updating buttonlists with a large number of
+items.
+
+Based on a patch by Lawrence Rust.
+---
+ mythtv/libs/libmythui/mythuibuttonlist.cpp |   26 ++++++++++++++++++--------
+ mythtv/libs/libmythui/mythuibuttonlist.h   |    4 ++++
+ 2 files changed, 22 insertions(+), 8 deletions(-)
+
+diff --git a/mythtv/libs/libmythui/mythuibuttonlist.cpp b/mythtv/libs/libmythui/mythuibuttonlist.cpp
+index 2e503d6..70c08a6 100644
+--- a/mythtv/libs/libmythui/mythuibuttonlist.cpp
++++ b/mythtv/libs/libmythui/mythuibuttonlist.cpp
+@@ -1410,7 +1410,6 @@ void MythUIButtonList::CalculateButtonPositions(void)
+ 
+     for (; button < (int)m_itemsVisible; button++)
+         m_ButtonList[button]->SetVisible(false);
+-
+ }
+ 
+ void MythUIButtonList::SanitizePosition(void)
+@@ -1434,6 +1433,14 @@ void MythUIButtonList::CalculateArrowStates()
+ 
+     m_needsUpdate = false;
+ 
++    // mark the visible buttons as invisible
++    QMap<int, MythUIButtonListItem*>::const_iterator i = m_ButtonToItem.constBegin();
++    while (i != m_ButtonToItem.constEnd())
++    {
++        i.value()->setVisible(false);
++        ++i;
++    }
++
+     // set topitem, top position
+     SanitizePosition();
+     m_ButtonToItem.clear();
+@@ -3048,6 +3055,7 @@ MythUIButtonListItem::MythUIButtonListItem(MythUIButtonList *lbtype,
+     m_state     = state;
+     m_showArrow = showArrow;
+     m_data      = 0;
++    m_isVisible = false;
+ 
+     if (state >= NotChecked)
+         m_checkable = true;
+@@ -3072,6 +3080,7 @@ MythUIButtonListItem::MythUIButtonListItem(MythUIButtonList *lbtype,
+     m_checkable = false;
+     m_state     = CantCheck;
+     m_showArrow = false;
++    m_isVisible = false;
+ 
+     if (m_parent)
+         m_parent->InsertItem(this, listPosition);
+@@ -3107,7 +3116,7 @@ void MythUIButtonListItem::SetText(const QString &text, const QString &name,
+     else
+         m_text = text;
+ 
+-    if (m_parent)
++    if (m_parent && m_isVisible)
+         m_parent->Update();
+ }
+ 
+@@ -3125,7 +3134,7 @@ void MythUIButtonListItem::SetTextFromMap(const InfoMap &infoMap,
+         ++map_it;
+     }
+ 
+-    if (m_parent)
++    if (m_parent && m_isVisible)
+         m_parent->Update();
+ }
+ 
+@@ -3222,7 +3231,7 @@ void MythUIButtonListItem::SetFontState(const QString &state,
+     else
+         m_fontState = state;
+ 
+-    if (m_parent)
++    if (m_parent && m_isVisible)
+         m_parent->Update();
+ }
+ 
+@@ -3254,7 +3263,7 @@ void MythUIButtonListItem::SetImage(MythImage *image, const QString &name)
+         m_image = image;
+     }
+ 
+-    if (m_parent)
++    if (m_parent && m_isVisible)
+         m_parent->Update();
+ }
+ 
+@@ -3310,7 +3319,7 @@ void MythUIButtonListItem::SetImage(
+         do_update = true;
+     }
+ 
+-    if (m_parent && do_update)
++    if (m_parent && do_update && m_isVisible)
+         m_parent->Update();
+ }
+ 
+@@ -3347,7 +3356,7 @@ void MythUIButtonListItem::DisplayState(const QString &state,
+         do_update = true;
+     }
+ 
+-    if (m_parent && do_update)
++    if (m_parent && do_update && m_isVisible)
+         m_parent->Update();
+ }
+ 
+@@ -3379,7 +3388,7 @@ void MythUIButtonListItem::setChecked(MythUIButtonListItem::CheckState state)
+ 
+     m_state = state;
+ 
+-    if (m_parent)
++    if (m_parent && m_isVisible)
+         m_parent->Update();
+ }
+ 
+@@ -3417,6 +3426,7 @@ void MythUIButtonListItem::SetToRealButton(MythUIStateType *button, bool selecte
+         return;
+ 
+     m_parent->ItemVisible(this);
++    m_isVisible = true;
+ 
+     QString state;
+ 
+diff --git a/mythtv/libs/libmythui/mythuibuttonlist.h b/mythtv/libs/libmythui/mythuibuttonlist.h
+index c62862c..de27a79 100644
+--- a/mythtv/libs/libmythui/mythuibuttonlist.h
++++ b/mythtv/libs/libmythui/mythuibuttonlist.h
+@@ -85,6 +85,9 @@ class MUI_PUBLIC MythUIButtonListItem
+     void DisplayState(const QString &state, const QString &name);
+     void SetStatesFromMap(const InfoMap &stateMap);
+ 
++    bool isVisible() const { return m_isVisible; }
++    void setVisible(bool flag) { m_isVisible = flag; }
++
+     bool checkable() const;
+     void setCheckable(bool flag);
+ 
+@@ -110,6 +113,7 @@ class MUI_PUBLIC MythUIButtonListItem
+     CheckState      m_state;
+     QVariant        m_data;
+     bool            m_showArrow;
++    bool            m_isVisible;
+ 
+     QMap<QString, TextProperties> m_strings;
+     QMap<QString, MythImage*> m_images;
+-- 
+1.7.10.2
+

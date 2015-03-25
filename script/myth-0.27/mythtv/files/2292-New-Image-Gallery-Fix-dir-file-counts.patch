@@ -1,0 +1,112 @@
+From b3f1f0fb287564184373166e1026a01216d5cbc0 Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Thu, 30 Oct 2014 18:51:13 +0000
+Subject: [PATCH 06/11] New Image Gallery: Fix dir/file counts
+
+Signed-off-by: Paul Harrison <pharrison@mythtv.org>
+---
+ mythtv/libs/libmythmetadata/imageutils.cpp            |   17 +++++++----------
+ .../programs/mythfrontend/gallerydatabasehelper.cpp   |    5 +++--
+ 2 files changed, 10 insertions(+), 12 deletions(-)
+
+diff --git a/mythtv/libs/libmythmetadata/imageutils.cpp b/mythtv/libs/libmythmetadata/imageutils.cpp
+index 11e6813..ee94edc 100644
+--- a/mythtv/libs/libmythmetadata/imageutils.cpp
++++ b/mythtv/libs/libmythmetadata/imageutils.cpp
+@@ -372,9 +372,9 @@ bool ImageUtils::RemoveFileFromDB(int id)
+ void ImageUtils::LoadDirectoryValues(MSqlQuery &query, ImageMetadata *dm)
+ {
+     dm->m_id            = query.value(0).toInt();
+-    dm->m_fileName      = query.value(1).toString();
+     dm->m_name          = query.value(2).toString();
+     dm->m_path          = query.value(3).toString();
++    dm->m_fileName      = QDir::cleanPath(QDir(dm->m_path).filePath(dm->m_name));
+     dm->m_parentId      = query.value(4).toInt();
+     dm->m_dirCount      = query.value(5).toInt();
+     dm->m_fileCount     = query.value(6).toInt();
+@@ -397,9 +397,9 @@ void ImageUtils::LoadDirectoryValues(MSqlQuery &query, ImageMetadata *dm)
+ void ImageUtils::LoadFileValues(MSqlQuery &query, ImageMetadata *dm)
+ {
+     dm->m_id            = query.value(0).toInt();
+-    dm->m_fileName      = query.value(1).toString();
+     dm->m_name          = query.value(2).toString();
+     dm->m_path          = query.value(3).toString();
++    dm->m_fileName      = QDir::cleanPath(QDir(dm->m_path).filePath(dm->m_name));
+     dm->m_parentId      = query.value(4).toInt();
+     dm->m_type          = query.value(5).toInt();
+     dm->m_modTime       = query.value(6).toInt();
+@@ -456,14 +456,14 @@ void ImageUtils::LoadDirectoryData(QFileInfo &fileInfo,
+                                    int parentId,
+                                    const QString &baseDirectory)
+ {
+-    QDir baseDir(baseDirectory);
++    QDir dir(baseDirectory);
+     data->m_parentId    = parentId;
+-    data->m_fileName    = baseDir.relativeFilePath(fileInfo.absoluteFilePath());
++    data->m_fileName    = dir.relativeFilePath(fileInfo.absoluteFilePath());
+     data->m_name        = fileInfo.fileName();
+-    data->m_path        = baseDir.relativeFilePath(fileInfo.absoluteFilePath());
++    data->m_path        = dir.relativeFilePath(fileInfo.absolutePath());
+     data->m_isHidden    = fileInfo.isHidden();
+ 
+-    QDir dir(data->m_fileName);
++    dir.cd(data->m_fileName);
+     data->m_dirCount = dir.entryList(QDir::Dirs |
+                                      QDir::NoSymLinks |
+                                      QDir::NoDotAndDotDot |
+@@ -476,7 +476,6 @@ void ImageUtils::LoadDirectoryData(QFileInfo &fileInfo,
+ }
+ 
+ 
+-
+ /** \fn     ImageUtils::LoadFileData(QFileInfo &, DataMap *)
+  *  \brief  Loads the information from the fileInfo into the dataMap object
+  *  \param  fileInfo Holds the information about the file
+@@ -488,11 +487,9 @@ void ImageUtils::LoadFileData(QFileInfo &fileInfo,
+                               const QString &baseDirectory)
+ {
+     QDir baseDir(baseDirectory);
+-    data->m_fileName    = fileInfo.fileName();
++    data->m_fileName    = baseDir.relativeFilePath(fileInfo.absoluteFilePath());
+     data->m_name        = fileInfo.fileName();
+     data->m_path        = baseDir.relativeFilePath(fileInfo.absolutePath());
+-    if (data->m_path.isNull()) // Hack because relativeFilePath will return a null instead of empty string
+-        data->m_path = "";
+     data->m_modTime     = fileInfo.lastModified().toTime_t();
+     data->m_size        = fileInfo.size();
+     data->m_isHidden    = fileInfo.isHidden();
+diff --git a/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp b/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
+index f346572..eb6f675 100644
+--- a/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
++++ b/mythtv/programs/mythfrontend/gallerydatabasehelper.cpp
+@@ -1,4 +1,5 @@
+ // Qt headers
++#include <QDir>
+ 
+ // MythTV headers
+ #include "mythcontext.h"
+@@ -434,9 +435,9 @@ void GalleryDatabaseHelper::RemoveData(ImageMetadata *im)
+ void GalleryDatabaseHelper::LoadDirectoryValues(MSqlQuery &query, ImageMetadata *im)
+ {
+     im->m_id            = query.value(0).toInt();
+-    im->m_fileName      = query.value(1).toString();
+     im->m_name          = query.value(2).toString();
+     im->m_path          = query.value(3).toString();
++    im->m_fileName      = QDir::cleanPath(QDir(im->m_path).filePath(im->m_name));
+     im->m_parentId      = query.value(4).toInt();
+     im->m_dirCount      = query.value(5).toInt();
+     im->m_fileCount     = query.value(6).toInt();
+@@ -459,9 +460,9 @@ void GalleryDatabaseHelper::LoadDirectoryValues(MSqlQuery &query, ImageMetadata
+ void GalleryDatabaseHelper::LoadFileValues(MSqlQuery &query, ImageMetadata *im)
+ {
+     im->m_id            = query.value(0).toInt();
+-    im->m_fileName      = query.value(1).toString();
+     im->m_name          = query.value(2).toString();
+     im->m_path          = query.value(3).toString();
++    im->m_fileName      = QDir::cleanPath(QDir(im->m_path).filePath(im->m_name));
+     im->m_parentId      = query.value(4).toInt();
+     im->m_type          = query.value(5).toInt();
+     im->m_modTime       = query.value(6).toInt();
+-- 
+1.7.10.2
+

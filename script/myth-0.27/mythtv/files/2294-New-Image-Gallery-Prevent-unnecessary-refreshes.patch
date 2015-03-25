@@ -1,0 +1,103 @@
+From dc3e54332b25bb4b8eef953b871842a44a088a4b Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Thu, 30 Oct 2014 19:03:52 +0000
+Subject: [PATCH 08/11] New Image Gallery: Prevent unnecessary refreshes.
+
+The gallery always refreshes 1 sec after starting even though nothing has
+changed.
+
+Signed-off-by: Paul Harrison <pharrison@mythtv.org>
+---
+ mythtv/programs/mythfrontend/galleryview.cpp       |    2 +-
+ mythtv/programs/mythfrontend/galleryviewhelper.cpp |   31 ++++++++++++--------
+ mythtv/programs/mythfrontend/galleryviewhelper.h   |    1 +
+ 3 files changed, 20 insertions(+), 14 deletions(-)
+
+diff --git a/mythtv/programs/mythfrontend/galleryview.cpp b/mythtv/programs/mythfrontend/galleryview.cpp
+index e83aaf1..d891d3a 100644
+--- a/mythtv/programs/mythfrontend/galleryview.cpp
++++ b/mythtv/programs/mythfrontend/galleryview.cpp
+@@ -46,7 +46,7 @@ GalleryView::GalleryView(MythScreenStack *parent, const char *name)
+     connect(m_syncStatusThread,  SIGNAL(UpdateSyncProgress(int, int)),
+             this,   SLOT(UpdateSyncProgress(int, int)));
+ 
+-    connect(m_syncStatusThread,  SIGNAL(finished()),
++    connect(m_syncStatusThread,  SIGNAL(SyncComplete()),
+             this,   SLOT(ResetSyncProgress()));
+ 
+     // Start the sync status thread so that an already
+diff --git a/mythtv/programs/mythfrontend/galleryviewhelper.cpp b/mythtv/programs/mythfrontend/galleryviewhelper.cpp
+index a31f2e2..c8add49 100644
+--- a/mythtv/programs/mythfrontend/galleryviewhelper.cpp
++++ b/mythtv/programs/mythfrontend/galleryviewhelper.cpp
+@@ -551,37 +551,42 @@ bool GallerySyncStatusThread::isSyncRunning()
+  */
+ void GallerySyncStatusThread::run()
+ {
+-    volatile bool exit = false;
++    bool syncDetected = false;
++
+     GalleryFileHelper *fh = new GalleryFileHelper();
+ 
+     // Internal counter that tracks how many
+     // times we have been in the while loop
+     int loopCounter = 0;
+ 
+-    while (!exit)
++    while (true)
+     {
+         GallerySyncStatus status = fh->GetSyncStatus();
+ 
+         LOG(VB_GENERAL, LOG_DEBUG,
+-            QString("GallerySyncStatusThread: Sync status is running: %1, Syncing image '%2' of '%3'")
++            QString("GallerySyncStatusThread: Sync status is running: %1, "
++                    "Syncing image '%2' of '%3'")
+             .arg(status.running).arg(status.current).arg(status.total));
+ 
+-        // Only update the progress text
+-        // if the sync is still running
++        // Update the progress text whilst the sync is running
+         if (status.running)
+-            emit UpdateSyncProgress(status.current, status.total);
+-
+-        // Try at least one time to get the sync
+-        // status before checking for the exit condition
+-        if (loopCounter >= 1)
+         {
+-            if (status.running == false)
+-                exit = true;
++            syncDetected = true;
++            emit UpdateSyncProgress(status.current, status.total);
+         }
++        // Check at least twice before quitting
++        else if (loopCounter >= 1)
++        {
++            // only refresh UI after syncs
++            if (syncDetected)
++                emit SyncComplete();
+ 
++            // die
++            break;
++        }
+         // Wait some time before trying to get and update the status
+         // This also avoids too many calls to the service api.
+-        usleep(999999);
++        usleep(500000);
+ 
+         ++loopCounter;
+     }
+diff --git a/mythtv/programs/mythfrontend/galleryviewhelper.h b/mythtv/programs/mythfrontend/galleryviewhelper.h
+index 87edae1..f75d2a6 100644
+--- a/mythtv/programs/mythfrontend/galleryviewhelper.h
++++ b/mythtv/programs/mythfrontend/galleryviewhelper.h
+@@ -74,6 +74,7 @@ class GallerySyncStatusThread : public QThread
+ 
+   signals:
+     void UpdateSyncProgress(int, int);
++    void SyncComplete();
+ };
+ 
+ #endif // GALLERYVIEWHANDLER_H
+-- 
+1.7.10.2
+

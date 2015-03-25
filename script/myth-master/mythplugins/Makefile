@@ -76,6 +76,7 @@ include ../../gar.mk
 post-configure:
 #	Hack for 0.27 bug #11719
 	@ln -sf $(DESTDIR)$(includedir)/mythtv $(DESTDIR)$(DESTDIR)$(includedir)/
+	@$(MAKECOOKIE)
 
 post-install: post-install-mythtv-version
 	@$(MAKECOOKIE)

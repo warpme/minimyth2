@@ -1,0 +1,232 @@
+From 5594a6f32e73b0519b556b63983786a01a0f2228 Mon Sep 17 00:00:00 2001
+From: Jean-Yves Avenard <jyavenard@mythtv.org>
+Date: Mon, 2 Jun 2014 01:35:46 +1000
+Subject: [PATCH 001/945] Make Frontend/Backend connection works when BE is
+ set to use IPv6 link-local address
+
+BackendServerIP6 has created by mythtv-setup will contain the scope Id. That scope id is only valid on the machine mythtv-setup was run on.
+We must remove that scope id before attempting to use it, as otherwise the connection would fail.
+
+IPv6 link-local addresses do cause a problem has all network interfaces have one. We attempt to determine the scope id by trying to connect to the backend using each active interfaces. Once the scope Id is found, we cache it for later use.
+
+This fixes #10921
+---
+ mythtv/libs/libmythbase/mythcorecontext.cpp |   67 +++++++++++++++++++++++---
+ mythtv/libs/libmythbase/mythcorecontext.h   |    4 ++
+ mythtv/libs/libmythbase/mythsocket.cpp      |   68 +++++++++++++++++++++++++--
+ 3 files changed, 128 insertions(+), 11 deletions(-)
+
+diff --git a/mythtv/libs/libmythbase/mythcorecontext.cpp b/mythtv/libs/libmythbase/mythcorecontext.cpp
+index efec185..725c327 100644
+--- a/mythtv/libs/libmythbase/mythcorecontext.cpp
++++ b/mythtv/libs/libmythbase/mythcorecontext.cpp
+@@ -65,14 +65,16 @@ class MythCoreContextPrivate : public QObject
+     QObject         *m_GUIobject;
+     QString          m_appBinaryVersion;
+ 
+-    QMutex  m_localHostLock;     ///< Locking for m_localHostname
+-    QString m_localHostname;     ///< hostname from config.xml or gethostname()
+-    QMutex  m_masterHostLock;    ///< Locking for m_masterHostname
+-    QString m_masterHostname;    ///< master backend hostname
++    QMutex  m_localHostLock;        ///< Locking for m_localHostname
++    QString m_localHostname;        ///< hostname from config.xml or gethostname()
++    QMutex  m_masterHostLock;       ///< Locking for m_masterHostname
++    QString m_masterHostname;       ///< master backend hostname
++    QMutex  m_scopesLock;           ///< Locking for m_masterHostname
++    QMap<QString, QString> m_scopes;///< Scope Id cache for Link-Local addresses
+ 
+-    QMutex      m_sockLock;      ///< protects both m_serverSock and m_eventSock
+-    MythSocket *m_serverSock;    ///< socket for sending MythProto requests
+-    MythSocket *m_eventSock;     ///< socket events arrive on
++    QMutex      m_sockLock;         ///< protects both m_serverSock and m_eventSock
++    MythSocket *m_serverSock;       ///< socket for sending MythProto requests
++    MythSocket *m_eventSock;        ///< socket events arrive on
+ 
+     QMutex         m_WOLInProgressLock;
+     QWaitCondition m_WOLInProgressWaitCondition;
+@@ -876,8 +878,14 @@ QString MythCoreContext::GetBackendServerIP(const QString &host)
+     QString addr4, addr6;
+ #if !defined(QT_NO_IPV6)
+     if (!ServerPool::DefaultListenIPv6().isEmpty())
++    {
+         // we have IPv6 addresses, assume we can connect to them
+         addr6 = GetSettingOnHost("BackendServerIP6", host, "");
++        QHostAddress addr(addr6);
++        // remove scope Id
++        addr.setScopeId(QString());
++        addr6 = addr.toString();
++    }
+ #endif
+     if (!ServerPool::DefaultListenIPv4().isEmpty())
+         addr4 = GetSettingOnHost("BackendServerIP", host, "");
+@@ -902,6 +910,51 @@ QString MythCoreContext::GetBackendServerIP(const QString &host)
+         return addr6;
+ }
+ 
++/**
++ * \fn void GetScopeForAddress(QHostAddress &addr)
++ * Return the cached scope Id for the given address.
++ * If unknown returns false, else returns true and set scope Id to given address
++ */
++bool MythCoreContext::GetScopeForAddress(QHostAddress &addr) const
++{
++    QHostAddress addr1  = addr;
++    addr1.setScopeId(QString());
++    QString addrstr     = addr1.toString();
++    QMutexLocker lock(&d->m_scopesLock);
++
++    if (!d->m_scopes.contains(addrstr))
++        return false;
++
++    addr.setScopeId(d->m_scopes[addrstr]);
++    return true;
++}
++
++/**
++ * \fn void SetScopeForAddress(QHostAddress &addr)
++ * Record the scope Id of the given IP address
++ */
++void MythCoreContext::SetScopeForAddress(const QHostAddress &addr)
++{
++    QHostAddress addr1 = addr;
++    addr1.setScopeId(QString());
++    QMutexLocker lock(&d->m_scopesLock);
++
++    d->m_scopes.insert(addr1.toString(), addr.scopeId());
++}
++
++/**
++ * \fn void SetScopeForAddress(QHostAddress &addr, int scope)
++ * This is an overloaded function.
++ */
++void MythCoreContext::SetScopeForAddress(const QHostAddress &addr, int scope)
++{
++    QHostAddress addr1 = addr;
++    addr1.setScopeId(QString());
++    QMutexLocker lock(&d->m_scopesLock);
++
++    d->m_scopes.insert(addr1.toString(), QString::number(scope));
++}
++
+ void MythCoreContext::OverrideSettingForSession(const QString &key,
+                                                 const QString &value)
+ {
+diff --git a/mythtv/libs/libmythbase/mythcorecontext.h b/mythtv/libs/libmythbase/mythcorecontext.h
+index 4015146..2b661e6 100644
+--- a/mythtv/libs/libmythbase/mythcorecontext.h
++++ b/mythtv/libs/libmythbase/mythcorecontext.h
+@@ -156,6 +156,10 @@ class MBASE_PUBLIC MythCoreContext : public QObject, public MythObservable, publ
+     QString GetBackendServerIP(void);
+     QString GetBackendServerIP(const QString &host);
+ 
++    bool GetScopeForAddress(QHostAddress &addr) const;
++    void SetScopeForAddress(const QHostAddress &addr);
++    void SetScopeForAddress(const QHostAddress &addr, int scope);
++
+     void ClearSettingsCache(const QString &myKey = QString(""));
+     void ActivateSettingsCache(bool activate = true);
+     void OverrideSettingForSession(const QString &key, const QString &value);
+diff --git a/mythtv/libs/libmythbase/mythsocket.cpp b/mythtv/libs/libmythbase/mythsocket.cpp
+index bb85b92..539549c 100644
+--- a/mythtv/libs/libmythbase/mythsocket.cpp
++++ b/mythtv/libs/libmythbase/mythsocket.cpp
+@@ -599,7 +599,7 @@ void MythSocket::IsDataAvailableReal(bool *ret) const
+     m_dataAvailable.fetchAndStoreOrdered((*ret) ? 1 : 0);
+ }
+ 
+-void MythSocket::ConnectToHostReal(QHostAddress addr, quint16 port, bool *ret)
++void MythSocket::ConnectToHostReal(QHostAddress _addr, quint16 port, bool *ret)
+ {
+     if (m_tcpSocket->state() == QAbstractSocket::ConnectedState)
+     {
+@@ -608,6 +608,9 @@ void MythSocket::ConnectToHostReal(QHostAddress addr, quint16 port, bool *ret)
+         m_tcpSocket->close();
+     }
+ 
++    QHostAddress addr = _addr;
++    addr.setScopeId(QString());
++
+     s_loopbackCacheLock.lock();
+     bool usingLoopback = s_loopbackCache.contains(addr.toString());
+     s_loopbackCacheLock.unlock();
+@@ -621,7 +624,10 @@ void MythSocket::ConnectToHostReal(QHostAddress addr, quint16 port, bool *ret)
+         QList<QHostAddress> localIPs = QNetworkInterface::allAddresses();
+         for (int i = 0; i < localIPs.count() && !usingLoopback; ++i)
+         {
+-            if (addr == localIPs[i])
++            QHostAddress local = localIPs[i];
++            local.setScopeId(QString());
++
++            if (addr == local)
+             {
+                 QHostAddress::SpecialAddress loopback = QHostAddress::LocalHost;
+                 if (addr.protocol() == QAbstractSocket::IPv6Protocol)
+@@ -644,9 +650,63 @@ void MythSocket::ConnectToHostReal(QHostAddress addr, quint16 port, bool *ret)
+     LOG(VB_SOCKET, LOG_INFO, LOC + QString("attempting connect() to (%1:%2)")
+         .arg(addr.toString()).arg(port));
+ 
+-    m_tcpSocket->connectToHost(addr, port, QAbstractSocket::ReadWrite);
++    bool ok = false;
++
++    if (!usingLoopback && (addr.protocol() == QAbstractSocket::IPv6Protocol) &&
++        addr.isInSubnet(QHostAddress::parseSubnet("fe80::/10")) &&
++        !gCoreContext->GetScopeForAddress(addr))
++    {
++        // Address is IPv6 link-local, we need to find the right scope id
++        QList<QNetworkInterface> cards = QNetworkInterface::allInterfaces();
++
++        // try using all available cards
++        foreach (QNetworkInterface card, cards)
++        {
++            unsigned int flags = card.flags();
++            bool isLoopback = flags & QNetworkInterface::IsLoopBack;
++            bool isP2P = flags & QNetworkInterface::IsPointToPoint;
++            bool isRunning = flags & QNetworkInterface::IsRunning;
++
++            if (!isRunning || !card.isValid() || isLoopback || isP2P)
++            {
++                // this is a loopback interface, not up or a point to point interface
++                // no point checking
++                continue;
++            }
+ 
+-    bool ok = m_tcpSocket->waitForConnected();
++            bool foundv6 = false;
++            // check that IPv6 is enabled on that interface
++            QList<QNetworkAddressEntry> addresses = card.addressEntries();
++            foreach (QNetworkAddressEntry ae, addresses)
++            {
++                if (ae.ip().protocol() == QAbstractSocket::IPv6Protocol)
++                {
++                    foundv6 = true;
++                    break;
++                }
++            }
++            if (!foundv6)
++            {
++                // No IPv6 available on that interface, skip it
++                continue;
++            }
++
++            addr.setScopeId(QString::number(card.index()));
++            m_tcpSocket->connectToHost(addr, port, QAbstractSocket::ReadWrite);
++            ok = m_tcpSocket->waitForConnected(5000);
++            if (ok)
++            {
++                // Save it for future searches
++                gCoreContext->SetScopeForAddress(addr, card.index());
++                break;
++            }
++        }
++    }
++    else
++    {
++        m_tcpSocket->connectToHost(addr, port, QAbstractSocket::ReadWrite);
++        ok = m_tcpSocket->waitForConnected();
++    }
+ 
+     if (ok)
+     {
+-- 
+1.7.10.2
+
