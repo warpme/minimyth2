@@ -1,5 +1,5 @@
 GARNAME = ffmpeg
-GARVERSION = 1.1.1
+GARVERSION = 2.5.1
 CATEGORIES = lib
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -158,7 +158,6 @@ CONFIGURE_ARGS = \
 	--arch=$(GARCH_FAMILY) \
 	--cpu=$(GARCH) \
 	--enable-pic \
-	--disable-sram \
 	--disable-thumb \
 	--disable-symver \
 	--disable-hardcoded-tables \
@@ -184,7 +183,6 @@ CONFIGURE_ARGS = \
 	--disable-armv6t2 \
 	--disable-vfp \
 	--disable-neon \
-	--disable-vis \
 	--enable-inline-asm \
 	--enable-yasm \
 	--disable-mips32r2 \
@@ -192,7 +190,6 @@ CONFIGURE_ARGS = \
 	--disable-mipsdspr2 \
 	--disable-mipsfpu \
 	--enable-fast-unaligned \
-	--disable-coverage \
 	--disable-debug \
 	--enable-optimizations \
 	--disable-extra-warnings \
