@@ -13,7 +13,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 7.5.2.gc71bdc9
+mm_VERSION_MINIMYTH ?= 7.6.0.g72de5f4
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -41,8 +41,7 @@ mm_GRAPHICS               ?= intel nvidia vmware radeon
 # Lists the software to be supported.
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
-# 'mythbrowser', 'mythgallery', 'mythgame', 'mythmusic', 'mythnews', 'mythstream',
-# 'mythweather', 'mythzoneminder', 'mythffmpeg', 'flash', 'perl', 'python', 'mame',
+# 'flash', 'mplayer', 'voip', 'bumblebee', 'perl', 'python', 'mame',
 # 'emulators', 'mc', 'dvdcss', 'udisks', 'debug'.
 mm_SOFTWARE               ?= mythplugins \
                              flash \
@@ -54,6 +53,8 @@ mm_SOFTWARE               ?= mythplugins \
                              dvdcss \
                              voip \
                              makemkv \
+                             mplayer \
+                             bumblebee \
                              $(if $(filter $(mm_DEBUG),yes),debug)
 
 #                             mc
@@ -115,12 +116,12 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '3.16', '3.18'
-mm_KERNEL_HEADERS_VERSION ?= 3.19
+# Valid values are '3.16', '4.0'
+mm_KERNEL_HEADERS_VERSION ?= 4.0
 
 # The version of kernel to use.
-# Valid values are '3.16' and '3.18'.
-mm_KERNEL_VERSION         ?= 3.19
+# Valid values are '3.16' and '4.0'.
+mm_KERNEL_VERSION         ?= 4.0
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -130,7 +131,7 @@ mm_KERNEL_CONFIG          ?=
 # The version of Myth to use.
 # Valid values are '0.27', 'master'
 mm_MYTH_VERSION           ?= master
-# mm_MYTH_VERSION           ?= 0.27
+#mm_MYTH_VERSION           ?= 0.27
 
 # The version of the NVIDIA driver.
 # Valid values are '340.58', '340.65'
@@ -215,9 +216,3 @@ export PATCH_GET
 PARALLELMFLAGS=-j$(shell cat /proc/cpuinfo | grep -c '^processor[[:cntrl:]]*:')
 #PARALLELMFLAGS=-j1
 export PARALLELMFLAGS
-
-# Get rid of Qt environment variables
-#$(foreach var, $(shell set | grep '^QMAKE' | sed 's%=.*$$%%'), $(eval $(var) :=))
-#$(foreach var, $(shell set | grep '^QMAKE' | sed 's%=.*$$%%'), $(eval unexport $(var)))
-#$(foreach var, $(shell set | grep '^QT' | sed 's%=.*$$%%'), $(eval $(var) :=))
-#$(foreach var, $(shell set | grep '^QT' | sed 's%=.*$$%%'), $(eval unexport $(var)))
