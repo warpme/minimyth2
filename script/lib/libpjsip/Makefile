@@ -1,5 +1,5 @@
 GARNAME = pjproject
-GARVERSION = 2.3
+GARVERSION = 2.4
 CATEGORIES = lib
 MASTER_SITES = http://www.pjsip.org/release/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -40,5 +40,5 @@ pre-configure:
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libpj*.a
-	@cp $(WORKSRC)/pjsip-apps/bin/samples/x86_64-minimyth-linux-gnu/auddemo $(DESTDIR)$(bindir)/sip-audio-diagnoze
+	@cp $(WORKSRC)/pjsip-apps/bin/samples/x86_64-minimyth-linux-gnu/auddemo $(DESTDIR)$(bindir)/auddemo
 	@$(MAKECOOKIE)
