@@ -1,15 +1,9 @@
 GARNAME = MPlayer
-GARVERSION = 1.1.1
-#GARVERSION = 34971
+GARVERSION = $(MPLAYER_TRUNK_VERSION)
 CATEGORIES = mediaplayers
-MASTER_SITES = http://www.mplayerhq.hu/MPlayer/releases/
-https://gitorious.org/vaapi/mplayer/archive/e4a658ef28e09e8441630f9028506f5cf7449480.tar.gz
-#MASTER_SITES = svn://svn.mplayerhq.hu/mplayer/trunk/
+MASTER_SITES = svn://svn.mplayerhq.hu/mplayer/trunk/
 SOURCEPKG = lib/ffmpeg lib/libdvdnav lib/libdvdread
-DISTFILES = $(DISTNAME).tar.xz
-#DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-gcc_4.4.0_hack.patch
-#PATCHFILES = $(GARNAME)-gcc_4.4.0_hack.patch
+DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = mplayer
 mplayer_LICENSE_TEXT = $(WORKSRC)/Copyright
 
@@ -17,8 +11,8 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/alsa-lib lib/ffmpeg lib/fontconfig lib/freetype lib/fribidi lib/libass lib/libbluray lib/libcdio lib/libcdio-paranoia lib/libdvdnav lib/libdvdread lib/libjpeg lib/libmng lib/libpng lib/zlib net/librtmp system/lirc X11/libva X11/libvdpau xorg/xorg
-BUILDDEPS = devel/yasm lib/libass
+DEPENDS = lang/c lib/a52dec lib/alsa-lib lib/faad2 lib/ffmpeg lib/fontconfig lib/freetype lib/libbluray lib/libcdio lib/libdca lib/libjpeg lib/libmad lib/libpng lib/zlib lib/libdvdread lib/libdvdnav net/librtmp system/lirc X11/libva X11/libvdpau xorg/xorg
+BUILDDEPS = devel/yasm
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -35,13 +29,11 @@ CONFIGURE_ARGS_DIR = \
 	--codecsdir="$(libdir)/codecs"
 # Optional features
 # --enable-fontconfig must be auto or cflags and libs will not be determined correctly.
-# --enable-ass must be auto or cflags and libs will not be determined correctly.
 # Support for external dvdread appears to be broken.
 CONFIGURE_ARGS_OPTIONAL = \
 	--disable-mencoder \
 	--enable-mplayer \
 	--disable-gui \
-	--disable-gtk1 \
 	--disable-termcap \
 	--disable-termios \
 	--enable-iconv \
@@ -73,8 +65,6 @@ CONFIGURE_ARGS_OPTIONAL = \
 	--enable-bluray \
 	--enable-dvdnav \
 	--enable-dvdread \
-	--disable-dvdread-internal \
-	--disable-libdvdcss-internal \
 	--disable-cdparanoia \
 	--disable-cddb \
 	--disable-bitmap-font \
@@ -82,29 +72,29 @@ CONFIGURE_ARGS_OPTIONAL = \
 	--disable-unrarexec \
 	--enable-menu \
 	--enable-sortsub \
-	--enable-fribidi \
+	--disable-fribidi \
 	--disable-enca \
 	--disable-maemo \
 	--disable-macosx-finder \
 	--disable-macosx-bundle \
 	--disable-inet6 \
-	--disable-sctp \
 	--enable-gethostbyname2 \
 	--enable-ftp \
 	--disable-vstream \
 	--enable-pthreads \
 	--disable-w32threads \
-	--disable-os2threads \
-	--disable-ass-internal \
+	--enable-ass-internal \
+	--enable-ass \
 	--disable-rpath
 # Codecs
 # --enable-libcdio must be auto or cflags and libs will not be determined correctly.
-# --enable-ffmpeg_so must be auto or cflags and libs will not be determined correctly.
-# --enable-postproc must be auto or cflags and libs will not be determined correctly.
+# --enable-ffmpeg_so
+# --enable-libdca
+# --enable-liba52
 CONFIGURE_ARGS_CODEC = \
 	--disable-gif \
 	--enable-png \
-	--enable-mng \
+	--disable-mng \
 	--enable-jpeg \
 	--disable-liblzo \
 	$(if $(filter i386,$(GARCH_FAMILY)),--enable-win32dll,--disable-win32dll) \
@@ -120,38 +110,31 @@ CONFIGURE_ARGS_CODEC = \
 	--disable-libvpx-lavc \
 	--disable-libnut \
 	--disable-ffmpeg_a \
-	--disable-vf-lavfi \
 	--disable-libavcodec_mpegaudio_hp \
-	--disable-tremor-internal \
-	--disable-tremor-low \
 	--disable-tremor \
 	--disable-libvorbis \
 	--disable-speex \
 	--disable-libgsm \
 	--disable-theora \
-	--disable-faad \
+	--enable-faad \
 	--disable-faac \
 	--disable-faac-lavc \
 	--disable-ladspa \
 	--disable-libbs2b \
 	--disable-libdv \
 	--disable-mpg123 \
-	--disable-mad \
+	--enable-mad \
 	--disable-mp3lame \
 	--disable-mp3lame-lavc \
 	--disable-toolame \
 	--disable-twolame \
 	--disable-xmms \
-	--disable-libdca \
-	--disable-mp3lib \
-	--disable-liba52 \
 	--disable-libmpeg2 \
 	--disable-libmpeg2-internal \
 	--disable-musepack \
 	--disable-libopencore_amrnb \
 	--disable-libopencore_amrwb \
-	--disable-libopenjpeg \
-	--disable-crystalhd
+	--disable-libopenjpeg
 # Video output: enable xv (requires x11 and vm), xvmc and vdpau.
 CONFIGURE_ARGS_VIDEO = \
 	--disable-vidix \
@@ -185,7 +168,7 @@ CONFIGURE_ARGS_VIDEO = \
 	--enable-vm \
 	--enable-xinerama \
 	--enable-x11 \
-	--enable-xshape \
+	--disable-xshape \
 	--disable-xss \
 	--disable-fbdev \
 	--disable-mlib \
@@ -255,9 +238,7 @@ CONFIGURE_ARGS_ADVANCED = \
 	--disable-armv6 \
 	--disable-armv6t2 \
 	--disable-armvfp \
-	--disable-vfpv3 \
 	--disable-neon \
-	--disable-thumb \
 	--disable-iwmmxt \
 	--enable-fastmemcpy \
 	--disable-hardcoded-tables \
@@ -290,8 +271,7 @@ BUILD_ENV  = \
 
 include ../../gar.mk
 
-CFLAGS  :=
-LDFLAGS := $(LDFLAGS) -lfribidi
+CFLAGS :=
 
 svn//%/$(DISTNAME).tar.bz2:
 	@$(call FETCH_SVN, svn://$*, $(GARVERSION), $(DISTNAME))
@@ -299,11 +279,12 @@ svn//%/$(DISTNAME).tar.bz2:
 	@cd $(PARTIALDIR) ; rm -rf $(DISTNAME)/ffmpeg
 	@cd $(PARTIALDIR) ; rm -rf $(DISTNAME)/libdvdnav
 	@cd $(PARTIALDIR) ; rm -rf $(DISTNAME)/libdvdread4
+	@cd $(PARTIALDIR) ; rm -rf $(DISTNAME)/libswscale
 	@cd $(PARTIALDIR) ; tar -jcf $(DISTNAME).tar.bz2 $(DISTNAME)
 	@cd $(PARTIALDIR) ; rm -rf $(DISTNAME)
 	@$(MAKECOOKIE)
 
-x-checksum-$(DISTNAME).tar.bz2:
+checksum-$(DISTNAME).tar.bz2:
 	@$(MAKECOOKIE)
 
 post-patch:
@@ -326,8 +307,7 @@ install-config:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(bindir)/mplayer-new
-	@mv -f $(DESTDIR)$(bindir)/mplayer $(DESTDIR)$(bindir)/mplayer-new
+	@rm -f $(DESTDIR)$(bindir)/mplayer-svn
 	@$(MAKECOOKIE)
 
 source-update:
