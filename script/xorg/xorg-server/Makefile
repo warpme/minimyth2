@@ -1,5 +1,5 @@
 GARNAME = xorg-server
-GARVERSION = 1.17.0
+GARVERSION = 1.17.1
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
@@ -152,6 +152,7 @@ pre-build:
 	@rm -f $(WORKSRC)/hw/xfree86/loader/sdksyms.c
 
 post-install:
+	@rm -f $(DESTDIR)$(libdir)/xorg/modules/drivers/modesetting_drv.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/extensions/libdbe.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/extensions/libdri.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/extensions/libdri2.la
@@ -176,4 +177,10 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/multimedia/tda9885_drv.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/multimedia/uda1380_drv.la
 	@cp $(WORKSRC)/composite/compositeext.h $(DESTDIR)$(includedir)/xorg/compositeext.h
+	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/i915_pci_ids.h $(WORKSRC)/../../../files/
+	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/i965_pci_ids.h $(WORKSRC)/../../../files/
+	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/r200_pci_ids.h $(WORKSRC)/../../../files/
+	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/r300_pci_ids.h $(WORKSRC)/../../../files/
+	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/r600_pci_ids.h $(WORKSRC)/../../../files/
+	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/radeonsi_pci_ids.h $(WORKSRC)/../../../files/
 	@$(MAKECOOKIE)
