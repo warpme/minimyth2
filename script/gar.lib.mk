@@ -52,7 +52,7 @@ $(DOWNLOADDIR)/%:
 
 # download an http URL (colons omitted)
 http//%: 
-	@cd $(PARTIALDIR) ; wget -c http://$*
+	@cd $(PARTIALDIR) ; wget --no-check-certificate -c http://$*
 
 # download an ftp URL (colons omitted)
 ftp//%: 
