@@ -68,7 +68,7 @@ FIX_LIBTOOL_LIBPATH = \
 	libpath_r=""                                                                                                            ; \
 	libpath_r="$${libpath_r} $(elibdir)"                                                                                    ; \
 	libpath_r="$${libpath_r} $(libdir)"                                                                                     ; \
-	libpath_r="$${libpath_r} $(qt4libdir)"                                                                                  ; \
+	libpath_r="$${libpath_r} $(qt5libdir)"                                                                                  ; \
 	libpath_r="$${libpath_r} $(libdir)/mysql"                                                                               ; \
 	libpath_r="$${libpath_r} $(if $(filter build       ,$(DESTIMG))                ,/lib/$(GARBUILD) /usr/lib/$(GARBUILD))" ; \
 	libpath_r="$${libpath_r} $(if $(filter build+i386  ,$(DESTIMG)+$(GARCH_FAMILY)),/lib32 /usr/lib32 /lib /usr/lib)"       ; \
@@ -210,7 +210,7 @@ gar-patch-%:
 		| sed 's%@GAR_build_DESTDIR@%$(build_DESTDIR)%g' \
 		| sed 's%@GAR_build_bindir@%$(build_bindir)%g' \
 		| sed 's%@GAR_build_includedir@%$(build_includedir)%g' \
-		| sed 's%@GAR_build_qt4bindir@%$(build_qt4bindir)%g' \
+		| sed 's%@GAR_build_qt5bindir@%$(build_qt5bindir)%g' \
 		| sed 's%@GAR_DESTDIR@%$(DESTDIR)%g' \
 		| sed 's%@GAR_rootdir@%$(rootdir)%g' \
 		| sed 's%@GAR_prefix@%$(prefix)%g' \
@@ -227,10 +227,10 @@ gar-patch-%:
 		| sed 's%@GAR_sbindir@%$(sbindir)%g' \
 		| sed 's%@GAR_sourcedir@%$(sourcedir)%g' \
 		| sed 's%@GAR_sysconfdir@%$(sysconfdir)%g' \
-		| sed 's%@GAR_qt4prefix@%$(qt4prefix)%g' \
-		| sed 's%@GAR_qt4bindir@%$(qt4bindir)%g' \
-		| sed 's%@GAR_qt4includedir@%$(qt4includedir)%g' \
-		| sed 's%@GAR_qt4libdir@%$(qt4libdir)%g' \
+		| sed 's%@GAR_qt5prefix@%$(qt5prefix)%g' \
+		| sed 's%@GAR_qt5bindir@%$(qt5bindir)%g' \
+		| sed 's%@GAR_qt5includedir@%$(qt5includedir)%g' \
+		| sed 's%@GAR_qt5libdir@%$(qt5libdir)%g' \
 		| sed 's%@GAR_GARCH_FAMILY@%$(GARCH_FAMILY)%g' \
 		| sed 's%@GAR_CPP@%$(CPP)%g' \
 		| sed 's%@GAR_CC@%$(CC)%g' \
