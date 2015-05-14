@@ -1,0 +1,102 @@
+From b4f75339c9a270040e73efc91bfe8707cf845ec4 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Sun, 30 Sep 2012 13:01:59 +0200
+Subject: [PATCH 073/333] MediaMonitor: Make list of registered extensions
+ static instead of instance
+
+If a MediaMonitor drive is hot plugged then a new instance is created.
+Currently the list of registered file extensions is per instance so the
+media type is never detected.
+
+This patch makes the list of registered file extensions static.
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/libs/libmythbase/mythhdd.cpp   |    5 ++++-
+ mythtv/libs/libmythbase/mythmedia.cpp |   17 ++++++++++++++---
+ mythtv/libs/libmythbase/mythmedia.h   |    2 +-
+ 3 files changed, 19 insertions(+), 5 deletions(-)
+
+diff --git a/mythtv/libs/libmythbase/mythhdd.cpp b/mythtv/libs/libmythbase/mythhdd.cpp
+index b590c0e..8d240d8 100644
+--- a/mythtv/libs/libmythbase/mythhdd.cpp
++++ b/mythtv/libs/libmythbase/mythhdd.cpp
+@@ -25,7 +25,7 @@ MythHDD::MythHDD(QObject *par, const char *DevicePath,
+ {
+     LOG(VB_MEDIA, LOG_INFO, "MythHDD::MythHDD " + m_DevicePath);
+     m_Status = MEDIASTAT_NOTMOUNTED;
+-    m_MediaType = MEDIATYPE_DATA;       // default type is data
++    m_MediaType = MEDIATYPE_UNKNOWN;
+ }
+ 
+ /** \fn MythHDD::checkMedia(void)
+@@ -44,7 +44,10 @@ MythMediaStatus MythHDD::checkMedia(void)
+ 
+         // device is mounted, trigger event
+         if (m_Status != MEDIASTAT_MOUNTED)
++        {
+             m_Status = MEDIASTAT_NOTMOUNTED;
++            onDeviceMounted();
++        }
+ 
+         return setStatus(MEDIASTAT_MOUNTED);
+     }
+diff --git a/mythtv/libs/libmythbase/mythmedia.cpp b/mythtv/libs/libmythbase/mythmedia.cpp
+index cc0f7b2..a0b24e8 100644
+--- a/mythtv/libs/libmythbase/mythmedia.cpp
++++ b/mythtv/libs/libmythbase/mythmedia.cpp
+@@ -64,6 +64,8 @@ const char* MythMediaDevice::MediaErrorStrings[] =
+ QEvent::Type MythMediaEvent::kEventType =
+     (QEvent::Type) QEvent::registerEventType();
+ 
++ext_to_media_t MythMediaDevice::s_ext_to_media;
++
+ MythMediaDevice::MythMediaDevice(QObject* par, const char* DevicePath,
+                                  bool SuperMount,  bool AllowEject)
+                : QObject(par)
+@@ -212,9 +214,18 @@ MythMediaType MythMediaDevice::DetectMediaType(void)
+     ext_cnt_t::const_iterator it = ext_cnt.begin();
+     for (; it != ext_cnt.end(); ++it)
+     {
+-        ext_to_media_t::const_iterator found = m_ext_to_media.find(it.key());
+-        if (found != m_ext_to_media.end())
++        ext_to_media_t::const_iterator found = s_ext_to_media.find(it.key());
++        if (found != s_ext_to_media.end())
++        {
++            LOG(VB_MEDIA, LOG_INFO, QString("DetectMediaType %1 (%2)")
++                .arg(MediaTypeString(found.value())).arg(it.key()));
+             media_cnts[*found] += *it;
++        }
++        else
++        {
++            LOG(VB_MEDIA, LOG_NOTICE, QString("DetectMediaType(this=0x%1) unknown file type %1")
++                .arg(quintptr(this),0,16).arg(it.key()));
++        }
+     }
+ 
+     // break composite mediatypes into constituent components
+@@ -280,7 +291,7 @@ void MythMediaDevice::RegisterMediaExtensions(uint mediatype,
+ {
+     const QStringList list = extensions.split(",");
+     for (QStringList::const_iterator it = list.begin(); it != list.end(); ++it)
+-        m_ext_to_media[*it] |= mediatype;
++        s_ext_to_media[*it] |= mediatype;
+ }
+ 
+ MythMediaError MythMediaDevice::eject(bool open_close)
+diff --git a/mythtv/libs/libmythbase/mythmedia.h b/mythtv/libs/libmythbase/mythmedia.h
+index a5d5fb0..8a405eb 100644
+--- a/mythtv/libs/libmythbase/mythmedia.h
++++ b/mythtv/libs/libmythbase/mythmedia.h
+@@ -169,7 +169,7 @@ class MBASE_PUBLIC MythMediaDevice : public QObject
+                              ///  be private, but a subclass of a
+                              ///  subclass needs it (MythCDRomLinux)
+  private:
+-    ext_to_media_t m_ext_to_media; ///< Map of extension to media type.
++    static ext_to_media_t s_ext_to_media; ///< Map of extension to media type.
+ };
+ 
+ class MBASE_PUBLIC MythMediaEvent : public QEvent
+-- 
+1.7.9.5
+

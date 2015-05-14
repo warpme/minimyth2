@@ -1,0 +1,229 @@
+From 7b7d84da2fed5ec594471efde887a9d2474b91fc Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Sat, 25 May 2013 15:28:52 +0100
+Subject: [PATCH 110/333] TV: cache videodisplayprofile dbase access
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/libs/libmythtv/videodisplayprofile.cpp |  106 +++++++++++++++++++++++--
+ 1 file changed, 101 insertions(+), 5 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/videodisplayprofile.cpp b/mythtv/libs/libmythtv/videodisplayprofile.cpp
+index c5d28c3..6e0f537 100644
+--- a/mythtv/libs/libmythtv/videodisplayprofile.cpp
++++ b/mythtv/libs/libmythtv/videodisplayprofile.cpp
+@@ -2,6 +2,9 @@
+ #include <algorithm>
+ using namespace std;
+ 
++#include <QList>
++#include <QMap>
++
+ #include "videodisplayprofile.h"
+ #include "mythcorecontext.h"
+ #include "mythdb.h"
+@@ -414,11 +417,22 @@ void VideoDisplayProfile::LoadBestPreferences(const QSize &size,
+ ////////////////////////////////////////////////////////////////////////////
+ // static methods
+ 
++typedef QMap< uint, item_list_t > DisplayProfileCache_t;
++static DisplayProfileCache_t s_displayProfilesCache;
++
+ item_list_t VideoDisplayProfile::LoadDB(uint groupid)
+ {
+     ProfileItem tmp;
+     item_list_t list;
+ 
++    // Look in cache first
++    {
++        QMutexLocker locker(&safe_lock);
++        DisplayProfileCache_t::const_iterator it = s_displayProfilesCache.find(groupid);
++        if (it != s_displayProfilesCache.end())
++           return *it;
++    }
++
+     MSqlQuery query(MSqlQuery::InitCon());
+     query.prepare(
+         "SELECT profileid, value, data "
+@@ -468,11 +482,20 @@ item_list_t VideoDisplayProfile::LoadDB(uint groupid)
+     }
+ 
+     sort(list.begin(), list.end());
++    {
++        QMutexLocker locker(&safe_lock);
++        s_displayProfilesCache[groupid] = list;
++    }
+     return list;
+ }
+ 
+ bool VideoDisplayProfile::DeleteDB(uint groupid, const item_list_t &items)
+ {
++    {
++        QMutexLocker locker(&safe_lock);
++        s_displayProfilesCache.clear();
++    }
++
+     MSqlQuery query(MSqlQuery::InitCon());
+     query.prepare(
+         "DELETE FROM displayprofiles "
+@@ -500,6 +523,11 @@ bool VideoDisplayProfile::DeleteDB(uint groupid, const item_list_t &items)
+ 
+ bool VideoDisplayProfile::SaveDB(uint groupid, item_list_t &items)
+ {
++    {
++        QMutexLocker locker(&safe_lock);
++        s_displayProfilesCache.clear();
++    }
++
+     MSqlQuery query(MSqlQuery::InitCon());
+ 
+     MSqlQuery update(MSqlQuery::InitCon());
+@@ -756,13 +784,32 @@ QString VideoDisplayProfile::GetDeinterlacerName(const QString &short_name)
+     return "";
+ }
+ 
++typedef QMap< QString, uint > ProfileMap; // profile name -> profilegroupid
++typedef QMap< QString, ProfileMap > ProfileCache_t; // hostname -> ProfileMap
++static ProfileCache_t s_profilesCache;
++
+ QStringList VideoDisplayProfile::GetProfiles(const QString &hostname)
+ {
+     init_statics();
++
+     QStringList list;
++
++    // Look in cache first
++    {
++        QMutexLocker locker(&safe_lock);
++        ProfileCache_t::const_iterator it = s_profilesCache.find(hostname);
++        if (it != s_profilesCache.end())
++        {
++            const ProfileMap &pglist = *it;
++            for (ProfileMap::const_iterator i = pglist.begin(); i != pglist.end(); ++i)
++                list += i.key();
++            return list;
++        }
++    }
++
+     MSqlQuery query(MSqlQuery::InitCon());
+     query.prepare(
+-        "SELECT name "
++        "SELECT name, profilegroupid "
+         "FROM displayprofilegroups "
+         "WHERE hostname = :HOST ");
+     query.bindValue(":HOST", hostname);
+@@ -770,8 +817,15 @@ QStringList VideoDisplayProfile::GetProfiles(const QString &hostname)
+         MythDB::DBError("get_profiles", query);
+     else
+     {
++        ProfileMap pglist;
+         while (query.next())
+-            list += query.value(0).toString();
++        {
++            QString name = query.value(0).toString();
++            list += name;
++            pglist[name] = query.value(1).toUInt();
++        }
++        QMutexLocker locker(&safe_lock);
++        s_profilesCache[hostname] = pglist;
+     }
+     return list;
+ }
+@@ -779,7 +833,7 @@ QStringList VideoDisplayProfile::GetProfiles(const QString &hostname)
+ QString VideoDisplayProfile::GetDefaultProfileName(const QString &hostname)
+ {
+     QString tmp =
+-        gCoreContext->GetSettingOnHost("DefaultVideoPlaybackProfile", hostname);
++        gCoreContext->GetSettingOnHost("DefaultVideoPlaybackProfile", hostname, "");
+ 
+     QStringList profiles = GetProfiles(hostname);
+ 
+@@ -812,6 +866,21 @@ void VideoDisplayProfile::SetDefaultProfileName(
+ uint VideoDisplayProfile::GetProfileGroupID(const QString &profilename,
+                                             const QString &hostname)
+ {
++    uint groupid = 0;
++
++    // Look for hostname/profilename in cache
++    {
++        QMutexLocker locker(&safe_lock);
++        ProfileCache_t::const_iterator it = s_profilesCache.find(hostname);
++        if (it != s_profilesCache.end())
++        {
++            ProfileMap::const_iterator i = it->find(profilename);
++            if (i != it->end())
++                groupid = i.value();
++            return groupid;
++        }
++    }
++
+     MSqlQuery query(MSqlQuery::InitCon());
+     query.prepare(
+         "SELECT profilegroupid "
+@@ -824,13 +893,20 @@ uint VideoDisplayProfile::GetProfileGroupID(const QString &profilename,
+     if (!query.exec() || !query.isActive())
+         MythDB::DBError("get_profile_group_id", query);
+     else if (query.next())
+-        return query.value(0).toUInt();
++        groupid = query.value(0).toUInt();
+ 
+-    return 0;
++    return groupid;
+ }
+ 
+ void VideoDisplayProfile::DeleteProfiles(const QString &hostname)
+ {
++    // Flush the cache
++    {
++        QMutexLocker locker(&safe_lock);
++        s_profilesCache.clear();
++        s_displayProfilesCache.clear();
++    }
++
+     MSqlQuery query(MSqlQuery::InitCon());
+     MSqlQuery query2(MSqlQuery::InitCon());
+     query.prepare(
+@@ -873,6 +949,13 @@ void VideoDisplayProfile::CreateProfile(
+     if (cmp0.isEmpty() && cmp1.isEmpty())
+         return;
+ 
++    // Flush the cache
++    {
++        QMutexLocker locker(&safe_lock);
++        s_profilesCache.clear();
++        s_displayProfilesCache.clear();
++    }
++
+     // create new profileid
+     uint profileid = 1;
+     if (!query.exec("SELECT MAX(profileid) FROM displayprofiles"))
+@@ -950,6 +1033,12 @@ void VideoDisplayProfile::CreateProfile(
+ uint VideoDisplayProfile::CreateProfileGroup(
+     const QString &profilename, const QString &hostname)
+ {
++    // Flush the cache
++    {
++        QMutexLocker locker(&safe_lock);
++        s_profilesCache.clear();
++    }
++
+     MSqlQuery query(MSqlQuery::InitCon());
+     query.prepare(
+         "INSERT INTO displayprofilegroups (name, hostname) "
+@@ -970,6 +1059,13 @@ uint VideoDisplayProfile::CreateProfileGroup(
+ bool VideoDisplayProfile::DeleteProfileGroup(
+     const QString &groupname, const QString &hostname)
+ {
++    // Flush the cache
++    {
++        QMutexLocker locker(&safe_lock);
++        s_profilesCache.clear();
++        s_displayProfilesCache.clear();
++    }
++
+     bool ok = true;
+     MSqlQuery query(MSqlQuery::InitCon());
+     MSqlQuery query2(MSqlQuery::InitCon());
+-- 
+1.7.9.5
+

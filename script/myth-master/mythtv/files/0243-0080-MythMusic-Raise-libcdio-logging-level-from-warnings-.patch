@@ -1,0 +1,53 @@
+From 4f17a872cac1df2c832915595d01d3bee09840ef Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Wed, 24 Jul 2013 17:14:29 +0100
+Subject: [PATCH 080/333] MythMusic: Raise libcdio logging level from warnings
+ to errors
+
+This prevents copious log messages from libcdio like:
+++ WARN: error in ioctl CDROMREADTOCHDR: No medium found
+when polling the CD for media
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythplugins/mythmusic/mythmusic/cddecoder.cpp |   17 ++++++++++++++---
+ 1 file changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/mythplugins/mythmusic/mythmusic/cddecoder.cpp b/mythplugins/mythmusic/mythmusic/cddecoder.cpp
+index 46ee6bb..44fcaf7 100644
+--- a/mythplugins/mythmusic/mythmusic/cddecoder.cpp
++++ b/mythplugins/mythmusic/mythmusic/cddecoder.cpp
+@@ -76,7 +76,8 @@ static CdIo_t * openCdio(const QString& name)
+ // Stack-based cdio device open
+ class StCdioDevice
+ {
+-    CdIo_t* m_cdio;
++    CdIo_t* const m_cdio;
++    cdio_log_level_t const m_ll;
+ 
+     void* operator new(std::size_t); // Stack only
+     // No copying
+@@ -84,8 +85,18 @@ class StCdioDevice
+     StCdioDevice& operator =(const StCdioDevice&);
+ 
+ public:
+-    StCdioDevice(const QString& dev) : m_cdio(openCdio(dev)) { }
+-    ~StCdioDevice() { if (m_cdio) cdio_destroy(m_cdio); }
++    StCdioDevice(const QString& dev) :
++        m_cdio(openCdio(dev)),
++        m_ll(cdio_loglevel_default)
++    {
++        cdio_loglevel_default = CDIO_LOG_ERROR;
++    }
++    ~StCdioDevice()
++    {
++        if (m_cdio)
++            cdio_destroy(m_cdio);
++        cdio_loglevel_default = m_ll;
++    }
+ 
+     operator CdIo_t*() const { return m_cdio; }
+ };
+-- 
+1.7.9.5
+

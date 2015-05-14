@@ -1,0 +1,100 @@
+From 3e9d93cfbd7f53c8997a0373640ddbd1dc75a50d Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Sat, 2 Mar 2013 11:39:54 +0000
+Subject: [PATCH 091/333] TV: Find alternative channel if start channel is not
+ tuneable
+
+When starting live TV the default starting channel may not be tuneable if
+there are several recordings in progress.  In this case it is often
+possible to find a channel that is on the same multiplex as a program
+that is being recorded.
+
+This patch searches for the next channel that is tuneable from the
+same source ID as the default starting channel.
+
+This fix also overcomes a problem after a re-tune where the default
+starting channel is no longer available.
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/libs/libmythtv/tv_play.cpp |   57 ++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 56 insertions(+), 1 deletion(-)
+
+diff --git a/mythtv/libs/libmythtv/tv_play.cpp b/mythtv/libs/libmythtv/tv_play.cpp
+index 942f05a..1ad1447 100644
+--- a/mythtv/libs/libmythtv/tv_play.cpp
++++ b/mythtv/libs/libmythtv/tv_play.cpp
+@@ -2192,6 +2192,61 @@ static QString tv_i18n(const QString &msg)
+     return (msg_arr == msg_i18n_arr) ? msg_i18n : msg;
+ }
+ 
++static uint NextTunableChannel(uint chanid)
++{
++    LOG(VB_CHANNEL, LOG_INFO, LOC + QString("NextTunableChannel(%1)").arg(chanid));
++
++    uint sourceid = ChannelUtil::GetSourceIDForChannel(chanid);
++
++    vector<uint> excluded_cardids;
++    vector<uint> connected = RemoteRequestFreeRecorderList(excluded_cardids);
++    vector<uint> interesting = CardUtil::GetCardIDs(sourceid);
++
++    ChannelInfoList chanlist = ChannelUtil::GetChannels(sourceid, true/*vis*/);
++    ChannelUtil::SortChannels(chanlist, "channum", true/*elim_dups*/);
++
++    vector<uint> cardids;
++    for (uint i = 0; i < connected.size(); i++)
++    {
++        for (uint j = 0; j < interesting.size(); j++)
++        {
++            if (connected[i] == interesting[j])
++            {
++                cardids.push_back(interesting[j]);
++                break;
++            }
++        }
++    }
++
++    for (uint i = 0; i < cardids.size(); i++)
++    {
++        vector<uint> x;
++        vector<InputInfo> inputs = RemoteRequestFreeInputList(cardids[i], x);
++
++        for (uint j = 0; j < inputs.size(); j++)
++        {
++            LOG(VB_CHANNEL, LOG_INFO, LOC + QString("NextTunableChannel %1, %2")
++                .arg(CardUtil::GetVideoDevice(cardids[i]))
++                .arg(CardUtil::GetDisplayName(inputs[j].inputid)));
++
++            if (inputs[j].sourceid != sourceid)
++                continue;
++
++            uint id = ChannelUtil::GetNextChannel(chanlist, chanid,
++                        inputs[j].mplexid, 0, CHANNEL_DIRECTION_UP);
++            if (id)
++            {
++                LOG(VB_CHANNEL, LOG_INFO, LOC + QString("NextTunableChannel(%1) => %2")
++                    .arg(chanid).arg(id));
++                return id;
++            }
++        }
++    }
++
++    LOG(VB_CHANNEL, LOG_INFO, LOC + QString("NextTunableChannel(%1) => none").arg(chanid));
++    return 0;
++}
++
+ /** \fn TV::HandleStateChange(PlayerContext*,PlayerContext*)
+  *  \brief Changes the state to the state on the front of the
+  *         state change queue.
+@@ -2262,7 +2317,7 @@ void TV::HandleStateChange(PlayerContext *mctx, PlayerContext *ctx)
+             chanid = gCoreContext->GetNumSetting("DefaultChanid", 0);
+ 
+         if (chanid && !IsTunable(ctx, chanid))
+-            chanid = 0;
++            chanid = NextTunableChannel(chanid);
+ 
+         QString channum = "";
+ 
+-- 
+1.7.9.5
+

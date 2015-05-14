@@ -1,0 +1,54 @@
+From 179fc8ab3ec9abefcd4ace261bb2c436ad774a54 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Sat, 10 Aug 2013 17:32:12 +0100
+Subject: [PATCH 138/333] MythWeather: Fix a SEGV on exit from setup screen
+
+When starting with an empty database, select MythWeather from the
+main menu.  A blank screen is shown.  Pressing back shows the setup
+screen.  Press back again to the main menu and the FE aborts:
+
+    Program terminated with signal 11, Segmentation fault.
+    0  SourceManager::clearSources (this=0x92c40f0) at sourceManager.cpp:156
+    156	    while (!m_scripts.isEmpty())
+    0  SourceManager::clearSources (this=0x92c40f0) at sourceManager.cpp:156
+    1  0xa67497c9 in ScreenSetup::~ScreenSetup (this=0xb21cef0,
+        __in_chrg=<value optimised out>) at weatherSetup.cpp:110
+    2  0xa6749c40 in ScreenSetup::~ScreenSetup (this=0xb21cef0,
+        __in_chrg=<value optimised out>) at weatherSetup.cpp:130
+    3  0xb25969de in qDeleteInEventHandler (o=0xb21cef0)
+        at kernel/qobject.cpp:4277
+
+When ScreenSetup's dtor is called, the m_sourceManager passed to the ctor
+has already been deleted.
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ .../mythweather/mythweather/weatherSetup.cpp       |   12 ++----------
+ 1 file changed, 2 insertions(+), 10 deletions(-)
+
+diff --git a/mythplugins/mythweather/mythweather/weatherSetup.cpp b/mythplugins/mythweather/mythweather/weatherSetup.cpp
+index c33478e..32ef3f8 100644
+--- a/mythplugins/mythweather/mythweather/weatherSetup.cpp
++++ b/mythplugins/mythweather/mythweather/weatherSetup.cpp
+@@ -102,16 +102,8 @@ ScreenSetup::ScreenSetup(MythScreenStack *parent, const QString &name,
+ ScreenSetup::~ScreenSetup()
+ {
+     if (m_createdSrcMan)
+-    {
+-        if (m_sourceManager)
+-            delete m_sourceManager;
+-    }
+-    else
+-    {
+-        m_sourceManager->clearSources();
+-        m_sourceManager->findScriptsDB();
+-        m_sourceManager->setupSources();
+-    }
++        delete m_sourceManager;
++    m_sourceManager = NULL;
+ 
+     // Deallocate the ScreenListInfo objects created for the inactive screen list.
+     for (int i=0; i < m_inactiveList->GetCount(); i++)
+-- 
+1.7.9.5
+

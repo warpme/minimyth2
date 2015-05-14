@@ -1,0 +1,74 @@
+From 172c9e9f418bad6c9425361b44e83e47220e1fb3 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Mon, 3 Jun 2013 13:27:24 +0100
+Subject: [PATCH 115/333] Add a cache to RemoteIsTuneable
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/libs/libmythtv/tvremoteutil.cpp |   42 ++++++++++++++++++++++++++++----
+ 1 file changed, 37 insertions(+), 5 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/tvremoteutil.cpp b/mythtv/libs/libmythtv/tvremoteutil.cpp
+index 1362a4b..9ffaa51 100644
+--- a/mythtv/libs/libmythtv/tvremoteutil.cpp
++++ b/mythtv/libs/libmythtv/tvremoteutil.cpp
+@@ -1,5 +1,10 @@
+ #include <unistd.h>
+ 
++#include <QMap>
++#include <QPair>
++#include <QMutex>
++#include <QMutexLocker>
++
+ #include "tvremoteutil.h"
+ #include "cardutil.h"
+ #include "channelutil.h"
+@@ -452,13 +457,40 @@ bool RemoteIsTuneable(uint cardid, uint chanid, const QString &channum)
+     uint mplexid = 0, sourceid = 0;
+     if (!ChannelUtil::GetMplexAndSourceID(mplexid, sourceid, chanid))
+         return false;
+-    QStringList const inputs = CardUtil::GetInputNames(cardid, sourceid);
+-    if (inputs.size() == 0)
+-        return false;
+-    const uint inputid = CardUtil::GetInputID(cardid, inputs[0]);
++
++    typedef QPair< uint,uint > key_t; // cardid, sourceid
++    typedef QMap< key_t, vector<uint>  > cache_t;
++    static cache_t s_cache;
++    static QMutex s_mutex;
++
++    vector<uint> cards;
++    bool bFound = false;
++    {
++        QMutexLocker locker(&s_mutex);
++        cache_t::const_iterator it = s_cache.find(key_t(cardid, sourceid));
++        if (it != s_cache.end())
++        {
++            cards = it.value();
++            bFound = true;
++        }
++    }
++
++    if (!bFound)
++    {
++        QStringList const inputs = CardUtil::GetInputNames(cardid, sourceid);
++        if (inputs.size() == 0)
++            return false;
++        uint const inputid = CardUtil::GetInputID(cardid, inputs[0]);
++
++        cards = CardUtil::GetConflictingCards(inputid, cardid);
++
++        // The above operations are time consuming and constant for a given
++        // card and chanid unless mythtv-setup is run so cache the result
++        QMutexLocker locker(&s_mutex);
++        s_cache[ key_t(cardid, sourceid) ] = cards;
++    }
+ 
+     // Enumerate cards with the same inputgroup
+-    vector<uint> const cards = CardUtil::GetConflictingCards(inputid, cardid);
+     for (vector<uint>::const_iterator it = cards.begin();
+         it != cards.end(); ++it)
+     {
+-- 
+1.7.9.5
+

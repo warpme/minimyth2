@@ -1,0 +1,159 @@
+From 94e4b9489ed09760f8cddc70c5f6838a0f4c4e96 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Mon, 11 Nov 2013 12:49:28 +0000
+Subject: [PATCH 179/333] MediaMon: Improve CDROM eject robustness with SCSI
+ fallback
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/libs/libmythbase/mythcdrom-linux.cpp |  103 ++++++++++++++++++++++++++-
+ 1 file changed, 101 insertions(+), 2 deletions(-)
+
+diff --git a/mythtv/libs/libmythbase/mythcdrom-linux.cpp b/mythtv/libs/libmythbase/mythcdrom-linux.cpp
+index 14a5656..4fe472c 100644
+--- a/mythtv/libs/libmythbase/mythcdrom-linux.cpp
++++ b/mythtv/libs/libmythbase/mythcdrom-linux.cpp
+@@ -2,6 +2,8 @@
+ #include <sys/stat.h>
+ #include <sys/ioctl.h>       // ioctls
+ #include <linux/cdrom.h>     // old ioctls for cdrom
++#include <linux/fs.h>        // BLKRRPART
++#include <scsi/scsi.h>
+ #include <scsi/sg.h>
+ #include <fcntl.h>
+ #include <errno.h>
+@@ -143,6 +145,10 @@ public:
+     virtual MythMediaError lock(void);
+     virtual MythMediaError unlock(void);
+ 
++protected:
++    MythMediaError ejectCDROM(bool open_close);
++    MythMediaError ejectSCSI();
++
+ private:
+     int driveStatus(void);
+     bool hasWritableMedia(void);
+@@ -294,11 +300,28 @@ MythMediaError MythCDROMLinux::eject(bool open_close)
+             return MEDIAERR_FAILED;
+     }
+ 
++    MythMediaError err = ejectCDROM(open_close);
++    if (MEDIAERR_OK != err && open_close)
++        err = ejectSCSI();
++
++    return err;
++}
++
++MythMediaError MythCDROMLinux::ejectCDROM(bool open_close)
++{
+     if (open_close)
+-        return (ioctl(m_DeviceHandle, CDROMEJECT) == 0) ? MEDIAERR_OK
+-                                                        : MEDIAERR_FAILED;
++    {
++        LOG(VB_MEDIA, LOG_DEBUG, LOC + ":eject - Ejecting CDROM");
++        int res = ioctl(m_DeviceHandle, CDROMEJECT);
++
++        if (res < 0)
++            LOG(VB_MEDIA, LOG_DEBUG, "CDROMEJECT ioctl failed" + ENO);
++
++        return (res == 0) ? MEDIAERR_OK : MEDIAERR_FAILED;
++    }
+     else
+     {
++        LOG(VB_MEDIA, LOG_DEBUG, LOC + ":eject - Loading CDROM");
+         // If the tray is empty, this will fail (Input/Output error)
+         int res = ioctl(m_DeviceHandle, CDROMCLOSETRAY);
+ 
+@@ -314,6 +337,81 @@ MythMediaError MythCDROMLinux::eject(bool open_close)
+     }
+ }
+ 
++// This is copied from eject.c by Jeff Tranter (tranter@pobox.com)
++MythMediaError MythCDROMLinux::ejectSCSI()
++{
++    int k;
++    sg_io_hdr_t io_hdr = { 'S' };
++    unsigned char allowRmBlk[6] = {ALLOW_MEDIUM_REMOVAL, 0, 0, 0, 0, 0};
++    unsigned char startStop1Blk[6] = {START_STOP, 0, 0, 0, 1, 0}; // start
++    unsigned char startStop2Blk[6] = {START_STOP, 0, 0, 0, 2, 0}; // load eject
++    unsigned char sense_buffer[16];
++    const unsigned DID_OK = 0;
++    const unsigned DRIVER_OK = 0;
++
++    // ALLOW_MEDIUM_REMOVAL requires r/w access so re-open the device
++    struct StHandle {
++        const int m_fd;
++        StHandle(const char *dev) : m_fd(open(dev, O_RDWR | O_NONBLOCK)) { }
++        ~StHandle() { close(m_fd); }
++        operator int() const { return m_fd; }
++    } fd(qPrintable(m_DevicePath));
++
++    LOG(VB_MEDIA, LOG_DEBUG, LOC + ":ejectSCSI");
++	if ((ioctl(fd, SG_GET_VERSION_NUM, &k) < 0) || (k < 30000))
++    {
++	    // not an sg device, or old sg driver
++        LOG(VB_MEDIA, LOG_DEBUG, "SG_GET_VERSION_NUM ioctl failed" + ENO);
++        return MEDIAERR_FAILED;
++	}
++
++    io_hdr.cmd_len = 6;
++    io_hdr.mx_sb_len = sizeof(sense_buffer);
++    io_hdr.dxfer_direction = SG_DXFER_NONE;
++    io_hdr.sbp = sense_buffer;
++    io_hdr.timeout = 10000; // millisecs
++
++    io_hdr.cmdp = allowRmBlk;
++    if (ioctl(fd, SG_IO, &io_hdr) < 0)
++    {
++        LOG(VB_MEDIA, LOG_DEBUG, "SG_IO allowRmBlk ioctl failed" + ENO);
++	    return MEDIAERR_FAILED;
++    }
++    else if (io_hdr.host_status != DID_OK || io_hdr.driver_status != DRIVER_OK)
++    {
++        LOG(VB_MEDIA, LOG_DEBUG, "SG_IO allowRmBlk failed");
++	    return MEDIAERR_FAILED;
++    }
++
++    io_hdr.cmdp = startStop1Blk;
++    if (ioctl(fd, SG_IO, &io_hdr) < 0)
++    {
++        LOG(VB_MEDIA, LOG_DEBUG, "SG_IO START_STOP(start) ioctl failed" + ENO);
++	    return MEDIAERR_FAILED;
++    }
++    else if (io_hdr.host_status != DID_OK || io_hdr.driver_status != DRIVER_OK)
++    {
++        LOG(VB_MEDIA, LOG_DEBUG, "SG_IO START_STOP(start) failed");
++	    return MEDIAERR_FAILED;
++    }
++
++    io_hdr.cmdp = startStop2Blk;
++    if (ioctl(fd, SG_IO, &io_hdr) < 0)
++    {
++        LOG(VB_MEDIA, LOG_DEBUG, "SG_IO START_STOP(eject) ioctl failed" + ENO);
++	    return MEDIAERR_FAILED;
++    }
++    else if (io_hdr.host_status != DID_OK || io_hdr.driver_status != DRIVER_OK)
++    {
++        LOG(VB_MEDIA, LOG_DEBUG, "SG_IO START_STOP(eject) failed");
++	    return MEDIAERR_FAILED;
++    }
++
++    /* force kernel to reread partition table when new disc inserted */
++    (void)ioctl(fd, BLKRRPART);
++    return MEDIAERR_OK;
++}
++
+ 
+ bool MythCDROMLinux::mediaChanged()
+ {
+@@ -620,6 +718,7 @@ MythMediaError MythCDROMLinux::lock()
+     MythMediaError ret = MythMediaDevice::lock();
+     if (ret == MEDIAERR_OK)
+     {
++        LOG(VB_MEDIA, LOG_DEBUG, LOC + ":lock - Locking CDROM door");
+         int res = ioctl(m_DeviceHandle, CDROM_LOCKDOOR, 1);
+ 
+         if (res < 0)
+-- 
+1.7.9.5
+

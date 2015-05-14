@@ -1,0 +1,55 @@
+From 7907352a0f2aef212173655fb0caf9187c4b8e51 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Sat, 21 Dec 2013 20:57:45 +0000
+Subject: [PATCH 192/333] Frontend: Ensure FE re-connects to BE in monitor
+ mode if FE is in standby
+
+The BE doesn't powerdown sometimes when the FE is in standby as BE sees
+an open playback connection.  Appears that after the BE suspends and then
+resumes the FE re-connects to the BE in playback (blocking) mode.
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/libs/libmythbase/mythcorecontext.cpp        |    5 +++--
+ .../mythfrontend/backendconnectionmanager.cpp      |    2 +-
+ 2 files changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/mythtv/libs/libmythbase/mythcorecontext.cpp b/mythtv/libs/libmythbase/mythcorecontext.cpp
+index 4e3f117..8f3975d 100644
+--- a/mythtv/libs/libmythbase/mythcorecontext.cpp
++++ b/mythtv/libs/libmythbase/mythcorecontext.cpp
+@@ -131,7 +131,7 @@ MythCoreContextPrivate::MythCoreContextPrivate(MythCoreContext *lparent,
+       m_UIThread(QThread::currentThread()),
+       m_locale(NULL),
+       m_scheduler(NULL),
+-      m_blockingClient(false),
++      m_blockingClient(true),
+       m_inwanting(false),
+       m_intvwanting(false),
+       m_announcedProtocol(false),
+@@ -1265,7 +1265,8 @@ bool MythCoreContext::SendReceiveStringList(
+     QMutexLocker locker(&d->m_sockLock);
+     if (!d->m_serverSock)
+     {
+-        bool blockingClient = GetNumSetting("idleTimeoutSecs",0) > 0;
++        bool blockingClient = d->m_blockingClient &&
++                             (GetNumSetting("idleTimeoutSecs",0) > 0);
+         ConnectToMasterServer(blockingClient);
+     }
+ 
+diff --git a/mythtv/programs/mythfrontend/backendconnectionmanager.cpp b/mythtv/programs/mythfrontend/backendconnectionmanager.cpp
+index 98d5c99..4f72168 100644
+--- a/mythtv/programs/mythfrontend/backendconnectionmanager.cpp
++++ b/mythtv/programs/mythfrontend/backendconnectionmanager.cpp
+@@ -30,7 +30,7 @@ class Reconnect : public QRunnable
+ 
+     virtual void run(void)
+     {
+-        if (!gCoreContext->SafeConnectToMasterServer())
++        if (!gCoreContext->SafeConnectToMasterServer(gCoreContext->IsBlockingClient()))
+             gCoreContext->dispatch(MythEvent(QString("RECONNECT_FAILURE")));
+         else
+             gCoreContext->dispatch(MythEvent(QString("RECONNECT_SUCCESS")));
+-- 
+1.7.9.5
+

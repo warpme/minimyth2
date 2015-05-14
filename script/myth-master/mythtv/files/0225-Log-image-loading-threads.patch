@@ -1,0 +1,124 @@
+From ce5d5e624b45d4f8e6d3f96b08e56aa5cd89e2a3 Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Sun, 3 May 2015 17:38:35 +0100
+Subject: [PATCH] Log image loading threads. Don't wait for them
+
+
+diff --git a/mythtv/libs/libmythbase/mthreadpool.cpp b/mythtv/libs/libmythbase/mthreadpool.cpp
+index e982b06..8343848 100644
+--- a/mythtv/libs/libmythbase/mthreadpool.cpp
++++ b/mythtv/libs/libmythbase/mthreadpool.cpp
+@@ -396,7 +396,10 @@ bool MThreadPool::TryStartInternal(
+     QRunnable *runnable, QString debugName, bool reserved)
+ {
+     if (!m_priv->m_running)
++    {
++        LOG(VB_FILE, LOG_DEBUG, QString("*** Threadpool %1 not running").arg(debugName));
+         return false;
++    }
+ 
+     while (!m_priv->m_delete_threads.empty())
+     {
+@@ -451,6 +454,7 @@ bool MThreadPool::TryStartInternal(
+         }
+     }
+ 
++    LOG(VB_FILE, LOG_DEBUG, QString("*** Thread %1 failed").arg(debugName));
+     return false;
+ }
+ 
+diff --git a/mythtv/libs/libmythui/mythuiimage.cpp b/mythtv/libs/libmythui/mythuiimage.cpp
+index 28245d7..a555ef8 100644
+--- a/mythtv/libs/libmythui/mythuiimage.cpp
++++ b/mythtv/libs/libmythui/mythuiimage.cpp
+@@ -612,8 +612,11 @@ MythUIImage::~MythUIImage()
+     // Wait until all image loading threads are complete or bad things
+     // may happen if this MythUIImage disappears when a queued thread
+     // needs it.
+-    if (m_runningThreads > 0)
++    if (m_runningThreads.size() > 0)
+     {
++        foreach (const QString &t, m_runningThreads)
++            LOG(VB_GUI | VB_FILE, LOG_DEBUG, LOC + QString("Waiting for %1").arg(t));
++
+         GetMythUI()->GetImageThreadPool()->waitForDone();
+     }
+ 
+@@ -695,7 +698,7 @@ void MythUIImage::Init(void)
+     m_animationReverse = false;
+     m_animatedImage = false;
+ 
+-    m_runningThreads = 0;
++    m_runningThreads.clear();
+ 
+     m_showingRandomImage = false;
+ }
+@@ -1083,7 +1086,7 @@ bool MythUIImage::Load(bool allowLoadInBackground, bool forceStat)
+             LOG(VB_GUI | VB_FILE, LOG_DEBUG, LOC +
+                 QString("Load(), spawning thread to load '%1'").arg(filename));
+ 
+-            m_runningThreads++;
++            m_runningThreads.append(filename);
+             ImageLoadThread *bImgThread;
+             bImgThread = new ImageLoadThread(this, GetPainter(),
+                                              imProps,
+@@ -1592,7 +1595,11 @@ void MythUIImage::customEvent(QEvent *event)
+         ImageLoadEvent *le = static_cast<ImageLoadEvent *>(event);
+ 
+         if (le->GetParent() != this)
++        {
++            LOG(VB_GUI | VB_FILE, LOG_DEBUG, LOC +
++                QString("*** Wrong parent for %1").arg(le->GetFilename()));
+             return;
++        }
+ 
+         image  = le->GetImage();
+         number = le->GetNumber();
+@@ -1600,7 +1607,7 @@ void MythUIImage::customEvent(QEvent *event)
+         animationFrames = le->GetAnimationFrames();
+         aborted = le->GetAbortState();
+ 
+-        m_runningThreads--;
++        m_runningThreads.removeAll(filename);
+ 
+         d->m_UpdateLock.lockForRead();
+ 
+@@ -1638,6 +1645,9 @@ void MythUIImage::customEvent(QEvent *event)
+ 
+             return;
+         }
++        else
++            LOG(VB_GUI | VB_FILE, LOG_DEBUG, LOC +
++                QString("Completed '%1'").arg(filename));
+ 
+         d->m_UpdateLock.unlock();
+ 
+diff --git a/mythtv/libs/libmythui/mythuiimage.h b/mythtv/libs/libmythui/mythuiimage.h
+index dbd7901..ea46eba 100644
+--- a/mythtv/libs/libmythui/mythuiimage.h
++++ b/mythtv/libs/libmythui/mythuiimage.h
+@@ -169,7 +169,7 @@ class MUI_PUBLIC MythUIImage : public MythUIType
+ 
+     ImageProperties m_imageProperties;
+ 
+-    int m_runningThreads;
++    QStringList m_runningThreads;
+ 
+     bool m_showingRandomImage;
+     QString m_imageDirectory;
+diff --git a/mythtv/programs/mythfrontend/gallerythumbview.cpp b/mythtv/programs/mythfrontend/gallerythumbview.cpp
+index 229a8b8..7fbfd5c 100644
+--- a/mythtv/programs/mythfrontend/gallerythumbview.cpp
++++ b/mythtv/programs/mythfrontend/gallerythumbview.cpp
+@@ -58,6 +58,8 @@ GalleryThumbView::~GalleryThumbView()
+ {
+     gCoreContext->removeListener(this);
+ 
++    LOG(VB_GENERAL, LOG_INFO, "Exiting Gallery");
++
+     delete m_view;
+     delete m_db;
+     delete m_infoList;
+-- 
+1.9.1
+
