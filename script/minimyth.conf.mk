@@ -13,7 +13,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 7.6.0.g72de5f4
+mm_VERSION_MINIMYTH ?= 7.6.7.ge4a6368
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -41,7 +41,7 @@ mm_GRAPHICS               ?= intel nvidia vmware radeon
 # Lists the software to be supported.
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
-# 'flash', 'mplayer', 'voip', 'bumblebee', 'perl', 'python', 'mame',
+# 'flash', 'mplayer', 'mplayer-svn', 'voip', 'bumblebee', 'perl', 'python', 'mame',
 # 'emulators', 'mc', 'dvdcss', 'udisks', 'debug'.
 mm_SOFTWARE               ?= mythplugins \
                              flash \
@@ -53,7 +53,7 @@ mm_SOFTWARE               ?= mythplugins \
                              dvdcss \
                              voip \
                              makemkv \
-                             mplayer \
+                             mplayer-svn \
                              bumblebee \
                              $(if $(filter $(mm_DEBUG),yes),debug)
 
