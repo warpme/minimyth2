@@ -54,3 +54,9 @@ install-custom:
 	@cp $(WORKSRC)/System.map                           $(DESTDIR)$(LINUX_DIR)/System.map
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) modules_install
 	@$(MAKECOOKIE)
+
+post-install:
+	@sed -i 's%overlayfs.ko%overlay.ko%g' ../../meta/minimyth/files/source/lists/minimyth-lib-list
+	@sed -i 's% overlayfs % overlay %g'   ../../meta/minimyth/files/source/rootfs/etc/rc.d/functions
+	@sed -i 's% overlayfs % overlay %g'   ../../meta/minimyth/files/source/initrd/sbin/init
+	@$(MAKECOOKIE)
