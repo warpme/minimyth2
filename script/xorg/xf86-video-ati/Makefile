@@ -1,14 +1,15 @@
 GARNAME = xf86-video-ati
-#GARVERSION_TYPE = git
+GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-	20120905-7fe16dd, \
-	7.4.0 ))
+	20150606-62642e6, \
+	7.5.0 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
 	git://anongit.freedesktop.org/git/xorg/driver/xf86-video-ati/ , \
 	$(XORG_MASTER_SITES) ))
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-disable_composite_fix.patch
+PATCHFILES = xf86-video-ati-disable_composite_fix.patch
+
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
@@ -28,6 +29,7 @@ DEPENDS  = lang/c \
 	$(CATEGORY)/xf86driproto \
 	$(CATEGORY)/xorg-server \
 	$(CATEGORY)/xproto
+
 ifneq ($(DESTIMG),build)
 DEPENDS += system/udev
 endif
@@ -47,7 +49,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-exa \
 	--enable-kms \
 	--with-gnu-ld \
-	--disable-glamor
+	--enable-glamor
 
 CONFIGURE_ENV = \
 	XORG_SGML_PATH="$(DESTDIR)$(includedir)/xorg"
@@ -78,4 +80,5 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/multimedia/theatre_detect_drv.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/multimedia/theatre_drv.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/multimedia/theatre200_drv.la
+	@cp $(WORKSRC)/src/ati_pciids_gen.h $(WORKSRC)/../../../files/
 	@$(MAKECOOKIE)
