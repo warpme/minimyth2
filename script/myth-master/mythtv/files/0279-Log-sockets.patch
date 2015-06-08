@@ -1,0 +1,148 @@
+From 3a920e034f21c24d117e113ce56c74fab097bebf Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Thu, 14 May 2015 17:08:24 +0100
+Subject: [PATCH 2/4] Log sockets
+
+
+diff --git a/mythtv/libs/libmythbase/mythsocket.cpp b/mythtv/libs/libmythbase/mythsocket.cpp
+index 32194c5..e39a59b 100644
+--- a/mythtv/libs/libmythbase/mythsocket.cpp
++++ b/mythtv/libs/libmythbase/mythsocket.cpp
+@@ -130,8 +130,9 @@ MythSocket::MythSocket(
+ 
+     if (!use_shared_thread)
+     {
+-        m_thread = new MThread(QString("MythSocketThread(%1)").arg(socket));
++        m_thread = new MThread(QString("MythSocketThread(%1)").arg(reinterpret_cast<intptr_t>(this),0,16));
+         m_thread->start();
++        LOG(VB_SOCKET, LOG_DEBUG, QString("MythSocketThread(%1) started").arg(reinterpret_cast<intptr_t>(this),0,16));
+     }
+     else
+     {
+@@ -296,6 +297,9 @@ void MythSocket::CallReadyReadHandler(void)
+ bool MythSocket::ConnectToHost(
+     const QHostAddress &hadr, quint16 port)
+ {
++    LOG(VB_SOCKET, LOG_DEBUG, LOC +
++        QString("ConnectToHost using %1 connection").arg((QThread::currentThread() != m_thread->qthread()) ? "block" : "direct"));
++
+     bool ret = false;
+     QMetaObject::invokeMethod(
+         this, "ConnectToHostReal",
+@@ -612,6 +616,8 @@ void MythSocket::ConnectToHostReal(QHostAddress _addr, quint16 port, bool *ret)
+             "connect() called with already open socket, closing");
+         m_tcpSocket->close();
+     }
++    else
++        LOG(VB_SOCKET, LOG_DEBUG, LOC + "ConnectToHostReal");
+ 
+     QHostAddress addr = _addr;
+     addr.setScopeId(QString());
+@@ -620,8 +626,11 @@ void MythSocket::ConnectToHostReal(QHostAddress _addr, quint16 port, bool *ret)
+     bool usingLoopback = s_loopbackCache.contains(addr.toString());
+     s_loopbackCacheLock.unlock();
+ 
++    LOG(VB_SOCKET, LOG_DEBUG, LOC + "ConnectToHostReal after lock");
++
+     if (usingLoopback)
+     {
++        LOG(VB_SOCKET, LOG_DEBUG, LOC + "usingLoopback");
+         addr = QHostAddress(s_loopbackCache.value(addr.toString()));
+     }
+     else
+diff --git a/mythtv/libs/libmythbase/remotefile.cpp b/mythtv/libs/libmythbase/remotefile.cpp
+index b1c4fed..670b14c 100644
+--- a/mythtv/libs/libmythbase/remotefile.cpp
++++ b/mythtv/libs/libmythbase/remotefile.cpp
+@@ -125,6 +125,9 @@ MythSocket *RemoteFile::openSocket(bool control)
+         port = gCoreContext->GetBackendServerPort(host);
+     }
+ 
++    LOG(VB_SOCKET, LOG_DEBUG, QString("%1 %2 for %3").arg(loc)
++        .arg(reinterpret_cast<intptr_t>(lsock),0,16).arg(path));
++
+     if (!lsock->ConnectToHost(host, port))
+     {
+         LOG(VB_GENERAL, LOG_ERR, loc +
+@@ -233,7 +236,12 @@ bool RemoteFile::isOpen() const
+ bool RemoteFile::Open(void)
+ {
+     if (isOpen())
++    {
++        LOG(VB_FILE, LOG_DEBUG, QString("RemoteFile(%1) is already open").arg(path));
+         return true;
++    }
++
++    LOG(VB_FILE, LOG_DEBUG, QString("RemoteFile::Open(%1)").arg(path));
+ 
+     QMutexLocker locker(&lock);
+     return OpenInternal();
+@@ -248,10 +256,12 @@ bool RemoteFile::OpenInternal()
+ {
+     if (isLocal())
+     {
++        LOG(VB_FILE, LOG_DEBUG, QString("RemoteFile(%1) is local").arg(path));
++
+         if (!Exists(path))
+         {
+             LOG(VB_FILE, LOG_ERR,
+-                QString("RemoteFile::Open(%1) Error: Do not exist").arg(path));
++                QString("RemoteFile::Open(%1) Error: Local file does not exist").arg(path));
+             return false;
+         }
+         if (writemode)
+@@ -351,6 +361,8 @@ void RemoteFile::Close(bool haslock)
+ 
+     if (!haslock)
+     {
++        LOG(VB_FILE, LOG_DEBUG, QString("Close(%1) Locking").arg(path));
++
+         lock.lock();
+     }
+     if (controlSock->IsConnected() && !controlSock->SendReceiveStringList(
+diff --git a/mythtv/libs/libmythui/mythimage.cpp b/mythtv/libs/libmythui/mythimage.cpp
+index 7b951a6..8613117 100644
+--- a/mythtv/libs/libmythui/mythimage.cpp
++++ b/mythtv/libs/libmythui/mythimage.cpp
+@@ -350,7 +350,7 @@ bool MythImage::Load(const QString &filename)
+                 im->loadFromData(data);
+             }
+         }
+-#if 0
++#if 1
+         else
+             LOG(VB_GENERAL, LOG_ERR,
+                 QString("MythImage::Load failed to load remote image %1")
+diff --git a/mythtv/programs/mythbackend/mainserver.cpp b/mythtv/programs/mythbackend/mainserver.cpp
+index c436ead..3e4eaf1 100644
+--- a/mythtv/programs/mythbackend/mainserver.cpp
++++ b/mythtv/programs/mythbackend/mainserver.cpp
+@@ -1986,7 +1986,8 @@ void MainServer::SendResponse(MythSocket *socket, QStringList &commands)
+ 
+     if (do_write)
+     {
+-        socket->WriteStringList(commands);
++        if (!socket->WriteStringList(commands))
++            LOG(VB_GENERAL, LOG_ERR, "*** Failed to write to socket");
+     }
+     else
+     {
+diff --git a/mythtv/programs/mythfrontend/galleryviews.cpp b/mythtv/programs/mythfrontend/galleryviews.cpp
+index 703b9e6..a3bfa08 100644
+--- a/mythtv/programs/mythfrontend/galleryviews.cpp
++++ b/mythtv/programs/mythfrontend/galleryviews.cpp
+@@ -121,6 +121,11 @@ InfoList::InfoList(MythScreenType *container, bool focusable, QString undefined,
+ */
+ void InfoList::Toggle(const ImageItem *im)
+ {
++    QStringList threads;
++    MThread::GetAllRunningThreadNames(threads);
++    LOG(VB_GENERAL, LOG_INFO, QString("Threads running: %1 - %2")
++        .arg(threads.size()).arg(threads.join(", ")));
++
+     // Only focusable lists have an extra 'full' state as they can
+     // be scrolled to view it all
+     if (m_btnList->CanTakeFocus())
+-- 
+1.9.1
+

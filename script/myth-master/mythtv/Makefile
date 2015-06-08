@@ -61,7 +61,6 @@ PATCHFILES += 0221-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-O
 PATCHFILES += 0222-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-Fix-image-orientation.patch
 PATCHFILES += 0223-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-Replacement-Gallery-using-MythUI-storage-groups.patch
 PATCHFILES += 0224-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-Cache-FE-gallery-images-in-remotecache-for-Minimyth2.patch
-PATCHFILES += 0225-Log-image-loading-threads.patch
 
 # 7.6.4 LVR safe patches related to player/OSD
 PATCHFILES += 0226-0186-mythplayer-Increase-resolution-of-onscreen-playback-.patch
@@ -90,7 +89,6 @@ PATCHFILES += 0247-0180-MediaMon-Speed-up-recognition-and-autoplay-of-remove.pat
 PATCHFILES += 0247-0200-MythMusic-Autoplay-music-files-on-removable-media.patch
 PATCHFILES += 0249-0201-MediaMon-UI-to-select-preferred-media-handler.patch
 PATCHFILES += 0250-0207-MediaMon-Fix-a-race-condition-between-MediaMonitor-C.patch
-PATCHFILES += 0251-0278-MediaMon-Avoid-an-abort-in-libudf-when-a-data-CD-is-.patch
 PATCHFILES += 0252-0279-MythMusic-Visualisers-only-disable-screensaver-if-sh.patch
 PATCHFILES += 0253-0297-Mythmusic-Log-the-shoutcast-metadata-and-format-stri.patch
 
@@ -106,9 +104,6 @@ PATCHFILES += 0262-0144-DB-Update-settings-cache-in-SaveSettingOnHost.patch
 PATCHFILES += 0263-0147-FE-Improve-caching-in-GuideGrid.patch
 PATCHFILES += 0264-0089-TV-Automatically-select-a-free-card-when-changing-ch.patch
 PATCHFILES += 0265-0091-TV-Find-alternative-channel-if-start-channel-is-not-.patch
-PATCHFILES += 0266-0113-TV-Improved-caching-in-IsTunable.patch
-PATCHFILES += 0267-0114-TV-RemoteIsTuneable-uses-ChannelUtil-GetMplexAndSour.patch
-PATCHFILES += 0268-0115-Add-a-cache-to-RemoteIsTuneable.patch
 PATCHFILES += 0269-0148-TV-Cache-the-last-sourceid-found-in-SourceUtil-GetSo.patch
 PATCHFILES += 0270-0149-TV-Cache-the-last-groupname-found-in-ChannelGroup-Ge.patch
 PATCHFILES += 0271-0138-MythWeather-Fix-a-SEGV-on-exit-from-setup-screen.patch
@@ -117,6 +112,22 @@ PATCHFILES += 0272-0185-MythWeather-Prevent-log-error-report-Widget-not-foun.pat
 # 7.6.7 LVR safe patches for BE
 PATCHFILES += 0273-0141-myth_system-Don-t-redirect-stdout-err-to-dev-null.patch
 PATCHFILES += 0277-0202-FE-Fix-Display-MythDVD-menu-broken-when-MythDVD-plug.patch
+
+# 7.6.8 new mythgallery fixes anf logging
+PATCHFILES += 0278-Add-logging.patch
+PATCHFILES += 0279-Log-sockets.patch
+PATCHFILES += 0280-Fix-unsafe-access-to-mythsocket-loopback-cache.patch
+PATCHFILES += 0281-Minimise-UI-lag-when-exiting-screens-with-many-image.patch
+
+# 7.6.9 LVR remote control patches
+PATCHFILES += 0282-0059-NetworkControl-Add-realtime-display-of-MythEvents.patch
+PATCHFILES += 0283-0210-FE-NetworkControl-Add-set-query-loglevel-commands.patch
+
+# 7.9.10
+PATCHFILES += 0284-update-myth-pl-translations.patch
+
+# 7.9.11
+PATCHFILES += 0285-revert-13746ae-Allow-dev-paths-to-be-used-in-RemoteFile.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
 endif

@@ -1,0 +1,298 @@
+From 147d982c0d0b3500b8f4d3990fd1c8c156a43f43 Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Thu, 14 May 2015 15:58:23 +0100
+Subject: [PATCH 4/4] Minimise UI lag when exiting screens with many images
+ (ie. Gallery, Videos)
+
+Once the UI enters a screen with many images, it will not exit until all the images have been loaded. For remote FE's this is noticeable.
+
+This patch aborts any pending image loads instead, enabling a snappier UI response.
+
+diff --git a/mythtv/libs/libmythui/mythuiimage.cpp b/mythtv/libs/libmythui/mythuiimage.cpp
+index 28245d7..b506854 100644
+--- a/mythtv/libs/libmythui/mythuiimage.cpp
++++ b/mythtv/libs/libmythui/mythuiimage.cpp
+@@ -35,6 +35,7 @@
+ class ImageLoadThread;
+ 
+ #define LOC      QString("MythUIImage(0x%1): ").arg((uint64_t)this,0,16)
++#define THREAD   "Loader: "
+ 
+ /////////////////////////////////////////////////////
+ 
+@@ -465,17 +466,17 @@ class ImageLoadEvent : public QEvent
+     static Type kEventType;
+ 
+   private:
+-    const MythUIImage     *m_parent;
+-    MythImage       *m_image;
+-    QString          m_basefile;
+-    QString          m_filename;
+-    int              m_number;
++    const MythUIImage *m_parent;
++    MythImage         *m_image;
++    QString            m_basefile;
++    QString            m_filename;
++    int                m_number;
+ 
+     // Animated Images
+-    AnimationFrames  *m_images;
++    AnimationFrames   *m_images;
+ 
+     // Image Load
+-    bool             m_aborted;
++    bool               m_aborted;
+ };
+ 
+ QEvent::Type ImageLoadEvent::kEventType =
+@@ -493,6 +494,9 @@ class ImageLoadThread : public QRunnable
+         m_parent(parent), m_painter(painter), m_imageProperties(imProps),
+         m_basefile(basefile), m_number(number), m_cacheMode(mode)
+     {
++        // Register image requesting the load
++        QMutexLocker locker(&m_clientLock);
++        m_clients.insert(parent);
+     }
+ 
+     void run()
+@@ -500,58 +504,119 @@ class ImageLoadThread : public QRunnable
+         bool aborted = false;
+         QString filename =  m_imageProperties.filename;
+ 
++        {
++            // Don't even start orphaned threads
++            QMutexLocker locker(&m_clientLock);
++            if (!m_clients.contains(m_parent))
++            {
++                LOG(VB_GUI | VB_FILE, LOG_DEBUG,
++                    THREAD + QString("Discarding load of %1").arg(filename));
++                return;
++            }
++        }
++
+         // NOTE Do NOT use MythImageReader::supportsAnimation here, it defeats
+         // the point of caching remote images
+         if (ImageLoader::SupportsAnimation(filename))
+         {
+-             AnimationFrames *frames;
++            AnimationFrames *frames;
++
++            frames = ImageLoader::LoadAnimatedImage(m_painter,
++                                                    m_imageProperties,
++                                                    m_cacheMode, m_parent,
++                                                    aborted);
+ 
+-             frames = ImageLoader::LoadAnimatedImage(m_painter,
+-                                                     m_imageProperties,
+-                                                     m_cacheMode, m_parent,
+-                                                     aborted);
++            // Do not notify (nor continue) if orphaned - parent may not exist
++            QMutexLocker locker(&m_clientLock);
++            if (!m_clients.contains(m_parent))
++            {
++                LOG(VB_GUI | VB_FILE, LOG_DEBUG,
++                    THREAD + QString("Discarding animation load of %1").arg(filename));
++                delete frames;
++                return;
++            }
+ 
+-             if (frames && frames->count() > 1)
+-             {
++            if (frames && frames->count() > 1)
++            {
+                 ImageLoadEvent *le = new ImageLoadEvent(m_parent, frames,
+                                                         m_basefile,
+                                                         m_imageProperties.filename,
+                                                         aborted);
++
+                 QCoreApplication::postEvent(const_cast<MythUIImage*>(m_parent), le);
+ 
++                LOG(VB_GUI | VB_FILE, LOG_DEBUG, THREAD + QString("%1 %2")
++                    .arg(aborted ? "Aborted load of animation" : "Loaded animation",
++                         filename));
++
+                 return;
+-             }
+-             delete frames;
++            }
++            delete frames;
+         }
+ 
+         MythImage *image = ImageLoader::LoadImage(m_painter,
+-                                                    m_imageProperties,
+-                                                    m_cacheMode, m_parent,
+-                                                    aborted);
++                                                  m_imageProperties,
++                                                  m_cacheMode, m_parent,
++                                                  aborted);
++
++        // Do not notify if orphaned - parent may not exist
++        QMutexLocker locker(&m_clientLock);
++        if (!m_clients.contains(m_parent))
++        {
++            LOG(VB_GUI | VB_FILE, LOG_DEBUG,
++                THREAD + QString("Discarding load of %1").arg(filename));
++            return;
++        }
+ 
+         ImageLoadEvent *le = new ImageLoadEvent(m_parent, image, m_basefile,
+                                                 m_imageProperties.filename,
+                                                 m_number, aborted);
++
+         QCoreApplication::postEvent(const_cast<MythUIImage*>(m_parent), le);
++
++        LOG(VB_GUI | VB_FILE, LOG_DEBUG, THREAD + QString("%1 %2")
++            .arg(aborted ? "Aborted load of" : "Loaded", filename));
++    }
++
++    /*!
++     * \brief Flags all pending/running loads of a parent as orphans,
++     *        The parent no longer needs the image and may not even exist.
++     * \param parent UiImage that (may have) requested image loads
++     */
++    static void Orphan(MythUIImage *parent)
++    {
++        QMutexLocker locker(&m_clientLock);
++        if (m_clients.remove(parent))
++            LOG(VB_GUI | VB_FILE, LOG_DEBUG, THREAD +
++                QString("Orphaned loads for MythUIImage(0x%1)")
++                .arg((uint64_t)parent,0,16));
+     }
+ 
+ private:
+-    const MythUIImage    *m_parent;
++    const MythUIImage *m_parent;
+     MythPainter       *m_painter;
+-    ImageProperties m_imageProperties;
+-    QString         m_basefile;
+-    int             m_number;
+-    ImageCacheMode  m_cacheMode;
++    ImageProperties    m_imageProperties;
++    QString            m_basefile;
++    int                m_number;
++    ImageCacheMode     m_cacheMode;
++
++    // Set of parents that have initiated image loads and still exist.
++    static QMutex                   m_clientLock;
++    static QSet<const MythUIImage*> m_clients;
+ };
+ 
++
++QMutex ImageLoadThread::m_clientLock;
++QSet<const MythUIImage*> ImageLoadThread::m_clients;
++
+ /////////////////////////////////////////////////////////////////
+ class MythUIImagePrivate
+ {
+ public:
+     MythUIImagePrivate(MythUIImage *p)
+         : m_parent(p),            m_UpdateLock(QReadWriteLock::Recursive)
+-    { };
+-    ~MythUIImagePrivate() {};
++    { }
++    ~MythUIImagePrivate() {}
+ 
+     MythUIImage *m_parent;
+ 
+@@ -609,13 +674,9 @@ MythUIImage::MythUIImage(MythUIType *parent, const QString &name)
+ 
+ MythUIImage::~MythUIImage()
+ {
+-    // Wait until all image loading threads are complete or bad things
+-    // may happen if this MythUIImage disappears when a queued thread
+-    // needs it.
+-    if (m_runningThreads > 0)
+-    {
+-        GetMythUI()->GetImageThreadPool()->waitForDone();
+-    }
++    // Abort all running/pending image loads
++    // Prevents them sending future events to this image
++    ImageLoadThread::Orphan(this);
+ 
+     Clear();
+ 
+@@ -695,8 +756,6 @@ void MythUIImage::Init(void)
+     m_animationReverse = false;
+     m_animatedImage = false;
+ 
+-    m_runningThreads = 0;
+-
+     m_showingRandomImage = false;
+ }
+ 
+@@ -1018,6 +1077,8 @@ bool MythUIImage::Load(bool allowLoadInBackground, bool forceStat)
+ 
+     if (bFilename.isEmpty())
+     {
++        // Abort all running/pending image loads
++        ImageLoadThread::Orphan(this);
+         Clear();
+         SetMinArea(MythRect());
+         SetRedraw();
+@@ -1083,7 +1144,6 @@ bool MythUIImage::Load(bool allowLoadInBackground, bool forceStat)
+             LOG(VB_GUI | VB_FILE, LOG_DEBUG, LOC +
+                 QString("Load(), spawning thread to load '%1'").arg(filename));
+ 
+-            m_runningThreads++;
+             ImageLoadThread *bImgThread;
+             bImgThread = new ImageLoadThread(this, GetPainter(),
+                                              imProps,
+@@ -1591,8 +1651,6 @@ void MythUIImage::customEvent(QEvent *event)
+ 
+         ImageLoadEvent *le = static_cast<ImageLoadEvent *>(event);
+ 
+-        if (le->GetParent() != this)
+-            return;
+ 
+         image  = le->GetImage();
+         number = le->GetNumber();
+@@ -1600,8 +1658,6 @@ void MythUIImage::customEvent(QEvent *event)
+         animationFrames = le->GetAnimationFrames();
+         aborted = le->GetAbortState();
+ 
+-        m_runningThreads--;
+-
+         d->m_UpdateLock.lockForRead();
+ 
+         // 1) We aborted loading the image for some reason (e.g. two requests
+@@ -1615,8 +1671,12 @@ void MythUIImage::customEvent(QEvent *event)
+             d->m_UpdateLock.unlock();
+ 
+             if (aborted)
+-                LOG(VB_GUI, LOG_DEBUG, QString("Aborted loading image %1")
+-                                                                .arg(filename));
++                LOG(VB_GUI | VB_FILE, LOG_DEBUG,
++                    LOC + QString("Complete - Aborted loading image %1").arg(filename));
++            else
++                LOG(VB_GUI | VB_FILE, LOG_DEBUG,
++                    LOC + QString("Complete - Filename changed from %1 to \"%2\"")
++                    .arg(filename, m_imageProperties.filename));
+ 
+             if (image)
+                 image->DecrRef();
+@@ -1639,6 +1699,9 @@ void MythUIImage::customEvent(QEvent *event)
+             return;
+         }
+ 
++        LOG(VB_GUI | VB_FILE, LOG_DEBUG,
++            LOC + QString("Completed '%1'").arg(filename));
++
+         d->m_UpdateLock.unlock();
+ 
+         if (animationFrames)
+diff --git a/mythtv/libs/libmythui/mythuiimage.h b/mythtv/libs/libmythui/mythuiimage.h
+index dbd7901..cf1d99c 100644
+--- a/mythtv/libs/libmythui/mythuiimage.h
++++ b/mythtv/libs/libmythui/mythuiimage.h
+@@ -169,8 +169,6 @@ class MUI_PUBLIC MythUIImage : public MythUIType
+ 
+     ImageProperties m_imageProperties;
+ 
+-    int m_runningThreads;
+-
+     bool m_showingRandomImage;
+     QString m_imageDirectory;
+ 
+-- 
+1.9.1
+

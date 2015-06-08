@@ -1,0 +1,33 @@
+From 694b180480712a1b83047116c348b12db361c327 Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Fri, 15 May 2015 14:55:36 +0100
+Subject: [PATCH 3/4] Fix unsafe access to mythsocket loopback cache
+
+
+diff --git a/mythtv/libs/libmythbase/mythsocket.cpp b/mythtv/libs/libmythbase/mythsocket.cpp
+index e39a59b..5356a52 100644
+--- a/mythtv/libs/libmythbase/mythsocket.cpp
++++ b/mythtv/libs/libmythbase/mythsocket.cpp
+@@ -624,16 +624,13 @@ void MythSocket::ConnectToHostReal(QHostAddress _addr, quint16 port, bool *ret)
+ 
+     s_loopbackCacheLock.lock();
+     bool usingLoopback = s_loopbackCache.contains(addr.toString());
++    if (usingLoopback)
++        addr = QHostAddress(s_loopbackCache.value(addr.toString()));
+     s_loopbackCacheLock.unlock();
+ 
+     LOG(VB_SOCKET, LOG_DEBUG, LOC + "ConnectToHostReal after lock");
+ 
+-    if (usingLoopback)
+-    {
+-        LOG(VB_SOCKET, LOG_DEBUG, LOC + "usingLoopback");
+-        addr = QHostAddress(s_loopbackCache.value(addr.toString()));
+-    }
+-    else
++    if (!usingLoopback)
+     {
+         QList<QHostAddress> localIPs = QNetworkInterface::allAddresses();
+         for (int i = 0; i < localIPs.count() && !usingLoopback; ++i)
+-- 
+1.9.1
+
