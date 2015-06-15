@@ -123,11 +123,16 @@ PATCHFILES += 0281-Minimise-UI-lag-when-exiting-screens-with-many-image.patch
 PATCHFILES += 0282-0059-NetworkControl-Add-realtime-display-of-MythEvents.patch
 PATCHFILES += 0283-0210-FE-NetworkControl-Add-set-query-loglevel-commands.patch
 
-# 7.9.10
+# 7.6.10
 PATCHFILES += 0284-update-myth-pl-translations.patch
 
-# 7.9.11
-PATCHFILES += 0285-revert-13746ae-Allow-dev-paths-to-be-used-in-RemoteFile.patch
+# 7.6.13
+PATCHFILES += 0285-ticket12296-Watchlist-Group-by-title-rather-than-recording-rule.patch
+PATCHFILES += 0286-ticket12296-Watchlist-Select-by-episode-numbers-and-date.patch
+PATCHFILES += 0287-ticket12296-Watchlist-Remove-caching-prog-details-info-improve-l.patch
+PATCHFILES += 0288-ticket12296-Watchlist-Add-watchtotal-widget-theme-support.patch
+PATCHFILES += 0289-ticket12296-Watchlist-Implement-multiple-ordering-strategies.patch
+PATCHFILES += 0290-ticket12296-Watchlist-Add-Oldest-with-Limits-strategy.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
 endif

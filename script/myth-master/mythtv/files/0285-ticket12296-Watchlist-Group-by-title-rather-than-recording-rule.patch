@@ -1,0 +1,81 @@
+From 773392b25789ccb50da1e48a1351fa6077b83620 Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Thu, 2 Oct 2014 23:23:17 +0100
+Subject: [PATCH 1/6] Watchlist: Group by title rather than recording rule
+
+
+diff --git a/mythtv/programs/mythfrontend/playbackbox.cpp b/mythtv/programs/mythfrontend/playbackbox.cpp
+index b9b299d..8abc2ea 100644
+--- a/mythtv/programs/mythfrontend/playbackbox.cpp
++++ b/mythtv/programs/mythfrontend/playbackbox.cpp
+@@ -367,6 +367,13 @@ static bool extract_one_del(
+     return chanid && recstartts.isValid();
+ }
+ 
++static QString extract_watchlist_title(ProgramInfo &pginfo)
++{
++    // ignore punctuation & whitespace
++    QRegExp watchtitleChaff("\\W");
++    return pginfo.GetTitle().remove(watchtitleChaff);
++}
++
+ void * PlaybackBox::RunPlaybackBox(void * player, bool showTV)
+ {
+     MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
+@@ -1632,7 +1639,7 @@ bool PlaybackBox::UpdateUILists(void)
+ 
+     QMap<QString, QString> sortedList;
+     QMap<int, QString> searchRule;
+-    QMap<int, int> recidEpisodes;
++    QMap<QString, int> watchlistCount;
+ 
+     m_programInfoCache.Refresh();
+ 
+@@ -1779,10 +1786,9 @@ bool PlaybackBox::UpdateUILists(void)
+                     }
+                     else
+                     {
+-                        if (p->GetRecordingRuleID())
+-                            recidEpisodes[p->GetRecordingRuleID()] += 1;
+-                        if (recidEpisodes[p->GetRecordingRuleID()] == 1 ||
+-                            !p->GetRecordingRuleID())
++                        QString title = extract_watchlist_title(*p);
++                        ++watchlistCount[title];
++                        if (watchlistCount[title] == 1)
+                         {
+                             m_progLists[m_watchGroupLabel].push_front(p);
+                             m_progLists[m_watchGroupLabel].setAutoDelete(false);
+@@ -1941,7 +1947,7 @@ bool PlaybackBox::UpdateUILists(void)
+             else
+             {
+                 (*pit)->SetRecordingPriority2(
+-                    (recidEpisodes[(*pit)->GetRecordingRuleID()] - 1) *
++                    (watchlistCount[extract_watchlist_title(**pit)] - 1) *
+                     baseValue);
+             }
+ 
+diff --git a/mythtv/programs/mythfrontend/playbackbox.h b/mythtv/programs/mythfrontend/playbackbox.h
+index a88439e..25964bb 100644
+--- a/mythtv/programs/mythfrontend/playbackbox.h
++++ b/mythtv/programs/mythfrontend/playbackbox.h
+@@ -359,7 +359,7 @@ class PlaybackBox : public ScheduleCommon
+     bool                m_watchListStart;
+     /// exclude recording not marked for auto-expire from the Watch List
+     bool                m_watchListAutoExpire;
+-    /// add 1 to the Watch List scord up to this many days
++    /// add 1 to the Watch List score up to this many days
+     int                 m_watchListMaxAge;
+     /// adjust exclusion of a title from the Watch List after a delete
+     int                 m_watchListBlackOut;
+@@ -405,7 +405,7 @@ class PlaybackBox : public ScheduleCommon
+     /// Program[s] currently selected for deletion
+     QStringList m_delList;
+     /// Group currently selected
+-    QString m_currentGroup;
++    QString m_currentGroup; // in lower case
+ 
+     // Play List support
+     QStringList         m_playList;   ///< list of selected items "play list"
+-- 
+1.9.1
+

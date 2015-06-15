@@ -1,0 +1,147 @@
+From a8a3b3767661717632da1dc89aecf526f1c557bf Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Fri, 3 Oct 2014 16:38:52 +0100
+Subject: [PATCH 2/6] Watchlist: Select by episode numbers and date
+
+
+diff --git a/mythtv/programs/mythfrontend/playbackbox.cpp b/mythtv/programs/mythfrontend/playbackbox.cpp
+index 8abc2ea..23c129f 100644
+--- a/mythtv/programs/mythfrontend/playbackbox.cpp
++++ b/mythtv/programs/mythfrontend/playbackbox.cpp
+@@ -1640,6 +1640,7 @@ bool PlaybackBox::UpdateUILists(void)
+     QMap<QString, QString> sortedList;
+     QMap<int, QString> searchRule;
+     QMap<QString, int> watchlistCount;
++    TitleMap watchEpisode;
+ 
+     m_programInfoCache.Refresh();
+ 
+@@ -1788,17 +1789,62 @@ bool PlaybackBox::UpdateUILists(void)
+                     {
+                         QString title = extract_watchlist_title(*p);
+                         ++watchlistCount[title];
+-                        if (watchlistCount[title] == 1)
++
++                        ProgramInfo* curEp = watchEpisode[title];
++                        if (curEp)
+                         {
+-                            m_progLists[m_watchGroupLabel].push_front(p);
+-                            m_progLists[m_watchGroupLabel].setAutoDelete(false);
++                            // duplicate title
++                            uint    cs = curEp->GetSeason(),
++                                    ce = curEp->GetEpisode(),
++                                    ps = p->GetSeason(),
++                                    pe = p->GetEpisode();
++
++                            // succeed earliest if;
++                            // - it was recorded earlier, or
++                            // - both have seasons and season is earlier, or
++                            // - seasons are same and both have episodes and
++                            //   episode is earlier
++                            if ((p->GetRecordingStartTime()
++                                 < curEp->GetRecordingStartTime())
++                                    // earlier non-zero season
++                                    || (ps < cs && ps)
++                                    // earlier non-zero episode of same season
++                                    || (ps == cs && pe && pe < ce))
++                            {
++                                // replace existing show
++                                watchEpisode[title] = p;
++
++                                LOG(VB_GUI, LOG_DEBUG,
++                                    QString("Watchlist: Replace - %1 %2 (%3x%4) "
++                                            "succeeding %5 (%6x%7)")
++                                    .arg(MythDate::toString(p->GetScheduledStartTime(),
++                                                            Qt::ISODate))
++                                    .arg(p->GetTitle())
++                                    .arg(ps).arg(pe)
++                                    .arg(MythDate::toString(curEp->GetScheduledStartTime(),
++                                                            Qt::ISODate))
++                                    .arg(cs).arg(ce));
++                            }
++                            else
++                            {
++                                p->SetRecordingPriority2(wlEarlier);
++                                LOG(VB_FILE, LOG_INFO,
++                                    QString("Not the earliest:  %1")
++                                    .arg(p->GetTitle()));
++                            }
+                         }
+                         else
+                         {
+-                            p->SetRecordingPriority2(wlEarlier);
+-                            LOG(VB_FILE, LOG_INFO,
+-                                QString("Not the earliest:  %1")
+-                                    .arg(p->GetTitle()));
++                            // first show with this title
++                            watchEpisode[title] = p;
++
++                            LOG(VB_GUI, LOG_DEBUG,
++                                QString("Watchlist: Earliest - %1 %2 (%3x%4)")
++                                .arg(MythDate::toString(p->GetScheduledStartTime(),
++                                                        Qt::ISODate))
++                                .arg(p->GetTitle())
++                                .arg(p->GetSeason())
++                                .arg(p->GetEpisode()));
+                         }
+                     }
+                 }
+@@ -1876,8 +1922,13 @@ bool PlaybackBox::UpdateUILists(void)
+         }
+     }
+ 
+-    if (!m_progLists[m_watchGroupLabel].empty())
++    if (!watchEpisode.empty())
+     {
++        // populate watchlist
++        foreach (ProgramInfo* wp, watchEpisode.values())
++            m_progLists[m_watchGroupLabel].push_front(wp);
++        m_progLists[m_watchGroupLabel].setAutoDelete(false);
++
+         QDateTime now = MythDate::current();
+         int baseValue = m_watchListMaxAge * 2 / 3;
+ 
+@@ -4360,17 +4411,21 @@ void PlaybackBox::HandleUpdateProgramInfoEvent(const ProgramInfo &evinfo)
+     if (!m_programInfoCache.Update(evinfo))
+         return;
+ 
+-    // If the recording group has changed, reload lists from the recently
+-    // updated cache; if not, only update UI for the updated item
+-    if (evinfo.GetRecordingGroup() == old_recgroup)
++    // Reload lists from the recently updated cache if
++    //  - the recording group has changed, or
++    //  - the watchlist is in use: season/episode edits may change the displayed prog
++    // Otherwise only update UI for the updated item
++    if (evinfo.GetRecordingGroup() != old_recgroup
++            || (m_viewMask & VIEW_WATCHLIST))
++
++        ScheduleUpdateUIList();
++
++    else
+     {
+         ProgramInfo *dst = FindProgramInUILists(evinfo);
+         if (dst)
+             UpdateUIListItem(dst, true);
+-        return;
+     }
+-
+-    ScheduleUpdateUIList();
+ }
+ 
+ void PlaybackBox::HandleUpdateProgramInfoFileSizeEvent(
+diff --git a/mythtv/programs/mythfrontend/playbackbox.h b/mythtv/programs/mythfrontend/playbackbox.h
+index 25964bb..be160d3 100644
+--- a/mythtv/programs/mythfrontend/playbackbox.h
++++ b/mythtv/programs/mythfrontend/playbackbox.h
+@@ -262,6 +262,8 @@ class PlaybackBox : public ScheduleCommon
+     void coverartLoad(void);
+ 
+   private:
++    typedef QMap<QString, ProgramInfo*> TitleMap; // progs keyed by title
++
+     bool UpdateUILists(void);
+     void UpdateUIGroupList(const QStringList &groupPreferences);
+     void UpdateUIRecGroupList(void);
+-- 
+1.9.1
+

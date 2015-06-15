@@ -1,0 +1,78 @@
+From 04575ddac2175f970a4a4e0d1649304b33504a03 Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Sun, 5 Oct 2014 14:27:54 +0100
+Subject: [PATCH 4/6] Watchlist: Add watchtotal widget theme support
+
+
+diff --git a/mythtv/programs/mythfrontend/playbackbox.cpp b/mythtv/programs/mythfrontend/playbackbox.cpp
+index 7927133..c2924df 100644
+--- a/mythtv/programs/mythfrontend/playbackbox.cpp
++++ b/mythtv/programs/mythfrontend/playbackbox.cpp
+@@ -939,6 +939,16 @@ void PlaybackBox::ItemLoaded(MythUIButtonListItem *item)
+         item->SetFontState(state);
+ 
+         InfoMap infoMap;
++
++        // watchlist episode count only exists when watchlist group is selected
++        // and multiple episodes exist
++        if (groupname == m_watchGroupLabel)
++        {
++            QString title = extract_watchlist_title(*pginfo);
++            infoMap["watchtotal"] = m_watchlistCount[title] > 1
++                    ? QString("%1").arg(m_watchlistCount[title]) : "";
++        }
++
+         pginfo->ToMap(infoMap);
+         item->SetTextFromMap(infoMap);
+ 
+@@ -1609,6 +1619,7 @@ bool PlaybackBox::UpdateUILists(void)
+     m_progsInDB = 0;
+     m_titleList.clear();
+     m_progLists.clear();
++    m_watchlistCount.clear();
+     m_recordingList->Reset();
+     m_groupList->Reset();
+     if (m_recgroupList)
+@@ -1623,7 +1634,6 @@ bool PlaybackBox::UpdateUILists(void)
+ 
+     QMap<QString, QString> sortedList;
+     QMap<int, QString> searchRule;
+-    QMap<QString, int> watchlistCount;
+     TitleMap watchEpisode;
+ 
+     m_programInfoCache.Refresh();
+@@ -1779,7 +1789,7 @@ bool PlaybackBox::UpdateUILists(void)
+                     else
+                     {
+                         QString title = extract_watchlist_title(*p);
+-                        ++watchlistCount[title];
++                        ++m_watchlistCount[title];
+ 
+                         ProgramInfo* curEp = watchEpisode[title];
+                         if (curEp)
+@@ -1978,7 +1988,7 @@ bool PlaybackBox::UpdateUILists(void)
+             // add point equal to baseValue for each additional episode
+             if (recid && maxEpisodes[recid] == 0)
+             {
+-                score += (watchlistCount[extract_watchlist_title(*p)] - 1) *
++                score += (m_watchlistCount[extract_watchlist_title(*p)] - 1) *
+                         baseValue;
+             }
+ 
+diff --git a/mythtv/programs/mythfrontend/playbackbox.h b/mythtv/programs/mythfrontend/playbackbox.h
+index be160d3..ff4b692 100644
+--- a/mythtv/programs/mythfrontend/playbackbox.h
++++ b/mythtv/programs/mythfrontend/playbackbox.h
+@@ -379,6 +379,9 @@ class PlaybackBox : public ScheduleCommon
+     QString             m_watchGroupLabel;
+     ViewMask            m_viewMask;
+ 
++    // Watchlist support
++    QMap<QString, int> m_watchlistCount;
++
+     // Popup support //////////////////////////////////////////////////////////
+     // General popup support
+     MythDialogBox      *m_menuDialog;
+-- 
+1.9.1
+
