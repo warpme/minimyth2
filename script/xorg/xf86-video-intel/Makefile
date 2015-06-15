@@ -1,10 +1,15 @@
 GARNAME = xf86-video-intel
-#GARVERSION = 2.99.911
-GARVERSION = 2.99.917
+GARVERSION_TYPE = git
+GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
+	20150611-ab1ef87, \
+	2.99.17 ))
 CATEGORIES = $(CATEGORY)
-MASTER_SITES = $(XORG_MASTER_SITES)
+MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
+	git://anongit.freedesktop.org/git/xorg/driver/xf86-video-intel/, \
+	$(XORG_MASTER_SITES) ))
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = $(GARNAME)-pkg_config.patch
+
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
@@ -71,6 +76,10 @@ CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
+git//%$(DISTNAME).tar.bz2:
+	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
+	@$(MAKECOOKIE)
+
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
@@ -84,4 +93,5 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libI810XvMC.la
 	@rm -f $(DESTDIR)$(libdir)/libIntelXvMC.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/drivers/intel_drv.la
+	@cp $(WORKSRC)/src/i915_pciids.h $(WORKSRC)/../../../files/
 	@$(MAKECOOKIE)
