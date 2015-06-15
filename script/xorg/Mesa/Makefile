@@ -1,5 +1,5 @@
 GARNAME = mesa
-GARVERSION = 10.5.6
+GARVERSION = 10.5.7
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/$(GARVERSION)/
 DISTFILES = mesa-$(GARVERSION).tar.xz
