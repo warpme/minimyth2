@@ -56,15 +56,11 @@ PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-
 PATCHFILES += 0219-revert-1c440ba-Fix-fullscreen-windowing-with-Compiz-Unity.patch
 
 # 7.6.3 Added new Gallery
-PATCHFILES += 0220-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-Centre-zoomed-images.patch
-PATCHFILES += 0221-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-Orient-before-resize.patch
-PATCHFILES += 0222-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-Fix-image-orientation.patch
-PATCHFILES += 0223-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-Replacement-Gallery-using-MythUI-storage-groups.patch
 PATCHFILES += 0224-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-Cache-FE-gallery-images-in-remotecache-for-Minimyth2.patch
 
+ifeq (0,0)
 # 7.6.4 LVR safe patches related to player/OSD
 PATCHFILES += 0226-0186-mythplayer-Increase-resolution-of-onscreen-playback-.patch
-# PATCHFILES += 0227-0194-Playback-data-Use-average-read-time-to-calculate-sto.patch
 PATCHFILES += 0228-0198-Player-Avoid-unnecessary-calls-to-ReinitOSD.patch
 PATCHFILES += 0231-0238-Player-Add-interlaced-status-to-OSD-debug-screen-vid.patch
 PATCHFILES += 0232-0239-Playbackbox-Add-title-subtitle-and-description-filte.patch
@@ -122,17 +118,16 @@ PATCHFILES += 0281-Minimise-UI-lag-when-exiting-screens-with-many-image.patch
 # 7.6.9 LVR remote control patches
 PATCHFILES += 0282-0059-NetworkControl-Add-realtime-display-of-MythEvents.patch
 PATCHFILES += 0283-0210-FE-NetworkControl-Add-set-query-loglevel-commands.patch
+endif
 
 # 7.6.10
 PATCHFILES += 0284-update-myth-pl-translations.patch
 
-# 7.6.13
-PATCHFILES += 0285-ticket12296-Watchlist-Group-by-title-rather-than-recording-rule.patch
-PATCHFILES += 0286-ticket12296-Watchlist-Select-by-episode-numbers-and-date.patch
-PATCHFILES += 0287-ticket12296-Watchlist-Remove-caching-prog-details-info-improve-l.patch
-PATCHFILES += 0288-ticket12296-Watchlist-Add-watchtotal-widget-theme-support.patch
-PATCHFILES += 0289-ticket12296-Watchlist-Implement-multiple-ordering-strategies.patch
-PATCHFILES += 0290-ticket12296-Watchlist-Add-Oldest-with-Limits-strategy.patch
+# 7.6.16
+PATCHFILES += 0285-change-log-type-to-channel-for-concatenated-PMT.patch
+
+# 7.7.3
+PATCHFILES += 0286-ticket12479-revert-db5c40cf-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
 endif
