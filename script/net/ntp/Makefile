@@ -1,10 +1,10 @@
 GARNAME = ntp
-GARVERSION = 4.2.6p5
+GARVERSION = 4.2.8p3
 CATEGORIES = net
 MASTER_SITES = http://www.eecis.udel.edu/~$(GARNAME)/$(GARNAME)_spool/$(GARNAME)4/$(GARNAME)-4.2/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES  = \
-	$(DISTNAME)-automake_1.13.patch \
+#	$(DISTNAME)-automake_1.13.patch \
 	$(DISTNAME)-glibc_2.10.patch
 ifneq ($(DESTIMG),build)
 PATCHFILES += \
@@ -34,8 +34,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-ipv6 \
 	--without-rpath \
 	--with-gnu-ld \
-	--without-crypto
-	
+	--without-crypto \
+	--with-yielding-select=yes
+
 include ../../gar.mk
 
 pre-configure:
