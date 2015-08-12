@@ -117,13 +117,9 @@ mm-all:
 	@echo "    mm_GRAPHICS"
 	@for graphic in $(mm_GRAPHICS) ; do \
 		if [ ! "$${graphic}" = "intel"      ] && \
-		   [ ! "$${graphic}" = "nv"         ] && \
 		   [ ! "$${graphic}" = "nvidia"     ] && \
-		   [ ! "$${graphic}" = "openchrome" ] && \
 		   [ ! "$${graphic}" = "radeon"     ] && \
 		   [ ! "$${graphic}" = "radeonhd"   ] && \
-		   [ ! "$${graphic}" = "savage"     ] && \
-		   [ ! "$${graphic}" = "sis"        ] && \
 		   [ ! "$${graphic}" = "vmware"     ] ; then \
 			echo "error: mm_GRAPHICS=\"$${graphic}\" is an invalid value." ; \
 			exit 1 ; \
@@ -143,6 +139,7 @@ mm-all:
 		   [ ! "$${software}" = "mythzoneminder" ] && \
 		   [ ! "$${software}" = "flash"          ] && \
 		   [ ! "$${software}" = "gnash"          ] && \
+		   [ ! "$${software}" = "mplayer-svn"    ] && \
 		   [ ! "$${software}" = "mplayer"        ] && \
 		   [ ! "$${software}" = "vlc"            ] && \
 		   [ ! "$${software}" = "xine"           ] && \
@@ -159,6 +156,7 @@ mm-all:
 		   [ ! "$${software}" = "bdaacs"         ] && \
 		   [ ! "$${software}" = "makemkv"        ] && \
 		   [ ! "$${software}" = "voip"           ] && \
+		   [ ! "$${software}" = "bumblebee"      ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
 			exit 1 ; \
@@ -166,39 +164,40 @@ mm-all:
 	done
 	@echo "    mm_KERNEL_HEADERS_VERSION"
 	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.16" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.18" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.19" ] ; then \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.1" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.2" ] ; then \
 		echo "error: mm_KERNEL_HEADERS_VERSION=\"$(mm_KERNEL_HEADERS_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_KERNEL_VERSION"
 	@if [ ! "$(mm_KERNEL_VERSION)" = "3.16" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "3.18" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "3.19" ] ; then \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.1" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.2" ] ; then \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_KERNEL_VERSION >= mm_KERNEL_HEADERS_VERSION"
-	@if [ `echo ${mm_KERNEL_HEADERS_VERSION} | sed 's%3\.\(.*\)%\1%'` -gt \
-	      `echo ${mm_KERNEL_VERSION}         | sed 's%3\.\(.*\)%\1%'`     ] ; then \
+	@if [ `echo ${mm_KERNEL_HEADERS_VERSION} | sed 's%[34]\.\(.*\)%\1%'` -gt \
+	      `echo ${mm_KERNEL_VERSION}         | sed 's%[34]\.\(.*\)%\1%'`     ] ; then \
 		echo "error: mm_KERNEL_HEADERS_VERSION is greater than mm_KERNEL_VERSION." ; \
 		exit 1 ; \
 	fi
-	@if [ `echo ${mm_KERNEL_HEADERS_VERSION} | sed 's%3\.\(.*\)%\1%'` -gt \
-	      `echo ${mm_KERNEL_VERSION}         | sed 's%3\.\(.*\)%\1%'`     ] ; then \
+	@if [ `echo ${mm_KERNEL_HEADERS_VERSION} | sed 's%[34]\.\(.*\)%\1%'` -gt \
+	      `echo ${mm_KERNEL_VERSION}         | sed 's%[34]\.\(.*\)%\1%'`     ] ; then \
 		echo "error: mm_KERNEL_HEADERS_VERSION is greater than mm_KERNEL_VERSION." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_MYTH_VERSION"
 	@if [ ! "$(mm_MYTH_VERSION)" = "0.27"         ] && \
-	    [ ! "$(mm_MYTH_VERSION)" = "torc"         ] && \
+	    [ ! "$(mm_MYTH_VERSION)" = "0.28"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "master"       ] ; then \
 		echo "error: mm_MYTH_VERSION=\"$(mm_MYTH_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_VERSION"
-	@if [ ! "$(mm_NVIDIA_VERSION)" = "340.65"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "340.76"    ] ; then \
+	@if [ ! "$(mm_NVIDIA_VERSION)" = "331.38"    ] && \
+	    [ ! "$(mm_NVIDIA_VERSION)" = "340.76"    ] && \
+	    [ ! "$(mm_NVIDIA_VERSION)" = "346.47"    ] ; then \
 		echo "error: mm_NVIDIA_VERSION=\"$(mm_NVIDIA_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
