@@ -21,3 +21,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-man
 
 include ../../gar.mk
+
+post-install:
+    @rm -f $(DESTDIR)$(libdir)/libparted.la
+	@$(MAKECOOKIE)

@@ -62,4 +62,5 @@ pre-install:
 
 post-install:
 	@rm -rf $(DESTDIR)$(libdir)/libudev.la
+	@rm -rf $(DESTDIR)$(libdir)/libgudev-1.0.la
 	@$(MAKECOOKIE)

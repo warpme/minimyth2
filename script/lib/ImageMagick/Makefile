@@ -20,9 +20,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST)
 
 include ../../gar.mk
 
-#CFLAGS   := $(filter-out -flto -fuse-linker-plugin, $(CFLAGS))
-#CXXFLAGS := $(filter-out -flto -fuse-linker-plugin, $(CXXFLAGS))
-#LDFLAGS  := $(filter-out -flto -fuse-linker-plugin, $(LDFLAGS))
-
 post-install:
+	@rm -f $(DESTDIR)$(libdir)/libMagickWand.la
+	@rm -f $(DESTDIR)$(libdir)/libMagick++.la
+	@rm -f $(DESTDIR)$(libdir)/libpam_misc.la
+	@rm -f $(DESTDIR)$(libdir)/libMagickCore.la
 	@$(MAKECOOKIE)

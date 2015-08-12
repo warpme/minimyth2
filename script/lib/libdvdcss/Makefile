@@ -30,5 +30,5 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(extras_libdir)/libdvdcss.la
+	@rm -f $(DESTDIR)$(libdir)/libdvdcss.la
 	@$(MAKECOOKIE)
