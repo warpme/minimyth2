@@ -1,11 +1,12 @@
 GARNAME = libbluray
-GARVERSION = 0.2.3
+GARVERSION = 0.6.0
 CATEGORIES = lib
 MASTER_SITES  = ftp://ftp.videolan.org/pub/videolan/$(GARNAME)/$(GARVERSION)/
+#ftp://ftp.videolan.org/pub/videolan/libbluray/0.6.0/libbluray-0.6.0.tar.bz2
 MASTER_SITES += git://git.videolan.org/libbluray.git/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch
+#PATCHFILES = \
+#	$(DISTNAME)-automake_1.13.patch
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
