@@ -1,16 +1,14 @@
 GARNAME = portaudio
-GARVERSION = svn-1919
+GARVERSION = svn-1952
 CATEGORIES = lib
 MASTER_SITES = http://www.portaudio.com/archives/pa_stable_v19_20140130.tgz
-DISTFILES  = $(DISTNAME).tgz
+DISTFILES  = $(DISTNAME).zip
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE.txt
 
 DESCRIPTION = 
 define BLURB
 endef
-
-WORKSRC = $(WORKDIR)/$(GARNAME)
 
 DEPENDS = lang/c lib/zlib
 
@@ -20,7 +18,13 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
-	--disable-static
+	--disable-static \
+	--with-alsa \
+	--without-jack \
+	--without-oss \
+	--without-asihpi \
+	--without-winapi \
+	--enable-debug-output
 
 include ../../gar.mk
 
