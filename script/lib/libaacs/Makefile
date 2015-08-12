@@ -1,5 +1,5 @@
 GARNAME = libaacs
-GARVERSION = 0.6.0
+GARVERSION = 0.7.1
 CATEGORIES = lib
 MASTER_SITES = git://git.videolan.org/libaacs.git/
 PATCHFILES = \
@@ -42,5 +42,5 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(extras_libdir)/$(GARNAME).la
+	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
 	@$(MAKECOOKIE)
