@@ -1,5 +1,5 @@
 GARNAME = mesa
-GARVERSION = 10.5.7
+GARVERSION = 10.6.3
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/$(GARVERSION)/
 DISTFILES = mesa-$(GARVERSION).tar.xz
@@ -86,6 +86,11 @@ include ../../gar.mk
 
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -Os
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -Os
+
+# mesa 10.6.0 xa gallium tracker has issue with LTO
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 git//%MesaLib-$(GARVERSION).tar.bz2:
 	@$(call FETCH_GIT, $*, $(word 3,$(subst -, ,$(GARVERSION))), MesaLib-$(GARVERSION))
