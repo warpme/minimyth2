@@ -1,5 +1,5 @@
 GARNAME = makemkv-oss
-GARVERSION = 1.9.2
+GARVERSION = 1.9.5
 CATEGORIES = utils
 MASTER_SITES = http://www.makemkv.com/download/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
@@ -28,6 +28,8 @@ include ../../gar.mk
 CFLAGS   := $(filter-out -flto -fuse-linker-plugin, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto -fuse-linker-plugin, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto -fuse-linker-plugin, $(LDFLAGS))
+
+CFLAGS   += -D__STDC_CONSTANT_MACROS
 
 post-install:
 	@rm -rf $(DESTDIR)$(libdir)/libaacs.so*
