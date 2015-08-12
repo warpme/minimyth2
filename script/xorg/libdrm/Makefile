@@ -1,5 +1,5 @@
 GARNAME = libdrm
-GARVERSION = 2.4.61
+GARVERSION = 2.4.62
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -35,7 +35,8 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-omap-experimental-api \
 	--disable-exynos-experimental-api \
 	--disable-cairo-tests \
-	--with-gnu-ld
+	--with-gnu-ld \
+	--disable-valgrind
 ifeq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
 	--disable-udev
