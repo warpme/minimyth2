@@ -1,7 +1,7 @@
 GARNAME = pjproject
-GARVERSION = 2.2.1
+GARVERSION = 2.4
 CATEGORIES = lib
-MASTER_SITES = http://www.pjsip.org/release/$(GARVERSION)
+MASTER_SITES = http://www.pjsip.org/release/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = GPL2
 define BLURB
