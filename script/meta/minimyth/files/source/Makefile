@@ -282,22 +282,10 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		index=$$(($${index}+2)) && \
 		ln -sf ../init.d/$(file) $@~$(sysconfdir)/rc.d/rc.d/K$${index}$(file) ; )
 	@# Make font file links.
-	@
-	@if [ $(mm_MYTH_VERSION) = "0.20" ]         || \
-	    [ $(mm_MYTH_VERSION) = "0.20-softpad" ] || \
-	    [ $(mm_MYTH_VERSION) = "0.21" ]         || \
-	    [ $(mm_MYTH_VERSION) = "0.22" ]         || \
-	    [ $(mm_MYTH_VERSION) = "0.23" ]         ; then \
-		for font in `cd $@~$(datadir)/fonts/X11/TTF ; ls -1 *.{TTF,ttf} 2> /dev/null` ; do \
-			ln -sf $(patsubst /%,%,$(call DIRSTODOTS,$(datadir)/mythtv))$(datadir)/fonts/X11/TTF/$${font} \
-			       $@~$(datadir)/mythtv/$${font} ; \
-	 	done ; \
-	else \
-		for font in `cd $@~$(datadir)/fonts/X11/TTF ; ls -1 *.{TTF,ttf} 2> /dev/null` ; do \
+	@for font in `cd $@~$(datadir)/fonts/X11/TTF ; ls -1 *.{TTF,ttf} 2> /dev/null` ; do \
 			ln -sf $(patsubst /%,%,$(call DIRSTODOTS,$(datadir)/mythtv/fonts))$(datadir)/fonts/X11/TTF/$${font} \
 			       $@~$(datadir)/mythtv/fonts/$${font} ; \
-	 	done ; \
-	fi
+	 done
 	@# Remove unneeded perl files.
 	@echo 'removing unneeded perl files'
 	@dirs='$(PERL_libdir)' ; \
@@ -545,10 +533,15 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 		| xargs -n 2 cp -fpd
 	@$(call SET_PERMISSIONS,$@~)
 	@# Setup ssh id_RSA permissions
-	@chmod 0700 $@~/rootfs-ro/home/minimyth/.ssh
-	@chmod 0600 $@~/rootfs-ro/home/minimyth/.ssh/id_rsa
 	@chmod 0700 $@~/rootfs-ro/root/.ssh
 	@chmod 0600 $@~/rootfs-ro/root/.ssh/id_rsa
+	@# Hack for strip wich is cheated by mplayer exec
+	@if [ -e $@~/rootfs-ro/usr/bin/mplayer ] ; then    \
+		chmod 0755 $@~/rootfs-ro/usr/bin/mplayer ; \
+	 fi
+	@if [ -e $@~/rootfs-ro/usr/bin/mplayer-svn ] ; then    \
+		chmod 0755 $@~/rootfs-ro/usr/bin/mplayer-svn ; \
+	 fi
 	@touch $@~
 	@mv $@~ $@
 
