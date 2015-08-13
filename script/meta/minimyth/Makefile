@@ -188,13 +188,14 @@ DEPENDS = \
 		lib/nss) \
 		utils/mc \
 		lib/libdvdcss \
-		lib/libaacs \
 		lib/nss-mdns \
 		net/mount.cifs \
 	$(if $(filter gnash,$(mm_SOFTWARE)), \
 		mediaplayers/gnash) \
 	$(if $(filter mplayer,$(mm_SOFTWARE)), \
 		mediaplayers/mplayer) \
+	$(if $(filter mplayer-svn,$(mm_SOFTWARE)), \
+		mediaplayers/mplayer-svn) \
 	$(if $(filter vlc,$(mm_SOFTWARE)), \
 		mediaplayers/vlc) \
 	$(if $(filter xine,$(mm_SOFTWARE)), \
@@ -203,6 +204,15 @@ DEPENDS = \
 		utils/cwiid) \
 	$(if $(filter udisks,$(mm_SOFTWARE)), \
 		lib/udisks) \
+	$(if $(filter voip,$(mm_SOFTWARE)), \
+		lib/libpjsip \
+		python/python-pjsip) \
+	$(if $(filter makemkv,$(mm_SOFTWARE)), \
+		utils/makemkv-oss \
+		utils/makemkv-bin) \
+	$(if $(filter bumblebee,$(mm_SOFTWARE)), \
+		system/bumblebee \
+		system/bbswitch) \
 	$(if $(filter debug,$(mm_SOFTWARE)), \
 		devel/gdb \
 		devel/strace) \
