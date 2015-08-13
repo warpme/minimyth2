@@ -72,13 +72,14 @@ my $ip_list = "127.0.0.1";
 ######################################################################
 
 
-my($ver)='3.0';
+my($ver)='3.1';
 #my $pmc{}=-1;
 my $mc=-1;
 my $nmc= -1;
 my $fake_out = 0;
 my @notify_list = ();
 my $new_mail = 0;
+
 
 print "\n\n#############################\n";
 print "Mail Notifier v. $ver\n";
@@ -107,10 +108,11 @@ sub stack_notify {
             <progress>$progress</progress>
             <timeout>$timeout</timeout>";
         if ($style) { $msg = $msg."
-            <type>$style</type>" } $msg = $msg."
+            <style>$style</style>" } $msg = $msg."
         </mythnotification>";
 
         @notify_list = (@notify_list,$msg);
+        print ("OSD_notify:\n".$msg."\n") if ($debug2);
 
     }
 }
@@ -122,12 +124,18 @@ sub do_account  () {
     my $password = shift ;
     my $maxmess = shift ;
     my $dest_ip = shift ;
+    my $mail_icon = shift ;
     my $messno = 0;
     my $pmc;
+
+    if (! $mail_icon) {
+        $mail_icon = $new_mail_icon;
+    }
 
     print("  Mail Srv is: $mail_server\n") if ($debug);
     print("  Username is: $username\n") if ($debug);
     print("  Password is: $password\n") if ($debug);
+    print("  Picture  is: $new_mail_icon\n") if ($debug);
 
     $pop = Net::POP3->new($mail_server)
         or return $nmc;
@@ -170,11 +178,11 @@ sub do_account  () {
     "", 
     $accout_str.$username."@".$mail_server,
     $mc.$mails_str,
-    $new_mail_icon,
+    $mail_icon,
     "",
     "",
     $osd_timeout,
-    "",
+    "mail",
     $ip_list
     );
 
