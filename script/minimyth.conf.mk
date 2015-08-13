@@ -13,7 +13,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 7.6.13.g99c61cc
+mm_VERSION_MINIMYTH ?= 7.7.5.g482a43c
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -116,12 +116,12 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '3.16', '4.0'
-mm_KERNEL_HEADERS_VERSION ?= 4.0
+# Valid values are '3.16', '4.0', '4.1'
+mm_KERNEL_HEADERS_VERSION ?= 4.1
 
 # The version of kernel to use.
-# Valid values are '3.16' and '4.0'.
-mm_KERNEL_VERSION         ?= 4.0
+# Valid values are '3.16' and '4.0', '4.1'
+mm_KERNEL_VERSION         ?= 4.1
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -214,5 +214,4 @@ export PATCH_GET
 
 # Set the number of parallel makes to the number of processors.
 PARALLELMFLAGS=-j$(shell cat /proc/cpuinfo | grep -c '^processor[[:cntrl:]]*:' | sed -e 's/2/3/' -e 's/4/5/' -e 's/8/9/')
-#PARALLELMFLAGS=-j1
 export PARALLELMFLAGS
