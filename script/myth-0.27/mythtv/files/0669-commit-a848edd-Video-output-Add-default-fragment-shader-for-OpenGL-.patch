@@ -1,0 +1,68 @@
+From a848edd7a4450db1c0eb839cc41ebdd6c6b2dbb6 Mon Sep 17 00:00:00 2001
+From: Jonatan Lindblad <jlindblad@mythtv.org>
+Date: Mon, 23 Mar 2015 23:46:13 +0100
+Subject: [PATCH] Video output: Add default fragment shader for OpenGL 2
+
+When there were no color conversions with the YUV->RGB shader, there was no
+other fragment shader active and because of that the video was black.
+
+(cherry picked from commit b997114683759562dbaf6b80a651070d099195ac)
+Signed-off-by: Stuart Auchterlonie <stuarta@squashedfrog.net>
+
+Refs #12421
+---
+ mythtv/libs/libmythtv/openglvideo.cpp |   16 ++++++++++++++--
+ 1 file changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/openglvideo.cpp b/mythtv/libs/libmythtv/openglvideo.cpp
+index 2de7d4c..cf59d5b 100644
+--- a/mythtv/libs/libmythtv/openglvideo.cpp
++++ b/mythtv/libs/libmythtv/openglvideo.cpp
+@@ -469,7 +469,7 @@ bool OpenGLVideo::AddFilter(OpenGLFilterType filter)
+             success = false;
+     }
+ 
+-    if (success && (filter != kGLFilterNone) && (filter != kGLFilterResize))
++    if (success && (filter != kGLFilterNone))
+     {
+         program = AddFragmentProgram(filter);
+         if (!program)
+@@ -1040,7 +1040,7 @@ void OpenGLVideo::PrepareFrame(bool topfieldfirst, FrameScanType scan,
+ 
+         // enable fragment program and set any environment variables
+         GLuint program = 0;
+-        if ((type != kGLFilterNone) && (type != kGLFilterResize))
++        if ((type != kGLFilterNone))
+         {
+             GLuint prog_ref = 0;
+ 
+@@ -1575,6 +1575,16 @@ static const QString BicubicShader =
+ "    gl_FragColor = mix(tex00, tex10, parmx.z);\n"
+ "}\n";
+ 
++static const QString DefaultFragmentShader =
++"GLSL_DEFINES"
++"uniform GLSL_SAMPLER s_texture0;\n"
++"varying vec2 v_texcoord0;\n"
++"void main(void)\n"
++"{\n"
++"    vec4 color   = GLSL_TEXTURE(s_texture0, v_texcoord0);\n"
++"    gl_FragColor = vec4(color.xyz, 1.0);\n"
++"}\n";
++
+ void OpenGLVideo::GetProgramStrings(QString &vertex, QString &fragment,
+                                     OpenGLFilterType filter,
+                                     QString deint, FrameScanType field)
+@@ -1601,7 +1611,9 @@ void OpenGLVideo::GetProgramStrings(QString &vertex, QString &fragment,
+             break;
+         }
+         case kGLFilterNone:
++            break;
+         case kGLFilterResize:
++            fragment = DefaultFragmentShader;
+             break;
+         case kGLFilterBicubic:
+             fragment = BicubicShader;
+-- 
+1.7.10.2
+

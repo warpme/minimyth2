@@ -1,0 +1,40 @@
+From bcf888fdd4034997c2f2a5d0d877da0e1f463c2e Mon Sep 17 00:00:00 2001
+From: Jim Stichnoth <jstichnoth@mythtv.org>
+Date: Sun, 12 Apr 2015 07:30:55 -0700
+Subject: [PATCH] Subtitles: Fix automatic display of captions/subtitles.
+
+There was something of a race condition in the previous code.  At
+startup of playback, the decoder thread runs ahead and updates track
+lists as it encounters them, including audio, cc608, cc708, etc.  If
+no subtitle tracks are found before the UI thread gets to a certain
+point, the UI thread commits to keeping subtitles disabled, regardless
+of the "automatically display subtitles" setting.
+
+In the new version, at startup of playback, the UI thread keeps the
+original intention alive so that subtitles will automatically start
+displaying when they eventually arrive.
+
+Note that this fix doesn't address the problem where the player ought
+to switch to a "better" subtitle track type when it comes along, such
+as switching from cc608 to cc708.
+
+Refs #10740 (only because this fixes a fix with that ref)
+
+(cherry picked from commit ac3a988f2e9140322b1a15c34d6ac87071c69d7e)
+---
+ mythtv/libs/libmythtv/mythplayer.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mythtv/libs/libmythtv/mythplayer.cpp b/mythtv/libs/libmythtv/mythplayer.cpp
+index de81d93..2995169 100644
+--- a/mythtv/libs/libmythtv/mythplayer.cpp
++++ b/mythtv/libs/libmythtv/mythplayer.cpp
+@@ -3979,7 +3979,7 @@ void MythPlayer::ClearAfterSeek(bool clearvideobuffers)
+     // nothing except to call ResetCaptions() to erase any captions
+     // currently on-screen.  The key is that the erasing is done in
+     // the UI thread, not the decoder thread.
+-    EnableSubtitles(GetCaptionsEnabled());
++    EnableSubtitles(textDesired);
+     deleteMap.TrackerReset(framesPlayed);
+     commBreakMap.SetTracker(framesPlayed);
+     commBreakMap.ResetLastSkip();

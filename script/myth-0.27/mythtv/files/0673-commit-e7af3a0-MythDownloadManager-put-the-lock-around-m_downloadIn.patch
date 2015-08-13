@@ -1,0 +1,40 @@
+From e7af3a08c6b6f385d9d4b93948c812a394110a4a Mon Sep 17 00:00:00 2001
+From: Paul Harrison <pharrison@mythtv.org>
+Date: Wed, 20 May 2015 23:30:13 +0100
+Subject: [PATCH] MythDownloadManager: put the lock around m_downloadInfos
+ when removing a url
+
+Also log an error if we fail to remove a download url from m_downloadInfos after
+a download completes.
+
+Refs #12356
+
+(cherry picked from commit 58694eb41a528467c7d54b85c211479204ee24ac)
+---
+ mythtv/libs/libmythbase/mythdownloadmanager.cpp |    8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/mythtv/libs/libmythbase/mythdownloadmanager.cpp b/mythtv/libs/libmythbase/mythdownloadmanager.cpp
+index 9a1983e..b781f84 100644
+--- a/mythtv/libs/libmythbase/mythdownloadmanager.cpp
++++ b/mythtv/libs/libmythbase/mythdownloadmanager.cpp
+@@ -1221,9 +1221,15 @@ void MythDownloadManager::downloadFinished(MythDownloadInfo *dlInfo)
+         // else we downloaded via QNetworkAccessManager
+         // AND the caller is handling the reply
+ 
+-        m_downloadInfos.remove(dlInfo->m_url);
++        m_infoLock->lock();
++        if (!m_downloadInfos.remove(dlInfo->m_url))
++            LOG(VB_GENERAL, LOG_ERR, LOC +
++                QString("ERROR download finished but failed to remove url: %1")
++                        .arg(dlInfo->m_url));
++
+         if (reply)
+             m_downloadReplies.remove(reply);
++        m_infoLock->unlock();
+ 
+         dlInfo->SetDone(true);
+ 
+-- 
+1.7.10.2
+

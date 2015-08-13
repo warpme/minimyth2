@@ -1,0 +1,1322 @@
+From 26bb9cb71fb134ffb96d9330d837e7abc355328e Mon Sep 17 00:00:00 2001
+From: Jonatan Lindblad <jlindblad@mythtv.org>
+Date: Sat, 20 Jun 2015 14:27:27 +0200
+Subject: [PATCH 1/3] Internet Content: Adapt the YouTube grabber to the v3
+ API
+
+It is possible to set two optional parameters in ~/.mythtv/MythNetvision/userGrabberPrefs/youtube.xml:
+* API key
+* Region code used for retrieving the categories in the tree view
+
+Some changes were also required in libmyth and MythNetvision due to the way
+paging is handled.
+
+This bumps the ABI version.
+
+(cherry picked from commit 9527d3d0c9b71bb088b3869319a11f5c1ea9bb57)
+---
+ .../mythnetvision/mythnetvision/netcommon.cpp      |    4 +-
+ .../mythnetvision/mythnetvision/netcommon.h        |    2 +-
+ .../mythnetvision/mythnetvision/netsearch.cpp      |   23 +-
+ .../mythnetvision/mythnetvision/netsearch.h        |    3 +
+ mythtv/libs/libmyth/netgrabbermanager.cpp          |   26 +-
+ mythtv/libs/libmyth/netgrabbermanager.h            |    7 +-
+ mythtv/libs/libmythbase/mythversion.h              |    2 +-
+ mythtv/programs/mythbackend/internetContent.cpp    |   10 +-
+ .../nv_python_libs/common/common_api.py            |    9 +-
+ .../configs/XML/defaultUserPrefs/youtube.xml       |   10 +
+ .../internetcontent/nv_python_libs/mainProcess.py  |   17 +-
+ .../nv_python_libs/youtube/youtube_api.py          |  707 ++++++--------------
+ .../nv_python_libs/youtube/youtube_data.py         |   20 +
+ mythtv/programs/scripts/internetcontent/youtube.py |   31 +-
+ 14 files changed, 303 insertions(+), 568 deletions(-)
+ create mode 100644 mythtv/programs/scripts/internetcontent/nv_python_libs/configs/XML/defaultUserPrefs/youtube.xml
+ create mode 100644 mythtv/programs/scripts/internetcontent/nv_python_libs/youtube/youtube_data.py
+
+diff --git a/mythplugins/mythnetvision/mythnetvision/netcommon.cpp b/mythplugins/mythnetvision/mythnetvision/netcommon.cpp
+index 1397347..296d923 100644
+--- a/mythplugins/mythnetvision/mythnetvision/netcommon.cpp
++++ b/mythplugins/mythnetvision/mythnetvision/netcommon.cpp
+@@ -48,9 +48,9 @@ QString GetMythXMLURL(void)
+ }
+ 
+ QUrl GetMythXMLSearch(QString url, QString query, QString grabber,
+-                         uint pagenum)
++                         QString pagenum)
+ {
+     QString tmp = QString("%1GetInternetSearch?Query=%2&Grabber=%3&Page=%4")
+-        .arg(url).arg(query).arg(grabber).arg(QString::number(pagenum));
++        .arg(url).arg(query).arg(grabber).arg(pagenum);
+     return QUrl(tmp);
+ }
+diff --git a/mythplugins/mythnetvision/mythnetvision/netcommon.h b/mythplugins/mythnetvision/mythnetvision/netcommon.h
+index 42feaaa..0ab5095 100644
+--- a/mythplugins/mythnetvision/mythnetvision/netcommon.h
++++ b/mythplugins/mythnetvision/mythnetvision/netcommon.h
+@@ -11,6 +11,6 @@
+ QString GetThumbnailFilename(QString url, QString title);
+ QString GetMythXMLURL(void);
+ QUrl GetMythXMLSearch(QString url, QString query,
+-                      QString grabber, uint pagenum);
++                      QString grabber, QString pagenum);
+ 
+ #endif // NETCOMMON_H_
+diff --git a/mythplugins/mythnetvision/mythnetvision/netsearch.cpp b/mythplugins/mythnetvision/mythnetvision/netsearch.cpp
+index 1e08b22..1bb8c56 100644
+--- a/mythplugins/mythnetvision/mythnetvision/netsearch.cpp
++++ b/mythplugins/mythnetvision/mythnetvision/netsearch.cpp
+@@ -346,8 +346,7 @@ void NetSearch::doSearch()
+     connect(m_netSearch, SIGNAL(finished(QNetworkReply*)),
+                        SLOT(searchFinished(void)));
+ 
+-    QUrl init = GetMythXMLSearch(m_mythXML, m_currentSearch,
+-                                m_currentCmd, m_pagenum);
++    QUrl init = GetMythXMLSearch(m_mythXML, m_currentSearch, m_currentCmd, "");
+     QUrl req(init.toEncoded(), QUrl::TolerantMode);
+     LOG(VB_GENERAL, LOG_INFO,
+         QString("Using Search URL %1").arg(req.toString()));
+@@ -365,8 +364,11 @@ void NetSearch::getLastResults()
+                     .arg(m_currentSearch);
+     createBusyDialog(title);
+ 
+-    QUrl req = GetMythXMLSearch(m_mythXML, m_currentSearch,
+-                                m_currentCmd, m_pagenum);
++    QString page = m_prevPageToken.isEmpty() ? QString::number(m_pagenum) :
++        m_prevPageToken;
++
++    QUrl req =
++        GetMythXMLSearch(m_mythXML, m_currentSearch, m_currentCmd, page);
+     m_reply = m_netSearch->get(QNetworkRequest(req));
+ }
+ 
+@@ -381,8 +383,11 @@ void NetSearch::getMoreResults()
+                     .arg(m_currentSearch);
+     createBusyDialog(title);
+ 
+-    QUrl req = GetMythXMLSearch(m_mythXML, m_currentSearch,
+-                                m_currentCmd, m_pagenum);
++    QString page = m_nextPageToken.isEmpty() ? QString::number(m_pagenum) :
++        m_nextPageToken;
++
++    QUrl req =
++        GetMythXMLSearch(m_mythXML, m_currentSearch, m_currentCmd, page);
+     m_reply = m_netSearch->get(QNetworkRequest(req));
+ }
+ 
+@@ -404,10 +409,12 @@ void NetSearch::searchFinished(void)
+     uint returned = item->numReturned();
+     uint firstitem = item->numIndex();
+ 
++    m_nextPageToken = item->nextPageToken();
++    m_prevPageToken = item->prevPageToken();
++
+     if (returned > 0)
+         m_siteList->GetItemAt(m_currentGrabber)->
+-                  SetText(QString::number(
+-                  searchresults), "count");
++                  SetText(QString::number(searchresults), "count");
+     else
+         return;
+ 
+diff --git a/mythplugins/mythnetvision/mythnetvision/netsearch.h b/mythplugins/mythnetvision/mythnetvision/netsearch.h
+index 140bce0..360658c 100644
+--- a/mythplugins/mythnetvision/mythnetvision/netsearch.h
++++ b/mythplugins/mythnetvision/mythnetvision/netsearch.h
+@@ -83,6 +83,9 @@ class NetSearch : public MythScreenType
+     RSSSite::rssList    m_rssList;
+     QMap<MythUIButtonListItem*,ResultItem> m_rssitems;
+ 
++    QString m_nextPageToken;
++    QString m_prevPageToken;
++
+   private slots:
+     void streamWebVideo(void);
+     void showWebVideo(void);
+diff --git a/mythtv/libs/libmyth/netgrabbermanager.cpp b/mythtv/libs/libmyth/netgrabbermanager.cpp
+index 15d876a..6b1b38d 100644
+--- a/mythtv/libs/libmyth/netgrabbermanager.cpp
++++ b/mythtv/libs/libmyth/netgrabbermanager.cpp
+@@ -260,7 +260,8 @@ Search::~Search()
+ }
+ 
+ 
+-void Search::executeSearch(const QString &script, const QString &query, uint pagenum)
++void Search::executeSearch(const QString &script, const QString &query,
++                           const QString &pagenum)
+ {
+     resetSearch();
+ 
+@@ -276,18 +277,18 @@ void Search::executeSearch(const QString &script, const QString &query, uint pag
+ 
+     QStringList args;
+ 
+-    if (pagenum > 1)
++    if (!pagenum.isEmpty())
+     {
+         args.append(QString("-p"));
+-        args.append(QString::number(pagenum));
++        args.append(pagenum);
+     }
+ 
+     args.append("-S");
+     QString term = query;
+     args.append(MythSystemLegacy::ShellEscape(term));
+ 
+-    LOG(VB_GENERAL, LOG_DEBUG, LOC +
+-        QString("Internet Search Query: %1 %2") .arg(cmd).arg(args.join(" ")));
++    LOG(VB_GENERAL, LOG_INFO, LOC +
++        QString("Internet Search Query: %1 %2").arg(cmd).arg(args.join(" ")));
+ 
+     uint flags = kMSRunShell | kMSStdOut | kMSRunBackground;
+     m_searchProcess->SetCommand(cmd, args, flags);
+@@ -355,6 +356,21 @@ void Search::process()
+     else
+         m_numIndex = 0;
+ 
++    Node = itemNode.namedItem(QString("nextpagetoken"));
++    if (!Node.isNull())
++    {
++        m_nextPageToken = Node.toElement().text();
++    }
++    else
++        m_nextPageToken = "";
++
++    Node = itemNode.namedItem(QString("prevpagetoken"));
++    if (!Node.isNull())
++    {
++        m_prevPageToken = Node.toElement().text();
++    }
++    else
++        m_prevPageToken = "";
+ }
+ 
+ void Search::slotProcessSearchExit(uint exitcode)
+diff --git a/mythtv/libs/libmyth/netgrabbermanager.h b/mythtv/libs/libmyth/netgrabbermanager.h
+index c8b6378..1603983 100644
+--- a/mythtv/libs/libmyth/netgrabbermanager.h
++++ b/mythtv/libs/libmyth/netgrabbermanager.h
+@@ -146,7 +146,7 @@ class MPUBLIC Search : public QObject
+ 
+     void resetSearch(void);
+     void executeSearch(const QString &script, const QString &query,
+-                       uint pagenum = 1);
++                       const QString &pagenum = "");
+     void process(void);
+ 
+     QByteArray GetData() { return m_data; };
+@@ -155,6 +155,8 @@ class MPUBLIC Search : public QObject
+     uint numResults() { return m_numResults; };
+     uint numReturned() { return m_numReturned; };
+     uint numIndex() { return m_numIndex; };
++    QString nextPageToken() { return m_nextPageToken; }
++    QString prevPageToken() { return m_prevPageToken; }
+ 
+     ResultItem::resultList GetVideoList() { return m_videoList; };
+ 
+@@ -170,6 +172,9 @@ class MPUBLIC Search : public QObject
+     uint                    m_numReturned;
+     uint                    m_numIndex;
+ 
++    QString m_nextPageToken;
++    QString m_prevPageToken;
++
+   signals:
+ 
+     void finishedSearch(Search *item);
+
+diff --git a/mythtv/programs/mythbackend/internetContent.cpp b/mythtv/programs/mythbackend/internetContent.cpp
+index 0701cc8..cbfa278 100644
+--- a/mythtv/programs/mythbackend/internetContent.cpp
++++ b/mythtv/programs/mythbackend/internetContent.cpp
+@@ -123,10 +123,9 @@ void InternetContent::GetInternetSearch( HTTPRequest *pRequest )
+     QString query   =  pRequest->m_mapParams[ "Query" ];
+     QString page    =  pRequest->m_mapParams[ "Page" ];
+ 
+-    if (grabber.isEmpty() || query.isEmpty() || page.isEmpty())
++    if (grabber.isEmpty() || query.isEmpty())
+         return;
+ 
+-    uint pagenum = page.toUInt();
+     QString command = QString("%1internetcontent/%2").arg(GetShareDir())
+                         .arg(grabber);
+ 
+@@ -137,11 +136,6 @@ void InternetContent::GetInternetSearch( HTTPRequest *pRequest )
+         return;
+     }
+ 
+-    LOG(VB_GENERAL, LOG_INFO,
+-        QString("InternetContent::GetInternetSearch Executing "
+-                "Command: %1 -p %2 -S '%3'")
+-            .arg(command).arg(pagenum).arg(query));
+-
+ #if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
+     Search *search = new Search();
+     QEventLoop loop;
+@@ -151,7 +145,7 @@ void InternetContent::GetInternetSearch( HTTPRequest *pRequest )
+     QObject::connect(search, SIGNAL(searchTimedOut(Search *)),
+                      &loop, SLOT(quit(void)));
+ 
+-    search->executeSearch(command, query, pagenum);
++    search->executeSearch(command, query, page);
+     loop.exec();
+ 
+     search->process();
+diff --git a/mythtv/programs/scripts/internetcontent/nv_python_libs/common/common_api.py b/mythtv/programs/scripts/internetcontent/nv_python_libs/common/common_api.py
+index 643fcb1..0334124 100644
+--- a/mythtv/programs/scripts/internetcontent/nv_python_libs/common/common_api.py
++++ b/mythtv/programs/scripts/internetcontent/nv_python_libs/common/common_api.py
+@@ -215,6 +215,7 @@ class Common(object):
+         self.language = u'en'
+         self.mythdb = None
+         self.linksWebPage = None
++        self.etree = etree
+     # end __init__()
+ 
+     def massageText(self, text):
+@@ -287,10 +288,14 @@ class Common(object):
+ 
+ 
+     def ampReplace(self, text):
+-        '''Replace all "&" characters with "&amp;"
++        '''Replace all &, ', ", <, and > characters with the predefined XML
++           entities
+         '''
+         text = self.textUtf8(text)
+-        return text.replace(u'&amp;',u'~~~~~').replace(u'&',u'&amp;').replace(u'~~~~~', u'&amp;')
++        text = text.replace(u'&amp;',u'~~~~~').replace(u'&',u'&amp;').replace(u'~~~~~', u'&amp;')
++        text = text.replace(u"'", u"&apos;").replace(u'"', u'&quot;')
++        text = text.replace(u'<', u'&lt;').replace(u'>', u'&gt;')
++        return text
+     # end ampReplace()
+ 
+     def callCommandLine(self, command, stderr=False):
+diff --git a/mythtv/programs/scripts/internetcontent/nv_python_libs/configs/XML/defaultUserPrefs/youtube.xml b/mythtv/programs/scripts/internetcontent/nv_python_libs/configs/XML/defaultUserPrefs/youtube.xml
+new file mode 100644
+index 0000000..c20860d
+--- /dev/null
++++ b/mythtv/programs/scripts/internetcontent/nv_python_libs/configs/XML/defaultUserPrefs/youtube.xml
+@@ -0,0 +1,10 @@
++<userYouTube>
++    <!-- Optional: Enter your API key in the tag below -->
++    <apikey></apikey>
++
++    <!-- Optional: Enter the region code used for tree view in the tag below.
++         See the following link for valid values:
++         http://www.iso.org/iso/country_codes/iso_3166_code_lists/country_names_and_code_elements.htm
++    -->
++    <region></region>
++</userYouTube>
+diff --git a/mythtv/programs/scripts/internetcontent/nv_python_libs/mainProcess.py b/mythtv/programs/scripts/internetcontent/nv_python_libs/mainProcess.py
+index 29c78698..0bc719f 100755
+--- a/mythtv/programs/scripts/internetcontent/nv_python_libs/mainProcess.py
++++ b/mythtv/programs/scripts/internetcontent/nv_python_libs/mainProcess.py
+@@ -186,7 +186,12 @@ xmlns:mythtv="http://www.mythtv.org/wiki/MythNetvision_Grabber_Script_Format">""
+         </item>""", 'end_channel': """
+     </channel>""", 'end_rss': """
+ </rss>
+-""", }
++""",
++    'nextpagetoken': """
++        <nextpagetoken>%(nextpagetoken)s</nextpagetoken>""",
++    'prevpagetoken': """
++        <prevpagetoken>%(prevpagetoken)s</prevpagetoken>"""
++    }
+ 
+         self.treeViewXML = {'header': """<?xml version="1.0" encoding="UTF-8"?>""", 'rss': """
+ <rss version="2.0"
+@@ -247,6 +252,10 @@ xmlns:mythtv="http://www.mythtv.org/wiki/MythNetvision_Grabber_Script_Format">""
+                 sys.stdout.write(self.searchXML['rss'])
+                 self.firstVideo = False
+             sys.stdout.write(self.searchXML['channel'] % data_set[0])
++            if 'nextpagetoken' in data_set[0]:
++                sys.stdout.write(self.searchXML['nextpagetoken'] % data_set[0])
++            if 'prevpagetoken' in data_set[0]:
++                sys.stdout.write(self.searchXML['prevpagetoken'] % data_set[0])
+             for item in data_set[1]:
+                 sys.stdout.write(self.searchXML['item'] % item)
+             sys.stdout.write(self.searchXML['end_channel'])
+@@ -398,12 +407,6 @@ class mainProcess:
+             sys.stderr.write("! Error: You have not selected a valid option.\n")
+             sys.exit(1)
+ 
+-        try:
+-            x = int(opts.pagenumber)
+-        except:
+-            sys.stderr.write("! Error: When specified the page number must be numeric. Yours was (%s)\n" % opts.pagenumber)
+-            sys.exit(1)
+-
+         Queries = siteQueries(self.apikey, self.target,
+                     mythtv = True,
+                     interactive = False,
+diff --git a/mythtv/programs/scripts/internetcontent/nv_python_libs/youtube/youtube_api.py b/mythtv/programs/scripts/internetcontent/nv_python_libs/youtube/youtube_api.py
+index f6f967f..d40ed06 100644
+--- a/mythtv/programs/scripts/internetcontent/nv_python_libs/youtube/youtube_api.py
++++ b/mythtv/programs/scripts/internetcontent/nv_python_libs/youtube/youtube_api.py
+@@ -19,7 +19,7 @@ meta data, video and image URLs from youtube. These routines are based on the ap
+ for this api are published at http://developer.youtubenservices.com/docs
+ '''
+ 
+-__version__="v0.2.5"
++__version__="v0.3.0"
+ # 0.1.0 Initial development
+ # 0.1.1 Added Tree view display option
+ # 0.1.2 Modified Tree view internals to be consistent in approach and structure.
+@@ -34,68 +34,37 @@ __version__="v0.2.5"
+ # 0.2.3 Fixed an exception message output code error in two places
+ # 0.2.4 Removed the need for python MythTV bindings and added "%SHAREDIR%" to icon directory path
+ # 0.2.5 Fixed the Foreign Film icon file name
++# 0.3.0 Adapted to the v3 API
+ 
+-import os, struct, sys, re, time
++import os, struct, sys, re, time, shutil
+ import urllib, urllib2
++import json
+ import logging
+ from MythTV import MythXML
+-
+-try:
+-    import xml.etree.cElementTree as ElementTree
+-except ImportError:
+-    import xml.etree.ElementTree as ElementTree
++from ..common import common_api
+ 
+ from youtube_exceptions import (YouTubeUrlError, YouTubeHttpError, YouTubeRssError, YouTubeVideoNotFound, YouTubeInvalidSearchType, YouTubeXmlError, YouTubeVideoDetailError, YouTubeCategoryNotFound)
++from youtube_data import getData
+ 
+-class OutStreamEncoder(object):
+-    """Wraps a stream with an encoder"""
+-    def __init__(self, outstream, encoding=None):
+-        self.out = outstream
+-        if not encoding:
+-            self.encoding = sys.getfilesystemencoding()
+-        else:
+-            self.encoding = encoding
+-
+-    def write(self, obj):
+-        """Wraps the output stream, encoding Unicode strings with the specified encoding"""
+-        if isinstance(obj, unicode):
+-            try:
+-                self.out.write(obj.encode(self.encoding))
+-            except IOError:
+-                pass
+-        else:
+-            try:
+-                self.out.write(obj)
+-            except IOError:
+-                pass
+-
+-    def __getattr__(self, attr):
+-        """Delegate everything but write to the stream"""
+-        return getattr(self.out, attr)
+-sys.stdout = OutStreamEncoder(sys.stdout, 'utf8')
+-sys.stderr = OutStreamEncoder(sys.stderr, 'utf8')
+-
+-
+-class XmlHandler:
+-    """Deals with retrieval of XML files from API
++try:
++    import aniso8601
++except:
++    sys.stderr.write("The module aniso8601 could not be imported, duration "
++                     "parsing will be disabled\n")
++    pass
++
++class JsonHandler:
++    """Deals with retrieval of JSON data from API
+     """
+     def __init__(self, url):
+         self.url = url
+ 
+-    def _grabUrl(self, url):
++    def getJson(self):
+         try:
+-            urlhandle = urllib.urlopen(url)
++            urlhandle = urllib.urlopen(self.url)
++            return json.load(urlhandle)
+         except IOError, errormsg:
+             raise YouTubeHttpError(errormsg)
+-        return urlhandle.read()
+-
+-    def getEt(self):
+-        xml = self._grabUrl(self.url)
+-        try:
+-            et = ElementTree.fromstring(xml)
+-        except SyntaxError, errormsg:
+-            raise YouTubeXmlError(errormsg)
+-        return et
+ 
+ 
+ class Videos(object):
+@@ -104,7 +73,6 @@ class Videos(object):
+     target.
+ 
+     Supports search methods
+-    The apikey is a not required to access http://www.youtube.com/
+     """
+     def __init__(self,
+                 apikey,
+@@ -149,13 +117,9 @@ class Videos(object):
+ 
+         """
+         self.config = {}
++        self.common = common_api.Common()
+         self.mythxml = MythXML()
+ 
+-        if apikey is not None:
+-            self.config['apikey'] = apikey
+-        else:
+-            pass    # YouTube does not require an apikey
+-
+         self.config['debug_enabled'] = debug # show debugging messages
+ 
+         self.log_name = "youtube"
+@@ -180,96 +144,68 @@ class Videos(object):
+         else:
+             self.config['language'] = u''
+ 
+-        self.config[u'urls'] = {}
+-
+-        # v2 api calls - An example that must be customized for each target site
+-        self.config[u'urls'][u'video.search'] = 'http://gdata.youtube.com/feeds/api/videos?vq=%s&max-results=%s&start-index=%s&orderby=relevance&Ir=%s'
+-
+-
+-        # Functions that parse video data from RSS data
+-        self.config['item_parser'] = {}
+-        self.config['item_parser']['main'] = self.getVideosForURL
+-
+-        # Tree view url and the function that parses that urls meta data
+-        self.config[u'urls'][u'tree.view'] = {
+-            'standard_feeds': {
+-                '__all__': ['http://gdata.youtube.com/feeds/api/standardfeeds/%s?v=2', 'main'],
+-                },
+-            'category': {
+-                '__all__': ['http://gdata.youtube.com/feeds/api/videos?category=%s&v=2', 'main'],
+-                },
+-            'local_feeds': {
+-                '__all__': ['http://gdata.youtube.com/feeds/api/standardfeeds/%s?v=2', 'main'],
+-                },
+-            'location_feeds': {
+-                '__all__': ['http://gdata.youtube.com/feeds/api/videos?v=2&q=%s', 'main'],
+-                },
+-            }
+-        self.config[u'urls'][u'categories_list'] = 'http://gdata.youtube.com/schemas/2007/categories.cat'
+-
+-        self.config[u'image_extentions'] = ["png", "jpg", "bmp"] # Acceptable image extentions
+-
+-        self.tree_order = ['standard_feeds', 'location_feeds', 'local_feeds', 'category']
+-        self.tree_org = {
+-            'category': [
+-                ['', ['Film']],
+-                ['', ['Sports']],
+-                ['Information', ['News', 'Tech', 'Education', 'Howto', ]],
+-                ['Entertainment', ['Comedy', 'Music', 'Games', 'Entertainment', ]],
+-                ['Other', ['Autos', 'Animals', 'Travel', 'People', 'Nonprofit']] ],
+-            'standard_feeds':
+-                [['Feeds', ['top_rated', 'top_favourites', 'most_viewed', 'most_popular', 'most_recent', 'most_discussed', 'most_responded', 'recently_featured', '']], ],
+-            'local_feeds':
+-                [['Feeds', ['top_rated', 'top_favourites', 'most_viewed', 'most_popular', 'most_recent', 'most_discussed', 'most_responded', 'recently_featured', '']], ],
+-            'location_feeds':
+-                [['', ['location']], ]
+-            }
++        self.getUserPreferences("~/.mythtv/MythNetvision/userGrabberPrefs/youtube.xml")
+ 
+-        self.tree_customize = {
+-            'category': {
+-                '__default__': {'order': 'rating', 'max-results': '20', 'start-index': '1', 'Ir': self.config['language']},
+-                #'cat name': {'order: '', 'max-results': , 'start-index': , 'restriction: '', 'time': '', 'Ir': ''},
+-                'Film': {'max-results': '40', 'time': 'this_month',},
+-                'Music': {'max-results': '40', 'time': 'this_month',},
+-                'Sports': {'max-results': '40', 'time': 'this_month',},
+-            },
+-            'standard_feeds': {
+-                '__default__': {'order': 'rating', 'max-results': '20', 'start-index': '1', 'Ir': self.config['language'], 'time': 'this_month'},
+-                #'feed name": {'order: '', 'max-results': , 'start-index': , 'restriction: '', 'time': '', 'Ir': ''}
+-            },
+-            'local_feeds': {
+-                '__default__': {'order': 'rating', 'max-results': '20', 'start-index': '1', 'Ir': self.config['language'], 'location': '', 'location-radius':'500km'},
+-                #'feed name": {'order: '', 'max-results': , 'start-index': , 'restriction: '', 'time': '', 'Ir': ''}
+-            },
+-            'location_feeds': {
+-                '__default__': {'order': 'rating', 'max-results': '20', 'start-index': '1', 'Ir': self.config['language'], },
+-                #'feed name": {'order: '', 'max-results': , 'start-index': , 'restriction: '', 'time': '', 'Ir': ''}
+-            },
+-            }
++        # Read region code from user preferences, used by tree view
++        region = self.userPrefs.find("region")
++        if region != None:
++            self.config['region'] = region.text
++        else:
++            self.config['region'] = u'us'
+ 
+-        self.feed_names = {
+-            'standard_feeds': {'top_rated': 'Highest Rated', 'top_favourites': 'Most Subscribed', 'most_viewed': 'Most Viewed', 'most_popular': 'Most Popular', 'most_recent': 'Most Recent', 'most_discussed': 'Most Comments', 'most_responded': 'Most Responses', 'recently_featured': 'Featured'}
+-            }
++        self.apikey = getData().update(getData().a)
++
++        apikey = self.userPrefs.find("apikey")
++        if apikey != None and apikey.text:
++            self.apikey = apikey.text
+ 
+         self.feed_icons = {
+-            'standard_feeds': {'top_rated': 'directories/topics/rated', 'top_favourites': 'directories/topics/most_subscribed', 'most_viewed': 'directories/topics/most_viewed', 'most_popular': None, 'most_recent': 'directories/topics/most_recent', 'most_discussed': 'directories/topics/most_comments', 'most_responded': None, 'recently_featured': 'directories/topics/featured'
+-                },
+-            'local_feeds': {'top_rated': 'directories/topics/rated', 'top_favourites': 'directories/topics/most_subscribed', 'most_viewed': 'directories/topics/most_viewed', 'most_popular': None, 'most_recent': 'directories/topics/most_recent', 'most_discussed': 'directories/topics/most_comments', 'most_responded': None, 'recently_featured': 'directories/topics/featured'
+-                },
+-            'category': {
+-                'Film': 'directories/topics/movies',
+-                'Comedy': 'directories/film_genres/comedy',
++                'Film & Animation': 'directories/topics/movies',
++                'Movies': 'directories/topics/movies',
++                'Trailers': 'directories/topics/movies',
+                 'Sports': 'directories/topics/sports',
+-                'News': 'directories/topics/news', 'Tech': 'directories/topics/technology', 'Education': 'directories/topics/education', 'Howto': 'directories/topics/howto',
+-                'Music': 'directories/topics/music', 'Games': 'directories/topics/games', 'Entertainment': 'directories/topics/entertainment',
+-                'Autos': 'directories/topics/automotive', 'Animals': 'directories/topics/animals', 'Travel': 'directories/topics/travel', 'People': 'directories/topics/people', 'Nonprofit': 'directories/topics/nonprofit',
+-                },
++                'News & Politics': 'directories/topics/news',
++                'Science & Technology': 'directories/topics/technology',
++                'Education': 'directories/topics/education',
++                'Howto & Style': 'directories/topics/howto',
++                'Music': 'directories/topics/music',
++                'Gaming': 'directories/topics/games',
++                'Entertainment': 'directories/topics/entertainment',
++                'Autos & Vehicles': 'directories/topics/automotive',
++                'Pets & Animals': 'directories/topics/animals',
++                'Travel & Events': 'directories/topics/travel',
++                'People & Blogs': 'directories/topics/people',
+             }
+ 
+         self.treeview = False
+         self.channel_icon = u'%SHAREDIR%/mythnetvision/icons/youtube.png'
+     # end __init__()
+ 
++    def getUserPreferences(self, userPreferenceFilePath):
++        userPreferenceFilePath = os.path.expanduser(userPreferenceFilePath)
++
++        # If the user config file does not exists then copy one the default
++        if not os.path.isfile(userPreferenceFilePath):
++            # Make the necessary directories if they do not already exist
++            prefDir = os.path.dirname(userPreferenceFilePath)
++            if not os.path.isdir(prefDir):
++                os.makedirs(prefDir)
++
++            fileName = os.path.basename(userPreferenceFilePath)
++            defaultConfig = u'%s/nv_python_libs/configs/XML/defaultUserPrefs/%s' \
++                    % (baseProcessingDir, fileName)
++            shutil.copy2(defaultConfig, userPreferenceFilePath)
++
++        # Read the grabber hulu_config.xml configuration file
++        url = u'file://%s' % userPreferenceFilePath
++        if self.config['debug_enabled']:
++            print(url)
++            print
++        try:
++            self.userPrefs = self.common.etree.parse(url)
++        except Exception as e:
++            raise Exception(url, e)
++
+ ###########################################################################################################
+ #
+ # Start - Utility functions
+@@ -366,10 +302,9 @@ class Videos(object):
+                     else:
+                         return unicode(entity, "iso-8859-1")
+             return text # leave as is
+-        return self.ampReplace(re.sub(u"(?s)<[^>]*>|&#?\w+;", fixup, self.textUtf8(text))).replace(u'\n',u' ')
++        return self.common.ampReplace(re.sub(u"(?s)<[^>]*>|&#?\w+;", fixup, self.common.textUtf8(text)))
+     # end massageDescription()
+ 
+-
+     def _initLogger(self):
+         """Setups a logger using the logging module, returns a log object
+         """
+@@ -388,26 +323,6 @@ class Videos(object):
+         return logger
+     #end initLogger
+ 
+-
+-    def textUtf8(self, text):
+-        if text == None:
+-            return text
+-        try:
+-            return unicode(text, 'utf8')
+-        except UnicodeDecodeError:
+-            return u''
+-        except (UnicodeEncodeError, TypeError):
+-            return text
+-    # end textUtf8()
+-
+-
+-    def ampReplace(self, text):
+-        '''Replace all "&" characters with "&amp;"
+-        '''
+-        text = self.textUtf8(text)
+-        return text.replace(u'&amp;',u'~~~~~').replace(u'&',u'&amp;').replace(u'~~~~~', u'&amp;')
+-    # end ampReplace()
+-
+     def setTreeViewIcon(self, dir_icon=None):
+         '''Check if there is a specific generic tree view icon. If not default to the channel icon.
+         return self.tree_dir_icon
+@@ -416,9 +331,7 @@ class Videos(object):
+         if not dir_icon:
+             if not self.feed_icons.has_key(self.tree_key):
+                 return self.tree_dir_icon
+-            if not self.feed_icons[self.tree_key].has_key(self.feed):
+-                return self.tree_dir_icon
+-            dir_icon = self.feed_icons[self.tree_key][self.feed]
++            dir_icon = self.feed_icons[self.tree_key]
+             if not dir_icon:
+                 return self.tree_dir_icon
+         self.tree_dir_icon = u'%%SHAREDIR%%/mythnetvision/icons/%s.png' % (dir_icon, )
+@@ -437,140 +350,116 @@ class Videos(object):
+         return an array of matching item dictionaries
+         return
+         '''
+-        url = self.config[u'urls'][u'video.search'] % (urllib.quote_plus(title.encode("utf-8")), pagelen, pagenumber, self.config['language'], )
++        # Special case where the grabber has been executed without any page
++        # argument
++        if 1 == pagenumber:
++            pagenumber = ""
++
++        result = self.getSearchResults(title, pagenumber, pagelen)
++        if not result:
++            raise YouTubeVideoNotFound(u"No YouTube Video matches found for search value (%s)" % title)
++
++        self.channel['channel_numresults'] = int(result['pageInfo']['totalResults'])
++        if 'nextPageToken' in result:
++            self.channel['nextpagetoken'] = result['nextPageToken']
++        if 'prevPageToken' in result:
++            self.channel['prevpagetoken'] = result['prevPageToken']
++
++        ids = map(lambda entry: entry['id']['videoId'], result['items'])
++
++        result = self.getVideoDetails(ids)
++        data = map(lambda entry: self.parseDetails(entry), result['items'])
++
++        if not len(data):
++            raise YouTubeVideoNotFound(u"No YouTube Video matches found for search value (%s)" % title)
++
++        return data
++        # end searchTitle()
++
++    def getSearchResults(self, title, pagenumber, pagelen):
++        url = ('https://www.googleapis.com/youtube/v3/search?part=snippet&' + \
++                'type=video&q=%s&maxResults=%s&order=relevance&' + \
++                'videoEmbeddable=true&key=%s&pageToken=%s') % \
++                (urllib.quote_plus(title.encode("utf-8")), pagelen, self.apikey,
++                        pagenumber)
+         if self.config['debug_enabled']:
+             print url
+             print
+ 
+         try:
+-            etree = XmlHandler(url).getEt()
++            return JsonHandler(url).getJson()
+         except Exception, errormsg:
+             raise YouTubeUrlError(self.error_messages['YouTubeUrlError'] % (url, errormsg))
+ 
+-        if etree is None:
+-            raise YouTubeVideoNotFound(u"No YouTube Video matches found for search value (%s)" % title)
++    def getVideoDetails(self, ids):
++        url = 'https://www.googleapis.com/youtube/v3/videos?part=id,snippet,' + \
++                'contentDetails&key=%s&id=%s' % (self.apikey, ",".join(ids))
++        try:
++            return JsonHandler(url).getJson()
++        except Exception as errormsg:
++            raise YouTubeUrlError(self.error_messages['YouTubeUrlError'] % (url, errormsg))
+ 
+-        data = []
+-        for entry in etree:
+-            if entry.tag.endswith('totalResults'):
+-                if entry.text:
+-                    self.channel['channel_numresults'] = int(entry.text)
+-                else:
+-                    self.channel['channel_numresults'] = 0
+-                continue
+-            if not entry.tag.endswith('entry'):
+-                continue
+-            item = {}
+-            cur_size = True
+-            flash = False
+-            for parts in entry:
+-                if parts.tag.endswith('id'):
+-                    item['id'] = parts.text
+-                    continue
+-                if parts.tag.endswith('title'):
+-                    item['title'] = parts.text
+-                    continue
+-                if parts.tag.endswith('author'):
+-                    for e in parts:
+-                        if e.tag.endswith('name'):
+-                            item['author'] = e.text
+-                            break
+-                    continue
+-                if parts.tag.endswith('published'):
+-                    item['published_parsed'] = parts.text
+-                    continue
+-                if parts.tag.endswith('content'):
+-                    item['media_description'] = parts.text
+-                    continue
+-                if parts.tag.endswith(u'rating'):
+-                    item['rating'] = parts.get('average')
+-                    continue
+-                if not parts.tag.endswith(u'group'):
+-                    continue
+-                for elem in parts:
+-                    if elem.tag.endswith(u'duration'):
+-                        item['duration'] =  elem.get('seconds')
+-                        continue
+-                    if elem.tag.endswith(u'thumbnail'):
+-                        if cur_size == False:
+-                            continue
+-                        height = elem.get('height')
+-                        width = elem.get('width')
+-                        if int(width) > cur_size:
+-                            item['thumbnail'] = self.ampReplace(elem.get('url'))
+-                            cur_size = int(width)
+-                        if int(width) >= 200:
+-                            cur_size = False
+-                        continue
+-                    if elem.tag.endswith(u'player'):
+-                        item['link'] = self.ampReplace(elem.get('url'))
+-                        continue
+-                    if elem.tag.endswith(u'content') and flash == False:
+-                        for key in elem.keys():
+-                            if not key.endswith(u'format'):
+-                                continue
+-                            if not elem.get(key) == '5':
+-                                continue
+-                            self.processVideoUrl(item, elem)
+-                            flash = True
+-                        continue
+-            if not item.has_key('video'):
+-                item['video'] =  item['link']
+-                item['duration'] =  u''
+-            else:
+-                item['link'] =  item['video']
+-            data.append(item)
++    def parseDetails(self, entry):
++        item = {}
++        try:
++            item['id'] = entry['id']
++            item['video'] = \
++                self.mythxml.getInternetContentUrl("nv_python_libs/configs/HTML/youtube.html", \
++                                                   item['id'])
++            item['link'] = item['video']
++            snippet = entry['snippet']
++            item['title'] = snippet['title']
++            item['media_description'] = snippet['description']
++            item['thumbnail'] = snippet['thumbnails']['high']['url']
++            item['author'] = snippet['channelTitle']
++            item['published_parsed'] = snippet['publishedAt']
++
++            try:
++                duration = aniso8601.parse_duration(entry['contentDetails']['duration'])
++                item['duration'] = duration.days * 24 * 3600 + duration.seconds
++            except Exception:
++                pass
+ 
+-        # Make sure there are no item elements that are None
+-        for item in data:
+             for key in item.keys():
++                # Make sure there are no item elements that are None
+                 if item[key] == None:
+                     item[key] = u''
+-
+-        # Massage each field and eliminate any item without a URL
+-        elements_final = []
+-        for item in data:
+-            if not 'id' in item.keys():
+-                continue
+-            item['language'] = self.config['language']
+-            for key in item.keys(): # 2010-01-23T08:38:39.000Z
+-                if key == 'published_parsed':
++                elif key == 'published_parsed': # 2010-01-23T08:38:39.000Z
+                     if item[key]:
+                         pub_time = time.strptime(item[key].strip(), "%Y-%m-%dT%H:%M:%S.%fZ")
+                         item[key] = time.strftime('%a, %d %b %Y %H:%M:%S GMT', pub_time)
+-                    continue
+-                if key == 'media_description' or key == 'title':
++                elif key == 'media_description' or key == 'title':
+                     # Strip the HTML tags
+                     if item[key]:
+                         item[key] = self.massageDescription(item[key].strip())
+                         item[key] = item[key].replace(u'|', u'-')
+-                    continue
+-                if type(item[key]) == type(u''):
++                elif type(item[key]) == type(u''):
+                     if item[key]:
+-                        item[key] = self.ampReplace(item[key].replace('"\n',' ').strip())
+-            elements_final.append(item)
+-
+-        if not len(elements_final):
+-            raise YouTubeVideoNotFound(u"No YouTube Video matches found for search value (%s)" % title)
+-
+-        return elements_final
+-        # end searchTitle()
++                        item[key] = self.common.ampReplace(item[key].replace('"\n',' ').strip())
++        except KeyError:
++            pass
+ 
++        return item
+ 
+     def searchForVideos(self, title, pagenumber):
+         """Common name for a video search. Used to interface with MythTV plugin NetVision
+         """
+         # Channel details and search results
+-        self.channel = {'channel_title': u'YouTube', 'channel_link': u'http://www.youtube.com/', 'channel_description': u"Share your videos with friends, family, and the world.", 'channel_numresults': 0, 'channel_returned': 1, u'channel_startindex': 0}
++        self.channel = {
++            'channel_title': u'YouTube',
++            'channel_link': u'http://www.youtube.com/',
++            'channel_description': u"Share your videos with friends, family, and the world.",
++            'channel_numresults': 0,
++            'channel_returned': 1,
++            'channel_startindex': 0}
+ 
+         # Easier for debugging
+ #        print self.searchTitle(title, pagenumber, self.page_limit)
+ #        print
+ #        sys.exit()
+ 
+-        startindex = (int(pagenumber) -1) * self.page_limit + 1
+         try:
+-            data = self.searchTitle(title, startindex, self.page_limit)
++            data = self.searchTitle(title, pagenumber, self.page_limit)
+         except YouTubeVideoNotFound, msg:
+             sys.stderr.write(u"%s\n" % msg)
+             return None
+@@ -592,17 +481,7 @@ class Videos(object):
+         if not len(data):
+             return None
+ 
+-        items = []
+-        for match in data:
+-            item_data = {}
+-            for key in self.key_translation[1].keys():
+-                if key in match.keys():
+-                    item_data[self.key_translation[1][key]] = match[key]
+-                else:
+-                    item_data[self.key_translation[1][key]] = u''
+-            items.append(item_data)
+-
+-        self.channel['channel_startindex'] = self.page_limit * int(pagenumber)
++        items = map(lambda match: self.translateItem(match), data)
+         self.channel['channel_returned'] = len(items)
+ 
+         if len(items):
+@@ -610,171 +489,70 @@ class Videos(object):
+         return None
+     # end searchForVideos()
+ 
+-    def getCategories(self, dir_dict, categories):
+-        '''Parse a dictionary made of subdictionaries and category list and extract all of the categories
+-        return a list of categories
+-        '''
+-        for sets in dir_dict:
+-            if isinstance(sets[1], str):
+-                continue
+-            for cat in sets[1]:
+-                categories.append(cat)
+-        return categories
+-    # end getCategories()
++    def translateItem(self, item):
++        item_data = {}
++        for key in self.key_translation[1].keys():
++            if key in item.keys():
++                item_data[self.key_translation[1][key]] = item[key]
++            else:
++                item_data[self.key_translation[1][key]] = u''
++        return item_data
+ 
+     def displayTreeView(self):
+         '''Gather the Youtube categories/feeds/...etc then get a max page of videos meta data in each of them
+         return array of directories and their video metadata
+         '''
+         # Channel details and search results
+-        self.channel = {'channel_title': u'YouTube', 'channel_link': u'http://www.youtube.com/', 'channel_description': u"Share your videos with friends, family, and the world.", 'channel_numresults': 0, 'channel_returned': 1, u'channel_startindex': 0}
+-
+-        if self.config['debug_enabled']:
+-            print self.config[u'urls']
+-            print
+-
+-        if self.config['debug_enabled']:
+-            print self.config[u'urls'][u'categories_list']
+-            print
+-
+-        try:
+-            etree = XmlHandler(self.config[u'urls'][u'categories_list']).getEt()
+-        except Exception, errormsg:
+-            raise YouTubeUrlError(self.error_messages['YouTubeUrlError'] % (url, errormsg))
+-
++        self.channel = {
++            'channel_title': u'YouTube',
++            'channel_link': u'http://www.youtube.com/',
++            'channel_description': u"Share your videos with friends, family, and the world.",
++            'channel_numresults': 0,
++            'channel_returned': 1,
++            'channel_startindex': 0}
++
++        etree = self.getVideoCategories()
+         if etree is None:
+             raise YouTubeCategoryNotFound(u"No YouTube Categories found for Tree view")
+ 
+-        cats = []
+-        for category in etree:
+-            if category.tag.endswith('category'):
+-                cats.append({'term': category.get('term'), 'label': category.get('label')})
+-        if not len(cats):
+-            raise YouTubeCategoryNotFound(u"No YouTube Category tags found for Tree view")
+-
+-        self.feed_names['category'] = {}
+-        for category in cats:
+-            self.feed_names['category'][category['term']] = self.ampReplace(category['label'])
+-
+-        # Verify all categories are already in site tree map add any new ones to 'Other'
+-        categories = []
+-        categories = self.getCategories(self.tree_org['category'], categories)
+-
+-        # Add any categories that are not in the preset tree map
+-        new_category = []
+-        for category in self.feed_names['category'].keys():
+-            if category in categories:
+-                continue
+-            new_category.append(category)
+-        if len(new_category):
+-            self.tree_org['category'].append(['New', new_category])
+-            self.tree_org['category'].append(['', u''])
+-
+-        # Add local feed details
+-        # {'Latitude': '43.6667', 'Country': 'Canada', 'Longitude': '-79.4167', 'City': 'Toronto'}
+-        longitude_latitude = self.detectUserLocationByIP()
+-        if len(longitude_latitude):
+-            self.feed_names['local_feeds'] = dict(self.feed_names['standard_feeds'])
+-            self.tree_customize['local_feeds']['__default__']['location'] = u"%s,%s" % (longitude_latitude['Latitude'], longitude_latitude['Longitude'])
+-            self.tree_org['local_feeds'][0][0] = u'Youtube Feeds within %s of %s, %s' % (self.tree_customize['local_feeds']['__default__']['location-radius'], longitude_latitude['City'], longitude_latitude['Country'])
+-        else:
+-            self.tree_order.remove('local_feeds')
+-        # Set location search parameters
+-        if len(longitude_latitude):
+-            city_country = u'%s+%s' % (longitude_latitude['City'], longitude_latitude['Country'])
+-            self.tree_org['location_feeds'][0][1][0] = city_country
+-            self.feed_names['location_feeds'] = dict({u'%s' % city_country: u'Youtube Videos for %s, %s' % (longitude_latitude['City'], longitude_latitude['Country'])})
+-        else:
+-            self.tree_order.remove('location_feeds')
+-
+-        # Set the default videos per page limit for all feeds/categories/... etc
+-        for key in self.tree_customize.keys():
+-            if '__default__' in self.tree_customize[key].keys():
+-                if 'max-results' in self.tree_customize[key]['__default__'].keys():
+-                    self.tree_customize[key]['__default__']['max-results'] = unicode(self.page_limit)
++        feed_names = {}
++        for category in etree['items']:
++            snippet = category['snippet']
++            feed_names[snippet['title']] = self.common.ampReplace(category['id'])
+ 
+         # Get videos within each category
+         dictionaries = []
+ 
+         # Process the various video feeds/categories/... etc
+-        for key in self.tree_order:
+-            self.tree_key = key
+-            dictionaries = self.getVideos(self.tree_org[key], dictionaries)
++        for category in feed_names:
++            self.tree_key = category
++            dictionaries = self.getVideosForCategory(feed_names[category], dictionaries)
+ 
+         return [[self.channel, dictionaries]]
+     # end displayTreeView()
+ 
+-    def processVideoUrl(self, item, elem):
+-        '''Processes elem.get('url') to either use a custom HTML page served by
+-        the backend, or include '&autoplay=1'
+-        '''
+-        m = re.search('/v/([^?]+)', elem.get('url'))
+-        if m:
+-            url = self.mythxml.getInternetContentUrl("nv_python_libs/configs/HTML/youtube.html", \
+-                                                     m.group(1))
+-            item['video'] = self.ampReplace(url)
+-        else:
+-            item['video'] = self.ampReplace((elem.get('url')+'&autoplay=1'))
+-
+-    def makeURL(self, URL):
+-        '''Form a URL to search for videos
+-        return a URL
+-        '''
+-        additions = dict(self.tree_customize[self.tree_key]['__default__']) # Set defaults
+-
+-        # Add customizations
+-        if self.feed in self.tree_customize[self.tree_key].keys():
+-            for element in self.tree_customize[self.tree_key][self.feed].keys():
+-                additions[element] = self.tree_customize[self.tree_key][self.feed][element]
+-
+-        # Make the search extension string that is added to the URL
+-        addition = u''
+-        for ky in additions.keys():
+-            if ky.startswith('add_'):
+-                addition+=u'/%s' %  additions[ky]
+-            else:
+-                addition+=u'&%s=%s' %  (ky, additions[ky])
+-        index = URL.find('%')
+-        if index == -1:
+-            return (URL+addition)
+-        else:
+-            return (URL+addition) % self.feed
+-    # end makeURL()
+-
++    def getVideoCategories(self):
++        try:
++            url = 'https://www.googleapis.com/youtube/v3/videoCategories?' + \
++                    'part=snippet&regionCode=%s&key=%s' % \
++                    (self.config['region'], self.apikey)
++            return JsonHandler(url).getJson()
++        except Exception as errormsg:
++            raise YouTubeUrlError(self.error_messages['YouTubeUrlError'] % (url, errormsg))
+ 
+-    def getVideos(self, dir_dict, dictionaries):
++    def getVideosForCategory(self, categoryId, dictionaries):
+         '''Parse a list made of category lists and retrieve video meta data
+         return a dictionary of directory names and categories video metadata
+         '''
+-        for sets in dir_dict:
+-            if not isinstance(sets[1], list):
+-                if sets[0] != '': # Add the nested dictionaries display name
+-                    try:
+-                        dictionaries.append([self.massageDescription(sets[0]), self.setTreeViewIcon(self.feed_icons[self.tree_key][sets[0]])])
+-                    except KeyError:
+-                        dictionaries.append([self.massageDescription(sets[0]), self.channel_icon])
+-                else:
+-                    dictionaries.append(['', u'']) # Add the nested dictionary indicator
+-                continue
+-            temp_dictionary = []
+-            for self.feed in sets[1]:
+-                if self.config[u'urls'][u'tree.view'][self.tree_key].has_key('__all__'):
+-                    URL = self.config[u'urls'][u'tree.view'][self.tree_key]['__all__']
+-                else:
+-                    URL = self.config[u'urls'][u'tree.view'][self.tree_key][self.feed]
+-                temp_dictionary = self.config['item_parser'][URL[1]](self.makeURL(URL[0]), temp_dictionary)
+-            if len(temp_dictionary):
+-                if len(sets[0]): # Add the nested dictionaries display name
+-                    try:
+-                        dictionaries.append([self.massageDescription(sets[0]), self.setTreeViewIcon(self.feed_icons[self.tree_key][sets[0]])])
+-                    except KeyError:
+-                        dictionaries.append([self.massageDescription(sets[0]), self.channel_icon])
+-                for element in temp_dictionary:
+-                    dictionaries.append(element)
+-                if len(sets[0]):
+-                    dictionaries.append(['', u'']) # Add the nested dictionary indicator
++        url = 'https://www.googleapis.com/youtube/v3/videos?part=snippet&' + \
++                'chart=mostPopular&videoCategoryId=%s&maxResults=%s&key=%s' %  \
++                (categoryId, self.page_limit, self.apikey)
++        temp_dictionary = []
++        temp_dictionary = self.getVideosForURL(url, temp_dictionary)
++        for element in temp_dictionary:
++            dictionaries.append(element)
+         return dictionaries
+-    # end getVideos()
++    # end getVideosForCategory()
+ 
+     def getVideosForURL(self, url, dictionaries):
+         '''Get the video metadata for url search
+@@ -788,110 +566,31 @@ class Videos(object):
+             print
+ 
+         try:
+-            etree = XmlHandler(url).getEt()
++            result = JsonHandler(url).getJson()
+         except Exception, errormsg:
+             sys.stderr.write(self.error_messages['YouTubeUrlError'] % (url, errormsg))
+             return dictionaries
+ 
+-        if etree is None:
++        if result is None:
+             sys.stderr.write(u'1-No Videos for (%s)\n' % self.feed)
+             return dictionaries
+ 
++        if 'pageInfo' not in result or 'items' not in result:
++            return dictionaries
++
+         dictionary_first = False
+-        for elements in etree:
+-            if elements.tag.endswith(u'totalResults'):
+-                self.channel['channel_numresults'] += int(elements.text)
+-                self.channel['channel_startindex'] = self.page_limit
+-                self.channel['channel_returned'] = self.page_limit # False value CHANGE later
+-                continue
+-
+-            if not elements.tag.endswith(u'entry'):
+-                continue
+-
+-            metadata = {}
+-            cur_size = True
+-            flash = False
+-            for e in elements:
+-                metadata['language'] = self.config['language']
+-                if e.tag.endswith(u'published'): # '2009-02-13T04:54:28.000Z'
+-                    if e.text:
+-                        pub_time = time.strptime(e.text.strip(), "%Y-%m-%dT%H:%M:%S.000Z")
+-                        metadata['published_parsed'] = time.strftime('%a, %d %b %Y %H:%M:%S GMT', pub_time)
+-                    continue
+-                if e.tag.endswith(u'rating'):
+-                    if e.get('average'):
+-                        metadata['rating'] = e.get('average')
+-                    continue
+-                if e.tag.endswith(u'title'):
+-                    if e.text:
+-                        metadata['title'] = self.massageDescription(e.text.strip())
+-                    continue
+-                if e.tag.endswith(u'author'):
+-                    for a in e:
+-                        if a.tag.endswith(u'name'):
+-                            if a.text:
+-                                metadata['author'] = self.massageDescription(a.text.strip())
+-                            break
+-                    continue
+-                if not e.tag.endswith(u'group'):
+-                    continue
+-                for elem in e:
+-                    if elem.tag.endswith(u'description'):
+-                        if elem.text != None:
+-                            metadata['media_description'] = self.massageDescription(elem.text.strip())
+-                        else:
+-                            metadata['media_description'] = u''
+-                        continue
+-                    if elem.tag.endswith(u'duration'):
+-                        if elem.get('seconds'):
+-                            metadata['duration'] =  elem.get('seconds').strip()
+-                        continue
+-                    if elem.tag.endswith(u'thumbnail'):
+-                        if cur_size == False:
+-                            continue
+-                        height = elem.get('height')
+-                        width = elem.get('width')
+-                        if int(width) > cur_size:
+-                            if elem.get('url'):
+-                                metadata['thumbnail'] = self.ampReplace(elem.get('url'))
+-                                cur_size = int(width)
+-                        if int(width) >= 200:
+-                            cur_size = False
+-                        continue
+-                    if elem.tag.endswith(u'player'):
+-                        if elem.get('url'):
+-                            metadata['link'] = self.ampReplace(elem.get('url'))
+-                        continue
+-                    if elem.tag.endswith(u'content') and flash == False:
+-                        for key in elem.keys():
+-                            if not key.endswith(u'format'):
+-                                continue
+-                            if not elem.get(key) == '5':
+-                                continue
+-                            if elem.get('url'):
+-                                self.processVideoUrl(metadata, elem)
+-                                flash = True
+-                        continue
+-
+-            if not metadata.has_key('video') and not metadata.has_key('link'):
+-                continue
+-
+-            if not metadata.has_key('video'):
+-                metadata['video'] = metadata['link']
+-            else:
+-                metadata['link'] =  metadata['video']
++        self.channel['channel_numresults'] += int(result['pageInfo']['totalResults'])
++        self.channel['channel_startindex'] = self.page_limit
++        self.channel['channel_returned'] = len(result['items'])
++        for entry in result['items']:
++            item = self.parseDetails(entry)
+ 
+             if not dictionary_first:  # Add the dictionaries display name
+-                dictionaries.append([self.massageDescription(self.feed_names[self.tree_key][self.feed]), self.setTreeViewIcon()])
++                dictionaries.append([self.massageDescription(self.tree_key),
++                    self.setTreeViewIcon()])
+                 dictionary_first = True
+ 
+-            final_item = {}
+-            for key in self.key_translation[1].keys():
+-                if not metadata.has_key(key):
+-                    final_item[self.key_translation[1][key]] = u''
+-                else:
+-                    final_item[self.key_translation[1][key]] = metadata[key]
+-            dictionaries.append(final_item)
++            dictionaries.append(self.translateItem(item))
+ 
+         if initial_length < len(dictionaries): # Need to check if there was any items for this Category
+             dictionaries.append(['', u'']) # Add the nested dictionary indicator
+diff --git a/mythtv/programs/scripts/internetcontent/nv_python_libs/youtube/youtube_data.py b/mythtv/programs/scripts/internetcontent/nv_python_libs/youtube/youtube_data.py
+new file mode 100644
+index 0000000..1bcc046
+--- /dev/null
++++ b/mythtv/programs/scripts/internetcontent/nv_python_libs/youtube/youtube_data.py
+@@ -0,0 +1,20 @@
++#!/usr/bin/env python
++# -*- coding: utf-8 -*-
++from string import ascii_uppercase, ascii_lowercase
++
++class getData(object):
++    def __init__(self):
++        self.a = '4e566d6e466c50784b416e477a527176587337444b5730554530324e4d39706d6774535531614c'
++
++    def update(self, data):
++        total = []
++        for char in data.decode("hex"):
++            if char in ascii_uppercase:
++                index = (ascii_uppercase.find(char) + 13) % 26
++                total.append(ascii_uppercase[index])
++            elif char in ascii_lowercase:
++                index = (ascii_lowercase.find(char) + 13) % 26
++                total.append(ascii_lowercase[index])
++            else:
++                total.append(char)
++        return "".join(total)
+diff --git a/mythtv/programs/scripts/internetcontent/youtube.py b/mythtv/programs/scripts/internetcontent/youtube.py
+index b22a54d..d5086e8 100755
+--- a/mythtv/programs/scripts/internetcontent/youtube.py
++++ b/mythtv/programs/scripts/internetcontent/youtube.py
+@@ -168,34 +168,6 @@ __tree_max_page_items__ = 20
+ 
+ import sys, os
+ 
+-class OutStreamEncoder(object):
+-    """Wraps a stream with an encoder"""
+-    def __init__(self, outstream, encoding=None):
+-        self.out = outstream
+-        if not encoding:
+-            self.encoding = sys.getfilesystemencoding()
+-        else:
+-            self.encoding = encoding
+-
+-    def write(self, obj):
+-        """Wraps the output stream, encoding Unicode strings with the specified encoding"""
+-        if isinstance(obj, unicode):
+-            try:
+-                self.out.write(obj.encode(self.encoding))
+-            except IOError:
+-                pass
+-        else:
+-            try:
+-                self.out.write(obj)
+-            except IOError:
+-                pass
+-
+-    def __getattr__(self, attr):
+-        """Delegate everything but write to the stream"""
+-        return getattr(self.out, attr)
+-sys.stdout = OutStreamEncoder(sys.stdout, 'utf8')
+-sys.stderr = OutStreamEncoder(sys.stderr, 'utf8')
+-
+ # Used for debugging
+ #import nv_python_libs.youtube.youtube_api as target
+ 
+@@ -230,8 +202,9 @@ if process.__version__ < '0.2.0':
+     sys.exit(1)
+ 
+ if __name__ == '__main__':
+-    # No api key is required
+     apikey = ""
++    # Set the base processing directory that the grabber is installed
++    target.baseProcessingDir = os.path.dirname( os.path.realpath(__file__))
+     main = process.mainProcess(target, apikey, )
+     main.grabberInfo = {}
+     main.grabberInfo['title'] = __title__
+-- 
+1.7.10.2
+

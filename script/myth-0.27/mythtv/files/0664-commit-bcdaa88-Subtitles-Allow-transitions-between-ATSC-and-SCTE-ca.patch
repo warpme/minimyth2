@@ -1,0 +1,88 @@
+From bcdaa8865ef8700ccbb7214ec39dcbcd8392b2af Mon Sep 17 00:00:00 2001
+From: Jim Stichnoth <jstichnoth@mythtv.org>
+Date: Wed, 22 Apr 2015 05:19:14 -0700
+Subject: [PATCH] Subtitles: Allow transitions between ATSC and SCTE captions.
+
+In changeset d526385aa4c1466b064e9544cdb663f357007e35 (refs #9829),
+code was added such that the first time ATSC caption data is seen, any
+future SCTE caption data is explicitly ignored.  This was to deal with
+broadcasts containing duplicate caption data.
+
+This policy causes problems when the recording switches back and forth
+between the two sources of caption data, such as when the broadcaster
+splices in commercials.
+
+The updated solution continues to favor ATSC data, but allows a switch
+back to SCTE after SCTE data is seen 10 times in a row (a somewhat
+arbitrarily chosen number) without intervening ATSC data.
+
+Refs #12054.
+
+(cherry picked from commit 68bd03ffe5b7bb6456519639caac77486ea0941c)
+---
+ mythtv/libs/libmythtv/avformatdecoder.cpp |   18 ++++++++++++++++--
+ mythtv/libs/libmythtv/avformatdecoder.h   |    2 +-
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/avformatdecoder.cpp b/mythtv/libs/libmythtv/avformatdecoder.cpp
+index 8507d6b..e35e675 100644
+--- a/mythtv/libs/libmythtv/avformatdecoder.cpp
++++ b/mythtv/libs/libmythtv/avformatdecoder.cpp
+@@ -410,7 +410,7 @@ AvFormatDecoder::AvFormatDecoder(MythPlayer *parent,
+       video_codec_id(kCodec_NONE),
+       maxkeyframedist(-1),
+       // Closed Caption & Teletext decoders
+-      ignore_scte(false),
++      ignore_scte(0),
+       invert_scte_field(0),
+       last_scte_field(0),
+       ccd608(new CC608Decoder(parent->GetCC608Reader())),
+@@ -3676,17 +3676,31 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
+ {
+     AVCodecContext *context = stream->codec;
+ 
++    // We need to mediate between ATSC and SCTE data when both are present.  If
++    // both are present, we generally want to prefer ATSC.  However, there may
++    // be large sections of the recording where ATSC is used and other sections
++    // where SCTE is used.  In that case, we want to allow a natural transition
++    // from ATSC back to SCTE.  We do this by allowing 10 consecutive SCTE
++    // frames, without an intervening ATSC frame, to cause a switch back to
++    // considering SCTE frames.  The number 10 is somewhat arbitrarily chosen.
++
+     uint cc_len = (uint) max(mpa_pic->scte_cc_len,0);
+     uint8_t *cc_buf = mpa_pic->scte_cc_buf;
+     bool scte = true;
+ 
++    // If we saw SCTE, then decrement a nonzero ignore_scte count.
++    if (cc_len > 0 && ignore_scte)
++        --ignore_scte;
++
+     // If both ATSC and SCTE caption data are available, prefer ATSC
+     if ((mpa_pic->atsc_cc_len > 0) || ignore_scte)
+     {
+-        ignore_scte = true;
+         cc_len = (uint) max(mpa_pic->atsc_cc_len, 0);
+         cc_buf = mpa_pic->atsc_cc_buf;
+         scte = false;
++        // If we explicitly saw ATSC, then reset ignore_scte count.
++        if (cc_len > 0)
++            ignore_scte = 10;
+     }
+ 
+     // Decode CEA-608 and CEA-708 captions
+diff --git a/mythtv/libs/libmythtv/avformatdecoder.h b/mythtv/libs/libmythtv/avformatdecoder.h
+index 36e2714..70c8991 100644
+--- a/mythtv/libs/libmythtv/avformatdecoder.h
++++ b/mythtv/libs/libmythtv/avformatdecoder.h
+@@ -328,7 +328,7 @@ class AvFormatDecoder : public DecoderBase
+     int maxkeyframedist;
+ 
+     // Caption/Subtitle/Teletext decoders
+-    bool             ignore_scte;
++    uint             ignore_scte;
+     uint             invert_scte_field;
+     uint             last_scte_field;
+     CC608Decoder     *ccd608;
+-- 
+1.7.10.2
+

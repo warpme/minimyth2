@@ -1,0 +1,60 @@
+From 8fd277bb1ecab938e57059dc9472b6f922d5fca7 Mon Sep 17 00:00:00 2001
+From: Paul Harrison <pharrison@mythtv.org>
+Date: Wed, 20 May 2015 23:40:17 +0100
+Subject: [PATCH] MythDownloadManager: fix a bug when downloading URL's with
+ percent encoding
+
+This avoids converting a url to a QUrl only to later use its toString() method
+which was causing problems with percent encoded URL's not being removed from the
+download queue because we ended up comparing a human readable URL with a percent
+encoded one.
+
+Refs #12356
+
+(cherry picked from commit d620cb9e1b19a5fa1e693a91d9ea6271e03640b4)
+---
+ mythtv/libs/libmythbase/mythdownloadmanager.cpp |    7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/mythtv/libs/libmythbase/mythdownloadmanager.cpp b/mythtv/libs/libmythbase/mythdownloadmanager.cpp
+index b781f84..dbf061f 100644
+--- a/mythtv/libs/libmythbase/mythdownloadmanager.cpp
++++ b/mythtv/libs/libmythbase/mythdownloadmanager.cpp
+@@ -11,6 +11,7 @@
+ #include <QTextStream>
+ #include <QNetworkProxy>
+ #include <QMutexLocker>
++#include <QUrl>
+ 
+ #include "stdlib.h"
+ 
+@@ -27,7 +28,6 @@
+ 
+ #include "mythdownloadmanager.h"
+ #include "mythlogging.h"
+-#include <QUrl>
+ 
+ using namespace std;
+ 
+@@ -325,8 +325,7 @@ void MythDownloadManager::run(void)
+                 continue;
+             }
+ 
+-            QUrl qurl(dlInfo->m_url);
+-            if (m_downloadInfos.contains(qurl.toString()))
++            if (m_downloadInfos.contains(dlInfo->m_url))
+             {
+                 // Push request to the end of the queue to let others process.
+                 // If this is the only item in the queue, force the loop to
+@@ -346,7 +345,7 @@ void MythDownloadManager::run(void)
+                 downloadQNetworkRequest(dlInfo);
+             }
+ 
+-            m_downloadInfos[qurl.toString()] = dlInfo;
++            m_downloadInfos[dlInfo->m_url] = dlInfo;
+         }
+         m_infoLock->unlock();
+     }
+-- 
+1.7.10.2
+

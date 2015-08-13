@@ -5,6 +5,26 @@ MASTER_SITES = svn://svn.mythtv.org/svn/trunk/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  =
 
+PATCHFILES += 0660-commit-bcf888f-subtitles-Fix-automatic-display-of-captions-subtitles.patch
+PATCHFILES += 0661-commit-e4c6d16-Dont-show-the-miniplayer-in-MythMusic-when-starting-the-next.patch
+PATCHFILES += 0662-commit-65ada0c-Spawn-MythFrontend-from-separate-thread-in-MythWelcome.patch
+PATCHFILES += 0662-commit-7860e91-Network-control-Handle-space-key-properly.patch
+PATCHFILES += 0663-commit-554046a-Subtitles-Dont-reset-subtitle-state-after-seeking.patch
+
+# 7.6.13
+PATCHFILES += 0664-commit-bcdaa88-Subtitles-Allow-transitions-between-ATSC-and-SCTE-ca.patch
+PATCHFILES += 0665-commit-74dba35-Subtitles-Fix-state-calculation-in-EnableCaptions-Di.patch
+PATCHFILES += 0666-commit-7962008-Subtitles-Yet-another-state-calculation-fix.patch
+PATCHFILES += 0668-commit-974d1ae-Reduce-Watch-Recordings-sluggishness-by-caching-jobq.patch
+PATCHFILES += 0669-commit-a848edd-Video-output-Add-default-fragment-shader-for-OpenGL-.patch
+PATCHFILES += 0670-commit-8b6d4da-Video-output-Fix-OpenGL-1-output-after-b9971146.patch
+PATCHFILES += 0671-commit-45d2d51-Subtitles-Fix-cc608-preamble-indents.-Fixes-12051.patch
+PATCHFILES += 0672-commit-6b73976-MythDownloadManager-add-some-logging-to-try-to-track.patch
+PATCHFILES += 0673-commit-e7af3a0-MythDownloadManager-put-the-lock-around-m_downloadIn.patch
+PATCHFILES += 0674-commit-8fd277b-MythDownloadManager-fix-a-bug-when-downloading-URL-s.patch
+PATCHFILES += 0675-commit-26bb9cb-Internet-Content-Adapt-the-YouTube-grabber-to-the-v3.patch
+PATCHFILES += 0676-commit-2142e08-Internet-Content-Tidy-up-some-formatting-in-the-YouT.patch
+PATCHFILES += 0677-commit-9498257-Internet-Content-Replace-precompiled-vimeo_data.pyc-.patch
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
     PATCHFILES += 1000-1138-mythmusic-backport-from-master-20140505.patch
