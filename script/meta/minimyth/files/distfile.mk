@@ -93,6 +93,7 @@ $(PARTIALDIR)/$(DISTNAME)/source/gar-minimyth: $(abspath $(GARDIR)/..) | $(PARTI
 		--exclude '$(<F)/script/*.log' \
 		--exclude '$(<F)/script/*/*.log' \
 		--exclude '$(<F)/script/*/*/*.log' \
+		--exclude '$(<F)/.git*' \
 		-jcf $@~~/$(<F).tar.bz2 \
 		$(<F)
 	@cd $@~~ ; tar -jxf $(<F).tar.bz2
