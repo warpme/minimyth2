@@ -14,8 +14,13 @@ PATCHFILES = \
 	$(DISTNAME)-input_map.patch.gar \
 	$(DISTNAME)-remove_asm_sytem_h.patch \
 	$(DISTNAME)-kernel3.8.13-build.patch \
-	$(DISTNAME)-fix_for_new_automake.patch \
-	$(DISTNAME)-kernel3.19.1-build.patch
+	$(DISTNAME)-fix_for_new_automake.patch
+
+ifneq ($(mm_KERNEL_VERSION),3.16)
+PATCHFILES += $(DISTNAME)-kernel3.19.1-build.patch \
+	$(DISTNAME)-kernel4.1-depreciated-irqf-fix.patch
+endif
+
 LICENSE = GPL2
 
 DESCRIPTION =
