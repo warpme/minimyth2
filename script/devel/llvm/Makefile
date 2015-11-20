@@ -1,10 +1,11 @@
 GARNAME = llvm
-GARVERSION = 3.4.2
+GARVERSION = 3.7.0
 CATEGORIES = devel
 MASTER_SITES = http://www.llvm.org/releases/$(GARVERSION)/
-DISTFILES = $(DISTNAME).src.tar.gz
+DISTFILES = $(DISTNAME).src.tar.xz
 PATCHFILES = $(DISTNAME)-cross.patch
-PATCHFILES += $(DISTNAME)-fix_r600_experimental_target_compile.patch
+PATCHFILES += $(DISTNAME)-revert-28153-disable-build-in-src-dir.patch
+PATCHFILES += $(DISTNAME)-fix_AMDGPU_experimental_target_compile.patch
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE.TXT
 
@@ -41,7 +42,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-embed-stdcxx \
 	--enable-timestamps \
-	--enable-experimental-targets=R600 \
+	--enable-experimental-targets=AMDGPU \
 	$(if $(filter i386,$(GARCH_FAMILY)),--enable-targets=x86) \
 	$(if $(filter x86_64,$(GARCH_FAMILY)),--enable-targets=x86_64)
 
@@ -61,7 +62,6 @@ CONFIGURE_ENV = \
 	BUILD_LDFLAGS="$(build_LDFLAGS)" \
 	TCLSH="$(build_DESTDIR)/$(build_bindir)/tclsh"
 
-
 include ../../gar.mk
 
 pre-configure:
@@ -70,8 +70,9 @@ pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
 
-pre-install:
+post-configure:
 	@mkdir -p $(WORKSRC)/BuildTools
+	@mkdir -p $(WORKSRC)/Release
 	@ln -sf ../Release $(WORKSRC)/BuildTools/Release
 	@$(MAKECOOKIE)
 
