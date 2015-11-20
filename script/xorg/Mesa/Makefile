@@ -1,7 +1,8 @@
 GARNAME = mesa
-GARVERSION = 10.6.3
+GARVERSION = 11.0.5
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/$(GARVERSION)/
+# MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/11.0.0/
 DISTFILES = mesa-$(GARVERSION).tar.xz
 LICENSE = LGPL2/MIT
 
@@ -72,6 +73,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-vdpau \
 	--disable-opencl \
 	--disable-opencl-icd \
+	--enable-dri3 \
 	LIBUDEV_CFLAGS="$(DESTDIR)$(includedir)" \
 	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so"
 
@@ -87,7 +89,7 @@ include ../../gar.mk
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -Os
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -Os
 
-# mesa 10.6.0 xa gallium tracker has issue with LTO
+# mesa 10.6.x and 11.0.0 xa gallium tracker has issue with LTO
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
@@ -108,6 +110,8 @@ pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	#Hack needed to build Mesa with libxcb1.17
 	@ln -sf $(DESTDIR)$(libdir)/libxcb.la-disabled $(DESTDIR)$(libdir)/libxcb.la
+	#Hack needed to build Mesa with libdrm2.64
+	@ln -sf $(DESTDIR)$(libdir)/libdrm.la-disabled $(DESTDIR)$(libdir)/libdrm.la
 	@$(MAKECOOKIE)
 
 install-source:
@@ -127,6 +131,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libGLESv2.la
 	@rm -f $(DESTDIR)$(libdir)/libGLESv1_CM.la
 	@rm -f $(DESTDIR)$(libdir)/libxatracker.la
+	@rm -f $(DESTDIR)$(libdir)/dri/gallium_drv_video.la
 	@rm -f $(DESTDIR)$(libdir)/dri/i915_dri.la
 	@rm -f $(DESTDIR)$(libdir)/dri/i965_dri.la
 	@rm -f $(DESTDIR)$(libdir)/dri/r200_dri.la
@@ -152,4 +157,6 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe.la
 	@#Remove Hack needed to build Mesa with libxcb1.17
 	@rm -f $(DESTDIR)$(libdir)/libxcb.la
+	@#Remove Hack needed to build Mesa with libdrm2.64
+	@rm -f $(DESTDIR)$(libdir)/libdrm.la
 	@$(MAKECOOKIE)
