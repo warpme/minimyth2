@@ -94,4 +94,5 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libIntelXvMC.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/drivers/intel_drv.la
 	@cp $(WORKSRC)/src/i915_pciids.h $(WORKSRC)/../../../files/
+	@cd files; ./generate-intel-udev-rule.sh
 	@$(MAKECOOKIE)

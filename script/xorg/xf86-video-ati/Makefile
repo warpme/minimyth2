@@ -81,4 +81,5 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/multimedia/theatre_drv.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/multimedia/theatre200_drv.la
 	@cp $(WORKSRC)/src/ati_pciids_gen.h $(WORKSRC)/../../../files/
+	@cd files; ./generate-ati-udev-rule.sh
 	@$(MAKECOOKIE)

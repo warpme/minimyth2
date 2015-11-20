@@ -487,6 +487,8 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@echo 'copying updated index.html'
 	@cp -pdR $@~/srv/www/index.html $(mm_HOME)/html/minimyth/index.html
 	@sed -i '/.*cgi-bin.*/d' $(mm_HOME)/html/minimyth/index.html
+	@echo 'generating supported video HW list'
+	@cat $(DESTDIR)/usr/udev-pciid/supported-ati-gfx-hardware.txt $(DESTDIR)/usr/udev-pciid/supported-intel-gfx-hardware.txt $(DESTDIR)/usr/udev-pciid/supported-nvidia-gfx-hardware.txt > $(mm_HOME)/html/minimyth/document-supported-gfx-hardware.txt
 	@$(call SET_PERMISSIONS,$@~)
 	@touch $@~
 	@mv $@~ $@
