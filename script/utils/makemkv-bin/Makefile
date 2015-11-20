@@ -1,9 +1,9 @@
 GARNAME = makemkv-bin
-GARVERSION = 1.9.5
+GARVERSION = 1.9.7
 CATEGORIES = utils
 MASTER_SITES = http://www.makemkv.com/download/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
-PATCHFILES = $(DISTNAME)-unattended_install.patch
+PATCHFILES = makemkv-bin-unattended_install.patch
 LICENSE = GPL2
 
 DESCRIPTION = 
