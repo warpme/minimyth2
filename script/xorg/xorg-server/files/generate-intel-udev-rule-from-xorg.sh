@@ -6,7 +6,7 @@
 #
 
 in_file='./i915_pci_ids.h ./i965_pci_ids.h'
-out_file='./05-minimyth-detect-x-intel-1.17.1.rules.disabled'
+out_file='./05-minimyth-detect-x-intel-1.18.0.rules.disabled'
 suported_devices_file='supported-gfx-hardware.txt'
 vendor_id='8086'
 

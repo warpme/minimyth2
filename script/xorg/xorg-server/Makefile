@@ -1,5 +1,5 @@
 GARNAME = xorg-server
-GARVERSION = 1.17.2
+GARVERSION = 1.18.0
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
@@ -8,6 +8,7 @@ PATCHFILES = \
 	$(DISTNAME)-pkg_config.patch \
 	$(DISTNAME)-detect_radeon.patch \
 	$(DISTNAME)-debug-page-flipping.patch
+# PATCHFILES += $(DISTNAME)-dix-revert-Send-KeyPress-and-KeyRelease-events-to-XACE_KEY_AVAIL_hook.patch
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 

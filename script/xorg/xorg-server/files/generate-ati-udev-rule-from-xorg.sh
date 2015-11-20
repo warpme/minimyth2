@@ -6,7 +6,7 @@
 #
 
 in_file='./r200_pci_ids.h ./r300_pci_ids.h ./r600_pci_ids.h ./radeonsi_pci_ids.h'
-out_file='./05-minimyth-detect-x-ati-1.17.1.rules.disabled'
+out_file='./05-minimyth-detect-x-ati-1.18.0.rules.disabled'
 suported_devices_file='supported-gfx-hardware.txt'
 vendor_id='1002'
 

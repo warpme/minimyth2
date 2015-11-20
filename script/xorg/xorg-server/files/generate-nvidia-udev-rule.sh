@@ -10,7 +10,7 @@
 #
 
 in_file='./supportedchips.html'
-out_file='./05-minimyth-detect-x-nvidia-340.76.rules.disabled'
+out_file='./05-minimyth-detect-x-nvidia-340.96.rules.disabled'
 suported_devices_file='supported-gfx-hardware.txt'
 vendor_id='10de'
 
