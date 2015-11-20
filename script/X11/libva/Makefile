@@ -1,5 +1,5 @@
 GARNAME = libva
-GARVERSION = 1.6.0
+GARVERSION = 1.6.1
 CATEGORIES = X11
 MASTER_SITES = http://cgit.freedesktop.org/libva/snapshot/
 DISTFILES = $(DISTNAME).tar.gz
