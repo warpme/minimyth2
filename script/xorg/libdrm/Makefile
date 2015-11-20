@@ -1,5 +1,5 @@
 GARNAME = libdrm
-GARVERSION = 2.4.62
+GARVERSION = 2.4.65
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -53,9 +53,12 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
+#	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_intel.la
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_nouveau.la
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_radeon.la
+	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_amdgpu.la
 	@rm -f $(DESTDIR)$(libdir)/libkms.la
+	# Hack needed to build with Mesa 11.0.x
+	@mv $(DESTDIR)$(libdir)/libdrm.la $(DESTDIR)$(libdir)/libdrm.la-disabled
 	@$(MAKECOOKIE)
