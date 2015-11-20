@@ -1,11 +1,9 @@
 GARNAME = alsa-utils
-GARVERSION = 1.0.29
+GARVERSION = 1.1.0
 CATEGORIES = utils
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/utils/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
 DISTFILES = $(DISTNAME).tar.bz2
-#PATCHFILES = \
-#	$(DISTNAME)-automake_1.13.patch
 LICENSE = GPL2
 
 DESCRIPTION = 
