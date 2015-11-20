@@ -1,0 +1,231 @@
+From f013e8af7c7344ddff8406e8b69561f7fcdc1f1d Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Fri, 9 Oct 2015 23:29:22 +0100
+Subject: [PATCH 09/10] Gallery: Use common orientation
+
+Images are rotated to their correct orientation in 2 places;
+
+- MythImage, when loading an image
+- Gallery, when creating thumbnails
+
+This patch removes the duplicated orientation code by making the MythImage functionality accessible to the Gallery.
+
+diff --git a/mythtv/libs/libmythmetadata/imagemetadata.cpp b/mythtv/libs/libmythmetadata/imagemetadata.cpp
+index f4ebbb2..f43e6c7 100644
+--- a/mythtv/libs/libmythmetadata/imagemetadata.cpp
++++ b/mythtv/libs/libmythmetadata/imagemetadata.cpp
+@@ -1,7 +1,5 @@
+ #include "imagemetadata.h"
+ 
+-#include <QImage>
+-
+ #include "mythlogging.h"
+ #include "mythcorecontext.h"  // for avcodeclock
+ #include "mythdirs.h"         // for ffprobe
+@@ -41,38 +39,6 @@ int Orientation::Transform(int transform)
+ }
+ 
+ 
+-QImage Orientation::ApplyExifOrientation(QImage &image, int orientation)
+-{
+-    QTransform transform;
+-
+-    switch (orientation)
+-    {
+-    case 1: // normal
+-        return image;
+-    case 2: // mirror horizontal
+-        return image.mirrored(true, false);
+-    case 3: // rotate 180
+-        transform.rotate(180);
+-        return image.transformed(transform);
+-    case 4: // mirror vertical
+-        return image.mirrored(false, true);
+-    case 5: // mirror horizontal and rotate 270 CCW
+-        transform.rotate(270);
+-        return image.mirrored(true, false).transformed(transform);
+-    case 6: // rotate 90 CW
+-        transform.rotate(90);
+-        return image.transformed(transform);
+-    case 7: // mirror horizontal and rotate 90 CW
+-        transform.rotate(90);
+-        return image.mirrored(true, false).transformed(transform);
+-    case 8: // rotate 270 CW
+-        transform.rotate(270);
+-        return image.transformed(transform);
+-    }
+-    return image;
+-}
+-
+-
+ /*!
+  * \brief Adjust current orientation code to apply a transform to an image
+  * \details When displayed the image will be orientated iaw its orientation
+diff --git a/mythtv/libs/libmythmetadata/imagemetadata.h b/mythtv/libs/libmythmetadata/imagemetadata.h
+index 79da608..6c11c37 100644
+--- a/mythtv/libs/libmythmetadata/imagemetadata.h
++++ b/mythtv/libs/libmythmetadata/imagemetadata.h
+@@ -68,7 +68,6 @@ public:
+     QString Description();
+ 
+     static int FromRotation(const QString &degrees);
+-    static QImage ApplyExifOrientation(QImage &image, int orientation);
+ 
+ private:
+     static QString AsText(int orientation);
+diff --git a/mythtv/libs/libmythmetadata/imagethumbs.cpp b/mythtv/libs/libmythmetadata/imagethumbs.cpp
+index f7b4b7e..ffda6fe 100644
+--- a/mythtv/libs/libmythmetadata/imagethumbs.cpp
++++ b/mythtv/libs/libmythmetadata/imagethumbs.cpp
+@@ -309,7 +309,7 @@ QString ThumbThread<DBFS>::CreateThumbnail(ImagePtrK im, int thumbPriority)
+ 
+     // Orientate now to optimise load/display time - no orientation
+     // is required when displaying thumbnails
+-    image = Orientation::ApplyExifOrientation(image, orientBy);
++    image = MythImage::ApplyExifOrientation(image, orientBy);
+ 
+     // Create the thumbnail
+     if (!image.save(im->m_thumbPath))
+diff --git a/mythtv/libs/libmythui/mythimage.cpp b/mythtv/libs/libmythui/mythimage.cpp
+index 7b951a6..8796f34 100644
+--- a/mythtv/libs/libmythui/mythimage.cpp
++++ b/mythtv/libs/libmythui/mythimage.cpp
+@@ -114,6 +114,37 @@ void MythImage::Assign(const QPixmap &pix)
+     Assign(pix.toImage());
+ }
+ 
++QImage MythImage::ApplyExifOrientation(QImage &image, int orientation)
++{
++    QTransform transform;
++
++    switch (orientation)
++    {
++    case 1: // normal
++        return image;
++    case 2: // mirror horizontal
++        return image.mirrored(true, false);
++    case 3: // rotate 180
++        transform.rotate(180);
++        return image.transformed(transform);
++    case 4: // mirror vertical
++        return image.mirrored(false, true);
++    case 5: // mirror horizontal and rotate 270 CCW
++        transform.rotate(270);
++        return image.mirrored(true, false).transformed(transform);
++    case 6: // rotate 90 CW
++        transform.rotate(90);
++        return image.transformed(transform);
++    case 7: // mirror horizontal and rotate 90 CW
++        transform.rotate(90);
++        return image.mirrored(true, false).transformed(transform);
++    case 8: // rotate 270 CW
++        transform.rotate(270);
++        return image.transformed(transform);
++    }
++    return image;
++}
++
+ /**
+  * Changes the orientation angle of the image according to
+  * the exif rotation values. The image will be rotated accordingly.
+@@ -122,55 +153,11 @@ void MythImage::Assign(const QPixmap &pix)
+  */
+ void MythImage::Orientation(int orientation)
+ {
+-    if (m_isOriented)
+-        return;
+-
+-    QMatrix matrix;
+-    switch (orientation)
++    if (!m_isOriented)
+     {
+-    case 1: // If the image is in its original state
+-        break;
+-
+-    case 2: // The image is horizontally flipped
+-        Assign(mirrored(true, false));
+-        break;
+-
+-    case 3: // The image is rotated 180°
+-        matrix.rotate(180);
+-        Assign(transformed(matrix, Qt::SmoothTransformation));
+-        break;
+-
+-    case 4: // The image is vertically flipped
+-        Assign(mirrored(false, true));
+-        break;
+-
+-    case 5: // The image is transposed (flipped horizontally, then rotated 90° CCW)
+-        matrix.rotate(90);
+-        Assign(transformed(matrix, Qt::SmoothTransformation));
+-        Assign(mirrored(true, false));
+-        break;
+-
+-    case 6: // The image is rotated 90° CCW
+-        matrix.rotate(90);
+-        Assign(transformed(matrix, Qt::SmoothTransformation));
+-        break;
+-
+-    case 7: // The image is transversed (flipped horizontally, then rotated 90° CW)
+-        matrix.rotate(270);
+-        Assign(transformed(matrix, Qt::SmoothTransformation));
+-        Assign(mirrored(true, false));
+-        break;
+-
+-    case 8: // The image is rotated 90° CW
+-        matrix.rotate(270);
+-        Assign(transformed(matrix, Qt::SmoothTransformation));
+-        break;
+-
+-    default:
+-        break;
++        Assign(ApplyExifOrientation(*this, orientation));
++        m_isOriented = true;
+     }
+-
+-    m_isOriented = true;
+ }
+ 
+ void MythImage::Resize(const QSize &newSize, bool preserveAspect)
+diff --git a/mythtv/libs/libmythui/mythimage.h b/mythtv/libs/libmythui/mythimage.h
+index 4962dc2..646f7c4 100644
+--- a/mythtv/libs/libmythui/mythimage.h
++++ b/mythtv/libs/libmythui/mythimage.h
+@@ -31,6 +31,8 @@ class MUI_PUBLIC MythImageReader: public QImageReader
+ class MUI_PUBLIC MythImage : public QImage, public ReferenceCounter
+ {
+   public:
++    static QImage ApplyExifOrientation(QImage &image, int orientation);
++
+     /// Creates a reference counted image, call DecrRef() to delete.
+     MythImage(MythPainter *parent, const char *name = "MythImage");
+ 
+diff --git a/mythtv/libs/libmythui/mythuiimage.cpp b/mythtv/libs/libmythui/mythuiimage.cpp
+index c7961a8..fc067f7 100644
+--- a/mythtv/libs/libmythui/mythuiimage.cpp
++++ b/mythtv/libs/libmythui/mythuiimage.cpp
+@@ -813,9 +813,7 @@ void MythUIImage::SetImage(MythImage *img)
+     Clear();
+     m_Delay = -1;
+ 
+-    if (m_imageProperties.isOriented && !img->IsOriented() &&
+-        (m_imageProperties.orientation >= 1 &&
+-         m_imageProperties.orientation <= 8))
++    if (m_imageProperties.isOriented && !img->IsOriented())
+         img->Orientation(m_imageProperties.orientation);
+ 
+     if (m_imageProperties.forceSize.isNull())
+@@ -881,9 +879,7 @@ void MythUIImage::SetImages(QVector<MythImage *> *images)
+         if (m_imageProperties.isGreyscale && !im->isGrayscale())
+             im->ToGreyscale();
+ 
+-        if (m_imageProperties.isOriented && !im->IsOriented() &&
+-            (m_imageProperties.orientation >= 1 &&
+-             m_imageProperties.orientation <= 8))
++        if (m_imageProperties.isOriented && !im->IsOriented())
+             im->Orientation(m_imageProperties.orientation);
+ 
+         m_ImagesLock.lock();
+-- 
+2.1.4
+

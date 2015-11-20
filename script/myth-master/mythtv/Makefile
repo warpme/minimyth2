@@ -6,22 +6,22 @@ DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  =
 
 # Backend needed patches
-#PATCHFILES += 0001-ticket2416_copy_eit_2_other_source.patch
+# PATCHFILES += 0001-ticket2416_copy_eit_2_other_source.patch
 PATCHFILES += 0002-ticket9480_pl_eit_encodings.patch
-PATCHFILES += 0003-delay_4_no_concurent_start_rec.patch
+PATCHFILES += 0003-delay_4_no_concurent_start_rec_v2.patch
 PATCHFILES += 0004-eit_verbosity.patch
 PATCHFILES += 0005-tid_debug_verbosity.patch
 PATCHFILES += 0006-cardutil_show_displayname.patch
 PATCHFILES += 0007-allow_no_tuners.patch
 PATCHFILES += 0008-SCR_keep_disecq_always_18V.patch
 PATCHFILES += 0009-make_EIT_start_at_time.patch
+PATCHFILES += 0010-decrease-some-PMT-DVB-errors-logging.patch
 PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
 PATCHFILES += 0017-python_bindings_tztime_error.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
 PATCHFILES += 0019-mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0020-h264-seek-table.patch
 PATCHFILES += 0021-ticket12248-livetv-transitions-demonstrate-bad-decoder-start-conditions.patch
-PATCHFILES += 0022-ticket12308-commflag-improvements.patch
 PATCHFILES += 0023-increase-loging-for-failed-tunings.patch
 PATCHFILES += 0025-ticket12260-pythonbindings-dataheap-fix.patch
 
@@ -36,7 +36,6 @@ PATCHFILES += 0200-ticket9633_progressbar_on_osd.patch
 PATCHFILES += 0202-_LMSC_osd.patch
 PATCHFILES += 0203-udisks_timeout.patch
 PATCHFILES += 0204-netvision_build.patch
-# PATCHFILES += 0205-mythmusic_quick_browsing.patch
 PATCHFILES += 0206-add-mythnotification-custom-styles-support-via-UDP.patch
 PATCHFILES += 0207-add-osd-status-notify-to-mythmediacenter.patch
 PATCHFILES += 0208-add-disable-optical-disc-by-mm-config.patch
@@ -47,18 +46,16 @@ PATCHFILES += 0212-ticket12311.patch
 PATCHFILES += 0213-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
 # PATCHFILES += 0214-ticket12015-configure-not-passing-cppxx-flags.patch
 
-# 0217: fixes issue with only 3 entries in mainmenu on MythmediaStream
+# Fixes issue with only 3 entries in mainmenu on MythmediaStream
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
-# PATCHFILES += 0218-xinitthreads.patch
-
-# 0219: needed to have working #12311. Without revert just after start, is GUI is shoifted by 1px
+# Needed to have working #12311. Without it just after start, is GUI is shoifted by 1px
 PATCHFILES += 0219-revert-1c440ba-Fix-fullscreen-windowing-with-Compiz-Unity.patch
 
-# 7.6.3 Added new Gallery
-PATCHFILES += 0224-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-Cache-FE-gallery-images-in-remotecache-for-Minimyth2.patch
+# MiniMyth2 addition to Roger's new Gallery
+# PATCHFILES += 0224-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-Cache-FE-gallery-images-in-remotecache-for-Minimyth2.patch - 7.9.0 gallery has it
 
-ifeq (0,0)
+ifneq ($(patsubst %minimal,minimal,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 # 7.6.4 LVR safe patches related to player/OSD
 PATCHFILES += 0226-0186-mythplayer-Increase-resolution-of-onscreen-playback-.patch
 PATCHFILES += 0228-0198-Player-Avoid-unnecessary-calls-to-ReinitOSD.patch
@@ -69,13 +66,14 @@ PATCHFILES += 0234-0261-FE-Playbackbox-ensure-stereo-icon-takes-precedence-o.pat
 PATCHFILES += 0235-0290-FE-Add-a-menu-item-to-toggle-the-damaged-video-statu.patch
 PATCHFILES += 0236-0330-FE-Add-a-menu-to-Playbackbox-to-change-the-recording.patch
 
+
 # 7.6.5 LVR safe patches related to mediamonitor
-PATCHFILES += 0237-0069-MediaMonitor-doesn-t-handle-Jump-to-plugin-correctly.patch
+# PATCHFILES += 0237-0069-MediaMonitor-doesn-t-handle-Jump-to-plugin-correctly.patch - above patch 1014 in 7.9.0 gallery has it
 PATCHFILES += 0238-0071-MediaMonitor-Delay-after-pmount-to-permit-proc-mount.patch
 PATCHFILES += 0239-0072-MediaMonitor-Report-media-with-a-bitmask-of-media-ty.patch
-PATCHFILES += 0240-0073-MediaMonitor-Make-list-of-registered-extensions-stat.patch
+# PATCHFILES += 0240-0073-MediaMonitor-Make-list-of-registered-extensions-stat.patch - needs to be removed for 7.9.0 gallery
 PATCHFILES += 0241-0074-MediaMon-Ensure-to-send-status-changed-after-disc-mo.patch
-PATCHFILES += 0242-0075-MediaMon-Fix-verbose-string-arg.patch
+# PATCHFILES += 0242-0075-MediaMon-Fix-verbose-string-arg.patch - conflicts after removal of 0240
 PATCHFILES += 0243-0080-MythMusic-Raise-libcdio-logging-level-from-warnings-.patch
 PATCHFILES += 0244-0132-MediaMonitor-Retry-mount-after-a-300mS-delay-if-init.patch
 PATCHFILES += 0245-0139-MediaMon-Use-a-wait-condition-to-reduce-the-latency-.patch
@@ -83,7 +81,7 @@ PATCHFILES += 0246-0151-MediaMon-Don-t-announce-media-until-after-type-ident.pat
 PATCHFILES += 0246-0179-MediaMon-Improve-CDROM-eject-robustness-with-SCSI-fa.patch
 PATCHFILES += 0247-0180-MediaMon-Speed-up-recognition-and-autoplay-of-remove.patch
 PATCHFILES += 0247-0200-MythMusic-Autoplay-music-files-on-removable-media.patch
-PATCHFILES += 0249-0201-MediaMon-UI-to-select-preferred-media-handler.patch
+PATCHFILES += 0249-0201-MediaMon-UI-to-select-preferred-media-handler-v2.patch
 PATCHFILES += 0250-0207-MediaMon-Fix-a-race-condition-between-MediaMonitor-C.patch
 PATCHFILES += 0252-0279-MythMusic-Visualisers-only-disable-screensaver-if-sh.patch
 PATCHFILES += 0253-0297-Mythmusic-Log-the-shoutcast-metadata-and-format-stri.patch
@@ -98,22 +96,18 @@ PATCHFILES += 0260-0118-SimpleDBStorage-Where-possible-use-Get-SetSetting-to.pat
 PATCHFILES += 0261-0119-FE-Omit-call-to-WriteDefaults-during-startup.patch
 PATCHFILES += 0262-0144-DB-Update-settings-cache-in-SaveSettingOnHost.patch
 PATCHFILES += 0263-0147-FE-Improve-caching-in-GuideGrid.patch
-PATCHFILES += 0264-0089-TV-Automatically-select-a-free-card-when-changing-ch.patch
-PATCHFILES += 0265-0091-TV-Find-alternative-channel-if-start-channel-is-not-.patch
 PATCHFILES += 0269-0148-TV-Cache-the-last-sourceid-found-in-SourceUtil-GetSo.patch
 PATCHFILES += 0270-0149-TV-Cache-the-last-groupname-found-in-ChannelGroup-Ge.patch
 PATCHFILES += 0271-0138-MythWeather-Fix-a-SEGV-on-exit-from-setup-screen.patch
 PATCHFILES += 0272-0185-MythWeather-Prevent-log-error-report-Widget-not-foun.patch
 
 # 7.6.7 LVR safe patches for BE
-PATCHFILES += 0273-0141-myth_system-Don-t-redirect-stdout-err-to-dev-null.patch
-PATCHFILES += 0277-0202-FE-Fix-Display-MythDVD-menu-broken-when-MythDVD-plug.patch
+PATCHFILES += 0277-0202-FE-Fix-Display-MythDVD-menu-broken-when-MythDVD-plug-v2.patch
 
 # 7.6.8 new mythgallery fixes anf logging
-PATCHFILES += 0278-Add-logging.patch
-PATCHFILES += 0279-Log-sockets.patch
-PATCHFILES += 0280-Fix-unsafe-access-to-mythsocket-loopback-cache.patch
-PATCHFILES += 0281-Minimise-UI-lag-when-exiting-screens-with-many-image.patch
+# PATCHFILES += 0278-Add-logging.patch - 7.9.0 gallery has it
+# PATCHFILES += 0279-Log-sockets.patch - 7.9.0 gallery has it
+# PATCHFILES += 0281-Minimise-UI-lag-when-exiting-screens-with-many-image.patch - 7.9.0 gallery has it
 
 # 7.6.9 LVR remote control patches
 PATCHFILES += 0282-0059-NetworkControl-Add-realtime-display-of-MythEvents.patch
@@ -123,12 +117,27 @@ endif
 # 7.6.10
 PATCHFILES += 0284-update-myth-pl-translations.patch
 
-# 7.6.16
-PATCHFILES += 0285-change-log-type-to-channel-for-concatenated-PMT.patch
-
 # 7.7.3
 PATCHFILES += 0286-ticket12479-revert-db5c40cf-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
 
+# New gallery patches by Roger Siddons with support for removable media. Reqires removal of 
+# 0224, 0237, 0240, 0278, 0279, 0281
+PATCHFILES += 1001-MediaMonitor-Support-ejection-of-specific-device.patch
+PATCHFILES += 1002-RemoteFile-Fix-writing-of-local-files.patch
+PATCHFILES += 1003-RemoteFile-CopyFile-Don-t-overwrite-existing-files-b.patch
+PATCHFILES += 1004-RemoteFile-Add-Move-operation.patch
+PATCHFILES += 1005-MythUI-Don-t-draw-empty-text.patch
+PATCHFILES += 1006-MythUI-Signal-when-image-loaded.patch
+PATCHFILES += 1007-MythUI-Empty-menu-getter.patch
+PATCHFILES += 1008-Gallery-Redesign-to-support-local-media.patch
+PATCHFILES += 1009-Gallery-Use-common-orientation.patch
+PATCHFILES += 1010-MythUI-Handle-deviant-orientation-behaviour-by-Qt-5..patch
+PATCHFILES += 1011-MythUiImage-Don-t-block-UI-when-exiting-screens.patch
+PATCHFILES += 1012-Minimyth2-Cache-FE-gallery-images-in-remotecache.patch
+PATCHFILES += 1013-Minimyth2-Use-remotecache-for-local-gallery-images.patch
+PATCHFILES += 1014-MediaMon-Signal-unmounts.patch
+PATCHFILES += 1015-MediaMonitor-Unlock-mutex-before-quitting.patch
+PATCHFILES += 1016-Gallery-Fix-hostname-is-invalid-SQL.patch
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
 endif
 
@@ -251,7 +260,6 @@ CONFIGURE_ARGS = \
 	--enable-vaapi \
 	--disable-dxva2 \
 	--enable-opengl-video \
-	--disable-quartz-video \
 	--disable-mac-bundle \
 	--enable-libxml2 \
 	--libxml2-path="$(DESTDIR)$(includedir)/libxml2" \
@@ -260,7 +268,10 @@ CONFIGURE_ARGS = \
 	--without-bindings="perl" \
 	--without-bindings="php" \
 	--with-bindings="python" \
-	--disable-mythlogserver
+	--disable-mythlogserver \
+	--enable-pic
+
+#	--disable-quartz-video \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)

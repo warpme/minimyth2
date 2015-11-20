@@ -1,0 +1,54 @@
+From 8f307ae53dc2115c76a99eaa5c42075c239b755c Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Sat, 22 Aug 2015 13:14:20 +0100
+Subject: [PATCH 02/10] RemoteFile: Fix writing of local files
+
+Attempting to write a local file fails unless the file already exists.
+
+This patch permits creation of new files, as well as overwriting existing ones.
+
+diff --git a/mythtv/libs/libmythbase/remotefile.cpp b/mythtv/libs/libmythbase/remotefile.cpp
+index b1c4fed..469c292 100644
+--- a/mythtv/libs/libmythbase/remotefile.cpp
++++ b/mythtv/libs/libmythbase/remotefile.cpp
+@@ -248,14 +248,18 @@ bool RemoteFile::OpenInternal()
+ {
+     if (isLocal())
+     {
+-        if (!Exists(path))
+-        {
+-            LOG(VB_FILE, LOG_ERR,
+-                QString("RemoteFile::Open(%1) Error: Do not exist").arg(path));
+-            return false;
+-        }
+         if (writemode)
+         {
++            QString dirPath = QFileInfo(path).absolutePath();
++            QDir qdir;
++            if (!qdir.mkpath(dirPath))
++            {
++                LOG(VB_FILE, LOG_ERR,
++                    QString("RemoteFile::Open(%1) Error: File is in a subdirectory "
++                            "which does not exist, and can not be created.").arg(path));
++                return false;
++            }
++
+             fileWriter = new ThreadedFileWriter(path,
+                                                 O_WRONLY|O_TRUNC|O_CREAT|O_LARGEFILE,
+                                                 0644);
+@@ -272,6 +276,12 @@ bool RemoteFile::OpenInternal()
+             return true;
+         }
+         // local mode, read only
++        if (!Exists(path))
++        {
++            LOG(VB_FILE, LOG_ERR,
++                QString("RemoteFile::Open(%1) Error: Do not exist").arg(path));
++            return false;
++        }
+         localFile = ::open(path.toLocal8Bit().constData(), O_RDONLY);
+         if (localFile == -1)
+         {
+-- 
+2.1.4
+

@@ -1,0 +1,247 @@
+From 117046af0139d6717dc96cc7a5def88b1734c0a7 Mon Sep 17 00:00:00 2001
+From: Roger Siddons <dizygotheca@ntlworld.com>
+Date: Sat, 22 Aug 2015 14:56:17 +0100
+Subject: [PATCH 04/10] RemoteFile: Add Move operation
+
+Adds support for renaming files.
+Remote files can only be moved within the same storage group.
+Between local/remote locations the source is only deleted after being successfully copied.
+
+diff --git a/mythtv/libs/libmythbase/remotefile.cpp b/mythtv/libs/libmythbase/remotefile.cpp
+index 594a6eb..28721f7 100644
+--- a/mythtv/libs/libmythbase/remotefile.cpp
++++ b/mythtv/libs/libmythbase/remotefile.cpp
+@@ -648,6 +648,75 @@ bool RemoteFile::CopyFile (const QString& src, const QString& dst,
+     return success;
+ }
+ 
++bool RemoteFile::MoveFile (const QString& src, const QString& dst, bool overwrite)
++{
++    LOG(VB_FILE, LOG_INFO,
++        QString("RemoteFile::MoveFile: Moving file from '%1' to '%2'").arg(src).arg(dst));
++
++    // sanity check
++    if (src == dst)
++    {
++        LOG(VB_GENERAL, LOG_ERR, "RemoteFile::MoveFile: Cannot move a file to itself");
++        return false;
++    }
++
++    if (isLocal(src) != isLocal(dst))
++    {
++        // Moving between local & remote requires a copy & delete
++        bool ok = CopyFile(src, dst, overwrite, true);
++        if (ok)
++        {
++            if (!DeleteFile(src))
++                LOG(VB_FILE, LOG_ERR,
++                    "RemoteFile::MoveFile: Failed to delete file after successful copy");
++        }
++        return ok;
++    }
++
++    if (overwrite)
++    {
++        DeleteFile(dst);
++    }
++    else if (Exists(dst))
++    {
++        LOG(VB_GENERAL, LOG_ERR, "RemoteFile::MoveFile: File already exists");
++        return false;
++    }
++
++    if (isLocal(src))
++    {
++        // Moving local -> local
++        QFileInfo fi(dst);
++        if (QDir().mkpath(fi.path()) && QFile::rename(src, dst))
++            return true;
++
++        LOG(VB_FILE, LOG_ERR, "RemoteFile::MoveFile: Rename failed");
++        return false;
++    }
++
++    // Moving remote -> remote
++    QUrl srcUrl(src);
++    QUrl dstUrl(dst);
++
++    if (srcUrl.userName() != dstUrl.userName())
++    {
++        LOG(VB_FILE, LOG_ERR, "RemoteFile::MoveFile: Cannot change a file's Storage Group");
++        return false;
++    }
++
++    QStringList strlist("MOVE_FILE");
++    strlist << srcUrl.userName() << srcUrl.path() << dstUrl.path();
++
++    gCoreContext->SendReceiveStringList(strlist);
++
++    if (!strlist.isEmpty() && strlist[0] == "1")
++        return true;
++
++    LOG(VB_FILE, LOG_ERR, QString("RemoteFile::MoveFile: MOVE_FILE failed with: %1")
++        .arg(strlist.join(",")));
++    return false;
++}
++
+ void RemoteFile::Reset(void)
+ {
+     if (isLocal())
+diff --git a/mythtv/libs/libmythbase/remotefile.h b/mythtv/libs/libmythbase/remotefile.h
+index 42fd38e..7144e78 100644
+--- a/mythtv/libs/libmythbase/remotefile.h
++++ b/mythtv/libs/libmythbase/remotefile.h
+@@ -43,6 +43,8 @@ class MBASE_PUBLIC RemoteFile
+                                     bool allowFallback = false);
+     static bool CopyFile(const QString &src, const QString &dest,
+                          bool overwrite = false, bool verify = false);
++    static bool MoveFile(const QString &src, const QString &dest,
++                         bool overwrite = false);
+ 
+     int Write(const void *data, int size);
+     int Read(void *data, int size);
+diff --git a/mythtv/programs/mythbackend/mainserver.cpp b/mythtv/programs/mythbackend/mainserver.cpp
+index 656fa6e..b76534d 100644
+--- a/mythtv/programs/mythbackend/mainserver.cpp
++++ b/mythtv/programs/mythbackend/mainserver.cpp
+@@ -611,6 +611,13 @@ void MainServer::ProcessRequestWork(MythSocket *sock)
+         else
+             HandleDeleteFile(listline, pbs);
+     }
++    else if (command == "MOVE_FILE")
++    {
++        if (listline.size() < 4)
++            SendErrorResponse(pbs, "Bad MOVE_FILE command");
++        else
++            HandleMoveFile(pbs, listline[1], listline[2], listline[3]);
++    }
+     else if (command == "STOP_RECORDING")
+     {
+         HandleStopRecording(listline, pbs);
+@@ -5154,6 +5161,80 @@ void MainServer::GetFilesystemInfos(QList<FileSystemInfo> &fsInfos)
+     }
+ }
+ 
++void MainServer::HandleMoveFile(PlaybackSock *pbs, const QString &storagegroup,
++                                const QString &src, const QString &dst)
++{
++    StorageGroup sgroup(storagegroup, "", false);
++    QStringList retlist;
++
++    if (src.isEmpty() || dst.isEmpty()
++        || src.contains("..") || dst.contains(".."))
++    {
++        LOG(VB_GENERAL, LOG_ERR, LOC +
++            QString("HandleMoveFile: ERROR moving file '%1' -> '%2', "
++                    "a path fails sanity checks").arg(src, dst));
++        retlist << "0" << "Invalid path";
++        SendResponse(pbs->getSocket(), retlist);
++        return;
++    }
++
++    QString srcAbs = sgroup.FindFile(src);
++    if (srcAbs.isEmpty())
++    {
++        LOG(VB_GENERAL, LOG_ERR, LOC +
++            QString("HandleMoveFile: Unable to find %1").arg(src));
++        retlist << "0" << "Source file not found";
++        SendResponse(pbs->getSocket(), retlist);
++        return;
++    }
++
++    // Path of files must be unique within SG. Rename will permit <sgdir1>/<dst>
++    // even when <sgdir2>/<dst> already exists.
++    // Directory paths do not have to be unique.
++    QString dstAbs = sgroup.FindFile(dst);
++    if (!dstAbs.isEmpty() && QFileInfo(dstAbs).isFile())
++    {
++        LOG(VB_GENERAL, LOG_ERR, LOC +
++            QString("HandleMoveFile: Destination exists at %1").arg(dstAbs));
++        retlist << "0" << "Destination file exists";
++        SendResponse(pbs->getSocket(), retlist);
++        return;
++    }
++
++    // Files never move filesystems, so use current SG dir
++    int sgPathSize = srcAbs.size() - src.size();
++    dstAbs = srcAbs.mid(0, sgPathSize) + dst;
++
++    // Renaming on same filesystem should always be fast but is liable to delays
++    // for unknowable reasons so we delegate to a separate thread for safety.
++    RenameThread *renamer = new RenameThread(*this, *pbs, srcAbs, dstAbs);
++    MThreadPool::globalInstance()->start(renamer, "Rename");
++}
++
++QMutex RenameThread::m_renamelock;
++
++void RenameThread::run()
++{
++    // Only permit one rename to run at any time
++    QMutexLocker lock(&m_renamelock);
++    LOG(VB_FILE, LOG_INFO, QString("MainServer::RenameThread: Renaming %1 -> %2")
++        .arg(m_src, m_dst));
++
++    QStringList retlist;
++    QFileInfo   fi(m_dst);
++
++    if (QDir().mkpath(fi.path()) && QFile::rename(m_src, m_dst))
++    {
++        retlist << "1";
++    }
++    else
++    {
++        retlist << "0" << "Rename failed";
++        LOG(VB_FILE, LOG_ERR, "MainServer::DoRenameThread: Rename failed");
++    }
++    m_ms.SendResponse(m_pbs.getSocket(), retlist);
++}
++
+ void TruncateThread::run(void)
+ {
+     if (m_ms)
+diff --git a/mythtv/programs/mythbackend/mainserver.h b/mythtv/programs/mythbackend/mainserver.h
+index 4e5e2dd..ce117d8 100644
+--- a/mythtv/programs/mythbackend/mainserver.h
++++ b/mythtv/programs/mythbackend/mainserver.h
+@@ -92,6 +92,21 @@ class TruncateThread : public QRunnable, public DeleteStruct
+     void run(void);
+ };
+ 
++class RenameThread : public QRunnable
++{
++public:
++    RenameThread(MainServer &ms, PlaybackSock &pbs, QString src, QString dst)
++        : m_ms(ms), m_pbs(pbs), m_src(src), m_dst(dst) {}
++    void run(void);
++
++private:
++    static QMutex m_renamelock;
++
++    MainServer   &m_ms;
++    PlaybackSock &m_pbs;
++    QString       m_src, m_dst;
++};
++
+ class MainServer : public QObject, public MythSocketCBs
+ {
+     Q_OBJECT
+@@ -99,6 +114,7 @@ class MainServer : public QObject, public MythSocketCBs
+     friend class DeleteThread;
+     friend class TruncateThread;
+     friend class FreeSpaceUpdater;
++    friend class RenameThread;
+   public:
+     MainServer(bool master, int port,
+                QMap<int, EncoderLink *> *tvList,
+@@ -147,6 +163,8 @@ class MainServer : public QObject, public MythSocketCBs
+     void GetActiveBackends(QStringList &hosts);
+     void HandleActiveBackendsQuery(PlaybackSock *pbs);
+     void HandleIsActiveBackendQuery(QStringList &slist, PlaybackSock *pbs);
++    void HandleMoveFile(PlaybackSock *pbs, const QString &storagegroup,
++                        const QString &src, const QString &dst);
+     bool HandleDeleteFile(QStringList &slist, PlaybackSock *pbs);
+     bool HandleDeleteFile(QString filename, QString storagegroup,
+                           PlaybackSock *pbs = NULL);
+-- 
+2.1.4
+

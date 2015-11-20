@@ -1,0 +1,67 @@
+diff -Naur mythtv-master-20151026-g076b028-old/mythplugins/mythmusic/mythmusic/main.cpp mythtv-master-20151026-g076b028-new/mythplugins/mythmusic/mythmusic/main.cpp
+--- mythtv-master-20151026-g076b028-old/mythplugins/mythmusic/mythmusic/main.cpp	2015-10-30 13:09:37.000000000 +0100
++++ mythtv-master-20151026-g076b028-new/mythplugins/mythmusic/mythmusic/main.cpp	2015-10-30 13:11:26.555958099 +0100
+@@ -871,9 +871,10 @@
+     REG_KEY("Music", "ADDTRACKSANDPLAY",              QT_TRANSLATE_NOOP("MythControls",
+         "Add selected tracks to playlist and start playback"), "");
+ 
+-    REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+-        "MythMusic Media Handler 1/2"), "", "", handleCDMedia,
+-        MEDIATYPE_AUDIO | MEDIATYPE_MIXED, QString::null);
++    REG_MEDIA_HANDLER(
++        QT_TRANSLATE_NOOP("MythControls", "MythMusic Media Handler 1/2"),
++        QT_TRANSLATE_NOOP("MythControls", "MythMusic audio CD"),
++        "", handleCDMedia, MEDIATYPE_AUDIO | MEDIATYPE_MIXED, QString::null);
+     QString filt;
+     Q_FOREACH(QString format, GetMusicFilter())
+     {
+@@ -883,9 +884,10 @@
+         else
+             filt += "," + format;
+     }
+-    REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+-        "MythMusic Media Handler 2/2"), "", "", handleMedia,
+-        MEDIATYPE_MMUSIC, filt);
++    REG_MEDIA_HANDLER(
++        QT_TRANSLATE_NOOP("MythControls", "MythMusic Media Handler 2/2"),
++        QT_TRANSLATE_NOOP("MythControls", "MythMusic audio files"),
++         "", handleMedia, MEDIATYPE_MMUSIC, filt);
+ }
+ 
+ int mythplugin_init(const char *libversion)
+diff -Naur mythtv-master-20151026-g076b028-old/mythtv/libs/libmyth/mythmediamonitor.cpp mythtv-master-20151026-g076b028-new/mythtv/libs/libmyth/mythmediamonitor.cpp
+--- mythtv-master-20151026-g076b028-old/mythtv/libs/libmyth/mythmediamonitor.cpp	2015-10-30 13:09:38.000000000 +0100
++++ mythtv-master-20151026-g076b028-new/mythtv/libs/libmyth/mythmediamonitor.cpp	2015-10-30 13:14:27.621746755 +0100
+@@ -685,7 +685,32 @@
+     // TODO - Generate a dialog, add buttons for each description,
+     // if user didn't cancel, selected = handlers.at(choice);
+     int selected = 0;
++    if (handlers.size() > 1)
++    {
++        QStringList buttonmsgs;
++        for (QList<MHData>::const_iterator it = handlers.begin(); it != handlers.end(); ++it)
++            buttonmsgs << ((!it->description.isEmpty()) ? it->description : it->destination);
++        buttonmsgs << tr("Cancel");
+ 
++        const DialogCode cancelbtn = DialogCode(
++            int(kDialogCodeButton0) + buttonmsgs.size() - 1);
++
++        DialogCode ret = MythPopupBox::ShowButtonPopup(GetMythMainWindow(),
++                                tr("Media Handler Selection"),
++                                tr("The new media contains mixed content "
++                                   "that can be rendered in different ways. "
++                                   "Select your preferred method."),
++                                buttonmsgs, cancelbtn);
++        if (kDialogCodeRejected == ret || cancelbtn == ret)
++        {
++            LOG(VB_MEDIA, LOG_INFO, "User cancelled media handler selection");
++            return;
++        }
++
++        selected = MythDialog::CalcItemIndex(ret);
++        LOG(VB_MEDIA, LOG_NOTICE, QString("User selected '%1'")
++            .arg(handlers.at(selected).destination) );
++    }
+     handlers.at(selected).callback(pMedia);
+ }
+ 
