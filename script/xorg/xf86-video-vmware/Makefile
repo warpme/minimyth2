@@ -1,7 +1,7 @@
 GARNAME = xf86-video-vmware
-#GARVERSION_TYPE = git
+GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-	20120830-007bed3, \
+	20151105-1ea708f, \
 	13.1.0 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
