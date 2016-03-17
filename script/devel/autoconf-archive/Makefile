@@ -1,8 +1,8 @@
 GARNAME = autoconf-archive
-GARVERSION = 2013.11.01
+GARVERSION = 2015.02.24
 CATEGORIES = devel
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
+DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL3
 
 DESCRIPTION = 
@@ -19,6 +19,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST)
 
 include ../../gar.mk
 
-pre-configure:
+x-pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(MAKECOOKIE)
