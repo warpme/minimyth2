@@ -1,7 +1,7 @@
 GARNAME = bison
 GARVERSION = 2.7
 CATEGORIES = devel
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-perl.patch.gar
 LICENSE = GPL3
