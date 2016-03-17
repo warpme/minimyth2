@@ -1,7 +1,6 @@
 GARNAME = mysql
 GARVERSION = 5.1.67
 CATEGORIES = db
-#MASTER_SITES = http://www.mirrorservice.org/sites/ftp.mysql.com/Downloads/MySQL-5.1/
 MASTER_SITES = http://mysql.he.net/Downloads/MySQL-5.1/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES  = \
@@ -57,10 +56,6 @@ CFLAGS   += -fwrapv
 CXXFLAGS += -fwrapv
 # MySQL INSTALL-SOURCE recommends the following.
 CXXFLAGS += -felide-constructors -fno-exceptions -fno-rtti
-
-#CFLAGS   := $(filter-out -flto, $(CFLAGS))
-#CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-#LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 extract-config.cache.$(GARCH_FAMILY):
 	@cp $(DOWNLOADDIR)/config.cache.$(GARCH_FAMILY) $(WORKSRC)/config.cache
