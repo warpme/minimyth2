@@ -1,7 +1,7 @@
 GARNAME = irxkeys
 GARVERSION = 1.0
 CATEGORIES = system
-MASTER_SITES = http://blog.b-ark.ca/download/irxkeys-1.0.tar.gz
+MASTER_SITES = http://blog.b-ark.ca/download/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-fixes.patch
 LICENSE = Public_Domain
