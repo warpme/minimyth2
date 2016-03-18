@@ -3,14 +3,10 @@ GARVERSION = $(GLIBC_VERSION)
 CATEGORIES = devel
 MASTER_SITES  = http://ftp.gnu.org/gnu/$(GARNAME)/
 MASTER_SITES += ftp://sources.redhat.com/pub/$(GARNAME)/snapshots/
-DISTFILES = $(DISTNAME).tar.bz2
+DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES = \
 	$(DISTNAME)-rpc_key_prot_h.patch \
 	$(DISTNAME)-select_fd_type.patch \
-	$(DISTNAME)-__i686.patch \
-	$(DISTNAME)-build_lib.patch \
-	$(DISTNAME)-build_locale.patch \
-	$(DISTNAME)-build_sunrpc.patch \
 	$(DISTNAME)-perl.patch.gar \
 	$(DISTNAME).patch \
 	$(DISTNAME)-ldd.patch
@@ -41,13 +37,16 @@ WORKBLD = $(WORKSRC)_build
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKBLD)/Makefile
-INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
+INSTALL_SCRIPTS   = $(WORKBLD)/Makefile build-rpcgen
 
+# --enable-obsolete-rpc is required because libtirpc 0.3.2 still needs the cbc_crypt and ebc_crypt functions.
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--enable-bind-now \
-	--enable-kernel=3.0.0 \
-	--with-binutils=$(build_DESTDIR)$(build_bindir) \
+	--enable-kernel=3.18.0 \
+	--enable-obsolete-rpc \
+	--disable-build-nscd \
+	--disable-nscd \
 	--without-gd \
 	--without-cvs \
 	--with-elf \
@@ -66,12 +65,28 @@ endif
 INSTALL_ARGS    = \
 	install_root=$(DESTDIR)
 
+CONFIGURE_ENV = \
+	BUILD_CC="$(build_CC)" \
+	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
+	BUILD_CFLAGS="$(build_CFLAGS)" \
+	BUILD_LDFLAGS="$(build_LDFLAGS)"
+BUILD_ENV     = \
+	BUILD_CC="$(build_CC)" \
+	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
+	BUILD_CFLAGS="$(build_CFLAGS)" \
+	BUILD_LDFLAGS="$(build_LDFLAGS)"
+INSTALL_ENV   = \
+	BUILD_CC="$(build_CC)" \
+	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
+	BUILD_CFLAGS="$(build_CFLAGS)" \
+	BUILD_LDFLAGS="$(build_LDFLAGS)"
+
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
 
-# glibc 2.15 fails to compile with gcc 4.7.0's link time optimization enabled.
-CFLAGS  := $(filter-out -flto, $(CFLAGS))
-LDFLAGS := $(filter-out -flto, $(LDFLAGS))
+# glibc 2.17 fails to compile with gcc 5.2.0's link time optimization enabled.
+CFLAGS  := $(filter-out -flto, $(CFLAGS))  -fno-lto
+LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
 
 CFLAGS := $(filter-out -ffast-math, $(CFLAGS))
 CFLAGS := $(filter-out -O%, $(CFLAGS)) -O3
@@ -89,6 +104,12 @@ pre-configure:
 configure-custom:
 	@mkdir -p $(WORKBLD)
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) ./$(call DIRSTODOTS,$(WORKBLD))/$(WORKSRC)/configure $(CONFIGURE_ARGS)
+	@$(MAKECOOKIE)
+
+install-build-rpcgen:
+	@mkdir -p $(build_DESTDIR)$(build_bindir)
+	@rm -f $(build_DESTDIR)$(build_bindir)/rpcgen
+	@cp $(WORKBLD)/sunrpc/cross-rpcgen $(build_DESTDIR)$(build_bindir)/rpcgen
 	@$(MAKECOOKIE)
 
 post-install:
