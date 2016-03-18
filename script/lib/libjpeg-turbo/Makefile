@@ -24,5 +24,5 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 include ../../gar.mk
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/libjpeg.la
+	@rm -f $(DESTDIR)$(libdir)/libturbojpeg.la
 	@$(MAKECOOKIE)
