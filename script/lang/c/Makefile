@@ -13,6 +13,7 @@ BUILDDEPS += \
 	utils/bash \
 	perl/perl \
 	utils/coreutils \
+	utils/lzip \
 	utils/ed \
 	utils/sed \
 	utils/gawk \
@@ -23,7 +24,6 @@ BUILDDEPS += \
 	devel/bison \
 	devel/flex \
 	devel/gettext \
-	devel/autoconf-2.68 \
 	devel/autoconf \
 	devel/autoconf-archive \
 	devel/automake \
