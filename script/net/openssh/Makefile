@@ -1,10 +1,12 @@
 GARNAME = openssh
-GARVERSION = 6.0p1
+GARVERSION = 7.0p1
 CATEGORIES = net
-MASTER_SITES  = ftp://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/
-MASTER_SITES += ftp://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/old/
+MASTER_SITES  = http://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/
+MASTER_SITES += http://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/old/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME)-abstract_socket.patch $(DISTNAME).patch
+PATCHFILES = \
+	$(DISTNAME)-abstract_socket.patch \
+	$(DISTNAME).patch
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENCE
 
@@ -26,16 +28,38 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-utmpx \
 	--disable-wtmp \
 	--disable-wtmpx \
+	--enable-libutil \
+	--disable-pututline \
+	--disable-pututxline \
+	--with-openssl \
+	--without-ssh1 \
+	--with-stackprotect \
+	--with-hardening \
 	--without-rpath \
+	--with-cflags="$(CFLAGS)" \
+	--with-cppflags="$(CPPFLAGS)" \
+	--with-ldflags="$(LDFLAGS)" \
+	--without-libs \
+	--without-Werror \
+	--without-solaris-contracts \
+	--without-solaris-projects \
+	--without-osfsia \
+	--without-zlib-version-check \
+	--without-ldns \
+	--without-libedit \
+	--with-pie \
 	--with-ssl-engine \
-	--without-pam
+	--without-pam \
+	--without-selinux \
+	--without-kerberos5 \
+	--with-privsep-path=$(localstatedir)/empty
 
 include ../../gar.mk
 
+sysconfdir := $(sysconfdir)/ssh
+
 LD         := $(CC)
 LDFLAGS    := $(CFLAGS) $(LDFLAGS)
-
-sysconfdir := $(sysconfdir)/ssh
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
