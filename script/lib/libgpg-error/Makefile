@@ -1,9 +1,12 @@
 GARNAME = libgpg-error
-GARVERSION = 1.10
+# versions 1.13, 1.14, 1.15, 1.16, 1.17, 1.18 and 1.19 do not cross compile.
+GARVERSION = 1.12
 CATEGORIES = lib
 MASTER_SITES = ftp://ftp.gnupg.org/gcrypt/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME).patch.gar
+PATCHFILES = \
+	$(DISTNAME)-gcc_5.0-fix.patch \
+	$(DISTNAME).patch.gar
 LICENSE = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -17,10 +20,13 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--disable-silent-rules \
 	--enable-shared \
 	--disable-static \
 	--enable-nls \
 	--disable-rpath \
+	--disable-languages \
+	--disable-doc \
 	--with-gnu-ld
 
 include ../../gar.mk
