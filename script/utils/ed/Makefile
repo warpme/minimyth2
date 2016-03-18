@@ -1,8 +1,8 @@
 GARNAME = ed
-GARVERSION = 1.7
+GARVERSION = 1.12
 CATEGORIES = utils
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
+DISTFILES = $(DISTNAME).tar.lz
 LICENSE = GPL3/FDL1_3
 
 DESCRIPTION = 
@@ -15,12 +15,21 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+CONFIGURE_ARGS = \
+	--prefix="$(prefix)" \
+	--exec-prefix="$(exec_prefix)" \
+	--bindir="$(bindir)" \
+	--datarootdir="$(datadir)" \
+	--infodir="$(infodir)" \
+	--mandir="$(mandir)" \
 	CC="$(CC)" \
-	CXX="$(CXX)" \
 	CPPFLAGS="$(CPPFLAGS)" \
-	CFLAGS="$(CFLAGS)" \
-	CXXFLAGS="$(CXXFLAGS)" \
-	LDFLAGS="$(CFLAGS)"
+	CCFLAGS="$(CCFLAGS)" \
+	LDFLAGS="$(LDFLAGS)" \
+	SHELL="$(SHELL)"
+BUILD_ARGS     = \
+	SHELL="$(SHELL)"
+INSTALL_ARGS   = \
+	SHELL="$(SHELL)"
 
 include ../../gar.mk
