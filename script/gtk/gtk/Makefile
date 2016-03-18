@@ -1,11 +1,9 @@
 GARNAME = gtk+
-GARVERSION = 2.24.14
+# 3.x requires additional packages (atk-bridge) some of which do not compile (libepoxy).
+GARVERSION = 2.24.28
 CATEGORIES = gtk
 MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/gtk+/2.24/
 DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch \
-	$(DISTNAME)-nm.patch
 LICENSE = LGPL2
 
 DESCRIPTION =
@@ -61,7 +59,6 @@ endif
 include ../../gar.mk
 
 pre-configure:
-	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
