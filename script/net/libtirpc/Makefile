@@ -1,11 +1,10 @@
 GARNAME = libtirpc
-GARVERSION = 0.2.2
+GARVERSION = 0.3.2
 CATEGORIES = net
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch \
-	$(DISTNAME)-remove_des.patch
+	$(DISTNAME)-api_fixes-1.patch
 LICENSE = BSD_3_Clause
 
 DESCRIPTION = 
@@ -19,7 +18,9 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-gss \
+	--disable-silent-rules \
+	--disable-gssapi \
+	--disable-ipv6 \
 	--enable-shared \
 	--disable-static \
 	--with-gnu-ld
