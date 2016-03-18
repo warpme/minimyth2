@@ -1,7 +1,7 @@
 GARNAME = gcc
 GARVERSION = $(GCC_VERSION)
 CATEGORIES = devel
-MASTER_SITES  = http://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)/
+MASTER_SITES  = https://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)/
 MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/releases/$(DISTNAME)/
 MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/prerelease-$(GCC_VERSION)/
 MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/snapshots/$(GCC_VERSION)/
@@ -23,7 +23,7 @@ GARTARGET = $($(CROSSIMG)_GARHOST)
 
 IMGDEPS += $(CROSSIMG)
 $(CROSSIMG)_DEPENDS = devel/glibc
-DEPENDS   = lang/c devel/cloog devel/gmp devel/libelf devel/mpc devel/mpfr devel/ppl
+DEPENDS   = lang/c devel/gmp devel/isl devel/libelf devel/mpc devel/mpfr
 BUILDDEPS = devel/make devel/binutils
 
 WORKDIR   = $(WORKROOTDIR)/$(DESTIMG)_$(CROSSIMG).d
@@ -43,21 +43,20 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--enable-__cxa_atexit \
 	--enable-clocale=gnu \
 	--enable-languages=c,c++ \
+	--enable-libatommic \
 	--enable-libgomp \
-	--disable-libmudflap \
 	--enable-gold \
 	--enable-ld \
 	--disable-libquadmath \
 	--disable-libquadmath-support \
 	--disable-libada \
 	--disable-libssp \
-	--disable-ppl-version-check \
-	--enable-cloog-backend=isl \
 	--enable-lto \
 	--disable-multilib \
 	--enable-nls \
 	--enable-decimal-float \
 	--enable-shared \
+	--enable-host-shared \
 	--enable-threads=posix \
 	--enable-version-specific-runtime-libs \
 	--with-mpc-include=$(DESTDIR)$(includedir) \
@@ -66,10 +65,8 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--with-mpfr-lib=$(DESTDIR)$(libdir) \
 	--with-gmp-include=$(DESTDIR)$(includedir) \
 	--with-gmp-lib=$(DESTDIR)$(libdir) \
-	--with-ppl-include=$(DESTDIR)$(includedir) \
-	--with-ppl-lib=$(DESTDIR)$(libdir) \
-	--with-cloog-include=$(DESTDIR)$(includedir) \
-	--with-cloog-lib=$(DESTDIR)$(libdir) \
+	--with-isl-include=$(DESTDIR)$(includedir) \
+	--with-isl-lib=$(DESTDIR)$(libdir) \
 	--with-libelf-include=$(DESTDIR)$(includedir) \
 	--with-libelf-lib=$(DESTDIR)$(libdir) \
 	--with-sysroot=$($(CROSSIMG)_DESTDIR)
@@ -88,22 +85,41 @@ configure-custom:
 	@$(MAKECOOKIE)
 
 post-install:
+	@rm -f $(DESTDIR)$(libdir)/libcc1.la
+	@rm -f $(CROSS_GCC_LIBDIR)/libasan.la
+	@rm -f $(CROSS_GCC_LIBDIR)/libatomic.la
+	@rm -f $(CROSS_GCC_LIBDIR)/libcilkrts.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libgomp.la
+	@rm -f $(CROSS_GCC_LIBDIR)/libgomp-plugin-host_nonshm.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libitm.la
+	@rm -f $(CROSS_GCC_LIBDIR)/liblsan.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libssp.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libssp_nonshared.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libstdc++.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libsupc++.la
+	@rm -f $(CROSS_GCC_LIBDIR)/libtsan.la
+	@rm -f $(CROSS_GCC_LIBDIR)/libubsan.la
+	@rm -f $(CROSS_GCC_LIBDIR)/libvtv.la
+	@rm -f $(CROSS_GCC_LIBDIR)/plugin/libcc1plugin.la
 	@rm -f $(CROSS_GCC_LIBEXECDIR)/liblto_plugin.la
 	@# Native compile.
 	@$(if $(filter     $(DESTIMG),$(CROSSIMG)), \
 		ln -sf gcc $(DESTDIR)$(bindir)/cc ; \
+		$(if $(wildcard $(DESTDIR)$(bindir)/gcc-ar    ),ln -sf gcc-ar     $(DESTDIR)$(bindir)/ar    ) ; \
+		$(if $(wildcard $(DESTDIR)$(bindir)/gcc-nm    ),ln -sf gcc-nm     $(DESTDIR)$(bindir)/nm    ) ; \
+		$(if $(wildcard $(DESTDIR)$(bindir)/gcc-ranlib),ln -sf gcc-ranlib $(DESTDIR)$(bindir)/ranlib) ; \
+		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-ar    ),ln -sf $(GARTARGET)-gcc-ar     $(DESTDIR)$(bindir)/$(GARTARGET)-ar    ) ; \
+		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-nm    ),ln -sf $(GARTARGET)-gcc-nm     $(DESTDIR)$(bindir)/$(GARTARGET)-nm    ) ; \
+		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-ranlib),ln -sf $(GARTARGET)-gcc-ranlib $(DESTDIR)$(bindir)/$(GARTARGET)-ranlib) ; \
 	)
 	@# Cross compile.
 	@$(if $(filter-out $(DESTIMG),$(CROSSIMG)), \
 		mkdir -p $(DESTDIR)$(prefix)/$(GARHOST)/bin ; \
 		cp $(DESTDIR)$(bindir)/$(GARTARGET)-cpp $(DESTDIR)$(prefix)/$(GARTARGET)/bin/cpp ; \
 		cp $(DESTDIR)$(bindir)/$(GARTARGET)-gcc $(DESTDIR)$(prefix)/$(GARTARGET)/bin/cc ; \
+		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-ar    ),ln -sf $(GARTARGET)-gcc-ar     $(DESTDIR)$(bindir)/$(GARTARGET)-ar    ) ; \
+		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-nm    ),ln -sf $(GARTARGET)-gcc-nm     $(DESTDIR)$(bindir)/$(GARTARGET)-nm    ) ; \
+		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-ranlib),ln -sf $(GARTARGET)-gcc-ranlib $(DESTDIR)$(bindir)/$(GARTARGET)-ranlib) ; \
 	)
 	@mkdir -p $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_elibdir)
 	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libgcc.a        ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_elibdir) ; )
