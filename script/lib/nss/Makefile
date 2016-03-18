@@ -1,9 +1,9 @@
 GARNAME = nss
 GARVERSION = $(NSS_VERSION)
 CATEGORIES = lib
-MASTER_SITES = http://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/$(shell echo $(DISTNAME) | sed -e 's/-/_/g' -e 's/\./_/g' -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')_RTM/src/
+MASTER_SITES = https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/$(shell echo $(DISTNAME) | sed -e 's/-/_/g' -e 's/\./_/g' -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')_RTM/src/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES  = $(DISTNAME)-freebl_no_depend.patch $(DISTNAME).patch.gar
+PATCHFILES  = $(DISTNAME).patch.gar
 ifneq ($(DESTIMG),build)
 PATCHFILES += $(DISTNAME)-cross.patch
 endif
@@ -21,7 +21,7 @@ endif
 
 WORKSRC = $(WORKDIR)/$(shell echo $(DISTNAME) | sed -e 's/\.with\.ckbi\..*$$//')
 
-BUILD_SCRIPTS    = $(WORKSRC)/mozilla/security/nss/Makefile
+BUILD_SCRIPTS    = $(WORKSRC)/nss/Makefile
 INSTALL_SCRIPTS  = custom
 ifeq ($(DESTIMG),build)
 INSTALL_SCRIPTS += shlibsign
@@ -39,18 +39,21 @@ BUILD_ARGS = \
 	NSS_USE_SYSTEM_SQLITE="1" \
 	USE_SYSTEM_ZLIB="1" \
 	ZLIB_LIBS="-lz" \
-	build_coreconf build_dbm all
+	all
 
 include ../../gar.mk
 
 PARALLELMFLAGS := -j1
 
+# nss 3.19.3 uses cross LDFLAGS during native build.
+LDFLAGS :=
+
 install-custom:
 	@mkdir -p $(DESTDIR)$(libdir)
-	@$(foreach lib, $(wildcard $(WORKSRC)/mozilla/dist/Linux*/lib/*.so), cp -f $(lib) $(DESTDIR)$(libdir) ; )
+	@$(foreach lib, $(wildcard $(WORKSRC)/dist/Linux*/lib/*.so), cp -f $(lib) $(DESTDIR)$(libdir) ; )
 	@$(MAKECOOKIE)
 
 install-shlibsign:
 	@mkdir -p $(DESTDIR)$(bindir)
-	@cp $(WORKSRC)/mozilla/dist/Linux*/bin/shlibsign $(DESTDIR)$(bindir)/nss-shlibsign
+	@cp $(WORKSRC)/dist/Linux*/bin/shlibsign $(DESTDIR)$(bindir)/nss-shlibsign
 	@$(MAKECOOKIE)
