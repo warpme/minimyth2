@@ -1,8 +1,10 @@
 GARNAME = ncurses
 GARVERSION = $(NCURSES_VERSION)
 CATEGORIES = lib
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
+#MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
+MASTER_SITES = ftp://dickey.his.com/pub/ncurses/current/
+#DISTFILES = $(DISTNAME).tar.gz
+DISTFILES = $(DISTNAME).tgz
 PATCHFILES = $(DISTNAME)-shell.patch $(DISTNAME)-perl.patch.gar $(DISTNAME).patch.gar
 LICENSE = MIT_Modified
 
@@ -33,6 +35,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-rpath \
 	--disable-relink \
 	--disable-rpath-hack \
+	--enable-overwrite \
 	--disable-widec \
 	--enable-termcap
 ifneq ($(DESTIMG),build)
