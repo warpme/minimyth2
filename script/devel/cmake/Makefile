@@ -1,7 +1,7 @@
 GARNAME = cmake
-GARVERSION = 2.8.10.2
+GARVERSION = 3.2.3
 CATEGORIES = devel
-MASTER_SITES = http://www.cmake.org/files/v2.8/
+MASTER_SITES = http://www.cmake.org/files/v3.2/
 DISTFILES = $(DISTNAME).tar.gz
 LICENSE = BSD_3_Clause
 
@@ -21,6 +21,7 @@ CONFIGURE_ARGS = \
 	--no-system-libs \
 	--no-system-curl \
 	--no-system-expat \
+	--no-system-jsoncpp \
 	--no-system-zlib \
 	--no-system-bzip2 \
 	--no-system-libarchive \
@@ -31,6 +32,3 @@ CONFIGURE_ARGS = \
 	--mandir="$(subst $(prefix),,$(mandir))"
 
 include ../../gar.mk
-
-pre-extract:
-	echo $(CONFIGURE_ARGS)
