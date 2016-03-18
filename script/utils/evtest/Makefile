@@ -1,10 +1,8 @@
 GARNAME = evtest
-GARVERSION = 1.30
+GARVERSION = 1.32
 CATEGORIES = utils
 MASTER_SITES = http://cgit.freedesktop.org/$(GARNAME)/snapshot/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch
 LICENSE = GPL2
 
 DESCRIPTION = 
@@ -17,9 +15,12 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST)
+CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--disable-silent-rules
 
 include ../../gar.mk
+
+LDFLAGS := $(LDFLAGS) -fwhole-program
 
 checksum-$(DISTNAME).tar.gz:
 	@$(MAKECOOKIE)
