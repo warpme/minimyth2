@@ -1,8 +1,7 @@
 GARNAME = harfbuzz
-GARVERSION = 0.9.12
+GARVERSION = 0.9.41
 CATEGORIES = lib
 MASTER_SITES = http://www.freedesktop.org/software/harfbuzz/release/
-http://www.fontconfig.org/release/
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = harfbuzz
 harfbuzz_LICENSE_TEXT = $(WORKSRC)/COPYING
@@ -21,12 +20,14 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
 	--disable-static \
 	--enable-shared \
+	--disable-gtk-doc \
+	--disable-gtk-doc-html \
+	--disable-gtk-doc-pdf \
 	--with-gnu-ld
 
 include ../../gar.mk
 
 pre-configure:
-	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
 
