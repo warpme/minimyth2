@@ -1,11 +1,8 @@
 GARNAME = glib
-GARVERSION = 2.34.3
+GARVERSION = 2.45.3
 CATEGORIES = gtk
-MASTER_SITES = http://ftp.gnome.org/pub/gnome/sources/glib/2.34/
+MASTER_SITES = http://ftp.gnome.org/pub/gnome/sources/glib/2.45/
 DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = \
-	$(DISTNAME)-ac_header_stdc.patch \
-	$(DISTNAME)-automake_1.13.patch
 LICENSE = LGPL2
 
 DESCRIPTION =
@@ -59,7 +56,6 @@ endif
 include ../../gar.mk
 
 pre-configure:
-	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
