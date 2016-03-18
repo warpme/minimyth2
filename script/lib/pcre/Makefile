@@ -1,5 +1,5 @@
 GARNAME = pcre
-GARVERSION = 8.32
+GARVERSION = 8.37
 CATEGORIES = lib
 MASTER_SITES = ftp://ftp.csx.cam.ac.uk/pub/software/programming/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
