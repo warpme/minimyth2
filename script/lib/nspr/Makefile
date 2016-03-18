@@ -1,7 +1,7 @@
 GARNAME = nspr
-GARVERSION = 4.9.4
+GARVERSION = 4.10.8
 CATEGORIES = lib
-MASTER_SITES = http://ftp.mozilla.org/pub/mozilla.org/$(GARNAME)/releases/v$(GARVERSION)/src/
+MASTER_SITES = https://ftp.mozilla.org/pub/mozilla.org/$(GARNAME)/releases/v$(GARVERSION)/src/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-cross.patch
 LICENSE = MPL1_1/GPL2/LGPL2_1
@@ -16,11 +16,11 @@ ifneq ($(DESTIMG),build)
 BUILDDEPS += lib/nspr
 endif
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/mozilla/nsprpub/configure
-BUILD_SCRIPTS     = $(WORKSRC)/mozilla/nsprpub/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/mozilla/nsprpub/Makefile  nsinstall
+CONFIGURE_SCRIPTS = $(WORKSRC)/nspr/configure
+BUILD_SCRIPTS     = $(WORKSRC)/nspr/Makefile
+INSTALL_SCRIPTS   = $(WORKSRC)/nspr/Makefile  nsinstall
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(GARTARGET) \
 	$(if $(filter x86_64,$(GARCH_FAMILY)),--enable-64bit)
 
 CONFIGURE_ENV = \
@@ -31,11 +31,8 @@ CONFIGURE_ENV = \
 
 include ../../gar.mk
 
-CFLAGS  := $(CFLAGS)  -fPIC
-LDFLAGS := $(LDFLAGS) -fPIC
-
 install-nsinstall:
-	@cp -f $(WORKSRC)/mozilla/nsprpub/config/nsinstall $(DESTDIR)$(bindir)/nsinstall
+	@cp -f $(WORKSRC)/nspr/config/nsinstall $(DESTDIR)$(bindir)/nsinstall
 	@$(MAKECOOKIE)
 
 post-install:
