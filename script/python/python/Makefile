@@ -2,9 +2,10 @@ GARNAME = Python
 GARVERSION =  $(PYTHON_VERSION)
 CATEGORIES = python
 MASTER_SITES = http://www.python.org/ftp/python/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.xz
+DISTFILES = $(DISTNAME).tar.bz2
+PATCHFILES  = $(DISTNAME)-parallel.patch $(DISTNAME)-configure.patch
 ifneq ($(DESTIMG),build)
-PATCHFILES = Python-2.7.8-cross.patch
+PATCHFILES += $(DISTNAME)-cross.patch
 endif
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
@@ -16,7 +17,7 @@ endef
 DEPENDS    = lang/c lib/ncurses lib/openssl lib/readline lib/zlib
 BUILDDEPS  = devel/autoconf devel/automake
 ifneq ($(DESTIMG),build)
-DEPENDS   += lib/bluez
+# DEPENDS   += lib/bluez
 BUILDDEPS += python/python
 endif
 
@@ -31,8 +32,7 @@ PWD := $(shell pwd)
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
-	--enable-shared \
-	--disable-ipv6
+	--enable-shared
 ifneq ($(DESTIMG),build)
 BUILD_ARGS     = \
 	HOSTPYTHON=$(build_DESTDIR)$(build_bindir)/python \
@@ -50,8 +50,8 @@ endif
 	
 ifneq ($(DESTIMG),build)
 CONFIGURE_ENV = \
-	ac_cv_file__dev_ptc=no \
-	ac_cv_file__dev_ptmx=yes \
+	ac_cv_file_dev_ptc=no \
+	ac_cv_file_dev_ptmx=yes \
 	ac_cv_func_lchflags_works=no \
 	ac_cv_func_chflags_works=no \
 	ac_cv_func_printf_zd=yes
