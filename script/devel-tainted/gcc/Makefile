@@ -35,16 +35,16 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--enable-clocale=gnu \
 	--enable-languages=c,c++ \
 	--disable-decimal-float \
+	--enable-libatomic \
 	--disable-libgomp \
-	--disable-libmudflap \
 	--disable-libquadmath \
 	--disable-libquadmath-support \
 	--disable-libada \
 	--disable-libssp \
-	--disable-ppl-version-check \
 	--disable-multilib \
 	--disable-nls \
 	--enable-shared \
+	--enable-host-shared \
 	--enable-threads=no \
 	--enable-version-specific-runtime-libs \
 	--with-mpc-include=$(DESTDIR)$(includedir) \
@@ -53,8 +53,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--with-mpfr-lib=$(DESTDIR)$(libdir) \
 	--with-gmp-include=$(DESTDIR)$(includedir) \
 	--with-gmp-lib=$(DESTDIR)$(libdir) \
-	--without-ppl \
-	--without-cloog \
+	--without-isl \
 	--without-libelf \
 	--with-sysroot=$($(CROSSIMG)_DESTDIR)
 

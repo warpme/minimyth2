@@ -40,7 +40,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--without-mpc \
 	--without-mpfr \
 	--without-gmp \
-	--without-ppl \
+	--without-isl \
 	--without-cloog \
 	--without-libelf \
 	--with-sysroot=$($(CROSSIMG)_DESTDIR) \
