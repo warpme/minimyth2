@@ -73,6 +73,8 @@ pre-configure:
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/liblirc_client.la
+	@rm -f $(DESTDIR)$(libdir)/liblirc.la
+	@rm -f $(DESTDIR)$(libdir)/liblirc_driver.la
 	@depmod -b $(DESTDIR) -v $(LINUX_FULL_VERSION)
 	@$(MAKECOOKIE)
 
