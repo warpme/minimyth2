@@ -1,9 +1,9 @@
 GARNAME = e2fsprogs
-GARVERSION = 1.42.7
+GARVERSION = 1.42.13
 CATEGORIES = disk
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/v$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME)-chmod.patch
+MASTER_SITES = https://www.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v$(GARVERSION)/
+DISTFILES = $(DISTNAME).tar.xz
+#PATCHFILES = $(DISTNAME)-chmod.patch
 LICENSE = GPL2/LGPL2
 
 DESCRIPTION =
@@ -42,9 +42,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-gnu-ld
 
 include ../../gar.mk
-
-CFLAGS  := $(CFLAGS)  -fPIC
-LDFLAGS := $(LDFLAGS) -fPIC
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
