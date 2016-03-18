@@ -1,16 +1,16 @@
 GARNAME = coreutils
-GARVERSION = 8.19
+GARVERSION = 8.24
 CATEGORIES = utils
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = $(DISTNAME)-perl.patch.gar $(DISTNAME)-sysinfo.patch $(DISTNAME)-disable_man.patch
+PATCHFILES = $(DISTNAME)-sysinfo.patch
 LICENSE = GPL3
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/c
+xDEPENDS = lang/c
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
