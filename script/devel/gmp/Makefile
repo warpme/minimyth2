@@ -1,8 +1,8 @@
 GARNAME = gmp
 GARVERSION = $(GMP_VERSION)
 CATEGORIES = devel
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
+DISTFILES = $(DISTNAME)a.tar.xz
 LICENSE = GPL3/LGPL3
 
 DESCRIPTION = 
@@ -21,6 +21,8 @@ INSTALL_SCRIPTS    = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-cxx \
+	--enable-assembly \
+	--enable-fft \
 	--enable-shared \
 	--disable-static \
 	--without-readline \
