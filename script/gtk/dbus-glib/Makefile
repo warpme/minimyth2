@@ -1,10 +1,8 @@
 GARNAME = dbus-glib
-GARVERSION = 0.100.2
+GARVERSION = 0.104
 CATEGORIES = gtk
 MASTER_SITES = http://dbus.freedesktop.org/releases/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch
 LICENSE = LGPL2
 
 DESCRIPTION =
@@ -41,16 +39,9 @@ CONFIGURE_ARGS += \
 	--with-dbus-binding-tool=$(build_DESTDIR)$(build_bindir)/dbus-binding-tool
 endif
 
-CONFIGURE_ENV  =
-ifneq ($(DESTIMG),build)
-CONFIGURE_ENV += \
-  	ac_cv_have_abstract_sockets='yes'
-endif
-
 include ../../gar.mk
 
 pre-configure:
-	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
