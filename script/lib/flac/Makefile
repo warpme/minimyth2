@@ -1,14 +1,8 @@
 GARNAME = flac
-GARVERSION = 1.2.1
+GARVERSION = 1.3.1
 CATEGORIES = lib
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)-src/$(DISTNAME)-src/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch \
-	$(DISTNAME)-configure.patch \
-	$(DISTNAME)-cxxflags.patch \
-	$(DISTNAME)-gcc_4.3.patch
-LICENSE = GPL2/LGPL2_1/FDL1_2/xiph
+MASTER_SITES = http://downloads.xiph.org/releases/$(GARNAME)/
+DISTFILES = $(DISTNAME).tar.xz
 xiph_LICENSE_TEXT = $(WORKSRC)/COPYING.Xiph
 
 DESCRIPTION =
@@ -23,6 +17,7 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--disable-silent-rules \
 	--enable-shared \
 	--disable-static \
 	--disable-altivec \
@@ -36,9 +31,12 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
+# flac 1.3.1 fails to compile with gcc 5.2.0's link time optimization enabled.
+CFLAGS   := $(filter-out -flto, $(CFLAGS))   -fno-lto
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS)) -fno-lto
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))  -fno-lto
+
 pre-configure:
-	@cd $(WORKSRC) ; rm -f m4/ogg.m4
-	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL_LIBPATH,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
