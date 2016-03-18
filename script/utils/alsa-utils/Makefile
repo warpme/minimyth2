@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/alsa-lib lib/ncursesw system/udev
+DEPENDS = lang/c lib/alsa-lib lib/ncursesw lib/fftw3 lib/ncurses system/udev
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
