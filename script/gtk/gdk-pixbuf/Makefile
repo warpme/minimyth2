@@ -1,7 +1,7 @@
 GARNAME = gdk-pixbuf
-GARVERSION = 2.26.5
+GARVERSION = 2.30.8
 CATEGORIES = gtk
-MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/gdk-pixbuf/2.26/
+MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/gdk-pixbuf/2.30/
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = LGPL2
 
@@ -33,11 +33,13 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-rpath \
 	--disable-glibtest \
 	--enable-modules \
-	--disable-gdiplus \
 	--disable-introspection \
 	--disable-gtk-doc \
 	--disable-man \
 	--enable-Bsymbolic \
+	--disable-installed-tests \
+	--disable-always-build-tests \
+	--disable-coverage \
 	--with-gnu-ld \
 	--with-libpng \
  	--with-libjpeg \
@@ -54,8 +56,6 @@ endif
 include ../../gar.mk
 
 pre-configure:
-	@$(call RUN_GETTEXTIZE)
-	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
