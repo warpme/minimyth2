@@ -1,7 +1,7 @@
 GARNAME = acpid
-GARVERSION = 2.0.17
+GARVERSION = 2.0.23
 CATEGORIES = system
-MASTER_SITES = http://www.tedfelix.com/linux/
+MASTER_SITES = http://downloads.sourceforge.net/project/acpid2/
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL2
 
