@@ -4,6 +4,7 @@ CATEGORIES = system
 MASTER_SITES = ftp://ftp.kernel.org/pub/linux/utils/kernel/hotplug/
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = GPL2
+PATCHFILES = $(DISTNAME)-fix_gcc_5.3_compile.patch
 
 DESCRIPTION =
 define BLURB
