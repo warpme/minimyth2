@@ -1,7 +1,7 @@
 GARNAME = pango
-GARVERSION = 1.32.6
+GARVERSION = 1.36.8
 CATEGORIES = gtk
-MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/pango/1.32/
+MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/pango/1.36/
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = LGPL2
 
@@ -18,13 +18,14 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
-	--config-cache \
 	--disable-static \
 	--enable-shared \
 	--disable-debug \
 	--enable-rebuilds \
 	--disable-gtk-doc \
-	--disable-man \
+	--enable-gtk-doc-html \
+	--enable-gtk-doc-pdf \
+	--enable-man \
 	--disable-doc-cross-references \
 	--enable-explicit-deps=auto \
 	--with-gnu-ld \
@@ -33,7 +34,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 include ../../gar.mk
 
 pre-configure:
-	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
