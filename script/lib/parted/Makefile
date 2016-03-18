@@ -1,9 +1,11 @@
 GARNAME = parted
-GARVERSION = 3.0
+GARVERSION = 3.2
 CATEGORIES = lib
 MASTER_SITES = http://ftp.gnu.org/gnu/parted/
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = $(GARNAME)
+PATCHFILES = $(DISTNAME)-fix-compile.patch
+PATCHFILES += $(DISTNAME)-fix-man-dir.patch
 $(GARNAME)_LICENSE_TEXT=$(WORKSRC)/COPYING
 
 DESCRIPTION =
@@ -18,10 +20,11 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-device-mapper \
+	--disable-nls \
 	--without-man
 
 include ../../gar.mk
 
 post-install:
-    @rm -f $(DESTDIR)$(libdir)/libparted.la
+	@rm -f $(DESTDIR)$(libdir)/libparted.la
 	@$(MAKECOOKIE)
