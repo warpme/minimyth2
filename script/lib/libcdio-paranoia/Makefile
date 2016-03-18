@@ -1,7 +1,7 @@
 GARNAME = libcdio-paranoia
-GARVERSION = 10.2+0.90
+GARVERSION = 10.2+$(LIBCDIO_VERSION)
 CATEGORIES = lib
-MASTER_SITES = http://ftp.gnu.org/gnu/libcdio/
+MASTER_SITES = https://ftp.gnu.org/gnu/libcdio/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = \
 	$(DISTNAME)-automake_1.13.patch \
