@@ -1,7 +1,7 @@
 GARNAME = mpc
 GARVERSION = $(MPC_VERSION)
 CATEGORIES = devel
-MASTER_SITES = http://www.multiprecision.org/mpc/download/
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
 LICENSE = LGPL2_1
 
@@ -17,6 +17,7 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--disable-silent-rules \
 	--enable-shared \
 	--disable-static \
 	--with-mpfr-include=$(DESTDIR)$(includedir) \
