@@ -11,6 +11,7 @@ build_system_bins = $(strip $(sort \
 	flex \
 	gawk \
 	gcc \
+	gcc_cxx \
 	git \
 	glibc \
 	grep \
@@ -118,6 +119,10 @@ build_system_bins_gawk = \
 build_system_bins_gcc = \
 	cpp \
 	gcc
+
+# Overridden by binaries from package devel/gcc.
+build_system_bins_gcc_cxx = \
+	g++
 
 build_system_bins_git = \
 	git
