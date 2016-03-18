@@ -1,17 +1,20 @@
 GARNAME = readline
-GARVERSION = 6.2
+GARVERSION = 6.3
 CATEGORIES = lib
-MASTER_SITES  = http://ftp.gnu.org/gnu/$(GARNAME)/
-MASTER_SITES += http://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)-patches/
+MASTER_SITES  = https://ftp.gnu.org/gnu/$(GARNAME)/
+MASTER_SITES += https://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)-patches/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES  = \
 	$(GARNAME)$(subst .,,$(GARVERSION))-001 \
 	$(GARNAME)$(subst .,,$(GARVERSION))-002 \
 	$(GARNAME)$(subst .,,$(GARVERSION))-003 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-004
-PATCHFILES += \
-	$(DISTNAME)-shlib_libs.patch
-LICENSE = GPL3
+	$(GARNAME)$(subst .,,$(GARVERSION))-004 \
+	$(GARNAME)$(subst .,,$(GARVERSION))-005 \
+	$(GARNAME)$(subst .,,$(GARVERSION))-006 \
+	$(GARNAME)$(subst .,,$(GARVERSION))-007 \
+	$(GARNAME)$(subst .,,$(GARVERSION))-008 \
+	$(DISTNAME)-crosscompile-fix.patch \
+	$(DISTNAME)-add-ncurses-linking.patch
 
 DESCRIPTION = 
 define BLURB
@@ -31,7 +34,17 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-curses \
 	--without-purify
 
+#	LIBS="$(DESTDIR)$(libdir)/libcurses.so"
+
 include ../../gar.mk
 
 patch-%: normal-patch-%
+	@$(MAKECOOKIE)
+
+pre-configure:
+	@#$(call RUN_AUTOTOOLS)
+	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	@$(call FIX_LIBTOOL,$(WORKSRC)/support/config.rpath)
+	@rm -f $(WORKSRC)/config.cache
+	@#echo "bash_cv_have_mbstate_t=yes" >> $(WORKSRC)/config.cache
 	@$(MAKECOOKIE)
