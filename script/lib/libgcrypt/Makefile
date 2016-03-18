@@ -1,11 +1,9 @@
 GARNAME = libgcrypt
-GARVERSION = 1.5.0
+GARVERSION = 1.6.3
 CATEGORIES = lib
 MASTER_SITES = ftp://ftp.gnupg.org/gcrypt/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch \
-	$(DISTNAME)-gpg_error_libs.patch \
 	$(DISTNAME).patch.gar
 LICENSE = GPL2/LGPL2_1
 
@@ -20,6 +18,7 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--disable-silent-rules \
 	--enable-shared \
 	--disable-static \
 	--disable-asm \
@@ -27,8 +26,12 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
+#CFLAGS   += -std=gnu89
+#CXXFLAGS += -std=gnu89
+#LDFLAGS  += -std=gnu89
+
 pre-configure:
-	@$(call RUN_AUTOTOOLS)
+	@#$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
 
