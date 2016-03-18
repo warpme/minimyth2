@@ -1,8 +1,8 @@
 GARNAME = gtk-doc
-GARVERSION = 1.18
+GARVERSION = 1.24
 CATEGORIES = gtk
-MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/gtk-doc/1.18/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/gtk-doc/1.24/
+DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL3
 
 DESCRIPTION =
