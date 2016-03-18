@@ -1,8 +1,8 @@
 GARNAME = isl
-GARVERSION = 0.07
+GARVERSION = 0.14.1
 CATEGORIES = devel
-MASTER_SITES = ftp://ftp.linux.student.kuleuven.be/pub/people/skimo/isl/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = http://isl.gforge.inria.fr/
+DISTFILES = $(DISTNAME).tar.xz
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
@@ -22,8 +22,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--with-gnu-ld \
 	--with-gmp=system \
-	--with-gmp-prefix=$(DESTDIR)$(prefix) \
-	--without-piplib
+	--with-gmp-prefix=$(DESTDIR)$(prefix)
 
 include ../../gar.mk
 
