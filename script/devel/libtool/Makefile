@@ -1,7 +1,7 @@
 GARNAME = libtool
 GARVERSION = 2.4.2
 CATEGORIES = devel
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-no_use_linker_plugin.patch $(DISTNAME)-bash.patch.gar $(DISTNAME)-use_ld.patch
 LICENSE = GPL2
