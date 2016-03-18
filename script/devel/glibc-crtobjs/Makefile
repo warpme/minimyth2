@@ -30,8 +30,9 @@ INSTALL_SCRIPTS   = custom
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--enable-bind-now \
-	--enable-kernel=3.0.0 \
-	--with-binutils=$(build_DESTDIR)$(build_bindir) \
+	--enable-kernel=3.18.0 \
+	--disable-build-nscd \
+	--disable-nscd \
 	--without-gd \
 	--without-cvs \
 	--with-elf \
@@ -52,16 +53,28 @@ BUILD_ARGS      = \
 INSTALL_ARGS    = \
 	install_root=$(DESTDIR)
 
+CONFIGURE_ENV = \
+	BUILD_CC="$(build_CC)" \
+	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
+	BUILD_CFLAGS="$(build_CFLAGS)" \
+	BUILD_LDFLAGS="$(build_LDFLAGS)"
+BUILD_ENV     = \
+	BUILD_CC="$(build_CC)" \
+	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
+	BUILD_CFLAGS="$(build_CFLAGS)" \
+	BUILD_LDFLAGS="$(build_LDFLAGS)"
+INSTALL_ENV   = \
+	BUILD_CC="$(build_CC)" \
+	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
+	BUILD_CFLAGS="$(build_CFLAGS)" \
+	BUILD_LDFLAGS="$(build_LDFLAGS)"
+
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
 
-# gcc was compiled staticly so there is no linker plugin.
-CFLAGS  := $(filter-out -fuse-linker-plugin, $(CFLAGS))
-LDFLAGS := $(filter-out -fuse-linker-plugin, $(LDFLAGS))
-
-# glibc 2.15 fails to compile with gcc 4.7.0's link time optimization enabled.
-CFLAGS  := $(filter-out -flto, $(CFLAGS))
-LDFLAGS := $(filter-out -flto, $(LDFLAGS))
+# glibc 2.17 fails to compile with gcc 5.2.0's link time optimization enabled.
+CFLAGS  := $(filter-out -flto, $(CFLAGS))  -fno-lto
+LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
 
 CFLAGS := $(filter-out -ffast-math, $(CFLAGS))
 CFLAGS := $(filter-out -O%, $(CFLAGS)) -O3

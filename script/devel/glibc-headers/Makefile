@@ -19,8 +19,9 @@ INSTALL_SCRIPTS   = custom
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--disable-sanity-checks \
-	--enable-kernel=3.0.0 \
-	--with-binutils=$(build_DESTDIR)$(build_bindir) \
+	--enable-kernel=3.18.0 \
+	--disable-build-nscd \
+	--disable-nscd \
 	--without-cvs \
 	--with-headers=$(DESTDIR)$(includedir) \
 	--disable-add-ons \
@@ -30,22 +31,37 @@ INSTALL_ARGS    = \
 	cross-compiling=yes \
 	install_root=$(DESTDIR)
 
+CONFIGURE_ENV = \
+	BUILD_CC="$(build_CC)" \
+	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
+	BUILD_CFLAGS="$(build_CFLAGS)" \
+	BUILD_LDFLAGS="$(build_LDFLAGS)"
+BUILD_ENV     = \
+	BUILD_CC="$(build_CC)" \
+	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
+	BUILD_CFLAGS="$(build_CFLAGS)" \
+	BUILD_LDFLAGS="$(build_LDFLAGS)"
+INSTALL_ENV   = \
+	BUILD_CC="$(build_CC)" \
+	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
+	BUILD_CFLAGS="$(build_CFLAGS)" \
+	BUILD_LDFLAGS="$(build_LDFLAGS)"
+
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
 
-DEFAULT_ENV   := \
-	DESTDIR="$(DESTDIR)" \
-	CC="$(build_CC)" \
-	CXX="$(build_CXX)" \
-	LD="$(build_LD)" \
-	AR="$(build_AR)" \
-	AS="$(build_AS)" \
-	OBJDUMP="$(build_OBJDUMP)" \
-	RANLIB="$(build_RANLIB)" \
-	libc_cv_386_tls="yes"
-CONFIGURE_ENV := $(DEFAULT_ENV)
-BUILD_ENV     := $(DEFAULT_ENV)
-INSTALL_ENV   := $(DEFAULT_ENV)
+CPP      := $(build_CPP)
+CC       := $(build_CC)
+CXX      := $(build_CXX)
+LD       := $(build_LD)
+AR       := $(build_AR)
+AS       := $(build_AS)
+OBJDUMP  := $(build_OBJDUMP)
+RANLIB   := $(build_RANLIB)
+CPPFLAGS :=
+CFLAGS   :=
+CXXFLAGS :=
+LDFLAGS  :=
 
 pre-configure:
 	@mkdir -p $(WORKBLD)
@@ -70,5 +86,5 @@ post-install:
 	@touch $(DESTDIR)$(includedir)/gnu/stubs.h
 	@cp $(WORKBLD)/bits/stdio_lim.h $(DESTDIR)$(includedir)/bits
 	@cp $(WORKSRC)/nptl/sysdeps/pthread/pthread.h $(DESTDIR)$(includedir)
-	@cp $(WORKSRC)/nptl/sysdeps/unix/sysv/linux/i386/bits/pthreadtypes.h $(DESTDIR)$(includedir)/bits
+	@cp $(WORKSRC)/nptl/sysdeps/unix/sysv/linux/x86/bits/pthreadtypes.h $(DESTDIR)$(includedir)/bits
 	@$(MAKECOOKIE)
