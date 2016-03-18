@@ -1,24 +1,34 @@
 GARNAME = exiv2
-GARVERSION = 0.24
+GARVERSION = 0.25
 CATEGORIES = lib
 MASTER_SITES = http://www.exiv2.org/
-DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
-PATCHFILES= $(GARNAME)-$(GARVERSION)-fix-cross-build.patch
+DISTFILES = $(DISTNAME).tar.gz
+LICENSE = GPL2
 
-LICENSE = LGPL2
-
-DESCRIPTION = 
+DESCRIPTION =
 define BLURB
 endef
 
-WORKSRC = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
-
-DEPENDS = lang/c
+DEPENDS = lang/c lang/cxx lib/expat lib/zlib
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST)
+CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--enable-shared \
+	--disable-static \
+	--disable-rpath \
+	--enable-visibility \
+	--enable-lensdata \
+	--disable-commercial \
+	--enable-xmp \
+	--with-gnu-ld \
+	--with-zlib=$(DESTDIR)$(prefix) \
+	--with-expat
 
 include ../../gar.mk
+
+post-install:
+	@rm -f $(DESTDIR)$(libdir)/lib$(GARNAME).la
+	@$(MAKECOOKIE)
