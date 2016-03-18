@@ -1,9 +1,11 @@
 GARNAME = gettext
-GARVERSION = 0.18.3
+GARVERSION = 0.19.4
 CATEGORIES = devel
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME)-non_interactive.patch $(DISTNAME)-perl.patch.gar
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
+DISTFILES = $(DISTNAME).tar.xz
+PATCHFILES = \
+	$(DISTNAME)-non_interactive.patch \
+	$(DISTNAME)-perl.patch.gar
 LICENSE = GPL3
 
 DESCRIPTION = 
@@ -17,13 +19,11 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--disable-silent-rules \
 	--enable-shared \
 	--disable-static \
 	--disable-rpath \
 	--with-gnu-ld
-
-CONFIGURE_ENV = \
-	gl_cv_func_wcwidth_works="yes"
 
 include ../../gar.mk
 
