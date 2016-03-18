@@ -1,7 +1,7 @@
 GARNAME = make
 GARVERSION = $(MAKE_VERSION)
 CATEGORIES = devel
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  = $(DISTNAME)-savannah_bug_30723.patch $(DISTNAME)-library_search.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
