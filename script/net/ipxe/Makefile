@@ -1,6 +1,5 @@
 GARNAME = ipxe
-# GARVERSION = HEAD-8dd180f
-GARVERSION = b17d953
+GARVERSION = 99b5216
 CATEGORIES = net
 MASTER_SITES = git://git.ipxe.org/ipxe.git
 DISTFILES = $(DISTNAME).tar.bz2
@@ -20,17 +19,14 @@ BUILD_ARGS = \
 	CROSS_COMPILE="$(compiler_prefix)" \
 	bin/undionly.kpxe
 
-#	bin-x86_64-efi/ipxe.efi
-
 include ../../gar.mk
 
 CPPFLAGS += -fPIC
 CFLAGS   += -fPIC
 
-CPPFLAGS := $(filter-out -flto, $(CPPFLAGS))
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+git//%$(DISTNAME).tar.bz2:
+	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
+	@$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth
