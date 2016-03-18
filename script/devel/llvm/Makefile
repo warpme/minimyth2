@@ -1,11 +1,11 @@
 GARNAME = llvm
-GARVERSION = 3.7.0
+GARVERSION = 3.7.1
 CATEGORIES = devel
 MASTER_SITES = http://www.llvm.org/releases/$(GARVERSION)/
 DISTFILES = $(DISTNAME).src.tar.xz
-PATCHFILES = $(DISTNAME)-cross.patch
-PATCHFILES += $(DISTNAME)-revert-28153-disable-build-in-src-dir.patch
-PATCHFILES += $(DISTNAME)-fix_AMDGPU_experimental_target_compile.patch
+PATCHFILES = \
+	$(DISTNAME)-llvm-config-rpath.patch \
+	$(DISTNAME)-python_2.6.patch
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE.TXT
 
@@ -13,17 +13,15 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS    = lang/c lang/cxx
-BUILDDEPS  = perl/perl python/python utils/tcl
-ifneq ($(DESTIMG),build)
-BUILDDEPS += devel/llvm
-endif
+DEPENDS   = lang/c lang/cxx
+BUILDDEPS = python/python
 
 WORKSRC = $(WORKDIR)/$(DISTNAME).src
+WORKBLD = $(WORKSRC)_build
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+CONFIGURE_SCRIPTS = custom
+BUILD_SCRIPTS     = $(WORKBLD)/Makefile
+INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-polly \
@@ -42,27 +40,28 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-embed-stdcxx \
 	--enable-timestamps \
-	--enable-experimental-targets=AMDGPU \
-	$(if $(filter i386,$(GARCH_FAMILY)),--enable-targets=x86) \
-	$(if $(filter x86_64,$(GARCH_FAMILY)),--enable-targets=x86_64)
-
-BUILD_ARGS     =
-INSTALL_ARGS   =
-ifneq ($(DESTIMG),build)
-BUILD_ARGS    += \
-	LLVM_TBLGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
-INSTALL_ARGS  += \
-	LLVM_TBLGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
-endif
-
-CONFIGURE_ENV = \
-	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
-	BUILD_CFLAGS="$(build_CFLAGS)" \
-	BUILD_CXXFLAGS="$(build_CXXFLAGS)" \
-	BUILD_LDFLAGS="$(build_LDFLAGS)" \
-	TCLSH="$(build_DESTDIR)/$(build_bindir)/tclsh"
+	--enable-targets="$(strip $(TARGETS_$(GARCH_FAMILY)))" \
+	--enable-bindings="no" \
+	--with-optimize-option="$(EXTRA_OPTIONS)" \
+	--with-extra-options="$(EXTRA_OPTIONS)" \
+	--with-extra-ld-options="$(EXTRA_LD_OPTIONS)"
+BUILD_ARGS     = \
+	VERBOSE="1"
+INSTALL_ARGS   = \
+	VERBOSE="1"
 
 include ../../gar.mk
+
+TARGETS_i386   := "x86,r600"
+TARGETS_x86_64 := "x86_64,r600"
+
+EXTRA_OPTIONS    := $(CFLAGS)
+EXTRA_LD_OPTIONS := $(LDFLAGS)
+
+# the configure script applies the host compiler flags when checking the build compiler.
+CFLAGS   :=
+CXXFLAGS :=
+LDFLAGS  :=
 
 pre-configure:
 	@cd $(WORKSRC)/autoconf ; aclocal  --force --verbose -I m4
@@ -70,16 +69,17 @@ pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
 
-post-configure:
-	@mkdir -p $(WORKSRC)/BuildTools
-	@mkdir -p $(WORKSRC)/Release
-	@ln -sf ../Release $(WORKSRC)/BuildTools/Release
+configure-custom:
+	@mkdir -p $(WORKBLD)
+	@cd $(WORKBLD) && $(CONFIGURE_ENV) ./$(call DIRSTODOTS,$(WORKBLD))/$(WORKSRC)/configure $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(bindir)-config/llvm-config
 	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config
 	@mkdir -p $(DESTDIR)$(bindir)-config
-	@mv $(DESTDIR)$(bindir)/llvm-config $(DESTDIR)$(bindir)-config/llvm-config
+	@$(if $(filter build, $(DESTIMG)), \
+		cp $(WORKBLD)/Release/bin/llvm-config            $(DESTDIR)$(bindir)-config/llvm-config, \
+		cp $(WORKBLD)/BuildTools/Release/bin/llvm-config $(DESTDIR)$(bindir)-config/llvm-config  )
 	@$(if $(compiler_prefix), ln -s llvm-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config)
 	@$(MAKECOOKIE)
