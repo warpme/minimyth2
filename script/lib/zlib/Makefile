@@ -1,12 +1,10 @@
 GARNAME = zlib
-GARVERSION = 1.2.7
+GARVERSION = 1.2.8
 CATEGORIES = lib
 MASTER_SITES  = http://downloads.sourceforge.net/project/libpng/$(GARNAME)/$(GARVERSION)/
 MASTER_SITES += http://zlib.net/
-DISTFILES  = $(DISTNAME).tar.gz
+DISTFILES  = $(DISTNAME).tar.xz
 DISTFILES += license
-LICENSE = $(GARNAME)
-$(GARNAME)_LICENSE_TEXT = $(WORKDIR)/license
 
 DESCRIPTION =
 define BLURB
