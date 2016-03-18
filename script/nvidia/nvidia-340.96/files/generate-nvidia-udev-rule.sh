@@ -9,12 +9,12 @@
 # </tr>
 #
 
-ver='340.96'
+ver=$1
 
 in_file='./supportedchips.html'
 out_file="05-minimyth-detect-x-nvidia-${ver}.rules.disabled"
 out_dir='../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d'
-suported_devices_file='../../../../images/main/usr/udev-pciid/supported-nvidia-gfx-hardware.txt'
+suported_devices_file='../../../../images/main/usr/share/supported-nvidia-gfx-hardware.txt'
 vendor_id='10de'
 
 
@@ -73,6 +73,10 @@ card_list=`cat ./file.tmp 2> /dev/null`
 
 IFS='
 '
+echo " "
+echo "Generating udev rules for driver ver=${ver}"
+echo " "
+
 echo "#-------------------------------------------------------------------------------" >> ${out_dir}/${out_file}
 echo "# Detect video devices." >> ${out_dir}/${out_file}
 echo "#" >> ${out_dir}/${out_file}
@@ -106,10 +110,11 @@ echo "  ENV{mm_detect_id}==\"pci:0300:00:${vendor_id}:????:????:????\", ENV{mm_d
 echo "" >> ${out_dir}/${out_file}
 
 echo "-------------------------------------------------------------------------------" >> ${suported_devices_file}
-echo "NVIDIA devices" >> ${suported_devices_file}
+echo "NVIDIA devices by Nvidia driver ver.: ${ver}" >> ${suported_devices_file}
 echo "-------------------------------------------------------------------------------" >> ${suported_devices_file}
 
 old_id=" "
+c=1
 
 for card in ${card_list} ; do
    #echo "-------- "
@@ -143,6 +148,7 @@ for card in ${card_list} ; do
      else
        echo "  ${name}, PCI_ID=${id}, (HW Video Decode)" >> ${suported_devices_file}
      fi
+     c=$((${c} + 1))
    fi
 done
 
@@ -154,7 +160,8 @@ echo "ENV{mm_detect_state_x}==\"?*\", RUN+=\"/usr/lib/udev/mm_detect x %k \$env{
 echo "" >> ${out_dir}/${out_file}
 echo "LABEL=\"end-nvidia\"" >> ${out_dir}/${out_file}
 echo "" >> ${out_dir}/${out_file}
-
+echo "" >> ${suported_devices_file}
+echo "Total: $c Nvidia cards supported" >> ${suported_devices_file}
 echo "-------------------------------------------------------------------------------" >> ${suported_devices_file}
 echo "" >> ${suported_devices_file}
 
@@ -164,6 +171,6 @@ rm ./file.tmp
 
 echo ""
 echo "Done!"
-echo "Results are in ${out_dir}/${out_file}"
+echo "Rules for $c cards are in ${out_dir}/${out_file}"
 
 exit 0
