@@ -5,6 +5,7 @@ MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/3.
 DISTFILES  = $(DISTNAME).tar.gz
 DISTFILES += config.cache.$(GARCH_FAMILY)
 PATCHFILES = \
+	$(DISTNAME)-gcc_4.9.patch \
 	$(DISTNAME)-automake_1.12.patch \
 	$(DISTNAME)-am_path_gtk.patch
 LICENSE = LGPL2
