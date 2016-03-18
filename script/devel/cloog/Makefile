@@ -1,5 +1,5 @@
 GARNAME = cloog
-GARVERSION = 0.16.3
+GARVERSION = 0.18.3
 CATEGORIES = devel
 MASTER_SITES = http://www.bastoul.net/cloog/pages/download/
 DISTFILES = $(DISTNAME).tar.gz
