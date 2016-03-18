@@ -1,5 +1,5 @@
 GARNAME = stella
-GARVERSION = 3.7.5
+GARVERSION = 3.9.3
 CATEGORIES = emulators
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(DISTNAME)-src.tar.gz
@@ -27,6 +27,7 @@ CONFIGURE_ARGS = \
 	--enable-debugger \
 	--enable-joystick \
 	--enable-cheats \
+	--enable-thumb \
 	--enable-shared \
 	--disable-static \
 	--disable-profile \
