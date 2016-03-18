@@ -1,5 +1,5 @@
 GARNAME = cairo
-GARVERSION = 1.12.14
+GARVERSION = 1.14.2
 CATEGORIES = gtk
 MASTER_SITES = http://www.cairographics.org/releases/
 DISTFILES = $(DISTNAME).tar.xz
@@ -63,7 +63,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-tee \
 	--disable-xml \
 	--enable-pthread \
-	--disable-gobject \
+	--enable-gobject \
 	--disable-full-testing \
 	--disable-trace \
 	--enable-interpreter \
@@ -72,17 +72,14 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-gnu-ld \
 	--with-x
 
-CONFIGURE_ENV = \
-	png_REQUIRES="libpng"
-
 include ../../gar.mk
 
 pre-configure:
-	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
 post-install:
 	@rm -rf $(DESTDIR)$(libdir)/libcairo.la
+	@rm -rf $(DESTDIR)$(libdir)/libcairo-gobject.la
 	@rm -rf $(DESTDIR)$(libdir)/libcairo-script-interpreter.la
 	@$(MAKECOOKIE)
