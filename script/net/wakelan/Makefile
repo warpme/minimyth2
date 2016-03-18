@@ -1,7 +1,7 @@
 GARNAME = wakelan
 GARVERSION = 1.1
 CATEGORIES = net
-MASTER_SITES = ftp://metalab.unc.edu/pub/Linux/system/network/misc/
+MASTER_SITES = http://www.ibiblio.org/pub/Linux/system/network/misc/
 DISTFILES = $(DISTNAME).tar.gz
 LICENSE = GPL2
 
