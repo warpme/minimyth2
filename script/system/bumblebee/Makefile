@@ -3,6 +3,7 @@ GARVERSION = 3.2.1
 CATEGORIES = system
 MASTER_SITES = http://www.bumblebee-project.org/
 DISTFILES = $(DISTNAME).tar.gz
+PATCHFILES = $(DISTNAME)-disable-help2man.patch
 LICENSE = GPL2
 
 DESCRIPTION =
@@ -23,6 +24,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--sbindir=/usr/bin \
 	--with-udev-rules=$(libdir)/nvidia/udev/rules.d/ \
 	--sysconfdir=/etc \
-	--without-pidfile
+	--without-pidfile \
 
 include ../../gar.mk
