@@ -1,8 +1,8 @@
 GARNAME = lighttpd
-GARVERSION = 1.4.32
+GARVERSION = 1.4.36
 CATEGORIES = net
 MASTER_SITES = http://download.lighttpd.net/lighttpd/releases-1.4.x/
-DISTFILES = $(DISTNAME).tar.bz2
+DISTFILES = $(DISTNAME).tar.xz
 LICENSE = BSD_3_Clause
 
 DESCRIPTION =
@@ -16,6 +16,7 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--disable-silent-rules \
 	--disable-static \
 	--enable-shared \
 	--enable-lfs \
@@ -26,6 +27,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-ldap \
 	--without-attr \
 	--without-valgrind \
+	--without-libunwind \
 	--without-openssl \
 	--without-kerberos5 \
 	--with-pcre \
