@@ -1,8 +1,7 @@
 GARNAME = eject
 GARVERSION = 2.1.5
 CATEGORIES = disk
-MASTER_SITES  = http://www.paldo.org/paldo/sources/$(GARNAME)/
-MASTER_SITES += ftp://mirrors.kernel.org/slackware/slackware-13.1/source/a/$(GARNAME)/
+MASTER_SITES = http://mirrors.kernel.org/slackware/slackware64-14.1/source/a/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = $(DISTNAME)-opendevice.patch
 LICENSE = GPL2
