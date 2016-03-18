@@ -1,5 +1,5 @@
 GARNAME = dbus
-GARVERSION = 1.6.8
+GARVERSION = 1.9.16
 CATEGORIES = lib
 MASTER_SITES = http://dbus.freedesktop.org/releases/dbus/
 DISTFILES = $(DISTNAME).tar.gz
@@ -36,8 +36,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 include ../../gar.mk
 
 pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@rm -f $(WORKSRC)/config.cache
 	@echo "dbus_cv_va_val_copy=no" >> $(WORKSRC)/config.cache
 	@$(MAKECOOKIE)
