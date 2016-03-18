@@ -1,10 +1,10 @@
 GARNAME = libcdio
 GARVERSION = $(LIBCDIO_VERSION)
 CATEGORIES = lib
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = \
-        $(DISTNAME)-automake_1.13.patch
+	$(DISTNAME)-automake_1.13.patch
 LICENSE = GPL3
 
 DESCRIPTION = 
@@ -18,6 +18,7 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--disable-silent-rules \
 	--enable-cxx \
 	--disable-cpp-progs \
 	--enable-shared \
@@ -29,7 +30,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-vcd-info \
 	--without-cd-drive \
 	--without-cd-info \
-	--with-cd-paranoia \
 	--without-cdda-player \
 	--without-cd-read \
 	--without-iso-info \
@@ -46,8 +46,6 @@ pre-configure:
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libcdio.la
 	@rm -f $(DESTDIR)$(libdir)/libcdio++.la
-	@rm -f $(DESTDIR)$(libdir)/libcdio_cdda.la
-	@rm -f $(DESTDIR)$(libdir)/libcdio_paranoia.la
 	@rm -f $(DESTDIR)$(libdir)/libiso9660.la
 	@rm -f $(DESTDIR)$(libdir)/libiso9660++.la
 	@rm -f $(DESTDIR)$(libdir)/libudf.la
