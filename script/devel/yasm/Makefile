@@ -1,5 +1,5 @@
 GARNAME = yasm
-GARVERSION = 1.2.0
+GARVERSION = 1.3.0
 CATEGORIES = devel
 MASTER_SITES = http://www.tortall.net/projects/yasm/releases/
 DISTFILES = $(DISTNAME).tar.gz
@@ -16,6 +16,7 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
                                                                                                                              
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--disable-silent-rules \
 	--disable-debug \
 	--disable-warnerror \
 	--disable-profiling \
