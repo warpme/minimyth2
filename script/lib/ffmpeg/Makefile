@@ -1,9 +1,10 @@
 GARNAME = ffmpeg
-GARVERSION = 2.7.1
+GARVERSION = 2.8.5
 CATEGORIES = lib
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-pkg_config.patch $(DISTNAME)-uint64_c.patch
+PATCHFILES = $(DISTNAME)-pkg_config.patch 
+PATCHFILES += $(DISTNAME)-uint64_c.patch
 LICENSE = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -90,7 +91,7 @@ CONFIGURE_ARGS = \
 	--disable-gnutls \
 	--disable-libaacplus \
 	--disable-libass \
-	--enable-libbluray \
+	--disable-libbluray \
 	--disable-libcaca \
 	--disable-libcelt \
 	--disable-libcdio \
@@ -174,9 +175,9 @@ CONFIGURE_ARGS = \
 	--enable-sse2 \
 	--enable-sse3 \
 	--enable-ssse3 \
-	--disable-sse4 \
-	--disable-sse42 \
-	--disable-avx \
+	--enable-sse4 \
+	--enable-sse42 \
+	--enable-avx \
 	--disable-fma4  \
 	--disable-armv5te \
 	--disable-armv6 \
@@ -202,6 +203,7 @@ INSTALL_ARGS   = \
 GAR_EXTRA_CONF += mediaplayers/mplayer-svn/package-api.mk
 include ../../gar.mk
 
+# ffmpeg2.8.5 don't like gcc5.3.0 link-time optimizations
 CFLAGS  := $(filter-out -flto, $(CFLAGS))
 LDFLAGS := $(filter-out -flto, $(LDFLAGS))
 
