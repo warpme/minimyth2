@@ -1,6 +1,6 @@
 GARNAME = alsa-driver
 GARVERSION = 1.0.29
-CATEGORIES = kernel-4.1
+CATEGORIES = kernel-4.4
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/driver/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c kernel-4.1/linux
+DEPENDS = lang/c kernel-4.4/linux
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -33,7 +33,7 @@ CONFIGURE_ENV = $(LINUX_MAKE_ENV)
 BUILD_ENV     = $(LINUX_MAKE_ENV)
 INSTALL_ENV   = $(LINUX_MAKE_ENV) IUSER="$(IUSER)" IGROUP="$(IGROUP)"
 
-GAR_EXTRA_CONF += kernel-4.1/linux/package-api.mk
+GAR_EXTRA_CONF += kernel-4.4/linux/package-api.mk
 include ../../gar.mk
 
 CC       := 

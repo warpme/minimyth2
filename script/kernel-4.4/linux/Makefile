@@ -1,6 +1,6 @@
 GARNAME = linux
 GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),$(if $(filter-out 0,$(LINUX_TEENY_VERSION)),.$(LINUX_TEENY_VERSION)))$(LINUX_EXTRA_VERSION)
-CATEGORIES = kernel-4.1
+CATEGORIES = kernel-4.4
 MASTER_SITES  = http://www.kernel.org/pub/linux/kernel/v4.x/
 MASTER_SITES += http://www.kernel.org/pub/linux/kernel/v$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)/
 MASTER_SITES += http://www.kernel.org/pub/linux/kernel/v4.x/testing/
@@ -17,9 +17,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-#DEPENDS   = lang/c
-#BUILDDEPS = lib/ncursesw utils/mktemp utils/module-init-tools
-BUILDDEPS = utils/bc
+BUILDDEPS = utils/bc kernel-4.4/linux-firmware
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile

@@ -1,6 +1,6 @@
 GARNAME = linux-firmware
-GARVERSION = 20150606-ad2d208
-CATEGORIES = kernel-4.1
+GARVERSION = 20160211-c42eb7a
+CATEGORIES = kernel-4.4
 MASTER_SITES = git://git.kernel.org/pub/scm/linux/kernel/git/firmware/
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE =
@@ -9,7 +9,8 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c kernel-4.1/linux
+# DEPENDS = lang/c kernel-4.4/linux
+DEPENDS = lang/c
 
 INSTALL_SCRIPTS = custom
 

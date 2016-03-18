@@ -1,6 +1,6 @@
 GARNAME = kernel
-GARVERSION = 4.1
-CATEGORIES = kernel-4.1
+GARVERSION = 4.4
+CATEGORIES = kernel-4.4
 LICENSE =
 
 DESCRIPTION = 
@@ -8,9 +8,9 @@ define BLURB
 endef
 
 DEPENDS = \
-	$(filter-out %/Makefile %/kernel %/alsa-driver,$(subst ../../,,$(wildcard ../../kernel-4.1/*)))
+	$(filter-out %/Makefile %/kernel %/alsa-driver,$(subst ../../,,$(wildcard ../../kernel-4.4/*)))
 
-GAR_EXTRA_CONF += kernel-4.1/linux/package-api.mk
+GAR_EXTRA_CONF += kernel-4.4/linux/package-api.mk
 include ../../gar.mk
 
 post-install:
