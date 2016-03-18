@@ -33,6 +33,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-rpath \
 	--disable-relink \
 	--disable-rpath-hack \
+	--disable-overwrite \
 	--enable-widec
 
 GAR_EXTRA_CONF += lib/ncurses/package-api.mk
