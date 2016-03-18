@@ -4,14 +4,16 @@ CATEGORIES = qt
 MASTER_SITES = http://download.qt-project.org/official_releases/qt/5.4/$(GARVERSION)/single/
 DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES = \
-	$(DISTNAME).patch.gar
+	$(DISTNAME).patch.gar \
+	$(DISTNAME)-fix-webkit-g++5.0-build.patch \
+	$(DISTNAME)-QTBUG-44714-webkit-fails-new-glib.patch
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS   = lang/c lang/cxx db/mysql lib/dbus gtk/glib lib/freetype lib/fontconfig lib/icu lib/libjpeg lib/libmng lib/libpng lib/libtiff lib/openssl lib/zlib utils/ruby xorg/xorg
+DEPENDS   = lang/c lang/cxx db/mysql lib/dbus gtk/glib lib/freetype lib/fontconfig lib/icu lib/libjpeg lib/libmng lib/libpng lib/libtiff lib/openssl lib/zlib utils/ruby xorg/xorg lib/gst-libav
 BUILDDEPS = devel/bison devel/flex
 
 PWD := $(shell pwd)
@@ -39,7 +41,6 @@ CONFIGURE_ARGS = \
 	-no-journald \
 	-no-harfbuzz \
 	-no-cups \
-	-plugin-sql-mysql \
 	-largefile \
 	-no-accessibility \
 	-plugin-sql-mysql \
@@ -59,9 +60,7 @@ CONFIGURE_ARGS = \
 	-system-libpng \
 	-system-libjpeg \
 	-openssl-linked \
-	-nomake examples \
 	-no-rpath \
-	-verbose \
 	-no-optimized-qmake \
 	-no-nis \
 	-no-cups \
@@ -89,6 +88,9 @@ CONFIGURE_ARGS = \
 	-force-pkg-config \
 	-continue \
 	-silent
+
+#	-verbose \
+
 ifeq ($(DESTIMG),build)
 BUILD_ENV = \
 	LD_LIBRARY_PATH="$(PWD)/$(WORKSRC)/lib:$(LD_LIBRARY_PATH)"
@@ -101,7 +103,7 @@ endif
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
 
-# qt fails to compile with gcc 4.7.2's link time optimization enabled.
+# qt5 WebKit fails to compile with gcc 5.3.0's link time optimization enabled.
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
