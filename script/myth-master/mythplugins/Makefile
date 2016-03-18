@@ -19,6 +19,7 @@ DEPENDS = \
 	lib/lame \
 	lib/libcdaudio \
 	lib/libcdio \
+	lib/libcdio-paranoia \
 	lib/libogg \
 	lib/libvorbis \
 	lib/SDL \
