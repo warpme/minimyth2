@@ -2,7 +2,7 @@
 # Values in this file can be overridden by including the desired value in
 # '$(HOME)/.minimyth/minimyth.conf.mk'.
 #-------------------------------------------------------------------------------
--include $(HOME)/.minimyth/minimyth.conf.mk
+#-include $(HOME)/.minimyth/minimyth.conf.mk
 
 # The version of MiniMyth.
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
@@ -13,7 +13,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 7.9.4.gd11f195
+mm_VERSION_MINIMYTH ?= 8.0.2.r3679
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -42,21 +42,22 @@ mm_GRAPHICS               ?= intel nvidia vmware radeon
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
 # 'flash', 'mplayer', 'mplayer-svn', 'voip', 'bumblebee', 'perl', 'python', 'mame',
-# 'emulators', 'mc', 'dvdcss', 'udisks', 'debug'.
+# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer' 'debug'.
 mm_SOFTWARE               ?= mythplugins \
-                             flash \
                              perl \
                              python \
                              airplay \
                              avahi \
                              udisks \
                              dvdcss \
-                             voip \
                              makemkv \
-                             mplayer-svn \
+                             gstreamer \
+                             voip \
                              bumblebee \
                              $(if $(filter $(mm_DEBUG),yes),debug)
 
+#                             flash \
+#                             mplayer-svn \
 #                             mc
 #                             mame \
 
@@ -116,12 +117,12 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '3.16', '4.1'
-mm_KERNEL_HEADERS_VERSION ?= 4.1
+# Valid values are '3.16', '4.4'
+mm_KERNEL_HEADERS_VERSION ?= 4.4
 
 # The version of kernel to use.
-# Valid values are '3.16' and '4.1'
-mm_KERNEL_VERSION         ?= 4.1
+# Valid values are '3.16' and '4.4'
+mm_KERNEL_VERSION         ?= 4.4
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -131,9 +132,10 @@ mm_KERNEL_CONFIG          ?=
 # The version of Myth to use.
 # Valid values are '0.27', 'master'
 mm_MYTH_VERSION           ?= master
+#mm_MYTH_VERSION           ?= 0.27
 
 # The version of the NVIDIA driver.
-# Valid values are '340.93', '340.96'
+# Valid values are '340.58', '340.65'
 mm_NVIDIA_VERSION         ?= 340.96
 
 # The version of xorg to use.
