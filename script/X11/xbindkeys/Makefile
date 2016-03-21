@@ -1,5 +1,5 @@
 GARNAME = xbindkeys
-GARVERSION = 1.8.5
+GARVERSION = 1.8.6
 CATEGORIES = X11
 MASTER_SITES = http://www.nongnu.org/xbindkeys/
 DISTFILES = $(DISTNAME).tar.gz
