@@ -1,7 +1,7 @@
 GARNAME = findutils
-GARVERSION = 4.4.2
+GARVERSION = 4.6.0
 CATEGORIES = utils
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES= $(DISTNAME)-perl.patch.gar
 LICENSE = GPL3
