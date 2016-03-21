@@ -1,7 +1,7 @@
 GARNAME = pciutils
-GARVERSION = 3.3.0
+GARVERSION = 3.3.1
 CATEGORIES = utils
-MASTER_SITES = ftp://ftp.kernel.org/pub/software/utils/pciutils/
+MASTER_SITES = https://www.kernel.org/pub/software/utils/pciutils/
 DISTFILES  = $(DISTNAME).tar.xz
 DISTFILES += pci.ids
 LICENSE = GPL2
@@ -65,9 +65,9 @@ include ../../gar.mk
 CFLAGS  := $(CFLAGS)  -fPIC
 LDFLAGS := $(LDFLAGS) -fPIC
 
-# pciutils 3.1.10 fails to compile with gcc 4.7.2's link time optimization enabled.
-CFLAGS  := $(filter-out -flto, $(CFLAGS))
-LDFLAGS := $(filter-out -flto, $(LDFLAGS))
+# pciutils 3.3.1 fails to compile with gcc 5.2.0's link time optimization enabled.
+CFLAGS  := $(filter-out -flto, $(CFLAGS))  -fno-lto
+LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
 
 extract-pci.ids:
 	@cp -f $(DOWNLOADDIR)/pci.ids $(WORKSRC)/pci.ids
