@@ -72,7 +72,10 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libxcb-dpms.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-dri2.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-dri3.la
+	@rm -f $(DESTDIR)$(libdir)/libxcb-ewmh.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-glx.la
+	@rm -f $(DESTDIR)$(libdir)/libxcb-icccm.la
+	@rm -f $(DESTDIR)$(libdir)/libxcb-image.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-present.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-randr.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-record.la
