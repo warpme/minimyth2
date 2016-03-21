@@ -1,7 +1,7 @@
 GARNAME = gperf
 GARVERSION = 3.0.4
 CATEGORIES = utils
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES= $(DISTNAME)-ar.patch
 LICENSE = GPL3
