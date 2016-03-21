@@ -1,0 +1,196 @@
+From da455d488ce52ed8cb5f993cec6d898bd0445cf8 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Thu, 22 Aug 2013 16:20:35 +0100
+Subject: [PATCH 147/333] FE: Improve caching in GuideGrid
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/programs/mythfrontend/guidegrid.cpp |   61 ++++++++++++++++++++++------
+ mythtv/programs/mythfrontend/guidegrid.h   |    1 +
+ 2 files changed, 50 insertions(+), 12 deletions(-)
+
+diff --git a/mythtv/programs/mythfrontend/guidegrid.cpp b/mythtv/programs/mythfrontend/guidegrid.cpp
+index 8716908..873b038 100644
+--- a/mythtv/programs/mythfrontend/guidegrid.cpp
++++ b/mythtv/programs/mythfrontend/guidegrid.cpp
+@@ -11,6 +11,8 @@ using namespace std;
+ #include <QCoreApplication>
+ #include <QKeyEvent>
+ #include <QDateTime>
++#include <QList>
++#include <QMap>
+ 
+ // libmythbase
+ #include "mythdate.h"
+@@ -63,6 +65,11 @@ QWaitCondition epgIsVisibleCond;
+ const QString kUnknownTitle = "";
+ //const QString kUnknownCategory = QObject::tr("Unknown");
+ 
++// ProgramList cache for getProgramListFromProgram
++typedef QList< ProgramInfo >  SafeProgramList;
++typedef QMap< int, SafeProgramList > PrgLstCache_t;
++static PrgLstCache_t s_prgLstCache;
++
+ JumpToChannel::JumpToChannel(
+     JumpToChannelListener *parent, const QString &start_entry,
+     int start_chan_idx, int cur_chan_idx, uint rows_disp) :
+@@ -552,6 +559,7 @@ GuideGrid::GuideGrid(MythScreenStack *parent,
+                         m_originalStartTime.time().second());
+     m_currentStartTime = m_originalStartTime.addSecs(secsoffset);
+     m_threadPool.setMaxThreadCount(1);
++    s_prgLstCache.clear();
+ }
+ 
+ bool GuideGrid::Create()
+@@ -594,6 +602,7 @@ bool GuideGrid::Create()
+     m_verticalLayout = m_guideGrid->isVerticalLayout();
+ 
+     m_currentEndTime = m_currentStartTime.addSecs(m_timeCount * 60 * 5);
++    s_prgLstCache.clear();
+ 
+     LoadInBackground();
+     return true;
+@@ -602,6 +611,7 @@ bool GuideGrid::Create()
+ void GuideGrid::Load(void)
+ {
+     LoadFromScheduler(m_recList);
++    s_prgLstCache.clear();
+     fillChannelInfos();
+ 
+     int maxchannel = max((int)GetChannelCount() - 1, 0);
+@@ -1175,6 +1185,7 @@ void GuideGrid::updateTimeout(void)
+ {
+     m_updateTimer->stop();
+     fillProgramInfos();
++    updateChannels();
+     m_updateTimer->start(kUpdateMS);
+ }
+ 
+@@ -1346,10 +1357,14 @@ void GuideGrid::fillTimeInfos()
+         starttime = starttime.addSecs(5 * 60);
+     }
+     m_currentEndTime = starttime;
++    s_prgLstCache.clear();
+ }
+ 
+ void GuideGrid::fillProgramInfos(bool useExistingData)
+ {
++    if (!useExistingData)
++        s_prgLstCache.clear();
++
+     fillProgramRowInfos(-1, useExistingData);
+ }
+ 
+@@ -1359,6 +1374,18 @@ ProgramList *GuideGrid::getProgramListFromProgram(int chanNum)
+ 
+     if (proglist)
+     {
++        PrgLstCache_t::const_iterator it = s_prgLstCache.find(chanNum);
++        if (it != s_prgLstCache.end())
++        {
++            const SafeProgramList &plist = it.value();
++            for ( SafeProgramList::const_iterator it2 = plist.begin();
++                it2 != plist.end(); ++it2)
++            {
++                proglist->push_back( new ProgramInfo(*it2));
++            }
++            return proglist;
++        }
++
+         MSqlBindings bindings;
+         QString querystr = "WHERE program.chanid = :CHANID "
+                            "  AND program.endtime >= :STARTTS "
+@@ -1372,6 +1399,15 @@ ProgramList *GuideGrid::getProgramListFromProgram(int chanNum)
+         bindings[":ENDTS"] = m_currentEndTime.addSecs(0 - m_currentEndTime.time().second());
+ 
+         LoadFromProgram(*proglist, querystr, bindings, m_recList);
++
++        // Make a deep copy for the cache
++        SafeProgramList list;
++        for ( ProgramList::const_iterator it2 = proglist->begin();
++            it2 != proglist->end(); ++it2)
++        {
++            list.append(**it2);
++        }
++        s_prgLstCache.insert(chanNum, list);
+     }
+ 
+     return proglist;
+@@ -1902,9 +1938,6 @@ void GuideGrid::updateChannelsNonUI(QVector<ChannelInfo *> &chinfos,
+ {
+     ChannelInfo *chinfo = GetChannelInfo(m_currentStartChannel);
+ 
+-    if (m_player)
+-        m_player->ClearTunableCache();
+-
+     for (unsigned int y = 0; (y < (unsigned int)m_channelCount) && chinfo; ++y)
+     {
+         unsigned int chanNumber = y + m_currentStartChannel;
+@@ -1917,11 +1950,19 @@ void GuideGrid::updateChannelsNonUI(QVector<ChannelInfo *> &chinfos,
+ 
+         bool unavailable = false, try_alt = false;
+ 
+-        if (m_player)
++        if (m_player && chinfo)
+         {
++            const int kMaxCacheAge = 5 * 1000; //millisecs
++            if (!m_tuneableCacheAge.isValid() ||
++                 m_tuneableCacheAge.elapsed() > kMaxCacheAge)
++            {
++                m_player->ClearTunableCache();
++                m_tuneableCacheAge.start();
++            }
++
+             const PlayerContext *ctx = m_player->GetPlayerReadLock(
+                 -1, __FILE__, __LINE__);
+-            if (ctx && chinfo)
++            if (ctx)
+                 try_alt = !m_player->IsTunable(ctx, chinfo->chanid, true);
+             m_player->ReturnPlayerLock(ctx);
+         }
+@@ -2213,7 +2254,7 @@ void GuideGrid::cursorRight()
+ 
+     m_currentCol = startCol + spread;
+ 
+-    if (m_currentCol > m_timeCount - 1)
++    if (m_currentCol >= m_timeCount)
+     {
+         m_currentCol = m_timeCount - 1;
+         moveLeftRight(kScrollRight);
+@@ -2226,9 +2267,7 @@ void GuideGrid::cursorRight()
+ 
+ void GuideGrid::cursorDown()
+ {
+-    m_currentRow++;
+-
+-    if (m_currentRow > m_channelCount - 1)
++    if (++m_currentRow >= m_channelCount)
+     {
+         m_currentRow = m_channelCount - 1;
+         moveUpDown(kScrollDown);
+@@ -2241,9 +2280,7 @@ void GuideGrid::cursorDown()
+ 
+ void GuideGrid::cursorUp()
+ {
+-    m_currentRow--;
+-
+-    if (m_currentRow < 0)
++    if (--m_currentRow < 0)
+     {
+         m_currentRow = 0;
+         moveUpDown(kScrollUp);
+diff --git a/mythtv/programs/mythfrontend/guidegrid.h b/mythtv/programs/mythfrontend/guidegrid.h
+index 6ff81ca..58496c0 100644
+--- a/mythtv/programs/mythfrontend/guidegrid.h
++++ b/mythtv/programs/mythfrontend/guidegrid.h
+@@ -273,6 +273,7 @@ private:
+     QString m_channelOrdering;
+ 
+     QTimer *m_updateTimer; // audited ref #5318
++    QTime   m_tuneableCacheAge;
+ 
+     MThreadPool       m_threadPool;
+ 
+-- 
+1.7.9.5
+

@@ -1,0 +1,311 @@
+From 25010e6a004aa2ce02767ccd0f66d9405820b4e5 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Sun, 7 Feb 2016 18:28:03 +0000
+Subject: [PATCH 1/1] VO: Threaded softblend OSD rendering
+
+Rendering the OSD onto a video frame can be partitioned into distinct
+areas that can be executed on separate threads.  In the case of
+multi-core CPUs this can significantly reduce rendering time.
+
+On the Raspberry Pi2 rendering time is typically reduced by 50..75%.
+This is most noticeable on HD material.
+
+This patch also includes an optimised c_yuv888_to_yv12 that typically
+runs in ~75% of the time.
+
+NB it was observed that using MMX rendering in parallel threads
+causes visible on-screen artefacts.
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/libs/libmythtv/util-osd.cpp     |   95 ++++++++++++++---------------
+ mythtv/libs/libmythtv/util-osd.h       |    2 +-
+ mythtv/libs/libmythtv/videooutbase.cpp |  104 ++++++++++++++++++++++++++++++--
+ 3 files changed, 145 insertions(+), 56 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/util-osd.cpp b/mythtv/libs/libmythtv/util-osd.cpp
+index e265ebc..0d8a217 100644
+--- a/mythtv/libs/libmythtv/util-osd.cpp
++++ b/mythtv/libs/libmythtv/util-osd.cpp
+@@ -221,67 +221,62 @@ void inline mmx_yuv888_to_yv12(VideoFrame *frame, MythImage *osd_image,
+ #endif
+ }
+ 
+-void inline c_yuv888_to_yv12(VideoFrame *frame, MythImage *osd_image,
++void c_yuv888_to_yv12(VideoFrame *frame, MythImage *osd_image,
+                              int left, int top, int right, int bottom)
+ {
+-    unsigned char *udest, *vdest, *src1, *src2;
+-    int alpha1, alpha2, alpha3, alpha4, src_wrap, y_wrap, width, height;
+-    unsigned char *y1, *y2, *y3, *y4, *a1, *a2, *a3, *a4, *r1, *r2, *r3, *r4;
+-    unsigned char *g1, *g2, *g3, *g4, *b1, *b2, *b3, *b4;
++    const int width  = right - left;
++    const int height = bottom - top;
+ 
+-    width  = right - left;
+-    height = bottom - top;
++    unsigned char *udest = frame->buf + frame->offsets[1];
++    unsigned char *vdest = frame->buf + frame->offsets[2];
++    udest  += frame->pitches[1] * (top >> 1) + (left >> 1);
++    vdest  += frame->pitches[2] * (top >> 1) + (left >> 1);
+ 
+-    udest   = frame->buf + frame->offsets[1];
+-    vdest   = frame->buf + frame->offsets[2];
+-    udest  += (frame->pitches[1] * (top >> 1)) + (left >> 1);
+-    vdest  += (frame->pitches[2] * (top >> 1)) + (left >> 1);
+-
+-    y1 = frame->buf + frame->offsets[0] + (frame->pitches[0] * top) + left;
+-    y3 = frame->buf + frame->offsets[0] + (frame->pitches[0] * (top + 1)) + left;
+-    y2 = y1 + 1; y4 = y3 + 1;
++    unsigned char *y1 = frame->buf + frame->offsets[0]
++                      + frame->pitches[0] * top + left;
++    unsigned char *y3 = y1 + frame->pitches[0];
++    const int y_wrap = (frame->pitches[0] << 1) - width;
+ 
+-    src1 = osd_image->scanLine(top) + (left << 2);
+-    src2 = osd_image->scanLine(top + 1) + (left << 2);
+-    b1 = src1 + B_OI; b2 = b1 + 4; b3 = src2 + B_OI; b4 = b3 + 4;
+-    g1 = src1 + G_OI; g2 = g1 + 4; g3 = src2 + G_OI; g4 = g3 + 4;
+-    r1 = src1 + R_OI; r2 = r1 + 4; r3 = src2 + R_OI; r4 = r3 + 4;
+-    a1 = src1 + A_OI; a2 = a1 + 4; a3 = src2 + A_OI; a4 = a3 + 4;
+-    src_wrap = (osd_image->bytesPerLine() << 1) - (width << 2);
+-    y_wrap = (frame->pitches[0] << 1) - width;
++    const unsigned char *src = osd_image->scanLine(top) + left * sizeof(QRgb);
++    const int bpl = osd_image->bytesPerLine();
+ 
+     for (int row = 0; row < height; row += 2)
+     {
+-        for (int col = 0; col < (width >> 1); col++)
++        const QRgb *p1 = reinterpret_cast<const QRgb* >(src);
++        const QRgb *p3 = reinterpret_cast<const QRgb* >(src + bpl);
++
++        for (int col = 0, maxcol = width / 2; col < maxcol; ++col)
+         {
+-            alpha1 = 255 - *a1; alpha2 = 255 - *a2;
+-            alpha3 = 255 - *a3; alpha4 = 255 - *a4;
+-
+-            *y1 = ((*y1 * alpha1) >> 8) + *r1;
+-            *y2 = ((*y2 * alpha2) >> 8) + *r2;
+-            *y3 = ((*y3 * alpha3) >> 8) + *r3;
+-            *y4 = ((*y4 * alpha4) >> 8) + *r4;
+-
+-            alpha1 = (alpha1 + alpha2 + alpha3 + alpha4) >> 2;
+-            udest[col] = ((udest[col] * alpha1) >> 8) +
+-                         ((*g1 + *g2 + *g3 + *g4) >> 2);
+-            vdest[col] = ((vdest[col] * alpha1) >> 8) +
+-                         ((*b1 + *b2 + *b3 + *b4) >> 2);
+-
+-            y1 += 2; y2 += 2; y3 += 2; y4 += 2;
+-            r1 += 8; r2 += 8; r3 += 8; r4 += 8;
+-            g1 += 8; g2 += 8; g3 += 8; g4 += 8;
+-            b1 += 8; b2 += 8; b3 += 8; b4 += 8;
+-            a1 += 8; a2 += 8; a3 += 8; a4 += 8;
++            QRgb rgb1 = p1[0], rgb2 = p1[1], rgb3 = p3[0], rgb4 = p3[1];
++
++            int alpha1 = 255 - qAlpha(rgb1);
++            y1[0] = ((y1[0] * alpha1) >> 8) + qRed(rgb1);
+ 
++            int alpha2 = 255 - qAlpha(rgb2);
++            y1[1] = ((y1[1] * alpha2) >> 8) + qRed(rgb2);
++
++            int alpha3 = 255 - qAlpha(rgb3);
++            y3[0] = ((y3[0] * alpha3) >> 8) + qRed(rgb3);
++
++            int alpha4 = 255 - qAlpha(rgb4);
++            y3[1] = ((y3[1] * alpha4) >> 8) + qRed(rgb4);
++
++            int alphaUV = (alpha1 + alpha2 + alpha3 + alpha4) >> 2;
++
++            int u = (qGreen(rgb1) + qGreen(rgb2) + qGreen(rgb3) + qGreen(rgb4)) >> 2;
++            udest[col] = ((udest[col] * alphaUV) >> 8) + u;
++
++            int v = (qBlue(rgb1)  + qBlue(rgb2)  + qBlue(rgb3)  + qBlue(rgb4)) >> 2;
++            vdest[col] = ((vdest[col] * alphaUV) >> 8) + v;
++
++            y1 += 2, y3 += 2;
++            p1 += 2, p3 += 2;
+         }
+-        r1 += src_wrap; r2 += src_wrap; r3 += src_wrap; r4 += src_wrap;
+-        g1 += src_wrap; g2 += src_wrap; g3 += src_wrap; g4 += src_wrap;
+-        b1 += src_wrap; b2 += src_wrap; b3 += src_wrap; b4 += src_wrap;
+-        a1 += src_wrap; a2 += src_wrap; a3 += src_wrap; a4 += src_wrap;
+-        y1 += y_wrap;   y2 += y_wrap;   y3 += y_wrap;   y4 += y_wrap;
+-        udest  += frame->pitches[1];
+-        vdest  += frame->pitches[2];
++
++        y1 += y_wrap, y3 += y_wrap;
++        udest += frame->pitches[1];
++        vdest += frame->pitches[2];
++        src += bpl << 1;
+     }
+ }
+ 
+diff --git a/mythtv/libs/libmythtv/util-osd.h b/mythtv/libs/libmythtv/util-osd.h
+index 17ff80c..4a91f9d 100644
+--- a/mythtv/libs/libmythtv/util-osd.h
++++ b/mythtv/libs/libmythtv/util-osd.h
+@@ -16,7 +16,7 @@ void yuv888_to_yv12(VideoFrame *frame, MythImage *osd_image,
+                     int left, int top, int right, int bottom);
+ void inline mmx_yuv888_to_yv12(VideoFrame *frame, MythImage *osd_image,
+                                int left, int top, int right, int bottom);
+-void inline c_yuv888_to_yv12(VideoFrame *frame, MythImage *osd_image,
++void c_yuv888_to_yv12(VideoFrame *frame, MythImage *osd_image,
+                              int left, int top, int right, int bottom);
+ void yuv888_to_i44(unsigned char *dest, MythImage *osd_image, QSize dst_size,
+                    int left, int top, int right, int bottom, bool ifirst);
+diff --git a/mythtv/libs/libmythtv/videooutbase.cpp b/mythtv/libs/libmythtv/videooutbase.cpp
+index 1bfa8f3..d8affbd 100644
+--- a/mythtv/libs/libmythtv/videooutbase.cpp
++++ b/mythtv/libs/libmythtv/videooutbase.cpp
+@@ -2,6 +2,7 @@
+ #include <cstdlib>
+ 
+ #include <QDesktopWidget>
++#include <QRunnable>
+ 
+ #include "osd.h"
+ #include "mythplayer.h"
+@@ -15,6 +16,7 @@
+ #include "util-osd.h"
+ #include "mythxdisplay.h"
+ #include "mythavutil.h"
++#include "mthreadpool.h"
+ 
+ #ifdef USING_XV
+ #include "videoout_xv.h"
+@@ -1394,6 +1396,70 @@ void VideoOutput::SetVideoScalingAllowed(bool change)
+     window.SetVideoScalingAllowed(change);
+ }
+ 
++#ifndef MMX
++#define THREADED_OSD_RENDER 1
++#endif
++
++#if THREADED_OSD_RENDER
++class OsdRender : public QRunnable
++{
++  public:
++    OsdRender(VideoFrame *frame, MythImage *osd_image, const QSize &dim, const QRect &vis) :
++        m_frame(frame), m_osd_image(osd_image), m_video_dim(dim), m_vis(vis)
++    { }
++
++    virtual void run()
++    {
++        switch (m_frame->codec)
++        {
++          case FMT_YV12: yv12(); break;
++          case FMT_AI44: i44(true); break;
++          case FMT_IA44: i44(false); break;
++        }
++    }
++
++  private:
++    inline void yv12()
++    {
++#define ROUNDUP( _x,_z) ((_x) + ((-(int)(_x)) & ((_z) - 1)) )
++#define ROUNDDN( _x,_z) ((_x) & ~((_z) - 1))
++        int left = m_vis.left();
++        left = ROUNDUP(left, ALIGN_C);
++        left = std::min(left, m_osd_image->width());
++
++        int right = m_vis.left() + m_vis.width();
++        right = ROUNDUP(right, ALIGN_C);
++        right = std::min(right, m_osd_image->width());
++
++        int top = m_vis.top();
++        top = ROUNDDN(top, ALIGN_C);
++
++        int bottom = m_vis.top() + m_vis.height();
++        bottom = ROUNDDN(bottom, ALIGN_C);
++
++        c_yuv888_to_yv12(m_frame, m_osd_image, left, top, right, bottom);
++    }
++
++    inline void i44(bool ifirst)
++    {
++        int left   = std::min(m_vis.left(), m_osd_image->width());
++        int top    = std::min(m_vis.top(), m_osd_image->height());
++        int right  = std::min(left + m_vis.width(), m_osd_image->width());
++        int bottom = std::min(top + m_vis.height(), m_osd_image->height());
++
++        memset(m_frame->buf, 0, m_video_dim.width() * m_video_dim.height());
++        yuv888_to_i44(m_frame->buf, m_osd_image, m_video_dim,
++                      left, top, right, bottom, ifirst);
++    }
++
++  private:
++    VideoFrame * const m_frame;
++    MythImage * const m_osd_image;
++    QSize const m_video_dim;
++    QRect const m_vis;
++};
++#endif
++
+ /**
+  * \fn VideoOutput::DisplayOSD(VideoFrame*,OSD *,int,int)
+  * \brief If the OSD has changed, this will convert the OSD buffer
+@@ -1451,6 +1517,18 @@ bool VideoOutput::DisplayOSD(VideoFrame *frame, OSD *osd)
+         m_visual->Draw(QRect(), NULL, NULL);
+     }
+ 
++    switch (frame->codec)
++    {
++      case FMT_YV12:
++      case FMT_AI44:
++      case FMT_IA44:
++        break;
++      default:
++        LOG(VB_GENERAL, LOG_ERR, LOC +
++            "Display OSD: Frame format not supported.");
++        return false;
++    }
++
+     QRegion dirty   = QRegion();
+     QRegion visible = osd->Draw(osd_painter, osd_image, osd_size, dirty,
+                                 frame->codec == FMT_YV12 ? ALIGN_X_MMX : 0,
+@@ -1466,9 +1544,26 @@ bool VideoOutput::DisplayOSD(VideoFrame *frame, OSD *osd)
+ 
+     QSize video_dim = window.GetVideoDim();
+ 
++#if THREADED_OSD_RENDER
++    static MThreadPool s_pool("OsdRender");
++
++    // Split visible region for greater concurrency
++    QRect r = osd_image->rect();
++    QPoint c = r.center();
++    QVector<QRect> vis = visible.intersected(QRect(r.topLeft(),c)).rects();
++    vis += visible.intersected(QRect(c,r.bottomRight())).rects();
++    vis += visible.intersected(QRect(r.bottomLeft(),c).normalized()).rects();
++    vis += visible.intersected(QRect(c,r.topRight()).normalized()).rects();
++#else
+     QVector<QRect> vis = visible.rects();
++#endif
+     for (int i = 0; i < vis.size(); i++)
+     {
++#if THREADED_OSD_RENDER
++        OsdRender *job = new OsdRender(frame, osd_image, video_dim, vis[i]);
++        job->setAutoDelete(true);
++        s_pool.start(job, "OsdRender");
++#else
+         int left   = min(vis[i].left(), osd_image->width());
+         int top    = min(vis[i].top(), osd_image->height());
+         int right  = min(left + vis[i].width(), osd_image->width());
+@@ -1490,12 +1585,11 @@ bool VideoOutput::DisplayOSD(VideoFrame *frame, OSD *osd)
+             yuv888_to_i44(frame->buf, osd_image, video_dim,
+                           left, top, right, bottom, false);
+         }
+-        else
+-        {
+-            LOG(VB_GENERAL, LOG_ERR, LOC +
+-                "Display OSD: Frame format not supported.");
+-        }
++#endif
+     }
++#if THREADED_OSD_RENDER
++    s_pool.waitForDone();
++#endif
+     return show;
+ }
+ 
+-- 
+1.7.10.4

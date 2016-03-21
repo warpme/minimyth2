@@ -14,8 +14,9 @@ PATCHFILES += 0005-tid_debug_verbosity.patch
 PATCHFILES += 0006-cardutil_show_displayname.patch
 PATCHFILES += 0007-allow_no_tuners.patch
 PATCHFILES += 0008-SCR_keep_disecq_always_18V.patch
-PATCHFILES += 0009-make_EIT_start_at_time.patch
+PATCHFILES += 0009-make_EIT_start_at_time-v2.patch
 PATCHFILES += 0010-decrease-some-PMT-DVB-errors-logging.patch
+#PATCHFILES += 0011-change-some-BE-mainserver-logging-to-VB_NETWORK.patch
 PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
 PATCHFILES += 0017-python_bindings_tztime_error.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
@@ -24,6 +25,7 @@ PATCHFILES += 0020-h264-seek-table.patch
 PATCHFILES += 0021-ticket12248-livetv-transitions-demonstrate-bad-decoder-start-conditions.patch
 PATCHFILES += 0023-increase-loging-for-failed-tunings.patch
 PATCHFILES += 0025-ticket12260-pythonbindings-dataheap-fix.patch
+PATCHFILES += 0030-0279-TV-Add-signal-monitor-warning-msg-if-NID-or-TSID-don.patch
 
 # Minimyth needed patches
 PATCHFILES += 0100-minimyth.patch
@@ -44,16 +46,14 @@ PATCHFILES += 0210-add-option-to-not-remember-last-livetv-chan.patch
 PATCHFILES += 0211-add-optical-rip-to-menu.patch
 PATCHFILES += 0212-ticket12311.patch
 PATCHFILES += 0213-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
-# PATCHFILES += 0214-ticket12015-configure-not-passing-cppxx-flags.patch
 
 # Fixes issue with only 3 entries in mainmenu on MythmediaStream
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
-# Needed to have working #12311. Without it just after start, is GUI is shoifted by 1px
-PATCHFILES += 0219-revert-1c440ba-Fix-fullscreen-windowing-with-Compiz-Unity.patch
+# Needed to have working #12311. Without it just after start, is GUI is shifted by 1px
+PATCHFILES += 0219-revert-1c440ba-Fix-fullscreen-windowing-with-Compiz-Unity-v2.patch
 
-# MiniMyth2 addition to Roger's new Gallery
-# PATCHFILES += 0224-ticket12424-Replacement-Gallery-using-MythUI-Storage-Groups-Cache-FE-gallery-images-in-remotecache-for-Minimyth2.patch - 7.9.0 gallery has it
+PATCHFILES += 0296-revert-a774469-disable-QT-compatibility-deprecated-in-QT-5.0-or-earlier.patch
 
 ifneq ($(patsubst %minimal,minimal,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 # 7.6.4 LVR safe patches related to player/OSD
@@ -62,27 +62,12 @@ PATCHFILES += 0228-0198-Player-Avoid-unnecessary-calls-to-ReinitOSD.patch
 PATCHFILES += 0231-0238-Player-Add-interlaced-status-to-OSD-debug-screen-vid.patch
 PATCHFILES += 0232-0239-Playbackbox-Add-title-subtitle-and-description-filte.patch
 PATCHFILES += 0233-0257-FE-Add-a-UI-to-display-and-adjust-a-recording-s-star.patch
-PATCHFILES += 0234-0261-FE-Playbackbox-ensure-stereo-icon-takes-precedence-o.patch
 PATCHFILES += 0235-0290-FE-Add-a-menu-item-to-toggle-the-damaged-video-statu.patch
 PATCHFILES += 0236-0330-FE-Add-a-menu-to-Playbackbox-to-change-the-recording.patch
 
 
 # 7.6.5 LVR safe patches related to mediamonitor
-# PATCHFILES += 0237-0069-MediaMonitor-doesn-t-handle-Jump-to-plugin-correctly.patch - above patch 1014 in 7.9.0 gallery has it
-PATCHFILES += 0238-0071-MediaMonitor-Delay-after-pmount-to-permit-proc-mount.patch
-PATCHFILES += 0239-0072-MediaMonitor-Report-media-with-a-bitmask-of-media-ty.patch
-# PATCHFILES += 0240-0073-MediaMonitor-Make-list-of-registered-extensions-stat.patch - needs to be removed for 7.9.0 gallery
-PATCHFILES += 0241-0074-MediaMon-Ensure-to-send-status-changed-after-disc-mo.patch
-# PATCHFILES += 0242-0075-MediaMon-Fix-verbose-string-arg.patch - conflicts after removal of 0240
 PATCHFILES += 0243-0080-MythMusic-Raise-libcdio-logging-level-from-warnings-.patch
-PATCHFILES += 0244-0132-MediaMonitor-Retry-mount-after-a-300mS-delay-if-init.patch
-PATCHFILES += 0245-0139-MediaMon-Use-a-wait-condition-to-reduce-the-latency-.patch
-PATCHFILES += 0246-0151-MediaMon-Don-t-announce-media-until-after-type-ident.patch
-PATCHFILES += 0246-0179-MediaMon-Improve-CDROM-eject-robustness-with-SCSI-fa.patch
-PATCHFILES += 0247-0180-MediaMon-Speed-up-recognition-and-autoplay-of-remove.patch
-PATCHFILES += 0247-0200-MythMusic-Autoplay-music-files-on-removable-media.patch
-PATCHFILES += 0249-0201-MediaMon-UI-to-select-preferred-media-handler-v2.patch
-PATCHFILES += 0250-0207-MediaMon-Fix-a-race-condition-between-MediaMonitor-C.patch
 PATCHFILES += 0252-0279-MythMusic-Visualisers-only-disable-screensaver-if-sh.patch
 PATCHFILES += 0253-0297-Mythmusic-Log-the-shoutcast-metadata-and-format-stri.patch
 
@@ -95,49 +80,40 @@ PATCHFILES += 0259-0117-UI-Provide-dbase-cache-for-RegisterKey-and-RegisterJ.pat
 PATCHFILES += 0260-0118-SimpleDBStorage-Where-possible-use-Get-SetSetting-to.patch
 PATCHFILES += 0261-0119-FE-Omit-call-to-WriteDefaults-during-startup.patch
 PATCHFILES += 0262-0144-DB-Update-settings-cache-in-SaveSettingOnHost.patch
-PATCHFILES += 0263-0147-FE-Improve-caching-in-GuideGrid.patch
+PATCHFILES += 0263-0147-FE-Improve-caching-in-GuideGrid-v2.patch
 PATCHFILES += 0269-0148-TV-Cache-the-last-sourceid-found-in-SourceUtil-GetSo.patch
 PATCHFILES += 0270-0149-TV-Cache-the-last-groupname-found-in-ChannelGroup-Ge.patch
-PATCHFILES += 0271-0138-MythWeather-Fix-a-SEGV-on-exit-from-setup-screen.patch
 PATCHFILES += 0272-0185-MythWeather-Prevent-log-error-report-Widget-not-foun.patch
 
 # 7.6.7 LVR safe patches for BE
-PATCHFILES += 0277-0202-FE-Fix-Display-MythDVD-menu-broken-when-MythDVD-plug-v2.patch
-
-# 7.6.8 new mythgallery fixes anf logging
-# PATCHFILES += 0278-Add-logging.patch - 7.9.0 gallery has it
-# PATCHFILES += 0279-Log-sockets.patch - 7.9.0 gallery has it
-# PATCHFILES += 0281-Minimise-UI-lag-when-exiting-screens-with-many-image.patch - 7.9.0 gallery has it
+PATCHFILES += 0277-0202-FE-Fix-Display-MythDVD-menu-broken-when-MythDVD-plug-v3.patch
 
 # 7.6.9 LVR remote control patches
 PATCHFILES += 0282-0059-NetworkControl-Add-realtime-display-of-MythEvents.patch
 PATCHFILES += 0283-0210-FE-NetworkControl-Add-set-query-loglevel-commands.patch
-endif
-
-# 7.6.10
-PATCHFILES += 0284-update-myth-pl-translations.patch
 
 # 7.7.3
 PATCHFILES += 0286-ticket12479-revert-db5c40cf-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
 
-# New gallery patches by Roger Siddons with support for removable media. Reqires removal of 
-# 0224, 0237, 0240, 0278, 0279, 0281
-PATCHFILES += 1001-MediaMonitor-Support-ejection-of-specific-device.patch
-PATCHFILES += 1002-RemoteFile-Fix-writing-of-local-files.patch
-PATCHFILES += 1003-RemoteFile-CopyFile-Don-t-overwrite-existing-files-b.patch
-PATCHFILES += 1004-RemoteFile-Add-Move-operation.patch
-PATCHFILES += 1005-MythUI-Don-t-draw-empty-text.patch
-PATCHFILES += 1006-MythUI-Signal-when-image-loaded.patch
-PATCHFILES += 1007-MythUI-Empty-menu-getter.patch
-PATCHFILES += 1008-Gallery-Redesign-to-support-local-media.patch
-PATCHFILES += 1009-Gallery-Use-common-orientation.patch
-PATCHFILES += 1010-MythUI-Handle-deviant-orientation-behaviour-by-Qt-5..patch
-PATCHFILES += 1011-MythUiImage-Don-t-block-UI-when-exiting-screens.patch
-PATCHFILES += 1012-Minimyth2-Cache-FE-gallery-images-in-remotecache.patch
-PATCHFILES += 1013-Minimyth2-Use-remotecache-for-local-gallery-images.patch
-PATCHFILES += 1014-MediaMon-Signal-unmounts.patch
-PATCHFILES += 1015-MediaMonitor-Unlock-mutex-before-quitting.patch
-PATCHFILES += 1016-Gallery-Fix-hostname-is-invalid-SQL.patch
+PATCHFILES += 0287-MythUiImage-Don-t-block-UI-when-exiting-screens.patch
+PATCHFILES += 0288-Minimyth2-Cache-FE-gallery-images-in-remotecache.patch
+PATCHFILES += 0289-Minimyth2-Use-remotecache-for-local-gallery-images.patch
+PATCHFILES += 0291-ticket12463-temp-fix.patch
+PATCHFILES += 0292-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-thread.patch
+
+# 7.10.3
+PATCHFILES += 0293-0281-AFD-Add-original_channels-to-audio-format-log-output.patch
+PATCHFILES += 0294-0283-FE-Add-network-status-to-machine-status-dialog.patch
+
+PATCHFILES += 0295-0296-TV-Ensure-OMX-decoder-releases-shared-buffers-before.patch
+PATCHFILES += 0297-VO-Threaded-softblend-OSD-rendering.patch
+
+# 7.12.4
+PATCHFILES += 0300-revert-916e43b-BE-Avoid-SEGV-when-accessing-discarded-MythSocket.patch
+
+PATCHFILES += 0301-mythweather-scripts-replace-LWP-by-curl.patch
+
+endif
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
 endif
 
@@ -159,6 +135,7 @@ DEPENDS = \
 	lib/libass \
 	lib/libavc1394 \
 	lib/libcdio \
+	lib/libcdio-paranoia \
 	lib/libiec61883 \
 	lib/libxml2 \
 	lib/openssl \
@@ -269,7 +246,8 @@ CONFIGURE_ARGS = \
 	--without-bindings="php" \
 	--with-bindings="python" \
 	--disable-mythlogserver \
-	--enable-pic
+	--enable-pic \
+	--disable-libcec
 
 #	--disable-quartz-video \
 
@@ -290,6 +268,7 @@ CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CPPFLAGS += -fPIC
 CFLAGS   += -fPIC
 
+# mythtv don't compiles with gcc5.3.0 LTO
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
@@ -316,14 +295,9 @@ post-install: post-install-mythtv-version
 pre-configure:
 	@ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtWebKit.pc
 	@ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5Script.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtScript.pc
-	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\([0-9]*\.[0-9]*\).*/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
+	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\(.*\)/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
 	@sed -i -e "s/MYTH_SOURCE_PATH.*/MYTH_SOURCE_PATH \"$(mm_MYTH_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
 	@$(MAKECOOKIE)
-
-#post-configure:
-#	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\([0-9]*\.[0-9]*\).*/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
-#	@sed -i -e "s/MYTH_SOURCE_PATH.*/MYTH_SOURCE_PATH \"$(mm_MYTH_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
-#	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -rf $(DESTDIR)$(bindir)/mtd
