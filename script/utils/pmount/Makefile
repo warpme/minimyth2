@@ -1,8 +1,8 @@
 GARNAME = pmount
 GARVERSION = 0.9.23
 CATEGORIES = utils
-MASTER_SITES = http://alioth.debian.org/frs/download.php/3310/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = http://http.debian.net/debian/pool/main/p/$(GARNAME)/
+DISTFILES = $(GARNAME)_$(GARVERSION).orig.tar.bz2
 PATCHFILES = \
 	$(DISTNAME)-automake_1.13.patch \
 	$(DISTNAME)-install.patch
