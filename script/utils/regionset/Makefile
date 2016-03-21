@@ -1,7 +1,7 @@
 GARNAME = regionset
 GARVERSION = 0.2
 CATEGORIES = utils
-MASTER_SITES = http://linvdr.org/download/regionset/
+#MASTER_SITES = http://linvdr.org/download/regionset/
 DISTFILES = $(DISTNAME).tar.gz
 LICENSE = GPL2
 
