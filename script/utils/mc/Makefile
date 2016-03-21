@@ -1,5 +1,5 @@
 GARNAME = mc
-GARVERSION = 4.8.10
+GARVERSION = 4.8.16
 CATEGORIES = utils
 MASTER_SITES = http://www.midnight-commander.org/downloads/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.bz2
@@ -38,7 +38,3 @@ CONFIGURE_ARGS = $(DIRPATHS) \
         --disable-dependency-tracking
 
 include ../../gar.mk
-
-CFLAGS   := $(filter-out -flto -fuse-linker-plugin, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto -fuse-linker-plugin, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto -fuse-linker-plugin, $(LDFLAGS))
