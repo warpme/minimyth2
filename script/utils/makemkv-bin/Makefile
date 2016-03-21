@@ -1,5 +1,5 @@
 GARNAME = makemkv-bin
-GARVERSION = 1.9.7
+GARVERSION = 1.9.9
 CATEGORIES = utils
 MASTER_SITES = http://www.makemkv.com/download/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
