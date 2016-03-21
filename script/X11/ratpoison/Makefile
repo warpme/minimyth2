@@ -1,11 +1,9 @@
 GARNAME = ratpoison
-GARVERSION = 1.4.5
+GARVERSION = 1.4.8
 CATEGORIES = X11
 MASTER_SITES = http://savannah.nongnu.org/download/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch \
-	$(DISTNAME)-getline.patch \
 	$(DISTNAME)-staticgravity.patch
 LICENSE = GPL2
 
@@ -22,6 +20,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--x-includes=$(DESTDIR)$(includedir) \
 	--x-libraries=$(DESTDIR)$(libdir) \
+	--disable-silent-rules \
 	--disable-debug \
 	--disable-history \
 	--with-xterm=rxvt \
