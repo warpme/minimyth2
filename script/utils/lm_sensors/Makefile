@@ -1,11 +1,9 @@
 GARNAME = lm_sensors
-GARVERSION = 3.3.4
+GARVERSION = 3.4.0
 CATEGORIES = utils
-MASTER_SITES  = http://dl.lm-sensors.org/lm-sensors/releases/
-MASTER_SITES += svn://lm-sensors.org/svn/lm-sensors/trunk/
+MASTER_SITES = ftp://ftp.netroedge.com/pub/lm-sensors/
 DISTFILES   = $(DISTNAME).tar.bz2
-PATCHFILES  =
-PATCHFILES += $(DISTNAME)-perl.patch.gar
+PATCHFILES = $(DISTNAME)-perl.patch.gar
 LICENSE = GPL2/LGPL2_1
 
 DESCRIPTION =
@@ -41,13 +39,6 @@ include ../../gar.mk
 
 CFLAGS  := $(CFLAGS)  -fPIC
 LDFLAGS := $(LDFLAGS) -fPIC
-
-svn//%/$(DISTNAME).tar.bz2:
-	@$(call FETCH_SVN, http://$*, $(GARVERSION), $(DISTNAME))
-	@$(MAKECOOKIE)
-
-checksum-$(DISTNAME).tar.bz2:
-	@$(MAKECOOKIE)
 
 pre-install:
 	@rm -rf $(DESTDIR)/$(sysconfdir)/sensors3.conf
