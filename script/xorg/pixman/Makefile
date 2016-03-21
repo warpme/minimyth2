@@ -1,10 +1,8 @@
 GARNAME = pixman
-GARVERSION = 0.32.8
+GARVERSION = 0.34.0
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
-#PATCHFILES = \
-#	$(DISTNAME)-automake_1.13.patch
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
@@ -41,10 +39,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-# pixman 0.28.2 fails to compile with gcc 4.7.2's for i386-pentium with link time optimization enabled.
-CFLAGS  := $(filter-out -flto, $(CFLAGS))
-LDFLAGS := $(filter-out -flto, $(LDFLAGS))
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
