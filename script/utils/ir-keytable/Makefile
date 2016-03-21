@@ -1,5 +1,5 @@
 GARNAME = v4l-utils
-GARVERSION = 0.9.2
+GARVERSION = 1.6.3
 CATEGORIES = utils
 MASTER_SITES = http://linuxtv.org/downloads/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -17,12 +17,20 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/utils/keytable/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/utils/keytable/Makefile
 
-
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
 	--enable-shared \
 	--disable-static \
-	--enable-nls \
+	--disable-doxygen-doc \
+	--disable-doxygen-dot \
+	--disable-doxygen-man \
+	--disable-doxygen-rtf \
+	--disable-doxygen-xml \
+	--disable-doxygen-chm \
+	--disable-doxygen-chi \
+	--disable-doxygen-html \
+	--disable-doxygen-ps \
+	--disable-doxygen-pdf \
 	--disable-rpath \
 	--disable-libdvbv5 \
 	--disable-libv4l \
@@ -30,6 +38,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-qv4l2 \
 	--with-gnu-ld \
 	--without-jpeg \
+	--with-gnu-ld \
 	--with-udevdir="$(libdir)/udev"
 
 include ../../gar.mk
