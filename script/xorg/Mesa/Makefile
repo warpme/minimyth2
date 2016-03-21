@@ -1,8 +1,7 @@
 GARNAME = mesa
-GARVERSION = 11.0.5
+GARVERSION = 11.1.2
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/$(GARVERSION)/
-# MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/11.0.0/
 DISTFILES = mesa-$(GARVERSION).tar.xz
 LICENSE = LGPL2/MIT
 
@@ -12,6 +11,7 @@ endef
 
 DEPENDS    = lang/c lang/cxx lib/expat X11/libvdpau devel/llvm lib/libelf python/python-mako \
 	$(CATEGORY)/dri2proto \
+	$(CATEGORY)/dri3proto \
 	$(CATEGORY)/xextproto \
 	$(CATEGORY)/glproto \
 	$(CATEGORY)/libdrm \
@@ -21,7 +21,8 @@ DEPENDS    = lang/c lang/cxx lib/expat X11/libvdpau devel/llvm lib/libelf python
 	$(CATEGORY)/libXext \
 	$(CATEGORY)/libXfixes \
 	$(CATEGORY)/libXxf86vm \
-	$(CATEGORY)/libxshmfence
+	$(CATEGORY)/libxshmfence \
+	$(CATEGORY)/presentproto
 
 ifneq ($(DESTIMG),build)
 DEPENDS   += system/udev
@@ -77,6 +78,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	LIBUDEV_CFLAGS="$(DESTDIR)$(includedir)" \
 	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so"
 
+# Mesa 11+ has bug with honouring vdpau dir durring configure
 #	--with-vdpau-libdir="$(libdir)/vdpau" \
 #	--with-vdpau-libdir="$(libdir)" \
 
@@ -85,14 +87,6 @@ BUILD_ARGS  = \
 	HOST_CFLAGS="$(build_CFLAGS)"
 
 include ../../gar.mk
-
-CFLAGS   := $(filter-out -O%, $(CFLAGS)) -Os
-CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -Os
-
-# mesa 10.6.x and 11.0.0 xa gallium tracker has issue with LTO
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 git//%MesaLib-$(GARVERSION).tar.bz2:
 	@$(call FETCH_GIT, $*, $(word 3,$(subst -, ,$(GARVERSION))), MesaLib-$(GARVERSION))
@@ -110,8 +104,6 @@ pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	#Hack needed to build Mesa with libxcb1.17
 	@ln -sf $(DESTDIR)$(libdir)/libxcb.la-disabled $(DESTDIR)$(libdir)/libxcb.la
-	#Hack needed to build Mesa with libdrm2.64
-	@ln -sf $(DESTDIR)$(libdir)/libdrm.la-disabled $(DESTDIR)$(libdir)/libdrm.la
 	@$(MAKECOOKIE)
 
 install-source:
@@ -157,6 +149,4 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe.la
 	@#Remove Hack needed to build Mesa with libxcb1.17
 	@rm -f $(DESTDIR)$(libdir)/libxcb.la
-	@#Remove Hack needed to build Mesa with libdrm2.64
-	@rm -f $(DESTDIR)$(libdir)/libdrm.la
 	@$(MAKECOOKIE)
