@@ -1,8 +1,8 @@
 GARNAME = kmod
-GARVERSION = 12
+GARVERSION = 21
 CATEGORIES = lib
-MASTER_SITES = http://ftp.kernel.org/pub/linux/utils/kernel/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://www.kernel.org/pub/linux/utils/kernel/$(GARNAME)/
+DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -19,9 +19,14 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
 	--disable-static \
 	--enable-shared \
+	--disable-experimental \
 	--enable-tools \
+	--disable-manpages \
+	--disable-test-modules \
 	--enable-logging \
 	--disable-debug \
+	--disable-python \
+	--disable-coverage \
 	--disable-gtk-doc \
 	--disable-gtk-doc-html \
 	--disable-gtk-doc-pdf \
