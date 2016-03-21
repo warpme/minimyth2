@@ -10,8 +10,6 @@ endef
 DEPENDS = \
 	$(CATEGORY)/font-alias \
 	$(CATEGORY)/font-bh-ttf \
-	$(CATEGORY)/font-cursor-misc \
-	$(CATEGORY)/font-misc-misc \
 	$(CATEGORY)/freeglut \
 	$(CATEGORY)/iceauth \
 	$(CATEGORY)/libX11 \
