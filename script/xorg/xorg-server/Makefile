@@ -1,5 +1,5 @@
 GARNAME = xorg-server
-GARVERSION = 1.18.0
+GARVERSION = 1.18.2
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
@@ -8,7 +8,7 @@ PATCHFILES = \
 	$(DISTNAME)-pkg_config.patch \
 	$(DISTNAME)-detect_radeon.patch \
 	$(DISTNAME)-debug-page-flipping.patch
-# PATCHFILES += $(DISTNAME)-dix-revert-Send-KeyPress-and-KeyRelease-events-to-XACE_KEY_AVAIL_hook.patch
+
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
@@ -33,6 +33,7 @@ DEPENDS  = lang/c lib/openssl \
 	$(CATEGORY)/libXau \
 	$(CATEGORY)/libXfont \
 	$(CATEGORY)/libxkbfile \
+	$(CATEGORY)/libepoxy \
 	$(CATEGORY)/Mesa \
 	$(CATEGORY)/pixman \
 	$(CATEGORY)/randrproto \
@@ -72,10 +73,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-debug \
 	--disable-unit-tests \
 	--disable-sparkle \
-	--disable-install-libxf86config \
 	--enable-visibility \
 	--enable-aiglx \
-	--enable-registry \
 	--enable-composite \
 	--enable-mitshm \
 	--disable-xres \
