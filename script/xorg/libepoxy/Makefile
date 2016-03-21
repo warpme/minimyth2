@@ -1,8 +1,8 @@
 GARNAME = libepoxy
-GARVERSION = master
+GARVERSION = 1.3.1
 CATEGORIES = $(CATEGORY)
-MASTER_SITES = http://github.com/anholt/libepoxy/archive/
-DISTFILES = master.zip
+MASTER_SITES = https://github.com/anholt/libepoxy/releases/download/v$(GARVERSION)/
+DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 DESCRIPTION = 
@@ -31,4 +31,3 @@ pre-configure:
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
 	@$(MAKECOOKIE)
-
