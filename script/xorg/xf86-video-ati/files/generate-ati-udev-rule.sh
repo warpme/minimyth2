@@ -5,12 +5,12 @@
 # '#define PCI_CHIP_RV380_3150 0x3150'
 #
 
-ver='1.6.1'
+ver=$1
 
 in_file='./ati_pciids_gen.h'
 out_file="05-minimyth-detect-x-ati-${ver}.rules.disabled"
 out_dir='../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d'
-suported_devices_file='../../../../images/main/usr/udev-pciid/supported-ati-gfx-hardware.txt'
+suported_devices_file='../../../../images/main/usr/share/supported-ati-gfx-hardware.txt'
 vendor_id='1002'
 
 
@@ -26,7 +26,7 @@ RS880, RV710, RV710, RV730, RV740,\
 CEDAR, REDWOOD, JUNIPER, CYPRESS, PALM, SUMO, SUMO2,\
 ARUBA, BARTS, TURKS, CAICOS, CAYMAN,\
 CAPE VERDE, PITCAIRN, TAHITI, OLAND, HAINAN,\
-BONAIRE, KABINI, KAVERI, HAWAII, OLAND\
+BONAIRE, KABINI, KAVERI, HAWAII, OLAND, MULLINS,\
 '
 
 
@@ -63,6 +63,9 @@ card_list=`cat ./file.tmp 2> /dev/null`
 
 IFS='
 '
+echo " "
+echo "Generating udev rules for driver ver=${ver}"
+echo " "
 
 echo "#-------------------------------------------------------------------------------" >> ${out_dir}/${out_file}
 echo "# Detect video devices." >> ${out_dir}/${out_file}
@@ -97,10 +100,11 @@ echo "  ENV{mm_detect_id}==\"pci:0300:00:${vendor_id}:????:????:????\", ENV{mm_d
 echo "" >> ${out_dir}/${out_file}
 
 echo "-------------------------------------------------------------------------------" >> ${suported_devices_file}
-echo "ATI devices" >> ${suported_devices_file}
+echo "ATI devices by xf86-video-ati driver ver. ${ver}" >> ${suported_devices_file}
 echo "-------------------------------------------------------------------------------" >> ${suported_devices_file}
 
 old_id=" "
+c=1
 
 for card in ${card_list} ; do
    #echo "-------- "
@@ -130,6 +134,7 @@ for card in ${card_list} ; do
      else
         echo "  ${name}, PCI_ID=${id}, (HW Video Decode)" >> ${suported_devices_file}
      fi
+     c=$((${c} + 1))
    fi
 done
 
@@ -140,7 +145,8 @@ echo "# The state has been set, so save it." >> ${out_dir}/${out_file}
 echo "ENV{mm_detect_state_x}==\"?*\", RUN+=\"/usr/lib/udev/mm_detect x %k \$env{mm_detect_state_x}\"" >> ${out_dir}/${out_file}
 echo "" >> ${out_dir}/${out_file}
 echo "LABEL=\"end-ati\"" >> ${out_dir}/${out_file}
-echo "" >> ${out_dir}/${out_file}
+echo "" >> ${suported_devices_file}
+echo "Total: $c ATI cards supported" >> ${suported_devices_file}
 
 echo "-------------------------------------------------------------------------------" >> ${suported_devices_file}
 echo "" >> ${suported_devices_file}
@@ -151,6 +157,6 @@ rm ./file.tmp
 
 echo ""
 echo "Done!"
-echo "Results are in ${out_dir}/${out_file}"
+echo "Rules for $c cards are in ${out_dir}/${out_file}"
 
 exit 0

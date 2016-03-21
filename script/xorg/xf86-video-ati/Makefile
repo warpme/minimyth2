@@ -1,7 +1,7 @@
 GARNAME = xf86-video-ati
-# GARVERSION_TYPE = git
+GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-	20151105-70cf30a, \
+	20160126-9483a3d, \
 	7.6.1 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
@@ -81,5 +81,5 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/multimedia/theatre_drv.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/multimedia/theatre200_drv.la
 	@cp $(WORKSRC)/src/ati_pciids_gen.h $(WORKSRC)/../../../files/
-	@cd files; ./generate-ati-udev-rule.sh
+	@cd files; ./generate-ati-udev-rule.sh $(GARVERSION)
 	@$(MAKECOOKIE)
