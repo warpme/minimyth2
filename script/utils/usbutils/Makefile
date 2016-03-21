@@ -1,8 +1,10 @@
 GARNAME = usbutils
-GARVERSION = 005
+# 008 requires libudev greater than libudev 182.
+GARVERSION = 007
 CATEGORIES = utils
-MASTER_SITES = http://ftp.debian.org/debian/pool/main/u/$(GARNAME)/
-DISTFILES = $(GARNAME)_$(GARVERSION).orig.tar.gz usb.ids
+MASTER_SITES = https://www.kernel.org/pub/linux/utils/usb/$(GARNAME)/
+# usb.ids: <http://www.linux-usb.org/usb-ids.html>
+DISTFILES = $(DISTNAME).tar.xz usb.ids
 LICENSE = GPL2
 
 DESCRIPTION =
