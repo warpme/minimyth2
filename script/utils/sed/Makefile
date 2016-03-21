@@ -1,8 +1,8 @@
 GARNAME = sed
-GARVERSION = 4.2.1
+GARVERSION = 4.2.2
 CATEGORIES = utils
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
+DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = GPL3/FDL1_3
 
 DESCRIPTION = 
@@ -19,12 +19,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-nls \
 	--disable-rpath \
 	--enable-i18n \
-	--enable-regex-test \
+	--enable-regex-tests \
 	--with-gnu-ld
 
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
