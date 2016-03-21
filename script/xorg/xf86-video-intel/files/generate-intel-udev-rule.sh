@@ -5,13 +5,13 @@
 # '#define PCI_CHIP_RV380_3150 0x3150'
 #
 
-ver='20151105-3a172a0'
+ver=$1
 
 in_file='./i915_pciids.h'
 out_file="05-minimyth-detect-x-intel-${ver}.rules.disabled"
 out_dir='../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d'
-suported_devices_file='../../../../images/main/usr/udev-pciid/supported-intel-gfx-hardware.txt'
-suported_devices_dir='../../../../images/main/usr/udev-pciid'
+suported_devices_file='../../../../images/main/usr/share/supported-intel-gfx-hardware.txt'
+suported_devices_dir='../../../../images/main/usr/share'
 vendor_id='8086'
 
 
@@ -105,6 +105,10 @@ SRVGT3,\
 SRVGT1,\
 WKSGT2,\
 Iris,\
+DTGT4, \
+HaloGT4, \
+SRVGT4, \
+WKSGT4, \
 '
 
 
@@ -143,7 +147,9 @@ card_list=`cat ./file.tmp 2> /dev/null`
 
 IFS='
 '
-
+echo " "
+echo "Generating udev rules for driver ver=${ver}"
+echo " "
 echo "#-------------------------------------------------------------------------------" >> ${out_dir}/${out_file}
 echo "# Detect video devices." >> ${out_dir}/${out_file}
 echo "#" >> ${out_dir}/${out_file}
@@ -177,10 +183,11 @@ echo "  ENV{mm_detect_id}==\"pci:0300:00:${vendor_id}:????:????:????\", ENV{mm_d
 echo "" >> ${out_dir}/${out_file}
 
 echo "-------------------------------------------------------------------------------" >> ${suported_devices_file}
-echo "Intel devices" >> ${suported_devices_file}
+echo "Intel devices by xf86-video-intel driver ver: ${ver}" >> ${suported_devices_file}
 echo "-------------------------------------------------------------------------------" >> ${suported_devices_file}
 
 old_id=" "
+c=1
 
 for card in ${card_list} ; do
    #echo "-------- "
@@ -217,6 +224,7 @@ for card in ${card_list} ; do
       else
         echo "  ${name}, PCI_ID=${id}, (HW Video Decode)" >> ${suported_devices_file}
       fi
+      c=$((${c} + 1))
     fi
 done
 
@@ -228,7 +236,8 @@ echo "ENV{mm_detect_state_x}==\"?*\", RUN+=\"/usr/lib/udev/mm_detect x %k \$env{
 echo "" >> ${out_dir}/${out_file}
 echo "LABEL=\"end-intel\"" >> ${out_dir}/${out_file}
 echo "" >> ${out_dir}/${out_file}
-
+echo "" >> ${suported_devices_file}
+echo "Total: $c Intel cards supported" >> ${suported_devices_file}
 echo "-------------------------------------------------------------------------------" >> ${suported_devices_file}
 echo "" >> ${suported_devices_file}
 
@@ -238,6 +247,6 @@ rm ./file.tmp
 
 echo ""
 echo "Done!"
-echo "Results are in ${out_dir}/${out_file}"
+echo "Rules for $c cards are in ${out_dir}/${out_file}"
 
 exit 0

@@ -1,7 +1,7 @@
 GARNAME = xf86-video-intel
 GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-	20151105-3a172a0, \
+	20160126-8ab71cd, \
 	2.99.17 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
@@ -62,16 +62,13 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-debug \
 	--with-gnu-ld
 
-#	--disable-fast-reloc \
-#	--disable-handle-lut \
-
 CONFIGURE_ENV = \
 	XORG_SGML_PATH="$(DESTDIR)$(includedir)/xorg"
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
 
-# drier fails to compile with gcc 4.7.0's link time optimization enabled.
+# drier fails to compile with gcc 5.3.0's link time optimization enabled.
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
@@ -94,5 +91,5 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libIntelXvMC.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/drivers/intel_drv.la
 	@cp $(WORKSRC)/src/i915_pciids.h $(WORKSRC)/../../../files/
-	@cd files; ./generate-intel-udev-rule.sh
+	@cd files; ./generate-intel-udev-rule.sh $(GARVERSION)
 	@$(MAKECOOKIE)
