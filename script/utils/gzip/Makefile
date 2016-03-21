@@ -1,8 +1,8 @@
 GARNAME = gzip
-GARVERSION = 1.5
+GARVERSION = 1.6
 CATEGORIES = utils
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
+DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL3
 
 DESCRIPTION = 
@@ -16,6 +16,8 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules
+	--disable-silent-rules \
+	--disable-rpath \
+	--with-gnu-ld
 
 include ../../gar.mk
