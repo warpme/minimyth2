@@ -1,8 +1,8 @@
 GARNAME = tar
-GARVERSION = 1.25
+GARVERSION = 1.28
 CATEGORIES = utils
-MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
+DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL3
 
 DESCRIPTION = 
