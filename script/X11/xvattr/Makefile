@@ -1,7 +1,7 @@
 GARNAME = xvattr
 GARVERSION = 1.3
 CATEGORIES = X11
-#MASTER_SITES = http://www.dtek.chalmers.se/groups/dvd/dist/
+MASTER_SITES = ftp://ftp.us.netbsd.org/pub/pkgsrc/distfiles/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-cflags.patch $(DISTNAME)-no_gtk.patch $(DISTNAME)-no_pod.patch
 LICENSE = GPL2
