@@ -1,7 +1,7 @@
 GARNAME = module-init-tools
 GARVERSION = 3.16
 CATEGORIES = utils
-MASTER_SITES = http://www.kernel.org/pub/linux/utils/kernel/module-init-tools/
+MASTER_SITES = http://ftp.be.debian.org/pub/linux/utils/kernel/module-init-tools/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = $(DISTNAME)-disable_man.patch
 LICENSE = GPL2
