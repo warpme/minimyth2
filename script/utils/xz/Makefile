@@ -1,5 +1,5 @@
 GARNAME = xz
-GARVERSION = 5.0.4
+GARVERSION = 5.2.1
 CATEGORIES = utils
 MASTER_SITES = http://tukaani.org/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -17,15 +17,17 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--enable-nls \
-	--disable-rpath \
+	--disable-silent-rules \
 	--enable-shared \
 	--disable-static \
+	--enable-nls \
+	--disable-rpath \
 	--with-gnu-ld
 
 include ../../gar.mk
 
 pre-configure:
+	@$(call RUN_GETTEXTIZE)
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
