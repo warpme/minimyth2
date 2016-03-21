@@ -1,7 +1,7 @@
 GARNAME = lsdvd
-GARVERSION = 0.16
+GARVERSION = 0.17
 CATEGORIES = utils
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)%20-%20I%20hate%20James%20Blunt/
+MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
 LICENSE = GPL2
 
@@ -15,6 +15,14 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST)
+CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--disable-silent-rules
 
 include ../../gar.mk
+
+LDFLAGS := $(LDFLAGS) -fwhole-program
+
+pre-configure:
+	@$(call RUN_AUTOTOOLS)
+	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	@$(MAKECOOKIE)
