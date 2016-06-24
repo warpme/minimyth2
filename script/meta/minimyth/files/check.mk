@@ -16,7 +16,7 @@ mm-all:
 			which $(bin) > /dev/null 2>&1 ; \
 			if [ ! "$$?" = "0" ] ; then \
 				echo "error: your system does not contain the program '$(bin)' (from package '$(pkg)')." ; \
-				exit 1 ; \
+				echo "exit 1" ; \
 			fi ; \
 		) \
 	)
@@ -157,6 +157,7 @@ mm-all:
 		   [ ! "$${software}" = "makemkv"        ] && \
 		   [ ! "$${software}" = "voip"           ] && \
 		   [ ! "$${software}" = "bumblebee"      ] && \
+		   [ ! "$${software}" = "gstreamer"      ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
 			exit 1 ; \
@@ -164,15 +165,15 @@ mm-all:
 	done
 	@echo "    mm_KERNEL_HEADERS_VERSION"
 	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "3.16" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.1" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.2" ] ; then \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.4" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.6" ] ; then \
 		echo "error: mm_KERNEL_HEADERS_VERSION=\"$(mm_KERNEL_HEADERS_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_KERNEL_VERSION"
 	@if [ ! "$(mm_KERNEL_VERSION)" = "3.16" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "4.1" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "4.2" ] ; then \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.4" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.6" ] ; then \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
