@@ -1,0 +1,119 @@
+From 53edc1c7c086bc25ff7499435d6badb64a0b4501 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Sun, 26 May 2013 19:16:23 +0100
+Subject: [PATCH 112/333] TV: Cache playgroup dbase results
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/libs/libmythtv/playgroup.cpp |   64 ++++++++++++++++++++++++++++++++---
+ 1 file changed, 59 insertions(+), 5 deletions(-)
+
+diff --git a/mythtv/libs/libmythtv/playgroup.cpp b/mythtv/libs/libmythtv/playgroup.cpp
+index 1bb4f6c..81681b0 100644
+--- a/mythtv/libs/libmythtv/playgroup.cpp
++++ b/mythtv/libs/libmythtv/playgroup.cpp
+@@ -1,5 +1,9 @@
+ // Qt headers
+ #include <QCoreApplication>
++#include <QString>
++#include <QMap>
++#include <QMutex>
++#include <QMutexLocker>
+ 
+ // MythTV headers
+ #include "mythdb.h"
+@@ -210,22 +214,67 @@ QString PlayGroup::GetInitialName(const ProgramInfo *pi)
+     return res;
+ }
+ 
++typedef QMap < QString, int > PlayGroupSettings_t;
++typedef QMap < QString, PlayGroupSettings_t > PlayGroupCache_t;
++static PlayGroupCache_t s_pgCache;
++static QMutex s_mutex;
++
+ int PlayGroup::GetSetting(const QString &name, const QString &field,
+                           int defval)
+ {
+     int res = defval;
+ 
++    {
++        QMutexLocker lock(&s_mutex);
++        PlayGroupCache_t::const_iterator it = s_pgCache.find(name);
++        if (it == s_pgCache.end())
++            it = s_pgCache.find("Default");
++        if (it != s_pgCache.end())
++            return it->value(field, defval);
++    }
++
++    QStringList fields;
++
+     MSqlQuery query(MSqlQuery::InitCon());
+-    query.prepare(QString("SELECT name, %1 FROM playgroup "
++#if 1
++    fields << "name";
++    //fields << "titlematch";
++    fields << "skipahead";
++    fields << "skipback";
++    fields << "timestretch";
++    fields << "jump";
++#else
++    query.prepare(QString("SHOW columns FROM playgroup"));
++    if (!query.exec())
++        MythDB::DBError("PlayGroup::GetSetting", query);
++    else while (query.next())
++        fields << query.value(0).toString();
++#endif
++
++    query.prepare(QString("SELECT %1 FROM playgroup "
+                           "WHERE (name = :NAME OR name = 'Default') "
+-                          "      AND %2 <> 0 "
+                           "ORDER BY name = 'Default';")
+-                  .arg(field).arg(field));
++                    .arg(fields.join(", ")) );
+     query.bindValue(":NAME", name);
+     if (!query.exec())
+         MythDB::DBError("PlayGroupConfig::GetSetting", query);
+-    else if (query.next())
+-        res = query.value(1).toInt();
++    else while (query.next())
++    {
++        PlayGroupSettings_t settings;
++
++        for (int i = 1; i < fields.count(); ++i)
++        {
++            int value = query.value(i).toInt();
++            if (value != 0)
++                settings.insert(fields[i], value);
++        }
++
++        if (query.at() == 0)
++            res = settings.value(field, defval);
++
++        QMutexLocker lock(&s_mutex);
++        s_pgCache.insert(query.value(0).toString(), settings);
++    }
+ 
+     return res;
+ }
+@@ -271,6 +320,8 @@ void PlayGroupEditor::open(QString name)
+         query.bindValue(":NAME", name);
+         if (!query.exec())
+             MythDB::DBError("PlayGroupEditor::open", query);
++        QMutexLocker lock(&s_mutex);
++        s_pgCache.clear();
+     }
+ };
+ 
+@@ -300,6 +351,9 @@ void PlayGroupEditor::doDelete(void)
+         lastValue = "";
+         Load();
+         listbox->setValue(lastIndex);
++
++        QMutexLocker lock(&s_mutex);
++        s_pgCache.clear();
+     }
+ 
+     listbox->setFocus();
+-- 
+1.7.9.5
+
