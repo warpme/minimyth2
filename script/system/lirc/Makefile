@@ -18,7 +18,8 @@ PATCHFILES = \
 
 ifneq ($(mm_KERNEL_VERSION),3.16)
 PATCHFILES += $(DISTNAME)-kernel3.19.1-build.patch \
-	$(DISTNAME)-kernel4.1-depreciated-irqf-fix.patch
+	$(DISTNAME)-kernel4.1-depreciated-irqf-fix.patch \
+	$(DISTNAME)-fix_kernel4.6_build.patch
 endif
 
 LICENSE = GPL2
