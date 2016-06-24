@@ -1,11 +1,9 @@
 GARNAME = alsa-lib
-GARVERSION = 1.1.0
+GARVERSION = 1.1.1
 CATEGORIES = lib
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/lib/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = \
-	$(DISTNAME)-sys_types_h.patch
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
@@ -43,7 +41,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
-# alsa-lib 1.1.0 fails to compile with gcc 5.3.0's link time optimization enabled.
+# alsa-lib 1.1.1 fails to compile with gcc 5.3.0's link time optimization enabled.
 CFLAGS  := $(filter-out -flto, $(CFLAGS))
 LDFLAGS := $(filter-out -flto, $(LDFLAGS))
 
