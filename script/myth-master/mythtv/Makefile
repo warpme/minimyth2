@@ -6,9 +6,8 @@ DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  =
 
 # Backend needed patches
-# PATCHFILES += 0001-ticket2416_copy_eit_2_other_source.patch
 PATCHFILES += 0002-ticket9480_pl_eit_encodings.patch
-PATCHFILES += 0003-delay_4_no_concurent_start_rec_v2.patch
+PATCHFILES += 0003-delay_4_no_concurent_start_rec_v3.patch
 PATCHFILES += 0004-eit_verbosity.patch
 PATCHFILES += 0005-tid_debug_verbosity.patch
 PATCHFILES += 0006-cardutil_show_displayname.patch
@@ -22,10 +21,9 @@ PATCHFILES += 0017-python_bindings_tztime_error.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
 PATCHFILES += 0019-mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0020-h264-seek-table.patch
-PATCHFILES += 0021-ticket12248-livetv-transitions-demonstrate-bad-decoder-start-conditions.patch
 PATCHFILES += 0023-increase-loging-for-failed-tunings.patch
-PATCHFILES += 0025-ticket12260-pythonbindings-dataheap-fix.patch
 PATCHFILES += 0030-0279-TV-Add-signal-monitor-warning-msg-if-NID-or-TSID-don.patch
+PATCHFILES += 0031-add-manage-settings-in-mythutil.patch
 
 # Minimyth needed patches
 PATCHFILES += 0100-minimyth.patch
@@ -44,21 +42,17 @@ PATCHFILES += 0208-add-disable-optical-disc-by-mm-config.patch
 PATCHFILES += 0209-add-phone-entry-in-themes.patch
 PATCHFILES += 0210-add-option-to-not-remember-last-livetv-chan.patch
 PATCHFILES += 0211-add-optical-rip-to-menu.patch
-PATCHFILES += 0212-ticket12311.patch
+PATCHFILES += 0212-ticket12311-v2.patch
 PATCHFILES += 0213-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
 
 # Fixes issue with only 3 entries in mainmenu on MythmediaStream
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
-
-# Needed to have working #12311. Without it just after start, is GUI is shifted by 1px
-PATCHFILES += 0219-revert-1c440ba-Fix-fullscreen-windowing-with-Compiz-Unity-v2.patch
 
 PATCHFILES += 0296-revert-a774469-disable-QT-compatibility-deprecated-in-QT-5.0-or-earlier.patch
 
 ifneq ($(patsubst %minimal,minimal,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 # 7.6.4 LVR safe patches related to player/OSD
 PATCHFILES += 0226-0186-mythplayer-Increase-resolution-of-onscreen-playback-.patch
-PATCHFILES += 0228-0198-Player-Avoid-unnecessary-calls-to-ReinitOSD.patch
 PATCHFILES += 0231-0238-Player-Add-interlaced-status-to-OSD-debug-screen-vid.patch
 PATCHFILES += 0232-0239-Playbackbox-Add-title-subtitle-and-description-filte.patch
 PATCHFILES += 0233-0257-FE-Add-a-UI-to-display-and-adjust-a-recording-s-star.patch
@@ -67,7 +61,6 @@ PATCHFILES += 0236-0330-FE-Add-a-menu-to-Playbackbox-to-change-the-recording.pat
 
 
 # 7.6.5 LVR safe patches related to mediamonitor
-PATCHFILES += 0243-0080-MythMusic-Raise-libcdio-logging-level-from-warnings-.patch
 PATCHFILES += 0252-0279-MythMusic-Visualisers-only-disable-screensaver-if-sh.patch
 PATCHFILES += 0253-0297-Mythmusic-Log-the-shoutcast-metadata-and-format-stri.patch
 
@@ -78,7 +71,6 @@ PATCHFILES += 0256-0110-TV-cache-videodisplayprofile-dbase-access.patch
 PATCHFILES += 0257-0112-TV-Cache-playgroup-dbase-results.patch
 PATCHFILES += 0259-0117-UI-Provide-dbase-cache-for-RegisterKey-and-RegisterJ.patch
 PATCHFILES += 0260-0118-SimpleDBStorage-Where-possible-use-Get-SetSetting-to.patch
-PATCHFILES += 0261-0119-FE-Omit-call-to-WriteDefaults-during-startup.patch
 PATCHFILES += 0262-0144-DB-Update-settings-cache-in-SaveSettingOnHost.patch
 PATCHFILES += 0263-0147-FE-Improve-caching-in-GuideGrid-v2.patch
 PATCHFILES += 0269-0148-TV-Cache-the-last-sourceid-found-in-SourceUtil-GetSo.patch
@@ -92,28 +84,26 @@ PATCHFILES += 0277-0202-FE-Fix-Display-MythDVD-menu-broken-when-MythDVD-plug-v3.
 PATCHFILES += 0282-0059-NetworkControl-Add-realtime-display-of-MythEvents.patch
 PATCHFILES += 0283-0210-FE-NetworkControl-Add-set-query-loglevel-commands.patch
 
-# 7.7.3
 PATCHFILES += 0286-ticket12479-revert-db5c40cf-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
-
 PATCHFILES += 0287-MythUiImage-Don-t-block-UI-when-exiting-screens.patch
 PATCHFILES += 0288-Minimyth2-Cache-FE-gallery-images-in-remotecache.patch
 PATCHFILES += 0289-Minimyth2-Use-remotecache-for-local-gallery-images.patch
 PATCHFILES += 0291-ticket12463-temp-fix.patch
 PATCHFILES += 0292-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-thread.patch
-
-# 7.10.3
 PATCHFILES += 0293-0281-AFD-Add-original_channels-to-audio-format-log-output.patch
 PATCHFILES += 0294-0283-FE-Add-network-status-to-machine-status-dialog.patch
-
-PATCHFILES += 0295-0296-TV-Ensure-OMX-decoder-releases-shared-buffers-before.patch
-PATCHFILES += 0297-VO-Threaded-softblend-OSD-rendering.patch
-
-# 7.12.4
+PATCHFILES += 0299-revert-ea5fdd4-Avoid-crash-when-file-transfer-can-t-open-files.patch
 PATCHFILES += 0300-revert-916e43b-BE-Avoid-SEGV-when-accessing-discarded-MythSocket.patch
-
 PATCHFILES += 0301-mythweather-scripts-replace-LWP-by-curl.patch
+PATCHFILES += 0302-revert24c5575-revert-MediaMon-UI-to-select-preferred-media-handler.patch
+PATCHFILES += 0303-0318-WebBrowser-Provide-virtual-keyboard-for-HTML-edit-co.patch
+PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids.patch
+PATCHFILES += 0305-ticket1209-Use-lastPlayPos-instead-of-bookmark.patch
+PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos.patch
+PATCHFILES += 0307-revert-0d24636-Change-the-way-webkit-support-is-removed-for-Qt5.6.patch
 
 endif
+
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
 endif
 
@@ -295,7 +285,9 @@ post-install: post-install-mythtv-version
 pre-configure:
 	@ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtWebKit.pc
 	@ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5Script.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtScript.pc
-	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\(.*\)/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
+#	Myth ver.containing also MM2 version
+#	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\(.*\)/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
+	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
 	@sed -i -e "s/MYTH_SOURCE_PATH.*/MYTH_SOURCE_PATH \"$(mm_MYTH_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
 	@$(MAKECOOKIE)
 
