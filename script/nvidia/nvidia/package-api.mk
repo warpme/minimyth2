@@ -49,6 +49,8 @@ NVIDIA_FILE_LIST_BIN     = $(strip \
 			nvidia-bug-report.sh:/:$(bindir)) \
 		$(if $(wildcard $(WORKSRC)/nvidia-settings), \
 			nvidia-settings:/:$(bindir)) \
+		$(if $(wildcard $(WORKSRC)/nvidia-smi), \
+			nvidia-smi:/:$(bindir)) \
 		$(if $(wildcard $(WORKSRC)/nvidia-xconfig), \
 			nvidia-xconfig:/:$(bindir)) \
 	)
@@ -85,6 +87,8 @@ NVIDIA_FILE_LIST_LIB_SO  = $(strip \
 			libnvidia-wfb.so:/:$(libdir)/nvidia) \
 		$(if $(wildcard $(WORKSRC)/libvdpau_nvidia.so.*), \
 			libvdpau_nvidia.so:/:$(libdir)/vdpau) \
+		$(if $(wildcard $(WORKSRC)/libnvidia-ml.so.*), \
+			libnvidia-ml.so:/:$(libdir)/nvidia) \
 		$(if $(wildcard $(WORKSRC)/libXvMCNVIDIA.so.*), \
 			libXvMCNVIDIA.so:/:$(libdir)/nvidia) \
 		$(if $(wildcard $(WORKSRC)/libglx.so.*), \
@@ -176,6 +180,7 @@ install-nvidia-x11:
 		    $(word 1,$(subst :, ,$(entry))) \
 		    $(DESTDIR)$(word 3,$(subst :, ,$(entry)))/$(word 4,$(subst :, ,$(entry))) ; \
 	))
+	@cp $(WORKSRC)/html/supportedchips.html $(WORKSRC)/../../../files/
 	@$(MAKECOOKIE)
 
 clean-all: clean-all-kernel clean-all-x11
