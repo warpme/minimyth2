@@ -21,15 +21,15 @@ include ../../gar.mk
 
 build-custom:
 	@rm -f $(WORKDIR)/ca-bundle.crt
-	@if [ ! -e $(WORKSRC)/mozilla/security/nss/lib/ckfw/builtins/certdata.txt ] ; then \
-		echo "error: file '$(WORKSRC)/mozilla/security/nss/lib/ckfw/builtins/certdata.txt' does not exist" ; \
+	@if [ ! -e $(WORKSRC)/nss/lib/ckfw/builtins/certdata.txt ] ; then \
+		echo "error: file '$(WORKSRC)/nss/lib/ckfw/builtins/certdata.txt' does not exist" ; \
 		exit 1 ; \
 	fi
-	@if [ ! -r $(WORKSRC)/mozilla/security/nss/lib/ckfw/builtins/certdata.txt ] ; then \
-		echo "error: file '$(WORKSRC)/mozilla/security/nss/lib/ckfw/builtins/certdata.txt' cannot be read" ; \
+	@if [ ! -r $(WORKSRC)/nss/lib/ckfw/builtins/certdata.txt ] ; then \
+		echo "error: file '$(WORKSRC)/nss/lib/ckfw/builtins/certdata.txt' cannot be read" ; \
 		exit 1 ; \
 	fi
-	@cd $(shell dirname $(WORKSRC)); perl -w ca-bundle.pl $(shell basename $(WORKSRC))/mozilla/security/nss/lib/ckfw/builtins/certdata.txt ca-bundle.crt
+	@cd $(shell dirname $(WORKSRC)); perl -w ca-bundle.pl $(shell basename $(WORKSRC))/nss/lib/ckfw/builtins/certdata.txt ca-bundle.crt
 	@$(MAKECOOKIE)
 
 install-custom:
