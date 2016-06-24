@@ -1,9 +1,8 @@
 GARNAME = libdrm
-GARVERSION = 2.4.67
+GARVERSION = 2.4.68
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = libdrm-2.4.x-o_cloexec.patch
 LICENSE = MIT
 
 DESCRIPTION = 
