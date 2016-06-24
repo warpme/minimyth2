@@ -55,7 +55,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/mythplugins/Makefile
 CONFIGURE_ARGS = \
 	$(MYTHTV_PLUGINS_CONFIGURE_ARGS) \
 	--enable-mythbrowser \
-	--enable-mythgallery \
+	--disable-mythgallery \
 		--enable-exif \
 		--enable-new-exif \
 	--enable-mythgame \
