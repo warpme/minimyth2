@@ -1,9 +1,8 @@
 GARNAME = util-linux
-GARVERSION = 2.22.2
+GARVERSION = 2.26.2
 CATEGORIES = utils
-MASTER_SITES  = ftp://ftp.kernel.org/pub/linux/utils/util-linux/v2.22/
-MASTER_SITES += ftp://ftp.infradead.org/pub/util-linux/v2.22/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.26/
+DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES = $(DISTNAME)-agetty_2.19.1.patch
 LICENSE = GPL2
 
@@ -21,7 +20,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--bindir=$(ebindir) \
 	--sbindir=$(esbindir) \
 	--libdir=$(elibdir) \
-	--cache-file=config.cache \
 	--disable-silent-rules \
 	--enable-shared \
 	--disable-static \
@@ -32,23 +30,33 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-libuuid \
 	--enable-libblkid \
 	--enable-libmount \
-	--disable-deprecated-mount \
+	--disable-libmount-force-mountinfo \
+	--disable-libsmartcols \
+	--disable-libfdisk \
 	--enable-mount \
+	--disable-losetup \
+	--disable-zramctl \
 	--disable-fsck \
 	--disable-partx \
 	--enable-uuidd \
 	--disable-mountpoint \
 	--disable-fallocate \
 	--disable-unshare \
-	--enable-arch \
-	--disable-ddate \
+	--disable-nsenter \
+	--disable-setpriv \
 	--disable-eject \
 	--enable-agetty \
 	--enable-cramfs \
-	--enable-switch-root \
-	--disable-pivot-root \
-	--disable-elvtune \
+	--disable-bfs \
+	--disable-minix \
+	--disable-fdformat \
+	--disable-hwclock \
+	--disable-wdctl \
+	--enable-switch_root \
+	--disable-pivot_root \
+	--disable-tunelp \
 	--disable-kill \
+	--disable-deprecated-last \
 	--disable-last \
 	--disable-utmpdump \
 	--disable-line \
@@ -58,30 +66,42 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-reset \
 	--disable-vipw \
 	--disable-newgrp \
+	--disable-chfn-chsh-password \
 	--disable-chfn-chsh \
 	--enable-chsh-only-listed \
 	--disable-login \
 	--disable-login-chown-vcs \
 	--disable-login-stat-mail \
+	--disable-nologin \
 	--disable-sulogin \
 	--disable-su \
+	--disable-runuser \
+	--disable-ul \
+	--disable-more \
+	--disable-pg \
+	--disable-setterm \
 	--disable-schedutils \
 	--disable-wall \
 	--disable-write \
-	--disable-chkdupexe \
-	--disable-socket-activation \
+	--disable-bash-completion \
+	--disable-pylibmount \
 	--enable-pg-bell \
-	--enable-require-password \
 	--disable-use-tty-group \
+	--disable-sulogin-emergency-mount \
 	--disable-makeinstall-chown \
 	--disable-makeinstall-setuid \
+	--disable-colors-default \
 	--with-gnu-ld \
 	--without-selinux \
 	--without-audit \
 	--without-udev \
 	--without-slang \
 	--without-utempter \
-	--without-systemdsystemunitdir
+	--without-user \
+	--without-systemd \
+	--without-systemdsystemunitdir \
+	--without-smack \
+	--without-python
 
 BUILD_ARGS     = \
 	usrbin_execdir=$(bindir) \
@@ -96,12 +116,14 @@ INSTALL_ARGS   = \
 
 include ../../gar.mk
 
+# util-linux 2.26.2 fails to compile with gcc 5.2.0's link time optimization enabled.
+CFLAGS  := $(filter-out -flto, $(CFLAGS))  -fno-lto
+LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
+
 pre-configure:
 	@$(call RUN_GETTEXTIZE)
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(if $(filter-out build,$(DESTIMG)),echo "scanf_cv_alloc_modifier=ms" >> $(WORKSRC)/config.cache)
-	@$(if $(filter-out build,$(DESTIMG)),echo "ax_cv_have_tls=yes"         >> $(WORKSRC)/config.cache)
 	@$(MAKECOOKIE)
 
 post-install:
