@@ -31,5 +31,6 @@ include ../../gar.mk
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libpolkit-gobject-1.la
 	@rm -f $(DESTDIR)$(libdir)/libpolkit-agent-1.la
+	@rm -f $(DESTDIR)$(libdir)/libpolkit-backend-1.la
 	@rm -f $(DESTDIR)$(libdir)/polkit-1/extensions/libnullbackend.la
 	@$(MAKECOOKIE)
