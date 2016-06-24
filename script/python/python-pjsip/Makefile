@@ -1,8 +1,9 @@
 GARNAME = pjproject
-GARVERSION = 2.4.5
+GARVERSION = 2.5
 CATEGORIES = lib
 MASTER_SITES = http://www.pjsip.org/release/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
+PATCHFILES = $(DISTNAME)-fix-cross-compile.patch
 LICENSE = GPL2
 define BLURB
 endef
