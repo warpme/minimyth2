@@ -24,6 +24,7 @@ post-install:
 	@cp -rf $(WORKSRC)/libpam/include/security $(DESTDIR)$(includedir)/
 	@rm -f $(DESTDIR)$(libdir)/libpam.la
 	@rm -f $(DESTDIR)$(libdir)/libpamc.la
+	@rm -f $(DESTDIR)$(libdir)/libpam_misc.la
 	@rm -f $(DESTDIR)$(libdir)/security/pam_nologin.la
 	@rm -f $(DESTDIR)$(libdir)/security/pam_pwhistory.la
 	@rm -f $(DESTDIR)$(libdir)/security/pam_tally.la
