@@ -4,7 +4,6 @@ CATEGORIES = python
 MASTER_SITES = http://pypi.python.org/packages/source/M/Mako/
 DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE =
-# https://pypi.python.org/packages/source/M/Mako/Mako-1.0.1.tar.gz
 DESCRIPTION = 
 define BLURB
 endef
