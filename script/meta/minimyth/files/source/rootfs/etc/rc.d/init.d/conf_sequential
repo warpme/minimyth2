@@ -1,6 +1,6 @@
 #!/bin/sh
 ################################################################################
-# conf
+# conf_sequential
 #
 # This script retrieves and processes the MiniMyth configure file.
 ################################################################################
@@ -22,7 +22,7 @@ start() {
     local file_list
     local variable
 
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] Starting..."
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] Starting..."
 
     # Unset variables set by the processed MiniMyth configuration file
     # This is a hack for testing that should never get invoked during normal boot
@@ -60,15 +60,15 @@ start() {
     fi
 
     # Get MiniMyth configuration file
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] Trying to download minimyth.conf..."
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] Trying to download minimyth.conf..."
     mm_confro_get /minimyth.conf /etc/minimyth.d/minimyth.conf.remote
 
     # Make sure that there is a MiniMyth configuration file
     if /usr/bin/test ! -e /etc/minimyth.d/minimyth.conf.remote ; then
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] Can't download minimyth.conf. Will use buildd-in defaults..."
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] Can't download minimyth.conf. Will use buildd-in defaults..."
         mm_message_output info "MiniMyth2 will use build-in default configuration ..."
     else
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] minimyth.conf downloaded sucessfully. Will use it..."
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] minimyth.conf downloaded sucessfully. Will use it..."
         /bin/mv -f /etc/minimyth.d/minimyth.conf.remote /etc/minimyth.d/minimyth.conf
     fi
 
@@ -99,7 +99,7 @@ start() {
             mm_message_output err "error: failed to fetch 'minimyth.script' file."
         else
             /bin/chmod 0755 /etc/minimyth.d/minimyth.script
-            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] minimyth.script downloaded successfuly. Will execute it..."
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] minimyth.script downloaded successfuly. Will execute it..."
         fi
     fi
     if /usr/bin/test -f /etc/minimyth.d/minimyth.script ; then
@@ -110,26 +110,26 @@ start() {
         /bin/chmod 644 '/etc/conf.d/minimyth.raw'
         set | grep '^MM_' >> '/etc/conf.d/minimyth.raw'
         # Run 'minimyth.script'
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] Executing minimyth.script..."
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] Executing minimyth.script..."
         /bin/sh /etc/minimyth.d/minimyth.script
         # Delete file with unprocessed MiniMyth variables
         /bin/rm -f '/etc/conf.d/minimyth.raw'
     fi
 
     # Enable configuration auto-detection udev rules
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] enabling minimyth udev rules..."
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] enabling minimyth udev rules..."
     file_list=`/bin/ls -1 /usr/lib/udev/rules.d/05-minimyth-*.rules.disabled | /bin/sed -e 's%\.disabled%%'`
     for file in ${file_list} ; do
         /bin/mv -f ${file}.disabled ${file}
     done
 
     # Trigger udev with the additional udev rules that handle configuration auto-detection
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] retrigering udev with enabled minimyth udev rules..."
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] retrigering udev with enabled minimyth udev rules..."
     /usr/bin/udevadm control --reload
     /usr/bin/udevadm trigger --action=add
     /usr/bin/udevadm settle --timeout=60
 
-    file_list=`cd /etc/rc.d/init.d/conf.d ; /bin/ls -1 MM_*`
+    file_list=`cd /etc/rc.d/init.d/conf.d ; /bin/ls -1 S_*`
 
     # Read MiniMyth configuration processing files
     for file in ${file_list} ; do
@@ -137,17 +137,18 @@ start() {
     done
 
     # Restart the DHCP client in order to pick up the processed DHCP override variables
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] restarting DHCP client with config values..."
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] restarting DHCP client with config values..."
     /etc/rc.d/init.d/dhcp start
 
     # Write processed MiniMyth configuration file
-    mm_message_output info "writing configuration ..."
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] processing configuration: writing variables..."
+    mm_message_output info "downloading files and writing configuration ..."
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] processing configuration: writing variables..."
     /bin/rm -f '/etc/conf.d/minimyth~'
     /bin/touch '/etc/conf.d/minimyth~'
     /bin/chmod 644 '/etc/conf.d/minimyth~'
     for file in ${file_list} ; do
         conf_write_${file} '/etc/conf.d/minimyth~'
+        # /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] conf_write_${file} done..."
     done
     /bin/rm -f '/etc/conf.d/minimyth~~'
     /bin/touch '/etc/conf.d/minimyth~~'
@@ -157,9 +158,10 @@ start() {
     /bin/mv -f '/etc/conf.d/minimyth~' '/etc/conf.d/minimyth' 
 
     # Writing variables
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] updating manage scripts with BE IP='${MM_MASTER_SERVER}'"
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] updating manage scripts with BE IP='${MM_MASTER_SERVER}'"
     /bin/sed -e "s/@MM_MASTER_SERVER@/${MM_MASTER_SERVER}/g" -i /usr/bin/mm_show_systat_osd.pl
     /bin/sed -e "s/@MM_MASTER_SERVER@/${MM_MASTER_SERVER}/g" -i /usr/bin/mm_manage
+    /bin/sed -e "s/@MM_MASTER_SERVER@/${MM_MASTER_SERVER}/g" -i /usr/bin/mm_notify_updates
     /bin/sed -e "s/@MM_MASTER_SERVER@/${MM_MASTER_SERVER}/g" -i /usr/bin/mm_start_button_actions
 
     if /usr/bin/test -z "${MM_MYTHTV_HOME_URL}" ; then
@@ -183,7 +185,7 @@ start() {
         exit 1
     fi
 
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf] Started with return code=0"
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/conf_sequential] Started with return code=0"
 
     return 0
 }

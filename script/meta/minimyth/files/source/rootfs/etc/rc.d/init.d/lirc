@@ -6,6 +6,107 @@
 ################################################################################
 . /etc/rc.d/functions
 
+# Find USB devices associated with each LIRC device and disable ACPI wakeup.
+rc_wakeup_disable() {
+    local device_list="$1"
+
+    local devpath
+    local lirc_list
+    local lirc
+    local name
+    local busnum
+    local serial
+    local entry
+    local device
+    local status
+
+    if /usr/bin/test ! -r "/sys/class/lirc" ; then
+        /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: no /sys/class/lirc"
+        return
+    fi
+    lirc_list=`cd /sys/class/lirc ; ls -1`
+
+    for lirc in ${lirc_list} ; do
+
+        if /usr/bin/test -z "${lirc}" ; then
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: empty device..."
+            continue
+        fi
+
+        name=`/usr/bin/udevadm info --query=name --root --path=/sys/class/lirc/${lirc}`
+        /bin/echo " ${device_list}" | grep -q " ${name},"
+        if /usr/bin/test $? -ne 0 ; then
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: no devicelist from ${lirc}"
+            continue
+        fi
+
+        devpath=`/usr/bin/readlink -f "/sys/class/lirc/${lirc}/device"`
+        devpath=`/usr/bin/dirname "${devpath}"`
+        devpath=`/usr/bin/dirname "${devpath}"`
+        devpath=`/usr/bin/dirname "${devpath}"`
+
+        if /usr/bin/test ! -r "${devpath}/busnum" ; then
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: no busnum in ${devpath}"
+            continue
+        fi
+
+        busnum=`/bin/cat "${devpath}/busnum" 2> /dev/null`
+        if /usr/bin/test $? -ne 0 || /usr/bin/test -z "${busnum}" ; then
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: no busnum from ${devpath}"
+            continue
+        fi
+
+        if /usr/bin/test ! -r "${devpath}/subsystem/devices/usb${busnum}/serial" ; then
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: no serial in ${devpath}/subsystem/devices/usb${busnum}"
+            continue
+        fi
+
+        serial=`/bin/cat "${devpath}/subsystem/devices/usb${busnum}/serial"`
+        if /usr/bin/test $? -ne 0 || /usr/bin/test -z "${serial}" ; then
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't find serial in ${devpath}/subsystem/devices/usb${busnum}/serial"
+            continue
+        fi
+
+        if /usr/bin/test ! -r "/proc/acpi/wakeup" ; then
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't read from /proc/acpi/wakeup..."
+            continue
+        fi
+
+        entry=`/bin/cat /proc/acpi/wakeup | /bin/grep -e "${serial}\$" | /bin/sed -e 's%  *% %g'`
+        if /usr/bin/test $? -ne 0 || /usr/bin/test -z "${entry}" ; then
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't find ${serial} in /proc/acpi/wakeup..."
+            continue
+        fi
+
+        device=`/bin/echo ${entry} | /usr/bin/cut -d ' ' -f 1`
+        if /usr/bin/test $? -ne 0 || /usr/bin/test -z "${device}" ; then
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't find device in ${entry}"
+            continue
+        fi
+
+        status=`/bin/echo ${entry} | /usr/bin/cut -d ' ' -f 3`
+        if /usr/bin/test $? -ne 0 || /usr/bin/test -z "${status}" ; then
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't detarmine status in ${entry}"
+            continue
+        fi
+
+        if /usr/bin/test ! -w "/proc/acpi/wakeup" ; then
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't write to /proc/acpi/wakeup..."
+            continue
+        fi
+
+        if /usr/bin/test "${status}" = "*enabled" ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/lirc] Per request disabling S3 wake-up on ${device}..."
+            /bin/echo ${device} > /proc/acpi/wakeup
+            if /usr/bin/test $? -ne 0 ; then
+                continue
+            fi
+        else
+            /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] Per request disabling S3 wake-up on ${device}...but it is already disabled!"
+        fi
+    done
+}
+
 start() {
 
     local daemon
@@ -21,6 +122,10 @@ start() {
     local lircd_conf
     local map
 
+    /bin/touch /var/lib/init/lirc.inprogress
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/lirc] Starting..."
+
     # Count the LIRC devices.
     device_count=0
     for device_item in ${MM_LIRC_DEVICE_LIST} ; do
@@ -32,8 +137,6 @@ start() {
         return
     fi
 
-    mm_message_output info "starting remote control(s) ..."
-
     # Load user configured kernel module.
     if /usr/bin/test -n "${MM_LIRC_KERNEL_MODULE}" ; then
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/lirc] Loading user configured kernel module ${MM_LIRC_KERNEL_MODULE} with opt:${MM_LIRC_KERNEL_MODULE_OPTIONS}"
@@ -43,10 +146,10 @@ start() {
         while /usr/bin/test ! -e ${MM_LIRC_DEVICE} && /usr/bin/test ${delay} -lt 60 ; do
             /bin/sleep 1
             delay=$((delay + 1))
-            mm_message_output info "waiting for remote control device (${delay} seconds) ..."
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/lirc] waiting for remote control device (${delay} seconds) ..."
         done
         if /usr/bin/test ! -e ${MM_LIRC_DEVICE} ; then
-            mm_message_output err "error: timed out waiting for remote control device."
+            /usr/bin/logger -s -t minimyth -p "local0.err" "[init.d/lirc] error: timed out waiting for remote control device!"
             exit 1
         fi
     fi
@@ -105,6 +208,17 @@ start() {
         if /usr/bin/test "${MM_VOIP_ENABLED}" = "yes" ; then
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/lirc] Including in lircrc KEY_1/2/3/4 for SIP Phone functions..."
             /bin/echo "include /etc/lirc.d/lircrc.phone" >> /etc/lircrc
+        fi
+        if /usr/bin/test "${MM_PLUGIN_GAME_ENABLED}" = "yes" ; then
+            if /usr/bin/test "${MM_LIRC_IRXEVENT_ENABLED}" = "auto"  || \
+               /usr/bin/test "${MM_LIRC_IRXEVENT_ENABLED}" = "yes" ; then
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/lirc] Including in lircrc game emulators keys..."
+                /bin/echo "include /etc/lirc.d/lircrc.game.emulator.fceu" >> /etc/lircrc
+                /bin/echo "include /etc/lirc.d/lircrc.game.emulator.jzintv" >> /etc/lircrc
+                /bin/echo "include /etc/lirc.d/lircrc.game.emulator.mame" >> /etc/lircrc
+                /bin/echo "include /etc/lirc.d/lircrc.game.emulator.mednafen" >> /etc/lircrc
+                /bin/echo "include /etc/lirc.d/lircrc.game.emulator.stella" >> /etc/lircrc
+            fi
         fi
         for file in `/bin/ls /etc/lirc.d/lircrc.d/lircrc.* 2> /dev/null` ; do
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/lirc] lircrc: adding ${file}"
@@ -185,9 +299,10 @@ start() {
         /usr/bin/irsend_daemon &
     fi
 
-    # Enabling only LIRC protocol as kernel 2.6.39 also supports uinput. 
-    #echo none > /sys/class/rc/rc0/protocols
-    #echo +lirc > /sys/class/rc/rc0/protocols
+    # Disable wakeup on remote.
+    if /usr/bin/test "${MM_LIRC_WAKEUP_ENABLED}" = "no" ; then
+        rc_wakeup_disable "${MM_LIRC_DEVICE_LIST}"
+    fi
 
     # Making default jumppoints
     if /usr/bin/test "${MM_LIRC_FETCH_LIRCRC}" = "no" ; then
@@ -207,6 +322,7 @@ start() {
         mm_mythdb_jumppoints_update 'MythWeather'            'Alt+w'
         mm_mythdb_jumppoints_update 'ZoneMinder Events'      'Alt+z'
         mm_mythdb_jumppoints_update 'MythNetSearch'          'Alt+a'
+        mm_mythdb_jumppoints_update 'Standby Mode'           'Alt+b'
     fi
 
     # Making default keybindings
@@ -235,12 +351,18 @@ start() {
     #    done
     #fi
 
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/lirc] Started with return code=0..."
+
+    /bin/rm -f /var/lib/init/lirc.inprogress
+
+    return 0
 }
 
 stop() {
     mm_message_output info "stopping remote control ..."
 
     /usr/bin/test -n "`/bin/pidof irexec`" && /usr/bin/killall irexec
+    /usr/bin/test -n "`/bin/pidof irxevent`" && /usr/bin/killall irxevent
     /usr/bin/test -n "`/bin/pidof lircd`"  && /usr/bin/killall lircd
     /usr/bin/test -n "`/bin/pidof irsend_daemon`"  && /usr/bin/killall irsend_daemon
 }

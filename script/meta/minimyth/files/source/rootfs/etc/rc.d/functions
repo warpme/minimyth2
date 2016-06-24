@@ -1092,7 +1092,7 @@ mm_url_mount() {
             cd "${DIR}"
             mm_url_${URL_PROTOCOL}_get "${FILE}" "${URL_PATH}" "${URL_SERVER}"          || return
             /bin/mount -t squashfs -o loop "${DIR}/${FILE}" "${DIR}/ro"                 || return
-            /bin/mount -t overlayfs -o lowerdir=${DIR}/ro,upperdir=${DIR}/rw,workdir=${DIR}/wrk none "${MOUNT_DIR}" || return
+            /bin/mount -t overlay -o lowerdir="${DIR}/ro",upperdir="${DIR}/rw",workdir="${DIR}/wrk" none "${MOUNT_DIR}" || return
         elif /usr/bin/test "${URL_EXT1}" = "cmg" ; then
             DIR="/initrd/rw/loopfs/`/bin/echo ${MOUNT_DIR} | /bin/sed 's%//*%~%g'`"
             FILE="image.cmg"
@@ -1103,7 +1103,7 @@ mm_url_mount() {
             cd "${DIR}"
             mm_url_${URL_PROTOCOL}_get "${FILE}" "${URL_PATH}" "${URL_SERVER}"          || return
             /bin/mount -t cramfs -o loop "${DIR}/${FILE}" "${DIR}/ro"                   || return
-            /bin/mount -t overlayfs -o lowerdir=${DIR}/ro,upperdir=${DIR}/rw,workdir=${DIR}/wrk none "${MOUNT_DIR}" || return
+            /bin/mount -t overlay -o lowerdir="${DIR}/ro",upperdir="${DIR}/rw",workdir="${DIR}/wrk" none "${MOUNT_DIR}" || return
         elif /usr/bin/test "${URL_EXT1}" = "bz2" && /usr/bin/test "${URL_EXT2}" = "tar" ; then
             FILE="tmp.tar.bz2~"
             cd "${MOUNT_DIR}"
@@ -1133,6 +1133,77 @@ mm_url_mount() {
         /bin/mount -n -t "${MOUNT_VFSTYPE}" ${OPTIONS} "${MOUNT_DEVICE}" "${MOUNT_DIR}" || return
     fi
 
+    return
+}
+
+mm_url_umount() {
+    local URL="$1"
+    local MOUNT_DIR="$2"
+
+    local DIR
+    local FILE
+    local URL_EXT1
+    local URL_EXT2
+    local URL_EXTMAX
+    local URL_FILE
+    local URL_PATH
+    local URL_PROTOCOL
+
+    URL_PROTOCOL=`/bin/echo "${URL}" | /usr/bin/cut -d? -f1 | \
+                        /usr/bin/cut -d: -f1`
+    URL_PATH=`    /bin/echo "${URL}" | /usr/bin/cut -d? -f1 | \
+                        /bin/sed 's%^[^:]*:%%' | /bin/sed 's%^//[^/]*/%/%'`
+
+    URL_FILE=`    /bin/echo "${URL_PATH}" | /bin/sed 's%^.*/%%'`
+    URL_EXTMAX=`  /bin/echo "${URL_FILE}" | /bin/sed 's%^.*/%%' |/bin/sed 's%[^.]*%%g' | /usr/bin/wc -c` 
+    URL_EXT1=
+    /usr/bin/test ${URL_EXTMAX} -ge 1 && URL_EXT1=`/bin/echo ${URL_FILE} | /bin/sed 's%^.*/%%' | /usr/bin/cut -s -d. -f$((${URL_EXTMAX}-0))`
+    URL_EXT2=
+    /usr/bin/test ${URL_EXTMAX} -ge 2 && URL_EXT2=`/bin/echo ${URL_FILE} | /bin/sed 's%^.*/%%' | /usr/bin/cut -s -d. -f$((${URL_EXTMAX}-1))`
+
+    if   (/usr/bin/test "${URL_PROTOCOL}" = "nfs"  ) || \
+         (/usr/bin/test "${URL_PROTOCOL}" = "cifs" ) ; then
+        if /usr/bin/test -d "${MOUNT_DIR}" ; then
+            /bin/umount -f "${MOUNT_DIR}"
+        fi
+    elif ( /usr/bin/test "${URL_PROTOCOL}" = "http"                                   ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "tftp"                                   ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "confro"                                 ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "confrw"                                 ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "dist"                                   ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "hunt"                                   ) || \
+         ( /usr/bin/test "${URL_PROTOCOL}" = "file" && /usr/bin/test -f "${URL_PATH}" ) ; then
+        if   /usr/bin/test "${URL_EXT1}" = "sfs" ; then
+            DIR="/initrd/rw/loopfs/`/bin/echo ${MOUNT_DIR} | /bin/sed 's%//*%~%g'`"
+            FILE="image.sfs"
+            if /usr/bin/test -d "${MOUNT_DIR}" ; then
+                /bin/umount -f "${MOUNT_DIR}"
+            fi
+            if /usr/bin/test -d "${DIR}/ro" ; then
+                /bin/umount -f "${DIR}/ro"
+            fi
+            rm -f "${DIR}/${FILE}"
+        elif /usr/bin/test "${URL_EXT1}" = "cmg" ; then
+            DIR="/initrd/rw/loopfs/`/bin/echo ${MOUNT_DIR} | /bin/sed 's%//*%~%g'`"
+            FILE="image.cmg"
+            if /usr/bin/test -d "${MOUNT_DIR}" ; then
+                /bin/umount -f "${MOUNT_DIR}"
+            fi
+            if /usr/bin/test -d "${DIR}/ro" ; then
+                /bin/umount -f "${DIR}/ro"
+            fi
+            rm -f "${DIR}/${FILE}"
+        elif /usr/bin/test "${URL_EXT1}" = "bz2" && /usr/bin/test "${URL_EXT2}" = "tar" ; then
+            /bin/rm -rf "${MOUNT_DIR}"
+        fi
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "mm_url_umount: protocol '${URL_PROTOCOL}' is not supported."
+        /bin/false
+        return
+    fi
+
+    /bin/true
     return
 }
 
@@ -1207,11 +1278,11 @@ mm_splash_init() {
         /usr/bin/test -z "${VXRES}" && SPLASH_ENABLE='no'
         /usr/bin/test -z "${VYRES}" && SPLASH_ENABLE='no'
         /usr/bin/test -z "${DEPTH}" && SPLASH_ENABLE='no'
-        /usr/bin/test -n "${XRES}"  && /usr/bin/test ${XRES}  -ne 640 && SPLASH_ENABLE='no'
-        /usr/bin/test -n "${YRES}"  && /usr/bin/test ${YRES}  -ne 480 && SPLASH_ENABLE='no'
-        /usr/bin/test -n "${VXRES}" && /usr/bin/test ${VXRES} -ne 640 && SPLASH_ENABLE='no'
-        /usr/bin/test -n "${VYRES}" && /usr/bin/test ${VYRES} -ne 480 && SPLASH_ENABLE='no'
-        /usr/bin/test -n "${DEPTH}" && /usr/bin/test ${DEPTH} -lt 16  && SPLASH_ENABLE='no'
+        #/usr/bin/test -n "${XRES}"  && /usr/bin/test ${XRES}  -ne 640 && SPLASH_ENABLE='no'
+        #/usr/bin/test -n "${YRES}"  && /usr/bin/test ${YRES}  -ne 480 && SPLASH_ENABLE='no'
+        #/usr/bin/test -n "${VXRES}" && /usr/bin/test ${VXRES} -ne 640 && SPLASH_ENABLE='no'
+        #/usr/bin/test -n "${VYRES}" && /usr/bin/test ${VYRES} -ne 480 && SPLASH_ENABLE='no'
+        #/usr/bin/test -n "${DEPTH}" && /usr/bin/test ${DEPTH} -lt 16  && SPLASH_ENABLE='no'
     fi
 
     if /usr/bin/test "${SPLASH_ENABLE}" = "yes" ; then
@@ -1827,10 +1898,32 @@ mm_x_start() {
         return 0
     fi
 
+    # Awaiting till all sequential init scripts will be executed
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting wait for sequential init scripts are executed..."
+    i=0
+    while /usr/bin/test $i -lt 20 ; do
+        in_progress=`/bin/ls -1 /var/lib/init/*.inprogress 2>/dev/null`
+        i=$((${i} + 1))
+        if /usr/bin/test  "x${in_progress}" = "x" ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] All sequential init scripts done..."
+            i=20
+        else
+            if /usr/bin/test $i -eq 20 ; then
+                /usr/bin/logger -t minimyth -p "local0.err" "[functions/mm_x_start] Timeout waiting for finishing following sequential init scripts: \"${in_progress}\""
+                /bin/false
+                return
+            else
+                /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Still waiting to finish sequential init scripts. Remains:\"${in_progress}\""
+                /bin/sleep 1
+            fi
+        fi
+    done
+
     /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Kicking Xinit..."
 
     /bin/su -c "/usr/bin/nohup /usr/bin/xinit > /dev/null 2>&1 &" - minimyth
 
+    # Start xscreensaver if enabled
     if /usr/bin/test "${MM_X_SCREENSAVER_HACK}" = "sleep" ; then
         if /usr/bin/test -z `/bin/pidof mm_sleep_on_ss` ; then
             /usr/bin/mm_sleep_on_ss &
@@ -1838,38 +1931,33 @@ mm_x_start() {
         fi
     fi
 
-    if /usr/bin/test -n "${MM_MAIL_NOTIFY_NEW_MAILS}" ; then
-        mailnotifypid=`/bin/ps ax -o ppid,pid,args | grep '/usr/bin/mailnotifier.pl' | grep -v grep`
-        if /usr/bin/test -z "$mailnotifypid" ; then
-          /usr/bin/perl /usr/bin/mailnotifier.pl ${MM_MAIL_NOTIFY_NEW_MAILS} &
-          /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting MAILNOTIFIER.pl script. Check period is ${MM_MAIL_NOTIFY_NEW_MAILS} sec..."
-        fi
-    fi
-
-    if /usr/bin/test -n "${MM_VOIP_ENABLED}" ; then
-        sipdaemonpid=`/bin/ps ax -o ppid,pid,args | grep '/usr/bin/sip-daemon.py' | grep -v grep`
-        if /usr/bin/test -z "$sipdaemonpid" ; then
-          /usr/bin/sip-daemon.sh &
-          /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting Telephony SIP daemon..."
-        fi
-    fi
-
+    # Start myth watchdog if enabled
     if /usr/bin/test "${MM_X_WATCHDOG_MYTH_PROC}" = "yes" ; then
         /usr/bin/mm_watchdog &
         /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting MM_WATCHDOG script..."
     fi
 
-    if /usr/bin/test "${MM_ACPI_WOL_ENABLED}" = "yes" ; then
-        /usr/sbin/ethtool -s "${MM_ACPI_WOL_INTF}" wol g
-        /bin/echo MMAC > /proc/acpi/wakeup
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Enabling Wake-on-LAN on ${MM_ACPI_WOL_INTF} interface..."
+    # Auto-configure usage of 'irxevent'.
+    if /usr/bin/test "${MM_LIRC_IRXEVENT_ENABLED}" = "auto" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Attempting to auto-configure usage of irxevent"
+            MM_LIRC_IRXEVENT_ENABLED='no'
+            if /usr/bin/test -e /etc/lircrc ; then
+                # Only one level of includes is supported.
+                lircrc_files="/etc/lircrc `/bin/cat /etc/lircrc | /bin/grep -e '^include ' | /bin/sed -e 's%^include *%%'`"
+                for lircrc_file in ${lircrc_files} ; do
+                    if /bin/cat ${lircrc_file} | /bin/grep -q -e '^ *prog *= *irxevent' ; then
+                        MM_LIRC_IRXEVENT_ENABLED='yes'
+                    fi
+                done
+            fi
     fi
 
-    if /usr/bin/test -n "${MM_NOTIFY_ABOUT_UPDATES}" ; then
-        if /usr/bin/test -z `/bin/pidof mm_notify_updates` ; then
-            /usr/bin/mm_notify_updates ${MM_NOTIFY_ABOUT_UPDATES} &
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting NOTIFY_UPDATES daemon. Check period is ${MM_NOTIFY_ABOUT_UPDATES} min..."
-        fi
+    # Start the irxevent daemon.
+    if /usr/bin/test "${MM_LIRC_IRXEVENT_ENABLED}" = "yes" ; then
+        /usr/bin/test -n "`/bin/pidof irxevent`" && /usr/bin/killall irxevent
+        /bin/sleep 5
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting irxevent daemon..."
+        /usr/bin/irxevent -d /etc/lircrc
     fi
 
     return 0
@@ -1888,10 +1976,15 @@ mm_x_stop() {
         return 0
     fi
 
-    if /usr/bin/test -n "`/bin/pidof mm_notify_updates`" ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing NOTIFY_UPDATES daemon..."
-        /usr/bin/killall -9 mm_notify_updates > /dev/null 2>&1
+    if /usr/bin/test -n "`/bin/pidof irxevent`" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing irxevent daemon..."
+        /usr/bin/killall irxevent
     fi
+
+    #if /usr/bin/test -n "`/bin/pidof mm_notify_updates`" ; then
+    #    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing NOTIFY_UPDATES daemon..."
+    #    /usr/bin/killall -9 mm_notify_updates > /dev/null 2>&1
+    #fi
 
     if /usr/bin/test -n "`/bin/pidof mm_sleep_on_ss`" ; then
         /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing mm_sleep_on_ss script..."
@@ -1981,49 +2074,70 @@ mm_x_stop() {
     return 0
 }
 
-mm_show_xosd() {
-    # mm_show_xosd <description> <extra> <type> <timeout>
+mm_show_mythnotify() {
+    # mm_show_mythnotify <description> <extra> <type> <timeout> <title> <progres_text> <progress>
     # allowable types are"
     # "error"
     # "warning"
     # "ok"
-    # "message" <- this will show message instead notify
-    # ""        <- this will notify without image
+    # "message"     <- this will show message instead notify
+    # <image file>  <- this will show <image>
+    # ""            <- this will notify without image
     local text="${1}"
     local extra="${2}"
     local type="${3}"
     local message="${1}\n${2}"
+    local title=${5}
     local result
     local image
+    local progress_text
+    local progress
     local timeout=8
 
     if /usr/bin/test -n ${4} ; then
         timeout=${4}
     fi
+    if /usr/bin/test x${title} = 'x' ; then
+        title="System"
+    else
+        title=${5}
+    fi
+    if /usr/bin/test x${6} = 'x' ; then
+        progress_text=''
+    else
+        progress_text=${6}
+    fi
+    if /usr/bin/test x${7} = 'x' ; then
+        progress=''
+    else
+        progress=${7}
+    fi
 
-    if /usr/bin/test $type = "message" ; then
+    if /usr/bin/test ${type} = "message" ; then
         /bin/echo -e "<mythmessage version=\"1\"> <text>${message}</text> <timeout>$timeout</timeout> </mythmessage>" | nc -u -w1 127.0.0.1 6948
     else
-        if /usr/bin/test $type = "error" ; then
+        if /usr/bin/test ${type} = "error" ; then
             image="images/mythnotify/error.png"
-        elif /usr/bin/test $type = "warning" ; then
+        elif /usr/bin/test ${type} = "warning" ; then
             image="images/mythnotify/warning.png"
-        elif /usr/bin/test $type = "ok" ; then
+        elif /usr/bin/test ${type} = "ok" ; then
             image="images/mythnotify/check.png"
-        else
+        elif /usr/bin/test -z ${type} ; then
             image=""
+        else
+            image=${type}
         fi
 
         /bin/echo -e "
         <mythnotification version=\"1\">
-          <image>$image</image>
-          <text>System</text>
+          <image>${image}</image>
+          <text>${title}</text>
           <origin></origin>
-          <description>$text</description>
-          <extra>$extra</extra>
-          <progress_text></progress_text>
-          <progress></progress>
-          <timeout>$timeout</timeout>
+          <description>${text}</description>
+          <extra>${extra}</extra>
+          <progress_text>${progress_text}</progress_text>
+          <progress>${progress}</progress>
+          <timeout>${timeout}</timeout>
         </mythnotification>" | nc -u -w1 127.0.0.1 6948
     fi
 }
@@ -2033,12 +2147,12 @@ mm_exec_and_notify() {
 #  local title=`cat /var/tmp/out.tmp`
   local title=`echo -e $1.`
   local result=`${2} | sed -e "s/::.*//g"`
-  mm_show_xosd "${title}" "${result}" "warning"
+  mm_show_mythnotify "${title}" "${result}" "warning"
 }
 
 mm_notify_and_exec() {
   local title=`echo -e $1.`
-  mm_show_xosd "${title}"
+  mm_show_mythnotify "${title}"
   /bin/sleep 5
   local result=`${2} | sed -e "s/::.*//g"`
 }
@@ -2047,6 +2161,97 @@ mm_notify_and_exec() {
 #===============================================================================
 # mythfrontend functions.
 #===============================================================================
+mm_mythfrontend_start() {
+
+    local mode=$1
+    args=" > /var/log/mythfrontend"
+
+    /usr/bin/mm_modify_mainmenu & 2> /dev/null
+
+    if /usr/bin/test -n "${MM_MYTHFRONTEND_CMDLINE}" ; then
+        args="${MM_MYTHFRONTEND_CMDLINE} > /var/log/mythfrontend"
+    else
+        args="${args}"
+    fi
+    export __GL_SYNC_TO_VBLANK=1
+    env > /var/log/enviroment
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions] Checking connection with backend host (${MM_MASTER_SERVER})..."
+    i=0
+    while /usr/bin/test $i -lt 20 ; do
+        no_conn=`ping -c 1 -w 1 -n ${MM_MASTER_SERVER} | grep -c "100% packet loss"`
+        i=$((${i} + 1))
+        if /usr/bin/test ${no_conn} = '1' ; then
+            if /usr/bin/test $i -eq 20 ; then
+                /usr/bin/logger -t minimyth -p "local0.err" "[functions] Timeout waiting for connection with backend host...($i)"
+                /bin/false
+                return
+            else
+                /usr/bin/logger -t minimyth -p "local0.info" "[functions] Waiting for connection with backend host...($i)"
+                /bin/sleep 1
+            fi
+        else
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Have connection with backend host (${MM_MASTER_SERVER})..."
+            i=20
+        fi
+    done
+    if /usr/bin/test x${mode} = 'x' ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting mythfrontend in background..."
+        su minimyth -c "/usr/bin/mythfrontend ${args}" &
+    else
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting mythfrontend in forground..."
+        su minimyth -c "/usr/bin/mythfrontend ${args}"
+    fi
+    /bin/true
+    return
+}
+
+mm_mythwelcome_start() {
+
+    local mode=$1
+    args=" > /var/log/mythwelcome"
+
+    if /usr/bin/test -n "${MM_MYTHFRONTEND_CMDLINE}" ; then
+        args="${MM_MYTHFRONTEND_CMDLINE} > /var/log/mythwelcome"
+    else
+        args="${args}"
+    fi
+    if /usr/bin/test -n "${MM_X_VDPAU_ENV}" ; then
+        export "${MM_X_VDPAU_ENV}"
+    fi
+    export __GL_SYNC_TO_VBLANK=1
+    # export VDPAU_DRIVER=va_gl
+    env > /var/log/enviroment
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions] Checking connection with backend host (${MM_MASTER_SERVER})..."
+    i=0
+    while /usr/bin/test $i -lt 20 ; do
+        no_conn=`ping -c 1 -w 1 -n ${MM_MASTER_SERVER} | grep -c "100% packet loss"`
+        i=$((${i} + 1))
+        if /usr/bin/test ${no_conn} = '1' ; then
+            if /usr/bin/test $i -eq 20 ; then
+                /usr/bin/logger -t minimyth -p "local0.err" "[functions] Timeout waiting for connection with backend host...($i)"
+                /bin/false
+                return
+            else
+                /usr/bin/logger -t minimyth -p "local0.info" "[functions] Waiting for connection with backend host...($i)"
+                /bin/sleep 1
+            fi
+        else
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Have connection with backend host (${MM_MASTER_SERVER})..."
+            i=20
+        fi
+    done
+    if /usr/bin/test x${mode} = 'x' ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting mythwelcome in background..."
+        su minimyth -c "/usr/bin/mythwelcome ${args}" &
+    else
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting mythwelcome in forground..."
+        su minimyth -c "/usr/bin/mythwelcome ${args}"
+    fi
+    /bin/true
+    return
+}
+
+
 mm_mythfrontend_networkcontrol() {
     local command=$1
 
@@ -2118,4 +2323,44 @@ mm_reload_voip_config() {
         /usr/bin/sip-daemon.sh &
         /bin/true
     fi
+}
+
+mm_redownload_theme() {
+    # Re-mount MythTV theme directory.
+    if /usr/bin/test -n "${MM_THEME_URL}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_redownload_theme] Un-mounting theme from ${MM_THEME_URL}"
+        if ! mm_url_umount "${MM_THEME_URL}" "/usr/share/mythtv/themes/${MM_THEME_NAME}" ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_redownload_theme] Can't umount theme from ${MM_THEME_URL}"
+            /bin/false
+            return
+        fi
+        /bin/sleep 3
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_redownload_theme] Re-mounting theme from ${MM_THEME_URL}"
+        if ! mm_url_mount "${MM_THEME_URL}" "/usr/share/mythtv/themes/${MM_THEME_NAME}" ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_redownload_theme] Can't download/re-mount theme from ${MM_THEME_URL}. Fallback to build-in MythCenter-wide..."
+            mm_mythdb_settings_set "Theme" "MythCenter-wide"
+            /bin/false
+            return
+        else
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_redownload_theme] Theme from ${MM_THEME_URL} successfuly mounted..."
+            mm_mythdb_settings_set "Theme" "${MM_THEME_NAME}"
+        fi
+    fi
+    # Re-mount MythTV thememenu directory.
+    if /usr/bin/test -n "${MM_THEMEMENU_URL}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_redownload_theme] Un-mounting thememenu from ${MM_THEMEMENU_URL}"
+        if ! mm_url_umount "${MM_THEMEMENU_URL}" "/usr/share/mythtv/themes/${MM_THEMEMENU_NAME}" ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_redownload_theme] Can't umount thememenu from ${MM_THEMEMENU_URL}"
+            /bin/false
+            return
+        fi
+        /bin/sleep 3
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_redownload_theme] Re-mounting thememenu from ${MM_THEMEMENU_URL}"
+        if ! mm_url_mount "${MM_THEMEMENU_URL}" "/usr/share/mythtv/themes/${MM_THEMEMENU_NAME}" ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_redownload_theme] Can't download/re-mount thememenu from ${MM_THEMEMENU_URL}"
+            /bin/false
+            return
+        fi
+    fi
+    return
 }

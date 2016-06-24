@@ -1,16 +1,11 @@
 ################################################################################
 # MM_MYTHTV configuration variables and files.
 ################################################################################
-conf_clean_MM_MYTHTV() {
+conf_write_S_MYTHTV() {
+  local conf_file=$1
+
   /bin/rm -rf /tmp/init.conf.mythtv
-  return 0
-}
 
-conf_check_MM_MYTHTV() {
-  return 0
-}
-
-conf_default_MM_MYTHTV() {
   if /usr/bin/test -z "${MM_MYTHTV_HOME_URL}" ; then
     MM_MYTHTV_HOME_URL=''
   else
@@ -28,6 +23,25 @@ conf_default_MM_MYTHTV() {
         esac
     fi
   fi
+
+  if /usr/bin/test -z "${MM_REMOTECACHE_URL}" ; then
+    MM_REMOTECACHE_URL=''
+  else
+    if /usr/bin/test ! "${MM_REMOTECACHE_URL}" = "auto" ; then
+      REMOTE_PROTOCOL=`/bin/echo "${MM_REMOTECACHE_URL}" | /usr/bin/cut -d? -f1 \
+                                        | /usr/bin/cut -d: -f1`
+      case "${REMOTE_PROTOCOL}" in
+        nfs)
+          ;;
+        *)
+          MM_REMOTECACHE_URL=''
+          mm_message_output info "MM_REMOTECACHE_URL: protocol '${REMOTE_PROTOCOL}' is not supported."
+          exit 1
+          ;;
+        esac
+    fi
+  fi
+
   if /usr/bin/test -z "${MM_MYTHFRONTEND_CMDLINE}" ; then
     MM_MYTHFRONTEND_CMDLINE=''
   fi
@@ -40,20 +54,31 @@ conf_default_MM_MYTHTV() {
   if /usr/bin/test -z "${MM_LOAD_BROWSER_COOKIES}" ; then
     MM_LOAD_BROWSER_COOKIES=''
   fi
-  return 0
-}
+  if /usr/bin/test -z "${MM_MYTHTV_HOME_RAMDISK}" ; then
+    MM_MYTHTV_HOME_RAMDISK='256'
+  fi
+  if /usr/bin/test "${MM_MYTHTV_HOME_RAMDISK}" = "none" ; then
+    MM_MYTHTV_HOME_RAMDISK=
+  fi
 
-conf_write_MM_MYTHTV() {
-  local conf_file=$1
+  # Moved from P_MAKEMKV as this variable is needed for enabling/disabling
+  # Optical Rip options in theme
+  if /usr/bin/test -z "${MM_OPTICAL_RIP_ENABLED}" ; then
+    MM_OPTICAL_RIP_ENABLED=''
+  fi
+
   conf_variable_write "${conf_file}" MM_MYTHTV_HOME_URL       "${MM_MYTHTV_HOME_URL}"
   conf_variable_write "${conf_file}" MM_MYTHFRONTEND_CMDLINE  "${MM_MYTHFRONTEND_CMDLINE}"
   conf_variable_write "${conf_file}" MM_AIRPLAY_ENABLED       "${MM_AIRPLAY_ENABLED}"
   conf_variable_write "${conf_file}" MM_WUNDERGROUND_KEY      "${MM_WUNDERGROUND_KEY}"
   conf_variable_write "${conf_file}" MM_LOAD_BROWSER_COOKIES  "${MM_LOAD_BROWSER_COOKIES}"
-  return 0
-}
+  conf_variable_write "${conf_file}" MM_MYTHTV_HOME_RAMDISK   "${MM_MYTHTV_HOME_RAMDISK}"
+  conf_variable_write "${conf_file}" MM_REMOTECACHE_URL       "${MM_REMOTECACHE_URL}"
 
-conf_fetch_MM_MYTHTV() {
+  # Moved from P_MAKEMKV as this variable is needed for enabling/disabling
+  # Optical Rip options in theme
+  conf_variable_write "${conf_file}" MM_OPTICAL_RIP_ENABLED   "${MM_OPTICAL_RIP_ENABLED}"
+
   if /usr/bin/test "${MM_AIRPLAY_ENABLED}" = "yes" ; then
     /bin/rm -f /home/minimyth/.mythtv/RAOPKey.rsa
     mm_confro_get RAOPKey.rsa /home/minimyth/.mythtv/RAOPKey.rsa
@@ -80,5 +105,6 @@ conf_fetch_MM_MYTHTV() {
     fi
     /bin/chmod 0600 /home/minimyth/.mythtv/MythBrowser/cookiejar.txt
   fi
+
   return 0
 }

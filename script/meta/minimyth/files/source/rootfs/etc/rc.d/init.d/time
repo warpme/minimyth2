@@ -10,12 +10,13 @@ start() {
     local NTP_SERVERS
     local NTP_SUCCESS
 
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/time] Starting..."
+
     if /usr/bin/test -e /etc/localtime ; then
         timezone=`cat /etc/localtime`
     fi
     if /usr/bin/test -z ${timezone} ; then
-        mm_message_output info "autodetecting timezone ..."
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ not set by DHCP or MM_DHCP_TZ. Starting auto-detection..."
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ not set by DHCP or MM_DHCP_TCODE. Starting auto-detection..."
         i=0
         while /usr/bin/test $i -lt 10 ; do
             i=$((${i} + 1))
@@ -26,7 +27,6 @@ start() {
                     /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] try ${i}: TZ auto-detection failed! Daemon returns: ${rc}"
                 else
                     /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] try ${i}: TZ auto-detection failed! Daemon returns: ${rc}"
-                    mm_message_output err "error: TZ not set by DHCP or MM_DHCP_TZ. autodetecting timezone also failed..."
                 fi
             else
                 /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ auto-detection detected: ${rc}"
@@ -34,11 +34,10 @@ start() {
             fi
         done
     else
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ set by DHCP or MM_DHCP_TZ. Skipping auto-detection..."
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ set by DHCP or MM_DHCP_TCODE. Skipping auto-detection..."
     fi
 
     # Set time.
-    mm_message_output info "setting time ..."
     NTP_SERVERS=`/bin/cat /etc/ntp.conf | /bin/grep '^server ' | /bin/sed 's%^server  *%%'`
     NTP_SUCCESS=0
     for NTP_SERVER in ${NTP_SERVERS} ; do
@@ -49,12 +48,14 @@ start() {
         fi
     done
     if /usr/bin/test ${NTP_SUCCESS} -eq 0 ; then
-        mm_message_output warn "warning: 'ntpd' failed to synchronize with any NTP server." 
+        /usr/bin/logger -s -t minimyth -p "local0.err" "[init.d/time] Failed to set local time from NTP server !"
     fi
 
     # Start NTP daemon.
-    mm_message_output info "starting NTP daemon ..."
-    /usr/bin/ntpd -p /var/run/ntpd.pid
+    /usr/bin/ntpd -g -p /var/run/ntpd.pid
+    /sbin/hwclock -w -u
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/time] Started with return code=0..."
 
     return 0
 }

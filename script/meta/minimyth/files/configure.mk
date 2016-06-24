@@ -6,40 +6,36 @@ all: mm-all
 GAR_EXTRA_CONF += kernel-$(mm_KERNEL_VERSION)/linux/package-api.mk perl/perl/package-api.mk python/python/package-api.mk
 include ../../gar.mk
 
-MM_INIT_START := \
-    security \
-    cpu \
-    console \
-    telnet \
-    ssh_server \
-    media \
-    mythdb_buffer_create \
-    cron \
-    game \
+MM_INIT_START_SEQUENTIAL := \
     master \
-    codecs \
-    extras \
-    sensors \
+    audio \
+    video \
+    mythtv \
+    lirc \
+    font \
+    x \
+    conf_parallel
+MM_INIT_START_PARALLEL := \
+    dbus \
+    media \
+    irtrans \
+    lcdproc \
     acpi \
     time \
     web \
-    flash \
-    dbus \
-    audio \
-    video \
-    irtrans \
-    lirc \
-    lcdproc \
+    extras \
+    game \
+    cpu \
+    telnet \
+    ssh_server \
     avahi \
-    mythtv \
-    font \
-    backend \
-    mythdb_buffer_delete \
-    x
+    mail \
+    voip \
+    updates \
+    mythdb_buffer_delete
 MM_INIT_KILL := \
     x \
     avahi \
-    sharpaquos \
     lcdproc \
     dbus \
     lirc \
@@ -49,7 +45,6 @@ MM_INIT_KILL := \
     time \
     acpi \
     game \
-    cron \
     ssh_server \
     telnet \
     media \
@@ -136,7 +131,8 @@ MM_CONFIG_VARS := $(sort \
 	mm_GRAPHICS \
 	mm_HOME \
 	MM_INIT_KILL \
-	MM_INIT_START \
+	MM_INIT_START_SEQUENTIAL \
+	MM_INIT_START_PARALLEL \
 	mm_INSTALL_LATEST \
 	mm_INSTALL_NFS_BOOT \
 	mm_INSTALL_RAM_BOOT \

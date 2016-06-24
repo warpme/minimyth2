@@ -3,42 +3,13 @@
 ################################################################################
 . /lib/minimyth/mm_detect
 
-conf_clean_MM_LIRC() {
-    /bin/rm -rf /tmp/init.conf.lirc
-
-    return 0
-}
-
-conf_check_MM_LIRC() {
-    # Check for obsolete value.
-    if /usr/bin/test "${MM_LIRC_DRIVER}"        = "auto"           ; then
-        mm_message_output err "error: 'minimyth.conf' is out of date. MM_LIRC_DRIVER='auto' is obsolete."
-    fi
-    if /usr/bin/test "${MM_LIRC_DRIVER}"        = "mceusbnew"      ; then
-        mm_message_output err "error: 'minimyth.conf' is out of date. MM_LIRC_DRIVER='mceusbnew' is obsolete."
-    fi
-    if /usr/bin/test "${MM_LIRC_KERNEL_MODULE}" = "lirc_mceusbnew" ; then
-        mm_message_output err "error: 'minimyth.conf' is out of date. MM_LIRC_KERNEL_MODULE='lirc_mceusbnew' is obsolete."
-    fi
-
-    if /usr/bin/test -z "${MM_LIRC_DRIVER}" || /usr/bin/test "${MM_LIRC_DRIVER}" = "none" ; then
-        if /usr/bin/test ! -z "${MM_LIRC_DEVICE}" ; then
-            mm_message_output err "error: 'MM_LIRC_DRIVER' must be set when 'MM_LIRC_DEVICE' is set."
-        fi
-        if /usr/bin/test ! -z "${MM_LIRC_KERNEL_MODULE}" ; then
-            mm_message_output err "error: 'MM_LIRC_DRIVER' must be set when 'MM_LIRC_KERNEL_MODULE' is set."
-        fi
-        if /usr/bin/test ! -z "${MM_LIRC_KERNEL_MODULE_OPTIONS}" ; then
-            mm_message_output err "error: 'MM_LIRC_DRIVER' must be set when 'MM_LIRC_KERNEL_MODULE_OPTIONS' is set."
-        fi
-    fi
-}
-
-conf_default_MM_LIRC() {
-
+conf_write_S_LIRC() {
+    local conf_file=$1
     local device
     local device_item
     local device_list
+
+    /bin/rm -rf /tmp/init.conf.lirc
 
     if /usr/bin/test -z "${MM_LIRC_DRIVER}" ; then
         MM_LIRC_DRIVER='none'
@@ -55,13 +26,15 @@ conf_default_MM_LIRC() {
     if /usr/bin/test -z "${MM_LIRC_IREXEC_ENABLED}" ; then
         MM_LIRC_IREXEC_ENABLED='auto'
     fi
+    if /usr/bin/test -z "${MM_LIRC_IRXEVENT_ENABLED}" ; then
+        MM_LIRC_IRXEVENT_ENABLED='auto'
+    fi
     if /usr/bin/test -z "${MM_LIRC_SLEEP_ENABLED}" ; then
         MM_LIRC_SLEEP_ENABLED='yes'
     fi
     if /usr/bin/test -z "${MM_LIRC_WAKEUP_ENABLED}" ; then
         MM_LIRC_WAKEUP_ENABLED='yes'
     fi
-
     if /usr/bin/test -z "${MM_LIRC_FETCH_LIRCD_CONF}" ; then
         MM_LIRC_FETCH_LIRCD_CONF='no'
     fi
@@ -77,6 +50,26 @@ conf_default_MM_LIRC() {
         else
             MM_LIRC_AUTO_ENABLED='no'
         fi
+    fi
+
+    if /usr/bin/test -z "${MM_EXTERNAL_VOLUME_DOWN}" && \
+       /usr/bin/test -z "${MM_EXTERNAL_VOLUME_UP}"   && \
+       /usr/bin/test -z "${MM_EXTERNAL_VOLUME_MUTE}" ; then
+        MM_EXTERNAL_VOLUME_ENABLED=''
+    else
+        MM_EXTERNAL_VOLUME_ENABLED='yes'
+    fi
+    if /usr/bin/test -z "${MM_EXTERNAL_AMPLI_POWER_ON}" && \
+       /usr/bin/test -z "${MM_EXTERNAL_AMPLI_POWER_OFF}" ; then
+        MM_EXTERNAL_AMPLI_POWER_ENABLED=''
+    else
+        MM_EXTERNAL_AMPLI_POWER_ENABLED='yes'
+    fi
+    if /usr/bin/test -z "${MM_EXTERNAL_TV_POWER_ON}" && \
+       /usr/bin/test -z "${MM_EXTERNAL_TV_POWER_OFF}" ; then
+        MM_EXTERNAL_TV_POWER_ENABLED=''
+    else
+        MM_EXTERNAL_TV_POWER_ENABLED='yes'
     fi
 
     # Read LIRC driver specific configuration file,
@@ -152,30 +145,33 @@ conf_default_MM_LIRC() {
     done
     MM_LIRC_DEVICE_LIST="${device_list}"
 
-    return 0
-}
+    conf_variable_write "${conf_file}" MM_LIRC_AUTO_ENABLED             "${MM_LIRC_AUTO_ENABLED}"
+    conf_variable_write "${conf_file}" MM_LIRC_DEVICE_BLACKLIST         "${MM_LIRC_DEVICE_BLACKLIST}"
+    conf_variable_write "${conf_file}" MM_LIRC_DRIVER                   "${MM_LIRC_DRIVER}"
+    conf_variable_write "${conf_file}" MM_LIRC_DEVICE                   "${MM_LIRC_DEVICE}"
+    conf_variable_write "${conf_file}" MM_LIRC_KERNEL_MODULE            "${MM_LIRC_KERNEL_MODULE}"
+    conf_variable_write "${conf_file}" MM_LIRC_KERNEL_MODULE_OPTIONS    "${MM_LIRC_KERNEL_MODULE_OPTIONS}"
+    conf_variable_write "${conf_file}" MM_LIRC_IREXEC_ENABLED           "${MM_LIRC_IREXEC_ENABLED}"
+    conf_variable_write "${conf_file}" MM_LIRC_IRXEVENT_ENABLED         "${MM_LIRC_IRXEVENT_ENABLED}"
+    conf_variable_write "${conf_file}" MM_LIRC_SLEEP_ENABLED            "${MM_LIRC_SLEEP_ENABLED}"
+    conf_variable_write "${conf_file}" MM_LIRC_WAKEUP_ENABLED           "${MM_LIRC_WAKEUP_ENABLED}"
+    conf_variable_write "${conf_file}" MM_LIRC_FETCH_LIRCD_CONF         "${MM_LIRC_FETCH_LIRCD_CONF}"
+    conf_variable_write "${conf_file}" MM_LIRC_FETCH_IRBLASTER_CONF     "${MM_LIRC_FETCH_IRBLASTER_CONF}"
+    conf_variable_write "${conf_file}" MM_LIRC_FETCH_LIRCRC             "${MM_LIRC_FETCH_LIRCRC}"
+    conf_variable_write "${conf_file}" MM_LIRC_DEVICE_LIST              "${MM_LIRC_DEVICE_LIST}"
 
-conf_write_MM_LIRC() {
-    local conf_file=$1
+    conf_variable_write "${conf_file}" MM_EXTERNAL_AMPLI_POWER_OFF      "${MM_EXTERNAL_AMPLI_POWER_OFF}"
+    conf_variable_write "${conf_file}" MM_EXTERNAL_AMPLI_POWER_ON       "${MM_EXTERNAL_AMPLI_POWER_ON}"
+    conf_variable_write "${conf_file}" MM_EXTERNAL_AMPLI_POWER_ENABLED  "${MM_EXTERNAL_AMPLI_POWER_ENABLED}"
+    conf_variable_write "${conf_file}" MM_EXTERNAL_VOLUME_DOWN          "${MM_EXTERNAL_VOLUME_DOWN}"
+    conf_variable_write "${conf_file}" MM_EXTERNAL_VOLUME_UP            "${MM_EXTERNAL_VOLUME_UP}"
+    conf_variable_write "${conf_file}" MM_EXTERNAL_VOLUME_MUTE          "${MM_EXTERNAL_VOLUME_MUTE}"
+    conf_variable_write "${conf_file}" MM_EXTERNAL_VOLUME_ENABLED       "${MM_EXTERNAL_VOLUME_ENABLED}"
+    conf_variable_write "${conf_file}" MM_EXTERNAL_TV_POWER_OFF         "${MM_EXTERNAL_TV_POWER_OFF}"
+    conf_variable_write "${conf_file}" MM_EXTERNAL_TV_POWER_ON          "${MM_EXTERNAL_TV_POWER_ON}"
+    conf_variable_write "${conf_file}" MM_EXTERNAL_TV_POWER_ENABLED     "${MM_EXTERNAL_TV_POWER_ENABLED}"
+    conf_variable_write "${conf_file}" MM_EXTERNAL_POWER_ON_MM_BOOT     "${MM_EXTERNAL_POWER_ON_MM_BOOT}"
 
-    conf_variable_write "${conf_file}" MM_LIRC_AUTO_ENABLED          "${MM_LIRC_AUTO_ENABLED}"
-    conf_variable_write "${conf_file}" MM_LIRC_DEVICE_BLACKLIST      "${MM_LIRC_DEVICE_BLACKLIST}"
-    conf_variable_write "${conf_file}" MM_LIRC_DRIVER                "${MM_LIRC_DRIVER}"
-    conf_variable_write "${conf_file}" MM_LIRC_DEVICE                "${MM_LIRC_DEVICE}"
-    conf_variable_write "${conf_file}" MM_LIRC_KERNEL_MODULE         "${MM_LIRC_KERNEL_MODULE}"
-    conf_variable_write "${conf_file}" MM_LIRC_KERNEL_MODULE_OPTIONS "${MM_LIRC_KERNEL_MODULE_OPTIONS}"
-    conf_variable_write "${conf_file}" MM_LIRC_IREXEC_ENABLED        "${MM_LIRC_IREXEC_ENABLED}"
-    conf_variable_write "${conf_file}" MM_LIRC_SLEEP_ENABLED         "${MM_LIRC_SLEEP_ENABLED}"
-    conf_variable_write "${conf_file}" MM_LIRC_WAKEUP_ENABLED        "${MM_LIRC_WAKEUP_ENABLED}"
-    conf_variable_write "${conf_file}" MM_LIRC_FETCH_LIRCD_CONF      "${MM_LIRC_FETCH_LIRCD_CONF}"
-    conf_variable_write "${conf_file}" MM_LIRC_FETCH_IRBLASTER_CONF  "${MM_LIRC_FETCH_IRBLASTER_CONF}"
-    conf_variable_write "${conf_file}" MM_LIRC_FETCH_LIRCRC          "${MM_LIRC_FETCH_LIRCRC}"
-    conf_variable_write "${conf_file}" MM_LIRC_DEVICE_LIST           "${MM_LIRC_DEVICE_LIST}"
-
-    return 0
-}
-
-conf_fetch_MM_LIRC() {
     if /usr/bin/test "${MM_LIRC_FETCH_LIRCD_CONF}" = "yes" ; then
         /bin/rm -f /etc/lircd.conf
         mm_confro_get /lircd.conf /etc/lircd.conf

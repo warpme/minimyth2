@@ -1,0 +1,231 @@
+################################################################################
+# MM_X configuration variables and files.
+################################################################################
+. /lib/minimyth/mm_detect
+
+conf_write_S_X() {
+    local conf_file=$1
+
+    local device
+    local device_item
+    local device_list
+    local X_RESOLUTION_X
+    local X_RESOLUTION_Y
+    local X_VIRTUAL_X
+    local X_VIRTUAL_Y
+    local X_DISPLAYSIZE_X
+    local X_DISPLAYSIZE_Y
+    local vendor
+    local family
+    local model
+
+    /bin/rm -rf /tmp/init.conf.x
+
+    if /usr/bin/test -e '/tmp/init.conf.x/conf_default_MM_X' ; then
+        return 0
+    fi
+
+    if /usr/bin/test -z "${MM_VIDEO_DECODER}"    ; then
+        MM_VIDEO_DECODER='auto'
+    fi
+    if /usr/bin/test -z "${MM_VIDEO_DEINTERLACER}"     ; then
+        MM_VIDEO_DEINTERLACER='auto'
+    fi
+    if /usr/bin/test -z "${MM_VIDEO_PLAYBACK_PROFILE}" ; then
+        MM_VIDEO_PLAYBACK_PROFILE='auto'
+    fi
+    if /usr/bin/test "${MM_VIDEO_PLAYBACK_PROFILE}" = "none" ; then
+        MM_VIDEO_PLAYBACK_PROFILE=''
+    fi
+    if /usr/bin/test "${MM_VIDEO_PLAYBACK_PROFILE}" = "userdefined" ; then
+        MM_VIDEO_PLAYBACK_PROFILE=''
+    fi
+
+    # X device variables
+    if /usr/bin/test -z "${MM_X_KBD_DEVICE}" ; then
+        MM_X_KBD_DEVICE='auto'
+    fi
+
+    # Setup Xinput devices (KBD, Mouse)
+    if /usr/bin/test "${MM_X_KBD_DEVICE}" = 'auto' ; then
+        MM_X_KBD_DEVICE="`mm_detect_state_get 'kbd' | mm_uniq`"
+        device_list=
+        for device_item in ${MM_X_KBD_DEVICE} ; do
+            device=`/bin/echo "${device_item}" | /usr/bin/cut -d ',' -f 1`
+            if /usr/bin/test -e "${device}" ; then
+                device=`/usr/bin/udevadm info --query name --root --name="${device}" 2> /dev/null`
+            fi
+            device_list="${device_list} ${device}"
+        done
+        MM_X_KBD_DEVICE="${device_list}"
+
+        if /usr/bin/test -n "${MM_LIRC_DEVICE_LIST}" ; then
+            device_blacklist=
+            for device_item in ${MM_LIRC_DEVICE_LIST} ; do
+                device=`/bin/echo "${device_item}" | /usr/bin/cut -d ',' -f 1`
+                if /usr/bin/test -e "${device}" ; then
+                    device=`/usr/bin/udevadm info --query name --root --name="${device}" 2> /dev/null`
+                fi
+                device_blacklist="${device_blacklist} ${device}"
+            done
+            device_list=
+            for device in ${MM_X_KBD_DEVICE} ; do
+                if ! /bin/echo " ${device_blacklist} " | /bin/grep -q " ${device} " ; then
+                    device_list="${device_list} ${device}"
+                fi
+            done
+            MM_X_KBD_DEVICE="${device_list}"
+        fi
+        MM_X_KBD_DEVICE=`/bin/echo "${MM_X_KBD_DEVICE}" | /bin/sed -e 's%  *% %g' -e 's%^ %%' -e 's% $%%'`
+        MM_X_KBD_DEVICE=`/bin/echo "${MM_X_KBD_DEVICE}" | /usr/bin/cut -d ' ' -f 1`
+    fi
+    if /usr/bin/test "${MM_X_KBD_DEVICE}" = 'none' ; then
+        MM_X_KBD_DEVICE=''
+    fi
+    if /usr/bin/test -z "${MM_X_MOUSE_DEVICE}" ; then
+        MM_X_MOUSE_DEVICE='auto'
+    fi
+    if /usr/bin/test "${MM_X_MOUSE_DEVICE}" = 'auto' ; then
+        MM_X_MOUSE_DEVICE="`mm_detect_state_get 'mouse' | mm_uniq`"
+        device_list=
+        for device_item in ${MM_X_MOUSE_DEVICE} ; do
+            device=`/bin/echo "${device_item}" | /usr/bin/cut -d ',' -f 1`
+            if /usr/bin/test -e "${device}" ; then
+                device=`/usr/bin/udevadm info --query name --root --name="${device}" 2> /dev/null`
+            fi
+            device_list="${device_list} ${device}"
+        done
+        MM_X_MOUSE_DEVICE="${device_list}"
+
+        if /usr/bin/test -n "${MM_LIRC_DEVICE_LIST}" ; then
+            device_blacklist=
+            for device_item in ${MM_LIRC_DEVICE_LIST} ; do
+                device=`/bin/echo "${device_item}" | /usr/bin/cut -d ',' -f 1`
+                if /usr/bin/test -e "${device}" ; then
+                    device=`/usr/bin/udevadm info --query name --root --name="${device}" 2> /dev/null`
+                fi
+                device_blacklist="${device_blacklist} ${device}"
+            done
+            device_list=
+            for device in ${MM_X_MOUSE_DEVICE} ; do
+                if ! /bin/echo " ${device_blacklist} " | /bin/grep -q " ${device} " ; then
+                    device_list="${device_list} ${device}"
+                fi
+            done
+            MM_X_MOUSE_DEVICE="${device_list}"
+        fi
+        MM_X_MOUSE_DEVICE=`/bin/echo "${MM_X_MOUSE_DEVICE}" | /bin/sed -e 's%  *% %g' -e 's%^ %%' -e 's% $%%'`
+        MM_X_MOUSE_DEVICE=`/bin/echo "${MM_X_MOUSE_DEVICE}" | /usr/bin/cut -d ' ' -f 1`
+    fi
+    if /usr/bin/test "${MM_X_MOUSE_DEVICE}" = 'none' ; then
+        MM_X_MOUSE_DEVICE=''
+    fi
+
+    # X driver variables.
+    if /usr/bin/test -z "${MM_X_HW_TYPE}" ; then
+        MM_X_HW_TYPE=`mm_detect_state_get 'x' | /usr/bin/cut -d ' ' -f 1 | /usr/bin/cut -d ',' -f 1`
+    fi
+    if /usr/bin/test -z "${MM_X_HW_TYPE}" ; then
+        mm_message_output err "error: no supported video hardware found. Plese use MM_X_HW_TYPE to identify Your video hardware..."
+    fi
+
+    if /usr/bin/test "${MM_X_HW_TYPE}" = "nvidia_vdpau"   ; then
+        MM_X_DRIVER='nvidia'
+    elif /usr/bin/test "${MM_X_HW_TYPE}" = "radeon_vdpau" ; then
+        MM_X_DRIVER='radeon'
+    elif /usr/bin/test "${MM_X_HW_TYPE}" = "intel_vaapi"  ; then
+        MM_X_DRIVER='intel_i915'
+    else
+        MM_X_DRIVER="${MM_X_HW_TYPE}"
+    fi
+
+    if /usr/bin/test -z "${MM_X_ENABLED}"                  ; then
+        MM_X_ENABLED='yes'
+    fi
+    if /usr/bin/test -z "${MM_X_RESTART_ON_SLEEP_ENABLED}" ; then
+        MM_X_RESTART_ON_SLEEP_ENABLED='no'
+    fi
+    if /usr/bin/test -z "${MM_X_WM_ENABLED}"               ; then
+        MM_X_WM_ENABLED='yes'
+    fi
+    if /usr/bin/test -z "${MM_X_VNC_ENABLED}"              ; then
+        MM_X_VNC_ENABLED='yes'
+    fi
+    if /usr/bin/test -z "${MM_X_SCREENSAVER}"              ; then
+        MM_X_SCREENSAVER='xscreensaver'
+    fi
+    if /usr/bin/test -z "${MM_X_SCREENSAVER_TIMEOUT}"      ; then
+        MM_X_SCREENSAVER_TIMEOUT='10'
+    fi
+    if /usr/bin/test -z "${MM_X_SCREENSAVER_HACK}"         ; then
+        MM_X_SCREENSAVER_HACK='sleep'
+    fi
+    if /usr/bin/test -z "${MM_X_MYTH_PROGRAM}"             ; then
+        MM_X_MYTH_PROGRAM='mythfrontend'
+    fi
+    if /usr/bin/test -z "${MM_X_FETCH_XINITRC}"   ; then
+        MM_X_FETCH_XINITRC='no'
+    fi
+    if /usr/bin/test -z "${MM_X_FETCH_XORG_CONF}" ; then
+        MM_X_FETCH_XORG_CONF='no'
+    fi
+    if /usr/bin/test -z "${MM_X_MYTH_RSS_FOR_X_RESTART}" ; then
+        MM_X_MYTH_RSS_FOR_X_RESTART='60'
+    fi
+    if /usr/bin/test -z "${MM_X_WATCHDOG_MYTH_PROC}" ; then
+        MM_X_WATCHDOG_MYTH_PROC='yes'
+    fi
+    if /usr/bin/test -z "${MM_RESTART_ON_SLEEP}" ; then
+        MM_RESTART_ON_SLEEP='mythfrontend'
+    fi
+    /bin/mkdir -p '/tmp/init.conf.x'
+    /bin/touch    '/tmp/init.conf.x/conf_default_MM_X'
+
+    MM_HARDWARE_KERNEL_MODULES="${MM_HARDWARE_KERNEL_MODULES} `mm_hardware_x2kernel_map ${MM_X_DRIVER}`"
+    MM_HARDWARE_KERNEL_MODULES="${MM_HARDWARE_KERNEL_MODULES} `mm_hardware_cpu_process mm_hardware_cpu2kernel_map`"
+    MM_HARDWARE_KERNEL_MODULES=`/bin/echo ${MM_HARDWARE_KERNEL_MODULES} | /bin/sed -e 's%  *% %g' | /bin/sed -e 's%^  *%%' | /bin/sed -e 's%  *$%%'`
+
+    conf_variable_write "${conf_file}" MM_VIDEO_DECODER                 "${MM_VIDEO_DECODER}"
+    conf_variable_write "${conf_file}" MM_VIDEO_DEINTERLACER            "${MM_VIDEO_DEINTERLACER}"
+    conf_variable_write "${conf_file}" MM_VIDEO_PLAYBACK_PROFILE        "${MM_VIDEO_PLAYBACK_PROFILE}"
+
+    conf_variable_write "${conf_file}" MM_X_KBD_DEVICE                  "${MM_X_KBD_DEVICE}"
+    conf_variable_write "${conf_file}" MM_X_MOUSE_DEVICE                "${MM_X_MOUSE_DEVICE}"
+
+    conf_variable_write "${conf_file}" MM_X_DRIVER                      "${MM_X_DRIVER}"
+    conf_variable_write "${conf_file}" MM_X_HW_TYPE                     "${MM_X_HW_TYPE}"
+
+    conf_variable_write "${conf_file}" MM_X_ENABLED                     "${MM_X_ENABLED}"
+    conf_variable_write "${conf_file}" MM_X_RESTART_ON_SLEEP_ENABLED    "${MM_X_RESTART_ON_SLEEP_ENABLED}"
+    conf_variable_write "${conf_file}" MM_X_WM_ENABLED                  "${MM_X_WM_ENABLED}"
+    conf_variable_write "${conf_file}" MM_X_VNC_ENABLED                 "${MM_X_VNC_ENABLED}"
+    conf_variable_write "${conf_file}" MM_X_SCREENSAVER                 "${MM_X_SCREENSAVER}"
+    conf_variable_write "${conf_file}" MM_X_SCREENSAVER_TIMEOUT         "${MM_X_SCREENSAVER_TIMEOUT}"
+    conf_variable_write "${conf_file}" MM_X_SCREENSAVER_HACK            "${MM_X_SCREENSAVER_HACK}"
+    conf_variable_write "${conf_file}" MM_X_MYTH_PROGRAM                "${MM_X_MYTH_PROGRAM}"
+
+    conf_variable_write "${conf_file}" MM_X_FETCH_XINITRC               "${MM_X_FETCH_XINITRC}"
+    conf_variable_write "${conf_file}" MM_X_FETCH_XORG_CONF             "${MM_X_FETCH_XORG_CONF}"
+    conf_variable_write "${conf_file}" MM_X_MYTH_RSS_FOR_X_RESTART      "${MM_X_MYTH_RSS_FOR_X_RESTART}"
+    conf_variable_write "${conf_file}" MM_X_WATCHDOG_MYTH_PROC          "${MM_X_WATCHDOG_MYTH_PROC}"
+    conf_variable_write "${conf_file}" MM_RESTART_ON_SLEEP              "${MM_RESTART_ON_SLEEP}"
+
+    conf_variable_write "${conf_file}" MM_HARDWARE_KERNEL_MODULES       "${MM_HARDWARE_KERNEL_MODULES}" 
+
+    if /usr/bin/test "${MM_X_FETCH_XINITRC}"   = "yes" ; then
+        /bin/rm -f /etc/X11/xinit/xinitrc
+        mm_confro_get /xinitrc /etc/X11/xinit/xinitrc
+        if /usr/bin/test ! -e /etc/X11/xinit/xinitrc ; then
+            mm_message_output err "error: failed to fetch 'xinitrc' file."
+        fi
+    fi
+    if /usr/bin/test "${MM_X_FETCH_XORG_CONF}" = "yes" ; then
+        /bin/rm -f /etc/X11/xorg.conf
+        mm_confro_get /xorg.conf /etc/X11/xorg.conf
+        if /usr/bin/test ! -e /etc/X11/xorg.conf ; then
+            mm_message_output err "error: failed to fetch 'xorg.conf' file."
+        fi
+    fi
+
+    return 0
+}

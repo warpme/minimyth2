@@ -9,9 +9,11 @@ script_list_start="\
     loopback \
     dhcp \
     modules_automatic \
-    conf \
+    conf_sequential \
     modules_manual \
-    log"
+    log \
+    security \
+    mythdb_buffer_create"
 script_list_kill_halt="\
     shutdown \
     halt"
@@ -20,23 +22,36 @@ script_list_kill_reboot="\
     reboot"
 
 rc_script_list_run() {
+
     local phase=$1
     local action=$2
     local script_list=$3
 
-    local count
+    local boot_count
+    local shutdown_count
     local script
 
-    count=`/bin/echo ${script_list} | /usr/bin/wc -w`
+    shutdown_count=`/bin/echo ${script_list} | /usr/bin/wc -w`
+    boot_count=${shutdown_count}
     if   /usr/bin/test ${phase} -eq 0 ; then
-        mm_splash_progress_set 0        $(( ${count} + ${count} ))
+        mm_splash_progress_set 0        $(( ${boot_count} + ${boot_count} ))
     elif /usr/bin/test ${phase} -eq 1 ; then
-        mm_splash_progress_set ${count} $(( ${count} + ${count} ))
-    elif /usr/bin/test ${phase} -eq 2 ; then
-        mm_splash_progress_set 0        ${count}
+        mm_splash_progress_set ${boot_count} $(( ${boot_count} + ${boot_count} ))
+    elif /usr/bin/test ${phase} -eq 3 ; then
+        mm_splash_progress_set 0        ${shutdown_count}
     fi
     for script in ${script_list} ; do
-        mm_command_run "${script} ${action}"
+
+        if   /usr/bin/test ${phase} -eq 2 ; then
+            mm_command_run "${script} ${action}" &
+        elif /usr/bin/test ${phase} -eq 1 ; then
+            mm_command_run "${script} ${action}" &
+        else
+            mm_command_run "${script} ${action}"
+        fi
+
+        mm_splash_progress_update
+
         # An error occured, so start a virtual console login and a telnet login.
         # This is a serious security hole, but users have difficulty debugging
         # when they cannot connect.
@@ -49,14 +64,13 @@ rc_script_list_run() {
             fi
             exit $?
         fi
-        mm_splash_progress_update
 
-        # Hack for restarting splash after stopping X. It looks like
-        if /usr/bin/test ${phase} -eq 2 ; then
-            echo ${script} | grep -q "K[0-9][0-9]x"  
+        # Hack for restarting splash after stopping X.
+        if /usr/bin/test ${phase} -eq 3 ; then
+            echo ${script} | grep -q "K[0-9][0-9]x"
             if /usr/bin/test $? -eq 0 ; then
                mm_splash_init 'reboot'
-               mm_splash_progress_set 0 ${count}
+               mm_splash_progress_set 0 ${shutdown_count}
                mm_splash_progress_update
             fi
         fi
@@ -81,26 +95,36 @@ case $1 in
         script_list="`scripts=${script_list_start}; \
                       for script in ${scripts} ; do /bin/echo /etc/rc.d/init.d/${script} ; done`"
         rc_script_list_run 0 "start" "${script_list}"
-        script_list=`/bin/ls -1 /etc/rc.d/rc.d/S*`
+
+        # Start scripts needed to run sequentially
+        /bin/rm -fr   /var/lib/init/*
+        /bin/mkdir -p /var/lib/init
+        script_list=`/bin/ls -1 /etc/rc.d/rc.d/I*`
         rc_script_list_run 1 "start" "${script_list}"
         mm_splash_halt
+
+        /bin/sleep 10
+
+        # Start scripts needed alowable to run parallel
+        script_list=`/bin/ls -1 /etc/rc.d/rc.d/S*`
+        rc_script_list_run 2 "start" "${script_list}"
         ;;
     0)
         mm_splash_init 'shutdown'
         script_list=" `/bin/ls -1 /etc/rc.d/rc.d/K*` \
                       `scripts=${script_list_kill_halt} ; \
                        for script in ${scripts} ; do /bin/echo /etc/rc.d/init.d/${script} ; done`"
-        rc_script_list_run 2 "stop" "${script_list}"
+        rc_script_list_run 3 "stop" "${script_list}"
         mm_splash_halt
-	;;
+        ;;
     6)
         mm_splash_init 'reboot'
         script_list="`/bin/ls -1 /etc/rc.d/rc.d/K*` \
                      `scripts=${script_list_kill_reboot} ; \
                       for script in ${scripts} ; do /bin/echo /etc/rc.d/init.d/${script} ; done`"
-        rc_script_list_run 2 "stop" "${script_list}"
+        rc_script_list_run 3 "stop" "${script_list}"
         mm_splash_halt
-	;;
+        ;;
 esac
 
 exit 0

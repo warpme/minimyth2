@@ -25,8 +25,8 @@
 /bin/mkdir -p /var/run
 /bin/touch    /var/run/utmp
 /bin/mkdir -p /var/tmp
-/bin/chmod 1777 /var/tmp
-/bin/chmod 1777 /var/log
+/bin/mount -t tmpfs -o nodev,nosuid,size=64M,mode=1777 tmpfs /var/tmp
+/bin/mount -t tmpfs -o nodev,nosuid,size=64M,mode=1777 tmpfs /var/log
 
 # Create /run.
 /bin/mkdir -p /run

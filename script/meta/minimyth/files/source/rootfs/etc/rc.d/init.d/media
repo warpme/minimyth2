@@ -7,175 +7,57 @@
 . /etc/rc.d/functions
 
 start() {
-  mm_message_output info "mounting media shares ..."
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Starting..."
 
-  if /usr/bin/test -n "${MM_MEDIA_GALLERY_URL}" ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Mounting ${MM_MEDIA_GALLERY_URL} to ${MM_MEDIA_GALLERY_MOUNTPOINT}"
-    mm_url_mount "${MM_MEDIA_GALLERY_URL}" "${MM_MEDIA_GALLERY_MOUNTPOINT}"
-  fi
-  if /usr/bin/test -n "${MM_MEDIA_GAME_URL}"    ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Mounting ${MM_MEDIA_GAME_URL} to ${MM_MEDIA_GAME_MOUNTPOINT}"
-    mm_url_mount "${MM_MEDIA_GAME_URL}"    "${MM_MEDIA_GAME_MOUNTPOINT}"
-  fi
-  if /usr/bin/test -n "${MM_MEDIA_MUSIC_URL}"   ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Mounting ${MM_MEDIA_MUSIC_URL} to ${MM_MEDIA_MUSIC_MOUNTPOINT}"
-    mm_url_mount "${MM_MEDIA_MUSIC_URL}"   "${MM_MEDIA_MUSIC_MOUNTPOINT}"
-  fi
-  if /usr/bin/test -n "${MM_MEDIA_VIDEO_URL}"   ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Mounting ${MM_MEDIA_VIDEO_URL} to ${MM_MEDIA_VIDEO_MOUNTPOINT}"
-    mm_url_mount "${MM_MEDIA_VIDEO_URL}"   "${MM_MEDIA_VIDEO_MOUNTPOINT}"
-  fi
-  if /usr/bin/test -n "${MM_MEDIA_DVD_RIP_URL}" ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Mounting ${MM_MEDIA_DVD_RIP_URL} to ${MM_MEDIA_DVD_RIP_MOUNTPOINT}"
-    mm_url_mount "${MM_MEDIA_DVD_RIP_URL}" "${MM_MEDIA_DVD_RIP_MOUNTPOINT}"
-  fi
-  if /usr/bin/test -n "${MM_MEDIA_SCREENSAVER_GALLERY_URL}" ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Mounting ${MM_MEDIA_SCREENSAVER_GALLERY_URL} to ${MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT}"
-    mm_url_mount "${MM_MEDIA_SCREENSAVER_GALLERY_URL}" "${MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT}"
-  fi
+    if /usr/bin/test -n "${MM_MEDIA_GAME_URL}"    ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Mounting ${MM_MEDIA_GAME_URL} to ${MM_MEDIA_GAME_MOUNTPOINT}"
+        mm_url_mount "${MM_MEDIA_GAME_URL}"    "${MM_MEDIA_GAME_MOUNTPOINT}"
+    fi
 
-  if /usr/bin/test -n "${MM_MYTHTV_HOME_URL}" ; then
-    HOST_NAME=`/bin/hostname`
-    mm_message_output info "mounting mythtv home dir ..."
-    if /usr/bin/test "${MM_MYTHTV_HOME_URL}" = "auto" ; then
-      /bin/rm -f /home/minimyth/_.test_
-      /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Trying to automount mythtv home dir...(auto)"
-      mm_confrw_get /minimyth_home/.mythtv/mysql.txt /home/minimyth/_.test_
-      if /usr/bin/test -f "/home/minimyth/_.test_" ; then
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home has correct content. Will mount...(auto)"
-        if /usr/bin/test -f "/var/lib/minimyth.bootdir.nfs_mounted" ; then
-          /bin/cp -rf /home/minimyth/. /var/minimyth.bootdir/conf-rw/${HOST_NAME}/minimyth_home/
-          /bin/rm -rf /home/minimyth
-          /bin/ln -sf /var/minimyth.bootdir/conf-rw/${HOST_NAME}/minimyth_home /home/minimyth
-          if /bin/su -c "/usr/bin/test ! -w /home/minimyth" - minimyth ; then
-            mm_message_output err "error: remote mythtv home dir is not writable by user 'minimyth'."
-            exit 1
-          fi
-          /bin/ln -sf /etc/lircrc /home/minimyth/.lircrc
-          /bin/ln -sf /etc/lircrc /home/minimyth/.mythtv/.lircrc
-          /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home dir automounted...(auto)"
-        else
-          /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] ERROR: NFS base dir not mounted..."
-          mm_message_output err "ERORR: NFS base bootdir not mounted..."
-          exit 1
+    if /usr/bin/test "x${MM_OPTICAL_RIP_ENABLED}" = 'xyes' ; then
+        if /usr/bin/test -n "${MM_OPTICAL_RIP_URL}" ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Mounting ${MM_OPTICAL_RIP_URL} to /mnt/optical-rip"
+            mm_url_mount "${MM_OPTICAL_RIP_URL}" "/mnt/optical-rip"
         fi
-      else
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home incorect content. Will initialize...(auto)"
-        if /usr/bin/test -f "/var/lib/minimyth.bootdir.nfs_mounted" ; then
-          /bin/rm -rf /var/minimyth.bootdir/conf-rw/${HOST_NAME}/minimyth_home
-          /bin/cp -rf /home/minimyth/. /var/minimyth.bootdir/conf-rw/${HOST_NAME}/minimyth_home/
-          #/bin/chown -R minimyth:minimyth /var/minimyth.bootdir/conf-rw/${HOST_NAME}/minimyth_home
-          #/bin/chmod -R 755 /var/minimyth.bootdir/conf-rw/${HOST_NAME}/minimyth_home
-          /bin/rm -rf /home/minimyth
-          /bin/ln -sf /var/minimyth.bootdir/conf-rw/${HOST_NAME}/minimyth_home /home/minimyth
-          /bin/ln -sf /etc/lircrc /home/minimyth/.lircrc
-          /bin/ln -sf /etc/lircrc /home/minimyth/.mythtv/.lircrc
-          /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home dir initialized and mounted... (auto)"
-        else
-          /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] ERROR: NFS base dir not mounted..."
-          mm_message_output err "ERORR: NFS base bootdir not mounted..."
-          exit 1
-        fi
-      fi
-    else
-      /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Trying to automount mythtv home dir via URL..."
-      /bin/mkdir -p -m 777 /var/minimyth_home
-      mm_url_mount "${MM_MYTHTV_HOME_URL}" "/var/minimyth_home"
-      if /usr/bin/test -f "/var/minimyth_home/.mythtv/mysql.txt" ; then
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home has correct content. Will mount...(URL)"  
-        /bin/cp -rf /home/minimyth/. /var/minimyth_home/
-        /bin/rm -rf /home/minimyth
-        /bin/ln -sf /var/minimyth_home /home/minimyth
-        /bin/ln -sf /etc/lircrc /home/minimyth/.lircrc
-        /bin/ln -sf /etc/lircrc /home/minimyth/.mythtv/.lircrc
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home dir mounted via URL..."
-      else
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home incorect content. Will initialize...(URL)" 
-        /bin/cp -rf /home/minimyth/. /var/minimyth_home/
-        #/bin/chown -R minimyth:minimyth /var/minimyth_home
-        #/bin/chmod -R 755 /var/minimyth_home
-        /bin/rm -rf /home/minimyth
-        /bin/ln -sf /var/minimyth_home /home/minimyth
-        /bin/ln -sf /etc/lircrc /home/minimyth/.lircrc
-        /bin/ln -sf /etc/lircrc /home/minimyth/.mythtv/.lircrc
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home dir initialized and mounted...(URL)"
-      fi
     fi
-  fi
 
-  if /usr/bin/test -n "${MM_EXTRAS_URL}" ; then
-    if /usr/bin/test "${MM_EXTRAS_URL}" = "auto" ; then
-      mm_message_output info "mounting extras ...(auto)"
-      if /usr/bin/test -f "/var/lib/minimyth.bootdir.nfs_mounted" ; then
-        /bin/rm -rf /usr/local
-        /bin/ln -sf /var/minimyth.bootdir/extras/${HOST_NAME} "@EXTRAS_ROOTDIR@"
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Extras dir automounted...(auto)"
-        /sbin/ldconfig
-      else
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] ERROR: Extras not avaliale because NFS base dir not mounted...(auto)"
-        mm_message_output err "ERORR: NFS base bootdir not mounted..."
-        exit 1
-      fi
+    if /usr/bin/test -n "${MM_MEDIA_SCREENSAVER_GALLERY_URL}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Mounting ${MM_MEDIA_SCREENSAVER_GALLERY_URL} to ${MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT}"
+        mm_url_mount "${MM_MEDIA_SCREENSAVER_GALLERY_URL}" "${MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT}"
     fi
-    if /usr/bin/test "${MM_EXTRAS_URL}" = "global" ; then
-      mm_message_output info "mounting extras ...(global)"
-      if /usr/bin/test -f "/var/lib/minimyth.bootdir.nfs_mounted" ; then
-        /bin/rm -rf /usr/local
-        /bin/ln -sf /var/minimyth.bootdir/extras "@EXTRAS_ROOTDIR@"
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] extras dir automounted...(global)"
-        /sbin/ldconfig
-      else
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] ERROR: Extras not avaliale because NFS base dir not mounted...(global)"
-        mm_message_output err "ERORR: NFS base bootdir not mounted..."
-        exit 1
-      fi
-    fi
-  fi
 
-  return 0
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Started with return code=0..."
+
+    return 0
 }
 
 stop() {
-  mm_message_output info "unmounting media shares ..."
+    mm_message_output info "unmounting media shares ..."
 
-  if /usr/bin/test -n "${MM_MEDIA_DVD_RIP_URL}" && /usr/bin/test -d "${MM_MEDIA_DVD_RIP_MOUNTPOINT}" ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Unmounting ${MM_MEDIA_DVD_RIP_MOUNTPOINT}"
-    /bin/umount "${MM_MEDIA_DVD_RIP_MOUNTPOINT}"
-  fi
-  if /usr/bin/test -n "${MM_MEDIA_VIDEO_URL}"   && /usr/bin/test -d "${MM_MEDIA_VIDEO_MOUNTPOINT}"   ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Unmounting ${MM_MEDIA_VIDEO_MOUNTPOINT}"
-    /bin/umount "${MM_MEDIA_VIDEO_MOUNTPOINT}"
-  fi
-  if /usr/bin/test -n "${MM_MEDIA_MUSIC_URL}"   && /usr/bin/test -d "${MM_MEDIA_MUSIC_MOUNTPOINT}"   ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Unmounting ${MM_MEDIA_MUSIC_MOUNTPOINT}"
-    /bin/umount "${MM_MEDIA_MUSIC_MOUNTPOINT}"
-  fi
-  if /usr/bin/test -n "${MM_MEDIA_GAME_URL}"    && /usr/bin/test -d "${MM_MEDIA_GAME_MOUNTPOINT}"    ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Unmounting ${MM_MEDIA_GAME_MOUNTPOINT}"
-    /bin/umount "${MM_MEDIA_GAME_MOUNTPOINT}"
-  fi
-  if /usr/bin/test -n "${MM_MEDIA_GALLERY_URL}" && /usr/bin/test -d "${MM_MEDIA_GALLERY_MOUNTPOINT}" ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Unmounting ${MM_MEDIA_GALLERY_MOUNTPOINT}"
-    /bin/umount "${MM_MEDIA_GALLERY_MOUNTPOINT}"
-  fi
-  if /usr/bin/test -n "${MM_MEDIA_SCREENSAVER_GALLERY_URL}" && /usr/bin/test -d "${MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT}" ; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Unmounting ${MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT}"
-    /bin/umount "${MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT}"
-  fi
-  mm_message_output info "unmounting mythtv home dir ..."
-  if /usr/bin/test -f "/var/lib/minimyth.bootdir.nfs_mounted" ; then
-    /bin/rm -rf /home/minimyth
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] mythtv home dir unmounted... (auto)"
-  else
-    /bin/umount "${MM_MYTHTV_HOME_URL}"
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home dir umnounted..."
-  fi
-  if /usr/bin/test -f "/var/lib/minimyth.bootdir.cifs_mounted" || \
-     /usr/bin/test -f "/var/lib/minimyth.bootdir.nfs_mounted"; then
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Unmounting '${MM_MINIMYTH_BOOT_URL}' share"
-    /bin/umount "/var/minimyth.bootdir"
-    /bin/rm -f "/var/lib/minimyth.bootdir.*"
-  fi
+    if /usr/bin/test "x${MM_OPTICAL_RIP_ENABLED}" = 'xyes' ; then
+        if /usr/bin/test -n "${MM_OPTICAL_RIP_URL}" ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Unmounting /mnt/optical-rip"
+            /bin/umount "/mnt/optical-rip"
+        fi
+    fi
+ 
+    if /usr/bin/test -n "${MM_MEDIA_GAME_URL}" && /usr/bin/test -d "${MM_MEDIA_GAME_MOUNTPOINT}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Unmounting ${MM_MEDIA_GAME_MOUNTPOINT}"
+        /bin/umount "${MM_MEDIA_GAME_MOUNTPOINT}"
+    fi
+ 
+    if /usr/bin/test -n "${MM_MEDIA_SCREENSAVER_GALLERY_URL}" && /usr/bin/test -d "${MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT}" ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Unmounting ${MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT}"
+        /bin/umount "${MM_MEDIA_SCREENSAVER_GALLERY_MOUNTPOINT}"
+    fi
+
+    if /usr/bin/test -f "/var/lib/minimyth.bootdir.cifs_mounted" || \
+        /usr/bin/test -f "/var/lib/minimyth.bootdir.nfs_mounted"; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Unmounting '${MM_MINIMYTH_BOOT_URL}' share"
+        /bin/umount "/var/minimyth.bootdir"
+        /bin/rm -f "/var/lib/minimyth.bootdir.*"
+    fi
+
   return 0
 }
 

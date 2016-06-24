@@ -24,9 +24,12 @@ start() {
     local X_RESOLUTION_X
     local X_RESOLUTION_Y
 
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/video] Starting..."
-    mm_message_output info "Configuring VIDEO..."
+    /bin/touch /var/lib/init/video.inprogress
 
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/video] Starting..."
+
+    #----MythTV videoprofile called "Minimyth" generation BEGIN-----------------
+    # Define videodecoder and deinterlacer acordingly to video hardware
     case "${MM_X_HW_TYPE}" in
         intel_vaapi)
             /usr/bin/test "${MM_VIDEO_DEINTERLACER}"  = "auto" && MM_VIDEO_DEINTERLACER='none'
@@ -43,7 +46,7 @@ start() {
             /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] decoder/deinterlacer will be auto-configured for Nvidia VDPAU..."
             ;;
         radeon_vdpau)
-            /usr/bin/test "${MM_VIDEO_DEINTERLACER}"  = "auto" && MM_VIDEO_DEINTERLACER='bob'
+            /usr/bin/test "${MM_VIDEO_DEINTERLACER}"  = "auto" && MM_VIDEO_DEINTERLACER='vdpau-basic-doublerate'
             /usr/bin/test "${MM_VIDEO_DECODER}" = "auto" && MM_VIDEO_DECODER='vdpau'
             /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] decoder/deinterlacer will be auto-configured for Radeon VDPAU..."
             ;;
@@ -54,6 +57,7 @@ start() {
             ;;
     esac
 
+    # Define rest of mythtv video profile acordingly to videodecoder
     pref_max_cpus=`cat /proc/cpuinfo | grep -c '^processor[[:cntrl:]]*:'`
     pref_cmp0='> 0 0'
     pref_cmp1=''
@@ -64,12 +68,6 @@ start() {
     case "${MM_VIDEO_DECODER}" in
         ffmpeg)
             pref_decoder='ffmpeg'
-            pref_videorenderer='xv-blit'
-            pref_osdrenderer='softblend'
-            pref_osdfade='0'
-            ;;
-        libmpeg2)
-            pref_decoder='libmpeg2'
             pref_videorenderer='xv-blit'
             pref_osdrenderer='softblend'
             pref_osdfade='0'
@@ -91,7 +89,6 @@ start() {
             exit 1
             ;;
     esac
-
     pref_deint0=''
     pref_deint1=''
     pref_filters=''
@@ -207,6 +204,7 @@ start() {
             ;;
     esac
 
+    # Write profile to DB
     hostname=`/bin/hostname`
     profilegroupid=
     if /usr/bin/test -n "${hostname}" ; then
@@ -229,7 +227,7 @@ start() {
             ;" | grep -v 'profileid'`
     fi
     if /usr/bin/test -n "${profilegroupid}" ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Initializing MiniMyth display profile id=${profileid}..."
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Updating MiniMyth display profile id=${profileid}..."
         mm_mythdb_set \
             "DELETE FROM displayprofiles \
             WHERE profilegroupid=\"${profilegroupid}\" ; "
@@ -281,7 +279,9 @@ start() {
              value=\"pref_filters\", data=\"${pref_filters}\" ; "
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_filters=\"${pref_filters}\""
     fi
+    #----MythTV videoprofile called "Minimyth" generation END-------------------
 
+    #Set MythTV video playback profile (if enabled by MM_VIDEO_PLAYBACK_PROFILE="auto")
     if /usr/bin/test -n "${MM_VIDEO_PLAYBACK_PROFILE}" ; then
         if   /usr/bin/test "${MM_VIDEO_PLAYBACK_PROFILE}" = "auto"  ; then
             case "${MM_X_HW_TYPE}" in
@@ -316,119 +316,9 @@ start() {
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] DefaultVideoPlaybackProfile will be not touched..."
     fi
 
-    if   /usr/bin/test "${MM_VIDEO_RESIZE_ENABLED}" = "no"  ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Video resize will be disabled..."
-        if /usr/bin/test "${MM_VIDEO_FOLLOW_FRAMERATE}" = "yes"  ; then
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Video refresh will auto-follow content refesh..."
-            mm_mythdb_settings_set 'GuiSizeForTV' '0'
-            mm_mythdb_settings_set 'UseVideoModes' '1'
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/video] Started with return code=0..."
 
-            X_RESOLUTION=`/bin/echo ${MM_X_MODE}      | /bin/sed -e 's%^\([0-9][0-9]*\)[Xx]\([0-9][0-9]*\).*%\1x\2%'`
-            if /usr/bin/test -z "${X_RESOLUTION}" ; then
-                X_RESOLUTION=`/bin/echo ${MM_X_RESOLUTION}      | /bin/sed -e 's%^\([0-9][0-9]*\)[Xx]\([0-9][0-9]*\).*%\1x\2%'`
-            fi
-            X_RESOLUTION_X=`/bin/echo ${X_RESOLUTION} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\)$%\1%'`
-            X_RESOLUTION_Y=`/bin/echo ${X_RESOLUTION} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\)$%\2%'`
-
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Setting GUI&Video sizes to ${X_RESOLUTION}"
-            mm_mythdb_settings_set 'GuiVidModeResolution' "${X_RESOLUTION}"
-            mm_mythdb_settings_set 'TvVidModeResolution'  "${X_RESOLUTION}"
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Setting GUI&Video refresh to 0(Auto)"
-            mm_mythdb_settings_set 'TVVidModeRefreshRate' '0'
-            mm_mythdb_settings_set 'TvVidModeForceAspect' '0.0'
-        else
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Leaving GUI&Video size/refresh with to X.org values..."
-            mm_mythdb_settings_set    'UseVideoModes' '0'
-
-            mm_mythdb_settings_delete 'GuiVidModeResolution'
-            mm_mythdb_settings_delete 'TvVidModeResolution'
-            mm_mythdb_settings_delete 'TVVidModeRefreshRate'
-            mm_mythdb_settings_delete 'TvVidModeForceAspect'
-        fi
-
-        mm_mythdb_settings_delete 'VidModeWidth0'
-        mm_mythdb_settings_delete 'VidModeHeight0'
-        mm_mythdb_settings_delete 'TVVidModeResolution0'
-        mm_mythdb_settings_delete 'TVVidModeRefreshRate0'
-        mm_mythdb_settings_delete 'TVVidModeForceAspect0'
-
-        mm_mythdb_settings_delete 'VidModeWidth1'
-        mm_mythdb_settings_delete 'VidModeHeight1'
-        mm_mythdb_settings_delete 'TVVidModeResolution1'
-        mm_mythdb_settings_delete 'TVVidModeRefreshRate1'
-        mm_mythdb_settings_delete 'TVVidModeForceAspect1'
-
-        mm_mythdb_settings_delete 'VidModeWidth2'
-        mm_mythdb_settings_delete 'VidModeHeight2'
-        mm_mythdb_settings_delete 'TVVidModeResolution2'
-        mm_mythdb_settings_delete 'TVVidModeRefreshRate2'
-        mm_mythdb_settings_delete 'TVVidModeForceAspect2'
-
-    elif /usr/bin/test "${MM_VIDEO_RESIZE_ENABLED}" = "yes" ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Video resize will be enabled..."
-        mm_mythdb_settings_set 'GuiSizeForTV' '0'
-        mm_mythdb_settings_set 'UseVideoModes' '1'
-
-        X_RESOLUTION=`/bin/echo ${MM_X_MODE}      | /bin/sed -e 's%^\([0-9][0-9]*\)[Xx]\([0-9][0-9]*\).*%\1x\2%'`
-        X_RESOLUTION_X=`/bin/echo ${X_RESOLUTION} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\)$%\1%'`
-        X_RESOLUTION_Y=`/bin/echo ${X_RESOLUTION} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\)$%\2%'`
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Setting GUI&Video sizes to ${X_RESOLUTION}"
-        mm_mythdb_settings_set 'GuiVidModeResolution' "${X_RESOLUTION}"
-        mm_mythdb_settings_set 'TvVidModeResolution'  "${X_RESOLUTION}"
-        mm_mythdb_settings_set 'TVVidModeRefreshRate' '0'
-        mm_mythdb_settings_set 'TvVidModeForceAspect' '0.0'
-        if /usr/bin/test ! "${MM_X_MODE_0}" = "none" ; then
-            X_RESOLUTION=`/bin/echo ${MM_X_MODE_0}    | /bin/sed -e 's%^\([0-9][0-9]*\)[Xx]\([0-9][0-9]*\).*%\1x\2%'`
-            X_RESOLUTION_X=`/bin/echo ${X_RESOLUTION} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\)$%\1%'`
-            X_RESOLUTION_Y=`/bin/echo ${X_RESOLUTION} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\)$%\2%'`
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Setting VideoMode1 to ${X_RESOLUTION}"
-            mm_mythdb_settings_set 'VidModeWidth0'         "${X_RESOLUTION_X}"
-            mm_mythdb_settings_set 'VidModeHeight0'        "${X_RESOLUTION_Y}"
-            mm_mythdb_settings_set 'TVVidModeResolution0'  "${X_RESOLUTION}"
-            mm_mythdb_settings_set 'TVVidModeRefreshRate0' '0'
-            mm_mythdb_settings_set 'TVVidModeForceAspect0' '0.0'
-        else
-            mm_mythdb_settings_delete 'VidModeWidth0'
-            mm_mythdb_settings_delete 'VidModeHeight0'
-            mm_mythdb_settings_delete 'TVVidModeResolution0'
-            mm_mythdb_settings_delete 'TVVidModeRefreshRate0'
-            mm_mythdb_settings_delete 'TVVidModeForceAspect0'
-        fi
-        if /usr/bin/test ! "${MM_X_MODE_1}" = "none" ; then
-            X_RESOLUTION=`/bin/echo ${MM_X_MODE_1}    | /bin/sed -e 's%^\([0-9][0-9]*\)[Xx]\([0-9][0-9]*\).*%\1x\2%'`
-            X_RESOLUTION_X=`/bin/echo ${X_RESOLUTION} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\)$%\1%'`
-            X_RESOLUTION_Y=`/bin/echo ${X_RESOLUTION} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\)$%\2%'`
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Setting VideoMode2 to ${X_RESOLUTION}"
-            mm_mythdb_settings_set 'VidModeWidth1'         "${X_RESOLUTION_X}"
-            mm_mythdb_settings_set 'VidModeHeight1'        "${X_RESOLUTION_Y}"
-            mm_mythdb_settings_set 'TVVidModeResolution1'  "${X_RESOLUTION}"
-            mm_mythdb_settings_set 'TVVidModeRefreshRate1' '0'
-            mm_mythdb_settings_set 'TVVidModeForceAspect1' '0.0'
-        else
-            mm_mythdb_settings_delete 'VidModeWidth1'
-            mm_mythdb_settings_delete 'VidModeHeight1'
-            mm_mythdb_settings_delete 'TVVidModeResolution1'
-            mm_mythdb_settings_delete 'TVVidModeRefreshRate1'
-            mm_mythdb_settings_delete 'TVVidModeForceAspect1'
-        fi
-        if /usr/bin/test ! "${MM_X_MODE_2}" = "none" ; then
-            X_RESOLUTION=`/bin/echo ${MM_X_MODE_2}    | /bin/sed -e 's%^\([0-9][0-9]*\)[Xx]\([0-9][0-9]*\).*%\1x\2%'`
-            X_RESOLUTION_X=`/bin/echo ${X_RESOLUTION} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\)$%\1%'`
-            X_RESOLUTION_Y=`/bin/echo ${X_RESOLUTION} | /bin/sed -e 's%^\([0-9][0-9]*\)x\([0-9][0-9]*\)$%\2%'`
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Setting VideoMode3 to ${X_RESOLUTION}"
-            mm_mythdb_settings_set 'VidModeWidth2'         "${X_RESOLUTION_X}"
-            mm_mythdb_settings_set 'VidModeHeight2'        "${X_RESOLUTION_Y}"
-            mm_mythdb_settings_set 'TVVidModeResolution2'  "${X_RESOLUTION}"
-            mm_mythdb_settings_set 'TVVidModeRefreshRate2' '0'
-            mm_mythdb_settings_set 'TVVidModeForceAspect2' '0.0'
-        else
-            mm_mythdb_settings_delete 'VidModeWidth2'
-            mm_mythdb_settings_delete 'VidModeHeight2'
-            mm_mythdb_settings_delete 'TVVidModeResolution2'
-            mm_mythdb_settings_delete 'TVVidModeRefreshRate2'
-            mm_mythdb_settings_delete 'TVVidModeForceAspect2'
-        fi
-    fi
+    /bin/rm -f /var/lib/init/video.inprogress
 
     return 0
 }

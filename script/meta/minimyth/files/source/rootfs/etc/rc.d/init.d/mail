@@ -1,0 +1,43 @@
+#!/bin/sh
+################################################################################
+# telnet
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mail] Starting..."
+
+    if /usr/bin/test -n "${MM_MAIL_NOTIFY_NEW_MAILS}" ; then
+        mailnotifypid=`/bin/ps ax -o ppid,pid,args | grep '/usr/bin/mailnotifier.py' | grep -v grep`
+        if /usr/bin/test -z "$mailnotifypid" ; then
+            /usr/bin/python /usr/bin/mailnotifier.py ${MM_MAIL_NOTIFY_NEW_MAILS} &
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting MAILNOTIFIER.py script. Check period is ${MM_MAIL_NOTIFY_NEW_MAILS} sec..."
+        fi
+    fi
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mail] Started with return code=0..."
+
+    return 0
+}
+
+stop() {
+
+    if /usr/bin/test -n "${MM_MAIL_NOTIFY_NEW_MAILS}" ; then
+        mailnotifypid=`/bin/ps ax -o ppid,pid,args | grep '/usr/bin/mailnotifier.py' | grep -v grep | cut -c 7-12`
+        if /usr/bin/test -n "$mailnotifypid" ; then
+            /bin/kill $mailnotifypid
+            /bin/sleep 1
+            /usr/bin/python /usr/bin/mailnotifier.py ${MM_MAIL_NOTIFY_NEW_MAILS} &
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/mail] Stoping  MAILNOTIFIER.py script..."
+        fi
+    fi
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0
