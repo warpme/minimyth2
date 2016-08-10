@@ -1,8 +1,13 @@
 GARNAME = mesa
-GARVERSION = 11.1.2
+# GARVERSION_TYPE = git
+GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
+             20160518-877a802, \
+             12.0.1 ))
 CATEGORIES = $(CATEGORY)
-MASTER_SITES = ftp://ftp.freedesktop.org/pub/mesa/$(GARVERSION)/
-DISTFILES = mesa-$(GARVERSION).tar.xz
+MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
+             git://anongit.freedesktop.org/mesa/mesa/ , \
+             ftp://ftp.freedesktop.org/pub/mesa/12.0.1/ ))
+DISTFILES = $(DISTNAME).tar.xz
 LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
@@ -50,8 +55,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
 	--disable-static \
 	--enable-shared \
-	$(if $(filter i386  , $(GARCH_FAMILY)),--enable-32-bit) \
-	$(if $(filter x86_64, $(GARCH_FAMILY)),--enable-64-bit) \
 	--with-dri-driverdir="$(libdir)/dri" \
 	--with-vdpau-libdir="$(libdir)" \
 	--with-gallium-drivers=r300,r600,radeonsi,svga,swrast \
@@ -59,8 +62,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-egl-platforms=x11,drm \
 	--enable-llvm-shared-libs \
 	--enable-egl \
-	--disable-gallium-egl \
-	--disable-gallium-gbm \
 	--enable-gbm \
 	--enable-gallium-llvm \
 	--enable-shared-glapi \
@@ -86,24 +87,18 @@ BUILD_ARGS  = \
 	HOST_CC="$(build_CC)" \
 	HOST_CFLAGS="$(build_CFLAGS)"
 
+CPPFLAGS += -ffat-lto-objects
+CXXFLAGS += -ffat-lto-objects
+CFLAGS   += -ffat-lto-objects
+
 include ../../gar.mk
 
-git//%MesaLib-$(GARVERSION).tar.bz2:
-	@$(call FETCH_GIT, $*, $(word 3,$(subst -, ,$(GARVERSION))), MesaLib-$(GARVERSION))
-	@cd $(PARTIALDIR) ; tar -jxf MesaLib-$(GARVERSION).tar.bz2
-	@cd $(PARTIALDIR) ; mv MesaLib-$(GARVERSION) $(DISTNAME)
-	@cd $(PARTIALDIR) ; rm -rf   $(DISTNAME).tar.bz2
-	@cd $(PARTIALDIR) ; tar -jcf MesaLib-$(GARVERSION).tar.bz2 $(DISTNAME)
-	@cd $(PARTIALDIR) ; rm -rf                                 $(DISTNAME)
+git//%$(DISTNAME).tar.xz:
+	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
 	@$(MAKECOOKIE)
-
-x-checksum-MesaLib-$(GARVERSION).tar.bz2:
-	@$(MAKECOOKIE) 
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
-	#Hack needed to build Mesa with libxcb1.17
-	@ln -sf $(DESTDIR)$(libdir)/libxcb.la-disabled $(DESTDIR)$(libdir)/libxcb.la
 	@$(MAKECOOKIE)
 
 install-source:
@@ -147,6 +142,4 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_r600.la
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_radeonsi.la
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe.la
-	@#Remove Hack needed to build Mesa with libxcb1.17
-	@rm -f $(DESTDIR)$(libdir)/libxcb.la
 	@$(MAKECOOKIE)
