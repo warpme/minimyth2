@@ -15,16 +15,16 @@ my @middle = ();
 push(@middle,  q(<div class="section">));
 push(@middle,  q(  <div class="heading">Versions and Licenses</div>));
 push(@middle,  q(  <p>));
-push(@middle,  q(    This is a list of all the software built as part of the Myth@Home build process.));
-push(@middle,  q(    Depending on the Myth@Home build system configuration options,));
-push(@middle,  q(    some of the software may not have been included in the Myth@Home binary image.));
+push(@middle,  q(    This is a list of all the software built as part of the MiniMyth2 build process.));
+push(@middle,  q(    Depending on the MiniMyth2 build system configuration options,));
+push(@middle,  q(    some of the software may not have been included in the MiniMyth2 binary image.));
 push(@middle,  q(  </p>));
 push(@middle,  q(  <ul>));
 push(@middle,  q(    <li>));
-push(@middle,  q(      Myth@Home:));
+push(@middle,  q(      MiniMyth2:));
 push(@middle,  q(      <ul>));
 push(@middle,  q(        <li>));
-push(@middle,  q(          <strong>Myth@Home</strong>));
+push(@middle,  q(          <strong>MiniMyth2</strong>));
 push(@middle, qq(          $mm_version));
 push(@middle,  q(          ;));
 push(@middle,  q(          <a href="../license.txt" type="text/plain">license</a>));
@@ -47,7 +47,7 @@ my @type_name   = ( 'base',
                     'build' );
 my %type_header = ( 'base'   => q(base ('/' and '/usr'):),
                     'extras' => q(extras ('/usr/local'):),
-                    'build'  => q(build (natively compiled software used for cross compiling and assembling Myth@Home):));
+                    'build'  => q(build (natively compiled software used for cross compiling and assembling MiniMyth2):));
 
 foreach my $type (@type_name)
 {

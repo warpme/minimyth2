@@ -63,7 +63,7 @@ sub page
     push(@page,  q(  <body>));
     push(@page,  q(    <div class="main">));
     push(@page,  q(      <div class="header">));
-    push(@page,  q(        <div class="heading">Myth@Home from <a href="http://www.myth@home.org/">myth@home.org</a></div>));
+    push(@page,  q(        <div class="heading">MiniMyth2 from <a href="http://minimyth2.homenet.org/">minimyth2.homenet.org</a></div>));
     push(@page,  q(        <div class="menu">));
     push(@page,  q(          <span class="menuItemFirst"><a href="../index.html">Home</a></span>));
     push(@page, qq(          <span class="menuItem"     >$title</span>));
@@ -91,7 +91,7 @@ sub page
     push(@page,  q(              alt="Valid CSS!"      height="31" width="88" /></a>));
     push(@page,  q(        </div>));
     push(@page,  q(        <div class="version">));
-    push(@page,  q(          Last Updated on 2010-06-26));
+    push(@page,  q(          Last Updated on 2015-10-30));
     push(@page,  q(          <br />));
     push(@page,  q(          &lt;&nbsp;mailto&nbsp;:&nbsp;webmaster&nbsp;at&nbsp;minimyth&nbsp;dot&nbsp;org&nbsp;&gt;));
     push(@page,  q(        </div>));
