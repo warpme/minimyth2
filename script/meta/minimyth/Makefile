@@ -25,9 +25,9 @@ DEPENDS = \
 	utils/evtest \
 	devel/fakeroot \
 	devel/glibc-locale \
-	net/ipxe \
 	disk/hdparm \
 	net/ifplugd \
+	net/ipxe \
 	net/iputils \
 	system/irclient \
 	system/irserver \
@@ -39,12 +39,10 @@ DEPENDS = \
 	fonts/dejavu-fonts \
 	fonts/liberation-fonts \
 	system/lirc \
-	system/eventlircd \
 	utils/lm_sensors \
 	utils/lsdvd \
 	utils/lsof \
 	X11/libva-intel-driver \
-	X11/libva-vdpau-driver \
 	utils/intel-microcode2ucode \
 	utils/kmod \
 	myth-$(mm_MYTH_VERSION)/mythtv \
@@ -55,15 +53,7 @@ DEPENDS = \
 	net/rpcbind \
 	utils/pciutils \
 	perl/perl \
-	perl/perl-Class-Inspector \
-	perl/perl-Date-Manip \
-	perl/perl-Lchown \
 	perl/perl-MiniMyth \
-	perl/perl-RFLibs \
-	perl/perl-Regexp-Wildcards \
-	perl/perl-HTTP-Message \
-	perl/perl-HTTP-Date \
-	perl/perl-Encode-Locale \
 	utils/pmount \
 	net/portmap \
 	system/powernowd \
@@ -170,6 +160,7 @@ DEPENDS = \
 			python/python-lxml \
 			python/python-MySQL-python \
 			python/python-oauth \
+			python/python-IMAPClient \
 			python/python-pycurl) \
 		perl/perl-Date-Manip \
 		perl/perl-DateTime-Format-ISO8601 \
@@ -200,8 +191,6 @@ DEPENDS = \
 		mediaplayers/vlc) \
 	$(if $(filter xine,$(mm_SOFTWARE)), \
 		mediaplayers/xine-ui) \
-	$(if $(filter wiimote,$(mm_SOFTWARE)), \
-		utils/cwiid) \
 	$(if $(filter udisks,$(mm_SOFTWARE)), \
 		lib/udisks) \
 	$(if $(filter voip,$(mm_SOFTWARE)), \
