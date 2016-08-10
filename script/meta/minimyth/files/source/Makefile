@@ -190,6 +190,9 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		cp -pdR $(DESTDIR)$(qt5prefix)/plugins/imageformats    $@~$(qt5prefix)/plugins ; \
 		cp -pdR $(DESTDIR)$(qt5prefix)/plugins/sqldrivers      $@~$(qt5prefix)/plugins ; \
 	 fi
+	@echo 'generating supported video HW list'
+	@cat $(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt $(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt $(DESTDIR)/usr/share/supported-nvidia-gfx-hardware.txt > $(top_source)/html/document-supported-gfx-hardware.txt
+	@grep "PCI_ID" -c $(top_source)/html/document-supported-gfx-hardware.txt | sed -e 's/^/\nTotal video chips supported: /g' >> $(top_source)/html/document-supported-gfx-hardware.txt
 	@# Copy HTML files.
 	@find $(top_source)/html -depth -type d \
 		| sed -e 's%^\$(top_source)/html%$@~/srv/www%' \
@@ -273,7 +276,11 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	        $@~/home/minimyth/.mythtv/lircrc
 	@# Make perl init script links.
 	@mkdir -m 0775 -p                $@~$(sysconfdir)/rc.d/rc.d
-	@index=10 ; $(foreach file, $(MM_INIT_START), \
+	@index=10 ; $(foreach file, $(MM_INIT_START_SEQUENTIAL), \
+		test -e $@~$(sysconfdir)/rc.d/init.d/$(file) && \
+		index=$$(($${index}+2)) && \
+		ln -sf ../init.d/$(file) $@~$(sysconfdir)/rc.d/rc.d/I$${index}$(file) ; )
+	@index=10 ; $(foreach file, $(MM_INIT_START_PARALLEL), \
 		test -e $@~$(sysconfdir)/rc.d/init.d/$(file) && \
 		index=$$(($${index}+2)) && \
 		ln -sf ../init.d/$(file) $@~$(sysconfdir)/rc.d/rc.d/S$${index}$(file) ; )
@@ -487,8 +494,8 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@echo 'copying updated index.html'
 	@cp -pdR $@~/srv/www/index.html $(mm_HOME)/html/minimyth/index.html
 	@sed -i '/.*cgi-bin.*/d' $(mm_HOME)/html/minimyth/index.html
-	@echo 'generating supported video HW list'
-	@cat $(DESTDIR)/usr/udev-pciid/supported-ati-gfx-hardware.txt $(DESTDIR)/usr/udev-pciid/supported-intel-gfx-hardware.txt $(DESTDIR)/usr/udev-pciid/supported-nvidia-gfx-hardware.txt > $(mm_HOME)/html/minimyth/document-supported-gfx-hardware.txt
+	@echo 'copying updated document-supported-gfx-hardware.txt'
+	@cp -pdR $@~/srv/www/document-supported-gfx-hardware.txt $(mm_HOME)/html/minimyth/document-supported-gfx-hardware.txt
 	@$(call SET_PERMISSIONS,$@~)
 	@touch $@~
 	@mv $@~ $@
@@ -537,6 +544,9 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 	@# Setup ssh id_RSA permissions
 	@chmod 0700 $@~/rootfs-ro/root/.ssh
 	@chmod 0600 $@~/rootfs-ro/root/.ssh/id_rsa
+	@chmod 0700 $@~/rootfs-ro/home/minimyth/.ssh
+	@chmod 0600 $@~/rootfs-ro/home/minimyth/.ssh/id_rsa
+	@chmod 0755 $@~/rootfs-ro/usr/bin/ssh
 	@# Hack for strip wich is cheated by mplayer exec
 	@if [ -e $@~/rootfs-ro/usr/bin/mplayer ] ; then    \
 		chmod 0755 $@~/rootfs-ro/usr/bin/mplayer ; \
@@ -602,6 +612,14 @@ $(top_build)/stage/pxe-$(mm_NAME): $(top_source)/pxe
 	@if [ -e       $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.0 ] ; then \
 		cp -pd $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.0 \
 		       $@~/ipxe/tftpboot/minimyth/ipxe.0 ; \
+	 fi
+	@if [ -e       $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.pxe ] ; then \
+		cp -pd $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.pxe \
+		       $@~/ipxe/tftpboot/minimyth/ipxe.pxe ; \
+	 fi
+	@if [ -e       $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.efi ] ; then \
+		cp -pd $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.efi \
+		       $@~/ipxe/tftpboot/minimyth/ipxe.efi ; \
 	 fi
 	@if [ -e       $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/pxelinux.0 ] ; then \
 		cp -pd $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/pxelinux.0 \
