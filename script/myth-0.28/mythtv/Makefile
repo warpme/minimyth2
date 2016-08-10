@@ -68,7 +68,6 @@ PATCHFILES += 0255-0108-SG-Cache-storagegroup-records-in-FindDirs.patch
 PATCHFILES += 0256-0110-TV-cache-videodisplayprofile-dbase-access.patch
 PATCHFILES += 0257-0112-TV-Cache-playgroup-dbase-results.patch
 PATCHFILES += 0259-0117-UI-Provide-dbase-cache-for-RegisterKey-and-RegisterJ.patch
-PATCHFILES += 0260-0118-SimpleDBStorage-Where-possible-use-Get-SetSetting-to.patch
 PATCHFILES += 0262-0144-DB-Update-settings-cache-in-SaveSettingOnHost.patch
 PATCHFILES += 0263-0147-FE-Improve-caching-in-GuideGrid-v2.patch
 PATCHFILES += 0269-0148-TV-Cache-the-last-sourceid-found-in-SourceUtil-GetSo.patch
