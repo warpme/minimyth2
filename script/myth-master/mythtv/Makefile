@@ -7,7 +7,7 @@ PATCHFILES  =
 
 # Backend needed patches
 PATCHFILES += 0002-ticket9480_pl_eit_encodings.patch
-PATCHFILES += 0003-delay_4_no_concurent_start_rec_v3.patch
+PATCHFILES += 0003-delay_4_no_concurent_start_rec_v4.patch
 PATCHFILES += 0004-eit_verbosity.patch
 PATCHFILES += 0005-tid_debug_verbosity.patch
 PATCHFILES += 0006-cardutil_show_displayname.patch
@@ -24,6 +24,9 @@ PATCHFILES += 0020-h264-seek-table.patch
 PATCHFILES += 0023-increase-loging-for-failed-tunings.patch
 PATCHFILES += 0030-0279-TV-Add-signal-monitor-warning-msg-if-NID-or-TSID-don.patch
 PATCHFILES += 0031-add-manage-settings-in-mythutil.patch
+
+# solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
+PATCHFILES += 0033-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
 
 # Minimyth needed patches
 PATCHFILES += 0100-minimyth.patch
@@ -45,62 +48,88 @@ PATCHFILES += 0211-add-optical-rip-to-menu.patch
 PATCHFILES += 0212-ticket12311-v2.patch
 PATCHFILES += 0213-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
 
-# Fixes issue with only 3 entries in mainmenu on MythmediaStream
+# Reverting this fixes issue with only 3 entries in mainmenu on MythmediaStream theme
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
+# Needed to successfully applying 0235 & 0236
 PATCHFILES += 0296-revert-a774469-disable-QT-compatibility-deprecated-in-QT-5.0-or-earlier.patch
 
 ifneq ($(patsubst %minimal,minimal,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
-# 7.6.4 LVR safe patches related to player/OSD
+# LVR safe patches related to player/OSD
 PATCHFILES += 0226-0186-mythplayer-Increase-resolution-of-onscreen-playback-.patch
 PATCHFILES += 0231-0238-Player-Add-interlaced-status-to-OSD-debug-screen-vid.patch
 PATCHFILES += 0232-0239-Playbackbox-Add-title-subtitle-and-description-filte.patch
+
+# LVR safe patches with some usefull functionality
 PATCHFILES += 0233-0257-FE-Add-a-UI-to-display-and-adjust-a-recording-s-star.patch
 PATCHFILES += 0235-0290-FE-Add-a-menu-item-to-toggle-the-damaged-video-statu.patch
 PATCHFILES += 0236-0330-FE-Add-a-menu-to-Playbackbox-to-change-the-recording.patch
-
-
-# 7.6.5 LVR safe patches related to mediamonitor
 PATCHFILES += 0252-0279-MythMusic-Visualisers-only-disable-screensaver-if-sh.patch
 PATCHFILES += 0253-0297-Mythmusic-Log-the-shoutcast-metadata-and-format-stri.patch
 
-# 7.6.6 LVR safe patches related to DB caching
+# LVR safe patches related to DB caching
 PATCHFILES += 0254-0105-DB-Load-all-dbase-settings-into-cache-at-startup.patch
 PATCHFILES += 0255-0108-SG-Cache-storagegroup-records-in-FindDirs.patch
 PATCHFILES += 0256-0110-TV-cache-videodisplayprofile-dbase-access.patch
 PATCHFILES += 0257-0112-TV-Cache-playgroup-dbase-results.patch
 PATCHFILES += 0259-0117-UI-Provide-dbase-cache-for-RegisterKey-and-RegisterJ.patch
-PATCHFILES += 0260-0118-SimpleDBStorage-Where-possible-use-Get-SetSetting-to.patch
 PATCHFILES += 0262-0144-DB-Update-settings-cache-in-SaveSettingOnHost.patch
-PATCHFILES += 0263-0147-FE-Improve-caching-in-GuideGrid-v2.patch
 PATCHFILES += 0269-0148-TV-Cache-the-last-sourceid-found-in-SourceUtil-GetSo.patch
 PATCHFILES += 0270-0149-TV-Cache-the-last-groupname-found-in-ChannelGroup-Ge.patch
+
 PATCHFILES += 0272-0185-MythWeather-Prevent-log-error-report-Widget-not-foun.patch
 
-# 7.6.7 LVR safe patches for BE
+# LVR safe patches with some usefull functionality
 PATCHFILES += 0277-0202-FE-Fix-Display-MythDVD-menu-broken-when-MythDVD-plug-v3.patch
 
-# 7.6.9 LVR remote control patches
+# LVR safe patches adding usefull logging functions
 PATCHFILES += 0282-0059-NetworkControl-Add-realtime-display-of-MythEvents.patch
 PATCHFILES += 0283-0210-FE-NetworkControl-Add-set-query-loglevel-commands.patch
 
+# Needed to revert for non-distorted SD H264 HLS streaming (ticket 12479)
 PATCHFILES += 0286-ticket12479-revert-db5c40cf-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
+
+# Support for Roger Siddons new gallery.
 PATCHFILES += 0287-MythUiImage-Don-t-block-UI-when-exiting-screens.patch
 PATCHFILES += 0288-Minimyth2-Cache-FE-gallery-images-in-remotecache.patch
 PATCHFILES += 0289-Minimyth2-Use-remotecache-for-local-gallery-images.patch
+
+# Fixes FE OOM when user enters previously recorded
 PATCHFILES += 0291-ticket12463-temp-fix.patch
+
+# Speedup FE starting
 PATCHFILES += 0292-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-thread.patch
+
+# Various
 PATCHFILES += 0293-0281-AFD-Add-original_channels-to-audio-format-log-output.patch
 PATCHFILES += 0294-0283-FE-Add-network-status-to-machine-status-dialog.patch
+
+# 0299 is needed by 0300
+# 0300 is needed and without this BE sometimes deadlocks in comm.with FE
 PATCHFILES += 0299-revert-ea5fdd4-Avoid-crash-when-file-transfer-can-t-open-files.patch
 PATCHFILES += 0300-revert-916e43b-BE-Avoid-SEGV-when-accessing-discarded-MythSocket.patch
+
+# Needed as perl5.12 under gcc5.3 has non-working sockets reads (???)
 PATCHFILES += 0301-mythweather-scripts-replace-LWP-by-curl.patch
+
+# added as IMHO better have extra functions with old UI that no old UI and no functions
 PATCHFILES += 0302-revert24c5575-revert-MediaMon-UI-to-select-preferred-media-handler.patch
+
+# Various
 PATCHFILES += 0303-0318-WebBrowser-Provide-virtual-keyboard-for-HTML-edit-co.patch
-PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids.patch
-PATCHFILES += 0305-ticket1209-Use-lastPlayPos-instead-of-bookmark.patch
+
+# Nice Roger Siddons guide grid enhacement
+PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
+
+# Nice Roger Siddons guide grid enhacement
+PATCHFILES += 0305-ticket12809-Use-lastPlayPos-instead-of-bookmark-v2.patch
 PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos.patch
-PATCHFILES += 0307-revert-0d24636-Change-the-way-webkit-support-is-removed-for-Qt5.6.patch
+PATCHFILES += 0307-ticket12809-Add-Unfinished-recording-filter.patch
+
+PATCHFILES += 0308-update-PL-trnaslations.patch
+
+# added as this d43d8b1 causes unpleasant ffwd/bkwd playback skips with SD content 
+PATCHFILES += 0309-revert-d43d8b1-revert-Player-Improve-low-bit-rate-high-latency-streams.patch
 
 endif
 
@@ -262,6 +291,8 @@ CFLAGS   += -fPIC
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+
+# "--extra-cxxflags='-DIGNORE_SCHEMA_VER_MISMATCH -DIGNORE_PROTO_VER_MISMATCH'
 
 svn//%/$(DISTNAME).tar.bz2:
 	@$(call FETCH_SVN, http://$*, $(MYTHTV_SVN_VERSION), $(DISTNAME))
