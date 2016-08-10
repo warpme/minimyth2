@@ -2,6 +2,7 @@
 # Values in this file can be overridden by including the desired value in
 # '$(HOME)/.minimyth/minimyth.conf.mk'.
 #-------------------------------------------------------------------------------
+-include $(HOME)/.minimyth/minimyth.conf.mk
 
 # The version of MiniMyth.
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
@@ -12,7 +13,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.3.5.r89
+mm_VERSION_MINIMYTH ?= 8.3.13.r132
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -116,11 +117,11 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '3.16', '4.4' and '4.6'
+# Valid values are '4.6'
 mm_KERNEL_HEADERS_VERSION ?= 4.6
 
 # The version of kernel to use.
-# Valid values are '3.16' and '4.4' and '4.6'
+# Valid values are '4.6'
 mm_KERNEL_VERSION         ?= 4.6
 
 # The kernel configuration file to use.
