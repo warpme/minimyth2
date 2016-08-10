@@ -88,7 +88,12 @@ start() {
                 done
             fi
             if /usr/bin/test -n "${MM_VOIP_ENABLED}"  ; then
-                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Unmuting Capture and setting level to ${MM_VOIP_MIC_LEVEL}%..."
+                if /usr/bin/test -n "${MM_AUDIO_IN_CARD_NUMBER}"  ; then
+                    amixer_command="/usr/bin/amixer -c ${MM_AUDIO_IN_CARD_NUMBER}"
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Unmuting Capture in card${MM_AUDIO_IN_CARD_NUMBER} and setting level to ${MM_VOIP_MIC_LEVEL}%..."
+                else
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Unmuting Capture in card${MM_AUDIO_CARD_NUMBER} and setting level to ${MM_VOIP_MIC_LEVEL}%..."
+                fi
                 ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
                 while read control ; do
                     case "${control}" in
@@ -105,6 +110,17 @@ start() {
                             Mic\ Boost)              ${amixer_command} set 'Mic Boost'       ${MM_VOIP_MIC_BOOST_LEVEL}% unmute ;;
                             Front\ Mic\ Boost)       ${amixer_command} set 'Front Mic Boost' ${MM_VOIP_MIC_BOOST_LEVEL}% unmute ;;
                             Rear\ Mic\ Boost)        ${amixer_command} set 'Rear Mic Boost'  ${MM_VOIP_MIC_BOOST_LEVEL}% unmute ;;
+                        esac
+                    done
+                fi
+                # amixer -c0 set 'Input Source',0 'Rear Mic'
+                # Input\ Source)           ${amixer_command} set 'Input Source',0 'Rear Mic' ;;
+                if /usr/bin/test -n "${MM_VOIP_MIC_SELECTION}"  ; then
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Selecting MIC to "${MM_VOIP_MIC_SELECTION}" ..."
+                    ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+                    while read control ; do
+                        case "${control}" in
+                            Input\ Source)           ${amixer_command} set 'Input Source',0 "${MM_VOIP_MIC_SELECTION}" ;;
                         esac
                     done
                 fi
@@ -164,12 +180,21 @@ stop () {
             done
         fi
         if /usr/bin/test -n "${MM_VOIP_ENABLED}"  ; then
-            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Muting Capture and MIC Boost..."
+            if /usr/bin/test -n "${MM_AUDIO_IN_CARD_NUMBER}"  ; then
+                amixer_command="/usr/bin/amixer -c ${MM_AUDIO_IN_CARD_NUMBER}"
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Muting Capture and MIC Boost on card${MM_AUDIO_IN_CARD_NUMBER} ..."
+            else
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Muting Capture and MIC Boost on card${MM_AUDIO_CARD_NUMBER} ..."
+            fi
             ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
             while read control ; do
                 case "${control}" in
                     Capture)            ${amixer_command} set 'Capture'           0% cap mute ;;
+                    Front\ Mic)         ${amixer_command} set 'Front Mic'         0% cap mute ;;
+                    Rear\ Mic)          ${amixer_command} set 'Rear Mic'          0% cap mute ;;
                     Mic\ Boost)         ${amixer_command} set 'Mic Boost'         0% mute ;;
+                    Front\ Mic\ Boost)  ${amixer_command} set 'Front Mic Boost'   0% mute ;;
+                    Rear\ Mic\ Boost)   ${amixer_command} set 'Rear Mic Boost'    0% mute ;;
                 esac
             done
         fi
