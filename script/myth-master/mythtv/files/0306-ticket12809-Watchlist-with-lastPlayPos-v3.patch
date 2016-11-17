@@ -1,76 +1,7 @@
-From 5783964c24270d61ca8a71baefbabf2548704a1a Mon Sep 17 00:00:00 2001
-From: Roger Siddons <rsiddons@mythtv.org>
-Date: Thu, 21 Jan 2016 13:46:11 +0000
-Subject: [PATCH 2/3] Watchlist with lastPlayPos
-
-Watchlist: Refactor & remove debug info
-
-The watchlist abuses ProgramInfo::recpriority2 to cache scores for display on the Info/ProgDetails screen.
-The score/state is of no interest to the user, who cannot alter it. It is debug information that belongs in the logs and has been removed from the screens.
-Themes should remove WATCH_LIST_SCORE & WATCH_LIST_STATUS widgets from htmls/progdetails*.html. However they are set as empty to prevent breakage for now.
-
-Refs #12296
-
-Watchlist: Group by title rather than record rule
-
-Watchlist groups titles using the record rule id.
-Thus different titles recorded by a one rule are confusingly grouped together.
-And the same title recorded by different rules are shown in different groups.
-Also a pre-requisite for selection by episode number.
-
-Grouping ignores title case, whitespace and punctuation.
-
-Ref #12296
-
-Watchlist: Use season/episode when selecting an episode
-
-Watchlist always selects the earliest/oldest episode, so the wrong recording is shown when episodes are recorded out of order.
-This patch uses season/episode data to override the oldest selection, where appropriate.
-
-Refs #12296
-
-Watchlist: Add theme widget to show watchlist episode count
-
-A new UI widget "watchtotal" enables the watchlist to show the number of episodes available for each title.
-For example a "recordings" buttonlist specification of:
-
-<textarea name="title">
-  <template>%title%% (|watchtotal| episodes)%% - "|subtitle|"%</template>
-</textarea>
-
-will produce:
-
-The Simpsons (15 episodes) - "Homer does something stupid"
-
-This widget is only set when the Watchlist group is selected in the groups list - for other groups it will show the usual:
-
-The Simpsons - "Homer does something stupid"
-
-Refs #12296
-
-Watchlist: Add 'Limited Oldest' strategy
-
-Adds a new simplified sort strategy "LimitedOldest" that is more stable, intuitive & useful than the current 'Classic' one.
-Titles are ordered by record date (oldest first) so the list is predictable and does not spontaneously shuffle.
-Optionally new titles & quickly-watched titles can be promoted to the top and titles that remain unwatched for a long period can be relegated to the bottom.
-Two new settings "PlaybackWLRecentLimit" & "PlaybackWLOldLimit" are introduced so the user can adjust this behaviour.
-
-User can choose between this and the 'classic' sort strategy via a new setting "PlaybackWLOrder"
-
-Fixes #12296
-
-Watchlist: Update watchlist after metadata edits
-
-Prevent metadata edits updating the recording list directly.
-They must be processed by a ProgInfo update in order to update watchlist.
-
-Watchlist: Place part-watched shows at top
-
-diff --git a/mythtv/libs/libmyth/programtypes.h b/mythtv/libs/libmyth/programtypes.h
-index bcbb886..0e28ffb 100644
---- a/mythtv/libs/libmyth/programtypes.h
-+++ b/mythtv/libs/libmyth/programtypes.h
-@@ -222,13 +222,6 @@ typedef enum AvailableStatusTypes {
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/libs/libmyth/programtypes.h mythtv-master-20161019-gd790d9a-new/mythtv/libs/libmyth/programtypes.h
+--- mythtv-master-20161019-gd790d9a-old/mythtv/libs/libmyth/programtypes.h	2016-10-19 14:57:56.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/libs/libmyth/programtypes.h	2016-10-19 15:01:32.186666624 +0200
+@@ -222,13 +222,6 @@
  } AvailableStatusType; // note stored in uint8_t in ProgramInfo
  MPUBLIC QString toString(AvailableStatusType);
  
@@ -84,11 +15,10 @@ index bcbb886..0e28ffb 100644
  typedef enum AutoExpireTypes {
      kDisableAutoExpire = 0,
      kNormalAutoExpire  = 1,
-diff --git a/mythtv/programs/mythfrontend/globalsettings.cpp b/mythtv/programs/mythfrontend/globalsettings.cpp
-index 4a8a5b3..aa06722 100644
---- a/mythtv/programs/mythfrontend/globalsettings.cpp
-+++ b/mythtv/programs/mythfrontend/globalsettings.cpp
-@@ -3215,7 +3215,7 @@ static HostCheckBox *PlaybackWatchList()
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/globalsettings.cpp mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/globalsettings.cpp
+--- mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/globalsettings.cpp	2016-10-19 14:59:55.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/globalsettings.cpp	2016-10-19 15:01:32.186666624 +0200
+@@ -3228,7 +3228,7 @@
      gc->setValue(true);
  
      gc->setHelpText(WatchListSettings::tr("The 'Watch List' is an abbreviated "
@@ -97,7 +27,7 @@ index 4a8a5b3..aa06722 100644
                                            "highlight series and shows that "
                                            "need attention in order to keep up "
                                            "to date."));
-@@ -3254,6 +3254,21 @@ static HostCheckBox *PlaybackWLAutoExpire()
+@@ -3267,6 +3267,21 @@
      return gc;
  }
  
@@ -119,7 +49,7 @@ index 4a8a5b3..aa06722 100644
  static HostSpinBox *PlaybackWLMaxAge()
  {
      HostSpinBox *gs = new HostSpinBox("PlaybackWLMaxAge", 30, 180, 10);
-@@ -3289,25 +3304,78 @@ static HostSpinBox *PlaybackWLBlackOut()
+@@ -3302,25 +3317,78 @@
      return gs;
  }
  
@@ -168,11 +98,11 @@ index 4a8a5b3..aa06722 100644
 +
 +     classic->addChild(PlaybackWLMaxAge());
 +     classic->addChild(PlaybackWLBlackOut());
- 
++
 +     addTarget("Classic", classic);
 +
 +     ConfigurationGroup* oldest = new VerticalConfigurationGroup(false,false);
-+
+ 
 +     oldest->addChild(PlaybackWLRecentLimit());
 +     oldest->addChild(PlaybackWLOldLimit());
 +
@@ -205,11 +135,10 @@ index 4a8a5b3..aa06722 100644
  
  static HostCheckBox *LCDShowTime()
  {
-diff --git a/mythtv/programs/mythfrontend/globalsettings.h b/mythtv/programs/mythfrontend/globalsettings.h
-index 2de0197..fc114cd 100644
---- a/mythtv/programs/mythfrontend/globalsettings.h
-+++ b/mythtv/programs/mythfrontend/globalsettings.h
-@@ -38,6 +38,13 @@ class LcdSettings : public TriggeredConfigurationGroup
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/globalsettings.h mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/globalsettings.h
+--- mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/globalsettings.h	2016-10-19 14:57:56.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/globalsettings.h	2016-10-19 15:01:32.189999958 +0200
+@@ -38,6 +38,13 @@
      LcdSettings();
  };
  
@@ -223,11 +152,10 @@ index 2de0197..fc114cd 100644
  
  class WatchListSettings : public TriggeredConfigurationGroup
  {
-diff --git a/mythtv/programs/mythfrontend/playbackbox.cpp b/mythtv/programs/mythfrontend/playbackbox.cpp
-index fe71685..76d8ac8 100644
---- a/mythtv/programs/mythfrontend/playbackbox.cpp
-+++ b/mythtv/programs/mythfrontend/playbackbox.cpp
-@@ -101,16 +101,6 @@ static int comp_originalAirDate_rev(const ProgramInfo *a, const ProgramInfo *b)
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/playbackbox.cpp mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/playbackbox.cpp
+--- mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/playbackbox.cpp	2016-10-19 14:59:55.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/playbackbox.cpp	2016-10-19 15:01:32.189999958 +0200
+@@ -103,16 +103,6 @@
          return (dt1 > dt2 ? 1 : -1);
  }
  
@@ -244,7 +172,7 @@ index fe71685..76d8ac8 100644
  static int comp_recordDate(const ProgramInfo *a, const ProgramInfo *b)
  {
      if (a->GetScheduledStartTime().date() == b->GetScheduledStartTime().date())
-@@ -179,12 +169,6 @@ static bool comp_originalAirDate_rev_less_than(
+@@ -181,12 +171,6 @@
      return comp_originalAirDate_rev(a, b) < 0;
  }
  
@@ -257,7 +185,7 @@ index fe71685..76d8ac8 100644
  static bool comp_recordDate_less_than(
      const ProgramInfo *a, const ProgramInfo *b)
  {
-@@ -405,8 +389,6 @@ PlaybackBox::PlaybackBox(MythScreenStack *parent, QString name,
+@@ -410,8 +394,6 @@
        m_titleView(false),
        m_useCategories(false),
        m_useRecGroups(false),
@@ -266,7 +194,7 @@ index fe71685..76d8ac8 100644
        m_listOrder(1),
        // Recording Group settings
        m_groupDisplayName(ProgramInfo::i18n("All Programs")),
-@@ -449,11 +431,7 @@ PlaybackBox::PlaybackBox(MythScreenStack *parent, QString name,
+@@ -454,11 +436,7 @@
      int pbOrder        = gCoreContext->GetNumSetting("PlayBoxOrdering", 1);
      // Split out sort order modes, wacky order for backward compatibility
      m_listOrder = (pbOrder >> 1) ^ (m_allOrder = pbOrder & 1);
@@ -279,7 +207,7 @@ index fe71685..76d8ac8 100644
  
      bool displayCat  = gCoreContext->GetNumSetting("DisplayRecGroupIsCategory", 0);
  
-@@ -956,6 +934,11 @@ void PlaybackBox::ItemLoaded(MythUIButtonListItem *item)
+@@ -961,6 +939,11 @@
          item->SetFontState(state);
  
          InfoMap infoMap;
@@ -291,7 +219,7 @@ index fe71685..76d8ac8 100644
          pginfo->ToMap(infoMap);
          item->SetTextFromMap(infoMap);
  
-@@ -1629,6 +1612,7 @@ bool PlaybackBox::UpdateUILists(void)
+@@ -1656,6 +1639,7 @@
      m_progsInDB = 0;
      m_titleList.clear();
      m_progLists.clear();
@@ -299,7 +227,7 @@ index fe71685..76d8ac8 100644
      m_recordingList->Reset();
      m_groupList->Reset();
      if (m_recgroupList)
-@@ -1643,7 +1627,6 @@ bool PlaybackBox::UpdateUILists(void)
+@@ -1670,7 +1654,6 @@
  
      QMap<QString, QString> sortedList;
      QMap<int, QString> searchRule;
@@ -307,7 +235,7 @@ index fe71685..76d8ac8 100644
  
      m_programInfoCache.Refresh();
  
-@@ -1793,37 +1776,7 @@ bool PlaybackBox::UpdateUILists(void)
+@@ -1830,37 +1813,7 @@
              if ((m_viewMask & VIEW_WATCHLIST) &&
                      pRecgroup != "LiveTV" && pRecgroup != "Deleted")
              {
@@ -346,7 +274,7 @@ index fe71685..76d8ac8 100644
              }
          }
      }
-@@ -1898,244 +1851,13 @@ bool PlaybackBox::UpdateUILists(void)
+@@ -1935,244 +1888,13 @@
          }
      }
  
@@ -466,7 +394,10 @@ index fe71685..76d8ac8 100644
 -                {
 -                    LOG(VB_FILE, LOG_INFO, QString("Daily interval:  %1")
 -                            .arg((*pit)->GetTitle()));
--
++        // Shows with same score will appear in reverse alphabetic order
++        foreach (ProgramInfo* wp, m_watchlist.Order())
++            m_progLists[m_watchGroupLabel].push_front(wp);
+ 
 -                    if (maxEpisodes[recid] > 0)
 -                    {
 -                        (*pit)->SetRecordingPriority2(
@@ -583,10 +514,7 @@ index fe71685..76d8ac8 100644
 -                                            MythDate::kDateShort))
 -                    .arg((*pit)->GetRecordingPriority2())
 -                    .arg((*pit)->GetTitle()));
-+        // Shows with same score will appear in reverse alphabetic order
-+        foreach (ProgramInfo* wp, m_watchlist.Order())
-+            m_progLists[m_watchGroupLabel].push_front(wp);
- 
+-
 -            ++pit;
 -        }
 -        std::stable_sort(m_progLists[m_watchGroupLabel].begin(),
@@ -596,7 +524,7 @@ index fe71685..76d8ac8 100644
      }
  
      m_titleList = QStringList("");
-@@ -4449,8 +4171,9 @@ void PlaybackBox::HandleRecordingAddEvent(const ProgramInfo &evinfo)
+@@ -4525,8 +4247,9 @@
  
  void PlaybackBox::HandleUpdateItemEvent(uint recordingId, uint flags)
  {
@@ -608,7 +536,7 @@ index fe71685..76d8ac8 100644
      {
          ScheduleUpdateUIList();
      }
-@@ -4897,47 +4620,12 @@ void PlaybackBox::saveRecMetadata(const QString &newTitle,
+@@ -5047,47 +4770,12 @@
      {
          m_recordingList->RemoveItem(item);
      }
@@ -656,7 +584,7 @@ index fe71685..76d8ac8 100644
  }
  
  void PlaybackBox::setRecGroup(QString newRecGroup)
-@@ -4991,10 +4679,8 @@ void PlaybackBox::setRecGroup(QString newRecGroup)
+@@ -5141,10 +4829,8 @@
  
              RecordingInfo ri(*p);
              ri.ApplyRecordRecGroupChange(newRecGroup);
@@ -667,7 +595,7 @@ index fe71685..76d8ac8 100644
          return;
      }
  
-@@ -5009,8 +4695,6 @@ void PlaybackBox::setRecGroup(QString newRecGroup)
+@@ -5159,8 +4845,6 @@
  
      RecordingInfo ri(*p);
      ri.ApplyRecordRecGroupChange(newRecGroup);
@@ -676,7 +604,7 @@ index fe71685..76d8ac8 100644
  }
  
  void PlaybackBox::setPlayGroup(QString newPlayGroup)
-@@ -5034,7 +4718,6 @@ void PlaybackBox::setPlayGroup(QString newPlayGroup)
+@@ -5184,7 +4868,6 @@
              {
                  RecordingInfo ri(*tmpItem);
                  ri.ApplyRecordPlayGroupChange(newPlayGroup);
@@ -684,7 +612,7 @@ index fe71685..76d8ac8 100644
              }
          }
          doClearPlaylist();
-@@ -5043,7 +4726,6 @@ void PlaybackBox::setPlayGroup(QString newPlayGroup)
+@@ -5193,7 +4876,6 @@
      {
          RecordingInfo ri(*tmpItem);
          ri.ApplyRecordPlayGroupChange(newPlayGroup);
@@ -692,7 +620,7 @@ index fe71685..76d8ac8 100644
      }
  }
  
-@@ -5642,4 +5324,439 @@ bool PlaybackBox::PbbJobQueue::IsJobQueuedOrRunning(int jobType, uint chanid,
+@@ -5892,4 +5574,439 @@
          IsJobRunning(jobType, chanid, recstartts);
  }
  
@@ -1132,11 +1060,10 @@ index fe71685..76d8ac8 100644
 +}
 +
  /* vim: set expandtab tabstop=4 shiftwidth=4: */
-diff --git a/mythtv/programs/mythfrontend/playbackbox.h b/mythtv/programs/mythfrontend/playbackbox.h
-index 280a516..b01d13a 100644
---- a/mythtv/programs/mythfrontend/playbackbox.h
-+++ b/mythtv/programs/mythfrontend/playbackbox.h
-@@ -57,6 +57,69 @@ enum {
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/playbackbox.h mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/playbackbox.h
+--- mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/playbackbox.h	2016-10-19 14:59:55.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/playbackbox.h	2016-10-19 15:01:32.189999958 +0200
+@@ -58,6 +58,69 @@
      kArtworkCoverTimeout  = 50,
  };
  
@@ -1206,7 +1133,7 @@ index 280a516..b01d13a 100644
  class PlaybackBox : public ScheduleCommon
  {
      Q_OBJECT
-@@ -364,12 +427,6 @@ class PlaybackBox : public ScheduleCommon
+@@ -375,12 +438,6 @@
      bool                m_useRecGroups;
      /// use the Watch List as the initial view
      bool                m_watchListStart;
@@ -1219,7 +1146,7 @@ index 280a516..b01d13a 100644
      /// allOrder controls the ordering of the "All Programs" list
      int                 m_allOrder;
      /// listOrder controls the ordering of the recordings in the list
-@@ -384,6 +441,9 @@ class PlaybackBox : public ScheduleCommon
+@@ -395,6 +452,9 @@
      QString             m_watchGroupLabel;
      ViewMask            m_viewMask;
  
@@ -1229,7 +1156,7 @@ index 280a516..b01d13a 100644
      // Popup support //////////////////////////////////////////////////////////
      // General popup support
      MythDialogBox      *m_menuDialog;
-@@ -412,7 +472,7 @@ class PlaybackBox : public ScheduleCommon
+@@ -423,7 +483,7 @@
      /// Recording[s] currently selected for deletion
      QStringList m_delList;
      /// Group currently selected
@@ -1238,11 +1165,10 @@ index 280a516..b01d13a 100644
  
      // Play List support
      QList<uint>         m_playList;   ///< list of selected items "play list"
-diff --git a/mythtv/programs/mythfrontend/progdetails.cpp b/mythtv/programs/mythfrontend/progdetails.cpp
-index 3c07ed1..3204624 100644
---- a/mythtv/programs/mythfrontend/progdetails.cpp
-+++ b/mythtv/programs/mythfrontend/progdetails.cpp
-@@ -589,8 +589,6 @@ void ProgDetails::loadPage(void)
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/progdetails.cpp mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/progdetails.cpp
+--- mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/progdetails.cpp	2016-10-19 14:57:56.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/progdetails.cpp	2016-10-19 15:03:41.479999994 +0200
+@@ -553,8 +553,6 @@
      QString lastRecorded;
      QString nextRecording;
      QString averageTimeShift;
@@ -1251,7 +1177,7 @@ index 3c07ed1..3204624 100644
      QString searchPhrase;
  
      if (m_progInfo.GetRecordingRuleID())
-@@ -619,31 +617,6 @@ void ProgDetails::loadPage(void)
+@@ -583,31 +581,6 @@
                  averageTimeShift = tr("%n hour(s)", "",
                                                  query.value(2).toInt());
          }
@@ -1282,24 +1208,23 @@ index 3c07ed1..3204624 100644
 -        }
          if (record->m_searchType != kManualSearch &&
              record->m_description != m_progInfo.GetDescription())
-         {
-@@ -655,8 +628,9 @@ void ProgDetails::loadPage(void)
-     addItem("LAST_RECORDED", tr("Last Recorded"), lastRecorded);
-     addItem("NEXT_RECORDING", tr("Next Recording"), nextRecording);
-     addItem("AVERAGE_TIME_SHIFT", tr("Average Time Shift"), averageTimeShift);
--    addItem("WATCH_LIST_SCORE", tr("Watch List Score"), watchListScore);
--    addItem("WATCH_LIST_STATUS", tr("Watch List Status"), watchListStatus);
+             searchPhrase = record->m_description;
+@@ -629,8 +602,9 @@
+     addItem(tr("Last Recorded"), lastRecorded, ProgInfoList::kLevel2);
+     addItem(tr("Next Recording"), nextRecording, ProgInfoList::kLevel2);
+     addItem(tr("Average Time Shift"), averageTimeShift, ProgInfoList::kLevel2);
+-    addItem(tr("Watch List Score"), watchListScore, ProgInfoList::kLevel2);
+-    addItem(tr("Watch List Status"), watchListStatus, ProgInfoList::kLevel2);
 +    // Blank removed labels until all themes have removed it
-+    addItem("WATCH_LIST_SCORE", "","");
-+    addItem("WATCH_LIST_STATUS", "","");
-     addItem("SEARCH_PHRASE", tr("Search Phrase"), searchPhrase);
++    //addItem(tr("Watch List Score"), watchListScore, ProgInfoList::kLevel2);
++    //addItem(tr("Watch List Status"), watchListStatus, ProgInfoList::kLevel2);
  
-     s.clear();
-diff --git a/mythtv/programs/mythfrontend/programinfocache.cpp b/mythtv/programs/mythfrontend/programinfocache.cpp
-index 5a8c59f..f217f09 100644
---- a/mythtv/programs/mythfrontend/programinfocache.cpp
-+++ b/mythtv/programs/mythfrontend/programinfocache.cpp
-@@ -248,6 +248,14 @@ uint32_t ProgramInfoCache::Update(const ProgramInfo& pginfo)
+     QString recordingHost;
+     QString recordingInput;
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/programinfocache.cpp mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/programinfocache.cpp
+--- mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/programinfocache.cpp	2016-10-19 14:59:55.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/programinfocache.cpp	2016-10-19 15:01:32.189999958 +0200
+@@ -248,6 +248,14 @@
      if (pginfo.GetRecordingGroup() != pg.GetRecordingGroup())
          flags |= PIC_RECGROUP_CHANGED;
  
@@ -1314,7 +1239,7 @@ index 5a8c59f..f217f09 100644
      pg.clone(pginfo, true);
      pg.SetAllowLastPlayPos(true);
  
-@@ -295,6 +303,10 @@ void ProgramInfoCache::UpdateFileSize(uint recordingId, uint64_t filesize,
+@@ -295,6 +303,10 @@
          QString byWhom;
          if (pg.QueryIsInUse(byWhom) && byWhom.contains(QObject::tr("Playing")))
              flags &= ~PIC_MARK_CHANGED;
@@ -1325,11 +1250,10 @@ index 5a8c59f..f217f09 100644
      }
  
      QString mesg = QString("UPDATE_UI_ITEM %1 %2").arg(recordingId).arg(flags);
-diff --git a/mythtv/programs/mythfrontend/programinfocache.h b/mythtv/programs/mythfrontend/programinfocache.h
-index 4c8d5a4..4dbde6c 100644
---- a/mythtv/programs/mythfrontend/programinfocache.h
-+++ b/mythtv/programs/mythfrontend/programinfocache.h
-@@ -24,6 +24,8 @@ typedef enum {
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/programinfocache.h mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/programinfocache.h
+--- mythtv-master-20161019-gd790d9a-old/mythtv/programs/mythfrontend/programinfocache.h	2016-10-19 14:59:55.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/programs/mythfrontend/programinfocache.h	2016-10-19 15:01:32.189999958 +0200
+@@ -24,6 +24,8 @@
      PIC_NONE              = 0x00,
      PIC_MARK_CHANGED      = 0x01,
      PIC_RECGROUP_CHANGED  = 0x02,
@@ -1338,11 +1262,10 @@ index 4c8d5a4..4dbde6c 100644
      PIC_NO_ACTION         = 0x80,
  } UpdateState;
  
-diff --git a/mythtv/themes/MythCenter-wide/htmls/progdetails_page2.html b/mythtv/themes/MythCenter-wide/htmls/progdetails_page2.html
-index e35b5fc..98567da 100644
---- a/mythtv/themes/MythCenter-wide/htmls/progdetails_page2.html
-+++ b/mythtv/themes/MythCenter-wide/htmls/progdetails_page2.html
-@@ -32,8 +32,6 @@
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/themes/default/htmls/progdetails_page2.html mythtv-master-20161019-gd790d9a-new/mythtv/themes/default/htmls/progdetails_page2.html
+--- mythtv-master-20161019-gd790d9a-old/mythtv/themes/default/htmls/progdetails_page2.html	2016-10-19 14:57:57.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/themes/default/htmls/progdetails_page2.html	2016-10-19 15:01:32.189999958 +0200
+@@ -33,8 +33,6 @@
      <h1>%LAST_RECORDED_LABEL%</h1> <p>%LAST_RECORDED%</p>
      <h1>%NEXT_RECORDING_LABEL%</h1> <p>%NEXT_RECORDING%</p>
      <h1>%AVERAGE_TIME_SHIFT_LABEL%</h1> <p>%AVERAGE_TIME_SHIFT%</p>
@@ -1351,32 +1274,9 @@ index e35b5fc..98567da 100644
      <h1>%SEARCH_PHRASE_LABEL%</h1> <p>%SEARCH_PHRASE%</p>
      <h1>%FINDID_LABEL%</h1> <p>%FINDID%</p>
      <h1>%RECORDING_HOST_LABEL%</h1> <p>%RECORDING_HOST%</p>
-diff --git a/mythtv/themes/MythCenter-wide/recordings-ui.xml b/mythtv/themes/MythCenter-wide/recordings-ui.xml
-index 569e204..0abbb29 100644
---- a/mythtv/themes/MythCenter-wide/recordings-ui.xml
-+++ b/mythtv/themes/MythCenter-wide/recordings-ui.xml
-@@ -222,7 +222,7 @@
-                     <textarea name="titlesubtitle" from="buttontext">
-                         <area>32,2,656,28</area>
-                         <align>vcenter</align>
--                        <template>%titlesubtitle%% (|progresspercent|%)%</template>
-+                        <template>%title%% (|watchtotal|)%% - "|subtitle|"%</template>
-                     </textarea>
-                     <textarea name="shortstartdate" from="buttontext">
-                         <area>634,2,120,28</area>
-@@ -271,7 +271,7 @@
-                     </textarea>
-                     <textarea name="titlesubtitle" from="fonts">
-                         <area>32,2,656,28</area>
--                        <template>%titlesubtitle%% (|progresspercent|%)%</template>
-+                        <template>%title%% (|watchtotal|)%% - "|subtitle|"%</template>
-                     </textarea>
-                     <textarea name="shortstartdate" from="fonts">
-                         <area>634,2,120,28</area>
-diff --git a/mythtv/themes/MythCenter/htmls/progdetails_page2.html b/mythtv/themes/MythCenter/htmls/progdetails_page2.html
-index 2fa3ea3..af6199d 100644
---- a/mythtv/themes/MythCenter/htmls/progdetails_page2.html
-+++ b/mythtv/themes/MythCenter/htmls/progdetails_page2.html
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/themes/MythCenter/htmls/progdetails_page2.html mythtv-master-20161019-gd790d9a-new/mythtv/themes/MythCenter/htmls/progdetails_page2.html
+--- mythtv-master-20161019-gd790d9a-old/mythtv/themes/MythCenter/htmls/progdetails_page2.html	2016-10-19 14:57:56.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/themes/MythCenter/htmls/progdetails_page2.html	2016-10-19 15:01:32.189999958 +0200
 @@ -34,8 +34,6 @@
      <h1>%LAST_RECORDED_LABEL%</h1> <p>%LAST_RECORDED%</p>
      <h1>%NEXT_RECORDING_LABEL%</h1> <p>%NEXT_RECORDING%</p>
@@ -1386,10 +1286,9 @@ index 2fa3ea3..af6199d 100644
      <h1>%SEARCH_PHRASE_LABEL%</h1> <p>%SEARCH_PHRASE%</p>
      <h1>%FINDID_LABEL%</h1> <p>%FINDID%</p>
      <h1>%RECORDING_HOST_LABEL%</h1> <p>%RECORDING_HOST%</p>
-diff --git a/mythtv/themes/MythCenter/recordings-ui.xml b/mythtv/themes/MythCenter/recordings-ui.xml
-index 5500fd7..3c6e418 100644
---- a/mythtv/themes/MythCenter/recordings-ui.xml
-+++ b/mythtv/themes/MythCenter/recordings-ui.xml
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/themes/MythCenter/recordings-ui.xml mythtv-master-20161019-gd790d9a-new/mythtv/themes/MythCenter/recordings-ui.xml
+--- mythtv-master-20161019-gd790d9a-old/mythtv/themes/MythCenter/recordings-ui.xml	2016-10-19 14:59:53.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/themes/MythCenter/recordings-ui.xml	2016-10-19 15:01:32.189999958 +0200
 @@ -212,8 +212,9 @@
                      <textarea name="titlesubtitle" from="buttontext">
                          <area>32,0,336,30</area>
@@ -1430,10 +1329,42 @@ index 5500fd7..3c6e418 100644
                          <area>415,0,114,30</area>
                          <align>right,vcenter</align>
                      </textarea>
-diff --git a/mythtv/themes/Terra/htmls/progdetails_page2.html b/mythtv/themes/Terra/htmls/progdetails_page2.html
-index a1426d6..02963cd 100644
---- a/mythtv/themes/Terra/htmls/progdetails_page2.html
-+++ b/mythtv/themes/Terra/htmls/progdetails_page2.html
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/themes/MythCenter-wide/htmls/progdetails_page2.html mythtv-master-20161019-gd790d9a-new/mythtv/themes/MythCenter-wide/htmls/progdetails_page2.html
+--- mythtv-master-20161019-gd790d9a-old/mythtv/themes/MythCenter-wide/htmls/progdetails_page2.html	2016-10-19 14:57:56.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/themes/MythCenter-wide/htmls/progdetails_page2.html	2016-10-19 15:01:32.189999958 +0200
+@@ -32,8 +32,6 @@
+     <h1>%LAST_RECORDED_LABEL%</h1> <p>%LAST_RECORDED%</p>
+     <h1>%NEXT_RECORDING_LABEL%</h1> <p>%NEXT_RECORDING%</p>
+     <h1>%AVERAGE_TIME_SHIFT_LABEL%</h1> <p>%AVERAGE_TIME_SHIFT%</p>
+-    <h1>%WATCH_LIST_SCORE_LABEL%</h1> <p>%WATCH_LIST_SCORE%</p>
+-    <h1>%WATCH_LIST_STATUS_LABEL%</h1> <p>%WATCH_LIST_STATUS%</p>
+     <h1>%SEARCH_PHRASE_LABEL%</h1> <p>%SEARCH_PHRASE%</p>
+     <h1>%FINDID_LABEL%</h1> <p>%FINDID%</p>
+     <h1>%RECORDING_HOST_LABEL%</h1> <p>%RECORDING_HOST%</p>
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/themes/MythCenter-wide/recordings-ui.xml mythtv-master-20161019-gd790d9a-new/mythtv/themes/MythCenter-wide/recordings-ui.xml
+--- mythtv-master-20161019-gd790d9a-old/mythtv/themes/MythCenter-wide/recordings-ui.xml	2016-10-19 14:59:55.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/themes/MythCenter-wide/recordings-ui.xml	2016-10-19 15:01:32.193333291 +0200
+@@ -222,7 +222,7 @@
+                     <textarea name="titlesubtitle" from="buttontext">
+                         <area>32,2,656,28</area>
+                         <align>vcenter</align>
+-                        <template>%titlesubtitle%% (|progresspercent|%)%</template>
++                        <template>%title%% (|watchtotal|)%% - "|subtitle|"%</template>
+                     </textarea>
+                     <textarea name="shortstartdate" from="buttontext">
+                         <area>634,2,120,28</area>
+@@ -271,7 +271,7 @@
+                     </textarea>
+                     <textarea name="titlesubtitle" from="fonts">
+                         <area>32,2,656,28</area>
+-                        <template>%titlesubtitle%% (|progresspercent|%)%</template>
++                        <template>%title%% (|watchtotal|)%% - "|subtitle|"%</template>
+                     </textarea>
+                     <textarea name="shortstartdate" from="fonts">
+                         <area>634,2,120,28</area>
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/themes/Terra/htmls/progdetails_page2.html mythtv-master-20161019-gd790d9a-new/mythtv/themes/Terra/htmls/progdetails_page2.html
+--- mythtv-master-20161019-gd790d9a-old/mythtv/themes/Terra/htmls/progdetails_page2.html	2016-10-19 14:57:56.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/themes/Terra/htmls/progdetails_page2.html	2016-10-19 15:01:32.193333291 +0200
 @@ -36,8 +36,6 @@
      <h1>%LAST_RECORDED_LABEL%</h1> <p>%LAST_RECORDED%</p>
      <h1>%NEXT_RECORDING_LABEL%</h1> <p>%NEXT_RECORDING%</p>
@@ -1443,10 +1374,9 @@ index a1426d6..02963cd 100644
      <h1>%SEARCH_PHRASE_LABEL%</h1> <p>%SEARCH_PHRASE%</p>
      <h1>%FINDID_LABEL%</h1> <p>%FINDID%</p>
      <h1>%RECORDING_HOST_LABEL%</h1> <p>%RECORDING_HOST%</p>
-diff --git a/mythtv/themes/Terra/recordings-ui.xml b/mythtv/themes/Terra/recordings-ui.xml
-index 195ae08..9f160d8 100644
---- a/mythtv/themes/Terra/recordings-ui.xml
-+++ b/mythtv/themes/Terra/recordings-ui.xml
+diff -Naur mythtv-master-20161019-gd790d9a-old/mythtv/themes/Terra/recordings-ui.xml mythtv-master-20161019-gd790d9a-new/mythtv/themes/Terra/recordings-ui.xml
+--- mythtv-master-20161019-gd790d9a-old/mythtv/themes/Terra/recordings-ui.xml	2016-10-19 14:57:56.000000000 +0200
++++ mythtv-master-20161019-gd790d9a-new/mythtv/themes/Terra/recordings-ui.xml	2016-10-19 15:01:32.193333291 +0200
 @@ -134,6 +134,10 @@
                              </imagetype>
                          </state>
@@ -1468,19 +1398,3 @@ index 195ae08..9f160d8 100644
                      <textarea name="title">
                          <area>8,169,272,73</area>
                          <font>baselarge</font>
-diff --git a/mythtv/themes/default/htmls/progdetails_page2.html b/mythtv/themes/default/htmls/progdetails_page2.html
-index 40fb94b..4a17980 100644
---- a/mythtv/themes/default/htmls/progdetails_page2.html
-+++ b/mythtv/themes/default/htmls/progdetails_page2.html
-@@ -33,8 +33,6 @@
-     <h1>%LAST_RECORDED_LABEL%</h1> <p>%LAST_RECORDED%</p>
-     <h1>%NEXT_RECORDING_LABEL%</h1> <p>%NEXT_RECORDING%</p>
-     <h1>%AVERAGE_TIME_SHIFT_LABEL%</h1> <p>%AVERAGE_TIME_SHIFT%</p>
--    <h1>%WATCH_LIST_SCORE_LABEL%</h1> <p>%WATCH_LIST_SCORE%</p>
--    <h1>%WATCH_LIST_STATUS_LABEL%</h1> <p>%WATCH_LIST_STATUS%</p>
-     <h1>%SEARCH_PHRASE_LABEL%</h1> <p>%SEARCH_PHRASE%</p>
-     <h1>%FINDID_LABEL%</h1> <p>%FINDID%</p>
-     <h1>%RECORDING_HOST_LABEL%</h1> <p>%RECORDING_HOST%</p>
--- 
-2.7.4
-

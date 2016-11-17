@@ -20,7 +20,7 @@ PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
 PATCHFILES += 0017-python_bindings_tztime_error.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
 PATCHFILES += 0019-mythlink-pretty-with-recgroup-subdir.patch
-PATCHFILES += 0020-h264-seek-table.patch
+PATCHFILES += 0021-ticket12248-livetv-transitions-demonstrate-bad-decoder-start-conditions.patch
 PATCHFILES += 0023-increase-loging-for-failed-tunings.patch
 PATCHFILES += 0030-0279-TV-Add-signal-monitor-warning-msg-if-NID-or-TSID-don.patch
 PATCHFILES += 0031-add-manage-settings-in-mythutil.patch
@@ -105,14 +105,14 @@ PATCHFILES += 0293-0281-AFD-Add-original_channels-to-audio-format-log-output.pat
 PATCHFILES += 0294-0283-FE-Add-network-status-to-machine-status-dialog.patch
 
 # 0299 is needed by 0300
-# 0300 is needed and without this BE sometimes deadlocks in comm.with FE
+# 0300 is needed as without this BE sometimes deadlocks in comm.with FE
 PATCHFILES += 0299-revert-ea5fdd4-Avoid-crash-when-file-transfer-can-t-open-files.patch
 PATCHFILES += 0300-revert-916e43b-BE-Avoid-SEGV-when-accessing-discarded-MythSocket.patch
 
 # Needed as perl5.12 under gcc5.3 has non-working sockets reads (???)
 PATCHFILES += 0301-mythweather-scripts-replace-LWP-by-curl.patch
 
-# added as IMHO better have extra functions with old UI that no old UI and no functions
+# Added as IMHO better have extra functions with old UI that no old UI and no functions
 PATCHFILES += 0302-revert24c5575-revert-MediaMon-UI-to-select-preferred-media-handler.patch
 
 # Various
@@ -122,15 +122,31 @@ PATCHFILES += 0303-0318-WebBrowser-Provide-virtual-keyboard-for-HTML-edit-co.pat
 PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 
 # Nice Roger Siddons guide grid enhacement
-PATCHFILES += 0305-ticket12809-Use-lastPlayPos-instead-of-bookmark-v2.patch
-PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos.patch
+PATCHFILES += 0305-ticket12809-Use-lastPlayPos-instead-of-bookmark-v3.patch
+PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos-v3.patch
 PATCHFILES += 0307-ticket12809-Add-Unfinished-recording-filter.patch
 
 PATCHFILES += 0308-update-PL-trnaslations.patch
 
-# added as this d43d8b1 causes unpleasant ffwd/bkwd playback skips with SD content 
+# Added as d43d8b1 causes unpleasant ffwd/bkwd playback skips with SD content 
 PATCHFILES += 0309-revert-d43d8b1-revert-Player-Improve-low-bit-rate-high-latency-streams.patch
 
+# Various LVR patches
+PATCHFILES += 0311-0314-MythCoreContext-IsConnectedToMaster-test-server-sock.patch
+PATCHFILES += 0312-0306-MythMusic-Avoid-a-SEGV-in-the-CD-ripper-ogg-encoder.patch
+PATCHFILES += 0313-0307-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
+PATCHFILES += 0314-0308-MythMusic-Wait-for-CD-scanner-and-eject-threads-befo.patch
+PATCHFILES += 0315-0309-MythMusic-Make-initial-scan-by-CD-ripper-run-in-back.patch
+PATCHFILES += 0316-0310-MythMusic-Enable-the-CD-ripper-to-run-in-the-backgro.patch
+PATCHFILES += 0317-0336-MythMusic-Fix-Playlist-copyTracks-and-removeAllTrack.patch
+PATCHFILES += 0318-0337-Mythmusic-Provide-network-control-of-playlist.patch
+PATCHFILES += 0319-0338-MythMusic-Add-feature-to-delete-a-track-or-an-entire.patch
+PATCHFILES += 0320-0348-MythMusic-Add-network-control-commands-to-list-and-p.patch
+
+# Fixes focus issue in OSX
+PATCHFILES += 0321-ticket12857-patch-mythwidgets_osx_focus.patch
+
+PATCHFILES += 0322-add-netflix-to-thememenus.patch
 endif
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)

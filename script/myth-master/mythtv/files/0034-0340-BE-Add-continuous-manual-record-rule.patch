@@ -1,0 +1,94 @@
+From b25c5701404dc32065ae5ed2d011a32c7d0c963d Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Fri, 20 Feb 2015 14:15:20 +0000
+Subject: [PATCH 340/348] BE: Add continuous manual record rule
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/programs/mythbackend/scheduler.cpp |   49 ++++++++++++++++++++++++++---
+ 1 file changed, 44 insertions(+), 5 deletions(-)
+
+diff --git a/mythtv/programs/mythbackend/scheduler.cpp b/mythtv/programs/mythbackend/scheduler.cpp
+index 0f50ba0..b3878d6 100644
+--- a/mythtv/programs/mythbackend/scheduler.cpp
++++ b/mythtv/programs/mythbackend/scheduler.cpp
+@@ -691,7 +691,18 @@ void Scheduler::UpdateRecStatus(RecordingInfo *pginfo)
+                 p->AddHistory(false);
+                 if (resched)
+                 {
+-                    EnqueueCheck(*p, "UpdateRecStatus1");
++                    if (p->GetProgramRecordingStatus() == kAllRecord &&\
++                        p->GetRecordingRule()->m_searchType == kManualSearch)
++                    {
++                        // This is a continuous manual record rule so need to
++                        // schedule next recording
++                        EnqueueMatch(p->GetRecordingRuleID(), 0, 0, QDateTime(),
++                                     QString("UpdateRecStatus1 %1").arg(p->GetTitle()));
++                    }
++                    else
++                    {
++                        EnqueueCheck(*p, "UpdateRecStatus1");
++                    }
+                     reschedWait.wakeOne();
+                 }
+                 else
+@@ -741,7 +752,18 @@ void Scheduler::UpdateRecStatus(uint cardid, uint chanid,
+                 p->AddHistory(false);
+                 if (resched)
+                 {
+-                    EnqueueCheck(*p, "UpdateRecStatus2");
++                    if (p->GetProgramRecordingStatus() == kAllRecord &&\
++                        p->GetRecordingRule()->m_searchType == kManualSearch)
++                    {
++                        // This is a continuous manual record rule so need to
++                        // schedule next recording
++                        EnqueueMatch(p->GetRecordingRuleID(), 0, 0, QDateTime(),
++                                     QString("UpdateRecStatus2 %1").arg(p->GetTitle()));
++                    }
++                    else
++                    {
++                        EnqueueCheck(*p, "UpdateRecStatus2");
++                    }
+                     reschedWait.wakeOne();
+                 }
+                 else
+@@ -3768,6 +3790,16 @@ void Scheduler::UpdateManuals(uint recordid)
+         startdt = QDateTime(lstartdt.date().addDays(daysoff),
+                             lstartdt.time(), Qt::LocalTime).toUTC();
+         break;
++    case kAllRecord:
++        progcount = 2;
++        weekday = false;
++        daysoff = skipdays = 0;
++        if (startdt < MythDate::current())
++        {
++            startdt = startdt.addSecs(
++                (startdt.secsTo(MythDate::current()) / duration) * duration);
++        }
++        break;
+     default:
+         LOG(VB_GENERAL, LOG_ERR,
+             QString("Invalid rectype for manual recordid %1").arg(recordid));
+@@ -3798,9 +3830,16 @@ void Scheduler::UpdateManuals(uint recordid)
+             }
+         }
+ 
+-        daysoff += skipdays;
+-        startdt = QDateTime(lstartdt.date().addDays(daysoff),
+-                            lstartdt.time(), Qt::LocalTime).toUTC();
++        if (skipdays)
++        {
++            daysoff += skipdays;
++            startdt = QDateTime(lstartdt.date().addDays(daysoff),
++                                lstartdt.time(), Qt::LocalTime).toUTC();
++        }
++        else
++        {
++            startdt = startdt.addSecs(duration);
++        }
+     }
+ }
+ 
+-- 
+1.7.9.5
+
