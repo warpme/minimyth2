@@ -2,11 +2,11 @@ GARNAME = mesa
 # GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              20160518-877a802, \
-             12.0.1 ))
+             13.0.1 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              git://anongit.freedesktop.org/mesa/mesa/ , \
-             ftp://ftp.freedesktop.org/pub/mesa/12.0.1/ ))
+             ftp://ftp.freedesktop.org/pub/mesa/$(GARVERSION)/ ))
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = LGPL2/MIT
 
