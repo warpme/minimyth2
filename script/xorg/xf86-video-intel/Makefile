@@ -1,7 +1,7 @@
 GARNAME = xf86-video-intel
 GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-	20160720-43d2341, \
+	20161116-03de11c, \
 	2.99.17 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
@@ -55,7 +55,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-ums-only \
 	--enable-sna \
 	--enable-uxa \
-	--disable-glamor \
 	--disable-xaa \
 	--disable-dga \
 	--disable-async-swap \
