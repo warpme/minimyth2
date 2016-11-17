@@ -13,7 +13,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.3.13.r132
+mm_VERSION_MINIMYTH ?= 8.5.0.r199
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -42,7 +42,7 @@ mm_GRAPHICS               ?= intel nvidia vmware radeon
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
 # 'flash', 'mplayer', 'mplayer-svn', 'voip', 'bumblebee', 'perl', 'python', 'mame',
-# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer' 'debug'.
+# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'netflix', 'debug'.
 mm_SOFTWARE               ?= mythplugins \
                              perl \
                              python \
@@ -60,6 +60,7 @@ mm_SOFTWARE               ?= mythplugins \
 #                             mplayer-svn \
 #                             mc
 #                             mame \
+#                             netflix \
 
 # Indicates the microprocessor architecture.
 # Valid values for mm_GARCH are 'c3', 'c3-2', 'pentium-mmx', 'x86-64', 'atom'.
@@ -117,12 +118,12 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '4.6'
-mm_KERNEL_HEADERS_VERSION ?= 4.6
+# Valid values are '4.6' and '4.7'
+mm_KERNEL_HEADERS_VERSION ?= 4.7
 
 # The version of kernel to use.
-# Valid values are '4.6'
-mm_KERNEL_VERSION         ?= 4.6
+# Valid values are '4.6' and '4.7'
+mm_KERNEL_VERSION         ?= 4.7
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -134,8 +135,8 @@ mm_KERNEL_CONFIG          ?=
 mm_MYTH_VERSION           ?= master
 
 # The version of the NVIDIA driver.
-# Valid values are '340.96'
-mm_NVIDIA_VERSION         ?= 340.96
+# Valid values are '340.98', '370.28'
+mm_NVIDIA_VERSION         ?= 340.98
 
 # The version of xorg to use.
 # Valid values are '7.6'.
