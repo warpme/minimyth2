@@ -131,6 +131,12 @@ install-nvidia-kernel:
 	@mkdir -p $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia
 	@$(if $(wildcard $(WORKSRC)/usr/src/nv/nvidia.ko), \
 		cp $(WORKSRC)/usr/src/nv/nvidia.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia/nvidia.ko)
+	@$(if $(wildcard $(WORKSRC)/kernel/nvidia-drm.ko), \
+		cp $(WORKSRC)/kernel/nvidia-drm.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia/nvidia-drm.ko)
+	@$(if $(wildcard $(WORKSRC)/kernel/nvidia-modeset.ko), \
+		cp $(WORKSRC)/kernel/nvidia-modeset.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia/nvidia-modeset.ko)
+	@$(if $(wildcard $(WORKSRC)/kernel/nvidia-uvm.ko), \
+		cp $(WORKSRC)/kernel/nvidia-uvm.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia/nvidia-uvm.ko)
 	@$(if $(wildcard $(WORKSRC)/kernel/nvidia.ko), \
 		cp $(WORKSRC)/kernel/nvidia.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia/nvidia.ko)
 	@depmod -b "$(DESTDIR)$(rootdir)" "$(LINUX_FULL_VERSION)"
