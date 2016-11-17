@@ -1,43 +1,55 @@
 GARNAME = libcec
-GARVERSION = 20120904-1664420dd2
+GARVERSION = 3.0.1
 CATEGORIES = lib
-MASTER_SITES = git://github.com/Pulse-Eight/libcec.git/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://github.com/Pulse-Eight/libcec/archive/
+DISTFILES = $(DISTNAME).tar.gz
+PATCHFILES = \
+	$(DISTNAME)-disable_lib_info.patch \
+	$(DISTNAME)-python.patch.gar
 LICENSE = GPL2
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/cxx lib/lockdev system/udev
+DEPENDS = lang/cxx lib/lockdev lib/platform system/udev xorg/xorg
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+WORKSRC = $(WORKDIR)/$(GARNAME)-$(DISTNAME)
+WORKBLD = $(WORKSRC)_build
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules \
-	--enable-shared \
-	--disable-static \
-	--disable-debug \
-	--disable-optimisation \
-	--disable-rpi \
-	--with-gnu-ld
+CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
+BUILD_SCRIPTS     = $(WORKBLD)/Makefile
+INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
+
+CONFIGURE_ARGS = \
+	-DCMAKE_INSTALL_PREFIX="$(prefix)" \
+	-DCMAKE_INSTALL_LIBDIR:PATH="$(patsubst $(prefix)/%,%,$(libdir))" \
+	-DCMAKE_INSTALL_LIBDIR_NOARCH:PATH="$(patsubst $(prefix)/%,%,$(libdir))" \
+	-DCMAKE_FIND_ROOT_PATH="$(DESTDIR)$(prefix)" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM="NEVER" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY="ONLY" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE="ONLY" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE="ONLY" \
+	-DCMAKE_C_COMPILER="$(build_DESTDIR)$(build_bindir)/$(CC)" \
+	-DCMAKE_CXX_COMPILER="$(build_DESTDIR)$(build_bindir)/$(CXX)" \
+	-DCMAKE_AR="$(build_DESTDIR)$(build_bindir)/$(AR)" \
+	-DCMAKE_LINKER="$(build_DESTDIR)$(build_bindir)/$(LD)" \
+	-DCMAKE_NM="$(build_DESTDIR)$(build_bindir)/$(NM)" \
+	-DCMAKE_OBJCOPY="$(build_DESTDIR)$(build_bindir)/$(OBJCOPY)" \
+	-DCMAKE_OBJDUMP="$(build_DESTDIR)$(build_bindir)/$(OBJDUMP)" \
+	-DCMAKE_RANLIB="$(build_DESTDIR)$(build_bindir)/$(RANLIB)" \
+	-DCMAKE_STRIP="$(build_DESTDIR)$(build_bindir)/$(STRIP)" \
+	-DCMAKE_VERBOSE_MAKEFILE="1"
+ifneq ($(DESTIMG),build)
+CONFIGURE_ARGS += \
+	-DCMAKE_SYSTEM_NAME="Linux"
+endif
 
 include ../../gar.mk
 
-git//%/$(DISTNAME).tar.bz2:
-	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
-	@$(MAKECOOKIE)
-
-checksum-$(DISTNAME).tar.bz2:
-	@$(MAKECOOKIE) 
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
-
-post-install:
-	@rm -f $(DESTDIR)$(libdir)/libcec.la
+configure-%/cmake: 
+	@echo " ==> Running configure in $*"
+	@rm -rf $*
+	@mkdir -p $*
+	@cd $* && $(CONFIGURE_ENV) cmake $(CONFIGURE_ARGS) ../$(patsubst %_build,%,$(notdir $*))
 	@$(MAKECOOKIE)
