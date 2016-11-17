@@ -1,7 +1,7 @@
 GARNAME = xf86-video-ati
 GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-	20160720-7fa297f, \
+	20161116-5f71bdf, \
 	7.7.0 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
@@ -45,9 +45,6 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--disable-silent-rules \
-	--enable-dri \
-	--enable-exa \
-	--enable-kms \
 	--with-gnu-ld \
 	--enable-glamor
 
