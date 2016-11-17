@@ -1,5 +1,5 @@
 GARNAME = xorg-server
-GARVERSION = 1.18.4
+GARVERSION = 1.19.0
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
@@ -32,6 +32,7 @@ DEPENDS  = lang/c lib/openssl \
 	$(CATEGORY)/libX11 \
 	$(CATEGORY)/libXau \
 	$(CATEGORY)/libXfont \
+	$(CATEGORY)/libXfont2 \
 	$(CATEGORY)/libxkbfile \
 	$(CATEGORY)/libepoxy \
 	$(CATEGORY)/Mesa \
