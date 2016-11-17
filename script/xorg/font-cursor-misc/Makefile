@@ -18,6 +18,7 @@ BUILDDEPS = \
 	$(CATEGORY)/mkfontdir \
 	$(CATEGORY)/mkfontscale
 
+
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
