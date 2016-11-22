@@ -86,9 +86,6 @@ PATCHFILES += 0277-0202-FE-Fix-Display-MythDVD-menu-broken-when-MythDVD-plug-v3.
 PATCHFILES += 0282-0059-NetworkControl-Add-realtime-display-of-MythEvents.patch
 PATCHFILES += 0283-0210-FE-NetworkControl-Add-set-query-loglevel-commands.patch
 
-# Needed to revert for non-distorted SD H264 HLS streaming (ticket 12479)
-# PATCHFILES += 0286-ticket12479-revert-db5c40cf-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
-
 # Support for Roger Siddons new gallery.
 PATCHFILES += 0287-MythUiImage-Don-t-block-UI-when-exiting-screens.patch
 PATCHFILES += 0288-Minimyth2-Cache-FE-gallery-images-in-remotecache.patch
