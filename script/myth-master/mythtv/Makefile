@@ -20,7 +20,7 @@ PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
 PATCHFILES += 0017-python_bindings_tztime_error.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
 PATCHFILES += 0019-mythlink-pretty-with-recgroup-subdir.patch
-PATCHFILES += 0021-ticket12248-livetv-transitions-demonstrate-bad-decoder-start-conditions.patch
+#PATCHFILES += 0021-ticket12248-livetv-transitions-demonstrate-bad-decoder-start-conditions.patch
 PATCHFILES += 0023-increase-loging-for-failed-tunings.patch
 PATCHFILES += 0030-0279-TV-Add-signal-monitor-warning-msg-if-NID-or-TSID-don.patch
 PATCHFILES += 0031-add-manage-settings-in-mythutil.patch
@@ -87,7 +87,7 @@ PATCHFILES += 0282-0059-NetworkControl-Add-realtime-display-of-MythEvents.patch
 PATCHFILES += 0283-0210-FE-NetworkControl-Add-set-query-loglevel-commands.patch
 
 # Needed to revert for non-distorted SD H264 HLS streaming (ticket 12479)
-PATCHFILES += 0286-ticket12479-revert-db5c40cf-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
+# PATCHFILES += 0286-ticket12479-revert-db5c40cf-Create-pitch-strides-that-are-a-multiple-of-32-bytes.patch
 
 # Support for Roger Siddons new gallery.
 PATCHFILES += 0287-MythUiImage-Don-t-block-UI-when-exiting-screens.patch
@@ -302,6 +302,11 @@ CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 
 CPPFLAGS += -fPIC
 CFLAGS   += -fPIC
+
+ifeq ($(mm_DEBUG),yes)
+CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
+CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -O0
+endif
 
 # mythtv don't compiles with gcc5.3.0 LTO
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
