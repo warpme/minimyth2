@@ -165,16 +165,16 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_HEADERS_VERSION"
-	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.6" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.7" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.8" ] ; then \
+	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.7" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.9" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.11" ] ; then \
 		echo "error: mm_KERNEL_HEADERS_VERSION=\"$(mm_KERNEL_HEADERS_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "4.6" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "4.7" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "4.8" ] ; then \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "4.7" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.9" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.11" ] ; then \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
