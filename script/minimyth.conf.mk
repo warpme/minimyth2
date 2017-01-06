@@ -13,7 +13,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.5.1.r238
+mm_VERSION_MINIMYTH ?= 8.6.2.r259
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -118,12 +118,12 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '4.6' and '4.7'
-mm_KERNEL_HEADERS_VERSION ?= 4.7
+# Valid values are '4.7' and '4.9'
+mm_KERNEL_HEADERS_VERSION ?= 4.9
 
 # The version of kernel to use.
-# Valid values are '4.6' and '4.7'
-mm_KERNEL_VERSION         ?= 4.7
+# Valid values are '4.7' and '4.9'
+mm_KERNEL_VERSION         ?= 4.9
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
