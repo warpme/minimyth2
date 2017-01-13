@@ -1,7 +1,7 @@
 GARNAME = xf86-video-intel
 GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-	20161116-03de11c, \
+	20170113-c85e6cb, \
 	2.99.17 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
