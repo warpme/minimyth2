@@ -39,11 +39,24 @@ BUILD_ARGS = \
 	NSS_USE_SYSTEM_SQLITE="1" \
 	USE_SYSTEM_ZLIB="1" \
 	ZLIB_LIBS="-lz" \
+	NSS_ENABLE_WERROR=0 \
 	all
 
 include ../../gar.mk
 
 PARALLELMFLAGS := -j1
+
+#CPPFLAGS += "-Wno-error"
+#CFLAGS += "-Wno-error"
+
+# mythtv don't compiles with gcc5.3.0 LTO
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+
+#CFLAGS   := $(filter-out -Werror, $(CFLAGS))
+#CPPFLAGS   := $(filter-out -Werror, $(CFLAGS))
+#CXXFLAGS := $(filter-out -Werror, $(CXXFLAGS))
 
 # nss 3.19.3 uses cross LDFLAGS during native build.
 LDFLAGS :=
