@@ -12,6 +12,7 @@ MM_INIT_START_SEQUENTIAL := \
     video \
     mythtv \
     lirc \
+    lcdproc \
     font \
     x \
     conf_parallel
@@ -19,7 +20,6 @@ MM_INIT_START_PARALLEL := \
     dbus \
     media \
     irtrans \
-    lcdproc \
     acpi \
     time \
     web \
@@ -31,6 +31,7 @@ MM_INIT_START_PARALLEL := \
     avahi \
     mail \
     voip \
+    chrome \
     updates \
     mythdb_buffer_delete
 MM_INIT_KILL := \
