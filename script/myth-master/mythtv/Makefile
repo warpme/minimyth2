@@ -119,7 +119,7 @@ PATCHFILES += 0303-0318-WebBrowser-Provide-virtual-keyboard-for-HTML-edit-co.pat
 PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 
 # Nice Roger Siddons guide grid enhacement
-PATCHFILES += 0305-ticket12809-Use-lastPlayPos-instead-of-bookmark-v3.patch
+PATCHFILES += 0305-ticket12809-Use-lastPlayPos-instead-of-bookmark-v4.patch
 PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos-v3.patch
 PATCHFILES += 0307-ticket12809-Add-Unfinished-recording-filter.patch
 
