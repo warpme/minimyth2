@@ -1,5 +1,5 @@
 GARNAME = busybox
-GARVERSION = 1.23.2
+GARVERSION = 1.26.2
 CATEGORIES = utils
 MASTER_SITES = http://www.busybox.net/downloads/
 MASTER_SITES += http://www.busybox.net/downloads/fixes-$(GARVERSION)/
@@ -9,8 +9,6 @@ PATCHFILES = \
 	$(DISTNAME)-dhcp_log_server.patch \
 	$(DISTNAME)-dhcp_tcode.patch \
 	$(DISTNAME)-tftp_timeout.patch
-#PATCHFILES  += \
-#	$(DISTNAME)-ntpd.patch \
 LICENSE = GPL2
 
 DESCRIPTION =
