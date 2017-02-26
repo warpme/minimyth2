@@ -7,7 +7,7 @@ PATCHFILES  =
 
 # Backend needed patches
 PATCHFILES += 0002-ticket9480_pl_eit_encodings.patch
-PATCHFILES += 0003-delay_4_no_concurent_start_rec_v4.patch
+PATCHFILES += 0003-delay_4_no_concurent_start_rec_v5.patch
 PATCHFILES += 0004-eit_verbosity.patch
 PATCHFILES += 0005-tid_debug_verbosity.patch
 PATCHFILES += 0006-cardutil_show_displayname.patch
@@ -15,18 +15,19 @@ PATCHFILES += 0007-allow_no_tuners.patch
 PATCHFILES += 0008-SCR_keep_disecq_always_18V.patch
 PATCHFILES += 0009-make_EIT_start_at_time-v2.patch
 PATCHFILES += 0010-decrease-some-PMT-DVB-errors-logging.patch
-#PATCHFILES += 0011-change-some-BE-mainserver-logging-to-VB_NETWORK.patch
 PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
 PATCHFILES += 0017-python_bindings_tztime_error.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
 PATCHFILES += 0019-mythlink-pretty-with-recgroup-subdir.patch
-#PATCHFILES += 0021-ticket12248-livetv-transitions-demonstrate-bad-decoder-start-conditions.patch
-PATCHFILES += 0023-increase-loging-for-failed-tunings.patch
+PATCHFILES += 0023-increase-loging-for-failed-tunings-v2.patch
 PATCHFILES += 0030-0279-TV-Add-signal-monitor-warning-msg-if-NID-or-TSID-don.patch
 PATCHFILES += 0031-add-manage-settings-in-mythutil.patch
 
 # solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
 PATCHFILES += 0033-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
+
+PATCHFILES += 0036-pull118-upnp-Add-playlist-recently-added-played-entries-to-upnp-music.patch
+PATCHFILES += 0037-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
 
 # Minimyth needed patches
 PATCHFILES += 0100-minimyth.patch
@@ -68,7 +69,6 @@ PATCHFILES += 0252-0279-MythMusic-Visualisers-only-disable-screensaver-if-sh.pat
 PATCHFILES += 0253-0297-Mythmusic-Log-the-shoutcast-metadata-and-format-stri.patch
 
 # LVR safe patches related to DB caching
-PATCHFILES += 0254-0105-DB-Load-all-dbase-settings-into-cache-at-startup.patch
 PATCHFILES += 0255-0108-SG-Cache-storagegroup-records-in-FindDirs.patch
 PATCHFILES += 0256-0110-TV-cache-videodisplayprofile-dbase-access.patch
 PATCHFILES += 0257-0112-TV-Cache-playgroup-dbase-results.patch
@@ -138,12 +138,19 @@ PATCHFILES += 0316-0310-MythMusic-Enable-the-CD-ripper-to-run-in-the-backgro.pat
 PATCHFILES += 0317-0336-MythMusic-Fix-Playlist-copyTracks-and-removeAllTrack.patch
 PATCHFILES += 0318-0337-Mythmusic-Provide-network-control-of-playlist.patch
 PATCHFILES += 0319-0338-MythMusic-Add-feature-to-delete-a-track-or-an-entire.patch
-PATCHFILES += 0320-0348-MythMusic-Add-network-control-commands-to-list-and-p.patch
+PATCHFILES += 0320-0348-MythMusic-Add-network-control-commands-to-list-and-p-v2.patch
 
 # Fixes focus issue in OSX
 PATCHFILES += 0321-ticket12857-patch-mythwidgets_osx_focus.patch
 
 PATCHFILES += 0322-add-netflix-to-thememenus.patch
+
+# Revert those 2 commits as they are causing noticable lag on UI buttonlist on slow
+# machines like Atom or RPI
+PATCHFILES += 0323-revert-d82629a-and-784015d-Allow-multiple-element-names.patch
+
+# revert this commit as it causes BE deadlocks when tuning takes longer than 10sec.
+PATCHFILES += 0324-revert-34ad18e-Make-sure-ringbuffer-switch-checked-at-least-every-10-sec.patch
 endif
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
