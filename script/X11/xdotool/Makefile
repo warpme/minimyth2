@@ -19,19 +19,3 @@ BUILD_ARGS = \
 	CROSS_COMPILE="$(compiler_prefix)"
 
 include ../../gar.mk
-
-#CPPFLAGS += -fPIC
-#CFLAGS   += -fPIC
-
-#git//%$(DISTNAME).tar.bz2:
-#	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
-#	@$(MAKECOOKIE)
-
-#install-custom:
-#	@mkdir -p $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth
-#	@cp -f $(WORKSRC)/src/bin/undionly.kpxe $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.0
-#	@cp -f $(WORKSRC)/src/bin/undionly.kkpxe $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.kkpxe
-#	@cp -f $(WORKSRC)/src/bin/ipxe.pxe $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.pxe
-#	@cp -f $(WORKSRC)/src/bin-x86_64-efi/ipxe.efi $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.efi
-#	@mkdir -p $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.cfg
-#	@$(MAKECOOKIE)
