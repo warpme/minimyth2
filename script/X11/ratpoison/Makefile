@@ -4,7 +4,8 @@ CATEGORIES = X11
 MASTER_SITES = http://savannah.nongnu.org/download/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = \
-	$(DISTNAME)-staticgravity.patch
+	$(DISTNAME)-staticgravity.patch \
+	$(DISTNAME)-disable-xserver1.19-locale-error.patch
 LICENSE = GPL2
 
 DESCRIPTION =
