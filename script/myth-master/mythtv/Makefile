@@ -21,7 +21,7 @@ PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
 PATCHFILES += 0019-mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0023-increase-loging-for-failed-tunings-v2.patch
 PATCHFILES += 0030-0279-TV-Add-signal-monitor-warning-msg-if-NID-or-TSID-don.patch
-PATCHFILES += 0031-add-manage-settings-in-mythutil.patch
+PATCHFILES += 0031-add-manage-settings-in-mythutil-v2.patch
 
 # solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
 PATCHFILES += 0033-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
@@ -44,7 +44,6 @@ PATCHFILES += 0206-add-mythnotification-custom-styles-support-via-UDP.patch
 PATCHFILES += 0207-add-osd-status-notify-to-mythmediacenter.patch
 PATCHFILES += 0208-add-disable-optical-disc-by-mm-config.patch
 PATCHFILES += 0209-add-phone-entry-in-themes.patch
-PATCHFILES += 0210-add-option-to-not-remember-last-livetv-chan.patch
 PATCHFILES += 0211-add-optical-rip-to-menu.patch
 PATCHFILES += 0212-ticket12311-v2.patch
 PATCHFILES += 0213-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
@@ -145,12 +144,9 @@ PATCHFILES += 0321-ticket12857-patch-mythwidgets_osx_focus.patch
 
 PATCHFILES += 0322-add-netflix-to-thememenus.patch
 
-# Revert those 2 commits as they are causing noticable lag on UI buttonlist on slow
-# machines like Atom or RPI
-PATCHFILES += 0323-revert-d82629a-and-784015d-Allow-multiple-element-names.patch
+PATCHFILES += 0323-ticket12990-playback-jitter-deinterlaced-media.patch
+PATCHFILES += 0324-ticket12991-HiDPI-gui-displays-support.patch
 
-# revert this commit as it causes BE deadlocks when tuning takes longer than 10sec.
-PATCHFILES += 0324-revert-34ad18e-Make-sure-ringbuffer-switch-checked-at-least-every-10-sec.patch
 endif
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
