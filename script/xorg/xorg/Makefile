@@ -40,7 +40,6 @@ DEPENDS = \
 		$(CATEGORY)/xf86-video-ati \
 		$(CATEGORY)/xf86-video-intel \
 		$(CATEGORY)/xf86-video-vmware \
-		$(CATEGORY)/xf86-video-modesetting \
 	) \
 	$(CATEGORY)/xinit \
 	$(CATEGORY)/xkbcomp \
@@ -51,6 +50,7 @@ DEPENDS = \
 	$(CATEGORY)/xrandr \
 	$(CATEGORY)/xset \
 	$(CATEGORY)/xsetroot
+
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
