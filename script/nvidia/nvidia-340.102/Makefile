@@ -2,7 +2,7 @@ NVIDIA_MAJOR_VERSION = 340
 NVIDIA_MINOR_VERSION = 102
 NVIDIA_TEENY_VERSION =
 
-# PATCHFILES = fix-for-kernel4.9-module-loading.patch
+PATCHFILES = fix-for-kernel4.9-module-loading.patch
 
 BUILD_SCRIPTS   = nvidia
 INSTALL_SCRIPTS = nvidia
