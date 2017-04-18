@@ -1,5 +1,5 @@
 GARNAME = google-chrome
-GARVERSION = 54.0.2840.90
+GARVERSION = 55.0.2883.87
 CATEGORIES = browsers
 MASTER_SITES = https://dl.google.com/linux/direct/
 DISTFILES = google-chrome-stable_current_amd64.deb
