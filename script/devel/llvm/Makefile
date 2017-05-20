@@ -1,11 +1,9 @@
 GARNAME = llvm
-GARVERSION = 3.7.1
+GARVERSION = 3.8.1
 CATEGORIES = devel
 MASTER_SITES = http://www.llvm.org/releases/$(GARVERSION)/
 DISTFILES = $(DISTNAME).src.tar.xz
-PATCHFILES = \
-	$(DISTNAME)-llvm-config-rpath.patch \
-	$(DISTNAME)-python_2.6.patch
+PATCHFILES = $(DISTNAME)-python_2.6.patch
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE.TXT
 
