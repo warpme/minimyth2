@@ -2,7 +2,7 @@ GARNAME = mesa
 # GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              20160518-877a802, \
-             17.0.4 ))
+             17.0.6 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              git://anongit.freedesktop.org/mesa/mesa/ , \
@@ -31,7 +31,7 @@ DEPENDS    = lang/c lang/cxx lib/expat X11/libvdpau devel/llvm lib/libelf python
 	$(CATEGORY)/presentproto
 
 ifneq ($(DESTIMG),build)
-DEPENDS   += system/udev
+DEPENDS   += system/eudev
 endif
 BUILDDEPS  = lib/libxml2 python/python \
 	$(CATEGORY)/makedepend \
