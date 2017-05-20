@@ -133,7 +133,7 @@ DEPENDS = \
 	python/python-urlgrabber \
 	qt/qt5 \
 	system/lirc \
-	system/udev \
+	system/eudev \
 	X11/libvdpau \
 	xorg/xorg
 BUILDDEPS = \
