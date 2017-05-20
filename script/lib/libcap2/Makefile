@@ -1,10 +1,8 @@
-GARNAME = libcap2
-GARVERSION = 2.22
+GARNAME = libcap
+GARVERSION = 2.24
 CATEGORIES = lib
-MASTER_SITES = ftp://ftp.de.debian.org/debian/pool/main/libc/libcap2
-DISTFILES = $(GARNAME)_$(GARVERSION).orig.tar.gz
-#PATCHFILES = \
-#	$(DISTNAME)-automake_1.13.patch
+MASTER_SITES = http://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/
+DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -13,9 +11,10 @@ endef
 
 DEPENDS = lang/c
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+
+include ../../gar.mk
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
@@ -24,14 +23,3 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-debug \
 	--with-warn \
 	--without-python
-
-include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
-
-post-install:
-	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
-	@$(MAKECOOKIE)
