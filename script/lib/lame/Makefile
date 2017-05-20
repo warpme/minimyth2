@@ -15,7 +15,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c lib/ncurses
-BUILDDEPS = devel/nasm gtk/gtk
+BUILDDEPS = devel/nasm gtk/gtk3
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
