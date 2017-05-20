@@ -144,8 +144,8 @@ PATCHFILES += 0321-ticket12857-patch-mythwidgets_osx_focus.patch
 
 PATCHFILES += 0322-add-netflix-to-thememenus.patch
 
-PATCHFILES += 0323-ticket12990-playback-jitter-deinterlaced-media.patch
-PATCHFILES += 0324-ticket12991-HiDPI-gui-displays-support.patch
+#PATCHFILES += 0323-ticket12990-playback-jitter-deinterlaced-media.patch
+#PATCHFILES += 0324-ticket12991-HiDPI-gui-displays-support.patch
 
 endif
 
@@ -182,7 +182,7 @@ DEPENDS = \
 	python/python-urlgrabber \
 	qt/qt5 \
 	system/lirc \
-	system/udev \
+	system/eudev \
 	X11/libvdpau \
 	xorg/xorg
 BUILDDEPS = \
