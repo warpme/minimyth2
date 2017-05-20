@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c system/udev \
+DEPENDS = lang/c system/eudev \
 	$(CATEGORY)/inputproto \
 	$(CATEGORY)/util-macros \
 	$(CATEGORY)/xorg-server \

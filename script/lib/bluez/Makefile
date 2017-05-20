@@ -11,7 +11,7 @@ endef
 
 DEPENDS  = lang/c gtk/glib lib/alsa-lib lib/dbus lib/readline
 ifneq ($(DESTIMG),build)
-DEPENDS += lib/libusb-compat system/udev
+DEPENDS += lib/libusb-compat system/eudev
 endif
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure

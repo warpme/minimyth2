@@ -1,5 +1,5 @@
 GARNAME = libdrm
-GARVERSION = 2.4.79
+GARVERSION = 2.4.80
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -13,7 +13,7 @@ DEPENDS  = lang/c \
 	$(CATEGORY)/libpciaccess \
 	$(CATEGORY)/libpthread-stubs
 ifneq ($(DESTIMG),build)
-DEPENDS += system/udev
+DEPENDS += system/eudev
 endif
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))

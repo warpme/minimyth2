@@ -1,7 +1,7 @@
 GARNAME = xf86-video-intel
 GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-	20170312-68bc766, \
+	20170422-996331b, \
 	2.99.17 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
@@ -17,7 +17,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c system/udev \
+DEPENDS = lang/c system/eudev \
 	$(CATEGORY)/dri2proto \
 	$(CATEGORY)/fontsproto \
 	$(CATEGORY)/libdrm \

@@ -54,7 +54,7 @@ DEPENDS  = lang/c lib/openssl \
 	$(CATEGORY)/xproto \
 	$(CATEGORY)/xtrans
 ifneq ($(DESTIMG),build)
-DEPENDS += system/udev
+DEPENDS += system/eudev
 endif
 BUILDDEPS = \
 	$(CATEGORY)/xorg-sgml-doctools

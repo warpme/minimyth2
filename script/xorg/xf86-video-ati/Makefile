@@ -1,7 +1,7 @@
 GARNAME = xf86-video-ati
 GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-	20170312-5bead85, \
+	20170422-3e12378, \
 	7.7.0 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
@@ -31,7 +31,7 @@ DEPENDS  = lang/c \
 	$(CATEGORY)/xproto
 
 ifneq ($(DESTIMG),build)
-DEPENDS += system/udev
+DEPENDS += system/eudev
 endif
 BUILDDEPS = \
 	$(CATEGORY)/xorg-sgml-doctools

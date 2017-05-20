@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c system/udev xorg/Mesa xorg/virtualgl
+DEPENDS = lang/c system/eudev xorg/Mesa xorg/virtualgl
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
