@@ -33,4 +33,5 @@ pre-configure:
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libharfbuzz.la
+	@rm -f $(DESTDIR)$(libdir)/libharfbuzz-icu.la
 	@$(MAKECOOKIE)
