@@ -1,26 +1,9 @@
 GARNAME = lirc
-GARVERSION = 0.9.0
+GARVERSION = 0.10-20170519-71fd260
 CATEGORIES = system
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/LIRC/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = \
-	$(DISTNAME)-kernel_err.patch \
-	$(DISTNAME)-lirc_xbox.patch \
-	$(DISTNAME)-disable_lirc_i2c.patch \
-	$(DISTNAME)-remove_smp_lock_h.patch \
-	$(DISTNAME)-bit_le_fix.patch \
-	$(DISTNAME)-kfifo_fix.patch \
-	$(DISTNAME)-uinput_key_fix.patch \
-	$(DISTNAME)-input_map.patch.gar \
-	$(DISTNAME)-remove_asm_sytem_h.patch \
-	$(DISTNAME)-kernel3.8.13-build.patch \
-	$(DISTNAME)-fix_for_new_automake.patch
-
-ifneq ($(mm_KERNEL_VERSION),3.16)
-PATCHFILES += $(DISTNAME)-kernel3.19.1-build.patch \
-	$(DISTNAME)-kernel4.1-depreciated-irqf-fix.patch \
-	$(DISTNAME)-fix_kernel4.6_build.patch
-endif
+PATCHFILES  = lirc-remove-env-for-python3.patch
 
 LICENSE = GPL2
 
@@ -39,14 +22,14 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--x-libraries="$(DESTDIR)$(libdir)" \
 	--enable-shared \
 	--disable-static \
-	--enable-sandboxed \
 	--with-gnu-ld \
 	--with-x \
-	--with-kerneldir="$(DESTDIR)$(LINUX_SOURCEDIR)" \
-	--with-moduledir="$(LINUX_MODULESDIR)/misc/lirc" \
-	--with-driver=all \
-	--with-transmitter \
-	--with-syslog
+	HAVE_WORKING_POLL="no" \
+	PYTHON_CFLAGS="-I/usr/include/python3.5m" \
+	SH_PATH="/bin/sh" \
+	DEVINPUT_HEADER="$(DESTDIR)$(includedir)/linux/input.h" \
+	PYTHON="/usr/bin/python3"
+
 BUILD_ARGS     = $(LINUX_MAKE_ARGS)
 INSTALL_ARGS   = $(LINUX_MAKE_ARGS)
 
@@ -56,8 +39,6 @@ INSTALL_ENV   = $(LINUX_MAKE_ENV)
 
 GAR_EXTRA_CONF += kernel-$(mm_KERNEL_VERSION)/linux/package-api.mk
 include ../../gar.mk
-
-PARALLELMFLAGS := -j1
 
 git//%$(DISTNAME).tar.bz2:
 	@$(call FETCH_GIT, $*, $(GARVERSION), $(DISTNAME))
@@ -70,9 +51,53 @@ pre-configure:
 	@mkdir -p $(WORKSRC)/m4
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	@#echo "Patching configure"
+	@#sed -i -e "s/\"\$PYTHON\" = \:\; then/\"\$PYTHON\" = \"1\"\; then/" $(WORKSRC)/configure
+	@#read
 	@$(MAKECOOKIE)
 
 post-install:
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/accent.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/alsa_usb.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/atilibusb.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/atwf83.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/audio_alsa.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/audio.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/awlibusb.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/bte.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/commandir.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/creative_infracd.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/creative.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/default.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/devinput.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/dfclibusb.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/dsp.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/ea65.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/file.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/girs.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/hiddev.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/i2cuser.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/irlink.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/irtoy.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/livedrive_midi.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/livedrive_seq.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/logitech.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/mouseremote.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/mp3anywhere.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/mplay.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/pcmak.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/pinsys.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/pixelview.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/silitek.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/slinke.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/srm7500libusb.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/tira.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/udp.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/uirt2.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/uirt2_raw.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/usbx.la
+	@rm -f $(DESTDIR)$(libdir)/lirc/plugins/zotac.la
+	@rm -f $(DESTDIR)$(libdir)/libirrecord.la
 	@rm -f $(DESTDIR)$(libdir)/liblirc_client.la
 	@rm -f $(DESTDIR)$(libdir)/liblirc.la
 	@rm -f $(DESTDIR)$(libdir)/liblirc_driver.la
@@ -81,6 +106,7 @@ post-install:
 
 clean-all:
 	@$(MAKE) clean
+	@# 0.9.1/0.9.1 clean
 	@rm -rf $(DESTDIR)$(LINUX_MODULESDIR)/misc/lirc
 	@rm -rf $(DESTDIR)$(bindir)/lircrcd
 	@rm -rf $(DESTDIR)$(sbindir)/lircd
@@ -90,3 +116,44 @@ clean-all:
 	@rm -rf $(DESTDIR)$(mandir)/man1/lircrcd.1
 	@rm -rf $(DESTDIR)$(mandir)/man8/lircd.8
 	@rm -rf $(DESTDIR)$(mandir)/man8/lircmd.8
+	@# 0.9.4 clean
+	@rm -rf $(DESTDIR)$(LINUX_MODULESDIR)/misc/lirc
+	@rm -rf $(DESTDIR)$(bindir)/lircrcd
+	@rm -rf $(DESTDIR)$(bindir)/lirc-config-tool
+	@rm -rf $(DESTDIR)$(bindir)/lirc-lsremotes
+	@rm -rf $(DESTDIR)$(bindir)/lirc-make-devinput
+	@rm -rf $(DESTDIR)$(bindir)/lircrcd
+	@rm -rf $(DESTDIR)$(bindir)/lirc-setup
+	@rm -rf $(DESTDIR)$(bindir)/ircat
+	@rm -rf $(DESTDIR)$(bindir)/irdb-get
+	@rm -rf $(DESTDIR)$(bindir)/irexec
+	@rm -rf $(DESTDIR)$(bindir)/irpipe
+	@rm -rf $(DESTDIR)$(bindir)/irpty
+	@rm -rf $(DESTDIR)$(bindir)/irrecord
+	@rm -rf $(DESTDIR)$(bindir)/irsend
+	@rm -rf $(DESTDIR)$(bindir)/irsimreceive
+	@rm -rf $(DESTDIR)$(bindir)/irsimsend
+	@rm -rf $(DESTDIR)$(bindir)/irtestcase
+	@rm -rf $(DESTDIR)$(bindir)/irw
+	@rm -rf $(DESTDIR)$(bindir)/irxevent
+	@rm -rf $(DESTDIR)$(bindir)/irtext2udp
+	@rm -rf $(DESTDIR)$(bindir)/mode2
+	@rm -rf $(DESTDIR)$(bindir)/pronto2lirc
+	@rm -rf $(DESTDIR)$(bindir)/xmode2
+	@rm -rf $(DESTDIR)$(sbindir)/lircd
+	@rm -rf $(DESTDIR)$(sbindir)/lircd-setup
+	@rm -rf $(DESTDIR)$(sbindir)/lircd-uinput
+	@rm -rf $(DESTDIR)$(sbindir)/lirc-lsplugins
+	@rm -rf $(DESTDIR)$(sbindir)/lircmd
+	@rm -rf $(DESTDIR)$(includedir)/lirc
+	@rm -rf $(DESTDIR)$(libdir)/liblirc_client.*
+	@rm -rf $(DESTDIR)$(libdir)/liblirc*
+	@rm -rf $(DESTDIR)$(libdir)/lirc*
+	@rm -rf $(DESTDIR)$(libdir)/libirrecord*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/lirc*
+	@rm -rf $(DESTDIR)$(libdir)/python2.6/site-packages/lirc*
+	@rm -rf $(DESTDIR)$(mandir)/man1/lircrcd.1
+	@rm -rf $(DESTDIR)$(mandir)/man8/lircd.8
+	@rm -rf $(DESTDIR)$(mandir)/man8/lircmd.8
+	@rm -rf $(DESTDIR)$(datadir)/lirc*
+
