@@ -1,7 +1,7 @@
 GARNAME = glib
-GARVERSION = 2.45.3
+GARVERSION = 2.53.1
 CATEGORIES = gtk
-MASTER_SITES = http://ftp.gnome.org/pub/gnome/sources/glib/2.45/
+MASTER_SITES = https://git.gnome.org/browse/glib/snapshot/
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = LGPL2
 
@@ -56,6 +56,7 @@ endif
 include ../../gar.mk
 
 pre-configure:
+	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
