@@ -27,4 +27,5 @@ include ../../gar.mk
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libparted.la
+	@rm -f $(DESTDIR)$(libdir)/libparted-fs-resize.la
 	@$(MAKECOOKIE)
