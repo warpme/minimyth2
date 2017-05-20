@@ -31,6 +31,6 @@ pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
-#post-install:
-#	@rm -rf $(DESTDIR)$(libdir)/libatk-1.0.la
-#	@$(MAKECOOKIE)
+post-install:
+	@rm -rf $(DESTDIR)$(libdir)/libgconf-2.la
+	@$(MAKECOOKIE)
