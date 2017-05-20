@@ -69,7 +69,8 @@ DEPENDS = \
 	utils/squashfs \
 	net/syslinux \
 	system/sysvinit \
-	system/udev \
+	system/eudev \
+	lib/libgudev \
 	X11/unclutter \
 	utils/usbutils \
 	utils/util-linux \
@@ -175,7 +176,7 @@ DEPENDS = \
 		lib/dbus \
 		lib/avahi \
 	$(if $(filter flash,$(mm_SOFTWARE)), \
-		gtk/gtk \
+		gtk/gtk3 \
 		lib/nss) \
 		utils/mc \
 		lib/libdvdcss \
@@ -202,6 +203,28 @@ DEPENDS = \
 	$(if $(filter bumblebee,$(mm_SOFTWARE)), \
 		system/bumblebee \
 		system/bbswitch) \
+	$(if $(filter chrome,$(mm_SOFTWARE)), \
+		X11/xdotool \
+		gtk/gconf \
+		gtk/gtk3 \
+		lib/libcups \
+		xorg/libxcomposite \
+		xorg/libxkbcommon \
+		xorg/libxscrnsaver \
+		python/python-pylirc \
+		python/python-pyalsaaudio \
+		browsers/google-chrome) \
+	$(if $(filter firefox,$(mm_SOFTWARE)), \
+		X11/xdotool \
+		gtk/gconf \
+		gtk/gtk3 \
+		lib/libcups \
+		xorg/libxcomposite \
+		xorg/libxkbcommon \
+		xorg/libxscrnsaver \
+		python/python-pylirc \
+		python/python-pyalsaaudio \
+		browsers/mozilla-firefox) \
 	$(if $(filter debug,$(mm_SOFTWARE)), \
 		devel/gdb \
 		devel/strace) \
