@@ -114,4 +114,6 @@ install-build-rpcgen:
 
 post-install:
 	@cd $(DESTDIR)$(datadir)/i18n/charmaps ; gzip -df *.gz
+	@mkdir -p $(build_DESTDIR)$(build_libdir)/glibc-nptl
+	@cp $(WORKBLD)/nptl/libpthread.so $(build_DESTDIR)$(build_libdir)/glibc-nptl/
 	@$(MAKECOOKIE)
