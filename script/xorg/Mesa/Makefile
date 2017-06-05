@@ -2,7 +2,7 @@ GARNAME = mesa
 # GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              20160518-877a802, \
-             17.0.6 ))
+             17.1.1 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              git://anongit.freedesktop.org/mesa/mesa/ , \
@@ -79,6 +79,10 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-dri3 \
 	LIBUDEV_CFLAGS="$(DESTDIR)$(includedir)" \
 	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so"
+
+ifneq ($(DESTIMG),build)
+CONFIGURE_ARGS += LDFLAGS="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/"
+endif
 
 # Mesa 11+ has bug with honouring vdpau dir durring configure
 #	--with-vdpau-libdir="$(libdir)/vdpau" \
