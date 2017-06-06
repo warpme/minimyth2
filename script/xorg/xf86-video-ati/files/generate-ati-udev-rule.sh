@@ -23,7 +23,7 @@ vendor_id='1002'
 
 vdpau_list='\
 RS880, RV710, RV710, RV730, RV740,\
-CEDAR, REDWOOD, JUNIPER, CYPRESS, PALM, SUMO, SUMO2,\
+CEDAR, REDWOOD, HEMLOCK, JUNIPER, CYPRESS, PALM, SUMO, SUMO2,\
 ARUBA, BARTS, TURKS, CAICOS, CAYMAN,\
 CAPE VERDE, PITCAIRN, TAHITI, OLAND, HAINAN,\
 BONAIRE, KABINI, KAVERI, HAWAII, OLAND, MULLINS,\
@@ -60,6 +60,7 @@ sed -e 's/RAGE/RAGE_/g' -i ./file.tmp
 sed -e 's/MACH/MACH_/g' -i ./file.tmp
 
 card_list=`cat ./file.tmp 2> /dev/null`
+vdpau_lst=`echo "${vdpau_list}" | sed -e 's/\s*//g'`
 
 IFS='
 '
@@ -112,7 +113,7 @@ for card in ${card_list} ; do
      name=`echo "${card}" |    sed 's/#define PCI_CHIP_\([0-9a-zA-Z]*\)_.* 0x\([0-9a-fA-F]*\)/\1/'`
    #echo "      ID = ${id}"
    #echo "    Name = ${name}"
-   if [ `echo ${vdpau_list} | grep -c ${name}` = 0 ] ; then
+   if [ `echo ${vdpau_lst} | grep -c ${name}` = 0 ] ; then
      type="radeon"
    else 
      type="radeon_vdpau"
