@@ -23,92 +23,142 @@ vendor_id='8086'
 # will require 'ULTGT2
 
 vaapi_list='\
-GT1mobile,\
-GT2mobile,\
-GT1desktop,\
-GT2desktop,\
-GT1server,\
-GT2server,\
-GT1desktop,\
-GT2desktop,\
-GT3desktop,\
-GT1server,\
-GT2server,\
-GT3server,\
-GT1reserved,\
-GT2reserved,\
-GT3reserved,\
-GT1reserved,\
-GT2reserved,\
-GT3reserved,\
-SDVGT1desktop,\
-SDVGT2desktop,\
-SDVGT3desktop,\
-SDVGT1server,\
-SDVGT2server,\
-SDVGT3server,\
-SDVGT1reserved,\
-SDVGT2reserved,\
-SDVGT3reserved,\
-SDVGT1reserved,\
-SDVGT2reserved,\
-SDVGT3reserved,\
-ULTGT1desktop,\
-ULTGT2desktop,\
-ULTGT3desktop,\
-ULTGT1server,\
-ULTGT2server,\
-ULTGT3server,\
-ULTGT1reserved,\
-ULTGT2reserved,\
-ULTGT3reserved,\
-CRWGT1desktop,\
-CRWGT2desktop,\
-CRWGT3desktop,\
-CRWGT1server,\
-CRWGT2server,\
-CRWGT3server,\
-CRWGT1reserved,\
-CRWGT2reserved,\
-CRWGT3reserved,\
-CRWGT1reserved,\
-CRWGT2reserved,\
-CRWGT3reserved,\
-GT1mobile,\
-GT2mobile,\
-GT2mobile,\
-SDVGT1mobile,\
-SDVGT2mobile,\
-SDVGT3mobile,\
-ULTGT1mobile,\
-ULTGT2mobile,\
-ULTGT3mobile,\
-ULXGT1mobile,\
-ULXGT2mobile,\
-ULTGT3reserved,\
-CRWGT1mobile,\
-CRWGT2mobile,\
-CRWGT3mobile,\
-ULTGT2,\
-ULTGT1,\
-ULTGT3,\
-ULTGT2F,\
-ULXGT1,\
-ULXGT2,\
-DTGT2,\
-DTGT1,\
-HaloGT2,\
-HaloGT3,\
-HaloGT1,\
-SRVGT2,\
-SRVGT3,\
-SRVGT1,\
-WKSGT2,\
+Intel HD Graphics 3000,\
+Intel HD Graphics 3000,\
+GT1 mobile,\
+GT2 mobile,\
+GT1 desktop,\
+GT2 desktop,\
+GT1 server,\
+GT2 server,\
+GT1 desktop,\
+GT2 desktop,\
+GT3 desktop,\
+GT1 server,\
+GT2 server,\
+GT3 server,\
+GT1 reserved,\
+GT2 reserved,\
+GT3 reserved,\
+GT1 reserved,\
+GT2 reserved,\
+GT3 reserved,\
+SDV GT1 desktop,\
+SDV GT2 desktop,\
+SDV GT3 desktop,\
+SDV GT1 server,\
+SDV GT2 server,\
+SDV GT3 server,\
+SDV GT1 reserved,\
+SDV GT2 reserved,\
+SDV GT3 reserved,\
+SDV GT1 reserved,\
+SDV GT2 reserved,\
+SDV GT3 reserved,\
+ULT GT1 desktop,\
+ULT GT2 desktop,\
+ULT GT3 desktop,\
+ULT GT1 server,\
+ULT GT2 server,\
+ULT GT3 server,\
+ULT GT1 reserved,\
+ULT GT2 reserved,\
+ULT GT3 reserved,\
+CRW GT1 desktop,\
+CRW GT2 desktop,\
+CRW GT3 desktop,\
+CRW GT1 server,\
+CRW GT2 server,\
+CRW GT3 server,\
+CRW GT1 reserved,\
+CRW GT2 reserved,\
+CRW GT3 reserved,\
+CRW GT1 reserved,\
+CRW GT2 reserved,\
+CRW GT3 reserved,\
+GT1 mobile,\
+GT2 mobile,\
+GT2 mobile,\
+SDV GT1 mobile,\
+SDV GT2 mobile,\
+SDV GT3 mobile,\
+ULT GT1 mobile,\
+ULT GT2 mobile,\
+ULT GT3 mobile,\
+ULX GT1 mobile,\
+ULX GT2 mobile,\
+ULT GT3 reserved,\
+CRW GT1 mobile,\
+CRW GT2 mobile,\
+CRW GT3 mobile,\
+GT1 ULT,\
+GT1 ULT,\
+GT1 Iris,\
+GT1 ULX,\
+GT2 Halo,\
+GT2 ULT,\
+GT2 ULT,\
+GT2 ULX,\
+GT1 Server,\
+GT1 Workstation,\
+GT2 Server,\
+GT2 Workstation,\
+ULT,\
+ULT,\
 Iris,\
-DTGT4, \
-HaloGT4, \
-SRVGT4, \
-WKSGT4, \
+ULX,\
+Server,\
+Workstation,\
+ULT,\
+ULT,\
+Iris,\
+ULX,\
+Server,\
+Workstation,\
+ULT GT1,\
+ULX GT1,\
+DT  GT1,\
+Halo GT1,\
+SRV GT1,\
+ULT GT2,\
+ULT GT2F,\
+ULX GT2,\
+DT  GT2,\
+Halo GT2,\
+SRV GT2,\
+WKS GT2,\
+ULT GT3,\
+ULT GT3,\
+ULT GT3,\
+Halo GT3,\
+SRV GT3,\
+DT GT4,\
+Halo GT4,\
+WKS GT4,\
+SRV GT4,\
+SRV GT4e,\
+APLHDGraphics505,\
+APLHDGraphics500,\
+ULT GT1.5,\
+ULX GT1.5,\
+DT  GT1.5,\
+ULT GT1,\
+ULX GT1,\
+DT  GT1,\
+Halo GT1,\
+Halo GT1,\
+SRV GT1,\
+ULT GT2,\
+ULT GT2F,\
+ULX GT2,\
+DT  GT2,\
+Halo GT2,\
+SRV GT2,\
+WKS GT2,\
+ULT GT3,\
+ULT GT3,\
+ULT GT3,\
+Halo GT4,\
 '
 
 
@@ -144,6 +194,7 @@ sed -e 's/\s*//g' -i ./file.tmp
 sed -e 's/\\//g' -i ./file.tmp
 
 card_list=`cat ./file.tmp 2> /dev/null`
+vaapi_lst=`echo "${vaapi_list}" | sed -e 's/\s*//g'`
 
 IFS='
 '
@@ -201,7 +252,7 @@ for card in ${card_list} ; do
       type="intel_i915"
       name="Unknown name"
     else
-      if [ `echo ${vaapi_list} | grep -s -c ${name}` = 0 ] ; then
+      if [ `echo ${vaapi_lst} | grep -s -c ${name}` = 0 ] ; then
         type="intel_i915"
       else
         type="intel_vaapi"
