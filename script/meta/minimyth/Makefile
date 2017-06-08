@@ -42,7 +42,7 @@ DEPENDS = \
 	utils/lm_sensors \
 	utils/lsdvd \
 	utils/lsof \
-	X11/libva-intel-driver \
+	X11/intel-vaapi-driver \
 	utils/intel-microcode2ucode \
 	utils/kmod \
 	myth-$(mm_MYTH_VERSION)/mythtv \
