@@ -158,23 +158,24 @@ mm-all:
 		   [ ! "$${software}" = "voip"           ] && \
 		   [ ! "$${software}" = "bumblebee"      ] && \
 		   [ ! "$${software}" = "gstreamer"      ] && \
-		   [ ! "$${software}" = "netflix"        ] && \
+		   [ ! "$${software}" = "chrome"         ] && \
+		   [ ! "$${software}" = "firefox"        ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
 			exit 1 ; \
 		fi ; \
 	done
 	@echo "    mm_KERNEL_HEADERS_VERSION"
-	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.7" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.9" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.11" ] ; then \
+	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.9" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.11" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.12" ] ; then \
 		echo "error: mm_KERNEL_HEADERS_VERSION=\"$(mm_KERNEL_HEADERS_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "4.7" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "4.9" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "4.11" ] ; then \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "4.9" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.11" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.12" ] ; then \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
@@ -197,8 +198,8 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_VERSION"
-	@if [ ! "$(mm_NVIDIA_VERSION)" = "340.101"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "375.20"    ] && \
+	@if [ ! "$(mm_NVIDIA_VERSION)" = "340.102"    ] && \
+	    [ ! "$(mm_NVIDIA_VERSION)" = "340.101"    ] && \
 	    [ ! "$(mm_NVIDIA_VERSION)" = "370.28"    ] ; then \
 		echo "error: mm_NVIDIA_VERSION=\"$(mm_NVIDIA_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
