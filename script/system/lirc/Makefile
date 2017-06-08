@@ -1,9 +1,10 @@
 GARNAME = lirc
-GARVERSION = 0.10-20170519-71fd260
+GARVERSION = 0.10.0rc1
 CATEGORIES = system
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/LIRC/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES  = lirc-remove-env-for-python3.patch
+PATCHFILES  = $(DISTNAME)-remove-env-for-python3.patch
+PATCHFILES  += $(DISTNAME)-disable-irsend-debug-logging.patch
 
 LICENSE = GPL2
 
@@ -51,9 +52,11 @@ pre-configure:
 	@mkdir -p $(WORKSRC)/m4
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@#echo "Patching configure"
-	@#sed -i -e "s/\"\$PYTHON\" = \:\; then/\"\$PYTHON\" = \"1\"\; then/" $(WORKSRC)/configure
-	@#read
+	@$(MAKECOOKIE)
+
+pre-install:
+	@rm -rf $(DESTDIR)$(libdir)/python2.6/site-packages/lirc*
+	@rm -rf $(DESTDIR)$(libdir)/python3.5/site-packages/lirc*
 	@$(MAKECOOKIE)
 
 post-install:
@@ -152,6 +155,7 @@ clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/libirrecord*
 	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/lirc*
 	@rm -rf $(DESTDIR)$(libdir)/python2.6/site-packages/lirc*
+	@rm -rf $(DESTDIR)$(libdir)/python3.5/site-packages/lirc*
 	@rm -rf $(DESTDIR)$(mandir)/man1/lircrcd.1
 	@rm -rf $(DESTDIR)$(mandir)/man8/lircd.8
 	@rm -rf $(DESTDIR)$(mandir)/man8/lircmd.8
