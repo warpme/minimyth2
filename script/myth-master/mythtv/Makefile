@@ -13,7 +13,7 @@ PATCHFILES += 0005-tid_debug_verbosity.patch
 PATCHFILES += 0006-cardutil_show_displayname.patch
 PATCHFILES += 0007-allow_no_tuners.patch
 PATCHFILES += 0008-SCR_keep_disecq_always_18V.patch
-PATCHFILES += 0009-make_EIT_start_at_time-v2.patch
+PATCHFILES += 0009-make_EIT_start_at_time-v3.patch
 PATCHFILES += 0010-decrease-some-PMT-DVB-errors-logging.patch
 PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
 PATCHFILES += 0017-python_bindings_tztime_error.patch
@@ -70,7 +70,6 @@ PATCHFILES += 0253-0297-Mythmusic-Log-the-shoutcast-metadata-and-format-stri.pat
 # LVR safe patches related to DB caching
 PATCHFILES += 0255-0108-SG-Cache-storagegroup-records-in-FindDirs.patch
 PATCHFILES += 0256-0110-TV-cache-videodisplayprofile-dbase-access.patch
-PATCHFILES += 0257-0112-TV-Cache-playgroup-dbase-results.patch
 PATCHFILES += 0259-0117-UI-Provide-dbase-cache-for-RegisterKey-and-RegisterJ.patch
 PATCHFILES += 0262-0144-DB-Update-settings-cache-in-SaveSettingOnHost.patch
 PATCHFILES += 0269-0148-TV-Cache-the-last-sourceid-found-in-SourceUtil-GetSo.patch
@@ -118,8 +117,8 @@ PATCHFILES += 0303-0318-WebBrowser-Provide-virtual-keyboard-for-HTML-edit-co.pat
 PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 
 # Nice Roger Siddons guide grid enhacement
-PATCHFILES += 0305-ticket12809-Use-lastPlayPos-instead-of-bookmark-v4.patch
-PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos-v3.patch
+PATCHFILES += 0305-ticket12809-Use-lastPlayPos-instead-of-bookmark-v5.patch
+PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos-v4.patch
 PATCHFILES += 0307-ticket12809-Add-Unfinished-recording-filter.patch
 
 PATCHFILES += 0308-update-PL-trnaslations.patch
@@ -133,7 +132,7 @@ PATCHFILES += 0312-0306-MythMusic-Avoid-a-SEGV-in-the-CD-ripper-ogg-encoder.patc
 PATCHFILES += 0313-0307-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0314-0308-MythMusic-Wait-for-CD-scanner-and-eject-threads-befo.patch
 PATCHFILES += 0315-0309-MythMusic-Make-initial-scan-by-CD-ripper-run-in-back.patch
-PATCHFILES += 0316-0310-MythMusic-Enable-the-CD-ripper-to-run-in-the-backgro.patch
+PATCHFILES += 0316-0310-MythMusic-Enable-the-CD-ripper-to-run-in-the-backgro-v2.patch
 PATCHFILES += 0317-0336-MythMusic-Fix-Playlist-copyTracks-and-removeAllTrack.patch
 PATCHFILES += 0318-0337-Mythmusic-Provide-network-control-of-playlist.patch
 PATCHFILES += 0319-0338-MythMusic-Add-feature-to-delete-a-track-or-an-entire.patch
