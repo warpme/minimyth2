@@ -38,7 +38,6 @@ fi
 if /usr/bin/test "${MM_AVAHI_ENABLED}" = "yes" ; then
    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Unpublishing frontend services by AVANI..."
    /usr/bin/killall avahi-publish
-   # /etc/rc.d/init.d/avahi stop
 fi
 
 # Asking SIP-DAEMON to exit
@@ -56,32 +55,40 @@ if /usr/bin/test -n "${MM_NOTIFY_ABOUT_UPDATES}" ; then
 fi
 
 # Exit all applications and jump to main menu
-/usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Sending Esc to myth..."
-i=0
-while /usr/bin/test $i -lt 5 ; do
-    /usr/bin/irsend SIMULATE "0000000000000002 00 KEY_EXIT mythtv"
-    i=$((${i} + 1))
-done
-/usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Exiting all apps..."
-mm_x_applications_exit ':everything'
+#/usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Sending Esc to myth..."
+#i=0
+#while /usr/bin/test $i -lt 5 ; do
+#    /usr/bin/irsend SIMULATE "0000000000000002 00 KEY_EXIT mythtv"
+#    i=$((${i} + 1))
+#done
 
 if /usr/bin/test "${MM_RESTART_ON_SLEEP}" = "mythfrontend" ; then
     if /usr/bin/test -n "`/bin/pidof mm_watchdog`" ; then
+
         /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Killing mm_watchdog script..."
         /usr/bin/killall -9 mm_watchdog
+
+        if /usr/bin/test -n "`/bin/pidof mm_watchdog`" ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Still trying to killing mm_watchdog script..."
+            /usr/bin/killall -9 mm_watchdog
+        else
+            /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] mm_watchdog script killed..."
+        fi
     fi
-    mythpid=`/bin/pidof mythfrontend`
-    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Asking mythfrontend to exit. PID is:'${mythpid}'"
+
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Asking mythfrontend to exit..."
+    mm_x_applications_exit ':mythfrontend'
+
+    /bin/sleep 3
+
     i=0
     while /usr/bin/test $i -lt 2 ; do
-        #mm_x_xmacroplay "Mythfrontend" "KeyStrPress Control_L\n KeyStrPress Escape\n KeyStrRelease Escape\n KeyStrRelease Control_L\n"
-        #/usr/bin/irsend SIMULATE "0000000000000001 00 KEY_MYTHTV_EXIT mythtv"
-        killall mythfrontend
-        /bin/sleep 3
         i=$((${i} + 1))
         mythpid=`/bin/pidof mythfrontend`
         if /usr/bin/test -n "${mythpid}" ; then
             /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Waiting mythfrontend to exit...($i). PID is:'${mythpid}'"
+            killall mythfrontend
+            /bin/sleep 3
         else
             /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Frontend exited..."
             i=2
@@ -98,7 +105,7 @@ else
         /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Checking RAM usage. mythfrontend uses $myth_rss%; restart treshold is ${MM_X_MYTH_RSS_FOR_X_RESTART}%"
         if /usr/bin/test $myth_rss -gt ${MM_X_MYTH_RSS_FOR_X_RESTART} ; then
             /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] mythfrontend uses $myth_rss% of total RAM, restarting X for maintenance"
-            mm_restart_x
+            /usr/bin/mm_manage _restart_mythfrontend
            /bin/sleep 20
         fi
     fi
@@ -106,16 +113,8 @@ fi
 
 if /usr/bin/test "${MM_RESTART_ON_SLEEP}" = "mythstandby" ; then
     /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Asking mythfrontend to enter Standby mode..."
-    #/usr/bin/irsend SIMULATE "0000000000000003 00 KEY_MYTHTV_STANDBY mythtv"
-
-    #hack as curently frontend hasn't keybinding for stanby
-    /usr/bin/irsend SIMULATE "0000000000000003 00 KEY_START mythtv"
-    #/bin/sleep 1
-    /usr/bin/irsend SIMULATE "0000000000000003 00 KEY_MENU mythtv"
-    #/bin/sleep 1
-    /usr/bin/irsend SIMULATE "0000000000000003 00 KEY_OK mythtv"
-
-    /bin/sleep 2
+    mm_x_xmacroplay "Mythfrontend" "KeyStrPress Alt_L\n KeyStrPress b KeyStrRelease b KeyStrRelease Alt_L\n"
+    /bin/sleep 3
 fi
 
 # Stop LCDd because it can stop working as a result of suspend.
@@ -181,7 +180,7 @@ if /usr/bin/test "${MM_RESTART_ON_SLEEP}" = "xorg" ; then
     mm_x_stop
 fi
 
-# Make sure SIP-DAEMON is dead. If not, killit
+# Make sure SIP-DAEMON is dead. If not, kill it
 if /usr/bin/test -n "${MM_VOIP_ENABLED}" ; then
     sipdaemonpid=`/bin/ps ax -o ppid,pid,args | grep '/usr/bin/sip-daemon.py' | grep -v grep`
     if /usr/bin/test -n "$sipdaemonpid" ; then
@@ -196,9 +195,15 @@ if /usr/bin/test "x${MM_MEDIA_UNMOUNT_ON_SLEEP}" = "xyes" ; then
     /etc/rc.d/init.d/media stop
 fi
 
-# Synchronizing RTC clock
-/usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Synchronizing RTC clock..."
-/sbin/hwclock -w -u
+# Stoping NTP (if required and synchronizing RTC clock
+if /usr/bin/test "x${MM_RESTART_NTP_ON_SLEEP}" = "xyes" ; then
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Stoping NTP daemon..."
+    /bin/touch /var/lib/mm_sleep.$$/ntp
+    /etc/rc.d/init.d/time stop
+else
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Synchronizing RTC clock..."
+    /sbin/hwclock -w -u
+fi
 
 # If enabled exacute all workarounds needed for sucessfull suspend
 if /usr/bin/test -e /usr/bin/mm_sleep_workarounds ; then
@@ -251,7 +256,7 @@ fi
 if /usr/bin/test -e /var/lib/mm_sleep.$$/irexec ; then
     if /usr/bin/test -z `/bin/pidof irexec` ; then
         /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Restarting irexec..."
-        /usr/bin/irexec -d /etc/lircrc
+        /usr/bin/irexec -d /etc/lirc/lircrc
     fi	
     /bin/rm -f /var/lib/mm_sleep.$$/irexec
 fi
@@ -290,32 +295,25 @@ if /usr/bin/test -e /var/lib/mm_sleep.$$/LCDd ; then
     /bin/rm -f /var/lib/mm_sleep.$$/LCDd
 fi
 
-# If new PXE image was installed - then display info about reboot and force reboot to load this new image
-if /usr/bin/test -e /usr/local/share/myth-at-home/version ; then
-    rc=`/usr/bin/cmp /etc/version /usr/local/share/myth-at-home/version`
-    if /usr/bin/test -n "${rc}" ; then
-        /bin/sed -i 's%mode\:.*%mode\: random%' /home/minimyth/.xscreensaver
-        /bin/sed -i 's%imageDirectory\:.*%imageDirectory\: /home/minimyth/.minimyth/%' /home/minimyth/.xscreensaver
-        su minimyth -c "/usr/bin/xscreensaver" & > /dev/null 2>&1
-        /bin/sleep 1
-        su minimyth -c "/usr/bin/xscreensaver-command --activate" & > /dev/null 2>&1
-        /bin/sleep 15
-        /usr/bin/killall -9 mm_watchdog
-        /usr/bin/killall -9 mythfrontend
-        /usr/bin/killall -9 X
-        /sbin/reboot
-    fi
-fi
+# Check is there new PXE image. If Yes thaen reboot.
+/usr/bin/mm_check_new_image &
 
+# Check is reload of ELD needed. If Yes then reload ELD.
 if /usr/bin/test -n "${MM_AUDIO_RECON_DISP_FOR_RELOAD_ELD}" ; then
     /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Reconnecting display to trigger reload ELD data..."
     connected_screen=$(/usr/bin/xrandr -display :0 -q | /bin/sed '/ connected/!d;s/ .*//;q')
     if /usr/bin/test -n "${connected_screen}" ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Disconnecting display on ${connected_screen} and sleeping ${MM_AUDIO_RECON_DISP_FOR_RELOAD_ELD}sec"
+        screen_mode=$(/usr/bin/xrandr -display :0 -q | grep " connected " | /usr/bin/cut -d " " -f 3 | /bin/sed 's/+.*//;q')
+        /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Disconnecting display on ${connected_screen}/mode '${screen_mode}' for ${MM_AUDIO_RECON_DISP_FOR_RELOAD_ELD}sec"
         /usr/bin/xrandr -display :0 --output ${connected_screen} --off
         /bin/sleep ${MM_AUDIO_RECON_DISP_FOR_RELOAD_ELD}
-        /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Reconnecting display on ${connected_screen}..."
-        /usr/bin/xrandr -display :0 --output ${connected_screen} --auto
+        if /usr/bin/test -n "${connected_screen}" ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Reconnecting display on ${connected_screen} with mode ${screen_mode}..."
+            /usr/bin/xrandr -display :0 --output ${connected_screen} --mode ${screen_mode}
+        else
+            /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Reconnecting display on ${connected_screen} with mode 'auto'..."
+            /usr/bin/xrandr -display :0 --output ${connected_screen} auto
+        fi
     else
         /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] ERORR: can't identify display to reconnect..."
     fi
@@ -323,42 +321,13 @@ fi
 
 if /usr/bin/test "${MM_RESTART_ON_SLEEP}" = "mythfrontend" ; then
     if /usr/bin/test "${MM_X_MYTH_PROGRAM}" = "mythfrontend" ; then
-        args="--nologserver > /var/log/mythfrontend"
-        if /usr/bin/test -n "${MM_MYTHFRONTEND_CMDLINE}" ; then
-            args="${MM_MYTHFRONTEND_CMDLINE} > /var/log/mythfrontend"
-        else
-            args="${args}"
-        fi
-        args="${args}"
-        if /usr/bin/test -n "${MM_X_VDPAU_ENV}" ; then
-            export "${MM_X_VDPAU_ENV}"
-        fi
-        export __GL_SYNC_TO_VBLANK=1
-        env > /var/log/enviroment
-        /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Checking connection with backend host (${MM_MASTER_SERVER})..."
-        i=0
-        while /usr/bin/test $i -lt 10 ; do
-            echo "ping -t 1 -c 1 ${MM_MASTER_SERVER}"
-            have_conn=`ping -t 1 -c 1 "${MM_MASTER_SERVER}" | grep "Unreachable"`
-            i=$((${i} + 1))
-            if /usr/bin/test -n "${have_conn}" ; then
-                /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Waiting for connection with backend host...($i)"
-                /bin/sleep 1
-            else
-                /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Have connection with backend host (${MM_MASTER_SERVER})..."
-                i=10
-            fi
-        done
-        /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Restarting mythfrontend..."
-        su minimyth -c "/usr/bin/mythfrontend ${args}" &
+        mm_mythfrontend_start
         if /usr/bin/test "${MM_X_WATCHDOG_MYTH_PROC}" = "yes" ; then
             /usr/bin/mm_watchdog &
-            /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Starting MM_WATCHDOG script..."
+            /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Starting MM_WATCHDOG script."
         fi
     elif /usr/bin/test "${MM_X_MYTH_PROGRAM}" = "mythwelcome"  ; then
-        /bin/sleep 5
-        /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Starting mythwelcome in background..."
-        su minimyth -c "/usr/bin/mythwelcome" &
+        mm_mythwelcome_start
     fi
 fi
 
@@ -366,30 +335,29 @@ if /usr/bin/test "${MM_RESTART_ON_SLEEP}" = "mythstandby" ; then
     /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Checking connection with backend host (${MM_MASTER_SERVER})..."
     i=0
     while /usr/bin/test $i -lt 10 ; do
-        echo "ping -t 1 -c 1 ${MM_MASTER_SERVER}"
-        have_conn=`ping -t 1 -c 1 "${MM_MASTER_SERVER}" | grep "Unreachable"`
+        no_conn=`ping -c 1 -w 1 -n ${MM_MASTER_SERVER} | grep -c "100% packet loss"`
         i=$((${i} + 1))
-        if /usr/bin/test -n "${have_conn}" ; then
+        if /usr/bin/test ${no_conn} = '1' ; then
             /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Waiting for connection with backend host...($i)"
         else
             /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Have connection with backend host (${MM_MASTER_SERVER})..."
             i=10
         fi
     done
-    /bin/sleep 5
     /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Pulling mythfrontend from standy mode..."
-    /usr/bin/irsend SIMULATE "0000000000000003 00 KEY_START mythtv"
+    /usr/bin/irsend SIMULATE "0000000000000002 00 KEY_EXIT mythtv"
+
 fi
 
 # Restart mailnotifier script
 if /usr/bin/test -n "${MM_MAIL_NOTIFY_NEW_MAILS}" ; then
     if /usr/bin/test "${MM_MAIL_NOTIFY_ALL_ON_RESUME}" = "yes" ; then
-        mailnotifypid=`/bin/ps ax -o ppid,pid,args | grep '/usr/bin/mailnotifier.pl' | grep -v grep | cut -c 7-12`
+        mailnotifypid=`/bin/ps ax -o ppid,pid,args | grep '/usr/bin/mailnotifier.py' | grep -v grep | cut -c 7-12`
         if /usr/bin/test -n "$mailnotifypid" ; then
             /bin/kill $mailnotifypid
             /bin/sleep 1
-            /usr/bin/perl /usr/bin/mailnotifier.pl ${MM_MAIL_NOTIFY_NEW_MAILS} &
-            /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Restarting MAILNOTIFIER.pl script..."
+            /usr/bin/python /usr/bin/mailnotifier.py ${MM_MAIL_NOTIFY_NEW_MAILS} &
+            /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Restarting MAILNOTIFIER.py script..."
         fi
     fi
 fi
@@ -431,6 +399,18 @@ if /usr/bin/test "x${MM_MINIMYTH_LOGROTATE}" = "xyes" ; then
     /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Rotating LOGs..."
     /usr/bin/mm_rotatelogs &
 fi
+
+# If enabled, restarting NTP after sleep
+if /usr/bin/test "x${MM_RESTART_NTP_ON_SLEEP}" = "xyes" ; then
+    if /usr/bin/test -e /var/lib/mm_sleep.$$/ntp ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Restarting NTP daemon..."
+        /etc/rc.d/init.d/time start
+        /bin/rm -f /var/lib/mm_sleep.$$/LCDd
+    fi
+fi
+
+# Checking is local time in good sync with BE server 
+/usr/bin/mm_check_time_sync &
 
 # Remove the state directory for mm_sleep.
 /bin/rm -fr   /var/lib/mm_sleep.$$

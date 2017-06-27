@@ -929,18 +929,28 @@ mm_cookiejar_save() {
         rm -f /tmp/google-chrome-config.tar.bz2
         if /usr/bin/test $? -ne 0 ; then
             /usr/bin/logger -s -t minimyth -p "local0.error" \
-                "[functions/mm_cookiejar_save] failed to upload the /google-chrome-config.tar.bz2 file!"
+                "[functions/mm_cookiejar_save] failed to upload the google-chrome-config.tar.bz2 file!"
             /bin/false
             return
-        else
-            /bin/true
+        fi
+    fi
+
+    if /usr/bin/test -d /home/minimyth/.mozilla ; then
+        cd /home/minimyth
+        tar -jcvvf /tmp/mozilla-firefox-config.tar.bz2 ./.mozilla*
+        mm_confrw_put "mozilla-firefox-config.tar.bz2" "/tmp/mozilla-firefox-config.tar.bz2"
+        rm -f /tmp/mozilla-firefox-config.tar.bz2
+        if /usr/bin/test $? -ne 0 ; then
+            /usr/bin/logger -s -t minimyth -p "local0.error" \
+                "[functions/mm_cookiejar_save] failed to upload the mozilla-firefox-config.tar.bz2 file!"
+            /bin/false
             return
         fi
     fi
 
     /usr/bin/logger -s -t minimyth -p "local0.error" \
-        "[functions/mm_cookiejar_save] MythBrowser cookiejar.txt file and /home/minimyth/.config directory are not existsing..."
-    /bin/false
+        "[functions/mm_cookiejar_save] MythBrowser cookiejar.txt file and Chrome/Mozilla configs uploaded sucessfuly..."
+    /bin/true
     return
 }
 
@@ -1801,7 +1811,7 @@ mm_x_applications_exit() {
             window=""
             xmacro=""
             case "${application}" in
-                mythfrontend)     xmacro='KeyStr Escape\n KeyStr Escape\n KeyStr Escape\n KeyStr Escape\n KeyStr Escape\n'     ;;
+                mythfrontend)     xmacro='KeyStr Escape\n KeyStr Escape\n KeyStrPress Control_L\n KeyStr Escape\n KeyStrRelease Control_L\n' ;;
                 fceu)             xmacro='KeyStr Escape\n'                                                                     ;;
                 jzintv)           xmacro='KeyStr F1\n'                                                                         ;;
                 mame)             xmacro='KeyStr Escape\n'                                                                     ;;
@@ -1840,38 +1850,22 @@ mm_x_applications_kill() {
     return 0
 }
 
-# Kill all applications in the list.
-mm_x_applications_kill9() {
-    local applications=`mm_x_applications_list "$@"`
-
-    local application
-
-    for application in ${applications} ; do
-        pids="`/bin/pidof ${application}`"
-        for pid in ${pids} ; do
-            /bin/kill -9 ${pid} > /dev/null 2>&1
-        done
-    done
-
-    return 0
-}
-
 # Wait until all applications in the list are dead.
 mm_x_applications_dead() {
     local applications=`mm_x_applications_list "$@"`
 
     local application
-    local dead
 
-    dead=0
-    while /usr/bin/test ${dead} -eq 0 ; do
-        dead=1
-        for application in ${applications} ; do
-            if /usr/bin/test -n "`/bin/pidof ${application}`" ; then
-                dead=0
-                /bin/sleep 1
-            fi
-        done
+    for application in ${applications} ; do
+        if /usr/bin/test -n "`/bin/pidof ${application}`" ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_applications_dead] Apps. not dying:[${application}]"
+            /bin/sleep 1
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_applications_dead] Killing [${application}]"
+            pids="`/bin/pidof ${application}`"
+            for pid in ${pids} ; do
+                /bin/kill -SIGKILL ${pid} > /dev/null 2>&1
+            done
+        fi
     done
 
     return 0
@@ -1945,9 +1939,9 @@ mm_x_start() {
     if /usr/bin/test "${MM_LIRC_IRXEVENT_ENABLED}" = "auto" ; then
         /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Attempting to auto-configure usage of irxevent"
             MM_LIRC_IRXEVENT_ENABLED='no'
-            if /usr/bin/test -e /etc/lircrc ; then
+            if /usr/bin/test -e /etc/lirc/lircrc ; then
                 # Only one level of includes is supported.
-                lircrc_files="/etc/lircrc `/bin/cat /etc/lircrc | /bin/grep -e '^include ' | /bin/sed -e 's%^include *%%'`"
+                lircrc_files="/etc/lirc/lircrc `/bin/cat /etc/lirc/lircrc | /bin/grep -e '^include ' | /bin/sed -e 's%^include *%%'`"
                 for lircrc_file in ${lircrc_files} ; do
                     if /bin/cat ${lircrc_file} | /bin/grep -q -e '^ *prog *= *irxevent' ; then
                         MM_LIRC_IRXEVENT_ENABLED='yes'
@@ -1961,7 +1955,7 @@ mm_x_start() {
         /usr/bin/test -n "`/bin/pidof irxevent`" && /usr/bin/killall irxevent
         /bin/sleep 5
         /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting irxevent daemon..."
-        /usr/bin/irxevent -d /etc/lircrc
+        /usr/bin/irxevent -d /etc/lirc/lircrc
     fi
 
     return 0
@@ -2018,8 +2012,8 @@ mm_x_stop() {
 #    mm_x_applications_dead ':everything'
 
     # Return mythfrontend to the main menu
-    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Asking MythTV to go to MainMenu..."
-    mm_x_applications_exit 'mythfrontend'
+    #/usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Asking MythTV to go to MainMenu..."
+    #mm_x_applications_exit 'mythfrontend'
 
     # Create the list of X applications that may have been started by xinit.
     applications="${applications} ${MM_X_MYTH_PROGRAM}"
@@ -2040,7 +2034,7 @@ mm_x_stop() {
         | /bin/grep -v 'xinit'                \
         | /bin/grep -v 'X'                    \
         | /bin/grep -v "${MM_X_MYTH_PROGRAM}"`
-    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Exiting apps. not keeing X alive:[${applications}]"
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Exiting apps. not keeping X alive:[${applications}]"
     mm_x_applications_kill ${applications}
     mm_x_applications_dead ${applications}
 
@@ -2068,7 +2062,7 @@ mm_x_stop() {
     # Create the list of remaining known X applications and wait for them to die.
     /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Finally stoping X and xinit."
     applications="xinit X"
-    mm_x_applications_dead ${applications}
+    mm_x_applications_kill ${applications}
 
     /usr/bin/killall -s SIGKILL X
 

@@ -1,0 +1,65 @@
+# ACTION=="add", ENV{mm_device_owner}=="?*", GOTO="end"
+
+ACTION!="add|remove", GOTO="end"
+ATTRS{name}=="eventlircd", GOTO="end"
+
+# The device is a USB based input event device.
+# If eventlircd has an evmap file for it, then it will take ownership of it.
+KERNEL=="event[0-9]*", SUBSYSTEM=="input", SUBSYSTEMS=="usb", GOTO="begin-usb"
+GOTO="end-usb"
+LABEL="begin-usb"
+ENV{ID_USB_INTERFACES}=="", IMPORT{builtin}="usb_id"
+PROGRAM="eventlircd_helper 03_$env{ID_VENDOR_ID}_$env{ID_MODEL_ID}.evmap", \
+  ENV{eventlircd_enable}="true", \
+  ENV{eventlircd_evmap}="03_$env{ID_VENDOR_ID}_$env{ID_MODEL_ID}.evmap"
+LABEL="end-usb"
+ENV{eventlircd_enable}=="true", GOTO="begin-generic"
+
+# The device is an rc created input event device.
+# Therefore, eventlircd will take ownership of it.
+KERNEL=="event[0-9]*", SUBSYSTEM=="input", SUBSYSTEMS=="rc", GOTO="begin-rc"
+GOTO="end-rc"
+LABEL="begin-rc"
+ENV{eventlircd_enable}="true"
+ENV{eventlircd_evmap}="default.evmap"
+LABEL="end-rc"
+ENV{eventlircd_enable}=="true", GOTO="begin-generic"
+
+# The device is an ATI remote input event device.
+# Therefore, eventlircd will take ownership of it.
+KERNEL=="event[0-9]*", SUBSYSTEM=="input", DRIVERS=="ati_remote" , GOTO="begin-ati"
+KERNEL=="event[0-9]*", SUBSYSTEM=="input", DRIVERS=="ati_remote2", GOTO="begin-ati"
+GOTO="end-ati"
+LABEL="begin-ati"
+ENV{eventlircd_enable}="true"
+ENV{eventlircd_evmap}="default.evmap"
+LABEL="end-ati"
+ENV{eventlircd_enable}=="true", GOTO="begin-generic"
+
+# Device is an lircd created input event device.
+# Therefore, eventlircd will take ownership of it.
+KERNEL=="event[0-9]*", SUBSYSTEM=="input", ATTRS{name}=="lircd", GOTO="begin-lircd"
+GOTO="end-lircd"
+LABEL="begin-lircd"
+ENV{eventlircd_enable}="true"
+ENV{eventlircd_evmap}="lircd.evmap"
+LABEL="end-lircd"
+ENV{eventlircd_enable}=="true", GOTO="begin-generic"
+
+# The device is an bdremoteng created input event device.
+# Therefore, eventlircd will take ownership of it.
+KERNEL=="event[0-9]*", SUBSYSTEM=="input", ATTRS{name}=="bdremoteng", GOTO="begin-bdremoteng"
+GOTO="end-bdremoteng"
+LABEL="begin-bdremoteng"
+ENV{eventlircd_enable}="true"
+ENV{eventlircd_evmap}="bdremoteng.evmap"
+LABEL="end-bdremoteng"
+ENV{eventlircd_enable}=="true", GOTO="begin-generic"
+
+LABEL="begin-generic"
+
+ENV{eventlircd_enable}!="true", GOTO="end"
+@MM_LIRC_WAKEUP_TRUE@SUBSYSTEMS=="usb", RUN+="wakeup_enable"
+ENV{mm_device_owner}="eventlircd"
+
+LABEL="end"

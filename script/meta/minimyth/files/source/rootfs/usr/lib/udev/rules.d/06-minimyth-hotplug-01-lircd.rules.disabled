@@ -1,0 +1,36 @@
+# ACTION=="add', ENV{mm_device_owner}=="*?", GOTO="end"
+
+ACTION!="add|remove", GOTO="end"
+
+# Devices that are handled by LIRC kernel drivers.
+KERNEL=="lirc[0-9]*", SUBSYSTEM=="lirc", GOTO="begin-lirc"
+GOTO="end-lirc"
+LABEL="begin-lirc"
+ENV{lircd_driver}="devinput"
+ENV{lircd_conf}="/etc/lirc/lircd.conf"
+SUBSYSTEMS=="rc", ENV{lircd_uinput_disable}="true"
+LABEL="end-lirc"
+ENV{lircd_driver}!="", GOTO="begin-generic"
+
+# Devices that are USB HID devices, are not treated as input event devices and are not handled by LIRC kernel drivers.
+KERNEL=="hiddev[0-9]*", SUBSYSTEM=="usb", GOTO="begin-usb"
+GOTO="end-usb"
+LABEL="begin-usb"
+ENV{ID_USB_INTERFACES}=="", IMPORT{builtin}="usb_id"
+ENV{ID_VENDOR_ID}=="0fe9", ENV{ID_MODEL_ID}=="9010", \
+  ENV{lircd_driver}="dvico", \
+  ENV{lircd_conf}="/etc/lirc/lircd.conf"
+LABEL="end-usb"
+ENV{lircd_driver}!="", GOTO="begin-generic"
+
+LABEL="begin-generic"
+
+ENV{lircd_driver}=="", GOTO="end"
+ENV{lircd_conf}=="", GOTO="end"
+@MM_LIRC_WAKEUP_TRUE@SUBSYSTEMS=="usb", RUN+="wakeup_enable"
+RUN+="lircd_helper"
+ENV{mm_device_owner}="lircd"
+
+RUN+="/usr/bin/mm_manage notify_added_remote"
+
+LABEL="end"

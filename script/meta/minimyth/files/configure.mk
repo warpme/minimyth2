@@ -7,6 +7,7 @@ GAR_EXTRA_CONF += kernel-$(mm_KERNEL_VERSION)/linux/package-api.mk perl/perl/pac
 include ../../gar.mk
 
 MM_INIT_START_SEQUENTIAL := \
+    hotplug \
     master \
     audio \
     video \
@@ -31,7 +32,7 @@ MM_INIT_START_PARALLEL := \
     avahi \
     mail \
     voip \
-    chrome \
+    browsers \
     updates \
     mythdb_buffer_delete
 MM_INIT_KILL := \

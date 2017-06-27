@@ -11,18 +11,6 @@ conf_write_S_LIRC() {
 
     /bin/rm -rf /tmp/init.conf.lirc
 
-    if /usr/bin/test -z "${MM_LIRC_DRIVER}" ; then
-        MM_LIRC_DRIVER='none'
-    fi
-    if /usr/bin/test -z "${MM_LIRC_DEVICE}" ; then
-        MM_LIRC_DEVICE='auto'
-    fi
-    if /usr/bin/test -z "${MM_LIRC_KERNEL_MODULE}" ; then
-        MM_LIRC_KERNEL_MODULE='auto'
-    fi
-    if /usr/bin/test -z "${MM_LIRC_KERNEL_MODULE_OPTIONS}" ; then
-        MM_LIRC_KERNEL_MODULE_OPTIONS='auto'
-    fi
     if /usr/bin/test -z "${MM_LIRC_IREXEC_ENABLED}" ; then
         MM_LIRC_IREXEC_ENABLED='auto'
     fi
@@ -35,6 +23,9 @@ conf_write_S_LIRC() {
     if /usr/bin/test -z "${MM_LIRC_WAKEUP_ENABLED}" ; then
         MM_LIRC_WAKEUP_ENABLED='yes'
     fi
+    if /usr/bin/test -z "${MM_LIRC_FETCH_OPTIONS_CONF}" ; then
+        MM_LIRC_FETCH_OPTIONS_CONF='no'
+    fi
     if /usr/bin/test -z "${MM_LIRC_FETCH_LIRCD_CONF}" ; then
         MM_LIRC_FETCH_LIRCD_CONF='no'
     fi
@@ -44,12 +35,11 @@ conf_write_S_LIRC() {
     if /usr/bin/test -z "${MM_LIRC_FETCH_LIRCRC}"     ; then
         MM_LIRC_FETCH_LIRCRC='no'
     fi
-    if /usr/bin/test -z "${MM_LIRC_AUTO_ENABLED}" ; then
-        if /usr/bin/test "${MM_LIRC_DRIVER}" = "none" ; then
-            MM_LIRC_AUTO_ENABLED='yes'
-        else
-            MM_LIRC_AUTO_ENABLED='no'
-        fi
+    if /usr/bin/test -z "${MM_LIRC_USE_DEVINPUT}"     ; then
+        MM_LIRC_USE_DEVINPUT='yes'
+    fi
+    if /usr/bin/test -z "${MM_NETFLIX_ENABLED}" ; then
+        MM_NETFLIX_ENABLED='no'
     fi
 
     if /usr/bin/test -z "${MM_EXTERNAL_VOLUME_DOWN}" && \
@@ -58,107 +48,36 @@ conf_write_S_LIRC() {
         MM_EXTERNAL_VOLUME_ENABLED=''
     else
         MM_EXTERNAL_VOLUME_ENABLED='yes'
+        MM_LIRC_USE_DEVINPUT='no'
     fi
     if /usr/bin/test -z "${MM_EXTERNAL_AMPLI_POWER_ON}" && \
        /usr/bin/test -z "${MM_EXTERNAL_AMPLI_POWER_OFF}" ; then
         MM_EXTERNAL_AMPLI_POWER_ENABLED=''
     else
         MM_EXTERNAL_AMPLI_POWER_ENABLED='yes'
+        MM_LIRC_USE_DEVINPUT='no'
     fi
     if /usr/bin/test -z "${MM_EXTERNAL_TV_POWER_ON}" && \
        /usr/bin/test -z "${MM_EXTERNAL_TV_POWER_OFF}" ; then
         MM_EXTERNAL_TV_POWER_ENABLED=''
     else
         MM_EXTERNAL_TV_POWER_ENABLED='yes'
+        MM_LIRC_USE_DEVINPUT='no'
     fi
 
-    # Read LIRC driver specific configuration file,
-    # but do not allow the values to override values in the MiniMyth configuration file.
-    if /usr/bin/test ! "${MM_LIRC_DRIVER}" = "none" && \
-       /usr/bin/test -r /etc/lirc.d/driver.conf.d/driver.conf.${MM_LIRC_DRIVER} ; then
-        /bin/rm -rf /tmp/driver.conf.${MM_LIRC_DRIVER}~
-        /bin/cat /etc/lirc.d/driver.conf.d/driver.conf.${MM_LIRC_DRIVER} \
-            | /bin/sed -e 's%#.*$%%g' \
-            | /bin/sed -e 's%^  *%%'  \
-            | /bin/sed -e 's%^\(.*\)$%local _\1%' \
-            > /tmp/driver.conf.${MM_LIRC_DRIVER}~
-        . /tmp/driver.conf.${MM_LIRC_DRIVER}~
-        /bin/rm -rf /tmp/driver.conf.${MM_LIRC_DRIVER}~
- 
-       if /usr/bin/test "${MM_LIRC_DEVICE}" = "auto" ; then
-           MM_LIRC_DEVICE="${_MM_LIRC_DEVICE}"
-       fi
-       if /usr/bin/test "${MM_LIRC_KERNEL_MODULE}" = "auto" ; then
-           MM_LIRC_KERNEL_MODULE="${_MM_LIRC_KERNEL_MODULE}"
-       fi
-       if /usr/bin/test "${MM_LIRC_KERNEL_MODULE_OPTIONS}" = "auto" ; then
-           MM_LIRC_KERNEL_MODULE_OPTIONS="${_MM_LIRC_KERNEL_MODULE_OPTIONS}"
-       fi
-    fi
+    MM_LIRC_DEVICE_LIST="${MM_LIRC_DEVICE_LIST} `mm_detect_state_get 'lirc' | mm_uniq`"
 
-    # Convert 'auto' to empty.
-    if /usr/bin/test "${MM_LIRC_DEVICE}" = "auto" ; then
-        MM_LIRC_DEVICE=
-    fi
-    if /usr/bin/test "${MM_LIRC_KERNEL_MODULE}" = "auto" ; then
-        MM_LIRC_KERNEL_MODULE=
-    fi
-    if /usr/bin/test "${MM_LIRC_KERNEL_MODULE_OPTIONS}" = "auto" ; then
-        MM_LIRC_KERNEL_MODULE_OPTIONS=
-    fi
-
-    # Convert 'none' to empty.
-    if /usr/bin/test "${MM_LIRC_DRIVER}" = "none" ; then
-        MM_LIRC_DRIVER=
-    fi
-    if /usr/bin/test "${MM_LIRC_DEVICE}" = "none" ; then
-        MM_LIRC_DEVICE=
-    fi
-    if /usr/bin/test "${MM_LIRC_KERNEL_MODULE}" = "none" ; then
-        MM_LIRC_KERNEL_MODULE=
-    fi
-    if /usr/bin/test "${MM_LIRC_KERNEL_MODULE_OPTIONS}" = "none" ; then
-        MM_LIRC_KERNEL_MODULE_OPTIONS=
-    fi
-
-    # If the manual LIRC driver is not 'irtrans',
-    # then create LIRC device list.
-    # If the manually configured LIRC driver is 'irtrans',
-    # then the IRTrans server will act as the LIRC device
-    # so no LIRC device list is created.
-    MM_LIRC_DEVICE_LIST=
-    if /usr/bin/test ! "${MM_LIRC_DRIVER}" = "irtrans" ; then
-        if /usr/bin/test -n "${MM_LIRC_DEVICE}" && /usr/bin/test -n "${MM_LIRC_DRIVER}" ; then
-            MM_LIRC_DEVICE_LIST="${MM_LIRC_DEVICE_LIST} ${MM_LIRC_DEVICE},${MM_LIRC_DRIVER}"
-        fi
-        if /usr/bin/test "${MM_LIRC_AUTO_ENABLED}" = "yes" ; then
-            MM_LIRC_DEVICE_LIST="${MM_LIRC_DEVICE_LIST} `mm_detect_state_get 'lirc' | mm_uniq`"
-        fi
-    fi
-
-    device_list=
-    for device_item in ${MM_LIRC_DEVICE_LIST} ; do
-        device=`/bin/echo "${device_item}" | /usr/bin/cut -d ',' -f 1`
-        if ! /bin/echo " ${MM_LIRC_DEVICE_BLACKLIST} " | /bin/grep -q " ${device} " ; then
-            device_list="${device_list} ${device_item}"
-        fi
-    done
-    MM_LIRC_DEVICE_LIST="${device_list}"
-
-    conf_variable_write "${conf_file}" MM_LIRC_AUTO_ENABLED             "${MM_LIRC_AUTO_ENABLED}"
-    conf_variable_write "${conf_file}" MM_LIRC_DEVICE_BLACKLIST         "${MM_LIRC_DEVICE_BLACKLIST}"
-    conf_variable_write "${conf_file}" MM_LIRC_DRIVER                   "${MM_LIRC_DRIVER}"
-    conf_variable_write "${conf_file}" MM_LIRC_DEVICE                   "${MM_LIRC_DEVICE}"
-    conf_variable_write "${conf_file}" MM_LIRC_KERNEL_MODULE            "${MM_LIRC_KERNEL_MODULE}"
-    conf_variable_write "${conf_file}" MM_LIRC_KERNEL_MODULE_OPTIONS    "${MM_LIRC_KERNEL_MODULE_OPTIONS}"
     conf_variable_write "${conf_file}" MM_LIRC_IREXEC_ENABLED           "${MM_LIRC_IREXEC_ENABLED}"
     conf_variable_write "${conf_file}" MM_LIRC_IRXEVENT_ENABLED         "${MM_LIRC_IRXEVENT_ENABLED}"
     conf_variable_write "${conf_file}" MM_LIRC_SLEEP_ENABLED            "${MM_LIRC_SLEEP_ENABLED}"
     conf_variable_write "${conf_file}" MM_LIRC_WAKEUP_ENABLED           "${MM_LIRC_WAKEUP_ENABLED}"
+    conf_variable_write "${conf_file}" MM_LIRC_FETCH_OPTIONS_CONF       "${MM_LIRC_FETCH_OPTIONS_CONF}"
     conf_variable_write "${conf_file}" MM_LIRC_FETCH_LIRCD_CONF         "${MM_LIRC_FETCH_LIRCD_CONF}"
     conf_variable_write "${conf_file}" MM_LIRC_FETCH_IRBLASTER_CONF     "${MM_LIRC_FETCH_IRBLASTER_CONF}"
     conf_variable_write "${conf_file}" MM_LIRC_FETCH_LIRCRC             "${MM_LIRC_FETCH_LIRCRC}"
     conf_variable_write "${conf_file}" MM_LIRC_DEVICE_LIST              "${MM_LIRC_DEVICE_LIST}"
+    conf_variable_write "${conf_file}" MM_LIRC_USE_DEVINPUT             "${MM_LIRC_USE_DEVINPUT}"
+    conf_variable_write "${conf_file}" MM_NETFLIX_ENABLED               "${MM_NETFLIX_ENABLED}"
 
     conf_variable_write "${conf_file}" MM_EXTERNAL_AMPLI_POWER_OFF      "${MM_EXTERNAL_AMPLI_POWER_OFF}"
     conf_variable_write "${conf_file}" MM_EXTERNAL_AMPLI_POWER_ON       "${MM_EXTERNAL_AMPLI_POWER_ON}"
@@ -172,26 +91,160 @@ conf_write_S_LIRC() {
     conf_variable_write "${conf_file}" MM_EXTERNAL_TV_POWER_ENABLED     "${MM_EXTERNAL_TV_POWER_ENABLED}"
     conf_variable_write "${conf_file}" MM_EXTERNAL_POWER_ON_MM_BOOT     "${MM_EXTERNAL_POWER_ON_MM_BOOT}"
 
+    if /usr/bin/test "${MM_LIRC_FETCH_OPTIONS_CONF}" = "yes" ; then
+
+        /bin/rm -f /etc/lirc/lirc_options.conf
+
+        mm_confro_get /lirc_options.conf /etc/lirc/lirc_options.conf
+
+        if /usr/bin/test ! -e /etc/lirc/lirc_options.conf ; then
+            mm_message_output err "error: failed to fetch 'lirc_options.conf' file."
+        fi
+
+    fi
+
     if /usr/bin/test "${MM_LIRC_FETCH_LIRCD_CONF}" = "yes" ; then
-        /bin/rm -f /etc/lircd.conf
-        mm_confro_get /lircd.conf /etc/lircd.conf
-        if /usr/bin/test ! -e /etc/lircd.conf ; then
+
+        /bin/rm -f /etc/lirc/lircd.conf
+
+        mm_confro_get /lircd.conf /etc/lirc/lircd.conf
+
+        if /usr/bin/test ! -e /etc/lirc/lircd.conf ; then
             mm_message_output err "error: failed to fetch 'lircd.conf' file."
         fi
+
     fi
+
     if /usr/bin/test "${MM_LIRC_FETCH_LIRCRC}" = "yes" ; then
-        /bin/rm -f /etc/lircrc
-        mm_confro_get /lircrc /etc/lircrc
-        if /usr/bin/test ! -e /etc/lircrc ; then
+
+        /bin/rm -f /etc/lirc/lircrc
+
+        mm_confro_get /lircrc /etc/lirc/lircrc
+
+        if /usr/bin/test ! -e /etc/lirc/lircrc ; then
             mm_message_output err "error: failed to fetch 'lircrc' file."
         fi
+
     fi
+
     if /usr/bin/test "${MM_LIRC_FETCH_IRBLASTER_CONF}" = "yes" ; then
-        /bin/rm -f /etc/lirc.d/irblaster.conf.d/lircd.conf.user.equipment
-        mm_confro_get /lircd-irblaster.conf /etc/lirc.d/irblaster.conf.d/lircd.conf.user.equipment
-        if /usr/bin/test ! -e /etc/lirc.d/irblaster.conf.d/lircd.conf.user.equipment ; then
+
+        /bin/rm -f /etc/lirc/irblaster.conf.d/lircd.conf.user.equipment
+
+        mm_confro_get /lircd-irblaster.conf /etc/lirc/irblaster.conf.d/lircd.conf.user.equipment
+
+        if /usr/bin/test ! -e /etc/lirc/irblaster.conf.d/lircd.conf.user.equipment ; then
             mm_message_output err "error: failed to fetch 'lircd-irblaster.conf' file."
         fi
+
+    fi
+
+    # If there is no lircd.conf file, then create it.
+    if /usr/bin/test ! -e /etc/lirc/lircd.conf ; then
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/S_LIRC] Will autogenerate lircd.conf..."
+
+        if /usr/bin/test "x${MM_LIRC_USE_DEVINPUT}" = "xyes" ; then
+
+            /bin/cp -f /etc/lirc/lircd.conf.d/lircd.devinput /etc/lirc/lircd.conf
+
+        else
+
+            /bin/echo "# autogenerated" >> /etc/lirc/lircd.conf
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/S_LIRC] lircd.conf: adding lircd.conf.d/*.conf files..."
+            /bin/echo "include \"lircd.conf.d/lircd.conf*\"" >> /etc/lirc/lircd.conf
+
+            if /usr/bin/test -n "${MM_EXTERNAL_AMPLI_POWER_ENABLED}" || \
+               /usr/bin/test -n "${MM_EXTERNAL_VOLUME_ENABLED}"      || \
+               /usr/bin/test -n "${MM_EXTERNAL_TV_POWER_ENABLED}" ; then
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/S_LIRC] lircd.conf: adding irblaster.conf.d/*.conf files..."
+                /bin/echo "include \"irblaster.conf.d/lircd.conf*\"" >> /etc/lirc/lircd.conf
+            fi
+        fi
+    fi
+
+    # If there is no lircrc file, then create it.
+    if /usr/bin/test ! -e /etc/lirc/lircrc ; then
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/S_LIRC] Will use build-in lircrc..."
+
+        /bin/echo "# autogenerated" >> /etc/lirc/lircrc
+        /bin/echo "include /etc/lirc/lircrc.d/lircrc.mythtv" >> /etc/lirc/lircrc
+        /bin/echo "include /etc/lirc/lircrc.d/lircrc.minimyth" >> /etc/lirc/lircrc
+
+        if /usr/bin/test "${MM_LIRC_SLEEP_ENABLED}" = "yes" ; then
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/S_LIRC] Including in lircrc KEY_POWER as sleep button..."
+            /bin/echo "include /etc/lirc/lircrc.d/lircrc.power.sleep" >> /etc/lirc/lircrc
+
+        fi
+
+        if /usr/bin/test "${MM_EXTERNAL_VOLUME_ENABLED}" = "yes" ; then
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/S_LIRC] Defining in lircrc KEY_VOLUMEUP[DOWN] for irblaster..."
+            /bin/echo "include /etc/lirc/lircrc.d/lircrc.volume.external" >> /etc/lirc/lircrc
+
+        else
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/S_LIRC] Defining in lircrc KEY_VOLUMEUP[DOWN] for internal vol.ctrl..."
+            /bin/echo "include /etc/lirc/lircrc.d/lircrc.volume.internal" >> /etc/lirc/lircrc
+
+        fi
+
+        if /usr/bin/test "${MM_VOIP_ENABLED}" = "yes" ; then
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/S_LIRC] Including in lircrc KEY_1/2/3/4 for SIP Phone functions..."
+            /bin/echo "include /etc/lirc/lircrc.d/lircrc.phone" >> /etc/lirc/lircrc
+
+        fi
+
+        if /usr/bin/test "${MM_PLUGIN_GAME_ENABLED}" = "yes" ; then
+
+            if /usr/bin/test "${MM_LIRC_IRXEVENT_ENABLED}" = "auto"  || \
+               /usr/bin/test "${MM_LIRC_IRXEVENT_ENABLED}" = "yes" ; then
+
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/S_LIRC] Including in lircrc game emulators keys..."
+                /bin/echo "include /etc/lirc/lircrc.d/lircrc.game.emulator.fceu" >> /etc/lirc/lircrc
+                /bin/echo "include /etc/lirc/lircrc.d/lircrc.game.emulator.jzintv" >> /etc/lirc/lircrc
+                /bin/echo "include /etc/lirc/lircrc.d/lircrc.game.emulator.mame" >> /etc/lirc/lircrc
+                /bin/echo "include /etc/lirc/lircrc.d/lircrc.game.emulator.mednafen" >> /etc/lirc/lircrc
+                /bin/echo "include /etc/lirc/lircrc.d/lircrc.game.emulator.stella" >> /etc/lirc/lircrc
+
+            fi
+
+        fi
+
+        if /usr/bin/test "${MM_NETFLIX_ENABLED}" = "yes" ; then
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/S_LIRC] Including in lircrc Google/FireFox keys..."
+            /bin/echo "include /etc/lirc/lircrc.d/lircrc.netflix" >> /etc/lirc/lircrc
+
+        fi
+
+        for file in `/bin/ls /etc/lirc/lircrc.d/lircrc.remote.* 2> /dev/null` ; do
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/S_LIRC] lircrc: adding ${file}"
+            /bin/echo "include ${file}" >> /etc/lirc/lircrc
+
+        done
+    fi
+
+    if /usr/bin/test ! "x${MM_LIRC_USE_DEVINPUT}" = "xyes" ; then
+
+        /bin/sed -i -e 's%=\"devinput\"%=\"default\"%' /usr/lib/udev/rules.d/06-minimyth-hotplug-01-lircd.rules.disabled
+
+    fi
+
+    if /usr/bin/test "x${MM_LIRC_WAKEUP_ENABLED}" = "xyes" ; then
+
+        /bin/sed -i -e 's%@MM_LIRC_WAKEUP_TRUE@%%' /usr/lib/udev/rules.d/06-minimyth-hotplug-01-lircd.rules.disabled
+        /bin/sed -i -e 's%@MM_LIRC_WAKEUP_TRUE@%%' /usr/lib/udev/rules.d/06-minimyth-hotplug-02-eventlircd.rules.disabled
+
+    else
+
+        /bin/sed -i -e 's%@MM_LIRC_WAKEUP_TRUE@%# %' /usr/lib/udev/rules.d/06-minimyth-hotplug-01-lircd.rules.disabled
+        /bin/sed -i -e 's%@MM_LIRC_WAKEUP_TRUE@%# %' /usr/lib/udev/rules.d/06-minimyth-hotplug-02-eventlircd.rules.disabled
+
     fi
 
     return 0
