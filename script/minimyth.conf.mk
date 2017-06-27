@@ -2,6 +2,7 @@
 # Values in this file can be overridden by including the desired value in
 # '$(HOME)/.minimyth/minimyth.conf.mk'.
 #-------------------------------------------------------------------------------
+
 -include $(HOME)/.minimyth/minimyth.conf.mk
 
 # The version of MiniMyth.
@@ -13,7 +14,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.8.4.r395
+mm_VERSION_MINIMYTH ?= 8.10.0.r511
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -42,7 +43,7 @@ mm_GRAPHICS               ?= intel nvidia vmware radeon
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
 # 'flash', 'mplayer', 'mplayer-svn', 'voip', 'bumblebee', 'perl', 'python', 'mame',
-# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'netflix', 'debug'.
+# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'chrome', 'firefox', 'debug'.
 mm_SOFTWARE               ?= mythplugins \
                              perl \
                              python \
@@ -118,12 +119,12 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '4.7' and '4.9'
-mm_KERNEL_HEADERS_VERSION ?= 4.9
+# Valid values are '4.9', '4.11' and '4.12'
+mm_KERNEL_HEADERS_VERSION ?= 4.11
 
 # The version of kernel to use.
-# Valid values are '4.7' and '4.9'
-mm_KERNEL_VERSION         ?= 4.9
+# Valid values are '4.9', '4.11' and '4.12'
+mm_KERNEL_VERSION         ?= 4.11
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -133,6 +134,7 @@ mm_KERNEL_CONFIG          ?=
 # The version of Myth to use.
 # Valid values are '0.27', '0.28' and 'master'
 mm_MYTH_VERSION           ?= master
+# mm_MYTH_VERSION           ?= 0.28
 
 # The version of the NVIDIA driver.
 # Valid values are '340.102', '375.20'
@@ -215,4 +217,5 @@ export PATCH_GET
 
 # Set the number of parallel makes to the number of processors.
 PARALLELMFLAGS=-j$(shell cat /proc/cpuinfo | grep -c '^processor[[:cntrl:]]*:' | sed -e 's/2/3/' -e 's/4/5/' -e 's/8/9/')
+#PARALLELMFLAGS=-j1
 export PARALLELMFLAGS
