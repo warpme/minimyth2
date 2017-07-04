@@ -193,6 +193,9 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@echo 'generating supported video HW list'
 	@cat $(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt $(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt $(DESTDIR)/usr/share/supported-nvidia-gfx-hardware.txt > $(top_source)/html/document-supported-gfx-hardware.txt
 	@grep "PCI_ID" -c $(top_source)/html/document-supported-gfx-hardware.txt | sed -e 's/^/\nTotal video chips supported: /g' >> $(top_source)/html/document-supported-gfx-hardware.txt
+	@echo 'generating supported IR remotes list'
+	@cp -pd $(DESTDIR)/usr/share/supported-IR-remotes.txt $(top_source)/html/document-supported-IR-remotes.txt
+	@grep -c ^ $(top_source)/html/document-supported-IR-remotes.txt | sed -e 's/^/\nTotal IR receivers supported: /g' >> $(top_source)/html/document-supported-IR-remotes.txt
 	@# Copy HTML files.
 	@find $(top_source)/html -depth -type d \
 		| sed -e 's%^\$(top_source)/html%$@~/srv/www%' \
@@ -269,10 +272,10 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	        $@~/srv/www/software/build/licenses
 	@# Make user 'minimyth' configuration links.
 	@mkdir -m 0755 -p $@~/home/minimyth
-	@ln -sf $(patsubst /%,%,$(call DIRSTODOTS,/home/minimyth))$(sysconfdir)/lircrc \
+	@ln -sf $(patsubst /%,%,$(call DIRSTODOTS,/home/minimyth))$(sysconfdir)/lirc/lircrc \
 	        $@~/home/minimyth/.lircrc
 	@mkdir -m 0755 -p $@~/home/minimyth/.mythtv
-	@ln -sf $(patsubst /%,%,$(call DIRSTODOTS,/home/minimyth/.mythtv))$(sysconfdir)/lircrc \
+	@ln -sf $(patsubst /%,%,$(call DIRSTODOTS,/home/minimyth/.mythtv))$(sysconfdir)/lirc/lircrc \
 	        $@~/home/minimyth/.mythtv/lircrc
 	@# Make perl init script links.
 	@mkdir -m 0775 -p                $@~$(sysconfdir)/rc.d/rc.d
@@ -696,8 +699,17 @@ $(top_build)/stage/release-notes.txt: $(top_source)/html/document-release-notes.
 	@touch $@~
 	@mv $@~ $@
 
-$(top_build)/stage/readme.txt: $(top_source)/share-readme.txt
-	@echo "copying readme file"
+$(top_build)/stage/supported-gfx-hardware.txt: $(top_source)/html/document-supported-gfx-hardware.txt
+	@echo "supported-gfx-hardware.txt file"
+	@mkdir -m 0755 -p $(@D)
+	@rm -rf $@ $@~
+	@cp -pdR $< $@~
+	@chmod 0644 $@~
+	@touch $@~
+	@mv $@~ $@
+
+$(top_build)/stage/supported-IR-remotes.txt: $(top_source)/html/document-supported-IR-remotes.txt
+	@echo "supported-IR-remotes.txt file"
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
 	@cp -pdR $< $@~
@@ -816,7 +828,7 @@ $(top_build)/stage/share/nfs-$(mm_NAME):
 	@touch $@~
 	@mv $@~ $@
 
-$(top_build)/stage/share/ram-$(mm_NAME): \
+$(top_build)/stage/share/ram-$(mm_NAME):   \
 		$(top_build)/stage/version \
 		$(top_build)/stage/html    \
 		$(top_build)/stage/scripts \
@@ -824,7 +836,7 @@ $(top_build)/stage/share/ram-$(mm_NAME): \
 		$(top_build)/stage/rootfs  \
 		$(top_build)/stage/themes
 
-$(top_build)/stage/share/nfs-$(mm_NAME): \
+$(top_build)/stage/share/nfs-$(mm_NAME):          \
 		$(top_build)/stage/version        \
 		$(top_build)/stage/html           \
 		$(top_build)/stage/scripts        \
@@ -832,10 +844,14 @@ $(top_build)/stage/share/nfs-$(mm_NAME): \
 		$(top_build)/stage/rootfs.tar.bz2 \
 		$(top_build)/stage/themes.tar.bz2
 
-$(top_build)/stage/local/ram-$(mm_NAME): \
-		$(top_build)/stage/version    \
-		$(top_build)/stage/kernel     \
-		$(top_build)/stage/rootfs
+$(top_build)/stage/local/ram-$(mm_NAME):             \
+		$(top_build)/stage/version           \
+		$(top_build)/stage/kernel            \
+		$(top_build)/stage/rootfs            \
+		$(top_build)/stage/changelog.txt     \
+		$(top_build)/stage/release-notes.txt \
+		$(top_build)/stage/supported-gfx-hardware.txt \
+		$(top_build)/stage/supported-IR-remotes.txt
 
 $(top_build)/stage/local/nfs-$(mm_NAME): \
 		$(top_build)/stage/version        \
@@ -858,7 +874,9 @@ $(top_build)/local: \
 		$(if $(filter yes,$(mm_DISTRIBUTION_NFS)), $(top_build)/stage/local/nfs-$(mm_NAME).tar.bz2)     \
 		$(if $(filter yes,$(mm_DISTRIBUTION_NFS)), $(top_build)/stage/local/nfs-$(mm_NAME).tar.bz2.md5) \
 		$(top_build)/stage/changelog.txt                                                                \
-		$(top_build)/stage/release-notes.txt
+		$(top_build)/stage/release-notes.txt                                                            \
+		$(top_build)/stage/supported-gfx-hardware.txt                                                   \
+		$(top_build)/stage/supported-IR-remotes.txt
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
 	@mkdir -m 0755 -p $@~
@@ -880,6 +898,8 @@ $(top_build)/share: \
 		$(if $(filter yes,$(mm_DISTRIBUTION_NFS)), $(top_build)/stage/share/nfs-$(mm_NAME).tar.bz2.md5) \
 		$(top_build)/stage/changelog.txt                                                                \
 		$(top_build)/stage/release-notes.txt                                                            \
+		$(top_build)/stage/supported-gfx-hardware.txt                                                   \
+		$(top_build)/stage/supported-IR-remotes.txt                                                     \
 		$(top_build)/stage/readme.txt
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
@@ -936,10 +956,30 @@ install: build
 				         $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/rootfs                ; \
 				cp -pdRfv $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH).tmp/ram-$(mm_NAME)/rootfs \
 				         $(mm_LOCAL_FILES)/rootfs                                     ; \
+				cp -pdRv  $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH).tmp/ram-$(mm_NAME)/changelog.txt \
+				         $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/changelog.txt         ; \
+				cp -pdRfv $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH).tmp/ram-$(mm_NAME)/changelog.txt \
+				         $(mm_LOCAL_FILES)/changelog.txt                              ; \
+				cp -pdRv  $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH).tmp/ram-$(mm_NAME)/release-notes.txt \
+				         $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/release-notes.txt     ; \
+				cp -pdRfv $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH).tmp/ram-$(mm_NAME)/release-notes.txt \
+				         $(mm_LOCAL_FILES)/release-notes.txt                          ; \
+				cp -pdRv  $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH).tmp/ram-$(mm_NAME)/supported-gfx-hardware.txt \
+				         $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/supported-gfx-hardware.txt     ; \
+				cp -pdRfv $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH).tmp/ram-$(mm_NAME)/supported-gfx-hardware.txt \
+				         $(mm_LOCAL_FILES)/supported-gfx-hardware.txt                 ; \
+				cp -pdRv  $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH).tmp/ram-$(mm_NAME)/supported-IR-remotes.txt \
+				         $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/supported-IR-remotes.txt     ; \
+				cp -pdRfv $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH).tmp/ram-$(mm_NAME)/supported-IR-remotes.txt \
+				         $(mm_LOCAL_FILES)/supported-IR-remotes.txt                 ; \
 				cp -pdRfv $(top_build)/local/changelog.txt                              \
 				         $(mm_LOCAL_FILES)/changelog                                  ; \
 				cp -pdRfv $(top_build)/local/release-notes.txt                          \
 				         $(mm_LOCAL_FILES)/release-notes                              ; \
+				cp -pdRfv $(top_build)/local/supported-gfx-hardware.txt                 \
+				         $(mm_LOCAL_FILES)/supported-gfx-hardware.txt                 ; \
+				cp -pdRfv $(top_build)/local/supported-IR-remotes.txt                   \
+				         $(mm_LOCAL_FILES)/supported-IR-remotes.txt                   ; \
 				                                                                        \
 				rm -rfv   $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH).tmp                  ; \
 			fi                                                                            ; \
