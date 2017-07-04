@@ -1,0 +1,37 @@
+#!/bin/sh
+################################################################################
+# hotplug
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/hotplug] Starting..."
+
+    # Enable configuration hotplug udev rules
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/hotplug] enabling hotplug udev rules..."
+    file_list=`/bin/ls -1 /usr/lib/udev/rules.d/06-minimyth-*.rules.disabled | /bin/sed -e 's%\.disabled%%'`
+    for file in ${file_list} ; do
+        /bin/mv -f ${file}.disabled ${file}
+    done
+
+    # Trigger udev with the additional udev rules that handle hotplug auto-detection
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/hotplug] retrigering udev with enabled hotplug udev rules..."
+    /usr/bin/udevadm control --reload
+    /usr/bin/udevadm trigger --action=add
+    /usr/bin/udevadm settle --timeout=60
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/hotplug] Started with return code=0..."
+
+    return 0
+}
+
+stop() {
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/hotplug] Stopping..."
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0
