@@ -1,10 +1,9 @@
 GARNAME = lirc
-GARVERSION = 0.10.0rc1
+GARVERSION = 0.10.0-rc3
 CATEGORIES = system
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/LIRC/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES  = $(DISTNAME)-remove-env-for-python3.patch
-PATCHFILES  += $(DISTNAME)-disable-irsend-debug-logging.patch
+PATCHFILES  = $(DISTNAME)-disable-irsend-debug-logging.patch
 
 LICENSE = GPL2
 
