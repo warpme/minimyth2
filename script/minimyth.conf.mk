@@ -14,7 +14,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.10.0.r511
+mm_VERSION_MINIMYTH ?= 8.10.2.r529
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -120,11 +120,11 @@ mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
 # Valid values are '4.9', '4.11' and '4.12'
-mm_KERNEL_HEADERS_VERSION ?= 4.11
+mm_KERNEL_HEADERS_VERSION ?= 4.12
 
 # The version of kernel to use.
 # Valid values are '4.9', '4.11' and '4.12'
-mm_KERNEL_VERSION         ?= 4.11
+mm_KERNEL_VERSION         ?= 4.12
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
