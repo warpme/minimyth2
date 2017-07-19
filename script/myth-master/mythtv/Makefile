@@ -33,7 +33,6 @@ PATCHFILES += 0037-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-
 PATCHFILES += 0100-minimyth.patch
 PATCHFILES += 0101-programid.patch
 PATCHFILES += 0102-maintain_menu.patch
-PATCHFILES += 0103-minimyth-defaults.patch
 
 # Frontend patches
 PATCHFILES += 0200-ticket9633_progressbar_on_osd.patch
@@ -47,6 +46,9 @@ PATCHFILES += 0209-add-phone-entry-in-themes.patch
 PATCHFILES += 0211-add-optical-rip-to-menu.patch
 PATCHFILES += 0212-ticket12311-v2.patch
 PATCHFILES += 0213-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
+
+# Minimyth needed patches
+PATCHFILES += 0214-minimyth-defaults.patch
 
 # Reverting this fixes issue with only 3 entries in mainmenu on MythmediaStream theme
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
@@ -121,7 +123,7 @@ PATCHFILES += 0305-ticket12809-Use-lastPlayPos-instead-of-bookmark-v5.patch
 PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos-v4.patch
 PATCHFILES += 0307-ticket12809-Add-Unfinished-recording-filter.patch
 
-PATCHFILES += 0308-update-PL-trnaslations.patch
+PATCHFILES += 0308-update-PL-trnaslations-19072017.patch
 
 # Added as d43d8b1 causes unpleasant ffwd/bkwd playback skips with SD content 
 PATCHFILES += 0309-revert-d43d8b1-revert-Player-Improve-low-bit-rate-high-latency-streams.patch
