@@ -10,11 +10,13 @@ mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSI
 mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter 0.27 ,        $(mm_MYTH_VERSION)),0.27                          ) \
                                 $(if $(filter 0.28 ,        $(mm_MYTH_VERSION)),0.28                          ) \
+                                $(if $(filter 29   ,        $(mm_MYTH_VERSION)),29                            ) \
+                                $(if $(filter 30   ,        $(mm_MYTH_VERSION)),30                            ) \
                                 $(if $(filter master ,      $(mm_MYTH_VERSION)),master                        ) \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.10.2.r529
+mm_VERSION_MINIMYTH ?= 8.10.4.r3
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -54,9 +56,9 @@ mm_SOFTWARE               ?= mythplugins \
                              makemkv \
                              gstreamer \
                              voip \
-                             bumblebee \
                              $(if $(filter $(mm_DEBUG),yes),debug)
 
+#                             bumblebee \
 #                             flash \
 #                             mplayer-svn \
 #                             mc
@@ -132,8 +134,9 @@ mm_KERNEL_VERSION         ?= 4.12
 mm_KERNEL_CONFIG          ?=
 
 # The version of Myth to use.
-# Valid values are '0.27', '0.28' and 'master'
-mm_MYTH_VERSION           ?= master
+# Valid values are '0.27', '0.28', '29', '30' and 'master'
+# mm_MYTH_VERSION           ?= master
+mm_MYTH_VERSION           ?= 29
 # mm_MYTH_VERSION           ?= 0.28
 
 # The version of the NVIDIA driver.

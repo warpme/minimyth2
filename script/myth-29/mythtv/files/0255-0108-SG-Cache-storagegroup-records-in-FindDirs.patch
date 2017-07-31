@@ -1,0 +1,123 @@
+From 90d5cb4fc840fab8ac8ca05e1956568e385df0c9 Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Thu, 23 May 2013 18:30:09 +0100
+Subject: [PATCH 108/333] SG: Cache storagegroup records in FindDirs
+
+This avoids a dbase lookup every time a StorageGroup object is
+created in FindRecordingFile and FindRecordingDir
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/libs/libmythbase/storagegroup.cpp |   77 +++++++++++++++++-------------
+ 1 file changed, 43 insertions(+), 34 deletions(-)
+
+diff --git a/mythtv/libs/libmythbase/storagegroup.cpp b/mythtv/libs/libmythbase/storagegroup.cpp
+index a154f17..d2a4c99 100644
+--- a/mythtv/libs/libmythbase/storagegroup.cpp
++++ b/mythtv/libs/libmythbase/storagegroup.cpp
+@@ -2,6 +2,7 @@
+ #include <QFile>
+ #include <QRegExp>
+ #include <QUrl>
++#include <QMap>
+ 
+ #include "storagegroup.h"
+ #include "mythcorecontext.h"
+@@ -540,52 +541,60 @@ bool StorageGroup::FindDirs(const QString &group, const QString &hostname,
+                             QStringList *dirlist)
+ {
+     bool found = false;
+-    QString dirname;
+-    MSqlQuery query(MSqlQuery::InitCon());
+ 
+     StaticInit();
+ 
+-    QString sql = "SELECT DISTINCT dirname "
+-                  "FROM storagegroup ";
++    typedef QPair< QString, QString > val_t; // dirname, hostname
++    typedef QMap< QString, val_t > cache_t;
++    static cache_t s_cache;
+ 
+-    if (!group.isEmpty())
+-    {
+-        sql.append("WHERE groupname = :GROUP");
+-        if (!hostname.isEmpty())
+-            sql.append(" AND hostname = :HOSTNAME");
+-    }
++    static QMutex s_mutex;
++    QMutexLocker locker(&s_mutex);
+ 
+-    query.prepare(sql);
+-    if (!group.isEmpty())
++    if (s_cache.isEmpty())
+     {
+-        query.bindValue(":GROUP", group);
+-        if (!hostname.isEmpty())
+-            query.bindValue(":HOSTNAME", hostname);
++        MSqlQuery query(MSqlQuery::InitCon());
++        query.prepare("SELECT DISTINCT dirname, groupname, hostname"
++            " FROM storagegroup ORDER BY dirname ;");
++
++        if (query.exec() && query.isActive())
++        {
++            while (query.next())
++            {
++                /* The storagegroup.dirname column uses utf8_bin collation, so Qt
++                 * uses QString::fromLatin1() for toString(). Explicitly convert the
++                 * value using QString::fromUtf8() to prevent corruption. */
++                QString dirname = QString::fromUtf8(query.value(0)
++                                            .toByteArray().constData());
++                dirname.replace(QRegExp("^\\s*"), "");
++                dirname.replace(QRegExp("\\s*$"), "");
++                if (dirname.right(1) == "/")
++                    dirname.remove(dirname.length() - 1, 1);
++
++                QString const key = query.value(1).toString().toLower();
++                QString const host = query.value(2).toString().toLower();
++                s_cache.insertMulti(key, val_t(dirname, host) );
++            }
++        }
++        else if (!GetMythDB()->SuppressDBMessages())
++            MythDB::DBError("StorageGroup::FindDirs()", query);
+     }
+ 
+-    if (!query.exec() || !query.isActive())
+-        MythDB::DBError("StorageGroup::StorageGroup()", query);
+-    else if (query.next())
++    QString const theHost = hostname.toLower();
++    QString const theGroup = group.toLower();
++
++    cache_t::const_iterator it = theGroup.isEmpty() ? s_cache.begin()
++        : s_cache.find(theGroup);
++    for ( ; it != s_cache.end(); ++it)
+     {
+-        do
++        if (!theGroup.isEmpty() && it.key() != theGroup)
++            break;
++        if (theHost.isEmpty() || it->second == theHost)
+         {
+-            /* The storagegroup.dirname column uses utf8_bin collation, so Qt
+-             * uses QString::fromLatin1() for toString(). Explicitly convert the
+-             * value using QString::fromUtf8() to prevent corruption. */
+-            dirname = QString::fromUtf8(query.value(0)
+-                                        .toByteArray().constData());
+-            dirname.replace(QRegExp("^\\s*"), "");
+-            dirname.replace(QRegExp("\\s*$"), "");
+-            if (dirname.endsWith("/"))
+-                dirname.remove(dirname.length() - 1, 1);
+-
+             if (dirlist)
+-                (*dirlist) << dirname;
+-            else
+-                return true;
++                (*dirlist) << it->first;
++            found = true;
+         }
+-        while (query.next());
+-        found = true;
+     }
+ 
+     if (m_builtinGroups.contains(group))
+-- 
+1.7.9.5
+

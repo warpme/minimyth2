@@ -66,7 +66,7 @@ bindirs_base := \
 	$(bindir) \
 	$(libexecdir) \
 	$(if $(filter 0.27,$(mm_MYTH_VERSION)), $(qt4bindir)) \
-	$(if $(filter 0.28 master,$(mm_MYTH_VERSION)), $(qt5bindir)) \
+	$(if $(filter 0.28 29 30 master,$(mm_MYTH_VERSION)), $(qt5bindir)) \
 	$(kdebindir)
 bindirs := \
 	$(bindirs_base) \
@@ -79,7 +79,7 @@ libdirs_base := \
 	$(libdir)/mysql \
 	$(if $(filter $(mm_GRAPHICS),radeon),$(libdir)/vdpau) \
 	$(if $(filter 0.27,$(mm_MYTH_VERSION)), $(qt4libdir)) \
-	$(if $(filter 0.28 master,$(mm_MYTH_VERSION)), $(qt5libdir)) \
+	$(if $(filter 0.28 29 30 master,$(mm_MYTH_VERSION)), $(qt5libdir)) \
 	$(kdelibdir)
 libdirs := \
 	$(libdirs_base) \

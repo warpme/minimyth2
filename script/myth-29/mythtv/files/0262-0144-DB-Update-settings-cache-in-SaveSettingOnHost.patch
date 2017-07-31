@@ -1,0 +1,42 @@
+From baf13daf98da4b0ef046910c7863a64434a7f01f Mon Sep 17 00:00:00 2001
+From: Lawrence Rust <lvr@softsystem.co.uk>
+Date: Wed, 21 Aug 2013 17:17:02 +0100
+Subject: [PATCH 144/333] DB: Update settings cache in SaveSettingOnHost
+
+Reduce cache reloads after settings are changed.
+
+This dramatically improves cache hit rate and reduces reload time
+when adjusting volume setting.
+
+Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
+---
+ mythtv/libs/libmythbase/mythdb.cpp |   13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/mythtv/libs/libmythbase/mythdb.cpp b/mythtv/libs/libmythbase/mythdb.cpp
+index 0447655..8e79c15 100644
+--- a/mythtv/libs/libmythbase/mythdb.cpp
++++ b/mythtv/libs/libmythbase/mythdb.cpp
+@@ -347,7 +347,18 @@ bool MythDB::SaveSettingOnHost(const QString &key,
+         LOG(VB_GENERAL, LOG_ERR, loc + "- database not open");
+     }
+ 
+-    ClearSettingsCache(host + ' ' + key);
++    d->settingsCacheLock.lockForWrite();
++
++    QString lkey = key.toLower();
++    SettingsMap::const_iterator it = d->overriddenSettings.find(lkey);
++    if (it == d->overriddenSettings.end())
++    {
++        d->settingsCache.insert(lkey, newValue);
++        if (!host.isEmpty())
++            d->settingsCache.insert(host + ' ' + lkey, newValue);
++    }
++
++    d->settingsCacheLock.unlock();
+ 
+     return success;
+ }
+-- 
+1.7.9.5
+
