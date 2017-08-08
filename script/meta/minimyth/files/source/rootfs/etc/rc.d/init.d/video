@@ -9,311 +9,87 @@
 start() {
 
     local hostname
-    local pref_cmp0
-    local pref_decoder
-    local pref_max_cpus
-    local pref_osdfade
-    local pref_osdrenderer
-    local pref_videorenderer
-    local pref_deint0
-    local pref_deint1
-    local pref_filters
-    local profilegroupid
-    local profileid
-    local X_RESOLUTION
-    local X_RESOLUTION_X
-    local X_RESOLUTION_Y
 
     /bin/touch /var/lib/init/video.inprogress
 
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/video] Starting..."
 
-    #----MythTV videoprofile called "Minimyth" generation BEGIN-----------------
-    # Define videodecoder and deinterlacer acordingly to video hardware
-    case "${MM_X_HW_TYPE}" in
-        intel_vaapi)
-            /usr/bin/test "${MM_VIDEO_DEINTERLACER}"  = "auto" && MM_VIDEO_DEINTERLACER='none'
-            /usr/bin/test "${MM_VIDEO_DECODER}" = "auto" && MM_VIDEO_DECODER='vaapi'
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] decoder/deinterlacer will be auto-configured for Intel VAAPI..."
-            ;;
-        nvidia)
-            /usr/bin/test "${MM_VIDEO_DEINTERLACER}"  = "auto" && MM_VIDEO_DEINTERLACER='bob'
-            /usr/bin/test "${MM_VIDEO_DECODER}" = "auto" && MM_VIDEO_DECODER='ffmpeg'
-            ;;
-        nvidia_vdpau)
-            /usr/bin/test "${MM_VIDEO_DEINTERLACER}"  = "auto" && MM_VIDEO_DEINTERLACER='vdpau-basic-doublerate'
-            /usr/bin/test "${MM_VIDEO_DECODER}" = "auto" && MM_VIDEO_DECODER='vdpau'
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] decoder/deinterlacer will be auto-configured for Nvidia VDPAU..."
-            ;;
-        radeon_vdpau)
-            /usr/bin/test "${MM_VIDEO_DEINTERLACER}"  = "auto" && MM_VIDEO_DEINTERLACER='vdpau-basic-doublerate'
-            /usr/bin/test "${MM_VIDEO_DECODER}" = "auto" && MM_VIDEO_DECODER='vdpau'
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] decoder/deinterlacer will be auto-configured for Radeon VDPAU..."
-            ;;
-        *)
-            /usr/bin/test "${MM_VIDEO_DEINTERLACER}"  = "auto" && MM_VIDEO_DEINTERLACER='bob'
-            /usr/bin/test "${MM_VIDEO_DECODER}" = "auto" && MM_VIDEO_DECODER='ffmpeg'
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] decoder/deinterlacer will be auto-configured for generic video gfx..."
-            ;;
-    esac
-
-    # Define rest of mythtv video profile acordingly to videodecoder
-    pref_max_cpus=`cat /proc/cpuinfo | grep -c '^processor[[:cntrl:]]*:'`
-    pref_cmp0='> 0 0'
-    pref_cmp1=''
-    pref_decoder=''
-    pref_videorenderer=''
-    pref_osdrenderer=''
-    pref_osdfade=''
-    case "${MM_VIDEO_DECODER}" in
-        ffmpeg)
-            pref_decoder='ffmpeg'
-            pref_videorenderer='xv-blit'
-            pref_osdrenderer='softblend'
-            pref_osdfade='0'
-            ;;
-        vdpau)
-            pref_decoder='vdpau'
-            pref_videorenderer='vdpau'
-            pref_osdrenderer='vdpau'
-            pref_osdfade='1'
-            ;;
-        vaapi)
-            pref_decoder='vaapi'
-            pref_videorenderer='openglvaapi'
-            pref_osdrenderer='opengl2'
-            pref_osdfade='1'
-            ;;
-        *)
-            mm_message_output err "error: Unknown MM_VIDEO_DECODER is set...."
-            exit 1
-            ;;
-    esac
-    pref_deint0=''
-    pref_deint1=''
-    pref_filters=''
-    case "${MM_VIDEO_DEINTERLACER}" in
-        none)
-            pref_deint0='none'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        bob)
-            pref_deint0='bobdeint'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        kernel)
-            pref_deint0='kerneldeint'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        linear-blend)
-            pref_deint0='linearblend'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        one-field)
-            pref_deint0='onefield'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        opengl-bob)
-            pref_deint0='openglbobdeint'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        opengl-doublerate-fieldorderd)
-            pref_deint0='opengldoubleratefieldorder'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        opengl-doublerate-kernel)
-            pref_deint0='opengldoubleratekerneldeint'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        opengl-doublerate-linearblend)
-            pref_deint0='opengldoubleratelinearblend'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        opengl-doublerate-onefield)
-            pref_deint0='opengldoublerateonefield'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        opengl-kernel)
-            pref_deint0='openglkerneldeint'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        opengl-linearblend)
-            pref_deint0='opengllinearblend'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        opengl-onefield)
-            pref_deint0='openglonefield'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        vdpau-advanced)
-            pref_deint0='vdpauadvanced'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        vdpau-advanced-doublerate)
-            pref_deint0='vdpauadvanceddoublerate'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        vdpau-basic)
-            pref_deint0='vdpaubasic'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        vdpau-basic-doublerate)
-            pref_deint0='vdpaubasicdoublerate'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        vdpau-bob)
-            pref_deint0='vdpaubobdeint'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        vdpau-onefield)
-            pref_deint0='vdpauonefield'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        yadif)
-            pref_deint0='yadifdeint'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        yadif-doubleprocess)
-            pref_deint0='yadifdoubleprocessdeint'
-            pref_deint1='none'
-            pref_filters=''
-            ;;
-        *)
-            mm_message_output err "error: Unknown MM_VIDEO_DEINTERLACER is set....."
-            exit 1
-            ;;
-    esac
-
-    # Write profile to DB
-    hostname=`/bin/hostname`
-    profilegroupid=
-    if /usr/bin/test -n "${hostname}" ; then
-        profilegroupid=`mm_mythdb_get \
-            "SELECT profilegroupid \
-             FROM displayprofilegroups \
-             WHERE name=\"MiniMyth\" \
-             AND hostname=\"${hostname}\" \
-            ;" | grep -v 'profilegroupid'`
-    fi
-    profileid=
-    if /usr/bin/test -n "${profilegroupid}" ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth display profile detected. group_id=${profilegroupid}..."
-        profileid=`mm_mythdb_get \
-            "SELECT profileid \
-             FROM displayprofiles \
-             WHERE profilegroupid=\"${profilegroupid}\" \
-             AND value=\"pref_priority\" \
-             AND data=\"1\" \
-            ;" | grep -v 'profileid'`
-    fi
-    if /usr/bin/test -n "${profilegroupid}" ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Updating MiniMyth display profile id=${profileid}..."
-        mm_mythdb_set \
-            "DELETE FROM displayprofiles \
-            WHERE profilegroupid=\"${profilegroupid}\" ; "
-    fi
-    if /usr/bin/test -n "${profilegroupid}" && \
-       /usr/bin/test -n "${profileid}"      ; then
-        mm_mythdb_set \
-            "INSERT INTO displayprofiles SET profilegroupid=\"${profilegroupid}\", profileid=\"${profileid}\", \
-             value=\"pref_priority\", data=\"1\" ; "
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_priority=\"1\""
-        mm_mythdb_set \
-            "INSERT INTO displayprofiles SET profilegroupid=\"${profilegroupid}\", profileid=\"${profileid}\", \
-             value=\"pref_cmp0\", data=\"${pref_cmp0}\" ; "
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_cmp0=\"${pref_cmp0}\""
-        mm_mythdb_set \
-            "INSERT INTO displayprofiles SET profilegroupid=\"${profilegroupid}\", profileid=\"${profileid}\", \
-             value=\"pref_cmp1\", data=\"${pref_cmp1}\" ; "
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_cmp1=\"${pref_cmp1}\""
-        mm_mythdb_set \
-            "INSERT INTO displayprofiles SET profilegroupid=\"${profilegroupid}\", profileid=\"${profileid}\", \
-             value=\"pref_max_cpus\", data=\"${pref_max_cpus}\" ; "
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_max_cpus=\"${pref_max_cpus}\""
-        mm_mythdb_set \
-            "INSERT INTO displayprofiles SET profilegroupid=\"${profilegroupid}\", profileid=\"${profileid}\", \
-             value=\"pref_decoder\", data=\"${pref_decoder}\" ; "
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_decoder=\"${pref_decoder}\""
-        mm_mythdb_set \
-            "INSERT INTO displayprofiles SET profilegroupid=\"${profilegroupid}\", profileid=\"${profileid}\", \
-             value=\"pref_videorenderer\", data=\"${pref_videorenderer}\" ; "
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_videorenderer=\"${pref_videorenderer}\""
-        mm_mythdb_set \
-            "INSERT INTO displayprofiles SET profilegroupid=\"${profilegroupid}\", profileid=\"${profileid}\", \
-             value=\"pref_osdrenderer\", data=\"${pref_osdrenderer}\" ; "
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_osdrenderer=\"${pref_osdrenderer}\""
-        mm_mythdb_set \
-            "INSERT INTO displayprofiles SET profilegroupid=\"${profilegroupid}\", profileid=\"${profileid}\", \
-             value=\"pref_osdfade\", data=\"${pref_osdfade}\" ; "
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_osdfade=\"${pref_osdfade}\""
-        mm_mythdb_set \
-            "INSERT INTO displayprofiles SET profilegroupid=\"${profilegroupid}\", profileid=\"${profileid}\", \
-             value=\"pref_deint0\", data=\"${pref_deint0}\" ; "
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_deint0=\"${pref_deint0}\""
-        mm_mythdb_set \
-            "INSERT INTO displayprofiles SET profilegroupid=\"${profilegroupid}\", profileid=\"${profileid}\", \
-             value=\"pref_deint1\", data=\"${pref_deint1}\" ; "
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_deint1=\"${pref_deint1}\""
-        mm_mythdb_set \
-            "INSERT INTO displayprofiles SET profilegroupid=\"${profilegroupid}\", profileid=\"${profileid}\",
-             value=\"pref_filters\", data=\"${pref_filters}\" ; "
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] MiniMyth profile: pref_filters=\"${pref_filters}\""
-    fi
-    #----MythTV videoprofile called "Minimyth" generation END-------------------
-
     #Set MythTV video playback profile (if enabled by MM_VIDEO_PLAYBACK_PROFILE="auto")
     if /usr/bin/test -n "${MM_VIDEO_PLAYBACK_PROFILE}" ; then
+
         if   /usr/bin/test "${MM_VIDEO_PLAYBACK_PROFILE}" = "auto"  ; then
+
             case "${MM_X_HW_TYPE}" in
                 nvidia_vdpau)
-                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] HW Accell. Nvidia detected, switching DefaultVideoPlaybackProfile to \"VDPAU Normal\""
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] HW Accell. Nvidia detected, auto-switching DefaultVideoPlaybackProfile to \"VDPAU Normal\""
                     mm_mythdb_settings_set DefaultVideoPlaybackProfile "VDPAU Normal"
                     ;;
                 radeon_vdpau)
-                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] HW Accell. Radeon detected, switching DefaultVideoPlaybackProfile to \"VDPAU Normal\""
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] HW Accell. Radeon detected, auto-switching DefaultVideoPlaybackProfile to \"VDPAU Normal\""
                     mm_mythdb_settings_set DefaultVideoPlaybackProfile "VDPAU Normal"
                     ;;
                 intel_vaapi)
-                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] HW Accell Intel detected, switching DefaultVideoPlaybackProfile to \"VAAPI Normal\""
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] HW Accell Intel detected, auto-switching DefaultVideoPlaybackProfile to \"VAAPI Normal\""
                     mm_mythdb_settings_set DefaultVideoPlaybackProfile "VAAPI Normal"
                     ;;
                 vmware)
-                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] VMware detected, switching DefaultVideoPlaybackProfile to \"Slim\""
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] VMware detected, auto-switching DefaultVideoPlaybackProfile to \"Slim\""
                     mm_mythdb_settings_set DefaultVideoPlaybackProfile "Slim"
                     ;;
                 *)
-                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Non HW Accell Nvidia/Intel/ATI video detected, switching DefaultVideoPlaybackProfile to \"Normal\""
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Non HW Accell Nvidia/Intel/ATI video detected, auto-switching DefaultVideoPlaybackProfile to \"Normal\""
                     mm_mythdb_settings_set DefaultVideoPlaybackProfile "Normal"
                     ;;
             esac
+
             /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Switching ThemePainter to 'auto'"
-            mm_mythdb_settings_set 'ThemePainter' 'auto'
+            mm_mythdb_settings_set ThemePainter 'auto'
+
         else
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] DefaultVideoPlaybackProfile forced by config to \"${MM_VIDEO_PLAYBACK_PROFILE}\""
+
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] DefaultVideoPlaybackProfile forced by minimyth.conf to \"${MM_VIDEO_PLAYBACK_PROFILE}\""
             mm_mythdb_settings_set DefaultVideoPlaybackProfile "${MM_VIDEO_PLAYBACK_PROFILE}"
+
         fi
+
     else
-        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] DefaultVideoPlaybackProfile will be not touched..."
+
+        main_menu_jumppoint=`mm_mythdb_jumppoints_get 'Main Menu'`
+
+        if /usr/bin/test "x${main_menu_jumppoint}" = "xAlt+h" ; then
+
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] DefaultVideoPlaybackProfile will be not touched..."
+
+        else
+
+            case "${MM_X_HW_TYPE}" in
+                nvidia_vdpau)
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Initial setting DefaultVideoPlaybackProfile to \"VDPAU Normal\" as it is first run..."
+                    mm_mythdb_settings_set DefaultVideoPlaybackProfile "VDPAU Normal"
+                    ;;
+                radeon_vdpau)
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Initial setting DefaultVideoPlaybackProfile to  \"VDPAU Normal\" as it is first run..."
+                    mm_mythdb_settings_set DefaultVideoPlaybackProfile "VDPAU Normal"
+                    ;;
+                intel_vaapi)
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Initial setting DefaultVideoPlaybackProfile to  \"VAAPI Normal\" as it is first run..."
+                    mm_mythdb_settings_set DefaultVideoPlaybackProfile "VAAPI Normal"
+                    ;;
+                vmware)
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Initial setting DefaultVideoPlaybackProfile to  \"Slim\" as it is first run..."
+                    mm_mythdb_settings_set DefaultVideoPlaybackProfile "Slim"
+                    ;;
+                *)
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Initial setting DefaultVideoPlaybackProfile to  \"Normal\" as it is first run..."
+                    mm_mythdb_settings_set DefaultVideoPlaybackProfile "Normal"
+                    ;;
+            esac
+
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/video] Initial switching ThemePainter to \"auto\" as it is first run..."
+            mm_mythdb_settings_set ThemePainter 'auto'
+
+        fi
+
     fi
 
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/video] Started with return code=0..."
