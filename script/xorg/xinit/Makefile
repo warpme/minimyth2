@@ -28,3 +28,7 @@ include ../../gar.mk
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(MAKECOOKIE)
+
+pre-install:
+	@sed -i -e "s/mcookie=.*/mcookie=\`\/\/usr\/bin\/mcookie\`/" $(WORKSRC)/startx
+	@$(MAKECOOKIE)
