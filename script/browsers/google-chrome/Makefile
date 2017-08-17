@@ -1,5 +1,5 @@
 GARNAME = google-chrome
-GARVERSION = 58.0.3029.110
+GARVERSION = 60.0.3112.101
 CATEGORIES = browsers
 MASTER_SITES = https://dl.google.com/linux/direct/
 DISTFILES = google-chrome-stable_current_amd64.deb
@@ -35,5 +35,6 @@ install-custom:
 	@cp -f $(WORKSRC)/opt/google/chrome/natives_blob.bin         $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/resources.pak            $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/snapshot_blob.bin        $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
+	@rm $(DESTDIR)$(rootdir)/usr/bin/google-chrome
 	@ln -sf ./google-chrome-$(GARVERSION) $(DESTDIR)$(rootdir)/usr/bin/google-chrome
 	@$(MAKECOOKIE)
