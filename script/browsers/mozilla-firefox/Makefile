@@ -1,8 +1,8 @@
 GARNAME = mozilla-firefox
-GARVERSION = 53.0.2
+GARVERSION = 55.0.1
 CATEGORIES = browsers
-MASTER_SITES = https://download.mozilla.org/?product=firefox-53.0.2-SSL&os=linux64
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://sourceforge.net/projects/ubuntuzilla/files/mozilla/apt/pool/main/f/firefox-mozilla-build/
+DISTFILES = firefox-mozilla-build_$(GARVERSION)-0ubuntu1_amd64.deb
 LICENSE = GPL2
 
 DESCRIPTION =
@@ -19,6 +19,7 @@ include ../../gar.mk
 install-custom:
 	@mkdir -p $(DESTDIR)$(rootdir)/usr/bin/mozilla-firefox-$(GARVERSION)
 
-	@cp -rf $(WORKSRC)/* $(DESTDIR)$(rootdir)/usr/bin/mozilla-firefox-$(GARVERSION)
+	@cp -rf $(WORKSRC)/opt/firefox/* $(DESTDIR)$(rootdir)/usr/bin/mozilla-firefox-$(GARVERSION)
+	@rm $(DESTDIR)$(rootdir)/usr/bin/mozilla-firefox
 	@ln -sf ./mozilla-firefox-$(GARVERSION) $(DESTDIR)$(rootdir)/usr/bin/mozilla-firefox
 	@$(MAKECOOKIE)
