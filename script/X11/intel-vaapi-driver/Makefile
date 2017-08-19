@@ -1,7 +1,7 @@
 GARNAME = intel-vaapi-driver
-GARVERSION = 1.8.2
+GARVERSION = 1.8.3
 CATEGORIES = X11
-MASTER_SITES = http://www.freedesktop.org/software/vaapi/releases/libva-intel-driver/
+MASTER_SITES = https://github.com/01org/intel-vaapi-driver/releases/download/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = GPL2
 
