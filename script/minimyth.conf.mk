@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.11.0.r15
+mm_VERSION_MINIMYTH ?= 8.11.3.r16
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -135,8 +135,8 @@ mm_KERNEL_CONFIG          ?=
 
 # The version of Myth to use.
 # Valid values are '0.27', '0.28', '29', '30' and 'master'
-# mm_MYTH_VERSION           ?= master
-mm_MYTH_VERSION           ?= 29
+mm_MYTH_VERSION           ?= master
+# mm_MYTH_VERSION           ?= 29
 # mm_MYTH_VERSION           ?= 0.28
 
 # The version of the NVIDIA driver.
