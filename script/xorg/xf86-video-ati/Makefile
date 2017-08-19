@@ -1,7 +1,7 @@
 GARNAME = xf86-video-ati
 GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-	20170422-3e12378, \
+	20170820-d822a0f, \
 	7.7.0 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
@@ -62,6 +62,7 @@ x-checksum-$(DISTNAME).tar.bz2:
 	@$(MAKECOOKIE) 
 
 pre-configure:
+	@mkdir -p $(WORKSRC)/m4
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@rm -f $(WORKSRC)/config.cache
