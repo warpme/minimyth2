@@ -1,8 +1,9 @@
 GARNAME = libva
-GARVERSION = 1.7.3
+GARVERSION = 1.8.3
 CATEGORIES = X11
-MASTER_SITES = http://cgit.freedesktop.org/libva/snapshot/
-DISTFILES = $(DISTNAME).tar.gz
+MASTER_SITES = https://github.com/01org/libva/releases/download/$(GARVERSION)/
+# MASTER_SITES = http://cgit.freedesktop.org/libva/snapshot/
+DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = MIT
 
 DESCRIPTION = 
