@@ -63,7 +63,7 @@ sub page
     push(@page,  q(  <body>));
     push(@page,  q(    <div class="main">));
     push(@page,  q(      <div class="header">));
-    push(@page,  q(        <div class="heading">MiniMyth2 from <a href="http://minimyth2.homenet.org/">minimyth2.homenet.org</a></div>));
+    push(@page,  q(        <div class="heading">MiniMyth2</div>));
     push(@page,  q(        <div class="menu">));
     push(@page,  q(          <span class="menuItemFirst"><a href="../index.html">Home</a></span>));
     push(@page, qq(          <span class="menuItem"     >$title</span>));

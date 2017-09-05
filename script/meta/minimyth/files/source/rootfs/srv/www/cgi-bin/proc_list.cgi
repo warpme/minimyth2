@@ -33,13 +33,13 @@ use warnings;
         <TABLE CELLPADDING=0 >
           <TR>
             <TD>
-                <form method="LINK" action="../index.html">
-                    <input type="submit" value="     Return      ">
+                <form method="LINK" action="proc_list.cgi">
+                    <input type="submit" value="     Refresh    ">
                 </form>
             </TD>
             <TD>
-                <form method="LINK" action="proc_list.cgi">
-                    <input type="submit" value="     Refresh    ">
+                <form method="LINK" action="../index.html">
+                    <input type="submit" value="     Return      ">
                 </form>
             </TD>
           </TR>
