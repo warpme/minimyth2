@@ -16,7 +16,6 @@ PATCHFILES += 0008-SCR_keep_disecq_always_18V.patch
 PATCHFILES += 0009-make_EIT_start_at_time-v3.patch
 PATCHFILES += 0010-decrease-some-PMT-DVB-errors-logging.patch
 PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
-PATCHFILES += 0017-python_bindings_tztime_error.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
 PATCHFILES += 0019-mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0023-increase-loging-for-failed-tunings-v2.patch
@@ -43,8 +42,8 @@ PATCHFILES += 0206-add-mythnotification-custom-styles-support-via-UDP.patch
 PATCHFILES += 0207-add-osd-status-notify-to-mythmediacenter.patch
 PATCHFILES += 0208-add-disable-optical-disc-by-mm-config.patch
 PATCHFILES += 0209-add-phone-entry-in-themes.patch
+PATCHFILES += 0210-add-option-to-not-remember-last-livetv-chan.patch
 PATCHFILES += 0211-add-optical-rip-to-menu.patch
-PATCHFILES += 0212-ticket12311-v2.patch
 PATCHFILES += 0213-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
 
 # Minimyth needed patches
@@ -123,8 +122,6 @@ PATCHFILES += 0305-ticket12809-Use-lastPlayPos-instead-of-bookmark-v5.patch
 PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos-v4.patch
 PATCHFILES += 0307-ticket12809-Add-Unfinished-recording-filter.patch
 
-PATCHFILES += 0308-update-PL-trnaslations-19072017.patch
-
 # Added as d43d8b1 causes unpleasant ffwd/bkwd playback skips with SD content 
 PATCHFILES += 0309-revert-d43d8b1-revert-Player-Improve-low-bit-rate-high-latency-streams.patch
 
@@ -145,8 +142,8 @@ PATCHFILES += 0321-ticket12857-patch-mythwidgets_osx_focus.patch
 
 PATCHFILES += 0322-add-netflix-to-thememenus.patch
 
-#PATCHFILES += 0323-ticket12990-playback-jitter-deinterlaced-media.patch
-#PATCHFILES += 0324-ticket12991-HiDPI-gui-displays-support.patch
+# Fixes ticket #12396: issue with some non mkv files and srt subtitles
+PATCHFILES += 0323-ticket12396-.srt-subs-go-out-of-sync.patch
 
 endif
 
@@ -181,6 +178,8 @@ DEPENDS = \
 	python/python-MySQL-python \
 	python/python-lxml \
 	python/python-urlgrabber \
+	python/python-future \
+	python/python-requests-cache \
 	qt/qt5 \
 	system/lirc \
 	system/eudev \
@@ -191,7 +190,9 @@ BUILDDEPS = \
 	python/python-distutilscross \
 	python/python-MySQL-python \
 	python/python-lxml \
-	python/python-urlgrabber
+	python/python-urlgrabber \
+	python/python-future \
+	python/python-requests-cache
 
 
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)

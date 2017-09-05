@@ -15,7 +15,6 @@ PATCHFILES += 0009-make_EIT_start_at_time-v2.patch
 PATCHFILES += 0010-decrease-some-PMT-DVB-errors-logging.patch
 #PATCHFILES += 0011-change-some-BE-mainserver-logging-to-VB_NETWORK.patch
 PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
-PATCHFILES += 0017-python_bindings_tztime_error.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
 PATCHFILES += 0019-mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0020-h264-seek-table.patch
@@ -27,7 +26,7 @@ PATCHFILES += 0031-add-manage-settings-in-mythutil.patch
 PATCHFILES += 0100-minimyth.patch
 PATCHFILES += 0101-programid.patch
 PATCHFILES += 0102-maintain_menu.patch
-PATCHFILES += 0103-minimyth-defaults.patch
+# PATCHFILES += 0103-minimyth-defaults.patch
 
 # Frontend patches
 PATCHFILES += 0200-ticket9633_progressbar_on_osd.patch
@@ -42,6 +41,9 @@ PATCHFILES += 0210-add-option-to-not-remember-last-livetv-chan.patch
 PATCHFILES += 0211-add-optical-rip-to-menu.patch
 PATCHFILES += 0212-ticket12311-v2.patch
 PATCHFILES += 0213-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
+
+# Minimyth needed patches
+PATCHFILES += 0214-minimyth-defaults.patch
 
 # Fixes issue with only 3 entries in mainmenu on MythmediaStream
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
@@ -97,6 +99,9 @@ PATCHFILES += 0303-0318-WebBrowser-Provide-virtual-keyboard-for-HTML-edit-co.pat
 PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids.patch
 PATCHFILES += 0305-ticket1209-Use-lastPlayPos-instead-of-bookmark.patch
 PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos.patch
+
+# Fixes ticket #12396: issue with some non mkv files and srt subtitles
+PATCHFILES += 0323-ticket12396-.srt-subs-go-out-of-sync.patch
 
 endif
 
