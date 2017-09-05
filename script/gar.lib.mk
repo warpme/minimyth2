@@ -167,7 +167,7 @@ cp-extract-%:
 deb-bin-extract-%:
 	@echo " ==> Extracting $(DOWNLOADDIR)/$*"
 	@ar x $(DOWNLOADDIR)/$*
-	@rm debian-binary && mv *.tar.*z $(DOWNLOADDIR) && mkdir $(WORKSRC) && tar -xJ -C $(WORKSRC) -f $(DOWNLOADDIR)/data.tar.xz
+	@rm debian-binary && mv *.tar.*z $(DOWNLOADDIR) && mkdir $(WORKSRC) && tar -x -C $(WORKSRC) -f $(DOWNLOADDIR)/data.tar.*
 	@$(MAKECOOKIE)
 
 ### EXTRACT FILE TYPE MAPPINGS ###
