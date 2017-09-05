@@ -159,6 +159,8 @@ DEPENDS = \
 		$(if $(filter i386,$(mm_GARCH_FAMILY)),emulators/zsnes) \
 		$(if $(filter python,$(mm_SOFTWARE)), \
 			python/python-lxml \
+			python/python-future \
+			python/python-requests-cache \
 			python/python-MySQL-python \
 			python/python-oauth \
 			python/python-IMAPClient \
