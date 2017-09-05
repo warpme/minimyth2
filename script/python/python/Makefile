@@ -6,6 +6,7 @@ DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  = $(DISTNAME)-parallel.patch $(DISTNAME)-configure.patch
 ifneq ($(DESTIMG),build)
 PATCHFILES += $(DISTNAME)-cross.patch
+PATCHFILES += $(DISTNAME)-fix-time.tz-in-cross-enviroment.patch
 endif
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
