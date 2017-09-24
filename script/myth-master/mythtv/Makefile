@@ -87,8 +87,6 @@ PATCHFILES += 0283-0210-FE-NetworkControl-Add-set-query-loglevel-commands.patch
 
 # Support for Roger Siddons new gallery.
 PATCHFILES += 0287-MythUiImage-Don-t-block-UI-when-exiting-screens.patch
-PATCHFILES += 0288-Minimyth2-Cache-FE-gallery-images-in-remotecache.patch
-PATCHFILES += 0289-Minimyth2-Use-remotecache-for-local-gallery-images.patch
 
 # Fixes FE OOM when user enters previously recorded
 PATCHFILES += 0291-ticket12463-temp-fix.patch
