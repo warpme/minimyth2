@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/perl -w
 #
 # Writen by Piotr Oniszczuk <warpme@o2.pl>
 #
@@ -63,13 +63,13 @@
 
 
 # -----Config are BEGIN -------
-my $be_ip                 = "192.168.1.254";
+my $be_ip                 = "@MM_MASTER_SERVER@";
 my $fe_ip_list            = "127.0.0.1";
 
-my $frontend_proces_list  = "mythfrontend,X";
-my $backend_proces_list   = "mythbackend,sasc-ng,mysqld";
+my $frontend_proces_list  = "mythfrontend,X ";
+my $backend_proces_list   = "mythbackend,sasc-ng\n,mysqld";
 
-my $osd_temps_timeout     = "10";
+my $osd_temps_timeout     = "12";
 my $osd_recorders_timeout = "10";
 my $osd_nextrec_timeout   = "15";
 
@@ -82,7 +82,6 @@ my $osd_nextrec_icon      = "images/mythnotify/recording.png";
 our $server_title_str;
 our $frontend_title_str;
 our $process_str;
-our $cpu_load_str;
 our $memory_usage_str;
 our $memory_used_str;
 our $hardware_str;
@@ -104,16 +103,18 @@ my $recorders_style       = "tuners";
 my $nextrec_style         = "nextrec-small";
 my $nextrec_style_big     = "nextrec";
 
-my $remote_shell_cmd      = "/usr/bin/ssh root\@192.168.1.254";
+my $remote_shell_cmd      = "/usr/bin/ssh -c none root\@$be_ip";
 
-my $nvidia_settings_bin   = "/usr/bin/nvidia-settings";
-my $sensors_bin           = "/usr/bin/sensors";
+my $nvidia_smi_bin        = '/usr/bin/nvidia-smi';
+my $nvidia_read_temp_cmd  = '-q -d TEMPERATURE | grep "GPU Current Temp" | sed -e "s/\s*GPU Current Temp\s*:\s*\(\d*\)/\1/"';
+my $sensors_bin           = '/usr/bin/sensors';
 # -----Config are BEGIN -------
 
 
 my $debug  = 0;
 my $debug2 = 0;
 
+my $icon_cache_dir = "/home/minimyth/.mythtv/cache/remotecache";
 
 
 
@@ -131,12 +132,12 @@ use Shell;
 use strict;
 use warnings;
 use IO::Socket;
-use LWP::Simple;
 use XML::Simple;
 use feature 'switch';
 use Unicode::Normalize;
 use DateTime;
 use DateTime::Format::ISO8601;
+use File::Fetch;
 
 binmode(STDOUT, ":utf8");
 no warnings 'deprecated';
@@ -195,52 +196,84 @@ sub sent_notifies_to_all_hosts {
 sub load_xml {
 
   my $status = "";
+  my $response = "";
   my $url = "http://$be_ip:6544/Status/xml";
 
-  eval {
-    local $SIG{ALRM} = sub { die "alarm\n" };
-    alarm(30);
-    $status = get($url);
-    alarm(0);
-  };
+  print ($url) if $debug2; 
 
-  die "Sorry, failed to fetch $url.\n"
-      unless defined $status;
-
-  warn "Loaded XML from $be_ip\n"
-    if $debug;
-
-
-  for ( $status ) {
-    $_ = NFD( $_ );   ##  decompose
-    s/\pM//g;         ##  strip combining characters
-    s/[^\0-\x80]//g;  ##  clear everything else
+  if ($debug) {
+      $status = `curl $url`;
+  } else {
+      $status = `curl --silent $url 2>/dev/null`;
   }
 
-  # bug in early 0.26
-  $status =~ s/MythDate::ISODate/Date::ISODate/g;
-
-  print ($status) if $debug2; 
+  print ($status) if $debug2;
 
   return $status;
+
+}
+
+sub load_channel_icon {
+
+  my $min_size = 1; #minimal icon size in kB
+  my ($chan_id) = @_;
+  my $icon_file = "$icon_cache_dir/$chan_id".".channelicon";
+  my $filesize = 0;
+
+  if (-e $icon_file) {
+    $filesize = -s $icon_file;
+    warn "Icon for ChanID=$chan_id has $filesize bytes\n"
+      if $debug;
+  } else {
+    warn "Icon for ChanID=$chan_id not exists. Downloading...\n"
+      if $debug;
+  }
+
+  if ($filesize < $min_size*1000) {
+
+    unlink $icon_file;
+
+    my $response = "";
+    my $url = "http://$be_ip:6544/Guide/GetChannelIcon?ChanId=$chan_id";
+
+    if ($debug) {
+       print "Icon URL:".$url."\n";
+       my $rc =`curl $url --raw --output $icon_file 2>/dev/null`;
+    } else {
+       my $rc =`curl $url --raw --silent --output $icon_file`;
+    }
+
+    warn "Loaded Channel Icon for ChanID=$chan_id from $be_ip\n"
+      if $debug;
+
+  }
+
+  return $icon_file;
 
 }
 
 sub get_gpu_temp {
     my $out = "-1";
     my ($shell_exec) = @_;
+    my $command = " ";
 
-    my $command = $shell_exec." $nvidia_settings_bin --query GPUCoreTemp --terse 2>&1; |";
+    if (! -e $nvidia_smi_bin) {
+      $command = $shell_exec." '/opt/vc/bin/vcgencmd measure_temp 2>&1;' |";
+    }
+    else {
+      $command = $shell_exec." '".$nvidia_smi_bin." ".$nvidia_read_temp_cmd." 2>&1;' |";
+    }
+
     if ($debug2) { print "Command get_gpu_temp_command:".$command."\n"; }
 
-    $out = open(SHELL, $command);
+    my $rc = open(SHELL, $command);
     while (<SHELL>) {
         my $res = $_;
         if (($res =~ m/No such file/) || ($res eq ""))  {
             $out="-1";
            }
         else {
-           $_ =~ m/([0-9]+)/;
+           $res =~ m/([0-9]+)/;
            $out=$1;
         }
     }
@@ -264,10 +297,15 @@ sub get_cpu_sys_temp_fans {
     my $core1_temp = "-1";
     my $core2_temp = "-1";
     my $core3_temp = "-1";
+    my $command = " ";
 
-    if (! -e $sensors_bin) { return $cpu_temp,$sys_temp,$cpu_fan,$sys_fan; }
+    if (! -e $sensors_bin) {
+        $command = $shell_exec." '/opt/vc/bin/vcgencmd measure_temp 2>&1;' |";
+    }
+    else {
+        $command = $shell_exec." '$sensors_bin 2>/dev/null;' |";
+    }
 
-    my $command = $shell_exec." $sensors_bin 2>/dev/null; |";
     if ($debug2) { print "Command get_cpu_sys_temp_fans:".$command."\n"; }
 
     my $out = open(SHELL, $command);
@@ -340,14 +378,19 @@ sub get_cpu_sys_temp_fans {
             $out =~ m/([0-9]+)/;
             $core1_temp=$1;
         }
+        if ($out=~/temp=/) {
+            $out =~ s/temp=//;
+            $out =~ m/([0-9]+)/;
+            $core0_temp=$1;
+        }
     }
     close(SHELL);
 
-    if ($core0_temp != -1) { 
+    if ($core0_temp != -1) {
         $cpu_temp = $core0_temp;
-        if ($core1_temp != -1) { $cpu_temp = $cpu_temp."/".$core1_temp; }
-        if ($core2_temp != -1) { $cpu_temp = $cpu_temp."/".$core2_temp; }
-        if ($core3_temp != -1) { $cpu_temp = $cpu_temp."/".$core3_temp; }
+        if ($core1_temp != -1) { $cpu_temp = $cpu_temp." ".$core1_temp; }
+        if ($core2_temp != -1) { $cpu_temp = $cpu_temp." ".$core2_temp; }
+        if ($core3_temp != -1) { $cpu_temp = $cpu_temp." ".$core3_temp; }
     }
     else {
         if ($cpu__temp != -1) { $cpu_temp = $cpu__temp; }
@@ -367,56 +410,54 @@ sub get_cpu_sys_temp_fans {
     return $cpu_temp,$sys_temp,$cpu_fan,$sys_fan;
 }
 
-sub get_cpu_info {
+sub get_cpu_curr_freq {
     my ($shell_exec) = @_;
-    my $cpu_family="-1";
-    my $cpu_model="-1";
-    my $cpu_name="-1";
-    my $cpu_freq="";
-    my $command = $shell_exec." cat /proc/cpuinfo 2>/dev/null; |";
+    my $cpu_curr_freq="";
+    my $command = $shell_exec." 'cores=`ls -1 /sys/devices/system/cpu/cpufreq`;for cpu in \$cores;do cat /sys/devices/system/cpu/cpufreq/\$cpu/scaling_cur_freq;done' |";
 
-    if ($debug2) { print "Command get_cpu_info_command:".$command."\n"; }
+    if ($debug2) { print "Command get_cpu_info_command:\n".$command."\n"; }
 
     my $out = open(SHELL, $command);
     while (<SHELL>) {
 
-        $out = $_;
-        if ($out =~ /cpu family\s*:/) {
-            $out =~ m/([0-9]+)/;
-            $cpu_family=$1;
-        };
-        $out = $_;
-        if ($out =~ /model\s*:/) {
-            $out =~ m/([0-9]+)/;
-            $cpu_model=$1;
-        };
-        $out = $_;
-        if ($out =~ /model name\s*:/) {
-            $out =~ m/: (.*)/;
-            $cpu_name=$1;
-        };
-        if ($out =~ /cpu MHz\s*:/) {
-            $out =~ m/([0-9]+)/;
-            $cpu_freq=$cpu_freq.$1."/";
-        };
+        $_ =~ s/\n|\s//g;
+        my $freq = sprintf "%.1f",($_/1000000);
+        # print $freq.'GHz ';
+        $cpu_curr_freq=$cpu_curr_freq.$freq."G ";
+
     }
     close(SHELL);
 
-    $cpu_freq =~ s/\/$//;
+    # for case when CPU hasn't freq scalling so /sys/devices/system/cpu/cpufreq not exists....
+    if ($cpu_curr_freq eq "") {
+        my $command = $shell_exec." 'cat /proc/cpuinfo | grep \"cpu MHz\" | sed -e \"s/cpu\\s*MHz\\s*:\\s*//\"' |";
 
-    if ($debug2) {
-        print "CPU Familly is : $cpu_family\n";
-        print "CPU Model is   : $cpu_model\n";
-        print "CPU Name  is   : $cpu_name\n";
-        print "CPU Freq. is   : $cpu_freq\n";
+        if ($debug2) { print "Command get_cpu_info_command:\n".$command."\n"; }
+
+        my $out = open(SHELL, $command);
+        while (<SHELL>) {
+
+            $_ =~ s/\n|\s//g;
+            my $freq = sprintf "%.1f",($_/1000);
+            # print $freq.'GHz ';
+            $cpu_curr_freq=$cpu_curr_freq.$freq."G ";
+
+       }
+       close(SHELL);
+
     }
 
-    return $cpu_family,$cpu_model,$cpu_name,$cpu_freq;
+    if ($debug2) {
+        print "CPU Curr Freq. : $cpu_curr_freq\n";
+    }
+
+    return $cpu_curr_freq;
 }
 
 
 sub get_cpu_load {
-    my ($shell_exec) = @_;
+    my (@data) = @_;
+    my $out = "";
     my $cpu_load = "";
     my $cpu_user = "";
     my $cpu_system = "";
@@ -427,47 +468,42 @@ sub get_cpu_load {
     my $cpu_nice_single = 0;
     my $cpu_idle_single = 0;
     my $cpu_count = 0;
-    my $command = $shell_exec." top -b -i -n1 | grep Cpu 2>/dev/null; |";
 
-    if ($debug2) { print "Command get_cpu_load_command:".$command."\n"; }
-
-    my $out = open(SHELL, $command);
-
-    while (<SHELL>) {
+    foreach (@data) {
 
         $_ =~ s/\%//g;
         $_ =~ s/\s*//g;
 
         $out = $_;
-        $out =~ m/Cpu[0-9]\:(\S*)us,.*/;
-        $cpu_user = $cpu_user.$1."/";
-        $cpu_user_single = $cpu_user_single + $1;
-
-        $out = $_;
-        $out =~ m/us,(\S*)sy,.*/;
-        $cpu_system = $cpu_system.$1."/";
-        $cpu_system_single = $cpu_system_single + $1;
-
-        $out = $_;
-        $out =~ m/sy,(\S*)ni,.*/;
-        $cpu_nice = $cpu_nice.$1."/";
-        $cpu_nice_single = $cpu_nice_single + $1;
-
-        $out = $_;
-        $out =~ m/ni,(\S*)id,.*/;
-        $cpu_idle = $cpu_idle.$1."/";
-        $cpu_idle_single = $cpu_idle_single + $1;
-        my $l = sprintf "%.1f",(100 - $1);
-        $cpu_load = $cpu_load.$l."/";  
-
-        $out = $_;
         if ($out =~ /Cpu.*/) {
-            $cpu_count++
+
+            $cpu_count++;
+
+            $out = $_;
+            $out =~ m/Cpu[0-9]\:(\S*)us,.*/;
+            $cpu_user = $cpu_user.$1." ";
+            $cpu_user_single = $cpu_user_single + $1;
+
+            $out = $_;
+            $out =~ m/us,(\S*)sy,.*/;
+            $cpu_system = $cpu_system.$1." ";
+            $cpu_system_single = $cpu_system_single + $1;
+
+            $out = $_;
+            $out =~ m/sy,(\S*)ni,.*/;
+            $cpu_nice = $cpu_nice.$1." ";
+            $cpu_nice_single = $cpu_nice_single + $1;
+
+            $out = $_;
+            $out =~ m/ni,(\S*)id,.*/;
+            $cpu_idle = $cpu_idle.$1." ";
+            $cpu_idle_single = $cpu_idle_single + $1;
+            my $l = sprintf "%.0f",(100 - $1);
+            $cpu_load = $cpu_load.$l."% ";
+
         };
 
     }
-
-    close(SHELL);
 
     $cpu_load =~ s/\/$//;
     $cpu_user =~ s/\/$//;
@@ -502,15 +538,19 @@ sub get_cpu_load {
 }
 
 sub get_uptime {
-    my ($shell_exec) = @_;
-    my $command = $shell_exec." uptime 2>/dev/null; |";
+    my (@data) = @_;
+    my $uptime = "-1";
+    my $out = "";
 
-    my $uptime = open(SHELL, $command);
-    while (<SHELL>) {
-        $_ =~ m/up(.*),\s*load/;
-        $uptime = $1;
+    foreach (@data) {
+        $_ =~ s/\s*//g;
+
+        $out = $_;
+        if ($out =~ /^top.*/) {
+            $_ =~ m/.*up(.*),\d*user.*/;
+            $uptime = $1;
+        }
     }
-    close(SHELL);
 
     print ("Uptime is: $uptime\n") if ($debug2);
     return $uptime;
@@ -523,45 +563,46 @@ sub fix {
 }
 
 sub show_processes_stats {
-    my ($title,$process_list,$shell_exec) = @_;
-    my $command = "";
+    my ($title,$process_list,@data) = @_;
     my $load = "-1";
-    my $rss = "-1";
+    my $rss_percent = "-1";
+    my $rss_kib = "-1";
+    my $out = "";
     my @proc_list = split(/,/, $process_list);
-    for (@proc_list) {
+    foreach (@proc_list) {
         my $process = $_;
+        $load = "-1";
+        $rss_percent = "-1";
+        $rss_kib = "-1";
+        $out = "";
 
-        $command = $shell_exec." top -b -n1 2>/dev/null | grep $process | awk '{ totuse = totuse + \$9 } END { print totuse }' 2>/dev/null; |";
-        print ("get_load_cmd:".$command."\n") if ($debug2);
-        $load = open(SHELL, $command);
-        while (<SHELL>) {
-            $_ =~ m/([0-9]+)/;
-            $load=$1;
-        }
-        close(SHELL);
-        print ("$process load is: $load\n") if ($debug2);
+        foreach (@data) {
+            $_ =~ s/^\s//;
 
-        $command = $shell_exec." /bin/ps --no-headers -o pmem,rss -C $process 2>/dev/null; |";
-        print ("get_rss_cmd:".$command."\n") if ($debug2);
-        $rss = open(SHELL, $command);
-        while (<SHELL>) {
-            #$_ =~ m/([0-9]+)/;
-            $rss=$_;
-        }
-        close(SHELL);
-        print ("$process RSS is: $rss") if ($debug2);
+            $out = $_;
+            if ($out =~ /.*$process.*/) {
+                print ("top for (".$process.") returns:\n".$out."\n") if $debug2;
+                #PID   USER   PR  NI  VIRT    RES   SHR  S %CPU %MEM TIME+     COMMAND
+                #21228 mythtv 16 -4 7424628 383424 20548 S 18.8 4.7 219:00.54 mythbackend
+                my @stat = split(/\s+/);
+                $load = $stat[8];
+                $load = sprintf "%.0f",($load);
+                $rss_kib = $stat[5];
+                if ($rss_kib =~ /.*m|M|g|G.*/) {
+                    $rss_kib =~ s/m|M|g|G//;
+                }
+                else {
+                    $rss_kib = sprintf "%.0f",($rss_kib/1000);
+                }
+                $rss_percent = $stat[9];
+               if ($debug) {
+                    print "Process: ".$process."\n";
+                    print "    CPU Load(%): ".$load."\n";
+                    print "    RSS(MBytes): ".$rss_kib."\n";
+                    print "    RSS(%)     : ".$rss_percent."\n";
+               }
 
-        $rss =~ m/\s*([0-9\.]*)\s*([0-9]*)/;
-        my $rss_percent = $1;
-        my $rss_kib =$2;
-        $rss_kib = $rss_kib/1024;
-        $rss_kib = sprintf "%.0f",$rss_kib;
-
-        if ($debug) {
-            print "Process: ".$process."\n";
-            print "    CPU Load(%): ".$load."\n";
-            print "    RSS(MBytes): ".$rss_kib."\n";
-            print "    RSS(%)     : ".$rss_percent."\n";
+            }
         }
 
         &stack_notify(
@@ -607,15 +648,18 @@ given ($action) {
 
 
     when ($action eq "frontend_status") {
-        $shell_cmd = "";
+        $shell_cmd = "sh -c";
         $proces_list = $frontend_proces_list;
         $title = $frontend_title_str;
 
     show_status:
+        my $command = $shell_cmd." 'top -b -n1 | sed -e \"s/[ ]* / /g\" 2>/dev/null;'";
+        if ($debug2) { print "Command get_top_output:".$command."\n"; }
+        my @data = `$command`;
         my $gpu_t = &get_gpu_temp($shell_cmd);
-        my ($cpu_fam,$cpu_mod,$cpu_nam,$cpu_freq) = &get_cpu_info($shell_cmd);
+        my ($cpu_curr_freq) = &get_cpu_curr_freq($shell_cmd);
         my ($cpu_t,$sys_t,$cpu_f,$sys_f) = &get_cpu_sys_temp_fans($shell_cmd);
-        my ($cpu_load,$cpu_system,$cpu_user,$cpu_nice,$cpu_idle,$cpu_system_single,$cpu_user_single,$cpu_nice_single,$cpu_idle_single) = &get_cpu_load($shell_cmd);
+        my ($cpu_load,$cpu_system,$cpu_user,$cpu_nice,$cpu_idle,$cpu_system_single,$cpu_user_single,$cpu_nice_single,$cpu_idle_single) = &get_cpu_load(@data);
 
         my $temps = "Temps: CPU=";
         $temps = $temps.$cpu_t."C";
@@ -634,7 +678,7 @@ given ($action) {
             $fans = $fans.", Sys=".$sys_f."rpm";
         }
 
-        my ($uptime) = &get_uptime($shell_cmd);
+        my ($uptime) = &get_uptime(@data);
 
         if ($debug) {
             print "System Uptime:".$uptime."\n";
@@ -661,16 +705,16 @@ given ($action) {
         $title.$hardware_str,
         $uptime_str.$uptime,
         $temps.$fans,
-        $cpu_freq_str.$cpu_freq,
+        $cpu_freq_str.$cpu_curr_freq,
         $osd_temperatures_icon,
         $cpu_load_str.$cpu_load,
         $idle,
         $osd_temps_timeout,
         $temps_style,
         $fe_ip_list
-        )
+        );
 
-        &show_processes_stats($title,$proces_list,$shell_cmd);
+        &show_processes_stats($title,$proces_list,@data);
 
         &sent_notifies_to_all_hosts
 
@@ -699,6 +743,8 @@ given ($action) {
             my $recorder = fix($e->{Recording}->{encoderId});
             my $channel = $e->{Channel}->{callSign}; 
             my $title = $e->{title}; 
+            my $channelId = $e->{Channel}->{chanId};
+            my $channelIcon = load_channel_icon($channelId);
             #$title = $title.(substr $title, 0, 110);
 
             stack_notify(
@@ -716,7 +762,7 @@ given ($action) {
                 $title,
                 $starts_str.$strt_time.$ends_str.$end_time.$recorder_id_str.$recorder,
                 "",
-                $osd_nextrec_icon,
+                $channelIcon,
                 "",
                 "",
                 $osd_nextrec_timeout,
@@ -779,7 +825,7 @@ given ($action) {
         $osd_nextrec_timeout,
         $nextrec_style_big,
         $fe_ip_list
-        )
+        );
 
         &sent_notifies_to_all_hosts
 
@@ -788,12 +834,13 @@ given ($action) {
 
 
     when ($action eq "--help") {
-        print "\nAvaliable params. are:\n\t\"frontend_status\"\n\t\"tuners_status\"\n\t\"next_recordings\"\n\t\"next_recordings_big\"\n\n";
+        print "\nAvaliable params. are:\n\t\"frontend_status\"\n\t\"server_status\"\n\t\"tuners_status\"\n\t\"next_recordings\"\n\t\"next_recordings_big\"\n\n";
     }
 
 
 
     default {
+
         my $e;
         my $idle;
 
@@ -813,6 +860,8 @@ given ($action) {
             if (($e->{state} eq "1") || ($e->{state} eq "7")) {
                 my $channelNum = $e->{Program}->{Channel}->{chanNum};
                 my $channelName = $e->{Program}->{Channel}->{callSign};
+                my $channelId = $e->{Program}->{Channel}->{chanId};
+                my $channelIcon = load_channel_icon($channelId);
                 my $progTitle = $e->{Program}->{title};
                 my $startTime = DateTime::Format::ISO8601->parse_datetime($e->{Program}->{startTime}) or die;
                 my $endTime = DateTime::Format::ISO8601->parse_datetime($e->{Program}->{endTime}) or die;
@@ -822,7 +871,7 @@ given ($action) {
                 my $frombegTime = $currentTime - $startTime;
                 my $duration = fix($durationTime->hours).":".fix($durationTime->minutes).":".fix($durationTime->seconds);
                 my $recorded = fix($frombegTime->hours).":".fix($frombegTime->minutes).":".fix($frombegTime->seconds);
-                my $tillend = fix($tillendTime->hours).":".fix($tillendTime->minutes).":".fix($tillendTime->seconds);
+                my $tillend = fix($tillendTime->hours).":".fix($tillendTime->minutes);
                 my $dur_sec = ($durationTime->hours)*3600 + ($durationTime->minutes)*60 + $durationTime->seconds;
                 my $progress_sec = ($frombegTime->hours)*3600 + ($frombegTime->minutes)*60 + $frombegTime->seconds;
                 my $progress = $progress_sec/$dur_sec;
@@ -836,6 +885,8 @@ given ($action) {
                     print "Status: ".$tunerStatus."\n";
                     print "    Channel.num : ",$channelNum,"\n";
                     print "    Channel.name: ",$channelName,"\n";
+                    print "    Channel.ID  : ",$channelId,"\n";
+                    print "    Channel.Icon: ",$channelIcon,"\n";
                     print "    Title       : ",$progTitle,"\n";
                     print "    Duration    : ",$duration,"\n";
                     print "    Recorded    : ",$recorded,"\n";
@@ -846,14 +897,15 @@ given ($action) {
                 }
 
                 if ($e->{state} eq "1") {
+                    # LiveTV
                     $idle = 1;
                     &stack_notify(
-                    $channelName,
+                    $channelName." (LiveTV)",
                     "",
-                    $progTitle."    [".$tunerName."]",
+                    $progTitle,
                     "",
-                    $osd_livetv_icon,
-                    "",
+                    $channelIcon,
+                    $tunerName." | To end: ".$tillend,
                     $progress,
                     $osd_recorders_timeout,
                     $recorders_style,
@@ -862,14 +914,15 @@ given ($action) {
                 }
 
                 if ($e->{state} eq "7") {
+                    #Recording
                     $idle = 1;
                     &stack_notify(
                     $channelName,
                     "",
-                    $progTitle."    [".$tunerName."]",
+                    $progTitle,
                     "",
-                    $osd_recording_icon,
-                    "",
+                    $channelIcon,
+                    $tunerName." | To end: ".$tillend,
                     $progress,
                     $osd_recorders_timeout,
                     $recorders_style,
