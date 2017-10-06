@@ -1,5 +1,5 @@
 GARNAME = lirc
-GARVERSION = 0.10.0
+GARVERSION = 0.10.1
 CATEGORIES = system
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/LIRC/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
