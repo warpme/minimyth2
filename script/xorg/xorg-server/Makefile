@@ -1,13 +1,12 @@
 GARNAME = xorg-server
-GARVERSION = 1.19.3
+GARVERSION = 1.19.4
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = \
 	$(DISTNAME)-perl.patch.gar \
 	$(DISTNAME)-pkg_config.patch \
-	$(DISTNAME)-detect_radeon.patch \
-	$(DISTNAME)-debug-page-flipping.patch
+	$(DISTNAME)-detect_radeon.patch
 
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
