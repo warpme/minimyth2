@@ -191,7 +191,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		cp -pdR $(DESTDIR)$(qt5prefix)/plugins/sqldrivers      $@~$(qt5prefix)/plugins ; \
 	 fi
 	@echo 'generating supported video HW list'
-	@cat $(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt $(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt $(DESTDIR)/usr/share/supported-nvidia-gfx-hardware.txt > $(top_source)/html/document-supported-gfx-hardware.txt
+	@cat $(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt $(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt $(DESTDIR)/usr/share/supported-nvidia-gfx-hardware.txt $(DESTDIR)/usr/share/supported-nvidia-legacy-gfx-hardware.txt> $(top_source)/html/document-supported-gfx-hardware.txt
 	@grep "PCI_ID" -c $(top_source)/html/document-supported-gfx-hardware.txt | sed -e 's/^/\nTotal video chips supported: /g' >> $(top_source)/html/document-supported-gfx-hardware.txt
 	@echo 'generating supported IR remotes list'
 	@cp -pd $(DESTDIR)/usr/share/supported-IR-remotes.txt $(top_source)/html/document-supported-IR-remotes.txt
@@ -232,13 +232,16 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/1600x1200.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/1600x900.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/1920x1080.cfg
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/3840x2160.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/640x480.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/800x600.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~/srv/www/index.html
 	@sed -i 's%@MM_NVIDIA_VERSION@%$(mm_NVIDIA_VERSION)%g'     $@~/srv/www/index.html
+	@sed -i 's%@MM_NVIDIA_LEGACY_VERSION@%$(mm_NVIDIA_LEGACY_VERSION)%g' $@~/srv/www/index.html
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)-$(mm_GARCH)%g' $@~/etc/os_myth_release
 	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_SVN_VERSION)%g'   $@~/etc/os_myth_release
 	@sed -i 's%@MM_NVIDIA_VERSION@%$(mm_NVIDIA_VERSION)%g'     $@~/etc/os_myth_release
+	@sed -i 's%@MM_NVIDIA_LEGACY_VERSION@%$(mm_NVIDIA_LEGACY_VERSION)%g' $@~/etc/os_myth_release
 	@sed -i 's%@MM_GARCH@%$(mm_GARCH)%g'                       $@~/etc/os_myth_release
 	@sed -i 's%@MM_VERSION@%$(mm_VERSION)%g'                   $@~/etc/version
 	@# Create the minimyth build configuration file.

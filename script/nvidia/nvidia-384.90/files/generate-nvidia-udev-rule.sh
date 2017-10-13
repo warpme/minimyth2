@@ -12,9 +12,9 @@
 ver=$1
 
 in_file='./supportedchips.html'
-out_file="05-minimyth-detect-x-nvidia1-legacy-${ver}.rules.disabled"
+out_file="05-minimyth-detect-x-nvidia2-${ver}.rules.disabled"
 out_dir='../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d'
-suported_devices_file='../../../../images/main/usr/share/supported-nvidia-legacy-gfx-hardware.txt'
+suported_devices_file='../../../../images/main/usr/share/supported-nvidia-gfx-hardware.txt'
 vendor_id='10de'
 
 
@@ -51,7 +51,7 @@ vendor_id='10de'
 
 
 #------------------------------------------------------------------------------_
-rm -f ${out_dir}/05-minimyth-detect-x-nvidia1-*
+rm -f ${out_dir}/05-minimyth-detect-x-nvidia2-*
 rm -f ${suported_devices_file}
 
 cp ${in_file} ./file.tmp
@@ -65,7 +65,7 @@ sed -e 's/-bit/bit/g' -i ./file.tmp
 # Removing all cards starting with Quadro to end of file
 sed '/name="Quadro"/,/class="navfooter"/d' ./file.tmp > ./file1.tmp
 # Removing all lines except lines with <tr id="0x????">
-cat ./file1.tmp | grep '<tr id="0x' > ./file.tmp
+cat ./file1.tmp | grep '<tr id="devid' > ./file.tmp
 
 rm ./file1.tmp
 
@@ -106,11 +106,11 @@ echo "#-------------------------------------------------------------------------
 echo "" >> ${out_dir}/${out_file}
 echo "ENV{mm_detect_id}!=\"pci:0300:00:${vendor_id}:????:????:????\", GOTO=\"end-nvidia\"" >> ${out_dir}/${out_file}
 echo "" >> ${out_dir}/${out_file}
-echo "  ENV{mm_detect_id}==\"pci:0300:00:${vendor_id}:????:????:????\", ENV{mm_detect_state_x}=\"nvidia\"" >> ${out_dir}/${out_file}
+echo "  # commented as this is second nvidia rule so not overrite first rule results when this detects nothing ENV{mm_detect_id}==\"pci:0300:00:${vendor_id}:????:????:????\", ENV{mm_detect_state_x}=\"nvidia\"" >> ${out_dir}/${out_file}
 echo "" >> ${out_dir}/${out_file}
 
 echo "-------------------------------------------------------------------------------" >> ${suported_devices_file}
-echo "NVIDIA devices by Nvidia legacy driver ver.: ${ver}" >> ${suported_devices_file}
+echo "NVIDIA devices by Nvidia driver ver.: ${ver}" >> ${suported_devices_file}
 echo "-------------------------------------------------------------------------------" >> ${suported_devices_file}
 
 old_id=" "
@@ -118,18 +118,20 @@ c=1
 
 for card in ${card_list} ; do
    #echo "-------- "
-       id=`echo "${card}" | sed -e 's/<tr id="0x\([0-9a-fA-F\s]*\)<td>\([a-zA-Z0-9/ ()-\+]*\)><td>0x\([a-zA-Z0-9x ]*\)><td>\([A-Z0-9 -]*\).*/\1/' -e 's/\(.*\)/\L\1/'`
-     name=`echo "${card}" | sed -e 's/<tr id="0x\([0-9a-fA-F\s]*\)<td>\([a-zA-Z0-9/ ()-\+]*\)><td>0x\([a-zA-Z0-9x ]*\)><td>\([A-Z0-9 -]*\).*/\2/'`
-   pci_id=`echo "${card}" | sed -e 's/<tr id="0x\([0-9a-fA-F\s]*\)<td>\([a-zA-Z0-9/ ()-\+]*\)><td>0x\([a-zA-Z0-9x ]*\)><td>\([A-Z0-9 -]*\).*/\3/' -e 's/\(.*\)/\L\1/'`
-    class=`echo "${card}" | sed -e 's/<tr id="0x\([0-9a-fA-F\s]*\)<td>\([a-zA-Z0-9/ ()-\+]*\)><td>0x\([a-zA-Z0-9x ]*\)><td>\([A-Z0-9 -]*\).*/\4/' -e 's/ //'`
+   #                                  <tr id="devid1C60<td>GeForce GTX 1060><td>1C60><td>H></tr>
+   #                                  <tr id="devid1427_1458_D003<td>GeForce GTX 950><td>1427 1458 D003><td>F></tr>
+       id=`echo "${card}" | sed -e 's/<tr id="devid\([0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]\).*<td>.*/\1/' -e 's/\(.*\)/\L\1/'`
+     name=`echo "${card}" | sed -e 's/<tr id="devid\([0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]\).*<td>\([a-zA-Z0-9/ ()-\+]*\)><td>\([a-zA-Z0-9x ]*\)><td>\([A-Z0-9 -]*\).*/\2/'`
+   pci_id=`echo "${card}" | sed -e 's/<tr id="devid\([0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]\).*<td>\([a-zA-Z0-9/ ()-\+]*\)><td>\([a-zA-Z0-9x ]*\)><td>\([A-Z0-9 -]*\).*/\3/' -e 's/\(.*\)/\L\1/'`
+    class=`echo "${card}" | sed -e 's/<tr id="devid\([0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]\).*<td>\([a-zA-Z0-9/ ()-\+]*\)><td>\([a-zA-Z0-9x ]*\)><td>\([A-Z0-9 -]*\).*/\4/' -e 's/ //'`
    #echo "      ID = ${id}"
    #echo "    Name = ${name}"
    #echo "  PCI_ID = ${pci_id}"
    #echo "   Class = ${class}"
    if [ ${class} = '-' ] ; then
-     type="nvidia_legacy"
+     type="nvidia"
    else
-     type="nvidia_legacy_vdpau"
+     type="nvidia_vdpau"
    fi
    #echo "    Type = ${type}"
    legend=`echo "  # Card=${name}, PCI_ID=${id}, VDPAU class=${class}"`

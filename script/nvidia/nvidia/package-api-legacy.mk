@@ -40,59 +40,59 @@ NVIDIA_VERSION = $(strip $(if $(filter 1.0,$(NVIDIA_MAJOR_VERSION).$(NVIDIA_MINO
 
 NVIDIA_FILE_LIST_BIN     = $(strip \
 		$(if $(wildcard $(WORKSRC)/usr/bin/nvidia-bug-report.sh), \
-			nvidia-bug-report.sh:/usr/bin:$(bindir)) \
+			nvidia-bug-report.sh:/usr/bin:$(bindir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/usr/bin/nvidia-settings), \
-			nvidia-settings:/usr/bin:$(bindir)) \
+			nvidia-settings:/usr/bin:$(bindir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/usr/bin/nvidia-xconfig), \
-			nvidia-xconfig:/usr/bin:$(bindir)) \
+			nvidia-xconfig:/usr/bin:$(bindir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/nvidia-bug-report.sh), \
-			nvidia-bug-report.sh:/:$(bindir)) \
+			nvidia-bug-report.sh:/:$(bindir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/nvidia-settings), \
-			nvidia-settings:/:$(bindir)) \
+			nvidia-settings:/:$(bindir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/nvidia-smi), \
-			nvidia-smi:/:$(bindir)) \
+			nvidia-smi:/:$(bindir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/nvidia-xconfig), \
-			nvidia-xconfig:/:$(bindir)) \
+			nvidia-xconfig:/:$(bindir)/nvidia-legacy) \
 	)
 NVIDIA_FILE_LIST_LIB_DRV = $(strip \
 		$(if $(wildcard $(WORKSRC)/usr/X11R6/lib/modules/drivers/nvidia_drv.so), \
-			nvidia_drv.so:/usr/X11R6/lib/modules/drivers:$(libdir)/nvidia/xorg/modules/drivers) \
+			nvidia_drv.so:/usr/X11R6/lib/modules/drivers:$(libdir)/nvidia-legacy/xorg/modules/drivers) \
 		$(if $(wildcard $(WORKSRC)/nvidia_drv.so), \
-			nvidia_drv.so:/:$(libdir)/nvidia/xorg/modules/drivers) \
+			nvidia_drv.so:/:$(libdir)/nvidia-legacy/xorg/modules/drivers) \
 	)
 NVIDIA_FILE_LIST_LIB_SO  = $(strip \
 		$(if $(wildcard $(WORKSRC)/usr/lib/libGL.so.*), \
-			libGL.so:/usr/lib:$(libdir)/nvidia) \
+			libGL.so:/usr/lib:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/usr/lib/libGLcore.so.*), \
-			libGLcore.so:/usr/lib:$(libdir)/nvidia) \
+			libGLcore.so:/usr/lib:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/usr/lib/libnvidia-cfg.so.*), \
-			libnvidia-cfg.so:/usr/lib:$(libdir)/nvidia) \
+			libnvidia-cfg.so:/usr/lib:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/usr/lib/tls/libnvidia-tls.so.*), \
-			libnvidia-tls.so:/usr/lib/tls:$(libdir)/nvidia) \
+			libnvidia-tls.so:/usr/lib/tls:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/usr/lib/vdpau/libvdpau_nvidia.so.*), \
-			libvdpau_nvidia.so:/usr/lib/vdpau:$(libdir)/vdpau) \
+			libvdpau_nvidia.so:/usr/lib/vdpau:$(libdir)/vdpau-nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/usr/X11R6/lib/libXvMCNVIDIA.so.*), \
-			libXvMCNVIDIA.so:/usr/X11R6/lib:$(libdir)/nvidia) \
+			libXvMCNVIDIA.so:/usr/X11R6/lib:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/usr/X11R6/lib/modules/extensions/libglx.so.*), \
-			libglx.so:/usr/X11R6/lib/modules/extensions:$(libdir)/nvidia/xorg/modules/extensions) \
+			libglx.so:/usr/X11R6/lib/modules/extensions:$(libdir)/nvidia-legacy/xorg/modules/extensions) \
 		$(if $(wildcard $(WORKSRC)/libGL.so.*), \
-			libGL.so:/:$(libdir)/nvidia) \
+			libGL.so:/:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libnvidia-glcore.so.*), \
-			libnvidia-glcore.so:/:$(libdir)/nvidia) \
+			libnvidia-glcore.so:/:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libnvidia-cfg.so.*), \
-			libnvidia-cfg.so:/:$(libdir)/nvidia) \
+			libnvidia-cfg.so:/:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/tls/libnvidia-tls.so.*), \
-			libnvidia-tls.so:/tls:$(libdir)/nvidia) \
+			libnvidia-tls.so:/tls:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libnvidia-wfb.so.*), \
-			libnvidia-wfb.so:/:$(libdir)/nvidia) \
+			libnvidia-wfb.so:/:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libvdpau_nvidia.so.*), \
-			libvdpau_nvidia.so:/:$(libdir)/vdpau) \
+			libvdpau_nvidia.so:/:$(libdir)/vdpau-nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libnvidia-ml.so.*), \
-			libnvidia-ml.so:/:$(libdir)/nvidia) \
+			libnvidia-ml.so:/:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libXvMCNVIDIA.so.*), \
-			libXvMCNVIDIA.so:/:$(libdir)/nvidia) \
+			libXvMCNVIDIA.so:/:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libglx.so.*), \
-			libglx.so:/:$(libdir)/nvidia/xorg/modules/extensions) \
+			libglx.so:/:$(libdir)/nvidia-legacy/xorg/modules/extensions) \
 	)
 
 NVIDIA_MAKE_ARGS = \
@@ -101,7 +101,7 @@ NVIDIA_MAKE_ARGS = \
 	HOST_CC=$(build_CC) \
 	SYSSRC=$(shell readlink -f $(DESTDIR)$(LINUX_SOURCEDIR)) \
 	SYSOUT=$(shell readlink -f $(DESTDIR)$(LINUX_BUILDDIR)) \
-	MODULE_ROOT=$(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia
+	MODULE_ROOT=$(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia-legacy
 
 NVIDIA_MAKE_ENV = \
 	$(LINUX_MAKE_ENV)
@@ -128,32 +128,29 @@ install-nvidia: install-nvidia-kernel install-nvidia-x11
 	@$(MAKECOOKIE)
 
 install-nvidia-kernel:
-	@mkdir -p $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia
+	@mkdir -p $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia-legacy
 	@$(if $(wildcard $(WORKSRC)/usr/src/nv/nvidia.ko), \
-		cp $(WORKSRC)/usr/src/nv/nvidia.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia/nvidia.ko)
+		cp $(WORKSRC)/usr/src/nv/nvidia.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia-legacy/nvidia.ko)
 	@$(if $(wildcard $(WORKSRC)/kernel/nvidia-drm.ko), \
-		cp $(WORKSRC)/kernel/nvidia-drm.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia/nvidia-drm.ko)
+		cp $(WORKSRC)/kernel/nvidia-drm.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia-legacy/nvidia-drm.ko)
 	@$(if $(wildcard $(WORKSRC)/kernel/nvidia-modeset.ko), \
-		cp $(WORKSRC)/kernel/nvidia-modeset.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia/nvidia-modeset.ko)
+		cp $(WORKSRC)/kernel/nvidia-modeset.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia-legacy/nvidia-modeset.ko)
 	@$(if $(wildcard $(WORKSRC)/kernel/nvidia-uvm.ko), \
-		cp $(WORKSRC)/kernel/nvidia-uvm.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia/nvidia-uvm.ko)
+		cp $(WORKSRC)/kernel/nvidia-uvm.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia-legacy/nvidia-uvm.ko)
 	@$(if $(wildcard $(WORKSRC)/kernel/nvidia.ko), \
-		cp $(WORKSRC)/kernel/nvidia.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia/nvidia.ko)
+		cp $(WORKSRC)/kernel/nvidia.ko $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia-legacy/nvidia-legacy.ko)
 	@depmod -b "$(DESTDIR)$(rootdir)" "$(LINUX_FULL_VERSION)"
 	@$(MAKECOOKIE)
 
 install-nvidia-x11:
-	@rm -f $(DESTDIR)$(bindir)/nvidia-bug-report.sh
-	@rm -f $(DESTDIR)$(bindir)/nvidia-settings
-	@rm -f $(DESTDIR)$(bindir)/nvidia-smi
-	@rm -f $(DESTDIR)$(bindir)/nvidia-xconfig
+	@rm -rf $(DESTDIR)$(bindir)/nvidia-legacy*
 	@$(foreach entry,$(NVIDIA_FILE_LIST_BIN), \
 		install -D \
 		    $(WORKSRC)$(word 2,$(subst :, ,$(entry)))/$(word 1,$(subst :, ,$(entry))) \
 		    $(DESTDIR)$(word 3,$(subst :, ,$(entry)))/$(word 1,$(subst :, ,$(entry))) ; \
 	)
-	@rm -rf $(DESTDIR)$(libdir)/nvidia/*
-	@rm -rf $(DESTDIR)$(libdir)/vdpau/libvdpau_nvidia.*
+	@rm -rf $(DESTDIR)$(libdir)/nvidia-legacy*
+	@rm -rf $(DESTDIR)$(libdir)/vdpau-nvidia-legacy*
 	@$(foreach entry,$(NVIDIA_FILE_LIST_LIB_DRV), \
 		install -D \
 		    $(WORKSRC)$(word 2,$(subst :, ,$(entry)))/$(word 1,$(subst :, ,$(entry))) \
@@ -198,12 +195,9 @@ clean-all: clean-all-kernel clean-all-x11
 	@rm -rf $(DESTDIR)$(licensedir)/$(GARNAME)
 
 clean-all-kernel:
-	@rm -rf $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia
+	@rm -rf $(DESTDIR)$(LINUX_MODULESDIR)/misc/nvidia-legacy
 
 clean-all-x11:
-	@rm -f $(DESTDIR)$(bindir)/nvidia-bug-report.sh
-	@rm -f $(DESTDIR)$(bindir)/nvidia-settings
-	@rm -f $(DESTDIR)$(bindir)/nvidia-smi
-	@rm -f $(DESTDIR)$(bindir)/nvidia-xconfig
-	@rm -rf $(DESTDIR)$(libdir)/nvidia/*
-	@rm -rf $(DESTDIR)$(libdir)/vdpau/libvdpau_nvidia.*
+	@rm -rf $(DESTDIR)$(bindir)/nvidia-legacy
+	@rm -rf $(DESTDIR)$(libdir)/nvidia-legacy
+	@rm -rf $(DESTDIR)$(libdir)/vdpau-nvidia-legacy

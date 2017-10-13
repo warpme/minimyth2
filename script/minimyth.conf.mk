@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.12.2.r66
+mm_VERSION_MINIMYTH ?= 8.13.0.r66
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -38,8 +38,8 @@ mm_DEBUG_BUILD            ?= no
 
 # Lists the graphics drivers supported.
 # Valid values for mm_GRAPHICS are one or more of 'intel', 'nvidia',
-# 'radeon', and 'vmware'.
-mm_GRAPHICS               ?= intel nvidia vmware radeon
+# 'nvidia-legacy', 'radeon', and 'vmware'.
+mm_GRAPHICS               ?= intel nvidia nvidia-legacy vmware radeon
 
 # Lists the software to be supported.
 # Lists the software to be supported.
@@ -140,8 +140,12 @@ mm_MYTH_VERSION           ?= master
 # mm_MYTH_VERSION           ?= 0.28
 
 # The version of the NVIDIA driver.
-# Valid values are '340.102', '375.20'
-mm_NVIDIA_VERSION         ?= 340.104
+# Valid values are '384.90', '384.90'
+mm_NVIDIA_VERSION         ?= 384.90
+
+# The version of the NVIDIA legacy driver.
+# Valid values are '340.104', '340.104'
+mm_NVIDIA_LEGACY_VERSION  ?= 340.104
 
 # The version of xorg to use.
 # Valid values are '7.6'.

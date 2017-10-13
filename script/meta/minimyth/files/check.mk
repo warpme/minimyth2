@@ -118,6 +118,7 @@ mm-all:
 	@for graphic in $(mm_GRAPHICS) ; do \
 		if [ ! "$${graphic}" = "intel"      ] && \
 		   [ ! "$${graphic}" = "nvidia"     ] && \
+		   [ ! "$${graphic}" = "nvidia-legacy" ] && \
 		   [ ! "$${graphic}" = "radeon"     ] && \
 		   [ ! "$${graphic}" = "radeonhd"   ] && \
 		   [ ! "$${graphic}" = "vmware"     ] ; then \
@@ -200,10 +201,15 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_VERSION"
-	@if [ ! "$(mm_NVIDIA_VERSION)" = "340.102"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "340.104"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "370.28"    ] ; then \
+	@if [ ! "$(mm_NVIDIA_VERSION)" = "384.90"    ] && \
+	    [ ! "$(mm_NVIDIA_VERSION)" = "390.28"    ] ; then \
 		echo "error: mm_NVIDIA_VERSION=\"$(mm_NVIDIA_VERSION)\" is an invalid value." ; \
+		exit 1 ; \
+	fi
+	@echo "    mm_NVIDIA_LEGACY_VERSION"
+	@if [ ! "$(mm_NVIDIA_LEGACY_VERSION)" = "340.104"    ] && \
+	    [ ! "$(mm_NVIDIA_LEGACY_VERSION)" = "340.108"    ] ; then \
+		echo "error: mm_NVIDIA_LEGACY_VERSION=\"$(mm_NVIDIA_LEGACY_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_XORG_VERSION"

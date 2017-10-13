@@ -46,8 +46,9 @@ start() {
     # Hacks to deal with the fact that the names for proprietary drivers and
     # open source drivers conflict.
     #   the proprietary NVIDIA GL libraries conflict with the Open Source Mesa GL libraries.
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/X] Configuring Xorg libs ..."
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/X] Configuring Xorg libs for ${MM_X_DRIVER}..."
     NVIDIA_TRUE='#'
+    NVIDIA_LEGACY_TRUE='#'
     INTEL_I810_TRUE='#'
     INTEL_I915_TRUE='#'
     RADEON_TRUE='#'
@@ -56,10 +57,18 @@ start() {
         intel_i810)
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/X] Enabling intel_i810 driver in Xorg.conf..."
             INTEL_I810_TRUE=''
+            # Remove all Nvidia drivers
+            /bin/rm -rf /lib/modules/*/misc/nvidia*
+            /bin/rm -rf /usr/lib/nvidia*
+            /bin/rm -rf /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
             ;;
         intel_i915)
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/X] Enabling intel_i915 driver in Xorg.conf..."
             INTEL_I915_TRUE=''
+            # Remove all Nvidia drivers
+            /bin/rm -rf /lib/modules/*/misc/nvidia*
+            /bin/rm -rf /usr/lib/nvidia*
+            /bin/rm -rf /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
             ;;
         nvidia)
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/X] Enabling nvidia driver in Xorg.conf..."
@@ -79,16 +88,56 @@ start() {
                     /bin/rm -f ${LIB_PATH}
                 fi
             done
+            # Remove legacy drivers
+            /bin/rm -rf /usr/lib/nvidia-legacy/* /usr/lib/vdpau-nvidia-legacy/libvdpau_nvidia.so.1
+            # Rebuild library cache.
+            /sbin/ldconfig
+            ;;
+        nvidia_legacy)
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/X] Enabling nvidia legacy driver in Xorg.conf..."
+            NVIDIA_LEGACY_TRUE=''
+            # Include path to proprietary libraries.
+            LIB_PATHS=`/bin/cat /etc/ld.so.conf`
+            LIB_PATHS="/usr/lib/${MM_X_DRIVER} ${LIB_PATHS}"
+            /bin/echo -n > /etc/ld.so.conf
+            for LIB_PATH in ${LIB_PATHS} ; do
+                /bin/echo "${LIB_PATH}" >> /etc/ld.so.conf
+            done
+            # Remove Open Source libraries that conflict with proprietary libraries.
+            LIBS=`/usr/bin/find /usr/lib/${MM_X_DRIVER} -type f | /bin/sed -e "s%^.*/%%"`
+            for LIB in ${LIBS} ; do
+                LIB_PATH=`/usr/bin/find /usr/lib -name ${LIB} | /bin/sed -e "s%^/usr/lib/${MM_X_DRIVER}/.*\$%%"`
+                if /usr/bin/test -n "${LIB_PATH}" ; then
+                    /bin/rm -f ${LIB_PATH}
+                fi
+            done
+            # Remove non-legacy drivers
+            /bin/rm -rf /usr/lib/nvidia/* /usr/lib/vdpau/libvdpau_nvidia.so.1
+            # Move legacy libvdpau to /usr/lib/vdpau
+            /bin/mv /usr/lib/vdpau-nvidia-legacy/libvdpau_nvidia.so.1 /usr/lib/vdpau/
+            # Move legacy nvidia-smi to /usr/bin
+            /bin/rm -rf /usr/bin/nvidia-smi
+            /bin/mv /usr/bin/nvidia-legacy/nvidia-smi /usr/bin/
+            # Move  libnvidia-ml to /usr/lib as by some reason it is not working from /usr/lib/nvidia-legacy dir
+            /bin/mv /usr/lib/nvidia-legacy/libnvidia-ml.so /usr/lib/
             # Rebuild library cache.
             /sbin/ldconfig
             ;;
         radeon)
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/X] Enabling radeon driver in Xorg.conf..."
             RADEON_TRUE=''
+            # Remove all Nvidia drivers
+            /bin/rm -rf /lib/modules/*/misc/nvidia*
+            /bin/rm -rf /usr/lib/nvidia*
+            /bin/rm -rf /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
             ;;
         vmware)
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/X] Enabling vmware driver in Xorg.conf..."
             VMWARE_TRUE=''
+            # Remove all Nvidia drivers
+            /bin/rm -rf /lib/modules/*/misc/nvidia*
+            /bin/rm -rf /usr/lib/nvidia*
+            /bin/rm -rf /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
             ;;
     esac
 
@@ -96,6 +145,7 @@ start() {
 
     /bin/sed -i "s%@MM_X_DRIVER@%${MM_X_DRIVER}%"               /etc/X11/xorg.conf
     /bin/sed -i "s%@NVIDIA_TRUE@%${NVIDIA_TRUE}%"               /etc/X11/xorg.conf
+    /bin/sed -i "s%@NVIDIA_LEGACY_TRUE@%${NVIDIA_LEGACY_TRUE}%" /etc/X11/xorg.conf
     /bin/sed -i "s%@INTEL_I810_TRUE@%${INTEL_I810_TRUE}%"       /etc/X11/xorg.conf
     /bin/sed -i "s%@INTEL_I915_TRUE@%${INTEL_I915_TRUE}%"       /etc/X11/xorg.conf
     /bin/sed -i "s%@RADEON_TRUE@%${RADEON_TRUE}%"               /etc/X11/xorg.conf
