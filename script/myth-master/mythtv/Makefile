@@ -143,6 +143,8 @@ PATCHFILES += 0322-add-netflix-to-thememenus.patch
 # Fixes ticket #12396: issue with some non mkv files and srt subtitles
 PATCHFILES += 0323-ticket12396-.srt-subs-go-out-of-sync.patch
 
+PATCHFILES += 0324-disable-caches-pruning.patch
+
 endif
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
