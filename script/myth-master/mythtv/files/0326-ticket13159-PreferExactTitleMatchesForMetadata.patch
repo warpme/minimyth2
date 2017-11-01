@@ -1,0 +1,152 @@
+diff --git a/mythtv/libs/libmythmetadata/metadatacommon.cpp b/mythtv/libs/libmythmetadata/metadatacommon.cpp
+index d28d54e..14f1a9e 100644
+--- a/mythtv/libs/libmythmetadata/metadatacommon.cpp
++++ b/mythtv/libs/libmythmetadata/metadatacommon.cpp
+@@ -219,6 +219,9 @@ MetadataLookup::MetadataLookup(
+     m_artwork(artwork),
+     m_downloads(downloads)
+ {
++    QString manRecSuffix = QString(" (%1)").arg(QObject::tr("Manual Record"));
++    m_base_title = title;
++    m_base_title.replace(manRecSuffix,"");
+ }
+ 
+ // ProgramInfo-style constructor
+@@ -312,6 +315,9 @@ MetadataLookup::MetadataLookup(
+     m_popularity = 0;
+     m_budget = 0;
+     m_revenue = 0;
++    QString manRecSuffix = QString(" (%1)").arg(QObject::tr("Manual Record"));
++    m_base_title = title;
++    m_base_title.replace(manRecSuffix,"");
+ }
+ 
+ // XBMC NFO-style constructor
+@@ -388,6 +394,9 @@ MetadataLookup::MetadataLookup(
+     m_artwork(artwork),
+     m_downloads(downloads)
+ {
++    QString manRecSuffix = QString(" (%1)").arg(QObject::tr("Manual Record"));
++    m_base_title = title;
++    m_base_title.replace(manRecSuffix,"");
+ }
+ 
+ MetadataLookup::~MetadataLookup()
+diff --git a/mythtv/libs/libmythmetadata/metadatadownload.cpp b/mythtv/libs/libmythmetadata/metadatadownload.cpp
+index bf5d4fb..5c6194b 100644
+--- a/mythtv/libs/libmythmetadata/metadatadownload.cpp
++++ b/mythtv/libs/libmythmetadata/metadatadownload.cpp
+@@ -204,16 +204,26 @@ MetadataLookup* MetadataDownload::findBestMatch(MetadataLookupList list,
+ {
+     QStringList titles;
+     MetadataLookup *ret = NULL;
++    QDate exactTitleDate;
+ 
+     // Build a list of all the titles
+     int exactMatches = 0;
+     for (MetadataLookupList::const_iterator i = list.begin();
+             i != list.end(); ++i)
+     {
+-        QString title = (*i)->GetBaseTitle();
+-        if (title == originaltitle)
++        QString title = (*i)->GetTitle();
++        LOG(VB_GENERAL, LOG_INFO, QString("Comparing metadata title '%1' to recording title '%2'")
++                .arg(title)
++                .arg(originaltitle));
++        if (QString::compare(title, originaltitle, Qt::CaseInsensitive) == 0)
+         {
+-            ret = (*i);
++            // We have an exact match on the title (ignoring case). After
++            // the first exact match, prefer any more recently released one.
++            if ((ret == NULL) || ((*i)->GetReleaseDate() > exactTitleDate))
++            {
++                exactTitleDate = (*i)->GetReleaseDate();
++                ret = (*i);
++            }
+             exactMatches++;
+         }
+ 
+@@ -226,18 +236,18 @@ MetadataLookup* MetadataDownload::findBestMatch(MetadataLookupList list,
+     {
+         if (exactMatches == 1)
+         {
+-            LOG(VB_GENERAL, LOG_INFO, QString("Single Exact Title Match For %1")
++            LOG(VB_GENERAL, LOG_INFO, QString("Single exact title match for '%1'")
+                     .arg(originaltitle));
+-            return ret;
+         }
+         else
+         {
+-            LOG(VB_GENERAL, LOG_ERR,
+-                QString("Multiple exact title matches found for %1. "
+-                        "Need to match on other criteria.")
+-                    .arg(originaltitle));
+-            return NULL;
++            LOG(VB_GENERAL, LOG_INFO,
++                QString("Multiple exact title matches found for '%1'. "
++                        "Selecting most recent [%2]")
++                    .arg(originaltitle)
++                    .arg(exactTitleDate.toString()));
+         }
++        return ret;
+     }
+ 
+     // Apply Levenshtein distance algorithm to determine closest match
+@@ -260,7 +270,7 @@ MetadataLookup* MetadataDownload::findBestMatch(MetadataLookupList list,
+     MetadataLookupList::const_iterator i = list.begin();
+     for (; i != list.end(); ++i)
+     {
+-        if ((*i)->GetBaseTitle() == bestTitle)
++        if ((*i)->GetTitle() == bestTitle)
+         {
+             ret = (*i);
+             break;
+diff --git a/mythtv/programs/mythmetadatalookup/lookup.cpp b/mythtv/programs/mythmetadatalookup/lookup.cpp
+index 6de23a1..eb3c2ab 100644
+--- a/mythtv/programs/mythmetadatalookup/lookup.cpp
++++ b/mythtv/programs/mythmetadatalookup/lookup.cpp
+@@ -246,11 +246,25 @@ void LookerUpper::customEvent(QEvent *levent)
+         if (list.count() > 1)
+         {
+             int yearindex = -1;
++            MetadataLookup *exactTitleMeta = NULL;
++            QDate exactTitleDate;
+ 
+             for (int p = 0; p != list.size(); ++p)
+             {
+                 ProgramInfo *pginfo = list[p]->GetData().value<ProgramInfo *>();
+ 
++                if (pginfo && (QString::compare(pginfo->GetTitle(), list[p]->GetBaseTitle(), Qt::CaseInsensitive)) == 0)
++                {
++                    // We have an exact match on the title (ignoring case)
++                    if ((exactTitleMeta == NULL) ||
++                        (list[p]->GetReleaseDate() > exactTitleDate))
++                    {
++                        // remember the most recently released exact match
++                        exactTitleDate = list[p]->GetReleaseDate();
++                        exactTitleMeta = list[p];
++                    }
++                }
++
+                 if (pginfo && !pginfo->GetSeriesID().isEmpty() &&
+                     pginfo->GetSeriesID() == (list[p])->GetTMSref())
+                 {
+@@ -291,6 +305,18 @@ void LookerUpper::customEvent(QEvent *levent)
+                 return;
+             }
+ 
++            if (exactTitleMeta != NULL)
++            {
++                LOG(VB_GENERAL, LOG_INFO, QString("Most recent exact match released %1").arg(exactTitleDate.toString()));
++                MetadataLookup *lookup = exactTitleMeta;
++                ProgramInfo *pginfo = exactTitleMeta->GetData().value<ProgramInfo *>();
++                if (lookup->GetSubtype() != kProbableGenericTelevision)
++                    pginfo->SaveSeasonEpisode(lookup->GetSeason(), lookup->GetEpisode());
++                pginfo->SaveInetRef(lookup->GetInetref());
++                m_busyRecList.removeAll(pginfo);
++                return;
++            }
++
+             LOG(VB_GENERAL, LOG_INFO, "Unable to match this title, too many possible matches. "
+                                       "You may wish to manually set the season, episode, and "
+                                       "inetref in the 'Watch Recordings' screen.");

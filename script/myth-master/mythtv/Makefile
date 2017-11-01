@@ -143,7 +143,9 @@ PATCHFILES += 0322-add-netflix-to-thememenus.patch
 # Fixes ticket #12396: issue with some non mkv files and srt subtitles
 PATCHFILES += 0323-ticket12396-.srt-subs-go-out-of-sync.patch
 
-PATCHFILES += 0324-disable-caches-pruning.patch
+PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
+
+PATCHFILES += 0326-ticket13159-PreferExactTitleMatchesForMetadata.patch
 
 endif
 
