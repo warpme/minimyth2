@@ -144,6 +144,56 @@ start() {
         fi
     fi
 
+
+    # Mount remotecache directory.
+    if /usr/bin/test -n "${MM_REMOTECACHE_URL}" && /usr/bin/test -z "${MM_MYTHTV_HOME_URL}" ; then
+        HOST_NAME=`/bin/hostname`
+        if /usr/bin/test "${MM_REMOTECACHE_URL}" = "auto" ; then
+            /bin/rm -f /home/minimyth/_.test_
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Trying to automount mythtv home dir...(auto)"
+            mm_confrw_get /minimyth_home/.mythtv/mysql.txt /home/minimyth/_.test_
+            if /usr/bin/test -f "/var/lib/minimyth.bootdir.nfs_mounted" ; then
+                /bin/ln -sf /var/minimyth.bootdir/conf-rw/${HOST_NAME}/remotecache /home/minimyth/.mythtv/cache/remotecache
+                if /bin/su -c "/usr/bin/test ! -w /home/minimyth/.mythtv/cache/remotecache" - minimyth ; then
+                    mm_message_output err "ERROR: RemoteCache dir is not writable by user 'minimyth'."
+                    exit 1
+                fi
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] RemoteCache mounted... (auto)"
+            else
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] ERROR mounting RemoteCache: NFS base dir not mounted..."
+                mm_message_output err "ERORR: NFS base bootdir not mounted..."
+                exit 1
+            fi
+        else
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Mounting MythTV cache from ${MM_REMOTECACHE_URL}/${HOST_NAME}"
+            if ! mm_url_mount "${MM_REMOTECACHE_URL}/${HOST_NAME}" "/home/minimyth/.mythtv/cache" ; then
+                if ! mm_url_mount "${MM_REMOTECACHE_URL}" "/home/minimyth/.mythtv/cache" ; then
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Failed to mount ${MM_REMOTECACHE_URL} URL. Is it correct URL?"
+                    mm_message_output err "ERROR: Can't mount MM_REMOTECACHE_URL..."
+                    exit 1
+                else
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Creating ${HOST_NAME} subdir on ${MM_REMOTECACHE_URL} for mythtv cache..."
+                    if ! /bin/mkdir -p -m 777 "/home/minimyth/.mythtv/cache/${HOST_NAME}" ; then
+                        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Can't create subdir ${HOST_NAME}. Has ${MM_REMOTECACHE_URL} 777 rights?"
+                        mm_message_output err "ERROR: Can't create subdir ${HOST_NAME} in MM_REMOTECACHE_URL..."
+                        exit 1
+                    fi
+                    /bin/umount "/home/minimyth/.mythtv/cache"
+                    if ! mm_url_mount "${MM_REMOTECACHE_URL}/${HOST_NAME}" "/home/minimyth/.mythtv/cache" ; then
+                        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Failed to mount mythtv cache from ${MM_REMOTECACHE_URL}/${HOST_NAME}"
+                        mm_message_output err "ERROR: Can't mount MM_REMOTECACHE_URL/${HOST_NAME}..."
+                        exit 1
+                    else
+                        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] mythtv cache from ${MM_REMOTECACHE_URL}/${HOST_NAME} mounted OK..."
+                    fi
+                fi
+            fi
+        fi
+    else
+        # create empty remotecache dir. mm_show_sysstat.pl needs it for channel icons storage
+        /bin/mkdir -p -m 777 "/home/minimyth/.mythtv/cache/remotecache"
+    fi
+
     # Mount themecache directory.
     if /usr/bin/test -n "${MM_THEMECACHE_URL}" && /usr/bin/test -z "${MM_MYTHTV_HOME_URL}" ; then
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Mounting ThemeCache from ${MM_THEMECACHE_URL}"
@@ -154,34 +204,6 @@ start() {
         else
             /bin/chmod 777 "/home/minimyth/.mythtv/cache/themecache"
         fi
-    fi
-
-    # Mount remotecache directory.
-    if /usr/bin/test -n "${MM_REMOTECACHE_URL}" && /usr/bin/test -z "${MM_MYTHTV_HOME_URL}" ; then
-        if /usr/bin/test "${MM_REMOTECACHE_URL}" = "auto" ; then
-            HOST_NAME=`/bin/hostname`
-            /bin/rm -f /home/minimyth/_.test_
-            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Trying to automount mythtv home dir...(auto)"
-            mm_confrw_get /minimyth_home/.mythtv/mysql.txt /home/minimyth/_.test_
-            if /usr/bin/test -f "/var/lib/minimyth.bootdir.nfs_mounted" ; then
-                /bin/ln -sf /var/minimyth.bootdir/conf-rw/${HOST_NAME}/remotecache /home/minimyth/.mythtv/cache/remotecache
-                if /bin/su -c "/usr/bin/test ! -w /home/minimyth/.mythtv/cache/remotecache" - minimyth ; then
-                    mm_message_output err "error: RemoteCache dir is not writable by user 'minimyth'."
-                    exit 1
-                fi
-                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] RemoteCache mounted... (auto)"
-            else
-                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] ERROR mounting RemoteCache: NFS base dir not mounted..."
-                mm_message_output err "ERORR: NFS base bootdir not mounted..."
-                exit 1
-            fi
-        else
-            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Mounting RemoteCache from ${MM_REMOTECACHE_URL}"
-            mm_url_mount "${MM_REMOTECACHE_URL}" "/home/minimyth/.mythtv/cache/remotecache"
-        fi
-    else
-        # create empty remotecache dir. mm_show_sysstat.pl needs it for channbel icons storage
-        /bin/mkdir -p -m 777 "/home/minimyth/.mythtv/cache/remotecache"
     fi
 
     # Configure Myth database jumppoints to match MiniMyth frontend.
