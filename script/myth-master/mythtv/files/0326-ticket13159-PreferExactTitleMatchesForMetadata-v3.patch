@@ -1,0 +1,305 @@
+diff --git a/mythtv/libs/libmythmetadata/metadatacommon.cpp b/mythtv/libs/libmythmetadata/metadatacommon.cpp
+index d28d54e..14f1a9e 100644
+--- a/mythtv/libs/libmythmetadata/metadatacommon.cpp
++++ b/mythtv/libs/libmythmetadata/metadatacommon.cpp
+@@ -219,6 +219,9 @@ MetadataLookup::MetadataLookup(
+     m_artwork(artwork),
+     m_downloads(downloads)
+ {
++    QString manRecSuffix = QString(" (%1)").arg(QObject::tr("Manual Record"));
++    m_base_title = title;
++    m_base_title.replace(manRecSuffix,"");
+ }
+ 
+ // ProgramInfo-style constructor
+@@ -312,6 +315,9 @@ MetadataLookup::MetadataLookup(
+     m_popularity = 0;
+     m_budget = 0;
+     m_revenue = 0;
++    QString manRecSuffix = QString(" (%1)").arg(QObject::tr("Manual Record"));
++    m_base_title = title;
++    m_base_title.replace(manRecSuffix,"");
+ }
+ 
+ // XBMC NFO-style constructor
+@@ -388,6 +394,9 @@ MetadataLookup::MetadataLookup(
+     m_artwork(artwork),
+     m_downloads(downloads)
+ {
++    QString manRecSuffix = QString(" (%1)").arg(QObject::tr("Manual Record"));
++    m_base_title = title;
++    m_base_title.replace(manRecSuffix,"");
+ }
+ 
+ MetadataLookup::~MetadataLookup()
+diff --git a/mythtv/libs/libmythmetadata/metadatadownload.cpp b/mythtv/libs/libmythmetadata/metadatadownload.cpp
+index bf5d4fb..a78a215 100644
+--- a/mythtv/libs/libmythmetadata/metadatadownload.cpp
++++ b/mythtv/libs/libmythmetadata/metadatadownload.cpp
+@@ -97,9 +97,25 @@ void MetadataDownload::run()
+             lookup->GetType() == kMetadataRecording)
+         {
+             if (lookup->GetSubtype() == kProbableTelevision)
++            {
+                 list = handleTelevision(lookup);
++                if (findExactMatchWithArtCount(list, lookup->GetBaseTitle()) == 0)
++                {
++                    // There are no exact match prospects with artwork from TV search,
++                    // so add in movies, where we might find a better match.
++                    list.append(handleMovie(lookup));
++                }
++            }
+             else if (lookup->GetSubtype() == kProbableMovie)
++            {
+                 list = handleMovie(lookup);
++                if (findExactMatchWithArtCount(list, lookup->GetBaseTitle()) == 0)
++                {
++                    // There are no exact match prospects with artwork from Movie search
++                    // so add in television, where we might find a better match.
++                    list.append(handleTelevision(lookup));
++                }
++            }
+             else
+             {
+                 // will try both movie and TV
+@@ -199,21 +215,60 @@ void MetadataDownload::run()
+     RunEpilog();
+ }
+ 
++unsigned int MetadataDownload::findExactMatchWithArtCount(MetadataLookupList list,
++                                                          const QString &originaltitle) const
++{
++    unsigned int exactMatchesWithArt = 0;
++
++    for (MetadataLookupList::const_iterator i = list.begin();
++            i != list.end(); ++i)
++    {
++        QString title = (*i)->GetTitle();
++        // Consider exact title matches (ignoring case)
++        if ((QString::compare(title, originaltitle, Qt::CaseInsensitive) == 0))
++        {
++            // In lookup by name, the television database tends to only include Banner artwork.
++            // In lookup by name, the movie database tends to include only Fan and Cover artwork.
++            if ((((*i)->GetArtwork(kArtworkFanart)).size() != 0) ||
++                (((*i)->GetArtwork(kArtworkCoverart)).size() != 0) ||
++                (((*i)->GetArtwork(kArtworkBanner)).size() != 0))
++            {
++                exactMatchesWithArt++;
++            }
++        }
++    }
++    return exactMatchesWithArt;
++}
++
+ MetadataLookup* MetadataDownload::findBestMatch(MetadataLookupList list,
+                                             const QString &originaltitle) const
+ {
+     QStringList titles;
+     MetadataLookup *ret = NULL;
++    QDate exactTitleDate;
+ 
+     // Build a list of all the titles
+     int exactMatches = 0;
+     for (MetadataLookupList::const_iterator i = list.begin();
+             i != list.end(); ++i)
+     {
+-        QString title = (*i)->GetBaseTitle();
+-        if (title == originaltitle)
++        QString title = (*i)->GetTitle();
++        LOG(VB_GENERAL, LOG_INFO, QString("Comparing metadata title '%1' [%2] to recording title '%3'")
++                .arg(title)
++                .arg((*i)->GetReleaseDate().toString())
++                .arg(originaltitle));
++        // Consider exact title matches (ignoring case), which have some artwork available.
++        if ((QString::compare(title, originaltitle, Qt::CaseInsensitive) == 0) &&
++            ((((*i)->GetArtwork(kArtworkFanart)).size() != 0) ||
++             (((*i)->GetArtwork(kArtworkCoverart)).size() != 0) ||
++             (((*i)->GetArtwork(kArtworkBanner)).size() != 0)))
+         {
+-            ret = (*i);
++            // After the first exact match, prefer any more recently released one.
++            if ((ret == NULL) || ((*i)->GetReleaseDate() > exactTitleDate))
++            {
++                exactTitleDate = (*i)->GetReleaseDate();
++                ret = (*i);
++            }
+             exactMatches++;
+         }
+ 
+@@ -226,18 +281,18 @@ MetadataLookup* MetadataDownload::findBestMatch(MetadataLookupList list,
+     {
+         if (exactMatches == 1)
+         {
+-            LOG(VB_GENERAL, LOG_INFO, QString("Single Exact Title Match For %1")
++            LOG(VB_GENERAL, LOG_INFO, QString("Single exact title match for '%1'")
+                     .arg(originaltitle));
+-            return ret;
+         }
+         else
+         {
+-            LOG(VB_GENERAL, LOG_ERR,
+-                QString("Multiple exact title matches found for %1. "
+-                        "Need to match on other criteria.")
+-                    .arg(originaltitle));
+-            return NULL;
++            LOG(VB_GENERAL, LOG_INFO,
++                QString("Multiple exact title matches found for '%1'. "
++                        "Selecting most recent [%2]")
++                    .arg(originaltitle)
++                    .arg(exactTitleDate.toString()));
+         }
++        return ret;
+     }
+ 
+     // Apply Levenshtein distance algorithm to determine closest match
+@@ -260,7 +315,7 @@ MetadataLookup* MetadataDownload::findBestMatch(MetadataLookupList list,
+     MetadataLookupList::const_iterator i = list.begin();
+     for (; i != list.end(); ++i)
+     {
+-        if ((*i)->GetBaseTitle() == bestTitle)
++        if ((*i)->GetTitle() == bestTitle)
+         {
+             ret = (*i);
+             break;
+@@ -534,6 +589,39 @@ MetadataLookupList MetadataDownload::handleMovie(MetadataLookup *lookup)
+         list = grabber.Search(lookup->GetBaseTitle(), lookup);
+     }
+ 
++    // remove any list elements which are lacking artwork
++    MetadataLookupList::const_iterator itr = list.begin();
++    while (itr != list.end())
++    {
++        // In lookup by name, the movie database tends to include only Fan and Cover artwork.
++        // However, this tendency may not be universal, so we'll look for any of the three
++        // types of artwork.
++        if ((((*itr)->GetArtwork(kArtworkFanart)).size() == 0) &&
++            (((*itr)->GetArtwork(kArtworkCoverart)).size() == 0) &&
++            (((*itr)->GetArtwork(kArtworkBanner)).size() == 0))
++        {
++            MetadataLookup *mdl;
++
++            LOG(VB_GENERAL, LOG_INFO, QString("Removing '%1' entry with no artwork")
++                    .arg((*itr)->GetTitle()));
++            if ((*itr) == list.last())
++            {
++                mdl = list.takeLast();
++                if (mdl != NULL)
++                    delete(mdl);
++                break;
++            }
++            else
++            {
++                mdl = list.takeAt(itr++ - list.begin());
++                if (mdl != NULL)
++                    delete(mdl);
++            }
++        }
++        else
++            ++itr;
++    }
++
+     return list;
+ }
+ 
+@@ -650,6 +738,39 @@ MetadataLookupList MetadataDownload::handleTelevision(MetadataLookup *lookup)
+         }
+     }
+ 
++    // remove any list elements which are lacking artwork
++    MetadataLookupList::const_iterator itr = list.begin();
++    while (itr != list.end())
++    {
++        // In lookup by name, the television database tends to include only Banner artwork.
++        // However, this tendency may not be universal, so we'll look for any of the three
++        // types of artwork.
++        if ((((*itr)->GetArtwork(kArtworkBanner)).size() == 0) &&
++            (((*itr)->GetArtwork(kArtworkFanart)).size() == 0) &&
++            (((*itr)->GetArtwork(kArtworkCoverart)).size() == 0))
++        {
++            MetadataLookup *mdl;
++
++            LOG(VB_GENERAL, LOG_INFO, QString("Removing '%1' entry with no artwork")
++                    .arg((*itr)->GetTitle()));
++            if ((*itr) == list.last())
++            {
++                mdl = list.takeLast();
++                if (mdl != NULL)
++                    delete(mdl);
++                break;
++            }
++            else
++            {
++                mdl = list.takeAt(itr++ - list.begin());
++                if (mdl != NULL)
++                    delete(mdl);
++            }
++        }
++        else
++            ++itr;
++    }
++
+     return list;
+ }
+ 
+diff --git a/mythtv/libs/libmythmetadata/metadatadownload.h b/mythtv/libs/libmythmetadata/metadatadownload.h
+index bc1030b..6d82ec1 100644
+--- a/mythtv/libs/libmythmetadata/metadatadownload.h
++++ b/mythtv/libs/libmythmetadata/metadatadownload.h
+@@ -67,6 +67,8 @@ class META_PUBLIC MetadataDownload : public MThread
+ 
+     MetadataLookupList  handleGame(MetadataLookup* lookup);
+ 
++    unsigned int        findExactMatchWithArtCount(MetadataLookupList list,
++                                      const QString &originaltitle) const;
+     MetadataLookup*     findBestMatch(MetadataLookupList list,
+                                       const QString &originaltitle) const;
+     MetadataLookupList  runGrabber(QString cmd, QStringList args,
+diff --git a/mythtv/programs/mythmetadatalookup/lookup.cpp b/mythtv/programs/mythmetadatalookup/lookup.cpp
+index 6de23a1..eb3c2ab 100644
+--- a/mythtv/programs/mythmetadatalookup/lookup.cpp
++++ b/mythtv/programs/mythmetadatalookup/lookup.cpp
+@@ -246,11 +246,25 @@ void LookerUpper::customEvent(QEvent *levent)
+         if (list.count() > 1)
+         {
+             int yearindex = -1;
++            MetadataLookup *exactTitleMeta = NULL;
++            QDate exactTitleDate;
+ 
+             for (int p = 0; p != list.size(); ++p)
+             {
+                 ProgramInfo *pginfo = list[p]->GetData().value<ProgramInfo *>();
+ 
++                if (pginfo && (QString::compare(pginfo->GetTitle(), list[p]->GetBaseTitle(), Qt::CaseInsensitive)) == 0)
++                {
++                    // We have an exact match on the title (ignoring case)
++                    if ((exactTitleMeta == NULL) ||
++                        (list[p]->GetReleaseDate() > exactTitleDate))
++                    {
++                        // remember the most recently released exact match
++                        exactTitleDate = list[p]->GetReleaseDate();
++                        exactTitleMeta = list[p];
++                    }
++                }
++
+                 if (pginfo && !pginfo->GetSeriesID().isEmpty() &&
+                     pginfo->GetSeriesID() == (list[p])->GetTMSref())
+                 {
+@@ -291,6 +305,18 @@ void LookerUpper::customEvent(QEvent *levent)
+                 return;
+             }
+ 
++            if (exactTitleMeta != NULL)
++            {
++                LOG(VB_GENERAL, LOG_INFO, QString("Most recent exact match released %1").arg(exactTitleDate.toString()));
++                MetadataLookup *lookup = exactTitleMeta;
++                ProgramInfo *pginfo = exactTitleMeta->GetData().value<ProgramInfo *>();
++                if (lookup->GetSubtype() != kProbableGenericTelevision)
++                    pginfo->SaveSeasonEpisode(lookup->GetSeason(), lookup->GetEpisode());
++                pginfo->SaveInetRef(lookup->GetInetref());
++                m_busyRecList.removeAll(pginfo);
++                return;
++            }
++
+             LOG(VB_GENERAL, LOG_INFO, "Unable to match this title, too many possible matches. "
+                                       "You may wish to manually set the season, episode, and "
+                                       "inetref in the 'Watch Recordings' screen.");

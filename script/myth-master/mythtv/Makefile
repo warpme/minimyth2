@@ -40,6 +40,7 @@ PATCHFILES += 0203-udisks_timeout.patch
 PATCHFILES += 0204-netvision_build.patch
 PATCHFILES += 0206-add-mythnotification-custom-styles-support-via-UDP.patch
 PATCHFILES += 0207-add-osd-status-notify-to-mythmediacenter.patch
+PATCHFILES += 0207-add-osd-status-notify-to-mythmediacenter-wide.patch
 PATCHFILES += 0208-add-disable-optical-disc-by-mm-config.patch
 PATCHFILES += 0209-add-phone-entry-in-themes.patch
 PATCHFILES += 0210-add-option-to-not-remember-last-livetv-chan.patch
@@ -87,9 +88,6 @@ PATCHFILES += 0283-0210-FE-NetworkControl-Add-set-query-loglevel-commands.patch
 
 # Support for Roger Siddons new gallery.
 PATCHFILES += 0287-MythUiImage-Don-t-block-UI-when-exiting-screens.patch
-
-# Fixes FE OOM when user enters previously recorded
-PATCHFILES += 0291-ticket12463-temp-fix.patch
 
 # Speedup FE starting
 PATCHFILES += 0292-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-thread.patch
@@ -145,7 +143,10 @@ PATCHFILES += 0323-ticket12396-.srt-subs-go-out-of-sync.patch
 
 PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
 
-PATCHFILES += 0326-ticket13159-PreferExactTitleMatchesForMetadata.patch
+PATCHFILES += 0326-ticket13159-PreferExactTitleMatchesForMetadata-v3.patch
+
+# Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled
+PATCHFILES += 0327-revert-16086d2-Honor-the-MonitorDrives-setting.patch
 
 endif
 
