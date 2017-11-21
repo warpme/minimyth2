@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.13.4.r262
+mm_VERSION_MINIMYTH ?= 8.14.0.r328
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -122,11 +122,11 @@ mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
 # Valid values are '4.13' and '4.14'
-mm_KERNEL_HEADERS_VERSION ?= 4.13
+mm_KERNEL_HEADERS_VERSION ?= 4.14
 
 # The version of kernel to use.
 # Valid values are '4.13' and '4.14'
-mm_KERNEL_VERSION         ?= 4.13
+mm_KERNEL_VERSION         ?= 4.14
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -134,17 +134,17 @@ mm_KERNEL_VERSION         ?= 4.13
 mm_KERNEL_CONFIG          ?=
 
 # The version of Myth to use.
-# Valid values are '0.27', '0.28', '29', '30' and 'master'
+# Valid values are '0.28', '29', '30' and 'master'
 mm_MYTH_VERSION           ?= master
 # mm_MYTH_VERSION           ?= 29
 # mm_MYTH_VERSION           ?= 0.28
 
 # The version of the NVIDIA driver.
-# Valid values are '384.90', '387.22'
+# Valid values are '387.22'
 mm_NVIDIA_VERSION         ?= 387.22
 
 # The version of the NVIDIA legacy driver.
-# Valid values are '340.104', '340.104'
+# Valid values are '340.104'
 mm_NVIDIA_LEGACY_VERSION  ?= 340.104
 
 # The version of xorg to use.
