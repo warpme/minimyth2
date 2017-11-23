@@ -1,10 +1,12 @@
 GARNAME = netperf
-GARVERSION = 2.4.5
+GARVERSION = 2.7.0
 CATEGORIES = utils
-MASTER_SITES = ftp://ftp.netperf.org/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://github.com/HewlettPackard/netperf/archive/
+DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = 
 LICENSE = GPL3
+
+WORKSRC = $(WORKDIR)/$(GARNAME)-$(DISTNAME)
 
 DESCRIPTION = 
 define BLURB
