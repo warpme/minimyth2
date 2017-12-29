@@ -40,6 +40,7 @@ PATCHFILES += 0203-udisks_timeout.patch
 PATCHFILES += 0204-netvision_build.patch
 PATCHFILES += 0206-add-mythnotification-custom-styles-support-via-UDP.patch
 PATCHFILES += 0207-add-osd-status-notify-to-mythmediacenter.patch
+PATCHFILES += 0207-add-osd-status-notify-to-mythmediacenter-wide.patch
 PATCHFILES += 0208-add-disable-optical-disc-by-mm-config.patch
 PATCHFILES += 0209-add-phone-entry-in-themes.patch
 PATCHFILES += 0210-add-option-to-not-remember-last-livetv-chan.patch
@@ -142,11 +143,7 @@ PATCHFILES += 0321-ticket12857-patch-mythwidgets_osx_focus.patch
 
 PATCHFILES += 0322-add-netflix-to-thememenus.patch
 
-# Fixes ticket #12396: issue with some non mkv files and srt subtitles
-PATCHFILES += 0323-ticket12396-.srt-subs-go-out-of-sync.patch
-
-#PATCHFILES += 0323-ticket12990-playback-jitter-deinterlaced-media.patch
-#PATCHFILES += 0324-ticket12991-HiDPI-gui-displays-support.patch
+PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
 
 endif
 
