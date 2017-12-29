@@ -14,10 +14,12 @@ endef
 DEPENDS   = lang/c \
 	$(CATEGORY)/font-util \
 	$(CATEGORY)/util-macros
-BUILDDEPS = $(CATEGORY)/bdftopcf \
+BUILDDEPS = \
+	$(CATEGORY)/bdftopcf \
 	$(CATEGORY)/font-util \
 	$(CATEGORY)/mkfontdir \
 	$(CATEGORY)/mkfontscale
+
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
