@@ -1,7 +1,8 @@
 GARNAME = Linux-PAM
-GARVERSION = 1.1.8
+GARVERSION = 1.3.0
 CATEGORIES = lib
-MASTER_SITES = http://fedorahosted.org/releases/l/i/linux-pam/
+# MASTER_SITES = http://fedorahosted.org/releases/l/i/linux-pam/
+MASTER_SITES = http://linux-pam.org/library/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.bz2
 
 LICENSE = LGPL2
