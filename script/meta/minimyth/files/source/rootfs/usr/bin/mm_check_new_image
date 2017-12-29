@@ -1,0 +1,32 @@
+#!/bin/sh
+
+pids=`/bin/pidof mm_check_new_image`
+instances=`/bin/echo ${pids} | /usr/bin/wc -w`
+if /usr/bin/test ${instances} -ne 1 ; then
+    echo "[mm_check_new_image] Another instance already running...Exiting"
+    exit 1
+fi
+
+. /etc/rc.d/functions
+
+/usr/bin/logger -t minimyth -p "local0.info" "[mm_check_new_image] Checking for new PXE image..."
+
+if /usr/bin/test -e /usr/local/share/myth-at-home/version ; then
+    rc=`/usr/bin/cmp /etc/version /usr/local/share/myth-at-home/version`
+    if /usr/bin/test -n "${rc}" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[mm_check_new_image] New PXE image detected. Rebooting to load it..."
+        /bin/sed -i 's%mode\:.*%mode\: random%' /home/minimyth/.xscreensaver
+        /bin/sed -i 's%imageDirectory\:.*%imageDirectory\: /home/minimyth/.minimyth/%' /home/minimyth/.xscreensaver
+        su minimyth -c "/usr/bin/xscreensaver" & > /dev/null 2>&1
+        /bin/sleep 1
+        su minimyth -c "/usr/bin/xscreensaver-command --activate" & > /dev/null 2>&1
+        /usr/bin/killall -9 mm_watchdog
+        /usr/bin/killall -9 mythfrontend
+        /bin/sleep 15
+        /sbin/reboot
+    else
+        /usr/bin/logger -t minimyth -p "local0.info" "[mm_check_new_image] No new PXE image detected. Exiting..."
+    fi
+fi
+
+exit 0

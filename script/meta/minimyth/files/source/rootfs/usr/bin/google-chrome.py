@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-# vim: ts=4 sts=4 sw=4 tw=79 sta et
 """
 An interface script for using lirc with google-chrome, requires pylirc and xdotool
 """
 
 __author__  = 'Patrick Butler, Piotr Oniszczuk'
-__email__   = 'pbutler at killertux org'
+__email__   = 'pbutler at killertux org, warpme at o2.pl'
 __license__ = "GPLv2"
 
 import subprocess
@@ -25,15 +24,15 @@ def main(args):
         subprocess.Popen(["xset", "-dpms"])
     try:
         subprocess.Popen(["/usr/bin/mm_ss_suspend", "chrome &"])
-        ffox(args)
+        browser(args)
     finally:
         if has_dpms:
             subprocess.Popen(["xset", "+dpms"])
 
-def ffox(args):
-    ffox = subprocess.Popen(["/usr/local/bin/google-chrome/chrome"] + args[1:])
+def browser(args):
+    browser = subprocess.Popen(["/usr/local/bin/google-chrome/chrome"] + args[1:])
     try:
-        if not pylirc.init("google-chrome", "/home/minimyth/.lircrc", 1):
+        if not pylirc.init("google-chrome", "/etc/lirc/lircrc", 1):
             return "Failed"
         stop = False
         while not stop:
@@ -67,14 +66,14 @@ def ffox(args):
         subprocess.Popen(["xdotool", "key", "ctrl+shift+q"])
 
     # If we found windows and they're still running, wait 3 seconds
-    if len(windows) != 0 and ffox.poll() is None:
+    if len(windows) != 0 and browser.poll() is None:
         for i in range(30):
             time.sleep(.1)
-            if ffox.poll() is not None:
+            if browser.poll() is not None:
                 break
-    # Okay now we can forcibly kill it
-    if ffox.poll() is None:
-        ffox.terminate()
+    # Okay now we can forcibly kill browser
+    if browser.poll() is None:
+        browser.terminate()
 
     return 0
 

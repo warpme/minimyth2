@@ -90,6 +90,8 @@ DEPENDS = \
 	system/zoneinfo \
 	$(if $(filter nvidia,$(mm_GRAPHICS)), \
 		nvidia/nvidia-$(mm_NVIDIA_VERSION)) \
+	$(if $(filter nvidia-legacy,$(mm_GRAPHICS)), \
+		nvidia/nvidia-$(mm_NVIDIA_LEGACY_VERSION)) \
 	$(if $(filter mythbrowser,$(mm_SOFTWARE)), \
 		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythbrowser),myth-$(mm_MYTH_VERSION)/mythbrowser)) \
 	$(if $(filter mythdvd,$(mm_SOFTWARE)), \

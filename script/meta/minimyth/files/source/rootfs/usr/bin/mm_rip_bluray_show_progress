@@ -1,0 +1,50 @@
+#!/bin/sh
+
+. /etc/rc.d/functions
+
+instances=`ps aux | grep "makemkvcon" | wc -l`
+
+if /usr/bin/test -e /var/log/makemkv.progress ; then
+    if /usr/bin/test ${instances} -gt 1 ; then
+
+        title=`cat /var/log/bluray-disc.info | grep "TINFO:0,2,0," | sed -e "s/TINFO:0,2,0,//" -e "s/\"*//g"`
+        if /usr/bin/test -z ${title} ; then
+            title=`cat /var/log/bluray-disc.info | grep "CINFO:2,0," | sed -e "s/CINFO:2,0,//" -e "s/\"*//g"`
+        fi
+        duration=`cat /var/log/bluray-disc.info | grep "TINFO:0,9,0," | sed -e "s/TINFO:0,9,0,//" -e "s/\"*//g"`
+        size=`cat /var/log/bluray-disc.info | grep "TINFO:0,10,0," | sed -e "s/TINFO:0,10,0,//" -e "s/\"*//g"`
+
+        current=`tail -1 /var/log/makemkv.progress | sed -e "s/PRGV:\([0-9].*\),\([0-9].*\),\([0-9].*\)/\1/"`
+        total=`tail -1 /var/log/makemkv.progress | sed -e "s/PRGV:\([0-9].*\),\([0-9].*\),\([0-9].*\)/\2/"`
+        max=`tail -1 /var/log/makemkv.progress | sed -e "s/PRGV:\([0-9].*\),\([0-9].*\),\([0-9].*\)/\3/"`
+
+        progress_bar=$(awk "BEGIN {printf \"%.2f\",${total}/${max}}")
+
+        current=$((${current} * 100))
+        total=$((${total} * 100))
+        progress=$((${current} / ${max}))
+        total_progress=$((${total} / ${max}))
+
+        mm_show_mythnotify 'Zgrywanie płyty' "'${title}' [${size}]" 'images/mythnotify/bluray-drive.png' '10' 'DVD/BluRay' "Wykonano:${progress}%/${total_progress}%" ${progress_bar}
+        exit 0
+    else
+        mm_show_mythnotify 'Program MakeMKV niespodziewanie zakończył pracę!' '' 'error' '10' 'DVD/BluRay'
+        exit 0
+    fi
+
+elif /usr/bin/test -e /var/log/makemkv.done ; then
+
+    title=`cat /var/log/bluray-disc.info | grep "TINFO:0,2,0," | sed -e "s/TINFO:0,2,0,//" -e "s/\"*//g"`
+    mm_show_mythnotify "Płytka: '${title}'" 'Została zgrana z sukcesem!' 'images/mythnotify/bluray-drive.png' '10' 'DVD/BluRay'
+    exit 0
+
+else
+
+    if /usr/bin/test ${instances} -gt 1 ; then
+        mm_show_mythnotify 'Aktualnie skanuję płytkę' '' 'images/mythnotify/bluray-drive.png' '10' 'DVD/BluRay'
+    else
+        mm_show_mythnotify 'Aktualnie nie zgrywasz żadnej płyty!' '' 'error' '10' 'DVD/BluRay'
+    fi
+
+    exit 0
+fi

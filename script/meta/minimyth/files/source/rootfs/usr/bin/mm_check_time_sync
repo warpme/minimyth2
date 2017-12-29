@@ -1,0 +1,50 @@
+#!/bin/sh
+
+. /etc/rc.d/functions
+. /etc/mm_ui_localizations_sh
+
+/bin/sleep 180
+
+limit=0.5
+
+/usr/bin/logger -t minimyth -p "local0.info" "[mm_check_time_sync] checking for local time offset to BE server..."
+
+NTP_SERVERS=`/bin/cat /etc/ntp.conf | /bin/grep '^server ' | /bin/sed 's%^server  *%%'`
+NTP_SUCCESS=0
+for NTP_SERVER in ${NTP_SERVERS} ; do
+    output=`/usr/bin/ntpdate -q -s "${NTP_SERVER}"`
+    if /usr/bin/test $? -eq 0 ; then
+        NTP_SUCCESS=1
+        continue
+    fi
+done
+
+offset=`/bin/echo ${output} | sed -e "s/.*offset\s*\(.*\),.*/\1/"`
+
+if /usr/bin/test ${NTP_SUCCESS} -eq 0 ; then
+    mm_show_mythnotify "SYSTEM ERROR" "Can't synchronize Local time with BE server!!!" 'error' '12'
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_check_time_sync] ERROR: Can't synchronize Local time with BE server!!!"
+fi
+
+/usr/bin/logger -t minimyth -p "local0.info" "[mm_check_time_sync] Local time offset to server is: ${offset}"
+
+if [ ${offset%.*} -eq ${limit%.*} ] && [ ${offset#*.} \> ${limit#*.} ] || [ ${offset%.*} -gt ${limit%.*} ]; then
+    #echo "${offset} > ${limit}";
+    mm_show_mythnotify "Local time offset ${offset}>${limit}" "Please check Your NTP server!" 'warning' '15'
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_check_time_sync] trying to update Local time from ${NTP_SERVER} via ntpdate"
+    /etc/rc.d/init.d/time stop
+    /bin/sleep 2
+    /etc/rc.d/init.d/time start
+    /bin/sleep 10
+    output=`/usr/bin/ntpdate -q -s "${NTP_SERVER}"`
+    offset=`/bin/echo ${output} | sed -e "s/.*offset\s*\(.*\),.*/\1/"`
+    if [ ${offset%.*} -eq ${limit%.*} ] && [ ${offset#*.} \> ${limit#*.} ] || [ ${offset%.*} -gt ${limit%.*} ]; then
+        mm_show_mythnotify "Forced Local time sync. Offset still ${offset}>${limit}" "Please check Your NTP server!" 'error' '15'
+    fi
+else
+    #echo "${offset} <= ${limit}";
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_check_time_sync] Local time offset not crossing ${limit}sec limit.Good!"
+    /sbin/hwclock -w -u
+fi
+
+exit 0

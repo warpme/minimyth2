@@ -585,23 +585,29 @@ sub show_processes_stats {
                 #PID   USER   PR  NI  VIRT    RES   SHR  S %CPU %MEM TIME+     COMMAND
                 #21228 mythtv 16 -4 7424628 383424 20548 S 18.8 4.7 219:00.54 mythbackend
                 my @stat = split(/\s+/);
+
                 $load = $stat[8];
                 $load = sprintf "%.0f",($load);
+
                 $rss_kib = $stat[5];
-                if ($rss_kib =~ /.*m|M|g|G.*/) {
-                    $rss_kib =~ s/m|M|g|G//;
+                if ($rss_kib =~ /.*m|M.*/) {
+                    $rss_kib =~ s/m|M//;
+                }
+                elsif ($rss_kib =~ /.*g|G.*/) {
+                    $rss_kib =~ s/g|G//;
+                    $rss_kib = sprintf "%.0f",($rss_kib*1000);
                 }
                 else {
                     $rss_kib = sprintf "%.0f",($rss_kib/1000);
                 }
+
                 $rss_percent = $stat[9];
-               if ($debug) {
+                if ($debug) {
                     print "Process: ".$process."\n";
                     print "    CPU Load(%): ".$load."\n";
                     print "    RSS(MBytes): ".$rss_kib."\n";
                     print "    RSS(%)     : ".$rss_percent."\n";
-               }
-
+                }
             }
         }
 

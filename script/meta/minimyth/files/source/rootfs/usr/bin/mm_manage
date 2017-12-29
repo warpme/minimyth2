@@ -3,6 +3,9 @@
 . /etc/rc.d/functions
 . /etc/mm_ui_localizations_sh
 
+
+ssh_command="/usr/bin/ssh -c none root@@MM_MASTER_SERVER@"
+
 command=$1
 
 pids=`/bin/pidof mm_manage`
@@ -15,7 +18,7 @@ instances=`/bin/echo ${pids} | /usr/bin/wc -w`
 #restart_this_frontend_str="Restartuję Frontend..."
 #reload_this_system_str="Nowe oprogramowanie wymaga restaru. \nRestartuję Frontend..."
 #shutdown_this_frontend_str="Wyłączam Ten System..."
-#restart_backend_str="Restartuję MythTV Backend..."
+#restart_mythbackend_str="Restartuję MythTV Backend..."
 #restart_server_str="Restartuję Centralny Serwer..."
 #save_themecache_str="Zapisuję cache skórki..."
 #save_themecache_ok="Cache skórki zapisano pomyślnie !"
@@ -33,12 +36,12 @@ instances=`/bin/echo ${pids} | /usr/bin/wc -w`
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "restart_mythfrontend" ; then 
+if /usr/bin/test ${command} = "restart_mythfrontend" ; then 
   /usr/bin/mm_manage _restart_mythfrontend &
   exit 0
 fi
-if /usr/bin/test $command = "_restart_mythfrontend" ; then 
-  mm_show_xosd "${restart_mythfrontend_str}" '' 'warning'
+if /usr/bin/test ${command} = "_restart_mythfrontend" ; then 
+  mm_show_mythnotify "${restart_mythfrontend_str}" '' 'warning'
   /bin/sleep 5
   /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Killing mythfrontend by user"
   if /usr/bin/test -n "`/bin/pidof mm_watchdog`" ; then
@@ -47,16 +50,20 @@ if /usr/bin/test $command = "_restart_mythfrontend" ; then
   fi
   pid=`/bin/pidof mythfrontend`
   kill -9 $pid
-  args="--nologserver > /var/log/mythfrontend"
-  if /usr/bin/test -n "${MM_MYTHFRONTEND_CMDLINE}" ; then
-    args="${MM_MYTHFRONTEND_CMDLINE} > /var/log/mythfrontend"
+  /bin/umount /media/disk
+  if /usr/bin/test "${MM_RESTART_ON_SLEEP}" = "mythfrontend" ; then
+    mm_mythfrontend_start
   else
-    args="${args}"
+    /bin/sleep 2
+    # Only start X if X is not already running.
+    if /usr/bin/test -n "`/bin/pidof X`" ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Skippig Xinit as X is already running"
+        exit 1
+    else
+        /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Kicking Xinit..."
+        /usr/bin/prlimit --rtprio=99 /bin/su -c "/usr/bin/nohup /usr/bin/xinit > /dev/null 2>&1 &" - minimyth
+    fi
   fi
-  export __GL_SYNC_TO_VBLANK=1
-  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Starting mythfrontend..."
-  /bin/su minimyth -c "/usr/bin/mythfrontend ${args}" &
-
   if /usr/bin/test "${MM_X_WATCHDOG_MYTH_PROC}" = "yes" ; then
     /usr/bin/mm_watchdog &
     /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Starting MM_WATCHDOG script."
@@ -64,41 +71,45 @@ if /usr/bin/test $command = "_restart_mythfrontend" ; then
   exit 0
 fi
 
-
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "restart_xserver" ; then 
+if /usr/bin/test ${command} = "restart_xserver" ; then 
   /usr/bin/mm_manage _restart_xserver &
   exit 0
 fi
-if /usr/bin/test $command = "_restart_xserver" ; then 
-  mm_show_xosd "${restart_xserver_str}" '' 'warning'
+if /usr/bin/test ${command} = "_restart_xserver" ; then 
+  mm_show_mythnotify "${restart_xserver_str}" '' 'warning'
   /bin/sleep 5
+  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Killing google-chrome"
+  /usr/bin/killall chrome
   /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Stopping X"
   mm_x_stop
+  /bin/umount /media/disk
+  /bin/sleep 2
   /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Reloading audio subsystem..."
   /usr/bin/alsa-ctl reload
   /etc/rc.d/init.d/audio start
-  mm_x_start
   /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Reloading mceusb module..."
   /sbin/rmmod mceusb
   /sbin/modprobe mceusb
   /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Reloading lirc daemons..."
+  /bin/sleep 2
   /etc/rc.d/init.d/lirc stop
   /etc/rc.d/init.d/lirc start
   /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Starting X"
+  mm_x_start
   exit 0
 fi
 
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "restart_this_frontend" ; then
+if /usr/bin/test ${command} = "restart_this_frontend" ; then
   /usr/bin/mm_manage _restart_this_frontend &
   exit 0
 fi
-if /usr/bin/test $command = "_restart_this_frontend" ; then
-  mm_show_xosd "${restart_this_frontend_str}" '' 'warning'
+if /usr/bin/test ${command} = "_restart_this_frontend" ; then
+  mm_show_mythnotify "${restart_this_frontend_str}" '' 'warning'
   /bin/sleep 5
   /sbin/reboot
   exit 0
@@ -107,8 +118,8 @@ fi
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "reload_this_system" ; then
-  mm_show_xosd "${reload_this_system_str}" '' 'warning'
+if /usr/bin/test ${command} = "reload_this_system" ; then
+  mm_show_mythnotify "${reload_this_system_str}" '' 'warning'
   /bin/sleep 5
   /sbin/reboot
   exit 0
@@ -117,12 +128,12 @@ fi
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "shutdown_this_frontend" ; then
+if /usr/bin/test ${command} = "shutdown_this_frontend" ; then
   /usr/bin/mm_manage _shutdown_this_frontend &
   exit 0
 fi
-if /usr/bin/test $command = "_shutdown_this_frontend" ; then
-  mm_show_xosd "${shutdown_this_frontend_str}" '' 'warning'
+if /usr/bin/test ${command} = "_shutdown_this_frontend" ; then
+  mm_show_mythnotify "${shutdown_this_frontend_str}" '' 'warning'
   /bin/sleep 5
   /sbin/poweroff
   exit 0
@@ -131,47 +142,46 @@ fi
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "restart_backend" ; then
-  /usr/bin/mm_manage _restart_backend &
+if /usr/bin/test ${command} = "restart_mythbackend" ; then
+  /usr/bin/mm_manage _restart_mythbackend &
   exit 0
 fi
-if /usr/bin/test $command = "_restart_backend" ; then
-  mm_show_xosd "${restart_backend_str}" '' 'warning'
+if /usr/bin/test ${command} = "_restart_mythbackend" ; then
+  mm_show_mythnotify "${restart_mythbackend_str}" '' 'warning'
   /bin/sleep 5
-  /usr/bin/ssh root@192.168.1.254 /usr/sbin/logrotate -f /etc/logrotate.d/mythbackend
-  /usr/bin/ssh root@192.168.1.254 systemctl restart mythbackend.service
+  ${ssh_command} /usr/bin/systemctl restart mythbackend.service
   exit 0
 fi
 
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "restart_server" ; then
+if /usr/bin/test ${command} = "restart_server" ; then
   /usr/bin/mm_manage _restart_server &
   exit 0
 fi
-if /usr/bin/test $command = "_restart_server" ; then
-  mm_show_xosd "${restart_server_str}" '' 'warning'
+if /usr/bin/test ${command} = "_restart_server" ; then
+  mm_show_mythnotify "${restart_server_str}" '' 'warning'
   /bin/sleep 5
-  /usr/bin/ssh root@192.168.1.254 reboot
+  ${ssh_command} reboot
   exit 0
 fi
 
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "save_themecache" ; then
+if /usr/bin/test ${command} = "save_themecache" ; then
   /usr/bin/mm_manage _save_themecache &
   exit 0
 fi
-if /usr/bin/test $command = "_save_themecache" ; then
-  mm_show_xosd "${save_themecache_str}" '' 'warning'
+if /usr/bin/test ${command} = "_save_themecache" ; then
+  mm_show_mythnotify "${save_themecache_str}" '' 'warning'
   /usr/bin/mm_command themecache_save > /tmp/tmp.out 2>&1
   if /usr/bin/test $? -eq 0; then
-    mm_show_xosd "${save_themecache_ok_str}" '' 'ok'
+    mm_show_mythnotify "${save_themecache_ok_str}" '' 'ok'
   else
     result=`cat /tmp/tmp.out`
-    mm_show_xosd "${error_str}" "${result}" 'error'
+    mm_show_mythnotify "${error_str}" "${result}" 'error'
     exit 0
   fi
 fi
@@ -179,54 +189,54 @@ fi
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "save_cookiejar" ; then
+if /usr/bin/test ${command} = "save_cookiejar" ; then
   /usr/bin/mm_manage _save_cookiejar &
   exit 0
 fi
-if /usr/bin/test $command = "_save_cookiejar" ; then
-  mm_show_xosd "${save_cookiejar_str}" '' 'warning'
+if /usr/bin/test ${command} = "_save_cookiejar" ; then
+  mm_show_mythnotify "${save_cookiejar_str}" '' 'warning'
   /usr/bin/mm_command cookiejar_save > /tmp/tmp.out 2>&1
   if /usr/bin/test $? -eq 0; then
-    mm_show_xosd "${save_cookiejar_ok_str}" '' 'ok'
+    mm_show_mythnotify "${save_cookiejar_ok_str}" '' 'ok'
   else
     result=`cat /tmp/tmp.out`
-    mm_show_xosd "${error_str}" "${result}" 'error'
+    mm_show_mythnotify "${error_str}" "${result}" 'error'
     exit 0
   fi
 fi
 
 
 #-------------------------------------------------------------------------------
-if /usr/bin/test $command = "save_game" ; then
+if /usr/bin/test ${command} = "save_game" ; then
   /usr/bin/mm_manage _save_game &
   exit 0
 fi
-if /usr/bin/test $command = "_save_game" ; then
-  mm_show_xosd "${save_game_str}" '' 'warning'
+if /usr/bin/test ${command} = "_save_game" ; then
+  mm_show_mythnotify "${save_game_str}" '' 'warning'
   /usr/bin/mm_command game_save > /tmp/tmp.out 2>&1
   if /usr/bin/test $? -eq 0; then
-    mm_show_xosd "${save_game_ok_str}" '' 'ok'
+    mm_show_mythnotify "${save_game_ok_str}" '' 'ok'
   else
     result=`cat /tmp/tmp.out`
-    mm_show_xosd "${error_str}" "${result}" 'error'
+    mm_show_mythnotify "${error_str}" "${result}" 'error'
     exit 0
   fi
 fi
 
 
 #-------------------------------------------------------------------------------
-if /usr/bin/test $command = "restore_game" ; then
+if /usr/bin/test ${command} = "restore_game" ; then
   /usr/bin/mm_manage _restore_game &
   exit 0
 fi
-if /usr/bin/test $command = "_restore_game" ; then
-  mm_show_xosd "${restore_game_str}" '' 'warning'
+if /usr/bin/test ${command} = "_restore_game" ; then
+  mm_show_mythnotify "${restore_game_str}" '' 'warning'
   /usr/bin/mm_command game_restore > /tmp/tmp.out 2>&1
   if /usr/bin/test $? -eq 0; then
-    mm_show_xosd "${restore_game_ok_str}" '' 'ok'
+    mm_show_mythnotify "${restore_game_ok_str}" '' 'ok'
   else
     result=`cat /tmp/tmp.out`
-    mm_show_xosd "${error_str}" "${result}" 'error'
+    mm_show_mythnotify "${error_str}" "${result}" 'error'
     exit 0
   fi
 fi
@@ -234,18 +244,38 @@ fi
 
 
 #-------------------------------------------------------------------------------
-if /usr/bin/test $command = "reload_voip_config" ; then
+if /usr/bin/test ${command} = "reload_voip_config" ; then
   /usr/bin/mm_manage _reload_voip_config &
   exit 0
 fi
-if /usr/bin/test $command = "_reload_voip_config" ; then
-  mm_show_xosd "${reload_voip_config_str}" '' 'warning'
+if /usr/bin/test ${command} = "_reload_voip_config" ; then
+  mm_show_mythnotify "${reload_voip_config_str}" '' 'warning'
   /usr/bin/mm_command reload_voip_config > /tmp/tmp.out 2>&1
   if /usr/bin/test $? -eq 0; then
-    mm_show_xosd "${reload_voip_config_ok_str}" '' 'ok'
+    mm_show_mythnotify "${reload_voip_config_ok_str}" '' 'ok'
   else
     result=`cat /tmp/tmp.out`
-    mm_show_xosd "${error_str}" "${result}" 'error'
+    mm_show_mythnotify "${error_str}" "${result}" 'error'
+    exit 0
+  fi
+fi
+
+
+
+#-------------------------------------------------------------------------------
+if /usr/bin/test ${command} = "redownload_theme" ; then
+  /usr/bin/mm_manage _redownload_theme &
+  exit 0
+fi
+if /usr/bin/test ${command} = "_redownload_theme" ; then
+  mm_show_mythnotify "${redownload_theme_str}" '' 'warning'
+  /usr/bin/mm_command redownload_theme > /tmp/tmp.out 2>&1
+  if /usr/bin/test $? -eq 0; then
+    mm_show_mythnotify "${redownload_theme_ok_str}" '' 'ok'
+    /usr/bin/mm_manage restart_mythfrontend &
+  else
+    result=`cat /tmp/tmp.out`
+    mm_show_mythnotify "${error_str}" "${result}" 'error'
     exit 0
   fi
 fi
@@ -254,43 +284,60 @@ fi
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "check_updates" ; then
-  mm_term_start /bin/su root -c "\
-  echo \" \"; \
-  echo \" \"; \
-  echo \" \"; \
-  echo \"----- SPRAWDZENIE DOSTEPNYCH AKTUALIZACJI -----\"; \
-  echo \" \"; \
-  /usr/bin/ssh root@@MM_MASTER_SERVER@ pacman -Syup --print-format %n%v --noconfirm; \
-  echo \" \"; \
-  echo \"Nacisnij BACK lub Esc aby wyjsc...\"; \
-  read"
+if /usr/bin/test ${command} = "check_updates" ; then
+  mm_show_mythnotify "Checking for system updates..." '' 'warning' '12'
+  /usr/bin/mm_manage _check_updates &
   exit 0
 fi
+if /usr/bin/test ${command} = "_check_updates" ; then
+  ${ssh_command} pacman -Sy > /dev/null 2>&1
+  updates=`${ssh_command} pacman -Qqu | /usr/bin/wc -w 2> /dev/null`
+  if /usr/bin/test -n ${updates} ; then
+      if /usr/bin/test ! ${updates} = 0 ; then
+        mm_show_mythnotify "${updates_detected_str}" "There is ${updates} updated package(s)..." 'warning' '12'
+      else
+        mm_show_mythnotify "There is no any updates for Yours system..." '' 'ok' '12'
+      fi
+  fi
+fi
+
+#if /usr/bin/test ${command} = "check_updates" ; then
+#  mm_term_start /bin/su root -c "\
+#  echo \" \"; \
+#  echo \" \"; \
+#  echo \" \"; \
+#  echo \"----- SPRAWDZENIE DOSTEPNYCH AKTUALIZACJI -----\"; \
+#  echo \" \"; \
+#  ${ssh_command} pacman -Syup --print-format %n%v --noconfirm; \
+#  echo \" \"; \
+#  echo \"Nacisnij BACK lub Esc aby wyjsc...\"; \
+#  read"
+#  exit 0
+#fi
 
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "install_updates" ; then
+if /usr/bin/test ${command} = "install_updates" ; then
 #  echo -e "AKTUALIZUJE SYSTEM" > /var/log/last_system_update.log 2>&1
 #  /usr/bin/ssh root@192.168.1.254 pacman -Su | sed -e "s/::.*//g" >> /var/log/last_system_update.log 2>&1
 #  result=`cat /var/log/last_system_update.log`
-#  mm_show_xosd "${result}"
+#  mm_show_mythnotify "${result}"
   mm_term_start /bin/su root -c "\
   echo \" \"; \
   echo \" \"; \
   echo \" \"; \
   echo \"----- AKTUALIZACJA CALEGO SYSTEMU -----\"; \
   echo \" \"; \
-  /usr/bin/ssh root@@MM_MASTER_SERVER@ pacman -Syuf --noconfirm; \
+  ${ssh_command} pacman -Syu --force --noconfirm; \
   echo \" \"; \
   echo \"----- USUWANIE POPRZEDNICH WERSJI -----\"; \
   echo \" \"; \
-  /usr/bin/ssh root@@MM_MASTER_SERVER@ pacman -Scfq --noconfirm; \
+  ${ssh_command} pacman -Scq --force --noconfirm; \
   echo \" \"; \
   echo \"----- PRZELADOWANIE KONFIGURACJI -----\"; \
   echo \" \"; \
-  /usr/bin/ssh root@@MM_MASTER_SERVER@ systemctl daemon-reload; \
+  ${ssh_command} /usr/bin/systemctl daemon-reload; \
   echo \"Done ! \"; \
   echo \" \"; \
   echo \" \"; \
@@ -311,14 +358,14 @@ fi
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "check_mythtv_db" ; then
+if /usr/bin/test ${command} = "check_mythtv_db" ; then
   mm_term_start /bin/su root -c "\
   echo \" \"; \
   echo \" \"; \
   echo \" \"; \
   echo \"----- SPRAWDZAM BAZE DANYCH MythTV -----\"; \
   echo \" \"; \
-  /usr/bin/ssh root@@MM_MASTER_SERVER@ /usr/local/bin/maintenance/check-optimize-db.sh; \
+  ${ssh_command} /usr/local/bin/maintenance/check-optimize-db.sh; \
   echo \" \"; \
   echo \"Nacisnij BACK lub Esc aby wyjsc...\"; \
   read"
@@ -328,19 +375,103 @@ fi
 
 #-------------------------------------------------------------------------------
 
-if /usr/bin/test $command = "test_network_speed" ; then
+if /usr/bin/test ${command} = "test_network_speed" ; then
   mm_term_start /bin/su root -c "\
   echo \" \"; \
   echo \" \"; \
   echo \" \"; \
-  /usr/bin/test_network_speed; \
+  /usr/bin/mm_test_network_speed; \
   echo \" \"; \
   echo \"Nacisnij BACK lub Esc aby wyjsc...\"; \
   read"
   exit 0
 fi
 
-echo "ERROR: Unknown command: \"$command\""
+
+#-------------------------------------------------------------------------------
+
+if /usr/bin/test ${command} = "bluray_rip_start" ; then
+  /usr/bin/mm_manage _bluray_rip_start &
+  exit 0
+fi
+if /usr/bin/test ${command} = "_bluray_rip_start" ; then
+  /usr/bin/mm_rip_bluray_start &
+  exit 0
+fi
+
+
+#-------------------------------------------------------------------------------
+
+if /usr/bin/test ${command} = "bluray_copy_start" ; then
+  /usr/bin/mm_manage _bluray_copy_start &
+  exit 0
+fi
+if /usr/bin/test ${command} = "_bluray_copy_start" ; then
+  /usr/bin/mm_copy_bluray_start &
+  exit 0
+fi
+
+
+#-------------------------------------------------------------------------------
+
+if /usr/bin/test ${command} = "bluray_rip_progress" ; then
+  /usr/bin/mm_manage _bluray_rip_progress &
+  exit 0
+fi
+if /usr/bin/test ${command} = "_bluray_rip_progress" ; then
+  /usr/bin/mm_rip_bluray_show_progress &
+  exit 0
+fi
+
+
+#-------------------------------------------------------------------------------
+
+if /usr/bin/test ${command} = "bluray_rip_stop" ; then
+  /usr/bin/mm_manage _bluray_rip_stop &
+  exit 0
+fi
+if /usr/bin/test ${command} = "_bluray_rip_stop" ; then
+  /usr/bin/mm_rip_bluray_stop &
+  exit 0
+fi
+
+
+#-------------------------------------------------------------------------------
+
+if /usr/bin/test ${command} = "notify_added_remote" ; then
+  mm_show_mythnotify "New IR remote connected/disconnected..." '' 'ok' '5'
+
+  exit 0
+fi
+
+
+#-------------------------------------------------------------------------------
+
+if /usr/bin/test ${command} = "notify_added_input_device" ; then
+  mm_show_mythnotify "New INPUT device added/removed..." '' 'ok' '5'
+  exit 0
+fi
+
+
+#-------------------------------------------------------------------------------
+
+if /usr/bin/test ${command} = "notify_added_storage" ; then
+  mm_show_mythnotify "New STORAGE device connected..." '' 'ok' '5'
+
+  exit 0
+fi
+
+
+#-------------------------------------------------------------------------------
+
+if /usr/bin/test ${command} = "notify_removed_storage" ; then
+  mm_show_mythnotify "Storage device removed..." '' 'ok' '5'
+  exit 0
+fi
+
+
+
+echo "ERROR: Unknown command: \"${command}\""
 echo "Exiting..."
 echo ""
 
