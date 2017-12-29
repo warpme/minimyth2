@@ -103,6 +103,8 @@ PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos.patch
 # Fixes ticket #12396: issue with some non mkv files and srt subtitles
 PATCHFILES += 0323-ticket12396-.srt-subs-go-out-of-sync.patch
 
+PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
+
 endif
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
