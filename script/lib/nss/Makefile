@@ -3,9 +3,8 @@ GARVERSION = $(NSS_VERSION)
 CATEGORIES = lib
 MASTER_SITES = https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/$(shell echo $(DISTNAME) | sed -e 's/-/_/g' -e 's/\./_/g' -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')_RTM/src/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES  = $(DISTNAME).patch.gar
 ifneq ($(DESTIMG),build)
-PATCHFILES += $(DISTNAME)-cross.patch
+PATCHFILES += nss-cross.patch
 endif
 LICENSE = MPL1_1/GPL2/LGPL2_1
 
@@ -43,6 +42,10 @@ BUILD_ARGS = \
 	all
 
 include ../../gar.mk
+
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 PARALLELMFLAGS := -j1
 
