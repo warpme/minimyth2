@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.14.0.r328
+mm_VERSION_MINIMYTH ?= 8.15.2.r364
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -140,8 +140,8 @@ mm_MYTH_VERSION           ?= master
 # mm_MYTH_VERSION           ?= 0.28
 
 # The version of the NVIDIA driver.
-# Valid values are '387.22'
-mm_NVIDIA_VERSION         ?= 387.22
+# Valid values are '387.22' '387.34'
+mm_NVIDIA_VERSION         ?= 387.34
 
 # The version of the NVIDIA legacy driver.
 # Valid values are '340.104'
