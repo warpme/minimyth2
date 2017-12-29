@@ -1,9 +1,9 @@
 GARNAME = nspr
-GARVERSION = 4.10.8
+GARVERSION = 4.17
 CATEGORIES = lib
 MASTER_SITES = https://ftp.mozilla.org/pub/mozilla.org/$(GARNAME)/releases/v$(GARVERSION)/src/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME)-cross.patch
+PATCHFILES = nspr-cross.patch
 LICENSE = MPL1_1/GPL2/LGPL2_1
 
 DESCRIPTION = 
