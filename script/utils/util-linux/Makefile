@@ -1,9 +1,8 @@
 GARNAME = util-linux
-GARVERSION = 2.26.2
+GARVERSION = 2.31.1
 CATEGORIES = utils
-MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.26/
+MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.31/
 DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = $(DISTNAME)-agetty_2.19.1.patch
 LICENSE = GPL2
 
 DESCRIPTION =
@@ -31,7 +30,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-libblkid \
 	--enable-libmount \
 	--disable-libmount-force-mountinfo \
-	--disable-libsmartcols \
+	--enable-libsmartcols \
 	--disable-libfdisk \
 	--enable-mount \
 	--disable-losetup \
