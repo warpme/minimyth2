@@ -138,18 +138,10 @@ PATCHFILES += 0321-ticket12857-patch-mythwidgets_osx_focus.patch
 
 PATCHFILES += 0322-add-netflix-to-thememenus.patch
 
-# Fixes ticket #12396: issue with some non mkv files and srt subtitles
-#PATCHFILES += 0323-ticket12396-.srt-subs-go-out-of-sync.patch
-
 PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
-
-#PATCHFILES += 0326-ticket13159-PreferExactTitleMatchesForMetadata-v5.patch
 
 # Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled
 PATCHFILES += 0327-revert-16086d2-Honor-the-MonitorDrives-setting.patch
-
-# Fixes issue with some tv channels wrongly reported as 50i
-#PATCHFILES += 0328-ticket13186-013_deinterlace-workarround.patch
 
 endif
 
