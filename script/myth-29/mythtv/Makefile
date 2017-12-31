@@ -143,6 +143,9 @@ PATCHFILES += 0321-ticket12857-patch-mythwidgets_osx_focus.patch
 
 PATCHFILES += 0322-add-netflix-to-thememenus.patch
 
+# Fixes #12396 - issue with srt subtitles out-of-sync
+PATCHFILES += 0323-ticket12396-.srt-subs-go-out-of-sync.patch
+
 PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
 
 endif
