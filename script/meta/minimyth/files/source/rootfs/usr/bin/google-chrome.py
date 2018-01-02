@@ -23,11 +23,13 @@ def main(args):
     if has_dpms:
         subprocess.Popen(["xset", "-dpms"])
     try:
-        subprocess.Popen(["/usr/bin/mm_ss_suspend", "chrome &"])
+        ss_disabler = subprocess.Popen(["/usr/bin/mm_ss_suspend", "chrome &"])
         browser(args)
     finally:
         if has_dpms:
             subprocess.Popen(["xset", "+dpms"])
+        print "Exiting screensaver disabler...."
+        ss_disabler.terminate()
 
 def browser(args):
     browser = subprocess.Popen(["/usr/local/bin/google-chrome/chrome"] + args[1:])
@@ -56,23 +58,26 @@ def browser(args):
                     config[3] = str(int(config[3]) * mousestep ** 2)
                 subprocess.Popen(["xdotool"] + config)
     except KeyboardInterrupt:
-        print "Exiting...."
+        print "Exiting by keyb Ctrl+C...."
     p1 = subprocess.Popen(["xdotool", "search", "--name", "Google Chrome"], stdout = subprocess.PIPE)
     p1.wait()
     windows = p1.stdout.readline().split()
     for window in windows:
         print "'%s'" % window
         subprocess.Popen(["xdotool", "windowfocus", str(window)])
+        print "Asking google chrome to exit by ctrl+shift+q...."
         subprocess.Popen(["xdotool", "key", "ctrl+shift+q"])
 
     # If we found windows and they're still running, wait 3 seconds
     if len(windows) != 0 and browser.poll() is None:
+        print "Still waiting 3sec for eiting google chrome...."
         for i in range(30):
             time.sleep(.1)
             if browser.poll() is not None:
                 break
     # Okay now we can forcibly kill browser
     if browser.poll() is None:
+        print "Terminating google chrome...."
         browser.terminate()
 
     return 0
