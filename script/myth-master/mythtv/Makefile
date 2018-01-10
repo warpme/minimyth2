@@ -54,7 +54,7 @@ PATCHFILES += 0214-minimyth-defaults.patch
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
 # Needed to successfully applying 0235 & 0236
-PATCHFILES += 0296-revert-a774469-disable-QT-compatibility-deprecated-in-QT-5.0-or-earlier.patch
+PATCHFILES += 0218-decrease-minQt-ver-to-4.8.patch
 
 ifneq ($(patsubst %minimal,minimal,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 # LVR safe patches related to player/OSD
