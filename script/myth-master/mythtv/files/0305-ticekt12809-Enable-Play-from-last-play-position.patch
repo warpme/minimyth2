@@ -1,7 +1,139 @@
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.cpp mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmyth/programinfo.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.cpp	2017-06-16 15:12:04.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmyth/programinfo.cpp	2017-06-16 15:31:38.406666664 +0200
-@@ -230,6 +230,7 @@
+From 353b6e6b2198b61e24586be0fb011a85bb857fb3 Mon Sep 17 00:00:00 2001
+From: Roger Siddons <rsiddons@mythtv.org>
+Date: Thu, 28 Dec 2017 18:59:55 -0500
+Subject: [PATCH 01/22] Enable 'Play from last play position'
+
+38443b8e disabled playing recordings from last play position mark.
+This patch re-enables it for recordings.
+
+Add MConcurrent
+
+Provides a simple version of QtConcurrent::run() that uses MThreadPool rather
+than QThreadPool. Useful for starting background threads in 1 line.
+
+Given a class method of:
+
+  void Class::fn(arg1, arg2...)
+
+you can run it in a different thread using:
+
+  MConcurrent::run("thread name", &Class instance, &Class::fn, arg1, arg2...)
+
+Refer to QtConcurrent::run for further details
+
+Restrictions:
+1. Accepts 0-5 arguments
+2. Only class methods are supported (most typical in Myth)
+3. Only non-const classes & methods are supported (most typical in Myth)
+4. The method must have return type of void (QFuture is not easily ported to
+   MThreadPool. Use signals/events instead)
+
+Add UI progress indicator to Watch Recordings
+
+Adds theme widget 'progresspercent' to watchrecordings window to show
+percentage of recording that has been watched.
+
+MythUI: Implement progressbar on buttonlist items
+
+Allows buttonlists to contain a progressbar.
+
+Show play position as a progress bar in Watch recordings
+
+Allows recording list to show part-watched recordings using a progressbar.
+Demo uses Mythcenter-wide theme
+
+Move automatic bookmark updates to last play position.
+
+Convert bookmarks to a user aid only. They will never be automatically updated/removed by playback.
+Last play position mark is now used instead.
+
+Settings "Clear bookmark on playback" & "Action on playback exit"/"Save position and exit" are
+removed (from UI only) as they are now redundant.
+
+Last play position is never updated within 30 secs of playback start.
+Thereafter it records position on playback exit (as well as the existing periodic 30 sec update).
+At end of recording it is reset.
+
+Note: 'Automatically Mark watched' is now also actioned by end-of-playback dialog (it wasn't previously)
+It also will not trigger for first 30 secs of playback.
+
+Default recording playback from last play position
+
+Playback of recordings now starts from:
+
+- last play position, if present
+- bookmark, if present (so user can override progstart)
+- program start mark, if present
+- beginning of file
+
+Menu options allow user to start from last play position, bookmark or 'beginning'
+(prog start/file start) where applicable.
+
+Add menu options to Clear bookmark and Clear last play position for recordings
+
+Allow user to easily reset last play position and bookmark.
+
+Start video playback as per recordings
+
+Video playback starts from:
+
+- last played position, if present
+- bookmark, if present
+- file start
+
+Menu options allow user to explicitly select option and reset last played position & bookmark
+
+Plays from last played position, then bookmark, then file start
+Add menu options to Play from bookmark & Play from beginning
+Add menu options to Clear Bookmark & Clear last played position
+
+Preview generator uses last played position
+
+Previews are now generated from:
+
+- last played position, if present
+- bookmark, if present,
+- prog start mark, if present
+- existing offset, which us unchanged (it does not use the progstart mark.)
+
+Add progress bar to Upcoming Recordings.
+
+Progress of an active recording is shown by a progress bar and
+'progresspercent' theme widget. Both are based on rec start/end and current time.
+
+Signed-off-by: Peter Bennett <pbennett@mythtv.org>
+---
+ mythtv/libs/libmyth/programinfo.cpp               |  62 ++++++-
+ mythtv/libs/libmyth/programinfo.h                 |   9 +
+ mythtv/libs/libmythbase/libmythbase.pro           |   2 +-
+ mythtv/libs/libmythbase/mconcurrent.h             | 175 +++++++++++++++++++
+ mythtv/libs/libmythtv/mythplayer.cpp              |  10 +-
+ mythtv/libs/libmythtv/mythplayer.h                |   1 -
+ mythtv/libs/libmythtv/previewgenerator.cpp        |  16 +-
+ mythtv/libs/libmythtv/tv_play.cpp                 | 124 ++++---------
+ mythtv/libs/libmythtv/tv_play.h                   |  11 +-
+ mythtv/libs/libmythui/mythuibuttonlist.cpp        |  22 +++
+ mythtv/libs/libmythui/mythuibuttonlist.h          |   5 +
+ mythtv/libs/libmythui/mythuiprogressbar.cpp       |  10 ++
+ mythtv/libs/libmythui/mythuiprogressbar.h         |   1 +
+ mythtv/programs/mythfrontend/globalsettings.cpp   |  24 +--
+ mythtv/programs/mythfrontend/main.cpp             |  77 ++++++---
+ mythtv/programs/mythfrontend/playbackbox.cpp      | 122 +++++++------
+ mythtv/programs/mythfrontend/playbackbox.h        |   8 +-
+ mythtv/programs/mythfrontend/programinfocache.cpp | 160 +++++++++++++----
+ mythtv/programs/mythfrontend/programinfocache.h   |  14 +-
+ mythtv/programs/mythfrontend/viewscheduled.cpp    | 202 +++++++++++++++-------
+ mythtv/programs/mythfrontend/viewscheduled.h      |   5 +
+ mythtv/themes/MythCenter-wide/recordings-ui.xml   |  24 ++-
+ mythtv/themes/MythCenter-wide/schedule-ui.xml     |  20 ++-
+ 23 files changed, 781 insertions(+), 323 deletions(-)
+ create mode 100644 mythtv/libs/libmythbase/mconcurrent.h
+
+diff --git a/mythtv/libs/libmyth/programinfo.cpp b/mythtv/libs/libmyth/programinfo.cpp
+index 128941b..b0fd7ce 100644
+--- a/mythtv/libs/libmyth/programinfo.cpp
++++ b/mythtv/libs/libmyth/programinfo.cpp
+@@ -223,6 +223,7 @@ ProgramInfo::ProgramInfo(void) :
  
      // everything below this line is not serialized
      availableStatus(asAvailable),
@@ -9,7 +141,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
      spread(-1),
      startCol(-1),
      sortTitle(),
-@@ -314,6 +315,7 @@
+@@ -307,6 +308,7 @@ ProgramInfo::ProgramInfo(const ProgramInfo &other) :
  
      // everything below this line is not serialized
      availableStatus(other.availableStatus),
@@ -17,7 +149,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
      spread(other.spread),
      startCol(other.startCol),
      sortTitle(other.sortTitle),
-@@ -502,6 +504,7 @@
+@@ -495,6 +497,7 @@ ProgramInfo::ProgramInfo(
  
      // everything below this line is not serialized
      availableStatus(asAvailable),
@@ -25,7 +157,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
      spread(-1),
      startCol(-1),
      sortTitle(),
-@@ -620,6 +623,7 @@
+@@ -613,6 +616,7 @@ ProgramInfo::ProgramInfo(
  
      // everything below this line is not serialized
      availableStatus(asAvailable),
@@ -33,7 +165,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
      spread(-1),
      startCol(-1),
      sortTitle(),
-@@ -751,6 +755,7 @@
+@@ -744,6 +748,7 @@ ProgramInfo::ProgramInfo(
  
      // everything below this line is not serialized
      availableStatus(asAvailable),
@@ -41,7 +173,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
      spread(-1),
      startCol(-1),
      sortTitle(),
-@@ -906,6 +911,7 @@
+@@ -901,6 +906,7 @@ ProgramInfo::ProgramInfo(
  
      // everything below this line is not serialized
      availableStatus(asAvailable),
@@ -49,7 +181,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
      spread(-1),
      startCol(-1),
      sortTitle(),
-@@ -1260,6 +1266,7 @@
+@@ -1255,6 +1261,7 @@ void ProgramInfo::clear(void)
      spread = -1;
      startCol = -1;
      availableStatus = asAvailable;
@@ -57,7 +189,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
  
      // Private
      inUseForWhat.clear();
-@@ -1725,6 +1732,9 @@
+@@ -1720,6 +1727,9 @@ void ProgramInfo::ToMap(InfoMap &progMap,
          progMap["lentime"] = QObject::tr("%n hour(s)","", hours);
      }
  
@@ -67,7 +199,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
      progMap["rectypechar"] = toQChar(GetRecordingRuleType());
      progMap["rectype"] = ::toString(GetRecordingRuleType());
      QString tmp_rec = progMap["rectype"];
-@@ -2688,6 +2698,31 @@
+@@ -2684,6 +2694,31 @@ void ProgramInfo::SaveBookmark(uint64_t frame)
  
      set_flag(programflags, FL_BOOKMARK, is_valid);
  
@@ -99,7 +231,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
      if (IsRecording())
      {
          MSqlQuery query(MSqlQuery::InitCon());
-@@ -2695,17 +2730,13 @@
+@@ -2691,17 +2726,13 @@ void ProgramInfo::SaveBookmark(uint64_t frame)
              "UPDATE recorded "
              "SET bookmarkupdate = CURRENT_TIMESTAMP, "
              "    bookmark       = :BOOKMARKFLAG "
@@ -120,7 +252,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
      }
  }
  
-@@ -2792,6 +2823,23 @@
+@@ -2788,6 +2819,23 @@ uint64_t ProgramInfo::QueryProgStart(void) const
      return (bookmarkmap.isEmpty()) ? 0 : bookmarkmap.begin().key();
  }
  
@@ -136,7 +268,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
 +        LOG(VB_PLAYBACK, LOG_INFO, "Ignoring progstart as cutlist exists");
 +    else if ((start = QueryProgStart()) > 0)
 +        LOG(VB_PLAYBACK, LOG_INFO, QString("Using progstart @ %1").arg(start));
-+    else 
++    else
 +        LOG(VB_PLAYBACK, LOG_INFO, "Using file start");
 +    return start;
 +}
@@ -144,10 +276,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.c
  /** \brief Gets any lastplaypos position in database,
   *         unless the ignore lastplaypos flag is set.
   *
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.h mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmyth/programinfo.h
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.h	2017-06-16 15:12:04.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmyth/programinfo.h	2017-06-16 15:31:38.406666664 +0200
-@@ -549,6 +549,9 @@
+diff --git a/mythtv/libs/libmyth/programinfo.h b/mythtv/libs/libmyth/programinfo.h
+index d7d7034..5c8b896 100644
+--- a/mythtv/libs/libmyth/programinfo.h
++++ b/mythtv/libs/libmyth/programinfo.h
+@@ -554,6 +554,9 @@ class MPUBLIC ProgramInfo
      void SetPositionMapDBReplacement(PMapDBReplacement *pmap)
          { positionMapDBReplacement = pmap; }
  
@@ -157,7 +290,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.h
      // Slow DB gets
      QString     QueryBasename(void) const;
  //  uint64_t    QueryFilesize(void) const; // TODO Remove
-@@ -557,6 +560,7 @@
+@@ -562,6 +565,7 @@ class MPUBLIC ProgramInfo
      uint64_t    QueryBookmark(void) const;
      uint64_t    QueryProgStart(void) const;
      uint64_t    QueryLastPlayPos(void) const;
@@ -165,7 +298,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.h
      CategoryType QueryCategoryType(void) const;
      QStringList QueryDVDBookmark(const QString &serialid) const;
      QStringList QueryBDBookmark(const QString &serialid) const;
-@@ -582,6 +586,7 @@
+@@ -587,6 +591,7 @@ class MPUBLIC ProgramInfo
  
      // Slow DB sets
      virtual void SaveFilesize(uint64_t fsize); /// TODO Move to RecordingInfo
@@ -173,7 +306,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.h
      void SaveBookmark(uint64_t frame);
      void SaveDVDBookmark(const QStringList &fields) const;
      void SaveBDBookmark(const QStringList &fields) const;
-@@ -707,6 +712,8 @@
+@@ -710,6 +715,8 @@ class MPUBLIC ProgramInfo
      bool FromStringList(QStringList::const_iterator &it,
                          QStringList::const_iterator  end);
  
@@ -182,7 +315,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.h
      static void QueryMarkupMap(
          const QString &video_pathname,
          frm_dir_map_t&, MarkTypes type, bool merge = false);
-@@ -787,6 +794,8 @@
+@@ -790,6 +797,8 @@ class MPUBLIC ProgramInfo
  
  // everything below this line is not serialized
      uint8_t availableStatus; // only used for playbackbox.cpp
@@ -191,10 +324,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmyth/programinfo.h
    public:
      void SetAvailableStatus(AvailableStatusType status, const QString &where);
      AvailableStatusType GetAvailableStatus(void) const
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythbase/libmythbase.pro mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythbase/libmythbase.pro
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythbase/libmythbase.pro	2017-06-16 15:03:58.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythbase/libmythbase.pro	2017-06-16 15:31:38.406666664 +0200
-@@ -10,7 +10,7 @@
+diff --git a/mythtv/libs/libmythbase/libmythbase.pro b/mythtv/libs/libmythbase/libmythbase.pro
+index aa7ac15..534a8f8 100644
+--- a/mythtv/libs/libmythbase/libmythbase.pro
++++ b/mythtv/libs/libmythbase/libmythbase.pro
+@@ -10,7 +10,7 @@ INSTALLS = target
  QMAKE_CLEAN += $(TARGET) $(TARGETA) $(TARGETD) $(TARGET0) $(TARGET1) $(TARGET2)
  
  # Input
@@ -203,10 +337,12 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythbase/libmythba
  HEADERS += mythsocket.h mythsocket_cb.h
  HEADERS += mythbaseexp.h mythdbcon.h mythdb.h mythdbparams.h oldsettings.h
  HEADERS += verbosedefs.h mythversion.h compat.h mythconfig.h
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythbase/mconcurrent.h mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythbase/mconcurrent.h
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythbase/mconcurrent.h	1970-01-01 01:00:00.000000000 +0100
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythbase/mconcurrent.h	2017-06-16 15:31:38.406666664 +0200
-@@ -0,0 +1,176 @@
+diff --git a/mythtv/libs/libmythbase/mconcurrent.h b/mythtv/libs/libmythbase/mconcurrent.h
+new file mode 100644
+index 0000000..35f0cee
+--- /dev/null
++++ b/mythtv/libs/libmythbase/mconcurrent.h
+@@ -0,0 +1,175 @@
 +#ifndef MCONCURRENT_H
 +#define MCONCURRENT_H
 +
@@ -382,11 +518,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythbase/mconcurre
 +} //namespace QtConcurrent
 +
 +#endif // MCONCURRENT_H
-+
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/mythplayer.cpp mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/mythplayer.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/mythplayer.cpp	2017-06-16 15:12:05.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/mythplayer.cpp	2017-06-16 15:31:38.406666664 +0200
-@@ -248,7 +248,6 @@
+diff --git a/mythtv/libs/libmythtv/mythplayer.cpp b/mythtv/libs/libmythtv/mythplayer.cpp
+index db55c19..c2d5b65 100644
+--- a/mythtv/libs/libmythtv/mythplayer.cpp
++++ b/mythtv/libs/libmythtv/mythplayer.cpp
+@@ -249,7 +249,6 @@ MythPlayer::MythPlayer(PlayerFlags flags)
      captionsEnabledbyDefault = gCoreContext->GetNumSetting("DefaultCCMode");
      decode_extra_audio = gCoreContext->GetNumSetting("DecodeExtraAudio", 0);
      itvEnabled         = gCoreContext->GetNumSetting("EnableMHEG", 0);
@@ -394,7 +530,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/mythplayer.
      endExitPrompt      = gCoreContext->GetNumSetting("EndOfRecordingExitPrompt");
      pip_default_loc    = (PIPLocation)gCoreContext->GetNumSetting("PIPLocation", kPIPTopLeft);
  
-@@ -2965,8 +2964,6 @@
+@@ -2963,8 +2962,6 @@ void MythPlayer::InitialSeek(void)
      if (bookmarkseek > 30)
      {
          DoJumpToFrame(bookmarkseek, kInaccuracyNone);
@@ -403,7 +539,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/mythplayer.
      }
  }
  
-@@ -3730,12 +3727,7 @@
+@@ -3720,12 +3717,7 @@ uint64_t MythPlayer::GetBookmark(void)
          player_ctx->LockPlayingInfo(__FILE__, __LINE__);
          if (const ProgramInfo *pi = player_ctx->playingInfo)
          {
@@ -417,10 +553,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/mythplayer.
          }
          player_ctx->UnlockPlayingInfo(__FILE__, __LINE__);
      }
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/mythplayer.h mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/mythplayer.h
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/mythplayer.h	2017-06-16 15:03:58.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/mythplayer.h	2017-06-16 15:31:38.409999997 +0200
-@@ -684,7 +684,6 @@
+diff --git a/mythtv/libs/libmythtv/mythplayer.h b/mythtv/libs/libmythtv/mythplayer.h
+index 32f0ec6..890626f 100644
+--- a/mythtv/libs/libmythtv/mythplayer.h
++++ b/mythtv/libs/libmythtv/mythplayer.h
+@@ -682,7 +682,6 @@ class MTV_PUBLIC MythPlayer
  
      // Bookmark stuff
      uint64_t bookmarkseek;
@@ -428,10 +565,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/mythplayer.
      int      endExitPrompt;
  
      // Seek
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/previewgenerator.cpp mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/previewgenerator.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/previewgenerator.cpp	2017-06-16 15:04:00.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/previewgenerator.cpp	2017-06-16 15:31:38.409999997 +0200
-@@ -618,8 +618,9 @@
+diff --git a/mythtv/libs/libmythtv/previewgenerator.cpp b/mythtv/libs/libmythtv/previewgenerator.cpp
+index c344de3..db5ba68 100644
+--- a/mythtv/libs/libmythtv/previewgenerator.cpp
++++ b/mythtv/libs/libmythtv/previewgenerator.cpp
+@@ -623,8 +623,9 @@ bool PreviewGenerator::SavePreview(const QString &filename,
  bool PreviewGenerator::LocalPreviewRun(void)
  {
      m_programInfo.MarkAsInUse(true, kPreviewGeneratorInUseID);
@@ -443,7 +581,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/previewgene
  
      float aspect = 0;
      int   width, height, sz;
-@@ -632,15 +633,14 @@
+@@ -637,15 +638,14 @@ bool PreviewGenerator::LocalPreviewRun(void)
  
      if (captime < 0)
      {
@@ -464,10 +602,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/previewgene
      }
  
      if (captime <= 0)
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/tv_play.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp	2017-06-16 15:12:05.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/tv_play.cpp	2017-06-16 15:31:38.416666664 +0200
-@@ -37,6 +37,7 @@
+diff --git a/mythtv/libs/libmythtv/tv_play.cpp b/mythtv/libs/libmythtv/tv_play.cpp
+index e823012..901a278 100644
+--- a/mythtv/libs/libmythtv/tv_play.cpp
++++ b/mythtv/libs/libmythtv/tv_play.cpp
+@@ -37,6 +37,7 @@ using namespace std;
  #include "compat.h"
  #include "mythdirs.h"
  #include "mythmedia.h"
@@ -475,7 +614,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
  
  // libmyth
  #include "programinfo.h"
-@@ -1023,7 +1024,6 @@
+@@ -1015,7 +1016,6 @@ TV::TV(void)
        db_playback_exit_prompt(0),   db_autoexpire_default(0),
        db_auto_set_watched(false),   db_end_of_rec_exit_prompt(false),
        db_jump_prefer_osd(true),     db_use_gui_size_for_tv(false),
@@ -483,7 +622,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
        db_toggle_bookmark(false),
        db_run_jobs_on_remote(false), db_continue_embedded(false),
        db_use_fixed_size(true),      db_browse_always(false),
-@@ -1048,6 +1048,7 @@
+@@ -1040,6 +1040,7 @@ TV::TV(void)
        requestDelete(false),  allowRerecord(false),
        doSmartForward(false),
        queuedTranscode(false),
@@ -491,7 +630,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
        adjustingPicture(kAdjustingPicture_None),
        adjustingPictureAttribute(kPictureAttribute_None),
        askAllowLock(QMutex::Recursive),
-@@ -1131,7 +1132,6 @@
+@@ -1123,7 +1124,6 @@ void TV::InitFromDB(void)
      kv["EndOfRecordingExitPrompt"] = "0";
      kv["JumpToProgramOSD"]         = "1";
      kv["GuiSizeForTV"]             = "0";
@@ -499,7 +638,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
      kv["AltClearSavedPosition"]    = "1";
      kv["JobsRunOnRecordHost"]      = "0";
      kv["ContinueEmbeddedTVPlay"]   = "0";
-@@ -1182,7 +1182,6 @@
+@@ -1174,7 +1174,6 @@ void TV::InitFromDB(void)
      db_end_of_rec_exit_prompt = kv["EndOfRecordingExitPrompt"].toInt();
      db_jump_prefer_osd     = kv["JumpToProgramOSD"].toInt();
      db_use_gui_size_for_tv = kv["GuiSizeForTV"].toInt();
@@ -507,7 +646,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
      db_toggle_bookmark     = kv["AltClearSavedPosition"].toInt();
      db_run_jobs_on_remote  = kv["JobsRunOnRecordHost"].toInt();
      db_continue_embedded   = kv["ContinueEmbeddedTVPlay"].toInt();
-@@ -1383,6 +1382,8 @@
+@@ -1360,6 +1359,8 @@ bool TV::Init(bool createWindow)
      speedChangeTimerId   = StartTimer(kSpeedChangeCheckFrequency, __LINE__);
      saveLastPlayPosTimerId = StartTimer(kSaveLastPlayPosTimeout, __LINE__);
  
@@ -516,7 +655,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
      LOG(VB_PLAYBACK, LOG_DEBUG, LOC + "-- end");
      return true;
  }
-@@ -3374,51 +3375,22 @@
+@@ -3362,51 +3363,22 @@ void TV::PrepToSwitchToRecordedProgram(PlayerContext *ctx,
      SetExitPlayer(true, true);
  }
  
@@ -581,7 +720,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
          if (db_auto_set_watched)
              ctx->player->SetWatched();
      }
-@@ -5105,7 +5077,7 @@
+@@ -5093,7 +5065,7 @@ bool TV::ActivePostQHandleAction(PlayerContext *ctx, const QStringList &actions)
      {
          NormalSpeed(ctx);
          StopFFRew(ctx);
@@ -590,7 +729,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
          ShowOSDPromptDeleteRecording(ctx, tr("Are you sure you want to delete:"));
      }
      else if (has_action(ACTION_JUMPTODVDROOTMENU, actions) && isdisc)
-@@ -5327,11 +5299,7 @@
+@@ -5315,11 +5287,7 @@ void TV::ProcessNetworkControlCommand(PlayerContext *ctx,
      }
      else if (tokens.size() == 2 && tokens[1] == "STOP")
      {
@@ -603,7 +742,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
          SetExitPlayer(true, true);
      }
      else if (tokens.size() >= 3 && tokens[1] == "SEEK" && ctx->HasPlayer())
-@@ -9443,7 +9411,7 @@
+@@ -9416,7 +9384,7 @@ void TV::customEvent(QEvent *e)
              for (uint i = 0; mctx && (i < player.size()); i++)
              {
                  PlayerContext *ctx = GetPlayer(mctx, i);
@@ -612,7 +751,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
              }
  
              SetExitPlayer(true, true);
-@@ -13196,16 +13164,8 @@
+@@ -13180,16 +13148,8 @@ void TV::ShowOSDStopWatchingRecording(PlayerContext *ctx)
          osd->DialogShow(OSD_DLG_VIDEOEXIT,
                          tr("You are exiting %1").arg(videotype));
  
@@ -631,7 +770,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
  
          if (IsDeleteAllowed(ctx))
              osd->DialogAddButton(tr("Delete this recording"),
-@@ -13350,7 +13310,6 @@
+@@ -13334,7 +13294,6 @@ bool TV::HandleOSDVideoExit(PlayerContext *ctx, QString action)
  
      bool hide        = true;
      bool delete_ok   = IsDeleteAllowed(ctx);
@@ -639,7 +778,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
  
      ctx->LockDeletePlayer(__FILE__, __LINE__);
      bool near_end = ctx->player && ctx->player->IsNearEnd();
-@@ -13360,11 +13319,13 @@
+@@ -13344,11 +13303,13 @@ bool TV::HandleOSDVideoExit(PlayerContext *ctx, QString action)
      {
          allowRerecord = true;
          requestDelete = true;
@@ -653,7 +792,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
          SetExitPlayer(true, true);
      }
      else if (action == "CONFIRMDELETE")
-@@ -13373,11 +13334,6 @@
+@@ -13357,11 +13318,6 @@ bool TV::HandleOSDVideoExit(PlayerContext *ctx, QString action)
          ShowOSDPromptDeleteRecording(ctx, tr("Are you sure you want to delete:"),
                                       true);
      }
@@ -665,7 +804,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
      else if (action == "KEEPWATCHING" && !near_end)
      {
          DoTogglePause(ctx, true);
-@@ -13388,29 +13344,6 @@
+@@ -13372,29 +13328,6 @@ bool TV::HandleOSDVideoExit(PlayerContext *ctx, QString action)
  
  void TV::HandleSaveLastPlayPosEvent(void)
  {
@@ -695,7 +834,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
      PlayerContext *mctx = GetPlayerReadLock(0, __FILE__, __LINE__);
      for (uint i = 0; mctx && i < player.size(); ++i)
      {
-@@ -13419,10 +13352,11 @@
+@@ -13403,10 +13336,11 @@ void TV::HandleSaveLastPlayPosEvent(void)
          bool playing = ctx->player && !ctx->player->IsPaused();
          if (playing) // Don't bother saving lastplaypos while paused
          {
@@ -710,7 +849,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
          }
          ctx->UnlockDeletePlayer(__FILE__, __LINE__);
      }
-@@ -13431,6 +13365,8 @@
+@@ -13415,6 +13349,8 @@ void TV::HandleSaveLastPlayPosEvent(void)
      QMutexLocker locker(&timerIdLock);
      KillTimer(saveLastPlayPosTimerId);
      saveLastPlayPosTimerId = StartTimer(kSaveLastPlayPosTimeout, __LINE__);
@@ -719,10 +858,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.cpp
  }
  
  void TV::SetLastProgram(const ProgramInfo *rcinfo)
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.h mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/tv_play.h
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.h	2017-06-16 15:04:00.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/tv_play.h	2017-06-16 15:31:38.416666664 +0200
-@@ -365,7 +365,7 @@
+diff --git a/mythtv/libs/libmythtv/tv_play.h b/mythtv/libs/libmythtv/tv_play.h
+index f49322c..067eca4 100644
+--- a/mythtv/libs/libmythtv/tv_play.h
++++ b/mythtv/libs/libmythtv/tv_play.h
+@@ -365,7 +365,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
      bool Init(bool createWindow = true);
      void InitFromDB(void);
      QList<QKeyEvent> ConvertScreenPressKeyMap(const QString& keyList);
@@ -731,7 +871,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.h m
      // Top level playback methods
      bool LiveTV(bool showDialogs, const ChannelInfoList &selection);
      int  Playback(const ProgramInfo &rcinfo);
-@@ -374,7 +374,7 @@
+@@ -374,7 +374,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
      // Private event handling
      bool ProcessKeypressOrGesture(PlayerContext*, QEvent *e);
      bool TranslateKeyPressOrGesture(const QString &context, QEvent *e,
@@ -740,7 +880,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.h m
                                      bool allowJumps = true);
      bool TranslateGesture(const QString &context, MythGestureEvent *e,
                            QStringList &actions, bool isLiveTV);
-@@ -478,8 +478,7 @@
+@@ -477,8 +477,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
          kBookmarkNever,
          kBookmarkAuto // set iff db_playback_exit_prompt==2
      };
@@ -750,7 +890,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.h m
      void SetExitPlayer(bool set_it, bool wants_to);
  
      bool RequestNextRecorder(PlayerContext *, bool,
-@@ -790,7 +789,6 @@
+@@ -789,7 +788,6 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
      bool    db_jump_prefer_osd;
      bool    db_use_gui_size_for_tv;
      bool    db_start_in_guide;
@@ -758,7 +898,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.h m
      bool    db_toggle_bookmark;
      bool    db_run_jobs_on_remote;
      bool    db_continue_embedded;
-@@ -834,6 +832,7 @@
+@@ -833,6 +831,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
      bool allowRerecord;  ///< User wants to rerecord the last video if deleted
      bool doSmartForward;
      bool queuedTranscode;
@@ -766,7 +906,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.h m
      /// Picture attribute type to modify.
      PictureAdjustType adjustingPicture;
      /// Picture attribute to modify (on arrow left or right)
-@@ -894,7 +893,7 @@
+@@ -893,7 +892,7 @@ class MTV_PUBLIC TV : public QObject, public MenuItemDisplayer
      static const int screenPressRegionCount = 12;
      QList<QKeyEvent>    screenPressKeyMapPlayback;
      QList<QKeyEvent>    screenPressKeyMapLiveTV;
@@ -775,9 +915,10 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_play.h m
      // Channel changing timeout notification variables
      QTime   lockTimer;
      bool    lockTimerOn;
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuibuttonlist.cpp mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythui/mythuibuttonlist.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuibuttonlist.cpp	2017-06-16 15:04:01.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythui/mythuibuttonlist.cpp	2017-06-16 15:35:57.239999988 +0200
+diff --git a/mythtv/libs/libmythui/mythuibuttonlist.cpp b/mythtv/libs/libmythui/mythuibuttonlist.cpp
+index e899b0e..19fe6a8 100644
+--- a/mythtv/libs/libmythui/mythuibuttonlist.cpp
++++ b/mythtv/libs/libmythui/mythuibuttonlist.cpp
 @@ -21,6 +21,7 @@
  #include "mythuigroup.h"
  #include "mythuiimage.h"
@@ -786,7 +927,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuibutto
  
  #define LOC     QString("MythUIButtonList(%1): ").arg(objectName())
  
-@@ -3255,6 +3256,9 @@
+@@ -3255,6 +3256,9 @@ MythUIButtonListItem::MythUIButtonListItem(MythUIButtonList *lbtype,
      m_data      = 0;
      m_isVisible = false;
      m_enabled   = true;
@@ -796,7 +937,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuibutto
  
      if (state >= NotChecked)
          m_checkable = true;
-@@ -3281,6 +3285,9 @@
+@@ -3281,6 +3285,9 @@ MythUIButtonListItem::MythUIButtonListItem(MythUIButtonList *lbtype,
      m_showArrow = false;
      m_isVisible = false;
      m_enabled   = true;
@@ -806,7 +947,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuibutto
  
      if (m_parent)
          m_parent->InsertItem(this, listPosition);
-@@ -3536,6 +3543,16 @@
+@@ -3536,6 +3543,16 @@ QString MythUIButtonListItem::GetImageFilename(const QString &name) const
      return QString();
  }
  
@@ -823,7 +964,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuibutto
  void MythUIButtonListItem::DisplayState(const QString &state,
                                          const QString &name)
  {
-@@ -3844,6 +3861,11 @@
+@@ -3844,6 +3861,11 @@ void MythUIButtonListItem::SetToRealButton(MythUIStateType *button, bool selecte
      // There is no need to check the return value here, since we already
      // checked that the state exists with GetState() earlier
      button->DisplayState(state);
@@ -835,19 +976,20 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuibutto
  }
  
  //---------------------------------------------------------
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuibuttonlist.h mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythui/mythuibuttonlist.h
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuibuttonlist.h	2017-06-16 15:04:01.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythui/mythuibuttonlist.h	2017-06-16 15:37:00.709999992 +0200
-@@ -81,6 +81,8 @@
+diff --git a/mythtv/libs/libmythui/mythuibuttonlist.h b/mythtv/libs/libmythui/mythuibuttonlist.h
+index 24b83bd..97d8134 100644
+--- a/mythtv/libs/libmythui/mythuibuttonlist.h
++++ b/mythtv/libs/libmythui/mythuibuttonlist.h
+@@ -81,6 +81,8 @@ class MUI_PUBLIC MythUIButtonListItem
      void SetImageFromMap(const InfoMap &imageMap);
      QString GetImageFilename(const QString &name="") const;
  
 +    void SetProgress(int start, int total, int used);
-+    
++
      void DisplayState(const QString &state, const QString &name);
      void SetStatesFromMap(const InfoMap &stateMap);
  
-@@ -117,6 +119,9 @@
+@@ -117,6 +119,9 @@ class MUI_PUBLIC MythUIButtonListItem
      bool            m_showArrow;
      bool            m_isVisible;
      bool            m_enabled;
@@ -857,10 +999,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuibutto
  
      QMap<QString, TextProperties> m_strings;
      QMap<QString, MythImage*> m_images;
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuiprogressbar.cpp mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythui/mythuiprogressbar.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuiprogressbar.cpp	2017-06-16 15:04:01.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythui/mythuiprogressbar.cpp	2017-06-16 15:31:38.419999997 +0200
-@@ -58,6 +58,16 @@
+diff --git a/mythtv/libs/libmythui/mythuiprogressbar.cpp b/mythtv/libs/libmythui/mythuiprogressbar.cpp
+index 4a7fdf4..2942c47 100644
+--- a/mythtv/libs/libmythui/mythuiprogressbar.cpp
++++ b/mythtv/libs/libmythui/mythuiprogressbar.cpp
+@@ -58,6 +58,16 @@ bool MythUIProgressBar::ParseElement(
      return true;
  }
  
@@ -877,10 +1020,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuiprogr
  void MythUIProgressBar::SetStart(int value)
  {
      m_start = value;
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuiprogressbar.h mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythui/mythuiprogressbar.h
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuiprogressbar.h	2017-06-16 15:04:01.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythui/mythuiprogressbar.h	2017-06-16 15:31:38.419999997 +0200
-@@ -20,6 +20,7 @@
+diff --git a/mythtv/libs/libmythui/mythuiprogressbar.h b/mythtv/libs/libmythui/mythuiprogressbar.h
+index fea6eb5..dfa4ac7 100644
+--- a/mythtv/libs/libmythui/mythuiprogressbar.h
++++ b/mythtv/libs/libmythui/mythuiprogressbar.h
+@@ -20,6 +20,7 @@ class MUI_PUBLIC MythUIProgressBar : public MythUIType
      enum LayoutType { LayoutVertical, LayoutHorizontal };
      enum EffectType { EffectReveal, EffectSlide, EffectAnimate };
  
@@ -888,10 +1032,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythui/mythuiprogr
      void SetStart(int);
      void SetUsed(int);
      void SetTotal(int);
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/globalsettings.cpp mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/globalsettings.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/globalsettings.cpp	2017-06-16 15:12:02.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/globalsettings.cpp	2017-06-16 15:39:58.886666648 +0200
-@@ -1577,23 +1577,6 @@
+diff --git a/mythtv/programs/mythfrontend/globalsettings.cpp b/mythtv/programs/mythfrontend/globalsettings.cpp
+index a8983e7..b262af9 100644
+--- a/mythtv/programs/mythfrontend/globalsettings.cpp
++++ b/mythtv/programs/mythfrontend/globalsettings.cpp
+@@ -1640,23 +1640,6 @@ static HostCheckBoxSetting *BrowseAllTuners()
      return gc;
  }
  
@@ -915,7 +1060,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/glob
  static HostCheckBoxSetting *AltClearSavedPosition()
  {
      HostCheckBoxSetting *gc = new HostCheckBoxSetting("AltClearSavedPosition");
-@@ -1618,7 +1601,6 @@
+@@ -1681,7 +1664,6 @@ static HostComboBoxSetting *PlaybackExitPrompt()
      gc->setLabel(PlaybackSettings::tr("Action on playback exit"));
  
      gc->addSelection(PlaybackSettings::tr("Just exit"), "0");
@@ -923,7 +1068,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/glob
      gc->addSelection(PlaybackSettings::tr("Always prompt (excluding Live TV)"),
                       "1");
      gc->addSelection(PlaybackSettings::tr("Always prompt (including Live TV)"),
-@@ -1628,9 +1610,8 @@
+@@ -1691,9 +1673,8 @@ static HostComboBoxSetting *PlaybackExitPrompt()
      gc->setHelpText(PlaybackSettings::tr("If set to prompt, a menu will be "
                                           "displayed when you exit playback "
                                           "mode. The options available will "
@@ -935,18 +1080,19 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/glob
      return gc;
  }
  
-@@ -3936,7 +3917,6 @@
+@@ -3999,7 +3980,6 @@ void PlaybackSettings::Load(void)
      general->addChild(RealtimePriority());
-     general->addChild(DecodeExtraAudio());
+     general->addChild(AudioReadAhead());
      general->addChild(JumpToProgramOSD());
 -    general->addChild(ClearSavedPosition());
      general->addChild(AltClearSavedPosition());
      general->addChild(AutomaticSetWatched());
      general->addChild(ContinueEmbeddedTVPlay());
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/main.cpp mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/main.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/main.cpp	2017-06-16 15:12:05.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/main.cpp	2017-06-16 15:31:38.419999997 +0200
-@@ -202,17 +202,23 @@
+diff --git a/mythtv/programs/mythfrontend/main.cpp b/mythtv/programs/mythfrontend/main.cpp
+index b325694..cd8f41c 100644
+--- a/mythtv/programs/mythfrontend/main.cpp
++++ b/mythtv/programs/mythfrontend/main.cpp
+@@ -203,17 +203,23 @@ namespace
          Q_DECLARE_TR_FUNCTIONS(BookmarkDialog)
  
        public:
@@ -974,7 +1120,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/main
  
              MythDialogBox *popup = new MythDialogBox(msg, GetScreenStack(), "bookmarkdialog");
              if (!popup->Create())
-@@ -224,8 +230,19 @@
+@@ -225,8 +231,19 @@ namespace
              GetScreenStack()->AddScreen(popup);
  
              popup->SetReturnEvent(this, "bookmarkdialog");
@@ -996,7 +1142,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/main
              return true;
          }
  
-@@ -234,22 +251,30 @@
+@@ -235,22 +252,30 @@ namespace
              if (event->type() == DialogCompletionEvent::kEventType)
              {
                  DialogCompletionEvent *dce = (DialogCompletionEvent*)(event);
@@ -1036,7 +1182,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/main
  
                      delete pgi;
                  }
-@@ -258,6 +283,10 @@
+@@ -259,6 +284,10 @@ namespace
  
        private:
          ProgramInfo* pgi;
@@ -1047,7 +1193,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/main
      };
  
      void cleanup()
-@@ -1280,6 +1309,7 @@
+@@ -1279,6 +1308,7 @@ static int internal_play_media(const QString &mrl, const QString &plot,
      pginfo->SetProgramInfoType(pginfo->DiscoverProgramInfoType());
  
      bool bookmarkPresent = false;
@@ -1055,7 +1201,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/main
  
      if (pginfo->IsVideoDVD())
      {
-@@ -1330,13 +1360,20 @@
+@@ -1329,13 +1359,20 @@ static int internal_play_media(const QString &mrl, const QString &plot,
              return res;
          }
      }
@@ -1080,7 +1226,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/main
          if (!bookmarkdialog->Create())
          {
              delete bookmarkdialog;
-@@ -1765,7 +1802,7 @@
+@@ -1761,7 +1798,7 @@ static bool WasAutomaticStart(void)
  }
  
  // from https://www.raspberrypi.org/forums/viewtopic.php?f=33&t=16897
@@ -1089,10 +1235,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/main
  // causes system hang in certain cases on raspberry pi
  
  static int revokeRoot (void)
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/playbackbox.cpp mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/playbackbox.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/playbackbox.cpp	2017-06-16 15:12:04.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/playbackbox.cpp	2017-06-16 15:31:38.419999997 +0200
-@@ -41,6 +41,7 @@
+diff --git a/mythtv/programs/mythfrontend/playbackbox.cpp b/mythtv/programs/mythfrontend/playbackbox.cpp
+index 7a0cd6e..8028fd3 100644
+--- a/mythtv/programs/mythfrontend/playbackbox.cpp
++++ b/mythtv/programs/mythfrontend/playbackbox.cpp
+@@ -40,6 +40,7 @@
  #include "mythdb.h"
  #include "mythdate.h"
  #include "tv.h"
@@ -1100,7 +1247,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
  
  #ifdef _MSC_VER
  #  include "compat.h"                   // for random
-@@ -567,7 +568,7 @@
+@@ -565,7 +566,7 @@ bool PlaybackBox::Create()
      connect(m_recordingList, SIGNAL(itemSelected(MythUIButtonListItem*)),
              SLOT(ItemSelected(MythUIButtonListItem*)));
      connect(m_recordingList, SIGNAL(itemClicked(MythUIButtonListItem*)),
@@ -1109,7 +1256,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
      connect(m_recordingList, SIGNAL(itemVisible(MythUIButtonListItem*)),
              SLOT(ItemVisible(MythUIButtonListItem*)));
      connect(m_recordingList, SIGNAL(itemLoaded(MythUIButtonListItem*)),
-@@ -1018,6 +1019,8 @@
+@@ -1016,6 +1017,8 @@ void PlaybackBox::ItemVisible(MythUIButtonListItem *item)
      // Flagging status (queued, running, no, yes)
      item->DisplayState(extract_commflag_state(*pginfo), "commflagged");
  
@@ -1118,7 +1265,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
      MythUIButtonListItem *sel_item = item->parent()->GetItemCurrent();
      if ((item != sel_item) && item->GetImageFilename("preview").isEmpty() &&
          (asAvailable == pginfo->GetAvailableStatus()))
-@@ -2265,7 +2268,7 @@
+@@ -2231,7 +2234,7 @@ void PlaybackBox::playSelectedPlaylist(bool _random)
          this, new MythEvent("PLAY_PLAYLIST"));
  }
  
@@ -1127,7 +1274,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
  {
      if (!item)
          item = m_recordingList->GetItemCurrent();
-@@ -2277,7 +2280,7 @@
+@@ -2243,7 +2246,7 @@ void PlaybackBox::PlayFromBookmarkOrProgStart(MythUIButtonListItem *item)
  
      const bool ignoreBookmark = false;
      const bool ignoreProgStart = false;
@@ -1136,7 +1283,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
      const bool underNetworkControl = false;
      if (pginfo)
          PlayX(*pginfo, ignoreBookmark, ignoreProgStart, ignoreLastPlayPos,
-@@ -2366,6 +2369,20 @@
+@@ -2332,6 +2335,20 @@ void PlaybackBox::PlayX(const ProgramInfo &pginfo,
      Close();
  }
  
@@ -1157,7 +1304,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
  void PlaybackBox::StopSelected(void)
  {
      ProgramInfo *pginfo = GetCurrentProgram();
-@@ -2444,7 +2461,7 @@
+@@ -2410,7 +2427,7 @@ void PlaybackBox::selected(MythUIButtonListItem *item)
      if (!item)
          return;
  
@@ -1166,7 +1313,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
  }
  
  void PlaybackBox::popupClosed(QString which, int result)
-@@ -2588,14 +2605,6 @@
+@@ -2545,14 +2562,6 @@ bool PlaybackBox::Play(
          QCoreApplication::postEvent(
              this, new MythEvent("PLAY_PLAYLIST"));
      }
@@ -1181,7 +1328,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
  
      if (m_needUpdate)
          ScheduleUpdateUIList();
-@@ -3045,10 +3054,18 @@
+@@ -3002,10 +3011,18 @@ MythMenu* PlaybackBox::createPlayFromMenu()
      MythMenu *menu = new MythMenu(title, this, "slotmenu");
  
      if (pginfo->IsBookmarkSet())
@@ -1200,7 +1347,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
      menu->AddItem(tr("Play from beginning"), SLOT(PlayFromBeginning()));
  
      return menu;
-@@ -3295,7 +3312,7 @@
+@@ -3246,7 +3263,7 @@ void PlaybackBox::ShowActionPopup(const ProgramInfo &pginfo)
              m_popupMenu->AddItem(tr("Play from..."), NULL, createPlayFromMenu());
          else
              m_popupMenu->AddItem(tr("Play"),
@@ -1209,7 +1356,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
      }
  
      if (!m_player)
-@@ -4045,7 +4062,7 @@
+@@ -3974,7 +3991,7 @@ bool PlaybackBox::keyPressEvent(QKeyEvent *event)
              if (action == "DELETE")
                  deleteSelected(m_recordingList->GetItemCurrent());
              else if (action == ACTION_PLAYBACK)
@@ -1218,7 +1365,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
              else if (action == "DETAILS" || action == "INFO")
                  ShowDetails();
              else if (action == "CUSTOMEDIT")
-@@ -4101,7 +4118,11 @@
+@@ -4030,7 +4047,11 @@ void PlaybackBox::customEvent(QEvent *event)
              {
                  ProgramInfo evinfo(me->ExtraDataList());
                  if (evinfo.HasPathname() || evinfo.GetChanID())
@@ -1231,7 +1378,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
              }
              else if (recordingID && (tokens[1] == "ADD"))
              {
-@@ -4152,18 +4173,18 @@
+@@ -4081,18 +4102,18 @@ void PlaybackBox::customEvent(QEvent *event)
          else if (message.startsWith("UPDATE_FILE_SIZE"))
          {
              QStringList tokens = message.simplified().split(" ");
@@ -1260,7 +1407,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
              }
          }
          else if (message == "UPDATE_UI_LIST")
-@@ -4176,6 +4197,18 @@
+@@ -4105,6 +4126,18 @@ void PlaybackBox::customEvent(QEvent *event)
                  m_helper.ForceFreeSpaceUpdate();
              }
          }
@@ -1279,7 +1426,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
          else if (message == "UPDATE_USAGE_UI")
          {
              UpdateUsageUI();
-@@ -4494,35 +4527,22 @@
+@@ -4423,35 +4456,22 @@ void PlaybackBox::HandleRecordingAddEvent(const ProgramInfo &evinfo)
      ScheduleUpdateUIList();
  }
  
@@ -1328,10 +1475,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
  }
  
  void PlaybackBox::ScheduleUpdateUIList(void)
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/playbackbox.h mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/playbackbox.h
---- mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/playbackbox.h	2017-06-16 15:12:04.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/playbackbox.h	2017-06-16 15:31:38.423333331 +0200
-@@ -142,12 +142,13 @@
+diff --git a/mythtv/programs/mythfrontend/playbackbox.h b/mythtv/programs/mythfrontend/playbackbox.h
+index 6b7e144..280a516 100644
+--- a/mythtv/programs/mythfrontend/playbackbox.h
++++ b/mythtv/programs/mythfrontend/playbackbox.h
+@@ -141,12 +141,13 @@ class PlaybackBox : public ScheduleCommon
      void ItemVisible(MythUIButtonListItem *item);
      void ItemLoaded(MythUIButtonListItem *item);
      void selected(MythUIButtonListItem *item);
@@ -1347,7 +1495,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
      void SwitchList(void);
  
      void ShowGroupPopup(void);
-@@ -331,8 +332,7 @@
+@@ -321,8 +322,7 @@ class PlaybackBox : public ScheduleCommon
      void HandlePreviewEvent(const QStringList &list);
      void HandleRecordingRemoveEvent(uint recordingID);
      void HandleRecordingAddEvent(const ProgramInfo &evinfo);
@@ -1357,9 +1505,10 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/play
  
      void ScheduleUpdateUIList(void);
      void ShowMenu(void);
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/programinfocache.cpp mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/programinfocache.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/programinfocache.cpp	2017-06-16 15:04:01.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/programinfocache.cpp	2017-06-16 15:31:38.423333331 +0200
+diff --git a/mythtv/programs/mythfrontend/programinfocache.cpp b/mythtv/programs/mythfrontend/programinfocache.cpp
+index 920190f..5a8c59f 100644
+--- a/mythtv/programs/mythfrontend/programinfocache.cpp
++++ b/mythtv/programs/mythfrontend/programinfocache.cpp
 @@ -10,6 +10,8 @@
  #include "programinfo.h"
  #include "remoteutil.h"
@@ -1369,7 +1518,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/prog
  
  #include <QCoreApplication>
  #include <QRunnable>
-@@ -73,6 +75,35 @@
+@@ -73,6 +75,35 @@ void ProgramInfoCache::ScheduleLoad(const bool updateUI)
      }
  }
  
@@ -1405,7 +1554,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/prog
  void ProgramInfoCache::Load(const bool updateUI)
  {
      QMutexLocker locker(&m_lock);
-@@ -84,6 +115,45 @@
+@@ -84,6 +115,45 @@ void ProgramInfoCache::Load(const bool updateUI)
      // we sort the list later anyway.
      vector<ProgramInfo*> *tmp = RemoteGetRecordedList(0);
      /**/
@@ -1451,7 +1600,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/prog
      locker.relock();
  
      free_vec(m_next_cache);
-@@ -157,54 +227,80 @@
+@@ -157,54 +227,80 @@ void ProgramInfoCache::Refresh(void)
  
  /** \brief Updates a ProgramInfo in the cache.
   *  \note This must only be called from the UI thread.
@@ -1486,15 +1635,15 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/prog
 -    QMutexLocker locker(&m_lock);
 +    if (pginfo.GetBookmarkUpdate() != pg.GetBookmarkUpdate())
 +        flags |= PIC_MARK_CHANGED;
-+
+ 
+-    Cache::iterator it = m_cache.find(recordingID);
 +    if (pginfo.GetRecordingGroup() != pg.GetRecordingGroup())
 +        flags |= PIC_RECGROUP_CHANGED;
  
--    Cache::iterator it = m_cache.find(recordingID);
+-    if (it != m_cache.end())
 +    pg.clone(pginfo, true);
 +    pg.SetAllowLastPlayPos(true);
- 
--    if (it != m_cache.end())
++
 +    if (flags & PIC_MARK_CHANGED)
      {
 -        (*it)->SetFilesize(filesize);
@@ -1535,10 +1684,10 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/prog
 -    if (it != m_cache.end())
 -        recgroup = (*it)->GetRecordingGroup();
 +    ProgramInfo& pg = **it;
++
++    CalculateProgress(pg, pg.QueryLastPlayPos());
  
 -    return recgroup;
-+    CalculateProgress(pg, pg.QueryLastPlayPos());
-+
 +    if (filesize > 0)
 +    {
 +        // Filesize update
@@ -1560,7 +1709,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/prog
  }
  
  /** \brief Adds a ProgramInfo to the cache.
-@@ -212,10 +308,14 @@
+@@ -212,10 +308,14 @@ QString ProgramInfoCache::GetRecGroup(uint recordingID) const
   */
  void ProgramInfoCache::Add(const ProgramInfo &pginfo)
  {
@@ -1577,10 +1726,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/prog
  }
  
  /** \brief Marks a ProgramInfo in the cache for deletion on the next
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/programinfocache.h mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/programinfocache.h
---- mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/programinfocache.h	2017-06-16 15:04:01.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/programinfocache.h	2017-06-16 15:31:38.423333331 +0200
-@@ -20,6 +20,13 @@
+diff --git a/mythtv/programs/mythfrontend/programinfocache.h b/mythtv/programs/mythfrontend/programinfocache.h
+index 3b95a74..4c8d5a4 100644
+--- a/mythtv/programs/mythfrontend/programinfocache.h
++++ b/mythtv/programs/mythfrontend/programinfocache.h
+@@ -20,6 +20,13 @@ class ProgramInfoLoader;
  class ProgramInfo;
  class QObject;
  
@@ -1594,7 +1744,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/prog
  class ProgramInfoCache
  {
      friend class ProgramInfoLoader;
-@@ -35,9 +42,8 @@
+@@ -35,9 +42,8 @@ class ProgramInfoCache
      void Refresh(void);
      void Add(const ProgramInfo&);
      bool Remove(uint recordingID);
@@ -1606,7 +1756,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/prog
      void GetOrdered(vector<ProgramInfo*> &list, bool newest_first = false);
      /// \note This must only be called from the UI thread.
      bool empty(void) const { return m_cache.empty(); }
-@@ -46,6 +52,8 @@
+@@ -46,6 +52,8 @@ class ProgramInfoCache
    private:
      void Load(const bool updateUI = true);
      void Clear(void);
@@ -1615,10 +1765,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/prog
  
    private:
      // NOTE: Hash would be faster for lookups and updates, but we need a sorted
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/viewscheduled.cpp mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/viewscheduled.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/viewscheduled.cpp	2017-06-16 15:04:01.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/viewscheduled.cpp	2017-06-16 15:31:38.423333331 +0200
-@@ -282,13 +282,16 @@
+diff --git a/mythtv/programs/mythfrontend/viewscheduled.cpp b/mythtv/programs/mythfrontend/viewscheduled.cpp
+index 08ed791..7c984a4 100644
+--- a/mythtv/programs/mythfrontend/viewscheduled.cpp
++++ b/mythtv/programs/mythfrontend/viewscheduled.cpp
+@@ -280,13 +280,16 @@ void ViewScheduled::LoadList(bool useExistingData)
      if (!useExistingData)
          LoadFromScheduler(m_recList, m_conflictBool);
  
@@ -1637,7 +1788,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/view
          const RecStatus::Type recstatus = pginfo->GetRecordingStatus();
          if ((pginfo->GetRecordingEndTime() >= now ||
               pginfo->GetScheduledEndTime() >= now ||
-@@ -392,6 +395,58 @@
+@@ -390,6 +393,58 @@ void ViewScheduled::ChangeGroup(MythUIButtonListItem* item)
          FillList();
  }
  
@@ -1680,23 +1831,23 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/view
 +
 +    InfoMap infoMap;
 +    pginfo.ToMap(infoMap);
-+    
++
 +    infoMap["progresspercent"] = ProgressString(pginfo);
 +
 +    item->SetTextFromMap(infoMap, state);
 +
 +    if (!infoMap["progresspercent"].isEmpty())
 +        item->SetProgress(0, 100, pginfo.GetProgressPercent());
-+    
++
 +    QString rating = QString::number(pginfo.GetStars(10));
 +    item->DisplayState(rating, "ratingstate");
-+    item->DisplayState(state, "status");    
++    item->DisplayState(state, "status");
 +}
 +
  void ViewScheduled::FillList()
  {
      m_schedulesList->Reset();
-@@ -415,59 +470,14 @@
+@@ -413,59 +468,14 @@ void ViewScheduled::FillList()
      ProgramList::iterator pit = plist.begin();
      while (pit != plist.end())
      {
@@ -1762,7 +1913,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/view
          ++pit;
      }
  
-@@ -511,6 +521,13 @@
+@@ -509,6 +519,13 @@ void ViewScheduled::FillList()
      }
  }
  
@@ -1776,7 +1927,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/view
  void ViewScheduled::updateInfo(MythUIButtonListItem *item)
  {
      if (!item)
-@@ -521,6 +538,9 @@
+@@ -519,6 +536,9 @@ void ViewScheduled::updateInfo(MythUIButtonListItem *item)
      {
          InfoMap infoMap;
          pginfo->ToMap(infoMap);
@@ -1786,7 +1937,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/view
          SetTextFromMap(infoMap);
  
          MythUIStateType *ratingState = dynamic_cast<MythUIStateType*>
-@@ -601,19 +621,62 @@
+@@ -599,19 +619,62 @@ void ViewScheduled::customEvent(QEvent *event)
          MythEvent *me = (MythEvent *)event;
          QString message = me->Message();
  
@@ -1808,8 +1959,6 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/view
 +            LoadList();
  
 -        LoadList();
--
--        m_inEvent = false;
 +            m_inEvent = false;
 +        }
 +        else if (message.startsWith("UPDATE_FILE_SIZE"))
@@ -1817,7 +1966,8 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/view
 +            QStringList tokens = message.simplified().split(" ");
 +            if (tokens.size() < 3)
 +                return;
-+
+ 
+-        m_inEvent = false;
 +            bool ok;
 +            uint recordingID  = tokens[1].toUInt();
 +            uint64_t filesize = tokens[2].toLongLong(&ok);
@@ -1858,7 +2008,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/view
      }
      else if (event->type() == DialogCompletionEvent::kEventType)
      {
-@@ -695,6 +758,23 @@
+@@ -693,6 +756,23 @@ void ViewScheduled::customEvent(QEvent *event)
      }
  }
  
@@ -1882,10 +2032,11 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/view
  ProgramInfo *ViewScheduled::GetCurrentProgram(void) const
  {
      MythUIButtonListItem *item = m_schedulesList->GetItemCurrent();
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/viewscheduled.h mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/viewscheduled.h
---- mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/viewscheduled.h	2017-06-16 15:04:01.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythfrontend/viewscheduled.h	2017-06-16 15:31:38.423333331 +0200
-@@ -59,6 +59,11 @@
+diff --git a/mythtv/programs/mythfrontend/viewscheduled.h b/mythtv/programs/mythfrontend/viewscheduled.h
+index 5d2e6a2..ce2fa6c 100644
+--- a/mythtv/programs/mythfrontend/viewscheduled.h
++++ b/mythtv/programs/mythfrontend/viewscheduled.h
+@@ -59,6 +59,11 @@ class ViewScheduled : public ScheduleCommon
  
      void EmbedTVWindow(void);
  
@@ -1897,9 +2048,10 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythfrontend/view
      bool m_conflictBool;
      QDate m_conflictDate;
  
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/themes/MythCenter-wide/recordings-ui.xml mythtv-master-20170616-g7d2be78-new/mythtv/themes/MythCenter-wide/recordings-ui.xml
---- mythtv-master-20170616-g7d2be78-old/mythtv/themes/MythCenter-wide/recordings-ui.xml	2017-06-16 15:12:03.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/themes/MythCenter-wide/recordings-ui.xml	2017-06-16 15:31:38.423333331 +0200
+diff --git a/mythtv/themes/MythCenter-wide/recordings-ui.xml b/mythtv/themes/MythCenter-wide/recordings-ui.xml
+index f5729a6..569e204 100644
+--- a/mythtv/themes/MythCenter-wide/recordings-ui.xml
++++ b/mythtv/themes/MythCenter-wide/recordings-ui.xml
 @@ -180,6 +180,16 @@
              <statetype name="buttonitem">
                  <state name="active">
@@ -1957,7 +2109,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/themes/MythCenter-wide/rec
                      </textarea>
                  </state>
              </statetype>
-@@ -386,6 +399,7 @@
+@@ -382,6 +395,7 @@
              <font>baselarge</font>
              <cutdown>yes</cutdown>
              <align>vcenter</align>
@@ -1965,9 +2117,10 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/themes/MythCenter-wide/rec
          </textarea>
  
          <textarea name="channel" from="basetextarea">
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/themes/MythCenter-wide/schedule-ui.xml mythtv-master-20170616-g7d2be78-new/mythtv/themes/MythCenter-wide/schedule-ui.xml
---- mythtv-master-20170616-g7d2be78-old/mythtv/themes/MythCenter-wide/schedule-ui.xml	2017-06-16 15:04:02.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/themes/MythCenter-wide/schedule-ui.xml	2017-06-16 15:31:38.423333331 +0200
+diff --git a/mythtv/themes/MythCenter-wide/schedule-ui.xml b/mythtv/themes/MythCenter-wide/schedule-ui.xml
+index e41b434..02c9a34 100644
+--- a/mythtv/themes/MythCenter-wide/schedule-ui.xml
++++ b/mythtv/themes/MythCenter-wide/schedule-ui.xml
 @@ -513,6 +513,16 @@
              <statetype name="buttonitem">
                  <area>0,0,1200,24</area>
@@ -2019,3 +2172,6 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/themes/MythCenter-wide/sch
          <textarea name="channel" from="basetextarea">
              <area>30,494,360,30</area>
          </textarea>
+-- 
+2.7.1
+

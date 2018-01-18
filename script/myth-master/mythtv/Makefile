@@ -74,8 +74,6 @@ PATCHFILES += 0255-0108-SG-Cache-storagegroup-records-in-FindDirs.patch
 PATCHFILES += 0256-0110-TV-cache-videodisplayprofile-dbase-access.patch
 PATCHFILES += 0259-0117-UI-Provide-dbase-cache-for-RegisterKey-and-RegisterJ.patch
 PATCHFILES += 0262-0144-DB-Update-settings-cache-in-SaveSettingOnHost.patch
-PATCHFILES += 0269-0148-TV-Cache-the-last-sourceid-found-in-SourceUtil-GetSo.patch
-PATCHFILES += 0270-0149-TV-Cache-the-last-groupname-found-in-ChannelGroup-Ge.patch
 
 PATCHFILES += 0272-0185-MythWeather-Prevent-log-error-report-Widget-not-foun.patch
 
@@ -113,10 +111,11 @@ PATCHFILES += 0303-0318-WebBrowser-Provide-virtual-keyboard-for-HTML-edit-co.pat
 # Nice Roger Siddons guide grid enhacement
 PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 
-# Nice Roger Siddons guide grid enhacement
-PATCHFILES += 0305-ticket12809-Use-lastPlayPos-instead-of-bookmark-v5.patch
-PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos-v4.patch
-PATCHFILES += 0307-ticket12809-Add-Unfinished-recording-filter.patch
+# Roger Siddons patches from PeterBennet repo
+PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position.patch
+PATCHFILES += 0306-ticekt12809-Playback-Remove-duplicate-Play-from-bookmark-menu-it.patch
+PATCHFILES += 0307-ticekt12809-Playback-Watchlist-Improvements.patch
+PATCHFILES += 0308-ticekt12809-Playback-Add-Unfinished-recording-filter.patch
 
 # Added as d43d8b1 causes unpleasant ffwd/bkwd playback skips with SD content 
 PATCHFILES += 0309-revert-d43d8b1-revert-Player-Improve-low-bit-rate-high-latency-streams.patch
@@ -140,7 +139,7 @@ PATCHFILES += 0322-add-netflix-to-thememenus.patch
 
 PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
 
-# Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled
+# Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled)
 PATCHFILES += 0327-revert-16086d2-Honor-the-MonitorDrives-setting.patch
 
 endif
