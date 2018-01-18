@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.15.2.r364
+mm_VERSION_MINIMYTH ?= 8.15.4.r403
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -144,8 +144,8 @@ mm_MYTH_VERSION           ?= master
 mm_NVIDIA_VERSION         ?= 387.34
 
 # The version of the NVIDIA legacy driver.
-# Valid values are '340.104'
-mm_NVIDIA_LEGACY_VERSION  ?= 340.104
+# Valid values are '340.104' and '340.106'
+mm_NVIDIA_LEGACY_VERSION  ?= 340.106
 
 # The version of xorg to use.
 # Valid values are '7.6'.
