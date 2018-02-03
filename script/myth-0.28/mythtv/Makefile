@@ -48,7 +48,7 @@ PATCHFILES += 0214-minimyth-defaults.patch
 # Fixes issue with only 3 entries in mainmenu on MythmediaStream
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
-PATCHFILES += 0296-revert-a774469-disable-QT-compatibility-deprecated-in-QT-5.0-or-earlier.patch
+PATCHFILES += 0218-decrease-minQt-ver-to-4.8.patch
 
 ifneq ($(patsubst %minimal,minimal,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 # 7.6.4 LVR safe patches related to player/OSD
@@ -104,6 +104,8 @@ PATCHFILES += 0306-ticket12809-Watchlist-with-lastPlayPos.patch
 PATCHFILES += 0323-ticket12396-.srt-subs-go-out-of-sync.patch
 
 PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
+
+PATCHFILES += 0328-ticket13211-mythtv-29-aac-6-channel-audio-backport.patch
 
 endif
 
