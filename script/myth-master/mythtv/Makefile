@@ -7,13 +7,13 @@ PATCHFILES  =
 
 # Backend needed patches
 PATCHFILES += 0002-ticket9480_pl_eit_encodings.patch
-PATCHFILES += 0003-delay_4_no_concurent_start_rec_v5.patch
+PATCHFILES += 0003-delay_4_no_concurent_start_rec_v6.patch
 PATCHFILES += 0004-eit_verbosity.patch
 PATCHFILES += 0005-tid_debug_verbosity.patch
 PATCHFILES += 0006-cardutil_show_displayname.patch
 PATCHFILES += 0007-allow_no_tuners.patch
 PATCHFILES += 0008-SCR_keep_disecq_always_18V.patch
-PATCHFILES += 0009-make_EIT_start_at_time-v3.patch
+PATCHFILES += 0009-make_EIT_start_at_time-v4.patch
 PATCHFILES += 0010-decrease-some-PMT-DVB-errors-logging.patch
 PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
@@ -112,8 +112,8 @@ PATCHFILES += 0303-0318-WebBrowser-Provide-virtual-keyboard-for-HTML-edit-co.pat
 PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 
 # Roger Siddons patches from PeterBennet repo
-PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position.patch
-PATCHFILES += 0306-ticekt12809-Playback-Remove-duplicate-Play-from-bookmark-menu-it.patch
+PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position-v2.patch
+#PATCHFILES += 0306-ticekt12809-Playback-Remove-duplicate-Play-from-bookmark-menu-it.patch
 PATCHFILES += 0307-ticekt12809-Playback-Watchlist-Improvements.patch
 PATCHFILES += 0308-ticekt12809-Playback-Add-Unfinished-recording-filter.patch
 
@@ -141,6 +141,8 @@ PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
 
 # Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled)
 PATCHFILES += 0327-revert-16086d2-Honor-the-MonitorDrives-setting.patch
+
+PATCHFILES += 0328-ticket13211-mythtv-29-aac-6-channel-audio-backport.patch
 
 endif
 
