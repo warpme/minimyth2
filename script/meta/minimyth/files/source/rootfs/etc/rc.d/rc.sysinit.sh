@@ -87,4 +87,7 @@ MM_ROOTFS_IMAGE="${initrd}"
 # Loading kernel tuned parameters from sysctl.conf
 /sbin/sysctl -q -p /etc/sysctl.conf > /dev/null
 
+# Symlink needed by util-linux 2.31
+ln -sf /proc/self/mounts /etc/mtab > /dev/null
+
 exit 0
