@@ -1,7 +1,8 @@
 GARNAME = linux
 GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),$(if $(filter-out 0,$(LINUX_TEENY_VERSION)),.$(LINUX_TEENY_VERSION)))$(LINUX_EXTRA_VERSION)
 CATEGORIES = kernel-4.14
-MASTER_SITES  = https://www.kernel.org/pub/linux/kernel/v4.x/
+MASTER_SITES  = https://cdn.kernel.org/pub/linux/kernel/v4.x/
+MASTER_SITES += https://www.kernel.org/pub/linux/kernel/v4.x/
 MASTER_SITES += http://www.kernel.org/pub/linux/kernel/v$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)/
 MASTER_SITES += http://www.kernel.org/pub/linux/kernel/v4.x/testing/
 MASTER_SITES += https://git.kernel.org/torvalds/t/
