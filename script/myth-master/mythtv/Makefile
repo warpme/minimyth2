@@ -54,7 +54,8 @@ PATCHFILES += 0214-minimyth-defaults.patch
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
 # Needed to successfully applying 0235 & 0236
-PATCHFILES += 0218-decrease-minQt-ver-to-4.8.patch
+# PATCHFILES += 0218-decrease-minQt-ver-to-4.8.patch
+PATCHFILES += 0218-decrease-minQt-ver-to-4.8-v2.patch
 
 ifneq ($(patsubst %minimal,minimal,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 # LVR safe patches related to player/OSD
@@ -113,7 +114,6 @@ PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 
 # Roger Siddons patches from PeterBennet repo
 PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position-v2.patch
-#PATCHFILES += 0306-ticekt12809-Playback-Remove-duplicate-Play-from-bookmark-menu-it.patch
 PATCHFILES += 0307-ticekt12809-Playback-Watchlist-Improvements.patch
 PATCHFILES += 0308-ticekt12809-Playback-Add-Unfinished-recording-filter.patch
 
@@ -121,15 +121,12 @@ PATCHFILES += 0308-ticekt12809-Playback-Add-Unfinished-recording-filter.patch
 PATCHFILES += 0309-revert-d43d8b1-revert-Player-Improve-low-bit-rate-high-latency-streams.patch
 
 # Various LVR patches
-PATCHFILES += 0311-0314-MythCoreContext-IsConnectedToMaster-test-server-sock.patch
 PATCHFILES += 0312-0306-MythMusic-Avoid-a-SEGV-in-the-CD-ripper-ogg-encoder.patch
 PATCHFILES += 0313-0307-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0314-0308-MythMusic-Wait-for-CD-scanner-and-eject-threads-befo.patch
 PATCHFILES += 0315-0309-MythMusic-Make-initial-scan-by-CD-ripper-run-in-back.patch
 PATCHFILES += 0316-0310-MythMusic-Enable-the-CD-ripper-to-run-in-the-backgro-v2.patch
-PATCHFILES += 0317-0336-MythMusic-Fix-Playlist-copyTracks-and-removeAllTrack.patch
 PATCHFILES += 0318-0337-Mythmusic-Provide-network-control-of-playlist.patch
-PATCHFILES += 0319-0338-MythMusic-Add-feature-to-delete-a-track-or-an-entire.patch
 PATCHFILES += 0320-0348-MythMusic-Add-network-control-commands-to-list-and-p-v2.patch
 
 # Fixes focus issue in OSX
@@ -232,7 +229,6 @@ CONFIGURE_ARGS = \
 	--host-cc="$(build_CC)" \
 	--host-cflags="$(build_CFLAGS)" \
 	--host-ldflags="$(build_LDFLAGS)" \
-	--host-libs="" \
 	--extra-cflags="$(CFLAGS)" \
 	--extra-cxxflags="$(CXXFLAGS)" \
 	--extra-ldflags="$(LDFLAGS)" \
@@ -275,7 +271,6 @@ CONFIGURE_ARGS = \
 	--enable-opengl-video \
 	--disable-mac-bundle \
 	--enable-libxml2 \
-	--libxml2-path="$(DESTDIR)$(includedir)/libxml2" \
 	--enable-libdns_sd \
 	--enable-libcrypto \
 	--without-bindings="perl" \
@@ -283,9 +278,11 @@ CONFIGURE_ARGS = \
 	--with-bindings="python" \
 	--disable-mythlogserver \
 	--enable-pic \
-	--disable-libcec
+	--disable-libcec \
+	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 
-#	--disable-quartz-video \
+#	--pkg-config="/usr/bin/pkg-config" \
+#	--libxml2-path="$(DESTDIR)$(includedir)/libxml2" \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
