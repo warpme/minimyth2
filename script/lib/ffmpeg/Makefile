@@ -1,7 +1,12 @@
 GARNAME = ffmpeg
-GARVERSION = 3.4.2
+GARVERSION_TYPE = git
+GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
+    20180216-15f22c9, \
+    3.4.2 ))
 CATEGORIES = lib
-MASTER_SITES = http://ffmpeg.org/releases/
+MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
+    git://git.videolan.org/git/ffmpeg.git/ , \
+    http://ffmpeg.org/releases/ ))
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = GPL2/LGPL2_1
 
@@ -40,7 +45,6 @@ CONFIGURE_ARGS = \
 	--enable-ffmpeg \
 	--enable-ffplay \
 	--disable-ffprobe \
-	--disable-ffserver \
 	--enable-doc \
 	--enable-htmlpages \
 	--enable-manpages \
@@ -195,6 +199,10 @@ include ../../gar.mk
 # ffmpeg2.8.5 don't like gcc5.3.0 link-time optimizations
 CFLAGS  := $(filter-out -flto, $(CFLAGS))
 LDFLAGS := $(filter-out -flto, $(LDFLAGS))
+
+git//%$(DISTNAME).tar.bz2:
+	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
+	@$(MAKECOOKIE)
 
 clean-all:
 	@$(MAKE) clean
