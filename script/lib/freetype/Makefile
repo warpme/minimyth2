@@ -1,5 +1,5 @@
 GARNAME = freetype
-GARVERSION = 2.7.1
+GARVERSION = 2.9
 CATEGORIES = lib
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)2/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -30,6 +30,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-quickdraw-carbon \
 	--without-ats \
 	--with-gnu-ld
+
+#	--with-harfbuzz=no \
 
 CONFIGURE_ENV  = \
 	CC_BUILD="$(build_CC) $(build_CFLAGS)"
