@@ -1,10 +1,9 @@
 GARNAME = SDL2
-GARVERSION = 2.0.3
+GARVERSION = 2.0.7
 CATEGORIES = lib
 MASTER_SITES = http://www.libsdl.org/release/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME).patch.gar
-LICENSE = zlib
 
 DESCRIPTION =
 define BLURB
