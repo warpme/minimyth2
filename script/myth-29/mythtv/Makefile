@@ -25,6 +25,8 @@ PATCHFILES += 0031-add-manage-settings-in-mythutil-v2.patch
 # solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
 PATCHFILES += 0033-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
 
+PATCHFILES += 0034-disable-python-warnings-because-py2.6.patch
+
 PATCHFILES += 0036-pull118-upnp-Add-playlist-recently-added-played-entries-to-upnp-music.patch
 PATCHFILES += 0037-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
 
