@@ -1,7 +1,8 @@
 GARNAME = libass
-GARVERSION = 0.10.1
+GARVERSION = 0.14.0
 CATEGORIES = lib
-MASTER_SITES = http://libass.googlecode.com/files/
+MASTER_SITES = https://github.com/libass/libass/releases/download/$(GARVERSION)/
+# https://github.com/libass/libass/releases/download/${pkgver}/libass-${pkgver}.tar.xz
 DISTFILES = $(DISTNAME).tar.gz
 LICENSE = ISC
 
