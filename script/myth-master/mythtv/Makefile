@@ -25,6 +25,7 @@ PATCHFILES += 0031-add-manage-settings-in-mythutil-v2.patch
 # solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
 PATCHFILES += 0033-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
 
+PATCHFILES += 0034-disable-python-warnings-because-py2.6.patch
 PATCHFILES += 0036-pull118-upnp-Add-playlist-recently-added-played-entries-to-upnp-music.patch
 PATCHFILES += 0037-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
 
@@ -54,7 +55,6 @@ PATCHFILES += 0214-minimyth-defaults.patch
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
 # Needed to successfully applying 0235 & 0236
-# PATCHFILES += 0218-decrease-minQt-ver-to-4.8.patch
 PATCHFILES += 0218-decrease-minQt-ver-to-4.8-v2.patch
 
 ifneq ($(patsubst %minimal,minimal,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
@@ -139,7 +139,6 @@ PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
 # Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled)
 PATCHFILES += 0327-revert-16086d2-Honor-the-MonitorDrives-setting.patch
 
-PATCHFILES += 0328-ticket13211-mythtv-29-aac-6-channel-audio-backport.patch
 
 endif
 
@@ -168,6 +167,7 @@ DEPENDS = \
 	lib/libiec61883 \
 	lib/libxml2 \
 	lib/openssl \
+	lib/SDL2 \
 	lib/taglib \
 	lib/zlib \
 	python/python \
@@ -258,6 +258,7 @@ CONFIGURE_ARGS = \
 	--enable-ivtv \
 	--enable-hdpvr \
 	--enable-dvb \
+	--enable-sdl2 \
 	--dvb-path="$(DESTDIR)$(includedir)" \
 	--disable-asi \
 	--enable-x11 \
