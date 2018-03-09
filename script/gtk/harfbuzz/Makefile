@@ -1,5 +1,5 @@
 GARNAME = harfbuzz
-GARVERSION = 0.9.41
+GARVERSION = 1.7.5
 CATEGORIES = lib
 MASTER_SITES = http://www.freedesktop.org/software/harfbuzz/release/
 DISTFILES = $(DISTNAME).tar.bz2
