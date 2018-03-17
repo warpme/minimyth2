@@ -1,14 +1,14 @@
 GARNAME = python-Mako
 GARVERSION = 1.0.1
 CATEGORIES = python
-MASTER_SITES = http://pypi.python.org/packages/source/M/Mako/
+MASTER_SITES = https://pypi.io/packages/source/M/Mako/
 DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE =
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = python/python python/python-distribute python/python-distutilscross
+DEPENDS = python/python python/python-distribute python/python-distutilscross python/python-argparse python/python-markupsafe
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
