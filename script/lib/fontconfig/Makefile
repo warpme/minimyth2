@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c lib/libxml2 lib/freetype
+DEPENDS   = lang/c lib/libxml2 lib/freetype utils/gperf
 BUILDDEPS = lib/freetype
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
