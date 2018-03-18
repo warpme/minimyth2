@@ -1,7 +1,7 @@
 GARNAME = cloog
-GARVERSION = 0.18.3
+GARVERSION = 0.18.5
 CATEGORIES = devel
-MASTER_SITES = http://www.bastoul.net/cloog/pages/download/
+MASTER_SITES = https://github.com/periscop/cloog/releases/download/cloog-0.18.5/
 DISTFILES = $(DISTNAME).tar.gz
 LICENSE = LGPL2_1
 
@@ -9,7 +9,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/cxx devel/gmp devel/isl
+DEPENDS   = lang/cxx devel/gmp
 BUILDDEPS = devel-tainted/devel-tainted devel/make
 
 CONFIGURE_SCRIPTS  = $(WORKSRC)/configure
@@ -21,9 +21,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
 	--with-gnu-ld \
-	--with-isl=system \
-	--with-isl-prefix=$(DESTDIR)$(prefix) \
- 	--with-gmp=system \
+	--with-isl=bundle \
+	--with-gmp=system \
 	--with-gmp-prefix=$(DESTDIR)$(prefix)
 
 include ../../gar.mk
