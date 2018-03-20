@@ -1,7 +1,7 @@
 GARNAME = python-idna
-GARVERSION = 2.1
+GARVERSION = 2.6
 CATEGORIES = python
-MASTER_SITES = https://pypi.python.org/packages/source/i/idna/
+MASTER_SITES = https://pypi.python.org/packages/f4/bd/0467d62790828c23c47fc1dfa1b1f052b24efdf5290f071c7a91d0d82fd3/
 DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE =
 DESCRIPTION = 
