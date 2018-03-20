@@ -9,7 +9,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c gtk/glib
+DEPENDS = lang/c gtk/glib gtk/dbus-glib
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -18,8 +18,6 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--enable-shared \
-	--enable-rebuilds \
-	--disable-glibtest \
 	--disable-introspection \
 	--disable-gtk-doc \
 	--disable-gtk-doc-html \
