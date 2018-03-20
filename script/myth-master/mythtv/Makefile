@@ -154,6 +154,7 @@ endef
 DEPENDS = \
 	lang/cxx \
 	db/mysql \
+	db/sqlite \
 	lib/alsa-lib \
 	lib/avahi \
 	lib/exiv2 \
