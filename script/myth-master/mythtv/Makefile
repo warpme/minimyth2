@@ -113,7 +113,7 @@ PATCHFILES += 0303-0318-WebBrowser-Provide-virtual-keyboard-for-HTML-edit-co.pat
 PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 
 # Roger Siddons patches from PeterBennet repo
-PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position-v2.patch
+PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position-v3.patch
 PATCHFILES += 0307-ticekt12809-Playback-Watchlist-Improvements.patch
 PATCHFILES += 0308-ticekt12809-Playback-Add-Unfinished-recording-filter.patch
 
