@@ -1,13 +1,8 @@
 GARNAME = lame
-GARVERSION = 3.99.5
+GARVERSION = 3.100
 CATEGORIES = lib
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/3.99/
+MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/3.100/
 DISTFILES  = $(DISTNAME).tar.gz
-DISTFILES += config.cache.$(GARCH_FAMILY)
-PATCHFILES = \
-	$(DISTNAME)-gcc_4.9.patch \
-	$(DISTNAME)-automake_1.12.patch \
-	$(DISTNAME)-am_path_gtk.patch
 LICENSE = LGPL2
 
 DESCRIPTION = 
