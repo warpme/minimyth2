@@ -9,7 +9,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/gstreamer lib/gst-plugins-base
+DEPENDS = lang/c lib/gstreamer lib/gst-plugins-base lib/libgcrypt
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
