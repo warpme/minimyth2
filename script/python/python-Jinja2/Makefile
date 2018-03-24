@@ -8,7 +8,9 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = python/python python/python-distribute python/python-distutilscross python/python-Babel
+DEPENDS = python/python python/python-distribute python/python-distutilscross 
+
+BUILDDEPS = python/python-Babel
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
