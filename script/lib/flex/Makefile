@@ -1,5 +1,5 @@
 GARNAME = flex
-GARVERSION = 2.5.35
+GARVERSION = 2.5.37
 CATEGORIES = lib
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(DISTNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
