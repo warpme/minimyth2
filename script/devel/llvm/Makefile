@@ -48,8 +48,11 @@ CONFIGURE_ARGS = \
 	-DLLVM_BUILD_DOCS="OFF" \
 	-DLLVM_ENABLE_DOXYGEN="OFF" \
 	-DLLVM_ENABLE_DOXYGEN_QT_HELP="OFF" \
-	-DCMAKE_BUILD_TYPE=Release \
-	-DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen" \
+	-DCMAKE_BUILD_TYPE=Release
+
+ifneq ($(DESTIMG),build)
+CONFIGURE_ARGS += -DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
+endif
 
 include ../../gar.mk
 
