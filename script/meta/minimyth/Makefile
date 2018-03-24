@@ -39,6 +39,7 @@ DEPENDS = \
 	fonts/dejavu-fonts \
 	fonts/liberation-fonts \
 	system/lirc \
+	system/eventlircd \
 	utils/lm_sensors \
 	utils/lsdvd \
 	utils/lsof \
@@ -77,6 +78,7 @@ DEPENDS = \
 	utils/v4l-utils \
 	utils/rsync \
 	X11/libva \
+	X11/libva-utils \
 	X11/vdpauinfo \
 	net/wakelan \
 	net/netpipes \
@@ -87,7 +89,9 @@ DEPENDS = \
 	xorg/xorg \
 	X11/xscreensaver \
 	X11/xvattr \
+	X11/xdotool \
 	system/zoneinfo \
+	utils/htop \
 	$(if $(filter nvidia,$(mm_GRAPHICS)), \
 		nvidia/nvidia-$(mm_NVIDIA_VERSION)) \
 	$(if $(filter nvidia-legacy,$(mm_GRAPHICS)), \
@@ -211,6 +215,7 @@ DEPENDS = \
 		X11/xdotool \
 		gtk/gconf \
 		gtk/gtk3 \
+		gtk/harfbuzz \
 		lib/libcups \
 		xorg/libxcomposite \
 		xorg/libxkbcommon \
