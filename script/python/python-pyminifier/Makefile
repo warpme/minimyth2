@@ -1,33 +1,38 @@
 GARNAME = python-pyminifier
-GARVERSION = 1.3
+GARVERSION = 168f928038999f923cc53048303fec90d48e6ca4
 CATEGORIES = python
-MASTER_SITES = http://code.activestate.com/recipes/576704-python-code-minifier/download/1/
-DISTFILES = pyminifier.py
-LICENSE = GPL3
-
+MASTER_SITES = https://pypi.python.org/packages/2c/8a/946b0b43e0912c907aba42507073675c2e4a4a836c5b1ce10be6f12575d0/
+DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.bz2
+LICENSE =
 DESCRIPTION = 
 define BLURB
 endef
 
 DEPENDS = python/python
 
-DISTNAME = $(GARNAME)
+WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
-INSTALL_SCRIPTS = custom
+BUILD_SCRIPTS   = $(WORKSRC)/setup.py
+INSTALL_SCRIPTS = $(WORKSRC)/setup.py
 
+CONFIGURE_ARGS =
+BUILD_ARGS     =
+INSTALL_ARGS   = \
+	--prefix=$(DESTDIR)$(prefix)
+CONFIGURE_ENV  =
+BUILD_ENV      =
+INSTALL_ENV    = \
+	PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
+
+GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
 
-extract-pyminifier.py:
-	@mkdir -p $(WORKSRC)
-	@cp -f $(DOWNLOADDIR)/pyminifier.py $(WORKSRC)/
+build-%/setup.py:
+	@echo " ==> Running setup.py build in $*"
+	@cd $* && $(CONFIGURE_ENV) $(BUILD_ENV) python setup.py $(CONFIGURE_ARGS) build $(BUILD_ARGS)
 	@$(MAKECOOKIE)
 
-post-patch:
-	@sed -i 's%^#!/usr/bin/env python%#!$(bindir)/python%' -i $(WORKSRC)/pyminifier.py
-	@$(MAKECOOKIE)
-
-install-custom:
-	@mkdir -p $(DESTDIR)$(bindir)
-	@cp -r $(WORKSRC)/pyminifier.py $(DESTDIR)$(bindir)/pyminifier.py
-	@chmod 755 $(DESTDIR)$(bindir)/pyminifier.py
+install-%/setup.py: 
+	@echo " ==> Running setup.py install in $*"
+	@cd $* && $(CONFIGURE_ENV) $(INSTALL_ENV) python setup.py $(CONFIGURE_ARGS) install --skip-build $(INSTALL_ARGS)
 	@$(MAKECOOKIE)
