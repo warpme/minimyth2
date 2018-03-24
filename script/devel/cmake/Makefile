@@ -1,7 +1,7 @@
 GARNAME = cmake
-GARVERSION = 3.2.3
+GARVERSION = 3.10.2
 CATEGORIES = devel
-MASTER_SITES = http://www.cmake.org/files/v3.2/
+MASTER_SITES = http://www.cmake.org/files/v3.4/
 DISTFILES = $(DISTNAME).tar.gz
 LICENSE = BSD_3_Clause
 
@@ -14,6 +14,7 @@ DEPENDS = lang/c
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+
 
 CONFIGURE_ARGS = \
 	--verbose \
@@ -32,3 +33,10 @@ CONFIGURE_ARGS = \
 	--mandir="$(subst $(prefix),,$(mandir))"
 
 include ../../gar.mk
+
+#CC = "/home/piotro/minimyth-dev/images/build/usr/bin/x86_64-minimyth-linux-gnu-gcc"
+#CXX = "/home/piotro/minimyth-dev/images/build/usr/bin/x86_64-minimyth-linux-gnu-g++"
+
+#CFLAGS   := $(filter-out -flto, $(CFLAGS))
+#CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+#LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
