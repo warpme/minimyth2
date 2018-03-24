@@ -3,6 +3,7 @@ GARVERSION = 2.53.1
 CATEGORIES = gtk
 MASTER_SITES = https://git.gnome.org/browse/glib/snapshot/
 DISTFILES = $(DISTNAME).tar.xz
+PATCHFILES = $(DISTNAME)-add-missing-files-for-automake.patch
 LICENSE = LGPL2
 
 DESCRIPTION =
