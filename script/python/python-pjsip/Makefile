@@ -1,5 +1,5 @@
 GARNAME = pjproject
-GARVERSION = 2.5.5
+GARVERSION = 2.7.2
 CATEGORIES = lib
 MASTER_SITES = http://www.pjsip.org/release/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
