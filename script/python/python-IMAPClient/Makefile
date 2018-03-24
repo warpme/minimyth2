@@ -10,7 +10,11 @@ define BLURB
 endef
 
 DEPENDS = python/python python/python-distribute python/python-distutilscross \
-          python/python-backports.ssl python/python-pyOpenSSL python/python-six
+          python/python-pyOpenSSL python/python-backports.ssl
+
+BUILDDEPS =  python/python-Sphinx
+
+BUILDDEPS = python/python-Sphinx python/python-pyOpenSSL python/python-backports.ssl
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
