@@ -3,6 +3,7 @@ GARVERSION = 1.6.0
 CATEGORIES = gtk
 MASTER_SITES = https://github.com/ebassi/graphene/archive/
 DISTFILES = $(GARVERSION).tar.gz
+PATCHFILES = $(DISTNAME)-add-missing-files-for-automake.patch
 LICENSE = LGPL2
 
 DESCRIPTION =
