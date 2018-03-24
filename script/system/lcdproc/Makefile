@@ -1,5 +1,5 @@
 GARNAME = lcdproc
-GARVERSION = 0.5.6
+GARVERSION = 0.5.7
 CATEGORIES = system
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.gz
