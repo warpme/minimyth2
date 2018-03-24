@@ -8,10 +8,13 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = python/python python/python-distribute python/python-distutilscross \
-          python/python-six python/python-Jinja2 python/python-Pygments \
-          python/python-docutils python/python-snowballstemmer python/python-babel \
+DEPENDS = python/python python/python-distribute python/python-distutilscross
+
+BUILDDEPS = python/python-Babel python/python-Jinja2 python/python-Pygments \
+          python/python-six  \
+          python/python-docutils python/python-snowballstemmer \
           python/python-alabaster python/python-imagesize
+
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
