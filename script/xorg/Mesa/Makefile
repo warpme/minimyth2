@@ -2,7 +2,7 @@ GARNAME = mesa
 # GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              20160518-877a802, \
-             17.3.6 ))
+             18.0.0 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              git://anongit.freedesktop.org/mesa/mesa/ , \
@@ -60,11 +60,11 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-vdpau-libdir="$(libdir)" \
 	--with-gallium-drivers=r300,r600,radeonsi,svga,swrast \
 	--with-dri-drivers=i915,i965,r200,radeon,swrast \
-	--with-egl-platforms=x11,drm \
+	--with-platforms=x11,drm \
 	--enable-llvm-shared-libs \
 	--enable-egl \
 	--enable-gbm \
-	--enable-gallium-llvm \
+	--enable-llvm \
 	--enable-shared-glapi \
 	--enable-glx \
 	--enable-glx-tls \
@@ -86,7 +86,6 @@ endif
 
 # Mesa 11+ has bug with honouring vdpau dir durring configure
 #	--with-vdpau-libdir="$(libdir)/vdpau" \
-#	--with-vdpau-libdir="$(libdir)" \
 
 BUILD_ARGS  = \
 	HOST_CC="$(build_CC)" \
