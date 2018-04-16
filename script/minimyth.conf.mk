@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.18.0.r551
+mm_VERSION_MINIMYTH ?= 8.19.0.r583
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -121,12 +121,12 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '4.14' and '4.15'
-mm_KERNEL_HEADERS_VERSION ?= 4.15
+# Valid values are '4.15' and '4.16'
+mm_KERNEL_HEADERS_VERSION ?= 4.16
 
 # The version of kernel to use.
-# Valid values are '4.14' and '4.15'
-mm_KERNEL_VERSION         ?= 4.15
+# Valid values are '4.15' and '4.16'
+mm_KERNEL_VERSION         ?= 4.16
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -140,8 +140,8 @@ mm_MYTH_VERSION           ?= master
 # mm_MYTH_VERSION           ?= 0.28
 
 # The version of the NVIDIA driver.
-# Valid values are '387.34' '390.25'
-mm_NVIDIA_VERSION         ?= 390.25
+# Valid values are '390.42', '390.48'
+mm_NVIDIA_VERSION         ?= 390.48
 
 # The version of the NVIDIA legacy driver.
 # Valid values are '340.104' and '340.106'
