@@ -71,14 +71,6 @@ PATCHFILES += 0236-0330-FE-Add-a-menu-to-Playbackbox-to-change-the-recording.pat
 PATCHFILES += 0252-0279-MythMusic-Visualisers-only-disable-screensaver-if-sh.patch
 PATCHFILES += 0253-0297-Mythmusic-Log-the-shoutcast-metadata-and-format-stri.patch
 
-# LVR safe patches related to DB caching
-PATCHFILES += 0255-0108-SG-Cache-storagegroup-records-in-FindDirs.patch
-PATCHFILES += 0256-0110-TV-cache-videodisplayprofile-dbase-access.patch
-PATCHFILES += 0259-0117-UI-Provide-dbase-cache-for-RegisterKey-and-RegisterJ.patch
-PATCHFILES += 0262-0144-DB-Update-settings-cache-in-SaveSettingOnHost.patch
-PATCHFILES += 0269-0148-TV-Cache-the-last-sourceid-found-in-SourceUtil-GetSo.patch
-PATCHFILES += 0270-0149-TV-Cache-the-last-groupname-found-in-ChannelGroup-Ge.patch
-
 PATCHFILES += 0272-0185-MythWeather-Prevent-log-error-report-Widget-not-foun.patch
 
 # LVR safe patches with some usefull functionality
