@@ -23,6 +23,11 @@ script_list_kill_reboot="\
 
 rc_script_list_run() {
 
+    # Phase:
+    # 0 - sequential bootup
+    # 1 - sequential init scripts start
+    # 2 - parallel  init scripts start
+    # 3 - parallel  init scripts stop
     local phase=$1
     local action=$2
     local script_list=$3
@@ -44,7 +49,7 @@ rc_script_list_run() {
 
         if   /usr/bin/test ${phase} -eq 2 ; then
             mm_command_run "${script} ${action}" &
-        elif /usr/bin/test ${phase} -eq 1 ; then
+        elif /usr/bin/test ${phase} -eq 3 ; then
             mm_command_run "${script} ${action}" &
         else
             mm_command_run "${script} ${action}"
@@ -91,12 +96,14 @@ fi
 
 case $1 in
     1|2|3|4|5)
+
+        # Start bootup scripts sequentially
         mm_splash_init 'bootup'
         script_list="`scripts=${script_list_start}; \
                       for script in ${scripts} ; do /bin/echo /etc/rc.d/init.d/${script} ; done`"
         rc_script_list_run 0 "start" "${script_list}"
 
-        # Start scripts needed to run sequentially
+        # Start init scripts needed to run sequentially
         /bin/rm -fr   /var/lib/init/*
         /bin/mkdir -p /var/lib/init
         script_list=`/bin/ls -1 /etc/rc.d/rc.d/I*`
@@ -105,11 +112,12 @@ case $1 in
 
         /bin/sleep 10
 
-        # Start scripts needed alowable to run parallel
+        # Start init scripts allowable to run parallel
         script_list=`/bin/ls -1 /etc/rc.d/rc.d/S*`
         rc_script_list_run 2 "start" "${script_list}"
         ;;
     0)
+        # Stop all scripts allowable to stop parallel
         mm_splash_init 'shutdown'
         script_list=" `/bin/ls -1 /etc/rc.d/rc.d/K*` \
                       `scripts=${script_list_kill_halt} ; \
@@ -118,6 +126,7 @@ case $1 in
         mm_splash_halt
         ;;
     6)
+        # Stop all scripts allowable to stop parallel
         mm_splash_init 'reboot'
         script_list="`/bin/ls -1 /etc/rc.d/rc.d/K*` \
                      `scripts=${script_list_kill_reboot} ; \
