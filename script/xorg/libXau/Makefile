@@ -12,7 +12,7 @@ endef
 
 DEPENDS = lang/c \
 	$(CATEGORY)/util-macros \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/xorgproto
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
