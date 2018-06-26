@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/zlib utils/xz
+DEPENDS = lang/c devel/zlib utils/xz
 
 WORKSRC = $(WORKDIR)/$(GARNAME)$(GARVERSION)
 
@@ -20,3 +20,8 @@ INSTALL_SCRIPTS = $(WORKSRC)/squashfs-tools/Makefile
 include ../../gar.mk
 
 LDFLAGS := $(LDFLAGS) -fwhole-program
+
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+
