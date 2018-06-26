@@ -3,6 +3,7 @@ GARVERSION = 2.02.98
 CATEGORIES = lib
 MASTER_SITES = "ftp://sources.redhat.com/pub/lvm2/"
 DISTFILES = $(GARNAME).$(GARVERSION).tgz
+PATCHFILES = add_aarch64_detection.patch
 
 LICENSE = LGPL2
 
