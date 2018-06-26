@@ -17,7 +17,9 @@ endef
 
 DEPENDS    = lang/c
 BUILDDEPS  = utils/bash
+
 ifneq ($(DESTIMG),build)
+DEPENDS   += lib/libnsl
 BUILDDEPS += perl/perl
 endif
 
