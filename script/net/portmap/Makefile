@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c
+DEPENDS = lang/c lib/libnsl
 
 WORKSRC = $(WORKDIR)/$(GARNAME)_$(GARVERSION)
 
@@ -20,11 +20,12 @@ INSTALL_SCRIPTS = custom
 BUILD_ARGS     = \
 	FACILITY=LOG_AUTH \
 	ZOMBIES='-DIGNORE_SIGCHLD -Dlint' \
-	LIBS="-lnsl" \
 	AUX="" \
-	HOSTS_ACCESS=
+	HOSTS_ACCESS= \
+	LIBS="-lnsl"
 INSTALL_ARGS   = \
 	BASEDIR=$(DESTDIR)
+
 
 include ../../gar.mk
 
