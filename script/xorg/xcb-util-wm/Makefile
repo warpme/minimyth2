@@ -11,7 +11,7 @@ endef
 
 DEPENDS = lang/c \
 	$(CATEGORY)/libxcb \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/xorgproto
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
@@ -36,4 +36,6 @@ pre-configure:
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libxcb-keysyms.la
+	@rm -f $(DESTDIR)$(libdir)/libxcb-ewmh.la
+	@rm -f $(DESTDIR)$(libdir)/libxcb-icccm.la
 	@$(MAKECOOKIE)
