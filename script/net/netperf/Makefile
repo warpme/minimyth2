@@ -3,7 +3,7 @@ GARVERSION = 2.7.0
 CATEGORIES = utils
 MASTER_SITES = https://github.com/HewlettPackard/netperf/archive/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = 
+PATCHFILES = add_aarch64_detection.patch
 LICENSE = GPL3
 
 WORKSRC = $(WORKDIR)/$(GARNAME)-$(DISTNAME)
