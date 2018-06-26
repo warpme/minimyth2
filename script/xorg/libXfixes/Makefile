@@ -11,11 +11,9 @@ define BLURB
 endef
 
 DEPENDS = lang/c \
-	$(CATEGORY)/fixesproto \
+	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/libX11 \
-	$(CATEGORY)/util-macros \
-	$(CATEGORY)/xextproto \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/util-macros
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
