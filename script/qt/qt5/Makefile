@@ -3,17 +3,17 @@ GARVERSION = 5.4.1
 CATEGORIES = qt
 MASTER_SITES = http://download.qt-project.org/official_releases/qt/5.4/$(GARVERSION)/single/
 DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = \
-	$(DISTNAME).patch.gar \
-	$(DISTNAME)-fix-webkit-g++5.0-build.patch \
-	$(DISTNAME)-QTBUG-44714-webkit-fails-new-glib.patch
+PATCHFILES =  $(DISTNAME).patch.gar
+PATCHFILES += $(DISTNAME)-fix-webkit-g++5.0-build.patch
+PATCHFILES += $(DISTNAME)-QTBUG-44714-webkit-fails-new-glib.patch
+PATCHFILES += $(DISTNAME)-fix-gcc6+-build.patch
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS   = lang/c lang/cxx db/mysql lib/dbus gtk/glib lib/freetype lib/fontconfig lib/icu lib/libjpeg lib/libmng lib/libpng lib/libtiff lib/openssl lib/zlib utils/ruby xorg/xorg lib/gst-libav
+DEPENDS   = lang/c lang/cxx db/mysql lib/dbus gtk/glib lib/freetype lib/fontconfig lib/icu lib/libjpeg lib/libmng lib/libpng lib/libtiff lib/openssl devel/zlib utils/ruby xorg/xorg lib/gst-libav
 BUILDDEPS = devel/bison devel/flex
 
 PWD := $(shell pwd)
@@ -87,9 +87,7 @@ CONFIGURE_ARGS = \
 	-hostprefix $(DESTDIR)$(qt5prefix) \
 	-force-pkg-config \
 	-continue \
-	-silent
-
-#	-verbose \
+	-verbose \
 
 ifeq ($(DESTIMG),build)
 BUILD_ENV = \
@@ -113,7 +111,9 @@ PLATFORM_GARBUILD_BASE_NAME = $(strip \
 	$(if $(filter x86_64,$(build_GARCH_FAMILY)),linux-g++-64,))
 PLATFORM_GARHOST_BASE_NAME = $(strip \
 	$(if $(filter i386,$(GARCH_FAMILY)),linux-g++-32,) \
-	$(if $(filter x86_64,$(GARCH_FAMILY)),linux-g++-64,))
+	$(if $(filter x86_64,$(GARCH_FAMILY)),linux-g++-64,) \
+	$(if $(filter arm,$(GARCH_FAMILY)),linux-arm-gnueabi-g++,) \
+	$(if $(filter arm64,$(GARCH_FAMILY)),linux-arm-gnueabi-g++,))
 PLATFORM_GARBUILD_NAME      = $(PLATFORM_GARBUILD_BASE_NAME)-garbuild
 PLATFORM_GARHOST_NAME       = $(PLATFORM_GARHOST_BASE_NAME)-garhost
 PLATFORM_DEFAULT_NAME       = default
