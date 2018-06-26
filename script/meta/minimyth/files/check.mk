@@ -87,6 +87,8 @@ mm-all:
 	    [ ! "$(mm_GARCH)" = "i686"        ] && \
 	    [ ! "$(mm_GARCH)" = "atom"        ] && \
 	    [ ! "$(mm_GARCH)" = "atom64"      ] && \
+	    [ ! "$(mm_GARCH)" = "armv7"       ] && \
+	    [ ! "$(mm_GARCH)" = "armv8"       ] && \
 	    [ ! "$(mm_GARCH)" = "x86-64"      ] ; then \
 		echo "error: mm_GARCH=\"$(mm_GARCH)\" is an invalid value." ; \
 		exit 1 ; \
@@ -129,15 +131,6 @@ mm-all:
 	@echo "    mm_SOFTWARE"
 	@for software in $(mm_SOFTWARE) ; do \
 		if [ ! "$${software}" = "mythplugins"    ] && \
-		   [ ! "$${software}" = "mythbrowser"    ] && \
-		   [ ! "$${software}" = "mythgallery"    ] && \
-		   [ ! "$${software}" = "mythgame"       ] && \
-		   [ ! "$${software}" = "mythmusic"      ] && \
-		   [ ! "$${software}" = "mythnetvision"  ] && \
-		   [ ! "$${software}" = "mythnews"       ] && \
-		   [ ! "$${software}" = "mythstream"     ] && \
-		   [ ! "$${software}" = "mythweather"    ] && \
-		   [ ! "$${software}" = "mythzoneminder" ] && \
 		   [ ! "$${software}" = "flash"          ] && \
 		   [ ! "$${software}" = "gnash"          ] && \
 		   [ ! "$${software}" = "mplayer-svn"    ] && \
@@ -149,7 +142,6 @@ mm-all:
 		   [ ! "$${software}" = "airplay"        ] && \
 		   [ ! "$${software}" = "avahi"          ] && \
 		   [ ! "$${software}" = "udisks"         ] && \
-		   [ ! "$${software}" = "mame"           ] && \
 		   [ ! "$${software}" = "wiimote"        ] && \
 		   [ ! "$${software}" = "backend"        ] && \
 		   [ ! "$${software}" = "mc"             ] && \
@@ -161,6 +153,15 @@ mm-all:
 		   [ ! "$${software}" = "gstreamer"      ] && \
 		   [ ! "$${software}" = "chrome"         ] && \
 		   [ ! "$${software}" = "firefox"        ] && \
+		   [ ! "$${software}" = "lcdproc"        ] && \
+		   [ ! "$${software}" = "fceu"           ] && \
+		   [ ! "$${software}" = "jzintv"         ] && \
+		   [ ! "$${software}" = "mame"           ] && \
+		   [ ! "$${software}" = "mednafen"       ] && \
+		   [ ! "$${software}" = "stella"         ] && \
+		   [ ! "$${software}" = "visualboyadvance" ] &&  \
+		   [ ! "$${software}" = "zsnes"          ] && \
+		   [ ! "$${software}" = "ipxe"           ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
 			exit 1 ; \
@@ -201,15 +202,15 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_VERSION"
-	@if [ ! "$(mm_NVIDIA_VERSION)" = "390.42"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "390.48"    ] && \
+	@if [ ! "$(mm_NVIDIA_VERSION)" = "390.48"    ] && \
+	    [ ! "$(mm_NVIDIA_VERSION)" = "396.24"    ] && \
 	    [ ! "$(mm_NVIDIA_VERSION)" = "390.50"    ] ; then \
 		echo "error: mm_NVIDIA_VERSION=\"$(mm_NVIDIA_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_LEGACY_VERSION"
-	@if [ ! "$(mm_NVIDIA_LEGACY_VERSION)" = "340.104"    ] && \
-	    [ ! "$(mm_NVIDIA_LEGACY_VERSION)" = "340.106"    ] ; then \
+	@if [ ! "$(mm_NVIDIA_LEGACY_VERSION)" = "340.106"    ] && \
+	    [ ! "$(mm_NVIDIA_LEGACY_VERSION)" = "340.107"    ] ; then \
 		echo "error: mm_NVIDIA_LEGACY_VERSION=\"$(mm_NVIDIA_LEGACY_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
