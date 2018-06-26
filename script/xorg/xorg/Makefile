@@ -37,9 +37,9 @@ DEPENDS = \
 	$(if $(filter-out build, $(DESTIMG)), \
 		$(CATEGORY)/xf86-input-evdev \
 		$(CATEGORY)/xf86-input-void \
-		$(CATEGORY)/xf86-video-ati \
-		$(CATEGORY)/xf86-video-intel \
-		$(CATEGORY)/xf86-video-vmware \
+		$(if $(filter radeon,$(mm_GRAPHICS)),$(CATEGORY)/xf86-video-ati) \
+		$(if $(filter intel, $(mm_GRAPHICS)),$(CATEGORY)/xf86-video-intel) \
+		$(if $(filter vmware,$(mm_GRAPHICS)),$(CATEGORY)/xf86-video-vmware) \
 	) \
 	$(CATEGORY)/xinit \
 	$(CATEGORY)/xkbcomp \
