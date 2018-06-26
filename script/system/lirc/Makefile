@@ -4,6 +4,7 @@ CATEGORIES = system
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/LIRC/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  = $(DISTNAME)-disable-irsend-debug-logging.patch
+PATCHFILES  += $(DISTNAME)-add-python35-autodetection.patch
 
 LICENSE = GPL2
 
@@ -25,10 +26,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-gnu-ld \
 	--with-x \
 	HAVE_WORKING_POLL="no" \
-	PYTHON_CFLAGS="-I/usr/include/python3.5m" \
 	SH_PATH="/bin/sh" \
 	DEVINPUT_HEADER="$(DESTDIR)$(includedir)/linux/input.h" \
-	PYTHON="/usr/bin/python3"
 
 BUILD_ARGS     = $(LINUX_MAKE_ARGS)
 INSTALL_ARGS   = $(LINUX_MAKE_ARGS)
