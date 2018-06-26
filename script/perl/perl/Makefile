@@ -66,7 +66,8 @@ CONFIGURE_ARGS = \
 	-Adefine:mydomain=' ' \
 	-Adefine:myhostname=' ' \
 	-Adefine:myuname=' ' \
-	-Adefine:optimize=' '
+	-Adefine:optimize=' ' \
+	-DLIBM_LIB_VERSION=''
 endif
 
 CONFIGURE_ENV = $(PERL_CONFIGURE_ENV)
