@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c lib/fontconfig lib/libbluray lib/SDL lib/zlib net/librtmp utils/bzip2 X11/libva X11/libvdpau
+DEPENDS   = lang/c lib/fontconfig lib/libbluray lib/SDL devel/zlib net/librtmp utils/bzip2 X11/libva X11/libvdpau
 BUILDDEPS = devel/yasm
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
@@ -157,7 +157,6 @@ CONFIGURE_ARGS = \
 	--build-suffix="" \
 	--progs-suffix="" \
 	--arch=$(GARCH_FAMILY) \
-	--cpu=$(GARCH) \
 	--enable-pic \
 	--disable-thumb \
 	--disable-symver \
