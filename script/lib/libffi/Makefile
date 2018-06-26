@@ -1,5 +1,5 @@
 GARNAME = libffi
-GARVERSION = 3.0.11
+GARVERSION = 3.2.1
 CATEGORIES = lib
 MASTER_SITES = ftp://sourceware.org/pub/$(GARNAME)/
 DISTFILES  = $(DISTNAME).tar.gz
@@ -32,5 +32,11 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
+	@if [ -e $(DESTDIR)/usr/lib64/libffi.so.6 ] ; then    \
+	 rm $(DESTDIR)$(libdir)/libffi.so.6 ; \
+	 ln -sr $(DESTDIR)/usr/lib64/libffi.so.6 $(DESTDIR)$(libdir)/libffi.so.6 ; \
+	 fi
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
+	@#rm -f $(DESTDIR)$(libdir64)/$(GARNAME).la
+	@rm -f $(DESTDIR)/usr/lib64/$(GARNAME).la
 	@$(MAKECOOKIE)
