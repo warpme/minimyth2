@@ -29,4 +29,6 @@ post-install:
 	@ln -sf $(DESTDIR)$(includedir)/dbm.h $(DESTDIR)$(includedir)/gdbm/dbm.h
 	@ln -sf $(DESTDIR)$(includedir)/gdbm.h $(DESTDIR)$(includedir)/gdbm/gdbm.h
 	@ln -sf $(DESTDIR)$(includedir)/ndbm.h $(DESTDIR)$(includedir)/gdbm/ndbm.h
+	@rm -f $(DESTDIR)$(libdir)/libgdbm_compat.la
+	@rm -f $(DESTDIR)$(libdir)/libgdbm.la
 	@$(MAKECOOKIE)
