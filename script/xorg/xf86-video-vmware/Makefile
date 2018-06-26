@@ -16,17 +16,12 @@ define BLURB
 endef
 
 DEPENDS = lang/c \
-	$(CATEGORY)/fontsproto \
+	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/libdrm \
 	$(CATEGORY)/libpciaccess \
-	$(CATEGORY)/randrproto \
-	$(CATEGORY)/renderproto \
 	$(CATEGORY)/util-macros \
-	$(CATEGORY)/videoproto \
-	$(CATEGORY)/xextproto \
-	$(CATEGORY)/xineramaproto \
-	$(CATEGORY)/xorg-server \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/xorg-server
+
 BUILDDEPS = \
 	$(CATEGORY)/xorg-sgml-doctools
 
