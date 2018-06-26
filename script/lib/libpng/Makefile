@@ -1,13 +1,10 @@
 GARNAME = libpng
-GARVERSION = 1.6.21
+GARVERSION = 1.6.34
 CATEGORIES = lib
 MASTER_SITES = https://sourceforge.net/projects/$(GARNAME)/files/$(GARNAME)16/$(GARVERSION)/
-# https://sourceforge.net/projects/$(GARNAME)/files/$(GARNAME)16/$(GARVERSION)/
-               https://sourceforge.net/projects/libpng/files/libpng16/1.6.21/libpng-1.6.21.tar.xz/download
 DISTFILES  = $(DISTNAME).tar.xz
-DISTFILES += config.cache.$(GARCH_FAMILY)
-PATCHFILES = \
-	$(DISTNAME).patch.gar
+# DISTFILES += config.cache.$(GARCH_FAMILY)
+# PATCHFILES = $(DISTNAME).patch.gar
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
 
@@ -15,7 +12,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/zlib
+DEPENDS = lang/c devel/zlib
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -26,7 +23,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
 	--disable-arm-neon \
-	--with-gnu-ld
+	--with-gnu-ld \
+	LIBS="-L$(DESTDIR)$(libdir)/"
 
 include ../../gar.mk
 
