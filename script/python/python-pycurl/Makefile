@@ -35,8 +35,8 @@ INSTALL_ENV    = \
 ifneq ($(DESTIMG),build)
 BUILD_ARGS += --cross-compile
 BUILD_ENV  += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
-BUILD_ENV  += CC=x86_64-minimyth-linux-gnu-gcc
-BUILD_ENV  += LDSHARED="x86_64-minimyth-linux-gnu-gcc -shared"
+BUILD_ENV  += CC=$(GARHOST)-gcc
+BUILD_ENV  += LDSHARED="$(GARHOST)-gcc -shared"
 endif
 
 GAR_EXTRA_CONF += python/python/package-api.mk
