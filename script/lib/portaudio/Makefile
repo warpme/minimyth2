@@ -1,16 +1,16 @@
 GARNAME = portaudio
-GARVERSION = svn-1952
+GARVERSION = v190600_20161030
 CATEGORIES = lib
-MASTER_SITES = http://www.portaudio.com/archives/pa_stable_v19_20140130.tgz
-DISTFILES  = $(DISTNAME).zip
-LICENSE = $(GARNAME)
-$(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE.txt
+MASTER_SITES = http://www.portaudio.com/archives/
+DISTFILES  = pa_stable_v190600_20161030.tgz
+LICENSE = GPL2
+WORKSRC = $(WORKDIR)/$(GARNAME)
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/c lib/zlib
+DEPENDS = lang/c devel/zlib
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
