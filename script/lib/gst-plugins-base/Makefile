@@ -1,5 +1,5 @@
 GARNAME = gst-plugins-base
-GARVERSION = 1.6.3
+GARVERSION = 1.10.2
 CATEGORIES = system
 MASTER_SITES = http://gstreamer.freedesktop.org/src/gst-plugins-base/
 DISTFILES = $(DISTNAME).tar.xz
@@ -16,7 +16,8 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--prefix=/usr
+	--prefix=/usr \
+	--disable-neon
 
 include ../../gar.mk
 
