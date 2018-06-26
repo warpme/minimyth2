@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/zlib utils/bzip2
+DEPENDS = lang/c devel/zlib utils/bzip2
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -39,9 +39,9 @@ CONFIGURE_ENV  = \
 include ../../gar.mk
 
 pre-configure:
-	@cd $(WORKSRC)/builds/unix ; aclocal -I . --force
-	@cd $(WORKSRC)/builds/unix ; libtoolize --force --copy --install
-	@cd $(WORKSRC)/builds/unix ; autoconf --force
+	@#cd $(WORKSRC)/builds/unix ; aclocal -I . --force
+	@#cd $(WORKSRC)/builds/unix ; libtoolize --force --copy --install
+	@#cd $(WORKSRC)/builds/unix ; autoconf --force
 	@$(call FIX_LIBTOOL,$(WORKSRC)/builds/unix/configure)
 	@$(MAKECOOKIE)
 
