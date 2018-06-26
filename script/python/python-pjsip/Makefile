@@ -46,6 +46,7 @@ CFLAGS  += -I$(DESTDIR)$(PYTHON_includedir)
 CFLAGS  += -L$(DESTDIR)$(libdir)
 LDFLAGS += -I$(DESTDIR)$(PYTHON_includedir)
 LDFLAGS += -L$(DESTDIR)$(libdir)
+CPPLAGS += -L$(DESTDIR)$(libdir)
 
 build-%/setup.py:
 	@echo " ==> Running setup.py build in $(WORKSRC)/pjsip-apps/src/python"
