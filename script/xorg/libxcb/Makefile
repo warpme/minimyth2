@@ -64,9 +64,7 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-	# @rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
-	# Hack needed to build Mesa with libxcb1.17
-	@mv $(DESTDIR)$(libdir)/libxcb.la $(DESTDIR)$(libdir)/libxcb.la-disabled
+	@rm -f $(DESTDIR)$(libdir)/libxcb.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-composite.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-damage.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-dpms.la
@@ -94,3 +92,4 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libxcb-xv.la
 	@rm -f $(DESTDIR)$(libdir)/libxcb-xvmc.la
 	@$(MAKECOOKIE)
+
