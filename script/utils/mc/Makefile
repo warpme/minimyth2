@@ -1,5 +1,5 @@
 GARNAME = mc
-GARVERSION = 4.8.16
+GARVERSION = 4.8.21
 CATEGORIES = utils
 MASTER_SITES = http://www.midnight-commander.org/downloads/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.bz2
@@ -9,7 +9,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/slang perl/perl
+DEPENDS = lang/c lib/slang
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
