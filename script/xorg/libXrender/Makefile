@@ -12,7 +12,7 @@ endef
 
 DEPENDS = lang/c \
 	$(CATEGORY)/libX11 \
-	$(CATEGORY)/renderproto \
+	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/util-macros
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
