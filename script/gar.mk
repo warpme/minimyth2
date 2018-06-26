@@ -113,6 +113,7 @@ sysconfdir = $($(DESTIMG)_sysconfdir)
 sharedstatedir = $($(DESTIMG)_sharedstatedir)
 localstatedir = $($(DESTIMG)_localstatedir)
 elibdir = $($(DESTIMG)_elibdir)
+elibdir64 = $($(DESTIMG)_elibdir64)
 libdir = $($(DESTIMG)_libdir)
 infodir = $($(DESTIMG)_infodir)
 lispdir = $($(DESTIMG)_lispdir)
@@ -188,8 +189,8 @@ BUILD_SYSTEM_PATH := $(if $(BUILD_SYSTEM_PATH),$(BUILD_SYSTEM_PATH),$(PATH))
 GAR_SYSTEM_PATH := $(DESTDIR)$(bindir)-config:$(build_DESTDIR)$(build_esbindir):$(build_DESTDIR)$(build_ebindir):$(build_DESTDIR)$(build_sbindir):$(build_DESTDIR)$(build_bindir):$(build_DESTDIR)$(build_rootdir)/bin-build-system
 PATH := $(if $(wildcard $(build_DESTDIR)$(build_rootdir)/bin-build-system),$(GAR_SYSTEM_PATH),$(GAR_SYSTEM_PATH):$(BUILD_SYSTEM_PATH))
 # this causes pain for all involved once glibc is built.
-LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt5libdir):$(build_DESTDIR)$(build_libdir)/mysql:/lib/$(GARBUILD):/usr/lib/$(GARBUILD)$(strip $(if $(filter i386,$(build_GARCH_FAMILY)),:/lib32:/usr/lib32:/lib:/usr/lib) $(if $(filter x86_64,$(build_GARCH_FAMILY)),:/lib64:/usr/lib64:/lib:/usr/lib))
-LD_LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt5libdir):$(build_DESTDIR)$(build_libdir)/mysql
+LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir64):$(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt5libdir):$(build_DESTDIR)$(build_libdir)/mysql:/lib/$(GARBUILD):/usr/lib/$(GARBUILD)$(strip $(if $(filter i386,$(build_GARCH_FAMILY)),:/lib32:/usr/lib32:/lib:/usr/lib) $(if $(filter x86_64,$(build_GARCH_FAMILY)),:/lib64:/usr/lib64:/lib:/usr/lib))
+LD_LIBRARY_PATH = $(build_DESTDIR)$(build_elibdir64):$(build_DESTDIR)$(build_elibdir):$(build_DESTDIR)$(build_libdir):$(build_DESTDIR)$(build_qt5libdir):$(build_DESTDIR)$(build_libdir)/mysql
 # or at least it did before we had DESTDIR and fully-munged
 # builddeps.  The following may be more of a hindrance than a
 # help nowadays:
@@ -333,6 +334,13 @@ makesum: fetch $(MAKESUM_TARGETS)
 
 # I am always typing this by mistake
 makesums: makesum
+
+makesums-all: makesum
+	@rm $(CHECKSUM_FILE)
+	@$(foreach FILE,$(wildcard ./files/*), md5sum $(FILE) >> $(CHECKSUM_FILE) ; sed -i "s/\.\/files/download/g" $(CHECKSUM_FILE) ;)
+	@md5sum $(addprefix $(DOWNLOADDIR)/,$(DISTFILES)) >> $(CHECKSUM_FILE)
+	@echo "---- Full Checksums file:"
+	@cat $(CHECKSUM_FILE)
 
 GARCHIVE_TARGETS =  $(addprefix $(GARCHIVEDIR)/,$(ALLFILES))
 
