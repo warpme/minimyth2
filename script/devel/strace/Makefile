@@ -1,10 +1,10 @@
 GARNAME = strace
-GARVERSION = 4.7
+GARVERSION = 4.21
 CATEGORIES = devel
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch
+#PATCHFILES = \
+#	$(DISTNAME)-automake_1.13.patch
 LICENSE = BSD_3_Clause
 
 DESCRIPTION =
