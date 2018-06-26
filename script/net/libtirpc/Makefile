@@ -1,10 +1,8 @@
 GARNAME = libtirpc
-GARVERSION = 0.3.2
+GARVERSION = 1.0.3
 CATEGORIES = net
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = \
-	$(DISTNAME)-api_fixes-1.patch
 LICENSE = BSD_3_Clause
 
 DESCRIPTION = 
