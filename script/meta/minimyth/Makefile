@@ -27,12 +27,10 @@ DEPENDS = \
 	devel/glibc-locale \
 	disk/hdparm \
 	net/ifplugd \
-	net/ipxe \
 	net/iputils \
-	system/irclient \
-	system/irserver \
+	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),system/irclient) \
+	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),system/irserver) \
 	system/irxkeys \
-	system/lcdproc \
 	net/lighttpd \
 	system/kbdd \
 	kernel/kernel \
@@ -43,8 +41,8 @@ DEPENDS = \
 	utils/lm_sensors \
 	utils/lsdvd \
 	utils/lsof \
-	X11/intel-vaapi-driver \
-	utils/intel-microcode2ucode \
+	$(if $(filter intel, $(mm_GRAPHICS)),X11/intel-vaapi-driver) \
+	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),utils/intel-microcode2ucode) \
 	utils/kmod \
 	myth-$(mm_MYTH_VERSION)/mythtv \
 	lib/ncursesw \
@@ -53,11 +51,12 @@ DEPENDS = \
 	net/openssh \
 	net/rpcbind \
 	utils/pciutils \
-	perl/perl \
-	perl/perl-MiniMyth \
+	$(if $(filter perl,$(mm_SOFTWARE)), \
+		perl/perl \
+		perl/perl-MiniMyth) \
 	utils/pmount \
 	net/portmap \
-	system/powernowd \
+	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),system/powernowd) \
 	utils/procps \
 	python/python \
 	python/python-argparse \
@@ -70,10 +69,10 @@ DEPENDS = \
 	utils/squashfs \
 	net/syslinux \
 	system/sysvinit \
+	utils/usbutils \
 	system/eudev \
 	lib/libgudev \
 	X11/unclutter \
-	utils/usbutils \
 	utils/util-linux \
 	utils/v4l-utils \
 	utils/rsync \
@@ -96,100 +95,42 @@ DEPENDS = \
 		nvidia/nvidia-$(mm_NVIDIA_VERSION)) \
 	$(if $(filter nvidia-legacy,$(mm_GRAPHICS)), \
 		nvidia/nvidia-$(mm_NVIDIA_LEGACY_VERSION)) \
-	$(if $(filter mythbrowser,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythbrowser),myth-$(mm_MYTH_VERSION)/mythbrowser)) \
-	$(if $(filter mythdvd,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythdvd),myth-$(mm_MYTH_VERSION)/mythdvd)) \
-	$(if $(filter mythgallery,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythgallery),myth-$(mm_MYTH_VERSION)/mythgallery)) \
-	$(if $(filter mythgame,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythgame),myth-$(mm_MYTH_VERSION)/mythgame) \
-		emulators/fceu \
-		emulators/jzintv \
-		emulators/mednafen \
-		emulators/stella \
-		$(if $(filter mame,$(mm_SOFTWARE)),emulators/mame) \
-		emulators/VisualBoyAdvance \
-		$(if $(filter i386,$(mm_GARCH_FAMILY)),emulators/zsnes)) \
-	$(if $(filter mythmusic,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythmusic),myth-$(mm_MYTH_VERSION)/mythmusic)) \
-	$(if $(filter mythnetvision,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythnetvision),myth-$(mm_MYTH_VERSION)/mythnetvision) \
-		$(if $(filter python,$(mm_SOFTWARE)), \
-			python/python-lxml \
-			python/python-MySQL-python \
-			python/python-oauth \
-			python/python-pycurl)) \
-	$(if $(filter mythnews,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythnews),myth-$(mm_MYTH_VERSION)/mythnews)) \
-	$(if $(filter mythphone,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythphone),myth-$(mm_MYTH_VERSION)/mythphone)) \
-	$(if $(filter mythstream,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythstream),myth-$(mm_MYTH_VERSION)/mythstream) \
-		perl/perl-HTML-Parser \
-		perl/perl-libwww-perl \
-		perl/perl-XML-DOM \
-		perl/perl-XML-XQL) \
-	$(if $(filter mythvideo,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythvideo),myth-$(mm_MYTH_VERSION)/mythvideo) \
-		perl/perl-HTML-Parser \
-		perl/perl-libwww-perl \
-		perl/perl-URI \
-		$(if $(filter python,$(mm_SOFTWARE)), \
-			python/python-BeautifulSoup \
-			python/python-IMDbPY \
-			python/python-Imaging \
-			python/python-MySQL-python)) \
-	$(if $(filter mythweather,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythweather),myth-$(mm_MYTH_VERSION)/mythweather) \
-		perl/perl-Date-Manip \
-		perl/perl-DateTime-Format-ISO8601 \
-		perl/perl-Image-Size \
-		perl/perl-Net-HTTP \
-		perl/perl-PerlMagick \
-		perl/perl-SOAP-Lite \
-		perl/perl-XML-Simple \
-		perl/perl-XML-XPath \
-		perl/perl-Date-Calc \
-		perl/perl-TimeDate) \
-	$(if $(filter mythzoneminder,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythzoneminder),myth-$(mm_MYTH_VERSION)/mythzoneminder)) \
 	$(if $(filter mythplugins,$(mm_SOFTWARE)), \
 		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythplugins),myth-$(mm_MYTH_VERSION)/mythplugins) \
-		emulators/fceu \
-		emulators/jzintv \
-		emulators/mednafen \
-		emulators/stella \
-		$(if $(filter mame,$(mm_SOFTWARE)),emulators/mame) \
-		emulators/VisualBoyAdvance \
-		$(if $(filter i386,$(mm_GARCH_FAMILY)),emulators/zsnes) \
 		$(if $(filter python,$(mm_SOFTWARE)), \
 			python/python-lxml \
 			python/python-future \
 			python/python-requests-cache \
 			python/python-MySQL-python \
 			python/python-oauth \
-			python/python-IMAPClient \
+			$(if $(filter i386 x86_64,$(GARCH_FAMILY)),python/python-IMAPClient) \
 			python/python-pycurl) \
 		perl/perl-Date-Manip \
 		perl/perl-DateTime-Format-ISO8601 \
 		perl/perl-Image-Size \
 		perl/perl-Net-HTTP \
-		perl/perl-PerlMagick \
+		$(if $(filter i386 x86_64-,$(GARCH_FAMILY)),perl/perl-PerlMagick) \
 		perl/perl-SOAP-Lite \
 		perl/perl-XML-Simple \
 		perl/perl-XML-XPath \
 		perl/perl-Date-Calc \
 		perl/perl-TimeDate) \
-		lib/dbus \
-		lib/avahi \
+	lib/dbus \
+	lib/avahi \
+	$(if $(filter fceu,$(mm_SOFTWARE)),emulators/fceu) \
+	$(if $(filter jzintv,$(mm_SOFTWARE)),emulators/jzintv) \
+	$(if $(filter mednafen,$(mm_SOFTWARE)),emulators/mednafen) \
+	$(if $(filter stella,$(mm_SOFTWARE)),emulators/stella) \
+	$(if $(filter mame,$(mm_SOFTWARE)),emulators/mame) \
+	$(if $(filter visualboyadvance,$(mm_SOFTWARE)),emulators/VisualBoyAdvance) \
+	$(if $(filter zsnes,$(mm_SOFTWARE)),emulators/zsnes) \
 	$(if $(filter flash,$(mm_SOFTWARE)), \
 		gtk/gtk3 \
 		lib/nss) \
-		utils/mc \
-		lib/libdvdcss \
-		lib/nss-mdns \
-		net/mount.cifs \
+	$(if $(filter mc,$(mm_SOFTWARE)),utils/mc) \
+	$(if $(filter dvdcss,$(mm_SOFTWARE)),lib/libdvdcss) \
+	lib/nss-mdns \
+	net/mount.cifs \
 	$(if $(filter gnash,$(mm_SOFTWARE)), \
 		mediaplayers/gnash) \
 	$(if $(filter mplayer,$(mm_SOFTWARE)), \
@@ -211,8 +152,10 @@ DEPENDS = \
 	$(if $(filter bumblebee,$(mm_SOFTWARE)), \
 		system/bumblebee \
 		system/bbswitch) \
+	X11/xdotool \
+	python/python-pylirc \
+	python/python-pyalsaaudio \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
-		X11/xdotool \
 		gtk/gconf \
 		gtk/gtk3 \
 		gtk/harfbuzz \
@@ -220,25 +163,23 @@ DEPENDS = \
 		xorg/libxcomposite \
 		xorg/libxkbcommon \
 		xorg/libxscrnsaver \
-		python/python-pylirc \
-		python/python-pyalsaaudio \
 		browsers/google-chrome) \
 	$(if $(filter firefox,$(mm_SOFTWARE)), \
-		X11/xdotool \
 		gtk/gconf \
 		gtk/gtk3 \
 		lib/libcups \
 		xorg/libxcomposite \
 		xorg/libxkbcommon \
 		xorg/libxscrnsaver \
-		python/python-pylirc \
-		python/python-pyalsaaudio \
 		browsers/mozilla-firefox) \
+	$(if $(filter lcdproc,$(mm_SOFTWARE)),system/lcdproc) \
+	$(if $(filter ipxe,$(mm_SOFTWARE)),net/ipxe) \
 	$(if $(filter debug,$(mm_SOFTWARE)), \
 		devel/gdb \
-		devel/strace) \
+		$(if $(filter i386 x86_64,$(GARCH_FAMILY)),devel/strace)) \
 	$(filter-out %/Makefile extras/extras-% extras/extras.%,$(subst ../../,,$(wildcard ../../extras/*))) \
 	$(mm_USER_PACKAGES)
+
 
 BUILDDEPS = \
 	utils/coreutils \
