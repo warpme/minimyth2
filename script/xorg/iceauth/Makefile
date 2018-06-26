@@ -1,5 +1,5 @@
 GARNAME = iceauth
-GARVERSION = 1.0.5
+GARVERSION = 1.0.8
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
@@ -12,7 +12,7 @@ endef
 
 DEPENDS = lang/c \
 	$(CATEGORY)/libICE \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/xorgproto
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
