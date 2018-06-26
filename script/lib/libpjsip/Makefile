@@ -4,6 +4,7 @@ CATEGORIES = lib
 MASTER_SITES = http://www.pjsip.org/release/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = $(DISTNAME)-fix-cross-compile.patch
+PATCHFILES += add_aarch64_detection.patch
 LICENSE = GPL2
 DESCRIPTION = 
 define BLURB
@@ -23,6 +24,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
   --disable-sdl \
   --disable-ffmpeg \
   --disable-v4l2 \
+  --disable-libwebrtc \
   --enable-resample-dll \
   --with-external-pa \
   --with-gnu-ld
@@ -42,5 +44,5 @@ pre-configure:
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libpj*.a
-	@cp $(WORKSRC)/pjsip-apps/bin/samples/x86_64-minimyth-linux-gnu/auddemo $(DESTDIR)$(bindir)/auddemo
+	@cp $(WORKSRC)/pjsip-apps/bin/samples/*-linux-gnu/auddemo $(DESTDIR)$(bindir)/auddemo
 	@$(MAKECOOKIE)
