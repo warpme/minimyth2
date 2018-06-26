@@ -1,5 +1,5 @@
 GARNAME = mkfontscale
-GARVERSION = 1.1.0
+GARVERSION = 1.1.3
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
@@ -10,9 +10,9 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/freetype lib/zlib \
+DEPENDS = lang/c lib/freetype devel/zlib \
 	$(CATEGORY)/libfontenc \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/xorgproto
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
