@@ -73,6 +73,7 @@ bindirs := \
 	$(libexecdir)
 libdirs_base := \
 	$(extras_libdir) \
+	$(elibdir64) \
 	$(elibdir) \
 	$(libdir) \
 	$(libexecdir) \
@@ -109,6 +110,7 @@ MM_CONFIG_VARS := $(sort \
 	DESTDIR \
 	DESTIMG \
 	ebindir \
+	elibdir64 \
 	elibdir \
 	esbindir \
 	etcdirs \
