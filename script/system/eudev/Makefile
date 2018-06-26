@@ -9,7 +9,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c gtk/glib lib/libxslt utils/kmod utils/pciutils utils/usbutils utils/util-linux
+DEPENDS   = lang/c gtk/glib lib/libxslt utils/kmod utils/pciutils utils/util-linux
 BUILDDEPS = utils/gperf
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
@@ -56,4 +56,7 @@ post-install:
 	@rm -rf $(DESTDIR)$(libdir)/libudev.la
 	@rm -rf $(DESTDIR)$(libdir)/libgudev-1.0.la
 	@cp -f $(WORKSRC)/src/udev/udevd $(DESTDIR)$(libdir)/udev/udevd
+	@# eudev install wrongly symlink udevadm from /usr/sbin instead of <rootdir>/usr/sbin
+	@rm -rf $(DESTDIR)$(sbindir)/udevadm
+	@cd $(DESTDIR)$(sbindir) ; ln -sf ../bin/udevadm ./udevadm
 	@$(MAKECOOKIE)
