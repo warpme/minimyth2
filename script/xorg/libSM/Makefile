@@ -13,7 +13,7 @@ endef
 DEPENDS = lang/c utils/util-linux \
 	$(CATEGORY)/libICE \
 	$(CATEGORY)/util-macros \
-	$(CATEGORY)/xproto \
+	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/xtrans
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
