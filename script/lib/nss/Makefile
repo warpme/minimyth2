@@ -12,7 +12,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS    = lang/c db/sqlite lib/nspr lib/zlib
+DEPENDS    = lang/c db/sqlite lib/nspr devel/zlib
 BUILDDEPS  =
 ifneq ($(DESTIMG),build)
 BUILDDEPS += lib/nss
