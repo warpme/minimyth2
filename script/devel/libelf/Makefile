@@ -1,5 +1,5 @@
 GARNAME = elfutils
-GARVERSION = 0.163
+GARVERSION = 0.169
 CATEGORIES = devel
 MASTER_SITES = https://fedorahosted.org/releases/e/l/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -9,22 +9,19 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c
-BUILDDEPS = devel-tainted/devel-tainted devel/make
+DEPENDS   = lang/c devel/zlib
+BUILDDEPS = devel-tainted/devel-tainted devel/make devel/zlib
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/libelf/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/libelf/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--program-prefix="eu-" \
 	--disable-silent-rules \
 	--enable-textrelcheck \
 	--enable-symbol-versioning \
-	--enable-nls \
-	--without-zlib \
-	--without-bzlib \
-	--without-lzma \
-	--with-biarch
+	--enable-nls
 
 include ../../gar.mk
 
