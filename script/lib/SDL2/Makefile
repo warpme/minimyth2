@@ -122,9 +122,9 @@ pre-configure:
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libSDL2.la
-	@rm -f $(DESTDIR)$(libdir)/libSDL2.a
-	@rm -f $(DESTDIR)$(libdir)/libSDL2main.a
-	@rm -f $(DESTDIR)$(libdir)/libSDL2_test.a
+	@rm -f $(DESTDIR)$(libdir)/libSDL2.la
+	@rm -f $(DESTDIR)$(libdir)/libSDL2main.la
+	@rm -f $(DESTDIR)$(libdir)/libSDL2_test.la
 	@rm -f $(DESTDIR)$(bindir)-config/sdl2-config
 	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)sdl2-config
 	@mkdir -p $(DESTDIR)$(bindir)-config
