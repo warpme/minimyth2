@@ -1,5 +1,5 @@
 GARNAME = zlib
-GARVERSION = 1.2.8
+GARVERSION = 1.2.11
 CATEGORIES = lib
 MASTER_SITES  = http://downloads.sourceforge.net/project/libpng/$(GARNAME)/$(GARVERSION)/
 MASTER_SITES += http://zlib.net/
@@ -19,7 +19,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = \
 	--prefix=$(prefix) \
 	--eprefix=$(exec_prefix) \
-     	--libdir=$(libdir) \
+	--libdir=$(libdir) \
 	--includedir=$(includedir) \
 	--shared
 
