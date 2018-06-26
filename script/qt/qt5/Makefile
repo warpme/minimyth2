@@ -87,7 +87,9 @@ CONFIGURE_ARGS = \
 	-hostprefix $(DESTDIR)$(qt5prefix) \
 	-force-pkg-config \
 	-continue \
-	-verbose \
+	-silent
+
+#	-verbose \
 
 ifeq ($(DESTIMG),build)
 BUILD_ENV = \
