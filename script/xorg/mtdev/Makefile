@@ -3,6 +3,7 @@ GARVERSION = 1.1.5
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = http://bitmath.org/code/mtdev/
 DISTFILES = $(DISTNAME).tar.bz2
+PATCHFILES = update_config.sub_to_recognize_aarch64.patch
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
@@ -22,3 +23,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --disable-sta
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
+
+post-install:
+	@rm -f $(DESTDIR)$(libdir)/libmtdev.la
+	@$(MAKECOOKIE)
