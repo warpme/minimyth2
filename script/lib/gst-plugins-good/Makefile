@@ -1,5 +1,5 @@
 GARNAME = gst-plugins-good
-GARVERSION = 1.6.3
+GARVERSION = 1.10.2
 CATEGORIES = system
 MASTER_SITES = http://gstreamer.freedesktop.org/src/gst-plugins-good/
 DISTFILES = $(DISTNAME).tar.xz
