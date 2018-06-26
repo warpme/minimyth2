@@ -1,15 +1,20 @@
 GARNAME = rtmpdump
-GARVERSION = 2.3
+GARVERSION_TYPE = git
+GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
+             master-fa8646d, \
+             2.3 ))
 CATEGORIES = net
-MASTER_SITES = http://rtmpdump.mplayerhq.hu/download/
-DISTFILES = $(DISTNAME).tgz
+MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
+             git://git.ffmpeg.org/rtmpdump.git/ , \
+             http://rtmpdump.mplayerhq.hu/download/ ))
+DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/c lib/openssl lib/zlib
+DEPENDS = lang/c lib/openssl devel/zlib
 
 BUILD_SCRIPTS   = $(WORKSRC)/librtmp/Makefile
 INSTALL_SCRIPTS = $(WORKSRC)/librtmp/Makefile
@@ -43,6 +48,10 @@ include ../../gar.mk
 
 CFLAGS  := $(CFLAGS)  -fPIC
 LDFLAGS := $(LDFLAGS) -fPIC
+
+git//%$(DISTNAME).tar.bz2:
+	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
+	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/librtmp.a
