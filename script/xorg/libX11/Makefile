@@ -12,14 +12,11 @@ define BLURB
 endef
 
 DEPENDS   = lang/c \
-	$(CATEGORY)/inputproto \
-	$(CATEGORY)/kbproto \
+	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/libxcb \
 	$(CATEGORY)/util-macros \
-	$(CATEGORY)/xextproto \
-	$(CATEGORY)/xf86bigfontproto \
-	$(CATEGORY)/xproto \
 	$(CATEGORY)/xtrans
+
 BUILDDEPS = \
 	$(CATEGORY)/xorg-sgml-doctools
 
