@@ -13,7 +13,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c xorg/xorg lib/libjpeg lib/zlib
+DEPENDS = lang/c xorg/xorg lib/libjpeg devel/zlib
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
