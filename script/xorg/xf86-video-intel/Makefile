@@ -18,8 +18,7 @@ define BLURB
 endef
 
 DEPENDS = lang/c system/eudev \
-	$(CATEGORY)/dri2proto \
-	$(CATEGORY)/fontsproto \
+	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/libdrm \
 	$(CATEGORY)/libpciaccess \
 	$(CATEGORY)/libX11 \
@@ -28,14 +27,9 @@ DEPENDS = lang/c system/eudev \
 	$(CATEGORY)/libXrender \
 	$(CATEGORY)/libXvMC \
 	$(CATEGORY)/pixman \
-	$(CATEGORY)/randrproto \
-	$(CATEGORY)/renderproto \
 	$(CATEGORY)/util-macros \
 	$(CATEGORY)/xcb-util \
-	$(CATEGORY)/xextproto \
-	$(CATEGORY)/xf86driproto \
-	$(CATEGORY)/xorg-server \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/xorg-server
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
