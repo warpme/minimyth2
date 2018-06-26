@@ -4,7 +4,6 @@ CATEGORIES = lib
 MASTER_SITES = http://www.libsdl.org/projects/SDL_ttf/release/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-configure.patch
-LICENSE = zlib
 
 DESCRIPTION =
 define BLURB
