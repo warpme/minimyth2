@@ -1,8 +1,8 @@
 GARNAME = expat
-GARVERSION = 2.1.0
+GARVERSION = 2.2.5
 CATEGORIES = lib
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.gz
+MASTER_SITES = https://github.com/libexpat/libexpat/releases/download/R_2_2_5/
+DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = MIT
 
 DESCRIPTION =
