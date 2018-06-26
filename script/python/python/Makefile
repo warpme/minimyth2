@@ -92,12 +92,12 @@ ifneq ($(DESTIMG),build)
 	@if [ -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config/Makefile.build ] ; then cp -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config/Makefile.build $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config/Makefile ; fi
 	@echo "  Copy new _sysconfigdata.py with target arch to host python..."
 	@cp -v $(WORKSRC)/../../../build/lib.linux*/_sysconfigdata.py $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py
-	@cp -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py.main
 	@rm -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.pyc
 	@echo "  Fixing LIB dirs in target arch _sysconfigdata.py..."
 	@sed -i "s%'LIBDIR':.*%'LIBDIR': '$(DESTDIR)$(libdir)',%" $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py
 	@echo "  Fixing INCLUDE dirs in target arch _sysconfigdata.py..."
 	@sed -i "s%'INCLUDEDIR':.*%'INCLUDEDIR': '$(DESTDIR)$(includedir)',%" $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py
+	@cp -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py.main
 endif
 	@$(MAKECOOKIE)
 
