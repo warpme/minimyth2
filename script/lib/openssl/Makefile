@@ -1,9 +1,9 @@
 GARNAME = openssl
-GARVERSION = 1.0.1c
+GARVERSION = 1.0.2o
 CATEGORIES = lib
 MASTER_SITES = http://www.openssl.org/source/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME).patch.gar
+#PATCHFILES = $(DISTNAME).patch.gar
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
 
@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/zlib
+DEPENDS = lang/c devel/zlib
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/Configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -32,7 +32,9 @@ CONFIGURE_ARGS = \
 	no-ecdh \
 	no-ecdsa \
 	$(if $(filter i386,  $(GARCH_FAMILY)),no-asm 386 linux-elf) \
-	$(if $(filter x86_64,$(GARCH_FAMILY)),           linux-x86_64)
+	$(if $(filter x86_64,$(GARCH_FAMILY)),           linux-x86_64) \
+	$(if $(filter arm,$(GARCH_FAMILY)),              linux-armv4) \
+	$(if $(filter arm64,$(GARCH_FAMILY)),            linux-aarch64)
 
 BUILD_ARGS = \
 	CC="$(CC)" \
