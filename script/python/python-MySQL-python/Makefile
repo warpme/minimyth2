@@ -1,8 +1,8 @@
 GARNAME = python-MySQL-python
-GARVERSION = 1.2.3
+GARVERSION = 1.2.5
 CATEGORIES = python
-MASTER_SITES = http://downloads.sourceforge.net/project/mysql-python/mysql-python/$(GARVERSION)/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+MASTER_SITES = https://pypi.python.org/packages/a5/e9/51b544da85a36a68debe7a7091f068d802fc515a3a202652828c73453cad/
+DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).zip
 LICENSE =
 
 DESCRIPTION = 
@@ -29,8 +29,8 @@ INSTALL_ENV    = \
 ifneq ($(DESTIMG),build)
 BUILD_ARGS += --cross-compile
 BUILD_ENV  += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
-BUILD_ENV  += CC=x86_64-minimyth-linux-gnu-gcc
-BUILD_ENV  += LDSHARED="x86_64-minimyth-linux-gnu-gcc -shared"
+BUILD_ENV  += CC=$(GARHOST)-gcc
+BUILD_ENV  += LDSHARED="$(GARHOST)-gcc -shared"
 endif
 
 GAR_EXTRA_CONF += python/python/package-api.mk
