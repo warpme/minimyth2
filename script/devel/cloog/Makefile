@@ -1,7 +1,7 @@
 GARNAME = cloog
 GARVERSION = 0.18.5
 CATEGORIES = devel
-MASTER_SITES = https://github.com/periscop/cloog/releases/download/cloog-0.19.0/
+MASTER_SITES = https://github.com/periscop/cloog/releases/download/cloog-0.18.5/
 DISTFILES = $(DISTNAME).tar.gz
 LICENSE = LGPL2_1
 
