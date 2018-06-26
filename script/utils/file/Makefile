@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS    = lang/c lib/zlib
+DEPENDS    = lang/c devel/zlib
 BUILDDEPS  =
 ifneq ($(DESTIMG),build)
 BUILDDEPS += utils/file
