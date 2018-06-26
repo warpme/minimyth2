@@ -1,7 +1,7 @@
 GARNAME = slang
-GARVERSION = 2.2.2
+GARVERSION = 2.3.0
 CATEGORIES = lib
-MASTER_SITES = ftp://ftp.fu-berlin.de/pub/unix/misc/slang/v2.2/
+MASTER_SITES = http://www.jedsoft.org/releases/slang/old/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.bz2
 
 LICENSE = LGPL2
@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/pcre lib/zlib
+DEPENDS = lang/c lib/pcre devel/zlib
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
