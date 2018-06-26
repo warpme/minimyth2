@@ -11,11 +11,10 @@ define BLURB
 endef
 
 DEPENDS = lang/c \
-	$(CATEGORY)/inputproto \
-	$(CATEGORY)/randrproto \
+	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/util-macros \
-	$(CATEGORY)/xorg-server \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/xorg-server
+
 BUILDDEPS = \
 	$(CATEGORY)/xorg-sgml-doctools
 
