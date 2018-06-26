@@ -4,6 +4,7 @@ GARVERSION = 0.18
 CATEGORIES = lib
 MASTER_SITES = http://0pointer.de/public/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
+PATCHFILES = add_aarch64_detection.patch
 
 LICENSE = LGPL2
 
