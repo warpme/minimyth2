@@ -65,10 +65,8 @@ PATCHFILES += 0252-0279-MythMusic-Visualisers-only-disable-screensaver-if-sh.pat
 PATCHFILES += 0253-0297-Mythmusic-Log-the-shoutcast-metadata-and-format-stri.patch
 
 # 7.6.6 LVR safe patches related to DB caching
-PATCHFILES += 0254-0105-DB-Load-all-dbase-settings-into-cache-at-startup.patch
 PATCHFILES += 0255-0108-SG-Cache-storagegroup-records-in-FindDirs.patch
 PATCHFILES += 0256-0110-TV-cache-videodisplayprofile-dbase-access.patch
-PATCHFILES += 0257-0112-TV-Cache-playgroup-dbase-results.patch
 PATCHFILES += 0259-0117-UI-Provide-dbase-cache-for-RegisterKey-and-RegisterJ.patch
 PATCHFILES += 0262-0144-DB-Update-settings-cache-in-SaveSettingOnHost.patch
 PATCHFILES += 0263-0147-FE-Improve-caching-in-GuideGrid-v2.patch
@@ -135,7 +133,7 @@ DEPENDS = \
 	lib/libxml2 \
 	lib/openssl \
 	lib/taglib \
-	lib/zlib \
+	devel/zlib \
 	python/python \
 	python/python-MySQL-python \
 	python/python-lxml \
