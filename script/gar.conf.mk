@@ -41,6 +41,7 @@ main_sharedstatedir = $(main_rootdir)/usr/share
 main_localstatedir = $(main_rootdir)/var
 main_elibdir = $(main_rootdir)/lib
 main_libdir = $(main_rootdir)/usr/lib
+main_elibdir64 = $(main_rootdir)/lib64
 main_infodir = $(main_rootdir)/usr/info
 main_lispdir = $(main_rootdir)/usr/share/emacs/site-lisp
 main_includedir = $(main_rootdir)/usr/include
@@ -75,6 +76,7 @@ build_sharedstatedir = $(build_rootdir)/usr/share
 build_localstatedir = $(build_rootdir)/var
 build_elibdir = $(build_rootdir)/lib
 build_libdir = $(build_rootdir)/usr/lib
+build_elibdir64 = $(build_rootdir)/lib64
 build_infodir = $(build_rootdir)/usr/info
 build_lispdir = $(build_rootdir)/usr/share/emacs/site-lisp
 build_includedir = $(build_rootdir)/usr/include
@@ -105,6 +107,7 @@ main_CPPFLAGS +=
 main_CFLAGS += -pipe -flto
 main_CFLAGS += $(mm_CFLAGS)
 main_CXXFLAGS += $(main_CFLAGS)
+
 main_LDFLAGS += -Wl,--as-needed $(main_CFLAGS)
 
 # allow us to link to libraries we installed
@@ -197,7 +200,7 @@ GARPKGDIR = $(GARPKGROOT)/$(GARNAME)
 FILE_SITES = file://$(FILEDIR)/ file://$(GARCHIVEDIR)/
 
 #append the public archive
-MASTER_SITES += http://warped.homenet.org/pkg/minimyth2-garchive/
+MASTER_SITES += http://warped.inet2.org/pkg/minimyth2-garchive/
 
 # Extra confs to include after gar.conf.mk
 GAR_EXTRA_CONF += extras/extras.conf.mk devel/gcc/package-api.mk
