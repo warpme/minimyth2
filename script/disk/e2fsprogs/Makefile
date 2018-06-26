@@ -1,5 +1,5 @@
 GARNAME = e2fsprogs
-GARVERSION = 1.42.13
+GARVERSION = 1.44.2
 CATEGORIES = disk
 MASTER_SITES = https://www.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.xz
@@ -39,11 +39,21 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-uuidd \
 	--enable-nls \
 	--disable-rpath \
-	--with-gnu-ld
+	--with-gnu-ld \
+	LDFLAGS="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
+	CPPFLAGS="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/"
+
+#	FLAGS="-L$(DESTDIR)$(elibdir64)/libpthread.so.0"
 
 include ../../gar.mk
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL_LIBPATH,$(WORKSRC),configure)
+	$(warning DIRPATHS:$(DIRPATHS))
+	$(warning GARBUILD:$(GARBUILD))
+	$(warning GARHOST:$(GARHOST))
+	@$(MAKECOOKIE)
+
+post-install:
 	@$(MAKECOOKIE)
