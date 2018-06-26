@@ -1,18 +1,15 @@
 GARNAME = curl
-GARVERSION = 7.28.1
+GARVERSION = 7.60.0
 CATEGORIES = net
 MASTER_SITES = http://curl.haxx.se/download/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch \
-	$(DISTNAME).patch.gar
 LICENSE = MIT
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/c lib/openssl lib/zlib net/librtmp
+DEPENDS = lang/c lib/openssl devel/zlib net/librtmp
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -71,7 +68,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-ca-path \
 	--without-libmetalink \
 	--without-libssh2 \
-	--with-librtmp \
+	--without-librtmp \
 	--without-winidn \
 	--without-libidn
 CONFIGURE_ENV  = \
@@ -80,11 +77,7 @@ CONFIGURE_ENV  = \
 include ../../gar.mk
 
 pre-configure:
-	@#$(call RUN_AUTOTOOLS)
-	@cd $(WORKSRC) ; aclocal  --force --verbose
-	@cd $(WORKSRC) ; automake --force
-	@cd $(WORKSRC) ; libtoolize --force --copy --install
-	@cd $(WORKSRC) ; autoconf --force
+	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
 
