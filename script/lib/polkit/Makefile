@@ -4,6 +4,7 @@ CATEGORIES = lib
 MASTER_SITES =  http://www.freedesktop.org/software/polkit/releases/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-cross_compile.patch
+PATCHFILES += add_aarch64_detection.patch
 LICENSE = GPL2
 
 DESCRIPTION =
