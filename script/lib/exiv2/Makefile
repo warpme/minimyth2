@@ -1,15 +1,16 @@
 GARNAME = exiv2
 GARVERSION = 0.25
 CATEGORIES = lib
-MASTER_SITES = http://www.exiv2.org/
+MASTER_SITES = https://github.com/Exiv2/exiv2/archive/v$pkgver.tar.gz
 DISTFILES = $(DISTNAME).tar.gz
+PATCHFILES = add_aarch64_detection.patch
 LICENSE = GPL2
 
 DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lang/cxx lib/expat lib/zlib
+DEPENDS = lang/c lang/cxx lib/expat devel/zlib
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
