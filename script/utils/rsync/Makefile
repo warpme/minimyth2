@@ -1,5 +1,5 @@
 GARNAME = rsync
-GARVERSION = 3.0.6
+GARVERSION = 3.1.3
 CATEGORIES = utils
 MASTER_SITES = http://rsync.samba.org/ftp/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
