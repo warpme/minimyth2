@@ -1,5 +1,5 @@
 GARNAME = gst-plugins-bad
-GARVERSION = 1.6.3
+GARVERSION = 1.10.2
 CATEGORIES = system
 MASTER_SITES = http://gstreamer.freedesktop.org/src/gst-plugins-bad/
 DISTFILES = $(DISTNAME).tar.xz
@@ -23,6 +23,7 @@ include ../../gar.mk
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgstadaptivedemux-1.0.la
+	@rm -f $(DESTDIR)$(libdir)/libgstbadaudio-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstbadbase-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstbadvideo-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstadaptivedemux-1.0.la
@@ -34,8 +35,10 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgstinsertbin-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstmpegts-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstphotography-1.0.la
+	@rm -f $(DESTDIR)$(libdir)/libgstplayer-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgsturidownloader-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaccurip.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstbadaudio-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstadpcmdec.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstadpcmenc.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaiff.la
@@ -85,6 +88,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmxf.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstopengl.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstpcapparse.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstplayer-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstpnm.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrawparse.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstremovesilence.la
