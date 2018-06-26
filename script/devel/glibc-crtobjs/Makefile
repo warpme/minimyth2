@@ -77,17 +77,7 @@ CFLAGS  := $(filter-out -flto, $(CFLAGS))  -fno-lto
 LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
 
 CFLAGS := $(filter-out -ffast-math, $(CFLAGS))
-CFLAGS := $(filter-out -O%, $(CFLAGS)) -O3
-
-pre-configure:
-	@mkdir -p $(WORKBLD)
-	@rm -rf $(WORKBLD)/configparms
-	@echo "slibdir=$(elibdir)" >> $(WORKBLD)/configparms
-	@rm -rf $(WORKBLD)/config.cache
-	@echo "libc_cv_forced_unwind=yes" >> $(WORKBLD)/config.cache
-	@echo "libc_cv_c_cleanup=yes"     >> $(WORKBLD)/config.cache
-	@echo "libc_cv_ctors_header=yes"  >> $(WORKBLD)/config.cache
-	@$(MAKECOOKIE)
+CFLAGS := $(filter-out -O%, $(CFLAGS)) -Os
 
 configure-custom:
 	@mkdir -p $(WORKBLD)

@@ -2,9 +2,6 @@ GARNAME = glibc-localedef-static
 GARVERSION = $(GLIBC_VERSION)
 CATEGORIES = devel
 SOURCEPKG = devel/glibc
-PATCHFILES += \
-	glibc-$(GARVERSION)-localedef_static.patch \
-	glibc-$(GARVERSION)-kernel_2.6.18.patch
 LICENSE = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -38,6 +35,8 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-gd \
 	--without-cvs \
 	--with-elf \
+	--disable-werror \
+	--disable-multi-arch \
 	--cache-file=config.cache
 ifeq ($(use_linuxthreads),yes)
 CONFIGURE_ARGS += \
@@ -70,22 +69,12 @@ INSTALL_ENV   = \
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
  
-# glibc 2.17 fails to compile with gcc 5.2.0's link time optimization enabled.
+# glibc 2.27 fails to compile with gcc 7.3.0's link time optimization enabled.
 CFLAGS  := $(filter-out -flto, $(CFLAGS))  -fno-lto
 LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
 
 CFLAGS := $(filter-out -ffast-math, $(CFLAGS))
-CFLAGS := $(filter-out -O%, $(CFLAGS)) -O3
-
-pre-configure:
-	@mkdir -p $(WORKBLD)
-	@rm -rf $(WORKBLD)/configparms
-	@echo "slibdir=$(elibdir)" >> $(WORKBLD)/configparms
-	@rm -rf $(WORKBLD)/config.cache
-	@echo "libc_cv_forced_unwind=yes">> $(WORKBLD)/config.cache
-	@echo "libc_cv_c_cleanup=yes"    >> $(WORKBLD)/config.cache
-	@echo "libc_cv_ctors_header=yes" >> $(WORKBLD)/config.cache
-	@$(MAKECOOKIE)
+CFLAGS := $(filter-out -O%, $(CFLAGS)) -Os
 
 configure-custom:
 	@mkdir -p $(WORKBLD)

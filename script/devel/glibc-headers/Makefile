@@ -63,14 +63,6 @@ CFLAGS   :=
 CXXFLAGS :=
 LDFLAGS  :=
 
-pre-configure:
-	@mkdir -p $(WORKBLD)
-	@rm -rf $(WORKBLD)/configparms
-	@echo "slibdir=$(elibdir)" >> $(WORKBLD)/configparms
-	@rm -rf $(WORKBLD)/config.cache
-	@echo "libc_cv_386_tls=yes" >> $(WORKBLD)/config.cache
-	@$(MAKECOOKIE)
-
 configure-custom:
 	@mkdir -p $(WORKBLD)
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) ./$(call DIRSTODOTS,$(WORKBLD))/$(WORKSRC)/configure $(CONFIGURE_ARGS)
@@ -85,6 +77,6 @@ post-install:
 	@mkdir -p $(DESTDIR)$(includedir)/bits
 	@touch $(DESTDIR)$(includedir)/gnu/stubs.h
 	@cp $(WORKBLD)/bits/stdio_lim.h $(DESTDIR)$(includedir)/bits
-	@cp $(WORKSRC)/nptl/sysdeps/pthread/pthread.h $(DESTDIR)$(includedir)
-	@cp $(WORKSRC)/nptl/sysdeps/unix/sysv/linux/x86/bits/pthreadtypes.h $(DESTDIR)$(includedir)/bits
+	@#cp $(WORKSRC)/nptl/sysdeps/pthread/pthread.h $(DESTDIR)$(includedir)
+	@#cp $(WORKSRC)/nptl/sysdeps/unix/sysv/linux/x86/bits/pthreadtypes.h $(DESTDIR)$(includedir)/bits
 	@$(MAKECOOKIE)

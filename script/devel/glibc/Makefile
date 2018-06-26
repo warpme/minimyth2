@@ -4,12 +4,7 @@ CATEGORIES = devel
 MASTER_SITES  = http://ftp.gnu.org/gnu/$(GARNAME)/
 MASTER_SITES += ftp://sources.redhat.com/pub/$(GARNAME)/snapshots/
 DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = \
-	$(DISTNAME)-rpc_key_prot_h.patch \
-	$(DISTNAME)-select_fd_type.patch \
-	$(DISTNAME)-perl.patch.gar \
-	$(DISTNAME).patch \
-	$(DISTNAME)-ldd.patch
+PATCHFILES = $(DISTNAME).patch
 LICENSE = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -39,7 +34,6 @@ CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKBLD)/Makefile
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile build-rpcgen
 
-# --enable-obsolete-rpc is required because libtirpc 0.3.2 still needs the cbc_crypt and ebc_crypt functions.
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--enable-bind-now \
@@ -50,7 +44,10 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-gd \
 	--without-cvs \
 	--with-elf \
-	--with-headers=$(DESTDIR)$(includedir)
+	--with-headers=$(DESTDIR)$(includedir) \
+	--disable-werror \
+	--disable-multi-arch \
+
 ifeq ($(use_linuxthreads),yes)
 CONFIGURE_ARGS += \
 	--enable-add-ons=linuxthreads \
@@ -84,22 +81,12 @@ INSTALL_ENV   = \
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
 
-# glibc 2.17 fails to compile with gcc 5.2.0's link time optimization enabled.
+# glibc 2.27 fails to compile with gcc 7.3.0's link time optimization enabled.
 CFLAGS  := $(filter-out -flto, $(CFLAGS))  -fno-lto
 LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
 
 CFLAGS := $(filter-out -ffast-math, $(CFLAGS))
-CFLAGS := $(filter-out -O%, $(CFLAGS)) -O3
-
-pre-configure:
-	@mkdir -p $(WORKBLD)
-	@rm -rf $(WORKBLD)/configparms
-	@echo "slibdir=$(elibdir)" >> $(WORKBLD)/configparms
-	@rm -rf $(WORKBLD)/config.cache
-	@echo "libc_cv_forced_unwind=yes" >> $(WORKBLD)/config.cache
-	@echo "libc_cv_c_cleanup=yes"     >> $(WORKBLD)/config.cache
-	@echo "libc_cv_ctors_header=yes"  >> $(WORKBLD)/config.cache
-	@$(MAKECOOKIE)
+CFLAGS := $(filter-out -O%, $(CFLAGS)) -Os
 
 configure-custom:
 	@mkdir -p $(WORKBLD)
@@ -116,4 +103,11 @@ post-install:
 	@cd $(DESTDIR)$(datadir)/i18n/charmaps ; gzip -df *.gz
 	@mkdir -p $(build_DESTDIR)$(build_libdir)/glibc-nptl
 	@cp $(WORKBLD)/nptl/libpthread.so $(build_DESTDIR)$(build_libdir)/glibc-nptl/
+	@#xxxx - fixme
+	@if [ -e $(DESTDIR)$(elibdir64)/libcrypt.so.1        ] ; then rm -f $(DESTDIR)$(libdir)/libcrypt.so.1        ; ln -sr $(DESTDIR)$(elibdir64)/libcrypt.so.1        $(DESTDIR)$(libdir)/libcrypt.so.1        ; fi
+	@if [ -e $(DESTDIR)$(elibdir64)/libdl.so.2           ] ; then rm -f $(DESTDIR)$(libdir)/libdl.so.2           ; ln -sr $(DESTDIR)$(elibdir64)/libdl.so.2           $(DESTDIR)$(libdir)/libdl.so.2           ; fi
+	@if [ -e $(DESTDIR)$(elibdir64)/libm.so.6            ] ; then rm -f $(DESTDIR)$(libdir)/libm.so.6            ; ln -sr $(DESTDIR)$(elibdir64)/libm.so.6            $(DESTDIR)$(libdir)/libm.so.6            ; fi
+	@if [ -e $(DESTDIR)$(elibdir64)/libpthread.so.0      ] ; then rm -f $(DESTDIR)$(libdir)/libpthread.so.0      ; ln -sr $(DESTDIR)$(elibdir64)/libpthread.so.0      $(DESTDIR)$(libdir)/libpthread.so.0      ; fi
+	@if [ -e $(DESTDIR)$(elibdir64)/libresolv.so.2       ] ; then rm -f $(DESTDIR)$(libdir)/libresolv.so.2       ; ln -sr $(DESTDIR)$(elibdir64)/libresolv.so.2       $(DESTDIR)$(libdir)/libresolv.so.2       ; fi
+	@if [ -e $(DESTDIR)$(elibdir64)/librt.so.1           ] ; then rm -f $(DESTDIR)$(libdir)/librt.so.1           ; ln -sr $(DESTDIR)$(elibdir64)/librt.so.1           $(DESTDIR)$(libdir)/librt.so.1           ; fi
 	@$(MAKECOOKIE)
