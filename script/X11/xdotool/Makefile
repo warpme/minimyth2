@@ -3,6 +3,7 @@ GARVERSION = 3.20160805.1
 CATEGORIES = X11
 MASTER_SITES = https://github.com/jordansissel/xdotool/releases/download/v$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.gz
+PATCHFILES = set-prefix-to-usr.patch
 LICENSE = LGPL2
 
 DESCRIPTION =
