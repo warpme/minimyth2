@@ -11,7 +11,7 @@ endef
 
 DEPENDS = lang/c \
 	$(CATEGORY)/libxcb \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/xorgproto
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
