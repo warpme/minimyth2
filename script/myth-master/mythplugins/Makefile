@@ -65,7 +65,7 @@ CONFIGURE_ARGS = \
 	--enable-mythnetvision \
 	--enable-mythnews \
 	--enable-mythweather \
-	--enable-mythzoneminder
+	--enable-mythzoneminder \
 
 CONFIGURE_ENV = $(MYTHTV_CONFIGURE_ENV) $(PERL_CONFIGURE_ENV) PYTHONXCPREFIX=$(DESTDIR)$(prefix)
 BUILD_ENV     = $(MYTHTV_BUILD_ENV)     $(PERL_BUILD_ENV)

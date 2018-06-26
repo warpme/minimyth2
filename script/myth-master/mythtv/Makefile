@@ -13,7 +13,7 @@ PATCHFILES += 0005-tid_debug_verbosity.patch
 PATCHFILES += 0006-cardutil_show_displayname.patch
 PATCHFILES += 0007-allow_no_tuners.patch
 PATCHFILES += 0008-SCR_keep_disecq_always_18V.patch
-PATCHFILES += 0009-make_EIT_start_at_time-v4.patch
+#PATCHFILES += 0009-make_EIT_start_at_time-v4.patch
 PATCHFILES += 0010-decrease-some-PMT-DVB-errors-logging.patch
 PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
@@ -113,7 +113,7 @@ PATCHFILES += 0303-0318-WebBrowser-Provide-virtual-keyboard-for-HTML-edit-co.pat
 PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 
 # Roger Siddons patches from PeterBennet repo
-PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position-v3.patch
+PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position-v4.patch
 PATCHFILES += 0307-ticekt12809-Playback-Watchlist-Improvements.patch
 PATCHFILES += 0308-ticekt12809-Playback-Add-Unfinished-recording-filter.patch
 
@@ -170,7 +170,7 @@ DEPENDS = \
 	lib/openssl \
 	lib/SDL2 \
 	lib/taglib \
-	lib/zlib \
+	devel/zlib \
 	python/python \
 	python/python-MySQL-python \
 	python/python-lxml \
@@ -235,8 +235,6 @@ CONFIGURE_ARGS = \
 	--extra-ldflags="$(LDFLAGS)" \
 	--enable-symbol-visibility \
 	--arch=$(GARCH_FAMILY) \
-	--tune=$(GARCH) \
-	--cpu=$(GARCH) \
 	--disable-altivec \
 	--enable-amd3dnow \
 	--enable-amd3dnowext \
@@ -259,7 +257,6 @@ CONFIGURE_ARGS = \
 	--enable-ivtv \
 	--enable-hdpvr \
 	--enable-dvb \
-	--enable-sdl2 \
 	--dvb-path="$(DESTDIR)$(includedir)" \
 	--disable-asi \
 	--enable-x11 \
@@ -283,6 +280,9 @@ CONFIGURE_ARGS = \
 	--disable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 
+#	--tune=$(GARCH) \
+#	--cpu=$(GARCH) \
+#	--enable-sdl2 \
 #	--pkg-config="/usr/bin/pkg-config" \
 #	--libxml2-path="$(DESTDIR)$(includedir)/libxml2" \
 
