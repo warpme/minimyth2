@@ -14,8 +14,7 @@ DEPENDS = lang/c \
 	$(CATEGORY)/libX11 \
 	$(CATEGORY)/libXau \
 	$(CATEGORY)/util-macros \
-	$(CATEGORY)/xextproto \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/xorgproto
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
