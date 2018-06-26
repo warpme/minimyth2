@@ -9,7 +9,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS  = lang/c lib/zlib
+DEPENDS  = lang/c devel/zlib
 ifeq ($(DESTIMG),build)
 DEPENDS += python/python
 endif
