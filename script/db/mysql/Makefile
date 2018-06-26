@@ -20,7 +20,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS    = lang/c lang/cxx lib/ncurses lib/zlib
+DEPENDS    = lang/c lang/cxx lib/ncurses devel/zlib
 BUILDDEPS  = utils/procps
 ifneq ($(DESTIMG),build)
 BUILDDEPS += db/mysql
@@ -56,6 +56,12 @@ CFLAGS   += -fwrapv
 CXXFLAGS += -fwrapv
 # MySQL INSTALL-SOURCE recommends the following.
 CXXFLAGS += -felide-constructors -fno-exceptions -fno-rtti
+# MySQL 5.1.67 breaks when compiled with gcc 7.3.0 without -fpermissive.
+CFLAGS   += -fpermissive
+CXXFLAGS += -fpermissive
+# MySQL 5.1.67 breaks with -Wnarrowing when compiled with gcc 7.3.0.
+CFLAGS   += -Wno-narrowing
+CXXFLAGS += -Wno-narrowing
 
 extract-config.cache.$(GARCH_FAMILY):
 	@cp $(DOWNLOADDIR)/config.cache.$(GARCH_FAMILY) $(WORKSRC)/config.cache
