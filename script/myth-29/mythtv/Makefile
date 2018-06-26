@@ -170,7 +170,7 @@ DEPENDS = \
 	lib/libxml2 \
 	lib/openssl \
 	lib/taglib \
-	lib/zlib \
+	devel/zlib \
 	python/python \
 	python/python-MySQL-python \
 	python/python-lxml \
