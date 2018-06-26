@@ -1,5 +1,5 @@
 GARNAME = python-cffi
-GARVERSION = 1.5.2
+GARVERSION = 1.11.5
 CATEGORIES = python
 MASTER_SITES = https://pypi.python.org/packages/source/c/cffi/
 DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
