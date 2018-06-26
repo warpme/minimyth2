@@ -16,16 +16,8 @@ define BLURB
 endef
 
 DEPENDS  = lang/c lib/openssl \
-	$(CATEGORY)/bigreqsproto \
-	$(CATEGORY)/compositeproto \
-	$(CATEGORY)/damageproto \
-	$(CATEGORY)/dri2proto \
-	$(CATEGORY)/fixesproto \
+	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/font-util \
-	$(CATEGORY)/fontsproto \
-	$(CATEGORY)/glproto \
-	$(CATEGORY)/inputproto \
-	$(CATEGORY)/kbproto \
 	$(CATEGORY)/libdrm \
 	$(CATEGORY)/libpciaccess \
 	$(CATEGORY)/libX11 \
@@ -36,21 +28,7 @@ DEPENDS  = lang/c lib/openssl \
 	$(CATEGORY)/libepoxy \
 	$(CATEGORY)/Mesa \
 	$(CATEGORY)/pixman \
-	$(CATEGORY)/randrproto \
-	$(CATEGORY)/recordproto \
-	$(CATEGORY)/renderproto \
-	$(CATEGORY)/resourceproto \
-	$(CATEGORY)/scrnsaverproto \
 	$(CATEGORY)/util-macros \
-	$(CATEGORY)/videoproto \
-	$(CATEGORY)/xcmiscproto \
-	$(CATEGORY)/xextproto \
-	$(CATEGORY)/xf86bigfontproto \
-	$(CATEGORY)/xf86dgaproto \
-	$(CATEGORY)/xf86driproto \
-	$(CATEGORY)/xf86vidmodeproto \
-	$(CATEGORY)/xineramaproto \
-	$(CATEGORY)/xproto \
 	$(CATEGORY)/xtrans
 ifneq ($(DESTIMG),build)
 DEPENDS += system/eudev
@@ -145,7 +123,7 @@ pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	#Remove Hack needed to build Mesa with libxcb1.17
-	@rm -f $(DESTDIR)$(libdir)/libxcb.la
+	@#rm -f $(DESTDIR)$(libdir)/libxcb.la
 	@$(MAKECOOKIE)
 
 pre-build:
