@@ -1,5 +1,5 @@
 GARNAME = libICE
-GARVERSION = 1.0.8
+GARVERSION = 1.0.9
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
@@ -12,7 +12,7 @@ endef
 
 DEPENDS = lang/c \
 	$(CATEGORY)/util-macros \
-	$(CATEGORY)/xproto \
+	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/xtrans
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
