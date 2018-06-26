@@ -41,6 +41,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--enable-languages=c \
 	--disable-libatomic \
 	--disable-libgomp \
+	--disable-libmpx \
 	--enable-gold \
 	--enable-ld \
 	--disable-libquadmath \

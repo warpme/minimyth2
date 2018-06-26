@@ -9,7 +9,6 @@ DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES  = $(DISTNAME)-disable_multilib_i386_linux64.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
 PATCHFILES += $(DISTNAME)-perl.patch.gar
-PATCHFILES += $(DISTNAME)-dynamic_linker.patch
 PATCHFILES += $(DISTNAME)-libstdc++-v3_config.patch
 endif
 LICENSE = GPL2/GPL3/LGPL2_1/LGPL3
@@ -71,6 +70,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--with-libelf-lib=$(DESTDIR)$(libdir) \
 	--with-sysroot=$($(CROSSIMG)_DESTDIR)
 
+
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
 
@@ -84,6 +84,7 @@ configure-custom:
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) ./$(call DIRSTODOTS,$(WORKBLD))/$(WORKSRC)/configure $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
+
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libcc1.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libasan.la
@@ -93,9 +94,12 @@ post-install:
 	@rm -f $(CROSS_GCC_LIBDIR)/libgomp-plugin-host_nonshm.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libitm.la
 	@rm -f $(CROSS_GCC_LIBDIR)/liblsan.la
+	@rm -f $(CROSS_GCC_LIBDIR)/libmpx.la
+	@rm -f $(CROSS_GCC_LIBDIR)/libmpxwrappers.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libssp.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libssp_nonshared.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libstdc++.la
+	@rm -f $(CROSS_GCC_LIBDIR)/libstdc++fs.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libsupc++.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libtsan.la
 	@rm -f $(CROSS_GCC_LIBDIR)/libubsan.la
