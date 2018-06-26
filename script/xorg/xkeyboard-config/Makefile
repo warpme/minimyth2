@@ -1,5 +1,5 @@
 GARNAME = xkeyboard-config
-GARVERSION = 2.8
+GARVERSION = 2.23.1
 CATEGORIES = $(CATEGORY)
 MASTER_SITES  = http://xorg.freedesktop.org/releases/individual/data/$(GARNAME)/
 MASTER_SITES += http://xorg.freedesktop.org/releases/individual/data/
@@ -15,7 +15,7 @@ endef
 
 DEPENDS = lang/c \
 	$(CATEGORY)/libX11 \
-	$(CATEGORY)/xproto
+	$(CATEGORY)/xorgproto
 BUILDDEPS = \
 	perl/perl-XML-Parser \
 	$(CATEGORY)/xkbcomp
