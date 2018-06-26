@@ -1,8 +1,8 @@
 GARNAME = flex
-GARVERSION = 2.5.37
-CATEGORIES = devel
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
+GARVERSION = 2.6.4
+CATEGORIES = lib
+MASTER_SITES = https://github.com/westes/flex/releases/download/v2.6.4/
+DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-perl.patch.gar
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT=$(WORKSRC)/COPYING
@@ -19,11 +19,12 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-rpath \
-	--with-gnu-ld
-
-include ../../gar.mk
+	--with-gnu-ld \
+	--cache-file=config.cache \
+	ac_cv_func_reallocarray=no
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/libfl.a
-	@rm -f $(DESTDIR)$(libdir)/libfl_pic.a
+	@rm -f $(DESTDIR)$(libdir)/libfl.la
 	@$(MAKECOOKIE)
+
+include ../../gar.mk
