@@ -5,6 +5,7 @@
 . /etc/conf
 
 # Create /proc.
+# /bin/echo "real init: creating and mounting /proc /sys /tmp /var /run /dev ..."
 /bin/mkdir -p /proc
 /bin/mount -n -t proc  /proc /proc
 
@@ -33,7 +34,6 @@
 /bin/mkdir -p /run/udev
 
 # Create /dev.
-/bin/mkdir -p /var
 /bin/mount -n -t devtmpfs /dev /dev
 /bin/mknod -m 0600 /dev/initctl p
 /bin/mkdir -p /dev/pts
@@ -42,24 +42,33 @@
 /bin/mount -n -t tmpfs  /dev/shm /dev/shm
 
 # Stop kernel from calling hotplug.
+# /bin/echo "real init: kicking hotplug ..."
 /bin/echo -e '\000\000\000\000' > /proc/sys/kernel/hotplug
 
 # Start udev userspace daemon of listening to events.
+# /bin/echo "real init: starting udev daemon ..."
 /usr/lib/udev/udevd -d
+
 # Regenerate the events that have already happened.
+# /bin/echo "real init: regenerate hapened events again ..."
 /usr/bin/udevadm trigger --action=add
+
 # Wait for udev to process all the regenerated events.
+# /bin/echo "real init: give 60sec for all regenerated events ..."
 /usr/bin/udevadm settle --timeout=60
 
 # Create remaining root directories.
+# /bin/echo "real init: creating and mounting /media /mnt /srv ..."
 /bin/mkdir -p /media
 /bin/mkdir -p /mnt
 /bin/mkdir -p /srv
 
 # Start system logging.
+# /bin/echo "real init: starting syslogd ..."
 /sbin/syslogd
 
 # Determine kernel image and write it to the core configuration file.
+# /bin/echo "real init: collect kernel info in core config file ..."
 MM_KERNEL_IMAGE="${BOOT_IMAGE}"
 /bin/echo -n "MM_KERNEL_IMAGE="   >> /etc/conf.d/core
 /bin/echo -n "'"                  >> /etc/conf.d/core
@@ -67,6 +76,7 @@ MM_KERNEL_IMAGE="${BOOT_IMAGE}"
 /bin/echo    "'"                  >> /etc/conf.d/core
 
 # Determine root file system image and write it to the core configuration file.
+# /bin/echo "real init: collect initrd info in core config file ..."
 MM_ROOTFS_IMAGE="${initrd}"
 /bin/echo -n "MM_ROOTFS_IMAGE="   >> /etc/conf.d/core
 /bin/echo -n "'"                  >> /etc/conf.d/core
@@ -74,6 +84,7 @@ MM_ROOTFS_IMAGE="${initrd}"
 /bin/echo    "'"                  >> /etc/conf.d/core
 
 # Determine root file system type and write it to the core configuration file.
+# /bin/echo "real init: store core config file in rootfs..."
 /usr/bin/test -r /proc/mounts && MM_ROOTFS_TYPE=`/bin/cat /proc/mounts | /bin/grep '^/dev/root /initrd ' | /usr/bin/cut -d' ' -f3`
 /bin/echo -n "MM_ROOTFS_TYPE="    >> /etc/conf.d/core
 /bin/echo -n "'"                  >> /etc/conf.d/core
@@ -82,12 +93,16 @@ MM_ROOTFS_IMAGE="${initrd}"
 
 # Create shared library cache.
 # This is needed so the MySQL perl modules will load correctly.
+# /bin/echo "real init: kick ldconfig ..."
 /sbin/ldconfig
 
 # Loading kernel tuned parameters from sysctl.conf
+# /bin/echo "real init: load kernel tunings from sysctl.conf ..."
 /sbin/sysctl -q -p /etc/sysctl.conf > /dev/null
 
 # Symlink needed by util-linux 2.31
+# /bin/echo "real init: update /etc/mtab ..."
 ln -sf /proc/self/mounts /etc/mtab > /dev/null
 
+# /bin/echo "real init: done! (exit code 0) ..."
 exit 0
