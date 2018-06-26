@@ -3,6 +3,7 @@ GARVERSION = 8d
 CATEGORIES = lib
 MASTER_SITES = http://www.ijg.org/files/
 DISTFILES = jpegsrc.v$(GARVERSION).tar.gz
+PATCHFILES = add_aarch64_detection.patch
 LICENSE = jpeg
 jpeg_LICENSE_TEXT = $(WORKSRC)/README
 DESCRIPTION = 
