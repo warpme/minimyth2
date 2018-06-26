@@ -21,7 +21,8 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--with-udev-dir=$(libdir)/udev
+	--with-udev-dir=$(libdir)/udev \
+	ax_cv_c_check_flag__Werror=no
 
 include ../../gar.mk
 
