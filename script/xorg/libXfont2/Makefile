@@ -10,11 +10,10 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/freetype lib/zlib \
-	$(CATEGORY)/fontsproto \
+DEPENDS = lang/c lib/freetype devel/zlib \
+	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/libfontenc \
 	$(CATEGORY)/util-macros \
-	$(CATEGORY)/xproto \
 	$(CATEGORY)/xtrans
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
