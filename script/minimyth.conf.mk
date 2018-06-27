@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 8.19.0.r583
+mm_VERSION_MINIMYTH ?= 9.0.2.r667
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -39,34 +39,56 @@ mm_DEBUG_BUILD            ?= no
 # Lists the graphics drivers supported.
 # Valid values for mm_GRAPHICS are one or more of 'intel', 'nvidia',
 # 'nvidia-legacy', 'radeon', and 'vmware'.
-mm_GRAPHICS               ?= intel nvidia nvidia-legacy vmware radeon
+mm_GRAPHICS               ?= intel nvidia nvidia-legacy radeon vmware
 
-# Lists the software to be supported.
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
 # 'flash', 'mplayer', 'mplayer-svn', 'voip', 'bumblebee', 'perl', 'python', 'mame',
-# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'chrome', 'firefox', 'debug'.
-mm_SOFTWARE               ?= mythplugins \
-                             perl \
+# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'chrome', 'firefox', 'lcdproc', 'debug'.
+mm_SOFTWARE               ?= \
                              python \
+                             perl \
+                             mythplugins \
                              airplay \
                              avahi \
                              udisks \
                              dvdcss \
-                             makemkv \
                              gstreamer \
+                             mc \
+                             lcdproc \
+                             mednafen \
+                             stella \
                              voip \
+                             makemkv \
                              $(if $(filter $(mm_DEBUG),yes),debug)
 
+#                             fceu \
+#                             jzintv \
+#                             mame \
+#                             mednafen \
+#                             stella \
+#                             visualboyadvance \
+#                             zsnes \
 #                             bumblebee \
 #                             flash \
 #                             mplayer-svn \
-#                             mc
-#                             mame \
 #                             netflix \
+#                             ipxe
+
+# For aarch64 only this list of software compiles OK:
+#                             python \
+#                             perl \
+#                             mythplugins \
+#                             airplay \
+#                             avahi \
+#                             udisks \
+#                             dvdcss \
+#                             gstreamer \
+#                             mc \
+# Rest of software  not supports aarch64 nor fails with compilation...
 
 # Indicates the microprocessor architecture.
-# Valid values for mm_GARCH are 'c3', 'c3-2', 'pentium-mmx', 'x86-64', 'atom'.
+# Valid values for mm_GARCH are 'c3', 'c3-2', 'pentium-mmx', 'x86-64', 'atom', 'armv7', 'armv8'.
 mm_GARCH                  ?= x86-64
 
 # Indicates whether or not to create the RAM based part of the distribution.
@@ -140,12 +162,12 @@ mm_MYTH_VERSION           ?= master
 # mm_MYTH_VERSION           ?= 0.28
 
 # The version of the NVIDIA driver.
-# Valid values are '390.42', '390.48'
-mm_NVIDIA_VERSION         ?= 390.48
+# Valid values are '396.24', '396.24'
+mm_NVIDIA_VERSION         ?= 396.24
 
 # The version of the NVIDIA legacy driver.
-# Valid values are '340.104' and '340.106'
-mm_NVIDIA_LEGACY_VERSION  ?= 340.106
+# Valid values are '340.107' and '340.107'
+mm_NVIDIA_LEGACY_VERSION  ?= 340.107
 
 # The version of xorg to use.
 # Valid values are '7.6'.
@@ -181,31 +203,39 @@ mm_USER_SHARE_LIST        ?=
 #-------------------------------------------------------------------------------
 # Variables that you are not likely to override.
 #-------------------------------------------------------------------------------
+# arch used by kerel arch
 mm_GARCH_FAMILY           ?= $(strip \
                                  $(if $(filter c3         ,$(mm_GARCH)),i386  ) \
                                  $(if $(filter c3-2       ,$(mm_GARCH)),i386  ) \
                                  $(if $(filter pentium-mmx,$(mm_GARCH)),i386  ) \
                                  $(if $(filter atom       ,$(mm_GARCH)),x86_64) \
                                  $(if $(filter x86-64     ,$(mm_GARCH)),x86_64) \
+                                 $(if $(filter armv7      ,$(mm_GARCH)),arm) \
+                                 $(if $(filter armv8      ,$(mm_GARCH)),arm64) \
                               )
+# arch used by i.e. glibc
 mm_GARHOST                ?= $(strip \
                                  $(if $(filter c3         ,$(mm_GARCH)),i586  )  \
                                  $(if $(filter c3-2       ,$(mm_GARCH)),i586  )  \
                                  $(if $(filter pentium-mmx,$(mm_GARCH)),i586  )  \
                                  $(if $(filter atom       ,$(mm_GARCH)),x86_64)  \
                                  $(if $(filter x86-64     ,$(mm_GARCH)),x86_64)  \
+                                 $(if $(filter armv7      ,$(mm_GARCH)),armv7a) \
+                                 $(if $(filter armv8      ,$(mm_GARCH)),aarch64) \
                               )-minimyth-linux-gnu
 mm_CFLAGS                 ?= $(strip \
-                                 -pipe                                                                                       \
-                                 $(if $(filter atom        ,$(mm_GARCH)),-march=atom        -mtune=atom    -O2 -mfpmath=sse -ftree-vectorize -mmovbe) \
-                                 $(if $(filter c3          ,$(mm_GARCH)),-march=c3          -mtune=c3      -Os             ) \
-                                 $(if $(filter c3-2        ,$(mm_GARCH)),-march=c3-2        -mtune=c3-2    -Os -mfpmath=sse) \
-                                 $(if $(filter pentium-mmx ,$(mm_GARCH)),-march=pentium-mmx -mtune=generic -Os             ) \
-                                 $(if $(filter x86-64      ,$(mm_GARCH)),-march=x86-64      -mtune=generic -O3 -mfpmath=sse) \
-                                 -flto                                                                                       \
-                                 $(if $(filter i386  ,$(mm_GARCH_FAMILY)),-m32)                                              \
-                                 $(if $(filter x86_64,$(mm_GARCH_FAMILY)),-m64)                                              \
-                                 $(if $(filter yes,$(mm_DEBUG)),-g)                                                          \
+                                 -pipe                                                                                        \
+                                 $(if $(filter atom        ,$(mm_GARCH)),-march=atom        -mtune=atom     -O2 -mfpmath=sse -ftree-vectorize -mmovbe) \
+                                 $(if $(filter c3          ,$(mm_GARCH)),-march=c3          -mtune=c3       -Os             ) \
+                                 $(if $(filter c3-2        ,$(mm_GARCH)),-march=c3-2        -mtune=c3-2     -Os -mfpmath=sse) \
+                                 $(if $(filter pentium-mmx ,$(mm_GARCH)),-march=pentium-mmx -mtune=generic  -Os             ) \
+                                 $(if $(filter x86-64      ,$(mm_GARCH)),-march=x86-64      -mtune=generic  -O2             ) \
+                                 $(if $(filter armv7       ,$(mm_GARCH)),-march=armv7-a     -mtune=armv7h-a -O2 -mfloat-abi=hard -mfpu=vfpv3-d16) \
+                                 $(if $(filter armv8       ,$(mm_GARCH)),-march=armv8-a     -O2                             ) \
+                                 -flto                                                                                        \
+                                 $(if $(filter i386  ,$(mm_GARCH_FAMILY)),-m32)                                               \
+                                 $(if $(filter x86_64,$(mm_GARCH_FAMILY)),-m64)                                               \
+                                 $(if $(filter yes,$(mm_DEBUG)),-g)                                                           \
                               )
 mm_CXXFLAGS               ?= $(mm_CFLAGS)
 mm_DESTDIR                ?= $(mm_HOME)/images/mm
