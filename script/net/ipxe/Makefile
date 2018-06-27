@@ -1,13 +1,10 @@
 GARNAME = ipxe
-GARVERSION = 23c275bd1e1ddbb7c03254812b938f1992d66b9e
-# used in unpacking sources. First 6 chars of git hash
-GARVERSION_SHORT = 23c275b
+GARVERSION = e7f67d5
 CATEGORIES = net
 MASTER_SITES = https://git.ipxe.org/ipxe.git/snapshot/
 DISTFILES = $(GARVERSION).tar.bz2
 LICENSE = GPL2
-
-WORKSRC = $(WORKDIR)/$(GARNAME)-$(GARVERSION_SHORT)
+WORKSRC = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
 
 DESCRIPTION =
 define BLURB
@@ -26,19 +23,13 @@ BUILD_ARGS = \
 	bin/ipxe.pxe \
 	bin-x86_64-efi/ipxe.efi
 
-# If you want debug - build only with this single BUILD_ARGS
-BUILD_ARGS1 = \
-	HOST_CC="$(build_CC)" \
-	CROSS_COMPILE="$(compiler_prefix)" \
-	bin/undionly.kkpxe DEBUG=undionly:3,undinet:3,pxeparent:3
-
-#	bin/undionly.kkpxe DEBUG=undinet
-
+# If you want debug - build with below's BUILD_ARGS
+#BUILD_ARGS = \
+#	HOST_CC="$(build_CC)" \
+#	CROSS_COMPILE="$(compiler_prefix)" \
+#	bin/undionly.kkpxe DEBUG=undionly:3,undinet:3,pxeparent:3
 
 include ../../gar.mk
-
-CPPFLAGS += -fPIC
-CFLAGS   += -fPIC
 
 git//%$(DISTNAME).tar.bz2:
 	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
