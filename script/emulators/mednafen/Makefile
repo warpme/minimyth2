@@ -1,8 +1,8 @@
 GARNAME = mednafen
-GARVERSION = 0.9.38.5
+GARVERSION = 1.21.3
 CATEGORIES = emulators
-MASTER_SITES = http://downloads.sourceforge.net/project/mednafen/Mednafen/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://mednafen.github.io/releases/files/
+DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL2
 
 DESCRIPTION = 
