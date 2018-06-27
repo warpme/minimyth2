@@ -153,9 +153,9 @@ DEPENDS = \
 		system/bumblebee \
 		system/bbswitch) \
 	X11/xdotool \
-	python/python-pylirc \
-	python/python-pyalsaaudio \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
+		python/python-pylirc \
+		python/python-pyalsaaudio \
 		gtk/gconf \
 		gtk/gtk3 \
 		gtk/harfbuzz \
@@ -165,6 +165,8 @@ DEPENDS = \
 		xorg/libxscrnsaver \
 		browsers/google-chrome) \
 	$(if $(filter firefox,$(mm_SOFTWARE)), \
+		python/python-pylirc \
+		python/python-pyalsaaudio \
 		gtk/gconf \
 		gtk/gtk3 \
 		lib/libcups \
