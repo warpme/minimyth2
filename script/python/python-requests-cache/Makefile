@@ -1,4 +1,4 @@
-GARNAME = requests-cache
+GARNAME = python-requests-cache
 GARVERSION = 0.4.13
 CATEGORIES = python
 MASTER_SITES = https://files.pythonhosted.org/packages/1a/cf/12349c7113b252d9a0b26d497d3349baeb6c8f293b440e55a00e7fa6e4a4/
