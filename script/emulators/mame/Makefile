@@ -1,20 +1,15 @@
 GARNAME = mame
-GARVERSION = 0.163
+GARVERSION = 0.199
 CATEGORIES = emulators
 MASTER_SITES = http://github.com/mamedev/mame/releases/download/$(GARNAME)$(subst .,,$(GARVERSION))/
 DISTFILES = $(GARNAME)$(subst .,,$(GARVERSION))s.zip
-PATCHFILES = \
-	$(DISTNAME)-ar.patch \
-	$(DISTNAME).patch.gar
 LICENSE = BSD_3_Clause/LGPL2_1/GPL3
 
 DESCRIPTION = 
 define BLURB
 endef
 
-# mame 0.162 will build against SDL 2.0 as well.
-# when enabling SDL 2.0, use dependencies lib/SDL2 and lib/SDL2_tff, and set SDL_LIBVER="sdl2" below.
-DEPENDS   = lang/c lang/cxx lib/SDL lib/SDL_ttf xorg/xorg
+DEPENDS   = lang/c lang/cxx lib/SDL2 lib/SDL2_ttf xorg/xorg
 BUILDDEPS = python/python
 
 BUILD_SCRIPTS   = $(WORKSRC)/makefile
@@ -35,7 +30,6 @@ BUILD_ARGS  = \
 	PTR64="$(PTR64)" \
 	LTO="$(LTO)" \
 	OPTIMIZE="$(OPTIMIZE)" \
-	SDL_LIBVER="sdl" \
 	USE_QTDEBUG="0"
 
 include ../../gar.mk
@@ -60,9 +54,11 @@ LDFLAGS  :=
 post-extract:
 	@echo " ==> Extracting $(EXTRACTDIR)/mame.zip"
 	@mkdir -p $(WORKSRC)
-	@unzip $(EXTRACTDIR)/mame.zip -d $(WORKSRC)
+	@# By some reason recent mame .zip archives causing unzip to
+	@# return non-zero exit code. ; true is hack to ovecome this....
+	@unzip $(EXTRACTDIR)/mame.zip -d $(WORKSRC) ; true
 	@rm -f $(EXTRACTDIR)/mame.zip
-	@$(MAKECOOKIE)
+	@#$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(bindir)
