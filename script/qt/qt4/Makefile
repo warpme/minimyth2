@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c lang/cxx db/mysql lib/dbus gtk/glib lib/freetype lib/fontconfig lib/libjpeg lib/libmng lib/libpng lib/libtiff lib/openssl lib/zlib xorg/xorg
+DEPENDS   = lang/c lang/cxx db/mysql lib/dbus gtk/glib lib/freetype lib/fontconfig lib/libjpeg lib/libmng lib/libpng lib/libtiff lib/openssl devel/zlib xorg/xorg
 BUILDDEPS = devel/bison devel/flex
 
 PWD := $(shell pwd)
