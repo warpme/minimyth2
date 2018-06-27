@@ -30,7 +30,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
   --disable-video \
   --disable-sdl \
   --disable-ffmpeg \
-  --disable-v4l2
+  --disable-v4l2 \
+  --disable-libwebrtc \
 
 ifneq ($(DESTIMG),build)
 BUILD_ENV  += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
