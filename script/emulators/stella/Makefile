@@ -1,16 +1,15 @@
 GARNAME = stella
-GARVERSION = 3.9.3
+GARVERSION = 5.1.2
 CATEGORIES = emulators
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
-DISTFILES = $(DISTNAME)-src.tar.gz
-PATCHFILES = $(DISTNAME).patch
+MASTER_SITES = https://github.com/stella-emu/stella/releases/download/$(GARVERSION)/
+DISTFILES = $(DISTNAME)-src.tar.xz
 LICENSE = GPL2
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/cxx lib/SDL lib/zlib xorg/xorg
+DEPENDS = lang/cxx lib/SDL devel/zlib xorg/xorg
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
