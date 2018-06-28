@@ -2,6 +2,7 @@ GARNAME = nss
 GARVERSION = $(NSS_VERSION)
 CATEGORIES = lib
 MASTER_SITES = https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/$(shell echo $(DISTNAME) | sed -e 's/-/_/g' -e 's/\./_/g' -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')_RTM/src/
+PATCHFILES = fix-used-chaintools.patch
 DISTFILES = $(DISTNAME).tar.gz
 ifneq ($(DESTIMG),build)
 PATCHFILES += nss-cross.patch
@@ -31,7 +32,7 @@ BUILD_ARGS = \
 	OS_ARCH="Linux" \
 	OS_TEST="$(GARCH_FAMILY)" \
 	CPU_ARCH="$(GARCH_FAMILY)" \
-	$(if $(filter x86_64,$(GARCH_FAMILY)),USE_64="1") \
+	$(if $(filter x86_64 arm64,$(GARCH_FAMILY)),USE_64="1") \
 	NATIVE_CC="$(build_CC)" \
 	NATIVE_FLAGS="$(build_CFLAGS)" \
 	BUILD_OPT="1" \
@@ -39,6 +40,7 @@ BUILD_ARGS = \
 	USE_SYSTEM_ZLIB="1" \
 	ZLIB_LIBS="-lz" \
 	NSS_ENABLE_WERROR=0 \
+	NSS_DISABLE_CHACHAPOLY=1 \
 	all
 
 include ../../gar.mk
