@@ -13,6 +13,7 @@ DEPENDS = \
 	$(CATEGORY)/freeglut \
 	$(CATEGORY)/iceauth \
 	$(CATEGORY)/libX11 \
+	$(CATEGORY)/libxcomposite \
 	$(CATEGORY)/libXdamage \
 	$(CATEGORY)/libXext \
 	$(CATEGORY)/libXfixes \
