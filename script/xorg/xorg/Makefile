@@ -33,6 +33,7 @@ DEPENDS = \
 	$(CATEGORY)/xcb-util-image \
 	$(CATEGORY)/xcb-util-keysyms \
 	$(CATEGORY)/xcb-util-wm \
+	$(CATEGORY)/xcb-util-renderutil \
 	$(CATEGORY)/xdpyinfo \
 	$(CATEGORY)/xev \
 	$(if $(filter-out build, $(DESTIMG)), \
