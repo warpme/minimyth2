@@ -24,9 +24,28 @@ WORKBLD = $(WORKSRC)_build
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKBLD)/Makefile
-INSTALL_SCRIPTS   = custom
+INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--prefix=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--exec-prefix=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--datarootdir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--bindir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--sbindir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--libexecdir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--sysconfdir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--sharedstatedir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--localstatedir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--libdir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--includedir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--oldincludedir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--datarootdir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--datadir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--infodir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--localedir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--mandir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--docdir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
+	--htmldir=$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static \
 	--disable-sanity-checks \
 	--enable-bind-now \
 	--enable-kernel=2.6.18 \
@@ -37,7 +56,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-elf \
 	--disable-werror \
 	--disable-multi-arch \
-	--cache-file=config.cache
+
 ifeq ($(use_linuxthreads),yes)
 CONFIGURE_ARGS += \
 	--enable-add-ons=linuxthreads \
@@ -80,9 +99,3 @@ configure-custom:
 	@mkdir -p $(WORKBLD)
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) ./$(call DIRSTODOTS,$(WORKBLD))/$(WORKSRC)/configure $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
-
-install-custom:
-	@mkdir -p $(build_DESTDIR)/$(build_bindir)
-	@rm -f $(build_DESTDIR)/$(build_bindir)/localedef-static
-	@cp $(WORKBLD)/locale/localedef $(build_DESTDIR)/$(build_bindir)/localedef-static
-	@chmod 0755 $(build_DESTDIR)/$(build_bindir)/localedef-static
