@@ -2,7 +2,7 @@ GARNAME = mesa
 # GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              20160518-877a802, \
-             18.1.1 ))
+             18.1.3 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              git://anongit.freedesktop.org/mesa/mesa/ , \
@@ -60,21 +60,22 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-dri-driverdir="$(libdir)/dri" \
 	--with-vdpau-libdir="$(libdir)" \
 	--with-platforms=x11,drm \
-	--enable-llvm-shared-libs \
-	--enable-egl \
-	--enable-gbm \
 	--enable-llvm \
+	--enable-llvm-shared-libs \
+	--enable-texture-float \
+	--enable-gbm \
 	--enable-shared-glapi \
 	--enable-glx \
 	--enable-glx-tls \
+	--enable-egl \
+	--enable-gles1 \
+	--enable-gles2 \
 	--enable-dri \
-	--disable-gles1 \
-	--disable-gles2 \
-	--enable-texture-float \
+	--enable-dri3 \
 	--enable-vdpau \
 	--disable-opencl \
 	--disable-opencl-icd \
-	--enable-dri3 \
+	--disable-libglvnd \
 	LIBUDEV_CFLAGS="$(DESTDIR)$(includedir)" \
 	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so"
 
