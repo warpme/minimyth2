@@ -26,8 +26,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-cflags="$(CFLAGS)" \
 	--with-cxxflags="$(CXXFLAGS)" \
 	--with-gnu-ld \
-  	--with-gmp-prefix=$(DESTDIR)$(prefix)
-
+	--with-gmp-prefix=$(DESTDIR)$(prefix)
 
 include ../../gar.mk
 

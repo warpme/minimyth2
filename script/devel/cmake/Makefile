@@ -33,10 +33,3 @@ CONFIGURE_ARGS = \
 	--mandir="$(subst $(prefix),,$(mandir))"
 
 include ../../gar.mk
-
-#CC = "/home/piotro/minimyth-dev/images/build/usr/bin/x86_64-minimyth-linux-gnu-gcc"
-#CXX = "/home/piotro/minimyth-dev/images/build/usr/bin/x86_64-minimyth-linux-gnu-g++"
-
-#CFLAGS   := $(filter-out -flto, $(CFLAGS))
-#CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-#LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
