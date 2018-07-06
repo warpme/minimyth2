@@ -57,6 +57,27 @@ LDFLAGS :=
 install-custom:
 	@mkdir -p $(DESTDIR)$(libdir)
 	@$(foreach lib, $(wildcard $(WORKSRC)/dist/Linux*/lib/*.so), cp -f $(lib) $(DESTDIR)$(libdir) ; )
+	@mkdir -p $(DESTDIR)$(libdir)/pkgconfig
+	@cp $(WORKSRC)/nss/pkg/pkg-config/nss.pc.in $(DESTDIR)$(libdir)/pkgconfig/nss.pc
+	@sed \
+	 -e "s,%libdir%,/usr/lib,g" \
+	 -e "s,%prefix%,/usr,g" \
+	 -e "s,%exec_prefix%,/usr/bin,g" \
+	 -e "s,%includedir%,/usr/include/nss,g" \
+	 -e "s,%NSPR_VERSION%,4.19,g" \
+	 -e "s,%NSS_VERSION%,$(NSS_VERSION),g" \
+	 -i $(DESTDIR)$(libdir)/pkgconfig/nss.pc
+	@cp $(WORKSRC)/nss/pkg/pkg-config/nss-config.in $(DESTDIR)$(bindir)-config/nss-config
+	@sed \
+	 -e "s,@libdir@,/usr/lib,g" \
+	 -e "s,@prefix@,/usr,g" \
+	 -e "s,@exec_prefix@,/usr/bin,g" \
+	 -e "s,@includedir@,/usr/include/nss,g" \
+	 -e "s,@MOD_MAJOR_VERSION@,3,g" \
+	 -e "s,@MOD_MINOR_VERSION@,38,g" \
+	 -e "s,@MOD_PATCH_VERSION@,0,g" \
+	 -i $(DESTDIR)$(bindir)-config/nss-config
+	@chmod +x $(DESTDIR)$(bindir)-config/nss-config
 	@$(MAKECOOKIE)
 
 install-shlibsign:
