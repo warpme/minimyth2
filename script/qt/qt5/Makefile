@@ -86,9 +86,13 @@ CONFIGURE_ARGS = \
 	-glib \
 	-hostprefix $(DESTDIR)$(qt5prefix) \
 	-force-pkg-config \
-	-continue \
-	-silent
+	-skip qttranslations \
+	-skip qtserialport \
+	-skip qtwebengine \
+	-skip qtwebkit-examples \
+	-verbose \
 
+#	-silent \
 #	-verbose \
 
 ifeq ($(DESTIMG),build)
