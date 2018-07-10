@@ -183,6 +183,10 @@ DEPENDS = \
 	xorg/xorg \
 	devel/yasm \
 
+BUILDDEPS = \
+    python/python-MySQL-python \
+    python/python-urlgrabber \
+
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
