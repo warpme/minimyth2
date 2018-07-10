@@ -1,12 +1,12 @@
-GARNAME = fceu
-GARVERSION = 0.98.13-pre
+GARNAME = fceux
+GARVERSION = 2.2.3
 CATEGORIES = emulators
-MASTER_SITES = http://downloads.sourceforge.net/project/fceultra/Source%20Code/$(GARVERSION)/
-DISTFILES = $(DISTNAME).src.tar.bz2
-PATCHFILES = \
-	$(DISTNAME)-zlib_1.2.6.patch \
-	$(DISTNAME)-fixes.patch \
-	$(DISTNAME)-sdl_sound.patch
+MASTER_SITES = http://sourceforge.net/projects/fceultra/files/Source%20Code/2.2.3%20src/
+DISTFILES = $(DISTNAME).src.tar.gz
+#PATCHFILES = \
+#	$(DISTNAME)-zlib_1.2.6.patch \
+#	$(DISTNAME)-fixes.patch \
+#	$(DISTNAME)-sdl_sound.patch
 LICENSE = GPL2
 
 DESCRIPTION = 
@@ -15,7 +15,7 @@ endef
 
 DEPENDS = lang/c lib/SDL
 
-WORKSRC = $(WORKDIR)/$(GARNAME)
+#WORKSRC = $(WORKDIR)/$(GARNAME)
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
