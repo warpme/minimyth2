@@ -4,11 +4,7 @@ CATEGORIES = emulators
 MASTER_SITES = http://downloads.sourceforge.net/project/vba/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(GARNAME)-src-$(GARVERSION).tar.gz
 PATCHFILES = \
-	$(DISTNAME)-libpng_1.5.patch \
-	$(DISTNAME)-zlib_1.2.6.patch \
-	$(DISTNAME)-configure.patch \
 	$(DISTNAME)-strrchr.patch \
-	$(DISTNAME)-x86_64.patch \
 	$(DISTNAME)-debugger.patch
 LICENSE = GPL2
 
@@ -16,7 +12,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c lang/cxx lib/libpng lib/SDL lib/zlib xorg/xorg
+DEPENDS   = lang/c lang/cxx lib/libpng lib/SDL devel/zlib xorg/xorg
 BUILDDEPS = devel/nasm
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
@@ -35,14 +31,12 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-rpath \
 	$(if $(filter i386,$(GARCH_FAMILY)),--with-mmx,--without-mmx) \
 	--with-x \
-	--with-gnu-ld
-
-CONFIGURE_ENV = \
-	SDL_CONFIG=$(DESTDIR)$(prefix)/bin-config/sdl-config
+	--with-gnu-ld \
+	--disable-silent-rules \
+	CFLAGS=-Wno-all \
+	CPPFLAGS=-Wno-all \
 
 include ../../gar.mk
-
-LDFLAGS := $(LDFLAGS) -fwhole-program
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
