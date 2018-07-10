@@ -1,10 +1,11 @@
 GARNAME = jzintv
-GARVERSION = 1.0-beta3
+GARVERSION = 20180509
 CATEGORIES = emulators
 MASTER_SITES = http://spatula-city.org/~im14u2c/intv/dl/
 DISTFILES = $(DISTNAME)-src.zip
-PATCHFILES  = $(DISTNAME)-debug_printf.patch $(DISTNAME).patch.gar
 LICENSE = GPL2
+
+WORKSRC = $(WORKDIR)/$(DISTNAME)-src
 
 DESCRIPTION = 
 define BLURB
