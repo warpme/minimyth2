@@ -176,17 +176,12 @@ DEPENDS = \
 	python/python-lxml \
 	python/python-urlgrabber \
 	qt/qt5 \
+	qt/qt5WebKit \
 	system/lirc \
 	system/eudev \
 	X11/libvdpau \
-	xorg/xorg
-BUILDDEPS = \
+	xorg/xorg \
 	devel/yasm \
-	python/python-distutilscross \
-	python/python-MySQL-python \
-	python/python-lxml \
-	python/python-urlgrabber
-
 
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 
