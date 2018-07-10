@@ -3,7 +3,7 @@
 # '$(HOME)/.minimyth/minimyth.conf.mk'.
 #-------------------------------------------------------------------------------
 
--include $(HOME)/.minimyth/minimyth.conf.mk
+# -include $(HOME)/.minimyth/minimyth.conf.mk
 
 # The version of MiniMyth.
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.0.2.r667
+mm_VERSION_MINIMYTH ?= 9.1.0.r670
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -75,18 +75,6 @@ mm_SOFTWARE               ?= \
 #                             netflix \
 #                             ipxe
 
-# For aarch64 only this list of software compiles OK:
-#                             python \
-#                             perl \
-#                             mythplugins \
-#                             airplay \
-#                             avahi \
-#                             udisks \
-#                             dvdcss \
-#                             gstreamer \
-#                             mc \
-# Rest of software  not supports aarch64 nor fails with compilation...
-
 # Indicates the microprocessor architecture.
 # Valid values for mm_GARCH are 'c3', 'c3-2', 'pentium-mmx', 'x86-64', 'atom', 'armv7', 'armv8'.
 mm_GARCH                  ?= x86-64
@@ -143,12 +131,12 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '4.15' and '4.16'
-mm_KERNEL_HEADERS_VERSION ?= 4.16
+# Valid values are '4.16' and '4.17'
+mm_KERNEL_HEADERS_VERSION ?= 4.17
 
 # The version of kernel to use.
-# Valid values are '4.15' and '4.16'
-mm_KERNEL_VERSION         ?= 4.16
+# Valid values are '4.16' and '4.17'
+mm_KERNEL_VERSION         ?= 4.17
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -229,7 +217,7 @@ mm_CFLAGS                 ?= $(strip \
                                  $(if $(filter c3          ,$(mm_GARCH)),-march=c3          -mtune=c3       -Os             ) \
                                  $(if $(filter c3-2        ,$(mm_GARCH)),-march=c3-2        -mtune=c3-2     -Os -mfpmath=sse) \
                                  $(if $(filter pentium-mmx ,$(mm_GARCH)),-march=pentium-mmx -mtune=generic  -Os             ) \
-                                 $(if $(filter x86-64      ,$(mm_GARCH)),-march=x86-64      -mtune=generic  -O2             ) \
+                                 $(if $(filter x86-64      ,$(mm_GARCH)),-march=x86-64      -mtune=generic  -O3 -mfpmath=sse) \
                                  $(if $(filter armv7       ,$(mm_GARCH)),-march=armv7-a     -mtune=armv7h-a -O2 -mfloat-abi=hard -mfpu=vfpv3-d16) \
                                  $(if $(filter armv8       ,$(mm_GARCH)),-march=armv8-a     -O2                             ) \
                                  -flto                                                                                        \
