@@ -14,7 +14,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c lang/cxx lib/libpng lib/SDL lib/zlib xorg/xorg
+DEPENDS   = lang/c lang/cxx lib/libpng lib/SDL devel/zlib xorg/xorg
 BUILDDEPS = devel/nasm
 
 WORKSRC = $(WORKDIR)/$(GARNAME)_$(subst .,_,$(GARVERSION))/src
