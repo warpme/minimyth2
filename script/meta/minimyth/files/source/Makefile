@@ -13,8 +13,8 @@ include $(top_build)/config.mk
 mm_NAME := minimyth2-$(mm_VERSION)
 
 MM_LIST_FILES    = $(strip \
-	$(if $(wildcard lists/base-$(strip $(2))/minimyth-$(strip $(1))-list), \
-                        lists/base-$(strip $(2))/minimyth-$(strip $(1))-list ) \
+	$(if $(wildcard lists/minimyth-$(strip $(1))-list), \
+                        lists/minimyth-$(strip $(1))-list ) \
 	$(if $(wildcard lists/extras/extras-$(strip $(1))-list), \
                         lists/extras/extras-$(strip $(1))-list ) \
 	$(filter $(patsubst %,lists/graphics/minimyth-$(strip $(1))-list.%,$(mm_GRAPHICS)), \
@@ -23,11 +23,11 @@ MM_LIST_FILES    = $(strip \
                  $(wildcard   lists/software/minimyth-$(strip $(1))-list.*               )) \
 	$(filter $(patsubst %,lists/software/minimyth-$(strip $(1))-list.%:$(mm_MYTH_VERSION),$(mm_SOFTWARE)), \
                  $(wildcard   lists/software/minimyth-$(strip $(1))-list.*:$(mm_MYTH_VERSION)              )))
-MM_BIN_FILES    := $(call MM_LIST_FILES, bin,    $(mm_GARCH_FAMILY))
-MM_LIB_FILES    := $(call MM_LIST_FILES, lib,    $(mm_GARCH_FAMILY))
-MM_ETC_FILES    := $(call MM_LIST_FILES, etc,    $(mm_GARCH_FAMILY))
-MM_SHARE_FILES  := $(call MM_LIST_FILES, share,  $(mm_GARCH_FAMILY))
-MM_REMOVE_FILES := $(call MM_LIST_FILES, remove, $(mm_GARCH_FAMILY))
+MM_BIN_FILES    := $(call MM_LIST_FILES, bin)
+MM_LIB_FILES    := $(call MM_LIST_FILES, lib)
+MM_ETC_FILES    := $(call MM_LIST_FILES, etc)
+MM_SHARE_FILES  := $(call MM_LIST_FILES, share)
+MM_REMOVE_FILES := $(call MM_LIST_FILES, remove)
 
 MM_BIN_DEBUG    := $(strip $(if $(filter yes,$(mm_DEBUG)), \
 	gdb \
@@ -137,12 +137,15 @@ build: \
 	$(if $(filter yes,$(mm_DISTRIBUTION_LOCAL)),$(top_build)/local) \
 	$(if $(filter yes,$(mm_DISTRIBUTION_SHARE)),$(top_build)/share)
 
-$(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir) $(top_source) $(top_build)/stage/html
+$(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir) $(top_source) $(top_build)/stage/gar-$(mm_NAME).tar.bz2
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
 	@mkdir -m 0755 -p $@~
 	@# Make home directory for user 'root'.
 	@mkdir -p $@~/root
+	@# Copy source.
+	@#mkdir -p $@~$(sourcedir)
+	@#cp -pdR $(top_build)/stage/gar-$(mm_NAME).tar.bz2 $@~$(sourcedir)/gar-$(mm_NAME).tar.bz2
 	@# Copy versions.
 	@mkdir -p $@~$(versiondir)-build
 	@cp -pdR $(build_DESTDIR)$(build_versiondir)/* $@~$(versiondir)-build
@@ -187,12 +190,13 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		cp -pdR $(DESTDIR)$(qt5prefix)/plugins/imageformats    $@~$(qt5prefix)/plugins ; \
 		cp -pdR $(DESTDIR)$(qt5prefix)/plugins/sqldrivers      $@~$(qt5prefix)/plugins ; \
 	 fi
-	@# adding supported video HW list
-	@mkdir -m 0755 -p $@~/srv/www
-	@cp -pd $(top_build)/stage/supported-gfx-hardware.txt $@~/srv/www/document-supported-gfx-hardware.txt
-	@# adding supported IR remotes list
-	@cp -pd $(top_build)/stage/supported-IR-remotes.txt $@~/srv/www/document-supported-IR-remotes.txt
-	@# Copy source HTML files
+	@echo 'generating supported video HW list'
+	@cat $(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt $(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt $(DESTDIR)/usr/share/supported-nvidia-gfx-hardware.txt $(DESTDIR)/usr/share/supported-nvidia-legacy-gfx-hardware.txt> $(top_source)/html/document-supported-gfx-hardware.txt
+	@grep "PCI_ID" -c $(top_source)/html/document-supported-gfx-hardware.txt | sed -e 's/^/\nTotal video chips supported: /g' >> $(top_source)/html/document-supported-gfx-hardware.txt
+	@echo 'generating supported IR remotes list'
+	@cp -pd $(DESTDIR)/usr/share/supported-IR-remotes.txt $(top_source)/html/document-supported-IR-remotes.txt
+	@grep -c ^ $(top_source)/html/document-supported-IR-remotes.txt | sed -e 's/^/\nTotal IR receivers supported: /g' >> $(top_source)/html/document-supported-IR-remotes.txt
+	@# Copy HTML files.
 	@find $(top_source)/html -depth -type d \
 		| sed -e 's%^\$(top_source)/html%$@~/srv/www%' \
 		| xargs -n 1 mkdir -m 0755 -p
@@ -231,14 +235,15 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/3840x2160.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/640x480.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/800x600.cfg
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~/srv/www/index.html
+	@sed -i 's%@MM_NVIDIA_VERSION@%$(mm_NVIDIA_VERSION)%g'     $@~/srv/www/index.html
+	@sed -i 's%@MM_NVIDIA_LEGACY_VERSION@%$(mm_NVIDIA_LEGACY_VERSION)%g' $@~/srv/www/index.html
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)-$(mm_GARCH)%g' $@~/etc/os_myth_release
 	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_SVN_VERSION)%g'   $@~/etc/os_myth_release
 	@sed -i 's%@MM_NVIDIA_VERSION@%$(mm_NVIDIA_VERSION)%g'     $@~/etc/os_myth_release
 	@sed -i 's%@MM_NVIDIA_LEGACY_VERSION@%$(mm_NVIDIA_LEGACY_VERSION)%g' $@~/etc/os_myth_release
 	@sed -i 's%@MM_GARCH@%$(mm_GARCH)%g'                       $@~/etc/os_myth_release
 	@sed -i 's%@MM_VERSION@%$(mm_VERSION)%g'                   $@~/etc/version
-	@# Adding updated HTML index.html file
-	@cp -pd $(top_build)/stage/html/index.html $@~/srv/www/index.html
 	@# Create the minimyth build configuration file.
 	@rm -rf   $@~$(versiondir)/minimyth.conf.mk
 	@mkdir -m 0755 -p $@~$(versiondir)
@@ -250,6 +255,9 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		echo $(dir) >> $@~$(sysconfdir)/ld.so.conf ; )
 	@rm -f $@~$(sysconfdir)/ld.so.cache{,~}
 	@# Make documentation links.
+	@mkdir -m 0755 -p $@~/srv/www/software
+	@ln -sf $(patsubst /%,%,$(call DIRSTODOTS,/srv/www/software))$(sourcedir)/gar-$(mm_NAME).tar.bz2 \
+		$@~/srv/www/software/gar-$(mm_NAME).tar.bz2
 	@mkdir -m 0755 -p $@~/srv/www/software/base
 	@ln -sf $(patsubst /%,%,$(call DIRSTODOTS,/srv/www/software/base))$(versiondir) \
 	        $@~/srv/www/software/base/versions
@@ -489,6 +497,11 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		| grep -v '/ld-linux.so.[0-9]\+$$' \
 		| grep -v '/ld-linux-x86-64.so.[0-9]\+$$' \
 		| xargs chmod 0644
+	@echo 'copying updated index.html'
+	@cp -pdR $@~/srv/www/index.html $(mm_HOME)/html/minimyth/index.html
+	@sed -i '/.*cgi-bin.*/d' $(mm_HOME)/html/minimyth/index.html
+	@echo 'copying updated document-supported-gfx-hardware.txt'
+	@cp -pdR $@~/srv/www/document-supported-gfx-hardware.txt $(mm_HOME)/html/minimyth/document-supported-gfx-hardware.txt
 	@$(call SET_PERMISSIONS,$@~)
 	@touch $@~
 	@mv $@~ $@
@@ -520,7 +533,6 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 	@mkdir -m 0755 -p                   $@~/bin
 	@mkdir -m 0755 -p                   $@~/sbin
 	@ln -s rootfs-ro/dev                $@~/dev
-	@ln -s rootfs-ro/lib64              $@~/lib64
 	@ln -s rootfs-ro/lib                $@~/lib
 	@ln -s rootfs-ro/usr                $@~/usr
 	@ln -s ../rootfs-ro/bin/mkdir       $@~/bin/mkdir
@@ -528,8 +540,6 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 	@ln -s ../rootfs-ro/bin/mount       $@~/bin/mount
 	@ln -s ../rootfs-ro/sbin/pivot_root $@~/sbin/pivot_root
 	@ln -s ../rootfs-ro/bin/sh          $@~/bin/sh
-	@ln -s ../rootfs-ro/bin/echo        $@~/bin/echo
-	@ln -s ../rootfs-ro/bin/ls          $@~/bin/ls
 	@find $(top_source)/initrd -depth -type d \
 		| sed -e 's%^\$(top_source)/initrd%$@~%' \
 		| xargs -n 1 mkdir -m 0755 -p
@@ -543,22 +553,12 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 	@chmod 0700 $@~/rootfs-ro/home/minimyth/.ssh
 	@chmod 0600 $@~/rootfs-ro/home/minimyth/.ssh/id_rsa
 	@chmod 0755 $@~/rootfs-ro/usr/bin/ssh
-	@# Set of hacks for 64bit ARM platforms glibc
-	@if [ -e $@~/rootfs-ro/lib/ld-linux-* ] ; then    \
-		chmod 0755 $@~/rootfs-ro/lib/ld-linux-* ; \
-	 fi
-	@if [ ! -e $@~/rootfs-ro/lib64/libmount.so* ] ; then    \
-		ln -sr $@~/rootfs-ro/lib/libmount.so.1 $@~/rootfs-ro/lib64/libmount.so.1 ; \
-	 fi
-	@if [ ! -e $@~/rootfs-ro/lib64/libblkid.so* ] ; then    \
-		ln -sr $@~/rootfs-ro/lib/libblkid.so.1 $@~/rootfs-ro/lib64/libblkid.so.1 ; \
-	 fi
-	@if [ ! -e $@~/rootfs-ro/lib64/libuuid.so* ] ; then    \
-		ln -sr $@~/rootfs-ro/lib/libuuid.so.1 $@~/rootfs-ro/lib64/libuuid.so.1 ; \
-	 fi
 	@# Hack for strip wich is cheated by mplayer exec
 	@if [ -e $@~/rootfs-ro/usr/bin/mplayer ] ; then    \
 		chmod 0755 $@~/rootfs-ro/usr/bin/mplayer ; \
+	 fi
+	@if [ -e $@~/rootfs-ro/usr/bin/mplayer-svn ] ; then    \
+		chmod 0755 $@~/rootfs-ro/usr/bin/mplayer-svn ; \
 	 fi
 	@touch $@~
 	@mv $@~ $@
@@ -651,32 +651,11 @@ $(top_build)/stage/helper: \
 	@touch $@~
 	@mv $@~ $@
 
-$(top_build)/stage/html: \
-		$(top_source)/html \
-		$(top_build)/stage/supported-gfx-hardware.txt \
-		$(top_build)/stage/supported-IR-remotes.txt
-	@echo "copying source HTML documentation"
+$(top_build)/stage/html: $(top_source)/html
+	@echo "copying HTML documentation"
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
-	@cp -pdR $(top_source)/html/ $@~
-	@echo "updating index.html"
-	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g'           $@~/index.html
-	@sed -i 's%@MM_NVIDIA_VERSION@%$(mm_NVIDIA_VERSION)%g'               $@~/index.html
-	@sed -i 's%@MM_NVIDIA_LEGACY_VERSION@%$(mm_NVIDIA_LEGACY_VERSION)%g' $@~/index.html
-	@sed -i 's%@LINUX_FULL_VERSION@%$(LINUX_FULL_VERSION)%g'             $@~/index.html
-	@echo "updating version and licenses in HTML documentation"
-	@mkdir -m 0755 -p $@~/software/base
-	@cp -pdR $(DESTDIR)$(versiondir) $@~/software/base/
-	@cp -pdR $(DESTDIR)$(licensedir) $@~/software/base/
-	@mkdir -m 0755 -p $@~/software/extras
-	@cp -pdR $(DESTDIR)$(extras_versiondir) $@~/software/extras/
-	@cp -pdR $(DESTDIR)$(extras_licensedir) $@~/software/extras/
-	@mkdir -m 0755 -p $@~/software/build
-	@cp -pdR $(build_versiondir)  $@~/software/build/
-	@cp -pdR $(build_licensedir)  $@~/software/build/
-	@echo "adding gfx/IR lists to HTML documentation"
-	@cp $(top_build)/stage/supported-gfx-hardware.txt $@~/document-supported-gfx-hardware.txt
-	@cp $(top_build)/stage/supported-IR-remotes.txt $@~/document-supported-IR-remotes.txt
+	@cp -pdR $^ $@~
 	@find $@~ -depth -type d -exec chmod 0755 '{}' \;
 	@find $@~ -depth -type f -exec chmod 0644 '{}' \;
 	@touch $@~
@@ -723,27 +702,20 @@ $(top_build)/stage/release-notes.txt: $(top_source)/html/document-release-notes.
 	@touch $@~
 	@mv $@~ $@
 
-$(top_build)/stage/supported-gfx-hardware.txt:
-	@echo "generating supported-gfx-hardware.txt file"
+$(top_build)/stage/supported-gfx-hardware.txt: $(top_source)/html/document-supported-gfx-hardware.txt
+	@echo "supported-gfx-hardware.txt file"
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
-	@touch $@~
-	$(if $(filter radeon,        $(mm_GRAPHICS)),@cat $(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt           >> $@~)
-	$(if $(filter intel,         $(mm_GRAPHICS)),@cat $(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt         >> $@~)
-	$(if $(filter nvidia,        $(mm_GRAPHICS)),@cat $(DESTDIR)/usr/share/supported-nvidia-gfx-hardware.txt        >> $@~)
-	$(if $(filter nvidia-legacy, $(mm_GRAPHICS)),@cat $(DESTDIR)/usr/share/supported-nvidia-legacy-gfx-hardware.txt >> $@~)
-	$(if $(filter vc4,           $(mm_GRAPHICS)),@cat $(DESTDIR)/usr/share/supported-vc4-gfx-hardware.txt           >> $@~)
-	@grep "PCI_ID" -c $@~ | sed -e 's/^/\nTotal video chips supported: /g' >> $@~
+	@cp -pdR $< $@~
 	@chmod 0644 $@~
 	@touch $@~
 	@mv $@~ $@
 
-$(top_build)/stage/supported-IR-remotes.txt:
-	@echo "deberting supported-IR-remotes.txt file"
+$(top_build)/stage/supported-IR-remotes.txt: $(top_source)/html/document-supported-IR-remotes.txt
+	@echo "supported-IR-remotes.txt file"
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
-	@cp -pd $(DESTDIR)/usr/share/supported-IR-remotes.txt $@~
-	@grep -c ^ $@~ | sed -e 's/^/\nTotal IR receivers supported: /g' >> $@~
+	@cp -pdR $< $@~
 	@chmod 0644 $@~
 	@touch $@~
 	@mv $@~ $@
@@ -763,36 +735,6 @@ $(top_build)/stage/kernel: $(DESTDIR)/$(LINUX_DIR)/vmlinuz
 	@rm -rf $@ $@~
 	@cp -pdR $< $@~
 	@chmod 0644 $@~
-	@touch $@~
-	@mv $@~ $@
-
-$(top_build)/stage/boot/Image.gz: $(DESTDIR)/$(LINUX_DIR)/Image.gz
-	@echo "copying ARM kernel image"
-	@mkdir -m 0755 -p $(@D)
-	@rm -rf $@ $@~
-	@cp -pdR $< $@~
-	@chmod 0644 $@~
-	@touch $@~
-	@mv $@~ $@
-
-$(top_build)/stage/boot/Image: $(DESTDIR)/$(LINUX_DIR)/Image
-	@echo "copying ARM kernel image"
-	@mkdir -m 0755 -p $(@D)
-	@rm -rf $@ $@~
-	@cp -pdR $< $@~
-	@chmod 0644 $@~
-	@touch $@~
-	@mv $@~ $@
-
-#	@cp -pdR $</$(extras_rootdir)/* $@~
-
-$(top_build)/stage/boot/dtbs: $(DESTDIR)/$(LINUX_DIR)/dtbs
-	@echo "copying ARM kernel dtbs files"
-	@mkdir -m 0755 -p $(@D)
-	@rm -rf $@ $@~
-	@cp -pdR $^ $@~
-	@find $@~ -depth -type d -exec chmod 0755 '{}' \;
-	@find $@~ -depth -type f -exec chmod 0644 '{}' \;
 	@touch $@~
 	@mv $@~ $@
 
@@ -889,26 +831,6 @@ $(top_build)/stage/share/nfs-$(mm_NAME):
 	@touch $@~
 	@mv $@~ $@
 
-ifeq ($(mm_GARCH_FAMILY),arm)
-$(top_build)/stage/share/ram-$(mm_NAME):         \
-		$(top_build)/stage/version       \
-		$(top_build)/stage/html          \
-		$(top_build)/stage/scripts       \
-		$(top_build)/stage/boot/Image.gz \
-		$(top_build)/stage/boot/dtbs     \
-		$(top_build)/stage/rootfs        \
-		$(top_build)/stage/themes
-else
-ifeq ($(mm_GARCH_FAMILY),arm64)
-$(top_build)/stage/share/ram-$(mm_NAME):         \
-		$(top_build)/stage/version       \
-		$(top_build)/stage/html          \
-		$(top_build)/stage/scripts       \
-		$(top_build)/stage/boot/Image.gz \
-		$(top_build)/stage/boot/dtbs     \
-		$(top_build)/stage/rootfs        \
-		$(top_build)/stage/themes
-else
 $(top_build)/stage/share/ram-$(mm_NAME):   \
 		$(top_build)/stage/version \
 		$(top_build)/stage/html    \
@@ -916,31 +838,7 @@ $(top_build)/stage/share/ram-$(mm_NAME):   \
 		$(top_build)/stage/kernel  \
 		$(top_build)/stage/rootfs  \
 		$(top_build)/stage/themes
-endif
-endif
 
-ifeq ($(mm_GARCH_FAMILY),arm)
-$(top_build)/stage/share/nfs-$(mm_NAME):          \
-		$(top_build)/stage/version        \
-		$(top_build)/stage/html           \
-		$(top_build)/stage/scripts        \
-		$(top_build)/stage/boot/Image     \
-		$(top_build)/stage/boot/Image.gz  \
-		$(top_build)/stage/boot/dtbs      \
-		$(top_build)/stage/rootfs.tar.bz2 \
-		$(top_build)/stage/themes.tar.bz2
-else
-ifeq ($(mm_GARCH_FAMILY),arm64)
-$(top_build)/stage/share/nfs-$(mm_NAME):          \
-		$(top_build)/stage/version        \
-		$(top_build)/stage/html           \
-		$(top_build)/stage/scripts        \
-		$(top_build)/stage/boot/Image     \
-		$(top_build)/stage/boot/Image.gz  \
-		$(top_build)/stage/boot/dtbs      \
-		$(top_build)/stage/rootfs.tar.bz2 \
-		$(top_build)/stage/themes.tar.bz2
-else
 $(top_build)/stage/share/nfs-$(mm_NAME):          \
 		$(top_build)/stage/version        \
 		$(top_build)/stage/html           \
@@ -948,64 +846,16 @@ $(top_build)/stage/share/nfs-$(mm_NAME):          \
 		$(top_build)/stage/kernel         \
 		$(top_build)/stage/rootfs.tar.bz2 \
 		$(top_build)/stage/themes.tar.bz2
-endif
-endif
 
-ifeq ($(mm_GARCH_FAMILY),arm)
-$(top_build)/stage/local/ram-$(mm_NAME):                      \
-		$(top_build)/stage/version                    \
-		$(top_build)/stage/boot/Image.gz              \
-		$(top_build)/stage/boot/dtbs                  \
-		$(top_build)/stage/rootfs                     \
-		$(top_build)/stage/changelog.txt              \
-		$(top_build)/stage/release-notes.txt          \
-		$(top_build)/stage/supported-IR-remotes.txt
-else
-ifeq ($(mm_GARCH_FAMILY),arm64)
-$(top_build)/stage/local/ram-$(mm_NAME):                      \
-		$(top_build)/stage/version                    \
-		$(top_build)/stage/boot/Image.gz              \
-		$(top_build)/stage/boot/dtbs                  \
-		$(top_build)/stage/rootfs                     \
-		$(top_build)/stage/changelog.txt              \
-		$(top_build)/stage/release-notes.txt          \
-		$(top_build)/stage/supported-IR-remotes.txt
-else
-$(top_build)/stage/local/ram-$(mm_NAME):                      \
-		$(top_build)/stage/version                    \
-		$(top_build)/stage/kernel                     \
-		$(top_build)/stage/rootfs                     \
-		$(top_build)/stage/changelog.txt              \
-		$(top_build)/stage/release-notes.txt          \
+$(top_build)/stage/local/ram-$(mm_NAME):             \
+		$(top_build)/stage/version           \
+		$(top_build)/stage/kernel            \
+		$(top_build)/stage/rootfs            \
+		$(top_build)/stage/changelog.txt     \
+		$(top_build)/stage/release-notes.txt \
 		$(top_build)/stage/supported-gfx-hardware.txt \
 		$(top_build)/stage/supported-IR-remotes.txt
-endif
-endif
 
-ifeq ($(mm_GARCH_FAMILY),arm)
-$(top_build)/stage/local/nfs-$(mm_NAME): \
-		$(top_build)/stage/version        \
-		$(top_build)/stage/html           \
-		$(top_build)/stage/scripts        \
-		$(top_build)/stage/boot/Image     \
-		$(top_build)/stage/boot/Image.gz  \
-		$(top_build)/stage/boot/dtbs      \
-		$(top_build)/stage/rootfs.tar.bz2 \
-		$(top_build)/stage/themes.tar.bz2 \
-		$(top_build)/stage/extras.tar.bz2
-else
-ifeq ($(mm_GARCH_FAMILY),arm64)
-$(top_build)/stage/local/nfs-$(mm_NAME): \
-		$(top_build)/stage/version        \
-		$(top_build)/stage/html           \
-		$(top_build)/stage/scripts        \
-		$(top_build)/stage/boot/Image     \
-		$(top_build)/stage/boot/Image.gz  \
-		$(top_build)/stage/boot/dtbs      \
-		$(top_build)/stage/rootfs.tar.bz2 \
-		$(top_build)/stage/themes.tar.bz2 \
-		$(top_build)/stage/extras.tar.bz2
-else
 $(top_build)/stage/local/nfs-$(mm_NAME): \
 		$(top_build)/stage/version        \
 		$(top_build)/stage/html           \
@@ -1014,8 +864,6 @@ $(top_build)/stage/local/nfs-$(mm_NAME): \
 		$(top_build)/stage/rootfs.tar.bz2 \
 		$(top_build)/stage/themes.tar.bz2 \
 		$(top_build)/stage/extras.tar.bz2
-endif
-endif
 
 $(top_build)/local: \
 		$(top_build)/stage/scripts                                                                      \
@@ -1029,7 +877,9 @@ $(top_build)/local: \
 		$(if $(filter yes,$(mm_DISTRIBUTION_NFS)), $(top_build)/stage/local/nfs-$(mm_NAME).tar.bz2)     \
 		$(if $(filter yes,$(mm_DISTRIBUTION_NFS)), $(top_build)/stage/local/nfs-$(mm_NAME).tar.bz2.md5) \
 		$(top_build)/stage/changelog.txt                                                                \
-		$(top_build)/stage/release-notes.txt
+		$(top_build)/stage/release-notes.txt                                                            \
+		$(top_build)/stage/supported-gfx-hardware.txt                                                   \
+		$(top_build)/stage/supported-IR-remotes.txt
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
 	@mkdir -m 0755 -p $@~
@@ -1061,9 +911,6 @@ $(top_build)/share: \
 	@touch $@~
 	@mv $@~ $@
 	@echo "made share distribution"
-
-#		$(top_build)/stage/supported-gfx-hardware.txt                                                   \
-#		$(top_build)/stage/supported-IR-remotes.txt
 
 install: build
 	@rm -rf   $(mm_DESTDIR)
