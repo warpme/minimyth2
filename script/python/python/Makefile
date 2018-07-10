@@ -52,7 +52,7 @@ INSTALL_ARGS   = \
 	CROSS_COMPILE=$(compiler_prefix) \
 	CROSS_COMPILE_TARGET=yes
 endif
-	
+
 ifneq ($(DESTIMG),build)
 CONFIGURE_ENV = \
 	ac_cv_file__dev_ptc=no \
