@@ -13,7 +13,7 @@ PATCHFILES += 0005-tid_debug_verbosity.patch
 PATCHFILES += 0006-cardutil_show_displayname.patch
 PATCHFILES += 0007-allow_no_tuners.patch
 PATCHFILES += 0008-SCR_keep_disecq_always_18V.patch
-#PATCHFILES += 0009-make_EIT_start_at_time-v4.patch
+PATCHFILES += 0009-make_EIT_start_at_time-v5.patch
 PATCHFILES += 0010-decrease-some-PMT-DVB-errors-logging.patch
 PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
@@ -171,26 +171,23 @@ DEPENDS = \
 	lib/SDL2 \
 	lib/taglib \
 	devel/zlib \
+	devel/yasm \
 	python/python \
 	python/python-MySQL-python \
 	python/python-lxml \
 	python/python-urlgrabber \
 	python/python-future \
 	python/python-requests-cache \
-	qt/qt5 \
 	system/lirc \
 	system/eudev \
 	X11/libvdpau \
-	xorg/xorg
-BUILDDEPS = \
-	devel/yasm \
-	python/python-distutilscross \
-	python/python-MySQL-python \
-	python/python-lxml \
-	python/python-urlgrabber \
-	python/python-future \
-	python/python-requests-cache
+	xorg/xorg \
+	qt/qt5 \
+#	qt/qt5webkit \
 
+BUILDDEPS = \
+	python/python-MySQL-python \
+	python/python-urlgrabber \
 
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 
@@ -202,6 +199,7 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/mythtv/configure
 BUILD_SCRIPTS     = $(WORKSRC)/mythtv/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/mythtv/Makefile source
 
+
 CONFIGURE_ARGS = \
 	--compile-type=$(if $(filter yes,$(mm_DEBUG)),"debug","release") \
 	--prefix="$(DESTDIR)$(prefix)" \
@@ -212,8 +210,8 @@ CONFIGURE_ARGS = \
 	--bindir="$(DESTDIR)$(bindir)" \
 	--datadir="$(DESTDIR)$(datadir)/mythtv" \
 	--libdir="$(DESTDIR)$(libdir)" \
-	--shlibdir="$(DESTDIR)$(libdir)" \
 	--incdir="$(DESTDIR)$(includedir)/mythtv" \
+	--shlibdir="$(DESTDIR)$(libdir)" \
 	--mandir="$(DESTDIR)$(mandir)" \
 	$(if $(filter -Os,$(CFLAGS)),--enable-small) \
 	--cross-prefix="$(compiler_prefix)" \
@@ -280,12 +278,6 @@ CONFIGURE_ARGS = \
 	--disable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 
-#	--tune=$(GARCH) \
-#	--cpu=$(GARCH) \
-#	--enable-sdl2 \
-#	--pkg-config="/usr/bin/pkg-config" \
-#	--libxml2-path="$(DESTDIR)$(includedir)/libxml2" \
-
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
 INSTALL_ENV    = $(MYTHTV_INSTALL_ENV)
@@ -335,10 +327,10 @@ post-install: post-install-mythtv-version
 	@$(MAKECOOKIE)
 
 pre-configure:
-	@ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtWebKit.pc
-	@ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5Script.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtScript.pc
-#	Myth ver.containing also MM2 version
-#	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\(.*\)/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
+	@#ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtWebKit.pc
+	@#ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5Script.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtScript.pc
+	@#Myth ver.containing also MM2 version
+	@#sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\(.*\)/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
 	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
 	@sed -i -e "s/MYTH_SOURCE_PATH.*/MYTH_SOURCE_PATH \"$(mm_MYTH_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
 	@$(MAKECOOKIE)

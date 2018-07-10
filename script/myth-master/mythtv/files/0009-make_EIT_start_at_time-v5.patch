@@ -1,6 +1,6 @@
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.cpp mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/tv_rec.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.cpp	2017-06-16 15:12:02.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/tv_rec.cpp	2017-06-16 15:13:22.126666658 +0200
+diff -Naur mythtv-master-20180625-g36a1ff5-old/mythtv/libs/libmythtv/tv_rec.cpp mythtv-master-20180625-g36a1ff5-new/mythtv/libs/libmythtv/tv_rec.cpp
+--- mythtv-master-20180625-g36a1ff5-old/mythtv/libs/libmythtv/tv_rec.cpp	2018-06-25 15:21:38.000000000 +0200
++++ mythtv-master-20180625-g36a1ff5-new/mythtv/libs/libmythtv/tv_rec.cpp	2018-07-04 12:25:50.465940110 +0200
 @@ -95,7 +95,7 @@
        // Configuration variables from database
        transcodeFirst(false),
@@ -10,7 +10,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.cpp 
        audioSampleRateDB(0),
        overRecordSecNrml(0),         overRecordSecCat(0),
        overRecordCategory(""),
-@@ -184,6 +184,10 @@
+@@ -191,6 +191,10 @@
      eitTransportTimeout =
          max(gCoreContext->GetNumSetting("EITTransportTimeout", 5) * 60, 6);
      eitCrawlIdleStart = gCoreContext->GetNumSetting("EITCrawIdleStart", 60);
@@ -21,16 +21,16 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.cpp 
      audioSampleRateDB = gCoreContext->GetNumSetting("AudioSampleRate");
      overRecordSecNrml = gCoreContext->GetNumSetting("RecordOverTime");
      overRecordSecCat  = gCoreContext->GetNumSetting("CategoryOverTime") * 60;
-@@ -1079,6 +1083,8 @@
-     {
-         scanner->StopActiveScan();
+@@ -1052,6 +1056,8 @@
          ClearFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
+         eitScanStartTime = MythDate::current().addSecs(
+             eitCrawlIdleStart + eit_start_rand(eitTransportTimeout));
 +        LOG(VB_GENERAL, LOG_INFO, LOC +
 +            "EIT active scanner stopped by Recording or LiveTV");
      }
  
      // Handle different state transitions
-@@ -1131,11 +1137,53 @@
+@@ -1092,11 +1098,53 @@
      internalState = nextState;
      changeState = false;
  
@@ -86,8 +86,8 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.cpp 
 +        }
      }
      else
-         eitScanStartTime = eitScanStartTime.addYears(1);
-@@ -1333,18 +1381,58 @@
+     {
+@@ -1296,19 +1344,58 @@
      SetFlags(kFlagRunMainLoop, __FILE__, __LINE__);
      ClearFlags(kFlagExitPlayer | kFlagFinishRecording, __FILE__, __LINE__);
  
@@ -100,7 +100,6 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.cpp 
      {
          scanner = new EITScanner(inputid);
 -        eitScanStartTime = eitScanStartTime.addSecs(
--            eitCrawlIdleStart + eit_start_rand(eitTransportTimeout));
 +        int start_delay = eit_start_rand(eitTransportTimeout);
 +
 +        if (eitCrawlIdleStart <= 3600)
@@ -139,17 +138,17 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.cpp 
 +            LOG(VB_GENERAL, LOG_INFO, LOC +
 +                QString("EIT active scan window: %1").arg(eitScanStartTime.toString(Qt::ISODate)) +
 +                QString(" <--> %1 ").arg(eitScanEndTime.toString(Qt::ISODate)) + QString("(%1min duration)").arg(eitCrawlDuration));
-+        }
++        }        eitScanStartTime = eitScanStartTime.addSecs(
+             eitCrawlIdleStart + eit_start_rand(eitTransportTimeout));
      }
      else
-+    {
+     {
          eitScanStartTime = eitScanStartTime.addYears(1);
 +        eitScanEndTime = eitScanStartTime;
-+    }
+     }
  
      while (HasFlags(kFlagRunMainLoop))
-     {
-@@ -1476,45 +1564,60 @@
+@@ -1449,46 +1536,61 @@
          }
  
          if (scanner && channel &&
@@ -231,12 +230,12 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.cpp 
 +                    LOG(VB_GENERAL, LOG_INFO, LOC +
 +                        "EIT active scan stopped by reaching time window.");
                  }
+                 inputsLock.unlock();
              }
-         }
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.h mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/tv_rec.h
---- mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.h	2017-06-16 15:12:01.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/libs/libmythtv/tv_rec.h	2017-06-16 15:13:22.126666658 +0200
-@@ -365,6 +365,7 @@
+diff -Naur mythtv-master-20180625-g36a1ff5-old/mythtv/libs/libmythtv/tv_rec.h mythtv-master-20180625-g36a1ff5-new/mythtv/libs/libmythtv/tv_rec.h
+--- mythtv-master-20180625-g36a1ff5-old/mythtv/libs/libmythtv/tv_rec.h	2018-06-25 15:21:38.000000000 +0200
++++ mythtv-master-20180625-g36a1ff5-new/mythtv/libs/libmythtv/tv_rec.h	2018-07-04 12:15:11.022580902 +0200
+@@ -364,6 +364,7 @@
      bool    runJobOnHostOnly;
      int     eitCrawlIdleStart;
      int     eitTransportTimeout;
@@ -244,7 +243,7 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.h my
      int     audioSampleRateDB;
      int     overRecordSecNrml;
      int     overRecordSecCat;
-@@ -395,6 +396,7 @@
+@@ -393,6 +394,7 @@
      TuningQueue    tuningRequests;
      TuningRequest  lastTuningRequest;
      QDateTime      eitScanStartTime;
@@ -252,9 +251,9 @@ diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/libs/libmythtv/tv_rec.h my
      mutable QMutex triggerEventLoopLock;
      QWaitCondition triggerEventLoopWait;
      bool           triggerEventLoopSignal;
-diff -Naur mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythtv-setup/backendsettings.cpp mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythtv-setup/backendsettings.cpp
---- mythtv-master-20170616-g7d2be78-old/mythtv/programs/mythtv-setup/backendsettings.cpp	2017-06-16 15:04:01.000000000 +0200
-+++ mythtv-master-20170616-g7d2be78-new/mythtv/programs/mythtv-setup/backendsettings.cpp	2017-06-16 15:18:04.729999993 +0200
+diff -Naur mythtv-master-20180625-g36a1ff5-old/mythtv/programs/mythtv-setup/backendsettings.cpp mythtv-master-20180625-g36a1ff5-new/mythtv/programs/mythtv-setup/backendsettings.cpp
+--- mythtv-master-20180625-g36a1ff5-old/mythtv/programs/mythtv-setup/backendsettings.cpp	2018-06-25 15:21:39.000000000 +0200
++++ mythtv-master-20180625-g36a1ff5-new/mythtv/programs/mythtv-setup/backendsettings.cpp	2018-07-04 12:15:11.022580902 +0200
 @@ -380,12 +380,15 @@
  
  static GlobalSpinBoxSetting *EITCrawIdleStart()

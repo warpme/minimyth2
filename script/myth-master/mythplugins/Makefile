@@ -74,10 +74,5 @@ INSTALL_ENV   = $(MYTHTV_INSTALL_ENV)   $(PERL_INSTALL_ENV)
 GAR_EXTRA_CONF += $(CATEGORY)/mythtv/package-api.mk perl/perl/package-api.mk
 include ../../gar.mk
 
-post-configure:
-#	Hack for 0.27 bug #11719
-	@ln -sf $(DESTDIR)$(includedir)/mythtv $(DESTDIR)$(DESTDIR)$(includedir)/
-	@$(MAKECOOKIE)
-
 post-install: post-install-mythtv-version
 	@$(MAKECOOKIE)
