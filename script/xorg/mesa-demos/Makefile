@@ -1,7 +1,7 @@
 GARNAME = mesa-demos
-GARVERSION = 8.0.1
+GARVERSION = 8.4.0
 CATEGORIES = $(CATEGORY)
-MASTER_SITES  = ftp://ftp.freedesktop.org/pub/mesa/demos/$(GARVERSION)/
+MASTER_SITES  = ftp://ftp.freedesktop.org/pub/mesa/demos/
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = MIT
 
@@ -12,8 +12,9 @@ endef
 DEPENDS = lang/c \
 	$(CATEGORY)/glew \
 	$(CATEGORY)/glu \
-	$(CATEGORY)/freeglut \
 	$(CATEGORY)/Mesa
+
+#	$(CATEGORY)/freeglut \
 
 PWD := $(shell pwd)
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
