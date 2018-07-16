@@ -1,5 +1,5 @@
 GARNAME = glu
-GARVERSION = 9.0.0-20120829-f98fdc4
+GARVERSION = 9.0.0-20160610-0bf42e4
 CATEGORIES = $(CATEGORY)
 MASTER_SITES  = git://anongit.freedesktop.org/git/mesa/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -22,6 +22,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
 	--disable-debug \
 	--disable-osmesa \
+	--disable-static \
 	--with-gnu-ld
 
 include ../../gar.mk
