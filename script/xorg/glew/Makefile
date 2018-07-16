@@ -1,5 +1,5 @@
 GARNAME = glew
-GARVERSION = 1.9.0
+GARVERSION = 2.1.0
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tgz
@@ -34,11 +34,12 @@ BUILD_ARGS  = \
 	AR="$(AR)" \
 	POPT="$(CFLAGS)" \
 	LDFLAGS.EXTRA="$(LDFLAGS)"
+
 INSTALL_ARGS = \
-	GLEW_DEST="$(DESTDIR)$(prefix)" \
-	BINDIR="$(DESTDIR)$(bindir)" \
-	LIBDIR="$(DESTDIR)$(libdir)" \
-	INCDIR="$(DESTDIR)$(includedir)/GL"
+	GLEW_DEST="$(prefix)" \
+	BINDIR="$(bindir)" \
+	LIBDIR="$(libdir)" \
+	INCDIR="$(includedir)/GL"
 
 include ../../gar.mk
 
