@@ -2,7 +2,7 @@ GARNAME = mesa
 # GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              20160518-877a802, \
-             18.1.3 ))
+             18.1.4 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              git://anongit.freedesktop.org/mesa/mesa/ , \
@@ -30,7 +30,9 @@ DEPENDS    = lang/c lang/cxx lib/expat X11/libvdpau devel/llvm devel/libelf pyth
 	$(CATEGORY)/libXext \
 	$(CATEGORY)/libXfixes \
 	$(CATEGORY)/libXxf86vm \
-	$(CATEGORY)/libxshmfence
+	$(CATEGORY)/libxshmfence \
+	$(CATEGORY)/wayland-protocols \
+	$(CATEGORY)/wayland
 
 ifneq ($(DESTIMG),build)
 DEPENDS   += system/eudev
@@ -59,7 +61,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--with-dri-driverdir="$(libdir)/dri" \
 	--with-vdpau-libdir="$(libdir)" \
-	--with-platforms=x11,drm \
+	--with-platforms=x11,wayland,drm \
 	--enable-llvm \
 	--enable-llvm-shared-libs \
 	--enable-texture-float \
@@ -156,6 +158,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgbm.la
 	@rm -f $(DESTDIR)$(libdir)/libGLESv2.la
 	@rm -f $(DESTDIR)$(libdir)/libGLESv1_CM.la
+	@rm -f $(DESTDIR)$(libdir)/libwayland-egl.la
 	@rm -f $(DESTDIR)$(libdir)/libxatracker.la
 	@rm -f $(DESTDIR)$(libdir)/dri/gallium_drv_video.la
 	@rm -f $(DESTDIR)$(libdir)/dri/i915_dri.la
