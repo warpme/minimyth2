@@ -3,14 +3,28 @@ CATEGORIES = qt
 GARVERSION = 5.212.0-alpha2
 MASTER_SITES = https://github.com/annulen/webkit/releases/download/$(DISTNAME)/
 DISTFILES = $(DISTNAME).tar.xz
-# PATCHFILES = qt5-webkit-gcc7.patch
-# PATCHFILES += qt5-webkit-null-pointer-dereference.patch
+PATCHFILES += qt5-webkit-null-pointer-dereference.patch
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS   = lang/c lang/cxx perl/perl db/sqlite lib/libjpeg lib/libpng devel/zlib lib/icu lib/libxml2 lib/libxslt qt/qt5 xorg/libX11 gtk/glib lib/gst-libav utils/ruby
+DEPENDS   = lang/c    \
+	lang/cxx      \
+	perl/perl     \
+	db/sqlite     \
+	devel/zlib    \
+	lib/libjpeg   \
+	lib/libpng    \
+	lib/icu       \
+	lib/libxml2   \
+	lib/libxslt   \
+	lib/gst-libav \
+	qt/qt5        \
+	xorg/libX11   \
+	gtk/glib      \
+	utils/ruby    \
+
 
 WORKSRC = $(WORKDIR)/$(DISTNAME)/Source
 WORKBLD = $(WORKDIR)/$(DISTNAME)_build
@@ -66,7 +80,6 @@ git//%$(DISTNAME).tar.bz2:
 	@$(MAKECOOKIE)
 
 configure-%/cmake:
-	@#mv $(WORKDIR)/$(DISTNAME) $(WORKDIR)/$(DISTNAME)
 	@echo " ==> Running configure in $*"
 	@rm -rf $*
 	@mkdir -p $*
@@ -77,24 +90,32 @@ post-install:
 	@rm -f $(DESTDIR)$(qt5libdir)/*.la
 	@echo 'Description: Qt WebKit Module'         >> $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc
 	@echo 'Description: Qt WebKit Widgets Module' >> $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKitWidgets.pc
-	@sed -e 's%^Libs:.*%Libs: -L$(qt5libdir) -lQt5WebKit %g'             -i $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc
-	@sed -e 's%^Libs:.*%Libs: -L$(qt5libdir) -lQt5WebKitWidgets %g'      -i $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKitWidgets.pc
-	@sed -e 's%^Cflags:.*%Cflags: -I$(qt5includedir)/QtWebKit %g'        -i $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc
-	@sed -e 's%^Cflags:.*%Cflags: -I$(qt5includedir)/QtWebKitWidgets %g' -i $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKitWidgets.pc
+	@sed \
+	 -e 's%^Libs:.*%Libs: -L$(qt5libdir) -lQt5WebKit %g'      \
+	 -e 's%^Cflags:.*%Cflags: -I$(qt5includedir)/QtWebKit %g' \
+	 -i $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc
+	@sed \
+	 -e 's%^Libs:.*%Libs: -L$(qt5libdir) -lQt5WebKitWidgets %g' \
+	 -e 's%^Cflags:.*%Cflags: -I$(qt5includedir)/QtWebKit %g'   \
+	 -i $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKitWidgets.pc
 	@#
-	@sed -e 's%^QT.webkit.libs.*%QT.webkit.libs = \$$\$$QT_MODULE_LIB_BASE%g'             -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkit.pri
-	@sed -e 's%^QT.webkit.includes.*%QT.webkit.includes = \$$\$$QT_MODULE_INCLUDE_BASE \$$\$$QT_MODULE_INCLUDE_BASE/QtWebKit%g' -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkit.pri
-	@sed -e 's%^QT.webkit.bins.*%QT.webkit.bins = \$$\$$QT_MODULE_BIN_BASE%g'             -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkit.pri
-	@sed -e 's%^QT.webkit.libexecs.*%QT.webkit.libexecs = \$$\$$QT_MODULE_LIBEXEC_BASE%g' -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkit.pri
-	@sed -e 's%^QT.webkit.plugins.*%QT.webkit.plugins = \$$\$$QT_MODULE_PLUGIN_BASE%g'    -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkit.pri
-	@sed -e 's%^QT.webkit.imports.*%QT.webkit.imports = \$$\$$QT_MODULE_IMPORT_BASE%g'    -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkit.pri
-	@sed -e 's%^QT.webkit.qml.*%QT.webkit.qml = \$$\$$QT_MODULE_QML_BASE%g'               -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkit.pri
+	@sed \
+	 -e 's%^QT.webkit.libs.*%QT.webkit.libs = \$$\$$QT_MODULE_LIB_BASE%g'             \
+	 -e 's%^QT.webkit.includes.*%QT.webkit.includes = \$$\$$QT_MODULE_INCLUDE_BASE \$$\$$QT_MODULE_INCLUDE_BASE/QtWebKit%g' \
+	 -e 's%^QT.webkit.bins.*%QT.webkit.bins = \$$\$$QT_MODULE_BIN_BASE%g'             \
+	 -e 's%^QT.webkit.libexecs.*%QT.webkit.libexecs = \$$\$$QT_MODULE_LIBEXEC_BASE%g' \
+	 -e 's%^QT.webkit.plugins.*%QT.webkit.plugins = \$$\$$QT_MODULE_PLUGIN_BASE%g'    \
+	 -e 's%^QT.webkit.imports.*%QT.webkit.imports = \$$\$$QT_MODULE_IMPORT_BASE%g'    \
+	 -e 's%^QT.webkit.qml.*%QT.webkit.qml = \$$\$$QT_MODULE_QML_BASE%g'               \
+	 -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkit.pri
 	@#
-	@sed -e 's%^QT.webkitwidgets.libs.*%QT.webkitwidgets.libs = \$$\$$QT_MODULE_LIB_BASE%g'             -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkitwidgets.pri
-	@sed -e 's%^QT.webkitwidgets.includes.*%QT.webkitwidgets.includes = \$$\$$QT_MODULE_INCLUDE_BASE \$$\$$QT_MODULE_INCLUDE_BASE/QtWebKitWidgets%g' -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkitwidgets.pri
-	@sed -e 's%^QT.webkitwidgets.bins.*%QT.webkitwidgets.bins = \$$\$$QT_MODULE_BIN_BASE%g'             -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkitwidgets.pri
-	@sed -e 's%^QT.webkitwidgets.libexecs.*%QT.webkitwidgets.libexecs = \$$\$$QT_MODULE_LIBEXEC_BASE%g' -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkitwidgets.pri
-	@sed -e 's%^QT.webkitwidgets.plugins.*%QT.webkitwidgets.plugins = \$$\$$QT_MODULE_PLUGIN_BASE%g'    -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkitwidgets.pri
-	@sed -e 's%^QT.webkitwidgets.imports.*%QT.webkitwidgets.imports = \$$\$$QT_MODULE_IMPORT_BASE%g'    -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkitwidgets.pri
-	@sed -e 's%^QT.webkitwidgets.qml.*%QT.webkitwidgets.qml = \$$\$$QT_MODULE_QML_BASE%g'               -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkitwidgets.pri
+	@sed \
+	 -e 's%^QT.webkitwidgets.libs.*%QT.webkitwidgets.libs = \$$\$$QT_MODULE_LIB_BASE%g'             \
+	 -e 's%^QT.webkitwidgets.includes.*%QT.webkitwidgets.includes = \$$\$$QT_MODULE_INCLUDE_BASE \$$\$$QT_MODULE_INCLUDE_BASE/QtWebKitWidgets%g' \
+	 -e 's%^QT.webkitwidgets.bins.*%QT.webkitwidgets.bins = \$$\$$QT_MODULE_BIN_BASE%g'             \
+	 -e 's%^QT.webkitwidgets.libexecs.*%QT.webkitwidgets.libexecs = \$$\$$QT_MODULE_LIBEXEC_BASE%g' \
+	 -e 's%^QT.webkitwidgets.plugins.*%QT.webkitwidgets.plugins = \$$\$$QT_MODULE_PLUGIN_BASE%g'    \
+	 -e 's%^QT.webkitwidgets.imports.*%QT.webkitwidgets.imports = \$$\$$QT_MODULE_IMPORT_BASE%g'    \
+	 -e 's%^QT.webkitwidgets.qml.*%QT.webkitwidgets.qml = \$$\$$QT_MODULE_QML_BASE%g'               \
+	 -i $(DESTDIR)$(qt5prefix)/mkspecs/modules/qt_lib_webkitwidgets.pri
 	@$(MAKECOOKIE)
