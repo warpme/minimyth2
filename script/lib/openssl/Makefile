@@ -23,18 +23,11 @@ CONFIGURE_ARGS = \
 	--install_prefix=$(DESTDIR) \
 	--openssldir=$(sysconfdir)/pki/tls \
 	shared \
-	no-krb5 \
 	zlib \
-	no-idea \
-	no-mdc2 \
-	no-rc5 \
-	no-ec \
-	no-ecdh \
-	no-ecdsa \
-	$(if $(filter i386,  $(GARCH_FAMILY)),no-asm 386 linux-elf) \
+	$(if $(filter i386,  $(GARCH_FAMILY)),no-asm 386 linux-elf)    \
 	$(if $(filter x86_64,$(GARCH_FAMILY)),           linux-x86_64) \
-	$(if $(filter arm,$(GARCH_FAMILY)),              linux-armv4) \
-	$(if $(filter arm64,$(GARCH_FAMILY)),            linux-aarch64)
+	$(if $(filter arm,   $(GARCH_FAMILY)),           linux-armv4)  \
+	$(if $(filter arm64, $(GARCH_FAMILY)),           linux-aarch64)
 
 BUILD_ARGS = \
 	CC="$(CC)" \
