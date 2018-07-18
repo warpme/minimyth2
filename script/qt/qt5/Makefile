@@ -1,11 +1,9 @@
-GARNAME = qt-everywhere-opensource-src
-GARVERSION = 5.4.1
+GARNAME = qt-everywhere-src
+GARVERSION = 5.10.1
 CATEGORIES = qt
-MASTER_SITES = http://download.qt-project.org/official_releases/qt/5.4/$(GARVERSION)/single/
+MASTER_SITES = http://download.qt.io/official_releases/qt/5.11/$(GARVERSION)/single/
 DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES =  $(DISTNAME).patch.gar
-PATCHFILES += $(DISTNAME)-fix-webkit-g++5.0-build.patch
-PATCHFILES += $(DISTNAME)-QTBUG-44714-webkit-fails-new-glib.patch
 PATCHFILES += $(DISTNAME)-fix-gcc6+-build.patch
 LICENSE = LGPL2_1
 
@@ -13,7 +11,27 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c lang/cxx db/mysql lib/dbus gtk/glib lib/freetype lib/fontconfig lib/icu lib/libjpeg lib/libmng lib/libpng lib/libtiff lib/openssl devel/zlib utils/ruby xorg/xorg lib/gst-libav
+DEPENDS   =            \
+	lang/c         \
+	lang/cxx       \
+	db/mysql       \
+	lib/dbus       \
+	lib/freetype   \
+	lib/fontconfig \
+	lib/icu        \
+	lib/libjpeg    \
+	lib/libmng     \
+	lib/libpng     \
+	lib/libtiff    \
+	lib/openssl    \
+	lib/gst-libav  \
+	gtk/glib       \
+	gtk/harfbuzz   \
+	devel/zlib     \
+	utils/ruby     \
+	xorg/Mesa      \
+	xorg/xorg      \
+
 BUILDDEPS = devel/bison devel/flex
 
 PWD := $(shell pwd)
@@ -32,17 +50,17 @@ CONFIGURE_ARGS = \
 	-translationdir $(DESTDIR)$(qt5prefix)/translations \
 	-sysconfdir $(DESTDIR)$(qt5libdir)/settings \
 	-examplesdir $(DESTDIR)$(qt5prefix)/examples \
-	-confirm-license \
-	-release \
-	-opensource \
+	-hostprefix $(DESTDIR)$(qt5prefix) \
 	-shared \
-	-no-qml-debug \
-	-no-mtdev \
-	-no-journald \
-	-no-harfbuzz \
-	-no-cups \
-	-largefile \
-	-no-accessibility \
+	-release \
+	-confirm-license \
+	-opensource \
+	-c++std c++11 \
+	-opengl \
+	-no-rpath \
+	-no-optimized-qmake \
+	-platform $(PLATFORM_GARBUILD_NAME) \
+	-xplatform $(PLATFORM_GARHOST_NAME) \
 	-plugin-sql-mysql \
 	-no-sql-db2 \
 	-no-sql-ibase \
@@ -53,61 +71,19 @@ CONFIGURE_ARGS = \
 	-no-sql-sqlite2 \
 	-no-sql-tds \
 	-no-compile-examples \
+	-no-openvg \
 	-nomake tools \
 	-nomake examples \
-	-platform $(PLATFORM_GARBUILD_NAME) \
-	-system-zlib \
-	-system-libpng \
-	-system-libjpeg \
-	-openssl-linked \
-	-no-rpath \
-	-no-optimized-qmake \
-	-no-nis \
-	-no-cups \
-	-iconv \
-	-no-pch \
-	-dbus-linked \
-	-no-gtkstyle \
-	-no-egl \
-	-opengl \
-	-no-openvg \
-	-no-sm \
-	-xshape \
-	-no-xsync \
-	-xinerama \
-	-no-xcursor \
-	-xfixes \
-	-xrandr \
-	-xrender \
-	-mitshm \
-	-fontconfig \
-	-no-xinput \
-	-xkb \
-	-glib \
-	-hostprefix $(DESTDIR)$(qt5prefix) \
-	-force-pkg-config \
 	-skip qttranslations \
 	-skip qtserialport \
 	-skip qtwebengine \
-	-skip qtwebkit-examples \
-	-verbose \
-
-#	-silent \
-#	-verbose \
-
-ifeq ($(DESTIMG),build)
-BUILD_ENV = \
-	LD_LIBRARY_PATH="$(PWD)/$(WORKSRC)/lib:$(LD_LIBRARY_PATH)"
-else
-CONFIGURE_ARGS += \
-	-xplatform $(PLATFORM_GARHOST_NAME) \
-	-force-pkg-config
-endif
+	-skip qt3d \
+	-silent \
 
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
 
-# qt5 WebKit fails to compile with gcc 5.3.0's link time optimization enabled.
+# qt5 fails to compile with gcc 7.3.0's link time optimization enabled.
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
@@ -119,7 +95,7 @@ PLATFORM_GARHOST_BASE_NAME = $(strip \
 	$(if $(filter i386,$(GARCH_FAMILY)),linux-g++-32,) \
 	$(if $(filter x86_64,$(GARCH_FAMILY)),linux-g++-64,) \
 	$(if $(filter arm,$(GARCH_FAMILY)),linux-arm-gnueabi-g++,) \
-	$(if $(filter arm64,$(GARCH_FAMILY)),linux-arm-gnueabi-g++,))
+	$(if $(filter arm64,$(GARCH_FAMILY)),linux-aarch64-gnu-g++,))
 PLATFORM_GARBUILD_NAME      = $(PLATFORM_GARBUILD_BASE_NAME)-garbuild
 PLATFORM_GARHOST_NAME       = $(PLATFORM_GARHOST_BASE_NAME)-garhost
 PLATFORM_DEFAULT_NAME       = default
@@ -142,15 +118,16 @@ CREATE_PLATFORM   = \
 	rm -rf $(strip $(2)) ; \
 	cp -r $(strip $(1)) $(strip $(2)) ; \
 	rm -f $(strip $(2))/qmake.conf~ ; \
-	echo "QMAKE_CFLAGS_RELEASE = $($(strip $(3))CFLAGS)"                                  >> $(strip $(2))/qmake.conf~ ; \
+	echo "QMAKE_CFLAGS_RELEASE = $($(strip $(3))CFLAGS) -fPIC"                            >> $(strip $(2))/qmake.conf~ ; \
+	echo "QMAKE_CFLAGS_DEBUG   = $($(strip $(3))CFLAGS) -fPIC"                            >> $(strip $(2))/qmake.conf~ ; \
 	cat $(strip $(2))/qmake.conf                   | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
+	cat $(strip $(2))/../common/unix.conf          | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
+	cat $(strip $(2))/../common/linux.conf         | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
 	cat $(strip $(2))/../common/gcc-base.conf      | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
+	cat $(strip $(2))/../common/sanitize.conf      | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
 	cat $(strip $(2))/../common/gcc-base-unix.conf | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
 	cat $(strip $(2))/../common/g++-base.conf      | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
 	cat $(strip $(2))/../common/g++-unix.conf      | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
-	cat $(strip $(2))/../common/linux.conf         | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
-	cat $(strip $(2))/../common/unix.conf          | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
-	cat $(strip $(2))/../common/shell-unix.conf    | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
 	echo 'load(qt_config)'                                                                >> $(strip $(2))/qmake.conf~ ; \
 	rm -f $(strip $(2))/qmake.conf ; \
 	mv -f $(strip $(2))/qmake.conf~ $(strip $(2))/qmake.conf ; \
@@ -171,7 +148,9 @@ CREATE_PLATFORM   = \
 	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_X11    , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
 	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_X11    , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir)) ; \
 	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_OPENGL , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_OPENGL , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir))
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_OPENGL , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_EGL    , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_EGL    , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir))
 
 pre-configure:
 	$(call CREATE_PLATFORM, $(PLATFORM_GARBUILD_BASE_PATH), $(PLATFORM_GARBUILD_PATH), build_)
@@ -193,13 +172,15 @@ post-install:
 	@$(call GLIBC_ADD_LIB_PATH, $(qt5libdir))
 	@files=`ls -1 $(DESTDIR)$(qt5libdir)/pkgconfig/*.pc` ; \
 	 for file in $${files} ; do \
-		sed -e 's%^prefix=$(DESTDIR)$(qt5prefix)$$%prefix=$(qt5prefix)%g' -i $${file} ; \
-		sed -e 's%-I$(DESTDIR)$(includedir)%-I$(includedir)%g'            -i $${file} ; \
-		sed -e 's%-L$(DESTDIR)$(libdir)%-L$(libdir)%g'                    -i $${file} ; \
-		sed -e 's%-I$(DESTDIR)$(qt5includedir)%-I$(qt5includedir)%g'      -i $${file} ; \
-		sed -e 's%-L$(DESTDIR)$(qt5libdir)%-L$(qt5libdir)%g'              -i $${file} ; \
-		sed -e 's%-I$(DESTDIR)$(qt5prefix)%-I$(qt5prefix)%g'              -i $${file} ; \
-		sed -e 's%-L$(DESTDIR)$(qt5prefix)%-L$(qt5prefix)%g'              -i $${file} ; \
+		sed \
+		 -e 's%^prefix=$(DESTDIR)$(qt5prefix)$$%prefix=$(qt5prefix)%g' \
+		 -e 's%-I$(DESTDIR)$(includedir)%-I$(includedir)%g'            \
+		 -e 's%-L$(DESTDIR)$(libdir)%-L$(libdir)%g'                    \
+		 -e 's%-I$(DESTDIR)$(qt5includedir)%-I$(qt5includedir)%g'      \
+		 -e 's%-L$(DESTDIR)$(qt5libdir)%-L$(qt5libdir)%g'              \
+		 -e 's%-I$(DESTDIR)$(qt5prefix)%-I$(qt5prefix)%g'              \
+		 -e 's%-L$(DESTDIR)$(qt5prefix)%-L$(qt5prefix)%g'              \
+		 -i $${file} ; \
 	 done
 	@$(MAKECOOKIE)
 
