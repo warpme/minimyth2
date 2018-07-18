@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.1.0.r670
+mm_VERSION_MINIMYTH ?= 9.2.0.r670
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -86,7 +86,7 @@ mm_DISTRIBUTION_RAM       ?= yes
 mm_DISTRIBUTION_NFS       ?= no
 
 # Indicates whether or not to create the local distribution.
-mm_DISTRIBUTION_LOCAL     ?= yes
+mm_DISTRIBUTION_LOCAL     ?= no
 
 # Indicates whether or not to create the share distribution.
 mm_DISTRIBUTION_SHARE     ?= no
@@ -131,11 +131,11 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '4.16' and '4.17'
+# Valid values are '4.17' and '4.17'
 mm_KERNEL_HEADERS_VERSION ?= 4.17
 
 # The version of kernel to use.
-# Valid values are '4.16' and '4.17'
+# Valid values are '4.17' and '4.17'
 mm_KERNEL_VERSION         ?= 4.17
 
 # The kernel configuration file to use.
