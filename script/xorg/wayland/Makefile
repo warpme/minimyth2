@@ -10,11 +10,9 @@ DESCRIPTION =
 define BLURB
 endef
 
-#DEPENDS = lang/c \
-#	$(CATEGORY)/libX11 \
-#	$(CATEGORY)/libXrandr \
-#	$(CATEGORY)/libXrender
-	
+DEPENDS = lang/c \
+	lib/libxslt \
+
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
@@ -25,7 +23,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
 	--disable-documentation
 
-#--disable-dtd-validation
+ifneq ($(DESTIMG),build)
+CONFIGURE_ARGS += --with-host-scanner "$(build_DESTDIR)$(build_bindir)/wayland-scanner"
+endif
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
