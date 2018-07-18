@@ -3,7 +3,7 @@ CATEGORIES = qt
 GARVERSION = 5.212.0-alpha2
 MASTER_SITES = https://github.com/annulen/webkit/releases/download/$(DISTNAME)/
 DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES += qt5-webkit-null-pointer-dereference.patch
+PATCHFILES = qt5-webkit-null-pointer-dereference.patch
 
 DESCRIPTION = 
 define BLURB
