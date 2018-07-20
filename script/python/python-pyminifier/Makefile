@@ -1,8 +1,8 @@
 GARNAME = python-pyminifier
-GARVERSION = 168f928038999f923cc53048303fec90d48e6ca4
+GARVERSION = 20180719-087ea7b
 CATEGORIES = python
-MASTER_SITES = https://pypi.python.org/packages/2c/8a/946b0b43e0912c907aba42507073675c2e4a4a836c5b1ce10be6f12575d0/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.bz2
+MASTER_SITES = https://github.com/liftoff/$(patsubst python-%,%,$(GARNAME))/zipball/$(word 2,$(subst -, ,$(GARVERSION)))/
+DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).zip
 LICENSE =
 DESCRIPTION = 
 define BLURB
@@ -10,7 +10,7 @@ endef
 
 DEPENDS = python/python python/python-setuptools
 
-WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
+WORKSRC = $(WORKDIR)/liftoff-$(patsubst python-%,%,$(GARNAME))-$(word 2,$(subst -, ,$(GARVERSION)))
 
 BUILD_SCRIPTS   = $(WORKSRC)/setup.py
 INSTALL_SCRIPTS = $(WORKSRC)/setup.py
