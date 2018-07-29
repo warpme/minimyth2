@@ -1,10 +1,8 @@
 GARNAME = libdvdcss
-GARVERSION = 1.2.12
+GARVERSION = 1.4.2
 CATEGORIES = lib
 MASTER_SITES = http://download.videolan.org/pub/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = \
-    $(DISTNAME)-automake_1.13.patch
 LICENSE = GPL2
 
 DESCRIPTION = 
