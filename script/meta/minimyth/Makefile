@@ -56,7 +56,6 @@ DEPENDS = \
 		perl/perl-MiniMyth) \
 	utils/pmount \
 	net/portmap \
-	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),system/powernowd) \
 	utils/procps \
 	python/python \
 	python/python-argparse \
@@ -103,13 +102,13 @@ DEPENDS = \
 			python/python-requests-cache \
 			python/python-MySQL-python \
 			python/python-oauth \
-			$(if $(filter i386 x86_64,$(GARCH_FAMILY)),python/python-IMAPClient) \
+			python/python-IMAPClient \
 			python/python-pycurl) \
 		perl/perl-Date-Manip \
 		perl/perl-DateTime-Format-ISO8601 \
 		perl/perl-Image-Size \
 		perl/perl-Net-HTTP \
-		$(if $(filter i386 x86_64-,$(GARCH_FAMILY)),perl/perl-PerlMagick) \
+		perl/perl-PerlMagick \
 		perl/perl-SOAP-Lite \
 		perl/perl-XML-Simple \
 		perl/perl-XML-XPath \
