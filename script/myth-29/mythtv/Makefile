@@ -176,7 +176,7 @@ DEPENDS = \
 	python/python-lxml \
 	python/python-urlgrabber \
 	qt/qt5 \
-	qt/qt5WebKit \
+	qt/qt5-webKit \
 	system/lirc \
 	system/eudev \
 	X11/libvdpau \

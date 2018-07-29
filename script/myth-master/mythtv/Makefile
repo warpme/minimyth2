@@ -183,7 +183,7 @@ DEPENDS = \
 	X11/libvdpau \
 	xorg/xorg \
 	qt/qt5 \
-#	qt/qt5webkit \
+	qt/qt5-webkit \
 
 BUILDDEPS = \
 	python/python-MySQL-python \
