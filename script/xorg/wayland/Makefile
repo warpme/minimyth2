@@ -12,6 +12,7 @@ endef
 
 DEPENDS = lang/c \
 	lib/libxslt \
+	lib/libffi
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
@@ -21,7 +22,8 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
-	--disable-documentation
+	--disable-documentation \
+	--disable-dtd-validation
 
 ifneq ($(DESTIMG),build)
 CONFIGURE_ARGS += --with-host-scanner "$(build_DESTDIR)$(build_bindir)/wayland-scanner"
