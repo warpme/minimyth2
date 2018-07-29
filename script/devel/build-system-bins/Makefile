@@ -32,6 +32,20 @@ install-bins:
 			if [ ! -e $(DESTDIR)$(rootdir)/bin-build-system/$(bin) ] ; then \
 				ln -s `which $(bin)` $(DESTDIR)$(rootdir)/bin-build-system/$(bin) ; \
 			fi ; \
+			grep -q '/perl' $(DESTDIR)$(rootdir)/bin-build-system/$(bin) ; \
+			if [ "$$?" = "0" ] ; then \
+				echo 'Updating perl path in $(bin)' ; \
+				rm $(DESTDIR)$(rootdir)/bin-build-system/$(bin) ; \
+				cp `which $(bin)` $(DESTDIR)$(rootdir)/bin-build-system/$(bin) ; \
+				sed -e "s%/usr/bin/perl%$(DESTDIR)$(rootdir)/usr/bin/perl%" -i $(DESTDIR)$(rootdir)/bin-build-system/$(bin) ; \
+			fi ; \
+			grep -q '/python*' $(DESTDIR)$(rootdir)/bin-build-system/$(bin) ; \
+			if [ "$$?" = "0" ] ; then \
+				echo 'Updating python path in $(bin)' ; \
+				rm $(DESTDIR)$(rootdir)/bin-build-system/$(bin) ; \
+				cp `which $(bin)` $(DESTDIR)$(rootdir)/bin-build-system/$(bin) ; \
+				sed -e "s%/usr/bin/python%$(DESTDIR)$(rootdir)/usr/bin/python%" -i $(DESTDIR)$(rootdir)/bin-build-system/$(bin) ; \
+			fi ; \
 		) \
 	)
 	@$(MAKECOOKIE)
