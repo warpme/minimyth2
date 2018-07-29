@@ -14,6 +14,7 @@ PATCHFILES += $(DISTNAME)-disable_dma_for_cfa.patch
 PATCHFILES += $(DISTNAME)-defaults.patch
 PATCHFILES += $(DISTNAME)-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += $(DISTNAME)-net-smsc95xx-allow-mac-address-as-param.patch
+PATCHFILES += $(DISTNAME)-disable-asm-no-goto-configure-exit.patch
 LICENSE = GPL2
 
 # automatic variables cannot be used in conditional directives, as automatic variables are not set until the recipe for that rule is invoked.
@@ -36,7 +37,7 @@ CONFIGURE_ARGS    = $(LINUX_MAKE_ARGS)
 BUILD_ARGS        = $(LINUX_MAKE_ARGS)
 
 ifeq ($(CPU_ARCH),armv7)
-BUILD_ARGS        += Image Image.gz modules dtbs
+BUILD_ARGS        += zImage modules dtbs
 # By some reason LD on aarch64 reports: aarch64-minimyth-linux-gnu-ld: unrecognized option '-Wl,--as-needed'
 # As '-Wl,--as-needed' seems to be required by i386/x86_64 platforms and is declared in gar.conf.mk, for
 # aarch64 we will clear LDFLAGS
@@ -82,7 +83,7 @@ pre-install:
 install-custom:
 ifeq ($(CPU_ARCH),armv7)
 	@mkdir -p "$(DESTDIR)/boot"
-	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)/boot/Image.gz
+	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/zImage > $(DESTDIR)/boot/zImage
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)/boot/Image
 	@cp  $(WORKSRC)/System.map $(DESTDIR)$(LINUX_DIR)/System.map
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
