@@ -8,7 +8,11 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = python/python python/python-distribute python/python-distutilscross python/python-pycparser
+DEPENDS = python/python python/python-distribute python/python-pycparser
+ifeq ($(DESTIMG),main)
+BUILDDEPS += python/python-distutilscross python/python-cffi
+endif
+
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
@@ -23,6 +27,13 @@ CONFIGURE_ENV  =
 BUILD_ENV      =
 INSTALL_ENV    = \
 	PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
+
+ifneq ($(DESTIMG),build)
+BUILD_ARGS += --cross-compile
+BUILD_ENV  += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
+BUILD_ENV  += CC=$(GARHOST)-gcc
+BUILD_ENV  += LDSHARED="$(GARHOST)-gcc -shared"
+endif
 
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
@@ -42,6 +53,11 @@ ifeq ($(DESTIMG),build)
 	@echo "Restoring _sysconfigdata.py to target config as DESTIMG=main"
 	@cp -v $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py.main \
 	       $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py
+endif
+# FIXME XXXXX
+ifeq ($(DESTIMG),main)
+	@cp -v $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/site-packages/cffi-$(GARVERSION)-*.egg/_cffi_backend.so \
+	 "$(DESTDIR)$(libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/site-packages/cffi-$(GARVERSION)"*
 endif
 	@$(MAKECOOKIE)
 
