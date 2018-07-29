@@ -3,7 +3,7 @@
 # '$(HOME)/.minimyth/minimyth.conf.mk'.
 #-------------------------------------------------------------------------------
 
--include $(HOME)/.minimyth/minimyth.conf.mk
+# -include $(HOME)/.minimyth/minimyth.conf.mk
 
 # The version of MiniMyth.
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.2.0.r670
+mm_VERSION_MINIMYTH ?= 9.2.1.r677
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -39,7 +39,7 @@ mm_DEBUG_BUILD            ?= no
 # Lists the graphics drivers supported.
 # Valid values for mm_GRAPHICS are one or more of 'intel', 'nvidia',
 # 'nvidia-legacy', 'radeon', and 'vmware'.
-mm_GRAPHICS               ?= intel nvidia nvidia-legacy radeon vmware
+mm_GRAPHICS               ?= 
 
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
@@ -65,7 +65,6 @@ mm_SOFTWARE               ?= \
 #                             fceu \
 #                             jzintv \
 #                             mame \
-#                             mednafen \
 #                             stella \
 #                             visualboyadvance \
 #                             zsnes \
@@ -76,7 +75,7 @@ mm_SOFTWARE               ?= \
 #                             ipxe
 
 # Indicates the microprocessor architecture.
-# Valid values for mm_GARCH are 'c3', 'c3-2', 'pentium-mmx', 'x86-64', 'atom', 'armv7', 'armv8'.
+# Valid values for mm_GARCH are 'pentium-mmx', 'x86-64', 'armv7', 'armv8'.
 mm_GARCH                  ?= x86-64
 
 # Indicates whether or not to create the RAM based part of the distribution.
@@ -193,33 +192,24 @@ mm_USER_SHARE_LIST        ?=
 #-------------------------------------------------------------------------------
 # arch used by kerel arch
 mm_GARCH_FAMILY           ?= $(strip \
-                                 $(if $(filter c3         ,$(mm_GARCH)),i386  ) \
-                                 $(if $(filter c3-2       ,$(mm_GARCH)),i386  ) \
                                  $(if $(filter pentium-mmx,$(mm_GARCH)),i386  ) \
-                                 $(if $(filter atom       ,$(mm_GARCH)),x86_64) \
                                  $(if $(filter x86-64     ,$(mm_GARCH)),x86_64) \
-                                 $(if $(filter armv7      ,$(mm_GARCH)),arm) \
-                                 $(if $(filter armv8      ,$(mm_GARCH)),arm64) \
+                                 $(if $(filter armv7      ,$(mm_GARCH)),arm)    \
+                                 $(if $(filter armv8      ,$(mm_GARCH)),arm64)  \
                               )
 # arch used by i.e. glibc
 mm_GARHOST                ?= $(strip \
-                                 $(if $(filter c3         ,$(mm_GARCH)),i586  )  \
-                                 $(if $(filter c3-2       ,$(mm_GARCH)),i586  )  \
-                                 $(if $(filter pentium-mmx,$(mm_GARCH)),i586  )  \
-                                 $(if $(filter atom       ,$(mm_GARCH)),x86_64)  \
-                                 $(if $(filter x86-64     ,$(mm_GARCH)),x86_64)  \
-                                 $(if $(filter armv7      ,$(mm_GARCH)),armv7a) \
-                                 $(if $(filter armv8      ,$(mm_GARCH)),aarch64) \
-                              )-minimyth-linux-gnu
+                                 $(if $(filter pentium-mmx,$(mm_GARCH)),i586-minimyth-linux-gnu  )       \
+                                 $(if $(filter x86-64     ,$(mm_GARCH)),x86_64-minimyth-linux-gnu)       \
+                                 $(if $(filter armv7      ,$(mm_GARCH)),armv7a-minimyth-linux-gnueabihf) \
+                                 $(if $(filter armv8      ,$(mm_GARCH)),aarch64-minimyth-linux-gnu)      \
+                              )
 mm_CFLAGS                 ?= $(strip \
                                  -pipe                                                                                        \
-                                 $(if $(filter atom        ,$(mm_GARCH)),-march=atom        -mtune=atom     -O2 -mfpmath=sse -ftree-vectorize -mmovbe) \
-                                 $(if $(filter c3          ,$(mm_GARCH)),-march=c3          -mtune=c3       -Os             ) \
-                                 $(if $(filter c3-2        ,$(mm_GARCH)),-march=c3-2        -mtune=c3-2     -Os -mfpmath=sse) \
                                  $(if $(filter pentium-mmx ,$(mm_GARCH)),-march=pentium-mmx -mtune=generic  -Os             ) \
                                  $(if $(filter x86-64      ,$(mm_GARCH)),-march=x86-64      -mtune=generic  -O3 -mfpmath=sse) \
-                                 $(if $(filter armv7       ,$(mm_GARCH)),-march=armv7-a     -mtune=armv7h-a -O2 -mfloat-abi=hard -mfpu=vfpv3-d16) \
-                                 $(if $(filter armv8       ,$(mm_GARCH)),-march=armv8-a     -O2                             ) \
+                                 $(if $(filter armv7       ,$(mm_GARCH)),-march=armv7-a                     -O2             ) \
+                                 $(if $(filter armv8       ,$(mm_GARCH)),-march=armv8-a                     -O2             ) \
                                  -flto                                                                                        \
                                  $(if $(filter i386  ,$(mm_GARCH_FAMILY)),-m32)                                               \
                                  $(if $(filter x86_64,$(mm_GARCH_FAMILY)),-m64)                                               \
