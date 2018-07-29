@@ -129,4 +129,5 @@ post-install:
 	@rm -f $(DESTDIR)$(elibdir)/libblkid.la
 	@rm -f $(DESTDIR)$(elibdir)/libmount.la
 	@rm -f $(DESTDIR)$(elibdir)/libuuid.la
+	@rm -f $(DESTDIR)$(elibdir)/libsmartcols.la
 	@$(MAKECOOKIE)
