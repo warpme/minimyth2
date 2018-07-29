@@ -99,3 +99,6 @@ configure-custom:
 	@mkdir -p $(WORKBLD)
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) ./$(call DIRSTODOTS,$(WORKBLD))/$(WORKSRC)/configure $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
+
+clean-custom:
+	@rm -rf $(build_DESTDIR)/$(build_bindir)/glibc-localedef-static*
