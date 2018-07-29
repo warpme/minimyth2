@@ -39,7 +39,7 @@ mm_DEBUG_BUILD            ?= no
 # Lists the graphics drivers supported.
 # Valid values for mm_GRAPHICS are one or more of 'intel', 'nvidia',
 # 'nvidia-legacy', 'radeon', and 'vmware'.
-mm_GRAPHICS               ?= 
+mm_GRAPHICS               ?= intel nvidia nvidia-legacy radeon vmware
 
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
