@@ -37,6 +37,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgstphotography-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstplayer-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgsturidownloader-1.0.la
+	@rm -f $(DESTDIR)$(libdir)/libgstwayland-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaccurip.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstbadaudio-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstadpcmdec.la
