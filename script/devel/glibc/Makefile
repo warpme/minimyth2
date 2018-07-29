@@ -37,7 +37,7 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile build-rpcgen
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--enable-bind-now \
-	--enable-kernel=3.18.0 \
+	--enable-kernel=4.4.0 \
 	--enable-obsolete-rpc \
 	--disable-build-nscd \
 	--disable-nscd \
