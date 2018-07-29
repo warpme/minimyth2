@@ -3,6 +3,7 @@ GARVERSION = 3.10.2
 CATEGORIES = devel
 MASTER_SITES = http://www.cmake.org/files/v3.4/
 DISTFILES = $(DISTNAME).tar.gz
+PATCHFILES = $(DISTNAME)-disable-qt5-chcking-with-no-qt.patch
 LICENSE = BSD_3_Clause
 
 DESCRIPTION = 
