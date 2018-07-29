@@ -3,7 +3,8 @@ GARVERSION = 4.3
 CATEGORIES = lib
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARNAME)$(GARVERSION)/
 DISTFILES = $(GARNAME)$(GARVERSION).tar.gz
-PATCHFILES = $(DISTNAME).patch.gar
+PATCHFILES  = $(DISTNAME).patch.gar
+PATCHFILES += $(DISTNAME)-conform-gnu11-and-gnu89-to-fix-i386-compilation.patch
 LICENSE = GPL2
 
 DESCRIPTION = 
