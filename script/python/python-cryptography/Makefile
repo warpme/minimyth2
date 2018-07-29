@@ -28,6 +28,13 @@ BUILD_ENV      =
 INSTALL_ENV    = \
 	PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
+ifneq ($(DESTIMG),build)
+BUILD_ARGS += --cross-compile
+BUILD_ENV  += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
+BUILD_ENV  += CC=$(GARHOST)-gcc
+BUILD_ENV  += LDSHARED="$(GARHOST)-gcc -shared"
+endif
+
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
 
