@@ -13,9 +13,6 @@ endef
 DEPENDS = lang/c \
 	$(CATEGORY)/wayland \
 
-#	$(CATEGORY)/libXrandr \
-#	$(CATEGORY)/libXrender
-	
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
@@ -26,15 +23,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
 	--disable-documentation
 
-#--disable-dtd-validation
-
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-#post-install:
-#	@rm -f $(DESTDIR)$(libdir)/libwayland-client.la
-#	@rm -f $(DESTDIR)$(libdir)/libwayland-cursor.la
-#	@rm -f $(DESTDIR)$(libdir)/libwayland-egl.la
-#	@rm -f $(DESTDIR)$(libdir)/libwayland-server.la
-#	@$(MAKECOOKIE)
 
