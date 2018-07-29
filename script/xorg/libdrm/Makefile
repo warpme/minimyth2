@@ -60,6 +60,4 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_amdgpu.la
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_freedreno.la
 	@rm -f $(DESTDIR)$(libdir)/libkms.la
-	# Hack needed to build with Mesa 11.0.x
-	@#mv $(DESTDIR)$(libdir)/libdrm.la $(DESTDIR)$(libdir)/libdrm.la-disabled
 	@$(MAKECOOKIE)
