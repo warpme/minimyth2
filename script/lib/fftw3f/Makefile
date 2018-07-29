@@ -21,6 +21,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--enable-portable-binary \
 	--enable-threads \
+	--with-combined-threads \
 	--with-gnu-ld \
 	--with-gcc-arch=$(GARCH)
 
