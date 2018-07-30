@@ -1,5 +1,5 @@
 GARNAME = pcre
-GARVERSION = 8.37
+GARVERSION = 8.42
 CATEGORIES = lib
 MASTER_SITES = ftp://ftp.csx.cam.ac.uk/pub/software/programming/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -34,6 +34,10 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-gnu-ld
 
 include ../../gar.mk
+
+# I don't know why but libtool relinking on ARM needs libdir fixup.
+# i386, x_86_64 and aarch64 are OK. Onlt ARM needs this...
+#include ../../devel/libtool/files/fix-relinking-on-arm.mk
 
 pre-configure:
 	@mkdir -p $(WORKSRC)/m4
