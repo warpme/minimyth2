@@ -3,7 +3,7 @@
 # '$(HOME)/.minimyth/minimyth.conf.mk'.
 #-------------------------------------------------------------------------------
 
-# -include $(HOME)/.minimyth/minimyth.conf.mk
+-include $(HOME)/.minimyth/minimyth.conf.mk
 
 # The version of MiniMyth.
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
