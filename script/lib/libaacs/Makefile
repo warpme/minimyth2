@@ -1,9 +1,8 @@
 GARNAME = libaacs
-GARVERSION = 0.7.1
+GARVERSION = 20180320-85da18b
 CATEGORIES = lib
 MASTER_SITES = git://git.videolan.org/libaacs.git/
-PATCHFILES = \
-    $(DISTNAME)-fix_complilation.patch
+PATCHFILES = fix-compilation.patch
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = LGPL2_1
 
