@@ -7,7 +7,6 @@ CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              git://anongit.freedesktop.org/mesa/mesa/ , \
              ftp://ftp.freedesktop.org/pub/mesa/ ))
-#             ftp://ftp.freedesktop.org/pub/mesa/$(GARVERSION)/ ))
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = LGPL2/MIT
 
