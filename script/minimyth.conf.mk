@@ -122,7 +122,7 @@ mm_TFTP_ROOT              ?= /home/piotro/tftpboot
 
 # Indicates where to put kernel, roofs, version and changelog files needed to 
 # build ArchLinux pkg with boot image
-mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image
+mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image/src
 
 # Indicates the directory in which the directory containing the MiniMyth root
 # file system for mounting using NFS. The MiniMyth root file system will be
