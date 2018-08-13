@@ -11,7 +11,7 @@ PATCHFILES  = \
 	$(DISTNAME)-perl.patch.gar \
 	$(DISTNAME)-mysql_config.patch.gar
 ifneq ($(DESTIMG),build)
-DISTFILES += config.cache.$(GARCH_FAMILY)
+DISTFILES += config.cache.$(GARCH_FAMILY)-
 PATCHFILES += $(DISTNAME)-cross.patch
 endif
 LICENSE = GPL2
@@ -63,8 +63,8 @@ CXXFLAGS += -fpermissive
 CFLAGS   += -Wno-narrowing
 CXXFLAGS += -Wno-narrowing
 
-extract-config.cache.$(GARCH_FAMILY):
-	@cp $(DOWNLOADDIR)/config.cache.$(GARCH_FAMILY) $(WORKSRC)/config.cache
+extract-config.cache.$(GARCH_FAMILY)-:
+	@cp $(DOWNLOADDIR)/config.cache.$(GARCH_FAMILY)- $(WORKSRC)/config.cache
 	@$(MAKECOOKIE)
 
 pre-configure:
