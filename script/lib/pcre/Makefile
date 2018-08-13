@@ -35,10 +35,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
-# I don't know why but libtool relinking on ARM needs libdir fixup.
-# i386, x_86_64 and aarch64 are OK. Onlt ARM needs this...
-#include ../../devel/libtool/files/fix-relinking-on-arm.mk
-
 pre-configure:
 	@mkdir -p $(WORKSRC)/m4
 	@$(call RUN_AUTOTOOLS)
