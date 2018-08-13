@@ -21,18 +21,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
-# I don't know why but libtool relinking on ARM needs this...
-# xxxx - fixme
-pre-configure:
-ifeq ($(DESTIMG),main)
-ifeq ($(GARCH_FAMILY),arm)
-	@echo "Hack for building on ARM..."
-	@ln -srf $(DESTDIR)$(elibdir)/libgcc_s.so $(DESTDIR)$(libdir)/libgcc_s.so
-	@ln -srf $(DESTDIR)$(elibdir)/libgcc_s.so.1 $(DESTDIR)$(libdir)/libgcc_s.so.1
-endif
-endif
-	@$(MAKECOOKIE)
-
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgstadaptivedemux-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstbadaudio-1.0.la
@@ -129,9 +117,4 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvmnc.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsty4mdec.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstyadif.la
-# I don't know why but libtool relinking on ARM needs this...
-# xxxx - fixme
-	@echo "Deleting hack for building Wayland on ARM..."
-	@rm -f $(DESTDIR)$(libdir)/libgcc_s.so
-	@rm -f $(DESTDIR)$(libdir)/libgcc_s.so.1
 	@$(MAKECOOKIE)

@@ -21,18 +21,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST)
 
 include ../../gar.mk
 
-# I don't know why but libtool relinking on ARM needs this...
-# xxxx - fixme
-pre-configure:
-ifeq ($(DESTIMG),main)
-ifeq ($(GARCH_FAMILY),arm)
-	@echo "Hack for building Wayland on ARM..."
-	@ln -sr $(DESTDIR)$(elibdir)/libgcc_s.so $(DESTDIR)$(libdir)/libgcc_s.so
-	@ln -sr $(DESTDIR)$(elibdir)/libgcc_s.so.1 $(DESTDIR)$(libdir)/libgcc_s.so.1
-endif
-endif
-	@$(MAKECOOKIE)
-
 post-install:
 	@cp -rf $(WORKSRC)/libpam/include/security $(DESTDIR)$(includedir)/
 	@rm -f $(DESTDIR)$(libdir)/libpam.la
@@ -77,9 +65,4 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/security/pam_securetty.la
 	@rm -f $(DESTDIR)$(libdir)/security/pam_motd.la
 	@rm -f $(DESTDIR)$(libdir)/security/pam_echo.la
-# I don't know why but libtool relinking on ARM needs this...
-# xxxx - fixme
-	@echo "Deleting hack for building Wayland on ARM..."
-	@rm -f $(DESTDIR)$(libdir)/libgcc_s.so
-	@rm -f $(DESTDIR)$(libdir)/libgcc_s.so.1
 	@$(MAKECOOKIE)

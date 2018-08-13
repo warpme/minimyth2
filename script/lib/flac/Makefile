@@ -38,15 +38,6 @@ LDFLAGS  := $(filter-out -flto, $(LDFLAGS))  -fno-lto
 
 pre-configure:
 	@$(call FIX_LIBTOOL_LIBPATH,$(WORKSRC),configure)
-# I don't know why but libtool relinking on ARM needs this...
-# xxxx - fixme
-ifeq ($(DESTIMG),main)
-ifeq ($(GARCH_FAMILY),arm)
-	@echo "Hack for building Wayland on ARM..."
-	@ln -sr $(DESTDIR)$(elibdir)/libgcc_s.so $(DESTDIR)$(libdir)/libgcc_s.so
-	@ln -sr $(DESTDIR)$(elibdir)/libgcc_s.so.1 $(DESTDIR)$(libdir)/libgcc_s.so.1
-endif
-endif
 	@$(MAKECOOKIE)
 
 post-install:
@@ -54,9 +45,4 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libFLAC++.la
 	@rm -f $(DESTDIR)$(libdir)/libOggFLAC.la
 	@rm -f $(DESTDIR)$(libdir)/libOggFLAC++.la
-# I don't know why but libtool relinking on ARM needs this...
-# xxxx - fixme
-	@echo "Deleting hack for building Wayland on ARM..."
-	@rm -f $(DESTDIR)$(libdir)/libgcc_s.so
-	@rm -f $(DESTDIR)$(libdir)/libgcc_s.so.1
 	@$(MAKECOOKIE)
