@@ -76,10 +76,24 @@ include ../../gar.mk
 
 pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
+# I don't know why but libtool relinking on ARM needs this...
+# xxxx - fixme
+ifeq ($(DESTIMG),main)
+ifeq ($(GARCH_FAMILY),arm)
+	@echo "Hack for building on ARM..."
+	@ln -sr $(DESTDIR)$(elibdir)/libgcc_s.so $(DESTDIR)$(libdir)/libgcc_s.so
+	@ln -sr $(DESTDIR)$(elibdir)/libgcc_s.so.1 $(DESTDIR)$(libdir)/libgcc_s.so.1
+endif
+endif
 	@$(MAKECOOKIE)
 
 post-install:
 	@rm -rf $(DESTDIR)$(libdir)/libcairo.la
 	@rm -rf $(DESTDIR)$(libdir)/libcairo-gobject.la
 	@rm -rf $(DESTDIR)$(libdir)/libcairo-script-interpreter.la
+# I don't know why but libtool relinking on ARM needs this...
+# xxxx - fixme
+	@echo "Deleting hack for building on ARM..."
+	@rm -f $(DESTDIR)$(libdir)/libgcc_s.so
+	@rm -f $(DESTDIR)$(libdir)/libgcc_s.so.1
 	@$(MAKECOOKIE)

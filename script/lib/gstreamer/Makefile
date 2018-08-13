@@ -26,7 +26,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-benchmarks \
 	--enable-tools \
 	--enable-introspection=no \
-        --disable-docbook \
+	--disable-docbook \
 	--disable-gtk-doc \
 	--disable-gtk-doc-html \
 	--disable-gtk-doc-pdf \
@@ -37,10 +37,27 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
+# I don't know why but libtool relinking on ARM needs this...
+# xxxx - fixme
+pre-configure:
+ifeq ($(DESTIMG),main)
+ifeq ($(GARCH_FAMILY),arm)
+	@echo "Hack for building on ARM..."
+	@ln -sr $(DESTDIR)$(elibdir)/libgcc_s.so $(DESTDIR)$(libdir)/libgcc_s.so
+	@ln -sr $(DESTDIR)$(elibdir)/libgcc_s.so.1 $(DESTDIR)$(libdir)/libgcc_s.so.1
+endif
+endif
+	@$(MAKECOOKIE)
+
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgstbase-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstcontroller-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstnet-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstreamer-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcoreelements.la
+# I don't know why but libtool relinking on ARM needs this...
+# xxxx - fixme
+	@echo "Deleting hack for building on ARM..."
+	@rm -f $(DESTDIR)$(libdir)/libgcc_s.so
+	@rm -f $(DESTDIR)$(libdir)/libgcc_s.so.1
 	@$(MAKECOOKIE)
