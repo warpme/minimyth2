@@ -100,5 +100,5 @@ configure-custom:
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) ./$(call DIRSTODOTS,$(WORKBLD))/$(WORKSRC)/configure $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
-clean-custom:
+clean:
 	@rm -rf $(build_DESTDIR)/$(build_bindir)/glibc-localedef-static*
