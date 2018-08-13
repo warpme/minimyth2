@@ -3,12 +3,22 @@ GARVERSION = $(PERL_VERSION)
 CATEGORIES = perl
 MASTER_SITES = http://www.cpan.org/src/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES  = $(DISTNAME)-dash.patch $(DISTNAME)-perl.gar.patch $(DISTNAME)-path.patch $(DISTNAME)-perl5lib.patch $(DISTNAME)-fix-gcc5-compat.patch
+
+PATCHFILES  = $(DISTNAME)-dash.patch
+PATCHFILES += $(DISTNAME)-perl.gar.patch
+PATCHFILES += $(DISTNAME)-path.patch
+PATCHFILES += $(DISTNAME)-perl5lib.patch
+PATCHFILES += $(DISTNAME)-fix-gcc5-compat.patch
 ifneq ($(DESTIMG),build)
-PATCHFILES += $(DISTNAME)-config_sh-$(GARCH_FAMILY).patch.gar $(DISTNAME)-cross.patch.gar
+PATCHFILES += $(DISTNAME)-config_sh-$(GARCH_FAMILY).patch.gar
+PATCHFILES += $(DISTNAME)-cross.patch.gar
 else
-PATCHFILES += $(DISTNAME)-cbuilder.patch $(DISTNAME)-xsloader.patch $(DISTNAME)-dynaloader.patch $(DISTNAME)-errno.patch
+PATCHFILES += $(DISTNAME)-cbuilder.patch
+PATCHFILES += $(DISTNAME)-xsloader.patch
+PATCHFILES += $(DISTNAME)-dynaloader.patch
+PATCHFILES += $(DISTNAME)-errno.patch
 endif
+
 LICENSE = Artistic
 
 DESCRIPTION = 
