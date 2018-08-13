@@ -1,7 +1,6 @@
 GARNAME = file
 GARVERSION = 5.12
 CATEGORIES = utils
-# while there are newer versions the ftp server is down.
 MASTER_SITES  = ftp://ftp.astron.com/pub/$(GARNAME)/
 MASTER_SITES += ftp://ftp.gw.com/mirrors/pub/unix/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
@@ -23,9 +22,9 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
-	--enable-shared \
-	--disable-static \
-	--with-gnu-ld
+	--disable-shared \
+	--enable-static \
+	--disable-silent-rules \
 
 include ../../gar.mk
 
