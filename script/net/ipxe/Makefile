@@ -21,7 +21,8 @@ BUILD_ARGS = \
 	bin/undionly.kpxe \
 	bin/undionly.kkpxe \
 	bin/ipxe.pxe \
-	bin-x86_64-efi/ipxe.efi
+	$(if $(filter i386,$(GARCH_FAMILY)),bin-x86-efi/ipxe.efi) \
+	$(if $(filter x86_64,$(GARCH_FAMILY)),bin-x86_64-efi/ipxe.efi) \
 
 # If you want debug - build with below's BUILD_ARGS
 #BUILD_ARGS = \
@@ -40,6 +41,7 @@ install-custom:
 	@cp -f $(WORKSRC)/src/bin/undionly.kpxe $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.0
 	@cp -f $(WORKSRC)/src/bin/undionly.kkpxe $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.kkpxe
 	@cp -f $(WORKSRC)/src/bin/ipxe.pxe $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.pxe
+	@cp -f $(WORKSRC)/src/bin-x86-efi/ipxe.efi $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe32.efi
 	@cp -f $(WORKSRC)/src/bin-x86_64-efi/ipxe.efi $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.efi
 	@mkdir -p $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/ipxe.cfg
 	@$(MAKECOOKIE)
