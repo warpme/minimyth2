@@ -7,7 +7,8 @@ PATCHFILES  = $(DISTNAME)-no_use_linker_plugin.patch
 PATCHFILES += $(DISTNAME)-bash.patch.gar 
 PATCHFILES += $(DISTNAME)-use_ld.patch
 PATCHFILES += $(DISTNAME)-armv7h-nopic.patch
-
+PATCHFILES += $(DISTNAME)-trailingslash.patch
+PATCHFILES += $(DISTNAME)-fixinstall.patch
 LICENSE = GPL2
 
 DESCRIPTION = 
