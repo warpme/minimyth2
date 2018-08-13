@@ -79,6 +79,7 @@ CONFIGURE_ARGS = \
 	-skip qtwebengine \
 	-skip qt3d \
 	-silent \
+	$(if $(filter arm,$(GARCH_FAMILY)),-skip qtwebglplugin) \
 
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
