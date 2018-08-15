@@ -1,9 +1,8 @@
 GARNAME = libsndfile
-GARVERSION = 1.0.25
+GARVERSION = 1.0.28
 CATEGORIES = lib
 MASTER_SITES = http://www.mega-nerd.com/libsndfile/files/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME)-configure.patch
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
