@@ -9,7 +9,7 @@ define BLURB
 endef
 
 DEPENDS = python/python python/python-distribute python/python-pycparser
-ifeq ($(DESTIMG),main)
+ifneq ($(DESTIMG),build)
 BUILDDEPS += python/python-distutilscross python/python-cffi
 endif
 
@@ -55,7 +55,7 @@ ifeq ($(DESTIMG),build)
 	       $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py
 endif
 # FIXME XXXXX
-ifeq ($(DESTIMG),main)
+ifneq ($(DESTIMG),build)
 	@cp -v $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/site-packages/cffi-$(GARVERSION)-*.egg/_cffi_backend.so \
 	 "$(DESTDIR)$(libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/site-packages/cffi-$(GARVERSION)"*
 endif
