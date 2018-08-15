@@ -168,8 +168,11 @@ DEPENDS = \
 	lib/libiec61883 \
 	lib/libxml2 \
 	lib/openssl \
+	lib/libsamplerate \
+	lib/libbluray \
 	lib/SDL2 \
 	lib/taglib \
+	lib/lzo \
 	devel/zlib \
 	devel/yasm \
 	python/python \
@@ -188,6 +191,7 @@ DEPENDS = \
 BUILDDEPS = \
 	python/python-MySQL-python \
 	python/python-urlgrabber \
+	python/python-lxml \
 
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 
@@ -277,6 +281,7 @@ CONFIGURE_ARGS = \
 	--enable-pic \
 	--disable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
+	$(if $(filter nvidia nvidia-legacy,$(mm_GRAPHICS)),--enable-xnvctrl,--disable-xnvctrl)
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
