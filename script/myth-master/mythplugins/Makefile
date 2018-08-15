@@ -24,6 +24,7 @@ DEPENDS = \
 	lib/libvorbis \
 	lib/SDL \
 	lib/taglib \
+	lib/minizip \
 	python/python \
 	python/python-pycurl \
 	python/python-lxml \
