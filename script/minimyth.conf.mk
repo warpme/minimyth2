@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.2.2.r694
+mm_VERSION_MINIMYTH ?= 9.3.0.r717
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -194,26 +194,26 @@ mm_USER_SHARE_LIST        ?=
 mm_GARCH_FAMILY           ?= $(strip \
                                  $(if $(filter pentium-mmx,$(mm_GARCH)),i386  ) \
                                  $(if $(filter x86-64     ,$(mm_GARCH)),x86_64) \
-                                 $(if $(filter armv7      ,$(mm_GARCH)),arm)    \
-                                 $(if $(filter armv8      ,$(mm_GARCH)),arm64)  \
+                                 $(if $(filter armv7      ,$(mm_GARCH)),arm   ) \
+                                 $(if $(filter armv8      ,$(mm_GARCH)),arm64 ) \
                               )
 # arch used by i.e. glibc
 mm_GARHOST                ?= $(strip \
-                                 $(if $(filter pentium-mmx,$(mm_GARCH)),i586-minimyth-linux-gnu  )       \
-                                 $(if $(filter x86-64     ,$(mm_GARCH)),x86_64-minimyth-linux-gnu)       \
+                                 $(if $(filter pentium-mmx,$(mm_GARCH)),i586-minimyth-linux-gnu        ) \
+                                 $(if $(filter x86-64     ,$(mm_GARCH)),x86_64-minimyth-linux-gnu      ) \
                                  $(if $(filter armv7      ,$(mm_GARCH)),armv7a-minimyth-linux-gnueabihf) \
-                                 $(if $(filter armv8      ,$(mm_GARCH)),aarch64-minimyth-linux-gnu)      \
+                                 $(if $(filter armv8      ,$(mm_GARCH)),aarch64-minimyth-linux-gnu     ) \
                               )
 mm_CFLAGS                 ?= $(strip \
-                                 -pipe                                                                                        \
-                                 $(if $(filter pentium-mmx ,$(mm_GARCH)),-march=pentium-mmx -mtune=generic  -Os             ) \
-                                 $(if $(filter x86-64      ,$(mm_GARCH)),-march=x86-64      -mtune=generic  -O3 -mfpmath=sse) \
-                                 $(if $(filter armv7       ,$(mm_GARCH)),-march=armv7-a                     -O2             ) \
-                                 $(if $(filter armv8       ,$(mm_GARCH)),-march=armv8-a                     -O2             ) \
-                                 -flto                                                                                        \
-                                 $(if $(filter i386  ,$(mm_GARCH_FAMILY)),-m32)                                               \
-                                 $(if $(filter x86_64,$(mm_GARCH_FAMILY)),-m64)                                               \
-                                 $(if $(filter yes,$(mm_DEBUG)),-g)                                                           \
+                                 -pipe                                                                                         \
+                                 $(if $(filter pentium-mmx ,$(mm_GARCH)),-march=pentium-mmx -mtune=generic  -Os              ) \
+                                 $(if $(filter x86-64      ,$(mm_GARCH)),-march=x86-64      -mtune=generic  -O3 -mfpmath=sse ) \
+                                 $(if $(filter armv7       ,$(mm_GARCH)),-march=armv7-a                     -O2              ) \
+                                 $(if $(filter armv8       ,$(mm_GARCH)),-march=armv8-a                     -O2              ) \
+                                 -flto                                                                                         \
+                                 $(if $(filter i386  ,$(mm_GARCH_FAMILY)),-m32)                                                \
+                                 $(if $(filter x86_64,$(mm_GARCH_FAMILY)),-m64)                                                \
+                                 $(if $(filter yes,$(mm_DEBUG)),-g)                                                            \
                               )
 mm_CXXFLAGS               ?= $(mm_CFLAGS)
 mm_DESTDIR                ?= $(mm_HOME)/images/mm
