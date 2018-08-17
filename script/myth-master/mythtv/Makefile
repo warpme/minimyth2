@@ -139,7 +139,6 @@ PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
 # Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled)
 PATCHFILES += 0327-revert-16086d2-Honor-the-MonitorDrives-setting.patch
 
-
 endif
 
 ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
@@ -173,6 +172,7 @@ DEPENDS = \
 	lib/SDL2 \
 	lib/taglib \
 	lib/lzo \
+	lib/libXNVctrl \
 	devel/zlib \
 	devel/yasm \
 	python/python \
