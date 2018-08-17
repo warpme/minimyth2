@@ -44,6 +44,10 @@ DEPENDS = \
 	$(if $(filter intel, $(mm_GRAPHICS)),X11/intel-vaapi-driver) \
 	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),utils/intel-microcode2ucode) \
 	utils/kmod \
+	$(if $(filter nvidia,$(mm_GRAPHICS)), \
+		nvidia/nvidia-$(mm_NVIDIA_VERSION)) \
+	$(if $(filter nvidia-legacy,$(mm_GRAPHICS)), \
+		nvidia/nvidia-$(mm_NVIDIA_LEGACY_VERSION)) \
 	myth-$(mm_MYTH_VERSION)/mythtv \
 	lib/ncursesw \
 	net/nfs-utils \
@@ -60,6 +64,7 @@ DEPENDS = \
 	python/python \
 	python/python-argparse \
 	python/python-tzupdate \
+	python/python-pylirc \
 	X11/ratpoison \
 	utils/regionset \
 	X11/rxvt \
@@ -90,10 +95,6 @@ DEPENDS = \
 	X11/xdotool \
 	system/zoneinfo \
 	utils/htop \
-	$(if $(filter nvidia,$(mm_GRAPHICS)), \
-		nvidia/nvidia-$(mm_NVIDIA_VERSION)) \
-	$(if $(filter nvidia-legacy,$(mm_GRAPHICS)), \
-		nvidia/nvidia-$(mm_NVIDIA_LEGACY_VERSION)) \
 	$(if $(filter mythplugins,$(mm_SOFTWARE)), \
 		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythplugins),myth-$(mm_MYTH_VERSION)/mythplugins) \
 		$(if $(filter python,$(mm_SOFTWARE)), \
@@ -153,7 +154,6 @@ DEPENDS = \
 		system/bbswitch) \
 	X11/xdotool \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
-		python/python-pylirc \
 		python/python-pyalsaaudio \
 		gtk/gconf \
 		gtk/gtk3 \
@@ -164,7 +164,6 @@ DEPENDS = \
 		xorg/libxscrnsaver \
 		browsers/google-chrome) \
 	$(if $(filter firefox,$(mm_SOFTWARE)), \
-		python/python-pylirc \
 		python/python-pyalsaaudio \
 		gtk/gconf \
 		gtk/gtk3 \
