@@ -51,7 +51,8 @@ DEPENDS = \
 	$(CATEGORY)/xorg-server \
 	$(CATEGORY)/xrandr \
 	$(CATEGORY)/xset \
-	$(CATEGORY)/xsetroot
+	$(CATEGORY)/xsetroot \
+	$(CATEGORY)/xauth
 
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
