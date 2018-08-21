@@ -3,7 +3,8 @@
 # '$(HOME)/.minimyth/minimyth.conf.mk'.
 #-------------------------------------------------------------------------------
 
--include $(HOME)/.minimyth/minimyth.conf.mk
+#-include $(HOME)/.minimyth/minimyth.conf.mk
+-include /home/piotro/minimyth-dev/minimyth.conf.mk
 
 # The version of MiniMyth.
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
@@ -16,7 +17,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.3.0.r717
+mm_VERSION_MINIMYTH ?= 9.4.0.r717
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -130,12 +131,12 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image/src
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel headers to use.
-# Valid values are '4.17' and '4.17'
-mm_KERNEL_HEADERS_VERSION ?= 4.17
+# Valid values are '4.17' and '4.18'
+mm_KERNEL_HEADERS_VERSION ?= 4.18
 
 # The version of kernel to use.
-# Valid values are '4.17' and '4.17'
-mm_KERNEL_VERSION         ?= 4.17
+# Valid values are '4.17' and '4.18'
+mm_KERNEL_VERSION         ?= 4.18
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
