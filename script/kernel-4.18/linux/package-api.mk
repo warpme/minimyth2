@@ -21,7 +21,8 @@ LINUX_MAKE_ARGS = \
 	HOSTCXX="$(build_CXX)" \
 	HOSTCFLAGS="$(build_CFLAGS)" \
 	HOSTCXXFLAGS="$(build_CXXFLAGS)" \
-	CROSS_COMPILE="$(compiler_prefix)"
+	CROSS_COMPILE="$(compiler_prefix)" \
+	$(PARALLELMFLAGS)
 
 LINUX_MAKE_ENV = \
 	KBUILD_VERBOSE="1"

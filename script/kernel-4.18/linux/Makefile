@@ -17,12 +17,6 @@ PATCHFILES += $(DISTNAME)-net-smsc95xx-allow-mac-address-as-param.patch
 PATCHFILES += $(DISTNAME)-disable-asm-no-goto-configure-exit.patch
 LICENSE = GPL2
 
-# automatic variables cannot be used in conditional directives, as automatic variables are not set until the recipe for that rule is invoked.
-# We must use shell to get conditional variable :-(((((
-CPU_ARCH = $(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_GARCH\s*?=" | sed -e "s/\s*//g" | sed -e "s/mm_GARCH?=//")
-# $(warning GARCH from minimyth.conf:$(CPU_ARCH))
-
-
 DESCRIPTION = 
 define BLURB
 endef
@@ -30,29 +24,12 @@ endef
 BUILDDEPS = utils/bc kernel-4.18/linux-firmware
 
 CONFIGURE_SCRIPTS = custom
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
+BUILD_SCRIPTS     = custom
 INSTALL_SCRIPTS   = custom
 
 CONFIGURE_ARGS    = $(LINUX_MAKE_ARGS)
 BUILD_ARGS        = $(LINUX_MAKE_ARGS)
 
-ifeq ($(CPU_ARCH),armv7)
-BUILD_ARGS        += zImage modules dtbs
-# By some reason LD on aarch64 reports: aarch64-minimyth-linux-gnu-ld: unrecognized option '-Wl,--as-needed'
-# As '-Wl,--as-needed' seems to be required by i386/x86_64 platforms and is declared in gar.conf.mk, for
-# aarch64 we will clear LDFLAGS
-override LDFLAGS  =
-else
-ifeq ($(CPU_ARCH),armv8)
-BUILD_ARGS        += Image Image.gz modules dtbs
-# By some reason LD on aarch64 reports: aarch64-minimyth-linux-gnu-ld: unrecognized option '-Wl,--as-needed'
-# As '-Wl,--as-needed' seems to be required by i386/x86_64 platforms and is declared in gar.conf.mk, for
-# aarch64 we will clear LDFLAGS
-override LDFLAGS  =
-else
-BUILD_ARGS        += bzImage modules
-endif
-endif
 
 INSTALL_ARGS   = $(LINUX_MAKE_ARGS)
 
@@ -74,6 +51,18 @@ configure-custom:
 	$(warning main_LDFLAGS: $(main_LDFLAGS))
 	@$(MAKECOOKIE)
 
+build-custom:
+ifeq ($(GARCH),armv7)
+	@$(CONFIGURE_ENV) $(MAKE) -C $(WORKSRC) $(BUILD_ARGS) zImage modules dtbs
+else
+ifeq ($(GARCH),armv8)
+	@$(CONFIGURE_ENV) $(MAKE) -C $(WORKSRC) $(BUILD_ARGS) Image Image.gz modules dtbs
+else
+	@$(CONFIGURE_ENV) $(MAKE) -C $(WORKSRC) $(BUILD_ARGS) bzImage modules
+endif
+endif
+	@$(MAKECOOKIE)
+
 pre-install:
 	@rm -rf "$(DESTDIR)$(LINUX_DIR)"
 	@rm -rf "$(DESTDIR)$(LINUX_MODULESDIR)"
@@ -81,7 +70,7 @@ pre-install:
 	@$(MAKECOOKIE)
 
 install-custom:
-ifeq ($(CPU_ARCH),armv7)
+ifeq ($(GARCH),armv7)
 	@mkdir -p "$(DESTDIR)/boot"
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/zImage > $(DESTDIR)/boot/zImage
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)/boot/Image
@@ -90,7 +79,7 @@ ifeq ($(CPU_ARCH),armv7)
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) modules_install
 	@$(MAKECOOKIE)
 else
-ifeq ($(CPU_ARCH),armv8)
+ifeq ($(GARCH),armv8)
 	@mkdir -p "$(DESTDIR)/boot"
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)/boot/Image.gz
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)/boot/Image
