@@ -14,12 +14,6 @@ DESCRIPTION =
 define BLURB
 endef
 
-# automatic variables cannot be used in conditional directives, as automatic variables are not set until the recipe for that rule is invoked.
-# We must use shell to get conditional variable :-(((((
-CPU_ARCH = $(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_GARCH\s*?=" | sed -e "s/\s*//g" | sed -e "s/mm_GARCH?=//")
-# $(warning GARCH from minimyth.conf:$(CPU_ARCH))
-
-
 DEPENDS    = lang/c lang/cxx lib/expat X11/libvdpau devel/llvm devel/libelf python/python-mako \
 	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/libdrm \
@@ -54,6 +48,8 @@ ifeq ($(DESTIMG),build)
 INSTALL_SCRIPTS   += cross
 endif
 
+include ../../gar.mk
+
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
 	--disable-static \
@@ -80,13 +76,13 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	LIBUDEV_CFLAGS="$(DESTDIR)$(includedir)" \
 	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so"
 
-ifeq ($(CPU_ARCH),armv7)
+ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
 	--with-gallium-drivers=swrast,vc4 \
 	--with-dri-drivers=swrast \
 	--disable-xa
 else
-ifeq ($(CPU_ARCH),armv8)
+ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
 	--with-gallium-drivers=swrast,vc4 \
 	--with-dri-drivers=swrast \
@@ -114,7 +110,6 @@ CPPFLAGS += -ffat-lto-objects
 CXXFLAGS += -ffat-lto-objects
 CFLAGS   += -ffat-lto-objects
 
-include ../../gar.mk
 
 git//%$(DISTNAME).tar.xz:
 	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
