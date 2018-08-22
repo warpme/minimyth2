@@ -76,10 +76,6 @@ mm-all:
 	@# Check build parameters.
 	@echo "  build parameters ..."
 	@echo "    HOME"
-	@if [ ! -e $(HOME)/.minimyth/minimyth.conf.mk ] ; then \
-		echo "error: configuration file '$(HOME)/.minimyth/minimyth.conf.mk' is missing." ; \
-		exit 1 ; \
-	fi
 	@echo "    mm_GARCH"
 	@if [ ! "$(mm_GARCH)" = "c3"          ] && \
 	    [ ! "$(mm_GARCH)" = "c3-2"        ] && \
