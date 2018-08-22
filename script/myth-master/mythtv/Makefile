@@ -57,7 +57,8 @@ PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-
 # Needed to successfully applying 0235 & 0236
 PATCHFILES += 0218-decrease-minQt-ver-to-4.8-v2.patch
 
-ifneq ($(patsubst %minimal,minimal,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
+ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
+
 # LVR safe patches related to player/OSD
 PATCHFILES += 0226-0186-mythplayer-Increase-resolution-of-onscreen-playback-.patch
 PATCHFILES += 0231-0238-Player-Add-interlaced-status-to-OSD-debug-screen-vid.patch
@@ -141,7 +142,8 @@ PATCHFILES += 0327-revert-16086d2-Honor-the-MonitorDrives-setting.patch
 
 endif
 
-ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
+ifeq ($(patsubst %private,private,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
+
 endif
 
 LICENSE = GPL2
@@ -332,8 +334,6 @@ post-install: post-install-mythtv-version
 	@$(MAKECOOKIE)
 
 pre-configure:
-	@#ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtWebKit.pc
-	@#ln -sf $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5Script.pc $(DESTDIR)$(qt5libdir)/pkgconfig/QtScript.pc
 	@#Myth ver.containing also MM2 version
 	@#sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\(.*\)/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
 	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
