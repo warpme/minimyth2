@@ -1,5 +1,5 @@
 GARNAME = ipxe
-GARVERSION = e7f67d5
+GARVERSION = d2063b7
 CATEGORIES = net
 MASTER_SITES = https://git.ipxe.org/ipxe.git/snapshot/
 DISTFILES = $(GARVERSION).tar.bz2
