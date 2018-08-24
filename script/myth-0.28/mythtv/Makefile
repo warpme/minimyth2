@@ -50,7 +50,7 @@ PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-
 
 PATCHFILES += 0218-decrease-minQt-ver-to-4.8.patch
 
-ifneq ($(patsubst %minimal,minimal,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
+ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 # 7.6.4 LVR safe patches related to player/OSD
 PATCHFILES += 0226-0186-mythplayer-Increase-resolution-of-onscreen-playback-.patch
 PATCHFILES += 0231-0238-Player-Add-interlaced-status-to-OSD-debug-screen-vid.patch
@@ -107,7 +107,7 @@ PATCHFILES += 0328-ticket13211-mythtv-29-aac-6-channel-audio-backport.patch
 
 endif
 
-ifeq ($(patsubst %private,private,$(shell cat ~/.minimyth/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
+ifeq ($(patsubst %private,private,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
 endif
 
 LICENSE = GPL2
