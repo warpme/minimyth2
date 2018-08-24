@@ -1,7 +1,7 @@
 GARNAME = strace
-GARVERSION = 4.21
+GARVERSION = 4.24
 CATEGORIES = devel
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
+MASTER_SITES = https://github.com/strace/strace/releases/download/v$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = BSD_3_Clause
 
@@ -19,8 +19,3 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules
 
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
