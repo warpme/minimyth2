@@ -1,9 +1,8 @@
 #-------------------------------------------------------------------------------
 # Values in this file can be overridden by including the desired value in
-# '$(HOME)/.minimyth/minimyth.conf.mk'.
+# '$(mm_HOME)/minimyth.conf.mk'.
 #-------------------------------------------------------------------------------
 
-#-include $(HOME)/.minimyth/minimyth.conf.mk
 -include /home/piotro/minimyth-dev/minimyth.conf.mk
 
 # The version of MiniMyth.
@@ -17,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.4.0.r717
+mm_VERSION_MINIMYTH ?= 9.4.1.r740
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -45,7 +44,8 @@ mm_GRAPHICS               ?= intel nvidia nvidia-legacy radeon vmware
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
 # 'flash', 'mplayer', 'mplayer-svn', 'voip', 'bumblebee', 'perl', 'python', 'mame',
-# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'chrome', 'firefox', 'lcdproc', 'debug'.
+# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'ipxe' 'u-boot' 'chrome', 'firefox',
+# 'lcdproc', 'debug'.
 mm_SOFTWARE               ?= \
                              python \
                              perl \
@@ -73,11 +73,16 @@ mm_SOFTWARE               ?= \
 #                             flash \
 #                             mplayer-svn \
 #                             netflix \
-#                             ipxe
+#                             ipxe \
+#                             u-boot \
 
 # Indicates the microprocessor architecture.
 # Valid values for mm_GARCH are 'pentium-mmx', 'x86-64', 'armv7', 'armv8'.
 mm_GARCH                  ?= x86-64
+
+# Indicates U-Boot loader board type. Valid values are in list
+# of <u-boot source>/configs directory.
+mm_U-BOOT_BOARD_TYPE      ?= rpi_2_defconfig
 
 # Indicates whether or not to create the RAM based part of the distribution.
 mm_DISTRIBUTION_RAM       ?= yes
