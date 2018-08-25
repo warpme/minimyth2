@@ -126,7 +126,6 @@ PATCHFILES += 0312-0306-MythMusic-Avoid-a-SEGV-in-the-CD-ripper-ogg-encoder.patc
 PATCHFILES += 0313-0307-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0314-0308-MythMusic-Wait-for-CD-scanner-and-eject-threads-befo.patch
 PATCHFILES += 0315-0309-MythMusic-Make-initial-scan-by-CD-ripper-run-in-back.patch
-PATCHFILES += 0316-0310-MythMusic-Enable-the-CD-ripper-to-run-in-the-backgro-v2.patch
 PATCHFILES += 0318-0337-Mythmusic-Provide-network-control-of-playlist.patch
 PATCHFILES += 0320-0348-MythMusic-Add-network-control-commands-to-list-and-p-v2.patch
 
