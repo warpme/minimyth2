@@ -1,6 +1,6 @@
 GARNAME = u-boot
 GARVERSION = 20180823-2418734
-CATEGORIES = net
+CATEGORIES = kernel
 MASTER_SITES = git://git.denx.de/u-boot.git/
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = GPL2
@@ -16,24 +16,20 @@ CONFIGURE_SCRIPTS   = custom
 BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
-CONFIGURE_ARGS = \
-	HOST_CC="$(build_CC)" \
-	CROSS_COMPILE="$(compiler_prefix)" \
-	$(if $(filter armv7 ,$(GARCH_FAMILY)),rpi_2_defconfig) \
-	$(if $(filter armv8 ,$(GARCH_FAMILY)),rpi_3_defconfig) \
-	$(if $(filter i386  ,$(GARCH_FAMILY)),efi-x86_payload32_defconfig) \
-	$(if $(filter x86_64,$(GARCH_FAMILY)),efi-x86_payload64_defconfig) \
-
 include ../../gar.mk
 
+CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
+
+BUILD_ARGS = \
+	CROSS_COMPILE=$(compiler_prefix) \
+	ARCH=$(GARCH_FAMILY) \
+
 configure-custom:
-	$(warning configure cmd:$(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS))
 	@$(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 build-custom:
-	$(warning build cmd:$(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS))
-	@$(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
 	@$(MAKECOOKIE)
 
 git//%$(DISTNAME).tar.bz2:
@@ -43,12 +39,12 @@ git//%$(DISTNAME).tar.bz2:
 install-custom:
 	@mkdir -p "$(DESTDIR)/boot"
 ifeq ($(GARCH),armv7)
-	@cp  $(WORKSRC)/u-boot $(DESTDIR)/boot/u-boot.bin
+	@cp  $(WORKSRC)/u-boot $(DESTDIR)/boot/u-boot.bin.$(mm_U-BOOT_BOARD_TYPE)
 else
 ifeq ($(GARCH),armv8)
-	@cp  $(WORKSRC)/u-boot $(DESTDIR)/boot/u-boot.bin
+	@cp  $(WORKSRC)/u-boot $(DESTDIR)/boot/u-boot.bin.$(mm_U-BOOT_BOARD_TYPE)
 else
-	@cp  $(WORKSRC)/u-boot $(DESTDIR)/boot/u-boot.bin
+	@cp  $(WORKSRC)/u-boot $(DESTDIR)/boot/u-boot.bin.$(mm_U-BOOT_BOARD_TYPE)
 endif
 endif
 	@$(MAKECOOKIE)
