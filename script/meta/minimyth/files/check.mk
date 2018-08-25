@@ -77,12 +77,7 @@ mm-all:
 	@echo "  build parameters ..."
 	@echo "    HOME"
 	@echo "    mm_GARCH"
-	@if [ ! "$(mm_GARCH)" = "c3"          ] && \
-	    [ ! "$(mm_GARCH)" = "c3-2"        ] && \
-	    [ ! "$(mm_GARCH)" = "pentium-mmx" ] && \
-	    [ ! "$(mm_GARCH)" = "i686"        ] && \
-	    [ ! "$(mm_GARCH)" = "atom"        ] && \
-	    [ ! "$(mm_GARCH)" = "atom64"      ] && \
+	@if [ ! "$(mm_GARCH)" = "pentium-mmx" ] && \
 	    [ ! "$(mm_GARCH)" = "armv7"       ] && \
 	    [ ! "$(mm_GARCH)" = "armv8"       ] && \
 	    [ ! "$(mm_GARCH)" = "x86-64"      ] ; then \
@@ -114,12 +109,12 @@ mm-all:
 	fi
 	@echo "    mm_GRAPHICS"
 	@for graphic in $(mm_GRAPHICS) ; do \
-		if [ ! "$${graphic}" = "intel"      ] && \
-		   [ ! "$${graphic}" = "nvidia"     ] && \
+		if [ ! "$${graphic}" = "intel"         ] && \
+		   [ ! "$${graphic}" = "nvidia"        ] && \
 		   [ ! "$${graphic}" = "nvidia-legacy" ] && \
-		   [ ! "$${graphic}" = "radeon"     ] && \
-		   [ ! "$${graphic}" = "radeonhd"   ] && \
-		   [ ! "$${graphic}" = "vmware"     ] ; then \
+		   [ ! "$${graphic}" = "radeon"        ] && \
+		   [ ! "$${graphic}" = "radeonhd"      ] && \
+		   [ ! "$${graphic}" = "vmware"        ] ; then \
 			echo "error: mm_GRAPHICS=\"$${graphic}\" is an invalid value." ; \
 			exit 1 ; \
 		fi ; \
@@ -158,22 +153,23 @@ mm-all:
 		   [ ! "$${software}" = "visualboyadvance" ] &&  \
 		   [ ! "$${software}" = "zsnes"          ] && \
 		   [ ! "$${software}" = "ipxe"           ] && \
+		   [ ! "$${software}" = "u-boot"         ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
 			exit 1 ; \
 		fi ; \
 	done
 	@echo "    mm_KERNEL_HEADERS_VERSION"
-	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.16" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.17" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.18" ] ; then \
+	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.17" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.18" ] && \
+	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.19" ] ; then \
 		echo "error: mm_KERNEL_HEADERS_VERSION=\"$(mm_KERNEL_HEADERS_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "4.16" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "4.17" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "4.18" ] ; then \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "4.17" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.18" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.19" ] ; then \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
