@@ -155,8 +155,8 @@ mm_MYTH_VERSION           ?= master
 # mm_MYTH_VERSION           ?= 0.28
 
 # The version of the NVIDIA driver.
-# Valid values are '396.24', '396.45'
-mm_NVIDIA_VERSION         ?= 396.45
+# Valid values are '396.45', '396.54'
+mm_NVIDIA_VERSION         ?= 396.54
 
 # The version of the NVIDIA legacy driver.
 # Valid values are '340.107' and '340.107'
