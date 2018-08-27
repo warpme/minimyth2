@@ -39,12 +39,12 @@ git//%$(DISTNAME).tar.bz2:
 install-custom:
 	@mkdir -p "$(DESTDIR)/boot"
 ifeq ($(GARCH),armv7)
-	@cp  $(WORKSRC)/u-boot $(DESTDIR)/boot/u-boot.bin.$(mm_U-BOOT_BOARD_TYPE)
+	@cp  $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/u-boot.bin.$(mm_U-BOOT_BOARD_TYPE)
 else
 ifeq ($(GARCH),armv8)
-	@cp  $(WORKSRC)/u-boot $(DESTDIR)/boot/u-boot.bin.$(mm_U-BOOT_BOARD_TYPE)
+	@cp  $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/u-boot.bin.$(mm_U-BOOT_BOARD_TYPE)
 else
-	@cp  $(WORKSRC)/u-boot $(DESTDIR)/boot/u-boot.bin.$(mm_U-BOOT_BOARD_TYPE)
+	@cp  $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/u-boot.bin.$(mm_U-BOOT_BOARD_TYPE)
 endif
 endif
 	@$(MAKECOOKIE)
