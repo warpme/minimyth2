@@ -1,8 +1,9 @@
 GARNAME = alsa-lib
-GARVERSION = 1.1.5
+GARVERSION = 1.1.6
 CATEGORIES = lib
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/lib/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
+PATCHFILES = $(DISTNAME)-missing_files.patch
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = LGPL2_1
 
@@ -37,7 +38,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-debug \
 	--with-tmpdir="$(rootdir)/tmp" \
 	--with-alsa-devdir="$(rootdir)/dev/snd" \
-	--with-aload-devdir="$(rootdir)/dev"
+	--with-aload-devdir="$(rootdir)/dev" \
+	--disable-alsaconf
 
 include ../../gar.mk
 
