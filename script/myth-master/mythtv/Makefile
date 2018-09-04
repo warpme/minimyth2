@@ -139,6 +139,8 @@ PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
 # Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled)
 PATCHFILES += 0327-revert-16086d2-Honor-the-MonitorDrives-setting.patch
 
+PATCHFILES += 0328-ticket13311-20180903-1849-add-vaapi2.patch
+
 endif
 
 ifeq ($(patsubst %private,private,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
