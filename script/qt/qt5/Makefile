@@ -1,10 +1,11 @@
 GARNAME = qt-everywhere-src
-GARVERSION = 5.10.1
+GARVERSION = 5.11.1
 CATEGORIES = qt
 MASTER_SITES = http://download.qt.io/official_releases/qt/5.11/$(GARVERSION)/single/
 DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES =  $(DISTNAME).patch.gar
 PATCHFILES += $(DISTNAME)-fix-gcc6+-build.patch
+PATCHFILES += $(DISTNAME)-disable-qtlocation-mapboxgl-plugin.patch
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
@@ -55,7 +56,6 @@ CONFIGURE_ARGS = \
 	-release \
 	-confirm-license \
 	-opensource \
-	-c++std c++11 \
 	-opengl \
 	-no-rpath \
 	-no-optimized-qmake \
