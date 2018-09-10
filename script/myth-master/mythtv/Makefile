@@ -139,7 +139,13 @@ PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
 # Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled)
 PATCHFILES += 0327-revert-16086d2-Honor-the-MonitorDrives-setting.patch
 
-PATCHFILES += 0328-ticket13311-20180903-1849-add-vaapi2.patch
+# Fixes regression causing BER is not shown on tuning OSD
+PATCHFILES += 0328-revert-ed85b14-Allow-SignalHandlers-StreamHandler-to-be-used-by-Recorder.patch
+
+# Needed by zoneminder 1.31 zmserver daemon
+PATCHFILES += 0329-add-zoneminfder-1.31.1-compability.patch
+
+PATCHFILES += 0330-ticket13311-add-vaapi2-20180904_1601_fixed.patch
 
 endif
 

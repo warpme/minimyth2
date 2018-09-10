@@ -1,5 +1,5 @@
 diff --git a/mythtv/configure b/mythtv/configure
-index f7cfc291b82..c86dd70aed1 100755
+index f7cfc291b8..c86dd70aed 100755
 --- a/mythtv/configure
 +++ b/mythtv/configure
 @@ -134,6 +134,7 @@ Advanced options (experts only):
@@ -55,7 +55,7 @@ index f7cfc291b82..c86dd70aed1 100755
    echo "OpenMAX support           ${openmax-no}"
    if enabled openmax ; then
 diff --git a/mythtv/libs/libmythtv/avformatdecoder.cpp b/mythtv/libs/libmythtv/avformatdecoder.cpp
-index 5b5fce95e88..b5061eca0b5 100644
+index 5b5fce95e8..fce633d588 100644
 --- a/mythtv/libs/libmythtv/avformatdecoder.cpp
 +++ b/mythtv/libs/libmythtv/avformatdecoder.cpp
 @@ -43,6 +43,7 @@ using namespace std;
@@ -173,36 +173,39 @@ index 5b5fce95e88..b5061eca0b5 100644
  #endif
      if (codec && codec->capabilities & AV_CODEC_CAP_DR1)
      {
-@@ -1659,6 +1700,28 @@ void AvFormatDecoder::InitVideoCodec(AVStream *stream, AVCodecContext *enc,
+@@ -1659,6 +1700,31 @@ void AvFormatDecoder::InitVideoCodec(AVStream *stream, AVCodecContext *enc,
                  .arg(ff_codec_id_string(enc->codec_id)));
      }
  
-+    // delete m_mythcodecctx;
-+    // m_mythcodecctx = MythCodecContext::createMythCodecContext(video_codec_id, stream);
++    QString deinterlacer;
 +    if (m_mythcodecctx)
++        deinterlacer = m_mythcodecctx->getDeinterlacerName();
++    delete m_mythcodecctx;
++    m_mythcodecctx = MythCodecContext::createMythCodecContext(video_codec_id);
++    m_mythcodecctx->setPlayer(m_parent);
++    m_mythcodecctx->setStream(stream);
++    m_mythcodecctx->setDeinterlacer(true,deinterlacer);
++
++    int ret = m_mythcodecctx->HwDecoderInit(enc);
++    if (ret < 0)
 +    {
-+        m_mythcodecctx->setPlayer(m_parent);
-+        int ret = m_mythcodecctx->HwDecoderInit(enc);
++        char error[AV_ERROR_MAX_STRING_SIZE];
 +        if (ret < 0)
 +        {
-+            char error[AV_ERROR_MAX_STRING_SIZE];
-+            if (ret < 0)
-+            {
-+                LOG(VB_GENERAL, LOG_ERR, LOC +
-+                    QString("HwDecoderInit unable to initialize hardware decoder: %1 (%2)")
-+                    .arg(av_make_error_string(error, sizeof(error), ret))
-+                    .arg(ret));
-+                // force it to switch to software decoding
-+                averror_count = SEQ_PKT_ERR_MAX + 1;
-+                m_streams_changed = true;
-+            }
++            LOG(VB_GENERAL, LOG_ERR, LOC +
++                QString("HwDecoderInit unable to initialize hardware decoder: %1 (%2)")
++                .arg(av_make_error_string(error, sizeof(error), ret))
++                .arg(ret));
++            // force it to switch to software decoding
++            averror_count = SEQ_PKT_ERR_MAX + 1;
++            m_streams_changed = true;
 +        }
 +    }
 +
      if (FlagIsSet(kDecodeLowRes)    || FlagIsSet(kDecodeSingleThreaded) ||
          FlagIsSet(kDecodeFewBlocks) || FlagIsSet(kDecodeNoLoopFilter)   ||
          FlagIsSet(kDecodeNoDecode))
-@@ -2536,6 +2599,24 @@ int AvFormatDecoder::ScanStreams(bool novideo)
+@@ -2536,6 +2602,24 @@ int AvFormatDecoder::ScanStreams(bool novideo)
                      }
                  }
  #endif // USING_MEDIACODEC
@@ -227,14 +230,14 @@ index 5b5fce95e88..b5061eca0b5 100644
              }
              // default to mpeg2
              if (video_codec_id == kCodec_NONE)
-@@ -2554,9 +2635,16 @@ int AvFormatDecoder::ScanStreams(bool novideo)
+@@ -2554,9 +2638,16 @@ int AvFormatDecoder::ScanStreams(bool novideo)
              if (!codec_is_std(video_codec_id))
                  thread_count = 1;
  
-+            // video-codec-id is set - now create the MythCodecContext.
-+            delete m_mythcodecctx;
-+            m_mythcodecctx = MythCodecContext::createMythCodecContext
-+              (video_codec_id, ic->streams[selTrack]);
++            // // video-codec-id is set - now create the MythCodecContext.
++            // delete m_mythcodecctx;
++            // m_mythcodecctx = MythCodecContext::createMythCodecContext
++            //   (video_codec_id, ic->streams[selTrack]);
 +
              use_frame_timing = false;
              if (! private_dec
@@ -245,7 +248,7 @@ index 5b5fce95e88..b5061eca0b5 100644
                  use_frame_timing = true;
  
              if (FlagIsSet(kDecodeSingleThreaded))
-@@ -3056,6 +3144,16 @@ int get_avf_buffer_vaapi(struct AVCodecContext *c, AVFrame *pic, int /*flags*/)
+@@ -3056,6 +3147,16 @@ int get_avf_buffer_vaapi(struct AVCodecContext *c, AVFrame *pic, int /*flags*/)
  }
  #endif
  
@@ -262,7 +265,7 @@ index 5b5fce95e88..b5061eca0b5 100644
  void AvFormatDecoder::DecodeDTVCC(const uint8_t *buf, uint len, bool scte)
  {
      if (!len)
-@@ -3630,7 +3728,10 @@ bool AvFormatDecoder::ProcessVideoPacket(AVStream *curstream, AVPacket *pkt)
+@@ -3630,7 +3731,10 @@ bool AvFormatDecoder::ProcessVideoPacket(AVStream *curstream, AVPacket *pkt)
              //  into separate routines or separate threads.
              //  Also now that it always consumes a whole buffer some code
              //  in the caller may be able to be optimized.
@@ -274,7 +277,7 @@ index 5b5fce95e88..b5061eca0b5 100644
  
              if (ret == 0)
                  gotpicture = 1;
-@@ -3671,16 +3772,13 @@ bool AvFormatDecoder::ProcessVideoPacket(AVStream *curstream, AVPacket *pkt)
+@@ -3671,16 +3775,13 @@ bool AvFormatDecoder::ProcessVideoPacket(AVStream *curstream, AVPacket *pkt)
                      QString("video avcodec_send_packet error: %1 (%2) gotpicture:%3")
                      .arg(av_make_error_string(error, sizeof(error), ret2))
                      .arg(ret2).arg(gotpicture));
@@ -297,7 +300,7 @@ index 5b5fce95e88..b5061eca0b5 100644
              }
              if (ret == AVERROR_EXTERNAL || ret2 == AVERROR_EXTERNAL)
                  m_streams_changed = true;
-@@ -3840,6 +3938,27 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
+@@ -3840,6 +3941,27 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
      }
      else if (!directrendering)
      {
@@ -325,7 +328,7 @@ index 5b5fce95e88..b5061eca0b5 100644
          AVFrame tmppicture;
  
          VideoFrame *xf = picframe;
-@@ -3847,8 +3966,8 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
+@@ -3847,8 +3969,8 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
  
          unsigned char *buf = picframe->buf;
          av_image_fill_arrays(tmppicture.data, tmppicture.linesize,
@@ -336,7 +339,7 @@ index 5b5fce95e88..b5061eca0b5 100644
          tmppicture.data[0] = buf + picframe->offsets[0];
          tmppicture.data[1] = buf + picframe->offsets[1];
          tmppicture.data[2] = buf + picframe->offsets[2];
-@@ -3857,9 +3976,9 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
+@@ -3857,9 +3979,9 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
          tmppicture.linesize[2] = picframe->pitches[2];
  
          QSize dim = get_video_dim(*context);
@@ -349,7 +352,7 @@ index 5b5fce95e88..b5061eca0b5 100644
                                         AV_PIX_FMT_YUV420P, SWS_FAST_BILINEAR,
                                         NULL, NULL, NULL);
          if (!sws_ctx)
-@@ -3867,7 +3986,7 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
+@@ -3867,7 +3989,7 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
              LOG(VB_GENERAL, LOG_ERR, LOC + "Failed to allocate sws context");
              return false;
          }
@@ -358,7 +361,7 @@ index 5b5fce95e88..b5061eca0b5 100644
                    tmppicture.data, tmppicture.linesize);
  
          if (xf)
-@@ -3880,6 +3999,8 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
+@@ -3880,6 +4002,8 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
              xf->aspect = current_aspect;
              m_parent->DiscardVideoFrame(xf);
          }
@@ -367,7 +370,7 @@ index 5b5fce95e88..b5061eca0b5 100644
      }
      else if (!picframe)
      {
-@@ -3928,10 +4049,13 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
+@@ -3928,10 +4052,13 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
          // If fps has doubled due to frame-doubling deinterlace
          // Set fps to double value.
          double fpschange = calcfps / fps;
@@ -382,7 +385,7 @@ index 5b5fce95e88..b5061eca0b5 100644
  
      LOG(VB_PLAYBACK | VB_TIMESTAMP, LOG_INFO, LOC +
 diff --git a/mythtv/libs/libmythtv/avformatdecoder.h b/mythtv/libs/libmythtv/avformatdecoder.h
-index e4dded21576..1ea3785b7db 100644
+index e4dded2157..1ea3785b7d 100644
 --- a/mythtv/libs/libmythtv/avformatdecoder.h
 +++ b/mythtv/libs/libmythtv/avformatdecoder.h
 @@ -206,6 +206,8 @@ class AvFormatDecoder : public DecoderBase
@@ -395,21 +398,30 @@ index e4dded21576..1ea3785b7db 100644
  
      friend int open_avf(URLContext *h, const char *filename, int flags);
 diff --git a/mythtv/libs/libmythtv/decoderbase.cpp b/mythtv/libs/libmythtv/decoderbase.cpp
-index b8a2edef83b..684664acd11 100644
+index b8a2edef83..1c071a89f3 100644
 --- a/mythtv/libs/libmythtv/decoderbase.cpp
 +++ b/mythtv/libs/libmythtv/decoderbase.cpp
-@@ -45,7 +45,8 @@ DecoderBase::DecoderBase(MythPlayer *parent, const ProgramInfo &pginfo)
+@@ -11,6 +11,7 @@ using namespace std;
+ #include "iso639.h"
+ #include "DVD/dvdringbuffer.h"
+ #include "Bluray/bdringbuffer.h"
++#include "mythcodeccontext.h"
+ 
+ #define LOC QString("Dec: ")
+ 
+@@ -45,7 +46,9 @@ DecoderBase::DecoderBase(MythPlayer *parent, const ProgramInfo &pginfo)
        video_inverted(false),
        decodeAllSubtitles(false),
        // language preference
 -      languagePreference(iso639_get_language_key_list())
 +      languagePreference(iso639_get_language_key_list()),
-+      m_mythcodecctx(NULL)
++      // this will be deleted and recreated once decoder set up
++      m_mythcodecctx( new MythCodecContext())
  {
      ResetTracks();
      tracks[kTrackTypeAudio].push_back(StreamInfo(0, 0, 0, 0, 0));
 diff --git a/mythtv/libs/libmythtv/decoderbase.h b/mythtv/libs/libmythtv/decoderbase.h
-index 608c1e6b336..91c8804c8de 100644
+index 608c1e6b33..91c8804c8d 100644
 --- a/mythtv/libs/libmythtv/decoderbase.h
 +++ b/mythtv/libs/libmythtv/decoderbase.h
 @@ -18,6 +18,7 @@ class RingBuffer;
@@ -437,7 +449,7 @@ index 608c1e6b336..91c8804c8de 100644
  
  inline int DecoderBase::IncrementTrack(uint type)
 diff --git a/mythtv/libs/libmythtv/libmythtv.pro b/mythtv/libs/libmythtv/libmythtv.pro
-index 939ca20984b..8ffe3b82665 100644
+index 939ca20984..8ffe3b8266 100644
 --- a/mythtv/libs/libmythtv/libmythtv.pro
 +++ b/mythtv/libs/libmythtv/libmythtv.pro
 @@ -366,9 +366,11 @@ using_frontend {
@@ -466,7 +478,7 @@ index 939ca20984b..8ffe3b82665 100644
          DEFINES += USING_MEDIACODEC
          HEADERS += mediacodeccontext.h
 diff --git a/mythtv/libs/libmythtv/mythavutil.cpp b/mythtv/libs/libmythtv/mythavutil.cpp
-index c21aec44568..faad6f6d172 100644
+index c21aec4456..faad6f6d17 100644
 --- a/mythtv/libs/libmythtv/mythavutil.cpp
 +++ b/mythtv/libs/libmythtv/mythavutil.cpp
 @@ -10,6 +10,7 @@
@@ -525,7 +537,7 @@ index c21aec44568..faad6f6d172 100644
          ++i;
          freeCodecContext(stream);
 diff --git a/mythtv/libs/libmythtv/mythavutil.h b/mythtv/libs/libmythtv/mythavutil.h
-index 1357fe2c54c..f287b8e54ea 100644
+index 1357fe2c54..f287b8e54e 100644
 --- a/mythtv/libs/libmythtv/mythavutil.h
 +++ b/mythtv/libs/libmythtv/mythavutil.h
 @@ -98,7 +98,7 @@ class MTV_PUBLIC MythCodecMap
@@ -539,10 +551,10 @@ index 1357fe2c54c..f287b8e54ea 100644
  
 diff --git a/mythtv/libs/libmythtv/mythcodeccontext.cpp b/mythtv/libs/libmythtv/mythcodeccontext.cpp
 new file mode 100644
-index 00000000000..3cee6b4ed0d
+index 0000000000..abccb350b7
 --- /dev/null
 +++ b/mythtv/libs/libmythtv/mythcodeccontext.cpp
-@@ -0,0 +1,474 @@
+@@ -0,0 +1,494 @@
 +//////////////////////////////////////////////////////////////////////////////
 +// Copyright (c) 2017 MythTV Developers <mythtv-dev@mythtv.org>
 +//
@@ -590,13 +602,13 @@ index 00000000000..3cee6b4ed0d
 +
 +#define LOC QString("MythCodecContext: ")
 +
-+MythCodecContext::MythCodecContext(AVStream* initStream) :
-+    stream(initStream),
++MythCodecContext::MythCodecContext() :
++    stream(NULL),
 +    buffersink_ctx(NULL),
 +    buffersrc_ctx(NULL),
 +    filter_graph(NULL),
 +    filtersInitialized(false),
-+    hw_frames_ctx(0),
++    hw_frames_ctx(NULL),
 +    player(NULL),
 +    ptsUsed(0),
 +    doublerate(false)
@@ -611,19 +623,20 @@ index 00000000000..3cee6b4ed0d
 +}
 +
 +// static
-+MythCodecContext *MythCodecContext::createMythCodecContext(MythCodecID codec, AVStream* initStream)
++MythCodecContext *MythCodecContext::createMythCodecContext(MythCodecID codec)
 +{
 +    MythCodecContext *mctx = NULL;
 +#ifdef USING_VAAPI2
 +    if (codec_is_vaapi2(codec))
-+        mctx = new Vaapi2Context(initStream);
++        mctx = new Vaapi2Context();
 +#endif
 +    if (!mctx)
-+        mctx = new MythCodecContext(initStream);
++        mctx = new MythCodecContext();
 +    return mctx;
 +}
 +
-+QStringList MythCodecContext::MythCodecContext::GetDeinterlacers(QString decodername)
++// static
++QStringList MythCodecContext::GetDeinterlacers(QString decodername)
 +{
 +    QStringList ret;
 +#ifdef USING_VAAPI2
@@ -660,6 +673,11 @@ index 00000000000..3cee6b4ed0d
 +    }
 +#endif
 +    return ret;
++}
++// static - Find if a deinterlacer is codec-provided
++bool MythCodecContext::isCodecDeinterlacer(QString decodername)
++{
++    return (decodername.startsWith("vaapi2"));
 +}
 +
 +
@@ -740,6 +758,7 @@ index 00000000000..3cee6b4ed0d
 +}
 +
 +// Setup or change deinterlacer.
++// Same function as VideoOutBase::SetupDeinterlace
 +// enable - true to enable, false to disable
 +// name - empty to use video profile deinterlacers, otherwise
 +//        use the supplied name.
@@ -758,6 +777,7 @@ index 00000000000..3cee6b4ed0d
 +        else
 +        {
 +            deinterlacername.clear();
++            doublerate = false;
 +            filtersInitialized = false;
 +            return true;
 +        }
@@ -768,18 +788,20 @@ index 00000000000..3cee6b4ed0d
 +    {
 +        if (deinterlacername.isEmpty())
 +        {
-+            VideoOutput *vo = player->GetVideoOutput();
-+            VideoDisplayProfile *vdisp_profile = vo->GetProfile();
-+            // if (player->CanSupportDoubleRate())
++            VideoOutput *vo = NULL;
++            VideoDisplayProfile *vdisp_profile = NULL;
++            if (player)
++                vo = player->GetVideoOutput();
++            if (vo)
++                vdisp_profile = vo->GetProfile();
++            if (vdisp_profile)
 +                name = vdisp_profile->GetFilteredDeint(QString());
-+            // else
-+            //     name = vdisp_profile->GetFallbackDeinterlacer();
 +        }
 +        else
 +            name = deinterlacername;
 +    }
 +    bool ret = true;
-+    if (!isValidDeinterlacer(name))
++    if (!isCodecDeinterlacer(name))
 +        name.clear();
 +
 +    if (name.isEmpty())
@@ -797,6 +819,7 @@ index 00000000000..3cee6b4ed0d
 +bool MythCodecContext::BestDeint(void)
 +{
 +    deinterlacername.clear();
++    doublerate = false;
 +    return setDeinterlacer(true);
 +}
 +
@@ -807,11 +830,17 @@ index 00000000000..3cee6b4ed0d
 +
 +QString MythCodecContext::GetFallbackDeint(void)
 +{
-+    VideoOutput *vo = player->GetVideoOutput();
-+    VideoDisplayProfile *vdisp_profile = vo->GetProfile();
-+    return vdisp_profile->GetFallbackDeinterlacer();
-+}
 +
++    VideoOutput *vo = NULL;
++    VideoDisplayProfile *vdisp_profile = NULL;
++    if (player)
++        vo = player->GetVideoOutput();
++    if (vo)
++        vdisp_profile = vo->GetProfile();
++    if (vdisp_profile)
++        return vdisp_profile->GetFallbackDeinterlacer();
++    return QString();
++}
 +
 +int MythCodecContext::InitDeinterlaceFilter(AVCodecContext *ctx, AVFrame *frame)
 +{
@@ -821,11 +850,12 @@ index 00000000000..3cee6b4ed0d
 +    CloseFilters();
 +    width = frame->width;
 +    height = frame->height;
-+    if (!player)
-+        return -1;
 +    filtersInitialized = true;
-+    doublerate = deinterlacername.contains("doublerate");
-+
++    if (!player || !stream)
++    {
++        LOG(VB_GENERAL, LOG_ERR, LOC + "Player or stream is not set up in MythCodecContext");
++        return -1;
++    }
 +    if (doublerate && !player->CanSupportDoubleRate())
 +    {
 +        QString request = deinterlacername;
@@ -833,7 +863,7 @@ index 00000000000..3cee6b4ed0d
 +        LOG(VB_PLAYBACK, LOG_INFO, LOC
 +          + QString("Deinterlacer %1 requires double rate, switching to %2 instead.")
 +          .arg(request).arg(deinterlacername));
-+        if (!isValidDeinterlacer(deinterlacername))
++        if (!isCodecDeinterlacer(deinterlacername))
 +            deinterlacername.clear();
 +        doublerate = deinterlacername.contains("doublerate");
 +
@@ -849,7 +879,9 @@ index 00000000000..3cee6b4ed0d
 +    //     else
 +    //         deinterlacername = vdisp_profile->GetFallbackDeinterlacer();
 +    // }
-+    QString filters = GetDeinterlaceFilter();
++    QString filters;
++    if (isValidDeinterlacer(deinterlacername))
++        filters = GetDeinterlaceFilter();
 +
 +    if (filters.isEmpty())
 +    {
@@ -1020,10 +1052,10 @@ index 00000000000..3cee6b4ed0d
 \ No newline at end of file
 diff --git a/mythtv/libs/libmythtv/mythcodeccontext.h b/mythtv/libs/libmythtv/mythcodeccontext.h
 new file mode 100644
-index 00000000000..f0470eea409
+index 0000000000..234797aeac
 --- /dev/null
 +++ b/mythtv/libs/libmythtv/mythcodeccontext.h
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,82 @@
 +//////////////////////////////////////////////////////////////////////////////
 +// Copyright (c) 2017 MythTV Developers <mythtv-dev@mythtv.org>
 +//
@@ -1066,19 +1098,18 @@ index 00000000000..f0470eea409
 +class MTV_PUBLIC MythCodecContext
 +{
 +  public:
-+    MythCodecContext(AVStream* initStream);
++    MythCodecContext(void);
 +    virtual ~MythCodecContext();
-+    static MythCodecContext* createMythCodecContext(MythCodecID codec, AVStream* initStream);
++    static MythCodecContext* createMythCodecContext(MythCodecID codec);
 +    virtual int HwDecoderInit(AVCodecContext * /*ctx*/) { return 0; }
++    void setStream(AVStream *initStream) { stream = initStream; }
 +    virtual int FilteredReceiveFrame(AVCodecContext *ctx, AVFrame *frame);
-+    int InitDeinterlaceFilter(AVCodecContext *ctx, AVFrame *frame);
-+    void CloseFilters();
 +    static QStringList GetDeinterlacers(QString decodername);
++    static bool isCodecDeinterlacer(QString decodername);
 +    virtual QStringList GetDeinterlacers(void) { return QStringList(); }
 +    virtual QString GetDeinterlaceFilter() { return QString(); }
 +    void setPlayer(MythPlayer *tPlayer) { player = tPlayer; }
 +    bool setDeinterlacer(bool enable, QString name = QString());
-+    virtual bool isValidDeinterlacer(QString /*name*/) { return false; }
 +    bool isDeinterlacing(void) { return filter_graph != NULL;}
 +    QString getDeinterlacerName(void) { return deinterlacername; }
 +    bool BestDeint(void);
@@ -1087,6 +1118,9 @@ index 00000000000..f0470eea409
 +    QString GetFallbackDeint(void);
 +
 +  protected:
++    virtual bool isValidDeinterlacer(QString /*name*/) { return false; }
++    int InitDeinterlaceFilter(AVCodecContext *ctx, AVFrame *frame);
++    void CloseFilters();
 +    AVStream* stream;
 +    AVFilterContext *buffersink_ctx;
 +    AVFilterContext *buffersrc_ctx;
@@ -1106,7 +1140,7 @@ index 00000000000..f0470eea409
 +#endif // MYTHCODECCONTEXT_H
 \ No newline at end of file
 diff --git a/mythtv/libs/libmythtv/mythcodecid.cpp b/mythtv/libs/libmythtv/mythcodecid.cpp
-index b2023512b5f..cff4ba03585 100644
+index b2023512b5..cff4ba0358 100644
 --- a/mythtv/libs/libmythtv/mythcodecid.cpp
 +++ b/mythtv/libs/libmythtv/mythcodecid.cpp
 @@ -123,6 +123,27 @@ QString toString(MythCodecID codecid)
@@ -1271,7 +1305,7 @@ index b2023512b5f..cff4ba03585 100644
      return "ffmpeg";
  }
 diff --git a/mythtv/libs/libmythtv/mythcodecid.h b/mythtv/libs/libmythtv/mythcodecid.h
-index ce3620467d9..f1d225d4beb 100644
+index ce3620467d..f1d225d4be 100644
 --- a/mythtv/libs/libmythtv/mythcodecid.h
 +++ b/mythtv/libs/libmythtv/mythcodecid.h
 @@ -91,6 +91,21 @@ typedef enum
@@ -1319,7 +1353,7 @@ index ce3620467d9..f1d225d4beb 100644
 -
  #endif // _MYTH_CODEC_ID_H_
 diff --git a/mythtv/libs/libmythtv/mythplayer.cpp b/mythtv/libs/libmythtv/mythplayer.cpp
-index e4e0bd83ead..7b4f5a235a7 100644
+index e4e0bd83ea..b87cd5706e 100644
 --- a/mythtv/libs/libmythtv/mythplayer.cpp
 +++ b/mythtv/libs/libmythtv/mythplayer.cpp
 @@ -53,6 +53,7 @@ using namespace std;
@@ -1334,7 +1368,7 @@ index e4e0bd83ead..7b4f5a235a7 100644
        bufferingCounter(0),
        // Debugging variables
        output_jmeter(new Jitterometer(LOC)),
-+      isDeintSetup(false),
++    //   isDeintSetup(false),
        disable_passthrough(false)
  {
      memset(&tc_lastval, 0, sizeof(tc_lastval));
@@ -1416,7 +1450,7 @@ index e4e0bd83ead..7b4f5a235a7 100644
                                  FrameScanType scan, QString codecName)
  {
 +
-+    SetupDeinterlace();
++    // SetupDeinterlace();
      bool paramsChanged = false;
  
      if (width >= 1 && height >= 1)
@@ -1521,7 +1555,7 @@ index e4e0bd83ead..7b4f5a235a7 100644
          FallbackDeint();
  
      videofiltersLock.unlock();
-@@ -2480,17 +2535,63 @@ void MythPlayer::VideoStart(void)
+@@ -2480,13 +2535,19 @@ void MythPlayer::VideoStart(void)
      }
      else if (videoOutput)
      {
@@ -1529,50 +1563,9 @@ index e4e0bd83ead..7b4f5a235a7 100644
 -        m_double_framerate =
 -            (videoOutput->SetupDeinterlace(true) &&
 -             videoOutput->NeedsDoubleFramerate());
-+        isDeintSetup = false;
-+        // bool hwset = decoder->GetMythCodecContext()->setDeinterlacer(true);
-+        // if (hwset)
-+        //     videoOutput->SetupDeinterlace(false);
-+        // else
-+        // {
-+        //     // Set up deinterlacing in the video output method
-+        //     m_double_framerate =
-+        //         (videoOutput->SetupDeinterlace(true) &&
-+        //         videoOutput->NeedsDoubleFramerate());
-+
-+        //     m_double_process = videoOutput->IsExtraProcessingRequired();
-+        // }
-+        videosync = VideoSync::BestMethod(videoOutput, (uint)rf_int);
- 
+-
 -        m_double_process = videoOutput->IsExtraProcessingRequired();
-+        // // Make sure video sync can do it
-+        // if (videosync != NULL && m_double_framerate)
-+        // {
-+        //     if (!CanSupportDoubleRate())
-+        //     {
-+        //         LOG(VB_GENERAL, LOG_ERR, LOC +
-+        //             "Video sync method can't support double framerate "
-+        //             "(refresh rate too low for 2x deint)");
-+        //         FallbackDeint();
-+        //     }
-+        // }
-+    }
-+    if (!videosync)
-+    {
-+        videosync = new BusyWaitVideoSync(videoOutput, rf_int);
-+    }
- 
--        videosync = VideoSync::BestMethod(videoOutput, (uint)rf_int);
-+    InitAVSync();
-+    videosync->Start();
-+}
- 
-+void MythPlayer::SetupDeinterlace(void)
-+{
-+    if (isDeintSetup)
-+        return;
-+    if (videoOutput && decoder->GetMythCodecContext())
-+    {
++        // isDeintSetup = false;
 +        bool hwset = decoder->GetMythCodecContext()->setDeinterlacer(true);
 +        if (hwset)
 +            videoOutput->SetupDeinterlace(false);
@@ -1582,36 +1575,55 @@ index e4e0bd83ead..7b4f5a235a7 100644
 +            m_double_framerate =
 +                (videoOutput->SetupDeinterlace(true) &&
 +                videoOutput->NeedsDoubleFramerate());
-+
+ 
 +            m_double_process = videoOutput->IsExtraProcessingRequired();
 +        }
+         videosync = VideoSync::BestMethod(videoOutput, (uint)rf_int);
+ 
          // Make sure video sync can do it
--        if (videosync != NULL && m_double_framerate)
-+        if (videosync != NULL && (m_double_framerate
-+            || decoder->GetMythCodecContext()->getDoubleRate()))
-         {
-             if (!CanSupportDoubleRate())
-             {
-@@ -2500,18 +2601,15 @@ void MythPlayer::VideoStart(void)
-                 FallbackDeint();
-             }
-         }
-+        isDeintSetup = true;
-     }
--    if (!videosync)
--    {
--        videosync = new BusyWaitVideoSync(videoOutput, rf_int);
--    }
--
--    InitAVSync();
--    videosync->Start();
+@@ -2510,8 +2571,45 @@ void MythPlayer::VideoStart(void)
+     videosync->Start();
  }
  
++// void MythPlayer::SetupDeinterlace(void)
++// {
++//     if (isDeintSetup)
++//         return;
++//     if (videoOutput && decoder->GetMythCodecContext())
++//     {
++//         bool hwset = decoder->GetMythCodecContext()->setDeinterlacer(true);
++//         if (hwset)
++//             videoOutput->SetupDeinterlace(false);
++//         else
++//         {
++//             // Set up deinterlacing in the video output method
++//             m_double_framerate =
++//                 (videoOutput->SetupDeinterlace(true) &&
++//                 videoOutput->NeedsDoubleFramerate());
++
++//             m_double_process = videoOutput->IsExtraProcessingRequired();
++//         }
++//         // Make sure video sync can do it
++//         if (videosync != NULL && (m_double_framerate
++//             || decoder->GetMythCodecContext()->getDoubleRate()))
++//         {
++//             if (!CanSupportDoubleRate())
++//             {
++//                 LOG(VB_GENERAL, LOG_ERR, LOC +
++//                     "Video sync method can't support double framerate "
++//                     "(refresh rate too low for 2x deint)");
++//                 FallbackDeint();
++//             }
++//         }
++//         isDeintSetup = true;
++//     }
++// }
++
 +
  bool MythPlayer::VideoLoop(void)
  {
-+    if (!isDeintSetup)
-+        SetupDeinterlace();
++    // if (!isDeintSetup)
++    //     SetupDeinterlace();
      if (videoPaused || isDummy)
      {
          switch (player_ctx->GetPIPState())
@@ -1619,53 +1631,58 @@ index e4e0bd83ead..7b4f5a235a7 100644
  
  void MythPlayer::EventLoop(void)
  {
-+    if (!isDeintSetup)
-+        SetupDeinterlace();
++    // if (!isDeintSetup)
++    //     SetupDeinterlace();
 +
      // recreate the osd if a reinit was triggered by another thread
      if (reinit_osd)
          ReinitOSD();
-@@ -3807,16 +3908,28 @@ void MythPlayer::ChangeSpeed(void)
-         bool inter  = (kScan_Interlaced   == m_scan  ||
+@@ -3808,13 +3909,22 @@ void MythPlayer::ChangeSpeed(void)
                         kScan_Intr2ndField == m_scan);
  
--        videofiltersLock.lock();
+         videofiltersLock.lock();
 -        if (m_double_framerate && !play_1)
 -            videoOutput->FallbackDeint();
 -        else if (!m_double_framerate && CanSupportDoubleRate() && play_1 &&
 -                 inter)
 -            videoOutput->BestDeint();
--        videofiltersLock.unlock();
--
--        m_double_framerate = videoOutput->NeedsDoubleFramerate();
--        m_double_process = videoOutput->IsExtraProcessingRequired();
-+        if (isDeintSetup)
++        bool doublerate = m_double_framerate || decoder->GetMythCodecContext()->getDoubleRate();
++        if (doublerate && !play_1)
 +        {
-+            videofiltersLock.lock();
-+            bool doublerate = m_double_framerate || decoder->GetMythCodecContext()->getDoubleRate();
-+            if (doublerate && !play_1)
-+            {
-+                bool hwdeint = decoder->GetMythCodecContext()->FallbackDeint();
-+                if (!hwdeint)
-+                    videoOutput->FallbackDeint();
-+            }
-+            else if (!m_double_framerate && CanSupportDoubleRate() && play_1
-+                    && (inter || decoder->GetMythCodecContext()->isDeinterlacing()))
-+            {
-+                videoOutput->SetupDeinterlace(false);
-+                bool hwdeint = decoder->GetMythCodecContext()->BestDeint();
-+                if (!hwdeint)
-+                    videoOutput->BestDeint();
-+            }
-+            videofiltersLock.unlock();
-+            m_double_framerate = videoOutput->NeedsDoubleFramerate();
-+            m_double_process = videoOutput->IsExtraProcessingRequired();
++            bool hwdeint = decoder->GetMythCodecContext()->FallbackDeint();
++            if (!hwdeint)
++                videoOutput->FallbackDeint();
 +        }
++        else if (!m_double_framerate && CanSupportDoubleRate() && play_1
++                && (inter || decoder->GetMythCodecContext()->isDeinterlacing()))
++        {
++            videoOutput->SetupDeinterlace(false);
++            bool hwdeint = decoder->GetMythCodecContext()->BestDeint();
++            if (!hwdeint)
++                videoOutput->BestDeint();
++        }
+         videofiltersLock.unlock();
+-
+         m_double_framerate = videoOutput->NeedsDoubleFramerate();
+         m_double_process = videoOutput->IsExtraProcessingRequired();
      }
- 
-     if (normal_speed && audio.HasAudioOut())
+@@ -5502,8 +5612,14 @@ void MythPlayer::SetDecoder(DecoderBase *dec)
+             decoder = dec;
+         else
+         {
++            // Copy the deinterlacer name to the new decoder.
+             DecoderBase *d = decoder;
+             decoder = dec;
++            if (d && decoder)
++            {
++                QString deinterlacer = d->GetMythCodecContext()->getDeinterlacerName();
++                decoder->GetMythCodecContext()->setDeinterlacer(true,deinterlacer);
++            }
+             delete d;
+         }
+         decoder_change_lock.unlock();
 diff --git a/mythtv/libs/libmythtv/mythplayer.h b/mythtv/libs/libmythtv/mythplayer.h
-index a17364522be..e0c85e00308 100644
+index a17364522b..9751994d62 100644
 --- a/mythtv/libs/libmythtv/mythplayer.h
 +++ b/mythtv/libs/libmythtv/mythplayer.h
 @@ -166,6 +166,7 @@ class MTV_PUBLIC MythPlayer
@@ -1684,26 +1701,25 @@ index a17364522be..e0c85e00308 100644
  
      // Title stuff
      virtual bool SwitchTitle(int /*title*/) { return false; }
-@@ -560,6 +562,8 @@ class MTV_PUBLIC MythPlayer
+@@ -560,6 +562,7 @@ class MTV_PUBLIC MythPlayer
      FrameScanType detectInterlace(FrameScanType newScan, FrameScanType scan,
                                    float fps, int video_height);
      virtual void AutoDeint(VideoFrame* frame, bool allow_lock = true);
-+    void  SetupDeinterlace(void);
-+
++    // void  SetupDeinterlace(void);
  
      // Private Sets
      void SetPlayingInfo(const ProgramInfo &pginfo);
-@@ -851,6 +855,8 @@ class MTV_PUBLIC MythPlayer
+@@ -851,6 +854,8 @@ class MTV_PUBLIC MythPlayer
      // Debugging variables
      Jitterometer *output_jmeter;
  
-+    bool isDeintSetup;
++    // bool isDeintSetup;
 +
    private:
      void syncWithAudioStretch();
      bool disable_passthrough;
 diff --git a/mythtv/libs/libmythtv/tv_play.cpp b/mythtv/libs/libmythtv/tv_play.cpp
-index 5ade8680bcc..b381bf6e9fc 100644
+index 5ade8680bc..b381bf6e9f 100644
 --- a/mythtv/libs/libmythtv/tv_play.cpp
 +++ b/mythtv/libs/libmythtv/tv_play.cpp
 @@ -78,6 +78,7 @@ using namespace std;
@@ -1743,7 +1759,7 @@ index 5ade8680bcc..b381bf6e9fc 100644
          VideoOutput *vo = ctx->player->GetVideoOutput();
 diff --git a/mythtv/libs/libmythtv/vaapi2context.cpp b/mythtv/libs/libmythtv/vaapi2context.cpp
 new file mode 100644
-index 00000000000..4dbbc75bdef
+index 0000000000..5bf27b9c12
 --- /dev/null
 +++ b/mythtv/libs/libmythtv/vaapi2context.cpp
 @@ -0,0 +1,179 @@
@@ -1785,8 +1801,8 @@ index 00000000000..4dbbc75bdef
 +
 +#define LOC QString("VAAPI2: ")
 +
-+Vaapi2Context::Vaapi2Context(AVStream* initStream) :
-+    MythCodecContext(initStream)
++Vaapi2Context::Vaapi2Context() :
++    MythCodecContext()
 +{
 +
 +}
@@ -1928,7 +1944,7 @@ index 00000000000..4dbbc75bdef
 +// }
 diff --git a/mythtv/libs/libmythtv/vaapi2context.h b/mythtv/libs/libmythtv/vaapi2context.h
 new file mode 100644
-index 00000000000..28deb7420c9
+index 0000000000..05562f0e23
 --- /dev/null
 +++ b/mythtv/libs/libmythtv/vaapi2context.h
 @@ -0,0 +1,52 @@
@@ -1971,13 +1987,13 @@ index 00000000000..28deb7420c9
 +class MTV_PUBLIC Vaapi2Context : public MythCodecContext
 +{
 +  public:
-+    Vaapi2Context(AVStream* initStream);
++    Vaapi2Context(void);
 +    static MythCodecID GetBestSupportedCodec(AVCodec **ppCodec,
 +                                             const QString &decoder,
 +                                             uint stream_type,
 +                                             AVPixelFormat &pix_fmt);
 +    int HwDecoderInit(AVCodecContext *ctx);
-+    virtual QString GetDeinterlaceFilter();
++    virtual QString GetDeinterlaceFilter(void);
 +    virtual bool isValidDeinterlacer(QString /*name*/ );
 +    virtual QStringList GetDeinterlacers(void);
 +
@@ -1986,7 +2002,7 @@ index 00000000000..28deb7420c9
 +#endif // VAAPI2CONTEXT_H
 \ No newline at end of file
 diff --git a/mythtv/libs/libmythtv/videodisplayprofile.cpp b/mythtv/libs/libmythtv/videodisplayprofile.cpp
-index 700ee3bb990..990b1ae6f7b 100644
+index 700ee3bb99..990b1ae6f7 100644
 --- a/mythtv/libs/libmythtv/videodisplayprofile.cpp
 +++ b/mythtv/libs/libmythtv/videodisplayprofile.cpp
 @@ -8,6 +8,7 @@ using namespace std;
@@ -2190,7 +2206,7 @@ index 700ee3bb990..990b1ae6f7b 100644
          msg = QObject::tr("'%1' has not been documented yet.").arg(deint);
  
 diff --git a/mythtv/libs/libmythtv/videoout_opengl.cpp b/mythtv/libs/libmythtv/videoout_opengl.cpp
-index b689947d738..51b62527ecf 100644
+index b689947d73..51b62527ec 100644
 --- a/mythtv/libs/libmythtv/videoout_opengl.cpp
 +++ b/mythtv/libs/libmythtv/videoout_opengl.cpp
 @@ -40,6 +40,8 @@ void VideoOutputOpenGL::GetRenderOptions(render_opts &opts,
@@ -2234,7 +2250,7 @@ index b689947d738..51b62527ecf 100644
      {
          gl_videochain->SetDeinterlacing(false);
 diff --git a/mythtv/libs/libmythtv/videoout_xv.cpp b/mythtv/libs/libmythtv/videoout_xv.cpp
-index ccc756ace78..1074b1ea4c0 100644
+index ccc756ace7..1074b1ea4c 100644
 --- a/mythtv/libs/libmythtv/videoout_xv.cpp
 +++ b/mythtv/libs/libmythtv/videoout_xv.cpp
 @@ -122,6 +122,15 @@ void VideoOutputXv::GetRenderOptions(render_opts &opts,
@@ -2263,7 +2279,7 @@ index ccc756ace78..1074b1ea4c0 100644
          if (xv)
              list += "xv-blit";
 diff --git a/mythtv/libs/libmythtv/videooutbase.cpp b/mythtv/libs/libmythtv/videooutbase.cpp
-index 60b2d4fa249..dc892c46475 100644
+index 60b2d4fa24..dc892c4647 100644
 --- a/mythtv/libs/libmythtv/videooutbase.cpp
 +++ b/mythtv/libs/libmythtv/videooutbase.cpp
 @@ -607,8 +607,16 @@ bool VideoOutput::SetupDeinterlace(bool interlaced,
@@ -2285,7 +2301,7 @@ index 60b2d4fa249..dc892c46475 100644
          if (!m_deintfiltername.isEmpty())
          {
 diff --git a/mythtv/libs/libmythtv/videooutbase.h b/mythtv/libs/libmythtv/videooutbase.h
-index 0c11bd60ce2..35a5f2877a5 100644
+index 0c11bd60ce..35a5f2877a 100644
 --- a/mythtv/libs/libmythtv/videooutbase.h
 +++ b/mythtv/libs/libmythtv/videooutbase.h
 @@ -76,6 +76,8 @@ class VideoOutput
@@ -2298,7 +2314,7 @@ index 0c11bd60ce2..35a5f2877a5 100644
      virtual void WindowResized(const QSize &) {}
  
 diff --git a/mythtv/programs/mythfrontend/globalsettings.cpp b/mythtv/programs/mythfrontend/globalsettings.cpp
-index 7f87ba55caa..c169aab6a50 100644
+index 7f87ba55ca..c169aab6a5 100644
 --- a/mythtv/programs/mythfrontend/globalsettings.cpp
 +++ b/mythtv/programs/mythfrontend/globalsettings.cpp
 @@ -38,6 +38,7 @@
@@ -2366,7 +2382,7 @@ index 7f87ba55caa..c169aab6a50 100644
      general->addChild(JumpToProgramOSD());
      general->addChild(ClearSavedPosition());
 diff --git a/mythtv/programs/mythfrontend/mythfrontend.pro b/mythtv/programs/mythfrontend/mythfrontend.pro
-index 580bc606af7..83517acfefc 100644
+index 580bc606af..83517acfef 100644
 --- a/mythtv/programs/mythfrontend/mythfrontend.pro
 +++ b/mythtv/programs/mythfrontend/mythfrontend.pro
 @@ -116,6 +116,7 @@ using_opengl:DEFINES += USING_OPENGL
