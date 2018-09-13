@@ -1,7 +1,7 @@
 GARNAME = xf86-video-intel
 GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-	20170820-2100efa, \
+	20180913-25c9a2f, \
 	2.99.17 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
@@ -44,6 +44,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--enable-udev \
 	--enable-dri \
+	--disable-dri1 \
+	--enable-dri2 \
+	--enable-dri3 \
 	--disable-xvmc \
 	--disable-kms-only \
 	--disable-ums-only \
