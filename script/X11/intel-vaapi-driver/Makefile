@@ -1,5 +1,5 @@
 GARNAME = intel-vaapi-driver
-GARVERSION = 2.1.0
+GARVERSION = 2.2.0
 CATEGORIES = X11
 MASTER_SITES = https://github.com/01org/intel-vaapi-driver/releases/download/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
