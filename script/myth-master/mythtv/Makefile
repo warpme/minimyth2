@@ -145,7 +145,6 @@ PATCHFILES += 0328-revert-ed85b14-Allow-SignalHandlers-StreamHandler-to-be-used-
 # Needed by zoneminder 1.31 zmserver daemon
 PATCHFILES += 0329-add-zoneminfder-1.31.1-compability.patch
 
-PATCHFILES += 0330-ticket13311-add-vaapi2-20180904_1601_fixed.patch
 
 endif
 
