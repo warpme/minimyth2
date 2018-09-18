@@ -13,7 +13,7 @@ PATCHFILES += 0005-tid_debug_verbosity.patch
 PATCHFILES += 0006-cardutil_show_displayname.patch
 PATCHFILES += 0007-allow_no_tuners.patch
 PATCHFILES += 0008-SCR_keep_disecq_always_18V.patch
-PATCHFILES += 0009-make_EIT_start_at_time-v3.patch
+# PATCHFILES += 0009-make_EIT_start_at_time-v5.patch
 PATCHFILES += 0010-decrease-some-PMT-DVB-errors-logging.patch
 PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
 PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
@@ -125,7 +125,6 @@ PATCHFILES += 0312-0306-MythMusic-Avoid-a-SEGV-in-the-CD-ripper-ogg-encoder.patc
 PATCHFILES += 0313-0307-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0314-0308-MythMusic-Wait-for-CD-scanner-and-eject-threads-befo.patch
 PATCHFILES += 0315-0309-MythMusic-Make-initial-scan-by-CD-ripper-run-in-back.patch
-PATCHFILES += 0316-0310-MythMusic-Enable-the-CD-ripper-to-run-in-the-backgro-v2.patch
 PATCHFILES += 0318-0337-Mythmusic-Provide-network-control-of-playlist.patch
 PATCHFILES += 0320-0348-MythMusic-Add-network-control-commands-to-list-and-p-v2.patch
 
@@ -197,6 +196,8 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/mythtv/configure
 BUILD_SCRIPTS     = $(WORKSRC)/mythtv/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/mythtv/Makefile source
 
+#	--sysroot="$(DESTDIR)$(rootdir)" \
+
 CONFIGURE_ARGS = \
 	--compile-type=$(if $(filter yes,$(mm_DEBUG)),"debug","release") \
 	--prefix="$(DESTDIR)$(prefix)" \
@@ -207,13 +208,12 @@ CONFIGURE_ARGS = \
 	--bindir="$(DESTDIR)$(bindir)" \
 	--datadir="$(DESTDIR)$(datadir)/mythtv" \
 	--libdir="$(DESTDIR)$(libdir)" \
-	--shlibdir="$(DESTDIR)$(libdir)" \
 	--incdir="$(DESTDIR)$(includedir)/mythtv" \
+	--shlibdir="$(DESTDIR)$(libdir)" \
 	--mandir="$(DESTDIR)$(mandir)" \
 	$(if $(filter -Os,$(CFLAGS)),--enable-small) \
 	--cross-prefix="$(compiler_prefix)" \
 	--enable-cross-compile \
-	--sysroot="$(DESTDIR)$(rootdir)" \
 	--sysinclude="$(DESTDIR)$(includedir)" \
 	--target-os="linux" \
 	--nm="$(NM)" \
@@ -225,7 +225,6 @@ CONFIGURE_ARGS = \
 	--host-cc="$(build_CC)" \
 	--host-cflags="$(build_CFLAGS)" \
 	--host-ldflags="$(build_LDFLAGS)" \
-	--host-libs="" \
 	--extra-cflags="$(CFLAGS)" \
 	--extra-cxxflags="$(CXXFLAGS)" \
 	--extra-ldflags="$(LDFLAGS)" \
@@ -268,7 +267,6 @@ CONFIGURE_ARGS = \
 	--enable-opengl-video \
 	--disable-mac-bundle \
 	--enable-libxml2 \
-	--libxml2-path="$(DESTDIR)$(includedir)/libxml2" \
 	--enable-libdns_sd \
 	--enable-libcrypto \
 	--without-bindings="perl" \
@@ -276,9 +274,8 @@ CONFIGURE_ARGS = \
 	--with-bindings="python" \
 	--disable-mythlogserver \
 	--enable-pic \
-	--disable-libcec
-
-#	--disable-quartz-video \
+	--disable-libcec \
+	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
