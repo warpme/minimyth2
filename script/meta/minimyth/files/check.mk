@@ -160,14 +160,14 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_HEADERS_VERSION"
-	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.17" ] && \
+	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.14" ] && \
 	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.18" ] && \
 	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.19" ] ; then \
 		echo "error: mm_KERNEL_HEADERS_VERSION=\"$(mm_KERNEL_HEADERS_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "4.17" ] && \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "4.14" ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "4.18" ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "4.19" ] ; then \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
