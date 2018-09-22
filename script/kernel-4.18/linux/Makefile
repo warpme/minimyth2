@@ -14,7 +14,6 @@ PATCHFILES += $(DISTNAME)-disable_dma_for_cfa.patch
 PATCHFILES += $(DISTNAME)-defaults.patch
 PATCHFILES += $(DISTNAME)-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += $(DISTNAME)-net-smsc95xx-allow-mac-address-as-param.patch
-PATCHFILES += $(DISTNAME)-disable-asm-no-goto-configure-exit.patch
 LICENSE = GPL2
 
 DESCRIPTION = 
