@@ -1,9 +1,9 @@
 GARNAME = qtwebkit
 CATEGORIES = qt
-GARVERSION = 5.212.0-alpha2
+GARVERSION = 20180120-72cfbd7
 MASTER_SITES = https://github.com/annulen/webkit/releases/download/$(DISTNAME)/
-DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = qt5-webkit-null-pointer-dereference.patch
+DISTFILES = $(DISTNAME).tar.bz2
+PATCHFILES  = qt5-webkit-revert-ac17da2-Check-Qt-private-headers-available-before-compilation.patch
 
 DESCRIPTION = 
 define BLURB
@@ -24,7 +24,6 @@ DEPENDS   = lang/c    \
 	xorg/libX11   \
 	gtk/glib      \
 	utils/ruby    \
-
 
 WORKSRC = $(WORKDIR)/$(DISTNAME)/Source
 WORKBLD = $(WORKDIR)/$(DISTNAME)_build
@@ -88,8 +87,6 @@ configure-%/cmake:
 
 post-install:
 	@rm -f $(DESTDIR)$(qt5libdir)/*.la
-	@echo 'Description: Qt WebKit Module'         >> $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc
-	@echo 'Description: Qt WebKit Widgets Module' >> $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKitWidgets.pc
 	@sed \
 	 -e 's%^Libs:.*%Libs: -L$(qt5libdir) -lQt5WebKit %g'      \
 	 -e 's%^Cflags:.*%Cflags: -I$(qt5includedir)/QtWebKit %g' \
