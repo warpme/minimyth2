@@ -9,7 +9,23 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/gstreamer lib/gst-plugins-base lib/libgcrypt
+DEPENDS = \
+	lang/c \
+	lib/gst-plugins-base \
+	lib/libgcrypt \
+	lib/faad2 \
+	net/curl \
+	lib/faad2 \
+	xorg/glu \
+	lib/gst-plugins-base \
+	lib/libdca \
+	lib/libdvdnav \
+	lib/libdvdread \
+	lib/libexif \
+	lib/libgudev \
+	lib/libusb \
+	X11/libvdpau \
+	xorg/wayland \
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -54,6 +70,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcamerabin2.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcoloreffects.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcompositor.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcurl.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstdashdemux.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstdataurisrc.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstdebugutilsbad.la
@@ -73,6 +90,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstgaudieffects.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstgdp.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstgeometrictransform.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsthls.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstid3tag.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstinter.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstinterlace.la
@@ -80,6 +98,8 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstivtc.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstjp2kdecimator.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstjpegformat.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsttimecode.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstkmssink.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstliveadder.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmidi.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmpegpsdemux.la
@@ -87,6 +107,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmpegtsdemux.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmpegtsmux.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmxf.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstnetsim.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstopengl.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstpcapparse.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstplayer-1.0.la
@@ -109,9 +130,11 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgststereo.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstsubenc.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstuvch264.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstwaylandsink.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvcdsrc.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvdpau.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideofiltersbad.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideoframe_audiolevel.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideoparsersbad.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideosignal.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvmnc.la
