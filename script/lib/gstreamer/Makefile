@@ -9,7 +9,10 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/libxml2
+DEPENDS = \
+	lang/c \
+	lib/libxml2 \
+	devel/libelf \
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -42,5 +45,6 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgstcontroller-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstnet-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstreamer-1.0.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcoretracers.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcoreelements.la
 	@$(MAKECOOKIE)
