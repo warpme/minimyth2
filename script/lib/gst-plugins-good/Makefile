@@ -9,7 +9,20 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/gstreamer lib/gst-plugins-base
+DEPENDS = \
+	lang/c \
+	lib/gst-plugins-base \
+	gtk/cairo \
+	lib/flac \
+	lib/lame \
+	lib/libavc1394 \
+	lib/libgudev \
+	lib/libiec61883 \
+	lib/libraw1394 \
+	lib/libshout \
+	lib/libvpx \
+	xorg/libXdamage \
+	lib/taglib \
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -31,6 +44,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstauparse.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstautodetect.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstavi.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcairo.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcutter.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstdebug.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstdeinterlace.la
@@ -72,6 +86,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideocrop.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideofilter.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideomixer.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvpx.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstwavenc.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstwavparse.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstximagesrc.la
