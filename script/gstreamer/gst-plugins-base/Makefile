@@ -1,7 +1,7 @@
 GARNAME = gst-plugins-base
-GARVERSION = 1.10.2
-CATEGORIES = system
-MASTER_SITES = http://gstreamer.freedesktop.org/src/gst-plugins-base/
+GARVERSION = $(GST_VERSION)
+CATEGORIES = gst
+MASTER_SITES = $(GST_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL2
 
@@ -10,7 +10,7 @@ define BLURB
 endef
 
 DEPENDS = lang/c \
-          lib/gstreamer \
+          gstreamer/gstreamer \
           lib/alsa-lib \
           gtk/graphene \
           lib/libjpeg \
@@ -28,8 +28,9 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--prefix=/usr \
-	--disable-neon
+	--disable-examples \
 
+GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
 
 post-install:
@@ -37,6 +38,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgstapp-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstaudio-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstfft-1.0.la
+	@rm -f $(DESTDIR)$(libdir)/libgstgl-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstpbutils-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstriff-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/libgstrtp-1.0.la
@@ -48,6 +50,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstalsa.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstapp.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudioconvert.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudiomixer.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudiorate.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudioresample.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudiotestsrc.la
@@ -55,12 +58,16 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcoretracers.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstgio.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstencodebin.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstencoding.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsthls.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstkmssink.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstnetsim.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstogg.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstpango.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstopengl.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstplayback.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstpbtypes.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrawparse.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstsubparse.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsttcp.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsttheora.la

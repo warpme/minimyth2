@@ -1,7 +1,7 @@
 GARNAME = gstreamer
-GARVERSION = 1.10.2
-CATEGORIES = system
-MASTER_SITES = http://gstreamer.freedesktop.org/src/gstreamer/
+GARVERSION = $(GST_VERSION)
+CATEGORIES = gst
+MASTER_SITES = $(GST_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL2
 
@@ -29,15 +29,16 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-benchmarks \
 	--enable-tools \
 	--enable-introspection=no \
-        --disable-docbook \
+	--disable-docbook \
 	--disable-gtk-doc \
 	--disable-gtk-doc-html \
 	--disable-gtk-doc-pdf \
 	--enable-gobject-cast-checks=no \
 	--enable-glib-asserts=no \
 	--disable-check \
-	--disable-Bsymbolic
+	--disable-Bsymbolic \
 
+GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
 
 post-install:

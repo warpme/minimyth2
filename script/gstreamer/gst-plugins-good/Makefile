@@ -1,7 +1,7 @@
 GARNAME = gst-plugins-good
-GARVERSION = 1.10.2
-CATEGORIES = system
-MASTER_SITES = http://gstreamer.freedesktop.org/src/gst-plugins-good/
+GARVERSION = $(GST_VERSION)
+CATEGORIES = gst
+MASTER_SITES = $(GST_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL2
 
@@ -11,7 +11,7 @@ endef
 
 DEPENDS = \
 	lang/c \
-	lib/gst-plugins-base \
+	gstreamer/gst-plugins-base \
 	gtk/cairo \
 	lib/flac \
 	lib/lame \
@@ -29,8 +29,10 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--prefix=/usr
+	--prefix=/usr \
+	--disable-qt \
 
+GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
 
 post-install:
@@ -63,6 +65,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstinterleave.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstisomp4.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstjpeg.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstlame.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstlevel.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmatroska.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmulaw.la
@@ -70,6 +73,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmultipart.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstnavigationtest.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstoss4audio.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstoss4.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstossaudio.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstpng.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstreplaygain.la
@@ -77,6 +81,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrtpmanager.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrtsp.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstshapewipe.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstshout2.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstsmpte.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstspectrum.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsttaglib.la
