@@ -3,6 +3,7 @@ GARVERSION = 1.1.1
 CATEGORIES = lib
 MASTER_SITES = https://downloads.xiph.org/releases/theora/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.bz2
+PATCHFILES = add_aarch64_detection.patch
 
 LICENSE = LGPL2
 
