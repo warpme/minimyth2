@@ -19,7 +19,6 @@ DEPENDS   = lang/c    \
 	lib/icu       \
 	lib/libxml2   \
 	lib/libxslt   \
-	lib/gst-libav \
 	qt/qt5        \
 	xorg/libX11   \
 	gtk/glib      \
