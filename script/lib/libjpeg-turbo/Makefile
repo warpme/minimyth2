@@ -3,9 +3,12 @@ GARVERSION = 1.4.0
 CATEGORIES = lib
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.gz
+PATCHFILES = add_aarch64_detection.patch
+
 LICENSE = jpeg
 jpeg_LICENSE_TEXT = $(WORKSRC)/README
 DESCRIPTION = 
+
 define BLURB
 endef
 
@@ -24,5 +27,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 include ../../gar.mk
 
 post-install:
+	@rm -f $(DESTDIR)$(libdir)/libjpeg.la
 	@rm -f $(DESTDIR)$(libdir)/libturbojpeg.la
 	@$(MAKECOOKIE)
