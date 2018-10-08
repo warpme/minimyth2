@@ -25,7 +25,7 @@ DEPENDS   =            \
 	lib/libpng     \
 	lib/libtiff    \
 	lib/openssl    \
-	lib/gst-libav  \
+	gstreamer/meta \
 	gtk/glib       \
 	gtk/harfbuzz   \
 	devel/zlib     \
