@@ -1,9 +1,8 @@
 GARNAME = makemkv-oss
-GARVERSION = 1.12.2
+GARVERSION = 1.12.3
 CATEGORIES = utils
 MASTER_SITES = http://www.makemkv.com/download/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
-PATCHFILES = make-ffmpeg2-compile.patch
 LICENSE = GPL2
 
 DESCRIPTION = 
