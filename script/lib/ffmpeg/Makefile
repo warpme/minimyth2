@@ -1,10 +1,10 @@
 GARNAME = ffmpeg
-GARVERSION = 2.8.5
+GARVERSION = 3.4.2
 CATEGORIES = lib
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-pkg_config.patch 
-PATCHFILES += $(DISTNAME)-uint64_c.patch
+PATCHFILES = $(DISTNAME)-pkg_config.patch
+#PATCHFILES += $(DISTNAME)-uint64_c.patch
 LICENSE = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -60,7 +60,6 @@ CONFIGURE_ARGS = \
 	--enable-pthreads \
 	--disable-w32threads \
 	--disable-os2threads \
-	--enable-x11grab \
 	--enable-network \
 	--enable-dct \
 	--disable-dwt \
@@ -86,17 +85,14 @@ CONFIGURE_ARGS = \
 	--enable-filters \
 	--disable-avisynth \
 	--enable-bzlib \
-	--enable-fontconfig \
 	--disable-frei0r \
 	--disable-gnutls \
-	--disable-libaacplus \
 	--disable-libass \
 	--disable-libbluray \
 	--disable-libcaca \
 	--disable-libcelt \
 	--disable-libcdio \
 	--disable-libdc1394 \
-	--disable-libfaac \
 	--disable-libfdk-aac \
 	--disable-libflite \
 	--disable-libfreetype \
@@ -105,23 +101,17 @@ CONFIGURE_ARGS = \
 	--disable-libilbc \
 	--disable-libmodplug \
 	--disable-libmp3lame \
-	--disable-libnut \
 	--disable-libopencore-amrnb \
 	--disable-libopencore-amrwb \
 	--disable-libopencv \
 	--disable-libopenjpeg \
 	--disable-libopus \
 	--disable-libpulse \
-	--enable-librtmp \
-	--disable-libschroedinger \
 	--disable-libsoxr \
 	--disable-libspeex \
-	--disable-libstagefright-h264 \
 	--disable-libtheora \
 	--disable-libtwolame \
-	--disable-libutvideo \
 	--disable-libv4l2 \
-	--disable-libvo-aacenc \
 	--disable-libvo-amrwbenc \
 	--disable-libvorbis \
 	--disable-libvpx \
@@ -139,7 +129,6 @@ CONFIGURE_ARGS = \
 	--nm="$(NM)" \
 	--ar="$(AR)" \
 	--as="$(CC)" \
-	--yasmexe="yasm" \
 	--cc="$(CC)" \
 	--cxx="$(CXX)" \
 	--ld="$(CC)" \
@@ -147,7 +136,6 @@ CONFIGURE_ARGS = \
 	--host-cflags="$(build_CFLAGS)" \
 	--host-ld="$(build_CC)" \
 	--host-ldflags="$(build_LDFLAGS)" \
-	--host-libs="" \
 	--host-os="linux" \
 	--extra-cflags="$(CFLAGS)" \
 	--extra-cxxflags="$(CXXFLAGS)" \
@@ -162,7 +150,6 @@ CONFIGURE_ARGS = \
 	--disable-symver \
 	--disable-hardcoded-tables \
 	--enable-safe-bitstream-reader \
-	--disable-memalign-hack \
 	--disable-lto \
 	--enable-asm \
 	--disable-altivec \
@@ -177,17 +164,13 @@ CONFIGURE_ARGS = \
 	--enable-sse4 \
 	--enable-sse42 \
 	--enable-avx \
-	--disable-fma4  \
-	--disable-armv5te \
-	--disable-armv6 \
-	--disable-armv6t2 \
-	--disable-vfp \
-	--disable-neon \
+	--enable-armv5te \
+	--enable-armv6 \
+	--enable-armv6t2 \
+	--enable-vfp \
+	--enable-neon \
 	--enable-inline-asm \
-	--enable-yasm \
 	--disable-mips32r2 \
-	--disable-mipsdspr1 \
-	--disable-mipsdspr2 \
 	--disable-mipsfpu \
 	--enable-fast-unaligned \
 	--disable-debug \
