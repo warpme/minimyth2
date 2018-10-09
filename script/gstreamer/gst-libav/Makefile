@@ -23,7 +23,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--with-libav-extra-configure="--enable-runtime-cpudetect --as=$(CC)" \
 	--with-pic \
-	--without-system-libav
+	--with-system-libav
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
