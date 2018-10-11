@@ -5,110 +5,87 @@ MASTER_SITES = svn://svn.mythtv.org/svn/trunk/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  =
 
-# Backend needed patches
-PATCHFILES += 0002-ticket9480_pl_eit_encodings.patch
-PATCHFILES += 0003-delay_4_no_concurent_start_rec_v6.patch
-PATCHFILES += 0004-eit_verbosity.patch
-PATCHFILES += 0005-tid_debug_verbosity.patch
-PATCHFILES += 0006-cardutil_show_displayname.patch
-PATCHFILES += 0007-allow_no_tuners.patch
-PATCHFILES += 0008-SCR_keep_disecq_always_18V.patch
-PATCHFILES += 0009-make_EIT_start_at_time-v5.patch
-PATCHFILES += 0010-decrease-some-PMT-DVB-errors-logging.patch
-PATCHFILES += 0012-add_verbose_dvb_lock_info.patch
-PATCHFILES += 0018-fix-zoneminder-1.26.5.patch
-PATCHFILES += 0019-mythlink-pretty-with-recgroup-subdir.patch
-PATCHFILES += 0023-increase-loging-for-failed-tunings-v2.patch
-PATCHFILES += 0030-0279-TV-Add-signal-monitor-warning-msg-if-NID-or-TSID-don.patch
-PATCHFILES += 0031-add-manage-settings-in-mythutil-v2.patch
+#ifeq (1,0)
 
-# solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
-PATCHFILES += 0033-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
+# Backend misc patches
+PATCHFILES += 0001-Recorders-Delay-to-avoid-no-concurent-recordings-start.patch
+PATCHFILES += 0002-Systemstatus-Show-devicename-instead-videodevice.patch
+PATCHFILES += 0003-SCR-keep-disecq-always-18V.patch
+PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
+PATCHFILES += 0005-EIT-ticket9480-fix-PL-eit-encodings.patch
+PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
+PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
+PATCHFILES += 0008-Settings-Add-manage-settings-in-mythutil.patch
+PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
+# Solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
+PATCHFILES += 0010-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
+# 0011 is needed by 0012
+# 0012 is needed as without this BE sometimes deadlocks in comm.with FE
+PATCHFILES += 0011-revert-ea5fdd4-Avoid-crash-when-file-transfer-can-t-open-files.patch
+PATCHFILES += 0012-revert-916e43b-BE-Avoid-SEGV-when-accessing-discarded-MythSocket.patch
+# Fixes regression causing BER is not shown on tuning OSD
+PATCHFILES += 0013-revert-ed85b14-Allow-SignalHandlers-StreamHandler-to-be-used-by-Recorder.patch
 
-PATCHFILES += 0034-disable-python-warnings-because-py2.6.patch
-PATCHFILES += 0036-pull118-upnp-Add-playlist-recently-added-played-entries-to-upnp-music.patch
-PATCHFILES += 0037-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
+# UPnP patches
+PATCHFILES += 0030-UPnP-Change-reported-ver-to-1.patch
+PATCHFILES += 0031-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-thread.patch
+PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music.patch
 
-# Minimyth needed patches
-PATCHFILES += 0100-minimyth.patch
-PATCHFILES += 0101-programid.patch
-PATCHFILES += 0102-maintain_menu.patch
+# Some patches for better logging
+PATCHFILES += 0050-Loging-Add-better-EIT-verbosity.patch
+PATCHFILES += 0051-Loging-Add-better-TID-verbosity.patch
+PATCHFILES += 0052-Loging-Decrease-some-PMT-DVB-errors-logging.patch
+PATCHFILES += 0053-Loging-Add-verbose-dvb-lock-loging.patch
+PATCHFILES += 0054-Loging-Add-better-loging-for-failed-tunings.patch
+PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
+PATCHFILES += 0056-Loging-Add-signal-monitor-warning-msg-if-NID-or-TSID-dont-match.patch
+PATCHFILES += 0057-Logging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 
-# Frontend patches
-PATCHFILES += 0200-ticket9633_progressbar_on_osd.patch
-PATCHFILES += 0202-_LMSC_osd.patch
-PATCHFILES += 0203-udisks_timeout.patch
-PATCHFILES += 0204-netvision_build.patch
-PATCHFILES += 0206-add-mythnotification-custom-styles-support-via-UDP.patch
-PATCHFILES += 0207-add-osd-status-notify-to-mythmediacenter.patch
-PATCHFILES += 0207-add-osd-status-notify-to-mythmediacenter-wide.patch
-PATCHFILES += 0208-add-disable-optical-disc-by-mm-config.patch
-PATCHFILES += 0209-add-phone-entry-in-themes.patch
+# Zoneminder patches
+PATCHFILES += 0060-Zoneminfder-Add-1.31.1-compability.patch
+PATCHFILES += 0061-Zoneminder-Fix-zoneminder-1.26.5.patch
+
+# Minimyth related patches
+PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
+PATCHFILES += 0101-Minimyth-Add-disable-optical-disc-in-menu.patch
+PATCHFILES += 0102-Minimyth-Add-phone-entry-in-menu.patch
+PATCHFILES += 0103-Minimyth-Add-optical-rip-to-menu.patch
+PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
+PATCHFILES += 0105-Minimyth-defaults.patch
+
+# Mediamonitor patches
+PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
+PATCHFILES += 0201-Mediamonitor-reduce-udisks-timeout-to-1500msec.patch
+PATCHFILES += 0202-Mediamonitor-make-mediamonitor-bluray-mounts-persistent.patch
+# Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled)
+PATCHFILES += 0203-Mediamonitor-revert-16086d2-Honor-the-MonitorDrives-setting.patch
+# Added as IMHO better have extra functions with old UI than no old UI and no functions
+PATCHFILES += 0204-Mediamonitor-revert24c5575-revert-MediaMon-UI-to-select-preferred-media-handler.patch
+
+# Misc frontend patches
 PATCHFILES += 0210-add-option-to-not-remember-last-livetv-chan.patch
-PATCHFILES += 0211-add-optical-rip-to-menu.patch
-PATCHFILES += 0213-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
-
-# Minimyth needed patches
-PATCHFILES += 0214-minimyth-defaults.patch
+# 0211 is needed to successfully compile 0204
+PATCHFILES += 0211-decrease-minQt-ver-to-4.8-v2.patch
+PATCHFILES += 0212-netvision_build.patch
+PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 
 # Reverting this fixes issue with only 3 entries in mainmenu on MythmediaStream theme
-PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
+#PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
-# Needed to successfully applying 0235 & 0236
-PATCHFILES += 0218-decrease-minQt-ver-to-4.8-v2.patch
+# Patches related to OSD
+PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
+PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
+PATCHFILES += 0223-OSD-Add-mythnotification-custom-styles-support-via-UDP.patch
+PATCHFILES += 0224-OSD-Add-status-notify-to-mythmediacenter-wide.patch
+PATCHFILES += 0225-OSD-Add-status-notify-to-mythmediacenter.patch
+PATCHFILES += 0226-OSD-Increase-resolution-of-onscreen-playback-data.patch
+PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 
-ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
-
-# LVR safe patches related to player/OSD
-PATCHFILES += 0226-0186-mythplayer-Increase-resolution-of-onscreen-playback-.patch
-PATCHFILES += 0231-0238-Player-Add-interlaced-status-to-OSD-debug-screen-vid.patch
-PATCHFILES += 0232-0239-Playbackbox-Add-title-subtitle-and-description-filte.patch
-
-# LVR safe patches with some usefull functionality
-PATCHFILES += 0233-0257-FE-Add-a-UI-to-display-and-adjust-a-recording-s-star.patch
-PATCHFILES += 0235-0290-FE-Add-a-menu-item-to-toggle-the-damaged-video-statu.patch
-PATCHFILES += 0236-0330-FE-Add-a-menu-to-Playbackbox-to-change-the-recording.patch
-PATCHFILES += 0252-0279-MythMusic-Visualisers-only-disable-screensaver-if-sh.patch
-PATCHFILES += 0253-0297-Mythmusic-Log-the-shoutcast-metadata-and-format-stri.patch
-
-# LVR safe patches related to DB caching
-PATCHFILES += 0255-0108-SG-Cache-storagegroup-records-in-FindDirs.patch
-PATCHFILES += 0256-0110-TV-cache-videodisplayprofile-dbase-access.patch
-PATCHFILES += 0259-0117-UI-Provide-dbase-cache-for-RegisterKey-and-RegisterJ.patch
-PATCHFILES += 0262-0144-DB-Update-settings-cache-in-SaveSettingOnHost.patch
-
-PATCHFILES += 0272-0185-MythWeather-Prevent-log-error-report-Widget-not-foun.patch
-
-# LVR safe patches with some usefull functionality
-PATCHFILES += 0277-0202-FE-Fix-Display-MythDVD-menu-broken-when-MythDVD-plug-v3.patch
-
-# LVR safe patches adding usefull logging functions
-PATCHFILES += 0282-0059-NetworkControl-Add-realtime-display-of-MythEvents.patch
-PATCHFILES += 0283-0210-FE-NetworkControl-Add-set-query-loglevel-commands.patch
-
-# Support for Roger Siddons new gallery.
-PATCHFILES += 0287-MythUiImage-Don-t-block-UI-when-exiting-screens.patch
-
-# Speedup FE starting
-PATCHFILES += 0292-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-thread.patch
-
-# Various
-PATCHFILES += 0293-0281-AFD-Add-original_channels-to-audio-format-log-output.patch
-PATCHFILES += 0294-0283-FE-Add-network-status-to-machine-status-dialog.patch
-
-# 0299 is needed by 0300
-# 0300 is needed as without this BE sometimes deadlocks in comm.with FE
-PATCHFILES += 0299-revert-ea5fdd4-Avoid-crash-when-file-transfer-can-t-open-files.patch
-PATCHFILES += 0300-revert-916e43b-BE-Avoid-SEGV-when-accessing-discarded-MythSocket.patch
-
-# Needed as perl5.12 under gcc5.3 has non-working sockets reads (???)
-PATCHFILES += 0301-mythweather-scripts-replace-LWP-by-curl.patch
-
-# Added as IMHO better have extra functions with old UI that no old UI and no functions
-PATCHFILES += 0302-revert24c5575-revert-MediaMon-UI-to-select-preferred-media-handler.patch
-
-# Various
-PATCHFILES += 0303-0318-WebBrowser-Provide-virtual-keyboard-for-HTML-edit-co.patch
+# Patches enhancing Network Control
+PATCHFILES += 0282-NetworkControl-Add-realtime-display-of-MythEvents.patch
+PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
+PATCHFILES += 0284-NetworkControl-Add-mythmusic-url-and-playlist-playback.patch
+PATCHFILES += 0285-NetworkControl-Add-mythmusic-album-playback-and-queries.patch
 
 # Nice Roger Siddons guide grid enhacement
 PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
@@ -118,33 +95,23 @@ PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position-v4.patch
 PATCHFILES += 0307-ticekt12809-Playback-Watchlist-Improvements.patch
 PATCHFILES += 0308-ticekt12809-Playback-Add-Unfinished-recording-filter.patch
 
-# Added as d43d8b1 causes unpleasant ffwd/bkwd playback skips with SD content 
-PATCHFILES += 0309-revert-d43d8b1-revert-Player-Improve-low-bit-rate-high-latency-streams.patch
+# --------Patches 400+ are plugins patches---------------------
 
-# Various LVR patches
-PATCHFILES += 0312-0306-MythMusic-Avoid-a-SEGV-in-the-CD-ripper-ogg-encoder.patch
-PATCHFILES += 0313-0307-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
-PATCHFILES += 0314-0308-MythMusic-Wait-for-CD-scanner-and-eject-threads-befo.patch
-PATCHFILES += 0315-0309-MythMusic-Make-initial-scan-by-CD-ripper-run-in-back.patch
-PATCHFILES += 0318-0337-Mythmusic-Provide-network-control-of-playlist.patch
-PATCHFILES += 0320-0348-MythMusic-Add-network-control-commands-to-list-and-p-v2.patch
+# Various mythmusic patches
+PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
+PATCHFILES += 0401-MythMusic-disable-screensaver-only-in-fullscreen.patch
+PATCHFILES += 0403-MythMusic-Avoid-a-SEGV-in-the-CD-ripper-ogg-encoder.patch
+PATCHFILES += 0404-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
+PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
+PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
 
-# Fixes focus issue in OSX
-PATCHFILES += 0321-ticket12857-patch-mythwidgets_osx_focus.patch
+# Various mythweather patches
+PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
+PATCHFILES += 0451-MythWeather-scripts-replace-LWP-by-curl.patch
 
-PATCHFILES += 0322-add-netflix-to-thememenus.patch
+#endif
 
-PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
-
-# Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled)
-PATCHFILES += 0327-revert-16086d2-Honor-the-MonitorDrives-setting.patch
-
-# Fixes regression causing BER is not shown on tuning OSD
-PATCHFILES += 0328-revert-ed85b14-Allow-SignalHandlers-StreamHandler-to-be-used-by-Recorder.patch
-
-# Needed by zoneminder 1.31 zmserver daemon
-PATCHFILES += 0329-add-zoneminfder-1.31.1-compability.patch
-
+ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 
 endif
 
