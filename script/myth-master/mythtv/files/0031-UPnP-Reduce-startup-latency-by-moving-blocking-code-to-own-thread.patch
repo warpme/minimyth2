@@ -1,21 +1,7 @@
-From f2226b56c1c03ab76d90b9b081b2c1eb526e71f5 Mon Sep 17 00:00:00 2001
-From: Lawrence Rust <lvr@softsystem.co.uk>
-Date: Wed, 5 Jun 2013 10:52:56 +0100
-Subject: [PATCH] UPnP: Reduce startup latency by moving blocking code to own
- thread
-
-Signed-off-by: Lawrence Rust <lvr@softsystem.co.uk>
----
- mythtv/libs/libmythupnp/ssdp.cpp           | 20 ++++++++++----------
- mythtv/libs/libmythupnp/upnptasknotify.cpp |  9 ++++++++-
- mythtv/libs/libmythupnp/upnptasknotify.h   |  4 +++-
- 3 files changed, 21 insertions(+), 12 deletions(-)
-
-diff --git a/mythtv/libs/libmythupnp/ssdp.cpp b/mythtv/libs/libmythupnp/ssdp.cpp
-index cf54274..07b5a07 100644
---- a/mythtv/libs/libmythupnp/ssdp.cpp
-+++ b/mythtv/libs/libmythupnp/ssdp.cpp
-@@ -168,21 +168,21 @@ void SSDP::EnableNotifications( int nServicePort )
+diff -Naur mythtv-master-20181012-g4651002-old/mythtv/libs/libmythupnp/ssdp.cpp mythtv-master-20181012-g4651002-new/mythtv/libs/libmythupnp/ssdp.cpp
+--- mythtv-master-20181012-g4651002-old/mythtv/libs/libmythupnp/ssdp.cpp	2018-10-12 10:51:53.036666666 +0200
++++ mythtv-master-20181012-g4651002-new/mythtv/libs/libmythupnp/ssdp.cpp	2018-10-12 10:51:55.619999999 +0200
+@@ -170,21 +170,21 @@
          // ------------------------------------------------------------------
  
          LOG(VB_UPNP, LOG_INFO,
@@ -26,16 +12,16 @@ index cf54274..07b5a07 100644
 -        m_bAnnouncementsEnabled = true;
 +            "SSDP::EnableNotifications() - sending NTS_byebye2");
 +        m_pNotifyTask->SetNTS( NTS_byebye2 );
-     }
++    }
 +    else
 +    {
 +        LOG(VB_UPNP, LOG_INFO,
 +            "SSDP::EnableNotifications() - sending NTS_alive");
 +        m_pNotifyTask->SetNTS( NTS_alive );
-+    }
-+
-+    m_bAnnouncementsEnabled = true;
+     }
  
++    m_bAnnouncementsEnabled = true;
++
      // ------------------------------------------------------------------
      // Add Announcement Task to the Queue
      // ------------------------------------------------------------------
@@ -47,11 +33,10 @@ index cf54274..07b5a07 100644
      TaskQueue::Instance()->AddTask(m_pNotifyTask);
  
      LOG(VB_UPNP, LOG_INFO,
-diff --git a/mythtv/libs/libmythupnp/upnptasknotify.cpp b/mythtv/libs/libmythupnp/upnptasknotify.cpp
-index 3f9b3bd..129a2e8 100644
---- a/mythtv/libs/libmythupnp/upnptasknotify.cpp
-+++ b/mythtv/libs/libmythupnp/upnptasknotify.cpp
-@@ -128,7 +128,9 @@ void UPnpNotifyTask::SendNotifyMsg( MSocketDevice *pSocket,
+diff -Naur mythtv-master-20181012-g4651002-old/mythtv/libs/libmythupnp/upnptasknotify.cpp mythtv-master-20181012-g4651002-new/mythtv/libs/libmythupnp/upnptasknotify.cpp
+--- mythtv-master-20181012-g4651002-old/mythtv/libs/libmythupnp/upnptasknotify.cpp	2018-10-12 10:51:53.036666666 +0200
++++ mythtv-master-20181012-g4651002-new/mythtv/libs/libmythupnp/upnptasknotify.cpp	2018-10-12 10:51:55.619999999 +0200
+@@ -127,7 +127,9 @@
  
          pSocket->writeBlock( scPacket, scPacket.length(),
                               pSocket->address(), pSocket->port() );
@@ -62,7 +47,7 @@ index 3f9b3bd..129a2e8 100644
          pSocket->writeBlock( scPacket, scPacket.length(),
                               pSocket->address(), pSocket->port() );
      }
-@@ -169,6 +171,11 @@ void UPnpNotifyTask::Execute( TaskQueue *pQueue )
+@@ -168,6 +170,11 @@
  
      if (m_eNTS == NTS_alive) 
          pQueue->AddTask( (m_nMaxAge / 2) * 1000, (Task *)this  );
@@ -74,12 +59,11 @@ index 3f9b3bd..129a2e8 100644
  
      m_mutex.unlock();
  
-diff --git a/mythtv/libs/libmythupnp/upnptasknotify.h b/mythtv/libs/libmythupnp/upnptasknotify.h
-index 15c23fb..7a6a485 100644
---- a/mythtv/libs/libmythupnp/upnptasknotify.h
-+++ b/mythtv/libs/libmythupnp/upnptasknotify.h
-@@ -37,7 +37,8 @@ class UPnpDevice;
- typedef enum 
+diff -Naur mythtv-master-20181012-g4651002-old/mythtv/libs/libmythupnp/upnptasknotify.h mythtv-master-20181012-g4651002-new/mythtv/libs/libmythupnp/upnptasknotify.h
+--- mythtv-master-20181012-g4651002-old/mythtv/libs/libmythupnp/upnptasknotify.h	2018-10-12 10:51:53.036666666 +0200
++++ mythtv-master-20181012-g4651002-new/mythtv/libs/libmythupnp/upnptasknotify.h	2018-10-12 10:51:55.619999999 +0200
+@@ -38,7 +38,8 @@
+ typedef enum
  {
      NTS_alive   = 0,
 -    NTS_byebye  = 1
@@ -88,8 +72,8 @@ index 15c23fb..7a6a485 100644
  
  } UPnpNotifyNTS;
  
-@@ -89,6 +90,7 @@ class UPnpNotifyTask : public Task
-             {  
+@@ -90,6 +91,7 @@
+             {
                  case NTS_alive : return( "ssdp:alive"  );
                  case NTS_byebye: return( "ssdp:byebye" );
 +                case NTS_byebye2: return( "ssdp:byebye" );
