@@ -1,5 +1,5 @@
 GARNAME = xorg-server
-GARVERSION = 1.20.1
+GARVERSION = 1.20.2
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES = $(DISTNAME).tar.bz2
@@ -80,8 +80,6 @@ include ../../gar.mk
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	#Remove Hack needed to build Mesa with libxcb1.17
-	@#rm -f $(DESTDIR)$(libdir)/libxcb.la
 	@$(MAKECOOKIE)
 
 pre-build:
