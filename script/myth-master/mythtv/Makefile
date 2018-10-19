@@ -24,9 +24,11 @@ PATCHFILES += 0010-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-
 PATCHFILES += 0011-revert-ea5fdd4-Avoid-crash-when-file-transfer-can-t-open-files.patch
 PATCHFILES += 0012-revert-916e43b-BE-Avoid-SEGV-when-accessing-discarded-MythSocket.patch
 # Fixes regression causing BER is not shown on tuning OSD
-PATCHFILES += 0013-revert-ed85b14-Allow-SignalHandlers-StreamHandler-to-be-used-by-Recorder.patch
+# PATCHFILES += 0013-revert-ed85b14-Allow-SignalHandlers-StreamHandler-to-be-used-by-Recorder.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
-PATCHFILES += 0014-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
+PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
+PATCHFILES += 0014-ticket13265-fix-signalmonitor-SN-BER-not-visible.patch
+PATCHFILES += 0015-ticket13334-Improved-Video-timing-and-Synchronization-20181017_1533_avsync2.patch
 
 # UPnP patches
 PATCHFILES += 0030-UPnP-Change-reported-ver-to-1.patch
