@@ -23,11 +23,8 @@ PATCHFILES += 0010-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-
 # 0012 is needed as without this BE sometimes deadlocks in comm.with FE
 PATCHFILES += 0011-revert-ea5fdd4-Avoid-crash-when-file-transfer-can-t-open-files.patch
 PATCHFILES += 0012-revert-916e43b-BE-Avoid-SEGV-when-accessing-discarded-MythSocket.patch
-# Fixes regression causing BER is not shown on tuning OSD
-# PATCHFILES += 0013-revert-ed85b14-Allow-SignalHandlers-StreamHandler-to-be-used-by-Recorder.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
 PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
-PATCHFILES += 0014-ticket13265-fix-signalmonitor-SN-BER-not-visible.patch
 PATCHFILES += 0015-ticket13334-Improved-Video-timing-and-Synchronization-20181017_1533_avsync2.patch
 
 # UPnP patches
@@ -46,8 +43,9 @@ PATCHFILES += 0056-Loging-Add-signal-monitor-warning-msg-if-NID-or-TSID-dont-mat
 PATCHFILES += 0057-Logging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 
 # Zoneminder patches
-PATCHFILES += 0060-Zoneminfder-Add-1.31.1-compability.patch
+PATCHFILES += 0060-Zoneminder-Add-1.31.1-compability.patch
 PATCHFILES += 0061-Zoneminder-Fix-zoneminder-1.26.5.patch
+PATCHFILES += 0062-Zoneminder-Add-1.32.2-compability.patch
 
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
@@ -104,7 +102,6 @@ PATCHFILES += 0308-ticekt12809-Playback-Add-Unfinished-recording-filter.patch
 # Various mythmusic patches
 PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
 PATCHFILES += 0401-MythMusic-disable-screensaver-only-in-fullscreen.patch
-PATCHFILES += 0403-MythMusic-Avoid-a-SEGV-in-the-CD-ripper-ogg-encoder.patch
 PATCHFILES += 0404-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
