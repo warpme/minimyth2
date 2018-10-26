@@ -5,7 +5,8 @@ MASTER_SITES = svn://svn.mythtv.org/svn/trunk/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  =
 
-#ifeq (1,0)
+# change to ifeq (0,1) if you want to disable all patches
+ifeq (1,1)
 
 # Backend misc patches
 PATCHFILES += 0001-Recorders-Delay-to-avoid-no-concurent-recordings-start.patch
@@ -20,12 +21,18 @@ PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
 # Solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
 PATCHFILES += 0010-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
 # 0011 is needed by 0012
-# 0012 is needed as without this BE sometimes deadlocks in comm.with FE
 PATCHFILES += 0011-revert-ea5fdd4-Avoid-crash-when-file-transfer-can-t-open-files.patch
+# 0012 is needed as without this BE sometimes deadlocks in comm.with FE
 PATCHFILES += 0012-revert-916e43b-BE-Avoid-SEGV-when-accessing-discarded-MythSocket.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
 PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
-PATCHFILES += 0015-ticket13334-Improved-Video-timing-and-Synchronization-20181017_1533_avsync2.patch
+
+ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
+
+PATCHFILES += 0015-ticket13334-Improved-Video-timing-and-Synchronization-20181025_1407_avsync_and_jitterometer.patch
+
+# Comflagging related patches
+PATCHFILES += 0016-Mythcommflag-ticket13335-add-3-settings-to-enhance-logo-detection.patch
 
 # UPnP patches
 PATCHFILES += 0030-UPnP-Change-reported-ver-to-1.patch
@@ -71,16 +78,12 @@ PATCHFILES += 0211-decrease-minQt-ver-to-4.8-v2.patch
 PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 
-# Reverting this fixes issue with only 3 entries in mainmenu on MythmediaStream theme
-#PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
-
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
 PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
 PATCHFILES += 0223-OSD-Add-mythnotification-custom-styles-support-via-UDP.patch
 PATCHFILES += 0224-OSD-Add-status-notify-to-mythmediacenter-wide.patch
 PATCHFILES += 0225-OSD-Add-status-notify-to-mythmediacenter.patch
-PATCHFILES += 0226-OSD-Increase-resolution-of-onscreen-playback-data.patch
 PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 
 # Patches enhancing Network Control
@@ -110,9 +113,7 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
 PATCHFILES += 0451-MythWeather-scripts-replace-LWP-by-curl.patch
 
-#endif
-
-ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
+endif
 
 endif
 

@@ -1,0 +1,82 @@
+From 56f5b95202a28cc34a758cbef79b733db4e5f910 Mon Sep 17 00:00:00 2001
+From: Gilles Hamel <hamelg@laposte.net>
+Date: Fri, 19 Oct 2018 20:25:43 +0200
+Subject: [PATCH] Add 3 settings to enhance logo detection.
+
+. CommDetectLogoLocation: Choices include N (North), S (South), E (East),
+  W (West). The direction you choose specifies where to lookup the logo.
+. CommDetectLogoWidthRatio: To specify the maximum width of the logo.
+. CommDetectLogoHeightRatio: To specify the maximum heigth of the logo.
+---
+ .../mythcommflag/ClassicLogoDetector.cpp      | 22 +++++++++++++++----
+ .../mythcommflag/ClassicLogoDetector.h        |  3 +++
+ 2 files changed, 21 insertions(+), 4 deletions(-)
+
+diff --git a/mythtv/programs/mythcommflag/ClassicLogoDetector.cpp b/mythtv/programs/mythcommflag/ClassicLogoDetector.cpp
+index 9153345f491..e14a5f430e0 100644
+--- a/mythtv/programs/mythcommflag/ClassicLogoDetector.cpp
++++ b/mythtv/programs/mythcommflag/ClassicLogoDetector.cpp
+@@ -49,6 +49,12 @@ ClassicLogoDetector::ClassicLogoDetector(ClassicCommDetector* commdetector,
+     commDetectLogoBadEdgeThreshold =
+         gCoreContext->GetSetting("CommDetectLogoBadEdgeThreshold", "0.85")
+         .toDouble();
++    commDetectLogoLocation =
++        gCoreContext->GetSetting("CommDetectLogoLocation", "");
++    commDetectLogoWidthRatio =
++        gCoreContext->GetNumSetting("CommDetectLogoWidthRatio", 4);
++    commDetectLogoHeightRatio =
++        gCoreContext->GetNumSetting("CommDetectLogoHeightRatio", 4);
+ }
+ 
+ unsigned int ClassicLogoDetector::getRequiredAvailableBufferForSearch()
+@@ -239,8 +245,8 @@ bool ClassicLogoDetector::searchForLogo(MythPlayer* player)
+         cerr << "Hit ENTER to continue" << endl;
+         getchar();
+ #endif
+-        if (((logoMaxX - logoMinX) < (width / 4)) &&
+-            ((logoMaxY - logoMinY) < (height / 4)) &&
++        if (((logoMaxX - logoMinX) < (width / commDetectLogoWidthRatio)) &&
++            ((logoMaxY - logoMinY) < (height / commDetectLogoHeightRatio)) &&
+             (pixelsInMask > minPixelsInMask))
+         {
+             logoInfoAvailable = true;
+@@ -461,14 +467,22 @@ void ClassicLogoDetector::DetectEdges(VideoFrame *frame, EdgeMaskEntry *edges,
+ 
+     for (y = commDetectBorder + r; y < (height - commDetectBorder - r); y++)
+     {
+-        if ((y > (height/4)) && (y < (height * 3 / 4)))
++        if (
++            (commDetectLogoLocation.contains("N") && (y > (height/4))) ||
++            (commDetectLogoLocation.contains("S") && (y < (height * 3 / 4))) ||
++            ((y > (height/4)) && (y < (height * 3 / 4)))
++            )
+             continue;
+ 
+         for (x = commDetectBorder + r; x < (width - commDetectBorder - r); x++)
+         {
+             int edgeCount = 0;
+ 
+-            if ((x > (width/4)) && (x < (width * 3 / 4)))
++            if (
++                (commDetectLogoLocation.contains("W") && (x > (width/4))) ||
++                (commDetectLogoLocation.contains("E") && (x < (width * 3 / 4))) ||
++                ((x > (width/4)) && (x < (width * 3 / 4)))
++                )
+                 continue;
+ 
+             pos = y * width + x;
+diff --git a/mythtv/programs/mythcommflag/ClassicLogoDetector.h b/mythtv/programs/mythcommflag/ClassicLogoDetector.h
+index 64358e2f9c8..eb2fd2b2b60 100644
+--- a/mythtv/programs/mythcommflag/ClassicLogoDetector.h
++++ b/mythtv/programs/mythcommflag/ClassicLogoDetector.h
+@@ -35,8 +35,11 @@ class ClassicLogoDetector : public LogoDetectorBase
+     int commDetectLogoSamplesNeeded;
+     int commDetectLogoSampleSpacing;
+     int commDetectLogoSecondsNeeded;
++    int commDetectLogoWidthRatio;
++    int commDetectLogoHeightRatio;
+     double commDetectLogoGoodEdgeThreshold;
+     double commDetectLogoBadEdgeThreshold;
++    QString commDetectLogoLocation;
+ 
+     EdgeMaskEntry *edgeMask;

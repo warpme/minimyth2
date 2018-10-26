@@ -1,7 +1,36 @@
-diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.cpp mythtv-master-20181019-g402f35a-new/mythtv/libs/libmythtv/mythplayer.cpp
---- mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.cpp	2018-10-20 14:56:45.973333334 +0200
-+++ mythtv-master-20181019-g402f35a-new/mythtv/libs/libmythtv/mythplayer.cpp	2018-10-20 14:56:50.106666667 +0200
-@@ -217,6 +217,8 @@
+diff --git a/mythtv/libs/libmythtv/avformatdecoder.cpp b/mythtv/libs/libmythtv/avformatdecoder.cpp
+index 9af5a4ac12..905f4119b0 100644
+--- a/mythtv/libs/libmythtv/avformatdecoder.cpp
++++ b/mythtv/libs/libmythtv/avformatdecoder.cpp
+@@ -2639,11 +2639,11 @@ int AvFormatDecoder::ScanStreams(bool novideo)
+                 thread_count = 1;
+ 
+             use_frame_timing = false;
+-            if (! private_dec
+-                && ! ringBuffer->IsDVD()
++            if (! ringBuffer->IsDVD()
+                 && (codec_is_std(video_codec_id)
+                     || codec_is_mediacodec(video_codec_id)
+-                    || codec_is_vaapi2(video_codec_id)))
++                    || codec_is_vaapi2(video_codec_id)
++                    || GetCodecDecoderName() == "openmax"))
+                 use_frame_timing = true;
+ 
+             if (FlagIsSet(kDecodeSingleThreaded))
+@@ -4013,6 +4013,8 @@ bool AvFormatDecoder::ProcessVideoFrame(AVStream *stream, AVFrame *mpa_pic)
+         pts = mpa_pic->pts;
+         if (pts == AV_NOPTS_VALUE)
+             pts = mpa_pic->pkt_dts;
++        if (pts == AV_NOPTS_VALUE)
++            pts = mpa_pic->reordered_opaque;
+         if (pts == AV_NOPTS_VALUE)
+         {
+             LOG(VB_GENERAL, LOG_ERR, LOC + "No PTS found - unable to process video.");
+diff --git a/mythtv/libs/libmythtv/mythplayer.cpp b/mythtv/libs/libmythtv/mythplayer.cpp
+index 520ee0b1ca..76e80335d5 100644
+--- a/mythtv/libs/libmythtv/mythplayer.cpp
++++ b/mythtv/libs/libmythtv/mythplayer.cpp
+@@ -217,6 +217,8 @@ MythPlayer::MythPlayer(PlayerFlags flags)
        // Time Code stuff
        prevtc(0),                    prevrp(0),
        savedAudioTimecodeOffset(0),
@@ -10,7 +39,7 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
        // LiveTVChain stuff
        m_tv(nullptr),                isDummy(false),
        // Counter for buffering messages
-@@ -257,6 +259,11 @@
+@@ -257,6 +259,11 @@ MythPlayer::MythPlayer(PlayerFlags flags)
      uint tmp = mypage.toInt(&valid, 16);
      ttPageNum = (valid) ? tmp : ttPageNum;
      cc608.SetTTPageNum(ttPageNum);
@@ -22,7 +51,7 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
  }
  
  MythPlayer::~MythPlayer(void)
-@@ -403,7 +410,7 @@
+@@ -403,7 +410,7 @@ bool MythPlayer::Play(float speed, bool normal, bool unpauseaudio)
          pauseLock.unlock();
          return false;
      }
@@ -31,7 +60,7 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
      SetEof(kEofStateNone);
      UnpauseBuffer();
      UnpauseDecoder();
-@@ -1795,6 +1802,7 @@
+@@ -1795,6 +1802,7 @@ void MythPlayer::ResetAVSync(void)
          avsync_predictor = 0;
      prevtc = 0;
      avsync_next = avsync_interval;      // Frames till next sync check
@@ -39,7 +68,7 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
      LOG(VB_PLAYBACK | VB_TIMESTAMP, LOG_INFO, LOC + "A/V sync reset");
  }
  
-@@ -1810,6 +1818,7 @@
+@@ -1810,6 +1818,7 @@ void MythPlayer::InitAVSync(void)
  
      // Number of frames over which to average time divergence
      avsync_averaging=4;
@@ -47,7 +76,7 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
  
      // Special averaging default of 60 for OpenMAX passthru
      QString device = gCoreContext->GetSetting("AudioOutputDevice","");
-@@ -1856,6 +1865,12 @@
+@@ -1856,6 +1865,12 @@ int64_t MythPlayer::AVSyncGetAudiotime(void)
  
  void MythPlayer::AVSync(VideoFrame *buffer, bool limit_delay)
  {
@@ -60,7 +89,7 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
      int repeat_pict  = 0;
      int64_t timecode = audio.GetAudioTime();
  
-@@ -2140,6 +2155,221 @@
+@@ -2140,6 +2155,224 @@ void MythPlayer::AVSync(VideoFrame *buffer, bool limit_delay)
      }
  }
  
@@ -189,6 +218,9 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
 +
 +    disp_timecode = videotimecode;
 +
++    output_jmeter && output_jmeter->RecordCycleTime();
++    avsync_avg = audio_adjustment * 1000;
++
 +    FrameScanType ps = m_scan;
 +    if (kScan_Detect == m_scan || kScan_Ignore == m_scan)
 +        ps = kScan_Progressive;
@@ -282,7 +314,7 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
  void MythPlayer::RefreshPauseFrame(void)
  {
      if (needNewPauseFrame)
-@@ -2363,6 +2593,7 @@
+@@ -2363,6 +2596,7 @@ void MythPlayer::DisplayNormalFrame(bool check_prebuffer)
      detect_letter_box->SwitchTo(frame);
  
      AVSync(frame, false);
@@ -290,7 +322,7 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
      // If PiP then keep this frame for MythPlayer::GetCurrentFrame
      if (!player_ctx->IsPIP())
          videoOutput->DoneDisplayingFrame(frame);
-@@ -3838,6 +4069,7 @@
+@@ -3838,6 +4072,7 @@ void MythPlayer::ChangeSpeed(void)
      float last_speed = play_speed;
      play_speed   = next_play_speed;
      normal_speed = next_normal_speed;
@@ -298,9 +330,26 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
  
      bool skip_changed = UpdateFFRewSkip();
  
-diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.h mythtv-master-20181019-g402f35a-new/mythtv/libs/libmythtv/mythplayer.h
---- mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.h	2018-10-20 14:56:45.970000001 +0200
-+++ mythtv-master-20181019-g402f35a-new/mythtv/libs/libmythtv/mythplayer.h	2018-10-20 14:56:50.106666667 +0200
+@@ -5005,7 +5240,14 @@ void MythPlayer::GetPlaybackData(InfoMap &infoMap)
+     infoMap.insert("bufferavail", player_ctx->buffer->GetAvailableBuffer());
+     infoMap.insert("buffersize",
+         QString::number(player_ctx->buffer->GetBufferSize() >> 20));
+-    infoMap.insert("avsync",
++    if (gCoreContext->GetNumSetting("PlaybackAVSync2", 0))
++    {
++        int avsync = avsync_avg / 1000;
++        infoMap.insert("avsync",
++            tr("%1 ms").arg(avsync));
++    }
++    else
++        infoMap.insert("avsync",
+             QString::number((float)avsync_avg / (float)frame_interval, 'f', 2));
+     if (videoOutput)
+     {
+diff --git a/mythtv/libs/libmythtv/mythplayer.h b/mythtv/libs/libmythtv/mythplayer.h
+index 90128fca85..2f019a74b3 100644
+--- a/mythtv/libs/libmythtv/mythplayer.h
++++ b/mythtv/libs/libmythtv/mythplayer.h
 @@ -2,6 +2,7 @@
  #define MYTHPLAYER_H
  
@@ -309,7 +358,7 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
  
  #include <QCoreApplication>
  #include <QList>
-@@ -615,6 +616,8 @@
+@@ -615,6 +616,8 @@ class MTV_PUBLIC MythPlayer
      void  WrapTimecode(int64_t &timecode, TCTypes tc_type);
      void  InitAVSync(void);
      virtual void AVSync(VideoFrame *buffer, bool limit_delay = false);
@@ -318,7 +367,7 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
      void  ResetAVSync(void);
      int64_t AVSyncGetAudiotime(void);
      void  SetFrameInterval(FrameScanType scan, double speed);
-@@ -844,6 +847,12 @@
+@@ -844,6 +847,12 @@ class MTV_PUBLIC MythPlayer
      int64_t    tc_lastval[TCTYPESMAX];
      int64_t    savedAudioTimecodeOffset;
  
@@ -331,10 +380,11 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/libs/libmythtv/mythplayer.
      // LiveTV
      TV *m_tv;
      bool isDummy;
-diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/programs/mythfrontend/globalsettings.cpp mythtv-master-20181019-g402f35a-new/mythtv/programs/mythfrontend/globalsettings.cpp
---- mythtv-master-20181019-g402f35a-old/mythtv/programs/mythfrontend/globalsettings.cpp	2018-10-20 14:56:45.903333335 +0200
-+++ mythtv-master-20181019-g402f35a-new/mythtv/programs/mythfrontend/globalsettings.cpp	2018-10-20 14:56:50.106666667 +0200
-@@ -86,6 +86,36 @@
+diff --git a/mythtv/programs/mythfrontend/globalsettings.cpp b/mythtv/programs/mythfrontend/globalsettings.cpp
+index 124f5170df..df8cca0d14 100644
+--- a/mythtv/programs/mythfrontend/globalsettings.cpp
++++ b/mythtv/programs/mythfrontend/globalsettings.cpp
+@@ -86,6 +86,36 @@ static HostTextEditSetting *VAAPIDevice()
  }
  #endif
  
@@ -371,7 +421,7 @@ diff -Naur mythtv-master-20181019-g402f35a-old/mythtv/programs/mythfrontend/glob
  static HostCheckBoxSetting *OpenGLYV12()
  {
      HostCheckBoxSetting *gc = new HostCheckBoxSetting("OpenGLYV12");
-@@ -4161,6 +4191,9 @@
+@@ -4161,6 +4191,9 @@ void PlaybackSettings::Load(void)
  #ifdef USING_VAAPI2
      advanced->addChild(VAAPIDevice());
  #endif
