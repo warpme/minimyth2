@@ -29,8 +29,6 @@ PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-
 
 ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 
-PATCHFILES += 0015-ticket13334-Improved-Video-timing-and-Synchronization-20181025_1407_avsync_and_jitterometer.patch
-
 # Comflagging related patches
 PATCHFILES += 0016-Mythcommflag-ticket13335-add-3-settings-to-enhance-logo-detection.patch
 
