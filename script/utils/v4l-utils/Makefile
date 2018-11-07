@@ -1,5 +1,5 @@
 GARNAME = v4l-utils
-GARVERSION = 1.6.3
+GARVERSION = 1.16.1
 CATEGORIES = utils
 MASTER_SITES = http://linuxtv.org/downloads/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -30,6 +30,8 @@ CONFIGURE_ARGS = $(DIRPATHS) \
         --disable-doxygen-html \
         --disable-doxygen-ps \
         --disable-doxygen-pdf \
+        --disable-qv4l2 \
+        --disable-qvidcap \
 
 include ../../gar.mk
 
