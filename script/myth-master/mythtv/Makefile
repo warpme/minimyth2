@@ -163,8 +163,6 @@ DEPENDS = \
 	qt/qt5 \
 	qt/qt5-webkit \
 
-#	qt/qt5-webkit-5.9 \
-
 BUILDDEPS = \
 	python/python-MySQL-python \
 	python/python-urlgrabber \
