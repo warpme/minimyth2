@@ -10,7 +10,6 @@ endef
 DEPENDS = \
 	$(CATEGORY)/font-alias \
 	$(CATEGORY)/font-bh-ttf \
-	$(CATEGORY)/freeglut \
 	$(CATEGORY)/iceauth \
 	$(CATEGORY)/libX11 \
 	$(CATEGORY)/libxcomposite \
@@ -26,7 +25,7 @@ DEPENDS = \
 	$(CATEGORY)/libXres \
 	$(CATEGORY)/libXt \
 	$(CATEGORY)/libXtst \
-	$(CATEGORY)/Mesa \
+	opengl/opengl \
 	$(CATEGORY)/mkfontdir \
 	$(CATEGORY)/mkfontscale \
 	$(CATEGORY)/rgb \
