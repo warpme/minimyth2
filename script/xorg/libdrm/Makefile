@@ -3,6 +3,7 @@ GARVERSION = 2.4.96
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES = $(DISTNAME).tar.bz2
+PATCHFILES = libdrm-Import-sun4i-drm-header-for-MB32-tiled-NV12-support.patch
 LICENSE = MIT
 
 DESCRIPTION = 
@@ -32,8 +33,6 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-nouveau \
 	--enable-vmwgfx \
 	--enable-vc4 \
-	--disable-omap-experimental-api \
-	--disable-exynos-experimental-api \
 	--disable-cairo-tests \
 	--with-gnu-ld \
 	--disable-valgrind
