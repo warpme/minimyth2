@@ -1,0 +1,73 @@
+From abe9d19ae3fd50d729cc6668f996ab27da414449 Mon Sep 17 00:00:00 2001
+From: Hans Verkuil <hans.verkuil@cisco.com>
+Date: Tue, 21 Aug 2018 03:09:02 -0400
+Subject: [PATCH 10/81] media: vicodec: improve handling of uncompressable
+ planes
+
+Exit the loop immediately once it is clear that the plane
+cannot be compressed. Also clear the PCODED bit and fix the
+PCODED check (it should check for the bit) in the caller code.
+
+Signed-off-by: Hans Verkuil <hans.verkuil@cisco.com>
+Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+---
+ drivers/media/platform/vicodec/vicodec-codec.c | 10 ++++++----
+ drivers/media/platform/vicodec/vicodec-core.c  |  2 +-
+ 2 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/media/platform/vicodec/vicodec-codec.c b/drivers/media/platform/vicodec/vicodec-codec.c
+index e402d98..3547129 100644
+--- a/drivers/media/platform/vicodec/vicodec-codec.c
++++ b/drivers/media/platform/vicodec/vicodec-codec.c
+@@ -685,9 +685,6 @@ static u32 encode_plane(u8 *input, u8 *refp, __be16 **rlco, __be16 *rlco_max,
+ 			input += 8 * input_step;
+ 			refp += 8 * 8;
+ 
+-			if (encoding & FRAME_UNENCODED)
+-				continue;
+-
+ 			size = rlc(cf->coeffs, *rlco, blocktype);
+ 			if (last_size == size &&
+ 			    !memcmp(*rlco + 1, *rlco - size + 1, 2 * size - 2)) {
+@@ -702,12 +699,16 @@ static u32 encode_plane(u8 *input, u8 *refp, __be16 **rlco, __be16 *rlco_max,
+ 			} else {
+ 				*rlco += size;
+ 			}
+-			if (*rlco >= rlco_max)
++			if (*rlco >= rlco_max) {
+ 				encoding |= FRAME_UNENCODED;
++				goto exit_loop;
++			}
+ 			last_size = size;
+ 		}
+ 		input += width * 7 * input_step;
+ 	}
++
++exit_loop:
+ 	if (encoding & FRAME_UNENCODED) {
+ 		u8 *out = (u8 *)rlco_start;
+ 
+@@ -721,6 +722,7 @@ static u32 encode_plane(u8 *input, u8 *refp, __be16 **rlco, __be16 *rlco_max,
+ 		for (i = 0; i < height * width; i++, input += input_step)
+ 			*out++ = (*input == 0xff) ? 0xfe : *input;
+ 		*rlco = (__be16 *)out;
++		encoding &= ~FRAME_PCODED;
+ 	}
+ 	return encoding;
+ }
+diff --git a/drivers/media/platform/vicodec/vicodec-core.c b/drivers/media/platform/vicodec/vicodec-core.c
+index 4680b3c..caff521 100644
+--- a/drivers/media/platform/vicodec/vicodec-core.c
++++ b/drivers/media/platform/vicodec/vicodec-core.c
+@@ -281,7 +281,7 @@ static void encode(struct vicodec_ctx *ctx,
+ 
+ 	encoding = encode_frame(&rf, &ctx->ref_frame, &cf, !ctx->gop_cnt,
+ 				ctx->gop_cnt == ctx->gop_size - 1);
+-	if (encoding != FRAME_PCODED)
++	if (!(encoding & FRAME_PCODED))
+ 		ctx->gop_cnt = 0;
+ 	if (++ctx->gop_cnt >= ctx->gop_size)
+ 		ctx->gop_cnt = 0;
+-- 
+2.7.1
+

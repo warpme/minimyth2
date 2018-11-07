@@ -1,0 +1,39 @@
+From be5a1509af8dd8a78fea24a35fe4a82d4cd0ae70 Mon Sep 17 00:00:00 2001
+From: Hans Verkuil <hverkuil@xs4all.nl>
+Date: Thu, 23 Aug 2018 04:10:05 -0400
+Subject: [PATCH 13/81] media: vicodec: fix out-of-range values when decoding
+
+While decoding you need to make sure you do not get values < 0
+or > 255. Note that since this code will also be used in userspace
+utilities the clamp macro isn't used since that is kernel-only.
+
+Signed-off-by: Hans Verkuil <hans.verkuil@cisco.com>
+Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+---
+ drivers/media/platform/vicodec/codec-fwht.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/vicodec/codec-fwht.c b/drivers/media/platform/vicodec/codec-fwht.c
+index f91f90f..4793916 100644
+--- a/drivers/media/platform/vicodec/codec-fwht.c
++++ b/drivers/media/platform/vicodec/codec-fwht.c
+@@ -625,8 +625,14 @@ static void fill_decoder_block(u8 *dst, const s16 *input, int stride)
+ 	int i, j;
+ 
+ 	for (i = 0; i < 8; i++) {
+-		for (j = 0; j < 8; j++)
+-			*dst++ = *input++;
++		for (j = 0; j < 8; j++, input++, dst++) {
++			if (*input < 0)
++				*dst = 0;
++			else if (*input > 255)
++				*dst = 255;
++			else
++				*dst = *input;
++		}
+ 		dst += stride - 8;
+ 	}
+ }
+-- 
+2.7.1
+

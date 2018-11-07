@@ -1,0 +1,46 @@
+From d842a7cf938b6e0f8a1aa9f1aec0476c9a599310 Mon Sep 17 00:00:00 2001
+From: Hans Verkuil <hans.verkuil@cisco.com>
+Date: Wed, 15 Aug 2018 08:54:43 -0400
+Subject: [PATCH 25/81] media: adv7842: enable reduced fps detection
+
+The pixelclock detection of the adv7842 is precise enough to detect
+if the framerate is 60 Hz or 59.94 Hz (aka "reduced fps").
+
+Implement this detection.
+
+Signed-off-by: Hans Verkuil <hans.verkuil@cisco.com>
+Signed-off-by: Mauro Carvalho Chehab <mchehab+samsung@kernel.org>
+---
+ drivers/media/i2c/adv7842.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/drivers/media/i2c/adv7842.c b/drivers/media/i2c/adv7842.c
+index 4f8fbdd..f1c168b 100644
+--- a/drivers/media/i2c/adv7842.c
++++ b/drivers/media/i2c/adv7842.c
+@@ -1525,6 +1525,7 @@ static void adv7842_fill_optional_dv_timings_fields(struct v4l2_subdev *sd,
+ 	v4l2_find_dv_timings_cap(timings, adv7842_get_dv_timings_cap(sd),
+ 			is_digital_input(sd) ? 250000 : 1000000,
+ 			adv7842_check_dv_timings, NULL);
++	timings->bt.flags |= V4L2_DV_FL_CAN_DETECT_REDUCED_FPS;
+ }
+ 
+ static int adv7842_query_dv_timings(struct v4l2_subdev *sd,
+@@ -1596,6 +1597,14 @@ static int adv7842_query_dv_timings(struct v4l2_subdev *sd,
+ 			bt->il_vbackporch = 0;
+ 		}
+ 		adv7842_fill_optional_dv_timings_fields(sd, timings);
++		if ((timings->bt.flags & V4L2_DV_FL_CAN_REDUCE_FPS) &&
++		    freq < bt->pixelclock) {
++			u32 reduced_freq = ((u32)bt->pixelclock / 1001) * 1000;
++			u32 delta_freq = abs(freq - reduced_freq);
++
++			if (delta_freq < ((u32)bt->pixelclock - reduced_freq) / 2)
++				timings->bt.flags |= V4L2_DV_FL_REDUCED_FPS;
++		}
+ 	} else {
+ 		/* find format
+ 		 * Since LCVS values are inaccurate [REF_03, p. 339-340],
+-- 
+2.7.1
+
