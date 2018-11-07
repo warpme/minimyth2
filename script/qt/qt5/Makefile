@@ -30,7 +30,7 @@ DEPENDS   =            \
 	gtk/harfbuzz   \
 	devel/zlib     \
 	utils/ruby     \
-	xorg/Mesa      \
+	opengl/opengl  \
 	xorg/xorg      \
 
 BUILDDEPS = devel/bison devel/flex

@@ -12,9 +12,9 @@ endef
 DEPENDS = lang/c \
 	$(CATEGORY)/glew \
 	$(CATEGORY)/glu \
-	$(CATEGORY)/Mesa
-
-#	$(CATEGORY)/freeglut \
+	$(if $(filter mesa,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mesa) \
+	$(if $(filter lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mesa-lima) \
+	$(CATEGORY)/freeglut \
 
 PWD := $(shell pwd)
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))

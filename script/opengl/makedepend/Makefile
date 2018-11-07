@@ -12,7 +12,7 @@ define BLURB
 endef
 
 DEPENDS = lang/c \
-	$(CATEGORY)/xorgproto
+	xorg/xorgproto
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 

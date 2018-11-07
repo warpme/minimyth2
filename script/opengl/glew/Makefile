@@ -11,12 +11,13 @@ define BLURB
 endef
 
 DEPENDS = lang/c \
-	$(CATEGORY)/glu \
-	$(CATEGORY)/libX11 \
-	$(CATEGORY)/libXi \
-	$(CATEGORY)/libXmu \
-	$(CATEGORY)/libXext \
-	$(CATEGORY)/Mesa
+	opengl/glu \
+	xorg/libX11 \
+	xorg/libXi \
+	xorg/libXmu \
+	xorg/libXext \
+	$(if $(filter mesa,$(mm_OPENGL_PROVIDER)),opengl/mesa) \
+	$(if $(filter lima,$(mm_OPENGL_PROVIDER)),opengl/mesa-lima) \
 
 PWD := $(shell pwd)
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))

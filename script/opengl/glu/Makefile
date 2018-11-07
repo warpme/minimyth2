@@ -10,7 +10,8 @@ define BLURB
 endef
 
 DEPENDS = lang/c lang/cxx \
-	$(CATEGORY)/Mesa
+	$(if $(filter mesa,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mesa) \
+	$(if $(filter lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mesa-lima) \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 

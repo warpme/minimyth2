@@ -11,8 +11,8 @@ define BLURB
 endef
 
 DEPENDS = lang/c \
-	$(CATEGORY)/xcb-util-keysyms \
-	$(CATEGORY)/glu \
+	xorg/xcb-util-keysyms \
+	opengl/glu \
 	lib/libjpeg-turbo
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))

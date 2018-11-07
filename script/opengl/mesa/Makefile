@@ -14,28 +14,38 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS    = lang/c lang/cxx lib/expat X11/libvdpau devel/llvm devel/libelf python/python-mako \
-	$(CATEGORY)/xorgproto \
-	$(CATEGORY)/libdrm \
-	$(CATEGORY)/libX11 \
-	$(CATEGORY)/libxcb \
-	$(CATEGORY)/libXdamage \
-	$(CATEGORY)/libXext \
-	$(CATEGORY)/libXfixes \
-	$(CATEGORY)/libXxf86vm \
-	$(CATEGORY)/libxshmfence \
-	$(CATEGORY)/wayland-protocols \
-	$(CATEGORY)/wayland
+DEPENDS =                      \
+	lang/c                 \
+	lang/cxx               \
+	lib/expat              \
+	X11/libvdpau           \
+	devel/llvm             \
+	devel/libelf           \
+	python/python-mako     \
+	xorg/xorgproto         \
+	xorg/libdrm            \
+	xorg/libX11            \
+	xorg/libxcb            \
+	xorg/libXdamage        \
+	xorg/libXext           \
+	xorg/libXfixes         \
+	xorg/libXxf86vm        \
+	xorg/libxshmfence      \
+	xorg/wayland-protocols \
+	xorg/wayland           \
 
 ifneq ($(DESTIMG),build)
 DEPENDS   += system/eudev
 endif
-BUILDDEPS  = lib/libxml2 python/python \
-	$(CATEGORY)/makedepend \
-	$(CATEGORY)/xorgproto \
-	$(CATEGORY)/libxshmfence
+BUILDDEPS  = \
+	lib/libxml2 \
+	python/python \
+	opengl/makedepend \
+	xorg/xorgproto \
+	xorg/libxshmfence
+
 ifneq ($(DESTIMG),build)
-BUILDDEPS += $(CATEGORY)/Mesa
+BUILDDEPS += opengl/mesa
 endif
 
 PWD := $(shell pwd)
@@ -138,8 +148,8 @@ post-configure:
 
 install-source:
 	@mkdir -p $(DESTDIR)$(sourcedir)
-	@rm -f $(DESTDIR)$(sourcedir)/Mesa
-	@ln -sf $(PWD)/$(WORKSRC) $(DESTDIR)$(sourcedir)/Mesa
+	@rm -f $(DESTDIR)$(sourcedir)/mesa
+	@ln -sf $(PWD)/$(WORKSRC) $(DESTDIR)$(sourcedir)/mesa
 	@$(MAKECOOKIE)
 
 install-cross:
@@ -179,3 +189,58 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_radeonsi.la
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe.la
 	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -f $(DESTDIR)$(libdir)/libGL*
+	@rm -f $(DESTDIR)$(libdir)/libEGL*
+	@rm -f $(DESTDIR)$(libdir)/libglapi*
+	@rm -f $(DESTDIR)$(libdir)/libgbm*
+	@rm -f $(DESTDIR)$(libdir)/libGLESv2*
+	@rm -f $(DESTDIR)$(libdir)/libGLESv1_CM*
+	@rm -f $(DESTDIR)$(libdir)/libwayland-egl*
+	@rm -f $(DESTDIR)$(libdir)/libxatracker*
+	@rm -f $(DESTDIR)$(libdir)/dri/gallium_drv_video*
+	@rm -f $(DESTDIR)$(libdir)/dri/i915_dri*
+	@rm -f $(DESTDIR)$(libdir)/dri/i965_dri*
+	@rm -f $(DESTDIR)$(libdir)/dri/r200_dri*
+	@rm -f $(DESTDIR)$(libdir)/dri/r300_dri*
+	@rm -f $(DESTDIR)$(libdir)/dri/r600_dri*
+	@rm -f $(DESTDIR)$(libdir)/dri/radeon_dri*
+	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_dri*
+	@rm -f $(DESTDIR)$(libdir)/dri/swrast_dri*
+	@rm -f $(DESTDIR)$(libdir)/dri/vmwgfx_dri*
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r600*
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r300*
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_i915*
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_swrast*
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_radeonsi*
+	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_vmwgfx*
+	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_r300*
+	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_r600*
+	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_radeonsi*
+	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_softpipe*
+	@rm -f $(DESTDIR)$(libdir)/libvdpau_r300*
+	@rm -f $(DESTDIR)$(libdir)/libvdpau_r600*
+	@rm -f $(DESTDIR)$(libdir)/libvdpau_radeonsi*
+	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe*
+	@rm -f $(DESTDIR)$(libdir)/pkgconfig/d3d.pc
+	@rm -f $(DESTDIR)$(libdir)/pkgconfig/dri.pc
+	@rm -f $(DESTDIR)$(libdir)/pkgconfig/egl.pc
+	@rm -f $(DESTDIR)$(libdir)/pkgconfig/gbm.pc
+	@rm -f $(DESTDIR)$(libdir)/pkgconfig/gl.pc
+	@rm -f $(DESTDIR)$(libdir)/pkgconfig/glesv1_cm.pc
+	@rm -f $(DESTDIR)$(libdir)/pkgconfig/glesv2.pc
+	@rm -f $(DESTDIR)$(libdir)/pkgconfig/wayland-egl.pc
+	@rm -f $(DESTDIR)$(libdir)/pkgconfig/xatracker.pc
+	@rm -rf $(DESTDIR)$(includedir)/EGL*
+	@rm -rf $(DESTDIR)$(includedir)/GLES*
+	@rm -rf $(DESTDIR)$(includedir)/GLES2*
+	@rm -rf $(DESTDIR)$(includedir)/GLES3*
+	@rm -rf $(DESTDIR)$(includedir)/KHR*
+	@rm -rf $(DESTDIR)$(includedir)/d3dadapter*
+	@rm -f $(DESTDIR)$(includedir)/gbm.h
+	@rm -f $(DESTDIR)$(includedir)/xa_composite.h
+	@rm -f $(DESTDIR)$(includedir)/xa_context.h
+	@rm -f $(DESTDIR)$(includedir)/xa_tracker.h
+	@rm -f $(DESTDIR)/usr/versions/mesa
+
