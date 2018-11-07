@@ -23,6 +23,8 @@ endef
 
 BUILDDEPS = \
 	utils/bc                           \
+
+DEPENDS = \
 	kernel/linux-headers-allwinner-4.19  \
 	kernel/linux-firmware-allwinner-4.19 \
 

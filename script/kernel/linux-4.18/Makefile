@@ -22,6 +22,8 @@ endef
 
 BUILDDEPS = \
 	utils/bc                   \
+
+DEPENDS = \
 	kernel/linux-headers-4.18  \
 	kernel/linux-firmware-4.18 \
 

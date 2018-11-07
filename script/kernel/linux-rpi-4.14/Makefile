@@ -19,6 +19,8 @@ endef
 
 BUILDDEPS = \
 	utils/bc \
+
+BUILDDEPS = \
 	kernel/linux-headers-rpi-4.14 \
 	kernel/linux-firmware-rpi-4.14 \
 

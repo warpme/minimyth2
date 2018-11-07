@@ -106,6 +106,8 @@ endef
 
 BUILDDEPS = \
 	utils/bc                           \
+
+DEPENDS = \
 	kernel/linux-headers-amlogic-4.19  \
 	kernel/linux-firmware-amlogic-4.19 \
 
