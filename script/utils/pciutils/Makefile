@@ -59,7 +59,7 @@ INSTALL_ARGS = \
 	RANLIB="$(RANLIB)" \
 	install-lib
 
-GAR_EXTRA_CONF += kernel-$(mm_KERNEL_VERSION)/linux/package-api.mk
+GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk
 include ../../gar.mk
 
 CFLAGS  := $(CFLAGS)  -fPIC

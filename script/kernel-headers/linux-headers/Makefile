@@ -1,5 +1,5 @@
 GARNAME = linux-headers
-GARVERSION = $(mm_KERNEL_HEADERS_VERSION)
+GARVERSION = $(mm_KERNEL_VERSION)
 CATEGORIES = kernel-headers
 LICENSE =
 
@@ -7,7 +7,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = kernel-headers/linux-headers-$(mm_KERNEL_HEADERS_VERSION)
+DEPENDS = kernel/linux-headers-$(mm_KERNEL_VERSION)
 
 include ../../gar.mk
 

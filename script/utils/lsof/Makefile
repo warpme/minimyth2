@@ -30,7 +30,7 @@ CONFIGURE_ENV = \
 	LSOF_VSTR="$(LSOF_VSTR)" \
 	LSOF_INCLUDE="$(LSOF_INCLUDE)"
 
-GAR_EXTRA_CONF += kernel-2.6.23/linux/package-api.mk devel/glibc/package-api.mk
+GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
 
 LINUX_CLIB   := $(strip $(shell \

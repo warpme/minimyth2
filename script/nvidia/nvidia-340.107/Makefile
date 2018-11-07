@@ -8,7 +8,7 @@ INSTALL_SCRIPTS = nvidia
 BUILD_ARGS = $(NVIDIA_MAKE_ARGS)
 BUILD_ENV  = $(NVIDIA_MAKE_ENV)
 
-GAR_EXTRA_CONF += kernel-$(mm_KERNEL_VERSION)/linux/package-api.mk nvidia/nvidia/package-api-legacy.mk
+GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk nvidia/nvidia/package-api-legacy.mk
 include ../../gar.mk
 
 post-install:

@@ -36,7 +36,7 @@ CONFIGURE_ENV = $(LINUX_MAKE_ENV)
 BUILD_ENV     = $(LINUX_MAKE_ENV)
 INSTALL_ENV   = $(LINUX_MAKE_ENV)
 
-GAR_EXTRA_CONF += kernel-$(mm_KERNEL_VERSION)/linux/package-api.mk
+GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk
 include ../../gar.mk
 
 git//%$(DISTNAME).tar.bz2:

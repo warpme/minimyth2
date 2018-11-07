@@ -3,7 +3,7 @@ GARVERSION ?= $(mm_VERSION)
 
 all: mm-all
 
-GAR_EXTRA_CONF += kernel-$(mm_KERNEL_VERSION)/linux/package-api.mk devel/build-system-bins/package-api.mk
+GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk devel/build-system-bins/package-api.mk
 include ../../gar.mk
 
 mm-all:
@@ -114,8 +114,21 @@ mm-all:
 		   [ ! "$${graphic}" = "nvidia-legacy" ] && \
 		   [ ! "$${graphic}" = "radeon"        ] && \
 		   [ ! "$${graphic}" = "radeonhd"      ] && \
+		   [ ! "$${graphic}" = "armsoc"        ] && \
 		   [ ! "$${graphic}" = "vmware"        ] ; then \
 			echo "error: mm_GRAPHICS=\"$${graphic}\" is an invalid value." ; \
+			exit 1 ; \
+		fi ; \
+	done
+	@echo "    mm_OPENGL_PROVIDER"
+	@for opengl in $(mm_OPENGL_PROVIDER) ; do \
+		if [ ! "$${opengl}" = "lima"     ] && \
+		   [ ! "$${opengl}" = "mali450"  ] && \
+		   [ ! "$${opengl}" = "mali450x" ] && \
+		   [ ! "$${opengl}" = "brcm-vc4" ] && \
+		   [ ! "$${opengl}" = "xxxxx"    ] && \
+		   [ ! "$${opengl}" = "mesa"     ] ; then \
+			echo "error: mm_OPENGL_PROVIDER=\"$${opengl}\" is an invalid value." ; \
 			exit 1 ; \
 		fi ; \
 	done
@@ -159,29 +172,13 @@ mm-all:
 			exit 1 ; \
 		fi ; \
 	done
-	@echo "    mm_KERNEL_HEADERS_VERSION"
-	@if [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.14" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.18" ] && \
-	    [ ! "$(mm_KERNEL_HEADERS_VERSION)" = "4.19" ] ; then \
-		echo "error: mm_KERNEL_HEADERS_VERSION=\"$(mm_KERNEL_HEADERS_VERSION)\" is an invalid value." ; \
-		exit 1 ; \
-	fi
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "4.14" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "4.18" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "4.19" ] ; then \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "4.18"           ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.19"           ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "amlogic-4.19"   ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "allwinner-4.19" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-4.14"       ] ; then \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
-		exit 1 ; \
-	fi
-	@echo "    mm_KERNEL_VERSION >= mm_KERNEL_HEADERS_VERSION"
-	@if [ `echo ${mm_KERNEL_HEADERS_VERSION} | sed 's%[34]\.\(.*\)%\1%'` -gt \
-	      `echo ${mm_KERNEL_VERSION}         | sed 's%[34]\.\(.*\)%\1%'`     ] ; then \
-		echo "error: mm_KERNEL_HEADERS_VERSION is greater than mm_KERNEL_VERSION." ; \
-		exit 1 ; \
-	fi
-	@if [ `echo ${mm_KERNEL_HEADERS_VERSION} | sed 's%[34]\.\(.*\)%\1%'` -gt \
-	      `echo ${mm_KERNEL_VERSION}         | sed 's%[34]\.\(.*\)%\1%'`     ] ; then \
-		echo "error: mm_KERNEL_HEADERS_VERSION is greater than mm_KERNEL_VERSION." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_MYTH_VERSION"
