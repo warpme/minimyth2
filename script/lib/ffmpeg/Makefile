@@ -4,7 +4,6 @@ CATEGORIES = lib
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = $(DISTNAME)-pkg_config.patch
-#PATCHFILES += $(DISTNAME)-uint64_c.patch
 LICENSE = GPL2/LGPL2_1
 
 DESCRIPTION = 
