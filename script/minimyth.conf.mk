@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.7.1.r874
+mm_VERSION_MINIMYTH ?= 9.8.0.r926
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -38,8 +38,14 @@ mm_DEBUG_BUILD            ?= no
 
 # Lists the graphics drivers supported.
 # Valid values for mm_GRAPHICS are one or more of 'intel', 'nvidia',
-# 'nvidia-legacy', 'radeon', and 'vmware'.
+# 'nvidia-legacy', 'radeon', 'vmware', 'armsoc'.
 mm_GRAPHICS               ?= intel nvidia nvidia-legacy radeon vmware
+
+# Selects OpenGL provider used by qt and mythtv. Valid values for
+# mm_OPENGL_PROVIDER are: mesa (official mesa library), lima (mesa library for 
+# ARM Mali 3D engine), mali450, mali450x (3D librarys BLOBs provied by ARM consortium) 
+# and brcm-vc4 (3D library BLOB provided by Broadcom for RPI)
+mm_OPENGL_PROVIDER        ?= mesa
 
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
@@ -135,12 +141,8 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image/src
 # installed in a subdirectory named 'minimyth-$(mm_VERSION)'.
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
-# The version of kernel headers to use.
-# Valid values are '4.14' '4.18' and '4.19'
-mm_KERNEL_HEADERS_VERSION ?= 4.19
-
 # The version of kernel to use.
-# Valid values are '4.17' '4.18' and '4.19'
+# Valid values are 'rpi-4.14' 'amlogic-4.19' 'allwinner-4.19' '4.18' and '4.19'
 mm_KERNEL_VERSION         ?= 4.19
 
 # The kernel configuration file to use.
@@ -151,8 +153,6 @@ mm_KERNEL_CONFIG          ?=
 # The version of Myth to use.
 # Valid values are '0.28', '29', '30' and 'master'
 mm_MYTH_VERSION           ?= master
-# mm_MYTH_VERSION           ?= 29
-# mm_MYTH_VERSION           ?= 0.28
 
 # The version of the NVIDIA driver.
 # Valid values are '396.54', '410.66'
