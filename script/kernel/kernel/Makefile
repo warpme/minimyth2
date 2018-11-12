@@ -22,3 +22,4 @@ clean-all:
 	@$(MAKE) clean-all -C ../../system/lirc
 	@$(MAKE) clean-all -C ../../nvidia
 	@$(MAKE) clean     -C ../../system/bbswitch
+	@$(MAKE) clean     -C ../../kernel/u-boot
