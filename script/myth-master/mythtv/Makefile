@@ -29,6 +29,9 @@ PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-
 
 ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 
+# Improves playback jump ffw/back. Without this patch right after jump playback is a bit vibrant for moment
+PATCHFILES += 0014-partially-revert-22de417-Playback-Some-Optimizations.patch
+
 # Comflagging related patches
 PATCHFILES += 0016-Mythcommflag-ticket13335-add-3-settings-to-enhance-logo-detection.patch
 
