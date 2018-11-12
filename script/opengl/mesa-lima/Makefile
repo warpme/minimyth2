@@ -92,7 +92,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
 	--with-gallium-drivers=exynos,sun4i,meson,rockchip,lima,vc4 \
-	--with-dri-drivers= \
+	--with-dri-drivers=swrast \
 	--with-platforms=x11,drm \
 	--disable-opencl \
 	--disable-opencl-icd \
@@ -104,7 +104,7 @@ else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
 	--with-gallium-drivers=exynos,sun4i,meson,rockchip,lima,vc4 \
-	--with-dri-drivers= \
+	--with-dri-drivers=swrast \
 	--with-platforms=x11,drm \
 	--disable-opencl \
 	--disable-opencl-icd \
