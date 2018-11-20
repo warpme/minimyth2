@@ -7,7 +7,9 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = kernel/linux-$(mm_KERNEL_VERSION) kernel/u-boot
+DEPENDS = \
+	kernel/linux-$(mm_KERNEL_VERSION) \
+	$(if $(filter u-boot,$(mm_SOFTWARE)),kernel/u-boot) \
 
 include ../../gar.mk
 
