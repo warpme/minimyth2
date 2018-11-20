@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.8.2.r939
+mm_VERSION_MINIMYTH ?= 9.8.3.r947
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -142,7 +142,7 @@ mm_LOCAL_FILES            ?= /home/piotro/ABS/mythtv-pxe_image/src
 mm_NFS_ROOT               ?= /home/piotro/tftpboot
 
 # The version of kernel to use.
-# Valid values are 'rpi-4.14' 'amlogic-4.19' 'allwinner-4.19' '4.18' and '4.19'
+# Valid values are 'rpi-4.14' 'amlogic-4.19' 'allwinner-4.19' '4.19'
 mm_KERNEL_VERSION         ?= 4.19
 
 # The kernel configuration file to use.
@@ -155,8 +155,8 @@ mm_KERNEL_CONFIG          ?=
 mm_MYTH_VERSION           ?= master
 
 # The version of the NVIDIA driver.
-# Valid values are '396.54', '410.66'
-mm_NVIDIA_VERSION         ?= 410.66
+# Valid values are '410.66', '410.78'
+mm_NVIDIA_VERSION         ?= 410.78
 
 # The version of the NVIDIA legacy driver.
 # Valid values are '340.107' and '340.107'
