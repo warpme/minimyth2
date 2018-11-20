@@ -2,13 +2,16 @@ GARNAME = linux-rpi
 GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),$(if $(filter-out 0,$(LINUX_TEENY_VERSION)),.$(LINUX_TEENY_VERSION)))$(LINUX_EXTRA_VERSION)
 CATEGORIES = kernel-rpi-4.14
 MASTER_SITES  = https://github.com/raspberrypi/linux/archive/
-CONFIGFILE = $(DISTNAME)-$(GARCH_FAMILY)-$(GARCH).config
+
+CONFIGFILE = linux-4.14-$(GARCH_FAMILY)-$(GARCH).config
+
 DISTFILES = $(GITHASH).tar.gz $(CONFIGFILE)
-PATCHFILES  = $(DISTNAME)-perl.patch.gar
-#PATCHFILES += $(DISTNAME).patch.gar
-PATCHFILES += $(DISTNAME)-disable_dma_for_cfa.patch
-PATCHFILES += $(DISTNAME)-defaults.patch
-PATCHFILES += $(DISTNAME)-vgaarb-add-3D-accell-detection.patch
+
+PATCHFILES  = linux-4.14-perl.patch.gar
+#PATCHFILES += linux-4.14.patch.gar
+PATCHFILES += linux-4.14-disable_dma_for_cfa.patch
+PATCHFILES += linux-4.14-defaults.patch
+PATCHFILES += linux-4.14-vgaarb-add-3D-accell-detection.patch
 LICENSE = GPL2
 
 WORKSRC = $(WORKDIR)/linux-$(GITHASH)
