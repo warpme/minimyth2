@@ -1,0 +1,119 @@
+From 01db4430c927d1cf6c222fdbecead943f61a40c4 Mon Sep 17 00:00:00 2001
+From: Maxime Jourdan <mjourdan@baylibre.com>
+Date: Tue, 23 Oct 2018 15:15:24 +0200
+Subject: [PATCH 20/27] meson: vdec: hevc: fix conformance window
+
+Fixes issues with LibreElec playing bitstreams that implement a crop
+window
+---
+ drivers/media/platform/meson/vdec/codec_hevc.c | 66 ++++++++++++++++++--------
+ 1 file changed, 47 insertions(+), 19 deletions(-)
+
+diff --git a/drivers/media/platform/meson/vdec/codec_hevc.c b/drivers/media/platform/meson/vdec/codec_hevc.c
+index ae54e37..36336cb 100644
+--- a/drivers/media/platform/meson/vdec/codec_hevc.c
++++ b/drivers/media/platform/meson/vdec/codec_hevc.c
+@@ -278,8 +278,8 @@ struct codec_hevc {
+ 	u32 frames_num;
+ 
+ 	/* Resolution reported by the hardware */
+-	u32 width;
+-	u32 height;
++	u32 width, height;
++	u32 dst_width, dst_height;
+ 
+ 	u32 prev_tid0_poc;
+ 	u32 slice_segment_addr;
+@@ -1413,36 +1413,64 @@ static int codec_hevc_process_segment(struct amvdec_session *sess)
+ 
+ static int codec_hevc_process_rpm(struct codec_hevc *hevc)
+ {
+-	union rpm_param *rpm_param = &hevc->rpm_param;
++	union rpm_param *param = &hevc->rpm_param;
+ 	int src_changed = 0;
+ 	u32 lcu_x_num_div, lcu_y_num_div;
+-	u32 width, height;
++	u32 dst_width, dst_height;
+ 	u32 lcu_size;
+ 	u32 is_10bit;
+ 
+-	if (rpm_param->p.bit_depth)
++	if (param->p.slice_segment_address	||
++	    !param->p.pic_width_in_luma_samples	||
++	    !param->p.pic_height_in_luma_samples)
++		return 0;
++
++	if (param->p.bit_depth)
+ 		is_10bit = 1;
+ 
+-	width = rpm_param->p.pic_width_in_luma_samples;
+-	height = rpm_param->p.pic_height_in_luma_samples;
++	hevc->width = param->p.pic_width_in_luma_samples;
++	hevc->height = param->p.pic_height_in_luma_samples;
++	dst_width = hevc->width;
++	dst_height = hevc->height;
+ 
+-	lcu_size = 1 << (rpm_param->p.log2_min_coding_block_size_minus3 +
+-		   3 + rpm_param->p.log2_diff_max_min_coding_block_size);
++	lcu_size = 1 << (param->p.log2_min_coding_block_size_minus3 +
++		   3 + param->p.log2_diff_max_min_coding_block_size);
+ 
+-	lcu_x_num_div = (width / lcu_size);
+-	lcu_y_num_div = (height / lcu_size);
+-	hevc->lcu_x_num = ((width % lcu_size) == 0) ? lcu_x_num_div : lcu_x_num_div + 1;
+-	hevc->lcu_y_num = ((height % lcu_size) == 0) ? lcu_y_num_div : lcu_y_num_div + 1;
++	lcu_x_num_div = (hevc->width / lcu_size);
++	lcu_y_num_div = (hevc->height / lcu_size);
++	hevc->lcu_x_num = (hevc->width % lcu_size) ? lcu_x_num_div + 1 :
++			  lcu_x_num_div;
++	hevc->lcu_y_num = (hevc->height % lcu_size) ? lcu_y_num_div + 1 :
++			  lcu_y_num_div;
+ 	hevc->lcu_total = hevc->lcu_x_num * hevc->lcu_y_num;
+ 
+-	if (width != hevc->width	||
+-	    height != hevc->height	||
+-	    lcu_size != hevc->lcu_size	||
++	if (param->p.conformance_window_flag) {
++		u32 sub_width = 1, sub_height = 1;
++
++		switch (param->p.chroma_format_idc) {
++		case 1:
++			sub_height = 2;
++		case 2:
++			sub_width = 2;
++			break;
++		}
++
++		dst_width -= sub_width *
++			     (param->p.conf_win_left_offset +
++			      param->p.conf_win_right_offset);
++		dst_height -= sub_height *
++			      (param->p.conf_win_top_offset +
++			       param->p.conf_win_bottom_offset);
++	}
++
++	if (dst_width != hevc->dst_width	||
++	    dst_height != hevc->dst_height	||
++	    lcu_size != hevc->lcu_size		||
+ 	    is_10bit != hevc->is_10bit)
+ 		src_changed = 1;
+ 
+-	hevc->width = width;
+-	hevc->height = height;
++	hevc->dst_width = dst_width;
++	hevc->dst_height = dst_height;
+ 	hevc->lcu_size = lcu_size;
+ 	hevc->is_10bit = is_10bit;
+ 
+@@ -1497,7 +1525,7 @@ static irqreturn_t codec_hevc_threaded_isr(struct amvdec_session *sess)
+ 	sess->keyframe_found = 1;
+ 	codec_hevc_fetch_rpm(sess);
+ 	if (codec_hevc_process_rpm(hevc)) {
+-		amvdec_src_change(sess, hevc->width, hevc->height, 16);
++		amvdec_src_change(sess, hevc->dst_width, hevc->dst_height, 16);
+ 		goto unlock;
+ 	}
+ 
+-- 
+2.7.1
+

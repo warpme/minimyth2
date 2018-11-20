@@ -1,0 +1,133 @@
+From 2d83b9435d0d76a08185475d0f19d46f4e1c5b5b Mon Sep 17 00:00:00 2001
+From: Maxime Jourdan <mjourdan@baylibre.com>
+Date: Tue, 23 Oct 2018 16:50:45 +0200
+Subject: [PATCH 22/27] meson: vdec: hevc: various 80+ line fixes
+
+---
+ drivers/media/platform/meson/vdec/codec_hevc.c | 42 +++++++++++++++++---------
+ 1 file changed, 27 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/media/platform/meson/vdec/codec_hevc.c b/drivers/media/platform/meson/vdec/codec_hevc.c
+index 23e46dd..036983e 100644
+--- a/drivers/media/platform/meson/vdec/codec_hevc.c
++++ b/drivers/media/platform/meson/vdec/codec_hevc.c
+@@ -277,8 +277,9 @@ struct codec_hevc {
+ 	struct list_head ref_frames_list;
+ 	u32 frames_num;
+ 
+-	/* Resolution reported by the hardware */
++	/* Coded resolution reported by the hardware */
+ 	u32 width, height;
++	/* Resolution minus the conformance window offsets */
+ 	u32 dst_width, dst_height;
+ 
+ 	u32 prev_tid0_poc;
+@@ -603,7 +604,8 @@ static void codec_hevc_setup_buffers_gxl(struct amvdec_session *sess)
+ 	dma_addr_t buf_uv_paddr = 0;
+ 	int i;
+ 
+-	amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CONF_ADDR, BIT(2) | BIT(1));
++	amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CONF_ADDR,
++			 BIT(2) | BIT(1));
+ 
+ 	v4l2_m2m_for_each_dst_buf(sess->m2m_ctx, buf) {
+ 		u32 idx = buf->vb.vb2_buf.index;
+@@ -611,9 +613,11 @@ static void codec_hevc_setup_buffers_gxl(struct amvdec_session *sess)
+ 		if (codec_hevc_use_downsample(sess))
+ 			buf_y_paddr = hevc->fbc_buffer_paddr[idx];
+ 		else
+-			buf_y_paddr = vb2_dma_contig_plane_dma_addr(&buf->vb.vb2_buf, 0);
++			buf_y_paddr =
++			    vb2_dma_contig_plane_dma_addr(&buf->vb.vb2_buf, 0);
+ 
+-		amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_DATA, buf_y_paddr >> 5);
++		amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_DATA,
++				 buf_y_paddr >> 5);
+ 		if (!codec_hevc_use_fbc(sess)) {
+ 			buf_uv_paddr = vb2_dma_contig_plane_dma_addr(&buf->vb.vb2_buf, 1);
+ 			amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_DATA,
+@@ -623,7 +627,8 @@ static void codec_hevc_setup_buffers_gxl(struct amvdec_session *sess)
+ 
+ 	/* Fill the remaining unused slots with the last buffer's Y addr */
+ 	for (i = buf_num; i < MAX_REF_PIC_NUM; ++i) {
+-		amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_DATA, buf_y_paddr >> 5);
++		amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_DATA,
++				 buf_y_paddr >> 5);
+ 		if (!codec_hevc_use_fbc(sess))
+ 			amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_DATA,
+ 					 buf_uv_paddr >> 5);
+@@ -753,7 +758,8 @@ static int codec_hevc_start(struct amvdec_session *sess)
+ 	amvdec_write_dos_bits(core, HEVC_STREAM_CONTROL, BIT(0));
+ 
+ 	val = amvdec_read_dos(core, HEVC_PARSER_INT_CONTROL) & 0x03ffffff;
+-	val |= (3 << 29) | BIT(27) | BIT(24) | BIT(22) | BIT(7) | BIT(4) | BIT(0);
++	val |= (3 << 29) | BIT(27) | BIT(24) | BIT(22) | BIT(7) | BIT(4) |
++	       BIT(0);
+ 	amvdec_write_dos(core, HEVC_PARSER_INT_CONTROL, val);
+ 	amvdec_write_dos_bits(core, HEVC_SHIFT_STATUS, BIT(1) | BIT(0));
+ 	amvdec_write_dos(core, HEVC_SHIFT_CONTROL,
+@@ -949,7 +955,8 @@ codec_hevc_set_sao(struct amvdec_session *sess, struct hevc_frame *frame)
+ 		amvdec_write_dos(core, HEVC_SAO_C_WPTR, buf_u_v_paddr);
+ 	}
+ 
+-	amvdec_write_dos(core, HEVC_SAO_Y_LENGTH, amvdec_get_output_size(sess));
++	amvdec_write_dos(core, HEVC_SAO_Y_LENGTH,
++			 amvdec_get_output_size(sess));
+ 	amvdec_write_dos(core, HEVC_SAO_C_LENGTH,
+ 			 (amvdec_get_output_size(sess) / 2));
+ 
+@@ -1104,7 +1111,8 @@ static void codec_hevc_set_mpred_mv(struct amvdec_core *core,
+ {
+ 	union rpm_param *param = &hevc->rpm_param;
+ 	u32 lcu_size_log2 = ilog2(hevc->lcu_size);
+-	u32 mv_mem_unit = lcu_size_log2 == 6 ? 0x200 : lcu_size_log2 == 5 ? 0x80 : 0x20;
++	u32 mv_mem_unit = lcu_size_log2 == 6 ? 0x200 :
++			  lcu_size_log2 == 5 ? 0x80 : 0x20;
+ 	dma_addr_t col_mv_rd_start_addr, col_mv_rd_ptr, col_mv_rd_end_addr;
+ 	dma_addr_t mpred_mv_wr_ptr;
+ 	u32 val;
+@@ -1112,19 +1120,24 @@ static void codec_hevc_set_mpred_mv(struct amvdec_core *core,
+ 	val = amvdec_read_dos(core, HEVC_MPRED_CURR_LCU);
+ 
+ 	col_mv_rd_start_addr = codec_hevc_get_frame_mv_paddr(hevc, col_frame);
+-	mpred_mv_wr_ptr = codec_hevc_get_frame_mv_paddr(hevc, frame) + (hevc->slice_addr * mv_mem_unit);
+-	col_mv_rd_ptr = col_mv_rd_start_addr + (hevc->slice_addr * mv_mem_unit);
+-	col_mv_rd_end_addr = col_mv_rd_start_addr + ((hevc->lcu_x_num * hevc->lcu_y_num) * mv_mem_unit);
++	mpred_mv_wr_ptr = codec_hevc_get_frame_mv_paddr(hevc, frame) +
++			  (hevc->slice_addr * mv_mem_unit);
++	col_mv_rd_ptr = col_mv_rd_start_addr +
++			(hevc->slice_addr * mv_mem_unit);
++	col_mv_rd_end_addr = col_mv_rd_start_addr +
++			     (hevc->lcu_total * mv_mem_unit);
+ 
+ 	amvdec_write_dos(core, HEVC_MPRED_MV_WR_START_ADDR,
+ 			 codec_hevc_get_frame_mv_paddr(hevc, frame));
+-	amvdec_write_dos(core, HEVC_MPRED_MV_RD_START_ADDR, col_mv_rd_start_addr);
++	amvdec_write_dos(core, HEVC_MPRED_MV_RD_START_ADDR,
++			 col_mv_rd_start_addr);
+ 
+ 	if (param->p.slice_segment_address == 0) {
+ 		amvdec_write_dos(core, HEVC_MPRED_ABV_START_ADDR,
+ 				 hevc->workspace_paddr + MPRED_ABV_OFFSET);
+ 		amvdec_write_dos(core, HEVC_MPRED_MV_WPTR, mpred_mv_wr_ptr);
+-		amvdec_write_dos(core, HEVC_MPRED_MV_RPTR, col_mv_rd_start_addr);
++		amvdec_write_dos(core, HEVC_MPRED_MV_RPTR,
++				 col_mv_rd_start_addr);
+ 	} else {
+ 		amvdec_write_dos(core, HEVC_MPRED_MV_RPTR, col_mv_rd_ptr);
+ 	}
+@@ -1502,10 +1515,9 @@ static void codec_hevc_resume(struct amvdec_session *sess)
+ static irqreturn_t codec_hevc_threaded_isr(struct amvdec_session *sess)
+ {
+ 	struct amvdec_core *core = sess->core;
+-	struct codec_hevc *hevc;
++	struct codec_hevc *hevc = sess->priv;
+ 	u32 dec_status = amvdec_read_dos(core, HEVC_DEC_STATUS_REG);
+ 
+-	hevc = sess->priv;
+ 	if (!hevc)
+ 		return IRQ_HANDLED;
+ 
+-- 
+2.7.1
+
