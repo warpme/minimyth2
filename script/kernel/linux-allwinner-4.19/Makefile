@@ -5,14 +5,17 @@ GARNAME = linux-allwinner
 GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),$(if $(filter-out 0,$(LINUX_TEENY_VERSION)),.$(LINUX_TEENY_VERSION)))$(LINUX_EXTRA_VERSION)
 CATEGORIES = kernel-allwinner-4.19
 MASTER_SITES  = https://github.com/bootlin/linux-cedrus/archive/
-CONFIGFILE = $(DISTNAME)-$(GARCH_FAMILY)-$(GARCH).config
+
+CONFIGFILE = linux-4.19-$(GARCH_FAMILY)-$(GARCH).config
+
 DISTFILES = $(GITHASH).tar.gz $(CONFIGFILE)
-PATCHFILES  = $(DISTNAME)-perl.patch.gar
-# PATCHFILES += $(DISTNAME).patch.gar # TODO
-PATCHFILES += $(DISTNAME)-disable_dma_for_cfa.patch
-PATCHFILES += $(DISTNAME)-defaults.patch
-PATCHFILES += $(DISTNAME)-vgaarb-add-3D-accell-detection.patch
-PATCHFILES += $(DISTNAME)-net-smsc95xx-allow-mac-address-as-param.patch
+
+PATCHFILES  = linux-4.19-perl.patch.gar
+# PATCHFILES += linux-4.19.patch.gar # TODO
+PATCHFILES += linux-4.19-disable_dma_for_cfa.patch
+PATCHFILES += linux-4.19-defaults.patch
+PATCHFILES += linux-4.19-vgaarb-add-3D-accell-detection.patch
+PATCHFILES += linux-4.19-net-smsc95xx-allow-mac-address-as-param.patch
 LICENSE = GPL2
 
 WORKSRC = $(WORKDIR)/linux-cedrus-$(GITHASH)
@@ -84,8 +87,8 @@ ifeq ($(GARCH),armv7)
 else
 ifeq ($(GARCH),armv8)
 	@mkdir -p "$(DESTDIR)/boot"
-	@echo "Installing kernel Image.gz"
-	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)/boot/Image.gz
+	@#echo "Installing kernel Image.gz"
+	@#cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)/boot/Image.gz
 	@echo "Installing kernel Image."
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)/boot/Image
 	@cp  $(WORKSRC)/System.map $(DESTDIR)$(LINUX_DIR)/System.map
