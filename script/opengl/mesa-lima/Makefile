@@ -10,7 +10,7 @@
 
 # Uncomment for downloading at given GIT commit
 GARNAME      = mesa-lima
-GARVERSION   = 6171d22c911b0f390e2ebc16c2e96a8a7ab10250
+GARVERSION   = 096a0d0511d008834b29d25187d75a6e0f729f81
 MASTER_SITES = https://gitlab.freedesktop.org/lima/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(GARVERSION).tar.bz2
 WORKSRC      = $(WORKDIR)/mesa-$(GARVERSION)
@@ -104,7 +104,7 @@ else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
 	--with-gallium-drivers=exynos,sun4i,meson,rockchip,lima,vc4 \
-	--with-dri-drivers=swrast \
+	--with-dri-drivers= \
 	--with-platforms=x11,drm \
 	--disable-opencl \
 	--disable-opencl-icd \
