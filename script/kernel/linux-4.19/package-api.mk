@@ -1,10 +1,25 @@
+
+#--Use this for mainline x.y.z kernel-------
 LINUX_MAJOR_VERSION = 4
 LINUX_MINOR_VERSION = 19
-LINUX_TEENY_VERSION = 1
+LINUX_TEENY_VERSION = 2
 LINUX_EXTRA_VERSION = 
+#-------------------------------------------
+
+#--Use this for mainline git-commit kernel--
+# GITHASH             = 84df9525b0c27f3ebc2ebb1864fa62a97fdedb7d
+# LINUX_MAJOR_VERSION = 4
+# LINUX_MINOR_VERSION = 19
+# LINUX_TEENY_VERSION = 1
+# LINUX_EXTRA_VERSION = 
+#-------------------------------------------
+
 
 LINUX_VERSION      = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),.$(LINUX_TEENY_VERSION))$(LINUX_EXTRA_VERSION)
 LINUX_FULL_VERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),.$(LINUX_TEENY_VERSION),.0)$(LINUX_EXTRA_VERSION)
+
+DISTFILES = linux-$(LINUX_VERSION).tar.gz $(CONFIGFILE)
+WORKSRC = $(WORKDIR)/linux-$(LINUX_VERSION)
 
 LINUX_DIR           = $(rootdir)/boot
 LINUX_DIR           = $(rootdir)/boot

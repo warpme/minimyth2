@@ -1,19 +1,29 @@
+
+#--Use this for mainline official x.y.z kernel----
+MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
+DISTFILES           = $(DISTNAME).tar.xz $(CONFIGFILE)
+#-------------------------------------------
+
+#--Use this for mainline git-commit kernel--
+# MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
+# DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
+# WORKSRC             = $(WORKDIR)/$(GITHASH)
+#-------------------------------------------
+
 GARNAME = linux
 GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),$(if $(filter-out 0,$(LINUX_TEENY_VERSION)),.$(LINUX_TEENY_VERSION)))$(LINUX_EXTRA_VERSION)
-CATEGORIES = kernel-4.19
-MASTER_SITES  = https://cdn.kernel.org/pub/linux/kernel/v4.x/
-MASTER_SITES += https://www.kernel.org/pub/linux/kernel/v4.x/
-MASTER_SITES += http://www.kernel.org/pub/linux/kernel/v$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)/
-MASTER_SITES += http://www.kernel.org/pub/linux/kernel/v4.x/testing/
-MASTER_SITES += https://git.kernel.org/torvalds/t/
-CONFIGFILE = $(DISTNAME)-$(GARCH_FAMILY)-$(GARCH).config
-DISTFILES = $(DISTNAME).tar.xz $(CONFIGFILE)
-PATCHFILES  = $(DISTNAME).patch.gar
-PATCHFILES += $(DISTNAME)-perl.patch.gar
-PATCHFILES += $(DISTNAME)-disable_dma_for_cfa.patch
-PATCHFILES += $(DISTNAME)-defaults.patch
-PATCHFILES += $(DISTNAME)-vgaarb-add-3D-accell-detection.patch
-PATCHFILES += $(DISTNAME)-net-smsc95xx-allow-mac-address-as-param.patch
+CATEGORIES = kernel-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
+
+CONFIGFILE = linux-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)-$(GARCH_FAMILY)-$(GARCH).config
+
+
+PATCHFILES  = linux-4.19.patch.gar
+PATCHFILES += linux-4.19-perl.patch.gar
+PATCHFILES += linux-4.19-disable_dma_for_cfa.patch
+PATCHFILES += linux-4.19-defaults.patch
+PATCHFILES += linux-4.19-vgaarb-add-3D-accell-detection.patch
+PATCHFILES += linux-4.19-net-smsc95xx-allow-mac-address-as-param.patch
+
 LICENSE = GPL2
 
 DESCRIPTION = 
@@ -21,11 +31,11 @@ define BLURB
 endef
 
 BUILDDEPS = \
-	utils/bc                   \
+	utils/bc              \
 
 DEPENDS = \
-	kernel/linux-headers-4.19  \
-	kernel/linux-firmware-4.19 \
+	kernel/linux-headers-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)  \
+	kernel/linux-firmware-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION) \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
@@ -85,7 +95,7 @@ ifeq ($(GARCH),armv7)
 else
 ifeq ($(GARCH),armv8)
 	@mkdir -p "$(DESTDIR)/boot"
-	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)/boot/Image.gz
+	@#cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)/boot/Image.gz
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)/boot/Image
 	@cp  $(WORKSRC)/System.map $(DESTDIR)$(LINUX_DIR)/System.map
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
@@ -111,7 +121,7 @@ post-install:
 clean-all:
 	@rm -rf $(DESTDIR)$(LINUX_DIR)
 	@rm -rf $(DESTDIR)$(LINUX_MODULESPREFIX)
-	@$(MAKE) clean       -C ../linux-headers-4.19
-	@$(MAKE) clean       -C ../linux-firmware-4.19
-	@$(MAKE) clean-all   -C ../linux-headers-4.19
-	@$(MAKE) clean-all   -C ../linux-firmware-4.19
+	@$(MAKE) clean       -C ../linux-headers-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
+	@$(MAKE) clean       -C ../linux-firmware-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
+	@$(MAKE) clean-all   -C ../linux-headers-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
+	@$(MAKE) clean-all   -C ../linux-firmware-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
