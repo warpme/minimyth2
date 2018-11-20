@@ -7,7 +7,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = kernel/linux-$(mm_KERNEL_VERSION)
+DEPENDS = kernel/linux-$(mm_KERNEL_VERSION) kernel/u-boot
 
 include ../../gar.mk
 
@@ -22,4 +22,4 @@ clean-all:
 	@$(MAKE) clean-all -C ../../system/lirc
 	@$(MAKE) clean-all -C ../../nvidia
 	@$(MAKE) clean     -C ../../system/bbswitch
-	@$(MAKE) clean     -C ../../kernel/u-boot
+	@rm -f                ../../kernel/u-boot/cookies/main.d/install*
