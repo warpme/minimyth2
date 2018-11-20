@@ -1,10 +1,10 @@
 
 #--Use this for mainline kernel-------------------------------
-#GITHASH             = 84df9525b0c27f3ebc2ebb1864fa62a97fdedb7d
-#LINUX_MAJOR_VERSION = 4
-#LINUX_MINOR_VERSION = 19
-#LINUX_TEENY_VERSION = 0
-#LINUX_EXTRA_VERSION = 
+GITHASH             = 84df9525b0c27f3ebc2ebb1864fa62a97fdedb7d
+LINUX_MAJOR_VERSION = 4
+LINUX_MINOR_VERSION = 19
+LINUX_TEENY_VERSION = 0
+LINUX_EXTRA_VERSION = 
 #-------------------------------------------------------------
 
 #--Use this for khadas kernel---------------------------------
@@ -32,11 +32,11 @@
 #-------------------------------------------------------------
 
 #--Use this for yuq lima kernel-------------------------------
-GITHASH             = linux-lima-4.19-rc4
-LINUX_MAJOR_VERSION = 4
-LINUX_MINOR_VERSION = 19
-LINUX_TEENY_VERSION = 0
-LINUX_EXTRA_VERSION = -rc4
+# GITHASH             = linux-lima-4.19-rc4
+# LINUX_MAJOR_VERSION = 4
+# LINUX_MINOR_VERSION = 19
+# LINUX_TEENY_VERSION = 0
+# LINUX_EXTRA_VERSION = -rc4
 #-------------------------------------------------------------
 
 

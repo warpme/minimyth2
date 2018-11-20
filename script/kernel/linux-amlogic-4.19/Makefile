@@ -6,9 +6,9 @@
 # GIT URL: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 
 #--Use this for mainline kernel-------------------------------
-#MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
-#DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
-#WORKSRC             = $(WORKDIR)/$(GITHASH)
+MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
+DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/$(GITHASH)
 #-------------------------------------------------------------
 
 #--Use this for khadas kernel---------------------------------
@@ -30,9 +30,9 @@
 #-------------------------------------------------------------
 
 #--Use this for yuq lima kernel------------------------------
-MASTER_SITES        = https://gitlab.freedesktop.org/lima/linux/-/archive/lima-4.19-rc4/
-DISTFILES           = $(GITHASH).tar.bz2 $(CONFIGFILE)
-WORKSRC             = $(WORKDIR)/$(GITHASH)
+# MASTER_SITES        = https://gitlab.freedesktop.org/lima/linux/-/archive/lima-4.19-rc4/
+# DISTFILES           = $(GITHASH).tar.bz2 $(CONFIGFILE)
+# WORKSRC             = $(WORKDIR)/$(GITHASH)
 #-------------------------------------------------------------
 
 #--Use this for official kernel git for AMLogic (khilman)-----
@@ -86,6 +86,8 @@ PATCHFILES += 0057-boot-GX-update-TEXT_OFFSET-for-Amlogic-MESON-SoC.patch
 PATCHFILES += 0060-defconfig-update-defconfig.patch
 PATCHFILES += 0070-defconfig-add-config-for-Amlogic-Rockchip-platfor.patch
 
+ifeq(1,1)
+
 PATCHFILES += 0101-vdec-dt-bindings-soc-amlogic-add-meson-canvas-documentati.patch
 PATCHFILES += 0102-vdec-soc-amlogic-add-meson-canvas-driver.patch
 PATCHFILES += 0103-vdec-ARM64-dts-meson-gx-add-dmcbus-and-canvas-nodes.patch
@@ -114,6 +116,53 @@ PATCHFILES += 0125-vdec-meson-vdec-make-amvdec_dst_buf_done_offset-public.patch
 PATCHFILES += 0126-vdec-meson-vdec-hevc-support-offset-based-frame-DONE-ing.patch
 PATCHFILES += 0127-vdec-meson-vdec-don-t-allow-dropping-timestamps-with-hevc.patch
 
+endif
+
+ifeq (1,1)
+
+PATCHFILES += 0202-lima-dt-bindings-add-switch-delay-property-for-mali-utgar.patch
+PATCHFILES += 0203-lima-arm64-dts-add-switch-delay-for-meson-mali.patch
+PATCHFILES += 0204-lima-arm64-dts-add-switch-delay-for-meson-mali.patch
+PATCHFILES += 0205-lima-drm-add-lima-uapi-header.patch
+PATCHFILES += 0206-lima-drm-add-mali-4xx-GPU-hardware-regs.patch
+PATCHFILES += 0207-lima-drm-add-lima-core-driver.patch
+PATCHFILES += 0208-lima-drm-add-GPU-device-functions.patch
+PATCHFILES += 0209-lima-drm-add-PMU-related-functions.patch
+PATCHFILES += 0210-lima-drm-add-L2-cache-functions.patch
+PATCHFILES += 0211-lima-drm-add-GP-related-functions.patch
+PATCHFILES += 0212-lima-drm-add-PP-related-functions.patch
+PATCHFILES += 0213-lima-drm-add-MMU-related-functions.patch
+PATCHFILES += 0214-lima-drm-add-BCAST-related-function.patch
+PATCHFILES += 0215-lima-drm-add-DLBU-related-functions.patch
+PATCHFILES += 0216-lima-drm-add-GPU-virtual-memory-space-handing.patch
+PATCHFILES += 0217-lima-drm-add-TTM-subsystem-functions.patch
+PATCHFILES += 0218-lima-drm-add-buffer-object-functions.patch
+PATCHFILES += 0219-lima-drm-add-GEM-related-functions.patch
+PATCHFILES += 0220-lima-drm-add-GEM-Prime-related-functions.patch
+PATCHFILES += 0221-lima-drm-add-GPU-schedule-using-DRM_SCHED.patch
+PATCHFILES += 0222-lima-drm-add-context-related-functions.patch
+PATCHFILES += 0223-lima-drm-add-makefile-and-kconfig.patch
+PATCHFILES += 0224-lima-drm-use-SPDX-identifiers-and-change-copyright.patch
+PATCHFILES += 0225-lima-drm-lima_reg.h-use-BIT.patch
+PATCHFILES += 0226-lima-drm-add-IRQF_SHARED-for-GP-irq.patch
+PATCHFILES += 0227-lima-drm-Kconfig-only-depend-on-ARM-or-ARM64.patch
+PATCHFILES += 0228-lima-drm-add-comments-for-lima_reg.h.patch
+PATCHFILES += 0229-lima-drm-wait-bo-fence-before-bo-close.patch
+PATCHFILES += 0230-lima-drm-refine-lima_gem_sync_bo.patch
+PATCHFILES += 0231-lima-drm-vm-will-be-freed-when-lima_sched_free_job.patch
+PATCHFILES += 0232-lima-drm-vm-alloc-buffer-with-multi-page-table.patch
+PATCHFILES += 0233-lima-drm-clear-vm-page-table-when-alloc.patch
+PATCHFILES += 0234-lima-drm-update-SPDX-header-to-match-kernel-rules.patch
+PATCHFILES += 0235-lima-drm-fourcc-add-ARM-tiled-format-modifier.patch
+PATCHFILES += 0236-lima-drm-add-DRM_LIMA_GEM_MOD-ioctl.patch
+PATCHFILES += 0237-lima-drm-remove-depend-on-ARM-arch.patch
+PATCHFILES += 0238-lima-drm-port-to-4.18-kernel.patch
+PATCHFILES += 0239-lima-drm-user-can-choose-not-to-use-dlbu-on-mali450.patch
+PATCHFILES += 0240-lima-drm-Fix-Lima-to-work-with-drm-scheduler-changes.patch
+PATCHFILES += 0241-lima-drm-Fix-lima-cache-creation.patch
+
+endif
+
 LICENSE = GPL2
 
 DESCRIPTION = 
@@ -121,7 +170,7 @@ define BLURB
 endef
 
 BUILDDEPS = \
-	utils/bc                      \
+	utils/bc \
 
 DEPENDS = \
 	kernel/linux-headers-amlogic-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)  \
