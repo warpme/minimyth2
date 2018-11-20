@@ -173,9 +173,10 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "4.18"           ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "4.19"           ] && \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "4.19"           ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "4.20"           ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "amlogic-4.19"   ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "amlogic-4.20"   ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "allwinner-4.19" ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-4.14"       ] ; then \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
