@@ -1,10 +1,11 @@
+
 GARNAME = linux-amlogic
 GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),$(if $(filter-out 0,$(LINUX_TEENY_VERSION)),.$(LINUX_TEENY_VERSION)))$(LINUX_EXTRA_VERSION)
 CATEGORIES = kernel-headers
 
 #--Use this for mainline kernel-------------------------------
-#DISTFILES           = $(GITHASH).tar.gz
-#WORKSRC             = $(WORKDIR)/$(GITHASH)
+DISTFILES           = $(GITHASH).tar.gz
+WORKSRC             = $(WORKDIR)/$(GITHASH)
 #-------------------------------------------------------------
 
 #--Use this for khadas kernel---------------------------------
@@ -23,10 +24,9 @@ CATEGORIES = kernel-headers
 #-------------------------------------------------------------
 
 #-- Use this for yuq lima kernel------------------------------
-DISTFILES           = $(GITHASH).tar.bz2
-WORKSRC             = $(WORKDIR)/$(GITHASH)
+# DISTFILES           = $(GITHASH).tar.bz2
+# WORKSRC             = $(WORKDIR)/$(GITHASH)
 #-------------------------------------------------------------
-
 
 #--Use this for official kernel git for AMLogic (khilman)-----
 # DISTFILES           = $(GARNAME)-$(GARVERSION).tar.gz
