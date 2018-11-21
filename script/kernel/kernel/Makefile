@@ -10,6 +10,7 @@ endef
 DEPENDS = \
 	kernel/linux-$(mm_KERNEL_VERSION) \
 	$(if $(filter u-boot,$(mm_SOFTWARE)),kernel/u-boot) \
+	$(if $(filter armsoc,$(mm_GRAPHICS)),kernel/meson-gx-mali450)
 
 include ../../gar.mk
 
@@ -24,4 +25,5 @@ clean-all:
 	@$(MAKE) clean-all -C ../../system/lirc
 	@$(MAKE) clean-all -C ../../nvidia
 	@$(MAKE) clean     -C ../../system/bbswitch
+	@$(MAKE) clean     -C kernel/meson-gx-mali450
 	@rm -f                ../../kernel/u-boot/cookies/main.d/install*
