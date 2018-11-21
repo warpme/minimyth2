@@ -38,7 +38,7 @@ mm_DEBUG_BUILD            ?= no
 
 # Lists the graphics drivers supported.
 # Valid values for mm_GRAPHICS are one or more of 'intel', 'nvidia',
-# 'nvidia-legacy', 'radeon', 'vmware', 'armsoc'.
+# 'nvidia-legacy', 'radeon', 'vmware', 'armsoc', 'meson'.
 mm_GRAPHICS               ?= intel nvidia nvidia-legacy radeon vmware
 
 # Selects OpenGL provider used by qt and mythtv. Valid values for
