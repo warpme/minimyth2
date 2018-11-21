@@ -24,5 +24,5 @@ CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 include ../../gar.mk
 
 clean-all:
-	@$(foreach dir, $(wildcard ../mesa ../mesa-lima ../mali450 ../mali450x ../rpi-bcrm ../mesa-demos ../glu ../freeglut ../glew ../virtualgl ../glmark2), $(MAKE) clean clean-all -C $(dir) ; )
+	@$(foreach dir, $(wildcard ../mesa ../mesa-lima ../mali450 ../mali450x ../rpi-bcrm ../mesa-demos ../glu ../freeglut ../glew ../virtualgl ../glmark2 ../kmscube), $(MAKE) clean clean-all -C $(dir) ; )
 	@$(MAKE) clean
