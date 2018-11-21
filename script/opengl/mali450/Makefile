@@ -14,7 +14,9 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c
+DEPENDS   = \
+	kernel/meson-gx-mali450 \
+	xorg/xf86-video-armsoc  \
 
 BUILD_SCRIPTS   = 
 INSTALL_SCRIPTS = custom
