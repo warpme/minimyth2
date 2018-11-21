@@ -167,6 +167,8 @@ mm-all:
 		   [ ! "$${software}" = "zsnes"          ] && \
 		   [ ! "$${software}" = "ipxe"           ] && \
 		   [ ! "$${software}" = "u-boot"         ] && \
+		   [ ! "$${software}" = "glmark2"        ] && \
+		   [ ! "$${software}" = "kmscube"        ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
 			exit 1 ; \

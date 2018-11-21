@@ -51,7 +51,7 @@ mm_OPENGL_PROVIDER        ?= mesa
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
 # 'flash', 'mplayer', 'mplayer-svn', 'voip', 'bumblebee', 'perl', 'python', 'mame',
 # 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'ipxe' 'u-boot' 'chrome', 'firefox',
-# 'lcdproc', 'debug'.
+# 'lcdproc', 'glmark2', 'debug'.
 mm_SOFTWARE               ?= \
                              python \
                              perl \
@@ -81,6 +81,8 @@ mm_SOFTWARE               ?= \
 #                             netflix \
 #                             ipxe \
 #                             u-boot \
+#                             glmark2
+#                             kmscube
 
 # Indicates the microprocessor architecture.
 # Valid values for mm_GARCH are 'pentium-mmx', 'x86-64', 'armv7', 'armv8'.
