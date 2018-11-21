@@ -15,11 +15,12 @@ DEPENDS = \
 	$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mesa-demos) \
 	$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/glu) \
 	$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/freeglut) \
+	$(CATEGORY)/glmark2 \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
 include ../../gar.mk
 
 clean-all:
-	@$(foreach dir, $(wildcard ../mesa ../mesa-lima ../mali450 ../mali450x ../rpi-bcrm ../mesa-demos ../glu ../freeglut ../glew ../virtualgl), $(MAKE) clean clean-all -C $(dir) ; )
+	@$(foreach dir, $(wildcard ../mesa ../mesa-lima ../mali450 ../mali450x ../rpi-bcrm ../mesa-demos ../glu ../freeglut ../glew ../virtualgl ../glmark2), $(MAKE) clean clean-all -C $(dir) ; )
 	@$(MAKE) clean
