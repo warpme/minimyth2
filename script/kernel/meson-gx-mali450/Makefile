@@ -37,3 +37,6 @@ install-custom:
 	@cp -f $(WORKSRC)/mali.ko $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/gpu/drm/mali
 	@depmod -b $(DESTDIR) -v $(LINUX_FULL_VERSION)
 	@$(MAKECOOKIE)
+
+clean-all:
+	@true
