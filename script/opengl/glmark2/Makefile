@@ -47,3 +47,6 @@ build-custom:
 install-custom:
 	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python ./waf install --destdir=$(DESTDIR)
 	@$(MAKECOOKIE)
+
+clean-all:
+	@true
