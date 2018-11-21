@@ -15,7 +15,9 @@ DEPENDS = \
 	$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mesa-demos) \
 	$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/glu) \
 	$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/freeglut) \
-	$(CATEGORY)/glmark2 \
+	$(if $(filter glmark2,$(mm_SOFTWARE)),$(CATEGORY)/glmark2) \
+	$(if $(filter kmscube,$(mm_SOFTWARE)),$(CATEGORY)/kmscube) \
+
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
