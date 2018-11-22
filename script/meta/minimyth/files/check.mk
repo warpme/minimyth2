@@ -169,6 +169,7 @@ mm-all:
 		   [ ! "$${software}" = "u-boot"         ] && \
 		   [ ! "$${software}" = "glmark2"        ] && \
 		   [ ! "$${software}" = "kmscube"        ] && \
+		   [ ! "$${software}" = "mesa-demos"     ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
 			exit 1 ; \
