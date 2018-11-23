@@ -1,0 +1,73 @@
+From a58fca474cebe3de627fddd54f41748246631a35 Mon Sep 17 00:00:00 2001
+From: Jorge Ramirez-Ortiz <jramirez@baylibre.com>
+Date: Wed, 13 Jun 2018 14:55:53 +0200
+Subject: [PATCH 13/13] libavcodec: v4l2m2m: use ff_get_format callback from
+ application
+
+---
+ libavcodec/v4l2_m2m_dec.c | 23 ++++++++++-------------
+ 1 file changed, 10 insertions(+), 13 deletions(-)
+
+diff --git a/libavcodec/v4l2_m2m_dec.c b/libavcodec/v4l2_m2m_dec.c
+index 1bfd11e..f534aee 100644
+--- a/libavcodec/v4l2_m2m_dec.c
++++ b/libavcodec/v4l2_m2m_dec.c
+@@ -192,23 +192,26 @@ static av_cold int v4l2_decode_init(AVCodecContext *avctx)
+     output->av_pix_fmt  = AV_PIX_FMT_NONE;
+ 
+     capture->av_codec_id = AV_CODEC_ID_RAWVIDEO;
++
++    /* is this required ??*/
+     capture->av_pix_fmt = avctx->pix_fmt;
+ 
++    ret = ff_v4l2_m2m_codec_init(avctx);
++    if (ret) {
++        av_log(avctx, AV_LOG_ERROR, "can't configure decoder\n");
++        return ret;
++    }
++
+     /* the client requests the codec to generate DRM frames:
+      *   - data[0] will therefore point to the returned AVDRMFrameDescriptor
+      *       check the ff_v4l2_buffer_to_avframe conversion function.
+      *   - the DRM frame format is passed in the DRM frame descriptor layer.
+      *       check the v4l2_get_drm_frame function.
+      */
++    avctx->pix_fmt = avctx->get_format(avctx, avctx->codec->pix_fmts);
+     if (avctx->pix_fmt == AV_PIX_FMT_DRM_PRIME)
+         s->output_drm = 1;
+ 
+-    ret = ff_v4l2_m2m_codec_init(avctx);
+-    if (ret) {
+-        av_log(avctx, AV_LOG_ERROR, "can't configure decoder\n");
+-        return ret;
+-    }
+-
+     return v4l2_prepare_decoder(s);
+ }
+ 
+@@ -222,11 +225,6 @@ static const AVOption options[] = {
+     { NULL},
+ };
+ 
+-static const AVCodecHWConfigInternal *v4l2_m2m_hw_configs[] = {
+-    HW_CONFIG_INTERNAL(DRM_PRIME),
+-    NULL
+-};
+-
+ #define M2MDEC_CLASS(NAME) \
+     static const AVClass v4l2_m2m_ ## NAME ## _dec_class = { \
+         .class_name = #NAME "_v4l2_m2m_decoder", \
+@@ -248,9 +246,8 @@ static const AVCodecHWConfigInternal *v4l2_m2m_hw_configs[] = {
+         .receive_frame  = v4l2_receive_frame, \
+         .close          = ff_v4l2_m2m_codec_end, \
+         .pix_fmts       = (const enum AVPixelFormat[]) { AV_PIX_FMT_DRM_PRIME, \
+-                                                         AV_PIX_FMT_NONE}, \
++                                                         AV_PIX_FMT_NONE }, \
+         .bsfs           = bsf_name, \
+-        .hw_configs     = v4l2_m2m_hw_configs, \
+         .capabilities   = AV_CODEC_CAP_HARDWARE | AV_CODEC_CAP_DELAY, \
+         .wrapper_name   = "v4l2m2m", \
+     };
+-- 
+2.7.1
+

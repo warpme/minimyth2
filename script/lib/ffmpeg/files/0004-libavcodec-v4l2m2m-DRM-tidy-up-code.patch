@@ -1,0 +1,254 @@
+From 70a45b52b699eb6735557778ba859e0961365445 Mon Sep 17 00:00:00 2001
+From: Jorge Ramirez-Ortiz <jramirez@baylibre.com>
+Date: Fri, 27 Apr 2018 18:07:03 +0200
+Subject: [PATCH 04/13] libavcodec: v4l2m2m: DRM: tidy up code
+
+Signed-off-by: Jorge Ramirez-Ortiz <jramirez@baylibre.com>
+---
+ libavcodec/v4l2_buffers.c | 182 ++++++++++++++++++++++++++--------------------
+ 1 file changed, 104 insertions(+), 78 deletions(-)
+
+diff --git a/libavcodec/v4l2_buffers.c b/libavcodec/v4l2_buffers.c
+index fbb6854..3503759 100644
+--- a/libavcodec/v4l2_buffers.c
++++ b/libavcodec/v4l2_buffers.c
+@@ -205,6 +205,64 @@ static enum AVColorTransferCharacteristic v4l2_get_color_trc(V4L2Buffer *buf)
+     return AVCOL_TRC_UNSPECIFIED;
+ }
+ 
++static uint8_t * v4l2_get_drm_frame(V4L2Buffer *avbuf)
++{
++    AVDRMFrameDescriptor *drm_desc = &avbuf->drm_frame;
++    AVDRMLayerDescriptor *layer;
++
++    /* fill the DRM frame descriptor */
++    drm_desc->nb_objects = 1;
++    drm_desc->nb_layers = 1;
++
++    layer = &drm_desc->layers[0];
++    layer->planes[0].object_index = 0;
++    layer->planes[0].offset = 0;
++    layer->planes[0].pitch = avbuf->plane_info[0].bytesperline;
++
++    switch (avbuf->context->av_pix_fmt) {
++    case AV_PIX_FMT_NV12:
++    case AV_PIX_FMT_NV21:
++
++        if (avbuf->num_planes > 1)
++            break;
++
++        layer->format = avbuf->context->av_pix_fmt == AV_PIX_FMT_NV12 ?
++            DRM_FORMAT_NV12 : DRM_FORMAT_NV21;
++        layer->nb_planes = 2;
++
++        layer->planes[1].object_index = 0;
++        layer->planes[1].offset = avbuf->plane_info[0].bytesperline *
++            avbuf->context->format.fmt.pix_mp.height;
++        layer->planes[1].pitch = avbuf->plane_info[0].bytesperline;
++        break;
++
++    case AV_PIX_FMT_YUV420P:
++
++        if (avbuf->num_planes > 1)
++            break;
++
++        layer->format = DRM_FORMAT_YUV420;
++        layer->nb_planes = 3;
++
++        layer->planes[1].object_index = 0;
++        layer->planes[1].offset = avbuf->plane_info[0].bytesperline *
++            avbuf->context->format.fmt.pix_mp.height;
++        layer->planes[1].pitch = avbuf->plane_info[0].bytesperline >> 1;
++
++        layer->planes[2].object_index = 0;
++        layer->planes[2].offset = layer->planes[1].offset +
++            ((avbuf->plane_info[0].bytesperline *
++              avbuf->context->format.fmt.pix_mp.height) >> 2);
++        layer->planes[2].pitch = avbuf->plane_info[0].bytesperline >> 1;
++        break;
++
++    default:
++        break;
++    }
++
++    return (uint8_t *) drm_desc;
++}
++
+ static void v4l2_free_buffer(void *opaque, uint8_t *data)
+ {
+     V4L2Buffer* avbuf = opaque;
+@@ -237,7 +295,8 @@ static int v4l2_buf_to_bufref(V4L2Buffer *in, int plane, AVBufferRef **buf)
+         return AVERROR(EINVAL);
+ 
+     /* even though most encoders return 0 in data_offset encoding vp8 does require this value */
+-    *buf = av_buffer_create((char *)in->plane_info[plane].mm_addr + in->planes[plane].data_offset,
++    *buf = av_buffer_create((char *)in->plane_info[plane].mm_addr +
++                            in->planes[plane].data_offset,
+                             in->plane_info[plane].length, v4l2_free_buffer, in, 0);
+     if (!*buf)
+         return AVERROR(ENOMEM);
+@@ -259,6 +318,33 @@ static int v4l2_buf_to_bufref(V4L2Buffer *in, int plane, AVBufferRef **buf)
+     return 0;
+ }
+ 
++static int v4l2_buf_to_bufref_drm(V4L2Buffer *in, AVBufferRef **buf)
++{
++    V4L2m2mContext *s = buf_to_m2mctx(in);
++
++    *buf = av_buffer_create((uint8_t *) &in->drm_frame, sizeof(in->drm_frame),
++	    v4l2_free_buffer, in, AV_BUFFER_FLAG_READONLY);
++
++    if (!buf)
++        return AVERROR(ENOMEM);
++
++    if (in->context_ref)
++        atomic_fetch_add(&in->context_refcount, 1);
++    else {
++        in->context_ref = av_buffer_ref(s->self_ref);
++        if (!in->context_ref) {
++            av_buffer_unref(buf);
++            return AVERROR(ENOMEM);
++        }
++        in->context_refcount = 1;
++    }
++
++    in->status = V4L2BUF_RET_USER;
++    atomic_fetch_add_explicit(&s->refcount, 1, memory_order_relaxed);
++
++    return 0;
++}
++
+ static int v4l2_bufref_to_buf(V4L2Buffer *out, int plane, const uint8_t* data, int size, AVBufferRef* bref)
+ {
+     unsigned int bytesused, length;
+@@ -332,14 +418,20 @@ int ff_v4l2_buffer_avframe_to_buf(const AVFrame *frame, V4L2Buffer* out)
+ int ff_v4l2_buffer_buf_to_avframe(AVFrame *frame, V4L2Buffer *avbuf)
+ {
+     V4L2m2mContext *s = buf_to_m2mctx(avbuf);
+-    AVDRMFrameDescriptor *drm_desc = &avbuf->drm_frame;
+-    AVDRMLayerDescriptor *layer = NULL;
++    int ret;
+ 
+     av_frame_unref(frame);
+ 
++    /* 1. get references to the actual data */
++    ret = v4l2_buf_to_bufref_drm(avbuf, &frame->buf[0]);
++    if (ret)
++	    return ret;
++    frame->data[0] = (uint8_t *) v4l2_get_drm_frame(avbuf);
++
+     /* 2. get frame information */
+-    frame->key_frame = !!(avbuf->buf.flags & V4L2_BUF_FLAG_KEYFRAME);
+     frame->format = AV_PIX_FMT_DRM_PRIME;
++
++    frame->key_frame = !!(avbuf->buf.flags & V4L2_BUF_FLAG_KEYFRAME);
+     frame->color_primaries = v4l2_get_color_primaries(avbuf);
+     frame->colorspace = v4l2_get_color_space(avbuf);
+     frame->color_range = v4l2_get_color_range(avbuf);
+@@ -350,71 +442,6 @@ int ff_v4l2_buffer_buf_to_avframe(AVFrame *frame, V4L2Buffer *avbuf)
+     frame->height = s->output.height;
+     frame->width = s->output.width;
+ 
+-    /* fill the DRM frame descriptor */
+-    drm_desc->nb_objects = 1;
+-    drm_desc->nb_layers = 1;
+-    layer = &drm_desc->layers[0];
+-    layer->planes[0].object_index = 0;
+-    layer->planes[0].offset = 0;
+-    layer->planes[0].pitch = avbuf->plane_info[0].bytesperline;
+-
+-    switch (avbuf->context->av_pix_fmt) {
+-    case AV_PIX_FMT_NV12:
+-    case AV_PIX_FMT_NV21:
+-
+-        if (avbuf->num_planes > 1)
+-            break;
+-
+-        layer->format = avbuf->context->av_pix_fmt == AV_PIX_FMT_NV12 ? DRM_FORMAT_NV12 : DRM_FORMAT_NV21;
+-        layer->nb_planes = 2;
+-
+-        layer->planes[1].object_index = 0;
+-        layer->planes[1].offset = avbuf->plane_info[0].bytesperline * avbuf->context->format.fmt.pix_mp.height;
+-        layer->planes[1].pitch = avbuf->plane_info[0].bytesperline;
+-        break;
+-
+-    case AV_PIX_FMT_YUV420P:
+-
+-        if (avbuf->num_planes > 1)
+-            break;
+-
+-        layer->format = DRM_FORMAT_YUV420;
+-        layer->nb_planes = 3;
+-
+-        layer->planes[1].object_index = 0;
+-        layer->planes[1].offset = avbuf->plane_info[0].bytesperline * avbuf->context->format.fmt.pix_mp.height;
+-        layer->planes[1].pitch = avbuf->plane_info[0].bytesperline >> 1;
+-
+-        layer->planes[2].object_index = 0;
+-        layer->planes[2].offset = layer->planes[1].offset + ((avbuf->plane_info[0].bytesperline * avbuf->context->format.fmt.pix_mp.height) >> 2);
+-        layer->planes[2].pitch = avbuf->plane_info[0].bytesperline >> 1;
+-        break;
+-
+-    default:
+-        break;
+-    }
+-
+-    frame->data[0] = (uint8_t *) drm_desc;
+-    frame->buf[0] = av_buffer_create((uint8_t *) drm_desc, sizeof(*drm_desc),
+-	    v4l2_free_buffer, avbuf, AV_BUFFER_FLAG_READONLY);
+-
+-    if (!frame->buf[0])
+-        return AVERROR(ENOMEM);
+-
+-    if (avbuf->context_ref)
+-        atomic_fetch_add(&avbuf->context_refcount, 1);
+-    else {
+-        avbuf->context_ref = av_buffer_ref(s->self_ref);
+-        if (!avbuf->context_ref) {
+-            av_buffer_unref(&frame->buf[0]);
+-            return AVERROR(ENOMEM);
+-        }
+-        avbuf->context_refcount = 1;
+-    }
+-
+-    avbuf->status = V4L2BUF_RET_USER;
+-    atomic_fetch_add_explicit(&s->refcount, 1, memory_order_relaxed);
+-
+     /* 3. report errors upstream */
+     if (avbuf->buf.flags & V4L2_BUF_FLAG_ERROR) {
+         av_log(logger(avbuf), AV_LOG_ERROR, "%s: driver decode error\n", avbuf->context->name);
+@@ -524,23 +551,22 @@ int ff_v4l2_buffer_initialize(V4L2Buffer* avbuf, int index)
+         return 0;
+     }
+ 
+-    if (V4L2_TYPE_IS_MULTIPLANAR(ctx->type)) {
+-        avbuf->buf.m.planes = avbuf->planes;
+-        avbuf->buf.length   = avbuf->num_planes;
+-
+-    } else {
+-        avbuf->buf.bytesused = avbuf->planes[0].bytesused;
+-        avbuf->buf.length    = avbuf->planes[0].length;
+-    }
+-
+     ret = v4l2_buffer_export(avbuf);
+     if (ret)
+ 	    return ret;
+ 
+     if (V4L2_TYPE_IS_MULTIPLANAR(ctx->type)) {
++        avbuf->buf.m.planes = avbuf->planes;
++        avbuf->buf.length   = avbuf->num_planes;
++
++        /* drm information */
+ 	avbuf->drm_frame.objects[0].fd = avbuf->buf.m.planes[0].m.fd;
+ 	avbuf->drm_frame.objects[0].size = avbuf->buf.m.planes[0].length;
+     } else {
++        avbuf->buf.bytesused = avbuf->planes[0].bytesused;
++        avbuf->buf.length    = avbuf->planes[0].length;
++
++        /* drm information */
+ 	avbuf->drm_frame.objects[0].fd = avbuf->buf.m.fd;
+ 	avbuf->drm_frame.objects[0].size = avbuf->buf.length;
+     }
+-- 
+2.7.1
+

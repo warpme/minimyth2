@@ -1,8 +1,23 @@
+
+# URL Git: https://github.com/ldts/FFmpeg/tree/v4l2-drm
+
 GARNAME = ffmpeg
-GARVERSION = 3.4.2
 CATEGORIES = lib
+
+#--use this for v4l2 m2m ffmpeg fork---------------------
+#GITHASH = a58fca474cebe3de627fddd54f41748246631a35
+#MASTER_SITES = https://github.com/ldts/FFmpeg/archive/
+#DISTFILES = $(GITHASH).zip
+#WORKSRC = $(WORKDIR)/$(GITHASH)
+#--------------------------------------------------------
+
+#--use this for mainline ffmpeg--------------------------
+GARVERSION = 3.4.2
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
+#--------------------------------------------------------
+
+
 PATCHFILES = $(DISTNAME)-pkg_config.patch
 LICENSE = GPL2/LGPL2_1
 
