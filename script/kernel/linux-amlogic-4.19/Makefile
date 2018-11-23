@@ -53,6 +53,8 @@ PATCHFILES += linux-amlogic-4.19-defaults.patch
 PATCHFILES += linux-amlogic-4.19-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-amlogic-4.19-net-smsc95xx-allow-mac-address-as-param.patch
 
+ifeq (1,1)
+
 PATCHFILES += 0006-drm-meson-Add-support-for-VIC-alternate-timings.patch
 PATCHFILES += 0007-drm-meson-fix-max-height-width.patch
 PATCHFILES += 0008-defconfig-enable-CEC-support.patch
@@ -86,7 +88,9 @@ PATCHFILES += 0057-boot-GX-update-TEXT_OFFSET-for-Amlogic-MESON-SoC.patch
 PATCHFILES += 0060-defconfig-update-defconfig.patch
 PATCHFILES += 0070-defconfig-add-config-for-Amlogic-Rockchip-platfor.patch
 
-ifeq(1,1)
+endif
+
+ifeq (1,1)
 
 PATCHFILES += 0101-vdec-dt-bindings-soc-amlogic-add-meson-canvas-documentati.patch
 PATCHFILES += 0102-vdec-soc-amlogic-add-meson-canvas-driver.patch
