@@ -12,12 +12,11 @@ DEPENDS = \
 	$(if $(filter mali450,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mali450) \
 	$(if $(filter mali450x,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mali450x) \
 	$(if $(filter bcrm-vc4,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/bcrm-vc4) \
-	$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mesa-demos) \
 	$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/glu) \
 	$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/freeglut) \
 	$(if $(filter glmark2,$(mm_SOFTWARE)),$(CATEGORY)/glmark2) \
 	$(if $(filter kmscube,$(mm_SOFTWARE)),$(CATEGORY)/kmscube) \
-
+	$(if $(filter mesa-demos,$(mm_SOFTWARE)),$(CATEGORY)/mesa-demos) \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
