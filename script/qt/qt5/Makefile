@@ -56,7 +56,8 @@ CONFIGURE_ARGS = \
 	-release \
 	-confirm-license \
 	-opensource \
-	-opengl \
+	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),-opengl) \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	-no-rpath \
 	-no-optimized-qmake \
 	-platform $(PLATFORM_GARBUILD_NAME) \
