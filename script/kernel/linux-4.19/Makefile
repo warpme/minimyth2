@@ -96,7 +96,12 @@ ifeq ($(GARCH),armv7)
 else
 ifeq ($(GARCH),armv8)
 	@mkdir -p "$(DESTDIR)/boot"
-	@#cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)/boot/Image.gz
+	@# echo "Installing kernel Image.gz"
+	@# cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)/boot/Image.gz
+	@echo "Installing kernel Image."
+	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)/boot/Image
+	@echo "Generating uImage."
+	@/usr/bin/mkimage -A arm64 -O linux -T kernel -C none -a 0x1080000 -e 0x1080000 -n linux-next -d $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image $(DESTDIR)/boot/uImage
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)/boot/Image
 	@cp  $(WORKSRC)/System.map $(DESTDIR)$(LINUX_DIR)/System.map
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
