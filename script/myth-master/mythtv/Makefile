@@ -82,6 +82,8 @@ PATCHFILES += 0211-decrease-minQt-ver-to-4.8-v2.patch
 PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 
+PATCHFILES += 0214-configure-allow-opengl-GLES-selection.patch
+
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
 PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
@@ -251,6 +253,7 @@ CONFIGURE_ARGS = \
 	--enable-vaapi \
 	--disable-dxva2 \
 	--enable-opengl-video \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),--enable-opengles) \
 	--disable-mac-bundle \
 	--enable-libxml2 \
 	--enable-libdns_sd \
@@ -262,7 +265,9 @@ CONFIGURE_ARGS = \
 	--enable-pic \
 	--disable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
-	$(if $(filter nvidia nvidia-legacy,$(mm_GRAPHICS)),--enable-xnvctrl,--disable-xnvctrl)
+	$(if $(filter nvidia nvidia-legacy,$(mm_GRAPHICS)),--enable-xnvctrl,--disable-xnvctrl) \
+
+
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)

@@ -1,0 +1,90 @@
+diff -Naur mythtv-master-20181120-gd87041f-old/mythtv/configure mythtv-master-20181120-gd87041f-new/mythtv/configure
+--- mythtv-master-20181120-gd87041f-old/mythtv/configure	2018-11-23 17:34:32.496666666 +0100
++++ mythtv-master-20181120-gd87041f-new/mythtv/configure	2018-11-23 18:04:55.476666666 +0100
+@@ -144,6 +144,8 @@
+   --disable-systemd_notify disable systemd notify support
+   --disable-systemd_journal disable systemd journal support
+ 
++  --enable-opengles        enable OpenGL ES
++
+   --enable-mac-bundle      produce standalone OS X apps (e.g. mythfrontend.app)
+ 
+   --disable-libxml2        disable libxml2 support (disc metadata)
+@@ -1974,6 +1976,7 @@
+     lirc
+     mheg
+     opengl
++    opengles
+     opengl_video
+     opengl_themepainter
+     openmax
+@@ -2777,7 +2780,7 @@
+ enable mheg
+ enable mythtranscode
+ enable opengl
+-enable opengles
++disable opengles
+ enable opengl_video
+ enable opengl_themepainter
+ enable symbol_visibility
+@@ -6047,16 +6050,18 @@
+                                check_lib opengl OpenGL/gl3.h glGetError "-Wl,-framework,OpenGL" ||
+                                check_lib opengl ES2/gl.h glGetError "-isysroot=${sysroot} -Wl,-framework,OpenGLES" ||
+                                check_lib opengl GLES/gl.h glGetError "-Wl,-framework,OpenGLES" ||
+-                               { check_pkg_config GLESv2 glesv2 GLES2/gl2.h glGetError &&
+-                                 check_pkg_config EGL egl EGL/egl.h eglGetProcAddress &&
+-                                 enable opengl
+-                               } ||
+-                               { check_lib GLESv2 GLES2/gl2.h glGetError "-lGLESv2" &&
+-                                 check_lib EGL EGL/egl.h eglGetProcAddress "-lEGL" &&
+-                                 enable opengl
+-                               } ||
+-                               die "ERROR: opengl not found."
++                               die "ERROR: OpenGL not found!";
+                              }
++
++if enabled opengles; then
++    check_pkg_config GLESv2 glesv2 GLES2/gl2.h glGetError &&
++    check_pkg_config EGL egl EGL/egl.h eglGetProcAddress ||
++    die "ERROR: OpenGL ES not found!";
++    check_lib GLESv2 GLES2/gl2.h glGetError "-lGLESv2" &&
++    check_lib EGL EGL/egl.h eglGetProcAddress "-lEGL" ||
++    die "ERROR: OpenGL ES not found!";
++fi
++
+ if enabled libmpeg2external; then
+     check_lib libmpeg2external mpeg2dec/mpeg2.h mpeg2_init -lmpeg2 || disable libmpeg2external
+     if disabled libmpeg2external; then
+@@ -6563,9 +6568,9 @@
+ # Disable OpenGL ES support if Qt does not support it
+ QTCONF=$(pkg-config --variable=qt_config Qt5Core || pkg-config --variable=qt_config QtCore)
+ if echo "$QTCONF" | grep -qv opengles2 ; then
+-    if test $target_os != android ; then
+-        disable opengles
+-    fi
++    true
++else
++    die "ERROR: Qt not provides OpenGL ES support"
+ fi
+ 
+ if enabled firewire; then
+@@ -7377,8 +7382,9 @@
+   fi
+ fi
+   echo "OpenGL support            ${opengl-no}"
+-  echo "OpenGL video              ${opengl_video-no}"
+-  echo "OpenGL ThemePainter       ${opengl_themepainter-no}"
++  echo "  OpenGL ES 2.0           ${opengles-no}"
++  echo "  OpenGL video            ${opengl_video-no}"
++  echo "  OpenGL ThemePainter     ${opengl_themepainter-no}"
+   if test x"$target_os" = x"darwin" ; then
+     echo "VDA support               ${vda-no}"
+   fi
+@@ -7401,7 +7407,6 @@
+ fi
+ echo "libdns_sd (Bonjour)       ${libdns_sd-no}"
+ echo "libcrypto                 ${libcrypto-no}"
+-echo "OpenGL ES 2.0             ${opengles-no}"
+ if enabled libbluray_external; then
+     echo "bluray support            yes (system)"
+ else
