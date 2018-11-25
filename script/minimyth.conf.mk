@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.8.3.r947
+mm_VERSION_MINIMYTH ?= 9.8.4.r951
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -51,7 +51,7 @@ mm_OPENGL_PROVIDER        ?= mesa
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
 # 'flash', 'mplayer', 'mplayer-svn', 'voip', 'bumblebee', 'perl', 'python', 'mame',
 # 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'ipxe' 'u-boot' 'chrome', 'firefox',
-# 'lcdproc', 'glmark2', 'debug'.
+# 'lcdproc', 'glmark2', 'mesa-demos' 'kmscube' 'debug'.
 mm_SOFTWARE               ?= \
                              python \
                              perl \
@@ -83,6 +83,7 @@ mm_SOFTWARE               ?= \
 #                             u-boot \
 #                             glmark2
 #                             kmscube
+#                             mesa-demos
 
 # Indicates the microprocessor architecture.
 # Valid values for mm_GARCH are 'pentium-mmx', 'x86-64', 'armv7', 'armv8'.
