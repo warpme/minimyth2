@@ -27,13 +27,7 @@ PATCHFILES += 0012-revert-916e43b-BE-Avoid-SEGV-when-accessing-discarded-MythSoc
 # Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
 PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
-PATCHFILES += 0014-partially-revert-22de417-Playback-Some-Optimizations.patch
-PATCHFILES += 0015-20181119_1607_transition_fix.patch
-
 ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
-
-# Improves playback jump ffw/back. Without this patch right after jump playback is a bit vibrant for moment
-PATCHFILES += 0014-partially-revert-22de417-Playback-Some-Optimizations.patch
 
 # Comflagging related patches
 PATCHFILES += 0016-Mythcommflag-ticket13335-add-3-settings-to-enhance-logo-detection.patch
@@ -82,7 +76,9 @@ PATCHFILES += 0211-decrease-minQt-ver-to-4.8-v2.patch
 PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 
-PATCHFILES += 0214-configure-allow-opengl-GLES-selection.patch
+# Allows to switch mythfrontend to use OpenGL ES (system and Qt5 must provide GLESv2!)
+PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
+PATCHFILES += 0215-enable-opengl-GLES.patch
 
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
@@ -266,7 +262,6 @@ CONFIGURE_ARGS = \
 	--disable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 	$(if $(filter nvidia nvidia-legacy,$(mm_GRAPHICS)),--enable-xnvctrl,--disable-xnvctrl) \
-
 
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
