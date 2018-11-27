@@ -122,7 +122,7 @@ PATCHFILES += 0127-vdec-meson-vdec-don-t-allow-dropping-timestamps-with-hevc.pat
 
 endif
 
-ifeq (1,1)
+ifeq (1,0)
 
 PATCHFILES += 0202-lima-dt-bindings-add-switch-delay-property-for-mali-utgar.patch
 PATCHFILES += 0203-lima-arm64-dts-add-switch-delay-for-meson-mali.patch
