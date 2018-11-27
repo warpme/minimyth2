@@ -41,7 +41,9 @@ DEPENDS = \
 		$(if $(filter radeon,$(mm_GRAPHICS)),$(CATEGORY)/xf86-video-ati) \
 		$(if $(filter intel, $(mm_GRAPHICS)),$(CATEGORY)/xf86-video-intel) \
 		$(if $(filter vmware,$(mm_GRAPHICS)),$(CATEGORY)/xf86-video-vmware) \
-		$(if $(filter armsoc,$(mm_GRAPHICS)),$(CATEGORY)/xf86-video-armsoc) \
+		$(if $(filter armsoc,$(mm_GRAPHICS)), \
+			$(CATEGORY)/libXdmcp \
+			$(CATEGORY)/xf86-video-armsoc) \
 	) \
 	$(CATEGORY)/xinit \
 	$(CATEGORY)/xkbcomp \
