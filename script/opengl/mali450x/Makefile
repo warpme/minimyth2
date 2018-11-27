@@ -40,16 +40,16 @@ install-custom:
 	@ln -sr  $(DESTDIR)$(libdir)/libGLESv2.so.2             $(DESTDIR)$(libdir)/libGLESv2.so
 	@rm -rf  $(DESTDIR)$(includedir)/EGL*
 	@mkdir -p $(DESTDIR)$(includedir)/EGL
-	@cp -rf   $(WORKSRC)/package/opengl/src/include/EGL/   $(DESTDIR)$(includedir)/EGL
+	@cp -rf   $(WORKSRC)/package/opengl/src/include/EGL/*   $(DESTDIR)$(includedir)/EGL
 	@rm -rf   $(DESTDIR)$(includedir)/GLES*
 	@mkdir -p $(DESTDIR)$(includedir)/GLES
-	@cp -rf   $(WORKSRC)/package/opengl/src/include/GLES/  $(DESTDIR)$(includedir)/GLES
+	@cp -rf   $(WORKSRC)/package/opengl/src/include/GLES/*  $(DESTDIR)$(includedir)/GLES
 	@rm -rf   $(DESTDIR)$(includedir)/GLES2*
 	@mkdir -p $(DESTDIR)$(includedir)/GLES2
-	@cp -rf   $(WORKSRC)/package/opengl/src/include/GLES2/ $(DESTDIR)$(includedir)/GLES2
+	@cp -rf   $(WORKSRC)/package/opengl/src/include/GLES2/* $(DESTDIR)$(includedir)/GLES2
 	@rm -rf   $(DESTDIR)$(includedir)/KHR*
 	@mkdir -p $(DESTDIR)$(includedir)/KHR
-	@cp -rf   $(WORKSRC)/package/opengl/src/include/KHR/   $(DESTDIR)$(includedir)/KHR
+	@cp -rf   $(WORKSRC)/package/opengl/src/include/KHR/*   $(DESTDIR)$(includedir)/KHR
 	@mkdir -p $(DESTDIR)$(libdir)/pkgconfig
 	@cp -f $(WORKSRC)/package/opengl/src/lib/pkgconfig/egl.pc    $(DESTDIR)$(libdir)/pkgconfig/egl.pc
 	@cp -f $(WORKSRC)/package/opengl/src/lib/pkgconfig/glesv2.pc $(DESTDIR)$(libdir)/pkgconfig/glesv2.pc
