@@ -243,13 +243,14 @@ CONFIGURE_ARGS = \
 	--enable-x11 \
 	--x11-path="$(DESTDIR)$(includedir)" \
 	--enable-xrandr \
-	--disable-xv \
-	--enable-vdpau \
-	--disable-crystalhd \
-	--enable-vaapi \
 	--disable-dxva2 \
-	--enable-opengl-video \
-	$(if $(filter arm arm64,$(GARCH_FAMILY)),--enable-opengles) \
+	--disable-xv \
+	--disable-crystalhd \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
+		--disable-vaapi \
+		--disable-vaapi2 \
+		--disable-vdpau \
+		--enable-opengles) \
 	--disable-mac-bundle \
 	--enable-libxml2 \
 	--enable-libdns_sd \
