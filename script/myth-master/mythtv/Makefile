@@ -80,8 +80,9 @@ PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
 PATCHFILES += 0215-enable-opengl-GLES.patch
 
-# Without this patch there are sometimes pixelizations at playback skip ffwd/back
+# Without this 2 patches there are sometimes pixelizations at playback skip ffwd/back
 PATCHFILES += 0217-revert-DVB-radio-support-in-AVSYNC2-optimizations.patch
+PATCHFILES += 0218-revert-7a74d6a-6baa24f-AVsync2-optimizations.patch
 
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
