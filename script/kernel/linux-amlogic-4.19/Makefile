@@ -6,9 +6,9 @@
 # GIT URL: https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 
 #--Use this for mainline kernel-------------------------------
-MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
-DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
-WORKSRC             = $(WORKDIR)/$(GITHASH)
+#MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
+#DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
+#WORKSRC             = $(WORKDIR)/$(GITHASH)
 #-------------------------------------------------------------
 
 #--Use this for khadas kernel---------------------------------
@@ -30,9 +30,9 @@ WORKSRC             = $(WORKDIR)/$(GITHASH)
 #-------------------------------------------------------------
 
 #--Use this for yuq lima kernel------------------------------
-# MASTER_SITES        = https://gitlab.freedesktop.org/lima/linux/-/archive/lima-4.19-rc4/
-# DISTFILES           = $(GITHASH).tar.bz2 $(CONFIGFILE)
-# WORKSRC             = $(WORKDIR)/$(GITHASH)
+MASTER_SITES        = https://gitlab.freedesktop.org/lima/linux/-/archive/lima-4.19-rc4/
+DISTFILES           = $(GITHASH).tar.bz2 $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/linux-lima-4.19-rc4-$(GITHASH)
 #-------------------------------------------------------------
 
 #--Use this for official kernel git for AMLogic (khilman)-----
@@ -90,7 +90,7 @@ PATCHFILES += 0070-defconfig-add-config-for-Amlogic-Rockchip-platfor.patch
 
 endif
 
-ifeq (1,1)
+ifeq (1,0)
 
 PATCHFILES += 0101-vdec-dt-bindings-soc-amlogic-add-meson-canvas-documentati.patch
 PATCHFILES += 0102-vdec-soc-amlogic-add-meson-canvas-driver.patch
@@ -122,7 +122,7 @@ PATCHFILES += 0127-vdec-meson-vdec-don-t-allow-dropping-timestamps-with-hevc.pat
 
 endif
 
-ifeq (1,1)
+ifeq (1,0)
 
 PATCHFILES += 0202-lima-dt-bindings-add-switch-delay-property-for-mali-utgar.patch
 PATCHFILES += 0203-lima-arm64-dts-add-switch-delay-for-meson-mali.patch

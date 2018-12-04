@@ -4,8 +4,8 @@ GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VER
 CATEGORIES = kernel-headers
 
 #--Use this for mainline kernel-------------------------------
-DISTFILES           = $(GITHASH).tar.gz
-WORKSRC             = $(WORKDIR)/$(GITHASH)
+#DISTFILES           = $(GITHASH).tar.gz
+#WORKSRC             = $(WORKDIR)/$(GITHASH)
 #-------------------------------------------------------------
 
 #--Use this for khadas kernel---------------------------------
@@ -24,8 +24,8 @@ WORKSRC             = $(WORKDIR)/$(GITHASH)
 #-------------------------------------------------------------
 
 #-- Use this for yuq lima kernel------------------------------
-# DISTFILES           = $(GITHASH).tar.bz2
-# WORKSRC             = $(WORKDIR)/$(GITHASH)
+DISTFILES           = $(GITHASH).tar.bz2
+WORKSRC             = $(WORKDIR)/linux-lima-4.19-rc4-$(GITHASH)
 #-------------------------------------------------------------
 
 #--Use this for official kernel git for AMLogic (khilman)-----
