@@ -253,8 +253,7 @@ CONFIGURE_ARGS = \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
 		--disable-vaapi \
 		--disable-vaapi2 \
-		--disable-vdpau \
-		--enable-opengles) \
+		--disable-vdpau) \
 	--disable-mac-bundle \
 	--enable-libxml2 \
 	--enable-libdns_sd \
