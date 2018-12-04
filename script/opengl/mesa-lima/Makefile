@@ -10,7 +10,7 @@
 
 # Uncomment for downloading at given GIT commit
 GARNAME      = mesa-lima
-GARVERSION   = 4bff75d7f343fbe6199d8bfb843c27e3283bfa37
+GARVERSION   = bb65f0935c77b2dd47af616f6f06800797dac2e8
 MASTER_SITES = https://gitlab.freedesktop.org/lima/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(GARVERSION).tar.bz2
 WORKSRC      = $(WORKDIR)/mesa-$(GARVERSION)
