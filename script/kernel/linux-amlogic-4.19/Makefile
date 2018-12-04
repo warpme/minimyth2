@@ -122,7 +122,7 @@ PATCHFILES += 0127-vdec-meson-vdec-don-t-allow-dropping-timestamps-with-hevc.pat
 
 endif
 
-ifeq (1,0)
+ifeq (1,1)
 
 PATCHFILES += 0202-lima-dt-bindings-add-switch-delay-property-for-mali-utgar.patch
 PATCHFILES += 0203-lima-arm64-dts-add-switch-delay-for-meson-mali.patch
@@ -164,6 +164,9 @@ PATCHFILES += 0238-lima-drm-port-to-4.18-kernel.patch
 PATCHFILES += 0239-lima-drm-user-can-choose-not-to-use-dlbu-on-mali450.patch
 PATCHFILES += 0240-lima-drm-Fix-Lima-to-work-with-drm-scheduler-changes.patch
 PATCHFILES += 0241-lima-drm-Fix-lima-cache-creation.patch
+PATCHFILES += 0242-lima-drm-print-info-when-task-timeout.patch
+PATCHFILES += 0243-lima-drm-fix-dma-fence-leak.patch
+PATCHFILES += 0244-lima-drm-fix-dma-fence-leak-when-app-exit.patch
 
 endif
 
