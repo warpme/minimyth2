@@ -1,0 +1,44 @@
+
+GARNAME      = bootfiles-tx3-mini
+GARVERSION   = 2018-12-05
+CATEGORIES   = bootloaders
+MASTER_SITES = 
+DISTFILES    = tx3-mini-aml_autoscript \
+               tx3-mini-aml_autoscript.txt \
+               tx3-mini-s905_autoscript \
+               tx3-mini-s905_autoscript.txt \
+               tx3-mini-uEnv.ini \
+
+WORKSRC      = $(WORKDIR)
+
+LICENSE = GPL2
+
+DESCRIPTION =
+define BLURB
+endef
+
+DEPENDS   = 
+
+BUILD_SCRIPTS   = 
+INSTALL_SCRIPTS = custom
+
+include ../../gar.mk
+
+install-custom:
+	@mkdir -p $(DESTDIR)/boot
+	@cp -f $(WORKSRC)/tx3-mini-aml_autoscript      $(DESTDIR)/boot/aml_autoscript
+	@cp -f $(WORKSRC)/tx3-mini-aml_autoscript.txt  $(DESTDIR)/boot/aml_autoscript.txt
+	@cp -f $(WORKSRC)/tx3-mini-s905_autoscript     $(DESTDIR)/boot/s905_autoscript
+	@cp -f $(WORKSRC)/tx3-mini-s905_autoscript.txt $(DESTDIR)/boot/s905_autoscript.txt
+	@cp -f $(WORKSRC)/tx3-mini-uEnv.ini            $(DESTDIR)/boot/uEnv.ini
+	@# Remove Image as this is not needed for tx3-mini bootloader
+	@rm -f $(DESTDIR)/boot/Image
+	@rm -f $(DESTDIR)/boot/System.map
+	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -f $(DESTDIR)/boot/aml_autoscript
+	@rm -f $(DESTDIR)/boot/aml_autoscript.txt
+	@rm -f $(DESTDIR)/boot/s905_autoscript
+	@rm -f $(DESTDIR)/boot/s905_autoscript.txt
+	@rm -f $(DESTDIR)/boot/uEnv.ini
