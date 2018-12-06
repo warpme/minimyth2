@@ -32,7 +32,7 @@ define BLURB
 endef
 
 BUILDDEPS = \
-	utils/bc              \
+	utils/bc \
 
 DEPENDS = \
 	kernel/linux-headers-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)  \
@@ -44,9 +44,7 @@ INSTALL_SCRIPTS   = custom
 
 CONFIGURE_ARGS    = $(LINUX_MAKE_ARGS)
 BUILD_ARGS        = $(LINUX_MAKE_ARGS)
-
-
-INSTALL_ARGS   = $(LINUX_MAKE_ARGS)
+INSTALL_ARGS      = $(LINUX_MAKE_ARGS)
 
 CONFIGURE_ENV = $(LINUX_MAKE_ENV)
 BUILD_ENV     = $(LINUX_MAKE_ENV)
@@ -71,7 +69,7 @@ ifeq ($(GARCH),armv7)
 	@$(CONFIGURE_ENV) $(MAKE) -C $(WORKSRC) $(BUILD_ARGS) zImage modules dtbs
 else
 ifeq ($(GARCH),armv8)
-	@$(CONFIGURE_ENV) $(MAKE) -C $(WORKSRC) $(BUILD_ARGS) Image Image.gz modules dtbs
+	@$(CONFIGURE_ENV) $(MAKE) -C $(WORKSRC) $(BUILD_ARGS) Image modules dtbs
 else
 	@$(CONFIGURE_ENV) $(MAKE) -C $(WORKSRC) $(BUILD_ARGS) bzImage modules
 endif
@@ -79,39 +77,34 @@ endif
 	@$(MAKECOOKIE)
 
 pre-install:
-	@rm -rf "$(DESTDIR)$(LINUX_DIR)"
-	@rm -rf "$(DESTDIR)$(LINUX_MODULESDIR)"
-	@mkdir -p "$(DESTDIR)$(LINUX_DIR)"
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/Image
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/zImage
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/uImage
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/Image.gz
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/System.map
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/vmlinuz
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs*
+	@rm -rf $(DESTDIR)$(LINUX_MODULESDIR)
 	@$(MAKECOOKIE)
 
 install-custom:
-ifeq ($(GARCH),armv7)
-	@mkdir -p "$(DESTDIR)/boot"
-	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/zImage > $(DESTDIR)/boot/zImage
-	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)/boot/Image
+	@mkdir -p $(DESTDIR)$(LINUX_DIR)
 	@cp  $(WORKSRC)/System.map $(DESTDIR)$(LINUX_DIR)/System.map
-	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) modules_install
+ifeq ($(GARCH),armv7)
+	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/zImage > $(DESTDIR)$(LINUX_DIR)/zImage
+	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)$(LINUX_DIR)/Image
+	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
 	@$(MAKECOOKIE)
 else
 ifeq ($(GARCH),armv8)
-	@mkdir -p "$(DESTDIR)/boot"
-	@# echo "Installing kernel Image.gz"
-	@# cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)/boot/Image.gz
-	@echo "Installing kernel Image."
-	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)/boot/Image
-	@echo "Generating uImage."
-	@/usr/bin/mkimage -A arm64 -O linux -T kernel -C none -a 0x1080000 -e 0x1080000 -n linux-next -d $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image $(DESTDIR)/boot/uImage
-	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)/boot/Image
-	@cp  $(WORKSRC)/System.map $(DESTDIR)$(LINUX_DIR)/System.map
+	@# cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)$(LINUX_DIR)/Image.gz
+	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)$(LINUX_DIR)/Image
+	@/usr/bin/mkimage -A arm64 -O linux -T kernel -C none -a 0x1080000 -e 0x1080000 -n linux-next -d $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image $(DESTDIR)$(LINUX_DIR)/uImage
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
-	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) modules_install
 	@$(MAKECOOKIE)
 else
-	@mkdir -p "$(DESTDIR)$(LINUX_DIR)"
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/bzImage > $(DESTDIR)$(LINUX_DIR)/vmlinuz
-	@cp $(WORKSRC)/System.map                           $(DESTDIR)$(LINUX_DIR)/System.map
-	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) modules_install
 	@$(MAKECOOKIE)
 endif
 endif
@@ -125,7 +118,13 @@ post-install:
 	@$(MAKECOOKIE)
 
 clean-all:
-	@rm -rf $(DESTDIR)$(LINUX_DIR)
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/Image
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/zImage
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/uImage
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/Image.gz
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/System.map
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/vmlinuz
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs*
 	@rm -rf $(DESTDIR)$(LINUX_MODULESPREFIX)
 	@$(MAKE) clean       -C ../linux-headers-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
 	@$(MAKE) clean       -C ../linux-firmware-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
