@@ -26,4 +26,3 @@ clean-all:
 	@$(MAKE) clean-all -C ../../nvidia
 	@$(MAKE) clean     -C ../../system/bbswitch
 	@$(MAKE) clean     -C ../../kernel/meson-gx-mali450
-	@rm -f                ../../kernel/u-boot/cookies/main.d/install*
