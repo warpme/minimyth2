@@ -71,7 +71,7 @@ DEPENDS = \
 	utils/SDL-Test \
 	system/splashutils \
 	utils/squashfs \
-	net/syslinux \
+	bootloaders/syslinux \
 	system/sysvinit \
 	utils/usbutils \
 	system/eudev \
@@ -173,7 +173,7 @@ DEPENDS = \
 		xorg/libxscrnsaver \
 		browsers/mozilla-firefox) \
 	$(if $(filter lcdproc,$(mm_SOFTWARE)),system/lcdproc) \
-	$(if $(filter ipxe,$(mm_SOFTWARE)),net/ipxe) \
+	$(if $(filter ipxe,$(mm_SOFTWARE)),bootloaders/ipxe) \
 	$(if $(filter u-boot,$(mm_SOFTWARE)),kernel/u-boot) \
 	$(if $(filter debug,$(mm_SOFTWARE)), \
 		devel/gdb \
