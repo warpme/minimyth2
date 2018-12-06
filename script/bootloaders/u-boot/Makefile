@@ -38,8 +38,8 @@ git//%$(DISTNAME).tar.bz2:
 
 install-custom:
 	@mkdir -p "$(DESTDIR)$(LINUX_DIR)"
-	@cp  $(WORKSRC)/u-boot.bin $(DESTDIR)$(LINUX_DIR)/u-boot.bin
+	@cp  $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/u-boot.bin
 	@$(MAKECOOKIE)
 
 clean-all:
-	@rm $(DESTDIR)$(LINUX_DIR)/u-boot.bin
+	@rm -f $(DESTDIR)/boot/u-boot.bin
