@@ -167,7 +167,7 @@ mm-all:
 		   [ ! "$${software}" = "visualboyadvance" ] &&  \
 		   [ ! "$${software}" = "zsnes"          ] && \
 		   [ ! "$${software}" = "ipxe"           ] && \
-		   [ ! "$${software}" = "u-boot"         ] && \
+		   [ ! "$${software}" = "bootloader"     ] && \
 		   [ ! "$${software}" = "glmark2"        ] && \
 		   [ ! "$${software}" = "kmscube"        ] && \
 		   [ ! "$${software}" = "mesa-demos"     ] && \
