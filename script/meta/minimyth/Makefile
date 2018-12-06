@@ -174,7 +174,7 @@ DEPENDS = \
 		browsers/mozilla-firefox) \
 	$(if $(filter lcdproc,$(mm_SOFTWARE)),system/lcdproc) \
 	$(if $(filter ipxe,$(mm_SOFTWARE)),bootloaders/ipxe) \
-	$(if $(filter u-boot,$(mm_SOFTWARE)),kernel/u-boot) \
+	$(if $(filter bootloader,$(mm_SOFTWARE)),bootloaders/bootloader) \
 	$(if $(filter debug,$(mm_SOFTWARE)), \
 		devel/gdb \
 		$(if $(filter i386 x86_64,$(GARCH_FAMILY)),devel/strace)) \
