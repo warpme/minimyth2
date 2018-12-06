@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.8.5.r991
+mm_VERSION_MINIMYTH ?= 9.8.6.r991
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -50,7 +50,7 @@ mm_OPENGL_PROVIDER        ?= mesa
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
 # 'flash', 'mplayer', 'mplayer-svn', 'voip', 'bumblebee', 'perl', 'python', 'mame',
-# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'ipxe' 'u-boot' 'chrome', 'firefox',
+# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'ipxe' 'bootloader' 'chrome', 'firefox',
 # 'lcdproc', 'glmark2', 'mesa-demos' 'kmscube' 'debug'.
 mm_SOFTWARE               ?= \
                              python \
@@ -80,7 +80,7 @@ mm_SOFTWARE               ?= \
 #                             mplayer-svn \
 #                             netflix \
 #                             ipxe \
-#                             u-boot \
+#                             bootloader \
 #                             glmark2
 #                             kmscube
 #                             mesa-demos
@@ -89,9 +89,9 @@ mm_SOFTWARE               ?= \
 # Valid values for mm_GARCH are 'pentium-mmx', 'x86-64', 'armv7', 'armv8'.
 mm_GARCH                  ?= x86-64
 
-# Indicates U-Boot loader board type. Valid values are in list
-# of <u-boot source>/configs directory.
-mm_U-BOOT_BOARD_TYPE      ?= rpi_2_defconfig
+# Indicates bootloader board type. Valid values are: 'board-rpi2',
+# 'board-rpi3', 'board-tx3-mini'
+mm_BOARD_TYPE             ?= board-rpi3
 
 # Indicates whether or not to create the RAM based part of the distribution.
 mm_DISTRIBUTION_RAM       ?= yes
