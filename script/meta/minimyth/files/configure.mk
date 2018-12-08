@@ -8,6 +8,7 @@ include ../../gar.mk
 
 MM_INIT_START_SEQUENTIAL := \
     hotplug \
+    dbus \
     master \
     audio \
     video \
@@ -18,7 +19,6 @@ MM_INIT_START_SEQUENTIAL := \
     x \
     conf_parallel
 MM_INIT_START_PARALLEL := \
-    dbus \
     media \
     irtrans \
     acpi \
