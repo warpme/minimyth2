@@ -32,7 +32,7 @@
 #-------------------------------------------------------------
 
 #--Use this for yuq lima kernel-------------------------------
-GITHASH             = 5e99965d39976e015bdb0a8010f14e644a27989e
+GITHASH             = 849ea866b7b7c1c92e313483b7782e4aa1feaf29
 LINUX_MAJOR_VERSION = 4
 LINUX_MINOR_VERSION = 19
 LINUX_TEENY_VERSION = 0

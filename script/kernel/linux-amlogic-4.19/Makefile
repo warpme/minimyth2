@@ -181,7 +181,8 @@ BUILDDEPS = \
 
 DEPENDS = \
 	kernel/linux-headers-amlogic-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)  \
-	kernel/linux-firmware-amlogic-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION) \
+	kernel/linux-firmware \
+	kernel/linux-firmware-meson \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
@@ -272,6 +273,6 @@ clean-all:
 	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs*
 	@rm -rf $(DESTDIR)$(LINUX_MODULESPREFIX)
 	@$(MAKE) clean       -C ../linux-headers-amlogic-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
-	@$(MAKE) clean       -C ../linux-firmware-amlogic-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
 	@$(MAKE) clean-all   -C ../linux-headers-amlogic-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
-	@$(MAKE) clean-all   -C ../linux-firmware-amlogic-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
+	@$(MAKE) clean       -C ../linux-firmware
+	@$(MAKE) clean-all   -C ../linux-firmware-meson
