@@ -1,5 +1,5 @@
 GARNAME = llvm
-GARVERSION = 5.0.1
+GARVERSION = 6.0.1
 CATEGORIES = devel
 MASTER_SITES = http://www.llvm.org/releases/$(GARVERSION)/
 DISTFILES = $(DISTNAME).src.tar.xz
@@ -89,3 +89,9 @@ post-install:
 		cp $(build_DESTDIR)$(build_bindir)-config/llvm-config $(DESTDIR)$(bindir)-config/llvm-config  )
 	@$(if $(compiler_prefix), ln -s llvm-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config)
 	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -f $(DESTDIR)$(bindir)-config/llvm-config
+	@rm -f $(DESTDIR)$(bindir)/llvm*
+	@rm -f $(DESTDIR)$(libdir)/libLLVM*
+	@rm -rf $(DESTDIR)$(includedir)/llvm*
