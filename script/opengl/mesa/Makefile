@@ -2,12 +2,13 @@ GARNAME = mesa
 # GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              20160518-877a802, \
-             18.2.5 ))
+             18.3.0 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              git://anongit.freedesktop.org/mesa/mesa/ , \
              ftp://ftp.freedesktop.org/pub/mesa/ ))
 DISTFILES = $(DISTNAME).tar.xz
+PATCHFILES = configure-add-wayland-scanner-patch.patch
 LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
@@ -84,7 +85,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-opencl-icd \
 	--disable-libglvnd \
 	LIBUDEV_CFLAGS="$(DESTDIR)$(includedir)" \
-	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so"
+	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so" \
+	--with-wayland-scanner-path="$(build_DESTDIR)$(build_bindir)/wayland-scanner" \
 
 ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
