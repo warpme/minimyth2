@@ -251,6 +251,7 @@ CONFIGURE_ARGS = \
 	--disable-xv \
 	--disable-crystalhd \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
+		--enable-opengles \
 		--disable-vaapi \
 		--disable-vaapi2 \
 		--disable-vdpau) \
