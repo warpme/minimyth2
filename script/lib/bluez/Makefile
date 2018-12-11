@@ -32,7 +32,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-hid \
 	--enable-hog \
 	--disable-health \
-	--disable-tools \
+	--enable-tools \
 	--enable-monitor \
 	--disable-udev \
 	--disable-cups \
