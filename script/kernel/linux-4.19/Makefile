@@ -204,7 +204,7 @@ pre-install:
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(LINUX_DIR)
-	@cp  $(WORKSRC)/System.map $(DESTDIR)$(LINUX_DIR)/System.map
+	@# cp  $(WORKSRC)/System.map $(DESTDIR)$(LINUX_DIR)/System.map
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) modules_install
 ifeq ($(GARCH),armv7)
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/zImage > $(DESTDIR)$(LINUX_DIR)/zImage
