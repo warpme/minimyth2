@@ -1,5 +1,5 @@
 GARNAME = bluez
-GARVERSION = 5.37
+GARVERSION = 5.50
 CATEGORIES = lib
 MASTER_SITES = http://www.kernel.org/pub/linux/bluetooth/
 DISTFILES = $(DISTNAME).tar.gz
@@ -23,45 +23,43 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--enable-shared \
 	--enable-optimization \
-	--enable-fortify \
 	--disable-pie \
-	--disable-network \
+	--disable-nfc \
 	--disable-sap \
-	--disable-serial \
-	--enable-input \
-	--disable-audio \
-	--enable-service \
-	--disable-mcap \
-	--disable-pnat \
-	--disable-attrib \
-	--disable-gstreamer \
-	--enable-alsa \
-	--enable-tools \
-	--enable-bccmd \
-	--enable-pcmcia \
-	--enable-dfutool \
-	--enable-hidd \
-	--disable-pand \
-	--disable-dund \
+	--enable-a2dp \
+	--enable-avrcp \
+	--disable-network \
+	--enable-hid \
+	--enable-hog \
+	--disable-health \
+	--disable-tools \
+	--enable-monitor \
+	--disable-udev \
 	--disable-cups \
-	--disable-test \
-	--enable-udevrules \
-	--enable-configfiles \
+	--disable-mesh \
+	--disable-midi \
+	--disable-obex \
+	--disable-btpclient \
+	--enable-client \
+	--disable-systemd \
+	--disable-datafiles \
+	--disable-manpages \
+	--disable-testing \
+	--enable-experimental \
+	--enable-deprecated \
+	--disable-sixaxis \
+	--disable-logger \
+	--disable-android \
 	--disable-debug \
-	--disable-maemo6 \
-	--disable-dbusoob \
-	--enable-wiimote \
-	--disable-hal \
-	--disable-gatt \
+	--disable-attrib \
 	--with-gnu-ld
+
 ifeq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
-	--disable-usb \
-	--disable-hid2hci
+	--disable-usb
 else
 CONFIGURE_ARGS += \
-	--enable-usb \
-	--enable-hid2hci
+	--enable-usb
 endif
 
 include ../../gar.mk
