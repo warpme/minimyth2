@@ -137,6 +137,8 @@ PATCHFILES += 0241-lima-drm-Fix-lima-cache-creation.patch
 PATCHFILES += 0242-lima-drm-print-info-when-task-timeout.patch
 PATCHFILES += 0243-lima-drm-fix-dma-fence-leak.patch
 PATCHFILES += 0244-lima-drm-fix-dma-fence-leak-when-app-exit.patch
+PATCHFILES += 0245-lima-drm-return-error-status-of-fence-after-waiting.patch
+PATCHFILES += 0246-lima-drm-support-mmap-imported-buffer.patch
 endif
 
 LICENSE = GPL2
