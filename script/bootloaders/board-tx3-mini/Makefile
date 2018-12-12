@@ -31,9 +31,6 @@ install-custom:
 	@cp -f $(WORKSRC)/tx3-mini-s905_autoscript     $(DESTDIR)/boot/s905_autoscript
 	@cp -f $(WORKSRC)/tx3-mini-s905_autoscript.txt $(DESTDIR)/boot/s905_autoscript.txt
 	@cp -f $(WORKSRC)/tx3-mini-uEnv.ini            $(DESTDIR)/boot/uEnv.ini
-	@# Remove Image as this is not needed for tx3-mini bootloader
-	@rm -f $(DESTDIR)/boot/Image
-	@rm -f $(DESTDIR)/boot/System.map
 	@$(MAKECOOKIE)
 
 clean-all:

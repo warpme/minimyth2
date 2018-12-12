@@ -44,8 +44,6 @@ install-custom:
 	@cp -f $(WORKSRC)/start_x.elf   $(DESTDIR)/boot/start_x.elf
 	@# Renaming u-boot.bin to kernel8.img as IPL of rpi requires such name for aarch64
 	@mv $(DESTDIR)/boot/u-boot.bin  $(DESTDIR)/boot/kernel8.img
-	@# Removing uImage as rpi not needs it
-	@rm -f $(DESTDIR)/boot/uImage
 	@$(MAKECOOKIE)
 
 clean-all:
