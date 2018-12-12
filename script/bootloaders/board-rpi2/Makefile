@@ -37,8 +37,8 @@ install-custom:
 	@cp -f $(WORKSRC)/fixup.dat     $(DESTDIR)/boot/fixup.dat
 	@cp -f $(WORKSRC)/fixup_db.dat  $(DESTDIR)/boot/fixup_db.dat
 	@cp -f $(WORKSRC)/fixup_x.dat   $(DESTDIR)/boot/fixup_x.dat
-	@cp -f $(WORKSRC)/rpi3-boot.scr $(DESTDIR)/boot/rpi3-boot.scr
-	@cp -f $(WORKSRC)/rpi3-boot.txt $(DESTDIR)/boot/rpi3-boot.txt
+	@cp -f $(WORKSRC)/rpi2-boot.scr $(DESTDIR)/boot/boot.scr
+	@cp -f $(WORKSRC)/rpi2-boot.txt $(DESTDIR)/boot/boot.txt
 	@cp -f $(WORKSRC)/start.elf     $(DESTDIR)/boot/start.elf
 	@cp -f $(WORKSRC)/start_cd.elf  $(DESTDIR)/boot/start_cd.elf
 	@cp -f $(WORKSRC)/start_x.elf   $(DESTDIR)/boot/start_x.elf
@@ -51,8 +51,8 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/fixup.dat
 	@rm -f $(DESTDIR)/boot/fixup_db.dat
 	@rm -f $(DESTDIR)/boot/fixup_x.dat
-	@rm -f $(DESTDIR)/boot/rpi3-boot.scr
-	@rm -f $(DESTDIR)/boot/rpi3-boot.txt
+	@rm -f $(DESTDIR)/boot/boot.scr
+	@rm -f $(DESTDIR)/boot/boot.txt
 	@rm -f $(DESTDIR)/boot/start.elf
 	@rm -f $(DESTDIR)/boot/start_cd.elf
 	@rm -f $(DESTDIR)/boot/start_x.elf
