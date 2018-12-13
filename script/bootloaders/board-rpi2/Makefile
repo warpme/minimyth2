@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-rpi2
-GARVERSION   = 2018-12-05
+GARVERSION   = 2018-12-13
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/raspberrypi/firmware/raw/master/boot/
 DISTFILES    = rpi2-boot.scr \

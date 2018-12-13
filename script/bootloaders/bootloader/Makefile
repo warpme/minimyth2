@@ -11,8 +11,8 @@ DEPENDS = \
 		$(CATEGORY)/board-rpi2) \
 	$(if $(filter board-rpi3,$(mm_BOARD_TYPE)), \
 		$(CATEGORY)/board-rpi3) \
-	$(if $(filter board-tx3-mini,$(mm_BOARD_TYPE)), \
-		$(CATEGORY)/board-tx3-mini) \
+	$(if $(filter board-s905,$(mm_BOARD_TYPE)), \
+		$(CATEGORY)/board-s905) \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
