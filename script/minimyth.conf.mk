@@ -90,7 +90,7 @@ mm_SOFTWARE               ?= \
 mm_GARCH                  ?= x86-64
 
 # Indicates bootloader board type. Valid values are: 'board-rpi2',
-# 'board-rpi3', 'board-tx3-mini'
+# 'board-rpi3', 'board-s905'
 mm_BOARD_TYPE             ?= board-rpi3
 
 # Indicates whether or not to create the RAM based part of the distribution.
