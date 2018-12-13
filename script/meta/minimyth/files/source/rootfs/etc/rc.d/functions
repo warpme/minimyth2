@@ -1279,13 +1279,22 @@ mm_splash_init() {
     # That is when the loglevel is greater than 3.
     if /usr/bin/test "${SPLASH_ENABLE}" = "yes" ; then
         LOGLEVEL=`/bin/cat /proc/sys/kernel/printk | /usr/bin/cut -f 1`
-        /usr/bin/test -z "${LOGLEVEL}" && SPLASH_ENABLE='no'
-        /usr/bin/test -n "${LOGLEVEL}" && /usr/bin/test ${LOGLEVEL} -gt 3 && SPLASH_ENABLE='no'
+        if /usr/bin/test -z "${LOGLEVEL}" ; then
+            SPLASH_ENABLE='no'
+            /usr/bin/logger -t minimyth -p "local0.info" "disabling splash screen due no loglevel is set"
+        fi
+        if (/usr/bin/test -n "${LOGLEVEL}") && (/usr/bin/test ${LOGLEVEL} -gt 3) ; then
+            SPLASH_ENABLE='no'
+            /usr/bin/logger -t minimyth -p "local0.info" "disabling splash screen due loglevel > 3"
+        fi
     fi
 
     # Disable splash screen when there is no framebuffer device.
     if /usr/bin/test "${SPLASH_ENABLE}" = "yes" ; then
-        /usr/bin/test ! -e '/dev/fb0' && SPLASH_ENABLE='no'
+        if /usr/bin/test ! -e '/dev/fb0' ; then 
+            SPLASH_ENABLE='no'
+            /usr/bin/logger -t minimyth -p "local0.info" "disabling splash screen due no /dev/fb0 framebuffer found"
+        fi
     fi
 
     # Disable splash screen when the video resolution is not compatible.
@@ -1297,16 +1306,14 @@ mm_splash_init() {
         VXRES=`/bin/echo ${GEOMETRY} | /usr/bin/cut -d ' ' -f 4`
         VYRES=`/bin/echo ${GEOMETRY} | /usr/bin/cut -d ' ' -f 5`
         DEPTH=`/bin/echo ${GEOMETRY} | /usr/bin/cut -d ' ' -f 6`
-        /usr/bin/test -z "${XRES}"  && SPLASH_ENABLE='no'
-        /usr/bin/test -z "${YRES}"  && SPLASH_ENABLE='no'
-        /usr/bin/test -z "${VXRES}" && SPLASH_ENABLE='no'
-        /usr/bin/test -z "${VYRES}" && SPLASH_ENABLE='no'
-        /usr/bin/test -z "${DEPTH}" && SPLASH_ENABLE='no'
-        #/usr/bin/test -n "${XRES}"  && /usr/bin/test ${XRES}  -ne 640 && SPLASH_ENABLE='no'
-        #/usr/bin/test -n "${YRES}"  && /usr/bin/test ${YRES}  -ne 480 && SPLASH_ENABLE='no'
-        #/usr/bin/test -n "${VXRES}" && /usr/bin/test ${VXRES} -ne 640 && SPLASH_ENABLE='no'
-        #/usr/bin/test -n "${VYRES}" && /usr/bin/test ${VYRES} -ne 480 && SPLASH_ENABLE='no'
-        #/usr/bin/test -n "${DEPTH}" && /usr/bin/test ${DEPTH} -lt 16  && SPLASH_ENABLE='no'
+        if (/usr/bin/test -z "${XRES}") || \
+           (/usr/bin/test -z "${YRES}") || \
+           (/usr/bin/test -z "${VXRES}") || \
+           (/usr/bin/test -z "${VYRES}") || \
+           (/usr/bin/test -z "${DEPTH}") ; then
+            SPLASH_ENABLE='no'
+            /usr/bin/logger -t minimyth -p "local0.info" "disabling splash due unknown gemoetry (Xres:${XRES},Yres:${YRES},VXres:${VXRES},VYres:${VYRES},Depth:${DEPTH}"
+        fi
     fi
 
     if /usr/bin/test "${SPLASH_ENABLE}" = "yes" ; then
@@ -1316,7 +1323,7 @@ mm_splash_init() {
             reboot)   message="restarting system ..."    ;;
             *)        message=""                         ;;
         esac
-        /usr/bin/logger -t minimyth -p "local0.info" "starting splash screen"
+        /usr/bin/logger -t minimyth -p "local0.info" "starting splash screen. geometry:${XRES}x${YRES},Vres:${VXRES}x${VYRES},${DEPTH}bpp"
         /usr/bin/chvt 1
         /bin/mkdir -p "${_mm_var_splash_fifo_dir}"
         mm_splash_command "exit"
