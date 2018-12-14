@@ -183,6 +183,7 @@ DEPENDS = \
 	kernel/linux-headers-amlogic-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)  \
 	kernel/linux-firmware \
 	kernel/linux-firmware-meson \
+	bootloaders/u-boot \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
@@ -246,7 +247,7 @@ else
 ifeq ($(GARCH),armv8)
 	@# cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)$(LINUX_DIR)/Image.gz
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)$(LINUX_DIR)/Image
-	@/usr/bin/mkimage -A arm64 -O linux -T kernel -C none -a 0x1080000 -e 0x1080000 -n linux-next -d $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image $(DESTDIR)$(LINUX_DIR)/uImage
+	@$(build_DESTDIR)$(build_bindir)/mkimage -A arm64 -O linux -T kernel -C none -a 0x1080000 -e 0x1080000 -n linux-next -d $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image $(DESTDIR)$(LINUX_DIR)/uImage
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
 	@$(MAKECOOKIE)
 else
