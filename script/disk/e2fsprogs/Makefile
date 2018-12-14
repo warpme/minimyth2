@@ -1,59 +1,23 @@
 GARNAME = e2fsprogs
-GARVERSION = 1.44.2
-CATEGORIES = disk
-MASTER_SITES = https://www.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v$(GARVERSION)/
+GARVERSION = 1.44.4
+CATEGORIES = utils
+MASTER_SITES = https://www.kernel.org/pub/linux/kernel/people/tytso/$(GARNAME)/v$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.xz
-#PATCHFILES = $(DISTNAME)-chmod.patch
-LICENSE = GPL2/LGPL2
+LICENSE = GPL3
 
-DESCRIPTION =
+DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/c utils/util-linux
+DEPENDS = lang/c
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--enable-verbose-makecmds \
-	--disable-compression \
-	--disable-htree \
-	--enable-elf-shlibs \
-	--disable-bsd-shlibs \
-	--disable-profile \
-	--disable-jbd-debug \
-	--disable-blkid-debug \
-	--disable-testio-debug \
-	--disable-libuuid \
-	--disable-libblkid \
-	--disable-quota \
-	--disable-debugfs \
-	--disable-imager \
-	--disable-resizer \
-	--disable-defrag \
-	--disable-fsck \
-	--disable-e2initrd-helper \
-	--enable-tls \
-	--disable-uuidd \
-	--enable-nls \
+	--disable-silent-rules \
 	--disable-rpath \
 	--with-gnu-ld \
-	LDFLAGS="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
-	CPPFLAGS="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/"
-
-#	FLAGS="-L$(DESTDIR)$(elibdir64)/libpthread.so.0"
 
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL_LIBPATH,$(WORKSRC),configure)
-	$(warning DIRPATHS:$(DIRPATHS))
-	$(warning GARBUILD:$(GARBUILD))
-	$(warning GARHOST:$(GARHOST))
-	@$(MAKECOOKIE)
-
-post-install:
-	@$(MAKECOOKIE)
