@@ -26,10 +26,10 @@ DEPENDS = \
 	python3/python-beautifulsoup4 \
 	python3/python-simplediff \
 	utils/diffstat \
-	utils/dosfstools \
-	utils/mtools \
+	disk/dosfstools \
+	disk/mtools \
+	disk/e2fsprogs \
 	utils/pseudo \
-	utils/e2fsprogs \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
@@ -49,6 +49,7 @@ install-custom:
 	@#
 	@cp -rf $(WORKSRC)/bitbake/bin $(DESTDIR)$(bindir)/kickstart/bitbake/
 	@cp -rf $(WORKSRC)/bitbake/lib $(DESTDIR)$(bindir)/kickstart/bitbake/
+	@cp -rf $(WORKSRC)/meta/lib $(DESTDIR)$(bindir)/kickstart/
 	@#
 	@cp -f $(WORKSRC)/meta/classes/base.bbclass          $(DESTDIR)$(bindir)/kickstart/classes/
 	@cp -f $(WORKSRC)/meta/classes/logging.bbclass       $(DESTDIR)$(bindir)/kickstart/classes/
@@ -78,4 +79,8 @@ install-custom:
 	@cp -f $(WORKDIR)/board-rpi3.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
 	@cp -f $(WORKDIR)/board-s905.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
 	@cp -f $(WORKDIR)/s905-rpi3.conf  $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
+	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -rf $(DESTDIR)$(bindir)/kickstart*
 	@$(MAKECOOKIE)

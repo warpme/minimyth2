@@ -17,7 +17,8 @@ base_dir=${PWD}
 export BUILDDIR=${base_dir}
 export BBPATH=${base_dir}
 export PATH=${base_dir}/bitbake/bin:$PATH
-export PYTHONPATH=${base_dir}/bitbake/lib:$PYTHONPATH
+export PYTHONPATH=${base_dir}/bitbake/lib:${base_dir}/lib:$PYTHONPATH
+export PYTHON=/home/piotro/minimyth-dev/images/build/usr/bin/python3
 
 branch=` grep "^mm_MYTH_VERSION "     ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 version=`grep "^mm_VERSION_MINIMYTH " ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
