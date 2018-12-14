@@ -13,8 +13,8 @@ endef
 DEPENDS    = lang/c lib/ncurses lib/openssl lib/readline devel/zlib
 BUILDDEPS  = devel/autoconf devel/automake
 ifneq ($(DESTIMG),build)
-# DEPENDS   += lib/bluez
-BUILDDEPS += python/python
+DEPENDS   += lib/bluez
+BUILDDEPS += python3/python
 endif
 
 CONFIGURE_SCRIPTS  = $(WORKSRC)/configure
@@ -32,7 +32,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-system-expat \
 	--with-dbmliborder=gdbm:ndbm \
 	--without-ensurepip \
-	CPPFLAGS="-I$(DESTDIR)$(includedir)"
+	CPPFLAGS="-I$(DESTDIR)$(includedir)" \
+	ac_cv_enable_implicit_function_declaration_error=no \
 
 ifneq ($(DESTIMG),build)
 BUILD_ARGS     = \
