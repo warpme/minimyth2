@@ -7,6 +7,7 @@ GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk perl/perl/pac
 include ../../gar.mk
 
 MM_INIT_START_SEQUENTIAL := \
+    time \
     hotplug \
     dbus \
     master \
@@ -22,7 +23,6 @@ MM_INIT_START_PARALLEL := \
     media \
     irtrans \
     acpi \
-    time \
     web \
     extras \
     game \
