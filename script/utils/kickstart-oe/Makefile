@@ -49,7 +49,7 @@ install-custom:
 	@#
 	@cp -rf $(WORKSRC)/bitbake/bin $(DESTDIR)$(bindir)/kickstart/bitbake/
 	@cp -rf $(WORKSRC)/bitbake/lib $(DESTDIR)$(bindir)/kickstart/bitbake/
-	@cp -rf $(WORKSRC)/meta/lib $(DESTDIR)$(bindir)/kickstart/
+	@cp -rf $(WORKSRC)/meta/lib/oe $(DESTDIR)$(bindir)/kickstart/bitbake/lib/
 	@#
 	@cp -f $(WORKSRC)/meta/classes/base.bbclass          $(DESTDIR)$(bindir)/kickstart/classes/
 	@cp -f $(WORKSRC)/meta/classes/logging.bbclass       $(DESTDIR)$(bindir)/kickstart/classes/
