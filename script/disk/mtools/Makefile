@@ -16,10 +16,7 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules \
-	--disable-rpath \
-	--with-gnu-ld \
-	ac_cv_func_getpgrp_void=no
+	ac_cv_func_setpgrp_void=yes
 
 include ../../gar.mk
 
