@@ -30,6 +30,6 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-	@cp -f $(WORKSRC)/mtools.conf $(DESTDIR)$(sysconfdir)/mtools.conf
-	@echo "mtools_skip_check=1" >> $(DESTDIR)$(sysconfdir)/mtools.conf
+	@touch $(DESTDIR)$(sysconfdir)/mtools.conf
+	@echo "mtools_skip_check=1" > $(DESTDIR)$(sysconfdir)/mtools.conf
 	@$(MAKECOOKIE)
