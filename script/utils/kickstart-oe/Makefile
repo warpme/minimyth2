@@ -30,6 +30,7 @@ DEPENDS = \
 	disk/mtools \
 	disk/e2fsprogs \
 	utils/pseudo \
+	lib/parted \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
@@ -39,6 +40,7 @@ include ../../gar.mk
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(bindir)/kickstart/bitbake
+	@mkdir -p $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin
 	@mkdir -p $(DESTDIR)$(bindir)/kickstart/cache
 	@mkdir -p $(DESTDIR)$(bindir)/kickstart/classes
 	@mkdir -p $(DESTDIR)$(bindir)/kickstart/conf
@@ -50,6 +52,18 @@ install-custom:
 	@cp -rf $(WORKSRC)/bitbake/bin $(DESTDIR)$(bindir)/kickstart/bitbake/
 	@cp -rf $(WORKSRC)/bitbake/lib $(DESTDIR)$(bindir)/kickstart/bitbake/
 	@cp -rf $(WORKSRC)/meta/lib/oe $(DESTDIR)$(bindir)/kickstart/bitbake/lib/
+	@#
+	@ln -srf $(DESTDIR)$(bindir)/find       $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/find
+	@ln -srf $(DESTDIR)$(sbindir)/fsck.ext3 $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/fsck.ext3
+	@ln -srf $(DESTDIR)$(sbindir)/fsck.ext4 $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/fsck.ext4
+	@ln -srf $(DESTDIR)$(bindir)/mcopy      $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/mcopy
+	@ln -srf $(DESTDIR)$(sbindir)/mkdosfs   $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/mkdosfs
+	@ln -srf $(DESTDIR)$(sbindir)/mkfs.ext3 $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/mkfs.ext3
+	@ln -srf $(DESTDIR)$(sbindir)/mkfs.ext4 $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/mkfs.ext4
+	@ln -srf $(DESTDIR)$(sbindir)/parted    $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/parted
+	@ln -srf $(DESTDIR)$(bindir)/pseudo     $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/pseudo
+	@ln -srf $(DESTDIR)$(bindir)/pseudodb   $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/pseudodb
+	@ln -srf $(DESTDIR)$(bindir)/pseudolog  $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/pseudolog
 	@#
 	@cp -f $(WORKSRC)/meta/classes/base.bbclass          $(DESTDIR)$(bindir)/kickstart/classes/
 	@cp -f $(WORKSRC)/meta/classes/logging.bbclass       $(DESTDIR)$(bindir)/kickstart/classes/
@@ -79,6 +93,9 @@ install-custom:
 	@cp -f $(WORKDIR)/board-rpi3.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
 	@cp -f $(WORKDIR)/board-s905.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
 	@cp -f $(WORKDIR)/s905-rpi3.conf  $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
+	@# Remove all host tools requirements as we are listing them in BUILDEPS
+	@sed -i -e "s/HOSTTOOLS +=/__HOSTTOOLS +=/g" $(DESTDIR)$(bindir)/kickstart/conf/bitbake.conf
+	@echo 'HOSTTOOLS += " "' >> $(DESTDIR)$(bindir)/kickstart/conf/bitbake.conf
 	@$(MAKECOOKIE)
 
 clean-all:
