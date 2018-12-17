@@ -19,5 +19,6 @@ CONFIGURE_ARGS = $(DIRPATHS) \
         --build=$(GARBUILD) \
         --host=$(GARHOST) \
         --prefix="$(prefix)" \
+        --enable-compat-symlinks \
 
 include ../../gar.mk
