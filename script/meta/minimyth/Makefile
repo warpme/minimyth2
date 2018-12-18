@@ -193,7 +193,9 @@ BUILDDEPS = \
 	utils/util-linux \
 	xorg/xorg \
 	perl/perlstrip \
-	python/python-pyminifier
+	python/python-pyminifier \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),utils/kickstart-oe) \
+
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
