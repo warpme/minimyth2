@@ -55,7 +55,7 @@ MM_INIT_KILL := \
     modules_manual \
     modules_automatic
 
-build_vars := $(filter-out mm_HOME mm_TFTP_ROOT mm_NFS_ROOT mm_LOCAL_FILES,$(sort $(shell cat $(mm_HOME)/script/minimyth.conf.mk | grep -e '^mm_' | sed -e 's%[ =].*%%')))
+build_vars := $(filter-out mm_HOME mm_TFTP_ROOT mm_NFS_ROOT mm_SHARE_FILES mm_SDCARD_FILES,$(sort $(shell cat $(mm_HOME)/script/minimyth.conf.mk | grep -e '^mm_' | sed -e 's%[ =].*%%')))
 
 bindirs_base := \
 	$(extras_sbindir) \
@@ -128,7 +128,7 @@ MM_CONFIG_VARS := $(sort \
 	mm_DEBUG \
 	mm_DEBUG_BUILD \
 	mm_DESTDIR \
-	mm_DISTRIBUTION_LOCAL \
+	mm_DISTRIBUTION_SDCARD \
 	mm_DISTRIBUTION_NFS \
 	mm_DISTRIBUTION_RAM \
 	mm_DISTRIBUTION_SHARE \
@@ -138,14 +138,14 @@ MM_CONFIG_VARS := $(sort \
 	MM_INIT_KILL \
 	MM_INIT_START_SEQUENTIAL \
 	MM_INIT_START_PARALLEL \
-	mm_INSTALL_LATEST \
+	mm_SDCARD_FILES \
 	mm_INSTALL_NFS_BOOT \
 	mm_INSTALL_RAM_BOOT \
 	mm_MYTH_VERSION \
 	mm_NFS_ROOT \
 	mm_SOFTWARE \
 	mm_TFTP_ROOT \
-	mm_LOCAL_FILES \
+	mm_SHARE_FILES \
 	mm_USER_BIN_LIST \
 	mm_USER_ETC_LIST \
 	mm_USER_LIB_LIST \

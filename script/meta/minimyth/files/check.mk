@@ -235,9 +235,9 @@ mm-all:
 		echo "error: mm_DISTRIBUTION_NFS=\"$(mm_DISTRIBUTION_NFS)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
-	@echo "    mm_DISTRIBUTION_LOCAL"
-	@if [ ! "$(mm_DISTRIBUTION_LOCAL)" = "yes" ] && [ ! "$(mm_DISTRIBUTION_LOCAL)" = "no" ] ; then \
-		echo "error: mm_DISTRIBUTION_LOCAL=\"$(mm_DISTRIBUTION_LOCAL)\" is an invalid value." ; \
+	@echo "    mm_DISTRIBUTION_SDCARD"
+	@if [ ! "$(mm_DISTRIBUTION_SDCARD)" = "yes" ] && [ ! "$(mm_DISTRIBUTION_SDCARD)" = "no" ] ; then \
+		echo "error: mm_DISTRIBUTION_SDCARD=\"$(mm_DISTRIBUTION_SDCARD)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_DISTRIBUTION_SHARE"
@@ -266,15 +266,6 @@ mm-all:
 	fi
 	@if [ "$(mm_INSTALL_NFS_BOOT)" = "yes" ] && [ ! -d "$(mm_NFS_ROOT)"  ] ; then \
 		echo "error: the directory specified by mm_NFS_ROOT=\"$(mm_NFS_ROOT)\" does not exist." ; \
-		exit 1 ; \
-	fi
-	@echo "    mm_INSTALL_LATEST"
-	@if [ ! "$(mm_INSTALL_LATEST)"   = "yes" ] && [ ! "$(mm_INSTALL_LATEST)"   = "no" ] ; then \
-		echo "error: mm_INSTALL_LATEST=\"$(mm_INSTALL_LATEST)\" is an invalid value." ; \
-		exit 1 ; \
-	fi
-	@if [ "$(mm_INSTALL_LATEST)"   = "yes" ] && [ ! -d "$(mm_TFTP_ROOT)" ] ; then \
-		echo "error: the directory specified by mm_TFTP_ROOT=\"$(mm_TFTP_ROOT)\" does not exist." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_DISTRIBUTION_RAM"
