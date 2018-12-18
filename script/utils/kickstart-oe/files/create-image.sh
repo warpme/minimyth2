@@ -23,14 +23,14 @@ boot_files_loc=${mm_build_dir}/stage/boot
 
 export BUILDDIR=${mm_build_dir}/stage
 export BBPATH=${base_dir}
-export PATH=${base_dir}/bitbake/bin:${PATH}
+export PATH=${base_dir}/bitbake/bin:/sbin:/bin:/usr/sbin:/usr/bin
 export PYTHONPATH=${base_dir}/bitbake/lib:${PYTHONPATH}
 
 if [ x${use_minimyth_python3} = "xyes" ] ; then 
-    export PATH=/home/piotro/minimyth-dev/images/build/bin:/home/piotro/minimyth-dev/images/build/usr/bin:${PATH}
-    export PYTHONPATH=/home/piotro/minimyth-dev/images/build/usr/lib/python3.7:${PYTHONPATH}
-    export PYTHON=/home/piotro/minimyth-dev/images/build/usr/bin/python3
-    export LD_LIBRARY_PATH=/home/piotro/minimyth-dev/images/build/usr/lib
+    export PATH=${mm_home}/images/build/bin:${mm_home}/images/build/usr/bin:${PATH}
+    export PYTHONPATH=${mm_home}/images/build/usr/lib/python3.7:${PYTHONPATH}
+    export PYTHON=${mm_home}/images/build/usr/bin/python3
+    export LD_LIBRARY_PATH=${mm_home}/images/build/usr/lib
 else
     export PYTHON=/usr/bin/python3
 fi
