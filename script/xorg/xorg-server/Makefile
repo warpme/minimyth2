@@ -27,10 +27,10 @@ DEPENDS  = lang/c lib/openssl \
 	$(CATEGORY)/libXfont2 \
 	$(CATEGORY)/libxkbfile \
 	$(CATEGORY)/libepoxy \
-	$(CATEGORY)/Mesa \
 	$(CATEGORY)/pixman \
 	$(CATEGORY)/util-macros \
 	$(CATEGORY)/xtrans \
+	opengl/opengl \
 
 ifneq ($(DESTIMG),build)
 DEPENDS += system/eudev
