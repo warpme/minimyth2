@@ -21,7 +21,6 @@ DESCRIPTION =
 define BLURB
 endef
 
-
 DEPENDS   = bootloaders/u-boot
 
 BUILD_SCRIPTS   = 

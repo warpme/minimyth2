@@ -17,12 +17,14 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = 
+DEPENDS   = bootloaders/u-boot
 
-BUILD_SCRIPTS   = 
+BUILD_SCRIPTS   =
 INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
+
+export mm_U-BOOT_BOARD_TYPE = p212_defconfig
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
@@ -32,6 +34,8 @@ install-custom:
 	@cp -f $(WORKSRC)/s905_autoscript.txt                   $(DESTDIR)/boot/s905_autoscript.txt
 	@cp -f $(WORKSRC)/uEnv.ini                              $(DESTDIR)/boot/uEnv.ini
 	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-gxl-s905w-tx3-mini.dtb $(DESTDIR)/boot/s905_dtb
+	@# Renaming u-boot.bin to s905_u-boot
+	@mv $(DESTDIR)/boot/u-boot.bin  $(DESTDIR)/boot/s905_u-boot
 	@$(MAKECOOKIE)
 
 clean-all:
@@ -41,3 +45,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/s905_autoscript.txt
 	@rm -f $(DESTDIR)/boot/uEnv.ini
 	@rm -f $(DESTDIR)/boot/s905_dtb
+	@rm -f $(DESTDIR)/boot/s905_u-boot
