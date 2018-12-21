@@ -9,7 +9,6 @@ endef
 
 DEPENDS = \
 	kernel/linux-$(mm_KERNEL_VERSION) \
-	$(if $(filter u-boot,$(mm_SOFTWARE)),kernel/u-boot) \
 	$(if $(filter armsoc,$(mm_GRAPHICS)),kernel/meson-gx-mali450)
 
 include ../../gar.mk
