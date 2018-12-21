@@ -15,7 +15,7 @@ DEPENDS = \
 	lib/faad2 \
 	net/curl \
 	lib/faad2 \
-	xorg/glu \
+	opengl/glu \
 	gstreamer/gst-plugins-base \
 	lib/libdca \
 	lib/libdvdnav \
