@@ -6,10 +6,10 @@ use_minimyth_python3="no"
 
 mm_conf_file="${mm_home}/minimyth.conf.mk"
 
-board=$1
+boards=$1
 
 if [ x${board} = "x" ] ; then
-    board=`  grep "^mm_BOARD_TYPE "       ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
+    boards=`  grep "^mm_BOARD_TYPE "       ${mm_conf_file} | sed -e 's/.*\?=//'`
 fi
 
 branch=` grep "^mm_MYTH_VERSION "     ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
@@ -35,21 +35,21 @@ else
     export PYTHON=/usr/bin/python3
 fi
 
-echo " "
-echo "---- Starting to create SD image... ----"
-echo " "
-echo "  branch  : ${branch}"
-echo "  version : ${version}"
-echo "  arch    : ${arch}"
-echo "  board   : ${board}"
-echo "  boot    : ${boot_files_loc}"
-echo "  rootfs  : ${root_files_loc}"
-echo " "
+rm -f ${base_dir}/conf/multiconfig/default.conf
+echo "IMAGE_BOOT_FILES ?= \" \"" > ${base_dir}/conf/multiconfig/default.conf
+echo "" >> ${base_dir}/conf/multiconfig/default.conf
+boards_list=""
 
-echo "--> Setting right (${board}) config file..."
-cp -f ${base_dir}/conf/multiconfig/${board}.conf ${base_dir}/conf/multiconfig/default.conf
+for board in ${boards} ; do
+    echo "  adding board "${board}" to default.config"
+    cat ${base_dir}/conf/multiconfig/${board}.conf >> ${base_dir}/conf/multiconfig/default.conf
+    boards_list=${board}-${boards_list}
+done
 
-echo '--> Preparing for building SD Image...'
+echo "  boards        : ${boards_list}"
+echo "  boot files    : [${boot_files_loc}]"
+echo "  rootfs files  : [${root_files_loc}]"
+
 cd ${BUILDDIR}
 rm -f  ${BUILDDIR}/*.log
 rm -f  ${BUILDDIR}/*.direct
@@ -59,22 +59,23 @@ rm -rf ${root_files_loc}/../pseudo*
 mkdir -p ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin
 ln -srf ${base_dir}/native-bins/usr/bin/pseudo ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin/pseudo
 
-echo '--> Entering fakeroot enviroment...'
+echo '  entering fakeroot enviroment...'
 fakeroot -i ${mm_build_dir}/stage/image/rootfs.fakeroot sh -c " \
+echo '  WIC output:'
 ${PYTHON} ${base_dir}/scripts/wic create ${base_dir}/MiniMyth2.wks \
 --bootimg-dir=${boot_files_loc} \
 --kernel-dir=${boot_files_loc} \
 --rootfs-dir=${root_files_loc} \
 --native-sysroot=${base_dir}/native-bins \
 "
-echo '--> Removing working files...'
+echo '  removing working files...'
 rm -rf ${root_files_loc}/../pseudo*
 
-echo '--> Packaging image...'
-rename MiniMyth2-*.direct MiniMyth2-${arch}-${branch}-${version}-${board}-SD-Image.img *
-tar cjvf MiniMyth2-${arch}-${branch}-${version}-${board}-SD-Image.tar.bz2 ./*.img
+echo '  copmpressing SD image...'
+rename MiniMyth2-*.direct MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img *
+tar cjvf MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.tar.bz2 ./*.img > /dev/null
 rm -f ./*.img
 
-echo '--> Image creation done!'
+echo '  SD image creation done'
 
 exit 0

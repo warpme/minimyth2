@@ -9,8 +9,6 @@ DISTFILES = \
 	board-rpi3.conf \
 	board-s905.conf \
 	create-image.sh \
-	s905-rpi3.conf \
-	upload-burn.sh \
 
 WORKSRC = $(WORKDIR)/poky-yocto-$(GARVERSION)
 LICENSE = GPL2
@@ -92,7 +90,6 @@ install-custom:
 	@cp -f $(WORKDIR)/board-rpi2.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
 	@cp -f $(WORKDIR)/board-rpi3.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
 	@cp -f $(WORKDIR)/board-s905.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
-	@cp -f $(WORKDIR)/s905-rpi3.conf  $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
 	@# Remove all host tools requirements as we are listing them in BUILDEPS
 	@sed -i -e "s/HOSTTOOLS +=/__HOSTTOOLS +=/g" $(DESTDIR)$(bindir)/kickstart/conf/bitbake.conf
 	@echo 'HOSTTOOLS += " "' >> $(DESTDIR)$(bindir)/kickstart/conf/bitbake.conf
