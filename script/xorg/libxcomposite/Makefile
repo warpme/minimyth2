@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c xorg/util-macros
+DEPENDS = lang/c xorg/util-macros xorg/libXfixes
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
