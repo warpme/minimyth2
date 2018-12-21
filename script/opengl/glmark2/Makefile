@@ -13,6 +13,7 @@ endef
 DEPENDS = lang/c          \
 	lib/libjpeg-turbo \
 	lib/libpng        \
+	lib/libgudev      \
 	xorg/libX11       \
 	xorg/libxcb       \
 	xorg/libdrm       \
