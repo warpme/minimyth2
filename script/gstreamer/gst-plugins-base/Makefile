@@ -19,7 +19,6 @@ DEPENDS = lang/c \
           lib/libtheora \
           lib/libvorbis \
           gtk/pango \
-          qt/qt5 \
           lib/SDL \
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
