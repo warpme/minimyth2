@@ -13,6 +13,7 @@ DEPENDS = \
 	lang/c \
 	gstreamer/gst-plugins-base \
 	utils/bzip2 \
+	lib/ffmpeg
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
