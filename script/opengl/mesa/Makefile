@@ -190,6 +190,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_r600.la
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_radeonsi.la
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe.la
+ifneq ($(DESTIMG),build)
 ifneq (,$(findstring vc4,$(mm_GRAPHICS)))
 	@echo "--------------------------------------------------------------------------------"     > $(DESTDIR)/usr/share/supported-vc4-gfx-hardware.txt
 	@echo "Broadcom VC4 by $(GARNAME)-$(GARVERSION)"                                            >> $(DESTDIR)/usr/share/supported-vc4-gfx-hardware.txt
@@ -203,6 +204,7 @@ ifneq (,$(findstring meson,$(mm_GRAPHICS)))
 	@echo "--------------------------------------------------------------------------------"    >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
 	@echo "ARM Mali 450"                                                                        >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
 	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+endif
 endif
 	@$(MAKECOOKIE)
 
