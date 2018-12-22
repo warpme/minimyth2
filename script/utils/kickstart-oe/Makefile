@@ -85,7 +85,6 @@ install-custom:
 	@#
 	@cp -f $(WORKDIR)/MiniMyth2.wks   $(DESTDIR)$(bindir)/kickstart/
 	@cp -f $(WORKDIR)/create-image.sh $(DESTDIR)$(bindir)/kickstart/
-	@cp -f $(WORKDIR)/upload-burn.sh  $(DESTDIR)$(bindir)/kickstart/
 	@#
 	@cp -f $(WORKDIR)/board-rpi2.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
 	@cp -f $(WORKDIR)/board-rpi3.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
