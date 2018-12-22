@@ -37,9 +37,17 @@ git//%$(DISTNAME).tar.bz2:
 	@$(MAKECOOKIE)
 
 install-custom:
-	@mkdir -p "$(DESTDIR)$(LINUX_DIR)"
-	@cp  $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/u-boot.bin
-	@cp  $(WORKSRC)/tools/mkimage $(build_DESTDIR)$(build_bindir)/mkimage
+	@mkdir -p "$(DESTDIR)/boot"
+	@cp -f $(WORKSRC)/tools/mkimage $(build_DESTDIR)$(build_bindir)/mkimage
+ifneq (,$(findstring board-rpi2,$(mm_BOARD_TYPE)))
+	@cp -f $(WORKSRC)/u-boot $(DESTDIR)/boot/kernel7.img
+endif
+ifneq (,$(findstring board-rpi3,$(mm_BOARD_TYPE)))
+	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/kernel8.img
+endif
+ifneq (,$(findstring board-s905,$(mm_BOARD_TYPE)))
+	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/s905_u-boot
+endif
 	@$(MAKECOOKIE)
 
 clean-all:
