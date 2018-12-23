@@ -154,7 +154,7 @@ DEPENDS = \
 	kernel/linux-headers-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)  \
 	kernel/linux-firmware \
 	kernel/linux-firmware-meson \
-	$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),bootloaders/bootloader) \
+	$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),bootloaders/u-boot-tools) \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
