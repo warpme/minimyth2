@@ -38,9 +38,8 @@ git//%$(DISTNAME).tar.bz2:
 
 install-custom:
 	@mkdir -p "$(DESTDIR)/boot"
-	@cp -f $(WORKSRC)/tools/mkimage $(build_DESTDIR)$(build_bindir)/mkimage
 ifneq (,$(findstring board-rpi2,$(mm_BOARD_TYPE)))
-	@cp -f $(WORKSRC)/u-boot $(DESTDIR)/boot/kernel7.img
+	@cp -f $(WORKSRC)/u-boot     $(DESTDIR)/boot/kernel7.img
 endif
 ifneq (,$(findstring board-rpi3,$(mm_BOARD_TYPE)))
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/kernel8.img
@@ -51,4 +50,6 @@ endif
 	@$(MAKECOOKIE)
 
 clean-all:
-	@rm -f $(DESTDIR)/boot/u-boot.bin
+	@rm -f $(DESTDIR)/boot/kernel7.img
+	@rm -f $(DESTDIR)/boot/kernel8.img
+	@rm -f $(DESTDIR)/boot/s905_u-boot
