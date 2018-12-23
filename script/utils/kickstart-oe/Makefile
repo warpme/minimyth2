@@ -18,17 +18,21 @@ define BLURB
 endef
 
 DEPENDS = \
-	python3/python \
-	python3/python-codegen \
-	python3/python-ply \
-	python3/python-beautifulsoup4 \
-	python3/python-simplediff \
 	utils/diffstat \
 	disk/dosfstools \
 	disk/mtools \
 	disk/e2fsprogs \
 	utils/pseudo \
 	lib/parted \
+
+# Removed from dependencies as kickstart-oe not works OK with mm2 python3.
+# This needs further investigation...
+#	python3/python \
+#	python3/python-codegen \
+#	python3/python-ply \
+#	python3/python-beautifulsoup4 \
+#	python3/python-simplediff \
+
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
