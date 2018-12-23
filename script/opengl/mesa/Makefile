@@ -39,15 +39,13 @@ ifneq ($(DESTIMG),build)
 DEPENDS   += system/eudev
 endif
 BUILDDEPS  = \
-	lib/libxml2 \
-	python/python \
-	opengl/makedepend \
-	xorg/xorgproto \
-	xorg/libxshmfence
-
-ifneq ($(DESTIMG),build)
-BUILDDEPS += opengl/mesa
-endif
+	lib/libxml2        \
+	python/python      \
+	python/python-mako \
+	opengl/makedepend  \
+	xorg/xorgproto     \
+	xorg/libxshmfence  \
+	xorg/wayland       \
 
 PWD := $(shell pwd)
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
@@ -261,4 +259,3 @@ clean-all:
 	@rm -f $(DESTDIR)$(includedir)/xa_context.h
 	@rm -f $(DESTDIR)$(includedir)/xa_tracker.h
 	@rm -f $(DESTDIR)/usr/versions/mesa
-

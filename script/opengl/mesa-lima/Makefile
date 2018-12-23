@@ -46,15 +46,13 @@ ifneq ($(DESTIMG),build)
 DEPENDS   += system/eudev
 endif
 BUILDDEPS  = \
-	lib/libxml2 \
-	python/python \
-	opengl/makedepend \
-	xorg/xorgproto \
-	xorg/libxshmfence
-
-ifneq ($(DESTIMG),build)
-BUILDDEPS += opengl/mesa-lima
-endif
+	lib/libxml2        \
+	python/python      \
+	python/python-mako \
+	opengl/makedepend  \
+	xorg/xorgproto     \
+	xorg/libxshmfence  \
+	xorg/wayland       \
 
 PWD := $(shell pwd)
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
@@ -87,7 +85,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-dri \
 	--enable-dri3 \
 	LIBUDEV_CFLAGS="$(DESTDIR)$(includedir)" \
-	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so"
+	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so" \
+	--with-wayland-scanner-path="$(build_DESTDIR)$(build_bindir)/wayland-scanner" \
 
 ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
