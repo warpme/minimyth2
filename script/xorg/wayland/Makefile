@@ -10,9 +10,15 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c \
+DEPENDS = lang/c    \
+	lib/expat   \
+	lib/libxml2 \
 	lib/libxslt \
-	lib/libffi
+	lib/libffi  \
+
+ifneq ($(DESTIMG),build)
+BUILDDEPS += xorg/wayland
+endif
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
@@ -38,4 +44,3 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libwayland-egl.la
 	@rm -f $(DESTDIR)$(libdir)/libwayland-server.la
 	@$(MAKECOOKIE)
-
