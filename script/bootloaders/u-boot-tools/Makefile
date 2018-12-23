@@ -1,0 +1,54 @@
+GARNAME = u-boot-tools
+GARVERSION = 20181105-99431c1
+CATEGORIES = kernel
+MASTER_SITES = git://git.denx.de/u-boot.git/
+DISTFILES = $(DISTNAME).tar.bz2
+LICENSE = GPL2
+WORKSRC = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
+
+DESCRIPTION =
+define BLURB
+endef
+
+DEPENDS   = lang/c lib/openssl
+
+CONFIGURE_SCRIPTS   = custom
+BUILD_SCRIPTS       = custom
+INSTALL_SCRIPTS     = custom
+
+include ../../gar.mk
+
+BUILD_ARGS = \
+	CROSS_COMPILE=$(compiler_prefix) \
+	ARCH=$(GARCH_FAMILY) \
+
+configure-custom:
+	@$(MAKE) -C $(WORKSRC) defconfig
+	@$(MAKECOOKIE)
+
+build-custom:
+	@$(MAKE) -C $(WORKSRC) tools-all
+	@$(MAKECOOKIE)
+
+git//%$(DISTNAME).tar.bz2:
+	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
+	@$(MAKECOOKIE)
+
+install-custom:
+	@cp -f $(WORKSRC)/tools/dumpimage   $(build_DESTDIR)$(build_bindir)/dumpimage
+	@cp -f $(WORKSRC)/tools/img2srec    $(build_DESTDIR)$(build_bindir)/img2srec
+	@cp -f $(WORKSRC)/tools/jtagconsole $(build_DESTDIR)$(build_bindir)/jtagconsole
+	@cp -f $(WORKSRC)/tools/mkenvimage  $(build_DESTDIR)$(build_bindir)/mkenvimage
+	@cp -f $(WORKSRC)/tools/mkimage     $(build_DESTDIR)$(build_bindir)/mkimage
+	@cp -f $(WORKSRC)/tools/ncb         $(build_DESTDIR)$(build_bindir)/ncb
+	@cp -f $(WORKSRC)/tools/netconsole  $(build_DESTDIR)$(build_bindir)/netconsole
+	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -f $(build_DESTDIR)$(build_bindir)/dumpimage
+	@rm -f $(build_DESTDIR)$(build_bindir)/img2srec
+	@rm -f $(build_DESTDIR)$(build_bindir)/jtagconsole
+	@rm -f $(build_DESTDIR)$(build_bindir)/mkenvimage
+	@rm -f $(build_DESTDIR)$(build_bindir)/mkimage
+	@rm -f $(build_DESTDIR)$(build_bindir)/ncb
+	@rm -f $(build_DESTDIR)$(build_bindir)/netconsole
