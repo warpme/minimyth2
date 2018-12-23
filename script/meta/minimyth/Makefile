@@ -181,7 +181,6 @@ DEPENDS = \
 	$(filter-out %/Makefile extras/extras-% extras/extras.%,$(subst ../../,,$(wildcard ../../extras/*))) \
 	$(mm_USER_PACKAGES)
 
-
 BUILDDEPS = \
 	utils/coreutils \
 	devel/fakeroot \
@@ -191,11 +190,8 @@ BUILDDEPS = \
 	utils/squashfs \
 	utils/tar \
 	utils/util-linux \
-	xorg/xorg \
 	perl/perlstrip \
-	python/python-pyminifier \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),utils/kickstart-oe) \
-
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
