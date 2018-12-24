@@ -12,6 +12,7 @@ endef
 
 DEPENDS   = lang/c lang/cxx
 BUILDDEPS = python/python
+
 ifneq ($(DESTIMG),build)
 BUILDDEPS += devel/llvm
 endif
@@ -22,6 +23,7 @@ WORKBLD = $(WORKSRC)_build
 CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
 BUILD_SCRIPTS     = $(WORKBLD)/Makefile
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
+
 
 CONFIGURE_ARGS = \
 	-DCMAKE_INSTALL_PREFIX="$(prefix)" \
@@ -50,17 +52,6 @@ CONFIGURE_ARGS = \
 	-DLLVM_BUILD_DOCS="OFF" \
 	-DLLVM_ENABLE_DOXYGEN="OFF" \
 	-DCMAKE_BUILD_TYPE=Release
-
-ifeq ($(DESTIMG),build)
-CONFIGURE_ARGS += \
-	-DLLVM_TARGETS_TO_BUILD="X86" \
-	-DLLVM_BUILD_LLVM_DYLIB="OFF" \
-	-DLLVM_LINK_LLVM_DYLIB="OFF" \
-	-DLLVM_BUILD_RUNTIME="OFF" \
-	-DLLVM_BUILD_RUNTIMES="OFF" \
-	-DLLVM_TARGETS_WITH_JIT="OFF" \
-	--target="llvm-config;llvm-tblgen"
-endif
 
 ifneq ($(DESTIMG),build)
 CONFIGURE_ARGS += -DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
@@ -97,14 +88,12 @@ post-install:
 	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config
 	@mkdir -p $(DESTDIR)$(bindir)-config
 	@$(if $(filter build, $(DESTIMG)), \
-		cp $(WORKBLD)/bin/llvm-tblgen $(build_DESTDIR)$(build_bindir)/llvm-tblgen, \
 		cp $(WORKBLD)/bin/llvm-config                         $(DESTDIR)$(bindir)-config/llvm-config, \
 		cp $(build_DESTDIR)$(build_bindir)-config/llvm-config $(DESTDIR)$(bindir)-config/llvm-config  )
 	@$(if $(compiler_prefix), ln -s llvm-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config)
 	@$(MAKECOOKIE)
 
 clean-all:
-	@rm -f $(DESTDIR)$(bindir)/llvm-tblgen
 	@rm -f $(DESTDIR)$(bindir)-config/llvm-config
 	@rm -f $(DESTDIR)$(bindir)/llvm*
 	@rm -f $(DESTDIR)$(libdir)/libLLVM*
