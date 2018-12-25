@@ -143,7 +143,7 @@ mm_HOME                   ?= /home/piotro/minimyth-dev
 
 # The version of kernel to use.
 # Valid values are 'amlogic-4.19' '4.19' and '4.20'
-mm_KERNEL_VERSION         ?= 4.19
+mm_KERNEL_VERSION         ?= 4.20
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
