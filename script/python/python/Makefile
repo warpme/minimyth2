@@ -113,6 +113,8 @@ post-install:
 	@mv $(DESTDIR)$(bindir)/python-config $(DESTDIR)$(bindir)-config/python-config
 	@$(if $(compiler_prefix), ln -s python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config)
 	@$(if $(compiler_prefix), ln -s python-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)python-config)
+	@rm -f $(DESTDIR)$(bindir)/python
+	@ln -sr $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR) $(DESTDIR)$(bindir)/python
 	@$(MAKECOOKIE)
 
 clean-all:
