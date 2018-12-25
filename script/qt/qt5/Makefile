@@ -1,11 +1,12 @@
 GARNAME = qt-everywhere-src
-GARVERSION = 5.11.2
+GARVERSION = 5.12.0
 CATEGORIES = qt
-MASTER_SITES = http://download.qt.io/official_releases/qt/5.11/$(GARVERSION)/single/
+MASTER_SITES = http://download.qt.io/official_releases/qt/5.12/$(GARVERSION)/single/
 DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES =  $(DISTNAME).patch.gar
+PATCHFILES  = $(DISTNAME).patch.gar
 PATCHFILES += $(DISTNAME)-fix-gcc6+-build.patch
-PATCHFILES += $(DISTNAME)-disable-qtlocation-mapboxgl-plugin.patch
+PATCHFILES += $(DISTNAME)-fix-QTBUG-71010.patch
+# PATCHFILES += $(DISTNAME)-disable-qtlocation-mapboxgl-plugin.patch
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
@@ -60,6 +61,7 @@ CONFIGURE_ARGS = \
 	-no-optimized-qmake \
 	-platform $(PLATFORM_GARBUILD_NAME) \
 	-xplatform $(PLATFORM_GARHOST_NAME) \
+	-c++std c++1z \
 	-plugin-sql-mysql \
 	-no-sql-db2 \
 	-no-sql-ibase \
