@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.9.0.r1003
+mm_VERSION_MINIMYTH ?= 9.10.0.r1050
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -142,7 +142,7 @@ mm_SDCARD_FILES           ?= /home/piotro/ABS/SD-image-builder
 mm_HOME                   ?= /home/piotro/minimyth-dev
 
 # The version of kernel to use.
-# Valid values are 'rpi-4.14' 'amlogic-4.19' 'allwinner-4.19' '4.18' and '4.19'
+# Valid values are 'amlogic-4.19' '4.19' and '4.20'
 mm_KERNEL_VERSION         ?= 4.19
 
 # The kernel configuration file to use.
@@ -155,8 +155,8 @@ mm_KERNEL_CONFIG          ?=
 mm_MYTH_VERSION           ?= master
 
 # The version of the NVIDIA driver.
-# Valid values are '410.78'
-mm_NVIDIA_VERSION         ?= 410.78
+# Valid values are '410.78', '415.25'
+mm_NVIDIA_VERSION         ?= 415.25
 
 # The version of the NVIDIA legacy driver.
 # Valid values are '340.107'
