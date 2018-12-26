@@ -1,5 +1,5 @@
 GARNAME = libXNVctrl
-GARVERSION = $(mm_NVIDIA_VERSION)
+GARVERSION = 415.25
 CATEGORIES = lib
 MASTER_SITES = https://github.com/NVIDIA/nvidia-settings/archive/
 DISTFILES = $(GARVERSION).tar.gz
