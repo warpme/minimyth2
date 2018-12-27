@@ -1,9 +1,9 @@
 #-------------------------------------------------------------------------------
 # Values in this file can be overridden by including the desired value in
-# '$(mm_HOME)/minimyth.conf.mk'.
+# '$(mm_HOME)/.minimyth2/minimyth.conf.mk'.
 #-------------------------------------------------------------------------------
 
--include /home/piotro/minimyth-dev/minimyth.conf.mk
+-include $(HOME)/.minimyth2/minimyth.conf.mk
 
 # The version of MiniMyth.
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
