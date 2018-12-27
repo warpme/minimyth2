@@ -38,13 +38,13 @@ git//%$(DISTNAME).tar.bz2:
 
 install-custom:
 	@mkdir -p "$(DESTDIR)/boot"
-ifneq (,$(findstring board-rpi2,$(mm_BOARD_TYPE)))
+ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_2_defconfig)
 	@cp -f $(WORKSRC)/u-boot     $(DESTDIR)/boot/kernel7.img
 endif
-ifneq (,$(findstring board-rpi3,$(mm_BOARD_TYPE)))
+ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_3_defconfig)
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/kernel8.img
 endif
-ifneq (,$(findstring board-s905,$(mm_BOARD_TYPE)))
+ifeq ($(mm_U-BOOT_BOARD_TYPE),p212_defconfig)
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/s905_u-boot
 endif
 	@$(MAKECOOKIE)
