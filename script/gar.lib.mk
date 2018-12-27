@@ -60,7 +60,7 @@ http//%:
 
 # download an ftp URL (colons omitted)
 ftp//%: 
-	@cd $(PARTIALDIR) ; wget -c --passive-ftp ftp://$*
+	@cd $(PARTIALDIR) ; wget -c --passive-ftp --tries=3 ftp://$*
 
 # link to a local copy of the file
 # (absolute path)
