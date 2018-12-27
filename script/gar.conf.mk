@@ -200,7 +200,7 @@ GARPKGDIR = $(GARPKGROOT)/$(GARNAME)
 FILE_SITES = file://$(FILEDIR)/ file://$(GARCHIVEDIR)/
 
 #append the public archive
-MASTER_SITES += http://warped.inet2.org/pkg/minimyth2-garchive/
+MASTER_SITES += http://warped.inet2.org/pkg/minimyth2-garchive/$(GARNAME)-$(GARVERSION)/
 
 # Extra confs to include after gar.conf.mk
 GAR_EXTRA_CONF += extras/extras.conf.mk devel/gcc/package-api.mk
