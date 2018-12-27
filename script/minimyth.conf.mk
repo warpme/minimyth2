@@ -50,7 +50,7 @@ mm_OPENGL_PROVIDER        ?= mesa
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
 # 'flash', 'mplayer-svn', 'voip', 'bumblebee', 'perl', 'python', 'mame',
-# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'ipxe' 'u-boot' 'chrome', 'firefox',
+# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'ipxe' 'bootloader' 'chrome', 'firefox',
 # 'lcdproc', 'glmark2' 'kmscube' 'debug'.
 mm_SOFTWARE               ?= \
                             python \
