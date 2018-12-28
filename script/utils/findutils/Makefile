@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c perl/perl perl/perl-Text-Unidecode
+DEPENDS = lang/c
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -23,6 +23,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 include ../../gar.mk
 
 pre-configure:
+	@# Disable building doc as this requires some perl modules..and is basically useless here
+	@sed -i '/^SUBDIRS/s/doc//' $(WORKSRC)/Makefile.in
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL_LIBPATH,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
