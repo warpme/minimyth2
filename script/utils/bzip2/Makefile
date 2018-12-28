@@ -1,7 +1,7 @@
 GARNAME = bzip2
 GARVERSION = 1.0.6
 CATEGORIES = utils
-MASTER_SITES = http://www.bzip.org/$(GARVERSION)/
+MASTER_SITES = https://sources.archlinux.org/other/packages/bzip2/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-so.patch $(DISTNAME)-cflags.patch $(DISTNAME)-perl.patch.gar $(DISTNAME).patch
 LICENSE = bzip2
