@@ -1,8 +1,8 @@
 GARNAME = fribidi
-GARVERSION = 0.19.5
+GARVERSION = 1.0.5
 CATEGORIES = lib
-MASTER_SITES = http://fribidi.org/download/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://github.com/fribidi/fribidi/archive/
+DISTFILES = v$(GARVERSION).tar.gz
 LICENSE = LGPL2_1
 
 DESCRIPTION =
@@ -33,6 +33,8 @@ CPPFLAGS += -DFRIBIDI_CHUNK_SIZE=4080
 endif
 
 pre-configure:
+	@# Disable building doc as is basically useless here
+	@sed -i '/^SUBDIRS/s/doc//' $(WORKSRC)/Makefile.am
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL_LIBPATH,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
