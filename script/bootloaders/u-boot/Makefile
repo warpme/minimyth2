@@ -1,10 +1,11 @@
-GARNAME = u-boot
-GARVERSION = 20181105-99431c1
-CATEGORIES = kernel
-MASTER_SITES = git://git.denx.de/u-boot.git/
-DISTFILES = $(DISTNAME).tar.bz2
+GARNAME      = u-boot
+GARVERSION   = bea3d826203f90507ff32ed24bd0a3c53479e55c
+CATEGORIES   = kernel
+MASTER_SITES = https://github.com/u-boot/u-boot/archive/
+DISTFILES    = $(GARVERSION).zip
+WORKSRC      = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
+
 LICENSE = GPL2
-WORKSRC = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
 
 DESCRIPTION =
 define BLURB
