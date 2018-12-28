@@ -1,13 +1,10 @@
-GARNAME = rtmpdump
-GARVERSION_TYPE = git
-GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-             master-fa8646d, \
-             2.3 ))
-CATEGORIES = net
-MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-             git://git.ffmpeg.org/rtmpdump.git/ , \
-             http://rtmpdump.mplayerhq.hu/download/ ))
-DISTFILES = $(DISTNAME).tar.bz2
+GARNAME      = rtmpdump
+GARVERSION   = fa8646daeb19dfd12c181f7d19de708d623704c0
+CATEGORIES   = net
+MASTER_SITES = https://git.ffmpeg.org/gitweb/rtmpdump.git/snapshot/
+DISTFILES    = $(GARVERSION).tar.gz
+WORKSRC      = $(WORKDIR)/rtmpdump-fa8646d
+
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
