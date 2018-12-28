@@ -9,15 +9,15 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c
+DEPENDS = lang/c db/sqlite
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-CONFIGURE_ARGS = $(DIRPATHS) \
-        --build=$(GARBUILD) \
-        --host=$(GARHOST) \
-        --prefix="$(prefix)" \
-
 include ../../gar.mk
+
+CONFIGURE_ARGS = \
+        --prefix="$(prefix)" \
+        --with-sqlite=$(build_rootdir)/usr
+
