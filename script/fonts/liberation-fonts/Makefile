@@ -1,7 +1,7 @@
 GARNAME = liberation-fonts
 GARVERSION = 2.00.1
 CATEGORIES = fonts
-MASTER_SITES = http://fedorahosted.org/releases/l/i/$(GARNAME)/
+MASTER_SITES = https://releases.pagure.org/liberation-fonts/
 DISTFILES = $(GARNAME)-ttf-$(GARVERSION).tar.gz
 LICENSE = OFL1_1
 
