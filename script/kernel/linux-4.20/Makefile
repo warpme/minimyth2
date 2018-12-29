@@ -49,9 +49,10 @@ endif
 
 # Patches for Mali450 GPU Lima driver
 ifeq (1,1)
-PATCHFILES += 0202-lima-dt-bindings-add-switch-delay-property-for-mali-utgar.patch
-PATCHFILES += 0203-lima-arm64-dts-add-switch-delay-for-meson-mali.patch
-PATCHFILES += 0204-lima-arm64-dts-add-switch-delay-for-meson-mali.patch
+PATCHFILES += 0201-lima-drm-ARM-dts-add-gpu-node-to-exynos4.patch
+PATCHFILES += 0202-lima-drm-dt-bindings-add-switch-delay-property-for-mali-utgar.patch
+PATCHFILES += 0203-lima-drm-arm64-dts-add-switch-delay-for-meson-mali.patch
+PATCHFILES += 0204-lima-drm-arm64-dts-add-switch-delay-for-meson-mali.patch
 PATCHFILES += 0205-lima-drm-add-lima-uapi-header.patch
 PATCHFILES += 0206-lima-drm-add-mali-4xx-GPU-hardware-regs.patch
 PATCHFILES += 0207-lima-drm-add-lima-core-driver.patch
