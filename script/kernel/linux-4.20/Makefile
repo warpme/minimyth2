@@ -161,6 +161,7 @@ configure-custom:
 	@cp $(if $(mm_KERNEL_CONFIG),$(HOME)/.minimyth/$(mm_KERNEL_CONFIG),$(DOWNLOADDIR)/$(CONFIGFILE)) $(WORKSRC)/.config
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) oldconfig
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) clean
+	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) prepare
 	$(warning Kernel will be build with following cmd line:$(BUILD_ARGS))
 	$(warning LINUX_MAKE_ARGS: $(LINUX_MAKE_ARGS))
 	$(warning LINUX_MAKE_ENV: $(LINUX_MAKE_ENV))
