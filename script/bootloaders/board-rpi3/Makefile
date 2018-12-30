@@ -3,7 +3,7 @@ GARNAME      = bootfiles-rpi3
 GITHASH      = e1bd9b0b8cda901ee9b23cbb8b3334cde71320a7
 GARVERSION   = 2018-12-29-$(GITHASH)
 CATEGORIES   = bootloaders
-MASTER_SITES = https://github.com/raspberrypi/firmware/blob/$(GITHASH)/boot/
+MASTER_SITES = https://github.com/raspberrypi/firmware/raw/$(GITHASH)/boot/
 DISTFILES    = rpi3-boot.scr \
                rpi3-boot.txt \
                bootcode.bin \
