@@ -7,7 +7,7 @@ PATCHFILES  = $(DISTNAME).patch.gar
 PATCHFILES += $(DISTNAME)-fix-gcc6+-build.patch
 PATCHFILES += $(DISTNAME)-fix-QTBUG-71010.patch
 PATCHFILES += $(DISTNAME)-fix-qttools-compile.patch
-# PATCHFILES += $(DISTNAME)-disable-qtlocation-mapboxgl-plugin.patch
+PATCHFILES += $(DISTNAME)-disable-qtlocation-mapboxgl-plugin.patch
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
