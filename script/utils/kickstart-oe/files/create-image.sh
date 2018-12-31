@@ -1,10 +1,9 @@
 
-mm_home="/home/piotro/minimyth-dev"
 use_minimyth_python3="no"
 
 #--------------------------------------------------------------------------------------
 
-mm_conf_file="${mm_home}/minimyth.conf.mk"
+mm_conf_file="${HOME}/.minimyth2/minimyth.conf.mk"
 
 boards=$1
 
@@ -15,6 +14,7 @@ fi
 branch=` grep "^mm_MYTH_VERSION "     ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 version=`grep "^mm_VERSION_MINIMYTH " ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 arch=`   grep "^mm_GARCH "            ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
+mm_home=`grep "^mm_HOME "             ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 
 base_dir=${mm_home}/images/build/usr/bin/kickstart
 mm_build_dir=${mm_home}/script/meta/minimyth/work/main.d/minimyth-master-${version}/build
@@ -41,12 +41,13 @@ echo "" >> ${base_dir}/conf/multiconfig/default.conf
 boards_list=""
 
 for board in ${boards} ; do
-    echo "  adding board "${board}" to default.config"
+    echo "  adding "${board}" to default.config"
     cat ${base_dir}/conf/multiconfig/${board}.conf >> ${base_dir}/conf/multiconfig/default.conf
     boards_list=${board}-${boards_list}
 done
 
 echo "  boards        : ${boards_list}"
+echo "  mm2 home dir  : [${mm_home}]"
 echo "  boot files    : [${boot_files_loc}]"
 echo "  rootfs files  : [${root_files_loc}]"
 
