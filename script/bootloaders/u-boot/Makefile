@@ -40,7 +40,7 @@ git//%$(DISTNAME).tar.bz2:
 install-custom:
 	@mkdir -p "$(DESTDIR)/boot"
 ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_2_defconfig)
-	@cp -f $(WORKSRC)/u-boot     $(DESTDIR)/boot/kernel7.img
+	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/kernel7.img
 endif
 ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_3_defconfig)
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/kernel8.img

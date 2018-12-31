@@ -43,6 +43,7 @@ install-custom:
 	@cp -f $(WORKSRC)/start.elf     $(DESTDIR)/boot/start.elf
 	@cp -f $(WORKSRC)/start_cd.elf  $(DESTDIR)/boot/start_cd.elf
 	@cp -f $(WORKSRC)/start_x.elf   $(DESTDIR)/boot/start_x.elf
+	@cp -f $(DESTDIR)/boot/dtbs/bcm2836-rpi-2-b.dtb $(DESTDIR)/boot/bcm2836-rpi-2-b.dtb
 	@$(MAKECOOKIE)
 
 clean-all:
