@@ -6,6 +6,7 @@ DISTFILES = $(DISTNAME).tar.xz
 LICENSE = $(GARNAME)
 PATCHFILES = $(DISTNAME)-fix-compile.patch
 PATCHFILES += $(DISTNAME)-fix-man-dir.patch
+PATCHFILES += $(DISTNAME)-glibc2.28-add-sysmacros.patch
 $(GARNAME)_LICENSE_TEXT=$(WORKSRC)/COPYING
 
 DESCRIPTION =
