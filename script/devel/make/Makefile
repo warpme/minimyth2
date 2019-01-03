@@ -3,12 +3,14 @@ GARVERSION = $(MAKE_VERSION)
 CATEGORIES = devel
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-savannah_bug_30723.patch 
-PATCHFILES += $(DISTNAME)-library_search.patch
-PATCHFILES += $(DISTNAME)-fix-compile-glibc-glob.patch
+
+PATCHFILES  = $(DISTNAME)-library_search.patch
+PATCHFILES += $(DISTNAME)-glibc2.28-do-not-assume-glibc-glob-internals.patch
+PATCHFILES += $(DISTNAME)-glibc2.28-support-glob-interface-v2.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
 PATCHFILES += $(DISTNAME)-perl.patch.gar
 endif
+
 LICENSE = GPL2
 
 DESCRIPTION = 
