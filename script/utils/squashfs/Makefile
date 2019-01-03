@@ -5,6 +5,7 @@ MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(
 DISTFILES = $(GARNAME)$(GARVERSION).tar.gz
 PATCHFILES  = $(DISTNAME).patch.gar
 PATCHFILES += $(DISTNAME)-conform-gnu11-and-gnu89-to-fix-i386-compilation.patch
+PATCHFILES += $(DISTNAME)-add-sysmacros.patch
 LICENSE = GPL2
 
 DESCRIPTION = 
