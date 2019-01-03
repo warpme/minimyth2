@@ -3,7 +3,9 @@ GARVERSION = 4.6.0
 CATEGORIES = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES= $(DISTNAME)-perl.patch.gar
+PATCHFILES  = $(DISTNAME)-perl.patch.gar
+PATCHFILES += $(DISTNAME)-glibc2.28-fix-fflush.patch
+PATCHFILES += $(DISTNAME)-glibc2.28-fix-makedev.patch
 LICENSE = GPL3
 
 DESCRIPTION = 
