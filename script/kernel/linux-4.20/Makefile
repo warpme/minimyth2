@@ -138,7 +138,7 @@ BUILDDEPS = \
 	utils/bc \
 
 DEPENDS = \
-	kernel/linux-headers-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)  \
+	kernel-headers/linux-headers \
 	kernel/linux-firmware \
 	kernel/linux-firmware-meson \
 	$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),bootloaders/u-boot-tools) \
