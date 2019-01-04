@@ -1,5 +1,5 @@
 GARNAME = bison
-GARVERSION = 3.2
+GARVERSION = 2.7
 CATEGORIES = devel
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
@@ -11,7 +11,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c
-BUILDDEPS = utils/m4 doc/help2man
+BUILDDEPS = utils/m4
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
