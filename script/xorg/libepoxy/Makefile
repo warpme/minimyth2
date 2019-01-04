@@ -1,8 +1,8 @@
 GARNAME = libepoxy
-GARVERSION = 1.3.1
+GARVERSION = 1.5.3
 CATEGORIES = $(CATEGORY)
-MASTER_SITES = https://github.com/anholt/libepoxy/releases/download/v$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://github.com/anholt/libepoxy/archive/
+DISTFILES = $(GARVERSION).tar.gz
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 DESCRIPTION = 
@@ -25,6 +25,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 include ../../gar.mk
 
 pre-configure:
+	@mkdir -p $(WORKSRC)/m4
 	@$(call RUN_AUTOTOOLS)
 	@$(MAKECOOKIE)
 
