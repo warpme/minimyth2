@@ -70,8 +70,6 @@ PATCHFILES += 0203-Mediamonitor-revert-16086d2-Honor-the-MonitorDrives-setting.p
 PATCHFILES += 0204-Mediamonitor-revert24c5575-revert-MediaMon-UI-to-select-preferred-media-handler.patch
 
 # Misc frontend patches
-PATCHFILES += 0210-add-option-to-not-remember-last-livetv-chan.patch
-# 0211 is needed to successfully compile 0204
 PATCHFILES += 0211-decrease-minQt-ver-to-4.8-v2.patch
 PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
