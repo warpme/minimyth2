@@ -44,6 +44,9 @@ pre-configure:
 
 build-custom:
 	$(MAKE) all-am -C $(WORKSRC)
+	@$(MAKECOOKIE)
 
 install-custom:
 	$(MAKE) install-am -C $(WORKSRC)
+	@ln -srv $(DESTDIR)$(bindir)/ps $(DESTDIR)$(ebindir)/ps
+	@$(MAKECOOKIE)
