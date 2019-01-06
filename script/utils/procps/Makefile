@@ -24,7 +24,7 @@ CONFIGURE_ARGS =  \
 	--sysconfdir="$(DESTDIR)$(sysconfdir)" \
 	--libdir="$(DESTDIR)$(libdir)" \
 	--bindir="$(DESTDIR)$(bindir)" \
-	--sbindir="$(DESTDIR)$(bindir)" \
+	--sbindir="$(DESTDIR)$(sbindir)" \
 	--libexecdir="$(DESTDIR)$(libexecdir)" \
 	--datarootdir="$(DESTDIR)$(datadir)" \
 	--includedir="$(DESTDIR)$(includedir)" \
@@ -48,5 +48,6 @@ build-custom:
 
 install-custom:
 	$(MAKE) install-am -C $(WORKSRC)
-	@ln -srv $(DESTDIR)$(bindir)/ps $(DESTDIR)$(ebindir)/ps
+	@ln -srfv $(DESTDIR)$(bindir)/ps      $(DESTDIR)$(ebindir)/ps
+	@ln -srfv $(DESTDIR)$(sbindir)/sysctl $(DESTDIR)$(esbindir)/sysctl
 	@$(MAKECOOKIE)
