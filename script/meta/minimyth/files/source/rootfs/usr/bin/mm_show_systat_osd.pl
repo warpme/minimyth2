@@ -66,7 +66,7 @@
 my $be_ip                 = "@MM_MASTER_SERVER@";
 my $fe_ip_list            = "127.0.0.1";
 
-my $frontend_proces_list  = "mythfrontend,X ";
+my $frontend_proces_list  = "mythfrontend,X";
 my $backend_proces_list   = "mythbackend,sasc-ng\n,mysqld";
 
 my $osd_temps_timeout     = "12";
