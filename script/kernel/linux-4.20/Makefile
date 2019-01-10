@@ -99,33 +99,37 @@ endif
 
 # Patches for Amlogic audio support
 ifeq (1,1)
-PATCHFILES += 0306-drm-meson-Add-support-for-VIC-alternate-timings.patch
-PATCHFILES += 0307-drm-meson-fix-max-height-width.patch
-PATCHFILES += 0308-defconfig-enable-CEC-support.patch
-PATCHFILES += 0309-audio-meson-add-meson-audio-core-driver.patch
-PATCHFILES += 0310-audio-meson-add-register-definitions.patch
-PATCHFILES += 0311-audio-meson-add-aiu-i2s-dma-support.patch
-PATCHFILES += 0312-audio-meson-add-initial-i2s-dai-support.patch
-PATCHFILES += 0313-audio-meson-add-aiu-spdif-dma-support.patch
-PATCHFILES += 0314-audio-meson-add-initial-spdif-dai-support.patch
-PATCHFILES += 0315-defconfig-enable-audio-support-for-meson-SoCs-.patch
-PATCHFILES += 0316-audio-dts-meson-gx-add-audio-controller-nodes.patch
-PATCHFILES += 0317-audio-meson-activate-HDMI-audio-path.patch
-PATCHFILES += 0318-drm-meson-select-dw-hdmi-i2s-audio-for-meson-hdmi.patch
-PATCHFILES += 0319-audio-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
-PATCHFILES += 0320-audio-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
-PATCHFILES += 0321-drm-bridge-dw-hdmi-Use-AUTO-CTS-setup-mode-when-non-.patch
-PATCHFILES += 0322-drm-meson-Call-drm_crtc_vblank_on-drm_crtc_vblank_of.patch
-PATCHFILES += 0337-audio-hdmi-codec-fix-channel-allocation.patch
-PATCHFILES += 0338-drm-dw-hdmi-i2s-add-.get_eld-callback-for-ALSA-SoC.patch
-PATCHFILES += 0339-drm-dw-hdmi-i2s-add-multi-channel-lpcm-support.patch
-PATCHFILES += 0340-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-enabl.patch
-PATCHFILES += 0341-drm-dw-hdmi-extract-dw_hdmi_connector_update_edid.patch
-PATCHFILES += 0342-drm-dw-hdmi-update-edid-on-hpd-event.patch
-PATCHFILES += 0346-misc-update-cpuinfo.patch
-PATCHFILES += 0352-misc-pfn-stfu.patch
-PATCHFILES += 0353-misc-set-rc-warn-once.patch
-PATCHFILES += 0357-boot-GX-update-TEXT_OFFSET-for-Amlogic-MESON-SoC.patch
+PATCHFILES += 0301-ARM64-defconfig-enable-CEC-support.patch
+PATCHFILES += 0302-ASoC-meson-add-meson-audio-core-driver.patch
+PATCHFILES += 0303-ASoC-meson-add-register-definitions.patch
+PATCHFILES += 0304-ASoC-meson-add-aiu-i2s-dma-support.patch
+PATCHFILES += 0305-ASoC-meson-add-initial-i2s-dai-support.patch
+PATCHFILES += 0306-ASoC-meson-add-aiu-spdif-dma-support.patch
+PATCHFILES += 0307-ASoC-meson-add-initial-spdif-dai-support.patch
+PATCHFILES += 0308-ARM64-defconfig-enable-audio-support-for-meson-SoCs-.patch
+PATCHFILES += 0309-ARM64-dts-meson-gx-add-audio-controller-nodes.patch
+PATCHFILES += 0310-snd-meson-activate-HDMI-audio-path.patch
+PATCHFILES += 0311-drm-meson-select-dw-hdmi-i2s-audio-for-meson-hdmi.patch
+PATCHFILES += 0312-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
+PATCHFILES += 0313-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
+PATCHFILES += 0314-drm-bridge-dw-hdmi-Use-AUTO-CTS-setup-mode-when-non-.patch
+PATCHFILES += 0315-drm-meson-Use-drm_fbdev_generic_setup.patch
+PATCHFILES += 0316-drm-meson-Use-optional-canvas-provider.patch
+PATCHFILES += 0317-arm64-dts-meson-gx-Add-canvas-provider-node-to-the-v.patch
+PATCHFILES += 0318-drm-meson-Support-Overlay-plane-for-video-rendering.patch
+PATCHFILES += 0319-drm-meson-move-OSD-scaler-management-into-plane-atom.patch
+PATCHFILES += 0320-drm-meson-Add-primary-plane-scaling.patch
+PATCHFILES += 0321-drm-meson-Add-HDMI-1.4-4k-modes.patch
+PATCHFILES += 0322-drm-meson-Add-support-for-VIC-alternate-timings.patch
+PATCHFILES += 0323-drm-meson-Fix-an-Alpha-Primary-Plane-bug-on-Meson-GX.patch
+PATCHFILES += 0324-drm-bridge-dw-hdmi-Add-SCDC-and-TMDS-Scrambling-supp.patch
+PATCHFILES += 0325-drm-meson-add-HDMI-div40-TMDS-mode.patch
+PATCHFILES += 0326-drm-meson-add-support-for-HDMI2.0-2160p-modes.patch
+PATCHFILES += 0327-drm-bridge-dw-hdmi-add-support-for-YUV420-output.patch
+PATCHFILES += 0328-drm-bridge-dw-hdmi-support-dynamically-get-input-out.patch
+PATCHFILES += 0329-drm-bridge-dw-hdmi-allow-ycbcr420-modes-for-0x200a.patch
+PATCHFILES += 0330-drm-meson-Add-YUV420-output-support.patch
+PATCHFILES += 0331-drm-meson-Output-in-YUV444-if-sink-supports-it.patch
 endif
 
 LICENSE = GPL2
