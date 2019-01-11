@@ -23,5 +23,6 @@ clean-all:
 	@$(MAKE) clean
 	@$(MAKE) clean-all -C ../../system/lirc
 	@$(MAKE) clean-all -C ../../nvidia
+	@$(MAKE) clean-all -C ../../bootloaders/bootloader
 	@$(MAKE) clean     -C ../../system/bbswitch
 	@$(MAKE) clean     -C ../../kernel/meson-gx-mali450
