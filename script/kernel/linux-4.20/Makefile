@@ -100,6 +100,26 @@ endif
 
 # Patches for Amlogic audio support
 ifeq (1,1)
+PATCHFILES += 0301-amlogic-ASoC-meson-add-meson-audio-core-driver.patch
+PATCHFILES += 0302-amlogic-ASoC-meson-add-register-definitions.patch
+PATCHFILES += 0303-amlogic-ASoC-meson-add-initial-aiu-i2s-support.patch
+PATCHFILES += 0304-amlogic-ASoC-meson-add-initial-spdif-support.patch
+PATCHFILES += 0305-amlogic-ASoC-defconfig-enable-audio-support-for-meson-SoCs-.patch
+PATCHFILES += 0306-amlogic-ASoC-dts-meson-gx-add-audio-controller-nodes.patch
+PATCHFILES += 0307-amlogic-ASoC-meson-activate-HDMI-audio-path.patch
+PATCHFILES += 0308-amlogic-ASoC-meson-select-dw-hdmi-i2s-audio-for-meson-hdmi.patch
+PATCHFILES += 0309-amlogic-ASoC-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
+PATCHFILES += 0310-amlogic-ASoC-dts-meson-activate-hdmi-audio-on-libretech.patch
+PATCHFILES += 0311-amlogic-ASoC-dts-meson-gxbb-p20x-add-i2s-codec-node.patch
+PATCHFILES += 0312-amlogic-ASoC-dts-meson-gxbb-p20x-add-analog-amplifier-node.patch
+PATCHFILES += 0313-amlogic-ASoC-dts-meson-gxbb-p20x-add-spdif-codec-node.patch
+PATCHFILES += 0314-amlogic-ASoC-dts-meson-gxbb-p20x-add-i2s-and-spdif-output-i.patch
+PATCHFILES += 0315-amlogic-ASoC-dts-meson-gxl-p230-add-spdif-codec-node.patch
+PATCHFILES += 0316-amlogic-ASoC-dts-meson-gxl-p230-add-spdif-output-interface.patch
+endif
+
+# Misc patches for Amlogic
+ifeq (1,0)
 PATCHFILES += 0301-ARM64-defconfig-enable-CEC-support.patch
 PATCHFILES += 0302-ASoC-meson-add-meson-audio-core-driver.patch
 PATCHFILES += 0303-ASoC-meson-add-register-definitions.patch
