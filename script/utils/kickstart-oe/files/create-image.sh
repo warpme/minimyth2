@@ -17,7 +17,7 @@ arch=`   grep "^mm_GARCH "            ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 mm_home=`grep "^mm_HOME "             ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 
 base_dir=${mm_home}/images/build/usr/bin/kickstart
-mm_build_dir=${mm_home}/script/meta/minimyth/work/main.d/minimyth-master-${version}/build
+mm_build_dir=${mm_home}/script/meta/minimyth/work/main.d/minimyth-${branch}-${version}/build
 root_files_loc=${mm_build_dir}/stage/image/rootfs
 boot_files_loc=${mm_build_dir}/stage/boot
 
