@@ -25,59 +25,59 @@ start() {
     /bin/mv -f "${UDHCPC_CONF}~" "${UDHCPC_CONF}"
 
     # If 'udhcpc' is running, then stop it.
-    if /usr/bin/test -n "`/bin/pidof udhcpc`" ; then
+    if [ -n "`/bin/pidof udhcpc`" ] ; then
         mm_message_output info "stopping DHCP client ..."
-        while /usr/bin/test -n "`/bin/pidof udhcpc`" 2> /dev/null ; do
+        while [ -n "`/bin/pidof udhcpc`" 2> /dev/null ] ; do
             /usr/bin/killall udhcpc
         done
     fi
 
     # Start 'udhcpc'.
-    if /usr/bin/test -z "`/bin/pidof udhcpc`" ; then
+    if [ -z "`/bin/pidof udhcpc`" ] ; then
         mm_message_output info "starting DHCP client ..."
         INTERFACE=${MM_NETWORK_INTERFACE}
-        if /usr/bin/test -z "${INTERFACE}" ; then
+        if [ -z "${INTERFACE}" ] ; then
             # Locate a connected network interface.
             # We use the first connected network interface found.
             INTERFACE_LIST=
-            if /usr/bin/test -e /sys/class/net ; then
+            if [ -e /sys/class/net ] ; then
                 INTERFACE_LIST=`/bin/ls -1 /sys/class/net | /bin/grep -v '^lo$'`
             fi
             INTERFACE=
             for INTERFACE_ITEM in ${INTERFACE_LIST} ; do
                 /usr/sbin/ifplugstatus -q ${INTERFACE_ITEM}
-                if /usr/bin/test $? -eq 2 ; then
+                if [ $? -eq 2 ] ; then
                     INTERFACE=${INTERFACE_ITEM}
                     break
                 fi
             done
         fi
-        if /usr/bin/test -z "${INTERFACE}" ; then
+        if [ -z "${INTERFACE}" ] ; then
             INTERFACE='eth0'
         fi
 
         # Start DHCP on the interface.
         IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
-        if /usr/bin/test -z "${IP_ADDRESS}" ; then
+        if [ -z "${IP_ADDRESS}" ] ; then
             /sbin/udhcpc -S -p /var/run/udhcpc.pid -s /etc/udhcpc.script -i ${INTERFACE} -O tcode -O logsrv  > /var/log/udhcpc 2>&1
         else
             /sbin/udhcpc -S -p /var/run/udhcpc.pid -s /etc/udhcpc.script -i ${INTERFACE} -r ${IP_ADDRESS}  -O tcode -O logsrv > /var/log/udhcpc 2>&1
         fi
-        if /usr/bin/test $? -ne 0 ; then
+        if [ $? -ne 0 ] ; then
             mm_message_output err "error: DHCP on interface '${INTERFACE}' failed."
             exit 1
         fi
 
         # Make sure we got an IP address.
         IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
-        if /usr/bin/test -z "${IP_ADDRESS}" ; then
+        if [ -z "${IP_ADDRESS}" ] ; then
             mm_message_output err "error: DHCP on interface '${INTERFACE}' failed."
             exit 1
         fi
     fi
 
     HOST_NAME=`/bin/hostname`
-    if /usr/bin/test "x${HOST_NAME}" = "x?" ; then
+    if [ "x${HOST_NAME}" = "x?" ] ; then
 
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/dhcp] NOTICE:    !!! No hostname assigned by DHCP server !!!"
 
@@ -86,7 +86,7 @@ start() {
         # Add full MAC as suffix
         SUFFIX=`cat /sys/class/net/${INTERFACE}/address | sed -e "s/://g"`
 
-        if /usr/bin/test -z "${SUFFIX}" ; then
+        if [ -z "${SUFFIX}" ] ; then
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/dhcp] NOTICE:    Can't determine MAC address on ${INTERFACE}. Will use \"Default\" suffix..."
             HOST_NAME="Myth-Frontend-Default"
         else
@@ -106,7 +106,9 @@ start() {
 stop() {
 
     mm_message_output info "stopping DHCP client ..."
-    /usr/bin/test -n "`/bin/pidof udhcpc`" && /usr/bin/killall udhcpc
+    if [ -n "`/bin/pidof udhcpc`" ] ; then
+        /usr/bin/killall udhcpc
+    fi
 
     return 0
 }

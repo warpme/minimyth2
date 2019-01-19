@@ -20,7 +20,7 @@ rc_wakeup_disable() {
     local device
     local status
 
-    if /usr/bin/test ! -r "/sys/class/lirc" ; then
+    if [ ! -r "/sys/class/lirc" ] ; then
         /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: no /sys/class/lirc"
         return
     fi
@@ -28,14 +28,14 @@ rc_wakeup_disable() {
 
     for lirc in ${lirc_list} ; do
 
-        if /usr/bin/test -z "${lirc}" ; then
+        if [ -z "${lirc}" ] ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: empty device..."
             continue
         fi
 
         name=`/usr/bin/udevadm info --query=name --root --path=/sys/class/lirc/${lirc}`
         /bin/echo " ${device_list}" | grep -q " ${name},"
-        if /usr/bin/test $? -ne 0 ; then
+        if [ $? -ne 0 ] ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: no devicelist from ${lirc}"
             continue
         fi
@@ -45,60 +45,60 @@ rc_wakeup_disable() {
         devpath=`/usr/bin/dirname "${devpath}"`
         devpath=`/usr/bin/dirname "${devpath}"`
 
-        if /usr/bin/test ! -r "${devpath}/busnum" ; then
+        if [ ! -r "${devpath}/busnum" ] ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: no busnum in ${devpath}"
             continue
         fi
 
         busnum=`/bin/cat "${devpath}/busnum" 2> /dev/null`
-        if /usr/bin/test $? -ne 0 || /usr/bin/test -z "${busnum}" ; then
+        if [ $? -ne 0 ] || [ -z "${busnum}" ] ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: no busnum from ${devpath}"
             continue
         fi
 
-        if /usr/bin/test ! -r "${devpath}/subsystem/devices/usb${busnum}/serial" ; then
+        if [ ! -r "${devpath}/subsystem/devices/usb${busnum}/serial" ] ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: no serial in ${devpath}/subsystem/devices/usb${busnum}"
             continue
         fi
 
         serial=`/bin/cat "${devpath}/subsystem/devices/usb${busnum}/serial"`
-        if /usr/bin/test $? -ne 0 || /usr/bin/test -z "${serial}" ; then
+        if [ $? -ne 0 ] || [ -z "${serial}" ] ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't find serial in ${devpath}/subsystem/devices/usb${busnum}/serial"
             continue
         fi
 
-        if /usr/bin/test ! -r "/proc/acpi/wakeup" ; then
+        if [ ! -r "/proc/acpi/wakeup" ] ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't read from /proc/acpi/wakeup..."
             continue
         fi
 
         entry=`/bin/cat /proc/acpi/wakeup | /bin/grep -e "${serial}\$" | /bin/sed -e 's%  *% %g'`
-        if /usr/bin/test $? -ne 0 || /usr/bin/test -z "${entry}" ; then
+        if [ $? -ne 0 ] || [ -z "${entry}" ] ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't find ${serial} in /proc/acpi/wakeup..."
             continue
         fi
 
         device=`/bin/echo ${entry} | /usr/bin/cut -d ' ' -f 1`
-        if /usr/bin/test $? -ne 0 || /usr/bin/test -z "${device}" ; then
+        if [ $? -ne 0 ] || [ -z "${device}" ] ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't find device in ${entry}"
             continue
         fi
 
         status=`/bin/echo ${entry} | /usr/bin/cut -d ' ' -f 3`
-        if /usr/bin/test $? -ne 0 || /usr/bin/test -z "${status}" ; then
+        if [ $? -ne 0 ] || [ -z "${status}" ] ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't detarmine status in ${entry}"
             continue
         fi
 
-        if /usr/bin/test ! -w "/proc/acpi/wakeup" ; then
+        if [ ! -w "/proc/acpi/wakeup" ] ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/lirc] ERROR disabling S3 wake-up: can't write to /proc/acpi/wakeup..."
             continue
         fi
 
-        if /usr/bin/test "${status}" = "*enabled" ; then
+        if [ "${status}" = "*enabled" ] ; then
             /usr/bin/logger -t minimyth -p "local0.info" "[init.d/lirc] Per request disabling S3 wake-up on ${device}..."
             /bin/echo ${device} > /proc/acpi/wakeup
-            if /usr/bin/test $? -ne 0 ; then
+            if [ $? -ne 0 ] ; then
                 continue
             fi
         else
@@ -117,7 +117,7 @@ start() {
     /bin/mkdir -p /var/lock
     /bin/mkdir -p /var/run/lirc
 
-    if /usr/bin/test "x${MM_LIRC_USE_DEVINPUT}" = "xyes" ; then
+    if [ "x${MM_LIRC_USE_DEVINPUT}" = "xyes" ] ; then
 
         # Starting LIRC in devinput mode
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/lirc] Starting in devinput mode..."
@@ -136,13 +136,13 @@ start() {
     fi
 
     # Auto-configure usage of 'irexec'.
-    if /usr/bin/test "${MM_LIRC_IREXEC_ENABLED}" = "auto" ; then
+    if [ "${MM_LIRC_IREXEC_ENABLED}" = "auto" ] ; then
 
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/lirc] Attempting to auto-configure usage of irexec"
 
         MM_LIRC_IREXEC_ENABLED='no'
 
-        if /usr/bin/test -e /etc/lirc/lircrc ; then
+        if [ -e /etc/lirc/lircrc ] ; then
 
             # Only one level of includes is supported.
             lircrc_files="/etc/lirc/lircrc `/bin/cat /etc/lirc/lircrc | /bin/grep -e '^include ' | /bin/sed -e 's%^include *%%'`"
@@ -159,7 +159,7 @@ start() {
     fi
 
     # Start the irexec daemon.
-    if /usr/bin/test "${MM_LIRC_IREXEC_ENABLED}" = "yes" ; then
+    if [ "${MM_LIRC_IREXEC_ENABLED}" = "yes" ] ; then
 
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/lirc] Starting irexec daemon..."
         /usr/bin/irexec -d /etc/lirc/lircrc
@@ -167,9 +167,9 @@ start() {
     fi
 
     # Starting irsend daemon
-    if /usr/bin/test -n "${MM_EXTERNAL_AMPLI_POWER_ENABLED}" || \
-       /usr/bin/test -n "${MM_EXTERNAL_TV_POWER_ENABLED}"    || \
-       /usr/bin/test -n "${MM_EXTERNAL_VOLUME_ENABLED}" ; then
+    if [ -n "${MM_EXTERNAL_AMPLI_POWER_ENABLED}" ] || \
+       [ -n "${MM_EXTERNAL_TV_POWER_ENABLED}"    ] || \
+       [ -n "${MM_EXTERNAL_VOLUME_ENABLED}"      ] ; then
 
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/lirc] Starting irsend daemon..."
         /usr/bin/irsend_daemon &
@@ -177,14 +177,14 @@ start() {
     fi
 
     # Disable wakeup on remote.
-    if /usr/bin/test "${MM_LIRC_WAKEUP_ENABLED}" = "no" ; then
+    if [ "${MM_LIRC_WAKEUP_ENABLED}" = "no" ] ; then
         rc_wakeup_disable "${MM_LIRC_DEVICE_LIST}"
     fi
 
     # Making default jumppoints
     main_menu_jumppoint=`mm_mythdb_jumppoints_get 'Main Menu'`
 
-    if /usr/bin/test "x${main_menu_jumppoint}" = "xAlt+h" ; then
+    if [ "x${main_menu_jumppoint}" = "xAlt+h" ] ; then
 
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/lirc] Not initial run - settings seems to be already defaulted..."
 
@@ -194,7 +194,7 @@ start() {
 
         mm_mythdb_jumppoints_update 'Main Menu' 'Alt+h'
 
-        if /usr/bin/test "${MM_LIRC_FETCH_LIRCRC}" = "no" ; then
+        if [ "${MM_LIRC_FETCH_LIRCRC}" = "no" ] ; then
 
             /usr/bin/logger -t minimyth -p "local0.info" "[init.d/lirc] Initial run with build-in lircrc file - will defaulting major MythTV jumppoints..."
 
@@ -239,10 +239,18 @@ start() {
 stop() {
     mm_message_output info "stopping remote control ..."
 
-    /usr/bin/test -n "`/bin/pidof irexec`" && /usr/bin/killall irexec
-    /usr/bin/test -n "`/bin/pidof irxevent`" && /usr/bin/killall irxevent
-    /usr/bin/test -n "`/bin/pidof eventlircd`"  && /usr/bin/killall eventlircd
-    /usr/bin/test -n "`/bin/pidof irsend_daemon`"  && /usr/bin/killall irsend_daemon
+    if [ -n "`/bin/pidof irexec`" ] ; then
+        /usr/bin/killall irexec
+    fi
+    if [ -n "`/bin/pidof irxevent`" ] ; then
+        /usr/bin/killall irxevent
+    fi
+    if [ -n "`/bin/pidof eventlircd`" ] ; then
+        /usr/bin/killall eventlircd
+    fi
+    if [ -n "`/bin/pidof irsend_daemon`" ] ; then
+        /usr/bin/killall irsend_daemon
+    fi
 }
 
 case $1 in

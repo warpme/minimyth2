@@ -12,18 +12,18 @@ start() {
 
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/time] Starting..."
 
-    if /usr/bin/test -e /etc/localtime ; then
+    if [ -e /etc/localtime ] ; then
         timezone=`cat /etc/localtime`
     fi
-    if /usr/bin/test -z ${timezone} ; then
+    if [ -z ${timezone} ] ; then
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ not set by DHCP or MM_DHCP_TCODE. Starting auto-detection..."
         i=0
-        while /usr/bin/test $i -lt 10 ; do
+        while [ $i -lt 10 ] ; do
             i=$((${i} + 1))
             rc=`/usr/bin/python /usr/bin/tzupdate`
-            if /usr/bin/test $? -ne 0 ; then
+            if [ $? -ne 0 ] ; then
                 /bin/sleep 2
-                if /usr/bin/test $i -lt 10 ; then
+                if [ $i -lt 10 ] ; then
                     /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] try ${i}: TZ auto-detection failed! Daemon returns: ${rc}"
                 else
                     /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] try ${i}: TZ auto-detection failed! Daemon returns: ${rc}"
@@ -41,18 +41,22 @@ start() {
     NTP_SERVERS=`/bin/cat /etc/ntp.conf | /bin/grep '^server ' | /bin/sed 's%^server  *%%'`
     NTP_SUCCESS=0
     for NTP_SERVER in ${NTP_SERVERS} ; do
-        /usr/bin/ntpdate -b -s "${NTP_SERVER}"
-        if /usr/bin/test $? -eq 0 ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/time] Kicking ntpdate on ${NTP_SERVER}"
+        /usr/bin/ntpdate -p1 -b -s "${NTP_SERVER}"
+        if [ $? -eq 0 ] ; then
             NTP_SUCCESS=1
             continue
         fi
     done
-    if /usr/bin/test ${NTP_SUCCESS} -eq 0 ; then
+    if [ ${NTP_SUCCESS} -eq 0 ] ; then
         /usr/bin/logger -s -t minimyth -p "local0.err" "[init.d/time] Failed to set local time from NTP server !"
     fi
 
     # Start NTP daemon.
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/time] Kicking ntpd..."
     /usr/bin/ntpd -g -p /var/run/ntpd.pid
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/time] Syncing local HW clock..."
     /sbin/hwclock -w -u
 
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/time] Started with return code=0..."
@@ -63,7 +67,7 @@ start() {
 stop() {
     mm_message_output info "saving time ..."
 
-    if /usr/bin/test -n "`/bin/pidof ntpd`" ; then
+    if [ -n "`/bin/pidof ntpd`" ] ; then
         /usr/bin/killall ntpd
         /sbin/hwclock -w -u
     fi
