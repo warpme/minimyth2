@@ -1,0 +1,147 @@
+diff -Naur mythtv-master-20190120-gf9e6d1d-old/mythplugins/mythgallery/mythgallery/main.cpp mythtv-master-20190120-gf9e6d1d-new/mythplugins/mythgallery/mythgallery/main.cpp
+--- mythtv-master-20190120-gf9e6d1d-old/mythplugins/mythgallery/mythgallery/main.cpp	2019-01-20 10:54:34.000000000 +0100
++++ mythtv-master-20190120-gf9e6d1d-new/mythplugins/mythgallery/mythgallery/main.cpp	2019-01-20 17:34:05.146666662 +0100
+@@ -133,7 +133,8 @@
+     REG_KEY("Gallery", "FULLSCREEN", QT_TRANSLATE_NOOP("MythControls",
+         "Toggle scale to fullscreen/scale to fit"), "W");
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+-        "MythGallery Media Handler 1/3"), "", handleMedia,
++        "MythGallery Media Handler 1/3"), QT_TRANSLATE_NOOP("MythControls",
++        "MythGallery mixed data"), handleMedia,
+         MEDIATYPE_DATA | MEDIATYPE_MIXED, QString());
+     QString filt;
+     Q_FOREACH(QString format, GalleryUtil::GetImageFilter())
+@@ -145,7 +146,8 @@
+             filt += "," + format;
+     }
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+-        "MythGallery Media Handler 2/3"), "", handleMedia,
++        "MythGallery Media Handler 2/3"), QT_TRANSLATE_NOOP("MythControls",
++        "MythGallery images"), handleMedia,
+         MEDIATYPE_MGALLERY, filt);
+     filt.clear();
+     Q_FOREACH(QString format, GalleryUtil::GetMovieFilter())
+@@ -157,7 +159,8 @@
+             filt += "," + format;
+     }
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+-        "MythGallery Media Handler 3/3"), "", handleMedia,
++        "MythGallery Media Handler 3/3"), QT_TRANSLATE_NOOP("MythControls",
++        "MythGallery movies"), handleMedia,
+         MEDIATYPE_MVIDEO, filt);
+ }
+ 
+diff -Naur mythtv-master-20190120-gf9e6d1d-old/mythplugins/mythmusic/mythmusic/main.cpp mythtv-master-20190120-gf9e6d1d-new/mythplugins/mythmusic/mythmusic/main.cpp
+--- mythtv-master-20190120-gf9e6d1d-old/mythplugins/mythmusic/mythmusic/main.cpp	2019-01-20 17:32:51.926666670 +0100
++++ mythtv-master-20190120-gf9e6d1d-new/mythplugins/mythmusic/mythmusic/main.cpp	2019-01-20 17:34:05.146666662 +0100
+@@ -868,13 +868,15 @@
+         "Add selected tracks to playlist and start playback"), "Ctrl+P");
+ 
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+-        "MythMusic Media Handler 1/2"), "", handleCDMedia,
++        "MythMusic Media Handler 1/2"), QT_TRANSLATE_NOOP("MythControls",
++        "MythMusic audio CD"), handleCDMedia,
+         MEDIATYPE_AUDIO | MEDIATYPE_MIXED, QString());
+     QString filt = MetaIO::ValidFileExtensions;
+     filt.replace('|',',');
+     filt.remove('.');
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+-        "MythMusic Media Handler 2/2"), "", handleMedia,
++        "MythMusic Media Handler 2/2"), QT_TRANSLATE_NOOP("MythControls",
++        "MythMusic audio files"), handleMedia,
+         MEDIATYPE_MMUSIC, filt);
+ }
+ 
+diff -Naur mythtv-master-20190120-gf9e6d1d-old/mythtv/libs/libmyth/mythmediamonitor.cpp mythtv-master-20190120-gf9e6d1d-new/mythtv/libs/libmyth/mythmediamonitor.cpp
+--- mythtv-master-20190120-gf9e6d1d-old/mythtv/libs/libmyth/mythmediamonitor.cpp	2019-01-20 17:32:51.100000004 +0100
++++ mythtv-master-20190120-gf9e6d1d-new/mythtv/libs/libmyth/mythmediamonitor.cpp	2019-01-20 17:41:21.676666649 +0100
+@@ -714,12 +714,61 @@
+         return;
+     }
+ 
+-
+-    // TODO - Generate a dialog, add buttons for each description,
+-    // if user didn't cancel, selected = handlers.at(choice);
+     int selected = 0;
++    if (handlers.size() > 1)
++    {
++
++        MythMainWindow *win = GetMythMainWindow();
++        if (!win)
++            return;
++
++        MythScreenStack *stack = win->GetMainStack();
++        if (!stack)
++            return;
++
++        // Ignore MENU dialog actions
++        int btnIndex = -2;
++        while (btnIndex < -1)
++        {
++            auto dlg = new MythDialogBox("What to play?", stack, "select handler");
++            if (!dlg->Create())
++            {
++                delete dlg;
++                return;
++            }
++
++            for (QList<MHData>::const_iterator it = handlers.begin(); it != handlers.end(); ++it)
++                dlg->AddButton(((!it->description.isEmpty()) ? it->description : it->destination));
++
++            dlg->AddButton(tr("Cancel"));
++
++            stack->AddScreen(dlg);
++
++            // Wait in local event loop so events are processed
++            QEventLoop block;
++            connect(dlg,    &MythDialogBox::Closed,
++                    &block, [&](QString, int result) { block.exit(result); });
++
++            // Block until dialog closes
++            btnIndex = block.exec();
++        }
++
++        if (btnIndex < 0)
++        {
++            LOG(VB_MEDIA, LOG_INFO, "User cancelled media handler selection");
++            return;
++        }
++        else
++        {
++            selected = btnIndex;
++            LOG(VB_MEDIA, LOG_NOTICE, QString("User selected '%1'")
++                .arg(handlers.at(selected).destination) );
++        }
++
++    }
+ 
+     handlers.at(selected).callback(pMedia);
++
+ }
+ 
+ /**
+diff -Naur mythtv-master-20190120-gf9e6d1d-old/mythtv/libs/libmythbase/mythmedia.cpp mythtv-master-20190120-gf9e6d1d-new/mythtv/libs/libmythbase/mythmedia.cpp
+--- mythtv-master-20190120-gf9e6d1d-old/mythtv/libs/libmythbase/mythmedia.cpp	2019-01-20 17:32:51.063333337 +0100
++++ mythtv-master-20190120-gf9e6d1d-new/mythtv/libs/libmythbase/mythmedia.cpp	2019-01-20 17:34:05.146666662 +0100
+@@ -246,7 +246,7 @@
+         else
+         {
+             LOG(VB_MEDIA, LOG_NOTICE, QString(
+-                    "DetectMediaType(this=0x%1) unknown file type %1")
++                    "DetectMediaType(this=0x%1) unknown file type %2")
+                 .arg(quintptr(this),0,16).arg(it.key()));
+         }
+     }
+diff -Naur mythtv-master-20190120-gf9e6d1d-old/mythtv/programs/mythfrontend/main.cpp mythtv-master-20190120-gf9e6d1d-new/mythtv/programs/mythfrontend/main.cpp
+--- mythtv-master-20190120-gf9e6d1d-old/mythtv/programs/mythfrontend/main.cpp	2019-01-20 17:32:51.806666670 +0100
++++ mythtv-master-20190120-gf9e6d1d-new/mythtv/programs/mythfrontend/main.cpp	2019-01-20 17:34:05.146666662 +0100
+@@ -1773,7 +1773,8 @@
+     REG_MEDIAPLAYER("Internal", QT_TRANSLATE_NOOP("MythControls",
+         "MythTV's native media player."), internal_play_media);
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+-        "MythDVD DVD Media Handler"), "", handleDVDMedia,
++        "MythDVD DVD Media Handler"), QT_TRANSLATE_NOOP("MythControls",
++        "MythDVD media"), handleDVDMedia,
+         MEDIATYPE_DVD, QString());
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+         "MythImage Media Handler 1/2"), "", handleGalleryMedia,
