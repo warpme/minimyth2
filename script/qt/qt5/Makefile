@@ -84,11 +84,12 @@ CONFIGURE_ARGS = \
 	-silent \
 	$(if $(filter arm,$(GARCH_FAMILY)),-skip qtwebglplugin) \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
+	$(if $(filter brcm-vc4,$(mm_OPENGL_PROVIDER)),-eglfs) \
 
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
 
-# qt5 fails to compile with gcc 7.3.0's link time optimization enabled.
+# qt5 fails to compile with gcc 7.4.0's link time optimization enabled.
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
@@ -136,30 +137,47 @@ CREATE_PLATFORM   = \
 	echo 'load(qt_config)'                                                                >> $(strip $(2))/qmake.conf~ ; \
 	rm -f $(strip $(2))/qmake.conf ; \
 	mv -f $(strip $(2))/qmake.conf~ $(strip $(2))/qmake.conf ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_COPY          , , cp -f --preserve=timestamps) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_YACC          , , bison -y) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_CC            , , $($(strip $(3))CC)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_CXX           , , $($(strip $(3))CXX)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_LINK          , , $($(strip $(3))CXX)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_LINK_SHLIB    , , $($(strip $(3))CXX)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_AR            , , $($(strip $(3))AR) cqs) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_RANLIB        , , $($(strip $(3))RANLIB)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_STRIP         , , $($(strip $(3))STRIP)) ; \
-	$(call UPDATE_PLATFORM, $(1), QMAKE_CFLAGS        , , $(call QMAKE_CFLAGS, $(3))) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_CFLAGS_RELEASE,+,) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_LFLAGS        , , $(call QMAKE_LFLAGS, $(3))) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR        , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR        , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_X11    , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_X11    , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_OPENGL , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_OPENGL , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_EGL    , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_EGL    , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir))
+	$(call UPDATE_PLATFORM, $(2), QMAKE_COPY              , , cp -f --preserve=timestamps) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_YACC              , , bison -y) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_CC                , , $($(strip $(3))CC)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_CXX               , , $($(strip $(3))CXX)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LINK              , , $($(strip $(3))CXX)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LINK_SHLIB        , , $($(strip $(3))CXX)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_AR                , , $($(strip $(3))AR) cqs) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_RANLIB            , , $($(strip $(3))RANLIB)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_STRIP             , , $($(strip $(3))STRIP)) ; \
+	$(call UPDATE_PLATFORM, $(1), QMAKE_CFLAGS            , , $(call QMAKE_CFLAGS, $(3))) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_CFLAGS_RELEASE    ,+,) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LFLAGS            , , $(call QMAKE_LFLAGS, $(3))) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR            , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR            , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_X11        , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_X11        , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_OPENGL     , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_OPENGL     , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_OPENGL_ES2 , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_OPENGL_ES2 , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_EGL        , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_EGL        , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir))
+
+# Based on qtbase/mkspecs/devices/linux-rasp-pi3-g++/qmake.conf
+MODIFY_PLATFORM_RPI   = \
+	echo "QMAKE_LFLAGS_RELEASE += -lpthread"                                       >> $(strip $(2))/qmake.conf ; \
+	echo "EGLFS_DEVICE_INTEGRATION= eglfs_brcm"                                    >> $(strip $(2))/qmake.conf ; \
+	echo "QMAKE_RPATHLINKDIR_POST = $($(strip $(3))DESTDIR)$($(strip $(3))libdir)" >> $(strip $(2))/qmake.conf ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_EGL        , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir) $($(strip $(3))DESTDIR)$($(strip $(3))includedir)/interface/vcos/pthreads $($(strip $(3))DESTDIR)$($(strip $(3))includedir)/interface/vmcs_host/linux) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBS_EGL          , , -L$($(strip $(3))DESTDIR)$($(strip $(3))libdir) -lEGL -lGLESv2) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBS_OPENGL_ES2   , , -L$($(strip $(3))DESTDIR)$($(strip $(3))libdir) -lGLESv2) ; \
+	$(call UPDATE_PLATFORM, $(2), QMAKE_LFLAGS_THREAD     ,+, -lpthread) ; \
+	sed -i 's%load(qt_config)%%g'                            $(strip $(2))/qmake.conf ; \
+	echo 'load(qt_config)'                                >> $(strip $(2))/qmake.conf
 
 pre-configure:
 	$(call CREATE_PLATFORM, $(PLATFORM_GARBUILD_BASE_PATH), $(PLATFORM_GARBUILD_PATH), build_)
 	$(call CREATE_PLATFORM, $(PLATFORM_GARHOST_BASE_PATH) , $(PLATFORM_GARHOST_PATH) ,       )
+ifeq ($(mm_OPENGL_PROVIDER),brcm-vc4)
+	$(call MODIFY_PLATFORM_RPI, $(PLATFORM_GARHOST_BASE_PATH), $(PLATFORM_GARHOST_PATH), )
+endif
 	@$(MAKECOOKIE)
 
 configure-%/configure:
