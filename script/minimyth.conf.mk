@@ -1,22 +1,23 @@
 #-------------------------------------------------------------------------------
 # Values in this file can be overridden by including the desired value in
-# '$(mm_HOME)/.minimyth2/minimyth.conf.mk'.
+# '$(HOME)/.minimyth2/minimyth.conf.mk'.
 #-------------------------------------------------------------------------------
 
 -include $(HOME)/.minimyth2/minimyth.conf.mk
 
-# The version of MiniMyth.
+# The version of MiniMyth2.
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
 mm_VERSION_MYTH           ?= $(strip \
-                                $(if $(filter 0.27 ,        $(mm_MYTH_VERSION)),0.27                          ) \
-                                $(if $(filter 0.28 ,        $(mm_MYTH_VERSION)),0.28                          ) \
-                                $(if $(filter 29   ,        $(mm_MYTH_VERSION)),29                            ) \
-                                $(if $(filter 30   ,        $(mm_MYTH_VERSION)),30                            ) \
+                                $(if $(filter 0.27   ,      $(mm_MYTH_VERSION)),0.27                          ) \
+                                $(if $(filter 0.28   ,      $(mm_MYTH_VERSION)),0.28                          ) \
+                                $(if $(filter 29     ,      $(mm_MYTH_VERSION)),29                            ) \
+                                $(if $(filter 30     ,      $(mm_MYTH_VERSION)),30                            ) \
                                 $(if $(filter master ,      $(mm_MYTH_VERSION)),master                        ) \
-                                $(if $(filter trunk,        $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
+                                $(if $(filter test   ,      $(mm_MYTH_VERSION)),test                          ) \
+                                $(if $(filter trunk  ,      $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.12.0.r20
+mm_VERSION_MINIMYTH ?= 9.12.0.r130
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -69,6 +70,11 @@ mm_SOFTWARE               ?= \
                             makemkv \
                             $(if $(filter $(mm_DEBUG),yes),debug)
 
+#                             lcdproc \
+#                             mednafen \
+#                             stella \
+#                             voip \
+#                             makemkv \
 #                             fceu \
 #                             jzintv \
 #                             mame \
@@ -80,10 +86,6 @@ mm_SOFTWARE               ?= \
 #                             mplayer-svn \
 #                             netflix \
 #                             ipxe \
-#                             bootloader \
-#                             glmark2
-#                             kmscube
-#                             mesa-demos
 
 # Indicates the microprocessor architecture.
 # Valid values for mm_GARCH are 'pentium-mmx', 'x86-64', 'armv7', 'armv8'.
@@ -102,7 +104,7 @@ mm_DISTRIBUTION_SHARE     ?= yes
 mm_SHARE_FILES            ?= /home/piotro/ABS/mythtv-pxe_image/src
 
 # Indicates whether or not to create the RAM based part of the share distribution.
-mm_DISTRIBUTION_RAM       ?= no
+mm_DISTRIBUTION_RAM       ?= yes
 
 # Indicates whether or not to install the MiniMyth files needed to network boot
 # with a RAM root file system. This will cause files to be installed in
@@ -151,8 +153,8 @@ mm_KERNEL_VERSION         ?= 4.20
 mm_KERNEL_CONFIG          ?=
 
 # The version of Myth to use.
-# Valid values are '0.28', '29', '30' and 'master'
-mm_MYTH_VERSION           ?= master
+# Valid values are '0.28', '29', '30' 'master' and 'test'
+mm_MYTH_VERSION           ?= test
 
 # The version of the NVIDIA driver.
 # Valid values are '410.78', '415.25'
