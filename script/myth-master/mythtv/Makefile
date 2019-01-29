@@ -78,6 +78,9 @@ PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
 PATCHFILES += 0215-enable-opengl-GLES.patch
 
+# Required as myth configure looks only in standard places for OMX files
+PATCHFILES += 0217-Configure-force-OpenMAX-when-asked.patch
+
 # Without this patch there are sometimes pixelizations at playback skip ffwd/back
 PATCHFILES += 0218-revert-7a74d6a-6baa24f-AVsync2-optimizations.patch
 
@@ -264,7 +267,6 @@ CONFIGURE_ARGS = \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 	$(if $(filter nvidia nvidia-legacy,$(mm_GRAPHICS)),--enable-xnvctrl,--disable-xnvctrl) \
 
-
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
 INSTALL_ENV    = $(MYTHTV_INSTALL_ENV)
@@ -274,6 +276,13 @@ INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
+
+ifeq ($(mm_OPENGL_PROVIDER),brcm-vc4)
+CONFIGURE_ARGS += \
+	--extra-cflags="-I$(DESTDIR)$(includedir)/IL" \
+	--extra-cxxflags="-I$(DESTDIR)$(includedir)/IL" \
+	--enable-openmax
+endif
 
 CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
