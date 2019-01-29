@@ -1,0 +1,150 @@
+diff -Naur mythtv-master-20190105-g3382e1a-old/mythtv/libs/libmythtv/mythplayer.cpp mythtv-master-20190105-g3382e1a-new/mythtv/libs/libmythtv/mythplayer.cpp
+--- mythtv-master-20190105-g3382e1a-old/mythtv/libs/libmythtv/mythplayer.cpp	2019-01-05 12:45:30.176666666 +0100
++++ mythtv-master-20190105-g3382e1a-new/mythtv/libs/libmythtv/mythplayer.cpp	2019-01-05 12:45:31.920000000 +0100
+@@ -154,6 +154,7 @@
+       fftime(0),
+       // Playback misc.
+       videobuf_retries(0),          framesPlayed(0),
++      prebufferFramesPlayed(0),
+       framesPlayedExtra(0),
+       totalFrames(0),               totalLength(0),
+       totalDuration(0),
+@@ -222,7 +223,6 @@
+       savedAudioTimecodeOffset(0),
+       rtcbase(0),
+       maxtcval(0), maxtcframes(0),
+-      numdroppedframes(0),
+       // LiveTVChain stuff
+       m_tv(nullptr),                isDummy(false),
+       // Counter for buffering messages
+@@ -2217,7 +2217,6 @@
+             rtcbase = unow - videotimecode * playspeed1000;
+             maxtcval = 0;
+             maxtcframes = 0;
+-            numdroppedframes = 0;
+         }
+ 
+         if (videotimecode == 0)
+@@ -2242,9 +2241,9 @@
+         lateness = unow - framedue;
+         dropframe = false;
+         if (lateness > 30000)
+-            dropframe = !FlagIsSet(kMusicChoice) && numdroppedframes < 10;
++            dropframe = !FlagIsSet(kMusicChoice);
+ 
+-        if (lateness <= 30000 && audiotimecode > 0 && normal_speed && !FlagIsSet(kMusicChoice))
++        if (lateness <= 30000 && audiotimecode > 0 && normal_speed)
+         {
+             // Get video in sync with audio
+             audio_adjustment = audiotimecode - videotimecode;
+@@ -2256,12 +2255,9 @@
+                 LOG(VB_PLAYBACK, LOG_INFO, LOC +
+                     QString("AV Sync, audio ahead by %1 ms").arg(audio_adjustment));
+             }
+-            if (audio_adjustment > 1000)
+-                pause_audio = true;
+         }
+         // sanity check - reset rtcbase if time codes have gone crazy.
+-        if ((lateness > AVSYNC_MAX_LATE || lateness < - AVSYNC_MAX_LATE)
+-            && !FlagIsSet(kMusicChoice))
++        if (lateness > AVSYNC_MAX_LATE || lateness < - AVSYNC_MAX_LATE)
+         {
+             framedue = 0;
+             rtcbase = 0;
+@@ -2301,12 +2297,6 @@
+         avsync_audiopaused = false;
+         audio.Pause(false);
+     }
+-    if (pause_audio && !avsync_audiopaused)
+-    {
+-        avsync_audiopaused = true;
+-        audio.Pause(true);
+-    }
+-
+     LOG(VB_PLAYBACK | VB_TIMESTAMP, LOG_INFO, LOC +
+         QString("A/V timecodes audio=%1 video=%2 frameinterval=%3 "
+                 "audioadj=%4 tcoffset=%5 unow=%6 udue=%7")
+@@ -2318,12 +2308,6 @@
+             .arg(unow)
+             .arg(framedue)
+                 );
+-
+-    if (dropframe)
+-        numdroppedframes++;
+-    else
+-        numdroppedframes = 0;
+-
+     if (dropframe)
+         LOG(VB_PLAYBACK, LOG_INFO, LOC +
+             QString("dropping frame to catch up, lateness=%1 usec")
+@@ -2451,7 +2435,6 @@
+     if (!videoOutput)
+         return false;
+ 
+-    bool paused_now = false;
+     if (!(min_buffers ? (videoOutput->ValidVideoFrames() >= min_buffers) :
+                         (GetEof() != kEofStateNone) ||
+                         (videoOutput->hasHWAcceleration() ?
+@@ -2459,27 +2442,24 @@
+                             videoOutput->EnoughDecodedFrames())))
+     {
+         SetBuffering(true);
+-
+         // This piece of code is to address the problem, when starting
+         // Live TV, of jerking and stuttering. Without this code
+         // that could go on forever, but is cured by a pause and play.
+         // This code inserts a brief pause and play when the potential
+         // for the jerking is detected.
+-
+-        bool watchingTV = IsWatchingInprogress();
+-        if (!paused_now && (livetv || watchingTV) && !FlagIsSet(kMusicChoice))
++        if (prebufferFramesPlayed != framesPlayed)
+         {
+-            uint64_t frameCount = GetCurrentFrameCount();
+-            uint64_t framesLeft = frameCount - framesPlayed;
+-            uint64_t margin = (uint64_t) (video_frame_rate * 3);
+-            if (framesLeft < margin)
++            float current   = ComputeSecs(framesPlayed, true);
++            float length    = ComputeSecs(totalFrames, true);
++            if (length > current && length - current < 1.5
++                && !FlagIsSet(kMusicChoice))
+             {
+                 LOG(VB_PLAYBACK, LOG_NOTICE, LOC +
+                     QString("Pause to allow live tv catch up. Position in sec. Current: %2, Total: %3")
+-                    .arg(framesPlayed).arg(frameCount));
++                    .arg(current).arg(length));
+                 audio.Pause(true);
+                 avsync_audiopaused = true;
+-                paused_now = true;
++                prebufferFramesPlayed = framesPlayed;
+             }
+         }
+         usleep(frame_interval >> 3);
+@@ -2505,8 +2485,6 @@
+                 playerFlags = (PlayerFlags)(playerFlags | kMusicChoice);
+                 LOG(VB_GENERAL, LOG_NOTICE, LOC +
+                     "Music Choice program detected - disabling AV Sync.");
+-                avsync_audiopaused = false;
+-                audio.Pause(false);
+             }
+             if (waited_for > 7000 && audio.IsBufferAlmostFull()
+                 && !FlagIsSet(kMusicChoice))
+diff -Naur mythtv-master-20190105-g3382e1a-old/mythtv/libs/libmythtv/mythplayer.h mythtv-master-20190105-g3382e1a-new/mythtv/libs/libmythtv/mythplayer.h
+--- mythtv-master-20190105-g3382e1a-old/mythtv/libs/libmythtv/mythplayer.h	2019-01-05 12:45:30.173333333 +0100
++++ mythtv-master-20190105-g3382e1a-new/mythtv/libs/libmythtv/mythplayer.h	2019-01-05 12:45:31.920000000 +0100
+@@ -703,6 +703,7 @@
+     /// How often we have tried to wait for a video output buffer and failed
+     int       videobuf_retries;
+     uint64_t  framesPlayed;
++    uint64_t  prebufferFramesPlayed;
+     // "Fake" frame counter for when the container frame rate doesn't
+     // match the stream frame rate.
+     uint64_t  framesPlayedExtra;
+@@ -855,7 +856,6 @@
+     int64_t   maxtcval;       // maximum to date video tc
+     int       maxtcframes;    // number of frames seen since max to date tc
+     int64_t   avsync2adjustms; // number of milliseconds to adjust for av sync errors
+-    int       numdroppedframes; // number of consecutive dropped frames.
+ 
+     // LiveTV
+     TV *m_tv;
