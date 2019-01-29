@@ -78,6 +78,8 @@ PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
 PATCHFILES += 0215-enable-opengl-GLES.patch
 
+PATCHFILES += 0217-Configure-force-OpenMAX-when-asked.patch
+
 # Without this patch there are sometimes pixelizations at playback skip ffwd/back
 PATCHFILES += 0218-revert-7a74d6a-6baa24f-AVsync2-optimizations.patch
 
@@ -274,6 +276,13 @@ INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
+
+ifeq ($(mm_OPENGL_PROVIDER),brcm-vc4)
+CONFIGURE_ARGS += \
+	--extra-cflags="-I$(DESTDIR)$(includedir)/IL" \
+	--extra-cxxflags="-I$(DESTDIR)$(includedir)/IL" \
+	--enable-openmax
+endif
 
 CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
