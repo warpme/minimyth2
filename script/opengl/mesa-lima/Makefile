@@ -245,6 +245,12 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_dri*
 	@rm -f $(DESTDIR)$(libdir)/dri/swrast_dri*
 	@rm -f $(DESTDIR)$(libdir)/dri/vmwgfx_dri*
+	@rm -f $(DESTDIR)$(libdir)/dri/exynos_dri.so
+	@rm -f $(DESTDIR)$(libdir)/dri/lima_dri.so
+	@rm -f $(DESTDIR)$(libdir)/dri/meson_dri.so
+	@rm -f $(DESTDIR)$(libdir)/dri/rockchip_dri.so
+	@rm -f $(DESTDIR)$(libdir)/dri/sun4i-drm_dri.so
+	@rm -f $(DESTDIR)$(libdir)/dri/vc4_dri.so
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r600*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r300*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_i915*
@@ -268,6 +274,7 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/glesv2.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/wayland-egl.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/xatracker.pc
+	@rm -rf $(DESTDIR)$(includedir)/GL*
 	@rm -rf $(DESTDIR)$(includedir)/EGL*
 	@rm -rf $(DESTDIR)$(includedir)/GLES*
 	@rm -rf $(DESTDIR)$(includedir)/GLES2*

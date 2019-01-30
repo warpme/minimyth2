@@ -248,6 +248,7 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/glesv2.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/wayland-egl.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/xatracker.pc
+	@rm -rf $(DESTDIR)$(includedir)/GL*
 	@rm -rf $(DESTDIR)$(includedir)/EGL*
 	@rm -rf $(DESTDIR)$(includedir)/GLES*
 	@rm -rf $(DESTDIR)$(includedir)/GLES2*
