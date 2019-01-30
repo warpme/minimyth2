@@ -37,6 +37,19 @@ GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
 
 pre-configure:
+	@if [ ! -e $(DESTDIR)$(libdir)/pkgconfig/dri.pc ] ; then \
+		mkdir -p $(DESTDIR)$(libdir)/pkgconfig ; \
+		echo "prefix=/usr"                                  >  $(DESTDIR)$(libdir)/pkgconfig/dri.pc ; \
+		echo "exec_prefix=${prefix}"                        >> $(DESTDIR)$(libdir)/pkgconfig/dri.pc ; \
+		echo "libdir=${exec_prefix}/lib"                    >> $(DESTDIR)$(libdir)/pkgconfig/dri.pc ; \
+		echo "includedir=${prefix}/include"                 >> $(DESTDIR)$(libdir)/pkgconfig/dri.pc ; \
+		echo "dridriverdir=/usr/lib/xorg/modules/dri"       >> $(DESTDIR)$(libdir)/pkgconfig/dri.pc ; \
+		echo "Name: dri"                                    >> $(DESTDIR)$(libdir)/pkgconfig/dri.pc ; \
+		echo "Description: Direct Rendering Infrastructure" >> $(DESTDIR)$(libdir)/pkgconfig/dri.pc ; \
+		echo "Version: 11.1.2"                              >> $(DESTDIR)$(libdir)/pkgconfig/dri.pc ; \
+		echo "Requires.private: libdrm >= 2.4.60"           >> $(DESTDIR)$(libdir)/pkgconfig/dri.pc ; \
+		echo "Cflags: -I${includedir}"                      >> $(DESTDIR)$(libdir)/pkgconfig/dri.pc ; \
+	fi
 	@mkdir -p $(WORKSRC)/m4
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
