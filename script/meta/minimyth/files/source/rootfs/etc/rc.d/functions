@@ -1925,15 +1925,27 @@ mm_x_start() {
         fi
     done
 
-    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Kicking Xinit..."
+    if [ "x${MM_MYTHTV_RUN_ON_EGLFS}" = "xyes" ] ; then
 
-    /usr/bin/prlimit --rtprio=50 /bin/su -c "/usr/bin/nohup /usr/bin/xinit > /dev/null 2>&1 &" - minimyth
+        if [ "${MM_X_MYTH_PROGRAM}" = "mythfrontend" ] ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Kicking mythfrontend on EGLFS..."
+            mm_mythfrontend_start
+        elif [ "${MM_X_MYTH_PROGRAM}" = "mythwelcome" ]  ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Kicking mythwelcome on EGLFS..."
+            mm_mythwelcome_start
+        fi
 
-    # Start xscreensaver if enabled
-    if [ "${MM_X_SCREENSAVER_HACK}" = "sleep" ] ; then
-        if [ -z `/bin/pidof mm_sleep_on_ss` ] ; then
-            /usr/bin/mm_sleep_on_ss &
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting SLEEP_ON_SS script..."
+    else
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Kicking Xinit..."
+
+        /usr/bin/prlimit --rtprio=50 /bin/su -c "/usr/bin/nohup /usr/bin/xinit > /dev/null 2>&1 &" - minimyth
+
+        # Start xscreensaver if enabled
+        if [ "${MM_X_SCREENSAVER_HACK}" = "sleep" ] ; then
+            if [ -z `/bin/pidof mm_sleep_on_ss` ] ; then
+                /usr/bin/mm_sleep_on_ss &
+                /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting SLEEP_ON_SS script..."
+            fi
         fi
     fi
 
@@ -2005,12 +2017,6 @@ mm_x_stop() {
     if [ -n "`/bin/pidof mm_watchdog`" ] ; then
         /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing mm_watchdog script..."
         /usr/bin/killall -9 mm_watchdog
-    fi
-
-    # Only stop X if X is running.
-    if [ ! -n "`/bin/pidof X`" ] ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] X not stopped because X is not running."
-        return 0
     fi
 
 #    # Exit X applications that are known not to be started by xinit
@@ -2160,14 +2166,9 @@ mm_notify_and_exec() {
   local result=`${2} | sed -e "s/::.*//g"`
 }
 
-
-#===============================================================================
-# mythfrontend functions.
-#===============================================================================
-mm_mythfrontend_start() {
-
-    local mode=$1
-    args="/usr/bin/mythfrontend > /var/log/mythfrontend"
+myth_start() {
+    local args=$1
+    local mode=$2
 
     /usr/bin/mm_modify_mainmenu & 2> /dev/null
 
@@ -2176,9 +2177,21 @@ mm_mythfrontend_start() {
     else
         args="${args}"
     fi
+
+    if [ "x${MM_MYTHTV_RUN_ON_EGLFS}" = "xyes" ] ; then
+        export QT_QPA_EGLFS_FORCE888=1
+        export QT_QPA_PLATFORM=eglfs
+    else
+        export QT_QPA_PLATFORM=xcb
+    fi
+
+    export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
+    export QT_LOGGING_RULES=qt.qpa.*=true
     export __GL_SYNC_TO_VBLANK=1
-    env > /var/log/enviroment
+    env > /var/log/mythfrontend
+
     /usr/bin/logger -t minimyth -p "local0.info" "[functions] Checking connection with backend host (${MM_MASTER_SERVER})..."
+
     i=0
     while [ $i -lt 20 ] ; do
         no_conn=`ping -c 1 -w 1 -n ${MM_MASTER_SERVER} | grep -c "100% packet loss"`
@@ -2197,61 +2210,40 @@ mm_mythfrontend_start() {
             i=20
         fi
     done
-    if [ x${mode} = 'x' ] ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting \'${args}\' in background..."
-        su minimyth -c "${args}" &
-    else
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting \'${args}\' in forground..."
+
+    if [ x${mode} = 'xforeground' ] ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting \'${args}\' in foreground via X11..."
         su minimyth -c "${args}"
+    else
+        if [ "x${MM_MYTHTV_RUN_ON_EGLFS}" = "xyes" ] ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting \'${args}\' in background via EGLFS..."
+        else
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting \'${args}\' in background via X11..."
+        fi
+        su minimyth -c "${args}" &
     fi
+
     /bin/true
     return
+}
+
+#===============================================================================
+# mythfrontend functions.
+#===============================================================================
+mm_mythfrontend_start() {
+    # Called without any param.      : mythfrontend in background on X11 or EGLFS
+    # Called with 'foreground' param.: mythfrontend in foreground on X11
+    args="/usr/bin/mythfrontend > /var/log/mythfrontend"
+    myth_start ${args} $1
 }
 
 mm_mythwelcome_start() {
-
-    local mode=$1
-    args="/usr/bin/mythwelcome > /var/log/mythwelcome"
-
-    if [ -n "${MM_MYTHFRONTEND_CMDLINE}" ] ; then
-        args="${MM_MYTHFRONTEND_CMDLINE} > /var/log/mythwelcome"
-    else
-        args="${args}"
-    fi
-    if [ -n "${MM_X_VDPAU_ENV}" ] ; then
-        export "${MM_X_VDPAU_ENV}"
-    fi
-    export __GL_SYNC_TO_VBLANK=1
-    env > /var/log/enviroment
-    /usr/bin/logger -t minimyth -p "local0.info" "[functions] Checking connection with backend host (${MM_MASTER_SERVER})..."
-    i=0
-    while [ $i -lt 20 ] ; do
-        no_conn=`ping -c 1 -w 1 -n ${MM_MASTER_SERVER} | grep -c "100% packet loss"`
-        i=$((${i} + 1))
-        if [ ${no_conn} = '1' ] ; then
-            if [ $i -eq 20 ] ; then
-                /usr/bin/logger -t minimyth -p "local0.err" "[functions] Timeout waiting for connection with backend host...($i)"
-                /bin/false
-                return
-            else
-                /usr/bin/logger -t minimyth -p "local0.info" "[functions] Waiting for connection with backend host...($i)"
-                /bin/sleep 1
-            fi
-        else
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Have connection with backend host (${MM_MASTER_SERVER})..."
-            i=20
-        fi
-    done
-    if [ x${mode} = 'x' ] ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting \'${args}\' in background..."
-        su minimyth -c "${args}" &
-    else
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting \'${args}\' in forground..."
-        su minimyth -c "${args}"
-    fi
-    /bin/true
-    return
+    # Called without any param.      : mythfrontend in background on X11 or EGLFS
+    # Called with 'foreground' param.: mythfrontend in foreground on X11
+    args="/usr/bin/mythwelcome > /var/log/mythfrontend"
+    myth_start ${args} $1
 }
+
 
 
 mm_mythfrontend_networkcontrol() {
@@ -2265,7 +2257,6 @@ mm_mythfrontend_networkcontrol() {
 
     failed=1
     response=''
-
 
     if [ -n "`/bin/pidof mythfrontend`" ] ; then
         host='localhost'

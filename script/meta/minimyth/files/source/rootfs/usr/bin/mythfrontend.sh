@@ -11,6 +11,7 @@ QT_PLUGIN_PATH=/usr/lib/qt5/plugins
 export QT_QPA_EGLFS_FORCE888
 export QT_QPA_PLATFORM
 export QT_PLUGIN_PATH
+export QT_LOGGING_RULES=qt.qpa.*=true
 
 su minimyth -c "/usr/bin/mythfrontend --verbose libav,playback,audio --loglevel=debug --syslog none --logpath /tmp/"
 
