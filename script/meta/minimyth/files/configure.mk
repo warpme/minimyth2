@@ -57,6 +57,9 @@ MM_INIT_KILL := \
 
 build_vars := $(filter-out mm_HOME mm_TFTP_ROOT mm_NFS_ROOT mm_SHARE_FILES mm_SDCARD_FILES,$(sort $(shell cat $(mm_HOME)/script/minimyth.conf.mk | grep -e '^mm_' | sed -e 's%[ =].*%%')))
 
+#	$(if $(filter 0.28 29 30 master,$(mm_MYTH_VERSION)), $(qt5bindir)) \
+#	$(if $(filter 0.28 29 30 master,$(mm_MYTH_VERSION)), $(qt5libdir)) \
+
 bindirs_base := \
 	$(extras_sbindir) \
 	$(extras_bindir) \
@@ -65,8 +68,7 @@ bindirs_base := \
 	$(sbindir) \
 	$(bindir) \
 	$(libexecdir) \
-	$(if $(filter 0.27,$(mm_MYTH_VERSION)), $(qt4bindir)) \
-	$(if $(filter 0.28 29 30 master,$(mm_MYTH_VERSION)), $(qt5bindir)) \
+	$(if $(filter 0.27,$(mm_MYTH_VERSION)), $(qt4bindir), $(qt5bindir)) \
 	$(kdebindir)
 bindirs := \
 	$(bindirs_base) \
@@ -79,8 +81,7 @@ libdirs_base := \
 	$(libexecdir) \
 	$(libdir)/mysql \
 	$(if $(filter $(mm_GRAPHICS),radeon),$(libdir)/vdpau) \
-	$(if $(filter 0.27,$(mm_MYTH_VERSION)), $(qt4libdir)) \
-	$(if $(filter 0.28 29 30 master,$(mm_MYTH_VERSION)), $(qt5libdir)) \
+	$(if $(filter 0.27,$(mm_MYTH_VERSION)), $(qt4libdir), $(qt5libdir)) \
 	$(kdelibdir)
 libdirs := \
 	$(libdirs_base) \
