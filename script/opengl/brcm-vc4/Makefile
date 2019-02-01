@@ -38,6 +38,10 @@ install-custom:
 	@sed -e 's%/opt/vc%/usr%' -i $(DESTDIR)$(libdir)/pkgconfig/mmal.pc
 	@sed -e 's%/opt/vc%/usr%' -i $(DESTDIR)$(libdir)/pkgconfig/vcsm.pc
 	@sed -e 's%/opt/vc%/usr%' -i $(DESTDIR)$(libdir)/pkgconfig/vg.pc
+	@mv      $(DESTDIR)$(libdir)/libEGL.so   $(DESTDIR)$(libdir)/libEGL.so.1
+	@ln -sr  $(DESTDIR)$(libdir)/libEGL.so.1 $(DESTDIR)$(libdir)/libEGL.so
+	@mv      $(DESTDIR)$(libdir)/libGLESv2.so   $(DESTDIR)$(libdir)/libGLESv2.so.2
+	@ln -sr  $(DESTDIR)$(libdir)/libGLESv2.so.2 $(DESTDIR)$(libdir)/libGLESv2.so
 	@$(MAKECOOKIE)
 
 clean-all:
@@ -60,11 +64,11 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libdebug_sym.so
 	@rm -f $(DESTDIR)$(libdir)/libdebug_sym_static.a
 	@rm -f $(DESTDIR)$(libdir)/libdtovl.so
-	@rm -f $(DESTDIR)$(libdir)/libEGL.so
+	@rm -f $(DESTDIR)$(libdir)/libEGL.so*
 	@rm -f $(DESTDIR)$(libdir)/libEGL_static.a
 	@rm -f $(DESTDIR)$(libdir)/libelftoolchain.so
 	@rm -f $(DESTDIR)$(libdir)/libGLESv1_CM.so
-	@rm -f $(DESTDIR)$(libdir)/libGLESv2.so
+	@rm -f $(DESTDIR)$(libdir)/libGLESv2.so*
 	@rm -f $(DESTDIR)$(libdir)/libGLESv2_static.a
 	@rm -f $(DESTDIR)$(libdir)/libkhrn_client.a
 	@rm -f $(DESTDIR)$(libdir)/libkhrn_static.a
