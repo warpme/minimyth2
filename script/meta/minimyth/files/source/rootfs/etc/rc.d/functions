@@ -765,7 +765,7 @@ mm_codecs_fetch_and_save() {
     /bin/tar -jxf "${CODECS_FILE}"
     /bin/rm -f "${CODECS_FILE}"
 
-    if [ ! -d "${LOCAL_DIR}/${CODECS_BASE}" || [ `/bin/ls -1 "${LOCAL_DIR}/${CODECS_BASE}" | /usr/bin/wc -l` -eq 0 ] ; then
+    if [ ! -d "${LOCAL_DIR}/${CODECS_BASE}" ] || [ `/bin/ls -1 "${LOCAL_DIR}/${CODECS_BASE}" | /usr/bin/wc -l` -eq 0 ] ; then
         /usr/bin/logger -s -t minimyth -p "local0.error" \
             "failed to create the codecs file because downloaded codecs file was empty."
         cd "${HOME}"
@@ -1963,7 +1963,7 @@ mm_x_start() {
                 # Only one level of includes is supported.
                 lircrc_files="/etc/lirc/lircrc `/bin/cat /etc/lirc/lircrc | /bin/grep -e '^include ' | /bin/sed -e 's%^include *%%'`"
                 for lircrc_file in ${lircrc_files} ; do
-                    if [ /bin/cat ${lircrc_file} | /bin/grep -q -e '^ *prog *= *irxevent' ] ; then
+                    if [ `/bin/cat ${lircrc_file} | /bin/grep -q -e '^ *prog *= *irxevent'` ] ; then
                         MM_LIRC_IRXEVENT_ENABLED='yes'
                     fi
                 done
@@ -2167,16 +2167,11 @@ mm_notify_and_exec() {
 }
 
 myth_start() {
-    local args=$1
+
     local mode=$2
+    local args="$1"
 
     /usr/bin/mm_modify_mainmenu & 2> /dev/null
-
-    if [ -n "${MM_MYTHFRONTEND_CMDLINE}" ] ; then
-        args="${MM_MYTHFRONTEND_CMDLINE} > /var/log/mythfrontend"
-    else
-        args="${args}"
-    fi
 
     if [ "x${MM_MYTHTV_RUN_ON_EGLFS}" = "xyes" ] ; then
         export QT_QPA_EGLFS_FORCE888=1
@@ -2188,7 +2183,7 @@ myth_start() {
     export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
     export QT_LOGGING_RULES=qt.qpa.*=true
     export __GL_SYNC_TO_VBLANK=1
-    env > /var/log/mythfrontend
+    env > /var/log/enviroment
 
     /usr/bin/logger -t minimyth -p "local0.info" "[functions] Checking connection with backend host (${MM_MASTER_SERVER})..."
 
@@ -2212,13 +2207,13 @@ myth_start() {
     done
 
     if [ x${mode} = 'xforeground' ] ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting \'${args}\' in foreground via X11..."
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in foreground via X11..."
         su minimyth -c "${args}"
     else
         if [ "x${MM_MYTHTV_RUN_ON_EGLFS}" = "xyes" ] ; then
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting \'${args}\' in background via EGLFS..."
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in background via EGLFS..."
         else
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting \'${args}\' in background via X11..."
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in background via X11..."
         fi
         su minimyth -c "${args}" &
     fi
@@ -2233,15 +2228,23 @@ myth_start() {
 mm_mythfrontend_start() {
     # Called without any param.      : mythfrontend in background on X11 or EGLFS
     # Called with 'foreground' param.: mythfrontend in foreground on X11
-    args="/usr/bin/mythfrontend > /var/log/mythfrontend"
-    myth_start ${args} $1
+    if [ -n "${MM_MYTHFRONTEND_CMDLINE}" ] ; then
+        args="${MM_MYTHFRONTEND_CMDLINE} > /var/log/mythfrontend"
+    else
+        args="/usr/bin/mythfrontend > /var/log/mythfrontend"
+    fi
+    myth_start "${args}" $1
 }
 
 mm_mythwelcome_start() {
     # Called without any param.      : mythfrontend in background on X11 or EGLFS
     # Called with 'foreground' param.: mythfrontend in foreground on X11
-    args="/usr/bin/mythwelcome > /var/log/mythfrontend"
-    myth_start ${args} $1
+    if [ -n "${MM_MYTHFRONTEND_CMDLINE}" ] ; then
+        args="${MM_MYTHFRONTEND_CMDLINE} > /var/log/mythfrontend"
+    else
+        args="/usr/bin/mythwelcome > /var/log/mythfrontend"
+    fi
+    myth_start "${args}" $1
 }
 
 
