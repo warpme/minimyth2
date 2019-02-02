@@ -13,7 +13,7 @@ export QT_QPA_PLATFORM
 export QT_PLUGIN_PATH
 export QT_LOGGING_RULES=qt.qpa.*=true
 
-su minimyth -c "/usr/bin/mythfrontend --verbose libav,playback,audio --loglevel=debug --syslog none --logpath /tmp/"
+su minimyth -c "/usr/bin/mythfrontend --verbose gui,libav,playback,audio --loglevel=debug --syslog none --logpath /tmp/"
 
 # all             - ALL available debug output
 # audio           - Audio related messages
