@@ -14,6 +14,7 @@ DEPENDS = \
 	$(CATEGORY)/libX11 \
 	$(CATEGORY)/libxcomposite \
 	$(CATEGORY)/libXdamage \
+	$(CATEGORY)/libXdmcp \
 	$(CATEGORY)/libXext \
 	$(CATEGORY)/libXfixes \
 	$(CATEGORY)/libXft \
@@ -42,7 +43,6 @@ DEPENDS = \
 		$(if $(filter intel, $(mm_GRAPHICS)),$(CATEGORY)/xf86-video-intel) \
 		$(if $(filter vmware,$(mm_GRAPHICS)),$(CATEGORY)/xf86-video-vmware) \
 		$(if $(filter armsoc,$(mm_GRAPHICS)), \
-			$(CATEGORY)/libXdmcp \
 			$(CATEGORY)/xf86-video-armsoc) \
 	) \
 	$(CATEGORY)/xinit \
