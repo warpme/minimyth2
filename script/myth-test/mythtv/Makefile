@@ -248,7 +248,6 @@ CONFIGURE_ARGS = \
 	--x11-path="$(DESTDIR)$(includedir)" \
 	--enable-xrandr \
 	--disable-dxva2 \
-	--disable-xv \
 	--disable-crystalhd \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
 		--enable-opengles \
