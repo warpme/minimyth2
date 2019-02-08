@@ -76,7 +76,7 @@ PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 
 # Allows to switch mythfrontend to use OpenGL ES (system and Qt5 must provide GLESv2!)
-PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
+# PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
 
 # Required as myth configure looks only in standard places for OMX files
 PATCHFILES += 0217-Configure-force-OpenMAX-when-asked.patch
@@ -117,7 +117,7 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
-PATCHFILES += 0451-MythWeather-scripts-replace-LWP-by-curl.patch
+# PATCHFILES += 0451-MythWeather-scripts-replace-LWP-by-curl.patch
 
 endif
 
@@ -248,9 +248,7 @@ CONFIGURE_ARGS = \
 	--x11-path="$(DESTDIR)$(includedir)" \
 	--enable-xrandr \
 	--disable-dxva2 \
-	--disable-crystalhd \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
-		--enable-opengles \
 		--disable-vaapi \
 		--disable-vaapi2 \
 		--disable-vdpau) \
