@@ -117,7 +117,7 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
-# PATCHFILES += 0451-MythWeather-scripts-replace-LWP-by-curl.patch
+PATCHFILES += 0451-MythWeather-scripts-replace-LWP-by-curl.patch
 
 endif
 
