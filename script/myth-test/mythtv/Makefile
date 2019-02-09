@@ -76,7 +76,7 @@ PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 
 # Allows to switch mythfrontend to use OpenGL ES (system and Qt5 must provide GLESv2!)
-# PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
+PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
 
 # Required as myth configure looks only in standard places for OMX files
 PATCHFILES += 0217-Configure-force-OpenMAX-when-asked.patch
@@ -249,6 +249,7 @@ CONFIGURE_ARGS = \
 	--enable-xrandr \
 	--disable-dxva2 \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
+		--enable-opengles \
 		--disable-vaapi \
 		--disable-vaapi2 \
 		--disable-vdpau) \
@@ -274,7 +275,7 @@ INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
 
-ifeq ($(mm_OPENGL_PROVIDER),brcm-vc4)
+ifeq ($(mm_GRAPHICS),vc4)
 CONFIGURE_ARGS += \
 	--extra-cflags="-I$(DESTDIR)$(includedir)/IL" \
 	--extra-cxxflags="-I$(DESTDIR)$(includedir)/IL" \
