@@ -274,7 +274,17 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/glesv2.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/wayland-egl.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/xatracker.pc
-	@rm -rf $(DESTDIR)$(includedir)/GL*
+	@rm -f $(DESTDIR)$(includedir)/GL/glcorearb.h
+	@rm -f $(DESTDIR)$(includedir)/GL/glext.h
+	@rm -f $(DESTDIR)$(includedir)/GL/gl.h
+	@rm -f $(DESTDIR)$(includedir)/GL/gl_mangle.h
+	@rm -f $(DESTDIR)$(includedir)/GL/glxext.h
+	@rm -f $(DESTDIR)$(includedir)/GL/glx.h
+	@rm -f $(DESTDIR)$(includedir)/GL/glx_mangle.h
+	@rm -f $(DESTDIR)$(includedir)/GL/mesa_glinterop.h
+	@rm -f $(DESTDIR)$(includedir)/GL/osmesa.h
+	@rm -f $(DESTDIR)$(includedir)/GL/wglext.h
+	@rm -f $(DESTDIR)$(includedir)/GL/internal/dri_interface.h
 	@rm -rf $(DESTDIR)$(includedir)/EGL*
 	@rm -rf $(DESTDIR)$(includedir)/GLES*
 	@rm -rf $(DESTDIR)$(includedir)/GLES2*
