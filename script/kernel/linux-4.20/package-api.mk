@@ -2,7 +2,7 @@
 #--Use this for mainline x.y.z kernel-------
 LINUX_MAJOR_VERSION = 4
 LINUX_MINOR_VERSION = 20
-LINUX_TEENY_VERSION = 5
+LINUX_TEENY_VERSION = 7
 LINUX_EXTRA_VERSION = 
 #-------------------------------------------
 
