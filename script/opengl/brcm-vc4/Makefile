@@ -2,7 +2,7 @@
 # URL for sources: https://github.com/raspberrypi/firmware
 
 GARNAME      = rpi-opengl
-GARVERSION   = 45c6ee3cd7f36a2376b691affbc02dfc689b8056
+GARVERSION   = 542c628c54bc0ffb988fb2494d4b646f9d89263c
 CATEGORIES   = opengl
 MASTER_SITES = https://github.com/raspberrypi/firmware/archive/
 DISTFILES    = $(GARVERSION).zip
