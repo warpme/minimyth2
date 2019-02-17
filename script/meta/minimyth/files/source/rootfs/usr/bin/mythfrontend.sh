@@ -5,10 +5,10 @@ else
     QT_QPA_PLATFORM=xcb
 fi
 
-QT_QPA_EGLFS_FORCE888=1
+# QT_QPA_EGLFS_FORCE888=1
 QT_PLUGIN_PATH=/usr/lib/qt5/plugins
 
-export QT_QPA_EGLFS_FORCE888
+# export QT_QPA_EGLFS_FORCE888
 export QT_QPA_PLATFORM
 export QT_PLUGIN_PATH
 export QT_LOGGING_RULES=qt.qpa.*=true
