@@ -1,6 +1,6 @@
-diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/musicdata.cpp mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/musicdata.cpp
---- mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/musicdata.cpp	2019-01-05 12:45:42.010000000 +0100
-+++ mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/musicdata.cpp	2019-01-05 12:45:43.260000000 +0100
+diff -Naur mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/musicdata.cpp mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/musicdata.cpp
+--- mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/musicdata.cpp	2019-02-17 16:58:55.373333336 +0100
++++ mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/musicdata.cpp	2019-02-17 16:58:56.603333336 +0100
 @@ -14,7 +14,10 @@
  #include "musicdata.h"
  #include "musicplayer.h"
@@ -13,25 +13,24 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/m
  
  // this is the global MusicData object shared thoughout MythMusic
  MusicData  *gMusicData = nullptr;
-@@ -92,7 +95,7 @@
-     while (!all_music->doneLoading())
+@@ -84,7 +87,7 @@
+     while (!m_all_music->doneLoading())
      {
          qApp->processEvents();
 -        usleep(50000);
 +        std::this_thread::sleep_for(std::chrono::milliseconds(50));
      }
  
-     all_playlists->resync();
-@@ -104,46 +107,40 @@
+     m_all_playlists->resync();
+@@ -96,47 +99,39 @@
          gPlayer->restorePosition();
  }
  
 -void MusicData::loadMusic(void)
-+// load music
 +bool MusicData::loadMusic(void)
  {
 -    // only do this once
--    if (initialized)
+-    if (m_initialized)
 -        return;
 -
 -    MythScreenStack *popupStack = GetMythMainWindow()->GetStack("popup stack");
@@ -53,13 +52,14 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/m
 -    //  Load all playlists into RAM (once!)
 -    PlaylistContainer *all_playlists = new PlaylistContainer(all_music);
 -
--    gMusicData->all_music = all_music;
--    gMusicData->all_streams = new AllStream();
--    gMusicData->all_playlists = all_playlists;
+-    gMusicData->m_all_music = all_music;
+-    gMusicData->m_all_streams = new AllStream();
+-    gMusicData->m_all_playlists = all_playlists;
 -
--    gMusicData->initialized = true;
+-    gMusicData->m_initialized = true;
 -
--    while (!gMusicData->all_playlists->doneLoading() || !gMusicData->all_music->doneLoading())
+-    while (!gMusicData->m_all_playlists->doneLoading()
+-           || !gMusicData->m_all_music->doneLoading())
 +    if (!initialized.fetchAndStoreAcquire(1))
      {
 -        qApp->processEvents();
@@ -79,31 +79,27 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/m
 +        // Set the various track formatting modes
 +        MusicMetadata::setArtistAndTrackFormats();
 +
-+        all_music = new AllMusic();
-+        all_playlists = new PlaylistContainer(all_music);
-+        all_streams = new AllStream();
++        m_all_music = new AllMusic();
++        m_all_playlists = new PlaylistContainer(m_all_music);
++        m_all_streams = new AllStream();
 +
-+        while (!all_playlists->doneLoading() || !all_music->doneLoading())
++        while (!m_all_playlists->doneLoading() || !m_all_music->doneLoading())
 +        {
 +            qApp->processEvents();
 +            std::this_thread::sleep_for(std::chrono::milliseconds(50));
 +        }
  
--    gPlayer->loadStreamPlaylist();
--    gPlayer->loadPlaylist();
-+        gPlayer->loadStreamPlaylist();
-+        gPlayer->loadPlaylist();
+     gPlayer->loadStreamPlaylist();
+     gPlayer->loadPlaylist();
  
--    if (busy)
--        busy->Close();
-+        if (busy)
-+            busy->Close();
+     if (busy)
+         busy->Close();
 +    }
-+    return all_music && all_playlists && all_streams;
++    return m_all_music && m_all_playlists && m_all_streams;
  }
-diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/musicdata.h mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/musicdata.h
---- mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/musicdata.h	2019-01-05 12:45:42.010000000 +0100
-+++ mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/musicdata.h	2019-01-05 12:45:43.273333334 +0100
+diff -Naur mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/musicdata.h mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/musicdata.h
+--- mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/musicdata.h	2019-02-17 16:58:55.373333336 +0100
++++ mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/musicdata.h	2019-02-17 16:58:56.603333336 +0100
 @@ -1,9 +1,9 @@
  #ifndef MUSICDATA_H_
  #define MUSICDATA_H_
@@ -115,7 +111,7 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/m
  
  // myth
  #include <mythexp.h>
-@@ -46,7 +46,7 @@
+@@ -44,7 +44,7 @@
      ~MusicData();
  
      void scanMusic(void);
@@ -124,121 +120,32 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/m
  
    public slots:
      void reloadMusic(void);
-@@ -55,7 +55,7 @@
-     PlaylistContainer  *all_playlists;
-     AllMusic           *all_music;
-     AllStream          *all_streams;
--    bool                initialized;
+@@ -54,6 +54,7 @@
+     AllMusic           *m_all_music     {nullptr};
+     AllStream          *m_all_streams   {nullptr};
+     bool                m_initialized   {false};
 +    QAtomicInt         initialized;
  };
  
  // This global variable contains the MusicData instance for the application
-diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/musicplayer.cpp mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/musicplayer.cpp
---- mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/musicplayer.cpp	2019-01-05 12:45:42.073333333 +0100
-+++ mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/musicplayer.cpp	2019-01-05 12:45:43.273333334 +0100
-@@ -638,6 +638,8 @@
+diff -Naur mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/musicplayer.cpp mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/musicplayer.cpp
+--- mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/musicplayer.cpp	2019-02-17 16:58:55.420000002 +0100
++++ mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/musicplayer.cpp	2019-02-17 16:58:56.603333336 +0100
+@@ -607,8 +607,11 @@
+         if (!me)
+             return;
  
++        static QString const kSep("//");
++
          if (me->Message().left(13) == "MUSIC_COMMAND")
          {
-+            static QString const kSep("//");
 +
              QStringList list = me->Message().simplified().split(' ');
  
              if (list.size() >= 3 && list[1] == gCoreContext->GetHostName())
-@@ -717,21 +719,65 @@
-                              QString("MusicPlayer: got invalid MUSIC_COMMAND "
-                                      "PLAY_LIST - %1").arg(me->Message()));
+@@ -775,6 +778,171 @@
+                         sendMetadataChangedEvent(songID);
                      }
--                    else if (gMusicData && gMusicData->all_playlists)
-+                    else if (gMusicData && gMusicData->loadMusic())
-                     {
--                        int start = me->Message().indexOf("'");
--                        int end = me->Message().lastIndexOf("'");
--                        if (start != -1 && end != -1 && start != end)
-+                        Playlist *plist = gMusicData->all_playlists->getPlaylist(
-+                                            me->Message().section(' ', 3));
-+                        if (plist)
-                         {
--                            QString name = me->Message().mid(start + 1, end - start - 1);
--                            Playlist *plist = gMusicData->all_playlists->getPlaylist(name);
--                            if (plist)
-+                            gMusicData->all_playlists->copyToActive(plist->getID());
-+                            qApp->processEvents();
-+
-+                            setCurrentTrackPos(0);
-+                            if (!hasClient())
-+                                showMiniPlayer();
-+                        }
-+                    }
-+                }
-+                else if (list[2] == "PLAY_ALBUM")
-+                {
-+                    if (list.size() < 4)
-+                    {
-+                        LOG(VB_GENERAL, LOG_ERR,
-+                             QString("MusicPlayer: got invalid MUSIC_COMMAND "
-+                                     "PLAY_ALBUM - %1").arg(me->Message()));
-+                    }
-+                    else if (gMusicData && gMusicData->loadMusic())
-+                    {
-+                        stop();
-+                        gMusicData->all_playlists->clearActive();
-+
-+                        QString album, artist, title;
-+                        title = me->Message().section(' ', 3);
-+                        album = title.section(kSep,0,0);
-+                        artist = title.section(kSep,1,1);
-+                        title = title.section(kSep,2);
-+
-+                        QRegExp reAlbum(!album.isEmpty() ? album : QString("*"),
-+                            Qt::CaseInsensitive, QRegExp::WildcardUnix);
-+                        QRegExp reArtist(!artist.isEmpty() ? artist : QString("*"),
-+                            Qt::CaseInsensitive, QRegExp::WildcardUnix);
-+                        QRegExp reTitle(!title.isEmpty() ? title : QString("*"),
-+                            Qt::CaseInsensitive, QRegExp::WildcardUnix);
-+
-+                        MetadataPtrList *mlist = gMusicData->all_music->
-+                                                    getAllMetadata();
-+                        for (MetadataPtrList::const_iterator it = mlist->begin();
-+                            it != mlist->end(); ++it)
-+                        {
-+                            MusicMetadata *meta = *it;
-+                            if (reAlbum.exactMatch(meta->Album()) &&
-+                                reArtist.exactMatch(meta->Artist()) &&
-+                                reTitle.exactMatch(meta->Title()) )
-                             {
--                                gMusicData->all_playlists->copyToActive(plist->getID());
--                                qApp->processEvents();
--                                setCurrentTrackPos(0);
-+                                gMusicData->all_playlists->
-+                                    getActive()->addTrack(meta->ID(), false);
-                             }
-                         }
-+
-+                        setCurrentTrackPos(0);
-+                        if (!hasClient())
-+                            showMiniPlayer();
-                     }
-                 }
-                 else if (list[2] == "GET_METADATA")
-@@ -766,8 +812,12 @@
-                 {
-                     QString mdataStr;
- 
--                    if (gMusicData && gMusicData->all_playlists)
--                        mdataStr = gMusicData->all_playlists->getPlaylistNames().join(", ");
-+                    if (gMusicData && gMusicData->loadMusic())
-+                    {
-+                        mdataStr = gMusicData->all_playlists->getPlaylistNames().join("\n");
-+                        if (mdataStr.isEmpty())
-+                            mdataStr = "<None>";
-+                    }
-                     else
-                         mdataStr = "<Uninitialised>";
- 
-@@ -776,6 +826,171 @@
-                     MythEvent me(message);
-                     gCoreContext->dispatch(me);
                  }
 +                else if (list[2] == "GET_ARTISTS")
 +                {
@@ -252,7 +159,7 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/m
 +                    QStringList matching;
 +                    if (gMusicData && gMusicData->loadMusic())
 +                    {
-+                        MetadataPtrList *mlist = gMusicData->all_music->
++                        MetadataPtrList *mlist = gMusicData->m_all_music->
 +                                                    getAllMetadata();
 +                        for ( MetadataPtrList::const_iterator it = mlist->begin();
 +                            it != mlist->end(); ++it)
@@ -297,7 +204,7 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/m
 +                    QStringList matching;
 +                    if (gMusicData && gMusicData->loadMusic())
 +                    {
-+                        MetadataPtrList *mlist = gMusicData->all_music->
++                        MetadataPtrList *mlist = gMusicData->m_all_music->
 +                                                    getAllMetadata();
 +                        for ( MetadataPtrList::const_iterator it = mlist->begin();
 +                            it != mlist->end(); ++it)
@@ -356,8 +263,8 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/m
 +                        {
 +                            playlist = playlist.mid(1); // strip leading @
 +                            Playlist *plist = playlist.isEmpty() ?
-+                                gMusicData->all_playlists->getActive() :
-+                                gMusicData->all_playlists->getPlaylist(playlist);
++                                gMusicData->m_all_playlists->getActive() :
++                                gMusicData->m_all_playlists->getPlaylist(playlist);
 +                            if (plist)
 +                            {
 +                                songs = plist->getSongs();
@@ -367,7 +274,7 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/m
 +                                mlist = nullptr;
 +                        }
 +                        else
-+                            mlist = gMusicData->all_music->getAllMetadata();
++                            mlist = gMusicData->m_all_music->getAllMetadata();
 +
 +                        if (mlist)
 +                        {
@@ -406,12 +313,12 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/m
 +                    gCoreContext->dispatch(me);
 +                }
              }
-             else
-                 LOG(VB_GENERAL, LOG_ERR,
-diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp
---- mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp	2019-01-05 12:45:42.010000000 +0100
-+++ mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp	2019-01-05 12:45:43.273333334 +0100
-@@ -173,7 +173,7 @@
+         }
+         else if (me->Message().startsWith("MUSIC_SCANNER_STARTED"))
+diff -Naur mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp
+--- mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp	2019-02-17 16:58:55.373333336 +0100
++++ mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/playlistcontainer.cpp	2019-02-17 16:58:56.603333336 +0100
+@@ -164,7 +164,7 @@
      QList<Playlist*>::iterator it = m_allPlaylists->begin();
      for (; it != m_allPlaylists->end(); ++it)
      {
@@ -420,10 +327,10 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/p
              return *it;
      }
  
-diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/playlist.cpp mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/playlist.cpp
---- mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/playlist.cpp	2019-01-05 12:45:42.010000000 +0100
-+++ mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/playlist.cpp	2019-01-05 12:45:43.273333334 +0100
-@@ -1459,3 +1459,20 @@
+diff -Naur mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/playlist.cpp mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/playlist.cpp
+--- mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/playlist.cpp	2019-02-17 16:58:55.376666669 +0100
++++ mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/playlist.cpp	2019-02-17 16:58:56.603333336 +0100
+@@ -1450,3 +1450,20 @@
      return -1;
  }
  #endif
@@ -438,15 +345,15 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/p
 +        int repo = ID_TO_REPO(id);
 +
 +        if (repo == RT_Radio)
-+            list << gMusicData->all_streams->getMetadata(id);
++            list << gMusicData->m_all_streams->getMetadata(id);
 +        else
-+            list << gMusicData->all_music->getMetadata(id);
++            list << gMusicData->m_all_music->getMetadata(id);
 +    }
 +    return list;
 +}
-diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/playlist.h mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/playlist.h
---- mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/playlist.h	2019-01-05 12:45:42.010000000 +0100
-+++ mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/playlist.h	2019-01-05 12:45:43.273333334 +0100
+diff -Naur mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/playlist.h mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/playlist.h
+--- mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/playlist.h	2019-02-17 16:58:55.376666669 +0100
++++ mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/playlist.h	2019-02-17 16:58:56.603333336 +0100
 @@ -75,6 +75,7 @@
  
  
@@ -455,10 +362,10 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/p
  
      int getTrackCount(void) { return m_songs.count(); }
  
-diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/streamview.cpp mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/streamview.cpp
---- mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/streamview.cpp	2019-01-05 12:45:42.010000000 +0100
-+++ mythtv-master-20190105-g3382e1a-new/mythplugins/mythmusic/mythmusic/streamview.cpp	2019-01-05 12:45:43.273333334 +0100
-@@ -68,6 +68,7 @@
+diff -Naur mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/streamview.cpp mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/streamview.cpp
+--- mythtv-master-20190216-g938606f-old/mythplugins/mythmusic/mythmusic/streamview.cpp	2019-02-17 16:58:55.373333336 +0100
++++ mythtv-master-20190216-g938606f-new/mythplugins/mythmusic/mythmusic/streamview.cpp	2019-02-17 16:58:56.603333336 +0100
+@@ -66,6 +66,7 @@
      connect(m_streamList, SIGNAL(itemVisible(MythUIButtonListItem*)),
              this, SLOT(streamItemVisible(MythUIButtonListItem*)));
  
@@ -466,52 +373,12 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythplugins/mythmusic/mythmusic/s
      gPlayer->setPlayMode(MusicPlayer::PLAYMODE_RADIO);
  
      updateStreamList();
-diff -Naur mythtv-master-20190105-g3382e1a-old/mythtv/programs/mythfrontend/networkcontrol.cpp mythtv-master-20190105-g3382e1a-new/mythtv/programs/mythfrontend/networkcontrol.cpp
---- mythtv-master-20190105-g3382e1a-old/mythtv/programs/mythfrontend/networkcontrol.cpp	2019-01-05 12:45:42.073333333 +0100
-+++ mythtv-master-20190105-g3382e1a-new/mythtv/programs/mythfrontend/networkcontrol.cpp	2019-01-05 12:45:43.273333334 +0100
-@@ -779,32 +779,13 @@
-                                 .arg(nc->getFrom(3));
-             else if (is_abbrev("list", nc->getArg(2)))
-             {
--                gotAnswer = false;
--
--                MythEvent me(QString("MUSIC_COMMAND %1 GET_PLAYLISTS")
--                                .arg(gCoreContext->GetHostName()) );
--                gCoreContext->dispatch(me);
--
--                QTime timer;
--                timer.start();
--                while (timer.elapsed() < FE_SHORT_TO && !gotAnswer)
--                {
--                    qApp->processEvents();
--                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
--                }
--
--                if (gotAnswer && answer == "<Uninitialised>")
--                {
--                    GetMythMainWindow()->JumpTo(jumpMap["playlistview"]);
--
--                    QTime timer;
--                    timer.start();
--                    while ((timer.elapsed() < FE_LONG_TO) &&
--                           (GetMythUI()->GetCurrentLocation().toLower() != "playlistview"))
--                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
--                }
--
--                message = QString("MUSIC_COMMAND %1 PLAY_LIST '%2'")
-+                message = QString("MUSIC_COMMAND %1 PLAY_LIST %2")
-+                                .arg(hostname)
-+                                .arg(nc->getFrom(3));
-+            }
-+            else if (is_abbrev("album", nc->getArg(2)))
-+            {
-+                message = QString("MUSIC_COMMAND %1 PLAY_ALBUM %2")
-                                 .arg(hostname)
-                                 .arg(nc->getFrom(3));
-             }
-@@ -1107,6 +1088,72 @@
+diff -Naur mythtv-master-20190216-g938606f-old/mythtv/programs/mythfrontend/networkcontrol.cpp mythtv-master-20190216-g938606f-new/mythtv/programs/mythfrontend/networkcontrol.cpp
+--- mythtv-master-20190216-g938606f-old/mythtv/programs/mythfrontend/networkcontrol.cpp	2019-02-17 16:58:55.423333336 +0100
++++ mythtv-master-20190216-g938606f-new/mythtv/programs/mythfrontend/networkcontrol.cpp	2019-02-17 16:58:56.606666669 +0100
+@@ -1190,6 +1190,72 @@
  
-         return "unknown";
+         return result;
      }
 +    else if (is_abbrev("artists", nc->getArg(1)))
 +    {
@@ -581,30 +448,8 @@ diff -Naur mythtv-master-20190105-g3382e1a-old/mythtv/programs/mythfrontend/netw
 +    }
      else if (is_abbrev("events", nc->getArg(1)))
      {
-         result = nc->getClient()->WantsEvents() ? "On" : "Off";
-@@ -1518,7 +1565,8 @@
-             "play music file NAME   - Play specified file (MythMusic)\r\n"
-             "play music track N     - Switch to specified track (MythMusic)\r\n"
-             "play music url URL     - Play specified URL (MythMusic)\r\n"
--            "play music list NAME   - Play specified playlist (MythMusic)\r\n";
-+            "play music list NAME   - Play specified playlist (MythMusic)\r\n"
-+            "play music album ALBUM[//ARTIST[//TRACK]] - Play specified album (MythMusic)\r\n";
-     }
-     else if (is_abbrev("query", command))
-     {
-@@ -1539,7 +1587,10 @@
-             "query version         - Query Frontend version details\r\n"
-             "query channels        - Query available channels\r\n"
-             "query channels START LIMIT - Query available channels from START and limit results to LIMIT lines\r\n"
--            "query playlists       - Query playlists (MythMusic)\r\n";
-+            "query playlists       - Query playlists (MythMusic)\r\n"
-+            "query artists [ARTIST] - List artists (wildcard) (MythMusic)\r\n"
-+            "query albums [ALBUM[//ARTIST]] - List albums (*=wildcard) (MythMusic)\r\n"
-+            "query tracks [ALBUM[//ARTIST[//TRACK]]] - List tracks (*=wildcard) (MythMusic)\r\n";
-     }
-     else if (is_abbrev("set", command))
-     {
-@@ -1701,9 +1752,7 @@
+         QString res = "OK";
+@@ -1698,9 +1764,7 @@
                  (tokens[1] == "ANSWER") &&
                  (tokens[2] == gCoreContext->GetHostName()))
              {
