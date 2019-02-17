@@ -2,7 +2,7 @@
 # URL for sources: https://github.com/raspberrypi/firmware/archive/542c628c54bc0ffb988fb2494d4b646f9d89263c.zip
 
 GARNAME      = libopenmax
-GARVERSION   = 542c628c54bc0ffb988fb2494d4b646f9d89263c
+GARVERSION   = 83977fe3b6ef54c1d29c83b0a778d330f523441f
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/raspberrypi/firmware/archive/
 DISTFILES    = $(GARVERSION).zip
