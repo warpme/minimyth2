@@ -20,6 +20,8 @@ PATCHFILES += 0008-Settings-Add-manage-settings-in-mythutil.patch
 PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
 # Solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
 PATCHFILES += 0010-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
+# Adds metadata grabbers timeout be configurable
+PATCHFILES += 0011-Metadata-allow-graber-timeout-configurable.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
 PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
