@@ -1,0 +1,94 @@
+From 1f7b19f04d53f981c15a855ca555bc1947c6faad Mon Sep 17 00:00:00 2001
+From: Qiang Yu <yuq825@gmail.com>
+Date: Sun, 17 Feb 2019 15:59:31 +0800
+Subject: [PATCH 20/20] drm/lima: use drm_timeout_abs_to_jiffies
+
+Signed-off-by: Qiang Yu <yuq825@gmail.com>
+---
+ drivers/gpu/drm/lima/lima_gem.c | 29 ++++-------------------------
+ drivers/gpu/drm/lima/lima_gem.h |  2 +-
+ include/uapi/drm/lima_drm.h     |  2 +-
+ 3 files changed, 6 insertions(+), 27 deletions(-)
+
+diff --git a/drivers/gpu/drm/lima/lima_gem.c b/drivers/gpu/drm/lima/lima_gem.c
+index 966720d..b26fa28 100644
+--- a/drivers/gpu/drm/lima/lima_gem.c
++++ b/drivers/gpu/drm/lima/lima_gem.c
+@@ -3,6 +3,7 @@
+ 
+ #include <drm/drmP.h>
+ #include <drm/drm_syncobj.h>
++#include <drm/drm_utils.h>
+ #include <linux/sync_file.h>
+ #include <linux/pfn_t.h>
+ 
+@@ -357,37 +358,15 @@ int lima_gem_submit(struct drm_file *file, struct lima_submit *submit)
+ 	return err;
+ }
+ 
+-static unsigned long lima_timeout_to_jiffies(u64 timeout_ns)
+-{
+-	unsigned long timeout_jiffies;
+-	ktime_t timeout;
+-
+-	/* clamp timeout if it's to large */
+-	if (((s64)timeout_ns) < 0)
+-		return MAX_SCHEDULE_TIMEOUT;
+-
+-	timeout = ktime_sub(ns_to_ktime(timeout_ns), ktime_get());
+-	if (ktime_to_ns(timeout) < 0)
+-		return 0;
+-
+-	timeout_jiffies = nsecs_to_jiffies(ktime_to_ns(timeout));
+-	/*  clamp timeout to avoid unsigned-> signed overflow */
+-	if (timeout_jiffies > MAX_SCHEDULE_TIMEOUT )
+-		return MAX_SCHEDULE_TIMEOUT;
+-
+-	return timeout_jiffies;
+-}
+-
+-int lima_gem_wait(struct drm_file *file, u32 handle, u32 op, u64 timeout_ns)
++int lima_gem_wait(struct drm_file *file, u32 handle, u32 op, s64 timeout_ns)
+ {
+ 	bool write = op & LIMA_GEM_WAIT_WRITE;
+-	unsigned long timeout;
+-	long ret;
++	long ret, timeout;
+ 
+ 	if (!op)
+ 		return 0;
+ 
+-	timeout = timeout_ns ? lima_timeout_to_jiffies(timeout_ns) : 0;
++	timeout = drm_timeout_abs_to_jiffies(timeout_ns);
+ 
+ 	ret = drm_gem_reservation_object_wait(file, handle, write, timeout);
+ 	if (ret == 0)
+diff --git a/drivers/gpu/drm/lima/lima_gem.h b/drivers/gpu/drm/lima/lima_gem.h
+index 968b757..f1c4658 100644
+--- a/drivers/gpu/drm/lima/lima_gem.h
++++ b/drivers/gpu/drm/lima/lima_gem.h
+@@ -18,7 +18,7 @@ void lima_gem_object_close(struct drm_gem_object *obj, struct drm_file *file);
+ int lima_gem_get_info(struct drm_file *file, u32 handle, u32 *va, u64 *offset);
+ int lima_gem_mmap(struct file *filp, struct vm_area_struct *vma);
+ int lima_gem_submit(struct drm_file *file, struct lima_submit *submit);
+-int lima_gem_wait(struct drm_file *file, u32 handle, u32 op, u64 timeout_ns);
++int lima_gem_wait(struct drm_file *file, u32 handle, u32 op, s64 timeout_ns);
+ 
+ void lima_set_vma_flags(struct vm_area_struct *vma);
+ 
+diff --git a/include/uapi/drm/lima_drm.h b/include/uapi/drm/lima_drm.h
+index 184811f..64fb480 100644
+--- a/include/uapi/drm/lima_drm.h
++++ b/include/uapi/drm/lima_drm.h
+@@ -94,7 +94,7 @@ struct drm_lima_gem_submit {
+ struct drm_lima_gem_wait {
+ 	__u32 handle;      /* in */
+ 	__u32 op;          /* in */
+-	__u64 timeout_ns;  /* in */
++	__s64 timeout_ns;  /* in */
+ };
+ 
+ #define LIMA_CTX_OP_CREATE 1
+-- 
+2.7.1
+

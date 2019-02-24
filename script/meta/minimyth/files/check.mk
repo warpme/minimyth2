@@ -180,6 +180,7 @@ mm-all:
 	@echo "    mm_KERNEL_VERSION"
 	@if [ ! "$(mm_KERNEL_VERSION)" = "4.19"           ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "4.20"           ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "5.0"            ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "amlogic-4.19"   ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rockchip-4.20"  ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "allwinner-4.19" ] && \

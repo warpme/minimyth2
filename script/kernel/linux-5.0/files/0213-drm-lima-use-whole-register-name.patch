@@ -1,0 +1,635 @@
+From df91ccabf3085338b81f78db30ce56d1a3176488 Mon Sep 17 00:00:00 2001
+From: Qiang Yu <yuq825@gmail.com>
+Date: Sat, 16 Feb 2019 11:37:15 +0800
+Subject: [PATCH 13/20] drm/lima: use whole register name
+
+Signed-off-by: Qiang Yu <yuq825@gmail.com>
+---
+ drivers/gpu/drm/lima/lima_bcast.c    | 12 ++++----
+ drivers/gpu/drm/lima/lima_dlbu.c     | 20 ++++++-------
+ drivers/gpu/drm/lima/lima_gp.c       | 46 ++++++++++++++--------------
+ drivers/gpu/drm/lima/lima_l2_cache.c | 13 ++++----
+ drivers/gpu/drm/lima/lima_mmu.c      | 50 ++++++++++++++++---------------
+ drivers/gpu/drm/lima/lima_pmu.c      | 16 +++++-----
+ drivers/gpu/drm/lima/lima_pp.c       | 58 ++++++++++++++++++------------------
+ 7 files changed, 109 insertions(+), 106 deletions(-)
+
+diff --git a/drivers/gpu/drm/lima/lima_bcast.c b/drivers/gpu/drm/lima/lima_bcast.c
+index 63754f6..398e6d6 100644
+--- a/drivers/gpu/drm/lima/lima_bcast.c
++++ b/drivers/gpu/drm/lima/lima_bcast.c
+@@ -8,21 +8,21 @@
+ #include "lima_bcast.h"
+ #include "lima_regs.h"
+ 
+-#define bcast_write(reg, data) writel(data, ip->iomem + LIMA_BCAST_##reg)
+-#define bcast_read(reg) readl(ip->iomem + LIMA_BCAST_##reg)
++#define bcast_write(reg, data) writel(data, ip->iomem + reg)
++#define bcast_read(reg) readl(ip->iomem + reg)
+ 
+ void lima_bcast_enable(struct lima_device *dev, int num_pp)
+ {
+ 	struct lima_sched_pipe *pipe = dev->pipe + lima_pipe_pp;
+ 	struct lima_ip *ip = dev->ip + lima_ip_bcast;
+-	int i, mask = bcast_read(BROADCAST_MASK) & 0xffff0000;
++	int i, mask = bcast_read(LIMA_BCAST_BROADCAST_MASK) & 0xffff0000;
+ 
+ 	for (i = 0; i < num_pp; i++) {
+ 		struct lima_ip *pp = pipe->processor[i];
+ 		mask |= 1 << (pp->id - lima_ip_pp0);
+ 	}
+ 
+-	bcast_write(BROADCAST_MASK, mask);
++	bcast_write(LIMA_BCAST_BROADCAST_MASK, mask);
+ }
+ 
+ int lima_bcast_init(struct lima_ip *ip)
+@@ -34,8 +34,8 @@ int lima_bcast_init(struct lima_ip *ip)
+ 			mask |= 1 << (i - lima_ip_pp0);
+ 	}
+ 
+-	bcast_write(BROADCAST_MASK, mask << 16);
+-	bcast_write(INTERRUPT_MASK, mask);
++	bcast_write(LIMA_BCAST_BROADCAST_MASK, mask << 16);
++	bcast_write(LIMA_BCAST_INTERRUPT_MASK, mask);
+ 	return 0;
+ }
+ 
+diff --git a/drivers/gpu/drm/lima/lima_dlbu.c b/drivers/gpu/drm/lima/lima_dlbu.c
+index 6697d4d..b773971 100644
+--- a/drivers/gpu/drm/lima/lima_dlbu.c
++++ b/drivers/gpu/drm/lima/lima_dlbu.c
+@@ -9,8 +9,8 @@
+ #include "lima_vm.h"
+ #include "lima_regs.h"
+ 
+-#define dlbu_write(reg, data) writel(data, ip->iomem + LIMA_DLBU_##reg)
+-#define dlbu_read(reg) readl(ip->iomem + LIMA_DLBU_##reg)
++#define dlbu_write(reg, data) writel(data, ip->iomem + reg)
++#define dlbu_read(reg) readl(ip->iomem + reg)
+ 
+ void lima_dlbu_enable(struct lima_device *dev, int num_pp)
+ {
+@@ -23,29 +23,29 @@ void lima_dlbu_enable(struct lima_device *dev, int num_pp)
+ 		mask |= 1 << (pp->id - lima_ip_pp0);
+ 	}
+ 
+-	dlbu_write(PP_ENABLE_MASK, mask);
++	dlbu_write(LIMA_DLBU_PP_ENABLE_MASK, mask);
+ }
+ 
+ void lima_dlbu_disable(struct lima_device *dev)
+ {
+ 	struct lima_ip *ip = dev->ip + lima_ip_dlbu;
+-	dlbu_write(PP_ENABLE_MASK, 0);
++	dlbu_write(LIMA_DLBU_PP_ENABLE_MASK, 0);
+ }
+ 
+ void lima_dlbu_set_reg(struct lima_ip *ip, u32 *reg)
+ {
+-	dlbu_write(TLLIST_VBASEADDR, reg[0]);
+-	dlbu_write(FB_DIM, reg[1]);
+-	dlbu_write(TLLIST_CONF, reg[2]);
+-	dlbu_write(START_TILE_POS, reg[3]);
++	dlbu_write(LIMA_DLBU_TLLIST_VBASEADDR, reg[0]);
++	dlbu_write(LIMA_DLBU_FB_DIM, reg[1]);
++	dlbu_write(LIMA_DLBU_TLLIST_CONF, reg[2]);
++	dlbu_write(LIMA_DLBU_START_TILE_POS, reg[3]);
+ }
+ 
+ int lima_dlbu_init(struct lima_ip *ip)
+ {
+ 	struct lima_device *dev = ip->dev;
+ 
+-	dlbu_write(MASTER_TLLIST_PHYS_ADDR, dev->dlbu_dma | 1);
+-	dlbu_write(MASTER_TLLIST_VADDR, LIMA_VA_RESERVE_DLBU);
++	dlbu_write(LIMA_DLBU_MASTER_TLLIST_PHYS_ADDR, dev->dlbu_dma | 1);
++	dlbu_write(LIMA_DLBU_MASTER_TLLIST_VADDR, LIMA_VA_RESERVE_DLBU);
+ 
+ 	return 0;
+ }
+diff --git a/drivers/gpu/drm/lima/lima_gp.c b/drivers/gpu/drm/lima/lima_gp.c
+index 9193ed3..e2bbeff 100644
+--- a/drivers/gpu/drm/lima/lima_gp.c
++++ b/drivers/gpu/drm/lima/lima_gp.c
+@@ -12,16 +12,16 @@
+ #include "lima_gp.h"
+ #include "lima_regs.h"
+ 
+-#define gp_write(reg, data) writel(data, ip->iomem + LIMA_GP_##reg)
+-#define gp_read(reg) readl(ip->iomem + LIMA_GP_##reg)
++#define gp_write(reg, data) writel(data, ip->iomem + reg)
++#define gp_read(reg) readl(ip->iomem + reg)
+ 
+ static irqreturn_t lima_gp_irq_handler(int irq, void *data)
+ {
+ 	struct lima_ip *ip = data;
+ 	struct lima_device *dev = ip->dev;
+ 	struct lima_sched_pipe *pipe = dev->pipe + lima_pipe_gp;
+-	u32 state = gp_read(INT_STAT);
+-	u32 status = gp_read(STATUS);
++	u32 state = gp_read(LIMA_GP_INT_STAT);
++	u32 status = gp_read(LIMA_GP_STATUS);
+ 	bool done = false;
+ 
+ 	/* for shared irq case */
+@@ -33,7 +33,7 @@ static irqreturn_t lima_gp_irq_handler(int irq, void *data)
+ 			state, status);
+ 
+ 		/* mask all interrupts before hard reset */
+-		gp_write(INT_MASK, 0);
++		gp_write(LIMA_GP_INT_MASK, 0);
+ 
+ 		pipe->error = true;
+ 		done = true;
+@@ -46,7 +46,7 @@ static irqreturn_t lima_gp_irq_handler(int irq, void *data)
+ 		done = valid && !active;
+ 	}
+ 
+-	gp_write(INT_CLEAR, state);
++	gp_write(LIMA_GP_INT_CLEAR, state);
+ 
+ 	if (done)
+ 		lima_sched_pipe_task_done(pipe);
+@@ -59,9 +59,9 @@ static void lima_gp_soft_reset_async(struct lima_ip *ip)
+ 	if (ip->data.async_reset)
+ 		return;
+ 
+-	gp_write(INT_MASK, 0);
+-	gp_write(INT_CLEAR, LIMA_GP_IRQ_RESET_COMPLETED);
+-	gp_write(CMD, LIMA_GP_CMD_SOFT_RESET);
++	gp_write(LIMA_GP_INT_MASK, 0);
++	gp_write(LIMA_GP_INT_CLEAR, LIMA_GP_IRQ_RESET_COMPLETED);
++	gp_write(LIMA_GP_CMD, LIMA_GP_CMD_SOFT_RESET);
+ 	ip->data.async_reset = true;
+ }
+ 
+@@ -82,8 +82,8 @@ static int lima_gp_soft_reset_async_wait(struct lima_ip *ip)
+ 		return err;
+ 	}
+ 
+-	gp_write(INT_CLEAR, LIMA_GP_IRQ_MASK_ALL);
+-	gp_write(INT_MASK, LIMA_GP_IRQ_MASK_USED);
++	gp_write(LIMA_GP_INT_CLEAR, LIMA_GP_IRQ_MASK_ALL);
++	gp_write(LIMA_GP_INT_MASK, LIMA_GP_IRQ_MASK_USED);
+ 
+ 	ip->data.async_reset = false;
+ 	return 0;
+@@ -135,8 +135,8 @@ static void lima_gp_task_run(struct lima_sched_pipe *pipe,
+ 	for (i = 0; i < LIMA_GP_FRAME_REG_NUM; i++)
+ 		writel(f[i], ip->iomem + LIMA_GP_VSCL_START_ADDR + i * 4);
+ 
+-	gp_write(CMD, LIMA_GP_CMD_UPDATE_PLBU_ALLOC);
+-	gp_write(CMD, cmd);
++	gp_write(LIMA_GP_CMD, LIMA_GP_CMD_UPDATE_PLBU_ALLOC);
++	gp_write(LIMA_GP_CMD, cmd);
+ }
+ 
+ static int lima_gp_hard_reset(struct lima_ip *ip)
+@@ -144,12 +144,12 @@ static int lima_gp_hard_reset(struct lima_ip *ip)
+ 	struct lima_device *dev = ip->dev;
+ 	int timeout;
+ 
+-	gp_write(PERF_CNT_0_LIMIT, 0xC0FFE000);
+-	gp_write(INT_MASK, 0);
+-	gp_write(CMD, LIMA_GP_CMD_RESET);
++	gp_write(LIMA_GP_PERF_CNT_0_LIMIT, 0xC0FFE000);
++	gp_write(LIMA_GP_INT_MASK, 0);
++	gp_write(LIMA_GP_CMD, LIMA_GP_CMD_RESET);
+ 	for (timeout = 1000; timeout > 0; timeout--) {
+-		gp_write(PERF_CNT_0_LIMIT, 0xC01A0000);
+-		if (gp_read(PERF_CNT_0_LIMIT) == 0xC01A0000)
++		gp_write(LIMA_GP_PERF_CNT_0_LIMIT, 0xC01A0000);
++		if (gp_read(LIMA_GP_PERF_CNT_0_LIMIT) == 0xC01A0000)
+ 			break;
+ 	}
+ 	if (!timeout) {
+@@ -157,9 +157,9 @@ static int lima_gp_hard_reset(struct lima_ip *ip)
+ 		return -ETIMEDOUT;
+ 	}
+ 
+-	gp_write(PERF_CNT_0_LIMIT, 0);
+-	gp_write(INT_CLEAR, LIMA_GP_IRQ_MASK_ALL);
+-	gp_write(INT_MASK, LIMA_GP_IRQ_MASK_USED);
++	gp_write(LIMA_GP_PERF_CNT_0_LIMIT, 0);
++	gp_write(LIMA_GP_INT_CLEAR, LIMA_GP_IRQ_MASK_ALL);
++	gp_write(LIMA_GP_INT_MASK, LIMA_GP_IRQ_MASK_USED);
+ 	return 0;
+ }
+ 
+@@ -173,7 +173,7 @@ static void lima_gp_task_error(struct lima_sched_pipe *pipe)
+ 	struct lima_ip *ip = pipe->processor[0];
+ 
+ 	dev_err(ip->dev->dev, "gp task error int_state=%x status=%x\n",
+-		gp_read(INT_STAT), gp_read(STATUS));
++		gp_read(LIMA_GP_INT_STAT), gp_read(LIMA_GP_STATUS));
+ 
+ 	lima_gp_hard_reset(ip);
+ }
+@@ -188,7 +188,7 @@ static void lima_gp_print_version(struct lima_ip *ip)
+ 	u32 version, major, minor;
+ 	char *name;
+ 
+-	version = gp_read(VERSION);
++	version = gp_read(LIMA_GP_VERSION);
+ 	major = (version >> 8) & 0xFF;
+ 	minor = version & 0xFF;
+ 	switch (version >> 16) {
+diff --git a/drivers/gpu/drm/lima/lima_l2_cache.c b/drivers/gpu/drm/lima/lima_l2_cache.c
+index 7597ea4..2ba4786 100644
+--- a/drivers/gpu/drm/lima/lima_l2_cache.c
++++ b/drivers/gpu/drm/lima/lima_l2_cache.c
+@@ -8,8 +8,8 @@
+ #include "lima_l2_cache.h"
+ #include "lima_regs.h"
+ 
+-#define l2_cache_write(reg, data) writel(data, ip->iomem + LIMA_L2_CACHE_##reg)
+-#define l2_cache_read(reg) readl(ip->iomem + LIMA_L2_CACHE_##reg)
++#define l2_cache_write(reg, data) writel(data, ip->iomem + reg)
++#define l2_cache_read(reg) readl(ip->iomem + reg)
+ 
+ static int lima_l2_cache_wait_idle(struct lima_ip *ip)
+ {
+@@ -32,7 +32,7 @@ int lima_l2_cache_flush(struct lima_ip *ip)
+ 	int ret;
+ 
+ 	spin_lock(&ip->data.lock);
+-	l2_cache_write(COMMAND, LIMA_L2_CACHE_COMMAND_CLEAR_ALL);
++	l2_cache_write(LIMA_L2_CACHE_COMMAND, LIMA_L2_CACHE_COMMAND_CLEAR_ALL);
+ 	ret = lima_l2_cache_wait_idle(ip);
+ 	spin_unlock(&ip->data.lock);
+ 	return ret;
+@@ -56,7 +56,7 @@ int lima_l2_cache_init(struct lima_ip *ip)
+ 
+ 	spin_lock_init(&ip->data.lock);
+ 
+-	size = l2_cache_read(SIZE);
++	size = l2_cache_read(LIMA_L2_CACHE_SIZE);
+ 	dev_info(dev->dev, "l2 cache %uK, %u-way, %ubyte cache line, %ubit external bus\n",
+ 		 1 << (((size >> 16) & 0xff) - 10),
+ 		 1 << ((size >> 8) & 0xff),
+@@ -67,8 +67,9 @@ int lima_l2_cache_init(struct lima_ip *ip)
+ 	if (err)
+ 		return err;
+ 
+-	l2_cache_write(ENABLE, LIMA_L2_CACHE_ENABLE_ACCESS | LIMA_L2_CACHE_ENABLE_READ_ALLOCATE);
+-	l2_cache_write(MAX_READS, 0x1c);
++	l2_cache_write(LIMA_L2_CACHE_ENABLE,
++		       LIMA_L2_CACHE_ENABLE_ACCESS|LIMA_L2_CACHE_ENABLE_READ_ALLOCATE);
++	l2_cache_write(LIMA_L2_CACHE_MAX_READS, 0x1c);
+ 
+ 	return 0;
+ }
+diff --git a/drivers/gpu/drm/lima/lima_mmu.c b/drivers/gpu/drm/lima/lima_mmu.c
+index 7056e8d..400038a 100644
+--- a/drivers/gpu/drm/lima/lima_mmu.c
++++ b/drivers/gpu/drm/lima/lima_mmu.c
+@@ -11,14 +11,14 @@
+ #include "lima_object.h"
+ #include "lima_regs.h"
+ 
+-#define mmu_write(reg, data) writel(data, ip->iomem + LIMA_MMU_##reg)
+-#define mmu_read(reg) readl(ip->iomem + LIMA_MMU_##reg)
++#define mmu_write(reg, data) writel(data, ip->iomem + reg)
++#define mmu_read(reg) readl(ip->iomem + reg)
+ 
+ #define lima_mmu_send_command(command, condition)	     \
+ ({							     \
+ 	int __timeout, __ret = 0;			     \
+ 							     \
+-	mmu_write(COMMAND, command);			     \
++	mmu_write(LIMA_MMU_COMMAND, command);		     \
+ 	for (__timeout = 1000; __timeout > 0; __timeout--) { \
+ 		if (condition)				     \
+ 			break;				     \
+@@ -34,7 +34,7 @@ static irqreturn_t lima_mmu_irq_handler(int irq, void *data)
+ {
+ 	struct lima_ip *ip = data;
+ 	struct lima_device *dev = ip->dev;
+-	u32 status = mmu_read(INT_STATUS);
++	u32 status = mmu_read(LIMA_MMU_INT_STATUS);
+ 	struct lima_sched_pipe *pipe;
+ 
+ 	/* for shared irq case */
+@@ -42,7 +42,7 @@ static irqreturn_t lima_mmu_irq_handler(int irq, void *data)
+ 		return IRQ_NONE;
+ 
+ 	if (status & LIMA_MMU_INT_PAGE_FAULT) {
+-		u32 fault = mmu_read(PAGE_FAULT_ADDR);
++		u32 fault = mmu_read(LIMA_MMU_PAGE_FAULT_ADDR);
+ 		dev_err(dev->dev, "mmu page fault at 0x%x from bus id %d of type %s on %s\n",
+ 			fault, LIMA_MMU_STATUS_BUS_ID(status),
+ 			status & LIMA_MMU_STATUS_PAGE_FAULT_IS_WRITE ? "write" : "read",
+@@ -54,8 +54,8 @@ static irqreturn_t lima_mmu_irq_handler(int irq, void *data)
+ 	}
+ 
+ 	/* mask all interrupts before resume */
+-	mmu_write(INT_MASK, 0);
+-	mmu_write(INT_CLEAR, status);
++	mmu_write(LIMA_MMU_INT_MASK, 0);
++	mmu_write(LIMA_MMU_INT_CLEAR, status);
+ 
+ 	pipe = dev->pipe + (ip->id == lima_ip_gpmmu ? lima_pipe_gp : lima_pipe_pp);
+ 	lima_sched_pipe_mmu_error(pipe);
+@@ -71,13 +71,14 @@ int lima_mmu_init(struct lima_ip *ip)
+ 	if (ip->id == lima_ip_ppmmu_bcast)
+ 		return 0;
+ 
+-	mmu_write(DTE_ADDR, 0xCAFEBABE);
+-	if (mmu_read(DTE_ADDR) != 0xCAFEB000) {
++	mmu_write(LIMA_MMU_DTE_ADDR, 0xCAFEBABE);
++	if (mmu_read(LIMA_MMU_DTE_ADDR) != 0xCAFEB000) {
+ 		dev_err(dev->dev, "mmu %s dte write test fail\n", lima_ip_name(ip));
+ 		return -EIO;
+ 	}
+ 
+-	err = lima_mmu_send_command(LIMA_MMU_COMMAND_HARD_RESET, mmu_read(DTE_ADDR) == 0);
++	err = lima_mmu_send_command(LIMA_MMU_COMMAND_HARD_RESET,
++				    mmu_read(LIMA_MMU_DTE_ADDR) == 0);
+ 	if (err)
+ 		return err;
+ 
+@@ -88,10 +89,10 @@ int lima_mmu_init(struct lima_ip *ip)
+ 		return err;
+ 	}
+ 
+-	mmu_write(INT_MASK, LIMA_MMU_INT_PAGE_FAULT | LIMA_MMU_INT_READ_BUS_ERROR);
+-	mmu_write(DTE_ADDR, dev->empty_vm->pd.dma);
++	mmu_write(LIMA_MMU_INT_MASK, LIMA_MMU_INT_PAGE_FAULT | LIMA_MMU_INT_READ_BUS_ERROR);
++	mmu_write(LIMA_MMU_DTE_ADDR, dev->empty_vm->pd.dma);
+ 	return lima_mmu_send_command(LIMA_MMU_COMMAND_ENABLE_PAGING,
+-				     mmu_read(STATUS) & LIMA_MMU_STATUS_PAGING_ENABLED);
++				     mmu_read(LIMA_MMU_STATUS) & LIMA_MMU_STATUS_PAGING_ENABLED);
+ }
+ 
+ void lima_mmu_fini(struct lima_ip *ip)
+@@ -104,32 +105,33 @@ void lima_mmu_switch_vm(struct lima_ip *ip, struct lima_vm *vm)
+ 	struct lima_device *dev = ip->dev;
+ 
+ 	lima_mmu_send_command(LIMA_MMU_COMMAND_ENABLE_STALL,
+-			      mmu_read(STATUS) & LIMA_MMU_STATUS_STALL_ACTIVE);
++			      mmu_read(LIMA_MMU_STATUS) & LIMA_MMU_STATUS_STALL_ACTIVE);
+ 
+ 	if (vm)
+-		mmu_write(DTE_ADDR, vm->pd.dma);
++		mmu_write(LIMA_MMU_DTE_ADDR, vm->pd.dma);
+ 
+ 	/* flush the TLB */
+-	mmu_write(COMMAND, LIMA_MMU_COMMAND_ZAP_CACHE);
++	mmu_write(LIMA_MMU_COMMAND, LIMA_MMU_COMMAND_ZAP_CACHE);
+ 
+ 	lima_mmu_send_command(LIMA_MMU_COMMAND_DISABLE_STALL,
+-			      !(mmu_read(STATUS) & LIMA_MMU_STATUS_STALL_ACTIVE));
++			      !(mmu_read(LIMA_MMU_STATUS) & LIMA_MMU_STATUS_STALL_ACTIVE));
+ }
+ 
+ void lima_mmu_page_fault_resume(struct lima_ip *ip)
+ {
+ 	struct lima_device *dev = ip->dev;
+-	u32 status = mmu_read(STATUS);
++	u32 status = mmu_read(LIMA_MMU_STATUS);
+ 
+ 	if (status & LIMA_MMU_STATUS_PAGE_FAULT_ACTIVE) {
+ 		dev_info(dev->dev, "mmu resume\n");
+ 
+-		mmu_write(INT_MASK, 0);
+-		mmu_write(DTE_ADDR, 0xCAFEBABE);
+-		lima_mmu_send_command(LIMA_MMU_COMMAND_HARD_RESET, mmu_read(DTE_ADDR) == 0);
+-	        mmu_write(INT_MASK, LIMA_MMU_INT_PAGE_FAULT | LIMA_MMU_INT_READ_BUS_ERROR);
+-		mmu_write(DTE_ADDR, dev->empty_vm->pd.dma);
++		mmu_write(LIMA_MMU_INT_MASK, 0);
++		mmu_write(LIMA_MMU_DTE_ADDR, 0xCAFEBABE);
++		lima_mmu_send_command(LIMA_MMU_COMMAND_HARD_RESET,
++				      mmu_read(LIMA_MMU_DTE_ADDR) == 0);
++	        mmu_write(LIMA_MMU_INT_MASK, LIMA_MMU_INT_PAGE_FAULT | LIMA_MMU_INT_READ_BUS_ERROR);
++		mmu_write(LIMA_MMU_DTE_ADDR, dev->empty_vm->pd.dma);
+ 		lima_mmu_send_command(LIMA_MMU_COMMAND_ENABLE_PAGING,
+-				      mmu_read(STATUS) & LIMA_MMU_STATUS_PAGING_ENABLED);
++				      mmu_read(LIMA_MMU_STATUS) & LIMA_MMU_STATUS_PAGING_ENABLED);
+ 	}
+ }
+diff --git a/drivers/gpu/drm/lima/lima_pmu.c b/drivers/gpu/drm/lima/lima_pmu.c
+index 31a84b9..1b628f8 100644
+--- a/drivers/gpu/drm/lima/lima_pmu.c
++++ b/drivers/gpu/drm/lima/lima_pmu.c
+@@ -8,8 +8,8 @@
+ #include "lima_pmu.h"
+ #include "lima_regs.h"
+ 
+-#define pmu_write(reg, data) writel(data, ip->iomem + LIMA_PMU_##reg)
+-#define pmu_read(reg) readl(ip->iomem + LIMA_PMU_##reg)
++#define pmu_write(reg, data) writel(data, ip->iomem + reg)
++#define pmu_read(reg) readl(ip->iomem + reg)
+ 
+ static int lima_pmu_wait_cmd(struct lima_ip *ip)
+ {
+@@ -17,7 +17,7 @@ static int lima_pmu_wait_cmd(struct lima_ip *ip)
+ 	u32 stat, timeout;
+ 
+ 	for (timeout = 1000000; timeout > 0; timeout--) {
+-		stat = pmu_read(INT_RAWSTAT);
++		stat = pmu_read(LIMA_PMU_INT_RAWSTAT);
+ 		if (stat & LIMA_PMU_INT_CMD_MASK)
+ 			break;
+ 	}
+@@ -27,7 +27,7 @@ static int lima_pmu_wait_cmd(struct lima_ip *ip)
+ 		return -ETIMEDOUT;
+ 	}
+ 
+-	pmu_write(INT_CLEAR, LIMA_PMU_INT_CMD_MASK);
++	pmu_write(LIMA_PMU_INT_CLEAR, LIMA_PMU_INT_CMD_MASK);
+ 	return 0;
+ }
+ 
+@@ -36,18 +36,18 @@ int lima_pmu_init(struct lima_ip *ip)
+ 	int err;
+ 	u32 stat;
+ 
+-	pmu_write(INT_MASK, 0);
++	pmu_write(LIMA_PMU_INT_MASK, 0);
+ 
+ 	/* If this value is too low, when in high GPU clk freq,
+ 	 * GPU will be in unstable state. */
+-	pmu_write(SW_DELAY, 0xffff);
++	pmu_write(LIMA_PMU_SW_DELAY, 0xffff);
+ 
+ 	/* status reg 1=off 0=on */
+-	stat = pmu_read(STATUS);
++	stat = pmu_read(LIMA_PMU_STATUS);
+ 
+ 	/* power up all ip */
+ 	if (stat) {
+-		pmu_write(POWER_UP, stat);
++		pmu_write(LIMA_PMU_POWER_UP, stat);
+ 		err = lima_pmu_wait_cmd(ip);
+ 		if (err)
+ 			return err;
+diff --git a/drivers/gpu/drm/lima/lima_pp.c b/drivers/gpu/drm/lima/lima_pp.c
+index f65c499..ffd306a 100644
+--- a/drivers/gpu/drm/lima/lima_pp.c
++++ b/drivers/gpu/drm/lima/lima_pp.c
+@@ -15,8 +15,8 @@
+ #include "lima_vm.h"
+ #include "lima_regs.h"
+ 
+-#define pp_write(reg, data) writel(data, ip->iomem + LIMA_PP_##reg)
+-#define pp_read(reg) readl(ip->iomem + LIMA_PP_##reg)
++#define pp_write(reg, data) writel(data, ip->iomem + reg)
++#define pp_read(reg) readl(ip->iomem + reg)
+ 
+ static void lima_pp_handle_irq(struct lima_ip *ip, u32 state)
+ {
+@@ -24,7 +24,7 @@ static void lima_pp_handle_irq(struct lima_ip *ip, u32 state)
+ 	struct lima_sched_pipe *pipe = dev->pipe + lima_pipe_pp;
+ 
+ 	if (state & LIMA_PP_IRQ_MASK_ERROR) {
+-		u32 status = pp_read(STATUS);
++		u32 status = pp_read(LIMA_PP_STATUS);
+ 
+ 		dev_err(dev->dev, "pp error irq state=%x status=%x\n",
+ 			state, status);
+@@ -32,10 +32,10 @@ static void lima_pp_handle_irq(struct lima_ip *ip, u32 state)
+ 		pipe->error = true;
+ 
+ 		/* mask all interrupts before hard reset */
+-		pp_write(INT_MASK, 0);
++		pp_write(LIMA_PP_INT_MASK, 0);
+ 	}
+ 
+-	pp_write(INT_CLEAR, state);
++	pp_write(LIMA_PP_INT_CLEAR, state);
+ }
+ 
+ static irqreturn_t lima_pp_irq_handler(int irq, void *data)
+@@ -43,7 +43,7 @@ static irqreturn_t lima_pp_irq_handler(int irq, void *data)
+ 	struct lima_ip *ip = data;
+ 	struct lima_device *dev = ip->dev;
+ 	struct lima_sched_pipe *pipe = dev->pipe + lima_pipe_pp;
+-	u32 state = pp_read(INT_STATUS);
++	u32 state = pp_read(LIMA_PP_INT_STATUS);
+ 
+ 	/* for shared irq case */
+ 	if (!state)
+@@ -75,8 +75,8 @@ static irqreturn_t lima_pp_bcast_irq_handler(int irq, void *data)
+ 
+ 		/* status read first in case int state change in the middle
+ 		 * which may miss the interrupt handling */
+-		status = pp_read(STATUS);
+-		state = pp_read(INT_STATUS);
++		status = pp_read(LIMA_PP_STATUS);
++		state = pp_read(LIMA_PP_INT_STATUS);
+ 
+ 		if (state) {
+ 			lima_pp_handle_irq(ip, state);
+@@ -100,9 +100,9 @@ static void lima_pp_soft_reset_async(struct lima_ip *ip)
+ 	if (ip->data.async_reset)
+ 		return;
+ 
+-	pp_write(INT_MASK, 0);
+-	pp_write(INT_RAWSTAT, LIMA_PP_IRQ_MASK_ALL);
+-	pp_write(CTRL, LIMA_PP_CTRL_SOFT_RESET);
++	pp_write(LIMA_PP_INT_MASK, 0);
++	pp_write(LIMA_PP_INT_RAWSTAT, LIMA_PP_IRQ_MASK_ALL);
++	pp_write(LIMA_PP_CTRL, LIMA_PP_CTRL_SOFT_RESET);
+ 	ip->data.async_reset = true;
+ }
+ 
+@@ -112,8 +112,8 @@ static int lima_pp_soft_reset_async_wait_one(struct lima_ip *ip)
+ 	int timeout;
+ 
+ 	for (timeout = 1000; timeout > 0; timeout--) {
+-		if (!(pp_read(STATUS) & LIMA_PP_STATUS_RENDERING_ACTIVE) &&
+-		    pp_read(INT_RAWSTAT) == LIMA_PP_IRQ_RESET_COMPLETED)
++		if (!(pp_read(LIMA_PP_STATUS) & LIMA_PP_STATUS_RENDERING_ACTIVE) &&
++		    pp_read(LIMA_PP_INT_RAWSTAT) == LIMA_PP_IRQ_RESET_COMPLETED)
+ 			break;
+ 	}
+ 	if (!timeout) {
+@@ -121,8 +121,8 @@ static int lima_pp_soft_reset_async_wait_one(struct lima_ip *ip)
+ 		return -ETIMEDOUT;
+ 	}
+ 
+-	pp_write(INT_CLEAR, LIMA_PP_IRQ_MASK_ALL);
+-	pp_write(INT_MASK, LIMA_PP_IRQ_MASK_USED);
++	pp_write(LIMA_PP_INT_CLEAR, LIMA_PP_IRQ_MASK_ALL);
++	pp_write(LIMA_PP_INT_MASK, LIMA_PP_IRQ_MASK_USED);
+ 	return 0;
+ }
+ 
+@@ -166,12 +166,12 @@ static int lima_pp_hard_reset(struct lima_ip *ip)
+ 	struct lima_device *dev = ip->dev;
+ 	int timeout;
+ 
+-	pp_write(PERF_CNT_0_LIMIT, 0xC0FFE000);
+-	pp_write(INT_MASK, 0);
+-	pp_write(CTRL, LIMA_PP_CTRL_FORCE_RESET);
++	pp_write(LIMA_PP_PERF_CNT_0_LIMIT, 0xC0FFE000);
++	pp_write(LIMA_PP_INT_MASK, 0);
++	pp_write(LIMA_PP_CTRL, LIMA_PP_CTRL_FORCE_RESET);
+ 	for (timeout = 1000; timeout > 0; timeout--) {
+-		pp_write(PERF_CNT_0_LIMIT, 0xC01A0000);
+-		if (pp_read(PERF_CNT_0_LIMIT) == 0xC01A0000)
++		pp_write(LIMA_PP_PERF_CNT_0_LIMIT, 0xC01A0000);
++		if (pp_read(LIMA_PP_PERF_CNT_0_LIMIT) == 0xC01A0000)
+ 			break;
+ 	}
+ 	if (!timeout) {
+@@ -179,9 +179,9 @@ static int lima_pp_hard_reset(struct lima_ip *ip)
+ 		return -ETIMEDOUT;
+ 	}
+ 
+-	pp_write(PERF_CNT_0_LIMIT, 0);
+-	pp_write(INT_CLEAR, LIMA_PP_IRQ_MASK_ALL);
+-	pp_write(INT_MASK, LIMA_PP_IRQ_MASK_USED);
++	pp_write(LIMA_PP_PERF_CNT_0_LIMIT, 0);
++	pp_write(LIMA_PP_INT_CLEAR, LIMA_PP_IRQ_MASK_ALL);
++	pp_write(LIMA_PP_INT_MASK, LIMA_PP_IRQ_MASK_USED);
+ 	return 0;
+ }
+ 
+@@ -190,7 +190,7 @@ static void lima_pp_print_version(struct lima_ip *ip)
+ 	u32 version, major, minor;
+ 	char *name;
+ 
+-	version = pp_read(VERSION);
++	version = pp_read(LIMA_PP_VERSION);
+ 	major = (version >> 8) & 0xFF;
+ 	minor = version & 0xFF;
+ 	switch (version >> 16) {
+@@ -314,12 +314,12 @@ static void lima_pp_task_run(struct lima_sched_pipe *pipe,
+ 		for (i = 0; i < frame->num_pp; i++) {
+ 			struct lima_ip *ip = pipe->processor[i];
+ 
+-			pp_write(STACK, frame->fragment_stack_address[i]);
++			pp_write(LIMA_PP_STACK, frame->fragment_stack_address[i]);
+ 			if (!frame->use_dlbu)
+-				pp_write(FRAME, frame->plbu_array_address[i]);
++				pp_write(LIMA_PP_FRAME, frame->plbu_array_address[i]);
+ 		}
+ 
+-		pp_write(CTRL, LIMA_PP_CTRL_START_RENDERING);
++		pp_write(LIMA_PP_CTRL, LIMA_PP_CTRL_START_RENDERING);
+ 	}
+ 	else {
+ 		struct drm_lima_m400_pp_frame *frame = task->frame;
+@@ -339,7 +339,7 @@ static void lima_pp_task_run(struct lima_sched_pipe *pipe,
+ 
+ 		        lima_pp_write_frame(ip, frame->frame, frame->wb);
+ 
+-			pp_write(CTRL, LIMA_PP_CTRL_START_RENDERING);
++			pp_write(LIMA_PP_CTRL, LIMA_PP_CTRL_START_RENDERING);
+ 		}
+ 	}
+ }
+@@ -363,7 +363,7 @@ static void lima_pp_task_error(struct lima_sched_pipe *pipe)
+ 		struct lima_ip *ip = pipe->processor[i];
+ 
+ 		dev_err(ip->dev->dev, "pp task error %d int_state=%x status=%x\n",
+-			i, pp_read(INT_STATUS), pp_read(STATUS));
++			i, pp_read(LIMA_PP_INT_STATUS), pp_read(LIMA_PP_STATUS));
+ 
+ 		lima_pp_hard_reset(ip);
+ 	}
+-- 
+2.7.1
+

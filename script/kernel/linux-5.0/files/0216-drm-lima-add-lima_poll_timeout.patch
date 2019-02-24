@@ -1,0 +1,157 @@
+From 479a5f036203dbebff56bbff31000fd387d6b3eb Mon Sep 17 00:00:00 2001
+From: Qiang Yu <yuq825@gmail.com>
+Date: Sun, 17 Feb 2019 12:15:25 +0800
+Subject: [PATCH 16/20] drm/lima: add lima_poll_timeout
+
+Signed-off-by: Qiang Yu <yuq825@gmail.com>
+---
+ drivers/gpu/drm/lima/lima_device.h | 22 ++++++++++++++++++++++
+ drivers/gpu/drm/lima/lima_gp.c     | 18 ++++++++++--------
+ drivers/gpu/drm/lima/lima_pp.c     | 36 ++++++++++++++++++++----------------
+ 3 files changed, 52 insertions(+), 24 deletions(-)
+
+diff --git a/drivers/gpu/drm/lima/lima_device.h b/drivers/gpu/drm/lima/lima_device.h
+index 67dbab0..41499f2 100644
+--- a/drivers/gpu/drm/lima/lima_device.h
++++ b/drivers/gpu/drm/lima/lima_device.h
+@@ -5,6 +5,7 @@
+ #define __LIMA_DEVICE_H__
+ 
+ #include <drm/drm_device.h>
++#include <linux/delay.h>
+ 
+ #include "lima_sched.h"
+ 
+@@ -104,4 +105,25 @@ void lima_device_fini(struct lima_device *ldev);
+ 
+ const char *lima_ip_name(struct lima_ip *ip);
+ 
++typedef int (*lima_poll_func_t)(struct lima_ip *);
++
++static inline int lima_poll_timeout(struct lima_ip *ip, lima_poll_func_t func,
++				    int sleep_us, int timeout_us)
++{
++	ktime_t timeout = ktime_add_us(ktime_get(), timeout_us);
++
++	might_sleep_if(sleep_us);
++	while (1) {
++		if (func(ip))
++			return 0;
++
++		if (timeout_us && ktime_compare(ktime_get(), timeout) > 0)
++			return -ETIMEDOUT;
++
++		if (sleep_us)
++			usleep_range((sleep_us >> 2) + 1, sleep_us);
++	}
++	return 0;
++}
++
+ #endif
+diff --git a/drivers/gpu/drm/lima/lima_gp.c b/drivers/gpu/drm/lima/lima_gp.c
+index e2bbeff..4f4e9f5 100644
+--- a/drivers/gpu/drm/lima/lima_gp.c
++++ b/drivers/gpu/drm/lima/lima_gp.c
+@@ -139,22 +139,24 @@ static void lima_gp_task_run(struct lima_sched_pipe *pipe,
+ 	gp_write(LIMA_GP_CMD, cmd);
+ }
+ 
++static int lima_gp_hard_reset_poll(struct lima_ip *ip)
++{
++	gp_write(LIMA_GP_PERF_CNT_0_LIMIT, 0xC01A0000);
++	return gp_read(LIMA_GP_PERF_CNT_0_LIMIT) == 0xC01A0000;
++}
++
+ static int lima_gp_hard_reset(struct lima_ip *ip)
+ {
+ 	struct lima_device *dev = ip->dev;
+-	int timeout;
++	int ret;
+ 
+ 	gp_write(LIMA_GP_PERF_CNT_0_LIMIT, 0xC0FFE000);
+ 	gp_write(LIMA_GP_INT_MASK, 0);
+ 	gp_write(LIMA_GP_CMD, LIMA_GP_CMD_RESET);
+-	for (timeout = 1000; timeout > 0; timeout--) {
+-		gp_write(LIMA_GP_PERF_CNT_0_LIMIT, 0xC01A0000);
+-		if (gp_read(LIMA_GP_PERF_CNT_0_LIMIT) == 0xC01A0000)
+-			break;
+-	}
+-	if (!timeout) {
++	ret = lima_poll_timeout(ip, lima_gp_hard_reset_poll, 10, 100);
++	if (ret) {
+ 		dev_err(dev->dev, "gp hard reset timeout\n");
+-		return -ETIMEDOUT;
++		return ret;
+ 	}
+ 
+ 	gp_write(LIMA_GP_PERF_CNT_0_LIMIT, 0);
+diff --git a/drivers/gpu/drm/lima/lima_pp.c b/drivers/gpu/drm/lima/lima_pp.c
+index ffd306a..7b36c29 100644
+--- a/drivers/gpu/drm/lima/lima_pp.c
++++ b/drivers/gpu/drm/lima/lima_pp.c
+@@ -106,19 +106,21 @@ static void lima_pp_soft_reset_async(struct lima_ip *ip)
+ 	ip->data.async_reset = true;
+ }
+ 
++static int lima_pp_soft_reset_poll(struct lima_ip *ip)
++{
++	return !(pp_read(LIMA_PP_STATUS) & LIMA_PP_STATUS_RENDERING_ACTIVE) &&
++		pp_read(LIMA_PP_INT_RAWSTAT) == LIMA_PP_IRQ_RESET_COMPLETED;
++}
++
+ static int lima_pp_soft_reset_async_wait_one(struct lima_ip *ip)
+ {
+ 	struct lima_device *dev = ip->dev;
+-	int timeout;
++	int ret;
+ 
+-	for (timeout = 1000; timeout > 0; timeout--) {
+-		if (!(pp_read(LIMA_PP_STATUS) & LIMA_PP_STATUS_RENDERING_ACTIVE) &&
+-		    pp_read(LIMA_PP_INT_RAWSTAT) == LIMA_PP_IRQ_RESET_COMPLETED)
+-			break;
+-	}
+-	if (!timeout) {
++	ret = lima_poll_timeout(ip, lima_pp_soft_reset_poll, 0, 100);
++	if (ret) {
+ 		dev_err(dev->dev, "pp %s reset time out\n", lima_ip_name(ip));
+-		return -ETIMEDOUT;
++		return ret;
+ 	}
+ 
+ 	pp_write(LIMA_PP_INT_CLEAR, LIMA_PP_IRQ_MASK_ALL);
+@@ -161,22 +163,24 @@ static void lima_pp_write_frame(struct lima_ip *ip, u32 *frame, u32 *wb)
+ 	}
+ }
+ 
++static int lima_pp_hard_reset_poll(struct lima_ip *ip)
++{
++	pp_write(LIMA_PP_PERF_CNT_0_LIMIT, 0xC01A0000);
++	return pp_read(LIMA_PP_PERF_CNT_0_LIMIT) == 0xC01A0000;
++}
++
+ static int lima_pp_hard_reset(struct lima_ip *ip)
+ {
+ 	struct lima_device *dev = ip->dev;
+-	int timeout;
++	int ret;
+ 
+ 	pp_write(LIMA_PP_PERF_CNT_0_LIMIT, 0xC0FFE000);
+ 	pp_write(LIMA_PP_INT_MASK, 0);
+ 	pp_write(LIMA_PP_CTRL, LIMA_PP_CTRL_FORCE_RESET);
+-	for (timeout = 1000; timeout > 0; timeout--) {
+-		pp_write(LIMA_PP_PERF_CNT_0_LIMIT, 0xC01A0000);
+-		if (pp_read(LIMA_PP_PERF_CNT_0_LIMIT) == 0xC01A0000)
+-			break;
+-	}
+-	if (!timeout) {
++	ret = lima_poll_timeout(ip, lima_pp_hard_reset_poll, 10, 100);
++	if (ret) {
+ 		dev_err(dev->dev, "pp hard reset timeout\n");
+-		return -ETIMEDOUT;
++		return ret;
+ 	}
+ 
+ 	pp_write(LIMA_PP_PERF_CNT_0_LIMIT, 0);
+-- 
+2.7.1
+

@@ -1,0 +1,243 @@
+From 6766c5fd527a6e49894e3570053187dd86b30294 Mon Sep 17 00:00:00 2001
+From: Qiang Yu <yuq825@gmail.com>
+Date: Sun, 17 Feb 2019 15:34:51 +0800
+Subject: [PATCH 18/20] drm/lima: adopt gem reservation obj integration
+
+Signed-off-by: Qiang Yu <yuq825@gmail.com>
+---
+ drivers/gpu/drm/lima/lima_drv.c       |  1 -
+ drivers/gpu/drm/lima/lima_gem.c       | 39 ++++++++++++-----------------------
+ drivers/gpu/drm/lima/lima_gem_prime.c |  7 -------
+ drivers/gpu/drm/lima/lima_gem_prime.h |  1 -
+ drivers/gpu/drm/lima/lima_object.c    | 10 ++++-----
+ drivers/gpu/drm/lima/lima_object.h    |  5 -----
+ 6 files changed, 17 insertions(+), 46 deletions(-)
+
+diff --git a/drivers/gpu/drm/lima/lima_drv.c b/drivers/gpu/drm/lima/lima_drv.c
+index f28c19b..5ce2ea5 100644
+--- a/drivers/gpu/drm/lima/lima_drv.c
++++ b/drivers/gpu/drm/lima/lima_drv.c
+@@ -238,7 +238,6 @@ static struct drm_driver lima_drm_driver = {
+ 	.prime_fd_to_handle = drm_gem_prime_fd_to_handle,
+ 	.gem_prime_import_sg_table = lima_gem_prime_import_sg_table,
+ 	.prime_handle_to_fd = drm_gem_prime_handle_to_fd,
+-	.gem_prime_res_obj  = lima_gem_prime_res_obj,
+ 	.gem_prime_get_sg_table = lima_gem_prime_get_sg_table,
+ 	.gem_prime_mmap = lima_gem_prime_mmap,
+ };
+diff --git a/drivers/gpu/drm/lima/lima_gem.c b/drivers/gpu/drm/lima/lima_gem.c
+index b5009d0..966720d 100644
+--- a/drivers/gpu/drm/lima/lima_gem.c
++++ b/drivers/gpu/drm/lima/lima_gem.c
+@@ -133,7 +133,7 @@ static int lima_gem_sync_bo(struct lima_sched_task *task, struct lima_bo *bo,
+ 	int err = 0;
+ 
+ 	if (!write) {
+-		err = reservation_object_reserve_shared(bo->resv, 1);
++		err = reservation_object_reserve_shared(bo->gem.resv, 1);
+ 		if (err)
+ 			return err;
+ 	}
+@@ -149,7 +149,7 @@ static int lima_gem_sync_bo(struct lima_sched_task *task, struct lima_bo *bo,
+ 		int i;
+ 
+ 		err = reservation_object_get_fences_rcu(
+-			bo->resv, NULL, &nr_fences, &fences);
++			bo->gem.resv, NULL, &nr_fences, &fences);
+ 		if (err || !nr_fences)
+ 			return err;
+ 
+@@ -167,7 +167,7 @@ static int lima_gem_sync_bo(struct lima_sched_task *task, struct lima_bo *bo,
+ 	}
+ 	else {
+ 		struct dma_fence *fence;
+-		fence = reservation_object_get_excl_rcu(bo->resv);
++		fence = reservation_object_get_excl_rcu(bo->gem.resv);
+ 		if (fence) {
+ 			err = lima_sched_task_add_dep(task, fence);
+ 			if (err)
+@@ -192,7 +192,7 @@ static int lima_gem_lock_bos(struct lima_bo **bos, u32 nr_bos,
+ 			continue;
+ 		}
+ 
+-		ret = ww_mutex_lock_interruptible(&bos[i]->resv->lock, ctx);
++		ret = ww_mutex_lock_interruptible(&bos[i]->gem.resv->lock, ctx);
+ 		if (ret < 0) {
+ 			contended = i;
+ 			goto err;
+@@ -204,14 +204,15 @@ static int lima_gem_lock_bos(struct lima_bo **bos, u32 nr_bos,
+ 
+ err:
+ 	for (i--; i >= 0; i--)
+-		ww_mutex_unlock(&bos[i]->resv->lock);
++		ww_mutex_unlock(&bos[i]->gem.resv->lock);
+ 
+ 	if (slow_locked >= 0)
+-		ww_mutex_unlock(&bos[slow_locked]->resv->lock);
++		ww_mutex_unlock(&bos[slow_locked]->gem.resv->lock);
+ 
+ 	if (ret == -EDEADLK) {
+ 		/* we lost out in a seqno race, lock and retry.. */
+-		ret = ww_mutex_lock_slow_interruptible(&bos[contended]->resv->lock, ctx);
++		ret = ww_mutex_lock_slow_interruptible(
++			&bos[contended]->gem.resv->lock, ctx);
+ 		if (!ret) {
+ 			slow_locked = contended;
+ 			goto retry;
+@@ -228,7 +229,7 @@ static void lima_gem_unlock_bos(struct lima_bo **bos, u32 nr_bos,
+ 	int i;
+ 
+ 	for (i = 0; i < nr_bos; i++)
+-		ww_mutex_unlock(&bos[i]->resv->lock);
++		ww_mutex_unlock(&bos[i]->gem.resv->lock);
+ 	ww_acquire_fini(ctx);
+ }
+ 
+@@ -324,9 +325,9 @@ int lima_gem_submit(struct drm_file *file, struct lima_submit *submit)
+ 
+ 	for (i = 0; i < submit->nr_bos; i++) {
+ 		if (submit->bos[i].flags & LIMA_SUBMIT_BO_WRITE)
+-			reservation_object_add_excl_fence(bos[i]->resv, fence);
++			reservation_object_add_excl_fence(bos[i]->gem.resv, fence);
+ 		else
+-			reservation_object_add_shared_fence(bos[i]->resv, fence);
++			reservation_object_add_shared_fence(bos[i]->gem.resv, fence);
+ 	}
+ 
+ 	lima_gem_unlock_bos(bos, submit->nr_bos, &ctx);
+@@ -380,31 +381,17 @@ static unsigned long lima_timeout_to_jiffies(u64 timeout_ns)
+ int lima_gem_wait(struct drm_file *file, u32 handle, u32 op, u64 timeout_ns)
+ {
+ 	bool write = op & LIMA_GEM_WAIT_WRITE;
+-	struct drm_gem_object *obj;
+-	struct lima_bo *bo;
+-	signed long ret;
+ 	unsigned long timeout;
++	long ret;
+ 
+ 	if (!op)
+ 		return 0;
+ 
+-	obj = drm_gem_object_lookup(file, handle);
+-	if (!obj)
+-		return -ENOENT;
+-
+-	bo = to_lima_bo(obj);
+-
+ 	timeout = timeout_ns ? lima_timeout_to_jiffies(timeout_ns) : 0;
+ 
+-	/* must use long for result check because in 64bit arch int
+-	 * will overflow if timeout is too large and get <0 result
+-	 */
+-	ret = reservation_object_wait_timeout_rcu(bo->resv, write, true, timeout);
++	ret = drm_gem_reservation_object_wait(file, handle, write, timeout);
+ 	if (ret == 0)
+ 		ret = timeout ? -ETIMEDOUT : -EBUSY;
+-	else if (ret > 0)
+-		ret = 0;
+ 
+-	drm_gem_object_put_unlocked(obj);
+ 	return ret;
+ }
+diff --git a/drivers/gpu/drm/lima/lima_gem_prime.c b/drivers/gpu/drm/lima/lima_gem_prime.c
+index 289e26b..fe8348a 100644
+--- a/drivers/gpu/drm/lima/lima_gem_prime.c
++++ b/drivers/gpu/drm/lima/lima_gem_prime.c
+@@ -26,13 +26,6 @@ struct drm_gem_object *lima_gem_prime_import_sg_table(
+ 	return &bo->gem;
+ }
+ 
+-struct reservation_object *lima_gem_prime_res_obj(struct drm_gem_object *obj)
+-{
+-        struct lima_bo *bo = to_lima_bo(obj);
+-
+-	return bo->resv;
+-}
+-
+ struct sg_table *lima_gem_prime_get_sg_table(struct drm_gem_object *obj)
+ {
+ 	struct lima_bo *bo = to_lima_bo(obj);
+diff --git a/drivers/gpu/drm/lima/lima_gem_prime.h b/drivers/gpu/drm/lima/lima_gem_prime.h
+index a75a82a..ceb1be9 100644
+--- a/drivers/gpu/drm/lima/lima_gem_prime.h
++++ b/drivers/gpu/drm/lima/lima_gem_prime.h
+@@ -8,7 +8,6 @@ struct drm_gem_object *lima_gem_prime_import_sg_table(
+ 	struct drm_device *dev, struct dma_buf_attachment *attach,
+ 	struct sg_table *sgt);
+ struct sg_table *lima_gem_prime_get_sg_table(struct drm_gem_object *obj);
+-struct reservation_object *lima_gem_prime_res_obj(struct drm_gem_object *obj);
+ int lima_gem_prime_mmap(struct drm_gem_object *obj, struct vm_area_struct *vma);
+ 
+ #endif
+diff --git a/drivers/gpu/drm/lima/lima_object.c b/drivers/gpu/drm/lima/lima_object.c
+index e304116..4113881 100644
+--- a/drivers/gpu/drm/lima/lima_object.c
++++ b/drivers/gpu/drm/lima/lima_object.c
+@@ -34,12 +34,12 @@ void lima_bo_destroy(struct lima_bo *bo)
+ 	if (bo->pages_dma_addr)
+ 		kfree(bo->pages_dma_addr);
+ 
+-	reservation_object_fini(&bo->_resv);
+ 	drm_gem_object_release(&bo->gem);
+ 	kfree(bo);
+ }
+ 
+-static struct lima_bo *lima_bo_create_struct(struct lima_device *dev, u32 size, u32 flags)
++static struct lima_bo *lima_bo_create_struct(struct lima_device *dev, u32 size, u32 flags,
++					     struct reservation_object *resv)
+ {
+ 	struct lima_bo *bo;
+ 	int err;
+@@ -52,7 +52,7 @@ static struct lima_bo *lima_bo_create_struct(struct lima_device *dev, u32 size,
+ 
+ 	mutex_init(&bo->lock);
+ 	INIT_LIST_HEAD(&bo->va);
+-	reservation_object_init(&bo->_resv);
++	bo->gem.resv = resv;
+ 
+ 	err = drm_gem_object_init(dev->ddev, &bo->gem, size);
+ 	if (err) {
+@@ -71,7 +71,7 @@ struct lima_bo *lima_bo_create(struct lima_device *dev, u32 size,
+ 	size_t npages;
+ 	struct lima_bo *bo, *ret;
+ 
+-	bo = lima_bo_create_struct(dev, size, flags);
++	bo = lima_bo_create_struct(dev, size, flags, resv);
+ 	if (IS_ERR(bo))
+ 		return bo;
+ 
+@@ -120,8 +120,6 @@ struct lima_bo *lima_bo_create(struct lima_device *dev, u32 size,
+ 
+ 	}
+ 
+-	bo->resv = resv ? resv : &bo->_resv;
+-
+ 	return bo;
+ 
+ err_out:
+diff --git a/drivers/gpu/drm/lima/lima_object.h b/drivers/gpu/drm/lima/lima_object.h
+index e96659c..70099f1 100644
+--- a/drivers/gpu/drm/lima/lima_object.h
++++ b/drivers/gpu/drm/lima/lima_object.h
+@@ -5,7 +5,6 @@
+ #define __LIMA_OBJECT_H__
+ 
+ #include <drm/drm_gem.h>
+-#include <linux/reservation.h>
+ 
+ #include "lima_device.h"
+ 
+@@ -19,10 +18,6 @@ struct lima_bo {
+ 
+ 	struct mutex lock;
+ 	struct list_head va;
+-
+-	/* normally (resv == &_resv) except for imported bo's */
+-	struct reservation_object *resv;
+-	struct reservation_object _resv;
+ };
+ 
+ static inline struct lima_bo *
+-- 
+2.7.1
+

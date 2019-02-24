@@ -1,0 +1,127 @@
+From 066e40c4b0b28397b79dc3b218728b0be07be7cb Mon Sep 17 00:00:00 2001
+From: Qiang Yu <yuq825@gmail.com>
+Date: Sat, 16 Feb 2019 22:25:30 +0800
+Subject: [PATCH 14/20] drm/lima: mmu send command use readl_poll_timeout
+
+Signed-off-by: Qiang Yu <yuq825@gmail.com>
+---
+ drivers/gpu/drm/lima/lima_mmu.c | 41 +++++++++++++++++++++++------------------
+ 1 file changed, 23 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/gpu/drm/lima/lima_mmu.c b/drivers/gpu/drm/lima/lima_mmu.c
+index 400038a..c6c151d 100644
+--- a/drivers/gpu/drm/lima/lima_mmu.c
++++ b/drivers/gpu/drm/lima/lima_mmu.c
+@@ -2,7 +2,7 @@
+ /* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
+ 
+ #include <linux/interrupt.h>
+-#include <linux/io.h>
++#include <linux/iopoll.h>
+ #include <linux/device.h>
+ 
+ #include "lima_device.h"
+@@ -14,19 +14,16 @@
+ #define mmu_write(reg, data) writel(data, ip->iomem + reg)
+ #define mmu_read(reg) readl(ip->iomem + reg)
+ 
+-#define lima_mmu_send_command(command, condition)	     \
++#define lima_mmu_send_command(cmd, addr, val, cond)	     \
+ ({							     \
+-	int __timeout, __ret = 0;			     \
++	int __ret;					     \
+ 							     \
+-	mmu_write(LIMA_MMU_COMMAND, command);		     \
+-	for (__timeout = 1000; __timeout > 0; __timeout--) { \
+-		if (condition)				     \
+-			break;				     \
+-	}						     \
+-	if (!__timeout)	{				     \
+-		dev_err(dev->dev, "mmu command %x timeout\n", command); \
+-		__ret = -ETIMEDOUT;			     \
+-	}						     \
++	mmu_write(LIMA_MMU_COMMAND, cmd);		     \
++	__ret = readl_poll_timeout(ip->iomem + (addr), val,  \
++				  cond, 0, 100);	     \
++	if (__ret)					     \
++		dev_err(dev->dev,			     \
++			"mmu command %x timeout\n", cmd);    \
+ 	__ret;						     \
+ })
+ 
+@@ -67,6 +64,7 @@ int lima_mmu_init(struct lima_ip *ip)
+ {
+ 	struct lima_device *dev = ip->dev;
+ 	int err;
++	u32 v;
+ 
+ 	if (ip->id == lima_ip_ppmmu_bcast)
+ 		return 0;
+@@ -77,8 +75,9 @@ int lima_mmu_init(struct lima_ip *ip)
+ 		return -EIO;
+ 	}
+ 
++	mmu_write(LIMA_MMU_COMMAND, LIMA_MMU_COMMAND_HARD_RESET);
+ 	err = lima_mmu_send_command(LIMA_MMU_COMMAND_HARD_RESET,
+-				    mmu_read(LIMA_MMU_DTE_ADDR) == 0);
++				    LIMA_MMU_DTE_ADDR, v, v == 0);
+ 	if (err)
+ 		return err;
+ 
+@@ -92,7 +91,8 @@ int lima_mmu_init(struct lima_ip *ip)
+ 	mmu_write(LIMA_MMU_INT_MASK, LIMA_MMU_INT_PAGE_FAULT | LIMA_MMU_INT_READ_BUS_ERROR);
+ 	mmu_write(LIMA_MMU_DTE_ADDR, dev->empty_vm->pd.dma);
+ 	return lima_mmu_send_command(LIMA_MMU_COMMAND_ENABLE_PAGING,
+-				     mmu_read(LIMA_MMU_STATUS) & LIMA_MMU_STATUS_PAGING_ENABLED);
++				     LIMA_MMU_STATUS, v,
++				     v & LIMA_MMU_STATUS_PAGING_ENABLED);
+ }
+ 
+ void lima_mmu_fini(struct lima_ip *ip)
+@@ -103,9 +103,11 @@ void lima_mmu_fini(struct lima_ip *ip)
+ void lima_mmu_switch_vm(struct lima_ip *ip, struct lima_vm *vm)
+ {
+ 	struct lima_device *dev = ip->dev;
++	u32 v;
+ 
+ 	lima_mmu_send_command(LIMA_MMU_COMMAND_ENABLE_STALL,
+-			      mmu_read(LIMA_MMU_STATUS) & LIMA_MMU_STATUS_STALL_ACTIVE);
++			      LIMA_MMU_STATUS, v,
++			      v & LIMA_MMU_STATUS_STALL_ACTIVE);
+ 
+ 	if (vm)
+ 		mmu_write(LIMA_MMU_DTE_ADDR, vm->pd.dma);
+@@ -114,13 +116,15 @@ void lima_mmu_switch_vm(struct lima_ip *ip, struct lima_vm *vm)
+ 	mmu_write(LIMA_MMU_COMMAND, LIMA_MMU_COMMAND_ZAP_CACHE);
+ 
+ 	lima_mmu_send_command(LIMA_MMU_COMMAND_DISABLE_STALL,
+-			      !(mmu_read(LIMA_MMU_STATUS) & LIMA_MMU_STATUS_STALL_ACTIVE));
++			      LIMA_MMU_STATUS, v,
++			      !(v & LIMA_MMU_STATUS_STALL_ACTIVE));
+ }
+ 
+ void lima_mmu_page_fault_resume(struct lima_ip *ip)
+ {
+ 	struct lima_device *dev = ip->dev;
+ 	u32 status = mmu_read(LIMA_MMU_STATUS);
++	u32 v;
+ 
+ 	if (status & LIMA_MMU_STATUS_PAGE_FAULT_ACTIVE) {
+ 		dev_info(dev->dev, "mmu resume\n");
+@@ -128,10 +132,11 @@ void lima_mmu_page_fault_resume(struct lima_ip *ip)
+ 		mmu_write(LIMA_MMU_INT_MASK, 0);
+ 		mmu_write(LIMA_MMU_DTE_ADDR, 0xCAFEBABE);
+ 		lima_mmu_send_command(LIMA_MMU_COMMAND_HARD_RESET,
+-				      mmu_read(LIMA_MMU_DTE_ADDR) == 0);
++				      LIMA_MMU_DTE_ADDR, v, v == 0);
+ 	        mmu_write(LIMA_MMU_INT_MASK, LIMA_MMU_INT_PAGE_FAULT | LIMA_MMU_INT_READ_BUS_ERROR);
+ 		mmu_write(LIMA_MMU_DTE_ADDR, dev->empty_vm->pd.dma);
+ 		lima_mmu_send_command(LIMA_MMU_COMMAND_ENABLE_PAGING,
+-				      mmu_read(LIMA_MMU_STATUS) & LIMA_MMU_STATUS_PAGING_ENABLED);
++				      LIMA_MMU_STATUS, v,
++				      v & LIMA_MMU_STATUS_PAGING_ENABLED);
+ 	}
+ }
+-- 
+2.7.1
+

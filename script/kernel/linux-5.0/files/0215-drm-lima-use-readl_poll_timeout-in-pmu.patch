@@ -1,0 +1,51 @@
+From 8fb0f065a0ec097c7da3c6bbdd341ab36060d6be Mon Sep 17 00:00:00 2001
+From: Qiang Yu <yuq825@gmail.com>
+Date: Sat, 16 Feb 2019 22:35:30 +0800
+Subject: [PATCH 15/20] drm/lima: use readl_poll_timeout in pmu
+
+Signed-off-by: Qiang Yu <yuq825@gmail.com>
+---
+ drivers/gpu/drm/lima/lima_pmu.c | 18 ++++++++----------
+ 1 file changed, 8 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/gpu/drm/lima/lima_pmu.c b/drivers/gpu/drm/lima/lima_pmu.c
+index 1b628f8..3c50524 100644
+--- a/drivers/gpu/drm/lima/lima_pmu.c
++++ b/drivers/gpu/drm/lima/lima_pmu.c
+@@ -1,7 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0 OR MIT
+ /* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
+ 
+-#include <linux/io.h>
++#include <linux/iopoll.h>
+ #include <linux/device.h>
+ 
+ #include "lima_device.h"
+@@ -14,17 +14,15 @@
+ static int lima_pmu_wait_cmd(struct lima_ip *ip)
+ {
+ 	struct lima_device *dev = ip->dev;
+-	u32 stat, timeout;
+-
+-	for (timeout = 1000000; timeout > 0; timeout--) {
+-		stat = pmu_read(LIMA_PMU_INT_RAWSTAT);
+-		if (stat & LIMA_PMU_INT_CMD_MASK)
+-			break;
+-	}
++	int err;
++	u32 v;
+ 
+-	if (!timeout) {
++	err = readl_poll_timeout(ip->iomem + LIMA_PMU_INT_RAWSTAT,
++				 v, v & LIMA_PMU_INT_CMD_MASK,
++				 100, 100000);
++	if (err) {
+ 		dev_err(dev->dev, "timeout wait pmd cmd\n");
+-		return -ETIMEDOUT;
++		return err;
+ 	}
+ 
+ 	pmu_write(LIMA_PMU_INT_CLEAR, LIMA_PMU_INT_CMD_MASK);
+-- 
+2.7.1
+

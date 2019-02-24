@@ -15,8 +15,8 @@ endif
 ifneq (,$(filter %4.20,$(mm_KERNEL_VERSION)))
 DEPENDS = kernel/linux-headers-4.20
 endif
-ifneq (,$(filter %4.21,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-4.21
+ifneq (,$(filter %5.0,$(mm_KERNEL_VERSION)))
+DEPENDS = kernel/linux-headers-5.0
 endif
 
 include ../../gar.mk

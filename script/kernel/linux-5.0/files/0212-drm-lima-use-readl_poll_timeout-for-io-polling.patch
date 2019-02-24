@@ -1,0 +1,90 @@
+From f472d927742dc2378b611efc1bcba745fbcdfbaa Mon Sep 17 00:00:00 2001
+From: Qiang Yu <yuq825@gmail.com>
+Date: Thu, 14 Feb 2019 21:43:11 +0800
+Subject: [PATCH 12/20] drm/lima: use readl_poll_timeout for io polling
+
+Signed-off-by: Qiang Yu <yuq825@gmail.com>
+---
+ drivers/gpu/drm/lima/lima_gp.c       | 16 ++++++++--------
+ drivers/gpu/drm/lima/lima_l2_cache.c | 16 ++++++++--------
+ 2 files changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/drivers/gpu/drm/lima/lima_gp.c b/drivers/gpu/drm/lima/lima_gp.c
+index 57eba22..9193ed3 100644
+--- a/drivers/gpu/drm/lima/lima_gp.c
++++ b/drivers/gpu/drm/lima/lima_gp.c
+@@ -2,7 +2,7 @@
+ /* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
+ 
+ #include <linux/interrupt.h>
+-#include <linux/io.h>
++#include <linux/iopoll.h>
+ #include <linux/device.h>
+ #include <linux/slab.h>
+ 
+@@ -68,18 +68,18 @@ static void lima_gp_soft_reset_async(struct lima_ip *ip)
+ static int lima_gp_soft_reset_async_wait(struct lima_ip *ip)
+ {
+ 	struct lima_device *dev = ip->dev;
+-	int timeout;
++	int err;
++	u32 v;
+ 
+ 	if (!ip->data.async_reset)
+ 		return 0;
+ 
+-	for (timeout = 1000; timeout > 0; timeout--) {
+-		if (gp_read(INT_RAWSTAT) & LIMA_GP_IRQ_RESET_COMPLETED)
+-			break;
+-	}
+-	if (!timeout) {
++	err = readl_poll_timeout(ip->iomem + LIMA_GP_INT_RAWSTAT, v,
++				 v & LIMA_GP_IRQ_RESET_COMPLETED,
++				 0, 100);
++	if (err) {
+ 		dev_err(dev->dev, "gp soft reset time out\n");
+-		return -ETIMEDOUT;
++		return err;
+ 	}
+ 
+ 	gp_write(INT_CLEAR, LIMA_GP_IRQ_MASK_ALL);
+diff --git a/drivers/gpu/drm/lima/lima_l2_cache.c b/drivers/gpu/drm/lima/lima_l2_cache.c
+index e7cdec7..7597ea4 100644
+--- a/drivers/gpu/drm/lima/lima_l2_cache.c
++++ b/drivers/gpu/drm/lima/lima_l2_cache.c
+@@ -1,7 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0 OR MIT
+ /* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
+ 
+-#include <linux/io.h>
++#include <linux/iopoll.h>
+ #include <linux/device.h>
+ 
+ #include "lima_device.h"
+@@ -13,16 +13,16 @@
+ 
+ static int lima_l2_cache_wait_idle(struct lima_ip *ip)
+ {
+-	int timeout;
+ 	struct lima_device *dev = ip->dev;
++	int err;
++	u32 v;
+ 
+-	for (timeout = 100000; timeout > 0; timeout--) {
+-	    if (!(l2_cache_read(STATUS) & LIMA_L2_CACHE_STATUS_COMMAND_BUSY))
+-		break;
+-	}
+-	if (!timeout) {
++	err = readl_poll_timeout(ip->iomem + LIMA_L2_CACHE_STATUS, v,
++				 !(v & LIMA_L2_CACHE_STATUS_COMMAND_BUSY),
++				 0, 1000);
++	if (err) {
+ 	    dev_err(dev->dev, "l2 cache wait command timeout\n");
+-	    return -ETIMEDOUT;
++	    return err;
+ 	}
+ 	return 0;
+ }
+-- 
+2.7.1
+
