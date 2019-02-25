@@ -55,26 +55,11 @@ endif
 
 # Patches for Mali450 GPU Lima driver
 ifeq (1,1)
-PATCHFILES += 0201-drm-fourcc-add-ARM-tiled-format-modifier.patch
-PATCHFILES += 0202-drm-lima-driver-for-ARM-Mali4xx-GPUs.patch
-PATCHFILES += 0203-drm-lima-fix-input-check.patch
-PATCHFILES += 0204-drm-lima-fix-job-finish-fence-leak-for-5.0.patch
-PATCHFILES += 0205-drm-lima-use-drm-syncobj-to-replace-native-fence.patch
-PATCHFILES += 0206-drm-lima-move-bo-GPU-va-map-into-kernel.patch
-PATCHFILES += 0207-drm-lima-reserve-space-for-future-info.patch
-PATCHFILES += 0208-drm-lima-remove-kernel-gem-modifier.patch
-PATCHFILES += 0209-drm-lima-switch-TTM-back-to-GEM.patch
-PATCHFILES += 0210-drm-lima-remove-read-flag-for-submit-ioctl.patch
-PATCHFILES += 0211-drm-lima-no-need-to-set-gem-prime-import-export.patch
-PATCHFILES += 0212-drm-lima-use-readl_poll_timeout-for-io-polling.patch
-PATCHFILES += 0213-drm-lima-use-whole-register-name.patch
-PATCHFILES += 0214-drm-lima-mmu-send-command-use-readl_poll_timeout.patch
-PATCHFILES += 0215-drm-lima-use-readl_poll_timeout-in-pmu.patch
-PATCHFILES += 0216-drm-lima-add-lima_poll_timeout.patch
-PATCHFILES += 0217-drm-Add-reservation_object-to-drm_gem_object.patch
-PATCHFILES += 0218-drm-lima-adopt-gem-reservation-obj-integration.patch
-PATCHFILES += 0219-drm-export-drm_timeout_abs_to_jiffies.patch
-PATCHFILES += 0220-drm-lima-use-drm_timeout_abs_to_jiffies.patch
+PATCHFILES += 0201-drm-Add-reservation_object-to-drm_gem_object.patch
+PATCHFILES += 0202-drm-export-drm_timeout_abs_to_jiffies.patch
+PATCHFILES += 0203-drm-lima-driver-for-ARM-Mali4xx-GPUs.patch
+PATCHFILES += 0204-drm-lima-get-gem-obj-in-sched-task-init.patch
+PATCHFILES += 0205-drm-lima-do-not-create-bo_va-when-gem-submit.patch
 endif
 
 # Patches for Amlogic audio support

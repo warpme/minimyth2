@@ -1,56 +1,106 @@
-From b8749839df2e147deeede2dcac1e97af9cd64c56 Mon Sep 17 00:00:00 2001
-From: Lima Project Developers <lima@lists.freedesktop.org>
+From 4cac0ddf316eac9780d9dcb3977b1498fe182d88 Mon Sep 17 00:00:00 2001
+From: Qiang Yu <yuq825@gmail.com>
 Date: Mon, 14 May 2018 20:53:38 +0800
-Subject: [PATCH 02/20] drm/lima: driver for ARM Mali4xx GPUs
+Subject: [PATCH 3/5] drm/lima: driver for ARM Mali4xx GPUs
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
+- Mali 4xx GPUs have two kinds of processors GP and PP. GP is for
+  OpenGL vertex shader processing and PP is for fragment shader
+  processing. Each processor has its own MMU so prcessors work in
+  virtual address space.
+- There's only one GP but multiple PP (max 4 for mali 400 and 8
+  for mali 450) in the same mali 4xx GPU. All PPs are grouped
+  togather to handle a single fragment shader task divided by
+  FB output tiled pixels. Mali 400 user space driver is
+  responsible for assign target tiled pixels to each PP, but mali
+  450 has a HW module called DLBU to dynamically balance each
+  PP's load.
+- User space driver allocate buffer object and map into GPU
+  virtual address space, upload command stream and draw data with
+  CPU mmap of the buffer object, then submit task to GP/PP with
+  a register frame indicating where is the command stream and misc
+  settings.
+- There's no command stream validation/relocation due to each user
+  process has its own GPU virtual address space. GP/PP's MMU switch
+  virtual address space before running two tasks from different
+  user process. Error or evil user space code just get MMU fault
+  or GP/PP error IRQ, then the HW/SW will be recovered.
+- Use GEM+shmem for MM. Currently just alloc and pin memory when
+  gem object creation. GPU vm map of the buffer is also done in
+  the alloc stage in kernel space. We may delay the memory
+  allocation and real GPU vm map to command submition stage in the
+  furture as improvement.
+- Use drm_sched for GPU task schedule. Each OpenGL context should
+  have a lima context object in the kernel to distinguish tasks
+  from different user. drm_sched gets task from each lima context
+  in a fair way.
+
+v2:
+- fix syscall argument check
+- fix job finish fence leak since kernel 5.0
+- use drm syncobj to replace native fence
+- move buffer object GPU va map into kernel
+- reserve syscall argument space for future info
+- remove kernel gem modifier
+- switch TTM back to GEM+shmem MM
+- use time based io poll
+- use whole register name
+- adopt gem reservation obj integration
+- use drm_timeout_abs_to_jiffies
+
+Cc: Eric Anholt <eric@anholt.net>
+Cc: Rob Herring <robh@kernel.org>
+Cc: Christian König <ckoenig.leichtzumerken@gmail.com>
+Cc: Daniel Vetter <daniel@ffwll.ch>
+Cc: Alex Deucher <alexdeucher@gmail.com>
 Signed-off-by: Andreas Baierl <ichgeh@imkreisrum.de>
 Signed-off-by: Erico Nunes <nunes.erico@gmail.com>
 Signed-off-by: Heiko Stuebner <heiko@sntech.de>
 Signed-off-by: Marek Vasut <marex@denx.de>
 Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
-Signed-off-by: Qiang Yu <yuq825@gmail.com>
 Signed-off-by: Simon Shields <simon@lineageos.org>
 Signed-off-by: Vasily Khoruzhick <anarsoul@gmail.com>
+Signed-off-by: Qiang Yu <yuq825@gmail.com>
 ---
  drivers/gpu/drm/Kconfig               |   2 +
  drivers/gpu/drm/Makefile              |   1 +
- drivers/gpu/drm/lima/Kconfig          |  10 +
- drivers/gpu/drm/lima/Makefile         |  22 ++
+ drivers/gpu/drm/lima/Kconfig          |   9 +
+ drivers/gpu/drm/lima/Makefile         |  21 ++
  drivers/gpu/drm/lima/lima_bcast.c     |  46 ++++
- drivers/gpu/drm/lima/lima_bcast.h     |  14 +
- drivers/gpu/drm/lima/lima_ctx.c       | 124 +++++++++
- drivers/gpu/drm/lima/lima_ctx.h       |  33 +++
- drivers/gpu/drm/lima/lima_device.c    | 384 +++++++++++++++++++++++++++
- drivers/gpu/drm/lima/lima_device.h    | 116 ++++++++
- drivers/gpu/drm/lima/lima_dlbu.c      |  56 ++++
+ drivers/gpu/drm/lima/lima_bcast.h     |  14 ++
+ drivers/gpu/drm/lima/lima_ctx.c       | 105 +++++++++
+ drivers/gpu/drm/lima/lima_ctx.h       |  30 +++
+ drivers/gpu/drm/lima/lima_device.c    | 376 ++++++++++++++++++++++++++++++
+ drivers/gpu/drm/lima/lima_device.h    | 129 +++++++++++
+ drivers/gpu/drm/lima/lima_dlbu.c      |  56 +++++
  drivers/gpu/drm/lima/lima_dlbu.h      |  18 ++
- drivers/gpu/drm/lima/lima_drv.c       | 459 ++++++++++++++++++++++++++++++++
- drivers/gpu/drm/lima/lima_drv.h       |  59 +++++
- drivers/gpu/drm/lima/lima_gem.c       | 485 +++++++++++++++++++++++++++++++++
+ drivers/gpu/drm/lima/lima_drv.c       | 353 ++++++++++++++++++++++++++++
+ drivers/gpu/drm/lima/lima_drv.h       |  46 ++++
+ drivers/gpu/drm/lima/lima_gem.c       | 376 ++++++++++++++++++++++++++++++
  drivers/gpu/drm/lima/lima_gem.h       |  25 ++
- drivers/gpu/drm/lima/lima_gem_prime.c | 144 ++++++++++
- drivers/gpu/drm/lima/lima_gem_prime.h |  18 ++
- drivers/gpu/drm/lima/lima_gp.c        | 280 ++++++++++++++++++++
+ drivers/gpu/drm/lima/lima_gem_prime.c |  47 ++++
+ drivers/gpu/drm/lima/lima_gem_prime.h |  13 ++
+ drivers/gpu/drm/lima/lima_gp.c        | 282 +++++++++++++++++++++++
  drivers/gpu/drm/lima/lima_gp.h        |  16 ++
- drivers/gpu/drm/lima/lima_l2_cache.c  |  79 ++++++
- drivers/gpu/drm/lima/lima_l2_cache.h  |  14 +
- drivers/gpu/drm/lima/lima_mmu.c       | 135 ++++++++++
+ drivers/gpu/drm/lima/lima_l2_cache.c  |  80 +++++++
+ drivers/gpu/drm/lima/lima_l2_cache.h  |  14 ++
+ drivers/gpu/drm/lima/lima_mmu.c       | 142 ++++++++++++
  drivers/gpu/drm/lima/lima_mmu.h       |  16 ++
- drivers/gpu/drm/lima/lima_object.c    | 103 +++++++
- drivers/gpu/drm/lima/lima_object.h    |  72 +++++
- drivers/gpu/drm/lima/lima_pmu.c       |  61 +++++
+ drivers/gpu/drm/lima/lima_object.c    | 128 ++++++++++
+ drivers/gpu/drm/lima/lima_object.h    |  36 +++
+ drivers/gpu/drm/lima/lima_pmu.c       |  59 +++++
  drivers/gpu/drm/lima/lima_pmu.h       |  12 +
- drivers/gpu/drm/lima/lima_pp.c        | 419 +++++++++++++++++++++++++++++
+ drivers/gpu/drm/lima/lima_pp.c        | 423 ++++++++++++++++++++++++++++++++++
  drivers/gpu/drm/lima/lima_pp.h        |  19 ++
- drivers/gpu/drm/lima/lima_regs.h      | 298 +++++++++++++++++++++
- drivers/gpu/drm/lima/lima_sched.c     | 486 ++++++++++++++++++++++++++++++++++
- drivers/gpu/drm/lima/lima_sched.h     | 108 ++++++++
- drivers/gpu/drm/lima/lima_ttm.c       | 319 ++++++++++++++++++++++
- drivers/gpu/drm/lima/lima_ttm.h       |  24 ++
- drivers/gpu/drm/lima/lima_vm.c        | 354 +++++++++++++++++++++++++
- drivers/gpu/drm/lima/lima_vm.h        |  59 +++++
- include/uapi/drm/lima_drm.h           | 193 ++++++++++++++
- 38 files changed, 5083 insertions(+)
+ drivers/gpu/drm/lima/lima_regs.h      | 298 ++++++++++++++++++++++++
+ drivers/gpu/drm/lima/lima_sched.c     | 399 ++++++++++++++++++++++++++++++++
+ drivers/gpu/drm/lima/lima_sched.h     | 104 +++++++++
+ drivers/gpu/drm/lima/lima_vm.c        | 274 ++++++++++++++++++++++
+ drivers/gpu/drm/lima/lima_vm.h        |  62 +++++
+ include/uapi/drm/lima_drm.h           | 126 ++++++++++
+ 36 files changed, 4157 insertions(+)
  create mode 100644 drivers/gpu/drm/lima/Kconfig
  create mode 100644 drivers/gpu/drm/lima/Makefile
  create mode 100644 drivers/gpu/drm/lima/lima_bcast.c
@@ -82,8 +132,6 @@ Signed-off-by: Vasily Khoruzhick <anarsoul@gmail.com>
  create mode 100644 drivers/gpu/drm/lima/lima_regs.h
  create mode 100644 drivers/gpu/drm/lima/lima_sched.c
  create mode 100644 drivers/gpu/drm/lima/lima_sched.h
- create mode 100644 drivers/gpu/drm/lima/lima_ttm.c
- create mode 100644 drivers/gpu/drm/lima/lima_ttm.h
  create mode 100644 drivers/gpu/drm/lima/lima_vm.c
  create mode 100644 drivers/gpu/drm/lima/lima_vm.h
  create mode 100644 include/uapi/drm/lima_drm.h
@@ -112,10 +160,10 @@ index ce8d1d3..8d024b7 100644
 +obj-$(CONFIG_DRM_LIMA)  += lima/
 diff --git a/drivers/gpu/drm/lima/Kconfig b/drivers/gpu/drm/lima/Kconfig
 new file mode 100644
-index 0000000..89d63cc
+index 0000000..7cf061c
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/Kconfig
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,9 @@
 +# SPDX-License-Identifier: GPL-2.0 OR MIT
 +# Copyright 2017-2018 Qiang Yu <yuq825@gmail.com>
 +
@@ -123,15 +171,14 @@ index 0000000..89d63cc
 +       tristate "LIMA (DRM support for ARM Mali 400/450 GPU)"
 +       depends on DRM
 +       select DRM_SCHED
-+       select DRM_TTM
 +       help
 +         DRM driver for ARM Mali 400/450 GPUs.
 diff --git a/drivers/gpu/drm/lima/Makefile b/drivers/gpu/drm/lima/Makefile
 new file mode 100644
-index 0000000..8bb9741
+index 0000000..430e168
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/Makefile
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,21 @@
 +# SPDX-License-Identifier: GPL-2.0 OR MIT
 +# Copyright 2017-2018 Qiang Yu <yuq825@gmail.com>
 +
@@ -150,13 +197,12 @@ index 0000000..8bb9741
 +	lima_gem_prime.o \
 +	lima_dlbu.o \
 +	lima_bcast.o \
-+	lima_ttm.o \
 +	lima_object.o
 +
 +obj-$(CONFIG_DRM_LIMA) += lima.o
 diff --git a/drivers/gpu/drm/lima/lima_bcast.c b/drivers/gpu/drm/lima/lima_bcast.c
 new file mode 100644
-index 0000000..63754f6
+index 0000000..398e6d6
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_bcast.c
 @@ -0,0 +1,46 @@
@@ -170,21 +216,21 @@ index 0000000..63754f6
 +#include "lima_bcast.h"
 +#include "lima_regs.h"
 +
-+#define bcast_write(reg, data) writel(data, ip->iomem + LIMA_BCAST_##reg)
-+#define bcast_read(reg) readl(ip->iomem + LIMA_BCAST_##reg)
++#define bcast_write(reg, data) writel(data, ip->iomem + reg)
++#define bcast_read(reg) readl(ip->iomem + reg)
 +
 +void lima_bcast_enable(struct lima_device *dev, int num_pp)
 +{
 +	struct lima_sched_pipe *pipe = dev->pipe + lima_pipe_pp;
 +	struct lima_ip *ip = dev->ip + lima_ip_bcast;
-+	int i, mask = bcast_read(BROADCAST_MASK) & 0xffff0000;
++	int i, mask = bcast_read(LIMA_BCAST_BROADCAST_MASK) & 0xffff0000;
 +
 +	for (i = 0; i < num_pp; i++) {
 +		struct lima_ip *pp = pipe->processor[i];
 +		mask |= 1 << (pp->id - lima_ip_pp0);
 +	}
 +
-+	bcast_write(BROADCAST_MASK, mask);
++	bcast_write(LIMA_BCAST_BROADCAST_MASK, mask);
 +}
 +
 +int lima_bcast_init(struct lima_ip *ip)
@@ -196,8 +242,8 @@ index 0000000..63754f6
 +			mask |= 1 << (i - lima_ip_pp0);
 +	}
 +
-+	bcast_write(BROADCAST_MASK, mask << 16);
-+	bcast_write(INTERRUPT_MASK, mask);
++	bcast_write(LIMA_BCAST_BROADCAST_MASK, mask << 16);
++	bcast_write(LIMA_BCAST_INTERRUPT_MASK, mask);
 +	return 0;
 +}
 +
@@ -228,10 +274,10 @@ index 0000000..345e3e8
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_ctx.c b/drivers/gpu/drm/lima/lima_ctx.c
 new file mode 100644
-index 0000000..724ac40
+index 0000000..439cb44
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_ctx.c
-@@ -0,0 +1,124 @@
+@@ -0,0 +1,105 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -337,31 +383,12 @@ index 0000000..724ac40
 +
 +	idr_destroy(&mgr->handles);
 +}
-+
-+struct dma_fence *lima_ctx_get_native_fence(struct lima_ctx_mgr *mgr,
-+					    u32 ctx, u32 pipe, u32 seq)
-+{
-+	struct lima_ctx *c;
-+	struct dma_fence *ret;
-+
-+	if (pipe >= lima_pipe_num)
-+		return ERR_PTR(-EINVAL);
-+
-+	c = lima_ctx_get(mgr, ctx);
-+	if (!c)
-+		return ERR_PTR(-ENOENT);
-+
-+	ret = lima_sched_context_get_fence(c->context + pipe, seq);
-+
-+	lima_ctx_put(c);
-+	return ret;
-+}
 diff --git a/drivers/gpu/drm/lima/lima_ctx.h b/drivers/gpu/drm/lima/lima_ctx.h
 new file mode 100644
-index 0000000..80e55e1
+index 0000000..2d32ff9
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_ctx.h
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,30 @@
 +/* SPDX-License-Identifier: GPL-2.0 OR MIT */
 +/* Copyright 2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -391,16 +418,13 @@ index 0000000..80e55e1
 +void lima_ctx_mgr_init(struct lima_ctx_mgr *mgr);
 +void lima_ctx_mgr_fini(struct lima_ctx_mgr *mgr);
 +
-+struct dma_fence *lima_ctx_get_native_fence(struct lima_ctx_mgr *mgr,
-+					    u32 ctx, u32 pipe, u32 seq);
-+
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_device.c b/drivers/gpu/drm/lima/lima_device.c
 new file mode 100644
-index 0000000..b88c84d
+index 0000000..771642a
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_device.c
-@@ -0,0 +1,384 @@
+@@ -0,0 +1,376 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -695,14 +719,10 @@ index 0000000..b88c84d
 +		goto err_out0;
 +	}
 +
-+	err = lima_ttm_init(ldev);
-+	if (err)
-+		goto err_out1;
-+
 +	ldev->empty_vm = lima_vm_create(ldev);
 +	if (!ldev->empty_vm) {
 +		err = -ENOMEM;
-+		goto err_out2;
++		goto err_out1;
 +	}
 +
 +	ldev->va_start = 0;
@@ -713,7 +733,7 @@ index 0000000..b88c84d
 +			&ldev->dlbu_dma, GFP_KERNEL);
 +		if (!ldev->dlbu_cpu) {
 +			err = -ENOMEM;
-+			goto err_out3;
++			goto err_out2;
 +		}
 +	}
 +	else
@@ -724,38 +744,36 @@ index 0000000..b88c84d
 +	if (IS_ERR(ldev->iomem)) {
 +		dev_err(ldev->dev, "fail to ioremap iomem\n");
 +	        err = PTR_ERR(ldev->iomem);
-+		goto err_out4;
++		goto err_out3;
 +	}
 +
 +	for (i = 0; i < lima_ip_num; i++) {
 +		err = lima_init_ip(ldev, i);
 +		if (err)
-+			goto err_out5;
++			goto err_out4;
 +	}
 +
 +	err = lima_init_gp_pipe(ldev);
 +	if (err)
-+		goto err_out5;
++		goto err_out4;
 +
 +	err = lima_init_pp_pipe(ldev);
 +	if (err)
-+		goto err_out6;
++		goto err_out5;
 +
 +	return 0;
 +
-+err_out6:
-+	lima_fini_gp_pipe(ldev);
 +err_out5:
++	lima_fini_gp_pipe(ldev);
++err_out4:
 +	while (--i >= 0)
 +		lima_fini_ip(ldev, i);
-+err_out4:
++err_out3:
 +	if (ldev->dlbu_cpu)
 +		dma_free_wc(ldev->dev, LIMA_PAGE_SIZE,
 +			    ldev->dlbu_cpu, ldev->dlbu_dma);
-+err_out3:
-+	lima_vm_put(ldev->empty_vm);
 +err_out2:
-+	lima_ttm_fini(ldev);
++	lima_vm_put(ldev->empty_vm);
 +err_out1:
 +	lima_regulator_fini(ldev);
 +err_out0:
@@ -779,18 +797,16 @@ index 0000000..b88c84d
 +
 +	lima_vm_put(ldev->empty_vm);
 +
-+	lima_ttm_fini(ldev);
-+
 +	lima_regulator_fini(ldev);
 +
 +	lima_clk_fini(ldev);
 +}
 diff --git a/drivers/gpu/drm/lima/lima_device.h b/drivers/gpu/drm/lima/lima_device.h
 new file mode 100644
-index 0000000..7882264
+index 0000000..41499f2
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_device.h
-@@ -0,0 +1,116 @@
+@@ -0,0 +1,129 @@
 +/* SPDX-License-Identifier: GPL-2.0 OR MIT */
 +/* Copyright 2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -798,9 +814,9 @@ index 0000000..7882264
 +#define __LIMA_DEVICE_H__
 +
 +#include <drm/drm_device.h>
++#include <linux/delay.h>
 +
 +#include "lima_sched.h"
-+#include "lima_ttm.h"
 +
 +enum lima_gpu_id {
 +	lima_gpu_mali400 = 0,
@@ -879,8 +895,6 @@ index 0000000..7882264
 +	struct lima_ip ip[lima_ip_num];
 +	struct lima_sched_pipe pipe[lima_pipe_num];
 +
-+	struct lima_mman mman;
-+
 +	struct lima_vm *empty_vm;
 +	uint64_t va_start;
 +	uint64_t va_end;
@@ -895,21 +909,36 @@ index 0000000..7882264
 +	return dev->dev_private;
 +}
 +
-+static inline struct lima_device *
-+ttm_to_lima_dev(struct ttm_bo_device *dev)
-+{
-+	return container_of(dev, struct lima_device, mman.bdev);
-+}
-+
 +int lima_device_init(struct lima_device *ldev);
 +void lima_device_fini(struct lima_device *ldev);
 +
 +const char *lima_ip_name(struct lima_ip *ip);
 +
++typedef int (*lima_poll_func_t)(struct lima_ip *);
++
++static inline int lima_poll_timeout(struct lima_ip *ip, lima_poll_func_t func,
++				    int sleep_us, int timeout_us)
++{
++	ktime_t timeout = ktime_add_us(ktime_get(), timeout_us);
++
++	might_sleep_if(sleep_us);
++	while (1) {
++		if (func(ip))
++			return 0;
++
++		if (timeout_us && ktime_compare(ktime_get(), timeout) > 0)
++			return -ETIMEDOUT;
++
++		if (sleep_us)
++			usleep_range((sleep_us >> 2) + 1, sleep_us);
++	}
++	return 0;
++}
++
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_dlbu.c b/drivers/gpu/drm/lima/lima_dlbu.c
 new file mode 100644
-index 0000000..6697d4d
+index 0000000..b773971
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_dlbu.c
 @@ -0,0 +1,56 @@
@@ -924,8 +953,8 @@ index 0000000..6697d4d
 +#include "lima_vm.h"
 +#include "lima_regs.h"
 +
-+#define dlbu_write(reg, data) writel(data, ip->iomem + LIMA_DLBU_##reg)
-+#define dlbu_read(reg) readl(ip->iomem + LIMA_DLBU_##reg)
++#define dlbu_write(reg, data) writel(data, ip->iomem + reg)
++#define dlbu_read(reg) readl(ip->iomem + reg)
 +
 +void lima_dlbu_enable(struct lima_device *dev, int num_pp)
 +{
@@ -938,29 +967,29 @@ index 0000000..6697d4d
 +		mask |= 1 << (pp->id - lima_ip_pp0);
 +	}
 +
-+	dlbu_write(PP_ENABLE_MASK, mask);
++	dlbu_write(LIMA_DLBU_PP_ENABLE_MASK, mask);
 +}
 +
 +void lima_dlbu_disable(struct lima_device *dev)
 +{
 +	struct lima_ip *ip = dev->ip + lima_ip_dlbu;
-+	dlbu_write(PP_ENABLE_MASK, 0);
++	dlbu_write(LIMA_DLBU_PP_ENABLE_MASK, 0);
 +}
 +
 +void lima_dlbu_set_reg(struct lima_ip *ip, u32 *reg)
 +{
-+	dlbu_write(TLLIST_VBASEADDR, reg[0]);
-+	dlbu_write(FB_DIM, reg[1]);
-+	dlbu_write(TLLIST_CONF, reg[2]);
-+	dlbu_write(START_TILE_POS, reg[3]);
++	dlbu_write(LIMA_DLBU_TLLIST_VBASEADDR, reg[0]);
++	dlbu_write(LIMA_DLBU_FB_DIM, reg[1]);
++	dlbu_write(LIMA_DLBU_TLLIST_CONF, reg[2]);
++	dlbu_write(LIMA_DLBU_START_TILE_POS, reg[3]);
 +}
 +
 +int lima_dlbu_init(struct lima_ip *ip)
 +{
 +	struct lima_device *dev = ip->dev;
 +
-+	dlbu_write(MASTER_TLLIST_PHYS_ADDR, dev->dlbu_dma | 1);
-+	dlbu_write(MASTER_TLLIST_VADDR, LIMA_VA_RESERVE_DLBU);
++	dlbu_write(LIMA_DLBU_MASTER_TLLIST_PHYS_ADDR, dev->dlbu_dma | 1);
++	dlbu_write(LIMA_DLBU_MASTER_TLLIST_VADDR, LIMA_VA_RESERVE_DLBU);
 +
 +	return 0;
 +}
@@ -995,10 +1024,10 @@ index 0000000..60cba38
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_drv.c b/drivers/gpu/drm/lima/lima_drv.c
 new file mode 100644
-index 0000000..132071b
+index 0000000..e93bce1
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_drv.c
-@@ -0,0 +1,459 @@
+@@ -0,0 +1,353 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -1015,16 +1044,12 @@ index 0000000..132071b
 +
 +int lima_sched_timeout_ms = 0;
 +int lima_sched_max_tasks = 32;
-+int lima_max_mem = -1;
 +
 +MODULE_PARM_DESC(sched_timeout_ms, "task run timeout in ms (0 = no timeout (default))");
 +module_param_named(sched_timeout_ms, lima_sched_timeout_ms, int, 0444);
 +
 +MODULE_PARM_DESC(sched_max_tasks, "max queued task num in a context (default 32)");
 +module_param_named(sched_max_tasks, lima_sched_max_tasks, int, 0444);
-+
-+MODULE_PARM_DESC(max_mem, "Max memory size in MB can be used (<0 = auto)");
-+module_param_named(max_mem, lima_max_mem, int, 0444);
 +
 +static int lima_ioctl_info(struct drm_device *dev, void *data, struct drm_file *file)
 +{
@@ -1042,8 +1067,7 @@ index 0000000..132071b
 +		return -ENODEV;
 +	}
 +	info->num_pp = ldev->pipe[lima_pipe_pp].num_processor;
-+	info->va_start = ldev->va_start;
-+	info->va_end = ldev->va_end;
++	info->valid = 0;
 +	return 0;
 +}
 +
@@ -1064,51 +1088,33 @@ index 0000000..132071b
 +{
 +	struct drm_lima_gem_info *args = data;
 +
-+	return lima_gem_mmap_offset(file, args->handle, &args->offset);
-+}
-+
-+static int lima_ioctl_gem_va(struct drm_device *dev, void *data, struct drm_file *file)
-+{
-+	struct drm_lima_gem_va *args = data;
-+
-+	switch (args->op) {
-+	case LIMA_VA_OP_MAP:
-+		return lima_gem_va_map(file, args->handle, args->flags, args->va);
-+	case LIMA_VA_OP_UNMAP:
-+		return lima_gem_va_unmap(file, args->handle, args->va);
-+	default:
-+		return -EINVAL;
-+	}
++	return lima_gem_get_info(file, args->handle, &args->va, &args->offset);
 +}
 +
 +static int lima_ioctl_gem_submit(struct drm_device *dev, void *data, struct drm_file *file)
 +{
-+	struct drm_lima_gem_submit_in *args = data;
++	struct drm_lima_gem_submit *args = data;
 +	struct lima_device *ldev = to_lima_dev(dev);
 +	struct lima_drm_priv *priv = file->driver_priv;
 +	struct drm_lima_gem_submit_bo *bos;
-+	struct ttm_validate_buffer *vbs;
-+	union drm_lima_gem_submit_dep *deps = NULL;
 +	struct lima_sched_pipe *pipe;
 +	struct lima_sched_task *task;
 +	struct lima_ctx *ctx;
 +	struct lima_submit submit = {0};
-+	int err = 0, size;
++	size_t size;
++	int err = 0;
 +
 +	if (args->pipe >= lima_pipe_num || args->nr_bos == 0)
 +		return -EINVAL;
 +
-+	if (args->flags & ~(LIMA_SUBMIT_FLAG_EXPLICIT_FENCE |
-+			    LIMA_SUBMIT_FLAG_SYNC_FD_OUT))
++	if (args->flags & ~(LIMA_SUBMIT_FLAG_EXPLICIT_FENCE))
 +		return -EINVAL;
 +
 +	pipe = ldev->pipe + args->pipe;
 +	if (args->frame_size != pipe->frame_size)
 +		return -EINVAL;
 +
-+	size = args->nr_bos * (sizeof(*submit.bos) + sizeof(*submit.vbs)) +
-+		args->nr_deps * sizeof(*submit.deps);
-+	bos = kzalloc(size, GFP_KERNEL);
++	bos = kvcalloc(args->nr_bos, sizeof(*submit.bos) + sizeof(*submit.lbos), GFP_KERNEL);
 +	if (!bos)
 +		return -ENOMEM;
 +
@@ -1116,17 +1122,6 @@ index 0000000..132071b
 +	if (copy_from_user(bos, u64_to_user_ptr(args->bos), size)) {
 +		err = -EFAULT;
 +		goto out0;
-+	}
-+
-+	vbs = (void *)bos + size;
-+
-+	if (args->nr_deps) {
-+		deps = (void *)vbs + args->nr_bos * sizeof(*submit.vbs);
-+		size = args->nr_deps * sizeof(*submit.deps);
-+		if (copy_from_user(deps, u64_to_user_ptr(args->deps), size)) {
-+			err = -EFAULT;
-+			goto out0;
-+		}
 +	}
 +
 +	task = kmem_cache_zalloc(pipe->task_slab, GFP_KERNEL);
@@ -1153,73 +1148,23 @@ index 0000000..132071b
 +
 +	submit.pipe = args->pipe;
 +	submit.bos = bos;
-+	submit.vbs = vbs;
++	submit.lbos = (void *)bos + size;
 +	submit.nr_bos = args->nr_bos;
 +	submit.task = task;
 +	submit.ctx = ctx;
-+	submit.deps = deps;
-+	submit.nr_deps = args->nr_deps;
 +	submit.flags = args->flags;
++	submit.in_sync[0] = args->in_sync[0];
++	submit.in_sync[1] = args->in_sync[1];
++	submit.out_sync = args->out_sync;
 +
 +	err = lima_gem_submit(file, &submit);
-+	if (!err) {
-+		struct drm_lima_gem_submit_out *out = data;
-+		out->fence = submit.fence;
-+		out->done = submit.done;
-+		out->sync_fd = submit.sync_fd;
-+	}
 +
 +	lima_ctx_put(ctx);
 +out1:
 +	if (err)
 +		kmem_cache_free(pipe->task_slab, task);
 +out0:
-+	kfree(bos);
-+	return err;
-+}
-+
-+static int lima_wait_fence(struct dma_fence *fence, u64 timeout_ns)
-+{
-+	signed long ret;
-+
-+	if (!timeout_ns)
-+		ret = dma_fence_is_signaled(fence) ? 0 : -EBUSY;
-+	else {
-+		unsigned long timeout = lima_timeout_to_jiffies(timeout_ns);
-+
-+		/* must use long for result check because in 64bit arch int
-+		 * will overflow if timeout is too large and get <0 result
-+		 */
-+		ret = dma_fence_wait_timeout(fence, true, timeout);
-+		if (ret == 0)
-+			ret = timeout ? -ETIMEDOUT : -EBUSY;
-+		else if (ret > 0)
-+			ret = 0;
-+	}
-+
-+	return ret;
-+}
-+
-+static int lima_ioctl_wait_fence(struct drm_device *dev, void *data, struct drm_file *file)
-+{
-+	struct drm_lima_wait_fence *args = data;
-+	struct lima_drm_priv *priv = file->driver_priv;
-+	struct dma_fence *fence;
-+	int err = 0;
-+
-+	fence = lima_ctx_get_native_fence(&priv->ctx_mgr, args->ctx,
-+					  args->pipe, args->seq);
-+	if (IS_ERR(fence))
-+		return PTR_ERR(fence);
-+
-+	if (fence) {
-+		err = lima_wait_fence(fence, args->timeout_ns);
-+		args->error = fence->error;
-+		dma_fence_put(fence);
-+	}
-+	else
-+		args->error = 0;
-+
++	kvfree(bos);
 +	return err;
 +}
 +
@@ -1227,8 +1172,8 @@ index 0000000..132071b
 +{
 +	struct drm_lima_gem_wait *args = data;
 +
-+	if (!(args->op & (LIMA_GEM_WAIT_READ|LIMA_GEM_WAIT_WRITE)))
-+	    return -EINVAL;
++	if (args->op & ~(LIMA_GEM_WAIT_READ|LIMA_GEM_WAIT_WRITE))
++		return -EINVAL;
 +
 +	return lima_gem_wait(file, args->handle, args->op, args->timeout_ns);
 +}
@@ -1243,18 +1188,6 @@ index 0000000..132071b
 +		return lima_ctx_create(ldev, &priv->ctx_mgr, &args->id);
 +	else if (args->op == LIMA_CTX_OP_FREE)
 +		return lima_ctx_free(&priv->ctx_mgr, args->id);
-+
-+	return -EINVAL;
-+}
-+
-+static int lima_ioctl_gem_mod(struct drm_device *dev, void *data, struct drm_file *file)
-+{
-+	struct drm_lima_gem_mod *args = data;
-+
-+	if (args->op == LIMA_GEM_MOD_OP_GET)
-+		return lima_gem_get_modifier(file, args->handle, &args->modifier);
-+	else if (args->op == LIMA_GEM_MOD_OP_SET)
-+		return lima_gem_set_modifier(file, args->handle, args->modifier);
 +
 +	return -EINVAL;
 +}
@@ -1275,7 +1208,7 @@ index 0000000..132071b
 +		goto err_out0;
 +	}
 +
-+        lima_ctx_mgr_init(&priv->ctx_mgr);
++	lima_ctx_mgr_init(&priv->ctx_mgr);
 +
 +	file->driver_priv = priv;
 +	return 0;
@@ -1298,12 +1231,9 @@ index 0000000..132071b
 +	DRM_IOCTL_DEF_DRV(LIMA_INFO, lima_ioctl_info, DRM_AUTH|DRM_RENDER_ALLOW),
 +	DRM_IOCTL_DEF_DRV(LIMA_GEM_CREATE, lima_ioctl_gem_create, DRM_AUTH|DRM_RENDER_ALLOW),
 +	DRM_IOCTL_DEF_DRV(LIMA_GEM_INFO, lima_ioctl_gem_info, DRM_AUTH|DRM_RENDER_ALLOW),
-+	DRM_IOCTL_DEF_DRV(LIMA_GEM_VA, lima_ioctl_gem_va, DRM_AUTH|DRM_RENDER_ALLOW),
 +	DRM_IOCTL_DEF_DRV(LIMA_GEM_SUBMIT, lima_ioctl_gem_submit, DRM_AUTH|DRM_RENDER_ALLOW),
-+	DRM_IOCTL_DEF_DRV(LIMA_WAIT_FENCE, lima_ioctl_wait_fence, DRM_AUTH|DRM_RENDER_ALLOW),
 +	DRM_IOCTL_DEF_DRV(LIMA_GEM_WAIT, lima_ioctl_gem_wait, DRM_AUTH|DRM_RENDER_ALLOW),
 +	DRM_IOCTL_DEF_DRV(LIMA_CTX, lima_ioctl_ctx, DRM_AUTH|DRM_RENDER_ALLOW),
-+	DRM_IOCTL_DEF_DRV(LIMA_GEM_MOD, lima_ioctl_gem_mod, DRM_AUTH|DRM_RENDER_ALLOW),
 +};
 +
 +static const struct file_operations lima_drm_driver_fops = {
@@ -1318,7 +1248,7 @@ index 0000000..132071b
 +};
 +
 +static struct drm_driver lima_drm_driver = {
-+	.driver_features    = DRIVER_RENDER | DRIVER_GEM | DRIVER_PRIME,
++	.driver_features    = DRIVER_RENDER | DRIVER_GEM | DRIVER_PRIME | DRIVER_SYNCOBJ,
 +	.open               = lima_drm_driver_open,
 +	.postclose          = lima_drm_driver_postclose,
 +	.ioctls             = lima_drm_driver_ioctls,
@@ -1327,22 +1257,18 @@ index 0000000..132071b
 +	.gem_free_object_unlocked = lima_gem_free_object,
 +	.gem_open_object    = lima_gem_object_open,
 +	.gem_close_object   = lima_gem_object_close,
++	.gem_vm_ops         = &lima_gem_vm_ops,
 +	.name               = "lima",
 +	.desc               = "lima DRM",
-+	.date               = "20170325",
++	.date               = "20190217",
 +	.major              = 1,
 +	.minor              = 0,
 +	.patchlevel         = 0,
 +
 +	.prime_fd_to_handle = drm_gem_prime_fd_to_handle,
-+	.gem_prime_import   = drm_gem_prime_import,
 +	.gem_prime_import_sg_table = lima_gem_prime_import_sg_table,
 +	.prime_handle_to_fd = drm_gem_prime_handle_to_fd,
-+	.gem_prime_export   = drm_gem_prime_export,
-+	.gem_prime_res_obj  = lima_gem_prime_res_obj,
 +	.gem_prime_get_sg_table = lima_gem_prime_get_sg_table,
-+	.gem_prime_vmap = lima_gem_prime_vmap,
-+	.gem_prime_vunmap = lima_gem_prime_vunmap,
 +	.gem_prime_mmap = lima_gem_prime_mmap,
 +};
 +
@@ -1426,9 +1352,6 @@ index 0000000..132071b
 +		lima_sched_max_tasks = 4;
 +	else
 +		lima_sched_max_tasks = roundup_pow_of_two(lima_sched_max_tasks);
-+
-+	if (lima_max_mem < 32)
-+		lima_max_mem = -1;
 +}
 +
 +static int __init lima_init(void)
@@ -1460,10 +1383,10 @@ index 0000000..132071b
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/gpu/drm/lima/lima_drv.h b/drivers/gpu/drm/lima/lima_drv.h
 new file mode 100644
-index 0000000..455bf44
+index 0000000..640a548
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_drv.h
-@@ -0,0 +1,59 @@
+@@ -0,0 +1,46 @@
 +/* SPDX-License-Identifier: GPL-2.0 OR MIT */
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -1471,21 +1394,17 @@ index 0000000..455bf44
 +#define __LIMA_DRV_H__
 +
 +#include <drm/drmP.h>
-+#include <drm/ttm/ttm_execbuf_util.h>
 +
 +#include "lima_ctx.h"
 +
 +extern int lima_sched_timeout_ms;
 +extern int lima_sched_max_tasks;
-+extern int lima_max_mem;
 +
 +struct lima_vm;
 +struct lima_bo;
 +struct lima_sched_task;
 +
 +struct drm_lima_gem_submit_bo;
-+
-+#define DRM_FILE_PAGE_OFFSET (0x100000000ULL >> PAGE_SHIFT)
 +
 +struct lima_drm_priv {
 +	struct lima_vm *vm;
@@ -1498,22 +1417,13 @@ index 0000000..455bf44
 +	u32 flags;
 +
 +	struct drm_lima_gem_submit_bo *bos;
-+	struct ttm_validate_buffer *vbs;
++	struct lima_bo **lbos;
 +	u32 nr_bos;
 +
-+	struct ttm_validate_buffer vm_pd_vb;
-+	struct ww_acquire_ctx ticket;
-+	struct list_head duplicates;
-+	struct list_head validated;
-+
-+	union drm_lima_gem_submit_dep *deps;
-+	u32 nr_deps;
++	u32 in_sync[2];
++	u32 out_sync;
 +
 +	struct lima_sched_task *task;
-+
-+	uint32_t fence;
-+	uint32_t done;
-+	int sync_fd;
 +};
 +
 +static inline struct lima_drm_priv *
@@ -1525,17 +1435,18 @@ index 0000000..455bf44
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_gem.c b/drivers/gpu/drm/lima/lima_gem.c
 new file mode 100644
-index 0000000..b5e768d
+index 0000000..b26fa28
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_gem.c
-@@ -0,0 +1,485 @@
+@@ -0,0 +1,376 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
 +#include <drm/drmP.h>
-+#include <linux/dma-mapping.h>
-+#include <linux/pagemap.h>
++#include <drm/drm_syncobj.h>
++#include <drm/drm_utils.h>
 +#include <linux/sync_file.h>
++#include <linux/pfn_t.h>
 +
 +#include <drm/lima_drm.h>
 +
@@ -1552,7 +1463,7 @@ index 0000000..b5e768d
 +	struct lima_bo *bo;
 +	struct lima_device *ldev = to_lima_dev(dev);
 +
-+	bo = lima_bo_create(ldev, size, flags, ttm_bo_type_device, NULL, NULL);
++	bo = lima_bo_create(ldev, size, flags, NULL, NULL);
 +	if (IS_ERR(bo))
 +		return PTR_ERR(bo);
 +
@@ -1571,7 +1482,7 @@ index 0000000..b5e768d
 +	if (!list_empty(&bo->va))
 +		dev_err(obj->dev->dev, "lima gem free bo still has va\n");
 +
-+	lima_bo_unref(bo);
++	lima_bo_destroy(bo);
 +}
 +
 +int lima_gem_object_open(struct drm_gem_object *obj, struct drm_file *file)
@@ -1579,173 +1490,83 @@ index 0000000..b5e768d
 +	struct lima_bo *bo = to_lima_bo(obj);
 +	struct lima_drm_priv *priv = to_lima_drm_priv(file);
 +	struct lima_vm *vm = priv->vm;
-+	int err;
 +
-+	err = lima_bo_reserve(bo, true);
-+	if (err)
-+		return err;
-+
-+	err = lima_vm_bo_add(vm, bo);
-+
-+	lima_bo_unreserve(bo);
-+	return err;
++	return lima_vm_bo_add(vm, bo);
 +}
 +
 +void lima_gem_object_close(struct drm_gem_object *obj, struct drm_file *file)
 +{
 +	struct lima_bo *bo = to_lima_bo(obj);
-+	struct lima_device *dev = to_lima_dev(obj->dev);
 +	struct lima_drm_priv *priv = to_lima_drm_priv(file);
 +	struct lima_vm *vm = priv->vm;
 +
-+	LIST_HEAD(list);
-+	struct ttm_validate_buffer tv_bo, tv_pd;
-+	struct ww_acquire_ctx ticket;
-+	int r;
-+
-+	tv_bo.bo = &bo->tbo;
-+	tv_bo.num_shared = 1;
-+	list_add(&tv_bo.head, &list);
-+
-+	tv_pd.bo = &vm->pd->tbo;
-+	tv_pd.num_shared = 1;
-+	list_add(&tv_pd.head, &list);
-+
-+	r = ttm_eu_reserve_buffers(&ticket, &list, false, NULL);
-+	if (r) {
-+		dev_err(dev->dev, "leeking bo va because we "
-+			"fail to reserve bo (%d)\n", r);
-+		return;
-+	}
-+
 +	lima_vm_bo_del(vm, bo);
-+
-+	ttm_eu_backoff_reservation(&ticket, &list);
 +}
 +
-+int lima_gem_mmap_offset(struct drm_file *file, u32 handle, u64 *offset)
++int lima_gem_get_info(struct drm_file *file, u32 handle, u32 *va, u64 *offset)
 +{
 +	struct drm_gem_object *obj;
 +	struct lima_bo *bo;
++	struct lima_drm_priv *priv = to_lima_drm_priv(file);
++	struct lima_vm *vm = priv->vm;
++	int err;
 +
 +	obj = drm_gem_object_lookup(file, handle);
 +	if (!obj)
 +		return -ENOENT;
 +
 +	bo = to_lima_bo(obj);
-+	*offset = drm_vma_node_offset_addr(&bo->tbo.vma_node);
++
++	*va = lima_vm_get_va(vm, bo);
++
++	err = drm_gem_create_mmap_offset(obj);
++	if (!err)
++		*offset = drm_vma_node_offset_addr(&obj->vma_node);
 +
 +	drm_gem_object_put_unlocked(obj);
-+	return 0;
++	return err;
++}
++
++static vm_fault_t lima_gem_fault(struct vm_fault *vmf)
++{
++	struct vm_area_struct *vma = vmf->vma;
++	struct drm_gem_object *obj = vma->vm_private_data;
++	struct lima_bo *bo = to_lima_bo(obj);
++	pfn_t pfn;
++	pgoff_t pgoff;
++
++	/* We don't use vmf->pgoff since that has the fake offset: */
++	pgoff = (vmf->address - vma->vm_start) >> PAGE_SHIFT;
++	pfn = __pfn_to_pfn_t(page_to_pfn(bo->pages[pgoff]), PFN_DEV);
++
++	return vmf_insert_mixed(vma, vmf->address, pfn);
++}
++
++const struct vm_operations_struct lima_gem_vm_ops = {
++	.fault = lima_gem_fault,
++	.open = drm_gem_vm_open,
++	.close = drm_gem_vm_close,
++};
++
++void lima_set_vma_flags(struct vm_area_struct *vma)
++{
++	pgprot_t prot = vm_get_page_prot(vma->vm_flags);
++
++	vma->vm_flags |= VM_MIXEDMAP;
++	vma->vm_flags &= ~VM_PFNMAP;
++	vma->vm_page_prot = pgprot_writecombine(prot);
 +}
 +
 +int lima_gem_mmap(struct file *filp, struct vm_area_struct *vma)
 +{
-+	struct drm_file *file_priv;
-+	struct lima_device *dev;
++	int ret;
 +
-+	if (unlikely(vma->vm_pgoff < DRM_FILE_PAGE_OFFSET))
-+		return -EINVAL;
++	ret = drm_gem_mmap(filp, vma);
++	if (ret)
++		return ret;
 +
-+	file_priv = filp->private_data;
-+	dev = file_priv->minor->dev->dev_private;
-+	if (dev == NULL)
-+		return -EINVAL;
-+
-+	if (!lima_gem_prime_dma_buf_mmap(filp, vma))
-+		return 0;
-+
-+	return ttm_bo_mmap(filp, vma, &dev->mman.bdev);
-+}
-+
-+int lima_gem_va_map(struct drm_file *file, u32 handle, u32 flags, u32 va)
-+{
-+	struct lima_drm_priv *priv = to_lima_drm_priv(file);
-+	struct lima_vm *vm = priv->vm;
-+	struct drm_gem_object *obj;
-+	struct lima_bo *bo;
-+	struct lima_device *dev;
-+	int err;
-+
-+	LIST_HEAD(list);
-+	struct ttm_validate_buffer tv_bo, tv_pd;
-+	struct ww_acquire_ctx ticket;
-+
-+	if (!PAGE_ALIGNED(va))
-+		return -EINVAL;
-+
-+	obj = drm_gem_object_lookup(file, handle);
-+	if (!obj)
-+		return -ENOENT;
-+
-+	bo = to_lima_bo(obj);
-+	dev = to_lima_dev(obj->dev);
-+
-+	/* carefully handle overflow when calculate range */
-+	if (va < dev->va_start || dev->va_end - obj->size < va) {
-+		err = -EINVAL;
-+		goto out;
-+	}
-+
-+	tv_bo.bo = &bo->tbo;
-+	tv_bo.num_shared = 1;
-+	list_add(&tv_bo.head, &list);
-+
-+	tv_pd.bo = &vm->pd->tbo;
-+	tv_pd.num_shared = 1;
-+	list_add(&tv_pd.head, &list);
-+
-+	err = ttm_eu_reserve_buffers(&ticket, &list, false, NULL);
-+	if (err)
-+		goto out;
-+
-+	err = lima_vm_bo_map(vm, bo, va);
-+
-+	ttm_eu_backoff_reservation(&ticket, &list);
-+out:
-+	drm_gem_object_put_unlocked(obj);
-+	return err;
-+}
-+
-+int lima_gem_va_unmap(struct drm_file *file, u32 handle, u32 va)
-+{
-+	struct lima_drm_priv *priv = to_lima_drm_priv(file);
-+	struct lima_vm *vm = priv->vm;
-+	struct drm_gem_object *obj;
-+	struct lima_bo *bo;
-+	int err;
-+
-+	LIST_HEAD(list);
-+	struct ttm_validate_buffer tv_bo, tv_pd;
-+	struct ww_acquire_ctx ticket;
-+
-+	if (!PAGE_ALIGNED(va))
-+		return -EINVAL;
-+
-+	obj = drm_gem_object_lookup(file, handle);
-+	if (!obj)
-+		return -ENOENT;
-+
-+	bo = to_lima_bo(obj);
-+
-+	tv_bo.bo = &bo->tbo;
-+	tv_bo.num_shared = 1;
-+	list_add(&tv_bo.head, &list);
-+
-+	tv_pd.bo = &vm->pd->tbo;
-+	tv_pd.num_shared = 1;
-+	list_add(&tv_pd.head, &list);
-+
-+	err = ttm_eu_reserve_buffers(&ticket, &list, false, NULL);
-+	if (err)
-+		goto out;
-+
-+	err = lima_vm_bo_unmap(vm, bo, va);
-+
-+	ttm_eu_backoff_reservation(&ticket, &list);
-+out:
-+	drm_gem_object_put_unlocked(obj);
-+	return err;
++	lima_set_vma_flags(vma);
++	return 0;
 +}
 +
 +static int lima_gem_sync_bo(struct lima_sched_task *task, struct lima_bo *bo,
@@ -1754,7 +1575,7 @@ index 0000000..b5e768d
 +	int err = 0;
 +
 +	if (!write) {
-+		err = reservation_object_reserve_shared(bo->tbo.resv, 1);
++		err = reservation_object_reserve_shared(bo->gem.resv, 1);
 +		if (err)
 +			return err;
 +	}
@@ -1770,7 +1591,7 @@ index 0000000..b5e768d
 +		int i;
 +
 +		err = reservation_object_get_fences_rcu(
-+			bo->tbo.resv, NULL, &nr_fences, &fences);
++			bo->gem.resv, NULL, &nr_fences, &fences);
 +		if (err || !nr_fences)
 +			return err;
 +
@@ -1788,7 +1609,7 @@ index 0000000..b5e768d
 +	}
 +	else {
 +		struct dma_fence *fence;
-+		fence = reservation_object_get_excl_rcu(bo->tbo.resv);
++		fence = reservation_object_get_excl_rcu(bo->gem.resv);
 +		if (fence) {
 +			err = lima_sched_task_add_dep(task, fence);
 +			if (err)
@@ -1799,224 +1620,204 @@ index 0000000..b5e768d
 +	return err;
 +}
 +
-+static int lima_gem_add_deps(struct lima_ctx_mgr *mgr, struct lima_submit *submit)
++static int lima_gem_lock_bos(struct lima_bo **bos, u32 nr_bos,
++			     struct ww_acquire_ctx *ctx)
 +{
-+	int i, err = 0;
++	int i, ret = 0, contended, slow_locked = -1;
 +
-+	for (i = 0; i < submit->nr_deps; i++) {
-+		union drm_lima_gem_submit_dep *dep = submit->deps + i;
-+		struct dma_fence *fence;
++	ww_acquire_init(ctx, &reservation_ww_class);
 +
-+		if (dep->type == LIMA_SUBMIT_DEP_FENCE) {
-+			fence = lima_ctx_get_native_fence(
-+				mgr, dep->fence.ctx, dep->fence.pipe,
-+				dep->fence.seq);
-+			if (IS_ERR(fence)) {
-+				err = PTR_ERR(fence);
-+				break;
-+			}
-+		}
-+		else if (dep->type == LIMA_SUBMIT_DEP_SYNC_FD) {
-+			fence = sync_file_get_fence(dep->sync_fd.fd);
-+			if (!fence) {
-+				err = -EINVAL;
-+				break;
-+			}
-+		}
-+		else {
-+			err = -EINVAL;
-+			break;
++retry:
++	for (i = 0; i < nr_bos; i++) {
++		if (i == slow_locked) {
++			slow_locked = -1;
++			continue;
 +		}
 +
-+		if (fence) {
-+			err = lima_sched_task_add_dep(submit->task, fence);
-+			if (err) {
-+				dma_fence_put(fence);
-+				break;
-+			}
++		ret = ww_mutex_lock_interruptible(&bos[i]->gem.resv->lock, ctx);
++		if (ret < 0) {
++			contended = i;
++			goto err;
 +		}
 +	}
 +
-+	return err;
++	ww_acquire_done(ctx);
++	return 0;
++
++err:
++	for (i--; i >= 0; i--)
++		ww_mutex_unlock(&bos[i]->gem.resv->lock);
++
++	if (slow_locked >= 0)
++		ww_mutex_unlock(&bos[slow_locked]->gem.resv->lock);
++
++	if (ret == -EDEADLK) {
++		/* we lost out in a seqno race, lock and retry.. */
++		ret = ww_mutex_lock_slow_interruptible(
++			&bos[contended]->gem.resv->lock, ctx);
++		if (!ret) {
++			slow_locked = contended;
++			goto retry;
++		}
++	}
++	ww_acquire_fini(ctx);
++
++	return ret;
 +}
 +
-+static int lima_gem_get_sync_fd(struct dma_fence *fence)
++static void lima_gem_unlock_bos(struct lima_bo **bos, u32 nr_bos,
++				struct ww_acquire_ctx *ctx)
 +{
-+	struct sync_file *sync_file;
-+	int fd;
++	int i;
 +
-+	fd = get_unused_fd_flags(O_CLOEXEC);
-+	if (fd < 0)
-+		return fd;
++	for (i = 0; i < nr_bos; i++)
++		ww_mutex_unlock(&bos[i]->gem.resv->lock);
++	ww_acquire_fini(ctx);
++}
 +
-+	sync_file = sync_file_create(fence);
-+	if (!sync_file) {
-+		put_unused_fd(fd);
-+		return -ENOMEM;
++static int lima_gem_add_deps(struct drm_file *file, struct lima_submit *submit)
++{
++	int i, err;
++
++	for (i = 0; i < ARRAY_SIZE(submit->in_sync); i++) {
++		struct dma_fence *fence = NULL;
++
++		if (!submit->in_sync[i])
++			continue;
++
++		err = drm_syncobj_find_fence(file, submit->in_sync[i],
++					     0, 0, &fence);
++		if (err)
++			return err;
++
++		err = lima_sched_task_add_dep(submit->task, fence);
++		if (err) {
++			dma_fence_put(fence);
++			return err;
++		}
 +	}
 +
-+	fd_install(fd, sync_file->file);
-+	return fd;
++	return 0;
 +}
 +
 +int lima_gem_submit(struct drm_file *file, struct lima_submit *submit)
 +{
 +	int i, err = 0;
++	struct ww_acquire_ctx ctx;
 +	struct lima_drm_priv *priv = to_lima_drm_priv(file);
 +	struct lima_vm *vm = priv->vm;
++	struct drm_syncobj *out_sync = NULL;
++	struct dma_fence *fence;
++	struct lima_bo **bos = submit->lbos;
 +
-+	INIT_LIST_HEAD(&submit->validated);
-+	INIT_LIST_HEAD(&submit->duplicates);
++	if (submit->out_sync) {
++		out_sync = drm_syncobj_find(file, submit->out_sync);
++		if (!out_sync)
++			return -ENOENT;
++	}
 +
 +	for (i = 0; i < submit->nr_bos; i++) {
 +		struct drm_gem_object *obj;
-+		struct drm_lima_gem_submit_bo *bo = submit->bos + i;
-+		struct ttm_validate_buffer *vb = submit->vbs + i;
++		struct lima_bo *bo;
 +
-+		obj = drm_gem_object_lookup(file, bo->handle);
++		obj = drm_gem_object_lookup(file, submit->bos[i].handle);
 +		if (!obj) {
 +			err = -ENOENT;
-+			goto out0;
++			goto err_out0;
 +		}
 +
-+		vb->bo = &to_lima_bo(obj)->tbo;
-+		if (bo->flags & LIMA_SUBMIT_BO_WRITE)
-+			vb->num_shared = 0;
-+		else
-+			vb->num_shared = 1;
-+		list_add_tail(&vb->head, &submit->validated);
++		bo = to_lima_bo(obj);
++
++		/* increase refcnt of gpu va map to prevent unmapped when executing,
++		 * will be decreased when task done */
++		err = lima_vm_bo_add(vm, bo);
++		if (err) {
++			drm_gem_object_put_unlocked(obj);
++			goto err_out0;
++		}
++
++		bos[i] = bo;
 +	}
 +
-+	submit->vm_pd_vb.bo = &vm->pd->tbo;
-+	submit->vm_pd_vb.num_shared = 1;
-+	list_add(&submit->vm_pd_vb.head, &submit->validated);
-+
-+	err = ttm_eu_reserve_buffers(&submit->ticket, &submit->validated,
-+				     true, &submit->duplicates);
++	err = lima_gem_lock_bos(bos, submit->nr_bos, &ctx);
 +	if (err)
-+		goto out0;
++		goto err_out0;
 +
 +	err = lima_sched_task_init(
-+		submit->task, submit->ctx->context + submit->pipe, vm);
++		submit->task, submit->ctx->context + submit->pipe,
++		bos, submit->nr_bos, vm);
 +	if (err)
-+		goto out1;
++		goto err_out1;
 +
-+	err = lima_gem_add_deps(&priv->ctx_mgr, submit);
++	err = lima_gem_add_deps(file, submit);
 +	if (err)
-+		goto out2;
++		goto err_out2;
 +
 +	for (i = 0; i < submit->nr_bos; i++) {
-+		struct ttm_validate_buffer *vb = submit->vbs + i;
-+		struct lima_bo *bo = ttm_to_lima_bo(vb->bo);
 +		err = lima_gem_sync_bo(
-+			submit->task, bo, vb->num_shared == 0,
++			submit->task, bos[i],
++			submit->bos[i].flags & LIMA_SUBMIT_BO_WRITE,
 +			submit->flags & LIMA_SUBMIT_FLAG_EXPLICIT_FENCE);
 +		if (err)
-+			goto out2;
++			goto err_out2;
 +	}
 +
-+	if (submit->flags & LIMA_SUBMIT_FLAG_SYNC_FD_OUT) {
-+		int fd = lima_gem_get_sync_fd(
-+			&submit->task->base.s_fence->finished);
-+		if (fd < 0) {
-+			err = fd;
-+			goto out2;
-+		}
-+		submit->sync_fd = fd;
-+	}
++	fence = lima_sched_context_queue_task(
++		submit->ctx->context + submit->pipe, submit->task);
 +
-+	submit->fence = lima_sched_context_queue_task(
-+		submit->ctx->context + submit->pipe, submit->task,
-+		&submit->done);
-+
-+	ttm_eu_fence_buffer_objects(&submit->ticket, &submit->validated,
-+				    &submit->task->base.s_fence->finished);
-+
-+out2:
-+	if (err)
-+		lima_sched_task_fini(submit->task);
-+out1:
-+        if (err)
-+		ttm_eu_backoff_reservation(&submit->ticket, &submit->validated);
-+out0:
 +	for (i = 0; i < submit->nr_bos; i++) {
-+		struct ttm_validate_buffer *vb = submit->vbs + i;
-+		if (!vb->bo)
-+			break;
-+		drm_gem_object_put_unlocked(&ttm_to_lima_bo(vb->bo)->gem);
++		if (submit->bos[i].flags & LIMA_SUBMIT_BO_WRITE)
++			reservation_object_add_excl_fence(bos[i]->gem.resv, fence);
++		else
++			reservation_object_add_shared_fence(bos[i]->gem.resv, fence);
 +	}
++
++	lima_gem_unlock_bos(bos, submit->nr_bos, &ctx);
++
++	if (out_sync) {
++		drm_syncobj_replace_fence(out_sync, fence);
++		drm_syncobj_put(out_sync);
++	}
++
++	dma_fence_put(fence);
++
++	return 0;
++
++err_out2:
++	lima_sched_task_fini(submit->task);
++err_out1:
++	lima_gem_unlock_bos(bos, submit->nr_bos, &ctx);
++err_out0:
++	for (i = 0; i < submit->nr_bos; i++) {
++		if (!bos[i])
++			break;
++		lima_vm_bo_del(vm, bos[i]);
++		drm_gem_object_put_unlocked(&bos[i]->gem);
++	}
++	if (out_sync)
++		drm_syncobj_put(out_sync);
 +	return err;
 +}
 +
-+int lima_gem_wait(struct drm_file *file, u32 handle, u32 op, u64 timeout_ns)
++int lima_gem_wait(struct drm_file *file, u32 handle, u32 op, s64 timeout_ns)
 +{
 +	bool write = op & LIMA_GEM_WAIT_WRITE;
-+	struct drm_gem_object *obj;
-+	struct lima_bo *bo;
-+	signed long ret;
-+	unsigned long timeout;
++	long ret, timeout;
 +
-+	obj = drm_gem_object_lookup(file, handle);
-+	if (!obj)
-+		return -ENOENT;
++	if (!op)
++		return 0;
 +
-+	bo = to_lima_bo(obj);
++	timeout = drm_timeout_abs_to_jiffies(timeout_ns);
 +
-+	timeout = timeout_ns ? lima_timeout_to_jiffies(timeout_ns) : 0;
-+
-+	ret = lima_bo_reserve(bo, true);
-+	if (ret)
-+		goto out;
-+
-+	/* must use long for result check because in 64bit arch int
-+	 * will overflow if timeout is too large and get <0 result
-+	 */
-+	ret = reservation_object_wait_timeout_rcu(bo->tbo.resv, write, true, timeout);
++	ret = drm_gem_reservation_object_wait(file, handle, write, timeout);
 +	if (ret == 0)
 +		ret = timeout ? -ETIMEDOUT : -EBUSY;
-+	else if (ret > 0)
-+		ret = 0;
 +
-+	lima_bo_unreserve(bo);
-+out:
-+	drm_gem_object_put_unlocked(obj);
 +	return ret;
-+}
-+
-+int lima_gem_get_modifier(struct drm_file *file, u32 handle, u64 *modifier)
-+{
-+	struct drm_gem_object *obj;
-+	struct lima_bo *bo;
-+
-+	obj = drm_gem_object_lookup(file, handle);
-+	if (!obj)
-+		return -ENOENT;
-+
-+	bo = to_lima_bo(obj);
-+	*modifier = bo->modifier;
-+
-+	drm_gem_object_put_unlocked(obj);
-+	return 0;
-+}
-+
-+int lima_gem_set_modifier(struct drm_file *file, u32 handle, u64 modifier)
-+{
-+	struct drm_gem_object *obj;
-+	struct lima_bo *bo;
-+
-+	obj = drm_gem_object_lookup(file, handle);
-+	if (!obj)
-+		return -ENOENT;
-+
-+	bo = to_lima_bo(obj);
-+	bo->modifier = modifier;
-+
-+	drm_gem_object_put_unlocked(obj);
-+	return 0;
 +}
 diff --git a/drivers/gpu/drm/lima/lima_gem.h b/drivers/gpu/drm/lima/lima_gem.h
 new file mode 100644
-index 0000000..da6968f
+index 0000000..f1c4658
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_gem.h
 @@ -0,0 +1,25 @@
@@ -2029,28 +1830,28 @@ index 0000000..da6968f
 +struct lima_bo;
 +struct lima_submit;
 +
++extern const struct vm_operations_struct lima_gem_vm_ops;
++
 +struct lima_bo *lima_gem_create_bo(struct drm_device *dev, u32 size, u32 flags);
 +int lima_gem_create_handle(struct drm_device *dev, struct drm_file *file,
 +			   u32 size, u32 flags, u32 *handle);
 +void lima_gem_free_object(struct drm_gem_object *obj);
 +int lima_gem_object_open(struct drm_gem_object *obj, struct drm_file *file);
 +void lima_gem_object_close(struct drm_gem_object *obj, struct drm_file *file);
-+int lima_gem_mmap_offset(struct drm_file *file, u32 handle, u64 *offset);
++int lima_gem_get_info(struct drm_file *file, u32 handle, u32 *va, u64 *offset);
 +int lima_gem_mmap(struct file *filp, struct vm_area_struct *vma);
-+int lima_gem_va_map(struct drm_file *file, u32 handle, u32 flags, u32 va);
-+int lima_gem_va_unmap(struct drm_file *file, u32 handle, u32 va);
 +int lima_gem_submit(struct drm_file *file, struct lima_submit *submit);
-+int lima_gem_wait(struct drm_file *file, u32 handle, u32 op, u64 timeout_ns);
-+int lima_gem_get_modifier(struct drm_file *file, u32 handle, u64 *modifier);
-+int lima_gem_set_modifier(struct drm_file *file, u32 handle, u64 modifier);
++int lima_gem_wait(struct drm_file *file, u32 handle, u32 op, s64 timeout_ns);
++
++void lima_set_vma_flags(struct vm_area_struct *vma);
 +
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_gem_prime.c b/drivers/gpu/drm/lima/lima_gem_prime.c
 new file mode 100644
-index 0000000..b483b8b
+index 0000000..fe8348a
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_gem_prime.c
-@@ -0,0 +1,144 @@
+@@ -0,0 +1,47 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -2061,146 +1862,49 @@ index 0000000..b483b8b
 +
 +#include "lima_device.h"
 +#include "lima_object.h"
++#include "lima_gem.h"
 +#include "lima_gem_prime.h"
 +
 +struct drm_gem_object *lima_gem_prime_import_sg_table(
 +	struct drm_device *dev, struct dma_buf_attachment *attach,
 +	struct sg_table *sgt)
 +{
-+	struct reservation_object *resv = attach->dmabuf->resv;
 +	struct lima_device *ldev = to_lima_dev(dev);
 +	struct lima_bo *bo;
 +
-+	ww_mutex_lock(&resv->lock, NULL);
-+
-+	bo = lima_bo_create(ldev, attach->dmabuf->size, 0,
-+			    ttm_bo_type_sg, sgt, resv);
++	bo = lima_bo_create(ldev, attach->dmabuf->size, 0, sgt,
++			    attach->dmabuf->resv);
 +	if (IS_ERR(bo))
-+		goto err_out;
++	        return ERR_CAST(bo);
 +
-+	ww_mutex_unlock(&resv->lock);
 +	return &bo->gem;
-+
-+err_out:
-+	ww_mutex_unlock(&resv->lock);
-+	return (void *)bo;
-+}
-+
-+struct reservation_object *lima_gem_prime_res_obj(struct drm_gem_object *obj)
-+{
-+        struct lima_bo *bo = to_lima_bo(obj);
-+
-+	return bo->tbo.resv;
 +}
 +
 +struct sg_table *lima_gem_prime_get_sg_table(struct drm_gem_object *obj)
 +{
 +	struct lima_bo *bo = to_lima_bo(obj);
-+	int npages = bo->tbo.num_pages;
++	int npages = obj->size >> PAGE_SHIFT;
 +
-+	return drm_prime_pages_to_sg(bo->tbo.ttm->pages, npages);
-+}
-+
-+int lima_gem_prime_dma_buf_mmap(struct file *filp, struct vm_area_struct *vma)
-+{
-+	struct drm_file *priv = filp->private_data;
-+	struct drm_device *dev = priv->minor->dev;
-+	struct lima_device *ldev = dev->dev_private;
-+	struct ttm_bo_device *bdev = &ldev->mman.bdev;
-+	struct drm_gem_object *obj = NULL;
-+	struct drm_vma_offset_node *node;
-+	int ret;
-+
-+	drm_vma_offset_lock_lookup(&bdev->vma_manager);
-+	node = drm_vma_offset_exact_lookup_locked(&bdev->vma_manager,
-+						  vma->vm_pgoff,
-+						  vma_pages(vma));
-+	if (likely(node)) {
-+		struct ttm_buffer_object *tbo =
-+			container_of(node, struct ttm_buffer_object, vma_node);
-+		struct lima_bo *bo = container_of(tbo, struct lima_bo, tbo);
-+		obj = &bo->gem;
-+		/*
-+		 * When the object is being freed, after it hits 0-refcnt it
-+		 * proceeds to tear down the object. In the process it will
-+		 * attempt to remove the VMA offset and so acquire this
-+		 * mgr->vm_lock.  Therefore if we find an object with a 0-refcnt
-+		 * that matches our range, we know it is in the process of being
-+		 * destroyed and will be freed as soon as we release the lock -
-+		 * so we have to check for the 0-refcnted object and treat it as
-+		 * invalid.
-+		 */
-+		if (!kref_get_unless_zero(&obj->refcount))
-+			obj = NULL;
-+	}
-+	drm_vma_offset_unlock_lookup(&bdev->vma_manager);
-+
-+	if (!obj)
-+		return -EINVAL;
-+
-+	/* only for buffer imported from other device */
-+	if (!obj->import_attach) {
-+		ret = -EINVAL;
-+		goto out;
-+	}
-+
-+	ret = dma_buf_mmap(obj->dma_buf, vma, 0);
-+
-+out:
-+	drm_gem_object_put_unlocked(obj);
-+	return ret;
-+}
-+
-+void *lima_gem_prime_vmap(struct drm_gem_object *obj)
-+{
-+	struct lima_bo *bo = to_lima_bo(obj);
-+	int ret;
-+
-+	ret = ttm_bo_kmap(&bo->tbo, 0, bo->tbo.num_pages, &bo->dma_buf_vmap);
-+	if (ret)
-+		return ERR_PTR(ret);
-+
-+	return bo->dma_buf_vmap.virtual;
-+}
-+
-+void lima_gem_prime_vunmap(struct drm_gem_object *obj, void *vaddr)
-+{
-+	struct lima_bo *bo = to_lima_bo(obj);
-+
-+	ttm_bo_kunmap(&bo->dma_buf_vmap);
++	return drm_prime_pages_to_sg(bo->pages, npages);
 +}
 +
 +int lima_gem_prime_mmap(struct drm_gem_object *obj, struct vm_area_struct *vma)
 +{
-+	struct lima_bo *bo = to_lima_bo(obj);
-+	struct lima_device *dev = ttm_to_lima_dev(bo->tbo.bdev);
 +	int ret;
 +
-+	if (!vma->vm_file || !dev)
-+		return -ENODEV;
-+
-+	/* Check for valid size. */
-+	if (obj->size < vma->vm_end - vma->vm_start)
-+		return -EINVAL;
-+
-+	vma->vm_pgoff += drm_vma_node_offset_addr(&bo->tbo.vma_node) >> PAGE_SHIFT;
-+
-+	/* prime mmap does not need to check access, so allow here */
-+	ret = drm_vma_node_allow(&obj->vma_node, vma->vm_file->private_data);
++	ret = drm_gem_mmap_obj(obj, obj->size, vma);
 +	if (ret)
 +		return ret;
 +
-+	ret = ttm_bo_mmap(vma->vm_file, vma, &dev->mman.bdev);
-+	drm_vma_node_revoke(&obj->vma_node, vma->vm_file->private_data);
-+
-+	return ret;
++	lima_set_vma_flags(vma);
++	return 0;
 +}
 diff --git a/drivers/gpu/drm/lima/lima_gem_prime.h b/drivers/gpu/drm/lima/lima_gem_prime.h
 new file mode 100644
-index 0000000..05ddb59
+index 0000000..ceb1be9
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_gem_prime.h
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,13 @@
 +/* SPDX-License-Identifier: GPL-2.0 OR MIT */
 +/* Copyright 2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -2211,25 +1915,20 @@ index 0000000..05ddb59
 +	struct drm_device *dev, struct dma_buf_attachment *attach,
 +	struct sg_table *sgt);
 +struct sg_table *lima_gem_prime_get_sg_table(struct drm_gem_object *obj);
-+struct reservation_object *lima_gem_prime_res_obj(struct drm_gem_object *obj);
-+void *lima_gem_prime_vmap(struct drm_gem_object *obj);
-+void lima_gem_prime_vunmap(struct drm_gem_object *obj, void *vaddr);
 +int lima_gem_prime_mmap(struct drm_gem_object *obj, struct vm_area_struct *vma);
-+
-+int lima_gem_prime_dma_buf_mmap(struct file *filp, struct vm_area_struct *vma);
 +
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_gp.c b/drivers/gpu/drm/lima/lima_gp.c
 new file mode 100644
-index 0000000..57eba22
+index 0000000..4f4e9f5
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_gp.c
-@@ -0,0 +1,280 @@
+@@ -0,0 +1,282 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
 +#include <linux/interrupt.h>
-+#include <linux/io.h>
++#include <linux/iopoll.h>
 +#include <linux/device.h>
 +#include <linux/slab.h>
 +
@@ -2239,16 +1938,16 @@ index 0000000..57eba22
 +#include "lima_gp.h"
 +#include "lima_regs.h"
 +
-+#define gp_write(reg, data) writel(data, ip->iomem + LIMA_GP_##reg)
-+#define gp_read(reg) readl(ip->iomem + LIMA_GP_##reg)
++#define gp_write(reg, data) writel(data, ip->iomem + reg)
++#define gp_read(reg) readl(ip->iomem + reg)
 +
 +static irqreturn_t lima_gp_irq_handler(int irq, void *data)
 +{
 +	struct lima_ip *ip = data;
 +	struct lima_device *dev = ip->dev;
 +	struct lima_sched_pipe *pipe = dev->pipe + lima_pipe_gp;
-+	u32 state = gp_read(INT_STAT);
-+	u32 status = gp_read(STATUS);
++	u32 state = gp_read(LIMA_GP_INT_STAT);
++	u32 status = gp_read(LIMA_GP_STATUS);
 +	bool done = false;
 +
 +	/* for shared irq case */
@@ -2260,7 +1959,7 @@ index 0000000..57eba22
 +			state, status);
 +
 +		/* mask all interrupts before hard reset */
-+		gp_write(INT_MASK, 0);
++		gp_write(LIMA_GP_INT_MASK, 0);
 +
 +		pipe->error = true;
 +		done = true;
@@ -2273,7 +1972,7 @@ index 0000000..57eba22
 +		done = valid && !active;
 +	}
 +
-+	gp_write(INT_CLEAR, state);
++	gp_write(LIMA_GP_INT_CLEAR, state);
 +
 +	if (done)
 +		lima_sched_pipe_task_done(pipe);
@@ -2286,31 +1985,31 @@ index 0000000..57eba22
 +	if (ip->data.async_reset)
 +		return;
 +
-+	gp_write(INT_MASK, 0);
-+	gp_write(INT_CLEAR, LIMA_GP_IRQ_RESET_COMPLETED);
-+	gp_write(CMD, LIMA_GP_CMD_SOFT_RESET);
++	gp_write(LIMA_GP_INT_MASK, 0);
++	gp_write(LIMA_GP_INT_CLEAR, LIMA_GP_IRQ_RESET_COMPLETED);
++	gp_write(LIMA_GP_CMD, LIMA_GP_CMD_SOFT_RESET);
 +	ip->data.async_reset = true;
 +}
 +
 +static int lima_gp_soft_reset_async_wait(struct lima_ip *ip)
 +{
 +	struct lima_device *dev = ip->dev;
-+	int timeout;
++	int err;
++	u32 v;
 +
 +	if (!ip->data.async_reset)
 +		return 0;
 +
-+	for (timeout = 1000; timeout > 0; timeout--) {
-+		if (gp_read(INT_RAWSTAT) & LIMA_GP_IRQ_RESET_COMPLETED)
-+			break;
-+	}
-+	if (!timeout) {
++	err = readl_poll_timeout(ip->iomem + LIMA_GP_INT_RAWSTAT, v,
++				 v & LIMA_GP_IRQ_RESET_COMPLETED,
++				 0, 100);
++	if (err) {
 +		dev_err(dev->dev, "gp soft reset time out\n");
-+		return -ETIMEDOUT;
++		return err;
 +	}
 +
-+	gp_write(INT_CLEAR, LIMA_GP_IRQ_MASK_ALL);
-+	gp_write(INT_MASK, LIMA_GP_IRQ_MASK_USED);
++	gp_write(LIMA_GP_INT_CLEAR, LIMA_GP_IRQ_MASK_ALL);
++	gp_write(LIMA_GP_INT_MASK, LIMA_GP_IRQ_MASK_USED);
 +
 +	ip->data.async_reset = false;
 +	return 0;
@@ -2362,31 +2061,33 @@ index 0000000..57eba22
 +	for (i = 0; i < LIMA_GP_FRAME_REG_NUM; i++)
 +		writel(f[i], ip->iomem + LIMA_GP_VSCL_START_ADDR + i * 4);
 +
-+	gp_write(CMD, LIMA_GP_CMD_UPDATE_PLBU_ALLOC);
-+	gp_write(CMD, cmd);
++	gp_write(LIMA_GP_CMD, LIMA_GP_CMD_UPDATE_PLBU_ALLOC);
++	gp_write(LIMA_GP_CMD, cmd);
++}
++
++static int lima_gp_hard_reset_poll(struct lima_ip *ip)
++{
++	gp_write(LIMA_GP_PERF_CNT_0_LIMIT, 0xC01A0000);
++	return gp_read(LIMA_GP_PERF_CNT_0_LIMIT) == 0xC01A0000;
 +}
 +
 +static int lima_gp_hard_reset(struct lima_ip *ip)
 +{
 +	struct lima_device *dev = ip->dev;
-+	int timeout;
++	int ret;
 +
-+	gp_write(PERF_CNT_0_LIMIT, 0xC0FFE000);
-+	gp_write(INT_MASK, 0);
-+	gp_write(CMD, LIMA_GP_CMD_RESET);
-+	for (timeout = 1000; timeout > 0; timeout--) {
-+		gp_write(PERF_CNT_0_LIMIT, 0xC01A0000);
-+		if (gp_read(PERF_CNT_0_LIMIT) == 0xC01A0000)
-+			break;
-+	}
-+	if (!timeout) {
++	gp_write(LIMA_GP_PERF_CNT_0_LIMIT, 0xC0FFE000);
++	gp_write(LIMA_GP_INT_MASK, 0);
++	gp_write(LIMA_GP_CMD, LIMA_GP_CMD_RESET);
++	ret = lima_poll_timeout(ip, lima_gp_hard_reset_poll, 10, 100);
++	if (ret) {
 +		dev_err(dev->dev, "gp hard reset timeout\n");
-+		return -ETIMEDOUT;
++		return ret;
 +	}
 +
-+	gp_write(PERF_CNT_0_LIMIT, 0);
-+	gp_write(INT_CLEAR, LIMA_GP_IRQ_MASK_ALL);
-+	gp_write(INT_MASK, LIMA_GP_IRQ_MASK_USED);
++	gp_write(LIMA_GP_PERF_CNT_0_LIMIT, 0);
++	gp_write(LIMA_GP_INT_CLEAR, LIMA_GP_IRQ_MASK_ALL);
++	gp_write(LIMA_GP_INT_MASK, LIMA_GP_IRQ_MASK_USED);
 +	return 0;
 +}
 +
@@ -2400,7 +2101,7 @@ index 0000000..57eba22
 +	struct lima_ip *ip = pipe->processor[0];
 +
 +	dev_err(ip->dev->dev, "gp task error int_state=%x status=%x\n",
-+		gp_read(INT_STAT), gp_read(STATUS));
++		gp_read(LIMA_GP_INT_STAT), gp_read(LIMA_GP_STATUS));
 +
 +	lima_gp_hard_reset(ip);
 +}
@@ -2415,7 +2116,7 @@ index 0000000..57eba22
 +	u32 version, major, minor;
 +	char *name;
 +
-+	version = gp_read(VERSION);
++	version = gp_read(LIMA_GP_VERSION);
 +	major = (version >> 8) & 0xFF;
 +	minor = version & 0xFF;
 +	switch (version >> 16) {
@@ -2529,35 +2230,35 @@ index 0000000..55bc48e
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_l2_cache.c b/drivers/gpu/drm/lima/lima_l2_cache.c
 new file mode 100644
-index 0000000..e7cdec7
+index 0000000..2ba4786
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_l2_cache.c
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,80 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
-+#include <linux/io.h>
++#include <linux/iopoll.h>
 +#include <linux/device.h>
 +
 +#include "lima_device.h"
 +#include "lima_l2_cache.h"
 +#include "lima_regs.h"
 +
-+#define l2_cache_write(reg, data) writel(data, ip->iomem + LIMA_L2_CACHE_##reg)
-+#define l2_cache_read(reg) readl(ip->iomem + LIMA_L2_CACHE_##reg)
++#define l2_cache_write(reg, data) writel(data, ip->iomem + reg)
++#define l2_cache_read(reg) readl(ip->iomem + reg)
 +
 +static int lima_l2_cache_wait_idle(struct lima_ip *ip)
 +{
-+	int timeout;
 +	struct lima_device *dev = ip->dev;
++	int err;
++	u32 v;
 +
-+	for (timeout = 100000; timeout > 0; timeout--) {
-+	    if (!(l2_cache_read(STATUS) & LIMA_L2_CACHE_STATUS_COMMAND_BUSY))
-+		break;
-+	}
-+	if (!timeout) {
++	err = readl_poll_timeout(ip->iomem + LIMA_L2_CACHE_STATUS, v,
++				 !(v & LIMA_L2_CACHE_STATUS_COMMAND_BUSY),
++				 0, 1000);
++	if (err) {
 +	    dev_err(dev->dev, "l2 cache wait command timeout\n");
-+	    return -ETIMEDOUT;
++	    return err;
 +	}
 +	return 0;
 +}
@@ -2567,7 +2268,7 @@ index 0000000..e7cdec7
 +	int ret;
 +
 +	spin_lock(&ip->data.lock);
-+	l2_cache_write(COMMAND, LIMA_L2_CACHE_COMMAND_CLEAR_ALL);
++	l2_cache_write(LIMA_L2_CACHE_COMMAND, LIMA_L2_CACHE_COMMAND_CLEAR_ALL);
 +	ret = lima_l2_cache_wait_idle(ip);
 +	spin_unlock(&ip->data.lock);
 +	return ret;
@@ -2591,7 +2292,7 @@ index 0000000..e7cdec7
 +
 +	spin_lock_init(&ip->data.lock);
 +
-+	size = l2_cache_read(SIZE);
++	size = l2_cache_read(LIMA_L2_CACHE_SIZE);
 +	dev_info(dev->dev, "l2 cache %uK, %u-way, %ubyte cache line, %ubit external bus\n",
 +		 1 << (((size >> 16) & 0xff) - 10),
 +		 1 << ((size >> 8) & 0xff),
@@ -2602,8 +2303,9 @@ index 0000000..e7cdec7
 +	if (err)
 +		return err;
 +
-+	l2_cache_write(ENABLE, LIMA_L2_CACHE_ENABLE_ACCESS | LIMA_L2_CACHE_ENABLE_READ_ALLOCATE);
-+	l2_cache_write(MAX_READS, 0x1c);
++	l2_cache_write(LIMA_L2_CACHE_ENABLE,
++		       LIMA_L2_CACHE_ENABLE_ACCESS|LIMA_L2_CACHE_ENABLE_READ_ALLOCATE);
++	l2_cache_write(LIMA_L2_CACHE_MAX_READS, 0x1c);
 +
 +	return 0;
 +}
@@ -2634,15 +2336,15 @@ index 0000000..2ff91ea
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_mmu.c b/drivers/gpu/drm/lima/lima_mmu.c
 new file mode 100644
-index 0000000..234fb90
+index 0000000..c6c151d
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_mmu.c
-@@ -0,0 +1,135 @@
+@@ -0,0 +1,142 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
 +#include <linux/interrupt.h>
-+#include <linux/io.h>
++#include <linux/iopoll.h>
 +#include <linux/device.h>
 +
 +#include "lima_device.h"
@@ -2651,22 +2353,19 @@ index 0000000..234fb90
 +#include "lima_object.h"
 +#include "lima_regs.h"
 +
-+#define mmu_write(reg, data) writel(data, ip->iomem + LIMA_MMU_##reg)
-+#define mmu_read(reg) readl(ip->iomem + LIMA_MMU_##reg)
++#define mmu_write(reg, data) writel(data, ip->iomem + reg)
++#define mmu_read(reg) readl(ip->iomem + reg)
 +
-+#define lima_mmu_send_command(command, condition)	     \
++#define lima_mmu_send_command(cmd, addr, val, cond)	     \
 +({							     \
-+	int __timeout, __ret = 0;			     \
++	int __ret;					     \
 +							     \
-+	mmu_write(COMMAND, command);			     \
-+	for (__timeout = 1000; __timeout > 0; __timeout--) { \
-+		if (condition)				     \
-+			break;				     \
-+	}						     \
-+	if (!__timeout)	{				     \
-+		dev_err(dev->dev, "mmu command %x timeout\n", command); \
-+		__ret = -ETIMEDOUT;			     \
-+	}						     \
++	mmu_write(LIMA_MMU_COMMAND, cmd);		     \
++	__ret = readl_poll_timeout(ip->iomem + (addr), val,  \
++				  cond, 0, 100);	     \
++	if (__ret)					     \
++		dev_err(dev->dev,			     \
++			"mmu command %x timeout\n", cmd);    \
 +	__ret;						     \
 +})
 +
@@ -2674,7 +2373,7 @@ index 0000000..234fb90
 +{
 +	struct lima_ip *ip = data;
 +	struct lima_device *dev = ip->dev;
-+	u32 status = mmu_read(INT_STATUS);
++	u32 status = mmu_read(LIMA_MMU_INT_STATUS);
 +	struct lima_sched_pipe *pipe;
 +
 +	/* for shared irq case */
@@ -2682,7 +2381,7 @@ index 0000000..234fb90
 +		return IRQ_NONE;
 +
 +	if (status & LIMA_MMU_INT_PAGE_FAULT) {
-+		u32 fault = mmu_read(PAGE_FAULT_ADDR);
++		u32 fault = mmu_read(LIMA_MMU_PAGE_FAULT_ADDR);
 +		dev_err(dev->dev, "mmu page fault at 0x%x from bus id %d of type %s on %s\n",
 +			fault, LIMA_MMU_STATUS_BUS_ID(status),
 +			status & LIMA_MMU_STATUS_PAGE_FAULT_IS_WRITE ? "write" : "read",
@@ -2694,8 +2393,8 @@ index 0000000..234fb90
 +	}
 +
 +	/* mask all interrupts before resume */
-+	mmu_write(INT_MASK, 0);
-+	mmu_write(INT_CLEAR, status);
++	mmu_write(LIMA_MMU_INT_MASK, 0);
++	mmu_write(LIMA_MMU_INT_CLEAR, status);
 +
 +	pipe = dev->pipe + (ip->id == lima_ip_gpmmu ? lima_pipe_gp : lima_pipe_pp);
 +	lima_sched_pipe_mmu_error(pipe);
@@ -2707,17 +2406,20 @@ index 0000000..234fb90
 +{
 +	struct lima_device *dev = ip->dev;
 +	int err;
++	u32 v;
 +
 +	if (ip->id == lima_ip_ppmmu_bcast)
 +		return 0;
 +
-+	mmu_write(DTE_ADDR, 0xCAFEBABE);
-+	if (mmu_read(DTE_ADDR) != 0xCAFEB000) {
++	mmu_write(LIMA_MMU_DTE_ADDR, 0xCAFEBABE);
++	if (mmu_read(LIMA_MMU_DTE_ADDR) != 0xCAFEB000) {
 +		dev_err(dev->dev, "mmu %s dte write test fail\n", lima_ip_name(ip));
 +		return -EIO;
 +	}
 +
-+	err = lima_mmu_send_command(LIMA_MMU_COMMAND_HARD_RESET, mmu_read(DTE_ADDR) == 0);
++	mmu_write(LIMA_MMU_COMMAND, LIMA_MMU_COMMAND_HARD_RESET);
++	err = lima_mmu_send_command(LIMA_MMU_COMMAND_HARD_RESET,
++				    LIMA_MMU_DTE_ADDR, v, v == 0);
 +	if (err)
 +		return err;
 +
@@ -2728,10 +2430,11 @@ index 0000000..234fb90
 +		return err;
 +	}
 +
-+	mmu_write(INT_MASK, LIMA_MMU_INT_PAGE_FAULT | LIMA_MMU_INT_READ_BUS_ERROR);
-+	mmu_write(DTE_ADDR, *lima_bo_get_pages(dev->empty_vm->pd));
++	mmu_write(LIMA_MMU_INT_MASK, LIMA_MMU_INT_PAGE_FAULT | LIMA_MMU_INT_READ_BUS_ERROR);
++	mmu_write(LIMA_MMU_DTE_ADDR, dev->empty_vm->pd.dma);
 +	return lima_mmu_send_command(LIMA_MMU_COMMAND_ENABLE_PAGING,
-+				     mmu_read(STATUS) & LIMA_MMU_STATUS_PAGING_ENABLED);
++				     LIMA_MMU_STATUS, v,
++				     v & LIMA_MMU_STATUS_PAGING_ENABLED);
 +}
 +
 +void lima_mmu_fini(struct lima_ip *ip)
@@ -2742,35 +2445,41 @@ index 0000000..234fb90
 +void lima_mmu_switch_vm(struct lima_ip *ip, struct lima_vm *vm)
 +{
 +	struct lima_device *dev = ip->dev;
++	u32 v;
 +
 +	lima_mmu_send_command(LIMA_MMU_COMMAND_ENABLE_STALL,
-+			      mmu_read(STATUS) & LIMA_MMU_STATUS_STALL_ACTIVE);
++			      LIMA_MMU_STATUS, v,
++			      v & LIMA_MMU_STATUS_STALL_ACTIVE);
 +
 +	if (vm)
-+		mmu_write(DTE_ADDR, *lima_bo_get_pages(vm->pd));
++		mmu_write(LIMA_MMU_DTE_ADDR, vm->pd.dma);
 +
 +	/* flush the TLB */
-+	mmu_write(COMMAND, LIMA_MMU_COMMAND_ZAP_CACHE);
++	mmu_write(LIMA_MMU_COMMAND, LIMA_MMU_COMMAND_ZAP_CACHE);
 +
 +	lima_mmu_send_command(LIMA_MMU_COMMAND_DISABLE_STALL,
-+			      !(mmu_read(STATUS) & LIMA_MMU_STATUS_STALL_ACTIVE));
++			      LIMA_MMU_STATUS, v,
++			      !(v & LIMA_MMU_STATUS_STALL_ACTIVE));
 +}
 +
 +void lima_mmu_page_fault_resume(struct lima_ip *ip)
 +{
 +	struct lima_device *dev = ip->dev;
-+	u32 status = mmu_read(STATUS);
++	u32 status = mmu_read(LIMA_MMU_STATUS);
++	u32 v;
 +
 +	if (status & LIMA_MMU_STATUS_PAGE_FAULT_ACTIVE) {
 +		dev_info(dev->dev, "mmu resume\n");
 +
-+		mmu_write(INT_MASK, 0);
-+		mmu_write(DTE_ADDR, 0xCAFEBABE);
-+		lima_mmu_send_command(LIMA_MMU_COMMAND_HARD_RESET, mmu_read(DTE_ADDR) == 0);
-+	        mmu_write(INT_MASK, LIMA_MMU_INT_PAGE_FAULT | LIMA_MMU_INT_READ_BUS_ERROR);
-+		mmu_write(DTE_ADDR, *lima_bo_get_pages(dev->empty_vm->pd));
++		mmu_write(LIMA_MMU_INT_MASK, 0);
++		mmu_write(LIMA_MMU_DTE_ADDR, 0xCAFEBABE);
++		lima_mmu_send_command(LIMA_MMU_COMMAND_HARD_RESET,
++				      LIMA_MMU_DTE_ADDR, v, v == 0);
++	        mmu_write(LIMA_MMU_INT_MASK, LIMA_MMU_INT_PAGE_FAULT | LIMA_MMU_INT_READ_BUS_ERROR);
++		mmu_write(LIMA_MMU_DTE_ADDR, dev->empty_vm->pd.dma);
 +		lima_mmu_send_command(LIMA_MMU_COMMAND_ENABLE_PAGING,
-+				      mmu_read(STATUS) & LIMA_MMU_STATUS_PAGING_ENABLED);
++				      LIMA_MMU_STATUS, v,
++				      v & LIMA_MMU_STATUS_PAGING_ENABLED);
 +	}
 +}
 diff --git a/drivers/gpu/drm/lima/lima_mmu.h b/drivers/gpu/drm/lima/lima_mmu.h
@@ -2797,119 +2506,144 @@ index 0000000..ca173b6
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_object.c b/drivers/gpu/drm/lima/lima_object.c
 new file mode 100644
-index 0000000..34d9b4d
+index 0000000..4113881
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_object.c
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,128 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2018 Qiang Yu <yuq825@gmail.com> */
 +
 +#include <drm/drm_prime.h>
-+#include <drm/drm_fourcc.h>
++#include <linux/pagemap.h>
++#include <linux/dma-mapping.h>
 +
 +#include "lima_object.h"
 +
-+static void lima_bo_init_placement(struct lima_bo *bo)
++void lima_bo_destroy(struct lima_bo *bo)
 +{
-+	struct ttm_placement *placement = &bo->placement;
-+	struct ttm_place *place = &bo->place;
++        if (bo->sgt) {
++		if (bo->pages)
++			kfree(bo->pages);
 +
-+	place->fpfn = 0;
-+	place->lpfn = 0;
-+	place->flags = TTM_PL_FLAG_TT | TTM_PL_FLAG_WC;
++		drm_prime_gem_destroy(&bo->gem, bo->sgt);
++	}
++	else {
++		if (bo->pages_dma_addr) {
++			int i, npages = bo->gem.size >> PAGE_SHIFT;
 +
-+	/* pin all bo for now */
-+	place->flags |= TTM_PL_FLAG_NO_EVICT;
++			for (i = 0; i < npages; i++) {
++				if (bo->pages_dma_addr[i])
++					dma_unmap_page(bo->gem.dev->dev,
++						       bo->pages_dma_addr[i],
++						       PAGE_SIZE, DMA_BIDIRECTIONAL);
++			}
++		}
 +
-+	placement->num_placement = 1;
-+	placement->placement = place;
++		if (bo->pages)
++			drm_gem_put_pages(&bo->gem, bo->pages, true, true);
++	}
 +
-+	placement->num_busy_placement = 1;
-+	placement->busy_placement = place;
-+}
++	if (bo->pages_dma_addr)
++		kfree(bo->pages_dma_addr);
 +
-+static void lima_bo_destroy(struct ttm_buffer_object *tbo)
-+{
-+	struct lima_bo *bo = ttm_to_lima_bo(tbo);
-+
-+	if (bo->gem.import_attach)
-+		drm_prime_gem_destroy(&bo->gem, bo->tbo.sg);
 +	drm_gem_object_release(&bo->gem);
 +	kfree(bo);
 +}
 +
-+struct lima_bo *lima_bo_create(struct lima_device *dev, u64 size,
-+			       u32 flags, enum ttm_bo_type type,
-+			       struct sg_table *sg,
-+			       struct reservation_object *resv)
++static struct lima_bo *lima_bo_create_struct(struct lima_device *dev, u32 size, u32 flags,
++					     struct reservation_object *resv)
 +{
 +	struct lima_bo *bo;
-+	struct ttm_mem_type_manager *man;
-+	size_t acc_size;
 +	int err;
 +
 +	size = PAGE_ALIGN(size);
-+	man = dev->mman.bdev.man + TTM_PL_TT;
-+	if (size >= (man->size << PAGE_SHIFT))
-+		return ERR_PTR(-ENOMEM);
-+
-+	acc_size = ttm_bo_dma_acc_size(&dev->mman.bdev, size,
-+				       sizeof(struct lima_bo));
 +
 +	bo = kzalloc(sizeof(*bo), GFP_KERNEL);
 +	if (!bo)
 +		return ERR_PTR(-ENOMEM);
 +
-+	drm_gem_private_object_init(dev->ddev, &bo->gem, size);
-+
++	mutex_init(&bo->lock);
 +	INIT_LIST_HEAD(&bo->va);
++	bo->gem.resv = resv;
 +
-+	bo->tbo.bdev = &dev->mman.bdev;
++	err = drm_gem_object_init(dev->ddev, &bo->gem, size);
++	if (err) {
++		kfree(bo);
++		return ERR_PTR(err);
++	}
 +
-+	lima_bo_init_placement(bo);
++	return bo;
++}
 +
-+	err = ttm_bo_init(&dev->mman.bdev, &bo->tbo, size, type,
-+			  &bo->placement, 0, type != ttm_bo_type_kernel,
-+			  acc_size, sg, resv, &lima_bo_destroy);
-+	if (err)
++struct lima_bo *lima_bo_create(struct lima_device *dev, u32 size,
++			       u32 flags, struct sg_table *sgt,
++			       struct reservation_object *resv)
++{
++	int i, err;
++	size_t npages;
++	struct lima_bo *bo, *ret;
++
++	bo = lima_bo_create_struct(dev, size, flags, resv);
++	if (IS_ERR(bo))
++		return bo;
++
++	npages = bo->gem.size >> PAGE_SHIFT;
++
++	bo->pages_dma_addr = kzalloc(npages * sizeof(dma_addr_t), GFP_KERNEL);
++	if (!bo->pages_dma_addr) {
++		ret = ERR_PTR(-ENOMEM);
 +		goto err_out;
++	}
 +
-+	bo->modifier = DRM_FORMAT_MOD_INVALID;
++	if (sgt) {
++		bo->sgt = sgt;
++
++		bo->pages = kzalloc(npages * sizeof(*bo->pages), GFP_KERNEL);
++		if (!bo->pages) {
++			ret = ERR_PTR(-ENOMEM);
++			goto err_out;
++		}
++
++		err = drm_prime_sg_to_page_addr_arrays(
++			sgt, bo->pages, bo->pages_dma_addr, npages);
++		if (err) {
++			ret = ERR_PTR(err);
++			goto err_out;
++		}
++	}
++	else {
++		mapping_set_gfp_mask(bo->gem.filp->f_mapping, GFP_DMA32);
++	        bo->pages = drm_gem_get_pages(&bo->gem);
++		if (IS_ERR(bo->pages)) {
++			ret = ERR_CAST(bo->pages);
++			bo->pages = NULL;
++			goto err_out;
++		}
++
++		for (i = 0; i < npages; i++) {
++			dma_addr_t addr = dma_map_page(dev->dev, bo->pages[i], 0,
++						       PAGE_SIZE, DMA_BIDIRECTIONAL);
++			if (dma_mapping_error(dev->dev, addr)) {
++				ret = ERR_PTR(-EFAULT);
++				goto err_out;
++			}
++			bo->pages_dma_addr[i] = addr;
++		}
++
++	}
++
 +	return bo;
 +
 +err_out:
-+	kfree(bo);
-+	return ERR_PTR(err);
-+}
-+
-+dma_addr_t *lima_bo_get_pages(struct lima_bo *bo)
-+{
-+	struct lima_ttm_tt *ttm = (void *)bo->tbo.ttm;
-+	return ttm->ttm.dma_address;
-+}
-+
-+void *lima_bo_kmap(struct lima_bo *bo)
-+{
-+	bool is_iomem;
-+	void *ret;
-+	int err;
-+
-+	ret = ttm_kmap_obj_virtual(&bo->kmap, &is_iomem);
-+	if (ret)
-+		return ret;
-+
-+	err = ttm_bo_kmap(&bo->tbo, 0, bo->tbo.num_pages, &bo->kmap);
-+	if (err)
-+		return ERR_PTR(err);
-+
-+	return ttm_kmap_obj_virtual(&bo->kmap, &is_iomem);
++	lima_bo_destroy(bo);
++	return ret;
 +}
 diff --git a/drivers/gpu/drm/lima/lima_object.h b/drivers/gpu/drm/lima/lima_object.h
 new file mode 100644
-index 0000000..54ffcc4
+index 0000000..70099f1
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_object.h
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,36 @@
 +/* SPDX-License-Identifier: GPL-2.0 OR MIT */
 +/* Copyright 2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -2917,23 +2651,19 @@ index 0000000..54ffcc4
 +#define __LIMA_OBJECT_H__
 +
 +#include <drm/drm_gem.h>
-+#include <drm/ttm/ttm_placement.h>
-+#include <drm/ttm/ttm_bo_api.h>
 +
 +#include "lima_device.h"
 +
 +struct lima_bo {
 +	struct drm_gem_object gem;
 +
-+	struct ttm_place place;
-+	struct ttm_placement placement;
-+	struct ttm_buffer_object tbo;
-+	struct ttm_bo_kmap_obj kmap;
-+	struct ttm_bo_kmap_obj dma_buf_vmap;
++	struct page **pages;
++	dma_addr_t *pages_dma_addr;
++	struct sg_table *sgt;
++	void *vaddr;
 +
++	struct mutex lock;
 +	struct list_head va;
-+
-+	u64 modifier;
 +};
 +
 +static inline struct lima_bo *
@@ -2942,82 +2672,48 @@ index 0000000..54ffcc4
 +	return container_of(obj, struct lima_bo, gem);
 +}
 +
-+static inline struct lima_bo *
-+ttm_to_lima_bo(struct ttm_buffer_object *tbo)
-+{
-+	return container_of(tbo, struct lima_bo, tbo);
-+}
-+
-+static inline int lima_bo_reserve(struct lima_bo *bo, bool intr)
-+{
-+	struct lima_device *dev = ttm_to_lima_dev(bo->tbo.bdev);
-+	int r;
-+
-+	r = ttm_bo_reserve(&bo->tbo, intr, false, NULL);
-+	if (unlikely(r != 0)) {
-+		if (r != -ERESTARTSYS)
-+			dev_err(dev->dev, "%p reserve failed\n", bo);
-+		return r;
-+	}
-+	return 0;
-+}
-+
-+static inline void lima_bo_unreserve(struct lima_bo *bo)
-+{
-+	ttm_bo_unreserve(&bo->tbo);
-+}
-+
-+struct lima_bo *lima_bo_create(struct lima_device *dev, u64 size,
-+			       u32 flags, enum ttm_bo_type type,
-+			       struct sg_table *sg,
++struct lima_bo *lima_bo_create(struct lima_device *dev, u32 size,
++			       u32 flags, struct sg_table *sgt,
 +			       struct reservation_object *resv);
-+
-+static inline void lima_bo_unref(struct lima_bo *bo)
-+{
-+	struct ttm_buffer_object *tbo = &bo->tbo;
-+	ttm_bo_unref(&tbo);
-+}
-+
-+dma_addr_t *lima_bo_get_pages(struct lima_bo *bo);
-+void *lima_bo_kmap(struct lima_bo *bo);
++void lima_bo_destroy(struct lima_bo *bo);
++void *lima_bo_vmap(struct lima_bo *bo);
++void lima_bo_vunmap(struct lima_bo *bo);
 +
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_pmu.c b/drivers/gpu/drm/lima/lima_pmu.c
 new file mode 100644
-index 0000000..31a84b9
+index 0000000..3c50524
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_pmu.c
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,59 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
-+#include <linux/io.h>
++#include <linux/iopoll.h>
 +#include <linux/device.h>
 +
 +#include "lima_device.h"
 +#include "lima_pmu.h"
 +#include "lima_regs.h"
 +
-+#define pmu_write(reg, data) writel(data, ip->iomem + LIMA_PMU_##reg)
-+#define pmu_read(reg) readl(ip->iomem + LIMA_PMU_##reg)
++#define pmu_write(reg, data) writel(data, ip->iomem + reg)
++#define pmu_read(reg) readl(ip->iomem + reg)
 +
 +static int lima_pmu_wait_cmd(struct lima_ip *ip)
 +{
 +	struct lima_device *dev = ip->dev;
-+	u32 stat, timeout;
++	int err;
++	u32 v;
 +
-+	for (timeout = 1000000; timeout > 0; timeout--) {
-+		stat = pmu_read(INT_RAWSTAT);
-+		if (stat & LIMA_PMU_INT_CMD_MASK)
-+			break;
-+	}
-+
-+	if (!timeout) {
++	err = readl_poll_timeout(ip->iomem + LIMA_PMU_INT_RAWSTAT,
++				 v, v & LIMA_PMU_INT_CMD_MASK,
++				 100, 100000);
++	if (err) {
 +		dev_err(dev->dev, "timeout wait pmd cmd\n");
-+		return -ETIMEDOUT;
++		return err;
 +	}
 +
-+	pmu_write(INT_CLEAR, LIMA_PMU_INT_CMD_MASK);
++	pmu_write(LIMA_PMU_INT_CLEAR, LIMA_PMU_INT_CMD_MASK);
 +	return 0;
 +}
 +
@@ -3026,18 +2722,18 @@ index 0000000..31a84b9
 +	int err;
 +	u32 stat;
 +
-+	pmu_write(INT_MASK, 0);
++	pmu_write(LIMA_PMU_INT_MASK, 0);
 +
 +	/* If this value is too low, when in high GPU clk freq,
 +	 * GPU will be in unstable state. */
-+	pmu_write(SW_DELAY, 0xffff);
++	pmu_write(LIMA_PMU_SW_DELAY, 0xffff);
 +
 +	/* status reg 1=off 0=on */
-+	stat = pmu_read(STATUS);
++	stat = pmu_read(LIMA_PMU_STATUS);
 +
 +	/* power up all ip */
 +	if (stat) {
-+		pmu_write(POWER_UP, stat);
++		pmu_write(LIMA_PMU_POWER_UP, stat);
 +		err = lima_pmu_wait_cmd(ip);
 +		if (err)
 +			return err;
@@ -3069,10 +2765,10 @@ index 0000000..1cf94a3
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_pp.c b/drivers/gpu/drm/lima/lima_pp.c
 new file mode 100644
-index 0000000..f65c499
+index 0000000..7b36c29
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_pp.c
-@@ -0,0 +1,419 @@
+@@ -0,0 +1,423 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -3090,8 +2786,8 @@ index 0000000..f65c499
 +#include "lima_vm.h"
 +#include "lima_regs.h"
 +
-+#define pp_write(reg, data) writel(data, ip->iomem + LIMA_PP_##reg)
-+#define pp_read(reg) readl(ip->iomem + LIMA_PP_##reg)
++#define pp_write(reg, data) writel(data, ip->iomem + reg)
++#define pp_read(reg) readl(ip->iomem + reg)
 +
 +static void lima_pp_handle_irq(struct lima_ip *ip, u32 state)
 +{
@@ -3099,7 +2795,7 @@ index 0000000..f65c499
 +	struct lima_sched_pipe *pipe = dev->pipe + lima_pipe_pp;
 +
 +	if (state & LIMA_PP_IRQ_MASK_ERROR) {
-+		u32 status = pp_read(STATUS);
++		u32 status = pp_read(LIMA_PP_STATUS);
 +
 +		dev_err(dev->dev, "pp error irq state=%x status=%x\n",
 +			state, status);
@@ -3107,10 +2803,10 @@ index 0000000..f65c499
 +		pipe->error = true;
 +
 +		/* mask all interrupts before hard reset */
-+		pp_write(INT_MASK, 0);
++		pp_write(LIMA_PP_INT_MASK, 0);
 +	}
 +
-+	pp_write(INT_CLEAR, state);
++	pp_write(LIMA_PP_INT_CLEAR, state);
 +}
 +
 +static irqreturn_t lima_pp_irq_handler(int irq, void *data)
@@ -3118,7 +2814,7 @@ index 0000000..f65c499
 +	struct lima_ip *ip = data;
 +	struct lima_device *dev = ip->dev;
 +	struct lima_sched_pipe *pipe = dev->pipe + lima_pipe_pp;
-+	u32 state = pp_read(INT_STATUS);
++	u32 state = pp_read(LIMA_PP_INT_STATUS);
 +
 +	/* for shared irq case */
 +	if (!state)
@@ -3150,8 +2846,8 @@ index 0000000..f65c499
 +
 +		/* status read first in case int state change in the middle
 +		 * which may miss the interrupt handling */
-+		status = pp_read(STATUS);
-+		state = pp_read(INT_STATUS);
++		status = pp_read(LIMA_PP_STATUS);
++		state = pp_read(LIMA_PP_INT_STATUS);
 +
 +		if (state) {
 +			lima_pp_handle_irq(ip, state);
@@ -3175,29 +2871,31 @@ index 0000000..f65c499
 +	if (ip->data.async_reset)
 +		return;
 +
-+	pp_write(INT_MASK, 0);
-+	pp_write(INT_RAWSTAT, LIMA_PP_IRQ_MASK_ALL);
-+	pp_write(CTRL, LIMA_PP_CTRL_SOFT_RESET);
++	pp_write(LIMA_PP_INT_MASK, 0);
++	pp_write(LIMA_PP_INT_RAWSTAT, LIMA_PP_IRQ_MASK_ALL);
++	pp_write(LIMA_PP_CTRL, LIMA_PP_CTRL_SOFT_RESET);
 +	ip->data.async_reset = true;
++}
++
++static int lima_pp_soft_reset_poll(struct lima_ip *ip)
++{
++	return !(pp_read(LIMA_PP_STATUS) & LIMA_PP_STATUS_RENDERING_ACTIVE) &&
++		pp_read(LIMA_PP_INT_RAWSTAT) == LIMA_PP_IRQ_RESET_COMPLETED;
 +}
 +
 +static int lima_pp_soft_reset_async_wait_one(struct lima_ip *ip)
 +{
 +	struct lima_device *dev = ip->dev;
-+	int timeout;
++	int ret;
 +
-+	for (timeout = 1000; timeout > 0; timeout--) {
-+		if (!(pp_read(STATUS) & LIMA_PP_STATUS_RENDERING_ACTIVE) &&
-+		    pp_read(INT_RAWSTAT) == LIMA_PP_IRQ_RESET_COMPLETED)
-+			break;
-+	}
-+	if (!timeout) {
++	ret = lima_poll_timeout(ip, lima_pp_soft_reset_poll, 0, 100);
++	if (ret) {
 +		dev_err(dev->dev, "pp %s reset time out\n", lima_ip_name(ip));
-+		return -ETIMEDOUT;
++		return ret;
 +	}
 +
-+	pp_write(INT_CLEAR, LIMA_PP_IRQ_MASK_ALL);
-+	pp_write(INT_MASK, LIMA_PP_IRQ_MASK_USED);
++	pp_write(LIMA_PP_INT_CLEAR, LIMA_PP_IRQ_MASK_ALL);
++	pp_write(LIMA_PP_INT_MASK, LIMA_PP_IRQ_MASK_USED);
 +	return 0;
 +}
 +
@@ -3236,27 +2934,29 @@ index 0000000..f65c499
 +	}
 +}
 +
++static int lima_pp_hard_reset_poll(struct lima_ip *ip)
++{
++	pp_write(LIMA_PP_PERF_CNT_0_LIMIT, 0xC01A0000);
++	return pp_read(LIMA_PP_PERF_CNT_0_LIMIT) == 0xC01A0000;
++}
++
 +static int lima_pp_hard_reset(struct lima_ip *ip)
 +{
 +	struct lima_device *dev = ip->dev;
-+	int timeout;
++	int ret;
 +
-+	pp_write(PERF_CNT_0_LIMIT, 0xC0FFE000);
-+	pp_write(INT_MASK, 0);
-+	pp_write(CTRL, LIMA_PP_CTRL_FORCE_RESET);
-+	for (timeout = 1000; timeout > 0; timeout--) {
-+		pp_write(PERF_CNT_0_LIMIT, 0xC01A0000);
-+		if (pp_read(PERF_CNT_0_LIMIT) == 0xC01A0000)
-+			break;
-+	}
-+	if (!timeout) {
++	pp_write(LIMA_PP_PERF_CNT_0_LIMIT, 0xC0FFE000);
++	pp_write(LIMA_PP_INT_MASK, 0);
++	pp_write(LIMA_PP_CTRL, LIMA_PP_CTRL_FORCE_RESET);
++	ret = lima_poll_timeout(ip, lima_pp_hard_reset_poll, 10, 100);
++	if (ret) {
 +		dev_err(dev->dev, "pp hard reset timeout\n");
-+		return -ETIMEDOUT;
++		return ret;
 +	}
 +
-+	pp_write(PERF_CNT_0_LIMIT, 0);
-+	pp_write(INT_CLEAR, LIMA_PP_IRQ_MASK_ALL);
-+	pp_write(INT_MASK, LIMA_PP_IRQ_MASK_USED);
++	pp_write(LIMA_PP_PERF_CNT_0_LIMIT, 0);
++	pp_write(LIMA_PP_INT_CLEAR, LIMA_PP_IRQ_MASK_ALL);
++	pp_write(LIMA_PP_INT_MASK, LIMA_PP_IRQ_MASK_USED);
 +	return 0;
 +}
 +
@@ -3265,7 +2965,7 @@ index 0000000..f65c499
 +	u32 version, major, minor;
 +	char *name;
 +
-+	version = pp_read(VERSION);
++	version = pp_read(LIMA_PP_VERSION);
 +	major = (version >> 8) & 0xFF;
 +	minor = version & 0xFF;
 +	switch (version >> 16) {
@@ -3389,12 +3089,12 @@ index 0000000..f65c499
 +		for (i = 0; i < frame->num_pp; i++) {
 +			struct lima_ip *ip = pipe->processor[i];
 +
-+			pp_write(STACK, frame->fragment_stack_address[i]);
++			pp_write(LIMA_PP_STACK, frame->fragment_stack_address[i]);
 +			if (!frame->use_dlbu)
-+				pp_write(FRAME, frame->plbu_array_address[i]);
++				pp_write(LIMA_PP_FRAME, frame->plbu_array_address[i]);
 +		}
 +
-+		pp_write(CTRL, LIMA_PP_CTRL_START_RENDERING);
++		pp_write(LIMA_PP_CTRL, LIMA_PP_CTRL_START_RENDERING);
 +	}
 +	else {
 +		struct drm_lima_m400_pp_frame *frame = task->frame;
@@ -3414,7 +3114,7 @@ index 0000000..f65c499
 +
 +		        lima_pp_write_frame(ip, frame->frame, frame->wb);
 +
-+			pp_write(CTRL, LIMA_PP_CTRL_START_RENDERING);
++			pp_write(LIMA_PP_CTRL, LIMA_PP_CTRL_START_RENDERING);
 +		}
 +	}
 +}
@@ -3438,7 +3138,7 @@ index 0000000..f65c499
 +		struct lima_ip *ip = pipe->processor[i];
 +
 +		dev_err(ip->dev->dev, "pp task error %d int_state=%x status=%x\n",
-+			i, pp_read(INT_STATUS), pp_read(STATUS));
++			i, pp_read(LIMA_PP_INT_STATUS), pp_read(LIMA_PP_STATUS));
 +
 +		lima_pp_hard_reset(ip);
 +	}
@@ -3823,10 +3523,10 @@ index 0000000..d5ade8f
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_sched.c b/drivers/gpu/drm/lima/lima_sched.c
 new file mode 100644
-index 0000000..0c6b7c3
+index 0000000..9a77e0d
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_sched.c
-@@ -0,0 +1,486 @@
+@@ -0,0 +1,399 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -3838,6 +3538,7 @@ index 0000000..0c6b7c3
 +#include "lima_vm.h"
 +#include "lima_mmu.h"
 +#include "lima_l2_cache.h"
++#include "lima_object.h"
 +
 +struct lima_fence {
 +	struct dma_fence base;
@@ -3935,21 +3636,45 @@ index 0000000..0c6b7c3
 +
 +int lima_sched_task_init(struct lima_sched_task *task,
 +			 struct lima_sched_context *context,
++			 struct lima_bo **bos, int num_bos,
 +			 struct lima_vm *vm)
 +{
 +	int err;
 +
-+	err = drm_sched_job_init(&task->base, &context->base, vm);
-+	if (err)
-+		return err;
++	task->bos = kmalloc(sizeof(*bos) * num_bos, GFP_KERNEL);
++	if (!task->bos)
++		return -ENOMEM;
++	memcpy(task->bos, bos, sizeof(*bos) * num_bos);
 +
++	err = drm_sched_job_init(&task->base, &context->base, vm);
++	if (err) {
++		kfree(task->bos);
++		return err;
++	}
++
++	task->num_bos = num_bos;
 +	task->vm = lima_vm_get(vm);
 +	return 0;
 +}
 +
 +void lima_sched_task_fini(struct lima_sched_task *task)
 +{
-+	dma_fence_put(&task->base.s_fence->finished);
++	int i;
++
++	drm_sched_job_cleanup(&task->base);
++
++	for (i = 0; i < task->num_dep; i++) {
++		if (task->dep[i])
++			dma_fence_put(task->dep[i]);
++	}
++
++	if (task->dep)
++		kfree(task->dep);
++
++	if (task->bos)
++		kfree(task->bos);
++
++	lima_vm_put(task->vm);
 +}
 +
 +int lima_sched_task_add_dep(struct lima_sched_task *task, struct dma_fence *fence)
@@ -3991,113 +3716,23 @@ index 0000000..0c6b7c3
 +			    atomic_t *guilty)
 +{
 +	struct drm_sched_rq *rq = pipe->base.sched_rq + DRM_SCHED_PRIORITY_NORMAL;
-+	int err;
 +
-+	context->fences =
-+		kzalloc(sizeof(*context->fences) * lima_sched_max_tasks, GFP_KERNEL);
-+	if (!context->fences)
-+		return -ENOMEM;
-+
-+	mutex_init(&context->lock);
-+	err = drm_sched_entity_init(&context->base, &rq, 1, guilty);
-+	if (err) {
-+		kfree(context->fences);
-+		context->fences = NULL;
-+		return err;
-+	}
-+
-+	return 0;
++	return drm_sched_entity_init(&context->base, &rq, 1, guilty);
 +}
 +
 +void lima_sched_context_fini(struct lima_sched_pipe *pipe,
 +			     struct lima_sched_context *context)
 +{
 +	drm_sched_entity_fini(&context->base);
-+
-+	mutex_destroy(&context->lock);
-+
-+	if (context->fences) {
-+		int i;
-+		for (i = 0; i < lima_sched_max_tasks; i++)
-+			dma_fence_put(context->fences[i]);
-+		kfree(context->fences);
-+	}
 +}
 +
-+static uint32_t lima_sched_context_add_fence(struct lima_sched_context *context,
-+					     struct dma_fence *fence,
-+					     uint32_t *done)
++struct dma_fence *lima_sched_context_queue_task(struct lima_sched_context *context,
++						struct lima_sched_task *task)
 +{
-+	uint32_t seq, idx, i;
-+	struct dma_fence *other;
++	struct dma_fence *fence = dma_fence_get(&task->base.s_fence->finished);
 +
-+	mutex_lock(&context->lock);
-+
-+	seq = context->sequence;
-+	idx = seq & (lima_sched_max_tasks - 1);
-+	other = context->fences[idx];
-+
-+	if (other) {
-+		int err = dma_fence_wait(other, false);
-+		if (err)
-+			DRM_ERROR("Error %d waiting context fence\n", err);
-+	}
-+
-+	context->fences[idx] = dma_fence_get(fence);
-+	context->sequence++;
-+
-+	/* get finished fence offset from seq */
-+	for (i = 1; i < lima_sched_max_tasks; i++) {
-+		idx = (seq - i) & (lima_sched_max_tasks - 1);
-+		if (!context->fences[idx] ||
-+		    dma_fence_is_signaled(context->fences[idx]))
-+			break;
-+	}
-+
-+	mutex_unlock(&context->lock);
-+
-+	dma_fence_put(other);
-+
-+	*done = i;
-+	return seq;
-+}
-+
-+struct dma_fence *lima_sched_context_get_fence(
-+	struct lima_sched_context *context, uint32_t seq)
-+{
-+	struct dma_fence *fence;
-+	int idx;
-+	uint32_t max, min;
-+
-+	mutex_lock(&context->lock);
-+
-+	max = context->sequence - 1;
-+	min = context->sequence - lima_sched_max_tasks;
-+
-+	/* handle overflow case */
-+	if ((min < max && (seq < min || seq > max)) ||
-+	    (min > max && (seq < min && seq > max))) {
-+		    fence = NULL;
-+		    goto out;
-+	}
-+
-+	idx = seq & (lima_sched_max_tasks - 1);
-+	fence = dma_fence_get(context->fences[idx]);
-+
-+out:
-+	mutex_unlock(&context->lock);
-+
-+	return fence;
-+}
-+
-+uint32_t lima_sched_context_queue_task(struct lima_sched_context *context,
-+				       struct lima_sched_task *task,
-+				       uint32_t *done)
-+{
-+	uint32_t seq = lima_sched_context_add_fence(
-+		context, &task->base.s_fence->finished, done);
 +	drm_sched_entity_push_job(&task->base, &context->base);
-+	return seq;
++	return fence;
 +}
 +
 +static struct dma_fence *lima_sched_dependency(struct drm_sched_job *job,
@@ -4227,19 +3862,18 @@ index 0000000..0c6b7c3
 +{
 +	struct lima_sched_task *task = to_lima_task(job);
 +	struct lima_sched_pipe *pipe = to_lima_pipe(job->sched);
++	struct lima_vm *vm = task->vm;
++	struct lima_bo **bos = task->bos;
 +	int i;
 +
 +	dma_fence_put(task->fence);
 +
-+	for (i = 0; i < task->num_dep; i++) {
-+		if (task->dep[i])
-+			dma_fence_put(task->dep[i]);
++	for (i = 0; i < task->num_bos; i++) {
++		lima_vm_bo_del(vm, bos[i]);
++		drm_gem_object_put_unlocked(&bos[i]->gem);
 +	}
 +
-+	if (task->dep)
-+		kfree(task->dep);
-+
-+	lima_vm_put(task->vm);
++	lima_sched_task_fini(task);
 +	kmem_cache_free(pipe->task_slab, task);
 +}
 +
@@ -4281,27 +3915,6 @@ index 0000000..0c6b7c3
 +	drm_sched_fini(&pipe->base);
 +}
 +
-+unsigned long lima_timeout_to_jiffies(u64 timeout_ns)
-+{
-+	unsigned long timeout_jiffies;
-+	ktime_t timeout;
-+
-+	/* clamp timeout if it's to large */
-+	if (((s64)timeout_ns) < 0)
-+		return MAX_SCHEDULE_TIMEOUT;
-+
-+	timeout = ktime_sub(ns_to_ktime(timeout_ns), ktime_get());
-+	if (ktime_to_ns(timeout) < 0)
-+		return 0;
-+
-+	timeout_jiffies = nsecs_to_jiffies(ktime_to_ns(timeout));
-+	/*  clamp timeout to avoid unsigned-> signed overflow */
-+	if (timeout_jiffies > MAX_SCHEDULE_TIMEOUT )
-+		return MAX_SCHEDULE_TIMEOUT;
-+
-+	return timeout_jiffies;
-+}
-+
 +void lima_sched_pipe_task_done(struct lima_sched_pipe *pipe)
 +{
 +	if (pipe->error)
@@ -4315,10 +3928,10 @@ index 0000000..0c6b7c3
 +}
 diff --git a/drivers/gpu/drm/lima/lima_sched.h b/drivers/gpu/drm/lima/lima_sched.h
 new file mode 100644
-index 0000000..e139376
+index 0000000..44985e4
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_sched.h
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,104 @@
 +/* SPDX-License-Identifier: GPL-2.0 OR MIT */
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -4339,15 +3952,15 @@ index 0000000..e139376
 +	int num_dep;
 +	int max_dep;
 +
++	struct lima_bo **bos;
++	int num_bos;
++
 +	/* pipe fence */
 +	struct dma_fence *fence;
 +};
 +
 +struct lima_sched_context {
 +	struct drm_sched_entity base;
-+	struct mutex lock;
-+	struct dma_fence **fences;
-+	uint32_t sequence;
 +};
 +
 +#define LIMA_SCHED_PIPE_MAX_MMU       8
@@ -4396,6 +4009,7 @@ index 0000000..e139376
 +
 +int lima_sched_task_init(struct lima_sched_task *task,
 +			 struct lima_sched_context *context,
++			 struct lima_bo **bos, int num_bos,
 +			 struct lima_vm *vm);
 +void lima_sched_task_fini(struct lima_sched_task *task);
 +int lima_sched_task_add_dep(struct lima_sched_task *task, struct dma_fence *fence);
@@ -4405,11 +4019,8 @@ index 0000000..e139376
 +			    atomic_t *guilty);
 +void lima_sched_context_fini(struct lima_sched_pipe *pipe,
 +			     struct lima_sched_context *context);
-+uint32_t lima_sched_context_queue_task(struct lima_sched_context *context,
-+				       struct lima_sched_task *task,
-+				       uint32_t *done);
-+struct dma_fence *lima_sched_context_get_fence(
-+	struct lima_sched_context *context, uint32_t seq);
++struct dma_fence *lima_sched_context_queue_task(struct lima_sched_context *context,
++						struct lima_sched_task *task);
 +
 +int lima_sched_pipe_init(struct lima_sched_pipe *pipe, const char *name);
 +void lima_sched_pipe_fini(struct lima_sched_pipe *pipe);
@@ -4424,395 +4035,29 @@ index 0000000..e139376
 +int lima_sched_slab_init(void);
 +void lima_sched_slab_fini(void);
 +
-+unsigned long lima_timeout_to_jiffies(u64 timeout_ns);
-+
-+#endif
-diff --git a/drivers/gpu/drm/lima/lima_ttm.c b/drivers/gpu/drm/lima/lima_ttm.c
-new file mode 100644
-index 0000000..3c1904e
---- /dev/null
-+++ b/drivers/gpu/drm/lima/lima_ttm.c
-@@ -0,0 +1,319 @@
-+// SPDX-License-Identifier: GPL-2.0 OR MIT
-+/* Copyright 2018 Qiang Yu <yuq825@gmail.com> */
-+
-+#include <linux/mm.h>
-+#include <drm/ttm/ttm_page_alloc.h>
-+
-+#include "lima_drv.h"
-+#include "lima_device.h"
-+#include "lima_object.h"
-+
-+
-+struct lima_tt_mgr {
-+	spinlock_t lock;
-+	unsigned long available;
-+};
-+
-+static int lima_ttm_bo_man_init(struct ttm_mem_type_manager *man,
-+				unsigned long p_size)
-+{
-+	struct lima_tt_mgr *mgr;
-+
-+	mgr = kmalloc(sizeof(*mgr), GFP_KERNEL);
-+	if (!mgr)
-+		return -ENOMEM;
-+
-+	spin_lock_init(&mgr->lock);
-+	mgr->available = p_size;
-+	man->priv = mgr;
-+	return 0;
-+}
-+
-+static int lima_ttm_bo_man_takedown(struct ttm_mem_type_manager *man)
-+{
-+	struct lima_tt_mgr *mgr = man->priv;
-+
-+	kfree(mgr);
-+	man->priv = NULL;
-+	return 0;
-+}
-+
-+static int lima_ttm_bo_man_get_node(struct ttm_mem_type_manager *man,
-+				    struct ttm_buffer_object *bo,
-+				    const struct ttm_place *place,
-+				    struct ttm_mem_reg *mem)
-+{
-+	struct lima_tt_mgr *mgr = man->priv;
-+
-+	/* don't exceed the mem limit */
-+	spin_lock(&mgr->lock);
-+	if (mgr->available < mem->num_pages) {
-+		spin_unlock(&mgr->lock);
-+		return 0;
-+	}
-+	mgr->available -= mem->num_pages;
-+	spin_unlock(&mgr->lock);
-+
-+	/* just fake a non-null pointer to tell caller success */
-+	mem->mm_node = (void *)1;
-+	return 0;
-+}
-+
-+static void lima_ttm_bo_man_put_node(struct ttm_mem_type_manager *man,
-+				     struct ttm_mem_reg *mem)
-+{
-+	struct lima_tt_mgr *mgr = man->priv;
-+
-+	spin_lock(&mgr->lock);
-+	mgr->available += mem->num_pages;
-+	spin_unlock(&mgr->lock);
-+
-+	mem->mm_node = NULL;
-+}
-+
-+static void lima_ttm_bo_man_debug(struct ttm_mem_type_manager *man,
-+				  struct drm_printer *printer)
-+{
-+}
-+
-+static const struct ttm_mem_type_manager_func lima_bo_manager_func = {
-+	.init = lima_ttm_bo_man_init,
-+	.takedown = lima_ttm_bo_man_takedown,
-+	.get_node = lima_ttm_bo_man_get_node,
-+	.put_node = lima_ttm_bo_man_put_node,
-+	.debug = lima_ttm_bo_man_debug
-+};
-+
-+static int lima_init_mem_type(struct ttm_bo_device *bdev, uint32_t type,
-+			      struct ttm_mem_type_manager *man)
-+{
-+	struct lima_device *dev = ttm_to_lima_dev(bdev);
-+
-+	switch (type) {
-+	case TTM_PL_SYSTEM:
-+		/* System memory */
-+		man->flags = TTM_MEMTYPE_FLAG_MAPPABLE;
-+		man->available_caching = TTM_PL_MASK_CACHING;
-+		man->default_caching = TTM_PL_FLAG_CACHED;
-+		break;
-+	case TTM_PL_TT:
-+		man->func = &lima_bo_manager_func;
-+		man->flags = TTM_MEMTYPE_FLAG_MAPPABLE;
-+		man->available_caching = TTM_PL_MASK_CACHING;
-+		man->default_caching = TTM_PL_FLAG_CACHED;
-+		break;
-+	default:
-+		dev_err(dev->dev, "Unsupported memory type %u\n",
-+			(unsigned int)type);
-+		return -EINVAL;
-+	}
-+	return 0;
-+}
-+
-+static int lima_ttm_backend_bind(struct ttm_tt *ttm,
-+				 struct ttm_mem_reg *bo_mem)
-+{
-+	return 0;
-+}
-+
-+static int lima_ttm_backend_unbind(struct ttm_tt *ttm)
-+{
-+	return 0;
-+}
-+
-+static void lima_ttm_backend_destroy(struct ttm_tt *ttm)
-+{
-+	struct lima_ttm_tt *tt = (void *)ttm;
-+
-+	ttm_dma_tt_fini(&tt->ttm);
-+	kfree(tt);
-+}
-+
-+static struct ttm_backend_func lima_ttm_backend_func = {
-+	.bind = &lima_ttm_backend_bind,
-+	.unbind = &lima_ttm_backend_unbind,
-+	.destroy = &lima_ttm_backend_destroy,
-+};
-+
-+static struct ttm_tt *lima_ttm_tt_create(struct ttm_buffer_object *bo,
-+					 uint32_t page_flags)
-+{
-+	struct lima_ttm_tt *tt;
-+
-+	tt = kzalloc(sizeof(struct lima_ttm_tt), GFP_KERNEL);
-+	if (tt == NULL)
-+		return NULL;
-+
-+	tt->ttm.ttm.func = &lima_ttm_backend_func;
-+
-+	if (ttm_sg_tt_init(&tt->ttm, bo, page_flags)) {
-+		kfree(tt);
-+		return NULL;
-+	}
-+
-+	return &tt->ttm.ttm;
-+}
-+
-+static int lima_ttm_tt_populate(struct ttm_tt *ttm,
-+				struct ttm_operation_ctx *ctx)
-+{
-+	struct lima_device *dev = ttm_to_lima_dev(ttm->bdev);
-+	struct lima_ttm_tt *tt = (void *)ttm;
-+	bool slave = !!(ttm->page_flags & TTM_PAGE_FLAG_SG);
-+
-+	if (slave) {
-+		drm_prime_sg_to_page_addr_arrays(ttm->sg, ttm->pages,
-+						 tt->ttm.dma_address,
-+						 ttm->num_pages);
-+		ttm->state = tt_unbound;
-+		return 0;
-+	}
-+
-+	return ttm_populate_and_map_pages(dev->dev, &tt->ttm, ctx);
-+}
-+
-+static void lima_ttm_tt_unpopulate(struct ttm_tt *ttm)
-+{
-+	struct lima_device *dev = ttm_to_lima_dev(ttm->bdev);
-+	struct lima_ttm_tt *tt = (void *)ttm;
-+	bool slave = !!(ttm->page_flags & TTM_PAGE_FLAG_SG);
-+
-+	if (slave)
-+		return;
-+
-+	ttm_unmap_and_unpopulate_pages(dev->dev, &tt->ttm);
-+}
-+
-+static int lima_invalidate_caches(struct ttm_bo_device *bdev,
-+				  uint32_t flags)
-+{
-+	struct lima_device *dev = ttm_to_lima_dev(bdev);
-+
-+	dev_err(dev->dev, "%s not implemented\n", __FUNCTION__);
-+	return 0;
-+}
-+
-+static void lima_evict_flags(struct ttm_buffer_object *tbo,
-+			     struct ttm_placement *placement)
-+{
-+	struct lima_bo *bo = ttm_to_lima_bo(tbo);
-+	struct lima_device *dev = to_lima_dev(bo->gem.dev);
-+
-+	dev_err(dev->dev, "%s not implemented\n", __FUNCTION__);
-+}
-+
-+static int lima_verify_access(struct ttm_buffer_object *tbo,
-+			      struct file *filp)
-+{
-+	struct lima_bo *bo = ttm_to_lima_bo(tbo);
-+
-+	return drm_vma_node_verify_access(&bo->gem.vma_node,
-+					  filp->private_data);
-+}
-+
-+static int lima_ttm_io_mem_reserve(struct ttm_bo_device *bdev,
-+				   struct ttm_mem_reg *mem)
-+{
-+	struct ttm_mem_type_manager *man = &bdev->man[mem->mem_type];
-+
-+	mem->bus.addr = NULL;
-+	mem->bus.offset = 0;
-+	mem->bus.size = mem->num_pages << PAGE_SHIFT;
-+	mem->bus.base = 0;
-+	mem->bus.is_iomem = false;
-+
-+	if (!(man->flags & TTM_MEMTYPE_FLAG_MAPPABLE))
-+		return -EINVAL;
-+
-+	switch (mem->mem_type) {
-+	case TTM_PL_SYSTEM:
-+	case TTM_PL_TT:
-+		return 0;
-+	default:
-+		return -EINVAL;
-+	}
-+	return 0;
-+}
-+
-+static void lima_ttm_io_mem_free(struct ttm_bo_device *bdev,
-+				 struct ttm_mem_reg *mem)
-+{
-+
-+}
-+
-+static void lima_bo_move_notify(struct ttm_buffer_object *tbo, bool evict,
-+				struct ttm_mem_reg *new_mem)
-+{
-+	struct lima_bo *bo = ttm_to_lima_bo(tbo);
-+	struct lima_device *dev = to_lima_dev(bo->gem.dev);
-+
-+	if (evict)
-+		dev_err(dev->dev, "%s not implemented\n", __FUNCTION__);
-+}
-+
-+static void lima_bo_swap_notify(struct ttm_buffer_object *tbo)
-+{
-+	struct lima_bo *bo = ttm_to_lima_bo(tbo);
-+	struct lima_device *dev = to_lima_dev(bo->gem.dev);
-+
-+	dev_err(dev->dev, "%s not implemented\n", __FUNCTION__);
-+}
-+
-+static struct ttm_bo_driver lima_bo_driver = {
-+	.ttm_tt_create = lima_ttm_tt_create,
-+	.ttm_tt_populate = lima_ttm_tt_populate,
-+	.ttm_tt_unpopulate = lima_ttm_tt_unpopulate,
-+	.invalidate_caches = lima_invalidate_caches,
-+	.init_mem_type = lima_init_mem_type,
-+	.eviction_valuable = ttm_bo_eviction_valuable,
-+	.evict_flags = lima_evict_flags,
-+	.verify_access = lima_verify_access,
-+	.io_mem_reserve = lima_ttm_io_mem_reserve,
-+	.io_mem_free = lima_ttm_io_mem_free,
-+	.move_notify = lima_bo_move_notify,
-+	.swap_notify = lima_bo_swap_notify,
-+};
-+
-+int lima_ttm_init(struct lima_device *dev)
-+{
-+	int err;
-+	u64 gtt_size;
-+
-+	err = ttm_bo_device_init(&dev->mman.bdev,
-+				 &lima_bo_driver,
-+				 dev->ddev->anon_inode->i_mapping,
-+				 DRM_FILE_PAGE_OFFSET,
-+				 true);
-+	if (err) {
-+		dev_err(dev->dev, "failed initializing buffer object "
-+			"driver(%d).\n", err);
-+		return err;
-+	}
-+
-+	if (lima_max_mem < 0) {
-+		struct sysinfo si;
-+		si_meminfo(&si);
-+		/* TODO: better to have lower 32 mem size */
-+		gtt_size = min(((u64)si.totalram * si.mem_unit * 3/4),
-+			       0x100000000ULL);
-+	}
-+	else
-+		gtt_size = (u64)lima_max_mem << 20;
-+
-+	err = ttm_bo_init_mm(&dev->mman.bdev, TTM_PL_TT, gtt_size >> PAGE_SHIFT);
-+	if (err) {
-+		dev_err(dev->dev, "Failed initializing GTT heap.\n");
-+		goto err_out0;
-+	}
-+	return 0;
-+
-+err_out0:
-+	ttm_bo_device_release(&dev->mman.bdev);
-+	return err;
-+}
-+
-+void lima_ttm_fini(struct lima_device *dev)
-+{
-+	ttm_bo_device_release(&dev->mman.bdev);
-+	dev_info(dev->dev, "ttm finalized\n");
-+}
-diff --git a/drivers/gpu/drm/lima/lima_ttm.h b/drivers/gpu/drm/lima/lima_ttm.h
-new file mode 100644
-index 0000000..c2759a4
---- /dev/null
-+++ b/drivers/gpu/drm/lima/lima_ttm.h
-@@ -0,0 +1,24 @@
-+/* SPDX-License-Identifier: GPL-2.0 OR MIT */
-+/* Copyright 2018 Qiang Yu <yuq825@gmail.com> */
-+
-+#ifndef __LIMA_TTM_H__
-+#define __LIMA_TTM_H__
-+
-+#include <drm/ttm/ttm_bo_driver.h>
-+
-+struct lima_mman {
-+	struct ttm_bo_device bdev;
-+	bool mem_global_referenced;
-+};
-+
-+struct lima_ttm_tt {
-+	struct ttm_dma_tt ttm;
-+};
-+
-+struct lima_device;
-+struct lima_bo;
-+
-+int lima_ttm_init(struct lima_device *dev);
-+void lima_ttm_fini(struct lima_device *dev);
-+
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_vm.c b/drivers/gpu/drm/lima/lima_vm.c
 new file mode 100644
-index 0000000..a264f3a
+index 0000000..7e29ebb
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_vm.c
-@@ -0,0 +1,354 @@
+@@ -0,0 +1,274 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
 +#include <linux/slab.h>
 +#include <linux/dma-mapping.h>
-+#include <linux/interval_tree_generic.h>
 +
 +#include "lima_device.h"
 +#include "lima_vm.h"
 +#include "lima_object.h"
 +#include "lima_regs.h"
 +
-+struct lima_bo_va_mapping {
-+	struct list_head list;
-+	struct rb_node rb;
-+	uint32_t start;
-+	uint32_t last;
-+	uint32_t __subtree_last;
-+};
-+
 +struct lima_bo_va {
 +	struct list_head list;
 +	unsigned ref_count;
 +
-+	struct list_head mapping;
++	struct drm_mm_node node;
 +
 +	struct lima_vm *vm;
 +};
@@ -4830,14 +4075,6 @@ index 0000000..a264f3a
 +#define LIMA_PBE(va) (va >> LIMA_VM_PB_SHIFT)
 +#define LIMA_BTE(va) ((va & LIMA_VM_BT_MASK) >> LIMA_VM_BT_SHIFT)
 +
-+#define START(node) ((node)->start)
-+#define LAST(node) ((node)->last)
-+
-+INTERVAL_TREE_DEFINE(struct lima_bo_va_mapping, rb, uint32_t, __subtree_last,
-+		     START, LAST, static, lima_vm_it)
-+
-+#undef START
-+#undef LAST
 +
 +static void lima_vm_unmap_page_table(struct lima_vm *vm, u32 start, u32 end)
 +{
@@ -4846,10 +4083,8 @@ index 0000000..a264f3a
 +	for (addr = start; addr <= end; addr += LIMA_PAGE_SIZE) {
 +		u32 pbe = LIMA_PBE(addr);
 +		u32 bte = LIMA_BTE(addr);
-+		u32 *bt;
 +
-+		bt = lima_bo_kmap(vm->bts[pbe]);
-+		bt[bte] = 0;
++		vm->bts[pbe].cpu[bte] = 0;
 +	}
 +}
 +
@@ -4857,55 +4092,38 @@ index 0000000..a264f3a
 +				  u32 start, u32 end)
 +{
 +	u64 addr;
-+	int err, i = 0;
++	int i = 0;
 +
 +	for (addr = start; addr <= end; addr += LIMA_PAGE_SIZE) {
 +		u32 pbe = LIMA_PBE(addr);
 +		u32 bte = LIMA_BTE(addr);
-+		u32 *bt;
 +
-+		if (vm->bts[pbe])
-+			bt = lima_bo_kmap(vm->bts[pbe]);
-+		else {
-+			struct lima_bo *bt_bo;
-+			dma_addr_t *pts;
++		if (!vm->bts[pbe].cpu) {
++			dma_addr_t pts;
 +			u32 *pd;
 +			int j;
 +
-+			bt_bo = lima_bo_create(
-+				vm->dev, LIMA_PAGE_SIZE << LIMA_VM_NUM_PT_PER_BT_SHIFT,
-+				0, ttm_bo_type_kernel,
-+				NULL, vm->pd->tbo.resv);
-+			if (IS_ERR(bt_bo)) {
-+				err = PTR_ERR(bt_bo);
-+				goto err_out;
++			vm->bts[pbe].cpu = dma_alloc_wc(
++				vm->dev->dev, LIMA_PAGE_SIZE << LIMA_VM_NUM_PT_PER_BT_SHIFT,
++				&vm->bts[pbe].dma, GFP_KERNEL | __GFP_ZERO);
++			if (!vm->bts[pbe].cpu) {
++				if (addr != start)
++					lima_vm_unmap_page_table(vm, start, addr - 1);
++				return -ENOMEM;
 +			}
 +
-+			bt = lima_bo_kmap(bt_bo);
-+			if (IS_ERR(bt)) {
-+				lima_bo_unref(bt_bo);
-+				err = PTR_ERR(bt);
-+				goto err_out;
++			pts = vm->bts[pbe].dma;
++			pd = vm->pd.cpu + (pbe << LIMA_VM_NUM_PT_PER_BT_SHIFT);
++			for (j = 0; j < LIMA_VM_NUM_PT_PER_BT; j++) {
++				pd[j] = pts | LIMA_VM_FLAG_PRESENT;
++				pts += LIMA_PAGE_SIZE;
 +			}
-+			memset(bt, 0, LIMA_PAGE_SIZE << LIMA_VM_NUM_PT_PER_BT_SHIFT);
-+
-+			vm->bts[pbe] = bt_bo;
-+			pd = lima_bo_kmap(vm->pd);
-+			pd += pbe << LIMA_VM_NUM_PT_PER_BT_SHIFT;
-+			pts = lima_bo_get_pages(bt_bo);
-+			for (j = 0; j < LIMA_VM_NUM_PT_PER_BT; j++)
-+				*pd++ = *pts++ | LIMA_VM_FLAG_PRESENT;
 +		}
 +
-+		bt[bte] = dma[i++] | LIMA_VM_FLAGS_CACHE;
++		vm->bts[pbe].cpu[bte] = dma[i++] | LIMA_VM_FLAGS_CACHE;
 +	}
 +
 +	return 0;
-+
-+err_out:
-+	if (addr != start)
-+		lima_vm_unmap_page_table(vm, start, addr - 1);
-+	return err;
 +}
 +
 +static struct lima_bo_va *
@@ -4923,160 +4141,116 @@ index 0000000..a264f3a
 +	return ret;
 +}
 +
-+int lima_vm_bo_map(struct lima_vm *vm, struct lima_bo *bo, u32 start)
-+{
-+	int err;
-+	struct lima_bo_va_mapping *it, *mapping;
-+	u32 end = start + bo->gem.size - 1;
-+	dma_addr_t *pages_dma = lima_bo_get_pages(bo);
-+	struct lima_bo_va *bo_va;
-+
-+	it = lima_vm_it_iter_first(&vm->va, start, end);
-+	if (it) {
-+		dev_dbg(bo->gem.dev->dev, "lima vm map va overlap %x-%x %x-%x\n",
-+			start, end, it->start, it->last);
-+		return -EINVAL;
-+	}
-+
-+	mapping = kmalloc(sizeof(*mapping), GFP_KERNEL);
-+	if (!mapping)
-+		return -ENOMEM;
-+	mapping->start = start;
-+	mapping->last = end;
-+
-+	err = lima_vm_map_page_table(vm, pages_dma, start, end);
-+	if (err) {
-+		kfree(mapping);
-+		return err;
-+	}
-+
-+	lima_vm_it_insert(mapping, &vm->va);
-+
-+	bo_va = lima_vm_bo_find(vm, bo);
-+	list_add_tail(&mapping->list, &bo_va->mapping);
-+
-+	return 0;
-+}
-+
-+static void lima_vm_unmap(struct lima_vm *vm,
-+			  struct lima_bo_va_mapping *mapping)
-+{
-+	lima_vm_it_remove(mapping, &vm->va);
-+
-+	lima_vm_unmap_page_table(vm, mapping->start, mapping->last);
-+
-+	list_del(&mapping->list);
-+	kfree(mapping);
-+}
-+
-+int lima_vm_bo_unmap(struct lima_vm *vm, struct lima_bo *bo, u32 start)
-+{
-+	struct lima_bo_va *bo_va;
-+	struct lima_bo_va_mapping *mapping;
-+
-+	bo_va = lima_vm_bo_find(vm, bo);
-+	list_for_each_entry(mapping, &bo_va->mapping, list) {
-+		if (mapping->start == start) {
-+		        lima_vm_unmap(vm, mapping);
-+			break;
-+		}
-+	}
-+
-+	return 0;
-+}
-+
 +int lima_vm_bo_add(struct lima_vm *vm, struct lima_bo *bo)
 +{
 +	struct lima_bo_va *bo_va;
++	int err;
++
++	mutex_lock(&bo->lock);
 +
 +	bo_va = lima_vm_bo_find(vm, bo);
 +	if (bo_va) {
 +		bo_va->ref_count++;
++		mutex_unlock(&bo->lock);
 +		return 0;
 +	}
 +
-+	bo_va = kmalloc(sizeof(*bo_va), GFP_KERNEL);
-+	if (!bo_va)
-+		return -ENOMEM;
++	bo_va = kzalloc(sizeof(*bo_va), GFP_KERNEL);
++	if (!bo_va) {
++		err = -ENOMEM;
++		goto err_out0;
++	}
 +
 +	bo_va->vm = vm;
 +	bo_va->ref_count = 1;
-+	INIT_LIST_HEAD(&bo_va->mapping);
++
++	mutex_lock(&vm->lock);
++
++	err = drm_mm_insert_node(&vm->mm, &bo_va->node, bo->gem.size);
++	if (err)
++		goto err_out1;
++
++	err = lima_vm_map_page_table(vm, bo->pages_dma_addr, bo_va->node.start,
++				     bo_va->node.start + bo_va->node.size - 1);
++	if (err)
++	        goto err_out2;
++
++	mutex_unlock(&vm->lock);
++
 +	list_add_tail(&bo_va->list, &bo->va);
++
++	mutex_unlock(&bo->lock);
 +	return 0;
-+}
 +
-+/* wait only fence of resv from task using vm */
-+static int lima_vm_wait_resv(struct lima_vm *vm,
-+			     struct reservation_object *resv)
-+{
-+	unsigned nr_fences;
-+	struct dma_fence **fences;
-+	int i;
-+	long err;
-+
-+	err = reservation_object_get_fences_rcu(resv, NULL, &nr_fences, &fences);
-+	if (err || !nr_fences)
-+		return err;
-+
-+	for (i = 0; i < nr_fences; i++) {
-+		struct drm_sched_fence *sf = to_drm_sched_fence(fences[i]);
-+		if (sf && sf->owner == vm)
-+			err |= dma_fence_wait(fences[i], false);
-+		dma_fence_put(fences[i]);
-+	}
-+
-+	kfree(fences);
++err_out2:
++	drm_mm_remove_node(&bo_va->node);
++err_out1:
++	mutex_unlock(&vm->lock);
++	kfree(bo_va);
++err_out0:
++	mutex_unlock(&bo->lock);
 +	return err;
 +}
 +
-+int lima_vm_bo_del(struct lima_vm *vm, struct lima_bo *bo)
++void lima_vm_bo_del(struct lima_vm *vm, struct lima_bo *bo)
 +{
 +	struct lima_bo_va *bo_va;
-+	struct lima_bo_va_mapping *mapping, *tmp;
-+	int err;
++
++	mutex_lock(&bo->lock);
 +
 +	bo_va = lima_vm_bo_find(vm, bo);
-+	if (--bo_va->ref_count > 0)
-+		return 0;
-+
-+	/* wait bo idle before unmap it from vm in case user
-+	 * space application is terminated when bo is busy.
-+	 */
-+	err = lima_vm_wait_resv(vm, bo->tbo.resv);
-+	if (err)
-+		dev_err(vm->dev->dev, "bo del fail to wait (%d)\n", err);
-+
-+	list_for_each_entry_safe(mapping, tmp, &bo_va->mapping, list) {
-+	        lima_vm_unmap(vm, mapping);
++	if (--bo_va->ref_count > 0) {
++		mutex_unlock(&bo->lock);
++		return;
 +	}
++
++	mutex_lock(&vm->lock);
++
++	lima_vm_unmap_page_table(vm, bo_va->node.start,
++				 bo_va->node.start + bo_va->node.size - 1);
++
++	drm_mm_remove_node(&bo_va->node);
++
++	mutex_unlock(&vm->lock);
++
 +	list_del(&bo_va->list);
++
++	mutex_unlock(&bo->lock);
++
 +	kfree(bo_va);
-+	return 0;
++}
++
++u32 lima_vm_get_va(struct lima_vm *vm, struct lima_bo *bo)
++{
++	struct lima_bo_va *bo_va;
++	u32 ret;
++
++	mutex_lock(&bo->lock);
++
++	bo_va = lima_vm_bo_find(vm, bo);
++	ret = bo_va->node.start;
++
++	mutex_unlock(&bo->lock);
++
++	return ret;
 +}
 +
 +struct lima_vm *lima_vm_create(struct lima_device *dev)
 +{
 +	struct lima_vm *vm;
-+	void *pd;
 +
 +	vm = kzalloc(sizeof(*vm), GFP_KERNEL);
 +	if (!vm)
 +		return NULL;
 +
 +	vm->dev = dev;
-+	vm->va = RB_ROOT_CACHED;
++	mutex_init(&vm->lock);
 +	kref_init(&vm->refcount);
 +
-+	vm->pd = lima_bo_create(dev, LIMA_PAGE_SIZE, 0,
-+				ttm_bo_type_kernel, NULL, NULL);
-+	if (IS_ERR(vm->pd))
++	vm->pd.cpu = dma_alloc_wc(dev->dev, LIMA_PAGE_SIZE, &vm->pd.dma,
++				  GFP_KERNEL | __GFP_ZERO);
++	if (!vm->pd.cpu)
 +		goto err_out0;
-+
-+	pd = lima_bo_kmap(vm->pd);
-+	if (IS_ERR(pd))
-+		goto err_out1;
-+	memset(pd, 0, LIMA_PAGE_SIZE);
 +
 +	if (dev->dlbu_cpu) {
 +		int err = lima_vm_map_page_table(
@@ -5086,10 +4260,12 @@ index 0000000..a264f3a
 +			goto err_out1;
 +	}
 +
++	drm_mm_init(&vm->mm, dev->va_start, dev->va_end - dev->va_start);
++
 +	return vm;
 +
 +err_out1:
-+	lima_bo_unref(vm->pd);
++	dma_free_wc(dev->dev, LIMA_PAGE_SIZE, vm->pd.cpu, vm->pd.dma);
 +err_out0:
 +	kfree(vm);
 +	return NULL;
@@ -5098,20 +4274,18 @@ index 0000000..a264f3a
 +void lima_vm_release(struct kref *kref)
 +{
 +	struct lima_vm *vm = container_of(kref, struct lima_vm, refcount);
-+	struct lima_device *dev = vm->dev;
 +	int i;
 +
-+	if (!RB_EMPTY_ROOT(&vm->va.rb_root)) {
-+		dev_err(dev->dev, "still active bo inside vm\n");
-+	}
++	drm_mm_takedown(&vm->mm);
 +
 +	for (i = 0; i < LIMA_VM_NUM_BT; i++) {
-+		if (vm->bts[i])
-+			lima_bo_unref(vm->bts[i]);
++		if (vm->bts[i].cpu)
++			dma_free_wc(vm->dev->dev, LIMA_PAGE_SIZE << LIMA_VM_NUM_PT_PER_BT_SHIFT,
++				    vm->bts[i].cpu, vm->bts[i].dma);
 +	}
 +
-+	if (vm->pd)
-+	        lima_bo_unref(vm->pd);
++        if (vm->pd.cpu)
++		dma_free_wc(vm->dev->dev, LIMA_PAGE_SIZE, vm->pd.cpu, vm->pd.dma);
 +
 +	kfree(vm);
 +}
@@ -5121,15 +4295,15 @@ index 0000000..a264f3a
 +	int i, j, k;
 +	u32 *pd, *pt;
 +
-+	/* to avoid the defined by not used warning */
-+	(void)&lima_vm_it_iter_next;
++	if (!vm->pd.cpu)
++		return;
 +
-+	pd = lima_bo_kmap(vm->pd);
++	pd = vm->pd.cpu;
 +	for (i = 0; i < LIMA_VM_NUM_BT; i++) {
-+		if (!vm->bts[i])
++		if (!vm->bts[i].cpu)
 +			continue;
 +
-+		pt = lima_bo_kmap(vm->bts[i]);
++		pt = vm->bts[i].cpu;
 +		for (j = 0; j < LIMA_VM_NUM_PT_PER_BT; j++) {
 +			int idx = (i << LIMA_VM_NUM_PT_PER_BT_SHIFT) + j;
 +			printk(KERN_INFO "lima vm pd %03x:%08x\n", idx, pd[idx]);
@@ -5144,17 +4318,17 @@ index 0000000..a264f3a
 +}
 diff --git a/drivers/gpu/drm/lima/lima_vm.h b/drivers/gpu/drm/lima/lima_vm.h
 new file mode 100644
-index 0000000..f615f8d
+index 0000000..ed01f0e
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_vm.h
-@@ -0,0 +1,59 @@
+@@ -0,0 +1,62 @@
 +/* SPDX-License-Identifier: GPL-2.0 OR MIT */
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
 +#ifndef __LIMA_VM_H__
 +#define __LIMA_VM_H__
 +
-+#include <linux/rbtree.h>
++#include <drm/drm_mm.h>
 +#include <linux/kref.h>
 +
 +#define LIMA_PAGE_SIZE    4096
@@ -5169,26 +4343,29 @@ index 0000000..f615f8d
 +#define LIMA_VA_RESERVE_DLBU   LIMA_VA_RESERVE_START
 +#define LIMA_VA_RESERVE_END    0x100000000
 +
-+struct lima_bo;
 +struct lima_device;
 +
++struct lima_vm_page {
++	u32 *cpu;
++	dma_addr_t dma;
++};
++
 +struct lima_vm {
++	struct mutex lock;
 +	struct kref refcount;
 +
-+	/* tree of virtual addresses mapped */
-+	struct rb_root_cached va;
++	struct drm_mm mm;
 +
 +	struct lima_device *dev;
 +
-+	struct lima_bo *pd;
-+	struct lima_bo *bts[LIMA_VM_NUM_BT];
++	struct lima_vm_page pd;
++	struct lima_vm_page bts[LIMA_VM_NUM_BT];
 +};
 +
-+int lima_vm_bo_map(struct lima_vm *vm, struct lima_bo *bo, u32 start);
-+int lima_vm_bo_unmap(struct lima_vm *vm, struct lima_bo *bo, u32 start);
-+
 +int lima_vm_bo_add(struct lima_vm *vm, struct lima_bo *bo);
-+int lima_vm_bo_del(struct lima_vm *vm, struct lima_bo *bo);
++void lima_vm_bo_del(struct lima_vm *vm, struct lima_bo *bo);
++
++u32 lima_vm_get_va(struct lima_vm *vm, struct lima_bo *bo);
 +
 +struct lima_vm *lima_vm_create(struct lima_device *dev);
 +void lima_vm_release(struct kref *kref);
@@ -5209,10 +4386,10 @@ index 0000000..f615f8d
 +#endif
 diff --git a/include/uapi/drm/lima_drm.h b/include/uapi/drm/lima_drm.h
 new file mode 100644
-index 0000000..c44757b
+index 0000000..64fb480
 --- /dev/null
 +++ b/include/uapi/drm/lima_drm.h
-@@ -0,0 +1,193 @@
+@@ -0,0 +1,126 @@
 +/* SPDX-License-Identifier: (GPL-2.0 WITH Linux-syscall-note) OR MIT */
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -5231,8 +4408,8 @@ index 0000000..c44757b
 +struct drm_lima_info {
 +	__u32 gpu_id;   /* out */
 +	__u32 num_pp;   /* out */
-+	__u64 va_start; /* out */
-+	__u64 va_end;   /* out */
++	__u32 valid;    /* out */
++	__u32 _resv[7];
 +};
 +
 +struct drm_lima_gem_create {
@@ -5244,18 +4421,8 @@ index 0000000..c44757b
 +
 +struct drm_lima_gem_info {
 +	__u32 handle;  /* in */
-+	__u32 pad;
++	__u32 va;      /* out */
 +	__u64 offset;  /* out */
-+};
-+
-+#define LIMA_VA_OP_MAP    1
-+#define LIMA_VA_OP_UNMAP  2
-+
-+struct drm_lima_gem_va {
-+	__u32 handle;  /* in */
-+	__u32 op;      /* in */
-+	__u32 flags;   /* in */
-+	__u32 va;      /* in */
 +};
 +
 +#define LIMA_SUBMIT_BO_READ   0x01
@@ -5264,27 +4431,6 @@ index 0000000..c44757b
 +struct drm_lima_gem_submit_bo {
 +	__u32 handle;  /* in */
 +	__u32 flags;   /* in */
-+};
-+
-+#define LIMA_SUBMIT_DEP_FENCE   0x00
-+#define LIMA_SUBMIT_DEP_SYNC_FD 0x01
-+
-+struct drm_lima_gem_submit_dep_fence {
-+	__u32 type;
-+	__u32 ctx;
-+	__u32 pipe;
-+	__u32 seq;
-+};
-+
-+struct drm_lima_gem_submit_dep_sync_fd {
-+	__u32 type;
-+	__u32 fd;
-+};
-+
-+union drm_lima_gem_submit_dep {
-+	__u32 type;
-+	struct drm_lima_gem_submit_dep_fence fence;
-+	struct drm_lima_gem_submit_dep_sync_fd sync_fd;
 +};
 +
 +#define LIMA_GP_FRAME_REG_NUM 6
@@ -5321,38 +4467,17 @@ index 0000000..c44757b
 +#define LIMA_PIPE_PP  0x01
 +
 +#define LIMA_SUBMIT_FLAG_EXPLICIT_FENCE (1 << 0)
-+#define LIMA_SUBMIT_FLAG_SYNC_FD_OUT    (1 << 1)
 +
-+struct drm_lima_gem_submit_in {
-+	__u32 ctx;
-+	__u32 pipe;
-+	__u32 nr_bos;
-+	__u32 frame_size;
-+	__u64 bos;
-+	__u64 frame;
-+	__u64 deps;
-+	__u32 nr_deps;
-+	__u32 flags;
-+};
-+
-+struct drm_lima_gem_submit_out {
-+	__u32 fence;
-+	__u32 done;
-+	__u32 sync_fd;
-+	__u32 _pad;
-+};
-+
-+union drm_lima_gem_submit {
-+	struct drm_lima_gem_submit_in in;
-+	struct drm_lima_gem_submit_out out;
-+};
-+
-+struct drm_lima_wait_fence {
++struct drm_lima_gem_submit {
 +	__u32 ctx;         /* in */
 +	__u32 pipe;        /* in */
-+	__u64 timeout_ns;  /* in */
-+	__u32 seq;         /* in */
-+	__u32 error;       /* out */
++	__u32 nr_bos;      /* in */
++	__u32 frame_size;  /* in */
++	__u64 bos;         /* in */
++	__u64 frame;       /* in */
++	__u32 flags;       /* in */
++	__u32 out_sync;    /* in */
++	__u32 in_sync[2];  /* in */
 +};
 +
 +#define LIMA_GEM_WAIT_READ   0x01
@@ -5361,7 +4486,7 @@ index 0000000..c44757b
 +struct drm_lima_gem_wait {
 +	__u32 handle;      /* in */
 +	__u32 op;          /* in */
-+	__u64 timeout_ns;  /* in */
++	__s64 timeout_ns;  /* in */
 +};
 +
 +#define LIMA_CTX_OP_CREATE 1
@@ -5372,34 +4497,19 @@ index 0000000..c44757b
 +	__u32 id;          /* in/out */
 +};
 +
-+#define LIMA_GEM_MOD_OP_GET 0
-+#define LIMA_GEM_MOD_OP_SET 1
-+
-+struct drm_lima_gem_mod {
-+	__u32 handle;      /* in */
-+	__u32 op;          /* in */
-+	__u64 modifier;    /* in/out */
-+};
-+
 +#define DRM_LIMA_INFO        0x00
 +#define DRM_LIMA_GEM_CREATE  0x01
 +#define DRM_LIMA_GEM_INFO    0x02
-+#define DRM_LIMA_GEM_VA      0x03
-+#define DRM_LIMA_GEM_SUBMIT  0x04
-+#define DRM_LIMA_WAIT_FENCE  0x05
-+#define DRM_LIMA_GEM_WAIT    0x06
-+#define DRM_LIMA_CTX         0x07
-+#define DRM_LIMA_GEM_MOD     0x08
++#define DRM_LIMA_GEM_SUBMIT  0x03
++#define DRM_LIMA_GEM_WAIT    0x04
++#define DRM_LIMA_CTX         0x05
 +
 +#define DRM_IOCTL_LIMA_INFO DRM_IOR(DRM_COMMAND_BASE + DRM_LIMA_INFO, struct drm_lima_info)
 +#define DRM_IOCTL_LIMA_GEM_CREATE DRM_IOWR(DRM_COMMAND_BASE + DRM_LIMA_GEM_CREATE, struct drm_lima_gem_create)
 +#define DRM_IOCTL_LIMA_GEM_INFO DRM_IOWR(DRM_COMMAND_BASE + DRM_LIMA_GEM_INFO, struct drm_lima_gem_info)
-+#define DRM_IOCTL_LIMA_GEM_VA DRM_IOW(DRM_COMMAND_BASE + DRM_LIMA_GEM_VA, struct drm_lima_gem_va)
-+#define DRM_IOCTL_LIMA_GEM_SUBMIT DRM_IOWR(DRM_COMMAND_BASE + DRM_LIMA_GEM_SUBMIT, union drm_lima_gem_submit)
-+#define DRM_IOCTL_LIMA_WAIT_FENCE DRM_IOWR(DRM_COMMAND_BASE + DRM_LIMA_WAIT_FENCE, struct drm_lima_wait_fence)
++#define DRM_IOCTL_LIMA_GEM_SUBMIT DRM_IOW(DRM_COMMAND_BASE + DRM_LIMA_GEM_SUBMIT, struct drm_lima_gem_submit)
 +#define DRM_IOCTL_LIMA_GEM_WAIT DRM_IOW(DRM_COMMAND_BASE + DRM_LIMA_GEM_WAIT, struct drm_lima_gem_wait)
 +#define DRM_IOCTL_LIMA_CTX DRM_IOWR(DRM_COMMAND_BASE + DRM_LIMA_CTX, struct drm_lima_ctx)
-+#define DRM_IOCTL_LIMA_GEM_MOD DRM_IOWR(DRM_COMMAND_BASE + DRM_LIMA_GEM_MOD, struct drm_lima_gem_mod)
 +
 +#if defined(__cplusplus)
 +}

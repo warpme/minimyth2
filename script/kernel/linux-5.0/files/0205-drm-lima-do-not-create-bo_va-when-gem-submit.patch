@@ -1,0 +1,76 @@
+From 1f79fb1665f2bc5ca2020282cc6382e949c55384 Mon Sep 17 00:00:00 2001
+From: Qiang Yu <yuq825@gmail.com>
+Date: Mon, 25 Feb 2019 20:53:38 +0800
+Subject: [PATCH 5/5] drm/lima: do not create bo_va when gem submit
+
+Signed-off-by: Qiang Yu <yuq825@gmail.com>
+---
+ drivers/gpu/drm/lima/lima_gem.c | 4 ++--
+ drivers/gpu/drm/lima/lima_vm.c  | 8 +++++++-
+ drivers/gpu/drm/lima/lima_vm.h  | 2 +-
+ 3 files changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/gpu/drm/lima/lima_gem.c b/drivers/gpu/drm/lima/lima_gem.c
+index 7d39dde..6669603 100644
+--- a/drivers/gpu/drm/lima/lima_gem.c
++++ b/drivers/gpu/drm/lima/lima_gem.c
+@@ -50,7 +50,7 @@ int lima_gem_object_open(struct drm_gem_object *obj, struct drm_file *file)
+ 	struct lima_drm_priv *priv = to_lima_drm_priv(file);
+ 	struct lima_vm *vm = priv->vm;
+ 
+-	return lima_vm_bo_add(vm, bo);
++	return lima_vm_bo_add(vm, bo, true);
+ }
+ 
+ void lima_gem_object_close(struct drm_gem_object *obj, struct drm_file *file)
+@@ -289,7 +289,7 @@ int lima_gem_submit(struct drm_file *file, struct lima_submit *submit)
+ 
+ 		/* increase refcnt of gpu va map to prevent unmapped when executing,
+ 		 * will be decreased when task done */
+-		err = lima_vm_bo_add(vm, bo);
++		err = lima_vm_bo_add(vm, bo, false);
+ 		if (err) {
+ 			drm_gem_object_put_unlocked(obj);
+ 			goto err_out0;
+diff --git a/drivers/gpu/drm/lima/lima_vm.c b/drivers/gpu/drm/lima/lima_vm.c
+index 7e29ebb..39eba3f 100644
+--- a/drivers/gpu/drm/lima/lima_vm.c
++++ b/drivers/gpu/drm/lima/lima_vm.c
+@@ -97,7 +97,7 @@ lima_vm_bo_find(struct lima_vm *vm, struct lima_bo *bo)
+ 	return ret;
+ }
+ 
+-int lima_vm_bo_add(struct lima_vm *vm, struct lima_bo *bo)
++int lima_vm_bo_add(struct lima_vm *vm, struct lima_bo *bo, bool create)
+ {
+ 	struct lima_bo_va *bo_va;
+ 	int err;
+@@ -111,6 +111,12 @@ int lima_vm_bo_add(struct lima_vm *vm, struct lima_bo *bo)
+ 		return 0;
+ 	}
+ 
++	/* should not create new bo_va if not asked by caller */
++	if (!create) {
++		mutex_unlock(&bo->lock);
++		return -ENOENT;
++	}
++
+ 	bo_va = kzalloc(sizeof(*bo_va), GFP_KERNEL);
+ 	if (!bo_va) {
+ 		err = -ENOMEM;
+diff --git a/drivers/gpu/drm/lima/lima_vm.h b/drivers/gpu/drm/lima/lima_vm.h
+index ed01f0e..a135e2f 100644
+--- a/drivers/gpu/drm/lima/lima_vm.h
++++ b/drivers/gpu/drm/lima/lima_vm.h
+@@ -38,7 +38,7 @@ struct lima_vm {
+ 	struct lima_vm_page bts[LIMA_VM_NUM_BT];
+ };
+ 
+-int lima_vm_bo_add(struct lima_vm *vm, struct lima_bo *bo);
++int lima_vm_bo_add(struct lima_vm *vm, struct lima_bo *bo, bool create);
+ void lima_vm_bo_del(struct lima_vm *vm, struct lima_bo *bo);
+ 
+ u32 lima_vm_get_va(struct lima_vm *vm, struct lima_bo *bo);
+-- 
+2.7.1
+
