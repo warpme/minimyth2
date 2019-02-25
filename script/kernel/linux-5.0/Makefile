@@ -18,12 +18,12 @@ CATEGORIES = kernel-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
 CONFIGFILE = linux-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)-$(GARCH_FAMILY)-$(GARCH).config
 
 
-PATCHFILES  = linux-5.0-rc7.patch.gar
-PATCHFILES += linux-5.0-rc7-perl.patch.gar
-PATCHFILES += linux-5.0-rc7-disable_dma_for_cfa.patch
-PATCHFILES += linux-5.0-rc7-defaults.patch
-PATCHFILES += linux-5.0-rc7-vgaarb-add-3D-accell-detection.patch
-PATCHFILES += linux-5.0-rc7-net-smsc95xx-allow-mac-address-as-param.patch
+PATCHFILES  = linux-5.0.patch.gar
+PATCHFILES += linux-5.0-perl.patch.gar
+PATCHFILES += linux-5.0-disable_dma_for_cfa.patch
+PATCHFILES += linux-5.0-defaults.patch
+PATCHFILES += linux-5.0-vgaarb-add-3D-accell-detection.patch
+PATCHFILES += linux-5.0-net-smsc95xx-allow-mac-address-as-param.patch
 
 # Patches for Amlogic video decoder
 ifeq (1,1)
