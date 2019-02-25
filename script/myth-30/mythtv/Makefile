@@ -80,9 +80,6 @@ PATCHFILES += 0215-enable-opengl-GLES.patch
 
 PATCHFILES += 0217-Configure-force-OpenMAX-when-asked.patch
 
-# Without this patch there are sometimes pixelizations at playback skip ffwd/back
-PATCHFILES += 0218-revert-7a74d6a-6baa24f-AVsync2-optimizations.patch
-
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
 PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
