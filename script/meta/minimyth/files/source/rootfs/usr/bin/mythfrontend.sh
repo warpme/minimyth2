@@ -1,7 +1,10 @@
 
-if [ x$1 = "xeglfs" ]; then
+
+if [ x$1 = "xeglfs" ] || [ x$2 = "xeglfs" ]; then
+    echo "Runing myth in EGLFS"
     QT_QPA_PLATFORM=eglfs
 else
+    echo "Runing myth in XCB"
     QT_QPA_PLATFORM=xcb
 fi
 
@@ -13,7 +16,13 @@ export QT_QPA_PLATFORM
 export QT_PLUGIN_PATH
 export QT_LOGGING_RULES=qt.qpa.*=true
 
-su minimyth -c "/usr/bin/mythfrontend --verbose gui,libav,playback,audio --loglevel=debug --syslog none --logpath /tmp/"
+if [ x$1 = "xgdb" ] || [ x$2 = "xgdb" ]; then
+    echo "Runing myth under gdb"
+    su minimyth -c "/usr/bin/gdb /usr/bin/mythfrontend -x /etc/gdb.commands"
+else
+    su minimyth -c "/usr/bin/mythfrontend --verbose gui,libav,playback,audio --loglevel=debug --syslog none --logpath /tmp/"
+fi
+
 
 # all             - ALL available debug output
 # audio           - Audio related messages
