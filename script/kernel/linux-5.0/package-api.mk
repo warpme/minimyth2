@@ -3,7 +3,7 @@
 LINUX_MAJOR_VERSION = 5
 LINUX_MINOR_VERSION = 0
 LINUX_TEENY_VERSION = 
-LINUX_EXTRA_VERSION = -rc7
+LINUX_EXTRA_VERSION = -rc8
 #-------------------------------------------
 
 #--Use this for mainline git-commit kernel--

@@ -58,8 +58,8 @@ ifeq (1,1)
 PATCHFILES += 0201-drm-Add-reservation_object-to-drm_gem_object.patch
 PATCHFILES += 0202-drm-export-drm_timeout_abs_to_jiffies.patch
 PATCHFILES += 0203-drm-lima-driver-for-ARM-Mali4xx-GPUs.patch
-PATCHFILES += 0204-drm-lima-get-gem-obj-in-sched-task-init.patch
-PATCHFILES += 0205-drm-lima-do-not-create-bo_va-when-gem-submit.patch
+PATCHFILES += 0204-drm-lima-fix-linux-build-robot-comments.patch
+PATCHFILES += 0205-drm-lima-restrict-lima-to-tested-arch.patch
 endif
 
 # Patches for Amlogic audio support

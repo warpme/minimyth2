@@ -1,0 +1,98 @@
+From 701e0d07c57b534e4db50047db30415390e329ea Mon Sep 17 00:00:00 2001
+From: Qiang Yu <yuq825@gmail.com>
+Date: Tue, 26 Feb 2019 21:33:37 +0800
+Subject: [PATCH 4/5] drm/lima: fix linux build robot comments
+
+Signed-off-by: Qiang Yu <yuq825@gmail.com>
+---
+ drivers/gpu/drm/lima/lima_device.c |  2 +-
+ drivers/gpu/drm/lima/lima_object.c |  8 ++------
+ drivers/gpu/drm/lima/lima_sched.c  | 17 ++++++-----------
+ 3 files changed, 9 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/gpu/drm/lima/lima_device.c b/drivers/gpu/drm/lima/lima_device.c
+index 771642a..2e137a0 100644
+--- a/drivers/gpu/drm/lima/lima_device.c
++++ b/drivers/gpu/drm/lima/lima_device.c
+@@ -140,7 +140,7 @@ static int lima_regulator_init(struct lima_device *dev)
+ 		dev->regulator = NULL;
+ 		if (ret == -ENODEV)
+ 			return 0;
+-		dev_err(dev->dev, "failed to get regulator: %ld\n", PTR_ERR(dev->regulator));
++		dev_err(dev->dev, "failed to get regulator: %d\n", ret);
+ 		return ret;
+ 	}
+ 
+diff --git a/drivers/gpu/drm/lima/lima_object.c b/drivers/gpu/drm/lima/lima_object.c
+index 4113881..28ff1b8 100644
+--- a/drivers/gpu/drm/lima/lima_object.c
++++ b/drivers/gpu/drm/lima/lima_object.c
+@@ -10,9 +10,7 @@
+ void lima_bo_destroy(struct lima_bo *bo)
+ {
+         if (bo->sgt) {
+-		if (bo->pages)
+-			kfree(bo->pages);
+-
++		kfree(bo->pages);
+ 		drm_prime_gem_destroy(&bo->gem, bo->sgt);
+ 	}
+ 	else {
+@@ -31,9 +29,7 @@ void lima_bo_destroy(struct lima_bo *bo)
+ 			drm_gem_put_pages(&bo->gem, bo->pages, true, true);
+ 	}
+ 
+-	if (bo->pages_dma_addr)
+-		kfree(bo->pages_dma_addr);
+-
++	kfree(bo->pages_dma_addr);
+ 	drm_gem_object_release(&bo->gem);
+ 	kfree(bo);
+ }
+diff --git a/drivers/gpu/drm/lima/lima_sched.c b/drivers/gpu/drm/lima/lima_sched.c
+index c20c91a..539b29c 100644
+--- a/drivers/gpu/drm/lima/lima_sched.c
++++ b/drivers/gpu/drm/lima/lima_sched.c
+@@ -31,8 +31,7 @@ int lima_sched_slab_init(void)
+ 
+ void lima_sched_slab_fini(void)
+ {
+-	if (lima_fence_slab)
+-		kmem_cache_destroy(lima_fence_slab);
++	kmem_cache_destroy(lima_fence_slab);
+ }
+ 
+ static inline struct lima_fence *to_lima_fence(struct dma_fence *fence)
+@@ -112,10 +111,9 @@ int lima_sched_task_init(struct lima_sched_task *task,
+ {
+ 	int err, i;
+ 
+-	task->bos = kmalloc(sizeof(*bos) * num_bos, GFP_KERNEL);
++	task->bos = kmemdup(bos, sizeof(*bos) * num_bos, GFP_KERNEL);
+ 	if (!task->bos)
+-		return -ENOMEM;
+-	memcpy(task->bos, bos, sizeof(*bos) * num_bos);
++		return -ENOMEM;	
+ 
+ 	for (i = 0; i < num_bos; i++)
+ 		drm_gem_object_get(&bos[i]->gem);
+@@ -137,13 +135,10 @@ void lima_sched_task_fini(struct lima_sched_task *task)
+ 
+ 	drm_sched_job_cleanup(&task->base);
+ 
+-	for (i = 0; i < task->num_dep; i++) {
+-		if (task->dep[i])
+-			dma_fence_put(task->dep[i]);
+-	}
++	for (i = 0; i < task->num_dep; i++)
++		dma_fence_put(task->dep[i]);
+ 
+-	if (task->dep)
+-		kfree(task->dep);
++	kfree(task->dep);
+ 
+ 	if (task->bos) {
+ 		for (i = 0; i < task->num_bos; i++)
+-- 
+2.7.1
+
