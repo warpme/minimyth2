@@ -1,0 +1,227 @@
+diff -Naur NVIDIA-Linux-x86_64-340.107-old/kernel/conftest.sh NVIDIA-Linux-x86_64-340.107-new/kernel/conftest.sh
+--- NVIDIA-Linux-x86_64-340.107-old/kernel/conftest.sh	2018-05-25 06:16:20.000000000 +0200
++++ NVIDIA-Linux-x86_64-340.107-new/kernel/conftest.sh	2019-03-03 17:57:36.570000000 +0100
+@@ -168,6 +168,7 @@
+     FILES="$FILES linux/sched/task.h"
+     FILES="$FILES xen/ioemu.h"
+     FILES="$FILES linux/fence.h"
++    FILES="$FILES linux/ktime.h"
+ 
+     FILES_ARCH="$FILES_ARCH asm/set_memory.h"
+ 
+@@ -1971,6 +1972,38 @@
+             compile_check_conftest "$CODE" "NV_DRM_DRIVER_UNLOAD_HAS_INT_RETURN_TYPE" "" "types"
+         ;;
+ 
++        drm_gem_object_get)
++            #
++            # Determine if the function drm_gem_object_get() is present.
++            #
++            CODE="
++            #include <drm/drmP.h>
++            #if defined(NV_DRM_DRM_GEM_H_PRESENT)
++            #include <drm/drm_gem.h>
++            #endif
++            void conftest_drm_gem_object_get(void) {
++                drm_gem_object_get();
++            }"
++
++            compile_check_conftest "$CODE" "NV_DRM_GEM_OBJECT_GET_PRESENT" "" "functions"
++        ;;
++
++        do_gettimeofday)
++            #
++            # Determine if the function do_gettimeofday() is present.
++            #
++            CODE="
++            #include <linux/time.h>
++            #if defined(NV_LINUX_KTIME_H_PRESENT)
++            #include <linux/ktime.h>
++            #endif
++            void conftest_do_gettimeofday(void) {
++                do_gettimeofday();
++            }"
++
++            compile_check_conftest "$CODE" "NV_DO_GETTIMEOFDAY_PRESENT" "" "functions"
++        ;;
++
+         drm_legacy_pci_init)
+             #
+             # Determine if drm_legacy_pci_init() is present. drm_pci_init() was
+diff -Naur NVIDIA-Linux-x86_64-340.107-old/kernel/Makefile NVIDIA-Linux-x86_64-340.107-new/kernel/Makefile
+--- NVIDIA-Linux-x86_64-340.107-old/kernel/Makefile	2018-05-25 06:16:20.000000000 +0200
++++ NVIDIA-Linux-x86_64-340.107-new/kernel/Makefile	2019-03-03 17:58:31.010000001 +0100
+@@ -147,6 +147,8 @@
+ 	vm_fault_present \
+ 	vm_fault_has_address \
+ 	drm_driver_unload_has_int_return_type \
++	drm_gem_object_get \
++	do_gettimeofday \
+ 	drm_legacy_pci_init \
+ 	timer_setup
+ #
+diff -Naur NVIDIA-Linux-x86_64-340.107-old/kernel/nv-drm.c NVIDIA-Linux-x86_64-340.107-new/kernel/nv-drm.c
+--- NVIDIA-Linux-x86_64-340.107-old/kernel/nv-drm.c	2018-05-25 06:16:20.000000000 +0200
++++ NVIDIA-Linux-x86_64-340.107-new/kernel/nv-drm.c	2019-03-03 17:57:36.570000000 +0100
+@@ -37,6 +37,16 @@
+     struct page **pages;
+ };
+ 
++static inline void
++nv_drm_gem_object_unreference_unlocked(struct nv_gem_object *nv_gem)
++{
++#if defined(NV_DRM_GEM_OBJECT_GET_PRESENT)
++    drm_gem_object_put_unlocked(&nv_gem->base);
++#else
++    drm_gem_object_unreference_unlocked(&nv_gem->base);
++#endif
++}
++
+ static int nv_drm_load(
+     struct drm_device *dev,
+     unsigned long flags
+@@ -252,7 +262,7 @@
+         goto done;
+     }
+ 
+-    drm_gem_object_unreference_unlocked(&nv_obj->base);
++    nv_drm_gem_object_unreference_unlocked(nv_obj);
+ 
+     status = RM_OK;
+ 
+diff -Naur NVIDIA-Linux-x86_64-340.107-old/kernel/nv-time.h NVIDIA-Linux-x86_64-340.107-new/kernel/nv-time.h
+--- NVIDIA-Linux-x86_64-340.107-old/kernel/nv-time.h	1970-01-01 01:00:00.000000000 +0100
++++ NVIDIA-Linux-x86_64-340.107-new/kernel/nv-time.h	2019-03-03 17:57:36.570000000 +0100
+@@ -0,0 +1,24 @@
++#ifndef __NV_TIME_H__
++#define __NV_TIME_H__
++
++#include "conftest.h"
++#include <linux/time.h>
++
++#if defined(NV_LINUX_KTIME_H_PRESENT)
++#include <linux/ktime.h>
++#endif
++
++static inline void nv_gettimeofday(struct timeval *tv)
++{
++#ifdef NV_DO_GETTIMEOFDAY_PRESENT
++    do_gettimeofday(tv);
++#else
++    struct timespec64 now;
++
++    ktime_get_real_ts64(&now);
++    tv->tv_sec = now.tv_sec;
++    tv->tv_usec = now.tv_nsec/1000;
++#endif
++}
++
++#endif
+diff -Naur NVIDIA-Linux-x86_64-340.107-old/kernel/os-interface.c NVIDIA-Linux-x86_64-340.107-new/kernel/os-interface.c
+--- NVIDIA-Linux-x86_64-340.107-old/kernel/os-interface.c	2018-05-25 06:16:20.000000000 +0200
++++ NVIDIA-Linux-x86_64-340.107-new/kernel/os-interface.c	2019-03-03 17:57:36.570000000 +0100
+@@ -13,6 +13,7 @@
+ 
+ #include "os-interface.h"
+ #include "nv-linux.h"
++#include "nv-time.h"
+ 
+ RM_STATUS NV_API_CALL os_disable_console_access(void)
+ {
+@@ -440,7 +441,7 @@
+ {
+     struct timeval tm;
+ 
+-    do_gettimeofday(&tm);
++    nv_gettimeofday(&tm);
+ 
+     *seconds = tm.tv_sec;
+     *useconds = tm.tv_usec;
+@@ -475,7 +476,7 @@
+ #ifdef NV_CHECK_DELAY_ACCURACY
+     struct timeval tm1, tm2;
+ 
+-    do_gettimeofday(&tm1);
++    nv_gettimeofday(&tm1);
+ #endif
+ 
+     if (in_irq() && (MicroSeconds > NV_MAX_ISR_DELAY_US))
+@@ -490,7 +491,7 @@
+         udelay(usec);
+ 
+ #ifdef NV_CHECK_DELAY_ACCURACY
+-    do_gettimeofday(&tm2);
++    nv_gettimeofday(&tm2);
+     nv_printf(NV_DBG_ERRORS, "NVRM: osDelayUs %d: 0x%x 0x%x\n",
+         MicroSeconds, tm2.tv_sec - tm1.tv_sec, tm2.tv_usec - tm1.tv_usec);
+ #endif
+@@ -518,7 +519,7 @@
+     struct timeval tm_start;
+ #endif
+ 
+-    do_gettimeofday(&tm_aux);
++    nv_gettimeofday(&tm_aux);
+ #ifdef NV_CHECK_DELAY_ACCURACY
+     tm_start = tm_aux;
+ #endif
+@@ -552,7 +553,7 @@
+         do
+         {
+             schedule_timeout(jiffies);
+-            do_gettimeofday(&tm_aux);
++            nv_gettimeofday(&tm_aux);
+             if (NV_TIMERCMP(&tm_aux, &tm_end, <))
+             {
+                 NV_TIMERSUB(&tm_end, &tm_aux, &tm_aux);
+@@ -574,7 +575,7 @@
+         udelay(MicroSeconds);
+     }
+ #ifdef NV_CHECK_DELAY_ACCURACY
+-    do_gettimeofday(&tm_aux);
++    nv_gettimeofday(&tm_aux);
+     timersub(&tm_aux, &tm_start, &tm_aux);
+     nv_printf(NV_DBG_ERRORS, "NVRM: osDelay %dmsec: %d.%06dsec\n",
+         MilliSeconds, tm_aux.tv_sec, tm_aux.tv_usec);
+diff -Naur NVIDIA-Linux-x86_64-340.107-old/kernel/uvm/Makefile NVIDIA-Linux-x86_64-340.107-new/kernel/uvm/Makefile
+--- NVIDIA-Linux-x86_64-340.107-old/kernel/uvm/Makefile	2018-05-25 06:16:20.000000000 +0200
++++ NVIDIA-Linux-x86_64-340.107-new/kernel/uvm/Makefile	2019-03-03 17:59:02.739999975 +0100
+@@ -171,6 +171,7 @@
+ 	kbasename \
+ 	fatal_signal_pending \
+ 	kuid_t \
++	do_gettimeofday \
+ 	vm_fault_has_address
+ 
+ MODULE_NAME:= nvidia-uvm
+diff -Naur NVIDIA-Linux-x86_64-340.107-old/kernel/uvm/nvidia_uvm_linux.h NVIDIA-Linux-x86_64-340.107-new/kernel/uvm/nvidia_uvm_linux.h
+--- NVIDIA-Linux-x86_64-340.107-old/kernel/uvm/nvidia_uvm_linux.h	2018-05-25 06:16:20.000000000 +0200
++++ NVIDIA-Linux-x86_64-340.107-new/kernel/uvm/nvidia_uvm_linux.h	2019-03-03 17:57:36.570000000 +0100
+@@ -146,6 +146,7 @@
+ #include <linux/interrupt.h>        /* tasklets, interrupt helpers      */
+ #include <linux/timer.h>
+ #include <linux/time.h>             /* do_gettimeofday()*/
++#include "nv-time.h"
+ 
+ #include <asm/div64.h>              /* do_div()                         */
+ #if defined(NV_ASM_SYSTEM_H_PRESENT)
+diff -Naur NVIDIA-Linux-x86_64-340.107-old/kernel/uvm/nvidia_uvm_lite.c NVIDIA-Linux-x86_64-340.107-new/kernel/uvm/nvidia_uvm_lite.c
+--- NVIDIA-Linux-x86_64-340.107-old/kernel/uvm/nvidia_uvm_lite.c	2018-05-25 06:16:20.000000000 +0200
++++ NVIDIA-Linux-x86_64-340.107-new/kernel/uvm/nvidia_uvm_lite.c	2019-03-03 17:57:36.570000000 +0100
+@@ -2008,7 +2008,7 @@
+     {
+         if (!!(rmInterruptSet) && !bEccIncomingError)
+         {
+-            do_gettimeofday(&eccErrorStartTime);
++            nv_gettimeofday(&eccErrorStartTime);
+             _set_timeout_in_usec(&eccErrorStartTime, &eccTimeout,
+                                  UVM_ECC_ERR_TIMEOUT_USEC);
+ 
+@@ -2040,7 +2040,7 @@
+         //
+         if (!!(rmInterruptSet) && (eccErrorStartTime.tv_usec != 0))
+         {
+-            do_gettimeofday(&eccErrorCurrentTime);
++            nv_gettimeofday(&eccErrorCurrentTime);
+             if ((eccErrorCurrentTime.tv_sec > eccTimeout.tv_sec) ||
+                 ((eccErrorCurrentTime.tv_sec == eccTimeout.tv_sec) &&
+                 (eccErrorCurrentTime.tv_usec >= eccTimeout.tv_usec)))
