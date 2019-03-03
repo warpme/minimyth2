@@ -104,5 +104,8 @@ MM_ROOTFS_IMAGE="${initrd}"
 # /bin/echo "real init: update /etc/mtab ..."
 ln -sf /proc/self/mounts /etc/mtab > /dev/null
 
+# Myth expects rtcx as /dev/rtc
+ln -sf /dev/rtc0 /dev/rtc > /dev/null
+
 # /bin/echo "real init: done! (exit code 0) ..."
 exit 0
