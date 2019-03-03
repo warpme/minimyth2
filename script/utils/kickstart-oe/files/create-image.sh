@@ -15,9 +15,14 @@ branch=` grep "^mm_MYTH_VERSION "     ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 version=`grep "^mm_VERSION_MINIMYTH " ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 arch=`   grep "^mm_GARCH "            ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 mm_home=`grep "^mm_HOME "             ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
+mm_debug=`grep "^mm_DEBUG "           ${mm_conf_file} | sed -e 's/.*\?=*\s//' -e 's/"//g'`
 
 base_dir=${mm_home}/images/build/usr/bin/kickstart
-mm_build_dir=${mm_home}/script/meta/minimyth/work/main.d/minimyth-${branch}-${version}/build
+if [ x${mm_debug} = "xyes" ] ; then
+    mm_build_dir=${mm_home}/script/meta/minimyth/work/main.d/minimyth-${branch}-${version}-debug/build
+else
+    mm_build_dir=${mm_home}/script/meta/minimyth/work/main.d/minimyth-${branch}-${version}/build
+fi
 root_files_loc=${mm_build_dir}/stage/image/rootfs
 boot_files_loc=${mm_build_dir}/stage/boot
 
