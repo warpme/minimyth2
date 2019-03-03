@@ -1,8 +1,8 @@
 GARNAME = eudev
-GARVERSION = 3.2.2
+GARVERSION = 3.2.7
 CATEGORIES = system
-MASTER_SITES = https://codeload.github.com/gentoo/eudev/tar.gz/eudev-3.2.2/
-DISTFILES = $(DISTNAME).tar.gz
+MASTER_SITES = https://github.com/gentoo/eudev/archive/
+DISTFILES = v$(GARVERSION).tar.gz
 LICENSE = GPL2
 
 DESCRIPTION =
