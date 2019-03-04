@@ -1,7 +1,7 @@
-From 377e417657661b958cc594443b65fca5a2aee459 Mon Sep 17 00:00:00 2001
+From 9f78f6a4fdbf6dd3f0214083e6427f3a3beea2f1 Mon Sep 17 00:00:00 2001
 From: Qiang Yu <yuq825@gmail.com>
 Date: Mon, 14 May 2018 20:53:38 +0800
-Subject: [PATCH 3/5] drm/lima: driver for ARM Mali4xx GPUs
+Subject: [PATCH 3/9] drm/lima: driver for ARM Mali4xx GPUs
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -37,6 +37,10 @@ Content-Transfer-Encoding: 8bit
   from different user. drm_sched gets task from each lima context
   in a fair way.
 
+v3:
+- fix comments from kbuild robot
+- restrict supported arch to tested ones
+
 v2:
 - fix syscall argument check
 - fix job finish fence leak since kernel 5.0
@@ -66,7 +70,7 @@ Signed-off-by: Qiang Yu <yuq825@gmail.com>
 ---
  drivers/gpu/drm/Kconfig               |   2 +
  drivers/gpu/drm/Makefile              |   1 +
- drivers/gpu/drm/lima/Kconfig          |   9 +
+ drivers/gpu/drm/lima/Kconfig          |  10 +
  drivers/gpu/drm/lima/Makefile         |  21 ++
  drivers/gpu/drm/lima/lima_bcast.c     |  46 ++++
  drivers/gpu/drm/lima/lima_bcast.h     |  14 ++
@@ -88,19 +92,19 @@ Signed-off-by: Qiang Yu <yuq825@gmail.com>
  drivers/gpu/drm/lima/lima_l2_cache.h  |  14 ++
  drivers/gpu/drm/lima/lima_mmu.c       | 142 ++++++++++++
  drivers/gpu/drm/lima/lima_mmu.h       |  16 ++
- drivers/gpu/drm/lima/lima_object.c    | 128 ++++++++++
+ drivers/gpu/drm/lima/lima_object.c    | 124 ++++++++++
  drivers/gpu/drm/lima/lima_object.h    |  36 +++
  drivers/gpu/drm/lima/lima_pmu.c       |  59 +++++
  drivers/gpu/drm/lima/lima_pmu.h       |  12 +
  drivers/gpu/drm/lima/lima_pp.c        | 423 ++++++++++++++++++++++++++++++++++
  drivers/gpu/drm/lima/lima_pp.h        |  19 ++
  drivers/gpu/drm/lima/lima_regs.h      | 298 ++++++++++++++++++++++++
- drivers/gpu/drm/lima/lima_sched.c     | 403 ++++++++++++++++++++++++++++++++
+ drivers/gpu/drm/lima/lima_sched.c     | 398 ++++++++++++++++++++++++++++++++
  drivers/gpu/drm/lima/lima_sched.h     | 104 +++++++++
  drivers/gpu/drm/lima/lima_vm.c        | 280 ++++++++++++++++++++++
  drivers/gpu/drm/lima/lima_vm.h        |  62 +++++
  include/uapi/drm/lima_drm.h           | 126 ++++++++++
- 36 files changed, 4170 insertions(+)
+ 36 files changed, 4162 insertions(+)
  create mode 100644 drivers/gpu/drm/lima/Kconfig
  create mode 100644 drivers/gpu/drm/lima/Makefile
  create mode 100644 drivers/gpu/drm/lima/lima_bcast.c
@@ -160,16 +164,17 @@ index ce8d1d3..8d024b7 100644
 +obj-$(CONFIG_DRM_LIMA)  += lima/
 diff --git a/drivers/gpu/drm/lima/Kconfig b/drivers/gpu/drm/lima/Kconfig
 new file mode 100644
-index 0000000..7cf061c
+index 0000000..260a3b4
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/Kconfig
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,10 @@
 +# SPDX-License-Identifier: GPL-2.0 OR MIT
 +# Copyright 2017-2018 Qiang Yu <yuq825@gmail.com>
 +
 +config DRM_LIMA
 +       tristate "LIMA (DRM support for ARM Mali 400/450 GPU)"
 +       depends on DRM
++       depends on ARM || ARM64 || COMPILE_TEST
 +       select DRM_SCHED
 +       help
 +         DRM driver for ARM Mali 400/450 GPUs.
@@ -421,7 +426,7 @@ index 0000000..2d32ff9
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_device.c b/drivers/gpu/drm/lima/lima_device.c
 new file mode 100644
-index 0000000..771642a
+index 0000000..2e137a0
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_device.c
 @@ -0,0 +1,376 @@
@@ -567,7 +572,7 @@ index 0000000..771642a
 +		dev->regulator = NULL;
 +		if (ret == -ENODEV)
 +			return 0;
-+		dev_err(dev->dev, "failed to get regulator: %ld\n", PTR_ERR(dev->regulator));
++		dev_err(dev->dev, "failed to get regulator: %d\n", ret);
 +		return ret;
 +	}
 +
@@ -2509,10 +2514,10 @@ index 0000000..ca173b6
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_object.c b/drivers/gpu/drm/lima/lima_object.c
 new file mode 100644
-index 0000000..4113881
+index 0000000..28ff1b8
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_object.c
-@@ -0,0 +1,128 @@
+@@ -0,0 +1,124 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -2525,9 +2530,7 @@ index 0000000..4113881
 +void lima_bo_destroy(struct lima_bo *bo)
 +{
 +        if (bo->sgt) {
-+		if (bo->pages)
-+			kfree(bo->pages);
-+
++		kfree(bo->pages);
 +		drm_prime_gem_destroy(&bo->gem, bo->sgt);
 +	}
 +	else {
@@ -2546,9 +2549,7 @@ index 0000000..4113881
 +			drm_gem_put_pages(&bo->gem, bo->pages, true, true);
 +	}
 +
-+	if (bo->pages_dma_addr)
-+		kfree(bo->pages_dma_addr);
-+
++	kfree(bo->pages_dma_addr);
 +	drm_gem_object_release(&bo->gem);
 +	kfree(bo);
 +}
@@ -3526,10 +3527,10 @@ index 0000000..d5ade8f
 +#endif
 diff --git a/drivers/gpu/drm/lima/lima_sched.c b/drivers/gpu/drm/lima/lima_sched.c
 new file mode 100644
-index 0000000..c20c91a
+index 0000000..539b29c
 --- /dev/null
 +++ b/drivers/gpu/drm/lima/lima_sched.c
-@@ -0,0 +1,403 @@
+@@ -0,0 +1,398 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
 +
@@ -3563,8 +3564,7 @@ index 0000000..c20c91a
 +
 +void lima_sched_slab_fini(void)
 +{
-+	if (lima_fence_slab)
-+		kmem_cache_destroy(lima_fence_slab);
++	kmem_cache_destroy(lima_fence_slab);
 +}
 +
 +static inline struct lima_fence *to_lima_fence(struct dma_fence *fence)
@@ -3644,10 +3644,9 @@ index 0000000..c20c91a
 +{
 +	int err, i;
 +
-+	task->bos = kmalloc(sizeof(*bos) * num_bos, GFP_KERNEL);
++	task->bos = kmemdup(bos, sizeof(*bos) * num_bos, GFP_KERNEL);
 +	if (!task->bos)
-+		return -ENOMEM;
-+	memcpy(task->bos, bos, sizeof(*bos) * num_bos);
++		return -ENOMEM;	
 +
 +	for (i = 0; i < num_bos; i++)
 +		drm_gem_object_get(&bos[i]->gem);
@@ -3669,13 +3668,10 @@ index 0000000..c20c91a
 +
 +	drm_sched_job_cleanup(&task->base);
 +
-+	for (i = 0; i < task->num_dep; i++) {
-+		if (task->dep[i])
-+			dma_fence_put(task->dep[i]);
-+	}
++	for (i = 0; i < task->num_dep; i++)
++		dma_fence_put(task->dep[i]);
 +
-+	if (task->dep)
-+		kfree(task->dep);
++	kfree(task->dep);
 +
 +	if (task->bos) {
 +		for (i = 0; i < task->num_bos; i++)
