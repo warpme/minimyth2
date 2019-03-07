@@ -55,10 +55,6 @@ PATCHFILES += 0214-minimyth-defaults.patch
 # Reverting this fixes issue with only 3 entries in mainmenu on MythmediaStream theme
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
-PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
-PATCHFILES += 0215-enable-opengl-GLES.patch
-PATCHFILES += 0217-Configure-force-OpenMAX-when-asked.patch
-
 # Needed to successfully applying 0235 & 0236
 PATCHFILES += 0218-decrease-minQt-ver-to-4.8.patch
 
