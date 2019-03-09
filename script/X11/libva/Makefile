@@ -1,5 +1,5 @@
 GARNAME = libva
-GARVERSION = 2.3.0
+GARVERSION = 2.4.0
 CATEGORIES = X11
 MASTER_SITES = https://github.com/01org/libva/releases/download/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
