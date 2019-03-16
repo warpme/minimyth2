@@ -1,0 +1,426 @@
+From e3098c16ed524756c32559f8cc88c1a4fdd9e9fc Mon Sep 17 00:00:00 2001
+From: Andrey Grodzovsky <andrey.grodzovsky@amd.com>
+Date: Tue, 4 Dec 2018 16:56:14 -0500
+Subject: [PATCH 3/5] drm/sched: Refactor ring mirror list handling.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Decauple sched threads stop and start and ring mirror
+list handling from the policy of what to do about the
+guilty jobs.
+When stoppping the sched thread and detaching sched fences
+from non signaled HW fenes wait for all signaled HW fences
+to complete before rerunning the jobs.
+
+v2: Fix resubmission of guilty job into HW after refactoring.
+
+v4:
+Full restart for all the jobs, not only from guilty ring.
+Extract karma increase into standalone function.
+
+v5:
+Rework waiting for signaled jobs without relying on the job
+struct itself as those might already be freed for non 'guilty'
+job's schedulers.
+Expose karma increase to drivers.
+
+v6:
+Use list_for_each_entry_safe_continue and drm_sched_process_job
+in case fence already signaled.
+Call drm_sched_increase_karma only once for amdgpu and add documentation.
+
+v7:
+Wait only for the latest job's fence.
+
+Suggested-by: Christian Koenig <Christian.Koenig@amd.com>
+Signed-off-by: Andrey Grodzovsky <andrey.grodzovsky@amd.com>
+Reviewed-by: Christian König <christian.koenig@amd.com>
+Signed-off-by: Alex Deucher <alexander.deucher@amd.com>
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_device.c |  20 ++--
+ drivers/gpu/drm/etnaviv/etnaviv_sched.c    |  11 +-
+ drivers/gpu/drm/scheduler/sched_main.c     | 170 ++++++++++++++++++-----------
+ drivers/gpu/drm/v3d/v3d_sched.c            |  13 ++-
+ include/drm/gpu_scheduler.h                |   7 +-
+ 5 files changed, 131 insertions(+), 90 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
+index 7ff3a28..e8161d2 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_device.c
+@@ -3298,17 +3298,15 @@ static int amdgpu_device_pre_asic_reset(struct amdgpu_device *adev,
+ 		if (!ring || !ring->sched.thread)
+ 			continue;
+ 
+-		kthread_park(ring->sched.thread);
+-
+-		if (job && job->base.sched != &ring->sched)
+-			continue;
+-
+-		drm_sched_hw_job_reset(&ring->sched, job ? &job->base : NULL);
++		drm_sched_stop(&ring->sched);
+ 
+ 		/* after all hw jobs are reset, hw fence is meaningless, so force_completion */
+ 		amdgpu_fence_driver_force_completion(ring);
+ 	}
+ 
++	if(job)
++		drm_sched_increase_karma(&job->base);
++
+ 
+ 
+ 	if (!amdgpu_sriov_vf(adev)) {
+@@ -3454,14 +3452,10 @@ static void amdgpu_device_post_asic_reset(struct amdgpu_device *adev,
+ 		if (!ring || !ring->sched.thread)
+ 			continue;
+ 
+-		/* only need recovery sched of the given job's ring
+-		 * or all rings (in the case @job is NULL)
+-		 * after above amdgpu_reset accomplished
+-		 */
+-		if ((!job || job->base.sched == &ring->sched) && !adev->asic_reset_res)
+-			drm_sched_job_recovery(&ring->sched);
++		if (!adev->asic_reset_res)
++			drm_sched_resubmit_jobs(&ring->sched);
+ 
+-		kthread_unpark(ring->sched.thread);
++		drm_sched_start(&ring->sched, !adev->asic_reset_res);
+ 	}
+ 
+ 	if (!amdgpu_device_has_dc_support(adev)) {
+diff --git a/drivers/gpu/drm/etnaviv/etnaviv_sched.c b/drivers/gpu/drm/etnaviv/etnaviv_sched.c
+index 49a6763..67ae266 100644
+--- a/drivers/gpu/drm/etnaviv/etnaviv_sched.c
++++ b/drivers/gpu/drm/etnaviv/etnaviv_sched.c
+@@ -109,16 +109,19 @@ static void etnaviv_sched_timedout_job(struct drm_sched_job *sched_job)
+ 	}
+ 
+ 	/* block scheduler */
+-	kthread_park(gpu->sched.thread);
+-	drm_sched_hw_job_reset(&gpu->sched, sched_job);
++	drm_sched_stop(&gpu->sched);
++
++	if(sched_job)
++		drm_sched_increase_karma(sched_job);
+ 
+ 	/* get the GPU back into the init state */
+ 	etnaviv_core_dump(gpu);
+ 	etnaviv_gpu_recover_hang(gpu);
+ 
++	drm_sched_resubmit_jobs(&gpu->sched);
++
+ 	/* restart scheduler after GPU is usable again */
+-	drm_sched_job_recovery(&gpu->sched);
+-	kthread_unpark(gpu->sched.thread);
++	drm_sched_start(&gpu->sched, true);
+ }
+ 
+ static void etnaviv_sched_free_job(struct drm_sched_job *sched_job)
+diff --git a/drivers/gpu/drm/scheduler/sched_main.c b/drivers/gpu/drm/scheduler/sched_main.c
+index dbb6906..4bb1851 100644
+--- a/drivers/gpu/drm/scheduler/sched_main.c
++++ b/drivers/gpu/drm/scheduler/sched_main.c
+@@ -60,8 +60,6 @@
+ 
+ static void drm_sched_process_job(struct dma_fence *f, struct dma_fence_cb *cb);
+ 
+-static void drm_sched_expel_job_unlocked(struct drm_sched_job *s_job);
+-
+ /**
+  * drm_sched_rq_init - initialize a given run queue struct
+  *
+@@ -335,6 +333,51 @@ static void drm_sched_job_timedout(struct work_struct *work)
+ 	spin_unlock_irqrestore(&sched->job_list_lock, flags);
+ }
+ 
++ /**
++  * drm_sched_increase_karma - Update sched_entity guilty flag
++  *
++  * @bad: The job guilty of time out
++  *
++  * Increment on every hang caused by the 'bad' job. If this exceeds the hang
++  * limit of the scheduler then the respective sched entity is marked guilty and
++  * jobs from it will not be scheduled further
++  */
++void drm_sched_increase_karma(struct drm_sched_job *bad)
++{
++	int i;
++	struct drm_sched_entity *tmp;
++	struct drm_sched_entity *entity;
++	struct drm_gpu_scheduler *sched = bad->sched;
++
++	/* don't increase @bad's karma if it's from KERNEL RQ,
++	 * because sometimes GPU hang would cause kernel jobs (like VM updating jobs)
++	 * corrupt but keep in mind that kernel jobs always considered good.
++	 */
++	if (bad->s_priority != DRM_SCHED_PRIORITY_KERNEL) {
++		atomic_inc(&bad->karma);
++		for (i = DRM_SCHED_PRIORITY_MIN; i < DRM_SCHED_PRIORITY_KERNEL;
++		     i++) {
++			struct drm_sched_rq *rq = &sched->sched_rq[i];
++
++			spin_lock(&rq->lock);
++			list_for_each_entry_safe(entity, tmp, &rq->entities, list) {
++				if (bad->s_fence->scheduled.context ==
++				    entity->fence_context) {
++					if (atomic_read(&bad->karma) >
++					    bad->sched->hang_limit)
++						if (entity->guilty)
++							atomic_set(entity->guilty, 1);
++					break;
++				}
++			}
++			spin_unlock(&rq->lock);
++			if (&entity->list != &rq->entities)
++				break;
++		}
++	}
++}
++EXPORT_SYMBOL(drm_sched_increase_karma);
++
+ /**
+  * drm_sched_hw_job_reset - stop the scheduler if it contains the bad job
+  *
+@@ -342,13 +385,20 @@ static void drm_sched_job_timedout(struct work_struct *work)
+  * @bad: bad scheduler job
+  *
+  */
+-void drm_sched_hw_job_reset(struct drm_gpu_scheduler *sched, struct drm_sched_job *bad)
++void drm_sched_stop(struct drm_gpu_scheduler *sched)
+ {
+ 	struct drm_sched_job *s_job;
+-	struct drm_sched_entity *entity, *tmp;
+ 	unsigned long flags;
+-	int i;
++	struct dma_fence *last_fence =  NULL;
+ 
++	kthread_park(sched->thread);
++
++	/*
++	 * Verify all the signaled jobs in mirror list are removed from the ring
++	 * by waiting for the latest job to enter the list. This should insure that
++	 * also all the previous jobs that were in flight also already singaled
++	 * and removed from the list.
++	 */
+ 	spin_lock_irqsave(&sched->job_list_lock, flags);
+ 	list_for_each_entry_reverse(s_job, &sched->ring_mirror_list, node) {
+ 		if (s_job->s_fence->parent &&
+@@ -357,35 +407,20 @@ void drm_sched_hw_job_reset(struct drm_gpu_scheduler *sched, struct drm_sched_jo
+ 			dma_fence_put(s_job->s_fence->parent);
+ 			s_job->s_fence->parent = NULL;
+ 			atomic_dec(&sched->hw_rq_count);
++		} else {
++			 last_fence = dma_fence_get(&s_job->s_fence->finished);
++			 break;
+ 		}
+ 	}
+ 	spin_unlock_irqrestore(&sched->job_list_lock, flags);
+ 
+-	if (bad && bad->s_priority != DRM_SCHED_PRIORITY_KERNEL) {
+-		atomic_inc(&bad->karma);
+-		/* don't increase @bad's karma if it's from KERNEL RQ,
+-		 * becuase sometimes GPU hang would cause kernel jobs (like VM updating jobs)
+-		 * corrupt but keep in mind that kernel jobs always considered good.
+-		 */
+-		for (i = DRM_SCHED_PRIORITY_MIN; i < DRM_SCHED_PRIORITY_KERNEL; i++ ) {
+-			struct drm_sched_rq *rq = &sched->sched_rq[i];
+-
+-			spin_lock(&rq->lock);
+-			list_for_each_entry_safe(entity, tmp, &rq->entities, list) {
+-				if (bad->s_fence->scheduled.context == entity->fence_context) {
+-				    if (atomic_read(&bad->karma) > bad->sched->hang_limit)
+-						if (entity->guilty)
+-							atomic_set(entity->guilty, 1);
+-					break;
+-				}
+-			}
+-			spin_unlock(&rq->lock);
+-			if (&entity->list != &rq->entities)
+-				break;
+-		}
++	if (last_fence) {
++		dma_fence_wait(last_fence, false);
++		dma_fence_put(last_fence);
+ 	}
+ }
+-EXPORT_SYMBOL(drm_sched_hw_job_reset);
++
++EXPORT_SYMBOL(drm_sched_stop);
+ 
+ /**
+  * drm_sched_job_recovery - recover jobs after a reset
+@@ -393,33 +428,21 @@ EXPORT_SYMBOL(drm_sched_hw_job_reset);
+  * @sched: scheduler instance
+  *
+  */
+-void drm_sched_job_recovery(struct drm_gpu_scheduler *sched)
++void drm_sched_start(struct drm_gpu_scheduler *sched, bool full_recovery)
+ {
+ 	struct drm_sched_job *s_job, *tmp;
+-	bool found_guilty = false;
+ 	unsigned long flags;
+ 	int r;
+ 
++	if (!full_recovery)
++		goto unpark;
++
+ 	spin_lock_irqsave(&sched->job_list_lock, flags);
+ 	list_for_each_entry_safe(s_job, tmp, &sched->ring_mirror_list, node) {
+ 		struct drm_sched_fence *s_fence = s_job->s_fence;
+-		struct dma_fence *fence;
+-		uint64_t guilty_context;
+-
+-		if (!found_guilty && atomic_read(&s_job->karma) > sched->hang_limit) {
+-			found_guilty = true;
+-			guilty_context = s_job->s_fence->scheduled.context;
+-		}
+-
+-		if (found_guilty && s_job->s_fence->scheduled.context == guilty_context)
+-			dma_fence_set_error(&s_fence->finished, -ECANCELED);
+-
+-		spin_unlock_irqrestore(&sched->job_list_lock, flags);
+-		fence = sched->ops->run_job(s_job);
+-		atomic_inc(&sched->hw_rq_count);
++		struct dma_fence *fence = s_job->s_fence->parent;
+ 
+ 		if (fence) {
+-			s_fence->parent = dma_fence_get(fence);
+ 			r = dma_fence_add_callback(fence, &s_fence->cb,
+ 						   drm_sched_process_job);
+ 			if (r == -ENOENT)
+@@ -427,18 +450,47 @@ void drm_sched_job_recovery(struct drm_gpu_scheduler *sched)
+ 			else if (r)
+ 				DRM_ERROR("fence add callback failed (%d)\n",
+ 					  r);
+-			dma_fence_put(fence);
+-		} else {
+-			if (s_fence->finished.error < 0)
+-				drm_sched_expel_job_unlocked(s_job);
++		} else
+ 			drm_sched_process_job(NULL, &s_fence->cb);
+-		}
+-		spin_lock_irqsave(&sched->job_list_lock, flags);
+ 	}
++
+ 	drm_sched_start_timeout(sched);
+ 	spin_unlock_irqrestore(&sched->job_list_lock, flags);
++
++unpark:
++	kthread_unpark(sched->thread);
+ }
+-EXPORT_SYMBOL(drm_sched_job_recovery);
++EXPORT_SYMBOL(drm_sched_start);
++
++/**
++ * drm_sched_resubmit_jobs - helper to relunch job from mirror ring list
++ *
++ * @sched: scheduler instance
++ *
++ */
++void drm_sched_resubmit_jobs(struct drm_gpu_scheduler *sched)
++{
++	struct drm_sched_job *s_job, *tmp;
++	uint64_t guilty_context;
++	bool found_guilty = false;
++
++	/*TODO DO we need spinlock here ? */
++	list_for_each_entry_safe(s_job, tmp, &sched->ring_mirror_list, node) {
++		struct drm_sched_fence *s_fence = s_job->s_fence;
++
++		if (!found_guilty && atomic_read(&s_job->karma) > sched->hang_limit) {
++			found_guilty = true;
++			guilty_context = s_job->s_fence->scheduled.context;
++		}
++
++		if (found_guilty && s_job->s_fence->scheduled.context == guilty_context)
++			dma_fence_set_error(&s_fence->finished, -ECANCELED);
++
++		s_job->s_fence->parent = sched->ops->run_job(s_job);
++		atomic_inc(&sched->hw_rq_count);
++	}
++}
++EXPORT_SYMBOL(drm_sched_resubmit_jobs);
+ 
+ /**
+  * drm_sched_job_init - init a scheduler job
+@@ -634,26 +686,14 @@ static int drm_sched_main(void *param)
+ 				DRM_ERROR("fence add callback failed (%d)\n",
+ 					  r);
+ 			dma_fence_put(fence);
+-		} else {
+-			if (s_fence->finished.error < 0)
+-				drm_sched_expel_job_unlocked(sched_job);
++		} else
+ 			drm_sched_process_job(NULL, &s_fence->cb);
+-		}
+ 
+ 		wake_up(&sched->job_scheduled);
+ 	}
+ 	return 0;
+ }
+ 
+-static void drm_sched_expel_job_unlocked(struct drm_sched_job *s_job)
+-{
+-	struct drm_gpu_scheduler *sched = s_job->sched;
+-
+-	spin_lock(&sched->job_list_lock);
+-	list_del_init(&s_job->node);
+-	spin_unlock(&sched->job_list_lock);
+-}
+-
+ /**
+  * drm_sched_init - Init a gpu scheduler instance
+  *
+diff --git a/drivers/gpu/drm/v3d/v3d_sched.c b/drivers/gpu/drm/v3d/v3d_sched.c
+index f7508e9..4704b2d 100644
+--- a/drivers/gpu/drm/v3d/v3d_sched.c
++++ b/drivers/gpu/drm/v3d/v3d_sched.c
+@@ -234,18 +234,21 @@ v3d_gpu_reset_for_timeout(struct v3d_dev *v3d, struct drm_sched_job *sched_job)
+ 	for (q = 0; q < V3D_MAX_QUEUES; q++) {
+ 		struct drm_gpu_scheduler *sched = &v3d->queue[q].sched;
+ 
+-		kthread_park(sched->thread);
+-		drm_sched_hw_job_reset(sched, (sched_job->sched == sched ?
+-					       sched_job : NULL));
++		drm_sched_stop(sched);
++
++		if(sched_job)
++			drm_sched_increase_karma(sched_job);
+ 	}
+ 
+ 	/* get the GPU back into the init state */
+ 	v3d_reset(v3d);
+ 
++	for (q = 0; q < V3D_MAX_QUEUES; q++)
++		drm_sched_resubmit_jobs(sched_job->sched);
++
+ 	/* Unblock schedulers and restart their jobs. */
+ 	for (q = 0; q < V3D_MAX_QUEUES; q++) {
+-		drm_sched_job_recovery(&v3d->queue[q].sched);
+-		kthread_unpark(v3d->queue[q].sched.thread);
++		drm_sched_start(&v3d->queue[q].sched, true);
+ 	}
+ 
+ 	mutex_unlock(&v3d->reset_lock);
+diff --git a/include/drm/gpu_scheduler.h b/include/drm/gpu_scheduler.h
+index 47e1979..c567bba 100644
+--- a/include/drm/gpu_scheduler.h
++++ b/include/drm/gpu_scheduler.h
+@@ -298,9 +298,10 @@ int drm_sched_job_init(struct drm_sched_job *job,
+ 		       void *owner);
+ void drm_sched_job_cleanup(struct drm_sched_job *job);
+ void drm_sched_wakeup(struct drm_gpu_scheduler *sched);
+-void drm_sched_hw_job_reset(struct drm_gpu_scheduler *sched,
+-			    struct drm_sched_job *job);
+-void drm_sched_job_recovery(struct drm_gpu_scheduler *sched);
++void drm_sched_stop(struct drm_gpu_scheduler *sched);
++void drm_sched_start(struct drm_gpu_scheduler *sched, bool full_recovery);
++void drm_sched_resubmit_jobs(struct drm_gpu_scheduler *sched);
++void drm_sched_increase_karma(struct drm_sched_job *bad);
+ bool drm_sched_dependency_optimized(struct dma_fence* fence,
+ 				    struct drm_sched_entity *entity);
+ void drm_sched_fault(struct drm_gpu_scheduler *sched);
+-- 
+2.7.1
+

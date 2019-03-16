@@ -56,15 +56,11 @@ endif
 
 # Patches for Mali450 GPU Lima driver
 ifeq (1,1)
-PATCHFILES += 0201-drm-Add-reservation_object-to-drm_gem_object.patch
-PATCHFILES += 0202-drm-export-drm_timeout_abs_to_jiffies.patch
-PATCHFILES += 0203-drm-lima-driver-for-ARM-Mali4xx-GPUs.patch
-PATCHFILES += 0204-drm-lima-use-get-param-to-get-info.patch
-PATCHFILES += 0205-drm-lima-separate-context-create-free-ioctl.patch
-PATCHFILES += 0206-drm-lima-remove-unused-max-sched-task-param.patch
-PATCHFILES += 0207-drm-lima-update-copyright-time.patch
-PATCHFILES += 0208-drm-lima-use-xarray-instead-of-idr.patch
-PATCHFILES += 0209-drm-lima-stop-using-drmP.h.patch
+PATCHFILES += 0201-drm-export-drm_timeout_abs_to_jiffies.patch
+PATCHFILES += 0202-drm-Add-reservation_object-to-drm_gem_object.patch
+PATCHFILES += 0203-drm-sched-Refactor-ring-mirror-list-handling.patch
+PATCHFILES += 0204-drm-lima-driver-for-ARM-Mali4xx-GPUs.patch
+PATCHFILES += 0205-drm-include-idr.h-from-drm_file.h.patch
 endif
 
 # Patches for Amlogic audio support
