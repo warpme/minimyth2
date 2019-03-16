@@ -124,12 +124,13 @@ mm-all:
 	done
 	@echo "    mm_OPENGL_PROVIDER"
 	@for opengl in $(mm_OPENGL_PROVIDER) ; do \
-		if [ ! "$${opengl}" = "lima"     ] && \
-		   [ ! "$${opengl}" = "mali450"  ] && \
-		   [ ! "$${opengl}" = "mali450x" ] && \
-		   [ ! "$${opengl}" = "brcm-vc4" ] && \
-		   [ ! "$${opengl}" = "xxxxx"    ] && \
-		   [ ! "$${opengl}" = "mesa"     ] ; then \
+		if [ ! "$${opengl}" = "lima"            ] && \
+		   [ ! "$${opengl}" = "mali450-dummy"   ] && \
+		   [ ! "$${opengl}" = "mali450-fbdev"   ] && \
+		   [ ! "$${opengl}" = "mali450-wayland" ] && \
+		   [ ! "$${opengl}" = "mali450-x11"     ] && \
+		   [ ! "$${opengl}" = "brcm-vc4"        ] && \
+		   [ ! "$${opengl}" = "mesa"            ] ; then \
 			echo "error: mm_OPENGL_PROVIDER=\"$${opengl}\" is an invalid value." ; \
 			exit 1 ; \
 		fi ; \
