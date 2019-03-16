@@ -45,7 +45,7 @@ install-custom:
 	@cp -rf   $(WORKSRC)/include/EGL/*                                          $(DESTDIR)$(includedir)/EGL
 	@cp -rf   $(WORKSRC)/include/EGL_platform/platform_wayland/eglplatform.h    $(DESTDIR)$(includedir)/EGL/eglplatform.h
 	@cp -rf   $(WORKSRC)/include/EGL_platform/platform_wayland/wayland_window.h $(DESTDIR)$(includedir)/EGL/wayland_window.h
-	@cp -rf   $(WORKSRC)/include/EGL_platform/platform_wayland/gbm*  $(DESTDIR)$(includedir)/EGL/
+	@cp -rf   $(WORKSRC)/include/EGL_platform/platform_wayland/gbm/gbm.h        $(DESTDIR)$(includedir)/gbm.h
 	@rm -rf   $(DESTDIR)$(includedir)/GLES*
 	@mkdir -p $(DESTDIR)$(includedir)/GLES
 	@cp -rf   $(WORKSRC)/include/GLES/*  $(DESTDIR)$(includedir)/GLES
@@ -61,6 +61,8 @@ install-custom:
 	@mkdir -p $(DESTDIR)$(libdir)/pkgconfig
 	@cp -f $(WORKSRC)/lib/pkgconfig/egl.pc    $(DESTDIR)$(libdir)/pkgconfig/egl.pc
 	@cp -f $(WORKSRC)/lib/pkgconfig/glesv2.pc $(DESTDIR)$(libdir)/pkgconfig/glesv2.pc
+	@cp -f $(WORKSRC)/lib/pkgconfig/wayland-egl.pc $(DESTDIR)$(libdir)/pkgconfig/wayland-egl.pc
+	@cp -f $(WORKSRC)/lib/pkgconfig/gbm/gbm.pc $(DESTDIR)$(libdir)/pkgconfig/gbm.pc
 	@$(MAKECOOKIE)
 
 clean-all:
@@ -73,5 +75,8 @@ clean-all:
 	@rm -rf $(DESTDIR)$(includedir)/GLES2*
 	@rm -rf $(DESTDIR)$(includedir)/GLES3*
 	@rm -rf $(DESTDIR)$(includedir)/KHR*
+	@rm -f  $(DESTDIR)$(includedir)/gbm.h
 	@rm -f  $(DESTDIR)$(libdir)/pkgconfig/egl.pc
 	@rm -f  $(DESTDIR)$(libdir)/pkgconfig/glesv2.pc
+	@rm -f  $(DESTDIR)$(libdir)/pkgconfig/wayland-egl.pc
+	@rm -f  $(DESTDIR)$(libdir)/pkgconfig/gbm.pc
