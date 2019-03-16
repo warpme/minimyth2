@@ -1,7 +1,8 @@
 GARNAME = glmark2
-GARVERSION = 40409f36c37b6f270e49c57b467a8543ae7b06fa
+GARVERSION = c62d706bb9e3cb877afc9a008152c8c902c51d67
 CATEGORIES = $(CATEGORY)
-MASTER_SITES  = https://github.com/glmark2/glmark2/archive/
+# MASTER_SITES  = https://github.com/glmark2/glmark2/archive/
+MASTER_SITES  = https://github.com/noblock/glmark2/archive/
 DISTFILES = $(GARVERSION).zip
 WORKSRC = $(WORKDIR)/glmark2-$(GARVERSION)
 LICENSE = MIT
