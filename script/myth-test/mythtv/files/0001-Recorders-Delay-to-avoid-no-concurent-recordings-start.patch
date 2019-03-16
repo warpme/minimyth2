@@ -1,24 +1,16 @@
-diff -Naur mythtv-master-20190216-g938606f-old/mythtv/libs/libmythtv/tv_rec.cpp mythtv-master-20190216-g938606f-new/mythtv/libs/libmythtv/tv_rec.cpp
---- mythtv-master-20190216-g938606f-old/mythtv/libs/libmythtv/tv_rec.cpp	2019-02-16 19:56:23.000000000 +0100
-+++ mythtv-master-20190216-g938606f-new/mythtv/libs/libmythtv/tv_rec.cpp	2019-02-17 16:57:47.653333336 +0100
-@@ -98,6 +98,7 @@
-       audioSampleRateDB(0),
-       overRecordSecNrml(0),         overRecordSecCat(0),
-       overRecordCategory(""),
-+      rec_delay_per_card(0),
-       // Configuration variables from setup rutines
-       inputid(_inputid), parentid(0), ispip(false),
-       // State variables
-@@ -196,6 +197,7 @@
-     overRecordSecNrml = gCoreContext->GetNumSetting("RecordOverTime");
-     overRecordSecCat  = gCoreContext->GetNumSetting("CategoryOverTime") * 60;
-     overRecordCategory= gCoreContext->GetSetting("OverTimeCategory");
-+    rec_delay_per_card= gCoreContext->GetNumSetting("ConcurrentRecDelay", 0);
+diff -Naur mythtv-master-20190316-g1a44f54-old/mythtv/libs/libmythtv/tv_rec.cpp mythtv-master-20190316-g1a44f54-new/mythtv/libs/libmythtv/tv_rec.cpp
+--- mythtv-master-20190316-g1a44f54-old/mythtv/libs/libmythtv/tv_rec.cpp	2019-03-16 10:49:45.000000000 +0100
++++ mythtv-master-20190316-g1a44f54-new/mythtv/libs/libmythtv/tv_rec.cpp	2019-03-16 10:52:34.983333334 +0100
+@@ -160,6 +160,7 @@
+     m_overRecordSecNrml = gCoreContext->GetNumSetting("RecordOverTime");
+     m_overRecordSecCat  = gCoreContext->GetNumSetting("CategoryOverTime") * 60;
+     m_overRecordCategory= gCoreContext->GetSetting("OverTimeCategory");
++    rec_delay_per_card  = gCoreContext->GetNumSetting("ConcurrentRecDelay", 0);
  
-     eventThread->start();
+     m_eventThread->start();
  
-@@ -1015,6 +1017,32 @@
-     autoRunJobs.erase(autoJob);
+@@ -979,6 +980,32 @@
+     m_autoRunJobs.erase(autoJob);
  }
  
 +static int no_capturecards(uint inputid)
@@ -48,15 +40,15 @@ diff -Naur mythtv-master-20190216-g938606f-old/mythtv/libs/libmythtv/tv_rec.cpp 
 +}
 +
  #define TRANSITION(ASTATE,BSTATE) \
-    ((internalState == (ASTATE)) && (desiredNextState == (BSTATE)))
- #define SET_NEXT() do { nextState = desiredNextState; changed = true; } while(0)
-@@ -1074,6 +1102,18 @@
+    ((m_internalState == (ASTATE)) && (m_desiredNextState == (BSTATE)))
+ #define SET_NEXT() do { nextState = m_desiredNextState; changed = true; } while(0)
+@@ -1038,6 +1065,18 @@
      }
      else if (TRANSITION(kState_None, kState_RecordingOnly))
      {
 +        if (rec_delay_per_card > 0)
 +        {
-+            int card_pos = no_capturecards(inputid);
++            int card_pos = no_capturecards(m_inputid);
 +            int rec_start_delay = rec_delay_per_card * card_pos;
 +
 +            LOG(VB_GENERAL, LOG_INFO, LOC +
@@ -67,16 +59,16 @@ diff -Naur mythtv-master-20190216-g938606f-old/mythtv/libs/libmythtv/tv_rec.cpp 
 +        }
 +
          SetPseudoLiveTVRecording(nullptr);
-         tuningRequests.enqueue(TuningRequest(kFlagRecording, curRecording));
+         m_tuningRequests.enqueue(TuningRequest(kFlagRecording, m_curRecording));
          SET_NEXT();
-diff -Naur mythtv-master-20190216-g938606f-old/mythtv/libs/libmythtv/tv_rec.h mythtv-master-20190216-g938606f-new/mythtv/libs/libmythtv/tv_rec.h
---- mythtv-master-20190216-g938606f-old/mythtv/libs/libmythtv/tv_rec.h	2019-02-16 19:56:23.000000000 +0100
-+++ mythtv-master-20190216-g938606f-new/mythtv/libs/libmythtv/tv_rec.h	2019-02-17 16:57:47.653333336 +0100
+diff -Naur mythtv-master-20190316-g1a44f54-old/mythtv/libs/libmythtv/tv_rec.h mythtv-master-20190316-g1a44f54-new/mythtv/libs/libmythtv/tv_rec.h
+--- mythtv-master-20190316-g1a44f54-old/mythtv/libs/libmythtv/tv_rec.h	2019-03-16 10:49:45.000000000 +0100
++++ mythtv-master-20190316-g1a44f54-new/mythtv/libs/libmythtv/tv_rec.h	2019-03-16 10:52:34.986666667 +0100
 @@ -371,6 +371,7 @@
-     int     overRecordSecNrml;
-     int     overRecordSecCat;
-     QString overRecordCategory;
-+    int     rec_delay_per_card;
+     int                m_overRecordSecNrml        {0};
+     int                m_overRecordSecCat         {0};
+     QString            m_overRecordCategory;
++    int                rec_delay_per_card         {0};
  
      // Configuration variables from setup routines
-     uint              inputid;
+     uint               m_inputid;
