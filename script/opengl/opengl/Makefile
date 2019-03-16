@@ -9,8 +9,10 @@ endef
 DEPENDS = \
 	$(if $(filter mesa,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mesa) \
 	$(if $(filter lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mesa-lima) \
-	$(if $(filter mali450,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mali450) \
-	$(if $(filter mali450x,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mali450x) \
+	$(if $(filter mali450-dummy,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mali450-dummy) \
+	$(if $(filter mali450-fbdev,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mali450-fbdev) \
+	$(if $(filter mali450-wayland,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mali450-wayland) \
+	$(if $(filter mali450-x11,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mali450-x11) \
 	$(if $(filter brcm-vc4,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/brcm-vc4) \
 	$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/glu) \
 	$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/freeglut) \
@@ -23,5 +25,5 @@ CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 include ../../gar.mk
 
 clean-all:
-	@$(foreach dir, $(wildcard ../mesa ../mesa-lima ../mali450 ../mali450x ../brcm-vc4 ../mesa-demos ../glu ../freeglut ../glew ../virtualgl ../glmark2 ../kmscube), $(MAKE) clean clean-all -C $(dir) ; )
+	@$(foreach dir, $(wildcard ../mesa ../mesa-lima ../mali450-dummy ../mali450-fbdev ../mali450-x11 ../mali450-wayland ../brcm-vc4 ../mesa-demos ../glu ../freeglut ../glew ../virtualgl ../glmark2 ../kmscube), $(MAKE) clean clean-all -C $(dir) ; )
 	@$(MAKE) clean
