@@ -8,13 +8,11 @@ else
     QT_QPA_PLATFORM=xcb
 fi
 
-# QT_QPA_EGLFS_FORCE888=1
-QT_PLUGIN_PATH=/usr/lib/qt5/plugins
-
-# export QT_QPA_EGLFS_FORCE888
-export QT_QPA_PLATFORM
-export QT_PLUGIN_PATH
+# export QT_QPA_EGLFS_FORCE888=1
+export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
+export QT_QPA_DEBUG=1
 export QT_LOGGING_RULES=qt.qpa.*=true
+export QT_QPA_PLATFORM
 
 if [ x$1 = "xgdb" ] || [ x$2 = "xgdb" ]; then
     echo "Runing myth under gdb"
