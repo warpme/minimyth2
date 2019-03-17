@@ -1,12 +1,10 @@
 GARNAME = qt-everywhere-src
-GARVERSION = 5.12.0
+GARVERSION = 5.12.2
 CATEGORIES = qt
 MASTER_SITES = http://download.qt.io/official_releases/qt/5.12/$(GARVERSION)/single/
 DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES  = $(DISTNAME).patch.gar
 PATCHFILES += $(DISTNAME)-fix-gcc6+-build.patch
-PATCHFILES += $(DISTNAME)-fix-QTBUG-71010.patch
-PATCHFILES += $(DISTNAME)-fix-qttools-compile.patch
 PATCHFILES += $(DISTNAME)-disable-qtlocation-mapboxgl-plugin.patch
 LICENSE = LGPL2_1
 
