@@ -1,5 +1,5 @@
 GARNAME = wayland
-GARVERSION = 1.15.0
+GARVERSION = 1.16.0
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = https://wayland.freedesktop.org/releases/
 DISTFILES = $(DISTNAME).tar.xz
