@@ -52,10 +52,20 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-debug \
 	--disable-unit-tests \
-	--enable-glx \
-	--enable-dri \
-	--enable-dri2 \
-	--enable-dri3 \
+	$(if $(filter mesa mesa-lima,$(mm_OPENGL_PROVIDER)), \
+		--enable-glx \
+		--enable-dri \
+		--enable-dri2 \
+		--enable-dri3 \
+		--enable-glamor \
+		--enable-xwayland \
+		, \
+		--disable-glx \
+		--disable-dri \
+		--disable-dri2 \
+		--disable-dri3 \
+		--disable-glamor \
+		--disable-xwayland) \
 	--disable-xselinux \
 	--disable-xcsecurity \
 	--disable-tslib \
@@ -67,9 +77,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-xkb-path="$(datadir)/X11/xkb" \
 	--with-xkb-output="$(datadir)/X11/xkb/compiled" \
 	--with-serverconfig-path="$(libdir)/xserver" \
-	--enable-glamor \
 	--enable-xorg \
-	--enable-xwayland \
 
 CONFIGURE_ENV = \
 	XORG_SGML_PATH="$(DESTDIR)$(includedir)/xorg"
