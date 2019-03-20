@@ -1,13 +1,13 @@
 GARNAME = mesa
-# GARVERSION_TYPE = git
+#GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-             20160518-877a802, \
-             18.3.4 ))
+             db57db5317e81fb4ce31bc294fdcc199db651542, \
+             19.0 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-             git://anongit.freedesktop.org/mesa/mesa/ , \
-             ftp://ftp.freedesktop.org/pub/mesa/ ))
-DISTFILES = $(DISTNAME).tar.xz
+             https://gitlab.freedesktop.org/mesa/mesa/-/archive/db57db5317e81fb4ce31bc294fdcc199db651542/ , \
+             https://gitlab.freedesktop.org/mesa/mesa/-/archive/19.0/ ))
+DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = configure-add-wayland-scanner-patch.patch
 LICENSE = LGPL2/MIT
 
@@ -64,7 +64,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--enable-shared \
 	--with-dri-driverdir="$(libdir)/dri" \
-	--with-vdpau-libdir="$(libdir)" \
+	--with-vdpau-libdir="$(libdir)/vdpau" \
 	--with-platforms=x11,wayland,drm \
 	--enable-llvm \
 	--enable-llvm-shared-libs \
@@ -85,6 +85,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	LIBUDEV_CFLAGS="$(DESTDIR)$(includedir)" \
 	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so" \
 	--with-wayland-scanner-path="$(build_DESTDIR)$(build_bindir)/wayland-scanner" \
+	--enable-autotools \
 
 ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
@@ -109,17 +110,14 @@ ifneq ($(DESTIMG),build)
 CONFIGURE_ARGS += LDFLAGS="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/"
 endif
 
-# Mesa 11+ has bug with honouring vdpau dir durring configure
-#	--with-vdpau-libdir="$(libdir)/vdpau" \
-
 BUILD_ARGS  = \
 	HOST_CC="$(build_CC)" \
 	HOST_CFLAGS="$(build_CFLAGS)"
 
-CPPFLAGS += -ffat-lto-objects
-CXXFLAGS += -ffat-lto-objects
-CFLAGS   += -ffat-lto-objects
-
+# mesa 19+ don't compiles with gcc LTO
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 git//%$(DISTNAME).tar.xz:
 	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
