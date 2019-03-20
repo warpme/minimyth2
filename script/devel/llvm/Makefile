@@ -1,5 +1,5 @@
 GARNAME = llvm
-GARVERSION = 6.0.1
+GARVERSION = 7.0.1
 CATEGORIES = devel
 MASTER_SITES = http://www.llvm.org/releases/$(GARVERSION)/
 DISTFILES = $(DISTNAME).src.tar.xz
