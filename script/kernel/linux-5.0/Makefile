@@ -24,7 +24,6 @@ PATCHFILES += linux-5.0-disable_dma_for_cfa.patch
 PATCHFILES += linux-5.0-defaults.patch
 PATCHFILES += linux-5.0-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.0-net-smsc95xx-allow-mac-address-as-param.patch
-PATCHFILES += linux-5.0-mask-failed-to-send-synthetic-uevent-err-msg.patch
 
 # Patches for Amlogic video decoder
 ifeq (1,1)
