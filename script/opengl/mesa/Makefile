@@ -1,14 +1,15 @@
 GARNAME = mesa
-#GARVERSION_TYPE = git
+GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-             db57db5317e81fb4ce31bc294fdcc199db651542, \
+             bf5a92811d5564f0d4f7a83814e3965170b823f0, \
              19.0 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
-             https://gitlab.freedesktop.org/mesa/mesa/-/archive/db57db5317e81fb4ce31bc294fdcc199db651542/ , \
+             https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/ , \
              https://gitlab.freedesktop.org/mesa/mesa/-/archive/19.0/ ))
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = configure-add-wayland-scanner-patch.patch
+PATCHFILES  = configure-add-wayland-scanner-patch.patch
+PATCHFILES += mesa-pull465-add-lima-v2.patch
 LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
