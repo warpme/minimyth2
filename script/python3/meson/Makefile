@@ -34,6 +34,7 @@ install-%/setup.py:
 	@echo " ==> Running setup.py install in $*"
 	@cd $* && $(CONFIGURE_ENV) $(INSTALL_ENV) python3 setup.py $(CONFIGURE_ARGS) install --skip-build $(INSTALL_ARGS)
 	@echo " ==> Generating $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf cross-compile config"
+	@mkdir -p $(build_DESTDIR)$(build_datadir)/meson/cross/
 	@echo "[binaries]"                                                           > $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
 	@echo "c           = '$(build_DESTDIR)$(build_bindir)/$(mm_GARHOST)-gcc'"   >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
 	@echo "cpp         = '$(build_DESTDIR)$(build_bindir)/$(mm_GARHOST)-g++'"   >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
