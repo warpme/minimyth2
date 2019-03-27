@@ -86,7 +86,7 @@ ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=lima,vc4,v3d \
 	-D dri-drivers= \
-	-D platforms=x11,wayland,drm \
+	-D platforms=x11,drm \
 	-D gallium-vdpau=false
 else
 ifeq ($(GARCH),armv8)
@@ -98,8 +98,8 @@ CONFIGURE_ARGS += \
 else
 CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
-	-D dri-drivers=i915,i965,r200,radeon,swrast \
-	-D platforms=x11,wayland,drm \
+	-D dri-drivers=i915,i965,r100,r200 \
+	-D platforms=x11,drm \
 	-D gallium-vdpau=true
 endif
 endif
