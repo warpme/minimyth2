@@ -10,6 +10,8 @@ MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  = configure-add-wayland-scanner-patch.patch
 PATCHFILES += mesa-pull465-add-lima-v2.patch
+PATCHFILES += configure-add-lima-to-autotools.patch
+PATCHFILES += gallium-add-meson-driver.patch
 LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
@@ -35,97 +37,78 @@ DEPENDS =                      \
 	xorg/libxshmfence      \
 	xorg/wayland-protocols \
 	xorg/wayland           \
+	system/eudev           \
 
-ifneq ($(DESTIMG),build)
-DEPENDS   += system/eudev
-endif
 BUILDDEPS  = \
-	lib/libxml2        \
-	python/python      \
-	python/python-mako \
-	opengl/makedepend  \
-	xorg/xorgproto     \
-	xorg/libxshmfence  \
-	xorg/wayland       \
+	lib/libxml2         \
+	python3/python      \
+	python3/python-mako \
+	python3/meson       \
+	opengl/makedepend   \
+	xorg/xorgproto      \
+	xorg/libxshmfence   \
+	xorg/wayland        \
 
 PWD := $(shell pwd)
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
-CONFIGURE_SCRIPTS  = $(WORKSRC)/configure
-BUILD_SCRIPTS      = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS    = $(WORKSRC)/Makefile source
-ifeq ($(DESTIMG),build)
-INSTALL_SCRIPTS   += cross
-endif
+CONFIGURE_SCRIPTS  = custom
+BUILD_SCRIPTS      = custom
+INSTALL_SCRIPTS    = custom
 
 include ../../gar.mk
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules \
-	--disable-static \
-	--enable-shared \
-	--with-dri-driverdir="$(libdir)/dri" \
-	--with-vdpau-libdir="$(libdir)/vdpau" \
-	--with-platforms=x11,wayland,drm \
-	--enable-llvm \
-	--enable-llvm-shared-libs \
-	--enable-texture-float \
-	--enable-gbm \
-	--enable-shared-glapi \
-	--enable-glx \
-	--enable-glx-tls \
-	--enable-egl \
-	--enable-gles1 \
-	--enable-gles2 \
-	--enable-dri \
-	--enable-dri3 \
-	--enable-vdpau \
-	--disable-opencl \
-	--disable-opencl-icd \
-	--disable-libglvnd \
-	LIBUDEV_CFLAGS="$(DESTDIR)$(includedir)" \
-	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so" \
-	--with-wayland-scanner-path="$(build_DESTDIR)$(build_bindir)/wayland-scanner" \
-	--enable-autotools \
+CONFIGURE_ARGS = \
+	--prefix="$(DESTDIR)" \
+	--cross-file=$(build_DESTDIR)$(build_datadir)/meson/cross/$(GARHOST).conf \
+	-D shared-glapi=true \
+	-D dri-drivers-path="$(DESTDIR)$(libdir)/dri" \
+	-D vdpau-libs-path="$(DESTDIR)$(libdir)/vdpau" \
+	-D llvm=true \
+	-D shared-llvm=true \
+	-D gbm=true \
+	-D shared-glapi=true \
+	-D glx=dri \
+	-D egl=true \
+	-D gles1=true \
+	-D gles2=true \
+	-D dri3=true \
+	-D gallium-opencl=disabled \
+	-D glvnd=false \
+	-D gallium-xvmc=false \
+	-D gallium-xa=false \
+	-D gallium-nine=false \
+	-D b_lto=false \
+	-D b_ndebug=true \
+	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 
 ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
-	--with-gallium-drivers=swrast,vc4 \
-	--with-dri-drivers=swrast \
-	--disable-xa
+	-D gallium-drivers=lima,vc4,v3d \
+	-D dri-drivers= \
+	-D platforms=x11,wayland,drm \
+	-D gallium-vdpau=false
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
-	--with-gallium-drivers=swrast,vc4 \
-	--with-dri-drivers=swrast \
-	--disable-xa
+	-D gallium-drivers=lima,vc4,v3d \
+	-D dri-drivers= \
+	-D platforms=x11,drm \
+	-D gallium-vdpau=false
 else
 CONFIGURE_ARGS += \
-	--with-gallium-drivers=r300,r600,radeonsi,svga,swrast \
-	--with-dri-drivers=i915,i965,r200,radeon,swrast \
-	--enable-xa
+	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
+	-D dri-drivers=i915,i965,r200,radeon,swrast \
+	-D platforms=x11,wayland,drm \
+	-D gallium-vdpau=true
 endif
 endif
-
-ifneq ($(DESTIMG),build)
-CONFIGURE_ARGS += LDFLAGS="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/"
-endif
-
-BUILD_ARGS  = \
-	HOST_CC="$(build_CC)" \
-	HOST_CFLAGS="$(build_CFLAGS)"
-
-# mesa 19+ don't compiles with gcc LTO
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 git//%$(DISTNAME).tar.xz:
 	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
 	@$(MAKECOOKIE)
 
 pre-configure:
-	@$(call RUN_AUTOTOOLS)
 	@#xxxx - fixme
 	@rm -f $(DESTDIR)$(libdir)/libcrypt.so.1
 	@rm -f $(DESTDIR)$(libdir)/libdl.so.2
@@ -133,6 +116,11 @@ pre-configure:
 	@rm -f $(DESTDIR)$(libdir)/libm.so.6
 	@rm -f $(DESTDIR)$(libdir)/libresolv.so.2
 	@rm -f $(DESTDIR)$(libdir)/librt.so.1
+	@$(MAKECOOKIE)
+
+configure-custom:
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson build $(CONFIGURE_ARGS)
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson configure build
 	@$(MAKECOOKIE)
 
 post-configure:
@@ -143,6 +131,14 @@ post-configure:
 	@if [ -e $(DESTDIR)$(elibdir64)/libm.so.6       ] ; then rm -f $(DESTDIR)$(libdir)/libm.so.6       ; ln -sr $(DESTDIR)$(elibdir64)/libm.so.6       $(DESTDIR)$(libdir)/libm.so.6       ; fi
 	@if [ -e $(DESTDIR)$(elibdir64)/libresolv.so.2  ] ; then rm -f $(DESTDIR)$(libdir)/libresolv.so.2  ; ln -sr $(DESTDIR)$(elibdir64)/libresolv.so.2  $(DESTDIR)$(libdir)/libresolv.so.2  ; fi
 	@if [ -e $(DESTDIR)$(elibdir64)/librt.so.1      ] ; then rm -f $(DESTDIR)$(libdir)/librt.so.1      ; ln -sr $(DESTDIR)$(elibdir64)/librt.so.1      $(DESTDIR)$(libdir)/librt.so.1      ; fi
+	@$(MAKECOOKIE)
+
+build-custom:
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/ninja -C build
+	@$(MAKECOOKIE)
+
+install-custom:
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/ninja -C build install
 	@$(MAKECOOKIE)
 
 install-source:
@@ -173,6 +169,8 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_dri.la
 	@rm -f $(DESTDIR)$(libdir)/dri/swrast_dri.la
 	@rm -f $(DESTDIR)$(libdir)/dri/vmwgfx_dri.la
+	@rm -f $(DESTDIR)$(libdir)/dri/v3d_dri.so
+	@rm -f $(DESTDIR)$(libdir)/dri/vc4_dri.so
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r600.la
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r300.la
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_i915.la
