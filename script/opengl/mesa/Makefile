@@ -1,17 +1,20 @@
 GARNAME = mesa
-#GARVERSION_TYPE = git
+# GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              bf5a92811d5564f0d4f7a83814e3965170b823f0, \
-             19.0 ))
+             19.0.1 ))
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/ , \
-             https://gitlab.freedesktop.org/mesa/mesa/-/archive/19.0/ ))
-DISTFILES = $(DISTNAME).tar.bz2
-#PATCHFILES  = configure-add-wayland-scanner-patch.patch
+             https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/ ))
+DISTFILES = mesa-$(DISTNAME).tar.bz2
+WORKSRC   = $(WORKDIR)/mesa-$(DISTNAME)
+
+PATCHFILES  = configure-add-wayland-scanner-patch.patch
 #PATCHFILES += mesa-pull465-add-lima-v2.patch
 #PATCHFILES += configure-add-lima-to-autotools.patch
 #PATCHFILES += gallium-add-meson-driver.patch
+
 LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
@@ -66,10 +69,8 @@ CONFIGURE_ARGS = \
 	--cross-file=$(build_DESTDIR)$(build_datadir)/meson/cross/$(GARHOST).conf \
 	--buildtype=release \
 	--optimization=s \
-	--strip \
+	-D dri-search-path="/usr/lib/dri" \
 	-D shared-glapi=true \
-	-D dri-drivers-path="$(DESTDIR)$(libdir)/dri" \
-	-D vdpau-libs-path="$(DESTDIR)$(libdir)/vdpau" \
 	-D llvm=true \
 	-D shared-llvm=true \
 	-D gbm=true \
@@ -82,7 +83,6 @@ CONFIGURE_ARGS = \
 	-D gallium-opencl=disabled \
 	-D glvnd=false \
 	-D gallium-xvmc=false \
-	-D gallium-xa=false \
 	-D gallium-nine=false \
 	-D b_lto=false \
 	-D b_ndebug=true \
@@ -93,20 +93,23 @@ CONFIGURE_ARGS += \
 	-D gallium-drivers=lima,vc4,v3d \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
-	-D gallium-vdpau=false
+	-D gallium-vdpau=false \
+	-D gallium-xa=false
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=lima,vc4,v3d \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
-	-D gallium-vdpau=false
+	-D gallium-vdpau=false \
+	-D gallium-xa=false
 else
 CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
 	-D dri-drivers=i915,i965,r100,r200 \
 	-D platforms=x11,drm \
-	-D gallium-vdpau=true
+	-D gallium-vdpau=true \
+	-D gallium-xa=true
 endif
 endif
 
