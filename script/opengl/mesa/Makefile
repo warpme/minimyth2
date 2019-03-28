@@ -1,5 +1,5 @@
 GARNAME = mesa
-GARVERSION_TYPE = git
+#GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              bf5a92811d5564f0d4f7a83814e3965170b823f0, \
              19.0 ))
@@ -8,10 +8,10 @@ MASTER_SITES = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
              https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/ , \
              https://gitlab.freedesktop.org/mesa/mesa/-/archive/19.0/ ))
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES  = configure-add-wayland-scanner-patch.patch
-PATCHFILES += mesa-pull465-add-lima-v2.patch
-PATCHFILES += configure-add-lima-to-autotools.patch
-PATCHFILES += gallium-add-meson-driver.patch
+#PATCHFILES  = configure-add-wayland-scanner-patch.patch
+#PATCHFILES += mesa-pull465-add-lima-v2.patch
+#PATCHFILES += configure-add-lima-to-autotools.patch
+#PATCHFILES += gallium-add-meson-driver.patch
 LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
@@ -60,7 +60,13 @@ include ../../gar.mk
 
 CONFIGURE_ARGS = \
 	--prefix="$(DESTDIR)" \
+	--libdir="$(DESTDIR)$(libdir)" \
+	--includedir="$(DESTDIR)$(includedir)" \
+	--datadir="$(DESTDIR)$(datadir)" \
 	--cross-file=$(build_DESTDIR)$(build_datadir)/meson/cross/$(GARHOST).conf \
+	--buildtype=release \
+	--optimization=s \
+	--strip \
 	-D shared-glapi=true \
 	-D dri-drivers-path="$(DESTDIR)$(libdir)/dri" \
 	-D vdpau-libs-path="$(DESTDIR)$(libdir)/vdpau" \
@@ -169,8 +175,6 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_dri.la
 	@rm -f $(DESTDIR)$(libdir)/dri/swrast_dri.la
 	@rm -f $(DESTDIR)$(libdir)/dri/vmwgfx_dri.la
-	@rm -f $(DESTDIR)$(libdir)/dri/v3d_dri.so
-	@rm -f $(DESTDIR)$(libdir)/dri/vc4_dri.so
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r600.la
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r300.la
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_i915.la
@@ -222,6 +226,11 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_dri*
 	@rm -f $(DESTDIR)$(libdir)/dri/swrast_dri*
 	@rm -f $(DESTDIR)$(libdir)/dri/vmwgfx_dri*
+	@rm -f $(DESTDIR)$(libdir)/dri/v3d_dri.so*
+	@rm -f $(DESTDIR)$(libdir)/dri/vc4_dri.so*
+	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_drv_video.so*
+	@rm -f $(DESTDIR)$(libdir)/dri/r600_drv_video.so*
+	@rm -f $(DESTDIR)$(libdir)/dri/kms_swrast_dri.so*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r600*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r300*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_i915*
@@ -266,4 +275,5 @@ clean-all:
 	@rm -f $(DESTDIR)$(includedir)/xa_composite.h
 	@rm -f $(DESTDIR)$(includedir)/xa_context.h
 	@rm -f $(DESTDIR)$(includedir)/xa_tracker.h
+	@rm -rf $(DESTDIR)$(includedir)/vulkan*
 	@rm -f $(DESTDIR)/usr/versions/mesa
