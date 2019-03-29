@@ -18,7 +18,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk  ,      $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.15.0.r118
+mm_VERSION_MINIMYTH ?= 9.17.1.r309
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -44,10 +44,15 @@ mm_DEBUG_BUILD            ?= no
 mm_GRAPHICS               ?= intel nvidia nvidia-legacy radeon vmware
 
 # Selects OpenGL provider used by qt and mythtv. Valid values for
-# mm_OPENGL_PROVIDER are: mesa (official mesa library), lima (mesa library for
-# ARM Mali 3D engine), mali450-dummy, mali450-fbdev, mali450-wayland mali450-x11
-# (3D librarys BLOBs provied by ARM consortium)
-# and brcm-vc4 (3D library BLOB provided by Broadcom for RPI)
+# mm_OPENGL_PROVIDER are: 
+# 'mesa' (official mesa library),
+# 'mesa-git' (mesa code from git),
+# 'lima' (mesa library for ARM Mali 3D engine),
+# 'mali450-dummy',
+# 'mali450-fbdev',
+# 'mali450-wayland',
+# 'mali450-x11',
+# 'brcm-vc4' (3D library BLOB provided by Broadcom for RPI)
 mm_OPENGL_PROVIDER        ?= mesa
 
 # Lists the software to be supported.

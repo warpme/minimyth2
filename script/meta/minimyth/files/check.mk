@@ -130,6 +130,7 @@ mm-all:
 		   [ ! "$${opengl}" = "mali450-wayland" ] && \
 		   [ ! "$${opengl}" = "mali450-x11"     ] && \
 		   [ ! "$${opengl}" = "brcm-vc4"        ] && \
+		   [ ! "$${opengl}" = "mesa-git"        ] && \
 		   [ ! "$${opengl}" = "mesa"            ] ; then \
 			echo "error: mm_OPENGL_PROVIDER=\"$${opengl}\" is an invalid value." ; \
 			exit 1 ; \
