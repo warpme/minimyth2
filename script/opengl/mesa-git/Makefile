@@ -1,12 +1,11 @@
 GARNAME      = mesa
-GARVERSION   = a8aa494631d089f5e346216698404f984082bb9d
+GARVERSION   = 9194f141c407da21291b7b3f3a1a20943172c01c
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 
 PATCHFILES   = configure-add-wayland-scanner-patch.patch
 PATCHFILES  += autotools-add-lima-build.patch
-PATCHFILES  += gallium-add-meson-driver.patch
 
 LICENSE = LGPL2/MIT
 
@@ -83,7 +82,7 @@ CONFIGURE_ARGS = \
 
 ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
-	-D gallium-drivers=swrast,lima,meson,vc4,v3d \
+	-D gallium-drivers=swrast,kmsro,lima,vc4,v3d \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=false \
@@ -91,7 +90,7 @@ CONFIGURE_ARGS += \
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
-	-D gallium-drivers=swrast,lima,meson,vc4,v3d \
+	-D gallium-drivers=swrast,kmsro,lima,vc4,v3d \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=false \
