@@ -51,7 +51,8 @@ CONFIGURE_ARGS = \
 	-DLLVM_ENABLE_LTO="OFF" \
 	-DLLVM_BUILD_DOCS="OFF" \
 	-DLLVM_ENABLE_DOXYGEN="OFF" \
-	-DCMAKE_BUILD_TYPE=Release
+	-DCMAKE_BUILD_TYPE=Release \
+	-DLLVM_TARGETS_TO_BUILD="host;AMDGPU;BPF"
 
 ifneq ($(DESTIMG),build)
 CONFIGURE_ARGS += -DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
@@ -97,4 +98,6 @@ clean-all:
 	@rm -f $(DESTDIR)$(bindir)-config/llvm-config
 	@rm -f $(DESTDIR)$(bindir)/llvm*
 	@rm -f $(DESTDIR)$(libdir)/libLLVM*
+	@rm -f $(DESTDIR)$(libdir)/LLVMHello.so
+	@rm -f $(DESTDIR)$(libdir)/libLTO*
 	@rm -rf $(DESTDIR)$(includedir)/llvm*
