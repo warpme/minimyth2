@@ -44,12 +44,20 @@ rm -f ${base_dir}/conf/multiconfig/default.conf
 echo "IMAGE_BOOT_FILES ?= \" \"" > ${base_dir}/conf/multiconfig/default.conf
 echo "" >> ${base_dir}/conf/multiconfig/default.conf
 boards_list=""
+rm -f ${base_dir}/MiniMyth2.wks
+echo "#----Entries to raw-copy SPL, bootloader, etc " > ${base_dir}/MiniMyth2.wks
 
 for board in ${boards} ; do
-    echo "  adding "${board}" to default.config"
+    echo "  adding "${board}" to default.config & MiniMyth2.wks"
     cat ${base_dir}/conf/multiconfig/${board}.conf >> ${base_dir}/conf/multiconfig/default.conf
     boards_list=${board}-${boards_list}
+    cat ${base_dir}/${board}.wks >> ${base_dir}/MiniMyth2.wks
 done
+echo "#----Entries to create boot & rootfs partitions" >> ${base_dir}/MiniMyth2.wks
+cat ${base_dir}/default.wks >> ${base_dir}/MiniMyth2.wks
+
+
+sed -i "s%@MM_HOME@%${mm_home}%g" ${base_dir}/MiniMyth2.wks
 
 echo "  boards        : ${boards_list}"
 echo "  mm2 home dir  : [${mm_home}]"
@@ -74,13 +82,15 @@ ${PYTHON} ${base_dir}/scripts/wic create ${base_dir}/MiniMyth2.wks \
 --rootfs-dir=${root_files_loc} \
 --native-sysroot=${base_dir}/native-bins \
 "
+#--debug \
+
 echo '  removing working files...'
 rm -rf ${root_files_loc}/../pseudo*
 
 echo '  copmpressing SD image...'
 rename MiniMyth2-*.direct MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img *
 tar cjvf MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.tar.bz2 ./*.img > /dev/null
-rm -f ./*.img
+#rm -f ./*.img
 
 echo '  SD image creation done'
 

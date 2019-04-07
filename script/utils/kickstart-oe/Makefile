@@ -4,11 +4,16 @@ CATEGORIES = utils
 MASTER_SITES = http://git.yoctoproject.org/cgit/cgit.cgi/poky/snapshot/
 DISTFILES = \
 	poky-yocto-$(GARVERSION).tar.bz2 \
-	MiniMyth2.wks \
-	board-rpi2.conf \
-	board-rpi3.conf \
-	board-s905.conf \
-	create-image.sh \
+	board-rpi2.conf   \
+	board-rpi3.conf   \
+	board-s905.conf   \
+	board-rk3328.conf \
+	create-image.sh   \
+	board-rk3328.wks  \
+	board-rpi2.wks    \
+	board-rpi3.wks    \
+	board-s905.wks    \
+	default.wks       \
 
 WORKSRC = $(WORKDIR)/poky-yocto-$(GARVERSION)
 LICENSE = GPL2
@@ -83,16 +88,23 @@ install-custom:
 	@cp -f $(WORKSRC)/meta/conf/sanity.conf              $(DESTDIR)$(bindir)/kickstart/conf/
 	@cp -f $(WORKSRC)/meta/conf/multiconfig/default.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
 	@#
-	@cp -rf $(WORKSRC)/scripts/lib/    $(DESTDIR)$(bindir)/kickstart/scripts/lib/
-	@cp -f  $(WORKSRC)/scripts/wic     $(DESTDIR)$(bindir)/kickstart/scripts/wic
-	@cp -f  $(DESTDIR)$(bindir)/pseudo $(DESTDIR)$(bindir)/kickstart/tmp/sysroots-components/x86_64/pseudo-native/usr/bin/pseudo
+	@cp -rf $(WORKSRC)/scripts/lib/     $(DESTDIR)$(bindir)/kickstart/scripts/lib/
+	@cp -f  $(WORKSRC)/scripts/wic      $(DESTDIR)$(bindir)/kickstart/scripts/wic
+	@cp -f  $(DESTDIR)$(bindir)/pseudo  $(DESTDIR)$(bindir)/kickstart/tmp/sysroots-components/x86_64/pseudo-native/usr/bin/pseudo
 	@#
-	@cp -f $(WORKDIR)/MiniMyth2.wks   $(DESTDIR)$(bindir)/kickstart/
-	@cp -f $(WORKDIR)/create-image.sh $(DESTDIR)$(bindir)/kickstart/
+	@cp -f $(WORKDIR)/create-image.sh   $(DESTDIR)$(bindir)/kickstart/
 	@#
-	@cp -f $(WORKDIR)/board-rpi2.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
-	@cp -f $(WORKDIR)/board-rpi3.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
-	@cp -f $(WORKDIR)/board-s905.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
+	@cp -f $(WORKDIR)/board-rpi2.conf   $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
+	@cp -f $(WORKDIR)/board-rpi3.conf   $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
+	@cp -f $(WORKDIR)/board-s905.conf   $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
+	@cp -f $(WORKDIR)/board-rk3328.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
+	@#
+	@cp -f $(WORKDIR)/board-rk3328.wks  $(DESTDIR)$(bindir)/kickstart/board-rk3328.wks
+	@cp -f $(WORKDIR)/board-rpi2.wks    $(DESTDIR)$(bindir)/kickstart/board-rpi2.wks
+	@cp -f $(WORKDIR)/board-rpi3.wks    $(DESTDIR)$(bindir)/kickstart/board-rpi3.wks
+	@cp -f $(WORKDIR)/board-s905.wks    $(DESTDIR)$(bindir)/kickstart/board-s905.wks
+	@cp -f $(WORKDIR)/default.wks       $(DESTDIR)$(bindir)/kickstart/default.wks
+	@#
 	@# Remove all host tools requirements as we are listing them in BUILDEPS
 	@sed -i -e "s/HOSTTOOLS +=/__HOSTTOOLS +=/g" $(DESTDIR)$(bindir)/kickstart/conf/bitbake.conf
 	@echo 'HOSTTOOLS += " "' >> $(DESTDIR)$(bindir)/kickstart/conf/bitbake.conf

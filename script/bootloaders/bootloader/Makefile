@@ -26,6 +26,11 @@ ifneq (,$(findstring board-s905,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s905
 endif
 
+ifneq (,$(findstring board-rk3328,$(mm_BOARD_TYPE)))
+	$(MAKE) clean -C ../u-boot
+	$(MAKE) install -C ../board-rk3328
+endif
+
 clean-all:
 	@$(foreach dir, $(wildcard ../u-boot ../board-*), $(MAKE) clean clean-all -C $(dir) ; )
 	$(MAKE) clean
