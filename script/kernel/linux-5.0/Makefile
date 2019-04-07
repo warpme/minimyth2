@@ -91,6 +91,12 @@ endif
 ifeq (1,0)
 endif
 
+# Misc patches for Rockchip
+PATCHFILES += 0401-arm64-dts-rockchip-disable-pwm0-on-rk3399-firefly.patch
+PATCHFILES += 0402-arm64-dts-rockchip-add-usb3-controller-node-for-RK33.patch
+PATCHFILES += 0403-arm64-dts-rockchip-enable-usb3-nodes-on-rk3328-rock6.patch
+PATCHFILES += 0404-arm64-dts-rockchip-Fix-vcc_host1_5v-GPIO-polarity-on.patch
+
 LICENSE = GPL2
 
 DESCRIPTION = 
