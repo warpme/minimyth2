@@ -1,5 +1,5 @@
 GARNAME = strace
-GARVERSION = 4.24
+GARVERSION = 5.0
 CATEGORIES = devel
 MASTER_SITES = https://github.com/strace/strace/releases/download/v$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.xz
