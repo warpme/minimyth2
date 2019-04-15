@@ -25,6 +25,12 @@ PATCHFILES += 0011-Metadata-allow-graber-timeout-configurable.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
 PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
+# Make ffwd/skip more fluent
+PATCHFILES += 0014-partially-revert-22de417-Playback-Some-Optimizations.patch
+
+# Fixes segfault at exiting movies with subtitles playback
+PATCHFILES += 0015-revert-44431bf-Fix-memory-leak-in-subtitle-code.patch
+
 ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 
 # Comflagging related patches
