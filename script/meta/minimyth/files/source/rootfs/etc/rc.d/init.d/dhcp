@@ -56,6 +56,28 @@ start() {
             INTERFACE='eth0'
         fi
 
+        # Waiting 15sec for Eth interface. On some platforms apperaing Eth needs some time...
+        i=0
+        while [ $i -lt 15 ] ; do
+            no_iface=`/sbin/ifconfig ${INTERFACE} | /bin/grep "${INTERFACE}"`
+            i=$((${i} + 1))
+            if [ -z ${no_iface} ] ; then
+                if [ $i -eq 15 ] ; then
+                    mm_message_output err "error: After 15sec still no '${INTERFACE}' interface in system..."
+                    /usr/bin/logger -t minimyth -p "local0.err" "[init.d/dhcp] Timeout waiting for ${INTERFACE} interface..."
+                    /bin/false
+                    exit 1
+                else
+                    /sbin/ifconfig ${INTERFACE} > /var/log/eth-interface
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Waiting for ${INTERFACE} interface..."
+                    /bin/sleep 1
+                fi
+            else
+                /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] ${INTERFACE} present. Starting DHCP client..."
+                i=15
+            fi
+        done
+
         # Start DHCP on the interface.
         IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
         if [ -z "${IP_ADDRESS}" ] ; then
