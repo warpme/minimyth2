@@ -15,6 +15,10 @@ DISTFILES    = idbloader.img \
                trust.img \
                uboot.img \
                extlinux.conf \
+               rk3328-boot-debug.scr \
+               rk3328-boot-debug.txt \
+               rk3328-boot.scr \
+               rk3328-boot.txt \
 
 WORKSRC      = $(WORKDIR)
 
@@ -35,9 +39,13 @@ export mm_U-BOOT_BOARD_TYPE = evb-rk3328_defconfig
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
-	@mkdir -p $(DESTDIR)/boot/extlinux
+	@cp -f    $(WORKSRC)/rk3328-boot-debug.txt                $(DESTDIR)/boot/boot-debug.txt
+	@cp -f    $(WORKSRC)/rk3328-boot-debug.scr                $(DESTDIR)/boot/boot-debug.scr
+	@cp -f    $(WORKSRC)/rk3328-boot.txt                      $(DESTDIR)/boot/boot.txt
+	@cp -f    $(WORKSRC)/rk3328-boot.scr                      $(DESTDIR)/boot/boot.scr
+	@# mkdir -p $(DESTDIR)/boot/extlinux
+	@# cp -f    $(WORKSRC)/extlinux.conf                        $(DESTDIR)/boot/extlinux/extlinux.conf
 	@mkdir -p $(DESTDIR)/boot/rk3328loaderfiles
-	@cp -f    $(WORKSRC)/extlinux.conf                        $(DESTDIR)/boot/extlinux/extlinux.conf
 	@cp -f    $(DESTDIR)/boot/dtbs/rockchip/rk3328-rock64.dtb $(DESTDIR)/boot/rk3328_dtb
 	@cp -f    $(WORKSRC)/idbloader.img                        $(DESTDIR)/boot/rk3328loaderfiles/idbloader.img
 	@cp -f    $(WORKSRC)/trust.img                            $(DESTDIR)/boot/rk3328loaderfiles/trust.img
@@ -46,6 +54,10 @@ install-custom:
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/extlinux/extlinux.conf
+	@rm -f $(DESTDIR)/boot/boot-debug.txt
+	@rm -f $(DESTDIR)/boot/boot-debug.scr
+	@rm -f $(DESTDIR)/boot/boot.txt
+	@rm -f $(DESTDIR)/boot/boot.scr
 	@rm -f $(DESTDIR)/boot/rk3328_dtb
 	@rm -f $(DESTDIR)/boot/rk3328_u-boot
 	@rm -f $(DESTDIR)/boot/rk3328loaderfiles/idbloader.img
