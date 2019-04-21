@@ -33,6 +33,7 @@ install-custom:
 	@cp -f $(WORKSRC)/opt/google/chrome/nacl_irt_x86_64.nexe     $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/natives_blob.bin         $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/resources.pak            $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
+	@cp -f $(WORKSRC)/opt/google/chrome/v8_context_snapshot.bin  $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@rm -f $(DESTDIR)$(rootdir)/usr/bin/google-chrome
 	@ln -sf ./google-chrome-$(GARVERSION) $(DESTDIR)$(rootdir)/usr/bin/google-chrome
 	@$(MAKECOOKIE)
