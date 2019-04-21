@@ -14,11 +14,11 @@ LINUX_EXTRA_VERSION =
 #-------------------------------------------
 
 #--Use this for mainline git-commit kernel--
-# GITHASH             = 84df9525b0c27f3ebc2ebb1864fa62a97fdedb7d
-# LINUX_MAJOR_VERSION = 4
-# LINUX_MINOR_VERSION = 20
-# LINUX_TEENY_VERSION = 0
-# LINUX_EXTRA_VERSION = 
+#GITHASH             = 2d7c76c290dc37cfee6c20932a5b0c416b6ad451
+#LINUX_MAJOR_VERSION = 4
+#LINUX_MINOR_VERSION = 20
+#LINUX_TEENY_VERSION = 0
+#LINUX_EXTRA_VERSION = 
 #-------------------------------------------
 
 

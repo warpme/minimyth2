@@ -1,0 +1,67 @@
+From 3cd43b73f76c82d7d4107863f891aa7fcd8bc48c Mon Sep 17 00:00:00 2001
+From: Jonas Karlman <jonas@kwiboo.se>
+Date: Sun, 16 Dec 2018 12:56:33 +0100
+Subject: [PATCH 122/142] drm: dw-hdmi: add dw_hdmi_update_eld() callback
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi.c | 15 +++++++++++++++
+ include/drm/bridge/dw_hdmi.h              |  2 ++
+ 2 files changed, 17 insertions(+)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c
+index 345d416..988b22e 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c
+@@ -181,6 +181,7 @@ struct dw_hdmi {
+ 	struct regmap *regm;
+ 	void (*enable_audio)(struct dw_hdmi *hdmi);
+ 	void (*disable_audio)(struct dw_hdmi *hdmi);
++	void (*update_eld)(struct device *dev, u8 *eld);
+ 
+ 	struct cec_notifier *cec_notifier;
+ };
+@@ -606,6 +607,19 @@ void dw_hdmi_audio_disable(struct dw_hdmi *hdmi)
+ }
+ EXPORT_SYMBOL_GPL(dw_hdmi_audio_disable);
+ 
++static void dw_hdmi_update_eld(struct dw_hdmi *hdmi, u8 *eld)
++{
++	if (hdmi->audio && hdmi->update_eld)
++		hdmi->update_eld(&hdmi->audio->dev, eld);
++}
++
++void dw_hdmi_set_update_eld(struct dw_hdmi *hdmi,
++			    void (*update_eld)(struct device *dev, u8 *eld))
++{
++	hdmi->update_eld = update_eld;
++}
++EXPORT_SYMBOL_GPL(dw_hdmi_set_update_eld);
++
+ static bool hdmi_bus_fmt_is_rgb(unsigned int bus_format)
+ {
+ 	switch (bus_format) {
+@@ -1919,6 +1933,7 @@ static int dw_hdmi_connector_update_edid(struct drm_connector *connector,
+ 			ret = drm_add_edid_modes(connector, edid);
+ 		else
+ 			drm_edid_to_eld(connector, edid);
++		dw_hdmi_update_eld(hdmi, connector->eld);
+ 		kfree(edid);
+ 	} else {
+ 		dev_dbg(hdmi->dev, "failed to get edid\n");
+diff --git a/include/drm/bridge/dw_hdmi.h b/include/drm/bridge/dw_hdmi.h
+index 9c56412..ac69e14 100644
+--- a/include/drm/bridge/dw_hdmi.h
++++ b/include/drm/bridge/dw_hdmi.h
+@@ -157,6 +157,8 @@ void dw_hdmi_setup_rx_sense(struct dw_hdmi *hdmi, bool hpd, bool rx_sense);
+ void dw_hdmi_set_sample_rate(struct dw_hdmi *hdmi, unsigned int rate);
+ void dw_hdmi_audio_enable(struct dw_hdmi *hdmi);
+ void dw_hdmi_audio_disable(struct dw_hdmi *hdmi);
++void dw_hdmi_set_update_eld(struct dw_hdmi *hdmi,
++			    void (*update_eld)(struct device *dev, u8 *eld));
+ 
+ /* PHY configuration */
+ void dw_hdmi_phy_i2c_set_addr(struct dw_hdmi *hdmi, u8 address);
+-- 
+2.7.1
+

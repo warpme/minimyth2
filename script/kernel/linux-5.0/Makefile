@@ -75,6 +75,11 @@ PATCHFILES += 0309-snd-meson-activate-HDMI-audio-path.patch
 PATCHFILES += 0310-drm-meson-select-dw-hdmi-i2s-audio-for-meson-hdmi.patch
 PATCHFILES += 0311-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
 PATCHFILES += 0312-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
+endif
+
+# Misc patches for Amlogic.
+# Disabled due conflicts with Rockchip (mainly design ware drm-bridge-dw)
+ifeq (0,1)
 PATCHFILES += 0313-drm-bridge-dw-hdmi-Use-AUTO-CTS-setup-mode-when-non-.patch
 PATCHFILES += 0314-arm64-dts-meson-gx-Add-canvas-provider-node-to-the-v.patch
 PATCHFILES += 0315-drm-bridge-dw-hdmi-Add-SCDC-and-TMDS-Scrambling-supp.patch
@@ -87,15 +92,59 @@ PATCHFILES += 0321-drm-meson-Add-YUV420-output-support.patch
 PATCHFILES += 0322-drm-meson-Output-in-YUV444-if-sink-supports-it.patch
 endif
 
-# Misc patches for Amlogic
-ifeq (1,0)
+# Patches for Audio support in Rockchip
+ifeq (1,1)
+PATCHFILES += 0406-arm64-dts-rockchip-add-rk3328-ACODEC-node.patch
+PATCHFILES += 0407-arm64-dts-rockchip-move-rk3328-sound-dai-cells-to-th.patch
+PATCHFILES += 0408-arm64-dts-rockchip-enable-analog-audio-node-for-rock.patch
+PATCHFILES += 0422-arm64-dts-Remove-inconsistent-use-of-arm-armv8-compa.patch
+PATCHFILES += 0432-arm64-dts-rockchip-fix-rk3328-roc-cc-gmac2io-stabili.patch
+PATCHFILES += 0438-arm64-dts-rockchip-fix-rk3328-roc-cc-gmac2io-tx-rx_d.patch
+PATCHFILES += 0440-ARM-dts-rockchip-fix-rk3288-cpu-opp-node-reference.patch
+PATCHFILES += 0441-arm64-dts-rockchip-Fix-vcc_host1_5v-GPIO-polarity-on.patch
+PATCHFILES += 0443-arm64-dts-rockchip-fix-rk3328-rgmii-high-tx-error-ra.patch
+PATCHFILES += 0450-arm64-dts-rockchip-enable-HDMI-CEC-on-rk3328.patch
+PATCHFILES += 0451-arm64-dts-rockchip-fix-regulator-name-on-rk3328-rock.patch
+PATCHFILES += 0452-arm64-dts-rockchip-add-leds-node-on-rk3328-rock64.patch
+PATCHFILES += 0453-arm64-dts-rockchip-add-ir-receiver-node-on-rk3328-ro.patch
+PATCHFILES += 0454-arm64-dts-rockchip-add-sound-dai-cells-to-HDMI-of-rk.patch
+PATCHFILES += 0455-arm64-dts-rockchip-give-some-life-to-the-rk3328-roc-.patch
+PATCHFILES += 0456-arm64-dts-rockchip-add-rk3328-roc-cc-cpu-supply-entr.patch
+PATCHFILES += 0469-clk-rockchip-fix-wrong-clock-definitions-for-rk3328.patch
+PATCHFILES += 0470-ARM-dts-rockchip-Fix-gic-efuse-sort-ordering-for-rk3.patch
+PATCHFILES += 0475-ARM-dts-rockchip-Fix-gpu-opp-node-names-for-rk3288.patch
+PATCHFILES += 0476-ARM-dts-rockchip-Remove-address-size-cells-from-rk32.patch
+PATCHFILES += 0502-drm-rockchip-Add-implicit-fencing-support-for-planes.patch
+PATCHFILES += 0503-drm-rockchip-Fix-YUV-buffers-color-rendering.patch
+PATCHFILES += 0504-drm-rockchip-Fix-typo-in-VOP-macros-argument.patch
+PATCHFILES += 0505-drm-rockchip-Separate-RK3288-from-RK3368-win01-regis.patch
+PATCHFILES += 0506-drm-rockchip-Add-reflection-properties.patch
+PATCHFILES += 0507-drm-rockchip-check-yuv2yuv-existence-before-assignin.patch
+PATCHFILES += 0508-drm-bridge-dw-hdmi-Fix-overflow-workaround-for-Rockc.patch
+PATCHFILES += 0511-dt-bindings-usb-add-DT-binding-for-RK3328-dwc3-contr.patch
+PATCHFILES += 0512-arm64-dts-rockchip-add-usb3-controller-node-for-RK33.patch
+PATCHFILES += 0513-arm64-dts-rockchip-enable-usb3-nodes-on-rk3328-rock6.patch
+PATCHFILES += 0515-arm64-dts-rockchip-add-HDMI-sound-node-for-rk3328-ro.patch
+PATCHFILES += 0516-drm-dw-hdmi-extract-dw_hdmi_connector_update_edid.patch
+PATCHFILES += 0517-drm-dw-hdmi-move-dw_hdmi_connector_detect.patch
+PATCHFILES += 0518-drm-dw-hdmi-update-CEC-phys-addr-and-EDID-on-HPD-eve.patch
+PATCHFILES += 0519-Revert-drm-edid-make-drm_edid_to_eld-static.patch
+PATCHFILES += 0520-drm-dw-hdmi-update-ELD-on-HPD-event.patch
+PATCHFILES += 0521-ASoC-hdmi-codec-add-hdmi_codec_eld_notify.patch
+PATCHFILES += 0522-drm-dw-hdmi-add-dw_hdmi_update_eld-callback.patch
+PATCHFILES += 0523-drm-dw-hdmi-i2s-add-.get_eld-callback-for-ALSA-SoC.patch
+PATCHFILES += 0524-drm-bridge-dw-hdmi-Use-AUTO-CTS-setup-mode-when-non-.patch
+PATCHFILES += 0525-ASoC-hdmi-codec-reorder-channel-allocation-list.patch
+PATCHFILES += 0526-drm-dw-hdmi-i2s-add-multi-channel-lpcm-support.patch
+PATCHFILES += 0527-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-enabl.patch
+PATCHFILES += 0528-fix-chmap_idx.patch
+PATCHFILES += 0529-ASoC-rockchip-i2s-use-closest-clock-rate.patch
+PATCHFILES += 0530-HACK-arm64-dts-rockchip-update-gpu-node-on-rk3328-ro.patch
+PATCHFILES += 0531-HACK-arm64-dts-rockchip-remove-acodec-dai-on-rk3328-.patch
+PATCHFILES += 0532-HACK-arm64-dts-rockchip-split-sound-node-on-rk3328-r.patch
+PATCHFILES += 0533-media-cec-notifier-debounce-callback-setting-invalid.patch
+PATCHFILES += 0534-WIP-dw-hdmi-cec-sleep-104ms-on-error.patch
 endif
-
-# Misc patches for Rockchip
-PATCHFILES += 0401-arm64-dts-rockchip-disable-pwm0-on-rk3399-firefly.patch
-PATCHFILES += 0402-arm64-dts-rockchip-add-usb3-controller-node-for-RK33.patch
-PATCHFILES += 0403-arm64-dts-rockchip-enable-usb3-nodes-on-rk3328-rock6.patch
-PATCHFILES += 0404-arm64-dts-rockchip-Fix-vcc_host1_5v-GPIO-polarity-on.patch
 
 LICENSE = GPL2
 
