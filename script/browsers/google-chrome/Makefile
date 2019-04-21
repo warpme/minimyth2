@@ -1,5 +1,5 @@
 GARNAME = google-chrome
-GARVERSION = 60.0.3112.101
+GARVERSION = 65.0.3325.181
 CATEGORIES = browsers
 MASTER_SITES = https://dl.google.com/linux/direct/
 DISTFILES = google-chrome-stable_current_amd64.deb
@@ -27,14 +27,12 @@ install-custom:
 	@cp -f $(WORKSRC)/opt/google/chrome/chrome_200_percent.pak   $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/chrome-sandbox           $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/icudtl.dat               $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
-	@cp -f $(WORKSRC)/opt/google/chrome/libwidevinecdmadapter.so $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/libwidevinecdm.so        $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/nacl_helper              $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/nacl_helper_bootstrap    $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/nacl_irt_x86_64.nexe     $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/natives_blob.bin         $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/resources.pak            $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
-	@cp -f $(WORKSRC)/opt/google/chrome/snapshot_blob.bin        $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
-	@rm $(DESTDIR)$(rootdir)/usr/bin/google-chrome
+	@rm -f $(DESTDIR)$(rootdir)/usr/bin/google-chrome
 	@ln -sf ./google-chrome-$(GARVERSION) $(DESTDIR)$(rootdir)/usr/bin/google-chrome
 	@$(MAKECOOKIE)
