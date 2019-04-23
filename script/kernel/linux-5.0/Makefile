@@ -64,35 +64,34 @@ endif
 
 # Patches for Amlogic audio support
 ifeq (1,1)
-PATCHFILES += 0302-ARM64-defconfig-enable-CEC-support.patch
-PATCHFILES += 0303-ASoC-meson-add-meson-audio-core-driver.patch
-PATCHFILES += 0304-ASoC-meson-add-register-definitions.patch
-PATCHFILES += 0305-ASoC-meson-add-initial-aiu-i2s-support.patch
-PATCHFILES += 0306-ASoC-meson-add-initial-spdif-support.patch
-PATCHFILES += 0307-ARM64-defconfig-enable-audio-support-for-meson-SoCs-.patch
-PATCHFILES += 0308-ARM64-dts-meson-gx-add-audio-controller-nodes.patch
-PATCHFILES += 0309-snd-meson-activate-HDMI-audio-path.patch
-PATCHFILES += 0310-drm-meson-select-dw-hdmi-i2s-audio-for-meson-hdmi.patch
-PATCHFILES += 0311-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
-PATCHFILES += 0312-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
+PATCHFILES += 0301-ARM64-defconfig-enable-CEC-support.patch
+PATCHFILES += 0302-ASoC-meson-add-meson-audio-core-driver.patch
+PATCHFILES += 0303-ASoC-meson-add-register-definitions.patch
+PATCHFILES += 0304-ASoC-meson-add-initial-aiu-i2s-support.patch
+PATCHFILES += 0305-ASoC-meson-add-initial-spdif-support.patch
+PATCHFILES += 0306-ARM64-defconfig-enable-audio-support-for-meson-SoCs-.patch
+PATCHFILES += 0307-ARM64-dts-meson-gx-add-audio-controller-nodes.patch
+PATCHFILES += 0308-snd-meson-activate-HDMI-audio-path.patch
+PATCHFILES += 0309-drm-meson-select-dw-hdmi-i2s-audio-for-meson-hdmi.patch
+PATCHFILES += 0310-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
+PATCHFILES += 0311-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
+PATCHFILES += 0312-drm-bridge-dw-hdmi-Use-AUTO-CTS-setup-mode-when-non-.patch
+PATCHFILES += 0313-arm64-dts-meson-gx-Add-canvas-provider-node-to-the-v.patch
+PATCHFILES += 0314-drm-bridge-dw-hdmi-Add-SCDC-and-TMDS-Scrambling-supp.patch
+PATCHFILES += 0315-drm-meson-add-HDMI-div40-TMDS-mode.patch
+PATCHFILES += 0316-drm-meson-add-support-for-HDMI2.0-2160p-modes.patch
+PATCHFILES += 0317-drm-bridge-dw-hdmi-add-support-for-YUV420-output.patch
+PATCHFILES += 0318-drm-bridge-dw-hdmi-support-dynamically-get-input-out.patch
+PATCHFILES += 0319-drm-bridge-dw-hdmi-allow-ycbcr420-modes-for-0x200a.patch
+PATCHFILES += 0320-drm-meson-Add-YUV420-output-support.patch
+PATCHFILES += 0321-drm-meson-Output-in-YUV444-if-sink-supports-it.patch
 endif
 
-# Misc patches for Amlogic.
-# Disabled due conflicts with Rockchip (mainly design ware drm-bridge-dw)
-ifeq (0,1)
-PATCHFILES += 0313-drm-bridge-dw-hdmi-Use-AUTO-CTS-setup-mode-when-non-.patch
-PATCHFILES += 0314-arm64-dts-meson-gx-Add-canvas-provider-node-to-the-v.patch
-PATCHFILES += 0315-drm-bridge-dw-hdmi-Add-SCDC-and-TMDS-Scrambling-supp.patch
-PATCHFILES += 0316-drm-meson-add-HDMI-div40-TMDS-mode.patch
-PATCHFILES += 0317-drm-meson-add-support-for-HDMI2.0-2160p-modes.patch
-PATCHFILES += 0318-drm-bridge-dw-hdmi-add-support-for-YUV420-output.patch
-PATCHFILES += 0319-drm-bridge-dw-hdmi-support-dynamically-get-input-out.patch
-PATCHFILES += 0320-drm-bridge-dw-hdmi-allow-ycbcr420-modes-for-0x200a.patch
-PATCHFILES += 0321-drm-meson-Add-YUV420-output-support.patch
-PATCHFILES += 0322-drm-meson-Output-in-YUV444-if-sink-supports-it.patch
+# Misc patches for Amlogic
+ifeq (1,0)
 endif
 
-# Patches for Audio support in Rockchip
+# Patches for Rockchip audio support
 ifeq (1,1)
 PATCHFILES += 0406-arm64-dts-rockchip-add-rk3328-ACODEC-node.patch
 PATCHFILES += 0407-arm64-dts-rockchip-move-rk3328-sound-dai-cells-to-th.patch
@@ -100,9 +99,6 @@ PATCHFILES += 0408-arm64-dts-rockchip-enable-analog-audio-node-for-rock.patch
 PATCHFILES += 0422-arm64-dts-Remove-inconsistent-use-of-arm-armv8-compa.patch
 PATCHFILES += 0432-arm64-dts-rockchip-fix-rk3328-roc-cc-gmac2io-stabili.patch
 PATCHFILES += 0438-arm64-dts-rockchip-fix-rk3328-roc-cc-gmac2io-tx-rx_d.patch
-PATCHFILES += 0440-ARM-dts-rockchip-fix-rk3288-cpu-opp-node-reference.patch
-PATCHFILES += 0441-arm64-dts-rockchip-Fix-vcc_host1_5v-GPIO-polarity-on.patch
-PATCHFILES += 0443-arm64-dts-rockchip-fix-rk3328-rgmii-high-tx-error-ra.patch
 PATCHFILES += 0450-arm64-dts-rockchip-enable-HDMI-CEC-on-rk3328.patch
 PATCHFILES += 0451-arm64-dts-rockchip-fix-regulator-name-on-rk3328-rock.patch
 PATCHFILES += 0452-arm64-dts-rockchip-add-leds-node-on-rk3328-rock64.patch
@@ -133,7 +129,6 @@ PATCHFILES += 0520-drm-dw-hdmi-update-ELD-on-HPD-event.patch
 PATCHFILES += 0521-ASoC-hdmi-codec-add-hdmi_codec_eld_notify.patch
 PATCHFILES += 0522-drm-dw-hdmi-add-dw_hdmi_update_eld-callback.patch
 PATCHFILES += 0523-drm-dw-hdmi-i2s-add-.get_eld-callback-for-ALSA-SoC.patch
-PATCHFILES += 0524-drm-bridge-dw-hdmi-Use-AUTO-CTS-setup-mode-when-non-.patch
 PATCHFILES += 0525-ASoC-hdmi-codec-reorder-channel-allocation-list.patch
 PATCHFILES += 0526-drm-dw-hdmi-i2s-add-multi-channel-lpcm-support.patch
 PATCHFILES += 0527-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-enabl.patch
