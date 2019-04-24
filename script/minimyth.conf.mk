@@ -18,7 +18,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk  ,      $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.17.1.r416
+mm_VERSION_MINIMYTH ?= 9.18.0.r461
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -103,6 +103,10 @@ mm_GARCH                  ?= x86-64
 # 'board-rpi3',
 # 'board-s905'
 # 'board-rk3328'
+# Note: some combinations for multiboard are not allowed 
+# (due bootloader or architecture conflict):
+# 1. 'board-rpi3' and 'board-rk3328'
+# 2. 'board-rpi2' and 'board-*'
 mm_BOARD_TYPE             ?= board-s905 board-rpi3
 
 # Indicates whether or not to create the share distribution. Share distribution
