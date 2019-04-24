@@ -26,6 +26,7 @@ PATCHFILES += linux-5.0-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.0-net-smsc95xx-allow-mac-address-as-param.patch
 
 # Patches for Amlogic video decoder
+# based on https://github.com/Elyotna/linux/commits/5.0/v4l2-m2m-pr
 ifeq (1,1)
 PATCHFILES += 0101-amlogic-vdec-dt-bindings-amlogic-vdec-add-Amlogic-Video-Decoder-Bindings.patch
 PATCHFILES += 0102-amlogic-vdec-add-v4l2-m2m-video-decoder-driver.patch
@@ -63,6 +64,7 @@ PATCHFILES += 0205-drm-include-idr.h-from-drm_file.h.patch
 endif
 
 # Patches for Amlogic audio support
+# based on https://github.com/superna9999/linux.git -b linux-5.0-le-amlogic-gx
 ifeq (1,1)
 PATCHFILES += 0301-ARM64-defconfig-enable-CEC-support.patch
 PATCHFILES += 0302-ASoC-meson-add-meson-audio-core-driver.patch
