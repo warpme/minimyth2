@@ -17,7 +17,8 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = bootloaders/u-boot
+# Skipping U-Boot build as we are using built-in U-Boot
+# DEPENDS   = bootloaders/u-boot
 
 BUILD_SCRIPTS   =
 INSTALL_SCRIPTS = custom

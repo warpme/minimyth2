@@ -1,11 +1,3 @@
-#wget http://os.archlinuxarm.org/os/rockchip/boot/rock64/idbloader.img
-#wget http://os.archlinuxarm.org/os/rockchip/boot/rock64/uboot.img
-#wget http://os.archlinuxarm.org/os/rockchip/boot/rock64/trust.img
-#dd if=idbloader.img of=/dev/sdX seek=64 conv=notrunc
-#dd if=uboot.img of=/dev/sdX seek=16384 conv=notrunc
-#dd if=trust.img of=/dev/sdX seek=24576 conv=notrunc
-
-
 
 GARNAME      = bootfiles-rk3328
 GARVERSION   = 2019-04-03
@@ -28,7 +20,8 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = bootloaders/u-boot
+# Skipping U-Boot build as we are using pre-built U-Boot from Archlinux ARM (thx guys!)
+# DEPENDS   = bootloaders/u-boot
 
 BUILD_SCRIPTS   =
 INSTALL_SCRIPTS = custom
