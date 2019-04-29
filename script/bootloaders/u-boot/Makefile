@@ -3,7 +3,7 @@ GARVERSION   = 6aebc0d11a10f48a54146c5e71bbef15a1a458fc
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = $(GARVERSION).zip
-WORKSRC      = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
+WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
 
