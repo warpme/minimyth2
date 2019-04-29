@@ -1,11 +1,8 @@
 GARNAME      = mesa
-GARVERSION   = da1a5a19bddea47a1cbb512a89c6193c8fd1b197
+GARVERSION   = bb953de96c769618db649b0bb735a5cce3934460
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-
-PATCHFILES   = configure-add-wayland-scanner-patch.patch
-PATCHFILES  += autotools-add-lima-build.patch
 
 LICENSE = LGPL2/MIT
 
