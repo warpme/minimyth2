@@ -1,5 +1,5 @@
-GARNAME      = u-boot
-GARVERSION   = bea3d826203f90507ff32ed24bd0a3c53479e55c
+GARNAME      = u-boot-20190429
+GARVERSION   = 6aebc0d11a10f48a54146c5e71bbef15a1a458fc
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = $(GARVERSION).zip
