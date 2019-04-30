@@ -53,6 +53,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/boot.scr
 	@rm -f $(DESTDIR)/boot/rk3328_dtb
 	@rm -f $(DESTDIR)/boot/rk3328_u-boot
-	@rm -f $(DESTDIR)/boot/rk3328loaderfiles/idbloader.img
-	@rm -f $(DESTDIR)/boot/rk3328loaderfiles/trust.img
-	@rm -f $(DESTDIR)/boot/rk3328loaderfiles/uboot.img
+	@rm -rf $(DESTDIR)/boot/rk3328loaderfiles*
