@@ -48,8 +48,14 @@ endif
 ifeq ($(mm_U-BOOT_BOARD_TYPE),p212_defconfig)
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/s905_u-boot
 endif
+ifeq ($(mm_U-BOOT_BOARD_TYPE),khadas-vim2_defconfig)
+	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/s912_u-boot
+endif
 ifeq ($(mm_U-BOOT_BOARD_TYPE),evb-rk3328_defconfig)
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/rk3328_u-boot
+endif
+ifeq ($(mm_U-BOOT_BOARD_TYPE),evb-rk3399_defconfig)
+	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/rk3399_u-boot
 endif
 	@$(MAKECOOKIE)
 
@@ -58,3 +64,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/kernel8.img
 	@rm -f $(DESTDIR)/boot/s905_u-boot
 	@rm -f $(DESTDIR)/boot/rk3328_u-boot
+	@rm -f $(DESTDIR)/boot/rk3399_u-boot
