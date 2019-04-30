@@ -7,15 +7,19 @@ DISTFILES = \
 	board-rpi2.conf   \
 	board-rpi3.conf   \
 	board-s905.conf   \
+	board-s912.conf   \
 	board-rk3328.conf \
+	board-rk3399.conf \
 	board-h6.conf     \
-	create-image.sh   \
-	board-h6.wks      \
-	board-rk3328.wks  \
 	board-rpi2.wks    \
 	board-rpi3.wks    \
 	board-s905.wks    \
+	board-s912.wks    \
+	board-rk3328.wks  \
+	board-rk3399.wks  \
+	board-h6.wks      \
 	default.wks       \
+	create-image.sh   \
 
 WORKSRC = $(WORKDIR)/poky-yocto-$(GARVERSION)
 LICENSE = GPL2
@@ -96,17 +100,8 @@ install-custom:
 	@#
 	@cp -f $(WORKDIR)/create-image.sh   $(DESTDIR)$(bindir)/kickstart/
 	@#
-	@cp -f $(WORKDIR)/board-rpi2.conf   $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
-	@cp -f $(WORKDIR)/board-rpi3.conf   $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
-	@cp -f $(WORKDIR)/board-s905.conf   $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
-	@cp -f $(WORKDIR)/board-rk3328.conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
-	@cp -f $(WORKDIR)/board-h6.conf     $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
-	@#
-	@cp -f $(WORKDIR)/board-h6.wks      $(DESTDIR)$(bindir)/kickstart/board-h6.wks
-	@cp -f $(WORKDIR)/board-rk3328.wks  $(DESTDIR)$(bindir)/kickstart/board-rk3328.wks
-	@cp -f $(WORKDIR)/board-rpi2.wks    $(DESTDIR)$(bindir)/kickstart/board-rpi2.wks
-	@cp -f $(WORKDIR)/board-rpi3.wks    $(DESTDIR)$(bindir)/kickstart/board-rpi3.wks
-	@cp -f $(WORKDIR)/board-s905.wks    $(DESTDIR)$(bindir)/kickstart/board-s905.wks
+	@cp -f $(WORKDIR)/board-*.conf      $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
+	@cp -f $(WORKDIR)/board-*.wks       $(DESTDIR)$(bindir)/kickstart/
 	@cp -f $(WORKDIR)/default.wks       $(DESTDIR)$(bindir)/kickstart/default.wks
 	@#
 	@# Remove all host tools requirements as we are listing them in BUILDEPS
