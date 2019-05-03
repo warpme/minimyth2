@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-s912
-GARVERSION   = 2019-04-30
+GARVERSION   = 2019-05-03
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = aml_autoscript \

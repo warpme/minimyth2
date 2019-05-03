@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-s905
-GARVERSION   = 2018-12-13
+GARVERSION   = 2019-05-03
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = aml_autoscript \
