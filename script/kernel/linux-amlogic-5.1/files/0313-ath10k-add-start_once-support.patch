@@ -1,0 +1,106 @@
+From a281cb209405918b4eb38aeef9d25e88f6fca914 Mon Sep 17 00:00:00 2001
+From: Erik Stromdahl <erik.stromdahl@gmail.com>
+Date: Tue, 9 Apr 2019 19:03:40 +0200
+Subject: [PATCH 13/17] ath10k: add start_once support
+
+Add possibility to configure the driver to only start target once.
+This can reduce startup time of SDIO devices significantly since
+loading the firmware can take a substantial amount of time.
+
+The patch is also necessary for high latency devices in general
+since it does not seem to be possible to rerun the BMI phase
+(fw upload) without power-cycling the device.
+
+Signed-off-by: Erik Stromdahl <erik.stromdahl@gmail.com>
+---
+ drivers/net/wireless/ath/ath10k/core.c | 19 +++++++++++++++----
+ drivers/net/wireless/ath/ath10k/core.h |  2 ++
+ drivers/net/wireless/ath/ath10k/hw.h   |  6 ++++++
+ 3 files changed, 23 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/ath/ath10k/core.c b/drivers/net/wireless/ath/ath10k/core.c
+index 32962f8732c1..5d6497210883 100644
+--- a/drivers/net/wireless/ath/ath10k/core.c
++++ b/drivers/net/wireless/ath/ath10k/core.c
+@@ -2504,6 +2504,9 @@ int ath10k_core_start(struct ath10k *ar, enum ath10k_firmware_mode mode,
+ 	int status;
+ 	u32 val;
+ 
++	if (ar->is_started && ar->hw_params.start_once)
++		return 0;
++
+ 	lockdep_assert_held(&ar->conf_mutex);
+ 
+ 	clear_bit(ATH10K_FLAG_CRASH_FLUSH, &ar->dev_flags);
+@@ -2768,6 +2771,7 @@ int ath10k_core_start(struct ath10k *ar, enum ath10k_firmware_mode mode,
+ 	if (status)
+ 		goto err_hif_stop;
+ 
++	ar->is_started = true;
+ 	return 0;
+ 
+ err_hif_stop:
+@@ -2820,6 +2824,7 @@ void ath10k_core_stop(struct ath10k *ar)
+ 	ath10k_htt_tx_stop(&ar->htt);
+ 	ath10k_htt_rx_free(&ar->htt);
+ 	ath10k_wmi_detach(ar);
++	ar->is_started = false;
+ }
+ EXPORT_SYMBOL(ath10k_core_stop);
+ 
+@@ -2959,12 +2964,18 @@ static int ath10k_core_probe_fw(struct ath10k *ar)
+ 		goto err_unlock;
+ 	}
+ 
+-	ath10k_debug_print_boot_info(ar);
+-	ath10k_core_stop(ar);
++	/* Leave target running if hw_params.start_once is set */
++	if (ar->hw_params.start_once) {
++		mutex_unlock(&ar->conf_mutex);
++	} else {
++		ath10k_debug_print_boot_info(ar);
++		ath10k_core_stop(ar);
+ 
+-	mutex_unlock(&ar->conf_mutex);
++		mutex_unlock(&ar->conf_mutex);
++
++		ath10k_hif_power_down(ar);
++	}
+ 
+-	ath10k_hif_power_down(ar);
+ 	return 0;
+ 
+ err_unlock:
+diff --git a/drivers/net/wireless/ath/ath10k/core.h b/drivers/net/wireless/ath/ath10k/core.h
+index e08a17b01e03..1e0b5c1c4f7a 100644
+--- a/drivers/net/wireless/ath/ath10k/core.h
++++ b/drivers/net/wireless/ath/ath10k/core.h
+@@ -956,6 +956,8 @@ struct ath10k {
+ 	bool nlo_enabled;
+ 	bool p2p;
+ 
++	bool is_started;
++
+ 	struct {
+ 		enum ath10k_bus bus;
+ 		const struct ath10k_hif_ops *ops;
+diff --git a/drivers/net/wireless/ath/ath10k/hw.h b/drivers/net/wireless/ath/ath10k/hw.h
+index d07021e97681..243a887d88a1 100644
+--- a/drivers/net/wireless/ath/ath10k/hw.h
++++ b/drivers/net/wireless/ath/ath10k/hw.h
+@@ -608,6 +608,12 @@ struct ath10k_hw_params {
+ 
+ 	/* target supporting fw download via diag ce */
+ 	bool fw_diag_ce_download;
++
++	/* Specifies whether or not the device should be started once.
++	 * If set, the device will be started once by the early fw probe
++	 * and it will not be terminated afterwards.
++	 */
++	bool start_once;
+ };
+ 
+ struct htt_rx_desc;
+-- 
+2.17.1
+

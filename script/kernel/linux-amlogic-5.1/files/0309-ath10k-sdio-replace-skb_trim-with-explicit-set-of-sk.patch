@@ -1,0 +1,37 @@
+From 5ad19c2a5de1ecdcd01a8a4e0e77bae8a76868fb Mon Sep 17 00:00:00 2001
+From: Erik Stromdahl <erik.stromdahl@gmail.com>
+Date: Tue, 9 Apr 2019 19:03:38 +0200
+Subject: [PATCH 09/17] ath10k: sdio: replace skb_trim with explicit set of
+ skb->len
+
+This patch fixes a bug with padding of the skb data buffer.
+Since skb_trim can only be used to reduce the skb len, it is useless when
+we pad (increase the length of) the skb. Instead we must set skb->len
+directly.
+
+Signed-off-by: Erik Stromdahl <erik.stromdahl@gmail.com>
+---
+ drivers/net/wireless/ath/ath10k/sdio.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/ath/ath10k/sdio.c b/drivers/net/wireless/ath/ath10k/sdio.c
+index 3eb241cb8a25..989e3f563f3d 100644
+--- a/drivers/net/wireless/ath/ath10k/sdio.c
++++ b/drivers/net/wireless/ath/ath10k/sdio.c
+@@ -1496,7 +1496,12 @@ static int ath10k_sdio_hif_tx_sg(struct ath10k *ar, u8 pipe_id,
+ 		skb = items[i].transfer_context;
+ 		padded_len = ath10k_sdio_calc_txrx_padded_len(ar_sdio,
+ 							      skb->len);
+-		skb_trim(skb, padded_len);
++		/* FIXME: unsure if just extending the skb len is the right
++		 * thing to do since we might read outside the skb->data
++		 * buffer. But we really don't want to realloc the skb just to
++		 * pad the length.
++		 */
++		skb->len = padded_len;
+ 
+ 		/* Write TX data to the end of the mbox address space */
+ 		address = ar_sdio->mbox_addr[eid] + ar_sdio->mbox_size[eid] -
+-- 
+2.17.1
+

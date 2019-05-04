@@ -1,0 +1,47 @@
+From aaf7f6f555415155e7ce77feb8d2d48f7b1f4eef Mon Sep 17 00:00:00 2001
+From: Alagu Sankar <alagusankar@silex-india.com>
+Date: Tue, 9 Apr 2019 19:03:35 +0200
+Subject: [PATCH 04/17] ath10k: use clean packet headers
+
+HTC header carries junk values that may be interpreted by the firmware
+differently. Enable credit update only if flow control is enabled for
+the corresponding endpoint.
+
+PLL clock setting sequence does not mask the PLL_CONTROL
+register value. Side effect of not masking the values is not known as
+the entire pll clock setting sequence is undocumented.
+
+Signed-off-by: Alagu Sankar <alagusankar@silex-india.com>
+---
+ drivers/net/wireless/ath/ath10k/htc.c | 1 +
+ drivers/net/wireless/ath/ath10k/hw.c  | 2 ++
+ 2 files changed, 3 insertions(+)
+
+diff --git a/drivers/net/wireless/ath/ath10k/htc.c b/drivers/net/wireless/ath/ath10k/htc.c
+index 805a7f8a04f2..1d4d1a1992fe 100644
+--- a/drivers/net/wireless/ath/ath10k/htc.c
++++ b/drivers/net/wireless/ath/ath10k/htc.c
+@@ -73,6 +73,7 @@ static void ath10k_htc_prepare_tx_skb(struct ath10k_htc_ep *ep,
+ 	struct ath10k_htc_hdr *hdr;
+ 
+ 	hdr = (struct ath10k_htc_hdr *)skb->data;
++	memset(hdr, 0, sizeof(struct ath10k_htc_hdr));
+ 
+ 	hdr->eid = ep->eid;
+ 	hdr->len = __cpu_to_le16(skb->len - sizeof(*hdr));
+diff --git a/drivers/net/wireless/ath/ath10k/hw.c b/drivers/net/wireless/ath/ath10k/hw.c
+index ad082b7d7643..cfc232f1fdbc 100644
+--- a/drivers/net/wireless/ath/ath10k/hw.c
++++ b/drivers/net/wireless/ath/ath10k/hw.c
+@@ -814,6 +814,8 @@ static int ath10k_hw_qca6174_enable_pll_clock(struct ath10k *ar)
+ 	if (ret)
+ 		return -EINVAL;
+ 
++	reg_val &= ~(WLAN_PLL_CONTROL_REFDIV_MASK | WLAN_PLL_CONTROL_DIV_MASK |
++		     WLAN_PLL_CONTROL_NOPWD_MASK);
+ 	reg_val |= (SM(hw_clk->refdiv, WLAN_PLL_CONTROL_REFDIV) |
+ 		    SM(hw_clk->div, WLAN_PLL_CONTROL_DIV) |
+ 		    SM(1, WLAN_PLL_CONTROL_NOPWD));
+-- 
+2.17.1
+
