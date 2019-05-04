@@ -247,7 +247,7 @@ clean-all:
 	@rm -f  $(DESTDIR)$(LINUX_DIR)/vmlinuz
 	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs*
 	@rm -rf $(DESTDIR)$(LINUX_MODULESPREFIX)
-	@$(MAKE) clean       -C ../linux-headers-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
-	@$(MAKE) clean-all   -C ../linux-headers-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
+	@$(MAKE) clean       -C ../../kernel-headers/linux-headers
+	@$(MAKE) clean-all   -C ../../kernel-headers/linux-headers
 	@$(MAKE) clean       -C ../linux-firmware
 	@$(MAKE) clean-all   -C ../linux-firmware-meson
