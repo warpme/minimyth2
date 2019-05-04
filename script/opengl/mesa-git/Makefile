@@ -79,7 +79,7 @@ CONFIGURE_ARGS = \
 
 ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
-	-D gallium-drivers=swrast,kmsro,lima,vc4,v3d \
+	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=false \
@@ -87,7 +87,7 @@ CONFIGURE_ARGS += \
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
-	-D gallium-drivers=swrast,kmsro,lima,vc4,v3d \
+	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=false \
