@@ -18,7 +18,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk  ,      $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.18.0.r461
+mm_VERSION_MINIMYTH ?= 9.18.1.r461
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -162,8 +162,8 @@ mm_SDCARD_FILES           ?= /home/piotro/ABS/SD-image-builder
 mm_HOME                   ?= /home/piotro/minimyth-dev
 
 # The version of kernel to use.
-# Valid values are 'amlogic-4.19' '4.19' '4.20' and '5.0'
-mm_KERNEL_VERSION         ?= 4.20
+# Valid values are 'amlogic-5.1' 'rockchip-5.1' '5.0' '5.1'
+mm_KERNEL_VERSION         ?= 5.1
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
