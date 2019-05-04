@@ -48,11 +48,6 @@ PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
 PATCHFILES += 0056-Loging-Add-signal-monitor-warning-msg-if-NID-or-TSID-dont-match.patch
 PATCHFILES += 0057-Logging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 
-# Zoneminder patches
-PATCHFILES += 0060-Zoneminder-Add-1.31.1-compability.patch
-PATCHFILES += 0061-Zoneminder-Fix-zoneminder-1.26.5.patch
-PATCHFILES += 0062-Zoneminder-Add-1.32.2-compability.patch
-
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
 PATCHFILES += 0101-Minimyth-Add-disable-optical-disc-in-menu.patch
