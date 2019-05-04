@@ -1,0 +1,38 @@
+From 7eacd36c3e7784270aedca8b49b55b1812a65092 Mon Sep 17 00:00:00 2001
+From: Neil Armstrong <narmstrong@baylibre.com>
+Date: Wed, 20 Mar 2019 09:00:14 +0100
+Subject: [PATCH 16/31] drm/meson: fix TMDS clock filtering for DMT monitors
+
+DMT monitors does not necessarely report a maximum TMDS clock
+in a VSDB EDID extension.
+
+In this case, all modes are wrongly rejected, including
+the DRM fallback EDID.
+
+This patch only rejects modes whith clock > max_tmds_clock if
+the max_tmds_clock is specified. This will only reject
+4:2:0 HDMI2.0 modes, who reports a clock > max_tmds_clock.
+
+Reported-by: Maxime Jourdan <mjourdan@baylibre.com>
+Fixes: d7d8fb7046b6 ("drm/meson: add HDMI div40 TMDS mode")
+---
+ drivers/gpu/drm/meson/meson_dw_hdmi.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_dw_hdmi.c b/drivers/gpu/drm/meson/meson_dw_hdmi.c
+index e28814f..563953e 100644
+--- a/drivers/gpu/drm/meson/meson_dw_hdmi.c
++++ b/drivers/gpu/drm/meson/meson_dw_hdmi.c
+@@ -569,7 +569,8 @@ dw_hdmi_mode_valid(struct drm_connector *connector,
+ 	DRM_DEBUG_DRIVER("Modeline " DRM_MODE_FMT "\n", DRM_MODE_ARG(mode));
+ 
+ 	/* If sink max TMDS clock, we reject the mode */
+-	if (mode->clock > connector->display_info.max_tmds_clock)
++	if (connector->display_info.max_tmds_clock &&
++	    mode->clock > connector->display_info.max_tmds_clock)
+ 		return MODE_BAD;
+ 
+ 	/* Check against non-VIC supported modes */
+-- 
+2.7.1
+

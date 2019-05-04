@@ -1,0 +1,162 @@
+From b07217306c91ee10b51c594fe931f971ad88db2f Mon Sep 17 00:00:00 2001
+From: Alagu Sankar <alagusankar@silex-india.com>
+Date: Tue, 9 Apr 2019 19:03:42 +0200
+Subject: [PATCH 17/17] ath10k_sdio: DMA bounce buffers for read write
+
+Some SD host controllers still need bounce buffers for SDIO data
+transfers. While the transfers worked fine on x86 platforms,
+this is found to be required for i.MX6 based systems.
+
+Changes are similar to and derived from the ath6kl sdio driver.
+
+Signed-off-by: Alagu Sankar <alagusankar@silex-india.com>
+---
+ drivers/net/wireless/ath/ath10k/sdio.c | 55 +++++++++++++++++++++++++-
+ drivers/net/wireless/ath/ath10k/sdio.h |  4 ++
+ 2 files changed, 57 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/ath/ath10k/sdio.c b/drivers/net/wireless/ath/ath10k/sdio.c
+index b7676d4f935f..162e0af7bb54 100644
+--- a/drivers/net/wireless/ath/ath10k/sdio.c
++++ b/drivers/net/wireless/ath/ath10k/sdio.c
+@@ -24,10 +24,21 @@
+ #include "trace.h"
+ #include "sdio.h"
+ 
++#define ATH10K_SDIO_DMA_BUF_SIZE	(32 * 1024)
+ #define ATH10K_SDIO_READ_BUF_SIZE	(32 * 1024)
+ 
+ /* inlined helper functions */
+ 
++/* Macro to check if DMA buffer is WORD-aligned and DMA-able.
++ * Most host controllers assume the buffer is DMA'able and will
++ * bug-check otherwise (i.e. buffers on the stack). virt_addr_valid
++ * check fails on stack memory.
++ */
++static inline bool buf_needs_bounce(const u8 *buf)
++{
++	return ((unsigned long)buf & 0x3) || !virt_addr_valid(buf);
++}
++
+ static inline int ath10k_sdio_calc_txrx_padded_len(struct ath10k_sdio *ar_sdio,
+ 						   size_t len)
+ {
+@@ -295,15 +306,29 @@ static int ath10k_sdio_read(struct ath10k *ar, u32 addr, void *buf, size_t len)
+ {
+ 	struct ath10k_sdio *ar_sdio = ath10k_sdio_priv(ar);
+ 	struct sdio_func *func = ar_sdio->func;
++	bool bounced = false;
++	u8 *tbuf = NULL;
+ 	int ret;
+ 
++	if (buf_needs_bounce(buf)) {
++		if (!ar_sdio->dma_buffer)
++			return -ENOMEM;
++		mutex_lock(&ar_sdio->dma_buffer_mutex);
++		tbuf = ar_sdio->dma_buffer;
++		bounced = true;
++	} else {
++		tbuf = buf;
++	}
++
+ 	sdio_claim_host(func);
+ 
+-	ret = sdio_memcpy_fromio(func, buf, addr, len);
++	ret = sdio_memcpy_fromio(func, tbuf, addr, len);
+ 	if (ret) {
+ 		ath10k_warn(ar, "failed to read from address 0x%x: %d\n",
+ 			    addr, ret);
+ 		goto out;
++	} else if (bounced) {
++		memcpy(buf, tbuf, len);
+ 	}
+ 
+ 	ath10k_dbg(ar, ATH10K_DBG_SDIO, "sdio read addr 0x%x buf 0x%p len %zu\n",
+@@ -312,6 +337,8 @@ static int ath10k_sdio_read(struct ath10k *ar, u32 addr, void *buf, size_t len)
+ 
+ out:
+ 	sdio_release_host(func);
++	if (bounced)
++		mutex_unlock(&ar_sdio->dma_buffer_mutex);
+ 
+ 	return ret;
+ }
+@@ -320,14 +347,27 @@ static int ath10k_sdio_write(struct ath10k *ar, u32 addr, const void *buf, size_
+ {
+ 	struct ath10k_sdio *ar_sdio = ath10k_sdio_priv(ar);
+ 	struct sdio_func *func = ar_sdio->func;
++	bool bounced = false;
++	u8 *tbuf = NULL;
+ 	int ret;
+ 
++	if (buf_needs_bounce(buf)) {
++		if (!ar_sdio->dma_buffer)
++			return -ENOMEM;
++		mutex_lock(&ar_sdio->dma_buffer_mutex);
++		tbuf = ar_sdio->dma_buffer;
++		memcpy(tbuf, buf, len);
++		bounced = true;
++	} else {
++		tbuf = (u8 *)buf;
++	}
++
+ 	sdio_claim_host(func);
+ 
+ 	/* For some reason toio() doesn't have const for the buffer, need
+ 	 * an ugly hack to workaround that.
+ 	 */
+-	ret = sdio_memcpy_toio(func, addr, (void *)buf, len);
++	ret = sdio_memcpy_toio(func, addr, (void *)tbuf, len);
+ 	if (ret) {
+ 		ath10k_warn(ar, "failed to write to address 0x%x: %d\n",
+ 			    addr, ret);
+@@ -340,6 +380,8 @@ static int ath10k_sdio_write(struct ath10k *ar, u32 addr, const void *buf, size_
+ 
+ out:
+ 	sdio_release_host(func);
++	if (bounced)
++		mutex_unlock(&ar_sdio->dma_buffer_mutex);
+ 
+ 	return ret;
+ }
+@@ -2043,6 +2085,14 @@ static int ath10k_sdio_probe(struct sdio_func *func,
+ 		goto err_core_destroy;
+ 	}
+ 
++	ar_sdio->dma_buffer = devm_kzalloc(ar->dev,
++					   ATH10K_SDIO_DMA_BUF_SIZE,
++					   GFP_KERNEL);
++	if (!ar_sdio->dma_buffer) {
++		ret = -ENOMEM;
++		goto err_core_destroy;
++	}
++
+ 	ar_sdio->sdio_read_buf = devm_kzalloc(ar->dev,
+ 					      ATH10K_SDIO_READ_BUF_SIZE,
+ 					      GFP_KERNEL);
+@@ -2060,6 +2110,7 @@ static int ath10k_sdio_probe(struct sdio_func *func,
+ 	spin_lock_init(&ar_sdio->lock);
+ 	spin_lock_init(&ar_sdio->wr_async_lock);
+ 	mutex_init(&ar_sdio->irq_data.mtx);
++	mutex_init(&ar_sdio->dma_buffer_mutex);
+ 
+ 	INIT_LIST_HEAD(&ar_sdio->bus_req_freeq);
+ 	INIT_LIST_HEAD(&ar_sdio->wr_asyncq);
+diff --git a/drivers/net/wireless/ath/ath10k/sdio.h b/drivers/net/wireless/ath/ath10k/sdio.h
+index 07e2cc6a3bd8..e76759ab61cb 100644
+--- a/drivers/net/wireless/ath/ath10k/sdio.h
++++ b/drivers/net/wireless/ath/ath10k/sdio.h
+@@ -197,6 +197,10 @@ struct ath10k_sdio {
+ 	struct ath10k_sdio_irq_data irq_data;
+ 
+ 	u8 *sdio_read_buf;
++	u8 *dma_buffer;
++
++	/* protects access to dma_buffer */
++	struct mutex dma_buffer_mutex;
+ 
+ 	/* temporary buffer for BMI requests */
+ 	u8 *bmi_buf;
+-- 
+2.17.1
+

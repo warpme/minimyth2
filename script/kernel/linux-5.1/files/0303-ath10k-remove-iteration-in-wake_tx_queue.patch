@@ -1,0 +1,53 @@
+From a2f2759444641f73fb463f3d989f9af171bb39f4 Mon Sep 17 00:00:00 2001
+From: Erik Stromdahl <erik.stromdahl@gmail.com>
+Date: Tue, 9 Apr 2019 19:03:34 +0200
+Subject: [PATCH 03/17] ath10k: remove iteration in wake_tx_queue
+
+Iterating the TX queue and thereby dequeuing all available packets in the
+queue could result in performance penalties on some SMP systems.
+
+The reason for this is most likely that the per-ac lock (active_txq_lock)
+in mac80211 will be held by the CPU iterating the current queue.
+
+This will lock up other CPUs trying to push new messages on the TX
+queue.
+
+Instead of iterating the queue we fetch just one packet at the time,
+resulting in minimal starvation of the other CPUs.
+
+Reported-by: Yibo Zhao <yiboz@codeaurora.org>
+Signed-off-by: Erik Stromdahl <erik.stromdahl@gmail.com>
+---
+ drivers/net/wireless/ath/ath10k/mac.c | 9 +++------
+ 1 file changed, 3 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/ath/ath10k/mac.c b/drivers/net/wireless/ath/ath10k/mac.c
+index b73c23d4ce86..c9e700b844f8 100644
+--- a/drivers/net/wireless/ath/ath10k/mac.c
++++ b/drivers/net/wireless/ath/ath10k/mac.c
+@@ -4356,7 +4356,6 @@ static void ath10k_mac_op_wake_tx_queue(struct ieee80211_hw *hw,
+ 					struct ieee80211_txq *txq)
+ {
+ 	struct ath10k *ar = hw->priv;
+-	int ret;
+ 	u8 ac;
+ 
+ 	ath10k_htt_tx_txq_update(hw, txq);
+@@ -4369,11 +4368,9 @@ static void ath10k_mac_op_wake_tx_queue(struct ieee80211_hw *hw,
+ 	if (!txq)
+ 		goto out;
+ 
+-	while (ath10k_mac_tx_can_push(hw, txq)) {
+-		ret = ath10k_mac_tx_push_txq(hw, txq);
+-		if (ret < 0)
+-			break;
+-	}
++	if (ath10k_mac_tx_can_push(hw, txq))
++		ath10k_mac_tx_push_txq(hw, txq);
++
+ 	ieee80211_return_txq(hw, txq);
+ 	ath10k_htt_tx_txq_update(hw, txq);
+ out:
+-- 
+2.17.1
+
