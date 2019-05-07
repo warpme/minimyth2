@@ -24,7 +24,7 @@ PATCHFILES += linux-5.1-defaults.patch
 PATCHFILES += linux-5.1-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.1-net-smsc95xx-allow-mac-address-as-param.patch
 
-# Patches for Amlogic audio support
+# Patches for Amlogic audio, lima, panfrost support
 # based on https://github.com/superna9999/linux.git -b linux-5.1-le-amlogic-gx
 ifeq (1,1)
 PATCHFILES += 0001-ARM64-defconfig-enable-CEC-support.patch
@@ -41,23 +41,20 @@ PATCHFILES += 0011-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
 PATCHFILES += 0012-drm-bridge-dw-hdmi-Use-AUTO-CTS-setup-mode-when-non-.patch
 PATCHFILES += 0013-drm-bridge-dw-hdmi-support-dynamically-get-input-out.patch
 PATCHFILES += 0014-drm-bridge-dw-hdmi-allow-ycbcr420-modes-for-0x200a.patch
-#PATCHFILES += 0015-drm-bridge-dw-hdmi-disable-SCDC-configuration-for-in.patch
-#PATCHFILES += 0016-drm-meson-fix-TMDS-clock-filtering-for-DMT-monitors.patch
-PATCHFILES += 0017-drm-meson-Add-YUV420-output-support.patch
-PATCHFILES += 0018-drm-meson-Output-in-YUV444-if-sink-supports-it.patch
-PATCHFILES += 0019-drm-export-drm_timeout_abs_to_jiffies.patch
-PATCHFILES += 0020-drm-Add-library-for-shmem-backed-GEM-objects.patch
-PATCHFILES += 0021-drm-Add-reservation_object-to-drm_gem_object.patch
-PATCHFILES += 0022-drm-Add-helpers-for-locking-an-array-of-BO-reservati.patch
-PATCHFILES += 0023-BACKPORT-drm-lima-driver-for-ARM-Mali4xx-GPUs.patch
-PATCHFILES += 0024-iommu-io-pgtable-Add-ARM-Mali-midgard-MMU-page-table.patch
-PATCHFILES += 0025-drm-Add-a-drm_gem_objects_lookup-helper.patch
-PATCHFILES += 0026-FROMLIST-drm-panfrost-Add-initial-panfrost-driver.patch
-PATCHFILES += 0027-arm64-dts-meson-gxm-Add-Mali-T820-node.patch
-PATCHFILES += 0028-arm64-dts-meson-gxm-nexbox-a1-Enable-USB.patch
-PATCHFILES += 0029-arm64-dts-meson-gxm-nexbox-a1-disable-cvbs.patch
-PATCHFILES += 0030-WiP-drm-panfrost-add-support-for-custom-soft-reset-o.patch
-#PATCHFILES += 0031-usb-core-Try-generic-PHY_MODE_USB_HOST-if-usb_phy_ro.patch
+PATCHFILES += 0015-drm-meson-Add-YUV420-output-support.patch
+PATCHFILES += 0016-drm-meson-Output-in-YUV444-if-sink-supports-it.patch
+PATCHFILES += 0017-drm-export-drm_timeout_abs_to_jiffies.patch
+PATCHFILES += 0018-drm-Add-library-for-shmem-backed-GEM-objects.patch
+PATCHFILES += 0019-drm-Add-reservation_object-to-drm_gem_object.patch
+PATCHFILES += 0020-drm-Add-helpers-for-locking-an-array-of-BO-reservati.patch
+PATCHFILES += 0021-BACKPORT-drm-lima-driver-for-ARM-Mali4xx-GPUs.patch
+PATCHFILES += 0022-iommu-io-pgtable-Add-ARM-Mali-midgard-MMU-page-table.patch
+PATCHFILES += 0023-drm-Add-a-drm_gem_objects_lookup-helper.patch
+PATCHFILES += 0024-FROMLIST-drm-panfrost-Add-initial-panfrost-driver.patch
+PATCHFILES += 0025-arm64-dts-meson-gxm-Add-Mali-T820-node.patch
+PATCHFILES += 0026-arm64-dts-meson-gxm-nexbox-a1-Enable-USB.patch
+PATCHFILES += 0027-arm64-dts-meson-gxm-nexbox-a1-disable-cvbs.patch
+PATCHFILES += 0028-WiP-drm-panfrost-add-support-for-custom-soft-reset-o.patch
 endif
 
 # Patches for Amlogic video decoder
