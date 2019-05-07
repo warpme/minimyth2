@@ -19,7 +19,7 @@ PATCHFILES += linux-5.1-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.1-net-smsc95xx-allow-mac-address-as-param.patch
 
 # Patches for Amlogic video decoder
-# based on https://github.com/Elyotna/linux/commits/5.0/v4l2-m2m-pr
+# https://github.com/kszaq/LibreELEC.tv/tree/amlogic/packages/linux/patches/amlogic-amlgx
 ifeq (1,1)
 PATCHFILES += 0101-dt-bindings-media-add-Amlogic-Video-Decoder-Bindings.patch
 PATCHFILES += 0102-media-meson-add-v4l2-m2m-video-decoder-driver.patch
@@ -48,7 +48,7 @@ PATCHFILES += 0124-media-meson-vdec-fixes-for-5.0.patch
 endif
 
 # Patches for Amlogic audio support
-# based on https://github.com/superna9999/linux.git -b linux-5.0-le-amlogic-gx
+# https://github.com/kszaq/LibreELEC.tv/tree/amlogic/packages/linux/patches/amlogic-amlgx
 ifeq (1,1)
 PATCHFILES += 0201-drm-dw-hdmi-extract-dw_hdmi_connector_update_edid.patch
 PATCHFILES += 0202-drm-dw-hdmi-move-dw_hdmi_connector_detect.patch
@@ -66,12 +66,12 @@ PATCHFILES += 0214-ASoC-sun4i-i2s-multichannel-updates-fixes.patch
 PATCHFILES += 0215-fix-chmap_idx.patch
 endif
 
-# Misc patches for Amlogic
+# Misc patches for Atheros 10k WiFi driver
 # https://github.com/kszaq/LibreELEC.tv/tree/amlogic/packages/linux/patches/amlogic-amlgx
 ifeq (1,1)
 PATCHFILES += 0301-ath10k-add-inline-wrapper-for-htt_h2t_aggr_cfg_msg.patch
 PATCHFILES += 0302-ath10k-add-htt_h2t_aggr_cfg_msg-op-for-high-latency-.patch
-PATCHFILES += 0303-ath10k-remove-iteration-in-wake_tx_queue.patch
+# PATCHFILES += 0303-ath10k-remove-iteration-in-wake_tx_queue.patch
 PATCHFILES += 0304-ath10k-use-clean-packet-headers.patch
 PATCHFILES += 0305-ath10k-high-latency-fixes-for-beacon-buffer.patch
 PATCHFILES += 0306-ath10k-sdio-read-RX-packets-in-bundles.patch
@@ -86,6 +86,11 @@ PATCHFILES += 0314-ath10k_sdio-hif-start-once-addition.patch
 PATCHFILES += 0315-ath10k-sdio-readd-start_once.patch
 PATCHFILES += 0316-ath10k-add-n_cipher_suites-for-QCA9377-USB-SDIO.patch
 PATCHFILES += 0317-ath10k_sdio-DMA-bounce-buffers-for-read-write.patch
+endif
+
+# Misc patches for AmLogic
+# https://github.com/kszaq/LibreELEC.tv/tree/amlogic/packages/linux/patches/amlogic-amlgx
+ifeq (1,1)
 PATCHFILES += 0401-HACK-set-cma-pool-to-896MB.patch
 PATCHFILES += 0403-HACK-silence-PFNs-busy-log-spam.patch
 PATCHFILES += 0404-HACK-silence-meson-ir-warn-once-log-spam.patch
@@ -121,12 +126,17 @@ PATCHFILES += 0434-ASoC-meson-correct-i2s-error-messages.patch
 PATCHFILES += 0435-dt-bindings-Add-vendor-prefix-for-SmartLabs-LLC.patch
 PATCHFILES += 0436-dt-bindings-arm-amlogic-Add-support-for-the-SmartLab.patch
 PATCHFILES += 0437-ARM64-dts-meson-gxl-Add-support-for-the-SmartLabs-SM.patch
-PATCHFILES += 0501-ARM64-dts-meson-gx-add-ATF-BL32-reserved-memory-regi.patch
+endif
+
+# Misc patches for Panfrost driver
+# https://github.com/kszaq/LibreELEC.tv/tree/amlogic/packages/linux/patches/amlogic-amlgx
+ifeq (1,1)
 PATCHFILES += 0501-drm-panfrost-Add-support-for-2MB-page-entries.patch
 PATCHFILES += 0502-drm-panfrost-Make-panfrost_gem_free_object-static.patch
 PATCHFILES += 0503-drm-panfrost-Add-missing-include.patch
 PATCHFILES += 0504-drm-panfrost-depend-on-GENERIC_ATOMIC64-when-using-C.patch
 PATCHFILES += 0505-drm-panfrost-Prevent-concurrent-resets.patch
+PATCHFILES += 0506-ARM64-dts-meson-gx-add-ATF-BL32-reserved-memory-regi.patch
 endif
 
 LICENSE = GPL2
