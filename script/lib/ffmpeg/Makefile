@@ -8,17 +8,30 @@ CATEGORIES = lib
 #GITHASH = a58fca474cebe3de627fddd54f41748246631a35
 #MASTER_SITES = https://github.com/ldts/FFmpeg/archive/
 #DISTFILES = $(GITHASH).zip
-#WORKSRC = $(WORKDIR)/$(GITHASH)
+#WORKSRC = $(WORKDIR)/FFmpeg-$(GITHASH)
 #--------------------------------------------------------
 
 #--use this for mainline ffmpeg--------------------------
-GARVERSION = 3.4.2
+GARVERSION = 4.1.3
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
 #--------------------------------------------------------
 
 
-PATCHFILES = $(DISTNAME)-pkg_config.patch
+PATCHFILES = ffmpeg-pkg_config.patch
+PATCHFILES += 0002-libavcodec-v4l2m2m-output-AVDRMFrameDescriptor.patch
+PATCHFILES += 0003-libavcodec-v4l2m2m-DRM-export-only-once.patch
+PATCHFILES += 0004-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
+PATCHFILES += 0005-libavcodec-v4l2m2m-DRM-select-with-PIX_FMT.patch
+PATCHFILES += 0006-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
+PATCHFILES += 0007-libavcodec-v4l2m2m-DRM-fix-bufref_drm.patch
+PATCHFILES += 0008-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
+PATCHFILES += 0009-libavcodec-v4l2m2m-DRM-check-error-on-fd-close.patch
+PATCHFILES += 0010-libavcodec-v4l2m2m-dec-declare-HW-config.patch
+PATCHFILES += 0011-libavcodec-v4l2m2m-DRM-debug-information.patch
+PATCHFILES += 0012-libavcodec-v4l2m2m-fix-error-handling-during-buffer-.patch
+PATCHFILES += 0013-libavcodec-v4l2m2m-use-ff_get_format-callback-from-a.patch
+
 LICENSE = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -43,20 +56,12 @@ CONFIGURE_ARGS = \
 	--incdir=$(includedir) \
 	--mandir=$(mandir) \
 	--enable-gpl \
-	--disable-version3 \
-	--disable-nonfree \
 	--disable-static \
 	--enable-shared \
 	$(if $(filter -Os,$(CFLAGS)),--enable-small) \
 	--enable-runtime-cpudetect \
-	--disable-gray \
-	--enable-swscale-alpha \
-	--disable-all \
-	--disable-programs \
 	--enable-ffmpeg \
-	--disable-ffplay \
-	--disable-ffprobe \
-	--disable-ffserver \
+	--enable-ffplay \
 	--enable-doc \
 	--enable-htmlpages \
 	--enable-manpages \
@@ -70,26 +75,15 @@ CONFIGURE_ARGS = \
 	--enable-swscale \
 	--enable-postproc \
 	--enable-avfilter \
-	--disable-avresample \
 	--enable-pthreads \
-	--disable-w32threads \
-	--disable-os2threads \
 	--enable-network \
-	--enable-dct \
-	--disable-dwt \
-	--disable-lsp \
 	--enable-lzo \
 	--enable-mdct \
 	--enable-rdft \
 	--enable-fft \
-	--disable-dxva2 \
 	--enable-vaapi \
 	--enable-vdpau \
-	--disable-everything \
-	--disable-encoders \
-	--enable-decoders \
 	--enable-hwaccels \
-	--disable-muxers \
 	--enable-demuxers \
 	--enable-parsers \
 	--enable-bsfs \
@@ -97,43 +91,7 @@ CONFIGURE_ARGS = \
 	--enable-indevs \
 	--enable-outdevs \
 	--enable-filters \
-	--disable-avisynth \
 	--enable-bzlib \
-	--disable-frei0r \
-	--disable-gnutls \
-	--disable-libass \
-	--disable-libbluray \
-	--disable-libcaca \
-	--disable-libcelt \
-	--disable-libcdio \
-	--disable-libdc1394 \
-	--disable-libfdk-aac \
-	--disable-libflite \
-	--disable-libfreetype \
-	--disable-libgsm \
-	--disable-libiec61883 \
-	--disable-libilbc \
-	--disable-libmodplug \
-	--disable-libmp3lame \
-	--disable-libopencore-amrnb \
-	--disable-libopencore-amrwb \
-	--disable-libopencv \
-	--disable-libopenjpeg \
-	--disable-libopus \
-	--disable-libpulse \
-	--disable-libsoxr \
-	--disable-libspeex \
-	--disable-libtheora \
-	--disable-libtwolame \
-	--disable-libv4l2 \
-	--disable-libvo-amrwbenc \
-	--disable-libvorbis \
-	--disable-libvpx \
-	--disable-libx264 \
-	--disable-libxavs \
-	--disable-libxvid \
-	--disable-openal \
-	--disable-openssl \
 	--enable-zlib \
 	--cross-prefix=$(compiler_prefix) \
 	--enable-cross-compile \
@@ -160,37 +118,12 @@ CONFIGURE_ARGS = \
 	--progs-suffix="" \
 	--arch=$(GARCH_FAMILY) \
 	--enable-pic \
-	--disable-thumb \
-	--disable-symver \
-	--disable-hardcoded-tables \
 	--enable-safe-bitstream-reader \
 	--disable-lto \
 	--enable-asm \
-	--disable-altivec \
-	--enable-amd3dnow \
-	--enable-amd3dnowext \
-	--enable-mmx \
-	--enable-mmxext \
-	--enable-sse \
-	--enable-sse2 \
-	--enable-sse3 \
-	--enable-ssse3 \
-	--enable-sse4 \
-	--enable-sse42 \
-	--enable-avx \
-	--enable-armv5te \
-	--enable-armv6 \
-	--enable-armv6t2 \
-	--enable-vfp \
-	--enable-neon \
-	--enable-inline-asm \
-	--disable-mips32r2 \
-	--disable-mipsfpu \
 	--enable-fast-unaligned \
-	--disable-debug \
 	--enable-optimizations \
-	--disable-extra-warnings \
-	--disable-stripping
+
 BUILD_ARGS     = \
 	V='1'
 INSTALL_ARGS   = \
