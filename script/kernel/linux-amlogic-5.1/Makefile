@@ -21,49 +21,30 @@ PATCHFILES += linux-5.1-net-smsc95xx-allow-mac-address-as-param.patch
 # Patches for Amlogic video decoder
 # https://github.com/kszaq/LibreELEC.tv/tree/amlogic/packages/linux/patches/amlogic-amlgx
 ifeq (1,1)
-PATCHFILES += 0101-dt-bindings-media-add-Amlogic-Video-Decoder-Bindings.patch
-PATCHFILES += 0102-media-meson-add-v4l2-m2m-video-decoder-driver.patch
-PATCHFILES += 0103-MAINTAINERS-Add-meson-video-decoder.patch
-PATCHFILES += 0104-arm64-dts-meson-gx-add-vdec-entry.patch
-PATCHFILES += 0105-arm64-dts-meson-add-vdec-entries.patch
-PATCHFILES += 0106-meson-vdec-introduce-controls-and-V4L2_CID_MIN_BUFFE.patch
-PATCHFILES += 0107-media-videodev2-add-V4L2_FMT_FLAG_NO_SOURCE_CHANGE.patch
-PATCHFILES += 0108-meson-vdec-allow-subscribing-to-V4L2_EVENT_SOURCE_CH.patch
-PATCHFILES += 0109-media-meson-vdec-add-H.264-decoding-support.patch
-PATCHFILES += 0110-media-meson-vdec-add-MPEG4-decoding-support.patch
-PATCHFILES += 0111-media-meson-vdec-add-MJPEG-decoding-support.patch
-PATCHFILES += 0112-media-videodev2.h-Add-Amlogic-compressed-format.patch
-PATCHFILES += 0113-media-meson-vdec-add-support-for-V4L2_PIX_FMT_AM21C.patch
-PATCHFILES += 0114-meson-vdec-make-amvdec_dst_buf_done_offset-public.patch
-PATCHFILES += 0115-media-meson-vdec-add-HEVC-decoding-support.patch
-PATCHFILES += 0116-media-meson-vdec-more-debug-output-on-src-change.patch
-PATCHFILES += 0117-meson-vdec-Map-the-Firmware-buf-idx-VB2-buf-idx.patch
-PATCHFILES += 0118-media-meson-vdec-commonize-some-HEVC-code.patch
-PATCHFILES += 0119-media-meson-vdec-add-VP9-input-support.patch
-PATCHFILES += 0120-media-meson-vdec-add-VP9-support.patch
-PATCHFILES += 0121-media-meson-vdec-don-t-keep-queuing-inputs-on-stop_s.patch
-PATCHFILES += 0122-media-meson-vp9-multiple-fixes-for-lockups.patch
-PATCHFILES += 0123-vp9-cosmetics.patch
-PATCHFILES += 0124-media-meson-vdec-fixes-for-5.0.patch
-endif
-
-# Patches for Amlogic audio support
-# https://github.com/kszaq/LibreELEC.tv/tree/amlogic/packages/linux/patches/amlogic-amlgx
-ifeq (1,1)
-PATCHFILES += 0201-drm-dw-hdmi-extract-dw_hdmi_connector_update_edid.patch
-PATCHFILES += 0202-drm-dw-hdmi-move-dw_hdmi_connector_detect.patch
-PATCHFILES += 0203-drm-dw-hdmi-update-CEC-phys-addr-and-EDID-on-HPD-eve.patch
-PATCHFILES += 0204-Revert-drm-edid-make-drm_edid_to_eld-static.patch
-PATCHFILES += 0205-drm-dw-hdmi-update-ELD-on-HPD-event.patch
-PATCHFILES += 0206-ASoC-hdmi-codec-add-hdmi_codec_eld_notify.patch
-PATCHFILES += 0207-drm-dw-hdmi-add-dw_hdmi_update_eld-callback.patch
-PATCHFILES += 0208-drm-dw-hdmi-i2s-add-.get_eld-callback-for-ALSA-SoC.patch
-PATCHFILES += 0210-ASoC-hdmi-codec-reorder-channel-allocation-list.patch
-PATCHFILES += 0211-drm-dw-hdmi-i2s-add-multi-channel-lpcm-support.patch
-PATCHFILES += 0212-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-enabl.patch
-PATCHFILES += 0213-ASoC-sun4i-i2s-multichannel-updates.patch
-PATCHFILES += 0214-ASoC-sun4i-i2s-multichannel-updates-fixes.patch
-PATCHFILES += 0215-fix-chmap_idx.patch
+PATCHFILES += 0201-dt-bindings-media-add-Amlogic-Video-Decoder-Bindings.patch
+PATCHFILES += 0202-media-meson-add-v4l2-m2m-video-decoder-driver.patch
+PATCHFILES += 0203-MAINTAINERS-Add-meson-video-decoder.patch
+PATCHFILES += 0204-arm64-dts-meson-gx-add-vdec-entry.patch
+PATCHFILES += 0205-arm64-dts-meson-add-vdec-entries.patch
+PATCHFILES += 0206-meson-vdec-introduce-controls-and-V4L2_CID_MIN_BUFFE.patch
+PATCHFILES += 0207-media-videodev2-add-V4L2_FMT_FLAG_NO_SOURCE_CHANGE.patch
+PATCHFILES += 0208-meson-vdec-allow-subscribing-to-V4L2_EVENT_SOURCE_CH.patch
+PATCHFILES += 0209-media-meson-vdec-add-H.264-decoding-support.patch
+PATCHFILES += 0210-media-meson-vdec-add-MPEG4-decoding-support.patch
+PATCHFILES += 0211-media-meson-vdec-add-MJPEG-decoding-support.patch
+PATCHFILES += 0212-media-videodev2.h-Add-Amlogic-compressed-format.patch
+PATCHFILES += 0213-media-meson-vdec-add-support-for-V4L2_PIX_FMT_AM21C.patch
+PATCHFILES += 0214-meson-vdec-make-amvdec_dst_buf_done_offset-public.patch
+PATCHFILES += 0215-media-meson-vdec-add-HEVC-decoding-support.patch
+PATCHFILES += 0216-media-meson-vdec-more-debug-output-on-src-change.patch
+PATCHFILES += 0217-meson-vdec-Map-the-Firmware-buf-idx-VB2-buf-idx.patch
+PATCHFILES += 0218-media-meson-vdec-commonize-some-HEVC-code.patch
+PATCHFILES += 0219-media-meson-vdec-add-VP9-input-support.patch
+PATCHFILES += 0220-media-meson-vdec-add-VP9-support.patch
+PATCHFILES += 0221-media-meson-vdec-don-t-keep-queuing-inputs-on-stop_s.patch
+PATCHFILES += 0222-media-meson-vp9-multiple-fixes-for-lockups.patch
+PATCHFILES += 0223-vp9-cosmetics.patch
+PATCHFILES += 0224-media-meson-vdec-fixes-for-5.0.patch
 endif
 
 # Misc patches for Atheros 10k WiFi driver
@@ -97,7 +78,7 @@ PATCHFILES += 0404-HACK-silence-meson-ir-warn-once-log-spam.patch
 PATCHFILES += 0405-HACK-silence-hrtimer-log-spam.patch
 PATCHFILES += 0406-HACK-Bluetooth-Fix-spurious-error-message.patch
 PATCHFILES += 0407-WIP-hdmi-patch.patch
-PATCHFILES += 0409-WIP-fix-meson-gx-socid-output.patch
+#PATCHFILES += 0409-WIP-fix-meson-gx-socid-output.patch
 PATCHFILES += 0410-WIP-set-max-frequency-100000000-for-emmc-nodes.patch
 PATCHFILES += 0411-arm64-dts-meson-gxbb-vega-s95-update-dtsi-with-many-.patch
 PATCHFILES += 0412-arm64-dts-meson-gxbb-wetek.dtsi-enable-bluetooth.patch
@@ -126,6 +107,7 @@ PATCHFILES += 0434-ASoC-meson-correct-i2s-error-messages.patch
 PATCHFILES += 0435-dt-bindings-Add-vendor-prefix-for-SmartLabs-LLC.patch
 PATCHFILES += 0436-dt-bindings-arm-amlogic-Add-support-for-the-SmartLab.patch
 PATCHFILES += 0437-ARM64-dts-meson-gxl-Add-support-for-the-SmartLabs-SM.patch
+PATCHFILES += 0438-ARM64-dts-meson-gx-add-ATF-BL32-reserved-memory-regi.patch
 endif
 
 # Misc patches for Panfrost driver
@@ -136,7 +118,6 @@ PATCHFILES += 0502-drm-panfrost-Make-panfrost_gem_free_object-static.patch
 PATCHFILES += 0503-drm-panfrost-Add-missing-include.patch
 PATCHFILES += 0504-drm-panfrost-depend-on-GENERIC_ATOMIC64-when-using-C.patch
 PATCHFILES += 0505-drm-panfrost-Prevent-concurrent-resets.patch
-PATCHFILES += 0506-ARM64-dts-meson-gx-add-ATF-BL32-reserved-memory-regi.patch
 endif
 
 LICENSE = GPL2
