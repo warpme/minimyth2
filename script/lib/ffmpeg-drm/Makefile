@@ -44,5 +44,6 @@ build-libXNVCtrl:
 install-libXNVCtrl:
 	@mkdir -p $(DESTDIR)$(bindir)
 	@cp -rf $(WORKSRC)/ffmpeg-drm $(DESTDIR)$(bindir)/ffmpeg-drm
-	@cp -rf $(WORKSRC)/run.sh $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
+	@# cp -rf $(WORKSRC)/run.sh $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
+	@echo "ffmpeg-drm --video /usr/local/share/h264.FVDO_Freeway_720p.264 --codec h264_v4l2m2m --width 1280 --height 720" > $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@$(MAKECOOKIE)
