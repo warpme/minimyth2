@@ -1,6 +1,4 @@
 
-# URL Git: https://github.com/ldts/FFmpeg/tree/v4l2-drm
-
 GARNAME = ffmpeg
 CATEGORIES = lib
 
@@ -19,18 +17,18 @@ DISTFILES = $(DISTNAME).tar.bz2
 
 
 PATCHFILES = ffmpeg-pkg_config.patch
-PATCHFILES += 0002-libavcodec-v4l2m2m-output-AVDRMFrameDescriptor.patch
-PATCHFILES += 0003-libavcodec-v4l2m2m-DRM-export-only-once.patch
-PATCHFILES += 0004-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
-PATCHFILES += 0005-libavcodec-v4l2m2m-DRM-select-with-PIX_FMT.patch
-PATCHFILES += 0006-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
-PATCHFILES += 0007-libavcodec-v4l2m2m-DRM-fix-bufref_drm.patch
-PATCHFILES += 0008-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
-PATCHFILES += 0009-libavcodec-v4l2m2m-DRM-check-error-on-fd-close.patch
-PATCHFILES += 0010-libavcodec-v4l2m2m-dec-declare-HW-config.patch
-PATCHFILES += 0011-libavcodec-v4l2m2m-DRM-debug-information.patch
-PATCHFILES += 0012-libavcodec-v4l2m2m-fix-error-handling-during-buffer-.patch
-PATCHFILES += 0013-libavcodec-v4l2m2m-use-ff_get_format-callback-from-a.patch
+#PATCHFILES += 0002-libavcodec-v4l2m2m-output-AVDRMFrameDescriptor.patch
+#PATCHFILES += 0003-libavcodec-v4l2m2m-DRM-export-only-once.patch
+#PATCHFILES += 0004-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
+#PATCHFILES += 0005-libavcodec-v4l2m2m-DRM-select-with-PIX_FMT.patch
+#PATCHFILES += 0006-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
+#PATCHFILES += 0007-libavcodec-v4l2m2m-DRM-fix-bufref_drm.patch
+#PATCHFILES += 0008-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
+#PATCHFILES += 0009-libavcodec-v4l2m2m-DRM-check-error-on-fd-close.patch
+#PATCHFILES += 0010-libavcodec-v4l2m2m-dec-declare-HW-config.patch
+#PATCHFILES += 0011-libavcodec-v4l2m2m-DRM-debug-information.patch
+#PATCHFILES += 0012-libavcodec-v4l2m2m-fix-error-handling-during-buffer-.patch
+#PATCHFILES += 0013-libavcodec-v4l2m2m-use-ff_get_format-callback-from-a.patch
 
 LICENSE = GPL2/LGPL2_1
 
@@ -123,6 +121,8 @@ CONFIGURE_ARGS = \
 	--enable-asm \
 	--enable-fast-unaligned \
 	--enable-optimizations \
+	--enable-libdrm \
+	--enable-v4l2-m2m \
 
 BUILD_ARGS     = \
 	V='1'
