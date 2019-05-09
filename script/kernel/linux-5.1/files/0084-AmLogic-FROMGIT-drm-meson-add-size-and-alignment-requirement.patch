@@ -1,0 +1,57 @@
+From c2845b6ff9c47dcf317d89e42c64c3332bb779e9 Mon Sep 17 00:00:00 2001
+From: Neil Armstrong <narmstrong@baylibre.com>
+Date: Mon, 8 Apr 2019 11:01:37 +0200
+Subject: [PATCH 084/178] FROMGIT: drm/meson: add size and alignment
+ requirements for dumb buffers
+
+The Amlogic SoCs Canvas buffers stride must be aligned on 64bytes
+and overall size should be aligned on PAGE width.
+
+Adds a custom dumb_create op to adds these requirements.
+
+Fixes: bbbe775ec5b5 ("drm: Add support for Amlogic Meson Graphic Controller")
+Suggested-by: Sky Zhou <sky.zhou@amlogic.com>
+Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
+Reviewed-by: Sky Zhou <sky.zhou@amlogic.com>
+Link: https://patchwork.freedesktop.org/patch/msgid/20190408090137.2402-1-narmstrong@baylibre.com
+(cherry picked from commit 852ce7285c99e3f7b56e76511e1b33c645a2b648
+ https://github.com/freedesktop/drm-misc drm-misc-next)
+---
+ drivers/gpu/drm/meson/meson_drv.c | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_drv.c b/drivers/gpu/drm/meson/meson_drv.c
+index faf1b1b..72b01e6 100644
+--- a/drivers/gpu/drm/meson/meson_drv.c
++++ b/drivers/gpu/drm/meson/meson_drv.c
+@@ -90,6 +90,18 @@ static irqreturn_t meson_irq(int irq, void *arg)
+ 	return IRQ_HANDLED;
+ }
+ 
++static int meson_dumb_create(struct drm_file *file, struct drm_device *dev,
++			     struct drm_mode_create_dumb *args)
++{
++	/*
++	 * We need 64bytes aligned stride, and PAGE aligned size
++	 */
++	args->pitch = ALIGN(DIV_ROUND_UP(args->width * args->bpp, 8), SZ_64);
++	args->size = PAGE_ALIGN(args->pitch * args->height);
++
++	return drm_gem_cma_dumb_create_internal(file, dev, args);
++}
++
+ DEFINE_DRM_GEM_CMA_FOPS(fops);
+ 
+ static struct drm_driver meson_driver = {
+@@ -112,7 +124,7 @@ static struct drm_driver meson_driver = {
+ 	.gem_prime_mmap		= drm_gem_cma_prime_mmap,
+ 
+ 	/* GEM Ops */
+-	.dumb_create		= drm_gem_cma_dumb_create,
++	.dumb_create		= meson_dumb_create,
+ 	.gem_free_object_unlocked = drm_gem_cma_free_object,
+ 	.gem_vm_ops		= &drm_gem_cma_vm_ops,
+ 
+-- 
+2.7.1
+

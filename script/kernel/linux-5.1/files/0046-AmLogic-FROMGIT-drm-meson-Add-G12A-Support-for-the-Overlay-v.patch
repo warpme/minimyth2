@@ -1,0 +1,48 @@
+From 817801c52a8aad03b0a2725eed02d71adf05ebb4 Mon Sep 17 00:00:00 2001
+From: Neil Armstrong <narmstrong@baylibre.com>
+Date: Mon, 25 Mar 2019 15:18:19 +0100
+Subject: [PATCH 046/178] FROMGIT: drm/meson: Add G12A Support for the Overlay
+ video plane
+
+Amlogic G12A SoC supports the same set of Video Planes, but now
+are handled by the new OSD plane blender module.
+
+This patch uses the same VD1 plane for G12A, using the exact same scaler
+and VD1 setup registers, except using the new blender register to
+disable the plane.
+
+Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
+[narmstrong: fix typo in commit log]
+Tested-by: Jerome Brunet <jbrunet@baylibre.com>
+Reviewed-by: Jerome Brunet <jbrunet@baylibre.com>
+Link: https://patchwork.freedesktop.org/patch/msgid/20190325141824.21259-7-narmstrong@baylibre.com
+(cherry picked from commit 11c2d4c751e5b339f8a3c6b9f19120bb331af0ef
+ git://anongit.freedesktop.org/drm/drm-misc drm-misc-next)
+---
+ drivers/gpu/drm/meson/meson_overlay.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_overlay.c b/drivers/gpu/drm/meson/meson_overlay.c
+index b54a22e..bdbf925 100644
+--- a/drivers/gpu/drm/meson/meson_overlay.c
++++ b/drivers/gpu/drm/meson/meson_overlay.c
+@@ -516,8 +516,14 @@ static void meson_overlay_atomic_disable(struct drm_plane *plane,
+ 	priv->viu.vd1_enabled = false;
+ 
+ 	/* Disable VD1 */
+-	writel_bits_relaxed(VPP_VD1_POSTBLEND | VPP_VD1_PREBLEND, 0,
+-			    priv->io_base + _REG(VPP_MISC));
++	if (meson_vpu_is_compatible(priv, "amlogic,meson-g12a-vpu")) {
++		writel_relaxed(0, priv->io_base + _REG(VD1_BLEND_SRC_CTRL));
++		writel_relaxed(0, priv->io_base + _REG(VD2_BLEND_SRC_CTRL));
++		writel_relaxed(0, priv->io_base + _REG(VD1_IF0_GEN_REG + 0x17b0));
++		writel_relaxed(0, priv->io_base + _REG(VD2_IF0_GEN_REG + 0x17b0));
++	} else
++		writel_bits_relaxed(VPP_VD1_POSTBLEND | VPP_VD1_PREBLEND, 0,
++				    priv->io_base + _REG(VPP_MISC));
+ 
+ }
+ 
+-- 
+2.7.1
+

@@ -1,0 +1,101 @@
+From 2b894043c0eb8999e14c12a122f275bb4e51a5b6 Mon Sep 17 00:00:00 2001
+From: Jerome Brunet <jbrunet@baylibre.com>
+Date: Mon, 25 Mar 2019 12:11:57 +0100
+Subject: [PATCH 095/178] FROMLIST: clk: meson: mpll: add init callback and
+ regs
+
+Until now (gx and axg), the mpll setting on boot (whatever the
+bootloader) was good enough generate a clean fractional division.
+
+It is not the case on the g12a. While moving away from the vendor u-boot,
+it was noticed the fractional part of the divider was no longer applied.
+Like on the pll, some magic settings need to applied on the mpll
+register.
+
+This change adds the ability to do that on the mpll driver.
+
+Signed-off-by: Jerome Brunet <jbrunet@baylibre.com>
+---
+ drivers/clk/meson/clk-mpll.c | 33 +++++++++++++++++++++++----------
+ drivers/clk/meson/clk-mpll.h |  2 ++
+ 2 files changed, 25 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/clk/meson/clk-mpll.c b/drivers/clk/meson/clk-mpll.c
+index f76850d..64d31c8 100644
+--- a/drivers/clk/meson/clk-mpll.c
++++ b/drivers/clk/meson/clk-mpll.c
+@@ -115,21 +115,12 @@ static int mpll_set_rate(struct clk_hw *hw,
+ 	else
+ 		__acquire(mpll->lock);
+ 
+-	/* Enable and set the fractional part */
++	/* Set the fractional part */
+ 	meson_parm_write(clk->map, &mpll->sdm, sdm);
+-	meson_parm_write(clk->map, &mpll->sdm_en, 1);
+-
+-	/* Set additional fractional part enable if required */
+-	if (MESON_PARM_APPLICABLE(&mpll->ssen))
+-		meson_parm_write(clk->map, &mpll->ssen, 1);
+ 
+ 	/* Set the integer divider part */
+ 	meson_parm_write(clk->map, &mpll->n2, n2);
+ 
+-	/* Set the magic misc bit if required */
+-	if (MESON_PARM_APPLICABLE(&mpll->misc))
+-		meson_parm_write(clk->map, &mpll->misc, 1);
+-
+ 	if (mpll->lock)
+ 		spin_unlock_irqrestore(mpll->lock, flags);
+ 	else
+@@ -138,6 +129,27 @@ static int mpll_set_rate(struct clk_hw *hw,
+ 	return 0;
+ }
+ 
++static void mpll_init(struct clk_hw *hw)
++{
++	struct clk_regmap *clk = to_clk_regmap(hw);
++	struct meson_clk_mpll_data *mpll = meson_clk_mpll_data(clk);
++
++	if (mpll->init_count)
++		regmap_multi_reg_write(clk->map, mpll->init_regs,
++				       mpll->init_count);
++
++	/* Enable the fractional part */
++	meson_parm_write(clk->map, &mpll->sdm_en, 1);
++
++	/* Set additional fractional part enable if required */
++	if (MESON_PARM_APPLICABLE(&mpll->ssen))
++		meson_parm_write(clk->map, &mpll->ssen, 1);
++
++	/* Set the magic misc bit if required */
++	if (MESON_PARM_APPLICABLE(&mpll->misc))
++		meson_parm_write(clk->map, &mpll->misc, 1);
++}
++
+ const struct clk_ops meson_clk_mpll_ro_ops = {
+ 	.recalc_rate	= mpll_recalc_rate,
+ 	.round_rate	= mpll_round_rate,
+@@ -148,6 +160,7 @@ const struct clk_ops meson_clk_mpll_ops = {
+ 	.recalc_rate	= mpll_recalc_rate,
+ 	.round_rate	= mpll_round_rate,
+ 	.set_rate	= mpll_set_rate,
++	.init		= mpll_init,
+ };
+ EXPORT_SYMBOL_GPL(meson_clk_mpll_ops);
+ 
+diff --git a/drivers/clk/meson/clk-mpll.h b/drivers/clk/meson/clk-mpll.h
+index cf79340..2925fb9 100644
+--- a/drivers/clk/meson/clk-mpll.h
++++ b/drivers/clk/meson/clk-mpll.h
+@@ -18,6 +18,8 @@ struct meson_clk_mpll_data {
+ 	struct parm n2;
+ 	struct parm ssen;
+ 	struct parm misc;
++	const struct reg_sequence *init_regs;
++	unsigned int init_count;
+ 	spinlock_t *lock;
+ 	u8 flags;
+ };
+-- 
+2.7.1
+

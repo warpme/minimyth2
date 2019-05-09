@@ -1,0 +1,59 @@
+From f39ee3c85c1be0da8cc574f3d7d0433d0dc59cc5 Mon Sep 17 00:00:00 2001
+From: Neil Armstrong <narmstrong@baylibre.com>
+Date: Mon, 25 Mar 2019 15:18:18 +0100
+Subject: [PATCH 045/178] FROMGIT: drm/meson: Add G12A support for OSD1 Plane
+
+Amlogic G12A SoC supports now up to 3 OSD planes (1 more than the
+previous SoCs) and a brand new OSD plane blender module.
+
+This patch uses the same OSD1 plane for G12A, using the exact same scaler
+and OSD1 setup registers, except using the new blender register to
+disable the plane.
+
+Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
+[narmstrong: fixed typo in commit log]
+Tested-by: Jerome Brunet <jbrunet@baylibre.com>
+Reviewed-by: Jerome Brunet <jbrunet@baylibre.com>
+Link: https://patchwork.freedesktop.org/patch/msgid/20190325141824.21259-6-narmstrong@baylibre.com
+(cherry picked from commit 490f50c109d1178aae4124cd9138b231d030e554
+ git://anongit.freedesktop.org/drm/drm-misc drm-misc-next)
+---
+ drivers/gpu/drm/meson/meson_plane.c | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/meson/meson_plane.c b/drivers/gpu/drm/meson/meson_plane.c
+index b778621..bf8f1fa 100644
+--- a/drivers/gpu/drm/meson/meson_plane.c
++++ b/drivers/gpu/drm/meson/meson_plane.c
+@@ -294,6 +294,13 @@ static void meson_plane_atomic_update(struct drm_plane *plane,
+ 	priv->viu.osd1_blk0_cfg[3] = ((dest.x2 - 1) << 16) | dest.x1;
+ 	priv->viu.osd1_blk0_cfg[4] = ((dest.y2 - 1) << 16) | dest.y1;
+ 
++	if (meson_vpu_is_compatible(priv, "amlogic,meson-g12a-vpu")) {
++		priv->viu.osd_blend_din0_scope_h = ((dest.x2 - 1) << 16) | dest.x1;
++		priv->viu.osd_blend_din0_scope_v = ((dest.y2 - 1) << 16) | dest.y1;
++		priv->viu.osb_blend0_size = dst_h << 16 | dst_w;
++		priv->viu.osb_blend1_size = dst_h << 16 | dst_w;
++	}
++
+ 	/* Update Canvas with buffer address */
+ 	gem = drm_fb_cma_get_gem_obj(fb, 0);
+ 
+@@ -320,8 +327,12 @@ static void meson_plane_atomic_disable(struct drm_plane *plane,
+ 	struct meson_drm *priv = meson_plane->priv;
+ 
+ 	/* Disable OSD1 */
+-	writel_bits_relaxed(VPP_OSD1_POSTBLEND, 0,
+-			    priv->io_base + _REG(VPP_MISC));
++	if (meson_vpu_is_compatible(priv, "amlogic,meson-g12a-vpu"))
++		writel_bits_relaxed(BIT(0) | BIT(21), 0,
++			priv->io_base + _REG(VIU_OSD1_CTRL_STAT));
++	else
++		writel_bits_relaxed(VPP_OSD1_POSTBLEND, 0,
++				    priv->io_base + _REG(VPP_MISC));
+ 
+ 	meson_plane->enabled = false;
+ 
+-- 
+2.7.1
+
