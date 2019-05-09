@@ -1,14 +1,15 @@
-GARNAME = python-requests-cache
-GARVERSION = 0.4.13
+GARNAME = python-pysqlite
+GARVERSION = 2.8.3
 CATEGORIES = python
-MASTER_SITES = https://files.pythonhosted.org/packages/1a/cf/12349c7113b252d9a0b26d497d3349baeb6c8f293b440e55a00e7fa6e4a4/
+MASTER_SITES = https://files.pythonhosted.org/packages/42/02/981b6703e3c83c5b25a829c6e77aad059f9481b0bbacb47e6e8ca12bd731/
 DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE =
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = python/python python/python-distribute python/python-distutilscross python/python-requests python/python-pysqlite
+DEPENDS = python/python
+BUILDDEPS = python/python-setuptools
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
