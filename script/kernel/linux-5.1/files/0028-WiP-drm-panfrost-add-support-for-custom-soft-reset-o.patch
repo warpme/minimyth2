@@ -1,0 +1,62 @@
+From aafa36ff9101be2c03b8579bdca92d0e1216de28 Mon Sep 17 00:00:00 2001
+From: Neil Armstrong <narmstrong@baylibre.com>
+Date: Thu, 14 Mar 2019 09:37:38 +0100
+Subject: [PATCH 28/28] [WiP] drm/panfrost: add support for custom soft-reset
+ on Amlogic GXM
+
+(cherry picked from commit 2e5230c1bf9cf01f035da72291cc460cb3b37096)
+---
+ drivers/gpu/drm/panfrost/panfrost_gpu.c  | 13 ++++++++++++-
+ drivers/gpu/drm/panfrost/panfrost_regs.h |  4 ++++
+ 2 files changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_gpu.c b/drivers/gpu/drm/panfrost/panfrost_gpu.c
+index aceaf6e..9cd02cb 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_gpu.c
++++ b/drivers/gpu/drm/panfrost/panfrost_gpu.c
+@@ -5,7 +5,9 @@
+ #include <linux/bitmap.h>
+ #include <linux/delay.h>
+ #include <linux/interrupt.h>
++#include <linux/reset.h>
+ #include <linux/io.h>
++#include <linux/of.h>
+ #include <linux/iopoll.h>
+ #include <linux/platform_device.h>
+ 
+@@ -53,7 +55,16 @@ int panfrost_gpu_soft_reset(struct panfrost_device *pfdev)
+ 
+ 	gpu_write(pfdev, GPU_INT_MASK, 0);
+ 	gpu_write(pfdev, GPU_INT_CLEAR, GPU_IRQ_RESET_COMPLETED);
+-	gpu_write(pfdev, GPU_CMD, GPU_CMD_SOFT_RESET);
++
++	if (of_device_is_compatible(pfdev->dev->of_node, "amlogic,meson-gxm-mali")) {
++		reset_control_assert(pfdev->rstc);
++		udelay(10);
++		reset_control_deassert(pfdev->rstc);
++
++		gpu_write(pfdev, GPU_PWR_KEY, 0x2968A819);
++		gpu_write(pfdev, GPU_PWR_OVERRIDE1, 0xfff | (0x20 << 16));
++	} else
++		gpu_write(pfdev, GPU_CMD, GPU_CMD_SOFT_RESET);
+ 
+ 	ret = readl_relaxed_poll_timeout(pfdev->iomem + GPU_INT_RAWSTAT,
+ 		val, val & GPU_IRQ_RESET_COMPLETED, 100, 10000);
+diff --git a/drivers/gpu/drm/panfrost/panfrost_regs.h b/drivers/gpu/drm/panfrost/panfrost_regs.h
+index 578c5fc..d61b2cd 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_regs.h
++++ b/drivers/gpu/drm/panfrost/panfrost_regs.h
+@@ -50,6 +50,10 @@
+ #define GPU_FAULT_ADDRESS_LO		0x40
+ #define GPU_FAULT_ADDRESS_HI		0x44
+ 
++#define GPU_PWR_KEY			0x050	/* (WO) Power manager key register */
++#define GPU_PWR_OVERRIDE0		0x054	/* (RW) Power manager override settings */
++#define GPU_PWR_OVERRIDE1		0x058	/* (RW) Power manager override settings */
++
+ #define GPU_THREAD_MAX_THREADS		0x0A0	/* (RO) Maximum number of threads per core */
+ #define GPU_THREAD_MAX_WORKGROUP_SIZE	0x0A4	/* (RO) Maximum workgroup size */
+ #define GPU_THREAD_MAX_BARRIER_SIZE	0x0A8	/* (RO) Maximum threads waiting at a barrier */
+-- 
+2.7.1
+

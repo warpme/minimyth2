@@ -1,0 +1,3812 @@
+From baa21cd4c551d151a4292c64bc9e1f34cb4db78f Mon Sep 17 00:00:00 2001
+From: Rob Herring <robh@kernel.org>
+Date: Tue, 9 Apr 2019 15:54:27 -0500
+Subject: [PATCH 24/28] FROMLIST: drm/panfrost: Add initial panfrost driver
+
+This adds the initial driver for panfrost which supports Arm Mali
+Midgard and Bifrost family of GPUs. Currently, only the T860 and
+T760 Midgard GPUs have been tested.
+
+v2:
+- Add GPU reset on job hangs (Tomeu)
+- Add RuntimePM and devfreq support (Tomeu)
+- Fix T760 support (Tomeu)
+- Add a TODO file (Rob, Tomeu)
+- Support multiple in fences (Tomeu)
+- Drop support for shared fences (Tomeu)
+- Fill in MMU de-init (Rob)
+- Move register definitions back to single header (Rob)
+- Clean-up hardcoded job submit todos (Rob)
+- Implement feature setup based on features/issues (Rob)
+- Add remaining Midgard DT compatible strings (Rob)
+
+v3:
+- Add support for reset lines (Neil)
+- Add a MAINTAINERS entry (Rob)
+- Call dma_set_mask_and_coherent (Rob)
+- Do MMU invalidate on map and unmap. Restructure to do a single
+  operation per map/unmap call. (Rob)
+- Add a missing explicit padding to struct drm_panfrost_create_bo (Rob)
+- Fix 0-day error: "panfrost_devfreq.c:151:9-16: ERROR: PTR_ERR applied after initialization to constant on line 150"
+- Drop HW_FEATURE_AARCH64_MMU conditional (Rob)
+- s/DRM_PANFROST_PARAM_GPU_ID/DRM_PANFROST_PARAM_GPU_PROD_ID/ (Rob)
+- Check drm_gem_shmem_prime_import_sg_table() error code (Rob)
+- Re-order power on sequence (Rob)
+- Move panfrost_acquire_object_fences() before scheduling job (Rob)
+- Add NULL checks on array pointers in job clean-up (Rob)
+- Rework devfreq (Tomeu)
+- Fix devfreq init with no regulator (Rob)
+- Various WS and comments clean-up (Rob)
+
+Cc: Maarten Lankhorst <maarten.lankhorst@linux.intel.com>
+Cc: Maxime Ripard <maxime.ripard@bootlin.com>
+Cc: Sean Paul <sean@poorly.run>
+Cc: David Airlie <airlied@linux.ie>
+Cc: Daniel Vetter <daniel@ffwll.ch>
+Cc: Lyude Paul <lyude@redhat.com>
+Reviewed-by: Alyssa Rosenzweig <alyssa@rosenzweig.io>
+Reviewed-by: Eric Anholt <eric@anholt.net>
+Signed-off-by: Marty E. Plummer <hanetzer@startmail.com>
+Signed-off-by: Tomeu Vizoso <tomeu.vizoso@collabora.com>
+Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
+Signed-off-by: Rob Herring <robh@kernel.org>
+Reviewed-by: Steven Price <steven.price@arm.com>
+---
+ MAINTAINERS                                  |   9 +
+ drivers/gpu/drm/Kconfig                      |   2 +
+ drivers/gpu/drm/Makefile                     |   1 +
+ drivers/gpu/drm/panfrost/Kconfig             |  14 +
+ drivers/gpu/drm/panfrost/Makefile            |  12 +
+ drivers/gpu/drm/panfrost/TODO                |  27 ++
+ drivers/gpu/drm/panfrost/panfrost_devfreq.c  | 218 +++++++++++
+ drivers/gpu/drm/panfrost/panfrost_devfreq.h  |  14 +
+ drivers/gpu/drm/panfrost/panfrost_device.c   | 252 ++++++++++++
+ drivers/gpu/drm/panfrost/panfrost_device.h   | 124 ++++++
+ drivers/gpu/drm/panfrost/panfrost_drv.c      | 460 ++++++++++++++++++++++
+ drivers/gpu/drm/panfrost/panfrost_features.h | 309 +++++++++++++++
+ drivers/gpu/drm/panfrost/panfrost_gem.c      |  95 +++++
+ drivers/gpu/drm/panfrost/panfrost_gem.h      |  29 ++
+ drivers/gpu/drm/panfrost/panfrost_gpu.c      | 362 +++++++++++++++++
+ drivers/gpu/drm/panfrost/panfrost_gpu.h      |  19 +
+ drivers/gpu/drm/panfrost/panfrost_issues.h   | 176 +++++++++
+ drivers/gpu/drm/panfrost/panfrost_job.c      | 560 +++++++++++++++++++++++++++
+ drivers/gpu/drm/panfrost/panfrost_job.h      |  51 +++
+ drivers/gpu/drm/panfrost/panfrost_mmu.c      | 369 ++++++++++++++++++
+ drivers/gpu/drm/panfrost/panfrost_mmu.h      |  17 +
+ drivers/gpu/drm/panfrost/panfrost_regs.h     | 298 ++++++++++++++
+ include/uapi/drm/panfrost_drm.h              | 142 +++++++
+ 23 files changed, 3560 insertions(+)
+ create mode 100644 drivers/gpu/drm/panfrost/Kconfig
+ create mode 100644 drivers/gpu/drm/panfrost/Makefile
+ create mode 100644 drivers/gpu/drm/panfrost/TODO
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_devfreq.c
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_devfreq.h
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_device.c
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_device.h
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_drv.c
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_features.h
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_gem.c
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_gem.h
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_gpu.c
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_gpu.h
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_issues.h
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_job.c
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_job.h
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_mmu.c
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_mmu.h
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_regs.h
+ create mode 100644 include/uapi/drm/panfrost_drm.h
+
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 2c2fce7..f37a6a5 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -1180,6 +1180,15 @@ F:	drivers/gpu/drm/arm/
+ F:	Documentation/devicetree/bindings/display/arm,malidp.txt
+ F:	Documentation/gpu/afbc.rst
+ 
++ARM MALI PANFROST DRM DRIVER
++M:	Rob Herring <robh@kernel.org>
++M:	Tomeu Vizoso <tomeu.vizoso@collabora.com>
++L:	dri-devel@lists.freedesktop.org
++S:	Supported
++T:	git git://anongit.freedesktop.org/drm/drm-misc
++F:	drivers/gpu/drm/panfrost/
++F:	include/uapi/drm/panfrost_drm.h
++
+ ARM MFM AND FLOPPY DRIVERS
+ M:	Ian Molton <spyro@f2s.com>
+ S:	Maintained
+diff --git a/drivers/gpu/drm/Kconfig b/drivers/gpu/drm/Kconfig
+index 433250c..cfddf1f 100644
+--- a/drivers/gpu/drm/Kconfig
++++ b/drivers/gpu/drm/Kconfig
+@@ -337,6 +337,8 @@ source "drivers/gpu/drm/xen/Kconfig"
+ 
+ source "drivers/gpu/drm/lima/Kconfig"
+ 
++source "drivers/gpu/drm/panfrost/Kconfig"
++
+ # Keep legacy drivers last
+ 
+ menuconfig DRM_LEGACY
+diff --git a/drivers/gpu/drm/Makefile b/drivers/gpu/drm/Makefile
+index 00e0dcc..29a6835 100644
+--- a/drivers/gpu/drm/Makefile
++++ b/drivers/gpu/drm/Makefile
+@@ -111,3 +111,4 @@ obj-$(CONFIG_DRM_PL111) += pl111/
+ obj-$(CONFIG_DRM_TVE200) += tve200/
+ obj-$(CONFIG_DRM_XEN) += xen/
+ obj-$(CONFIG_DRM_LIMA)  += lima/
++obj-$(CONFIG_DRM_PANFROST) += panfrost/
+diff --git a/drivers/gpu/drm/panfrost/Kconfig b/drivers/gpu/drm/panfrost/Kconfig
+new file mode 100644
+index 0000000..7f5e572
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/Kconfig
+@@ -0,0 +1,14 @@
++# SPDX-License-Identifier: GPL-2.0
++
++config DRM_PANFROST
++	tristate "Panfrost (DRM support for ARM Mali Midgard/Bifrost GPUs)"
++	depends on DRM
++	depends on ARM || ARM64 || COMPILE_TEST
++	depends on MMU
++	select DRM_SCHED
++	select IOMMU_SUPPORT
++	select IOMMU_IO_PGTABLE_LPAE
++	select DRM_GEM_SHMEM_HELPER
++	help
++	  DRM driver for ARM Mali Midgard (T6xx, T7xx, T8xx) and
++	  Bifrost (G3x, G5x, G7x) GPUs.
+diff --git a/drivers/gpu/drm/panfrost/Makefile b/drivers/gpu/drm/panfrost/Makefile
+new file mode 100644
+index 0000000..6de72d1
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/Makefile
+@@ -0,0 +1,12 @@
++# SPDX-License-Identifier: GPL-2.0
++
++panfrost-y := \
++	panfrost_drv.o \
++	panfrost_device.o \
++	panfrost_devfreq.o \
++	panfrost_gem.o \
++	panfrost_gpu.o \
++	panfrost_job.o \
++	panfrost_mmu.o
++
++obj-$(CONFIG_DRM_PANFROST) += panfrost.o
+diff --git a/drivers/gpu/drm/panfrost/TODO b/drivers/gpu/drm/panfrost/TODO
+new file mode 100644
+index 0000000..c2e44ad
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/TODO
+@@ -0,0 +1,27 @@
++- Thermal support.
++
++- Bifrost support:
++  - DT bindings (Neil, WIP)
++  - MMU page table format and address space setup
++  - Bifrost specific feature and issue handling
++  - Coherent DMA support
++
++- Support for 2MB pages. The io-pgtable code already supports this. Finishing
++  support involves either copying or adapting the iommu API to handle passing
++  aligned addresses and sizes to the io-pgtable code.
++
++- Per FD address space support. The h/w supports multiple addresses spaces.
++  The hard part is handling when more address spaces are needed than what
++  the h/w provides.
++
++- Support pinning pages on demand (GPU page faults).
++
++- Support userspace controlled GPU virtual addresses. Needed for Vulkan. (Tomeu)
++
++- Support for madvise and a shrinker.
++
++- Compute job support. So called 'compute only' jobs need to be plumbed up to
++  userspace.
++
++- Performance counter support. (Boris)
++
+diff --git a/drivers/gpu/drm/panfrost/panfrost_devfreq.c b/drivers/gpu/drm/panfrost/panfrost_devfreq.c
+new file mode 100644
+index 0000000..a8121ae
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_devfreq.c
+@@ -0,0 +1,218 @@
++// SPDX-License-Identifier: GPL-2.0
++/* Copyright 2019 Collabora ltd. */
++#include <linux/devfreq.h>
++#include <linux/platform_device.h>
++#include <linux/pm_opp.h>
++#include <linux/clk.h>
++#include <linux/regulator/consumer.h>
++
++#include "panfrost_device.h"
++#include "panfrost_features.h"
++#include "panfrost_issues.h"
++#include "panfrost_gpu.h"
++#include "panfrost_regs.h"
++
++static void panfrost_devfreq_update_utilization(struct panfrost_device *pfdev, int slot);
++
++static int panfrost_devfreq_target(struct device *dev, unsigned long *freq,
++				   u32 flags)
++{
++	struct panfrost_device *pfdev = platform_get_drvdata(to_platform_device(dev));
++	struct dev_pm_opp *opp;
++	unsigned long old_clk_rate = pfdev->devfreq.cur_freq;
++	unsigned long target_volt, target_rate;
++	int err;
++
++	opp = devfreq_recommended_opp(dev, freq, flags);
++	if (IS_ERR(opp))
++		return PTR_ERR(opp);
++
++	target_rate = dev_pm_opp_get_freq(opp);
++	target_volt = dev_pm_opp_get_voltage(opp);
++	dev_pm_opp_put(opp);
++
++	if (old_clk_rate == target_rate)
++		return 0;
++
++	/*
++	 * If frequency scaling from low to high, adjust voltage first.
++	 * If frequency scaling from high to low, adjust frequency first.
++	 */
++	if (old_clk_rate < target_rate) {
++		err = regulator_set_voltage(pfdev->regulator, target_volt,
++					    target_volt);
++		if (err) {
++			dev_err(dev, "Cannot set voltage %lu uV\n",
++				target_volt);
++			return err;
++		}
++	}
++
++	err = clk_set_rate(pfdev->clock, target_rate);
++	if (err) {
++		dev_err(dev, "Cannot set frequency %lu (%d)\n", target_rate,
++			err);
++		regulator_set_voltage(pfdev->regulator, pfdev->devfreq.cur_volt,
++				      pfdev->devfreq.cur_volt);
++		return err;
++	}
++
++	if (old_clk_rate > target_rate) {
++		err = regulator_set_voltage(pfdev->regulator, target_volt,
++					    target_volt);
++		if (err)
++			dev_err(dev, "Cannot set voltage %lu uV\n", target_volt);
++	}
++
++	pfdev->devfreq.cur_freq = target_rate;
++	pfdev->devfreq.cur_volt = target_volt;
++
++	return 0;
++}
++
++static void panfrost_devfreq_reset(struct panfrost_device *pfdev)
++{
++	ktime_t now = ktime_get();
++	int i;
++
++	for (i = 0; i < NUM_JOB_SLOTS; i++) {
++		pfdev->devfreq.slot[i].busy_time = 0;
++		pfdev->devfreq.slot[i].idle_time = 0;
++		pfdev->devfreq.slot[i].time_last_update = now;
++	}
++}
++
++static int panfrost_devfreq_get_dev_status(struct device *dev,
++					   struct devfreq_dev_status *status)
++{
++	struct panfrost_device *pfdev = platform_get_drvdata(to_platform_device(dev));
++	int i;
++
++	for (i = 0; i < NUM_JOB_SLOTS; i++) {
++		panfrost_devfreq_update_utilization(pfdev, i);
++	}
++
++	status->current_frequency = clk_get_rate(pfdev->clock);
++	status->total_time = ktime_to_ns(ktime_add(pfdev->devfreq.slot[0].busy_time,
++						   pfdev->devfreq.slot[0].idle_time));
++
++	status->busy_time = 0;
++	for (i = 0; i < NUM_JOB_SLOTS; i++) {
++		status->busy_time += ktime_to_ns(pfdev->devfreq.slot[i].busy_time);
++	}
++
++	/* We're scheduling only to one core atm, so don't divide for now */
++	/* status->busy_time /= NUM_JOB_SLOTS; */
++
++	panfrost_devfreq_reset(pfdev);
++
++	dev_dbg(pfdev->dev, "busy %lu total %lu %lu %% freq %lu MHz\n", status->busy_time,
++		status->total_time,
++		status->busy_time / (status->total_time / 100),
++		status->current_frequency / 1000 / 1000);
++
++	return 0;
++}
++
++static int panfrost_devfreq_get_cur_freq(struct device *dev, unsigned long *freq)
++{
++	struct panfrost_device *pfdev = platform_get_drvdata(to_platform_device(dev));
++
++	*freq = pfdev->devfreq.cur_freq;
++
++	return 0;
++}
++
++static struct devfreq_dev_profile panfrost_devfreq_profile = {
++	.polling_ms = 50, /* ~3 frames */
++	.target = panfrost_devfreq_target,
++	.get_dev_status = panfrost_devfreq_get_dev_status,
++	.get_cur_freq = panfrost_devfreq_get_cur_freq,
++};
++
++int panfrost_devfreq_init(struct panfrost_device *pfdev)
++{
++	int ret;
++	struct dev_pm_opp *opp;
++
++	if (!pfdev->regulator)
++		return 0;
++
++	ret = dev_pm_opp_of_add_table(&pfdev->pdev->dev);
++	if (ret == -ENODEV) /* Optional, continue without devfreq */
++		return 0;
++
++	panfrost_devfreq_reset(pfdev);
++
++	pfdev->devfreq.cur_freq = clk_get_rate(pfdev->clock);
++
++	opp = devfreq_recommended_opp(&pfdev->pdev->dev, &pfdev->devfreq.cur_freq, 0);
++	if (IS_ERR(opp))
++		return PTR_ERR(opp);
++
++	panfrost_devfreq_profile.initial_freq = pfdev->devfreq.cur_freq;
++	dev_pm_opp_put(opp);
++
++	pfdev->devfreq.devfreq = devm_devfreq_add_device(&pfdev->pdev->dev,
++			&panfrost_devfreq_profile, "simple_ondemand", NULL);
++	if (IS_ERR(pfdev->devfreq.devfreq)) {
++		DRM_DEV_ERROR(&pfdev->pdev->dev, "Couldn't initialize GPU devfreq\n");
++		ret = PTR_ERR(pfdev->devfreq.devfreq);
++		pfdev->devfreq.devfreq = NULL;
++		return ret;
++	}
++
++	return 0;
++}
++
++void panfrost_devfreq_resume(struct panfrost_device *pfdev)
++{
++	int i;
++
++	if (!pfdev->devfreq.devfreq)
++		return;
++
++	panfrost_devfreq_reset(pfdev);
++	for (i = 0; i < NUM_JOB_SLOTS; i++)
++		pfdev->devfreq.slot[i].busy = false;
++
++	devfreq_resume_device(pfdev->devfreq.devfreq);
++}
++
++void panfrost_devfreq_suspend(struct panfrost_device *pfdev)
++{
++	if (!pfdev->devfreq.devfreq)
++		return;
++
++	devfreq_suspend_device(pfdev->devfreq.devfreq);
++}
++
++static void panfrost_devfreq_update_utilization(struct panfrost_device *pfdev, int slot)
++{
++	struct panfrost_devfreq_slot *devfreq_slot = &pfdev->devfreq.slot[slot];
++	ktime_t now;
++	ktime_t last;
++
++	if (!pfdev->devfreq.devfreq)
++		return;
++
++	now = ktime_get();
++	last = pfdev->devfreq.slot[slot].time_last_update;
++
++	/* If we last recorded a transition to busy, we have been idle since */
++	if (devfreq_slot->busy)
++		pfdev->devfreq.slot[slot].busy_time += ktime_sub(now, last);
++	else
++		pfdev->devfreq.slot[slot].idle_time += ktime_sub(now, last);
++
++	pfdev->devfreq.slot[slot].time_last_update = now;
++}
++
++/* The job scheduler is expected to call this at every transition busy <-> idle */
++void panfrost_devfreq_record_transition(struct panfrost_device *pfdev, int slot)
++{
++	struct panfrost_devfreq_slot *devfreq_slot = &pfdev->devfreq.slot[slot];
++
++	panfrost_devfreq_update_utilization(pfdev, slot);
++	devfreq_slot->busy = !devfreq_slot->busy;
++}
+diff --git a/drivers/gpu/drm/panfrost/panfrost_devfreq.h b/drivers/gpu/drm/panfrost/panfrost_devfreq.h
+new file mode 100644
+index 0000000..eb99953
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_devfreq.h
+@@ -0,0 +1,14 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright 2019 Collabora ltd. */
++
++#ifndef __PANFROST_DEVFREQ_H__
++#define __PANFROST_DEVFREQ_H__
++
++int panfrost_devfreq_init(struct panfrost_device *pfdev);
++
++void panfrost_devfreq_resume(struct panfrost_device *pfdev);
++void panfrost_devfreq_suspend(struct panfrost_device *pfdev);
++
++void panfrost_devfreq_record_transition(struct panfrost_device *pfdev, int slot);
++
++#endif /* __PANFROST_DEVFREQ_H__ */
+diff --git a/drivers/gpu/drm/panfrost/panfrost_device.c b/drivers/gpu/drm/panfrost/panfrost_device.c
+new file mode 100644
+index 0000000..91e8fb0
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_device.c
+@@ -0,0 +1,252 @@
++// SPDX-License-Identifier: GPL-2.0
++/* Copyright 2018 Marty E. Plummer <hanetzer@startmail.com> */
++/* Copyright 2019 Linaro, Ltd, Rob Herring <robh@kernel.org> */
++
++#include <linux/clk.h>
++#include <linux/reset.h>
++#include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
++#include <linux/regulator/consumer.h>
++
++#include "panfrost_device.h"
++#include "panfrost_devfreq.h"
++#include "panfrost_features.h"
++#include "panfrost_gpu.h"
++#include "panfrost_job.h"
++#include "panfrost_mmu.h"
++
++static int panfrost_reset_init(struct panfrost_device *pfdev)
++{
++	int err;
++
++	pfdev->rstc = devm_reset_control_array_get(pfdev->dev, false, true);
++	if (IS_ERR(pfdev->rstc)) {
++		dev_err(pfdev->dev, "get reset failed %ld\n", PTR_ERR(pfdev->rstc));
++		return PTR_ERR(pfdev->rstc);
++	}
++
++	err = reset_control_deassert(pfdev->rstc);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static void panfrost_reset_fini(struct panfrost_device *pfdev)
++{
++	reset_control_assert(pfdev->rstc);
++}
++
++static int panfrost_clk_init(struct panfrost_device *pfdev)
++{
++	int err;
++	unsigned long rate;
++
++	pfdev->clock = devm_clk_get(pfdev->dev, NULL);
++	if (IS_ERR(pfdev->clock)) {
++		dev_err(pfdev->dev, "get clock failed %ld\n", PTR_ERR(pfdev->clock));
++		return PTR_ERR(pfdev->clock);
++	}
++
++	rate = clk_get_rate(pfdev->clock);
++	dev_info(pfdev->dev, "clock rate = %lu\n", rate);
++
++	err = clk_prepare_enable(pfdev->clock);
++	if (err)
++		return err;
++
++	return 0;
++}
++
++static void panfrost_clk_fini(struct panfrost_device *pfdev)
++{
++	clk_disable_unprepare(pfdev->clock);
++}
++
++static int panfrost_regulator_init(struct panfrost_device *pfdev)
++{
++	int ret;
++
++	pfdev->regulator = devm_regulator_get_optional(pfdev->dev, "mali");
++	if (IS_ERR(pfdev->regulator)) {
++		ret = PTR_ERR(pfdev->regulator);
++		pfdev->regulator = NULL;
++		if (ret == -ENODEV)
++			return 0;
++		dev_err(pfdev->dev, "failed to get regulator: %d\n", ret);
++		return ret;
++	}
++
++	ret = regulator_enable(pfdev->regulator);
++	if (ret < 0) {
++		dev_err(pfdev->dev, "failed to enable regulator: %d\n", ret);
++		return ret;
++	}
++
++	return 0;
++}
++
++static void panfrost_regulator_fini(struct panfrost_device *pfdev)
++{
++	if (pfdev->regulator)
++		regulator_disable(pfdev->regulator);
++}
++
++int panfrost_device_init(struct panfrost_device *pfdev)
++{
++	int err;
++	struct resource *res;
++
++	mutex_init(&pfdev->sched_lock);
++	INIT_LIST_HEAD(&pfdev->scheduled_jobs);
++
++	spin_lock_init(&pfdev->hwaccess_lock);
++
++	err = panfrost_clk_init(pfdev);
++	if (err) {
++		dev_err(pfdev->dev, "clk init failed %d\n", err);
++		return err;
++	}
++
++	err = panfrost_regulator_init(pfdev);
++	if (err) {
++		dev_err(pfdev->dev, "regulator init failed %d\n", err);
++		goto err_out0;
++	}
++
++	err = panfrost_reset_init(pfdev);
++	if (err) {
++		dev_err(pfdev->dev, "reset init failed %d\n", err);
++		goto err_out1;
++	}
++
++	res = platform_get_resource(pfdev->pdev, IORESOURCE_MEM, 0);
++	pfdev->iomem = devm_ioremap_resource(pfdev->dev, res);
++	if (IS_ERR(pfdev->iomem)) {
++		dev_err(pfdev->dev, "failed to ioremap iomem\n");
++		err = PTR_ERR(pfdev->iomem);
++		goto err_out2;
++	}
++
++	err = panfrost_gpu_init(pfdev);
++	if (err)
++		goto err_out2;
++
++	err = panfrost_mmu_init(pfdev);
++	if (err)
++		goto err_out3;
++
++	err = panfrost_job_init(pfdev);
++	if (err)
++		goto err_out4;
++
++	/* runtime PM will wake us up later */
++	panfrost_gpu_power_off(pfdev);
++
++	pm_runtime_set_active(pfdev->dev);
++	pm_runtime_get_sync(pfdev->dev);
++	pm_runtime_mark_last_busy(pfdev->dev);
++	pm_runtime_put_autosuspend(pfdev->dev);
++
++	return 0;
++err_out4:
++	panfrost_mmu_fini(pfdev);
++err_out3:
++	panfrost_gpu_fini(pfdev);
++err_out2:
++	panfrost_reset_fini(pfdev);
++err_out1:
++	panfrost_regulator_fini(pfdev);
++err_out0:
++	panfrost_clk_fini(pfdev);
++	return err;
++}
++
++void panfrost_device_fini(struct panfrost_device *pfdev)
++{
++	panfrost_regulator_fini(pfdev);
++	panfrost_clk_fini(pfdev);
++}
++
++const char *panfrost_exception_name(struct panfrost_device *pfdev, u32 exception_code)
++{
++	switch (exception_code) {
++		/* Non-Fault Status code */
++	case 0x00: return "NOT_STARTED/IDLE/OK";
++	case 0x01: return "DONE";
++	case 0x02: return "INTERRUPTED";
++	case 0x03: return "STOPPED";
++	case 0x04: return "TERMINATED";
++	case 0x08: return "ACTIVE";
++		/* Job exceptions */
++	case 0x40: return "JOB_CONFIG_FAULT";
++	case 0x41: return "JOB_POWER_FAULT";
++	case 0x42: return "JOB_READ_FAULT";
++	case 0x43: return "JOB_WRITE_FAULT";
++	case 0x44: return "JOB_AFFINITY_FAULT";
++	case 0x48: return "JOB_BUS_FAULT";
++	case 0x50: return "INSTR_INVALID_PC";
++	case 0x51: return "INSTR_INVALID_ENC";
++	case 0x52: return "INSTR_TYPE_MISMATCH";
++	case 0x53: return "INSTR_OPERAND_FAULT";
++	case 0x54: return "INSTR_TLS_FAULT";
++	case 0x55: return "INSTR_BARRIER_FAULT";
++	case 0x56: return "INSTR_ALIGN_FAULT";
++	case 0x58: return "DATA_INVALID_FAULT";
++	case 0x59: return "TILE_RANGE_FAULT";
++	case 0x5A: return "ADDR_RANGE_FAULT";
++	case 0x60: return "OUT_OF_MEMORY";
++		/* GPU exceptions */
++	case 0x80: return "DELAYED_BUS_FAULT";
++	case 0x88: return "SHAREABILITY_FAULT";
++		/* MMU exceptions */
++	case 0xC1: return "TRANSLATION_FAULT_LEVEL1";
++	case 0xC2: return "TRANSLATION_FAULT_LEVEL2";
++	case 0xC3: return "TRANSLATION_FAULT_LEVEL3";
++	case 0xC4: return "TRANSLATION_FAULT_LEVEL4";
++	case 0xC8: return "PERMISSION_FAULT";
++	case 0xC9 ... 0xCF: return "PERMISSION_FAULT";
++	case 0xD1: return "TRANSTAB_BUS_FAULT_LEVEL1";
++	case 0xD2: return "TRANSTAB_BUS_FAULT_LEVEL2";
++	case 0xD3: return "TRANSTAB_BUS_FAULT_LEVEL3";
++	case 0xD4: return "TRANSTAB_BUS_FAULT_LEVEL4";
++	case 0xD8: return "ACCESS_FLAG";
++	case 0xD9 ... 0xDF: return "ACCESS_FLAG";
++	case 0xE0 ... 0xE7: return "ADDRESS_SIZE_FAULT";
++	case 0xE8 ... 0xEF: return "MEMORY_ATTRIBUTES_FAULT";
++	}
++
++	return "UNKNOWN";
++}
++
++#ifdef CONFIG_PM
++int panfrost_device_resume(struct device *dev)
++{
++	struct platform_device *pdev = to_platform_device(dev);
++	struct panfrost_device *pfdev = platform_get_drvdata(pdev);
++
++	panfrost_gpu_soft_reset(pfdev);
++
++	/* TODO: Re-enable all other address spaces */
++	panfrost_gpu_power_on(pfdev);
++	panfrost_mmu_enable(pfdev, 0);
++	panfrost_job_enable_interrupts(pfdev);
++	panfrost_devfreq_resume(pfdev);
++
++	return 0;
++}
++
++int panfrost_device_suspend(struct device *dev)
++{
++	struct platform_device *pdev = to_platform_device(dev);
++	struct panfrost_device *pfdev = platform_get_drvdata(pdev);
++
++	if (!panfrost_job_is_idle(pfdev))
++		return -EBUSY;
++
++	panfrost_devfreq_suspend(pfdev);
++	panfrost_gpu_power_off(pfdev);
++
++	return 0;
++}
++#endif
+diff --git a/drivers/gpu/drm/panfrost/panfrost_device.h b/drivers/gpu/drm/panfrost/panfrost_device.h
+new file mode 100644
+index 0000000..1ba48d1
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_device.h
+@@ -0,0 +1,124 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright 2018 Marty E. Plummer <hanetzer@startmail.com> */
++/* Copyright 2019 Linaro, Ltd, Rob Herring <robh@kernel.org> */
++
++#ifndef __PANFROST_DEVICE_H__
++#define __PANFROST_DEVICE_H__
++
++#include <linux/spinlock.h>
++#include <drm/drm_device.h>
++#include <drm/drm_mm.h>
++#include <drm/gpu_scheduler.h>
++
++struct panfrost_device;
++struct panfrost_mmu;
++struct panfrost_job_slot;
++struct panfrost_job;
++
++#define NUM_JOB_SLOTS 3
++
++struct panfrost_features {
++	u16 id;
++	u16 revision;
++
++	u64 shader_present;
++	u64 tiler_present;
++	u64 l2_present;
++	u64 stack_present;
++	u32 as_present;
++	u32 js_present;
++
++	u32 l2_features;
++	u32 core_features;
++	u32 tiler_features;
++	u32 mem_features;
++	u32 mmu_features;
++	u32 thread_features;
++	u32 max_threads;
++	u32 thread_max_workgroup_sz;
++	u32 thread_max_barrier_sz;
++	u32 coherency_features;
++	u32 texture_features[4];
++	u32 js_features[16];
++
++	u32 nr_core_groups;
++
++	unsigned long hw_features[64 / BITS_PER_LONG];
++	unsigned long hw_issues[64 / BITS_PER_LONG];
++};
++
++struct panfrost_devfreq_slot {
++	ktime_t busy_time;
++	ktime_t idle_time;
++	ktime_t time_last_update;
++	bool busy;
++};
++
++struct panfrost_device {
++	struct device *dev;
++	struct drm_device *ddev;
++	struct platform_device *pdev;
++
++	spinlock_t hwaccess_lock;
++
++	struct drm_mm mm;
++	spinlock_t mm_lock;
++
++	void __iomem *iomem;
++	struct clk *clock;
++	struct regulator *regulator;
++	struct reset_control *rstc;
++
++	struct panfrost_features features;
++
++	struct panfrost_mmu *mmu;
++	struct panfrost_job_slot *js;
++
++	struct panfrost_job *jobs[NUM_JOB_SLOTS];
++	struct list_head scheduled_jobs;
++
++	struct mutex sched_lock;
++
++	struct {
++		struct devfreq *devfreq;
++		struct thermal_cooling_device *cooling;
++		unsigned long cur_freq;
++		unsigned long cur_volt;
++		struct panfrost_devfreq_slot slot[NUM_JOB_SLOTS];
++	} devfreq;
++};
++
++struct panfrost_file_priv {
++	struct panfrost_device *pfdev;
++
++	struct drm_sched_entity sched_entity[NUM_JOB_SLOTS];
++};
++
++static inline struct panfrost_device *to_panfrost_device(struct drm_device *ddev)
++{
++	return ddev->dev_private;
++}
++
++static inline int panfrost_model_cmp(struct panfrost_device *pfdev, s32 id)
++{
++	s32 match_id = pfdev->features.id;
++
++	if (match_id & 0xf000)
++		match_id &= 0xf00f;
++	return match_id - id;
++}
++
++static inline bool panfrost_model_eq(struct panfrost_device *pfdev, s32 id)
++{
++	return !panfrost_model_cmp(pfdev, id);
++}
++
++int panfrost_device_init(struct panfrost_device *pfdev);
++void panfrost_device_fini(struct panfrost_device *pfdev);
++
++int panfrost_device_resume(struct device *dev);
++int panfrost_device_suspend(struct device *dev);
++
++const char *panfrost_exception_name(struct panfrost_device *pfdev, u32 exception_code);
++
++#endif
+diff --git a/drivers/gpu/drm/panfrost/panfrost_drv.c b/drivers/gpu/drm/panfrost/panfrost_drv.c
+new file mode 100644
+index 0000000..46da249
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_drv.c
+@@ -0,0 +1,460 @@
++// SPDX-License-Identifier: GPL-2.0
++/* Copyright 2018 Marty E. Plummer <hanetzer@startmail.com> */
++/* Copyright 2019 Linaro, Ltd., Rob Herring <robh@kernel.org> */
++/* Copyright 2019 Collabora ltd. */
++
++#include <linux/dma-mapping.h>
++#include <linux/module.h>
++#include <linux/of_platform.h>
++#include <linux/pagemap.h>
++#include <linux/pm_runtime.h>
++#include <drm/panfrost_drm.h>
++#include <drm/drm_drv.h>
++#include <drm/drm_ioctl.h>
++#include <drm/drm_syncobj.h>
++#include <drm/drm_utils.h>
++
++#include "panfrost_device.h"
++#include "panfrost_devfreq.h"
++#include "panfrost_gem.h"
++#include "panfrost_mmu.h"
++#include "panfrost_job.h"
++#include "panfrost_gpu.h"
++
++static int panfrost_ioctl_get_param(struct drm_device *ddev, void *data, struct drm_file *file)
++{
++	struct drm_panfrost_get_param *param = data;
++	struct panfrost_device *pfdev = ddev->dev_private;
++
++	if (param->pad != 0)
++		return -EINVAL;
++
++	switch (param->param) {
++	case DRM_PANFROST_PARAM_GPU_PROD_ID:
++		param->value = pfdev->features.id;
++		break;
++	default:
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
++static int panfrost_ioctl_create_bo(struct drm_device *dev, void *data,
++		struct drm_file *file)
++{
++	int ret;
++	struct drm_gem_shmem_object *shmem;
++	struct drm_panfrost_create_bo *args = data;
++
++	if (!args->size || args->flags)
++		return -EINVAL;
++
++	shmem = drm_gem_shmem_create_with_handle(file, dev, args->size,
++						 &args->handle);
++	if (IS_ERR(shmem))
++		return PTR_ERR(shmem);
++
++	ret = panfrost_mmu_map(to_panfrost_bo(&shmem->base));
++	if (ret)
++		goto err_free;
++
++	args->offset = to_panfrost_bo(&shmem->base)->node.start << PAGE_SHIFT;
++
++	return 0;
++
++err_free:
++	drm_gem_object_put_unlocked(&shmem->base);
++	return ret;
++}
++
++/**
++ * panfrost_lookup_bos() - Sets up job->bo[] with the GEM objects
++ * referenced by the job.
++ * @dev: DRM device
++ * @file_priv: DRM file for this fd
++ * @args: IOCTL args
++ * @job: job being set up
++ *
++ * Resolve handles from userspace to BOs and attach them to job.
++ *
++ * Note that this function doesn't need to unreference the BOs on
++ * failure, because that will happen at panfrost_job_cleanup() time.
++ */
++static int
++panfrost_lookup_bos(struct drm_device *dev,
++		  struct drm_file *file_priv,
++		  struct drm_panfrost_submit *args,
++		  struct panfrost_job *job)
++{
++	job->bo_count = args->bo_handle_count;
++
++	if (!job->bo_count)
++		return 0;
++
++	job->implicit_fences = kvmalloc_array(job->bo_count,
++				  sizeof(struct dma_fence *),
++				  GFP_KERNEL | __GFP_ZERO);
++	if (!job->implicit_fences)
++		return -ENOMEM;
++
++	return drm_gem_objects_lookup(file_priv,
++				      (void __user *)(uintptr_t)args->bo_handles,
++				      job->bo_count, &job->bos);
++}
++
++/**
++ * panfrost_copy_in_sync() - Sets up job->in_fences[] with the sync objects
++ * referenced by the job.
++ * @dev: DRM device
++ * @file_priv: DRM file for this fd
++ * @args: IOCTL args
++ * @job: job being set up
++ *
++ * Resolve syncobjs from userspace to fences and attach them to job.
++ *
++ * Note that this function doesn't need to unreference the fences on
++ * failure, because that will happen at panfrost_job_cleanup() time.
++ */
++static int
++panfrost_copy_in_sync(struct drm_device *dev,
++		  struct drm_file *file_priv,
++		  struct drm_panfrost_submit *args,
++		  struct panfrost_job *job)
++{
++	u32 *handles;
++	int ret = 0;
++	int i;
++
++	job->in_fence_count = args->in_sync_count;
++
++	if (!job->in_fence_count)
++		return 0;
++
++	job->in_fences = kvmalloc_array(job->in_fence_count,
++					sizeof(struct dma_fence *),
++					GFP_KERNEL | __GFP_ZERO);
++	if (!job->in_fences) {
++		DRM_DEBUG("Failed to allocate job in fences\n");
++		return -ENOMEM;
++	}
++
++	handles = kvmalloc_array(job->in_fence_count, sizeof(u32), GFP_KERNEL);
++	if (!handles) {
++		ret = -ENOMEM;
++		DRM_DEBUG("Failed to allocate incoming syncobj handles\n");
++		goto fail;
++	}
++
++	if (copy_from_user(handles,
++			   (void __user *)(uintptr_t)args->in_syncs,
++			   job->in_fence_count * sizeof(u32))) {
++		ret = -EFAULT;
++		DRM_DEBUG("Failed to copy in syncobj handles\n");
++		goto fail;
++	}
++
++	for (i = 0; i < job->in_fence_count; i++) {
++		ret = drm_syncobj_find_fence(file_priv, handles[i], 0, 0,
++					     &job->in_fences[i]);
++		if (ret == -EINVAL)
++			goto fail;
++	}
++
++fail:
++	kvfree(handles);
++	return ret;
++}
++
++static int panfrost_ioctl_submit(struct drm_device *dev, void *data,
++		struct drm_file *file)
++{
++	struct panfrost_device *pfdev = dev->dev_private;
++	struct drm_panfrost_submit *args = data;
++	struct drm_syncobj *sync_out;
++	struct panfrost_job *job;
++	int ret = 0;
++
++	job = kcalloc(1, sizeof(*job), GFP_KERNEL);
++	if (!job)
++		return -ENOMEM;
++
++	kref_init(&job->refcount);
++
++	job->pfdev = pfdev;
++	job->jc = args->jc;
++	job->requirements = args->requirements;
++	job->flush_id = panfrost_gpu_get_latest_flush_id(pfdev);
++	job->file_priv = file->driver_priv;
++
++	ret = panfrost_copy_in_sync(dev, file, args, job);
++	if (ret)
++		goto fail;
++
++	ret = panfrost_lookup_bos(dev, file, args, job);
++	if (ret)
++		goto fail;
++
++	ret = panfrost_job_push(job);
++	if (ret)
++		goto fail;
++
++	/* Update the return sync object for the job */
++	sync_out = drm_syncobj_find(file, args->out_sync);
++	if (sync_out) {
++		drm_syncobj_replace_fence(sync_out, job->render_done_fence);
++		drm_syncobj_put(sync_out);
++	}
++
++fail:
++	panfrost_job_put(job);
++
++	return ret;
++}
++
++static int
++panfrost_ioctl_wait_bo(struct drm_device *dev, void *data,
++		       struct drm_file *file_priv)
++{
++	long ret;
++	struct drm_panfrost_wait_bo *args = data;
++	struct drm_gem_object *gem_obj;
++	unsigned long timeout = drm_timeout_abs_to_jiffies(args->timeout_ns);
++
++	if (args->pad)
++		return -EINVAL;
++
++	gem_obj = drm_gem_object_lookup(file_priv, args->handle);
++	if (!gem_obj)
++		return -ENOENT;
++
++	ret = reservation_object_wait_timeout_rcu(gem_obj->resv, true,
++						  true, timeout);
++	if (!ret)
++		ret = timeout ? -ETIMEDOUT : -EBUSY;
++
++	drm_gem_object_put_unlocked(gem_obj);
++
++	return ret;
++}
++
++static int panfrost_ioctl_mmap_bo(struct drm_device *dev, void *data,
++		      struct drm_file *file_priv)
++{
++	struct drm_panfrost_mmap_bo *args = data;
++	struct drm_gem_object *gem_obj;
++	int ret;
++
++	if (args->flags != 0) {
++		DRM_INFO("unknown mmap_bo flags: %d\n", args->flags);
++		return -EINVAL;
++	}
++
++	gem_obj = drm_gem_object_lookup(file_priv, args->handle);
++	if (!gem_obj) {
++		DRM_DEBUG("Failed to look up GEM BO %d\n", args->handle);
++		return -ENOENT;
++	}
++
++	ret = drm_gem_create_mmap_offset(gem_obj);
++	if (ret == 0)
++		args->offset = drm_vma_node_offset_addr(&gem_obj->vma_node);
++	drm_gem_object_put_unlocked(gem_obj);
++
++	return ret;
++}
++
++static int panfrost_ioctl_get_bo_offset(struct drm_device *dev, void *data,
++			    struct drm_file *file_priv)
++{
++	struct drm_panfrost_get_bo_offset *args = data;
++	struct drm_gem_object *gem_obj;
++	struct panfrost_gem_object *bo;
++
++	gem_obj = drm_gem_object_lookup(file_priv, args->handle);
++	if (!gem_obj) {
++		DRM_DEBUG("Failed to look up GEM BO %d\n", args->handle);
++		return -ENOENT;
++	}
++	bo = to_panfrost_bo(gem_obj);
++
++	args->offset = bo->node.start << PAGE_SHIFT;
++
++	drm_gem_object_put_unlocked(gem_obj);
++	return 0;
++}
++
++static int
++panfrost_open(struct drm_device *dev, struct drm_file *file)
++{
++	struct panfrost_device *pfdev = dev->dev_private;
++	struct panfrost_file_priv *panfrost_priv;
++
++	panfrost_priv = kzalloc(sizeof(*panfrost_priv), GFP_KERNEL);
++	if (!panfrost_priv)
++		return -ENOMEM;
++
++	panfrost_priv->pfdev = pfdev;
++	file->driver_priv = panfrost_priv;
++
++	return panfrost_job_open(panfrost_priv);
++}
++
++static void
++panfrost_postclose(struct drm_device *dev, struct drm_file *file)
++{
++	struct panfrost_file_priv *panfrost_priv = file->driver_priv;
++
++	panfrost_job_close(panfrost_priv);
++
++	kfree(panfrost_priv);
++}
++
++/* DRM_AUTH is required on SUBMIT for now, while all clients share a single
++ * address space.  Note that render nodes would be able to submit jobs that
++ * could access BOs from clients authenticated with the master node.
++ */
++static const struct drm_ioctl_desc panfrost_drm_driver_ioctls[] = {
++#define PANFROST_IOCTL(n, func, flags) \
++	DRM_IOCTL_DEF_DRV(PANFROST_##n, panfrost_ioctl_##func, flags)
++
++	PANFROST_IOCTL(SUBMIT,		submit,		DRM_RENDER_ALLOW | DRM_AUTH),
++	PANFROST_IOCTL(WAIT_BO,		wait_bo,	DRM_RENDER_ALLOW),
++	PANFROST_IOCTL(CREATE_BO,	create_bo,	DRM_RENDER_ALLOW),
++	PANFROST_IOCTL(MMAP_BO,		mmap_bo,	DRM_RENDER_ALLOW),
++	PANFROST_IOCTL(GET_PARAM,	get_param,	DRM_RENDER_ALLOW),
++	PANFROST_IOCTL(GET_BO_OFFSET,	get_bo_offset,	DRM_RENDER_ALLOW),
++};
++
++DEFINE_DRM_GEM_SHMEM_FOPS(panfrost_drm_driver_fops);
++
++static struct drm_driver panfrost_drm_driver = {
++	.driver_features	= DRIVER_RENDER | DRIVER_GEM | DRIVER_PRIME |
++				  DRIVER_SYNCOBJ,
++	.open			= panfrost_open,
++	.postclose		= panfrost_postclose,
++	.ioctls			= panfrost_drm_driver_ioctls,
++	.num_ioctls		= ARRAY_SIZE(panfrost_drm_driver_ioctls),
++	.fops			= &panfrost_drm_driver_fops,
++	.name			= "panfrost",
++	.desc			= "panfrost DRM",
++	.date			= "20180908",
++	.major			= 1,
++	.minor			= 0,
++
++	.gem_create_object	= panfrost_gem_create_object,
++	.prime_handle_to_fd	= drm_gem_prime_handle_to_fd,
++	.prime_fd_to_handle	= drm_gem_prime_fd_to_handle,
++	.gem_prime_import_sg_table = panfrost_gem_prime_import_sg_table,
++	.gem_prime_mmap		= drm_gem_prime_mmap,
++};
++
++static int panfrost_probe(struct platform_device *pdev)
++{
++	struct panfrost_device *pfdev;
++	struct drm_device *ddev;
++	int err;
++
++	pfdev = devm_kzalloc(&pdev->dev, sizeof(*pfdev), GFP_KERNEL);
++	if (!pfdev)
++		return -ENOMEM;
++
++	pfdev->pdev = pdev;
++	pfdev->dev = &pdev->dev;
++
++	platform_set_drvdata(pdev, pfdev);
++	dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(40));
++
++	/* Allocate and initialze the DRM device. */
++	ddev = drm_dev_alloc(&panfrost_drm_driver, &pdev->dev);
++	if (IS_ERR(ddev))
++		return PTR_ERR(ddev);
++
++	ddev->dev_private = pfdev;
++	pfdev->ddev = ddev;
++
++	spin_lock_init(&pfdev->mm_lock);
++
++	/* 4G enough for now. can be 48-bit */
++	drm_mm_init(&pfdev->mm, SZ_32M >> PAGE_SHIFT, SZ_4G);
++
++	pm_runtime_use_autosuspend(pfdev->dev);
++	pm_runtime_set_autosuspend_delay(pfdev->dev, 50); /* ~3 frames */
++	pm_runtime_enable(pfdev->dev);
++
++	err = panfrost_device_init(pfdev);
++	if (err) {
++		dev_err(&pdev->dev, "Fatal error during GPU init\n");
++		goto err_out0;
++	}
++
++	err = panfrost_devfreq_init(pfdev);
++	if (err) {
++		dev_err(&pdev->dev, "Fatal error during devfreq init\n");
++		goto err_out1;
++	}
++
++	/*
++	 * Register the DRM device with the core and the connectors with
++	 * sysfs
++	 */
++	err = drm_dev_register(ddev, 0);
++	if (err < 0)
++		goto err_out1;
++
++	return 0;
++
++err_out1:
++	panfrost_device_fini(pfdev);
++err_out0:
++	drm_dev_put(ddev);
++	return err;
++}
++
++static int panfrost_remove(struct platform_device *pdev)
++{
++	struct panfrost_device *pfdev = platform_get_drvdata(pdev);
++	struct drm_device *ddev = pfdev->ddev;
++
++	drm_dev_unregister(ddev);
++	pm_runtime_get_sync(pfdev->dev);
++	pm_runtime_put_sync_autosuspend(pfdev->dev);
++	pm_runtime_disable(pfdev->dev);
++	panfrost_device_fini(pfdev);
++	drm_dev_put(ddev);
++	return 0;
++}
++
++static const struct of_device_id dt_match[] = {
++	{ .compatible = "arm,mali-t604" },
++	{ .compatible = "arm,mali-t624" },
++	{ .compatible = "arm,mali-t628" },
++	{ .compatible = "arm,mali-t720" },
++	{ .compatible = "arm,mali-t760" },
++	{ .compatible = "arm,mali-t820" },
++	{ .compatible = "arm,mali-t830" },
++	{ .compatible = "arm,mali-t860" },
++	{ .compatible = "arm,mali-t880" },
++	{}
++};
++MODULE_DEVICE_TABLE(of, dt_match);
++
++static const struct dev_pm_ops panfrost_pm_ops = {
++	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend, pm_runtime_force_resume)
++	SET_RUNTIME_PM_OPS(panfrost_device_suspend, panfrost_device_resume, NULL)
++};
++
++static struct platform_driver panfrost_driver = {
++	.probe		= panfrost_probe,
++	.remove		= panfrost_remove,
++	.driver		= {
++		.name	= "panfrost",
++		.pm	= &panfrost_pm_ops,
++		.of_match_table = dt_match,
++	},
++};
++module_platform_driver(panfrost_driver);
++
++MODULE_AUTHOR("Panfrost Project Developers");
++MODULE_DESCRIPTION("Panfrost DRM Driver");
++MODULE_LICENSE("GPL v2");
+diff --git a/drivers/gpu/drm/panfrost/panfrost_features.h b/drivers/gpu/drm/panfrost/panfrost_features.h
+new file mode 100644
+index 0000000..5056777
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_features.h
+@@ -0,0 +1,309 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* (C) COPYRIGHT 2014-2018 ARM Limited. All rights reserved. */
++/* Copyright 2019 Linaro, Ltd., Rob Herring <robh@kernel.org> */
++#ifndef __PANFROST_FEATURES_H__
++#define __PANFROST_FEATURES_H__
++
++#include <linux/bitops.h>
++
++#include "panfrost_device.h"
++
++enum panfrost_hw_feature {
++	HW_FEATURE_JOBCHAIN_DISAMBIGUATION,
++	HW_FEATURE_PWRON_DURING_PWROFF_TRANS,
++	HW_FEATURE_XAFFINITY,
++	HW_FEATURE_OUT_OF_ORDER_EXEC,
++	HW_FEATURE_MRT,
++	HW_FEATURE_BRNDOUT_CC,
++	HW_FEATURE_INTERPIPE_REG_ALIASING,
++	HW_FEATURE_LD_ST_TILEBUFFER,
++	HW_FEATURE_MSAA_16X,
++	HW_FEATURE_32_BIT_UNIFORM_ADDRESS,
++	HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL,
++	HW_FEATURE_OPTIMIZED_COVERAGE_MASK,
++	HW_FEATURE_T7XX_PAIRING_RULES,
++	HW_FEATURE_LD_ST_LEA_TEX,
++	HW_FEATURE_LINEAR_FILTER_FLOAT,
++	HW_FEATURE_WORKGROUP_ROUND_MULTIPLE_OF_4,
++	HW_FEATURE_IMAGES_IN_FRAGMENT_SHADERS,
++	HW_FEATURE_TEST4_DATUM_MODE,
++	HW_FEATURE_NEXT_INSTRUCTION_TYPE,
++	HW_FEATURE_BRNDOUT_KILL,
++	HW_FEATURE_WARPING,
++	HW_FEATURE_V4,
++	HW_FEATURE_FLUSH_REDUCTION,
++	HW_FEATURE_PROTECTED_MODE,
++	HW_FEATURE_COHERENCY_REG,
++	HW_FEATURE_PROTECTED_DEBUG_MODE,
++	HW_FEATURE_AARCH64_MMU,
++	HW_FEATURE_TLS_HASHING,
++	HW_FEATURE_THREAD_GROUP_SPLIT,
++	HW_FEATURE_3BIT_EXT_RW_L2_MMU_CONFIG,
++};
++
++#define hw_features_t600 (\
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT) | \
++	BIT_ULL(HW_FEATURE_V4))
++
++#define hw_features_t620 (\
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT) | \
++	BIT_ULL(HW_FEATURE_V4))
++
++#define hw_features_t720 (\
++	BIT_ULL(HW_FEATURE_32_BIT_UNIFORM_ADDRESS) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_INTERPIPE_REG_ALIASING) | \
++	BIT_ULL(HW_FEATURE_OPTIMIZED_COVERAGE_MASK) | \
++	BIT_ULL(HW_FEATURE_T7XX_PAIRING_RULES) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT) | \
++	BIT_ULL(HW_FEATURE_WORKGROUP_ROUND_MULTIPLE_OF_4) | \
++	BIT_ULL(HW_FEATURE_WARPING) | \
++	BIT_ULL(HW_FEATURE_V4))
++
++
++#define hw_features_t760 (\
++	BIT_ULL(HW_FEATURE_JOBCHAIN_DISAMBIGUATION) | \
++	BIT_ULL(HW_FEATURE_PWRON_DURING_PWROFF_TRANS) | \
++	BIT_ULL(HW_FEATURE_XAFFINITY) | \
++	BIT_ULL(HW_FEATURE_32_BIT_UNIFORM_ADDRESS) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_CC) | \
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LD_ST_TILEBUFFER) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_MRT) | \
++	BIT_ULL(HW_FEATURE_MSAA_16X) | \
++	BIT_ULL(HW_FEATURE_OUT_OF_ORDER_EXEC) | \
++	BIT_ULL(HW_FEATURE_T7XX_PAIRING_RULES) | \
++	BIT_ULL(HW_FEATURE_TEST4_DATUM_MODE) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT))
++
++// T860
++#define hw_features_t860 (\
++	BIT_ULL(HW_FEATURE_JOBCHAIN_DISAMBIGUATION) | \
++	BIT_ULL(HW_FEATURE_PWRON_DURING_PWROFF_TRANS) | \
++	BIT_ULL(HW_FEATURE_XAFFINITY) | \
++	BIT_ULL(HW_FEATURE_32_BIT_UNIFORM_ADDRESS) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_CC) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_KILL) | \
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LD_ST_TILEBUFFER) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_MRT) | \
++	BIT_ULL(HW_FEATURE_MSAA_16X) | \
++	BIT_ULL(HW_FEATURE_NEXT_INSTRUCTION_TYPE) | \
++	BIT_ULL(HW_FEATURE_OUT_OF_ORDER_EXEC) | \
++	BIT_ULL(HW_FEATURE_T7XX_PAIRING_RULES) | \
++	BIT_ULL(HW_FEATURE_TEST4_DATUM_MODE) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT))
++
++#define hw_features_t880 hw_features_t860
++
++#define hw_features_t830 (\
++	BIT_ULL(HW_FEATURE_JOBCHAIN_DISAMBIGUATION) | \
++	BIT_ULL(HW_FEATURE_PWRON_DURING_PWROFF_TRANS) | \
++	BIT_ULL(HW_FEATURE_XAFFINITY) | \
++	BIT_ULL(HW_FEATURE_WARPING) | \
++	BIT_ULL(HW_FEATURE_INTERPIPE_REG_ALIASING) | \
++	BIT_ULL(HW_FEATURE_32_BIT_UNIFORM_ADDRESS) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_CC) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_KILL) | \
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LD_ST_TILEBUFFER) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_MRT) | \
++	BIT_ULL(HW_FEATURE_NEXT_INSTRUCTION_TYPE) | \
++	BIT_ULL(HW_FEATURE_OUT_OF_ORDER_EXEC) | \
++	BIT_ULL(HW_FEATURE_T7XX_PAIRING_RULES) | \
++	BIT_ULL(HW_FEATURE_TEST4_DATUM_MODE) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT))
++
++#define hw_features_t820 (\
++	BIT_ULL(HW_FEATURE_JOBCHAIN_DISAMBIGUATION) | \
++	BIT_ULL(HW_FEATURE_PWRON_DURING_PWROFF_TRANS) | \
++	BIT_ULL(HW_FEATURE_XAFFINITY) | \
++	BIT_ULL(HW_FEATURE_WARPING) | \
++	BIT_ULL(HW_FEATURE_INTERPIPE_REG_ALIASING) | \
++	BIT_ULL(HW_FEATURE_32_BIT_UNIFORM_ADDRESS) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_CC) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_KILL) | \
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LD_ST_TILEBUFFER) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_MRT) | \
++	BIT_ULL(HW_FEATURE_NEXT_INSTRUCTION_TYPE) | \
++	BIT_ULL(HW_FEATURE_OUT_OF_ORDER_EXEC) | \
++	BIT_ULL(HW_FEATURE_T7XX_PAIRING_RULES) | \
++	BIT_ULL(HW_FEATURE_TEST4_DATUM_MODE) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT))
++
++#define hw_features_g71 (\
++	BIT_ULL(HW_FEATURE_JOBCHAIN_DISAMBIGUATION) | \
++	BIT_ULL(HW_FEATURE_PWRON_DURING_PWROFF_TRANS) | \
++	BIT_ULL(HW_FEATURE_XAFFINITY) | \
++	BIT_ULL(HW_FEATURE_WARPING) | \
++	BIT_ULL(HW_FEATURE_INTERPIPE_REG_ALIASING) | \
++	BIT_ULL(HW_FEATURE_32_BIT_UNIFORM_ADDRESS) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_CC) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_KILL) | \
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LD_ST_TILEBUFFER) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_MRT) | \
++	BIT_ULL(HW_FEATURE_MSAA_16X) | \
++	BIT_ULL(HW_FEATURE_NEXT_INSTRUCTION_TYPE) | \
++	BIT_ULL(HW_FEATURE_OUT_OF_ORDER_EXEC) | \
++	BIT_ULL(HW_FEATURE_T7XX_PAIRING_RULES) | \
++	BIT_ULL(HW_FEATURE_TEST4_DATUM_MODE) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT) | \
++	BIT_ULL(HW_FEATURE_FLUSH_REDUCTION) | \
++	BIT_ULL(HW_FEATURE_PROTECTED_MODE) | \
++	BIT_ULL(HW_FEATURE_COHERENCY_REG))
++
++#define hw_features_g72 (\
++	BIT_ULL(HW_FEATURE_JOBCHAIN_DISAMBIGUATION) | \
++	BIT_ULL(HW_FEATURE_PWRON_DURING_PWROFF_TRANS) | \
++	BIT_ULL(HW_FEATURE_XAFFINITY) | \
++	BIT_ULL(HW_FEATURE_WARPING) | \
++	BIT_ULL(HW_FEATURE_INTERPIPE_REG_ALIASING) | \
++	BIT_ULL(HW_FEATURE_32_BIT_UNIFORM_ADDRESS) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_CC) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_KILL) | \
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LD_ST_TILEBUFFER) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_MRT) | \
++	BIT_ULL(HW_FEATURE_MSAA_16X) | \
++	BIT_ULL(HW_FEATURE_NEXT_INSTRUCTION_TYPE) | \
++	BIT_ULL(HW_FEATURE_OUT_OF_ORDER_EXEC) | \
++	BIT_ULL(HW_FEATURE_T7XX_PAIRING_RULES) | \
++	BIT_ULL(HW_FEATURE_TEST4_DATUM_MODE) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT) | \
++	BIT_ULL(HW_FEATURE_FLUSH_REDUCTION) | \
++	BIT_ULL(HW_FEATURE_PROTECTED_MODE) | \
++	BIT_ULL(HW_FEATURE_PROTECTED_DEBUG_MODE) | \
++	BIT_ULL(HW_FEATURE_COHERENCY_REG))
++
++#define hw_features_g51 (\
++	BIT_ULL(HW_FEATURE_JOBCHAIN_DISAMBIGUATION) | \
++	BIT_ULL(HW_FEATURE_PWRON_DURING_PWROFF_TRANS) | \
++	BIT_ULL(HW_FEATURE_XAFFINITY) | \
++	BIT_ULL(HW_FEATURE_WARPING) | \
++	BIT_ULL(HW_FEATURE_INTERPIPE_REG_ALIASING) | \
++	BIT_ULL(HW_FEATURE_32_BIT_UNIFORM_ADDRESS) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_CC) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_KILL) | \
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LD_ST_TILEBUFFER) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_MRT) | \
++	BIT_ULL(HW_FEATURE_MSAA_16X) | \
++	BIT_ULL(HW_FEATURE_NEXT_INSTRUCTION_TYPE) | \
++	BIT_ULL(HW_FEATURE_OUT_OF_ORDER_EXEC) | \
++	BIT_ULL(HW_FEATURE_T7XX_PAIRING_RULES) | \
++	BIT_ULL(HW_FEATURE_TEST4_DATUM_MODE) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT) | \
++	BIT_ULL(HW_FEATURE_FLUSH_REDUCTION) | \
++	BIT_ULL(HW_FEATURE_PROTECTED_MODE) | \
++	BIT_ULL(HW_FEATURE_PROTECTED_DEBUG_MODE) | \
++	BIT_ULL(HW_FEATURE_COHERENCY_REG))
++
++#define hw_features_g52 (\
++	BIT_ULL(HW_FEATURE_JOBCHAIN_DISAMBIGUATION) | \
++	BIT_ULL(HW_FEATURE_PWRON_DURING_PWROFF_TRANS) | \
++	BIT_ULL(HW_FEATURE_XAFFINITY) | \
++	BIT_ULL(HW_FEATURE_WARPING) | \
++	BIT_ULL(HW_FEATURE_INTERPIPE_REG_ALIASING) | \
++	BIT_ULL(HW_FEATURE_32_BIT_UNIFORM_ADDRESS) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_CC) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_KILL) | \
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LD_ST_TILEBUFFER) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_MRT) | \
++	BIT_ULL(HW_FEATURE_MSAA_16X) | \
++	BIT_ULL(HW_FEATURE_NEXT_INSTRUCTION_TYPE) | \
++	BIT_ULL(HW_FEATURE_OUT_OF_ORDER_EXEC) | \
++	BIT_ULL(HW_FEATURE_T7XX_PAIRING_RULES) | \
++	BIT_ULL(HW_FEATURE_TEST4_DATUM_MODE) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT) | \
++	BIT_ULL(HW_FEATURE_FLUSH_REDUCTION) | \
++	BIT_ULL(HW_FEATURE_PROTECTED_MODE) | \
++	BIT_ULL(HW_FEATURE_PROTECTED_DEBUG_MODE) | \
++	BIT_ULL(HW_FEATURE_COHERENCY_REG))
++
++#define hw_features_g76 (\
++	BIT_ULL(HW_FEATURE_JOBCHAIN_DISAMBIGUATION) | \
++	BIT_ULL(HW_FEATURE_PWRON_DURING_PWROFF_TRANS) | \
++	BIT_ULL(HW_FEATURE_XAFFINITY) | \
++	BIT_ULL(HW_FEATURE_WARPING) | \
++	BIT_ULL(HW_FEATURE_INTERPIPE_REG_ALIASING) | \
++	BIT_ULL(HW_FEATURE_32_BIT_UNIFORM_ADDRESS) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_CC) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_KILL) | \
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LD_ST_TILEBUFFER) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_MRT) | \
++	BIT_ULL(HW_FEATURE_MSAA_16X) | \
++	BIT_ULL(HW_FEATURE_NEXT_INSTRUCTION_TYPE) | \
++	BIT_ULL(HW_FEATURE_OUT_OF_ORDER_EXEC) | \
++	BIT_ULL(HW_FEATURE_T7XX_PAIRING_RULES) | \
++	BIT_ULL(HW_FEATURE_TEST4_DATUM_MODE) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT) | \
++	BIT_ULL(HW_FEATURE_FLUSH_REDUCTION) | \
++	BIT_ULL(HW_FEATURE_PROTECTED_MODE) | \
++	BIT_ULL(HW_FEATURE_PROTECTED_DEBUG_MODE) | \
++	BIT_ULL(HW_FEATURE_COHERENCY_REG) | \
++	BIT_ULL(HW_FEATURE_AARCH64_MMU) | \
++	BIT_ULL(HW_FEATURE_TLS_HASHING) | \
++	BIT_ULL(HW_FEATURE_3BIT_EXT_RW_L2_MMU_CONFIG))
++
++#define hw_features_g31 (\
++	BIT_ULL(HW_FEATURE_JOBCHAIN_DISAMBIGUATION) | \
++	BIT_ULL(HW_FEATURE_PWRON_DURING_PWROFF_TRANS) | \
++	BIT_ULL(HW_FEATURE_XAFFINITY) | \
++	BIT_ULL(HW_FEATURE_WARPING) | \
++	BIT_ULL(HW_FEATURE_INTERPIPE_REG_ALIASING) | \
++	BIT_ULL(HW_FEATURE_32_BIT_UNIFORM_ADDRESS) | \
++	BIT_ULL(HW_FEATURE_ATTR_AUTO_TYPE_INFERRAL) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_CC) | \
++	BIT_ULL(HW_FEATURE_BRNDOUT_KILL) | \
++	BIT_ULL(HW_FEATURE_LD_ST_LEA_TEX) | \
++	BIT_ULL(HW_FEATURE_LD_ST_TILEBUFFER) | \
++	BIT_ULL(HW_FEATURE_LINEAR_FILTER_FLOAT) | \
++	BIT_ULL(HW_FEATURE_MRT) | \
++	BIT_ULL(HW_FEATURE_MSAA_16X) | \
++	BIT_ULL(HW_FEATURE_NEXT_INSTRUCTION_TYPE) | \
++	BIT_ULL(HW_FEATURE_OUT_OF_ORDER_EXEC) | \
++	BIT_ULL(HW_FEATURE_T7XX_PAIRING_RULES) | \
++	BIT_ULL(HW_FEATURE_TEST4_DATUM_MODE) | \
++	BIT_ULL(HW_FEATURE_THREAD_GROUP_SPLIT) | \
++	BIT_ULL(HW_FEATURE_FLUSH_REDUCTION) | \
++	BIT_ULL(HW_FEATURE_PROTECTED_MODE) | \
++	BIT_ULL(HW_FEATURE_PROTECTED_DEBUG_MODE) | \
++	BIT_ULL(HW_FEATURE_COHERENCY_REG) | \
++	BIT_ULL(HW_FEATURE_AARCH64_MMU) | \
++	BIT_ULL(HW_FEATURE_TLS_HASHING) | \
++	BIT_ULL(HW_FEATURE_3BIT_EXT_RW_L2_MMU_CONFIG))
++
++static inline bool panfrost_has_hw_feature(struct panfrost_device *pfdev,
++					   enum panfrost_hw_feature feat)
++{
++	return test_bit(feat, pfdev->features.hw_features);
++}
++
++#endif
+diff --git a/drivers/gpu/drm/panfrost/panfrost_gem.c b/drivers/gpu/drm/panfrost/panfrost_gem.c
+new file mode 100644
+index 0000000..8a03762
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_gem.c
+@@ -0,0 +1,95 @@
++// SPDX-License-Identifier: GPL-2.0
++/* Copyright 2019 Linaro, Ltd, Rob Herring <robh@kernel.org> */
++
++#include <linux/err.h>
++#include <linux/slab.h>
++#include <linux/dma-buf.h>
++#include <linux/dma-mapping.h>
++
++#include <drm/panfrost_drm.h>
++#include "panfrost_device.h"
++#include "panfrost_gem.h"
++#include "panfrost_mmu.h"
++
++/* Called DRM core on the last userspace/kernel unreference of the
++ * BO.
++ */
++void panfrost_gem_free_object(struct drm_gem_object *obj)
++{
++	struct panfrost_gem_object *bo = to_panfrost_bo(obj);
++	struct panfrost_device *pfdev = obj->dev->dev_private;
++
++	panfrost_mmu_unmap(bo);
++
++	spin_lock(&pfdev->mm_lock);
++	drm_mm_remove_node(&bo->node);
++	spin_unlock(&pfdev->mm_lock);
++
++	drm_gem_shmem_free_object(obj);
++}
++
++static const struct drm_gem_object_funcs panfrost_gem_funcs = {
++	.free = panfrost_gem_free_object,
++	.print_info = drm_gem_shmem_print_info,
++	.pin = drm_gem_shmem_pin,
++	.unpin = drm_gem_shmem_unpin,
++	.get_sg_table = drm_gem_shmem_get_sg_table,
++	.vmap = drm_gem_shmem_vmap,
++	.vunmap = drm_gem_shmem_vunmap,
++	.vm_ops = &drm_gem_shmem_vm_ops,
++};
++
++/**
++ * panfrost_gem_create_object - Implementation of driver->gem_create_object.
++ * @dev: DRM device
++ * @size: Size in bytes of the memory the object will reference
++ *
++ * This lets the GEM helpers allocate object structs for us, and keep
++ * our BO stats correct.
++ */
++struct drm_gem_object *panfrost_gem_create_object(struct drm_device *dev, size_t size)
++{
++	int ret;
++	struct panfrost_device *pfdev = dev->dev_private;
++	struct panfrost_gem_object *obj;
++
++	obj = kzalloc(sizeof(*obj), GFP_KERNEL);
++	if (!obj)
++		return NULL;
++
++	obj->base.base.funcs = &panfrost_gem_funcs;
++
++	spin_lock(&pfdev->mm_lock);
++	ret = drm_mm_insert_node(&pfdev->mm, &obj->node,
++				 roundup(size, PAGE_SIZE) >> PAGE_SHIFT);
++	spin_unlock(&pfdev->mm_lock);
++	if (ret)
++		goto free_obj;
++
++	return &obj->base.base;
++
++free_obj:
++	kfree(obj);
++	return ERR_PTR(ret);
++}
++
++struct drm_gem_object *
++panfrost_gem_prime_import_sg_table(struct drm_device *dev,
++				   struct dma_buf_attachment *attach,
++				   struct sg_table *sgt)
++{
++	struct drm_gem_object *obj;
++	struct panfrost_gem_object *pobj;
++
++	obj = drm_gem_shmem_prime_import_sg_table(dev, attach, sgt);
++	if (IS_ERR(obj))
++		return ERR_CAST(obj);
++
++	pobj = to_panfrost_bo(obj);
++
++	obj->resv = attach->dmabuf->resv;
++
++	panfrost_mmu_map(pobj);
++
++	return obj;
++}
+diff --git a/drivers/gpu/drm/panfrost/panfrost_gem.h b/drivers/gpu/drm/panfrost/panfrost_gem.h
+new file mode 100644
+index 0000000..045000e
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_gem.h
+@@ -0,0 +1,29 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright 2019 Linaro, Ltd, Rob Herring <robh@kernel.org> */
++
++#ifndef __PANFROST_GEM_H__
++#define __PANFROST_GEM_H__
++
++#include <drm/drm_gem_shmem_helper.h>
++#include <drm/drm_mm.h>
++
++struct panfrost_gem_object {
++	struct drm_gem_shmem_object base;
++
++	struct drm_mm_node node;
++};
++
++static inline
++struct  panfrost_gem_object *to_panfrost_bo(struct drm_gem_object *obj)
++{
++	return container_of(to_drm_gem_shmem_obj(obj), struct panfrost_gem_object, base);
++}
++
++struct drm_gem_object *panfrost_gem_create_object(struct drm_device *dev, size_t size);
++
++struct drm_gem_object *
++panfrost_gem_prime_import_sg_table(struct drm_device *dev,
++				   struct dma_buf_attachment *attach,
++				   struct sg_table *sgt);
++
++#endif /* __PANFROST_GEM_H__ */
+diff --git a/drivers/gpu/drm/panfrost/panfrost_gpu.c b/drivers/gpu/drm/panfrost/panfrost_gpu.c
+new file mode 100644
+index 0000000..aceaf6e
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_gpu.c
+@@ -0,0 +1,362 @@
++// SPDX-License-Identifier: GPL-2.0
++/* Copyright 2018 Marty E. Plummer <hanetzer@startmail.com> */
++/* Copyright 2019 Linaro, Ltd., Rob Herring <robh@kernel.org> */
++/* Copyright 2019 Collabora ltd. */
++#include <linux/bitmap.h>
++#include <linux/delay.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/iopoll.h>
++#include <linux/platform_device.h>
++
++#include "panfrost_device.h"
++#include "panfrost_features.h"
++#include "panfrost_issues.h"
++#include "panfrost_gpu.h"
++#include "panfrost_regs.h"
++
++#define gpu_write(dev, reg, data) writel(data, dev->iomem + reg)
++#define gpu_read(dev, reg) readl(dev->iomem + reg)
++
++static irqreturn_t panfrost_gpu_irq_handler(int irq, void *data)
++{
++	struct panfrost_device *pfdev = data;
++	u32 state = gpu_read(pfdev, GPU_INT_STAT);
++	u32 fault_status = gpu_read(pfdev, GPU_FAULT_STATUS);
++
++	if (!state)
++		return IRQ_NONE;
++
++	if (state & GPU_IRQ_MASK_ERROR) {
++		u64 address = (u64) gpu_read(pfdev, GPU_FAULT_ADDRESS_HI) << 32;
++		address |= gpu_read(pfdev, GPU_FAULT_ADDRESS_LO);
++
++		dev_warn(pfdev->dev, "GPU Fault 0x%08x (%s) at 0x%016llx\n",
++			 fault_status & 0xFF, panfrost_exception_name(pfdev, fault_status),
++			 address);
++
++		if (state & GPU_IRQ_MULTIPLE_FAULT)
++			dev_warn(pfdev->dev, "There were multiple GPU faults - some have not been reported\n");
++
++		gpu_write(pfdev, GPU_INT_MASK, 0);
++	}
++
++	gpu_write(pfdev, GPU_INT_CLEAR, state);
++
++	return IRQ_HANDLED;
++}
++
++int panfrost_gpu_soft_reset(struct panfrost_device *pfdev)
++{
++	int ret;
++	u32 val;
++
++	gpu_write(pfdev, GPU_INT_MASK, 0);
++	gpu_write(pfdev, GPU_INT_CLEAR, GPU_IRQ_RESET_COMPLETED);
++	gpu_write(pfdev, GPU_CMD, GPU_CMD_SOFT_RESET);
++
++	ret = readl_relaxed_poll_timeout(pfdev->iomem + GPU_INT_RAWSTAT,
++		val, val & GPU_IRQ_RESET_COMPLETED, 100, 10000);
++
++	if (ret) {
++		dev_err(pfdev->dev, "gpu soft reset timed out\n");
++		return ret;
++	}
++
++	gpu_write(pfdev, GPU_INT_CLEAR, GPU_IRQ_MASK_ALL);
++	gpu_write(pfdev, GPU_INT_MASK, GPU_IRQ_MASK_ALL);
++
++	return 0;
++}
++
++static void panfrost_gpu_init_quirks(struct panfrost_device *pfdev)
++{
++	u32 quirks = 0;
++
++	if (panfrost_has_hw_issue(pfdev, HW_ISSUE_8443) ||
++	    panfrost_has_hw_issue(pfdev, HW_ISSUE_11035))
++		quirks |= SC_LS_PAUSEBUFFER_DISABLE;
++
++	if (panfrost_has_hw_issue(pfdev, HW_ISSUE_10327))
++		quirks |= SC_SDC_DISABLE_OQ_DISCARD;
++
++	if (panfrost_has_hw_issue(pfdev, HW_ISSUE_10797))
++		quirks |= SC_ENABLE_TEXGRD_FLAGS;
++
++	if (!panfrost_has_hw_issue(pfdev, GPUCORE_1619)) {
++		if (panfrost_model_cmp(pfdev, 0x750) < 0) /* T60x, T62x, T72x */
++			quirks |= SC_LS_ATTR_CHECK_DISABLE;
++		else if (panfrost_model_cmp(pfdev, 0x880) <= 0) /* T76x, T8xx */
++			quirks |= SC_LS_ALLOW_ATTR_TYPES;
++	}
++
++	if (panfrost_has_hw_feature(pfdev, HW_FEATURE_TLS_HASHING))
++		quirks |= SC_TLS_HASH_ENABLE;
++
++	if (quirks)
++		gpu_write(pfdev, GPU_SHADER_CONFIG, quirks);
++
++
++	quirks = gpu_read(pfdev, GPU_TILER_CONFIG);
++
++	/* Set tiler clock gate override if required */
++	if (panfrost_has_hw_issue(pfdev, HW_ISSUE_T76X_3953))
++		quirks |= TC_CLOCK_GATE_OVERRIDE;
++
++	gpu_write(pfdev, GPU_TILER_CONFIG, quirks);
++
++
++	quirks = gpu_read(pfdev, GPU_L2_MMU_CONFIG);
++
++	/* Limit read & write ID width for AXI */
++	if (panfrost_has_hw_feature(pfdev, HW_FEATURE_3BIT_EXT_RW_L2_MMU_CONFIG))
++		quirks &= ~(L2_MMU_CONFIG_3BIT_LIMIT_EXTERNAL_READS |
++			    L2_MMU_CONFIG_3BIT_LIMIT_EXTERNAL_WRITES);
++	else
++		quirks &= ~(L2_MMU_CONFIG_LIMIT_EXTERNAL_READS |
++			    L2_MMU_CONFIG_LIMIT_EXTERNAL_WRITES);
++
++	gpu_write(pfdev, GPU_L2_MMU_CONFIG, quirks);
++
++	quirks = 0;
++	if ((panfrost_model_eq(pfdev, 0x860) || panfrost_model_eq(pfdev, 0x880)) &&
++	    pfdev->features.revision >= 0x2000)
++		quirks |= JM_MAX_JOB_THROTTLE_LIMIT << JM_JOB_THROTTLE_LIMIT_SHIFT;
++	else if (panfrost_model_eq(pfdev, 0x6000) &&
++		 pfdev->features.coherency_features == COHERENCY_ACE)
++		quirks |= (COHERENCY_ACE_LITE | COHERENCY_ACE) <<
++			   JM_FORCE_COHERENCY_FEATURES_SHIFT;
++
++	if (quirks)
++		gpu_write(pfdev, GPU_JM_CONFIG, quirks);
++}
++
++#define MAX_HW_REVS 6
++
++struct panfrost_model {
++	const char *name;
++	u32 id;
++	u32 id_mask;
++	u64 features;
++	u64 issues;
++	struct {
++		u32 revision;
++		u64 issues;
++	} revs[MAX_HW_REVS];
++};
++
++#define GPU_MODEL(_name, _id, ...) \
++{\
++	.name = __stringify(_name),				\
++	.id = _id,						\
++	.features = hw_features_##_name,			\
++	.issues = hw_issues_##_name,				\
++	.revs = { __VA_ARGS__ },				\
++}
++
++#define GPU_REV_EXT(name, _rev, _p, _s, stat) \
++{\
++	.revision = (_rev) << 12 | (_p) << 4 | (_s),		\
++	.issues = hw_issues_##name##_r##_rev##p##_p##stat,	\
++}
++#define GPU_REV(name, r, p) GPU_REV_EXT(name, r, p, 0, )
++
++static const struct panfrost_model gpu_models[] = {
++	/* T60x has an oddball version */
++	GPU_MODEL(t600, 0x600,
++		GPU_REV_EXT(t600, 0, 0, 1, _15dev0)),
++	GPU_MODEL(t620, 0x620,
++		GPU_REV(t620, 0, 1), GPU_REV(t620, 1, 0)),
++	GPU_MODEL(t720, 0x720),
++	GPU_MODEL(t760, 0x750,
++		GPU_REV(t760, 0, 0), GPU_REV(t760, 0, 1),
++		GPU_REV_EXT(t760, 0, 1, 0, _50rel0),
++		GPU_REV(t760, 0, 2), GPU_REV(t760, 0, 3)),
++	GPU_MODEL(t820, 0x820),
++	GPU_MODEL(t830, 0x830),
++	GPU_MODEL(t860, 0x860),
++	GPU_MODEL(t880, 0x880),
++
++	GPU_MODEL(g71, 0x6000,
++		GPU_REV_EXT(g71, 0, 0, 1, _05dev0)),
++	GPU_MODEL(g72, 0x6001),
++	GPU_MODEL(g51, 0x7000),
++	GPU_MODEL(g76, 0x7001),
++	GPU_MODEL(g52, 0x7002),
++	GPU_MODEL(g31, 0x7003,
++		GPU_REV(g31, 1, 0)),
++};
++
++static void panfrost_gpu_init_features(struct panfrost_device *pfdev)
++{
++	u32 gpu_id, num_js, major, minor, status, rev;
++	const char *name = "unknown";
++	u64 hw_feat = 0;
++	u64 hw_issues = hw_issues_all;
++	const struct panfrost_model *model;
++	int i;
++
++	pfdev->features.l2_features = gpu_read(pfdev, GPU_L2_FEATURES);
++	pfdev->features.core_features = gpu_read(pfdev, GPU_CORE_FEATURES);
++	pfdev->features.tiler_features = gpu_read(pfdev, GPU_TILER_FEATURES);
++	pfdev->features.mem_features = gpu_read(pfdev, GPU_MEM_FEATURES);
++	pfdev->features.mmu_features = gpu_read(pfdev, GPU_MMU_FEATURES);
++	pfdev->features.thread_features = gpu_read(pfdev, GPU_THREAD_FEATURES);
++	pfdev->features.coherency_features = gpu_read(pfdev, GPU_COHERENCY_FEATURES);
++	for (i = 0; i < 4; i++)
++		pfdev->features.texture_features[i] = gpu_read(pfdev, GPU_TEXTURE_FEATURES(i));
++
++	pfdev->features.as_present = gpu_read(pfdev, GPU_AS_PRESENT);
++
++	pfdev->features.js_present = gpu_read(pfdev, GPU_JS_PRESENT);
++	num_js = hweight32(pfdev->features.js_present);
++	for (i = 0; i < num_js; i++)
++		pfdev->features.js_features[i] = gpu_read(pfdev, GPU_JS_FEATURES(i));
++
++	pfdev->features.shader_present = gpu_read(pfdev, GPU_SHADER_PRESENT_LO);
++	pfdev->features.shader_present |= (u64)gpu_read(pfdev, GPU_SHADER_PRESENT_HI) << 32;
++
++	pfdev->features.tiler_present = gpu_read(pfdev, GPU_TILER_PRESENT_LO);
++	pfdev->features.tiler_present |= (u64)gpu_read(pfdev, GPU_TILER_PRESENT_HI) << 32;
++
++	pfdev->features.l2_present = gpu_read(pfdev, GPU_L2_PRESENT_LO);
++	pfdev->features.l2_present |= (u64)gpu_read(pfdev, GPU_L2_PRESENT_HI) << 32;
++	pfdev->features.nr_core_groups = hweight64(pfdev->features.l2_present);
++
++	pfdev->features.stack_present = gpu_read(pfdev, GPU_STACK_PRESENT_LO);
++	pfdev->features.stack_present |= (u64)gpu_read(pfdev, GPU_STACK_PRESENT_HI) << 32;
++
++	gpu_id = gpu_read(pfdev, GPU_ID);
++	pfdev->features.revision = gpu_id & 0xffff;
++	pfdev->features.id = gpu_id >> 16;
++
++	/* The T60x has an oddball ID value. Fix it up to the standard Midgard
++	 * format so we (and userspace) don't have to special case it.
++	 */
++	if (pfdev->features.id == 0x6956)
++		pfdev->features.id = 0x0600;
++
++	major = (pfdev->features.revision >> 12) & 0xf;
++	minor = (pfdev->features.revision >> 4) & 0xff;
++	status = pfdev->features.revision & 0xf;
++	rev = pfdev->features.revision;
++
++	gpu_id = pfdev->features.id;
++
++	for (model = gpu_models; model->name; model++) {
++		int best = -1;
++
++		if (!panfrost_model_eq(pfdev, model->id))
++			continue;
++
++		name = model->name;
++		hw_feat = model->features;
++		hw_issues |= model->issues;
++		for (i = 0; i < MAX_HW_REVS; i++) {
++			if (model->revs[i].revision == rev) {
++				best = i;
++				break;
++			} else if (model->revs[i].revision == (rev & ~0xf))
++				best = i;
++		}
++
++		if (best >= 0)
++			hw_issues |= model->revs[best].issues;
++
++		break;
++	}
++
++	bitmap_from_u64(pfdev->features.hw_features, hw_feat);
++	bitmap_from_u64(pfdev->features.hw_issues, hw_issues);
++
++	dev_info(pfdev->dev, "mali-%s id 0x%x major 0x%x minor 0x%x status 0x%x",
++		 name, gpu_id, major, minor, status);
++	dev_info(pfdev->dev, "features: %64pb, issues: %64pb",
++		 pfdev->features.hw_features,
++		 pfdev->features.hw_issues);
++
++	dev_info(pfdev->dev, "Features: L2:0x%08x Shader:0x%08x Tiler:0x%08x Mem:0x%0x MMU:0x%08x AS:0x%x JS:0x%x",
++		 gpu_read(pfdev, GPU_L2_FEATURES),
++		 gpu_read(pfdev, GPU_CORE_FEATURES),
++		 gpu_read(pfdev, GPU_TILER_FEATURES),
++		 gpu_read(pfdev, GPU_MEM_FEATURES),
++		 gpu_read(pfdev, GPU_MMU_FEATURES),
++		 gpu_read(pfdev, GPU_AS_PRESENT),
++		 gpu_read(pfdev, GPU_JS_PRESENT));
++
++	dev_info(pfdev->dev, "shader_present=0x%0llx l2_present=0x%0llx",
++		 pfdev->features.shader_present, pfdev->features.l2_present);
++}
++
++void panfrost_gpu_power_on(struct panfrost_device *pfdev)
++{
++	int ret;
++	u32 val;
++
++	/* Just turn on everything for now */
++	gpu_write(pfdev, L2_PWRON_LO, pfdev->features.l2_present);
++	ret = readl_relaxed_poll_timeout(pfdev->iomem + L2_READY_LO,
++		val, val == pfdev->features.l2_present, 100, 1000);
++
++	gpu_write(pfdev, STACK_PWRON_LO, pfdev->features.stack_present);
++	ret |= readl_relaxed_poll_timeout(pfdev->iomem + STACK_READY_LO,
++		val, val == pfdev->features.stack_present, 100, 1000);
++
++	gpu_write(pfdev, SHADER_PWRON_LO, pfdev->features.shader_present);
++	ret |= readl_relaxed_poll_timeout(pfdev->iomem + SHADER_READY_LO,
++		val, val == pfdev->features.shader_present, 100, 1000);
++
++	gpu_write(pfdev, TILER_PWRON_LO, pfdev->features.tiler_present);
++	ret |= readl_relaxed_poll_timeout(pfdev->iomem + TILER_READY_LO,
++		val, val == pfdev->features.tiler_present, 100, 1000);
++
++	if (ret)
++		dev_err(pfdev->dev, "error powering up gpu");
++}
++
++void panfrost_gpu_power_off(struct panfrost_device *pfdev)
++{
++	gpu_write(pfdev, TILER_PWROFF_LO, 0);
++	gpu_write(pfdev, SHADER_PWROFF_LO, 0);
++	gpu_write(pfdev, STACK_PWROFF_LO, 0);
++	gpu_write(pfdev, L2_PWROFF_LO, 0);
++}
++
++int panfrost_gpu_init(struct panfrost_device *pfdev)
++{
++	int err, irq;
++
++	err = panfrost_gpu_soft_reset(pfdev);
++	if (err)
++		return err;
++
++	panfrost_gpu_init_features(pfdev);
++
++	irq = platform_get_irq_byname(to_platform_device(pfdev->dev), "gpu");
++	if (irq <= 0)
++		return -ENODEV;
++
++	err = devm_request_irq(pfdev->dev, irq, panfrost_gpu_irq_handler,
++			       IRQF_SHARED, "gpu", pfdev);
++	if (err) {
++		dev_err(pfdev->dev, "failed to request gpu irq");
++		return err;
++	}
++
++	panfrost_gpu_init_quirks(pfdev);
++	panfrost_gpu_power_on(pfdev);
++
++	return 0;
++}
++
++void panfrost_gpu_fini(struct panfrost_device *pfdev)
++{
++	panfrost_gpu_power_off(pfdev);
++}
++
++u32 panfrost_gpu_get_latest_flush_id(struct panfrost_device *pfdev)
++{
++	if (panfrost_has_hw_feature(pfdev, HW_FEATURE_FLUSH_REDUCTION))
++		return gpu_read(pfdev, GPU_LATEST_FLUSH_ID);
++	return 0;
++}
+diff --git a/drivers/gpu/drm/panfrost/panfrost_gpu.h b/drivers/gpu/drm/panfrost/panfrost_gpu.h
+new file mode 100644
+index 0000000..4112412
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_gpu.h
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright 2018 Marty E. Plummer <hanetzer@startmail.com> */
++/* Copyright 2019 Collabora ltd. */
++
++#ifndef __PANFROST_GPU_H__
++#define __PANFROST_GPU_H__
++
++struct panfrost_device;
++
++int panfrost_gpu_init(struct panfrost_device *pfdev);
++void panfrost_gpu_fini(struct panfrost_device *pfdev);
++
++u32 panfrost_gpu_get_latest_flush_id(struct panfrost_device *pfdev);
++
++int panfrost_gpu_soft_reset(struct panfrost_device *pfdev);
++void panfrost_gpu_power_on(struct panfrost_device *pfdev);
++void panfrost_gpu_power_off(struct panfrost_device *pfdev);
++
++#endif
+diff --git a/drivers/gpu/drm/panfrost/panfrost_issues.h b/drivers/gpu/drm/panfrost/panfrost_issues.h
+new file mode 100644
+index 0000000..cec6dcd
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_issues.h
+@@ -0,0 +1,176 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* (C) COPYRIGHT 2014-2018 ARM Limited. All rights reserved. */
++/* Copyright 2019 Linaro, Ltd., Rob Herring <robh@kernel.org> */
++#ifndef __PANFROST_ISSUES_H__
++#define __PANFROST_ISSUES_H__
++
++#include <linux/bitops.h>
++
++#include "panfrost_device.h"
++
++/*
++ * This is not a complete list of issues, but only the ones the driver needs
++ * to care about.
++ */
++enum panfrost_hw_issue {
++	HW_ISSUE_6367,
++	HW_ISSUE_6787,
++	HW_ISSUE_8186,
++	HW_ISSUE_8245,
++	HW_ISSUE_8316,
++	HW_ISSUE_8394,
++	HW_ISSUE_8401,
++	HW_ISSUE_8408,
++	HW_ISSUE_8443,
++	HW_ISSUE_8987,
++	HW_ISSUE_9435,
++	HW_ISSUE_9510,
++	HW_ISSUE_9630,
++	HW_ISSUE_10327,
++	HW_ISSUE_10649,
++	HW_ISSUE_10676,
++	HW_ISSUE_10797,
++	HW_ISSUE_10817,
++	HW_ISSUE_10883,
++	HW_ISSUE_10959,
++	HW_ISSUE_10969,
++	HW_ISSUE_11020,
++	HW_ISSUE_11024,
++	HW_ISSUE_11035,
++	HW_ISSUE_11056,
++	HW_ISSUE_T76X_3542,
++	HW_ISSUE_T76X_3953,
++	HW_ISSUE_TMIX_8463,
++	GPUCORE_1619,
++	HW_ISSUE_TMIX_8438,
++	HW_ISSUE_TGOX_R1_1234,
++	HW_ISSUE_END
++};
++
++#define hw_issues_all (\
++	BIT_ULL(HW_ISSUE_9435))
++
++#define hw_issues_t600 (\
++	BIT_ULL(HW_ISSUE_6367) | \
++	BIT_ULL(HW_ISSUE_6787) | \
++	BIT_ULL(HW_ISSUE_8408) | \
++	BIT_ULL(HW_ISSUE_9510) | \
++	BIT_ULL(HW_ISSUE_10649) | \
++	BIT_ULL(HW_ISSUE_10676) | \
++	BIT_ULL(HW_ISSUE_10883) | \
++	BIT_ULL(HW_ISSUE_11020) | \
++	BIT_ULL(HW_ISSUE_11035) | \
++	BIT_ULL(HW_ISSUE_11056) | \
++	BIT_ULL(HW_ISSUE_TMIX_8438))
++
++#define hw_issues_t600_r0p0_15dev0 (\
++	BIT_ULL(HW_ISSUE_8186) | \
++	BIT_ULL(HW_ISSUE_8245) | \
++	BIT_ULL(HW_ISSUE_8316) | \
++	BIT_ULL(HW_ISSUE_8394) | \
++	BIT_ULL(HW_ISSUE_8401) | \
++	BIT_ULL(HW_ISSUE_8443) | \
++	BIT_ULL(HW_ISSUE_8987) | \
++	BIT_ULL(HW_ISSUE_9630) | \
++	BIT_ULL(HW_ISSUE_10969) | \
++	BIT_ULL(GPUCORE_1619))
++
++#define hw_issues_t620 (\
++	BIT_ULL(HW_ISSUE_10649) | \
++	BIT_ULL(HW_ISSUE_10883) | \
++	BIT_ULL(HW_ISSUE_10959) | \
++	BIT_ULL(HW_ISSUE_11056) | \
++	BIT_ULL(HW_ISSUE_TMIX_8438))
++
++#define hw_issues_t620_r0p1 (\
++	BIT_ULL(HW_ISSUE_10327) | \
++	BIT_ULL(HW_ISSUE_10676) | \
++	BIT_ULL(HW_ISSUE_10817) | \
++	BIT_ULL(HW_ISSUE_11020) | \
++	BIT_ULL(HW_ISSUE_11024) | \
++	BIT_ULL(HW_ISSUE_11035))
++
++#define hw_issues_t620_r1p0 (\
++	BIT_ULL(HW_ISSUE_11020) | \
++	BIT_ULL(HW_ISSUE_11024))
++
++#define hw_issues_t720 (\
++	BIT_ULL(HW_ISSUE_10649) | \
++	BIT_ULL(HW_ISSUE_10797) | \
++	BIT_ULL(HW_ISSUE_10883) | \
++	BIT_ULL(HW_ISSUE_11056) | \
++	BIT_ULL(HW_ISSUE_TMIX_8438))
++
++#define hw_issues_t760 (\
++	BIT_ULL(HW_ISSUE_10883) | \
++	BIT_ULL(HW_ISSUE_T76X_3953) | \
++	BIT_ULL(HW_ISSUE_TMIX_8438))
++
++#define hw_issues_t760_r0p0 (\
++	BIT_ULL(HW_ISSUE_11020) | \
++	BIT_ULL(HW_ISSUE_11024) | \
++	BIT_ULL(HW_ISSUE_T76X_3542))
++
++#define hw_issues_t760_r0p1 (\
++	BIT_ULL(HW_ISSUE_11020) | \
++	BIT_ULL(HW_ISSUE_11024) | \
++	BIT_ULL(HW_ISSUE_T76X_3542))
++
++#define hw_issues_t760_r0p1_50rel0 (\
++	BIT_ULL(HW_ISSUE_T76X_3542))
++
++#define hw_issues_t760_r0p2 (\
++	BIT_ULL(HW_ISSUE_11020) | \
++	BIT_ULL(HW_ISSUE_11024) | \
++	BIT_ULL(HW_ISSUE_T76X_3542))
++
++#define hw_issues_t760_r0p3 (\
++	BIT_ULL(HW_ISSUE_T76X_3542))
++
++#define hw_issues_t820 (\
++	BIT_ULL(HW_ISSUE_10883) | \
++	BIT_ULL(HW_ISSUE_T76X_3953) | \
++	BIT_ULL(HW_ISSUE_TMIX_8438))
++
++#define hw_issues_t830 (\
++	BIT_ULL(HW_ISSUE_10883) | \
++	BIT_ULL(HW_ISSUE_T76X_3953) | \
++	BIT_ULL(HW_ISSUE_TMIX_8438))
++
++#define hw_issues_t860 (\
++	BIT_ULL(HW_ISSUE_10883) | \
++	BIT_ULL(HW_ISSUE_T76X_3953) | \
++	BIT_ULL(HW_ISSUE_TMIX_8438))
++
++#define hw_issues_t880 (\
++	BIT_ULL(HW_ISSUE_10883) | \
++	BIT_ULL(HW_ISSUE_T76X_3953) | \
++	BIT_ULL(HW_ISSUE_TMIX_8438))
++
++#define hw_issues_g31 0
++
++#define hw_issues_g31_r1p0 (\
++	BIT_ULL(HW_ISSUE_TGOX_R1_1234))
++
++#define hw_issues_g51 0
++
++#define hw_issues_g52 0
++
++#define hw_issues_g71 (\
++	BIT_ULL(HW_ISSUE_TMIX_8463) | \
++	BIT_ULL(HW_ISSUE_TMIX_8438))
++
++#define hw_issues_g71_r0p0_05dev0 (\
++	BIT_ULL(HW_ISSUE_T76X_3953))
++
++#define hw_issues_g72 0
++
++#define hw_issues_g76 0
++
++static inline bool panfrost_has_hw_issue(struct panfrost_device *pfdev,
++					 enum panfrost_hw_issue issue)
++{
++	return test_bit(issue, pfdev->features.hw_issues);
++}
++
++#endif /* __PANFROST_ISSUES_H__ */
+diff --git a/drivers/gpu/drm/panfrost/panfrost_job.c b/drivers/gpu/drm/panfrost/panfrost_job.c
+new file mode 100644
+index 0000000..0a7ed04
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_job.c
+@@ -0,0 +1,560 @@
++// SPDX-License-Identifier: GPL-2.0
++/* Copyright 2019 Linaro, Ltd, Rob Herring <robh@kernel.org> */
++/* Copyright 2019 Collabora ltd. */
++#include <linux/delay.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
++#include <linux/reservation.h>
++#include <drm/gpu_scheduler.h>
++#include <drm/panfrost_drm.h>
++
++#include "panfrost_device.h"
++#include "panfrost_devfreq.h"
++#include "panfrost_job.h"
++#include "panfrost_features.h"
++#include "panfrost_issues.h"
++#include "panfrost_gem.h"
++#include "panfrost_regs.h"
++#include "panfrost_gpu.h"
++#include "panfrost_mmu.h"
++
++#define job_write(dev, reg, data) writel(data, dev->iomem + (reg))
++#define job_read(dev, reg) readl(dev->iomem + (reg))
++
++struct panfrost_queue_state {
++	struct drm_gpu_scheduler sched;
++
++	u64 fence_context;
++	u64 emit_seqno;
++};
++
++struct panfrost_job_slot {
++	struct panfrost_queue_state queue[NUM_JOB_SLOTS];
++	spinlock_t job_lock;
++};
++
++static struct panfrost_job *
++to_panfrost_job(struct drm_sched_job *sched_job)
++{
++	return container_of(sched_job, struct panfrost_job, base);
++}
++
++struct panfrost_fence {
++	struct dma_fence base;
++	struct drm_device *dev;
++	/* panfrost seqno for signaled() test */
++	u64 seqno;
++	int queue;
++};
++
++static inline struct panfrost_fence *
++to_panfrost_fence(struct dma_fence *fence)
++{
++	return (struct panfrost_fence *)fence;
++}
++
++static const char *panfrost_fence_get_driver_name(struct dma_fence *fence)
++{
++	return "panfrost";
++}
++
++static const char *panfrost_fence_get_timeline_name(struct dma_fence *fence)
++{
++	struct panfrost_fence *f = to_panfrost_fence(fence);
++
++	switch (f->queue) {
++	case 0:
++		return "panfrost-js-0";
++	case 1:
++		return "panfrost-js-1";
++	case 2:
++		return "panfrost-js-2";
++	default:
++		return NULL;
++	}
++}
++
++static const struct dma_fence_ops panfrost_fence_ops = {
++	.get_driver_name = panfrost_fence_get_driver_name,
++	.get_timeline_name = panfrost_fence_get_timeline_name,
++};
++
++static struct dma_fence *panfrost_fence_create(struct panfrost_device *pfdev, int js_num)
++{
++	struct panfrost_fence *fence;
++	struct panfrost_job_slot *js = pfdev->js;
++
++	fence = kzalloc(sizeof(*fence), GFP_KERNEL);
++	if (!fence)
++		return ERR_PTR(-ENOMEM);
++
++	fence->dev = pfdev->ddev;
++	fence->queue = js_num;
++	fence->seqno = ++js->queue[js_num].emit_seqno;
++	dma_fence_init(&fence->base, &panfrost_fence_ops, &js->job_lock,
++		       js->queue[js_num].fence_context, fence->seqno);
++
++	return &fence->base;
++}
++
++static int panfrost_job_get_slot(struct panfrost_job *job)
++{
++	/* JS0: fragment jobs.
++	 * JS1: vertex/tiler jobs
++	 * JS2: compute jobs
++	 */
++	if (job->requirements & PANFROST_JD_REQ_FS)
++		return 0;
++
++/* Not exposed to userspace yet */
++#if 0
++	if (job->requirements & PANFROST_JD_REQ_ONLY_COMPUTE) {
++		if ((job->requirements & PANFROST_JD_REQ_CORE_GRP_MASK) &&
++		    (job->pfdev->features.nr_core_groups == 2))
++			return 2;
++		if (panfrost_has_hw_issue(job->pfdev, HW_ISSUE_8987))
++			return 2;
++	}
++#endif
++	return 1;
++}
++
++static void panfrost_job_write_affinity(struct panfrost_device *pfdev,
++					u32 requirements,
++					int js)
++{
++	u64 affinity;
++
++	/*
++	 * Use all cores for now.
++	 * Eventually we may need to support tiler only jobs and h/w with
++	 * multiple (2) coherent core groups
++	 */
++	affinity = pfdev->features.shader_present;
++
++	job_write(pfdev, JS_AFFINITY_NEXT_LO(js), affinity & 0xFFFFFFFF);
++	job_write(pfdev, JS_AFFINITY_NEXT_HI(js), affinity >> 32);
++}
++
++static void panfrost_job_hw_submit(struct panfrost_job *job, int js)
++{
++	struct panfrost_device *pfdev = job->pfdev;
++	unsigned long flags;
++	u32 cfg;
++	u64 jc_head = job->jc;
++	int ret;
++
++	ret = pm_runtime_get_sync(pfdev->dev);
++	if (ret < 0)
++		return;
++
++	if (WARN_ON(job_read(pfdev, JS_COMMAND_NEXT(js))))
++		goto end;
++
++	panfrost_devfreq_record_transition(pfdev, js);
++	spin_lock_irqsave(&pfdev->hwaccess_lock, flags);
++
++	job_write(pfdev, JS_HEAD_NEXT_LO(js), jc_head & 0xFFFFFFFF);
++	job_write(pfdev, JS_HEAD_NEXT_HI(js), jc_head >> 32);
++
++	panfrost_job_write_affinity(pfdev, job->requirements, js);
++
++	/* start MMU, medium priority, cache clean/flush on end, clean/flush on
++	 * start */
++	/* TODO: different address spaces */
++	cfg = JS_CONFIG_THREAD_PRI(8) |
++		JS_CONFIG_START_FLUSH_CLEAN_INVALIDATE |
++		JS_CONFIG_END_FLUSH_CLEAN_INVALIDATE;
++
++	if (panfrost_has_hw_feature(pfdev, HW_FEATURE_FLUSH_REDUCTION))
++		cfg |= JS_CONFIG_ENABLE_FLUSH_REDUCTION;
++
++	if (panfrost_has_hw_issue(pfdev, HW_ISSUE_10649))
++		cfg |= JS_CONFIG_START_MMU;
++
++	job_write(pfdev, JS_CONFIG_NEXT(js), cfg);
++
++	if (panfrost_has_hw_feature(pfdev, HW_FEATURE_FLUSH_REDUCTION))
++		job_write(pfdev, JS_FLUSH_ID_NEXT(js), job->flush_id);
++
++	/* GO ! */
++	dev_dbg(pfdev->dev, "JS: Submitting atom %p to js[%d] with head=0x%llx",
++				job, js, jc_head);
++
++	job_write(pfdev, JS_COMMAND_NEXT(js), JS_COMMAND_START);
++
++	spin_unlock_irqrestore(&pfdev->hwaccess_lock, flags);
++
++end:
++	pm_runtime_mark_last_busy(pfdev->dev);
++	pm_runtime_put_autosuspend(pfdev->dev);
++}
++
++static void panfrost_acquire_object_fences(struct drm_gem_object **bos,
++					   int bo_count,
++					   struct dma_fence **implicit_fences)
++{
++	int i;
++
++	for (i = 0; i < bo_count; i++)
++		implicit_fences[i] = reservation_object_get_excl_rcu(bos[i]->resv);
++}
++
++static void panfrost_attach_object_fences(struct drm_gem_object **bos,
++					  int bo_count,
++					  struct dma_fence *fence)
++{
++	int i;
++
++	for (i = 0; i < bo_count; i++)
++		reservation_object_add_excl_fence(bos[i]->resv, fence);
++}
++
++int panfrost_job_push(struct panfrost_job *job)
++{
++	struct panfrost_device *pfdev = job->pfdev;
++	int slot = panfrost_job_get_slot(job);
++	struct drm_sched_entity *entity = &job->file_priv->sched_entity[slot];
++	struct ww_acquire_ctx acquire_ctx;
++	int ret = 0;
++
++	mutex_lock(&pfdev->sched_lock);
++
++	ret = drm_gem_lock_reservations(job->bos, job->bo_count,
++					    &acquire_ctx);
++	if (ret) {
++		mutex_unlock(&pfdev->sched_lock);
++		return ret;
++	}
++
++	ret = drm_sched_job_init(&job->base, entity, NULL);
++	if (ret) {
++		mutex_unlock(&pfdev->sched_lock);
++		goto unlock;
++	}
++
++	job->render_done_fence = dma_fence_get(&job->base.s_fence->finished);
++
++	kref_get(&job->refcount); /* put by scheduler job completion */
++
++	panfrost_acquire_object_fences(job->bos, job->bo_count,
++				       job->implicit_fences);
++
++	drm_sched_entity_push_job(&job->base, entity);
++
++	mutex_unlock(&pfdev->sched_lock);
++
++	panfrost_attach_object_fences(job->bos, job->bo_count,
++				      job->render_done_fence);
++
++unlock:
++	drm_gem_unlock_reservations(job->bos, job->bo_count, &acquire_ctx);
++
++	return ret;
++}
++
++static void panfrost_job_cleanup(struct kref *ref)
++{
++	struct panfrost_job *job = container_of(ref, struct panfrost_job,
++						refcount);
++	unsigned int i;
++
++	if (job->in_fences) {
++		for (i = 0; i < job->in_fence_count; i++)
++			dma_fence_put(job->in_fences[i]);
++		kvfree(job->in_fences);
++	}
++	if (job->implicit_fences) {
++		for (i = 0; i < job->bo_count; i++)
++			dma_fence_put(job->implicit_fences[i]);
++		kvfree(job->implicit_fences);
++	}
++	dma_fence_put(job->done_fence);
++	dma_fence_put(job->render_done_fence);
++
++	if (job->bos) {
++		for (i = 0; i < job->bo_count; i++)
++			drm_gem_object_put_unlocked(job->bos[i]);
++		kvfree(job->bos);
++	}
++
++	kfree(job);
++}
++
++void panfrost_job_put(struct panfrost_job *job)
++{
++	kref_put(&job->refcount, panfrost_job_cleanup);
++}
++
++static void panfrost_job_free(struct drm_sched_job *sched_job)
++{
++	struct panfrost_job *job = to_panfrost_job(sched_job);
++
++	drm_sched_job_cleanup(sched_job);
++
++	panfrost_job_put(job);
++}
++
++static struct dma_fence *panfrost_job_dependency(struct drm_sched_job *sched_job,
++						 struct drm_sched_entity *s_entity)
++{
++	struct panfrost_job *job = to_panfrost_job(sched_job);
++	struct dma_fence *fence;
++	unsigned int i;
++
++	/* Explicit fences */
++	for (i = 0; i < job->in_fence_count; i++) {
++		if (job->in_fences[i]) {
++			fence = job->in_fences[i];
++			job->in_fences[i] = NULL;
++			return fence;
++		}
++	}
++
++	/* Implicit fences, max. one per BO */
++	for (i = 0; i < job->bo_count; i++) {
++		if (job->implicit_fences[i]) {
++			fence = job->implicit_fences[i];
++			job->implicit_fences[i] = NULL;
++			return fence;
++		}
++	}
++
++	return NULL;
++}
++
++static struct dma_fence *panfrost_job_run(struct drm_sched_job *sched_job)
++{
++	struct panfrost_job *job = to_panfrost_job(sched_job);
++	struct panfrost_device *pfdev = job->pfdev;
++	int slot = panfrost_job_get_slot(job);
++	struct dma_fence *fence = NULL;
++
++	if (unlikely(job->base.s_fence->finished.error))
++		return NULL;
++
++	pfdev->jobs[slot] = job;
++
++	fence = panfrost_fence_create(pfdev, slot);
++	if (IS_ERR(fence))
++		return NULL;
++
++	if (job->done_fence)
++		dma_fence_put(job->done_fence);
++	job->done_fence = dma_fence_get(fence);
++
++	panfrost_job_hw_submit(job, slot);
++
++	return fence;
++}
++
++void panfrost_job_enable_interrupts(struct panfrost_device *pfdev)
++{
++	int j;
++	u32 irq_mask = 0;
++
++	for (j = 0; j < NUM_JOB_SLOTS; j++) {
++		irq_mask |= MK_JS_MASK(j);
++	}
++
++	job_write(pfdev, JOB_INT_CLEAR, irq_mask);
++	job_write(pfdev, JOB_INT_MASK, irq_mask);
++}
++
++static void panfrost_job_timedout(struct drm_sched_job *sched_job)
++{
++	struct panfrost_job *job = to_panfrost_job(sched_job);
++	struct panfrost_device *pfdev = job->pfdev;
++	int js = panfrost_job_get_slot(job);
++	int i;
++
++	/*
++	 * If the GPU managed to complete this jobs fence, the timeout is
++	 * spurious. Bail out.
++	 */
++	if (dma_fence_is_signaled(job->done_fence))
++		return;
++
++	dev_err(pfdev->dev, "gpu sched timeout, js=%d, status=0x%x, head=0x%x, tail=0x%x, sched_job=%p",
++		js,
++		job_read(pfdev, JS_STATUS(js)),
++		job_read(pfdev, JS_HEAD_LO(js)),
++		job_read(pfdev, JS_TAIL_LO(js)),
++		sched_job);
++
++	for (i = 0; i < NUM_JOB_SLOTS; i++)
++		drm_sched_stop(&pfdev->js->queue[i].sched);
++
++	if (sched_job)
++		drm_sched_increase_karma(sched_job);
++
++	/* panfrost_core_dump(pfdev); */
++
++	panfrost_devfreq_record_transition(pfdev, js);
++	panfrost_gpu_soft_reset(pfdev);
++
++	/* TODO: Re-enable all other address spaces */
++	panfrost_mmu_enable(pfdev, 0);
++	panfrost_gpu_power_on(pfdev);
++	panfrost_job_enable_interrupts(pfdev);
++
++	for (i = 0; i < NUM_JOB_SLOTS; i++)
++		drm_sched_resubmit_jobs(&pfdev->js->queue[i].sched);
++
++	/* restart scheduler after GPU is usable again */
++	for (i = 0; i < NUM_JOB_SLOTS; i++)
++		drm_sched_start(&pfdev->js->queue[i].sched, true);
++}
++
++static const struct drm_sched_backend_ops panfrost_sched_ops = {
++	.dependency = panfrost_job_dependency,
++	.run_job = panfrost_job_run,
++	.timedout_job = panfrost_job_timedout,
++	.free_job = panfrost_job_free
++};
++
++static irqreturn_t panfrost_job_irq_handler(int irq, void *data)
++{
++	struct panfrost_device *pfdev = data;
++	u32 status = job_read(pfdev, JOB_INT_STAT);
++	int j;
++
++	dev_dbg(pfdev->dev, "jobslot irq status=%x\n", status);
++
++	if (!status)
++		return IRQ_NONE;
++
++	pm_runtime_mark_last_busy(pfdev->dev);
++
++	for (j = 0; status; j++) {
++		u32 mask = MK_JS_MASK(j);
++
++		if (!(status & mask))
++			continue;
++
++		job_write(pfdev, JOB_INT_CLEAR, mask);
++
++		if (status & JOB_INT_MASK_ERR(j)) {
++			job_write(pfdev, JS_COMMAND_NEXT(j), JS_COMMAND_NOP);
++
++			dev_err(pfdev->dev, "js fault, js=%d, status=%s, head=0x%x, tail=0x%x",
++				j,
++				panfrost_exception_name(pfdev, job_read(pfdev, JS_STATUS(j))),
++				job_read(pfdev, JS_HEAD_LO(j)),
++				job_read(pfdev, JS_TAIL_LO(j)));
++
++			drm_sched_fault(&pfdev->js->queue[j].sched);
++		}
++
++		if (status & JOB_INT_MASK_DONE(j)) {
++			panfrost_devfreq_record_transition(pfdev, j);
++			dma_fence_signal(pfdev->jobs[j]->done_fence);
++		}
++
++		status &= ~mask;
++	}
++
++	return IRQ_HANDLED;
++}
++
++int panfrost_job_init(struct panfrost_device *pfdev)
++{
++	struct panfrost_job_slot *js;
++	int ret, j, irq;
++
++	pfdev->js = js = devm_kzalloc(pfdev->dev, sizeof(*js), GFP_KERNEL);
++	if (!js)
++		return -ENOMEM;
++
++	spin_lock_init(&js->job_lock);
++
++	irq = platform_get_irq_byname(to_platform_device(pfdev->dev), "job");
++	if (irq <= 0)
++		return -ENODEV;
++
++	ret = devm_request_irq(pfdev->dev, irq, panfrost_job_irq_handler,
++			       IRQF_SHARED, "job", pfdev);
++	if (ret) {
++		dev_err(pfdev->dev, "failed to request job irq");
++		return ret;
++	}
++
++	for (j = 0; j < NUM_JOB_SLOTS; j++) {
++		js->queue[j].fence_context = dma_fence_context_alloc(1);
++
++		ret = drm_sched_init(&js->queue[j].sched,
++				     &panfrost_sched_ops,
++				     1, 0, msecs_to_jiffies(500),
++				     "pan_js");
++		if (ret) {
++			dev_err(pfdev->dev, "Failed to create scheduler: %d.", ret);
++			goto err_sched;
++		}
++	}
++
++	panfrost_job_enable_interrupts(pfdev);
++
++	return 0;
++
++err_sched:
++	for (j--; j >= 0; j--)
++		drm_sched_fini(&js->queue[j].sched);
++
++	return ret;
++}
++
++void panfrost_job_fini(struct panfrost_device *pfdev)
++{
++	struct panfrost_job_slot *js = pfdev->js;
++	int j;
++
++	job_write(pfdev, JOB_INT_MASK, 0);
++
++	for (j = 0; j < NUM_JOB_SLOTS; j++)
++		drm_sched_fini(&js->queue[j].sched);
++
++}
++
++int panfrost_job_open(struct panfrost_file_priv *panfrost_priv)
++{
++	struct panfrost_device *pfdev = panfrost_priv->pfdev;
++	struct panfrost_job_slot *js = pfdev->js;
++	struct drm_sched_rq *rq;
++	int ret, i;
++
++	for (i = 0; i < NUM_JOB_SLOTS; i++) {
++		rq = &js->queue[i].sched.sched_rq[DRM_SCHED_PRIORITY_NORMAL];
++		ret = drm_sched_entity_init(&panfrost_priv->sched_entity[i], &rq, 1, NULL);
++		if (WARN_ON(ret))
++			return ret;
++	}
++	return 0;
++}
++
++void panfrost_job_close(struct panfrost_file_priv *panfrost_priv)
++{
++	int i;
++
++	for (i = 0; i < NUM_JOB_SLOTS; i++)
++		drm_sched_entity_destroy(&panfrost_priv->sched_entity[i]);
++}
++
++int panfrost_job_is_idle(struct panfrost_device *pfdev)
++{
++	struct panfrost_job_slot *js = pfdev->js;
++	int i;
++
++	for (i = 0; i < NUM_JOB_SLOTS; i++) {
++		/* If there are any jobs in the HW queue, we're not idle */
++		if (atomic_read(&js->queue[i].sched.hw_rq_count))
++			return false;
++
++		/* Check whether the hardware is idle */
++		if (pfdev->devfreq.slot[i].busy)
++			return false;
++	}
++
++	return true;
++}
+diff --git a/drivers/gpu/drm/panfrost/panfrost_job.h b/drivers/gpu/drm/panfrost/panfrost_job.h
+new file mode 100644
+index 0000000..6245412
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_job.h
+@@ -0,0 +1,51 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright 2019 Collabora ltd. */
++
++#ifndef __PANFROST_JOB_H__
++#define __PANFROST_JOB_H__
++
++#include <uapi/drm/panfrost_drm.h>
++#include <drm/gpu_scheduler.h>
++
++struct panfrost_device;
++struct panfrost_gem_object;
++struct panfrost_file_priv;
++
++struct panfrost_job {
++	struct drm_sched_job base;
++
++	struct kref refcount;
++
++	struct panfrost_device *pfdev;
++	struct panfrost_file_priv *file_priv;
++
++	/* Optional fences userspace can pass in for the job to depend on. */
++	struct dma_fence **in_fences;
++	u32 in_fence_count;
++
++	/* Fence to be signaled by IRQ handler when the job is complete. */
++	struct dma_fence *done_fence;
++
++	__u64 jc;
++	__u32 requirements;
++	__u32 flush_id;
++
++	/* Exclusive fences we have taken from the BOs to wait for */
++	struct dma_fence **implicit_fences;
++	struct drm_gem_object **bos;
++	u32 bo_count;
++
++	/* Fence to be signaled by drm-sched once its done with the job */
++	struct dma_fence *render_done_fence;
++};
++
++int panfrost_job_init(struct panfrost_device *pfdev);
++void panfrost_job_fini(struct panfrost_device *pfdev);
++int panfrost_job_open(struct panfrost_file_priv *panfrost_priv);
++void panfrost_job_close(struct panfrost_file_priv *panfrost_priv);
++int panfrost_job_push(struct panfrost_job *job);
++void panfrost_job_put(struct panfrost_job *job);
++void panfrost_job_enable_interrupts(struct panfrost_device *pfdev);
++int panfrost_job_is_idle(struct panfrost_device *pfdev);
++
++#endif
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mmu.c b/drivers/gpu/drm/panfrost/panfrost_mmu.c
+new file mode 100644
+index 0000000..9692c18
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_mmu.c
+@@ -0,0 +1,369 @@
++// SPDX-License-Identifier:	GPL-2.0
++/* Copyright 2019 Linaro, Ltd, Rob Herring <robh@kernel.org> */
++#include <linux/delay.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/iopoll.h>
++#include <linux/io-pgtable.h>
++#include <linux/iommu.h>
++#include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
++#include <linux/sizes.h>
++
++#include "panfrost_device.h"
++#include "panfrost_mmu.h"
++#include "panfrost_gem.h"
++#include "panfrost_features.h"
++#include "panfrost_regs.h"
++
++#define mmu_write(dev, reg, data) writel(data, dev->iomem + reg)
++#define mmu_read(dev, reg) readl(dev->iomem + reg)
++
++struct panfrost_mmu {
++	struct io_pgtable_cfg pgtbl_cfg;
++	struct io_pgtable_ops *pgtbl_ops;
++	struct mutex lock;
++};
++
++static int wait_ready(struct panfrost_device *pfdev, u32 as_nr)
++{
++	int ret;
++	u32 val;
++
++	/* Wait for the MMU status to indicate there is no active command, in
++	 * case one is pending. */
++	ret = readl_relaxed_poll_timeout_atomic(pfdev->iomem + AS_STATUS(as_nr),
++		val, !(val & AS_STATUS_AS_ACTIVE), 10, 1000);
++
++	if (ret)
++		dev_err(pfdev->dev, "AS_ACTIVE bit stuck\n");
++
++	return ret;
++}
++
++static int write_cmd(struct panfrost_device *pfdev, u32 as_nr, u32 cmd)
++{
++	int status;
++
++	/* write AS_COMMAND when MMU is ready to accept another command */
++	status = wait_ready(pfdev, as_nr);
++	if (!status)
++		mmu_write(pfdev, AS_COMMAND(as_nr), cmd);
++
++	return status;
++}
++
++static void lock_region(struct panfrost_device *pfdev, u32 as_nr,
++			u64 iova, size_t size)
++{
++	u8 region_width;
++	u64 region = iova & PAGE_MASK;
++	/*
++	 * fls returns:
++	 * 1 .. 32
++	 *
++	 * 10 + fls(num_pages)
++	 * results in the range (11 .. 42)
++	 */
++
++	size = round_up(size, PAGE_SIZE);
++
++	region_width = 10 + fls(size >> PAGE_SHIFT);
++	if ((size >> PAGE_SHIFT) != (1ul << (region_width - 11))) {
++		/* not pow2, so must go up to the next pow2 */
++		region_width += 1;
++	}
++	region |= region_width;
++
++	/* Lock the region that needs to be updated */
++	mmu_write(pfdev, AS_LOCKADDR_LO(as_nr), region & 0xFFFFFFFFUL);
++	mmu_write(pfdev, AS_LOCKADDR_HI(as_nr), (region >> 32) & 0xFFFFFFFFUL);
++	write_cmd(pfdev, as_nr, AS_COMMAND_LOCK);
++}
++
++
++static int mmu_hw_do_operation(struct panfrost_device *pfdev, u32 as_nr,
++		u64 iova, size_t size, u32 op)
++{
++	unsigned long flags;
++	int ret;
++
++	spin_lock_irqsave(&pfdev->hwaccess_lock, flags);
++
++	if (op != AS_COMMAND_UNLOCK)
++		lock_region(pfdev, as_nr, iova, size);
++
++	/* Run the MMU operation */
++	write_cmd(pfdev, as_nr, op);
++
++	/* Wait for the flush to complete */
++	ret = wait_ready(pfdev, as_nr);
++
++	spin_unlock_irqrestore(&pfdev->hwaccess_lock, flags);
++
++	return ret;
++}
++
++void panfrost_mmu_enable(struct panfrost_device *pfdev, u32 as_nr)
++{
++	struct io_pgtable_cfg *cfg = &pfdev->mmu->pgtbl_cfg;
++	u64 transtab = cfg->arm_mali_lpae_cfg.transtab;
++	u64 memattr = cfg->arm_mali_lpae_cfg.memattr;
++
++	mmu_write(pfdev, MMU_INT_CLEAR, ~0);
++	mmu_write(pfdev, MMU_INT_MASK, ~0);
++
++	mmu_write(pfdev, AS_TRANSTAB_LO(as_nr), transtab & 0xffffffffUL);
++	mmu_write(pfdev, AS_TRANSTAB_HI(as_nr), transtab >> 32);
++
++	/* Need to revisit mem attrs.
++	 * NC is the default, Mali driver is inner WT.
++	 */
++	mmu_write(pfdev, AS_MEMATTR_LO(as_nr), memattr & 0xffffffffUL);
++	mmu_write(pfdev, AS_MEMATTR_HI(as_nr), memattr >> 32);
++
++	write_cmd(pfdev, as_nr, AS_COMMAND_UPDATE);
++}
++
++static void mmu_disable(struct panfrost_device *pfdev, u32 as_nr)
++{
++	mmu_write(pfdev, AS_TRANSTAB_LO(as_nr), 0);
++	mmu_write(pfdev, AS_TRANSTAB_HI(as_nr), 0);
++
++	mmu_write(pfdev, AS_MEMATTR_LO(as_nr), 0);
++	mmu_write(pfdev, AS_MEMATTR_HI(as_nr), 0);
++
++	write_cmd(pfdev, as_nr, AS_COMMAND_UPDATE);
++}
++
++int panfrost_mmu_map(struct panfrost_gem_object *bo)
++{
++	struct drm_gem_object *obj = &bo->base.base;
++	struct panfrost_device *pfdev = to_panfrost_device(obj->dev);
++	struct io_pgtable_ops *ops = pfdev->mmu->pgtbl_ops;
++	u64 iova = bo->node.start << PAGE_SHIFT;
++	unsigned int count;
++	struct scatterlist *sgl;
++	struct sg_table *sgt;
++	int ret;
++
++	sgt = drm_gem_shmem_get_pages_sgt(obj);
++	if (WARN_ON(IS_ERR(sgt)))
++		return PTR_ERR(sgt);
++
++	ret = pm_runtime_get_sync(pfdev->dev);
++	if (ret < 0)
++		return ret;
++
++	mutex_lock(&pfdev->mmu->lock);
++
++	for_each_sg(sgt->sgl, sgl, sgt->nents, count) {
++		unsigned long paddr = sg_dma_address(sgl);
++		size_t len = sg_dma_len(sgl);
++
++		dev_dbg(pfdev->dev, "map: iova=%llx, paddr=%lx, len=%zx", iova, paddr, len);
++
++		while (len) {
++			ops->map(ops, iova, paddr, SZ_4K, IOMMU_WRITE | IOMMU_READ);
++			iova += SZ_4K;
++			paddr += SZ_4K;
++			len -= SZ_4K;
++		}
++	}
++
++	mmu_hw_do_operation(pfdev, 0, bo->node.start << PAGE_SHIFT,
++			    bo->node.size << PAGE_SHIFT, AS_COMMAND_FLUSH_PT);
++
++	mutex_unlock(&pfdev->mmu->lock);
++
++	pm_runtime_mark_last_busy(pfdev->dev);
++	pm_runtime_put_autosuspend(pfdev->dev);
++
++	return 0;
++}
++
++void panfrost_mmu_unmap(struct panfrost_gem_object *bo)
++{
++	struct drm_gem_object *obj = &bo->base.base;
++	struct panfrost_device *pfdev = to_panfrost_device(obj->dev);
++	struct io_pgtable_ops *ops = pfdev->mmu->pgtbl_ops;
++	u64 iova = bo->node.start << PAGE_SHIFT;
++	size_t len = bo->node.size << PAGE_SHIFT;
++	size_t unmapped_len = 0;
++	int ret;
++
++	dev_dbg(pfdev->dev, "unmap: iova=%llx, len=%zx", iova, len);
++
++	ret = pm_runtime_get_sync(pfdev->dev);
++	if (ret < 0)
++		return;
++
++	mutex_lock(&pfdev->mmu->lock);
++
++	while (unmapped_len < len) {
++		ops->unmap(ops, iova, SZ_4K);
++		iova += SZ_4K;
++		unmapped_len += SZ_4K;
++	}
++
++	mmu_hw_do_operation(pfdev, 0, bo->node.start << PAGE_SHIFT,
++			    bo->node.size << PAGE_SHIFT, AS_COMMAND_FLUSH_PT);
++
++	mutex_unlock(&pfdev->mmu->lock);
++
++	pm_runtime_mark_last_busy(pfdev->dev);
++	pm_runtime_put_autosuspend(pfdev->dev);
++}
++
++static void mmu_tlb_inv_context_s1(void *cookie)
++{
++	struct panfrost_device *pfdev = cookie;
++
++	mmu_hw_do_operation(pfdev, 0, 0, ~0UL, AS_COMMAND_FLUSH_MEM);
++}
++
++static void mmu_tlb_inv_range_nosync(unsigned long iova, size_t size,
++				     size_t granule, bool leaf, void *cookie)
++{}
++
++static void mmu_tlb_sync_context(void *cookie)
++{
++	//struct panfrost_device *pfdev = cookie;
++	// TODO: Wait 1000 GPU cycles for HW_ISSUE_6367/T60X
++}
++
++static const struct iommu_gather_ops mmu_tlb_ops = {
++	.tlb_flush_all	= mmu_tlb_inv_context_s1,
++	.tlb_add_flush	= mmu_tlb_inv_range_nosync,
++	.tlb_sync	= mmu_tlb_sync_context,
++};
++
++static const char *access_type_name(struct panfrost_device *pfdev,
++		u32 fault_status)
++{
++	switch (fault_status & AS_FAULTSTATUS_ACCESS_TYPE_MASK) {
++	case AS_FAULTSTATUS_ACCESS_TYPE_ATOMIC:
++		if (panfrost_has_hw_feature(pfdev, HW_FEATURE_AARCH64_MMU))
++			return "ATOMIC";
++		else
++			return "UNKNOWN";
++	case AS_FAULTSTATUS_ACCESS_TYPE_READ:
++		return "READ";
++	case AS_FAULTSTATUS_ACCESS_TYPE_WRITE:
++		return "WRITE";
++	case AS_FAULTSTATUS_ACCESS_TYPE_EX:
++		return "EXECUTE";
++	default:
++		WARN_ON(1);
++		return NULL;
++	}
++}
++
++static irqreturn_t panfrost_mmu_irq_handler(int irq, void *data)
++{
++	struct panfrost_device *pfdev = data;
++	u32 status = mmu_read(pfdev, MMU_INT_STAT);
++	int i;
++
++	if (!status)
++		return IRQ_NONE;
++
++	dev_err(pfdev->dev, "mmu irq status=%x\n", status);
++
++	for (i = 0; status; i++) {
++		u32 mask = BIT(i) | BIT(i + 16);
++		u64 addr;
++		u32 fault_status;
++		u32 exception_type;
++		u32 access_type;
++		u32 source_id;
++
++		if (!(status & mask))
++			continue;
++
++		fault_status = mmu_read(pfdev, AS_FAULTSTATUS(i));
++		addr = mmu_read(pfdev, AS_FAULTADDRESS_LO(i));
++		addr |= (u64)mmu_read(pfdev, AS_FAULTADDRESS_HI(i)) << 32;
++
++		/* decode the fault status */
++		exception_type = fault_status & 0xFF;
++		access_type = (fault_status >> 8) & 0x3;
++		source_id = (fault_status >> 16);
++
++		/* terminal fault, print info about the fault */
++		dev_err(pfdev->dev,
++			"Unhandled Page fault in AS%d at VA 0x%016llX\n"
++			"Reason: %s\n"
++			"raw fault status: 0x%X\n"
++			"decoded fault status: %s\n"
++			"exception type 0x%X: %s\n"
++			"access type 0x%X: %s\n"
++			"source id 0x%X\n",
++			i, addr,
++			"TODO",
++			fault_status,
++			(fault_status & (1 << 10) ? "DECODER FAULT" : "SLAVE FAULT"),
++			exception_type, panfrost_exception_name(pfdev, exception_type),
++			access_type, access_type_name(pfdev, fault_status),
++			source_id);
++
++		mmu_write(pfdev, MMU_INT_CLEAR, mask);
++
++		status &= ~mask;
++	}
++
++	return IRQ_HANDLED;
++};
++
++int panfrost_mmu_init(struct panfrost_device *pfdev)
++{
++	struct io_pgtable_ops *pgtbl_ops;
++	int err, irq;
++
++	pfdev->mmu = devm_kzalloc(pfdev->dev, sizeof(*pfdev->mmu), GFP_KERNEL);
++	if (!pfdev->mmu)
++		return -ENOMEM;
++
++	mutex_init(&pfdev->mmu->lock);
++
++	irq = platform_get_irq_byname(to_platform_device(pfdev->dev), "mmu");
++	if (irq <= 0)
++		return -ENODEV;
++
++	err = devm_request_irq(pfdev->dev, irq, panfrost_mmu_irq_handler,
++			       IRQF_SHARED, "mmu", pfdev);
++
++	if (err) {
++		dev_err(pfdev->dev, "failed to request mmu irq");
++		return err;
++	}
++	mmu_write(pfdev, MMU_INT_CLEAR, ~0);
++	mmu_write(pfdev, MMU_INT_MASK, ~0);
++
++	pfdev->mmu->pgtbl_cfg = (struct io_pgtable_cfg) {
++		.pgsize_bitmap	= SZ_4K, // | SZ_2M | SZ_1G),
++		.ias		= 48,
++		.oas		= 40,
++		.tlb		= &mmu_tlb_ops,
++		.iommu_dev	= pfdev->dev,
++	};
++
++	pgtbl_ops = alloc_io_pgtable_ops(ARM_MALI_LPAE, &pfdev->mmu->pgtbl_cfg,
++					 pfdev);
++	if (!pgtbl_ops)
++		return -ENOMEM;
++
++	pfdev->mmu->pgtbl_ops = pgtbl_ops;
++
++	panfrost_mmu_enable(pfdev, 0);
++
++	return 0;
++}
++
++void panfrost_mmu_fini(struct panfrost_device *pfdev)
++{
++	mmu_write(pfdev, MMU_INT_MASK, 0);
++	mmu_disable(pfdev, 0);
++
++	free_io_pgtable_ops(pfdev->mmu->pgtbl_ops);
++}
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mmu.h b/drivers/gpu/drm/panfrost/panfrost_mmu.h
+new file mode 100644
+index 0000000..f5878d8
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_mmu.h
+@@ -0,0 +1,17 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright 2019 Linaro, Ltd, Rob Herring <robh@kernel.org> */
++
++#ifndef __PANFROST_MMU_H__
++#define __PANFROST_MMU_H__
++
++struct panfrost_gem_object;
++
++int panfrost_mmu_map(struct panfrost_gem_object *bo);
++void panfrost_mmu_unmap(struct panfrost_gem_object *bo);
++
++int panfrost_mmu_init(struct panfrost_device *pfdev);
++void panfrost_mmu_fini(struct panfrost_device *pfdev);
++
++void panfrost_mmu_enable(struct panfrost_device *pfdev, u32 as_nr);
++
++#endif
+diff --git a/drivers/gpu/drm/panfrost/panfrost_regs.h b/drivers/gpu/drm/panfrost/panfrost_regs.h
+new file mode 100644
+index 0000000..578c5fc
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_regs.h
+@@ -0,0 +1,298 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/* Copyright 2018 Marty E. Plummer <hanetzer@startmail.com> */
++/* Copyright 2019 Linaro, Ltd, Rob Herring <robh@kernel.org> */
++/*
++ * Register definitions based on mali_midg_regmap.h
++ * (C) COPYRIGHT 2010-2018 ARM Limited. All rights reserved.
++ */
++#ifndef __PANFROST_REGS_H__
++#define __PANFROST_REGS_H__
++
++#define GPU_ID				0x00
++#define GPU_L2_FEATURES			0x004	/* (RO) Level 2 cache features */
++#define GPU_CORE_FEATURES		0x008	/* (RO) Shader Core Features */
++#define GPU_TILER_FEATURES		0x00C	/* (RO) Tiler Features */
++#define GPU_MEM_FEATURES		0x010	/* (RO) Memory system features */
++#define   GROUPS_L2_COHERENT		BIT(0)	/* Cores groups are l2 coherent */
++
++#define GPU_MMU_FEATURES		0x014	/* (RO) MMU features */
++#define GPU_AS_PRESENT			0x018	/* (RO) Address space slots present */
++#define GPU_JS_PRESENT			0x01C	/* (RO) Job slots present */
++
++#define GPU_INT_RAWSTAT			0x20
++#define GPU_INT_CLEAR			0x24
++#define GPU_INT_MASK			0x28
++#define GPU_INT_STAT			0x2c
++#define   GPU_IRQ_FAULT			BIT(0)
++#define   GPU_IRQ_MULTIPLE_FAULT	BIT(7)
++#define   GPU_IRQ_RESET_COMPLETED	BIT(8)
++#define   GPU_IRQ_POWER_CHANGED		BIT(9)
++#define   GPU_IRQ_POWER_CHANGED_ALL	BIT(10)
++#define   GPU_IRQ_PERFCNT_SAMPLE_COMPLETED BIT(16)
++#define   GPU_IRQ_CLEAN_CACHES_COMPLETED BIT(17)
++#define   GPU_IRQ_MASK_ALL			 \
++	  (GPU_IRQ_FAULT			|\
++	   GPU_IRQ_MULTIPLE_FAULT		|\
++	   GPU_IRQ_RESET_COMPLETED		|\
++	   GPU_IRQ_POWER_CHANGED		|\
++	   GPU_IRQ_POWER_CHANGED_ALL		|\
++	   GPU_IRQ_PERFCNT_SAMPLE_COMPLETED	|\
++	   GPU_IRQ_CLEAN_CACHES_COMPLETED)
++#define GPU_IRQ_MASK_ERROR	   		\
++	(					\
++	 GPU_IRQ_FAULT				|\
++	 GPU_IRQ_MULTIPLE_FAULT)
++#define GPU_CMD				0x30
++#define   GPU_CMD_SOFT_RESET		0x01
++#define GPU_STATUS			0x34
++#define GPU_LATEST_FLUSH_ID		0x38
++#define GPU_FAULT_STATUS		0x3C
++#define GPU_FAULT_ADDRESS_LO		0x40
++#define GPU_FAULT_ADDRESS_HI		0x44
++
++#define GPU_THREAD_MAX_THREADS		0x0A0	/* (RO) Maximum number of threads per core */
++#define GPU_THREAD_MAX_WORKGROUP_SIZE	0x0A4	/* (RO) Maximum workgroup size */
++#define GPU_THREAD_MAX_BARRIER_SIZE	0x0A8	/* (RO) Maximum threads waiting at a barrier */
++#define GPU_THREAD_FEATURES		0x0AC	/* (RO) Thread features */
++#define GPU_THREAD_TLS_ALLOC		0x310   /* (RO) Number of threads per core that
++						 * TLS must be allocated for */
++
++#define GPU_TEXTURE_FEATURES(n)		(0x0B0 + ((n) * 4))
++#define GPU_JS_FEATURES(n)		(0x0C0 + ((n) * 4))
++
++#define GPU_SHADER_PRESENT_LO		0x100	/* (RO) Shader core present bitmap, low word */
++#define GPU_SHADER_PRESENT_HI		0x104	/* (RO) Shader core present bitmap, high word */
++#define GPU_TILER_PRESENT_LO		0x110	/* (RO) Tiler core present bitmap, low word */
++#define GPU_TILER_PRESENT_HI		0x114	/* (RO) Tiler core present bitmap, high word */
++
++#define GPU_L2_PRESENT_LO		0x120	/* (RO) Level 2 cache present bitmap, low word */
++#define GPU_L2_PRESENT_HI		0x124	/* (RO) Level 2 cache present bitmap, high word */
++
++#define GPU_COHERENCY_FEATURES		0x300	/* (RO) Coherency features present */
++#define   COHERENCY_ACE_LITE		BIT(0)
++#define   COHERENCY_ACE			BIT(1)
++
++#define GPU_STACK_PRESENT_LO		0xE00   /* (RO) Core stack present bitmap, low word */
++#define GPU_STACK_PRESENT_HI		0xE04   /* (RO) Core stack present bitmap, high word */
++
++#define SHADER_READY_LO			0x140	/* (RO) Shader core ready bitmap, low word */
++#define SHADER_READY_HI			0x144	/* (RO) Shader core ready bitmap, high word */
++
++#define TILER_READY_LO			0x150	/* (RO) Tiler core ready bitmap, low word */
++#define TILER_READY_HI			0x154	/* (RO) Tiler core ready bitmap, high word */
++
++#define L2_READY_LO			0x160	/* (RO) Level 2 cache ready bitmap, low word */
++#define L2_READY_HI			0x164	/* (RO) Level 2 cache ready bitmap, high word */
++
++#define STACK_READY_LO			0xE10   /* (RO) Core stack ready bitmap, low word */
++#define STACK_READY_HI			0xE14   /* (RO) Core stack ready bitmap, high word */
++
++
++#define SHADER_PWRON_LO			0x180	/* (WO) Shader core power on bitmap, low word */
++#define SHADER_PWRON_HI			0x184	/* (WO) Shader core power on bitmap, high word */
++
++#define TILER_PWRON_LO			0x190	/* (WO) Tiler core power on bitmap, low word */
++#define TILER_PWRON_HI			0x194	/* (WO) Tiler core power on bitmap, high word */
++
++#define L2_PWRON_LO			0x1A0	/* (WO) Level 2 cache power on bitmap, low word */
++#define L2_PWRON_HI			0x1A4	/* (WO) Level 2 cache power on bitmap, high word */
++
++#define STACK_PWRON_LO			0xE20   /* (RO) Core stack power on bitmap, low word */
++#define STACK_PWRON_HI			0xE24   /* (RO) Core stack power on bitmap, high word */
++
++
++#define SHADER_PWROFF_LO		0x1C0	/* (WO) Shader core power off bitmap, low word */
++#define SHADER_PWROFF_HI		0x1C4	/* (WO) Shader core power off bitmap, high word */
++
++#define TILER_PWROFF_LO			0x1D0	/* (WO) Tiler core power off bitmap, low word */
++#define TILER_PWROFF_HI			0x1D4	/* (WO) Tiler core power off bitmap, high word */
++
++#define L2_PWROFF_LO			0x1E0	/* (WO) Level 2 cache power off bitmap, low word */
++#define L2_PWROFF_HI			0x1E4	/* (WO) Level 2 cache power off bitmap, high word */
++
++#define STACK_PWROFF_LO			0xE30   /* (RO) Core stack power off bitmap, low word */
++#define STACK_PWROFF_HI			0xE34   /* (RO) Core stack power off bitmap, high word */
++
++
++#define SHADER_PWRTRANS_LO		0x200	/* (RO) Shader core power transition bitmap, low word */
++#define SHADER_PWRTRANS_HI		0x204	/* (RO) Shader core power transition bitmap, high word */
++
++#define TILER_PWRTRANS_LO		0x210	/* (RO) Tiler core power transition bitmap, low word */
++#define TILER_PWRTRANS_HI		0x214	/* (RO) Tiler core power transition bitmap, high word */
++
++#define L2_PWRTRANS_LO			0x220	/* (RO) Level 2 cache power transition bitmap, low word */
++#define L2_PWRTRANS_HI			0x224	/* (RO) Level 2 cache power transition bitmap, high word */
++
++#define STACK_PWRTRANS_LO		0xE40   /* (RO) Core stack power transition bitmap, low word */
++#define STACK_PWRTRANS_HI		0xE44   /* (RO) Core stack power transition bitmap, high word */
++
++
++#define SHADER_PWRACTIVE_LO		0x240	/* (RO) Shader core active bitmap, low word */
++#define SHADER_PWRACTIVE_HI		0x244	/* (RO) Shader core active bitmap, high word */
++
++#define TILER_PWRACTIVE_LO		0x250	/* (RO) Tiler core active bitmap, low word */
++#define TILER_PWRACTIVE_HI		0x254	/* (RO) Tiler core active bitmap, high word */
++
++#define L2_PWRACTIVE_LO			0x260	/* (RO) Level 2 cache active bitmap, low word */
++#define L2_PWRACTIVE_HI			0x264	/* (RO) Level 2 cache active bitmap, high word */
++
++#define GPU_JM_CONFIG			0xF00   /* (RW) Job Manager configuration register (Implementation specific register) */
++#define GPU_SHADER_CONFIG		0xF04	/* (RW) Shader core configuration settings (Implementation specific register) */
++#define GPU_TILER_CONFIG		0xF08   /* (RW) Tiler core configuration settings (Implementation specific register) */
++#define GPU_L2_MMU_CONFIG		0xF0C	/* (RW) Configuration of the L2 cache and MMU (Implementation specific register) */
++
++/* L2_MMU_CONFIG register */
++#define L2_MMU_CONFIG_ALLOW_SNOOP_DISPARITY_SHIFT	23
++#define L2_MMU_CONFIG_ALLOW_SNOOP_DISPARITY		(0x1 << L2_MMU_CONFIG_ALLOW_SNOOP_DISPARITY_SHIFT)
++#define L2_MMU_CONFIG_LIMIT_EXTERNAL_READS_SHIFT	24
++#define L2_MMU_CONFIG_LIMIT_EXTERNAL_READS		(0x3 << L2_MMU_CONFIG_LIMIT_EXTERNAL_READS_SHIFT)
++#define L2_MMU_CONFIG_LIMIT_EXTERNAL_READS_OCTANT	(0x1 << L2_MMU_CONFIG_LIMIT_EXTERNAL_READS_SHIFT)
++#define L2_MMU_CONFIG_LIMIT_EXTERNAL_READS_QUARTER	(0x2 << L2_MMU_CONFIG_LIMIT_EXTERNAL_READS_SHIFT)
++#define L2_MMU_CONFIG_LIMIT_EXTERNAL_READS_HALF		(0x3 << L2_MMU_CONFIG_LIMIT_EXTERNAL_READS_SHIFT)
++
++#define L2_MMU_CONFIG_LIMIT_EXTERNAL_WRITES_SHIFT	26
++#define L2_MMU_CONFIG_LIMIT_EXTERNAL_WRITES		(0x3 << L2_MMU_CONFIG_LIMIT_EXTERNAL_WRITES_SHIFT)
++#define L2_MMU_CONFIG_LIMIT_EXTERNAL_WRITES_OCTANT	(0x1 << L2_MMU_CONFIG_LIMIT_EXTERNAL_WRITES_SHIFT)
++#define L2_MMU_CONFIG_LIMIT_EXTERNAL_WRITES_QUARTER	(0x2 << L2_MMU_CONFIG_LIMIT_EXTERNAL_WRITES_SHIFT)
++#define L2_MMU_CONFIG_LIMIT_EXTERNAL_WRITES_HALF	(0x3 << L2_MMU_CONFIG_LIMIT_EXTERNAL_WRITES_SHIFT)
++
++#define L2_MMU_CONFIG_3BIT_LIMIT_EXTERNAL_READS_SHIFT	12
++#define L2_MMU_CONFIG_3BIT_LIMIT_EXTERNAL_READS		(0x7 << L2_MMU_CONFIG_LIMIT_EXTERNAL_READS_SHIFT)
++
++#define L2_MMU_CONFIG_3BIT_LIMIT_EXTERNAL_WRITES_SHIFT	15
++#define L2_MMU_CONFIG_3BIT_LIMIT_EXTERNAL_WRITES	(0x7 << L2_MMU_CONFIG_LIMIT_EXTERNAL_WRITES_SHIFT)
++
++/* SHADER_CONFIG register */
++#define SC_ALT_COUNTERS			BIT(3)
++#define SC_OVERRIDE_FWD_PIXEL_KILL	BIT(4)
++#define SC_SDC_DISABLE_OQ_DISCARD	BIT(6)
++#define SC_LS_ALLOW_ATTR_TYPES		BIT(16)
++#define SC_LS_PAUSEBUFFER_DISABLE	BIT(16)
++#define SC_TLS_HASH_ENABLE		BIT(17)
++#define SC_LS_ATTR_CHECK_DISABLE	BIT(18)
++#define SC_ENABLE_TEXGRD_FLAGS		BIT(25)
++/* End SHADER_CONFIG register */
++
++/* TILER_CONFIG register */
++#define TC_CLOCK_GATE_OVERRIDE		BIT(0)
++
++/* JM_CONFIG register */
++#define JM_TIMESTAMP_OVERRIDE		BIT(0)
++#define JM_CLOCK_GATE_OVERRIDE		BIT(1)
++#define JM_JOB_THROTTLE_ENABLE		BIT(2)
++#define JM_JOB_THROTTLE_LIMIT_SHIFT	3
++#define JM_MAX_JOB_THROTTLE_LIMIT	0x3F
++#define JM_FORCE_COHERENCY_FEATURES_SHIFT 2
++#define JM_IDVS_GROUP_SIZE_SHIFT	16
++#define JM_MAX_IDVS_GROUP_SIZE		0x3F
++
++
++/* Job Control regs */
++#define JOB_INT_RAWSTAT			0x1000
++#define JOB_INT_CLEAR			0x1004
++#define JOB_INT_MASK			0x1008
++#define JOB_INT_STAT			0x100c
++#define JOB_INT_JS_STATE		0x1010
++#define JOB_INT_THROTTLE		0x1014
++
++#define MK_JS_MASK(j)			(0x10001 << (j))
++#define JOB_INT_MASK_ERR(j)		BIT((j) + 16)
++#define JOB_INT_MASK_DONE(j)		BIT(j)
++
++#define JS_BASE				0x1800
++#define JS_HEAD_LO(n)			(JS_BASE + ((n) * 0x80) + 0x00)
++#define JS_HEAD_HI(n)			(JS_BASE + ((n) * 0x80) + 0x04)
++#define JS_TAIL_LO(n)			(JS_BASE + ((n) * 0x80) + 0x08)
++#define JS_TAIL_HI(n)			(JS_BASE + ((n) * 0x80) + 0x0c)
++#define JS_AFFINITY_LO(n)		(JS_BASE + ((n) * 0x80) + 0x10)
++#define JS_AFFINITY_HI(n)		(JS_BASE + ((n) * 0x80) + 0x14)
++#define JS_CONFIG(n)			(JS_BASE + ((n) * 0x80) + 0x18)
++#define JS_XAFFINITY(n)			(JS_BASE + ((n) * 0x80) + 0x1c)
++#define JS_COMMAND(n)			(JS_BASE + ((n) * 0x80) + 0x20)
++#define JS_STATUS(n)			(JS_BASE + ((n) * 0x80) + 0x24)
++#define JS_HEAD_NEXT_LO(n)		(JS_BASE + ((n) * 0x80) + 0x40)
++#define JS_HEAD_NEXT_HI(n)		(JS_BASE + ((n) * 0x80) + 0x44)
++#define JS_AFFINITY_NEXT_LO(n)		(JS_BASE + ((n) * 0x80) + 0x50)
++#define JS_AFFINITY_NEXT_HI(n)		(JS_BASE + ((n) * 0x80) + 0x54)
++#define JS_CONFIG_NEXT(n)		(JS_BASE + ((n) * 0x80) + 0x58)
++#define JS_COMMAND_NEXT(n)		(JS_BASE + ((n) * 0x80) + 0x60)
++#define JS_FLUSH_ID_NEXT(n)		(JS_BASE + ((n) * 0x80) + 0x70)
++
++/* Possible values of JS_CONFIG and JS_CONFIG_NEXT registers */
++#define JS_CONFIG_START_FLUSH_CLEAN		BIT(8)
++#define JS_CONFIG_START_FLUSH_CLEAN_INVALIDATE	(3u << 8)
++#define JS_CONFIG_START_MMU			BIT(10)
++#define JS_CONFIG_JOB_CHAIN_FLAG		BIT(11)
++#define JS_CONFIG_END_FLUSH_CLEAN		BIT(12)
++#define JS_CONFIG_END_FLUSH_CLEAN_INVALIDATE	(3u << 12)
++#define JS_CONFIG_ENABLE_FLUSH_REDUCTION	BIT(14)
++#define JS_CONFIG_DISABLE_DESCRIPTOR_WR_BK	BIT(15)
++#define JS_CONFIG_THREAD_PRI(n)			((n) << 16)
++
++#define JS_COMMAND_NOP			0x00
++#define JS_COMMAND_START		0x01
++#define JS_COMMAND_SOFT_STOP		0x02	/* Gently stop processing a job chain */
++#define JS_COMMAND_HARD_STOP		0x03	/* Rudely stop processing a job chain */
++#define JS_COMMAND_SOFT_STOP_0		0x04	/* Execute SOFT_STOP if JOB_CHAIN_FLAG is 0 */
++#define JS_COMMAND_HARD_STOP_0		0x05	/* Execute HARD_STOP if JOB_CHAIN_FLAG is 0 */
++#define JS_COMMAND_SOFT_STOP_1		0x06	/* Execute SOFT_STOP if JOB_CHAIN_FLAG is 1 */
++#define JS_COMMAND_HARD_STOP_1		0x07	/* Execute HARD_STOP if JOB_CHAIN_FLAG is 1 */
++
++#define JS_STATUS_EVENT_ACTIVE		0x08
++
++
++/* MMU regs */
++#define MMU_INT_RAWSTAT			0x2000
++#define MMU_INT_CLEAR			0x2004
++#define MMU_INT_MASK			0x2008
++#define MMU_INT_STAT			0x200c
++
++/* AS_COMMAND register commands */
++#define AS_COMMAND_NOP			0x00	/* NOP Operation */
++#define AS_COMMAND_UPDATE		0x01	/* Broadcasts the values in AS_TRANSTAB and ASn_MEMATTR to all MMUs */
++#define AS_COMMAND_LOCK			0x02	/* Issue a lock region command to all MMUs */
++#define AS_COMMAND_UNLOCK		0x03	/* Issue a flush region command to all MMUs */
++#define AS_COMMAND_FLUSH		0x04	/* Flush all L2 caches then issue a flush region command to all MMUs
++						   (deprecated - only for use with T60x) */
++#define AS_COMMAND_FLUSH_PT		0x04	/* Flush all L2 caches then issue a flush region command to all MMUs */
++#define AS_COMMAND_FLUSH_MEM		0x05	/* Wait for memory accesses to complete, flush all the L1s cache then
++						   flush all L2 caches then issue a flush region command to all MMUs */
++
++#define MMU_AS(as)			(0x2400 + ((as) << 6))
++
++#define AS_TRANSTAB_LO(as)		(MMU_AS(as) + 0x00) /* (RW) Translation Table Base Address for address space n, low word */
++#define AS_TRANSTAB_HI(as)		(MMU_AS(as) + 0x04) /* (RW) Translation Table Base Address for address space n, high word */
++#define AS_MEMATTR_LO(as)		(MMU_AS(as) + 0x08) /* (RW) Memory attributes for address space n, low word. */
++#define AS_MEMATTR_HI(as)		(MMU_AS(as) + 0x0C) /* (RW) Memory attributes for address space n, high word. */
++#define AS_LOCKADDR_LO(as)		(MMU_AS(as) + 0x10) /* (RW) Lock region address for address space n, low word */
++#define AS_LOCKADDR_HI(as)		(MMU_AS(as) + 0x14) /* (RW) Lock region address for address space n, high word */
++#define AS_COMMAND(as)			(MMU_AS(as) + 0x18) /* (WO) MMU command register for address space n */
++#define AS_FAULTSTATUS(as)		(MMU_AS(as) + 0x1C) /* (RO) MMU fault status register for address space n */
++#define AS_FAULTADDRESS_LO(as)		(MMU_AS(as) + 0x20) /* (RO) Fault Address for address space n, low word */
++#define AS_FAULTADDRESS_HI(as)		(MMU_AS(as) + 0x24) /* (RO) Fault Address for address space n, high word */
++#define AS_STATUS(as)			(MMU_AS(as) + 0x28) /* (RO) Status flags for address space n */
++/* Additional Bifrost AS regsiters */
++#define AS_TRANSCFG_LO(as)		(MMU_AS(as) + 0x30) /* (RW) Translation table configuration for address space n, low word */
++#define AS_TRANSCFG_HI(as)		(MMU_AS(as) + 0x34) /* (RW) Translation table configuration for address space n, high word */
++#define AS_FAULTEXTRA_LO(as)		(MMU_AS(as) + 0x38) /* (RO) Secondary fault address for address space n, low word */
++#define AS_FAULTEXTRA_HI(as)		(MMU_AS(as) + 0x3C) /* (RO) Secondary fault address for address space n, high word */
++
++/*
++ * Begin LPAE MMU TRANSTAB register values
++ */
++#define AS_TRANSTAB_LPAE_ADDR_SPACE_MASK	0xfffffffffffff000
++#define AS_TRANSTAB_LPAE_ADRMODE_IDENTITY	0x2
++#define AS_TRANSTAB_LPAE_ADRMODE_TABLE		0x3
++#define AS_TRANSTAB_LPAE_ADRMODE_MASK		0x3
++#define AS_TRANSTAB_LPAE_READ_INNER		BIT(2)
++#define AS_TRANSTAB_LPAE_SHARE_OUTER		BIT(4)
++
++#define AS_STATUS_AS_ACTIVE			0x01
++
++#define AS_FAULTSTATUS_ACCESS_TYPE_MASK		(0x3 << 8)
++#define AS_FAULTSTATUS_ACCESS_TYPE_ATOMIC	(0x0 << 8)
++#define AS_FAULTSTATUS_ACCESS_TYPE_EX		(0x1 << 8)
++#define AS_FAULTSTATUS_ACCESS_TYPE_READ		(0x2 << 8)
++#define AS_FAULTSTATUS_ACCESS_TYPE_WRITE	(0x3 << 8)
++
++#endif
+diff --git a/include/uapi/drm/panfrost_drm.h b/include/uapi/drm/panfrost_drm.h
+new file mode 100644
+index 0000000..a52e028
+--- /dev/null
++++ b/include/uapi/drm/panfrost_drm.h
+@@ -0,0 +1,142 @@
++/* SPDX-License-Identifier: MIT */
++/*
++ * Copyright © 2014-2018 Broadcom
++ * Copyright © 2019 Collabora ltd.
++ */
++#ifndef _PANFROST_DRM_H_
++#define _PANFROST_DRM_H_
++
++#include "drm.h"
++
++#if defined(__cplusplus)
++extern "C" {
++#endif
++
++#define DRM_PANFROST_SUBMIT			0x00
++#define DRM_PANFROST_WAIT_BO			0x01
++#define DRM_PANFROST_CREATE_BO			0x02
++#define DRM_PANFROST_MMAP_BO			0x03
++#define DRM_PANFROST_GET_PARAM			0x04
++#define DRM_PANFROST_GET_BO_OFFSET		0x05
++
++#define DRM_IOCTL_PANFROST_SUBMIT		DRM_IOW(DRM_COMMAND_BASE + DRM_PANFROST_SUBMIT, struct drm_panfrost_submit)
++#define DRM_IOCTL_PANFROST_WAIT_BO		DRM_IOW(DRM_COMMAND_BASE + DRM_PANFROST_WAIT_BO, struct drm_panfrost_wait_bo)
++#define DRM_IOCTL_PANFROST_CREATE_BO		DRM_IOWR(DRM_COMMAND_BASE + DRM_PANFROST_CREATE_BO, struct drm_panfrost_create_bo)
++#define DRM_IOCTL_PANFROST_MMAP_BO		DRM_IOWR(DRM_COMMAND_BASE + DRM_PANFROST_MMAP_BO, struct drm_panfrost_mmap_bo)
++#define DRM_IOCTL_PANFROST_GET_PARAM		DRM_IOWR(DRM_COMMAND_BASE + DRM_PANFROST_GET_PARAM, struct drm_panfrost_get_param)
++#define DRM_IOCTL_PANFROST_GET_BO_OFFSET	DRM_IOWR(DRM_COMMAND_BASE + DRM_PANFROST_GET_BO_OFFSET, struct drm_panfrost_get_bo_offset)
++
++#define PANFROST_JD_REQ_FS (1 << 0)
++/**
++ * struct drm_panfrost_submit - ioctl argument for submitting commands to the 3D
++ * engine.
++ *
++ * This asks the kernel to have the GPU execute a render command list.
++ */
++struct drm_panfrost_submit {
++
++	/** Address to GPU mapping of job descriptor */
++	__u64 jc;
++
++	/** An optional array of sync objects to wait on before starting this job. */
++	__u64 in_syncs;
++
++	/** Number of sync objects to wait on before starting this job. */
++	__u32 in_sync_count;
++
++	/** An optional sync object to place the completion fence in. */
++	__u32 out_sync;
++
++	/** Pointer to a u32 array of the BOs that are referenced by the job. */
++	__u64 bo_handles;
++
++	/** Number of BO handles passed in (size is that times 4). */
++	__u32 bo_handle_count;
++
++	/** A combination of PANFROST_JD_REQ_* */
++	__u32 requirements;
++};
++
++/**
++ * struct drm_panfrost_wait_bo - ioctl argument for waiting for
++ * completion of the last DRM_PANFROST_SUBMIT on a BO.
++ *
++ * This is useful for cases where multiple processes might be
++ * rendering to a BO and you want to wait for all rendering to be
++ * completed.
++ */
++struct drm_panfrost_wait_bo {
++	__u32 handle;
++	__u32 pad;
++	__s64 timeout_ns;	/* absolute */
++};
++
++/**
++ * struct drm_panfrost_create_bo - ioctl argument for creating Panfrost BOs.
++ *
++ * There are currently no values for the flags argument, but it may be
++ * used in a future extension.
++ */
++struct drm_panfrost_create_bo {
++	__u32 size;
++	__u32 flags;
++	/** Returned GEM handle for the BO. */
++	__u32 handle;
++	/* Pad, must be zero-filled. */
++	__u32 pad;
++	/**
++	 * Returned offset for the BO in the GPU address space.  This offset
++	 * is private to the DRM fd and is valid for the lifetime of the GEM
++	 * handle.
++	 *
++	 * This offset value will always be nonzero, since various HW
++	 * units treat 0 specially.
++	 */
++	__u64 offset;
++};
++
++/**
++ * struct drm_panfrost_mmap_bo - ioctl argument for mapping Panfrost BOs.
++ *
++ * This doesn't actually perform an mmap.  Instead, it returns the
++ * offset you need to use in an mmap on the DRM device node.  This
++ * means that tools like valgrind end up knowing about the mapped
++ * memory.
++ *
++ * There are currently no values for the flags argument, but it may be
++ * used in a future extension.
++ */
++struct drm_panfrost_mmap_bo {
++	/** Handle for the object being mapped. */
++	__u32 handle;
++	__u32 flags;
++	/** offset into the drm node to use for subsequent mmap call. */
++	__u64 offset;
++};
++
++enum drm_panfrost_param {
++	DRM_PANFROST_PARAM_GPU_PROD_ID,
++};
++
++struct drm_panfrost_get_param {
++	__u32 param;
++	__u32 pad;
++	__u64 value;
++};
++
++/**
++ * Returns the offset for the BO in the GPU address space for this DRM fd.
++ * This is the same value returned by drm_panfrost_create_bo, if that was called
++ * from this DRM fd.
++ */
++struct drm_panfrost_get_bo_offset {
++	__u32 handle;
++	__u32 pad;
++	__u64 offset;
++};
++
++#if defined(__cplusplus)
++}
++#endif
++
++#endif /* _PANFROST_DRM_H_ */
+-- 
+2.7.1
+
