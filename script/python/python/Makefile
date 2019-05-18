@@ -4,7 +4,7 @@ CATEGORIES = python
 MASTER_SITES = http://www.python.org/ftp/python/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.xz
 ifneq ($(DESTIMG),build)
-PATCHFILES = Python-$(PYTHON_VERSION)-cross.patch
+PATCHFILES = Python-$(PYTHON_VERSION)-cross.patch Python-$(PYTHON_VERSION)-fix-crosscompile-glibc-2.27.patch
 endif
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
@@ -16,7 +16,7 @@ endef
 DEPENDS    = lang/c lib/ncurses lib/openssl lib/readline devel/zlib lib/expat
 BUILDDEPS  = devel/autoconf devel/automake
 ifneq ($(DESTIMG),build)
-DEPENDS   += lib/bluez
+DEPENDS   += lib/bluez lib/gdbm
 BUILDDEPS += python/python
 endif
 
@@ -115,6 +115,8 @@ post-install:
 	@$(if $(compiler_prefix), ln -s python-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)python-config)
 	@rm -f $(DESTDIR)$(bindir)/python
 	@ln -sr $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR) $(DESTDIR)$(bindir)/python
+	@rm -rf $(WORKSRC)/../../../build*
+	@rm -f $(WORKSRC)/../../../pybuilddir.txt
 	@$(MAKECOOKIE)
 
 clean-all:
