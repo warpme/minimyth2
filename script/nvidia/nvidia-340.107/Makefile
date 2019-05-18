@@ -2,7 +2,7 @@ NVIDIA_MAJOR_VERSION = 340
 NVIDIA_MINOR_VERSION = 107
 NVIDIA_TEENY_VERSION =
 
-PATCHFILES=nvidia-340.107-kernel-5.0-fix-compile.patch
+PATCHFILES=kernel-4.11.patch kernel-5.0.patch kernel-5.1.patch
 
 BUILD_SCRIPTS   = nvidia
 INSTALL_SCRIPTS = nvidia
