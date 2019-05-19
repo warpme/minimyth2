@@ -16,7 +16,7 @@ endef
 DEPENDS    = lang/c lib/ncurses lib/openssl lib/readline devel/zlib lib/expat
 BUILDDEPS  = devel/autoconf devel/automake
 ifneq ($(DESTIMG),build)
-DEPENDS   += lib/bluez lib/gdbm
+DEPENDS   += lib/bluez lib/gdbm db/berkeley-db
 BUILDDEPS += python/python
 endif
 
@@ -36,7 +36,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-dbmliborder=gdbm:ndbm \
 	--without-ensurepip \
 	ac_cv_working_tzset=yes \
-	CPPFLAGS="-I$(DESTDIR)$(includedir)"
+	CPPFLAGS="-I$(DESTDIR)$(includedir) -L$(DESTDIR)$(libdir)"
 
 ifneq ($(DESTIMG),build)
 BUILD_ARGS     = \
