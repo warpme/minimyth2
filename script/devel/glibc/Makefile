@@ -103,6 +103,9 @@ post-install:
 	@cd $(DESTDIR)$(datadir)/i18n/charmaps ; gzip -df *.gz
 	@mkdir -p $(build_DESTDIR)$(build_libdir)/glibc-nptl
 	@cp $(WORKBLD)/nptl/libpthread.so $(build_DESTDIR)$(build_libdir)/glibc-nptl/
+	@if [ ! -e $(DESTDIR)$(includedir)/gnu/stubs-32.h ] ; then \
+	 touch $(DESTDIR)$(includedir)/gnu/stubs-32.h ; \
+	 fi
 	@#xxxx - fixme
 	@if [ -e $(DESTDIR)$(elibdir64)/libcrypt.so.1        ] ; then rm -f $(DESTDIR)$(libdir)/libcrypt.so.1        ; ln -sr $(DESTDIR)$(elibdir64)/libcrypt.so.1        $(DESTDIR)$(libdir)/libcrypt.so.1        ; fi
 	@if [ -e $(DESTDIR)$(elibdir64)/libdl.so.2           ] ; then rm -f $(DESTDIR)$(libdir)/libdl.so.2           ; ln -sr $(DESTDIR)$(elibdir64)/libdl.so.2           $(DESTDIR)$(libdir)/libdl.so.2           ; fi
