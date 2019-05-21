@@ -1,16 +1,6 @@
 
-# GIT URL: https://github.com/bootlin/libva-v4l2-request
-
-# Uncomment for downloading current master from 18.2-rc5 branch
-# GARNAME      = libva-v4l2-request
-# GARVERSION   = master
-# MASTER_SITES = https://github.com/bootlin/libva-v4l2-request/archive/
-# DISTFILES    = $(DISTNAME).tar.bz2
-# WORKSRC      = $(WORKDIR)/mesa-lima-$(GARVERSION)
-
-# Uncomment for downloading at given GIT commit
 GARNAME      = test-ffmpeg-drm
-GARVERSION   = 6fcfdf5c20a586ec6e8b002bcc44034243c55abf
+GARVERSION   = 1e98f0d811400bea763d99c424e52e12c94b5900
 MASTER_SITES = https://github.com/Elyotna/ffmpeg-drm/archive/
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/ffmpeg-drm-$(GARVERSION)
@@ -45,5 +35,6 @@ install-libXNVCtrl:
 	@mkdir -p $(DESTDIR)$(bindir)
 	@cp -rf $(WORKSRC)/ffmpeg-drm $(DESTDIR)$(bindir)/ffmpeg-drm
 	@# cp -rf $(WORKSRC)/run.sh $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
-	@echo "ffmpeg-drm --video /usr/local/share/h264.FVDO_Freeway_720p.264 --codec h264_v4l2m2m --width 1280 --height 720" > $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
+	@echo "echo 0xFF > /sys/module/drm/parameters/debug" > $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
+	@echo "ffmpeg-drm --video /usr/local/share/h264.FVDO_Freeway_720p.264 --codec h264_v4l2m2m --width 1280 --height 720" >> $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@$(MAKECOOKIE)
