@@ -18,6 +18,8 @@ PATCHFILES += linux-5.1-defaults.patch
 PATCHFILES += linux-5.1-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.1-net-smsc95xx-allow-mac-address-as-param.patch
 
+# Baseline kernel is from https://github.com/superna9999/linux/commits/linux-5.1-le-amlogic
+
 # Patches for Amlogic video decoder
 # https://github.com/kszaq/LibreELEC.tv/tree/amlogic/packages/linux/patches/amlogic-amlgx
 ifeq (1,1)
