@@ -3,6 +3,7 @@ GARVERSION = 0.29.1
 CATEGORIES = mediaplayers
 MASTER_SITES = https://github.com/mpv-player/mpv/archive/
 DISTFILES = v$(GARVERSION).tar.gz
+PATCHFILES = mpv-drmprime-PR6461.patch
 WORKSRC   = $(WORKDIR)/mpv-$(GARVERSION)
 LICENSE = GPL2
 
