@@ -143,6 +143,7 @@ mm-all:
 		   [ ! "$${software}" = "gnash"          ] && \
 		   [ ! "$${software}" = "mplayer-svn"    ] && \
 		   [ ! "$${software}" = "mplayer"        ] && \
+		   [ ! "$${software}" = "mpv"            ] && \
 		   [ ! "$${software}" = "vlc"            ] && \
 		   [ ! "$${software}" = "xine"           ] && \
 		   [ ! "$${software}" = "perl"           ] && \
