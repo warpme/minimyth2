@@ -14,8 +14,8 @@ endef
 
 DEPENDS   = lang/c lib/ffmpeg
 
-BUILD_SCRIPTS   = libXNVCtrl
-INSTALL_SCRIPTS = libXNVCtrl
+BUILD_SCRIPTS   = custom
+INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
@@ -25,16 +25,16 @@ BUILD_ARGS   = \
 	CFLAGS="$(CFLAGS) $(LDFLAGS)" \
 	CXXFLAGS="$(CXXFLAGS) $(LDFLAGS)"
 
-build-libXNVCtrl:
+build-custom:
 	@echo "Building..."
 	@# gcc -o ffmpeg-drm main.c -I/usr/include/drm -lavcodec -lz -lm -lpthread -lavcodec -lavformat -lavutil -lswresample -ldrm -L/usr/local/lib
 	@$(CC) $(CXXFLAGS) $(LDFLAGS) -o $(WORKSRC)/ffmpeg-drm $(WORKSRC)/main.c -I$(DESTDIR)$(includedir)/drm -lavcodec -lz -lm -lpthread -lavcodec -lavformat -lavutil -lswresample -ldrm -L$(DESTDIR)$(libdir)
 	@$(MAKECOOKIE)
 
-install-libXNVCtrl:
+install-custom:
 	@mkdir -p $(DESTDIR)$(bindir)
 	@cp -rf $(WORKSRC)/ffmpeg-drm $(DESTDIR)$(bindir)/ffmpeg-drm
-	@# cp -rf $(WORKSRC)/run.sh $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
-	@echo "echo 0xFF > /sys/module/drm/parameters/debug" > $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
-	@echo "ffmpeg-drm --video /usr/local/share/h264.FVDO_Freeway_720p.264 --codec h264_v4l2m2m --width 1280 --height 720" >> $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
+	@echo 'echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
+	@echo 'ffmpeg-drm --video $$1 --codec h264_v4l2m2m --width $$2 --height $$3' >> $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
+	@chmod +x $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@$(MAKECOOKIE)
