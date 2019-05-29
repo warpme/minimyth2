@@ -239,7 +239,6 @@ CONFIGURE_ARGS = \
 	--disable-dxva2 \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
 		--disable-vaapi \
-		--disable-vaapi2 \
 		--disable-vdpau) \
 	--disable-mac-bundle \
 	--enable-libxml2 \
