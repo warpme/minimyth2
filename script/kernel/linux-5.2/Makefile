@@ -24,7 +24,7 @@ PATCHFILES += linux-5.2-defaults.patch
 PATCHFILES += linux-5.2-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.2-net-smsc95xx-allow-mac-address-as-param.patch
 
-# Misc patches for Amlogic Audio
+# Misc patches for Amlogic video decoder
 ifeq (1,1)
 PATCHFILES += 0001-dt-bindings-media-add-Amlogic-Video-Decoder-Bindings.patch
 PATCHFILES += 0002-media-videodev2-add-V4L2_FMT_FLAG_FIXED_RESOLUTION.patch
@@ -90,7 +90,6 @@ BUILDDEPS = \
 DEPENDS = \
 	kernel-headers/linux-headers \
 	kernel/linux-firmware \
-	kernel/linux-firmware-meson \
 	$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),bootloaders/u-boot-tools) \
 
 CONFIGURE_SCRIPTS = custom
