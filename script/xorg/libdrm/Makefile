@@ -1,9 +1,8 @@
 GARNAME = libdrm
-GARVERSION = 2.4.97
+GARVERSION = 2.4.98
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = libdrm-Import-sun4i-drm-header-for-MB32-tiled-NV12-support.patch
 LICENSE = MIT
 
 DESCRIPTION = 
