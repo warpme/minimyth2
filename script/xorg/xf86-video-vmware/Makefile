@@ -1,5 +1,5 @@
 GARNAME = xf86-video-vmware
-GARVERSION_TYPE = git
+# GARVERSION_TYPE = git
 GARVERSION = $(strip $(if $(filter git,$(GARVERSION_TYPE)) , \
 	20190302-5569f16, \
 	13.3.0 ))
