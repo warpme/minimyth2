@@ -131,16 +131,12 @@ DEPENDS = \
 	$(if $(filter dvdcss,$(mm_SOFTWARE)),lib/libdvdcss) \
 	lib/nss-mdns \
 	net/mount.cifs \
-	$(if $(filter gnash,$(mm_SOFTWARE)), \
-		mediaplayers/gnash) \
-	$(if $(filter mplayer,$(mm_SOFTWARE)), \
-		mediaplayers/mplayer) \
 	$(if $(filter mplayer-svn,$(mm_SOFTWARE)), \
 		mediaplayers/mplayer-svn) \
 	$(if $(filter vlc,$(mm_SOFTWARE)), \
 		mediaplayers/vlc) \
-	$(if $(filter xine,$(mm_SOFTWARE)), \
-		mediaplayers/xine-ui) \
+	$(if $(filter mpv,$(mm_SOFTWARE)), \
+		mediaplayers/mpv) \
 	$(if $(filter udisks,$(mm_SOFTWARE)), \
 		lib/udisks) \
 	$(if $(filter voip,$(mm_SOFTWARE)), \
