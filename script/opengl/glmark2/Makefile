@@ -36,7 +36,7 @@ export CXX
 
 # Allowable flawors: x11-gl, mir-gl, x11-glesv2, drm-gl, wayland-gl, wayland-glesv2, drm-glesv2, mir-glesv2, dispmanx-glesv2
 COMMA := ,
-BUILD_FLAVORS = "drm-glesv2,x11-glesv2$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(COMMA)drm-gl)$(if $(filter mesa lima,$(mm_OPENGL_PROVIDER)),$(COMMA)x11-gl)"
+BUILD_FLAVORS = "drm-glesv2,x11-glesv2$(if $(filter mesa% lima,$(mm_OPENGL_PROVIDER)),$(COMMA)drm-gl)$(if $(filter mesa% lima,$(mm_OPENGL_PROVIDER)),$(COMMA)x11-gl)"
 
 configure-custom:
 	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python ./waf configure --with-flavors=$(BUILD_FLAVORS) --data-path=$(datadir)/glmark2 --prefix=$(prefix)
