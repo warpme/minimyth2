@@ -1,5 +1,5 @@
 GARNAME      = mesa
-GARVERSION   = 8a35eb0602735194f2976000ddff9dca2c8b5741
+GARVERSION   = 73dda85512942e67991a5fbc3c9a1714e7624d00
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -149,6 +149,11 @@ install-cross:
 	@$(MAKECOOKIE)
 
 post-install:
+	@# Change dridriverdir to /usr/lib/dri as xorg-server
+	@# seemt ot require this to propper load of DRI drivers
+	@sed \
+	 -e 's%^dridriverdir.*%dridriverdir=/usr/lib/dri%g' \
+	 -i $(DESTDIR)$(libdir)/pkgconfig/dri.pc
 	@rm -f $(DESTDIR)$(libdir)/libGL.la
 	@rm -f $(DESTDIR)$(libdir)/libEGL.la
 	@rm -f $(DESTDIR)$(libdir)/libglapi.la
