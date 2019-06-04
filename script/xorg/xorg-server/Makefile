@@ -52,7 +52,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-debug \
 	--disable-unit-tests \
-	$(if $(filter mesa mesa-lima,$(mm_OPENGL_PROVIDER)), \
+	$(if $(filter mesa%,$(mm_OPENGL_PROVIDER)), \
 		--enable-glx \
 		--enable-dri \
 		--enable-dri2 \
