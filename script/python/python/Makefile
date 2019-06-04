@@ -16,7 +16,7 @@ endef
 DEPENDS    = lang/c lib/ncurses lib/openssl lib/readline devel/zlib lib/expat
 BUILDDEPS  = devel/autoconf devel/automake
 ifneq ($(DESTIMG),build)
-DEPENDS   += lib/bluez lib/gdbm db/berkeley-db
+DEPENDS   += devel/glibc-rpcsvc db/berkeley-db db/sqlite lib/bluez lib/gdbm lib/libnsl net/libtirpc
 BUILDDEPS += python/python
 endif
 
