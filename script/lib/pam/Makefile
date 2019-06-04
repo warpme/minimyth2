@@ -1,9 +1,8 @@
 GARNAME = Linux-PAM
-GARVERSION = 1.3.0
+GARVERSION = 1.3.1
 CATEGORIES = lib
-# MASTER_SITES = http://fedorahosted.org/releases/l/i/linux-pam/
-MASTER_SITES = http://linux-pam.org/library/
-DISTFILES = $(GARNAME)-$(GARVERSION).tar.bz2
+MASTER_SITES = https://github.com/linux-pam/linux-pam/releases/download/v$(GARVERSION)/
+DISTFILES = $(GARNAME)-$(GARVERSION).tar.xz
 
 LICENSE = LGPL2
 
@@ -17,7 +16,7 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST)
+CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --disable-db
 
 include ../../gar.mk
 
