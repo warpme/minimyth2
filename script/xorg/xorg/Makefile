@@ -19,6 +19,7 @@ DEPENDS = \
 	$(CATEGORY)/libXfixes \
 	$(CATEGORY)/libXft \
 	$(CATEGORY)/libXinerama \
+	$(CATEGORY)/libxkbcommon \
 	$(CATEGORY)/libXmu \
 	$(CATEGORY)/libXpm \
 	$(CATEGORY)/libXrandr \
