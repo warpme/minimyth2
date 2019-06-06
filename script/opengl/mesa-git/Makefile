@@ -1,5 +1,5 @@
 GARNAME      = mesa
-GARVERSION   = 73dda85512942e67991a5fbc3c9a1714e7624d00
+GARVERSION   = d6724471a5775cbbeaafff1e1982f322b1d04c94
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -149,11 +149,15 @@ install-cross:
 	@$(MAKECOOKIE)
 
 post-install:
-	@# Change dridriverdir to /usr/lib/dri as xorg-server
-	@# seemt ot require this to propper load of DRI drivers
-	@sed \
-	 -e 's%^dridriverdir.*%dridriverdir=/usr/lib/dri%g' \
-	 -i $(DESTDIR)$(libdir)/pkgconfig/dri.pc
+	@files="dri.pc egl.pc gbm.pc gl.pc glesv1_cm.pc glesv2.pc" ; \
+	 for file in $${files} ; do \
+		sed \
+		-e 's%^prefix=.*%prefix=/usr%g' \
+		-e 's%^libdir=.*%libdir=\$$\{prefix\}/lib%g' \
+		-e 's%^includedir.*%includedir=\$$\{prefix\}/include%g' \
+		-e 's%^dridriverdir.*%dridriverdir=\$$\{libdir\}/dri%g' \
+		-i $(DESTDIR)$(libdir)/pkgconfig/$${file} ; \
+	 done
 	@rm -f $(DESTDIR)$(libdir)/libGL.la
 	@rm -f $(DESTDIR)$(libdir)/libEGL.la
 	@rm -f $(DESTDIR)$(libdir)/libglapi.la
@@ -202,7 +206,7 @@ ifneq (,$(findstring meson,$(mm_GRAPHICS)))
 	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
 endif
 endif
-	@$(MAKECOOKIE)
+	@#$(MAKECOOKIE)
 
 clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libGL*
