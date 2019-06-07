@@ -133,9 +133,9 @@ DEPENDS = \
 	net/mount.cifs \
 	$(if $(filter mplayer-svn,$(mm_SOFTWARE)), \
 		mediaplayers/mplayer-svn) \
-	$(if $(filter vlc,$(mm_SOFTWARE)), \
-		mediaplayers/ffmpeg-drm) \
 	$(if $(filter ffmpeg-drm,$(mm_SOFTWARE)), \
+		mediaplayers/ffmpeg-drm) \
+	$(if $(filter mpv,$(mm_SOFTWARE)), \
 		mediaplayers/mpv) \
 	$(if $(filter udisks,$(mm_SOFTWARE)), \
 		lib/udisks) \
