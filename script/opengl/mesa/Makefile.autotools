@@ -1,11 +1,11 @@
 GARNAME      = mesa
-GARVERSION   = 19.0.1
+GARVERSION   = f80679c8e8aa3f1ff17deef7163ad9429eb90f44
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
-DISTFILES    = mesa-$(DISTNAME).tar.bz2
-WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
+MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
+DISTFILES    = $(DISTNAME).tar.bz2
 
-PATCHFILES   = configure-add-wayland-scanner-patch.patch
+PATCHFILES   = autotools-add-lima-build.patch
+#PATCHFILES  += configure-add-wayland-scanner-patch.patch
 
 LICENSE = LGPL2/MIT
 
@@ -32,10 +32,8 @@ DEPENDS =                      \
 	xorg/libxshmfence      \
 	xorg/wayland-protocols \
 	xorg/wayland           \
+	system/eudev           \
 
-ifneq ($(DESTIMG),build)
-DEPENDS   += system/eudev
-endif
 BUILDDEPS  = \
 	lib/libxml2        \
 	python/python      \
@@ -51,9 +49,6 @@ CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 CONFIGURE_SCRIPTS  = $(WORKSRC)/configure
 BUILD_SCRIPTS      = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS    = $(WORKSRC)/Makefile source
-ifeq ($(DESTIMG),build)
-INSTALL_SCRIPTS   += cross
-endif
 
 include ../../gar.mk
 
@@ -63,7 +58,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--with-dri-driverdir="$(libdir)/dri" \
 	--with-vdpau-libdir="$(libdir)/vdpau" \
-	--with-platforms=x11,wayland,drm \
 	--enable-llvm \
 	--enable-llvm-shared-libs \
 	--enable-gbm \
@@ -83,28 +77,28 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	LIBUDEV_LIBS="$(DESTDIR)$(libdir)/libudev.so" \
 	--with-wayland-scanner-path="$(build_DESTDIR)$(build_bindir)/wayland-scanner" \
 	--enable-autotools \
+	LDFLAGS="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 
 ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
-	--with-gallium-drivers=swrast,vc4 \
+	--with-gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	--with-dri-drivers=swrast \
+	--with-platforms=x11,wayland,drm \
 	--disable-xa
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
-	--with-gallium-drivers=swrast,vc4 \
+	--with-gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	--with-dri-drivers=swrast \
+	--with-platforms=x11,wayland,drm \
 	--disable-xa
 else
 CONFIGURE_ARGS += \
 	--with-gallium-drivers=r300,r600,radeonsi,svga,swrast \
 	--with-dri-drivers=i915,i965,r200,radeon,swrast \
+	--with-platforms=x11,wayland,drm \
 	--enable-xa
 endif
-endif
-
-ifneq ($(DESTIMG),build)
-CONFIGURE_ARGS += LDFLAGS="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/"
 endif
 
 BUILD_ARGS  = \
@@ -145,9 +139,6 @@ install-source:
 	@mkdir -p $(DESTDIR)$(sourcedir)
 	@rm -f $(DESTDIR)$(sourcedir)/mesa
 	@ln -sf $(PWD)/$(WORKSRC) $(DESTDIR)$(sourcedir)/mesa
-	@$(MAKECOOKIE)
-
-install-cross:
 	@$(MAKECOOKIE)
 
 post-install:
@@ -223,6 +214,8 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_drv_video.so
 	@rm -f $(DESTDIR)$(libdir)/dri/r600_drv_video.so
 	@rm -f $(DESTDIR)$(libdir)/dri/kms_swrast_dri.so
+	@rm -f $(DESTDIR)$(libdir)/dri/v3d_dri.so*
+	@rm -f $(DESTDIR)$(libdir)/dri/vc4_dri.so*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r600*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r300*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_i915*
