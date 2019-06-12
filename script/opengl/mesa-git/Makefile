@@ -1,5 +1,5 @@
 GARNAME      = mesa
-GARVERSION   = d6724471a5775cbbeaafff1e1982f322b1d04c94
+GARVERSION   = f80679c8e8aa3f1ff17deef7163ad9429eb90f44
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -83,7 +83,8 @@ CONFIGURE_ARGS += \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=false \
-	-D gallium-xa=false
+	-D gallium-xa=false \
+	-D asm=false
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
@@ -206,7 +207,7 @@ ifneq (,$(findstring meson,$(mm_GRAPHICS)))
 	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
 endif
 endif
-	@#$(MAKECOOKIE)
+	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libGL*
