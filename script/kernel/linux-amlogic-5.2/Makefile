@@ -26,8 +26,6 @@ PATCHFILES += linux-5.2-net-smsc95xx-allow-mac-address-as-param.patch
 
 # Patches for baseline kernel from https://github.com/superna9999/linux/commits/amlogic/v5.2/misc-fixes
 ifeq (1,1)
-PATCHFILES += 0001-clk-meson-fix-MPLL-50M-binding-id-typo.patch
-PATCHFILES += 0002-clk-meson-meson8b-fix-a-typo-in-the-VPU-parent-names.patch
 PATCHFILES += 0003-clk-meson-mpll-properly-handle-spread-spectrum.patch
 PATCHFILES += 0004-clk-meson-gxbb-no-spread-spectrum-on-mpll0.patch
 PATCHFILES += 0005-clk-meson-axg-spread-spectrum-is-on-mpll2.patch
