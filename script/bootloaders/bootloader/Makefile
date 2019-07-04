@@ -44,10 +44,11 @@ ifneq (,$(findstring board-rk3399,$(mm_BOARD_TYPE)))
 endif
 
 ifneq (,$(findstring board-h6,$(mm_BOARD_TYPE)))
-	$(MAKE) clean -C ../u-boot
+	$(MAKE) clean -C ../arm-trusted-firmware
+	$(MAKE) clean -C ../u-boot-h6
 	$(MAKE) install -C ../board-h6
 endif
 
 clean-all:
-	@$(foreach dir, $(wildcard ../u-boot ../board-*), $(MAKE) clean clean-all -C $(dir) ; )
+	@$(foreach dir, $(wildcard ../u-boot* ../board-* ../arm-trusted-firmware), $(MAKE) clean clean-all -C $(dir) ; )
 	$(MAKE) clean
