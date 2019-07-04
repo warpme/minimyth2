@@ -1,9 +1,3 @@
-GARNAME      = u-boot-tools-20190429
-GARVERSION   = 6aebc0d11a10f48a54146c5e71bbef15a1a458fc
-CATEGORIES   = kernel
-MASTER_SITES = https://github.com/u-boot/u-boot/archive/
-DISTFILES    = $(GARVERSION).zip
-WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 DESCRIPTION =
 define BLURB
@@ -15,6 +9,7 @@ CONFIGURE_SCRIPTS   = custom
 BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
+GAR_EXTRA_CONF += bootloaders/u-boot/package-api.mk
 include ../../gar.mk
 
 BUILD_ARGS = \
