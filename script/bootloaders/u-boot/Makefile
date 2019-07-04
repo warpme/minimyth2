@@ -1,9 +1,3 @@
-GARNAME      = u-boot-20190429
-GARVERSION   = 6aebc0d11a10f48a54146c5e71bbef15a1a458fc
-CATEGORIES   = kernel
-MASTER_SITES = https://github.com/u-boot/u-boot/archive/
-DISTFILES    = $(GARVERSION).zip
-WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
 
@@ -17,24 +11,21 @@ CONFIGURE_SCRIPTS   = custom
 BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
+GAR_EXTRA_CONF += bootloaders/u-boot/package-api.mk
 include ../../gar.mk
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
-	ARCH=$(GARCH_FAMILY) \
 
 configure-custom:
+	@sed -i "s%HOSTCC%CC%g" $(WORKSRC)/scripts/dtc/pylibfdt/Makefile
 	@$(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 build-custom:
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
-	@$(MAKECOOKIE)
-
-git//%$(DISTNAME).tar.bz2:
-	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
 	@$(MAKECOOKIE)
 
 install-custom:
