@@ -141,6 +141,33 @@ PATCHFILES += 0434-ASoC-meson-correct-i2s-error-messages.patch
 PATCHFILES += 0501-drm-panfrost-add-support-for-custom-soft-reset-on-Amlogic-GXM.patch
 endif
 
+# Patches for Rockchip audio support
+ifeq (1,1)
+PATCHFILES += 0615-arm64-dts-rockchip-add-HDMI-sound-node-for-rk3328-ro.patch
+PATCHFILES += 0616-drm-dw-hdmi-extract-dw_hdmi_connector_update_edid.patch
+PATCHFILES += 0617-drm-dw-hdmi-move-dw_hdmi_connector_detect.patch
+PATCHFILES += 0618-drm-dw-hdmi-update-CEC-phys-addr-and-EDID-on-HPD-eve.patch
+PATCHFILES += 0619-Revert-drm-edid-make-drm_edid_to_eld-static.patch
+PATCHFILES += 0620-drm-dw-hdmi-update-ELD-on-HPD-event.patch
+PATCHFILES += 0621-ASoC-hdmi-codec-add-hdmi_codec_eld_notify.patch
+PATCHFILES += 0625-ASoC-hdmi-codec-reorder-channel-allocation-list.patch
+PATCHFILES += 0626-drm-dw-hdmi-i2s-add-multi-channel-lpcm-support.patch
+PATCHFILES += 0627-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-enabl.patch
+PATCHFILES += 0628-fix-chmap_idx.patch
+PATCHFILES += 0629-ASoC-rockchip-i2s-use-closest-clock-rate.patch
+PATCHFILES += 0630-HACK-arm64-dts-rockchip-update-gpu-node-on-rk3328-ro.patch
+PATCHFILES += 0631-HACK-arm64-dts-rockchip-remove-acodec-dai-on-rk3328-.patch
+PATCHFILES += 0632-HACK-arm64-dts-rockchip-split-sound-node-on-rk3328-r.patch
+PATCHFILES += 0634-WIP-dw-hdmi-cec-sleep-100ms-on-error.patch
+PATCHFILES += 0635-WIP-arm64-dts-rockchip-work-in-progress-on-rk3328-ro.patch
+PATCHFILES += 0636-HACK-arm64-dts-rockchip-rename-hdmi-sound-card-on-rk.patch
+PATCHFILES += 0637-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-rock-.patch
+PATCHFILES += 0638-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-nanop.patch
+PATCHFILES += 0639-arm64-dts-rockchip-Fix-HDMI-audio-on-rk3399-orangepi.patch
+PATCHFILES += 0640-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-roc-p.patch
+PATCHFILES += 0641-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
+endif
+
 LICENSE = GPL2
 
 DESCRIPTION = 
