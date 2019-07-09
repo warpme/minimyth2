@@ -90,7 +90,7 @@ rm -rf ${root_files_loc}/../pseudo*
 echo '  copmpressing SD image...'
 rename MiniMyth2-*.direct MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img *
 tar cjvf MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.tar.bz2 ./*.img > /dev/null
-#rm -f ./*.img
+rm -f ./*.img
 
 echo '  SD image creation done'
 
