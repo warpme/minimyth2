@@ -1,8 +1,9 @@
 GARNAME      = mesa
-GARVERSION   = 4633298fd62121a466884998cb64d7a5b5976fcd
+GARVERSION   = 39e7fbf24a69c3ca9293ee8c4f9bba97d2f81ed4
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
+PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
 
 LICENSE = LGPL2/MIT
 
@@ -83,8 +84,7 @@ CONFIGURE_ARGS += \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=false \
-	-D gallium-xa=false \
-	-D asm=false
+	-D gallium-xa=false
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \

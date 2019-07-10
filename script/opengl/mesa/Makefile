@@ -3,7 +3,9 @@ GARVERSION   = 19.1.2
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
+PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
+
 LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
