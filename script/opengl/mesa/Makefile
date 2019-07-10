@@ -1,11 +1,10 @@
 GARNAME      = mesa
-GARVERSION   = 19.0.1
+GARVERSION   = 19.1.2
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
-
-LICENSE      = LGPL2/MIT
+LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
 define BLURB
@@ -80,7 +79,7 @@ CONFIGURE_ARGS = \
 
 ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
-	-D gallium-drivers=lima,vc4,v3d \
+	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=false \
@@ -88,7 +87,7 @@ CONFIGURE_ARGS += \
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
-	-D gallium-drivers=lima,vc4,v3d \
+	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=false \
@@ -150,6 +149,15 @@ install-cross:
 	@$(MAKECOOKIE)
 
 post-install:
+	@files="dri.pc egl.pc gbm.pc gl.pc glesv1_cm.pc glesv2.pc" ; \
+	 for file in $${files} ; do \
+		sed \
+		-e 's%^prefix=.*%prefix=/usr%g' \
+		-e 's%^libdir=.*%libdir=\$$\{prefix\}/lib%g' \
+		-e 's%^includedir.*%includedir=\$$\{prefix\}/include%g' \
+		-e 's%^dridriverdir.*%dridriverdir=\$$\{libdir\}/dri%g' \
+		-i $(DESTDIR)$(libdir)/pkgconfig/$${file} ; \
+	 done
 	@rm -f $(DESTDIR)$(libdir)/libGL.la
 	@rm -f $(DESTDIR)$(libdir)/libEGL.la
 	@rm -f $(DESTDIR)$(libdir)/libglapi.la
