@@ -70,9 +70,6 @@ PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 # Allows to switch mythfrontend to use OpenGL ES (system and Qt5 must provide GLESv2!)
 #PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
 
-# Required as myth configure looks only in standard places for OMX files
-PATCHFILES += 0217-Configure-force-OpenMAX-when-asked.patch
-
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
 PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
