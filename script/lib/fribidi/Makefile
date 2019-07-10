@@ -32,6 +32,10 @@ ifeq ($(DESTIMG),build)
 CPPFLAGS += -DFRIBIDI_CHUNK_SIZE=4080
 endif
 
+ifneq ($(DESTIMG),build)
+LDFLAGS = 
+endif
+
 pre-configure:
 	@# Disable building doc as is basically useless here
 	@sed -i '/^SUBDIRS/s/doc//' $(WORKSRC)/Makefile.am
