@@ -3,6 +3,7 @@ GARVERSION = 9.0.0-20160610-0bf42e4
 CATEGORIES = $(CATEGORY)
 MASTER_SITES  = git://anongit.freedesktop.org/git/mesa/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
+PATCHFILES = fix-missing-stddef.h.patch
 LICENSE =
 
 DESCRIPTION = 
