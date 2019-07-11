@@ -259,13 +259,6 @@ INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
 
-ifeq ($(mm_GRAPHICS),vc4)
-CONFIGURE_ARGS += \
-	--extra-cflags="-I$(DESTDIR)$(includedir)/IL" \
-	--extra-cxxflags="-I$(DESTDIR)$(includedir)/IL" \
-	--enable-openmax
-endif
-
 CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
