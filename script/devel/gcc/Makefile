@@ -117,6 +117,7 @@ post-install:
 		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-ranlib),ln -sf $(GARTARGET)-gcc-ranlib $(DESTDIR)$(bindir)/$(GARTARGET)-ranlib) ; \
 	)
 	@# Cross compile.
+	@# Test install with: make install DESTIMG=build CROSSIMG=main
 	@$(if $(filter-out $(DESTIMG),$(CROSSIMG)), \
 		mkdir -p $(DESTDIR)$(prefix)/$(GARHOST)/bin ; \
 		cp $(DESTDIR)$(bindir)/$(GARTARGET)-cpp $(DESTDIR)$(prefix)/$(GARTARGET)/bin/cpp ; \
@@ -125,6 +126,7 @@ post-install:
 		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-nm    ),ln -sf $(GARTARGET)-gcc-nm     $(DESTDIR)$(bindir)/$(GARTARGET)-nm    ) ; \
 		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-ranlib),ln -sf $(GARTARGET)-gcc-ranlib $(DESTDIR)$(bindir)/$(GARTARGET)-ranlib) ; \
 		cp -af $(CROSS_GCC_LIBDIR)/libgomp.so* $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)/ ; \
+		cp -af $(CROSS_GCC_LIBDIR)/libatomic.so* $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)/ ; \
 	)
 	@mkdir -p $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)
 	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libgcc.a         ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
