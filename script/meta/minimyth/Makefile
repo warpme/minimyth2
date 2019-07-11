@@ -172,6 +172,7 @@ DEPENDS = \
 	$(if $(filter ipxe,$(mm_SOFTWARE)),bootloaders/ipxe) \
 	$(if $(filter bootloader,$(mm_SOFTWARE)),bootloaders/bootloader) \
 	$(if $(filter debug,$(mm_SOFTWARE)), \
+		devel/apitrace \
 		devel/gdb \
 		$(if $(filter i386 x86_64,$(GARCH_FAMILY)),devel/strace)) \
 	$(filter-out %/Makefile extras/extras-% extras/extras.%,$(subst ../../,,$(wildcard ../../extras/*))) \
