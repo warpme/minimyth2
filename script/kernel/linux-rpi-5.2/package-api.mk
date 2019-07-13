@@ -1,8 +1,8 @@
 #--Use this for mainline x.y.z kernel-------
-LINUX_MAJOR_VERSION = 5
-LINUX_MINOR_VERSION = 2
-LINUX_TEENY_VERSION = 
-LINUX_EXTRA_VERSION = 
+# LINUX_MAJOR_VERSION = 5
+# LINUX_MINOR_VERSION = 2
+# LINUX_TEENY_VERSION = 
+# LINUX_EXTRA_VERSION = 
 #-------------------------------------------
 
 #--Use this for mainline x.y.z kernel-------
@@ -13,11 +13,11 @@ LINUX_EXTRA_VERSION =
 #-------------------------------------------
 
 #--Use this for mainline git-commit kernel--
-# GITHASH             = 84df9525b0c27f3ebc2ebb1864fa62a97fdedb7d
-# LINUX_MAJOR_VERSION = 4
-# LINUX_MINOR_VERSION = 20
-# LINUX_TEENY_VERSION = 0
-# LINUX_EXTRA_VERSION = 
+GITHASH             = 1a75b37ead9ee99fee6db5525608755a73a5efba
+LINUX_MAJOR_VERSION = 5
+LINUX_MINOR_VERSION = 2
+LINUX_TEENY_VERSION = 0
+LINUX_EXTRA_VERSION = 
 #-------------------------------------------
 
 
