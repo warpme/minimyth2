@@ -1,0 +1,48 @@
+From 19a18d42bf557b8420a55e0fce7be5aec9f8ef8c Mon Sep 17 00:00:00 2001
+From: Jerome Brunet <jbrunet@baylibre.com>
+Date: Mon, 13 May 2019 14:31:14 +0200
+Subject: [PATCH 08/60] clk: meson: eeclk: add init regs
+
+Like the PLL and MPLL, the controller may require some magic setting to
+be applied on startup.
+
+This is needed when the initial setting is not applied by the boot ROM.
+The controller need to do it when the setting applies to several clock,
+like all the MPLLs in the case of g12a.
+
+Signed-off-by: Jerome Brunet <jbrunet@baylibre.com>
+---
+ drivers/clk/meson/meson-eeclk.c | 3 +++
+ drivers/clk/meson/meson-eeclk.h | 2 ++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/drivers/clk/meson/meson-eeclk.c b/drivers/clk/meson/meson-eeclk.c
+index 37a34c9..6ba2094 100644
+--- a/drivers/clk/meson/meson-eeclk.c
++++ b/drivers/clk/meson/meson-eeclk.c
+@@ -34,6 +34,9 @@ int meson_eeclkc_probe(struct platform_device *pdev)
+ 		return PTR_ERR(map);
+ 	}
+ 
++	if (data->init_count)
++		regmap_multi_reg_write(map, data->init_regs, data->init_count);
++
+ 	input = meson_clk_hw_register_input(dev, "xtal", IN_PREFIX "xtal", 0);
+ 	if (IS_ERR(input)) {
+ 		ret = PTR_ERR(input);
+diff --git a/drivers/clk/meson/meson-eeclk.h b/drivers/clk/meson/meson-eeclk.h
+index 1b809b1..9ab5d6f 100644
+--- a/drivers/clk/meson/meson-eeclk.h
++++ b/drivers/clk/meson/meson-eeclk.h
+@@ -17,6 +17,8 @@ struct platform_device;
+ struct meson_eeclkc_data {
+ 	struct clk_regmap *const	*regmap_clks;
+ 	unsigned int			regmap_clk_num;
++	const struct reg_sequence	*init_regs;
++	unsigned int			init_count;
+ 	struct clk_hw_onecell_data	*hw_onecell_data;
+ };
+ 
+-- 
+2.7.1
+
