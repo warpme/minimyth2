@@ -168,6 +168,11 @@ PATCHFILES += 0640-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-roc-p.patch
 PATCHFILES += 0641-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
 endif
 
+# PATCHFILES += 0700-update-demabuf2-for-vc4_services.patch
+PATCHFILES += 0700-videobuf2-Allow-exporting-of-a-struct-dmabuf.patch
+PATCHFILES += 0701-add-vc4_servcies-for-raspberrypi.patch
+
+
 LICENSE = GPL2
 
 DESCRIPTION = 
