@@ -138,7 +138,9 @@ PATCHFILES += 0431-media-rc-add-keymap-for-Tanix-TX3-mini-remote.patch
 PATCHFILES += 0432-media-rc-add-keymap-for-WeTek-Hub-remote.patch
 PATCHFILES += 0433-media-rc-add-keymap-for-WeTeK-Play-2-remote.patch
 PATCHFILES += 0434-ASoC-meson-correct-i2s-error-messages.patch
-PATCHFILES += 0501-drm-panfrost-add-support-for-custom-soft-reset-on-Amlogic-GXM.patch
+PATCHFILES += 0650-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+PATCHFILES += 0651-WIP-drm-panfrost-kernel-driver-fix-1.patch
+PATCHFILES += 0652-WIP-drm-panfrost-kernel-driver-fix-2.patch
 endif
 
 LICENSE = GPL2
