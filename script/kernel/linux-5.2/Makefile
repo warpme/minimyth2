@@ -166,12 +166,14 @@ PATCHFILES += 0638-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-nanop.patch
 PATCHFILES += 0639-arm64-dts-rockchip-Fix-HDMI-audio-on-rk3399-orangepi.patch
 PATCHFILES += 0640-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-roc-p.patch
 PATCHFILES += 0641-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
+PATCHFILES += 0650-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+PATCHFILES += 0651-WIP-drm-panfrost-kernel-driver-fix-1.patch
+PATCHFILES += 0652-WIP-drm-panfrost-kernel-driver-fix-2.patch
 endif
 
-# PATCHFILES += 0700-update-demabuf2-for-vc4_services.patch
+# Patches for rpi v4l2 m2m decder
 PATCHFILES += 0700-videobuf2-Allow-exporting-of-a-struct-dmabuf.patch
 PATCHFILES += 0701-add-vc4_servcies-for-raspberrypi.patch
-
 
 LICENSE = GPL2
 
