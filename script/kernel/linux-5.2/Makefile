@@ -138,7 +138,9 @@ PATCHFILES += 0431-media-rc-add-keymap-for-Tanix-TX3-mini-remote.patch
 PATCHFILES += 0432-media-rc-add-keymap-for-WeTek-Hub-remote.patch
 PATCHFILES += 0433-media-rc-add-keymap-for-WeTeK-Play-2-remote.patch
 PATCHFILES += 0434-ASoC-meson-correct-i2s-error-messages.patch
-PATCHFILES += 0501-drm-panfrost-add-support-for-custom-soft-reset-on-Amlogic-GXM.patch
+PATCHFILES += 0435-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+PATCHFILES += 0436-WIP-drm-panfrost-kernel-driver-fix-1.patch
+PATCHFILES += 0437-WIP-drm-panfrost-kernel-driver-fix-2.patch
 endif
 
 # Patches for Rockchip audio support
@@ -166,9 +168,6 @@ PATCHFILES += 0638-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-nanop.patch
 PATCHFILES += 0639-arm64-dts-rockchip-Fix-HDMI-audio-on-rk3399-orangepi.patch
 PATCHFILES += 0640-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-roc-p.patch
 PATCHFILES += 0641-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
-PATCHFILES += 0650-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
-PATCHFILES += 0651-WIP-drm-panfrost-kernel-driver-fix-1.patch
-PATCHFILES += 0652-WIP-drm-panfrost-kernel-driver-fix-2.patch
 endif
 
 # Patches for rpi v4l2 m2m decder
