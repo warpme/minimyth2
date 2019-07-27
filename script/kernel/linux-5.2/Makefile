@@ -138,7 +138,7 @@ PATCHFILES += 0431-media-rc-add-keymap-for-Tanix-TX3-mini-remote.patch
 PATCHFILES += 0432-media-rc-add-keymap-for-WeTek-Hub-remote.patch
 PATCHFILES += 0433-media-rc-add-keymap-for-WeTeK-Play-2-remote.patch
 PATCHFILES += 0434-ASoC-meson-correct-i2s-error-messages.patch
-#PATCHFILES += 0435-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+PATCHFILES += 0435-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0436-WIP-drm-panfrost-kernel-driver-fix-1.patch
 PATCHFILES += 0437-WIP-drm-panfrost-kernel-driver-fix-2.patch
 endif
@@ -191,8 +191,6 @@ PATCHFILES += 0810-net.patch
 PATCHFILES += 0811-WIP-AC20800-EPHY.patch
 PATCHFILES += 0812-add-h6-eachlink-h6mini.patch
 PATCHFILES += 0813-add-h6-qplus.patch
-#PATCHFILES += 0814-H6-add-thermal-zones.patch
-
 PATCHFILES += 0816-thermal-Thermal-sensor-driver-for-Allwinner-H6.patch
 PATCHFILES += 0818-arm64-dts-allwinner-h6-Add-thermal-sensor-DTS-nodes.patch
 PATCHFILES += 0819-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
