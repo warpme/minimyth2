@@ -138,7 +138,7 @@ PATCHFILES += 0431-media-rc-add-keymap-for-Tanix-TX3-mini-remote.patch
 PATCHFILES += 0432-media-rc-add-keymap-for-WeTek-Hub-remote.patch
 PATCHFILES += 0433-media-rc-add-keymap-for-WeTeK-Play-2-remote.patch
 PATCHFILES += 0434-ASoC-meson-correct-i2s-error-messages.patch
-PATCHFILES += 0435-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+#PATCHFILES += 0435-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0436-WIP-drm-panfrost-kernel-driver-fix-1.patch
 PATCHFILES += 0437-WIP-drm-panfrost-kernel-driver-fix-2.patch
 endif
@@ -171,8 +171,36 @@ PATCHFILES += 0641-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
 endif
 
 # Patches for rpi v4l2 m2m decder
+ifeq (1,1)
 PATCHFILES += 0700-videobuf2-Allow-exporting-of-a-struct-dmabuf.patch
 PATCHFILES += 0701-add-vc4_servcies-for-raspberrypi.patch
+endif
+
+# Patches to support allwinner H6
+# https://github.com/jernejsk/LibreELEC.tv/tree/tanix-tx6/projects/Allwinner/devices/H6/patches/linux
+ifeq (1,1)
+PATCHFILES += 0801-add-mali-node.patch
+PATCHFILES += 0802-allow-changing-gpu-parent-rate.patch
+PATCHFILES += 0804-dma.patch
+PATCHFILES += 0805-sound-hack.patch
+#PATCHFILES += 0806-10-bit-HEVC-hack.patch
+PATCHFILES += 0807-opi3.patch
+PATCHFILES += 0808-arm64-dts-allwinner-OrangePiOnePlus-updates.patch
+PATCHFILES += 0809-Tanix-TX6-WIP.patch
+PATCHFILES += 0810-net.patch
+PATCHFILES += 0811-WIP-AC20800-EPHY.patch
+PATCHFILES += 0812-add-h6-eachlink-h6mini.patch
+PATCHFILES += 0813-add-h6-qplus.patch
+#PATCHFILES += 0814-H6-add-thermal-zones.patch
+
+PATCHFILES += 0816-thermal-Thermal-sensor-driver-for-Allwinner-H6.patch
+PATCHFILES += 0818-arm64-dts-allwinner-h6-Add-thermal-sensor-DTS-nodes.patch
+PATCHFILES += 0819-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
+PATCHFILES += 0820-arm64-dts-allwinner-h6-Add-CPU-Operating-Performance.patch
+PATCHFILES += 0821-Use-the-OPP-table-for-the-worst-bin.patch
+PATCHFILES += 0824-clk-sunxi-ng-sun50i-h6-r-Fix-incorrect-W1-clock-gate.patch
+PATCHFILES += 0826-Add-mali-GPU-supply-for-H6-boards.patch
+endif
 
 LICENSE = GPL2
 
@@ -209,11 +237,6 @@ configure-custom:
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) oldconfig
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) clean
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) prepare
-	$(warning Kernel will be build with following cmd line:$(BUILD_ARGS))
-	$(warning LINUX_MAKE_ARGS: $(LINUX_MAKE_ARGS))
-	$(warning LINUX_MAKE_ENV: $(LINUX_MAKE_ENV))
-	$(warning LDFLAGS: $(LDFLAGS))
-	$(warning main_LDFLAGS: $(main_LDFLAGS))
 	@$(MAKECOOKIE)
 
 build-custom:
