@@ -16,7 +16,7 @@
 GITHASH             = c41299dd017028cfd2b3c1bb4c99de5a5c698916
 LINUX_MAJOR_VERSION = 5
 LINUX_MINOR_VERSION = 2
-LINUX_TEENY_VERSION = 1
+LINUX_TEENY_VERSION = 2
 LINUX_EXTRA_VERSION = 
 #-------------------------------------------
 
