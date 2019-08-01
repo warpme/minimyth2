@@ -7,6 +7,9 @@ DESCRIPTION =
 define BLURB
 endef
 
+BUILDDEPS = \
+	utils/rsync \
+
 include ../../minimyth.conf.mk
 
 ifneq (,$(filter %5.2,$(mm_KERNEL_VERSION)))
