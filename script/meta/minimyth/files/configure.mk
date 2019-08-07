@@ -27,6 +27,7 @@ MM_INIT_START_PARALLEL := \
     extras \
     game \
     cpu \
+    swap \
     telnet \
     ssh_server \
     avahi \
@@ -50,6 +51,7 @@ MM_INIT_KILL := \
     ssh_server \
     telnet \
     media \
+    swap \
     cpu \
     log \
     modules_manual \
