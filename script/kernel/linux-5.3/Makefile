@@ -24,6 +24,19 @@ PATCHFILES += linux-5.3-defaults.patch
 PATCHFILES += linux-5.3-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.3-net-smsc95xx-allow-mac-address-as-param.patch
 
+# fix for panfrost power bug in amlogic gxm
+ifeq (1,1)
+PATCHFILES += 0100-iommu-Fix-alloc_io_pgtable_ops-for-ARM_MALI_LPAE-on-.patch
+PATCHFILES += 0101-fix-io-alloc-for-non-48bit.patch
+PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+# Some Lima fixes
+PATCHFILES += 0103-drm-lima-Mark-64-bit-number-as-ULL.patch
+PATCHFILES += 0104-drm-lima-Reduce-the-amount-of-logs-on-deferred-probe.patch
+PATCHFILES += 0105-drm-lima-Reduce-number-of-PTR_ERR-calls.patch
+PATCHFILES += 0106-drm-lima-Reduce-the-amount-of-logs-on-deferred-probe.patch
+PATCHFILES += 0107-drm-lima-drop-DRM_AUTH-usage-from-the-driver.patch
+endif
+
 # Generic HDMI audio patches for dw-hdmi controller
 PATCHFILES += 0201-drm-dw-hdmi-extract-dw_hdmi_connector_update_edid.patch
 PATCHFILES += 0202-drm-dw-hdmi-move-dw_hdmi_connector_detect.patch
@@ -51,10 +64,6 @@ PATCHFILES += 0305-ARM64-dts-meson-gx-add-audio-controller-nodes.patch
 PATCHFILES += 0306-snd-meson-activate-HDMI-audio-path.patch
 PATCHFILES += 0307-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
 PATCHFILES += 0308-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
-# fix for panfrost power bug in amlogic gxm
-PATCHFILES += 0320-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
-PATCHFILES += 0321-WIP-drm-panfrost-kernel-driver-fix-1.patch
-PATCHFILES += 0322-WIP-drm-panfrost-kernel-driver-fix-2.patch
 
 # ROCKCHIP speciffic patches to enable hdmi audio
 PATCHFILES += 0400-arm64-dts-rockchip-add-HDMI-sound-node-for-rk3328-ro.patch
@@ -70,24 +79,47 @@ PATCHFILES += 0408-arm64-dts-rockchip-Fix-HDMI-audio-on-rk3399-orangepi.patch
 PATCHFILES += 0409-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-roc-p.patch
 PATCHFILES += 0410-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
 
-# Allwinner H6 patches
-PATCHFILES += 0800-Add-AC200-EPHY-support.patch
-#PATCHFILES += 0800-ASoC-sun4i-i2s-multichannel-updates.patch
-#PATCHFILES += 0801-ASoC-sun4i-i2s-multichannel-updates-fixes.patch
-PATCHFILES += 0802-ccu-sun50i-h6-allow-changing-gpu-parent-rate.patch
-PATCHFILES += 0803-sun50i-h6-add-mali-node.patch
-PATCHFILES += 0805-sun50i-h6-sound-hack.patch
-PATCHFILES += 0807-add-orange-pi-3.patch
-PATCHFILES += 0808-arm64-dts-allwinner-OrangePiOnePlus-updates.patch
-PATCHFILES += 0809-arm64-dts-allwinner-add-Tanix-TX6-WIP.patch
-PATCHFILES += 0812-arm64-dts-allwinner-add-h6-eachlink-h6mini.patch
-PATCHFILES += 0813-arm64-dts-allwinner-add-h6-qplus.patch
-PATCHFILES += 0816-thermal-Thermal-sensor-driver-for-Allwinner-H6.patch
-PATCHFILES += 0818-arm64-dts-allwinner-h6-Add-thermal-sensor-DTS-nodes.patch
-PATCHFILES += 0819-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
-PATCHFILES += 0820-arm64-dts-allwinner-h6-Add-CPU-Operating-Performance.patch
-PATCHFILES += 0821-Use-the-OPP-table-for-the-worst-bin.patch
-PATCHFILES += 0826-Add-mali-GPU-supply-for-H6-boards.patch
+# Allwinner H6 patches for OrangePi 3 support
+# https://github.com/megous/linux/commits/opi3-5.3
+PATCHFILES += 0801-rtc-sun6i-Add-support-for-H6-RTC.patch
+PATCHFILES += 0802-arm64-dts-sun50i-h6-Add-support-for-RTC-and-fix-the-.patch
+PATCHFILES += 0803-dt-bindings-Add-compatible-for-H6-RTC.patch
+PATCHFILES += 0804-drm-Remove-redundant-of_device_is_available-check.patch
+PATCHFILES += 0805-arm64-dts-allwinner-orange-pi-3-Enable-ethernet.patch
+PATCHFILES += 0806-dt-bindings-display-hdmi-connector-Support-DDC-bus-e.patch
+PATCHFILES += 0807-drm-sun4i-Add-support-for-enabling-DDC-I2C-bus-to-su.patch
+PATCHFILES += 0808-arm64-dts-allwinner-orange-pi-3-Enable-HDMI-output.patch
+PATCHFILES += 0809-arm64-dts-allwinner-orange-pi-3-Enable-WiFi.patch
+PATCHFILES += 0810-bluetooth-hci_bcm-Give-more-time-to-come-out-of-rese.patch
+PATCHFILES += 0811-arm64-dts-allwinner-h6-Add-pin-configs-for-uart1.patch
+PATCHFILES += 0812-arm64-dts-allwinner-orange-pi-3-Enable-UART1-Bluetoo.patch
+PATCHFILES += 0813-phy-allwinner-add-phy-driver-for-USB3-PHY-on-Allwinn.patch
+PATCHFILES += 0814-thermal-Thermal-sensor-driver-for-Allwinner-H6.patch
+PATCHFILES += 0815-arm64-dts-allwinner-h6-add-USB3-device-nodes.patch
+PATCHFILES += 0816-arm64-dts-allwinner-h6-Add-thermal-sensor-DTS-nodes.patch
+PATCHFILES += 0817-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
+PATCHFILES += 0818-arm64-dts-allwinner-h6-Add-CPU-Operating-Performance.patch
+PATCHFILES += 0819-Use-the-OPP-table-for-the-worst-bin.patch
+PATCHFILES += 0820-arm64-dts-allwinner-orange-pi-3-Enable-USB-3.0-host-.patch
+PATCHFILES += 0821-bluetooth-bcm-Add-support-for-loading-firmware-for-B.patch
+PATCHFILES += 0822-drm-sun8i-Drop-reference-to-connector_pdev.patch
+PATCHFILES += 0823-Fix-reboot-issue-with-ethernet-on-Orange-Pi-3.patch
+PATCHFILES += 0824-Even-more-BT-delay.patch
+PATCHFILES += 0825-regulator-axp20x-fix-DCDCA-and-DCDCD-for-AXP806.patch
+PATCHFILES += 0826-arm64-dts-allwinner-Add-ARM-Mali-GPU-node-for-H6.patch
+PATCHFILES += 0827-arm64-dts-allwinner-Add-mali-GPU-supply-for-H6-board.patch
+PATCHFILES += 0828-net-brcmfmac-Fix-missing-policy-on-brcmf_vendor_cmds.patch
+PATCHFILES += 0830-net-stmmac-Do-not-cut-down-1G-modes.patch
+PATCHFILES += 0832-arm64-dts-allwinner-Add-GPU-operating-points-for-H6.patch
+PATCHFILES += 0833-net-stmmac-RX-Descriptors-need-to-be-clean-before-se.patch
+PATCHFILES += 0834-net-stmmac-Use-kcalloc-instead-of-kmalloc_array.patch
+# Allwinner H6 support various patches
+PATCHFILES += 0850-Add-AC200-EPHY-support.patch
+PATCHFILES += 0851-arm64-dts-allwinner-OrangePiOnePlus-updates.patch
+PATCHFILES += 0852-arm64-dts-allwinner-add-Tanix-TX6-WIP.patch
+PATCHFILES += 0853-arm64-dts-allwinner-add-h6-eachlink-h6mini.patch
+PATCHFILES += 0854-arm64-dts-allwinner-add-h6-qplus.patch
+PATCHFILES += 0856-sun50i-h6-sound-hack.patch
 
 LICENSE = GPL2
 
