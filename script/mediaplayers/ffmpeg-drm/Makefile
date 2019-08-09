@@ -1,6 +1,6 @@
 
 GARNAME      = test-ffmpeg-drm
-GARVERSION   = 883d97f72f208e4d0008a8d8bb6d688c09609fb8
+GARVERSION   = ba4a0e8563e097eafc29dee4343286191e227419
 MASTER_SITES = https://github.com/Elyotna/ffmpeg-drm/archive/
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/ffmpeg-drm-$(GARVERSION)
@@ -36,6 +36,6 @@ install-custom:
 	@cp -rf $(WORKSRC)/ffmpeg-drm $(DESTDIR)$(bindir)/ffmpeg-drm
 	@echo '# echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@echo '# ffmpeg-drm --video $$1 --codec h264_v4l2m2m --width $$2 --height $$3' >> $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
-	@echo 'ffmpeg-drm  --video /usr/local/share/h264.FVDO_Freeway_720p.264 --codec h264_v4l2m2m --disable-plane 34 --width 1280 --height 720' >> $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
+	@echo 'ffmpeg-drm  --video /usr/local/share/h264.FVDO_Freeway_720p.264 --codec h264_v4l2m2m --width 1280 --height 720' >> $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@chmod +x $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@$(MAKECOOKIE)
