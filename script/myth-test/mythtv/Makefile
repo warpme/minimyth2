@@ -67,8 +67,7 @@ PATCHFILES += 0211-decrease-minQt-ver-to-4.8-render2019.patch
 PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 
-# Allows to switch mythfrontend to use OpenGL ES (system and Qt5 must provide GLESv2!)
-#PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
+PATCHFILES += 0214-disable-v4l2-decoder-checks.patch
 
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
