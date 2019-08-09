@@ -24,70 +24,18 @@ PATCHFILES += linux-5.2-defaults.patch
 PATCHFILES += linux-5.2-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.2-net-smsc95xx-allow-mac-address-as-param.patch
 
-# Patches for baseline kernel from https://github.com/superna9999/linux/commits/amlogic/v5.2/misc-fixes
-ifeq (1,1)
-PATCHFILES += 0003-clk-meson-mpll-properly-handle-spread-spectrum.patch
-PATCHFILES += 0004-clk-meson-gxbb-no-spread-spectrum-on-mpll0.patch
-PATCHFILES += 0005-clk-meson-axg-spread-spectrum-is-on-mpll2.patch
-PATCHFILES += 0006-clk-meson-mpll-add-init-callback-and-regs.patch
-PATCHFILES += 0007-clk-meson-g12a-add-mpll-register-init-sequences.patch
-PATCHFILES += 0008-clk-meson-eeclk-add-init-regs.patch
-PATCHFILES += 0009-clk-meson-g12a-add-controller-register-init.patch
-PATCHFILES += 0010-arm64-dts-meson-g12a-Add-PWM-nodes.patch
-PATCHFILES += 0011-arm64-dts-meson-g12a-Add-IR-nodes.patch
-PATCHFILES += 0012-arm64-dts-meson-g12a-x96-max-enable-IR-decoder.patch
-PATCHFILES += 0013-arm64-dts-meson-g12a-u200-enable-IR-decoder.patch
-PATCHFILES += 0014-arm64-dts-meson-libretech-cc-set-eMMC-as-removable.patch
-PATCHFILES += 0015-arm64-dts-meson-libretech-cc-switch-eMMC-to-1.8v.patch
-PATCHFILES += 0016-arm64-dts-meson-fix-mmc-pin-bias.patch
-PATCHFILES += 0017-arm64-dts-meson-fix-mmc-v2-chips-max-frequencies.patch
-PATCHFILES += 0018-arm64-dts-meson-vim2-add-missing-clk-gate-pinctrl.patch
-PATCHFILES += 0019-arm64-dts-meson-vim2-remove-sd-hs-and-hs400-modes-fr.patch
-PATCHFILES += 0020-arm64-dts-meson-sei510-consistently-order-nodes.patch
-PATCHFILES += 0021-arm64-dts-meson-u200-consistently-order-nodes.patch
-PATCHFILES += 0022-arm64-dts-amlogic-remove-ethernet-phy-idAAAA.BBBB-co.patch
-PATCHFILES += 0023-arm64-dts-meson-nanopi-k2-add-sd-DDR50.patch
-PATCHFILES += 0024-arm64-dts-meson-odroid-c2-add-missing-mmc-modes.patch
-PATCHFILES += 0025-arm64-dts-meson-g12a-add-mmc-nodes.patch
-PATCHFILES += 0026-arm64-dts-meson-u200-add-sd-and-emmc.patch
-PATCHFILES += 0027-arm64-dts-meson-sei510-add-sd-and-emmc.patch
-PATCHFILES += 0028-arm64-dts-meson-g12a-set-uart_ao-clocks.patch
-PATCHFILES += 0029-arm64-dts-meson-g12a-add-i2c-nodes.patch
-PATCHFILES += 0030-arm64-dts-meson-u200-enable-i2c-busses.patch
-PATCHFILES += 0031-arm64-dts-meson-sei510-enable-i2c3.patch
-PATCHFILES += 0032-arm64-dts-meson-g12a-add-audio-clock-controller.patch
-PATCHFILES += 0033-arm64-dts-meson-g12a-add-audio-memory-arbitrer.patch
-PATCHFILES += 0034-arm64-dts-meson-g12a-add-audio-fifos.patch
-PATCHFILES += 0035-arm64-dts-meson-g12a-add-tdm.patch
-PATCHFILES += 0036-arm64-dts-meson-g12a-add-spdifouts.patch
-PATCHFILES += 0037-arm64-dts-meson-g12a-add-pdm.patch
-PATCHFILES += 0038-arm64-dts-meson-g12a-add-spdifin.patch
-PATCHFILES += 0039-arm64-dts-meson-g12a-enable-hdmi_tx-sound-dai-provid.patch
-PATCHFILES += 0040-dt-bindings-arm-amlogic-Move-amlogic-meson-gx-ao-sec.patch
-PATCHFILES += 0041-dt-bindings-arm-Convert-Amlogic-board-soc-bindings-t.patch
-PATCHFILES += 0042-arm64-dts-meson-sei510-add-bluetooth-supplies.patch
-PATCHFILES += 0043-arm64-dts-meson-g12a-add-tohdmitx.patch
-PATCHFILES += 0044-arm64-dts-meson-g12a-add-ethernet-mac-controller.patch
-PATCHFILES += 0045-arm64-dts-meson-g12a-add-ethernet-pinctrl-definition.patch
-PATCHFILES += 0046-arm64-dts-meson-g12a-add-mdio-multiplexer.patch
-PATCHFILES += 0047-arm64-dts-meson-u200-add-internal-network.patch
-PATCHFILES += 0048-arm64-dts-meson-sei510-add-network-support.patch
-PATCHFILES += 0049-arm64-dts-meson-g12a-add-drive-strength-hdmi-ddc-pin.patch
-PATCHFILES += 0050-arm64-dts-meson-g12a-add-drive-strength-for-eth-pins.patch
-PATCHFILES += 0051-arm64-dts-meson-gxm-khadas-vim2-fix-gpio-keys-polled.patch
-PATCHFILES += 0052-arm64-dts-meson-gxm-khadas-vim2-fix-Bluetooth-suppor.patch
-PATCHFILES += 0053-arm64-dts-meson-gxbb-wetek-enable-SARADC.patch
-PATCHFILES += 0054-arm64-dts-meson-gxbb-wetek-enable-bluetooth.patch
-PATCHFILES += 0055-arm64-dts-meson-gxbb-vega-s95-fix-regulators.patch
-PATCHFILES += 0056-arm64-dts-meson-gxbb-vega-s95-add-HDMI-nodes.patch
-PATCHFILES += 0057-arm64-dts-meson-gxbb-vega-s95-enable-CEC.patch
-PATCHFILES += 0058-arm64-dts-meson-gxbb-vega-s95-enable-SARADC.patch
-PATCHFILES += 0059-arm64-dts-meson-gxbb-vega-s95-fix-WiFi-BT-module-sup.patch
-PATCHFILES += 0060-arm64-dts-meson-gxbb-vega-s95-add-ethernet-PHY-inter.patch
-endif
+# fix for panfrost power bug in amlogic gxm
+PATCHFILES += 0000-iommu-Fix-alloc_io_pgtable_ops-for-ARM_MALI_LPAE-on-.patch
+PATCHFILES += 0001-fix-io-alloc-for-non-48bit.patch
+PATCHFILES += 0002-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+# Some Lima fixes
+PATCHFILES += 0003-drm-lima-Mark-64-bit-number-as-ULL.patch
+PATCHFILES += 0004-drm-lima-Reduce-the-amount-of-logs-on-deferred-probe.patch
+PATCHFILES += 0005-drm-lima-Reduce-number-of-PTR_ERR-calls.patch
+PATCHFILES += 0006-drm-lima-Reduce-the-amount-of-logs-on-deferred-probe.patch
+PATCHFILES += 0007-drm-lima-drop-DRM_AUTH-usage-from-the-driver.patch
 
-# Misc patches for Amlogic Vdec
-ifeq (1,1)
+# Add Amlogic HW video decorer support
 PATCHFILES += 0101-dt-bindings-media-add-Amlogic-Video-Decoder-Bindings.patch
 PATCHFILES += 0102-media-videodev2-add-V4L2_FMT_FLAG_FIXED_RESOLUTION.patch
 PATCHFILES += 0103-media-meson-add-v4l2-m2m-video-decoder-driver.patch
@@ -105,100 +53,91 @@ PATCHFILES += 0114-media-meson-vdec-add-VP9-support.patch
 PATCHFILES += 0115-media-meson-vdec-add-g12a-platform.patch
 PATCHFILES += 0116-media-meson-vp9-add-IOMMU-support.patch
 PATCHFILES += 0117-arm64-dts-meson-g12a-add-video-decoder-node.patch
-endif
 
-# Misc patches for Amlogic Audio
-ifeq (1,1)
-PATCHFILES += 0202-ASoC-meson-add-meson-audio-core-driver.patch
-PATCHFILES += 0203-ASoC-meson-add-register-definitions.patch
-PATCHFILES += 0204-ASoC-meson-add-initial-aiu-i2s-support.patch
-PATCHFILES += 0205-ASoC-meson-add-initial-spdif-support.patch
-PATCHFILES += 0207-ARM64-dts-meson-gx-add-audio-controller-nodes.patch
-PATCHFILES += 0208-snd-meson-activate-HDMI-audio-path.patch
-PATCHFILES += 0209-drm-meson-select-dw-hdmi-i2s-audio-for-meson-hdmi.patch
-PATCHFILES += 0210-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
-PATCHFILES += 0211-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
-PATCHFILES += 0212-drm-bridge-dw-hdmi-Use-AUTO-CTS-setup-mode-when-non-.patch
-PATCHFILES += 0213-drm-bridge-dw-hdmi-support-dynamically-get-input-out.patch
-endif
+# Generic HDMI audio patches for dw-hdmi controller
+PATCHFILES += 0201-drm-dw-hdmi-extract-dw_hdmi_connector_update_edid.patch
+PATCHFILES += 0202-drm-dw-hdmi-move-dw_hdmi_connector_detect.patch
+PATCHFILES += 0203-drm-dw-hdmi-update-CEC-phys-addr-and-EDID-on-HPD-eve.patch
+PATCHFILES += 0204-Revert-drm-edid-make-drm_edid_to_eld-static.patch
+PATCHFILES += 0205-drm-dw-hdmi-update-ELD-on-HPD-event.patch
+PATCHFILES += 0206-ASoC-hdmi-codec-add-hdmi_codec_eld_notify.patch
+PATCHFILES += 0207-drm-dw-hdmi-add-dw_hdmi_update_eld-callback.patch
+PATCHFILES += 0208-drm-dw-hdmi-i2s-add-.get_eld-callback-for-ALSA-SoC.patch
+PATCHFILES += 0209-drm-bridge-dw-hdmi-Use-AUTO-CTS-setup-mode-when-non-.patch
+PATCHFILES += 0210-ASoC-hdmi-codec-reorder-channel-allocation-list.patch
+PATCHFILES += 0211-drm-dw-hdmi-i2s-add-multi-channel-lpcm-support.patch
+PATCHFILES += 0212-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-enabl.patch
+PATCHFILES += 0214-ASoC-hdmi-codec-fix-chmap-idx.patch
+PATCHFILES += 0215-WIP-dw-hdmi-cec-sleep-100ms-on-error.patch
 
-# Misc patches for AmLogic
-# https://github.com/kszaq/LibreELEC.tv/tree/amlogic/packages/linux/patches/amlogic-amlgx
-ifeq (1,1)
-PATCHFILES += 0401-HACK-set-cma-pool-to-896MB.patch
-PATCHFILES += 0403-HACK-silence-PFNs-busy-log-spam.patch
-PATCHFILES += 0404-HACK-silence-meson-ir-warn-once-log-spam.patch
-PATCHFILES += 0405-HACK-silence-hrtimer-log-spam.patch
-PATCHFILES += 0406-HACK-Bluetooth-Fix-spurious-error-message.patch
-PATCHFILES += 0427-media-rc-add-keymap-for-HardKernel-ODROID-remote.patch
-PATCHFILES += 0428-media-rc-add-keymap-for-Khadas-VIM-EDGE-remote.patch
-PATCHFILES += 0429-media-rc-add-keymap-for-KHAMSIN-remote.patch
-PATCHFILES += 0430-media-rc-add-keymap-for-Philips-RC242-remote.patch
-PATCHFILES += 0431-media-rc-add-keymap-for-Tanix-TX3-mini-remote.patch
-PATCHFILES += 0432-media-rc-add-keymap-for-WeTek-Hub-remote.patch
-PATCHFILES += 0433-media-rc-add-keymap-for-WeTeK-Play-2-remote.patch
-PATCHFILES += 0434-ASoC-meson-correct-i2s-error-messages.patch
-PATCHFILES += 0435-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
-PATCHFILES += 0436-WIP-drm-panfrost-kernel-driver-fix-1.patch
-PATCHFILES += 0437-WIP-drm-panfrost-kernel-driver-fix-2.patch
-endif
+# Amlogic speciffic patches to enable hdmi audio
+PATCHFILES += 0301-ASoC-meson-add-meson-audio-core-driver.patch
+PATCHFILES += 0302-ASoC-meson-add-register-definitions.patch
+PATCHFILES += 0303-ASoC-meson-add-initial-aiu-i2s-support.patch
+PATCHFILES += 0304-ASoC-meson-add-initial-spdif-support.patch
+PATCHFILES += 0305-ARM64-dts-meson-gx-add-audio-controller-nodes.patch
+PATCHFILES += 0306-snd-meson-activate-HDMI-audio-path.patch
+PATCHFILES += 0307-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
+PATCHFILES += 0308-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
 
-# Patches for Rockchip audio support
-ifeq (1,1)
-PATCHFILES += 0615-arm64-dts-rockchip-add-HDMI-sound-node-for-rk3328-ro.patch
-PATCHFILES += 0616-drm-dw-hdmi-extract-dw_hdmi_connector_update_edid.patch
-PATCHFILES += 0617-drm-dw-hdmi-move-dw_hdmi_connector_detect.patch
-PATCHFILES += 0618-drm-dw-hdmi-update-CEC-phys-addr-and-EDID-on-HPD-eve.patch
-PATCHFILES += 0619-Revert-drm-edid-make-drm_edid_to_eld-static.patch
-PATCHFILES += 0620-drm-dw-hdmi-update-ELD-on-HPD-event.patch
-PATCHFILES += 0621-ASoC-hdmi-codec-add-hdmi_codec_eld_notify.patch
-PATCHFILES += 0625-ASoC-hdmi-codec-reorder-channel-allocation-list.patch
-PATCHFILES += 0626-drm-dw-hdmi-i2s-add-multi-channel-lpcm-support.patch
-PATCHFILES += 0627-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-enabl.patch
-PATCHFILES += 0628-fix-chmap_idx.patch
-PATCHFILES += 0629-ASoC-rockchip-i2s-use-closest-clock-rate.patch
-PATCHFILES += 0630-HACK-arm64-dts-rockchip-update-gpu-node-on-rk3328-ro.patch
-PATCHFILES += 0631-HACK-arm64-dts-rockchip-remove-acodec-dai-on-rk3328-.patch
-PATCHFILES += 0632-HACK-arm64-dts-rockchip-split-sound-node-on-rk3328-r.patch
-PATCHFILES += 0634-WIP-dw-hdmi-cec-sleep-100ms-on-error.patch
-PATCHFILES += 0635-WIP-arm64-dts-rockchip-work-in-progress-on-rk3328-ro.patch
-PATCHFILES += 0636-HACK-arm64-dts-rockchip-rename-hdmi-sound-card-on-rk.patch
-PATCHFILES += 0637-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-rock-.patch
-PATCHFILES += 0638-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-nanop.patch
-PATCHFILES += 0639-arm64-dts-rockchip-Fix-HDMI-audio-on-rk3399-orangepi.patch
-PATCHFILES += 0640-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-roc-p.patch
-PATCHFILES += 0641-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
-endif
+# ROCKCHIP speciffic patches to enable hdmi audio
+PATCHFILES += 0400-arm64-dts-rockchip-add-HDMI-sound-node-for-rk3328-ro.patch
+PATCHFILES += 0401-ASoC-rockchip-i2s-use-closest-clock-rate.patch
+PATCHFILES += 0402-HACK-arm64-dts-rockchip-update-gpu-node-on-rk3328-ro.patch
+PATCHFILES += 0403-HACK-arm64-dts-rockchip-remove-acodec-dai-on-rk3328-.patch
+PATCHFILES += 0404-HACK-arm64-dts-rockchip-split-sound-node-on-rk3328-r.patch
+PATCHFILES += 0405-WIP-arm64-dts-rockchip-work-in-progress-on-rk3328-ro.patch
+PATCHFILES += 0406-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-rock-.patch
+PATCHFILES += 0406-HACK-arm64-dts-rockchip-rename-hdmi-sound-card-on-rk.patch
+PATCHFILES += 0407-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-nanop.patch
+PATCHFILES += 0408-arm64-dts-rockchip-Fix-HDMI-audio-on-rk3399-orangepi.patch
+PATCHFILES += 0409-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-roc-p.patch
+PATCHFILES += 0410-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
 
-# Patches for rpi v4l2 m2m decder
-ifeq (1,1)
-PATCHFILES += 0700-videobuf2-Allow-exporting-of-a-struct-dmabuf.patch
-PATCHFILES += 0701-add-vc4_servcies-for-raspberrypi.patch
-endif
-
-# Patches to support allwinner H6
-# https://github.com/jernejsk/LibreELEC.tv/tree/tanix-tx6/projects/Allwinner/devices/H6/patches/linux
-ifeq (1,1)
-PATCHFILES += 0801-add-mali-node.patch
-PATCHFILES += 0802-allow-changing-gpu-parent-rate.patch
-PATCHFILES += 0804-dma.patch
-PATCHFILES += 0805-sound-hack.patch
-#PATCHFILES += 0806-10-bit-HEVC-hack.patch
-PATCHFILES += 0807-opi3.patch
-PATCHFILES += 0808-arm64-dts-allwinner-OrangePiOnePlus-updates.patch
-PATCHFILES += 0809-Tanix-TX6-WIP.patch
-PATCHFILES += 0810-net.patch
-PATCHFILES += 0811-WIP-AC20800-EPHY.patch
-PATCHFILES += 0812-add-h6-eachlink-h6mini.patch
-PATCHFILES += 0813-add-h6-qplus.patch
+# Allwinner H6 patches for OrangePi 3 support
+# https://github.com/megous/linux/commits/opi3-5.2
+PATCHFILES += 0801-rtc-sun6i-Add-support-for-H6-RTC.patch
+PATCHFILES += 0802-arm64-dts-sun50i-h6-Add-support-for-RTC-and-fix-the-.patch
+PATCHFILES += 0803-dt-bindings-Add-compatible-for-H6-RTC.patch
+PATCHFILES += 0804-drm-Remove-redundant-of_device_is_available-check.patch
+PATCHFILES += 0805-net-stmmac-sun8i-add-support-for-Allwinner-H6-EMAC.patch
+PATCHFILES += 0807-arm64-dts-allwinner-orange-pi-3-Enable-ethernet.patch
+PATCHFILES += 0808-dt-bindings-display-hdmi-connector-Support-DDC-bus-e.patch
+PATCHFILES += 0809-drm-sun4i-Add-support-for-enabling-DDC-I2C-bus-to-su.patch
+PATCHFILES += 0810-arm64-dts-allwinner-orange-pi-3-Enable-HDMI-output.patch
+PATCHFILES += 0811-arm64-dts-allwinner-orange-pi-3-Enable-WiFi.patch
+PATCHFILES += 0812-bluetooth-hci_bcm-Give-more-time-to-come-out-of-rese.patch
+PATCHFILES += 0813-arm64-dts-allwinner-h6-Add-pin-configs-for-uart1.patch
+PATCHFILES += 0814-arm64-dts-allwinner-orange-pi-3-Enable-UART1-Bluetoo.patch
+PATCHFILES += 0815-phy-allwinner-add-phy-driver-for-USB3-PHY-on-Allwinn.patch
 PATCHFILES += 0816-thermal-Thermal-sensor-driver-for-Allwinner-H6.patch
+PATCHFILES += 0817-arm64-dts-allwinner-h6-add-USB3-device-nodes.patch
 PATCHFILES += 0818-arm64-dts-allwinner-h6-Add-thermal-sensor-DTS-nodes.patch
 PATCHFILES += 0819-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
 PATCHFILES += 0820-arm64-dts-allwinner-h6-Add-CPU-Operating-Performance.patch
 PATCHFILES += 0821-Use-the-OPP-table-for-the-worst-bin.patch
+PATCHFILES += 0822-arm64-dts-allwinner-orange-pi-3-Enable-USB-3.0-host-.patch
 PATCHFILES += 0824-clk-sunxi-ng-sun50i-h6-r-Fix-incorrect-W1-clock-gate.patch
-PATCHFILES += 0826-Add-mali-GPU-supply-for-H6-boards.patch
-endif
+PATCHFILES += 0825-bluetooth-bcm-Add-support-for-loading-firmware-for-B.patch
+PATCHFILES += 0826-drm-sun8i-Drop-reference-to-connector_pdev.patch
+PATCHFILES += 0827-Fix-reboot-issue-with-ethernet-on-Orange-Pi-3.patch
+PATCHFILES += 0828-Even-more-BT-delay.patch
+PATCHFILES += 0829-regulator-axp20x-fix-DCDCA-and-DCDCD-for-AXP806.patch
+# Some generic H6 patches
+PATCHFILES += 0834-arm64-dts-allwinner-Add-ARM-Mali-GPU-node-for-H6.patch
+PATCHFILES += 0835-arm64-dts-allwinner-Add-mali-GPU-supply-for-H6-board.patch
+PATCHFILES += 0838-arm64-dts-allwinner-Add-GPU-operating-points-for-H6.patch
+PATCHFILES += 0839-net-stmmac-RX-Descriptors-need-to-be-clean-before-se.patch
+PATCHFILES += 0856-Add-AC200-EPHY-support.patch
+PATCHFILES += 0857-arm64-dts-allwinner-OrangePiOnePlus-updates.patch
+PATCHFILES += 0858-arm64-dts-allwinner-add-Tanix-TX6-WIP.patch
+PATCHFILES += 0859-arm64-dts-allwinner-add-h6-eachlink-h6mini.patch
+PATCHFILES += 0860-arm64-dts-allwinner-add-h6-qplus.patch
+PATCHFILES += 0861-sun50i-h6-sound-hack.patch
+PATCHFILES += 0862-arm64-allwinner-sunxi5i-allow-changing-gpu-parent-rate.patch
+PATCHFILES += 0863-arm64-allwinner-h6-add-binding-for-DMA-controller.patch
+
+PATCHFILES += 0900-media-rc-add-keymap-for-Tanix-TX3-mini-remote.patch
 
 LICENSE = GPL2
 
