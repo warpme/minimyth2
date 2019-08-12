@@ -70,6 +70,11 @@ PATCHFILES += 0212-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-enabl.patch
 PATCHFILES += 0214-ASoC-hdmi-codec-fix-chmap-idx.patch
 PATCHFILES += 0215-WIP-dw-hdmi-cec-sleep-100ms-on-error.patch
 
+# Amlogic drm-meson crtc support for yuv420 pix format
+PATCHFILES += 0216-drm-bridge-dw-hdmi-support-dynamically-get-input-out.patch
+PATCHFILES += 0217-drm-bridge-dw-hdmi-allow-ycbcr420-modes-for-0x200a.patch
+PATCHFILES += 0218-drm-meson-Add-YUV420-output-support.patch
+
 # Amlogic speciffic patches to enable hdmi audio
 PATCHFILES += 0301-ASoC-meson-add-meson-audio-core-driver.patch
 PATCHFILES += 0302-ASoC-meson-add-register-definitions.patch
