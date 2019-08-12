@@ -53,6 +53,11 @@ PATCHFILES += 0212-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-enabl.patch
 PATCHFILES += 0214-ASoC-hdmi-codec-fix-chmap-idx.patch
 PATCHFILES += 0215-WIP-dw-hdmi-cec-sleep-100ms-on-error.patch
 
+# Amlogic drm-meson crtc support for yuv420 pix format
+PATCHFILES += 0216-drm-bridge-dw-hdmi-support-dynamically-get-input-out.patch
+PATCHFILES += 0217-drm-bridge-dw-hdmi-allow-ycbcr420-modes-for-0x200a.patch
+PATCHFILES += 0218-drm-meson-Add-YUV420-output-support.patch
+
 # Amlogic speciffic patches to enable hdmi audio
 PATCHFILES += 0309-arm64-dts-meson-gx-add-vdec-entry.patch
 PATCHFILES += 0310-arm64-dts-meson-add-vdec-entries.patch
@@ -105,14 +110,10 @@ PATCHFILES += 0821-bluetooth-bcm-Add-support-for-loading-firmware-for-B.patch
 PATCHFILES += 0822-drm-sun8i-Drop-reference-to-connector_pdev.patch
 PATCHFILES += 0823-Fix-reboot-issue-with-ethernet-on-Orange-Pi-3.patch
 PATCHFILES += 0824-Even-more-BT-delay.patch
-PATCHFILES += 0825-regulator-axp20x-fix-DCDCA-and-DCDCD-for-AXP806.patch
 PATCHFILES += 0826-arm64-dts-allwinner-Add-ARM-Mali-GPU-node-for-H6.patch
 PATCHFILES += 0827-arm64-dts-allwinner-Add-mali-GPU-supply-for-H6-board.patch
 PATCHFILES += 0828-net-brcmfmac-Fix-missing-policy-on-brcmf_vendor_cmds.patch
-PATCHFILES += 0830-net-stmmac-Do-not-cut-down-1G-modes.patch
 PATCHFILES += 0832-arm64-dts-allwinner-Add-GPU-operating-points-for-H6.patch
-PATCHFILES += 0833-net-stmmac-RX-Descriptors-need-to-be-clean-before-se.patch
-PATCHFILES += 0834-net-stmmac-Use-kcalloc-instead-of-kmalloc_array.patch
 # Allwinner H6 support various patches
 PATCHFILES += 0850-Add-AC200-EPHY-support.patch
 PATCHFILES += 0851-arm64-dts-allwinner-OrangePiOnePlus-updates.patch
