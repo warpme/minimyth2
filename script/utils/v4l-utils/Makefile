@@ -1,5 +1,5 @@
 GARNAME = v4l-utils
-GARVERSION = 1.16.1
+GARVERSION = 1.16.6
 CATEGORIES = utils
 MASTER_SITES = http://linuxtv.org/downloads/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
