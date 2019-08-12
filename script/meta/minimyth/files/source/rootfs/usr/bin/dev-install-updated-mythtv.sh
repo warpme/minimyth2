@@ -82,10 +82,16 @@ dest="/usr/bin/"
 files_list="mythfrontend mythffmpeg"
 copy_files
 
+echo " "
+echo " "
 echo "  kicking ldconfig..."
 ldconfig
 
+echo "  Restarting mythfrontend..."
+mm_manage restart_mythfrontend
+
 echo "Done..."
+echo " "
 echo " "
 
 exit 0

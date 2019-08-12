@@ -72,8 +72,13 @@ dest="/initrd/rootfs-ro/usr/lib/dri/"
 files_list="armada-drm_dri.so exynos_dri.so hx8357d_dri.so ili9225_dri.so ili9341_dri.so imx-drm_dri.so kms_swrast_dri.so lima_dri.so meson_dri.so mi0283qt_dri.so mxsfb-drm_dri.so panfrost_dri.so pl111_dri.so repaper_dri.so rockchip_dri.so st7586_dri.so st7735r_dri.so stm_dri.so sun4i-drm_dri.so swrast_dri.so v3d_dri.so vc4_dri.so"
 copy_files
 
+echo " "
+echo " "
 echo "  kicking ldconfig..."
 ldconfig
+
+echo "  Restarting xserver..."
+mm_manage restart_xserver
 
 echo "Done..."
 echo " "
