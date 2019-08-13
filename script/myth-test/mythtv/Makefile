@@ -67,8 +67,6 @@ PATCHFILES += 0211-decrease-minQt-ver-to-4.8-render2019.patch
 PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 
-PATCHFILES += 0214-disable-v4l2-decoder-checks.patch
-
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
 PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
