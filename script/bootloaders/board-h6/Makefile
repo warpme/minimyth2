@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-h6
-GARVERSION   = 2019-07-04
+GARVERSION   = 2019-08-13
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
@@ -17,14 +17,14 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = bootloaders/u-boot-h6
+DEPENDS   = bootloaders/u-boot-sunxi
 
 BUILD_SCRIPTS   =
 INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
-export mm_U-BOOT_BOARD_TYPE = eachlink_h6_mini_defconfig
+export mm_U-BOOT_BOARD_TYPE = beelink_gs1_defconfig
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
@@ -33,7 +33,7 @@ install-custom:
 	@cp -f    $(WORKSRC)/h6-boot.txt                                       $(DESTDIR)/boot/boot.txt
 	@#cp -f    $(WORKSRC)/h6-boot.scr                                       $(DESTDIR)/boot/boot.scr
 	@cp -f    $(WORKSRC)/h6-boot-debug.scr                                 $(DESTDIR)/boot/boot.scr
-	@cp -f    $(DESTDIR)/boot/dtbs/allwinner/sun50i-h6-eachlink-h6mini.dtb $(DESTDIR)/boot/h6_dtb
+	@cp -f    $(DESTDIR)/boot/dtbs/allwinner/sun50i-h6-beelink-gs1.dtb     $(DESTDIR)/boot/h6_dtb
 	@$(MAKECOOKIE)
 
 clean-all:
