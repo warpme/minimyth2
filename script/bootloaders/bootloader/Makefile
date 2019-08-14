@@ -45,7 +45,7 @@ endif
 
 ifneq (,$(findstring board-h6,$(mm_BOARD_TYPE)))
 	$(MAKE) clean -C ../arm-trusted-firmware
-	$(MAKE) clean -C ../u-boot-h6
+	$(MAKE) clean -C ../u-boot-sunxi
 	$(MAKE) install -C ../board-h6
 endif
 

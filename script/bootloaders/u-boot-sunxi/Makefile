@@ -1,10 +1,12 @@
 
-GARNAME      = u-boot-h6-20190702
-GARVERSION   = 29c10c7113c8aaeab014c5af98201c92859fefe9
+GARNAME      = u-boot-sunxi-20190812
+GARVERSION   = f96238e253661b43168352010a2628957940bd4b
 CATEGORIES   = kernel
-MASTER_SITES = https://github.com/apritzel/u-boot/archive/
-DISTFILES    = $(GARVERSION).zip
-WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
+MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
+DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
+WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
+
+PATCHFILES = 0001-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
 
 LICENSE = GPL2
 
