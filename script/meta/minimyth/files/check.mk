@@ -191,7 +191,7 @@ mm-all:
 	    [ ! "$(mm_KERNEL_VERSION)" = "rockchip-5.2"  ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rockchip-5.3"  ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rockchip-5.4"  ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "allwinner-5.2" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "allwinner-5.1" ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "allwinner-5.3" ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "allwinner-5.4" ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-4.19"      ] && \
