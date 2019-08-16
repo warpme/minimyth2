@@ -1,9 +1,13 @@
 GARNAME      = mesa
-GARVERSION   = d82854afba257379ac3086fd125fbd2946c5465d
+GARVERSION   = 861c2b8d31ea3abf59062deddbbaeaa51e1583e0
+# https://gitlab.freedesktop.org/enunes/mesa/commits/lima-ppir-dynamic-stack
+# GARVERSION   = d82854afba257379ac3086fd125fbd2946c5465d
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
+
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
+PATCHFILES  += lima-allocate-separate-bo-for-ppir-spill-stack.patch
 
 LICENSE = LGPL2/MIT
 
