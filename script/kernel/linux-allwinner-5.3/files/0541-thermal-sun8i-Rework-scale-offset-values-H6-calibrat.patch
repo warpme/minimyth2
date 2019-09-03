@@ -1,0 +1,192 @@
+From 6115a8d8cd847273ae9ffb028d9b164755dbca67 Mon Sep 17 00:00:00 2001
+From: Ondrej Jirman <megous@megous.com>
+Date: Sun, 1 Sep 2019 03:20:56 +0200
+Subject: [PATCH 11/26] thermal: sun8i: Rework scale/offset values, H6
+ calibration
+
+Makes the code and values easier to understand. Drops dependency
+on calling sun8i_ths_reg2temp from H6 calibration.
+
+Signed-off-by: Ondrej Jirman <megous@megous.com>
+---
+ drivers/thermal/sun8i_thermal.c | 69 +++++++++++++++++----------------
+ 1 file changed, 35 insertions(+), 34 deletions(-)
+
+diff --git a/drivers/thermal/sun8i_thermal.c b/drivers/thermal/sun8i_thermal.c
+index 34b599afb7bb..6d48849b077a 100644
+--- a/drivers/thermal/sun8i_thermal.c
++++ b/drivers/thermal/sun8i_thermal.c
+@@ -24,7 +24,6 @@
+ 
+ #define FT_TEMP_MASK				GENMASK(11, 0)
+ #define TEMP_CALIB_MASK				GENMASK(11, 0)
+-#define TEMP_TO_REG				672
+ #define CALIBRATE_DEFAULT			0x800
+ 
+ #define SUN8I_THS_CTRL0				0x00
+@@ -55,7 +54,9 @@
+ #define SUN50I_H6_THS_DATA_IRQ_STS(x)		BIT(x)
+ 
+ /* millidegree celsius */
+-#define SUN50I_H6_FT_DEVIATION			7000
++#define THS_EFUSE_CP_FT_MASK			0x3000
++#define THS_EFUSE_CP_FT_BIT			12
++#define THS_CALIBRATION_IN_FT			1
+ 
+ struct ths_device;
+ 
+@@ -87,6 +88,7 @@ struct ths_device {
+ 	struct clk				*bus_clk;
+ 	struct clk                              *mod_clk;
+ 	struct tsensor				sensor[MAX_SENSOR_NUM];
++	u32					cp_ft_flag;
+ };
+ 
+ /* Temp Unit: millidegree Celsius */
+@@ -96,7 +98,7 @@ static int sun8i_ths_reg2temp(struct ths_device *tmdev,
+ 	if (tmdev->chip->calc_temp)
+ 		return tmdev->chip->calc_temp(id, reg);
+ 	else
+-		return (reg + tmdev->chip->offset) * tmdev->chip->scale;
++		return tmdev->chip->offset - (reg * tmdev->chip->scale / 10);
+ }
+ 
+ static int sun50i_h5_calc_temp(int id, int reg)
+@@ -113,7 +115,7 @@ static int sun8i_ths_get_temp(void *data, int *temp)
+ {
+ 	struct tsensor *s = data;
+ 	struct ths_device *tmdev = s->tmdev;
+-	int val;
++	int val = 0;
+ 
+ 	regmap_read(tmdev->regmap, tmdev->chip->temp_data_base +
+ 		    0x4 * s->id, &val);
+@@ -124,7 +126,7 @@ static int sun8i_ths_get_temp(void *data, int *temp)
+ 
+ 	*temp = sun8i_ths_reg2temp(tmdev, s->id, val);
+ 	/*
+-	 * XX - According to the original sdk, there are some platforms(rarely)
++	 * According to the original sdk, there are some platforms(rarely)
+ 	 * that add a fixed offset value after calculating the temperature
+ 	 * value. We can't simply put it on the formula for calculating the
+ 	 * temperature above, because the formula for calculating the
+@@ -221,7 +223,7 @@ static int sun50i_h6_ths_calibrate(struct ths_device *tmdev,
+ 				   u16 *caldata, int callen)
+ {
+ 	struct device *dev = tmdev->dev;
+-	int i, ft_temp;
++	int i, ft_temp, ft_reg;
+ 
+ 	if (!caldata[0] || callen < 2 + 2 * tmdev->chip->sensor_num)
+ 		return -EINVAL;
+@@ -238,28 +240,26 @@ static int sun50i_h6_ths_calibrate(struct ths_device *tmdev,
+ 	 * sensor values that are filled during the factory test stage.
+ 	 *
+ 	 * The unit of stored FT temperature is 0.1 degreee celusis.
+-	 * Through the stored ambient temperature and the data read
+-	 * by the sensor, after a certain calculation, the calibration
+-	 * value to be compensated can be obtained.
++	 *
++	 * We need to calculate a delta between measured and caluclated
++	 * register values and this will become a calibration offset.
+ 	 */
+-	ft_temp = caldata[0] & FT_TEMP_MASK;
++	ft_temp = (caldata[0] & FT_TEMP_MASK) * 100;
++	tmdev->cp_ft_flag = (caldata[0] & THS_EFUSE_CP_FT_MASK)
++		>> THS_EFUSE_CP_FT_BIT;
+ 
+ 	for (i = 0; i < tmdev->chip->sensor_num; i++) {
+-		int reg = (int)caldata[i + 1];
+-		int sensor_temp = sun8i_ths_reg2temp(tmdev, i, reg);
+-		int delta, cdata, offset;
++		int sensor_reg = caldata[i + 1];
++		int cdata, offset;
++		int sensor_temp = sun8i_ths_reg2temp(tmdev, i, sensor_reg);
+ 
+ 		/*
+-		 * To calculate the calibration value:
+-		 *
+-		 * X(in Celsius) = Ts - ft_temp
+-		 * delta = X * 10000 / TEMP_TO_REG
+-		 * cdata = CALIBRATE_DEFAULT - delta
+-		 *
+-		 * cdata: calibration value
++		 * Calibration data is CALIBRATE_DEFAULT - (calculated
++		 * temperature from sensor reading at factory temperature
++		 * minus actual factory temperature) * 14.88 (scale from
++		 * temperature to register values)
+ 		 */
+-		delta = (sensor_temp - ft_temp * 100) * 10 / TEMP_TO_REG;
+-		cdata = CALIBRATE_DEFAULT - delta;
++		cdata = CALIBRATE_DEFAULT - ((sensor_temp - ft_temp) * 10 / tmdev->chip->scale);
+ 		if (cdata & ~TEMP_CALIB_MASK) {
+ 			/*
+ 			 * Calibration value more than 12-bit, but calibration
+@@ -268,13 +268,12 @@ static int sun50i_h6_ths_calibrate(struct ths_device *tmdev,
+ 			 * won't be so accurate.
+ 			 */
+ 			dev_warn(dev, "sensor%d is not calibrated.\n", i);
+-
+ 			continue;
+ 		}
+ 
+-		offset = (i % 2) << 4;
++		offset = (i % 2) * 16;
+ 		regmap_update_bits(tmdev->regmap,
+-				   SUN50I_H6_THS_TEMP_CALIB + ((i >> 1) * 4),
++				   SUN50I_H6_THS_TEMP_CALIB + (i / 2 * 4),
+ 				   0xfff << offset,
+ 				   cdata << offset);
+ 	}
+@@ -533,9 +532,11 @@ static int sun8i_ths_remove(struct platform_device *pdev)
+ 
+ static const struct ths_thermal_chip sun8i_h3_ths = {
+ 	.sensor_num = 1,
+-	.offset = -1794,
+-	.scale = -121,
+ 	.has_mod_clk = true,
++
++	// original BSP divs by 8.253 adds 217
++	.scale = 1211,
++	.offset = 217000,
+ 	.temp_data_base = SUN8I_THS_TEMP_DATA,
+ 	.calibrate = sun8i_h3_ths_calibrate,
+ 	.init = sun8i_h3_thermal_init,
+@@ -544,8 +545,8 @@ static const struct ths_thermal_chip sun8i_h3_ths = {
+ 
+ static const struct ths_thermal_chip sun8i_r40_ths = {
+ 	.sensor_num = 3,
+-	.offset = -2222,
+-	.scale = -113,
++	.offset = 251086,
++	.scale = 1130,
+ 	.has_mod_clk = true,
+ 	.temp_data_base = SUN8I_THS_TEMP_DATA,
+ 	.calibrate = sun8i_h3_ths_calibrate,
+@@ -555,8 +556,8 @@ static const struct ths_thermal_chip sun8i_r40_ths = {
+ 
+ static const struct ths_thermal_chip sun50i_a64_ths = {
+ 	.sensor_num = 3,
+-	.offset = -2170,
+-	.scale = -117,
++	.offset = 253890,
++	.scale = 1170,
+ 	.has_mod_clk = true,
+ 	.temp_data_base = SUN8I_THS_TEMP_DATA,
+ 	.calibrate = sun8i_h3_ths_calibrate,
+@@ -576,9 +577,9 @@ static const struct ths_thermal_chip sun50i_h5_ths = {
+ 
+ static const struct ths_thermal_chip sun50i_h6_ths = {
+ 	.sensor_num = 2,
+-	.offset = -2794,
+-	.scale = -67,
+-	.ft_deviation = SUN50I_H6_FT_DEVIATION,
++	.ft_deviation = 7000,
++	.offset = 187744,
++	.scale = 672,
+ 	.temp_data_base = SUN50I_H6_THS_TEMP_DATA,
+ 	.calibrate = sun50i_h6_ths_calibrate,
+ 	.init = sun50i_h6_thermal_init,
+-- 
+2.23.0
+

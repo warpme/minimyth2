@@ -1,0 +1,70 @@
+The RSB controller has two registers for controlling interrupt inputs:
+RSB_INTE, which has bits for each possible interrupt, and the global
+interrupt enable bit in RSB_CTRL.
+
+Currently, we enable the bits in RSB_INTE before each transfer, but this
+is unnecessary because we never disable them. Move the initialization of
+RSB_INTE so it is done only once.
+
+We also set the global interrupt enable bit before each transfer. Unlike
+other bits in RSB_CTRL, this bit is cleared by writing a zero. Thus, we
+clear the bit in the post-timeout cleanup code, so note that in the
+comment.
+
+However, if we do receive an interrupt, we do not clear the bit. Nor do
+we clear interrupt statuses before starting a transfer. Thus, if some
+other driver uses the RSB bus while Linux is suspended (as both Trusted
+Firmware and SCP firmware do to control the PMIC), we receive spurious
+interrupts upon resume. This causes false completion of a transfer, and
+the next transfer starts prematurely, causing a LOAD_BSY condition. The
+end result is that some transfers at resume fail with -EBUSY.
+
+With this patch, all transfers reliably succeed during/after resume.
+
+Signed-off-by: Samuel Holland <samuel@sholland.org>
+---
+ drivers/bus/sunxi-rsb.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/bus/sunxi-rsb.c b/drivers/bus/sunxi-rsb.c
+index be79d6c6a4e4..b8043b58568a 100644
+--- a/drivers/bus/sunxi-rsb.c
++++ b/drivers/bus/sunxi-rsb.c
+@@ -274,7 +274,7 @@ static int _sunxi_rsb_run_xfer(struct sunxi_rsb *rsb)
+ 	reinit_completion(&rsb->complete);
+ 
+ 	writel(RSB_INTS_LOAD_BSY | RSB_INTS_TRANS_ERR | RSB_INTS_TRANS_OVER,
+-	       rsb->regs + RSB_INTE);
++	       rsb->regs + RSB_INTS);
+ 	writel(RSB_CTRL_START_TRANS | RSB_CTRL_GLOBAL_INT_ENB,
+ 	       rsb->regs + RSB_CTRL);
+ 
+@@ -282,7 +282,7 @@ static int _sunxi_rsb_run_xfer(struct sunxi_rsb *rsb)
+ 					    msecs_to_jiffies(100))) {
+ 		dev_dbg(rsb->dev, "RSB timeout\n");
+ 
+-		/* abort the transfer */
++		/* abort the transfer and disable interrupts */
+ 		writel(RSB_CTRL_ABORT_TRANS, rsb->regs + RSB_CTRL);
+ 
+ 		/* clear any interrupt flags */
+@@ -480,6 +480,9 @@ static irqreturn_t sunxi_rsb_irq(int irq, void *dev_id)
+ 	status = readl(rsb->regs + RSB_INTS);
+ 	rsb->status = status;
+ 
++	/* Disable any further interrupts */
++	writel(0, rsb->regs + RSB_CTRL);
++
+ 	/* Clear interrupts */
+ 	status &= (RSB_INTS_LOAD_BSY | RSB_INTS_TRANS_ERR |
+ 		   RSB_INTS_TRANS_OVER);
+@@ -718,6 +721,9 @@ static int sunxi_rsb_probe(struct platform_device *pdev)
+ 		goto err_reset_assert;
+ 	}
+ 
++	writel(RSB_INTS_LOAD_BSY | RSB_INTS_TRANS_ERR | RSB_INTS_TRANS_OVER,
++	       rsb->regs + RSB_INTE);
++
+ 	/* initialize all devices on the bus into RSB mode */
+ 	ret = sunxi_rsb_init_device_mode(rsb);
+ 	if (ret)
