@@ -116,6 +116,8 @@ mm-all:
 		   [ ! "$${graphic}" = "radeonhd"      ] && \
 		   [ ! "$${graphic}" = "armsoc"        ] && \
 		   [ ! "$${graphic}" = "meson"         ] && \
+		   [ ! "$${graphic}" = "rockchip"      ] && \
+		   [ ! "$${graphic}" = "sun4i"         ] && \
 		   [ ! "$${graphic}" = "vc4"           ] && \
 		   [ ! "$${graphic}" = "vmware"        ] ; then \
 			echo "error: mm_GRAPHICS=\"$${graphic}\" is an invalid value." ; \

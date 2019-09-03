@@ -18,7 +18,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk  ,      $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 9.19.0.r532
+mm_VERSION_MINIMYTH ?= 9.20.0.r532
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -40,8 +40,9 @@ mm_DEBUG_BUILD            ?= no
 
 # Lists the graphics drivers supported.
 # Valid values for mm_GRAPHICS are one or more of 'intel', 'nvidia',
-# 'nvidia-legacy', 'radeon', 'vmware', 'armsoc', 'meson'.
-mm_GRAPHICS               ?= vc4
+# 'nvidia-legacy', 'radeon', 'vmware', 'armsoc', 'meson', 'rockchip'
+# 'sun4i' and 'vc4'.
+mm_GRAPHICS               ?= meson rockchip sun4i vc4
 
 # Selects OpenGL provider used by qt and mythtv. Valid values for
 # mm_OPENGL_PROVIDER are:.
@@ -161,8 +162,8 @@ mm_SDCARD_FILES           ?= /home/piotro/ABS/SD-image-builder
 mm_HOME                   ?= /home/piotro/minimyth-dev
 
 # The version of kernel to use.
-# Valid values are '5.2' 'amlogic-5.2' 'rpi-5.2'
-mm_KERNEL_VERSION         ?= 5.2
+# Valid values are '5.2' '5.3' 'amlogic-5.2' 'rpi-5.2' 'allwinner-5.3'
+mm_KERNEL_VERSION         ?= 5.3
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
