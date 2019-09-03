@@ -2,8 +2,7 @@
 # GIT URL: https://github.com/bootlin/libva-v4l2-request
 
 GARNAME      = libva-v4l2-request
-# GARVERSION   = master
-GARVERSION   = e62c2d1c8e13774a758a093f605f2326ccb3a011
+GARVERSION   = 7f359be748a755b1250f42d3ff6f5729c01bc85a
 MASTER_SITES = https://github.com/bootlin/libva-v4l2-request/archive/
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/libva-v4l2-request-$(GARVERSION)
