@@ -1,23 +1,19 @@
-From 4d10f540fe1635c684c5d0e985c5fe6686d412a7 Mon Sep 17 00:00:00 2001
 From: Ondrej Jirman <megous@megous.com>
-Date: Tue, 26 Mar 2019 15:06:37 +0100
-Subject: [PATCH 07/39] drm: sun4i: Add support for enabling DDC I2C bus to
- sun8i_dw_hdmi glue
 
-Orange Pi 3 board requires enabling a voltage shifting circuit via GPIO
-for the DDC bus to be usable.
+Orange Pi 3 board requires enabling DDC I2C bus via some GPIO connected
+transistors, before the bus can be used.
 
-Add support for hdmi-connector node's optional ddc-en-gpios property to
-support this use case.
+Model this as a power supply for DDC bus on the HDMI connector connected
+to the output port (port 1) of the HDMI controller.
 
 Signed-off-by: Ondrej Jirman <megous@megous.com>
 ---
- drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c | 55 +++++++++++++++++++++++++++++++++--
- drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h |  3 ++
- 2 files changed, 55 insertions(+), 3 deletions(-)
+ drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c | 61 ++++++++++++++++++++++++++-
+ drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h |  2 +
+ 2 files changed, 61 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c b/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c
-index 39d8509..59b81ba 100644
+index 39d8509d96a0..acf89780260d 100644
 --- a/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c
 +++ b/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c
 @@ -98,6 +98,30 @@ static u32 sun8i_dw_hdmi_find_possible_crtcs(struct drm_device *drm,
@@ -51,18 +47,18 @@ index 39d8509..59b81ba 100644
  static int sun8i_dw_hdmi_bind(struct device *dev, struct device *master,
  			      void *data)
  {
-@@ -151,16 +175,29 @@ static int sun8i_dw_hdmi_bind(struct device *dev, struct device *master,
+@@ -151,16 +175,35 @@ static int sun8i_dw_hdmi_bind(struct device *dev, struct device *master,
  		return PTR_ERR(hdmi->regulator);
  	}
  
 +	ret = sun8i_dw_hdmi_find_connector_pdev(dev, &hdmi->connector_pdev);
 +	if (!ret) {
-+		hdmi->ddc_en = gpiod_get_optional(&hdmi->connector_pdev->dev,
-+						  "ddc-en", GPIOD_OUT_HIGH);
-+		if (IS_ERR(hdmi->ddc_en)) {
++		hdmi->ddc_regulator = regulator_get(&hdmi->connector_pdev->dev,
++						    "ddc");
++		if (IS_ERR(hdmi->ddc_regulator)) {
 +			platform_device_put(hdmi->connector_pdev);
-+			dev_err(dev, "Couldn't get ddc-en gpio\n");
-+			return PTR_ERR(hdmi->ddc_en);
++			dev_err(dev, "Couldn't get ddc regulator\n");
++			return PTR_ERR(hdmi->ddc_regulator);
 +		}
 +	}
 +
@@ -70,70 +66,68 @@ index 39d8509..59b81ba 100644
  	if (ret) {
  		dev_err(dev, "Failed to enable regulator\n");
 -		return ret;
-+		goto err_unref_ddc_en;
++		goto err_unref_ddc_regulator;
++	}
++
++	if (hdmi->ddc_regulator) {
++		ret = regulator_enable(hdmi->ddc_regulator);
++		if (ret) {
++			dev_err(dev, "Failed to enable ddc regulator\n");
++			goto err_disable_regulator;
++		}
  	}
  
-+	gpiod_set_value(hdmi->ddc_en, 1);
-+
  	ret = reset_control_deassert(hdmi->rst_ctrl);
  	if (ret) {
  		dev_err(dev, "Could not deassert ctrl reset control\n");
 -		goto err_disable_regulator;
-+		goto err_disable_ddc_en;
++		goto err_disable_ddc_regulator;
  	}
  
  	ret = clk_prepare_enable(hdmi->clk_tmds);
-@@ -213,8 +250,14 @@ static int sun8i_dw_hdmi_bind(struct device *dev, struct device *master,
+@@ -213,8 +256,15 @@ static int sun8i_dw_hdmi_bind(struct device *dev, struct device *master,
  	clk_disable_unprepare(hdmi->clk_tmds);
  err_assert_ctrl_reset:
  	reset_control_assert(hdmi->rst_ctrl);
--err_disable_regulator:
-+err_disable_ddc_en:
-+	gpiod_set_value(hdmi->ddc_en, 0);
++err_disable_ddc_regulator:
++	if (hdmi->ddc_regulator)
++		regulator_disable(hdmi->ddc_regulator);
+ err_disable_regulator:
  	regulator_disable(hdmi->regulator);
-+err_unref_ddc_en:
-+	if (hdmi->ddc_en)
-+		gpiod_put(hdmi->ddc_en);
-+
++err_unref_ddc_regulator:
++	if (hdmi->ddc_regulator)
++		regulator_put(hdmi->ddc_regulator);
 +	platform_device_put(hdmi->connector_pdev);
  
  	return ret;
  }
-@@ -228,7 +271,13 @@ static void sun8i_dw_hdmi_unbind(struct device *dev, struct device *master,
- 	sun8i_hdmi_phy_remove(hdmi);
+@@ -229,6 +279,13 @@ static void sun8i_dw_hdmi_unbind(struct device *dev, struct device *master,
  	clk_disable_unprepare(hdmi->clk_tmds);
  	reset_control_assert(hdmi->rst_ctrl);
-+	gpiod_set_value(hdmi->ddc_en, 0);
  	regulator_disable(hdmi->regulator);
 +
-+	if (hdmi->ddc_en)
-+		gpiod_put(hdmi->ddc_en);
++	if (hdmi->ddc_regulator) {
++		regulator_disable(hdmi->ddc_regulator);
++		regulator_put(hdmi->ddc_regulator);
++	}
 +
 +	platform_device_put(hdmi->connector_pdev);
  }
  
  static const struct component_ops sun8i_dw_hdmi_ops = {
 diff --git a/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h b/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h
-index 720c5aa..dad66b8 100644
+index 720c5aa8adc1..60f5200aee73 100644
 --- a/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h
 +++ b/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h
-@@ -9,6 +9,7 @@
- #include <drm/bridge/dw_hdmi.h>
- #include <drm/drm_encoder.h>
- #include <linux/clk.h>
-+#include <linux/gpio/consumer.h>
- #include <linux/regmap.h>
- #include <linux/regulator/consumer.h>
- #include <linux/reset.h>
-@@ -190,6 +191,8 @@ struct sun8i_dw_hdmi {
+@@ -188,8 +188,10 @@ struct sun8i_dw_hdmi {
+ 	struct sun8i_hdmi_phy		*phy;
+ 	struct dw_hdmi_plat_data	plat_data;
  	struct regulator		*regulator;
++	struct regulator		*ddc_regulator;
  	const struct sun8i_dw_hdmi_quirks *quirks;
  	struct reset_control		*rst_ctrl;
 +	struct platform_device		*connector_pdev;
-+	struct gpio_desc		*ddc_en;
  };
  
  static inline struct sun8i_dw_hdmi *
--- 
-2.7.1
 

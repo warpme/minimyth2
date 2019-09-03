@@ -1,7 +1,7 @@
-From 7e251459cba67361ef876c74eb311223ef9b04e9 Mon Sep 17 00:00:00 2001
+From 0837d59a6072184641c16fdbae2b571997c8ec15 Mon Sep 17 00:00:00 2001
 From: Icenowy Zheng <icenowy@aosc.io>
-Date: Mon, 25 Dec 2017 12:04:02 +0800
-Subject: [PATCH 13/39] phy: allwinner: add phy driver for USB3 PHY on
+Date: Sat, 6 Apr 2019 04:57:34 +0800
+Subject: [PATCH 140/144] phy: allwinner: add phy driver for USB3 PHY on
  Allwinner H6 SoC
 
 Allwinner H6 SoC contains a USB3 PHY (with USB2 DP/DM lines also
@@ -17,15 +17,15 @@ Reviewed-by: Chen-Yu Tsai <wens@csie.org>
 ---
  drivers/phy/allwinner/Kconfig           |  12 ++
  drivers/phy/allwinner/Makefile          |   1 +
- drivers/phy/allwinner/phy-sun50i-usb3.c | 194 ++++++++++++++++++++++++++++++++
- 3 files changed, 207 insertions(+)
+ drivers/phy/allwinner/phy-sun50i-usb3.c | 260 ++++++++++++++++++++++++++++++++
+ 3 files changed, 273 insertions(+)
  create mode 100644 drivers/phy/allwinner/phy-sun50i-usb3.c
 
 diff --git a/drivers/phy/allwinner/Kconfig b/drivers/phy/allwinner/Kconfig
-index 2154252..fcae35d 100644
+index fb1204b..2c363db 100644
 --- a/drivers/phy/allwinner/Kconfig
 +++ b/drivers/phy/allwinner/Kconfig
-@@ -45,3 +45,15 @@ config PHY_SUN9I_USB
+@@ -41,3 +41,15 @@ config PHY_SUN9I_USB
  	  sun9i SoCs.
  
  	  This driver controls each individual USB 2 host PHY.
@@ -42,20 +42,20 @@ index 2154252..fcae35d 100644
 +
 +	  This driver controls each individual USB 2+3 host PHY combo.
 diff --git a/drivers/phy/allwinner/Makefile b/drivers/phy/allwinner/Makefile
-index 799a65c..bd74901 100644
+index 7d0053e..59575a8 100644
 --- a/drivers/phy/allwinner/Makefile
 +++ b/drivers/phy/allwinner/Makefile
-@@ -2,3 +2,4 @@
+@@ -1,3 +1,4 @@
  obj-$(CONFIG_PHY_SUN4I_USB)		+= phy-sun4i-usb.o
  obj-$(CONFIG_PHY_SUN6I_MIPI_DPHY)	+= phy-sun6i-mipi-dphy.o
  obj-$(CONFIG_PHY_SUN9I_USB)		+= phy-sun9i-usb.o
 +obj-$(CONFIG_PHY_SUN50I_USB3)		+= phy-sun50i-usb3.o
 diff --git a/drivers/phy/allwinner/phy-sun50i-usb3.c b/drivers/phy/allwinner/phy-sun50i-usb3.c
 new file mode 100644
-index 0000000..226c99c
+index 0000000..5299aef
 --- /dev/null
 +++ b/drivers/phy/allwinner/phy-sun50i-usb3.c
-@@ -0,0 +1,194 @@
+@@ -0,0 +1,260 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Allwinner sun50i(H6) USB 3.0 phy driver
@@ -76,8 +76,10 @@ index 0000000..226c99c
 +#include <linux/io.h>
 +#include <linux/module.h>
 +#include <linux/phy/phy.h>
++#include <linux/of_platform.h>
 +#include <linux/usb/of.h>
 +#include <linux/platform_device.h>
++#include <linux/regulator/consumer.h>
 +#include <linux/reset.h>
 +
 +/* Interface Status and Control Registers */
@@ -115,6 +117,8 @@ index 0000000..226c99c
 +	void __iomem *regs;
 +	struct reset_control *reset;
 +	struct clk *clk;
++	struct platform_device *connector_dev;
++	struct regulator *vbus;
 +};
 +
 +static void sun50i_usb3_phy_open(struct sun50i_usb3_phy *phy)
@@ -186,9 +190,31 @@ index 0000000..226c99c
 +	return 0;
 +}
 +
++static int sun50i_usb3_phy_power_on(struct phy *_phy)
++{
++	struct sun50i_usb3_phy *phy = phy_get_drvdata(_phy);
++
++	if (phy->vbus)
++		return regulator_enable(phy->vbus);
++	else
++		return 0;
++}
++
++static int sun50i_usb3_phy_power_off(struct phy *_phy)
++{
++	struct sun50i_usb3_phy *phy = phy_get_drvdata(_phy);
++
++	if (phy->vbus)
++		return regulator_disable(phy->vbus);
++	else
++		return 0;
++}
++
 +static const struct phy_ops sun50i_usb3_phy_ops = {
 +	.init		= sun50i_usb3_phy_init,
 +	.exit		= sun50i_usb3_phy_exit,
++	.power_on	= sun50i_usb3_phy_power_on,
++	.power_off	= sun50i_usb3_phy_power_off,
 +	.owner		= THIS_MODULE,
 +};
 +
@@ -198,10 +224,14 @@ index 0000000..226c99c
 +	struct device *dev = &pdev->dev;
 +	struct phy_provider *phy_provider;
 +	struct resource *res;
++	struct device_node *connector_node;
++	int ret;
 +
 +	phy = devm_kzalloc(dev, sizeof(*phy), GFP_KERNEL);
 +	if (!phy)
 +		return -ENOMEM;
++
++	dev_set_drvdata(dev, phy);
 +
 +	phy->clk = devm_clk_get(dev, NULL);
 +	if (IS_ERR(phy->clk)) {
@@ -220,6 +250,30 @@ index 0000000..226c99c
 +	if (IS_ERR(phy->regs))
 +		return PTR_ERR(phy->regs);
 +
++	/* Populate the connector as platform device */
++	ret = of_platform_populate(pdev->dev.of_node, NULL, NULL, &pdev->dev);
++	if (ret)
++		return ret;
++
++	/*
++	 * Currently the Allwinner USB3 PHY contains only one port, so we
++	 * only process one connector now.
++	 */
++	connector_node = of_get_next_child(pdev->dev.of_node, NULL);
++
++	if (connector_node) {
++		/* Get the platform device */
++		phy->connector_dev = of_find_device_by_node(connector_node);
++		if (!phy->connector_dev) {
++			dev_err(dev, "no device for connector\n");
++			return -ENODEV;
++		}
++
++		phy->vbus = regulator_get(&phy->connector_dev->dev, "vbus");
++		if (IS_ERR(phy->vbus))
++			return PTR_ERR(phy->vbus);
++	}
++
 +	phy->phy = devm_phy_create(dev, NULL, &sun50i_usb3_phy_ops);
 +	if (IS_ERR(phy->phy)) {
 +		dev_err(dev, "failed to create PHY\n");
@@ -232,6 +286,17 @@ index 0000000..226c99c
 +	return PTR_ERR_OR_ZERO(phy_provider);
 +}
 +
++static int sun50i_usb3_phy_remove(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct sun50i_usb3_phy *phy = dev_get_drvdata(dev);
++
++	if (phy->vbus)
++		regulator_put(phy->vbus);
++
++	return 0;
++}
++
 +static const struct of_device_id sun50i_usb3_phy_of_match[] = {
 +	{ .compatible = "allwinner,sun50i-h6-usb3-phy" },
 +	{ },
@@ -240,6 +305,7 @@ index 0000000..226c99c
 +
 +static struct platform_driver sun50i_usb3_phy_driver = {
 +	.probe	= sun50i_usb3_phy_probe,
++	.remove	= sun50i_usb3_phy_remove,
 +	.driver = {
 +		.of_match_table	= sun50i_usb3_phy_of_match,
 +		.name  = "sun50i-usb3-phy",

@@ -84,43 +84,58 @@ PATCHFILES += 0408-arm64-dts-rockchip-Fix-HDMI-audio-on-rk3399-orangepi.patch
 PATCHFILES += 0409-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-roc-p.patch
 PATCHFILES += 0410-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
 
-# Allwinner H6 patches for OrangePi 3 support
-# https://github.com/megous/linux/commits/opi3-5.3
-PATCHFILES += 0801-rtc-sun6i-Add-support-for-H6-RTC.patch
-PATCHFILES += 0802-arm64-dts-sun50i-h6-Add-support-for-RTC-and-fix-the-.patch
-PATCHFILES += 0803-dt-bindings-Add-compatible-for-H6-RTC.patch
-PATCHFILES += 0804-drm-Remove-redundant-of_device_is_available-check.patch
-PATCHFILES += 0805-arm64-dts-allwinner-orange-pi-3-Enable-ethernet.patch
-PATCHFILES += 0806-dt-bindings-display-hdmi-connector-Support-DDC-bus-e.patch
-PATCHFILES += 0807-drm-sun4i-Add-support-for-enabling-DDC-I2C-bus-to-su.patch
-PATCHFILES += 0808-arm64-dts-allwinner-orange-pi-3-Enable-HDMI-output.patch
-PATCHFILES += 0809-arm64-dts-allwinner-orange-pi-3-Enable-WiFi.patch
-PATCHFILES += 0810-bluetooth-hci_bcm-Give-more-time-to-come-out-of-rese.patch
-PATCHFILES += 0811-arm64-dts-allwinner-h6-Add-pin-configs-for-uart1.patch
-PATCHFILES += 0812-arm64-dts-allwinner-orange-pi-3-Enable-UART1-Bluetoo.patch
-PATCHFILES += 0813-phy-allwinner-add-phy-driver-for-USB3-PHY-on-Allwinn.patch
-PATCHFILES += 0814-thermal-Thermal-sensor-driver-for-Allwinner-H6.patch
-PATCHFILES += 0815-arm64-dts-allwinner-h6-add-USB3-device-nodes.patch
-PATCHFILES += 0816-arm64-dts-allwinner-h6-Add-thermal-sensor-DTS-nodes.patch
-PATCHFILES += 0817-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
-PATCHFILES += 0818-arm64-dts-allwinner-h6-Add-CPU-Operating-Performance.patch
-PATCHFILES += 0819-Use-the-OPP-table-for-the-worst-bin.patch
-PATCHFILES += 0820-arm64-dts-allwinner-orange-pi-3-Enable-USB-3.0-host-.patch
-PATCHFILES += 0821-bluetooth-bcm-Add-support-for-loading-firmware-for-B.patch
-PATCHFILES += 0822-drm-sun8i-Drop-reference-to-connector_pdev.patch
-PATCHFILES += 0823-Fix-reboot-issue-with-ethernet-on-Orange-Pi-3.patch
-PATCHFILES += 0824-Even-more-BT-delay.patch
-PATCHFILES += 0826-arm64-dts-allwinner-Add-ARM-Mali-GPU-node-for-H6.patch
-PATCHFILES += 0827-arm64-dts-allwinner-Add-mali-GPU-supply-for-H6-board.patch
-PATCHFILES += 0828-net-brcmfmac-Fix-missing-policy-on-brcmf_vendor_cmds.patch
-PATCHFILES += 0832-arm64-dts-allwinner-Add-GPU-operating-points-for-H6.patch
-# Allwinner H6 support various patches
-PATCHFILES += 0850-Add-AC200-EPHY-support.patch
-PATCHFILES += 0851-arm64-dts-allwinner-OrangePiOnePlus-updates.patch
-PATCHFILES += 0852-arm64-dts-allwinner-add-Tanix-TX6-WIP.patch
-PATCHFILES += 0853-arm64-dts-allwinner-add-h6-eachlink-h6mini.patch
-PATCHFILES += 0854-arm64-dts-allwinner-add-h6-qplus.patch
-PATCHFILES += 0856-sun50i-h6-sound-hack.patch
+# H6 HDMI audio support
+# Based on https://patchwork.kernel.org/patch/11093285/
+PATCHFILES += 0500-ASoC-sun4i-i2s-Updates-to-the-driver.patch
+PATCHFILES += 0501-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
+# Support for USB3 on H6
+PATCHFILES += 0510-phy-allwinner-add-phy-driver-for-USB3-PHY-on-Allwinn.patch
+PATCHFILES += 0511-arm64-allwinner-dts-h6-add-USB3-device-nodes.patch
+PATCHFILES += 0512-arm64-allwinner-dts-h6-enable-USB3-port-on-Beelink-G.patch
+# Enable DDC support on H6
+PATCHFILES += 0513-add-DDC-glue-in-dw-hdmi.patch
+PATCHFILES += 0514-arm64-dts-allwinner-add-DDC-regulator-for-BeelinkGS1.patch
+# Misc patches for H6
+PATCHFILES += 0515-Allwinner-A64-H6-IR-support.patch
+PATCHFILES += 0516-Allwinner-H6-Add-Mali-GPU-for-H6-boards.patch
+PATCHFILES += 0517-pwm-sun4i-Add-support-for-Allwinner-H6.patch
+PATCHFILES += 0518-bus-sunxi-rsb-Make-interrupt-handling-more-robust.patch
+# Add some new H6 boards
+PATCHFILES += 0519-arm64-dts-allwinner-add-Tanix-TX6-WIP.patch
+PATCHFILES += 0520-arm64-dts-allwinner-add-h6-eachlink-h6mini.patch
+PATCHFILES += 0521-arm64-dts-allwinner-add-h6-qplus.patch
+# Add support for RTC in H6
+PATCHFILES += 0522-rtc-sun6i-Add-support-for-H6-RTC.patch
+PATCHFILES += 0523-arm64-dts-sun50i-h6-Add-support-for-RTC-and-fix-the-.patch
+PATCHFILES += 0524-dt-bindings-Add-compatible-for-H6-RTC.patch
+# Add AC200 for Eachlink H6
+PATCHFILES += 0525-allwinner-h6-add-AC200-EPHY-support.patch
+PATCHFILES += 0526-arm64-dts-sun50i-h6-add-AC200-EPHY-support.patch
+
+ifeq (1,1)
+# Add H265 in Allwinner Cedrus
+PATCHFILES += 0527-media-v4l-Add-definitions-for-the-HEVC-slice-control.patch
+PATCHFILES += 0528-media-pixfmt-Add-HEVC-slice-pixel-format.patch
+PATCHFILES += 0529-media-pixfmt-Document-the-HEVC-slice-pixel-format.patch
+PATCHFILES += 0530-media-cedrus-Add-HEVC-H.265-decoding-support.patch
+endif
+
+ifeq (1,1)
+# Add thermal support in H6
+PATCHFILES += 0535-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
+PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
+PATCHFILES += 0537-thermal-sun8i-add-thermal-driver-for-H6-H5-H3-A64-R4.patch
+PATCHFILES += 0538-thermal-sun8i-Rename-calib-calibration.patch
+PATCHFILES += 0539-thermal-sun8i-Fix-thermal-zone-registration-check.patch
+PATCHFILES += 0540-thermal-sun8i-Lower-rate-of-sensor-data-interrupts-t.patch
+PATCHFILES += 0541-thermal-sun8i-Rework-scale-offset-values-H6-calibrat.patch
+PATCHFILES += 0542-thermal-sun8i-Set-mod-clock-to-24MHz.patch
+PATCHFILES += 0543-thermal-sun8i-Thermal-sensor-on-H6-needs-undocumment.patch
+PATCHFILES += 0544-thermal-sun8i-Add-support-for-A83T.patch
+PATCHFILES += 0545-thermal-sun8i-Add-some-comments-about-H3.patch
+PATCHFILES += 0546-arm64-dts-allwinner-sun50i-h6-Add-thermal-sensor-and.patch
+PATCHFILES += 0547-arm64-dts-allwinner-sun50i-h6-Add-thermal-trip-point.patch
+endif
 
 LICENSE = GPL2
 
