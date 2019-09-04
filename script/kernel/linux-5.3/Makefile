@@ -70,6 +70,9 @@ PATCHFILES += 0306-snd-meson-activate-HDMI-audio-path.patch
 PATCHFILES += 0307-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
 PATCHFILES += 0308-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
 
+# Amlogic misc patches
+PATCHFILES += 0309-media-rc-add-keymap-for-Tanix-TX3-mini-remote.patch
+
 # ROCKCHIP speciffic patches to enable hdmi audio
 PATCHFILES += 0400-arm64-dts-rockchip-add-HDMI-sound-node-for-rk3328-ro.patch
 PATCHFILES += 0401-ASoC-rockchip-i2s-use-closest-clock-rate.patch
