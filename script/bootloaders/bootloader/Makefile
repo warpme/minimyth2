@@ -49,6 +49,12 @@ ifneq (,$(findstring board-h6,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h6
 endif
 
+ifneq (,$(findstring board-eachlink_h6,$(mm_BOARD_TYPE)))
+	$(MAKE) clean -C ../arm-trusted-firmware
+	$(MAKE) clean -C ../u-boot-sunxi
+	$(MAKE) install -C ../board-h6.eachlink
+endif
+
 clean-all:
 	@$(foreach dir, $(wildcard ../u-boot* ../board-* ../arm-trusted-firmware), $(MAKE) clean clean-all -C $(dir) ; )
 	$(MAKE) clean
