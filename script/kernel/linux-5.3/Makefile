@@ -58,20 +58,34 @@ PATCHFILES += 0216-drm-bridge-dw-hdmi-support-dynamically-get-input-out.patch
 PATCHFILES += 0217-drm-bridge-dw-hdmi-allow-ycbcr420-modes-for-0x200a.patch
 PATCHFILES += 0218-drm-meson-Add-YUV420-output-support.patch
 
+# Amlogic vdec enhacement for h264/mjpeg/vp9 over mpeg1/2 basic support in 5.3
+PATCHFILES += 0321-arm64-dts-meson-gx-add-vdec-entry.patch
+PATCHFILES += 0322-arm64-dts-meson-add-vdec-entries.patch
+PATCHFILES += 0323-media-meson-vdec-add-H.264-decoding-support.patch
+PATCHFILES += 0324-media-meson-vdec-add-MPEG4-decoding-support.patch
+PATCHFILES += 0325-media-meson-vdec-add-MJPEG-decoding-support.patch
+PATCHFILES += 0326-media-videodev2.h-Add-Amlogic-compressed-format.patch
+PATCHFILES += 0327-media-meson-vdec-add-support-for-V4L2_PIX_FMT_AM21C.patch
+PATCHFILES += 0328-media-meson-vdec-add-HEVC-decoding-support.patch
+PATCHFILES += 0329-media-meson-vdec-add-VP9-input-support.patch
+PATCHFILES += 0330-media-meson-vdec-add-VP9-support.patch
+PATCHFILES += 0331-media-meson-vdec-add-g12a-platform.patch
+PATCHFILES += 0332-media-meson-vp9-add-IOMMU-support.patch
+PATCHFILES += 0333-arm64-dts-meson-g12a-add-video-decoder-node.patch
+PATCHFILES += 0334-media-meson-vdec-WIP-HEVC-IOMMU-support.patch
+
 # Amlogic speciffic patches to enable hdmi audio
-PATCHFILES += 0309-arm64-dts-meson-gx-add-vdec-entry.patch
-PATCHFILES += 0310-arm64-dts-meson-add-vdec-entries.patch
-PATCHFILES += 0301-ASoC-meson-add-meson-audio-core-driver.patch
-PATCHFILES += 0302-ASoC-meson-add-register-definitions.patch
-PATCHFILES += 0303-ASoC-meson-add-initial-aiu-i2s-support.patch
-PATCHFILES += 0304-ASoC-meson-add-initial-spdif-support.patch
-PATCHFILES += 0305-ARM64-dts-meson-gx-add-audio-controller-nodes.patch
-PATCHFILES += 0306-snd-meson-activate-HDMI-audio-path.patch
-PATCHFILES += 0307-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
-PATCHFILES += 0308-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
+PATCHFILES += 0341-ASoC-meson-add-meson-audio-core-driver.patch
+PATCHFILES += 0342-ASoC-meson-add-register-definitions.patch
+PATCHFILES += 0343-ASoC-meson-add-initial-aiu-i2s-support.patch
+PATCHFILES += 0344-ASoC-meson-add-initial-spdif-support.patch
+PATCHFILES += 0345-ARM64-dts-meson-gx-add-audio-controller-nodes.patch
+PATCHFILES += 0346-snd-meson-activate-HDMI-audio-path.patch
+PATCHFILES += 0347-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
+PATCHFILES += 0348-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
 
 # Amlogic misc patches
-PATCHFILES += 0309-media-rc-add-keymap-for-Tanix-TX3-mini-remote.patch
+PATCHFILES += 0349-media-rc-add-keymap-for-Tanix-TX3-mini-remote.patch
 
 # ROCKCHIP speciffic patches to enable hdmi audio
 PATCHFILES += 0400-arm64-dts-rockchip-add-HDMI-sound-node-for-rk3328-ro.patch
@@ -104,9 +118,9 @@ PATCHFILES += 0516-Allwinner-H6-Add-Mali-GPU-for-H6-boards.patch
 PATCHFILES += 0517-pwm-sun4i-Add-support-for-Allwinner-H6.patch
 PATCHFILES += 0518-bus-sunxi-rsb-Make-interrupt-handling-more-robust.patch
 # Add some new H6 boards
-PATCHFILES += 0519-arm64-dts-allwinner-add-Tanix-TX6-WIP.patch
-PATCHFILES += 0520-arm64-dts-allwinner-add-h6-eachlink-h6mini.patch
-PATCHFILES += 0521-arm64-dts-allwinner-add-h6-qplus.patch
+PATCHFILES += 0519-arm64-dts-allwinner-add-Tanix-TX6.patch
+PATCHFILES += 0520-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
+PATCHFILES += 0521-arm64-dts-allwinner-add-Qplus.patch
 # Add support for RTC in H6
 PATCHFILES += 0522-rtc-sun6i-Add-support-for-H6-RTC.patch
 PATCHFILES += 0523-arm64-dts-sun50i-h6-Add-support-for-RTC-and-fix-the-.patch
@@ -114,17 +128,14 @@ PATCHFILES += 0524-dt-bindings-Add-compatible-for-H6-RTC.patch
 # Add AC200 for Eachlink H6
 PATCHFILES += 0525-allwinner-h6-add-AC200-EPHY-support.patch
 PATCHFILES += 0526-arm64-dts-sun50i-h6-add-AC200-EPHY-support.patch
-
-ifeq (1,1)
 # Add H265 in Allwinner Cedrus
 PATCHFILES += 0527-media-v4l-Add-definitions-for-the-HEVC-slice-control.patch
 PATCHFILES += 0528-media-pixfmt-Add-HEVC-slice-pixel-format.patch
 PATCHFILES += 0529-media-pixfmt-Document-the-HEVC-slice-pixel-format.patch
 PATCHFILES += 0530-media-cedrus-Add-HEVC-H.265-decoding-support.patch
-endif
 
 ifeq (0,1)
-# Add thermal support in H6
+# Add thermal support in H6 (still not works OK :( )
 PATCHFILES += 0535-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
 PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
 PATCHFILES += 0537-thermal-sun8i-add-thermal-driver-for-H6-H5-H3-A64-R4.patch
@@ -138,6 +149,14 @@ PATCHFILES += 0544-thermal-sun8i-Add-support-for-A83T.patch
 PATCHFILES += 0545-thermal-sun8i-Add-some-comments-about-H3.patch
 PATCHFILES += 0546-arm64-dts-allwinner-sun50i-h6-Add-thermal-sensor-and.patch
 PATCHFILES += 0547-arm64-dts-allwinner-sun50i-h6-Add-thermal-trip-point.patch
+endif
+
+ifeq (1,1)
+# Fix for kernel boot cmd line arg.parsing (used for Eachlink H6 drm mode forcing on cmdline)
+PATCHFILES += 0560-drm-modes-Add-a-switch-to-differentiate-free-standing-options.patch
+PATCHFILES += 0561-drm-modes-Fix-the-command-line-parser-to-take-force-options-into-account.patch
+PATCHFILES += 0562-drm-modes-Introduce-a-whitelist-for-the-named-modes.patch
+PATCHFILES += 0563-drm-selftests-modes-Add-more-unit-tests-for-the-cmdline-parser.patch
 endif
 
 LICENSE = GPL2
