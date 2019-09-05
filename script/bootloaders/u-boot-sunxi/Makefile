@@ -7,7 +7,7 @@ DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 
 PATCHFILES  = 0001-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
-PATCHFILES += 0002-sync-beelink-gs1-dts-to-5.3-kernel.patch
+PATCHFILES += 0002-add-ethernet0-alias-for-fix-MAC-addr.patch
 
 LICENSE = GPL2
 
