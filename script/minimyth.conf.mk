@@ -104,8 +104,9 @@ mm_GARCH                  ?= armv7
 # 'board-s905'
 # 'board-s912'
 # 'board-rk3328'
-# 'board-h6'
-# 'board-eachlink_h6'
+# 'board-h6.beelink_gs1'
+# 'board-h6.eachlink_mini'
+# 'board-h6.tanix_tx6'
 # Note: some combinations for multiboard are not allowed.
 # (due bootloader or architecture conflict):
 # 1. 'board-rpi3' and 'board-rk3328'
