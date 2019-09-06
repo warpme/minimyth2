@@ -121,13 +121,13 @@ PATCHFILES += 0518-bus-sunxi-rsb-Make-interrupt-handling-more-robust.patch
 PATCHFILES += 0519-arm64-dts-allwinner-add-Tanix-TX6.patch
 PATCHFILES += 0520-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
 PATCHFILES += 0521-arm64-dts-allwinner-add-Qplus.patch
-# Add support for RTC in H6
+# Add support for RTC in H6 familly
 PATCHFILES += 0522-rtc-sun6i-Add-support-for-H6-RTC.patch
 PATCHFILES += 0523-arm64-dts-sun50i-h6-Add-support-for-RTC-and-fix-the-.patch
 PATCHFILES += 0524-dt-bindings-Add-compatible-for-H6-RTC.patch
-# Add AC200 for Eachlink H6
+# Add AC200 for Eachlink H6/Tanix TX6
 PATCHFILES += 0525-allwinner-h6-add-AC200-EPHY-support.patch
-PATCHFILES += 0526-arm64-dts-sun50i-h6-add-AC200-EPHY-support.patch
+PATCHFILES += 0526-arm64-dts-sun50i-h6-add-AC200-nodes.patch
 # Add H265 in Allwinner Cedrus
 PATCHFILES += 0527-media-v4l-Add-definitions-for-the-HEVC-slice-control.patch
 PATCHFILES += 0528-media-pixfmt-Add-HEVC-slice-pixel-format.patch
