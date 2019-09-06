@@ -43,16 +43,22 @@ ifneq (,$(findstring board-rk3399,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3399
 endif
 
-ifneq (,$(findstring board-h6,$(mm_BOARD_TYPE)))
+ifneq (,$(findstring board-h6.beelink_gs1,$(mm_BOARD_TYPE)))
 	$(MAKE) clean -C ../arm-trusted-firmware
 	$(MAKE) clean -C ../u-boot-sunxi
-	$(MAKE) install -C ../board-h6
+	$(MAKE) install -C ../board-h6.beelink_gs1
 endif
 
-ifneq (,$(findstring board-eachlink_h6,$(mm_BOARD_TYPE)))
+ifneq (,$(findstring board-h6.eachlink_mini,$(mm_BOARD_TYPE)))
 	$(MAKE) clean -C ../arm-trusted-firmware
 	$(MAKE) clean -C ../u-boot-sunxi
-	$(MAKE) install -C ../board-h6.eachlink
+	$(MAKE) install -C ../board-h6.eachlink_mini
+endif
+
+ifneq (,$(findstring board-h6.tanix_tx6,$(mm_BOARD_TYPE)))
+	$(MAKE) clean -C ../arm-trusted-firmware
+	$(MAKE) clean -C ../u-boot-sunxi
+	$(MAKE) install -C ../board-h6.tanix_tx6
 endif
 
 clean-all:
