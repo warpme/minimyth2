@@ -134,30 +134,20 @@ PATCHFILES += 0528-media-pixfmt-Add-HEVC-slice-pixel-format.patch
 PATCHFILES += 0529-media-pixfmt-Document-the-HEVC-slice-pixel-format.patch
 PATCHFILES += 0530-media-cedrus-Add-HEVC-H.265-decoding-support.patch
 
-ifeq (0,1)
-# Add thermal support in H6 (still not works OK :( )
-PATCHFILES += 0535-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
-PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
-PATCHFILES += 0537-thermal-sun8i-add-thermal-driver-for-H6-H5-H3-A64-R4.patch
-PATCHFILES += 0538-thermal-sun8i-Rename-calib-calibration.patch
-PATCHFILES += 0539-thermal-sun8i-Fix-thermal-zone-registration-check.patch
-PATCHFILES += 0540-thermal-sun8i-Lower-rate-of-sensor-data-interrupts-t.patch
-PATCHFILES += 0541-thermal-sun8i-Rework-scale-offset-values-H6-calibrat.patch
-PATCHFILES += 0542-thermal-sun8i-Set-mod-clock-to-24MHz.patch
-PATCHFILES += 0543-thermal-sun8i-Thermal-sensor-on-H6-needs-undocumment.patch
-PATCHFILES += 0544-thermal-sun8i-Add-support-for-A83T.patch
-PATCHFILES += 0545-thermal-sun8i-Add-some-comments-about-H3.patch
-PATCHFILES += 0546-arm64-dts-allwinner-sun50i-h6-Add-thermal-sensor-and.patch
-PATCHFILES += 0547-arm64-dts-allwinner-sun50i-h6-Add-thermal-trip-point.patch
+ifeq (1,1)
+# Add thermal support in H6
+PATCHFILES += 0537-thermal-sun8i-add-thermal-driver-for-H6.patch
+PATCHFILES += 0538-thermal-sun8i-add-dts-nodes.patch
+PATCHFILES += 0539-thermal-sun8i-enable-ths-in-h6-boards.patch
+endif
+ifeq (1,1)
+# Add DVFS for H6 (still not sure is it works OK? )
+PATCHFILES += 0540-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
+PATCHFILES += 0541-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
 endif
 
-ifeq (1,1)
-# Fix for kernel boot cmd line arg.parsing (used for Eachlink H6 drm mode forcing on cmdline)
-PATCHFILES += 0560-drm-modes-Add-a-switch-to-differentiate-free-standing-options.patch
-PATCHFILES += 0561-drm-modes-Fix-the-command-line-parser-to-take-force-options-into-account.patch
-PATCHFILES += 0562-drm-modes-Introduce-a-whitelist-for-the-named-modes.patch
-PATCHFILES += 0563-drm-selftests-modes-Add-more-unit-tests-for-the-cmdline-parser.patch
-endif
+PATCHFILES += 0564-drm-sun4i-Mark-one-of-the-UI-planes-as-a-cursor-one.patch
+PATCHFILES += 0565-drm-sun8i-ui-vi-Fix-layer-zpos-change-atomic-modesetting.patch
 
 LICENSE = GPL2
 
