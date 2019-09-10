@@ -86,6 +86,7 @@ PATCHFILES += 0348-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
 
 # Amlogic misc patches
 PATCHFILES += 0349-media-rc-add-keymap-for-Tanix-TX3-mini-remote.patch
+PATCHFILES += 0350-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 
 # ROCKCHIP speciffic patches to enable hdmi audio
 PATCHFILES += 0400-arm64-dts-rockchip-add-HDMI-sound-node-for-rk3328-ro.patch
