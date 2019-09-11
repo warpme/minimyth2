@@ -302,6 +302,11 @@ sub get_cpu_sys_temp_fans {
     if (! -e $sensors_bin) {
         $command = $shell_exec." '/opt/vc/bin/vcgencmd measure_temp 2>&1;' |";
     }
+
+    elsif ( -e "/sys/class/thermal/thermal_zone0/temp") {
+        $command = $shell_exec." 'echo -n \"CPU Temp \";cat /sys/class/thermal/thermal_zone0/temp | sed -e \"s/000//\" 2>/dev/null;' |";
+    }
+
     else {
         $command = $shell_exec." '$sensors_bin 2>/dev/null;' |";
     }
