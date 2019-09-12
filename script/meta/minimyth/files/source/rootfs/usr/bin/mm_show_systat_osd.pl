@@ -304,7 +304,7 @@ sub get_cpu_sys_temp_fans {
     }
 
     elsif ( -e "/sys/class/thermal/thermal_zone0/temp") {
-        $command = $shell_exec." 'echo -n \"CPU Temp \";cat /sys/class/thermal/thermal_zone0/temp | sed -e \"s/000//\" 2>/dev/null;' |";
+        $command = $shell_exec." 'echo -n \"CPU Temp \";expr \$(cat /sys/class/thermal/thermal_zone0/temp) / 1000 | cut -c1-3 2>/dev/null;' |";
     }
 
     else {
@@ -664,7 +664,7 @@ given ($action) {
         $title = $frontend_title_str;
 
     show_status:
-        my $command = $shell_cmd." 'top -b -n1 | sed -e \"s/[ ]* / /g\" 2>/dev/null;'";
+        my $command = $shell_cmd." 'top -b -n1 -w160 | sed -e \"s/[ ]* / /g\" 2>/dev/null;'";
         if ($debug2) { print "Command get_top_output:".$command."\n"; }
         my @data = `$command`;
         my $gpu_t = &get_gpu_temp($shell_cmd);
