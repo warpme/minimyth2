@@ -1,7 +1,7 @@
 GARNAME = qt-everywhere-src
-GARVERSION = 5.12.2
+GARVERSION = 5.13.1
 CATEGORIES = qt
-MASTER_SITES = http://download.qt.io/official_releases/qt/5.12/$(GARVERSION)/single/
+MASTER_SITES = http://download.qt.io/official_releases/qt/5.13/$(GARVERSION)/single/
 DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES  = $(DISTNAME).patch.gar
 PATCHFILES += $(DISTNAME)-fix-gcc6+-build.patch
@@ -62,6 +62,8 @@ CONFIGURE_ARGS = \
 	-xplatform $(PLATFORM_GARHOST_NAME) \
 	-c++std c++1z \
 	-plugin-sql-mysql \
+	-I $(DESTDIR)$(includedir)/mysql \
+	-L $(DESTDIR)$(libdir)/mysql \
 	-no-sql-db2 \
 	-no-sql-ibase \
 	-no-sql-oci \
@@ -80,10 +82,8 @@ CONFIGURE_ARGS = \
 	-skip qtwebengine \
 	-skip qt3d \
 	-silent \
-	$(if $(filter arm,$(GARCH_FAMILY)),-skip qtwebglplugin) \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	$(if $(filter brcm-vc4 mali450-dummy mali450-fbdev mali450-x11 mali450-wayland,$(mm_OPENGL_PROVIDER)),-eglfs) \
-	$(if $(filter brcm-vc4 mali450-dummy mali450-fbdev mali450-x11,$(mm_OPENGL_PROVIDER)),-skip wayland) \
 
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
