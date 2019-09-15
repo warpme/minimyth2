@@ -66,6 +66,7 @@ PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
 PATCHFILES += 0211-decrease-minQt-ver-to-4.8-render2019.patch
 PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
+PATCHFILES += 0215-decoders-v4l2-add-amlogic-pix-formats.patch
 
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
