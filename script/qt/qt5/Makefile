@@ -84,6 +84,7 @@ CONFIGURE_ARGS = \
 	-silent \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	$(if $(filter brcm-vc4 mali450-dummy mali450-fbdev mali450-x11 mali450-wayland,$(mm_OPENGL_PROVIDER)),-eglfs) \
+	$(if $(filter arm,$(GARCH_FAMILY)),-skip qtwebglplugin) \
 
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
