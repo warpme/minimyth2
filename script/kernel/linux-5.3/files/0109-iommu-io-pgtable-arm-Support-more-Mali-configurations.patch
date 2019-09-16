@@ -1,0 +1,47 @@
+From cf7c43447055588f1283037410f4e1aea8e53772 Mon Sep 17 00:00:00 2001
+From: Robin Murphy <robin.murphy@arm.com>
+Date: Wed, 11 Sep 2019 15:42:08 +0100
+Subject: [PATCH] iommu/io-pgtable-arm: Support more Mali configurations
+
+In principle, Midgard GPUs supporting smaller VA sizes should only
+require 3-level pagetables, since the address bits resolved at level 0
+(47:40) will never change. However, the kbase driver does not appear to
+have any notion of a variable start level, and empirically T720 and T820
+rapidly blow up with translation faults unless given a full 4-level
+table, despite only supporting a 33-bit VA size.
+
+The 'real' IAS value is still valuable in terms of validating addresses
+on map/unmap, so tweak the allocator to allow smaller values while still
+forcing the resultant tables to the full 4 levels.
+
+Signed-off-by: Robin Murphy <robin.murphy@arm.com>
+Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
+---
+ drivers/iommu/io-pgtable-arm.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtable-arm.c
+index 9e35cd991f065..77f41c9dd9be7 100644
+--- a/drivers/iommu/io-pgtable-arm.c
++++ b/drivers/iommu/io-pgtable-arm.c
+@@ -1022,7 +1022,7 @@ arm_mali_lpae_alloc_pgtable(struct io_pgtable_cfg *cfg, void *cookie)
+ 	if (cfg->quirks)
+ 		return NULL;
+ 
+-	if (cfg->ias != 48 || cfg->oas > 40)
++	if (cfg->ias > 48 || cfg->oas > 40)
+ 		return NULL;
+ 
+ 	cfg->pgsize_bitmap &= (SZ_4K | SZ_2M | SZ_1G);
+@@ -1031,6 +1031,11 @@ arm_mali_lpae_alloc_pgtable(struct io_pgtable_cfg *cfg, void *cookie)
+ 	if (!data)
+ 		return NULL;
+ 
++	/* Mali seems to need a full 4-level table regardless of IAS */
++	if (data->levels < ARM_LPAE_MAX_LEVELS) {
++		data->levels = ARM_LPAE_MAX_LEVELS;
++		data->pgd_size = sizeof(arm_lpae_iopte);
++	}
+ 	/*
+ 	 * MEMATTR: Mali has no actual notion of a non-cacheable type, so the
+ 	 * best we can do is mimic the out-of-tree driver and hope that the
