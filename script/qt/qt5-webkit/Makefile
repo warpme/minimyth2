@@ -1,8 +1,8 @@
 GARNAME = qtwebkit
 CATEGORIES = qt
-GARVERSION = 20180120-72cfbd7
-MASTER_SITES = https://github.com/annulen/webkit/releases/download/$(DISTNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
+GARVERSION = 47e125f8c3ff6fb508a8f055d45b15365d5e9d83
+MASTER_SITES = https://github.com/qt/qtwebkit/archive/
+DISTFILES = $(GARVERSION).zip
 PATCHFILES  = qt5-webkit-revert-ac17da2-Check-Qt-private-headers-available-before-compilation.patch
 
 DESCRIPTION = 
@@ -72,10 +72,6 @@ endif
 endif
 
 include ../../gar.mk
-
-git//%$(DISTNAME).tar.bz2:
-	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
-	@$(MAKECOOKIE)
 
 configure-%/cmake:
 	@echo " ==> Running configure in $*"
