@@ -21,9 +21,8 @@ if [ x$1 = "xgdb" ] || [ x$2 = "xgdb" ]; then
     echo "Runing myth under gdb"
     su minimyth -c "/usr/bin/gdb /usr/bin/mythfrontend -x /etc/gdb.commands"
 else
-    su minimyth -c "/usr/bin/mythfrontend --verbose gui,libav,playback,audio --loglevel=debug --syslog none --logpath /tmp/"
+    su minimyth -c "/usr/bin/mythfrontend --verbose libav,playback,audio,gpu --loglevel=debug --syslog none --logpath /tmp/"
 fi
-
 
 # all             - ALL available debug output
 # audio           - Audio related messages
