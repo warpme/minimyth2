@@ -62,5 +62,5 @@ ifneq (,$(findstring board-h6.tanix_tx6,$(mm_BOARD_TYPE)))
 endif
 
 clean-all:
-	@$(foreach dir, $(wildcard ../u-boot* ../board-* ../arm-trusted-firmware), $(MAKE) clean clean-all -C $(dir) ; )
+	@$(foreach dir, $(wildcard ../u-boot /u-boot-sunxi ../board-* ../arm-trusted-firmware), $(MAKE) clean clean-all -C $(dir) ; )
 	$(MAKE) clean
