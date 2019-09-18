@@ -1,0 +1,54 @@
+#!/bin/sh
+
+url="https://github.com/Elyotna/ffmpeg-drm/raw/master/"
+video_file="h264.FVDO_Freeway_720p.264"
+
+
+
+
+
+
+test_file="$1"
+
+killall X
+sleep 3
+
+if [ x${test_file} = "x" ]; then
+    if [ -e "/usr/local/share/${video_file}" ]; then
+        test_file="/usr/local/share/${video_file}"
+        echo "--> Using test video '${video_file}' file from [/usr/local/share]"
+    else
+        if [ -e "/tmp/${video_file}" ]; then
+            test_file="/tmp/${video_file}"
+            echo "--> Using test video '${video_file}' file from [/tmp]"
+        else
+            echo "--> Downloading test video '${video_file}' file from [${url}]"
+            curl -LJ0 ${url}${video_file} --output /tmp/${video_file}
+            if [ ! -e "/tmp/${video_file}" ]; then
+                echo "Error: can't download test video file from ${url}"
+                echo "Exiting..."
+                exit 1
+            else
+                test_file="/tmp/${video_file}"
+                echo "--> Using test video '${video_file}' file from [/tmp]"
+            fi
+        fi
+    fi
+fi
+
+echo " "
+echo "---- testing v4l2 m2m decoding -----"
+echo " "
+mythffmpeg -c:v h264_v4l2m2m -i ${test_file} -f null -
+echo " "
+echo "------------------------------------"
+echo " "
+
+echo " "
+echo "---- testing v4l2 m2m decod & DRM playback -----"
+ffmpeg-drm --video ${test_file} --codec h264_v4l2m2m --width 1280 --height 720
+echo " "
+echo "------------------------------------------------"
+echo " "
+
+exit 0
