@@ -127,7 +127,6 @@ PATCHFILES += 0825-bluetooth-bcm-Add-support-for-loading-firmware-for-B.patch
 PATCHFILES += 0826-drm-sun8i-Drop-reference-to-connector_pdev.patch
 PATCHFILES += 0827-Fix-reboot-issue-with-ethernet-on-Orange-Pi-3.patch
 PATCHFILES += 0828-Even-more-BT-delay.patch
-PATCHFILES += 0829-regulator-axp20x-fix-DCDCA-and-DCDCD-for-AXP806.patch
 # Some generic H6 patches
 PATCHFILES += 0834-arm64-dts-allwinner-Add-ARM-Mali-GPU-node-for-H6.patch
 PATCHFILES += 0835-arm64-dts-allwinner-Add-mali-GPU-supply-for-H6-board.patch
