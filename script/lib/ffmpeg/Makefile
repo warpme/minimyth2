@@ -3,13 +3,13 @@ GARNAME = ffmpeg
 CATEGORIES = lib
 
 #--use this for mainline ffmpeg--------------------------
-# GARVERSION = 4.1.3
-GARVERSION = 4.0.2
+GARVERSION = 4.1.4
+#GARVERSION = 4.0.2
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
 #--------------------------------------------------------
 
-PATCHFILES = ffmpeg-pkg_config.patch $(DISTNAME)-lrusak-v4l2.patch
+#PATCHFILES = ffmpeg-pkg_config.patch $(DISTNAME)-lrusak-v4l2.patch
 
 #PATCHFILES += 0002-libavcodec-v4l2m2m-output-AVDRMFrameDescriptor.patch
 #PATCHFILES += 0003-libavcodec-v4l2m2m-DRM-export-only-once.patch
@@ -115,8 +115,9 @@ CONFIGURE_ARGS = \
 	--enable-asm \
 	--enable-fast-unaligned \
 	--enable-optimizations \
-	--enable-libdrm \
+	--pkg-config="pkg-config" \
 	--enable-v4l2-m2m \
+	--enable-libdrm \
 
 BUILD_ARGS     = \
 	V='1'
