@@ -18,9 +18,14 @@ ifneq (,$(findstring board-rpi2,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rpi2
 endif
 
-ifneq (,$(findstring board-rpi3,$(mm_BOARD_TYPE)))
+ifneq (,$(findstring board-rpi3_64b,$(mm_BOARD_TYPE)))
 	$(MAKE) clean -C ../u-boot
-	$(MAKE) install -C ../board-rpi3
+	$(MAKE) install -C ../board-rpi3_64b
+endif
+
+ifneq (,$(findstring board-rpi3_32b,$(mm_BOARD_TYPE)))
+	$(MAKE) clean -C ../u-boot
+	$(MAKE) install -C ../board-rpi3_32b
 endif
 
 ifneq (,$(findstring board-s905,$(mm_BOARD_TYPE)))

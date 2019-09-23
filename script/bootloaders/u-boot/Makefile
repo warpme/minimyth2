@@ -36,6 +36,9 @@ endif
 ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_3_defconfig)
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/kernel8.img
 endif
+ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_3_32b_defconfig)
+	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/kernel.img
+endif
 ifeq ($(mm_U-BOOT_BOARD_TYPE),p212_defconfig)
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)/boot/s905_u-boot
 endif
@@ -51,6 +54,7 @@ endif
 	@$(MAKECOOKIE)
 
 clean-all:
+	@rm -f $(DESTDIR)/boot/kernel.img
 	@rm -f $(DESTDIR)/boot/kernel7.img
 	@rm -f $(DESTDIR)/boot/kernel8.img
 	@rm -f $(DESTDIR)/boot/s905_u-boot
