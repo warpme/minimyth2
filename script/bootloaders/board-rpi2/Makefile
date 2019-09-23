@@ -1,7 +1,7 @@
 
 GARNAME      = bootfiles-rpi2
 GITHASH      = e1bd9b0b8cda901ee9b23cbb8b3334cde71320a7
-GARVERSION   = 2018-12-29-$(GITHASH)
+GARVERSION   = 2019-09-22-$(GITHASH)
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/raspberrypi/firmware/raw/$(GITHASH)/boot/
 DISTFILES    = rpi2-boot.scr \
@@ -13,6 +13,7 @@ DISTFILES    = rpi2-boot.scr \
                start_cd.elf \
                start.elf \
                start_x.elf \
+               kernel7.img \
 
 WORKSRC      = $(WORKDIR)
 
@@ -43,6 +44,7 @@ install-custom:
 	@cp -f $(WORKSRC)/start.elf     $(DESTDIR)/boot/start.elf
 	@cp -f $(WORKSRC)/start_cd.elf  $(DESTDIR)/boot/start_cd.elf
 	@cp -f $(WORKSRC)/start_x.elf   $(DESTDIR)/boot/start_x.elf
+	@# cp -f $(WORKSRC)/kernel7.img   $(DESTDIR)/boot/kernel7.img
 	@cp -f $(DESTDIR)/boot/dtbs/bcm2836-rpi-2-b.dtb $(DESTDIR)/boot/bcm2836-rpi-2-b.dtb
 	@$(MAKECOOKIE)
 
