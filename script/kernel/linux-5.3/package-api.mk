@@ -11,7 +11,7 @@ endif
 ifeq (1,1)
 LINUX_MAJOR_VERSION = 5
 LINUX_MINOR_VERSION = 3
-LINUX_TEENY_VERSION = 
+LINUX_TEENY_VERSION = 1
 LINUX_EXTRA_VERSION = 
 endif
 #-------------------------------------------
