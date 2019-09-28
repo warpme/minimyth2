@@ -327,6 +327,15 @@ build-%/GNUmakefile:
 	@$(BUILD_ENV) $(MAKE) $(PARALLELMFLAGS) $(foreach TTT,$(BUILD_OVERRIDE_DIRS),$(TTT)="$($(TTT))") -C $* $(BUILD_ARGS)
 	@$(MAKECOOKIE)
 
+rebuild:
+	@echo " ==> Removing build & install cooke files..."
+	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/build*
+	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/install*
+	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/pre-install*
+	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/post-install*
+	@echo " ==> Running install..."
+	$(MAKE) install
+
 #################### STRIP RULES ####################
 # The strip rule should probably strip uninstalled binaries.
 # TODO: Seth, what was the exact parameter set to strip that you
