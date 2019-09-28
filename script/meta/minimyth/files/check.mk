@@ -214,13 +214,13 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_VERSION"
-	@if [ ! "$(mm_NVIDIA_VERSION)" = "418.74"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "430.34"    ] ; then \
+	@if [ ! "$(mm_NVIDIA_VERSION)" = "430.34"    ] && \
+	    [ ! "$(mm_NVIDIA_VERSION)" = "435.21"    ] ; then \
 		echo "error: mm_NVIDIA_VERSION=\"$(mm_NVIDIA_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_LEGACY_VERSION"
-	@if [ ! "$(mm_NVIDIA_LEGACY_VERSION)" = "340.106"    ] && \
+	@if [ ! "$(mm_NVIDIA_LEGACY_VERSION)" = "340.107"    ] && \
 	    [ ! "$(mm_NVIDIA_LEGACY_VERSION)" = "340.107"    ] ; then \
 		echo "error: mm_NVIDIA_LEGACY_VERSION=\"$(mm_NVIDIA_LEGACY_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
