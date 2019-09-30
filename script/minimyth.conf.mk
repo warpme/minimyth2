@@ -179,8 +179,8 @@ mm_KERNEL_CONFIG          ?=
 mm_MYTH_VERSION           ?= master
 
 # The version of the NVIDIA driver.
-# Valid values are '435.21'
-mm_NVIDIA_VERSION         ?= 435.21
+# Valid values are '430.50' '435.21'
+mm_NVIDIA_VERSION         ?= 430.50
 
 # The version of the NVIDIA legacy driver.
 # Valid values are '340.107'
