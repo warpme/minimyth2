@@ -2,13 +2,12 @@
 GARNAME = ffmpeg
 CATEGORIES = lib
 
+ifeq (1,1)
 #--use this for mainline ffmpeg--------------------------
 GARVERSION = 4.1.4
 #GARVERSION = 4.0.2
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
-#--------------------------------------------------------
-
 #PATCHFILES = ffmpeg-pkg_config.patch $(DISTNAME)-lrusak-v4l2.patch
 
 #PATCHFILES += 0002-libavcodec-v4l2m2m-output-AVDRMFrameDescriptor.patch
@@ -23,6 +22,19 @@ DISTFILES = $(DISTNAME).tar.bz2
 #PATCHFILES += 0011-libavcodec-v4l2m2m-DRM-debug-information.patch
 #PATCHFILES += 0012-libavcodec-v4l2m2m-fix-error-handling-during-buffer-.patch
 #PATCHFILES += 0013-libavcodec-v4l2m2m-use-ff_get_format-callback-from-a.patch
+#--------------------------------------------------------
+endif
+
+ifeq (1,0)
+#--use this for current master ffmpeg--------------------
+# https://github.com/FFmpeg/FFmpeg/commits/master
+GITHASH = 6ca3d34ff8490fb1efa0cc3dc06b6bbb58151c53
+GARVERSION = 20190930-$(GITHASH)
+MASTER_SITES = https://github.com/FFmpeg/FFmpeg/archive/
+DISTFILES = $(GITHASH).zip
+WORKSRC   = $(WORKDIR)/FFmpeg-$(GITHASH)
+#--------------------------------------------------------
+endif
 
 LICENSE = GPL2/LGPL2_1
 
