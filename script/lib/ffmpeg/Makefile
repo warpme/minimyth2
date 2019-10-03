@@ -4,10 +4,11 @@ CATEGORIES = lib
 
 ifeq (1,1)
 #--use this for mainline ffmpeg--------------------------
-GARVERSION = 4.1.4
-#GARVERSION = 4.0.2
+# GARVERSION = 4.1.4
+GARVERSION = 4.0.2
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
+
 #PATCHFILES = ffmpeg-pkg_config.patch $(DISTNAME)-lrusak-v4l2.patch
 
 #PATCHFILES += 0002-libavcodec-v4l2m2m-output-AVDRMFrameDescriptor.patch
@@ -35,6 +36,44 @@ DISTFILES = $(GITHASH).zip
 WORKSRC   = $(WORKDIR)/FFmpeg-$(GITHASH)
 #--------------------------------------------------------
 endif
+
+ifeq (1,0)
+#--use this for kodi ffmpeg------------------------------
+# https://github.com/xbmc/FFmpeg/archive/4.0.4-Leia-18.4.tar.gz
+GARVERSION = 4.0.4-Leia-18.4
+MASTER_SITES = https://github.com/xbmc/FFmpeg/archive/
+DISTFILES = $(GARVERSION).tar.gz
+WORKSRC   = $(WORKDIR)/FFmpeg-$(GARVERSION)
+
+PATCHFILES += ffmpeg-95.0001-avutil-add-av_buffer_pool_flush.patch
+PATCHFILES += ffmpeg-95.0002-Add-common-V4L2-request-API-code.patch
+PATCHFILES += ffmpeg-95.0003-Add-V4L2-request-API-mpeg2-hwaccel.patch
+PATCHFILES += ffmpeg-95.0004-Add-V4L2-request-API-h264-hwaccel.patch
+PATCHFILES += ffmpeg-95.0005-Add-V4L2-request-API-hevc-hwaccel.patch
+PATCHFILES += ffmpeg-95.0006-Add-V4L2-request-API-vp8-hwaccel.patch
+PATCHFILES += ffmpeg-95.0007-Add-and-use-private-linux-headers-for-V4L2-request-A.patch
+PATCHFILES += ffmpeg-95.0008-hwcontext_drm-do-not-require-drm-device.patch
+PATCHFILES += ffmpeg-95.0009-avcodec-h264-parse-idr_pic_id.patch
+PATCHFILES += ffmpeg-95.0010-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
+PATCHFILES += ffmpeg-95.0011-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
+PATCHFILES += ffmpeg-99.1001-Call-get_format-to-fix-an-issue-with-MMAL-ren.patch
+PATCHFILES += ffmpeg-99.1002-mpeg4video-Signal-unsupported-GMC-with-more-than-one.patch
+PATCHFILES += ffmpeg-99.1003-pfcd_hevc_optimisations.patch
+PATCHFILES += ffmpeg-99.1004-added_upstream_mvc_patches.patch
+PATCHFILES += ffmpeg-99.1005-rkmppdec-Kodi-need-more-buffers.patch
+PATCHFILES += ffmpeg-99.1006-rkmppdec-continue-on-errinfo-frame.patch
+PATCHFILES += ffmpeg-99.1007-rkmppdec-enable-mpeg2.patch
+PATCHFILES += ffmpeg-99.1008-dav1d-enable-av1.patch
+PATCHFILES += ffmpeg-99.1009-dav1d-fix-multithreaded-av1-sw-decoding.patch
+PATCHFILES += ffmpeg-99.1010-rkmppdec-set-mastering-display-and-content-light-sid.patch
+PATCHFILES += ffmpeg-99.1010-yuv2rgb-logspam.patch
+PATCHFILES += ffmpeg-999-aspect-ratio.patch
+PATCHFILES += ffmpeg-999-lrusak-v4l2.patch
+PATCHFILES += ffmpeg-999-min-buffers.patch
+PATCHFILES += ffmpeg-999-z-fixes.patch
+#--------------------------------------------------------
+endif
+
 
 LICENSE = GPL2/LGPL2_1
 
