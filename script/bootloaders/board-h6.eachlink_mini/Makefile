@@ -42,3 +42,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/boot.txt
 	@rm -f $(DESTDIR)/boot/boot.scr
 	@rm -f $(DESTDIR)/boot/h6_dtb
+	@rm -rf $(DESTDIR)/boot/h6loaderfiles*

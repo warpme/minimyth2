@@ -48,5 +48,4 @@ install-custom:
 
 clean-all:
 	$(MAKE) clean -C ../arm-trusted-firmware
-	@rm -f $(DESTDIR)/boot/h6loaderfiles/u-boot-sunxi-with-spl.bin
-	@rm -f $(DESTDIR)/boot/h6loaderfiles/bl31.bin
+	@rm -rf $(DESTDIR)/boot/h6loaderfiles*
