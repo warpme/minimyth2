@@ -25,6 +25,7 @@ PATCHFILES += linux-5.4-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.4-net-smsc95xx-allow-mac-address-as-param.patch
 
 PATCHFILES += 0101-meson-ao-cec-move-cec_notifier_cec_adap_register-after-hw-setup.patch
+PATCHFILES += 0103-dma-buf-resv-fix-exclusive-fence-get.patch
 
 ifeq (1,1)
 PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
@@ -52,7 +53,7 @@ PATCHFILES += 0333-arm64-dts-meson-g12a-add-video-decoder-node.patch
 PATCHFILES += 0334-media-meson-vdec-WIP-HEVC-IOMMU-support.patch
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # Amlogic speciffic patches to enable hdmi audio
 PATCHFILES += 0341-ASoC-meson-add-meson-audio-core-driver.patch
 PATCHFILES += 0342-ASoC-meson-add-register-definitions.patch
