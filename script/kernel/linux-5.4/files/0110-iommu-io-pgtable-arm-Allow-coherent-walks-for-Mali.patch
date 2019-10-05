@@ -1,0 +1,34 @@
+From 199ee71f2ef17372e3e788e129cbf61536fe9fa3 Mon Sep 17 00:00:00 2001
+From: Robin Murphy <robin.murphy@arm.com>
+Date: Wed, 11 Sep 2019 15:42:09 +0100
+Subject: [PATCH] iommu/io-pgtable-arm: Allow coherent walks for Mali
+
+Midgard GPUs have ACE-Lite master interfaces which allows systems to
+integrate them in an I/O-coherent manner. It seems that from the GPU's
+viewpoint, the rest of the system is its outer shareable domain, and it
+will only emit snoop signals for outer shareable accesses. As such,
+setting the TTBR_SHARE_OUTER bit does indeed get coherent pagetable
+walks working nicely.
+
+Making data accesses coherent seems to be more of a challenge...
+
+Signed-off-by: Robin Murphy <robin.murphy@arm.com>
+Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
+---
+ drivers/iommu/io-pgtable-arm.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/iommu/io-pgtable-arm.c b/drivers/iommu/io-pgtable-arm.c
+index 77f41c9dd9be7..2794d46613392 100644
+--- a/drivers/iommu/io-pgtable-arm.c
++++ b/drivers/iommu/io-pgtable-arm.c
+@@ -1061,6 +1061,9 @@ arm_mali_lpae_alloc_pgtable(struct io_pgtable_cfg *cfg, void *cookie)
+ 	cfg->arm_mali_lpae_cfg.transtab = virt_to_phys(data->pgd) |
+ 					  ARM_MALI_LPAE_TTBR_READ_INNER |
+ 					  ARM_MALI_LPAE_TTBR_ADRMODE_TABLE;
++	if (cfg->coherent_walk)
++		cfg->arm_mali_lpae_cfg.transtab |= ARM_MALI_LPAE_TTBR_SHARE_OUTER;
++
+ 	return &data->iop;
+ 
+ out_free_data:
