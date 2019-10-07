@@ -38,19 +38,13 @@ PATCHFILES += 0110-iommu-io-pgtable-arm-Allow-coherent-walks-for-Mali.patch
 endif
 
 ifeq (1,1)
-# Amlogic vdec enhacement for h264/mjpeg/vp9 over mpeg1/2 basic support in 5.4
-PATCHFILES += 0323-media-meson-vdec-add-H.264-decoding-support.patch
+PATCHFILES += 0320-media-videodev2.h-Add-Amlogic-compressed-format.patch
+PATCHFILES += 0321-media-meson-vdec-add-support-for-V4L2_PIX_FMT_AM21C.patch
+PATCHFILES += 0322-media-meson-vdec-Add-compliant-H264-support.patch
+PATCHFILES += 0323-media-meson-vdec-Add-support-for-the-H264-compressed-format.patch
 PATCHFILES += 0324-media-meson-vdec-add-MPEG4-decoding-support.patch
 PATCHFILES += 0325-media-meson-vdec-add-MJPEG-decoding-support.patch
-PATCHFILES += 0326-media-videodev2.h-Add-Amlogic-compressed-format.patch
-PATCHFILES += 0327-media-meson-vdec-add-support-for-V4L2_PIX_FMT_AM21C.patch
-PATCHFILES += 0328-media-meson-vdec-add-HEVC-decoding-support.patch
-PATCHFILES += 0329-media-meson-vdec-add-VP9-input-support.patch
-PATCHFILES += 0330-media-meson-vdec-add-VP9-support.patch
-PATCHFILES += 0331-media-meson-vdec-add-g12a-platform.patch
-PATCHFILES += 0332-media-meson-vp9-add-IOMMU-support.patch
-PATCHFILES += 0333-arm64-dts-meson-g12a-add-video-decoder-node.patch
-PATCHFILES += 0334-media-meson-vdec-WIP-HEVC-IOMMU-support.patch
+PATCHFILES += 0326-arm64-dts-meson-g12a-add-video-decoder-node.patch
 endif
 
 ifeq (1,1)
@@ -103,6 +97,7 @@ PATCHFILES += 0520-phy-allwinner-add-phy-driver-for-USB3-PHY-on-Allwinn.patch
 PATCHFILES += 0521-arm64-allwinner-dts-h6-add-USB3-device-nodes.patch
 PATCHFILES += 0522-arm64-allwinner-dts-h6-enable-USB3-port-on-Beelink-G.patch
 # Misc patches for H6
+PATCHFILES += 0524-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-disabling-DDR.patch
 PATCHFILES += 0525-Allwinner-H6-Add-Mali-GPU-for-H6-boards.patch
 PATCHFILES += 0526-pwm-sun4i-Add-support-for-Allwinner-H6.patch
 PATCHFILES += 0527-bus-sunxi-rsb-Make-interrupt-handling-more-robust.patch
@@ -135,6 +130,7 @@ ifeq (1,1)
 # Add DVFS for H6
 PATCHFILES += 0553-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
 PATCHFILES += 0554-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
+PATCHFILES += 0555-arm64-dts-allwinner-h6-enable-dvfs-fix-CPU-voltage-some-boards.patch
 endif
 
 
