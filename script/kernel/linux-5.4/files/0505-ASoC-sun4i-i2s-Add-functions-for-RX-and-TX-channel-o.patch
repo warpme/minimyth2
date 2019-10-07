@@ -1,0 +1,66 @@
+From bfa8ec2dbcb5c3704d0ade0ad4cb798cec4ae97a Mon Sep 17 00:00:00 2001
+From: Marcus Cooper <codekipper@gmail.com>
+Date: Sat, 26 Jan 2019 19:07:30 +0100
+Subject: [PATCH 15/90] ASoC: sun4i-i2s: Add functions for RX and TX channel
+ offsets
+
+Newer SoCs like the H6 have the channel offset bits in a different
+position to what is on the H3. As we will eventually add multi-
+channel support then create function calls as opposed to regmap
+fields to add support for different devices.
+
+Signed-off-by: Marcus Cooper <codekipper@gmail.com>
+---
+ sound/soc/sunxi/sun4i-i2s.c | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/sound/soc/sunxi/sun4i-i2s.c b/sound/soc/sunxi/sun4i-i2s.c
+index b7fc8bb..2574954 100644
+--- a/sound/soc/sunxi/sun4i-i2s.c
++++ b/sound/soc/sunxi/sun4i-i2s.c
+@@ -164,6 +164,8 @@ struct sun4i_i2s_quirks {
+ 				const struct snd_pcm_hw_params *);
+ 	int	(*set_fmt)(struct sun4i_i2s *, unsigned int);
+ 	void	(*set_fmt_sext)(const struct sun4i_i2s *, unsigned int);
++	void	(*set_txchanoffset)(const struct sun4i_i2s *, int);
++	void	(*set_rxchanoffset)(const struct sun4i_i2s *);
+ };
+ 
+ struct sun4i_i2s {
+@@ -481,6 +483,24 @@ static int sun8i_i2s_set_chan_cfg(const struct sun4i_i2s *i2s,
+ 	return 0;
+ }
+ 
++static void sun8i_i2s_set_txchanoffset(const struct sun4i_i2s *i2s, int output)
++{
++	if (output >= 0 && output < 4) {
++		regmap_update_bits(i2s->regmap,
++				   SUN8I_I2S_TX_CHAN_SEL_REG + (output * 4),
++				   SUN8I_I2S_TX_CHAN_OFFSET_MASK,
++				   SUN8I_I2S_TX_CHAN_OFFSET(i2s->offset));
++	}
++}
++
++static void sun8i_i2s_set_rxchanoffset(const struct sun4i_i2s *i2s)
++{
++	regmap_update_bits(i2s->regmap,
++			   SUN8I_I2S_RX_CHAN_SEL_REG,
++			   SUN8I_I2S_TX_CHAN_OFFSET_MASK,
++			   SUN8I_I2S_TX_CHAN_OFFSET(i2s->offset));
++}
++
+ static int sun4i_i2s_hw_params(struct snd_pcm_substream *substream,
+ 			       struct snd_pcm_hw_params *params,
+ 			       struct snd_soc_dai *dai)
+@@ -1177,6 +1197,8 @@ static const struct sun4i_i2s_quirks sun8i_h3_i2s_quirks = {
+ 	.set_chan_cfg		= sun8i_i2s_set_chan_cfg,
+ 	.set_fmt		= sun8i_i2s_set_soc_fmt,
+ 	.set_fmt_sext		= sun8i_i2s_set_fmt_sext,
++	.set_txchanoffset	= sun8i_i2s_set_txchanoffset,
++	.set_rxchanoffset	= sun8i_i2s_set_rxchanoffset,
+ };
+ 
+ static const struct sun4i_i2s_quirks sun50i_a64_codec_i2s_quirks = {
+-- 
+2.7.1
+

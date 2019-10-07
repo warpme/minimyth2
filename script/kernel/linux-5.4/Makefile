@@ -86,45 +86,57 @@ endif
 
 ifeq (1,1)
 # H6 HDMI audio support
-PATCHFILES += 0501-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
+PATCHFILES += 0501-ASoC-sun4i-i2s-Add-function-to-sign-extend-sample.patch
+PATCHFILES += 0502-ASoC-sun4i-i2s-Adjust-LRCLK-width.patch
+PATCHFILES += 0503-ASoc-sun4i-i2s-Add-20-and-24-bit-support.patch
+PATCHFILES += 0504-ASoC-sun4i-i2s-Move-channel-select-offset.patch
+PATCHFILES += 0505-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-o.patch
+PATCHFILES += 0506-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-e.patch
+PATCHFILES += 0507-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-s.patch
+PATCHFILES += 0508-revert-sun4i-i2s-Use-module-clock-as-BCLK-parent-on-newer-SoCs.patch
+PATCHFILES += 0509-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
+endif
+
+ifeq (1,1)
 # Support for USB3 on H6
-PATCHFILES += 0510-phy-allwinner-add-phy-driver-for-USB3-PHY-on-Allwinn.patch
-PATCHFILES += 0511-arm64-allwinner-dts-h6-add-USB3-device-nodes.patch
-PATCHFILES += 0512-arm64-allwinner-dts-h6-enable-USB3-port-on-Beelink-G.patch
+PATCHFILES += 0520-phy-allwinner-add-phy-driver-for-USB3-PHY-on-Allwinn.patch
+PATCHFILES += 0521-arm64-allwinner-dts-h6-add-USB3-device-nodes.patch
+PATCHFILES += 0522-arm64-allwinner-dts-h6-enable-USB3-port-on-Beelink-G.patch
 # Misc patches for H6
-PATCHFILES += 0516-Allwinner-H6-Add-Mali-GPU-for-H6-boards.patch
-PATCHFILES += 0517-pwm-sun4i-Add-support-for-Allwinner-H6.patch
-PATCHFILES += 0518-bus-sunxi-rsb-Make-interrupt-handling-more-robust.patch
+PATCHFILES += 0525-Allwinner-H6-Add-Mali-GPU-for-H6-boards.patch
+PATCHFILES += 0526-pwm-sun4i-Add-support-for-Allwinner-H6.patch
+PATCHFILES += 0527-bus-sunxi-rsb-Make-interrupt-handling-more-robust.patch
 # Add some new H6 boards
-PATCHFILES += 0519-arm64-dts-allwinner-add-rgmii-pins-for-some-h6-boards.patch
-PATCHFILES += 0519-arm64-dts-allwinner-add-Tanix-TX6.patch
-PATCHFILES += 0520-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
-PATCHFILES += 0521-arm64-dts-allwinner-add-Qplus.patch
+PATCHFILES += 0528-arm64-dts-allwinner-add-rgmii-pins-for-some-h6-boards.patch
+PATCHFILES += 0529-arm64-dts-allwinner-add-Tanix-TX6.patch
+PATCHFILES += 0530-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
+PATCHFILES += 0531-arm64-dts-allwinner-add-Qplus.patch
 # Add support for RTC in H6 familly
-PATCHFILES += 0524-dt-bindings-Add-compatible-for-H6-RTC.patch
+PATCHFILES += 0532-dt-bindings-Add-compatible-for-H6-RTC.patch
 # Add AC200 for Eachlink H6/Tanix TX6
-PATCHFILES += 0525-allwinner-h6-add-AC200-EPHY-support.patch
-PATCHFILES += 0526-arm64-dts-sun50i-h6-add-AC200-nodes.patch
+PATCHFILES += 0533-allwinner-h6-add-AC200-EPHY-support.patch
+PATCHFILES += 0534-arm64-dts-sun50i-h6-add-AC200-nodes.patch
+# HW cursor support in drm planes
+PATCHFILES += 0535-drm-sun4i-Mark-one-of-the-UI-planes-as-a-cursor-one.patch
+PATCHFILES += 0536-drm-sun8i-ui-vi-Fix-layer-zpos-change-atomic-modesetting.patch
 # Allwinner Cedrus related patches
-PATCHFILES += 0527-media-cedrus-Add-HEVC-decoding-support.patch
-PATCHFILES += 0530-media-cedrus-h264-add-support-multi-slice-frames.patch
+PATCHFILES += 0540-media-cedrus-Add-HEVC-decoding-support.patch
+PATCHFILES += 0541-media-cedrus-h264-add-support-multi-slice-frames.patch
 endif
 
 ifeq (1,1)
 # Add thermal support in H6
-PATCHFILES += 0537-thermal-sun8i-add-thermal-driver-for-H6.patch
-PATCHFILES += 0538-thermal-sun8i-add-dts-nodes.patch
-PATCHFILES += 0539-thermal-sun8i-enable-ths-in-h6-boards.patch
+PATCHFILES += 0550-thermal-sun8i-add-thermal-driver-for-H6.patch
+PATCHFILES += 0551-thermal-sun8i-add-dts-nodes.patch
+PATCHFILES += 0552-thermal-sun8i-enable-ths-in-h6-boards.patch
 endif
 
 ifeq (1,1)
 # Add DVFS for H6
-PATCHFILES += 0540-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
-PATCHFILES += 0541-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
+PATCHFILES += 0553-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
+PATCHFILES += 0554-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
 endif
 
-PATCHFILES += 0564-drm-sun4i-Mark-one-of-the-UI-planes-as-a-cursor-one.patch
-PATCHFILES += 0565-drm-sun8i-ui-vi-Fix-layer-zpos-change-atomic-modesetting.patch
 
 LICENSE = GPL2
 

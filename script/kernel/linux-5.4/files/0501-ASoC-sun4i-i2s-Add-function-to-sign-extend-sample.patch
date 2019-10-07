@@ -1,0 +1,129 @@
+From 77653a040585d5fbb834f15d0a367aa94f1ae66a Mon Sep 17 00:00:00 2001
+From: Marcus Cooper <codekipper@gmail.com>
+Date: Tue, 5 Sep 2017 09:50:31 +0200
+Subject: [PATCH 11/90] ASoC: sun4i-i2s: Add function to sign extend sample
+
+On the newer SoCs such as the H3 and A64 this is set by default
+to transfer a 0 after each sample in each slot. However the A10
+and A20 SoCs that this driver was developed on had a default
+setting where it padded the audio gain with zeros.
+
+This isn't a problem whilst we have only support for 16bit audio
+but with larger sample resolution rates in the pipeline then SEXT
+bits should be cleared so that they also pad at the LSB. Without
+this the audio gets distorted.
+
+Signed-off-by: Marcus Cooper <codekipper@gmail.com>
+---
+ sound/soc/sunxi/sun4i-i2s.c | 32 ++++++++++++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+
+diff --git a/sound/soc/sunxi/sun4i-i2s.c b/sound/soc/sunxi/sun4i-i2s.c
+index d0a8d58..e722454 100644
+--- a/sound/soc/sunxi/sun4i-i2s.c
++++ b/sound/soc/sunxi/sun4i-i2s.c
+@@ -48,6 +48,9 @@
+ #define SUN4I_I2S_FMT0_FMT_I2S				(0 << 0)
+ 
+ #define SUN4I_I2S_FMT1_REG		0x08
++#define SUN4I_I2S_FMT1_REG_SEXT_MASK		BIT(8)
++#define SUN4I_I2S_FMT1_REG_SEXT(sext)			((sext) << 8)
++
+ #define SUN4I_I2S_FIFO_TX_REG		0x0c
+ #define SUN4I_I2S_FIFO_RX_REG		0x10
+ 
+@@ -105,6 +108,9 @@
+ #define SUN8I_I2S_FMT0_BCLK_POLARITY_INVERTED		(1 << 7)
+ #define SUN8I_I2S_FMT0_BCLK_POLARITY_NORMAL		(0 << 7)
+ 
++#define SUN8I_I2S_FMT1_REG_SEXT_MASK		GENMASK(5,4)
++#define SUN8I_I2S_FMT1_REG_SEXT(sext)			((sext) << 4)
++
+ #define SUN8I_I2S_INT_STA_REG		0x0c
+ #define SUN8I_I2S_FIFO_TX_REG		0x20
+ 
+@@ -157,6 +163,7 @@ struct sun4i_i2s_quirks {
+ 	int	(*set_chan_cfg)(const struct sun4i_i2s *,
+ 				const struct snd_pcm_hw_params *);
+ 	int	(*set_fmt)(const struct sun4i_i2s *, unsigned int);
++	void	(*set_fmt_sext)(const struct sun4i_i2s *, unsigned int);
+ };
+ 
+ struct sun4i_i2s {
+@@ -354,6 +361,10 @@ static int sun4i_i2s_set_clk_rate(struct snd_soc_dai *dai,
+ 
+ 	regmap_field_write(i2s->field_clkdiv_mclk_en, 1);
+ 
++
++	/* Set sign extension to pad out LSB with 0 */
++	i2s->variant->set_fmt_sext(i2s, 0);
++
+ 	return 0;
+ }
+ 
+@@ -691,6 +702,22 @@ static int sun8i_i2s_set_soc_fmt(const struct sun4i_i2s *i2s,
+ 	return 0;
+ }
+ 
++static void sun4i_i2s_set_fmt_sext(const struct sun4i_i2s *i2s,
++				   unsigned int sext)
++{
++	regmap_update_bits(i2s->regmap, SUN4I_I2S_FMT1_REG,
++			   SUN4I_I2S_FMT1_REG_SEXT_MASK,
++			   SUN4I_I2S_FMT1_REG_SEXT(sext));
++}
++
++static void sun8i_i2s_set_fmt_sext(const struct sun4i_i2s *i2s,
++				   unsigned int sext)
++{
++	regmap_update_bits(i2s->regmap, SUN4I_I2S_FMT1_REG,
++			   SUN8I_I2S_FMT1_REG_SEXT_MASK,
++			   SUN8I_I2S_FMT1_REG_SEXT(sext));
++}
++
+ static int sun4i_i2s_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
+ {
+ 	struct sun4i_i2s *i2s = snd_soc_dai_get_drvdata(dai);
+@@ -1077,6 +1104,7 @@ static const struct sun4i_i2s_quirks sun4i_a10_i2s_quirks = {
+ 	.get_wss		= sun4i_i2s_get_wss,
+ 	.set_chan_cfg		= sun4i_i2s_set_chan_cfg,
+ 	.set_fmt		= sun4i_i2s_set_soc_fmt,
++	.set_fmt_sext		= sun4i_i2s_set_fmt_sext,
+ };
+ 
+ static const struct sun4i_i2s_quirks sun6i_a31_i2s_quirks = {
+@@ -1095,6 +1123,7 @@ static const struct sun4i_i2s_quirks sun6i_a31_i2s_quirks = {
+ 	.get_wss		= sun4i_i2s_get_wss,
+ 	.set_chan_cfg		= sun4i_i2s_set_chan_cfg,
+ 	.set_fmt		= sun4i_i2s_set_soc_fmt,
++	.set_fmt_sext		= sun4i_i2s_set_fmt_sext,
+ };
+ 
+ /*
+@@ -1118,6 +1147,7 @@ static const struct sun4i_i2s_quirks sun8i_a83t_i2s_quirks = {
+ 	.get_wss		= sun4i_i2s_get_wss,
+ 	.set_chan_cfg		= sun4i_i2s_set_chan_cfg,
+ 	.set_fmt		= sun4i_i2s_set_soc_fmt,
++	.set_fmt_sext		= sun4i_i2s_set_fmt_sext,
+ };
+ 
+ static const struct sun4i_i2s_quirks sun8i_h3_i2s_quirks = {
+@@ -1136,6 +1166,7 @@ static const struct sun4i_i2s_quirks sun8i_h3_i2s_quirks = {
+ 	.get_wss		= sun8i_i2s_get_sr_wss,
+ 	.set_chan_cfg		= sun8i_i2s_set_chan_cfg,
+ 	.set_fmt		= sun8i_i2s_set_soc_fmt,
++	.set_fmt_sext		= sun8i_i2s_set_fmt_sext,
+ };
+ 
+ static const struct sun4i_i2s_quirks sun50i_a64_codec_i2s_quirks = {
+@@ -1154,6 +1185,7 @@ static const struct sun4i_i2s_quirks sun50i_a64_codec_i2s_quirks = {
+ 	.get_wss		= sun4i_i2s_get_wss,
+ 	.set_chan_cfg		= sun4i_i2s_set_chan_cfg,
+ 	.set_fmt		= sun4i_i2s_set_soc_fmt,
++	.set_fmt_sext		= sun4i_i2s_set_fmt_sext,
+ };
+ 
+ static int sun4i_i2s_init_regmap_fields(struct device *dev,
+-- 
+2.7.1
+
