@@ -80,14 +80,7 @@ endif
 
 ifeq (1,1)
 # H6 HDMI audio support
-PATCHFILES += 0501-ASoC-sun4i-i2s-Add-function-to-sign-extend-sample.patch
-PATCHFILES += 0502-ASoC-sun4i-i2s-Adjust-LRCLK-width.patch
-PATCHFILES += 0503-ASoc-sun4i-i2s-Add-20-and-24-bit-support.patch
-PATCHFILES += 0504-ASoC-sun4i-i2s-Move-channel-select-offset.patch
-PATCHFILES += 0505-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-o.patch
-PATCHFILES += 0506-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-e.patch
-PATCHFILES += 0507-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-s.patch
-PATCHFILES += 0508-revert-sun4i-i2s-Use-module-clock-as-BCLK-parent-on-newer-SoCs.patch
+PATCHFILES += 0500-sun4i-i2s-add-H6-audio-support.patch
 PATCHFILES += 0509-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
 endif
 
