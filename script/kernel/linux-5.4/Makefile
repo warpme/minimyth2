@@ -28,13 +28,11 @@ PATCHFILES += 0101-meson-ao-cec-move-cec_notifier_cec_adap_register-after-hw-set
 PATCHFILES += 0103-dma-buf-resv-fix-exclusive-fence-get.patch
 
 ifeq (1,1)
+# Lima and Panfrost patches
+PATCHFILES += 0100-iommu-io-pgtable-arm-Mali-LPAE-improvements.patch
+PATCHFILES += 0101-drm-panfrost-Handle-resetting-on-timeout-better.patch
+# Patch to fic Panfrost reset isue on Amlogic
 PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
-# Some mali related kernel iommu fixes
-# https://github.com/superna9999/linux/commits/amlogic/v5.3/panfrost
-PATCHFILES += 0108-iommu-io-pgtable-arm-Correct-Mali-attributes.patch
-PATCHFILES += 0109-iommu-io-pgtable-arm-Support-more-Mali-configurations.patch
-PATCHFILES += 0110-iommu-io-pgtable-arm-Allow-coherent-walks-for-Mali.patch
-# PATCHFILES += 0111-drm-panfrost-Handle-resetting-on-timeout-better.patch
 endif
 
 ifeq (1,1)
