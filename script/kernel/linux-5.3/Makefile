@@ -113,7 +113,7 @@ PATCHFILES += 0410-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
 
 # H6 HDMI audio support
 # Based on https://patchwork.kernel.org/patch/11093285/
-PATCHFILES += 0500-ASoC-sun4i-i2s-Updates-to-the-driver.patch
+#PATCHFILES += 0500-ASoC-sun4i-i2s-Updates-to-the-driver.patch
 PATCHFILES += 0501-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
 # Support for USB3 on H6
 PATCHFILES += 0510-phy-allwinner-add-phy-driver-for-USB3-PHY-on-Allwinn.patch
