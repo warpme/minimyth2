@@ -39,6 +39,8 @@ install-custom:
 	@cp -f $(WORKSRC)/fixup.dat     $(DESTDIR)/boot/fixup.dat
 	@cp -f $(WORKSRC)/fixup_db.dat  $(DESTDIR)/boot/fixup_db.dat
 	@cp -f $(WORKSRC)/fixup_x.dat   $(DESTDIR)/boot/fixup_x.dat
+	@cp -f $(WORKSRC)/rpi2-boot.scr $(DESTDIR)/boot/rpi2-boot.scr
+	@cp -f $(WORKSRC)/rpi2-boot.txt $(DESTDIR)/boot/rpi2-boot.txt
 	@cp -f $(WORKSRC)/rpi2-boot.scr $(DESTDIR)/boot/boot.scr
 	@cp -f $(WORKSRC)/rpi2-boot.txt $(DESTDIR)/boot/boot.txt
 	@cp -f $(WORKSRC)/start.elf     $(DESTDIR)/boot/start.elf
@@ -53,6 +55,8 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/fixup.dat
 	@rm -f $(DESTDIR)/boot/fixup_db.dat
 	@rm -f $(DESTDIR)/boot/fixup_x.dat
+	@rm -f $(DESTDIR)/boot/rpi2-boot.scr
+	@rm -f $(DESTDIR)/boot/rpi2-boot.txt
 	@rm -f $(DESTDIR)/boot/boot.scr
 	@rm -f $(DESTDIR)/boot/boot.txt
 	@rm -f $(DESTDIR)/boot/start.elf
