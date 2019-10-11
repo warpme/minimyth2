@@ -3,6 +3,8 @@ GARVERSION = 2.4.99
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES = $(DISTNAME).tar.bz2
+PATCHFILES = Import-sun4i-drm-header-for-MB32-tiled-NV12-support.patch
+
 LICENSE = MIT
 
 DESCRIPTION = 
