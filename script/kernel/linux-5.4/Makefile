@@ -82,6 +82,22 @@ PATCHFILES += 0500-sun4i-i2s-add-H6-audio-support.patch
 PATCHFILES += 0509-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
 endif
 
+ifeq (0,1)
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=188303
+PATCHFILES += 0500-ASoC-sun4i-i2s-Move-channel-select-offset-v6.patch
+PATCHFILES += 0501-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-offsets-v6.patch
+PATCHFILES += 0502-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-enables-v6.patch
+PATCHFILES += 0503-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-selects-v6.patch
+PATCHFILES += 0504-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-mapping-v6.patch
+PATCHFILES += 0505-dt-bindings-ASoC-sun4i-i2s-Add-H6-compatible-v6.patch
+PATCHFILES += 0506-ASoC-sun4i-i2s-Add-support-for-H6-I2S-v6.patch
+# https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/log/drivers/clk/sunxi-ng?h=next-20191009
+PATCHFILES += 0507-clk-sunxi-ng-h6-Use-sigma-delta-modulation-for-audio-PLL.patch
+PATCHFILES += 0508-clk-sunxi-ng-h6-Allow-GPU-to-change-parent-rate.patch
+
+PATCHFILES += 0509-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
+endif
+
 ifeq (1,1)
 # Support for USB3 on H6
 PATCHFILES += 0520-phy-allwinner-add-phy-driver-for-USB3-PHY-on-Allwinn.patch
