@@ -1,5 +1,5 @@
 GARNAME      = mesa
-GARVERSION   = fa41a51891e5a207da831fa7c4564a413159f221
+GARVERSION   = 045f05a2f68c301c850a38a511c8e254080fce9a
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
