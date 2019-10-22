@@ -43,6 +43,7 @@ endif
 
 ifeq (1,1)
 # Amlogic speciffic patches to enable hdmi audio
+# https://github.com/chewitt/linux/commits/amlogic-5.5-integ-chewitt?after=193a17bf41d5943dd97a05594faa00ce56e27774+69
 PATCHFILES += 0341-ASoC-meson-add-meson-audio-core-driver.patch
 PATCHFILES += 0342-ASoC-meson-add-register-definitions.patch
 PATCHFILES += 0343-ASoC-meson-add-initial-aiu-i2s-support.patch
@@ -51,10 +52,14 @@ PATCHFILES += 0346-snd-meson-activate-HDMI-audio-path.patch
 PATCHFILES += 0345-ARM64-dts-meson-gx-add-audio-controller-nodes.patch
 PATCHFILES += 0347-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
 PATCHFILES += 0348-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
+PATCHFILES += 0350-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-.patch
+PATCHFILES += 0351-fix-chmap_idx.patch
+PATCHFILES += 0352-ASoC-hdmi-codec-reorder-channel-allocation-list.patch
+# PATCHFILES += 0353-multi-channel-GX-audio-hack.patch
 endif
 
 # Amlogic misc patches
-PATCHFILES += 0350-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
+PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 
 ifeq (1,1)
 # ROCKCHIP speciffic patches to enable hdmi audio
