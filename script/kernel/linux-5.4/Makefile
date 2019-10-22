@@ -25,12 +25,8 @@ PATCHFILES += linux-5.4-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.4-net-smsc95xx-allow-mac-address-as-param.patch
 
 PATCHFILES += 0101-meson-ao-cec-move-cec_notifier_cec_adap_register-after-hw-setup.patch
-PATCHFILES += 0103-dma-buf-resv-fix-exclusive-fence-get.patch
 
 ifeq (1,1)
-# Lima and Panfrost patches
-PATCHFILES += 0100-iommu-io-pgtable-arm-Mali-LPAE-improvements.patch
-PATCHFILES += 0101-drm-panfrost-Handle-resetting-on-timeout-better.patch
 # Patch to fic Panfrost reset isue on Amlogic
 PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 endif
@@ -79,22 +75,6 @@ endif
 ifeq (1,1)
 # H6 HDMI audio support
 PATCHFILES += 0500-sun4i-i2s-add-H6-audio-support.patch
-PATCHFILES += 0509-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
-endif
-
-ifeq (0,1)
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=188303
-PATCHFILES += 0500-ASoC-sun4i-i2s-Move-channel-select-offset-v6.patch
-PATCHFILES += 0501-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-offsets-v6.patch
-PATCHFILES += 0502-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-enables-v6.patch
-PATCHFILES += 0503-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-selects-v6.patch
-PATCHFILES += 0504-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-mapping-v6.patch
-PATCHFILES += 0505-dt-bindings-ASoC-sun4i-i2s-Add-H6-compatible-v6.patch
-PATCHFILES += 0506-ASoC-sun4i-i2s-Add-support-for-H6-I2S-v6.patch
-# https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/log/drivers/clk/sunxi-ng?h=next-20191009
-PATCHFILES += 0507-clk-sunxi-ng-h6-Use-sigma-delta-modulation-for-audio-PLL.patch
-PATCHFILES += 0508-clk-sunxi-ng-h6-Allow-GPU-to-change-parent-rate.patch
-
 PATCHFILES += 0509-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
 endif
 
