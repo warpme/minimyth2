@@ -3,7 +3,7 @@ GARVERSION = 1.1.9
 CATEGORIES = lib
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/lib/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
-PATCHFILES = $(DISTNAME)-missing_files.patch
+PATCHFILES = $(DISTNAME)-missing_files.patch $(DISTNAME)-add-AMLGX-card.patch
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = LGPL2_1
 
