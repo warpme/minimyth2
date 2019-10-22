@@ -34,8 +34,10 @@ install-custom:
 	@cp -f    $(WORKSRC)/h6-boot.scr                                       $(DESTDIR)/boot/h6-boot.scr
 	@cp -f    $(WORKSRC)/h6-boot-debug.txt                                 $(DESTDIR)/boot/boot-debug.txt
 	@cp -f    $(WORKSRC)/h6-boot-debug.scr                                 $(DESTDIR)/boot/boot-debug.scr
-	@cp -f    $(WORKSRC)/h6-boot.txt                                       $(DESTDIR)/boot/boot.txt
-	@cp -f    $(WORKSRC)/h6-boot.scr                                       $(DESTDIR)/boot/boot.scr
+	@#cp -f    $(WORKSRC)/h6-boot.txt                                       $(DESTDIR)/boot/boot.txt
+	@#cp -f    $(WORKSRC)/h6-boot.scr                                       $(DESTDIR)/boot/boot.scr
+	@cp -f    $(WORKSRC)/h6-boot-debug.txt                                 $(DESTDIR)/boot/boot.txt
+	@cp -f    $(WORKSRC)/h6-boot-debug.scr                                 $(DESTDIR)/boot/boot.scr
 	@cp -f    $(DESTDIR)/boot/dtbs/allwinner/sun50i-h6-eachlink-h6mini.dtb $(DESTDIR)/boot/h6_dtb
 	@$(MAKECOOKIE)
 
