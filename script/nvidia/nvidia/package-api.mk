@@ -145,6 +145,14 @@ install-nvidia-kernel:
 	@$(MAKECOOKIE)
 
 install-nvidia-x11:
+	@# Since 430 family libGL has generic version instead of NVIDIA_VERSION. Symlink it to
+	@# libGL.so.$(NVIDIA_VERSION) to simplify required install process update
+	@if [ -e $(WORKSRC)/libGL.so.1.7.0 ]; then \
+	    ln -rsf $(WORKSRC)/libGL.so.1.7.0 $(WORKSRC)/libGL.so.$(NVIDIA_VERSION); \
+	 fi
+	@if [ -e $(WORKSRC)/libGL.so.1.8.0 ]; then \
+	    ln -rsf $(WORKSRC)/libGL.so.1.7.0 $(WORKSRC)/libGL.so.$(NVIDIA_VERSION); \
+	 fi
 	@rm -f $(DESTDIR)$(bindir)/nvidia-bug-report.sh
 	@rm -f $(DESTDIR)$(bindir)/nvidia-settings
 	@rm -f $(DESTDIR)$(bindir)/nvidia-smi
