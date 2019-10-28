@@ -109,6 +109,10 @@ PATCHFILES += 0536-drm-sun8i-ui-vi-Fix-layer-zpos-change-atomic-modesetting.patc
 # Allwinner Cedrus related patches
 PATCHFILES += 0540-media-cedrus-Add-HEVC-decoding-support.patch
 PATCHFILES += 0541-media-cedrus-h264-add-support-multi-slice-frames.patch
+
+PATCHFILES += 0542-media-cedrus-Properly-signal-size-in-mode-register.patch
+PATCHFILES += 0543-media-cedrus-Fix-H264-4k-support.patch
+PATCHFILES += 0544-media-cedrus-Increase-maximum-supported-size.patch
 endif
 
 ifeq (1,1)
