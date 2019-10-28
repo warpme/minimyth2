@@ -244,9 +244,9 @@ CONFIGURE_ARGS = \
 	--enable-pic \
 	--disable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
-	$(if $(filter nvidia nvidia-legacy,$(mm_GRAPHICS)),--enable-xnvctrl,--disable-xnvctrl) \
 	--enable-ffplay \
 	--enable-sdl2 \
+	--enable-xnvctrl \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
