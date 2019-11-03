@@ -25,9 +25,6 @@ PATCHFILES += linux-5.3-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.3-net-smsc95xx-allow-mac-address-as-param.patch
 
 ifeq (1,1)
-# 2 below seems to be within 0108/0109
-# PATCHFILES += 0100-iommu-Fix-alloc_io_pgtable_ops-for-ARM_MALI_LPAE-on-.patch
-# PATCHFILES += 0101-fix-io-alloc-for-non-48bit.patch
 PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 # Some Lima fixes
 PATCHFILES += 0103-drm-lima-Mark-64-bit-number-as-ULL.patch
@@ -43,7 +40,6 @@ ifeq (1,1)
 PATCHFILES += 0108-iommu-io-pgtable-arm-Correct-Mali-attributes.patch
 PATCHFILES += 0109-iommu-io-pgtable-arm-Support-more-Mali-configurations.patch
 PATCHFILES += 0110-iommu-io-pgtable-arm-Allow-coherent-walks-for-Mali.patch
-PATCHFILES += 0111-drm-panfrost-Handle-resetting-on-timeout-better.patch
 endif
 
 # Generic HDMI audio patches for dw-hdmi controller
