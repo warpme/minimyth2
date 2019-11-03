@@ -1,5 +1,5 @@
 GARNAME = libva
-GARVERSION = 2.4.0
+GARVERSION = 2.5.0
 CATEGORIES = X11
 MASTER_SITES = https://github.com/01org/libva/releases/download/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
@@ -21,8 +21,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-drm \
 	--enable-x11 \
 	--enable-glx \
-	--disable-egl \
-	--disable-wayland \
+	--enable-egl \
+	--enable-wayland \
 	--disable-dummy-driver \
 	--disable-static \
 	--enable-shared \
