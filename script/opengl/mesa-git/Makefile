@@ -1,11 +1,22 @@
+
 GARNAME      = mesa
-GARVERSION   = 8b98d0954e6168484479cf51d56bface448d00d5
+
+ifeq (1,1)
+GARVERSION   = 538d2c33b86dd9e66a6e900ac8e1cda10a5bfc4d
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
 PATCHFILES  += unblacklist-t720-for-testing.patch
+endif
+
+ifeq (0,1)
+# https://gitlab.freedesktop.org/tomeu/mesa/commits/ci-t720
+GARVERSION   = f380ec6f2a18b5b2b3cc5f8316326b91026f5339
+CATEGORIES   = $(CATEGORY)
+MASTER_SITES = https://gitlab.freedesktop.org/tomeu/mesa/-/archive/$(GARVERSION)/
+DISTFILES    = mesa-$(DISTNAME).tar.bz2
+endif
 
 LICENSE = LGPL2/MIT
 
