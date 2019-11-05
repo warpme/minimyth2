@@ -24,25 +24,27 @@ PATCHFILES += linux-5.4-defaults.patch
 PATCHFILES += linux-5.4-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.4-net-smsc95xx-allow-mac-address-as-param.patch
 
+# Amlogic: Fix 5.4 kernel Ooops
 PATCHFILES += 0101-meson-ao-cec-move-cec_notifier_cec_adap_register-after-hw-setup.patch
 
 ifeq (1,1)
-# Patch to fic Panfrost reset isue on Amlogic
+# Amlogic: Patch to fix Panfrost reset issue on GXM
 PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 endif
 
 ifeq (1,1)
-PATCHFILES += 0320-media-videodev2.h-Add-Amlogic-compressed-format.patch
-PATCHFILES += 0321-media-meson-vdec-add-support-for-V4L2_PIX_FMT_AM21C.patch
+# Amlogic: Add h264 and v4l2 compliance for Amlogic vdec
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=183773&submitter=&state=*&q=&archive=both&delegate=
 PATCHFILES += 0322-media-meson-vdec-Add-compliant-H264-support.patch
 PATCHFILES += 0323-media-meson-vdec-Add-support-for-the-H264-compressed-format.patch
+
 PATCHFILES += 0324-media-meson-vdec-add-MPEG4-decoding-support.patch
 PATCHFILES += 0325-media-meson-vdec-add-MJPEG-decoding-support.patch
 PATCHFILES += 0326-arm64-dts-meson-g12a-add-video-decoder-node.patch
 endif
 
 ifeq (1,1)
-# Amlogic speciffic patches to enable hdmi audio
+# Amlogic: Enable hdmi audio
 # https://github.com/chewitt/linux/commits/amlogic-5.5-integ-chewitt?after=193a17bf41d5943dd97a05594faa00ce56e27774+69
 PATCHFILES += 0341-ASoC-meson-add-meson-audio-core-driver.patch
 PATCHFILES += 0342-ASoC-meson-add-register-definitions.patch
@@ -58,11 +60,11 @@ PATCHFILES += 0352-ASoC-hdmi-codec-reorder-channel-allocation-list.patch
 # PATCHFILES += 0353-multi-channel-GX-audio-hack.patch
 endif
 
-# Amlogic misc patches
+# Amlogic: Misc patches
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 
 ifeq (1,1)
-# ROCKCHIP speciffic patches to enable hdmi audio
+# Rockchip: enable hdmi audio
 PATCHFILES += 0400-arm64-dts-rockchip-add-HDMI-sound-node-for-rk3328-ro.patch
 PATCHFILES += 0401-ASoC-rockchip-i2s-use-closest-clock-rate.patch
 PATCHFILES += 0402-HACK-arm64-dts-rockchip-update-gpu-node-on-rk3328-ro.patch
@@ -78,57 +80,82 @@ PATCHFILES += 0410-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
 endif
 
 ifeq (1,1)
-# H6 HDMI audio support
+# Rockchip: rk3399 vdec support https://patchwork.kernel.org/project/linux-rockchip/list/?series=186085
+PATCHFILES += 0420-media-vb2-Add-a-helper-to-get-the-vb2-buffer-attached-to-a-request.patch
+PATCHFILES += 0421-media-dt-bindings-rockchip-Document-RK3399-Video-Decoder-bindings.patch
+PATCHFILES += 0422-media-rockchip-Add-the-rkvdec-driver.patch
+PATCHFILES += 0423-arm64-dts-rockchip-rk3399-Define-the-rockchip-Video-Decoder-node.patch
+endif
+
+ifeq (0,1)
+# Rockchip: rk3328/3399 improvements https://patchwork.kernel.org/project/linux-rockchip/list/?series=168159
+PATCHFILES += 0430-media-hantro-Fix-H264-max-frmsize-supported-on-RK3288.patch
+PATCHFILES += 0431-media-hantro-Do-not-reorder-H264-scaling-list.patch
+PATCHFILES += 0432-media-hantro-Fix-H264-motion-vector-buffer-offset.patch
+PATCHFILES += 0433-media-hantro-Reduce-H264-extra-space-for-motion-vectors.patch
+PATCHFILES += 0434-media-hantro-Remove-now-unused-H264-pic_size.patch
+PATCHFILES += 0435-media-hantro-Set-H264-FIELDPIC_FLAG_E-flag-correctly.patch
+PATCHFILES += 0436-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
+PATCHFILES += 0437-media-hantro-Fix-H264-decoding-of-field-encoded-content.patch
+PATCHFILES += 0438-media-hantro-Refactor-G1-H264-code.patch
+PATCHFILES += 0439-media-hantro-Add-support-for-H264-decoding-on-RK3399.patch
+PATCHFILES += 0440-media-hantro-Enable-H264-decoding-on-RK3399.patch
+PATCHFILES += 0441-media-hantro-Enable-H264-decoding-on-RK3328.patch
+endif
+
+ifeq (1,1)
+# Allwinner H6: Enable HDMI audio
 PATCHFILES += 0500-sun4i-i2s-add-H6-audio-support.patch
 PATCHFILES += 0509-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
 endif
 
 ifeq (1,1)
-# Support for USB3 on H6
+# Allwinner H6: Support for USB3
 PATCHFILES += 0520-phy-allwinner-add-phy-driver-for-USB3-PHY-on-Allwinn.patch
 PATCHFILES += 0521-arm64-allwinner-dts-h6-add-USB3-device-nodes.patch
 PATCHFILES += 0522-arm64-allwinner-dts-h6-enable-USB3-port-on-Beelink-G.patch
-# Misc patches for H6
+# Allwinner H6: Misc patches
 PATCHFILES += 0524-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-disabling-DDR.patch
 PATCHFILES += 0525-Allwinner-H6-Add-Mali-GPU-for-H6-boards.patch
 PATCHFILES += 0526-pwm-sun4i-Add-support-for-Allwinner-H6.patch
 PATCHFILES += 0527-bus-sunxi-rsb-Make-interrupt-handling-more-robust.patch
-# Add some new H6 boards
+# Allwinner H6: Add some new H6 boards
 PATCHFILES += 0528-arm64-dts-allwinner-add-rgmii-pins-for-some-h6-boards.patch
 PATCHFILES += 0529-arm64-dts-allwinner-add-Tanix-TX6.patch
 PATCHFILES += 0530-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
 PATCHFILES += 0531-arm64-dts-allwinner-add-Qplus.patch
-# Add support for RTC in H6 familly
+# Allwinner H6: Add support for RTC
 PATCHFILES += 0532-dt-bindings-Add-compatible-for-H6-RTC.patch
-# Add AC200 for Eachlink H6/Tanix TX6
+# Allwinner H6: Add AC200 for Eachlink H6/Tanix TX6
 PATCHFILES += 0533-allwinner-h6-add-AC200-EPHY-support.patch
 PATCHFILES += 0534-arm64-dts-sun50i-h6-add-AC200-nodes.patch
-# HW cursor support in drm planes
+# Allwinner H6: HW cursor support in drm planes
 PATCHFILES += 0535-drm-sun4i-Mark-one-of-the-UI-planes-as-a-cursor-one.patch
 PATCHFILES += 0536-drm-sun8i-ui-vi-Fix-layer-zpos-change-atomic-modesetting.patch
-# Allwinner Cedrus related patches
+endif
+
+ifeq (1,1)
+# Allwinner H6: Cedrus related patches
 PATCHFILES += 0540-media-cedrus-Add-HEVC-decoding-support.patch
 PATCHFILES += 0541-media-cedrus-h264-add-support-multi-slice-frames.patch
-
 PATCHFILES += 0542-media-cedrus-Properly-signal-size-in-mode-register.patch
 PATCHFILES += 0543-media-cedrus-Fix-H264-4k-support.patch
 PATCHFILES += 0544-media-cedrus-Increase-maximum-supported-size.patch
 endif
 
 ifeq (1,1)
-# Add thermal support in H6
+# Allwinner H6: Add thermal support
 PATCHFILES += 0550-thermal-sun8i-add-thermal-driver-for-H6.patch
 PATCHFILES += 0551-thermal-sun8i-add-dts-nodes.patch
 PATCHFILES += 0552-thermal-sun8i-enable-ths-in-h6-boards.patch
 endif
 
 ifeq (1,1)
-# Add DVFS for H6
+# Allwinner H6: Add DVFS
 PATCHFILES += 0553-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
 PATCHFILES += 0554-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
 PATCHFILES += 0555-arm64-dts-allwinner-h6-enable-dvfs-fix-CPU-voltage-some-boards.patch
 endif
-
 
 LICENSE = GPL2
 
