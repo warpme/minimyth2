@@ -66,6 +66,8 @@ PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
 PATCHFILES += 0211-decrease-minQt-ver-to-4.8-render2019.patch
 PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
+PATCHFILES += 0215-decoders-v4l2-add-loging-for-detection.patch
+PATCHFILES += 0216-ffmpeg-avcodec-v4l2_buffers-Fix-infinite-loop.patch
 
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
@@ -88,6 +90,7 @@ PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position-v4.patch
 PATCHFILES += 0307-ticekt12809-Playback-Watchlist-Improvements.patch
 PATCHFILES += 0308-ticekt12809-Playback-Add-Unfinished-recording-filter.patch
+
 
 # --------Patches 400+ are plugins patches---------------------
 
