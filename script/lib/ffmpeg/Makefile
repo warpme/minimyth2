@@ -2,42 +2,27 @@
 GARNAME = ffmpeg
 CATEGORIES = lib
 
-ifeq (1,1)
+ifeq (1,0)
 #--use this for mainline ffmpeg--------------------------
 # GARVERSION = 4.1.4
 GARVERSION = 4.0.2
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
-
-#PATCHFILES = ffmpeg-pkg_config.patch $(DISTNAME)-lrusak-v4l2.patch
-
-#PATCHFILES += 0002-libavcodec-v4l2m2m-output-AVDRMFrameDescriptor.patch
-#PATCHFILES += 0003-libavcodec-v4l2m2m-DRM-export-only-once.patch
-#PATCHFILES += 0004-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
-#PATCHFILES += 0005-libavcodec-v4l2m2m-DRM-select-with-PIX_FMT.patch
-#PATCHFILES += 0006-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
-#PATCHFILES += 0007-libavcodec-v4l2m2m-DRM-fix-bufref_drm.patch
-#PATCHFILES += 0008-libavcodec-v4l2m2m-DRM-tidy-up-code.patch
-#PATCHFILES += 0009-libavcodec-v4l2m2m-DRM-check-error-on-fd-close.patch
-#PATCHFILES += 0010-libavcodec-v4l2m2m-dec-declare-HW-config.patch
-#PATCHFILES += 0011-libavcodec-v4l2m2m-DRM-debug-information.patch
-#PATCHFILES += 0012-libavcodec-v4l2m2m-fix-error-handling-during-buffer-.patch
-#PATCHFILES += 0013-libavcodec-v4l2m2m-use-ff_get_format-callback-from-a.patch
 #--------------------------------------------------------
 endif
 
 ifeq (1,0)
 #--use this for current master ffmpeg--------------------
 # https://github.com/FFmpeg/FFmpeg/commits/master
-GITHASH = 6ca3d34ff8490fb1efa0cc3dc06b6bbb58151c53
-GARVERSION = 20190930-$(GITHASH)
+GITHASH = cae7f6658cf37e4075cec4ff3f24eaeb79ff6131
+GARVERSION = 20191105-$(GITHASH)
 MASTER_SITES = https://github.com/FFmpeg/FFmpeg/archive/
 DISTFILES = $(GITHASH).zip
 WORKSRC   = $(WORKDIR)/FFmpeg-$(GITHASH)
 #--------------------------------------------------------
 endif
 
-ifeq (1,0)
+ifeq (1,1)
 #--use this for kodi ffmpeg------------------------------
 # https://github.com/xbmc/FFmpeg/archive/4.0.4-Leia-18.4.tar.gz
 GARVERSION = 4.0.4-Leia-18.4
