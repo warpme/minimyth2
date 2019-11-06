@@ -66,7 +66,6 @@ PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
 PATCHFILES += 0211-decrease-minQt-ver-to-4.8-render2019.patch
 PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
-PATCHFILES += 0215-decoders-v4l2-add-loging-for-detection.patch
 PATCHFILES += 0216-ffmpeg-avcodec-v4l2_buffers-Fix-infinite-loop.patch
 
 # Patches related to OSD
