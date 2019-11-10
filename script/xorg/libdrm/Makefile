@@ -64,6 +64,7 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
+	@cp -f $(WORKSRC)/tests/modetest/.libs/modetest $(DESTDIR)$(bindir)/modetest
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_intel.la
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_nouveau.la
