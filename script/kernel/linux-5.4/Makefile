@@ -79,7 +79,7 @@ PATCHFILES += 0409-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-roc-p.patch
 PATCHFILES += 0410-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 # Rockchip: rk3399 vdec support https://patchwork.kernel.org/project/linux-rockchip/list/?series=186085
 PATCHFILES += 0420-media-vb2-Add-a-helper-to-get-the-vb2-buffer-attached-to-a-request.patch
 PATCHFILES += 0421-media-dt-bindings-rockchip-Document-RK3399-Video-Decoder-bindings.patch
@@ -87,7 +87,7 @@ PATCHFILES += 0422-media-rockchip-Add-the-rkvdec-driver.patch
 PATCHFILES += 0423-arm64-dts-rockchip-rk3399-Define-the-rockchip-Video-Decoder-node.patch
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # Rockchip: rk3328/3399 improvements https://patchwork.kernel.org/project/linux-rockchip/list/?series=168159
 PATCHFILES += 0430-media-hantro-Fix-H264-max-frmsize-supported-on-RK3288.patch
 PATCHFILES += 0431-media-hantro-Do-not-reorder-H264-scaling-list.patch
