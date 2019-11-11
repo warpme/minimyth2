@@ -1,4 +1,4 @@
-
+#!/bin/sh
 
 if [ x$1 = "xeglfs" ] || [ x$2 = "xeglfs" ]; then
     echo "Runing myth in EGLFS"
@@ -20,6 +20,9 @@ export QT_QPA_PLATFORM
 if [ x$1 = "xgdb" ] || [ x$2 = "xgdb" ]; then
     echo "Runing myth under gdb"
     su minimyth -c "/usr/bin/gdb /usr/bin/mythfrontend -x /etc/gdb.commands"
+elif [ x$1 = "xapitrace" ] || [ x$2 = "xapitrace" ]; then
+    echo "Running myth under apitrace"
+    su minimyth -c "apitrace trace -a egl -o /usr/local/share/mythfrontend-apitrace.txt mythfrontend -v playback,gpu"
 else
     su minimyth -c "/usr/bin/mythfrontend --verbose libav,playback,audio,gpu --loglevel=debug --syslog none --logpath /tmp/"
 fi
