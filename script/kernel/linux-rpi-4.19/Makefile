@@ -58,11 +58,6 @@ configure-custom:
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) oldconfig
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) clean
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) prepare
-	$(warning Kernel will be build with following cmd line:$(BUILD_ARGS))
-	$(warning LINUX_MAKE_ARGS: $(LINUX_MAKE_ARGS))
-	$(warning LINUX_MAKE_ENV: $(LINUX_MAKE_ENV))
-	$(warning LDFLAGS: $(LDFLAGS))
-	$(warning main_LDFLAGS: $(main_LDFLAGS))
 	@$(MAKECOOKIE)
 
 build-custom:

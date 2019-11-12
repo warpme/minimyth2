@@ -13,10 +13,10 @@
 #-------------------------------------------
 
 #--Use this for mainline git-commit kernel--
-GITHASH             = f555d78ee33b13b8eaf21d6e191a7bc68cee8a14
+GITHASH             = 6d8bf28fa4b1ca0a35c0cd1dcb267fb216daf720
 LINUX_MAJOR_VERSION = 4
 LINUX_MINOR_VERSION = 19
-LINUX_TEENY_VERSION = 81
+LINUX_TEENY_VERSION = 75
 LINUX_EXTRA_VERSION = 
 #-------------------------------------------
 
