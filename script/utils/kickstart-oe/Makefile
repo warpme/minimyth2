@@ -7,6 +7,7 @@ DISTFILES = \
 	board-rpi2.conf             \
 	board-rpi3.mainline32.conf  \
 	board-rpi3.mainline64.conf  \
+	board-rpi3.rpi32.conf       \
 	board-s905.conf             \
 	board-s912.conf             \
 	board-rk3328.conf           \
@@ -17,6 +18,7 @@ DISTFILES = \
 	board-rpi2.wks              \
 	board-rpi3.mainline32.wks   \
 	board-rpi3.mainline64.wks   \
+	board-rpi3.rpi32.wks        \
 	board-s905.wks              \
 	board-s912.wks              \
 	board-rk3328.wks            \

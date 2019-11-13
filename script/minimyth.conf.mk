@@ -102,6 +102,7 @@ mm_GARCH                  ?= x86-64
 # 'board-rpi2',
 # 'board-rpi3.mainline32',
 # 'board-rpi3.mainline64',
+# 'board-rpi3.rpi32',
 # 'board-s905'
 # 'board-s912'
 # 'board-rk3328'
