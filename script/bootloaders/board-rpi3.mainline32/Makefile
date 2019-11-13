@@ -15,7 +15,6 @@ DISTFILES    = rpi3-boot.scr       \
                start_cd.elf        \
                start.elf           \
                start_x.elf         \
-               config.txt          \
 
 WORKSRC      = $(WORKDIR)
 
@@ -51,7 +50,6 @@ install-custom:
 	@cp -f $(WORKSRC)/start.elf           $(DESTDIR)/boot/start.elf
 	@cp -f $(WORKSRC)/start_cd.elf        $(DESTDIR)/boot/start_cd.elf
 	@cp -f $(WORKSRC)/start_x.elf         $(DESTDIR)/boot/start_x.elf
-	@cp -f $(WORKSRC)/config.txt          $(DESTDIR)/boot/config.txt
 	@$(MAKECOOKIE)
 
 clean-all:
@@ -72,5 +70,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/start_x.elf
 	@rm -f $(DESTDIR)/boot/u-boot.bin
 	@rm -f $(DESTDIR)/boot/kernel.img
-	@rm -f $(DESTDIR)/boot/config.txt
 	$(MAKE) clean clean-all -C ../u-boot
