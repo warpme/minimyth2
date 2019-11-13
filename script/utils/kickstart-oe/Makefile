@@ -5,8 +5,8 @@ MASTER_SITES = http://git.yoctoproject.org/cgit/cgit.cgi/poky/snapshot/
 DISTFILES = \
 	poky-yocto-$(GARVERSION).tar.bz2 \
 	board-rpi2.conf             \
-	board-rpi3_32b.conf         \
-	board-rpi3_64b.conf         \
+	board-rpi3.mainline32.conf  \
+	board-rpi3.mainline64.conf  \
 	board-s905.conf             \
 	board-s912.conf             \
 	board-rk3328.conf           \
@@ -15,8 +15,8 @@ DISTFILES = \
 	board-h6.eachlink_mini.conf \
 	board-h6.tanix_tx6.conf     \
 	board-rpi2.wks              \
-	board-rpi3_32b.wks          \
-	board-rpi3_64b.wks          \
+	board-rpi3.mainline32.wks   \
+	board-rpi3.mainline64.wks   \
 	board-s905.wks              \
 	board-s912.wks              \
 	board-rk3328.wks            \
