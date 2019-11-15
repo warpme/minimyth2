@@ -11,18 +11,18 @@ DISTFILES = $(DISTNAME).tar.bz2
 #--------------------------------------------------------
 endif
 
-ifeq (1,0)
+ifeq (1,1)
 #--use this for current master ffmpeg--------------------
 # https://github.com/FFmpeg/FFmpeg/commits/master
-GITHASH = cae7f6658cf37e4075cec4ff3f24eaeb79ff6131
-GARVERSION = 20191105-$(GITHASH)
+GITHASH = a7245adee3e98d4b2e2a1bb7ddc0caae898b5193
+GARVERSION = 20191114-$(GITHASH)
 MASTER_SITES = https://github.com/FFmpeg/FFmpeg/archive/
 DISTFILES = $(GITHASH).zip
 WORKSRC   = $(WORKDIR)/FFmpeg-$(GITHASH)
 #--------------------------------------------------------
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 #--use this for kodi ffmpeg------------------------------
 # https://github.com/xbmc/FFmpeg/archive/4.0.4-Leia-18.4.tar.gz
 GARVERSION = 4.0.4-Leia-18.4
