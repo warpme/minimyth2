@@ -1,7 +1,7 @@
 
 GARNAME      = test-ffmpeg-drm
-GARVERSION   = ba4a0e8563e097eafc29dee4343286191e227419
-MASTER_SITES = https://github.com/Elyotna/ffmpeg-drm/archive/
+GARVERSION   = 402a73ef09096ffbe83a4befd233cd6f12463e88
+MASTER_SITES = https://github.com/mark-kendall/ffmpeg-drm/archive/
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/ffmpeg-drm-$(GARVERSION)
 
