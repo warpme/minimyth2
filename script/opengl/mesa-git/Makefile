@@ -1,8 +1,8 @@
 
 GARNAME      = mesa
 
-ifeq (1,1)
-GARVERSION   = 94e6d17043e2dab2fb0375cf09c26cf5f35b2d73
+ifeq (0,1)
+GARVERSION   = 7a893a0d5734adefd6e7e88efb07e60d01c44cdf
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -10,9 +10,9 @@ PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
 PATCHFILES  += unblacklist-t720-for-testing.patch
 endif
 
-ifeq (0,1)
-# https://gitlab.freedesktop.org/tomeu/mesa/commits/ci-t720
-GARVERSION   = f380ec6f2a18b5b2b3cc5f8316326b91026f5339
+ifeq (1,1)
+# https://gitlab.freedesktop.org/tomeu/mesa/commits/lava-ci-t720-III
+GARVERSION   = a50b794144635ef78f4c8740172ff3a4e78c91cc
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/tomeu/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
