@@ -73,7 +73,7 @@ PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
 PATCHFILES += 0223-OSD-Add-mythnotification-custom-styles-support-via-UDP.patch
 PATCHFILES += 0224-OSD-Add-status-notify-to-mythmediacenter-wide.patch
 PATCHFILES += 0225-OSD-Add-status-notify-to-mythmediacenter.patch
-#PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
+PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 
 # Patches enhancing Network Control
 PATCHFILES += 0282-NetworkControl-Add-realtime-display-of-MythEvents.patch
