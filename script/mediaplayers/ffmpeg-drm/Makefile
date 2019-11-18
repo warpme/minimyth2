@@ -28,20 +28,29 @@ BUILD_ARGS   = \
 build-custom:
 	@echo "Building..."
 	@#
-	@# For mainline ffmpeg
+	@echo "Building ffmpeg-drm with mainline ffmpeg..."
 	@# gcc                        -o ffmpeg-drm main.c                       -I/usr/include/drm            -lavcodec -lz -lm -lpthread -lavcodec -lavformat -lavutil -lswresample -ldrm -L/usr/local/lib
-	@#$(CC) $(CXXFLAGS) $(LDFLAGS) -o $(WORKSRC)/ffmpeg-drm $(WORKSRC)/main.c -I$(DESTDIR)$(includedir)/drm -lavcodec -lz -lm -lpthread -lavcodec -lavformat -lavutil -lswresample -ldrm -L$(DESTDIR)$(libdir)
+	@$(CC) $(CXXFLAGS) $(LDFLAGS) -o $(WORKSRC)/ffmpeg-drm $(WORKSRC)/main.c -I$(DESTDIR)$(includedir)/drm -lavcodec -lz -lm -lpthread -lavcodec -lavformat -lavutil -lswresample -ldrm -L$(DESTDIR)$(libdir)
+	@mv $(WORKSRC)/ffmpeg-drm $(WORKSRC)/_ffmpeg-drm
 	@#
-	@# For mythffmpeg
+	@echo "Building ffmpeg-drm with mythtvffmpeg..."
 	@# gcc                        -o ffmpeg-drm main.c                       -I/usr/include/libdrm            -I /usr/local/include/mythtv     -lz -lm -lpthread -lmythavcodec -lmythavformat -lmythavutil -lmythswresample -ldrm -L/usr/local/lib
 	@$(CC) $(CXXFLAGS) $(LDFLAGS) -o $(WORKSRC)/ffmpeg-drm $(WORKSRC)/main.c -I$(DESTDIR)$(includedir)/libdrm -I$(DESTDIR)$(includedir)/mythtv -lz -lm -lpthread -lmythavcodec -lmythavformat -lmythavutil -lmythswresample -ldrm -L$(DESTDIR)$(libdir)
+	@mv $(WORKSRC)/ffmpeg-drm $(WORKSRC)/_mythffmpeg-drm
 	@$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(bindir)
-	@cp -rf $(WORKSRC)/ffmpeg-drm $(DESTDIR)$(bindir)/ffmpeg-drm
+	@echo "Installing ffmpeg-drm..."
+	@cp -rf $(WORKSRC)/_ffmpeg-drm $(DESTDIR)$(bindir)/ffmpeg-drm
+	@echo "Installing mythffmpeg-drm..."
+	@cp -rf $(WORKSRC)/_mythffmpeg-drm $(DESTDIR)$(bindir)/mythffmpeg-drm
 	@echo '# echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@echo '# ffmpeg-drm --video $$1 --codec h264_v4l2m2m --width $$2 --height $$3' >> $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@echo 'ffmpeg-drm  --video /usr/local/share/h264.FVDO_Freeway_720p.264 --codec h264_v4l2m2m --width 1280 --height 720' >> $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@chmod +x $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
+	@echo '# echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/test-mythffmpeg-drm.sh
+	@echo '# ffmpeg-drm --video $$1 --codec h264_v4l2m2m --width $$2 --height $$3' >> $(DESTDIR)$(bindir)/test-mythffmpeg-drm.sh
+	@echo 'mythffmpeg-drm  --video /usr/local/share/h264.FVDO_Freeway_720p.264 --codec h264_v4l2m2m --width 1280 --height 720' >> $(DESTDIR)$(bindir)/test-mythffmpeg-drm.sh
+	@chmod +x $(DESTDIR)$(bindir)/test-mythffmpeg-drm.sh
 	@$(MAKECOOKIE)
