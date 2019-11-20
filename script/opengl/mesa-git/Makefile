@@ -2,6 +2,17 @@
 GARNAME      = mesa
 
 ifeq (1,1)
+# current mesa git
+GARVERSION   = 36b099a7b0f949fac175cd8219f7e8c71b4eb04c
+CATEGORIES   = $(CATEGORY)
+MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
+DISTFILES    = mesa-$(DISTNAME).tar.bz2
+PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
+PATCHFILES  += unblacklist-t720-for-testing.patch
+endif
+
+
+ifeq (0,1)
 # reference git ver + patches working nicelly on t820/t720/mali450
 GARVERSION   = 99f0feb9e2ffd3cfb7bba299207e14f3f8b435c7
 CATEGORIES   = $(CATEGORY)
