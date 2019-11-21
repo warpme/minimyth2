@@ -98,6 +98,8 @@ DEPENDS = \
 	$(if $(filter mythplugins,$(mm_SOFTWARE)), \
 		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythplugins),myth-$(mm_MYTH_VERSION)/mythplugins) \
 		$(if $(filter python,$(mm_SOFTWARE)), \
+			python/python-beautifulsoup4 \
+			python/python-musicbrainzngs \
 			python/python-lxml \
 			python/python-future \
 			python/python-requests-cache \
@@ -115,6 +117,7 @@ DEPENDS = \
 		perl/perl-XML-XPath \
 		perl/perl-Date-Calc \
 		perl/perl-TimeDate) \
+		lib/libdiscid \
 	lib/dbus \
 	lib/avahi \
 	$(if $(filter fceu,$(mm_SOFTWARE)),emulators/fceu) \
