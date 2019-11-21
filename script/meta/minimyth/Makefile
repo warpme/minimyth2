@@ -100,6 +100,7 @@ DEPENDS = \
 		$(if $(filter python,$(mm_SOFTWARE)), \
 			python/python-beautifulsoup4 \
 			python/python-musicbrainzngs \
+			python/python-discid \
 			python/python-lxml \
 			python/python-future \
 			python/python-requests-cache \

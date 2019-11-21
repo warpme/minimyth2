@@ -4,7 +4,9 @@ CATEGORIES = python
 MASTER_SITES = http://www.python.org/ftp/python/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.xz
 ifneq ($(DESTIMG),build)
-PATCHFILES = Python-$(PYTHON_VERSION)-cross.patch Python-$(PYTHON_VERSION)-fix-crosscompile-glibc-2.27.patch
+PATCHFILES  = Python-$(PYTHON_VERSION)-cross.patch 
+PATCHFILES += Python-$(PYTHON_VERSION)-fix-crosscompile-glibc-2.27.patch
+PATCHFILES += Python-$(PYTHON_VERSION)-unblacklist-ctypes-in-crosscompile.patch
 endif
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
@@ -30,13 +32,13 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--enable-shared \
 	--disable-ipv6 \
-	--with-system-ffi \
 	--without-lto \
 	--with-system-expat \
 	--with-dbmliborder=gdbm:ndbm \
 	--without-ensurepip \
+	--with-system-ffi \
 	ac_cv_working_tzset=yes \
-	CPPFLAGS="-I$(DESTDIR)$(includedir) -L$(DESTDIR)$(libdir)"
+	CPPFLAGS="-I$(DESTDIR)$(includedir) -L$(DESTDIR)$(libdir)" \
 
 ifneq ($(DESTIMG),build)
 BUILD_ARGS     = \
