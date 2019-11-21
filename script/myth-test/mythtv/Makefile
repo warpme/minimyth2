@@ -159,6 +159,9 @@ BUILDDEPS = \
 	python/python-MySQL-python \
 	python/python-urlgrabber \
 	python/python-lxml \
+	python/python-requests \
+	python/python-future \
+	python/python-simplejson \
 
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 
