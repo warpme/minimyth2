@@ -1,5 +1,5 @@
 GARNAME = python-beautifulsoup4
-GARVERSION = 4.6.3
+GARVERSION = 4.8.1
 CATEGORIES = python
 MASTER_SITES = https://files.pythonhosted.org/packages/88/df/86bffad6309f74f3ff85ea69344a078fc30003270c8df6894fca7a3c72ff/
 DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
