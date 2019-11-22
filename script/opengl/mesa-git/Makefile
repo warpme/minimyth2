@@ -2,8 +2,8 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# current mesa git
-GARVERSION   = 36b099a7b0f949fac175cd8219f7e8c71b4eb04c
+# current mesa git. Working all GLSL on t720/t820. Issues with mali405
+GARVERSION   = 2e14fe6490b4092c0e6e2ebbd356fac08a16d5c6
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -11,20 +11,8 @@ PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
 PATCHFILES  += unblacklist-t720-for-testing.patch
 endif
 
-
 ifeq (0,1)
-# reference git ver + patches working nicelly on t820/t720/mali450
-GARVERSION   = 99f0feb9e2ffd3cfb7bba299207e14f3f8b435c7
-CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
-DISTFILES    = mesa-$(DISTNAME).tar.bz2
-PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
-PATCHFILES  += unblacklist-t720-for-testing.patch
-PATCHFILES  += enable-t820-hax.patch
-endif
-
-ifeq (0,1)
-# https://gitlab.freedesktop.org/tomeu/mesa/commits/lava-ci-t720-III
+# testing branch https://gitlab.freedesktop.org/tomeu/mesa/commits/lava-ci-t720-III
 GARVERSION   = 5533293dd23d4978ae236ba6027c0e6b9c67358e
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/tomeu/mesa/-/archive/$(GARVERSION)/
