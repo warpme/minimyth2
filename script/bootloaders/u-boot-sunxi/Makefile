@@ -1,13 +1,12 @@
 
-GARNAME      = u-boot-sunxi-20190812
-GARVERSION   = f96238e253661b43168352010a2628957940bd4b
+GARNAME      = u-boot-sunxi-20191124
+GARVERSION   = 5f19c9302133cda54d5d1a6b1caa400260de9192
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 
 PATCHFILES  = 0001-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
-PATCHFILES += 0002-add-ethernet0-alias-for-fix-MAC-addr.patch
 
 LICENSE = GPL2
 
