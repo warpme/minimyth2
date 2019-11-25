@@ -3,7 +3,7 @@ GARNAME      = mesa
 
 ifeq (1,1)
 # current mesa git. Working all GLSL on t720/t820. Issues with mali405
-GARVERSION   = 2e14fe6490b4092c0e6e2ebbd356fac08a16d5c6
+GARVERSION   = 2af39c719eecf6ffde29ead442c530b6fa6750d5
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
