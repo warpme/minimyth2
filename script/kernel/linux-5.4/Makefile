@@ -151,7 +151,7 @@ PATCHFILES += 0554-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
 PATCHFILES += 0555-arm64-dts-allwinner-h6-enable-dvfs-fix-CPU-voltage-some-boards.patch
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # Allwinner H6: Enable HDMI audio
 PATCHFILES += 0560-clk-sunxi-ng-h6-Use-sigma-delta-modulation-for-audio-PLL.patch
 PATCHFILES += 0561-clk-sunxi-ng-h6-Allow-GPU-to-change-parent-rate.patch
