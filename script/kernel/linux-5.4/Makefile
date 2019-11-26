@@ -15,10 +15,10 @@ WORKSRC             = $(WORKDIR)/$(GITHASH)
 endif
 
 ifeq (0,1)
-#--Use this for amlogic media-next tree ----
-MASTER_SITES        = https://github.com/superna9999/linux/commits/amlogic/v5.6/vdec-g12a
+#--Use this for Neil's amlogic media-next tree ----
+MASTER_SITES        = https://github.com/superna9999/linux/archive/
 DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
-WORKSRC             = $(WORKDIR)/$(GITHASH)
+WORKSRC             = $(WORKDIR)/linux-$(GITHASH)
 #-------------------------------------------
 endif
 
