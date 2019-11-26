@@ -1,15 +1,26 @@
-
+ifeq (1,1)
 #--Use this for mainline official x.y.z kernel----
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 #-------------------------------------------
+endif
 
+ifeq (0,1)
 #--Use this for mainline git-commit kernel--
-# MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
-# DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
-# WORKSRC             = $(WORKDIR)/$(GITHASH)
+MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
+DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/$(GITHASH)
 #-------------------------------------------
+endif
+
+ifeq (0,1)
+#--Use this for amlogic media-next tree ----
+MASTER_SITES        = https://github.com/superna9999/linux/commits/amlogic/v5.6/vdec-g12a
+DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/$(GITHASH)
+#-------------------------------------------
+endif
 
 GARNAME = linux
 GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),$(if $(filter-out 0,$(LINUX_TEENY_VERSION)),.$(LINUX_TEENY_VERSION)))$(LINUX_EXTRA_VERSION)
@@ -34,13 +45,22 @@ endif
 
 ifeq (1,1)
 # Amlogic: Add h264 and v4l2 compliance for Amlogic vdec
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=183773&submitter=&state=*&q=&archive=both&delegate=
-PATCHFILES += 0322-media-meson-vdec-Add-compliant-H264-support.patch
-PATCHFILES += 0323-media-meson-vdec-Add-support-for-the-H264-compressed-format.patch
-
-PATCHFILES += 0324-media-meson-vdec-add-MPEG4-decoding-support.patch
-PATCHFILES += 0325-media-meson-vdec-add-MJPEG-decoding-support.patch
-PATCHFILES += 0326-arm64-dts-meson-g12a-add-video-decoder-node.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=205671
+PATCHFILES += 0303-dt-bindings-media-amlogic-vdec-convert-to-yaml.patch
+PATCHFILES += 0304-dt-bindings-media-amlogic-gx-vdec-add-bindings-for-G12A-family.patch
+PATCHFILES += 0305-media-meson-vdec-add-g12a-platform.patch
+PATCHFILES += 0306-arm64-dts-meson-g12-common-add-video-decoder-node.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=206467
+PATCHFILES += 0307-dt-bindings-media-amlogic-gx-vdec-add-bindings-for-SM1-family.patch
+PATCHFILES += 0308-media-meson-vdec-add-sm1-platform.patch
+PATCHFILES += 0309-arm64-dts-meson-sm1-add-video-decoder-compatible.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=208153
+PATCHFILES += 0310-media-v4l2-mem2mem-mark-DONE-any-OUTPUT-queued-buffer-after-CMD_STOP-v2.patch
+PATCHFILES += 0311-media-meson-vdec-bring-up-to-compliance-v2.patch
+PATCHFILES += 0312-media-meson-vdec-add-H.264-decoding-support-v2.patch
+# from mailing list
+PATCHFILES += 0313-media-meson-vdec-add-MPEG4-decoding-support.patch
+PATCHFILES += 0314-media-meson-vdec-add-MJPEG-decoding-support.patch
 endif
 
 ifeq (1,1)
@@ -182,6 +202,11 @@ PATCHFILES += 0586-ASoC-sun4i-i2s-Adjust-regmap-settings.patch
 PATCHFILES += 0588-arm64-dts-allwinner-Add-SPDIF-node-for-Allwinner-H6.patch
 # PATCHFILES += 0589-I2S-debugging.patch
 endif
+
+# media: cedrus: h264: Support multi-slice frames
+# https://patchwork.kernel.org/project/linux-media/list/?series=185631
+
+
 
 LICENSE = GPL2
 
