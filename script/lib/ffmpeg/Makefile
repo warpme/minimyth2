@@ -14,8 +14,8 @@ endif
 ifeq (1,1)
 #--use this for current master ffmpeg--------------------
 # https://github.com/FFmpeg/FFmpeg/commits/master
-GITHASH = a7245adee3e98d4b2e2a1bb7ddc0caae898b5193
-GARVERSION = 20191114-$(GITHASH)
+GITHASH = a2fbdc6898fc72f7f289e750f2199ee66216f2f8
+GARVERSION = 20191127-$(GITHASH)
 MASTER_SITES = https://github.com/FFmpeg/FFmpeg/archive/
 DISTFILES = $(GITHASH).zip
 WORKSRC   = $(WORKDIR)/FFmpeg-$(GITHASH)
