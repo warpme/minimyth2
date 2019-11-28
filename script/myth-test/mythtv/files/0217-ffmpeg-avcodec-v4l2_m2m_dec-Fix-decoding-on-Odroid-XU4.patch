@@ -1,0 +1,39 @@
+From ccc83ff11e071939acc198f118b1e5dd86fd9a42 Mon Sep 17 00:00:00 2001
+From: Andriy Gelman <andriy.gelman@gmail.com>
+Date: Tue, 12 Nov 2019 00:37:02 -0500
+Subject: [PATCH] avcodec/v4l2_m2m_dec: Fix decoding on Odroid XU4
+
+c0c79461967 unintentianally changed the initialization flow of the
+decoder: It caused the capture buffers to be initialized on
+v4l2_m2m.c:180 in v4l2_configure_contexts(). This breaks h264 decoding
+on the Odroid XU4 (RPI4 was not affected).
+
+This commit postpones capture buffer initialization
+as before c0c79461967 to fix the issue.
+
+Signed-off-by: Andriy Gelman <andriy.gelman@gmail.com>
+Signed-off-by: Aman Gupta <aman@tmm1.net>
+---
+ libavcodec/v4l2_m2m_dec.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git mythtv-test-20191105-gbe7604c-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c
+index 4712aca34c2..83d506b6b09 100644
+--- mythtv-test-20191105-gbe7604c-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c
++++ mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c
+@@ -201,6 +201,7 @@ static av_cold int v4l2_decode_init(AVCodecContext *avctx)
+     capture->av_codec_id = AV_CODEC_ID_RAWVIDEO;
+     capture->av_pix_fmt = avctx->pix_fmt;
+ 
++    s->avctx = avctx;
+     ret = ff_v4l2_m2m_codec_init(priv);
+     if (ret) {
+         av_log(avctx, AV_LOG_ERROR, "can't configure decoder\n");
+@@ -209,7 +210,6 @@ static av_cold int v4l2_decode_init(AVCodecContext *avctx)
+ 
+         return ret;
+     }
+-    s->avctx = avctx;
+ 
+     return v4l2_prepare_decoder(s);
+ }
