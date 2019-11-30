@@ -1,0 +1,62 @@
+
+Support the lossless framebuffer compression format.
+
+diff --git a/drivers/staging/media/meson/vdec/vdec.c b/drivers/staging/media/meson/vdec/vdec.c
+index 0a1a04f..c3415db 100644
+--- a/drivers/staging/media/meson/vdec/vdec.c
++++ b/drivers/staging/media/meson/vdec/vdec.c
+@@ -187,6 +187,7 @@ static int vdec_queue_setup(struct vb2_queue *q, unsigned int *num_buffers,
+ {
+ 	struct amvdec_session *sess = vb2_get_drv_priv(q);
+ 	u32 output_size = amvdec_get_output_size(sess);
++	u32 am21c_size = amvdec_am21c_size(sess->width, sess->height);
+ 
+ 	if (*num_planes) {
+ 		switch (q->type) {
+@@ -209,6 +210,10 @@ static int vdec_queue_setup(struct vb2_queue *q, unsigned int *num_buffers,
+ 				    sizes[2] < output_size / 4)
+ 					return -EINVAL;
+ 				break;
++			case V4L2_PIX_FMT_AM21C:
++				if (*num_planes != 1 || sizes[0] < am21c_size)
++					return -EINVAL;
++				break;
+ 			default:
+ 				return -EINVAL;
+ 			}
+@@ -238,6 +243,9 @@ static int vdec_queue_setup(struct vb2_queue *q, unsigned int *num_buffers,
+ 			sizes[2] = output_size / 4;
+ 			*num_planes = 3;
+ 			break;
++		case V4L2_PIX_FMT_AM21C:
++			sizes[0] = am21c_size;
++			*num_planes = 1;
+ 		default:
+ 			return -EINVAL;
+ 		}
+@@ -518,6 +526,10 @@ vdec_try_fmt_common(struct amvdec_session *sess, u32 size,
+ 			      get_output_size(pixmp->width, pixmp->height) / 4;
+ 			pfmt[2].bytesperline = ALIGN(pixmp->width, 64) / 2;
+ 			pixmp->num_planes = 3;
++		} else if (pixmp->pixelformat == V4L2_PIX_FMT_AM21C) {
++			pfmt[0].sizeimage =
++				amvdec_am21c_size(pixmp->width, pixmp->height);
++			pfmt[0].bytesperline = 0;
+ 		}
+ 	} else {
+ 		return NULL;
+diff --git a/drivers/staging/media/meson/vdec/vdec_helpers.c b/drivers/staging/media/meson/vdec/vdec_helpers.c
+index f16948b..2b554f2 100644
+--- a/drivers/staging/media/meson/vdec/vdec_helpers.c
++++ b/drivers/staging/media/meson/vdec/vdec_helpers.c
+@@ -267,6 +294,10 @@ static void dst_buf_done(struct amvdec_session *sess,
+ 		vbuf->vb2_buf.planes[1].bytesused = output_size / 4;
+ 		vbuf->vb2_buf.planes[2].bytesused = output_size / 4;
+ 		break;
++	case V4L2_PIX_FMT_AM21C:
++		vbuf->vb2_buf.planes[0].bytesused =
++			amvdec_am21c_size(sess->width, sess->height);
++		break;
+ 	}
+ 
+ 	vbuf->vb2_buf.timestamp = timestamp;

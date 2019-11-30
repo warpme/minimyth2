@@ -59,6 +59,8 @@ PATCHFILES += 0310-media-v4l2-mem2mem-mark-DONE-any-OUTPUT-queued-buffer-after-C
 PATCHFILES += 0311-media-meson-vdec-bring-up-to-compliance-v2.patch
 PATCHFILES += 0312-media-meson-vdec-add-H.264-decoding-support-v2.patch
 # from https://github.com/superna9999/linux/commits/amlogic/v5.6/vdec-g12a
+PATCHFILES += 0326-media-videodev2.h-Add-Amlogic-compressed-format.patch
+PATCHFILES += 0327-media-meson-vdec-add-support-for-V4L2_PIX_FMT_AM21C.patch
 PATCHFILES += 0328-media-meson-vdec-add-helpers-for-lossless-framebuffe.patch
 PATCHFILES += 0329-media-meson-vdec-add-common-HEVC-decoder-support.patch
 PATCHFILES += 0330-media-meson-vdec-add-G12A-SM1-support-for-common-HEV.patch
@@ -231,8 +233,6 @@ BUILDDEPS = \
 DEPENDS = \
 	kernel-headers/linux-headers \
 	kernel/linux-firmware \
-
-#	kernel/linux-firmware-meson \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom

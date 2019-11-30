@@ -1,30 +1,5 @@
-From d6bb859670527ca2242f5809303884f4828300eb Mon Sep 17 00:00:00 2001
-From: Maxime Jourdan <mjourdan@baylibre.com>
-Date: Wed, 29 Aug 2018 18:48:35 +0200
-Subject: [PATCH 08/14] media: meson: vdec: add HEVC decoding support
 
 Add support for V4L2_PIX_FMT_HEVC
-
-Signed-off-by: Maxime Jourdan <mjourdan@baylibre.com>
----
- drivers/staging/media/meson/vdec/Makefile          |    4 +-
- drivers/staging/media/meson/vdec/codec_hevc.c      | 1357 ++++++++++++++++++++
- drivers/staging/media/meson/vdec/codec_hevc.h      |   13 +
- .../staging/media/meson/vdec/codec_hevc_common.c   |  188 +++
- .../staging/media/meson/vdec/codec_hevc_common.h   |   49 +
- drivers/staging/media/meson/vdec/hevc_regs.h       |  205 +++
- drivers/staging/media/meson/vdec/vdec.h            |    7 +-
- drivers/staging/media/meson/vdec/vdec_hevc.c       |  191 +++
- drivers/staging/media/meson/vdec/vdec_hevc.h       |   22 +
- drivers/staging/media/meson/vdec/vdec_platform.c   |   32 +
- 10 files changed, 2065 insertions(+), 3 deletions(-)
- create mode 100644 drivers/staging/media/meson/vdec/codec_hevc.c
- create mode 100644 drivers/staging/media/meson/vdec/codec_hevc.h
- create mode 100644 drivers/staging/media/meson/vdec/codec_hevc_common.c
- create mode 100644 drivers/staging/media/meson/vdec/codec_hevc_common.h
- create mode 100644 drivers/staging/media/meson/vdec/hevc_regs.h
- create mode 100644 drivers/staging/media/meson/vdec/vdec_hevc.c
- create mode 100644 drivers/staging/media/meson/vdec/vdec_hevc.h
 
 diff --git a/drivers/staging/media/meson/vdec/Makefile b/drivers/staging/media/meson/vdec/Makefile
 index 20c23f9..900dde0 100644
@@ -45,7 +20,7 @@ new file mode 100644
 index 0000000..03f00f9
 --- /dev/null
 +++ b/drivers/staging/media/meson/vdec/codec_hevc.c
-@@ -0,0 +1,1357 @@
+@@ -0,0 +1,1360 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2018 Maxime Jourdan <mjourdan@baylibre.com>
@@ -281,6 +256,9 @@ index 0000000..03f00f9
 +
 +struct codec_hevc {
 +	struct mutex lock;
++
++	/* Common part with the HEVC decoder */
++	struct codec_hevc_common common;
 +
 +	/* Buffer for the HEVC Workspace */
 +	void      *workspace_vaddr;
@@ -695,7 +673,7 @@ index 0000000..03f00f9
 +		dma_free_coherent(core->dev, SIZE_AUX,
 +				  hevc->aux_vaddr, hevc->aux_paddr);
 +
-+	codec_hevc_free_fbc_buffers(sess);
++	codec_hevc_free_fbc_buffers(sess, &hevc->common);
 +	mutex_unlock(&hevc->lock);
 +	mutex_destroy(&hevc->lock);
 +
@@ -1345,7 +1323,7 @@ index 0000000..03f00f9
 +{
 +	struct codec_hevc *hevc = sess->priv;
 +
-+	if (codec_hevc_setup_buffers(sess, hevc->is_10bit)) {
++	if (codec_hevc_setup_buffers(sess, &hevc->common, hevc->is_10bit)) {
 +		amvdec_abort(sess);
 +		return;
 +	}
@@ -1473,8 +1451,8 @@ index fb714d7..7318d71 100644
 +		.max_height = 2160,
 +		.vdec_ops = &vdec_hevc_ops,
 +		.codec_ops = &codec_hevc_ops,
-+		.firmware_path = "meson/gx/vh265_mc",
-+		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_AM21C, 0 },
++		.firmware_path = "meson/vdec/gxl_hevc.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
 +	}, {
  		.pixfmt = V4L2_PIX_FMT_H264,
  		.min_buffers = 2,
@@ -1490,8 +1468,8 @@ index fb714d7..7318d71 100644
 +		.max_height = 2160,
 +		.vdec_ops = &vdec_hevc_ops,
 +		.codec_ops = &codec_hevc_ops,
-+		.firmware_path = "meson/gx/vh265_mc",
-+		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_AM21C, 0 },
++		.firmware_path = "meson/vdec/gxl_hevc.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
 +	}, {
  		.pixfmt = V4L2_PIX_FMT_VP9,
  		.min_buffers = 16,
@@ -1507,8 +1485,8 @@ index fb714d7..7318d71 100644
 +		.max_height = 2160,
 +		.vdec_ops = &vdec_hevc_ops,
 +		.codec_ops = &codec_hevc_ops,
-+		.firmware_path = "meson/gx/vh265_mc",
-+		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, V4L2_PIX_FMT_AM21C, 0 },
++		.firmware_path = "meson/vdec/gxl_hevc.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
 +	}, {
  		.pixfmt = V4L2_PIX_FMT_H264,
  		.min_buffers = 2,
