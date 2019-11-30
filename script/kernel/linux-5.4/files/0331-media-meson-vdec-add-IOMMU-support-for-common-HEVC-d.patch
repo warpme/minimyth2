@@ -1,0 +1,453 @@
+From 077b3cf88c9b36e23ce67fcade1929da8c35e0c0 Mon Sep 17 00:00:00 2001
+From: Maxime Jourdan <mjourdan@baylibre.com>
+Date: Fri, 1 Mar 2019 12:41:03 +0100
+Subject: [PATCH 195/199] media: meson: vdec: add IOMMU support for common HEVC
+ decoder helpers
+
+Starting with GXL (S905X), the HEVC/VP9 decoder hardware supports an
+IOMMU to access the decoded frames. This IOMMU is controlled by writing
+the buffer's page IDs to the firmware, which then does the actual work.
+
+This commit adds support for using the IOMMU with VP9/HEVC on G12A, the
+first SoC on which it becomes mandatory.
+
+Signed-off-by: Maxime Jourdan <mjourdan@baylibre.com>
+---
+ .../staging/media/meson/vdec/codec_hevc_common.c   | 178 ++++++++++++++++-----
+ .../staging/media/meson/vdec/codec_hevc_common.h   |  31 +++-
+ drivers/staging/media/meson/vdec/hevc_regs.h       |   5 +
+ drivers/staging/media/meson/vdec/vdec.h            |   5 -
+ drivers/staging/media/meson/vdec/vdec_hevc.c       |  12 +-
+ 5 files changed, 182 insertions(+), 49 deletions(-)
+
+diff --git a/drivers/staging/media/meson/vdec/codec_hevc_common.c b/drivers/staging/media/meson/vdec/codec_hevc_common.c
+index 5c372a9..3ca21ce 100644
+--- a/drivers/staging/media/meson/vdec/codec_hevc_common.c
++++ b/drivers/staging/media/meson/vdec/codec_hevc_common.c
+@@ -10,6 +10,9 @@
+ #include "vdec_helpers.h"
+ #include "hevc_regs.h"
+ 
++#define MMU_COMPRESS_HEADER_SIZE 0x48000
++#define MMU_MAP_SIZE 0x4800
++
+ /* Configure decode head read mode */
+ void codec_hevc_setup_decode_head(struct amvdec_session *sess, int is_10bit)
+ {
+@@ -23,7 +26,12 @@ void codec_hevc_setup_decode_head(struct amvdec_session *sess, int is_10bit)
+ 		return;
+ 	}
+ 
+-	amvdec_write_dos(core, HEVCD_MPP_DECOMP_CTL1, 0);
++	if (codec_hevc_use_mmu(core->platform->revision,
++			       sess->pixfmt_cap, is_10bit))
++		amvdec_write_dos(core, HEVCD_MPP_DECOMP_CTL1, BIT(4));
++	else
++		amvdec_write_dos(core, HEVCD_MPP_DECOMP_CTL1, 0);
++
+ 	amvdec_write_dos(core, HEVCD_MPP_DECOMP_CTL2, body_size / 32);
+ 	amvdec_write_dos(core, HEVC_CM_BODY_LENGTH, body_size);
+ 	amvdec_write_dos(core, HEVC_CM_HEADER_OFFSET, body_size);
+@@ -31,8 +39,9 @@ void codec_hevc_setup_decode_head(struct amvdec_session *sess, int is_10bit)
+ }
+ EXPORT_SYMBOL_GPL(codec_hevc_setup_decode_head);
+ 
+-static void
+-codec_hevc_setup_buffers_gxbb(struct amvdec_session *sess, int is_10bit)
++static void codec_hevc_setup_buffers_gxbb(struct amvdec_session *sess,
++					  struct codec_hevc_common *comm,
++					  int is_10bit)
+ {
+ 	struct amvdec_core *core = sess->core;
+ 	struct v4l2_m2m_buffer *buf;
+@@ -46,22 +55,26 @@ codec_hevc_setup_buffers_gxbb(struct amvdec_session *sess, int is_10bit)
+ 	amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CONF_ADDR, 0);
+ 
+ 	v4l2_m2m_for_each_dst_buf(sess->m2m_ctx, buf) {
+-		idx = buf->vb.vb2_buf.index;
++		struct vb2_buffer *vb = &buf->vb.vb2_buf;
++		idx = vb->index;
+ 
+ 		if (codec_hevc_use_downsample(sess->pixfmt_cap, is_10bit))
+-			buf_y_paddr = sess->fbc_buffer_paddr[idx];
++			buf_y_paddr = comm->fbc_buffer_paddr[idx];
+ 		else
+-			buf_y_paddr = vb2_dma_contig_plane_dma_addr(&buf->vb.vb2_buf, 0);
++			buf_y_paddr = vb2_dma_contig_plane_dma_addr(vb, 0);
+ 
+ 		if (codec_hevc_use_fbc(sess->pixfmt_cap, is_10bit)) {
+ 			val = buf_y_paddr | (idx << 8) | 1;
+-			amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CMD_ADDR, val);
++			amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CMD_ADDR,
++					 val);
+ 		} else {
+-			buf_uv_paddr = vb2_dma_contig_plane_dma_addr(&buf->vb.vb2_buf, 1);
++			buf_uv_paddr = vb2_dma_contig_plane_dma_addr(vb, 1);
+ 			val = buf_y_paddr | ((idx * 2) << 8) | 1;
+-			amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CMD_ADDR, val);
++			amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CMD_ADDR,
++					 val);
+ 			val = buf_uv_paddr | ((idx * 2 + 1) << 8) | 1;
+-			amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CMD_ADDR, val);
++			amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CMD_ADDR,
++					 val);
+ 		}
+ 	}
+ 
+@@ -80,32 +93,37 @@ codec_hevc_setup_buffers_gxbb(struct amvdec_session *sess, int is_10bit)
+ 		amvdec_write_dos(core, HEVCD_MPP_ANC_CANVAS_DATA_ADDR, 0);
+ }
+ 
+-static void
+-codec_hevc_setup_buffers_gxl(struct amvdec_session *sess, int is_10bit)
++static void codec_hevc_setup_buffers_gxl(struct amvdec_session *sess,
++					 struct codec_hevc_common *comm,
++					 int is_10bit)
+ {
+ 	struct amvdec_core *core = sess->core;
+ 	struct v4l2_m2m_buffer *buf;
+-	u32 buf_num = v4l2_m2m_num_dst_bufs_ready(sess->m2m_ctx);
+-	dma_addr_t buf_y_paddr = 0;
+-	dma_addr_t buf_uv_paddr = 0;
++	u32 revision = core->platform->revision;
++	u32 pixfmt_cap = sess->pixfmt_cap;
+ 	int i;
+ 
+ 	amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CONF_ADDR,
+ 			 BIT(2) | BIT(1));
+ 
+ 	v4l2_m2m_for_each_dst_buf(sess->m2m_ctx, buf) {
+-		u32 idx = buf->vb.vb2_buf.index;
++		struct vb2_buffer *vb = &buf->vb.vb2_buf;
++		dma_addr_t buf_y_paddr = 0;
++		dma_addr_t buf_uv_paddr = 0;
++		u32 idx = vb->index;
+ 
+-		if (codec_hevc_use_downsample(sess->pixfmt_cap, is_10bit))
+-			buf_y_paddr = sess->fbc_buffer_paddr[idx];
++		if (codec_hevc_use_mmu(revision, pixfmt_cap, is_10bit))
++			buf_y_paddr = comm->mmu_header_paddr[idx];
++		else if (codec_hevc_use_downsample(pixfmt_cap, is_10bit))
++			buf_y_paddr = comm->fbc_buffer_paddr[idx];
+ 		else
+-			buf_y_paddr =
+-			    vb2_dma_contig_plane_dma_addr(&buf->vb.vb2_buf, 0);
++			buf_y_paddr = vb2_dma_contig_plane_dma_addr(vb, 0);
+ 
+ 		amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_DATA,
+ 				 buf_y_paddr >> 5);
+-		if (!codec_hevc_use_fbc(sess->pixfmt_cap, is_10bit)) {
+-			buf_uv_paddr = vb2_dma_contig_plane_dma_addr(&buf->vb.vb2_buf, 1);
++
++		if (!codec_hevc_use_fbc(pixfmt_cap, is_10bit)) {
++			buf_uv_paddr = vb2_dma_contig_plane_dma_addr(vb, 1);
+ 			amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_DATA,
+ 					 buf_uv_paddr >> 5);
+ 		}
+@@ -117,24 +135,26 @@ codec_hevc_setup_buffers_gxl(struct amvdec_session *sess, int is_10bit)
+ 		amvdec_write_dos(core, HEVCD_MPP_ANC_CANVAS_DATA_ADDR, 0);
+ }
+ 
+-void codec_hevc_free_fbc_buffers(struct amvdec_session *sess)
++void codec_hevc_free_fbc_buffers(struct amvdec_session *sess,
++				 struct codec_hevc_common *comm)
+ {
+ 	struct device *dev = sess->core->dev;
+ 	u32 am21_size = amvdec_am21c_size(sess->width, sess->height);
+ 	int i;
+ 
+ 	for (i = 0; i < MAX_REF_PIC_NUM; ++i) {
+-		if (sess->fbc_buffer_vaddr[i]) {
++		if (comm->fbc_buffer_vaddr[i]) {
+ 			dma_free_coherent(dev, am21_size,
+-					  sess->fbc_buffer_vaddr[i],
+-					  sess->fbc_buffer_paddr[i]);
+-			sess->fbc_buffer_vaddr[i] = NULL;
++					  comm->fbc_buffer_vaddr[i],
++					  comm->fbc_buffer_paddr[i]);
++			comm->fbc_buffer_vaddr[i] = NULL;
+ 		}
+ 	}
+ }
+ EXPORT_SYMBOL_GPL(codec_hevc_free_fbc_buffers);
+ 
+-static int codec_hevc_alloc_fbc_buffers(struct amvdec_session *sess)
++static int codec_hevc_alloc_fbc_buffers(struct amvdec_session *sess,
++					struct codec_hevc_common *comm)
+ {
+ 	struct device *dev = sess->core->dev;
+ 	struct v4l2_m2m_buffer *buf;
+@@ -147,33 +167,119 @@ static int codec_hevc_alloc_fbc_buffers(struct amvdec_session *sess)
+ 						 GFP_KERNEL);
+ 		if (!vaddr) {
+ 			dev_err(dev, "Couldn't allocate FBC buffer %u\n", idx);
+-			codec_hevc_free_fbc_buffers(sess);
++			codec_hevc_free_fbc_buffers(sess, comm);
++			return -ENOMEM;
++		}
++
++		comm->fbc_buffer_vaddr[idx] = vaddr;
++		comm->fbc_buffer_paddr[idx] = paddr;
++	}
++
++	return 0;
++}
++
++void codec_hevc_free_mmu_headers(struct amvdec_session *sess,
++				 struct codec_hevc_common *comm)
++{
++	struct device *dev = sess->core->dev;
++	int i;
++
++	for (i = 0; i < MAX_REF_PIC_NUM; ++i) {
++		if (comm->mmu_header_vaddr[i]) {
++			dma_free_coherent(dev, MMU_COMPRESS_HEADER_SIZE,
++					  comm->mmu_header_vaddr[i],
++					  comm->mmu_header_paddr[i]);
++			comm->mmu_header_vaddr[i] = NULL;
++		}
++	}
++
++	if (comm->mmu_map_vaddr) {
++		dma_free_coherent(dev, MMU_MAP_SIZE,
++				  comm->mmu_map_vaddr,
++				  comm->mmu_map_paddr);
++		comm->mmu_map_vaddr = NULL;
++	}
++}
++EXPORT_SYMBOL_GPL(codec_hevc_free_mmu_headers);
++
++static int codec_hevc_alloc_mmu_headers(struct amvdec_session *sess,
++					struct codec_hevc_common *comm)
++{
++	struct device *dev = sess->core->dev;
++	struct v4l2_m2m_buffer *buf;
++
++	comm->mmu_map_vaddr = dma_alloc_coherent(dev, MMU_MAP_SIZE,
++						 &comm->mmu_map_paddr,
++						 GFP_KERNEL);
++	if (!comm->mmu_map_vaddr)
++		return -ENOMEM;
++
++	v4l2_m2m_for_each_dst_buf(sess->m2m_ctx, buf) {
++		u32 idx = buf->vb.vb2_buf.index;
++		dma_addr_t paddr;
++		void *vaddr = dma_alloc_coherent(dev, MMU_COMPRESS_HEADER_SIZE,
++						 &paddr, GFP_KERNEL);
++		if (!vaddr) {
++			dev_err(dev, "Couldn't allocate MMU header %u\n", idx);
++			codec_hevc_free_mmu_headers(sess, comm);
+ 			return -ENOMEM;
+ 		}
+ 
+-		sess->fbc_buffer_vaddr[idx] = vaddr;
+-		sess->fbc_buffer_paddr[idx] = paddr;
++		comm->mmu_header_vaddr[idx] = vaddr;
++		comm->mmu_header_paddr[idx] = paddr;
+ 	}
+ 
+ 	return 0;
+ }
+ 
+-int codec_hevc_setup_buffers(struct amvdec_session *sess, int is_10bit)
++int codec_hevc_setup_buffers(struct amvdec_session *sess,
++			     struct codec_hevc_common *comm,
++			     int is_10bit)
+ {
+ 	struct amvdec_core *core = sess->core;
+ 	int ret;
+ 
+ 	if (codec_hevc_use_downsample(sess->pixfmt_cap, is_10bit)) {
+-		ret = codec_hevc_alloc_fbc_buffers(sess);
++		ret = codec_hevc_alloc_fbc_buffers(sess, comm);
+ 		if (ret)
+ 			return ret;
+ 	}
+ 
++	if (codec_hevc_use_mmu(core->platform->revision,
++			       sess->pixfmt_cap, is_10bit)) {
++		ret = codec_hevc_alloc_mmu_headers(sess, comm);
++		if (ret) {
++			codec_hevc_free_fbc_buffers(sess, comm);
++			return ret;
++		}
++	}
++
+ 	if (core->platform->revision == VDEC_REVISION_GXBB)
+-		codec_hevc_setup_buffers_gxbb(sess, is_10bit);
++		codec_hevc_setup_buffers_gxbb(sess, comm, is_10bit);
+ 	else
+-		codec_hevc_setup_buffers_gxl(sess, is_10bit);
++		codec_hevc_setup_buffers_gxl(sess, comm, is_10bit);
+ 
+ 	return 0;
+ }
+-EXPORT_SYMBOL_GPL(codec_hevc_setup_buffers);
+\ No newline at end of file
++EXPORT_SYMBOL_GPL(codec_hevc_setup_buffers);
++
++void codec_hevc_fill_mmu_map(struct amvdec_session *sess,
++			     struct codec_hevc_common *comm,
++			     struct vb2_buffer *vb)
++{
++	u32 size = amvdec_am21c_size(sess->width, sess->height);
++	u32 nb_pages = size / PAGE_SIZE;
++	u32 *mmu_map = comm->mmu_map_vaddr;
++	u32 first_page;
++	u32 i;
++
++	if (sess->pixfmt_cap == V4L2_PIX_FMT_NV12M ||
++	    sess->pixfmt_cap == V4L2_PIX_FMT_NV12)
++		first_page = comm->fbc_buffer_paddr[vb->index] >> PAGE_SHIFT;
++	else
++		first_page = vb2_dma_contig_plane_dma_addr(vb, 0) >> PAGE_SHIFT;
++
++	for (i = 0; i < nb_pages; ++i)
++		mmu_map[i] = first_page + i;
++}
++EXPORT_SYMBOL_GPL(codec_hevc_fill_mmu_map);
+diff --git a/drivers/staging/media/meson/vdec/codec_hevc_common.h b/drivers/staging/media/meson/vdec/codec_hevc_common.h
+index aa8140b..de16d2e 100644
+--- a/drivers/staging/media/meson/vdec/codec_hevc_common.h
++++ b/drivers/staging/media/meson/vdec/codec_hevc_common.h
+@@ -25,6 +25,19 @@ static const u16 vdec_hevc_parser_cmd[] = {
+ 	0x7C00
+ };
+ 
++#define MAX_REF_PIC_NUM	24
++
++struct codec_hevc_common {
++	void      *fbc_buffer_vaddr[MAX_REF_PIC_NUM];
++	dma_addr_t fbc_buffer_paddr[MAX_REF_PIC_NUM];
++
++	void      *mmu_header_vaddr[MAX_REF_PIC_NUM];
++	dma_addr_t mmu_header_paddr[MAX_REF_PIC_NUM];
++
++	void      *mmu_map_vaddr;
++	dma_addr_t mmu_map_paddr;
++};
++
+ /* Returns 1 if we must use framebuffer compression */
+ static inline int codec_hevc_use_fbc(u32 pixfmt, int is_10bit)
+ {
+@@ -38,13 +51,27 @@ static inline int codec_hevc_use_downsample(u32 pixfmt, int is_10bit)
+ 	return is_10bit;
+ }
+ 
++/* Returns 1 if we are decoding using the IOMMU */
++static inline int codec_hevc_use_mmu(u32 revision, u32 pixfmt, int is_10bit)
++{
++	return revision >= VDEC_REVISION_G12A &&
++	       codec_hevc_use_fbc(pixfmt, is_10bit);
++}
++
+ /**
+  * Configure decode head read mode
+  */
+ void codec_hevc_setup_decode_head(struct amvdec_session *sess, int is_10bit);
+ 
+-void codec_hevc_free_fbc_buffers(struct amvdec_session *sess);
++void codec_hevc_free_fbc_buffers(struct amvdec_session *sess,
++				 struct codec_hevc_common *comm);
++
++int codec_hevc_setup_buffers(struct amvdec_session *sess,
++			     struct codec_hevc_common *comm,
++			     int is_10bit);
+ 
+-int codec_hevc_setup_buffers(struct amvdec_session *sess, int is_10bit);
++void codec_hevc_fill_mmu_map(struct amvdec_session *sess,
++			     struct codec_hevc_common *comm,
++			     struct vb2_buffer *vb);
+ 
+ #endif
+diff --git a/drivers/staging/media/meson/vdec/hevc_regs.h b/drivers/staging/media/meson/vdec/hevc_regs.h
+index 3a097b2..55c1a80 100644
+--- a/drivers/staging/media/meson/vdec/hevc_regs.h
++++ b/drivers/staging/media/meson/vdec/hevc_regs.h
+@@ -6,6 +6,8 @@
+ #ifndef __MESON_VDEC_HEVC_REGS_H_
+ #define __MESON_VDEC_HEVC_REGS_H_
+ 
++#define HEVC_ASSIST_MMU_MAP_ADDR 0xc024
++
+ #define HEVC_ASSIST_MBOX1_CLR_REG 0xc1d4
+ #define HEVC_ASSIST_MBOX1_MASK 0xc1d8
+ 
+@@ -193,8 +195,11 @@
+ #define HEVC_SAO_CTRL7 0xd894
+ #define HEVC_CM_BODY_START_ADDR 0xd898
+ #define HEVC_CM_BODY_LENGTH 0xd89c
++#define HEVC_CM_HEADER_START_ADDR 0xd8a0
+ #define HEVC_CM_HEADER_LENGTH 0xd8a4
+ #define HEVC_CM_HEADER_OFFSET 0xd8ac
++#define HEVC_SAO_MMU_VH0_ADDR 0xd8e8
++#define HEVC_SAO_MMU_VH1_ADDR 0xd8ec
+ 
+ #define HEVC_IQIT_CLK_RST_CTRL 0xdc00
+ #define HEVC_IQIT_SCALELUT_WR_ADDR 0xdc08
+diff --git a/drivers/staging/media/meson/vdec/vdec.h b/drivers/staging/media/meson/vdec/vdec.h
+index 07fc387..57c455e 100644
+--- a/drivers/staging/media/meson/vdec/vdec.h
++++ b/drivers/staging/media/meson/vdec/vdec.h
+@@ -20,8 +20,6 @@
+ /* 32 buffers in 3-plane YUV420 */
+ #define MAX_CANVAS	(32 * 3)
+ 
+-#define MAX_REF_PIC_NUM	24
+-
+ struct amvdec_buffer {
+ 	struct list_head list;
+ 	struct vb2_buffer *vb;
+@@ -271,9 +269,6 @@ struct amvdec_session {
+ 	u32 wrap_count;
+ 	u32 fw_idx_to_vb2_idx[32];
+ 
+-	void      *fbc_buffer_vaddr[MAX_REF_PIC_NUM];
+-	dma_addr_t fbc_buffer_paddr[MAX_REF_PIC_NUM];
+-
+ 	enum amvdec_status status;
+ 	void *priv;
+ };
+diff --git a/drivers/staging/media/meson/vdec/vdec_hevc.c b/drivers/staging/media/meson/vdec/vdec_hevc.c
+index cda0bc7..51f67ff 100644
+--- a/drivers/staging/media/meson/vdec/vdec_hevc.c
++++ b/drivers/staging/media/meson/vdec/vdec_hevc.c
+@@ -135,10 +135,10 @@ static int vdec_hevc_stop(struct amvdec_session *sess)
+ 		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
+ 				   GEN_PWR_VDEC_HEVC, GEN_PWR_VDEC_HEVC);
+ 
++	clk_disable_unprepare(core->vdec_hevc_clk);
+ 	if (core->platform->revision == VDEC_REVISION_G12A ||
+ 	    core->platform->revision == VDEC_REVISION_SM1)
+ 		clk_disable_unprepare(core->vdec_hevcf_clk);
+-	clk_disable_unprepare(core->vdec_hevc_clk);
+ 
+ 	return 0;
+ }
+@@ -149,11 +149,6 @@ static int vdec_hevc_start(struct amvdec_session *sess)
+ 	struct amvdec_core *core = sess->core;
+ 	struct amvdec_codec_ops *codec_ops = sess->fmt_out->codec_ops;
+ 
+-	clk_set_rate(core->vdec_hevc_clk, 666666666);
+-	ret = clk_prepare_enable(core->vdec_hevc_clk);
+-	if (ret)
+-		return ret;
+-
+ 	if (core->platform->revision == VDEC_REVISION_G12A ||
+ 	    core->platform->revision == VDEC_REVISION_SM1) {
+ 		clk_set_rate(core->vdec_hevcf_clk, 666666666);
+@@ -162,6 +157,11 @@ static int vdec_hevc_start(struct amvdec_session *sess)
+ 			return ret;
+ 	}
+ 
++	clk_set_rate(core->vdec_hevc_clk, 666666666);
++	ret = clk_prepare_enable(core->vdec_hevc_clk);
++	if (ret)
++		return ret;
++
+ 	if (core->platform->revision == VDEC_REVISION_SM1)
+ 		regmap_update_bits(core->regmap_ao, AO_RTI_GEN_PWR_SLEEP0,
+ 				   GEN_PWR_VDEC_HEVC_SM1, 0);
+-- 
+2.7.1
+

@@ -41,7 +41,7 @@ PATCHFILES += 0101-meson-ao-cec-move-cec_notifier_cec_adap_register-after-hw-set
 ifeq (1,1)
 # Amlogic: Patch to fix Panfrost reset issue on GXM
 PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
-endif
+endif	
 
 ifeq (1,1)
 # Amlogic: Add h264 and v4l2 compliance for Amlogic vdec
@@ -58,9 +58,19 @@ PATCHFILES += 0309-arm64-dts-meson-sm1-add-video-decoder-compatible.patch
 PATCHFILES += 0310-media-v4l2-mem2mem-mark-DONE-any-OUTPUT-queued-buffer-after-CMD_STOP-v2.patch
 PATCHFILES += 0311-media-meson-vdec-bring-up-to-compliance-v2.patch
 PATCHFILES += 0312-media-meson-vdec-add-H.264-decoding-support-v2.patch
-# from mailing list
-PATCHFILES += 0313-media-meson-vdec-add-MPEG4-decoding-support.patch
-PATCHFILES += 0314-media-meson-vdec-add-MJPEG-decoding-support.patch
+# from https://github.com/superna9999/linux/commits/amlogic/v5.6/vdec-g12a
+PATCHFILES += 0328-media-meson-vdec-add-helpers-for-lossless-framebuffe.patch
+PATCHFILES += 0329-media-meson-vdec-add-common-HEVC-decoder-support.patch
+PATCHFILES += 0330-media-meson-vdec-add-G12A-SM1-support-for-common-HEV.patch
+PATCHFILES += 0331-media-meson-vdec-add-IOMMU-support-for-common-HEVC-d.patch
+PATCHFILES += 0332-media-meson-vdec-add-VP9-input-support.patch
+PATCHFILES += 0333-media-meson-vdec-add-VP9-support-for-GXL.patch
+PATCHFILES += 0334-media-meson-vdec-add-g12a-platform-for-VP9-codec.patch
+PATCHFILES += 0335-media-meson-vp9-add-IOMMU-support.patch
+# from manually from https://github.com/Elyotna/linux/commits/mjourdan/v5.3/aml/vdec
+PATCHFILES += 0336-media-meson-vdec-add-HEVC-decoding-support.patch
+PATCHFILES += 0338-media-meson-vdec-add-MPEG4-decoding-support.patch
+PATCHFILES += 0339-media-meson-vdec-add-MJPEG-decoding-support.patch
 endif
 
 ifeq (1,1)
@@ -77,6 +87,7 @@ PATCHFILES += 0348-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
 PATCHFILES += 0350-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-.patch
 PATCHFILES += 0351-fix-chmap_idx.patch
 PATCHFILES += 0352-ASoC-hdmi-codec-reorder-channel-allocation-list.patch
+# Seems to casuse issues with 2.0 HDMI
 # PATCHFILES += 0353-multi-channel-GX-audio-hack.patch
 endif
 
@@ -159,7 +170,7 @@ endif
 
 ifeq (1,1)
 # Allwinner H6: Add thermal support
-PATCHFILES += 0550-thermal-sun8i-add-thermal-driver-for-H6.patch
+PATCHFILES += 0550-thermal-sun8i-add-thermal-driver-for-A64-H3-H5-H6.patch
 PATCHFILES += 0551-thermal-sun8i-add-dts-nodes.patch
 PATCHFILES += 0552-thermal-sun8i-enable-ths-in-h6-boards.patch
 endif
@@ -200,7 +211,6 @@ PATCHFILES += 0584-ASoC-sun4i-i2s-Add-multi-lane-functionality.patch
 PATCHFILES += 0585-ASoC-sun4i-i2s-Add-multichannel-functionality.patch
 PATCHFILES += 0586-ASoC-sun4i-i2s-Adjust-regmap-settings.patch
 PATCHFILES += 0588-arm64-dts-allwinner-Add-SPDIF-node-for-Allwinner-H6.patch
-# PATCHFILES += 0589-I2S-debugging.patch
 endif
 
 # media: cedrus: h264: Support multi-slice frames
@@ -221,7 +231,8 @@ BUILDDEPS = \
 DEPENDS = \
 	kernel-headers/linux-headers \
 	kernel/linux-firmware \
-	kernel/linux-firmware-meson \
+
+#	kernel/linux-firmware-meson \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
