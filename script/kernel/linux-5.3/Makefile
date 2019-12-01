@@ -64,6 +64,7 @@ PATCHFILES += 0217-drm-bridge-dw-hdmi-allow-ycbcr420-modes-for-0x200a.patch
 PATCHFILES += 0218-drm-meson-Add-YUV420-output-support.patch
 
 # Amlogic vdec enhacement for h264/mjpeg/vp9 over mpeg1/2 basic support in 5.3
+PATCHFILES += 0302-amlogic-set-meson-cma-pool-to-896MB.patch
 PATCHFILES += 0321-arm64-dts-meson-gx-add-vdec-entry.patch
 PATCHFILES += 0322-arm64-dts-meson-add-vdec-entries.patch
 PATCHFILES += 0323-media-meson-vdec-add-H.264-decoding-support.patch
