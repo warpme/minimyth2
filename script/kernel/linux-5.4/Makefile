@@ -45,6 +45,7 @@ endif
 
 ifeq (1,1)
 # Amlogic: Add h264 and v4l2 compliance for Amlogic vdec
+PATCHFILES += 0302-amlogic-set-meson-cma-pool-to-896MB.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=205671
 PATCHFILES += 0303-dt-bindings-media-amlogic-vdec-convert-to-yaml.patch
 PATCHFILES += 0304-dt-bindings-media-amlogic-gx-vdec-add-bindings-for-G12A-family.patch
