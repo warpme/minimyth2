@@ -12,6 +12,17 @@ DISTFILES = $(DISTNAME).tar.bz2
 endif
 
 ifeq (1,1)
+#--use this for jernejsk v4l2-request-hwaccel-4.0.4  ----
+# https://github.com/FFmpeg/FFmpeg/commits/master
+GITHASH = a810e91ff5925da4c1ebce1eddbd7498d733c631
+GARVERSION = 20191202-$(GITHASH)
+MASTER_SITES = https://github.com/jernejsk/FFmpeg/archive/
+DISTFILES = $(GITHASH).zip
+WORKSRC   = $(WORKDIR)/FFmpeg-$(GITHASH)
+#--------------------------------------------------------
+endif
+
+ifeq (1,0)
 #--use this for current master ffmpeg--------------------
 # https://github.com/FFmpeg/FFmpeg/commits/master
 GITHASH = 637742b45dc8df329b8593f6ad8f4e154d609415
@@ -195,6 +206,7 @@ clean-all:
 	@rm -rf $(DESTDIR)$(includedir)/libavutil
 	@rm -rf $(DESTDIR)$(includedir)/libpostproc
 	@rm -rf $(DESTDIR)$(includedir)/libswscale
+	@rm -rf $(DESTDIR)$(includedir)/libswresample
 	@rm -rf $(DESTDIR)$(libdir)/libavcodec.*
 	@rm -rf $(DESTDIR)$(libdir)/libavdevice.*
 	@rm -rf $(DESTDIR)$(libdir)/libavfilter.*
@@ -202,5 +214,16 @@ clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/libavutil.*
 	@rm -rf $(DESTDIR)$(libdir)/libpostproc.*
 	@rm -rf $(DESTDIR)$(libdir)/libswscale.*
+	@rm -rf $(DESTDIR)$(libdir)/libswresample.*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libswscale.pc
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libswresample.pc
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libpostproc.pc
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavutil.pc
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavformat.pc
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavfilter.pc
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavdevice.pc
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavcodec.pc
 	@rm -rf $(DESTDIR)$(datadir)/ffmpeg
 	@rm -rf $(DESTDIR)$(bin)/ffmpeg
+	@rm -rf $(DESTDIR)$(bin)/ffprobe
+	@rm -rf $(DESTDIR)$(bin)/ffplay
