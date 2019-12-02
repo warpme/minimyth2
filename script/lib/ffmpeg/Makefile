@@ -14,11 +14,25 @@ endif
 ifeq (1,1)
 #--use this for current master ffmpeg--------------------
 # https://github.com/FFmpeg/FFmpeg/commits/master
-GITHASH = a2fbdc6898fc72f7f289e750f2199ee66216f2f8
-GARVERSION = 20191127-$(GITHASH)
+GITHASH = 637742b45dc8df329b8593f6ad8f4e154d609415
+GARVERSION = 20191202-$(GITHASH)
 MASTER_SITES = https://github.com/FFmpeg/FFmpeg/archive/
 DISTFILES = $(GITHASH).zip
 WORKSRC   = $(WORKDIR)/FFmpeg-$(GITHASH)
+
+PATCHFILES += 0000-avutil-add-av_buffer_pool_flush.patch
+PATCHFILES += 0001-Add-common-V4L2-request-API-code.patch
+PATCHFILES += 0002-Add-V4L2-request-API-mpeg2-hwaccel.patch
+PATCHFILES += 0003-Add-V4L2-request-API-h264-hwaccel.patch
+PATCHFILES += 0004-Add-V4L2-request-API-hevc-hwaccel.patch
+PATCHFILES += 0005-Add-V4L2-request-API-vp8-hwaccel.patch
+PATCHFILES += 0006-Add-and-use-private-linux-headers-for-V4L2-request-A.patch
+PATCHFILES += 0007-hwcontext_drm-do-not-require-drm-device.patch
+PATCHFILES += 0008-avcodec-h264-parse-idr_pic_id.patch
+PATCHFILES += 0009-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
+PATCHFILES += 0010-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
+PATCHFILES += 0011-WIP-v4l2-request-rolling-timestamps.patch
+
 #--------------------------------------------------------
 endif
 
@@ -30,32 +44,32 @@ MASTER_SITES = https://github.com/xbmc/FFmpeg/archive/
 DISTFILES = $(GARVERSION).tar.gz
 WORKSRC   = $(WORKDIR)/FFmpeg-$(GARVERSION)
 
-PATCHFILES += ffmpeg-95.0001-avutil-add-av_buffer_pool_flush.patch
-PATCHFILES += ffmpeg-95.0002-Add-common-V4L2-request-API-code.patch
-PATCHFILES += ffmpeg-95.0003-Add-V4L2-request-API-mpeg2-hwaccel.patch
-PATCHFILES += ffmpeg-95.0004-Add-V4L2-request-API-h264-hwaccel.patch
-PATCHFILES += ffmpeg-95.0005-Add-V4L2-request-API-hevc-hwaccel.patch
-PATCHFILES += ffmpeg-95.0006-Add-V4L2-request-API-vp8-hwaccel.patch
-PATCHFILES += ffmpeg-95.0007-Add-and-use-private-linux-headers-for-V4L2-request-A.patch
-PATCHFILES += ffmpeg-95.0008-hwcontext_drm-do-not-require-drm-device.patch
-PATCHFILES += ffmpeg-95.0009-avcodec-h264-parse-idr_pic_id.patch
-PATCHFILES += ffmpeg-95.0010-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
-PATCHFILES += ffmpeg-95.0011-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
-PATCHFILES += ffmpeg-99.1001-Call-get_format-to-fix-an-issue-with-MMAL-ren.patch
-PATCHFILES += ffmpeg-99.1002-mpeg4video-Signal-unsupported-GMC-with-more-than-one.patch
-PATCHFILES += ffmpeg-99.1003-pfcd_hevc_optimisations.patch
-PATCHFILES += ffmpeg-99.1004-added_upstream_mvc_patches.patch
-PATCHFILES += ffmpeg-99.1005-rkmppdec-Kodi-need-more-buffers.patch
-PATCHFILES += ffmpeg-99.1006-rkmppdec-continue-on-errinfo-frame.patch
-PATCHFILES += ffmpeg-99.1007-rkmppdec-enable-mpeg2.patch
-PATCHFILES += ffmpeg-99.1008-dav1d-enable-av1.patch
-PATCHFILES += ffmpeg-99.1009-dav1d-fix-multithreaded-av1-sw-decoding.patch
-PATCHFILES += ffmpeg-99.1010-rkmppdec-set-mastering-display-and-content-light-sid.patch
-PATCHFILES += ffmpeg-99.1010-yuv2rgb-logspam.patch
-PATCHFILES += ffmpeg-999-aspect-ratio.patch
-PATCHFILES += ffmpeg-999-lrusak-v4l2.patch
-PATCHFILES += ffmpeg-999-min-buffers.patch
-PATCHFILES += ffmpeg-999-z-fixes.patch
+PATCHFILES += kodi_18.4-95.0001-avutil-add-av_buffer_pool_flush.patch
+PATCHFILES += kodi_18.4-95.0002-Add-common-V4L2-request-API-code.patch
+PATCHFILES += kodi_18.4-95.0003-Add-V4L2-request-API-mpeg2-hwaccel.patch
+PATCHFILES += kodi_18.4-95.0004-Add-V4L2-request-API-h264-hwaccel.patch
+PATCHFILES += kodi_18.4-95.0005-Add-V4L2-request-API-hevc-hwaccel.patch
+PATCHFILES += kodi_18.4-95.0006-Add-V4L2-request-API-vp8-hwaccel.patch
+PATCHFILES += kodi_18.4-95.0007-Add-and-use-private-linux-headers-for-V4L2-request-A.patch
+PATCHFILES += kodi_18.4-95.0008-hwcontext_drm-do-not-require-drm-device.patch
+PATCHFILES += kodi_18.4-95.0009-avcodec-h264-parse-idr_pic_id.patch
+PATCHFILES += kodi_18.4-95.0010-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
+PATCHFILES += kodi_18.4-95.0011-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
+PATCHFILES += kodi_18.4-99.1001-Call-get_format-to-fix-an-issue-with-MMAL-ren.patch
+PATCHFILES += kodi_18.4-99.1002-mpeg4video-Signal-unsupported-GMC-with-more-than-one.patch
+PATCHFILES += kodi_18.4-99.1003-pfcd_hevc_optimisations.patch
+PATCHFILES += kodi_18.4-99.1004-added_upstream_mvc_patches.patch
+PATCHFILES += kodi_18.4-99.1005-rkmppdec-Kodi-need-more-buffers.patch
+PATCHFILES += kodi_18.4-99.1006-rkmppdec-continue-on-errinfo-frame.patch
+PATCHFILES += kodi_18.4-99.1007-rkmppdec-enable-mpeg2.patch
+PATCHFILES += kodi_18.4-99.1008-dav1d-enable-av1.patch
+PATCHFILES += kodi_18.4-99.1009-dav1d-fix-multithreaded-av1-sw-decoding.patch
+PATCHFILES += kodi_18.4-99.1010-rkmppdec-set-mastering-display-and-content-light-sid.patch
+PATCHFILES += kodi_18.4-99.1010-yuv2rgb-logspam.patch
+PATCHFILES += kodi_18.4-999-aspect-ratio.patch
+PATCHFILES += kodi_18.4-999-lrusak-v4l2.patch
+PATCHFILES += kodi_18.4-999-min-buffers.patch
+PATCHFILES += kodi_18.4-999-z-fixes.patch
 #--------------------------------------------------------
 endif
 
@@ -154,6 +168,8 @@ CONFIGURE_ARGS = \
 	--pkg-config="pkg-config" \
 	--enable-v4l2-m2m \
 	--enable-libdrm \
+	--enable-libudev \
+	--enable-v4l2-request \
 
 BUILD_ARGS     = \
 	V='1'
@@ -166,6 +182,9 @@ include ../../gar.mk
 # ffmpeg2.8.5 don't like gcc5.3.0 link-time optimizations
 CFLAGS  := $(filter-out -flto, $(CFLAGS))
 LDFLAGS := $(filter-out -flto, $(LDFLAGS))
+
+CFLAGS  += -Wno-all
+LDFLAGS += -Wno-all
 
 clean-all:
 	@$(MAKE) clean
