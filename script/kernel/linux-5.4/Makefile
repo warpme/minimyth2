@@ -241,11 +241,11 @@ INSTALL_SCRIPTS   = custom
 
 CONFIGURE_ARGS    = $(LINUX_MAKE_ARGS)
 BUILD_ARGS        = $(LINUX_MAKE_ARGS)
-INSTALL_ARGS      = $(LINUX_MAKE_ARGS)
+INSTALL_ARGS      = $(LINUX_MAKE_ARGS) INSTALL_HDR_PATH="$(DESTDIR)$(LINUX_INCLUDEDIR)"
 
 CONFIGURE_ENV = $(LINUX_MAKE_ENV)
 BUILD_ENV     = $(LINUX_MAKE_ENV)
-INSTALL_ENV   = $(LINUX_MAKE_ENV) INSTALL_PATH="$(DESTDIR)$(LINUX_DIR)" INSTALL_MOD_PATH="$(DESTDIR)$(rootdir)" INSTALL_DTBS_PATH="$(DESTDIR)$(rootdir)/boot/dtbs"
+INSTALL_ENV   = $(LINUX_MAKE_ENV) INSTALL_PATH="$(DESTDIR)$(LINUX_DIR)" INSTALL_MOD_PATH="$(DESTDIR)$(rootdir)" INSTALL_DTBS_PATH="$(DESTDIR)$(rootdir)/boot/dtbs" INSTALL_HDR_PATH="$(DESTDIR)$(LINUX_INCLUDEDIR)"
 
 include ../../gar.mk
 
@@ -281,9 +281,13 @@ pre-install:
 	@$(MAKECOOKIE)
 
 install-custom:
+	@echo "Installing Linux modules in [$(DESTDIR)$(LINUX_DIR)]..."
 	@mkdir -p $(DESTDIR)$(LINUX_DIR)
 	@# cp  $(WORKSRC)/System.map $(DESTDIR)$(LINUX_DIR)/System.map
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) modules_install
+	@echo "Installing Linux headers in [$(DESTDIR)$(LINUX_INCLUDEDIR)]..."
+	@mkdir -p $(DESTDIR)$(LINUX_INCLUDEDIR)
+	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) headers_install
 ifeq ($(GARCH),armv7)
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/zImage > $(DESTDIR)$(LINUX_DIR)/zImage
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)$(LINUX_DIR)/Image
