@@ -25,9 +25,6 @@ PATCHFILES += 0011-Metadata-allow-graber-timeout-configurable.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
 PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
-# Make ffwd/skip more fluent
-PATCHFILES += 0014-partially-revert-22de417-Playback-Some-Optimizations.patch
-
 ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 
 # Comflagging related patches
@@ -66,16 +63,10 @@ PATCHFILES += 0203-Mediamonitor-revert-16086d2-Honor-the-MonitorDrives-setting.p
 PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
 
 # Misc frontend patches
-PATCHFILES += 0211-decrease-minQt-ver-to-4.8-v2.patch
+PATCHFILES += 0211-decrease-minQt-ver-to-4.8-render2019.patch
 PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
-
-# Allows to switch mythfrontend to use OpenGL ES (system and Qt5 must provide GLESv2!)
-PATCHFILES += 0214-Configure-allow-opengl-GLES-selection.patch
-PATCHFILES += 0215-enable-opengl-GLES.patch
-
-# Required as myth configure looks only in standard places for OMX files
-PATCHFILES += 0217-Configure-force-OpenMAX-when-asked.patch
+PATCHFILES += 0215-decoders-v4l2-add-loging-for-detection.patch
 
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
@@ -98,6 +89,7 @@ PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position-v4.patch
 PATCHFILES += 0307-ticekt12809-Playback-Watchlist-Improvements.patch
 PATCHFILES += 0308-ticekt12809-Playback-Add-Unfinished-recording-filter.patch
+
 
 # --------Patches 400+ are plugins patches---------------------
 
@@ -244,12 +236,8 @@ CONFIGURE_ARGS = \
 	--x11-path="$(DESTDIR)$(includedir)" \
 	--enable-xrandr \
 	--disable-dxva2 \
-	--disable-xv \
-	--disable-crystalhd \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
-		--enable-opengles \
 		--disable-vaapi \
-		--disable-vaapi2 \
 		--disable-vdpau) \
 	--disable-mac-bundle \
 	--enable-libxml2 \
@@ -261,7 +249,10 @@ CONFIGURE_ARGS = \
 	--enable-pic \
 	--disable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
-	$(if $(filter nvidia nvidia-legacy,$(mm_GRAPHICS)),--enable-xnvctrl,--disable-xnvctrl) \
+	--enable-ffplay \
+	--enable-sdl2 \
+	--enable-xnvctrl \
+	--python=python2 \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
@@ -272,13 +263,6 @@ INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
-
-ifeq ($(mm_OPENGL_PROVIDER),brcm-vc4)
-CONFIGURE_ARGS += \
-	--extra-cflags="-I$(DESTDIR)$(includedir)/IL" \
-	--extra-cxxflags="-I$(DESTDIR)$(includedir)/IL" \
-	--enable-openmax
-endif
 
 CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
