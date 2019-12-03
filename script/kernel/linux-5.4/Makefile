@@ -113,14 +113,6 @@ PATCHFILES += 0409-arm64-dts-rockchip-Enable-HDMI-audio-on-rk3399-roc-p.patch
 PATCHFILES += 0410-arm64-dts-rockchip-Enable-gpu-node-on-rk3399-roc-pc.patch
 endif
 
-ifeq (0,1)
-# Rockchip: rk3399 vdec support https://patchwork.kernel.org/project/linux-rockchip/list/?series=186085
-PATCHFILES += 0420-media-vb2-Add-a-helper-to-get-the-vb2-buffer-attached-to-a-request.patch
-PATCHFILES += 0421-media-dt-bindings-rockchip-Document-RK3399-Video-Decoder-bindings.patch
-PATCHFILES += 0422-media-rockchip-Add-the-rkvdec-driver.patch
-PATCHFILES += 0423-arm64-dts-rockchip-rk3399-Define-the-rockchip-Video-Decoder-node.patch
-endif
-
 ifeq (1,1)
 # Rockchip: rk3328/3399 improvements https://patchwork.kernel.org/project/linux-rockchip/list/?series=168159
 PATCHFILES += 0430-media-hantro-Fix-H264-max-frmsize-supported-on-RK3288.patch
@@ -160,15 +152,6 @@ PATCHFILES += 0534-arm64-dts-sun50i-h6-add-AC200-nodes.patch
 # Allwinner H6: HW cursor support in drm planes
 PATCHFILES += 0535-drm-sun4i-Mark-one-of-the-UI-planes-as-a-cursor-one.patch
 PATCHFILES += 0536-drm-sun8i-ui-vi-Fix-layer-zpos-change-atomic-modesetting.patch
-endif
-
-ifeq (1,1)
-# Allwinner H6: Cedrus related patches
-PATCHFILES += 0540-media-cedrus-Add-HEVC-decoding-support.patch
-PATCHFILES += 0541-media-cedrus-h264-add-support-multi-slice-frames.patch
-PATCHFILES += 0542-media-cedrus-Properly-signal-size-in-mode-register.patch
-PATCHFILES += 0543-media-cedrus-Fix-H264-4k-support.patch
-PATCHFILES += 0544-media-cedrus-Increase-maximum-supported-size.patch
 endif
 
 ifeq (1,1)
@@ -216,10 +199,35 @@ PATCHFILES += 0586-ASoC-sun4i-i2s-Adjust-regmap-settings.patch
 PATCHFILES += 0588-arm64-dts-allwinner-Add-SPDIF-node-for-Allwinner-H6.patch
 endif
 
-# media: cedrus: h264: Support multi-slice frames
-# https://patchwork.kernel.org/project/linux-media/list/?series=185631
-
-
+ifeq (1,1)
+# Allwinner H6: Cedrus related patches
+# https://github.com/LibreELEC/LibreELEC.tv/blob/master/projects/Allwinner/patches/linux/0001-backport-from-5.5.patch
+# https://github.com/LibreELEC/LibreELEC.tv/blob/master/projects/Allwinner/patches/linux/0005-cedrus-improvements.patch
+PATCHFILES += 0600-media-add-V4L2_CID_UNIT_CELL_SIZE-control.patch
+PATCHFILES += 0601-media-add-V4L2_CTRL_TYPE_AREA-control-type.patch
+PATCHFILES += 0602-media-v4l-Add-definitions-for-HEVC-stateless-decoding.patch
+PATCHFILES += 0603-media-v4l2-mem2mem-support-held-capture-buffers.patch
+PATCHFILES += 0604-v4l2-mem2mem-add-stateless_try_decoder_cmd-ioctl.patch
+PATCHFILES += 0605-media-v4l2-mem2mem-add-new_frame-detection.patch
+PATCHFILES += 0606-media-cedrus-fill-in-bus_info-for-media-device.patch
+PATCHFILES += 0607-media-cedrus-choose-default-pixelformat-in-try_fmt.patch
+PATCHFILES += 0608-media-cedrus-fix-various-format-related-compliance-issues.patch
+PATCHFILES += 0609-media-cedrus-h264-Support-multiple-slices-per-frame.patch
+PATCHFILES += 0610-media-cedrus-Fix-undefined-shift-with-a-SHIFT_AND_MASK_BITS.patch
+PATCHFILES += 0611-media-cedrus-Remove-unnecessary-parenthesis-aroundDIV_ROUND_UP.patch
+PATCHFILES += 0612-media-cedrus-Add-HEVC-decoding-support.patch
+PATCHFILES += 0613-media-vb2-add-V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF.patch
+PATCHFILES += 0614-media-videodev2.h-add-V4L2_DEC_CMD_FLUSH.patch
+PATCHFILES += 0615-media-cedrus-Fix-decoding-for-some-H264-videos.patch
+PATCHFILES += 0616-media-cedrus-Use-helpers-to-access-capture-queue.patch
+PATCHFILES += 0617-media-cedrus-Use-correct-H264-8x8-scaling-list.patch
+PATCHFILES += 0618-media-v4l2-mem2mem-Fix-hold-buf-flag-checks.patch
+PATCHFILES += 0619-media-cedrus-Properly-signa-size-in-mode-register.patch
+PATCHFILES += 0620-media-cedrus-Fix-H264-4k-support.patch
+PATCHFILES += 0621-media-cedrus-Increase-maximum-supported-size.patch
+PATCHFILES += 0622-cedrus-improvements.patch
+PATCHFILES += 0623-media-cedrus-10bit-HEVC-hack.patch
+endif
 
 LICENSE = GPL2
 
