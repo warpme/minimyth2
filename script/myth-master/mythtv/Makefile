@@ -63,7 +63,7 @@ PATCHFILES += 0203-Mediamonitor-revert-16086d2-Honor-the-MonitorDrives-setting.p
 PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
 
 # Misc frontend patches
-PATCHFILES += 0211-decrease-minQt-ver-to-4.8-render2019.patch
+PATCHFILES += 0211-decrease-minQt-ver-to-4.8.patch
 PATCHFILES += 0212-netvision_build.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 PATCHFILES += 0215-decoders-v4l2-add-loging-for-detection.patch
