@@ -2,16 +2,29 @@
 GARNAME = ffmpeg
 CATEGORIES = lib
 
-ifeq (1,0)
+ifeq (1,1)
 #--use this for mainline ffmpeg--------------------------
 # GARVERSION = 4.1.4
-GARVERSION = 4.0.2
+GARVERSION = 4.0.4
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
+
+PATCHFILES += 0001-ffmpeg-4.0.4-avutil-add-av_buffer_pool_flush.patch
+PATCHFILES += 0002-ffmpeg-4.0.4-Add-common-V4L2-request-API-code.patch
+PATCHFILES += 0003-ffmpeg-4.0.4-Add-V4L2-request-API-mpeg2-hwaccel.patch
+PATCHFILES += 0004-ffmpeg-4.0.4-Add-V4L2-request-API-h264-hwaccel.patch
+PATCHFILES += 0005-ffmpeg-4.0.4-Add-V4L2-request-API-hevc-hwaccel.patch
+PATCHFILES += 0006-ffmpeg-4.0.4-Add-V4L2-request-API-vp8-hwaccel.patch
+PATCHFILES += 0007-ffmpeg-4.0.4-Add-and-use-private-linux-headers-for-V4L2-request-A.patch
+PATCHFILES += 0008-ffmpeg-4.0.4-hwcontext_drm-do-not-require-drm-device.patch
+PATCHFILES += 0009-ffmpeg-4.0.4-avcodec-h264-parse-idr_pic_id.patch
+PATCHFILES += 0010-ffmpeg-4.0.4-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
+PATCHFILES += 0011-ffmpeg-4.0.4-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
+PATCHFILES += 0012-ffmpeg-4.0.4-WIP-v4l2-request-rolling-timestamps.patch
 #--------------------------------------------------------
 endif
 
-ifeq (1,1)
+ifeq (1,0)
 #--use this for jernejsk v4l2-request-hwaccel-4.0.4  ----
 # https://github.com/FFmpeg/FFmpeg/commits/master
 GITHASH = a810e91ff5925da4c1ebce1eddbd7498d733c631
