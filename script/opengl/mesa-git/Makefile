@@ -3,12 +3,11 @@ GARNAME      = mesa
 
 ifeq (1,1)
 # current mesa git. Working all GLSL on t720/t820. Issues with mali405
-GARVERSION   = 2af39c719eecf6ffde29ead442c530b6fa6750d5
+GARVERSION   = 0c88d5952aafdc90b732ee6b0b425ca741537e52
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
-PATCHFILES  += unblacklist-t720-for-testing.patch
 endif
 
 ifeq (0,1)
