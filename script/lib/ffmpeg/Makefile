@@ -4,11 +4,11 @@ CATEGORIES = lib
 
 ifeq (1,1)
 #--use this for mainline ffmpeg--------------------------
-# GARVERSION = 4.1.4
 GARVERSION = 4.0.4
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES = $(DISTNAME).tar.bz2
-
+# https://github.com/LibreELEC/LibreELEC.tv/tree/master/packages/multimedia/ffmpeg/patches/v4l2-request-api
+# Official KODI patches for v4l2-request on ffmpeg 4.0.4
 PATCHFILES += 0001-ffmpeg-4.0.4-avutil-add-av_buffer_pool_flush.patch
 PATCHFILES += 0002-ffmpeg-4.0.4-Add-common-V4L2-request-API-code.patch
 PATCHFILES += 0003-ffmpeg-4.0.4-Add-V4L2-request-API-mpeg2-hwaccel.patch
@@ -61,7 +61,7 @@ PATCHFILES += 0011-WIP-v4l2-request-rolling-timestamps.patch
 endif
 
 ifeq (0,1)
-#--use this for kodi ffmpeg------------------------------
+#--use this for Kodi 18.4 ffmpeg-------------------------
 # https://github.com/xbmc/FFmpeg/archive/4.0.4-Leia-18.4.tar.gz
 GARVERSION = 4.0.4-Leia-18.4
 MASTER_SITES = https://github.com/xbmc/FFmpeg/archive/
