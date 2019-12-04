@@ -2386,3 +2386,144 @@ mm_redownload_theme() {
     fi
     return
 }
+
+
+#-----------------Functions to support devel-* scripts---------------------------------------------------
+
+devel_find_files() {
+    # Builds and returns space separated list of files conforming name patterns within given dir
+    # If 3rd param is 'remote' - function will use ssh to find files at remote location
+    # arg1: <dir path>
+    # arg2: <filename1* filename2* ...>
+    # arg3: 'remote'
+    # ret: <path/filename1.x.z filename2*.a.b>
+
+    local path=$1
+    local files_list=$2
+    local remote=$3
+    local files_found
+
+    for file in ${files_list}; do
+
+        if [ x${remote} = "xremote" ];then
+
+            f=`ssh -c none ${devel_login} "find ${path} -type f -name ${file}"`
+
+        else
+
+            f=`find ${path} -type f -name ${file}`
+
+        fi
+
+        files_found=${files_found}" "${f}
+
+    done
+
+    echo ${files_found}
+}
+
+devel_list_files() {
+    # List files
+    # arg1: <path/file1..."
+
+    local files_list=$1
+
+    for file in ${files_list}; do
+
+            echo "    "${file}
+
+    done
+
+}
+
+devel_install_files() {
+
+    local src_path=$1
+    local dst_path=$2
+    local files_list=$3
+
+    files_to_uninstall=$(devel_find_files ${dst_path} "${files_list}")
+
+    if [ -z "${files_to_uninstall}" ]; then
+
+        echo " "
+        echo "WARNING: no ANY files found to uninstall!!!"
+        echo " "
+
+    else
+        echo "==> Old files to uninstall from: [${dst_path}]"
+        echo " "
+
+        devel_list_files "${files_to_uninstall}"
+
+        echo " "
+    fi
+
+    files_to_install=$(devel_find_files "${src_path}" "${files_list}" remote)
+
+    if [ -z "${files_to_install}" ]; then
+
+        echo " "
+        echo "WARNING: no ANY files found to install!!!"
+        echo " "
+        echo "Script will now exit..."
+        echo " "
+        exit 1
+
+    else
+
+        echo "==> New files to install from remote: [${src_path}]"
+        echo " "
+
+        devel_list_files "${files_to_install}"
+
+        echo " "
+
+    fi
+
+    echo "==> Uninstalling files..."
+    echo " "
+
+    for file in ${files_to_uninstall}; do
+
+        if [ x${dry_run} = "xtrue" ]; then
+
+            echo "    dry run: [rm -fv" ${file}"]"
+
+        else
+
+            rm -fv ${file}
+
+        fi
+
+    done
+
+    echo " "
+    echo "==> Installing files..."
+    echo " "
+
+    for file in ${files_to_install}; do
+
+        dst_file=`echo "${file}" | sed "s%${src_path}%${dst_path}%"`
+
+        if [ x${dry_run} = "xtrue" ]; then
+
+
+            echo "    dry run: [scp -c none "${devel_login}":"${file} ${dst_file}"]"
+            echo "             [chown root:root "${dst_file}"]"
+            echo "             [chmod 0755 "${dst_file}"]"
+
+        else
+
+            scp -c none ${devel_login}:${file} ${dst_file}
+
+            chown root:root ${dst_file}
+            chmod 0755 ${dst_file}
+
+        fi
+
+    done
+
+    echo " "
+
+}

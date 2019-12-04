@@ -11,11 +11,11 @@
 # from remote host to local machine.
 #
 # Usage:
-#   dev-install-updated-mythtv.sh <user@host_ip> <path_to_root_with_files_to_download>
+#   dev-install-updated-ffmpeg.sh <user@host_ip> <path_to_root_with_files_to_download>
 #   or
-#   dev-install-updated-mythtv.sh <user@host_ip>
+#   dev-install-updated-ffmpeg.sh <user@host_ip>
 #   or
-#   dev-install-updated-mythtv.sh
+#   dev-install-updated-ffmpeg.sh
 #
 #   If no any param is provided, following defaults are used:
 #     <host_ip>=piotro@192.168.1.190
@@ -23,7 +23,8 @@
 
 # -------config area begin ---------------------------------------------------
 
-# path at destination where installed libs will be find (and deleted) and new libs will be installed
+# path at destination where installed libs will be find (and deleted) and new libs will be
+# installed
 lib_destination_path="/usr/lib"
 
 # libs list to install. Best is to provide filename with '*' as this will allow to:
@@ -33,19 +34,14 @@ lib_destination_path="/usr/lib"
 # Example:
 # script will find /usr/lib/libxx.so.a.b.c on target (and delete it).
 # script will find /home/piotro/minimyth-dev/images/main/usr/lib/libxx.so.d.e.f on source (and install it).
-lib_files_list="libmyth-*.so* libmythavcodec.so* libmythavfilter.so* libmythavformat.so* libmythavutil.so* libmythbase-*.so* libmythfreemheg-*.so* libmythmetadata-*.so* libmythpostproc.so* libmythservicecontracts-*.so* libmythswresample.so* libmythswscale.so* libmythtv-*.so* libmythui-*.so* libmythupnp-*.so*"
+lib_files_list="libswscale.so* libswresample.so* libpostproc.so* libavutil.so* libavcodec.so* libavformat.so* libavfilter.so* libavdevice.so*"
 
-# path at destination where plugins will be installed
-plugins_destination_path="/usr/lib/mythtv/plugins"
-
-# plugins list to install. Best is to provide filename with '*'
-plugins_files_list="libmythbrowser.so libmythgame.so libmythmusic.so libmythnetvision.so libmythnews.so libmythweather.so libmythzoneminder.so"
-
-# path at destination where installed bins will be find (and deleted) and new bins will be installed
+# path at destination where installed bins will be find (and deleted) and new bins will be
+# installed
 bin_destination_path="/usr/bin"
 
 # bins list to install
-bin_files_list="mythfrontend mythffmpeg mythffplay"
+bin_files_list="ffprobe ffplay ffmpeg"
 
 # uncomment if You want to dry-run scropt (without any installed files deletion and new files install)
 # dry_run=true
@@ -62,16 +58,6 @@ default_mm2_home_path="/home/piotro/minimyth-dev"
 
 
 
-src="${base_path}/usr/lib/mythtv/plugins/"
-dest="/usr/lib/mythtv/plugins"
-files_list="libmythbrowser.so libmythgame.so libmythmusic.so libmythnetvision.so libmythnews.so libmythweather.so libmythzoneminder.so"
-copy_files
-
-# Myth bins
-src="${base_path}/usr/bin/"
-dest="/usr/bin/"
-files_list="mythfrontend mythffmpeg"
-copy_files
 
 
 
@@ -125,15 +111,11 @@ echo "MiniMyth2 devel host      :[${devel_login}]"
 echo "MiniMyth2 devel home path :[${home_path}]"
 echo " "
 
-devel_install_files "${home_path}/images/main${lib_destination_path}"     "${lib_destination_path}"     "${lib_files_list}"
-devel_install_files "${home_path}/images/main${plugins_destination_path}" "${plugins_destination_path}" "${plugins_files_list}"
-devel_install_files "${home_path}/images/main${bin_destination_path}"     "${bin_destination_path}"     "${bin_files_list}"
+devel_install_files "${home_path}/images/main${lib_destination_path}" "${lib_destination_path}" "${lib_files_list}"
+devel_install_files "${home_path}/images/main${bin_destination_path}" "${bin_destination_path}" "${bin_files_list}"
 
 echo "==> Kicking ldconfig..."
 ldconfig
-echo " "
-echo "==> Restarting mythfrontend..."
-mm_manage restart_mythfrontend
 echo " "
 echo "==> All done! Exiting..."
 echo " "
