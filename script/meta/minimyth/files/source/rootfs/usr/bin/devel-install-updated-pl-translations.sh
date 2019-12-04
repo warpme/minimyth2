@@ -43,7 +43,7 @@ lib_files_list="mytharchive_pl.qm mythbrowser_pl.qm mythfrontend_pl.qm mythgame_
 default_login="piotro@192.168.1.190"
 
 # Default MiniMyth2 home path (assuming that target
-default_mm2_home_path="/home/piotro/minimyth-dev"
+default_mm2_home_path="@MM_HOME@"
 
 #------- config area end ------------------------------------------------------
 

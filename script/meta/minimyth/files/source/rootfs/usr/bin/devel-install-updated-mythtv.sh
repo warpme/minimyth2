@@ -54,7 +54,7 @@ bin_files_list="mythfrontend mythffmpeg mythffplay"
 default_login="piotro@192.168.1.190"
 
 # Default MiniMyth2 home path (assuming that target
-default_mm2_home_path="/home/piotro/minimyth-dev"
+default_mm2_home_path="@MM_HOME@"
 
 #------- config area end ------------------------------------------------------
 
