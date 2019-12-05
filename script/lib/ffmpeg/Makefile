@@ -2,7 +2,7 @@
 GARNAME = ffmpeg
 CATEGORIES = lib
 
-ifeq (1,1)
+ifeq (0,1)
 #--use this for mainline ffmpeg--------------------------
 GARVERSION = 4.0.4
 MASTER_SITES = http://ffmpeg.org/releases/
@@ -35,28 +35,29 @@ WORKSRC   = $(WORKDIR)/FFmpeg-$(GITHASH)
 #--------------------------------------------------------
 endif
 
-ifeq (1,0)
+ifeq (1,1)
 #--use this for current master ffmpeg--------------------
-# https://github.com/FFmpeg/FFmpeg/commits/master
-GITHASH = 637742b45dc8df329b8593f6ad8f4e154d609415
-GARVERSION = 20191202-$(GITHASH)
+# https://github.com/FFmpeg/FFmpeg/tree/d5274f86a838ae5f9d56f41c6ee520cce466bd83 
+# git hash ffmpeg master @05-12-2019
+GITHASH = d5274f86a838ae5f9d56f41c6ee520cce466bd83
+GARVERSION = 20191205-$(GITHASH)
 MASTER_SITES = https://github.com/FFmpeg/FFmpeg/archive/
 DISTFILES = $(GITHASH).zip
 WORKSRC   = $(WORKDIR)/FFmpeg-$(GITHASH)
 
-PATCHFILES += 0000-avutil-add-av_buffer_pool_flush.patch
-PATCHFILES += 0001-Add-common-V4L2-request-API-code.patch
-PATCHFILES += 0002-Add-V4L2-request-API-mpeg2-hwaccel.patch
-PATCHFILES += 0003-Add-V4L2-request-API-h264-hwaccel.patch
-PATCHFILES += 0004-Add-V4L2-request-API-hevc-hwaccel.patch
-PATCHFILES += 0005-Add-V4L2-request-API-vp8-hwaccel.patch
-PATCHFILES += 0006-Add-and-use-private-linux-headers-for-V4L2-request-A.patch
-PATCHFILES += 0007-hwcontext_drm-do-not-require-drm-device.patch
-PATCHFILES += 0008-avcodec-h264-parse-idr_pic_id.patch
-PATCHFILES += 0009-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
-PATCHFILES += 0010-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
-PATCHFILES += 0011-WIP-v4l2-request-rolling-timestamps.patch
-
+# https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-master
+PATCHFILES += 0001-ffmpeg-d5274f8-avutil-add-av_buffer_pool_flush.patch
+PATCHFILES += 0002-ffmpeg-d5274f8-Add-common-V4L2-request-API-code.patch
+PATCHFILES += 0003-ffmpeg-d5274f8-Add-V4L2-request-API-mpeg2-hwaccel.patch
+PATCHFILES += 0004-ffmpeg-d5274f8-Add-V4L2-request-API-h264-hwaccel.patch
+PATCHFILES += 0005-ffmpeg-d5274f8-Add-V4L2-request-API-hevc-hwaccel.patch
+PATCHFILES += 0006-ffmpeg-d5274f8-Add-V4L2-request-API-vp8-hwaccel.patch
+PATCHFILES += 0007-ffmpeg-d5274f8-Add-and-use-private-linux-headers-for-V4L2-request-A.patch
+PATCHFILES += 0008-ffmpeg-d5274f8-hwcontext_drm-do-not-require-drm-device.patch
+PATCHFILES += 0009-ffmpeg-d5274f8-avcodec-h264-parse-idr_pic_id.patch
+PATCHFILES += 0010-ffmpeg-d5274f8-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
+PATCHFILES += 0011-ffmpeg-d5274f8-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
+PATCHFILES += 0012-ffmpeg-d5274f8-WIP-v4l2-request-rolling-timestamps.patch
 #--------------------------------------------------------
 endif
 
