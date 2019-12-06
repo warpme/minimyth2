@@ -437,19 +437,23 @@ installstrip: strip pre-install $(INSTALL_TARGETS) post-install
 # reconfigure		- Reconfigure ignoring
 # 				  "already configured" flag.
 reconfigure:
-	@rm -rf $(COOKIEDIR)/*configure*
+	@rm -rf $(COOKIEDIR)/pre-configure*
+	@rm -rf $(COOKIEDIR)/configure*
+	@rm -rf $(COOKIEDIR)/post-configure*
 	$(MAKE) configure
 
 # rebuild		- Rebuild ignoring
 # 				  "already built" flag.
 rebuild:
-	@rm -rf $(COOKIEDIR)/*build*
+	@rm -rf $(COOKIEDIR)/build*
 	$(MAKE) build
 
 # reinstall		- Install the results of a build, ignoring
 # 				  "already installed" flag.
 reinstall: build
-	rm -rf $(COOKIEDIR)/*install*
+	rm -rf $(COOKIEDIR)/pre-install*
+	rm -rf $(COOKIEDIR)/install*
+	rm -rf $(COOKIEDIR)/post-install*
 	$(MAKE) install
 
 # uninstall		- Remove the installation.
