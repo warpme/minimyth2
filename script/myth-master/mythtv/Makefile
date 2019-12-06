@@ -269,7 +269,6 @@ CONFIGURE_ARGS = \
 	--enable-sdl2 \
 	--enable-xnvctrl \
 	--python=python2 \
-	--enable-v4l2request \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
@@ -280,6 +279,12 @@ INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
+
+ifneq (,$(findstring rpi,$(mm_KERNEL_VERSION)))
+CONFIGURE_ARGS += --disable-v4l2request
+else
+CONFIGURE_ARGS += --enable-v4l2request
+endif
 
 CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
