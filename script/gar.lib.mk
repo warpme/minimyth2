@@ -327,14 +327,27 @@ build-%/GNUmakefile:
 	@$(BUILD_ENV) $(MAKE) $(PARALLELMFLAGS) $(foreach TTT,$(BUILD_OVERRIDE_DIRS),$(TTT)="$($(TTT))") -C $* $(BUILD_ARGS)
 	@$(MAKECOOKIE)
 
+reconfigure:
+	@echo " ==> Removing configure cooke files..."
+	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/pre-configure*
+	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/configure*
+	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/post-configure*
+	@echo " ==> Running configure..."
+	$(MAKE) configure
+
 rebuild:
-	@echo " ==> Removing build & install cooke files..."
+	@echo " ==> Removing build cooke files..."
 	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/build*
-	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/install*
+	@echo " ==> Running build..."
+	$(MAKE) build
+
+reinstall:
+	@echo " ==> Removing install cooke files..."
 	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/pre-install*
+	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/install*
 	@rm -rf $(COOKIEROOTDIR)/$(DESTIMG).d/post-install*
 	@echo " ==> Running install..."
-	$(MAKE) install
+	$(MAKE) build
 
 #################### STRIP RULES ####################
 # The strip rule should probably strip uninstalled binaries.
