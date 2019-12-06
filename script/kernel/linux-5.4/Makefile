@@ -35,45 +35,51 @@ PATCHFILES += linux-5.4-defaults.patch
 PATCHFILES += linux-5.4-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.4-net-smsc95xx-allow-mac-address-as-param.patch
 
+# v4l2 support for video decoders (hantro/cedrus/amlogic)
+# https://github.com/LibreELEC/LibreELEC.tv/blob/master/projects/Allwinner/patches/linux/0001-backport-from-5.5.patch
+# https://github.com/LibreELEC/LibreELEC.tv/blob/master/projects/Allwinner/patches/linux/0005-cedrus-improvements.patch
+PATCHFILES += 0010-media-v4l2-add_CID_UNIT_CELL_SIZE-control.patch
+PATCHFILES += 0011-media-v4l2-add_CTRL_TYPE_AREA-control-type.patch
+PATCHFILES += 0012-media-v4l2-add-definitions-for-HEVC-stateless-decoding.patch
+PATCHFILES += 0013-media-v4l2-add-mem2mem-support-held-capture-buffers.patch
+PATCHFILES += 0014-media-v4l2-add-mem2mem-add-stateless_try_decoder_cmd-ioctl.patch
+PATCHFILES += 0015-media-v4l2-add-mem2mem-add-new_frame-detection.patch
+PATCHFILES += 0016-media-v4l2-add-V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF.patch
+PATCHFILES += 0017-media-v4l2-videodev2.h-add-V4L2_DEC_CMD_FLUSH.patch
+PATCHFILES += 0018-media-v4l2-add-mem2mem-Fix-hold-buf-flag-checks.patch
+PATCHFILES += 0019-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
+PATCHFILES += 0020-media-v4l2-mem2mem-mark-DONE-any-OUTPUT-queued-buffer-after-CMD_STOP-v2.patch
+
 # Amlogic: Fix 5.4 kernel Ooops
 PATCHFILES += 0101-meson-ao-cec-move-cec_notifier_cec_adap_register-after-hw-setup.patch
 
 ifeq (1,1)
 # Amlogic: Patch to fix Panfrost reset issue on GXM
 PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
-endif	
+endif
 
 ifeq (1,1)
 # Amlogic: Add h264 and v4l2 compliance for Amlogic vdec
-PATCHFILES += 0302-amlogic-set-meson-cma-pool-to-896MB.patch
+PATCHFILES += 0302-arm64-dts-meson-set-dma-pool-to-896MB.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=205671
 PATCHFILES += 0303-dt-bindings-media-amlogic-vdec-convert-to-yaml.patch
 PATCHFILES += 0304-dt-bindings-media-amlogic-gx-vdec-add-bindings-for-G12A-family.patch
 PATCHFILES += 0305-media-meson-vdec-add-g12a-platform.patch
 PATCHFILES += 0306-arm64-dts-meson-g12-common-add-video-decoder-node.patch
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=206467
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=206467 21-11-2019
 PATCHFILES += 0307-dt-bindings-media-amlogic-gx-vdec-add-bindings-for-SM1-family.patch
 PATCHFILES += 0308-media-meson-vdec-add-sm1-platform.patch
 PATCHFILES += 0309-arm64-dts-meson-sm1-add-video-decoder-compatible.patch
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=208153
-PATCHFILES += 0310-media-v4l2-mem2mem-mark-DONE-any-OUTPUT-queued-buffer-after-CMD_STOP-v2.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=208153 26-11-2019
 PATCHFILES += 0311-media-meson-vdec-bring-up-to-compliance-v2.patch
 PATCHFILES += 0312-media-meson-vdec-add-H.264-decoding-support-v2.patch
-# from https://github.com/superna9999/linux/commits/amlogic/v5.6/vdec-g12a
-PATCHFILES += 0326-media-videodev2.h-Add-Amlogic-compressed-format.patch
-PATCHFILES += 0327-media-meson-vdec-add-support-for-V4L2_PIX_FMT_AM21C.patch
-PATCHFILES += 0328-media-meson-vdec-add-helpers-for-lossless-framebuffe.patch
-PATCHFILES += 0329-media-meson-vdec-add-common-HEVC-decoder-support.patch
-PATCHFILES += 0330-media-meson-vdec-add-G12A-SM1-support-for-common-HEV.patch
-PATCHFILES += 0331-media-meson-vdec-add-IOMMU-support-for-common-HEVC-d.patch
-PATCHFILES += 0332-media-meson-vdec-add-VP9-input-support.patch
-PATCHFILES += 0333-media-meson-vdec-add-VP9-support-for-GXL.patch
-PATCHFILES += 0334-media-meson-vdec-add-g12a-platform-for-VP9-codec.patch
-PATCHFILES += 0335-media-meson-vp9-add-IOMMU-support.patch
-# from manually from https://github.com/Elyotna/linux/commits/mjourdan/v5.3/aml/vdec
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=212121 05-12-2019
+PATCHFILES += 0328-media-meson-vdec-align-stride-on-32-bytes.patch
+PATCHFILES += 0329-media-meson-vdec-add-helpers-for-lossless-framebuffer-compression-buffers.patch
+PATCHFILES += 0330-media-meson-vdec-add-common-HEVC-decoder-support.patch
+PATCHFILES += 0331-media-meson-vdec-add-VP9-input-support.patch
+PATCHFILES += 0332-media-meson-vdec-add-VP9-decoder-support.patch
 PATCHFILES += 0336-media-meson-vdec-add-HEVC-decoding-support.patch
-PATCHFILES += 0338-media-meson-vdec-add-MPEG4-decoding-support.patch
-PATCHFILES += 0339-media-meson-vdec-add-MJPEG-decoding-support.patch
 endif
 
 ifeq (1,1)
@@ -84,9 +90,9 @@ PATCHFILES += 0342-ASoC-meson-add-register-definitions.patch
 PATCHFILES += 0343-ASoC-meson-add-initial-aiu-i2s-support.patch
 PATCHFILES += 0344-ASoC-meson-add-initial-spdif-support.patch
 PATCHFILES += 0346-snd-meson-activate-HDMI-audio-path.patch
-PATCHFILES += 0345-ARM64-dts-meson-gx-add-audio-controller-nodes.patch
-PATCHFILES += 0347-ARM64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
-PATCHFILES += 0348-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
+PATCHFILES += 0345-arm64-dts-meson-gx-add-audio-controller-nodes.patch
+PATCHFILES += 0347-arm64-dts-meson-gx-add-sound-dai-cells-to-HDMI-node.patch
+PATCHFILES += 0348-arm64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
 PATCHFILES += 0350-drm-dw-hdmi-call-hdmi_set_cts_n-after-clock-is-.patch
 PATCHFILES += 0351-fix-chmap_idx.patch
 PATCHFILES += 0352-ASoC-hdmi-codec-reorder-channel-allocation-list.patch
@@ -121,7 +127,6 @@ PATCHFILES += 0432-media-hantro-Fix-H264-motion-vector-buffer-offset.patch
 PATCHFILES += 0433-media-hantro-Reduce-H264-extra-space-for-motion-vectors.patch
 PATCHFILES += 0434-media-hantro-Remove-now-unused-H264-pic_size.patch
 PATCHFILES += 0435-media-hantro-Set-H264-FIELDPIC_FLAG_E-flag-correctly.patch
-PATCHFILES += 0436-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
 PATCHFILES += 0437-media-hantro-Fix-H264-decoding-of-field-encoded-content.patch
 PATCHFILES += 0438-media-hantro-Refactor-G1-H264-code.patch
 PATCHFILES += 0439-media-hantro-Add-support-for-H264-decoding-on-RK3399.patch
@@ -136,7 +141,7 @@ PATCHFILES += 0521-arm64-allwinner-dts-h6-add-USB3-device-nodes.patch
 PATCHFILES += 0522-arm64-allwinner-dts-h6-enable-USB3-port-on-Beelink-G.patch
 # Allwinner H6: Misc patches
 PATCHFILES += 0524-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-disabling-DDR.patch
-PATCHFILES += 0525-Allwinner-H6-Add-Mali-GPU-for-H6-boards.patch
+PATCHFILES += 0525-arm64-allwinner-dts-h6-add-Mali-GPU-for-H6-boards.patch
 PATCHFILES += 0526-pwm-sun4i-Add-support-for-Allwinner-H6.patch
 PATCHFILES += 0527-bus-sunxi-rsb-Make-interrupt-handling-more-robust.patch
 # Allwinner H6: Add some new H6 boards
@@ -201,14 +206,6 @@ endif
 
 ifeq (1,1)
 # Allwinner H6: Cedrus related patches
-# https://github.com/LibreELEC/LibreELEC.tv/blob/master/projects/Allwinner/patches/linux/0001-backport-from-5.5.patch
-# https://github.com/LibreELEC/LibreELEC.tv/blob/master/projects/Allwinner/patches/linux/0005-cedrus-improvements.patch
-PATCHFILES += 0600-media-add-V4L2_CID_UNIT_CELL_SIZE-control.patch
-PATCHFILES += 0601-media-add-V4L2_CTRL_TYPE_AREA-control-type.patch
-PATCHFILES += 0602-media-v4l-Add-definitions-for-HEVC-stateless-decoding.patch
-PATCHFILES += 0603-media-v4l2-mem2mem-support-held-capture-buffers.patch
-PATCHFILES += 0604-v4l2-mem2mem-add-stateless_try_decoder_cmd-ioctl.patch
-PATCHFILES += 0605-media-v4l2-mem2mem-add-new_frame-detection.patch
 PATCHFILES += 0606-media-cedrus-fill-in-bus_info-for-media-device.patch
 PATCHFILES += 0607-media-cedrus-choose-default-pixelformat-in-try_fmt.patch
 PATCHFILES += 0608-media-cedrus-fix-various-format-related-compliance-issues.patch
@@ -216,16 +213,13 @@ PATCHFILES += 0609-media-cedrus-h264-Support-multiple-slices-per-frame.patch
 PATCHFILES += 0610-media-cedrus-Fix-undefined-shift-with-a-SHIFT_AND_MASK_BITS.patch
 PATCHFILES += 0611-media-cedrus-Remove-unnecessary-parenthesis-aroundDIV_ROUND_UP.patch
 PATCHFILES += 0612-media-cedrus-Add-HEVC-decoding-support.patch
-PATCHFILES += 0613-media-vb2-add-V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF.patch
-PATCHFILES += 0614-media-videodev2.h-add-V4L2_DEC_CMD_FLUSH.patch
 PATCHFILES += 0615-media-cedrus-Fix-decoding-for-some-H264-videos.patch
 PATCHFILES += 0616-media-cedrus-Use-helpers-to-access-capture-queue.patch
 PATCHFILES += 0617-media-cedrus-Use-correct-H264-8x8-scaling-list.patch
-PATCHFILES += 0618-media-v4l2-mem2mem-Fix-hold-buf-flag-checks.patch
 PATCHFILES += 0619-media-cedrus-Properly-signa-size-in-mode-register.patch
 PATCHFILES += 0620-media-cedrus-Fix-H264-4k-support.patch
 PATCHFILES += 0621-media-cedrus-Increase-maximum-supported-size.patch
-PATCHFILES += 0622-cedrus-improvements.patch
+PATCHFILES += 0622-media-cedrus-improvements.patch
 PATCHFILES += 0623-media-cedrus-10bit-HEVC-hack.patch
 endif
 
