@@ -53,6 +53,22 @@ PATCHFILES += 0103-Minimyth-Add-optical-rip-to-menu.patch
 PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
 PATCHFILES += 0105-Minimyth-defaults.patch
 
+# v4l2-request support in ffmpeg
+# https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-master
+PATCHFILES += 0151-ffmpeg-v4l2request-avutil-add-av_buffer_pool_flush.patch
+PATCHFILES += 0152-ffmpeg-v4l2request-Add-common-V4L2-request-API-code.patch
+PATCHFILES += 0153-ffmpeg-v4l2request-Add-V4L2-request-API-mpeg2-hwaccel.patch
+PATCHFILES += 0154-ffmpeg-v4l2request-Add-V4L2-request-API-h264-hwaccel.patch
+PATCHFILES += 0155-ffmpeg-v4l2request-Add-V4L2-request-API-hevc-hwaccel.patch
+PATCHFILES += 0156-ffmpeg-v4l2request-Add-V4L2-request-API-vp8-hwaccel.patch
+PATCHFILES += 0157-ffmpeg-v4l2request-Add-and-use-private-linux-headers-for-V4L2-request-A.patch
+PATCHFILES += 0158-ffmpeg-v4l2request-hwcontext_drm-do-not-require-drm-device.patch
+PATCHFILES += 0159-ffmpeg-v4l2request-avcodec-h264-parse-idr_pic_id.patch
+PATCHFILES += 0160-ffmpeg-v4l2request-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
+PATCHFILES += 0161-ffmpeg-v4l2request-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
+PATCHFILES += 0162-ffmpeg-v4l2request-WIP-v4l2-request-rolling-timestamps.patch
+PATCHFILES += 0163-configure-add-v4l2request-support.patch
+
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
 PATCHFILES += 0201-Mediamonitor-reduce-udisks-timeout-to-1500msec.patch
@@ -253,6 +269,7 @@ CONFIGURE_ARGS = \
 	--enable-sdl2 \
 	--enable-xnvctrl \
 	--python=python2 \
+	--enable-v4l2request \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
