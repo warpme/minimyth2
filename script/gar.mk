@@ -434,6 +434,18 @@ install-p:
 installstrip: strip pre-install $(INSTALL_TARGETS) post-install
 	$(DONADA)
 
+# reconfigure		- Reconfigure ignoring
+# 				  "already configured" flag.
+reconfigure:
+	@rm -rf $(COOKIEDIR)/*configure*
+	$(MAKE) configure
+
+# rebuild		- Rebuild ignoring
+# 				  "already built" flag.
+rebuild:
+	@rm -rf $(COOKIEDIR)/*build*
+	$(MAKE) build
+
 # reinstall		- Install the results of a build, ignoring
 # 				  "already installed" flag.
 reinstall: build
