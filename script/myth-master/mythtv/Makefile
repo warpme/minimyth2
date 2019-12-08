@@ -156,7 +156,6 @@ DEPENDS = \
 	lib/SDL2 \
 	lib/taglib \
 	lib/lzo \
-	lib/libXNVctrl \
 	devel/zlib \
 	devel/yasm \
 	python/python \
@@ -267,7 +266,6 @@ CONFIGURE_ARGS = \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 	--enable-ffplay \
 	--enable-sdl2 \
-	--enable-xnvctrl \
 	--python=python2 \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
