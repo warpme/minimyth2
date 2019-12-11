@@ -12,9 +12,6 @@ BUILDDEPS = \
 
 include ../../minimyth.conf.mk
 
-ifneq (,$(filter %5.2,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-5.2
-endif
 ifneq (,$(filter %5.3,$(mm_KERNEL_VERSION)))
 DEPENDS = kernel/linux-headers-5.3
 endif
@@ -23,6 +20,9 @@ DEPENDS = kernel/linux-headers-5.4
 endif
 ifneq (,$(filter %5.5,$(mm_KERNEL_VERSION)))
 DEPENDS = kernel/linux-headers-5.5
+endif
+ifneq (,$(filter %5.6,$(mm_KERNEL_VERSION)))
+DEPENDS = kernel/linux-headers-5.6
 endif
 
 include ../../gar.mk

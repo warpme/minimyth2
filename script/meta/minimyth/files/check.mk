@@ -184,21 +184,15 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "5.2"           ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "5.3"           ] && \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "5.3"           ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.4"           ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "amlogic-5.2"   ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "amlogic-5.3"   ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "amlogic-5.4"   ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "rockchip-5.2"  ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "rockchip-5.3"  ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "rockchip-5.4"  ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "allwinner-5.1" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "allwinner-5.3" ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "allwinner-5.4" ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "5.5"           ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "5.6"           ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "amlogic-5.5"   ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "rockchip-5.5"  ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "allwinner-5.5" ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-4.19"      ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.3"       ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.4"       ] ; then \
+	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.5"       ] ; then \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
