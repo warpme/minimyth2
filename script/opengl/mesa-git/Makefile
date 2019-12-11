@@ -2,12 +2,12 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# current mesa git. Working all GLSL on t720/t820. Issues with mali405
-GARVERSION   = 0c88d5952aafdc90b732ee6b0b425ca741537e52
+# mesa git@11.12.2019. Working all GLSL on t720/t820/mali405
+GARVERSION   = ab5570820071d97c4adfe8cd8a90083f3784fa5e
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
+#PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
 endif
 
 ifeq (0,1)
