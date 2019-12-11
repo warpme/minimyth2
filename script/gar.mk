@@ -434,6 +434,11 @@ install-p:
 installstrip: strip pre-install $(INSTALL_TARGETS) post-install
 	$(DONADA)
 
+repatch:
+	$(MAKE) clean
+	$(MAKE) makesums
+	$(MAKE) patch
+
 # reconfigure		- Reconfigure ignoring
 # 				  "already configured" flag.
 reconfigure:
