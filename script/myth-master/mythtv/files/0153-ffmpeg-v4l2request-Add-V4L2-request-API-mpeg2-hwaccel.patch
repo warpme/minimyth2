@@ -1,23 +1,7 @@
-From 85cfa6ed2bd03abf1a9305df1e399c6ed7c7f4be Mon Sep 17 00:00:00 2001
-From: Jonas Karlman <jonas@kwiboo.se>
-Date: Sat, 15 Dec 2018 22:32:16 +0100
-Subject: [PATCH 03/12] Add V4L2 request API mpeg2 hwaccel
-
-Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
----
- configure                       |   3 +
- libavcodec/Makefile             |   1 +
- libavcodec/hwaccels.h           |   1 +
- libavcodec/mpeg12dec.c          |   6 ++
- libavcodec/v4l2_request_mpeg2.c | 154 ++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 165 insertions(+)
- create mode 100644 libavcodec/v4l2_request_mpeg2.c
-
-diff --git mythtv-test-20191105-gbe7604c-old/mythtv/external/FFmpeg/configure mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/configure
-index 400ced9..58d9a90 100755
---- mythtv-test-20191105-gbe7604c-old/mythtv/external/FFmpeg/configure
-+++ mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/configure
-@@ -2951,6 +2951,8 @@ mpeg2_dxva2_hwaccel_deps="dxva2"
+diff -Naur mythtv-master-20191212-g4fddad7-old/mythtv/external/FFmpeg/configure mythtv-master-20191212-g4fddad7-new/mythtv/external/FFmpeg/configure
+--- mythtv-master-20191212-g4fddad7-old/mythtv/external/FFmpeg/configure	2019-12-12 19:16:09.486666669 +0100
++++ mythtv-master-20191212-g4fddad7-new/mythtv/external/FFmpeg/configure	2019-12-12 19:16:10.850000002 +0100
+@@ -2937,6 +2937,8 @@
  mpeg2_dxva2_hwaccel_select="mpeg2video_decoder"
  mpeg2_nvdec_hwaccel_deps="nvdec"
  mpeg2_nvdec_hwaccel_select="mpeg2video_decoder"
@@ -26,31 +10,18 @@ index 400ced9..58d9a90 100755
  mpeg2_vaapi_hwaccel_deps="vaapi"
  mpeg2_vaapi_hwaccel_select="mpeg2video_decoder"
  mpeg2_vdpau_hwaccel_deps="vdpau"
-@@ -6505,6 +6507,7 @@ if enabled v4l2_m2m; then
- fi
+@@ -6457,6 +6459,7 @@
+ check_cc vp9_v4l2_m2m linux/videodev2.h "int i = V4L2_PIX_FMT_VP9;"
  
  check_func_headers "linux/media.h linux/videodev2.h" v4l2_timeval_to_ns
 +check_cc mpeg2_v4l2_request linux/videodev2.h "int i = V4L2_PIX_FMT_MPEG2_SLICE;"
  
  check_headers sys/videoio.h
  test_code cc sys/videoio.h "struct v4l2_frmsizeenum vfse; vfse.discrete.width = 0;" && enable_sanitized struct_v4l2_frmivalenum_discrete
-diff --git mythtv-test-20191105-gbe7604c-old/mythtv/external/FFmpeg/libavcodec/Makefile mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/libavcodec/Makefile
-index f6e32db..040889c 100644
---- mythtv-test-20191105-gbe7604c-old/mythtv/external/FFmpeg/libavcodec/Makefile
-+++ mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/libavcodec/Makefile
-@@ -897,6 +897,7 @@ OBJS-$(CONFIG_MPEG2_D3D11VA_HWACCEL)      += dxva2_mpeg2.o
- OBJS-$(CONFIG_MPEG2_DXVA2_HWACCEL)        += dxva2_mpeg2.o
- OBJS-$(CONFIG_MPEG2_NVDEC_HWACCEL)        += nvdec_mpeg12.o
- OBJS-$(CONFIG_MPEG2_QSV_HWACCEL)          += qsvdec_other.o
-+OBJS-$(CONFIG_MPEG2_V4L2REQUEST_HWACCEL)  += v4l2_request_mpeg2.o
- OBJS-$(CONFIG_MPEG2_VAAPI_HWACCEL)        += vaapi_mpeg2.o
- OBJS-$(CONFIG_MPEG2_VDPAU_HWACCEL)        += vdpau_mpeg12.o
- OBJS-$(CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL) += videotoolbox.o
-diff --git mythtv-test-20191105-gbe7604c-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-index 6109c89..172a546 100644
---- mythtv-test-20191105-gbe7604c-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-+++ mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-@@ -47,6 +47,7 @@ extern const AVHWAccel ff_mpeg2_d3d11va_hwaccel;
+diff -Naur mythtv-master-20191212-g4fddad7-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h mythtv-master-20191212-g4fddad7-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
+--- mythtv-master-20191212-g4fddad7-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h	2019-12-12 19:16:09.200000002 +0100
++++ mythtv-master-20191212-g4fddad7-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h	2019-12-12 19:16:10.850000002 +0100
+@@ -47,6 +47,7 @@
  extern const AVHWAccel ff_mpeg2_d3d11va2_hwaccel;
  extern const AVHWAccel ff_mpeg2_nvdec_hwaccel;
  extern const AVHWAccel ff_mpeg2_dxva2_hwaccel;
@@ -58,11 +29,21 @@ index 6109c89..172a546 100644
  extern const AVHWAccel ff_mpeg2_vaapi_hwaccel;
  extern const AVHWAccel ff_mpeg2_vdpau_hwaccel;
  extern const AVHWAccel ff_mpeg2_videotoolbox_hwaccel;
-diff --git mythtv-test-20191105-gbe7604c-old/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c
-index 775579f..e073be1 100644
---- mythtv-test-20191105-gbe7604c-old/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c
-+++ mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c
-@@ -1157,6 +1157,9 @@ static const enum AVPixelFormat mpeg2_hwaccel_pixfmt_list_420[] = {
+diff -Naur mythtv-master-20191212-g4fddad7-old/mythtv/external/FFmpeg/libavcodec/Makefile mythtv-master-20191212-g4fddad7-new/mythtv/external/FFmpeg/libavcodec/Makefile
+--- mythtv-master-20191212-g4fddad7-old/mythtv/external/FFmpeg/libavcodec/Makefile	2019-12-12 19:16:09.486666669 +0100
++++ mythtv-master-20191212-g4fddad7-new/mythtv/external/FFmpeg/libavcodec/Makefile	2019-12-12 19:16:10.850000002 +0100
+@@ -892,6 +892,7 @@
+ OBJS-$(CONFIG_MPEG2_DXVA2_HWACCEL)        += dxva2_mpeg2.o
+ OBJS-$(CONFIG_MPEG2_NVDEC_HWACCEL)        += nvdec_mpeg12.o
+ OBJS-$(CONFIG_MPEG2_QSV_HWACCEL)          += qsvdec_other.o
++OBJS-$(CONFIG_MPEG2_V4L2REQUEST_HWACCEL)  += v4l2_request_mpeg2.o
+ OBJS-$(CONFIG_MPEG2_VAAPI_HWACCEL)        += vaapi_mpeg2.o
+ OBJS-$(CONFIG_MPEG2_VDPAU_HWACCEL)        += vdpau_mpeg12.o
+ OBJS-$(CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL) += videotoolbox.o
+diff -Naur mythtv-master-20191212-g4fddad7-old/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c mythtv-master-20191212-g4fddad7-new/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c
+--- mythtv-master-20191212-g4fddad7-old/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c	2019-12-12 19:16:09.193333335 +0100
++++ mythtv-master-20191212-g4fddad7-new/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c	2019-12-12 19:16:10.850000002 +0100
+@@ -1157,6 +1157,9 @@
  #if CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL
      AV_PIX_FMT_VIDEOTOOLBOX,
  #endif
@@ -72,7 +53,7 @@ index 775579f..e073be1 100644
      AV_PIX_FMT_YUV420P,
      AV_PIX_FMT_NONE
  };
-@@ -2949,6 +2952,9 @@ AVCodec ff_mpeg2video_decoder = {
+@@ -3130,6 +3133,9 @@
  #if CONFIG_MPEG2_XVMC_HWACCEL
                          HWACCEL_XVMC(mpeg2),
  #endif
@@ -82,11 +63,9 @@ index 775579f..e073be1 100644
                          NULL
                      },
  };
-diff --git mythtv-test-20191105-gbe7604c-old/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg2.c mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg2.c
-new file mode 100644
-index 0000000..782b9c2
---- /dev/null
-+++ mythtv-test-20191105-gbe7604c-new/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg2.c
+diff -Naur mythtv-master-20191212-g4fddad7-old/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg2.c mythtv-master-20191212-g4fddad7-new/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg2.c
+--- mythtv-master-20191212-g4fddad7-old/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg2.c	1970-01-01 01:00:00.000000000 +0100
++++ mythtv-master-20191212-g4fddad7-new/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg2.c	2019-12-12 19:16:10.850000002 +0100
 @@ -0,0 +1,154 @@
 +/*
 + * This file is part of FFmpeg.
@@ -242,6 +221,3 @@ index 0000000..782b9c2
 +    .frame_params   = ff_v4l2_request_frame_params,
 +    .caps_internal  = HWACCEL_CAP_ASYNC_SAFE,
 +};
--- 
-2.7.1
-
