@@ -26,13 +26,23 @@ LINUX_EXTRA_VERSION =
 endif
 #-------------------------------------------
 
-#--Use this for amlogic media-tree kernel--
+#--Use this for amlogic media-tree kernel---
 ifeq (0,1)
 GITHASH             = a9e4990fa2c2b7defc47a0053371e5691d80fcdb
 LINUX_MAJOR_VERSION = 5
 LINUX_MINOR_VERSION = 4
 LINUX_TEENY_VERSION = 
 LINUX_EXTRA_VERSION = -rc8
+endif
+#-------------------------------------------
+
+#--Use this for Chewitt amlogic kernel------
+ifeq (0,1)
+GITHASH             = 25f7644a10234313b7040d98e668a94e87532ddf
+LINUX_MAJOR_VERSION = 5
+LINUX_MINOR_VERSION = 5
+LINUX_TEENY_VERSION = 
+LINUX_EXTRA_VERSION = -rc1
 endif
 #-------------------------------------------
 

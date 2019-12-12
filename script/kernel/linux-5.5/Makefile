@@ -22,6 +22,14 @@ WORKSRC             = $(WORKDIR)/linux-$(GITHASH)
 #-------------------------------------------
 endif
 
+ifeq (0,1)
+#--Use this for Chewitt amlogic 5.5-integ tree ----
+MASTER_SITES        = https://github.com/chewitt/linux/archive/
+DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/linux-$(GITHASH)
+#-------------------------------------------
+endif
+
 GARNAME = linux
 GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),$(if $(filter-out 0,$(LINUX_TEENY_VERSION)),.$(LINUX_TEENY_VERSION)))$(LINUX_EXTRA_VERSION)
 CATEGORIES = kernel-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
@@ -35,14 +43,17 @@ PATCHFILES += linux-5.5-defaults.patch
 PATCHFILES += linux-5.5-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.5-net-smsc95xx-allow-mac-address-as-param.patch
 
+# Temp fix for rk3328 wrong screen size issue
+PATCHFILES += 0001-drm-rockchip-fix-revert-287422a.patch
+
 ifeq (1,1)
 # Amlogic: Patch to fix Panfrost reset issue on GXM
 PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 endif
 
 ifeq (1,1)
-PATCHFILES += 0300-arm64-dts-meson-set-dma-pool-to-896MB.patch
 # Amlogic: Add h264 and v4l2 compliance for Amlogic vdec
+PATCHFILES += 0300-arm64-dts-meson-set-dma-pool-to-896MB.patch
 PATCHFILES += 0301-dt-bindings-media-amlogic-vdec-convert-to-yaml.patch
 PATCHFILES += 0302-dt-bindings-media-amlogic-gx-vdec-add-bindings-for-G.patch
 PATCHFILES += 0303-media-meson-vdec-add-g12a-platform.patch
@@ -64,14 +75,31 @@ endif
 
 ifeq (1,1)
 # Amlogic: Enable hdmi audio
+PATCHFILES += 0330-ASoC-meson-rework-g12a-tohdmitx-codec.patch
+PATCHFILES += 0331-ASoC-meson-add-toacodec-dt-bindings.patch
+PATCHFILES += 0332-ASoC-meson-add-g12-internal-DAC-glue.patch
+PATCHFILES += 0333-ASoC-meson-add-t9015-internal-DAC-driver.patch
+PATCHFILES += 0334-ASoC-meson-axg-card-add-toacodec-support.patch
+PATCHFILES += 0335-ASoC-meson-add-aiu-bus-support.patch
+PATCHFILES += 0336-ASoC-meson-aiu-add-i2s-fifo-support.patch
+PATCHFILES += 0337-ASoC-meson-aiu-add-spdif-fifo-support.patch
+PATCHFILES += 0338-ASoC-meson-aiu-add-i2s-encoder-support.patch
+PATCHFILES += 0339-ASoC-meson-aiu-add-spdif-encoder-support.patch
+PATCHFILES += 0340-ASoC-meson-extract-utils-from-axg-sound-card.patch
+PATCHFILES += 0341-ASoC-meson-add-gx-card-support.patch
+PATCHFILES += 0342-ASoC-hdmi-codec-re-introduce-mutex-locking-again.patch
+PATCHFILES += 0343-clk-meson-g12a-fix-gp0-and-hifi-ranges.patch
+PATCHFILES += 0344-arm64-dts-meson-g12a-add-internal-DAC.patch
+PATCHFILES += 0345-arm64-dts-meson-g12a-add-internal-DAC-glue.patch
+PATCHFILES += 0346-arm64-dts-meson-u200-add-audio-support.patch
+PATCHFILES += 0347-arm64-dts-meson-gx-add-playback-audio-devices.patch
+PATCHFILES += 0348-arm64-dts-meson-enable-audio-playback-on-p230-q2.patch
+PATCHFILES += 0349-arm64-dts-meson-add-Khadas-VIM2-audio-playback.patch
+#PATCHFILES += 0350-arm64-dts-meson-add-libretech-cc-s905x-audio-pla.patch
 endif
 
 # Amlogic: Misc patches
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
-
-ifeq (1,1)
-# Rockchip: enable hdmi audio
-endif
 
 ifeq (1,1)
 # Rockchip: hantro vdec rk3328/3399 improvements 
@@ -169,6 +197,7 @@ BUILDDEPS = \
 DEPENDS = \
 	kernel-headers/linux-headers \
 	kernel/linux-firmware \
+	kernel/wireless-regdb \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
