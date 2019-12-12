@@ -115,6 +115,9 @@ PATCHFILES += 0437-media-hantro-Enable-H264-decoding-on-RK3399.patch
 PATCHFILES += 0438-media-hantro-Enable-H264-decoding-on-RK3328.patch
 endif
 
+# Misc parches for Rockchip
+PATCHFILES += 0450-arm64-dts-fix-IR-receiver-beelinkA1.patch
+
 ifeq (1,1)
 # Allwinner H6: Support for USB3
 PATCHFILES += 0522-arm64-allwinner-dts-h6-enable-USB3-port-on-Beelink-G.patch
