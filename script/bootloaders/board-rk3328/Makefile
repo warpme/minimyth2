@@ -41,7 +41,7 @@ install-custom:
 	@cp -f    $(WORKSRC)/rk3328-boot.txt                      $(DESTDIR)/boot/boot.txt
 	@cp -f    $(WORKSRC)/rk3328-boot.scr                      $(DESTDIR)/boot/boot.scr
 	@mkdir -p $(DESTDIR)/boot/rk3328loaderfiles
-	@cp -f    $(DESTDIR)/boot/dtbs/rockchip/rk3328-rock64.dtb $(DESTDIR)/boot/rk3328_dtb
+	@cp -f    $(DESTDIR)/boot/dtbs/rockchip/rk3328-a1.dtb     $(DESTDIR)/boot/rk3328_dtb
 	@cp -f    $(WORKSRC)/idbloader.img                        $(DESTDIR)/boot/rk3328loaderfiles/idbloader.img
 	@cp -f    $(WORKSRC)/trust.img                            $(DESTDIR)/boot/rk3328loaderfiles/trust.img
 	@cp -f    $(WORKSRC)/uboot.img                            $(DESTDIR)/boot/rk3328loaderfiles/uboot.img

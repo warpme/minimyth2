@@ -134,6 +134,9 @@ PATCHFILES += 0440-media-hantro-Enable-H264-decoding-on-RK3399.patch
 PATCHFILES += 0441-media-hantro-Enable-H264-decoding-on-RK3328.patch
 endif
 
+# Misc Rockchip patches
+PATCHFILES += 0450-arm64-dt-add-Beelink-A1-board.patch
+
 ifeq (1,1)
 # Allwinner H6: Support for USB3
 PATCHFILES += 0520-phy-allwinner-add-phy-driver-for-USB3-PHY-on-Allwinn.patch
@@ -236,6 +239,7 @@ BUILDDEPS = \
 DEPENDS = \
 	kernel-headers/linux-headers \
 	kernel/linux-firmware \
+	kernel/wireless-regdb \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
