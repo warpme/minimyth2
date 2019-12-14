@@ -1,4 +1,4 @@
-From f678662f8661f31aa378fbeb45dac01667692097 Mon Sep 17 00:00:00 2001
+From d74e08d30e3074ed2fe95b813074739e0bca09f3 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Sun, 18 Aug 2019 10:40:31 +0000
 Subject: [PATCH] media: hantro: Refactor G1 H264 code
@@ -9,13 +9,13 @@ Code could possible need some cleanup
 
 Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
 ---
- .../staging/media/hantro/hantro_g1_h264_dec.c | 649 +++++++++++-------
+ .../staging/media/hantro/hantro_g1_h264_dec.c | 653 +++++++++++-------
  drivers/staging/media/hantro/hantro_h264.c    |  14 +
  drivers/staging/media/hantro/hantro_hw.h      |   2 +
- 3 files changed, 433 insertions(+), 232 deletions(-)
+ 3 files changed, 435 insertions(+), 234 deletions(-)
 
 diff --git a/drivers/staging/media/hantro/hantro_g1_h264_dec.c b/drivers/staging/media/hantro/hantro_g1_h264_dec.c
-index 4f2923d34d41..458ee4177f1d 100644
+index 4f2923d34d41..aeefa652e5a9 100644
 --- a/drivers/staging/media/hantro/hantro_g1_h264_dec.c
 +++ b/drivers/staging/media/hantro/hantro_g1_h264_dec.c
 @@ -1,6 +1,6 @@
@@ -642,7 +642,8 @@ index 4f2923d34d41..458ee4177f1d 100644
 -	dst_dma = vb2_dma_contig_plane_dma_addr(&dst_buf->vb2_buf, 0);
 +	addr = vb2_dma_contig_plane_dma_addr(&dst_buf->vb2_buf, 0);
  	/* Adjust dma addr to start at second line for bottom field */
- 	if (ctrls->slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD)
+-	if (ctrls->slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD)
++	if (slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD)
  		offset = ALIGN(ctx->src_fmt.width, MB_DIM);
 -	vdpu_write_relaxed(vpu, dst_dma + offset, G1_REG_ADDR_DST);
 +	vdpu_write_relaxed(vpu, addr + offset, G1_REG_DEC_OUT_BASE);
@@ -659,8 +660,12 @@ index 4f2923d34d41..458ee4177f1d 100644
  			bytes_per_mb = 256;
  		offset = bytes_per_mb * MB_WIDTH(ctx->src_fmt.width) *
  			 MB_HEIGHT(ctx->src_fmt.height);
-@@ -255,39 +450,29 @@ static void set_buffers(struct hantro_ctx *ctx)
- 		if (ctrls->slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD)
+@@ -252,42 +447,32 @@ static void set_buffers(struct hantro_ctx *ctx)
+ 		 * DMV buffer is split in two for field encoded frames,
+ 		 * adjust offset for bottom field
+ 		 */
+-		if (ctrls->slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD)
++		if (slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD)
  			offset += 32 * MB_WIDTH(ctx->src_fmt.width) *
  				  MB_HEIGHT(ctx->src_fmt.height);
 -		vdpu_write_relaxed(vpu, dst_dma + offset, G1_REG_ADDR_DIR_MV);

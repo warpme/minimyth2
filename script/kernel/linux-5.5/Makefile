@@ -101,6 +101,22 @@ endif
 # Amlogic: Misc patches
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 
+ifeq (0,1)
+# Rockchip: rkvdec rk3399
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=216661
+PATCHFILES += 0401-media-vb2-Add-a-helper-to-get-the-vb2-buffer-attached-to-a-request.patch
+PATCHFILES += 0402-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
+PATCHFILES += 0403-media-v4l2-core-Add-helpers-to-build-the-H264-P-B0-B1-reflists.patch
+PATCHFILES += 0404-media-hantro-h264-Use-the-generic-H264-reflist-builder.patch
+PATCHFILES += 0405-media-dt-bindings-rockchip-Document-RK3399-Video-Decoder-bindings.patch
+PATCHFILES += 0406-media-rkvdec-Add-the-rkvdec-driver.patch
+PATCHFILES += 0407-arm64-dts-rockchip-rk3399-Define-the-rockchip-Video-Decoder-node.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=216701
+PATCHFILES += 0408-media-v4l2-ctrls-Add-the-__-v4l2_ctrl_s_ctrl_compound-helpers.patch
+PATCHFILES += 0409-media-uapi-Add-VP9-stateless-decoder-controls.patch
+PATCHFILES += 0410-media-rkvdec-Add-the-VP9-backend.patch
+endif
+
 ifeq (1,1)
 # Rockchip: hantro vdec rk3328/3399 improvements 
 # https://github.com/Kwiboo/linux-rockchip/compare/v4l2-5.4-from-5.5-v5.4...v4l2-5.4-work-in-progress-v5.4
