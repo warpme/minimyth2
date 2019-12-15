@@ -62,6 +62,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstkmssink.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstnetsim.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstogg.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstoverlaycomposition.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstpango.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstopengl.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstplayback.la
@@ -83,3 +84,55 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstximagesink.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstxvimagesink.la
 	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -f $(DESTDIR)$(libdir)/libgstallocators*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstapp*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstaudio*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstfft*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstgl*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstpbutils*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstriff*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstrtp*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstrtsp*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstsdp*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgsttag*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstvideo*.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstadder.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstalsa.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstapp.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudioconvert.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudiomixer.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudiorate.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudioresample.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudiotestsrc.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcurl.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcoretracers.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstgio.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstencodebin.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstencoding.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsthls.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstkmssink.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstnetsim.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstogg.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstoverlaycomposition.so
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstpango.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstopengl.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstplayback.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstpbtypes.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrawparse.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstsubparse.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsttcp.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsttheora.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsttimecode.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsttypefindfunctions.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideoframe_audiolevel.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideoconvert.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideorate.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideoscale.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideotestsrc.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvolume.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvorbis.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstwaylandsink.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstximagesink.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstxvimagesink.so*

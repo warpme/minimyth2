@@ -97,3 +97,65 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstximagesrc.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsty4menc.la
 	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgst1394.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstalaw.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstalpha.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstalphacolor.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstapetag.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudiofx.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstaudioparsers.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstauparse.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstautodetect.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstavi.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcairo.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcutter.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstdebug.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstdeinterlace.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstdtmf.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsteffectv.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstequalizer.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstflac.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstflv.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstflxdec.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstgdkpixbuf.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstgoom.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstgoom2k1.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsticydemux.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstid3demux.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstimagefreeze.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstinterleave.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstisomp4.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstjpeg.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstlame.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstlevel.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmatroska.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmulaw.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmultifile.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstmultipart.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstnavigationtest.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstoss4audio.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstoss4.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstossaudio.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstpng.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstreplaygain.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrtp.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrtpmanager.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrtsp.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstshapewipe.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstshout2.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstsmpte.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstspectrum.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsttaglib.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstudp.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideo4linux2.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideobox.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideocrop.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideofilter.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvideomixer.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstvpx.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstwavenc.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstwavparse.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstximagesrc.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgsty4menc.so*

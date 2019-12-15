@@ -1,5 +1,5 @@
 
-GST_VERSION      = 1.16.0
+GST_VERSION      = 1.16.2
 
 GST_MASTER_SITES = \
 	$(foreach                                                                      \

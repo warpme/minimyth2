@@ -21,7 +21,6 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--prefix=/usr \
 	--disable-gst-debug \
-	--disable-trace \
 	--disable-gst-debug \
 	--disable-examples \
 	--disable-tests \
@@ -29,7 +28,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-benchmarks \
 	--enable-tools \
 	--enable-introspection=no \
-	--disable-docbook \
 	--disable-gtk-doc \
 	--disable-gtk-doc-html \
 	--disable-gtk-doc-pdf \
@@ -49,3 +47,11 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcoretracers.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcoreelements.la
 	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -f $(DESTDIR)$(libdir)/libgstbase*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstcontroller*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstnet*.so*
+	@rm -f $(DESTDIR)$(libdir)/libgstreamer*.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcoretracers.so*
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstcoreelements.so*
