@@ -1,10 +1,10 @@
 
-GARNAME = ffmpeg
-CATEGORIES = lib
+GARNAME      = ffmpeg
+CATEGORIES   = lib
 
-GARVERSION = 4.1.3
+GARVERSION   = 4.2.1
 MASTER_SITES = http://ffmpeg.org/releases/
-DISTFILES = $(DISTNAME).tar.bz2
+DISTFILES    = $(DISTNAME).tar.bz2
 
 LICENSE = GPL2/LGPL2_1
 
@@ -100,8 +100,6 @@ CONFIGURE_ARGS = \
 	--pkg-config="pkg-config" \
 	--enable-v4l2-m2m \
 	--enable-libdrm \
-	--enable-libudev \
-	--enable-v4l2-request \
 
 BUILD_ARGS     = \
 	V='1'
