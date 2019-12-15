@@ -1,5 +1,5 @@
 GARNAME = makemkv-oss
-GARVERSION = 1.14.5
+GARVERSION = 1.14.7
 CATEGORIES = utils
 MASTER_SITES = http://www.makemkv.com/download/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
