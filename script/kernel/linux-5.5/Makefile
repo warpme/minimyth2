@@ -201,6 +201,7 @@ endif
 
 ifeq (1,1)
 # Allwinner H6: Cedrus related patches
+PATCHFILES += 0622-media-cedrus-improvements.patch
 endif
 
 LICENSE = GPL2
