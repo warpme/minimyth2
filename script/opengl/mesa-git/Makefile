@@ -2,8 +2,8 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# mesa git@11.12.2019. Working all GLSL on t720/t820/mali405
-GARVERSION   = ab5570820071d97c4adfe8cd8a90083f3784fa5e
+# mesa git@16.12.2019. Working all GLSL on t720/t820/mali405
+GARVERSION   = d4676d7a166ab7e01f62c7453a80aa74d80ab5f9
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
