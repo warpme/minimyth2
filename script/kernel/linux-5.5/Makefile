@@ -45,6 +45,9 @@ PATCHFILES += linux-5.5-net-smsc95xx-allow-mac-address-as-param.patch
 
 # Temp fix for rk3328 wrong screen size issue
 PATCHFILES += 0001-drm-rockchip-fix-revert-287422a.patch
+
+# Fix 5.5-rc2 boot issue
+# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7de7de7ca0ae0fc70515ee3154af33af75edae2c
 PATCHFILES += 0002-Fix-root-mounting-with-no-mount-options.patch
 
 ifeq (1,1)
