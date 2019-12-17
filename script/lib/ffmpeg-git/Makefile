@@ -47,14 +47,12 @@ endif
 
 ifeq (1,1)
 #--use this for current master ffmpeg--------------------
-# https://github.com/FFmpeg/FFmpeg/tree/d5274f86a838ae5f9d56f41c6ee520cce466bd83 
-# git hash ffmpeg master @05-12-2019
-GITHASH = d5274f86a838ae5f9d56f41c6ee520cce466bd83
-GARVERSION = 20191205-$(GITHASH)
+# git hash ffmpeg master @16-12-2019
+GITHASH = c07a77247363eb666a49536af505e7317225ee81
+GARVERSION = 20191215-$(GITHASH)
 MASTER_SITES = https://github.com/FFmpeg/FFmpeg/archive/
 DISTFILES = $(GITHASH).zip
 WORKSRC   = $(WORKDIR)/FFmpeg-$(GITHASH)
-
 # https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-master
 PATCHFILES += 0001-ffmpeg-d5274f8-avutil-add-av_buffer_pool_flush.patch
 PATCHFILES += 0002-ffmpeg-d5274f8-Add-common-V4L2-request-API-code.patch
