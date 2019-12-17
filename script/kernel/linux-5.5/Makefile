@@ -45,6 +45,7 @@ PATCHFILES += linux-5.5-net-smsc95xx-allow-mac-address-as-param.patch
 
 # Temp fix for rk3328 wrong screen size issue
 PATCHFILES += 0001-drm-rockchip-fix-revert-287422a.patch
+PATCHFILES += 0002-Fix-root-mounting-with-no-mount-options.patch
 
 ifeq (1,1)
 # Amlogic: Patch to fix Panfrost reset issue on GXM
@@ -66,6 +67,7 @@ PATCHFILES += 0309-media-vicodec-use-v4l2-mem2mem-draining-stopped-and-.patch
 PATCHFILES += 0310-media-meson-vdec-bring-up-to-compliance.patch
 PATCHFILES += 0311-media-meson-vdec-add-H.264-decoding-support.patch
 PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=218125 17.12.2019
 PATCHFILES += 0313-media-meson-vdec-align-stride-on-32-bytes.patch
 PATCHFILES += 0314-media-meson-vdec-add-helpers-for-lossless-framebuffe.patch
 PATCHFILES += 0315-media-meson-vdec-add-common-HEVC-decoder-support.patch
