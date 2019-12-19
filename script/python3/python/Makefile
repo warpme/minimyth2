@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS    = lang/c lib/ncurses lib/openssl lib/readline devel/zlib
+DEPENDS    = lang/c lib/ncurses lib/openssl lib/readline devel/zlib lib/libffi
 BUILDDEPS  = devel/autoconf devel/automake
 ifneq ($(DESTIMG),build)
 DEPENDS   += lib/bluez
