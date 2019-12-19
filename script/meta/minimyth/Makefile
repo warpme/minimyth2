@@ -193,6 +193,7 @@ BUILDDEPS = \
 	utils/util-linux \
 	perl/perlstrip \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),utils/kickstart-oe) \
+	devel/meson \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile

@@ -49,7 +49,7 @@ BUILDDEPS  = \
 	lib/libxml2         \
 	python3/python      \
 	python3/python-mako \
-	python3/meson       \
+	devel/meson         \
 	opengl/makedepend   \
 	xorg/xorgproto      \
 	xorg/libxshmfence   \
