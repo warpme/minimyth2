@@ -68,6 +68,7 @@ PATCHFILES += 0160-ffmpeg-v4l2request-avcodec-h264-parse-ref_pic_marking_size_in
 PATCHFILES += 0161-ffmpeg-v4l2request-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
 PATCHFILES += 0162-ffmpeg-v4l2request-WIP-v4l2-request-rolling-timestamps.patch
 PATCHFILES += 0163-configure-add-v4l2request-support.patch
+PATCHFILES += 0164-mythplayer-avsync-change-gain-to-0.1F.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
