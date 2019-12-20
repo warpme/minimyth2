@@ -10,6 +10,7 @@ PATCHFILES  = $(DISTNAME)-disable_multilib_i386_linux64.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
 PATCHFILES += $(DISTNAME)-perl.patch.gar
 PATCHFILES += $(DISTNAME)-libstdc++-v3_config.patch
+PATCHFILES += $(DISTNAME)-libstdc++-v3-force_sdt.h-detect-to-no.patch
 endif
 LICENSE = GPL2/GPL3/LGPL2_1/LGPL3
 
@@ -69,7 +70,6 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--with-libelf-include=$(DESTDIR)$(includedir) \
 	--with-libelf-lib=$(DESTDIR)$(libdir) \
 	--with-sysroot=$($(CROSSIMG)_DESTDIR)
-
 
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
