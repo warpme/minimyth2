@@ -1,7 +1,7 @@
 GARNAME = glib
 GARVERSION = 2.53.1
 CATEGORIES = gtk
-MASTER_SITES = https://git.gnome.org/browse/glib/snapshot/
+MASTER_SITES = https://ftp.gnome.org/pub/gnome/sources/glib/2.53/
 DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES = $(DISTNAME)-add-missing-files-for-automake.patch
 LICENSE = LGPL2
