@@ -17,6 +17,7 @@ PATCHFILES += $(DISTNAME)-cbuilder.patch
 PATCHFILES += $(DISTNAME)-xsloader.patch
 PATCHFILES += $(DISTNAME)-dynaloader.patch
 PATCHFILES += $(DISTNAME)-errno.patch
+PATCHFILES += $(DISTNAME)-fix-bug-in-glibc-libcrypt.patch
 endif
 
 LICENSE = Artistic
