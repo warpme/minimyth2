@@ -6,6 +6,7 @@ DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES  = $(DISTNAME).patch.gar
 PATCHFILES += $(DISTNAME)-fix-gcc6+-build.patch
 PATCHFILES += $(DISTNAME)-disable-qtlocation-mapboxgl-plugin.patch
+PATCHFILES += $(DISTNAME)-fix-wayland-build.patch
 LICENSE = LGPL2_1
 
 DESCRIPTION = 
