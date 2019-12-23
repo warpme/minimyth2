@@ -12,6 +12,7 @@ PATCHFILES += $(DISTNAME)-fix-gcc5-compat.patch
 ifneq ($(DESTIMG),build)
 PATCHFILES += $(DISTNAME)-config_sh-$(GARCH_FAMILY).patch.gar
 PATCHFILES += $(DISTNAME)-cross.patch.gar
+PATCHFILES += $(DISTNAME)-fix_error_t.h.patch
 else
 PATCHFILES += $(DISTNAME)-cbuilder.patch
 PATCHFILES += $(DISTNAME)-xsloader.patch
@@ -82,6 +83,8 @@ CONFIGURE_ARGS = \
 	-Adefine:optimize=' ' \
 	-DLIBM_LIB_VERSION=''
 endif
+
+#	-Dsysroot="$(DESTDIR)"
 
 CONFIGURE_ENV = $(PERL_CONFIGURE_ENV)
 BUILD_ENV     = $(PERL_BUILD_ENV)
