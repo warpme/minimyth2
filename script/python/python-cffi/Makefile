@@ -37,22 +37,21 @@ endif
 
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
+include ../python/python2-lib.mk
 
 pre-configure:
 ifeq ($(DESTIMG),build)
-	@# This is required as python-mysql-python can be asked to build still for host when python is
-	@# switched already for building for target (_sysconfigdata.py=_sysconfigdata.py.main)
-	@echo "Setting _sysconfigdata.py to host config as DESTIMG=build"
-	@cp -v $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py.build \
-	       $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py
+	@# Switch python setup.py to use host _sysconfigdata.py for
+	@# compiltion of C modules
+	@$(call PYTHON2_SET_BUILD_SYSCONF)
 endif
 	@$(MAKECOOKIE)
 
 post-install:
 ifeq ($(DESTIMG),build)
-	@echo "Restoring _sysconfigdata.py to target config as DESTIMG=main"
-	@cp -v $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py.main \
-	       $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py
+	@# Restore python setup.py to use targer _sysconfigdata.py for
+	@# compiltion of C modules
+	@$(call PYTHON2_SET_MAIN_SYSCONF)
 endif
 # FIXME XXXXX
 ifneq ($(DESTIMG),build)
