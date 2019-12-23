@@ -7,7 +7,7 @@ GARVERSION   = afe1a8ff5b94b33f150a01d398018e88c7b77a7e
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-#PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
+PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
 endif
 
 ifeq (0,1)
