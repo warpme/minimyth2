@@ -1,33 +1,42 @@
+
 ifeq (1,1)
-#--Use this for mainline official x.y.z kernel----
+#--Use this for mainline official x.y.z kernel from GIT----
+MASTER_SITES       += https://github.com/torvalds/linux/archive/
+DISTFILES           = v$(LINUX_VERSION).tar.gz $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
+#----------------------------------------------------------
+endif
+
+ifeq (1,0)
+#--Use this for mainline official x.y.z kernel from SCM----
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
-#-------------------------------------------
+#----------------------------------------------------------
 endif
 
 ifeq (0,1)
-#--Use this for mainline git-commit kernel--
+#--Use this for mainline git-commit kernel-----------------
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/$(GITHASH)
-#-------------------------------------------
+#----------------------------------------------------------
 endif
 
 ifeq (0,1)
-#--Use this for Neil's amlogic media-next tree ----
+#--Use this for Neil's amlogic media-next tree ------------
 MASTER_SITES        = https://github.com/superna9999/linux/archive/
 DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/linux-$(GITHASH)
-#-------------------------------------------
+#----------------------------------------------------------
 endif
 
 ifeq (0,1)
-#--Use this for Chewitt amlogic 5.5-integ tree ----
+#--Use this for Chewitt amlogic 5.5-integ tree ------------
 MASTER_SITES        = https://github.com/chewitt/linux/archive/
 DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/linux-$(GITHASH)
-#-------------------------------------------
+#----------------------------------------------------------
 endif
 
 GARNAME = linux
@@ -42,13 +51,6 @@ PATCHFILES += linux-5.5-disable_dma_for_cfa.patch
 PATCHFILES += linux-5.5-defaults.patch
 PATCHFILES += linux-5.5-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.5-net-smsc95xx-allow-mac-address-as-param.patch
-
-# Temp fix for rk3328 wrong screen size issue
-PATCHFILES += 0001-drm-rockchip-fix-revert-287422a.patch
-
-# Fix 5.5-rc2 boot issue
-# https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7de7de7ca0ae0fc70515ee3154af33af75edae2c
-PATCHFILES += 0002-Fix-root-mounting-with-no-mount-options.patch
 
 ifeq (1,1)
 # Amlogic: Patch to fix Panfrost reset issue on GXM
@@ -138,6 +140,7 @@ endif
 
 # Misc parches for Rockchip
 PATCHFILES += 0450-arm64-dts-fix-IR-receiver-beelinkA1.patch
+PATCHFILES += 0451-phy-rockchip-inno-hdmi-round-clock-rate-down-to-closest-1000-Hz.patch
 
 ifeq (1,1)
 # Allwinner H6: Support for USB3
