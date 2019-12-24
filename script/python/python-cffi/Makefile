@@ -37,7 +37,6 @@ endif
 
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
-include ../python/python2-lib.mk
 
 pre-configure:
 ifeq ($(DESTIMG),build)
