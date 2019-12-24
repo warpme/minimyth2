@@ -43,19 +43,13 @@ LDFLAGS := $(LDFLAGS) -fPIC
 
 pre-configure:
 ifeq ($(DESTIMG),build)
-	@# This is required as python-mysql-python can be asked to build still for host when python is
-	@# switched already for building for target (_sysconfigdata.py=_sysconfigdata.py.main)
-	@echo "Setting _sysconfigdata.py to host config as DESTIMG=build"
-	@cp -v $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py.build \
-	       $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py
+	@$(call PYTHON2_SET_BUILD_SYSCONF)
 endif
 	@$(MAKECOOKIE)
 
 post-install:
 ifeq ($(DESTIMG),build)
-	@echo "Restoring _sysconfigdata.py to target config as DESTIMG=main"
-	@cp -v $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py.main \
-	       $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py
+	@$(call PYTHON2_SET_MAIN_SYSCONF)
 endif
 	@$(MAKECOOKIE)
 
