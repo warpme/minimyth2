@@ -94,10 +94,7 @@ PATCHFILES += 0225-OSD-Add-status-notify-to-mythmediacenter.patch
 PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 
 # Patches enhancing Network Control
-PATCHFILES += 0282-NetworkControl-Add-realtime-display-of-MythEvents.patch
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
-PATCHFILES += 0284-NetworkControl-Add-mythmusic-url-and-playlist-playback.patch
-PATCHFILES += 0285-NetworkControl-Add-mythmusic-album-playback-and-queries.patch
 
 # Nice Roger Siddons guide grid enhacement
 PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
