@@ -110,6 +110,8 @@ DEPENDS = \
 			python/python-pycurl) \
 		perl/perl-Date-Manip \
 		perl/perl-DateTime-Format-ISO8601 \
+		perl/perl-HTTP-Message \
+		perl/perl-HTTP-Date \
 		perl/perl-Image-Size \
 		perl/perl-Net-HTTP \
 		perl/perl-PerlMagick \
