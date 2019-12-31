@@ -76,11 +76,19 @@ configure-%/Makefile.PL:
 	echo " ==> Running 'perl Makefile.PL' in $*"
 	cd $* ; $(CONFIGURE_ENV) perl Makefile.PL $(CONFIGURE_ARGS)
 	for file in `find $* -name Makefile` ; do \
+		echo " ==> $${file}: adding $(DESTDIR) in PERL_LIB" ; \
+		sed -i 's%^PERL_LIB *= *%PERL_LIB = $$(DESTDIR)%' $${file} ; \
+		echo " ==> $${file}: adding $(DESTDIR) in PERL_INC" ; \
 		sed -i 's%^PERL_INC *= *%PERL_INC = $$(DESTDIR)%' $${file} ; \
+		echo " ==> $${file}: adding $(DESTDIR) in PERL_INCDEP" ; \
+		sed -i 's%^PERL_INCDEP *= *%PERL_INCDEP = $$(DESTDIR)%' $${file} ; \
+		echo " ==> $${file}: adding $(DESTDIR) in PERL_ARCHLIB" ; \
 		sed -i 's%^PERL_ARCHLIB *= *%PERL_ARCHLIB = $$(DESTDIR)%' $${file} ; \
-		sed -i 's% \($(PERL_privlib)/ExtUtils/typemap\)% $$(DESTDIR)\1%' $${file} ; \
+		echo " ==> $${file}: prepending $(PERL_privlib)/ExtUtils/typemap with $(DESTDIR)" ; \
+		sed -i 's%\($(PERL_privlib)/ExtUtils/typemap\)%$$(DESTDIR)\1%g' $${file} ; \
 	 done
 	@$(MAKECOOKIE)
+
 
 configure-%/Build.PL:
 	@echo " ==> Running 'perl Build.PL' in $*"
