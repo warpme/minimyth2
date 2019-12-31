@@ -1,5 +1,5 @@
 GARNAME = texinfo
-GARVERSION = 6.0
+GARVERSION = 6.7
 CATEGORIES = doc
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.xz
