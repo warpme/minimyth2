@@ -1,7 +1,6 @@
 GARNAME           = perl-DateTime
-GARVERSION        = 0.74
-MASTER_SITES      = http://www.cpan.org/authors/id/D/DR/DROLSKY/
-PERL_MODULE_STYLE = Build.PL
+GARVERSION        = 1.51
+MASTER_SITES      = https://www.cpan.org/CPAN/authors/id/D/DR/DROLSKY/
 DEPENDS           = perl/perl-DateTime-Locale perl/perl-DateTime-TimeZone perl/perl-Math-Round perl/perl-Params-Validate
 BUILDDEPS         = perl/perl-Test-Exception
 
