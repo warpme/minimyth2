@@ -45,6 +45,7 @@ BUILDDEPS = \
 	python/python-oauth \
 	perl/perl-DateTime \
 	perl/perl-SOAP-Lite \
+	perl/perl-DateTime-Format-ISO8601 \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
