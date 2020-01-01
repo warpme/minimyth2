@@ -1,6 +1,6 @@
 GARNAME      = perl-DateTime-Locale
-GARVERSION   = 0.45
-MASTER_SITES = http://www.cpan.org/authors/id/D/DR/DROLSKY/
-DEPENDS      = perl/perl-List-MoreUtils perl/perl-Params-Validate
+GARVERSION   = 1.22
+MASTER_SITES = https://www.cpan.org/authors/id/D/DR/DROLSKY/
+DEPENDS      = perl/perl-List-MoreUtils perl/perl-Params-Validate perl/perl-File-ShareDir perl/perl-File-ShareDir-Install
 
 include ../../perl/perl/perl-module.mk
