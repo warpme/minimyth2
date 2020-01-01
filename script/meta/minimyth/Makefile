@@ -117,6 +117,7 @@ DEPENDS = \
 		perl/perl-JSON \
 		perl/perl-Net-HTTP \
 		perl/perl-PerlMagick \
+		perl/perl-Shell \
 		perl/perl-SOAP-Lite \
 		perl/perl-Switch \
 		perl/perl-XML-Simple \
