@@ -189,5 +189,4 @@ clean-all:
 	@rm -f $(DESTDIR)$(bindir)/cpan
 	@rm -f $(DESTDIR)$(bindir)/corelist
 	@rm -rf $(DESTDIR)$(libdir)/perl5/$(PERL_VERSION)*
-	@rm -rf $(DESTDIR)$(libdir)/perl5/site_perl/$(PERL_VERSION)*
 	@rm -rf $(DESTDIR)$(libdir)/perl5/config/$(PERL_VERSION)*
