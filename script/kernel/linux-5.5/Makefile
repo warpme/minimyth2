@@ -107,6 +107,7 @@ endif
 
 # Amlogic: Misc patches
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
+PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 
 ifeq (0,1)
 # Rockchip: rkvdec rk3399
