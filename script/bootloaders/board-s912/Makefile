@@ -34,7 +34,7 @@ install-custom:
 	@cp -f $(WORKSRC)/s905_autoscript                       $(DESTDIR)/boot/s905_autoscript
 	@cp -f $(WORKSRC)/s905_autoscript.txt                   $(DESTDIR)/boot/s905_autoscript.txt
 	@cp -f $(WORKSRC)/uEnv.ini                              $(DESTDIR)/boot/uEnv.ini
-	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-gxm-khadas-vim2.dtb $(DESTDIR)/boot/s912_dtb
+	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-gxm-beelink-gt1.dtb $(DESTDIR)/boot/s912_dtb
 	@$(MAKECOOKIE)
 
 clean-all:
