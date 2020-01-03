@@ -26,11 +26,13 @@ DEPENDS = \
 	lib/taglib \
 	lib/minizip \
 	python/python \
+	python/python-aniso8601 \
 	python/python-pycurl \
 	python/python-lxml \
 	python/python-oauth \
 	perl/perl-Date-Manip \
 	perl/perl-DateTime-Format-ISO8601 \
+	perl/perl-HTML-Tree \
 	perl/perl-Image-Size \
 	perl/perl-JSON \
 	perl/perl-SOAP-Lite \
