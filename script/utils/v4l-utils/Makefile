@@ -3,6 +3,7 @@ GARVERSION = 1.16.6
 CATEGORIES = utils
 MASTER_SITES = http://linuxtv.org/downloads/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
+PATCHFILES = $(DISTNAME)-perl.patch.gar
 LICENSE = GPL2/LGPL2_1
 
 DESCRIPTION = 
