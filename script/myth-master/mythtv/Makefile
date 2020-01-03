@@ -155,11 +155,17 @@ DEPENDS = \
 	devel/zlib \
 	devel/yasm \
 	python/python \
+	python/python-future \
 	python/python-MySQL-python \
 	python/python-lxml \
-	python/python-urlgrabber \
-	python/python-future \
 	python/python-requests-cache \
+	python/python-urlgrabber \
+	python/python-simplejson \
+	perl/perl-HTTP-Message \
+	perl-IO-Socket-INET6 \
+	perl/perl-libwww-perl \
+	perl/perl-Net-UPnP \
+	perl/perl-XML-Simple \
 	system/lirc \
 	system/eudev \
 	X11/libvdpau \
@@ -169,11 +175,16 @@ DEPENDS = \
 
 BUILDDEPS = \
 	python/python-MySQL-python \
-	python/python-urlgrabber \
-	python/python-lxml \
-	python/python-requests \
 	python/python-future \
+	python/python-lxml \
+	python/python-requests-cache \
+	python/python-urlgrabber \
 	python/python-simplejson \
+	perl/perl-HTTP-Message \
+	perl-IO-Socket-INET6 \
+	perl/perl-libwww-perl \
+	perl/perl-Net-UPnP \
+	perl/perl-XML-Simple \
 
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 
@@ -254,15 +265,17 @@ CONFIGURE_ARGS = \
 	--enable-libxml2 \
 	--enable-libdns_sd \
 	--enable-libcrypto \
-	--without-bindings="perl" \
 	--without-bindings="php" \
+	--with-bindings="perl" \
 	--with-bindings="python" \
 	--enable-pic \
 	--disable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 	--enable-ffplay \
 	--enable-sdl2 \
-	--python=python2 \
+	--python="$(build_DESTDIR)$(build_bindir)/python" \
+
+#	--perlbin="$(build_DESTDIR)$(build_bindir)/perlll" \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
