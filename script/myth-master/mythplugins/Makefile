@@ -32,11 +32,11 @@ DEPENDS = \
 	python/python-oauth \
 	perl/perl-Date-Manip \
 	perl/perl-DateTime-Format-ISO8601 \
-	perl/perl-HTML-Tree \
 	perl/perl-Image-Size \
 	perl/perl-JSON \
 	perl/perl-SOAP-Lite \
 	perl/perl-XML-Simple \
+	perl/perl-XML-TreeBuilder \
 	perl/perl-XML-XPath \
 	db/mysql
 
