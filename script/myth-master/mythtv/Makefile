@@ -162,7 +162,7 @@ DEPENDS = \
 	python/python-urlgrabber \
 	python/python-simplejson \
 	perl/perl-HTTP-Message \
-	perl-IO-Socket-INET6 \
+	perl/perl-IO-Socket-INET6 \
 	perl/perl-libwww-perl \
 	perl/perl-Net-UPnP \
 	perl/perl-XML-Simple \
@@ -181,7 +181,7 @@ BUILDDEPS = \
 	python/python-urlgrabber \
 	python/python-simplejson \
 	perl/perl-HTTP-Message \
-	perl-IO-Socket-INET6 \
+	perl/perl-IO-Socket-INET6 \
 	perl/perl-libwww-perl \
 	perl/perl-Net-UPnP \
 	perl/perl-XML-Simple \
