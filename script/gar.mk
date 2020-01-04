@@ -442,6 +442,7 @@ repatch:
 # reconfigure		- Reconfigure ignoring
 # 				  "already configured" flag.
 reconfigure:
+	@rm -rf $(COOKIEDIR)/imgdep-*
 	@rm -rf $(COOKIEDIR)/pre-configure*
 	@rm -rf $(COOKIEDIR)/configure*
 	@rm -rf $(COOKIEDIR)/post-configure*
