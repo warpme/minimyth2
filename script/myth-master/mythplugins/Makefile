@@ -27,8 +27,14 @@ DEPENDS = \
 	lib/minizip \
 	python/python \
 	python/python-aniso8601 \
-	python/python-pycurl \
+	python/python-beautifulsoup4 \
+	python/python-discid \
+	python/python-future \
 	python/python-lxml \
+	python/python-musicbrainzngs \
+	python/python-MySQL-python \
+	python/python-pycurl \
+	python/python-requests-cache \
 	python/python-oauth \
 	perl/perl-Date-Manip \
 	perl/perl-DateTime-Format-ISO8601 \
