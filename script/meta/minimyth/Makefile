@@ -98,32 +98,11 @@ DEPENDS = \
 	$(if $(filter mythplugins,$(mm_SOFTWARE)), \
 		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythplugins),myth-$(mm_MYTH_VERSION)/mythplugins) \
 		$(if $(filter python,$(mm_SOFTWARE)), \
-			python/python-beautifulsoup4 \
-			python/python-musicbrainzngs \
-			python/python-discid \
-			python/python-lxml \
-			python/python-future \
-			python/python-requests-cache \
-			python/python-MySQL-python \
-			python/python-oauth \
 			python/python-IMAPClient \
 			python/python-pycurl) \
-		perl/perl-Date-Manip \
-		perl/perl-DateTime-Format-ISO8601 \
-		perl/perl-Exporter-Tiny \
-		perl/perl-HTTP-Message \
-		perl/perl-HTTP-Date \
-		perl/perl-Image-Size \
-		perl/perl-JSON \
 		perl/perl-Net-HTTP \
-		perl/perl-PerlMagick \
 		perl/perl-Shell \
-		perl/perl-SOAP-Lite \
-		perl/perl-Switch \
-		perl/perl-XML-Simple \
-		perl/perl-XML-XPath \
-		perl/perl-Date-Calc \
-		perl/perl-TimeDate) \
+		perl/perl-Switch) \
 		lib/libdiscid \
 	lib/dbus \
 	lib/avahi \
