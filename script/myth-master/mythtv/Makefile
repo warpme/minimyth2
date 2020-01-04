@@ -157,11 +157,13 @@ DEPENDS = \
 	devel/yasm \
 	python/python \
 	python/python-future \
-	python/python-MySQL-python \
 	python/python-lxml \
+	python/python-MySQL-python \
 	python/python-requests-cache \
-	python/python-urlgrabber \
 	python/python-simplejson \
+	python/python-urlgrabber \
+	perl/perl-DBD-mysql \
+	perl/perl-DBI \
 	perl/perl-HTTP-Message \
 	perl/perl-IO-Socket-INET6 \
 	perl/perl-libwww-perl \
@@ -175,12 +177,15 @@ DEPENDS = \
 	qt/qt5-webkit \
 
 BUILDDEPS = \
-	python/python-MySQL-python \
+	python/python \
 	python/python-future \
 	python/python-lxml \
+	python/python-MySQL-python \
 	python/python-requests-cache \
-	python/python-urlgrabber \
 	python/python-simplejson \
+	python/python-urlgrabber \
+	perl/perl-DBD-mysql \
+	perl/perl-DBI \
 	perl/perl-HTTP-Message \
 	perl/perl-IO-Socket-INET6 \
 	perl/perl-libwww-perl \
