@@ -2,14 +2,14 @@
 
 pids=`/bin/pidof sip-daemon.sh`
 instances=`/bin/echo ${pids} | /usr/bin/wc -w`
-if /usr/bin/test ${instances} -ne 1 ; then
+if [ ${instances} -ne 1 ] ; then
     echo "Another instanceis running..."
     exit 1
 fi
 
 . /etc/rc.d/functions
 
-if /usr/bin/test ! -e /var/log/sip-daemon ; then
+if [ ! -e /var/log/sip-daemon ] ; then
     /bin/touch /var/log/sip-daemon
 fi
 
@@ -31,7 +31,7 @@ _exit_()
 
 while true ; do
   instances=`ps --no-headers -o command -C python | grep -c "sip-daemon.py"`
-  if /usr/bin/test ${instances} -ne 1 ; then
+  if [ ${instances} -ne 1 ] ; then
     /usr/bin/logger -t minimyth -p "local0.info" "[sip-daemon.sh] watchdog detected killed/trapped sip-daemon.py process. Restarting it..."
     /usr/bin/python -u /usr/bin/sip-daemon.py >> /var/log/sip-daemon &
     /bin/sleep 10

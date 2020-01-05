@@ -25,13 +25,13 @@ _exit_()
     done
 }
 
-if /usr/bin/test `/usr/bin/id -u` -ne 0 ; then
+if [ `/usr/bin/id -u` -ne 0 ] ; then
     exit 1
 fi
 
 pids=`/bin/pidof mm_sleep_on_ss`
 instances=`/bin/echo ${pids} | /usr/bin/wc -w`
-if /usr/bin/test ${instances} -ne 1 ; then
+if [ ${instances} -ne 1 ] ; then
     exit 1
 fi
 
@@ -39,41 +39,40 @@ fi
 
 /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] SLEEP_ON_SS script is running"
 
-if /usr/bin/test -n "`/bin/pidof xscreensaver`" ; then
+if [ -n "`/bin/pidof xscreensaver`" ] ; then
     /usr/bin/xscreensaver-command -deactivate > /dev/null 2>&1
     /usr/bin/xscreensaver-command -watch 2> /dev/null | while read watch ; do
     /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] SS changed state"
     state=`/bin/echo ${watch} | /bin/sed -e 's%  *% %g' | /usr/bin/cut -d ' ' -f 1`
     /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] Current SS state is ${state}"
-    if /usr/bin/test "${state}" = "BLANK" ; then
+    if [ "x${state}" = "xBLANK" ] ; then
         /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] SS just blanked -> Checking what mm is doing"
         location=`mm_mythfrontend_networkcontrol "query location"`
         mythfrontend_location=`/bin/echo ${location} | sed -e "s/\(^[a-zA-Z]*\).*/\1/"`
         mythfrontend_is_paused=`/bin/echo ${location} | grep -s "pause"`
-        if /usr/bin/test -n "${mythfrontend_location}" ; then
+        if [ -n "${mythfrontend_location}" ] ; then
             /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] Locations is: ${mythfrontend_location}"
-            if  /usr/bin/test "${mythfrontend_location}" = "playlistview"       || \
-                /usr/bin/test "${mythfrontend_location}" = "playlisteditorview" || \
-                /usr/bin/test "${mythfrontend_location}" = "visualizerview"     || \
-                /usr/bin/test "${mythfrontend_location}" = "searchview"         || \
-                /usr/bin/test "${mythfrontend_location}" = "mythstream"         || \
-                /usr/bin/test "${mythfrontend_location}" = "streamview"         || \
-                /usr/bin/test "${mythfrontend_location}" = "editstreampopup"    || \
-                /usr/bin/test "${mythfrontend_location}" = "searchstream"       || \
-                /usr/bin/test "${mythfrontend_location}" = "ripstatus"          || \
-                /usr/bin/test -e /var/tmp/mm_backup_in_progress ; then
+            if  [ "x${mythfrontend_location}" = "xplaylistview"       ] || \
+                [ "x${mythfrontend_location}" = "xplaylisteditorview" ] || \
+                [ "x${mythfrontend_location}" = "xvisualizerview"     ] || \
+                [ "x${mythfrontend_location}" = "xsearchview"         ] || \
+                [ "x${mythfrontend_location}" = "xmythstream"         ] || \
+                [ "x${mythfrontend_location}" = "xstreamview"         ] || \
+                [ "x${mythfrontend_location}" = "xeditstreampopup"    ] || \
+                [ "x${mythfrontend_location}" = "xsearchstream"       ] || \
+                [ "x${mythfrontend_location}" = "xripstatus"          ] || \
+                [ -e /var/tmp/mm_backup_in_progress                   ] ; then
                 /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] Audio app is running or backup is in progress-> Turning-OFF TV"
                 /usr/bin/mm_external tv_power_off
                 /bin/touch /var/tmp/mm_tv_is_off
-            elif /usr/bin/test "${mythfrontend_location}" = "Playback"          || \
-                /usr/bin/test "${mythfrontend_location}"  = "galleryslideview"  || \
-                /usr/bin/test "${mythfrontend_location}"  = "slideshow" ; then
-                if /usr/bin/test -n "${mythfrontend_is_paused}" ; then
+            elif [ "x${mythfrontend_location}"  = "xPlayback"         ] || \
+                 [ "x${mythfrontend_location}"  = "xgalleryslideview" ] || \
+                 [ "x${mythfrontend_location}"  = "xslideshow"        ] ; then
+                if [ -n "${mythfrontend_is_paused}" ] ; then
                     /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] Location is Playback but state is Pause -> Sending mm to sleep"
                     /usr/bin/mm_sleep &
                 else
                     /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] ERROR: screensaver blanks durring playback. Unblanking screen and killing xscreensaver !"
-                    #/bin/sleep 1
                     su minimyth -c "/usr/bin/xscreensaver-command --deactivate" & > /dev/null 2>&1
                     cp -rf /var/log/mythfrontend /var/log/mythfrontend.screensaver-error
                     cp -rf /var/log/messages /var/log/messages.screensaver-error
@@ -86,21 +85,21 @@ if /usr/bin/test -n "`/bin/pidof xscreensaver`" ; then
             /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] ERROR: QueryLocation returns empty location !"
         fi
     fi
-    if /usr/bin/test "${state}" = "UNBLANK" ; then
+    if [ "x${state}" = "xUNBLANK" ] ; then
         /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] SS just unblanked -> Checking what mm is doing"
         mythfrontend_location=`mm_mythfrontend_networkcontrol "query location" | sed -e "s/\(^[a-zA-Z]*\).*/\1/"`
         /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] Locations is: ${mythfrontend_location}"
-        if  /usr/bin/test "${mythfrontend_location}" = "playlistview"       || \
-            /usr/bin/test "${mythfrontend_location}" = "playlisteditorview" || \
-            /usr/bin/test "${mythfrontend_location}" = "visualizerview"     || \
-            /usr/bin/test "${mythfrontend_location}" = "searchview"         || \
-            /usr/bin/test "${mythfrontend_location}" = "mythstream"         || \
-            /usr/bin/test "${mythfrontend_location}" = "streamview"         || \
-            /usr/bin/test "${mythfrontend_location}" = "editstreampopup"    || \
-            /usr/bin/test "${mythfrontend_location}" = "searchstream"       || \
-            /usr/bin/test -e /var/tmp/mm_backup_in_progress ; then
+        if  [ "x${mythfrontend_location}" = "xplaylistview"       ] || \
+            [ "x${mythfrontend_location}" = "xplaylisteditorview" ] || \
+            [ "x${mythfrontend_location}" = "xvisualizerview"     ] || \
+            [ "x${mythfrontend_location}" = "xsearchview"         ] || \
+            [ "x${mythfrontend_location}" = "xmythstream"         ] || \
+            [ "x${mythfrontend_location}" = "xstreamview"         ] || \
+            [ "x${mythfrontend_location}" = "xeditstreampopup"    ] || \
+            [ "x${mythfrontend_location}" = "xsearchstream"       ] || \
+            [ -e /var/tmp/mm_backup_in_progress                   ] ; then
             /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] Audio app is playing or backup is in progress -> Checking is TV OFF"
-            if /usr/bin/test -e /var/tmp/mm_tv_is_off ; then
+            if /[ -e /var/tmp/mm_tv_is_off ] ; then
                 /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep_on_ss] TV is OFF -> turning-on TV"
                 /bin/rm -f /var/tmp/mm_tv_is_off
                 /usr/bin/mm_external tv_power_on
