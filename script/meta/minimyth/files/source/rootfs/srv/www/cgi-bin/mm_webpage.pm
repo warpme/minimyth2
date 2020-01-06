@@ -48,7 +48,7 @@ sub page
     push(@page,  q(    <meta name="keywords" content="PVR,Linux,MythTV,MiniMyth" />));
     push(@page,  q(    <meta name="description" content="" />));
     push(@page,  q(    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />));
-    push(@page, qq(    <title>MythHome System $title</title>));
+    push(@page, qq(    <title>$title</title>));
     push(@page,  q(    <style type="text/css" title="main-styles">));
     push(@page,  q(      @import "../css/minimyth.css";));
     if (defined($style))
@@ -75,7 +75,7 @@ sub page
     push(@page,  q(        </div>));
     push(@page,  q(      </div>));
     push(@page,  q(      <div class="middle">));
-    push(@page, qq(      <div class="heading">MiniMyth System $title</div>));
+    push(@page, qq(      <div class="heading">System $title</div>));
     push(@page, @{$middle});
     push(@page,  q(      </div>));
     push(@page,  q(      <div class="footer">));
@@ -91,9 +91,9 @@ sub page
     push(@page,  q(              alt="Valid CSS!"      height="31" width="88" /></a>));
     push(@page,  q(        </div>));
     push(@page,  q(        <div class="version">));
-    push(@page,  q(          Last Updated on 2015-10-30));
+    push(@page,  q(          Last Updated on 2020-01-06));
     push(@page,  q(          <br />));
-    push(@page,  q(          &lt;&nbsp;mailto&nbsp;:&nbsp;webmaster&nbsp;at&nbsp;minimyth&nbsp;dot&nbsp;org&nbsp;&gt;));
+    push(@page,  q(          &lt;&nbsp;mailto&nbsp;:&nbsp;warpme&nbsp;at&nbsp;o2&nbsp;dot&nbsp;pl&nbsp;&gt;));
     push(@page,  q(        </div>));
     push(@page,  q(      </div>));
     push(@page,  q(    </div>));
