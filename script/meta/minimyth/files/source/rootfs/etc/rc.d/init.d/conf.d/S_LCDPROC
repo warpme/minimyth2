@@ -8,6 +8,9 @@ conf_write_S_LCDPROC() {
     local device_item
     local device_list
 
+    if [ -z "${MM_LCDPROC_ENABLED}" ] ; then
+        MM_LCDPROC_ENABLED='no'
+    fi
     if [ -z "${MM_LCDPROC_DRIVER}" ] ; then
         MM_LCDPROC_DRIVER='auto'
     fi
@@ -21,83 +24,88 @@ conf_write_S_LCDPROC() {
         MM_LCDPROC_KERNEL_MODULE_OPTIONS='auto'
     fi
 
-    # Read LCDproc driver specific configuration file,
-    # but do not allow the values to override values in the MiniMyth configuration file.
-    if [ ! "x${MM_LCDPROC_DRIVER}" = "xauto" ] && \
-       [ ! "x${MM_LCDPROC_DRIVER}" = "xnone" ] && \
-       [ -r /etc/lcdproc.d/driver.conf.d/driver.conf.${MM_LCDPROC_DRIVER} ] ; then
-        /bin/rm -rf /tmp/driver.conf.${MM_LCDPROC_DRIVER}~
-        /bin/cat /etc/lcdproc.d/driver.conf.d/driver.conf.${MM_LCDPROC_DRIVER} \
-            | /bin/sed -e 's%#.*$%%g' \
-            | /bin/sed -e 's%^  *%%'  \
-            | /bin/sed -e 's%^\(.*\)$%local _\1%' \
-            > /tmp/driver.conf.${MM_LCDPROC_DRIVER}~
-        . /tmp/driver.conf.${MM_LCDPROC_DRIVER}~
-        /bin/rm -rf /tmp/driver.conf.${MM_LCDPROC_DRIVER}~
+    if [ "x${MM_LCDPROC_ENABLED}" = "xyes" ] ; then
 
-       if [ "x${MM_LCDPROC_DEVICE}" = "xauto" ] ; then
-           MM_LCDPROC_DEVICE="${_MM_LCDPROC_DEVICE}"
-       fi
-       if [ "x${MM_LCDPROC_KERNEL_MODULE}" = "xauto" ] ; then
-           MM_LCDPROC_KERNEL_MODULE="${_MM_LCDPROC_KERNEL_MODULE}"
-       fi
-       if [ "x${MM_LCDPROC_KERNEL_MODULE_OPTIONS}" = "xauto" ] ; then
-           MM_LCDPROC_KERNEL_MODULE_OPTIONS="${_MM_LCDPROC_KERNEL_MODULE_OPTIONS}"
-       fi
-    fi
+        # Read LCDproc driver specific configuration file,
+        # but do not allow the values to override values in the MiniMyth configuration file.
+        if [ ! "x${MM_LCDPROC_DRIVER}" = "xauto" ] && \
+           [ ! "x${MM_LCDPROC_DRIVER}" = "xnone" ] && \
+           [ -r /etc/lcdproc.d/driver.conf.d/driver.conf.${MM_LCDPROC_DRIVER} ] ; then
+            /bin/rm -rf /tmp/driver.conf.${MM_LCDPROC_DRIVER}~
+            /bin/cat /etc/lcdproc.d/driver.conf.d/driver.conf.${MM_LCDPROC_DRIVER} \
+                | /bin/sed -e 's%#.*$%%g' \
+                | /bin/sed -e 's%^  *%%'  \
+                | /bin/sed -e 's%^\(.*\)$%local _\1%' \
+                > /tmp/driver.conf.${MM_LCDPROC_DRIVER}~
+            . /tmp/driver.conf.${MM_LCDPROC_DRIVER}~
+            /bin/rm -rf /tmp/driver.conf.${MM_LCDPROC_DRIVER}~
 
-    # Convert 'auto' to empty.
-    if [ "x${MM_LCDPROC_DEVICE}" = "xauto"                ] ; then
-        MM_LCDPROC_DEVICE=''
-    fi
-    if [ "x${MM_LCDPROC_KERNEL_MODULE}" = "xauto"         ] ; then
-        MM_LCDPROC_KERNEL_MODULE=''
-    fi
-    if [ "x${MM_LCDPROC_KERNEL_MODULE_OPTIONS}" = "xauto" ] ; then
-        MM_LCDPROC_KERNEL_MODULE_OPTIONS=''
-    fi
-
-    # Convert 'none' to empty.
-    if [ "x${MM_LCDPROC_DRIVER}" = "xnone"                ] ; then
-        MM_LCDPROC_DRIVER=
-    fi
-    if [ "x${MM_LCDPROC_DEVICE}" = "xnone"                ] ; then
-        MM_LCDPROC_DEVICE=
-    fi
-    if [ "x${MM_LCDPROC_KERNEL_MODULE}" = "xnone"         ] ; then
-        MM_LCDPROC_KERNEL_MODULE=
-    fi
-    if [ "x${MM_LCDPROC_KERNEL_MODULE_OPTIONS}" = "xnone" ] ; then
-        MM_LCDPROC_KERNEL_MODULE_OPTIONS=
-    fi
-
-    # Auto-configure LCD/VFD display.
-    if [ "x${MM_LCDPROC_DRIVER}" = "xauto" ] ; then
-        MM_LCDPROC_DRIVER=
-        MM_LCDPROC_DEVICE=
-        device_list=`mm_detect_state_get 'lcdproc'`
-        for device_item in ${device_list} ; do
-            MM_LCDPROC_DEVICE=`/bin/echo ${device_item} | /usr/bin/cut -d ',' -f1`
-            MM_LCDPROC_DRIVER=`/bin/echo ${device_item} | /usr/bin/cut -d ',' -f2`
-        done
-    fi
-
-    if [ -z "${MM_LCDPROC_FETCH_LCDD_CONF}" ] ; then
-        MM_LCDPROC_FETCH_LCDD_CONF='no'
-    fi
-
-    conf_variable_write "${conf_file}" MM_LCDPROC_DRIVER                "${MM_LCDPROC_DRIVER}"
-    conf_variable_write "${conf_file}" MM_LCDPROC_DEVICE                "${MM_LCDPROC_DEVICE}"
-    conf_variable_write "${conf_file}" MM_LCDPROC_KERNEL_MODULE         "${MM_LCDPROC_KERNEL_MODULE}"
-    conf_variable_write "${conf_file}" MM_LCDPROC_KERNEL_MODULE_OPTIONS "${MM_LCDPROC_KERNEL_MODULE_OPTIONS}"
-    conf_variable_write "${conf_file}" MM_LCDPROC_FETCH_LCDD_CONF       "${MM_LCDPROC_FETCH_LCDD_CONF}"
-
-    if [ "x${MM_LCDPROC_FETCH_LCDD_CONF}" = "xyes" ] ; then
-        /bin/rm -f /etc/lCDd.conf
-        mm_confro_get LCDd.conf /etc/LCDd.conf
-        if [ ! -e /etc/LCDd.conf ] ; then
-            mm_message_output err "error: failed to fetch 'LCDd.conf' file."
+           if [ "x${MM_LCDPROC_DEVICE}" = "xauto" ] ; then
+               MM_LCDPROC_DEVICE="${_MM_LCDPROC_DEVICE}"
+           fi
+           if [ "x${MM_LCDPROC_KERNEL_MODULE}" = "xauto" ] ; then
+               MM_LCDPROC_KERNEL_MODULE="${_MM_LCDPROC_KERNEL_MODULE}"
+           fi
+           if [ "x${MM_LCDPROC_KERNEL_MODULE_OPTIONS}" = "xauto" ] ; then
+               MM_LCDPROC_KERNEL_MODULE_OPTIONS="${_MM_LCDPROC_KERNEL_MODULE_OPTIONS}"
+           fi
         fi
+
+        # Convert 'auto' to empty.
+        if [ "x${MM_LCDPROC_DEVICE}" = "xauto"                ] ; then
+            MM_LCDPROC_DEVICE=''
+        fi
+        if [ "x${MM_LCDPROC_KERNEL_MODULE}" = "xauto"         ] ; then
+            MM_LCDPROC_KERNEL_MODULE=''
+        fi
+        if [ "x${MM_LCDPROC_KERNEL_MODULE_OPTIONS}" = "xauto" ] ; then
+            MM_LCDPROC_KERNEL_MODULE_OPTIONS=''
+        fi
+
+        # Convert 'none' to empty.
+        if [ "x${MM_LCDPROC_DRIVER}" = "xnone"                ] ; then
+            MM_LCDPROC_DRIVER=
+        fi
+        if [ "x${MM_LCDPROC_DEVICE}" = "xnone"                ] ; then
+            MM_LCDPROC_DEVICE=
+        fi
+        if [ "x${MM_LCDPROC_KERNEL_MODULE}" = "xnone"         ] ; then
+        MM_LCDPROC_KERNEL_MODULE=
+        fi
+        if [ "x${MM_LCDPROC_KERNEL_MODULE_OPTIONS}" = "xnone" ] ; then
+            MM_LCDPROC_KERNEL_MODULE_OPTIONS=
+        fi
+
+        # Auto-configure LCD/VFD display.
+        if [ "x${MM_LCDPROC_DRIVER}" = "xauto" ] ; then
+            MM_LCDPROC_DRIVER=
+            MM_LCDPROC_DEVICE=
+            device_list=`mm_detect_state_get 'lcdproc'`
+            for device_item in ${device_list} ; do
+                MM_LCDPROC_DEVICE=`/bin/echo ${device_item} | /usr/bin/cut -d ',' -f1`
+                MM_LCDPROC_DRIVER=`/bin/echo ${device_item} | /usr/bin/cut -d ',' -f2`
+            done
+        fi
+
+        if [ -z "${MM_LCDPROC_FETCH_LCDD_CONF}" ] ; then
+            MM_LCDPROC_FETCH_LCDD_CONF='no'
+        fi
+
+        conf_variable_write "${conf_file}" MM_LCDPROC_ENABLED               "${MM_LCDPROC_ENABLED}"
+        conf_variable_write "${conf_file}" MM_LCDPROC_DRIVER                "${MM_LCDPROC_DRIVER}"
+        conf_variable_write "${conf_file}" MM_LCDPROC_DEVICE                "${MM_LCDPROC_DEVICE}"
+        conf_variable_write "${conf_file}" MM_LCDPROC_KERNEL_MODULE         "${MM_LCDPROC_KERNEL_MODULE}"
+        conf_variable_write "${conf_file}" MM_LCDPROC_KERNEL_MODULE_OPTIONS "${MM_LCDPROC_KERNEL_MODULE_OPTIONS}"
+        conf_variable_write "${conf_file}" MM_LCDPROC_FETCH_LCDD_CONF       "${MM_LCDPROC_FETCH_LCDD_CONF}"
+
+        if [ "x${MM_LCDPROC_FETCH_LCDD_CONF}" = "xyes" ] ; then
+            /bin/rm -f /etc/lCDd.conf
+            mm_confro_get LCDd.conf /etc/LCDd.conf
+            if [ ! -e /etc/LCDd.conf ] ; then
+                mm_message_output err "error: failed to fetch 'LCDd.conf' file."
+            fi
+        fi
+
     fi
 
     return 0
