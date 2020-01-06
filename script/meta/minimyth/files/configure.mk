@@ -35,6 +35,7 @@ MM_INIT_START_PARALLEL := \
     voip \
     browsers \
     updates \
+    housekeep \
     mythdb_buffer_delete
 MM_INIT_KILL := \
     x \
