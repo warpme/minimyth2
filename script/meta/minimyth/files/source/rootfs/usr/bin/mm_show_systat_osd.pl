@@ -60,7 +60,8 @@
 # v1.0 (03/08/2013)
 # -Initial version
 #
-
+# v1.1 (06/01/2020)
+# -cleanup
 
 # -----Config are BEGIN -------
 my $be_ip                 = "@MM_MASTER_SERVER@";
@@ -133,11 +134,13 @@ use strict;
 use warnings;
 use IO::Socket;
 use XML::Simple;
+use LWP::UserAgent;
 use feature 'switch';
 use Unicode::Normalize;
 use DateTime;
 use DateTime::Format::ISO8601;
 use File::Fetch;
+use experimental qw( switch );
 
 binmode(STDOUT, ":utf8");
 no warnings 'deprecated';
@@ -195,61 +198,70 @@ sub sent_notifies_to_all_hosts {
 
 sub load_xml {
 
-  my $status = "";
-  my $response = "";
-  my $url = "http://$be_ip:6544/Status/xml";
+    my $url = "http://$be_ip:6544/Status/xml";
 
-  print ($url) if $debug2; 
+    print ("Load XML URL:". $url . "\n") if $debug;
 
-  if ($debug) {
-      $status = `curl $url`;
-  } else {
-      $status = `curl --silent $url 2>/dev/null`;
-  }
+    my $ua = LWP::UserAgent->new;
+    $ua->timeout(30);
+    $ua->env_proxy;
+    $ua->default_header('Accept-Language' => "en");
 
-  print ($status) if $debug2;
+    my $response = $ua->get($url);
+    if ( !$response->is_success ) {
+        die $response->status_line;
+    }
 
-  return $status;
+    print ("HTTP Response:". $response->status_line . "\n") if $debug;
+    print ("Content:\n" . $response->content . "\n") if $debug2;
+
+    return $response->content;
 
 }
 
 sub load_channel_icon {
 
-  my $min_size = 1; #minimal icon size in kB
-  my ($chan_id) = @_;
-  my $icon_file = "$icon_cache_dir/$chan_id".".channelicon";
-  my $filesize = 0;
+    my $min_size = 1; #minimal icon size in kB
+    my ($chan_id) = @_;
+    my $icon_file = "$icon_cache_dir/$chan_id".".channelicon";
+    my $filesize = 0;
 
-  if (-e $icon_file) {
-    $filesize = -s $icon_file;
-    warn "Icon for ChanID=$chan_id has $filesize bytes\n"
-      if $debug;
-  } else {
-    warn "Icon for ChanID=$chan_id not exists. Downloading...\n"
-      if $debug;
-  }
-
-  if ($filesize < $min_size*1000) {
-
-    unlink $icon_file;
-
-    my $response = "";
-    my $url = "http://$be_ip:6544/Guide/GetChannelIcon?ChanId=$chan_id";
-
-    if ($debug) {
-       print "Icon URL:".$url."\n";
-       my $rc =`curl $url --raw --output $icon_file 2>/dev/null`;
+    if (-e $icon_file) {
+        $filesize = -s $icon_file;
+        warn "Icon for ChanID=$chan_id in in cache ($icon_file)\n" if $debug;
     } else {
-       my $rc =`curl $url --raw --silent --output $icon_file`;
+        warn "Icon for ChanID=$chan_id not exists. Downloading...\n" if $debug;
     }
 
-    warn "Loaded Channel Icon for ChanID=$chan_id from $be_ip\n"
-      if $debug;
+    if ($filesize < $min_size*1000) {
 
-  }
+        unlink $icon_file;
 
-  return $icon_file;
+        my $url = "http://$be_ip:6544/Guide/GetChannelIcon?ChanId=$chan_id";
+        print ("Load chann.icon URL:". $url . "\n") if $debug;
 
+        my $ua = LWP::UserAgent->new;
+        $ua->timeout(30);
+        $ua->env_proxy;
+        $ua->default_header('Accept-Language' => "en");
+
+        my $response = $ua->get($url);
+        if ( !$response->is_success ) {
+            die $response->status_line;
+        }
+
+        my $file = $response->decoded_content( charset => 'none' );
+
+        open my $fh, '>>', $icon_file or die "\nCannot save file '$icon_file' because of $!\n";
+        print $fh $file;
+        close $fh;
+
+        print ("HTTP Response:". $response->status_line . "\n") if $debug;
+        print ("Channel Icon for ChanID=$chan_id from $be_ip stored in $icon_file\n") if $debug;
+
+    }
+
+    return $icon_file;
 }
 
 sub get_gpu_temp {
@@ -269,7 +281,8 @@ sub get_gpu_temp {
     my $rc = open(SHELL, $command);
     while (<SHELL>) {
         my $res = $_;
-        if (($res =~ m/No such file/) || ($res eq ""))  {
+        print $res if $debug2;
+        if (($res =~ m/No such file|not found/) || ($res eq ""))  {
             $out="-1";
            }
         else {
@@ -280,7 +293,7 @@ sub get_gpu_temp {
     close(SHELL);
 
     if ($debug2) {
-        print "GPU Temp   : $out\n";
+        print "GPU Temp   :$out\n";
     }
 
     return $out;
@@ -650,7 +663,7 @@ sub show_processes_stats {
 given ($action) {
 
 
-    when ($action eq "server_status") {
+    when (($action eq "server_status") || ($action eq "4")) {
         $shell_cmd = $remote_shell_cmd;
         $proces_list = $backend_proces_list;
         $title = $server_title_str;
@@ -658,7 +671,7 @@ given ($action) {
     }
 
 
-    when ($action eq "frontend_status") {
+    when (($action eq "frontend_status") || ($action eq "3")) {
         $shell_cmd = "sh -c";
         $proces_list = $frontend_proces_list;
         $title = $frontend_title_str;
@@ -732,7 +745,7 @@ given ($action) {
     }
 
 
-    when ($action eq "next_recordings") {
+    when (($action eq "next_recordings") || ($action eq "5")) {
 
         my $e;
         my $msg ="";
@@ -789,7 +802,7 @@ given ($action) {
 
 
 
-    when ($action eq "next_recordings_big") {
+    when (($action eq "next_recordings_big") || ($action eq "6")) {
 
         my $e;
         my $msg ="";
