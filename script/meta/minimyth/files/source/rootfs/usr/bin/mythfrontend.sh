@@ -2,20 +2,20 @@
 
 if [ x$1 = "xeglfs" ] || [ x$2 = "xeglfs" ]; then
     echo "Runing myth in EGLFS"
-    QT_QPA_PLATFORM=eglfs
+    export QT_QPA_PLATFORM=eglfs
+    export QT_QPA_EGLFS_INTEGRATION=eglfs_kms
     export QT_QPA_EGLFS_DEBUG=1
-    # export qt.qpa.egldeviceintegration=1
-    # export qt.qpa.eglfs.kms=1
-    # export QT_QPA_EGLFS_FORCE888=1
+    export QT_QPA_DEBUG=1
+    # export QT_QPA_EGLFS_FORCE888=1 # needed only for some platforms
+    env
 else
     echo "Runing myth in XCB"
-    QT_QPA_PLATFORM=xcb
+    export QT_QPA_PLATFORM=xcb
+    export QT_QPA_DEBUG=1
 fi
 
 export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
-export QT_QPA_DEBUG=1
 export QT_LOGGING_RULES=qt.qpa.*=true
-export QT_QPA_PLATFORM
 
 if [ x$1 = "xgdb" ] || [ x$2 = "xgdb" ]; then
     echo "Runing myth under gdb"
