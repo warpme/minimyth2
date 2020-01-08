@@ -2166,6 +2166,46 @@ mm_notify_and_exec() {
   local result=`${2} | sed -e "s/::.*//g"`
 }
 
+mm_test_master_db_connection() {
+    # Function is testing connection with DB at with MM_MASTER_CONNECTION_TEST_TIMEOUT timeout.
+    # When MM_MASTER_CONNECTION_TEST_TIMEOUT sec timeout  is reached - functuion will return false
+    # inputs: 
+    # if non zero input param.if provieded - function will also display msgs on splash screen
+
+    local show_on_splash=$1
+
+    # Test Myth database connection.
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_test_db_conn] Testing connection with DB at '${MM_MASTER_SERVER}'"
+
+    i=0
+    while [ $i -lt ${MM_MASTER_CONNECTION_TEST_TIMEOUT} ] ; do
+        i=$((${i} + 1))
+        if ! mm_mythdb_test ; then
+            if [ $i -ge ${MM_MASTER_CONNECTION_TEST_TIMEOUT} ] ; then
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_test_db_conn] Cannot connect to DB after ${MM_MASTER_CONNECTION_TEST_TIMEOUT}sec."
+                if [ -n ${show_on_splash} ] ; then
+                    mm_message_output info "Cannot connect to the DB. MythTV will relay on user search from MythTV uPNP discovery ..."
+                fi
+                /bin/false
+                return
+            else
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_test_db_conn] Trying connect to DB (${i} of ${MM_MASTER_CONNECTION_TEST_TIMEOUT})"
+                if [ -n ${show_on_splash} ] ; then
+                    mm_message_output info "Awaiting for MythTV master DB avaliability: (${i} of ${MM_MASTER_CONNECTION_TEST_TIMEOUT} seconds) ..."
+                fi
+                /bin/sleep 1
+            fi
+        else
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_test_db_conn] Connection with DB at \'${MM_MASTER_SERVER}\' is OK. Good!"
+            i=${MM_MASTER_CONNECTION_TEST_TIMEOUT}
+        fi
+    done
+
+    /bin/true
+    return
+
+}
+
 myth_start() {
 
     local mode=$2
@@ -2192,26 +2232,7 @@ myth_start() {
 
     env > /var/log/enviroment
 
-    /usr/bin/logger -t minimyth -p "local0.info" "[functions] Checking connection with backend host (${MM_MASTER_SERVER})..."
-
-    i=0
-    while [ $i -lt 20 ] ; do
-        no_conn=`ping -c 1 -w 1 -n ${MM_MASTER_SERVER} | grep -c "100% packet loss"`
-        i=$((${i} + 1))
-        if [ ${no_conn} = '1' ] ; then
-            if [ $i -eq 20 ] ; then
-                /usr/bin/logger -t minimyth -p "local0.err" "[functions] Timeout waiting for connection with backend host...($i)"
-                /bin/false
-                return
-            else
-                /usr/bin/logger -t minimyth -p "local0.info" "[functions] Waiting for connection with backend host...($i)"
-                /bin/sleep 1
-            fi
-        else
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Have connection with backend host (${MM_MASTER_SERVER})..."
-            i=20
-        fi
-    done
+    mm_test_master_db_connection
 
     if [ x${mode} = 'xforeground' ] ; then
         /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in foreground via X11..."
