@@ -53,6 +53,7 @@ PATCHFILES += 0103-Minimyth-Add-optical-rip-to-menu.patch
 PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
 PATCHFILES += 0105-Minimyth-defaults.patch
 PATCHFILES += 0106-hack-for-correct-perl-bindings-install.patch
+#PATCHFILES += 0107-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 
 # v4l2-request support in ffmpeg
 # https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-master
@@ -280,6 +281,9 @@ CONFIGURE_ARGS = \
 	--enable-ffplay \
 	--enable-sdl2 \
 	--python="$(build_DESTDIR)$(build_bindir)/python" \
+
+#	DIGNORE_SCHEMA_VER_MISMATCH \
+#	DIGNORE_PROTO_VER_MISMATCH \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
