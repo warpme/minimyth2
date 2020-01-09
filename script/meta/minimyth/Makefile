@@ -120,6 +120,7 @@ DEPENDS = \
 	$(if $(filter dvdcss,$(mm_SOFTWARE)),lib/libdvdcss) \
 	lib/nss-mdns \
 	net/mount.cifs \
+	utils/alsacap \
 	$(if $(filter mplayer-svn,$(mm_SOFTWARE)), \
 		mediaplayers/mplayer-svn) \
 	$(if $(filter ffmpeg-drm,$(mm_SOFTWARE)), \
