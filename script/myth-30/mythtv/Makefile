@@ -56,6 +56,7 @@ PATCHFILES += 0102-Minimyth-Add-phone-entry-in-menu.patch
 PATCHFILES += 0103-Minimyth-Add-optical-rip-to-menu.patch
 PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
 PATCHFILES += 0105-Minimyth-defaults.patch
+PATCHFILES += 0107-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
@@ -110,7 +111,6 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
-PATCHFILES += 0451-MythWeather-scripts-replace-LWP-by-curl.patch
 
 endif
 
