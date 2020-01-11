@@ -50,9 +50,6 @@ PATCHFILES += 0018-media-v4l2-add-mem2mem-Fix-hold-buf-flag-checks.patch
 PATCHFILES += 0019-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
 PATCHFILES += 0020-media-v4l2-mem2mem-mark-DONE-any-OUTPUT-queued-buffer-after-CMD_STOP-v2.patch
 
-# Amlogic: Fix 5.4 kernel Ooops
-PATCHFILES += 0101-meson-ao-cec-move-cec_notifier_cec_adap_register-after-hw-setup.patch
-
 ifeq (1,1)
 # Amlogic: Patch to fix Panfrost reset issue on GXM
 PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
@@ -209,15 +206,12 @@ endif
 
 ifeq (1,1)
 # Allwinner H6: Cedrus related patches
-PATCHFILES += 0606-media-cedrus-fill-in-bus_info-for-media-device.patch
 PATCHFILES += 0607-media-cedrus-choose-default-pixelformat-in-try_fmt.patch
 PATCHFILES += 0608-media-cedrus-fix-various-format-related-compliance-issues.patch
 PATCHFILES += 0609-media-cedrus-h264-Support-multiple-slices-per-frame.patch
-PATCHFILES += 0610-media-cedrus-Fix-undefined-shift-with-a-SHIFT_AND_MASK_BITS.patch
 PATCHFILES += 0611-media-cedrus-Remove-unnecessary-parenthesis-aroundDIV_ROUND_UP.patch
 PATCHFILES += 0612-media-cedrus-Add-HEVC-decoding-support.patch
 PATCHFILES += 0615-media-cedrus-Fix-decoding-for-some-H264-videos.patch
-PATCHFILES += 0616-media-cedrus-Use-helpers-to-access-capture-queue.patch
 PATCHFILES += 0617-media-cedrus-Use-correct-H264-8x8-scaling-list.patch
 PATCHFILES += 0619-media-cedrus-Properly-signa-size-in-mode-register.patch
 PATCHFILES += 0620-media-cedrus-Fix-H264-4k-support.patch
