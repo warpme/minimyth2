@@ -10,6 +10,7 @@ DISTFILES = \
 	board-rpi3.rpi32.conf       \
 	board-s905.conf             \
 	board-s912.conf             \
+	board-g12.conf              \
 	board-rk3328.conf           \
 	board-rk3399.conf           \
 	board-h6.beelink_gs1.conf   \
@@ -21,6 +22,7 @@ DISTFILES = \
 	board-rpi3.rpi32.wks        \
 	board-s905.wks              \
 	board-s912.wks              \
+	board-g12.wks               \
 	board-rk3328.wks            \
 	board-rk3399.wks            \
 	board-h6.beelink_gs1.wks    \

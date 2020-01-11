@@ -105,6 +105,7 @@ mm_GARCH                  ?= x86-64
 # 'board-rpi3.rpi32',
 # 'board-s905'
 # 'board-s912'
+# 'board-g12'
 # 'board-rk3328'
 # 'board-h6.beelink_gs1'
 # 'board-h6.eachlink_mini'
@@ -114,7 +115,7 @@ mm_GARCH                  ?= x86-64
 # 1. 'board-rpi3*' and 'board-rk3328'
 # 2. 'board-h6' and 'board-rk3328'
 # 3. 'board-rpi2' and 'board-*'
-# 4. 'board-s905' and 'board-s912'
+# 4. 'board-s*' and 'board-s*' or 'board-g12'
 # 5. Any multiple H6 boards combination
 mm_BOARD_TYPE             ?= board-s905 board-rpi3.mainline64 board-h6.beelink_gs1
 

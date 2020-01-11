@@ -43,6 +43,11 @@ ifneq (,$(findstring board-s912,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s912
 endif
 
+ifneq (,$(findstring board-g12,$(mm_BOARD_TYPE)))
+	$(MAKE) clean -C ../u-boot
+	$(MAKE) install -C ../board-g12
+endif
+
 ifneq (,$(findstring board-rk3328,$(mm_BOARD_TYPE)))
 	$(MAKE) clean -C ../u-boot
 	$(MAKE) install -C ../board-rk3328
