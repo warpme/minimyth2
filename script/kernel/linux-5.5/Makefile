@@ -141,7 +141,6 @@ endif
 
 # Misc parches for Rockchip
 PATCHFILES += 0450-arm64-dts-fix-IR-receiver-beelinkA1.patch
-PATCHFILES += 0451-phy-rockchip-inno-hdmi-round-clock-rate-down-to-closest-1000-Hz.patch
 
 ifeq (1,1)
 # Allwinner H6: Support for USB3
