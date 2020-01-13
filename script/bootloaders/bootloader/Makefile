@@ -75,6 +75,7 @@ ifneq (,$(findstring board-h6.tanix_tx6,$(mm_BOARD_TYPE)))
 	$(MAKE) clean -C ../u-boot-sunxi
 	$(MAKE) install -C ../board-h6.tanix_tx6
 endif
+	@cp -f $(mm_HOME)/html/minimyth/conf/minimyth.conf $(DESTDIR)/boot/
 
 clean-all:
 	@$(foreach dir, $(wildcard ../u-boot /u-boot-sunxi ../board-* ../arm-trusted-firmware), $(MAKE) clean clean-all -C $(dir) ; )
