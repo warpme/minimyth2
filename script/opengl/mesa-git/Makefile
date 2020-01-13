@@ -2,8 +2,8 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# mesa git@12.01.2020. Working all GLSL on t720/t820/mali405
-GARVERSION   = 632885741f74c12dedd4f128bba45e6a7f8d8982
+# mesa git@13.01.2020. Working all GLSL on t720/t820/mali405
+GARVERSION   = 21bc16a723ba6cc839513dfa720f21d5517135f7
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -207,17 +207,64 @@ post-install:
 ifneq ($(DESTIMG),build)
 ifneq (,$(findstring vc4,$(mm_GRAPHICS)))
 	@echo "--------------------------------------------------------------------------------"     > $(DESTDIR)/usr/share/supported-vc4-gfx-hardware.txt
-	@echo "Broadcom VC4 by $(GARNAME)-$(GARVERSION)"                                            >> $(DESTDIR)/usr/share/supported-vc4-gfx-hardware.txt
+	@echo "Broadcom VC4/V3D by $(GARNAME)-$(GARVERSION)"                                        >> $(DESTDIR)/usr/share/supported-vc4-gfx-hardware.txt
 	@echo "--------------------------------------------------------------------------------"    >> $(DESTDIR)/usr/share/supported-vc4-gfx-hardware.txt
 	@echo "Raspberry PI 2/3"                                                                    >> $(DESTDIR)/usr/share/supported-vc4-gfx-hardware.txt
 	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-vc4-gfx-hardware.txt
 endif
 ifneq (,$(findstring meson,$(mm_GRAPHICS)))
 	@echo "--------------------------------------------------------------------------------"     > $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
-	@echo "ARM Mali450 by $(GARNAME)-$(GARVERSION)"                                             >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo "ARM Mali Midgard, Utgard and Bifrost 3D in Amlogic SoC by $(GARNAME)-$(GARVERSION)"  >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
 	@echo "--------------------------------------------------------------------------------"    >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
-	@echo "ARM Mali 450"                                                                        >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo "Mali Utgard:"                                                                        >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo "    -Mali 400"                                                                       >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo "    -Mali 450"                                                                       >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
 	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo "Mali Midgard:"                                                                       >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo "    -Mali T720"                                                                      >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo "    -Mali T760"                                                                      >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo "    -Mali T820"                                                                      >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo "    -Mali T860"                                                                      >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo "Mali Bifrost:"                                                                       >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo "    -Mali G31"                                                                       >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-meson-gfx-hardware.txt
+endif
+ifneq (,$(findstring rockchip,$(mm_GRAPHICS)))
+	@echo "--------------------------------------------------------------------------------"     > $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "ARM Mali Midgard, Utgard and Bifrost 3D in Rockchip SoC by $(GARNAME)-$(GARVERSION)" >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "--------------------------------------------------------------------------------"    >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "Mali Utgard:"                                                                        >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "    -Mali 400"                                                                       >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "    -Mali 450"                                                                       >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "Mali Midgard:"                                                                       >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "    -Mali T720"                                                                      >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "    -Mali T760"                                                                      >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "    -Mali T820"                                                                      >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "    -Mali T860"                                                                      >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "Mali Bifrost:"                                                                       >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo "    -Mali G31"                                                                       >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-rockchip-gfx-hardware.txt
+endif
+ifneq (,$(findstring sun4i,$(mm_GRAPHICS)))
+	@echo "--------------------------------------------------------------------------------"     > $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "ARM Mali Midgard, Utgard and Bifrost 3D in Allwinner SoC by $(GARNAME)-$(GARVERSION)" >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "--------------------------------------------------------------------------------"    >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "Mali Utgard:"                                                                        >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "    -Mali 400"                                                                       >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "    -Mali 450"                                                                       >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "Mali Midgard:"                                                                       >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "    -Mali T720"                                                                      >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "    -Mali T760"                                                                      >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "    -Mali T820"                                                                      >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "    -Mali T860"                                                                      >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "Mali Bifrost:"                                                                       >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo "    -Mali G31"                                                                       >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
+	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
 endif
 endif
 	@$(MAKECOOKIE)
