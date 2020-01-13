@@ -16,11 +16,16 @@ push(@middle,  q(<div class="section">));
 push(@middle,  q(  <p>));
 if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'no')
 {
-    push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/mythfrontend">MythTV frontend log</li> ));
-    push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/messages">System log</li> ));
+    push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/mythfrontend">Mythfrontend Log</li> ));
+    push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/messages">System Log</li> ));
     push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/settings">MiniMyth2 Settings</li> ));
-    push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/system-info">MiniMyth2 Diagnostic info</li> ));
-    push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/minimyth.err">MiniMyth2 Errors</li> ));
+    push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/system-info">MiniMyth2 Diagnostic Info</li> ));
+    if (-e "/var/log/minimyth.err") {
+        push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/minimyth.err">MiniMyth2 Errors</li> ));
+    }
+    if (-e "/var/log/minimyth.log") {
+        push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/minimyth.log">MiniMyth2 Log</li> ));
+    }
 }
 else
 {
