@@ -54,6 +54,7 @@ PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
 PATCHFILES += 0105-Minimyth-defaults.patch
 PATCHFILES += 0106-hack-for-correct-perl-bindings-install.patch
 PATCHFILES += 0107-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
+PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 
 # v4l2-request support in ffmpeg
 # https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-master
