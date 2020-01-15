@@ -6,6 +6,8 @@ MASTER_SITES =
 DISTFILES    = s905_autoscript \
                s905_autoscript.txt \
                uEnv.ini \
+               boot.ini \
+               u-boot.ext \
 
 WORKSRC      = $(WORKDIR)
 
@@ -31,6 +33,8 @@ install-custom:
 	@cp -f $(WORKSRC)/s905_autoscript.txt                     $(DESTDIR)/boot/s905_autoscript.txt
 	@cp -f $(WORKSRC)/uEnv.ini                                $(DESTDIR)/boot/uEnv.ini
 	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-sm1-sei610.dtb  $(DESTDIR)/boot/sm1_dtb
+	@cp -f $(WORKSRC)/boot.ini                                $(DESTDIR)/boot/boot.ini
+	@cp -f $(WORKSRC)/u-boot.ext                              $(DESTDIR)/boot/u-boot.ext
 	@$(MAKECOOKIE)
 
 clean-all:
@@ -39,3 +43,5 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/uEnv.ini
 	@rm -f $(DESTDIR)/boot/sm1_dtb
 	@rm -f $(DESTDIR)/boot/sm1_u-boot
+	@rm -f $(DESTDIR)/boot/boot.ini
+	@rm -f $(DESTDIR)/boot/u-boot.ext
