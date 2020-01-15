@@ -106,6 +106,7 @@ mm_GARCH                  ?= x86-64
 # 'board-s905'
 # 'board-s912'
 # 'board-g12'
+# 'board-sm1'
 # 'board-rk3328'
 # 'board-h6.beelink_gs1'
 # 'board-h6.eachlink_mini'
