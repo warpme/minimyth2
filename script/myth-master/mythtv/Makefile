@@ -40,12 +40,13 @@ PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music
 # Some patches for better logging
 PATCHFILES += 0050-Loging-Add-better-EIT-verbosity.patch
 PATCHFILES += 0051-Loging-Add-better-TID-verbosity.patch
-PATCHFILES += 0052-Loging-Decrease-some-PMT-DVB-errors-logging.patch
+PATCHFILES += 0052-Loging-Decrease-some-PMT-DVB-errors-Loging.patch
 PATCHFILES += 0053-Loging-Add-verbose-dvb-lock-loging.patch
 PATCHFILES += 0054-Loging-Add-better-loging-for-failed-tunings.patch
 PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
 PATCHFILES += 0056-Loging-Add-signal-monitor-warning-msg-if-NID-or-TSID-dont-match.patch
-PATCHFILES += 0057-Logging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
+PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
+PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
@@ -55,6 +56,7 @@ PATCHFILES += 0103-Minimyth-Add-optical-rip-to-menu.patch
 PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
 PATCHFILES += 0105-Minimyth-defaults.patch
 PATCHFILES += 0106-hack-for-correct-perl-bindings-install.patch
+PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
 PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 
 # v4l2-request support in ffmpeg
