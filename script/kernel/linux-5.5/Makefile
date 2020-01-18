@@ -61,6 +61,7 @@ endif
 
 ifeq (1,1)
 # Amlogic: Add h264 and v4l2 compliance for Amlogic vdec
+# https://github.com/superna9999/linux/commits/amlogic/v5.6/vdec-g12a-compliance-vicodec-vp9 16.02.2020
 PATCHFILES += 0300-arm64-dts-meson-set-dma-pool-to-896MB.patch
 PATCHFILES += 0301-dt-bindings-media-amlogic-vdec-convert-to-yaml.patch
 PATCHFILES += 0302-dt-bindings-media-amlogic-gx-vdec-add-bindings-for-G.patch
@@ -74,7 +75,6 @@ PATCHFILES += 0309-media-vicodec-use-v4l2-mem2mem-draining-stopped-and-.patch
 PATCHFILES += 0310-media-meson-vdec-bring-up-to-compliance.patch
 PATCHFILES += 0311-media-meson-vdec-add-H.264-decoding-support.patch
 PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=218125 17.12.2019
 PATCHFILES += 0313-media-meson-vdec-align-stride-on-32-bytes.patch
 PATCHFILES += 0314-media-meson-vdec-add-helpers-for-lossless-framebuffe.patch
 PATCHFILES += 0315-media-meson-vdec-add-common-HEVC-decoder-support.patch

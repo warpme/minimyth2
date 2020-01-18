@@ -1,7 +1,7 @@
-From 247d36b707820bdb17873295a2e20fe2faf59edd Mon Sep 17 00:00:00 2001
+From 18b3e87b4fde8eed37aa49fd40003802dc54167c Mon Sep 17 00:00:00 2001
 From: Neil Armstrong <narmstrong@baylibre.com>
 Date: Fri, 6 Dec 2019 16:23:23 +0100
-Subject: [PATCH 08/17] media: v4l2-mem2mem: handle draining, stopped and
+Subject: [PATCH 04/12] media: v4l2-mem2mem: handle draining, stopped and
  next-buf-is-last states
 
 Since the draining and stop phase of the HW decoder mem2mem bahaviour is
@@ -20,6 +20,7 @@ By introducing the following v4l2-mem2mem APIS:
 
 And inline helpers:
 - v4l2_m2m_mark_stopped to mark the de/encoding process as stopped
+- v4l2_m2m_clear_state to clear the de/encoding state
 - v4l2_m2m_dst_buf_is_last to detect the current dequeud dst_buf is the last
 - v4l2_m2m_has_stopped to detect the de/encoding stopped state
 - v4l2_m2m_is_last_draining_src_buf to detect the currect source buffer should
@@ -36,12 +37,12 @@ The vicodec will be the first one to be converted as an example.
 
 Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
 ---
- drivers/media/v4l2-core/v4l2-mem2mem.c | 174 ++++++++++++++++++++++++++++++++-
- include/media/v4l2-mem2mem.h           |  87 +++++++++++++++++
- 2 files changed, 259 insertions(+), 2 deletions(-)
+ drivers/media/v4l2-core/v4l2-mem2mem.c | 172 ++++++++++++++++++++++++++++++++-
+ include/media/v4l2-mem2mem.h           |  95 ++++++++++++++++++
+ 2 files changed, 265 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/media/v4l2-core/v4l2-mem2mem.c b/drivers/media/v4l2-core/v4l2-mem2mem.c
-index 1afd9c6..08aec4c 100644
+index 1afd9c6..f221d6c 100644
 --- a/drivers/media/v4l2-core/v4l2-mem2mem.c
 +++ b/drivers/media/v4l2-core/v4l2-mem2mem.c
 @@ -340,6 +340,11 @@ static void __v4l2_m2m_try_queue(struct v4l2_m2m_dev *m2m_dev,
@@ -56,7 +57,7 @@ index 1afd9c6..08aec4c 100644
  	if (m2m_dev->m2m_ops->job_ready
  		&& (!m2m_dev->m2m_ops->job_ready(m2m_ctx->priv))) {
  		dprintk("Driver not ready\n");
-@@ -556,6 +561,101 @@ int v4l2_m2m_querybuf(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
+@@ -556,6 +561,99 @@ int v4l2_m2m_querybuf(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
  }
  EXPORT_SYMBOL_GPL(v4l2_m2m_querybuf);
  
@@ -119,9 +120,7 @@ index 1afd9c6..08aec4c 100644
 +							  next_dst_buf);
 +		}
 +	} else {
-+		m2m_ctx->is_draining = false;
-+		m2m_ctx->has_stopped = false;
-+		m2m_ctx->next_buf_last = false;
++		v4l2_m2m_clear_state(m2m_ctx);
 +	}
 +}
 +EXPORT_SYMBOL_GPL(v4l2_m2m_stop_streaming);
@@ -158,7 +157,7 @@ index 1afd9c6..08aec4c 100644
  int v4l2_m2m_qbuf(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
  		  struct v4l2_buffer *buf)
  {
-@@ -570,11 +670,25 @@ int v4l2_m2m_qbuf(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
+@@ -570,11 +668,25 @@ int v4l2_m2m_qbuf(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
  			__func__);
  		return -EPERM;
  	}
@@ -176,9 +175,9 @@ index 1afd9c6..08aec4c 100644
 +	 */
 +	if (!V4L2_TYPE_IS_OUTPUT(vq->type) &&
 +	    vb2_is_streaming(vq) && !vb2_start_streaming_called(vq) &&
-+	    v4l2_m2m_dst_buf_is_last(m2m_ctx))
++	   (v4l2_m2m_has_stopped(m2m_ctx) || v4l2_m2m_dst_buf_is_last(m2m_ctx)))
 +		v4l2_m2m_force_last_buf_done(m2m_ctx, vq);
-+	else if ((buf->flags & V4L2_BUF_FLAG_IN_REQUEST))
++	else if (!(buf->flags & V4L2_BUF_FLAG_IN_REQUEST))
  		v4l2_m2m_try_schedule(m2m_ctx);
  
 -	return ret;
@@ -186,7 +185,7 @@ index 1afd9c6..08aec4c 100644
  }
  EXPORT_SYMBOL_GPL(v4l2_m2m_qbuf);
  
-@@ -1225,6 +1339,62 @@ int v4l2_m2m_ioctl_try_decoder_cmd(struct file *file, void *fh,
+@@ -1225,6 +1337,62 @@ int v4l2_m2m_ioctl_try_decoder_cmd(struct file *file, void *fh,
  }
  EXPORT_SYMBOL_GPL(v4l2_m2m_ioctl_try_decoder_cmd);
  
@@ -250,7 +249,7 @@ index 1afd9c6..08aec4c 100644
  					     struct v4l2_decoder_cmd *dc)
  {
 diff --git a/include/media/v4l2-mem2mem.h b/include/media/v4l2-mem2mem.h
-index 1d85e24..1eb988c 100644
+index 1d85e24..3476889 100644
 --- a/include/media/v4l2-mem2mem.h
 +++ b/include/media/v4l2-mem2mem.h
 @@ -80,6 +80,10 @@ struct v4l2_m2m_queue_ctx {
@@ -276,10 +275,18 @@ index 1d85e24..1eb988c 100644
  	/* internal use only */
  	struct v4l2_m2m_dev		*m2m_dev;
  
-@@ -215,6 +224,42 @@ v4l2_m2m_buf_done(struct vb2_v4l2_buffer *buf, enum vb2_buffer_state state)
+@@ -215,6 +224,50 @@ v4l2_m2m_buf_done(struct vb2_v4l2_buffer *buf, enum vb2_buffer_state state)
  	vb2_buffer_done(&buf->vb2_buf, state);
  }
  
++static inline void
++v4l2_m2m_clear_state(struct v4l2_m2m_ctx *m2m_ctx)
++{
++	m2m_ctx->next_buf_last = false;
++	m2m_ctx->is_draining = false;
++	m2m_ctx->has_stopped = false;
++}
++
 +static inline void
 +v4l2_m2m_mark_stopped(struct v4l2_m2m_ctx *m2m_ctx)
 +{
@@ -311,7 +318,7 @@ index 1d85e24..1eb988c 100644
 + * v4l2_m2m_last_buffer_done() - marks the buffer with LAST flag and DONE
 + *
 + * @m2m_ctx: m2m context assigned to the instance given by struct &v4l2_m2m_ctx
-+ * @buf: pointer to struct &v4l2_buffer
++ * @vbuf: pointer to struct &v4l2_buffer
 + */
 +void v4l2_m2m_last_buffer_done(struct v4l2_m2m_ctx *m2m_ctx,
 +			       struct vb2_v4l2_buffer *vbuf);
@@ -319,7 +326,7 @@ index 1d85e24..1eb988c 100644
  /**
   * v4l2_m2m_reqbufs() - multi-queue-aware REQBUFS multiplexer
   *
-@@ -313,6 +358,44 @@ int v4l2_m2m_streamoff(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
+@@ -313,6 +366,44 @@ int v4l2_m2m_streamoff(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
  		       enum v4l2_buf_type type);
  
  /**
@@ -345,7 +352,7 @@ index 1d85e24..1eb988c 100644
 + *
 + * @file: pointer to struct &file
 + * @m2m_ctx: m2m context assigned to the instance given by struct &v4l2_m2m_ctx
-+ * @dc: pointer to the encoder command
++ * @ec: pointer to the encoder command
 + */
 +int v4l2_m2m_encoder_cmd(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
 +			 struct v4l2_encoder_cmd *ec);
@@ -364,7 +371,7 @@ index 1d85e24..1eb988c 100644
   * v4l2_m2m_poll() - poll replacement, for destination buffers only
   *
   * @file: pointer to struct &file
-@@ -704,6 +787,10 @@ int v4l2_m2m_ioctl_streamon(struct file *file, void *fh,
+@@ -704,6 +795,10 @@ int v4l2_m2m_ioctl_streamon(struct file *file, void *fh,
  				enum v4l2_buf_type type);
  int v4l2_m2m_ioctl_streamoff(struct file *file, void *fh,
  				enum v4l2_buf_type type);

@@ -1,7 +1,7 @@
-From dcd43bc70005a296440eae4ddfda2de5d286e88f Mon Sep 17 00:00:00 2001
+From 7a3408834b6f08d9126b46290056c315dfc46b4d Mon Sep 17 00:00:00 2001
 From: Neil Armstrong <narmstrong@baylibre.com>
 Date: Fri, 6 Dec 2019 16:24:16 +0100
-Subject: [PATCH 09/17] media: vicodec: use v4l2-mem2mem draining, stopped and
+Subject: [PATCH 05/12] media: vicodec: use v4l2-mem2mem draining, stopped and
  next-buf-is-last states handling
 
 Use the previously introduced v4l2-mem2mem core APIs to handle the drainig,
@@ -44,11 +44,11 @@ Suggested-by: Hans Verkuil <hverkuil@xs4all.nl>
 Suggested-by: Maxime Jourdan <mjourdan@baylibre.com>
 Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
 ---
- drivers/media/platform/vicodec/vicodec-core.c | 154 ++++++++------------------
- 1 file changed, 44 insertions(+), 110 deletions(-)
+ drivers/media/platform/vicodec/vicodec-core.c | 162 +++++++++-----------------
+ 1 file changed, 52 insertions(+), 110 deletions(-)
 
 diff --git a/drivers/media/platform/vicodec/vicodec-core.c b/drivers/media/platform/vicodec/vicodec-core.c
-index 8235009..5606dbd7 100644
+index 8235009..425c472 100644
 --- a/drivers/media/platform/vicodec/vicodec-core.c
 +++ b/drivers/media/platform/vicodec/vicodec-core.c
 @@ -117,15 +117,10 @@ struct vicodec_ctx {
@@ -153,7 +153,7 @@ index 8235009..5606dbd7 100644
  static int vicodec_encoder_cmd(struct file *file, void *fh,
  			    struct v4l2_encoder_cmd *ec)
  {
-@@ -1268,18 +1228,15 @@ static int vicodec_encoder_cmd(struct file *file, void *fh,
+@@ -1268,18 +1228,19 @@ static int vicodec_encoder_cmd(struct file *file, void *fh,
  	    !vb2_is_streaming(&ctx->fh.m2m_ctx->out_q_ctx.q))
  		return 0;
  
@@ -169,6 +169,10 @@ index 8235009..5606dbd7 100644
 +	if (ret < 0)
 +		return ret;
 +
++	if (ec->cmd == V4L2_ENC_CMD_STOP &&
++	    v4l2_m2m_has_stopped(ctx->fh.m2m_ctx))
++		v4l2_event_queue_fh(&ctx->fh, &vicodec_eos_event);
++
 +	if (ec->cmd == V4L2_ENC_CMD_START &&
 +	    v4l2_m2m_has_stopped(ctx->fh.m2m_ctx))
  		vb2_clear_last_buffer_dequeued(&ctx->fh.m2m_ctx->cap_q_ctx.q);
@@ -180,7 +184,7 @@ index 8235009..5606dbd7 100644
  }
  
  static int vicodec_decoder_cmd(struct file *file, void *fh,
-@@ -1296,18 +1253,15 @@ static int vicodec_decoder_cmd(struct file *file, void *fh,
+@@ -1296,18 +1257,19 @@ static int vicodec_decoder_cmd(struct file *file, void *fh,
  	    !vb2_is_streaming(&ctx->fh.m2m_ctx->out_q_ctx.q))
  		return 0;
  
@@ -196,6 +200,10 @@ index 8235009..5606dbd7 100644
 +	if (ret < 0)
 +		return ret;
 +
++	if (dc->cmd == V4L2_DEC_CMD_STOP &&
++	    v4l2_m2m_has_stopped(ctx->fh.m2m_ctx))
++		v4l2_event_queue_fh(&ctx->fh, &vicodec_eos_event);
++
 +	if (dc->cmd == V4L2_DEC_CMD_START &&
 +	    v4l2_m2m_has_stopped(ctx->fh.m2m_ctx))
  		vb2_clear_last_buffer_dequeued(&ctx->fh.m2m_ctx->cap_q_ctx.q);
@@ -207,7 +215,7 @@ index 8235009..5606dbd7 100644
  }
  
  static int vicodec_enum_framesizes(struct file *file, void *fh,
-@@ -1480,23 +1434,21 @@ static void vicodec_buf_queue(struct vb2_buffer *vb)
+@@ -1480,23 +1442,21 @@ static void vicodec_buf_queue(struct vb2_buffer *vb)
  		.u.src_change.changes = V4L2_EVENT_SRC_CH_RESOLUTION,
  	};
  
@@ -245,7 +253,7 @@ index 8235009..5606dbd7 100644
  	}
  
  	/* buf_queue handles only the first source change event */
-@@ -1609,8 +1561,7 @@ static int vicodec_start_streaming(struct vb2_queue *q,
+@@ -1609,8 +1569,7 @@ static int vicodec_start_streaming(struct vb2_queue *q,
  	chroma_div = info->width_div * info->height_div;
  	q_data->sequence = 0;
  
@@ -255,7 +263,7 @@ index 8235009..5606dbd7 100644
  
  	state->gop_cnt = 0;
  
-@@ -1689,29 +1640,12 @@ static void vicodec_stop_streaming(struct vb2_queue *q)
+@@ -1689,29 +1648,12 @@ static void vicodec_stop_streaming(struct vb2_queue *q)
  
  	vicodec_return_bufs(q, VB2_BUF_STATE_ERROR);
  
