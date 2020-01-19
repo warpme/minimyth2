@@ -1,7 +1,7 @@
 GARNAME = qt-everywhere-src
-GARVERSION = 5.13.1
+GARVERSION = 5.14.0
 CATEGORIES = qt
-MASTER_SITES = http://download.qt.io/official_releases/qt/5.13/$(GARVERSION)/single/
+MASTER_SITES = http://download.qt.io/official_releases/qt/5.14/$(GARVERSION)/single/
 DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES  = $(DISTNAME).patch.gar
 PATCHFILES += $(DISTNAME)-fix-gcc6+-build.patch
