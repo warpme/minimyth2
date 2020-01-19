@@ -1,6 +1,6 @@
 GARNAME = qtwebkit
 CATEGORIES = qt
-GARVERSION = 47e125f8c3ff6fb508a8f055d45b15365d5e9d83
+GARVERSION = 1ee41e6e22d4ff19029e0ae28c083a8c68f02baf
 MASTER_SITES = https://github.com/qt/qtwebkit/archive/
 DISTFILES = $(GARVERSION).zip
 PATCHFILES  = qt5-webkit-revert-ac17da2-Check-Qt-private-headers-available-before-compilation.patch
