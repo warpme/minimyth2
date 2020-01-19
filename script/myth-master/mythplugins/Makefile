@@ -40,7 +40,9 @@ DEPENDS = \
 	perl/perl-DateTime-Format-ISO8601 \
 	perl/perl-Image-Size \
 	perl/perl-JSON \
+	perl/perl-PerlMagick \
 	perl/perl-SOAP-Lite \
+	perl/perl-TimeDate \
 	perl/perl-XML-Simple \
 	perl/perl-XML-TreeBuilder \
 	perl/perl-XML-XPath \
