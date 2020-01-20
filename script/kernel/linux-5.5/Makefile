@@ -1,12 +1,5 @@
-ifeq (1,1)
-#--Use this for mainline official x.y.z kernel from SCM----
-MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
-DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
-WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
-#----------------------------------------------------------
-endif
 
-ifeq (1,0)
+ifeq (1,1)
 #--Use this for mainline official x.y.z kernel from GIT----
 MASTER_SITES       += https://github.com/torvalds/linux/archive/
 DISTFILES           = v$(LINUX_VERSION).tar.gz $(CONFIGFILE)
@@ -14,28 +7,11 @@ WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 #----------------------------------------------------------
 endif
 
-
 ifeq (0,1)
 #--Use this for mainline git-commit kernel-----------------
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/$(GITHASH)
-#----------------------------------------------------------
-endif
-
-ifeq (0,1)
-#--Use this for Neil's amlogic media-next tree ------------
-MASTER_SITES        = https://github.com/superna9999/linux/archive/
-DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
-WORKSRC             = $(WORKDIR)/linux-$(GITHASH)
-#----------------------------------------------------------
-endif
-
-ifeq (0,1)
-#--Use this for Chewitt amlogic 5.5-integ tree ------------
-MASTER_SITES        = https://github.com/chewitt/linux/archive/
-DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
-WORKSRC             = $(WORKDIR)/linux-$(GITHASH)
 #----------------------------------------------------------
 endif
 
@@ -140,9 +116,6 @@ PATCHFILES += 0436-media-hantro-Add-support-for-H264-decoding-on-RK3399.patch
 PATCHFILES += 0437-media-hantro-Enable-H264-decoding-on-RK3399.patch
 PATCHFILES += 0438-media-hantro-Enable-H264-decoding-on-RK3328.patch
 endif
-
-# Misc parches for Rockchip
-PATCHFILES += 0450-arm64-dts-fix-IR-receiver-beelinkA1.patch
 
 ifeq (1,1)
 # Allwinner H6: Support for USB3

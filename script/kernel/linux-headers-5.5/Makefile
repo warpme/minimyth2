@@ -3,16 +3,16 @@ GARNAME = linux
 GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),$(if $(filter-out 0,$(LINUX_TEENY_VERSION)),.$(LINUX_TEENY_VERSION)))$(LINUX_EXTRA_VERSION)
 CATEGORIES = kernel-headers
 
-#--Use this for mainline official x.y.z kernel----
-MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
-DISTFILES           = $(DISTNAME).tar.gz
-#-------------------------------------------------
+#--Use this for mainline official x.y.z kernel from GIT----
+MASTER_SITES       += https://github.com/torvalds/linux/archive/
+DISTFILES           = v$(LINUX_VERSION).tar.gz $(CONFIGFILE)
+#----------------------------------------------------------
 
-#--Use this for mainline git-commit kernel--------
+#--Use this for mainline git-commit kernel-----------------
 # MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 # DISTFILES           = $(GITHASH).tar.gz
 # WORKSRC             = $(WORKDIR)/$(GITHASH)
-#-------------------------------------------------
+#----------------------------------------------------------
 
 LICENSE = GPL2
 
