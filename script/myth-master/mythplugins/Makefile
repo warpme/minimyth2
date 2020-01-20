@@ -36,6 +36,7 @@ DEPENDS = \
 	python/python-pycurl \
 	python/python-requests-cache \
 	python/python-oauth \
+	perl/perl-Date-Calc \
 	perl/perl-Date-Manip \
 	perl/perl-DateTime-Format-ISO8601 \
 	perl/perl-Image-Size \
