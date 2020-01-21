@@ -35,3 +35,7 @@ designed to install on PC hardware and to used as computer
 running various software.
 Target scenario with MiniMyth2 is small, disk-less dedicated appliance
 running MythTV Frontend (and preactically only MythTV Frontend).
+
+# More Info
+- MiniMyth2 [Changelog] (https://raw.githubusercontent.com/warpme/minimyth2/master/html/minimyth/document-changelog.txt)
+- Current verssion [Release Notes] (https://raw.githubusercontent.com/warpme/minimyth2/master/html/minimyth/document-release-notes.txt)
