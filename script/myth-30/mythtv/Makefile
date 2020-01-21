@@ -252,7 +252,7 @@ CONFIGURE_ARGS = \
 	--enable-libxml2 \
 	--enable-libdns_sd \
 	--enable-libcrypto \
-	--with-bindings="perl" \
+	--without-bindings="perl" \
 	--without-bindings="php" \
 	--with-bindings="python" \
 	--enable-pic \
