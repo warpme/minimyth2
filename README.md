@@ -38,6 +38,6 @@ running MythTV Frontend (and preactically only MythTV Frontend).
 
 # More Info
 - MiniMyth2 [Changelog]
-(https://raw.githubusercontent.com/warpme/minimyth2/master/html/minimyth/document-changelog.txt)
+(https://raw.githubusercontent.com/warpme/minimyth2/master/html/minimyth/document-changelog.txt).
 - Current verssion [Release Notes]
-(https://raw.githubusercontent.com/warpme/minimyth2/master/html/minimyth/document-release-notes.txt)
+(https://raw.githubusercontent.com/warpme/minimyth2/master/html/minimyth/document-release-notes.txt).
