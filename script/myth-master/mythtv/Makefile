@@ -76,6 +76,12 @@ PATCHFILES += 0162-ffmpeg-v4l2request-WIP-v4l2-request-rolling-timestamps.patch
 PATCHFILES += 0163-configure-add-v4l2request-support.patch
 # misc v4l2 patches
 PATCHFILES += 0164-ffmpeg-avcodec-v4l2_context-Use-AVERROR-macro.patch
+# https://github.com/tmm1/FFmpeg/commit/a0a00b958c524f3b0e2ca26d60dad1a674f872c7
+PATCHFILES += 0165-ffmpeg-avcodec-v4l2m2m-clean-up-buffer-options-and-pick-sane-defaults.patch
+# https://github.com/tmm1/FFmpeg/commit/3e397f382974cca43e3fbb24bb850fc3f3225c30
+PATCHFILES += 0166-ffmpeg-avcodec-v4l2_m2m_dec-remove-temporary-avpkt-and-read-directyl-to-buffer.patch
+# https://github.com/tmm1/FFmpeg/commit/196bab90a29323722050111e936532ac9ac9bfda
+PATCHFILES += 0167-ffmpeg-avcodec-handle-errors-more-explicitly.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
