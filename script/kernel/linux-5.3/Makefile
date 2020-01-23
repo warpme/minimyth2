@@ -24,6 +24,8 @@ PATCHFILES += linux-5.3-defaults.patch
 PATCHFILES += linux-5.3-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.3-net-smsc95xx-allow-mac-address-as-param.patch
 
+PATCHFILES += 0100-aarch64-text-offset.patch
+
 ifeq (1,1)
 PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 # Some Lima fixes
@@ -93,6 +95,8 @@ PATCHFILES += 0348-ARM64-dts-meson-activate-hdmi-audio-HDMI-enabled-boa.patch
 # Amlogic misc patches
 PATCHFILES += 0349-media-rc-add-keymap-for-Tanix-TX3-mini-remote.patch
 PATCHFILES += 0350-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
+#PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
+PATCHFILES += 0362-dt-bindings-reset-meson-add-gxl-internal-dac-reset.patch
 
 # ROCKCHIP speciffic patches to enable hdmi audio
 PATCHFILES += 0400-arm64-dts-rockchip-add-HDMI-sound-node-for-rk3328-ro.patch
