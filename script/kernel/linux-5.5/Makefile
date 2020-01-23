@@ -86,6 +86,10 @@ endif
 # Amlogic: Misc patches
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
+PATCHFILES += 0362-dt-bindings-reset-meson-add-gxl-internal-dac-reset.patch
+PATCHFILES += 0363-dt-bindings-clk-meson-add-the-gxl-internal-dac-gate.patch
+PATCHFILES += 0364-clk-meson-gxbb-add-the-gxl-internal-dac-gate.patch
+PATCHFILES += 0365-clk-meson-gxbb-set-audio-output-clock-hierarchy.patch
 
 ifeq (0,1)
 # Rockchip: rkvdec rk3399
