@@ -1,5 +1,5 @@
 GARNAME = linux-firmware
-GARVERSION = 20191213-e8a0f4c
+GARVERSION = 20200124-1eb2408c
 CATEGORIES = kernel-5.4
 MASTER_SITES = git://git.kernel.org/pub/scm/linux/kernel/git/firmware/
 DISTFILES = $(DISTNAME).tar.bz2
