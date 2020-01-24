@@ -56,6 +56,7 @@ PATCHFILES += 0314-media-meson-vdec-add-helpers-for-lossless-framebuffe.patch
 PATCHFILES += 0315-media-meson-vdec-add-common-HEVC-decoder-support.patch
 PATCHFILES += 0316-media-meson-vdec-add-VP9-input-support.patch
 PATCHFILES += 0317-media-meson-vdec-add-VP9-decoder-support.patch
+PATCHFILES += 0318-media-meson-vdec-don-t-resume-instantly-if-not-streaming-capture.patch
 endif
 
 ifeq (1,1)
