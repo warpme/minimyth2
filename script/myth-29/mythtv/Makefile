@@ -58,7 +58,6 @@ PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-
 # Needed to successfully applying 0235 & 0236
 PATCHFILES += 0218-decrease-minQt-ver-to-4.8.patch
 
-ifneq ($(patsubst %minimal,minimal,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),minimal)
 # LVR safe patches related to player/OSD
 PATCHFILES += 0226-0186-mythplayer-Increase-resolution-of-onscreen-playback-.patch
 PATCHFILES += 0231-0238-Player-Add-interlaced-status-to-OSD-debug-screen-vid.patch
@@ -139,11 +138,6 @@ PATCHFILES += 0323-ticket12396-.srt-subs-go-out-of-sync.patch
 PATCHFILES += 0325-make-mediamonitor-bluray-mounts-persistent.patch
 
 PATCHFILES += 0328-ticket13211-mythtv-29-aac-6-channel-audio-backport.patch
-
-endif
-
-ifeq ($(patsubst %private,private,$(shell cat /home/piotro/minimyth-dev/minimyth.conf.mk | grep "^mm_VERSION_MINIMYTH\s*?=" | sed -e "s/\s*//g")),private)
-endif
 
 LICENSE = GPL2
 
