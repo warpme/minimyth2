@@ -6,6 +6,7 @@ DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  =
 
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
+PATCHFILES += 0000-configure-set-to-GAR-perl-python.patch.gar
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
@@ -92,7 +93,7 @@ PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
 
 # Misc frontend patches
 PATCHFILES += 0211-decrease-minQt-ver-to-4.8.patch
-PATCHFILES += 0212-configure-add-mythpluguns-perl-config.patch
+#PATCHFILES += 0212-configure-add-mythpluguns-perl-config.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 PATCHFILES += 0215-decoders-v4l2-add-loging-for-detection.patch
 
@@ -284,7 +285,7 @@ CONFIGURE_ARGS = \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 	--enable-ffplay \
 	--enable-sdl2 \
-	--python="$(build_DESTDIR)$(build_bindir)/python" \
+	--python="python" \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
