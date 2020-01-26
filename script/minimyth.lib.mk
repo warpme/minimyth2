@@ -241,8 +241,8 @@ gar-patch-%:
 		| sed 's%@GAR_RANLIB@%$(RANLIB)%g' \
 		| sed 's%@GAR_NM@%$(NM)%g' \
 		| sed 's%@GAR_STRIP@%$(STRIP)%g' \
-		| sed 's%@GAR_PERL_BIN@%$(build_DESTDIR)$(build_bindir)/perl%g' \
-		| sed 's%@GAR_PYTHON_BIN@%$$(build_DESTDIR)$(build_bindir)/python%g' \
+		| sed 's%@GAR_PERL_BIN@%$(build_bindir)/perl%g' \
+		| sed 's%@GAR_PYTHON_BIN@%$(build_bindir)/python%g' \
 		| sed 's%@GAR_CPPLAGS@%$(CPPFLAGS)%g' \
 		| sed 's%@GAR_CFLAGS@%$(CFLAGS)%g' \
 		| sed 's%@GAR_CXXFLAGS@%$(CXXFLAGS)%g' \
