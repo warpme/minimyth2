@@ -1,28 +1,28 @@
-From d033c693819d133a6d04b9916b26475795f61a5a Mon Sep 17 00:00:00 2001
+From afdd1f116e641cf38835c0ac35858714180b52d6 Mon Sep 17 00:00:00 2001
 From: Jerome Brunet <jbrunet@baylibre.com>
 Date: Tue, 22 Oct 2019 17:54:41 +0200
-Subject: [PATCH 52/94] WIP: ASoC: meson: aiu: add i2s encoder support
+Subject: [PATCH 79/90] ASoC: meson: aiu: add i2s encoder support
 
 Signed-off-by: Jerome Brunet <jbrunet@baylibre.com>
 ---
  sound/soc/meson/Kconfig          |   8 +
  sound/soc/meson/Makefile         |   2 +
- sound/soc/meson/aiu-i2s-encode.c | 426 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 436 insertions(+)
+ sound/soc/meson/aiu-i2s-encode.c | 474 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 484 insertions(+)
  create mode 100644 sound/soc/meson/aiu-i2s-encode.c
 
 diff --git a/sound/soc/meson/Kconfig b/sound/soc/meson/Kconfig
-index 47a7cae..562d960 100644
+index 4f4fcc1..0ed9bca 100644
 --- a/sound/soc/meson/Kconfig
 +++ b/sound/soc/meson/Kconfig
-@@ -26,6 +26,14 @@ config SND_MESON_AIU_SPDIF_FIFO
+@@ -19,6 +19,14 @@ config SND_MESON_AIU_SPDIF_FIFO
  	help
  	  Select Y or M to add support for spdif FIFO of the GXL family
  
 +config SND_MESON_AIU_I2S_ENCODER
 +	tristate "Amlogic AIU I2S Encoder"
++	imply MESON_AIU_BUS
 +	imply SND_MESON_AIU_I2S_FIFO
-+	imply SND_MESON_AIU_BUS
 +	select MFD_SYSCON
 +	help
 +	  Select Y or M to add support for i2s Encoder of the GXL family
@@ -31,10 +31,10 @@ index 47a7cae..562d960 100644
  	tristate
  	select REGMAP_MMIO
 diff --git a/sound/soc/meson/Makefile b/sound/soc/meson/Makefile
-index 45637ce..cfbe404 100644
+index 5f594a9..a4606f5 100644
 --- a/sound/soc/meson/Makefile
 +++ b/sound/soc/meson/Makefile
-@@ -4,6 +4,7 @@ snd-soc-meson-aiu-bus-objs := aiu-bus.o
+@@ -3,6 +3,7 @@
  snd-soc-meson-aiu-fifo-objs := aiu-fifo.o
  snd-soc-meson-aiu-i2s-fifo-objs := aiu-i2s-fifo.o
  snd-soc-meson-aiu-spdif-fifo-objs := aiu-spdif-fifo.o
@@ -42,7 +42,7 @@ index 45637ce..cfbe404 100644
  snd-soc-meson-axg-fifo-objs := axg-fifo.o
  snd-soc-meson-axg-frddr-objs := axg-frddr.o
  snd-soc-meson-axg-toddr-objs := axg-toddr.o
-@@ -24,6 +25,7 @@ obj-$(CONFIG_SND_MESON_AIU_BUS) += snd-soc-meson-aiu-bus.o
+@@ -22,6 +23,7 @@ snd-soc-meson-t9015-objs := t9015.o
  obj-$(CONFIG_SND_MESON_AIU_FIFO) += snd-soc-meson-aiu-fifo.o
  obj-$(CONFIG_SND_MESON_AIU_I2S_FIFO) += snd-soc-meson-aiu-i2s-fifo.o
  obj-$(CONFIG_SND_MESON_AIU_SPDIF_FIFO) += snd-soc-meson-aiu-spdif-fifo.o
@@ -52,10 +52,10 @@ index 45637ce..cfbe404 100644
  obj-$(CONFIG_SND_MESON_AXG_TODDR) += snd-soc-meson-axg-toddr.o
 diff --git a/sound/soc/meson/aiu-i2s-encode.c b/sound/soc/meson/aiu-i2s-encode.c
 new file mode 100644
-index 0000000..4a77fba
+index 0000000..c8c67cf
 --- /dev/null
 +++ b/sound/soc/meson/aiu-i2s-encode.c
-@@ -0,0 +1,426 @@
+@@ -0,0 +1,474 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// Copyright (c) 2018 BayLibre, SAS.
@@ -91,10 +91,12 @@ index 0000000..4a77fba
 +#define AIU_CODEC_DAC_LRCLK_CTRL_DIV	GENMASK(11, 0)
 +#define AIU_I2S_MISC			0x048
 +#define  AIU_I2S_MISC_HOLD_EN		BIT(2)
++#define  AIU_I2S_MISC_958_SRC_SHIFT	3
 +
 +struct aiu_i2s_encode {
 +	struct clk *aoclk;
 +	struct clk *mclk;
++	struct clk *mixer;
 +	struct clk *pclk;
 +};
 +
@@ -221,13 +223,6 @@ index 0000000..4a77fba
 +				      AIU_CLK_CTRL_MORE_HDMI_AMCLK,
 +				      AIU_CLK_CTRL_MORE_HDMI_AMCLK);
 +
-+	/* REMOVE ME: HARD CODED TEST */
-+	/* Set HDMI path */
-+	snd_soc_component_write(component, 0xa8, 0x22);
-+
-+	/* Internal DAC Path */
-+	snd_soc_component_write(component, 0xb0, 0x8058);
-+
 +	return 0;
 +}
 +
@@ -353,9 +348,9 @@ index 0000000..4a77fba
 +		return ret;
 +	}
 +
-+	ret = clk_prepare_enable(encoder->pclk);
++	ret = clk_prepare_enable(encoder->mixer);
 +	if (ret)
-+	        return ret;
++		return ret;
 +
 +	ret = clk_prepare_enable(encoder->mclk);
 +	if (ret)
@@ -367,10 +362,10 @@ index 0000000..4a77fba
 +
 +	return 0;
 +
++err_mclk:
++	clk_disable_unprepare(encoder->mixer);
 +err_aoclk:
 +	clk_disable_unprepare(encoder->mclk);
-+err_mclk:
-+	clk_disable_unprepare(encoder->pclk);
 +	return ret;
 +}
 +
@@ -381,7 +376,7 @@ index 0000000..4a77fba
 +
 +	clk_disable_unprepare(encoder->aoclk);
 +	clk_disable_unprepare(encoder->mclk);
-+	clk_disable_unprepare(encoder->pclk);
++	clk_disable_unprepare(encoder->mixer);
 +}
 +
 +static const struct snd_soc_dai_ops aiu_i2s_encode_dai_ops = {
@@ -408,10 +403,17 @@ index 0000000..4a77fba
 +	.ops = &aiu_i2s_encode_dai_ops,
 +};
 +
-+int aiu_i2s_encode_component_probe(struct snd_soc_component *component)
++static int aiu_i2s_encode_component_probe(struct snd_soc_component *component)
 +{
++	struct aiu_i2s_encode *encoder =
++		snd_soc_component_get_drvdata(component);
 +	struct device *dev = component->dev;
 +	struct regmap *map;
++	int ret;
++
++	ret = clk_prepare_enable(encoder->pclk);
++	if (ret)
++	        return ret;
 +
 +	map = syscon_node_to_regmap(dev->parent->of_node);
 +	if (IS_ERR(map)) {
@@ -424,8 +426,47 @@ index 0000000..4a77fba
 +	return 0;
 +}
 +
++static void aiu_i2s_encode_component_remove(struct snd_soc_component *component)
++{
++	struct aiu_i2s_encode *encoder =
++		snd_soc_component_get_drvdata(component);
++
++	clk_disable_unprepare(encoder->pclk);
++}
++
++static const char * const aiu_spdif_encode_sel_texts[] = {
++	"SPDIF", "I2S",
++};
++
++static SOC_ENUM_SINGLE_DECL(aiu_spdif_encode_sel_enum, AIU_I2S_MISC,
++			    AIU_I2S_MISC_958_SRC_SHIFT,
++			    aiu_spdif_encode_sel_texts);
++
++static const struct snd_kcontrol_new aiu_spdif_encode_mux =
++	SOC_DAPM_ENUM("SPDIF Buffer Src", aiu_spdif_encode_sel_enum);
++
++static const struct snd_soc_dapm_widget aiu_i2s_encode_dapm_widgets[] = {
++	SND_SOC_DAPM_AIF_IN("SPDIF IN", NULL, 0, SND_SOC_NOPM, 0, 0),
++	SND_SOC_DAPM_AIF_IN("I2S IN", NULL, 0, SND_SOC_NOPM, 0, 0),
++	SND_SOC_DAPM_MUX("SPDIF SRC SEL", SND_SOC_NOPM, 0, 0,
++			 &aiu_spdif_encode_mux),
++	SND_SOC_DAPM_AIF_OUT("SPDIF OUT", NULL, 0, SND_SOC_NOPM, 0, 0),
++};
++
++static const struct snd_soc_dapm_route aiu_i2s_encode_dapm_routes[] = {
++	{ "Playback", NULL, "I2S IN" },
++	{ "SPDIF SRC SEL", "SPDIF", "SPDIF IN" },
++	{ "SPDIF SRC SEL", "I2S", "I2S IN" },
++	{ "SPDIF OUT", NULL, "SPDIF SRC SEL" },
++};
++
 +static const struct snd_soc_component_driver aiu_i2s_encode_component = {
-+	.probe 			= aiu_i2s_encode_component_probe,
++	.dapm_widgets		= aiu_i2s_encode_dapm_widgets,
++	.num_dapm_widgets	= ARRAY_SIZE(aiu_i2s_encode_dapm_widgets),
++	.dapm_routes		= aiu_i2s_encode_dapm_routes,
++	.num_dapm_routes	= ARRAY_SIZE(aiu_i2s_encode_dapm_routes),
++	.probe 	= aiu_i2s_encode_component_probe,
++	.remove	= aiu_i2s_encode_component_remove,
 +};
 +
 +static int aiu_i2s_encode_probe(struct platform_device *pdev)
@@ -444,6 +485,13 @@ index 0000000..4a77fba
 +			dev_err(dev,
 +				"Can't get the peripheral clock\n");
 +		return PTR_ERR(encoder->pclk);
++	}
++
++	encoder->mixer = devm_clk_get(dev, "mixer");
++	if (IS_ERR(encoder->mixer)) {
++		if (PTR_ERR(encoder->mixer) != -EPROBE_DEFER)
++			dev_err(dev, "Can't get the ao clock\n");
++		return PTR_ERR(encoder->mixer);
 +	}
 +
 +	encoder->aoclk = devm_clk_get(dev, "aoclk");

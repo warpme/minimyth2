@@ -61,19 +61,20 @@ endif
 
 ifeq (1,1)
 # Amlogic: Enable hdmi audio
+# https://gitlab.com/jbrunet/linux/commits/v5.6/aml/integ
 PATCHFILES += 0330-ASoC-meson-rework-g12a-tohdmitx-codec.patch
 PATCHFILES += 0331-ASoC-meson-add-toacodec-dt-bindings.patch
 PATCHFILES += 0332-ASoC-meson-add-g12-internal-DAC-glue.patch
 PATCHFILES += 0333-ASoC-meson-add-t9015-internal-DAC-driver.patch
 PATCHFILES += 0334-ASoC-meson-axg-card-add-toacodec-support.patch
-PATCHFILES += 0335-ASoC-meson-add-aiu-bus-support.patch
+# PATCHFILES += 0335-ASoC-meson-add-aiu-bus-support.patch
 PATCHFILES += 0336-ASoC-meson-aiu-add-i2s-fifo-support.patch
 PATCHFILES += 0337-ASoC-meson-aiu-add-spdif-fifo-support.patch
 PATCHFILES += 0338-ASoC-meson-aiu-add-i2s-encoder-support.patch
 PATCHFILES += 0339-ASoC-meson-aiu-add-spdif-encoder-support.patch
 PATCHFILES += 0340-ASoC-meson-extract-utils-from-axg-sound-card.patch
 PATCHFILES += 0341-ASoC-meson-add-gx-card-support.patch
-PATCHFILES += 0342-ASoC-hdmi-codec-re-introduce-mutex-locking-again.patch
+PATCHFILES += 0342-WIP-ASoC-meson-gx-hardcode-codec-to-codec-routes.patch
 PATCHFILES += 0343-clk-meson-g12a-fix-gp0-and-hifi-ranges.patch
 PATCHFILES += 0344-arm64-dts-meson-g12a-add-internal-DAC.patch
 PATCHFILES += 0345-arm64-dts-meson-g12a-add-internal-DAC-glue.patch
@@ -81,7 +82,8 @@ PATCHFILES += 0346-arm64-dts-meson-u200-add-audio-support.patch
 PATCHFILES += 0347-arm64-dts-meson-gx-add-playback-audio-devices.patch
 PATCHFILES += 0348-arm64-dts-meson-enable-audio-playback-on-p230-q2.patch
 PATCHFILES += 0349-arm64-dts-meson-add-Khadas-VIM2-audio-playback.patch
-#PATCHFILES += 0350-arm64-dts-meson-add-libretech-cc-s905x-audio-pla.patch
+PATCHFILES += 0350-arm64-dts-meson-add-audio-fifo-depths.patch
+PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
 endif
 
 # Amlogic: Misc patches

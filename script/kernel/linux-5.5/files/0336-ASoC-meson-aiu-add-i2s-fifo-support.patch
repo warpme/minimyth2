@@ -1,7 +1,7 @@
-From 9a78881a4a3b0b079433c222655f9a51052854d1 Mon Sep 17 00:00:00 2001
+From 75d5d1fbe42866ff8d47aab89fb23707cf3604e5 Mon Sep 17 00:00:00 2001
 From: Jerome Brunet <jbrunet@baylibre.com>
 Date: Tue, 22 Oct 2019 17:51:56 +0200
-Subject: [PATCH 50/94] WIP: ASoC: meson: aiu: add i2s fifo support
+Subject: [PATCH 77/90] ASoC: meson: aiu: add i2s fifo support
 
 Signed-off-by: Jerome Brunet <jbrunet@baylibre.com>
 ---
@@ -9,23 +9,23 @@ Signed-off-by: Jerome Brunet <jbrunet@baylibre.com>
  sound/soc/meson/Makefile       |   4 +
  sound/soc/meson/aiu-fifo.c     | 268 +++++++++++++++++++++++++++++++++++++++++
  sound/soc/meson/aiu-fifo.h     |  60 +++++++++
- sound/soc/meson/aiu-i2s-fifo.c | 170 ++++++++++++++++++++++++++
- 5 files changed, 513 insertions(+)
+ sound/soc/meson/aiu-i2s-fifo.c | 169 ++++++++++++++++++++++++++
+ 5 files changed, 512 insertions(+)
  create mode 100644 sound/soc/meson/aiu-fifo.c
  create mode 100644 sound/soc/meson/aiu-fifo.h
  create mode 100644 sound/soc/meson/aiu-i2s-fifo.c
 
 diff --git a/sound/soc/meson/Kconfig b/sound/soc/meson/Kconfig
-index 5b15077..7633057 100644
+index 4c1ced9..0a58b47 100644
 --- a/sound/soc/meson/Kconfig
 +++ b/sound/soc/meson/Kconfig
-@@ -9,6 +9,17 @@ config SND_MESON_AIU_BUS
- 	  Select Y or M to add support for audio output interfaces
- 	  embedded in the Amlogic GX SoC families
+@@ -2,6 +2,17 @@
+ menu "ASoC support for Amlogic platforms"
+ 	depends on ARCH_MESON || COMPILE_TEST
  
 +config SND_MESON_AIU_FIFO
 +	tristate
-+	imply SND_MESON_AIU_BUS
++	imply MESON_AIU_BUS
 +	select MFD_SYSCON
 +
 +config SND_MESON_AIU_I2S_FIFO
@@ -38,22 +38,21 @@ index 5b15077..7633057 100644
  	tristate
  	select REGMAP_MMIO
 diff --git a/sound/soc/meson/Makefile b/sound/soc/meson/Makefile
-index 6c89ab3..b3c23ec 100644
+index 5331c41..9141fe5 100644
 --- a/sound/soc/meson/Makefile
 +++ b/sound/soc/meson/Makefile
-@@ -1,6 +1,8 @@
+@@ -1,5 +1,7 @@
  # SPDX-License-Identifier: (GPL-2.0 OR MIT)
  
- snd-soc-meson-aiu-bus-objs := aiu-bus.o
 +snd-soc-meson-aiu-fifo-objs := aiu-fifo.o
 +snd-soc-meson-aiu-i2s-fifo-objs := aiu-i2s-fifo.o
  snd-soc-meson-axg-fifo-objs := axg-fifo.o
  snd-soc-meson-axg-frddr-objs := axg-frddr.o
  snd-soc-meson-axg-toddr-objs := axg-toddr.o
-@@ -18,6 +20,8 @@ snd-soc-meson-g12a-tohdmitx-objs := g12a-tohdmitx.o
+@@ -16,6 +18,8 @@ snd-soc-meson-g12a-toacodec-objs := g12a-toacodec.o
+ snd-soc-meson-g12a-tohdmitx-objs := g12a-tohdmitx.o
  snd-soc-meson-t9015-objs := t9015.o
  
- obj-$(CONFIG_SND_MESON_AIU_BUS) += snd-soc-meson-aiu-bus.o
 +obj-$(CONFIG_SND_MESON_AIU_FIFO) += snd-soc-meson-aiu-fifo.o
 +obj-$(CONFIG_SND_MESON_AIU_I2S_FIFO) += snd-soc-meson-aiu-i2s-fifo.o
  obj-$(CONFIG_SND_MESON_AXG_FIFO) += snd-soc-meson-axg-fifo.o
@@ -401,10 +400,10 @@ index 0000000..3de5f2d
 +#endif /* _MESON_AIU_FIFO_H */
 diff --git a/sound/soc/meson/aiu-i2s-fifo.c b/sound/soc/meson/aiu-i2s-fifo.c
 new file mode 100644
-index 0000000..efb6bbd
+index 0000000..374a1977
 --- /dev/null
 +++ b/sound/soc/meson/aiu-i2s-fifo.c
-@@ -0,0 +1,170 @@
+@@ -0,0 +1,169 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// Copyright (c) 2019 BayLibre, SAS.
@@ -521,7 +520,6 @@ index 0000000..efb6bbd
 +static const struct snd_soc_component_driver i2s_fifo_component_drv = {
 +	.probe		= aiu_fifo_component_probe,
 +	.pointer	= aiu_fifo_pointer,
-+	.ioctl		= snd_soc_pcm_lib_ioctl,
 +};
 +
 +static struct snd_pcm_hardware i2s_fifo_pcm = {
