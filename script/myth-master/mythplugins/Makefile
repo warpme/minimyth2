@@ -77,8 +77,6 @@ CONFIGURE_ARGS = \
 	--enable-mythnews \
 	--enable-mythweather \
 	--enable-mythzoneminder \
-	--python="$(build_DESTDIR)$(build_bindir)/python" \
-	--perl="$(build_DESTDIR)$(build_bindir)/perl" \
 
 CONFIGURE_ENV = $(MYTHTV_CONFIGURE_ENV) $(PERL_CONFIGURE_ENV) PYTHONXCPREFIX=$(DESTDIR)$(prefix)
 BUILD_ENV     = $(MYTHTV_BUILD_ENV)     $(PERL_BUILD_ENV)
