@@ -81,6 +81,9 @@ PATCHFILES += 0166-ffmpeg-avcodec-v4l2_m2m_dec-remove-temporary-avpkt-and-read-d
 # https://github.com/tmm1/FFmpeg/commit/196bab90a29323722050111e936532ac9ac9bfda
 PATCHFILES += 0167-ffmpeg-avcodec-handle-errors-more-explicitly.patch
 
+PATCHFILES += 0169-ffmpeg-libavdevice-produce-0byte-if-dequeued-size-unexpected.patch
+PATCHFILES += 0170-ffmpeg-libavcodec-log-requested-pixfmt.patch
+
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
 PATCHFILES += 0201-Mediamonitor-reduce-udisks-timeout-to-1500msec.patch
@@ -92,9 +95,7 @@ PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
 
 # Misc frontend patches
 PATCHFILES += 0211-decrease-minQt-ver-to-4.8.patch
-#PATCHFILES += 0212-configure-add-mythpluguns-perl-config.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
-PATCHFILES += 0215-decoders-v4l2-add-loging-for-detection.patch
 
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
