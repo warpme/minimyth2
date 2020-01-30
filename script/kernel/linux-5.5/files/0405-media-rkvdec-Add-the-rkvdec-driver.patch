@@ -1,11 +1,20 @@
+From: Boris Brezillon <boris.brezillon@collabora.com>
 
 The rockchip vdec block is a stateless decoder that's able to decode
 H264, HEVC and VP9 content. This commit adds the core infrastructure
 and the H264 backend. Support for VP9 and HEVS will be added later on.
 
 Signed-off-by: Boris Brezillon <boris.brezillon@collabora.com>
+Signed-off-by: Ezequiel Garcia <ezequiel@collabora.com>
 ---
-Changes in v3:
+v4:
+* Make poc tables const, as suggested by Hans
+* Move buffer extra space calculation TRY_FMT, as done on Hantro.
+* Get rid of vb2_request_get_buf and open-code
+  following Cedrus. We can move it to a helper as a follow-up patch.
+* Correct clocks.
+* Add a minor comment about the order to xxx_buf_done.
+v3:
 * Move the driver to drivers/staging/media/rkvdec/
 * Fix copy&paste error in the Kconfig desc
 * Use REC709 color space when resetting the capture format
@@ -22,9 +31,9 @@ Changes in v3:
  drivers/staging/media/rkvdec/Makefile      |    3 +
  drivers/staging/media/rkvdec/rkvdec-h264.c | 1154 ++++++++++++++++++++
  drivers/staging/media/rkvdec/rkvdec-regs.h |  239 ++++
- drivers/staging/media/rkvdec/rkvdec.c      | 1130 +++++++++++++++++++
+ drivers/staging/media/rkvdec/rkvdec.c      | 1134 +++++++++++++++++++
  drivers/staging/media/rkvdec/rkvdec.h      |  124 +++
- 8 files changed, 2668 insertions(+)
+ 8 files changed, 2672 insertions(+)
  create mode 100644 drivers/staging/media/rkvdec/Kconfig
  create mode 100644 drivers/staging/media/rkvdec/Makefile
  create mode 100644 drivers/staging/media/rkvdec/rkvdec-h264.c
@@ -33,7 +42,7 @@ Changes in v3:
  create mode 100644 drivers/staging/media/rkvdec/rkvdec.h
 
 diff --git a/drivers/staging/media/Kconfig b/drivers/staging/media/Kconfig
-index 642adc4c24d2..95b47d871648 100644
+index c394abffea86..bf70de84f5cb 100644
 --- a/drivers/staging/media/Kconfig
 +++ b/drivers/staging/media/Kconfig
 @@ -30,6 +30,8 @@ source "drivers/staging/media/meson/vdec/Kconfig"
@@ -46,7 +55,7 @@ index 642adc4c24d2..95b47d871648 100644
  
  source "drivers/staging/media/tegra-vde/Kconfig"
 diff --git a/drivers/staging/media/Makefile b/drivers/staging/media/Makefile
-index 2f1711a8aeed..82529c42654d 100644
+index ea9fce8014bb..7169dffe3fca 100644
 --- a/drivers/staging/media/Makefile
 +++ b/drivers/staging/media/Makefile
 @@ -3,6 +3,7 @@ obj-$(CONFIG_VIDEO_ALLEGRO_DVT)	+= allegro-dvt/
@@ -89,7 +98,7 @@ index 000000000000..c08fed0a39f9
 +rockchip-vdec-y += rkvdec.o rkvdec-h264.o
 diff --git a/drivers/staging/media/rkvdec/rkvdec-h264.c b/drivers/staging/media/rkvdec/rkvdec-h264.c
 new file mode 100644
-index 000000000000..6de4bd39f286
+index 000000000000..3c81ea9882a7
 --- /dev/null
 +++ b/drivers/staging/media/rkvdec/rkvdec-h264.c
 @@ -0,0 +1,1154 @@
@@ -932,7 +941,7 @@ index 000000000000..6de4bd39f286
 +/*
 + * dpb poc related registers table
 + */
-+static u32 poc_reg_tbl_top_field[16] = {
++static const u32 poc_reg_tbl_top_field[16] = {
 +	RKVDEC_REG_H264_POC_REFER0(0),
 +	RKVDEC_REG_H264_POC_REFER0(2),
 +	RKVDEC_REG_H264_POC_REFER0(4),
@@ -951,7 +960,7 @@ index 000000000000..6de4bd39f286
 +	RKVDEC_REG_H264_POC_REFER2(0)
 +};
 +
-+static u32 poc_reg_tbl_bottom_field[16] = {
++static const u32 poc_reg_tbl_bottom_field[16] = {
 +	RKVDEC_REG_H264_POC_REFER0(1),
 +	RKVDEC_REG_H264_POC_REFER0(3),
 +	RKVDEC_REG_H264_POC_REFER0(5),
@@ -1494,10 +1503,10 @@ index 000000000000..1293b3621364
 +#endif /* RKVDEC_REGS_H_ */
 diff --git a/drivers/staging/media/rkvdec/rkvdec.c b/drivers/staging/media/rkvdec/rkvdec.c
 new file mode 100644
-index 000000000000..97698be9072e
+index 000000000000..f96d43968f5a
 --- /dev/null
 +++ b/drivers/staging/media/rkvdec/rkvdec.c
-@@ -0,0 +1,1130 @@
+@@ -0,0 +1,1134 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip Video Decoder driver
@@ -1685,6 +1694,7 @@ index 000000000000..97698be9072e
 +static int rkvdec_try_capture_fmt(struct file *file, void *priv,
 +				  struct v4l2_format *f)
 +{
++	struct v4l2_pix_format_mplane *pix_mp = &f->fmt.pix_mp;
 +	struct rkvdec_ctx *ctx = fh_to_rkvdec_ctx(priv);
 +	const struct rkvdec_coded_fmt_desc *coded_desc;
 +	u32 fourcc, width, height;
@@ -1699,7 +1709,7 @@ index 000000000000..97698be9072e
 +	if (WARN_ON(!coded_desc))
 +		return -EINVAL;
 +
-+	fourcc = f->fmt.pix_mp.pixelformat;
++	fourcc = pix_mp->pixelformat;
 +	for (i = 0; i < coded_desc->num_decoded_fmts; i++) {
 +		if (coded_desc->decoded_fmts[i] == fourcc)
 +			break;
@@ -1709,25 +1719,24 @@ index 000000000000..97698be9072e
 +		return -EINVAL;
 +
 +	/* Save the original width/height before aligning them. */
-+	width = f->fmt.pix_mp.width;
-+	height = f->fmt.pix_mp.height;
++	width = pix_mp->width;
++	height = pix_mp->height;
 +
 +	/* Always apply the frmsize constraint of the coded end. */
-+	v4l2_apply_frmsize_constraints(&f->fmt.pix_mp.width,
-+				       &f->fmt.pix_mp.height,
++	v4l2_apply_frmsize_constraints(&pix_mp->width,
++				       &pix_mp->height,
 +				       &coded_desc->frmsize);
 +
-+	v4l2_fill_pixfmt_mp(&f->fmt.pix_mp, fourcc, f->fmt.pix_mp.width,
-+			    f->fmt.pix_mp.height);
-+
++	v4l2_fill_pixfmt_mp(pix_mp, fourcc, pix_mp->width, pix_mp->height);
++	pix_mp->plane_fmt[0].sizeimage +=
++		128 * DIV_ROUND_UP(width, 16) * DIV_ROUND_UP(height, 16);
 +	/*
 +	 * Now that we have computed sizeimage and bytesperline we can restore
 +	 * the original width/height (before macro block alignment).
 +	 */
-+	f->fmt.pix_mp.width = width;
-+	f->fmt.pix_mp.height = height;
-+
-+	f->fmt.pix_mp.field = V4L2_FIELD_NONE;
++	pix_mp->width = width;
++	pix_mp->height = height;
++	pix_mp->field = V4L2_FIELD_NONE;
 +
 +	return 0;
 +}
@@ -1928,7 +1937,6 @@ index 000000000000..97698be9072e
 +			      struct device *alloc_devs[])
 +{
 +	struct rkvdec_ctx *ctx = vb2_get_drv_priv(vq);
-+	struct v4l2_pix_format_mplane *pixfmt;
 +	struct v4l2_format *f;
 +	unsigned int i;
 +
@@ -1951,12 +1959,6 @@ index 000000000000..97698be9072e
 +			sizes[i] = f->fmt.pix_mp.plane_fmt[i].sizeimage;
 +	}
 +
-+	if (V4L2_TYPE_IS_OUTPUT(vq->type))
-+		return 0;
-+
-+	pixfmt = &ctx->decoded_fmt.fmt.pix_mp;
-+	sizes[0] += 128 * DIV_ROUND_UP(pixfmt->width, 16) *
-+		    DIV_ROUND_UP(pixfmt->height, 16);
 +	return 0;
 +}
 +
@@ -2079,18 +2081,23 @@ index 000000000000..97698be9072e
 +
 +static int rkvdec_request_validate(struct media_request *req)
 +{
++	struct media_request_object *obj;
 +	const struct rkvdec_ctrls *ctrls;
 +	struct v4l2_ctrl_handler *hdl;
-+	struct rkvdec_ctx *ctx;
-+	struct vb2_buffer *vb;
++	struct rkvdec_ctx *ctx = NULL;
 +	unsigned int count, i;
 +	int ret;
 +
-+	vb = vb2_request_get_buf(req, 0);
-+	if (!vb)
-+		return -ENOENT;
++	list_for_each_entry(obj, &req->objects, list) {
++		struct vb2_buffer *vb;
 +
-+	ctx = vb2_get_drv_priv(vb->vb2_queue);
++		if (vb2_request_object_is_buffer(obj)) {
++			vb = container_of(obj, struct vb2_buffer, req_obj);
++			ctx = vb2_get_drv_priv(vb->vb2_queue);
++			break;
++		}
++	}
++
 +	if (!ctx)
 +		return -EINVAL;
 +
@@ -2154,8 +2161,14 @@ index 000000000000..97698be9072e
 +	if (ctx->coded_fmt_desc->ops->done)
 +		ctx->coded_fmt_desc->ops->done(ctx, src_buf, dst_buf, result);
 +
-+	v4l2_m2m_buf_done(src_buf, result);
++	/*
++	 * Returning the OUTPUT (src) buffer will wake-up any process
++	 * waiting on the request file descriptor.
++	 * Therefore, let's return the CAPTURE (dst) buffer first.
++	 * This makes userspace slightly simpler.
++	 */
 +	v4l2_m2m_buf_done(dst_buf, result);
++	v4l2_m2m_buf_done(src_buf, result);
 +	v4l2_m2m_job_finish(ctx->dev->m2m_dev, m2m_ctx);
 +}
 +
@@ -2498,7 +2511,7 @@ index 000000000000..97698be9072e
 +MODULE_DEVICE_TABLE(of, of_rkvdec_match);
 +
 +static const char * const rkvdec_clk_names[] = {
-+	"aclk", "iface", "cabac", "core"
++	"axi", "ahb", "cabac", "core"
 +};
 +
 +static int rkvdec_probe(struct platform_device *pdev)
@@ -2630,7 +2643,7 @@ index 000000000000..97698be9072e
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/staging/media/rkvdec/rkvdec.h b/drivers/staging/media/rkvdec/rkvdec.h
 new file mode 100644
-index 000000000000..9a9898cdb2fd
+index 000000000000..529ef86510d3
 --- /dev/null
 +++ b/drivers/staging/media/rkvdec/rkvdec.h
 @@ -0,0 +1,124 @@
@@ -2728,7 +2741,7 @@ index 000000000000..9a9898cdb2fd
 +	struct device *dev;
 +	struct clk_bulk_data *clocks;
 +	void __iomem *regs;
-+	struct mutex vdev_lock;
++	struct mutex vdev_lock; /* serializes ioctls */
 +	struct delayed_work watchdog_work;
 +};
 +

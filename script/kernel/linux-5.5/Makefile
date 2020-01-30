@@ -33,6 +33,9 @@ PATCHFILES += 0100-aarch64-text-offset.patch
 ifeq (1,1)
 # Amlogic: Patch to fix Panfrost reset issue on GXM
 PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+# Misc pnafrost patchres for 5.5 kernel
+# https://gitlab.freedesktop.org/tomeu/linux/commit/77e798ec24625949631f386772e592d0af4e7bbe
+PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
 endif
 
 ifeq (1,1)
@@ -46,17 +49,22 @@ PATCHFILES += 0304-arm64-dts-meson-g12-common-add-video-decoder-node.patch
 PATCHFILES += 0305-dt-bindings-media-amlogic-gx-vdec-add-bindings-for-S.patch
 PATCHFILES += 0306-media-meson-vdec-add-sm1-platform.patch
 PATCHFILES += 0307-arm64-dts-meson-sm1-add-video-decoder-compatible.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=229231
 PATCHFILES += 0308-media-v4l2-mem2mem-handle-draining-stopped-and-next-.patch
 PATCHFILES += 0309-media-vicodec-use-v4l2-mem2mem-draining-stopped-and-.patch
 PATCHFILES += 0310-media-meson-vdec-bring-up-to-compliance.patch
 PATCHFILES += 0311-media-meson-vdec-add-H.264-decoding-support.patch
 PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=229239
 PATCHFILES += 0313-media-meson-vdec-align-stride-on-32-bytes.patch
 PATCHFILES += 0314-media-meson-vdec-add-helpers-for-lossless-framebuffe.patch
 PATCHFILES += 0315-media-meson-vdec-add-common-HEVC-decoder-support.patch
 PATCHFILES += 0316-media-meson-vdec-add-VP9-input-support.patch
 PATCHFILES += 0317-media-meson-vdec-add-VP9-decoder-support.patch
+# https://patchwork.kernel.org/patch/11350623/
 PATCHFILES += 0318-media-meson-vdec-don-t-resume-instantly-if-not-streaming-capture.patch
+# https://patchwork.kernel.org/patch/11352831/
+PATCHFILES += 0319-media-meson-vdec-fix-OUTPUT-buffer-size-configuration.patch
 endif
 
 ifeq (1,1)
@@ -67,7 +75,6 @@ PATCHFILES += 0331-ASoC-meson-add-toacodec-dt-bindings.patch
 PATCHFILES += 0332-ASoC-meson-add-g12-internal-DAC-glue.patch
 PATCHFILES += 0333-ASoC-meson-add-t9015-internal-DAC-driver.patch
 PATCHFILES += 0334-ASoC-meson-axg-card-add-toacodec-support.patch
-# PATCHFILES += 0335-ASoC-meson-add-aiu-bus-support.patch
 PATCHFILES += 0336-ASoC-meson-aiu-add-i2s-fifo-support.patch
 PATCHFILES += 0337-ASoC-meson-aiu-add-spdif-fifo-support.patch
 PATCHFILES += 0338-ASoC-meson-aiu-add-i2s-encoder-support.patch
@@ -96,14 +103,13 @@ PATCHFILES += 0365-clk-meson-gxbb-set-audio-output-clock-hierarchy.patch
 
 ifeq (0,1)
 # Rockchip: rkvdec rk3399
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=216661
-PATCHFILES += 0401-media-vb2-Add-a-helper-to-get-the-vb2-buffer-attached-to-a-request.patch
-PATCHFILES += 0402-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
-PATCHFILES += 0403-media-v4l2-core-Add-helpers-to-build-the-H264-P-B0-B1-reflists.patch
-PATCHFILES += 0404-media-hantro-h264-Use-the-generic-H264-reflist-builder.patch
-PATCHFILES += 0405-media-dt-bindings-rockchip-Document-RK3399-Video-Decoder-bindings.patch
-PATCHFILES += 0406-media-rkvdec-Add-the-rkvdec-driver.patch
-PATCHFILES += 0407-arm64-dts-rockchip-rk3399-Define-the-rockchip-Video-Decoder-node.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=234693 v4 29.01.2020
+PATCHFILES += 0401-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
+PATCHFILES += 0402-media-v4l2-core-Add-helpers-to-build-the-H264-P-B0-B1-reflists.patch
+PATCHFILES += 0403-media-hantro-h264-Use-the-generic-H264-reflist-builder.patch
+PATCHFILES += 0404-media-dt-bindings-rockchip-Document-RK3399-Video-Decoder-bindings.patch
+PATCHFILES += 0405-media-rkvdec-Add-the-rkvdec-driver.patch
+PATCHFILES += 0406-arm64-dts-rockchip-rk3399-Define-the-rockchip-Video-Decoder-node.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=216701
 PATCHFILES += 0408-media-v4l2-ctrls-Add-the-__-v4l2_ctrl_s_ctrl_compound-helpers.patch
 PATCHFILES += 0409-media-uapi-Add-VP9-stateless-decoder-controls.patch
@@ -122,6 +128,25 @@ PATCHFILES += 0435-media-hantro-Refactor-G1-H264-code.patch
 PATCHFILES += 0436-media-hantro-Add-support-for-H264-decoding-on-RK3399.patch
 PATCHFILES += 0437-media-hantro-Enable-H264-decoding-on-RK3399.patch
 PATCHFILES += 0438-media-hantro-Enable-H264-decoding-on-RK3328.patch
+endif
+
+ifeq (1,1)
+# Rockchip: rk3328/3399 HDMI improvements (including 4k support)
+# https://patchwork.freedesktop.org/series/71675/#rev2
+PATCHFILES += 0451-phy-rockchip-inno-hdmi-use-correct-vco_div_5-macro-on-rk3328.patch
+PATCHFILES += 0452-phy-rockchip-inno-hdmi-round-fractal-pixclock-in-rk3328-recalc_rate.patch
+PATCHFILES += 0453-phy-rockchip-inno-hdmi-remove-unused-no_c-from-rk3328-recalc_rate.patch
+PATCHFILES += 0454-phy-rockchip-inno-hdmi-do-not-power-on-rk3328-post-pll-on-reg-write.patch
+PATCHFILES += 0455-phy-rockchip-inno-hdmi-force-set_rate-on-power_on.patch
+PATCHFILES += 0456-drm-rockchip-dw-hdmi-allow-high-tmds-bit-rates.patch
+PATCHFILES += 0457-drm-rockchip-dw-hdmi-require-valid-vpll-clock-rate-on-rk3228-rk3328.patch
+PATCHFILES += 0458-clk-rockchip-set-parent-rate-for-DCLK_VOP-clock-on-rk3228.patch
+PATCHFILES += 0459-arm64-dts-rockchip-increase-vop-clock-rate-on-rk3328.patch
+PATCHFILES += 0460-arm64-dts-rockchip-add-vpll-clock-to-hdmi-node-on-rk3328.patch
+PATCHFILES += 0461-ARM-dts-rockchip-add-vpll-clock-to-hdmi-node-on-rk3228.patch
+PATCHFILES += 0462-drm-rockchip-dw-hdmi-limit-tmds-to-340mhz-on-rk3228-rk3328.patch
+PATCHFILES += 0463-drm-rockchip-dw-hdmi-remove-unused-plat_data-on-rk3228-rk3328.patch
+PATCHFILES += 0464-phy-rockchip-inno-hdmi-Support-more-pre-pll-configuration.patch
 endif
 
 ifeq (1,1)
