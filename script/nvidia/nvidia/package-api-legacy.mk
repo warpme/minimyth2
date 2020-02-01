@@ -20,8 +20,6 @@ WORKSRC = $(WORKDIR)/$(DISTFILE)
 
 NVIDIA_SUPER_VERSION = $(strip $(if $(filter i386,$(GARCH_FAMILY)),x86,x86_64))
 
-#	$(if $(filter x86_64,$(GARCH_FAMILY)),x86_64))
-
 NVIDIA_VERSION_LIST  = $(strip \
 	$(if $(NVIDIA_MAJOR_VERSION), \
 		$(if $(NVIDIA_MINOR_VERSION), \
@@ -61,24 +59,18 @@ NVIDIA_FILE_LIST_LIB_DRV = $(strip \
 			nvidia_drv.so:/:$(libdir)/nvidia-legacy/xorg/modules/drivers) \
 	)
 NVIDIA_FILE_LIST_LIB_SO  = $(strip \
-		$(if $(wildcard $(WORKSRC)/usr/lib/libGL.so.*), \
-			libGL.so:/usr/lib:$(libdir)/nvidia-legacy) \
-		$(if $(wildcard $(WORKSRC)/usr/lib/libGLcore.so.*), \
-			libGLcore.so:/usr/lib:$(libdir)/nvidia-legacy) \
-		$(if $(wildcard $(WORKSRC)/usr/lib/libnvidia-cfg.so.*), \
-			libnvidia-cfg.so:/usr/lib:$(libdir)/nvidia-legacy) \
-		$(if $(wildcard $(WORKSRC)/usr/lib/tls/libnvidia-tls.so.*), \
-			libnvidia-tls.so:/usr/lib/tls:$(libdir)/nvidia-legacy) \
-		$(if $(wildcard $(WORKSRC)/usr/lib/vdpau/libvdpau_nvidia.so.*), \
-			libvdpau_nvidia.so:/usr/lib/vdpau:$(libdir)/vdpau-nvidia-legacy) \
-		$(if $(wildcard $(WORKSRC)/usr/X11R6/lib/libXvMCNVIDIA.so.*), \
-			libXvMCNVIDIA.so:/usr/X11R6/lib:$(libdir)/nvidia-legacy) \
-		$(if $(wildcard $(WORKSRC)/usr/X11R6/lib/modules/extensions/libglx.so.*), \
-			libglx.so:/usr/X11R6/lib/modules/extensions:$(libdir)/nvidia-legacy/xorg/modules/extensions) \
 		$(if $(wildcard $(WORKSRC)/libGL.so.*), \
 			libGL.so:/:$(libdir)/nvidia-legacy) \
+		$(if $(wildcard $(WORKSRC)/libEGL.so.*), \
+			libEGL.so:/:$(libdir)/nvidia-legacy) \
+		$(if $(wildcard $(WORKSRC)/libGLESv1_CM.so.*), \
+			libGLESv1_CM.so:/:$(libdir)/nvidia-legacy) \
+		$(if $(wildcard $(WORKSRC)/libGLESv2.so.*), \
+			libGLESv2.so:/:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libnvidia-glcore.so.*), \
 			libnvidia-glcore.so:/:$(libdir)/nvidia-legacy) \
+		$(if $(wildcard $(WORKSRC)/libnvidia-eglcore.so.*), \
+			libnvidia-eglcore.so:/:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libnvidia-cfg.so.*), \
 			libnvidia-cfg.so:/:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/tls/libnvidia-tls.so.*), \
@@ -89,6 +81,8 @@ NVIDIA_FILE_LIST_LIB_SO  = $(strip \
 			libvdpau_nvidia.so:/:$(libdir)/vdpau-nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libnvidia-ml.so.*), \
 			libnvidia-ml.so:/:$(libdir)/nvidia-legacy) \
+		$(if $(wildcard $(WORKSRC)/libnvidia-glsi.so.*), \
+			libnvidia-glsi.so:/:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libXvMCNVIDIA.so.*), \
 			libXvMCNVIDIA.so:/:$(libdir)/nvidia-legacy) \
 		$(if $(wildcard $(WORKSRC)/libglx.so.*), \
