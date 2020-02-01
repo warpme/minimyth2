@@ -95,6 +95,7 @@ DEPENDS = \
 	X11/xdotool \
 	system/zoneinfo \
 	utils/htop \
+	$(if $(filter mesa mesa-git lima,$(mm_OPENGL_PROVIDER)),opengl/mesa-demos) \
 	$(if $(filter mythplugins,$(mm_SOFTWARE)), \
 		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythplugins),myth-$(mm_MYTH_VERSION)/mythplugins) \
 		$(if $(filter python,$(mm_SOFTWARE)), \
