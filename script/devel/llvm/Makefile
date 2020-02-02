@@ -1,7 +1,7 @@
 GARNAME = llvm
-GARVERSION = 7.0.1
+GARVERSION = 9.0.1
 CATEGORIES = devel
-MASTER_SITES = http://www.llvm.org/releases/$(GARVERSION)/
+MASTER_SITES = https://github.com/llvm/llvm-project/releases/download/llvmorg-$(GARVERSION)/
 DISTFILES = $(DISTNAME).src.tar.xz
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKDIR)/$(DISTNAME)/LICENSE.TXT
