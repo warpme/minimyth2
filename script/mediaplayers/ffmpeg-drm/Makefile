@@ -43,14 +43,14 @@ install-custom:
 	@mkdir -p $(DESTDIR)$(bindir)
 	@echo "Installing ffmpeg-drm..."
 	@cp -rf $(WORKSRC)/_ffmpeg-drm $(DESTDIR)$(bindir)/ffmpeg-drm
-	@echo "Installing mythffmpeg-drm..."
-	@cp -rf $(WORKSRC)/_mythffmpeg-drm $(DESTDIR)$(bindir)/mythffmpeg-drm
+	@echo "Installing ffmpeg-drm-myth..."
+	@cp -rf $(WORKSRC)/_mythffmpeg-drm $(DESTDIR)$(bindir)/ffmpeg-drm-myth
 	@echo '# echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@echo '# ffmpeg-drm --video $$1 --codec h264_v4l2m2m --width $$2 --height $$3' >> $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@echo 'ffmpeg-drm  --video /usr/local/share/h264.FVDO_Freeway_720p.264 --codec h264_v4l2m2m --width 1280 --height 720' >> $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
 	@chmod +x $(DESTDIR)$(bindir)/test-ffmpeg-drm.sh
-	@echo '# echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/test-mythffmpeg-drm.sh
-	@echo '# ffmpeg-drm --video $$1 --codec h264_v4l2m2m --width $$2 --height $$3' >> $(DESTDIR)$(bindir)/test-mythffmpeg-drm.sh
-	@echo 'mythffmpeg-drm  --video /usr/local/share/h264.FVDO_Freeway_720p.264 --codec h264_v4l2m2m --width 1280 --height 720' >> $(DESTDIR)$(bindir)/test-mythffmpeg-drm.sh
-	@chmod +x $(DESTDIR)$(bindir)/test-mythffmpeg-drm.sh
+	@echo '# echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/test-ffmpeg-drm-myth.sh
+	@echo '# ffmpeg-drm-myth --video $$1 --codec h264_v4l2m2m --width $$2 --height $$3' >> $(DESTDIR)$(bindir)/test-ffmpeg-drm-myth.sh
+	@echo 'ffmpeg-drm-myth  --video /usr/local/share/h264.FVDO_Freeway_720p.264 --codec h264_v4l2m2m --width 1280 --height 720' >> $(DESTDIR)$(bindir)/test-ffmpeg-drm-myth.sh
+	@chmod +x $(DESTDIR)$(bindir)/test-ffmpeg-drm-myth.sh
 	@$(MAKECOOKIE)
