@@ -90,7 +90,7 @@ post-install:
 	@mkdir -p $(DESTDIR)$(bindir)-config
 	@$(if $(filter build, $(DESTIMG)), \
 		cp $(WORKBLD)/bin/llvm-config                         $(DESTDIR)$(bindir)-config/llvm-config, \
-		cp $(build_DESTDIR)$(build_bindir)-config/llvm-config $(DESTDIR)$(bindir)-config/llvm-config  )
+		ln -srf $(build_DESTDIR)$(build_bindir)-config/llvm-config $(DESTDIR)$(bindir)-config/llvm-config  )
 	@$(if $(compiler_prefix), ln -s llvm-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config)
 	@$(MAKECOOKIE)
 
