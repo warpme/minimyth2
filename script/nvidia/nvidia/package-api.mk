@@ -56,45 +56,39 @@ NVIDIA_FILE_LIST_BIN     = $(strip \
 		$(if $(wildcard $(WORKSRC)/nvidia-xconfig), \
 			nvidia-xconfig:/:$(bindir)) \
 	)
+
 NVIDIA_FILE_LIST_LIB_DRV = $(strip \
 		$(if $(wildcard $(WORKSRC)/usr/X11R6/lib/modules/drivers/nvidia_drv.so), \
 			nvidia_drv.so:/usr/X11R6/lib/modules/drivers:$(libdir)/nvidia/xorg/modules/drivers) \
 		$(if $(wildcard $(WORKSRC)/nvidia_drv.so), \
 			nvidia_drv.so:/:$(libdir)/nvidia/xorg/modules/drivers) \
 	)
+
 NVIDIA_FILE_LIST_LIB_SO  = $(strip \
-		$(if $(wildcard $(WORKSRC)/usr/lib/libGL.so.*), \
-			libGL.so:/usr/lib:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/usr/lib/libGLcore.so.*), \
-			libGLcore.so:/usr/lib:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/usr/lib/libnvidia-cfg.so.*), \
-			libnvidia-cfg.so:/usr/lib:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/usr/lib/tls/libnvidia-tls.so.*), \
-			libnvidia-tls.so:/usr/lib/tls:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/usr/lib/vdpau/libvdpau_nvidia.so.*), \
-			libvdpau_nvidia.so:/usr/lib/vdpau:$(libdir)/vdpau) \
-		$(if $(wildcard $(WORKSRC)/usr/X11R6/lib/libXvMCNVIDIA.so.*), \
-			libXvMCNVIDIA.so:/usr/X11R6/lib:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/usr/X11R6/lib/modules/extensions/libglx.so.*), \
-			libglx.so:/usr/X11R6/lib/modules/extensions:$(libdir)/nvidia/xorg/modules/extensions) \
-		$(if $(wildcard $(WORKSRC)/libGL.so.*), \
-			libGL.so:/:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/libnvidia-glcore.so.*), \
-			libnvidia-glcore.so:/:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/libnvidia-cfg.so.*), \
-			libnvidia-cfg.so:/:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/tls/libnvidia-tls.so.*), \
-			libnvidia-tls.so:/tls:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/libnvidia-wfb.so.*), \
-			libnvidia-wfb.so:/:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/libvdpau_nvidia.so.*), \
-			libvdpau_nvidia.so:/:$(libdir)/vdpau) \
-		$(if $(wildcard $(WORKSRC)/libnvidia-ml.so.*), \
-			libnvidia-ml.so:/:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/libXvMCNVIDIA.so.*), \
-			libXvMCNVIDIA.so:/:$(libdir)/nvidia) \
-		$(if $(wildcard $(WORKSRC)/libglx.so.*), \
-			libglx.so:/:$(libdir)/nvidia/xorg/modules/extensions) \
+	$(if $(wildcard $(WORKSRC)/libGL.so.*), \
+	    libGL.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libEGL.so.*), \
+	    libEGL.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libGLESv1_CM.so.*), \
+	    libGLESv1_CM.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libGLESv2.so.*), \
+	    libGLESv2.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libnvidia-glcore.so.*), \
+	    libnvidia-glcore.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libnvidia-eglcore.so.*), \
+	    libnvidia-eglcore.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libnvidia-cfg.so.*), \
+	    libnvidia-cfg.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libnvidia-tls.so.*), \
+	    libnvidia-tls.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libvdpau_nvidia.so.*), \
+	    libvdpau_nvidia.so:/:$(libdir)/vdpau) \
+	$(if $(wildcard $(WORKSRC)/libnvidia-ml.so.*), \
+	    libnvidia-ml.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libnvidia-glsi.so.*), \
+	    libnvidia-glsi.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libGLX.so.*), \
+	    libGLX.so:/:$(libdir)/nvidia/xorg/modules/extensions) \
 	)
 
 NVIDIA_MAKE_ARGS = \
@@ -146,13 +140,22 @@ install-nvidia-kernel:
 
 install-nvidia-x11:
 	@# Since 430 family libGL has generic version instead of NVIDIA_VERSION. Symlink it to
-	@# libGL.so.$(NVIDIA_VERSION) to simplify required install process update
+	@# libGL.so.$(NVIDIA_VERSION)
 	@if [ -e $(WORKSRC)/libGL.so.1.7.0 ]; then \
 	    ln -rsf $(WORKSRC)/libGL.so.1.7.0 $(WORKSRC)/libGL.so.$(NVIDIA_VERSION); \
 	 fi
 	@if [ -e $(WORKSRC)/libGL.so.1.8.0 ]; then \
 	    ln -rsf $(WORKSRC)/libGL.so.1.7.0 $(WORKSRC)/libGL.so.$(NVIDIA_VERSION); \
 	 fi
+	# Symlinking non GLVND libs (libXXX_nvidia.so) to standard names (libXXX.so)
+	@rm -f $(WORKSRC)/libEGL.so*
+	@ln -rsf $(WORKSRC)/libEGL_nvidia.so.$(NVIDIA_VERSION) $(WORKSRC)/libEGL.so.$(NVIDIA_VERSION)
+	@rm -f $(WORKSRC)/ibGLESv1_CM.so*
+	@ln -rsf $(WORKSRC)/libGLESv1_CM_nvidia.so.$(NVIDIA_VERSION) $(WORKSRC)/libGLESv1_CM.so.$(NVIDIA_VERSION)
+	@rm -f $(WORKSRC)/libGLESv2.so*
+	@ln -rsf $(WORKSRC)/libGLESv2_nvidia.so.$(NVIDIA_VERSION) $(WORKSRC)/libGLESv2.so.$(NVIDIA_VERSION)
+	@rm -f $(WORKSRC)/libGLX.so*
+	@ln -rsf $(WORKSRC)/libglxserver_nvidia.so.$(NVIDIA_VERSION) $(WORKSRC)/libGLX.so.$(NVIDIA_VERSION)
 	@rm -f $(DESTDIR)$(bindir)/nvidia-bug-report.sh
 	@rm -f $(DESTDIR)$(bindir)/nvidia-settings
 	@rm -f $(DESTDIR)$(bindir)/nvidia-smi
