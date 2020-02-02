@@ -69,10 +69,16 @@ NVIDIA_FILE_LIST_LIB_SO  = $(strip \
 	    libGL.so:/:$(libdir)/nvidia) \
 	$(if $(wildcard $(WORKSRC)/libEGL.so.*), \
 	    libEGL.so:/:$(libdir)/nvidia) \
-	$(if $(wildcard $(WORKSRC)/libGLESv1_CM.so.*), \
-	    libGLESv1_CM.so:/:$(libdir)/nvidia) \
-	$(if $(wildcard $(WORKSRC)/libGLESv2.so.*), \
-	    libGLESv2.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libEGL_nvidia.so.*), \
+	    libEGL_nvidia.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libGLX_nvidia.so.*), \
+	    libGLX_nvidia.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libGLdispatch.so.0), \
+	    libGLdispatch.so.0:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libGLESv1_CM_nvidia.so.*), \
+	    libGLESv1_CM_nvidia.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libGLESv2_nvidia.so.*), \
+	    libGLESv2_nvidia.so:/:$(libdir)/nvidia) \
 	$(if $(wildcard $(WORKSRC)/libnvidia-glcore.so.*), \
 	    libnvidia-glcore.so:/:$(libdir)/nvidia) \
 	$(if $(wildcard $(WORKSRC)/libnvidia-eglcore.so.*), \
@@ -87,8 +93,8 @@ NVIDIA_FILE_LIST_LIB_SO  = $(strip \
 	    libnvidia-ml.so:/:$(libdir)/nvidia) \
 	$(if $(wildcard $(WORKSRC)/libnvidia-glsi.so.*), \
 	    libnvidia-glsi.so:/:$(libdir)/nvidia) \
-	$(if $(wildcard $(WORKSRC)/libGLX.so.*), \
-	    libGLX.so:/:$(libdir)/nvidia/xorg/modules/extensions) \
+	$(if $(wildcard $(WORKSRC)/libglxserver_nvidia.so.*), \
+	    libglxserver_nvidia.so:/:$(libdir)/nvidia/xorg/modules/extensions) \
 	)
 
 NVIDIA_MAKE_ARGS = \
@@ -139,23 +145,19 @@ install-nvidia-kernel:
 	@$(MAKECOOKIE)
 
 install-nvidia-x11:
-	@# Since 430 family libGL has generic version instead of NVIDIA_VERSION. Symlink it to
-	@# libGL.so.$(NVIDIA_VERSION)
+	@# Since 361.16 family libGL is generic loader for GLX/EGL nvidia private libs. Symlink it to
+	@# libGL.so.$(NVIDIA_VERSION) as this our makefile install is expecting
 	@if [ -e $(WORKSRC)/libGL.so.1.7.0 ]; then \
 	    ln -rsf $(WORKSRC)/libGL.so.1.7.0 $(WORKSRC)/libGL.so.$(NVIDIA_VERSION); \
 	 fi
 	@if [ -e $(WORKSRC)/libGL.so.1.8.0 ]; then \
-	    ln -rsf $(WORKSRC)/libGL.so.1.7.0 $(WORKSRC)/libGL.so.$(NVIDIA_VERSION); \
+	    ln -rsf $(WORKSRC)/libGL.so.1.8.0 $(WORKSRC)/libGL.so.$(NVIDIA_VERSION); \
 	 fi
-	# Symlinking non GLVND libs (libXXX_nvidia.so) to standard names (libXXX.so)
-	@rm -f $(WORKSRC)/libEGL.so*
-	@ln -rsf $(WORKSRC)/libEGL_nvidia.so.$(NVIDIA_VERSION) $(WORKSRC)/libEGL.so.$(NVIDIA_VERSION)
-	@rm -f $(WORKSRC)/ibGLESv1_CM.so*
-	@ln -rsf $(WORKSRC)/libGLESv1_CM_nvidia.so.$(NVIDIA_VERSION) $(WORKSRC)/libGLESv1_CM.so.$(NVIDIA_VERSION)
-	@rm -f $(WORKSRC)/libGLESv2.so*
-	@ln -rsf $(WORKSRC)/libGLESv2_nvidia.so.$(NVIDIA_VERSION) $(WORKSRC)/libGLESv2.so.$(NVIDIA_VERSION)
-	@rm -f $(WORKSRC)/libGLX.so*
-	@ln -rsf $(WORKSRC)/libglxserver_nvidia.so.$(NVIDIA_VERSION) $(WORKSRC)/libGLX.so.$(NVIDIA_VERSION)
+	@# Since 361.16 family Nvidia provides bundled GLVND loader but without setup .soname.Symlink it to
+	@# libGLdispatch.so.$(NVIDIA_VERSION) as this our makefile install is expecting
+	@if [ -e $(WORKSRC)/libGLdispatch.so.0 ]; then \
+	    ln -rsf $(WORKSRC)/libGLdispatch.so.0 $(WORKSRC)/libGLdispatch.so.0.$(NVIDIA_VERSION); \
+	 fi
 	@rm -f $(DESTDIR)$(bindir)/nvidia-bug-report.sh
 	@rm -f $(DESTDIR)$(bindir)/nvidia-settings
 	@rm -f $(DESTDIR)$(bindir)/nvidia-smi
