@@ -109,29 +109,9 @@ git//%$(DISTNAME).tar.xz:
 	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
 	@$(MAKECOOKIE)
 
-pre-configure:
-	@#xxxx - fixme
-	@rm -f $(DESTDIR)$(libdir)/libcrypt.so.1
-	@rm -f $(DESTDIR)$(libdir)/libdl.so.2
-	@rm -f $(DESTDIR)$(libdir)/libpthread.so.0
-	@rm -f $(DESTDIR)$(libdir)/libm.so.6
-	@rm -f $(DESTDIR)$(libdir)/libresolv.so.2
-	@rm -f $(DESTDIR)$(libdir)/librt.so.1
-	@$(MAKECOOKIE)
-
 configure-custom:
 	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson build $(CONFIGURE_ARGS)
 	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson configure build
-	@$(MAKECOOKIE)
-
-post-configure:
-	@#xxxx - fixme
-	@if [ -e $(DESTDIR)$(elibdir64)/libcrypt.so.1   ] ; then rm -f $(DESTDIR)$(libdir)/libcrypt.so.1   ; ln -sr $(DESTDIR)$(elibdir64)/libcrypt.so.1   $(DESTDIR)$(libdir)/libcrypt.so.1   ; fi
-	@if [ -e $(DESTDIR)$(elibdir64)/libdl.so.2      ] ; then rm -f $(DESTDIR)$(libdir)/libdl.so.2      ; ln -sr $(DESTDIR)$(elibdir64)/libdl.so.2      $(DESTDIR)$(libdir)/libdl.so.2      ; fi
-	@if [ -e $(DESTDIR)$(elibdir64)/libpthread.so.0 ] ; then rm -f $(DESTDIR)$(libdir)/libpthread.so.0 ; ln -sr $(DESTDIR)$(elibdir64)/libpthread.so.0 $(DESTDIR)$(libdir)/libpthread.so.0 ; fi
-	@if [ -e $(DESTDIR)$(elibdir64)/libm.so.6       ] ; then rm -f $(DESTDIR)$(libdir)/libm.so.6       ; ln -sr $(DESTDIR)$(elibdir64)/libm.so.6       $(DESTDIR)$(libdir)/libm.so.6       ; fi
-	@if [ -e $(DESTDIR)$(elibdir64)/libresolv.so.2  ] ; then rm -f $(DESTDIR)$(libdir)/libresolv.so.2  ; ln -sr $(DESTDIR)$(elibdir64)/libresolv.so.2  $(DESTDIR)$(libdir)/libresolv.so.2  ; fi
-	@if [ -e $(DESTDIR)$(elibdir64)/librt.so.1      ] ; then rm -f $(DESTDIR)$(libdir)/librt.so.1      ; ln -sr $(DESTDIR)$(elibdir64)/librt.so.1      $(DESTDIR)$(libdir)/librt.so.1      ; fi
 	@$(MAKECOOKIE)
 
 build-custom:
