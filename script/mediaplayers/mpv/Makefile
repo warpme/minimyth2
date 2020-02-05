@@ -1,9 +1,8 @@
 GARNAME = mpv
-GARVERSION = 0.29.1
+GARVERSION = 0.32.0
 CATEGORIES = mediaplayers
 MASTER_SITES = https://github.com/mpv-player/mpv/archive/
 DISTFILES = v$(GARVERSION).tar.gz
-PATCHFILES = mpv-drmprime-PR6461.patch
 WORKSRC   = $(WORKDIR)/mpv-$(GARVERSION)
 LICENSE = GPL2
 
@@ -11,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/alsa-lib lib/ffmpeg lib/libass lib/SDL2 xorg/libdrm
+DEPENDS = lang/c lib/alsa-lib lib/ffmpeg-git lib/libass lib/SDL2 xorg/libdrm
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
