@@ -239,6 +239,7 @@ BUILDDEPS = \
 DEPENDS = \
 	kernel-headers/linux-headers \
 	kernel/linux-firmware \
+	kernel/linux-firmware-meson \
 	kernel/wireless-regdb \
 
 CONFIGURE_SCRIPTS = custom
