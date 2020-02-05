@@ -1,0 +1,83 @@
+From a0a00b958c524f3b0e2ca26d60dad1a674f872c7 Mon Sep 17 00:00:00 2001
+From: Aman Gupta <aman@tmm1.net>
+Date: Fri, 30 Aug 2019 11:45:51 -0700
+Subject: [PATCH] avcodec/v4l2m2m: clean up buffer options and pick sane
+ defaults
+
+Previously the default values for output/capture buffers were
+quite high, causing a lot of memory usage on devices with limited
+resources. On a default RPI3 installation, it is easy to run out of
+kernel CMA memory without additional kernel boot flags.
+
+I also reduced the minimum value for the buffering options so that users
+can further reduce the number of buffers if required on their specific
+platform.
+
+Prior to this change, setting up a decode+scale+encode pipeline on
+the RPI4 would fail with ENOMEM due to a total of 76 buffers being
+pre-allocated across all the v4l2 components.
+
+On an AML S912, I observed that the decoder would not return any
+decoded frames unless atleast 10 capture buffers were provided.
+Thus the new default for decoding capture buffers was reduced from
+20 to 10.
+
+Similar patches are being used in the LibreELEC ffmpeg fork for
+AMLogic support.
+
+Signed-off-by: Aman Gupta <aman@tmm1.net>
+---
+ libavcodec/v4l2_m2m.h          | 6 ++++--
+ libavcodec/v4l2_m2m_dec.c      | 4 +---
+ libavcodec/v4l2_m2m_enc.c      | 4 +---
+ libavfilter/vf_scale_v4l2m2m.c | 6 +-----
+ 4 files changed, 7 insertions(+), 13 deletions(-)
+
+diff --git ffmpeg-old/libavcodec/v4l2_m2m.h ffmpeg-new/libavcodec/v4l2_m2m.h
+index b94d724a932..8395430333a 100644
+--- ffmpeg-old/libavcodec/v4l2_m2m.h
++++ ffmpeg-new/libavcodec/v4l2_m2m.h
+@@ -37,9 +37,11 @@
+         const __typeof__(((type *)0)->member ) *__mptr = (ptr); \
+         (type *)((char *)__mptr - offsetof(type,member) );})
+ 
+-#define V4L_M2M_DEFAULT_OPTS \
++#define V4L_M2M_DEFAULT_OPTS(output_bufs, capture_bufs) \
+     { "num_output_buffers", "Number of buffers in the output context",\
+-        OFFSET(num_output_buffers), AV_OPT_TYPE_INT, { .i64 = 16 }, 6, INT_MAX, FLAGS }
++        OFFSET(num_output_buffers), AV_OPT_TYPE_INT, { .i64 = output_bufs },  2, VIDEO_MAX_FRAME, FLAGS }, \
++    { "num_capture_buffers", "Number of buffers in the capture context", \
++        OFFSET(num_capture_buffers), AV_OPT_TYPE_INT, {.i64 = capture_bufs }, 2, VIDEO_MAX_FRAME, FLAGS }
+ 
+ typedef struct V4L2m2mContext {
+     char devname[PATH_MAX];
+diff --git ffmpeg-old/libavcodec/v4l2_m2m_dec.c ffmpeg-new/libavcodec/v4l2_m2m_dec.c
+index 76cd4a1910a..5ac4e4514ac 100644
+--- ffmpeg-old/libavcodec/v4l2_m2m_dec.c
++++ ffmpeg-new/libavcodec/v4l2_m2m_dec.c
+@@ -276,9 +276,7 @@ static void v4l2_flush(AVCodecContext *avctx)
+ #define FLAGS AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_DECODING_PARAM
+ 
+ static const AVOption options[] = {
+-    V4L_M2M_DEFAULT_OPTS,
+-    { "num_capture_buffers", "Number of buffers in the capture context",
+-        OFFSET(num_capture_buffers), AV_OPT_TYPE_INT, {.i64 = 20}, 20, INT_MAX, FLAGS },
++    V4L_M2M_DEFAULT_OPTS(8, 10),
+     { NULL},
+ };
+ 
+diff --git ffmpeg-old/libavcodec/v4l2_m2m_enc.c ffmpeg-new/libavcodec/v4l2_m2m_enc.c
+index 4ccfe773220..ca433ac1ead 100644
+--- ffmpeg-old/libavcodec/v4l2_m2m_enc.c
++++ ffmpeg-new/libavcodec/v4l2_m2m_enc.c
+@@ -342,9 +342,7 @@ static av_cold int v4l2_encode_close(AVCodecContext *avctx)
+ #define FLAGS AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_ENCODING_PARAM
+ 
+ static const AVOption options[] = {
+-    V4L_M2M_DEFAULT_OPTS,
+-    { "num_capture_buffers", "Number of buffers in the capture context",
+-        OFFSET(num_capture_buffers), AV_OPT_TYPE_INT, {.i64 = 4 }, 4, INT_MAX, FLAGS },
++    V4L_M2M_DEFAULT_OPTS(6, 8),
+     { NULL },
+ };
+ 

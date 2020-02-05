@@ -1,0 +1,37 @@
+From 196bab90a29323722050111e936532ac9ac9bfda Mon Sep 17 00:00:00 2001
+From: Aman Gupta <aman@tmm1.net>
+Date: Thu, 12 Sep 2019 10:27:22 -0700
+Subject: [PATCH] avcodec/v4l2_m2m_dec: handle get_packet errors explicitly
+
+Signed-off-by: Aman Gupta <aman@tmm1.net>
+---
+ libavcodec/v4l2_m2m_dec.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff -Naur ffmpeg-old/libavcodec/v4l2_m2m_dec.c ffmpeg-new/libavcodec/v4l2_m2m_dec.c
+--- ffmpeg-old/libavcodec/v4l2_m2m_dec.c	2020-01-23 16:20:37.650000002 +0100
++++ ffmpeg-new/libavcodec/v4l2_m2m_dec.c	2020-01-23 16:21:29.659999992 +0100
+@@ -137,15 +137,19 @@
+     V4L2Context *const output = &s->output;
+     int ret;
+ 
++    if (s->draining)
++        goto dequeue;
++
+     if (!s->buf_pkt.size) {
+         ret = ff_decode_get_packet(avctx, &s->buf_pkt);
+-        if (ret < 0 && ret != AVERROR_EOF)
++        if (ret == AVERROR(EAGAIN))
++            goto dequeue;
++        else if (ret == AVERROR_EOF)
++            return ff_v4l2_context_enqueue_packet(output, &s->buf_pkt); /* null pkt */
++        else if (ret < 0)
+             return ret;
+     }
+ 
+-    if (s->draining)
+-        goto dequeue;
+-
+     ret = ff_v4l2_context_enqueue_packet(output, &s->buf_pkt);
+     if (ret == AVERROR(EAGAIN)) {
+         /* no input buffers available, continue dequeing */
