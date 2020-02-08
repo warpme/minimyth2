@@ -56,6 +56,7 @@ PATCHFILES += 0105-Minimyth-defaults.patch
 PATCHFILES += 0106-hack-for-correct-perl-bindings-install.patch
 PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
 PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
+PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 
 # v4l2-request support in ffmpeg
 # https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-master
@@ -127,7 +128,7 @@ PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
 
 # Various mythweather patches
-#PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
+PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
 
 endif
 
@@ -319,8 +320,6 @@ endif
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-
-# "--extra-cxxflags='-DIGNORE_SCHEMA_VER_MISMATCH -DIGNORE_PROTO_VER_MISMATCH'
 
 svn//%/$(DISTNAME).tar.bz2:
 	@$(call FETCH_SVN, http://$*, $(MYTHTV_SVN_VERSION), $(DISTNAME))
