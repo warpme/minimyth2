@@ -1,15 +1,10 @@
-From 7a3408834b6f08d9126b46290056c315dfc46b4d Mon Sep 17 00:00:00 2001
-From: Neil Armstrong <narmstrong@baylibre.com>
-Date: Fri, 6 Dec 2019 16:24:16 +0100
-Subject: [PATCH 05/12] media: vicodec: use v4l2-mem2mem draining, stopped and
- next-buf-is-last states handling
 
 Use the previously introduced v4l2-mem2mem core APIs to handle the drainig,
 stopped and next-buf-is-last states.
 
 With these changes, the v4l2-compliance still passes with the following
 commands :
-v4l2-ctl --stream-mmap --stream-out-mmap --stream-to-hdr out.comp --stream-from in.yuv
+# v4l2-ctl --stream-mmap --stream-out-mmap --stream-to-hdr out.comp --stream-from in.yuv
 >>>><><><><><><><><><><><><><><><><>< 15.53 fps
  15.53 fps
 ><><><><><><><><><><><><>< 13.99 fps
@@ -27,13 +22,19 @@ STOP ENCODER
 <<<
 EOS EVENT
 
-v4l2-compliance --stream-from in.yuv -s
+# v4l2-compliance --stream-from in.yuv -s
+v4l2-compliance SHA: 7ead0e1856b89f2e19369af452bb03fd0cd16793, 64 bits
+[...]
+Total for vicodec device /dev/video0: 50, Succeeded: 50, Failed: 0, Warnings: 0
 
-The output is available at [1]
+The full output is available at [1]
 
-v4l2-compliance -d1 --stream-from-hdr out.comp -s
+# v4l2-compliance -d1 --stream-from-hdr out.comp -s
+v4l2-compliance SHA: 7ead0e1856b89f2e19369af452bb03fd0cd16793, 64 bits
+[...]
+Total for vicodec device /dev/video1: 50, Succeeded: 50, Failed: 0, Warnings: 0
 
-The output is available at [2]
+The full output is available at [2]
 
 No functional changes should be noticed.
 
@@ -44,11 +45,11 @@ Suggested-by: Hans Verkuil <hverkuil@xs4all.nl>
 Suggested-by: Maxime Jourdan <mjourdan@baylibre.com>
 Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
 ---
- drivers/media/platform/vicodec/vicodec-core.c | 162 +++++++++-----------------
+ drivers/media/platform/vicodec/vicodec-core.c | 162 ++++++------------
  1 file changed, 52 insertions(+), 110 deletions(-)
 
 diff --git a/drivers/media/platform/vicodec/vicodec-core.c b/drivers/media/platform/vicodec/vicodec-core.c
-index 8235009..425c472 100644
+index 82350097503e..425c47216dae 100644
 --- a/drivers/media/platform/vicodec/vicodec-core.c
 +++ b/drivers/media/platform/vicodec/vicodec-core.c
 @@ -117,15 +117,10 @@ struct vicodec_ctx {
@@ -299,6 +300,3 @@ index 8235009..425c472 100644
  	if (!ctx->is_enc && V4L2_TYPE_IS_OUTPUT(q->type))
  		ctx->first_source_change_sent = false;
  
--- 
-2.7.1
-

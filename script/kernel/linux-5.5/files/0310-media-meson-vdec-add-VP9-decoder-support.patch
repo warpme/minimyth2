@@ -1,7 +1,5 @@
-From 5d6ea43da4e5fd3d1dd085468e944eb0de4c6f26 Mon Sep 17 00:00:00 2001
+
 From: Maxime Jourdan <mjourdan@baylibre.com>
-Date: Thu, 17 Jan 2019 17:00:11 +0100
-Subject: [PATCH 12/12] media: meson: vdec: add VP9 decoder support
 
 This adds VP9 decoding for the Amlogic GXL, G12A & SM1 SoCs, using
 the commong "HEVC" HW decoder.
@@ -15,19 +13,19 @@ buffer while writing the decoded frame.
 Signed-off-by: Maxime Jourdan <mjourdan@baylibre.com>
 Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
 ---
- drivers/staging/media/meson/vdec/Makefile        |    2 +-
- drivers/staging/media/meson/vdec/codec_vp9.c     | 2139 ++++++++++++++++++++++
- drivers/staging/media/meson/vdec/codec_vp9.h     |   13 +
- drivers/staging/media/meson/vdec/hevc_regs.h     |    7 +
- drivers/staging/media/meson/vdec/vdec.c          |    5 +
- drivers/staging/media/meson/vdec/vdec_helpers.c  |    4 +
- drivers/staging/media/meson/vdec/vdec_platform.c |   38 +
- 7 files changed, 2207 insertions(+), 1 deletion(-)
+ drivers/staging/media/meson/vdec/Makefile     |    2 +-
+ drivers/staging/media/meson/vdec/codec_vp9.c  | 2138 +++++++++++++++++
+ drivers/staging/media/meson/vdec/codec_vp9.h  |   13 +
+ drivers/staging/media/meson/vdec/hevc_regs.h  |    7 +
+ drivers/staging/media/meson/vdec/vdec.c       |    5 +
+ .../staging/media/meson/vdec/vdec_helpers.c   |    4 +
+ .../staging/media/meson/vdec/vdec_platform.c  |   38 +
+ 7 files changed, 2206 insertions(+), 1 deletion(-)
  create mode 100644 drivers/staging/media/meson/vdec/codec_vp9.c
  create mode 100644 drivers/staging/media/meson/vdec/codec_vp9.h
 
 diff --git a/drivers/staging/media/meson/vdec/Makefile b/drivers/staging/media/meson/vdec/Makefile
-index f55b6e6..6e726af 100644
+index f55b6e625034..6e726af84ac9 100644
 --- a/drivers/staging/media/meson/vdec/Makefile
 +++ b/drivers/staging/media/meson/vdec/Makefile
 @@ -3,6 +3,6 @@
@@ -40,10 +38,10 @@ index f55b6e6..6e726af 100644
  obj-$(CONFIG_VIDEO_MESON_VDEC) += meson-vdec.o
 diff --git a/drivers/staging/media/meson/vdec/codec_vp9.c b/drivers/staging/media/meson/vdec/codec_vp9.c
 new file mode 100644
-index 0000000..9e23ccb
+index 000000000000..e7ffbc6dd892
 --- /dev/null
 +++ b/drivers/staging/media/meson/vdec/codec_vp9.c
-@@ -0,0 +1,2139 @@
+@@ -0,0 +1,2138 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2018 Maxime Jourdan <mjourdan@baylibre.com>
@@ -598,15 +596,15 @@ index 0000000..9e23ccb
 +		amvdec_write_dos(core, HEVC_DBLK_CFG9, thr);
 +	}
 +
-+	if (core->platform->revision >= VDEC_REVISION_G12A)
-+		/* VP9 video format */
-+		amvdec_write_dos(core, HEVC_DBLK_CFGB, (0x54 << 8) | BIT(0));
-+	else if (core->platform->revision >= VDEC_REVISION_SM1)
++	if (core->platform->revision >= VDEC_REVISION_SM1)
 +		amvdec_write_dos(core, HEVC_DBLK_CFGB,
 +				 (0x3 << 14) | /* dw fifo thres r and b */
 +				 (0x3 << 12) | /* dw fifo thres r or b */
 +				 (0x3 << 10) | /* dw fifo thres not r/b */
 +				 BIT(0)); /* VP9 video format */
++	else if (core->platform->revision >= VDEC_REVISION_G12A)
++		/* VP9 video format */
++		amvdec_write_dos(core, HEVC_DBLK_CFGB, (0x54 << 8) | BIT(0));
 +	else
 +		amvdec_write_dos(core, HEVC_DBLK_CFGB, 0x40400001);
 +}
@@ -1354,7 +1352,6 @@ index 0000000..9e23ccb
 +	struct codec_vp9 *vp9 = sess->priv;
 +
 +	mutex_lock(&vp9->lock);
-+
 +	if (codec_hevc_setup_buffers(sess, &vp9->common, vp9->is_10bit)) {
 +		mutex_unlock(&vp9->lock);
 +		amvdec_abort(sess);
@@ -2185,7 +2182,7 @@ index 0000000..9e23ccb
 +};
 diff --git a/drivers/staging/media/meson/vdec/codec_vp9.h b/drivers/staging/media/meson/vdec/codec_vp9.h
 new file mode 100644
-index 0000000..62db65a
+index 000000000000..62db65a2b939
 --- /dev/null
 +++ b/drivers/staging/media/meson/vdec/codec_vp9.h
 @@ -0,0 +1,13 @@
@@ -2203,7 +2200,7 @@ index 0000000..62db65a
 +
 +#endif
 diff --git a/drivers/staging/media/meson/vdec/hevc_regs.h b/drivers/staging/media/meson/vdec/hevc_regs.h
-index 55c1a80..0392f41 100644
+index 55c1a80b955a..0392f41a1eed 100644
 --- a/drivers/staging/media/meson/vdec/hevc_regs.h
 +++ b/drivers/staging/media/meson/vdec/hevc_regs.h
 @@ -122,6 +122,8 @@
@@ -2235,7 +2232,7 @@ index 55c1a80..0392f41 100644
  #define HEVC_DBLK_CFGE 0xd438
  
 diff --git a/drivers/staging/media/meson/vdec/vdec.c b/drivers/staging/media/meson/vdec/vdec.c
-index 5514d2d..1e531a3 100644
+index bfca4c82aa56..f19b463aa392 100644
 --- a/drivers/staging/media/meson/vdec/vdec.c
 +++ b/drivers/staging/media/meson/vdec/vdec.c
 @@ -395,6 +395,7 @@ static void vdec_reset_bufs_recycle(struct amvdec_session *sess)
@@ -2258,7 +2255,7 @@ index 5514d2d..1e531a3 100644
  			v4l2_m2m_buf_done(buf, VB2_BUF_STATE_ERROR);
  
 diff --git a/drivers/staging/media/meson/vdec/vdec_helpers.c b/drivers/staging/media/meson/vdec/vdec_helpers.c
-index 818064b..a4f62b8 100644
+index caec0fb60338..7f07a9175815 100644
 --- a/drivers/staging/media/meson/vdec/vdec_helpers.c
 +++ b/drivers/staging/media/meson/vdec/vdec_helpers.c
 @@ -299,6 +299,10 @@ static void dst_buf_done(struct amvdec_session *sess,
@@ -2273,7 +2270,7 @@ index 818064b..a4f62b8 100644
  		dev_dbg(dev, "should_stop, %u bufs remain\n",
  			atomic_read(&sess->esparser_queued_bufs));
 diff --git a/drivers/staging/media/meson/vdec/vdec_platform.c b/drivers/staging/media/meson/vdec/vdec_platform.c
-index e9356a4..72a833b 100644
+index e9356a46828f..eabbebab2da2 100644
 --- a/drivers/staging/media/meson/vdec/vdec_platform.c
 +++ b/drivers/staging/media/meson/vdec/vdec_platform.c
 @@ -8,8 +8,10 @@
@@ -2336,7 +2333,7 @@ index e9356a4..72a833b 100644
 +		.max_height = 2160,
 +		.vdec_ops = &vdec_hevc_ops,
 +		.codec_ops = &codec_vp9_ops,
-+		.firmware_path = "meson/vdec/g12a_vp9.bin",
++		.firmware_path = "meson/vdec/sm1_vp9_mmu.bin",
 +		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
 +		.flags = V4L2_FMT_FLAG_COMPRESSED |
 +			 V4L2_FMT_FLAG_DYN_RESOLUTION,
@@ -2344,6 +2341,3 @@ index e9356a4..72a833b 100644
  		.pixfmt = V4L2_PIX_FMT_H264,
  		.min_buffers = 2,
  		.max_buffers = 24,
--- 
-2.7.1
-

@@ -1,7 +1,5 @@
-From d9c14365944243001dc242c8c8f49ed752cd1bcf Mon Sep 17 00:00:00 2001
+
 From: Maxime Jourdan <mjourdan@baylibre.com>
-Date: Mon, 7 Oct 2019 16:59:08 +0200
-Subject: [PATCH 06/12] media: meson: vdec: bring up to compliance
 
 Add all the necessary bits to pass v4l2-compliance in stateful decoding
 mode.
@@ -14,16 +12,16 @@ from the src buffers to the dst buffers, etc.
 Signed-off-by: Maxime Jourdan <mjourdan@baylibre.com>
 Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
 ---
- drivers/staging/media/meson/vdec/esparser.c      | 58 +++++++--------
- drivers/staging/media/meson/vdec/vdec.c          | 89 +++++++++++++++---------
- drivers/staging/media/meson/vdec/vdec.h          | 14 +++-
- drivers/staging/media/meson/vdec/vdec_helpers.c  | 85 +++++++++++-----------
- drivers/staging/media/meson/vdec/vdec_helpers.h  |  6 +-
- drivers/staging/media/meson/vdec/vdec_platform.c | 10 +++
- 6 files changed, 146 insertions(+), 116 deletions(-)
+ drivers/staging/media/meson/vdec/esparser.c   | 58 +++++-------
+ drivers/staging/media/meson/vdec/vdec.c       | 90 ++++++++++++-------
+ drivers/staging/media/meson/vdec/vdec.h       | 14 ++-
+ .../staging/media/meson/vdec/vdec_helpers.c   | 88 +++++++++---------
+ .../staging/media/meson/vdec/vdec_helpers.h   |  6 +-
+ .../staging/media/meson/vdec/vdec_platform.c  | 10 +++
+ 6 files changed, 149 insertions(+), 117 deletions(-)
 
 diff --git a/drivers/staging/media/meson/vdec/esparser.c b/drivers/staging/media/meson/vdec/esparser.c
-index 95102a4..adc5c1e 100644
+index 95102a4bdc62..adc5c1e81a4c 100644
 --- a/drivers/staging/media/meson/vdec/esparser.c
 +++ b/drivers/staging/media/meson/vdec/esparser.c
 @@ -79,22 +79,28 @@ static irqreturn_t esparser_isr(int irq, void *dev)
@@ -126,7 +124,7 @@ index 95102a4..adc5c1e 100644
  
  	return 0;
 diff --git a/drivers/staging/media/meson/vdec/vdec.c b/drivers/staging/media/meson/vdec/vdec.c
-index 5c5dabe..20e95b7 100644
+index 5c5dabed2f09..92f0258868b1 100644
 --- a/drivers/staging/media/meson/vdec/vdec.c
 +++ b/drivers/staging/media/meson/vdec/vdec.c
 @@ -168,7 +168,10 @@ static void process_num_buffers(struct vb2_queue *q,
@@ -231,7 +229,7 @@ index 5c5dabe..20e95b7 100644
  	    (sess->status == STATUS_NEEDS_RESUME &&
  	     (!sess->streamon_out || !sess->streamon_cap))) {
  		if (vdec_codec_needs_recycle(sess))
-@@ -476,20 +490,33 @@ vdec_try_fmt_common(struct amvdec_session *sess, u32 size,
+@@ -476,20 +490,34 @@ vdec_try_fmt_common(struct amvdec_session *sess, u32 size,
  	struct v4l2_pix_format_mplane *pixmp = &f->fmt.pix_mp;
  	struct v4l2_plane_pix_format *pfmt = pixmp->plane_fmt;
  	const struct amvdec_format *fmts = sess->core->platform->formats;
@@ -265,11 +263,12 @@ index 5c5dabe..20e95b7 100644
 +	output_size = get_output_size(pixmp->width, pixmp->height);
 +
 +	if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-+		pfmt[0].sizeimage = sess->src_buffer_size;
++		if (!pfmt[0].sizeimage)
++			pfmt[0].sizeimage = sess->src_buffer_size;
  		pfmt[0].bytesperline = 0;
  		pixmp->num_planes = 1;
  	} else if (f->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-@@ -499,35 +526,25 @@ vdec_try_fmt_common(struct amvdec_session *sess, u32 size,
+@@ -499,35 +527,25 @@ vdec_try_fmt_common(struct amvdec_session *sess, u32 size,
  
  		memset(pfmt[1].reserved, 0, sizeof(pfmt[1].reserved));
  		if (pixmp->pixelformat == V4L2_PIX_FMT_NV12M) {
@@ -310,7 +309,7 @@ index 5c5dabe..20e95b7 100644
  	if (pixmp->field == V4L2_FIELD_ANY)
  		pixmp->field = V4L2_FIELD_NONE;
  
-@@ -586,6 +603,8 @@ static int vdec_s_fmt(struct file *file, void *fh, struct v4l2_format *f)
+@@ -586,6 +604,8 @@ static int vdec_s_fmt(struct file *file, void *fh, struct v4l2_format *f)
  	orig_pixmp = *pixmp;
  
  	fmt_out = vdec_try_fmt_common(sess, num_formats, f);
@@ -319,7 +318,7 @@ index 5c5dabe..20e95b7 100644
  
  	if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
  		pixfmt_out = pixmp->pixelformat;
-@@ -610,6 +629,7 @@ static int vdec_s_fmt(struct file *file, void *fh, struct v4l2_format *f)
+@@ -610,6 +630,7 @@ static int vdec_s_fmt(struct file *file, void *fh, struct v4l2_format *f)
  		sess->ycbcr_enc = pixmp->ycbcr_enc;
  		sess->quantization = pixmp->quantization;
  		sess->xfer_func = pixmp->xfer_func;
@@ -327,7 +326,7 @@ index 5c5dabe..20e95b7 100644
  	}
  
  	memset(&format, 0, sizeof(format));
-@@ -701,29 +721,31 @@ vdec_decoder_cmd(struct file *file, void *fh, struct v4l2_decoder_cmd *cmd)
+@@ -701,29 +722,31 @@ vdec_decoder_cmd(struct file *file, void *fh, struct v4l2_decoder_cmd *cmd)
  	if (!(sess->streamon_out & sess->streamon_cap))
  		return 0;
  
@@ -365,7 +364,7 @@ index 5c5dabe..20e95b7 100644
  	}
  
  	return ret;
-@@ -883,6 +905,7 @@ static int vdec_open(struct file *file)
+@@ -883,6 +906,7 @@ static int vdec_open(struct file *file)
  	sess->height = 720;
  	sess->pixelaspect.numerator = 1;
  	sess->pixelaspect.denominator = 1;
@@ -374,7 +373,7 @@ index 5c5dabe..20e95b7 100644
  	INIT_LIST_HEAD(&sess->timestamps);
  	INIT_LIST_HEAD(&sess->bufs_recycle);
 diff --git a/drivers/staging/media/meson/vdec/vdec.h b/drivers/staging/media/meson/vdec/vdec.h
-index 0faa1ec..f95445a 100644
+index 0faa1ec4858e..f95445ac0658 100644
 --- a/drivers/staging/media/meson/vdec/vdec.h
 +++ b/drivers/staging/media/meson/vdec/vdec.h
 @@ -29,13 +29,19 @@ struct amvdec_buffer {
@@ -436,7 +435,7 @@ index 0faa1ec..f95445a 100644
  	u8 canvas_alloc[MAX_CANVAS];
  	u32 canvas_num;
 diff --git a/drivers/staging/media/meson/vdec/vdec_helpers.c b/drivers/staging/media/meson/vdec/vdec_helpers.c
-index f16948b..ff43330 100644
+index f16948bdbf2f..a4970ec1bf2e 100644
 --- a/drivers/staging/media/meson/vdec/vdec_helpers.c
 +++ b/drivers/staging/media/meson/vdec/vdec_helpers.c
 @@ -200,33 +200,23 @@ int amvdec_set_canvases(struct amvdec_session *sess,
@@ -608,7 +607,7 @@ index f16948b..ff43330 100644
  	if (match)
  		atomic_dec(&sess->esparser_queued_bufs);
  }
-@@ -420,7 +413,8 @@ void amvdec_src_change(struct amvdec_session *sess, u32 width,
+@@ -420,16 +413,19 @@ void amvdec_src_change(struct amvdec_session *sess, u32 width,
  
  	v4l2_ctrl_s_ctrl(sess->ctrl_min_buf_capture, dpb_size);
  
@@ -617,8 +616,12 @@ index f16948b..ff43330 100644
 +	 * Check if the capture queue is already configured well for our
  	 * usecase. If so, keep decoding with it and do not send the event
  	 */
- 	if (sess->width == width &&
-@@ -430,6 +424,7 @@ void amvdec_src_change(struct amvdec_session *sess, u32 width,
+-	if (sess->width == width &&
++	if (sess->streamon_cap &&
++	    sess->width == width &&
+ 	    sess->height == height &&
+ 	    dpb_size <= sess->num_dst_bufs) {
+ 		sess->fmt_out->codec_ops->resume(sess);
  		return;
  	}
  
@@ -627,7 +630,7 @@ index f16948b..ff43330 100644
  	sess->height = height;
  	sess->status = STATUS_NEEDS_RESUME;
 diff --git a/drivers/staging/media/meson/vdec/vdec_helpers.h b/drivers/staging/media/meson/vdec/vdec_helpers.h
-index a455a9e..165e629 100644
+index a455a9ee1cc2..165e6293ffba 100644
 --- a/drivers/staging/media/meson/vdec/vdec_helpers.h
 +++ b/drivers/staging/media/meson/vdec/vdec_helpers.h
 @@ -44,13 +44,15 @@ void amvdec_dst_buf_done_offset(struct amvdec_session *sess,
@@ -649,7 +652,7 @@ index a455a9e..165e629 100644
  
  /**
 diff --git a/drivers/staging/media/meson/vdec/vdec_platform.c b/drivers/staging/media/meson/vdec/vdec_platform.c
-index ea39f82..066d4a0 100644
+index ea39f8209ec7..066d4a055894 100644
 --- a/drivers/staging/media/meson/vdec/vdec_platform.c
 +++ b/drivers/staging/media/meson/vdec/vdec_platform.c
 @@ -21,6 +21,7 @@ static const struct amvdec_format vdec_formats_gxbb[] = {
@@ -732,6 +735,3 @@ index ea39f82..066d4a0 100644
  	},
  };
  
--- 
-2.7.1
-

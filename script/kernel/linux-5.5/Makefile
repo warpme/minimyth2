@@ -46,32 +46,26 @@ PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
 endif
 
 ifeq (1,1)
-# Amlogic: Add h264 and v4l2 compliance for Amlogic vdec
-# https://github.com/superna9999/linux/commits/amlogic/v5.6/vdec-g12a-compliance-vicodec-vp9 16.02.2020
-PATCHFILES += 0300-arm64-dts-meson-set-dma-pool-to-896MB.patch
-PATCHFILES += 0301-dt-bindings-media-amlogic-vdec-convert-to-yaml.patch
-PATCHFILES += 0302-dt-bindings-media-amlogic-gx-vdec-add-bindings-for-G.patch
-PATCHFILES += 0303-media-meson-vdec-add-g12a-platform.patch
-PATCHFILES += 0304-arm64-dts-meson-g12-common-add-video-decoder-node.patch
-PATCHFILES += 0305-dt-bindings-media-amlogic-gx-vdec-add-bindings-for-S.patch
-PATCHFILES += 0306-media-meson-vdec-add-sm1-platform.patch
-PATCHFILES += 0307-arm64-dts-meson-sm1-add-video-decoder-compatible.patch
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=229231
-PATCHFILES += 0308-media-v4l2-mem2mem-handle-draining-stopped-and-next-.patch
-PATCHFILES += 0309-media-vicodec-use-v4l2-mem2mem-draining-stopped-and-.patch
-PATCHFILES += 0310-media-meson-vdec-bring-up-to-compliance.patch
-PATCHFILES += 0311-media-meson-vdec-add-H.264-decoding-support.patch
+PATCHFILES += 0300-media-meson-vdec-add-g12a-platform.patch
+PATCHFILES += 0301-media-meson-vdec-add-sm1-platform.patch
+# Amlogic: vdec: Add h264 and v4l2 compliance for Amlogic vdec
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=237615 v5, 06/02/2020
+PATCHFILES += 0302-media-v4l2-mem2mem-handle-draining-stopped-and-next.patch
+PATCHFILES += 0303-media-vicodec-use-v4l2-mem2mem-draining-stopped-and.patch
+PATCHFILES += 0304-media-meson-vdec-bring-up-to-compliance.patch
+PATCHFILES += 0305-media-meson-vdec-add-H.264-decoding-support.patch
+# Amlogic: vdec: Add VP9 decoding support
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=237633 v4, 06/02/202
+PATCHFILES += 0306-media-meson-vdec-align-stride-on-32-bytes.patch
+PATCHFILES += 0307-media-meson-vdec-add-helpers-for-lossless-framebuffe.patch
+PATCHFILES += 0308-media-meson-vdec-add-common-HEVC-decoder-support.patch
+PATCHFILES += 0309-media-meson-vdec-add-VP9-input-support.patch
+PATCHFILES += 0310-media-meson-vdec-add-VP9-decoder-support.patch
+# Amlogic: vdec various patches
+PATCHFILES += 0311-arm64-dts-meson-set-dma-pool-to-896MB.patch
 PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=229239
-PATCHFILES += 0313-media-meson-vdec-align-stride-on-32-bytes.patch
-PATCHFILES += 0314-media-meson-vdec-add-helpers-for-lossless-framebuffe.patch
-PATCHFILES += 0315-media-meson-vdec-add-common-HEVC-decoder-support.patch
-PATCHFILES += 0316-media-meson-vdec-add-VP9-input-support.patch
-PATCHFILES += 0317-media-meson-vdec-add-VP9-decoder-support.patch
-# https://patchwork.kernel.org/patch/11350623/
-PATCHFILES += 0318-media-meson-vdec-don-t-resume-instantly-if-not-streaming-capture.patch
-# https://patchwork.kernel.org/patch/11352831/
-PATCHFILES += 0319-media-meson-vdec-fix-OUTPUT-buffer-size-configuration.patch
+PATCHFILES += 0313-arm64-dts-meson-g12-common-add-video-decoder-node.patch
+PATCHFILES += 0314-arm64-dts-meson-sm1-add-video-decoder-compatible.patch
 endif
 
 ifeq (1,1)
