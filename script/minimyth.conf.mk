@@ -17,7 +17,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk  ,      $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 10.0.0.r1659
+mm_VERSION_MINIMYTH ?= 10.1.1.r1659
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -170,7 +170,7 @@ mm_HOME                   ?= /home/piotro/minimyth-dev
 
 # The version of kernel to use.
 # Valid values are 'rpi-4.19' '5.3' '5.4' '5.5'
-mm_KERNEL_VERSION         ?= 5.4
+mm_KERNEL_VERSION         ?= 5.5
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -178,12 +178,12 @@ mm_KERNEL_VERSION         ?= 5.4
 mm_KERNEL_CONFIG          ?=
 
 # The version of Myth to use.
-# Valid values are '0.28', '29', '30' 'master' and 'test'
+# Valid values are '29', '30', '31', 'master' and 'test'
 mm_MYTH_VERSION           ?= master
 
 # The version of the NVIDIA driver.
 # Valid values are '440.36'
-mm_NVIDIA_VERSION         ?= 440.36
+mm_NVIDIA_VERSION         ?= 440.44
 
 # The version of the NVIDIA legacy driver.
 # Valid values are '340.107' '340.108'

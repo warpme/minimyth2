@@ -197,11 +197,10 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_MYTH_VERSION"
-	@if [ ! "$(mm_MYTH_VERSION)" = "0.27"         ] && \
-	    [ ! "$(mm_MYTH_VERSION)" = "0.28"         ] && \
-	    [ ! "$(mm_MYTH_VERSION)" = "29"           ] && \
-	    [ ! "$(mm_MYTH_VERSION)" = "30"           ] && \
+	@if [ ! "$(mm_MYTH_VERSION)" = "29"         ] && \
+	    [ ! "$(mm_MYTH_VERSION)" = "30"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "31"           ] && \
+	    [ ! "$(mm_MYTH_VERSION)" = "32"           ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "master"       ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "test"         ] ; then \
 		echo "error: mm_MYTH_VERSION=\"$(mm_MYTH_VERSION)\" is an invalid value." ; \
