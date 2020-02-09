@@ -36,6 +36,7 @@ PATCHFILES += linux-5.5-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.5-net-smsc95xx-allow-mac-address-as-param.patch
 
 PATCHFILES += 0100-aarch64-text-offset.patch
+PATCHFILES += 0101-pipe-use-exclusive-waits-when-reading-or-writing.patch
 
 ifeq (1,1)
 # Amlogic: Patch to fix Panfrost reset issue on GXM
