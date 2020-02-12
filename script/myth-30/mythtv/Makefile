@@ -5,6 +5,9 @@ MASTER_SITES = svn://svn.mythtv.org/svn/trunk/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  =
 
+PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
+PATCHFILES += 0000-configure-set-to-GAR-perl-python.patch.gar
+
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
 
@@ -15,7 +18,6 @@ PATCHFILES += 0003-SCR-keep-disecq-always-18V.patch
 PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
 PATCHFILES += 0005-EIT-ticket9480-fix-PL-eit-encodings.patch
 PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
-PATCHFILES += 0008-Settings-Add-manage-settings-in-mythutil.patch
 PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
 # Solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
 PATCHFILES += 0010-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
@@ -54,7 +56,6 @@ PATCHFILES += 0102-Minimyth-Add-phone-entry-in-menu.patch
 PATCHFILES += 0103-Minimyth-Add-optical-rip-to-menu.patch
 PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
 PATCHFILES += 0105-Minimyth-defaults.patch
-PATCHFILES += 0107-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
@@ -244,14 +245,13 @@ CONFIGURE_ARGS = \
 	--enable-libxml2 \
 	--enable-libdns_sd \
 	--enable-libcrypto \
-	--without-bindings="perl" \
-	--without-bindings="php" \
+	--with-bindings="perl" \
 	--with-bindings="python" \
+	--without-bindings="php" \
 	--enable-pic \
 	--disable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 	$(if $(filter nvidia nvidia-legacy,$(mm_GRAPHICS)),--enable-xnvctrl,--disable-xnvctrl) \
-
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
