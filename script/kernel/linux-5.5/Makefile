@@ -50,13 +50,13 @@ ifeq (1,1)
 PATCHFILES += 0300-media-meson-vdec-add-g12a-platform.patch
 PATCHFILES += 0301-media-meson-vdec-add-sm1-platform.patch
 # Amlogic: vdec: Add h264 and v4l2 compliance for Amlogic vdec
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=237615 v5, 06/02/2020
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=244029 v6, 19/02/2020
 PATCHFILES += 0302-media-v4l2-mem2mem-handle-draining-stopped-and-next.patch
 PATCHFILES += 0303-media-vicodec-use-v4l2-mem2mem-draining-stopped-and.patch
 PATCHFILES += 0304-media-meson-vdec-bring-up-to-compliance.patch
 PATCHFILES += 0305-media-meson-vdec-add-H.264-decoding-support.patch
 # Amlogic: vdec: Add VP9 decoding support
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=237633 v4, 06/02/202
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=244043 v5, 19/02/2020
 PATCHFILES += 0306-media-meson-vdec-align-stride-on-32-bytes.patch
 PATCHFILES += 0307-media-meson-vdec-add-helpers-for-lossless-framebuffe.patch
 PATCHFILES += 0308-media-meson-vdec-add-common-HEVC-decoder-support.patch

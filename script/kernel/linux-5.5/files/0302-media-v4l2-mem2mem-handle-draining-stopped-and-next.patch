@@ -1,24 +1,26 @@
 
-Since the draining and stop phase of the HW decoder mem2mem bahaviour is
+Since the draining and stop phase of the HW decoder mem2mem behaviour is
 now clearly defined, we can move handling of the following states to the
 common v4l2-mem2mem core code:
 - draining
 - stopped
 - next-buf-is-last
 
-By introducing the following v4l2-mem2mem APIS:
+By introducing the following v4l2-mem2mem APIs:
 - v4l2_m2m_encoder_cmd/v4l2_m2m_ioctl_encoder_cmd to handle start/stop command
 - v4l2_m2m_decoder_cmd/v4l2_m2m_ioctl_decoder_cmd to handle start/stop command
-- v4l2_m2m_start_streaming to handle start of streaming of the de/encoder queue
-- v4l2_m2m_stop_streaming to handle stop of streaming of the de/encoder queue
-- v4l2_m2m_last_buffer_done to maek the current dest buffer as the last one
+- v4l2_m2m_update_start_streaming_state to update state on start of streaming
+of the de/encoder queue
+- v4l2_m2m_update_stop_streaming_state to update state on stop of streaming
+of the de/encoder queue
+- v4l2_m2m_last_buffer_done to make the current dest buffer as the last one
 
 And inline helpers:
 - v4l2_m2m_mark_stopped to mark the de/encoding process as stopped
 - v4l2_m2m_clear_state to clear the de/encoding state
-- v4l2_m2m_dst_buf_is_last to detect the current dequeud dst_buf is the last
+- v4l2_m2m_dst_buf_is_last to detect the current dequeued dst_buf is the last
 - v4l2_m2m_has_stopped to detect the de/encoding stopped state
-- v4l2_m2m_is_last_draining_src_buf to detect the currect source buffer should
+- v4l2_m2m_is_last_draining_src_buf to detect the current source buffer should
  be the last processing before stopping the de/encoding process
 
 The special next-buf-is-last when min_buffers != 1 case is also handled
@@ -26,18 +28,18 @@ in v4l2_m2m_qbuf() by reusing the other introduced APIs.
 
 This state management has been stolen from the vicodec implementation,
 and is no-op for drivers not calling the v4l2_m2m_encoder_cmd or
-v4l2_m2m_decoder_cmd and v4l2_m2m_start_streaming/v4l2_m2m_stop_streaming.
+v4l2_m2m_decoder_cmd and v4l2_m2m_update_start/stop_streaming_state.
 
 The vicodec will be the first one to be converted as an example.
 
 Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
 ---
- drivers/media/v4l2-core/v4l2-mem2mem.c | 172 ++++++++++++++++++++++++-
- include/media/v4l2-mem2mem.h           |  95 ++++++++++++++
- 2 files changed, 265 insertions(+), 2 deletions(-)
+ drivers/media/v4l2-core/v4l2-mem2mem.c | 221 ++++++++++++++++++++++++-
+ include/media/v4l2-mem2mem.h           | 133 +++++++++++++++
+ 2 files changed, 352 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/media/v4l2-core/v4l2-mem2mem.c b/drivers/media/v4l2-core/v4l2-mem2mem.c
-index 1afd9c6ad908..f221d6c7a137 100644
+index 1afd9c6ad908..c4a84d9f693a 100644
 --- a/drivers/media/v4l2-core/v4l2-mem2mem.c
 +++ b/drivers/media/v4l2-core/v4l2-mem2mem.c
 @@ -340,6 +340,11 @@ static void __v4l2_m2m_try_queue(struct v4l2_m2m_dev *m2m_dev,
@@ -52,10 +54,17 @@ index 1afd9c6ad908..f221d6c7a137 100644
  	if (m2m_dev->m2m_ops->job_ready
  		&& (!m2m_dev->m2m_ops->job_ready(m2m_ctx->priv))) {
  		dprintk("Driver not ready\n");
-@@ -556,6 +561,99 @@ int v4l2_m2m_querybuf(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
+@@ -556,6 +561,140 @@ int v4l2_m2m_querybuf(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
  }
  EXPORT_SYMBOL_GPL(v4l2_m2m_querybuf);
  
++/*
++ * This will add the LAST flag and mark the buffer management
++ * state as stopped.
++ * This is called when the last capture buffer must be flagged as LAST
++ * in draining mode from the encoder/decoder driver buf_queue() callback
++ * or from v4l2_update_last_buf_state() when a capture buffer is available.
++ */
 +void v4l2_m2m_last_buffer_done(struct v4l2_m2m_ctx *m2m_ctx,
 +			       struct vb2_v4l2_buffer *vbuf)
 +{
@@ -66,7 +75,8 @@ index 1afd9c6ad908..f221d6c7a137 100644
 +}
 +EXPORT_SYMBOL_GPL(v4l2_m2m_last_buffer_done);
 +
-+static int v4l2_mark_last_buf(struct v4l2_m2m_ctx *m2m_ctx)
++/* When stop command is issued, update buffer management state */
++static int v4l2_update_last_buf_state(struct v4l2_m2m_ctx *m2m_ctx)
 +{
 +	struct vb2_v4l2_buffer *next_dst_buf;
 +
@@ -79,11 +89,26 @@ index 1afd9c6ad908..f221d6c7a137 100644
 +	m2m_ctx->last_src_buf = v4l2_m2m_last_src_buf(m2m_ctx);
 +	m2m_ctx->is_draining = true;
 +
++	/*
++	 * The processing of the last output buffer queued before
++	 * the STOP command is expected to mark the buffer management
++	 * state as stopped with v4l2_m2m_mark_stopped().
++	 */
 +	if (m2m_ctx->last_src_buf)
 +		return 0;
 +
++	/*
++	 * In case the output queue is empty, try to mark the last capture
++	 * buffer as LAST.
++	 */
 +	next_dst_buf = v4l2_m2m_dst_buf_remove(m2m_ctx);
 +	if (!next_dst_buf) {
++		/*
++		 * Wait for the next queued one in encoder/decoder driver
++		 * buf_queue() callback using the v4l2_m2m_dst_buf_is_last()
++		 * helper or in v4l2_m2m_qbuf() if encoder/decoder is not yet
++		 * streaming.
++		 */
 +		m2m_ctx->next_buf_last = true;
 +		return 0;
 +	}
@@ -93,16 +118,34 @@ index 1afd9c6ad908..f221d6c7a137 100644
 +	return 0;
 +}
 +
-+void v4l2_m2m_start_streaming(struct v4l2_m2m_ctx *m2m_ctx, struct vb2_queue *q)
++/*
++ * Updates the encoding/decoding buffer management state, should
++ * be called from encoder/decoder drivers start_streaming()
++ */
++void v4l2_m2m_update_start_streaming_state(struct v4l2_m2m_ctx *m2m_ctx,
++					   struct vb2_queue *q)
 +{
++	/* If start streaming again, untag the last output buffer */
 +	if (V4L2_TYPE_IS_OUTPUT(q->type))
 +		m2m_ctx->last_src_buf = NULL;
 +}
-+EXPORT_SYMBOL_GPL(v4l2_m2m_start_streaming);
++EXPORT_SYMBOL_GPL(v4l2_m2m_update_start_streaming_state);
 +
-+void v4l2_m2m_stop_streaming(struct v4l2_m2m_ctx *m2m_ctx, struct vb2_queue *q)
++/*
++ * Updates the encoding/decoding buffer management state, should
++ * be called from encoder/decoder driver stop_streaming()
++ */
++void v4l2_m2m_update_stop_streaming_state(struct v4l2_m2m_ctx *m2m_ctx,
++					  struct vb2_queue *q)
 +{
 +	if (V4L2_TYPE_IS_OUTPUT(q->type)) {
++		/*
++		 * If in draining state, either mark next dst buffer as
++		 * done or flag next one to be marked as done either
++		 * in encoder/decoder driver buf_queue() callback using
++		 * the v4l2_m2m_dst_buf_is_last() helper or in v4l2_m2m_qbuf()
++		 * if encoder/decoder is not yet streaming
++		 */
 +		if (m2m_ctx->is_draining) {
 +			struct vb2_v4l2_buffer *next_dst_buf;
 +
@@ -118,7 +161,7 @@ index 1afd9c6ad908..f221d6c7a137 100644
 +		v4l2_m2m_clear_state(m2m_ctx);
 +	}
 +}
-+EXPORT_SYMBOL_GPL(v4l2_m2m_stop_streaming);
++EXPORT_SYMBOL_GPL(v4l2_m2m_update_stop_streaming_state);
 +
 +static void v4l2_m2m_force_last_buf_done(struct v4l2_m2m_ctx *m2m_ctx,
 +					 struct vb2_queue *q)
@@ -152,7 +195,7 @@ index 1afd9c6ad908..f221d6c7a137 100644
  int v4l2_m2m_qbuf(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
  		  struct v4l2_buffer *buf)
  {
-@@ -570,11 +668,25 @@ int v4l2_m2m_qbuf(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
+@@ -570,11 +709,25 @@ int v4l2_m2m_qbuf(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
  			__func__);
  		return -EPERM;
  	}
@@ -180,10 +223,14 @@ index 1afd9c6ad908..f221d6c7a137 100644
  }
  EXPORT_SYMBOL_GPL(v4l2_m2m_qbuf);
  
-@@ -1225,6 +1337,62 @@ int v4l2_m2m_ioctl_try_decoder_cmd(struct file *file, void *fh,
+@@ -1225,6 +1378,70 @@ int v4l2_m2m_ioctl_try_decoder_cmd(struct file *file, void *fh,
  }
  EXPORT_SYMBOL_GPL(v4l2_m2m_ioctl_try_decoder_cmd);
  
++/*
++ * Updates the encoding state on ENC_CMD_STOP/ENC_CMD_START
++ * Should be called from the encoder driver encoder_cmd() callback
++ */
 +int v4l2_m2m_encoder_cmd(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
 +			 struct v4l2_encoder_cmd *ec)
 +{
@@ -191,7 +238,7 @@ index 1afd9c6ad908..f221d6c7a137 100644
 +		return -EINVAL;
 +
 +	if (ec->cmd == V4L2_ENC_CMD_STOP)
-+		return v4l2_mark_last_buf(m2m_ctx);
++		return v4l2_update_last_buf_state(m2m_ctx);
 +
 +	if (m2m_ctx->is_draining)
 +		return -EBUSY;
@@ -203,6 +250,10 @@ index 1afd9c6ad908..f221d6c7a137 100644
 +}
 +EXPORT_SYMBOL_GPL(v4l2_m2m_encoder_cmd);
 +
++/*
++ * Updates the decoding state on DEC_CMD_STOP/DEC_CMD_START
++ * Should be called from the decoder driver decoder_cmd() callback
++ */
 +int v4l2_m2m_decoder_cmd(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
 +			 struct v4l2_decoder_cmd *dc)
 +{
@@ -210,7 +261,7 @@ index 1afd9c6ad908..f221d6c7a137 100644
 +		return -EINVAL;
 +
 +	if (dc->cmd == V4L2_DEC_CMD_STOP)
-+		return v4l2_mark_last_buf(m2m_ctx);
++		return v4l2_update_last_buf_state(m2m_ctx);
 +
 +	if (m2m_ctx->is_draining)
 +		return -EBUSY;
@@ -244,7 +295,7 @@ index 1afd9c6ad908..f221d6c7a137 100644
  					     struct v4l2_decoder_cmd *dc)
  {
 diff --git a/include/media/v4l2-mem2mem.h b/include/media/v4l2-mem2mem.h
-index 1d85e24791e4..3476889af46c 100644
+index 1d85e24791e4..98753f00df7e 100644
 --- a/include/media/v4l2-mem2mem.h
 +++ b/include/media/v4l2-mem2mem.h
 @@ -80,6 +80,10 @@ struct v4l2_m2m_queue_ctx {
@@ -270,10 +321,15 @@ index 1d85e24791e4..3476889af46c 100644
  	/* internal use only */
  	struct v4l2_m2m_dev		*m2m_dev;
  
-@@ -215,6 +224,50 @@ v4l2_m2m_buf_done(struct vb2_v4l2_buffer *buf, enum vb2_buffer_state state)
+@@ -215,6 +224,86 @@ v4l2_m2m_buf_done(struct vb2_v4l2_buffer *buf, enum vb2_buffer_state state)
  	vb2_buffer_done(&buf->vb2_buf, state);
  }
  
++/**
++ * v4l2_m2m_clear_state() - clear encoding/decoding state
++ *
++ * @m2m_ctx: m2m context assigned to the instance given by struct &v4l2_m2m_ctx
++ */
 +static inline void
 +v4l2_m2m_clear_state(struct v4l2_m2m_ctx *m2m_ctx)
 +{
@@ -282,6 +338,11 @@ index 1d85e24791e4..3476889af46c 100644
 +	m2m_ctx->has_stopped = false;
 +}
 +
++/**
++ * v4l2_m2m_mark_stopped() - set current encoding/decoding state as stopped
++ *
++ * @m2m_ctx: m2m context assigned to the instance given by struct &v4l2_m2m_ctx
++ */
 +static inline void
 +v4l2_m2m_mark_stopped(struct v4l2_m2m_ctx *m2m_ctx)
 +{
@@ -290,23 +351,49 @@ index 1d85e24791e4..3476889af46c 100644
 +	m2m_ctx->has_stopped = true;
 +}
 +
++/**
++ * v4l2_m2m_dst_buf_is_last() - return the current encoding/decoding session
++ * draining management state of next queued capture buffer
++ *
++ * This last capture buffer should be tagged with V4L2_BUF_FLAG_LAST to notify
++ * the end of the capture session.
++ *
++ * @m2m_ctx: m2m context assigned to the instance given by struct &v4l2_m2m_ctx
++ */
 +static inline bool
 +v4l2_m2m_dst_buf_is_last(struct v4l2_m2m_ctx *m2m_ctx)
 +{
 +	return m2m_ctx->is_draining && m2m_ctx->next_buf_last;
 +}
 +
++/**
++ * v4l2_m2m_has_stopped() - return the current encoding/decoding session
++ * stopped state
++ *
++ * @m2m_ctx: m2m context assigned to the instance given by struct &v4l2_m2m_ctx
++ */
 +static inline bool
 +v4l2_m2m_has_stopped(struct v4l2_m2m_ctx *m2m_ctx)
 +{
 +	return m2m_ctx->has_stopped;
 +}
 +
++/**
++ * v4l2_m2m_is_last_draining_src_buf() - return the output buffer draining
++ * state in the current encoding/decoding session
++ *
++ * This will identify the last output buffer queued before a session stop
++ * was required, leading to an actual encoding/decoding session stop state
++ * in the encoding/decoding process after being processed.
++ *
++ * @m2m_ctx: m2m context assigned to the instance given by struct &v4l2_m2m_ctx
++ * @vbuf: pointer to struct &v4l2_buffer
++ */
 +static inline bool
 +v4l2_m2m_is_last_draining_src_buf(struct v4l2_m2m_ctx *m2m_ctx,
-+				       struct vb2_v4l2_buffer *buf)
++				  struct vb2_v4l2_buffer *vbuf)
 +{
-+	return m2m_ctx->is_draining && buf == m2m_ctx->last_src_buf;
++	return m2m_ctx->is_draining && vbuf == m2m_ctx->last_src_buf;
 +}
 +
 +/**
@@ -321,27 +408,29 @@ index 1d85e24791e4..3476889af46c 100644
  /**
   * v4l2_m2m_reqbufs() - multi-queue-aware REQBUFS multiplexer
   *
-@@ -312,6 +365,44 @@ int v4l2_m2m_streamon(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
+@@ -312,6 +401,46 @@ int v4l2_m2m_streamon(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
  int v4l2_m2m_streamoff(struct file *file, struct v4l2_m2m_ctx *m2m_ctx,
  		       enum v4l2_buf_type type);
  
 +/**
-+ * v4l2_m2m_start_streaming() - handle start of streaming of a video queue
++ * v4l2_m2m_update_start_streaming_state() - update the encoding/decoding
++ * session state when a start of streaming of a video queue is requested
 + *
 + * @m2m_ctx: m2m context assigned to the instance given by struct &v4l2_m2m_ctx
 + * @q: queue
 + */
-+void v4l2_m2m_start_streaming(struct v4l2_m2m_ctx *m2m_ctx,
-+			      struct vb2_queue *q);
++void v4l2_m2m_update_start_streaming_state(struct v4l2_m2m_ctx *m2m_ctx,
++					   struct vb2_queue *q);
 +
 +/**
-+ * v4l2_m2m_stop_streaming() - handle stop of streaming of a video queue
++ * v4l2_m2m_update_stop_streaming_state() -  update the encoding/decoding
++ * session state when a stop of streaming of a video queue is requested
 + *
 + * @m2m_ctx: m2m context assigned to the instance given by struct &v4l2_m2m_ctx
 + * @q: queue
 + */
-+void v4l2_m2m_stop_streaming(struct v4l2_m2m_ctx *m2m_ctx,
-+			     struct vb2_queue *q);
++void v4l2_m2m_update_stop_streaming_state(struct v4l2_m2m_ctx *m2m_ctx,
++					  struct vb2_queue *q);
 +
 +/**
 + * v4l2_m2m_encoder_cmd() - execute an encoder command
@@ -366,7 +455,7 @@ index 1d85e24791e4..3476889af46c 100644
  /**
   * v4l2_m2m_poll() - poll replacement, for destination buffers only
   *
-@@ -704,6 +795,10 @@ int v4l2_m2m_ioctl_streamon(struct file *file, void *fh,
+@@ -704,6 +833,10 @@ int v4l2_m2m_ioctl_streamon(struct file *file, void *fh,
  				enum v4l2_buf_type type);
  int v4l2_m2m_ioctl_streamoff(struct file *file, void *fh,
  				enum v4l2_buf_type type);
