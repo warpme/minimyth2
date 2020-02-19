@@ -6,7 +6,8 @@ MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$
 DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 
-PATCHFILES  = 0001-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
+PATCHFILES   = 0001-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
+PATCHFILES  += 0002-allowall-usb-start.patch
 
 LICENSE = GPL2
 
