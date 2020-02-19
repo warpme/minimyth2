@@ -1,21 +1,17 @@
-From 2dcebd8c1a1b7f47820d1757489d7e132fa4813f Mon Sep 17 00:00:00 2001
-From: Jerome Brunet <jbrunet@baylibre.com>
-Date: Wed, 14 Aug 2019 17:09:18 +0200
-Subject: [PATCH 29/51] ASoC: meson: add t9015 internal DAC driver
 
 Add the codec driver of the internal DAC found on Amlogic gxl, g12a and
 sm1 family.
 
 Signed-off-by: Jerome Brunet <jbrunet@baylibre.com>
 ---
- sound/soc/meson/Kconfig  |   8 ++
+ sound/soc/meson/Kconfig  |   8 +
  sound/soc/meson/Makefile |   2 +
- sound/soc/meson/t9015.c  | 326 +++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 336 insertions(+)
+ sound/soc/meson/t9015.c  | 320 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 330 insertions(+)
  create mode 100644 sound/soc/meson/t9015.c
 
 diff --git a/sound/soc/meson/Kconfig b/sound/soc/meson/Kconfig
-index 22d2af7..897a706 100644
+index 22d2af75b59e..897a706dcda0 100644
 --- a/sound/soc/meson/Kconfig
 +++ b/sound/soc/meson/Kconfig
 @@ -6,6 +6,7 @@ config SND_MESON_AIU
@@ -39,7 +35,7 @@ index 22d2af7..897a706 100644
 +	  on GXL, G12 and SM1 SoC family.
  endmenu
 diff --git a/sound/soc/meson/Makefile b/sound/soc/meson/Makefile
-index f9c90c3..3c9d488 100644
+index f9c90c391498..3c9d48846816 100644
 --- a/sound/soc/meson/Makefile
 +++ b/sound/soc/meson/Makefile
 @@ -23,6 +23,7 @@ snd-soc-meson-card-utils-objs := meson-card-utils.o
@@ -57,10 +53,10 @@ index f9c90c3..3c9d488 100644
 +obj-$(CONFIG_SND_SOC_MESON_T9015) += snd-soc-meson-t9015.o
 diff --git a/sound/soc/meson/t9015.c b/sound/soc/meson/t9015.c
 new file mode 100644
-index 0000000..4f26708
+index 000000000000..b8a003efa628
 --- /dev/null
 +++ b/sound/soc/meson/t9015.c
-@@ -0,0 +1,326 @@
+@@ -0,0 +1,320 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// Copyright (c) 2020 BayLibre, SAS.
@@ -82,7 +78,6 @@ index 0000000..4f26708
 +#define  LOLP_EN	3
 +#define  DACR_EN	4
 +#define  DACL_EN	5
-+
 +#define  DACR_INV	20
 +#define  DACL_INV	21
 +#define  DACR_SRC	22
@@ -121,7 +116,7 @@ index 0000000..4f26708
 +	struct snd_soc_component *component = dai->component;
 +	unsigned int val;
 +
-+	switch(fmt & SND_SOC_DAIFMT_MASTER_MASK) {
++	switch (fmt & SND_SOC_DAIFMT_MASTER_MASK) {
 +	case SND_SOC_DAIFMT_CBM_CFM:
 +		val = I2S_MODE;
 +		break;
@@ -138,7 +133,7 @@ index 0000000..4f26708
 +
 +	if (((fmt & SND_SOC_DAIFMT_FORMAT_MASK) != SND_SOC_DAIFMT_I2S) &&
 +	    ((fmt & SND_SOC_DAIFMT_FORMAT_MASK) != SND_SOC_DAIFMT_LEFT_J))
-+	 	return -EINVAL;
++		return -EINVAL;
 +
 +	return 0;
 +}
@@ -275,23 +270,15 @@ index 0000000..4f26708
 +	return 0;
 +}
 +
-+static int t9015_component_probe(struct snd_soc_component *c)
-+{
-+	/* FIXME */
-+	return snd_soc_component_write(c, LINEOUT_CFG, 0x00001111);
-+}
-+
 +static const struct snd_soc_component_driver t9015_codec_driver = {
-+	.probe			= t9015_component_probe,
 +	.set_bias_level		= t9015_set_bias_level,
-+	.controls 		= t9015_snd_controls,
++	.controls		= t9015_snd_controls,
 +	.num_controls		= ARRAY_SIZE(t9015_snd_controls),
 +	.dapm_widgets		= t9015_dapm_widgets,
 +	.num_dapm_widgets	= ARRAY_SIZE(t9015_dapm_widgets),
 +	.dapm_routes		= t9015_dapm_routes,
 +	.num_dapm_routes	= ARRAY_SIZE(t9015_dapm_routes),
 +	.suspend_bias_off	= 1,
-+	.idle_bias_on		= 1,
 +	.endianness		= 1,
 +	.non_legacy_dai_naming	= 1,
 +};
@@ -360,7 +347,12 @@ index 0000000..4f26708
 +		return PTR_ERR(regmap);
 +	}
 +
-+	/* Add polarity parsing here */
++	/*
++	 * Initialize output polarity:
++	 * ATM the output polarity is fixed but in the future it might useful
++	 * to add DT property to set this depending on the platform needs
++	 */
++	regmap_write(regmap, LINEOUT_CFG, 0x1111);
 +
 +	return devm_snd_soc_register_component(dev, &t9015_codec_driver,
 +					       &t9015_dai, 1);
@@ -385,8 +377,3 @@ index 0000000..4f26708
 +MODULE_DESCRIPTION("ASoC Amlogic T9015 codec driver");
 +MODULE_AUTHOR("Jerome Brunet <jbrunet@baylibre.com>");
 +MODULE_LICENSE("GPL");
-+
-+
--- 
-2.7.1
-

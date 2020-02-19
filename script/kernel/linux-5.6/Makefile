@@ -118,8 +118,9 @@ PATCHFILES += 0344-ASoC-meson-aiu-fix-acodec-dai-input-name-init.patch
 PATCHFILES += 0345-ASoC-meson-codec-glue-fix-pcm-format-cast-warning.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=242471
 PATCHFILES += 0346-ASoC-meson-aiu-simplify-component-addition.patch
-# https://gitlab.com/jbrunet/linux/-/commits/v5.7/aml/integ 
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=244017
 PATCHFILES += 0346-ASoC-meson-add-t9015-internal-DAC-driver.patch
+# https://gitlab.com/jbrunet/linux/-/commits/v5.7/aml/integ
 PATCHFILES += 0347-ASoC-meson-g12a-add-tohdmitx-reset.patch
 PATCHFILES += 0348-ASoC-meson-add-g12a-toacodec-dt-binding-documentatio.patch
 PATCHFILES += 0349-ASoC-meson-add-g12-internal-DAC-glue.patch
