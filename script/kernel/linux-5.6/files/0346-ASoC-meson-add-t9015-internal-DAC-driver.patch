@@ -6,8 +6,8 @@ Signed-off-by: Jerome Brunet <jbrunet@baylibre.com>
 ---
  sound/soc/meson/Kconfig  |   8 +
  sound/soc/meson/Makefile |   2 +
- sound/soc/meson/t9015.c  | 320 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 330 insertions(+)
+ sound/soc/meson/t9015.c  | 333 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 343 insertions(+)
  create mode 100644 sound/soc/meson/t9015.c
 
 diff --git a/sound/soc/meson/Kconfig b/sound/soc/meson/Kconfig
@@ -53,10 +53,10 @@ index f9c90c391498..3c9d48846816 100644
 +obj-$(CONFIG_SND_SOC_MESON_T9015) += snd-soc-meson-t9015.o
 diff --git a/sound/soc/meson/t9015.c b/sound/soc/meson/t9015.c
 new file mode 100644
-index 000000000000..b8a003efa628
+index 000000000000..56d2592c16d5
 --- /dev/null
 +++ b/sound/soc/meson/t9015.c
-@@ -0,0 +1,320 @@
+@@ -0,0 +1,333 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// Copyright (c) 2020 BayLibre, SAS.
@@ -174,23 +174,30 @@ index 000000000000..b8a003efa628
 +
 +static const struct snd_kcontrol_new t9015_snd_controls[] = {
 +	/* Volume Controls */
-+	SOC_SINGLE("Playback Mute", VOL_CTRL1, DAC_SOFT_MUTE, 1, 0),
++	SOC_ENUM("Playback Channel Mode", mono_enum),
++	SOC_SINGLE("Playback Switch", VOL_CTRL1, DAC_SOFT_MUTE, 1, 1),
 +	SOC_DOUBLE_TLV("Playback Volume", VOL_CTRL1, DACL_VC, DACR_VC,
 +		       0xff, 0, dac_vol_tlv),
 +
 +	/* Ramp Controls */
 +	SOC_ENUM("Ramp Rate", ramp_rate_enum),
-+	SOC_SINGLE("Volume Ramp Enable", VOL_CTRL1, VC_RAMP_MODE, 1, 0),
-+	SOC_SINGLE("Mute Ramp Enable", VOL_CTRL1, MUTE_MODE, 1, 0),
-+	SOC_SINGLE("Unmute Ramp Enable", VOL_CTRL1, UNMUTE_MODE, 1, 0),
-+
-+	/* Channel Src */
-+	SOC_ENUM("Right DAC Source", dacr_in_enum),
-+	SOC_ENUM("Left DAC Source",  dacl_in_enum),
-+	SOC_ENUM("Channel Mode", mono_enum),
++	SOC_SINGLE("Volume Ramp Switch", VOL_CTRL1, VC_RAMP_MODE, 1, 0),
++	SOC_SINGLE("Mute Ramp Switch", VOL_CTRL1, MUTE_MODE, 1, 0),
++	SOC_SINGLE("Unmute Ramp Switch", VOL_CTRL1, UNMUTE_MODE, 1, 0),
 +};
 +
++static const struct snd_kcontrol_new t9015_right_dac_mux =
++	SOC_DAPM_ENUM("Right DAC Source", dacr_in_enum);
++static const struct snd_kcontrol_new t9015_left_dac_mux =
++	SOC_DAPM_ENUM("Left DAC Source", dacl_in_enum);
++
 +static const struct snd_soc_dapm_widget t9015_dapm_widgets[] = {
++	SND_SOC_DAPM_AIF_IN("Right IN", NULL, 0, SND_SOC_NOPM, 0, 0),
++	SND_SOC_DAPM_AIF_IN("Left IN", NULL, 0, SND_SOC_NOPM, 0, 0),
++	SND_SOC_DAPM_MUX("Right DAC Sel", SND_SOC_NOPM, 0, 0,
++			 &t9015_right_dac_mux),
++	SND_SOC_DAPM_MUX("Left DAC Sel", SND_SOC_NOPM, 0, 0,
++			 &t9015_left_dac_mux),
 +	SND_SOC_DAPM_DAC("Right DAC", NULL, BLOCK_EN, DACR_EN, 0),
 +	SND_SOC_DAPM_DAC("Left DAC",  NULL, BLOCK_EN, DACL_EN, 0),
 +	SND_SOC_DAPM_OUT_DRV("Right- Driver", BLOCK_EN, LORN_EN, 0,
@@ -208,8 +215,14 @@ index 000000000000..b8a003efa628
 +};
 +
 +static const struct snd_soc_dapm_route t9015_dapm_routes[] = {
-+	{ "Right DAC", NULL, "Playback" },
-+	{ "Left DAC",  NULL, "Playback" },
++	{ "Right IN", NULL, "Playback" },
++	{ "Left IN",  NULL, "Playback" },
++	{ "Right DAC Sel", "Right", "Right IN" },
++	{ "Right DAC Sel", "Left",  "Left IN" },
++	{ "Left DAC Sel",  "Right", "Right IN" },
++	{ "Left DAC Sel",  "Left",  "Left IN" },
++	{ "Right DAC", NULL, "Right DAC Sel" },
++	{ "Left DAC",  NULL, "Left DAC Sel" },
 +	{ "Right- Driver", NULL, "Right DAC" },
 +	{ "Right+ Driver", NULL, "Right DAC" },
 +	{ "Left- Driver",  NULL, "Left DAC"  },

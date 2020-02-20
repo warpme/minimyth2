@@ -118,7 +118,7 @@ PATCHFILES += 0344-ASoC-meson-aiu-fix-acodec-dai-input-name-init.patch
 PATCHFILES += 0345-ASoC-meson-codec-glue-fix-pcm-format-cast-warning.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=242471
 PATCHFILES += 0346-ASoC-meson-aiu-simplify-component-addition.patch
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=244017
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=244199 v3 19.02.2020
 PATCHFILES += 0346-ASoC-meson-add-t9015-internal-DAC-driver.patch
 # https://gitlab.com/jbrunet/linux/-/commits/v5.7/aml/integ
 PATCHFILES += 0347-ASoC-meson-g12a-add-tohdmitx-reset.patch
@@ -145,7 +145,7 @@ PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
 
 ifeq (0,1)
 # Rockchip: rkvdec rk3399
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=234693 v4 29.01.2020
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=234693 v5 19.02.2020
 PATCHFILES += 0401-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
 PATCHFILES += 0402-media-v4l2-core-Add-helpers-to-build-the-H264-P-B0-B1-reflists.patch
 PATCHFILES += 0403-media-hantro-h264-Use-the-generic-H264-reflist-builder.patch
@@ -158,17 +158,20 @@ PATCHFILES += 0409-media-uapi-Add-VP9-stateless-decoder-controls.patch
 PATCHFILES += 0410-media-rkvdec-Add-the-VP9-backend.patch
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # Rockchip: hantro vdec rk3328/3399 improvements 
-# https://github.com/Kwiboo/linux-rockchip/compare/v4l2-5.4-from-5.5-v5.4...v4l2-5.4-work-in-progress-v5.4
-PATCHFILES += 0430-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
-PATCHFILES += 0431-media-hantro-Fix-H264-decoding-of-field-encoded.patch
-PATCHFILES += 0432-media-hantro-rk3399-mpeg2-src_fmt.patch
-PATCHFILES += 0433-media-hantro-g1-mpeg2-src_fmt.patch
-PATCHFILES += 0434-media-hantro_vp8_src_fmt.patch
-PATCHFILES += 0436-media-hantro-Add-support-for-H264-decoding-on-RK3399.patch
-PATCHFILES += 0437-media-hantro-Enable-H264-decoding-on-RK3399.patch
-PATCHFILES += 0438-media-hantro-Enable-H264-decoding-on-RK3328.patch
+# https://github.com/Kwiboo/linux-rockchip/commits/v4l2-5.5-work-in-progress-v5.5 01.02.2020
+PATCHFILES += 0436-media-hantro-fix-extra-MV-MC-sync-space-calculation.patch
+PATCHFILES += 0437-media-hantro-Prevent-encoders-from-using-post-proces.patch
+PATCHFILES += 0438-RFC-media-uapi-h264-Add-DPB-entry-field-reference-fl.patch
+PATCHFILES += 0439-RFC-media-hantro-Fix-H264-decoding-of-field-encoded-.patch
+PATCHFILES += 0440-WIP-media-hantro-rk3399-mpeg2-src_fmt.patch
+PATCHFILES += 0441-WIP-media-hantro-g1-mpeg2-src_fmt.patch
+PATCHFILES += 0442-WIP-media-hantro-vp8-src_fmt.patch
+PATCHFILES += 0443-media-hantro-Refactor-G1-H264-code.patch
+PATCHFILES += 0444-media-hantro-Add-support-for-H264-decoding-on-RK3399.patch
+PATCHFILES += 0445-media-hantro-Enable-H264-decoding-on-RK3399.patch
+PATCHFILES += 0446-media-hantro-Enable-H264-decoding-on-RK3328.patch
 endif
 
 ifeq (1,1)
