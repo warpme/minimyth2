@@ -134,8 +134,6 @@ PATCHFILES += 0354-arm64-dts-meson-g12a-add-internal-DAC.patch
 PATCHFILES += 0355-arm64-dts-meson-g12a-add-internal-DAC-glue.patch
 PATCHFILES += 0356-arm64-dts-meson-u200-add-audio-support.patch
 PATCHFILES += 0357-arm64-dts-meson-enable-audio-playback-on-p230-q200.patch
-PATCHFILES += 0358-arm64-dts-meson-add-libretech-cc-s905x-audio-playbac.patch
-PATCHFILES += 0359-arm64-dts-meson-add-sound-support-to-the-libretech-p.patch
 endif
 
 # Amlogic: Misc patches
