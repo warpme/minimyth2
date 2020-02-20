@@ -32,7 +32,6 @@ BUILD_ARGS = \
 
 configure-custom:
 	@echo "Configuring u-boot for SunXi H6..."
-	@sed -i "s%HOSTCC%CC%g" $(WORKSRC)/scripts/dtc/pylibfdt/Makefile
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
