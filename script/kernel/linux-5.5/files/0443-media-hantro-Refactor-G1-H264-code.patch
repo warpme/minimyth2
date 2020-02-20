@@ -1,7 +1,7 @@
-From d74e08d30e3074ed2fe95b813074739e0bca09f3 Mon Sep 17 00:00:00 2001
+From 53587b8e287e5a4dd7df5f99820a627575ea9235 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Sun, 18 Aug 2019 10:40:31 +0000
-Subject: [PATCH] media: hantro: Refactor G1 H264 code
+Subject: [PATCH 13/16] media: hantro: Refactor G1 H264 code
 
 Use generated code from my rockchip-vpu-regtool
 
@@ -9,13 +9,13 @@ Code could possible need some cleanup
 
 Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
 ---
- .../staging/media/hantro/hantro_g1_h264_dec.c | 653 +++++++++++-------
- drivers/staging/media/hantro/hantro_h264.c    |  14 +
- drivers/staging/media/hantro/hantro_hw.h      |   2 +
+ drivers/staging/media/hantro/hantro_g1_h264_dec.c | 653 ++++++++++++++--------
+ drivers/staging/media/hantro/hantro_h264.c        |  14 +
+ drivers/staging/media/hantro/hantro_hw.h          |   2 +
  3 files changed, 435 insertions(+), 234 deletions(-)
 
 diff --git a/drivers/staging/media/hantro/hantro_g1_h264_dec.c b/drivers/staging/media/hantro/hantro_g1_h264_dec.c
-index 4f2923d34d41..aeefa652e5a9 100644
+index 89cf574..20999b0 100644
 --- a/drivers/staging/media/hantro/hantro_g1_h264_dec.c
 +++ b/drivers/staging/media/hantro/hantro_g1_h264_dec.c
 @@ -1,6 +1,6 @@
@@ -639,8 +639,8 @@ index 4f2923d34d41..aeefa652e5a9 100644
 +	vdpu_write_relaxed(vpu, addr, G1_REG_RLC_VLC_BASE);
  
  	/* Destination (decoded frame) buffer. */
--	dst_dma = vb2_dma_contig_plane_dma_addr(&dst_buf->vb2_buf, 0);
-+	addr = vb2_dma_contig_plane_dma_addr(&dst_buf->vb2_buf, 0);
+-	dst_dma = hantro_get_dec_buf_addr(ctx, &dst_buf->vb2_buf);
++	addr = hantro_get_dec_buf_addr(ctx, &dst_buf->vb2_buf);
  	/* Adjust dma addr to start at second line for bottom field */
 -	if (ctrls->slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD)
 +	if (slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD)
@@ -705,7 +705,7 @@ index 4f2923d34d41..aeefa652e5a9 100644
 +	vdpu_write_relaxed(vpu, hantro_h264_get_ref_buf(ctx, 14), G1_REG_REFER14_BASE);
 +	vdpu_write_relaxed(vpu, hantro_h264_get_ref_buf(ctx, 15), G1_REG_REFER15_BASE);
  
- 	hantro_finish_run(ctx);
+ 	hantro_end_prepare_run(ctx);
  
  	/* Start decoding! */
 -	vdpu_write_relaxed(vpu,
@@ -724,7 +724,7 @@ index 4f2923d34d41..aeefa652e5a9 100644
 +	vdpu_write(vpu, reg, G1_SWREG(1));
  }
 diff --git a/drivers/staging/media/hantro/hantro_h264.c b/drivers/staging/media/hantro/hantro_h264.c
-index 79d96ff4e685..f82f0744cfd0 100644
+index 4db7793..2edcdda 100644
 --- a/drivers/staging/media/hantro/hantro_h264.c
 +++ b/drivers/staging/media/hantro/hantro_h264.c
 @@ -596,6 +596,20 @@ dma_addr_t hantro_h264_get_ref_buf(struct hantro_ctx *ctx,
@@ -749,10 +749,10 @@ index 79d96ff4e685..f82f0744cfd0 100644
  {
  	struct hantro_h264_dec_hw_ctx *h264_ctx = &ctx->h264_dec;
 diff --git a/drivers/staging/media/hantro/hantro_hw.h b/drivers/staging/media/hantro/hantro_hw.h
-index fb1451e8a80b..bb6f9a87aade 100644
+index 3dc7b8f..fadd3e1 100644
 --- a/drivers/staging/media/hantro/hantro_hw.h
 +++ b/drivers/staging/media/hantro/hantro_hw.h
-@@ -159,6 +159,8 @@ void hantro_jpeg_enc_exit(struct hantro_ctx *ctx);
+@@ -172,6 +172,8 @@ void hantro_jpeg_enc_exit(struct hantro_ctx *ctx);
  
  dma_addr_t hantro_h264_get_ref_buf(struct hantro_ctx *ctx,
  				   unsigned int dpb_idx);
@@ -761,3 +761,6 @@ index fb1451e8a80b..bb6f9a87aade 100644
  int hantro_h264_dec_prepare_run(struct hantro_ctx *ctx);
  void hantro_g1_h264_dec_run(struct hantro_ctx *ctx);
  int hantro_h264_dec_init(struct hantro_ctx *ctx);
+-- 
+2.7.1
+

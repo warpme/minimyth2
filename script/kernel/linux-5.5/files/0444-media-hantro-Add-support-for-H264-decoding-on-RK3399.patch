@@ -1,21 +1,21 @@
-From f3dd203c7e47ad829c90db6aacb8f97662d049d0 Mon Sep 17 00:00:00 2001
+From 9d5400ebc8e4a6e5e9046ca7e73b6c7beba21950 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Sun, 18 Aug 2019 10:40:31 +0000
-Subject: [PATCH] media: hantro: Add support for H264 decoding on RK3399
+Subject: [PATCH 14/16] media: hantro: Add support for H264 decoding on RK3399
 
 Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
 ---
- drivers/staging/media/hantro/Makefile         |   1 +
- drivers/staging/media/hantro/hantro_hw.h      |   1 +
- .../media/hantro/rk3399_vpu_hw_h264_dec.c     | 493 ++++++++++++++++++
+ drivers/staging/media/hantro/Makefile              |   1 +
+ drivers/staging/media/hantro/hantro_hw.h           |   1 +
+ .../staging/media/hantro/rk3399_vpu_hw_h264_dec.c  | 493 +++++++++++++++++++++
  3 files changed, 495 insertions(+)
  create mode 100644 drivers/staging/media/hantro/rk3399_vpu_hw_h264_dec.c
 
 diff --git a/drivers/staging/media/hantro/Makefile b/drivers/staging/media/hantro/Makefile
-index 5d6b0383d280..8d33b0e8aa6c 100644
+index 496b30c..9bb8a56 100644
 --- a/drivers/staging/media/hantro/Makefile
 +++ b/drivers/staging/media/hantro/Makefile
-@@ -8,6 +8,7 @@ hantro-vpu-y += \
+@@ -9,6 +9,7 @@ hantro-vpu-y += \
  		hantro_g1_mpeg2_dec.o \
  		hantro_g1_vp8_dec.o \
  		rk3399_vpu_hw_jpeg_enc.o \
@@ -24,10 +24,10 @@ index 5d6b0383d280..8d33b0e8aa6c 100644
  		rk3399_vpu_hw_vp8_dec.o \
  		hantro_jpeg.o \
 diff --git a/drivers/staging/media/hantro/hantro_hw.h b/drivers/staging/media/hantro/hantro_hw.h
-index bb6f9a87aade..8a4ada2fc8c3 100644
+index fadd3e1..4a64873 100644
 --- a/drivers/staging/media/hantro/hantro_hw.h
 +++ b/drivers/staging/media/hantro/hantro_hw.h
-@@ -163,6 +163,7 @@ u16 hantro_h264_get_ref_nbr(struct hantro_ctx *ctx,
+@@ -176,6 +176,7 @@ u16 hantro_h264_get_ref_nbr(struct hantro_ctx *ctx,
  			    unsigned int dpb_idx);
  int hantro_h264_dec_prepare_run(struct hantro_ctx *ctx);
  void hantro_g1_h264_dec_run(struct hantro_ctx *ctx);
@@ -37,7 +37,7 @@ index bb6f9a87aade..8a4ada2fc8c3 100644
  
 diff --git a/drivers/staging/media/hantro/rk3399_vpu_hw_h264_dec.c b/drivers/staging/media/hantro/rk3399_vpu_hw_h264_dec.c
 new file mode 100644
-index 000000000000..02a81f03eed1
+index 0000000..1f9de7d
 --- /dev/null
 +++ b/drivers/staging/media/hantro/rk3399_vpu_hw_h264_dec.c
 @@ -0,0 +1,493 @@
@@ -485,7 +485,7 @@ index 000000000000..02a81f03eed1
 +	vdpu_write_relaxed(vpu, addr, VDPU_REG_RLC_VLC_BASE);
 +
 +	/* Destination (decoded frame) buffer. */
-+	addr = vb2_dma_contig_plane_dma_addr(&dst_buf->vb2_buf, 0);
++	addr = hantro_get_dec_buf_addr(ctx, &dst_buf->vb2_buf);
 +	/* Adjust dma addr to start at second line for bottom field */
 +	if (slices[0].flags & V4L2_H264_SLICE_FLAG_BOTTOM_FIELD)
 +		offset = ALIGN(ctx->src_fmt.width, MB_DIM);
@@ -528,9 +528,12 @@ index 000000000000..02a81f03eed1
 +	vdpu_write_relaxed(vpu, hantro_h264_get_ref_buf(ctx, 14), VDPU_REG_REFER14_BASE);
 +	vdpu_write_relaxed(vpu, hantro_h264_get_ref_buf(ctx, 15), VDPU_REG_REFER15_BASE);
 +
-+	hantro_finish_run(ctx);
++	hantro_end_prepare_run(ctx);
 +
 +	/* Start decoding! */
 +	reg = vdpu_read(vpu, VDPU_SWREG(57)) | VDPU_REG_DEC_E(1);
 +	vdpu_write(vpu, reg, VDPU_SWREG(57));
 +}
+-- 
+2.7.1
+
