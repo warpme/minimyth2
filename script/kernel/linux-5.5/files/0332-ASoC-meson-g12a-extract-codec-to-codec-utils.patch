@@ -1,21 +1,26 @@
-From 67aceea7296da928b9df16d9098e482e25eb84d4 Mon Sep 17 00:00:00 2001
-From: Jerome Brunet <jbrunet@baylibre.com>
-Date: Thu, 8 Aug 2019 15:54:05 +0200
-Subject: [PATCH 41/94] WIP: ASoC: meson: rework: g12a tohdmitx codec
+
+The hdmi routing mechanism used on g12a hdmi is also used:
+* other Amlogic SoC types
+* for the internal DAC path
+
+Each of these codec glues are slightly different but the idea
+behind it remains the same. This change extract some helper functions
+from the g12a-tohdmitx driver to make them available for other Amlogic
+codecs.
 
 Signed-off-by: Jerome Brunet <jbrunet@baylibre.com>
 ---
- sound/soc/meson/Kconfig            |   4 ++
+ sound/soc/meson/Kconfig            |   4 +
  sound/soc/meson/Makefile           |   2 +
- sound/soc/meson/g12a-tohdmitx.c    | 124 +++++------------------------------
- sound/soc/meson/meson-codec-glue.c | 129 +++++++++++++++++++++++++++++++++++++
- sound/soc/meson/meson-codec-glue.h |  37 +++++++++++
- 5 files changed, 187 insertions(+), 109 deletions(-)
+ sound/soc/meson/g12a-tohdmitx.c    | 219 ++++++-----------------------
+ sound/soc/meson/meson-codec-glue.c | 149 ++++++++++++++++++++
+ sound/soc/meson/meson-codec-glue.h |  32 +++++
+ 5 files changed, 230 insertions(+), 176 deletions(-)
  create mode 100644 sound/soc/meson/meson-codec-glue.c
  create mode 100644 sound/soc/meson/meson-codec-glue.h
 
 diff --git a/sound/soc/meson/Kconfig b/sound/soc/meson/Kconfig
-index 2e36761..ee6d539 100644
+index 2e3676147cea..ee6d53949d45 100644
 --- a/sound/soc/meson/Kconfig
 +++ b/sound/soc/meson/Kconfig
 @@ -85,9 +85,13 @@ config SND_MESON_AXG_PDM
@@ -33,7 +38,7 @@ index 2e36761..ee6d539 100644
  	help
  	  Select Y or M to add support for HDMI audio on the g12a SoC
 diff --git a/sound/soc/meson/Makefile b/sound/soc/meson/Makefile
-index 1a8b147..529a807 100644
+index 1a8b1470ed84..529a807b3f37 100644
 --- a/sound/soc/meson/Makefile
 +++ b/sound/soc/meson/Makefile
 @@ -11,6 +11,7 @@ snd-soc-meson-axg-sound-card-objs := axg-card.o
@@ -51,10 +56,10 @@ index 1a8b147..529a807 100644
 +obj-$(CONFIG_SND_MESON_CODEC_GLUE) += snd-soc-meson-codec-glue.o
  obj-$(CONFIG_SND_MESON_G12A_TOHDMITX) += snd-soc-meson-g12a-tohdmitx.o
 diff --git a/sound/soc/meson/g12a-tohdmitx.c b/sound/soc/meson/g12a-tohdmitx.c
-index 9cfbd34..c7791ca 100644
+index 9cfbd343a00c..f8853f2fba08 100644
 --- a/sound/soc/meson/g12a-tohdmitx.c
 +++ b/sound/soc/meson/g12a-tohdmitx.c
-@@ -12,6 +12,7 @@
+@@ -12,112 +12,51 @@
  #include <sound/soc-dai.h>
  
  #include <dt-bindings/sound/meson-g12a-tohdmitx.h>
@@ -62,8 +67,20 @@ index 9cfbd34..c7791ca 100644
  
  #define G12A_TOHDMITX_DRV_NAME "g12a-tohdmitx"
  
-@@ -27,52 +28,6 @@
- #define  CTRL0_SPDIF_SEL		BIT(1)
+ #define TOHDMITX_CTRL0			0x0
+ #define  CTRL0_ENABLE_SHIFT		31
+-#define  CTRL0_I2S_DAT_SEL		GENMASK(13, 12)
++#define  CTRL0_I2S_DAT_SEL_SHIFT	12
++#define  CTRL0_I2S_DAT_SEL		(0x3 << CTRL0_I2S_DAT_SEL_SHIFT)
+ #define  CTRL0_I2S_LRCLK_SEL		GENMASK(9, 8)
+ #define  CTRL0_I2S_BLK_CAP_INV		BIT(7)
+ #define  CTRL0_I2S_BCLK_O_INV		BIT(6)
+ #define  CTRL0_I2S_BCLK_SEL		GENMASK(5, 4)
+ #define  CTRL0_SPDIF_CLK_CAP_INV	BIT(3)
+ #define  CTRL0_SPDIF_CLK_O_INV		BIT(2)
+-#define  CTRL0_SPDIF_SEL		BIT(1)
++#define  CTRL0_SPDIF_SEL_SHIFT		1
++#define  CTRL0_SPDIF_SEL		(0x1 << CTRL0_SPDIF_SEL_SHIFT)
  #define  CTRL0_SPDIF_CLK_SEL		BIT(0)
  
 -struct g12a_tohdmitx_input {
@@ -115,41 +132,161 @@ index 9cfbd34..c7791ca 100644
  static const char * const g12a_tohdmitx_i2s_mux_texts[] = {
  	"I2S A", "I2S B", "I2S C",
  };
-@@ -201,85 +156,36 @@ static const struct snd_soc_dapm_widget g12a_tohdmitx_widgets[] = {
- 			    &g12a_tohdmitx_out_enable),
- };
  
-+static const struct snd_soc_dai_ops g12a_tohdmitx_input_ops = {
-+	.hw_params	= meson_codec_glue_input_hw_params,
-+	.set_fmt	= meson_codec_glue_input_set_fmt,
-+};
-+
-+static const struct snd_soc_dai_ops g12a_tohdmitx_output_ops = {
-+	.startup	= meson_codec_glue_output_startup,
-+};
-+
- static int g12a_tohdmitx_input_probe(struct snd_soc_dai *dai)
+-static SOC_ENUM_SINGLE_EXT_DECL(g12a_tohdmitx_i2s_mux_enum,
+-				g12a_tohdmitx_i2s_mux_texts);
+-
+-static int g12a_tohdmitx_get_input_val(struct snd_soc_component *component,
+-				       unsigned int mask)
+-{
+-	unsigned int val;
+-
+-	snd_soc_component_read(component, TOHDMITX_CTRL0, &val);
+-	return (val & mask) >> __ffs(mask);
+-}
+-
+-static int g12a_tohdmitx_i2s_mux_get_enum(struct snd_kcontrol *kcontrol,
+-					  struct snd_ctl_elem_value *ucontrol)
+-{
+-	struct snd_soc_component *component =
+-		snd_soc_dapm_kcontrol_component(kcontrol);
+-
+-	ucontrol->value.enumerated.item[0] =
+-		g12a_tohdmitx_get_input_val(component, CTRL0_I2S_DAT_SEL);
+-
+-	return 0;
+-}
+-
+ static int g12a_tohdmitx_i2s_mux_put_enum(struct snd_kcontrol *kcontrol,
+-					  struct snd_ctl_elem_value *ucontrol)
++				   struct snd_ctl_elem_value *ucontrol)
  {
--	struct g12a_tohdmitx_input *data;
-+	struct meson_codec_glue_input *data;
+ 	struct snd_soc_component *component =
+ 		snd_soc_dapm_kcontrol_component(kcontrol);
+ 	struct snd_soc_dapm_context *dapm =
+ 		snd_soc_dapm_kcontrol_dapm(kcontrol);
+ 	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+-	unsigned int mux = ucontrol->value.enumerated.item[0];
+-	unsigned int val = g12a_tohdmitx_get_input_val(component,
+-						       CTRL0_I2S_DAT_SEL);
++	unsigned int mux, changed;
++
++	mux = snd_soc_enum_item_to_val(e, ucontrol->value.enumerated.item[0]);
++	changed = snd_soc_component_test_bits(component, e->reg,
++					      CTRL0_I2S_DAT_SEL,
++					      FIELD_PREP(CTRL0_I2S_DAT_SEL,
++							 mux));
++
++	if (!changed)
++		return 0;
  
- 	data = kzalloc(sizeof(*data), GFP_KERNEL);
- 	if (!data)
- 		return -ENOMEM;
+ 	/* Force disconnect of the mux while updating */
+-	if (val != mux)
+-		snd_soc_dapm_mux_update_power(dapm, kcontrol, 0, NULL, NULL);
++	snd_soc_dapm_mux_update_power(dapm, kcontrol, 0, NULL, NULL);
  
--	dai->playback_dma_data = data;
-+	meson_codec_glue_input_set_data(dai, data);
+-	snd_soc_component_update_bits(component, TOHDMITX_CTRL0,
++	snd_soc_component_update_bits(component, e->reg,
+ 				      CTRL0_I2S_DAT_SEL |
+ 				      CTRL0_I2S_LRCLK_SEL |
+ 				      CTRL0_I2S_BCLK_SEL,
+@@ -130,30 +69,19 @@ static int g12a_tohdmitx_i2s_mux_put_enum(struct snd_kcontrol *kcontrol,
  	return 0;
  }
  
- static int g12a_tohdmitx_input_remove(struct snd_soc_dai *dai)
++static SOC_ENUM_SINGLE_DECL(g12a_tohdmitx_i2s_mux_enum, TOHDMITX_CTRL0,
++			    CTRL0_I2S_DAT_SEL_SHIFT,
++			    g12a_tohdmitx_i2s_mux_texts);
++
+ static const struct snd_kcontrol_new g12a_tohdmitx_i2s_mux =
+ 	SOC_DAPM_ENUM_EXT("I2S Source", g12a_tohdmitx_i2s_mux_enum,
+-			  g12a_tohdmitx_i2s_mux_get_enum,
++			  snd_soc_dapm_get_enum_double,
+ 			  g12a_tohdmitx_i2s_mux_put_enum);
+ 
+ static const char * const g12a_tohdmitx_spdif_mux_texts[] = {
+ 	"SPDIF A", "SPDIF B",
+ };
+ 
+-static SOC_ENUM_SINGLE_EXT_DECL(g12a_tohdmitx_spdif_mux_enum,
+-				g12a_tohdmitx_spdif_mux_texts);
+-
+-static int g12a_tohdmitx_spdif_mux_get_enum(struct snd_kcontrol *kcontrol,
+-					    struct snd_ctl_elem_value *ucontrol)
+-{
+-	struct snd_soc_component *component =
+-		snd_soc_dapm_kcontrol_component(kcontrol);
+-
+-	ucontrol->value.enumerated.item[0] =
+-		g12a_tohdmitx_get_input_val(component, CTRL0_SPDIF_SEL);
+-
+-	return 0;
+-}
+-
+ static int g12a_tohdmitx_spdif_mux_put_enum(struct snd_kcontrol *kcontrol,
+ 					    struct snd_ctl_elem_value *ucontrol)
  {
+@@ -162,13 +90,18 @@ static int g12a_tohdmitx_spdif_mux_put_enum(struct snd_kcontrol *kcontrol,
+ 	struct snd_soc_dapm_context *dapm =
+ 		snd_soc_dapm_kcontrol_dapm(kcontrol);
+ 	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
+-	unsigned int mux = ucontrol->value.enumerated.item[0];
+-	unsigned int val = g12a_tohdmitx_get_input_val(component,
+-						       CTRL0_SPDIF_SEL);
++	unsigned int mux, changed;
++
++	mux = snd_soc_enum_item_to_val(e, ucontrol->value.enumerated.item[0]);
++	changed = snd_soc_component_test_bits(component, TOHDMITX_CTRL0,
++					      CTRL0_SPDIF_SEL,
++					      FIELD_PREP(CTRL0_SPDIF_SEL, mux));
++
++	if (!changed)
++		return 0;
+ 
+ 	/* Force disconnect of the mux while updating */
+-	if (val != mux)
+-		snd_soc_dapm_mux_update_power(dapm, kcontrol, 0, NULL, NULL);
++	snd_soc_dapm_mux_update_power(dapm, kcontrol, 0, NULL, NULL);
+ 
+ 	snd_soc_component_update_bits(component, TOHDMITX_CTRL0,
+ 				      CTRL0_SPDIF_SEL |
+@@ -181,9 +114,13 @@ static int g12a_tohdmitx_spdif_mux_put_enum(struct snd_kcontrol *kcontrol,
+ 	return 0;
+ }
+ 
++static SOC_ENUM_SINGLE_DECL(g12a_tohdmitx_spdif_mux_enum, TOHDMITX_CTRL0,
++			    CTRL0_SPDIF_SEL_SHIFT,
++			    g12a_tohdmitx_spdif_mux_texts);
++
+ static const struct snd_kcontrol_new g12a_tohdmitx_spdif_mux =
+ 	SOC_DAPM_ENUM_EXT("SPDIF Source", g12a_tohdmitx_spdif_mux_enum,
+-			  g12a_tohdmitx_spdif_mux_get_enum,
++			  snd_soc_dapm_get_enum_double,
+ 			  g12a_tohdmitx_spdif_mux_put_enum);
+ 
+ static const struct snd_kcontrol_new g12a_tohdmitx_out_enable =
+@@ -201,83 +138,13 @@ static const struct snd_soc_dapm_widget g12a_tohdmitx_widgets[] = {
+ 			    &g12a_tohdmitx_out_enable),
+ };
+ 
+-static int g12a_tohdmitx_input_probe(struct snd_soc_dai *dai)
+-{
+-	struct g12a_tohdmitx_input *data;
+-
+-	data = kzalloc(sizeof(*data), GFP_KERNEL);
+-	if (!data)
+-		return -ENOMEM;
+-
+-	dai->playback_dma_data = data;
+-	return 0;
+-}
+-
+-static int g12a_tohdmitx_input_remove(struct snd_soc_dai *dai)
+-{
 -	kfree(dai->playback_dma_data);
 -	return 0;
 -}
-+	struct meson_codec_glue_input *data =
-+		meson_codec_glue_input_get_data(dai);
- 
+-
 -static int g12a_tohdmitx_input_hw_params(struct snd_pcm_substream *substream,
 -					 struct snd_pcm_hw_params *params,
 -					 struct snd_soc_dai *dai)
@@ -175,10 +312,9 @@ index 9cfbd34..c7791ca 100644
 -
 -	/* Save the source stream format for the downstream link */
 -	data->fmt = fmt;
-+	kfree(data);
- 	return 0;
- }
- 
+-	return 0;
+-}
+-
 -static int g12a_tohdmitx_output_startup(struct snd_pcm_substream *substream,
 -					struct snd_soc_dai *dai)
 -{
@@ -203,24 +339,36 @@ index 9cfbd34..c7791ca 100644
 -	return snd_soc_runtime_set_dai_fmt(rtd, in_data->fmt);
 -}
 -
--static const struct snd_soc_dai_ops g12a_tohdmitx_input_ops = {
+ static const struct snd_soc_dai_ops g12a_tohdmitx_input_ops = {
 -	.hw_params	= g12a_tohdmitx_input_hw_params,
 -	.set_fmt	= g12a_tohdmitx_input_set_fmt,
--};
--
--static const struct snd_soc_dai_ops g12a_tohdmitx_output_ops = {
++	.hw_params	= meson_codec_glue_input_hw_params,
++	.set_fmt	= meson_codec_glue_input_set_fmt,
+ };
+ 
+ static const struct snd_soc_dai_ops g12a_tohdmitx_output_ops = {
 -	.startup	= g12a_tohdmitx_output_startup,
--};
--
++	.startup	= meson_codec_glue_output_startup,
+ };
+ 
  #define TOHDMITX_SPDIF_FORMATS					\
- 	(SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE |	\
- 	 SNDRV_PCM_FMTBIT_S24_3LE | SNDRV_PCM_FMTBIT_S24_LE)
+@@ -304,8 +171,8 @@ static const struct snd_soc_dai_ops g12a_tohdmitx_output_ops = {
+ 	.id = (xid),							\
+ 	.playback = TOHDMITX_STREAM(xname, "Playback", xfmt, xchmax),	\
+ 	.ops = &g12a_tohdmitx_input_ops,				\
+-	.probe = g12a_tohdmitx_input_probe,				\
+-	.remove = g12a_tohdmitx_input_remove,				\
++	.probe = meson_codec_glue_input_dai_probe,			\
++	.remove = meson_codec_glue_input_dai_remove,			\
+ }
+ 
+ #define TOHDMITX_OUT(xname, xid, xfmt, xchmax) {			\
 diff --git a/sound/soc/meson/meson-codec-glue.c b/sound/soc/meson/meson-codec-glue.c
 new file mode 100644
-index 0000000..58fc94c
+index 000000000000..97bbc967e176
 --- /dev/null
 +++ b/sound/soc/meson/meson-codec-glue.c
-@@ -0,0 +1,129 @@
+@@ -0,0 +1,149 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// Copyright (c) 2019 BayLibre, SAS.
@@ -233,7 +381,7 @@ index 0000000..58fc94c
 +
 +#include "meson-codec-glue.h"
 +
-+struct snd_soc_dapm_widget *
++static struct snd_soc_dapm_widget *
 +meson_codec_glue_get_input(struct snd_soc_dapm_widget *w)
 +{
 +	struct snd_soc_dapm_path *p = NULL;
@@ -258,14 +406,12 @@ index 0000000..58fc94c
 +
 +	return NULL;
 +}
-+EXPORT_SYMBOL_GPL(meson_codec_glue_get_input);
 +
-+void meson_codec_glue_input_set_data(struct snd_soc_dai *dai,
-+				     struct meson_codec_glue_input *data)
++static void meson_codec_glue_input_set_data(struct snd_soc_dai *dai,
++					    struct meson_codec_glue_input *data)
 +{
 +	dai->playback_dma_data = data;
 +}
-+EXPORT_SYMBOL_GPL(meson_codec_glue_input_set_data);
 +
 +struct meson_codec_glue_input *
 +meson_codec_glue_input_get_data(struct snd_soc_dai *dai)
@@ -274,7 +420,7 @@ index 0000000..58fc94c
 +}
 +EXPORT_SYMBOL_GPL(meson_codec_glue_input_get_data);
 +
-+struct meson_codec_glue_input *
++static struct meson_codec_glue_input *
 +meson_codec_glue_output_get_input_data(struct snd_soc_dapm_widget *w)
 +{
 +	struct snd_soc_dapm_widget *in =
@@ -288,7 +434,6 @@ index 0000000..58fc94c
 +
 +	return meson_codec_glue_input_get_data(dai);
 +}
-+EXPORT_SYMBOL_GPL(meson_codec_glue_output_get_input_data);
 +
 +int meson_codec_glue_input_hw_params(struct snd_pcm_substream *substream,
 +				     struct snd_pcm_hw_params *params,
@@ -346,16 +491,39 @@ index 0000000..58fc94c
 +}
 +EXPORT_SYMBOL_GPL(meson_codec_glue_output_startup);
 +
++int meson_codec_glue_input_dai_probe(struct snd_soc_dai *dai)
++{
++	struct meson_codec_glue_input *data;
++
++	data = kzalloc(sizeof(*data), GFP_KERNEL);
++	if (!data)
++		return -ENOMEM;
++
++	meson_codec_glue_input_set_data(dai, data);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(meson_codec_glue_input_dai_probe);
++
++int meson_codec_glue_input_dai_remove(struct snd_soc_dai *dai)
++{
++	struct meson_codec_glue_input *data =
++		meson_codec_glue_input_get_data(dai);
++
++	kfree(data);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(meson_codec_glue_input_dai_remove);
++
 +MODULE_AUTHOR("Jerome Brunet <jbrunet@baylibre.com>");
 +MODULE_DESCRIPTION("Amlogic Codec Glue Helpers");
 +MODULE_LICENSE("GPL v2");
 +
 diff --git a/sound/soc/meson/meson-codec-glue.h b/sound/soc/meson/meson-codec-glue.h
 new file mode 100644
-index 0000000..f76ab73
+index 000000000000..07f99446c0c6
 --- /dev/null
 +++ b/sound/soc/meson/meson-codec-glue.h
-@@ -0,0 +1,37 @@
+@@ -0,0 +1,32 @@
 +/* SPDX-License-Identifier: GPL-2.0
 + *
 + * Copyright (c) 2018 Baylibre SAS.
@@ -372,27 +540,19 @@ index 0000000..f76ab73
 +	unsigned int fmt;
 +};
 +
-+struct snd_soc_dapm_widget *
-+meson_codec_glue_get_input(struct snd_soc_dapm_widget *w);
-+
 +/* Input helpers */
 +struct meson_codec_glue_input *
 +meson_codec_glue_input_get_data(struct snd_soc_dai *dai);
-+void meson_codec_glue_input_set_data(struct snd_soc_dai *dai,
-+				     struct meson_codec_glue_input *data);
 +int meson_codec_glue_input_hw_params(struct snd_pcm_substream *substream,
 +				     struct snd_pcm_hw_params *params,
 +				     struct snd_soc_dai *dai);
 +int meson_codec_glue_input_set_fmt(struct snd_soc_dai *dai,
 +				   unsigned int fmt);
++int meson_codec_glue_input_dai_probe(struct snd_soc_dai *dai);
++int meson_codec_glue_input_dai_remove(struct snd_soc_dai *dai);
 +
 +/* Output helpers */
-+struct meson_codec_glue_input *
-+meson_codec_glue_output_get_input_data(struct snd_soc_dapm_widget *w);
 +int meson_codec_glue_output_startup(struct snd_pcm_substream *substream,
 +				    struct snd_soc_dai *dai);
 +
 +#endif /* _MESON_CODEC_GLUE_H */
--- 
-2.7.1
-

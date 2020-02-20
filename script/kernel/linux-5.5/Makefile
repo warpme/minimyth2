@@ -70,38 +70,50 @@ PATCHFILES += 0314-arm64-dts-meson-sm1-add-video-decoder-compatible.patch
 endif
 
 ifeq (1,1)
-# Amlogic: Enable hdmi audio
-# https://gitlab.com/jbrunet/linux/commits/v5.6/aml/integ
-PATCHFILES += 0330-ASoC-meson-rework-g12a-tohdmitx-codec.patch
-PATCHFILES += 0331-ASoC-meson-add-toacodec-dt-bindings.patch
-PATCHFILES += 0332-ASoC-meson-add-g12-internal-DAC-glue.patch
-PATCHFILES += 0333-ASoC-meson-add-t9015-internal-DAC-driver.patch
-PATCHFILES += 0334-ASoC-meson-axg-card-add-toacodec-support.patch
-PATCHFILES += 0336-ASoC-meson-aiu-add-i2s-fifo-support.patch
-PATCHFILES += 0337-ASoC-meson-aiu-add-spdif-fifo-support.patch
-PATCHFILES += 0338-ASoC-meson-aiu-add-i2s-encoder-support.patch
-PATCHFILES += 0339-ASoC-meson-aiu-add-spdif-encoder-support.patch
-PATCHFILES += 0340-ASoC-meson-extract-utils-from-axg-sound-card.patch
-PATCHFILES += 0341-ASoC-meson-add-gx-card-support.patch
-PATCHFILES += 0342-WIP-ASoC-meson-gx-hardcode-codec-to-codec-routes.patch
-PATCHFILES += 0343-clk-meson-g12a-fix-gp0-and-hifi-ranges.patch
-PATCHFILES += 0344-arm64-dts-meson-g12a-add-internal-DAC.patch
-PATCHFILES += 0345-arm64-dts-meson-g12a-add-internal-DAC-glue.patch
-PATCHFILES += 0346-arm64-dts-meson-u200-add-audio-support.patch
-PATCHFILES += 0347-arm64-dts-meson-gx-add-playback-audio-devices.patch
-PATCHFILES += 0348-arm64-dts-meson-enable-audio-playback-on-p230-q2.patch
-PATCHFILES += 0349-arm64-dts-meson-add-Khadas-VIM2-audio-playback.patch
-PATCHFILES += 0350-arm64-dts-meson-add-audio-fifo-depths.patch
-PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
+# Amlogic: Enable hdmi audio: patches from kernel ML
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=231775 22.01.2020
+PATCHFILES += 0329-clk-meson-gxbb-add-the-gxl-internal-dac-gate.patch
+PATCHFILES += 0330-clk-meson-gxbb-set-audio-output-clock-hierarchy.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=241077 13.02.2020
+PATCHFILES += 0331-ASoC-core-allow-a-dt-node-to-provide-several-components.patch
+PATCHFILES += 0332-ASoC-meson-g12a-extract-codec-to-codec-utils.patch
+PATCHFILES += 0333-ASoC-meson-aiu-add-audio-output-dt-bindings.patch
+PATCHFILES += 0334-ASoC-meson-aiu-add-i2s-and-spdif-support.patch
+PATCHFILES += 0335-ASoC-meson-aiu-add-hdmi-codec-control-support.patch
+PATCHFILES += 0336-ASoC-meson-aiu-add-internal-dac-codec-control-support.patch
+PATCHFILES += 0337-ASoC-meson-axg-extract-sound-card-utils.patch
+PATCHFILES += 0338-clk-meson-g12a-fix-gp0-and-hifi-ranges.patch
+PATCHFILES += 0339-ASoC-meson-gx-add-sound-card-support.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=241609 14.02.2020
+PATCHFILES += 0340-ASoC-core-ensure-component-names-are-unique.patch
+PATCHFILES += 0341-ASoC-meson-aiu-remove-unused-encoder-structure.patch
+PATCHFILES += 0342-ASoC-meson-aiu-fix-clk-bulk-size-allocation.patch
+PATCHFILES += 0343-ASoC-meson-aiu-fix-irq-registration.patch
+PATCHFILES += 0344-ASoC-meson-aiu-fix-acodec-dai-input-name-init.patch
+PATCHFILES += 0345-ASoC-meson-codec-glue-fix-pcm-format-cast-warning.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=242471
+PATCHFILES += 0346-ASoC-meson-aiu-simplify-component-addition.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=244199 v3 19.02.2020
+PATCHFILES += 0346-ASoC-meson-add-t9015-internal-DAC-driver.patch
+# https://gitlab.com/jbrunet/linux/-/commits/v5.7/aml/integ
+PATCHFILES += 0347-ASoC-meson-g12a-add-tohdmitx-reset.patch
+PATCHFILES += 0348-ASoC-meson-add-g12a-toacodec-dt-binding-documentatio.patch
+PATCHFILES += 0349-ASoC-meson-add-g12-internal-DAC-glue.patch
+PATCHFILES += 0350-ASoC-meson-axg-card-add-toacodec-support.patch
+PATCHFILES += 0351-dt-bindings-reset-meson-add-gxl-internal-dac-reset.patch
+PATCHFILES += 0352-dt-bindings-clk-meson-add-the-gxl-internal-dac-gate.patch
+# Enabling sound on gxbb/gxl/gxm
+# https://gitlab.com/jbrunet/linux/-/commits/v5.7/aml/integ
+PATCHFILES += 0353-arm64-dts-meson-gx-add-playback-audio-devices.patch
+PATCHFILES += 0354-arm64-dts-meson-g12a-add-internal-DAC.patch
+PATCHFILES += 0355-arm64-dts-meson-g12a-add-internal-DAC-glue.patch
+PATCHFILES += 0356-arm64-dts-meson-u200-add-audio-support.patch
+PATCHFILES += 0357-arm64-dts-meson-enable-audio-playback-on-p230-q200.patch
 endif
 
 # Amlogic: Misc patches
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
-PATCHFILES += 0362-dt-bindings-reset-meson-add-gxl-internal-dac-reset.patch
-PATCHFILES += 0363-dt-bindings-clk-meson-add-the-gxl-internal-dac-gate.patch
-PATCHFILES += 0364-clk-meson-gxbb-add-the-gxl-internal-dac-gate.patch
-PATCHFILES += 0365-clk-meson-gxbb-set-audio-output-clock-hierarchy.patch
 
 ifeq (0,1)
 # Rockchip: rkvdec rk3399
