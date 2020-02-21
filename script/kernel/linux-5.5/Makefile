@@ -114,6 +114,9 @@ endif
 # Amlogic: Misc patches
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
+PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
+# https://patchwork.kernel.org/patch/11394603/
+PATCHFILES += 0362-arm64-dts-meson-gxl-s905x-p212-add-bluetooth-nodes.patch
 
 ifeq (0,1)
 # Rockchip: rkvdec rk3399
