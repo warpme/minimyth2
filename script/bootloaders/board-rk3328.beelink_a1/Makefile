@@ -1,6 +1,6 @@
 
-GARNAME      = bootfiles-rk3328
-GARVERSION   = 2019-04-03
+GARNAME      = bootfiles-rk3328.beelink_a1
+GARVERSION   = 2020-02-20
 CATEGORIES   = bootloaders
 MASTER_SITES = http://os.archlinuxarm.org/os/rockchip/boot/rock64/
 DISTFILES    = idbloader.img \

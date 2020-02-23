@@ -12,8 +12,8 @@ DISTFILES = \
 	board-s912.conf             \
 	board-g12.conf              \
 	board-sm1.conf              \
-	board-rk3328.conf           \
-	board-rk3399.conf           \
+	board-rk3328.beelink_a1.conf \
+	board-rk3399.rockpi4-b.conf \
 	board-h6.beelink_gs1.conf   \
 	board-h6.eachlink_mini.conf \
 	board-h6.tanix_tx6.conf     \
@@ -25,8 +25,8 @@ DISTFILES = \
 	board-s912.wks              \
 	board-g12.wks               \
 	board-sm1.wks               \
-	board-rk3328.wks            \
-	board-rk3399.wks            \
+	board-rk3328.beelink_a1.wks \
+	board-rk3399.rockpi4-b.wks  \
 	board-h6.beelink_gs1.wks    \
 	board-h6.eachlink_mini.wks  \
 	board-h6.tanix_tx6.wks      \

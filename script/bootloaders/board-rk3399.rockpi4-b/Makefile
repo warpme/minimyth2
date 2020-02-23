@@ -1,9 +1,10 @@
 
-GARNAME      = bootfiles-rk3399
-GARVERSION   = 6437aab36283eb2a4536d9a982fb0655fb558e8a
+GARNAME      = bootfiles-rk3399.rockpi4-b
+GARVERSION   = 2020-02-20
 CATEGORIES   = bootloaders
-MASTER_SITES = https://github.com/rockchip-linux/rkbin/archive/
-DISTFILES    = extlinux.conf \
+MASTER_SITES = http://os.archlinuxarm.org/os/rockchip/boot/rock64/
+DISTFILES    = rksd_loader.img \
+               extlinux.conf \
                rk3399-boot-debug.scr \
                rk3399-boot-debug.txt \
                rk3399-boot.scr \
@@ -17,7 +18,8 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = bootloaders/u-boot-rk3399
+# Skipping U-Boot build as we are using files from Armbian (thx guys!)
+# DEPENDS   = bootloaders/u-boot
 
 BUILD_SCRIPTS   =
 INSTALL_SCRIPTS = custom
@@ -38,9 +40,7 @@ install-custom:
 	@cp -f    $(WORKSRC)/rk3399-boot.scr                         $(DESTDIR)/boot/boot.scr
 	@mkdir -p $(DESTDIR)/boot/rk3399loaderfiles
 	@cp -f    $(DESTDIR)/boot/dtbs/rockchip/rk3399-rock-pi-4.dtb $(DESTDIR)/boot/rk3399_dtb
-	@cp -f    $(WORKSRC)/idbloader.img                           $(DESTDIR)/boot/rk3399loaderfiles/idbloader.img
-	@cp -f    $(WORKSRC)/trust.img                               $(DESTDIR)/boot/rk3399loaderfiles/trust.img
-	@cp -f    $(WORKSRC)/uboot.img                               $(DESTDIR)/boot/rk3399loaderfiles/uboot.img
+	@cp -f    $(WORKSRC)/rksd_loader.img                         $(DESTDIR)/boot/rk3399loaderfiles/rksd_loader.img
 	@$(MAKECOOKIE)
 
 clean-all:

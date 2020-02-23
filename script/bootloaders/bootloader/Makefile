@@ -53,14 +53,14 @@ ifneq (,$(findstring board-sm1,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-sm1
 endif
 
-ifneq (,$(findstring board-rk3328,$(mm_BOARD_TYPE)))
+ifneq (,$(findstring board-rk3328.beelink_a1,$(mm_BOARD_TYPE)))
 	$(MAKE) clean -C ../u-boot
 	$(MAKE) install -C ../board-rk3328
 endif
 
-ifneq (,$(findstring board-rk3399,$(mm_BOARD_TYPE)))
+ifneq (,$(findstring board-rk3399.rockpi4-b,$(mm_BOARD_TYPE)))
 	$(MAKE) clean -C ../u-boot
-	$(MAKE) install -C ../board-rk3399
+	$(MAKE) install -C ../board-rk3399.rockpi4-b
 endif
 
 ifneq (,$(findstring board-h6.beelink_gs1,$(mm_BOARD_TYPE)))
@@ -83,5 +83,5 @@ endif
 	@cp -f $(mm_HOME)/html/minimyth/conf/minimyth.conf $(DESTDIR)/boot/
 
 clean-all:
-	@$(foreach dir, $(wildcard ../u-boot /u-boot-sunxi ../board-* ../arm-trusted-firmware), $(MAKE) clean clean-all -C $(dir) ; )
+	@$(foreach dir, $(wildcard ../u-boot /u-boot-sunxi ../board-* ../arm-trusted-firmware.*), $(MAKE) clean clean-all -C $(dir) ; )
 	$(MAKE) clean
