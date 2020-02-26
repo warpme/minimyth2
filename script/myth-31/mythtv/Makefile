@@ -262,6 +262,7 @@ CONFIGURE_ARGS = \
 	--disable-hdhomerun \
 	--disable-ceton \
 	--enable-v4l2 \
+	--enable-vaapi \
 	--enable-ivtv \
 	--enable-hdpvr \
 	--enable-dvb \
@@ -272,7 +273,6 @@ CONFIGURE_ARGS = \
 	--enable-xrandr \
 	--disable-dxva2 \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
-		--disable-vaapi \
 		--disable-vdpau) \
 	--disable-mac-bundle \
 	--enable-libxml2 \
