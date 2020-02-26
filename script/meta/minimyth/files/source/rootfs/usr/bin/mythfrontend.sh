@@ -1,5 +1,11 @@
 #!/bin/sh
 
+params="--verbose libav,playback,audio,gpu --loglevel=debug --syslog none --logpath /tmp/ -O IgnoreSchemaVerMismatch=1 -O IgnorCeProtoVerMismatch=1"
+
+
+
+
+
 if [ x$1 = "xeglfs" ] || [ x$2 = "xeglfs" ]; then
     echo "Runing myth in EGLFS"
     export QT_QPA_PLATFORM=eglfs
@@ -7,7 +13,6 @@ if [ x$1 = "xeglfs" ] || [ x$2 = "xeglfs" ]; then
     export QT_QPA_EGLFS_DEBUG=1
     export QT_QPA_DEBUG=1
     # export QT_QPA_EGLFS_FORCE888=1 # needed only for some platforms
-    env
 else
     echo "Runing myth in XCB"
     export QT_QPA_PLATFORM=xcb
@@ -17,14 +22,16 @@ fi
 export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
 export QT_LOGGING_RULES=qt.qpa.*=true
 
+env
+
 if [ x$1 = "xgdb" ] || [ x$2 = "xgdb" ]; then
     echo "Runing myth under gdb"
     su minimyth -c "/usr/bin/gdb /usr/bin/mythfrontend -x /etc/gdb.commands"
 elif [ x$1 = "xapitrace" ] || [ x$2 = "xapitrace" ]; then
     echo "Running myth under apitrace"
-    su minimyth -c "apitrace trace -a egl -o /usr/local/share/mythfrontend-apitrace.txt mythfrontend -v playback,gpu"
+    su minimyth -c "apitrace trace -a egl -o /usr/local/share/mythfrontend-apitrace.txt mythfrontend ${params}"
 else
-    su minimyth -c "/usr/bin/mythfrontend --verbose libav,playback,audio,gpu --loglevel=debug --syslog none --logpath /tmp/"
+    su minimyth -c "/usr/bin/mythfrontend ${params}"
 fi
 
 # all             - ALL available debug output
