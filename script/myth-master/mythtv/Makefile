@@ -84,6 +84,7 @@ PATCHFILES += 0167-ffmpeg-avcodec-handle-errors-more-explicitly.patch
 
 PATCHFILES += 0169-ffmpeg-libavdevice-produce-0byte-if-dequeued-size-unexpected.patch
 PATCHFILES += 0170-ffmpeg-libavcodec-log-requested-pixfmt.patch
+PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
@@ -262,6 +263,7 @@ CONFIGURE_ARGS = \
 	--disable-hdhomerun \
 	--disable-ceton \
 	--enable-v4l2 \
+	--enable-vaapi \
 	--enable-ivtv \
 	--enable-hdpvr \
 	--enable-dvb \
@@ -272,7 +274,6 @@ CONFIGURE_ARGS = \
 	--enable-xrandr \
 	--disable-dxva2 \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
-		--disable-vaapi \
 		--disable-vdpau) \
 	--disable-mac-bundle \
 	--enable-libxml2 \
