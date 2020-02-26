@@ -55,7 +55,7 @@ endif
 
 ifneq (,$(findstring board-rk3328.beelink_a1,$(mm_BOARD_TYPE)))
 	$(MAKE) clean -C ../u-boot
-	$(MAKE) install -C ../board-rk3328
+	$(MAKE) install -C ../board-rk3328.beelink_a1
 endif
 
 ifneq (,$(findstring board-rk3399.rockpi4-b,$(mm_BOARD_TYPE)))
