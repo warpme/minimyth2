@@ -1,9 +1,7 @@
 
-# GIT URL: https://github.com/bootlin/libva-v4l2-request
-
 GARNAME      = libva-v4l2-request
-GARVERSION   = 1fa71ac5edef8d9f3ead1c6c65d828ad6531cd97
-MASTER_SITES = https://github.com/bootlin/libva-v4l2-request/archive/
+GARVERSION   = 654e91e30cca86c8bdb6c0a12c9738eaae0006a7
+MASTER_SITES = https://github.com/pH5/libva-v4l2-request/archive/
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/libva-v4l2-request-$(GARVERSION)
 
@@ -13,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c X11/libva xorg/xorg
+DEPENDS = lang/c X11/libva xorg/xorg X11/libva
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -28,8 +26,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-silent-rules \
 
-#	--with-gnu-ld
-
 include ../../gar.mk
 
 pre-configure:
@@ -38,6 +34,9 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-#	@rm -f $(DESTDIR)$(libdir)/va/vdpau_drv_video.la
-#	@ln -s $(DESTDIR)$(libdir)/va/vdpau_drv_video.so $(DESTDIR)$(libdir)/va/r600_drv_video.so
-	@$(MAKECOOKIE)
+	@rm -rf $(DESTDIR)$(libdir)/dri/v4l2_request_drv_video.la
+	@mkdir -p $(DESTDIR)$(libdir)/va
+	@mv $(DESTDIR)$(libdir)/dri/v4l2_request_drv_video.so $(DESTDIR)$(libdir)/va/v4l2_request_drv_video.so
+
+clean-all:
+	@rm -rf $(DESTDIR)$(libdir)/va/v4l2_request_drv_video.so
