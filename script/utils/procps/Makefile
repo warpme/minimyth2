@@ -51,3 +51,7 @@ install-custom:
 	@ln -srfv $(DESTDIR)$(bindir)/ps      $(DESTDIR)$(ebindir)/ps
 	@ln -srfv $(DESTDIR)$(sbindir)/sysctl $(DESTDIR)$(esbindir)/sysctl
 	@$(MAKECOOKIE)
+
+post-install:
+	@rm -f $(DESTDIR)$(libdir)/libprocps.la
+	@$(MAKECOOKIE)
