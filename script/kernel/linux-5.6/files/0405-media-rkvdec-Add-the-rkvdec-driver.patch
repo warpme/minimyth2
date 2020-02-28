@@ -8,37 +8,17 @@ and the H264 backend. Support for VP9 and HEVS will be added later on.
 Signed-off-by: Boris Brezillon <boris.brezillon@collabora.com>
 Signed-off-by: Ezequiel Garcia <ezequiel@collabora.com>
 ---
-v5:
-* Fix copyright texts.
-* Add TODO file.
-v4:
-* Make poc tables const, as suggested by Hans
-* Move buffer extra space calculation TRY_FMT, as done on Hantro.
-* Get rid of vb2_request_get_buf and open-code
-  following Cedrus. We can move it to a helper as a follow-up patch.
-* Correct clocks.
-* Add a minor comment about the order to xxx_buf_done.
-v3:
-* Move the driver to drivers/staging/media/rkvdec/
-* Fix copy&paste error in the Kconfig desc
-* Use REC709 color space when resetting the capture format
-* Prepare things to support VP9
-* Move H264 priv-table field definition out of rkvdec-regs.h
-* Clarify the provenance of the CABAC table
-* Ease RPS,PPS_FIELD() definition/manipulation
-* Take DPB field flags into account
-* Use the generic H264 helpers to build the reflists
----
+ MAINTAINERS                                |    7 +
  drivers/staging/media/Kconfig              |    2 +
  drivers/staging/media/Makefile             |    1 +
  drivers/staging/media/rkvdec/Kconfig       |   15 +
  drivers/staging/media/rkvdec/Makefile      |    3 +
  drivers/staging/media/rkvdec/TODO          |   11 +
- drivers/staging/media/rkvdec/rkvdec-h264.c | 1154 ++++++++++++++++++++
+ drivers/staging/media/rkvdec/rkvdec-h264.c | 1153 ++++++++++++++++++++
  drivers/staging/media/rkvdec/rkvdec-regs.h |  223 ++++
  drivers/staging/media/rkvdec/rkvdec.c      | 1134 +++++++++++++++++++
  drivers/staging/media/rkvdec/rkvdec.h      |  123 +++
- 9 files changed, 2666 insertions(+)
+ 10 files changed, 2672 insertions(+)
  create mode 100644 drivers/staging/media/rkvdec/Kconfig
  create mode 100644 drivers/staging/media/rkvdec/Makefile
  create mode 100644 drivers/staging/media/rkvdec/TODO
@@ -47,6 +27,24 @@ v3:
  create mode 100644 drivers/staging/media/rkvdec/rkvdec.c
  create mode 100644 drivers/staging/media/rkvdec/rkvdec.h
 
+diff --git a/MAINTAINERS b/MAINTAINERS
+index a0d86490c2c6..4ce0f5c3c379 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -14296,6 +14296,13 @@ F:	drivers/hid/hid-roccat*
+ F:	include/linux/hid-roccat*
+ F:	Documentation/ABI/*/sysfs-driver-hid-roccat*
+ 
++ROCKCHIP VIDEO DECODER DRIVER
++M:	Ezequiel Garcia <ezequiel@collabora.com>
++L:	linux-media@vger.kernel.org
++S:	Maintained
++F:	drivers/staging/media/rkvdec/
++F:	Documentation/devicetree/bindings/media/rockchip,vdec.yaml
++
+ ROCKCHIP ISP V1 DRIVER
+ M:	Helen Koike <helen.koike@collabora.com>
+ L:	linux-media@vger.kernel.org
 diff --git a/drivers/staging/media/Kconfig b/drivers/staging/media/Kconfig
 index c394abffea86..bf70de84f5cb 100644
 --- a/drivers/staging/media/Kconfig
@@ -121,10 +119,10 @@ index 000000000000..e0f0f12f0ac5
 +  the videobuf2 queue, from a media request.
 diff --git a/drivers/staging/media/rkvdec/rkvdec-h264.c b/drivers/staging/media/rkvdec/rkvdec-h264.c
 new file mode 100644
-index 000000000000..3c81ea9882a7
+index 000000000000..a3a81801ccfd
 --- /dev/null
 +++ b/drivers/staging/media/rkvdec/rkvdec-h264.c
-@@ -0,0 +1,1154 @@
+@@ -0,0 +1,1153 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip Video Decoder H264 backend
@@ -1278,10 +1276,9 @@ index 000000000000..3c81ea9882a7
 +	.stop = rkvdec_h264_stop,
 +	.run = rkvdec_h264_run,
 +};
-+
 diff --git a/drivers/staging/media/rkvdec/rkvdec-regs.h b/drivers/staging/media/rkvdec/rkvdec-regs.h
 new file mode 100644
-index 000000000000..175b87648933
+index 000000000000..15b9bee92016
 --- /dev/null
 +++ b/drivers/staging/media/rkvdec/rkvdec-regs.h
 @@ -0,0 +1,223 @@
@@ -1510,7 +1507,7 @@ index 000000000000..175b87648933
 +#endif /* RKVDEC_REGS_H_ */
 diff --git a/drivers/staging/media/rkvdec/rkvdec.c b/drivers/staging/media/rkvdec/rkvdec.c
 new file mode 100644
-index 000000000000..f96d43968f5a
+index 000000000000..03a1134984ea
 --- /dev/null
 +++ b/drivers/staging/media/rkvdec/rkvdec.c
 @@ -0,0 +1,1134 @@
@@ -2074,7 +2071,7 @@ index 000000000000..f96d43968f5a
 +	rkvdec_queue_cleanup(q, VB2_BUF_STATE_ERROR);
 +}
 +
-+const struct vb2_ops rkvdec_queue_ops = {
++static const struct vb2_ops rkvdec_queue_ops = {
 +	.queue_setup = rkvdec_queue_setup,
 +	.buf_prepare = rkvdec_buf_prepare,
 +	.buf_queue = rkvdec_buf_queue,
@@ -2650,7 +2647,7 @@ index 000000000000..f96d43968f5a
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/staging/media/rkvdec/rkvdec.h b/drivers/staging/media/rkvdec/rkvdec.h
 new file mode 100644
-index 000000000000..783a0d221cdd
+index 000000000000..e2c1358eef00
 --- /dev/null
 +++ b/drivers/staging/media/rkvdec/rkvdec.h
 @@ -0,0 +1,123 @@
