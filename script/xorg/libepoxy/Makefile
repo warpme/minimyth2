@@ -1,5 +1,5 @@
 GARNAME = libepoxy
-GARVERSION = 1.5.3
+GARVERSION = 1.5.4
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = https://github.com/anholt/libepoxy/archive/
 DISTFILES = $(GARVERSION).tar.gz
