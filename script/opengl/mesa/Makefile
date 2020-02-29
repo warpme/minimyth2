@@ -62,6 +62,8 @@ CONFIGURE_ARGS = \
 	--buildtype=release \
 	--optimization=s \
 	-D dri-search-path="/usr/lib/dri" \
+	-D va-libs-path="$(DESTDIR)$(libdir)/va" \
+	-D vdpau-libs-path="$(DESTDIR)$(libdir)" \
 	-D shared-glapi=true \
 	-D llvm=true \
 	-D shared-llvm=true \
@@ -101,6 +103,7 @@ CONFIGURE_ARGS += \
 	-D dri-drivers=i915,i965,r100,r200 \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=true \
+	-D gallium-va=true \
 	-D gallium-xa=true
 endif
 endif
@@ -247,6 +250,8 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libGLESv1_CM*
 	@rm -f $(DESTDIR)$(libdir)/libwayland-egl*
 	@rm -f $(DESTDIR)$(libdir)/libxatracker*
+	@rm -f $(DESTDIR)$(libdir)/libvulkan_radeon.so
+	@rm -f $(DESTDIR)$(libdir)/libvulkan_intel.so
 	@rm -f $(DESTDIR)$(libdir)/dri/gallium_drv_video*
 	@rm -f $(DESTDIR)$(libdir)/dri/i915_dri*
 	@rm -f $(DESTDIR)$(libdir)/dri/i965_dri*
@@ -276,6 +281,10 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_r600*
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_radeonsi*
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe*
+	@rm -f $(DESTDIR)$(libdir)/va/radeonsi_drv_video.so
+	@rm -f $(DESTDIR)$(libdir)/va/r600_drv_video.so
+	@rm -f $(DESTDIR)$(libdir)/radeonsi_drv_video.so
+	@rm -f $(DESTDIR)$(libdir)/r600_drv_video.so
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/d3d.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/dri.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/egl.pc

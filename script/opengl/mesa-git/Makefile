@@ -1,22 +1,10 @@
 
 GARNAME      = mesa
-
-ifeq (1,1)
 GARVERSION   = 2e3318b151abddd456077ec0eed13f95245ce344
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
-endif
-
-ifeq (0,1)
-# testing branch https://gitlab.freedesktop.org/tomeu/mesa/commits/lava-ci-t720-III
-GARVERSION   = 5533293dd23d4978ae236ba6027c0e6b9c67358e
-CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://gitlab.freedesktop.org/tomeu/mesa/-/archive/$(GARVERSION)/
-DISTFILES    = mesa-$(DISTNAME).tar.bz2
-endif
-
 LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
@@ -72,6 +60,8 @@ CONFIGURE_ARGS = \
 	--buildtype=release \
 	--optimization=s \
 	-D dri-search-path="/usr/lib/dri" \
+	-D va-libs-path="$(DESTDIR)$(libdir)/va" \
+	-D vdpau-libs-path="$(DESTDIR)$(libdir)" \
 	-D shared-glapi=true \
 	-D llvm=true \
 	-D shared-llvm=true \
@@ -111,6 +101,7 @@ CONFIGURE_ARGS += \
 	-D dri-drivers=i915,i965,r100,r200 \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=true \
+	-D gallium-va=true \
 	-D gallium-xa=true
 endif
 endif
@@ -257,6 +248,8 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libGLESv1_CM*
 	@rm -f $(DESTDIR)$(libdir)/libwayland-egl*
 	@rm -f $(DESTDIR)$(libdir)/libxatracker*
+	@rm -f $(DESTDIR)$(libdir)/libvulkan_radeon.so
+	@rm -f $(DESTDIR)$(libdir)/libvulkan_intel.so
 	@rm -f $(DESTDIR)$(libdir)/dri/gallium_drv_video*
 	@rm -f $(DESTDIR)$(libdir)/dri/i915_dri*
 	@rm -f $(DESTDIR)$(libdir)/dri/i965_dri*
@@ -286,6 +279,10 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_r600*
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_radeonsi*
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe*
+	@rm -f $(DESTDIR)$(libdir)/va/radeonsi_drv_video.so
+	@rm -f $(DESTDIR)$(libdir)/va/r600_drv_video.so
+	@rm -f $(DESTDIR)$(libdir)/radeonsi_drv_video.so
+	@rm -f $(DESTDIR)$(libdir)/r600_drv_video.so
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/d3d.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/dri.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/egl.pc
