@@ -5,6 +5,9 @@ MASTER_SITES = svn://svn.mythtv.org/svn/trunk/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  =
 
+PATCHFILES += 0000-configure-set-to-GAR-perl-python.patch.gar
+PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
+
 # Backend needed patches
 PATCHFILES += 0002-ticket9480_pl_eit_encodings.patch
 PATCHFILES += 0003-delay_4_no_concurent_start_rec_v5.patch
@@ -51,6 +54,9 @@ PATCHFILES += 0213-mythmusic_ticket10710_play_tracks_from_edit_trebors.patch
 
 # Minimyth needed patches
 PATCHFILES += 0214-minimyth-defaults.patch
+
+# Fixes white rectriangle on Qt5 newer than 5.13
+PATCHFILES += 0215-ticket13544-fix-white-square-on-qt514.patch
 
 # Reverting this fixes issue with only 3 entries in mainmenu on MythmediaStream theme
 PATCHFILES += 0217-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
@@ -263,8 +269,8 @@ CONFIGURE_ARGS = \
 	--enable-libxml2 \
 	--enable-libdns_sd \
 	--enable-libcrypto \
-	--without-bindings="perl" \
 	--without-bindings="php" \
+	--with-bindings="perl" \
 	--with-bindings="python" \
 	--disable-mythlogserver \
 	--enable-pic \
