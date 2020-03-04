@@ -9,14 +9,15 @@ using in the new H264 multi-instance decoder for G12A & SM1 platforms.
 
 Signed-off-by: Maxime Jourdan <mjourdan@baylibre.com>
 Signed-off-by: Neil Armstrong <narmstrong@baylibre.com>
+Tested-by: Kevin Hilman <khilman@baylibre.com>
 ---
  drivers/staging/media/meson/vdec/Makefile     |   4 +-
- .../media/meson/vdec/codec_hevc_common.c      | 284 ++++++++++++++++++
- .../media/meson/vdec/codec_hevc_common.h      |  77 +++++
+ .../media/meson/vdec/codec_hevc_common.c      | 297 ++++++++++++++++++
+ .../media/meson/vdec/codec_hevc_common.h      |  71 +++++
  drivers/staging/media/meson/vdec/hevc_regs.h  | 211 +++++++++++++
- drivers/staging/media/meson/vdec/vdec_hevc.c  | 230 ++++++++++++++
+ drivers/staging/media/meson/vdec/vdec_hevc.c  | 231 ++++++++++++++
  drivers/staging/media/meson/vdec/vdec_hevc.h  |  13 +
- 6 files changed, 817 insertions(+), 2 deletions(-)
+ 6 files changed, 825 insertions(+), 2 deletions(-)
  create mode 100644 drivers/staging/media/meson/vdec/codec_hevc_common.c
  create mode 100644 drivers/staging/media/meson/vdec/codec_hevc_common.h
  create mode 100644 drivers/staging/media/meson/vdec/hevc_regs.h
@@ -39,10 +40,10 @@ index 711d990c760e..f55b6e625034 100644
  obj-$(CONFIG_VIDEO_MESON_VDEC) += meson-vdec.o
 diff --git a/drivers/staging/media/meson/vdec/codec_hevc_common.c b/drivers/staging/media/meson/vdec/codec_hevc_common.c
 new file mode 100644
-index 000000000000..245218a288f6
+index 000000000000..0315cc0911cd
 --- /dev/null
 +++ b/drivers/staging/media/meson/vdec/codec_hevc_common.c
-@@ -0,0 +1,284 @@
+@@ -0,0 +1,297 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2018 Maxime Jourdan <mjourdan@baylibre.com>
@@ -57,6 +58,19 @@ index 000000000000..245218a288f6
 +
 +#define MMU_COMPRESS_HEADER_SIZE 0x48000
 +#define MMU_MAP_SIZE 0x4800
++
++const u16 vdec_hevc_parser_cmd[] = {
++	0x0401,	0x8401,	0x0800,	0x0402,
++	0x9002,	0x1423,	0x8CC3,	0x1423,
++	0x8804,	0x9825,	0x0800,	0x04FE,
++	0x8406,	0x8411,	0x1800,	0x8408,
++	0x8409,	0x8C2A,	0x9C2B,	0x1C00,
++	0x840F,	0x8407,	0x8000,	0x8408,
++	0x2000,	0xA800,	0x8410,	0x04DE,
++	0x840C,	0x840D,	0xAC00,	0xA000,
++	0x08C0,	0x08E0,	0xA40E,	0xFC00,
++	0x7C00
++};
 +
 +/* Configure decode head read mode */
 +void codec_hevc_setup_decode_head(struct amvdec_session *sess, int is_10bit)
@@ -329,10 +343,10 @@ index 000000000000..245218a288f6
 +EXPORT_SYMBOL_GPL(codec_hevc_fill_mmu_map);
 diff --git a/drivers/staging/media/meson/vdec/codec_hevc_common.h b/drivers/staging/media/meson/vdec/codec_hevc_common.h
 new file mode 100644
-index 000000000000..de16d2e43061
+index 000000000000..88e4379ba1ee
 --- /dev/null
 +++ b/drivers/staging/media/meson/vdec/codec_hevc_common.h
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,71 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
 + * Copyright (C) 2018 BayLibre, SAS
@@ -347,18 +361,9 @@ index 000000000000..de16d2e43061
 +#define PARSER_CMD_SKIP_CFG_0 0x0000090b
 +#define PARSER_CMD_SKIP_CFG_1 0x1b14140f
 +#define PARSER_CMD_SKIP_CFG_2 0x001b1910
-+static const u16 vdec_hevc_parser_cmd[] = {
-+	0x0401,	0x8401,	0x0800,	0x0402,
-+	0x9002,	0x1423,	0x8CC3,	0x1423,
-+	0x8804,	0x9825,	0x0800,	0x04FE,
-+	0x8406,	0x8411,	0x1800,	0x8408,
-+	0x8409,	0x8C2A,	0x9C2B,	0x1C00,
-+	0x840F,	0x8407,	0x8000,	0x8408,
-+	0x2000,	0xA800,	0x8410,	0x04DE,
-+	0x840C,	0x840D,	0xAC00,	0xA000,
-+	0x08C0,	0x08E0,	0xA40E,	0xFC00,
-+	0x7C00
-+};
++
++#define VDEC_HEVC_PARSER_CMD_LEN 37
++extern const u16 vdec_hevc_parser_cmd[VDEC_HEVC_PARSER_CMD_LEN];
 +
 +#define MAX_REF_PIC_NUM	24
 +
@@ -399,6 +404,9 @@ index 000000000000..de16d2e43061
 +void codec_hevc_setup_decode_head(struct amvdec_session *sess, int is_10bit);
 +
 +void codec_hevc_free_fbc_buffers(struct amvdec_session *sess,
++				 struct codec_hevc_common *comm);
++
++void codec_hevc_free_mmu_headers(struct amvdec_session *sess,
 +				 struct codec_hevc_common *comm);
 +
 +int codec_hevc_setup_buffers(struct amvdec_session *sess,
@@ -629,10 +637,10 @@ index 000000000000..55c1a80b955a
 +#endif
 diff --git a/drivers/staging/media/meson/vdec/vdec_hevc.c b/drivers/staging/media/meson/vdec/vdec_hevc.c
 new file mode 100644
-index 000000000000..dc5faee2e1a4
+index 000000000000..9530e580e57a
 --- /dev/null
 +++ b/drivers/staging/media/meson/vdec/vdec_hevc.c
-@@ -0,0 +1,230 @@
+@@ -0,0 +1,231 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
 + * Copyright (C) 2018 Maxime Jourdan <maxi.jourdan@wanadoo.fr>
@@ -646,6 +654,7 @@ index 000000000000..dc5faee2e1a4
 +
 +#include "vdec_1.h"
 +#include "vdec_helpers.h"
++#include "vdec_hevc.h"
 +#include "hevc_regs.h"
 +#include "dos_regs.h"
 +

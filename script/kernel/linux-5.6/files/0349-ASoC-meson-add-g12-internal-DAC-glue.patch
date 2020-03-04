@@ -1,18 +1,18 @@
-From a890d7fc20329d3b421a693443365a21c600d680 Mon Sep 17 00:00:00 2001
-From: Jerome Brunet <jbrunet@baylibre.com>
-Date: Mon, 12 Aug 2019 11:45:16 +0200
-Subject: [PATCH 40/51] ASoC: meson: add g12 internal DAC glue
+
+Add support for the internal audio DAC glue found on the Amlogic g12a
+and sm1 SoC families. This allows to connect the TDM outputs of the SoC
+to the internal t9015 audio DAC.
 
 Signed-off-by: Jerome Brunet <jbrunet@baylibre.com>
 ---
  sound/soc/meson/Kconfig         |   9 ++
  sound/soc/meson/Makefile        |   2 +
- sound/soc/meson/g12a-toacodec.c | 240 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 251 insertions(+)
+ sound/soc/meson/g12a-toacodec.c | 252 ++++++++++++++++++++++++++++++++
+ 3 files changed, 263 insertions(+)
  create mode 100644 sound/soc/meson/g12a-toacodec.c
 
 diff --git a/sound/soc/meson/Kconfig b/sound/soc/meson/Kconfig
-index 897a706..85ab77f 100644
+index d27e9180b453..8b6295283989 100644
 --- a/sound/soc/meson/Kconfig
 +++ b/sound/soc/meson/Kconfig
 @@ -109,6 +109,15 @@ config SND_MESON_GX_SOUND_CARD
@@ -32,7 +32,7 @@ index 897a706..85ab77f 100644
  	tristate "Amlogic G12A To HDMI TX Control Support"
  	select REGMAP_MMIO
 diff --git a/sound/soc/meson/Makefile b/sound/soc/meson/Makefile
-index 3c9d488..e446bc9 100644
+index 3c9d48846816..e446bc980481 100644
 --- a/sound/soc/meson/Makefile
 +++ b/sound/soc/meson/Makefile
 @@ -22,6 +22,7 @@ snd-soc-meson-axg-pdm-objs := axg-pdm.o
@@ -52,10 +52,10 @@ index 3c9d488..e446bc9 100644
  obj-$(CONFIG_SND_SOC_MESON_T9015) += snd-soc-meson-t9015.o
 diff --git a/sound/soc/meson/g12a-toacodec.c b/sound/soc/meson/g12a-toacodec.c
 new file mode 100644
-index 0000000..0ee074f
+index 000000000000..9339fabccb79
 --- /dev/null
 +++ b/sound/soc/meson/g12a-toacodec.c
-@@ -0,0 +1,240 @@
+@@ -0,0 +1,252 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// Copyright (c) 2020 BayLibre, SAS.
@@ -79,7 +79,8 @@ index 0000000..0ee074f
 +
 +#define TOACODEC_CTRL0			0x0
 +#define  CTRL0_ENABLE_SHIFT		31
-+#define  CTRL0_DAT_SEL			GENMASK(15, 14)
++#define  CTRL0_DAT_SEL_SHIFT		14
++#define  CTRL0_DAT_SEL			(0x3 << CTRL0_DAT_SEL_SHIFT)
 +#define  CTRL0_LANE_SEL			12
 +#define  CTRL0_LRCLK_SEL		GENMASK(9, 8)
 +#define  CTRL0_BLK_CAP_INV		BIT(7)
@@ -93,18 +94,28 @@ index 0000000..0ee074f
 +	"I2S A", "I2S B", "I2S C",
 +};
 +
-+static int g12a_toacodec_get_mux(struct snd_soc_component *component)
++static int g12a_toacodec_mux_put_enum(struct snd_kcontrol *kcontrol,
++				      struct snd_ctl_elem_value *ucontrol)
 +{
-+	unsigned int val;
++	struct snd_soc_component *component =
++		snd_soc_dapm_kcontrol_component(kcontrol);
++	struct snd_soc_dapm_context *dapm =
++		snd_soc_dapm_kcontrol_dapm(kcontrol);
++	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
++	unsigned int mux, changed;
 +
-+	snd_soc_component_read(component, TOACODEC_CTRL0, &val);
-+	return FIELD_GET(CTRL0_DAT_SEL, val);
-+}
++	mux = snd_soc_enum_item_to_val(e, ucontrol->value.enumerated.item[0]);
++	changed = snd_soc_component_test_bits(component, e->reg,
++					      CTRL0_DAT_SEL,
++					      FIELD_PREP(CTRL0_DAT_SEL, mux));
 +
-+static int g12a_toacodec_put_mux(struct snd_soc_component *component,
-+				 unsigned int mux)
-+{
-+	snd_soc_component_update_bits(component, TOACODEC_CTRL0,
++	if (!changed)
++		return 0;
++
++	/* Force disconnect of the mux while updating */
++	snd_soc_dapm_mux_update_power(dapm, kcontrol, 0, NULL, NULL);
++
++	snd_soc_component_update_bits(component, e->reg,
 +				      CTRL0_DAT_SEL |
 +				      CTRL0_LRCLK_SEL |
 +				      CTRL0_BCLK_SEL,
@@ -123,17 +134,18 @@ index 0000000..0ee074f
 +	 * source. For that, we will need regmap backed clock mux which
 +	 * is a work in progress
 +	 */
-+	snd_soc_component_update_bits(component, TOACODEC_CTRL0,
++	snd_soc_component_update_bits(component, e->reg,
 +				      CTRL0_MCLK_SEL,
 +				      FIELD_PREP(CTRL0_MCLK_SEL, mux));
++
++	snd_soc_dapm_mux_update_power(dapm, kcontrol, mux, e, NULL);
 +
 +	return 0;
 +}
 +
-+static MESON_CODEC_GLUE_ENUM_DECL(g12a_toacodec_mux_glue,
-+				  g12a_toacodec_mux_texts,
-+				  g12a_toacodec_get_mux,
-+				  g12a_toacodec_put_mux);
++static SOC_ENUM_SINGLE_DECL(g12a_toacodec_mux_enum, TOACODEC_CTRL0,
++			    CTRL0_DAT_SEL_SHIFT,
++			    g12a_toacodec_mux_texts);
 +
 +static const struct snd_kcontrol_new g12a_toacodec_mux =
 +	SOC_DAPM_ENUM_EXT("Source", g12a_toacodec_mux_enum,
@@ -208,10 +220,10 @@ index 0000000..0ee074f
 +}
 +
 +static struct snd_soc_dai_driver g12a_toacodec_dai_drv[] = {
-+	TOACODEC_INPUT("I2S IN A", TOACODEC_IN_A),
-+	TOACODEC_INPUT("I2S IN B", TOACODEC_IN_B),
-+	TOACODEC_INPUT("I2S IN C", TOACODEC_IN_C),
-+	TOACODEC_OUTPUT("I2S OUT", TOACODEC_OUT),
++	TOACODEC_INPUT("IN A", TOACODEC_IN_A),
++	TOACODEC_INPUT("IN B", TOACODEC_IN_B),
++	TOACODEC_INPUT("IN C", TOACODEC_IN_C),
++	TOACODEC_OUTPUT("OUT", TOACODEC_OUT),
 +};
 +
 +static int g12a_toacodec_component_probe(struct snd_soc_component *c)
@@ -222,11 +234,11 @@ index 0000000..0ee074f
 +}
 +
 +static const struct snd_soc_dapm_route g12a_toacodec_routes[] = {
-+	{ "I2S SRC", "I2S A", "I2S IN A Playback" },
-+	{ "I2S SRC", "I2S B", "I2S IN B Playback" },
-+	{ "I2S SRC", "I2S C", "I2S IN C Playback" },
-+	{ "I2S OUT EN", "Switch", "I2S SRC" },
-+	{ "I2S OUT Capture", NULL, "I2S OUT EN" },
++	{ "SRC", "I2S A", "IN A Playback" },
++	{ "SRC", "I2S B", "IN B Playback" },
++	{ "SRC", "I2S C", "IN C Playback" },
++	{ "OUT EN", "Switch", "SRC" },
++	{ "OUT Capture", NULL, "OUT EN" },
 +};
 +
 +static const struct snd_kcontrol_new g12a_toacodec_controls[] = {
@@ -296,6 +308,3 @@ index 0000000..0ee074f
 +MODULE_AUTHOR("Jerome Brunet <jbrunet@baylibre.com>");
 +MODULE_DESCRIPTION("Amlogic G12a To Internal DAC Codec Driver");
 +MODULE_LICENSE("GPL v2");
--- 
-2.7.1
-

@@ -47,13 +47,13 @@ endif
 
 ifeq (1,1)
 # Amlogic: vdec: Add h264 and v4l2 compliance for Amlogic vdec
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=244029 v6, 19/02/2020
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=250591 v7, 04/03/2020
 PATCHFILES += 0302-media-v4l2-mem2mem-handle-draining-stopped-and-next.patch
 PATCHFILES += 0303-media-vicodec-use-v4l2-mem2mem-draining-stopped-and.patch
 PATCHFILES += 0304-media-meson-vdec-bring-up-to-compliance.patch
 PATCHFILES += 0305-media-meson-vdec-add-H.264-decoding-support.patch
 # Amlogic: vdec: Add VP9 decoding support
-# ttps://patchwork.kernel.org/project/linux-amlogic/list/?series=244043 v5, 19/02/2020
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=251079 v6, 04/03/2020
 PATCHFILES += 0306-media-meson-vdec-align-stride-on-32-bytes.patch
 PATCHFILES += 0307-media-meson-vdec-add-helpers-for-lossless-framebuffe.patch
 PATCHFILES += 0308-media-meson-vdec-add-common-HEVC-decoder-support.patch
@@ -116,15 +116,17 @@ PATCHFILES += 0342-ASoC-meson-aiu-fix-clk-bulk-size-allocation.patch
 PATCHFILES += 0343-ASoC-meson-aiu-fix-irq-registration.patch
 PATCHFILES += 0344-ASoC-meson-aiu-fix-acodec-dai-input-name-init.patch
 PATCHFILES += 0345-ASoC-meson-codec-glue-fix-pcm-format-cast-warning.patch
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=242471
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=242471 17.02.2020
 PATCHFILES += 0346-ASoC-meson-aiu-simplify-component-addition.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=244199 v3 19.02.2020
 PATCHFILES += 0346-ASoC-meson-add-t9015-internal-DAC-driver.patch
-# https://gitlab.com/jbrunet/linux/-/commits/v5.7/aml/integ
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=245355 21.02.2020
 PATCHFILES += 0347-ASoC-meson-g12a-add-tohdmitx-reset.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=245437 21.02.2020
 PATCHFILES += 0348-ASoC-meson-add-g12a-toacodec-dt-binding-documentatio.patch
 PATCHFILES += 0349-ASoC-meson-add-g12-internal-DAC-glue.patch
 PATCHFILES += 0350-ASoC-meson-axg-card-add-toacodec-support.patch
+# https://gitlab.com/jbrunet/linux/-/commits/v5.7/aml/integ
 PATCHFILES += 0351-dt-bindings-reset-meson-add-gxl-internal-dac-reset.patch
 PATCHFILES += 0352-dt-bindings-clk-meson-add-the-gxl-internal-dac-gate.patch
 # Enabling sound on gxbb/gxl/gxm
@@ -143,7 +145,7 @@ PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
 # https://patchwork.kernel.org/patch/11394603/
 PATCHFILES += 0362-arm64-dts-meson-gxl-s905x-p212-add-bluetooth-nodes.patch
 
-ifeq (1,1)
+ifeq (0,1)
 # Rockchip: rkvdec rk3399
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=244851 v6 20.02.2020
 PATCHFILES += 0401-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
