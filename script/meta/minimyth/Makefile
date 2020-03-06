@@ -72,7 +72,6 @@ DEPENDS = \
 	utils/SDL-Test \
 	system/splashutils \
 	utils/squashfs \
-	bootloaders/syslinux \
 	system/sysvinit \
 	utils/usbutils \
 	system/eudev \
