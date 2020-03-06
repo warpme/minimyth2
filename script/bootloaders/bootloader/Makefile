@@ -80,6 +80,11 @@ ifneq (,$(findstring board-h6.tanix_tx6,$(mm_BOARD_TYPE)))
 	$(MAKE) clean -C ../u-boot-sunxi
 	$(MAKE) install -C ../board-h6.tanix_tx6
 endif
+
+ifneq (,$(findstring board-x86pc.bios,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-x86pc.bios
+endif
+
 	@cp -f $(mm_HOME)/html/minimyth/conf/minimyth.conf $(DESTDIR)/boot/
 
 clean-all:
