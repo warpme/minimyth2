@@ -345,6 +345,7 @@ ifeq ($(GARCH),armv8)
 	@$(MAKECOOKIE)
 else
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/bzImage > $(DESTDIR)$(LINUX_DIR)/vmlinuz
+	@ln -srf $(DESTDIR)$(LINUX_DIR)/vmlinuz $(DESTDIR)$(LINUX_DIR)/bzImage
 	@$(MAKECOOKIE)
 endif
 endif
