@@ -54,8 +54,11 @@ for board in ${boards} ; do
     cat ${base_dir}/${board}.wks >> ${base_dir}/MiniMyth2.wks
 done
 echo "#----Entries to create boot & rootfs partitions" >> ${base_dir}/MiniMyth2.wks
-cat ${base_dir}/default.wks >> ${base_dir}/MiniMyth2.wks
 
+# Skip adding common (for multibords) .wks entries when board is x86pc
+if [ -z `echo ${boards} | grep -o "board-x86pc"` ] ; then
+    cat ${base_dir}/default.wks >> ${base_dir}/MiniMyth2.wks
+fi
 
 sed -i "s%@MM_HOME@%${mm_home}%g" ${base_dir}/MiniMyth2.wks
 

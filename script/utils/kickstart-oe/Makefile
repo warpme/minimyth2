@@ -30,6 +30,8 @@ DISTFILES = \
 	board-h6.beelink_gs1.wks    \
 	board-h6.eachlink_mini.wks  \
 	board-h6.tanix_tx6.wks      \
+	board-x86pc.bios.conf       \
+	board-x86pc.bios.wks        \
 	default.wks                 \
 	create-image.sh             \
 
@@ -47,6 +49,7 @@ DEPENDS = \
 	disk/e2fsprogs \
 	utils/pseudo \
 	lib/parted \
+	bootloaders/syslinux \
 
 # Removed from dependencies as kickstart-oe not works OK with mm2 python3.
 # This needs further investigation...
@@ -89,6 +92,7 @@ install-custom:
 	@ln -srf $(DESTDIR)$(bindir)/pseudo     $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/pseudo
 	@ln -srf $(DESTDIR)$(bindir)/pseudodb   $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/pseudodb
 	@ln -srf $(DESTDIR)$(bindir)/pseudolog  $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/pseudolog
+	@ln -srf $(DESTDIR)$(bindir)/syslinux   $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/syslinux
 	@#
 	@cp -f $(WORKSRC)/meta/classes/base.bbclass          $(DESTDIR)$(bindir)/kickstart/classes/
 	@cp -f $(WORKSRC)/meta/classes/logging.bbclass       $(DESTDIR)$(bindir)/kickstart/classes/
