@@ -1,5 +1,6 @@
+
 GARNAME      = syslinux
-GARVERSION   = 05ac953c23f90b2328d393f7eecde96e41aed067
+GARVERSION   = bf6db5b48ec25f83939f1fdebb59028bc3c40b00
 CATEGORIES   = net
 MASTER_SITES = https://repo.or.cz/syslinux.git/snapshot/
 
@@ -12,7 +13,7 @@ PATCHFILES  += 0018-prevent-pow-optimization.patch
 PATCHFILES  += 0025-reproducible-build.patch
 
 DISTFILES    = $(GARVERSION).tar.gz
-WORKSRC      = $(WORKDIR)/syslinux-05ac953
+WORKSRC      = $(WORKDIR)/syslinux-bf6db5b
 LICENSE      = GPL2
 
 DESCRIPTION =
@@ -21,14 +22,21 @@ endef
 
 DEPENDS   = lang/c
 
-
+# BUILD_ARGS = bios efi64 efi32
+BUILD_ARGS = bios efi64
 
 INSTALL_SCRIPTS = custom
+BUILD_SCRIPTS   = custom
+
+export EXTRA_CFLAGS=-fno-PIE
 
 include ../../gar.mk
 
+build-custom:
+	$(warning $(build_CFLAGS))
+	@$(MAKE) -C $(WORKSRC) $(BUILD_ARGS)
+	@$(MAKECOOKIE)
+
 install-custom:
-	@mkdir -p $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth
-	@cp -f $(WORKSRC)/core/pxelinux.0 $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/pxelinux.0
-	@mkdir -p $(DESTDIR)$(rootdir)/srv/tftpboot/minimyth/pxelinux.cfg
+	@$(MAKE) -C $(WORKSRC) $(BUILD_ARGS) install INSTALLROOT=$(build_rootdir)
 	@$(MAKECOOKIE)
