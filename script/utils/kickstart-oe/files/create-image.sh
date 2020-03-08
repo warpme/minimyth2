@@ -83,7 +83,7 @@ ${PYTHON} ${base_dir}/scripts/wic create ${base_dir}/MiniMyth2.wks \
 --bootimg-dir=${boot_files_loc} \
 --kernel-dir=${boot_files_loc} \
 --rootfs-dir=${root_files_loc} \
---native-sysroot=${base_dir}/native-bins \
+--native-sysroot=${mm_home}/images/build \
 "
 #--debug \
 

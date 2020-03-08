@@ -32,6 +32,8 @@ DISTFILES = \
 	board-h6.tanix_tx6.wks      \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
+	board-x86pc.efi64.conf      \
+	board-x86pc.efi64.wks       \
 	default.wks                 \
 	create-image.sh             \
 
@@ -47,9 +49,11 @@ DEPENDS = \
 	disk/dosfstools \
 	disk/mtools \
 	disk/e2fsprogs \
+	disk/gptfdisk \
 	utils/pseudo \
 	lib/parted \
 	bootloaders/syslinux \
+	bootloaders/grub2 \
 
 # Removed from dependencies as kickstart-oe not works OK with mm2 python3.
 # This needs further investigation...
@@ -68,7 +72,6 @@ include ../../gar.mk
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(bindir)/kickstart/bitbake
-	@mkdir -p $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin
 	@mkdir -p $(DESTDIR)$(bindir)/kickstart/cache
 	@mkdir -p $(DESTDIR)$(bindir)/kickstart/classes
 	@mkdir -p $(DESTDIR)$(bindir)/kickstart/conf
@@ -80,19 +83,6 @@ install-custom:
 	@cp -rf $(WORKSRC)/bitbake/bin $(DESTDIR)$(bindir)/kickstart/bitbake/
 	@cp -rf $(WORKSRC)/bitbake/lib $(DESTDIR)$(bindir)/kickstart/bitbake/
 	@cp -rf $(WORKSRC)/meta/lib/oe $(DESTDIR)$(bindir)/kickstart/bitbake/lib/
-	@#
-	@ln -srf $(DESTDIR)$(bindir)/find       $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/find
-	@ln -srf $(DESTDIR)$(sbindir)/fsck.ext3 $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/fsck.ext3
-	@ln -srf $(DESTDIR)$(sbindir)/fsck.ext4 $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/fsck.ext4
-	@ln -srf $(DESTDIR)$(bindir)/mcopy      $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/mcopy
-	@ln -srf $(DESTDIR)$(sbindir)/mkdosfs   $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/mkdosfs
-	@ln -srf $(DESTDIR)$(sbindir)/mkfs.ext3 $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/mkfs.ext3
-	@ln -srf $(DESTDIR)$(sbindir)/mkfs.ext4 $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/mkfs.ext4
-	@ln -srf $(DESTDIR)$(sbindir)/parted    $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/parted
-	@ln -srf $(DESTDIR)$(bindir)/pseudo     $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/pseudo
-	@ln -srf $(DESTDIR)$(bindir)/pseudodb   $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/pseudodb
-	@ln -srf $(DESTDIR)$(bindir)/pseudolog  $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/pseudolog
-	@ln -srf $(DESTDIR)$(bindir)/syslinux   $(DESTDIR)$(bindir)/kickstart/native-bins/usr/bin/syslinux
 	@#
 	@cp -f $(WORKSRC)/meta/classes/base.bbclass          $(DESTDIR)$(bindir)/kickstart/classes/
 	@cp -f $(WORKSRC)/meta/classes/logging.bbclass       $(DESTDIR)$(bindir)/kickstart/classes/
