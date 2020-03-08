@@ -112,6 +112,7 @@ mm_GARCH                  ?= x86-64
 # 'board-h6.eachlink_mini'
 # 'board-h6.tanix_tx6'
 # 'board-x86pc.bios'
+# 'board-x86pc.efi64'
 # Note: some combinations for multiboard are not allowed.
 # (due bootloader or architecture conflict):
 # 1. 'board-rpi3*' and 'board-rk3328'
