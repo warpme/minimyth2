@@ -1,7 +1,7 @@
 
 GARNAME      = syslinux
 GARVERSION   = bf6db5b48ec25f83939f1fdebb59028bc3c40b00
-CATEGORIES   = net
+CATEGORIES   = bootloaders
 MASTER_SITES = https://repo.or.cz/syslinux.git/snapshot/
 
 PATCHFILES   = 0002-gfxboot-menu-label.patch
@@ -22,8 +22,7 @@ endef
 
 DEPENDS   = lang/c
 
-# BUILD_ARGS = bios efi64 efi32
-BUILD_ARGS = bios efi64
+BUILD_ARGS = bios
 
 INSTALL_SCRIPTS = custom
 BUILD_SCRIPTS   = custom
@@ -33,7 +32,6 @@ export EXTRA_CFLAGS=-fno-PIE
 include ../../gar.mk
 
 build-custom:
-	$(warning $(build_CFLAGS))
 	@$(MAKE) -C $(WORKSRC) $(BUILD_ARGS)
 	@$(MAKECOOKIE)
 
