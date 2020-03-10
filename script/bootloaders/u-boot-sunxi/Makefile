@@ -1,6 +1,6 @@
 
-GARNAME      = u-boot-sunxi-20191124
-GARVERSION   = 5f19c9302133cda54d5d1a6b1caa400260de9192
+GARNAME      = u-boot-sunxi-20200126
+GARVERSION   = 2936eb2d550a642275113464fc9dcbb03357c049
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
@@ -9,9 +9,9 @@ WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 PATCHFILES   = 0001-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
 PATCHFILES  += 0002-sunxi-H6-Add-basic-Tanix-TX6-support.patch
 PATCHFILES  += 0003-sunxi-H6-Add-basic-Tanix-TX6-mini-support.patch
-PATCHFILES  += 0004-sunxi-H6-enable-dram-debug.patch
-#PATCHFILES  += 0005-allowall-usb-start.patch
-#PATCHFILES  += 0006-sunxi-H6-fix-dram-on-tanix-tx6.patch
+# PATCHFILES  += 0004-sunxi-H6-enable-dram-debug.patch
+# PATCHFILES  += 0005-allowall-usb-start.patch
+# PATCHFILES  += 0006-sunxi-H6-fix-dram-on-tanix-tx6.patch
 
 LICENSE = GPL2
 
@@ -36,7 +36,6 @@ BUILD_ARGS = \
 
 configure-custom:
 	@echo "Configuring u-boot for SunXi H6..."
-	@sed -i "s%HOSTCC%CC%g" $(WORKSRC)/scripts/dtc/pylibfdt/Makefile
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
