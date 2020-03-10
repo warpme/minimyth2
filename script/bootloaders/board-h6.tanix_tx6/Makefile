@@ -24,7 +24,7 @@ INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
-export mm_U-BOOT_BOARD_TYPE = eachlink_h6_mini_defconfig
+export mm_U-BOOT_BOARD_TYPE = tanix_tx6_mini_defconfig
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
