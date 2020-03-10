@@ -1,6 +1,5 @@
-
-GARNAME      = arm-trusted-firmware-20200220
-GARVERSION   = eda880ff8ec77ee429f5249f08571c41232b27db
+GARNAME      = arm-trusted-firmware-20190628
+GARVERSION   = 39c92b6271f4bde4e84f2459dbc18228cedd7825
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/ARM-software/arm-trusted-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
@@ -22,7 +21,6 @@ include ../../gar.mk
 
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
-	M0_CROSS_COMPILE=$(compiler_prefix) \
 
 build-custom:
 ifneq (,$(findstring h6,$(mm_BOARD_TYPE)))
