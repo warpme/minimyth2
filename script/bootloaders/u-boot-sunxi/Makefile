@@ -7,7 +7,11 @@ DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 
 PATCHFILES   = 0001-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
-PATCHFILES  += 0002-allowall-usb-start.patch
+PATCHFILES  += 0002-sunxi-H6-Add-basic-Tanix-TX6-support.patch
+PATCHFILES  += 0003-sunxi-H6-Add-basic-Tanix-TX6-mini-support.patch
+PATCHFILES  += 0004-sunxi-H6-enable-dram-debug.patch
+#PATCHFILES  += 0005-allowall-usb-start.patch
+#PATCHFILES  += 0006-sunxi-H6-fix-dram-on-tanix-tx6.patch
 
 LICENSE = GPL2
 
@@ -32,6 +36,7 @@ BUILD_ARGS = \
 
 configure-custom:
 	@echo "Configuring u-boot for SunXi H6..."
+	@sed -i "s%HOSTCC%CC%g" $(WORKSRC)/scripts/dtc/pylibfdt/Makefile
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
