@@ -1,5 +1,5 @@
-GARNAME      = arm-trusted-firmware-20190628
-GARVERSION   = 39c92b6271f4bde4e84f2459dbc18228cedd7825
+GARNAME      = arm-trusted-firmware-20200310
+GARVERSION   = 65012c08922fa5646ca7ca485036dfd901cae360
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/ARM-software/arm-trusted-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
