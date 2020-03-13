@@ -19,8 +19,11 @@ INSTALL_SCRIPTS = custom
 include ../../gar.mk
 
 install-custom:
-	@mkdir -p $(DESTDIR)/boot/grub
-	@$(MAKECOOKIE)
+	@mkdir -p $(DESTDIR)/boot/
+	@cp -rf $(build_libdir)/grub/x86_64-efi $(DESTDIR)/boot/grub-efi-x86_64
+	@mkdir -p $(DESTDIR)/boot/EFI/boot
+	@cp $(build_libdir)/grub/x86_64-efi/core.efi $(DESTDIR)/boot/EFI/boot/core.efi
+	@#$(MAKECOOKIE)
 
 clean-all:
 	@rm -rf $(DESTDIR)/boot/grub*
