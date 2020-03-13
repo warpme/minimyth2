@@ -26,15 +26,26 @@ DEPENDS = \
 	lib/taglib \
 	lib/minizip \
 	python/python \
-	python/python-pycurl \
+	python/python-aniso8601 \
+	python/python-beautifulsoup4 \
+	python/python-discid \
+	python/python-future \
 	python/python-lxml \
+	python/python-musicbrainzngs \
+	python/python-MySQL-python \
+	python/python-pycurl \
+	python/python-requests-cache \
 	python/python-oauth \
+	perl/perl-Date-Calc \
 	perl/perl-Date-Manip \
 	perl/perl-DateTime-Format-ISO8601 \
 	perl/perl-Image-Size \
 	perl/perl-JSON \
+	perl/perl-PerlMagick \
 	perl/perl-SOAP-Lite \
+	perl/perl-TimeDate \
 	perl/perl-XML-Simple \
+	perl/perl-XML-TreeBuilder \
 	perl/perl-XML-XPath \
 	db/mysql
 
@@ -43,7 +54,9 @@ BUILDDEPS = \
 	python/python-pycurl \
 	python/python-lxml \
 	python/python-oauth \
-	perl/perl-DateTime
+	perl/perl-DateTime \
+	perl/perl-SOAP-Lite \
+	perl/perl-DateTime-Format-ISO8601 \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
@@ -56,8 +69,6 @@ INSTALL_SCRIPTS   = $(WORKSRC)/mythplugins/Makefile
 CONFIGURE_ARGS = \
 	$(MYTHTV_PLUGINS_CONFIGURE_ARGS) \
 	--enable-mythbrowser \
-	--enable-exif \
-	--enable-new-exif \
 	--enable-mythgame \
 	--enable-mythmusic \
 		--enable-cdio \
