@@ -73,8 +73,9 @@ rm -f  ${BUILDDIR}/*.direct
 rm -f  ${BUILDDIR}/*.vfat
 rm -f  ${BUILDDIR}/*.ext4
 rm -rf ${root_files_loc}/../pseudo*
+# By some reason (bug?) kickstart-oe expects pseudo binary in working tem dir...
 mkdir -p ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin
-ln -srf ${base_dir}/native-bins/usr/bin/pseudo ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin/pseudo
+ln -srf ${mm_home}/images/build/usr/bin/pseudo ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin/pseudo
 
 echo '  entering fakeroot enviroment...'
 fakeroot -i ${mm_build_dir}/stage/image/rootfs.fakeroot sh -c " \

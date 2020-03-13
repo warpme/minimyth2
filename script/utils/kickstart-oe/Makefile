@@ -77,8 +77,6 @@ install-custom:
 	@mkdir -p $(DESTDIR)$(bindir)/kickstart/conf
 	@mkdir -p $(DESTDIR)$(bindir)/kickstart/conf/multiconfig
 	@mkdir -p $(DESTDIR)$(bindir)/kickstart/scripts
-	@mkdir -p $(DESTDIR)$(bindir)/kickstart/tmp
-	@mkdir -p $(DESTDIR)$(bindir)/kickstart/tmp/sysroots-components/x86_64/pseudo-native/usr/bin
 	@#
 	@cp -rf $(WORKSRC)/bitbake/bin $(DESTDIR)$(bindir)/kickstart/bitbake/
 	@cp -rf $(WORKSRC)/bitbake/lib $(DESTDIR)$(bindir)/kickstart/bitbake/
@@ -102,7 +100,6 @@ install-custom:
 	@#
 	@cp -rf $(WORKSRC)/scripts/lib/     $(DESTDIR)$(bindir)/kickstart/scripts/lib/
 	@cp -f  $(WORKSRC)/scripts/wic      $(DESTDIR)$(bindir)/kickstart/scripts/wic
-	@cp -f  $(DESTDIR)$(bindir)/pseudo  $(DESTDIR)$(bindir)/kickstart/tmp/sysroots-components/x86_64/pseudo-native/usr/bin/pseudo
 	@#
 	@cp -f $(WORKDIR)/create-image.sh   $(DESTDIR)$(bindir)/kickstart/
 	@#
