@@ -1,5 +1,5 @@
 GARNAME = kickstart-oe
-GARVERSION = 2.6
+GARVERSION = 2.7.3
 CATEGORIES = utils
 MASTER_SITES = http://git.yoctoproject.org/cgit/cgit.cgi/poky/snapshot/
 DISTFILES = \
@@ -37,6 +37,8 @@ DISTFILES = \
 	default.wks                 \
 	create-image.sh             \
 
+PATCHFILES = poky-yocto-2.7.3-bitbake-skip-python2-checks.patch
+
 WORKSRC = $(WORKDIR)/poky-yocto-$(GARVERSION)
 LICENSE = GPL2
 
@@ -54,15 +56,11 @@ DEPENDS = \
 	lib/parted \
 	bootloaders/syslinux \
 	bootloaders/grub2 \
-
-# Removed from dependencies as kickstart-oe not works OK with mm2 python3.
-# This needs further investigation...
-#	python3/python \
-#	python3/python-codegen \
-#	python3/python-ply \
-#	python3/python-beautifulsoup4 \
-#	python3/python-simplediff \
-
+	python3/python \
+	python3/python-codegen \
+	python3/python-ply \
+	python3/python-beautifulsoup4 \
+	python3/python-simplediff \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 

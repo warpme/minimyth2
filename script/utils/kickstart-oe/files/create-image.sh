@@ -1,5 +1,5 @@
 
-use_minimyth_python3="no"
+use_minimyth_python3="yes"
 
 #--------------------------------------------------------------------------------------
 
@@ -72,8 +72,9 @@ rm -f  ${BUILDDIR}/*.log
 rm -f  ${BUILDDIR}/*.direct
 rm -f  ${BUILDDIR}/*.vfat
 rm -f  ${BUILDDIR}/*.ext4
+rm -rf ${BUILDDIR}/tmp
 rm -rf ${root_files_loc}/../pseudo*
-# By some reason (bug?) kickstart-oe expects pseudo binary in working tem dir...
+# By bug kickstart-oe not looks for pseudo binary in ative-sysroot loc.
 mkdir -p ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin
 ln -srf ${mm_home}/images/build/usr/bin/pseudo ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin/pseudo
 
