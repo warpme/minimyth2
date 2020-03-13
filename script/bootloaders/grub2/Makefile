@@ -12,6 +12,9 @@ endef
 
 DEPENDS   = lang/c
 
+CORE_IMAGE_MODULES_LST= boot linux ext2 fat serial part_msdos part_gpt normal \
+			efi_gop iso9660 configfile search loadenv test
+
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
@@ -48,3 +51,13 @@ CPP = $(CC) -E
 pre-configure:
 	@cd $(WORKSRC); ./bootstrap
 	@$(MAKECOOKIE)
+
+post-install:
+	@echo "Generating GRUB core.efi..."
+	@$(WORKSRC)/grub-mkimage \
+	 -d $(WORKSRC)/grub-core/ \
+	 -O x86_64-efi \
+	 -p /EFI/BOOT \
+	 -o $(DESTDIR)$(libdir)/grub/x86_64-efi/core.efi \
+	 $(CORE_IMAGE_MODULES_LST)
+	@#$(MAKECOOKIE)
