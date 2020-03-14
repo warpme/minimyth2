@@ -39,6 +39,8 @@ PATCHFILES += 0012-ffmpeg-d5274f8-WIP-v4l2-request-rolling-timestamps.patch
 PATCHFILES += 0165-ffmpeg-avcodec-v4l2m2m-clean-up-buffer-options-and-pick-sane-defaults.patch
 PATCHFILES += 0166-ffmpeg-avcodec-v4l2_m2m_dec-remove-temporary-avpkt-and-read-directyl-to-buffer.patch
 PATCHFILES += 0167-ffmpeg-avcodec-handle-errors-more-explicitly.patch
+PATCHFILES += 0168-avcodec-v4l2_m2m-Avoid-using-intermediate-buffer.patch
+#PATCHFILES += 0169-ffmpeg-libavdevice-produce-0byte-if-dequeued-size-unexpected.patch
 PATCHFILES += 0170-ffmpeg-libavcodec-log-requested-pixfmt.patch
 #--------------------------------------------------------
 endif
