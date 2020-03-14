@@ -64,36 +64,6 @@ PATCHFILES += 0311-arm64-dts-meson-set-dma-pool-to-896MB.patch
 PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
 endif
 
-ifeq (0,1)
-# Amlogic: Enable hdmi audio: patches from Jerome GITLAB
-# https://gitlab.com/jbrunet/linux/commits/v5.6/aml/integ
-PATCHFILES += 0330-ASoC-meson-rework-g12a-tohdmitx-codec.patch
-PATCHFILES += 0331-ASoC-meson-add-toacodec-dt-bindings.patch
-PATCHFILES += 0332-ASoC-meson-add-g12-internal-DAC-glue.patch
-PATCHFILES += 0333-ASoC-meson-add-t9015-internal-DAC-driver.patch
-PATCHFILES += 0334-ASoC-meson-axg-card-add-toacodec-support.patch
-PATCHFILES += 0336-ASoC-meson-aiu-add-i2s-fifo-support.patch
-PATCHFILES += 0337-ASoC-meson-aiu-add-spdif-fifo-support.patch
-PATCHFILES += 0338-ASoC-meson-aiu-add-i2s-encoder-support.patch
-PATCHFILES += 0339-ASoC-meson-aiu-add-spdif-encoder-support.patch
-PATCHFILES += 0340-ASoC-meson-extract-utils-from-axg-sound-card.patch
-PATCHFILES += 0341-ASoC-meson-add-gx-card-support.patch
-PATCHFILES += 0342-WIP-ASoC-meson-gx-hardcode-codec-to-codec-routes.patch
-PATCHFILES += 0343-clk-meson-g12a-fix-gp0-and-hifi-ranges.patch
-PATCHFILES += 0344-arm64-dts-meson-g12a-add-internal-DAC.patch
-PATCHFILES += 0345-arm64-dts-meson-g12a-add-internal-DAC-glue.patch
-PATCHFILES += 0346-arm64-dts-meson-u200-add-audio-support.patch
-PATCHFILES += 0347-arm64-dts-meson-gx-add-playback-audio-devices.patch
-PATCHFILES += 0348-arm64-dts-meson-enable-audio-playback-on-p230-q2.patch
-PATCHFILES += 0349-arm64-dts-meson-add-Khadas-VIM2-audio-playback.patch
-PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
-# Misc patches
-PATCHFILES += 0362-dt-bindings-reset-meson-add-gxl-internal-dac-reset.patch
-PATCHFILES += 0363-dt-bindings-clk-meson-add-the-gxl-internal-dac-gate.patch
-PATCHFILES += 0364-clk-meson-gxbb-add-the-gxl-internal-dac-gate.patch
-PATCHFILES += 0365-clk-meson-gxbb-set-audio-output-clock-hierarchy.patch
-endif
-
 ifeq (1,1)
 # Amlogic: Enable hdmi audio: patches from kernel ML
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=231775 22.01.2020
@@ -158,9 +128,19 @@ PATCHFILES += 0409-media-uapi-Add-VP9-stateless-decoder-controls.patch
 PATCHFILES += 0410-media-rkvdec-Add-the-VP9-backend.patch
 endif
 
+ifeq (0,1)
+# Rockchip: hantro vdec rk3328/3399 improvements - patches from rockchip ML
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=254947 13.03.2020
+PATCHFILES += 0421-v4l2-mem2mem-return-CAPTURE-buffer-first.patch
+PATCHFILES += 0422-hantro-Set-buffers-zeroth-plane-payload-in-.buf_prepare.patch
+PATCHFILES += 0423-hantro-Use-v4l2_m2m_buf_done_and_job_finish.patch
+PATCHFILES += 0424-hantro-Remove-unneeded-hantro_dec_buf_finish.patch
+PATCHFILES += 0425-hantro-Move-H264-motion-vector-calculation-to-a-helper.patch
+PATCHFILES += 0426-hantro-Refactor-for-V4L2-API-spec-compliancy.patch
+endif
+
 ifeq (1,1)
-# Rockchip: hantro vdec rk3328/3399 improvements 
-# https://github.com/Kwiboo/linux-rockchip/commits/v4l2-5.5-work-in-progress-v5.5 01.02.2020
+# Rockchip: hantro vdec rk3328/3399 improvements - patches from kwiboo
 PATCHFILES += 0436-media-hantro-fix-extra-MV-MC-sync-space-calculation.patch
 PATCHFILES += 0437-media-hantro-Prevent-encoders-from-using-post-proces.patch
 PATCHFILES += 0438-RFC-media-uapi-h264-Add-DPB-entry-field-reference-fl.patch

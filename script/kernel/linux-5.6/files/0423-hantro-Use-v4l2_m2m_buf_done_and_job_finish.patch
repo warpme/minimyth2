@@ -1,0 +1,59 @@
+
+Let the core sort out the nuances of returning buffers
+to userspace, by using the v4l2_m2m_buf_done_and_job_finish
+helper.
+
+This change also removes usage of buffer sequence fields,
+which shouldn't have any meaning for stateless decoders.
+
+Signed-off-by: Ezequiel Garcia <ezequiel@collabora.com>
+---
+ drivers/staging/media/hantro/hantro_drv.c | 27 ++++++++---------------
+ 1 file changed, 9 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/staging/media/hantro/hantro_drv.c b/drivers/staging/media/hantro/hantro_drv.c
+index 0b1200fc0e1a..ec889d755cd6 100644
+--- a/drivers/staging/media/hantro/hantro_drv.c
++++ b/drivers/staging/media/hantro/hantro_drv.c
+@@ -94,32 +94,23 @@ static void hantro_job_finish(struct hantro_dev *vpu,
+ 			      unsigned int bytesused,
+ 			      enum vb2_buffer_state result)
+ {
+-	struct vb2_v4l2_buffer *src, *dst;
+ 	int ret;
+ 
+ 	pm_runtime_mark_last_busy(vpu->dev);
+ 	pm_runtime_put_autosuspend(vpu->dev);
+ 	clk_bulk_disable(vpu->variant->num_clocks, vpu->clocks);
+ 
+-	src = v4l2_m2m_src_buf_remove(ctx->fh.m2m_ctx);
+-	dst = v4l2_m2m_dst_buf_remove(ctx->fh.m2m_ctx);
+-
+-	if (WARN_ON(!src))
+-		return;
+-	if (WARN_ON(!dst))
+-		return;
+-
+-	src->sequence = ctx->sequence_out++;
+-	dst->sequence = ctx->sequence_cap++;
+-
+-	ret = ctx->buf_finish(ctx, &dst->vb2_buf, bytesused);
+-	if (ret)
+-		result = VB2_BUF_STATE_ERROR;
++	if (ctx->buf_finish) {
++		struct vb2_v4l2_buffer *dst;
+ 
+-	v4l2_m2m_buf_done(src, result);
+-	v4l2_m2m_buf_done(dst, result);
++		dst = v4l2_m2m_next_dst_buf(ctx->fh.m2m_ctx);
++		ret = ctx->buf_finish(ctx, &dst->vb2_buf, bytesused);
++		if (ret)
++			result = VB2_BUF_STATE_ERROR;
++	}
+ 
+-	v4l2_m2m_job_finish(vpu->m2m_dev, ctx->fh.m2m_ctx);
++	v4l2_m2m_buf_done_and_job_finish(ctx->dev->m2m_dev, ctx->fh.m2m_ctx,
++					 result);
+ }
+ 
+ void hantro_irq_done(struct hantro_dev *vpu, unsigned int bytesused,
