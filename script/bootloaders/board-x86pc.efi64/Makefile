@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-x86pc.efi64
-GARVERSION   = 2020-03-07
+GARVERSION   = 2020-03-15
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = 
@@ -13,6 +13,8 @@ DESCRIPTION =
 define BLURB
 endef
 
+BUILDDEPS   = bootloaders/grub2
+
 BUILD_SCRIPTS   =
 INSTALL_SCRIPTS = custom
 
@@ -20,10 +22,8 @@ include ../../gar.mk
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot/
-	@cp -rf $(build_libdir)/grub/x86_64-efi $(DESTDIR)/boot/grub-efi-x86_64
-	@mkdir -p $(DESTDIR)/boot/EFI/boot
-	@cp $(build_libdir)/grub/x86_64-efi/core.efi $(DESTDIR)/boot/EFI/boot/core.efi
-	@#$(MAKECOOKIE)
+	@cp $(build_libdir)/grub/x86_64-efi/core.efi $(DESTDIR)/boot/grub-efi-bootx64.efi
+	@$(MAKECOOKIE)
 
 clean-all:
-	@rm -rf $(DESTDIR)/boot/grub*
+	@rm $(DESTDIR)/boot/grub-efi-bootx64.efi
