@@ -27,7 +27,7 @@ DEFAULT_ARGS = \
 	HOSTCFLAGS="$(build_CFLAGS)" \
 	HOSTCXXFLAGS="$(build_CXXFLAGS)" \
 	CROSS_COMPILE="$(compiler_prefix)" \
-	KBUILD_VERBOSE="1" \
+	KBUILD_VERBOSE="0" \
 	SKIP_STRIP="y"
 
 CONFIGURE_ARGS = $(DEFAULT_ARGS)
@@ -62,3 +62,9 @@ configure-custom:
 
 install-custom:
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) CONFIG_PREFIX="$(DESTDIR)$(rootdir)" install
+	@$(MAKECOOKIE)
+
+post-install:
+	@mkdir -p $(WORKDIR)/busybox-bins
+	@cp -rf $(WORKSRC)/_install/* $(WORKDIR)/busybox-bins
+	@$(MAKECOOKIE)
