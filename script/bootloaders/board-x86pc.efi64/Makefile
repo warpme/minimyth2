@@ -26,4 +26,4 @@ install-custom:
 	@$(MAKECOOKIE)
 
 clean-all:
-	@rm $(DESTDIR)/boot/grub-efi-bootx64.efi
+	@rm -f $(DESTDIR)/boot/grub-efi-bootx64.efi
