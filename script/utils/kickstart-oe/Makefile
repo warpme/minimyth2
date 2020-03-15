@@ -34,10 +34,13 @@ DISTFILES = \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \
 	board-x86pc.efi64.wks       \
+	board-x86pc.bios_efi64.conf \
+	board-x86pc.bios_efi64.wks  \
 	default.wks                 \
 	create-image.sh             \
 
-PATCHFILES = poky-yocto-2.7.3-bitbake-skip-python2-checks.patch
+PATCHFILES  = poky-yocto-2.7.3-bitbake-skip-python2-checks.patch
+PATCHFILES += poky-yocto-2.7.3-add-biosplusefi-image-plugin.patch
 
 WORKSRC = $(WORKDIR)/poky-yocto-$(GARVERSION)
 LICENSE = GPL2
