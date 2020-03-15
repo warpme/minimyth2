@@ -89,6 +89,10 @@ ifneq (,$(findstring board-x86pc.efi64,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-x86pc.efi64
 endif
 
+ifneq (,$(findstring board-x86pc.bios_efi64,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-x86pc.bios_efi64
+endif
+
 	@cp -f $(mm_HOME)/html/minimyth/conf/minimyth.conf $(DESTDIR)/boot/
 
 clean-all:
