@@ -60,4 +60,4 @@ post-install:
 	 -p /EFI/BOOT \
 	 -o $(DESTDIR)$(libdir)/grub/x86_64-efi/core.efi \
 	 $(CORE_IMAGE_MODULES_LST)
-	@#$(MAKECOOKIE)
+	@$(MAKECOOKIE)
