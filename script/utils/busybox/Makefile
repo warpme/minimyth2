@@ -62,6 +62,7 @@ configure-custom:
 
 install-custom:
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) CONFIG_PREFIX="$(DESTDIR)$(rootdir)" install
+	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) install
 	@$(MAKECOOKIE)
 
 post-install:
