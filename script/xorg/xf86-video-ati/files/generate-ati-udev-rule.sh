@@ -12,6 +12,8 @@ out_file="05-minimyth-detect-x-ati-${ver}.rules.disabled"
 out_dir='../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d'
 suported_devices_file='../../../../images/main/usr/share/supported-ati-gfx-hardware.txt'
 vendor_id='1002'
+# hw_accel_video_type="radeon_vdpau"
+hw_accel_video_type="radeon_vaapi"
 
 
 #List of cards with UVD2.2+
@@ -116,7 +118,7 @@ for card in ${card_list} ; do
    if [ `echo ${vdpau_lst} | grep -c ${name}` = 0 ] ; then
      type="radeon"
    else 
-     type="radeon_vdpau"
+     type=${hw_accel_video_type}
    fi
    #echo "    Type = ${type}"
    legend=`echo "  # Card=${name}, PCI_ID=${id}"`
