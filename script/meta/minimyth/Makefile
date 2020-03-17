@@ -206,3 +206,13 @@ $(GARCHIVEDIR)/$(DISTNAME).tar.bz2:
 configure-custom:
 	@$(MAKE) -f files/configure.mk DESTIMG=$(DESTIMG)
 	@$(MAKECOOKIE)
+
+reinstall-new-board:
+	@echo " ==> Cleaning bootloaders for old boards..."
+	@$(MAKE) -C ../../bootloaders/bootloader clean-bootloader
+	@echo " ==> Installing bootloaders for current boards..."
+	@$(MAKE) -C ../../bootloaders/bootloader install
+	@echo " ==> Rebuilding image..."
+	@$(MAKE) rebuild
+	@echo " ==> Reinstalling image..."
+	@$(MAKE) reinstall
