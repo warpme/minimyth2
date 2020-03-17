@@ -9,6 +9,8 @@ DISTFILES    = s905_autoscript \
                boot.ini \
                u-boot.ext \
 
+export mm_U-BOOT_BOARD_TYPE = p212_defconfig
+
 WORKSRC      = $(WORKDIR)
 
 LICENSE = GPL2
@@ -17,15 +19,16 @@ DESCRIPTION =
 define BLURB
 endef
 
-# Skipping U-Boot build as we are using built-in U-Boot
-# DEPENDS   = bootloaders/u-boot
-
-BUILD_SCRIPTS   =
+BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
-export mm_U-BOOT_BOARD_TYPE = p212_defconfig
+# Skipping U-Boot build as we are using vendor U-Boot
+build-custom:
+#	@$(MAKE) clean -C ../u-boot-amlogic
+#	@$(MAKE) install -C ../u-boot-amlogic
+	@$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
@@ -35,7 +38,6 @@ install-custom:
 	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-sm1-sei610.dtb  $(DESTDIR)/boot/sm1_dtb
 	@cp -f $(WORKSRC)/boot.ini                                $(DESTDIR)/boot/boot.ini
 	@cp -f $(WORKSRC)/u-boot.ext                              $(DESTDIR)/boot/u-boot.ext
-	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/s905_autoscript

@@ -29,7 +29,6 @@ install-custom:
 	@cp -f $(build_datadir)/syslinux/mbr.bin      $(DESTDIR)/boot/syslinux/mbr.bin
 	@cp -f $(build_datadir)/syslinux/gptmbr.bin   $(DESTDIR)/boot/syslinux/gptmbr.bin
 	@cp -f $(build_datadir)/syslinux/vesamenu.c32 $(DESTDIR)/boot/syslinux/vesamenu.c32
-	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -rf $(DESTDIR)/boot/syslinux*

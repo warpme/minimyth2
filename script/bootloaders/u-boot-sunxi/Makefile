@@ -11,7 +11,6 @@ PATCHFILES  += 0002-sunxi-H6-Add-basic-Tanix-TX6-support.patch
 PATCHFILES  += 0003-sunxi-H6-Add-basic-Tanix-TX6-mini-support.patch
 # PATCHFILES  += 0004-sunxi-H6-enable-dram-debug.patch
 # PATCHFILES  += 0005-allowall-usb-start.patch
-# PATCHFILES  += 0006-sunxi-H6-fix-dram-on-tanix-tx6.patch
 
 LICENSE = GPL2
 
@@ -19,7 +18,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c bootloaders/arm-trusted-firmware
+DEPENDS   = lang/c bootloaders/arm-trusted-firmware-h6
 BUILDDEPS = devel/swig utils/dtc
 
 CONFIGURE_SCRIPTS   = custom
@@ -32,7 +31,7 @@ CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
-	BL31=$(DESTDIR)/boot/h6loaderfiles/bl31.bin \
+	BL31=$(DESTDIR)$(libdir)/u-boot/h6/bl31.bin \
 
 configure-custom:
 	@echo "Configuring u-boot for SunXi H6..."
@@ -45,10 +44,9 @@ build-custom:
 	@$(MAKECOOKIE)
 
 install-custom:
-	@mkdir -p "$(DESTDIR)/boot/h6loaderfiles"
-	@cp -f $(WORKSRC)/u-boot-sunxi-with-spl.bin $(DESTDIR)/boot/h6loaderfiles/u-boot-sunxi-with-spl.bin
+	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)"
+	@cp -f $(WORKSRC)/u-boot-sunxi-with-spl.bin \
+	       $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin
 	@$(MAKECOOKIE)
 
 clean-all:
-	$(MAKE) clean -C ../arm-trusted-firmware
-	@rm -rf $(DESTDIR)/boot/h6loaderfiles*

@@ -44,7 +44,6 @@ install-custom:
 	@cp -f $(WORKSRC)/start_db.elf        $(DESTDIR)/boot/start_db.elf
 	@cp -f $(WORKSRC)/start_x.elf         $(DESTDIR)/boot/start_x.elf
 	@cp -f $(DESTDIR)/boot/zImage         $(DESTDIR)/boot/kernel7.img
-	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/bootcode.bin

@@ -30,7 +30,6 @@ install-custom:
 	@cp -f $(build_datadir)/syslinux/gptmbr.bin     $(DESTDIR)/boot/syslinux/gptmbr.bin
 	@cp -f $(build_datadir)/syslinux/vesamenu.c32   $(DESTDIR)/boot/syslinux/vesamenu.c32
 	@cp -f $(build_libdir)/grub/x86_64-efi/core.efi $(DESTDIR)/boot/grub-efi-bootx64.efi
-	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -rf $(DESTDIR)/boot/syslinux*

@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-rk3328.beelink_a1
-GARVERSION   = 2020-02-20
+GARVERSION   = 2020-03-17
 CATEGORIES   = bootloaders
 MASTER_SITES = http://os.archlinuxarm.org/os/rockchip/boot/rock64/
 DISTFILES    = idbloader.img \
@@ -12,6 +12,8 @@ DISTFILES    = idbloader.img \
                rk3328-boot.scr \
                rk3328-boot.txt \
 
+export mm_U-BOOT_BOARD_TYPE = evb-rk3328_defconfig
+
 WORKSRC      = $(WORKDIR)
 
 LICENSE = GPL2
@@ -20,15 +22,16 @@ DESCRIPTION =
 define BLURB
 endef
 
-# Skipping U-Boot build as we are using pre-built U-Boot from Archlinux ARM (thx guys!)
-# DEPENDS   = bootloaders/u-boot
-
-BUILD_SCRIPTS   =
+BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
-export mm_U-BOOT_BOARD_TYPE = evb-rk3328_defconfig
+# Skipping U-Boot build as we are using vendor U-Boot
+build-custom:
+#	@$(MAKE) clean -C ../u-boot-rk3328
+#	@$(MAKE) install -C ../u-boot-rk3328
+	@$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
@@ -45,7 +48,6 @@ install-custom:
 	@cp -f    $(WORKSRC)/idbloader.img                        $(DESTDIR)/boot/rk3328loaderfiles/idbloader.img
 	@cp -f    $(WORKSRC)/trust.img                            $(DESTDIR)/boot/rk3328loaderfiles/trust.img
 	@cp -f    $(WORKSRC)/uboot.img                            $(DESTDIR)/boot/rk3328loaderfiles/uboot.img
-	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -f  $(DESTDIR)/boot/rk3328-boot-debug.txt

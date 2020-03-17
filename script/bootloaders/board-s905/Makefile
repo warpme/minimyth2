@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-s905
-GARVERSION   = 2019-05-03
+GARVERSION   = 2020-03-17
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = aml_autoscript \
@@ -8,6 +8,8 @@ DISTFILES    = aml_autoscript \
                s905_autoscript \
                s905_autoscript.txt \
                uEnv.ini \
+
+export mm_U-BOOT_BOARD_TYPE = p212_defconfig
 
 WORKSRC      = $(WORKDIR)
 
@@ -17,15 +19,16 @@ DESCRIPTION =
 define BLURB
 endef
 
-# Skipping U-Boot build as we are using built-in U-Boot
-# DEPENDS   = bootloaders/u-boot
-
-BUILD_SCRIPTS   =
+BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
-export mm_U-BOOT_BOARD_TYPE = p212_defconfig
+# Skipping U-Boot build as we are using vendor U-Boot
+build-custom:
+#	@$(MAKE) clean -C ../u-boot-amlogic
+#	@$(MAKE) install -C ../u-boot-amlogic
+	@$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
@@ -35,7 +38,6 @@ install-custom:
 	@cp -f $(WORKSRC)/s905_autoscript.txt                   $(DESTDIR)/boot/s905_autoscript.txt
 	@cp -f $(WORKSRC)/uEnv.ini                              $(DESTDIR)/boot/uEnv.ini
 	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-gxl-s905w-tx3-mini.dtb $(DESTDIR)/boot/s905_dtb
-	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/aml_autoscript

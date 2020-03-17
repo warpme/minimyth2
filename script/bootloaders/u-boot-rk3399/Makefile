@@ -12,7 +12,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c bootloaders/arm-trusted-firmware
+DEPENDS   = lang/c bootloaders/arm-trusted-firmware-rk3399
 BUILDDEPS = devel/swig utils/dtc
 
 CONFIGURE_SCRIPTS   = custom
@@ -25,7 +25,7 @@ CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
-	BL31=$(DESTDIR)/boot/rk3399loaderfiles/bl31.bin \
+	BL31=$(DESTDIR)$(libdir)/u-boot/rk3399/bl31.bin \
 
 configure-custom:
 	@echo "Configuring u-boot for rk3399..."
@@ -39,9 +39,8 @@ build-custom:
 
 install-custom:
 	@mkdir -p "$(DESTDIR)/boot/rk3399loaderfiles"
-	@cp -f $(WORKSRC)/u-boot-rk3399-with-spl.bin $(DESTDIR)/boot/rk3399loaderfiles/u-boot-rk3399-with-spl.bin
+	@cp -f  $(WORKSRC)/u-boot-rk3399-with-spl.bin \
+		$(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/u-boot-rk3399-with-spl.bin
 	@$(MAKECOOKIE)
 
 clean-all:
-	$(MAKE) clean -C ../arm-trusted-firmware
-	@rm -rf $(DESTDIR)/boot/rk3399loaderfiles*

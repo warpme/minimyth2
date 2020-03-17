@@ -15,6 +15,8 @@ DISTFILES    = rpi2-boot.scr \
                start_x.elf \
                kernel7.img \
 
+export mm_U-BOOT_BOARD_TYPE = rpi_2_defconfig
+
 WORKSRC      = $(WORKDIR)
 
 LICENSE = GPL2
@@ -23,15 +25,15 @@ DESCRIPTION =
 define BLURB
 endef
 
-
-DEPENDS   = bootloaders/u-boot
-
-BUILD_SCRIPTS   = 
+BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
-export mm_U-BOOT_BOARD_TYPE = rpi_2_defconfig
+build-custom:
+	@$(MAKE) clean -C ../u-boot-rpi
+	@$(MAKE) install -C ../u-boot-rpi
+	@$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
@@ -46,9 +48,11 @@ install-custom:
 	@cp -f $(WORKSRC)/start.elf     $(DESTDIR)/boot/start.elf
 	@cp -f $(WORKSRC)/start_cd.elf  $(DESTDIR)/boot/start_cd.elf
 	@cp -f $(WORKSRC)/start_x.elf   $(DESTDIR)/boot/start_x.elf
-	@# cp -f $(WORKSRC)/kernel7.img   $(DESTDIR)/boot/kernel7.img
 	@cp -f $(DESTDIR)/boot/dtbs/bcm2836-rpi-2-b.dtb $(DESTDIR)/boot/bcm2836-rpi-2-b.dtb
-	@$(MAKECOOKIE)
+	@# Use this for RPI provided u-boot
+	@cp -f $(WORKSRC)/kernel7.img   $(DESTDIR)/boot/kernel7.img
+	@# Ust this for mainline u-boot
+	@#cp -f $(DESTDIR)$(libdir)/u-boot/rpi2/$(mm_U-BOOT_BOARD_TYPE)/kernel7.img $(DESTDIR)/boot/kernel7.img
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/bootcode.bin
@@ -62,6 +66,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/start.elf
 	@rm -f $(DESTDIR)/boot/start_cd.elf
 	@rm -f $(DESTDIR)/boot/start_x.elf
-	@rm -f $(DESTDIR)/boot/u-boot.bin
 	@rm -f $(DESTDIR)/boot/kernel7.img
-	$(MAKE) clean clean-all -C ../u-boot

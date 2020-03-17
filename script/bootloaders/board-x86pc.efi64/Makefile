@@ -23,7 +23,6 @@ include ../../gar.mk
 install-custom:
 	@mkdir -p $(DESTDIR)/boot/
 	@cp $(build_libdir)/grub/x86_64-efi/core.efi $(DESTDIR)/boot/grub-efi-bootx64.efi
-	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/grub-efi-bootx64.efi
