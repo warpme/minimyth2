@@ -252,7 +252,7 @@ endef
 
 BUILDDEPS = \
 	utils/bc \
-	$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),bootloaders/u-boot-tools) \
+	$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),bootloaders/u-boot.tools) \
 
 DEPENDS = \
 	kernel-headers/linux-headers \
