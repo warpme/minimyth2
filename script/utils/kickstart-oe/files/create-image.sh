@@ -7,7 +7,7 @@ mm_conf_file="${HOME}/.minimyth2/minimyth.conf.mk"
 
 boards=$1
 
-if [ x${board} = "x" ] ; then
+if [ x${boards} = "x" ] ; then
     boards=`  grep "^mm_BOARD_TYPE "       ${mm_conf_file} | sed -e 's/.*\?=//'`
 fi
 
