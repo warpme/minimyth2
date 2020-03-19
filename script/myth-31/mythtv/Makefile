@@ -74,6 +74,7 @@ PATCHFILES += 0161-ffmpeg-v4l2request-HACK-add-dpb-flags-for-reference-usage-and
 PATCHFILES += 0162-ffmpeg-v4l2request-WIP-v4l2-request-rolling-timestamps.patch
 PATCHFILES += 0163-configure-add-v4l2request-support.patch
 # misc v4l2 patches
+# https://github.com/FFmpeg/FFmpeg/commit/8a8966295fbc9278042f4be76b795fea39f9a810
 PATCHFILES += 0164-ffmpeg-avcodec-v4l2_context-Use-AVERROR-macro.patch
 # https://github.com/tmm1/FFmpeg/commit/a0a00b958c524f3b0e2ca26d60dad1a674f872c7
 PATCHFILES += 0165-ffmpeg-avcodec-v4l2m2m-clean-up-buffer-options-and-pick-sane-defaults.patch
@@ -81,9 +82,14 @@ PATCHFILES += 0165-ffmpeg-avcodec-v4l2m2m-clean-up-buffer-options-and-pick-sane-
 PATCHFILES += 0166-ffmpeg-avcodec-v4l2_m2m_dec-remove-temporary-avpkt-and-read-directyl-to-buffer.patch
 # https://github.com/tmm1/FFmpeg/commit/196bab90a29323722050111e936532ac9ac9bfda
 PATCHFILES += 0167-ffmpeg-avcodec-handle-errors-more-explicitly.patch
-
+# https://github.com/FFmpeg/FFmpeg/commit/6ee7375ef50b6744c33d988c0ea2fb1780a838f0
+PATCHFILES += 0168-avcodec-v4l2_m2m-Avoid-using-intermediate-buffer.patch
+# https://github.com/FFmpeg/FFmpeg/commit/b761ae072a169eb183abe0785a258b9787e267d3
 PATCHFILES += 0169-ffmpeg-libavdevice-produce-0byte-if-dequeued-size-unexpected.patch
+# misc v4l2 patches
 PATCHFILES += 0170-ffmpeg-libavcodec-log-requested-pixfmt.patch
+# required for AML playbck
+PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
