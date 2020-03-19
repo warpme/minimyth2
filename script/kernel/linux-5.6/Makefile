@@ -129,14 +129,15 @@ PATCHFILES += 0410-media-rkvdec-Add-the-VP9-backend.patch
 endif
 
 ifeq (0,1)
-# Rockchip: hantro vdec rk3328/3399 improvements - patches from rockchip ML
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=254947 13.03.2020
+# Rockchip: hantro vdec rk3288/3328/3399 improvements - patches from rockchip ML
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=258205 v2 18.03.2020
 PATCHFILES += 0421-v4l2-mem2mem-return-CAPTURE-buffer-first.patch
 PATCHFILES += 0422-hantro-Set-buffers-zeroth-plane-payload-in-.buf_prepare.patch
 PATCHFILES += 0423-hantro-Use-v4l2_m2m_buf_done_and_job_finish.patch
 PATCHFILES += 0424-hantro-Remove-unneeded-hantro_dec_buf_finish.patch
 PATCHFILES += 0425-hantro-Move-H264-motion-vector-calculation-to-a-helper.patch
-PATCHFILES += 0426-hantro-Refactor-for-V4L2-API-spec-compliancy.patch
+PATCHFILES += 0426-hantro-Refactor-for-V4L2-API-spec-compliancy.patch.patch
+PATCHFILES += 0427-dt-bindings-rockchip-vpu-Convert-bindings-to-json-schema.patch
 endif
 
 ifeq (1,1)
