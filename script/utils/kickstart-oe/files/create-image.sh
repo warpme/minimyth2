@@ -9,6 +9,9 @@ boards="$1"
 
 if [ "x${boards}" = "x" ] ; then
     boards=`  grep "^mm_BOARD_TYPE "       ${mm_conf_file} | sed -e 's/.*\?=//'`
+    echo "  using boards list (${boards}) from minimyth.conf.mk"
+else
+    echo "  using boards list (${boards}) from script command-line"
 fi
 
 branch=` grep "^mm_MYTH_VERSION "     ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
