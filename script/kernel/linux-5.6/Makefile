@@ -38,11 +38,18 @@ PATCHFILES += linux-5.6-net-smsc95xx-allow-mac-address-as-param.patch
 PATCHFILES += 0100-aarch64-text-offset.patch
 
 ifeq (1,1)
-# Amlogic: Patch to fix Panfrost reset issue on GXM
-PATCHFILES += 0102-WIP-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
-# Misc pnafrost patchres for 5.6 kernel
-# https://gitlab.freedesktop.org/tomeu/linux/commit/77e798ec24625949631f386772e592d0af4e7bbe
+# Misc panfrost patches for 5.6 kernel
+PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
+endif
+ifeq (1,1)
+# Misc lima patches for 5.6 kernel
+PATCHFILES += 0110-drm-lima-update-register-info.patch
+PATCHFILES += 0111-drm-lima-add-lima_vm_map_bo.patch
+PATCHFILES += 0112-drm-lima-support-heap-buffer-creation.patch
+PATCHFILES += 0115-drm-lima-recover-task-by-enlarging-heap-buff.patch
+PATCHFILES += 0116-drm-lima-increase-driver-version-to-1.1.patch
+PATCHFILES += 0117-drm-lima-fix-recovering-from-PLBU-out-of-mem.patch
 endif
 
 ifeq (1,1)
