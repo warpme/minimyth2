@@ -72,6 +72,7 @@ PATCHFILES += 0159-ffmpeg-v4l2request-avcodec-h264-parse-idr_pic_id.patch
 PATCHFILES += 0160-ffmpeg-v4l2request-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
 PATCHFILES += 0161-ffmpeg-v4l2request-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
 PATCHFILES += 0162-ffmpeg-v4l2request-WIP-v4l2-request-rolling-timestamps.patch
+PATCHFILES += 0163-ffmpeg-v4l2request-hevc-Set-SPS-control-at-initialization.patch
 PATCHFILES += 0163-configure-add-v4l2request-support.patch
 # misc v4l2 patches
 # https://github.com/FFmpeg/FFmpeg/commit/8a8966295fbc9278042f4be76b795fea39f9a810
@@ -90,7 +91,8 @@ PATCHFILES += 0169-ffmpeg-libavdevice-produce-0byte-if-dequeued-size-unexpected.
 PATCHFILES += 0170-ffmpeg-libavcodec-log-requested-pixfmt.patch
 # required for AML playbck
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
-
+# misc patches
+PATCHFILES += 0172-ffmpeg-sync-v4l2_m2m-to-kodi9.2.patch
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
 PATCHFILES += 0201-Mediamonitor-reduce-udisks-timeout-to-1500msec.patch

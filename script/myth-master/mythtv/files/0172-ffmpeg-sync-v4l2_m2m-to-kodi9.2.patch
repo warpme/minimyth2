@@ -1,0 +1,77 @@
+diff -Naur mythtv-old/mythtv/external/FFmpeg/libavcodec/hevcdec.c mythtv-new/mythtv/external/FFmpeg/libavcodec/hevcdec.c
+--- mythtv-old/mythtv/external/FFmpeg/libavcodec/hevcdec.c	2020-03-20 15:14:02.333333333 +0100
++++ mythtv-new/mythtv/external/FFmpeg/libavcodec/hevcdec.c	2020-03-22 15:17:36.363333335 +0100
+@@ -515,7 +515,7 @@
+     sh->first_slice_in_pic_flag = get_bits1(gb);
+     if (s->ref && sh->first_slice_in_pic_flag) {
+         av_log(s->avctx, AV_LOG_ERROR, "Two slices reporting being the first in the same frame.\n");
+-        return 1; // This slice will be skiped later, do not corrupt state
++        return 1; // This slice will be skipped later, do not corrupt state
+     }
+ 
+     if ((IS_IDR(s) || IS_BLA(s)) && sh->first_slice_in_pic_flag) {
+@@ -3343,6 +3343,8 @@
+ 
+     ff_h2645_packet_uninit(&s->pkt);
+ 
++    ff_hevc_reset_sei(&s->sei);
++
+     return 0;
+ }
+ 
+@@ -3536,6 +3538,7 @@
+ {
+     HEVCContext *s = avctx->priv_data;
+     ff_hevc_flush_dpb(s);
++    ff_hevc_reset_sei(&s->sei);
+     s->max_ra = INT_MAX;
+     s->eos = 1;
+ }
+diff -Naur mythtv-old/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c mythtv-new/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c
+--- mythtv-old/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c	2020-03-15 10:10:09.603333334 +0100
++++ mythtv-new/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c	2020-03-22 14:11:17.626666667 +0100
+@@ -561,11 +561,10 @@
+ 
+ int ff_v4l2_buffer_buf_to_avframe(AVFrame *frame, V4L2Buffer *avbuf)
+ {
+-    int ret;
++    int i, ret;
+ 
+     av_frame_unref(frame);
+ 
+-    /* 1. get references to the actual data */
+     if (buf_to_m2mctx(avbuf)->output_drm) {
+         /* 1. get references to the actual data */
+         ret = v4l2_buf_to_bufref_drm(avbuf, &frame->buf[0]);
+@@ -576,9 +575,30 @@
+         frame->format = AV_PIX_FMT_DRM_PRIME;
+         frame->hw_frames_ctx = av_buffer_ref(avbuf->context->frames_ref);
+     } else {
+-        ret = v4l2_buffer_buf_to_swframe(frame, avbuf);
++        /* 1. get references to the actual data */
++        for (i = 0; i < avbuf->num_planes; i++) {
++            ret = v4l2_buf_to_bufref(avbuf, i, &frame->buf[i]);
+             if (ret)
+                 return ret;
++
++            frame->linesize[i] = avbuf->plane_info[i].bytesperline;
++            frame->data[i] = frame->buf[i]->data;
++        }
++
++        /* 1.1 fixup special cases */
++        switch (avbuf->context->av_pix_fmt) {
++        case AV_PIX_FMT_NV12:
++            if (avbuf->num_planes > 1)
++                break;
++            frame->linesize[1] = avbuf->plane_info[0].bytesperline;
++            frame->data[1] = frame->buf[0]->data +
++                avbuf->plane_info[0].bytesperline *
++                avbuf->context->format.fmt.pix.height;
++            break;
++        default:
++            break;
++        }
++        frame->format = avbuf->context->av_pix_fmt;
+     }
+ 
+     /* 2. get frame information */
