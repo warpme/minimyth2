@@ -62,16 +62,6 @@ default_mm2_home_path="@MM_HOME@"
 
 
 
-src="${base_path}/usr/lib/mythtv/plugins/"
-dest="/usr/lib/mythtv/plugins"
-files_list="libmythbrowser.so libmythgame.so libmythmusic.so libmythnetvision.so libmythnews.so libmythweather.so libmythzoneminder.so"
-copy_files
-
-# Myth bins
-src="${base_path}/usr/bin/"
-dest="/usr/bin/"
-files_list="mythfrontend mythffmpeg"
-copy_files
 
 
 
