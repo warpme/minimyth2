@@ -1,8 +1,8 @@
 GARNAME = ipxe
-GARVERSION = d2063b7
+GARVERSION = d2063b7693e0e35db97b2264aa987eb6341ae779
 CATEGORIES = net
-MASTER_SITES = https://git.ipxe.org/ipxe.git/snapshot/
-DISTFILES = $(GARVERSION).tar.bz2
+MASTER_SITES = https://github.com/ipxe/ipxe/archive/
+DISTFILES = $(GARVERSION).zip
 LICENSE = GPL2
 WORKSRC = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
 
