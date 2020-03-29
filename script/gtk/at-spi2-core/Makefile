@@ -1,8 +1,12 @@
-GARNAME = at-spi2-core
-GARVERSION = 2.24.1
-CATEGORIES = gtk
-MASTER_SITES = https://git.gnome.org/browse/at-spi2-core/snapshot/
-DISTFILES = $(DISTNAME).tar.bz2
+
+GARNAME      = at-spi2-core
+# v2.25.1
+GARVERSION   = 8013941fa9c22a9deeef22bb7feb2f2a081c8a2b
+CATEGORIES   = gtk
+MASTER_SITES = https://gitlab.gnome.org/GNOME/at-spi2-core/-/archive/$(GARVERSION)/
+PATCHFILES   = $(DISTNAME)-hack-to-compile.patch
+DISTFILES    = $(DISTNAME).tar.bz2
+
 LICENSE = LGPL2
 
 DESCRIPTION =
@@ -27,6 +31,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 include ../../gar.mk
 
 pre-configure:
+	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
