@@ -1,7 +1,7 @@
 GARNAME = at-spi2-atk
-GARVERSION = 2.24.1
+GARVERSION = ad3da20b099593520b488e04c11b2eeee2bc39c3
 CATEGORIES = gtk
-MASTER_SITES = https://git.gnome.org/browse/at-spi2-atk/snapshot/
+MASTER_SITES = https://gitlab.gnome.org/GNOME/at-spi2-atk/-/archive/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
 LICENSE = LGPL2
 
