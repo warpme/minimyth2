@@ -1,9 +1,7 @@
 GARNAME = acl
 GARVERSION = 2.2.51
 CATEGORIES = lib
-MASTER_SITES  = http://download.savannah.gnu.org/releases-noredirect/acl/
-MASTER_SITES += ftp://oss.sgi.com/projects/xfs/cmd_tars/
-MASTER_SITES += ftp://oss.sgi.com/projects/xfs/previous/cmd_tars/
+MASTER_SITES  = https://download.savannah.gnu.org/releases/acl/
 DISTFILES = $(DISTNAME).src.tar.gz
 LICENSE = GPL2/LGPL2_1
 
