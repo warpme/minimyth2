@@ -1,7 +1,7 @@
 GARNAME = pcre
 GARVERSION = 8.42
 CATEGORIES = lib
-MASTER_SITES = ftp://ftp.csx.cam.ac.uk/pub/software/programming/$(GARNAME)/
+MASTER_SITES = https://ftp.pcre.org/pub/pcre/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  = $(DISTNAME).patch.gar
 ifneq ($(DESTIMG),build)
