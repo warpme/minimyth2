@@ -1,9 +1,10 @@
-GARNAME = elfutils
-GARVERSION = 0.169
-CATEGORIES = devel
+GARNAME      = elfutils
+GARVERSION   = 0.178
+CATEGORIES   = devel
 MASTER_SITES = https://fedorahosted.org/releases/e/l/$(GARNAME)/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = LGPL3
+PATCHFILES   = $(DISTNAME)-hack-to-fix-compile.patch
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = LGPL3
 
 DESCRIPTION = 
 define BLURB
@@ -19,16 +20,9 @@ INSTALL_SCRIPTS   = $(WORKSRC)/libelf/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--program-prefix="eu-" \
 	--disable-silent-rules \
-	--enable-textrelcheck \
-	--enable-symbol-versioning \
-	--enable-nls
+	--disable-debuginfod \
 
 include ../../gar.mk
-
-# elfutils 0.163 fails to compile with gcc 5.2.0's link time optimization enabled.
-CFLAGS   := $(filter-out -flto, $(CFLAGS))   -fno-lto
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS)) -fno-lto
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))  -fno-lto
 
 pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
