@@ -1,9 +1,11 @@
-GARNAME = glib
-GARVERSION = 2.53.1
-CATEGORIES = gtk
-MASTER_SITES = https://ftp.gnome.org/pub/gnome/sources/glib/2.53/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = LGPL2
+
+GARNAME      = glib
+GARVERSION   = 2.59.0
+CATEGORIES   = gtk
+MASTER_SITES = https://ftp.gnome.org/pub/gnome/sources/glib/2.59/
+PATCHFILES   = $(DISTNAME)-fix-gtk-doc-compile.patch
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = LGPL2
 
 DESCRIPTION =
 define BLURB
