@@ -1,13 +1,16 @@
-GARNAME = busybox
-GARVERSION = 1.31.1
-CATEGORIES = utils
-MASTER_SITES = http://www.busybox.net/downloads/
+
+GARNAME       = busybox
+GARVERSION    = 1.31.1
+CATEGORIES    = utils
+MASTER_SITES  = http://www.busybox.net/downloads/
 MASTER_SITES += http://www.busybox.net/downloads/fixes-$(GARVERSION)/
-CONFIGFILE = $(DISTNAME).config
-DISTFILES = $(DISTNAME).tar.bz2 $(CONFIGFILE)
-PATCHFILES = \
+CONFIGFILE    = $(DISTNAME).config
+DISTFILES     = $(DISTNAME).tar.bz2 $(CONFIGFILE)
+PATCHFILES    = \
 	$(DISTNAME)-dhcp_log_server.patch \
-	$(DISTNAME)-tftp_timeout.patch
+	$(DISTNAME)-tftp_timeout.patch \
+	$(DISTNAME)-fix-glibc-2.31-stime.patch \
+
 LICENSE = GPL2
 
 DESCRIPTION =
@@ -37,6 +40,11 @@ INSTALL_ARGS   = $(DEFAULT_ARGS)
 include ../../gar.mk
 
 LDFLAGS += -fwhole-program
+
+# don't compiles with gcc9.3.0 LTO
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 extract-$(CONFIGFILE):
 	@cat $(DOWNLOADDIR)/$(CONFIGFILE) \
