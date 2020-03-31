@@ -1,4 +1,4 @@
-GLIBC_VERSION = 2.27
+GLIBC_VERSION = 2.31
 
 GLIBC_ADD_LIB_PATH = \
 	mkdir -p $(DESTDIR)$(sysconfdir) ; \
