@@ -2,6 +2,7 @@ GARNAME = binutils
 GARVERSION = $(BINUTILS_VERSION)
 CATEGORIES = devel-tainted
 SOURCEPKG = devel/binutils
+PATCHFILES = $(DISTNAME)-disable-doc-po-build.patch
 LICENSE = GPL2/LGPL2
 
 DESCRIPTION =

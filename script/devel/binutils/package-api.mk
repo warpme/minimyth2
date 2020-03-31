@@ -1,4 +1,4 @@
-BINUTILS_VERSION = 2.28.1
+BINUTILS_VERSION = 2.34
 
 # Determines whether to build system's binutils is up to date.
 BINUTILS_BUILD_UP_TO_DATE = \
