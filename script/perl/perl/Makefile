@@ -93,10 +93,6 @@ CFLAGS   := $(PERL_CFLAGS)
 CXXFLAGS := $(PERL_CXXFLAGS)
 LDFLAGS  := $(PERL_LDFLAGS)
 
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-
 PERL_config_sh_check=$(if $(filter-out $(PERL_config_sh_$(2)),$($(2))), \
 	echo "warning: config.sh was generated using $(1) $(PERL_config_sh_$(2)) but you are using $(1) $($(2)).")
 PERL_config_sh_var=$(shell cat files/$(DISTNAME)-config_sh-$(GARCH_FAMILY).patch.gar \

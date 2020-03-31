@@ -194,10 +194,6 @@ INSTALL_ARGS   = \
 GAR_EXTRA_CONF += mediaplayers/mplayer-svn/package-api.mk
 include ../../gar.mk
 
-# ffmpeg2.8.5 don't like gcc5.3.0 link-time optimizations
-CFLAGS  := $(filter-out -flto, $(CFLAGS))
-LDFLAGS := $(filter-out -flto, $(LDFLAGS))
-
 CFLAGS  += -Wno-all
 LDFLAGS += -Wno-all
 

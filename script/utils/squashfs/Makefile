@@ -23,7 +23,3 @@ include ../../gar.mk
 
 LDFLAGS := $(LDFLAGS) -fwhole-program
 
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-

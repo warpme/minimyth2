@@ -71,10 +71,6 @@ CFLAGS   :=
 CXXFLAGS :=
 LDFLAGS  :=
 
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-
 configure-%/cmake: 
 	@mv $(WORKDIR)/$(DISTNAME).src $(WORKDIR)/$(DISTNAME)
 	@echo " ==> Running configure in $*"

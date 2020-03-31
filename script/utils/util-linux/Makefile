@@ -115,10 +115,6 @@ INSTALL_ARGS   = \
 
 include ../../gar.mk
 
-# util-linux 2.26.2 fails to compile with gcc 5.2.0's link time optimization enabled.
-CFLAGS  := $(filter-out -flto, $(CFLAGS))  -fno-lto
-LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
-
 pre-configure:
 	@$(call RUN_GETTEXTIZE)
 	@$(call RUN_AUTOTOOLS)
