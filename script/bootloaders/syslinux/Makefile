@@ -20,7 +20,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c
+DEPENDS   = lang/c devel/nasm
 
 BUILD_ARGS = bios
 
