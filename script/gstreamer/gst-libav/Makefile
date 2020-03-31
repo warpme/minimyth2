@@ -32,9 +32,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
 
-CFLAGS  := $(filter-out -flto, $(CFLAGS))
-LDFLAGS := $(filter-out -flto, $(LDFLAGS))
-
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstlibav.la
 	@$(MAKECOOKIE)
