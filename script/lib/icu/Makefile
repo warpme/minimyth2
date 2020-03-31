@@ -1,10 +1,10 @@
-GARNAME = icu
-GARVERSION = 4c-54_1
-CATEGORIES = lib
-MASTER_SITES = http://download.icu-project.org/files/icu4c/54.1/
-DISTFILES = $(GARNAME)$(GARVERSION)-src.tgz
-LICENSE = GPL2
-WORKSRC = $(WORKDIR)/icu/source
+GARNAME      = icu
+GARVERSION   = 4c-66_1
+CATEGORIES   = lib
+MASTER_SITES = https://github.com/unicode-org/icu/releases/download/release-66-1/
+DISTFILES    = $(GARNAME)$(GARVERSION)-src.tgz
+LICENSE      = GPL2
+WORKSRC      = $(WORKDIR)/icu/source
 
 DESCRIPTION = 
 define BLURB
@@ -29,15 +29,13 @@ CONFIGURE_ARGS = $(DIRPATHS) \
 ifeq ($(DESTIMG),build)
 MAKE_ARGS = Linux
 CONFIGURE_ARGS += \
-        --prefix="$(DESTDIR)"
+        --prefix="$(DESTDIR)" \
+        ac_cv_c_bigendian=no
 else
 CONFIGURE_ARGS += \
         --prefix="$(DESTDIR)" \
-        --with-cross-build="$(CURDIR)/work/build.d/icu/source/"
+        --with-cross-build="$(CURDIR)/work/build.d/icu/source/" \
+        ac_cv_c_bigendian=no
 endif
 
 include ../../gar.mk
-
-CFLAGS   := $(filter-out -flto -fuse-linker-plugin, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto -fuse-linker-plugin, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto -fuse-linker-plugin, $(LDFLAGS))
