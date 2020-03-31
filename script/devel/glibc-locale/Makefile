@@ -23,7 +23,7 @@ install-locale:
 	 for locale_input_file in $${locale_input_list} ; do \
 		echo "creating $(DESTDIR)$(libdir)/locale/$${locale_input_file}.UTF-8" ; \
 		I18NPATH=$(DESTDIR)$(datadir)/i18n \
-		$(build_DESTDIR)/$(build_bindir)/localedef --force --quiet \
+		$(build_DESTDIR)/$(build_bindir)/glibc-localedef-static/localedef --force --quiet \
 			-f $(DESTDIR)$(datadir)/i18n/charmaps/UTF-8 \
 			-i $(DESTDIR)$(datadir)/i18n/locales/$${locale_input_file} \
 			$(DESTDIR)$(libdir)/locale/$${locale_input_file}.UTF-8 ; \
