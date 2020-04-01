@@ -1,10 +1,11 @@
-GARNAME = sysvinit
-GARVERSION = 2.88dsf
-CATEGORIES = system
+
+GARNAME      = sysvinit
+GARVERSION   = 2.96
+CATEGORIES   = system
 MASTER_SITES = http://download.savannah.gnu.org/releases/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-init_silent.patch $(DISTNAME)-makefile.patch $(DISTNAME)-halt.patch
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = $(DISTNAME)-init_silent.patch 
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
