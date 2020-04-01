@@ -19,10 +19,11 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-perl
 
-
 include ../../gar.mk
 
 post-install:
+	@mkdir -p $(DESTDIR)$(includedir)/magick
+	@cp -rf $(WORKSRC)/magick/*.h $(DESTDIR)$(includedir)/magick/
 	@rm -f $(DESTDIR)$(libdir)/libMagickWand*.la
 	@rm -f $(DESTDIR)$(libdir)/libMagick++*.la
 	@rm -f $(DESTDIR)$(libdir)/libpam_misc*.la
