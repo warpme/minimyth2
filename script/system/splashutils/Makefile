@@ -1,10 +1,12 @@
-GARNAME = splashutils
-GARVERSION = 1.5.4.4
-CATEGORIES = system
+
+GARNAME      = splashutils
+GARVERSION   = 1.5.4.4
+CATEGORIES   = system
 MASTER_SITES = http://download.berlios.de/fbsplash/
-DISTFILES = $(GARNAME)-lite-$(GARVERSION).tar.bz2
-PATCHFILES = $(DISTNAME)-dash.patch
-LICENSE = GPL2
+DISTFILES    = $(GARNAME)-lite-$(GARVERSION).tar.bz2
+PATCHFILES   = $(DISTNAME)-dash.patch
+PATCHFILES  += $(DISTNAME)-fix-gcc9.3.0-build.patch
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
