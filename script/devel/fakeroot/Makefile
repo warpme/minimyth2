@@ -1,8 +1,9 @@
 GARNAME = fakeroot
 GARVERSION = 1.18.4
 CATEGORIES = devel
-MASTER_SITES = http://ftp.debian.org/debian/pool/main/f/$(GARNAME)/
+MASTER_SITES = https://deb.debian.org/debian/pool/main/f/fakeroot/
 DISTFILES = $(GARNAME)_$(GARVERSION).orig.tar.bz2
+PATCHFILES= fakeroot-1.18.4-fix-glibc2.31.patch
 LICENSE = GPL3
 
 DESCRIPTION = 
