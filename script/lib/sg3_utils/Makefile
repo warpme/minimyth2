@@ -1,5 +1,5 @@
 GARNAME = sg3_utils
-GARVERSION = 1.36
+GARVERSION = 1.45
 CATEGORIES = lib
 MASTER_SITES = http://sg.danny.cz/sg/p/
 DISTFILES = $(GARNAME)-$(GARVERSION).tgz
