@@ -4,7 +4,9 @@ CATEGORIES = lib
 MASTER_SITES = http://hal.freedesktop.org/releases/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = \
-    $(DISTNAME)-automake_1.13.patch
+    $(DISTNAME)-automake_1.13.patch \
+    $(DISTNAME)-fix-gcc9.3-building.patch \
+
 LICENSE = GPL2
 
 DESCRIPTION =
