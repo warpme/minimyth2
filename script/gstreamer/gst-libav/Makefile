@@ -1,21 +1,10 @@
 
 GARNAME      = gst-libav
-CATEGORIES   = gst
-LICENSE      = GPL2
-
-# Mainline gst-libav
-ifeq (1,1)
 GARVERSION   = $(GST_VERSION)
+CATEGORIES   = gst
 MASTER_SITES = $(GST_MASTER_SITES)
 DISTFILES    = $(DISTNAME).tar.xz
-endif
-
-# GIT master gst-libav
-ifeq (1,0)
-GARVERSION   = 39e6f846e0e867185437925bf766a6ba10e6404f
-MASTER_SITES = https://github.com/GStreamer/gst-libav/archive/
-DISTFILES    = $(GARVERSION).zip
-endif
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
@@ -28,34 +17,25 @@ DEPENDS = \
 
 #	lib/ffmpeg
 
-CONFIGURE_SCRIPTS  = custom
-BUILD_SCRIPTS      = custom
-INSTALL_SCRIPTS    = custom
+CONFIGURE_SCRIPTS = $(WORKSRC)/configure
+BUILD_SCRIPTS     = $(WORKSRC)/Makefile
+INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+
+CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+	--prefix=/usr \
+	--disable-static \
+	--with-libav-extra-configure="--enable-runtime-cpudetect --as=$(CC)" \
+	--with-pic \
+
+# By some reason mythwebroweser has not working vh264 ideo playback when external
+# gstlibav uses external ffmpeg...
+#	--with-system-libav \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
 
-CONFIGURE_ARGS = \
-	--prefix="$(DESTDIR)" \
-	--libdir="$(DESTDIR)$(libdir)" \
-	--includedir="$(DESTDIR)$(includedir)" \
-	--datadir="$(DESTDIR)$(datadir)" \
-	--cross-file=$(build_DESTDIR)$(build_datadir)/meson/cross/$(GARHOST).conf \
-	--buildtype=release \
-	--wrap-mode=forcefallback \
-
-configure-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson build $(CONFIGURE_ARGS)
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson configure build
-	@$(MAKECOOKIE)
-
-build-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/ninja -C build
-	@$(MAKECOOKIE)
-
-install-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/ninja -C build install
-	@$(MAKECOOKIE)
+CFLAGS  := $(filter-out -flto, $(CFLAGS))
+LDFLAGS := $(filter-out -flto, $(LDFLAGS))
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstlibav.la
