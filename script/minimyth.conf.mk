@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk  ,      $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 10.1.6.r180
+mm_VERSION_MINIMYTH ?= 11.0.0.r214
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -129,7 +129,7 @@ mm_BOARD_TYPE             ?= board-x86pc.bios_efi64
 mm_DISTRIBUTION_SHARE     ?= yes
 
 # Indicates where to put DISTRIBUTION_SHARE files
-mm_SHARE_FILES            ?= /home/piotro/ABS/mythtv-pxe_image/src
+mm_SHARE_FILES            ?= ${HOME}/build
 
 # Indicates whether or not to create the RAM based part of the share distribution.
 mm_DISTRIBUTION_RAM       ?= yes
@@ -144,7 +144,7 @@ mm_INSTALL_RAM_BOOT       ?= yes
 # The MiniMyth kernel, the MiniMyth file system image and MiniMyth themes are
 # installed in this directory. The files will be installed in a subdirectory
 # named 'minimyth-$(mm_VERSION)'.
-mm_TFTP_ROOT              ?= /home/piotro/tftpboot
+mm_TFTP_ROOT              ?= ${HOME}/build
 
 # Indicates whether or not to create the NFS based part of the share distribution.
 mm_DISTRIBUTION_NFS       ?= no
@@ -159,21 +159,21 @@ mm_INSTALL_NFS_BOOT       ?= no
 # Indicates the directory in which the directory containing the MiniMyth root
 # file system for mounting using NFS. The MiniMyth root file system will be
 # installed in a subdirectory named 'minimyth-$(mm_VERSION)'.
-mm_NFS_ROOT               ?= /home/piotro/tftpboot
+mm_NFS_ROOT               ?= ${HOME}/build
 
 # Indicates whether or not to create the SD card image. Generated image will
 # be installed in mm_SDCARD_FILES location by install process
 mm_DISTRIBUTION_SDCARD    ?= no
 
 # Indicates the directory in which SD Card image will be installed.
-mm_SDCARD_FILES           ?= /home/piotro/backup/minimyth
+mm_SDCARD_FILES           ?= ${HOME}/build
 
 # Indicates the directory where the GAR MiniMyth build system is installed.
-mm_HOME                   ?= /home/piotro/minimyth-dev
+mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of kernel to use.
 # Valid values are 'rpi-4.19' '5.4' '5.5' '5.6'
-mm_KERNEL_VERSION         ?= 5.5
+mm_KERNEL_VERSION         ?= 5.6
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
