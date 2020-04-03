@@ -88,6 +88,10 @@ LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
 CFLAGS := $(filter-out -ffast-math, $(CFLAGS))
 CFLAGS := $(filter-out -O%, $(CFLAGS)) -Os
 
+ifeq ($(GARCH),armv7)
+CFLAGS += -D__ARM_ARCH=7
+else
+
 configure-custom:
 	@mkdir -p $(WORKBLD)
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) ./$(call DIRSTODOTS,$(WORKBLD))/$(WORKSRC)/configure $(CONFIGURE_ARGS)
