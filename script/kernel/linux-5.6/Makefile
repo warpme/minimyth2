@@ -50,6 +50,8 @@ PATCHFILES += 0112-drm-lima-support-heap-buffer-creation.patch
 PATCHFILES += 0115-drm-lima-recover-task-by-enlarging-heap-buff.patch
 PATCHFILES += 0116-drm-lima-increase-driver-version-to-1.1.patch
 PATCHFILES += 0117-drm-lima-fix-recovering-from-PLBU-out-of-mem.patch
+endif
+ifeq (0,1)
 # DVFS for Mali450
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=258955 19.03.2020
 PATCHFILES += 0118-dt-bindings-gpu-mali-utgard-Add-the-cooling-cells-property.patch
