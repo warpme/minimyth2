@@ -90,7 +90,7 @@ CFLAGS := $(filter-out -O%, $(CFLAGS)) -Os
 
 ifeq ($(GARCH),armv7)
 CFLAGS += -D__ARM_ARCH=7
-else
+endif
 
 configure-custom:
 	@mkdir -p $(WORKBLD)
