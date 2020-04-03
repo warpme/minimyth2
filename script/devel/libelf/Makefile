@@ -3,6 +3,7 @@ GARVERSION   = 0.178
 CATEGORIES   = devel
 MASTER_SITES = https://fedorahosted.org/releases/e/l/$(GARNAME)/$(GARVERSION)/
 PATCHFILES   = $(DISTNAME)-hack-to-fix-compile.patch
+PATCHFILES  += $(DISTNAME)-turnoff-warings-as-errors.patch
 DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      = LGPL3
 
@@ -23,6 +24,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-debuginfod \
 
 include ../../gar.mk
+
+CFLAGS   += -Wno-all
+LDFLAGS  += -Wno-all
 
 pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
