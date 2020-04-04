@@ -1,13 +1,14 @@
-GARNAME = qt-everywhere-src
-GARVERSION = 5.14.1
-CATEGORIES = qt
+
+GARNAME      = qt-everywhere-src
+GARVERSION   = 5.14.1
+CATEGORIES   = qt
 MASTER_SITES = http://download.qt.io/official_releases/qt/5.14/$(GARVERSION)/single/
-DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES  = $(DISTNAME).patch.gar
-PATCHFILES += $(DISTNAME)-fix-gcc6+-build.patch
-PATCHFILES += $(DISTNAME)-disable-qtlocation-mapboxgl-plugin.patch
-PATCHFILES += $(DISTNAME)-fix-wayland-build.patch
-LICENSE = LGPL2_1
+DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = $(DISTNAME).patch.gar
+PATCHFILES  += $(DISTNAME)-fix-gcc6+-build.patch
+PATCHFILES  += $(DISTNAME)-disable-qtlocation-mapboxgl-plugin.patch
+PATCHFILES  += $(DISTNAME)-fix-wayland-build.patch
+LICENSE      = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -89,6 +90,11 @@ CONFIGURE_ARGS = \
 
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
+
+# Qt don't compiles with gcc9.3.0 LTO
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 PLATFORM_GARBUILD_BASE_NAME = $(strip \
 	$(if $(filter i386,$(build_GARCH_FAMILY)),linux-g++-32,) \
