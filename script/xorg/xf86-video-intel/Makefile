@@ -33,6 +33,7 @@ DEPENDS = lang/c system/eudev \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
+MAKESUM_TARGETS  = NOCHECKSUM
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
