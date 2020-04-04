@@ -93,6 +93,8 @@ NVIDIA_FILE_LIST_LIB_SO  = $(strip \
 	    libnvidia-ml.so:/:$(libdir)/nvidia) \
 	$(if $(wildcard $(WORKSRC)/libnvidia-glsi.so.*), \
 	    libnvidia-glsi.so:/:$(libdir)/nvidia) \
+	$(if $(wildcard $(WORKSRC)/libcuda.so.*), \
+	    libcuda.so:/:$(libdir)/nvidia) \
 	$(if $(wildcard $(WORKSRC)/libglxserver_nvidia.so.*), \
 	    libglxserver_nvidia.so:/:$(libdir)/nvidia/xorg/modules/extensions) \
 	)
