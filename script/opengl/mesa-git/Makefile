@@ -16,6 +16,7 @@ DEPENDS =                      \
 	lang/cxx               \
 	lib/expat              \
 	X11/libvdpau           \
+	X11/libva-minimal      \
 	devel/llvm             \
 	devel/libelf           \
 	python/python-mako     \

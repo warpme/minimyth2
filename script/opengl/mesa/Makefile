@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 20.0.1
+GARVERSION   = 20.0.4
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -18,6 +18,7 @@ DEPENDS =                      \
 	lang/cxx               \
 	lib/expat              \
 	X11/libvdpau           \
+	X11/libva-minimal      \
 	devel/llvm             \
 	devel/libelf           \
 	python/python-mako     \
