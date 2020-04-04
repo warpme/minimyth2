@@ -1,9 +1,10 @@
-GARNAME = xorg-server
-GARVERSION = 1.20.7
-CATEGORIES = $(CATEGORY)
+
+GARNAME      = xorg-server
+GARVERSION   = 1.20.8
+CATEGORIES   = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = \
+DISTFILES    = $(DISTNAME).tar.bz2
+PATCHFILES   = \
 	$(DISTNAME)-perl.patch.gar \
 	$(DISTNAME)-pkg_config.patch \
 	$(DISTNAME)-detect_radeon.patch \
@@ -85,13 +86,15 @@ CONFIGURE_ENV = \
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
 
+# xorg don't compiles with gcc9.3.0 LTO
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
-
-pre-build:
-	@rm -f $(WORKSRC)/hw/xfree86/loader/sdksyms.c
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/drivers/modesetting_drv.la
