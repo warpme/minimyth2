@@ -1,9 +1,10 @@
-GARNAME = stella
-GARVERSION = 5.1.2
-CATEGORIES = emulators
+
+GARNAME      = stella
+GARVERSION   = 6.1.1
+CATEGORIES   = emulators
 MASTER_SITES = https://github.com/stella-emu/stella/releases/download/$(GARVERSION)/
-DISTFILES = $(DISTNAME)-src.tar.xz
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME)-src.tar.xz
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
