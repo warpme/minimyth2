@@ -1,9 +1,11 @@
-GARNAME = mame
-GARVERSION = 0.199
-CATEGORIES = emulators
-MASTER_SITES = http://github.com/mamedev/mame/releases/download/$(GARNAME)$(subst .,,$(GARVERSION))/
-DISTFILES = $(GARNAME)$(subst .,,$(GARVERSION))s.zip
-LICENSE = BSD_3_Clause/LGPL2_1/GPL3
+
+GARNAME      = mame
+GARVERSION   = 0.219
+CATEGORIES   = emulators
+MASTER_SITES = https://github.com/mamedev/mame/archive/
+DISTFILES    = $(GARNAME)$(subst .,,$(GARVERSION)).tar.gz
+WORKSRC      = $(WORKDIR)/$(GARNAME)-$(GARNAME)$(subst .,,$(GARVERSION))
+LICENSE      = BSD_3_Clause/LGPL2_1/GPL3
 
 DESCRIPTION = 
 define BLURB
@@ -40,20 +42,13 @@ ARCHOPTS    := $(CFLAGS) $(CXXFLAGS)
 OPT_FLAGS   := $(CFLAGS) $(CXXFLAGS)
 LDOPTS      := $(CFLAGS) $(CXXFLAGS) $(LDFLAGS)
 PTR64       := $(if $(filter x86_64,$(GARCH_FAMILY)),1,0)
-LTO         := $(if $(filter -flto,$(LDFLAGS)),1,0)
+# Disable LTO as on gcc9.3.0 it fails to build
+# LTO         := $(if $(filter -flto,$(LDFLAGS)),1,0)
+LTO         := $(if $(filter -flto,$(LDFLAGS)),0,0)
 
 CFLAGS   :=
 CXXFLAGS :=
 LDFLAGS  :=
-
-post-extract:
-	@echo " ==> Extracting $(EXTRACTDIR)/mame.zip"
-	@mkdir -p $(WORKSRC)
-	@# By some reason recent mame .zip archives causing unzip to
-	@# return non-zero exit code. ; true is hack to ovecome this....
-	@unzip $(EXTRACTDIR)/mame.zip -d $(WORKSRC) ; true
-	@rm -f $(EXTRACTDIR)/mame.zip
-	@#$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(bindir)
