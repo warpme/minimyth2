@@ -1,5 +1,5 @@
 GARNAME = mednafen
-GARVERSION = 1.21.3
+GARVERSION = 1.24.1
 CATEGORIES = emulators
 MASTER_SITES = https://mednafen.github.io/releases/files/
 DISTFILES = $(DISTNAME).tar.xz
@@ -58,7 +58,12 @@ CONFIGURE_ENV = \
 
 include ../../gar.mk
 
-LDFLAGS := $(LDFLAGS) -fwhole-program
+LDFLAGS  := $(LDFLAGS) -fwhole-program
+
+# Mednafen takes ages to link with gcc9.3.0 LTO so turn-off LTO
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 pre-configure:
 	@cd $(WORKSRC) ; rm -f acinclude.m4
