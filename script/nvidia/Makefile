@@ -1,4 +1,4 @@
 include ../category.mk
 
 clean-all:
-	@$(MAKE) -C nvidia clean-all
+	@$(foreach dir, $(wildcard ../nvidia-*), $(MAKE) clean clean-all -C $(dir) ;
