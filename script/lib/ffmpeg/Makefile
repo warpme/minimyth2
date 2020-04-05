@@ -112,6 +112,11 @@ include ../../gar.mk
 CFLAGS  += -Wno-all
 LDFLAGS += -Wno-all
 
+# FFpeg fails to build with gcc9.3.0 LTO
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+
 clean-all:
 	@$(MAKE) clean
 	@rm -rf $(DESTDIR)$(includedir)/libavcodec
