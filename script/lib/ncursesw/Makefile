@@ -44,9 +44,11 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(bindir)-config/ncursesw5-config
-	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)ncursesw5-config
+	@rm -f $(DESTDIR)$(bindir)-config/ncursesw6-config
+	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)ncursesw6-config
 	@mkdir -p $(DESTDIR)$(bindir)-config
-	@mv $(DESTDIR)$(bindir)/ncursesw5-config $(DESTDIR)$(bindir)-config/ncursesw5-config
-	@$(if $(compiler_prefix), ln -s ncursesw5-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)ncursesw5-config)
+	@mv $(DESTDIR)$(bindir)/ncursesw6-config $(DESTDIR)$(bindir)-config/ncursesw6-config
+	@$(if $(compiler_prefix), ln -s ncursesw6-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)ncursesw6-config)
+	@mkdir -p $(DESTDIR)$(includedir)/ncursesw/ncursesw
+	@cp -rf $(DESTDIR)$(includedir)/ncursesw/*.h $(DESTDIR)$(includedir)/ncursesw/ncursesw/
 	@$(MAKECOOKIE)

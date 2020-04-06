@@ -1,18 +1,17 @@
-GARNAME = ncurses
-GARVERSION = $(NCURSES_VERSION)
-CATEGORIES = lib
-#MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-MASTER_SITES = ftp://dickey.his.com/pub/ncurses/current/
-#DISTFILES = $(DISTNAME).tar.gz
-DISTFILES = $(DISTNAME).tgz
-PATCHFILES = $(DISTNAME)-shell.patch $(DISTNAME)-perl.patch.gar $(DISTNAME).patch.gar
-LICENSE = MIT_Modified
+
+GARNAME      = ncurses
+GARVERSION   = $(NCURSES_VERSION)
+CATEGORIES   = lib
+MASTER_SITES = https://ftp.gnu.org/pub/gnu/ncurses/
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = MIT_Modified
 
 DESCRIPTION =
 define BLURB
 endef
 
 DEPENDS = lang/c
+BUILDDEPS = lib/ncurses
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -51,9 +50,9 @@ pre-configure:
 
 post-install:
 	@cd $(DESTDIR)$(libdir) && ln -sf libncurses.so libtermcap.so
-	@rm -f $(DESTDIR)$(bindir)-config/ncurses5-config
-	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)ncurses5-config
+	@rm -f $(DESTDIR)$(bindir)-config/ncurses6-config
+	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)ncurses6-config
 	@mkdir -p $(DESTDIR)$(bindir)-config
-	@mv $(DESTDIR)$(bindir)/ncurses5-config $(DESTDIR)$(bindir)-config/ncurses5-config
-	@$(if $(compiler_prefix), ln -s ncurses5-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)ncurses5-config)
+	@mv $(DESTDIR)$(bindir)/ncurses6-config $(DESTDIR)$(bindir)-config/ncurses6-config
+	@$(if $(compiler_prefix), ln -s ncurses6-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)ncurses6-config)
 	@$(MAKECOOKIE)
