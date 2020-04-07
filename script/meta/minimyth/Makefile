@@ -122,7 +122,7 @@ DEPENDS = \
 	lib/nss-mdns \
 	net/mount.cifs \
 	utils/alsacap \
-	utils/alsa-ucm \
+	utils/alsa-ucm2 \
 	$(if $(filter mplayer-svn,$(mm_SOFTWARE)), \
 		mediaplayers/mplayer-svn) \
 	$(if $(filter ffmpeg-drm,$(mm_SOFTWARE)), \
