@@ -122,6 +122,7 @@ DEPENDS = \
 	lib/nss-mdns \
 	net/mount.cifs \
 	utils/alsacap \
+	utils/alsa-ucm \
 	$(if $(filter mplayer-svn,$(mm_SOFTWARE)), \
 		mediaplayers/mplayer-svn) \
 	$(if $(filter ffmpeg-drm,$(mm_SOFTWARE)), \
@@ -208,11 +209,38 @@ configure-custom:
 	@$(MAKECOOKIE)
 
 reinstall-new-board:
-	@echo " ==> Cleaning bootloaders for old boards..."
+	@echo " ==> Cleaning bootloaders ..."
 	@$(MAKE) -C ../../bootloaders/bootloader clean-bootloader
-	@echo " ==> Installing bootloaders for current boards..."
+	@echo " ==> Building bootloaders for current boards ..."
 	@$(MAKE) -C ../../bootloaders/bootloader install
-	@echo " ==> Rebuilding image..."
+	@echo " ==> Rebuilding image ..."
 	@$(MAKE) rebuild
-	@echo " ==> Reinstalling image..."
+	@echo " ==> Reinstalling image ..."
+	@$(MAKE) reinstall
+
+rebuild-kernel:
+	@echo " ==> Cleaning kernel ..."
+	@$(MAKE) -C ../../kernel/kernel clean clean-all
+	@echo " ==> Rebuilding image ..."
+	@$(MAKE) rebuild
+	@echo " ==> Reinstalling image ..."
+	@$(MAKE) reinstall
+
+rebuild-mythtv:
+	@echo " ==> Cleaning mythtv ..."
+	@$(MAKE) -C ../../myth/mythtv clean clean-all
+	@echo " ==> Rebuilding image ..."
+	@$(MAKE) rebuild
+	@echo " ==> Reinstalling image ..."
+	@$(MAKE) reinstall
+
+rebuild-mesa:
+	@echo " ==> Cleaning mesa and mesa-git ..."
+	@$(MAKE) -C ../../opengl/mesa clean clean-all
+	@$(MAKE) -C ../../opengl/mesa-git clean clean-all
+	@echo " ==> Rebuilding mesa ..."
+	@$(MAKE) -C ../../opengl/opengl install
+	@echo " ==> Rebuilding image ..."
+	@$(MAKE) rebuild
+	@echo " ==> Reinstalling image ..."
 	@$(MAKE) reinstall
