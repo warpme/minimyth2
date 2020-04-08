@@ -19,17 +19,22 @@ start() {
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Setting buffer to ${buffer} for /proc/asound/card${MM_AUDIO_CARD_NUMBER}/pcm${MM_AUDIO_DEVICE_NUMBER}p/sub0/prealloc"
     echo ${buffer} | tee /proc/asound/card${MM_AUDIO_CARD_NUMBER}/pcm${MM_AUDIO_DEVICE_NUMBER}p/sub0/prealloc
     current_buffer=`cat /proc/asound/card${MM_AUDIO_CARD_NUMBER}/pcm${MM_AUDIO_DEVICE_NUMBER}p/sub0/prealloc`
+
     if [ ! ${current_buffer} = ${buffer} ] ; then
+
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] ERROR: Setting buffer to ${buffer} for /proc/asound/card${MM_AUDIO_CARD_NUMBER}/pcm${MM_AUDIO_DEVICE_NUMBER}p/sub0/prealloc failed!!!"
+
     fi
 
     amixer_command="/usr/bin/amixer -c ${MM_AUDIO_CARD_NUMBER}"
 
     if [ ! "x${MM_AUDIO_FETCH_ASOUND_CONF}" = "xyes" ] ; then
+
         # Set audio card number and audio card device.
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Adding pcm:hw${MM_AUDIO_CARD_NUMBER},${MM_AUDIO_DEVICE_NUMBER} to asound.conf..."
         /bin/sed -i "s%@MM_AUDIO_CARD_NUMBER@%${MM_AUDIO_CARD_NUMBER}%"     /etc/asound.conf
         /bin/sed -i "s%@MM_AUDIO_DEVICE_NUMBER@%${MM_AUDIO_DEVICE_NUMBER}%" /etc/asound.conf
+
     fi
 
     # Wait for audio driver to load.
@@ -38,6 +43,7 @@ start() {
         /bin/sleep 1
         timeout=$((timeout-1))
     done
+
     if  ! ${amixer_command} > /dev/null 2>&1 ; then
 
         /usr/bin/logger -s -t minimyth -p "local0.err" "[init.d/audio] error: audio driver not loaded!"
@@ -47,19 +53,51 @@ start() {
         return 0
 
     else
+
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] ALSA amixer successfuly operating on card ${MM_AUDIO_CARD_NUMBER}"
+
     fi
 
     if [ -e /etc/asound.state ] ; then
+
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Restoring amixer state from /etc/asound.state file..."
         /usr/sbin/alsactl --file /etc/asound.state restore
+
+    elif [ ! x${MM_AUDIO_DEVICE_UCM_PROFILE} = "x" ] ; then
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Configuring AUDIO via UCM for card \"${MM_AUDIO_DEVICE_UCM_PROFILE}\"..."
+        ucm_command="/usr/bin/alsaucm -c ${MM_AUDIO_DEVICE_UCM_PROFILE}"
+
+        if [ ! x${MM_AUDIO_DEVICE_UCM_COMMAND} = "x" ] ; then
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm command: \"${ucm_command} ${MM_AUDIO_DEVICE_UCM_COMMAND}\""
+            alsaucm_output=`${ucm_command} ${MM_AUDIO_DEVICE_UCM_COMMAND}`
+
+        else
+
+            case "${MM_AUDIO_DEVICE_UCM_PROFILE}" in
+                chtrt5645)  enable_digital_audio="set _verb HiFi set _enadev Speaker" ;;
+                *)          enable_digital_audio="set _verb HiFi set _enadev Speaker" ;;
+            esac
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm command: \"${ucm_command} ${enable_digital_audio}\""
+            alsaucm_output=`${ucm_command} ${enable_digital_audio}`
+
+        fi
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm output: \"${alsaucm_output}\""
+
     else
         # Unmute audio.
         if ${amixer_command} > /dev/null 2>&1 ; then
+
             control=
+
             if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+analog+'  ; then
+
                 /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Unmuting all ANALOG audio outputs..."
                 ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+
                 while read control ; do
                     case "${control}" in
                     PCM)                         ${amixer_command} set 'PCM'                       90% unmute ;;
@@ -75,10 +113,14 @@ start() {
                     Analog\ Center/LFE)          ${amixer_command} set 'Analog Center/LFE'         90% unmute ;;
                     esac
                 done
+
             fi
+
             if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+digital+' ; then
+
                 /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Unmuting all DIGITAL audio outputs..."
                 ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+
                 while read control ; do
                     case "${control}" in
                         IEC958)
@@ -92,15 +134,20 @@ start() {
                         AIU\ HDMI\ CTRL\ SRC)        ${amixer_command} set 'AIU HDMI CTRL SRC'         I2S        ;;
                     esac
                 done
+
             fi
+
             if [ "x${MM_VOIP_ENABLED}" = "xyes" ] ; then
+
                 if [ -n "${MM_AUDIO_IN_CARD_NUMBER}" ] ; then
                     amixer_command="/usr/bin/amixer -c ${MM_AUDIO_IN_CARD_NUMBER}"
                     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Unmuting Capture in card${MM_AUDIO_IN_CARD_NUMBER} and setting level to ${MM_VOIP_MIC_LEVEL}%..."
                 else
                     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Unmuting Capture in card${MM_AUDIO_CARD_NUMBER} and setting level to ${MM_VOIP_MIC_LEVEL}%..."
                 fi
+
                 ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+
                 while read control ; do
                     case "${control}" in
                         Capture)                     ${amixer_command} set 'Capture'     ${MM_VOIP_MIC_LEVEL}% cap unmute ;;
@@ -108,6 +155,7 @@ start() {
                         Rear\ Mic)                   ${amixer_command} set 'Rear Mic'    ${MM_VOIP_MIC_LEVEL}% cap unmute ;;
                     esac
                 done
+
                 if [ -n "${MM_VOIP_MIC_BOOST_LEVEL}" ] ; then
                     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Enabling MIC Boost and setting level to ${MM_VOIP_MIC_BOOST_LEVEL}%..."
                     ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
@@ -119,6 +167,7 @@ start() {
                         esac
                     done
                 fi
+
                 # amixer -c0 set 'Input Source',0 'Rear Mic'
                 # Input\ Source)           ${amixer_command} set 'Input Source',0 'Rear Mic' ;;
                 if [ -n "${MM_VOIP_MIC_SELECTION}" ] ; then
@@ -130,7 +179,9 @@ start() {
                         esac
                     done
                 fi
+
             fi
+
         fi
     fi
 
@@ -152,9 +203,12 @@ stop () {
 
     # Mute audio.
     if ${amixer_command} > /dev/null 2>&1 ; then
+
         if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+analog+'  ; then
+
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Muting all ANALOG outputs..."
             ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+
             while read control ; do
                 case "${control}" in
                     # General muting.
@@ -170,10 +224,14 @@ stop () {
                     Analog\ Center/LFE) ${amixer_command} set 'Analog Center/LFE' 0% mute ;;
                 esac
             done
+
         fi
+
         if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+digital+' ; then
+
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Muting all Digital outputs..."
             ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+
             while read control ; do
                 case "${control}" in
                     # General unmuting.
@@ -185,15 +243,24 @@ stop () {
                     AIU\ HDMI\ CTRL\ SRC) ${amixer_command} set 'AIU HDMI CTRL SRC' DISABLED ;;
                 esac
             done
+
         fi
+
         if [ "x${MM_VOIP_ENABLED}" = "xyes" ] ; then
+
             if [ -n "${MM_AUDIO_IN_CARD_NUMBER}" ] ; then
+
                 amixer_command="/usr/bin/amixer -c ${MM_AUDIO_IN_CARD_NUMBER}"
                 /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Muting Capture and MIC Boost on card${MM_AUDIO_IN_CARD_NUMBER} ..."
+
             else
+
                 /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Muting Capture and MIC Boost on card${MM_AUDIO_CARD_NUMBER} ..."
+
             fi
+
             ${amixer_command} | /bin/grep -e '^Simple mixer control' | /bin/sed -e "s%^[^']*'%%" | /bin/sed -e "s%'[^']*$%%" |
+
             while read control ; do
                 case "${control}" in
                     Capture)            ${amixer_command} set 'Capture'           0% cap mute ;;
@@ -204,7 +271,9 @@ stop () {
                     Rear\ Mic\ Boost)   ${amixer_command} set 'Rear Mic Boost'    0% mute ;;
                 esac
             done
+
         fi
+
     fi
 
     return 0
