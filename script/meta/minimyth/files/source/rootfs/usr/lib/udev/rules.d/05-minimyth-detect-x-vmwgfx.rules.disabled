@@ -1,0 +1,41 @@
+#-------------------------------------------------------------------------------
+# Detect video devices.
+#
+# An X device is assumed to
+#     be in the pci subsystem, and
+#     in the 0x0300 PCI class.
+#
+# mm_detect_id has the following format:
+#     pci:<class>:<class_prog>:<vendor>:<device>:<subsystem_vendor>:<subsystem_device>
+# mm_detect_state_x has the following format:
+#     <driver>
+# where
+#     <driver>: The X video driver. Actually, this is the 'Identifier' (sans the
+#               'Device_' prefix) of the 'Device' section in the
+#               '/etc/xorg.conf' file.
+#-------------------------------------------------------------------------------
+ACTION=="add|remove", SUBSYSTEM=="pci", ATTR{class}=="0x0300??", GOTO="begin"
+GOTO="end-vmwgfx"
+LABEL="begin"
+
+# Import mm_detect_id.
+IMPORT{program}="/usr/lib/udev/mm_detect_id"
+
+#-------------------------------------------------------------------------------
+# vmwgfx devices
+#-------------------------------------------------------------------------------
+
+ENV{mm_detect_id}!="pci:0300:00:15ad:????:????:????", GOTO="end-vmwgfx"
+
+  # Setting default mm_detect_state_x value to radeon when none rules are matched...
+  # ENV{mm_detect_id}=="pci:0300:00:15ad:????:????:????", ENV{mm_detect_state_x}="radeon"
+
+  # Card=SVGAII, PCI_ID=0405
+  ENV{mm_detect_id}=="pci:0300:00:15ad:0405:????:????", ENV{mm_detect_state_x}="radeon"
+
+#-------------------------------------------------------------------------------
+
+# The state has been set, so save it.
+ENV{mm_detect_state_x}=="?*", RUN+="/usr/lib/udev/mm_detect x %k $env{mm_detect_state_x}"
+
+LABEL="end-vmwgfx"
