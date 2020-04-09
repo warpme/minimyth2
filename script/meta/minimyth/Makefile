@@ -213,34 +213,26 @@ reinstall-new-board:
 	@$(MAKE) -C ../../bootloaders/bootloader clean-bootloader
 	@echo " ==> Building bootloaders for current boards ..."
 	@$(MAKE) -C ../../bootloaders/bootloader install
-	@echo " ==> Rebuilding image ..."
-	@$(MAKE) rebuild
-	@echo " ==> Reinstalling image ..."
-	@$(MAKE) reinstall
+	@echo " ==> Rebuilding and Reinstalling image ..."
+	@$(MAKE) rebuild reinstall
 
 rebuild-kernel:
 	@echo " ==> Cleaning kernel ..."
 	@$(MAKE) -C ../../kernel/kernel clean clean-all
-	@echo " ==> Rebuilding image ..."
-	@$(MAKE) rebuild
-	@echo " ==> Reinstalling image ..."
-	@$(MAKE) reinstall
+	@echo " ==> Rebuilding and Reinstalling image ..."
+	@$(MAKE) clean install
 
 rebuild-mythtv:
 	@echo " ==> Cleaning mythtv ..."
 	@$(MAKE) -C ../../myth/mythtv clean clean-all
-	@echo " ==> Rebuilding image ..."
-	@$(MAKE) rebuild
-	@echo " ==> Reinstalling image ..."
-	@$(MAKE) reinstall
+	@echo " ==> Rebuilding and Reinstalling image ..."
+	@$(MAKE) clean install
 
 rebuild-mesa:
 	@echo " ==> Cleaning mesa and mesa-git ..."
 	@$(MAKE) -C ../../opengl/mesa clean clean-all
 	@$(MAKE) -C ../../opengl/mesa-git clean clean-all
 	@echo " ==> Rebuilding mesa ..."
-	@$(MAKE) -C ../../opengl/opengl install
-	@echo " ==> Rebuilding image ..."
-	@$(MAKE) rebuild
-	@echo " ==> Reinstalling image ..."
-	@$(MAKE) reinstall
+	@$(MAKE) -C ../../opengl/opengl clean install
+	@echo " ==> Rebuilding and Reinstalling image ..."
+	@$(MAKE) clean install
