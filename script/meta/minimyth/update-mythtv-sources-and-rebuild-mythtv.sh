@@ -127,10 +127,6 @@ if [ -z $1 ]; then
     echo " GIT rev.        : HEAD"
     update_patches=0
 
-elif [ $1 == "update-patches" ]; then
-
-    update_patches=1
-
 else
 
     echo " GIT rev.        : $1"
@@ -243,23 +239,13 @@ echo " "
 echo "--------------------------------------------------------"
 echo " "
 
-echo "==> Cleaning current mythtv build ..."
-cd ${mm_home}/script/myth/mythtv
-make clean-all
+cd ${mm_home}/script/meta/minimyth
 
 echo "==> Cleaning current MiniMyth2 image ..."
-cd ${mm_home}/script/meta/minimyth
 make clean
 
-if [ $update_patches == 1 ]; then
-
-    echo "==> Updating mythtv-$branch patches ..."
-    make source-update-patches
-
-fi
-
 echo "==> Building ..."
-time make build
+time make rebuild-mythtv
 
 echo "==> Instaling ..."
 make install
