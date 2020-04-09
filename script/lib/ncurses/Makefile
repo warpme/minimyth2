@@ -11,7 +11,6 @@ define BLURB
 endef
 
 DEPENDS = lang/c
-BUILDDEPS = lib/ncurses
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
