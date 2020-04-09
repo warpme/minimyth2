@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 8dd6a51e8010a0a5b33e1a4c7a7a3251ddaa8e50
+GARVERSION   = 420ca1e4a1814c86af5fabff8658526a6e2baab1
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -238,6 +238,104 @@ ifneq (,$(findstring sun4i,$(mm_GRAPHICS)))
 	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
 endif
 endif
+	@rm -f "$(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt"
+	@# Generate udev rules for Intel i810
+	@cd files/udev-generator; ./generate-x-udev-rules.sh \
+		"../../$(WORKSRC)/include/pci_ids/i810_pci_ids.h" \
+		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-i810.rules.disabled" \
+		"$(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt" \
+		"8086" \
+		"intel_i915" \
+		"intel_vaapi" \
+		"./i810_names_with_HW_accell.lst" \
+		"i810"
+	@# Generate udev rules for Intel i915
+	@cd files/udev-generator; ./generate-x-udev-rules.sh \
+		"../../$(WORKSRC)/include/pci_ids/i915_pci_ids.h" \
+		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-i915.rules.disabled" \
+		"$(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt" \
+		"8086" \
+		"intel_i915" \
+		"intel_vaapi" \
+		"./i915_names_with_HW_accell.lst" \
+		"i915"
+	@# Generate udev rules for Intel i965
+	@cd files/udev-generator; ./generate-x-udev-rules.sh \
+		"../../$(WORKSRC)/include/pci_ids/i965_pci_ids.h" \
+		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-i965.rules.disabled" \
+		"$(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt" \
+		"8086" \
+		"intel_i915" \
+		"intel_vaapi" \
+		"./i965_names_with_HW_accell.lst" \
+		"i965"
+	@# Generate udev rules for Intel iris
+	@cd files/udev-generator; ./generate-x-udev-rules.sh \
+		"../../$(WORKSRC)/include/pci_ids/iris_pci_ids.h" \
+		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-iris.rules.disabled" \
+		"$(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt" \
+		"8086" \
+		"intel_i915" \
+		"intel_vaapi" \
+		"./iris_names_with_HW_accell.lst" \
+		"iris"
+	@rm -f "$(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt"
+	@# Generate udev rules for AMD r200
+	@cd files/udev-generator; ./generate-x-udev-rules.sh \
+		"../../$(WORKSRC)/include/pci_ids/r200_pci_ids.h" \
+		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-r200.rules.disabled" \
+		"$(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt" \
+		"1002" \
+		"radeon" \
+		"radeon_vaapi" \
+		"./r200_names_with_HW_accell.lst" \
+		"r200"
+	@cd files/udev-generator; ./generate-x-udev-rules.sh \
+		"../../$(WORKSRC)/include/pci_ids/r300_pci_ids.h" \
+		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-r300.rules.disabled" \
+		"$(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt" \
+		"1002" \
+		"radeon" \
+		"radeon_vaapi" \
+		"./r300_names_with_HW_accell.lst" \
+		"r300"
+	@cd files/udev-generator; ./generate-x-udev-rules.sh \
+		"../../$(WORKSRC)/include/pci_ids/r600_pci_ids.h" \
+		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-r600.rules.disabled" \
+		"$(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt" \
+		"1002" \
+		"radeon" \
+		"radeon_vaapi" \
+		"./r600_names_with_HW_accell.lst" \
+		"r600"
+	@cd files/udev-generator; ./generate-x-udev-rules.sh \
+		"../../$(WORKSRC)/include/pci_ids/radeon_pci_ids.h" \
+		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-radeon.rules.disabled" \
+		"$(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt" \
+		"1002" \
+		"radeon" \
+		"radeon_vaapi" \
+		"./radeon_names_with_HW_accell.lst" \
+		"radeon"
+	@cd files/udev-generator; ./generate-x-udev-rules.sh \
+		"../../$(WORKSRC)/include/pci_ids/radeonsi_pci_ids.h" \
+		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-radeonsi.rules.disabled" \
+		"$(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt" \
+		"1002" \
+		"radeon" \
+		"radeon_vaapi" \
+		"./radeonsi_names_with_HW_accell.lst" \
+		"radeonsi"
+	@rm -f "$(DESTDIR)/usr/share/supported-vmwgfx-gfx-hardware.txt"
+	@cd files/udev-generator; ./generate-x-udev-rules.sh \
+		"../../$(WORKSRC)/include/pci_ids/vmwgfx_pci_ids.h" \
+		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-vmwgfx.rules.disabled" \
+		"$(DESTDIR)/usr/share/supported-vmwgfx-gfx-hardware.txt" \
+		"15ad" \
+		"radeon" \
+		"radeon_vaapi" \
+		"./vmwgfx_names_with_HW_accell.lst" \
+		"vmwgfx"
 	@$(MAKECOOKIE)
 
 clean-all:
