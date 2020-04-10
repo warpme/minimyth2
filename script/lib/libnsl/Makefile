@@ -1,11 +1,13 @@
-GARNAME = libnsl
-GARVERSION = 1.2.0
-CATEGORIES = lib
-MASTER_SITES = https://github.com/thkukuk/libnsl/archive/
-DISTFILES = v$(GARVERSION).tar.gz
-SOURCEFILES = $(GARNAME)-$(GARVERSION)
 
-LICENSE = LGPL2
+GARNAME      = libnsl
+GARVERSION   = 1.2.0
+CATEGORIES   = lib
+MASTER_SITES = https://github.com/thkukuk/libnsl/archive/
+PATCHFILES   = $(DISTNAME)-disable-building-po.patch
+DISTFILES    = v$(GARVERSION).tar.gz
+SOURCEFILES  = $(GARNAME)-$(GARVERSION)
+
+LICENSE      = LGPL2
 
 DESCRIPTION = 
 define BLURB
