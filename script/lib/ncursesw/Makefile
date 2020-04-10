@@ -34,7 +34,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-relink \
 	--disable-rpath-hack \
 	--disable-overwrite \
-	--enable-widec
+	--enable-widec \
+	--with-tic-path="$(build_DESTDIR)$(build_bindir)/tic" \
+	--disable-stripping \
 
 GAR_EXTRA_CONF += lib/ncurses/package-api.mk
 include ../../gar.mk
