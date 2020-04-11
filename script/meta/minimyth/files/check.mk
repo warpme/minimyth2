@@ -36,43 +36,6 @@ mm-all:
 		fi ; \
 	done
 	@echo "  build system binaries ... done"
-	@# Check for obsolete parameters and parameter values.
-	@echo "  obsolete parameters and parameter values ..."
-	@echo "    mm_CHIPSETS"
-	@if [ -n "$(mm_CHIPSETS)" ] ; then \
-		echo "error: mm_CHIPSETS is obsolete." ; \
-		exit 1 ; \
-	fi
-	@echo "    mm_INSTALL_TFTP_BOOT"
-	@if [ -n "$(mm_INSTALL_TFTP_BOOT)" ] ; then \
-		echo "error: mm_INSTALL_TFTP_BOOT should be replaced with mm_INSTALL_RAM_BOOT." ; \
-		exit 1 ; \
-	fi
-	@echo "    mm_INSTALL_CRAMFS"
-	@if [ -n "$(mm_INSTALL_CRAMFS)" ] ; then \
-		echo "error: mm_INSTALL_CRAMFS should be replaced with mm_INSTALL_RAM_BOOT." ; \
-		exit 1 ; \
-	fi
-	@echo "    mm_INSTALL_NFS"
-	@if [ -n "$(mm_INSTALL_NFS)" ] ; then \
-		echo "error: mm_INSTALL_NFS should be replaced with mm_INSTALL_NFS_BOOT." ; \
-		exit 1 ; \
-	fi
-	@if [ -n "$(mm_MYTH_SVN_VERSION)" ] ; then \
-		echo "error: mm_MYTH_SVN_VERSION should be replaced with mm_MYTH_TRUNK_VERSION." ; \
-		exit 1 ; \
-	fi
-	@echo "    mm_XORG_VERSION='old'"
-	@if [ "$(mm_XORG_VERSION)" = "old" ] ; then \
-		echo "error: mm_XORG_VERSION=\"old\" should be replaced with mm_XORG_VERSION=\"6.8\"." ; \
-		exit 1 ; \
-	fi
-	@echo "    mm_XORG_VERSION='new'"
-	@if [ "$(mm_XORG_VERSION)" = "new" ] ; then \
-		echo "error: mm_XORG_VERSION=\"new\" should be replaced with mm_XORG_VERSION=\"7.0\"." ; \
-		exit 1 ; \
-	fi
-	@echo "  obsolete parameters and parameter values ... done"
 	@# Check build parameters.
 	@echo "  build parameters ..."
 	@echo "    HOME"
@@ -141,20 +104,15 @@ mm-all:
 	@echo "    mm_SOFTWARE"
 	@for software in $(mm_SOFTWARE) ; do \
 		if [ ! "$${software}" = "mythplugins"    ] && \
-		   [ ! "$${software}" = "flash"          ] && \
-		   [ ! "$${software}" = "gnash"          ] && \
 		   [ ! "$${software}" = "mplayer-svn"    ] && \
 		   [ ! "$${software}" = "mplayer"        ] && \
 		   [ ! "$${software}" = "mpv"            ] && \
 		   [ ! "$${software}" = "vlc"            ] && \
-		   [ ! "$${software}" = "xine"           ] && \
 		   [ ! "$${software}" = "perl"           ] && \
 		   [ ! "$${software}" = "python"         ] && \
 		   [ ! "$${software}" = "airplay"        ] && \
 		   [ ! "$${software}" = "avahi"          ] && \
 		   [ ! "$${software}" = "udisks"         ] && \
-		   [ ! "$${software}" = "wiimote"        ] && \
-		   [ ! "$${software}" = "backend"        ] && \
 		   [ ! "$${software}" = "mc"             ] && \
 		   [ ! "$${software}" = "dvdcss"         ] && \
 		   [ ! "$${software}" = "bdaacs"         ] && \
@@ -165,13 +123,11 @@ mm-all:
 		   [ ! "$${software}" = "chrome"         ] && \
 		   [ ! "$${software}" = "firefox"        ] && \
 		   [ ! "$${software}" = "lcdproc"        ] && \
-		   [ ! "$${software}" = "fceu"           ] && \
 		   [ ! "$${software}" = "jzintv"         ] && \
 		   [ ! "$${software}" = "mame"           ] && \
 		   [ ! "$${software}" = "mednafen"       ] && \
 		   [ ! "$${software}" = "stella"         ] && \
 		   [ ! "$${software}" = "visualboyadvance" ] &&  \
-		   [ ! "$${software}" = "zsnes"          ] && \
 		   [ ! "$${software}" = "ipxe"           ] && \
 		   [ ! "$${software}" = "bootloader"     ] && \
 		   [ ! "$${software}" = "glmark2"        ] && \
@@ -283,6 +239,37 @@ mm-all:
 		echo "error: mm_INSTALL_NFS_ROOT=\"yes\" but mm_DISTRIBUTION_NFS=\"no\"." ; \
 		exit 1 ; \
 	fi
+	@echo "    mm_DISTRIBUTION_SDCARD"
+	@if [ ! "$(mm_DISTRIBUTION_SDCARD)" = "yes" ] && [ ! "$(mm_DISTRIBUTION_SDCARD)" = "no" ] ; then \
+		echo "error: mm_DISTRIBUTION_SDCARD=\"$(mm_DISTRIBUTION_SDCARD)\" is an invalid value." ; \
+		exit 1 ; \
+	fi
+	@if [ "$(mm_DISTRIBUTION_SDCARD)" = "yes" ] && [ ! -d "$(mm_SDCARD_FILES)" ] ; then \
+		echo "error: the directory specified by mm_SDCARD_FILES=\"$(mm_SDCARD_FILES)\" does not exist." ; \
+		exit 1 ; \
+	fi
+	@echo "    mm_BOARD_TYPE"
+	@for board in $(mm_BOARD_TYPE) ; do \
+		if [ ! "$${board}" = "board-g12"               ] && \
+		   [ ! "$${board}" = "board-h6.beelink_gs1"    ] && \
+		   [ ! "$${board}" = "board-h6.eachlink_mini"  ] && \
+		   [ ! "$${board}" = "board-h6.tanix_tx6"      ] && \
+		   [ ! "$${board}" = "board-rk3328.beelink_a1" ] && \
+		   [ ! "$${board}" = "board-rk3399.rockpi4-b"  ] && \
+		   [ ! "$${board}" = "board-rpi2"              ] && \
+		   [ ! "$${board}" = "board-rpi3.mainline32"   ] && \
+		   [ ! "$${board}" = "board-rpi3.mainline64"   ] && \
+		   [ ! "$${board}" = "board-rpi3.rpi32"        ] && \
+		   [ ! "$${board}" = "board-s905"              ] && \
+		   [ ! "$${board}" = "board-s912"              ] && \
+		   [ ! "$${board}" = "board-sm1"               ] && \
+		   [ ! "$${board}" = "board-x86pc.bios"        ] && \
+		   [ ! "$${board}" = "board-x86pc.bios_efi64"  ] && \
+		   [ ! "$${board}" = "board-x86pc.efi64"       ] ; then \
+			echo "error: mm_BOARD_TYPE=\"$${board}\" is an invalid value." ; \
+			exit 1 ; \
+		fi ; \
+	done
 	@echo "  distribution parameters ... done"
 	@echo "checking ... done"
 
