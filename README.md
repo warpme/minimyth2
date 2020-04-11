@@ -42,65 +42,64 @@ running MythTV Frontend (and preactically only MythTV Frontend).
 - List of supported [Graphics HW](https://raw.githubusercontent.com/warpme/minimyth2/master/html/minimyth/document-supported-gfx-hardware.txt) (on x86_64 platforms)
 - List of supported [IR receivers](https://raw.githubusercontent.com/warpme/minimyth2/master/html/minimyth/document-supported-IR-remotes.txt)
 
-## Buildinf MiniMyth2
+## Building MiniMyth2
 
 ### Prerequisites
 The build system requires following set of binaries and libraries:
 
- -bison
- -cvs
- -flex
- -gawk
- -gcc[gcc-multilib]
- -git
- -grep
- -make
- -mercurial
- -patch
- -subversion
- -texinfo
- -wget
-
+- bison
+- cvs
+- flex
+- gawk
+- gcc[gcc-multilib]
+- git
+- grep
+- make
+- mercurial
+- patch
+- subversion
+- texinfo
+- wget
 
 ### Build instructions
 
 #### For Ubuntu 16.04 LTS or 19.10 (just those two were tested) quick build guide:
--Start terminal and run commands below:
--sudo apt install git bison make cvs flex gawk mercurial subversion texinfo gcc-multilib
--cd Desktop
--git clone https://github.com/warpme/minimyth2.git
--mkdir ../.minimyth2 ../build
--cp minimyth2/minimyth.conf.mk.example.aarch64 ../.minimyth2/minimyth.conf.mk
--set mm_HOME variable in file $(HOME)/.minimyth2/minimyth.conf.mk to minimyth2 build-root directory
--cd Desktop/minimyth2/script/
--make garchive
--cd Desktop/minimyth2/script/meta/minimyth/
--make build
+Start terminal and run commands below:
+- sudo apt install git bison make cvs flex gawk mercurial subversion texinfo gcc-multilib
+- cd Desktop
+- git clone https://github.com/warpme/minimyth2.git
+- mkdir ../.minimyth2 ../build
+- cp minimyth2/minimyth.conf.mk.example.aarch64 ../.minimyth2/minimyth.conf.mk
+- set mm_HOME variable in file $(HOME)/.minimyth2/minimyth.conf.mk to minimyth2 build-root directory
+- cd Desktop/minimyth2/script/
+- make garchive
+- cd Desktop/minimyth2/script/meta/minimyth/
+- make build
 
 #### For ArchLinux (tested on 20-03-2020 rolling release state) quick build guide:
 
--Start terminal, and run commands below:
--sudo pacman -S bison make cvs flex gawk mercurial subversion texinfo gcc patch wget git which
--git clone https://github.com/warpme/minimyth2.git
--mkdir .minimyth2 build
--cp minimyth2/minimyth.conf.mk.example.aarch64 .minimyth2/minimyth.conf.mk
--set mm_HOME variable in file $(HOME)/.minimyth2/minimyth.conf.mk to minimyth2 build-root directory
--cd minimyth2/script/
--make garchive
--cd minimyth2/script/meta/minimyth/
--make build
+Start terminal, and run commands below:
+- sudo pacman -S bison make cvs flex gawk mercurial subversion texinfo gcc patch wget git which
+- git clone https://github.com/warpme/minimyth2.git
+- mkdir .minimyth2 build
+- cp minimyth2/minimyth.conf.mk.example.aarch64 .minimyth2/minimyth.conf.mk
+- set mm_HOME variable in file $(HOME)/.minimyth2/minimyth.conf.mk to minimyth2 build-root directory
+- cd minimyth2/script/
+- make garchive
+- cd minimyth2/script/meta/minimyth/
+- make build
 
 #### For Fedora (tested on Fedora31) quick build guide:
 
--Start terminal and run commands below:
--sudo dnf install bison make cvs flex gawk mercurial subversion texinfo gcc gcc-c++ patch wget git
--cd Desktop
--git clone https://github.com/warpme/minimyth2.git
--mkdir ../.minimyth2 ../build
--cp minimyth2/minimyth.conf.mk.example.aarch64 ../.minimyth2/minimyth.conf.mk
--set mm_HOME variable in file $(HOME)/.minimyth2/minimyth.conf.mk to minimyth2 build-root directory
--cd Desktop/minimyth2/script/
--make garchive
--cd Desktop/minimyth2/script/meta/minimyth/
--make build
+Start terminal and run commands below:
+- sudo dnf install bison make cvs flex gawk mercurial subversion texinfo gcc gcc-c++ patch wget git
+- cd Desktop
+- git clone https://github.com/warpme/minimyth2.git
+- mkdir ../.minimyth2 ../build
+- cp minimyth2/minimyth.conf.mk.example.aarch64 ../.minimyth2/minimyth.conf.mk
+- set mm_HOME variable in file $(HOME)/.minimyth2/minimyth.conf.mk to minimyth2 build-root directory
+- cd Desktop/minimyth2/script/
+- make garchive
+- cd Desktop/minimyth2/script/meta/minimyth/
+- make build
 
