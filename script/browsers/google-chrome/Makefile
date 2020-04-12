@@ -1,15 +1,28 @@
-GARNAME = google-chrome
-GARVERSION = 79.0.3945.130
-CATEGORIES = browsers
+
+GARNAME      = google-chrome
+GARVERSION   = 81.0.4044.92
+CATEGORIES   = browsers
 MASTER_SITES = https://dl.google.com/linux/direct/
-DISTFILES = google-chrome-stable_current_amd64.deb
-LICENSE = GPL2
+DISTFILES    = google-chrome-stable_current_amd64.deb
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c
+DEPENDS = \
+	lang/c \
+	xorg/libXss \
+	gtk/atk \
+	gtk/at-spi2-atk \
+	gtk/cairo \
+	gtk/pango \
+	lib/libcups \
+	lib/nss \
+	gtk/gconf \
+	gtk/gtk3 \
+	lib/nspr \
+	lib/nss \
 
 BUILD_SCRIPTS   = 
 INSTALL_SCRIPTS = custom
@@ -31,7 +44,6 @@ install-custom:
 	@cp -f $(WORKSRC)/opt/google/chrome/nacl_helper              $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/nacl_helper_bootstrap    $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/nacl_irt_x86_64.nexe     $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
-	@cp -f $(WORKSRC)/opt/google/chrome/natives_blob.bin         $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/resources.pak            $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/v8_context_snapshot.bin  $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/xdg-mime                 $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
