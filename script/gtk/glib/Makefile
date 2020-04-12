@@ -13,9 +13,6 @@ endef
 
 DEPENDS    = lang/c lib/libffi lib/pcre devel/zlib gtk/gtk-doc utils/util-linux
 BUILDDEPS  = gtk/gtk-doc
-ifneq ($(DESTIMG),build)
-BUILDDEPS += gtk/glib
-endif
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -63,6 +60,8 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
+	@mkdir -p $(DESTDIR)$(qt5libdir)/pkgconfig/
+	@cp -rf $(WORKSRC)/glib-2.0.pc $(DESTDIR)$(qt5libdir)/pkgconfig/
 	@rm -rf $(DESTDIR)$(libdir)/libgio-2.0.la
 	@rm -rf $(DESTDIR)$(libdir)/libglib-2.0.la
 	@rm -rf $(DESTDIR)$(libdir)/libgmodule-2.0.la

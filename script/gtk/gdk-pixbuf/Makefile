@@ -11,9 +11,6 @@ endef
 
 DEPENDS    = lang/c lang/cxx gtk/glib lib/libjpeg lib/libpng lib/libtiff xorg/xorg
 BUILDDEPS  = gtk/gtk-doc
-ifneq ($(DESTIMG),build)
-BUILDDEPS += gtk/gdk-pixbuf
-endif
 
 CONFIGURE_SCRIPTS  = $(WORKSRC)/configure
 BUILD_SCRIPTS      = $(WORKSRC)/Makefile
@@ -32,7 +29,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-nls \
 	--disable-rpath \
 	--disable-glibtest \
-	--enable-modules \
+	--disable-modules \
+	--with-included-loaders=yes \
 	--disable-introspection \
 	--disable-gtk-doc \
 	--disable-man \

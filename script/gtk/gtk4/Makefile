@@ -11,9 +11,6 @@ endef
 
 DEPENDS    = lang/c lang/cxx gtk/atk gtk/cairo gtk/gdk-pixbuf gtk/glib gtk/pango gtk/graphene gtk/at-spi2-atk lib/libjpeg lib/libpng lib/libtiff xorg/xorg
 BUILDDEPS  = gtk/gtk-doc
-ifneq ($(DESTIMG),build)
-BUILDDEPS += gtk/gtk4
-endif
 
 CONFIGURE_SCRIPTS  = $(WORKSRC)/configure
 BUILD_SCRIPTS      = $(WORKSRC)/Makefile

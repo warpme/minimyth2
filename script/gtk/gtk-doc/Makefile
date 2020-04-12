@@ -12,12 +12,10 @@ endef
 DEPENDS = lang/c
 
 INSTALL_SCRIPTS = gtk-doc.m4
-#INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
 install-gtk-doc.m4:
-#install:
 	@mkdir -p $(DESTDIR)$(datadir)/aclocal
 	@rm -f $(DESTDIR)$(datadir)/aclocal/gtk-doc.m4
 	@cp $(WORKSRC)/gtk-doc.m4 $(DESTDIR)$(datadir)/aclocal/gtk-doc.m4

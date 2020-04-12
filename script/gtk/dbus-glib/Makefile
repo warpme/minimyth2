@@ -11,9 +11,6 @@ endef
 
 DEPENDS    = lang/c lib/expat lib/dbus gtk/glib
 BUILDDEPS  = lib/dbus
-ifneq ($(DESTIMG),build)
-BUILDDEPS += gtk/dbus-glib
-endif
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile

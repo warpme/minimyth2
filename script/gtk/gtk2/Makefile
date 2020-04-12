@@ -1,10 +1,12 @@
-GARNAME = gtk+
-# 3.x requires additional packages (atk-bridge) some of which do not compile (libepoxy).
-GARVERSION = 2.24.28
-CATEGORIES = gtk
+
+GARNAME      = gtk+
+GARVERSION   = 2.24.28
+CATEGORIES   = gtk
 MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/gtk+/2.24/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = LGPL2
+PATCHFILES   = $(DISTNAME)-disable-icon-cache-gen.patch
+PATCHFILES  += $(DISTNAME)-disable-demos-tests.patch
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = LGPL2
 
 DESCRIPTION =
 define BLURB
@@ -12,16 +14,10 @@ endef
 
 DEPENDS    = lang/c lang/cxx gtk/atk gtk/cairo gtk/gdk-pixbuf gtk/glib gtk/pango lib/libjpeg lib/libpng lib/libtiff xorg/xorg
 BUILDDEPS  = gtk/gtk-doc
-ifneq ($(DESTIMG),build)
-BUILDDEPS += gtk/gtk
-endif
 
 CONFIGURE_SCRIPTS  = $(WORKSRC)/configure
 BUILD_SCRIPTS      = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS    = $(WORKSRC)/Makefile
-ifeq ($(DESTIMG),build)
-INSTALL_SCRIPTS   += cross
-endif
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--x-includes="$(DESTDIR)$(includedir)" \
@@ -59,6 +55,7 @@ endif
 include ../../gar.mk
 
 pre-configure:
+	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
