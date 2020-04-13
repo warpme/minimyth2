@@ -1,11 +1,12 @@
-GARNAME = glibc
-GARVERSION = $(GLIBC_VERSION)
-CATEGORIES = devel
+
+GARNAME       = glibc
+GARVERSION    = $(GLIBC_VERSION)
+CATEGORIES    = devel
 MASTER_SITES  = http://ftp.gnu.org/gnu/$(GARNAME)/
-MASTER_SITES += ftp://sources.redhat.com/pub/$(GARNAME)/snapshots/
-DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = $(DISTNAME).patch
-LICENSE = GPL2/LGPL2_1
+DISTFILES     = $(DISTNAME).tar.xz
+PATCHFILES    = $(DISTNAME).patch
+PATCHFILES   += $(DISTNAME)-hack-armv7-a-compile.patch
+LICENSE       = GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -37,7 +38,7 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile build-rpcgen
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--enable-bind-now \
-	--enable-kernel=4.4.0 \
+	--enable-kernel=5.0.0 \
 	--enable-obsolete-rpc \
 	--disable-build-nscd \
 	--disable-nscd \
@@ -47,6 +48,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-headers=$(DESTDIR)$(includedir) \
 	--disable-werror \
 	--disable-multi-arch \
+	$(if $(filter armv7,$(GARCH)),--with-cpu=armv7-a) \
 
 ifeq ($(use_linuxthreads),yes)
 CONFIGURE_ARGS += \
@@ -81,16 +83,9 @@ INSTALL_ENV   = \
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
 
-# glibc 2.27 fails to compile with gcc 7.3.0's link time optimization enabled.
+# glibc fails to compile with gcc 7.3.0's link time optimization enabled.
 CFLAGS  := $(filter-out -flto, $(CFLAGS))  -fno-lto
 LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
-
-CFLAGS := $(filter-out -ffast-math, $(CFLAGS))
-CFLAGS := $(filter-out -O%, $(CFLAGS)) -Os
-
-ifeq ($(GARCH),armv7)
-CFLAGS += -D__ARM_ARCH=7
-endif
 
 configure-custom:
 	@mkdir -p $(WORKBLD)
