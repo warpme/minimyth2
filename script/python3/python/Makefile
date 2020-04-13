@@ -1,9 +1,12 @@
-GARNAME = Python
-GARVERSION =  $(PYTHON_VERSION)
-CATEGORIES = python
+
+GARNAME      = Python
+GARVERSION   =  $(PYTHON_VERSION)
+CATEGORIES   = python
 MASTER_SITES = http://www.python.org/ftp/python/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = $(DISTNAME)-hack-compilation-on-Ubuntu19.patch
+LICENSE      = $(GARNAME)
+
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
 
 DESCRIPTION = 
@@ -62,6 +65,7 @@ include ../../gar.mk
 LDFLAGS := $(LDFLAGS) -L$(PWD)/$(WORKSRC)
 
 pre-configure:
+	@$(CC) -v
 	@cd $(WORKSRC) ; autoreconf --verbose --install --force
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
@@ -74,7 +78,6 @@ post-install:
 	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config
 	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)python$(PYTHON_VERSION_MAJOR)-config
 	@mkdir -p $(DESTDIR)$(bindir)-config
-	@mv $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)m-config $(DESTDIR)$(bindir)-config/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)m-config
 	@mv $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config $(DESTDIR)$(bindir)-config/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config
 	@mv $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR)-config $(DESTDIR)$(bindir)-config/python$(PYTHON_VERSION_MAJOR)-config
 	@$(if $(compiler_prefix), ln -s python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config)
