@@ -65,7 +65,6 @@ include ../../gar.mk
 LDFLAGS := $(LDFLAGS) -L$(PWD)/$(WORKSRC)
 
 pre-configure:
-	@$(CC) -v
 	@cd $(WORKSRC) ; autoreconf --verbose --install --force
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
