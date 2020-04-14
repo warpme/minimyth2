@@ -41,6 +41,11 @@ include ../../gar.mk
 CFLAGS  := $(CFLAGS)  -fPIC
 LDFLAGS := $(LDFLAGS) -fPIC
 
+# ls_sensors segfaults LTO in GCC9.3 so disable LTO
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+
 pre-install:
 	@rm -rf $(DESTDIR)/$(sysconfdir)/sensors3.conf
 	@$(MAKECOOKIE)
