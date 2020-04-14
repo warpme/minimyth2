@@ -67,4 +67,6 @@ post-install:
 	@rm -rf $(DESTDIR)$(libdir)/libgmodule-2.0.la
 	@rm -rf $(DESTDIR)$(libdir)/libgobject-2.0.la
 	@rm -rf $(DESTDIR)$(libdir)/libgthread-2.0.la
+	@# gudev needs glib-mkenums...
+	@cp -rf $(WORKSRC)/gobject/glib-mkenums $(build_DESTDIR)$(build_bindir)/glib-mkenums
 	@$(MAKECOOKIE)
