@@ -1,9 +1,11 @@
-GARNAME = dbus-glib
-GARVERSION = 0.104
-CATEGORIES = gtk
+
+GARNAME      = dbus-glib
+GARVERSION   = 0.104
+CATEGORIES   = gtk
 MASTER_SITES = http://dbus.freedesktop.org/releases/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = LGPL2
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = $(DISTNAME)-hack-to-crosscompile.patch
+LICENSE      = LGPL2
 
 DESCRIPTION =
 define BLURB
@@ -39,6 +41,7 @@ endif
 include ../../gar.mk
 
 pre-configure:
+	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
