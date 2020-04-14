@@ -63,6 +63,11 @@ endif
 
 include ../../gar.mk
 
+# python2 fails to compiles with gcc9.3.0 LTO on armv7 target
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+
 # Needed so that Python can find the correct libpython shared library.
 LDFLAGS := $(LDFLAGS) -L$(PWD)/$(WORKSRC)
 
