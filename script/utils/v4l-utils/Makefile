@@ -36,11 +36,6 @@ CONFIGURE_ARGS = $(DIRPATHS) \
 
 include ../../gar.mk
 
-# GCC9.3 LTO segfaults on v4l2 compilation so turn-off LTO
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libdvbv5.la
 	@rm -f $(DESTDIR)$(libdir)/libv4l1.la
