@@ -64,7 +64,6 @@ CONFIGURE_ARGS = \
 	-D va-libs-path="$(DESTDIR)$(libdir)/va" \
 	-D vdpau-libs-path="$(DESTDIR)$(libdir)" \
 	-D shared-glapi=true \
-	-D llvm=true \
 	-D shared-llvm=true \
 	-D gbm=true \
 	-D shared-glapi=true \
@@ -87,7 +86,8 @@ CONFIGURE_ARGS += \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=false \
-	-D gallium-xa=false
+	-D gallium-xa=false \
+	-D llvm=false
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
@@ -95,7 +95,8 @@ CONFIGURE_ARGS += \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=false \
-	-D gallium-xa=false
+	-D gallium-xa=false \
+	-D llvm=false
 else
 CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
@@ -103,7 +104,8 @@ CONFIGURE_ARGS += \
 	-D platforms=x11,drm \
 	-D gallium-vdpau=true \
 	-D gallium-va=true \
-	-D gallium-xa=true
+	-D gallium-xa=true \
+	-D llvm=true
 endif
 endif
 
