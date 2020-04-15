@@ -49,6 +49,7 @@ DEPENDS = \
 		nvidia/nvidia-$(mm_NVIDIA_VERSION)) \
 	$(if $(filter nvidia-legacy,$(mm_GRAPHICS)), \
 		nvidia/nvidia-$(mm_NVIDIA_LEGACY_VERSION)) \
+	X11/libva \
 	myth-$(mm_MYTH_VERSION)/mythtv \
 	lib/ncursesw \
 	net/nfs-utils \
@@ -80,7 +81,6 @@ DEPENDS = \
 	utils/util-linux \
 	utils/v4l-utils \
 	utils/rsync \
-	X11/libva \
 	X11/libva-utils \
 	X11/vdpauinfo \
 	net/wakelan \

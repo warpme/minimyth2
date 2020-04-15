@@ -185,6 +185,7 @@ DEPENDS = \
 	system/lirc \
 	system/eudev \
 	X11/libvdpau \
+	X11/libva \
 	xorg/xorg \
 	qt/qt5 \
 	qt/qt5-webkit \
