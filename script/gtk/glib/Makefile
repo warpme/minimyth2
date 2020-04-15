@@ -70,7 +70,5 @@ post-install:
 	@rm -rf $(DESTDIR)$(libdir)/libgmodule-2.0.la
 	@rm -rf $(DESTDIR)$(libdir)/libgobject-2.0.la
 	@rm -rf $(DESTDIR)$(libdir)/libgthread-2.0.la
-	@# gudev and gstreamer needs glib-mkenums...
-	@cp -rf $(WORKSRC)/gobject/glib-mkenums $(build_DESTDIR)$(build_bindir)/glib-mkenums
-	@sed -e "s%bindir=.*%bindir=$(build_DESTDIR)$(build_bindir)%g" -i $(DESTDIR)$(libdir)/pkgconfig/glib-2.0.pc
+	@sed -e "s%bindir=.*%bindir=$(DESTDIR)$(bindir)%g" -i $(DESTDIR)$(libdir)/pkgconfig/glib-2.0.pc
 	@$(MAKECOOKIE)
