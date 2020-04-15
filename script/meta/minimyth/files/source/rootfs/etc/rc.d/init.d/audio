@@ -63,31 +63,51 @@ start() {
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Restoring amixer state from /etc/asound.state file..."
         /usr/sbin/alsactl --file /etc/asound.state restore
 
-    elif [ ! x${MM_AUDIO_DEVICE_UCM_PROFILE} = "x" ] ; then
+    else
 
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Configuring AUDIO via UCM for card \"${MM_AUDIO_DEVICE_UCM_PROFILE}\"..."
-        ucm_command="/usr/bin/alsaucm -c ${MM_AUDIO_DEVICE_UCM_PROFILE}"
+        if [ ! x${MM_AUDIO_DEVICE_UCM_PROFILE} = "x" ] ; then
 
-        if [ ! x${MM_AUDIO_DEVICE_UCM_COMMAND} = "x" ] ; then
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Configuring AUDIO via UCM for card \"${MM_AUDIO_DEVICE_UCM_PROFILE}\"..."
+            ucm_command="/usr/bin/alsaucm -c ${MM_AUDIO_DEVICE_UCM_PROFILE}"
 
-            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm command: \"${ucm_command} ${MM_AUDIO_DEVICE_UCM_COMMAND}\""
-            alsaucm_output=`${ucm_command} ${MM_AUDIO_DEVICE_UCM_COMMAND}`
+            if [ ! x${MM_AUDIO_DEVICE_UCM_COMMAND} = "x" ] ; then
 
-        else
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm command: \"${ucm_command} ${MM_AUDIO_DEVICE_UCM_COMMAND}\""
+                alsaucm_output=`${ucm_command} ${MM_AUDIO_DEVICE_UCM_COMMAND}`
 
-            case "${MM_AUDIO_DEVICE_UCM_PROFILE}" in
-                chtrt5645)  enable_digital_audio="set _verb HiFi set _enadev Speaker" ;;
-                *)          enable_digital_audio="set _verb HiFi set _enadev Speaker" ;;
-            esac
+            else
 
-            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm command: \"${ucm_command} ${enable_digital_audio}\""
-            alsaucm_output=`${ucm_command} ${enable_digital_audio}`
+
+                if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+analog+'  ; then
+
+                    case "${MM_AUDIO_DEVICE_UCM_PROFILE}" in
+                        chtrt5645)  enable_analog_audio="set _verb HiFi set _enadev Speaker" ;;
+                        *)          enable_analog_audio="set _verb HiFi set _enadev Speaker" ;;
+                    esac
+
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm analog cmd.: \"${ucm_command} ${enable_analog_audio}\""
+                    alsaucm_output=`${ucm_command} ${enable_analog_audio}`
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm output: \"${alsaucm_output}\""
+
+                fi
+
+                if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+digital+'  ; then
+
+                    case "${MM_AUDIO_DEVICE_UCM_PROFILE}" in
+                        chtrt5645)  enable_digital_audio="set _verb HiFi set _enadev Speaker" ;;
+                        *)          enable_digital_audio="set _verb HiFi set _enadev Speaker" ;;
+                    esac
+
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm digital cmd.: \"${ucm_command} ${enable_digital_audio}\""
+                    alsaucm_output=`${ucm_command} ${enable_digital_audio}`
+                    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm output: \"${alsaucm_output}\""
+
+                fi
+
+            fi
 
         fi
 
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm output: \"${alsaucm_output}\""
-
-    else
         # Unmute audio.
         if ${amixer_command} > /dev/null 2>&1 ; then
 
@@ -111,6 +131,8 @@ start() {
                     Center)                      ${amixer_command} set 'Center'                    90% unmute ;;
                     LFE)                         ${amixer_command} set 'LFE'                       90% unmute ;;
                     Analog\ Center/LFE)          ${amixer_command} set 'Analog Center/LFE'         90% unmute ;;
+                    Headphone)                   ${amixer_command} set 'Headphone'                 90% unmute ;;
+                    Headphone\ Channel)          ${amixer_command} set 'Headphone Channel'         90% unmute ;;
                     esac
                 done
 
@@ -222,6 +244,8 @@ stop () {
                     Center)             ${amixer_command} set 'Center'            0% mute ;;
                     LFE)                ${amixer_command} set 'LFE'               0% mute ;;
                     Analog\ Center/LFE) ${amixer_command} set 'Analog Center/LFE' 0% mute ;;
+                    Headphone)          ${amixer_command} set 'Headphone'         0% mute ;;
+                    Headphone\ Channel) ${amixer_command} set 'Headphone Channel' 0% mute ;;
                 esac
             done
 
