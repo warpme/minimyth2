@@ -1,10 +1,9 @@
 
 GARNAME      = dbus-glib
-GARVERSION   = 0.104
+GARVERSION   = 0.110
 CATEGORIES   = gtk
 MASTER_SITES = http://dbus.freedesktop.org/releases/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = $(DISTNAME)-hack-to-crosscompile.patch
 LICENSE      = LGPL2
 
 DESCRIPTION =
@@ -13,6 +12,9 @@ endef
 
 DEPENDS    = lang/c lib/expat lib/dbus gtk/glib
 BUILDDEPS  = lib/dbus
+ifneq ($(DESTIMG),build)
+BUILDDEPS += gtk/dbus-glib
+endif
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
