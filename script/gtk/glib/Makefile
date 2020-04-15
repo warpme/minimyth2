@@ -13,6 +13,9 @@ endef
 
 DEPENDS    = lang/c lib/libffi lib/pcre devel/zlib gtk/gtk-doc utils/util-linux
 BUILDDEPS  = gtk/gtk-doc
+ifneq ($(DESTIMG),build)
+BUILDDEPS += gtk/glib
+endif
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
