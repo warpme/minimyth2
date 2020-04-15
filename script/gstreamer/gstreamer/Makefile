@@ -16,6 +16,8 @@ DEPENDS = \
 	lib/libxml2 \
 	devel/libelf \
 
+BUILDDEPS = gtk/glib
+
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
