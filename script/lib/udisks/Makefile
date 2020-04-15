@@ -14,6 +14,7 @@ define BLURB
 endef
 
 DEPENDS = lang/c lib/sg3_utils gtk/dbus-glib lib/polkit lib/pam lib/parted lib/LVM2 lib/libatasmart
+BUILDDEP = gtk/dbus-glib
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
