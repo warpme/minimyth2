@@ -14,6 +14,8 @@ DESCRIPTION =
 define BLURB
 endef
 
+BUILDDEPS = utils/kickstart-oe
+
 INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
