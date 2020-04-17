@@ -14,19 +14,19 @@ include ../../minimyth.conf.mk
 
 
 ifneq (,$(filter %4.19,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-5.5
-endif
-ifneq (,$(filter %5.5,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-5.5
-endif
-ifneq (,$(filter %5.6,$(mm_KERNEL_VERSION)))
 DEPENDS = kernel/linux-headers-5.6
 endif
-ifneq (,$(filter %5.7,$(mm_KERNEL_VERSION)))
+ifneq (,$(filter %5.5,$(mm_KERNEL_VERSION)))
+DEPENDS = kernel/linux-headers-5.6
+endif
+ifneq (,$(filter %5.6,$(mm_KERNEL_VERSION)))
 DEPENDS = kernel/linux-headers-5.7
 endif
-ifneq (,$(filter %5.8,$(mm_KERNEL_VERSION)))
+ifneq (,$(filter %5.7,$(mm_KERNEL_VERSION)))
 DEPENDS = kernel/linux-headers-5.8
+endif
+ifneq (,$(filter %5.8,$(mm_KERNEL_VERSION)))
+DEPENDS = kernel/linux-headers-5.9
 endif
 
 include ../../gar.mk
