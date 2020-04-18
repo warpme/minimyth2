@@ -51,15 +51,16 @@ PATCHFILES += 0115-drm-lima-recover-task-by-enlarging-heap-buff.patch
 PATCHFILES += 0116-drm-lima-increase-driver-version-to-1.1.patch
 PATCHFILES += 0117-drm-lima-fix-recovering-from-PLBU-out-of-mem.patch
 endif
-ifeq (0,1)
+ifeq (1,1)
 # DVFS for Mali450
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=258955 19.03.2020
 PATCHFILES += 0118-dt-bindings-gpu-mali-utgard-Add-the-cooling-cells-property.patch
 PATCHFILES += 0119-drm-lima-Add-optional-devfreq-and-cooling-device-support.patch
 # GPU DVFS for Meson GXBB/GXL/GXM/G12A/G12B/SM1
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=264023 30.03.2020
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=270987 v2 14.04.2020
 PATCHFILES += 0120-clk-meson-gxbb-Prepare-the-GPU-clock-tree-to-change-at-runtime.patch
 PATCHFILES += 0122-clk-meson-g12a-Prepare-the-GPU-clock-tree-to-change-at-runtime.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=264023 30.03.2020
 PATCHFILES += 0123-arm64-dts-amlogic-meson-gx-add-the-Mali-450-OPP-table-and-use-DVFS.patch
 PATCHFILES += 0124-arm64-dts-amlogic-meson-gxm-add-the-Mali-OPP-table-and-use-DVFS.patch
 PATCHFILES += 0125-arm64-dts-amlogic-meson-g12-add-the-Mali-OPP-table-and-use-DVFS.patch
