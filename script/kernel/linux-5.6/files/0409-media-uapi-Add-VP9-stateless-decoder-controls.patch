@@ -1,16 +1,19 @@
 
+From: Boris Brezillon <boris.brezillon@collabora.com>
+
 Add the VP9 stateless decoder controls plus the documentation that goes
 with it.
 
 Signed-off-by: Boris Brezillon <boris.brezillon@collabora.com>
+Signed-off-by: Ezequiel Garcia <ezequiel@collabora.com>
 ---
  Documentation/media/uapi/v4l/biblio.rst       |  10 +
  .../media/uapi/v4l/ext-ctrls-codec.rst        | 584 ++++++++++++++++++
- drivers/media/v4l2-core/v4l2-ctrls.c          | 243 ++++++++
+ drivers/media/v4l2-core/v4l2-ctrls.c          | 242 ++++++++
  drivers/media/v4l2-core/v4l2-ioctl.c          |   1 +
  include/media/v4l2-ctrls.h                    |   1 +
  include/media/vp9-ctrls.h                     | 515 +++++++++++++++
- 6 files changed, 1354 insertions(+)
+ 6 files changed, 1353 insertions(+)
  create mode 100644 include/media/vp9-ctrls.h
 
 diff --git a/Documentation/media/uapi/v4l/biblio.rst b/Documentation/media/uapi/v4l/biblio.rst
@@ -32,7 +35,7 @@ index 8095f57d3d75..f89341350b6d 100644
 +
 +:author:    Adrian Grange (Google), Peter de Rivaz (Argon Design), Jonathan Hunt (Argon Design)
 diff --git a/Documentation/media/uapi/v4l/ext-ctrls-codec.rst b/Documentation/media/uapi/v4l/ext-ctrls-codec.rst
-index d4fc5f25aa14..11212903f82d 100644
+index d4fc5f25aa14..fe4b03a512a4 100644
 --- a/Documentation/media/uapi/v4l/ext-ctrls-codec.rst
 +++ b/Documentation/media/uapi/v4l/ext-ctrls-codec.rst
 @@ -2658,6 +2658,590 @@ enum v4l2_mpeg_video_h264_hierarchical_coding_type -
@@ -395,7 +398,7 @@ index d4fc5f25aa14..11212903f82d 100644
 +      - Unknown color space. In this case the color space must be signaled
 +        outside the VP9 bitstream.
 +    * - ``V4L2_VP9_COLOR_SPACE_BT_601``
-+      - Rec. ITU-R BT.601-7 Color space.
++      - Rec. ITU-R BT.601-7 color space.
 +    * - ``V4L2_VP9_COLOR_SPACE_BT_709``
 +      - Rec. ITU-R BT.709-6 color space.
 +    * - ``V4L2_VP9_COLOR_SPACE_SMPTE_170``
@@ -421,14 +424,14 @@ index d4fc5f25aa14..11212903f82d 100644
 +    :widths:       1 2
 +
 +    * - ``V4L2_VP9_RESET_FRAME_CTX_NONE``
-+      - Don't reset any frame context.
++      - Do not reset any frame context.
 +    * - ``V4L2_VP9_RESET_FRAME_CTX_NONE_ALT``
-+      - Don't reset any frame context. This is an alternative value for
++      - Do not reset any frame context. This is an alternative value for
 +        V4L2_VP9_RESET_FRAME_CTX_NONE.
 +    * - ``V4L2_VP9_RESET_FRAME_CTX_SPEC``
 +      - Reset the frame context pointed by
 +        :c:type:`v4l2_ctrl_vp9_frame_decode_params`.frame_context_idx.
-+    * - V4L2_VP9_RESET_FRAME_CTX_ALL
++    * - ``V4L2_VP9_RESET_FRAME_CTX_ALL``
 +      - Reset all frame contexts.
 +
 +.. c:type:: v4l2_vp9_intra_prediction_mode
@@ -627,7 +630,7 @@ index d4fc5f25aa14..11212903f82d 100644
  
      \normalsize
 diff --git a/drivers/media/v4l2-core/v4l2-ctrls.c b/drivers/media/v4l2-core/v4l2-ctrls.c
-index 9d5c0242d3e0..cef3d2c67e54 100644
+index 9a8445a9e788..69f43a4a9815 100644
 --- a/drivers/media/v4l2-core/v4l2-ctrls.c
 +++ b/drivers/media/v4l2-core/v4l2-ctrls.c
 @@ -925,6 +925,11 @@ const char *v4l2_ctrl_get_name(u32 id)
@@ -813,7 +816,7 @@ index 9d5c0242d3e0..cef3d2c67e54 100644
 +	     V4L2_VP9_FRAME_FLAG_PARALLEL_DEC_MODE))
 +		return -EINVAL;
 +
-+	if (dec_params->profile > VP9_PROFILE_MAX)
++	if (dec_params->profile > V4L2_VP9_PROFILE_MAX)
 +		return -EINVAL;
 +
 +	if (dec_params->reset_frame_context > V4L2_VP9_RESET_FRAME_CTX_ALL)
@@ -881,7 +884,7 @@ index 9d5c0242d3e0..cef3d2c67e54 100644
  /* Validate a new control */
  
  #define zero_padding(s) \
-@@ -1794,6 +2024,13 @@ static int std_validate_compound(const struct v4l2_ctrl *ctrl, u32 idx,
+@@ -1794,6 +2024,12 @@ static int std_validate_compound(const struct v4l2_ctrl *ctrl, u32 idx,
  		zero_padding(p_vp8_frame_header->coder_state);
  		break;
  
@@ -889,13 +892,12 @@ index 9d5c0242d3e0..cef3d2c67e54 100644
 +		return validate_vp9_frame_decode_params(p);
 +
 +	case V4L2_CTRL_TYPE_VP9_FRAME_CONTEXT:
-+		/* TODO: Should we validate the probs. */
 +		break;
 +
  	case V4L2_CTRL_TYPE_HEVC_SPS:
  		p_hevc_sps = p;
  
-@@ -2537,6 +2774,12 @@ static struct v4l2_ctrl *v4l2_ctrl_new(struct v4l2_ctrl_handler *hdl,
+@@ -2537,6 +2773,12 @@ static struct v4l2_ctrl *v4l2_ctrl_new(struct v4l2_ctrl_handler *hdl,
  	case V4L2_CTRL_TYPE_VP8_FRAME_HEADER:
  		elem_size = sizeof(struct v4l2_ctrl_vp8_frame_header);
  		break;
@@ -909,10 +911,10 @@ index 9d5c0242d3e0..cef3d2c67e54 100644
  		elem_size = sizeof(struct v4l2_ctrl_hevc_sps);
  		break;
 diff --git a/drivers/media/v4l2-core/v4l2-ioctl.c b/drivers/media/v4l2-core/v4l2-ioctl.c
-index 4e700583659b..aeecaca7fee9 100644
+index b2ef8e60ea7d..baa50388f8de 100644
 --- a/drivers/media/v4l2-core/v4l2-ioctl.c
 +++ b/drivers/media/v4l2-core/v4l2-ioctl.c
-@@ -1366,6 +1366,7 @@ static void v4l_fill_fmtdesc(struct v4l2_fmtdesc *fmt)
+@@ -1371,6 +1371,7 @@ static void v4l_fill_fmtdesc(struct v4l2_fmtdesc *fmt)
  		case V4L2_PIX_FMT_VP8:		descr = "VP8"; break;
  		case V4L2_PIX_FMT_VP8_FRAME:    descr = "VP8 Frame"; break;
  		case V4L2_PIX_FMT_VP9:		descr = "VP9"; break;
@@ -934,7 +936,7 @@ index 30c3be7f5efc..b69521b96968 100644
  /* forward references */
 diff --git a/include/media/vp9-ctrls.h b/include/media/vp9-ctrls.h
 new file mode 100644
-index 000000000000..fe9b15c9ba1e
+index 000000000000..f9435890763d
 --- /dev/null
 +++ b/include/media/vp9-ctrls.h
 @@ -0,0 +1,515 @@
@@ -1358,7 +1360,7 @@ index 000000000000..fe9b15c9ba1e
 +	V4L2_VP9_FRAME_FLAG_COLOR_RANGE_FULL_SWING = 1 << 9,
 +};
 +
-+#define VP9_PROFILE_MAX		3
++#define V4L2_VP9_PROFILE_MAX		3
 +
 +/**
 + * struct v4l2_ctrl_vp9_frame_decode_params - VP9 frame decoding control

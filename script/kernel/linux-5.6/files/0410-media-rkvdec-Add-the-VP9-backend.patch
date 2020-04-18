@@ -1,8 +1,11 @@
 
+From: Boris Brezillon <boris.brezillon@collabora.com>
+
 The Rockchip VDEC supports VP9 profile 0 up to 4096x2304@30fps. Add
 a backend for this new format.
 
 Signed-off-by: Boris Brezillon <boris.brezillon@collabora.com>
+Signed-off-by: Ezequiel Garcia <ezequiel@collabora.com>
 ---
  drivers/staging/media/rkvdec/Makefile     |    2 +-
  drivers/staging/media/rkvdec/rkvdec-vp9.c | 1572 +++++++++++++++++++++
@@ -22,7 +25,7 @@ index c08fed0a39f9..cb86b429cfaa 100644
 +rockchip-vdec-y += rkvdec.o rkvdec-h264.o rkvdec-vp9.o
 diff --git a/drivers/staging/media/rkvdec/rkvdec-vp9.c b/drivers/staging/media/rkvdec/rkvdec-vp9.c
 new file mode 100644
-index 000000000000..cc5b9f93893b
+index 000000000000..228c0bcda9f0
 --- /dev/null
 +++ b/drivers/staging/media/rkvdec/rkvdec-vp9.c
 @@ -0,0 +1,1572 @@
@@ -230,7 +233,7 @@ index 000000000000..cc5b9f93893b
 +	return ((u64)dividend * inv[divisor - 2]) >> 32;
 +}
 +
-+static u8 vp9_kf_y_mode_prob[10][10][9] = {
++static const u8 vp9_kf_y_mode_prob[10][10][9] = {
 +	{
 +		/* above = dc */
 +		{ 137,  30,  42, 148, 151, 207,  70,  52,  91 },/*left = dc  */
@@ -345,7 +348,7 @@ index 000000000000..cc5b9f93893b
 +	}
 +};
 +
-+static u8 kf_partition_probs[16][3] = {
++static const u8 kf_partition_probs[16][3] = {
 +	/* 8x8 -> 4x4 */
 +	{ 158,  97,  94 },	/* a/l both not split   */
 +	{  93,  24,  99 },	/* a split, l not split */
@@ -1497,10 +1500,10 @@ index 000000000000..cc5b9f93893b
 +	unsigned int fctx_idx;
 +
 +	if (result == VB2_BUF_STATE_ERROR)
-+		goto out_upd_last;
++		goto out_update_last;
 +
 +	if (!(vp9_ctx->cur.flags & V4L2_VP9_FRAME_FLAG_REFRESH_FRAME_CTX))
-+		goto out_upd_last;
++		goto out_update_last;
 +
 +	fctx_idx = vp9_ctx->cur.frame_context_idx;
 +	fctx = ctrl->p_cur.p;
@@ -1513,12 +1516,12 @@ index 000000000000..cc5b9f93893b
 +	ctrl = v4l2_ctrl_find(&ctx->ctrl_hdl,
 +			      V4L2_CID_MPEG_VIDEO_VP9_FRAME_CONTEXT(fctx_idx));
 +	if (WARN_ON(!ctrl))
-+		goto out_upd_last;
++		goto out_update_last;
 +
 +	v4l2_ctrl_s_ctrl_compound(ctrl, &vp9_ctx->frame_context,
 +				  sizeof(vp9_ctx->frame_context));
 +
-+out_upd_last:
++out_update_last:
 +	update_ctx_last_info(vp9_ctx);
 +}
 +
@@ -1565,7 +1568,7 @@ index 000000000000..cc5b9f93893b
 +			  vp9_ctx->priv_tbl.cpu, vp9_ctx->priv_tbl.dma);
 +
 +err_free_ctx:
-+	kfree(ctx);
++	kfree(vp9_ctx);
 +	return ret;
 +}
 +
@@ -1599,7 +1602,7 @@ index 000000000000..cc5b9f93893b
 +	.done = rkvdec_vp9_done,
 +};
 diff --git a/drivers/staging/media/rkvdec/rkvdec.c b/drivers/staging/media/rkvdec/rkvdec.c
-index 97698be9072e..a1c1ca56c629 100644
+index 225eeca73356..3c4f62a34e34 100644
 --- a/drivers/staging/media/rkvdec/rkvdec.c
 +++ b/drivers/staging/media/rkvdec/rkvdec.c
 @@ -74,10 +74,45 @@ static const struct rkvdec_ctrls rkvdec_h264_ctrls = {
@@ -1676,10 +1679,10 @@ index 97698be9072e..a1c1ca56c629 100644
  };
  
 diff --git a/drivers/staging/media/rkvdec/rkvdec.h b/drivers/staging/media/rkvdec/rkvdec.h
-index 9a9898cdb2fd..acbb4daf6e06 100644
+index 2fc9f46b6910..2a795babfccd 100644
 --- a/drivers/staging/media/rkvdec/rkvdec.h
 +++ b/drivers/staging/media/rkvdec/rkvdec.h
-@@ -53,6 +53,10 @@ struct rkvdec_vp9_decoded_buffer_info {
+@@ -52,6 +52,10 @@ struct rkvdec_vp9_decoded_buffer_info {
  struct rkvdec_decoded_buffer {
  	/* Must be the first field in this struct. */
  	struct v4l2_m2m_buffer base;
@@ -1690,7 +1693,7 @@ index 9a9898cdb2fd..acbb4daf6e06 100644
  };
  
  static inline struct rkvdec_decoded_buffer *
-@@ -121,4 +125,6 @@ void rkvdec_run_preamble(struct rkvdec_ctx *ctx, struct rkvdec_run *run);
+@@ -118,4 +122,6 @@ void rkvdec_run_preamble(struct rkvdec_ctx *ctx, struct rkvdec_run *run);
  void rkvdec_run_postamble(struct rkvdec_ctx *ctx, struct rkvdec_run *run);
  
  extern const struct rkvdec_coded_fmt_ops rkvdec_h264_fmt_ops;

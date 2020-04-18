@@ -13,20 +13,28 @@ Let's provide generic helpers to create those lists.
 Signed-off-by: Boris Brezillon <boris.brezillon@collabora.com>
 Signed-off-by: Ezequiel Garcia <ezequiel@collabora.com>
 ---
+v8:
+* None.
+v7:
+* Replace magic numbers with macros,
+  as pointed out by Mauro.
+* Prevent and WARN_ON() out of bounds access.
+---
  drivers/media/v4l2-core/Kconfig     |   4 +
  drivers/media/v4l2-core/Makefile    |   1 +
- drivers/media/v4l2-core/v4l2-h264.c | 258 ++++++++++++++++++++++++++++
+ drivers/media/v4l2-core/v4l2-h264.c | 270 ++++++++++++++++++++++++++++
+ include/media/h264-ctrls.h          |   8 +-
  include/media/v4l2-h264.h           |  85 +++++++++
- 4 files changed, 348 insertions(+)
+ 5 files changed, 367 insertions(+), 1 deletion(-)
  create mode 100644 drivers/media/v4l2-core/v4l2-h264.c
  create mode 100644 include/media/v4l2-h264.h
 
 diff --git a/drivers/media/v4l2-core/Kconfig b/drivers/media/v4l2-core/Kconfig
-index 39e3fb30ba0b..8a4ccfbca8cf 100644
+index 89809ec24779..db09e8b643fd 100644
 --- a/drivers/media/v4l2-core/Kconfig
 +++ b/drivers/media/v4l2-core/Kconfig
-@@ -45,6 +45,10 @@ config VIDEO_PCI_SKELETON
- config VIDEO_TUNER
+@@ -49,6 +49,10 @@ config VIDEO_TUNER
+ config V4L2_JPEG_HELPER
  	tristate
  
 +# Used by drivers that need v4l2-h264.ko
@@ -37,7 +45,7 @@ index 39e3fb30ba0b..8a4ccfbca8cf 100644
  config V4L2_MEM2MEM_DEV
  	tristate
 diff --git a/drivers/media/v4l2-core/Makefile b/drivers/media/v4l2-core/Makefile
-index 786bd1ec4d1b..c5c53e0941ad 100644
+index 144564656d22..2ef0c7c958a2 100644
 --- a/drivers/media/v4l2-core/Makefile
 +++ b/drivers/media/v4l2-core/Makefile
 @@ -21,6 +21,7 @@ obj-$(CONFIG_VIDEO_V4L2) += v4l2-dv-timings.o
@@ -50,10 +58,10 @@ index 786bd1ec4d1b..c5c53e0941ad 100644
  
 diff --git a/drivers/media/v4l2-core/v4l2-h264.c b/drivers/media/v4l2-core/v4l2-h264.c
 new file mode 100644
-index 000000000000..4f68c27ec7fd
+index 000000000000..edf6225f0522
 --- /dev/null
 +++ b/drivers/media/v4l2-core/v4l2-h264.c
-@@ -0,0 +1,258 @@
+@@ -0,0 +1,270 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * V4L2 H264 helpers.
@@ -83,7 +91,7 @@ index 000000000000..4f68c27ec7fd
 +		const struct v4l2_ctrl_h264_decode_params *dec_params,
 +		const struct v4l2_ctrl_h264_slice_params *slice_params,
 +		const struct v4l2_ctrl_h264_sps *sps,
-+		const struct v4l2_h264_dpb_entry *dpb)
++		const struct v4l2_h264_dpb_entry dpb[V4L2_H264_NUM_DPB_ENTRIES])
 +{
 +	int cur_frame_num, max_frame_num;
 +	unsigned int i;
@@ -100,7 +108,7 @@ index 000000000000..4f68c27ec7fd
 +	else
 +		b->cur_pic_order_count = dec_params->top_field_order_cnt;
 +
-+	for (i = 0; i < 16; i++) {
++	for (i = 0; i < V4L2_H264_NUM_DPB_ENTRIES; i++) {
 +		u32 pic_order_count;
 +
 +		if (!(dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE))
@@ -149,6 +157,10 @@ index 000000000000..4f68c27ec7fd
 +	idxa = *((u8 *)ptra);
 +	idxb = *((u8 *)ptrb);
 +
++	if (WARN_ON(idxa >= V4L2_H264_NUM_DPB_ENTRIES ||
++		    idxb >= V4L2_H264_NUM_DPB_ENTRIES))
++		return 1;
++
 +	if (builder->refs[idxa].longterm != builder->refs[idxb].longterm) {
 +		/* Short term pics first. */
 +		if (!builder->refs[idxa].longterm)
@@ -179,6 +191,10 @@ index 000000000000..4f68c27ec7fd
 +
 +	idxa = *((u8 *)ptra);
 +	idxb = *((u8 *)ptrb);
++
++	if (WARN_ON(idxa >= V4L2_H264_NUM_DPB_ENTRIES ||
++		    idxb >= V4L2_H264_NUM_DPB_ENTRIES))
++		return 1;
 +
 +	if (builder->refs[idxa].longterm != builder->refs[idxb].longterm) {
 +		/* Short term pics first. */
@@ -220,6 +236,10 @@ index 000000000000..4f68c27ec7fd
 +
 +	idxa = *((u8 *)ptra);
 +	idxb = *((u8 *)ptrb);
++
++	if (WARN_ON(idxa >= V4L2_H264_NUM_DPB_ENTRIES ||
++		    idxb >= V4L2_H264_NUM_DPB_ENTRIES))
++		return 1;
 +
 +	if (builder->refs[idxa].longterm != builder->refs[idxb].longterm) {
 +		/* Short term pics first. */
@@ -269,7 +289,7 @@ index 000000000000..4f68c27ec7fd
 +			   u8 *reflist)
 +{
 +	memcpy(reflist, builder->unordered_reflist,
-+	       sizeof(builder->unordered_reflist));
++	       sizeof(builder->unordered_reflist[0]) * builder->num_valid);
 +	sort_r(reflist, builder->num_valid, sizeof(*reflist),
 +	       v4l2_h264_p_ref_list_cmp, NULL, builder);
 +}
@@ -294,12 +314,12 @@ index 000000000000..4f68c27ec7fd
 +			    u8 *b0_reflist, u8 *b1_reflist)
 +{
 +	memcpy(b0_reflist, builder->unordered_reflist,
-+	       sizeof(builder->unordered_reflist));
++	       sizeof(builder->unordered_reflist[0]) * builder->num_valid);
 +	sort_r(b0_reflist, builder->num_valid, sizeof(*b0_reflist),
 +	       v4l2_h264_b0_ref_list_cmp, NULL, builder);
 +
 +	memcpy(b1_reflist, builder->unordered_reflist,
-+	       sizeof(builder->unordered_reflist));
++	       sizeof(builder->unordered_reflist[0]) * builder->num_valid);
 +	sort_r(b1_reflist, builder->num_valid, sizeof(*b1_reflist),
 +	       v4l2_h264_b1_ref_list_cmp, NULL, builder);
 +
@@ -312,9 +332,35 @@ index 000000000000..4f68c27ec7fd
 +MODULE_LICENSE("GPL");
 +MODULE_DESCRIPTION("V4L2 H264 Helpers");
 +MODULE_AUTHOR("Boris Brezillon <boris.brezillon@collabora.com>");
+diff --git a/include/media/h264-ctrls.h b/include/media/h264-ctrls.h
+index 1c6ff7d63bca..080fd1293c42 100644
+--- a/include/media/h264-ctrls.h
++++ b/include/media/h264-ctrls.h
+@@ -13,6 +13,12 @@
+ 
+ #include <linux/videodev2.h>
+ 
++/*
++ * Maximum DPB size, as specified by section 'A.3.1 Level limits
++ * common to the Baseline, Main, and Extended profiles'.
++ */
++#define V4L2_H264_NUM_DPB_ENTRIES 16
++
+ /* Our pixel format isn't stable at the moment */
+ #define V4L2_PIX_FMT_H264_SLICE v4l2_fourcc('S', '2', '6', '4') /* H264 parsed slices */
+ 
+@@ -201,7 +207,7 @@ struct v4l2_h264_dpb_entry {
+ #define V4L2_H264_DECODE_PARAM_FLAG_IDR_PIC	0x01
+ 
+ struct v4l2_ctrl_h264_decode_params {
+-	struct v4l2_h264_dpb_entry dpb[16];
++	struct v4l2_h264_dpb_entry dpb[V4L2_H264_NUM_DPB_ENTRIES];
+ 	__u16 num_slices;
+ 	__u16 nal_ref_idc;
+ 	__s32 top_field_order_cnt;
 diff --git a/include/media/v4l2-h264.h b/include/media/v4l2-h264.h
 new file mode 100644
-index 000000000000..36d25c27cc31
+index 000000000000..bc9ebb560ccf
 --- /dev/null
 +++ b/include/media/v4l2-h264.h
 @@ -0,0 +1,85 @@
@@ -355,9 +401,9 @@ index 000000000000..36d25c27cc31
 +		int frame_num;
 +		u16 pic_num;
 +		u16 longterm : 1;
-+	} refs[16];
++	} refs[V4L2_H264_NUM_DPB_ENTRIES];
 +	s32 cur_pic_order_count;
-+	u8 unordered_reflist[16];
++	u8 unordered_reflist[V4L2_H264_NUM_DPB_ENTRIES];
 +	u8 num_valid;
 +};
 +
@@ -366,7 +412,7 @@ index 000000000000..36d25c27cc31
 +		const struct v4l2_ctrl_h264_decode_params *dec_params,
 +		const struct v4l2_ctrl_h264_slice_params *slice_params,
 +		const struct v4l2_ctrl_h264_sps *sps,
-+		const struct v4l2_h264_dpb_entry *dpb);
++		const struct v4l2_h264_dpb_entry dpb[V4L2_H264_NUM_DPB_ENTRIES]);
 +
 +/**
 + * v4l2_h264_build_b_ref_lists() - Build the B0/B1 reference lists

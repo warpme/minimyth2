@@ -136,14 +136,16 @@ PATCHFILES += 0362-arm64-dts-meson-gxl-s905x-p212-add-bluetooth-nodes.patch
 
 ifeq (0,1)
 # Rockchip: rkvdec rk3399
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=244851 v6 20.02.2020
 PATCHFILES += 0401-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
+# Add the rkvdec driver
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=266263 v8 03.04.2020
 PATCHFILES += 0402-media-v4l2-core-Add-helpers-to-build-the-H264-P-B0-B1-reflists.patch
 PATCHFILES += 0403-media-hantro-h264-Use-the-generic-H264-reflist-builder.patch
 PATCHFILES += 0404-media-dt-bindings-rockchip-Document-RK3399-Video-Decoder-bindings.patch
 PATCHFILES += 0405-media-rkvdec-Add-the-rkvdec-driver.patch
 PATCHFILES += 0406-arm64-dts-rockchip-rk3399-Define-the-rockchip-Video-Decoder-node.patch
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=216701 13.12.2019
+# Add a VP9 backend
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=269213 v2 04.10.2020
 PATCHFILES += 0408-media-v4l2-ctrls-Add-the-__-v4l2_ctrl_s_ctrl_compound-helpers.patch
 PATCHFILES += 0409-media-uapi-Add-VP9-stateless-decoder-controls.patch
 PATCHFILES += 0410-media-rkvdec-Add-the-VP9-backend.patch
@@ -163,7 +165,6 @@ endif
 
 ifeq (1,1)
 # Rockchip: hantro vdec rk3328/3399 improvements - patches from kwiboo
-PATCHFILES += 0436-media-hantro-fix-extra-MV-MC-sync-space-calculation.patch
 PATCHFILES += 0437-media-hantro-Prevent-encoders-from-using-post-proces.patch
 PATCHFILES += 0438-RFC-media-uapi-h264-Add-DPB-entry-field-reference-fl.patch
 PATCHFILES += 0439-RFC-media-hantro-Fix-H264-decoding-of-field-encoded-.patch
