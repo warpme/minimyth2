@@ -197,6 +197,16 @@ PATCHFILES += 0464-phy-rockchip-inno-hdmi-Support-more-pre-pll-configuration.pat
 endif
 
 ifeq (1,1)
+# rk3399: Fix HDMI out
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=265283 v3 02.04.2020
+PATCHFILES += 0471-clk-rk3399-Set-empty-for-vopl-assigned-clocks.patch
+PATCHFILES += 0472-video-rockchip-Fix-vop-modes-for-rk3399.patch
+PATCHFILES += 0473-rockchip-Enable-pre-console-for-rk3399.patch
+PATCHFILES += 0474-rockchip-Enable-HDMI-output-on-rk3399-board-w-HDMI.patch
+PATCHFILES += 0475-video-rockchip-Support-4K-resolution-for-rk3399-HDMI.patch
+endif
+
+ifeq (1,1)
 # Allwinner H6: Support for USB3
 PATCHFILES += 0522-arm64-allwinner-dts-h6-enable-USB3-port-on-Beelink-G.patch
 # Allwinner H6: Misc patches
