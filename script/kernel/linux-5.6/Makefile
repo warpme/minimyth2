@@ -229,6 +229,17 @@ PATCHFILES += 0554-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
 PATCHFILES += 0555-arm64-dts-allwinner-h6-enable-dvfs-fix-CPU-voltage-some-boards.patch
 endif
 
+ifeq (0,1)
+# Add support for Allwinner H6 DVFS
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=266635 v2 05.04.2020
+PATCHFILES += 0557-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
+PATCHFILES += 0558-arm64-dts-allwinner-h6-Add-thermal-trip-points-cooling-map.patch
+PATCHFILES += 0559-arm64-dts-allwinner-h6-Add-CPU-Operating-Performance-Points-table.patch
+PATCHFILES += 0560-arm64-dts-allwinner-h6-Add-GPU-Operating-Performance-Points-table.patch
+PATCHFILES += 0562-arm64-dts-allwinner-h6-Enable-CPU-and-GPU-opp-tables-for-Beelink-GS1.patch
+PATCHFILES += 0563-arm64-dts-allwinner-h6-Enable-CPU-and-GPU-opp-tables-for-Orange-Pi-boards.patch
+endif
+
 ifeq (1,1)
 # Allwinner H6: Enable HDMI audio
 # https://github.com/codekipper/linux-sunxi/commits/upstream-i2s
