@@ -134,7 +134,7 @@ PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
 # https://patchwork.kernel.org/patch/11394603/
 PATCHFILES += 0362-arm64-dts-meson-gxl-s905x-p212-add-bluetooth-nodes.patch
 
-ifeq (0,1)
+ifeq (1,1)
 # Rockchip: rkvdec rk3399
 PATCHFILES += 0401-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
 # Add the rkvdec driver
@@ -163,7 +163,7 @@ PATCHFILES += 0426-hantro-Refactor-for-V4L2-API-spec-compliancy.patch.patch
 PATCHFILES += 0427-dt-bindings-rockchip-vpu-Convert-bindings-to-json-schema.patch
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 # Rockchip: hantro vdec rk3328/3399 improvements - patches from kwiboo
 PATCHFILES += 0437-media-hantro-Prevent-encoders-from-using-post-proces.patch
 PATCHFILES += 0438-RFC-media-uapi-h264-Add-DPB-entry-field-reference-fl.patch
@@ -197,16 +197,6 @@ PATCHFILES += 0464-phy-rockchip-inno-hdmi-Support-more-pre-pll-configuration.pat
 endif
 
 ifeq (1,1)
-# rk3399: Fix HDMI out
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=265283 v3 02.04.2020
-PATCHFILES += 0471-clk-rk3399-Set-empty-for-vopl-assigned-clocks.patch
-PATCHFILES += 0472-video-rockchip-Fix-vop-modes-for-rk3399.patch
-PATCHFILES += 0473-rockchip-Enable-pre-console-for-rk3399.patch
-PATCHFILES += 0474-rockchip-Enable-HDMI-output-on-rk3399-board-w-HDMI.patch
-PATCHFILES += 0475-video-rockchip-Support-4K-resolution-for-rk3399-HDMI.patch
-endif
-
-ifeq (1,1)
 # Allwinner H6: Support for USB3
 PATCHFILES += 0522-arm64-allwinner-dts-h6-enable-USB3-port-on-Beelink-G.patch
 # Allwinner H6: Misc patches
@@ -233,17 +223,18 @@ PATCHFILES += 0551-thermal-sun8i-add-dts-nodes.patch
 PATCHFILES += 0552-thermal-sun8i-enable-ths-in-h6-boards.patch
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 # Allwinner H6: Add DVFS
 PATCHFILES += 0553-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
 PATCHFILES += 0554-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
 PATCHFILES += 0555-arm64-dts-allwinner-h6-enable-dvfs-fix-CPU-voltage-some-boards.patch
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # Add support for Allwinner H6 DVFS
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=266635 v2 05.04.2020
-PATCHFILES += 0557-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
+PATCHFILES += 0553-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
+#PATCHFILES += 0557-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
 PATCHFILES += 0558-arm64-dts-allwinner-h6-Add-thermal-trip-points-cooling-map.patch
 PATCHFILES += 0559-arm64-dts-allwinner-h6-Add-CPU-Operating-Performance-Points-table.patch
 PATCHFILES += 0560-arm64-dts-allwinner-h6-Add-GPU-Operating-Performance-Points-table.patch
