@@ -134,7 +134,7 @@ PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
 # https://patchwork.kernel.org/patch/11394603/
 PATCHFILES += 0362-arm64-dts-meson-gxl-s905x-p212-add-bluetooth-nodes.patch
 
-ifeq (1,1)
+ifeq (0,1)
 # Rockchip: rkvdec rk3399
 PATCHFILES += 0401-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
 # Add the rkvdec driver
@@ -163,7 +163,7 @@ PATCHFILES += 0426-hantro-Refactor-for-V4L2-API-spec-compliancy.patch.patch
 PATCHFILES += 0427-dt-bindings-rockchip-vpu-Convert-bindings-to-json-schema.patch
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # Rockchip: hantro vdec rk3328/3399 improvements - patches from kwiboo
 PATCHFILES += 0437-media-hantro-Prevent-encoders-from-using-post-proces.patch
 PATCHFILES += 0438-RFC-media-uapi-h264-Add-DPB-entry-field-reference-fl.patch
