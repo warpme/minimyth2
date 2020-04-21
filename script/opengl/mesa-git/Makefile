@@ -1,10 +1,24 @@
 
 GARNAME      = mesa
-GARVERSION   = 420ca1e4a1814c86af5fabff8658526a6e2baab1
+
+ifeq (1,1)
+# Mainline MESA 21.04.2020
+GARVERSION   = f06e4ab3190a0a715447c4df4017892adb8708dc
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
+endif
+
+ifeq (0,1)
+# test brach
+GARVERSION   = ba10d70534042dabefd970b9979ed37c12a66e75
+CATEGORIES   = $(CATEGORY)
+MASTER_SITES = https://gitlab.freedesktop.org/tomeu/mesa/-/archive/$(GARVERSION)/
+DISTFILES    = mesa-$(DISTNAME).tar.bz2
+PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
+endif
+
 LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
