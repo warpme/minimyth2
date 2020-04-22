@@ -1,0 +1,95 @@
+From 8ac8e905e934aaae3f3ad3a0e2f2066b55b1c560 Mon Sep 17 00:00:00 2001
+From: Ming Qian <ming.qian@nxp.com>
+Date: Wed, 1 Apr 2020 10:38:45 +0800
+Subject: [PATCH] avcodec/v4l2_m2m: handle v4l2 end of stream event
+
+When flushing the capture buffers, the driver may send a V4L2_EVENT_EOS
+to notify that draining is completed. Currently, v4l2_m2m does not
+subscribe to this event, which can cause some devices (i.e. imx8qm) to
+hang at the end of encoding/decoding. Support for handling the event is
+added in this commit.
+
+Some devices may not signal V4L2_EVENT_EOS. This is logged as a warning
+message during initialization and not treated as a fatal error.
+
+Signed-off-by: Ming Qian <ming.qian@nxp.com>
+Signed-off-by: Andriy Gelman <andriy.gelman@gmail.com>
+---
+ libavcodec/v4l2_context.c |  6 ++++++
+ libavcodec/v4l2_m2m_dec.c |  7 +++++++
+ libavcodec/v4l2_m2m_enc.c | 13 +++++++++++++
+ 3 files changed, 26 insertions(+)
+
+diff --git mythtv-master-20200418-g8760389-old/mythtv/external/FFmpeg/libavcodec/v4l2_context.c mythtv-master-20200418-g8760389-new/mythtv/external/FFmpeg/libavcodec/v4l2_context.c
+index 31af10d28eb..6c2db5c8496 100644
+--- mythtv-master-20200418-g8760389-old/mythtv/external/FFmpeg/libavcodec/v4l2_context.c
++++ mythtv-master-20200418-g8760389-new/mythtv/external/FFmpeg/libavcodec/v4l2_context.c
+@@ -154,6 +154,7 @@ static inline void v4l2_save_to_context(V4L2Context* ctx, struct v4l2_format_upd
+ }
+ 
+ /**
++ * handle resolution change event and end of stream event
+  * returns 1 if reinit was successful, negative if it failed
+  * returns 0 if reinit was not executed
+  */
+@@ -171,6 +172,11 @@ static int v4l2_handle_event(V4L2Context *ctx)
+         return 0;
+     }
+ 
++    if (evt.type == V4L2_EVENT_EOS) {
++        ctx->done = 1;
++        return 0;
++    }
++
+     if (evt.type != V4L2_EVENT_SOURCE_CHANGE)
+         return 0;
+ 
+diff --git mythtv-master-20200418-g8760389-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c mythtv-master-20200418-g8760389-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c
+index c5ee86b9935..3e17e0fcaca 100644
+--- mythtv-master-20200418-g8760389-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c
++++ mythtv-master-20200418-g8760389-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c
+@@ -123,6 +123,13 @@ static int v4l2_prepare_decoder(V4L2m2mContext *s)
+         }
+     }
+ 
++    memset(&sub, 0, sizeof(sub));
++    sub.type = V4L2_EVENT_EOS;
++    ret = ioctl(s->fd, VIDIOC_SUBSCRIBE_EVENT, &sub);
++    if (ret < 0)
++        av_log(s->avctx, AV_LOG_WARNING,
++               "the v4l2 driver does not support end of stream VIDIOC_SUBSCRIBE_EVENT\n");
++
+     return 0;
+ }
+ 
+diff --git mythtv-master-20200418-g8760389-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_enc.c mythtv-master-20200418-g8760389-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_enc.c
+index 84de63ec9d1..a0258601269 100644
+--- mythtv-master-20200418-g8760389-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_enc.c
++++ mythtv-master-20200418-g8760389-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_enc.c
+@@ -155,6 +155,17 @@ static int v4l2_check_b_frame_support(V4L2m2mContext *s)
+     return AVERROR_PATCHWELCOME;
+ }
+ 
++static inline void v4l2_subscribe_eos_event(V4L2m2mContext *s)
++{
++    struct v4l2_event_subscription sub;
++
++    memset(&sub, 0, sizeof(sub));
++    sub.type = V4L2_EVENT_EOS;
++    if (ioctl(s->fd, VIDIOC_SUBSCRIBE_EVENT, &sub) < 0)
++        av_log(s->avctx, AV_LOG_WARNING,
++               "the v4l2 driver does not support end of stream VIDIOC_SUBSCRIBE_EVENT\n");
++}
++
+ static int v4l2_prepare_encoder(V4L2m2mContext *s)
+ {
+     AVCodecContext *avctx = s->avctx;
+@@ -164,6 +175,8 @@ static int v4l2_prepare_encoder(V4L2m2mContext *s)
+     /**
+      * requirements
+      */
++    v4l2_subscribe_eos_event(s);
++
+     ret = v4l2_check_b_frame_support(s);
+     if (ret)
+         return ret;
