@@ -39,9 +39,16 @@ PATCHFILES += 0100-aarch64-text-offset.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.6 kernel
-PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+# PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
+# Add suport for tests on Bifrost
+# https://github.com/superna9999/linux/commits/amlogic/v5.8/bifrost
+PATCHFILES += 0104-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+PATCHFILES += 0105-Also-use-meson-hack-on-amlogic-meson-g12a-mali.patch
+PATCHFILES += 0106-Sync-G31-features-with-kbase.patch
+PATCHFILES += 0107-Comment-out-reading-GPU_LATEST_FLUSH_ID-as-it-causes-external-abort.patch
 endif
+
 ifeq (1,1)
 # Misc lima patches for 5.6 kernel
 PATCHFILES += 0110-drm-lima-update-register-info.patch
@@ -215,31 +222,19 @@ PATCHFILES += 0534-arm64-dts-sun50i-h6-add-AC200-nodes.patch
 # Allwinner H6: HW cursor support in drm planes
 PATCHFILES += 0535-drm-sun4i-Mark-one-of-the-UI-planes-as-a-cursor-one.patch
 PATCHFILES += 0536-drm-sun8i-ui-vi-Fix-layer-zpos-change-atomic-modesetting.patch
-endif
-
-ifeq (1,1)
 # Allwinner H6: Add thermal support
-PATCHFILES += 0551-thermal-sun8i-add-dts-nodes.patch
 PATCHFILES += 0552-thermal-sun8i-enable-ths-in-h6-boards.patch
-endif
-
-ifeq (0,1)
-# Allwinner H6: Add DVFS
-PATCHFILES += 0553-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
-PATCHFILES += 0554-arm64-dts-allwinner-h6-Add-CPU-OPP-table.patch
-PATCHFILES += 0555-arm64-dts-allwinner-h6-enable-dvfs-fix-CPU-voltage-some-boards.patch
 endif
 
 ifeq (1,1)
 # Add support for Allwinner H6 DVFS
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=266635 v2 05.04.2020
-PATCHFILES += 0553-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
-#PATCHFILES += 0557-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
+PATCHFILES += 0557-arm64-dts-allwinner-h6-Add-clock-to-CPU-cores.patch
 PATCHFILES += 0558-arm64-dts-allwinner-h6-Add-thermal-trip-points-cooling-map.patch
 PATCHFILES += 0559-arm64-dts-allwinner-h6-Add-CPU-Operating-Performance-Points-table.patch
 PATCHFILES += 0560-arm64-dts-allwinner-h6-Add-GPU-Operating-Performance-Points-table.patch
-PATCHFILES += 0562-arm64-dts-allwinner-h6-Enable-CPU-and-GPU-opp-tables-for-Beelink-GS1.patch
-PATCHFILES += 0563-arm64-dts-allwinner-h6-Enable-CPU-and-GPU-opp-tables-for-Orange-Pi-boards.patch
+# Enable only CPU DVFS as GPU seems to be broken at the moment
+PATCHFILES += 0562-arm64-dts-allwinner-h6-Enable-CPU-DVFS-on-multiple-boards.patch
 endif
 
 ifeq (1,1)
