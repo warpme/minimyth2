@@ -1,48 +1,4 @@
-# this ver: v3.13  
-#
-# v2.0:
-#     Major version with cleaned up install and preparation
-#     for SD card autocretation
-# v2.1:
-#     Return managing rootfs only as tar.bz2 archive. This seems
-#     required by root rights on rootfs
-# v3.0
-#     Removed DISTRIBUTION_LOCAL
-#     Added DISTRIBUTION_SDCARD
-#     Make only <boot dir>, <rootfs dir> and rootfs.fakeroot if
-#     no any DISTRIBUTION is set
-# v3.1
-#     Add qt5 eglfsintegration support
-# v3.2
-#     Fix libglesv2.so/libegl.so symlinking
-# v3.3
-#     Add scp chmod to 755
-# v3.4
-#     Add subsitution of mm_HOME in devel-scripts-*
-# v3.5
-#     Change mm_version subst. in splashscreen configs
-# v3.6
-#     Add hack splashscreen for rpi kernel
-# v3.7
-#     Add removal *.orig files in python/perl
-# v3.8
-#     Add rockchip sun4i in lists of supported GFX
-# v3.9
-#     Use SD card bzip2 without tar
-# v3.10
-#     Added copy of supported gfx/ir to html files
-#     Fix bug with hardcoded path to kickstart-oe build-image.sh script
-# v3.11
-#     Add always copy /boot to staging dir as his is required also for
-#     board-x86pc-* bootloader
-# v3.12
-#     Switch busybox install method to cop files from <package>/busybox.bins
-#
-# v3.13
-#     Add calling kickstart-oe create-image.sh script with mm_BOARD_TYPE 
-#     cmd line param. this allows to rebuild dedicated image for declared
-#     set of boards by calling make reinstall-new-board mm_BOARD_TYPE="<list of boards>"
-#
+
 top        = ../
 top_source = ./
 top_build  = ../build/
@@ -489,9 +445,8 @@ endif
 	@# Generate font files.
 	@cd $@~$(datadir)/fonts/X11/misc ; mkfontscale . ; mkfontdir .
 	@cd $@~$(datadir)/fonts/X11/TTF  ; mkfontscale . ; mkfontdir .
-ifeq (1,1)
 	@# Strip binaries and shared libraries.
-	@if [ ! $(mm_DEBUG) = yes ] ; then                                                    \
+	@if [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then                     \
 		echo 'stripping binaries and shared libraries'                              ; \
 		echo "  size before:"`du -sh $@~ | sed -e "s/\(\.*\)\t.*/\1/"`              ; \
 		find $@~ -depth -exec file '{}' \;                                            \
@@ -500,11 +455,9 @@ ifeq (1,1)
 			| xargs $(STRIP) --strip-all -R .note -R .comment                   ; \
 		echo "  size after :"`du -sh $@~ | sed -e "s/\(\.*\)\t.*/\1/"`              ; \
 	 fi
-endif
-ifeq (1,1)
 	@# Strip Perl scripts
 	@# If running a parallel build, then let perlstrip.pl start the same number of threads.
-	@if [ ! $(mm_DEBUG) = yes ] ; then                                                \
+	@if [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then                 \
 		threads="$(patsubst -j%,%,$(filter -j%,$(PARALLELMFLAGS)))"             ; \
 		echo "stripping perl ($${threads} threads)"                             ; \
 		[ "$${threads}" = "" ] && threads="1"                                   ; \
@@ -520,10 +473,9 @@ ifeq (1,1)
 		done                                                                    ; \
 		echo "  size after :"`du -sh $${dir_list} | sed -e "s/\(\.*\)\t.*/\1/"` ; \
 	 fi
-endif
+	@# Strip Python scripts (currently disabled due issues)
 ifeq (1,0)
-	@# Strip Python scripts
-	@if [ ! $(mm_DEBUG) = yes ] ; then                                                \
+	@if [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then                 \
 		echo 'stripping python'                                                 ; \
 		dir_list="$@~$(PYTHON_libdir) $@~$(datadir)/mythtv"                     ; \
 		file_list=`find $${dir_list} -depth -name '*.py'`                       ; \

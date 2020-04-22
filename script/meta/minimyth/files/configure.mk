@@ -60,9 +60,6 @@ MM_INIT_KILL := \
 
 build_vars := $(filter-out mm_HOME mm_TFTP_ROOT mm_NFS_ROOT mm_SHARE_FILES mm_SDCARD_FILES,$(sort $(shell cat $(mm_HOME)/script/minimyth.conf.mk | grep -e '^mm_' | sed -e 's%[ =].*%%')))
 
-#	$(if $(filter 0.28 29 30 master,$(mm_MYTH_VERSION)), $(qt5bindir)) \
-#	$(if $(filter 0.28 29 30 master,$(mm_MYTH_VERSION)), $(qt5libdir)) \
-
 bindirs_base := \
 	$(extras_sbindir) \
 	$(extras_bindir) \
@@ -131,6 +128,7 @@ MM_CONFIG_VARS := $(sort \
 	mm_CONF_VERSION \
 	mm_DEBUG \
 	mm_DEBUG_BUILD \
+	mm_STRIP_IMAGE \
 	mm_DESTDIR \
 	mm_DISTRIBUTION_SDCARD \
 	mm_DISTRIBUTION_NFS \

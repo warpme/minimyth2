@@ -70,6 +70,11 @@ mm-all:
 		echo "error: mm_DEBUG_BUILD=\"$(mm_DEBUG_BUILD)\" is an invalid value." ; \
 		exit 1 ; \
 	fi
+	@echo "    mm_STRIP_IMAGE"
+	@if [ ! "$(mm_STRIP_IMAGE)" = "yes" ] && [ ! "$(mm_STRIP_IMAGE)" = "no" ] ; then \
+		echo "error: mm_STRIP_IMAGE=\"$(mm_STRIP_IMAGE)\" is an invalid value." ; \
+		exit 1 ; \
+	fi
 	@echo "    mm_GRAPHICS"
 	@for graphic in $(mm_GRAPHICS) ; do \
 		if [ ! "$${graphic}" = "intel"         ] && \
