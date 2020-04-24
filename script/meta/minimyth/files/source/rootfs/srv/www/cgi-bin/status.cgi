@@ -44,28 +44,66 @@ while (($#status_sensors_body >= 0) && ($status_sensors_body[$#status_sensors_bo
     pop(@status_sensors_body);
 }
 
-my $status_loads_head = q(Loads (output of file "/proc/loadavg"));
-my @status_loads_body = ();
-if (-e '/proc/loadavg')
+
+my $status_cpu_freq_head = "";
+my @status_cpu_freq_body = ();
+
+my $cpu_freq = `find /sys/devices/system/cpu/cpufreq/policy*/stats -name trans_table`;
+#my $cpu_freq = `find /sys/devices/system/cpu/cpufreq/policy*/stats -name time_in_state`;
+if ($cpu_freq)
 {
-    if (open(FILE, '<', '/proc/loadavg'))
+    $status_cpu_freq_head = "CPU DVFS Freqs (output of ".$cpu_freq.")";
+    @status_cpu_freq_body = ();
+
+    if (open(FILE, "cat $cpu_freq |"))
     {
         while (<FILE>)
         {
             chomp;
-            push(@status_loads_body, $_);
+            push(@status_cpu_freq_body, $_);
         }
         close(FILE);
     }
+
+    while (($#status_cpu_freq_body >= 0) && ($status_cpu_freq_body[0] eq ''))
+    {
+        shift(@status_cpu_freq_body);
+    }
+    while (($#status_cpu_freq_body >= 0) && ($status_cpu_freq_body[$#status_cpu_freq_body] eq ''))
+    {
+        pop(@status_cpu_freq_body);
+    }
 }
-while (($#status_loads_body >= 0) && ($status_loads_body[0] eq ''))
+
+my $status_gpu_freq_head = "";
+my @status_gpu_freq_body = ();
+
+my $gpu_freq = `find /sys/bus/platform/drivers/*/*.gpu/devfreq -name trans_stat`;
+if ($gpu_freq)
 {
-    shift(@status_loads_body);
+    $status_gpu_freq_head = "GPU DVFS Freqs (output of ".$gpu_freq.")";
+    @status_gpu_freq_body = ();
+
+    if (open(FILE, "cat $gpu_freq |"))
+    {
+        while (<FILE>)
+        {
+            chomp;
+            push(@status_gpu_freq_body, $_);
+        }
+        close(FILE);
+    }
+
+    while (($#status_gpu_freq_body >= 0) && ($status_gpu_freq_body[0] eq ''))
+    {
+        shift(@status_gpu_freq_body);
+    }
+    while (($#status_gpu_freq_body >= 0) && ($status_gpu_freq_body[$#status_gpu_freq_body] eq ''))
+    {
+        pop(@status_gpu_freq_body);
+    }
 }
-while (($#status_loads_body >= 0) && ($status_loads_body[$#status_loads_body] eq ''))
-{
-    pop(@status_loads_body);
-}
+
 
 my @middle = ();
 
@@ -76,9 +114,13 @@ push(@middle, @status_sensors_body);
 push(@middle,  q(  </div>));
 push(@middle,  q(</div>));
 push(@middle,  q(<div class="section">));
-push(@middle, qq(  <div class="heading">$status_loads_head</div>));
+push(@middle, qq(  <div class="heading">$status_cpu_freq_head</div>));
 push(@middle,  q(  <div class="status">));
-push(@middle, @status_loads_body);
+if (@status_cpu_freq_body) {push(@middle, @status_cpu_freq_body)};
+push(@middle,  q(  </div>));
+push(@middle, qq(  <div class="heading">$status_gpu_freq_head</div>));
+push(@middle,  q(  <div class="status">));
+if (@status_gpu_freq_body) {push(@middle, @status_gpu_freq_body)};
 push(@middle,  q(  </div>));
 push(@middle,  q(</div>));
 
