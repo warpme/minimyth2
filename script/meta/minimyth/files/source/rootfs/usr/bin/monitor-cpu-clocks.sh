@@ -9,6 +9,7 @@ if [ ! -e ${freq_sysfs_entry} ] ; then
     echo " "
     echo "Error: can't find cpufreq sysfs entry....  Exiting!"
     echo " "
+    exit 1
 else
     echo " "
     echo "CPU Freg monitor v1.0"
@@ -23,8 +24,17 @@ prev_speed=0
 
 while true ; do
 
-    speed=`cat ${freq_sysfs_entry}`
-    speed=$((speed/1000))
+    speed=""
+    for policy in ${freq_sysfs_entry} ; do
+
+        policy_speed=`cat ${policy}`
+        policy_speed=$((policy_speed/1000))
+
+        speed=${speed}${policy_speed}"/"
+
+    done
+
+    speed=`echo ${speed} | sed -e "s%/$%%"`
 
     if [ ${speed} != ${prev_speed} ] ; then
 

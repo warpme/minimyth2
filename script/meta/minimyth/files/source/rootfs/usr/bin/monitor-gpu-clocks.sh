@@ -13,6 +13,7 @@ if [ ! -e ${freq_sysfs_entry} ] ; then
     echo " "
     echo "Error: can't find cpufreq sysfs entry....  Exiting!"
     echo " "
+    exit 1
 else
     echo " "
     echo "GPU Freg monitor v1.0"
@@ -54,3 +55,5 @@ while true ; do
     sleep 1
 
 done
+
+exit 0
