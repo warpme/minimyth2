@@ -1,14 +1,15 @@
-
-GARNAME       = gcc
-GARVERSION    = $(GCC_VERSION)
-CATEGORIES    = devel
+GARNAME = gcc
+GARVERSION = $(GCC_VERSION)
+CATEGORIES = devel
 MASTER_SITES  = https://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)/
-MASTER_SITES += https://gcc.gnu.org/pub/gcc/snapshots/$(GCC_VERSION)/
-DISTFILES     = $(DISTNAME).tar.xz
-PATCHFILES    = $(DISTNAME)-disable_multilib_i386_linux64.patch
+MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/releases/$(DISTNAME)/
+MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/prerelease-$(GCC_VERSION)/
+MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/snapshots/$(GCC_VERSION)/
+DISTFILES = $(DISTNAME).tar.xz
+PATCHFILES  = $(DISTNAME)-disable_multilib_i386_linux64.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
-PATCHFILES   += $(DISTNAME)-perl.patch.gar
-PATCHFILES   += $(DISTNAME)-libstdc++-v3-force_sdt.h-detect-to-no.patch
+PATCHFILES += $(DISTNAME)-perl.patch.gar
+PATCHFILES += $(DISTNAME)-libstdc++-v3-force_sdt.h-detect-to-no.patch
 endif
 LICENSE = GPL2/GPL3/LGPL2_1/LGPL3
 
@@ -116,7 +117,6 @@ post-install:
 	)
 	@# Cross compile.
 	@# Test install with: make install DESTIMG=build CROSSIMG=main
-	@$(warning CROSS_GCC_LIBDIR:$(CROSS_GCC_LIBDIR))
 	@$(if $(filter-out $(DESTIMG),$(CROSSIMG)), \
 		mkdir -p $(DESTDIR)$(prefix)/$(GARHOST)/bin ; \
 		cp $(DESTDIR)$(bindir)/$(GARTARGET)-cpp $(DESTDIR)$(prefix)/$(GARTARGET)/bin/cpp ; \
