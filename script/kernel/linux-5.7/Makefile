@@ -88,10 +88,8 @@ PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
 
-ifeq (0,1)
+ifeq (1,1)
 # Rockchip: rkvdec rk3399
-PATCHFILES += 0401-media-uapi-h264-Add-DPB-entry-field-reference-flags.patch
-# Add the rkvdec driver
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=266263 v8 03.04.2020
 PATCHFILES += 0402-media-v4l2-core-Add-helpers-to-build-the-H264-P-B0-B1-reflists.patch
 PATCHFILES += 0403-media-hantro-h264-Use-the-generic-H264-reflist-builder.patch
@@ -115,18 +113,6 @@ PATCHFILES += 0424-hantro-Remove-unneeded-hantro_dec_buf_finish.patch
 PATCHFILES += 0425-hantro-Move-H264-motion-vector-calculation-to-a-helper.patch
 PATCHFILES += 0426-hantro-Refactor-for-V4L2-API-spec-compliancy.patch.patch
 PATCHFILES += 0427-dt-bindings-rockchip-vpu-Convert-bindings-to-json-schema.patch
-endif
-
-ifeq (1,1)
-# Rockchip: hantro vdec rk3328/3399 improvements - patches from kwiboo
-PATCHFILES += 0439-RFC-media-hantro-Fix-H264-decoding-of-field-encoded-.patch
-PATCHFILES += 0440-WIP-media-hantro-rk3399-mpeg2-src_fmt.patch
-PATCHFILES += 0441-WIP-media-hantro-g1-mpeg2-src_fmt.patch
-PATCHFILES += 0442-WIP-media-hantro-vp8-src_fmt.patch
-PATCHFILES += 0443-media-hantro-Refactor-G1-H264-code.patch
-PATCHFILES += 0444-media-hantro-Add-support-for-H264-decoding-on-RK3399.patch
-PATCHFILES += 0445-media-hantro-Enable-H264-decoding-on-RK3399.patch
-PATCHFILES += 0446-media-hantro-Enable-H264-decoding-on-RK3328.patch
 endif
 
 ifeq (1,1)
