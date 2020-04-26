@@ -1,0 +1,60 @@
+From patchwork Wed Jan  8 21:07:50 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,07/14] drm/rockchip: dw-hdmi: require valid vpll clock rate on
+ rk3228/rk3328
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347838
+Message-Id: <20200108210740.28769-8-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:50 +0000 (UTC)
+
+RK3228/RK3328 can only support clock rates defined in the pre pll table.
+Lets validate the mode clock rate against the pre pll config and filter
+out any mode with a clock rate returning error from clk_round_rate().
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+index fae38b323a0c..45fcdce3f27f 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+@@ -245,6 +245,22 @@ static void dw_hdmi_rockchip_encoder_disable(struct drm_encoder *encoder)
+ {
+ }
+ 
++static enum drm_mode_status
++dw_hdmi_rockchip_encoder_mode_valid(struct drm_encoder *encoder,
++				    const struct drm_display_mode *mode)
++{
++	struct rockchip_hdmi *hdmi = to_rockchip_hdmi(encoder);
++	long rate;
++
++	if (hdmi->vpll_clk) {
++		rate = clk_round_rate(hdmi->vpll_clk, mode->clock * 1000);
++		if (rate < 0)
++			return MODE_CLOCK_RANGE;
++	}
++
++	return MODE_OK;
++}
++
+ static bool
+ dw_hdmi_rockchip_encoder_mode_fixup(struct drm_encoder *encoder,
+ 				    const struct drm_display_mode *mode,
+@@ -306,6 +322,7 @@ dw_hdmi_rockchip_encoder_atomic_check(struct drm_encoder *encoder,
+ }
+ 
+ static const struct drm_encoder_helper_funcs dw_hdmi_rockchip_encoder_helper_funcs = {
++	.mode_valid = dw_hdmi_rockchip_encoder_mode_valid,
+ 	.mode_fixup = dw_hdmi_rockchip_encoder_mode_fixup,
+ 	.mode_set   = dw_hdmi_rockchip_encoder_mode_set,
+ 	.enable     = dw_hdmi_rockchip_encoder_enable,
