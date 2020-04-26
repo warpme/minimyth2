@@ -1,12 +1,12 @@
-GARNAME = squashfs
-GARVERSION = 4.3
-CATEGORIES = lib
+
+GARNAME      = squashfs
+GARVERSION   = 4.4
+CATEGORIES   = lib
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARNAME)$(GARVERSION)/
-DISTFILES = $(GARNAME)$(GARVERSION).tar.gz
-PATCHFILES  = $(DISTNAME).patch.gar
-PATCHFILES += $(DISTNAME)-conform-gnu11-and-gnu89-to-fix-i386-compilation.patch
-PATCHFILES += $(DISTNAME)-add-sysmacros.patch
-LICENSE = GPL2
+DISTFILES    = $(GARNAME)$(GARVERSION).tar.gz
+PATCHFILES   = $(DISTNAME).patch.gar
+PATCHFILES  += $(DISTNAME)-fix-gcc10-compilation.patch
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
@@ -22,4 +22,3 @@ INSTALL_SCRIPTS = $(WORKSRC)/squashfs-tools/Makefile
 include ../../gar.mk
 
 LDFLAGS := $(LDFLAGS) -fwhole-program
-
