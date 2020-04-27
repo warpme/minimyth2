@@ -31,7 +31,7 @@ DEPENDS   =            \
 	gtk/glib       \
 	gtk/harfbuzz   \
 	devel/zlib     \
-	utils/ruby     \
+	devel/ruby     \
 	opengl/opengl  \
 	xorg/xorg      \
 

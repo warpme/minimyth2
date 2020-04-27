@@ -1,9 +1,10 @@
-GARNAME = ruby
-GARVERSION = 2.1.5
-CATEGORIES = utils
-MASTER_SITES = http://cache.ruby-lang.org/pub/ruby/
-DISTFILES = $(GARNAME)-$(GARVERSION).tar.xz
-LICENSE = GPL2
+
+GARNAME      = ruby
+GARVERSION   = 2.7.1
+CATEGORIES   = utils
+MASTER_SITES = https://cache.ruby-lang.org/pub/ruby/2.7/
+DISTFILES    = $(GARNAME)-$(GARVERSION).tar.xz
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
@@ -12,7 +13,7 @@ endef
 DEPENDS = lang/c
 
 ifneq ($(DESTIMG),build)
-BUILDDEPS += utils/ruby
+BUILDDEPS += devel/ruby
 endif
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
