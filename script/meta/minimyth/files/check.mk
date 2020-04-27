@@ -8,6 +8,14 @@ include ../../gar.mk
 
 mm-all:
 	@echo "checking ..."
+	@echo "  basic binaries ..."
+	@which bash > /dev/null 2>&1 ; \
+		if [ ! "$$?" = "0" ] ; then \
+			echo " " ; \
+			echo "erorr: your system does not contain the program 'which' and/or 'bash'" ; \
+			echo " " ; \
+			exit 1 ; \
+		fi
 	@# Check build environment.
 	@echo "  build system binaries ..."
 	@$(foreach pkg,$(build_system_bins), \
@@ -15,14 +23,18 @@ mm-all:
 			echo "    '$(bin)' (from package '$(pkg)')" ; \
 			which $(bin) > /dev/null 2>&1 ; \
 			if [ ! "$$?" = "0" ] ; then \
+				echo " " ; \
 				echo "error: your system does not contain the program '$(bin)' (from package '$(pkg)')." ; \
-				echo "exit 1" ; \
+				echo " " ; \
+				exit 1 ; \
 			fi ; \
 		) \
 	)
 	@echo "  build user uid and gid"
 	@if [ `id -u` -eq 0 ] || [ `id -g` -eq 0 ] ; then \
+		echo " " ; \
 		echo "error: gar-minimyth cannot be run by the user 'root'." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "  / and /usr directory access"
@@ -31,7 +43,9 @@ mm-all:
 	            /usr/local /usr/local/lib /usr/local/libexec /usr/local/bin /usr/local/sbin\
 	            /opt ; do \
 		if [ -e "$${dir}" ] && [ -w "$${dir}" ] ; then \
+			echo " " ; \
 			echo "error: gar-minimyth cannot be run by a user with write access to '$${dir}'." ; \
+			echo " " ; \
 			exit 1 ; \
 		fi ; \
 	done
@@ -44,35 +58,49 @@ mm-all:
 	    [ ! "$(mm_GARCH)" = "armv7"       ] && \
 	    [ ! "$(mm_GARCH)" = "armv8"       ] && \
 	    [ ! "$(mm_GARCH)" = "x86-64"      ] ; then \
+		echo " " ; \
 		echo "error: mm_GARCH=\"$(mm_GARCH)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_HOME"
 	@if [ ! "$(mm_HOME)" = "`cd $(GARDIR)/.. ; pwd`" ] ; then \
+		echo " " ; \
 		echo "error: mm_HOME must be set to \"`cd $(GARDIR)/.. ; pwd`\" but has been set to \"$(mm_HOME)\"."; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@if [ "$(firstword $(strip $(subst /, ,$(mm_HOME))))" = "$(firstword $(strip $(subst /, ,$(qt5prefix))))" ] ; then \
+		echo " " ; \
 		echo "error: MiniMyth cannot be built in a subdirectory of \"/$(firstword $(strip $(subst /, ,$(qt5prefix))))\"."; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@if [ "$(firstword $(strip $(subst /, ,$(mm_HOME))))" = "$(firstword $(strip $(subst /, ,$(qt4prefix))))" ] ; then \
+		echo " " ; \
 		echo "error: MiniMyth cannot be built in a subdirectory of \"/$(firstword $(strip $(subst /, ,$(qt4prefix))))\"."; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_DEBUG"
 	@if [ ! "$(mm_DEBUG)" = "yes" ] && [ ! "$(mm_DEBUG)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_DEBUG=\"$(mm_DEBUG)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_DEBUG_BUILD"
 	@if [ ! "$(mm_DEBUG_BUILD)" = "yes" ] && [ ! "$(mm_DEBUG_BUILD)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_DEBUG_BUILD=\"$(mm_DEBUG_BUILD)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_STRIP_IMAGE"
 	@if [ ! "$(mm_STRIP_IMAGE)" = "yes" ] && [ ! "$(mm_STRIP_IMAGE)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_STRIP_IMAGE=\"$(mm_STRIP_IMAGE)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_GRAPHICS"
@@ -88,7 +116,9 @@ mm-all:
 		   [ ! "$${graphic}" = "sun4i"         ] && \
 		   [ ! "$${graphic}" = "vc4"           ] && \
 		   [ ! "$${graphic}" = "vmware"        ] ; then \
+			echo " " ; \
 			echo "error: mm_GRAPHICS=\"$${graphic}\" is an invalid value." ; \
+			echo " " ; \
 			exit 1 ; \
 		fi ; \
 	done
@@ -102,7 +132,9 @@ mm-all:
 		   [ ! "$${opengl}" = "brcm-vc4"        ] && \
 		   [ ! "$${opengl}" = "mesa-git"        ] && \
 		   [ ! "$${opengl}" = "mesa"            ] ; then \
+			echo " " ; \
 			echo "error: mm_OPENGL_PROVIDER=\"$${opengl}\" is an invalid value." ; \
+			echo " " ; \
 			exit 1 ; \
 		fi ; \
 	done
@@ -140,7 +172,9 @@ mm-all:
 		   [ ! "$${software}" = "mesa-demos"     ] && \
 		   [ ! "$${software}" = "ffmpeg-drm"     ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
+			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
+			echo " " ; \
 			exit 1 ; \
 		fi ; \
 	done
@@ -150,7 +184,9 @@ mm-all:
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.8"           ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.9"           ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-4.19"      ] ; then \
+		echo " " ; \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_MYTH_VERSION"
@@ -160,25 +196,33 @@ mm-all:
 	    [ ! "$(mm_MYTH_VERSION)" = "32"           ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "master"       ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "test"         ] ; then \
+		echo " " ; \
 		echo "error: mm_MYTH_VERSION=\"$(mm_MYTH_VERSION)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_VERSION"
 	@if [ ! "$(mm_NVIDIA_VERSION)" = "440.64"    ] && \
 	    [ ! "$(mm_NVIDIA_VERSION)" = "440.84"    ] ; then \
+		echo " " ; \
 		echo "error: mm_NVIDIA_VERSION=\"$(mm_NVIDIA_VERSION)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_LEGACY_VERSION"
 	@if [ ! "$(mm_NVIDIA_LEGACY_VERSION)" = "340.108"    ] && \
 	    [ ! "$(mm_NVIDIA_LEGACY_VERSION)" = "340.109"    ] ; then \
+		echo " " ; \
 		echo "error: mm_NVIDIA_LEGACY_VERSION=\"$(mm_NVIDIA_LEGACY_VERSION)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_XORG_VERSION"
 	@if [ ! "$(mm_XORG_VERSION)" = "7.6" ] && \
 	    [ ! "$(mm_XORG_VERSION)" = "7.7" ] ; then \
+		echo " " ; \
 		echo "error: mm_XORG_VERSION=\"$(mm_XORG_VERSION)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "  build parameters ... done"
@@ -186,71 +230,99 @@ mm-all:
 	@echo "  build system parameters ..."
 	@if [ ! "$(build_GARCH_FAMILY)" = "i386"   ] && \
             [ ! "$(build_GARCH_FAMILY)" = "x86_64" ] ; then \
+		echo " " ; \
 		echo "error: build_GARCH_FAMILY=\"$(build_GARCH_FAMILY)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@# Check distribution parameters.
 	@echo "  distribution parameters ..."
 	@echo "    mm_DISTRIBUTION_RAM"
 	@if [ ! "$(mm_DISTRIBUTION_RAM)" = "yes" ] && [ ! "$(mm_DISTRIBUTION_RAM)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_DISTRIBUTION_RAM=\"$(mm_DISTRIBUTION_RAM)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_DISTRIBUTION_NFS"
 	@if [ ! "$(mm_DISTRIBUTION_NFS)" = "yes" ] && [ ! "$(mm_DISTRIBUTION_NFS)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_DISTRIBUTION_NFS=\"$(mm_DISTRIBUTION_NFS)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_DISTRIBUTION_SDCARD"
 	@if [ ! "$(mm_DISTRIBUTION_SDCARD)" = "yes" ] && [ ! "$(mm_DISTRIBUTION_SDCARD)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_DISTRIBUTION_SDCARD=\"$(mm_DISTRIBUTION_SDCARD)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_DISTRIBUTION_SHARE"
 	@if [ ! "$(mm_DISTRIBUTION_SHARE)" = "yes" ] && [ ! "$(mm_DISTRIBUTION_SHARE)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_DISTRIBUTION_SHARE=\"$(mm_DISTRIBUTION_SHARE)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_INSTALL_RAM_BOOT"
 	@# Check install parameters.
 	@if [ ! "$(mm_INSTALL_RAM_BOOT)" = "yes" ] && [ ! "$(mm_INSTALL_RAM_BOOT)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_INSTALL_RAM_BOOT=\"$(mm_INSTALL_RAM_BOOT)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@if [ "$(mm_INSTALL_RAM_BOOT)" = "yes" ] && [ ! -d "$(mm_TFTP_ROOT)" ] ; then \
+		echo " " ; \
 		echo "error: the directory specified by mm_TFTP_ROOT=\"$(mm_TFTP_ROOT)\" does not exist." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_INSTALL_NFS_BOOT"
 	@if [ ! "$(mm_INSTALL_NFS_BOOT)" = "yes" ] && [ ! "$(mm_INSTALL_NFS_BOOT)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_INSTALL_NFS_BOOT=\"$(mm_INSTALL_NFS_BOOT)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@if [ "$(mm_INSTALL_NFS_BOOT)" = "yes" ] && [ ! -d "$(mm_TFTP_ROOT)" ] ; then \
+		echo " " ; \
 		echo "error: the directory specified by mm_TFTP_ROOT=\"$(mm_TFTP_ROOT)\" does not exist." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@if [ "$(mm_INSTALL_NFS_BOOT)" = "yes" ] && [ ! -d "$(mm_NFS_ROOT)"  ] ; then \
+		echo " " ; \
 		echo "error: the directory specified by mm_NFS_ROOT=\"$(mm_NFS_ROOT)\" does not exist." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_DISTRIBUTION_RAM"
 	@if [ "$(mm_INSTALL_RAM_BOOT)" = "yes" ] && [ "$(mm_DISTRIBUTION_RAM)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_INSTALL_RAM_ROOT=\"yes\" but mm_DISTRIBUTION_RAM=\"no\"." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_DISTRIBUTION_NFS"
 	@if [ "$(mm_INSTALL_NFS_BOOT)" = "yes" ] && [ "$(mm_DISTRIBUTION_NFS)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_INSTALL_NFS_ROOT=\"yes\" but mm_DISTRIBUTION_NFS=\"no\"." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_DISTRIBUTION_SDCARD"
 	@if [ ! "$(mm_DISTRIBUTION_SDCARD)" = "yes" ] && [ ! "$(mm_DISTRIBUTION_SDCARD)" = "no" ] ; then \
+		echo " " ; \
 		echo "error: mm_DISTRIBUTION_SDCARD=\"$(mm_DISTRIBUTION_SDCARD)\" is an invalid value." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@if [ "$(mm_DISTRIBUTION_SDCARD)" = "yes" ] && [ ! -d "$(mm_SDCARD_FILES)" ] ; then \
+		echo " " ; \
 		echo "error: the directory specified by mm_SDCARD_FILES=\"$(mm_SDCARD_FILES)\" does not exist." ; \
+		echo " " ; \
 		exit 1 ; \
 	fi
 	@echo "    mm_BOARD_TYPE"
@@ -271,7 +343,9 @@ mm-all:
 		   [ ! "$${board}" = "board-x86pc.bios"        ] && \
 		   [ ! "$${board}" = "board-x86pc.bios_efi64"  ] && \
 		   [ ! "$${board}" = "board-x86pc.efi64"       ] ; then \
+			echo " " ; \
 			echo "error: mm_BOARD_TYPE=\"$${board}\" is an invalid value." ; \
+			echo " " ; \
 			exit 1 ; \
 		fi ; \
 	done

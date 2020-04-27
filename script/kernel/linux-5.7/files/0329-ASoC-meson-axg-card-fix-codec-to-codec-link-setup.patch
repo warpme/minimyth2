@@ -1,0 +1,30 @@
+
+While initiliazing the links, ASoC treats the codec-to-codec links of this
+card type as a DPCM backend. This error eventually leads to the Oops.
+
+Most of the card driver code is shared between DPCM backends and
+codec-to-codec links. The property "no_pcm" marking DCPM BE was left set on
+codec-to-codec links, leading to this problem. This commit fixes that.
+
+Fixes: 0a8f1117a680 ("ASoC: meson: axg-card: add basic codec-to-codec link support")
+Signed-off-by: Jerome Brunet <jbrunet@baylibre.com>
+---
+ sound/soc/meson/axg-card.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/sound/soc/meson/axg-card.c b/sound/soc/meson/axg-card.c
+index af46845f4ef2..89f7f64747cd 100644
+--- a/sound/soc/meson/axg-card.c
++++ b/sound/soc/meson/axg-card.c
+@@ -338,8 +338,10 @@ static int axg_card_add_link(struct snd_soc_card *card, struct device_node *np,
+ 
+ 	if (axg_card_cpu_is_tdm_iface(dai_link->cpus->of_node))
+ 		ret = axg_card_parse_tdm(card, np, index);
+-	else if (axg_card_cpu_is_codec(dai_link->cpus->of_node))
++	else if (axg_card_cpu_is_codec(dai_link->cpus->of_node)) {
+ 		dai_link->params = &codec_params;
++		dai_link->no_pcm = 0; /* link is not a DPCM BE */
++	}
+ 
+ 	return ret;
+ }

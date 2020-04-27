@@ -1,9 +1,11 @@
-GARNAME = gdbm
-GARVERSION = 1.11
-CATEGORIES = lib
+
+GARNAME      = gdbm
+GARVERSION   = 1.18.1
+CATEGORIES   = lib
 MASTER_SITES = ftp://ftp.gnu.org/gnu/gdbm/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = LGPL2_1
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = $(DISTNAME)-fix-gcc10-build.patch
+LICENSE      = LGPL2_1
 
 DESCRIPTION =
 define BLURB
