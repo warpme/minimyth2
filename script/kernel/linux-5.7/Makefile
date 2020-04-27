@@ -72,9 +72,6 @@ endif
 
 ifeq (1,1)
 # Amlogic: Enable hdmi audio: patches from kernel ML
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=273949 2020.04.20
-PATCHFILES += 0329-ASoC-meson-axg-card-fix-codec-to-codec-link-setup.patch
-PATCHFILES += 0330-ASoC-meson-gx-card-fix-codec-to-codec-link-setup.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=274891 2020.04.21
 PATCHFILES += 0332-arm64-dts-meson-gx-add-aiu-support.patch
 PATCHFILES += 0333-arm64-dts-meson-p230-q200-add-initial-audio-playback-support.patch
