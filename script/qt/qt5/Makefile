@@ -128,6 +128,8 @@ CREATE_PLATFORM   = \
 	rm -f $(strip $(2))/qmake.conf~ ; \
 	echo "QMAKE_CFLAGS_RELEASE = $($(strip $(3))CFLAGS) -fPIC"                            >> $(strip $(2))/qmake.conf~ ; \
 	echo "QMAKE_CFLAGS_DEBUG   = $($(strip $(3))CFLAGS) -fPIC"                            >> $(strip $(2))/qmake.conf~ ; \
+	echo "QMAKE_LFLAGS_RELEASE = -fno-lto"                                                >> $(strip $(2))/qmake.conf~ ; \
+	echo "QMAKE_LFLAGS_DEBUG   = -fno-lto"                                                >> $(strip $(2))/qmake.conf~ ; \
 	cat $(strip $(2))/qmake.conf                   | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
 	cat $(strip $(2))/../common/unix.conf          | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
 	cat $(strip $(2))/../common/linux.conf         | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
