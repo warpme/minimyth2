@@ -39,18 +39,20 @@ PATCHFILES += 0100-aarch64-text-offset.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.7 kernel
-# PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
 # Add suport for tests on Bifrost
 # https://github.com/superna9999/linux/commits/amlogic/v5.8/bifrost
-PATCHFILES += 0104-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0105-Also-use-meson-hack-on-amlogic-meson-g12a-mali.patch
 PATCHFILES += 0106-Sync-G31-features-with-kbase.patch
 PATCHFILES += 0107-Comment-out-reading-GPU_LATEST_FLUSH_ID-as-it-causes-external-abort.patch
+# Enabling bifrost 
+# https://patchwork.kernel.org/patch/11322845/
+PATCHFILES += 0108-drm-panfrost-Add-bifrost-compatible-string.patch
 endif
 
 ifeq (1,1)
-# DVFS for Mali450
+# DVFS for Amlogic GPU (mali450/Panfrost/Bifrost)
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=258955 19.03.2020
 PATCHFILES += 0118-dt-bindings-gpu-mali-utgard-Add-the-cooling-cells-property.patch
 PATCHFILES += 0119-drm-lima-Add-optional-devfreq-and-cooling-device-support.patch
