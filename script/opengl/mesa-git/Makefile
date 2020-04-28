@@ -2,12 +2,13 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# Mainline MESA 21.04.2020
-GARVERSION   = f06e4ab3190a0a715447c4df4017892adb8708dc
+# Mainline MESA 28.04.2020
+GARVERSION   = 6747a984f59ea9a2dd74b98d59cb8fdb028969ae
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
+PATCHFILES  += whitelist-bifrost-g31-g52.patch
 endif
 
 ifeq (0,1)
