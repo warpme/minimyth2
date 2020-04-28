@@ -14,6 +14,7 @@ DEPENDS   = lang/c    \
 	perl/perl     \
 	db/sqlite     \
 	devel/zlib    \
+	devel/ruby    \
 	lib/libjpeg   \
 	lib/libpng    \
 	lib/icu       \
@@ -22,7 +23,6 @@ DEPENDS   = lang/c    \
 	qt/qt5        \
 	xorg/libX11   \
 	gtk/glib      \
-	utils/ruby    \
 
 WORKSRC = $(WORKDIR)/$(DISTNAME)/Source
 WORKBLD = $(WORKDIR)/$(DISTNAME)_build
