@@ -61,7 +61,7 @@ PATCHFILES += 0120-clk-meson-gxbb-Prepare-the-GPU-clock-tree-to-change-at-runtim
 PATCHFILES += 0122-clk-meson-g12a-Prepare-the-GPU-clock-tree-to-change-at-runtime.patch
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 # Enable GPU DVFS on Meson GXBB/GXL/GXM/G12A/G12B/SM1
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=264023 30.03.2020
 PATCHFILES += 0123-arm64-dts-amlogic-meson-gx-add-the-Mali-450-OPP-table-and-use-DVFS.patch
@@ -71,6 +71,10 @@ endif
 
 ifeq (1,1)
 # Amlogic: vdec various patches
+# https://patchwork.kernel.org/patch/11514473/ 28.04.2020
+PATCHFILES += 0309-media-meson-vdec-enable-mcrcc-for-VP9.patch
+PATCHFILES += 0310-media-meson-vdec-fix-another-case-of-VP9-buffer-shortage.patch
+
 PATCHFILES += 0311-arm64-dts-meson-set-dma-pool-to-896MB.patch
 PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
 endif
@@ -89,6 +93,7 @@ endif
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
+PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-Hardkernel-ODROID-C4.patch
 
 ifeq (1,1)
 # Rockchip: rkvdec rk3399
