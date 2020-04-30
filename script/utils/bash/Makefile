@@ -1,9 +1,10 @@
-GARNAME = bash
-GARVERSION = 4.3
-CATEGORIES = utils
+
+GARNAME       = bash
+GARVERSION    = 5.0
+CATEGORIES    = utils
 MASTER_SITES  = https://ftp.gnu.org/gnu/$(GARNAME)/
 MASTER_SITES += https://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)-patches/
-DISTFILES = $(DISTNAME).tar.gz
+DISTFILES     = $(DISTNAME).tar.gz
 PATCHFILES  = \
 	$(GARNAME)$(subst .,,$(GARVERSION))-001 \
 	$(GARNAME)$(subst .,,$(GARVERSION))-002 \
@@ -22,28 +23,7 @@ PATCHFILES  = \
 	$(GARNAME)$(subst .,,$(GARVERSION))-015 \
 	$(GARNAME)$(subst .,,$(GARVERSION))-016 \
 	$(GARNAME)$(subst .,,$(GARVERSION))-017 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-018 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-019 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-020 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-021 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-022 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-023 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-024 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-025 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-026 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-027 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-028 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-029 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-030 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-031 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-032 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-033 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-034 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-035 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-036 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-037 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-038 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-039
+
 PATCHFILES += $(DISTNAME)-perl.patch.gar
 LICENSE = GPL3
 
@@ -72,7 +52,6 @@ patch-%: normal-patch-%
 	@$(MAKECOOKIE)
 
 pre-configure:
-	@# Running autotools fails.
 	@#$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
