@@ -56,7 +56,7 @@ install-custom:
 	@# Use this for RPI provided u-boot
 	@#cp -f $(WORKSRC)/kernel7.img        $(DESTDIR)/boot/kernel.img
 	@# Use this for mainline u-boot
-	@#cp -f $(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)/kernel.img $(DESTDIR)/boot/kernel.img
+	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)/kernel.img $(DESTDIR)/boot/kernel.img
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/bootcode.bin
