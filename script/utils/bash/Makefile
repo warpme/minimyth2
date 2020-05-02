@@ -40,7 +40,10 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--with-gnu-ld
+	--prefix=/usr \
+	--bindir=/bin \
+	--libdir=/usr/lib \
+	--with-gnu-ld \
 
 include ../../gar.mk
 
