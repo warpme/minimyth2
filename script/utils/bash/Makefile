@@ -40,16 +40,9 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--prefix=/usr \
-	--bindir=/bin \
-	--libdir=/usr/lib \
 	--with-gnu-ld \
 
 include ../../gar.mk
-
-libdir  := $(elibdir)
-bindir  := $(ebindir)
-sbindir := $(esbindir)
 
 patch-%: normal-patch-%
 	@$(MAKECOOKIE)
