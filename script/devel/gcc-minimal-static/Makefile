@@ -44,12 +44,15 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(GA
 	--disable-libmpx \
 	--enable-gold \
 	--enable-ld \
-	$(if $(filter 4.5.3,$(GCC_VERSION)),,--disable-libquadmath) \
-	$(if $(filter 4.5.3,$(GCC_VERSION)),,--disable-libquadmath-support) \
+	--disable-libquadmath \
+	--disable-libquadmath-support \
 	--disable-libada \
 	--disable-libssp \
 	--enable-lto \
-	--disable-multilib \
+	$(if $(filter armv7,$(mm_GARCH)), \
+		--enable-multilib \
+		--with-multilib-list=aprofile, \
+		--disable-multilib) \
 	--disable-nls \
 	--disable-decimal-float \
 	--disable-shared \
