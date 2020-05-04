@@ -58,7 +58,11 @@ AR       := $(build_AR)
 AS       := $(build_AS)
 OBJDUMP  := $(build_OBJDUMP)
 RANLIB   := $(build_RANLIB)
+ifeq ($(GARCH),armv7)
+CPPFLAGS := -D__ARM_ARCH=7
+else
 CPPFLAGS :=
+endif
 CFLAGS   :=
 CXXFLAGS :=
 LDFLAGS  :=
