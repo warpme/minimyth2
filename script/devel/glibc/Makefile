@@ -5,7 +5,6 @@ CATEGORIES    = devel
 MASTER_SITES  = http://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES     = $(DISTNAME).tar.xz
 PATCHFILES    = $(DISTNAME).patch
-PATCHFILES   += $(DISTNAME)-hack-armv7-a-compile.patch
 LICENSE       = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -47,8 +46,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-elf \
 	--with-headers=$(DESTDIR)$(includedir) \
 	--disable-werror \
-	--disable-multi-arch \
-	$(if $(filter armv7,$(GARCH)),--with-cpu=armv7-a) \
+	--disable-multi-arch
 
 ifeq ($(use_linuxthreads),yes)
 CONFIGURE_ARGS += \
