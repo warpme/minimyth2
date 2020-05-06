@@ -1,8 +1,8 @@
 GARNAME = pixman
-GARVERSION = 0.34.0
+GARVERSION = 0.40.0
 CATEGORIES = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
-DISTFILES = $(DISTNAME).tar.bz2
+DISTFILES = $(DISTNAME).tar.xz
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
@@ -23,11 +23,11 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
 	--disable-openmp \
-	--disable-loongson-mmi \
-	--enable-gcc-inline-asm \
 	--disable-timers \
 	--disable-gtk \
 	--disable-libpng \
+	--disable-arm-iwmmxt \
+	--disable-arm-iwmmxt2 \
 	--with-gnu-ld
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
