@@ -1,7 +1,9 @@
 GARNAME        = perl-DBD-mysql
-GARVERSION     = 4.021
-MASTER_SITES   = http://www.cpan.org/authors/id/C/CA/CAPTTOFU/
-DEPENDS        = perl/perl-DBI
+GARVERSION     = 4.050
+MASTER_SITES   = https://search.cpan.org/CPAN/authors/id/D/DV/DVEEDEN/
+DEPENDS        = perl/perl-DBI perl/perl-Devel-CheckLib
 PERL_MODULE_SO = true
 
 include ../../perl/perl/perl-module.mk
+
+CONFIGURE_ARGS += --libs="-L$(DESTDIR)$(libdir)"
