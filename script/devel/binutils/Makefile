@@ -39,7 +39,8 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--disable-cloog-version-check \
 	--enable-lto \
 	--disable-werror \
-	--disable-multilib \
+	$(if $(filter armv7,$(mm_GARCH)), --enable-multilib, --disable-multilib) \
+	--enable-multilib \
 	--enable-nls \
 	--enable-version-specific-runtime-libs \
 	--with-mpc-include=$(DESTDIR)$(includedir) \
