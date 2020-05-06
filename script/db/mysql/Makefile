@@ -98,6 +98,8 @@ post-install:
 	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)mysql_config
 	@mkdir -p $(DESTDIR)$(bindir)-config
 	@mv $(DESTDIR)$(bindir)/mysql_config $(DESTDIR)$(bindir)-config/mysql_config
+	@# Turn-off LTO as it causes issues for some perl .so modules compilation (i.e. on ARM target in perl-DBD-mysql)
+	@sed -e "s%-flto%%g" -i $(DESTDIR)$(bindir)-config/mysql_config
 	@$(if $(compiler_prefix), ln -s mysql_config $(DESTDIR)$(bindir)-config/$(compiler_prefix)mysql_config)
 	@$(MAKECOOKIE)
 
