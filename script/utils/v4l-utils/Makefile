@@ -1,10 +1,12 @@
-GARNAME = v4l-utils
-GARVERSION = 1.16.6
-CATEGORIES = utils
-MASTER_SITES = http://linuxtv.org/downloads/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-perl.patch.gar
-LICENSE = GPL2/LGPL2_1
+
+GARNAME      = v4l-utils
+GARVERSION   = 20200507-316a273fa4
+CATEGORIES   = utils
+MASTER_SITES = git://linuxtv.org/v4l-utils.git/
+DISTFILES    = $(DISTNAME).tar.bz2
+PATCHFILES   = $(DISTNAME)-perl.patch.gar
+PATCHFILES  += $(DISTNAME)-disable-po.patch
+LICENSE      = GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -35,6 +37,16 @@ CONFIGURE_ARGS = $(DIRPATHS) \
         --disable-qvidcap \
 
 include ../../gar.mk
+
+git//%$(DISTNAME).tar.bz2:
+	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
+	@$(MAKECOOKIE)
+
+pre-configure:
+	@cd $(WORKSRC); ./bootstrap.sh
+	@$(call RUN_AUTOTOOLS)
+	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libdvbv5.la
