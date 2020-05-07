@@ -105,6 +105,7 @@ PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
 
 # Misc frontend patches
 PATCHFILES += 0211-decrease-minQt-ver-to-4.8.patch
+PATCHFILES += 0212-external-udfread-fix-arm5te-compilation.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
 
 # Patches related to OSD
