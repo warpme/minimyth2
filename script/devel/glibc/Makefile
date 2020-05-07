@@ -37,7 +37,7 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile build-rpcgen
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--enable-bind-now \
-	--enable-kernel=5.0.0 \
+	--enable-kernel=3.18.0 \
 	--enable-obsolete-rpc \
 	--disable-build-nscd \
 	--disable-nscd \
@@ -82,10 +82,14 @@ GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
 
 # glibc fails to compile with gcc 7.3.0's link time optimization enabled.
-CFLAGS  := $(filter-out -flto, $(CFLAGS))  -fno-lto
-LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
+CFLAGS  := $(filter-out -flto, $(CFLAGS))
+LDFLAGS := $(filter-out -flto, $(LDFLAGS))
 
 configure-custom:
+	@$(warning ----CONFIGURE_ENV----)
+	@$(warning $(CONFIGURE_ENV))
+	@$(warning ----CONFIGURE_ARGS----)
+	@$(warning $(CONFIGURE_ARGS))
 	@mkdir -p $(WORKBLD)
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) ./$(call DIRSTODOTS,$(WORKBLD))/$(WORKSRC)/configure $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
