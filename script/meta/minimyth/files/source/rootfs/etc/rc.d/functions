@@ -231,9 +231,14 @@ mm_url_http_get() {
     /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
     /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
 
-    /usr/bin/curl -s -f "http://${REMOTE_SERVER}${REMOTE_FILE}" -o "${LOCAL_FILE}" || return
-
-    /usr/bin/logger -s -t minimyth -p "local0.info" "'http://${REMOTE_SERVER}${REMOTE_FILE}' downloaded."
+    rc=`/usr/bin/curl -s -S -f "http://${REMOTE_SERVER}${REMOTE_FILE}" -o "${LOCAL_FILE}" 2>&1`
+    if [ $? -ne 0 ] ; then
+        /usr/bin/logger -s -t minimyth -p "local0.info" "Download from 'http://${REMOTE_SERVER}${REMOTE_FILE}' returns: '${rc}'"
+        /bin/false
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.info" "'http://${REMOTE_SERVER}${REMOTE_FILE}' downloaded..."
+        /bin/true
+    fi
 
     return
 }
@@ -473,17 +478,15 @@ mm_url_http_put() {
         return
     fi
 
-    if /usr/bin/curl -s -f -T "${LOCAL_FILE}" "http://${REMOTE_SERVER}${REMOTE_FILE}" ; then
-        /usr/bin/logger -s -t minimyth -p "local0.info"  \
-            "[functions/mm_url_http_put] 'http://${REMOTE_SERVER}${REMOTE_FILE}' posted."
-        /bin/true
-        return
-    else
+    rc=`/usr/bin/curl -s -S -f -T "${LOCAL_FILE}" "http://${REMOTE_SERVER}${REMOTE_FILE}" 2>&1`
+    if [ $? -ne 0 ] ; then
         /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "[functions/mm_url_http_put] 'http://${REMOTE_SERVER}${REMOTE_FILE}' failed to post. Will retry with verbose. For output, look on /var/log/minimyth.err"
-            /usr/bin/curl -v -S -T "${LOCAL_FILE}" "http://${REMOTE_SERVER}${REMOTE_FILE}" > /var/log/minimyth.err 2>&1
+            "Uploading to 'http://${REMOTE_SERVER}${REMOTE_FILE}' failed with error: ${rc}"
         /bin/false
-        return
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.info" \
+            "[functs/mm_url_http_put] 'http://${REMOTE_SERVER}${REMOTE_FILE}' uploaded..."
+        /bin/true
     fi
 
     return
