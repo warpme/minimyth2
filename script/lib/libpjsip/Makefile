@@ -1,12 +1,13 @@
-GARNAME = pjproject
-GARVERSION = 2.7.2
-CATEGORIES = lib
+
+GARNAME      = pjproject
+GARVERSION   = 2.10
+CATEGORIES   = lib
 MASTER_SITES = http://www.pjsip.org/release/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-fix-cross-compile.patch
-PATCHFILES += add_aarch64_detection.patch
-LICENSE = GPL2
-DESCRIPTION = 
+DISTFILES    = $(GARVERSION).tar.gz
+PATCHFILES   = $(DISTNAME)-fix-cross-compile.patch
+PATCHFILES  += $(DISTNAME)-aarch64_detection.patch
+LICENSE      = GPL2
+DESCRIPTION  = 
 define BLURB
 endef
 
@@ -17,17 +18,17 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-  --prefix=/usr \
-  --enable-shared \
-  --disable-opencore-amr \
-  --disable-video \
-  --disable-sdl \
-  --disable-ffmpeg \
-  --disable-v4l2 \
-  --disable-libwebrtc \
-  --enable-resample-dll \
-  --with-external-pa \
-  --with-gnu-ld
+	--prefix=/usr \
+	--enable-shared \
+	--disable-opencore-amr \
+	--disable-video \
+	--disable-sdl \
+	--disable-ffmpeg \
+	--disable-v4l2 \
+	--disable-libwebrtc \
+	--enable-resample-dll \
+	--with-external-pa \
+	--with-gnu-ld
 
 PARALLELMFLAGS := -j1
 

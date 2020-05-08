@@ -1,10 +1,11 @@
-GARNAME = pjproject
-GARVERSION = 2.7.2
-CATEGORIES = lib
+
+GARNAME      = pjproject
+GARVERSION   = 2.10
+CATEGORIES   = lib
 MASTER_SITES = http://www.pjsip.org/release/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-fix-cross-compile.patch
-LICENSE = GPL2
+DISTFILES    = $(GARVERSION).tar.gz
+PATCHFILES   = $(DISTNAME)-fix-cross-compile.patch
+LICENSE      = GPL2
 define BLURB
 endef
 
@@ -15,23 +16,23 @@ INSTALL_SCRIPTS = $(WORKSRC)/setup.py
 
 BUILD_ARGS     =
 INSTALL_ARGS   = \
-    --prefix=$(DESTDIR)$(prefix)
-    CONFIGURE_ENV  =
-    BUILD_ENV      =
-    INSTALL_ENV    = \
-    PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
+	--prefix=$(DESTDIR)$(prefix)
+	CONFIGURE_ENV  =
+	BUILD_ENV      =
+	INSTALL_ENV    = \
+	PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-  --prefix=/usr \
-  --enable-shared \
-  --disable-opencore-amr \
-  --disable-video \
-  --disable-sdl \
-  --disable-ffmpeg \
-  --disable-v4l2 \
-  --disable-libwebrtc \
+	--prefix=/usr \
+	--enable-shared \
+	--disable-opencore-amr \
+	--disable-video \
+	--disable-sdl \
+	--disable-ffmpeg \
+	--disable-v4l2 \
+	--disable-libwebrtc \
 
 ifneq ($(DESTIMG),build)
 BUILD_ENV  += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
