@@ -251,6 +251,14 @@ mm_CFLAGS                 ?= $(strip \
 mm_CXXFLAGS               ?= $(mm_CFLAGS)
 mm_DESTDIR                ?= $(mm_HOME)/images/mm
 
+# For ARM target MiniMyth2 GCC9.3 multi-lib capabilities allows to compile for
+# following ARM target variants:
+# -marm   -march=armv5te+fp   -mfloat-abi=softfp
+# -mthumb -march=armv7-a      -mfloat-abi=soft
+# -mthumb -march=armv7-a+fp   -mfloat-abi=softfp
+# -mthumb -march=armv7-a+simd -mfloat-abi=softfp
+# -mthumb -march=armv7ve+simd -mfloat-abi=softfp
+
 #-------------------------------------------------------------------------------
 # Variables that you cannot override.
 #-------------------------------------------------------------------------------
