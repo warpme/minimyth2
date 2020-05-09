@@ -5,6 +5,7 @@ CATEGORIES    = devel
 MASTER_SITES  = http://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES     = $(DISTNAME).tar.xz
 PATCHFILES    = $(DISTNAME).patch
+PATCHFILES   += $(DISTNAME)-fix-building-arm-thumb.patch
 LICENSE       = GPL2/LGPL2_1
 
 DESCRIPTION = 
