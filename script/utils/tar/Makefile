@@ -3,6 +3,7 @@ GARVERSION = 1.28
 CATEGORIES = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.xz
+PATCHFILES = $(DISTNAME)-disable-building-doc-po.patch
 LICENSE = GPL3
 
 DESCRIPTION = 
