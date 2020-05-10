@@ -63,9 +63,9 @@ The build system requires following set of binaries and libraries:
 
 ### Build instructions
 
-#### For Ubuntu 16.04 LTS or 19.10 (just those two were tested) quick build guide:
+#### For Ubuntu 19.10 LTS or 20.04 (just those two were tested) quick build guide:
 Start terminal and run commands below:
-- sudo apt install git bison make cvs flex gawk mercurial subversion texinfo gcc-multilib
+- sudo apt install git bison make cvs flex gawk mercurial subversion texinfo gcc-multilib g++
 - cd Desktop
 - git clone https://github.com/warpme/minimyth2.git
 - mkdir ../.minimyth2 ../build
