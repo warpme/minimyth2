@@ -54,4 +54,5 @@ pre-configure:
 
 post-install:
 	@ln -fs bash $(DESTDIR)$(bindir)/sh
+	@ln -srf $(DESTDIR)$(bindir)/bash $(DESTDIR)$(ebindir)/bash
 	@$(MAKECOOKIE)
