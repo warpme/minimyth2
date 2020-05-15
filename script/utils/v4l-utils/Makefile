@@ -7,7 +7,6 @@ DISTFILES    = $(DISTNAME).tar.bz2
 PATCHFILES   = $(DISTNAME)-perl.patch.gar
 PATCHFILES  += $(DISTNAME)-disable-po.patch
 LICENSE      = GPL2/LGPL2_1
-MAKESUM_TARGETS = $(DISTNAME)-perl.patch.gar
 
 DESCRIPTION = 
 define BLURB
