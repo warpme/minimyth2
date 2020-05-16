@@ -37,7 +37,13 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-gnu-ld
 ifneq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
+	--enable-shared \
+	--disable-static \
 	--with-dbus-binding-tool=$(build_DESTDIR)$(build_bindir)/dbus-binding-tool
+else
+CONFIGURE_ARGS += \
+	--disable-shared \
+	--enable-static
 endif
 
 include ../../gar.mk
