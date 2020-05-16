@@ -1,15 +1,7 @@
 
-#--Use this for mainline official x.y.z kernel----
-# MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
-# DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
-# WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
-#-------------------------------------------
-
-#--Use this for mainline git-commit kernel--
 MASTER_SITES        = https://github.com/raspberrypi/linux/archive/
 DISTFILES           = $(GITHASH).zip $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/linux-$(GITHASH)
-#-------------------------------------------
 
 GARNAME = linux-rpi
 GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),$(if $(filter-out 0,$(LINUX_TEENY_VERSION)),.$(LINUX_TEENY_VERSION)))$(LINUX_EXTRA_VERSION)

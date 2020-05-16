@@ -1,25 +1,9 @@
-#--Use this for mainline x.y.z kernel-------
-# LINUX_MAJOR_VERSION = 5
-# LINUX_MINOR_VERSION = 2
-# LINUX_TEENY_VERSION = 
-# LINUX_EXTRA_VERSION = 
-#-------------------------------------------
 
-#--Use this for mainline x.y.z kernel-------
-# LINUX_MAJOR_VERSION = 5
-# LINUX_MINOR_VERSION = 2
-# LINUX_TEENY_VERSION = 
-# LINUX_EXTRA_VERSION = -rc7
-#-------------------------------------------
-
-#--Use this for mainline git-commit kernel--
 GITHASH             = 767722747b98c2d57425f984da2a8192ae30cc69
 LINUX_MAJOR_VERSION = 4
 LINUX_MINOR_VERSION = 19
 LINUX_TEENY_VERSION = 93
 LINUX_EXTRA_VERSION = 
-#-------------------------------------------
-
 
 LINUX_VERSION      = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),.$(LINUX_TEENY_VERSION))$(LINUX_EXTRA_VERSION)
 LINUX_FULL_VERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),.$(LINUX_TEENY_VERSION),.0)$(LINUX_EXTRA_VERSION)
