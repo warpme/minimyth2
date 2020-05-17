@@ -94,6 +94,9 @@ PATCHFILES += 0172-ffmpeg-sync-v4l2_m2m-to-kodi9.2.patch
 # Add v4l2 EoS from ffmpeg master
 # https://github.com/FFmpeg/FFmpeg/commit/8ac8e905e934aaae3f3ad3a0e2f2066b55b1c560
 PATCHFILES += 0173-ffmpeg-avcodec-v4l2_m2m-handle-v4l2-end-of-stream-event.patch
+# fix seeking on v4l2_m2m decoders
+# https://github.com/lrusak/FFmpeg/commit/a28eba7a06e70d2ee204fb4a6f6abe61a729edd2
+# PATCHFILES += 0179-ffmpeg-libavcodec-v4l2m2m-implement-flush.patch
 # Logging v4l2 vdec polling in ffmpeg
 # PATCHFILES += 0180-ffmpeg-libavcodec-log-v4l2-decoder-poll.patch
 # Mediamonitor patches
