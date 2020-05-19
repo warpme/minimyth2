@@ -61,7 +61,7 @@ PATCHFILES += 0120-clk-meson-gxbb-Prepare-the-GPU-clock-tree-to-change-at-runtim
 PATCHFILES += 0122-clk-meson-g12a-Prepare-the-GPU-clock-tree-to-change-at-runtime.patch
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # Enable GPU DVFS on Meson GXBB/GXL/GXM/G12A/G12B/SM1
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=264023 30.03.2020
 PATCHFILES += 0123-arm64-dts-amlogic-meson-gx-add-the-Mali-450-OPP-table-and-use-DVFS.patch
