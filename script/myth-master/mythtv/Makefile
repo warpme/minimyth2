@@ -72,7 +72,7 @@ PATCHFILES += 0161-ffmpeg-v4l2request-HACK-add-dpb-flags-for-reference-usage-and
 PATCHFILES += 0162-ffmpeg-v4l2request-WIP-v4l2-request-rolling-timestamps.patch
 PATCHFILES += 0163-ffmpeg-v4l2request-hevc-Set-SPS-control-at-initialization.patch
 PATCHFILES += 0163-configure-add-v4l2request-support.patch
-# misc v4l2 patches
+# backports v4l2 related from ffmpeg master
 # https://github.com/FFmpeg/FFmpeg/commit/8a8966295fbc9278042f4be76b795fea39f9a810
 PATCHFILES += 0164-ffmpeg-avcodec-v4l2_context-Use-AVERROR-macro.patch
 # https://github.com/tmm1/FFmpeg/commit/a0a00b958c524f3b0e2ca26d60dad1a674f872c7
@@ -85,19 +85,25 @@ PATCHFILES += 0167-ffmpeg-avcodec-handle-errors-more-explicitly.patch
 PATCHFILES += 0168-avcodec-v4l2_m2m-Avoid-using-intermediate-buffer.patch
 # https://github.com/FFmpeg/FFmpeg/commit/b761ae072a169eb183abe0785a258b9787e267d3
 PATCHFILES += 0169-ffmpeg-libavdevice-produce-0byte-if-dequeued-size-unexpected.patch
-# misc v4l2 patches
+# Add some v4l2 logging
 PATCHFILES += 0170-ffmpeg-libavcodec-log-requested-pixfmt.patch
-# required for AML playbck
+# required for AML HD playbck in MythTV
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
-# misc patches
+# use improvements from KODI
 PATCHFILES += 0172-ffmpeg-sync-v4l2_m2m-to-kodi9.2.patch
-# Add v4l2 EoS from ffmpeg master
+# backports v4l2 related from ffmpeg master
 # https://github.com/FFmpeg/FFmpeg/commit/8ac8e905e934aaae3f3ad3a0e2f2066b55b1c560
 PATCHFILES += 0173-ffmpeg-avcodec-v4l2_m2m-handle-v4l2-end-of-stream-event.patch
-# fix seeking on v4l2_m2m decoders
+# https://github.com/FFmpeg/FFmpeg/commit/e3b49aaa4eed7955e243b110e1209960ba5aaf74
+PATCHFILES += 0176-ffmpeg-avcodec-v4l2_context-Drop-empty-packet-while-draining.patch
+# https://github.com/FFmpeg/FFmpeg/commit/c76b2bf0b4e752455e5ffbd7dee12e935c2eaccd
+PATCHFILES += 0177-ffmpeg-avcodec-v4l2_context-Finish-draining-if-V4L2_BUF_FLAG_LAST-is-set.patch
+# https://github.com/FFmpeg/FFmpeg/commit/2a9d62356152d4ef079416101664f26d2562c681
+PATCHFILES += 0178-ffmpeg-avcodec-v4l2_context-Log-warning-when-all-capture-buffs-in-userspace.patch
+# lrusak seeking fix on v4l2_m2m decoders (not working on rpi/amlogic)
 # https://github.com/lrusak/FFmpeg/commit/a28eba7a06e70d2ee204fb4a6f6abe61a729edd2
 # PATCHFILES += 0179-ffmpeg-libavcodec-v4l2m2m-implement-flush.patch
-# Logging v4l2 vdec polling in ffmpeg
+# Debuging v4l2 vdec polling in ffmpeg
 # PATCHFILES += 0180-ffmpeg-libavcodec-log-v4l2-decoder-poll.patch
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch

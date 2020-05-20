@@ -1,0 +1,55 @@
+From e3b49aaa4eed7955e243b110e1209960ba5aaf74 Mon Sep 17 00:00:00 2001
+From: Andriy Gelman <andriy.gelman@gmail.com>
+Date: Sat, 9 May 2020 19:34:41 -0400
+Subject: [PATCH] avcodec/v4l2_context: Drop empty packet while draining
+
+v4l2_m2m devices may send an empty packet/frame while draining
+to indicate that all capture buffers have been flushed.
+
+Currently, the empty packet/frame is not handled correctly:
+When encoding, the empty packet is forwarded to the muxer, usually
+creating warnings.
+When decoding, a reference to the memory is created anyway. Since in
+the past this memory contained a decoded frame, it results in an extra
+frame being decoded.
+
+This commit discards the empty packet/frame.
+
+References:
+linux/Documentation/media/uapi/v4l/dev-decoder.rst:
+
+    "The last buffer may be empty (with :c:type:`v4l2_buffer` bytesused = 0)
+     and in that case it must be ignored by the client, as it does not
+     contain a decoded frame."
+
+linux/Documentation/media/uapi/media/v4l/vidioc-encoder-cmd.rst:
+
+    "...This buffer may be empty, indicated by the
+     driver setting the ``bytesused`` field to 0."
+
+Reviewed-by: Ming Qian <ming.qian@nxp.com>
+Signed-off-by: Andriy Gelman <andriy.gelman@gmail.com>
+---
+ libavcodec/v4l2_context.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git mythtv-old/mythtv/external/libavcodec/v4l2_context.c mythtv-new/mythtv/external/libavcodec/v4l2_context.c
+index f70e151ec80..52dedb119f3 100644
+--- mythtv-old/mythtv/external/libavcodec/v4l2_context.c
++++ mythtv-new/mythtv/external/libavcodec/v4l2_context.c
+@@ -405,6 +405,15 @@ static V4L2Buffer* v4l2_dequeue_v4l2buf(V4L2Context *ctx, int timeout)
+             return NULL;
+         }
+ 
++        if (ctx_to_m2mctx(ctx)->draining && !V4L2_TYPE_IS_OUTPUT(ctx->type)) {
++            int bytesused = V4L2_TYPE_IS_MULTIPLANAR(buf.type) ?
++                            buf.m.planes[0].bytesused : buf.bytesused;
++            if (bytesused == 0) {
++                ctx->done = 1;
++                return NULL;
++            }
++        }
++
+         avbuf = &ctx->buffers[buf.index];
+         avbuf->status = V4L2BUF_AVAILABLE;
+         avbuf->buf = buf;
