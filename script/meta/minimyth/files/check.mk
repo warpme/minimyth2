@@ -183,6 +183,7 @@ mm-all:
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.7"           ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.8"           ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.9"           ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.4"       ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-4.19"      ] ; then \
 		echo " " ; \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
@@ -337,6 +338,8 @@ mm-all:
 		   [ ! "$${board}" = "board-rpi3.mainline32"   ] && \
 		   [ ! "$${board}" = "board-rpi3.mainline64"   ] && \
 		   [ ! "$${board}" = "board-rpi3.rpi32"        ] && \
+		   [ ! "$${board}" = "board-rpi4.mainline64"   ] && \
+		   [ ! "$${board}" = "board-rpi4.rpi32"        ] && \
 		   [ ! "$${board}" = "board-s905"              ] && \
 		   [ ! "$${board}" = "board-s912"              ] && \
 		   [ ! "$${board}" = "board-sm1"               ] && \
