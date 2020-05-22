@@ -21,6 +21,8 @@ DISTFILES = \
 	board-rpi3.mainline32.wks   \
 	board-rpi3.mainline64.wks   \
 	board-rpi3.rpi32.wks        \
+	board-rpi4.mainline64.wks   \
+	board-rpi4.rpi32.wks        \
 	board-s905.wks              \
 	board-s912.wks              \
 	board-g12.wks               \
