@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-rpi4.mainline64
-GITHASH      = c3f9eee6fefb0ea7292e6a49c726637f0c22bd07
+GITHASH      = 21e1fe3477ffb708a5736ed61a924fd650031136
 GARVERSION   = 2020-05-22-$(GITHASH)
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/raspberrypi/firmware/raw/$(GITHASH)/boot/
@@ -9,12 +9,12 @@ DISTFILES    = rpi4-boot.scr       \
                rpi4-boot-debug.scr \
                rpi4-boot-debug.txt \
                bootcode.bin        \
-               fixup_db.dat        \
-               fixup.dat           \
-               fixup_x.dat         \
-               start_cd.elf        \
-               start.elf           \
-               start_x.elf         \
+               fixup4cd.dat        \
+               fixup4.dat          \
+               fixup4x.dat         \
+               start4cd.elf        \
+               start4.elf          \
+               start4x.elf         \
 
 export mm_U-BOOT_BOARD_TYPE = rpi_4_defconfig
 
@@ -39,9 +39,9 @@ build-custom:
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/bootcode.bin        $(DESTDIR)/boot/bootcode.bin
-	@cp -f $(WORKSRC)/fixup.dat           $(DESTDIR)/boot/fixup.dat
-	@cp -f $(WORKSRC)/fixup_db.dat        $(DESTDIR)/boot/fixup_db.dat
-	@cp -f $(WORKSRC)/fixup_x.dat         $(DESTDIR)/boot/fixup_x.dat
+	@cp -f $(WORKSRC)/fixup4.dat          $(DESTDIR)/boot/fixup4.dat
+	@cp -f $(WORKSRC)/fixup4cd.dat        $(DESTDIR)/boot/fixup4cd.dat
+	@cp -f $(WORKSRC)/fixup4x.dat         $(DESTDIR)/boot/fixup4x.dat
 	@cp -f $(WORKSRC)/rpi4-boot.scr       $(DESTDIR)/boot/rpi4-boot.scr
 	@cp -f $(WORKSRC)/rpi4-boot.txt       $(DESTDIR)/boot/rpi4-boot.txt
 	@cp -f $(WORKSRC)/rpi4-boot-debug.scr $(DESTDIR)/boot/rpi4-boot-debug.scr
@@ -50,19 +50,16 @@ install-custom:
 	@cp -f $(WORKSRC)/rpi4-boot.txt       $(DESTDIR)/boot/boot.txt
 	@cp -f $(WORKSRC)/rpi4-boot-debug.scr $(DESTDIR)/boot/boot-debug.scr
 	@cp -f $(WORKSRC)/rpi4-boot-debug.txt $(DESTDIR)/boot/boot-debug.txt
-	@cp -f $(WORKSRC)/start.elf           $(DESTDIR)/boot/start.elf
-	@cp -f $(WORKSRC)/start_cd.elf        $(DESTDIR)/boot/start_cd.elf
-	@cp -f $(WORKSRC)/start_x.elf         $(DESTDIR)/boot/start_x.elf
-	@# Use this for RPI provided u-boot
-	@#cp -f $(WORKSRC)/kernel8.img        $(DESTDIR)/boot/kernel8.img
-	@# Use this for mainline u-boot
-	@#cp -f $(DESTDIR)$(libdir)/u-boot/rpi4/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img $(DESTDIR)/boot/kernel8.img
+	@cp -f $(WORKSRC)/start4.elf          $(DESTDIR)/boot/start4.elf
+	@cp -f $(WORKSRC)/start4cd.elf        $(DESTDIR)/boot/start4cd.elf
+	@cp -f $(WORKSRC)/start4x.elf         $(DESTDIR)/boot/start4x.elf
+	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi4/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img $(DESTDIR)/boot/kernel8.img
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/bootcode.bin
-	@rm -f $(DESTDIR)/boot/fixup.dat
-	@rm -f $(DESTDIR)/boot/fixup_db.dat
-	@rm -f $(DESTDIR)/boot/fixup_x.dat
+	@rm -f $(DESTDIR)/boot/fixup4.dat
+	@rm -f $(DESTDIR)/boot/fixup4db.dat
+	@rm -f $(DESTDIR)/boot/fixup4x.dat
 	@rm -f $(DESTDIR)/boot/rpi4-boot.scr
 	@rm -f $(DESTDIR)/boot/rpi4-boot.txt
 	@rm -f $(DESTDIR)/boot/rpi4-boot-debug.scr
@@ -71,7 +68,7 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/boot.txt
 	@rm -f $(DESTDIR)/boot/boot-debug.scr
 	@rm -f $(DESTDIR)/boot/boot-debug.txt
-	@rm -f $(DESTDIR)/boot/start.elf
-	@rm -f $(DESTDIR)/boot/start_cd.elf
-	@rm -f $(DESTDIR)/boot/start_x.elf
+	@rm -f $(DESTDIR)/boot/start4.elf
+	@rm -f $(DESTDIR)/boot/start4cd.elf
+	@rm -f $(DESTDIR)/boot/start4x.elf
 	@rm -f $(DESTDIR)/boot/kernel8.img

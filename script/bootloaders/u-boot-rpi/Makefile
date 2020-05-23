@@ -1,5 +1,5 @@
-GARNAME      = u-boot-20200220-rpi
-GARVERSION   = 8e51bf746a11d7f67416859da73a83109af4e0a3
+GARNAME      = u-boot-20200523-rpi
+GARVERSION   = f53c2dc162d0c62debd0ebb88383e3b6fee95c10
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = $(GARVERSION).zip
