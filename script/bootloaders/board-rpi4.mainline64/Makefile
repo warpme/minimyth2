@@ -4,7 +4,8 @@ GITHASH      = 21e1fe3477ffb708a5736ed61a924fd650031136
 GARVERSION   = 2020-05-22-$(GITHASH)
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/raspberrypi/firmware/raw/$(GITHASH)/boot/
-DISTFILES    = rpi4-boot.scr       \
+DISTFILES    = config.txt          \
+               rpi4-boot.scr       \
                rpi4-boot.txt       \
                rpi4-boot-debug.scr \
                rpi4-boot-debug.txt \
@@ -38,6 +39,7 @@ build-custom:
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
+	@cp -f $(WORKSRC)/config.txt          $(DESTDIR)/boot/config.txt
 	@cp -f $(WORKSRC)/bootcode.bin        $(DESTDIR)/boot/bootcode.bin
 	@cp -f $(WORKSRC)/fixup4.dat          $(DESTDIR)/boot/fixup4.dat
 	@cp -f $(WORKSRC)/fixup4cd.dat        $(DESTDIR)/boot/fixup4cd.dat
@@ -56,6 +58,7 @@ install-custom:
 	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi4/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img $(DESTDIR)/boot/kernel8.img
 
 clean-all:
+	@rm -f $(DESTDIR)/boot/config.txt
 	@rm -f $(DESTDIR)/boot/bootcode.bin
 	@rm -f $(DESTDIR)/boot/fixup4.dat
 	@rm -f $(DESTDIR)/boot/fixup4db.dat
