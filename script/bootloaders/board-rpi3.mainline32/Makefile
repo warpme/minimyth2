@@ -53,10 +53,7 @@ install-custom:
 	@cp -f $(WORKSRC)/start.elf           $(DESTDIR)/boot/start.elf
 	@cp -f $(WORKSRC)/start_cd.elf        $(DESTDIR)/boot/start_cd.elf
 	@cp -f $(WORKSRC)/start_x.elf         $(DESTDIR)/boot/start_x.elf
-	@# Use this for RPI provided u-boot
-	@#cp -f $(WORKSRC)/kernel7.img        $(DESTDIR)/boot/kernel.img
-	@# Use this for mainline u-boot
-	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)/kernel.img $(DESTDIR)/boot/kernel.img
+	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)/kernel.img $(DESTDIR)/boot/kernel7.img
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/bootcode.bin
@@ -74,4 +71,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/start.elf
 	@rm -f $(DESTDIR)/boot/start_cd.elf
 	@rm -f $(DESTDIR)/boot/start_x.elf
-	@rm -f $(DESTDIR)/boot/kernel.img
+	@rm -f $(DESTDIR)/boot/kernel7.img
