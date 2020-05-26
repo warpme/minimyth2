@@ -5,32 +5,34 @@ MASTER_SITES = http://git.yoctoproject.org/cgit/cgit.cgi/poky/snapshot/
 DISTFILES = \
 	poky-yocto-$(GARVERSION).tar.bz2 \
 	board-rpi2.conf             \
-	board-rpi3.mainline32.conf  \
-	board-rpi3.mainline64.conf  \
-	board-rpi3.rpi32.conf       \
-	board-s905.conf             \
-	board-s912.conf             \
-	board-g12.conf              \
-	board-sm1.conf              \
-	board-rk3328.beelink_a1.conf \
-	board-rk3399.rockpi4-b.conf \
-	board-h6.beelink_gs1.conf   \
-	board-h6.eachlink_mini.conf \
-	board-h6.tanix_tx6.conf     \
 	board-rpi2.wks              \
+	board-rpi3.mainline32.conf  \
 	board-rpi3.mainline32.wks   \
+	board-rpi3.mainline64.conf  \
 	board-rpi3.mainline64.wks   \
+	board-rpi3.rpi32.conf       \
 	board-rpi3.rpi32.wks        \
+	board-rpi4.mainline64.conf  \
 	board-rpi4.mainline64.wks   \
+	board-rpi4.rpi32.conf       \
 	board-rpi4.rpi32.wks        \
+	board-s905.conf             \
 	board-s905.wks              \
+	board-s912.conf             \
 	board-s912.wks              \
+	board-g12.conf              \
 	board-g12.wks               \
+	board-sm1.conf              \
 	board-sm1.wks               \
+	board-rk3328.beelink_a1.conf \
 	board-rk3328.beelink_a1.wks \
+	board-rk3399.rockpi4-b.conf \
 	board-rk3399.rockpi4-b.wks  \
+	board-h6.beelink_gs1.conf   \
 	board-h6.beelink_gs1.wks    \
+	board-h6.eachlink_mini.conf \
 	board-h6.eachlink_mini.wks  \
+	board-h6.tanix_tx6.conf     \
 	board-h6.tanix_tx6.wks      \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
