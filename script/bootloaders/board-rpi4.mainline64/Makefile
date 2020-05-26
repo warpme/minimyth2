@@ -1,21 +1,33 @@
 
 GARNAME      = bootfiles-rpi4.mainline64
-GITHASH      = 21e1fe3477ffb708a5736ed61a924fd650031136
-GARVERSION   = 2020-05-22-$(GITHASH)
+GITHASH      = a6c9b6b48ce86ef2527586a50760d52f1b33f642
+GARVERSION   = 2020-05-26-$(GITHASH)
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/raspberrypi/firmware/raw/$(GITHASH)/boot/
-DISTFILES    = config.txt          \
-               rpi4-boot.scr       \
-               rpi4-boot.txt       \
-               rpi4-boot-debug.scr \
-               rpi4-boot-debug.txt \
-               bootcode.bin        \
-               fixup4cd.dat        \
-               fixup4.dat          \
-               fixup4x.dat         \
-               start4cd.elf        \
-               start4.elf          \
-               start4x.elf         \
+DISTFILES    = config.txt             \
+               rpi4-boot.scr          \
+               rpi4-boot.txt          \
+               rpi4-boot-debug.scr    \
+               rpi4-boot-debug.txt    \
+               bootcode.bin           \
+               fixup4cd.dat           \
+               fixup4.dat             \
+               fixup4x.dat            \
+               start4cd.elf           \
+               start4.elf             \
+               start4x.elf            \
+               bcm2708-rpi-b-plus.dtb   \
+               bcm2708-rpi-b-rev1.dtb   \
+               bcm2708-rpi-b.dtb        \
+               bcm2708-rpi-cm.dtb       \
+               bcm2708-rpi-zero-w.dtb   \
+               bcm2708-rpi-zero.dtb     \
+               bcm2709-rpi-2-b.dtb      \
+               bcm2710-rpi-2-b.dtb      \
+               bcm2710-rpi-3-b-plus.dtb \
+               bcm2710-rpi-3-b.dtb      \
+               bcm2710-rpi-cm3.dtb      \
+               bcm2711-rpi-4-b.dtb      \
 
 export mm_U-BOOT_BOARD_TYPE = rpi_4_defconfig
 
@@ -48,13 +60,14 @@ install-custom:
 	@cp -f $(WORKSRC)/rpi4-boot.txt       $(DESTDIR)/boot/rpi4-boot.txt
 	@cp -f $(WORKSRC)/rpi4-boot-debug.scr $(DESTDIR)/boot/rpi4-boot-debug.scr
 	@cp -f $(WORKSRC)/rpi4-boot-debug.txt $(DESTDIR)/boot/rpi4-boot-debug.txt
-	@cp -f $(WORKSRC)/rpi4-boot.scr       $(DESTDIR)/boot/boot.scr
-	@cp -f $(WORKSRC)/rpi4-boot.txt       $(DESTDIR)/boot/boot.txt
-	@cp -f $(WORKSRC)/rpi4-boot-debug.scr $(DESTDIR)/boot/boot-debug.scr
-	@cp -f $(WORKSRC)/rpi4-boot-debug.txt $(DESTDIR)/boot/boot-debug.txt
+	@#cp -f $(WORKSRC)/rpi4-boot.scr       $(DESTDIR)/boot/boot.scr
+	@#cp -f $(WORKSRC)/rpi4-boot.txt       $(DESTDIR)/boot/boot.txt
+	@cp -f $(WORKSRC)/rpi4-boot-debug.scr $(DESTDIR)/boot/boot.scr
+	@cp -f $(WORKSRC)/rpi4-boot-debug.txt $(DESTDIR)/boot/boot.txt
 	@cp -f $(WORKSRC)/start4.elf          $(DESTDIR)/boot/start4.elf
 	@cp -f $(WORKSRC)/start4cd.elf        $(DESTDIR)/boot/start4cd.elf
 	@cp -f $(WORKSRC)/start4x.elf         $(DESTDIR)/boot/start4x.elf
+	@cp -f $(WORKSRC)/bcm2711-rpi-4-b.dtb $(DESTDIR)/boot/bcm2711-rpi-4-b.dtb
 	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi4/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img $(DESTDIR)/boot/kernel8.img
 
 clean-all:
@@ -75,3 +88,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/start4cd.elf
 	@rm -f $(DESTDIR)/boot/start4x.elf
 	@rm -f $(DESTDIR)/boot/kernel8.img
+	@rm -f $(DESTDIR)/boot/bcm2711-rpi-4-b.dtb
