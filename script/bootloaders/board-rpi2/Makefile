@@ -1,7 +1,7 @@
 
 GARNAME      = bootfiles-rpi2
-GITHASH      = e1bd9b0b8cda901ee9b23cbb8b3334cde71320a7
-GARVERSION   = 2019-09-22-$(GITHASH)
+GITHASH      = 62fc8c01165a80021054a430182b504f7b877c2d
+GARVERSION   = 2020-05-29-$(GITHASH)
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/raspberrypi/firmware/raw/$(GITHASH)/boot/
 DISTFILES    = rpi2-boot.scr \
