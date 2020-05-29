@@ -35,6 +35,7 @@ PATCHFILES += linux-5.7-defaults.patch
 PATCHFILES += linux-5.7-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.7-net-smsc95xx-allow-mac-address-as-param.patch
 
+ifeq (1,1)
 PATCHFILES += 0100-aarch64-text-offset.patch
 
 ifeq (1,1)
@@ -207,6 +208,17 @@ endif
 ifeq (1,1)
 # Allwinner H6: Cedrus related patches
 PATCHFILES += 0622-media-cedrus-improvements.patch
+endif
+
+ifeq (1,1)
+# Broadcom RPI4: Add HDMI support
+PATCHFILES += 0703-drm-Convert-drivers-to-drm_simple_encoder_init.patch
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=294333 27.05.2020
+PATCHFILES += 0701-clk-bcm-rpi-Add-support-for-BCM2711-firmware-clocks.patch
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=294341 27.05.2020
+PATCHFILES += 0704-drm-vc4-Support-BCM2711-Display-Pipeline.patch
+endif
+
 endif
 
 LICENSE = GPL2
