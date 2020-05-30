@@ -596,6 +596,9 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 	@if [ -e $@~/rootfs-ro/usr/lib/libEGL.so.1 ] ; then \
 		ln -srf $@~/rootfs-ro/usr/lib/libEGL.so.1 $@~/rootfs-ro/usr/lib/libEGL.so ; \
 	 fi
+	@if [ -e $@~/rootfs-ro/usr/bin/aplay ] ; then \
+		ln -srf $@~/rootfs-ro/usr/bin/aplay $@~/rootfs-ro/usr/bin/arecord ; \
+	 fi
 	@# Hack for strip wich is cheated by mplayer exec
 	@if [ -e $@~/rootfs-ro/usr/bin/mplayer ] ; then    \
 		chmod 0755 $@~/rootfs-ro/usr/bin/mplayer ; \
