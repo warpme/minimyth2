@@ -35,11 +35,6 @@ PARALLELMFLAGS := -j1
 include ../../gar.mk
 
 pre-configure:
-	@touch $(WORKSRC)/pjlib/include/pj/config_site.h
-	@echo "#undef PJMEDIA_AUDIO_DEV_HAS_PORTAUDIO"    >> $(WORKSRC)/pjlib/include/pj/config_site.h
-	@echo "#define PJMEDIA_AUDIO_DEV_HAS_PORTAUDIO 0" >> $(WORKSRC)/pjlib/include/pj/config_site.h
-	@echo "#undef PJMEDIA_AUDIO_DEV_HAS_ALSA"         >> $(WORKSRC)/pjlib/include/pj/config_site.h
-	@echo "#define PJMEDIA_AUDIO_DEV_HAS_ALSA 1"      >> $(WORKSRC)/pjlib/include/pj/config_site.h
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
 
