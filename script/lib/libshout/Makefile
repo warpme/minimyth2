@@ -1,9 +1,10 @@
-GARNAME = libshout
-GARVERSION = 2.4.1
-CATEGORIES = lib
+
+GARNAME      = libshout
+GARVERSION   = 2.4.3
+CATEGORIES   = lib
 MASTER_SITES = https://downloads.xiph.org/releases/libshout/
-DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
-LICENSE = LGPL2
+DISTFILES    = $(GARNAME)-$(GARVERSION).tar.gz
+LICENSE      = LGPL2
 
 DESCRIPTION = 
 define BLURB
