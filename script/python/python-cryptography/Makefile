@@ -1,8 +1,9 @@
 GARNAME = python-cryptography
-GARVERSION = 1.3.1
+GARVERSION = 2.9.2
 CATEGORIES = python
-MASTER_SITES = https://pypi.python.org/packages/b1/b8/f42fd854ed5b6f29a1b9c3778993753ff6ef138e4d892fdd61355d40508d/
+MASTER_SITES = https://pypi.io/packages/source/c/cryptography/
 DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+PATCHFILES = cryptography-2.9.2-hack-for-compile.patch
 LICENSE =
 DESCRIPTION = 
 define BLURB
