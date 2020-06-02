@@ -1,10 +1,10 @@
-GARNAME = openssl
-GARVERSION = 1.0.2o
-CATEGORIES = lib
+GARNAME      = openssl
+GARVERSION   = 1.1.1g
+CATEGORIES   = lib
 MASTER_SITES = http://www.openssl.org/source/
-DISTFILES = $(DISTNAME).tar.gz
-#PATCHFILES = $(DISTNAME).patch.gar
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = $(GARNAME)
+
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
 
 DESCRIPTION = 
@@ -14,13 +14,12 @@ endef
 DEPENDS = lang/c devel/zlib
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/Configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
+BUILD_SCRIPTS     = custom
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = \
 	--prefix=$(prefix) \
 	--libdir=$(patsubst $(prefix)/%,%,$(libdir)) \
-	--install_prefix=$(DESTDIR) \
 	--openssldir=$(sysconfdir)/pki/tls \
 	shared \
 	zlib \
@@ -37,11 +36,14 @@ BUILD_ARGS = \
 
 include ../../gar.mk
 
-PARALLELMFLAGS := -j1
-
 configure-%/Configure: 
 	@echo " ==> Running Configure in $*"
 	@cd $* && $(CONFIGURE_ENV) ./Configure $(CONFIGURE_ARGS)
+	@$(MAKECOOKIE)
+
+build-custom:
+	@cd $(WORKSRC); $(MAKE) depend
+	@cd $(WORKSRC); $(MAKE)
 	@$(MAKECOOKIE)
 
 post-install:
