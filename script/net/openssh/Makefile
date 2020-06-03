@@ -3,9 +3,6 @@ GARVERSION    = 8.3p1
 CATEGORIES    = net
 MASTER_SITES  = https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/
 DISTFILES     = $(DISTNAME).tar.gz
-#PATCHFILES = \
-#	$(DISTNAME)-abstract_socket.patch \
-#	$(DISTNAME).patch
 LICENSE       = $(GARNAME)
 
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENCE
