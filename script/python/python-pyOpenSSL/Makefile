@@ -1,5 +1,5 @@
 GARNAME = python-pyOpenSSL
-GARVERSION = 16.0.0
+GARVERSION = 19.1.0
 CATEGORIES = python
 MASTER_SITES = https://pypi.python.org/packages/source/p/pyOpenSSL/
 DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
