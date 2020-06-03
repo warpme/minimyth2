@@ -64,6 +64,9 @@ include ../../gar.mk
 # Needed so that Python can find the correct libpython shared library.
 LDFLAGS := $(LDFLAGS) -L$(PWD)/$(WORKSRC)
 
+# Needed as configure fails on 'float word ordering is bigendian' detection
+CFLAGS  += -ffat-lto-objects
+
 pre-configure:
 	@cd $(WORKSRC) ; autoreconf --verbose --install --force
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
@@ -81,7 +84,7 @@ post-install:
 	@mv $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR)-config $(DESTDIR)$(bindir)-config/python$(PYTHON_VERSION_MAJOR)-config
 	@$(if $(compiler_prefix), ln -s python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config)
 	@$(if $(compiler_prefix), ln -s python$(PYTHON_VERSION_MAJOR)-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)python$(PYTHON_VERSION_MAJOR)-config)
-	@#$(MAKECOOKIE)
+	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -rf $(DESTDIR)$(PYTHON_includedir)
