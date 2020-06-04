@@ -18,6 +18,12 @@ if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'no')
 {
     push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/mythfrontend">Mythfrontend Log</li> ));
     push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/messages">System Log</li> ));
+    if (-e "/var/log/Xorg.0.0.log") {
+        push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/Xorg.0.0.log">Xorg Log</li> ));
+    }
+    if (-e "/var/log/sip-daemon") {
+        push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/sip-daemon">SIP Daemon Log</li> ));
+    }
     push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/settings">MiniMyth2 Settings</li> ));
     push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/system-info">MiniMyth2 Diagnostic Info</li> ));
     if (-e "/var/log/minimyth.err") {
