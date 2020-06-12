@@ -8,7 +8,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = python/python python/python-certifi python/python-urllib3 python/python-idna python/python-chardet
+DEPENDS = python/python python/python-certifi python/python-urllib3 python/python-idna python/python-chardet python/python-pyOpenSSL
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
