@@ -2,14 +2,12 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# Mainline MESA 20.05.2020
-GARVERSION   = 989619c05b97e57d8d8a805954ff4553c4f3763c
+# Mainline MESA 13.06.2020
+GARVERSION   = 356be07ce279e6ff2d468fd1321a2edb2d6b2df2
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
-PATCHFILES  += panfrost-Enable-G31-Dvalin-G52-Gondul.patch
-PATCHFILES  += panfrost-Have-format.block-be-MALI_BLOCK_TILED-on-Bifrost.patch
 endif
 
 ifeq (0,1)
