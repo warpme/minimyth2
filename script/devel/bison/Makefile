@@ -1,12 +1,11 @@
-GARNAME = bison
-GARVERSION = 2.7
-CATEGORIES = devel
+
+GARNAME      = bison
+GARVERSION   = 3.6.3
+CATEGORIES   = devel
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES  = $(DISTNAME)-perl.patch.gar
-PATCHFILES += $(DISTNAME)-glibc2.28-fflush-adjust-to-libio.h-removal.patch
-PATCHFILES += $(DISTNAME)-glibc2.28-fflush-be-more-paranoid-about-libio.h-change.patch
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = $(DISTNAME)-perl.patch.gar
+LICENSE      = GPL3
 
 DESCRIPTION =
 define BLURB
