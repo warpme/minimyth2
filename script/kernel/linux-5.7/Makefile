@@ -95,6 +95,7 @@ PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-Hardkernel-ODROID-C4.patch
+PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-x96air.patch
 
 ifeq (1,1)
 # Rockchip: rkvdec rk3399
