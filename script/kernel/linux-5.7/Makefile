@@ -88,6 +88,15 @@ PATCHFILES += 0333-arm64-dts-meson-p230-q200-add-initial-audio-playback-support.
 PATCHFILES += 0334-arm64-dts-meson-libretech-cc-add-initial-audio-playback-support.patch
 PATCHFILES += 0335-arm64-dts-meson-libretech-ac-add-initial-audio-playback-support.patch
 PATCHFILES += 0336-arm64-dts-meson-libretech-pc-add-initial-audio-playback-support.patch
+# arm64: dts: meson: add internal audio DAC support 2020.05.06
+PATCHFILES += 0337-arm64-dts-meson-gxl-add-acodec-support.patch
+PATCHFILES += 0338-arm64-dts-meson-p230-q200-add-internal-DAC-support.patch
+PATCHFILES += 0339-arm64-dts-meson-libretech-cc-add-internal-DAC-support.patch
+PATCHFILES += 0340-arm64-dts-meson-libretech-ac-add-internal-DAC-support.patch
+PATCHFILES += 0341-arm64-dts-meson-libretech-pc-add-internal-DAC-support.patch
+PATCHFILES += 0342-arm64-dts-meson-g12-add-internal-DAC.patch
+PATCHFILES += 0343-arm64-dts-meson-g12-add-internal-DAC-glue.patch
+PATCHFILES += 0344-dt-bindings-reset-meson-add-gxl-internal-dac-reset.patch
 endif
 
 # Amlogic: Misc patches
