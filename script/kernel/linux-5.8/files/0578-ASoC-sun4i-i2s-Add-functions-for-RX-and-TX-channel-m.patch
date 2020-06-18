@@ -1,0 +1,130 @@
+From eb5527f412c7602e4bff61ddff35e419ecc1defc Mon Sep 17 00:00:00 2001
+From: Marcus Cooper <codekipper@gmail.com>
+Date: Thu, 8 Aug 2019 15:01:20 +0200
+Subject: [PATCH 18/35] ASoC: sun4i-i2s: Add functions for RX and TX channel
+ mapping
+
+As we will eventually add multi-channel audio support to the i2s
+then create function calls as opposed to regmap fields to add
+support for different devices.
+
+Signed-off-by: Marcus Cooper <codekipper@gmail.com>
+---
+ sound/soc/sunxi/sun4i-i2s.c | 45 +++++++++++++++++++++++++++++++++++++++++----
+ 1 file changed, 41 insertions(+), 4 deletions(-)
+
+diff --git a/sound/soc/sunxi/sun4i-i2s.c b/sound/soc/sunxi/sun4i-i2s.c
+index 19988d6..63ae9da 100644
+--- a/sound/soc/sunxi/sun4i-i2s.c
++++ b/sound/soc/sunxi/sun4i-i2s.c
+@@ -165,6 +165,8 @@ struct sun4i_i2s_quirks {
+ 	void	(*set_rxchanen)(const struct sun4i_i2s *, int);
+ 	void	(*set_txchansel)(const struct sun4i_i2s *, int, int);
+ 	void	(*set_rxchansel)(const struct sun4i_i2s *, int);
++	void	(*set_txchanmap)(const struct sun4i_i2s *, int, int);
++	void	(*set_rxchanmap)(const struct sun4i_i2s *, int);
+ };
+ 
+ struct sun4i_i2s {
+@@ -405,8 +407,8 @@ static int sun4i_i2s_set_chan_cfg(const struct sun4i_i2s *i2s,
+ 	unsigned int channels = params_channels(params);
+ 
+ 	/* Map the channels for playback and capture */
+-	regmap_write(i2s->regmap, SUN4I_I2S_TX_CHAN_MAP_REG, 0x76543210);
+-	regmap_write(i2s->regmap, SUN4I_I2S_RX_CHAN_MAP_REG, 0x00003210);
++	i2s->variant->set_txchanmap(i2s, 0, 0x76543210);
++	i2s->variant->set_rxchanmap(i2s, 0x00003210);
+ 
+ 	/* Configure the channels */
+ 	i2s->variant->set_txchansel(i2s, 0, channels);
+@@ -426,8 +428,8 @@ static int sun8i_i2s_set_chan_cfg(const struct sun4i_i2s *i2s,
+ 		slots = i2s->slots;
+ 
+ 	/* Map the channels for playback and capture */
+-	regmap_write(i2s->regmap, SUN8I_I2S_TX_CHAN_MAP_REG, 0x76543210);
+-	regmap_write(i2s->regmap, SUN8I_I2S_RX_CHAN_MAP_REG, 0x76543210);
++	i2s->variant->set_txchanmap(i2s, 0, 0x76543210);
++	i2s->variant->set_rxchanmap(i2s, 0x00003210);
+ 
+ 	/* Configure the channels */
+ 	i2s->variant->set_txchansel(i2s, 0, channels);
+@@ -534,6 +536,31 @@ static void sun8i_i2s_set_rxchansel(const struct sun4i_i2s *i2s, int channel)
+ 			   SUN8I_I2S_TX_CHAN_SEL(channel));
+ }
+ 
++static void sun4i_i2s_set_txchanmap(const struct sun4i_i2s *i2s, int output,
++				    int channel)
++{
++	if (output == 0)
++		regmap_write(i2s->regmap, SUN4I_I2S_TX_CHAN_MAP_REG, channel);
++}
++
++static void sun8i_i2s_set_txchanmap(const struct sun4i_i2s *i2s, int output,
++				    int channel)
++{
++	if (output >= 0 && output < 4)
++		regmap_write(i2s->regmap,
++			     SUN8I_I2S_TX_CHAN_MAP_REG + (output * 4), channel);
++}
++
++static void sun4i_i2s_set_rxchanmap(const struct sun4i_i2s *i2s, int channel)
++{
++	regmap_write(i2s->regmap, SUN4I_I2S_RX_CHAN_MAP_REG, channel);
++}
++
++static void sun8i_i2s_set_rxchanmap(const struct sun4i_i2s *i2s, int channel)
++{
++	regmap_write(i2s->regmap, SUN8I_I2S_RX_CHAN_MAP_REG, channel);
++}
++
+ static int sun4i_i2s_hw_params(struct snd_pcm_substream *substream,
+ 			       struct snd_pcm_hw_params *params,
+ 			       struct snd_soc_dai *dai)
+@@ -1154,6 +1181,8 @@ static const struct sun4i_i2s_quirks sun4i_a10_i2s_quirks = {
+ 	.set_fmt		= sun4i_i2s_set_soc_fmt,
+ 	.set_txchansel		= sun4i_i2s_set_txchansel,
+ 	.set_rxchansel		= sun4i_i2s_set_rxchansel,
++	.set_txchanmap		= sun4i_i2s_set_txchanmap,
++	.set_rxchanmap		= sun4i_i2s_set_rxchanmap,
+ };
+ 
+ static const struct sun4i_i2s_quirks sun6i_a31_i2s_quirks = {
+@@ -1174,6 +1203,8 @@ static const struct sun4i_i2s_quirks sun6i_a31_i2s_quirks = {
+ 	.set_fmt		= sun4i_i2s_set_soc_fmt,
+ 	.set_txchansel		= sun4i_i2s_set_txchansel,
+ 	.set_rxchansel		= sun4i_i2s_set_rxchansel,
++	.set_txchanmap		= sun4i_i2s_set_txchanmap,
++	.set_rxchanmap		= sun4i_i2s_set_rxchanmap,
+ };
+ 
+ /*
+@@ -1199,6 +1230,8 @@ static const struct sun4i_i2s_quirks sun8i_a83t_i2s_quirks = {
+ 	.set_fmt		= sun4i_i2s_set_soc_fmt,
+ 	.set_txchansel		= sun4i_i2s_set_txchansel,
+ 	.set_rxchansel		= sun4i_i2s_set_rxchansel,
++	.set_txchanmap		= sun4i_i2s_set_txchanmap,
++	.set_rxchanmap		= sun4i_i2s_set_rxchanmap,
+ };
+ 
+ static const struct sun4i_i2s_quirks sun8i_h3_i2s_quirks = {
+@@ -1223,6 +1256,8 @@ static const struct sun4i_i2s_quirks sun8i_h3_i2s_quirks = {
+ 	.set_rxchanen		= sun8i_i2s_set_rxchanen,
+ 	.set_txchansel		= sun8i_i2s_set_txchansel,
+ 	.set_rxchansel		= sun8i_i2s_set_rxchansel,
++	.set_txchanmap		= sun8i_i2s_set_txchanmap,
++	.set_rxchanmap		= sun8i_i2s_set_rxchanmap,
+ };
+ 
+ static const struct sun4i_i2s_quirks sun50i_a64_codec_i2s_quirks = {
+@@ -1243,6 +1278,8 @@ static const struct sun4i_i2s_quirks sun50i_a64_codec_i2s_quirks = {
+ 	.set_fmt		= sun4i_i2s_set_soc_fmt,
+ 	.set_txchansel		= sun4i_i2s_set_txchansel,
+ 	.set_rxchansel		= sun4i_i2s_set_rxchansel,
++	.set_txchanmap		= sun4i_i2s_set_txchanmap,
++	.set_rxchanmap		= sun4i_i2s_set_rxchanmap,
+ };
+ 
+ static int sun4i_i2s_init_regmap_fields(struct device *dev,
+-- 
+2.7.1
+
