@@ -97,6 +97,7 @@ PATCHFILES += 0341-arm64-dts-meson-libretech-pc-add-internal-DAC-support.patch
 PATCHFILES += 0342-arm64-dts-meson-g12-add-internal-DAC.patch
 PATCHFILES += 0343-arm64-dts-meson-g12-add-internal-DAC-glue.patch
 PATCHFILES += 0344-dt-bindings-reset-meson-add-gxl-internal-dac-reset.patch
+PATCHFILES += 0345-WIP-clk-meson-g12a-fix-gp0-and-hifi-ranges.patch
 endif
 
 # Amlogic: Misc patches
