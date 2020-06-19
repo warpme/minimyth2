@@ -103,30 +103,22 @@ endif
 
 ifeq (1,1)
 # Allwinner H6: Enable HDMI audio
-# https://github.com/codekipper/linux-sunxi/commits/upstream-i2s
-PATCHFILES += 0564-ARM-dts-sunxi-h3-h5-Add-DAI-node-for-HDMI.patch
-PATCHFILES += 0565-arm64-dts-allwinner-a64-Add-DAI-node-for-HDMI.patch
-PATCHFILES += 0566-ARM-dts-sunxi-h3-h5-Add-HDMI-audio.patch
-PATCHFILES += 0567-ARM-sun8i-h3-Add-HDMI-audio-to-Orange-Pi-2.patch
-PATCHFILES += 0568-ARM-sun8i-h3-Add-HDMI-audio-to-Beelink-X2.patch
-PATCHFILES += 0569-ARM-dts-sun50i-a64-Add-I2S0-pins-to-dtsi.patch
-PATCHFILES += 0570-arm64-dts-sun50i-a64-Add-HDMI-audio-to-A64-DTSI.patch
-PATCHFILES += 0571-arm64-dts-sun50i-a64-Add-HDMI-audio-to-Pine64.patch
-PATCHFILES += 0572-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
-PATCHFILES += 0573-arm64-dts-allwinner-orange-pi-Enable-HDMI-output.patch
-PATCHFILES += 0574-ASoC-sun4i-i2s-Move-channel-select-offset.patch
-PATCHFILES += 0575-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-o.patch
-PATCHFILES += 0576-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-e.patch
-PATCHFILES += 0577-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-s.patch
-PATCHFILES += 0578-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-m.patch
-PATCHFILES += 0579-dt-bindings-ASoC-sun4i-i2s-Add-H6-compatible.patch
-PATCHFILES += 0580-ASoC-sun4i-i2s-Add-support-for-H6-I2S.patch
-PATCHFILES += 0581-ASoC-sun4i-i2s-Add-function-to-sign-extend-sample.patch
+# https://github.com/codekipper/linux-sunxi/commits/upstream-h6
+PATCHFILES += 0571-Config-changes-for-hacking-on-Allwiner-arm64.patch
+PATCHFILES += 0572-ARM-dts-sunxi-h3-h5-Add-DAI-node-for-HDMI.patch
+PATCHFILES += 0573-arm64-dts-allwinner-a64-Add-DAI-node-for-HDMI.patch
+PATCHFILES += 0574-ARM-dts-sunxi-h3-h5-Add-HDMI-audio.patch
+PATCHFILES += 0575-ARM-sun8i-h3-Add-HDMI-audio-to-Orange-Pi-2.patch
+PATCHFILES += 0576-ARM-sun8i-h3-Add-HDMI-audio-to-Beelink-X2.patch
+PATCHFILES += 0577-ARM-dts-sun50i-a64-Add-I2S0-pins-to-dtsi.patch
+PATCHFILES += 0578-arm64-dts-sun50i-a64-Add-HDMI-audio-to-A64-DTSI.patch
+PATCHFILES += 0579-arm64-dts-sun50i-a64-Add-HDMI-audio-to-Pine64.patch
+PATCHFILES += 0580-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
 PATCHFILES += 0582-ASoC-sun4i-i2s-Adjust-LRCLK-width.patch
-PATCHFILES += 0583-ASoc-sun4i-i2s-Add-20-and-24-bit-support.patch
-PATCHFILES += 0584-ASoC-sun4i-i2s-Add-multi-lane-functionality.patch
-PATCHFILES += 0585-ASoC-sun4i-i2s-Add-multichannel-functionality.patch
-PATCHFILES += 0586-ASoC-sun4i-i2s-Adjust-regmap-settings.patch
+PATCHFILES += 0584-ASoC-sun4i-i2s-Add-support-for-H6-I2S.patch
+PATCHFILES += 0585-ASoC-sun4i-i2s-Add-function-to-sign-extend-sample.patch
+PATCHFILES += 0586-ASoc-sun4i-i2s-Add-20-and-24-bit-support.patch
+PATCHFILES += 0587-ASoC-sun4i-i2s-Adjust-regmap-settings.patch
 PATCHFILES += 0588-arm64-dts-allwinner-Add-SPDIF-node-for-Allwinner-H6.patch
 endif
 
