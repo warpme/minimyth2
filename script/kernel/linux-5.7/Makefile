@@ -36,6 +36,7 @@ PATCHFILES += linux-5.7-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.7-net-smsc95xx-allow-mac-address-as-param.patch
 
 ifeq (1,1)
+# Required to successful boot on amlogic SM1
 PATCHFILES += 0100-aarch64-text-offset.patch
 
 ifeq (1,1)
@@ -122,18 +123,6 @@ PATCHFILES += 0409-media-uapi-Add-VP9-stateless-decoder-controls.patch
 PATCHFILES += 0410-media-rkvdec-Add-the-VP9-backend.patch
 endif
 
-ifeq (0,1)
-# Rockchip: hantro vdec rk3288/3328/3399 improvements - patches from rockchip ML
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=258205 v2 18.03.2020
-PATCHFILES += 0421-v4l2-mem2mem-return-CAPTURE-buffer-first.patch
-PATCHFILES += 0422-hantro-Set-buffers-zeroth-plane-payload-in-.buf_prepare.patch
-PATCHFILES += 0423-hantro-Use-v4l2_m2m_buf_done_and_job_finish.patch
-PATCHFILES += 0424-hantro-Remove-unneeded-hantro_dec_buf_finish.patch
-PATCHFILES += 0425-hantro-Move-H264-motion-vector-calculation-to-a-helper.patch
-PATCHFILES += 0426-hantro-Refactor-for-V4L2-API-spec-compliancy.patch.patch
-PATCHFILES += 0427-dt-bindings-rockchip-vpu-Convert-bindings-to-json-schema.patch
-endif
-
 ifeq (1,1)
 # Rockchip: rk3328/3399 HDMI improvements (including 4k support)
 # https://patchwork.freedesktop.org/series/71675/#rev2
@@ -189,45 +178,28 @@ endif
 
 ifeq (1,1)
 # Allwinner H6: Enable HDMI audio
-# https://github.com/codekipper/linux-sunxi/commits/upstream-i2s
-PATCHFILES += 0564-ARM-dts-sunxi-h3-h5-Add-DAI-node-for-HDMI.patch
-PATCHFILES += 0565-arm64-dts-allwinner-a64-Add-DAI-node-for-HDMI.patch
-PATCHFILES += 0566-ARM-dts-sunxi-h3-h5-Add-HDMI-audio.patch
-PATCHFILES += 0567-ARM-sun8i-h3-Add-HDMI-audio-to-Orange-Pi-2.patch
-PATCHFILES += 0568-ARM-sun8i-h3-Add-HDMI-audio-to-Beelink-X2.patch
-PATCHFILES += 0569-ARM-dts-sun50i-a64-Add-I2S0-pins-to-dtsi.patch
-PATCHFILES += 0570-arm64-dts-sun50i-a64-Add-HDMI-audio-to-A64-DTSI.patch
-PATCHFILES += 0571-arm64-dts-sun50i-a64-Add-HDMI-audio-to-Pine64.patch
-PATCHFILES += 0572-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
-PATCHFILES += 0573-arm64-dts-allwinner-orange-pi-Enable-HDMI-output.patch
-PATCHFILES += 0574-ASoC-sun4i-i2s-Move-channel-select-offset.patch
-PATCHFILES += 0575-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-o.patch
-PATCHFILES += 0576-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-e.patch
-PATCHFILES += 0577-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-s.patch
-PATCHFILES += 0578-ASoC-sun4i-i2s-Add-functions-for-RX-and-TX-channel-m.patch
-PATCHFILES += 0579-dt-bindings-ASoC-sun4i-i2s-Add-H6-compatible.patch
-PATCHFILES += 0580-ASoC-sun4i-i2s-Add-support-for-H6-I2S.patch
-PATCHFILES += 0581-ASoC-sun4i-i2s-Add-function-to-sign-extend-sample.patch
+# https://github.com/codekipper/linux-sunxi/commits/upstream-h6
+PATCHFILES += 0571-Config-changes-for-hacking-on-Allwiner-arm64.patch
+PATCHFILES += 0572-ARM-dts-sunxi-h3-h5-Add-DAI-node-for-HDMI.patch
+PATCHFILES += 0573-arm64-dts-allwinner-a64-Add-DAI-node-for-HDMI.patch
+PATCHFILES += 0574-ARM-dts-sunxi-h3-h5-Add-HDMI-audio.patch
+PATCHFILES += 0575-ARM-sun8i-h3-Add-HDMI-audio-to-Orange-Pi-2.patch
+PATCHFILES += 0576-ARM-sun8i-h3-Add-HDMI-audio-to-Beelink-X2.patch
+PATCHFILES += 0577-ARM-dts-sun50i-a64-Add-I2S0-pins-to-dtsi.patch
+PATCHFILES += 0578-arm64-dts-sun50i-a64-Add-HDMI-audio-to-A64-DTSI.patch
+PATCHFILES += 0579-arm64-dts-sun50i-a64-Add-HDMI-audio-to-Pine64.patch
+PATCHFILES += 0580-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
 PATCHFILES += 0582-ASoC-sun4i-i2s-Adjust-LRCLK-width.patch
-PATCHFILES += 0583-ASoc-sun4i-i2s-Add-20-and-24-bit-support.patch
-PATCHFILES += 0584-ASoC-sun4i-i2s-Add-multi-lane-functionality.patch
-PATCHFILES += 0585-ASoC-sun4i-i2s-Add-multichannel-functionality.patch
-PATCHFILES += 0586-ASoC-sun4i-i2s-Adjust-regmap-settings.patch
+PATCHFILES += 0584-ASoC-sun4i-i2s-Add-support-for-H6-I2S.patch
+PATCHFILES += 0585-ASoC-sun4i-i2s-Add-function-to-sign-extend-sample.patch
+PATCHFILES += 0586-ASoc-sun4i-i2s-Add-20-and-24-bit-support.patch
+PATCHFILES += 0587-ASoC-sun4i-i2s-Adjust-regmap-settings.patch
 PATCHFILES += 0588-arm64-dts-allwinner-Add-SPDIF-node-for-Allwinner-H6.patch
 endif
 
 ifeq (1,1)
 # Allwinner H6: Cedrus related patches
-PATCHFILES += 0622-media-cedrus-improvements.patch
-endif
-
-ifeq (1,1)
-# Broadcom RPI4: Add HDMI support
-PATCHFILES += 0703-drm-Convert-drivers-to-drm_simple_encoder_init.patch
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=294333 27.05.2020
-PATCHFILES += 0701-clk-bcm-rpi-Add-support-for-BCM2711-firmware-clocks.patch
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=294341 27.05.2020
-PATCHFILES += 0704-drm-vc4-Support-BCM2711-Display-Pipeline.patch
+PATCHFILES += 0590-media-cedrus-improvements.patch
 endif
 
 endif
