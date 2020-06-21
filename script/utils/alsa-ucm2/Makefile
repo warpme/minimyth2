@@ -1,9 +1,10 @@
 
 GARNAME      = alsa-ucm2
-GARVERSION   = 907c8309b2ee671e1b36630b0d29db1bc3124990
+GARVERSION   = 4c1189fdcb4819df6c36cf490d17f532f82c8bbe
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/alsa-project/alsa-ucm-conf/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = alsa-ucm-conf-add-amlogic-cards.patch
 WORKSRC      = $(WORKDIR)/alsa-ucm-conf-$(GARVERSION)/
 
 DENENDS      = lib/alsa-lib
