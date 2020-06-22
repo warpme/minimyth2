@@ -122,6 +122,8 @@ PATCHFILES += 0587-ASoC-sun4i-i2s-Adjust-regmap-settings.patch
 PATCHFILES += 0588-arm64-dts-allwinner-Add-SPDIF-node-for-Allwinner-H6.patch
 endif
 
+PATCHFILES += 0590-drm-sun4i-mixer-Call-of_dma_configure-if-theres-IOMMU.patch
+
 endif
 
 LICENSE = GPL2
