@@ -71,10 +71,6 @@ PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-x96air.patch
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=286715
-PATCHFILES += 0370-dwmac-meson8b-Ethernet-RX-delay-configuration.patch
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=306081
-PATCHFILES += 0371-prepare-dwmac-meson8b-for-G12A-specific-initialization.patch
 
 ifeq (1,1)
 # Allwinner H6: Support for USB3
