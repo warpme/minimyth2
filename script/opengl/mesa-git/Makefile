@@ -2,8 +2,8 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# Mainline MESA 18.06.2020
-GARVERSION   = c4aa64b4c346c06af36c223f00a09a43434c1746
+# Mainline MESA 24.06.2020
+GARVERSION   = 7b3976d3f86d41ccc130b6734630814acf538d28
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -78,19 +78,19 @@ CONFIGURE_ARGS = \
 	-D va-libs-path="$(DESTDIR)$(libdir)/va" \
 	-D vdpau-libs-path="$(DESTDIR)$(libdir)" \
 	-D shared-glapi=true \
-	-D shared-llvm=true \
-	-D gbm=true \
-	-D shared-glapi=true \
+	-D shared-llvm=enabled \
+	-D gbm=enabled \
+	-D shared-glapi=enabled \
 	-D glx=dri \
-	-D egl=true \
-	-D gles1=true \
-	-D gles2=true \
-	-D dri3=true \
+	-D egl=enabled \
+	-D gles1=enabled \
+	-D gles2=enabled \
+	-D dri3=enabled \
 	-D gallium-opencl=disabled \
 	-D glvnd=false \
-	-D gallium-xvmc=false \
+	-D gallium-xvmc=disabled \
 	-D gallium-nine=false \
-	-D b_lto=false \
+	-D b_lto=true \
 	-D b_ndebug=true \
 	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 
@@ -99,27 +99,27 @@ CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
-	-D gallium-vdpau=false \
-	-D gallium-xa=false \
-	-D llvm=false
+	-D gallium-vdpau=disabled \
+	-D gallium-xa=disabled \
+	-D llvm=disabled
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
 	-D platforms=x11,drm \
-	-D gallium-vdpau=false \
-	-D gallium-xa=false \
-	-D llvm=false
+	-D gallium-vdpau=disabled \
+	-D gallium-xa=disabled \
+	-D llvm=disabled
 else
 CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
 	-D dri-drivers=i915,i965,r100,r200 \
 	-D platforms=x11,drm \
-	-D gallium-vdpau=true \
-	-D gallium-va=true \
-	-D gallium-xa=true \
-	-D llvm=true
+	-D gallium-vdpau=enabled \
+	-D gallium-va=enabled \
+	-D gallium-xa=enabled \
+	-D llvm=disabled
 endif
 endif
 
