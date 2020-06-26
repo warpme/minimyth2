@@ -1,7 +1,7 @@
 
 GARNAME      = bootfiles-rpi3.rpi32
-GITHASH      = 9d4f640625529b104303a31482f5ccbd2d8da51b
-GARVERSION   = 2020-06-19-$(GITHASH)
+GITHASH      = 2b76cfc6f57d4943144b9ceb5b57d3d455d6a8fd
+GARVERSION   = 2020-06-26-$(GITHASH)
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/raspberrypi/firmware/raw/$(GITHASH)/boot/
 DISTFILES    = \
