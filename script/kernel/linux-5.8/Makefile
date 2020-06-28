@@ -64,65 +64,32 @@ ifeq (1,1)
 # Amlogic: vdec various patches
 PATCHFILES += 0311-arm64-dts-meson-set-dma-pool-to-896MB.patch
 PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
-endif
-
 # Amlogic: Misc patches
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-x96air.patch
-
-ifeq (1,1)
-# Allwinner H6: Support for USB3
-PATCHFILES += 0522-arm64-allwinner-dts-h6-enable-USB3-port-on-Beelink-G.patch
-# Allwinner H6: Misc patches
-PATCHFILES += 0524-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-disabling-DDR.patch
-PATCHFILES += 0527-bus-sunxi-rsb-Make-interrupt-handling-more-robust.patch
-# Allwinner H6: Add some new H6 boards
-PATCHFILES += 0528-arm64-dts-allwinner-add-rgmii-pins-for-some-h6-boards.patch
-PATCHFILES += 0529-arm64-dts-allwinner-add-Tanix-TX6.patch
-PATCHFILES += 0530-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
-PATCHFILES += 0531-arm64-dts-allwinner-add-Qplus.patch
-# Allwinner H6: Add support for RTC
-PATCHFILES += 0532-dt-bindings-Add-compatible-for-H6-RTC.patch
-# Allwinner H6: Add AC200 for Eachlink H6/Tanix TX6
-PATCHFILES += 0533-allwinner-h6-add-AC200-EPHY-support.patch
-PATCHFILES += 0534-arm64-dts-sun50i-h6-add-AC200-nodes.patch
-# Allwinner H6: HW cursor support in drm planes
-PATCHFILES += 0535-drm-sun4i-Mark-one-of-the-UI-planes-as-a-cursor-one.patch
-PATCHFILES += 0536-drm-sun8i-ui-vi-Fix-layer-zpos-change-atomic-modesetting.patch
-# Allwinner H6: Add thermal support
-PATCHFILES += 0552-thermal-sun8i-enable-ths-in-h6-boards.patch
 endif
 
 ifeq (1,1)
-# Add support for Allwinner H6 DVFS
-# Enable only CPU DVFS as GPU seems to be broken at the moment
-PATCHFILES += 0562-arm64-dts-allwinner-h6-Enable-CPU-DVFS-on-multiple-boards.patch
+# Rockchip patches
+PATCHFILES += 0400-clk-rockchip-clk-pll-from-next.patch
 endif
 
 ifeq (1,1)
-# Allwinner H6: Enable HDMI audio
-# https://github.com/codekipper/linux-sunxi/commits/upstream-h6
-PATCHFILES += 0571-Config-changes-for-hacking-on-Allwiner-arm64.patch
-PATCHFILES += 0572-ARM-dts-sunxi-h3-h5-Add-DAI-node-for-HDMI.patch
-PATCHFILES += 0573-arm64-dts-allwinner-a64-Add-DAI-node-for-HDMI.patch
-PATCHFILES += 0574-ARM-dts-sunxi-h3-h5-Add-HDMI-audio.patch
-PATCHFILES += 0575-ARM-sun8i-h3-Add-HDMI-audio-to-Orange-Pi-2.patch
-PATCHFILES += 0576-ARM-sun8i-h3-Add-HDMI-audio-to-Beelink-X2.patch
-PATCHFILES += 0577-ARM-dts-sun50i-a64-Add-I2S0-pins-to-dtsi.patch
-PATCHFILES += 0578-arm64-dts-sun50i-a64-Add-HDMI-audio-to-A64-DTSI.patch
-PATCHFILES += 0579-arm64-dts-sun50i-a64-Add-HDMI-audio-to-Pine64.patch
-PATCHFILES += 0580-arm64-dts-sun50i-h6-Add-HDMI-audio-to-H6-DTSI.patch
-PATCHFILES += 0582-ASoC-sun4i-i2s-Adjust-LRCLK-width.patch
-PATCHFILES += 0584-ASoC-sun4i-i2s-Add-support-for-H6-I2S.patch
-PATCHFILES += 0585-ASoC-sun4i-i2s-Add-function-to-sign-extend-sample.patch
-PATCHFILES += 0586-ASoc-sun4i-i2s-Add-20-and-24-bit-support.patch
-PATCHFILES += 0587-ASoC-sun4i-i2s-Adjust-regmap-settings.patch
-PATCHFILES += 0588-arm64-dts-allwinner-Add-SPDIF-node-for-Allwinner-H6.patch
+# Allwinner: Misc H6 patches
+# based on https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux
+PATCHFILES += 0500-gpu-drm-dw-hdmi-H6-improvements.patch
+PATCHFILES += 0501-ASoC-sun4i-i2s-H6-improvements.patch
+PATCHFILES += 0502-media-sunxi-cedrus-improvements.patch
+PATCHFILES += 0503-mfd-add-AC200.patch
+PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
+PATCHFILES += 0511-arm64-dts-sun50i-h6.dtsi-add-sound-hack.patch
+PATCHFILES += 0512-arm64-dts-sun50i-h6.dtsi-add-frame-inversion-to-correct-multi-channel-audio.patch
+PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
+PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
+PATCHFILES += 0599-drm-sun4i-mixer-Call-of_dma_configure-if-theres-IOMMU.patch
 endif
-
-PATCHFILES += 0590-drm-sun4i-mixer-Call-of_dma_configure-if-theres-IOMMU.patch
 
 endif
 
