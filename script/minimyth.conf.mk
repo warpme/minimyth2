@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk  ,      $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 11.2.2.r594
+mm_VERSION_MINIMYTH ?= 11.2.2.r602
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -171,7 +171,7 @@ mm_SDCARD_FILES           ?= ${HOME}/build
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of kernel to use.
-# Valid values are 'rpi-4.19' 'rpi-5.4' '5.6' '5.7'
+# Valid values are 'rpi-4.19' 'rpi-5.4' '5.7' '5.8'
 mm_KERNEL_VERSION         ?= 5.7
 
 # The kernel configuration file to use.
