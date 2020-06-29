@@ -88,7 +88,6 @@ PATCHFILES += 0511-arm64-dts-sun50i-h6.dtsi-add-sound-hack.patch
 PATCHFILES += 0512-arm64-dts-sun50i-h6.dtsi-add-frame-inversion-to-correct-multi-channel-audio.patch
 PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
 PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
-PATCHFILES += 0599-drm-sun4i-mixer-Call-of_dma_configure-if-theres-IOMMU.patch
 endif
 
 endif
