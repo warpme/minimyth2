@@ -44,11 +44,23 @@ mm_conf_file="${HOME}/.minimyth2/minimyth.conf.mk"
 
 
 
-
-
-
-
 #--------------------------------------------------------------
+
+if [ ! -f ${mm_conf_file} ] ; then
+    echo " "
+    echo "Error: Can't find MiniMyth2 conf file !"
+    echo "Exiting..."
+    echo " "
+    exit 1
+fi
+mm_home=`grep "^mm_HOME " ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
+if [ ! -f ${mm_home}/script/meta/minimyth/Makefile ] ; then
+    echo " "
+    echo "Error: MiniMyth2 home [${mm_home}] seems to be wrong directory !"
+    echo "Exiting..."
+    echo " "
+    exit 1
+fi
 
 branch=` grep "^mm_MYTH_VERSION "     ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 version=`grep "^mm_VERSION_MINIMYTH " ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
@@ -204,15 +216,15 @@ else
 fi
 
 echo "==> Updating version in (${mm_home}/html/minimyth/document-changelog.txt)"
-sed -i "0,/\s*-update\s*mythtv\s*to\s*r.*/ s/\s*-update\s*mythtv\s*to\s*r.*/  -update mythtv to r${gitrel}/" ${mm_home}/html/minimyth/document-changelog.txt
+sed --in-place --follow-symlinks "0,/\s*-update\s*mythtv\s*to\s*r.*/ s/\s*-update\s*mythtv\s*to\s*r.*/  -update mythtv to r${gitrel}/" ${mm_home}/html/minimyth/document-changelog.txt
 
 echo "==> Updating SVN ver. in (${mm_home}/script/myth-${branch}/mythtv/package-api.mk)"
-sed -i 's/MYTHTV_SVN_VERSION =.*/MYTHTV_SVN_VERSION = '${stamp}-${githash}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
+sed --in-place --follow-symlinks 's/MYTHTV_SVN_VERSION =.*/MYTHTV_SVN_VERSION = '${stamp}-${githash}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
 echo "==> Updating GIT hash in (${mm_home}/script/myth-${branch}/mythtv/package-api.mk)"
-sed -i 's/MYTHTV_GIT_VERSION =.*/MYTHTV_GIT_VERSION = '${gitversion}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
+sed --in-place --follow-symlinks 's/MYTHTV_GIT_VERSION =.*/MYTHTV_GIT_VERSION = '${gitversion}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
 
 echo "==> Updating version in (${mm_conf_file})"
-sed -i "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" ${mm_conf_file}
+sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" ${mm_conf_file}
 
 echo " "
 echo "Now ready to build myth-${branch} ..."
