@@ -22,11 +22,12 @@ clean-all:
 	@$(foreach dir, $(wildcard ../linux-*), $(MAKE) clean-all -C $(dir) ; )
 	@$(MAKE) clean
 	@$(MAKE) clean-all -C ../../kernel-headers/linux-headers
-	@$(MAKE) clean-all -C ../../nvidia
+	@$(MAKE) clean-all -C ../../firmware/firmware
 	@$(MAKE) clean-all -C ../../bootloaders/bootloader
 	@$(MAKE) clean-all -C ../../kernel/meson-gx-mali450
 	@$(MAKE) clean     -C ../../kernel-headers/linux-headers
-	@$(MAKE) clean     -C ../../nvidia
+	@$(MAKE) clean     -C ../../firmware/firmware
 	@$(MAKE) clean     -C ../../bootloaders/bootloader
 	@$(MAKE) clean     -C ../../kernel/meson-gx-mali450
+	@$(MAKE) clean     -C ../../nvidia
 	@$(MAKE) clean     -C ../../system/bbswitch

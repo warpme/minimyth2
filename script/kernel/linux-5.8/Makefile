@@ -106,9 +106,7 @@ BUILDDEPS = \
 
 DEPENDS = \
 	kernel-headers/linux-headers \
-	kernel/linux-firmware \
-	kernel/wireless-regdb \
-	kernel/alsa-sof-firmware \
+	firmware/firmware \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom

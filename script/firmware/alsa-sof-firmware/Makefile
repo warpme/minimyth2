@@ -1,6 +1,6 @@
 GARNAME = sof-firmware
 GARVERSION = 1.4.2
-CATEGORIES = kernel-5.6
+CATEGORIES = firmware
 MASTER_SITES = https://www.alsa-project.org/files/pub/misc/sof/
 DISTFILES = $(DISTNAME).tar.bz2
 WORKSRC = $(WORKDIR)/usr/lib/firmware/

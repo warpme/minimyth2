@@ -1,6 +1,6 @@
 GARNAME = wireless-regdb
 GARVERSION = 2019.06.03
-CATEGORIES = kernel
+CATEGORIES = firmware
 MASTER_SITES = https://www.kernel.org/pub/software/network/wireless-regdb/
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = $(GARNAME)
