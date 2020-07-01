@@ -26,8 +26,7 @@ BUILDDEPS = \
 
 DEPENDS = \
 	kernel-headers/linux-headers \
-	kernel/linux-firmware \
-	kernel/linux-firmware-meson \
+	firmware/firmware \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
@@ -115,5 +114,3 @@ clean-all:
 	@rm -rf $(DESTDIR)$(LINUX_MODULESPREFIX)
 	@$(MAKE) clean       -C ../../kernel-headers/linux-headers
 	@$(MAKE) clean-all   -C ../../kernel-headers/linux-headers
-	@$(MAKE) clean       -C ../linux-firmware
-	@$(MAKE) clean-all   -C ../linux-firmware-meson
