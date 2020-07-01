@@ -111,6 +111,7 @@ PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-x96air.patch
 PATCHFILES += 0370-dwmac-meson8b-Ethernet-RX-delay-configuration.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=306081
 PATCHFILES += 0371-prepare-dwmac-meson8b-for-G12A-specific-initialization.patch
+PATCHFILES += 0370-soc-amlogic-meson-gx-socinfo-Fix-S905X3-and-S905D3-ID-s.patch
 
 ifeq (1,1)
 # Rockchip: rkvdec rk3399
