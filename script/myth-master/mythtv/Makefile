@@ -151,6 +151,9 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
 
+# Fix for MacOS compiling
+# PATCHFILES += 0500-plugins-zmserver-fix-macos-compile.patch
+
 endif
 
 LICENSE = GPL2
