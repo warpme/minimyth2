@@ -69,6 +69,8 @@ PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-x96air.patch
+PATCHFILES += 0370-soc-amlogic-meson-gx-socinfo-Fix-S905X3-and-S905D3-ID-s.patch
+PATCHFILES += 0371-REVERT-ASoC-soc-pcm-dpcm-fix-playback-capture-checks.patch
 endif
 
 ifeq (1,1)
