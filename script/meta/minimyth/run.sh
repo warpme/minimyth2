@@ -35,7 +35,7 @@ ver="1.0"
 
 
 
-
+reset
 
 if [ ! -f ${mm_conf_file} ] ; then
     echo " "
@@ -52,10 +52,6 @@ if [ ! -f ${mm_home}/script/meta/minimyth/Makefile ] ; then
     echo " "
     exit 1
 fi
-
-cd ${mm_home}/script/meta/minimyth
-
-reset
 
 echo " "
 echo "---- Convienience script v${ver}, (c)Piotr Oniszczuk ----"
@@ -76,14 +72,12 @@ echo
 
 read selection
 
-echo " "
-echo "Selection:"${selection}
-echo " "
+cd ${mm_home}/script/meta/minimyth
 
 case "${selection}" in
 
     1)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
-        ./update-mythtv-source~d-rebuild-mythtv.sh ;;
+        ./update-mythtv-sources-and-rebuild-mythtv.sh ;;
 
     5)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
         make rebuild-mythtv ;;
