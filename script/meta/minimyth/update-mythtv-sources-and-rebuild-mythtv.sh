@@ -226,6 +226,12 @@ sed --in-place --follow-symlinks 's/MYTHTV_GIT_VERSION =.*/MYTHTV_GIT_VERSION = 
 echo "==> Updating version in (${mm_conf_file})"
 sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" ${mm_conf_file}
 
+echo "==> Updating version in minimyth.conf examplary files"
+sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" "${mm_home}/script/minimyth.conf.mk"
+sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.aarch64"
+sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.arm"
+sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.x86-64"
+
 echo " "
 echo "Now ready to build myth-${branch} ..."
 echo " "
