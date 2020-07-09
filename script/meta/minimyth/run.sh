@@ -35,7 +35,7 @@ ver="1.0"
 
 
 
-reset
+
 
 if [ ! -f ${mm_conf_file} ] ; then
     echo " "
@@ -53,24 +53,31 @@ if [ ! -f ${mm_home}/script/meta/minimyth/Makefile ] ; then
     exit 1
 fi
 
-echo " "
-echo "---- Convienience script v${ver}, (c)Piotr Oniszczuk ----"
-echo " "
-echo "Please choose action by pressing key [1..9]"
-echo " "
-echo "  (1) Update MythTV sources & Re-build"
-echo "  (3) Build Archlinux package"
-echo "  (4) Re-build MiniMyth2 image"
-echo "  (5) Re-build MythTV"
-echo "  (6) Burn SD card image to SD card"
-echo "  (7) Build SD card image for board"
-echo "  (8) Re-build Linux Kernel"
-echo "  (9) Re-build Mesa 3D library"
-echo " "
-echo "or press Enter to exit..."
-echo
+selection=$1
 
-read selection
+if [ x${selection} = "x" ] ; then
+
+    reset
+    echo " "
+    echo "---- Convienience script v${ver}, (c)Piotr Oniszczuk ----"
+    echo " "
+    echo "Please choose action by pressing key [1..9]"
+    echo " "
+    echo "  (1) Update MythTV sources & Re-build"
+    echo "  (3) Build Archlinux package"
+    echo "  (4) Re-build MiniMyth2 image"
+    echo "  (5) Re-build MythTV"
+    echo "  (6) Burn SD card image to SD card"
+    echo "  (7) Build SD card image for board"
+    echo "  (8) Re-build Linux Kernel"
+    echo "  (9) Re-build Mesa 3D library"
+    echo " "
+    echo "or press Enter to exit..."
+    echo
+
+    read selection
+
+fi
 
 cd ${mm_home}/script/meta/minimyth
 

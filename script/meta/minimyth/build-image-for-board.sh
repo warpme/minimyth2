@@ -14,7 +14,8 @@ selection_4="board-s912 board-h6.tanix_tx6"
 selection_5="board-sm1 board-h6.beelink_gs1"
 selection_6="board-rk3328.beelink_a1"
 selection_7="board-rk3399.rockpi4-b"
-selection_8="---"
+selection_8="board_sm1"
+selection_9="all above..."
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -61,32 +62,33 @@ if [ ! -f ${mm_home}/script/meta/minimyth/Makefile ] ; then
     exit 1
 fi
 
+selection=$1
+
+if [ x${selection} = "x" ] ; then
+
+    echo " "
+    echo "Script version:${ver}"
+    echo " "
+    echo "Please choose board by pressing key [1..9]"
+    echo " "
+    echo "  (1) for "${selection_1}
+    echo "  (2) for "${selection_2}
+    echo "  (3) for "${selection_3}
+    echo "  (4) for "${selection_4}
+    echo "  (5) for "${selection_5}
+    echo "  (6) for "${selection_6}
+    echo "  (7) for "${selection_7}
+    echo "  (8) for "${selection_8}
+    echo "  (9) for "${selection_9}
+    echo " "
+    echo "or press Eneter to exit..."
+    echo " "
+
+    read selection
+
+fi
+
 cd ${mm_home}/script/meta/minimyth
-
-selection_9="all above..."
-echo " "
-echo "Script version:${ver}"
-echo " "
-echo "Please choose board by pressing key [1..9]"
-echo " "
-echo "  (1) for "${selection_1}
-echo "  (2) for "${selection_2}
-echo "  (3) for "${selection_3}
-echo "  (4) for "${selection_4}
-echo "  (5) for "${selection_5}
-echo "  (6) for "${selection_6}
-echo "  (7) for "${selection_7}
-echo "  (8) for "${selection_8}
-echo "  (9) for "${selection_9}
-echo " "
-echo "or press Eneter to exit..."
-echo " "
-
-read selection
-
-echo " "
-echo "Selection:"${selection}
-echo " "
 
 cache_board_list() {
     rm -rf /tmp/mm2-sd-card-boardlist.tmp
