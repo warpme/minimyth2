@@ -47,9 +47,23 @@ PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
 PATCHFILES += 0105-Also-use-meson-hack-on-amlogic-meson-g12a-mali.patch
 PATCHFILES += 0106-Sync-G31-features-with-kbase.patch
 PATCHFILES += 0107-Comment-out-reading-GPU_LATEST_FLUSH_ID-as-it-causes-external-abort.patch
-# Enabling bifrost 
+# Enabling bifrost
 # https://patchwork.kernel.org/patch/11322845/
 PATCHFILES += 0108-drm-panfrost-Add-bifrost-compatible-string.patch
+endif
+
+ifeq (1,1)
+# Panfrost DVFS
+PATCHFILES += 0115-drm-panfrost-avoid-static-declaration.patch
+PATCHFILES += 0116-drm-panfrost-clean-headers-in-devfreq.patch
+PATCHFILES += 0117-drm-panfrost-don-t-use-pfdevfreq.busy_count-to-know-if-hw-is-idle.patch
+PATCHFILES += 0118-drm-panfrost-introduce-panfrost_devfreq-struct.patch
+PATCHFILES += 0119-drm-panfrost-use-spinlock-instead-of-atomic.patch
+PATCHFILES += 0120-drm-panfrost-properly-handle-error-in-probe.patch
+PATCHFILES += 0121-drm-panfrost-rename-error-labels-in-device_init.patch
+PATCHFILES += 0122-drm-panfrost-move-devfreq_init-fini-in-device.patch
+PATCHFILES += 0123-drm-panfrost-dynamically-alloc-regulators.patch
+PATCHFILES += 0124-drm-panfrost-add-regulators-to-devfreq.patch
 endif
 
 ifeq (1,1)
@@ -91,6 +105,13 @@ PATCHFILES += 0511-arm64-dts-sun50i-h6.dtsi-add-sound-hack.patch
 PATCHFILES += 0512-arm64-dts-sun50i-h6.dtsi-add-frame-inversion-to-correct-multi-channel-audio.patch
 PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
 PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
+endif
+
+ifeq (1,1)
+# Allwinner: enable H6 GPU DVFS
+PATCHFILES += 0525-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
+PATCHFILES += 0526-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
+PATCHFILES += 0527-arm64-dts-allwinner-force-GPU-regulator-to-be-always.patch
 endif
 
 endif
