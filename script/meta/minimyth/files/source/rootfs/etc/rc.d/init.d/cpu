@@ -38,12 +38,14 @@ start() {
             kernel_module=`/usr/bin/basename "${kernel_module_path}" '.ko'`
             /sbin/modprobe ${kernel_module} || /bin/true
         done
+
         # Load CPU frequency governor kernel module.
         kernel_module="cpufreq-${MM_CPU_FREQUENCY_GOVERNOR}"
         if ! /sbin/modprobe ${kernel_module} > /dev/null 2>&1 ; then
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/cpu] error: failed to load kernel module: ${kernel_module}"
             exit 1
         fi
+
         # Wait for everything to settle.
         /usr/bin/udevadm settle --timeout=60
 
@@ -55,6 +57,16 @@ start() {
             /usr/bin/logger -t minimyth -p "local0.info" "[init.d/cpu] Starting userspace daemon with ${MM_CPU_USERSPACE_GOV_PARAMS} parameters"
             /usr/sbin/powernowd ${MM_CPU_USERSPACE_GOV_PARAMS}
         fi
+
+    fi
+
+    gpu_governor=`find /sys/class/devfreq/*.gpu/ -name governor`
+
+    if [ x${gpu_governor} = "x" ] ; then
+        /usr/bin/logger -t minimyth -p "local0.err" "[init.d/cpu] failed to identify GPU DVFS governor sysfs entry..."
+    else
+        echo ${MM_GPU_FREQUENCY_GOVERNOR} > ${gpu_governor}
+        /usr/bin/logger -t minimyth -p "local0.err" "[init.d/cpu] Setting GPU DVFS in ${gpu_governor} to ${MM_GPU_FREQUENCY_GOVERNOR}"
     fi
 
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/cpu] Started with return code=0..."
