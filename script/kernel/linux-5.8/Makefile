@@ -91,6 +91,7 @@ endif
 ifeq (1,1)
 # Rockchip patches
 PATCHFILES += 0400-clk-rockchip-clk-pll-from-next.patch
+PATCHFILES += 0401-arm64-dts-rk3328-add-GPU-OPP-enable-DVFS.patch
 endif
 
 ifeq (1,1)
