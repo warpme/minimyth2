@@ -485,7 +485,7 @@ sub get_gpu_curr_freq {
         $_ =~ s/\n|\s//g;
         my $freq = sprintf "%.0f",($_/1000000);
         # print $freq.'GHz ';
-        $gpu_curr_freq=$gpu_curr_freq.$freq."MHz ";
+        $gpu_curr_freq=$gpu_curr_freq.$freq;
 
     }
     close(SHELL);
@@ -731,7 +731,7 @@ given ($action) {
         my $curr_freqs = "";
         $curr_freqs=$cpu_curr_freq;
         if ( $gpu_curr_freq != -1 && $gpu_curr_freq != 0 ) {
-            $curr_freqs=$curr_freqs." GPU Freq: ".$gpu_curr_freq;
+            $curr_freqs=$curr_freqs." GPU Freq: ".$gpu_curr_freq."MHz ";
         }
 
         my ($uptime) = &get_uptime(@data);
