@@ -472,6 +472,31 @@ sub get_cpu_curr_freq {
     return $cpu_curr_freq;
 }
 
+sub get_gpu_curr_freq {
+    my ($shell_exec) = @_;
+    my $gpu_curr_freq="";
+    my $command = $shell_exec." ' devfreq=`find /sys/bus/platform/drivers/*/*.gpu/devfreq -name cur_freq 2>/dev/null`; if [ ! -z \$devfreq ]; then cat \$devfreq ; else echo \"-1\" ; fi ' |";
+
+    if ($debug2) { print "Command get_gpu_info_command:\n".$command."\n"; }
+
+    my $out = open(SHELL, $command);
+    while (<SHELL>) {
+
+        $_ =~ s/\n|\s//g;
+        my $freq = sprintf "%.0f",($_/1000000);
+        # print $freq.'GHz ';
+        $gpu_curr_freq=$gpu_curr_freq.$freq."MHz ";
+
+    }
+    close(SHELL);
+
+    if ($debug2) {
+        print "GPU Curr Freq. : $gpu_curr_freq\n";
+    }
+
+    return $gpu_curr_freq;
+}
+
 
 sub get_cpu_load {
     my (@data) = @_;
@@ -682,6 +707,7 @@ given ($action) {
         my @data = `$command`;
         my $gpu_t = &get_gpu_temp($shell_cmd);
         my ($cpu_curr_freq) = &get_cpu_curr_freq($shell_cmd);
+        my ($gpu_curr_freq) = &get_gpu_curr_freq($shell_cmd);
         my ($cpu_t,$sys_t,$cpu_f,$sys_f) = &get_cpu_sys_temp_fans($shell_cmd);
         my ($cpu_load,$cpu_system,$cpu_user,$cpu_nice,$cpu_idle,$cpu_system_single,$cpu_user_single,$cpu_nice_single,$cpu_idle_single) = &get_cpu_load(@data);
 
@@ -700,6 +726,12 @@ given ($action) {
         }
         if ( $sys_f != -1 && $sys_f != 0 ) {
             $fans = $fans.", Sys=".$sys_f."rpm";
+        }
+
+        my $curr_freqs = "";
+        $curr_freqs=$cpu_curr_freq;
+        if ( $gpu_curr_freq != -1 && $gpu_curr_freq != 0 ) {
+            $curr_freqs=$curr_freqs." GPU Freq: ".$gpu_curr_freq;
         }
 
         my ($uptime) = &get_uptime(@data);
@@ -729,7 +761,7 @@ given ($action) {
         $title.$hardware_str,
         $uptime_str.$uptime,
         $temps.$fans,
-        $cpu_freq_str.$cpu_curr_freq,
+        $cpu_freq_str.$curr_freqs,
         $osd_temperatures_icon,
         $cpu_load_str.$cpu_load,
         $idle,
