@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 20.1.2
+GARVERSION   = 20.1.3
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -341,28 +341,28 @@ endif
 	@$(MAKECOOKIE)
 
 clean-all:
-	@rm -f $(DESTDIR)$(libdir)/libGL*
-	@rm -f $(DESTDIR)$(libdir)/libEGL*
-	@rm -f $(DESTDIR)$(libdir)/libglapi*
-	@rm -f $(DESTDIR)$(libdir)/libgbm*
-	@rm -f $(DESTDIR)$(libdir)/libGLESv2*
-	@rm -f $(DESTDIR)$(libdir)/libGLESv1_CM*
-	@rm -f $(DESTDIR)$(libdir)/libwayland-egl*
-	@rm -f $(DESTDIR)$(libdir)/libxatracker*
-	@rm -f $(DESTDIR)$(libdir)/libvulkan_radeon.so
-	@rm -f $(DESTDIR)$(libdir)/libvulkan_intel.so
-	@rm -f $(DESTDIR)$(libdir)/dri/gallium_drv_video*
-	@rm -f $(DESTDIR)$(libdir)/dri/i915_dri*
-	@rm -f $(DESTDIR)$(libdir)/dri/i965_dri*
-	@rm -f $(DESTDIR)$(libdir)/dri/r200_dri*
-	@rm -f $(DESTDIR)$(libdir)/dri/r300_dri*
-	@rm -f $(DESTDIR)$(libdir)/dri/r600_dri*
-	@rm -f $(DESTDIR)$(libdir)/dri/radeon_dri*
-	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_dri*
-	@rm -f $(DESTDIR)$(libdir)/dri/swrast_dri*
-	@rm -f $(DESTDIR)$(libdir)/dri/vmwgfx_dri*
-	@rm -f $(DESTDIR)$(libdir)/dri/v3d_dri.so*
-	@rm -f $(DESTDIR)$(libdir)/dri/vc4_dri.so*
+	@rm -f $(DESTDIR)$(libdir)/libGL.*
+	@rm -f $(DESTDIR)$(libdir)/libEGL.*
+	@rm -f $(DESTDIR)$(libdir)/libglapi.*
+	@rm -f $(DESTDIR)$(libdir)/libgbm.*
+	@rm -f $(DESTDIR)$(libdir)/libGLESv2.*
+	@rm -f $(DESTDIR)$(libdir)/libGLESv1_CM.*
+	@rm -f $(DESTDIR)$(libdir)/libwayland-egl.*
+	@rm -f $(DESTDIR)$(libdir)/libxatracker.*
+	@rm -f $(DESTDIR)$(libdir)/libvulkan_radeon.so*
+	@rm -f $(DESTDIR)$(libdir)/libvulkan_intel.so*
+	@rm -f $(DESTDIR)$(libdir)/dri/gallium_drv_video.*
+	@rm -f $(DESTDIR)$(libdir)/dri/i915_dri.*
+	@rm -f $(DESTDIR)$(libdir)/dri/i965_dri.*
+	@rm -f $(DESTDIR)$(libdir)/dri/r200_dri.*
+	@rm -f $(DESTDIR)$(libdir)/dri/r300_dri.*
+	@rm -f $(DESTDIR)$(libdir)/dri/r600_dri.*
+	@rm -f $(DESTDIR)$(libdir)/dri/radeon_dri.*
+	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_dri.*
+	@rm -f $(DESTDIR)$(libdir)/dri/swrast_dri.*
+	@rm -f $(DESTDIR)$(libdir)/dri/vmwgfx_dri.*
+	@rm -f $(DESTDIR)$(libdir)/dri/v3d_dri.so.*
+	@rm -f $(DESTDIR)$(libdir)/dri/vc4_dri.so.*
 	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_drv_video.so*
 	@rm -f $(DESTDIR)$(libdir)/dri/r600_drv_video.so*
 	@rm -f $(DESTDIR)$(libdir)/dri/kms_swrast_dri.so*
@@ -380,10 +380,10 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_r600*
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_radeonsi*
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe*
-	@rm -f $(DESTDIR)$(libdir)/va/radeonsi_drv_video.so
-	@rm -f $(DESTDIR)$(libdir)/va/r600_drv_video.so
-	@rm -f $(DESTDIR)$(libdir)/radeonsi_drv_video.so
-	@rm -f $(DESTDIR)$(libdir)/r600_drv_video.so
+	@rm -f $(DESTDIR)$(libdir)/va/radeonsi_drv_video.so*
+	@rm -f $(DESTDIR)$(libdir)/va/r600_drv_video.so*
+	@rm -f $(DESTDIR)$(libdir)/radeonsi_drv_video.so*
+	@rm -f $(DESTDIR)$(libdir)/r600_drv_video.so*
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/d3d.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/dri.pc
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/egl.pc
