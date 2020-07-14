@@ -88,7 +88,7 @@ case "${selection}" in
         ./update-mythtv-sources-and-rebuild-mythtv.sh ;;
 
     2)  git fetch origin
-        git reset --hard origin/master
+        git reset --hard origin/master ;;
 
     5)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
         make rebuild-mythtv ;;
