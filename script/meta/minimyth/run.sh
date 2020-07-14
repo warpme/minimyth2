@@ -64,6 +64,7 @@ if [ x${selection} = "x" ] ; then
     echo "Please choose action by pressing key [1..9]"
     echo " "
     echo "  (1) Update MythTV sources & Re-build"
+    echo "  (2) Sync local GIT to remote GIT"
     echo "  (3) Build Archlinux package"
     echo "  (4) Re-build MiniMyth2 image"
     echo "  (5) Re-build MythTV"
@@ -85,6 +86,9 @@ case "${selection}" in
 
     1)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
         ./update-mythtv-sources-and-rebuild-mythtv.sh ;;
+
+    2)  git fetch origin
+        git reset --hard origin/master
 
     5)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
         make rebuild-mythtv ;;
