@@ -66,12 +66,16 @@ PATCHFILES += 0123-drm-panfrost-dynamically-alloc-regulators.patch
 PATCHFILES += 0124-drm-panfrost-add-regulators-to-devfreq.patch
 endif
 
+# Switch GPU DVFS governors default as 'performance'
+PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
+PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
+
 ifeq (1,1)
 # Enable GPU DVFS on Meson GXBB/GXL/GXM/G12A/G12B/SM1
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=264023 30.03.2020
-PATCHFILES += 0123-arm64-dts-amlogic-meson-gx-add-the-Mali-450-OPP-table-and-use-DVFS.patch
-PATCHFILES += 0124-arm64-dts-amlogic-meson-gxm-add-the-Mali-OPP-table-and-use-DVFS.patch
-PATCHFILES += 0125-arm64-dts-amlogic-meson-g12-add-the-Mali-OPP-table-and-use-DVFS.patch
+PATCHFILES += 0130-arm64-dts-amlogic-meson-gx-add-the-Mali-450-OPP-table-and-use-DVFS.patch
+PATCHFILES += 0131-arm64-dts-amlogic-meson-gxm-add-the-Mali-OPP-table-and-use-DVFS.patch
+PATCHFILES += 0132-arm64-dts-amlogic-meson-g12-add-the-Mali-OPP-table-and-use-DVFS.patch
 endif
 
 ifeq (1,1)
