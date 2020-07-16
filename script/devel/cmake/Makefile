@@ -1,7 +1,7 @@
 GARNAME = cmake
-GARVERSION = 3.10.2
+GARVERSION = 3.18.0
 CATEGORIES = devel
-MASTER_SITES = http://www.cmake.org/files/v3.4/
+MASTER_SITES = http://www.cmake.org/files/v3.18/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-disable-qt5-chcking-with-no-qt.patch
 LICENSE = BSD_3_Clause
