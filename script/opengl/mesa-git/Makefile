@@ -2,8 +2,8 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# Mainline MESA 15.07.2020
-GARVERSION   = 559b26b7ee093c2cbe446bf8023876642deadcee
+# Mainline MESA 16.07.2020
+GARVERSION   = 3af0711c402033a8ad7649dc0509e4f7ddc1b640
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
