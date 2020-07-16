@@ -174,6 +174,7 @@ DEPENDS = \
 	lib/lame \
 	lib/libass \
 	lib/libavc1394 \
+	lib/libcec \
 	lib/libcdio \
 	lib/libcdio-paranoia \
 	lib/libiec61883 \
@@ -292,6 +293,7 @@ CONFIGURE_ARGS = \
 	--enable-hdpvr \
 	--enable-dvb \
 	--dvb-path="$(DESTDIR)$(includedir)" \
+	--libcec-path="$(DESTDIR)$(includedir)/libcec" \
 	--disable-asi \
 	--enable-x11 \
 	--x11-path="$(DESTDIR)$(includedir)" \
@@ -307,7 +309,7 @@ CONFIGURE_ARGS = \
 	--with-bindings="perl" \
 	--with-bindings="python" \
 	--enable-pic \
-	--disable-libcec \
+	--enable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 	--enable-ffplay \
 	--enable-sdl2 \
