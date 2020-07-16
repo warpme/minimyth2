@@ -1,18 +1,16 @@
-GARNAME = libcec
-GARVERSION = 3.0.1
-CATEGORIES = lib
+
+GARNAME      = libcec
+GARVERSION   = 6.0.2
+CATEGORIES   = lib
 MASTER_SITES = https://github.com/Pulse-Eight/libcec/archive/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = \
-	$(DISTNAME)-disable_lib_info.patch \
-	$(DISTNAME)-python.patch.gar
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/cxx lib/lockdev lib/platform system/eudev xorg/xorg
+DEPENDS = lang/cxx lib/lockdev lib/platform lib/p8-platform system/eudev xorg/xorg
 
 WORKSRC = $(WORKDIR)/$(GARNAME)-$(DISTNAME)
 WORKBLD = $(WORKSRC)_build
