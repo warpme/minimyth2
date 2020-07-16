@@ -116,7 +116,6 @@ ifeq (1,1)
 # Allwinner: enable H6 GPU DVFS
 PATCHFILES += 0525-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0526-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
-PATCHFILES += 0527-arm64-dts-allwinner-force-GPU-regulator-to-be-always.patch
 endif
 
 endif
