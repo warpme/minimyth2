@@ -18,7 +18,7 @@ INSTALL_SCRIPTS = $(WORKSRC)/Makefile
 BUILD_ARGS = \
 	CC="$(CC)" \
 	AR="$(AR)" \
-	CFLAGS="$(CPPFLAGS) $(CFLAGS) $(LDFLAGS)" \
+	CFLAGS="$(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -fno-lto" \
 	shared \
 	static
 
