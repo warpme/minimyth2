@@ -54,6 +54,7 @@ pre-configure:
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libasound.la
+	@rm -f $(DESTDIR)$(libdir)/libatopology.la
 	@rm -f $(DESTDIR)$(libdir)/alsa-lib/smixer/smixer-sbase.la
 	@rm -f $(DESTDIR)$(libdir)/alsa-lib/smixer/smixer-ac97.la
 	@rm -f $(DESTDIR)$(libdir)/alsa-lib/smixer/smixer-hda.la
