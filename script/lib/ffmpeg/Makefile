@@ -2,7 +2,7 @@
 GARNAME      = ffmpeg
 CATEGORIES   = lib
 
-GARVERSION   = 4.2.1
+GARVERSION   = 4.3.1
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES    = $(DISTNAME).tar.bz2
 
