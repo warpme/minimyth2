@@ -91,7 +91,7 @@ PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
-PATCHFILES += 0370-soc-amlogic-meson-gx-socinfo-Fix-S905X3-and-S905D3-ID-s.patch
+#PATCHFILES += 0370-soc-amlogic-meson-gx-socinfo-Fix-S905X3-and-S905D3-ID-s.patch
 PATCHFILES += 0371-REVERT-ASoC-soc-pcm-dpcm-fix-playback-capture-checks.patch
 endif
 
@@ -106,7 +106,7 @@ ifeq (1,1)
 # based on https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux
 PATCHFILES += 0500-gpu-drm-dw-hdmi-H6-improvements.patch
 PATCHFILES += 0501-ASoC-sun4i-i2s-H6-improvements.patch
-PATCHFILES += 0502-media-sunxi-cedrus-improvements.patch
+#PATCHFILES += 0502-media-sunxi-cedrus-improvements.patch
 PATCHFILES += 0503-mfd-add-AC200.patch
 PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
 PATCHFILES += 0511-arm64-dts-sun50i-h6.dtsi-add-sound-hack.patch
