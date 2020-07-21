@@ -1,7 +1,7 @@
-From da483a0eb4802714d9ad3a07ea17c2ec0f65c2a5 Mon Sep 17 00:00:00 2001
+From b22e02f5933366677620bac2583e2edec5c3007c Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@siol.net>
 Date: Sat, 15 Dec 2018 22:32:16 +0100
-Subject: [PATCH 04/12] Add V4L2 request API h264 hwaccel
+Subject: [PATCH 04/18] Add V4L2 request API h264 hwaccel
 
 Signed-off-by: Jernej Skrabec <jernej.skrabec@siol.net>
 Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
@@ -11,15 +11,15 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  libavcodec/h264_slice.c        |   4 +
  libavcodec/h264dec.c           |   3 +
  libavcodec/hwaccels.h          |   1 +
- libavcodec/v4l2_request_h264.c | 443 +++++++++++++++++++++++++++++++++
- 6 files changed, 455 insertions(+)
+ libavcodec/v4l2_request_h264.c | 460 +++++++++++++++++++++++++++++++++++++++++
+ 6 files changed, 472 insertions(+)
  create mode 100644 libavcodec/v4l2_request_h264.c
 
 diff --git a/configure b/configure
-index e88c201cce..576a79ff09 100755
+index 6b157d6..1a7720e 100755
 --- a/configure
 +++ b/configure
-@@ -2895,6 +2895,8 @@ h264_dxva2_hwaccel_deps="dxva2"
+@@ -2925,6 +2925,8 @@ h264_dxva2_hwaccel_deps="dxva2"
  h264_dxva2_hwaccel_select="h264_decoder"
  h264_nvdec_hwaccel_deps="nvdec"
  h264_nvdec_hwaccel_select="h264_decoder"
@@ -28,8 +28,8 @@ index e88c201cce..576a79ff09 100755
  h264_vaapi_hwaccel_deps="vaapi"
  h264_vaapi_hwaccel_select="h264_decoder"
  h264_vdpau_hwaccel_deps="vdpau"
-@@ -6457,6 +6459,7 @@ check_cc vp8_v4l2_m2m linux/videodev2.h "int i = V4L2_PIX_FMT_VP8;"
- check_cc vp9_v4l2_m2m linux/videodev2.h "int i = V4L2_PIX_FMT_VP9;"
+@@ -6569,6 +6571,7 @@ if enabled v4l2_m2m; then
+ fi
  
  check_func_headers "linux/media.h linux/videodev2.h" v4l2_timeval_to_ns
 +check_cc h264_v4l2_request linux/videodev2.h "int i = V4L2_PIX_FMT_H264_SLICE;"
@@ -37,10 +37,10 @@ index e88c201cce..576a79ff09 100755
  
  check_headers sys/videoio.h
 diff --git a/libavcodec/Makefile b/libavcodec/Makefile
-index 864f24a2af..58bd444934 100644
+index 8963bd3..9a10a29 100644
 --- a/libavcodec/Makefile
 +++ b/libavcodec/Makefile
-@@ -872,6 +872,7 @@ OBJS-$(CONFIG_H264_D3D11VA_HWACCEL)       += dxva2_h264.o
+@@ -903,6 +903,7 @@ OBJS-$(CONFIG_H264_D3D11VA_HWACCEL)       += dxva2_h264.o
  OBJS-$(CONFIG_H264_DXVA2_HWACCEL)         += dxva2_h264.o
  OBJS-$(CONFIG_H264_NVDEC_HWACCEL)         += nvdec_h264.o
  OBJS-$(CONFIG_H264_QSV_HWACCEL)           += qsvdec_h2645.o
@@ -49,10 +49,10 @@ index 864f24a2af..58bd444934 100644
  OBJS-$(CONFIG_H264_VDPAU_HWACCEL)         += vdpau_h264.o
  OBJS-$(CONFIG_H264_VIDEOTOOLBOX_HWACCEL)  += videotoolbox.o
 diff --git a/libavcodec/h264_slice.c b/libavcodec/h264_slice.c
-index fc4e65bf01..9912ede703 100644
+index db8363e..3ae11ac 100644
 --- a/libavcodec/h264_slice.c
 +++ b/libavcodec/h264_slice.c
-@@ -765,6 +765,7 @@ static enum AVPixelFormat get_pixel_format(H264Context *h, int force_callback)
+@@ -759,6 +759,7 @@ static enum AVPixelFormat get_pixel_format(H264Context *h, int force_callback)
  #define HWACCEL_MAX (CONFIG_H264_DXVA2_HWACCEL + \
                       (CONFIG_H264_D3D11VA_HWACCEL * 2) + \
                       CONFIG_H264_NVDEC_HWACCEL + \
@@ -60,32 +60,32 @@ index fc4e65bf01..9912ede703 100644
                       CONFIG_H264_VAAPI_HWACCEL + \
                       CONFIG_H264_VIDEOTOOLBOX_HWACCEL + \
                       CONFIG_H264_VDPAU_HWACCEL)
-@@ -849,6 +850,9 @@ static enum AVPixelFormat get_pixel_format(H264Context *h, int force_callback)
- #endif
+@@ -844,6 +845,9 @@ static enum AVPixelFormat get_pixel_format(H264Context *h, int force_callback)
  #if CONFIG_H264_VIDEOTOOLBOX_HWACCEL
              *fmt++ = AV_PIX_FMT_VIDEOTOOLBOX;
-+#endif
+ #endif
 +#if CONFIG_H264_V4L2REQUEST_HWACCEL
 +            *fmt++ = AV_PIX_FMT_DRM_PRIME;
- #endif
++#endif
              if (h->avctx->codec->pix_fmts)
                  choices = h->avctx->codec->pix_fmts;
+             else if (h->avctx->color_range == AVCOL_RANGE_JPEG)
 diff --git a/libavcodec/h264dec.c b/libavcodec/h264dec.c
-index 03c87b59bd..dbcceb915a 100644
+index 5eedeb3..a504c89 100644
 --- a/libavcodec/h264dec.c
 +++ b/libavcodec/h264dec.c
-@@ -1081,6 +1081,9 @@ AVCodec ff_h264_decoder = {
- #endif
+@@ -1103,6 +1103,9 @@ AVCodec ff_h264_decoder = {
  #if CONFIG_H264_VIDEOTOOLBOX_HWACCEL
                                 HWACCEL_VIDEOTOOLBOX(h264),
-+#endif
+ #endif
 +#if CONFIG_H264_V4L2REQUEST_HWACCEL
 +                               HWACCEL_V4L2REQUEST(h264),
- #endif
++#endif
                                 NULL
                             },
+     .caps_internal         = FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_EXPORTS_CROPPING |
 diff --git a/libavcodec/hwaccels.h b/libavcodec/hwaccels.h
-index ef54de2a3b..003200edea 100644
+index 172a546..44e00e7 100644
 --- a/libavcodec/hwaccels.h
 +++ b/libavcodec/hwaccels.h
 @@ -27,6 +27,7 @@ extern const AVHWAccel ff_h264_d3d11va_hwaccel;
@@ -98,10 +98,10 @@ index ef54de2a3b..003200edea 100644
  extern const AVHWAccel ff_h264_videotoolbox_hwaccel;
 diff --git a/libavcodec/v4l2_request_h264.c b/libavcodec/v4l2_request_h264.c
 new file mode 100644
-index 0000000000..81b3c4b092
+index 0000000..94b9aca
 --- /dev/null
 +++ b/libavcodec/v4l2_request_h264.c
-@@ -0,0 +1,443 @@
+@@ -0,0 +1,460 @@
 +/*
 + * This file is part of FFmpeg.
 + *
@@ -121,7 +121,7 @@ index 0000000000..81b3c4b092
 + */
 +
 +#include "h264dec.h"
-+#include "hwaccel.h"
++#include "hwconfig.h"
 +#include "v4l2_request.h"
 +
 +typedef struct V4L2RequestControlsH264 {
@@ -129,7 +129,7 @@ index 0000000000..81b3c4b092
 +    struct v4l2_ctrl_h264_pps pps;
 +    struct v4l2_ctrl_h264_scaling_matrix scaling_matrix;
 +    struct v4l2_ctrl_h264_decode_params decode_params;
-+    struct v4l2_ctrl_h264_slice_params slice_params[16];
++    struct v4l2_ctrl_h264_slice_params slice_params[MAX_SLICES];
 +    int first_slice;
 +} V4L2RequestControlsH264;
 +
@@ -137,6 +137,7 @@ index 0000000000..81b3c4b092
 +    V4L2RequestContext base;
 +    int decode_mode;
 +    int start_code;
++    int max_slices;
 +} V4L2RequestContextH264;
 +
 +static uint8_t nalu_slice_start_code[] = { 0x00, 0x00, 0x01 };
@@ -260,8 +261,10 @@ index 0000000000..81b3c4b092
 +
 +static void fill_pps(struct v4l2_ctrl_h264_pps *ctrl, const H264Context *h)
 +{
++    const SPS *sps = h->ps.sps;
 +    const PPS *pps = h->ps.pps;
 +    const H264SliceContext *sl = &h->slice_ctx[0];
++    int qp_bd_offset = 6 * (sps->bit_depth_luma - 8);
 +
 +    *ctrl = (struct v4l2_ctrl_h264_pps) {
 +        .pic_parameter_set_id = sl->pps_id,
@@ -270,8 +273,8 @@ index 0000000000..81b3c4b092
 +        .num_ref_idx_l0_default_active_minus1 = pps->ref_count[0] - 1,
 +        .num_ref_idx_l1_default_active_minus1 = pps->ref_count[1] - 1,
 +        .weighted_bipred_idc = pps->weighted_bipred_idc,
-+        .pic_init_qp_minus26 = pps->init_qp - 26,
-+        .pic_init_qs_minus26 = pps->init_qs - 26,
++        .pic_init_qp_minus26 = pps->init_qp - 26 - qp_bd_offset,
++        .pic_init_qs_minus26 = pps->init_qs - 26 - qp_bd_offset,
 +        .chroma_qp_index_offset = pps->chroma_qp_index_offset[0],
 +        .second_chroma_qp_index_offset = pps->chroma_qp_index_offset[1],
 +    };
@@ -357,7 +360,7 @@ index 0000000000..81b3c4b092
 +        {
 +            .id = V4L2_CID_MPEG_VIDEO_H264_SLICE_PARAMS,
 +            .ptr = &controls->slice_params,
-+            .size = sizeof(controls->slice_params[0]) * FFMIN(controls->decode_params.num_slices, 16),
++            .size = sizeof(controls->slice_params[0]) * FFMAX(FFMIN(controls->decode_params.num_slices, MAX_SLICES), ctx->max_slices),
 +        },
 +        {
 +            .id = V4L2_CID_MPEG_VIDEO_H264_DECODE_PARAMS,
@@ -380,7 +383,7 @@ index 0000000000..81b3c4b092
 +    V4L2RequestControlsH264 *controls = h->cur_pic_ptr->hwaccel_picture_private;
 +    V4L2RequestContextH264 *ctx = avctx->internal->hwaccel_priv_data;
 +    V4L2RequestDescriptor *req = (V4L2RequestDescriptor*)h->cur_pic_ptr->f->data[0];
-+    int i, ret, count, slice = FFMIN(controls->decode_params.num_slices, 15);
++    int i, ret, count, slice = FFMIN(controls->decode_params.num_slices, MAX_SLICES - 1);
 +
 +    if (ctx->decode_mode == V4L2_MPEG_VIDEO_H264_DECODE_MODE_SLICE_BASED && slice) {
 +        ret = v4l2_request_h264_queue_decode(avctx, 0);
@@ -474,10 +477,14 @@ index 0000000000..81b3c4b092
 +static int v4l2_request_h264_set_controls(AVCodecContext *avctx)
 +{
 +    V4L2RequestContextH264 *ctx = avctx->internal->hwaccel_priv_data;
++    int ret;
 +
 +    struct v4l2_ext_control control[] = {
 +        { .id = V4L2_CID_MPEG_VIDEO_H264_DECODE_MODE, },
 +        { .id = V4L2_CID_MPEG_VIDEO_H264_START_CODE, },
++    };
++    struct v4l2_query_ext_ctrl slice_params = {
++        .id = V4L2_CID_MPEG_VIDEO_H264_SLICE_PARAMS,
 +    };
 +
 +    ctx->decode_mode = ff_v4l2_request_query_control_default_value(avctx, V4L2_CID_MPEG_VIDEO_H264_DECODE_MODE);
@@ -491,6 +498,16 @@ index 0000000000..81b3c4b092
 +    if (ctx->start_code != V4L2_MPEG_VIDEO_H264_START_CODE_NONE &&
 +        ctx->start_code != V4L2_MPEG_VIDEO_H264_START_CODE_ANNEX_B) {
 +        av_log(avctx, AV_LOG_ERROR, "%s: unsupported start code, %d\n", __func__, ctx->start_code);
++        return AVERROR(EINVAL);
++    }
++
++    ret = ff_v4l2_request_query_control(avctx, &slice_params);
++    if (ret)
++        return ret;
++
++    ctx->max_slices = slice_params.elems;
++    if (ctx->max_slices > MAX_SLICES) {
++        av_log(avctx, AV_LOG_ERROR, "%s: unsupported max slices, %d\n", __func__, ctx->max_slices);
 +        return AVERROR(EINVAL);
 +    }
 +
@@ -523,7 +540,7 @@ index 0000000000..81b3c4b092
 +    fill_sps(&sps, h);
 +    fill_pps(&pps, h);
 +
-+    ret = ff_v4l2_request_init(avctx, V4L2_PIX_FMT_H264_SLICE, 2 * 1024 * 1024, control, FF_ARRAY_ELEMS(control));
++    ret = ff_v4l2_request_init(avctx, V4L2_PIX_FMT_H264_SLICE, 4 * 1024 * 1024, control, FF_ARRAY_ELEMS(control));
 +    if (ret)
 +        return ret;
 +
@@ -545,3 +562,6 @@ index 0000000000..81b3c4b092
 +    .frame_params   = ff_v4l2_request_frame_params,
 +    .caps_internal  = HWACCEL_CAP_ASYNC_SAFE,
 +};
+-- 
+2.7.1
+

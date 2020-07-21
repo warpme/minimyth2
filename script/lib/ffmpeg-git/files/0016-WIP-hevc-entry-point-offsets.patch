@@ -1,0 +1,57 @@
+From 8777f29fef8e41f305ecf54dbc9908fca2e5d98a Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@siol.net>
+Date: Sat, 15 Dec 2018 22:32:16 +0100
+Subject: [PATCH 16/18] WIP: hevc entry point offsets
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@siol.net>
+---
+ libavcodec/hevc-ctrls.h        | 5 ++++-
+ libavcodec/v4l2_request_hevc.c | 9 +++++++++
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/libavcodec/hevc-ctrls.h b/libavcodec/hevc-ctrls.h
+index 3e2e320..d1b094c 100644
+--- a/libavcodec/hevc-ctrls.h
++++ b/libavcodec/hevc-ctrls.h
+@@ -169,6 +169,7 @@ struct v4l2_ctrl_hevc_slice_params {
+ 
+ 	/* ISO/IEC 23008-2, ITU-T Rec. H.265: General slice segment header */
+ 	__u32	slice_segment_addr;
++	__u32	num_entry_point_offsets;
+ 
+ 	/* ISO/IEC 23008-2, ITU-T Rec. H.265: NAL unit header */
+ 	__u8	nal_unit_type;
+@@ -203,7 +204,9 @@ struct v4l2_ctrl_hevc_slice_params {
+ 	__u8	num_rps_poc_st_curr_after;
+ 	__u8	num_rps_poc_lt_curr;
+ 
+-	__u8	padding[5];
++	__u8	padding;
++
++	__u32	entry_point_offset_minus1[256];
+ 
+ 	/* ISO/IEC 23008-2, ITU-T Rec. H.265: General slice segment header */
+ 	struct v4l2_hevc_dpb_entry dpb[V4L2_HEVC_DPB_ENTRIES_NUM_MAX];
+diff --git a/libavcodec/v4l2_request_hevc.c b/libavcodec/v4l2_request_hevc.c
+index 98222fc..7e77c83 100644
+--- a/libavcodec/v4l2_request_hevc.c
++++ b/libavcodec/v4l2_request_hevc.c
+@@ -225,6 +225,15 @@ static void v4l2_request_hevc_fill_slice_params(const HEVCContext *h,
+     }
+ 
+     v4l2_request_hevc_fill_pred_table(h, &slice_params->pred_weight_table);
++
++    slice_params->num_entry_point_offsets = sh->num_entry_point_offsets;
++    if (slice_params->num_entry_point_offsets > 256) {
++        slice_params->num_entry_point_offsets = 256;
++        av_log(NULL, AV_LOG_ERROR, "%s: Currently only 256 entry points are supported, but slice has %d entry points.\n", __func__, sh->num_entry_point_offsets);
++    }
++
++    for (i = 0; i < slice_params->num_entry_point_offsets; i++)
++        slice_params->entry_point_offset_minus1[i] = sh->entry_point_offset[i] - 1;
+ }
+ 
+ static void fill_sps(struct v4l2_ctrl_hevc_sps *ctrl, const HEVCContext *h)
+-- 
+2.7.1
+

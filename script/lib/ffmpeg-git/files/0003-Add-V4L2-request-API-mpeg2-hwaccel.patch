@@ -1,7 +1,7 @@
-From 279092b1ef7cb944c513167dd55861ff2f2bb473 Mon Sep 17 00:00:00 2001
+From ac7d0ac7775219d769deca3fb34c92b25411c947 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Sat, 15 Dec 2018 22:32:16 +0100
-Subject: [PATCH 03/12] Add V4L2 request API mpeg2 hwaccel
+Subject: [PATCH 03/18] Add V4L2 request API mpeg2 hwaccel
 
 Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
 ---
@@ -9,15 +9,15 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  libavcodec/Makefile             |   1 +
  libavcodec/hwaccels.h           |   1 +
  libavcodec/mpeg12dec.c          |   6 ++
- libavcodec/v4l2_request_mpeg2.c | 154 ++++++++++++++++++++++++++++++++
+ libavcodec/v4l2_request_mpeg2.c | 154 ++++++++++++++++++++++++++++++++++++++++
  5 files changed, 165 insertions(+)
  create mode 100644 libavcodec/v4l2_request_mpeg2.c
 
 diff --git a/configure b/configure
-index 6b41344dfd..e88c201cce 100755
+index 9f9909a..6b157d6 100755
 --- a/configure
 +++ b/configure
-@@ -2937,6 +2937,8 @@ mpeg2_dxva2_hwaccel_deps="dxva2"
+@@ -2967,6 +2967,8 @@ mpeg2_dxva2_hwaccel_deps="dxva2"
  mpeg2_dxva2_hwaccel_select="mpeg2video_decoder"
  mpeg2_nvdec_hwaccel_deps="nvdec"
  mpeg2_nvdec_hwaccel_select="mpeg2video_decoder"
@@ -26,8 +26,8 @@ index 6b41344dfd..e88c201cce 100755
  mpeg2_vaapi_hwaccel_deps="vaapi"
  mpeg2_vaapi_hwaccel_select="mpeg2video_decoder"
  mpeg2_vdpau_hwaccel_deps="vdpau"
-@@ -6455,6 +6457,7 @@ check_cc vp8_v4l2_m2m linux/videodev2.h "int i = V4L2_PIX_FMT_VP8;"
- check_cc vp9_v4l2_m2m linux/videodev2.h "int i = V4L2_PIX_FMT_VP9;"
+@@ -6567,6 +6569,7 @@ if enabled v4l2_m2m; then
+ fi
  
  check_func_headers "linux/media.h linux/videodev2.h" v4l2_timeval_to_ns
 +check_cc mpeg2_v4l2_request linux/videodev2.h "int i = V4L2_PIX_FMT_MPEG2_SLICE;"
@@ -35,10 +35,10 @@ index 6b41344dfd..e88c201cce 100755
  check_headers sys/videoio.h
  test_code cc sys/videoio.h "struct v4l2_frmsizeenum vfse; vfse.discrete.width = 0;" && enable_sanitized struct_v4l2_frmivalenum_discrete
 diff --git a/libavcodec/Makefile b/libavcodec/Makefile
-index 9e847eeadc..864f24a2af 100644
+index d742205..8963bd3 100644
 --- a/libavcodec/Makefile
 +++ b/libavcodec/Makefile
-@@ -891,6 +891,7 @@ OBJS-$(CONFIG_MPEG2_D3D11VA_HWACCEL)      += dxva2_mpeg2.o
+@@ -922,6 +922,7 @@ OBJS-$(CONFIG_MPEG2_D3D11VA_HWACCEL)      += dxva2_mpeg2.o
  OBJS-$(CONFIG_MPEG2_DXVA2_HWACCEL)        += dxva2_mpeg2.o
  OBJS-$(CONFIG_MPEG2_NVDEC_HWACCEL)        += nvdec_mpeg12.o
  OBJS-$(CONFIG_MPEG2_QSV_HWACCEL)          += qsvdec_other.o
@@ -47,7 +47,7 @@ index 9e847eeadc..864f24a2af 100644
  OBJS-$(CONFIG_MPEG2_VDPAU_HWACCEL)        += vdpau_mpeg12.o
  OBJS-$(CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL) += videotoolbox.o
 diff --git a/libavcodec/hwaccels.h b/libavcodec/hwaccels.h
-index 7d73da8676..ef54de2a3b 100644
+index 6109c89..172a546 100644
 --- a/libavcodec/hwaccels.h
 +++ b/libavcodec/hwaccels.h
 @@ -47,6 +47,7 @@ extern const AVHWAccel ff_mpeg2_d3d11va_hwaccel;
@@ -59,32 +59,32 @@ index 7d73da8676..ef54de2a3b 100644
  extern const AVHWAccel ff_mpeg2_vdpau_hwaccel;
  extern const AVHWAccel ff_mpeg2_videotoolbox_hwaccel;
 diff --git a/libavcodec/mpeg12dec.c b/libavcodec/mpeg12dec.c
-index 83e537884b..305127bc94 100644
+index 99e5653..15aaf97 100644
 --- a/libavcodec/mpeg12dec.c
 +++ b/libavcodec/mpeg12dec.c
-@@ -1156,6 +1156,9 @@ static const enum AVPixelFormat mpeg2_hwaccel_pixfmt_list_420[] = {
- #endif
+@@ -1155,6 +1155,9 @@ static const enum AVPixelFormat mpeg2_hwaccel_pixfmt_list_420[] = {
  #if CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL
      AV_PIX_FMT_VIDEOTOOLBOX,
-+#endif
+ #endif
 +#if CONFIG_MPEG2_V4L2REQUEST_HWACCEL
 +    AV_PIX_FMT_DRM_PRIME,
- #endif
++#endif
      AV_PIX_FMT_YUV420P,
      AV_PIX_FMT_NONE
-@@ -2941,6 +2944,9 @@ AVCodec ff_mpeg2video_decoder = {
- #endif
+ };
+@@ -2953,6 +2956,9 @@ AVCodec ff_mpeg2video_decoder = {
  #if CONFIG_MPEG2_XVMC_HWACCEL
                          HWACCEL_XVMC(mpeg2),
-+#endif
+ #endif
 +#if CONFIG_MPEG2_V4L2REQUEST_HWACCEL
 +                        HWACCEL_V4L2REQUEST(mpeg2),
- #endif
++#endif
                          NULL
                      },
+ };
 diff --git a/libavcodec/v4l2_request_mpeg2.c b/libavcodec/v4l2_request_mpeg2.c
 new file mode 100644
-index 0000000000..782b9c2471
+index 0000000..88d86cc
 --- /dev/null
 +++ b/libavcodec/v4l2_request_mpeg2.c
 @@ -0,0 +1,154 @@
@@ -106,7 +106,7 @@ index 0000000000..782b9c2471
 + * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 + */
 +
-+#include "hwaccel.h"
++#include "hwconfig.h"
 +#include "mpegvideo.h"
 +#include "v4l2_request.h"
 +
@@ -242,3 +242,6 @@ index 0000000000..782b9c2471
 +    .frame_params   = ff_v4l2_request_frame_params,
 +    .caps_internal  = HWACCEL_CAP_ASYNC_SAFE,
 +};
+-- 
+2.7.1
+
