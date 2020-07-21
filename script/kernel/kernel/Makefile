@@ -10,7 +10,8 @@ endef
 DEPENDS = \
 	kernel/linux-$(mm_KERNEL_VERSION) \
 	$(if $(filter armsoc,$(mm_GRAPHICS)),kernel/meson-gx-mali450) \
-	kernel/rtl8189es
+	kernel/rtl8189es \
+	kernel/xr819 \
 
 include ../../gar.mk
 
@@ -27,10 +28,12 @@ clean-all:
 	@$(MAKE) clean-all -C ../../bootloaders/bootloader
 	@$(MAKE) clean-all -C ../../kernel/meson-gx-mali450
 	@$(MAKE) clean-all -C ../../kernel/rtl8189es
+	@$(MAKE) clean-all -C ../../kernel/xr819
 	@$(MAKE) clean     -C ../../kernel-headers/linux-headers
 	@$(MAKE) clean     -C ../../firmware/firmware
 	@$(MAKE) clean     -C ../../bootloaders/bootloader
 	@$(MAKE) clean     -C ../../kernel/meson-gx-mali450
 	@$(MAKE) clean     -C ../../kernel/rtl8189es
+	@$(MAKE) clean     -C ../../kernel/xr819
 	@$(MAKE) clean     -C ../../nvidia
 	@$(MAKE) clean     -C ../../system/bbswitch
