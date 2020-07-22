@@ -27,7 +27,7 @@ include ../../gar.mk
 BUILD_ARGS        = $(LINUX_MAKE_ARGS)
 
 build-custom:
-	@$(MAKE) -C $(DESTDIR)$(LINUX_SOURCEDIR) $(BUILD_ARGS) M=/home/piotro/minimyth-dev/script/kernel/wifi-xradio/$(WORKSRC) modules
+	@$(MAKE) -C $(DESTDIR)$(LINUX_SOURCEDIR) $(BUILD_ARGS) M=$(mm_HOME)/script/kernel/xr819/$(WORKSRC) modules
 	@$(MAKECOOKIE)
 
 install-custom:
