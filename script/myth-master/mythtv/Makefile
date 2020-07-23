@@ -80,6 +80,8 @@ PATCHFILES += 0202-Mediamonitor-make-mediamonitor-bluray-mounts-persistent.patch
 PATCHFILES += 0203-Mediamonitor-revert-16086d2-Honor-the-MonitorDrives-setting.patch
 # Added UI to select multimedia handler in multimode CD's
 PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
+# Exclude some standard block dev.in TVboxes from mediamonitor
+PATCHFILES += 0205-mediamonitor-exclude-standard-tvbox-disks.patch
 
 # Misc frontend patches
 PATCHFILES += 0211-decrease-minQt-ver-to-4.8.patch
