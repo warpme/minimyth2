@@ -143,7 +143,6 @@ DEPENDS = \
 	lib/lame \
 	lib/libass \
 	lib/libavc1394 \
-	lib/libcec \
 	lib/libcdio \
 	lib/libcdio-paranoia \
 	lib/libiec61883 \
