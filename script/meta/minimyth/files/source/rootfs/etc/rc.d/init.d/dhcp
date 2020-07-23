@@ -41,19 +41,24 @@ start() {
             # We use the first connected network interface found.
             INTERFACE_LIST=
             if [ -e /sys/class/net ] ; then
-                INTERFACE_LIST=`/bin/ls -1 /sys/class/net | /bin/grep -v '^lo$'`
+                INTERFACE_LIST=`/bin/ls -1 /sys/class/net | /bin/grep -v '^lo$' | sort`
             fi
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Avaliable interfaces: ${INTERFACE_LIST}"
             INTERFACE=
             for INTERFACE_ITEM in ${INTERFACE_LIST} ; do
                 /usr/sbin/ifplugstatus -q ${INTERFACE_ITEM}
                 if [ $? -eq 2 ] ; then
                     INTERFACE=${INTERFACE_ITEM}
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Will use ${INTERFACE} interface..."
                     break
+                else
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] ${INTERFACE_ITEM} not reports LINK BEAT. Skipping ..."
                 fi
             done
         fi
         if [ -z "${INTERFACE}" ] ; then
             INTERFACE='eth0'
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] No device in /sys/class/net. Defaulting to ${INTERFACE} ..."
         fi
 
         # Waiting 15sec for Eth interface. On some platforms apperaing Eth needs some time...
@@ -81,8 +86,10 @@ start() {
         # Start DHCP on the interface.
         IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
         if [ -z "${IP_ADDRESS}" ] ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Starting DHCP client on ${INTERFACE} ..."
             /sbin/udhcpc -S -p /var/run/udhcpc.pid -s /etc/udhcpc.script -i ${INTERFACE} -O tzdbstr -O logsrv  > /var/log/udhcpc 2>&1
         else
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Starting DHCP client on ${INTERFACE} with forced IP=${IP_ADDRESS} ..."
             /sbin/udhcpc -S -p /var/run/udhcpc.pid -s /etc/udhcpc.script -i ${INTERFACE} -r ${IP_ADDRESS}  -O tzdbstr -O logsrv > /var/log/udhcpc 2>&1
         fi
         if [ $? -ne 0 ] ; then
