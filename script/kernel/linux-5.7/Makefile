@@ -104,8 +104,8 @@ endif
 # Amlogic: Misc patches
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
-PATCHFILES += 0367-DEBUG-arm64-dts-meson-work-around-secos-memory-on-q2.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-Hardkernel-ODROID-C4.patch
+PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=286715
@@ -202,6 +202,14 @@ PATCHFILES += 0586-ASoc-sun4i-i2s-Add-20-and-24-bit-support.patch
 PATCHFILES += 0587-ASoC-sun4i-i2s-Adjust-regmap-settings.patch
 PATCHFILES += 0588-arm64-dts-allwinner-Add-SPDIF-node-for-Allwinner-H6.patch
 endif
+
+# Add support for x819 based WiFi in TanixTX6
+PATCHFILES += 0505-Tanix-TX6.patch
+PATCHFILES += 0506-wip-cec-improvements.patch
+PATCHFILES += 0517-wifi-h6.patch
+PATCHFILES += 0518-wifi-h6-kconfig.patch
+PATCHFILES += 0519-wifi-h6-makefile.patch
+PATCHFILES += 0520-wifi-h6-tx6-dts.patch
 
 ifeq (1,1)
 # Allwinner H6: Cedrus related patches
