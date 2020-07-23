@@ -21,7 +21,7 @@ checksum-$(DISTNAME).tar.bz2:
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/
-	@cp -Rdf $(WORKSRC)/xr819/* $(DESTDIR)$(elibdir)/firmware/
+	@cp -Rdf $(WORKSRC)/xr819 $(DESTDIR)$(elibdir)/firmware/
 	@$(MAKECOOKIE)
 
 clean-all:
