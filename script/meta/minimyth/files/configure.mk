@@ -9,7 +9,6 @@ include ../../gar.mk
 MM_INIT_START_SEQUENTIAL := \
     time \
     hotplug \
-    dbus \
     master \
     audio \
     video \
@@ -52,6 +51,7 @@ MM_INIT_KILL := \
     ssh_server \
     telnet \
     media \
+    wlan \
     swap \
     cpu \
     log \
