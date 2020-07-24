@@ -16,19 +16,27 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
+
 CONFIGURE_ARGS = $(DIRPATHS) \
 	--build=$(GARBUILD) \
 	--host=$(GARHOST) \
 	--prefix="$(prefix)" \
 	--sysconfdir="$(sysconfdir)" \
 	--localstatedir="$(localstatedir)" \
+	--datarootdir="$(sysconfdir)" \
+	--datadir="$(sysconfdir)" \
 	--with-runstatedir=/run \
 	--libexecdir="$(libexecdir)" \
 	--enable-wired \
-	--enable-ofono \
+	--disable-ofono \
+	--disable-external-ell \
 	--enable-sim-hardcoded \
 	--enable-hwsim \
 	--disable-systemd-service \
 	--disable-manual-pages \
 
 include ../../gar.mk
+
+post-install:
+	cp -rf $(DESTDIR)$(sharedstatedir)/dbus-1/system.d $(DESTDIR)$(sysconfdir)/dbus-1/
+	@$(MAKECOOKIE)
