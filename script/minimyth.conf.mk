@@ -76,6 +76,7 @@ mm_SOFTWARE               ?= \
                             lcdproc \
                             voip \
                             makemkv \
+                            iwd \
                             $(if $(filter $(mm_DEBUG),yes),debug)
 
 #                             mednafen \
