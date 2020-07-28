@@ -61,8 +61,6 @@ ifeq (1,1)
 # https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-4.3
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support.patch
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
-# Add some v4l2 logging
-PATCHFILES += 0170-ffmpeg-libavcodec-log-requested-pixfmt.patch
 # required for AML HD playbck in MythTV
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 # lrusak seeking fix on v4l2_m2m decoders (not working on rpi/amlogic)
