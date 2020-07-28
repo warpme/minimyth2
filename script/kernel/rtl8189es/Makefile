@@ -37,4 +37,5 @@ install-custom:
 	@$(MAKECOOKIE)
 
 clean-all:
+	@rm -rf $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/realtek/rtl8189es*
 	@true
