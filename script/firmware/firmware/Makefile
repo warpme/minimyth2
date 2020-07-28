@@ -11,6 +11,7 @@ DEPENDS = \
 	firmware/linux-firmware    \
 	firmware/wireless-regdb    \
 	firmware/xr819-firmware    \
+	firmware/qca9377-firmware  \
 
 include ../../gar.mk
 
@@ -21,6 +22,8 @@ clean-all:
 	@$(MAKE) clean     -C ../alsa-sof-firmware
 	@$(MAKE) clean     -C ../wireless-regdb
 	@$(MAKE) clean     -C ../xr819-firmware
+	@$(MAKE) clean     -C ../qca9377-firmware
 	@$(MAKE) clean-all -C ../alsa-sof-firmware
 	@$(MAKE) clean-all -C ../wireless-regdb
 	@$(MAKE) clean-all -C ../xr819-firmware
+	@$(MAKE) clean-all -C ../qca9377-firmware
