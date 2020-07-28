@@ -16,13 +16,10 @@ INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
-checksum-$(DISTNAME).tar.bz2:
-	@$(MAKECOOKIE)
-
 install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/
 	@cp -Rdf $(WORKSRC)/xr819 $(DESTDIR)$(elibdir)/firmware/
 	@$(MAKECOOKIE)
 
 clean-all:
-	@rm -rf $(DESTDIR)$(elibdir)/firmware*
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/xr819*
