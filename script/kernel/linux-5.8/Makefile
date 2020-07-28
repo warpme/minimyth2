@@ -52,9 +52,6 @@ PATCHFILES += 0107-Comment-out-reading-GPU_LATEST_FLUSH_ID-as-it-causes-external
 PATCHFILES += 0108-drm-panfrost-Add-bifrost-compatible-string.patch
 endif
 
-# fix for "pp pp0 reset time out"
-PATCHFILES += 0109-drm-lima-fix-wait-pp-reset-timeout.patch
-
 ifeq (1,1)
 # Panfrost DVFS
 PATCHFILES += 0115-drm-panfrost-avoid-static-declaration.patch
