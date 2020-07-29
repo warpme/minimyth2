@@ -6,24 +6,10 @@
 
 start() {
 
+    local connection_timeout=15
+    local interface_timeout=5
+
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Starting..."
-
-    WLAN_INTERFACE_LIST=
-    if [ -e /sys/class/net ] ; then
-
-        WLAN_INTERFACE_LIST=`/bin/ls -1 /sys/class/net | /bin/grep -v -E '^lo$|^eth0$'`
-
-    fi
-
-    if [ x${WLAN_INTERFACE_LIST} = "x" ] ; then
-
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] No WLAN interfaces detected. Return code=0 ..."
-        exit 0
-
-    fi
-
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] ${WLAN_INTERFACE_LIST} detected ..."
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] mounting /BOOTFS part into /mnt/boot ..."
 
     if mm_url_mount partlbl://BOOTFS /mnt/boot ; then
 
@@ -31,6 +17,120 @@ start() {
 
             /bin/cp -f /mnt/boot/minimyth.conf /etc/minimyth.d/minimyth.conf
             . /etc/minimyth.d/minimyth.conf
+
+            if [ x${MM_WLAN_SSID} = "x" ] ; then
+
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] No WLAN SSID set in minimyth.conf. Return code=0 ..."
+                exit 0
+
+            fi
+
+            WLAN_INTERFACE_LIST=
+
+            i=0
+            while [ $i -lt ${interface_timeout} ] ; do
+
+                i=$((${i} + 1))
+
+                if [ -e /sys/class/net ] ; then
+
+                    WLAN_INTERFACE_LIST=`/bin/ls -1 /sys/class/net | /bin/grep -v -E '^lo$|^eth0$'`
+
+                    if [ x${WLAN_INTERFACE_LIST} != "x" ] ; then
+
+                        break
+
+                    else
+
+                        mm_message_output info "info: waiting ${i}sec. for WLAN interface ..."
+                        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Wating ${i}sec. for WLAN interface ..."
+
+                    fi
+
+                fi
+
+                /bin/sleep 1
+
+            done
+
+            if [ x${WLAN_INTERFACE_LIST} = "x" ] ; then
+
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] No WLAN interfaces detected. Return code=0 ..."
+                exit 0
+
+            fi
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] ${WLAN_INTERFACE_LIST} detected ..."
+
+            if [ -n "`/bin/pidof iwd`" ] ; then
+
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Stoping IWD daemon ..."
+
+                while [ -n "`/bin/pidof iwd`" 2> /dev/null ] ; do
+                    /usr/bin/killall iwd
+                done
+
+            fi
+
+            mm_message_output info "connecting to ${MM_WLAN_SSID} WiFi network ..."
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Starting IWD daemon ..."
+            iwd -d &
+
+            # waiting 6sec for iwd to start to be operatinal. below 5sec is not enugh on some systems. 
+            # added 1sec as safety margin
+            /bin/sleep 6
+
+            WLAN_INTERFACE=
+
+            for WLAN_INTERFACE_ITEM in ${WLAN_INTERFACE_LIST} ; do
+
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Bringing ${WLAN_INTERFACE_ITEM} up ..."
+                ifconfig ${WLAN_INTERFACE_ITEM} up
+
+                # This is required for some crappy drivers like i.e. ATH10k QCA7399. 2sec. is not enough....
+                /bin/sleep 3
+
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Connecting ${WLAN_INTERFACE_ITEM} to ${MM_WLAN_SSID} ..."
+
+                echo "command:" > /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
+                echo "iwctl --passphrase ${MM_WLAN_PASS} station ${WLAN_INTERFACE_ITEM} connect ${MM_WLAN_SSID}" >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
+
+                iwctl --passphrase ${MM_WLAN_PASS} station ${WLAN_INTERFACE_ITEM} connect ${MM_WLAN_SSID} >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
+
+                i=0
+                while [ $i -lt ${connection_timeout} ] ; do
+
+                    i=$((${i} + 1))
+
+                    /usr/sbin/ifplugstatus -q ${WLAN_INTERFACE_ITEM}
+                    if [ $? -eq 2 ] ; then
+
+                        mm_message_output info "connected to ${MM_WLAN_SSID} WiFi network ..."
+                        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/wlan] ${WLAN_INTERFACE_ITEM} connected to ${MM_WLAN_SSID} ..."
+
+                        i=${connection_timeout}
+
+                        break
+
+                    else
+
+                        mm_message_output info "info: waiting ${i}sec. for connection to ${MM_WLAN_SSID} WiFi ..."
+                        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] wating ${i}sec for connection to ${MM_WLAN_SSID} WiFi ..."
+
+                        /bin/sleep 1
+
+                    fi
+
+                done
+
+                echo "status:" >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
+                iwctl station ${WLAN_INTERFACE_ITEM} show >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
+
+            done
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Started with return code=0..."
+            exit 0
 
         else
 
@@ -46,69 +146,6 @@ start() {
 
     fi
 
-    if [ x${MM_WLAN_SSID} = "x" ] ; then
-
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] No WLAN SSID found in minimyth.conf. Return code=0 ..."
-        exit 0
-
-    fi
-
-    if [ -n "`/bin/pidof iwd`" ] ; then
-
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Stoping IWD daemon ..."
-
-        while [ -n "`/bin/pidof iwd`" 2> /dev/null ] ; do
-            /usr/bin/killall iwd
-        done
-
-    fi
-
-    mm_message_output info "connecting to ${MM_WLAN_SSID} WiFi network ..."
-
-    /bin/sleep 1
-
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Starting IWD daemon ..."
-    iwd -d &
-
-    /bin/sleep 3
-
-    WLAN_INTERFACE=
-
-    for WLAN_INTERFACE_ITEM in ${WLAN_INTERFACE_LIST} ; do
-
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Making ${WLAN_INTERFACE_ITEM} up ..."
-        ifconfig ${WLAN_INTERFACE_ITEM} up
-
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Connecting ${WLAN_INTERFACE_ITEM} to ${MM_WLAN_SSID} ..."
-        # iwctl --passphrase <passphrase> station <device> connect <SSID>
-        # iwctl station wlan0 show
-        # iwctl station <device> disconnect
-
-        echo "command:" > /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
-        echo "iwctl --passphrase ${MM_WLAN_PASS} station ${WLAN_INTERFACE_ITEM} connect ${MM_WLAN_SSID}" >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
-
-        iwctl --passphrase ${MM_WLAN_PASS} station ${WLAN_INTERFACE_ITEM} connect ${MM_WLAN_SSID} >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
-
-        echo "status:" >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
-        iwctl station ${WLAN_INTERFACE_ITEM} show >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
-
-        /usr/sbin/ifplugstatus -q ${WLAN_INTERFACE_ITEM}
-        if [ $? -eq 2 ] ; then
-
-            mm_message_output info "connected to ${MM_WLAN_SSID} WiFi network ..."
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/wlan] ${WLAN_INTERFACE_ITEM} connected to ${MM_WLAN_SSID} ..."
-
-        else
-
-            mm_message_output err "info: not connected to ${MM_WLAN_SSID} WiFi. Will try in background..."
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/wlan] Can't connect ${MM_WLAN_SSID} WiFi..."
-
-        fi
-
-    done
-
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Started with return code=0..."
-    return 0
 }
 
 stop() {
