@@ -38,5 +38,7 @@ CONFIGURE_ARGS = $(DIRPATHS) \
 include ../../gar.mk
 
 post-install:
-	cp -rf $(DESTDIR)$(sharedstatedir)/dbus-1/system.d $(DESTDIR)$(sysconfdir)/dbus-1/
+	cp -rf $(DESTDIR)$(sharedstatedir)/dbus-1/system.d/ead-dbus.conf $(DESTDIR)$(sysconfdir)/dbus-1/
+	cp -rf $(DESTDIR)$(sharedstatedir)/dbus-1/system.d/hwsim-dbus.conf $(DESTDIR)$(sysconfdir)/dbus-1/
+	cp -rf $(DESTDIR)$(sharedstatedir)/dbus-1/system.d/iwd-dbus.conf $(DESTDIR)$(sysconfdir)/dbus-1/
 	@$(MAKECOOKIE)
