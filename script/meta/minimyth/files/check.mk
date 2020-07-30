@@ -172,6 +172,7 @@ mm-all:
 		   [ ! "$${software}" = "mesa-demos"     ] && \
 		   [ ! "$${software}" = "ffmpeg-drm"     ] && \
 		   [ ! "$${software}" = "iwd"            ] && \
+		   [ ! "$${software}" = "connman"        ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
