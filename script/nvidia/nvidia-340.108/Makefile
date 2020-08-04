@@ -19,6 +19,3 @@ include ../../gar.mk
 post-install:
 	@cd files; ./generate-nvidia-udev-rule.sh $(NVIDIA_MAJOR_VERSION).$(NVIDIA_MINOR_VERSION)
 	@$(MAKECOOKIE)
-
-post-configure:
-	@if [ ! -e $(WORKSRC)/kernel/.nv-kernel.o.cmd ] ; then touch $(WORKSRC)/kernel/.nv-kernel.o.cmd ; fi
