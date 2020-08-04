@@ -5,6 +5,7 @@ NVIDIA_TEENY_VERSION =
 PATCHFILES  = nvidia-340.108-fix-5.6-kernel-compile.patch
 PATCHFILES += nvidia-340.108-fix-5.7-kernel-compile.patch
 PATCHFILES += nvidia-340.108-5.7-kernel-reinstate-legacy-support.patch
+PATCHFILES += nvidia-340.108-fix-5.8-kernel-compile.patch
 
 BUILD_SCRIPTS   = nvidia
 INSTALL_SCRIPTS = nvidia
@@ -18,3 +19,6 @@ include ../../gar.mk
 post-install:
 	@cd files; ./generate-nvidia-udev-rule.sh $(NVIDIA_MAJOR_VERSION).$(NVIDIA_MINOR_VERSION)
 	@$(MAKECOOKIE)
+
+post-configure:
+	@if [ ! -e $(WORKSRC)/kernel/.nv-kernel.o.cmd ] ; then touch $(WORKSRC)/kernel/.nv-kernel.o.cmd ; fi
