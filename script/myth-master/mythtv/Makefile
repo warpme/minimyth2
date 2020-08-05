@@ -59,7 +59,11 @@ PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg
 # https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-4.3
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support.patch
+#PATCHFILES += 0151-ffmpeg-add-V4l2_request-support.patch
+
+# https://github.com/LibreELEC/LibreELEC.tv/tree/master/packages/multimedia/ffmpeg/patches/v4l2-request
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-from-LE.patch
+
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # required for AML HD playbck in MythTV
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
@@ -263,7 +267,6 @@ CONFIGURE_ARGS = \
 	--disable-asi \
 	--enable-x11 \
 	--x11-path="$(DESTDIR)$(includedir)" \
-	--enable-xrandr \
 	--disable-dxva2 \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
 		--disable-vdpau) \
@@ -291,11 +294,11 @@ INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
 
-ifneq (,$(findstring rpi,$(mm_KERNEL_VERSION)))
-CONFIGURE_ARGS += --disable-v4l2request
-else
+#ifneq (,$(findstring rpi,$(mm_KERNEL_VERSION)))
+#CONFIGURE_ARGS += --disable-v4l2request
+#else
 CONFIGURE_ARGS += --enable-v4l2request
-endif
+#endif
 
 CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
