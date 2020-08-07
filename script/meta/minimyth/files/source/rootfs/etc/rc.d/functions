@@ -2484,6 +2484,9 @@ devel_install_files() {
         echo " "
         echo "WARNING: no ANY files found to uninstall!!!"
         echo " "
+        echo "Script will now exit..."
+        echo " "
+        exit 1
 
     else
         echo "==> Old files to uninstall from: [${dst_path}]"
@@ -2537,20 +2540,38 @@ devel_install_files() {
     echo "==> Installing files..."
     echo " "
 
+    old_dst_file_path=""
+
     for file in ${files_to_install}; do
 
         dst_file=`echo "${file}" | sed "s%${src_path}%${dst_path}%"`
+        dst_file_path=`echo "${dst_file}" | sed "s#\(.*\)/.*#\1#"`
+
+        if [ x${dst_file_path} != x${old_dst_file_path} ]; then
+
+            if [ x${dry_run} = "xtrue" ]; then
+
+                echo "    dry run: [mkdir -p ${dst_file_path}]"
+
+            else
+
+                mkdir -p ${dst_file_path}
+
+            fi
+
+            old_dst_file_path=${dst_file_path}
+
+        fi
 
         if [ x${dry_run} = "xtrue" ]; then
 
-
-            echo "    dry run: [scp -c none "${devel_login}":"${file} ${dst_file}"]"
+            echo "    dry run: [scp -c aes128-ctr "${devel_login}":"${file} ${dst_file}"]"
             echo "             [chown root:root "${dst_file}"]"
             echo "             [chmod 0755 "${dst_file}"]"
 
         else
 
-            scp -c aes128-ctr ${devel_login}:${file} ${dst_file}
+            scp -C -c aes128-ctr ${devel_login}:${file} ${dst_file}
 
             chown root:root ${dst_file}
             chmod 0755 ${dst_file}
