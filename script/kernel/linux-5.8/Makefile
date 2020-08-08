@@ -38,6 +38,10 @@ PATCHFILES += linux-5.8-net-smsc95xx-allow-mac-address-as-param.patch
 ifeq (1,1)
 PATCHFILES += 0100-aarch64-text-offset.patch
 
+# arm64: Optimise and update memcpy, user copy and string routines
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=310789
+PATCHFILES += 0101-arm64-Optimise-and-update-memcpy-user-copy-and-string-routines.patch
+
 ifeq (1,1)
 # Misc panfrost patches for 5.8 kernel
 PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
@@ -53,7 +57,7 @@ PATCHFILES += 0108-drm-panfrost-Add-bifrost-compatible-string.patch
 endif
 
 ifeq (1,1)
-# Panfrost DVFS
+# Panfrost DVFS clean-up patches
 PATCHFILES += 0115-drm-panfrost-avoid-static-declaration.patch
 PATCHFILES += 0116-drm-panfrost-clean-headers-in-devfreq.patch
 PATCHFILES += 0117-drm-panfrost-don-t-use-pfdevfreq.busy_count-to-know-if-hw-is-idle.patch
@@ -72,10 +76,8 @@ PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
 
 ifeq (1,1)
 # Enable GPU DVFS on Meson GXBB/GXL/GXM/G12A/G12B/SM1
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=264023 30.03.2020
-PATCHFILES += 0130-arm64-dts-amlogic-meson-gx-add-the-Mali-450-OPP-table-and-use-DVFS.patch
-PATCHFILES += 0131-arm64-dts-amlogic-meson-gxm-add-the-Mali-OPP-table-and-use-DVFS.patch
-PATCHFILES += 0132-arm64-dts-amlogic-meson-g12-add-the-Mali-OPP-table-and-use-DVFS.patch
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320903 v2 19.07.2020
+PATCHFILES += 0130-arm64-dts-amlogic-meson-gx-gxl-gxm-d12-add-GPU-OPP-table-and-use-DVFS.patch
 endif
 
 ifeq (1,1)
@@ -88,33 +90,53 @@ PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
+
+# Fix for no audio on AmLogic
 PATCHFILES += 0371-REVERT-ASoC-soc-pcm-dpcm-fix-playback-capture-checks.patch
+
+# Add missing ethernet reset ID for Amlogic SoC
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=327163
+PATCHFILES += 0372-arm64-dts-amlogic-meson-gx-axg-g12-add-missing-ethernet-reset-ID.patch
+
+# Add more GX soundcards
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
+PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
+
+# Add more G12/SM1 soundcards
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320731
+PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
+
 endif
 
-ifeq (1,1)
 # Rockchip patches
+ifeq (1,1)
+# Misc pathes
 PATCHFILES += 0400-clk-rockchip-clk-pll-from-next.patch
 PATCHFILES += 0401-arm64-dts-rk3328-add-GPU-OPP-enable-DVFS.patch
 endif
 
+# Allwinner patches
 ifeq (1,1)
-# Allwinner: Misc H6 patches
-# based on https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux
-PATCHFILES += 0500-gpu-drm-dw-hdmi-H6-improvements.patch
-PATCHFILES += 0501-ASoC-sun4i-i2s-H6-improvements.patch
-PATCHFILES += 0502-media-sunxi-cedrus-improvements.patch
-PATCHFILES += 0503-mfd-add-AC200.patch
+# Add Allwinner H3/H5/H6/A64 HDMI audio
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=312867
+PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio.patch
+
+# https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux 7.08.2020
+PATCHFILES += 0503-drm-bridge-dw-hdmi-improvements.patch
+PATCHFILES += 0505-media-sunxi-cedrus-add-vp8-support.patch
+PATCHFILES += 0507-drm-sun4i-fixes.patch
+
+# misc patches
+PATCHFILES += 0509-mfd-add-AC200.patch
 PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
-PATCHFILES += 0511-arm64-dts-sun50i-h6.dtsi-add-sound-hack.patch
-PATCHFILES += 0512-arm64-dts-sun50i-h6.dtsi-add-frame-inversion-to-correct-multi-channel-audio.patch
 PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
 PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
+
+# Add WiFi in TanixTX6 (not working :-( )
+PATCHFILES += 0515-arm64-dts-Tanix-TX6-add-WiFi.patch
+
 endif
 
-#PATCHFILES += 0517-wifi-h6.patch
-#PATCHFILES += 0518-wifi-h6-kconfig.patch
-#PATCHFILES += 0519-wifi-h6-makefile.patch
-PATCHFILES += 0515-arm64-dts-Tanix-TX6-add-WiFi.patch
 
 ifeq (1,1)
 # Allwinner: enable H6 GPU DVFS
