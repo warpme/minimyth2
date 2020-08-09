@@ -33,13 +33,12 @@ WORKBLD = $(WORKSRC)_build
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKBLD)/Makefile
-INSTALL_SCRIPTS   = $(WORKBLD)/Makefile build-rpcgen
+INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--enable-bind-now \
 	--enable-kernel=3.18.0 \
-	--enable-obsolete-rpc \
 	--disable-build-nscd \
 	--disable-nscd \
 	--without-gd \
@@ -87,18 +86,8 @@ CFLAGS  := $(filter-out -flto, $(CFLAGS))
 LDFLAGS := $(filter-out -flto, $(LDFLAGS))
 
 configure-custom:
-	@$(warning ----CONFIGURE_ENV----)
-	@$(warning $(CONFIGURE_ENV))
-	@$(warning ----CONFIGURE_ARGS----)
-	@$(warning $(CONFIGURE_ARGS))
 	@mkdir -p $(WORKBLD)
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) ./$(call DIRSTODOTS,$(WORKBLD))/$(WORKSRC)/configure $(CONFIGURE_ARGS)
-	@$(MAKECOOKIE)
-
-install-build-rpcgen:
-	@mkdir -p $(build_DESTDIR)$(build_bindir)
-	@rm -f $(build_DESTDIR)$(build_bindir)/rpcgen
-	@cp $(WORKBLD)/sunrpc/cross-rpcgen $(build_DESTDIR)$(build_bindir)/rpcgen
 	@$(MAKECOOKIE)
 
 post-install:
