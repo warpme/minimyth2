@@ -1,5 +1,5 @@
 GARNAME = libtirpc
-GARVERSION = 1.0.3
+GARVERSION = 1.2.6
 CATEGORIES = net
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
