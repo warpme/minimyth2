@@ -1,15 +1,16 @@
-GARNAME = nfs-utils
-GARVERSION = 2.3.2
-CATEGORIES = net
+
+GARNAME      = nfs-utils
+GARVERSION   = 2.5.1
+CATEGORIES   = net
 MASTER_SITES = http://downloads.sourceforge.net/project/nfs/$(GARNAME)/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-native_hack.patch
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
 endef
 
+BUILDDEPS = devel/rpcsvc-proto
 DEPENDS = lang/c net/libtirpc utils/util-linux
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
