@@ -61,7 +61,6 @@ DEPENDS = \
 		perl/perl \
 		perl/perl-MiniMyth) \
 	utils/pmount \
-	net/portmap \
 	utils/procps \
 	python/python \
 	python/python-argparse \
