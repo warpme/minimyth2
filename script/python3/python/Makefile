@@ -67,6 +67,11 @@ LDFLAGS := $(LDFLAGS) -L$(PWD)/$(WORKSRC)
 # Needed as configure fails on 'float word ordering is bigendian' detection
 CFLAGS  += -ffat-lto-objects
 
+# python3 don't compiles with gcc9.3.0 LTO
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+
 pre-configure:
 	@cd $(WORKSRC) ; autoreconf --verbose --install --force
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
