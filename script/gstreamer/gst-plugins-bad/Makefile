@@ -140,6 +140,7 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrtmp.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrtpbad.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrtponvif.la
+	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstsctp-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstsdpelem.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstsegmentclip.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstshm.la
