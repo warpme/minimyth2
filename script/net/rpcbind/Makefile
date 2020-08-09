@@ -1,5 +1,5 @@
 GARNAME = rpcbind
-GARVERSION = 0.2.4
+GARVERSION = 1.2.5
 CATEGORIES = net
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.bz2
