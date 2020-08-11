@@ -11,6 +11,8 @@ PATCHFILES  += 0016-strip-gnu-property.patch
 PATCHFILES  += 0017-single-load-segment.patch
 PATCHFILES  += 0018-prevent-pow-optimization.patch
 PATCHFILES  += 0025-reproducible-build.patch
+PATCHFILES  += 0026-fix-gcc-10-compile.patch
+PATCHFILES  += 0027-Replace-builtin-strlen-that-appears-to-get-optimized.patch
 
 DISTFILES    = $(GARVERSION).tar.gz
 WORKSRC      = $(WORKDIR)/syslinux-bf6db5b
@@ -27,9 +29,12 @@ BUILD_ARGS = bios
 INSTALL_SCRIPTS = custom
 BUILD_SCRIPTS   = custom
 
-export EXTRA_CFLAGS=-fno-PIE
+export EXTRA_CFLAGS=-fno-PIE -fcommon
 
 include ../../gar.mk
+
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
 
 build-custom:
 	@$(MAKE) -C $(WORKSRC) $(BUILD_ARGS)
