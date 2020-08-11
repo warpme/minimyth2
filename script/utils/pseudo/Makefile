@@ -21,3 +21,6 @@ CONFIGURE_ARGS = \
         --prefix="$(prefix)" \
         --with-sqlite=$(build_rootdir)/usr
 
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
+
