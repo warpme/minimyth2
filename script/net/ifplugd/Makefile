@@ -27,3 +27,6 @@ CONFIGURE_ENV = \
 	ac_cv_func_malloc_0_nonnull=yes
 
 include ../../gar.mk
+
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
