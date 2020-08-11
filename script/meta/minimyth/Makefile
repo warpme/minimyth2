@@ -181,7 +181,7 @@ BUILDDEPS = \
 	utils/tar \
 	utils/util-linux \
 	perl/perlstrip \
-	$(if $(filter arm arm64,$(GARCH_FAMILY)),utils/kickstart-oe) \
+	$(if $(filter bootloader,$(mm_SOFTWARE)),utils/kickstart-oe) \
 	devel/meson \
 
 CONFIGURE_SCRIPTS = custom
