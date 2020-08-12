@@ -1,10 +1,9 @@
-GARNAME = glu
-GARVERSION = 9.0.0-20160610-0bf42e4
-CATEGORIES = $(CATEGORY)
-MASTER_SITES  = git://anongit.freedesktop.org/git/mesa/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = fix-missing-stddef.h.patch
-LICENSE =
+GARNAME       = glu
+GARVERSION    = 9.0.1
+CATEGORIES    = $(CATEGORY)
+MASTER_SITES  = https://mesa.freedesktop.org/archive/glu/
+DISTFILES     = $(DISTNAME).tar.xz
+LICENSE       =
 
 DESCRIPTION = 
 define BLURB
@@ -25,9 +24,11 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-debug \
 	--disable-osmesa \
 	--disable-static \
-	--with-gnu-ld
 
 include ../../gar.mk
+
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
 
 git//%$(DISTNAME).tar.bz2:
 	@$(call FETCH_GIT, $*, $(word 3,$(subst -, ,$(GARVERSION))), $(DISTNAME))
