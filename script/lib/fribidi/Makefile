@@ -1,9 +1,10 @@
-GARNAME = fribidi
-GARVERSION = 1.0.5
-CATEGORIES = lib
+
+GARNAME      = fribidi
+GARVERSION   = 1.0.10
+CATEGORIES   = lib
 MASTER_SITES = https://github.com/fribidi/fribidi/archive/
-DISTFILES = v$(GARVERSION).tar.gz
-LICENSE = LGPL2_1
+DISTFILES    = v$(GARVERSION).tar.gz
+LICENSE      = LGPL2_1
 
 DESCRIPTION =
 define BLURB
@@ -35,6 +36,9 @@ endif
 ifneq ($(DESTIMG),build)
 LDFLAGS = 
 endif
+
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
 
 pre-configure:
 	@# Disable building doc as is basically useless here
