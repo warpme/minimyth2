@@ -64,6 +64,9 @@ include ../../gar.mk
 
 LDFLAGS := $(LDFLAGS) -fwhole-program
 
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
+
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
