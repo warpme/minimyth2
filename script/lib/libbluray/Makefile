@@ -1,10 +1,10 @@
-GARNAME = libbluray
-GARVERSION = 1.0.2
-CATEGORIES = lib
-MASTER_SITES  = ftp://ftp.videolan.org/pub/videolan/$(GARNAME)/$(GARVERSION)/
-MASTER_SITES += git://git.videolan.org/libbluray.git/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = LGPL2_1
+
+GARNAME      = libbluray
+GARVERSION   = 1.2.0
+CATEGORIES   = lib
+MASTER_SITES = https://code.videolan.org/videolan/libbluray/-/archive/1.2.0/
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -22,7 +22,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-extra-warnings \
 	--disable-optimizations \
 	--disable-examples \
-	--disable-debug \
 	--disable-bdjava-jar \
 	--enable-shared \
 	--enable-static \
@@ -36,19 +35,16 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-doxygen-html \
 	--disable-doxygen-ps \
 	--disable-doxygen-pdf \
-	--without-jdk \
 	--with-gnu-ld
 
 include ../../gar.mk
 
-git//%$(DISTNAME).tar.bz2:
-	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
-	@$(MAKECOOKIE)
-
-x-checksum-$(DISTNAME).tar.bz2:
-	@$(MAKECOOKIE) 
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
 
 pre-configure:
+	@$(MAKE) -C ../libudfread patch
+	@cp -rf ../libudfread/work/main.d/libudfread-1.1.0/* $(WORKSRC)/contrib/libudfread/
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
