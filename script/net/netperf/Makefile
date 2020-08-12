@@ -25,3 +25,5 @@ CONFIGURE_ENV = \
 
 include ../../gar.mk
 
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
