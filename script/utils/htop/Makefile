@@ -1,5 +1,5 @@
 GARNAME = htop
-GARVERSION = 2.0.2
+GARVERSION = 2.2.0
 CATEGORIES = utils
 MASTER_SITES = https://hisham.hm/$(GARNAME)/releases/$(GARVERSION)/
 DISTFILES = $(DISTNAME).tar.gz
@@ -19,3 +19,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules
 
 include ../../gar.mk
+
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
