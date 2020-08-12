@@ -33,6 +33,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
+
 pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
