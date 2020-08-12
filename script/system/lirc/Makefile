@@ -39,6 +39,9 @@ INSTALL_ENV   = $(LINUX_MAKE_ENV)
 GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk
 include ../../gar.mk
 
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
+
 git//%$(DISTNAME).tar.bz2:
 	@$(call FETCH_GIT, $*, $(GARVERSION), $(DISTNAME))
 	@$(MAKECOOKIE)
