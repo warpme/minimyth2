@@ -29,6 +29,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
+
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libpolkit-gobject-1.la
 	@rm -f $(DESTDIR)$(libdir)/libpolkit-agent-1.la
