@@ -1,11 +1,10 @@
-GARNAME = libdvdnav
-GARVERSION = 4.2.0
-CATEGORIES = lib
-MASTER_SITES = http://dvdnav.mplayerhq.hu/releases/
-#MASTER_SITES = svn://svn.mplayerhq.hu/dvdnav/trunk/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-destdir.patch
-LICENSE = GPL2
+
+GARNAME      = libdvdnav
+GARVERSION   = 6.1.0
+CATEGORIES   = lib
+MASTER_SITES = https://download.videolan.org/pub/videolan/libdvdnav/6.1.0/
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
@@ -22,12 +21,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
-svn//%/$(DISTNAME).tar.bz2:
-	@$(call FETCH_SVN, svn://$*, $(GARVERSION), $(DISTNAME))
-	@$(MAKECOOKIE)
-
-x-checksum-$(DISTNAME).tar.bz2:
-	@$(MAKECOOKIE)
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
@@ -37,10 +32,4 @@ pre-configure:
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libdvdnav.la
 	@rm -f $(DESTDIR)$(libdir)/libdvdnavmini.la
-	@sed -e 's%-I$(DESTDIR)$(includedir)%-I$${includedir}%g' -i $(DESTDIR)$(libdir)/pkgconfig/dvdnavmini.pc
-	@rm -f $(DESTDIR)$(bindir)-config/dvdnav-config
-	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)dvdnav-config
-	@mkdir -p $(DESTDIR)$(bindir)-config
-	@mv $(DESTDIR)$(bindir)/dvdnav-config $(DESTDIR)$(bindir)-config/dvdnav-config
-	@$(if $(compiler_prefix), ln -s dvdnav-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)dvdnav-config)
 	@$(MAKECOOKIE)
