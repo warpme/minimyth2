@@ -34,6 +34,9 @@ PARALLELMFLAGS := -j1
 
 include ../../gar.mk
 
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
+
 pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
