@@ -28,6 +28,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
+CPPFLAGS += -fcommon
+CFLAGS   += -fcommon
+
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libportaudio.a
 	@rm -f $(DESTDIR)$(libdir)/libportaudio.la
