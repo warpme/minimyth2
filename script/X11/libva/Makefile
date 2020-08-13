@@ -1,19 +1,15 @@
 
 GARNAME = libva
 
-ifeq (1,0)
+ifeq (1,1)
 # Official Intel repo
-GARVERSION   = 2.6.1
+GARVERSION   = 2.8.0
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/libva/archive/
-PATCHFILES   = 0001-Add-dec_ref_pic_marking-syntax-element-size-to-VASliceParameterBuff.patch
-PATCHFILES  += 0002-Add-idr_pic_id-syntax-element-to-VASliceParameterBufferH264.patch
-PATCHFILES  += 0003-Add-size-of-the-pic_order_cnt-related-syntax-elements-to-VASliceParam.patch
-PATCHFILES  += 0004-Add-num_ref_idx_l01_default_active_minus1-syntax-elements-to-VAPicture.patch
 DISTFILES    = $(GARVERSION).tar.gz
 endif
 
-ifeq (1,1)
+ifeq (1,0)
 # Phillip Zabel repo for Hantro
 GARVERSION   = 0b8a288ea72aa644fddde4f76035c6d6d7192397
 CATEGORIES   = X11
