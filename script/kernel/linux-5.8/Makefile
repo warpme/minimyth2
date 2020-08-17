@@ -96,7 +96,7 @@ PATCHFILES += 0371-REVERT-ASoC-soc-pcm-dpcm-fix-playback-capture-checks.patch
 
 # Add missing ethernet reset ID for Amlogic SoC
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=327163
-PATCHFILES += 0372-arm64-dts-amlogic-meson-gx-axg-g12-add-missing-ethernet-reset-ID.patch
+# PATCHFILES += 0372-arm64-dts-amlogic-meson-gx-axg-g12-add-missing-ethernet-reset-ID.patch
 
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
