@@ -117,6 +117,9 @@ devel_install_files "${home_path}/images/main${bin_destination_path}" "${bin_des
 echo "==> Kicking ldconfig..."
 ldconfig
 echo " "
+echo "==> Restarting Xorg..."
+mm_manage restart_xserver
+echo " "
 echo "==> All done! Exiting..."
 echo " "
 echo " "
