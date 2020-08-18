@@ -2,7 +2,7 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# Mainline MESA 17.07.2020
+# MESA 17.07.2020 working ok on my all AML/AW/RK/BRCM devices
 GARVERSION   = afa4b32019ad02bc54b43ed5a3e78c3089b4f906
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
@@ -12,11 +12,13 @@ endif
 
 ifeq (0,1)
 # test brach
-GARVERSION   = ba10d70534042dabefd970b9979ed37c12a66e75
+# Mainline MESA 18.07.2020
+GARVERSION   = 0067f8992002b44bf75f98fae43886c5a6227075
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://gitlab.freedesktop.org/tomeu/mesa/-/archive/$(GARVERSION)/
+MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
+PATCHFILES  += hack-make-bifrost-usable-again.patch
 endif
 
 LICENSE = LGPL2/MIT
