@@ -38,10 +38,6 @@ PATCHFILES += linux-5.8-net-smsc95xx-allow-mac-address-as-param.patch
 ifeq (1,1)
 PATCHFILES += 0100-aarch64-text-offset.patch
 
-# arm64: Optimise and update memcpy, user copy and string routines
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=310789
-PATCHFILES += 0101-arm64-Optimise-and-update-memcpy-user-copy-and-string-routines.patch
-
 ifeq (1,1)
 # Misc panfrost patches for 5.8 kernel
 PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
@@ -94,10 +90,6 @@ PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
 # Fix for no audio on AmLogic
 PATCHFILES += 0371-REVERT-ASoC-soc-pcm-dpcm-fix-playback-capture-checks.patch
 
-# Add missing ethernet reset ID for Amlogic SoC
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=327163
-# PATCHFILES += 0372-arm64-dts-amlogic-meson-gx-axg-g12-add-missing-ethernet-reset-ID.patch
-
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
 PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
@@ -105,7 +97,6 @@ PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
 # Add more G12/SM1 soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320731
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
-
 endif
 
 # Rockchip patches
@@ -134,9 +125,7 @@ PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
 
 # Add WiFi in TanixTX6 (not working :-( )
 PATCHFILES += 0515-arm64-dts-Tanix-TX6-add-WiFi.patch
-
 endif
-
 
 ifeq (1,1)
 # Allwinner: enable H6 GPU DVFS
