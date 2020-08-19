@@ -52,20 +52,6 @@ PATCHFILES += 0107-Comment-out-reading-GPU_LATEST_FLUSH_ID-as-it-causes-external
 PATCHFILES += 0108-drm-panfrost-Add-bifrost-compatible-string.patch
 endif
 
-ifeq (1,1)
-# Panfrost DVFS clean-up patches
-PATCHFILES += 0115-drm-panfrost-avoid-static-declaration.patch
-PATCHFILES += 0116-drm-panfrost-clean-headers-in-devfreq.patch
-PATCHFILES += 0117-drm-panfrost-don-t-use-pfdevfreq.busy_count-to-know-if-hw-is-idle.patch
-PATCHFILES += 0118-drm-panfrost-introduce-panfrost_devfreq-struct.patch
-PATCHFILES += 0119-drm-panfrost-use-spinlock-instead-of-atomic.patch
-PATCHFILES += 0120-drm-panfrost-properly-handle-error-in-probe.patch
-PATCHFILES += 0121-drm-panfrost-rename-error-labels-in-device_init.patch
-PATCHFILES += 0122-drm-panfrost-move-devfreq_init-fini-in-device.patch
-PATCHFILES += 0123-drm-panfrost-dynamically-alloc-regulators.patch
-PATCHFILES += 0124-drm-panfrost-add-regulators-to-devfreq.patch
-endif
-
 # Switch GPU DVFS governors default as 'performance'
 PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
 PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
@@ -86,9 +72,6 @@ PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
-
-# Fix for no audio on AmLogic
-PATCHFILES += 0371-REVERT-ASoC-soc-pcm-dpcm-fix-playback-capture-checks.patch
 
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
