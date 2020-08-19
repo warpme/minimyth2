@@ -1,10 +1,11 @@
 
 GARNAME      = mesa
-GARVERSION   = 20.1.4
+GARVERSION   = 20.2.0-rc2
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
+PATCHFILES  += hack-make-bifrost-usable-again.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 
 DESCRIPTION = 
@@ -76,7 +77,7 @@ CONFIGURE_ARGS = \
 	-D glvnd=false \
 	-D gallium-xvmc=false \
 	-D gallium-nine=false \
-	-D b_lto=false \
+	-D b_lto=true \
 	-D b_ndebug=true \
 	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 
