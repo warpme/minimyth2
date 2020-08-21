@@ -1,8 +1,9 @@
 
 GARNAME      = iwd
 GARVERSION   = 1.8
-CATEGORIES   = new
+CATEGORIES   = net
 MASTER_SITES = https://www.kernel.org/pub/linux/network/wireless/
+PATCHFILES   = treewide-Add-missing-netdev-module-dependencies.patch
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.xz
 LICENSE      = GPL2
 
@@ -10,28 +11,20 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/readline
+DEPENDS = lang/c lib/readline lib/dbus-python
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-
 CONFIGURE_ARGS = $(DIRPATHS) \
 	--build=$(GARBUILD) \
 	--host=$(GARHOST) \
 	--prefix="$(prefix)" \
-	--sysconfdir="$(sysconfdir)" \
-	--localstatedir="$(localstatedir)" \
-	--datarootdir="$(sysconfdir)" \
-	--datadir="$(sysconfdir)" \
-	--with-runstatedir=/run \
-	--libexecdir="$(libexecdir)" \
 	--enable-wired \
-	--disable-ofono \
-	--disable-external-ell \
-	--enable-sim-hardcoded \
 	--enable-hwsim \
+	--enable-tools \
+	--disable-ofono \
 	--disable-systemd-service \
 	--disable-manual-pages \
 
