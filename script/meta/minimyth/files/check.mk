@@ -208,8 +208,8 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_VERSION"
-	@if [ ! "$(mm_NVIDIA_VERSION)" = "440.82"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "450.57"    ] ; then \
+	@if [ ! "$(mm_NVIDIA_VERSION)" = "450.57"    ] && \
+	    [ ! "$(mm_NVIDIA_VERSION)" = "450.66"    ] ; then \
 		echo " " ; \
 		echo "error: mm_NVIDIA_VERSION=\"$(mm_NVIDIA_VERSION)\" is an invalid value." ; \
 		echo " " ; \
