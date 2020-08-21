@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/readline
+DEPENDS = lang/c lib/readline lib/libnl
 
 
 CONFIGURE_SCRIPTS = custom
