@@ -96,7 +96,7 @@ PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
 PATCHFILES += 0201-Mediamonitor-reduce-udisks-timeout-to-1500msec.patch
 PATCHFILES += 0202-Mediamonitor-make-mediamonitor-bluray-mounts-persistent.patch
 # Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled)
-PATCHFILES += 0203-Mediamonitor-revert-16086d2-Honor-the-MonitorDrives-setting.patch
+# PATCHFILES += 0203-Mediamonitor-revert-16086d2-Honor-the-MonitorDrives-setting.patch
 # Added UI to select multimedia handler in multimode CD's
 PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
 
