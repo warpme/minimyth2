@@ -256,9 +256,6 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-install-updated-mythtv.sh
 	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-install-updated-pl-translations.sh
 	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-install-updated-kernel-on-image.sh
-ifneq (,$(findstring rpi,$(mm_KERNEL_VERSION)))
-	@sed -i 's%    # mm_splash_init%    mm_splash_init%'       $@~$(sysconfdir)/rc.d/init.d/modules_automatic
-endif
 	@# Adding updated HTML index.html file
 	@cp -pd $(top_build)/stage/html/index.html $@~/srv/www/index.html
 	@# Create the minimyth build configuration file.
