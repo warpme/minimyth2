@@ -1,9 +1,10 @@
-GARNAME = apitrace
-GARVERSION = 8.0
-CATEGORIES = devel
+
+GARNAME      = apitrace
+GARVERSION   = 9.0
+CATEGORIES   = devel
 MASTER_SITES = https://github.com/apitrace/apitrace/archive/
-DISTFILES = $(GARVERSION).tar.gz
-LICENSE = GPL2/LGPL2
+DISTFILES    = $(GARVERSION).tar.gz
+LICENSE      = GPL2/LGPL2
 
 DESCRIPTION = 
 define BLURB
