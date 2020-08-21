@@ -164,6 +164,7 @@ DEPENDS = \
 	$(if $(filter lcdproc,$(mm_SOFTWARE)),system/lcdproc) \
 	$(if $(filter ipxe,$(mm_SOFTWARE)),bootloaders/ipxe) \
 	$(if $(filter bootloader,$(mm_SOFTWARE)),bootloaders/bootloader) \
+	$(if $(filter connman,$(mm_SOFTWARE)),net/connman) \
 	$(if $(filter debug,$(mm_SOFTWARE)), \
 		devel/apitrace \
 		devel/gdb \
