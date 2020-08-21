@@ -1,9 +1,10 @@
-GARNAME = libXNVctrl
-GARVERSION = 415.25
-CATEGORIES = lib
+
+GARNAME      = libXNVctrl
+GARVERSION   = 450.66
+CATEGORIES   = lib
 MASTER_SITES = https://github.com/NVIDIA/nvidia-settings/archive/
-DISTFILES = $(GARVERSION).tar.gz
-PATCHFILES = libxnvctrl_so.patch
+DISTFILES    = $(GARVERSION).tar.gz
+PATCHFILES   = libxnvctrl_so.patch
 
 LICENSE = LGPL2
 
@@ -21,7 +22,7 @@ INSTALL_SCRIPTS = libXNVCtrl
 include ../../gar.mk
 
 BUILD_ARGS   = \
-	CC="$(CC)" \
+	CC="$(CC) -fPIC" \
 	CPPFLAGS="$(CPPFLAGS)" \
 	CFLAGS="$(CFLAGS) $(LDFLAGS)" \
 	CXXFLAGS="$(CXXFLAGS) $(LDFLAGS)"
@@ -35,7 +36,7 @@ install-libXNVCtrl:
 	@mkdir -p $(DESTDIR)$(includedir)/NVCtrl
 	@cp -rf $(WORKSRC)/src/libXNVCtrl/*.h $(DESTDIR)$(includedir)/NVCtrl
 	@mkdir -p $(DESTDIR)$(libdir)
-	@cp -rf $(WORKSRC)/src/libXNVCtrl/libXNVCtrl.so.0.0.0 $(DESTDIR)$(libdir)/libXNVCtrl.so.0.0.0
+	@cp -rf $(WORKSRC)/src/libXNVCtrl/_out/Linux_x86_64/libXNVCtrl.so.0.0.0 $(DESTDIR)$(libdir)/libXNVCtrl.so.0.0.0
 	@ln -sf $(DESTDIR)$(libdir)/libXNVCtrl.so.0.0.0 $(DESTDIR)$(libdir)/libXNVCtrl.so.0
 	@ln -sf $(DESTDIR)$(libdir)/libXNVCtrl.so.0 $(DESTDIR)$(libdir)/libXNVCtrl.so
 	@$(MAKECOOKIE)
