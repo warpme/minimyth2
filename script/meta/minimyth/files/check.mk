@@ -173,6 +173,9 @@ mm-all:
 		   [ ! "$${software}" = "ffmpeg-drm"     ] && \
 		   [ ! "$${software}" = "iwd"            ] && \
 		   [ ! "$${software}" = "connman"        ] && \
+		   [ ! "$${software}" = "apitrace"       ] && \
+		   [ ! "$${software}" = "gdb"            ] && \
+		   [ ! "$${software}" = "valgrind"       ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \

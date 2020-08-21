@@ -167,7 +167,11 @@ DEPENDS = \
 	$(if $(filter debug,$(mm_SOFTWARE)), \
 		devel/apitrace \
 		devel/gdb \
+		devel/valgrind \
 		$(if $(filter i386 x86_64,$(GARCH_FAMILY)),devel/strace)) \
+	$(if $(filter apitrace,$(mm_SOFTWARE)),devel/apitrace) \
+	$(if $(filter gdb,$(mm_SOFTWARE)),devel/gdb) \
+	$(if $(filter valgrind,$(mm_SOFTWARE)),devel/valgrind) \
 	$(filter-out %/Makefile extras/extras-% extras/extras.%,$(subst ../../,,$(wildcard ../../extras/*))) \
 	$(mm_USER_PACKAGES)
 

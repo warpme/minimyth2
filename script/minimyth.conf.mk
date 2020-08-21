@@ -59,10 +59,7 @@ mm_GRAPHICS               ?= intel nvidia nvidia-legacy radeon vmware
 mm_OPENGL_PROVIDER        ?= mesa
 
 # Lists the software to be supported.
-# Valid values for MM_SOFTWARE are zero or more of 'airplay', 'avahi', 'mythplugins',
-# 'flash', 'mplayer-svn', 'voip', 'perl', 'python', 'mame',
-# 'emulators', 'mc', 'dvdcss', 'udisks', 'gstreamer', 'ipxe' 'bootloader' 'chrome', 'firefox',
-# 'lcdproc', 'glmark2' 'kmscube' 'mpv' 'ffmpeg-drm' 'debug'.
+# Valid values for MM_SOFTWARE are zero or more of list below:
 mm_SOFTWARE               ?= \
                             python \
                             perl \
@@ -76,7 +73,9 @@ mm_SOFTWARE               ?= \
                             lcdproc \
                             voip \
                             makemkv \
+                            connman \
                             iwd \
+                            bootloader \
                             $(if $(filter $(mm_DEBUG),yes),debug)
 
 #                             mednafen \
@@ -86,10 +85,13 @@ mm_SOFTWARE               ?= \
 #                             stella \
 #                             visualboyadvance \
 #                             bumblebee \
-#                             flash \
 #                             mplayer-svn \
+#                             mpv \
 #                             netflix \
 #                             ipxe \
+#                             apitrace \
+#                             gdb \
+#                             valgrind \
 
 # Indicates the microprocessor architecture.
 # Valid values for mm_GARCH are 'pentium-mmx', 'x86-64', 'armv7', 'armv8'.
