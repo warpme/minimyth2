@@ -1,9 +1,10 @@
-GARNAME = dbus
-GARVERSION = 1.9.16
-CATEGORIES = lib
+
+GARNAME      = dbus
+GARVERSION   = 1.12.20
+CATEGORIES   = lib
 MASTER_SITES = http://dbus.freedesktop.org/releases/dbus/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
@@ -27,18 +28,11 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-checks \
 	--disable-xml-docs \
 	--disable-doxygen-docs \
-	--enable-abstract-sockets \
 	--disable-selinux \
-	--with-xml=expat \
 	--with-gnu-ld \
 	--with-x
 
 include ../../gar.mk
-
-pre-configure:
-	@rm -f $(WORKSRC)/config.cache
-	@echo "dbus_cv_va_val_copy=no" >> $(WORKSRC)/config.cache
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libdbus-1.la
