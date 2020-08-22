@@ -1,17 +1,16 @@
 
-GARNAME = ffmpeg
-CATEGORIES = lib
+GARNAME      = ffmpeg
+CATEGORIES   = lib
+
+# git hash ffmpeg v4.3.1 @21-07-2020
+GITHASH      = 6b6b9e593dd4d3aaf75f48d40a13ef03bdef9fdb
+GARVERSION   = 20200721-$(GITHASH)
+MASTER_SITES = https://github.com/FFmpeg/FFmpeg/archive/
+DISTFILES    = $(GITHASH).zip
+WORKSRC      = $(WORKDIR)/FFmpeg-$(GITHASH)
 
 ifeq (1,1)
-#--use this for current mainline ffmpeg--------------------
-# git hash ffmpeg v4.3.1 @21-07-2020
-GITHASH = 6b6b9e593dd4d3aaf75f48d40a13ef03bdef9fdb
-GARVERSION = 20200721-$(GITHASH)
-MASTER_SITES = https://github.com/FFmpeg/FFmpeg/archive/
-DISTFILES = $(GITHASH).zip
-WORKSRC   = $(WORKDIR)/FFmpeg-$(GITHASH)
-
-# https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-4.3
+# https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-4.3.1 @19.08.2020
 PATCHFILES += 0001-avutil-add-av_buffer_pool_flush.patch
 PATCHFILES += 0002-Add-common-V4L2-request-API-code.patch
 PATCHFILES += 0003-Add-V4L2-request-API-mpeg2-hwaccel.patch
@@ -30,7 +29,16 @@ PATCHFILES += 0015-WIP-hevc-segment-address.patch
 PATCHFILES += 0016-WIP-hevc-entry-point-offsets.patch
 PATCHFILES += 0017-WIP-Add-V4L2-request-API-vp9-hwaccel.patch
 PATCHFILES += 0018-WIP-Add-and-use-vp9-private-linux-header.patch
-#--------------------------------------------------------
+PATCHFILES += 0019-WIP-add-NV15-and-NV20-support.patch
+PATCHFILES += 0020-HACK-define-drm-NV15-and-NV20-format.patch
+PATCHFILES += 0021-Revert-WIP-h264-field-reference.patch
+PATCHFILES += 0022-WIP-update-to-latest-h264-uapi.patch
+endif
+
+ifeq (0,1)
+# https://github.com/LibreELEC/LibreELEC.tv/commits/master/packages/multimedia/ffmpeg/patches 9.07.2020
+PATCHFILES += ffmpeg-001-v4l2-drmprime.patch
+PATCHFILES += ffmpeg-001-v4l2-request.patch
 endif
 
 LICENSE = GPL2/LGPL2_1
