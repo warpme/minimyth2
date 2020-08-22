@@ -19,9 +19,6 @@ endif
 ifneq (,$(filter %5.4,$(mm_KERNEL_VERSION)))
 DEPENDS = kernel/linux-headers-5.7
 endif
-ifneq (,$(filter %5.6,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-5.6
-endif
 ifneq (,$(filter %5.7,$(mm_KERNEL_VERSION)))
 DEPENDS = kernel/linux-headers-5.7
 endif
