@@ -171,6 +171,7 @@ mm-all:
 		   [ ! "$${software}" = "kmscube"        ] && \
 		   [ ! "$${software}" = "mesa-demos"     ] && \
 		   [ ! "$${software}" = "ffmpeg-drm"     ] && \
+		   [ ! "$${software}" = "ffmpeg"         ] && \
 		   [ ! "$${software}" = "iwd"            ] && \
 		   [ ! "$${software}" = "connman"        ] && \
 		   [ ! "$${software}" = "apitrace"       ] && \
