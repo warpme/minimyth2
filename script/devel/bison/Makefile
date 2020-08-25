@@ -12,7 +12,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c
-BUILDDEPS = utils/m4 perl/perl-Text-Unidecode
+BUILDDEPS = utils/m4 perl/perl-Text-Unidecode perl/perl-libintl perl/perl-unicode-eastasianwidth
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
