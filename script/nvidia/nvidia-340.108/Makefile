@@ -6,6 +6,7 @@ PATCHFILES  = nvidia-340.108-fix-5.6-kernel-compile.patch
 PATCHFILES += nvidia-340.108-fix-5.7-kernel-compile.patch
 PATCHFILES += nvidia-340.108-5.7-kernel-reinstate-legacy-support.patch
 PATCHFILES += nvidia-340.108-fix-5.8-kernel-compile.patch
+PATCHFILES += nvidia-340.108-fix-5.9-kernel-compile.patch
 
 BUILD_SCRIPTS   = nvidia
 INSTALL_SCRIPTS = nvidia
