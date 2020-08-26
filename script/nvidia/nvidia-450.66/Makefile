@@ -2,6 +2,14 @@ NVIDIA_MAJOR_VERSION = 450
 NVIDIA_MINOR_VERSION = 66
 NVIDIA_TEENY_VERSION =
 
+include ../../minimyth.conf.mk
+
+ifneq (,$(filter %5.9,$(mm_KERNEL_VERSION)))
+PATCHFILES += nvidia-450.66-mmu.patch
+PATCHFILES  = nvidia-450.66-kernel-5.9.patch
+PATCHFILES += nvidia-450.66-license.patch
+endif
+
 BUILD_SCRIPTS   = nvidia
 INSTALL_SCRIPTS = nvidia
 
