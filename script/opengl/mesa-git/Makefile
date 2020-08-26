@@ -130,6 +130,7 @@ git//%$(DISTNAME).tar.xz:
 	@$(MAKECOOKIE)
 
 configure-custom:
+	@sed -e "s%git_sha1 = ''%git_sha1 = '$(GARVERSION)'%g" -i $(WORKSRC)/bin/git_sha1_gen.py
 	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson build $(CONFIGURE_ARGS)
 	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson configure build
 	@$(MAKECOOKIE)
