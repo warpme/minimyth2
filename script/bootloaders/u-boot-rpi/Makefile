@@ -1,15 +1,15 @@
 # Mainline U-boot
-ifeq (0,1)
-# v2020.07-rc3
-GARNAME      = u-boot-20200526-rpi
-GARVERSION   = 8c48bb21bd6a1778d1f299de30ff62c07929702b
+ifeq (1,1)
+# v2020.10-rc3
+GARNAME      = u-boot-20200826-rpi
+GARVERSION   = f87c80ade3911f3d518036a28370fe44c85a95c7
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 GARNAME      = u-boot-agherzan-20200523-rpi
 GARVERSION   = 62b6e39a53c56a9085aeab1b47b5cc6020fcdb6f
 CATEGORIES   = kernel
