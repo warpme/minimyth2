@@ -1,6 +1,6 @@
 
 GARNAME      = alsa-ucm2
-GARVERSION   = 4c1189fdcb4819df6c36cf490d17f532f82c8bbe
+GARVERSION   = ec2d7eba314679e564b051ee497544d7d987b320
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/alsa-project/alsa-ucm-conf/archive/
 DISTFILES    = $(GARVERSION).zip
