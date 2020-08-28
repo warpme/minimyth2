@@ -59,10 +59,10 @@ PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg
 # https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-4.3.1
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support.patch
+# PATCHFILES += 0151-ffmpeg-add-V4l2_request-support.patch
 
 # https://github.com/LibreELEC/LibreELEC.tv/tree/master/packages/multimedia/ffmpeg/patches/v4l2-request
-#PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-from-LE.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-from-LE.patch
 
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # required for AML HD playbck in MythTV
@@ -73,6 +73,9 @@ PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 # Debuging v4l2 vdec polling in ffmpeg
 # PATCHFILES += 0180-ffmpeg-libavcodec-log-v4l2-decoder-poll.patch
 endif
+
+# This reverts v4l2_m2m chages as with them playback has skipping frames on s905 vdec
+PATCHFILES += 0190-revert-a1e378ad-ffmpeg-Update-v4l2-memory-to-memory-DRM_PRIME-suppor.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
