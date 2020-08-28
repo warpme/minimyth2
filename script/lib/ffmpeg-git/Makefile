@@ -9,7 +9,7 @@ MASTER_SITES = https://github.com/FFmpeg/FFmpeg/archive/
 DISTFILES    = $(GITHASH).zip
 WORKSRC      = $(WORKDIR)/FFmpeg-$(GITHASH)
 
-ifeq (1,1)
+ifeq (0,1)
 # https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-4.3.1 @19.08.2020
 PATCHFILES += 0001-avutil-add-av_buffer_pool_flush.patch
 PATCHFILES += 0002-Add-common-V4L2-request-API-code.patch
@@ -35,7 +35,7 @@ PATCHFILES += 0021-Revert-WIP-h264-field-reference.patch
 PATCHFILES += 0022-WIP-update-to-latest-h264-uapi.patch
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # https://github.com/LibreELEC/LibreELEC.tv/commits/master/packages/multimedia/ffmpeg/patches 9.07.2020
 PATCHFILES += ffmpeg-001-v4l2-drmprime.patch
 PATCHFILES += ffmpeg-001-v4l2-request.patch
