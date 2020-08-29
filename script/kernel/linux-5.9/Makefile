@@ -46,10 +46,9 @@ PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
 # https://github.com/superna9999/linux/commits/amlogic/v5.9/bifrost
 PATCHFILES += 0105-Also-use-meson-hack-on-amlogic-meson-g12a-mali.patch
 PATCHFILES += 0106-Sync-G31-features-with-kbase.patch
-PATCHFILES += 0107-Comment-out-reading-GPU_LATEST_FLUSH_ID-as-it-causes-external-abort.patch
-# Enabling bifrost
-# https://patchwork.kernel.org/patch/11322845/
-PATCHFILES += 0108-drm-panfrost-Add-bifrost-compatible-string.patch
+# Panfrost improvements from LE 
+# https://github.com/LibreELEC/LibreELEC.tv/blob/master/projects/Rockchip/patches/linux/default/linux-0022-drm-from-next.patch
+PATCHFILES += 0108-drm-panfrost-improvements-from-drm-next.patch
 endif
 
 # Switch GPU DVFS governors default as 'performance'
