@@ -12,33 +12,23 @@ diff -Naur mythtv-master-20200530-ga180830-old/mythtv/libs/libmythtv/eitfixup.h 
 diff -Naur mythtv-master-20200530-ga180830-old/mythtv/libs/libmythtv/eithelper.cpp mythtv-master-20200530-ga180830-new/mythtv/libs/libmythtv/eithelper.cpp
 --- mythtv-master-20200530-ga180830-old/mythtv/libs/libmythtv/eithelper.cpp	2020-05-30 13:00:09.453333334 +0200
 +++ mythtv-master-20200530-ga180830-new/mythtv/libs/libmythtv/eithelper.cpp	2020-05-30 13:00:11.060000001 +0200
-@@ -218,9 +218,17 @@
-     unsigned char enc_7[3]  = { 0x10, 0x00, 0x07 }; // Latin/Greek Alphabet
-     unsigned char enc_9[3]  = { 0x10, 0x00, 0x09 }; // could use { 0x05 } instead
-     unsigned char enc_15[3] = { 0x10, 0x00, 0x0f }; // could use { 0x0B } instead
-+    unsigned char enc_0[1]  = { 0x20 };
-     int enc_len = 0;
-     const unsigned char *enc = nullptr;
+@@ -218,9 +218,16 @@
+     const enc_override enc_7  { 0x10, 0x00, 0x07 }; // Latin/Greek Alphabet
+     const enc_override enc_9  { 0x10, 0x00, 0x09 }; // could use { 0x05 } instead
+     const enc_override enc_15 { 0x10, 0x00, 0x0f }; // could use { 0x0B } instead
++    const enc_override enc_0  { 0x20 };
+     const enc_override enc_none {};
+     enc_override enc = enc_none;
  
 +    // Use an encoding override of ISO 6937
 +    if (fix & EITFixUp::kEFixForceISO6937)
 +    {
 +        enc = enc_0;
-+        enc_len = sizeof(enc_0);
 +    }
 +
      // Is this BellExpressVU EIT (Canada) ?
      // Use an encoding override of ISO 8859-1 (Latin1)
      if (fix & EITFixUp::kEFixForceISO8859_1)
-@@ -252,6 +260,8 @@
-         enc = enc_15;
-         enc_len = sizeof(enc_15);
-     }
-+    
-+    
- 
-     // Is this broken DVB provider in Greece?
-     // Use an encoding override of ISO 8859-7 (Latin/Greek)
 @@ -346,15 +356,25 @@
          return;
  
@@ -72,22 +62,22 @@ diff -Naur mythtv-master-20200530-ga180830-old/mythtv/libs/libmythtv/mpeg/dvbdes
 --- mythtv-master-20200530-ga180830-old/mythtv/libs/libmythtv/mpeg/dvbdescriptors.cpp	2020-05-30 13:00:09.523333334 +0200
 +++ mythtv-master-20200530-ga180830-new/mythtv/libs/libmythtv/mpeg/dvbdescriptors.cpp	2020-05-30 13:00:11.060000001 +0200
 @@ -88,9 +88,20 @@
-     auto *dst = new unsigned char[raw_length + encoding_override_length];
+     auto *dst = new unsigned char[raw_length + encoding_override.size()];
  
      uint length = 0;
--    if (encoding_override && src[0] >= 0x20) {
--        memcpy(dst, encoding_override, encoding_override_length);
--        length = encoding_override_length;
-+    if (encoding_override) {
+-    if (!encoding_override.empty() && (src[0] >= 0x20)) {
+-        std::copy(encoding_override.cbegin(), encoding_override.cend(), dst);
+-        length = encoding_override.size();
++    if (!encoding_override.empty()) {
 +        if (src[0] >= 0x20) {
-+            memcpy(dst, encoding_override, encoding_override_length);
-+            length = encoding_override_length;
++            std::copy(encoding_override.cbegin(), encoding_override.cend(), dst);
++            length = encoding_override.size();
 +        } else {
-+            //incorrect ISO-8859 encoding marker, 
++            //incorrect ISO-8859 encoding marker,
 +            //when text has been encoded using ISO-6937
-+            if (src[0] >= 0x01 && src[0] <= 0x0B
-+                    && encoding_override_length == 1
-+                    && encoding_override[0] == 0x20) {
++            if ((src[0] >= 0x01) && (src[0] <= 0x0B)
++                    && (encoding_override.size() == 1)
++                    && (encoding_override[0] == 0x20)) {
 +                src++;
 +                raw_length--;
 +            }
