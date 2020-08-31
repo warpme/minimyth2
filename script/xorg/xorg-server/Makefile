@@ -1,6 +1,6 @@
 
 GARNAME      = xorg-server
-GARVERSION   = 1.20.9
+GARVERSION   = 1.20.8
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES    = $(DISTNAME).tar.bz2
@@ -8,8 +8,7 @@ PATCHFILES   = \
 	$(DISTNAME)-perl.patch.gar \
 	$(DISTNAME)-pkg_config.patch \
 	$(DISTNAME)-detect_radeon.patch \
-	$(DISTNAME)-add-monotonic-clock-in-crosscompile.patch \
-	$(DISTNAME)-Fix-segfault-on-probing-non-PCI-dev-on-sys-with-PCI.patch \
+	$(DISTNAME)-add-monotonic-clock-in-crosscompile.patch
 
 LICENSE = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
