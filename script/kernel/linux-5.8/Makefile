@@ -46,15 +46,17 @@ PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
 # https://github.com/superna9999/linux/commits/amlogic/v5.8/bifrost
 PATCHFILES += 0105-Also-use-meson-hack-on-amlogic-meson-g12a-mali.patch
 PATCHFILES += 0106-Sync-G31-features-with-kbase.patch
-PATCHFILES += 0107-Comment-out-reading-GPU_LATEST_FLUSH_ID-as-it-causes-external-abort.patch
-# Enabling bifrost
-# https://patchwork.kernel.org/patch/11322845/
-PATCHFILES += 0108-drm-panfrost-Add-bifrost-compatible-string.patch
+# Panfrost improvements from LE.
+# https://github.com/LibreELEC/LibreELEC.tv/blob/master/projects/Rockchip/patches/linux/default/linux-0022-drm-from-next.patch
+PATCHFILES += 0107-drm-from-5.9.patch
+PATCHFILES += 0108-drm-panfrost-improvements-from-drm-next.patch
 endif
 
+ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
 PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
 PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
+endif
 
 ifeq (1,1)
 # Enable GPU DVFS on Meson GXBB/GXL/GXM/G12A/G12B/SM1
@@ -84,9 +86,12 @@ endif
 
 # Rockchip patches
 ifeq (1,1)
+# https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Rockchip/patches/linux/default
+PATCHFILES += 0401-rockchip-from-5.9.patch
+PATCHFILES += 0402-rockchip-from-next.patch
+PATCHFILES += 0411-v4l2-from-5.9.patch
 # Misc pathes
-PATCHFILES += 0400-clk-rockchip-clk-pll-from-next.patch
-PATCHFILES += 0401-arm64-dts-rk3328-add-GPU-OPP-enable-DVFS.patch
+PATCHFILES += 0430-arm64-dts-rk3328-add-GPU-OPP-enable-DVFS.patch
 endif
 
 # Allwinner patches
@@ -96,11 +101,13 @@ ifeq (1,1)
 PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio.patch
 
 # https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux 7.08.2020
-PATCHFILES += 0503-drm-bridge-dw-hdmi-improvements.patch
+#PATCHFILES += 0503-drm-bridge-dw-hdmi-improvements.patch
 PATCHFILES += 0505-media-sunxi-cedrus-improvements.patch
 PATCHFILES += 0507-drm-sun4i-fixes.patch
 
-# misc patches
+# Fix hanging GS1 boot on loading kernel modules
+PATCHFILES += 0508-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-disabling-DDR.patch
+# Adding support for some H6 boards
 PATCHFILES += 0509-mfd-add-AC200.patch
 PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
 PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
@@ -112,8 +119,8 @@ endif
 
 ifeq (1,1)
 # Allwinner: enable H6 GPU DVFS
-PATCHFILES += 0525-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
-PATCHFILES += 0526-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
+PATCHFILES += 0516-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
+PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 endif
 
 endif
