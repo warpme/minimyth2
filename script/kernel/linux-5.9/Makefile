@@ -51,9 +51,11 @@ PATCHFILES += 0106-Sync-G31-features-with-kbase.patch
 PATCHFILES += 0108-drm-panfrost-improvements-from-drm-next.patch
 endif
 
+ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
 PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
 PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
+endif
 
 ifeq (1,1)
 # Amlogic: vdec various patches
@@ -91,7 +93,9 @@ PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio.patch
 PATCHFILES += 0505-media-sunxi-cedrus-improvements.patch
 PATCHFILES += 0507-drm-sun4i-fixes.patch
 
-# misc patches
+# Fix hanging GS1 boot on loading kernel modules
+PATCHFILES += 0508-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-disabling-DDR.patch
+# Adding support for some H6 boards
 PATCHFILES += 0509-mfd-add-AC200.patch
 PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
 PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
@@ -103,8 +107,8 @@ endif
 
 ifeq (1,1)
 # Allwinner: enable H6 GPU DVFS
-PATCHFILES += 0525-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
-PATCHFILES += 0526-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
+PATCHFILES += 0516-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
+PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 endif
 
 endif
