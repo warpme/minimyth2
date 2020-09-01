@@ -2,7 +2,7 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# MESA 17.07.2020 working ok on my all AML/AW/RK/BRCM devices
+# MESA GIT from 17.07.2020 working well on all of my mali450/t720/t760/t820/g31 devices
 GARVERSION   = afa4b32019ad02bc54b43ed5a3e78c3089b4f906
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
@@ -11,9 +11,8 @@ PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
 endif
 
 ifeq (0,1)
-# test brach
-# Mainline MESA 18.07.2020
-GARVERSION   = 0067f8992002b44bf75f98fae43886c5a6227075
+# Mainline MESA GIT from 01.09.2020
+GARVERSION   = d383133ce1ddd16e3099615fcd31e6f28c11b17b
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
