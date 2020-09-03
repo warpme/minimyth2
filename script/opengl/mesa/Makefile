@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 20.2.0-rc3
+GARVERSION   = 20.2.0-rc4
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -65,17 +65,17 @@ CONFIGURE_ARGS = \
 	-D va-libs-path="$(DESTDIR)$(libdir)/va" \
 	-D vdpau-libs-path="$(DESTDIR)$(libdir)" \
 	-D shared-glapi=true \
-	-D shared-llvm=true \
-	-D gbm=true \
-	-D shared-glapi=true \
+	-D shared-llvm=disabled \
+	-D gbm=enabled \
+	-D shared-glapi=enabled \
 	-D glx=dri \
-	-D egl=true \
-	-D gles1=true \
-	-D gles2=true \
-	-D dri3=true \
+	-D egl=enabled \
+	-D gles1=enabled \
+	-D gles2=enabled \
+	-D dri3=enabled \
 	-D gallium-opencl=disabled \
 	-D glvnd=false \
-	-D gallium-xvmc=false \
+	-D gallium-xvmc=disabled \
 	-D gallium-nine=false \
 	-D b_lto=true \
 	-D b_ndebug=true \
@@ -85,28 +85,28 @@ ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
-	-D platforms=x11,drm \
-	-D gallium-vdpau=false \
-	-D gallium-xa=false \
-	-D llvm=false
+	-D platforms=x11 \
+	-D gallium-vdpau=disabled \
+	-D gallium-xa=disabled \
+	-D llvm=disabled
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
-	-D platforms=x11,drm \
-	-D gallium-vdpau=false \
-	-D gallium-xa=false \
-	-D llvm=false
+	-D platforms=x11 \
+	-D gallium-vdpau=disabled \
+	-D gallium-xa=disabled \
+	-D llvm=disabled
 else
 CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
 	-D dri-drivers=i915,i965,r100,r200 \
-	-D platforms=x11,drm \
-	-D gallium-vdpau=true \
-	-D gallium-va=true \
-	-D gallium-xa=true \
-	-D llvm=true
+	-D platforms=x11 \
+	-D gallium-vdpau=enabled \
+	-D gallium-va=enabled \
+	-D gallium-xa=enabled \
+	-D llvm=disabled
 endif
 endif
 
