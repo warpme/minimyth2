@@ -91,7 +91,7 @@ PATCHFILES += 0401-rockchip-from-5.9.patch
 PATCHFILES += 0402-rockchip-from-next.patch
 PATCHFILES += 0411-v4l2-from-5.9.patch
 # Misc pathes
-PATCHFILES += 0430-arm64-dts-rk3328-add-GPU-OPP-enable-DVFS.patch
+PATCHFILES += 0402-arm64-dts-increase-cpu-clock-add-gpu-DVFS.patch
 endif
 
 # Allwinner patches

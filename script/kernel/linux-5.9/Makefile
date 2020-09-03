@@ -81,6 +81,7 @@ endif
 ifeq (1,1)
 # Misc pathes
 PATCHFILES += 0401-arm64-dts-rk3328-add-GPU-OPP-enable-DVFS.patch
+PATCHFILES += 0402-arm64-dts-increase-cpu-clock-add-gpu-DVFS.patch
 endif
 
 # Allwinner patches
