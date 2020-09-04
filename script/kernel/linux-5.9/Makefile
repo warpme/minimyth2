@@ -80,7 +80,6 @@ endif
 # Rockchip patches
 ifeq (1,1)
 # Misc pathes
-PATCHFILES += 0401-arm64-dts-rk3328-add-GPU-OPP-enable-DVFS.patch
 PATCHFILES += 0402-arm64-dts-increase-cpu-clock-add-gpu-DVFS.patch
 endif
 
@@ -102,8 +101,8 @@ PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
 PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
 PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
 
-# Add WiFi in TanixTX6 (not working :-( )
-PATCHFILES += 0515-arm64-dts-Tanix-TX6-add-WiFi.patch
+# Add TanixTX6 Mini (WiFi still not working :-( )
+PATCHFILES += 0515-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
 endif
 
 ifeq (1,1)
@@ -111,6 +110,8 @@ ifeq (1,1)
 PATCHFILES += 0516-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 endif
+
+# PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi.patch
 
 endif
 
