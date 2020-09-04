@@ -9,7 +9,7 @@ DISTFILES    = \
                h6-boot.scr       \
                h6-boot.txt       \
 
-export mm_U-BOOT_BOARD_TYPE = tanix_tx6_mini_defconfig
+export mm_U-BOOT_BOARD_TYPE = tanix_tx6_defconfig
 
 WORKSRC      = $(WORKDIR)
 
