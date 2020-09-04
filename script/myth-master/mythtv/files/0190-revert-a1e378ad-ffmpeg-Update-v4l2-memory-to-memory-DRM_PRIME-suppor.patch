@@ -1,35 +1,6 @@
-Thia reverts following commit:
-
-From a1e378ad431c74c029fb4aba0bc34194838672e1 Mon Sep 17 00:00:00 2001
-From: Mark Kendall <mark.kendall@gmail.com>
-Date: Sun, 26 Jul 2020 11:17:04 +0100
-Subject: [PATCH] FFmpeg: Update v4l2 memory to memory DRM_PRIME support
-
-- this brings our v4l2 patches in line with patches 15 and 16 from Aman
-Gupta's last patch set submitted to FFmpeg (https://ffmpeg.org/
-pipermail/ffmpeg-devel/2019-September/thread.html#249359)
-- adds ifdeffery to fix build when libdrm is not available
-- uses correct V4L2 memory type for output and capture contexts (athough
-this doesn't seem to make any noticeable difference on the Pi 4 when
-tested)
-- pix format negotiation is largely shifted to v4l2_context - sw_pix_fmt
-should now be set properly (allowing simplification of MythEGLDMABUG
-code)
-- NOTE: there was an issue with the v4l2_buffers.c code that broke
-playback - the switch in v4l2_get_drm_frame has been amened to reference
-sw_pix_fmt (av_pix_fmt is always AV_PIX_FMT_PRIME)
----
- mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c | 183 ++++++++++++-----------
- mythtv/external/FFmpeg/libavcodec/v4l2_context.c |  57 +++++--
- mythtv/external/FFmpeg/libavcodec/v4l2_context.h |   1 +
- mythtv/external/FFmpeg/libavcodec/v4l2_m2m.c     |  10 +-
- mythtv/external/FFmpeg/libavcodec/v4l2_m2m.h     |   4 +-
- mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c |  64 ++++----
- 6 files changed, 183 insertions(+), 136 deletions(-)
-
-diff -Naur mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c
---- mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c	2020-08-26 15:38:38.000000000 +0200
-+++ mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c	2020-08-27 21:50:50.883333332 +0200
+diff -Naur mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c
+--- mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c	2020-09-04 11:36:04.253333333 +0200
++++ mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_buffers.c	2020-09-04 11:36:05.670000000 +0200
 @@ -21,11 +21,7 @@
   * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
   */
@@ -343,9 +314,9 @@ diff -Naur mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec
      }
  
      return ff_v4l2_buffer_enqueue(avbuf);
-diff -Naur mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_context.c mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_context.c
---- mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_context.c	2020-08-26 15:38:38.000000000 +0200
-+++ mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_context.c	2020-08-27 21:50:50.883333332 +0200
+diff -Naur mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_context.c mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_context.c
+--- mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_context.c	2020-09-04 11:36:04.273333333 +0200
++++ mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_context.c	2020-09-04 11:36:05.670000000 +0200
 @@ -29,7 +29,6 @@
  #include <poll.h>
  #include "libavcodec/avcodec.h"
@@ -489,9 +460,9 @@ diff -Naur mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec
          v4l2_get_width(&ctx->format),
          v4l2_get_height(&ctx->format),
          V4L2_TYPE_IS_MULTIPLANAR(ctx->type) ? ctx->format.fmt.pix_mp.plane_fmt[0].sizeimage : ctx->format.fmt.pix.sizeimage,
-diff -Naur mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_context.h mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_context.h
---- mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_context.h	2020-08-26 15:38:38.000000000 +0200
-+++ mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_context.h	2020-08-27 21:50:50.883333332 +0200
+diff -Naur mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_context.h mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_context.h
+--- mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_context.h	2020-09-04 11:36:04.233333333 +0200
++++ mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_context.h	2020-09-04 11:36:05.670000000 +0200
 @@ -51,7 +51,6 @@
       * AV_PIX_FMT_NONE means this is an encoded stream.
       */
@@ -500,9 +471,9 @@ diff -Naur mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec
  
      /**
       * AVCodecID corresponding to this buffer context.
-diff -Naur mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.c mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.c
---- mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.c	2020-08-26 15:38:38.000000000 +0200
-+++ mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.c	2020-08-27 21:50:50.883333332 +0200
+diff -Naur mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.c mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.c
+--- mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.c	2020-09-04 11:36:04.253333333 +0200
++++ mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.c	2020-09-04 11:36:05.670000000 +0200
 @@ -149,15 +149,13 @@
  
      ofmt = s->output.format;
@@ -532,9 +503,9 @@ diff -Naur mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec
      if (s->avctx && !av_codec_is_decoder(s->avctx->codec)) {
          ret = ff_v4l2_context_init(&s->capture);
          if (ret) {
-diff -Naur mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c
---- mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c	2020-08-26 15:38:38.000000000 +0200
-+++ mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c	2020-08-27 21:50:50.883333332 +0200
+diff -Naur mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c
+--- mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c	2020-09-04 11:36:04.230000000 +0200
++++ mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m_dec.c	2020-09-04 11:36:05.670000000 +0200
 @@ -31,8 +31,8 @@
  #include "libavutil/opt.h"
  #include "libavcodec/avcodec.h"
@@ -652,9 +623,9 @@ diff -Naur mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec
      NULL
  };
  
-diff -Naur mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.h mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.h
---- mythtv-master-20200826-g735c462-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.h	2020-08-26 15:38:38.000000000 +0200
-+++ mythtv-master-20200826-g735c462-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.h	2020-08-27 21:50:50.883333332 +0200
+diff -Naur mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.h mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.h
+--- mythtv-master-20200904-gca3ee6a-old/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.h	2020-09-04 11:36:04.253333333 +0200
++++ mythtv-master-20200904-gca3ee6a-new/mythtv/external/FFmpeg/libavcodec/v4l2_m2m.h	2020-09-04 11:36:05.670000000 +0200
 @@ -64,8 +64,10 @@
      /* reference back to V4L2m2mPriv */
      void *priv;

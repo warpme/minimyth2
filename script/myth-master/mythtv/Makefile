@@ -50,7 +50,7 @@ PATCHFILES += 0101-Minimyth-Add-disable-optical-disc-in-menu.patch
 PATCHFILES += 0102-Minimyth-Add-phone-entry-in-menu.patch
 PATCHFILES += 0103-Minimyth-Add-optical-rip-to-menu.patch
 PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
-#PATCHFILES += 0105-Minimyth-defaults.patch
+PATCHFILES += 0105-Minimyth-defaults.patch
 PATCHFILES += 0106-hack-for-correct-perl-bindings-install.patch
 PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
 PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
@@ -58,12 +58,8 @@ PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 
 ifeq (1,1)
 # v4l2-request support in ffmpeg
-# https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-4.3.1
-# PATCHFILES += 0151-ffmpeg-add-V4l2_request-support.patch
-
 # https://github.com/LibreELEC/LibreELEC.tv/tree/master/packages/multimedia/ffmpeg/patches/v4l2-request
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-from-LE.patch
-
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # required for AML HD playbck in MythTV
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
@@ -99,7 +95,7 @@ PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
 PATCHFILES += 0223-OSD-Add-mythnotification-custom-styles-support-via-UDP.patch
 PATCHFILES += 0224-OSD-Add-status-notify-to-mythmediacenter-wide.patch
 PATCHFILES += 0225-OSD-Add-status-notify-to-mythmediacenter.patch
-#PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
+PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 
 # Patches enhancing Network Control
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
