@@ -34,6 +34,8 @@ DISTFILES = \
 	board-h6.eachlink_mini.wks  \
 	board-h6.tanix_tx6.conf     \
 	board-h6.tanix_tx6.wks      \
+	board-h6.tanix_tx6_mini.conf \
+	board-h6.tanix_tx6_mini.wks  \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \

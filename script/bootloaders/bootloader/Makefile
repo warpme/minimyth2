@@ -83,6 +83,10 @@ ifneq (,$(findstring board-h6.tanix_tx6,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h6.tanix_tx6
 endif
 
+ifneq (,$(findstring board-h6.tanix_tx6_mini,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-h6.tanix_tx6_mini
+endif
+
 ifneq (,$(findstring board-x86pc.bios,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-x86pc.bios
 endif

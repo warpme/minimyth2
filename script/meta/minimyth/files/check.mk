@@ -337,6 +337,7 @@ mm-all:
 		   [ ! "$${board}" = "board-h6.beelink_gs1"    ] && \
 		   [ ! "$${board}" = "board-h6.eachlink_mini"  ] && \
 		   [ ! "$${board}" = "board-h6.tanix_tx6"      ] && \
+		   [ ! "$${board}" = "board-h6.tanix_tx6_mini" ] && \
 		   [ ! "$${board}" = "board-rk3328.beelink_a1" ] && \
 		   [ ! "$${board}" = "board-rk3399.rockpi4-b"  ] && \
 		   [ ! "$${board}" = "board-rpi2"              ] && \
