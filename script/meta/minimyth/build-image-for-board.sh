@@ -10,7 +10,7 @@ extra_params="mm_STRIP_IMAGE=yes"
 selection_1="board-rpi3.mainline64"
 selection_2="board-rpi4.mainline64"
 selection_3="board-s905 board-h6.eachlink_mini"
-selection_4="board-s912 board-h6.tanix_tx6"
+selection_4="board-s912 board-h6.tanix_tx6_mini"
 selection_5="board-sm1 board-h6.beelink_gs1"
 selection_6="board-rk3328.beelink_a1"
 selection_7="board-rk3399.rockpi4-b"
@@ -98,28 +98,36 @@ cache_board_list() {
 case "${selection}" in
 
     1)  cache_board_list "${selection_1}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_1}" "${extra_params}" ;;
+        make reinstall-new-board mm_BOARD_TYPE="${selection_1}" "${extra_params}"
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     2)  cache_board_list "${selection_2}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_2}" "${extra_params}" ;;
+        make reinstall-new-board mm_BOARD_TYPE="${selection_2}" "${extra_params}"
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     3)  cache_board_list "${selection_3}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_3}" "${extra_params}" ;;
+        make reinstall-new-board mm_BOARD_TYPE="${selection_3}" "${extra_params}"
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     4)  cache_board_list "${selection_4}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_4}" "${extra_params}" ;;
+        make reinstall-new-board mm_BOARD_TYPE="${selection_4}" "${extra_params}"
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     5)  cache_board_list "${selection_5}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_5}" "${extra_params}" ;;
+        make reinstall-new-board mm_BOARD_TYPE="${selection_5}" "${extra_params}"
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     6)  cache_board_list "${selection_6}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_6}" "${extra_params}" ;;
+        make reinstall-new-board mm_BOARD_TYPE="${selection_6}" "${extra_params}"
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     7)  cache_board_list "${selection_7}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_7}" "${extra_params}" ;;
+        make reinstall-new-board mm_BOARD_TYPE="${selection_7}" "${extra_params}"
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     8)  cache_board_list "${selection_8}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_8}" "${extra_params}" ;;
+        make reinstall-new-board mm_BOARD_TYPE="${selection_8}" "${extra_params}"
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     9)
         make reinstall-new-board mm_BOARD_TYPE="${selection_1}" "${extra_params}"
@@ -129,7 +137,8 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_5}" "${extra_params}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_6}" "${extra_params}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_7}" "${extra_params}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_8}" "${extra_params}" ;;
+        make reinstall-new-board mm_BOARD_TYPE="${selection_8}" "${extra_params}"
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
         echo "Unknown selction !"
