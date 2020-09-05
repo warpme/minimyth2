@@ -1,5 +1,5 @@
 
-ifeq (1,1)
+ifeq (0,1)
 # URL GIT: https://github.com/fifteenhex/xradio
 GARNAME      = wifi-xradio
 GARVERSION   = 6bf0e2e21c80456e2a3d4ad1267caecde7165871
@@ -10,7 +10,7 @@ DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/xradio-$(GARVERSION)
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # URL: https://github.com/karabek/xradio
 GARNAME      = wifi-xradio
 GARVERSION   = 354e8c32e7948d46a63796d0ca266b1f702999b0
