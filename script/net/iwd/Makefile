@@ -1,9 +1,8 @@
 
 GARNAME      = iwd
-GARVERSION   = 1.8
+GARVERSION   = 1.9
 CATEGORIES   = net
 MASTER_SITES = https://www.kernel.org/pub/linux/network/wireless/
-PATCHFILES   = treewide-Add-missing-netdev-module-dependencies.patch
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.xz
 LICENSE      = GPL2
 
