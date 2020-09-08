@@ -6,7 +6,9 @@
 
 start() {
 
-    local connection_timeout=3
+    local connection_attempts=6
+    local first_attempt_connection_timeout=7
+    local connection_timeout=5
     local interface_timeout=5
 
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Starting..."
@@ -84,9 +86,7 @@ start() {
             mkdir -p -m 700 /var/lib/ead
             iwd -d &
 
-            # waiting 6sec for iwd to start to be operatinal. below 5sec is not enugh on some systems. 
-            # added 1sec as safety margin
-            /bin/sleep 6
+            /bin/sleep ${first_attempt_connection_timeout}
 
             for WLAN_INTERFACE_ITEM in ${WLAN_INTERFACE_LIST} ; do
 
@@ -97,7 +97,7 @@ start() {
                 iwctl --passphrase ${MM_WLAN_PASS} station ${WLAN_INTERFACE_ITEM} connect ${MM_WLAN_SSID} >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
 
                 i=0
-                while [ $i -lt ${connection_timeout} ] ; do
+                while [ $i -lt ${connection_attempts} ] ; do
 
                     i=$((${i} + 1))
 
@@ -107,7 +107,7 @@ start() {
                         mm_message_output info "connected to ${MM_WLAN_SSID} WiFi network ..."
                         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/wlan] ${WLAN_INTERFACE_ITEM} connected to ${MM_WLAN_SSID} ..."
 
-                        i=${connection_timeout}
+                        i=${connection_attempts}
 
                         echo "status:" >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
                         iwctl station ${WLAN_INTERFACE_ITEM} show >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
@@ -120,7 +120,7 @@ start() {
                         mm_message_output info "info: retry ${i} to connect to ${MM_WLAN_SSID} WiFi ..."
                         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] retry ${i} to connect to ${MM_WLAN_SSID} WiFi ..."
 
-                        /bin/sleep 5
+                        /bin/sleep ${connection_timeout}
 
                         echo "iwctl --passphrase ${MM_WLAN_PASS} station ${WLAN_INTERFACE_ITEM} connect ${MM_WLAN_SSID}" >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
                         iwctl --passphrase ${MM_WLAN_PASS} station ${WLAN_INTERFACE_ITEM} connect ${MM_WLAN_SSID} >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
