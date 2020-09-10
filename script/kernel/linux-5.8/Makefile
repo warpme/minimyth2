@@ -89,9 +89,14 @@ ifeq (1,1)
 # https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Rockchip/patches/linux/default
 PATCHFILES += 0401-rockchip-from-5.9.patch
 PATCHFILES += 0402-rockchip-from-next.patch
+# Increase CPU/GPU clocks on 3328
+PATCHFILES += 0403-arm64-dts-increase-cpu-clock-add-gpu-DVFS.patch
+# https://github.com/Kwiboo/LibreELEC.tv/blob/d8771d6f58fa0064fd0aadb2c2a5c6dbc981577e/projects/Rockchip/patches/linux/default/linux-9000-drm-rockchip.patch
+PATCHFILES += 0404-arm64-dts-rk3328-rkvdec-enable.patch
+PATCHFILES += 0405-drm-rockchip-improvements.patch
+
 PATCHFILES += 0411-v4l2-from-5.9.patch
 # Misc pathes
-PATCHFILES += 0402-arm64-dts-increase-cpu-clock-add-gpu-DVFS.patch
 endif
 
 # Allwinner patches
@@ -100,8 +105,11 @@ ifeq (1,1)
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=312867
 PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio.patch
 
+# Add xradio driver taken from: https://github.com/orangepi-xunlong/mainline_kernel/tree/orange-pi-5.4
+# Disabled as we are using out-of-tree driver from karabek
+# PATCHFILES += 0502-net-wireless-add-xradio-drivers.patch
+
 # https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux 7.08.2020
-#PATCHFILES += 0503-drm-bridge-dw-hdmi-improvements.patch
 PATCHFILES += 0505-media-sunxi-cedrus-improvements.patch
 PATCHFILES += 0507-drm-sun4i-fixes.patch
 

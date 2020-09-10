@@ -1,0 +1,416 @@
+diff --git a/arch/arm/boot/dts/rk3288.dtsi b/arch/arm/boot/dts/rk3288.dtsi
+index 84d59469035e..31686b08b56c 100644
+--- a/arch/arm/boot/dts/rk3288.dtsi
++++ b/arch/arm/boot/dts/rk3288.dtsi
+@@ -1028,6 +1028,8 @@
+ 		compatible = "rockchip,rk3288-vop";
+ 		reg = <0x0 0xff930000 0x0 0x19c>, <0x0 0xff931000 0x0 0x1000>;
+ 		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
++		assigned-clocks = <&cru DCLK_VOP0>;
++		assigned-clock-parents = <&cru PLL_NPLL>;
+ 		clocks = <&cru ACLK_VOP0>, <&cru DCLK_VOP0>, <&cru HCLK_VOP0>;
+ 		clock-names = "aclk_vop", "dclk_vop", "hclk_vop";
+ 		power-domains = <&power RK3288_PD_VIO>;
+@@ -1090,11 +1092,6 @@
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+ 
+-			vopl_out_hdmi: endpoint@0 {
+-				reg = <0>;
+-				remote-endpoint = <&hdmi_in_vopl>;
+-			};
+-
+ 			vopl_out_edp: endpoint@1 {
+ 				reg = <1>;
+ 				remote-endpoint = <&edp_in_vopl>;
+@@ -1235,10 +1232,6 @@
+ 					reg = <0>;
+ 					remote-endpoint = <&vopb_out_hdmi>;
+ 				};
+-				hdmi_in_vopl: endpoint@1 {
+-					reg = <1>;
+-					remote-endpoint = <&vopl_out_hdmi>;
+-				};
+ 			};
+ 		};
+ 	};
+diff --git a/arch/arm64/boot/dts/rockchip/rk3328-rock64.dts b/arch/arm64/boot/dts/rockchip/rk3328-rock64.dts
+index 86cfb5c50a94..27fea8d79bc3 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3328-rock64.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3328-rock64.dts
+@@ -194,8 +194,8 @@
+ 		regulators {
+ 			vdd_logic: DCDC_REG1 {
+ 				regulator-name = "vdd_logic";
+-				regulator-min-microvolt = <712500>;
+-				regulator-max-microvolt = <1450000>;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <1150000>;
+ 				regulator-ramp-delay = <12500>;
+ 				regulator-always-on;
+ 				regulator-boot-on;
+@@ -207,8 +207,8 @@
+ 
+ 			vdd_arm: DCDC_REG2 {
+ 				regulator-name = "vdd_arm";
+-				regulator-min-microvolt = <712500>;
+-				regulator-max-microvolt = <1450000>;
++				regulator-min-microvolt = <950000>;
++				regulator-max-microvolt = <1350000>;
+ 				regulator-ramp-delay = <12500>;
+ 				regulator-always-on;
+ 				regulator-boot-on;
+diff --git a/arch/arm64/boot/dts/rockchip/rk3328.dtsi b/arch/arm64/boot/dts/rockchip/rk3328.dtsi
+index 72e655020560..1b89f10e13e0 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3328.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3328.dtsi
+@@ -317,15 +317,24 @@
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+ 
++			pd_gpu@RK3328_PD_GPU {
++				reg = <RK3328_PD_GPU>;
++				clocks = <&cru ACLK_GPU>;
++			};
+ 			pd_hevc@RK3328_PD_HEVC {
+ 				reg = <RK3328_PD_HEVC>;
+ 			};
+ 			pd_video@RK3328_PD_VIDEO {
+ 				reg = <RK3328_PD_VIDEO>;
++				clocks = <&cru ACLK_RKVDEC>,
++					 <&cru HCLK_RKVDEC>,
++					 <&cru SCLK_VDEC_CABAC>,
++					 <&cru SCLK_VDEC_CORE>;
+ 			};
+ 			pd_vpu@RK3328_PD_VPU {
+ 				reg = <RK3328_PD_VPU>;
+-				clocks = <&cru ACLK_VPU>, <&cru HCLK_VPU>;
++				clocks = <&cru ACLK_VPU>,
++					 <&cru HCLK_VPU>;
+ 			};
+ 		};
+ 
+@@ -617,8 +626,11 @@
+ 				  "ppmmu0",
+ 				  "pp1",
+ 				  "ppmmu1";
++		assigned-clocks = <&cru ACLK_GPU>;
++		assigned-clock-rates = <500000000>;
+ 		clocks = <&cru ACLK_GPU>, <&cru ACLK_GPU>;
+ 		clock-names = "bus", "core";
++		power-domains = <&power RK3328_PD_GPU>;
+ 		operating-points-v2 = <&gpu_opp_table>;
+ 		resets = <&cru SRST_GPU_A>;
+ 	};
+ 
+@@ -666,6 +678,20 @@
+ 		power-domains = <&power RK3328_PD_VPU>;
+ 	};
+ 
++	rkvdec: video-codec@ff360000 {
++		compatible = "rockchip,rk3328-vdec", "rockchip,rk3399-vdec";
++		reg = <0x0 0xff360000 0x0 0x480>;
++		interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-names = "vdpu";
++		assigned-clocks = <&cru ACLK_RKVDEC>, <&cru SCLK_VDEC_CABAC>, <&cru SCLK_VDEC_CORE>;
++		assigned-clock-rates = <500000000>, <300000000>, <250000000>;
++		clocks = <&cru ACLK_RKVDEC>, <&cru HCLK_RKVDEC>,
++			 <&cru SCLK_VDEC_CABAC>, <&cru SCLK_VDEC_CORE>;
++		clock-names = "axi", "ahb", "cabac", "core";
++		iommus = <&rkvdec_mmu>;
++		power-domains = <&power RK3328_PD_VIDEO>;
++	};
++
+ 	rkvdec_mmu: iommu@ff360480 {
+ 		compatible = "rockchip,iommu";
+ 		reg = <0x0 0xff360480 0x0 0x40>, <0x0 0xff3604c0 0x0 0x40>;
+@@ -674,7 +700,7 @@
+ 		clocks = <&cru ACLK_RKVDEC>, <&cru HCLK_RKVDEC>;
+ 		clock-names = "aclk", "iface";
+ 		#iommu-cells = <0>;
+-		status = "disabled";
++		power-domains = <&power RK3328_PD_VIDEO>;
+ 	};
+ 
+ 	vop: vop@ff370000 {
+@@ -683,9 +709,9 @@
+ 		interrupts = <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>;
+ 		clocks = <&cru ACLK_VOP>, <&cru DCLK_LCDC>, <&cru HCLK_VOP>;
+ 		clock-names = "aclk_vop", "dclk_vop", "hclk_vop";
++		iommus = <&vop_mmu>;
+ 		resets = <&cru SRST_VOP_A>, <&cru SRST_VOP_H>, <&cru SRST_VOP_D>;
+ 		reset-names = "axi", "ahb", "dclk";
+-		iommus = <&vop_mmu>;
+ 		status = "disabled";
+ 
+ 		vop_out: port {
+@@ -732,7 +758,11 @@
+ 
+ 		ports {
+ 			hdmi_in: port {
+-				hdmi_in_vop: endpoint {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				hdmi_in_vop: endpoint@0 {
++					reg = <0>;
+ 					remote-endpoint = <&vop_out_hdmi>;
+ 				};
+ 			};
+@@ -780,8 +810,7 @@
+ 			<&cru SCLK_RTC32K>, <&cru SCLK_UART0>,
+ 			<&cru SCLK_UART1>, <&cru SCLK_UART2>,
+ 			<&cru ACLK_BUS_PRE>, <&cru ACLK_PERI_PRE>,
+-			<&cru ACLK_VIO_PRE>, <&cru ACLK_RGA_PRE>,
+-			<&cru ACLK_VOP_PRE>, <&cru ACLK_RKVDEC_PRE>,
++			<&cru ACLK_RGA_PRE>, <&cru ACLK_RKVDEC_PRE>,
+ 			<&cru ACLK_RKVENC>, <&cru ACLK_VPU_PRE>,
+ 			<&cru SCLK_VDEC_CABAC>, <&cru SCLK_VDEC_CORE>,
+ 			<&cru SCLK_VENC_CORE>, <&cru SCLK_VENC_DSP>,
+@@ -791,7 +820,15 @@
+ 			<&cru ACLK_BUS_PRE>, <&cru HCLK_BUS_PRE>,
+ 			<&cru PCLK_BUS_PRE>, <&cru ACLK_PERI_PRE>,
+ 			<&cru HCLK_PERI>, <&cru PCLK_PERI>,
+-			<&cru SCLK_RTC32K>;
++			<&cru ACLK_VIO_PRE>, <&cru HCLK_VIO_PRE>,
++			<&cru ACLK_RGA_PRE>, <&cru SCLK_RGA>,
++			<&cru ACLK_VOP_PRE>, <&cru ACLK_RKVDEC_PRE>,
++			<&cru ACLK_RKVENC>, <&cru ACLK_VPU_PRE>,
++			<&cru SCLK_VDEC_CABAC>, <&cru SCLK_VDEC_CORE>,
++			<&cru SCLK_VENC_CORE>, <&cru SCLK_VENC_DSP>,
++			<&cru SCLK_EFUSE>, <&cru PCLK_DDR>,
++			<&cru ACLK_GMAC>, <&cru PCLK_GMAC>,
++			<&cru SCLK_RTC32K>, <&cru SCLK_USB3OTG_SUSPEND>;
+ 		assigned-clock-parents =
+ 			<&cru HDMIPHY>, <&cru PLL_APLL>,
+ 			<&cru PLL_GPLL>, <&xin24m>,
+@@ -802,7 +839,6 @@
+ 			<24000000>, <24000000>,
+ 			<15000000>, <15000000>,
+ 			<100000000>, <100000000>,
+-			<100000000>, <100000000>,
+ 			<50000000>, <100000000>,
+ 			<100000000>, <100000000>,
+ 			<50000000>, <50000000>,
+@@ -812,7 +848,15 @@
+ 			<150000000>, <75000000>,
+ 			<75000000>, <150000000>,
+ 			<75000000>, <75000000>,
+-			<32768>;
++			<300000000>, <100000000>,
++			<300000000>, <200000000>,
++			<400000000>, <500000000>,
++			<200000000>, <300000000>,
++			<300000000>, <250000000>,
++			<200000000>, <100000000>,
++			<24000000>, <100000000>,
++			<150000000>, <50000000>,
++			<32768>, <32768>;
+ 	};
+ 
+ 	usb2phy_grf: syscon@ff450000 {
+@@ -861,6 +905,8 @@
+ 		clock-names = "biu", "ciu", "ciu-drive", "ciu-sample";
+ 		fifo-depth = <0x100>;
+ 		max-frequency = <150000000>;
++		resets = <&cru SRST_MMC0>;
++		reset-names = "reset";
+ 		status = "disabled";
+ 	};
+ 
+@@ -873,6 +919,8 @@
+ 		clock-names = "biu", "ciu", "ciu-drive", "ciu-sample";
+ 		fifo-depth = <0x100>;
+ 		max-frequency = <150000000>;
++		resets = <&cru SRST_SDIO>;
++		reset-names = "reset";
+ 		status = "disabled";
+ 	};
+ 
+@@ -885,6 +933,8 @@
+ 		clock-names = "biu", "ciu", "ciu-drive", "ciu-sample";
+ 		fifo-depth = <0x100>;
+ 		max-frequency = <150000000>;
++		resets = <&cru SRST_EMMC>;
++		reset-names = "reset";
+ 		status = "disabled";
+ 	};
+ 
+@@ -982,6 +1032,20 @@
+ 		status = "disabled";
+ 	};
+ 
++	sdmmc_ext: dwmmc@ff5f0000 {
++		compatible = "rockchip,rk3328-dw-mshc", "rockchip,rk3288-dw-mshc";
++		reg = <0x0 0xff5f0000 0x0 0x4000>;
++		interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru HCLK_SDMMC_EXT>, <&cru SCLK_SDMMC_EXT>,
++			 <&cru SCLK_SDMMC_EXT_DRV>, <&cru SCLK_SDMMC_EXT_SAMPLE>;
++		clock-names = "biu", "ciu", "ciu-drive", "ciu-sample";
++		fifo-depth = <0x100>;
++		max-frequency = <150000000>;
++		resets = <&cru SRST_SDMMCEXT>;
++		reset-names = "reset";
++		status = "disabled";
++	};
++
+ 	gic: interrupt-controller@ff811000 {
+ 		compatible = "arm,gic-400";
+ 		#interrupt-cells = <3>;
+diff --git a/arch/arm64/boot/dts/rockchip/rk3368.dtsi b/arch/arm64/boot/dts/rockchip/rk3368.dtsi
+index 5d25a9d04051..60974259347d 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3368.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3368.dtsi
+@@ -180,6 +180,11 @@
+ 				     <&cpu_b2>, <&cpu_b3>;
+ 	};
+ 
++	display-subsystem {
++		compatible = "rockchip,display-subsystem";
++		ports = <&vop>;
++	};
++
+ 	psci {
+ 		compatible = "arm,psci-0.2";
+ 		method = "smc";
+@@ -736,6 +741,30 @@
+ 		status = "disabled";
+ 	};
+ 
++	vop: vop@ff930000 {
++		compatible = "rockchip,rk3368-vop";
++		reg = <0x0 0xff930000 0x0 0x2fc>, <0x0 0xff931000 0x0 0x400>;
++		interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
++		assigned-clocks = <&cru ACLK_VOP>, <&cru HCLK_VOP>;
++		assigned-clock-rates = <400000000>, <200000000>;
++		clocks = <&cru ACLK_VOP>, <&cru DCLK_VOP>, <&cru HCLK_VOP>;
++		clock-names = "aclk_vop", "dclk_vop", "hclk_vop";
++		iommus = <&vop_mmu>;
++		resets = <&cru SRST_LCDC0_AXI>, <&cru SRST_LCDC0_AHB>, <&cru SRST_LCDC0_DCLK>;
++		reset-names = "axi", "ahb", "dclk";
++		status = "disabled";
++
++		vop_out: port {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			vop_out_hdmi: endpoint@2 {
++				reg = <2>;
++				remote-endpoint = <&hdmi_in_vop>;
++			};
++		};
++	};
++
+ 	vop_mmu: iommu@ff930300 {
+ 		compatible = "rockchip,iommu";
+ 		reg = <0x0 0xff930300 0x0 0x100>;
+@@ -747,6 +776,37 @@
+ 		status = "disabled";
+ 	};
+ 
++	hdmi: hdmi@ff980000 {
++		compatible = "rockchip,rk3368-dw-hdmi";
++		reg = <0x0 0xff980000 0x0 0x20000>;
++		reg-io-width = <4>;
++		interrupts = <GIC_SPI 103 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru PCLK_HDMI_CTRL>,
++			 <&cru SCLK_HDMI_HDCP>,
++			 <&cru SCLK_HDMI_CEC>;
++		clock-names = "iahb",
++			      "isfr",
++			      "cec";
++		pinctrl-names = "default";
++		pinctrl-0 = <&hdmi_i2c_xfer>, <&hdmi_cec>;
++		rockchip,grf = <&grf>;
++		#sound-dai-cells = <0>;
++		status = "disabled";
++
++		ports {
++			hdmi_in: port {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				hdmi_in_vop: endpoint@0 {
++					reg = <0>;
++					remote-endpoint = <&vop_out_hdmi>;
++				};
++			};
++		};
++	};
++
+ 	hevc_mmu: iommu@ff9a0440 {
+ 		compatible = "rockchip,iommu";
+ 		reg = <0x0 0xff9a0440 0x0 0x40>,
+@@ -947,6 +1007,17 @@
+ 			};
+ 		};
+ 
++		hdmi {
++			hdmi_cec: hdmi-cec {
++				rockchip,pins = <3 RK_PC7 1 &pcfg_pull_none>;
++			};
++
++			hdmi_i2c_xfer: hdmi-i2c-xfer {
++				rockchip,pins = <3 RK_PD2 1 &pcfg_pull_none>,
++						<3 RK_PD3 1 &pcfg_pull_none>;
++			};
++		};
++
+ 		i2c0 {
+ 			i2c0_xfer: i2c0-xfer {
+ 				rockchip,pins = <0 RK_PA6 1 &pcfg_pull_none>,
+diff --git a/arch/arm64/boot/dts/rockchip/rk3399.dtsi b/arch/arm64/boot/dts/rockchip/rk3399.dtsi
+index f2ef0d8ba54b..00c7086179c5 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3399.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3399.dtsi
+@@ -1271,7 +1271,7 @@
+ 
+ 	vdec: video-codec@ff660000 {
+ 		compatible = "rockchip,rk3399-vdec";
+-		reg = <0x0 0xff660000 0x0 0x400>;
++		reg = <0x0 0xff660000 0x0 0x480>;
+ 		interrupts = <GIC_SPI 116 IRQ_TYPE_LEVEL_HIGH 0>;
+ 		interrupt-names = "vdpu";
+ 		clocks = <&cru ACLK_VDU>, <&cru HCLK_VDU>,
+@@ -1612,7 +1612,7 @@
+ 		reg = <0x0 0xff8f0000 0x0 0x3efc>;
+ 		interrupts = <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH 0>;
+ 		assigned-clocks = <&cru ACLK_VOP1>, <&cru HCLK_VOP1>;
+-		assigned-clock-rates = <400000000>, <100000000>;
++		assigned-clock-rates = <400000000>, <200000000>;
+ 		clocks = <&cru ACLK_VOP1>, <&cru DCLK_VOP1>, <&cru HCLK_VOP1>;
+ 		clock-names = "aclk_vop", "dclk_vop", "hclk_vop";
+ 		iommus = <&vopl_mmu>;
+@@ -1635,11 +1635,6 @@
+ 				remote-endpoint = <&edp_in_vopl>;
+ 			};
+ 
+-			vopl_out_hdmi: endpoint@2 {
+-				reg = <2>;
+-				remote-endpoint = <&hdmi_in_vopl>;
+-			};
+-
+ 			vopl_out_mipi1: endpoint@3 {
+ 				reg = <3>;
+ 				remote-endpoint = <&mipi1_in_vopl>;
+@@ -1669,7 +1664,7 @@
+ 		reg = <0x0 0xff900000 0x0 0x3efc>;
+ 		interrupts = <GIC_SPI 118 IRQ_TYPE_LEVEL_HIGH 0>;
+ 		assigned-clocks = <&cru ACLK_VOP0>, <&cru HCLK_VOP0>;
+-		assigned-clock-rates = <400000000>, <100000000>;
++		assigned-clock-rates = <400000000>, <200000000>;
+ 		clocks = <&cru ACLK_VOP0>, <&cru DCLK_VOP0>, <&cru HCLK_VOP0>;
+ 		clock-names = "aclk_vop", "dclk_vop", "hclk_vop";
+ 		iommus = <&vopb_mmu>;
+@@ -1785,10 +1780,6 @@
+ 					reg = <0>;
+ 					remote-endpoint = <&vopb_out_hdmi>;
+ 				};
+-				hdmi_in_vopl: endpoint@1 {
+-					reg = <1>;
+-					remote-endpoint = <&vopl_out_hdmi>;
+-				};
+ 			};
+ 		};
+ 	};
