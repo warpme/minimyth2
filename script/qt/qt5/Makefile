@@ -1,13 +1,11 @@
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 5.15.0
+GARVERSION   = 5.15.1
 CATEGORIES   = qt
 MASTER_SITES = http://download.qt.io/official_releases/qt/5.15/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME).patch.gar
-PATCHFILES  += $(DISTNAME)-fix-gcc6+-build.patch
 PATCHFILES  += $(DISTNAME)-disable-qtlocation-mapboxgl-plugin.patch
-PATCHFILES  += $(DISTNAME)-fix-wayland-build.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
@@ -79,10 +77,25 @@ CONFIGURE_ARGS = \
 	-nomake tools \
 	-nomake examples \
 	-nomake tests \
-	-skip qttranslations \
-	-skip qtserialport \
-	-skip qtwebengine \
+	-skip qtactiveqt \
 	-skip qt3d \
+	-skip qtandroidextras \
+	-skip qtgamepad \
+	-skip qtlocation \
+	-skip qtlottie \
+	-skip qtpurchasing \
+	-skip qtquick3d \
+	-skip qtquickcontrols \
+	-skip qtquickcontrols2 \
+	-skip qtquicktimeline \
+	-skip qtsensors \
+	-skip qtserialbus \
+	-skip qtserialport \
+	-skip qtspeech \
+	-skip qttranslations \
+	-skip qtwebengine \
+	-skip qtvirtualkeyboard \
+	-skip qtwinextras \
 	-silent \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	$(if $(filter brcm-vc4 mali450-dummy mali450-fbdev mali450-x11 mali450-wayland,$(mm_OPENGL_PROVIDER)),-eglfs) \
