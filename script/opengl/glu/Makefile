@@ -27,9 +27,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
-
 git//%$(DISTNAME).tar.bz2:
 	@$(call FETCH_GIT, $*, $(word 3,$(subst -, ,$(GARVERSION))), $(DISTNAME))
 	@$(MAKECOOKIE)
