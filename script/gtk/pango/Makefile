@@ -1,9 +1,10 @@
-GARNAME = pango
-GARVERSION = 1.40.5
-CATEGORIES = gtk
+
+GARNAME      = pango
+GARVERSION   = 1.40.5
+CATEGORIES   = gtk
 MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/pango/1.40/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = LGPL2
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = LGPL2
 
 DESCRIPTION =
 define BLURB
@@ -33,11 +34,13 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
-
 pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
+	@$(MAKECOOKIE)
+
+post-configure:
+	@# hack to fix failed build due double pipe in nm commnds
+	@sed -e 's%| \\$$global_symbol_pipe%\\$$global_symbol_pipe%g' -i $(WORKSRC)/libtool
 	@$(MAKECOOKIE)
 
 post-install:
