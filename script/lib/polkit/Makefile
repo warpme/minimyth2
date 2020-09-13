@@ -1,10 +1,11 @@
-GARNAME = polkit
-GARVERSION = 0.102
-CATEGORIES = lib
+
+GARNAME      = polkit
+GARVERSION   = 0.102
+CATEGORIES   = lib
 MASTER_SITES =  http://www.freedesktop.org/software/polkit/releases/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME)-cross_compile.patch
-PATCHFILES += add_aarch64_detection.patch
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = $(DISTNAME)-cross_compile.patch
+PATCHFILES  += add_aarch64_detection.patch
 LICENSE = GPL2
 
 DESCRIPTION =
@@ -29,8 +30,10 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
+post-configure:
+	@# hack to fix failed build due double pipe in nm commnds
+	@sed -e 's%| \\$$global_symbol_pipe%\\$$global_symbol_pipe%g' -i $(WORKSRC)/libtool
+	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libpolkit-gobject-1.la
