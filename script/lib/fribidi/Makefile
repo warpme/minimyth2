@@ -37,14 +37,16 @@ ifneq ($(DESTIMG),build)
 LDFLAGS = 
 endif
 
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
-
 pre-configure:
 	@# Disable building doc as is basically useless here
 	@sed -i '/^SUBDIRS/s/doc//' $(WORKSRC)/Makefile.am
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL_LIBPATH,$(WORKSRC),configure)
+	@$(MAKECOOKIE)
+
+post-configure:
+	@# hack to fix failed build due double pipe in nm commnds
+	@sed -e 's%| \\$$global_symbol_pipe%\\$$global_symbol_pipe%g' -i $(WORKSRC)/libtool
 	@$(MAKECOOKIE)
 
 post-install:
