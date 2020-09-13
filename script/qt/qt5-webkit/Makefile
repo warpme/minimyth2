@@ -1,10 +1,11 @@
-GARNAME = qtwebkit
-CATEGORIES = qt
-# ver 14.04.2020
-GARVERSION = 10cd6a106e1c461c774ca166a67b8c835c755ef7
+
+GARNAME      = qtwebkit
+CATEGORIES   = qt
+# ver 12.09.2020
+GARVERSION = 412e257d01c56fd1a6326ccc5a401c316276ffb8
 MASTER_SITES = https://github.com/qt/qtwebkit/archive/
-DISTFILES = $(GARVERSION).zip
-PATCHFILES  = qt5-webkit-revert-ac17da2-Check-Qt-private-headers-available-before-compilation.patch
+DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = qt5-webkit-revert-ac17da2-Check-Qt-private-headers-available-before-compilation.patch
 
 DESCRIPTION = 
 define BLURB
