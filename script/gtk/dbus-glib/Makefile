@@ -48,12 +48,14 @@ endif
 
 include ../../gar.mk
 
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
-
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
+	@$(MAKECOOKIE)
+
+post-configure:
+	@# hack to fix failed build due double pipe in nm commnds
+	@sed -e 's%| \\$$global_symbol_pipe%\\$$global_symbol_pipe%g' -i $(WORKSRC)/libtool
 	@$(MAKECOOKIE)
 
 post-install:
