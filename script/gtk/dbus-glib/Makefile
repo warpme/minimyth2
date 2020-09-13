@@ -53,11 +53,6 @@ pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
 	@$(MAKECOOKIE)
 
-post-configure:
-	@# hack to fix failed build due double pipe in nm commnds
-	@sed -e 's%| \\$$global_symbol_pipe%\\$$global_symbol_pipe%g' -i $(WORKSRC)/libtool
-	@$(MAKECOOKIE)
-
 post-install:
 	@rm -rf $(DESTDIR)$(libdir)/libdbus-glib-1.la
 	@$(MAKECOOKIE)
