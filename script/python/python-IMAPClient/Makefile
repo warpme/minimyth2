@@ -1,9 +1,11 @@
-GARNAME = python-IMAPClient
-GARVERSION = 1.0.1
-CATEGORIES = python
-MASTER_SITES = http://freshfoo.com/projects/IMAPClient/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).zip
-PATCHFILES = $(DISTNAME)-use-distutils.patch
+
+GARNAME      = python-IMAPClient
+GARVERSION   = 1.1.0
+CATEGORIES   = python
+MASTER_SITES = https://github.com/mjs/imapclient/archive/
+DISTFILES    = $(GARVERSION).zip
+WORKSRC      = $(WORKDIR)/imapclient-$(GARVERSION)
+# PATCHFILES = $(DISTNAME)-use-distutils.patch
 LICENSE =
 DESCRIPTION = 
 define BLURB
@@ -12,11 +14,7 @@ endef
 DEPENDS = python/python python/python-distribute python/python-distutilscross \
           python/python-pyOpenSSL python/python-backports.ssl
 
-BUILDDEPS =  python/python-Sphinx
-
 BUILDDEPS = python/python-Sphinx python/python-pyOpenSSL python/python-backports.ssl
-
-WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
 BUILD_SCRIPTS   = $(WORKSRC)/setup.py
 INSTALL_SCRIPTS = $(WORKSRC)/setup.py
