@@ -54,6 +54,7 @@ ifeq ($(DESTIMG),build)
 endif
 # FIXME XXXXX
 ifneq ($(DESTIMG),build)
+	@cd $(DESTDIR)$(libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/site-packages/cffi-$(GARVERSION)-*.egg/ ; cp _cffi_backend.so _cffi_backend.so.target
 	@cp -v $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/site-packages/cffi-$(GARVERSION)-*.egg/_cffi_backend.so \
 	 "$(DESTDIR)$(libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/site-packages/cffi-$(GARVERSION)"*
 endif

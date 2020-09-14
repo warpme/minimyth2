@@ -339,6 +339,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 			find . -depth -type f -name '*.pyc'  -exec rm -rf '{}' \; ; \
 			find . -depth -type f -name '*.pyo'  -exec rm -rf '{}' \; ; \
 			find . -depth -type f -name '*.orig' -exec rm -rf '{}' \; ; \
+			find . -depth -type f -name '_cffi_backend.so.target' -execdir mv -f '{}' '_cffi_backend.so' \; ; \
 		fi ; \
 	 done
 	@# Remove unwanted binaries, etcs, shares and libraries.
