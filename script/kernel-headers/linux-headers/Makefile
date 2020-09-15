@@ -14,7 +14,7 @@ include ../../minimyth.conf.mk
 
 
 ifneq (,$(filter %5.4,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-5.8
+DEPENDS = kernel/linux-headers-rpi-5.4
 endif
 ifneq (,$(filter %5.7,$(mm_KERNEL_VERSION)))
 DEPENDS = kernel/linux-headers-5.7
