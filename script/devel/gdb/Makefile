@@ -16,10 +16,10 @@ CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
 INSTALL_SCRIPTS   = custom
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+CONFIGURE_ARGS = --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-werror \
-	--prefix=$(BUILD_DESTDIR) \
-	--with-build-sysroot=$(BUILD_DESTDIR)
+	--prefix=$(DESTDIR) \
+	--with-build-sysroot=$(DESTDIR) \
 
 include ../../gar.mk
 
@@ -36,8 +36,12 @@ install-custom:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/libbfd.la
-	@rm -f $(DESTDIR)$(libdir)/libopcodes.la
+	@rm -f $(DESTDIR)$(elibdir)/libbfd.la
+	@rm -f $(DESTDIR)$(elibdir)/libctf.la
+	@rm -f $(DESTDIR)$(elibdir)/libctf-nobfd.la
+	@rm -f $(DESTDIR)$(elibdir)/libopcodes.la
 	@$(if $(filter $(GARHOST), $(GARTARGET)),, rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libbfd.la)
+	@$(if $(filter $(GARHOST), $(GARTARGET)),, rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libctf.la)
+	@$(if $(filter $(GARHOST), $(GARTARGET)),, rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libctf-nobfd.la)
 	@$(if $(filter $(GARHOST), $(GARTARGET)),, rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libopcodes.la)
 	@$(MAKECOOKIE)
