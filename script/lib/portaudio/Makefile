@@ -31,6 +31,11 @@ include ../../gar.mk
 CPPFLAGS += -fcommon
 CFLAGS   += -fcommon
 
+post-configure:
+	@# hack to fix failed build due double pipe in nm commnds
+	@sed -e 's%| \\$$global_symbol_pipe%\\$$global_symbol_pipe%g' -i $(WORKSRC)/libtool
+	@$(MAKECOOKIE)
+
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libportaudio.a
 	@rm -f $(DESTDIR)$(libdir)/libportaudio.la
