@@ -120,7 +120,7 @@ CONFIGURE_ARGS += \
 	-D gallium-vdpau=enabled \
 	-D gallium-va=enabled \
 	-D gallium-xa=enabled \
-	-D llvm=disabled
+	-D llvm=enabled
 endif
 endif
 

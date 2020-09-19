@@ -65,7 +65,7 @@ CONFIGURE_ARGS = \
 	-D va-libs-path="$(DESTDIR)$(libdir)/va" \
 	-D vdpau-libs-path="$(DESTDIR)$(libdir)" \
 	-D shared-glapi=true \
-	-D shared-llvm=disabled \
+	-D shared-llvm=enabled \
 	-D gbm=enabled \
 	-D shared-glapi=enabled \
 	-D glx=dri \
@@ -106,7 +106,7 @@ CONFIGURE_ARGS += \
 	-D gallium-vdpau=enabled \
 	-D gallium-va=enabled \
 	-D gallium-xa=enabled \
-	-D llvm=disabled
+	-D llvm=enabled
 endif
 endif
 
