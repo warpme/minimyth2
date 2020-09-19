@@ -80,6 +80,7 @@ configure-%/cmake:
 	@$(MAKECOOKIE)
 
 post-install:
+	@rm -f $(DESTDIR)$(libdir)/libLLVM*.a
 	@rm -f $(DESTDIR)$(bindir)-config/llvm-config
 	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config
 	@mkdir -p $(DESTDIR)$(bindir)-config
