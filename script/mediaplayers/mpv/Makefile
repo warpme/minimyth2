@@ -13,6 +13,7 @@ define BLURB
 endef
 
 DEPENDS = lang/c lib/alsa-lib lib/ffmpeg-git lib/libass lib/SDL2 xorg/libdrm
+BUILDDEPS = devel/waf
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
@@ -40,15 +41,15 @@ CONFIGURE_ARGS = \
 include ../../gar.mk
 
 configure-custom:
-	@cd $(WORKSRC); wget http://www.freehackers.org/~tnagy/release/waf-2.0.9 -O waf; $(build_DESTDIR)$(build_bindir)/python ./bootstrap.py; $(build_DESTDIR)$(build_bindir)/python ./waf configure $(CONFIGURE_ARGS)
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python $(build_DESTDIR)$(build_bindir)/waf configure $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 build-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python ./waf
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python $(build_DESTDIR)$(build_bindir)/waf
 	@$(MAKECOOKIE)
 
 install-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python ./waf install --destdir=$(DESTDIR)
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python $(build_DESTDIR)$(build_bindir)/waf install --destdir=$(DESTDIR)
 	@echo 'echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/test-mpv-drm.sh
 	@echo 'mpv --drm-connector=HDMI-A-1 --vo=gpu --gpu-context=drm --hwdec=auto $$1' >> $(DESTDIR)$(bindir)/test-mpv-drm.sh
 	@chmod +x $(DESTDIR)$(bindir)/test-mpv-drm.sh
