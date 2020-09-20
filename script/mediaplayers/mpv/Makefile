@@ -1,10 +1,12 @@
-GARNAME = mpv
-GARVERSION = 0.32.0
-CATEGORIES = mediaplayers
+
+GARNAME      = mpv
+# master @ 20.09.2020
+GARVERSION   = 03047a0169495c3323ecbaf1c7ea8029c082dc2e
+CATEGORIES   = mediaplayers
 MASTER_SITES = https://github.com/mpv-player/mpv/archive/
-DISTFILES = v$(GARVERSION).tar.gz
-WORKSRC   = $(WORKDIR)/mpv-$(GARVERSION)
-LICENSE = GPL2
+DISTFILES    = $(GARVERSION).zip
+WORKSRC      = $(WORKDIR)/mpv-$(GARVERSION)
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
@@ -30,7 +32,6 @@ CONFIGURE_ARGS = \
 	--sysconfdir="$(sysconfdir)" \
 	--enable-sdl2 \
 	--enable-drm \
-	--enable-drmprime \
 	--enable-gbm \
 	--enable-egl-drm \
 	--disable-debug-build \
