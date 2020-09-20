@@ -1,11 +1,11 @@
 
 GARNAME      = v4l-utils
-GARVERSION   = 20200507-316a273fa4
+GARVERSION   = 20200920-ea16a7ef13
 CATEGORIES   = utils
 MASTER_SITES = git://linuxtv.org/v4l-utils.git/
 DISTFILES    = $(DISTNAME).tar.bz2
-PATCHFILES   = $(DISTNAME)-perl.patch.gar
-PATCHFILES  += $(DISTNAME)-disable-po.patch
+PATCHFILES   = v4l-utils-perl.patch.gar
+PATCHFILES  += v4l-utils-disable-po.patch
 LICENSE      = GPL2/LGPL2_1
 
 DESCRIPTION = 
