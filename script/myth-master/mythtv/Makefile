@@ -73,6 +73,12 @@ endif
 # This reverts v4l2_m2m chages as with them playback has skipping frames on s905 vdec
 PATCHFILES += 0190-revert-a1e378ad-ffmpeg-Update-v4l2-memory-to-memory-DRM_PRIME-suppor.patch
 
+# enable LTO; patches from issue #224
+PATCHFILES += 0192-issue224-EnableLTO-Rename-the-RecordingType-stream-selection-UI-element.patch
+PATCHFILES += 0193-issue224-EnableLTO-Rename-the-ScanFrequency-starting-scan-frequency-UI-.patch
+PATCHFILES += 0195-issue224-EnableLTO-use-system-videodev2.h-include-rather-than-a-local-s.patch
+PATCHFILES += 0197-issue224-EnableLTO-update-config-to-pass-enable-lto-to-ffmpeg-and-expor.patch
+
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
 PATCHFILES += 0201-Mediamonitor-reduce-udisks-timeout-to-1500msec.patch
@@ -120,9 +126,6 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
-
-# Fix for MacOS compiling
-# PATCHFILES += 0500-plugins-zmserver-fix-macos-compile.patch
 
 endif
 
@@ -224,7 +227,9 @@ CONFIGURE_ARGS = \
 	--sysroot="$(DESTDIR)$(rootdir)" \
 	--sysinclude="$(DESTDIR)$(includedir)" \
 	--target-os="linux" \
+	--ar="$(AR)" \
 	--nm="$(NM)" \
+	--ranlib="$(RANLIB)" \
 	--as="$(CC)" \
 	--cc="$(CC)" \
 	--cxx="$(CXX)" \
@@ -245,6 +250,7 @@ CONFIGURE_ARGS = \
 	--enable-sse \
 	--enable-ssse3 \
 	--enable-yasm \
+	--enable-lto \
 	--disable-proc-opt \
 	--enable-audio-oss \
 	--enable-audio-alsa \
@@ -298,18 +304,13 @@ CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 
-CPPFLAGS += -fPIC
-CFLAGS   += -fPIC
+CPPFLAGS += -fPIC -fuse-linker-plugin
+CFLAGS   += -fPIC -fuse-linker-plugin
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -O0
 endif
-
-# mythtv don't compiles with gcc5.3.0 LTO
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 svn//%/$(DISTNAME).tar.bz2:
 	@$(call FETCH_SVN, http://$*, $(MYTHTV_SVN_VERSION), $(DISTNAME))
