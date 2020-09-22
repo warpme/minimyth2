@@ -41,11 +41,6 @@ include ../../gar.mk
 
 LDFLAGS += -fwhole-program
 
-# don't compiles with gcc9.3.0 LTO
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-
 extract-$(CONFIGFILE):
 	@cat $(DOWNLOADDIR)/$(CONFIGFILE) \
 		| sed -e 's%@GAR_localstatedir@%$(localstatedir)%g' \
