@@ -60,6 +60,7 @@ CONFIGURE_ARGS = \
 	-platform $(PLATFORM_GARBUILD_NAME) \
 	-xplatform $(PLATFORM_GARHOST_NAME) \
 	-c++std c++1z \
+	-ltcg \
 	-plugin-sql-mysql \
 	-I $(DESTDIR)$(includedir)/mysql \
 	-L $(DESTDIR)$(libdir)/mysql \
@@ -103,11 +104,6 @@ CONFIGURE_ARGS = \
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
 
-# Qt don't compiles with gcc9.3.0 LTO
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-
 PLATFORM_GARBUILD_BASE_NAME = $(strip \
 	$(if $(filter i386,$(build_GARCH_FAMILY)),linux-g++-32,) \
 	$(if $(filter x86_64,$(build_GARCH_FAMILY)),linux-g++-64,))
@@ -140,8 +136,6 @@ CREATE_PLATFORM   = \
 	rm -f $(strip $(2))/qmake.conf~ ; \
 	echo "QMAKE_CFLAGS_RELEASE = $($(strip $(3))CFLAGS) -fPIC"                            >> $(strip $(2))/qmake.conf~ ; \
 	echo "QMAKE_CFLAGS_DEBUG   = $($(strip $(3))CFLAGS) -fPIC"                            >> $(strip $(2))/qmake.conf~ ; \
-	echo "QMAKE_LFLAGS_RELEASE = -fno-lto"                                                >> $(strip $(2))/qmake.conf~ ; \
-	echo "QMAKE_LFLAGS_DEBUG   = -fno-lto"                                                >> $(strip $(2))/qmake.conf~ ; \
 	cat $(strip $(2))/qmake.conf                   | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
 	cat $(strip $(2))/../common/unix.conf          | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
 	cat $(strip $(2))/../common/linux.conf         | grep -v '^include' | grep -v '^load' >> $(strip $(2))/qmake.conf~ ; \
