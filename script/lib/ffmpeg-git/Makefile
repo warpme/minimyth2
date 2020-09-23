@@ -124,11 +124,6 @@ INSTALL_ARGS   = \
 GAR_EXTRA_CONF += mediaplayers/mplayer-svn/package-api.mk
 include ../../gar.mk
 
-# CFLAGS  += -Wno-all -Wno-implicit-function-declaration
-# LDFLAGS += -Wno-all -Wno-implicit-function-declaration
-# CFLAGS  += -Wno-all -Wno-implicit-function-declaration
-# LDFLAGS += -Wno-all -Wno-implicit-function-declaration
-
 clean-all:
 	@$(MAKE) clean
 	@rm -rf $(DESTDIR)$(includedir)/libavcodec
