@@ -24,7 +24,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--prefix=/usr \
 	--disable-static \
-	--with-libav-extra-configure="--enable-runtime-cpudetect --as=$(CC)" \
+	--with-libav-extra-configure="--enable-runtime-cpudetect --as=$(CC) --enable-lto --enable-pic" \
 	--with-pic \
 
 # By some reason mythwebroweser has not working vh264 ideo playback when external
