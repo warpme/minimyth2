@@ -9,37 +9,15 @@ MASTER_SITES = https://github.com/FFmpeg/FFmpeg/archive/
 DISTFILES    = $(GITHASH).zip
 WORKSRC      = $(WORKDIR)/FFmpeg-$(GITHASH)
 
-ifeq (0,1)
-# https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-4.3.1 @19.08.2020
-PATCHFILES += 0001-avutil-add-av_buffer_pool_flush.patch
-PATCHFILES += 0002-Add-common-V4L2-request-API-code.patch
-PATCHFILES += 0003-Add-V4L2-request-API-mpeg2-hwaccel.patch
-PATCHFILES += 0004-Add-V4L2-request-API-h264-hwaccel.patch
-PATCHFILES += 0005-Add-V4L2-request-API-hevc-hwaccel.patch
-PATCHFILES += 0006-Add-V4L2-request-API-vp8-hwaccel.patch
-PATCHFILES += 0007-avcodec-h264-parse-idr_pic_id.patch
-PATCHFILES += 0008-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
-PATCHFILES += 0009-Add-and-use-private-linux-headers-for-V4L2-request-A.patch
-PATCHFILES += 0010-Update-to-v5.7-private-linux-headers.patch
-PATCHFILES += 0011-Update-to-v5.8-private-linux-headers.patch
-PATCHFILES += 0012-HACK-hwcontext_drm-do-not-require-drm-device.patch
-PATCHFILES += 0013-WIP-h264-field-reference.patch
-PATCHFILES += 0014-WIP-hevc-scaling-matrix.patch
-PATCHFILES += 0015-WIP-hevc-segment-address.patch
-PATCHFILES += 0016-WIP-hevc-entry-point-offsets.patch
-PATCHFILES += 0017-WIP-Add-V4L2-request-API-vp9-hwaccel.patch
-PATCHFILES += 0018-WIP-Add-and-use-vp9-private-linux-header.patch
-PATCHFILES += 0019-WIP-add-NV15-and-NV20-support.patch
-PATCHFILES += 0020-HACK-define-drm-NV15-and-NV20-format.patch
-PATCHFILES += 0021-Revert-WIP-h264-field-reference.patch
-PATCHFILES += 0022-WIP-update-to-latest-h264-uapi.patch
-endif
+PATCHFILES += ffmpeg-fix-building-with-lto.patch
 
 ifeq (1,1)
 # https://github.com/LibreELEC/LibreELEC.tv/commits/master/packages/multimedia/ffmpeg/patches 9.07.2020
-PATCHFILES += ffmpeg-001-v4l2-drmprime.patch
-PATCHFILES += ffmpeg-001-v4l2-request.patch
+PATCHFILES += ffmpeg-add-v4l2-drmprime.patch
+PATCHFILES += ffmpeg-add-v4l2_request.patch
 endif
+
+
 
 LICENSE = GPL2/LGPL2_1
 
@@ -128,7 +106,7 @@ CONFIGURE_ARGS = \
 	--arch=$(GARCH_FAMILY) \
 	--enable-pic \
 	--enable-safe-bitstream-reader \
-	--disable-lto \
+	--enable-lto \
 	--enable-asm \
 	--enable-fast-unaligned \
 	--enable-optimizations \
@@ -146,8 +124,10 @@ INSTALL_ARGS   = \
 GAR_EXTRA_CONF += mediaplayers/mplayer-svn/package-api.mk
 include ../../gar.mk
 
-CFLAGS  += -Wno-all
-LDFLAGS += -Wno-all
+# CFLAGS  += -Wno-all -Wno-implicit-function-declaration
+# LDFLAGS += -Wno-all -Wno-implicit-function-declaration
+# CFLAGS  += -Wno-all -Wno-implicit-function-declaration
+# LDFLAGS += -Wno-all -Wno-implicit-function-declaration
 
 clean-all:
 	@$(MAKE) clean
