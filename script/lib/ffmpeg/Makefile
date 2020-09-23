@@ -5,6 +5,7 @@ CATEGORIES   = lib
 GARVERSION   = 4.3.1
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES    = $(DISTNAME).tar.bz2
+PATCHFILES  += ffmpeg-fix-building-with-lto.patch
 
 LICENSE = GPL2/LGPL2_1
 
@@ -93,7 +94,7 @@ CONFIGURE_ARGS = \
 	--arch=$(GARCH_FAMILY) \
 	--enable-pic \
 	--enable-safe-bitstream-reader \
-	--disable-lto \
+	--enable-lto \
 	--enable-asm \
 	--enable-fast-unaligned \
 	--enable-optimizations \
@@ -108,9 +109,6 @@ INSTALL_ARGS   = \
 
 GAR_EXTRA_CONF += mediaplayers/mplayer-svn/package-api.mk
 include ../../gar.mk
-
-CFLAGS  += -Wno-all
-LDFLAGS += -Wno-all
 
 clean-all:
 	@$(MAKE) clean
