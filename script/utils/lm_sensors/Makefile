@@ -1,11 +1,12 @@
-GARNAME = lm_sensors
-GARVERSION = 3.4.0
-CATEGORIES = utils
+
+GARNAME      = lm_sensors
+GARVERSION   = 3.6.0
+CATEGORIES   = utils
 MASTER_SITES = https://github.com/lm-sensors/lm-sensors/archive/
-DISTFILES   = V3-4-0.tar.gz
-WORKSRC = $(WORKDIR)/lm-sensors-3-4-0
-PATCHFILES = $(DISTNAME)-perl.patch.gar
-LICENSE = GPL2/LGPL2_1
+DISTFILES    = V3-6-0.tar.gz
+WORKSRC      = $(WORKDIR)/lm-sensors-3-6-0
+PATCHFILES   = $(DISTNAME)-perl.patch.gar
+LICENSE      = GPL2/LGPL2_1
 
 DESCRIPTION =
 define BLURB
@@ -31,6 +32,7 @@ ARGS = \
 	MACHINE="$(GARCH)" \
 	CFLAGS="$(CFLAGS)" \
 	CPPFLAGS="$(CPPFLAGS)" \
+	EXLDFLAGS="$(CFLAGS)" \
 	AR="$(AR)"
 
 BUILD_ARGS   = $(ARGS)
