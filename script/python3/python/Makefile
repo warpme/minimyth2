@@ -31,7 +31,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-ipv6 \
 	--with-system-ffi \
-	--without-lto \
 	--with-system-expat \
 	--with-dbmliborder=gdbm:ndbm \
 	--without-ensurepip \
@@ -66,6 +65,16 @@ LDFLAGS := $(LDFLAGS) -L$(PWD)/$(WORKSRC)
 
 # Needed as configure fails on 'float word ordering is bigendian' detection
 CFLAGS  += -ffat-lto-objects
+
+# Disabling LTO on armv7 target as LTO causing segmentation fault on Gcc10.2 ar
+ifeq ($(GARCH),armv7)
+CONFIGURE_ARGS += --without-lto
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+else
+CONFIGURE_ARGS += --with-lto
+endif
 
 pre-configure:
 	@cd $(WORKSRC) ; autoreconf --verbose --install --force
