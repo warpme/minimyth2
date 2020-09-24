@@ -86,6 +86,10 @@ CONFIGURE_ENV = \
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
 
+CFLAGS   += -Wno-array-bounds
+CPPFLAGS += -Wno-array-bounds
+LDFLAGS  += -Wno-array-bounds
+
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
