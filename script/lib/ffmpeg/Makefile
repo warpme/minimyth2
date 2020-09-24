@@ -96,6 +96,7 @@ CONFIGURE_ARGS = \
 	--enable-safe-bitstream-reader \
 	--enable-lto \
 	--enable-asm \
+	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inline-asm, --enable-inline-asm) \
 	--enable-fast-unaligned \
 	--enable-optimizations \
 	--pkg-config="pkg-config" \
