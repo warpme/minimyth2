@@ -250,6 +250,9 @@ CONFIGURE_ARGS = \
 	--enable-sse \
 	--enable-ssse3 \
 	--enable-yasm \
+	--enable-asm \
+	--enable-fast-unaligned \
+	--enable-optimizations \
 	--enable-lto \
 	--disable-proc-opt \
 	--enable-audio-oss \
@@ -289,6 +292,7 @@ CONFIGURE_ARGS = \
 	--enable-ffplay \
 	--enable-sdl2 \
 	--python="python" \
+	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
