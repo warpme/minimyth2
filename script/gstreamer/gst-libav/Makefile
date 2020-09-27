@@ -24,7 +24,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--prefix=/usr \
 	--disable-static \
-	--with-libav-extra-configure="--enable-runtime-cpudetect --as=$(CC) --enable-lto --enable-pic" \
+	--with-libav-extra-configure="--enable-runtime-cpudetect --as=$(CC)" \
 	--with-pic \
 
 # By some reason mythwebroweser has not working vh264 ideo playback when external
@@ -33,6 +33,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
+
+CFLAGS  := $(filter-out -flto, $(CFLAGS))
+LDFLAGS := $(filter-out -flto, $(LDFLAGS))
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstlibav.la
