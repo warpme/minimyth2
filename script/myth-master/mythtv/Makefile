@@ -19,6 +19,7 @@ PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
 PATCHFILES += 0005-EIT-ticket9480-fix-PL-eit-encodings.patch
 PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
+PATCHFILES += 0008-issue235-Fix-incorrect-artwork-urls-returned-from-ttvdb-grabber.patch
 PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
 # Adds metadata grabbers timeout be configurable
 PATCHFILES += 0011-Metadata-allow-graber-timeout-configurable.patch
