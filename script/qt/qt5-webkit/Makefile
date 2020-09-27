@@ -1,11 +1,10 @@
 
 GARNAME      = qtwebkit
 CATEGORIES   = qt
-# ver 12.09.2020
-GARVERSION = 412e257d01c56fd1a6326ccc5a401c316276ffb8
+# ver 24.09.2020
+GARVERSION = ac8ebc6c3a56064f88f5506e5e3783ab7bee2456
 MASTER_SITES = https://github.com/qt/qtwebkit/archive/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = qt5-webkit-revert-ac17da2-Check-Qt-private-headers-available-before-compilation.patch
 
 DESCRIPTION = 
 define BLURB
@@ -73,6 +72,7 @@ CONFIGURE_ARGS = \
 	-DENABLE_QT_GESTURE_EVENTS="OFF" \
 	-DENABLE_SPELLCHECK="OFF" \
 	-DENABLE_TOUCH_EVENTS="OFF" \
+	-DENABLE_QT_WEBCHANNEL="OFF" \
 
 include ../../gar.mk
 
