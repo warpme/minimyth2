@@ -5,6 +5,7 @@ CATEGORIES   = qt
 GARVERSION = ac8ebc6c3a56064f88f5506e5e3783ab7bee2456
 MASTER_SITES = https://github.com/qt/qtwebkit/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = qt5-webkit-revert-ac17da2-Check-Qt-private-headers-available-before-compilation.patch
 
 DESCRIPTION = 
 define BLURB
