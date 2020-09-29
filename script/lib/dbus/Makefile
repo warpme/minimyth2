@@ -30,7 +30,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-doxygen-docs \
 	--disable-selinux \
 	--with-gnu-ld \
-	--with-x
+	--with-x \
+	--with-dbus-user="root"
 
 include ../../gar.mk
 
