@@ -11,6 +11,7 @@ PATCHFILES  += 0002-sunxi-H6-Add-basic-Tanix-TX6-support.patch
 PATCHFILES  += 0003-sunxi-H6-Add-basic-Tanix-TX6-mini-support.patch
 # PATCHFILES  += 0004-sunxi-H6-enable-dram-debug.patch
 # PATCHFILES  += 0005-allowall-usb-start.patch
+PATCHFILES  += 0006-sunxi-H6-improve-DDR-init.patch
 
 LICENSE = GPL2
 
