@@ -1,0 +1,83 @@
+#!/bin/sh
+
+. /etc/rc.d/functions
+
+if [ x${MM_MINIMYTH_ONLINE_UPDATES_URL} = "x" ] ; then
+    echo "Error: No MM_MINIMYTH_ONLINE_UPDATES_URL is set. Exiting ..."
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_do_online_update] Error: MM_MINIMYTH_ONLINE_UPDATES_URL is set. Exiting..."
+    exit 1
+fi
+
+command=$1
+
+pids=`/bin/pidof mm_do_online_update`
+instances=`/bin/echo ${pids} | /usr/bin/wc -w`
+if [ ${instances} -ne 1 ] ; then
+    echo "[mm_do_online_update] Another instance already running...Exiting"
+    exit 1
+fi
+
+run_rsync() {
+
+    local src
+    local dst
+    local param
+
+    src=$1
+    dst=$2
+    paam=$3
+
+    echo ' '
+    echo "From          : [$1]"
+    echo "To            : [$2]"
+    echo "Updated files :"
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_do_online_update] from:[$src] to:[$dst]"
+
+rsync \
+--recursive \
+--links \
+--perms \
+--devices \
+--specials \
+--size-only \
+--compress \
+--log-file=/var/log/online-update.log \
+--out-format=' => %f' \
+--log-file-format='%f [%b bytes]' \
+$3 \
+$1 \
+$2 \
+
+    echo " "
+
+}
+
+if [ "x${command}" = "xdoupdate" ] ; then
+
+  echo 'Starting on-line update ...'
+
+  rm -f /var/log/online-update.log
+
+  run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/bootfs/" '/media/boot' '--exclude=minimyth.conf --exclude=*_dtb'
+  run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/rootfs/" '/initrd' '--delete'
+
+  sync
+
+  echo 'Done ...'
+
+  exit 0
+
+else
+
+  echo 'Starting dry-run for on-line update ...'
+
+  rm -f /var/log/online-update.log
+
+  run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/bootfs/" '/media/boot' '--dry-run --exclude=minimyth.conf --exclude=*_dtb'
+  run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/rootfs/" '/initrd' '--dry-run'
+
+  echo 'Done ...'
+
+  exit 0
+
+fi
