@@ -1008,14 +1008,16 @@ install: build
 		cp -a $(top_build)/stage/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2 \
 		$(mm_SHARE_FILES)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2      ; \
 	 fi
-	@if [ $(mm_DISTRIBUTION_SDCARD) = yes ] ; then                                              \
-		echo "made SD card distribution"                                                  ; \
-		$(build_bindir)/kickstart/create-image.sh "$(mm_BOARD_TYPE)"                      ; \
-		echo "installing SD Card image on [$(mm_SDCARD_FILES)]"                           ; \
-		cp -a $(top_build)/stage/MiniMyth2-*-SD-Image.img.bz2 $(mm_SDCARD_FILES)/         ; \
-		mkdir -p $(mm_SDCARD_FILES)/$(mm_GARCH_FAMILY)                                    ; \
-		ln -sf $(top_build)/stage/image/rootfs $(mm_SDCARD_FILES)/$(mm_GARCH_FAMILY)/root ; \
-		ln -sf $(top_build)/stage/boot $(mm_SDCARD_FILES)/$(mm_GARCH_FAMILY)/boot         ; \
+	@if [ $(mm_DISTRIBUTION_SDCARD) = yes ] ; then                                                \
+		echo "made SD card distribution"                                                    ; \
+		$(build_bindir)/kickstart/create-image.sh "$(mm_BOARD_TYPE)"                        ; \
+		echo "installing SD Card image on [$(mm_SDCARD_FILES)]"                             ; \
+		cp -a $(top_build)/stage/MiniMyth2-*-SD-Image.img.bz2 $(mm_SDCARD_FILES)/           ; \
+		mkdir -p $(mm_SDCARD_FILES)/$(mm_GARCH_FAMILY)                                      ; \
+		rm -f $(mm_SDCARD_FILES)/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)/rootfs               ; \
+		rm -f $(mm_SDCARD_FILES)/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)/bootfs               ; \
+		ln -sf $(top_build)/stage/image/rootfs $(mm_SDCARD_FILES)/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)/rootfs ; \
+		ln -sf $(top_build)/stage/boot         $(mm_SDCARD_FILES)/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)/bootfs ; \
 	 fi
 	@if [ $(mm_INSTALL_RAM_BOOT) = yes ] || \
 	    [ $(mm_INSTALL_NFS_BOOT) = yes ] ; then \
