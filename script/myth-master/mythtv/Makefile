@@ -21,8 +21,6 @@ PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
 PATCHFILES += 0008-issue235-Fix-incorrect-artwork-urls-returned-from-ttvdb-grabber.patch
 PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
-# Adds metadata grabbers timeout be configurable
-PATCHFILES += 0011-Metadata-allow-graber-timeout-configurable.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
 PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
@@ -64,21 +62,10 @@ PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-from-LE.patch
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # required for AML HD playbck in MythTV
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
-# lrusak seeking fix on v4l2_m2m decoders (not working on rpi/amlogic)
-# https://github.com/lrusak/FFmpeg/commit/a28eba7a06e70d2ee204fb4a6f6abe61a729edd2
-# PATCHFILES += 0179-ffmpeg-libavcodec-v4l2m2m-implement-flush.patch
-# Debuging v4l2 vdec polling in ffmpeg
-# PATCHFILES += 0180-ffmpeg-libavcodec-log-v4l2-decoder-poll.patch
 endif
 
-# This reverts v4l2_m2m chages as with them playback has skipping frames on s905 vdec
-PATCHFILES += 0190-revert-a1e378ad-ffmpeg-Update-v4l2-memory-to-memory-DRM_PRIME-suppor.patch
-
 # enable LTO; patches from issue #224
-PATCHFILES += 0192-issue224-EnableLTO-Rename-the-RecordingType-stream-selection-UI-element.patch
-PATCHFILES += 0193-issue224-EnableLTO-Rename-the-ScanFrequency-starting-scan-frequency-UI-.patch
-PATCHFILES += 0195-issue224-EnableLTO-use-system-videodev2.h-include-rather-than-a-local-s.patch
-PATCHFILES += 0197-issue224-EnableLTO-update-config-to-pass-enable-lto-to-ffmpeg-and-expor.patch
+PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
@@ -110,17 +97,10 @@ PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
 # Nice Roger Siddons guide grid enhacement
 PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 
-# Roger Siddons patches from PeterBennet repo
-PATCHFILES += 0305-ticket12809-Enable-Play-from-last-play-position.patch
-PATCHFILES += 0307-ticket12809-Playback-Watchlist-Improvements.patch
-PATCHFILES += 0308-ticket12809-Playback-Add-Unfinished-recording-filter.patch
-
-
 # --------Patches 400+ are plugins patches---------------------
 
 # Various mythmusic patches
 PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
-PATCHFILES += 0401-MythMusic-disable-screensaver-only-in-fullscreen.patch
 PATCHFILES += 0404-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
