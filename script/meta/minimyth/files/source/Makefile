@@ -1021,8 +1021,11 @@ install: build
 		rm -f $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
 		touch $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
 		echo "port = 7135"                               >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
-		echo "[files]"                                   >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
+		echo "# use chroot = yes"                        >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
+		echo "list = no"                                 >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
+		echo "[mm2-updates]"                             >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
 		echo "path = $(mm_SDCARD_FILES)/online-updates/" >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
+		echo "read only = true"                          >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
 	 fi
 	@if [ $(mm_INSTALL_RAM_BOOT) = yes ] || \
 	    [ $(mm_INSTALL_NFS_BOOT) = yes ] ; then \
