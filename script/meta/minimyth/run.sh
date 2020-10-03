@@ -72,6 +72,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (7) Build SD card image for board"
     echo "  (8) Re-build Linux Kernel"
     echo "  (9) Re-build Mesa 3D library"
+    echo "  (0) Install On-Line update files"
     echo " "
     echo "or press Enter to exit..."
     echo
@@ -91,9 +92,11 @@ case "${selection}" in
         git reset --hard origin/master ;;
 
     3)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
+        make -C ../../bootloaders/bootloader clean-bootloader
         make clean install mm_STRIP_IMAGE="no" ;;
 
     4)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
+        make -C ../../bootloaders/bootloader clean-bootloader
         make clean install mm_STRIP_IMAGE="yes" ;;
 
     5)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
@@ -108,6 +111,17 @@ case "${selection}" in
 
     9)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
         make rebuild-mesa ;;
+
+    0)  make \
+        mm_DISTRIBUTION_SHARE="no" \
+        mm_INSTALL_ONLINE_UPDATES="yes" \
+        mm_DISTRIBUTION_RAM="no" \
+        mm_INSTALL_RAM_BOOT="no" \
+        mm_DISTRIBUTION_NFS="no" \
+        mm_INSTALL_NFS_BOOT="no" \
+        mm_DISTRIBUTION_SDCARD="no" \
+        reinstall
+        ;;
 
     *)
         echo "Unknown selction !"
