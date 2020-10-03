@@ -975,13 +975,18 @@ install: build
 		cp -af $(top_build)/stage/version $(mm_SHARE_FILES)/version                                      ; \
 		echo '  copying kernel & boot files'                                                             ; \
 		if [  $(mm_GARCH_FAMILY) = arm ] ; then                                                            \
-			 cp -a $(top_build)/stage/boot $(mm_SHARE_FILES)/                                        ; \
+			 mkdir -p $(mm_SHARE_FILES)/boot                                                         ; \
+			 cp -arf $(top_build)/stage/boot/* $(mm_SHARE_FILES)/boot/                               ; \
 		 elif [  $(mm_GARCH_FAMILY) = arm64 ] ; then                                                       \
-			 cp -a $(top_build)/stage/boot $(mm_SHARE_FILES)/                                        ; \
+			 mkdir -p $(mm_SHARE_FILES)/boot                                                         ; \
+			 cp -arf $(top_build)/stage/boot/* $(mm_SHARE_FILES)/boot/                               ; \
 		 else                                                                                              \
 			 cp -a $(top_build)/stage/kernel $(mm_SHARE_FILES)/kernel                                ; \
 		 fi                                                                                              ; \
-		echo '  copying rootfs'                                                                          ; \
+		echo '  copying rootfs files'                                                                    ; \
+		mkdir -p $(mm_SHARE_FILES)/root                                                                  ; \
+		cp -arf $(top_build)/stage/image/rootfs/* $(mm_SHARE_FILES)/root/                                ; \
+		echo '  copying rootfs archive'                                                                  ; \
 		cp -af $(top_build)/stage/rootfs $(mm_SHARE_FILES)/rootfs                                        ; \
 		cp -af $(top_build)/stage/rootfs.tar.bz2 $(mm_SHARE_FILES)/rootfs.tar.bz2                        ; \
 		echo '  copying extras'                                                                          ; \
@@ -1013,19 +1018,6 @@ install: build
 		$(build_bindir)/kickstart/create-image.sh "$(mm_BOARD_TYPE)"                         ; \
 		echo "installing SD Card image on [$(mm_SDCARD_FILES)]"                              ; \
 		cp -a $(top_build)/stage/MiniMyth2-*-SD-Image.img.bz2 $(mm_SDCARD_FILES)/            ; \
-		mkdir -p $(mm_SDCARD_FILES)/online-updates/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)     ; \
-		rm -f $(mm_SDCARD_FILES)/online-updates/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)/rootfs ; \
-		rm -f $(mm_SDCARD_FILES)/online-updates/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)/bootfs ; \
-		ln -sf $(top_build)/stage/image/rootfs $(mm_SDCARD_FILES)/online-updates/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)/rootfs ; \
-		ln -sf $(top_build)/stage/boot         $(mm_SDCARD_FILES)/online-updates/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)/bootfs ; \
-		rm -f $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
-		touch $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
-		echo "port = 7135"                               >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
-		echo "# use chroot = yes"                        >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
-		echo "list = no"                                 >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
-		echo "[mm2-updates]"                             >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
-		echo "path = $(mm_SDCARD_FILES)/online-updates/" >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
-		echo "read only = true"                          >> $(mm_SDCARD_FILES)/online-updates/rsyncd.conf ; \
 	 fi
 	@if [ $(mm_INSTALL_RAM_BOOT) = yes ] || \
 	    [ $(mm_INSTALL_NFS_BOOT) = yes ] ; then \
