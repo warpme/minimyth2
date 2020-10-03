@@ -15,7 +15,7 @@ selection_5="board-sm1 board-h6.beelink_gs1"
 selection_6="board-rk3328.beelink_a1"
 selection_7="board-rk3399.rockpi4-b"
 selection_8="board-sm1"
-selection_9="all above..."
+selection_9="my testbed boards"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -130,14 +130,14 @@ case "${selection}" in
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     9)
-        make reinstall-new-board mm_BOARD_TYPE="${selection_1}" "${extra_params}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_2}" "${extra_params}"
+#        make reinstall-new-board mm_BOARD_TYPE="${selection_1}" "${extra_params}"
+#        make reinstall-new-board mm_BOARD_TYPE="${selection_2}" "${extra_params}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_3}" "${extra_params}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_4}" "${extra_params}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_5}" "${extra_params}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_6}" "${extra_params}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_7}" "${extra_params}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_8}" "${extra_params}"
+#        make reinstall-new-board mm_BOARD_TYPE="${selection_8}" "${extra_params}"
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
