@@ -95,6 +95,18 @@ cache_board_list() {
     echo "$1" > /tmp/mm2-sd-card-boardlist.tmp
 }
 
+# This disable all except SD card to speedup process of building
+# new SD card image
+extra_params=' \
+        mm_DISTRIBUTION_SHARE="no" \
+        mm_INSTALL_ONLINE_UPDATES="no" \
+        mm_DISTRIBUTION_RAM="no" \
+        mm_INSTALL_RAM_BOOT="no" \
+        mm_DISTRIBUTION_NFS="no" \
+        mm_INSTALL_NFS_BOOT="no" \
+        mm_DISTRIBUTION_SDCARD="yes" \
+'
+
 case "${selection}" in
 
     1)  cache_board_list "${selection_1}"
