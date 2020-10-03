@@ -136,9 +136,6 @@ SET_PERMISSIONS = \
 
 all: build
 
-#	$(if $(filter yes,$(mm_DISTRIBUTION_SDCARD)),$(top_build)/sdcard) \
-
-
 build: \
 	$(if $(filter yes,$(mm_DISTRIBUTION_SHARE)),$(top_build)/share) \
 	$(if $(filter yes,$(mm_DISTRIBUTION_RAM)),  $(top_build)/stage/ram-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2)     \
@@ -150,6 +147,7 @@ build: \
 	$(top_build)/stage/boot                                                                                       \
 	$(top_build)/stage/image/rootfs                                                                               \
 	$(top_build)/stage/image/rootfs.fakeroot                                                                      \
+	$(top_build)/stage/version                                                                                    \
 	$(top_build)/stage/gar-$(mm_NAME).tar.bz2                                                                     \
 	$(top_build)/stage/gar-$(mm_NAME).tar.bz2.md5
 
@@ -983,10 +981,7 @@ install: build
 		 else                                                                                              \
 			 cp -a $(top_build)/stage/kernel $(mm_SHARE_FILES)/kernel                                ; \
 		 fi                                                                                              ; \
-		echo '  copying rootfs files'                                                                    ; \
-		mkdir -p $(mm_SHARE_FILES)/root                                                                  ; \
-		cp -arf $(top_build)/stage/image/rootfs/* $(mm_SHARE_FILES)/root/                                ; \
-		echo '  copying rootfs archive'                                                                  ; \
+		echo '  copying rootfs'                                                                          ; \
 		cp -af $(top_build)/stage/rootfs $(mm_SHARE_FILES)/rootfs                                        ; \
 		cp -af $(top_build)/stage/rootfs.tar.bz2 $(mm_SHARE_FILES)/rootfs.tar.bz2                        ; \
 		echo '  copying extras'                                                                          ; \
@@ -1002,16 +997,29 @@ install: build
 		cp -a $(top_build)/stage/html $(mm_SHARE_FILES)/html                                             ; \
 		echo '  copying gar-$(mm_NAME).tar.bz2'                                                          ; \
 		cp -a $(top_build)/stage/gar-$(mm_NAME).tar.bz2 $(mm_SHARE_FILES)/gar-$(mm_NAME).tar.bz2         ; \
-		rm -f $(mm_SHARE_FILES)/rsyncd.conf                                                              ; \
-		touch $(mm_SHARE_FILES)/rsyncd.conf                                                              ; \
-		echo "# Add in minimyth.conf: 'MM_MINIMYTH_ONLINE_UPDATES_URL='<host>::mm2-updates' " >> $(mm_SHARE_FILES)/rsyncd.conf ; \
-		echo "# where <host> is machine hosting files at $(mm_SHARE_FILES)"                   >> $(mm_SHARE_FILES)/rsyncd.conf ; \
-		echo "port = 7135"               >> $(mm_SHARE_FILES)/rsyncd.conf ; \
-		echo "use chroot = yes"          >> $(mm_SHARE_FILES)/rsyncd.conf ; \
-		echo "list = no"                 >> $(mm_SHARE_FILES)/rsyncd.conf ; \
-		echo "[mm2-updates]"             >> $(mm_SHARE_FILES)/rsyncd.conf ; \
-		echo "path = $(mm_SHARE_FILES)/" >> $(mm_SHARE_FILES)/rsyncd.conf ; \
-		echo "read only = true"          >> $(mm_SHARE_FILES)/rsyncd.conf ; \
+	 fi
+	@if [ $(mm_INSTALL_ONLINE_UPDATES) = yes ] ; then                                                    \
+		rm -rf   $(mm_ONLINE_UPDATES)/                                                             ; \
+		mkdir -p $(mm_ONLINE_UPDATES)/                                                             ; \
+		echo '  copying boot files'                                                                ; \
+		mkdir -p $(mm_ONLINE_UPDATES)/boot                                                         ; \
+		cp -arf $(top_build)/stage/boot/* $(mm_ONLINE_UPDATES)/boot/                               ; \
+		echo '  copying rootfs files'                                                              ; \
+		mkdir -p $(mm_ONLINE_UPDATES)/root                                                         ; \
+		cp -arf $(top_build)/stage/image/rootfs/* $(mm_ONLINE_UPDATES)/root/                       ; \
+		echo '  copying version file'                                                              ; \
+		cp -af $(top_build)/stage/version $(mm_ONLINE_UPDATES)/version                             ; \
+		echo '  creating examplary rsyncd.conf file'                                               ; \
+		rm -f $(mm_ONLINE_UPDATES)/rsyncd.conf                                                     ; \
+		touch $(mm_ONLINE_UPDATES)/rsyncd.conf                                                     ; \
+		echo "# Add in minimyth.conf: 'MM_MINIMYTH_ONLINE_UPDATES_URL='<host>::mm2-updates' " >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
+		echo "# where <host> is machine hosting files at $(mm_ONLINE_UPDATES)"                >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
+		echo "port = 7135"                       >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
+		echo "use chroot = yes"                  >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
+		echo "list = no"                         >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
+		echo "[mm2-updates]"                     >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
+		echo "path = $(mm_ONLINE_UPDATES)/"      >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
+		echo "read only = true"                  >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
 	 fi
 	@if [ $(mm_DISTRIBUTION_RAM) = yes ] ; then                                \
 		echo '  copying ram-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2'       ; \

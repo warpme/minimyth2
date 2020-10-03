@@ -331,6 +331,19 @@ mm-all:
 		echo " " ; \
 		exit 1 ; \
 	fi
+	@echo "    mm_INSTALL_ONLINE_UPDATES"
+	@if [ ! "$(mm_INSTALL_ONLINE_UPDATES)" = "yes" ] && [ ! "$(mm_INSTALL_ONLINE_UPDATES)" = "no" ] ; then \
+		echo " " ; \
+		echo "error: mm_INSTALL_ONLINE_UPDATES=\"$(mm_INSTALL_ONLINE_UPDATES)\" is an invalid value." ; \
+		echo " " ; \
+		exit 1 ; \
+	fi
+	@if [ "$(mm_INSTALL_ONLINE_UPDATES)" = "yes" ] && [ ! -d "$(mm_ONLINE_UPDATES)" ] ; then \
+		echo " " ; \
+		echo "error: the directory specified by mm_ONLINE_UPDATES=\"$(mm_ONLINE_UPDATES)\" does not exist." ; \
+		echo " " ; \
+		exit 1 ; \
+	fi
 	@echo "    mm_BOARD_TYPE"
 	@for board in $(mm_BOARD_TYPE) ; do \
 		if [ ! "$${board}" = "board-g12"               ] && \
