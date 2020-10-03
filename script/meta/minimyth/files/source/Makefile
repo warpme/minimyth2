@@ -1002,6 +1002,16 @@ install: build
 		cp -a $(top_build)/stage/html $(mm_SHARE_FILES)/html                                             ; \
 		echo '  copying gar-$(mm_NAME).tar.bz2'                                                          ; \
 		cp -a $(top_build)/stage/gar-$(mm_NAME).tar.bz2 $(mm_SHARE_FILES)/gar-$(mm_NAME).tar.bz2         ; \
+		rm -f $(mm_SHARE_FILES)/rsyncd.conf                                                              ; \
+		touch $(mm_SHARE_FILES)/rsyncd.conf                                                              ; \
+		echo "# Add in minimyth.conf: 'MM_MINIMYTH_ONLINE_UPDATES_URL='<host>::mm2-updates' " >> $(mm_SHARE_FILES)/rsyncd.conf ; \
+		echo "# where <host> is machine hosting files at $(mm_SHARE_FILES)"                   >> $(mm_SHARE_FILES)/rsyncd.conf ; \
+		echo "port = 7135"               >> $(mm_SHARE_FILES)/rsyncd.conf ; \
+		echo "use chroot = yes"          >> $(mm_SHARE_FILES)/rsyncd.conf ; \
+		echo "list = no"                 >> $(mm_SHARE_FILES)/rsyncd.conf ; \
+		echo "[mm2-updates]"             >> $(mm_SHARE_FILES)/rsyncd.conf ; \
+		echo "path = $(mm_SHARE_FILES)/" >> $(mm_SHARE_FILES)/rsyncd.conf ; \
+		echo "read only = true"          >> $(mm_SHARE_FILES)/rsyncd.conf ; \
 	 fi
 	@if [ $(mm_DISTRIBUTION_RAM) = yes ] ; then                                \
 		echo '  copying ram-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2'       ; \
