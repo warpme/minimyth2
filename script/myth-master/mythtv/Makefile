@@ -21,8 +21,6 @@ PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
 PATCHFILES += 0008-issue235-Fix-incorrect-artwork-urls-returned-from-ttvdb-grabber.patch
 PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
-# Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
-PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
 # Comflagging related patches
 PATCHFILES += 0016-Mythcommflag-ticket13335-add-3-settings-to-enhance-logo-detection.patch
@@ -93,9 +91,6 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 
 # Patches enhancing Network Control
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
-
-# Nice Roger Siddons guide grid enhacement
-PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
 
 # --------Patches 400+ are plugins patches---------------------
 
