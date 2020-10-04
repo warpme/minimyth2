@@ -1,7 +1,7 @@
 
 GARNAME      = bootfiles-rpi4.mainline64
-GITHASH      = f0eab3a24f42c06fb6f2360140a00873c2793b1f
-GARVERSION   = 2020-09-28-$(GITHASH)
+GITHASH      = 11e3c314bc2b64f7d862bac00ff3d9f42f3c5a50
+GARVERSION   = 2020-10-02-$(GITHASH)
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/raspberrypi/firmware/raw/$(GITHASH)/boot/
 DISTFILES    = config.txt             \
