@@ -86,8 +86,8 @@ endif
 # Allwinner patches
 ifeq (1,1)
 # Add Allwinner H3/H5/H6/A64 HDMI audio
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=312867
-PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio.patch
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=356189 v5 27.09.2020
+PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio-v5.patch
 
 # https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux 7.08.2020
 PATCHFILES += 0505-media-sunxi-cedrus-improvements.patch
