@@ -66,7 +66,7 @@ DEPENDS = \
 	python/python-argparse \
 	python/python-tzupdate \
 	python/python-pylirc \
-	X11/blackbox \
+	X11/ratpoison \
 	utils/regionset \
 	X11/rxvt \
 	utils/SDL-Test \
