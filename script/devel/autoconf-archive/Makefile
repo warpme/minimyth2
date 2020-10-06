@@ -1,9 +1,10 @@
-GARNAME = autoconf-archive
-GARVERSION = 2015.02.24
-CATEGORIES = devel
-MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL3
+
+GARNAME      = autoconf-archive
+GARVERSION   = 2019.01.06
+CATEGORIES   = devel
+MASTER_SITES = https://ftpmirror.gnu.org/$(GARNAME)/
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
