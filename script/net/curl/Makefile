@@ -1,9 +1,10 @@
-GARNAME = curl
-GARVERSION = 7.60.0
-CATEGORIES = net
+
+GARNAME      = curl
+GARVERSION   = 7.72.0
+CATEGORIES   = net
 MASTER_SITES = http://curl.haxx.se/download/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = MIT
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = MIT
 
 DESCRIPTION = 
 define BLURB
