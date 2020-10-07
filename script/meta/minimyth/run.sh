@@ -72,7 +72,10 @@ if [ x${selection} = "x" ] ; then
     echo "  (7) Build SD card image for board"
     echo "  (8) Re-build Linux Kernel"
     echo "  (9) Re-build Mesa 3D library"
-    echo "  (0) Install On-Line update files"
+    echo "  (n) Install NFS boot/root files"
+    echo "  (r) Install pxeboot RAMfs files"
+    echo "  (o) Install On-Line update files"
+    echo "  (s) Install SDcard/USBkey files"
     echo " "
     echo "or press Enter to exit..."
     echo
@@ -112,7 +115,18 @@ case "${selection}" in
     9)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
         make rebuild-mesa ;;
 
-    0)  make \
+    n)  make \
+        mm_DISTRIBUTION_SHARE="no" \
+        mm_INSTALL_ONLINE_UPDATES="no" \
+        mm_DISTRIBUTION_RAM="no" \
+        mm_INSTALL_RAM_BOOT="no" \
+        mm_DISTRIBUTION_NFS="yes" \
+        mm_INSTALL_NFS_BOOT="yes" \
+        mm_DISTRIBUTION_SDCARD="no" \
+        reinstall
+        ;;
+
+    o)  make \
         mm_DISTRIBUTION_SHARE="no" \
         mm_INSTALL_ONLINE_UPDATES="yes" \
         mm_DISTRIBUTION_RAM="no" \
@@ -120,6 +134,28 @@ case "${selection}" in
         mm_DISTRIBUTION_NFS="no" \
         mm_INSTALL_NFS_BOOT="no" \
         mm_DISTRIBUTION_SDCARD="no" \
+        reinstall
+        ;;
+
+    r)  make \
+        mm_DISTRIBUTION_SHARE="no" \
+        mm_INSTALL_ONLINE_UPDATES="no" \
+        mm_DISTRIBUTION_RAM="yes" \
+        mm_INSTALL_RAM_BOOT="yes" \
+        mm_DISTRIBUTION_NFS="no" \
+        mm_INSTALL_NFS_BOOT="no" \
+        mm_DISTRIBUTION_SDCARD="no" \
+        reinstall
+        ;;
+
+    s)  make \
+        mm_DISTRIBUTION_SHARE="no" \
+        mm_INSTALL_ONLINE_UPDATES="no" \
+        mm_DISTRIBUTION_RAM="no" \
+        mm_INSTALL_RAM_BOOT="no" \
+        mm_DISTRIBUTION_NFS="no" \
+        mm_INSTALL_NFS_BOOT="no" \
+        mm_DISTRIBUTION_SDCARD="yes" \
         reinstall
         ;;
 
