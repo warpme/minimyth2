@@ -1,9 +1,10 @@
-GARNAME = mythtv
-GARVERSION = $(MYTHTV_VERSION)
-CATEGORIES = $(CATEGORY)
+
+GARNAME      = mythtv
+GARVERSION   = $(MYTHTV_VERSION)
+CATEGORIES   = $(CATEGORY)
 MASTER_SITES = svn://svn.mythtv.org/svn/trunk/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES  =
+DISTFILES    = $(DISTNAME).tar.bz2
+PATCHFILES   =
 
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0000-configure-set-to-GAR-perl-python.patch.gar
@@ -19,7 +20,6 @@ PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
 PATCHFILES += 0005-EIT-ticket9480-fix-PL-eit-encodings.patch
 PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
-PATCHFILES += 0008-issue235-Fix-incorrect-artwork-urls-returned-from-ttvdb-grabber.patch
 PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme.
 PATCHFILES += 0013-MythMainWindow-not-use-qRound-in-MythUIScreenBounds.patch
