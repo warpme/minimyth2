@@ -91,14 +91,6 @@ PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
 PATCHFILES += 0284-NetworkControl-Add-mythmusic-url-and-playlist-playback.patch
 PATCHFILES += 0285-NetworkControl-Add-mythmusic-album-playback-and-queries.patch
 
-# Nice Roger Siddons guide grid enhacement
-PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
-
-# Roger Siddons patches from PeterBennet repo
-PATCHFILES += 0305-ticekt12809-Enable-Play-from-last-play-position-v4.patch
-PATCHFILES += 0307-ticekt12809-Playback-Watchlist-Improvements.patch
-PATCHFILES += 0308-ticekt12809-Playback-Add-Unfinished-recording-filter.patch
-
 # --------Patches 400+ are plugins patches---------------------
 
 # Various mythmusic patches
