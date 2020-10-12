@@ -22,8 +22,6 @@ PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-rel
 PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
 # Solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
 PATCHFILES += 0010-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
-# Adds metadata grabbers timeout be configurable
-PATCHFILES += 0011-Metadata-allow-graber-timeout-configurable.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
 PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
 
@@ -114,15 +112,6 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 
 # Patches enhancing Network Control
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
-
-# Nice Roger Siddons guide grid enhacement
-PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
-
-# Roger Siddons patches from PeterBennet repo
-PATCHFILES += 0305-ticket12809-Enable-Play-from-last-play-position.patch
-PATCHFILES += 0307-ticket12809-Playback-Watchlist-Improvements.patch
-PATCHFILES += 0308-ticket12809-Playback-Add-Unfinished-recording-filter.patch
-
 
 # --------Patches 400+ are plugins patches---------------------
 
