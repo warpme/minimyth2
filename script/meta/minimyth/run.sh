@@ -72,6 +72,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (7) Build SD card image for board"
     echo "  (8) Re-build Linux Kernel"
     echo "  (9) Re-build Mesa 3D library"
+    echo "  (d) Re-build MythTV with debug profile and unstripped image"
     echo "  (n) Install NFS boot/root files"
     echo "  (r) Install pxeboot RAMfs files"
     echo "  (o) Install On-Line update files"
@@ -114,6 +115,9 @@ case "${selection}" in
 
     9)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
         make rebuild-mesa ;;
+
+    d)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
+        make rebuild-mythtv mm_DEBUG="yes" mm_STRIP_IMAGE="no" ;;
 
     n)  make \
         mm_DISTRIBUTION_SHARE="no" \
