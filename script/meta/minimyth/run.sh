@@ -117,7 +117,8 @@ case "${selection}" in
         make rebuild-mesa ;;
 
     d)  rm -rf /tmp/mm2-sd-card-boardlist.tmp
-        make rebuild-mythtv mm_DEBUG="yes" mm_STRIP_IMAGE="no" ;;
+        make -C ../../myth/mythtv clean clean-all
+        make clean install mm_DEBUG="yes" mm_STRIP_IMAGE="no" ;;
 
     n)  make \
         mm_DISTRIBUTION_SHARE="no" \
