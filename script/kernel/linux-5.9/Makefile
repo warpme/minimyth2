@@ -92,6 +92,8 @@ PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio-v5.patch
 # https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux 7.08.2020
 PATCHFILES += 0505-media-sunxi-cedrus-improvements.patch
 
+# Fix for non-working Eth on GS1
+PATCHFILES += 0507-net-phy-realtek-revert-fix-rtl8211e-rxtx-delay-config.patch
 # Fix hanging GS1 boot on loading kernel modules
 PATCHFILES += 0508-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
 # Adding support for some H6 boards
