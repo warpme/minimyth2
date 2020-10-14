@@ -64,6 +64,9 @@ PATCHFILES += 0152-configure-add-v4l2request-support.patch
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 endif
 
+# This reverts v4l2_m2m chages as with them playback has skipping frames on s905 vdec
+PATCHFILES += 0190-revert-a1e378ad-ffmpeg-Update-v4l2-memory-to-memory-DRM_PRIME-suppor.patch
+
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 
