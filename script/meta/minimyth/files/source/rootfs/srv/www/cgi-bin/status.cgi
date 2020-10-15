@@ -102,7 +102,7 @@ if (@cpu_curr_freq)
             chomp $cpu_curr_freq;
             if ($_ > 0) {
                 my $freq = $_/1000;
-                push(@status_cpu_curr_freq_body, $cpu_curr_freq.": ".$freq." GHz");
+                push(@status_cpu_curr_freq_body, $cpu_curr_freq.": ".$freq." MHz");
             }
         }
         close(FILE);
