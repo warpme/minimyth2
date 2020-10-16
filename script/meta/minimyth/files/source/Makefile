@@ -12,6 +12,7 @@ cookiedir  := $(top_build)/cookie
 include $(top_build)/config.mk
 
 mm_NAME := minimyth2-$(mm_VERSION)
+MYTHTV_SVN_VERSION = $(shell grep "MYTHTV_SVN_VERSION =" $(mm_HOME)/script/myth-$(mm_VERSION_MYTH)/mythtv/package-api.mk | sed -e "s/MYTHTV_SVN_VERSION =\s*//")
 
 MM_LIST_FILES    = $(strip \
 	$(if $(wildcard lists/base-$(strip $(2))/minimyth-$(strip $(1))-list), \
@@ -245,10 +246,8 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/*.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)-$(mm_GARCH)%g' $@~/etc/os_myth_release
 	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_SVN_VERSION)%g'   $@~/etc/os_myth_release
-	@sed -i 's%@MM_NVIDIA_VERSION@%$(mm_NVIDIA_VERSION)%g'     $@~/etc/os_myth_release
-	@sed -i 's%@MM_NVIDIA_LEGACY_VERSION@%$(mm_NVIDIA_LEGACY_VERSION)%g' $@~/etc/os_myth_release
 	@sed -i 's%@MM_GARCH@%$(mm_GARCH)%g'                       $@~/etc/os_myth_release
-	@sed -i 's%@MM_VERSION@%$(mm_VERSION)%g'                   $@~/etc/version
+	@sed -i 's%@MM_VERSION@%$(mm_VERSION_MINIMYTH)%g'          $@~/etc/version
 	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-install-updated-ffmpeg.sh
 	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-install-updated-mesa.sh
 	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-install-updated-mythtv.sh
@@ -707,6 +706,7 @@ $(top_build)/stage/html: \
 	@sed -i 's%@MM_NVIDIA_VERSION@%$(mm_NVIDIA_VERSION)%g'               $@~/index.html
 	@sed -i 's%@MM_NVIDIA_LEGACY_VERSION@%$(mm_NVIDIA_LEGACY_VERSION)%g' $@~/index.html
 	@sed -i 's%@LINUX_FULL_VERSION@%$(LINUX_FULL_VERSION)%g'             $@~/index.html
+	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_SVN_VERSION)%g'             $@~/index.html
 	@echo "updating version and licenses in HTML docs"
 	@mkdir -m 0755 -p $@~/software/base
 	@cp -pdR $(DESTDIR)$(versiondir) $@~/software/base/
