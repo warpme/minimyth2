@@ -45,6 +45,7 @@ rsync \
 --log-file=/var/log/online-update.log \
 --out-format=' => %f' \
 --log-file-format='%f [%b bytes]' \
+--stats \
 --exclude=/dev* \
 --exclude=*.ssh* \
 --exclude=*_dtb \
@@ -69,11 +70,39 @@ if [ "x${command}" = "xdoupdate" ] ; then
   run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/boot/" '/media/boot' ' '
   run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/root/rootfs-ro/" '/initrd/rootfs-ro' '--delete'
 
-  sync
+  is_error=`cat /var/log/online-update.log | grep -c "error"`
 
-  echo 'Done ...'
+  if [ ${is_error} -eq 0 ] ; then
 
-  exit 0
+    number_upd_files=`cat /var/log/online-update.log | grep "Number of regular files transferred" | cut -d" " -f9`
+
+    for number in ${number_upd_files} ; do
+
+      files_total=$((${files_total} + ${number}))
+
+    done
+
+    echo " "
+    echo "  Total updated files: ${files_total}"
+
+    if [ x${files_total} = "x0" ] ; then
+
+      mm_show_mythnotify 'No any files were updated ...' '' 'ok' '12' 'On-line Updates'
+
+    else
+
+      mm_show_mythnotify ${files_total}' files were updated !' '' 'ok' '12' 'On-line Updates'
+
+      sync
+
+    fi
+
+  else
+
+    mm_show_mythnotify 'Something went wrong :-(' '' 'error' '12' 'On-line Updates'
+    echo 'Error contacting updates server !'
+
+  fi
 
 else
 
@@ -84,8 +113,38 @@ else
   run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/boot/" '/media/boot' '--dry-run'
   run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/root/rootfs-ro/" '/initrd/rootfs-ro' '--dry-run'
 
-  echo 'Done ...'
+  is_error=`cat /var/log/online-update.log | grep -c "error"`
 
-  exit 0
+  if [ ${is_error} -eq 0 ] ; then
+
+    number_upd_files=`cat /var/log/online-update.log | grep "Number of regular files transferred" | cut -d" " -f9`
+
+    for number in ${number_upd_files} ; do
+
+      files_total=$((${files_total} + ${number}))
+
+    done
+
+    echo " "
+    echo "   Total files to update: ${files_total}"
+
+    if [ x${files_total} = "x0" ] ; then
+
+      mm_show_mythnotify 'There is no any updates ...' '' 'ok' '12' 'On-line Updates'
+
+    else
+
+      mm_show_mythnotify 'There is '${files_total}' files to update !' '' 'ok' '12' 'On-line Updates'
+
+    fi
+
+  else
+
+    mm_show_mythnotify 'Something went wrong :-( !' '' 'error' '12' 'On-line Updates'
+    echo 'Error contacting updates server !'
+
+  fi
 
 fi
+
+exit 0
