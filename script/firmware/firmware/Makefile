@@ -13,6 +13,7 @@ DEPENDS = \
 	firmware/xr819-firmware         \
 	firmware/qca9377-firmware       \
 	firmware/brcmfmac_sdio-firmware \
+	firmware/linux-firmware-meson   \
 
 include ../../gar.mk
 
@@ -25,8 +26,10 @@ clean-all:
 	@$(MAKE) clean     -C ../xr819-firmware
 	@$(MAKE) clean     -C ../qca9377-firmware
 	@$(MAKE) clean     -C ../brcmfmac_sdio-firmware
+	@$(MAKE) clean     -C ../linux-firmware-meson
 	@$(MAKE) clean-all -C ../alsa-sof-firmware
 	@$(MAKE) clean-all -C ../wireless-regdb
 	@$(MAKE) clean-all -C ../xr819-firmware
 	@$(MAKE) clean-all -C ../qca9377-firmware
 	@$(MAKE) clean-all -C ../brcmfmac_sdio-firmware
+	@$(MAKE) clean-all -C ../linux-firmware-meson
