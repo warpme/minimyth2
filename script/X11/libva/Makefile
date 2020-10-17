@@ -3,7 +3,7 @@ GARNAME = libva
 
 ifeq (1,1)
 # Official Intel repo
-GARVERSION   = 2.8.0
+GARVERSION   = 2.9.0
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/libva/archive/
 PATCHFILES   = 0001-Add-dec_ref_pic_marking-syntax-element-size-to-VASliceParameterBuff.patch
