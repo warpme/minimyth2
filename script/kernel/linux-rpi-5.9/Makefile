@@ -14,8 +14,6 @@ PATCHFILES += linux-5.9-disable_dma_for_cfa.patch
 PATCHFILES += linux-5.9-defaults.patch
 PATCHFILES += linux-5.9-vgaarb-add-3D-accell-detection.patch
 
-PATCHFILES += 0001-PR3894-add-stateful-v4l2-codecs.patch
-
 LICENSE = GPL2
 
 DESCRIPTION = 
