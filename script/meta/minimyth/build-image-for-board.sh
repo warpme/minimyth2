@@ -7,7 +7,7 @@ mm_conf_file="${HOME}/.minimyth2/minimyth.conf.mk"
 
 extra_params="mm_STRIP_IMAGE=yes"
 
-selection_1="board-rpi3.mainline64"
+selection_1="board-rpi4.rpi32"
 selection_2="board-rpi4.mainline64"
 selection_3="board-s905 board-h6.eachlink_mini"
 selection_4="board-s912 board-h6.tanix_tx6_mini"
