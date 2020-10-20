@@ -15,6 +15,8 @@
 #   or
 #   dev-install-updated-mythtv.sh <user@host_ip>
 #   or
+#   dev-install-updated-mesa.sh persistent
+#   or
 #   dev-install-updated-mythtv.sh
 #
 #   If no any param is provided, following defaults are used:
@@ -25,6 +27,11 @@
 
 # path at destination where installed libs will be find (and deleted) and new libs will be installed
 lib_destination_path="/usr/lib"
+
+# Prefix in path on destination used by all destination paths to write
+# all files on mounted RW SD card image (/initrd/rootfs-ro). This is usefull
+# to write updated filres into persistent storage
+persistent_storage_path="/initrd/rootfs-ro"
 
 # libs list to install. Best is to provide filename with '*' as this will allow to:
 # delete all old libs found target
@@ -91,6 +98,16 @@ if [ "x${opt_devel_login}" = "x" ] ; then
 
     echo "    Using defaults for login and MiniMyth2 home path..."
 
+elif [ "x${opt_devel_login}" = "xpersistent" ] ; then
+
+    # No any param provided case. Go with all defaults
+    devel_login="${default_login}"
+    home_path="${default_mm2_home_path}"
+    prefix=${persistent_storage_path}
+
+    echo "    Using defaults for login and MiniMyth2 home path ..."
+    echo "    Writing files to persistent storage ..."
+
 else
 
     if [ "x${opt_home_path}" = "x" ] ; then
@@ -115,9 +132,9 @@ echo "MiniMyth2 devel host      :[${devel_login}]"
 echo "MiniMyth2 devel home path :[${home_path}]"
 echo " "
 
-devel_install_files "${home_path}/images/main${lib_destination_path}"     "${lib_destination_path}"     "${lib_files_list}"
-devel_install_files "${home_path}/images/main${plugins_destination_path}" "${plugins_destination_path}" "${plugins_files_list}"
-devel_install_files "${home_path}/images/main${bin_destination_path}"     "${bin_destination_path}"     "${bin_files_list}"
+devel_install_files "${home_path}/images/main${lib_destination_path}"     "${prefix}${lib_destination_path}"     "${lib_files_list}"
+devel_install_files "${home_path}/images/main${plugins_destination_path}" "${prefix}${plugins_destination_path}" "${plugins_files_list}"
+devel_install_files "${home_path}/images/main${bin_destination_path}"     "${prefix}${bin_destination_path}"     "${bin_files_list}"
 
 echo "==> Kicking ldconfig..."
 ldconfig
