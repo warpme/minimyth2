@@ -115,6 +115,9 @@ PATCHFILES += 0516-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 endif
 
+# Add TanixTX6 WiFi support
+PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
+
 endif
 
 LICENSE = GPL2
