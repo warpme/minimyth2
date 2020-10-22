@@ -40,3 +40,10 @@ clean-all:
 	@$(MAKE) clean     -C ../../kernel/xr819
 	@$(MAKE) clean     -C ../../nvidia
 	@$(MAKE) clean     -C ../../system/bbswitch
+
+reinstall:
+	@$(MAKE) reinstall -C ../../kernel/linux-$(mm_KERNEL_VERSION)
+	$(if $(filter armsoc,$(mm_GRAPHICS)),@$(MAKE) reinstall -C ../../kernel/meson-gx-mali450)
+	@$(MAKE) reinstall -C ../../kernel/rtl8189es
+	@$(MAKE) reinstall -C ../../kernel/rtl8821cu
+	@$(MAKE) reinstall -C ../../kernel/xr819
