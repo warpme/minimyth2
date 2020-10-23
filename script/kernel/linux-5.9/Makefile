@@ -71,7 +71,7 @@ PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
 # https://patchwork.kernel.org/project/linux-amlogic/patch/20201020120141.298240-1-jbrunet@baylibre.com/
-PATCHFILES += 0370-arm64-dts-amlogic-add-missing-ethernet-reset-ID.patch
+# PATCHFILES += 0370-arm64-dts-amlogic-add-missing-ethernet-reset-ID.patch
 
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
