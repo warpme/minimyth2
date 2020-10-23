@@ -2,10 +2,9 @@
 # URL GIT: https://github.com/jwrdegoede/rtl8189ES_linux
 
 GARNAME      = rtl8189es
-GARVERSION   = 42f293406700988c10655aaa5ee865b411389aeb
+GARVERSION   = 930d3d7cfe3b25c0cf8a57ca4b79f6aef5b6de4b
 CATEGORIES   = system
 MASTER_SITES = https://github.com/jwrdegoede/rtl8189ES_linux/archive/
-PATCHFILES   = rtl8189es-fix-compilation-errors-on-Kernel-5.8.patch
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/rtl8189ES_linux-$(GARVERSION)
 
