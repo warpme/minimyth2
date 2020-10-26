@@ -1035,7 +1035,7 @@ install: build
 		echo "made SD card distribution"                                                     ; \
 		$(build_bindir)/kickstart/create-image.sh "$(mm_BOARD_TYPE)"                         ; \
 		echo "installing SD Card image on [$(mm_SDCARD_FILES)]"                              ; \
-		cp -a $(top_build)/stage/MiniMyth2-*-SD-Image.img.bz2 $(mm_SDCARD_FILES)/            ; \
+		cp -a $(top_build)/stage/MiniMyth2-*-SD-Image.img.xz $(mm_SDCARD_FILES)/             ; \
 	 fi
 	@if [ $(mm_INSTALL_RAM_BOOT) = yes ] || \
 	    [ $(mm_INSTALL_NFS_BOOT) = yes ] ; then \
