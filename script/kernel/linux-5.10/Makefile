@@ -220,3 +220,6 @@ clean-all:
 	@rm -rf $(DESTDIR)$(LINUX_MODULESPREFIX)
 	@$(MAKE) clean       -C ../../kernel-headers/linux-headers
 	@$(MAKE) clean-all   -C ../../kernel-headers/linux-headers
+
+menuconfig:
+	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) menuconfig
