@@ -111,7 +111,7 @@ PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio.patch
 
 # https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux 7.08.2020
 PATCHFILES += 0505-media-sunxi-cedrus-improvements.patch
-PATCHFILES += 0507-drm-sun4i-fixes.patch
+# PATCHFILES += 0507-drm-sun4i-fixes.patch
 
 # Fix hanging GS1 boot on loading kernel modules
 PATCHFILES += 0508-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
