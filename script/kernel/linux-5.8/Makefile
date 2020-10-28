@@ -65,6 +65,8 @@ PATCHFILES += 0130-arm64-dts-amlogic-meson-gx-gxl-gxm-d12-add-GPU-OPP-table-and-
 endif
 
 ifeq (1,1)
+# Add HVEC decode from https://gitlab.com/baylibre/amlogic/atv/linux/-/commit/1f9a7f9904dfb58be623d1048f6dad3df7bf61f4
+PATCHFILES += 0310-messon-vdec-add-hvec-support.patch
 # Amlogic: vdec various patches
 PATCHFILES += 0311-arm64-dts-meson-set-dma-pool-to-896MB.patch
 PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
