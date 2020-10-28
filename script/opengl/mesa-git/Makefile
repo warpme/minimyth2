@@ -1,9 +1,9 @@
 
 GARNAME      = mesa
 
-ifeq (0,1)
-# MESA 20.3.0-devel GIT from 22.10.2020 working well on all of my mali450/t720/t760/t820/g31 devices
-GARVERSION   = 8f9c5964ab3c7aec362e59a33f0fafd31199a0b9
+ifeq (1,1)
+# MESA 20.3.0-devel GIT from 28.10.2020 working well on all of my mali450/t720/t760/t820/g31 devices
+GARVERSION   = fef8a4befdc7f980e4da875cf80bc892cbaf7ed4
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -11,7 +11,7 @@ PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
 PATCHFILES   = fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 # Mainline MESA GIT for testing
 GARVERSION   = 666817ce846948afb6a01b29aea45d6c58477045
 CATEGORIES   = $(CATEGORY)
