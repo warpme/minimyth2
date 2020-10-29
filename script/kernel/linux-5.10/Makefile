@@ -35,7 +35,6 @@ PATCHFILES += linux-5.10-defaults.patch
 PATCHFILES += linux-5.10-vgaarb-add-3D-accell-detection.patch
 
 ifeq (1,1)
-PATCHFILES += 0100-aarch64-text-offset.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.10 kernel
@@ -46,6 +45,9 @@ PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
 PATCHFILES += 0105-Also-use-meson-hack-on-amlogic-meson-g12a-mali.patch
 PATCHFILES += 0106-Sync-G31-features-with-kbase.patch
 endif
+
+# fix bug causing playback exit hang on panfrost with drm_prime
+PATCHFILES += 0109-drm-shme-helpers-Fix-dma_buf_mmap-forwarding-bug.patch
 
 ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
@@ -66,8 +68,6 @@ PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
-# https://patchwork.kernel.org/project/linux-amlogic/patch/20201020120141.298240-1-jbrunet@baylibre.com/
-# PATCHFILES += 0370-arm64-dts-amlogic-add-missing-ethernet-reset-ID.patch
 
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
@@ -91,12 +91,15 @@ ifeq (1,1)
 PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio-v5.patch
 
 # Fix for non-working Eth on GS1
-PATCHFILES += 0507-net-phy-realtek-revert-fix-rtl8211e-rxtx-delay-config.patch
+# PATCHFILES += 0507-net-phy-realtek-revert-fix-rtl8211e-rxtx-delay-config.patch
 # Fix hanging GS1 boot on loading kernel modules
 PATCHFILES += 0508-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
 # Adding support for some H6 boards
 PATCHFILES += 0509-mfd-add-AC200.patch
 PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
+
+PATCHFILES += 0511-arm64-dts-allwinner-fix-dead-Eth-on-beelink-GS1.patch
+
 PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
 PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
 
