@@ -48,6 +48,7 @@ DISTFILES = \
 PATCHFILES  = poky-yocto-2.7.3-bitbake-skip-python2-checks.patch
 PATCHFILES += poky-yocto-2.7.3-add-biosplusefi-image-plugin.patch
 PATCHFILES += poky-yocto-2.7.3-add-copy-mm2-files-into-image-boot-part.patch
+PATCHFILES += poky-yocto-2.7.3-make-PARTUUID-as-constant-0x346d1a6a.patch
 
 WORKSRC = $(WORKDIR)/poky-yocto-$(GARVERSION)
 LICENSE = GPL2
