@@ -72,8 +72,6 @@ PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
-# https://patchwork.kernel.org/project/linux-amlogic/patch/20201020120141.298240-1-jbrunet@baylibre.com/
-# PATCHFILES += 0370-arm64-dts-amlogic-add-missing-ethernet-reset-ID.patch
 
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
@@ -99,13 +97,14 @@ PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio-v5.patch
 # https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux 7.08.2020
 PATCHFILES += 0505-media-sunxi-cedrus-improvements.patch
 
-# Fix for non-working Eth on GS1
-PATCHFILES += 0507-net-phy-realtek-revert-fix-rtl8211e-rxtx-delay-config.patch
 # Fix hanging GS1 boot on loading kernel modules
 PATCHFILES += 0508-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
 # Adding support for some H6 boards
 PATCHFILES += 0509-mfd-add-AC200.patch
 PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
+# Fix dead Eth at booting on GS1
+PATCHFILES += 0511-arm64-dts-allwinner-fix-dead-Eth-on-beelink-GS1.patch
+# Various allwinner patches
 PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
 PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
 
