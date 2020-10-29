@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-sm1
-GARVERSION   = 2020-01-15
+GARVERSION   = 2020-10-29
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = s905_autoscript \
