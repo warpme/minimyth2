@@ -90,14 +90,12 @@ ifeq (1,1)
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=356189 v5 27.09.2020
 PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio-v5.patch
 
-# Fix for non-working Eth on GS1
-# PATCHFILES += 0507-net-phy-realtek-revert-fix-rtl8211e-rxtx-delay-config.patch
 # Fix hanging GS1 boot on loading kernel modules
 PATCHFILES += 0508-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
 # Adding support for some H6 boards
 PATCHFILES += 0509-mfd-add-AC200.patch
 PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
-
+# Fix dead Eth at booting on GS1
 PATCHFILES += 0511-arm64-dts-allwinner-fix-dead-Eth-on-beelink-GS1.patch
 
 PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
