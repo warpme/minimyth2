@@ -4,17 +4,14 @@
 # mkimage -A arm64 -T script -O linux -d s905_autoscript.txt s905_autoscript
 #
 
+if fatload mmc 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
+if fatload usb 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
+setenv env_addr 0x1040000
+setenv boot_start 'bootm ${loadaddr} - ${dtb_mem_addr}'
+setenv addmac 'if printenv mac; then setenv bootargs ${bootargs} mac=${mac}; elif printenv eth_mac; then setenv bootargs ${bootargs} mac=${eth_mac}; fi'
+setenv try_boot_start 'if fatload ${devtype} ${devnum} ${loadaddr} uImage; then fatload ${devtype} ${devnum} ${env_addr} uEnv.ini && env import -t ${env_addr} ${filesize} && run addmac; fatload ${devtype} ${devnum} ${dtb_mem_addr} ${dtb_name} && run boot_start; fi'
 setenv devtype mmc
 setenv devnum 0
-
-setenv env_addr 0x10400000
-setenv kernel_addr 0x11000000
-
-setenv addmac 'if printenv mac; then setenv bootargs ${bootargs} mac=${mac}; elif printenv eth_mac; then setenv bootargs ${bootargs} mac=${eth_mac}; fi'
-setenv try_boot_start 'if fatload ${devtype} ${devnum} ${kernel_addr} zImage; then fatload ${devtype} ${devnum} ${env_addr} uEnv.ini && env import -t ${env_addr} ${filesize} && run addmac; fatload ${devtype} ${devnum} ${dtb_mem_addr} ${dtb_name} && run boot_start; fi;'
-
-setenv boot_start booti ${kernel_addr} - ${dtb_mem_addr}
-
-if fatload ${devtype} ${devnum} 0x1000000 u-boot.ext; then go 0x1000000; fi;
-
 run try_boot_start
+setenv devtype usb
+for devnum in 0 1 2 3 ; do run try_boot_start ; done
