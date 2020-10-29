@@ -57,7 +57,7 @@ PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 
 ifeq (1,1)
 # v4l2-request support in ffmpeg
-# https://github.com/LibreELEC/LibreELEC.tv/tree/master/packages/multimedia/ffmpeg/patches/v4l2-request
+# https://github.com/jernejsk/LibreELEC.tv/tree/69fae8524b9ef02cd2e3415ece1ae01dfc2b5426/packages/multimedia/ffmpeg/patches 29.10.2020
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-from-LE.patch
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # required for AML HD playbck in MythTV
