@@ -36,7 +36,6 @@ PATCHFILES += linux-5.8-vgaarb-add-3D-accell-detection.patch
 PATCHFILES += linux-5.8-net-smsc95xx-allow-mac-address-as-param.patch
 
 ifeq (1,1)
-PATCHFILES += 0100-aarch64-text-offset.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.8 kernel
