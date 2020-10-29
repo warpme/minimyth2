@@ -5,7 +5,13 @@ CATEGORIES   = lib
 GARVERSION   = 4.3.1
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES    = $(DISTNAME).tar.bz2
-PATCHFILES  += ffmpeg-fix-building-with-lto.patch
+PATCHFILES   = ffmpeg-fix-building-with-lto.patch
+
+ifeq (1,1)
+# https://github.com/jernejsk/LibreELEC.tv/tree/69fae8524b9ef02cd2e3415ece1ae01dfc2b5426/packages/multimedia/ffmpeg/patches 29.10.2020
+PATCHFILES += ffmpeg-add-v4l2-drmprime.patch
+PATCHFILES += ffmpeg-add-v4l2_request.patch
+endif
 
 LICENSE = GPL2/LGPL2_1
 
