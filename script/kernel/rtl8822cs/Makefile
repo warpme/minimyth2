@@ -1,13 +1,11 @@
 
-# URL GIT: https://github.com/tantra35/RTL8822CS-aml
+# URL GIT: https://github.com/chewitt/RTL8822CS
 
-GARNAME      = rtl8822cs
-GARVERSION   = 9.2.1811_21
+GARNAME      = RTL8822CS
+GARVERSION   = fe0900fd8e26c36ab808bccb0e2db2b2dab31d9a
 CATEGORIES   = system
-MASTER_SITES = https://github.com/tantra35/RTL8822CS-aml/archive/
-PATCHFILES   = decrease-verbosity.patch fix_building_one_newer_kernels.patch
-DISTFILES    = p-amlogic_$(GARVERSION).zip
-WORKSRC      = $(WORKDIR)/RTL8822CS-aml-p-amlogic_$(GARVERSION)
+MASTER_SITES = https://github.com/chewitt/RTL8822CS/archive/
+DISTFILES    = $(GARVERSION).zip
 
 LICENSE      = GPL2
 
@@ -31,11 +29,11 @@ build-custom:
 	@$(MAKECOOKIE)
 
 install-custom:
-	@mkdir -p $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/realtek/rtl8822cs
-	@cp -f $(WORKSRC)/8822cs.ko $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/realtek/rtl8822cs/
+	@mkdir -p $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/realtek/rtl88x2cs
+	@cp -f $(WORKSRC)/88x2cs.ko $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/realtek/rtl88x2cs/
 	@depmod -b $(DESTDIR) -v $(LINUX_FULL_VERSION)
 	@$(MAKECOOKIE)
 
 clean-all:
-	rm -rf $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/realtek/rtl8822cs*
+	rm -rf $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/realtek/rtl88x2cs*
 	@true
