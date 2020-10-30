@@ -5,7 +5,7 @@ GARNAME      = rtl8822cs
 GARVERSION   = 9.2.1811_21
 CATEGORIES   = system
 MASTER_SITES = https://github.com/tantra35/RTL8822CS-aml/archive/
-PATCHFILES   = decrease-verbosity.patch
+PATCHFILES   = decrease-verbosity.patch fix_building_one_newer_kernels.patch
 DISTFILES    = p-amlogic_$(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/RTL8822CS-aml-p-amlogic_$(GARVERSION)
 
