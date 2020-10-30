@@ -30,6 +30,7 @@ clean-all:
 	@$(MAKE) clean-all -C ../../kernel/meson-gx-mali450
 	@$(MAKE) clean-all -C ../../kernel/rtl8189es
 	@$(MAKE) clean-all -C ../../kernel/rtl8821cu
+	@$(MAKE) clean-all -C ../../kernel/rtl8822cs
 	@$(MAKE) clean-all -C ../../kernel/xr819
 	@$(MAKE) clean     -C ../../kernel-headers/linux-headers
 	@$(MAKE) clean     -C ../../firmware/firmware
@@ -37,6 +38,7 @@ clean-all:
 	@$(MAKE) clean     -C ../../kernel/meson-gx-mali450
 	@$(MAKE) clean     -C ../../kernel/rtl8189es
 	@$(MAKE) clean     -C ../../kernel/rtl8821cu
+	@$(MAKE) clean     -C ../../kernel/rtl8822cs
 	@$(MAKE) clean     -C ../../kernel/xr819
 	@$(MAKE) clean     -C ../../nvidia
 	@$(MAKE) clean     -C ../../system/bbswitch
@@ -46,4 +48,5 @@ reinstall:
 	$(if $(filter armsoc,$(mm_GRAPHICS)),@$(MAKE) reinstall -C ../../kernel/meson-gx-mali450)
 	@$(MAKE) reinstall -C ../../kernel/rtl8189es
 	@$(MAKE) reinstall -C ../../kernel/rtl8821cu
+	@$(MAKE) reinstall -C ../../kernel/rtl8822cs
 	@$(MAKE) reinstall -C ../../kernel/xr819
