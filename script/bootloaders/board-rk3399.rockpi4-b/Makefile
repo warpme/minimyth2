@@ -42,7 +42,7 @@ install-custom:
 	@cp -f    $(WORKSRC)/rk3399-boot.txt                         $(DESTDIR)/boot/boot.txt
 	@cp -f    $(WORKSRC)/rk3399-boot.scr                         $(DESTDIR)/boot/boot.scr
 	@mkdir -p $(DESTDIR)/boot/rk3399loaderfiles
-	@cp -f    $(DESTDIR)/boot/dtbs/rockchip/rk3399-rock-pi-4.dtb $(DESTDIR)/boot/rk3399_dtb
+	@cp -f    $(DESTDIR)/boot/dtbs/rockchip/rk3399-rock-pi-4b.dtb $(DESTDIR)/boot/rk3399_dtb
 	@cp -f    $(WORKSRC)/rksd_loader.img                         $(DESTDIR)/boot/rk3399loaderfiles/rksd_loader.img
 
 clean-all:
