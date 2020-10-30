@@ -12,6 +12,7 @@ DEPENDS = \
 	$(if $(filter armsoc,$(mm_GRAPHICS)),kernel/meson-gx-mali450) \
 	kernel/rtl8189es \
 	kernel/rtl8821cu \
+	kernel/rtl8822cs \
 	kernel/xr819 \
 
 include ../../gar.mk
