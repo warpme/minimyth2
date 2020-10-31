@@ -1,6 +1,6 @@
 
 GARNAME      = gdb
-GARVERSION   = 9.2
+GARVERSION   = 10.1
 CATEGORIES   = devel
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.xz
@@ -18,7 +18,7 @@ INSTALL_SCRIPTS   = custom
 
 CONFIGURE_ARGS = --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-werror \
-	--prefix=$(DESTDIR) \
+	--prefix=$(DESTDIR)$(prefix) \
 	--with-build-sysroot=$(DESTDIR) \
 
 include ../../gar.mk
