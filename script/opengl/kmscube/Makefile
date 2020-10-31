@@ -26,7 +26,7 @@ INSTALL_SCRIPTS    = custom
 include ../../gar.mk
 
 CONFIGURE_ARGS = \
-	--prefix="$(DESTDIR)" \
+	--prefix="$(DESTDIR)$(prefix)" \
 	--libdir="$(DESTDIR)$(libdir)" \
 	--includedir="$(DESTDIR)$(includedir)" \
 	--datadir="$(DESTDIR)$(datadir)" \
