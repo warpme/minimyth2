@@ -121,6 +121,9 @@ endif
 # Add TanixTX6 WiFi support
 PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
 
+# Hack for adding H264 v4l2 decoding on RPI
+PATCHFILES += 0700-rpi-vc04_services-add_h264_v4l2-m2m_decode.patch
+
 endif
 
 LICENSE = GPL2
