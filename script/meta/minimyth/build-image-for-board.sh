@@ -14,7 +14,7 @@ selection_4="board-s912 board-h6.tanix_tx6_mini"
 selection_5="board-sm1 board-h6.beelink_gs1"
 selection_6="board-rk3328.beelink_a1"
 selection_7="board-rk3399.rockpi4-b"
-selection_8="board-sm1"
+selection_8="board-rpi3.mainline64 board-s905"
 selection_9="my testbed boards"
 
 # Config area end
@@ -149,7 +149,7 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_5}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_6}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_7}" ${extra_params}
-#        make reinstall-new-board mm_BOARD_TYPE="${selection_8}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_8}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
