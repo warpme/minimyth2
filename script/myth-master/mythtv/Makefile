@@ -64,8 +64,11 @@ else
 # https://github.com/LibreELEC/LibreELEC.tv/tree/master/packages/multimedia/ffmpeg/patches/v4l2-request
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-from-LE-5.9.patch
 endif
-
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
+
+# Enable v4l2_request decoding
+# https://github.com/MythTV/mythtv/issues/278
+PATCHFILES += 0153-decoders-add_v4l2_request-support.patch
 # required for AML HD playbck in MythTV
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 endif
