@@ -46,9 +46,6 @@ PATCHFILES += 0105-Also-use-meson-hack-on-amlogic-meson-g12a-mali.patch
 PATCHFILES += 0106-Sync-G31-features-with-kbase.patch
 endif
 
-# fix bug causing playback exit hang on panfrost with drm_prime
-PATCHFILES += 0109-drm-shme-helpers-Fix-dma_buf_mmap-forwarding-bug.patch
-
 ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
 PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
