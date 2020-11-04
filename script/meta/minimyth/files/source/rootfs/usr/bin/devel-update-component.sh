@@ -277,7 +277,7 @@ if [ "x${dry_run}" = "xyes" ] ; then
 else
 
     echo 'Starting update ...'
-    dry_run=" "
+    dry_run="--delete"
 
 fi
 
