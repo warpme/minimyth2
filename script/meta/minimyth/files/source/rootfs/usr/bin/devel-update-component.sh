@@ -56,7 +56,7 @@
 src_rsync_module="192.168.1.190::devel-updates"
 
 # Log file with output from rsync
-log_file="/var/log/rsync-updates.log"
+log_file="/var/log/online-update.log"
 
 # ---- MythTV dir/files ---
 component_1="MythTV"
@@ -91,7 +91,7 @@ directory_list3="
 /lib/modules/:/initrd/rootfs-ro/lib/modules \
 "
 file_list3="/boot/*Image:/media/boot/"
-epilog_cmd3=""
+epilog_cmd3="sync"
 #--------------------------
 
 # ---- FFmpeg dir/files ---
@@ -116,17 +116,17 @@ epilog_cmd4=""
 # --- All lib/bin files ---
 component_5="All libs & bins"
 directory_list5=" \
-/lib/:/lib \
-/lib64/:/lib64 \
-/bin/:/bin \
-/sbin/:/sbin \
-/usr/lib/:/usr/lib \
-/usr/bin/:/usr/bin \
-/usr/sbin/:/usr/sbin \
-/usr/share/:/usr/share \
+/lib/:/initrd/rootfs-ro/lib \
+/lib64/:/initrd/rootfs-ro/lib64 \
+/bin/:/initrd/rootfs-ro/bin \
+/sbin/:/initrd/rootfs-ro/sbin \
+/usr/lib/:/initrd/rootfs-ro/usr/lib \
+/usr/bin/:/initrd/rootfs-ro/usr/bin \
+/usr/sbin/:/initrd/rootfs-ro/usr/sbin \
+/usr/share/:/initrd/rootfs-ro/usr/share \
 "
 file_list5=""
-epilog_cmd5=""
+epilog_cmd5="sync"
 #--------------------------
 
 
@@ -155,7 +155,7 @@ epilog_cmd5=""
 
 
 
-ver="v1.0 by (c)Piotr Oniszczuk"
+ver="v1.1 by (c)Piotr Oniszczuk"
 
 clear
 
