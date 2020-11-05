@@ -183,7 +183,8 @@ fi
 
 case "${selection}" in
 
-    1)  echo "Updating ${component_1} ..."
+    1)
+        echo "Updating ${component_1} ..."
         directory_list=${directory_list1}
         file_list=${file_list1}
         epilog_cmd="${epilog_cmd1}" ;;
@@ -356,7 +357,7 @@ if [ ${is_error} -eq 0 ] ; then
 
         if [ "x${epilog_cmd}" != "x" ] ; then
             sleep 3
-            echo "Running epilog cmd ..."
+            echo "Running epilog cmd : [${epilog_cmd}]"
             echo " "
             ${epilog_cmd}
         fi
