@@ -248,11 +248,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_SVN_VERSION)%g'   $@~/etc/os_myth_release
 	@sed -i 's%@MM_GARCH@%$(mm_GARCH)%g'                       $@~/etc/os_myth_release
 	@sed -i 's%@MM_VERSION@%$(mm_VERSION_MINIMYTH)%g'          $@~/etc/version
-	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-install-updated-ffmpeg.sh
-	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-install-updated-mesa.sh
-	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-install-updated-mythtv.sh
-	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-install-updated-pl-translations.sh
-	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-install-updated-kernel-on-image.sh
+	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-update-component.sh
 ifneq (,$(findstring rpi,$(mm_KERNEL_VERSION)))
 	@sed -i 's%    # mm_splash_init%    mm_splash_init%'       $@~$(sysconfdir)/rc.d/init.d/modules_automatic
 endif
