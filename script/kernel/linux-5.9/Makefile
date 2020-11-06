@@ -37,6 +37,9 @@ PATCHFILES += linux-5.9-net-smsc95xx-allow-mac-address-as-param.patch
 
 ifeq (1,1)
 
+# fix for regression https://lkml.org/lkml/2020/10/24/69
+PATCHFILES += 0100-regulators-fix-aea6cb9-regression.patch
+
 ifeq (1,1)
 # Misc panfrost patches for 5.9 kernel
 PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
