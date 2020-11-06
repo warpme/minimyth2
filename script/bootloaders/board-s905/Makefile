@@ -34,6 +34,7 @@ install-custom:
 	@cp -f $(WORKSRC)/s905_autoscript.txt                   $(DESTDIR)/boot/s905_autoscript.txt
 	@cp -f $(WORKSRC)/uEnv.ini                              $(DESTDIR)/boot/uEnv.ini
 	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-gxl-s905w-tx3-mini.dtb $(DESTDIR)/boot/s905_dtb
+	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-gxl-s905w-tx3-mini.dtb $(DESTDIR)/boot/meson-gxl-s905w-tx3-mini.dtb
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/s905_autoscript
@@ -41,3 +42,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/uEnv.ini
 	@rm -f $(DESTDIR)/boot/s905_dtb
 	@rm -f $(DESTDIR)/boot/s905_u-boot
+	@rm -f $(DESTDIR)/boot/meson-gxl-s905w-tx3-mini.dtb

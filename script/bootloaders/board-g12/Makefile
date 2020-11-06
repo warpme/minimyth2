@@ -35,7 +35,8 @@ install-custom:
 	@cp -f $(WORKSRC)/s905_autoscript                           $(DESTDIR)/boot/s905_autoscript
 	@cp -f $(WORKSRC)/s905_autoscript.txt                       $(DESTDIR)/boot/s905_autoscript.txt
 	@cp -f $(WORKSRC)/uEnv.ini                                  $(DESTDIR)/boot/uEnv.ini
-	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-g12a-x96-max.dtb  $(DESTDIR)/boot/sm1_dtb
+	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-g12a-x96-max.dtb  $(DESTDIR)/boot/g12a_dtb
+	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-g12a-x96-max.dtb  $(DESTDIR)/boot/meson-g12a-x96-max.dtb
 	@cp -f $(WORKSRC)/boot.ini                                  $(DESTDIR)/boot/boot.ini
 	@cp -f $(WORKSRC)/u-boot.ext                                $(DESTDIR)/boot/u-boot.ext
 
@@ -43,7 +44,7 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/s905_autoscript
 	@rm -f $(DESTDIR)/boot/s905_autoscript.txt
 	@rm -f $(DESTDIR)/boot/uEnv.ini
-	@rm -f $(DESTDIR)/boot/g12_dtb
-	@rm -f $(DESTDIR)/boot/g12_u-boot
+	@rm -f $(DESTDIR)/boot/g12a_dtb
 	@rm -f $(DESTDIR)/boot/boot.ini
 	@rm -f $(DESTDIR)/boot/u-boot.ext
+	@rm -f $(DESTDIR)/boot/meson-g12a-x96-max.dtb

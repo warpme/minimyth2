@@ -43,6 +43,7 @@ install-custom:
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
 		  $(DESTDIR)/boot/h6loaderfiles/u-boot-sunxi-with-spl.bin
 	@cp -f    $(DESTDIR)/boot/dtbs/allwinner/sun50i-h6-beelink-gs1.dtb     $(DESTDIR)/boot/h6_dtb
+	@cp -f    $(DESTDIR)/boot/dtbs/allwinner/sun50i-h6-beelink-gs1.dtb     $(DESTDIR)/boot/sun50i-h6-beelink-gs1.dtb
 
 clean-all:
 	@rm -f  $(DESTDIR)/boot/h6-boot-debug.txt
@@ -55,3 +56,4 @@ clean-all:
 	@rm -f  $(DESTDIR)/boot/boot.scr
 	@rm -f  $(DESTDIR)/boot/h6_dtb
 	@rm -rf $(DESTDIR)/boot/h6loaderfiles*
+	@rm -f  $(DESTDIR)/boot/sun50i-h6-beelink-gs1.dtb

@@ -36,6 +36,7 @@ install-custom:
 	@cp -f $(WORKSRC)/s905_autoscript.txt                        $(DESTDIR)/boot/s905_autoscript.txt
 	@cp -f $(WORKSRC)/uEnv.ini                                   $(DESTDIR)/boot/uEnv.ini
 	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-sm1-x96-air-2g.dtb $(DESTDIR)/boot/sm1_dtb
+	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-sm1-x96-air-2g.dtb $(DESTDIR)/boot/meson-sm1-x96-air-2g.dtb
 	@cp -f $(WORKSRC)/boot.ini                                   $(DESTDIR)/boot/boot.ini
 	@cp -f $(WORKSRC)/u-boot.ext                                 $(DESTDIR)/boot/u-boot.ext
 
@@ -47,3 +48,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/sm1_u-boot
 	@rm -f $(DESTDIR)/boot/boot.ini
 	@rm -f $(DESTDIR)/boot/u-boot.ext
+	@rm -f $(DESTDIR)/boot/meson-sm1-x96-air-2g.dtb

@@ -40,6 +40,7 @@ install-custom:
 	@cp -f    $(WORKSRC)/rk3399-boot.txt                         $(DESTDIR)/boot/boot.txt
 	@cp -f    $(WORKSRC)/rk3399-boot.scr                         $(DESTDIR)/boot/boot.scr
 	@cp -f    $(DESTDIR)/boot/dtbs/rockchip/rk3399-rock-pi-4.dtb $(DESTDIR)/boot/rk3399_dtb
+	@cp -f    $(DESTDIR)/boot/dtbs/rockchip/rk3399-rock-pi-4.dtb $(DESTDIR)/boot/rk3399-rock-pi-4.dtb
 	@mkdir -p $(DESTDIR)/boot/rk3399loaderfiles
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/u-boot-rk3399-with-spl.bin \
 		  $(DESTDIR)/boot/rk3399loaderfiles/u-boot-rk3399-with-spl.bin
@@ -55,3 +56,4 @@ clean-all:
 	@rm -f  $(DESTDIR)/boot/boot.scr
 	@rm -f  $(DESTDIR)/boot/rk3399_dtb
 	@rm -rf $(DESTDIR)/boot/rk3399loaderfiles*
+	@rm -f  $(DESTDIR)/boot/rk3399-rock-pi-4.dtb
