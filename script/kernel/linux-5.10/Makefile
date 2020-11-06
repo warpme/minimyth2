@@ -35,6 +35,8 @@ PATCHFILES += linux-5.10-defaults.patch
 PATCHFILES += linux-5.10-vgaarb-add-3D-accell-detection.patch
 
 ifeq (1,1)
+# fix for regression https://lkml.org/lkml/2020/10/24/69
+PATCHFILES += 0100-regulators-fix-aea6cb9-regression.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.10 kernel
