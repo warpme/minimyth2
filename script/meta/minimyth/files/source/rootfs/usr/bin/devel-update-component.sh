@@ -7,14 +7,14 @@
 # it replaces old files on target with new files from devel. machine.
 #
 # Example:
-# devel. machine at 192.168.1.190 has mirror of target root file system 
-# at </home/piotro/minimyth-dev/images/main/>
+# devel. machine at 192.168.1.190 has mirror of target root file system
+# at <@MM_HOME@>/main
 #
 # To configure:
 #
 # 1. On devel. machine edit /etc/rsyncd.conf with content:
 # [devel-updates]
-# path = /home/piotro/minimyth-dev/images/main/
+# path = @MM_HOME@/main/
 # use chroot = true
 # read only = true
 #
