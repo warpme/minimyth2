@@ -1,13 +1,32 @@
-diff -Naur linux-5.9.6-old/drivers/regulator/core.c linux-5.9.6-old-new/drivers/regulator/core.c
---- linux-5.9.6-old/drivers/regulator/core.c	2020-11-05 17:50:14.000000000 +0100
-+++ linux-5.9.6-old-new/drivers/regulator/core.c	2020-11-06 12:40:33.166666659 +0100
-@@ -1134,6 +1134,9 @@
- 		}
+diff -Naur linux-5.10-rc2-old/drivers/regulator/core.c linux-5.10-rc2-new/drivers/regulator/core.c
+--- linux-5.10-rc2-old/drivers/regulator/core.c	2020-11-01 23:43:51.000000000 +0100
++++ linux-5.10-rc2-new/drivers/regulator/core.c	2020-11-06 20:10:59.753333334 +0100
+@@ -5290,20 +5290,15 @@
+ 	else if (regulator_desc->supply_name)
+ 		rdev->supply_name = regulator_desc->supply_name;
  
- 		if (current_uV < 0) {
-+			if (current_uV == -EINVAL && rdev->supply_name)
-+				return -EPROBE_DEFER;
++	/*
++	 * Attempt to resolve the regulator supply, if specified,
++	 * but don't return an error if we fail because we will try
++	 * to resolve it again later as more regulators are added.
++	 */
++	if (regulator_resolve_supply(rdev))
++		rdev_dbg(rdev, "unable to resolve supply\n");
 +
- 			rdev_err(rdev,
- 				 "failed to get the current voltage(%d)\n",
- 				 current_uV);
+ 	ret = set_machine_constraints(rdev, constraints);
+-	if (ret == -EPROBE_DEFER) {
+-		/* Regulator might be in bypass mode and so needs its supply
+-		 * to set the constraints */
+-		/* FIXME: this currently triggers a chicken-and-egg problem
+-		 * when creating -SUPPLY symlink in sysfs to a regulator
+-		 * that is just being created */
+-		ret = regulator_resolve_supply(rdev);
+-		if (!ret)
+-			ret = set_machine_constraints(rdev, constraints);
+-		else
+-			rdev_dbg(rdev, "unable to resolve supply early: %pe\n",
+-				 ERR_PTR(ret));
+-	}
+ 	if (ret < 0)
+ 		goto wash;
+ 
