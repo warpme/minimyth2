@@ -2,6 +2,9 @@
 
 . /etc/rc.d/functions
 
+osd_timeout=15
+log_file="/var/log/online-update.log"
+
 if [ x${MM_MINIMYTH_ONLINE_UPDATES_URL} = "x" ] ; then
     echo "Error: No MM_MINIMYTH_ONLINE_UPDATES_URL is set. Exiting ..."
     /usr/bin/logger -t minimyth -p "local0.info" "[mm_do_online_update] Error: MM_MINIMYTH_ONLINE_UPDATES_URL is set. Exiting..."
@@ -42,20 +45,12 @@ rsync \
 --specials \
 --checksum \
 --compress \
---log-file=/var/log/online-update.log \
+--log-file=${log_file} \
 --out-format=' => %f' \
 --log-file-format='%f [%b bytes]' \
 --stats \
 --exclude=/dev* \
 --exclude=*.ssh* \
---exclude=*_dtb \
---exclude=*.scr \
---exclude=config.txt \
---exclude=cmdline.txt \
---exclude=minimyth.conf \
---exclude=s905_autoscript \
---exclude=boot.ini \
---exclude=uEnv.ini \
 $3 \
 $1 \
 $2 \
@@ -64,88 +59,71 @@ $2 \
 
 }
 
-get_num_updated_files() {
 
-    number_upd_files=`cat /var/log/online-update.log | grep "Number of regular files transferred" | cut -d" " -f9 | sed -e 's/,//g'`
+if [ "x${command}" = "xdoupdate" ] ; then
+
+    echo 'Starting on-line update ...'
+    dry_run="--delete"
+
+else
+
+    echo 'Starting dry-run for on-line update ...'
+    dry_run="--dry-run"
+
+fi
+
+rm -f ${log_file}
+
+run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/boot/dtbs/"      "/media/boot/dtbs"  ${dry_run}
+run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/boot/*Image"     "/media/boot"       ${dry_run}
+run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/root/rootfs-ro/" "/initrd/rootfs-ro" ${dry_run}
+
+is_error=`cat ${log_file} | grep -c "error"`
+
+if [ ${is_error} -eq 0 ] ; then
+
+    number_upd_files=`cat ${log_file} | grep "Number of regular files transferred" | cut -d" " -f9 | sed -e 's/,//g'`
 
     for number in ${number_upd_files} ; do
 
       files_total=$((${files_total} + ${number}))
 
     done
-}
-
-if [ "x${command}" = "xdoupdate" ] ; then
-
-  echo 'Starting on-line update ...'
-
-  rm -f /var/log/online-update.log
-
-  run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/boot/" '/media/boot' ' '
-  run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/root/rootfs-ro/" '/initrd/rootfs-ro' '--delete'
-
-  is_error=`cat /var/log/online-update.log | grep -c "error"`
-
-  if [ ${is_error} -eq 0 ] ; then
-
-    get_num_updated_files
 
     echo " "
     echo "  Total updated files: ${files_total}"
 
     if [ x${files_total} = "x0" ] ; then
 
-      mm_show_mythnotify 'No any files were updated ...' '' 'ok' '12' 'On-line Updates'
+        if [ "x${command}" = "xdoupdate" ] ; then
+
+            mm_show_mythnotify 'No any files were updated ...' '' 'ok' ${osd_timeout} 'On-line Updates'
+
+        else
+
+            mm_show_mythnotify 'There is no any updates ...' '' 'ok' ${osd_timeout} 'On-line Updates'
+
+        fi
 
     else
 
-      mm_show_mythnotify ${files_total}' files were updated !' 'Update will effect after reboot!' 'ok' '12' 'On-line Updates'
+        if [ "x${command}" = "xdoupdate" ] ; then
 
-      sync
+            mm_show_mythnotify ${files_total}' files were updated !' 'Update will effect after reboot!' 'ok' ${osd_timeout} 'On-line Updates'
+
+        else
+
+            mm_show_mythnotify 'There is '${files_total}' files to update !' '' 'ok' ${osd_timeout} 'On-line Updates'
+            sync
+
+        fi
 
     fi
-
-  else
-
-    mm_show_mythnotify 'Something went wrong :-(' '' 'error' '12' 'On-line Updates'
-    echo 'Error contacting updates server !'
-
-  fi
 
 else
 
-  echo 'Starting dry-run for on-line update ...'
-
-  rm -f /var/log/online-update.log
-
-  run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/boot/" '/media/boot' '--dry-run'
-  run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/root/rootfs-ro/" '/initrd/rootfs-ro' '--dry-run'
-
-  is_error=`cat /var/log/online-update.log | grep -c "error"`
-
-  if [ ${is_error} -eq 0 ] ; then
-
-    get_num_updated_files
-
-    echo " "
-    echo "   Total files to update: ${files_total}"
-
-    if [ x${files_total} = "x0" ] ; then
-
-      mm_show_mythnotify 'There is no any updates ...' '' 'ok' '12' 'On-line Updates'
-
-    else
-
-      mm_show_mythnotify 'There is '${files_total}' files to update !' '' 'ok' '12' 'On-line Updates'
-
-    fi
-
-  else
-
-    mm_show_mythnotify 'Something went wrong :-( !' '' 'error' '12' 'On-line Updates'
+    mm_show_mythnotify 'Something went wrong :-(' '' 'error' ${osd_timeout} 'On-line Updates'
     echo 'Error contacting updates server !'
-
-  fi
 
 fi
 
