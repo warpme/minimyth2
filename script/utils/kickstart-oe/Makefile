@@ -20,8 +20,6 @@ DISTFILES = \
 	board-s905.wks              \
 	board-s912.conf             \
 	board-s912.wks              \
-	board-g12.conf              \
-	board-g12.wks               \
 	board-sm1.conf              \
 	board-sm1.wks               \
 	board-rk3328.beelink_a1.conf \
