@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-s912
-GARVERSION   = 2020-10-29
+GARVERSION   = 2020-11-07
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = s905_autoscript \
@@ -31,15 +31,8 @@ build-custom:
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/s905_autoscript                       $(DESTDIR)/boot/s905_autoscript
-	@cp -f $(WORKSRC)/s905_autoscript.txt                   $(DESTDIR)/boot/s905_autoscript.txt
 	@cp -f $(WORKSRC)/uEnv.ini                              $(DESTDIR)/boot/uEnv.ini
-	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-gxm-beelink-gt1.dtb $(DESTDIR)/boot/s912_dtb
-	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-gxm-beelink-gt1.dtb $(DESTDIR)/boot/meson-gxm-beelink-gt1.dtb
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/s905_autoscript
-	@rm -f $(DESTDIR)/boot/s905_autoscript.txt
 	@rm -f $(DESTDIR)/boot/uEnv.ini
-	@rm -f $(DESTDIR)/boot/s912_dtb
-	@rm -f $(DESTDIR)/boot/s912_u-boot
-	@rm -f $(DESTDIR)/boot/meson-gxm-beelink-gt1.dtb

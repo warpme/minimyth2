@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-rk3328.beelink_a1
-GARVERSION   = 2020-03-17
+GARVERSION   = 2020-11-07
 CATEGORIES   = bootloaders
 MASTER_SITES = http://os.archlinuxarm.org/os/rockchip/boot/rock64/
 DISTFILES    = idbloader.img \
@@ -35,31 +35,14 @@ build-custom:
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
-	@cp -f    $(WORKSRC)/rk3328-boot-debug.txt                $(DESTDIR)/boot/rk3328-boot-debug.txt
-	@cp -f    $(WORKSRC)/rk3328-boot-debug.scr                $(DESTDIR)/boot/rk3328-boot-debug.scr
-	@cp -f    $(WORKSRC)/rk3328-boot.txt                      $(DESTDIR)/boot/rk3328-boot.txt
-	@cp -f    $(WORKSRC)/rk3328-boot.scr                      $(DESTDIR)/boot/rk3328-boot.scr
-	@cp -f    $(WORKSRC)/rk3328-boot-debug.txt                $(DESTDIR)/boot/boot-debug.txt
 	@cp -f    $(WORKSRC)/rk3328-boot-debug.scr                $(DESTDIR)/boot/boot-debug.scr
-	@cp -f    $(WORKSRC)/rk3328-boot.txt                      $(DESTDIR)/boot/boot.txt
 	@cp -f    $(WORKSRC)/rk3328-boot.scr                      $(DESTDIR)/boot/boot.scr
 	@mkdir -p $(DESTDIR)/boot/rk3328loaderfiles
-	@cp -f    $(DESTDIR)/boot/dtbs/rockchip/rk3328-a1.dtb     $(DESTDIR)/boot/rk3328_dtb
-	@cp -f    $(DESTDIR)/boot/dtbs/rockchip/rk3328-a1.dtb     $(DESTDIR)/boot/rk3328-a1.dtb
 	@cp -f    $(WORKSRC)/idbloader.img                        $(DESTDIR)/boot/rk3328loaderfiles/idbloader.img
 	@cp -f    $(WORKSRC)/trust.img                            $(DESTDIR)/boot/rk3328loaderfiles/trust.img
 	@cp -f    $(WORKSRC)/uboot.img                            $(DESTDIR)/boot/rk3328loaderfiles/uboot.img
 
 clean-all:
-	@rm -f  $(DESTDIR)/boot/rk3328-boot-debug.txt
-	@rm -f  $(DESTDIR)/boot/rk3328-boot-debug.scr
-	@rm -f  $(DESTDIR)/boot/rk3328-boot.txt
-	@rm -f  $(DESTDIR)/boot/rk3328-boot.scr
-	@rm -f  $(DESTDIR)/boot/boot-debug.txt
 	@rm -f  $(DESTDIR)/boot/boot-debug.scr
-	@rm -f  $(DESTDIR)/boot/boot.txt
 	@rm -f  $(DESTDIR)/boot/boot.scr
-	@rm -f  $(DESTDIR)/boot/rk3328_dtb
-	@rm -f  $(DESTDIR)/boot/rk3328_u-boot
 	@rm -rf $(DESTDIR)/boot/rk3328loaderfiles*
-	@rm -f  $(DESTDIR)/boot/rk3328-a1.dtb

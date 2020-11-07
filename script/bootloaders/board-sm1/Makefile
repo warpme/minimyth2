@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-sm1
-GARVERSION   = 2020-10-29
+GARVERSION   = 2020-11-07
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = s905_autoscript \
@@ -33,19 +33,12 @@ build-custom:
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/s905_autoscript                            $(DESTDIR)/boot/s905_autoscript
-	@cp -f $(WORKSRC)/s905_autoscript.txt                        $(DESTDIR)/boot/s905_autoscript.txt
 	@cp -f $(WORKSRC)/uEnv.ini                                   $(DESTDIR)/boot/uEnv.ini
-	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-sm1-x96-air-2g.dtb $(DESTDIR)/boot/sm1_dtb
-	@cp -f $(DESTDIR)/boot/dtbs/amlogic/meson-sm1-x96-air-2g.dtb $(DESTDIR)/boot/meson-sm1-x96-air-2g.dtb
 	@cp -f $(WORKSRC)/boot.ini                                   $(DESTDIR)/boot/boot.ini
 	@cp -f $(WORKSRC)/u-boot.ext                                 $(DESTDIR)/boot/u-boot.ext
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/s905_autoscript
-	@rm -f $(DESTDIR)/boot/s905_autoscript.txt
 	@rm -f $(DESTDIR)/boot/uEnv.ini
-	@rm -f $(DESTDIR)/boot/sm1_dtb
-	@rm -f $(DESTDIR)/boot/sm1_u-boot
 	@rm -f $(DESTDIR)/boot/boot.ini
 	@rm -f $(DESTDIR)/boot/u-boot.ext
-	@rm -f $(DESTDIR)/boot/meson-sm1-x96-air-2g.dtb
