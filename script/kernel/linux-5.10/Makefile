@@ -83,6 +83,8 @@ endif
 ifeq (1,1)
 # Misc pathes
 PATCHFILES += 0402-arm64-dts-increase-cpu-clock-add-gpu-DVFS.patch
+# Fixes from LE
+PATCHFILES += 0403-gpu-drm-rockchip-fixes-from-LE.patch
 endif
 
 # Allwinner patches
