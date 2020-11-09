@@ -47,6 +47,7 @@ Amlogic s912  | Beelink GT1                                  | MPEG2, H264, HEVC
 Amlogic sm1   | x96Air                                       | MPEG2, H264, HEVC, VP9                    | Good expierience, seek not works, artefacts on h264
 Broadcom 2837 | Rpi3-b                                       | MPEG4, H264                               | Good expierience, seek not works
 Broadcom 2711 | Rpi4-b                                       |                                           | Not working yet (issue with mainline kernel)
+x86_64        | i5 NUC, Beelink BT4, AMD Kabini, i3+NvGT610  | MPEG2, MPEG4, H264, HVEC (on Z8500)       | Perfect expierience
 
 ## More Info
 - MiniMyth2 [Changelog](https://raw.githubusercontent.com/warpme/minimyth2/master/html/minimyth/document-changelog.txt)
