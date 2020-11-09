@@ -37,8 +37,6 @@ PATCHFILES += linux-5.10-vgaarb-add-3D-accell-detection.patch
 ifeq (1,1)
 # fix for regression https://lkml.org/lkml/2020/10/24/69
 PATCHFILES += 0100-regulators-fix-aea6cb9-regression.patch
-# fix bug causing playback exit hang on panfrost with drm_prime
-PATCHFILES += 0101-drm-shme-helpers-Fix-dma_buf_mmap-forwarding-bug.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.10 kernel
@@ -69,7 +67,8 @@ PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
-
+# hack to fix non-working Eth on sm1 x96air
+PATCHFILES += 0370-arm64-dts-amlogic-disable-ethernet-reset-on-sm1.patch
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
 PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
@@ -81,10 +80,17 @@ endif
 
 # Rockchip patches
 ifeq (1,1)
-# Misc pathes
-PATCHFILES += 0402-arm64-dts-increase-cpu-clock-add-gpu-DVFS.patch
-# Fixes from LE
-PATCHFILES += 0403-gpu-drm-rockchip-fixes-from-LE.patch
+# Inc.some clocks on rk3328
+PATCHFILES += 0402-arm64-dts-rockchip-inc-cpu-clock-add-gpu-DVFS-on-rk3328.patch
+# Enable rkvdec on rk3328
+PATCHFILES += 0403-arm64-dts-rockchip-enable-rkvdec-on-rk3328.patch
+# DRM fixes from LE
+PATCHFILES += 0404-gpu-drm-rockchip-fixes-from-LE.patch
+# adds support for high profile10, 4:2:2 and deinterlaced h264 decode on rkvdec
+# https://github.com/Kwiboo/linux-rockchip/commits/linuxtv-rkvdec-work-in-progress
+# https://github.com/knaerzche/linux/commit/2d9e1a5b0b2ca9dfae43f30d80d014605337cf2a
+# https://github.com/knaerzche/linux/commit/68c947da3affcfdf48699008b5869325e15bfdcd
+PATCHFILES += 0405-media-rkvdec-hantro-add-interlaced-h264-support.patch
 endif
 
 # Allwinner patches
@@ -122,7 +128,6 @@ PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
 
 # Hack for adding H264 v4l2 decoding on RPI
 PATCHFILES += 0700-rpi-vc04_services-add_h264_v4l2-m2m_decode.patch
-
 endif
 
 LICENSE = GPL2
