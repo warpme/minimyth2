@@ -1,0 +1,69 @@
+diff -Naur mesa-8f9c5964ab3c7aec362e59a33f0fafd31199a0b9-old/src/gallium/drivers/panfrost/pan_screen.c mesa-8f9c5964ab3c7aec362e59a33f0fafd31199a0b9-new/src/gallium/drivers/panfrost/pan_screen.c
+--- mesa-8f9c5964ab3c7aec362e59a33f0fafd31199a0b9-old/src/gallium/drivers/panfrost/pan_screen.c	2020-10-22 08:00:02.000000000 +0200
++++ mesa-8f9c5964ab3c7aec362e59a33f0fafd31199a0b9-new/src/gallium/drivers/panfrost/pan_screen.c	2020-10-22 09:41:04.293333337 +0200
+@@ -59,7 +59,7 @@
+         {"msgs",      PAN_DBG_MSGS,	"Print debug messages"},
+         {"trace",     PAN_DBG_TRACE,    "Trace the command stream"},
+         {"deqp",      PAN_DBG_DEQP,     "Hacks for dEQP"},
+-        {"afbc",      PAN_DBG_AFBC,     "Enable AFBC buffer sharing"},
++        {"afbc",      PAN_DBG_AFBC,     "Enable non-conformant AFBC impl"},
+         {"sync",      PAN_DBG_SYNC,     "Wait for each job's completion and check for any GPU fault"},
+         {"precompile", PAN_DBG_PRECOMPILE, "Precompile shaders for shader-db"},
+         {"fp16",     PAN_DBG_FP16,     "Enable 16-bit support"},
+@@ -493,48 +493,6 @@
+         return fmt.hw && ((relevant_bind & ~fmt.bind) == 0);
+ }
+ 
+-/* We always support linear and tiled operations, both external and internal.
+- * We support AFBC for a subset of formats, and colourspace transform for a
+- * subset of those. */
+-
+-static void
+-panfrost_query_dmabuf_modifiers(struct pipe_screen *screen,
+-                enum pipe_format format, int max, uint64_t *modifiers, unsigned
+-                int *external_only, int *out_count)
+-{
+-        /* Query AFBC status */
+-        bool afbc = panfrost_format_supports_afbc(format);
+-        bool ytr = panfrost_afbc_can_ytr(format);
+-
+-        /* Don't advertise AFBC before T760 */
+-        struct panfrost_device *dev = pan_device(screen);
+-        afbc &= !(dev->quirks & MIDGARD_NO_AFBC);
+-
+-        /* XXX: AFBC scanout is broken on mainline RK3399 with older kernels */
+-        afbc &= (dev->debug & PAN_DBG_AFBC);
+-
+-        unsigned count = 0;
+-
+-        for (unsigned i = 0; i < PAN_MODIFIER_COUNT; ++i) {
+-                if (drm_is_afbc(pan_best_modifiers[i]) && !afbc)
+-                        continue;
+-
+-                if ((pan_best_modifiers[i] & AFBC_FORMAT_MOD_YTR) && !ytr)
+-                        continue;
+-
+-                count++;
+-
+-                if (max > (int) count) {
+-                        modifiers[count] = pan_best_modifiers[i];
+-
+-                        if (external_only)
+-                                external_only[count] = false;
+-                }
+-        }
+-
+-        *out_count = count;
+-}
+-
+ static int
+ panfrost_get_compute_param(struct pipe_screen *pscreen, enum pipe_shader_ir ir_type,
+                 enum pipe_compute_cap param, void *ret)
+@@ -749,7 +707,6 @@
+         screen->base.get_paramf = panfrost_get_paramf;
+         screen->base.get_timestamp = panfrost_get_timestamp;
+         screen->base.is_format_supported = panfrost_is_format_supported;
+-        screen->base.query_dmabuf_modifiers = panfrost_query_dmabuf_modifiers;
+         screen->base.context_create = panfrost_create_context;
+         screen->base.get_compiler_options = panfrost_screen_get_compiler_options;
+         screen->base.fence_reference = panfrost_fence_reference;

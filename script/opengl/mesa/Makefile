@@ -1,13 +1,11 @@
 
 GARNAME      = mesa
-GARVERSION   = 20.2.1
+GARVERSION   = 20.3.0-rc1
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
-PATCHFILES  += hack-make-bifrost-usable-again.patch
-PATCHFILES  += 0001-ticket3536-vc4-Add-missing-load_ubo-set_align-in-yuv_blit-fs.patch
-PATCHFILES  += 0002-ticket3536-vc4-Enable-nir_lower_io-for-uniforms.patch
+PATCHFILES   = fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 
 DESCRIPTION = 
