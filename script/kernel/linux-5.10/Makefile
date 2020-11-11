@@ -130,6 +130,9 @@ PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
 PATCHFILES += 0700-rpi-vc04_services-add_h264_v4l2-m2m_decode.patch
 endif
 
+# Add hvec support for Rockchip rkvdec
+PATCHFILES += 0406-media-rkvdec-add-hevc-support.patch
+
 LICENSE = GPL2
 
 DESCRIPTION = 
