@@ -80,6 +80,9 @@ PATCHFILES += 0190-issue209-fix-aml-vdec-playback-hangs-s912-sm1.patch
 
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
+# add hvec v4l4_request support for  Rockchip
+PATCHFILES += 0198-ffmpeg-libavcodec-fix-hevc-decode-on-rockchip.patch
+PATCHFILES += 0199-ffmpeg-libavcodec-hevc-add-rkvdec-fields.patch.mythtv.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
