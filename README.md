@@ -37,6 +37,7 @@ Target scenario with MiniMyth2 is small, disk-less dedicated appliance
 running MythTV Frontend (and preactically only MythTV Frontend).
 
 ## Current Status
+This is functionality avaliable on current code (Linux kernel + Mesa + MythTV) 
 SoC           | Tested on                                    | Decoder      |Currently supported video decode HW.accel | Remarks                            |
 ------------- |----------------------------------------------|--------------|------------------------------------------|------------------------------------|
 Allwinner H6  | EachLink H6 Mini, TanixTX6-Mini, Beelink GS1 | v4l2_request |MPEG2, H264, HEVC, VP8                    | Good playback, seek not works 
