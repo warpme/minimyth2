@@ -107,13 +107,15 @@ CONFIGURE_ARGS = \
 	--enable-fast-unaligned \
 	--enable-optimizations \
 	--pkg-config="pkg-config" \
-	--enable-v4l2-m2m \
 	--enable-libdrm \
+	--enable-libudev \
+	--enable-v4l2-m2m \
+	--enable-v4l2_request \
 
 BUILD_ARGS     = \
-	V='1'
+	V='0'
 INSTALL_ARGS   = \
-	V='1'
+	V='0'
 
 GAR_EXTRA_CONF += mediaplayers/mplayer-svn/package-api.mk
 include ../../gar.mk
