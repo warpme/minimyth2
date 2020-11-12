@@ -37,17 +37,17 @@ Target scenario with MiniMyth2 is small, disk-less dedicated appliance
 running MythTV Frontend (and preactically only MythTV Frontend).
 
 ## Current Status
-SoC           | Tested on                                    | Currently supported video decode HW.accel | Remarks                            |
-------------- |----------------------------------------------|-------------------------------------------|------------------------------------|
-Allwinner H6  | EachLink H6 Mini, TanixTX6-Mini, Beelink GS1 | MPEG2, H264, HEVC, VP8                    | Good expierience, seek not works 
-Rockchip 3328 | Beelink A1                                   | MPEG2, H264, VP8, VP9                     | Playback not fluent, seek not works
-Rockchip 3399 | RockPI 4-b                                   | MPEG2, H264, VP8, VP9                     | Good expierience, seek not works
-Amlogic s905  | TanixTX3-Mini                                | MPEG2, H264, HEVC, VP9                    | Playback not fluent, seek not works, no HEVC on s905w
-Amlogic s912  | Beelink GT1                                  | MPEG2, H264, HEVC, VP9                    | Good expierience, seek not works
-Amlogic sm1   | x96Air                                       | MPEG2, H264, HEVC, VP9                    | Good expierience, seek not works, artefacts on h264
-Broadcom 2837 | Rpi3-b                                       | MPEG4, H264                               | Good expierience, seek not works
-Broadcom 2711 | Rpi4-b                                       |                                           | Not working yet (issue with mainline kernel)
-x86_64        | i5 NUC, Beelink BT4, AMD Kabini, i3+NvGT610  | MPEG2, MPEG4, H264, HVEC (on Z8500)       | Perfect expierience
+SoC           | Tested on                                    | Decoder      |Currently supported video decode HW.accel | Remarks                            |
+------------- |----------------------------------------------|--------------|------------------------------------------|------------------------------------|
+Allwinner H6  | EachLink H6 Mini, TanixTX6-Mini, Beelink GS1 | v4l2_request |MPEG2, H264, HEVC, VP8                    | Good playback, seek not works 
+Rockchip 3328 | Beelink A1                                   | v4l2_request |MPEG2, H264, HEVC, VP8, VP9               | Playback not fluent, seek not works
+Rockchip 3399 | RockPI 4-b                                   | v4l2_request |MPEG2, H264, HEVC, VP8, VP9               | Good playback, seek not works
+Amlogic s905  | TanixTX3-Mini                                | v4l2_m2m     |MPEG2, H264, HEVC, VP9                    | Playback not fluent, seek not works, no HEVC on s905w
+Amlogic s912  | Beelink GT1                                  | v4l2_m2m     |MPEG2, H264, HEVC, VP9                    | Good playback, seek not works
+Amlogic sm1   | x96Air                                       | v4l2_m2m     |MPEG2, H264, HEVC, VP9                    | Good playback, seek not works, artefacts on h264
+Broadcom 2837 | Rpi3-b                                       | v4l2_m2m     |MPEG4, H264                               | Good playback, seek not works
+Broadcom 2711 | Rpi4-b                                       | v4l2_m2m     |                                          | Not working yet (issue with mainline kernel)
+x86_64        | i5 NUC, Beelink BT4, AMD Kabini, i3+NvGT610  | VAAPI, VDPAU, NvDEC |MPEG2, MPEG4, H264, HVEC           | Perfect playback
 
 ## More Info
 - MiniMyth2 [Changelog](https://raw.githubusercontent.com/warpme/minimyth2/master/html/minimyth/document-changelog.txt)
