@@ -113,10 +113,10 @@ CONFIGURE_ARGS = \
 	--enable-fast-unaligned \
 	--enable-optimizations \
 	--pkg-config="pkg-config" \
-	--enable-v4l2-m2m \
 	--enable-libdrm \
 	--enable-libudev \
-	--enable-v4l2-request \
+	--enable-v4l2-m2m \
+	--enable-v4l2_request \
 
 BUILD_ARGS     = \
 	V='1'
