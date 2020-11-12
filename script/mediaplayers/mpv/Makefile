@@ -1,7 +1,7 @@
 
 GARNAME      = mpv
-# master @ 20.09.2020
-GARVERSION   = 03047a0169495c3323ecbaf1c7ea8029c082dc2e
+# master @ 12.11.2020
+GARVERSION   = f85de9e6d6d2785b0a40af052d245e07e2ae14c5
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://github.com/mpv-player/mpv/archive/
 DISTFILES    = $(GARVERSION).zip
@@ -50,7 +50,7 @@ build-custom:
 
 install-custom:
 	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python $(build_DESTDIR)$(build_bindir)/waf install --destdir=$(DESTDIR)
-	@echo 'echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/test-mpv-drm.sh
-	@echo 'mpv --drm-connector=HDMI-A-1 --vo=gpu --gpu-context=drm --hwdec=auto $$1' >> $(DESTDIR)$(bindir)/test-mpv-drm.sh
-	@chmod +x $(DESTDIR)$(bindir)/test-mpv-drm.sh
+	@echo '# echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/mpv-drm.sh
+	@echo 'mpv --drm-connector=HDMI-A-1 --vo=gpu --gpu-context=drm --hwdec=auto $$1' >> $(DESTDIR)$(bindir)/mpv-drm.sh
+	@chmod +x $(DESTDIR)$(bindir)/mpv-drm.sh
 	@$(MAKECOOKIE)
