@@ -1,10 +1,11 @@
 
 GARNAME      = bootfiles-rpi4.mainline64
-GITHASH      = 11e3c314bc2b64f7d862bac00ff3d9f42f3c5a50
-GARVERSION   = 2020-10-02-$(GITHASH)
+GITHASH      = 94c59c450ecfe9fb050e8ee11c35ef2f12de7f20
+GARVERSION   = 2020-11-13-$(GITHASH)
 CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/raspberrypi/firmware/raw/$(GITHASH)/boot/
 DISTFILES    = config.txt             \
+               cmdline.txt            \
                bootcode.bin           \
                fixup4cd.dat           \
                fixup4.dat             \
@@ -32,6 +33,7 @@ build-custom:
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/config.txt          $(DESTDIR)/boot/config.txt
+	@cp -f $(WORKSRC)/cmdline.txt         $(DESTDIR)/boot/cmdline.txt
 	@cp -f $(WORKSRC)/bootcode.bin        $(DESTDIR)/boot/bootcode.bin
 	@cp -f $(WORKSRC)/fixup4.dat          $(DESTDIR)/boot/fixup4.dat
 	@cp -f $(WORKSRC)/fixup4cd.dat        $(DESTDIR)/boot/fixup4cd.dat
@@ -43,6 +45,7 @@ install-custom:
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/config.txt
+	@rm -f $(DESTDIR)/boot/cmdline.txt
 	@rm -f $(DESTDIR)/boot/bootcode.bin
 	@rm -f $(DESTDIR)/boot/fixup4.dat
 	@rm -f $(DESTDIR)/boot/fixup4db.dat
