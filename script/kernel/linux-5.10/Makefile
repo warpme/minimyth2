@@ -124,14 +124,15 @@ PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 endif
 
 # Add TanixTX6 WiFi support
-PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
+#PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
 
 # Hack for adding H264 v4l2 decoding on RPI
 PATCHFILES += 0700-rpi-vc04_services-add_h264_v4l2-m2m_decode.patch
-endif
-
+# Fix building V3D for rpi4
+PATCHFILES += 0701-drm-v3d-fix-Kconfig.patch
 # Add hvec support for Rockchip rkvdec
 PATCHFILES += 0406-media-rkvdec-add-hevc-support.patch
+endif
 
 LICENSE = GPL2
 
