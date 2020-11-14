@@ -5,6 +5,7 @@ CATEGORIES    = lib
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/lib/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
 PATCHFILES    = $(DISTNAME)-add-Amlogic-cards.patch
+PATCHFILES   += $(DISTNAME)-add-rpi4-support.patch
 PATCHFILES   += $(DISTNAME)-missing_files.patch
 DISTFILES     = $(DISTNAME).tar.bz2
 LICENSE       = LGPL2_1
