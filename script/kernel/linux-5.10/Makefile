@@ -137,6 +137,8 @@ PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
 PATCHFILES += 0901-drm-v3d-fix-Kconfig.patch
 # Support for 2xHDMI audio on RPI4
 PATCHFILES += 0902-rpi-vc04_services-update-audio-for-rpi4-14112020.patch
+# Some additions to rpi4 DT
+PATCHFILES += 0904-arm-dts-bcm2711-rpi4-dt-additions.patch
 
 endif
 
