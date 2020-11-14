@@ -76,6 +76,9 @@ PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
 # Add more G12/SM1 soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320731
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
+# Improve perf. on G12 and newer
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=384281
+PATCHFILES += 0375-net-dwmac-meson8b-picosecond-precision-RX-delay-support.patch
 endif
 
 
@@ -128,7 +131,7 @@ PATCHFILES += 0706-media-rkvdec-add-hevc-support.patch
 endif
 
 
-# Add TanixTX6 WiFi support
+# Add TanixTX6 WiFi support (patch disabled as no HW to test :-( )
 #PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
 
 # Hack for adding H264 v4l2 decoding on RPI
