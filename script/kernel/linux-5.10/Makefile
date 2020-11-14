@@ -78,20 +78,6 @@ PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 endif
 
-# Rockchip patches
-ifeq (1,1)
-# Inc.some clocks on rk3328
-PATCHFILES += 0402-arm64-dts-rockchip-inc-cpu-clock-add-gpu-DVFS-on-rk3328.patch
-# Enable rkvdec on rk3328
-PATCHFILES += 0403-arm64-dts-rockchip-enable-rkvdec-on-rk3328.patch
-# DRM fixes from LE
-PATCHFILES += 0404-gpu-drm-rockchip-fixes-from-LE.patch
-# adds support for high profile10, 4:2:2 and deinterlaced h264 decode on rkvdec
-# https://github.com/Kwiboo/linux-rockchip/commits/linuxtv-rkvdec-work-in-progress
-# https://github.com/knaerzche/linux/commit/2d9e1a5b0b2ca9dfae43f30d80d014605337cf2a
-# https://github.com/knaerzche/linux/commit/68c947da3affcfdf48699008b5869325e15bfdcd
-PATCHFILES += 0405-media-rkvdec-hantro-add-interlaced-h264-support.patch
-endif
 
 # Allwinner patches
 ifeq (1,1)
@@ -123,15 +109,35 @@ PATCHFILES += 0516-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 endif
 
+
+# Rockchip patches
+ifeq (1,1)
+# Inc.some clocks on rk3328
+PATCHFILES += 0702-arm64-dts-rockchip-inc-cpu-clock-add-gpu-DVFS-on-rk3328.patch
+# Enable rkvdec on rk3328
+PATCHFILES += 0703-arm64-dts-rockchip-enable-rkvdec-on-rk3328.patch
+# DRM fixes from LE
+PATCHFILES += 0704-gpu-drm-rockchip-fixes-from-LE.patch
+# adds support for high profile10, 4:2:2 and deinterlaced h264 decode on rkvdec
+# https://github.com/Kwiboo/linux-rockchip/commits/linuxtv-rkvdec-work-in-progress
+# https://github.com/knaerzche/linux/commit/2d9e1a5b0b2ca9dfae43f30d80d014605337cf2a
+# https://github.com/knaerzche/linux/commit/68c947da3affcfdf48699008b5869325e15bfdcd
+PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
+# Add hvec support for Rockchip rkvdec
+PATCHFILES += 0706-media-rkvdec-add-hevc-support.patch
+endif
+
+
 # Add TanixTX6 WiFi support
 #PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
 
 # Hack for adding H264 v4l2 decoding on RPI
-PATCHFILES += 0700-rpi-vc04_services-add_h264_v4l2-m2m_decode.patch
+PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
 # Fix building V3D for rpi4
-PATCHFILES += 0701-drm-v3d-fix-Kconfig.patch
-# Add hvec support for Rockchip rkvdec
-PATCHFILES += 0406-media-rkvdec-add-hevc-support.patch
+PATCHFILES += 0901-drm-v3d-fix-Kconfig.patch
+# Support for 2xHDMI audio on RPI4
+PATCHFILES += 0902-rpi-vc04_services-update-audio-for-rpi4-14112020.patch
+
 endif
 
 LICENSE = GPL2
