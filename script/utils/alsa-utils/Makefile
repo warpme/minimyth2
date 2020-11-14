@@ -1,10 +1,11 @@
-GARNAME = alsa-utils
-GARVERSION = 1.2.2
-CATEGORIES = utils
+
+GARNAME       = alsa-utils
+GARVERSION    = 1.2.4
+CATEGORIES    = utils
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/utils/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = GPL2
+DISTFILES     = $(DISTNAME).tar.bz2
+LICENSE       = GPL2
 
 DESCRIPTION = 
 define BLURB
