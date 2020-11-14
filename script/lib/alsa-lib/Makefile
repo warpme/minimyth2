@@ -1,11 +1,13 @@
-GARNAME = alsa-lib
-GARVERSION = 1.2.2
-CATEGORIES = lib
+
+GARNAME       = alsa-lib
+GARVERSION    = 1.2.4
+CATEGORIES    = lib
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/lib/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
-PATCHFILES = $(DISTNAME)-missing_files.patch $(DISTNAME)-add-Amlogic-cards.patch
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = LGPL2_1
+PATCHFILES    = $(DISTNAME)-add-Amlogic-cards.patch
+PATCHFILES   += $(DISTNAME)-missing_files.patch
+DISTFILES     = $(DISTNAME).tar.bz2
+LICENSE       = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
