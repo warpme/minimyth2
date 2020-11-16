@@ -56,23 +56,20 @@ PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 
 ifeq (1,1)
-# v4l2-request support in ffmpeg
-# For 5.10 kenrel
+# v4l2-request support in ffmpeg for 5.10 kernel (requires patching also 5.10 kernel)
+# Based on:
 # https://github.com/jernejsk/LibreELEC.tv/tree/69fae8524b9ef02cd2e3415ece1ae01dfc2b5426/packages/multimedia/ffmpeg/patches 29.10.2020
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-from-LE.patch
-# For 5.9 kernel
-# https://github.com/LibreELEC/LibreELEC.tv/tree/master/packages/multimedia/ffmpeg/patches/v4l2-request
-# PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-from-LE-5.9.patch
-
+# https://github.com/Kwiboo/FFmpeg/commit/5e9575a822a94139bdcfe6a7fa78e4ef771ccb39
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.10kernel.patch
+# Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
-
-# Enable v4l2_request decoding
+# Enable v4l2_request decoding kn myth v4l2 decoder
 # https://github.com/MythTV/mythtv/issues/278
 PATCHFILES += 0153-decoders-add_v4l2_request-support.patch
-# required for AML HD playbck in MythTV
-PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 endif
 
+# buffers bump-up required for AML HD playbck
+PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 # This reverts v4l2_m2m chages as with them playback has skipping frames on s905 vdec
 # PATCHFILES += 0190-revert-a1e378ad-ffmpeg-Update-v4l2-memory-to-memory-DRM_PRIME-suppor.patch
 # Fixing hang in vdec playback on AML s912/sm1
@@ -80,9 +77,6 @@ PATCHFILES += 0190-issue209-fix-aml-vdec-playback-hangs-s912-sm1.patch
 
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
-# add hvec v4l4_request support for  Rockchip
-PATCHFILES += 0198-ffmpeg-libavcodec-fix-hevc-decode-on-rockchip.patch
-PATCHFILES += 0199-ffmpeg-libavcodec-hevc-add-rkvdec-fields.patch.mythtv.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
