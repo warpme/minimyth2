@@ -72,15 +72,15 @@ PATCHFILES += 0370-arm64-dts-amlogic-disable-ethernet-reset-on-sm1.patch
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
 PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
-
 # Add more G12/SM1 soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320731
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 # Improve perf. on G12 and newer
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=384281
 PATCHFILES += 0375-net-dwmac-meson8b-picosecond-precision-RX-delay-support.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=384505
+PATCHFILES += 0376-thermal-amlogic-Add-hwmon-support.patch
 endif
-
 
 # Allwinner patches
 ifeq (1,1)
