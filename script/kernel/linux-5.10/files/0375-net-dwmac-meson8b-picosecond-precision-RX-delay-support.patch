@@ -1,6 +1,4 @@
 
-Source: https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=384281
-
 Amlogic Meson G12A, G12B and SM1 SoCs have a more advanced RGMII RX
 delay register which allows picoseconds precision. Deprecate the old
 "amlogic,rx-delay-ns" in favour of a new "amlogic,rgmii-rx-delay-ps"
@@ -10,16 +8,26 @@ For older SoCs the only known supported values were 0ns and 2ns. The new
 SoCs have 200ps precision and support RGMII RX delays between 0ps and
 3000ps.
 
+While here, also update the description of the RX delay to indicate
+that:
+- with "rgmii" or "rgmii-id" the RX delay should be specified
+- with "rgmii-id" or "rgmii-rxid" the RX delay is added by the PHY so
+  any configuration on the MAC side is ignored
+- with "rmii" the RX delay is not applicable and any configuration is
+  ignored
+
 Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Reviewed-by: Florian Fainelli <f.fainelli@gmail.com>
 ---
- .../bindings/net/amlogic,meson-dwmac.yaml     | 52 ++++++++++++++++++-
- 1 file changed, 51 insertions(+), 1 deletion(-)
+ .../bindings/net/amlogic,meson-dwmac.yaml     | 61 +++++++++++++++++--
+ 1 file changed, 56 insertions(+), 5 deletions(-)
 
 diff --git a/Documentation/devicetree/bindings/net/amlogic,meson-dwmac.yaml b/Documentation/devicetree/bindings/net/amlogic,meson-dwmac.yaml
-index 6b057b117aa0..bafde1194193 100644
+index 6b057b117aa0..62a1e92a645c 100644
 --- a/Documentation/devicetree/bindings/net/amlogic,meson-dwmac.yaml
 +++ b/Documentation/devicetree/bindings/net/amlogic,meson-dwmac.yaml
-@@ -74,18 +74,68 @@ allOf:
+@@ -74,17 +74,68 @@ allOf:
              Any configuration is ignored when the phy-mode is set to "rmii".
  
          amlogic,rx-delay-ns:
@@ -37,12 +45,17 @@ index 6b057b117aa0..bafde1194193 100644
            description:
              The internal RGMII RX clock delay (provided by this IP block) in
 -            nanoseconds. When phy-mode is set to "rgmii" then the RX delay
-+            picoseconds. When phy-mode is set to "rgmii" then the RX delay
-             should be explicitly configured. When the phy-mode is set to
-             either "rgmii-id" or "rgmii-rxid" the RX clock delay is already
-             provided by the PHY. Any configuration is ignored when the
-             phy-mode is set to "rmii".
- 
+-            should be explicitly configured. When the phy-mode is set to
+-            either "rgmii-id" or "rgmii-rxid" the RX clock delay is already
+-            provided by the PHY. Any configuration is ignored when the
+-            phy-mode is set to "rmii".
++            picoseconds. When phy-mode is set to "rgmii" or "rgmii-id" then
++            the RX delay should be explicitly configured. When the phy-mode
++            is set to either "rgmii-id" or "rgmii-rxid" the RX clock delay
++            is already provided by the PHY so any configuration here is
++            ignored. Also any configuration is ignored when the phy-mode is
++            set to "rmii".
++
 +  - if:
 +      properties:
 +        compatible:
@@ -85,10 +98,34 @@ index 6b057b117aa0..bafde1194193 100644
 +            - 2600
 +            - 2800
 +            - 3000
-+
+ 
  properties:
    compatible:
-     additionalItems: true
+
+
+Fixes: 9308c47640d515 ("net: stmmac: dwmac-meson8b: add support for the RX delay configuration")
+Reported-by: Andrew Lunn <andrew@lunn.ch>
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Reviewed-by: Florian Fainelli <f.fainelli@gmail.com>
+---
+ drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
+index dc0b8b6d180d..e27e2e7a53fd 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
++++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
+@@ -301,7 +301,7 @@ static int meson8b_init_prg_eth(struct meson8b_dwmac *dwmac)
+ 		return -EINVAL;
+ 	}
+ 
+-	if (rx_dly_config & PRG_ETH0_ADJ_ENABLE) {
++	if (delay_config & PRG_ETH0_ADJ_ENABLE) {
+ 		if (!dwmac->timing_adj_clk) {
+ 			dev_err(dwmac->dev,
+ 				"The timing-adjustment clock is mandatory for the RX delay re-timing\n");
+
 
 Amlogic Meson G12A, G12B and SM1 SoCs have a more advanced RGMII RX
 delay register which allows picoseconds precision. Parse the new
@@ -96,12 +133,14 @@ delay register which allows picoseconds precision. Parse the new
 "amlogic,rx-delay-ns".
 
 Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Reviewed-by: Florian Fainelli <f.fainelli@gmail.com>
 ---
  .../ethernet/stmicro/stmmac/dwmac-meson8b.c   | 22 ++++++++++++-------
  1 file changed, 14 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
-index dc0b8b6d180d..465eaf000da1 100644
+index e27e2e7a53fd..03fce678b9f5 100644
 --- a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
 +++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
 @@ -83,7 +83,7 @@ struct meson8b_dwmac {
@@ -150,6 +189,7 @@ index dc0b8b6d180d..465eaf000da1 100644
  		goto err_remove_config_dt;
  	}
 
+
 Newer SoCs starting with the Amlogic Meson G12A have more a precise
 RGMII RX delay configuration register. This means more complexity in the
 code. Extract the existing RGMII delay configuration code into a
@@ -157,12 +197,14 @@ separate function to make it easier to read/understand even when adding
 more logic in the future.
 
 Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Reviewed-by: Florian Fainelli <f.fainelli@gmail.com>
 ---
  drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c | 13 ++++++++++++-
  1 file changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
-index 465eaf000da1..a6e2077ed871 100644
+index 03fce678b9f5..353fe0f53620 100644
 --- a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
 +++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
 @@ -268,7 +268,7 @@ static int meson8b_devm_clk_prepare_enable(struct meson8b_dwmac *dwmac,
@@ -210,12 +252,14 @@ Add support for validating the RGMII RX delay as well as configuring the
 register accordingly on these platforms.
 
 Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Reviewed-by: Andrew Lunn <andrew@lunn.ch>
+Reviewed-by: Florian Fainelli <f.fainelli@gmail.com>
 ---
- .../ethernet/stmicro/stmmac/dwmac-meson8b.c   | 63 ++++++++++++++-----
- 1 file changed, 49 insertions(+), 14 deletions(-)
+ .../ethernet/stmicro/stmmac/dwmac-meson8b.c   | 61 +++++++++++++++----
+ 1 file changed, 48 insertions(+), 13 deletions(-)
 
 diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
-index a6e2077ed871..ae081fbc0552 100644
+index 353fe0f53620..2184b6c2c784 100644
 --- a/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
 +++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-meson8b.c
 @@ -69,10 +69,21 @@
@@ -283,15 +327,6 @@ index a6e2077ed871..ae081fbc0552 100644
  		break;
  	default:
  		dev_err(dwmac->dev, "unsupported phy-mode %s\n",
-@@ -301,7 +317,7 @@ static int meson8b_init_rgmii_delays(struct meson8b_dwmac *dwmac)
- 		return -EINVAL;
- 	}
- 
--	if (rx_dly_config & PRG_ETH0_ADJ_ENABLE) {
-+	if (rx_adj_config & PRG_ETH0_ADJ_ENABLE) {
- 		if (!dwmac->timing_adj_clk) {
- 			dev_err(dwmac->dev,
- 				"The timing-adjustment clock is mandatory for the RX delay re-timing\n");
 @@ -323,6 +339,9 @@ static int meson8b_init_rgmii_delays(struct meson8b_dwmac *dwmac)
  				PRG_ETH0_ADJ_DELAY | PRG_ETH0_ADJ_SKEW,
  				delay_config);

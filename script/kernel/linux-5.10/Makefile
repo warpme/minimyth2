@@ -76,7 +76,7 @@ PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320731
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 # Improve perf. on G12 and newer
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=384281
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=384491
 PATCHFILES += 0375-net-dwmac-meson8b-picosecond-precision-RX-delay-support.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=384505
 PATCHFILES += 0376-thermal-amlogic-Add-hwmon-support.patch
