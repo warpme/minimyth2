@@ -6,6 +6,8 @@
 
 start() {
 
+    /bin/touch /var/init/shutdown.inprogress
+
     local script
     local mountpoint
     local mountpoints
@@ -25,23 +27,30 @@ start() {
     mountpoints=`LANG=C /usr/bin/awk "${script}" '/proc/mounts' | /usr/bin/sort -r`
     retry=3
     while [ -n "${mountpoints}" ] && [ ${retry} -gt 0 ] ; do
+
         for mountpoint in ${mountpoints} ; do
             mm_message_output info "unmounting ${mountpoint}"
             /bin/umount -f ${mountpoint}
         done
+
         mountpoints=`LANG=C /usr/bin/awk "${script}" '/proc/mounts' | /usr/bin/sort -r`
+
         retry=$(( ${retry} - 1 ))
         if [ -n "${mountpoints}" ] && [ ${retry} -gt 0 ] ; then
             sleep 1
         fi
+
     done
 
+    /bin/rm -f /var/init/shutdown.inprogress
     return 0
 }
 
 stop() {
+
     start
     return 0
+
 }
 
 case $1 in

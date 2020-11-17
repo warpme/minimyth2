@@ -289,14 +289,26 @@ endif
 	        $@~/home/minimyth/.mythtv/lircrc
 	@# Make perl init script links.
 	@mkdir -m 0775 -p                $@~$(sysconfdir)/rc.d/rc.d
-	@index=10 ; $(foreach file, $(MM_INIT_START_SEQUENTIAL), \
+	@index=10  ; $(foreach file, $(MM_INIT_START_PHASE_1), \
 		test -e $@~$(sysconfdir)/rc.d/init.d/$(file) && \
 		index=$$(($${index}+2)) && \
-		ln -sf ../init.d/$(file) $@~$(sysconfdir)/rc.d/rc.d/I$${index}$(file) ; )
-	@index=10 ; $(foreach file, $(MM_INIT_START_PARALLEL), \
+		ln -sf ../init.d/$(file) $@~$(sysconfdir)/rc.d/rc.d/I1_$${index}$(file) ; )
+	@index=10 ; $(foreach file, $(MM_INIT_START_PHASE_2), \
 		test -e $@~$(sysconfdir)/rc.d/init.d/$(file) && \
 		index=$$(($${index}+2)) && \
-		ln -sf ../init.d/$(file) $@~$(sysconfdir)/rc.d/rc.d/S$${index}$(file) ; )
+		ln -sf ../init.d/$(file) $@~$(sysconfdir)/rc.d/rc.d/I2_$${index}$(file) ; )
+	@index=10 ; $(foreach file, $(MM_INIT_START_PHASE_3), \
+		test -e $@~$(sysconfdir)/rc.d/init.d/$(file) && \
+		index=$$(($${index}+2)) && \
+		ln -sf ../init.d/$(file) $@~$(sysconfdir)/rc.d/rc.d/I3_$${index}$(file) ; )
+	@index=10 ; $(foreach file, $(MM_INIT_START_PHASE_4), \
+		test -e $@~$(sysconfdir)/rc.d/init.d/$(file) && \
+		index=$$(($${index}+2)) && \
+		ln -sf ../init.d/$(file) $@~$(sysconfdir)/rc.d/rc.d/I4_$${index}$(file) ; )
+	@index=10 ; $(foreach file, $(MM_INIT_START_PHASE_5), \
+		test -e $@~$(sysconfdir)/rc.d/init.d/$(file) && \
+		index=$$(($${index}+2)) && \
+		ln -sf ../init.d/$(file) $@~$(sysconfdir)/rc.d/rc.d/I5_$${index}$(file) ; )
 	@index=10 ; $(foreach file, $(MM_INIT_KILL) , \
 		test -e $@~$(sysconfdir)/rc.d/init.d/$(file) && \
 		index=$$(($${index}+2)) && \

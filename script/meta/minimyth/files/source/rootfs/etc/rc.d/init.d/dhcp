@@ -6,6 +6,8 @@
 
 start() {
 
+    /bin/touch /var/init/dhcp.inprogress
+
     local DHCLIENT_CONF
     local INTERFACE
     local INTERFACE_ITEM
@@ -70,8 +72,7 @@ start() {
                 if [ $i -eq 15 ] ; then
                     mm_message_output err "error: After 15sec still no '${INTERFACE}' interface in system..."
                     /usr/bin/logger -t minimyth -p "local0.err" "[init.d/dhcp] Timeout waiting for ${INTERFACE} interface..."
-                    /bin/false
-                    exit 1
+                    return 1
                 else
                     /sbin/ifconfig ${INTERFACE} > /var/log/eth-interface
                     /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Waiting for ${INTERFACE} interface..."
@@ -94,14 +95,14 @@ start() {
         fi
         if [ $? -ne 0 ] ; then
             mm_message_output err "error: DHCP on interface '${INTERFACE}' failed."
-            exit 1
+            return 1
         fi
 
         # Make sure we got an IP address.
         IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
         if [ -z "${IP_ADDRESS}" ] ; then
             mm_message_output err "error: Can't get IP from DHCP on interface '${INTERFACE}' ..."
-            exit 1
+            return 1
         fi
 
     fi
@@ -130,6 +131,7 @@ start() {
 
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/dhcp] Started with return code=0..."
 
+    /bin/rm -f /var/init/dhcp.inprogress
     return 0
 }
 

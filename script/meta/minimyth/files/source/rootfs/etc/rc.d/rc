@@ -11,7 +11,7 @@ script_list_start="\
     dbus \
     wlan \
     dhcp \
-    conf_sequential \
+    conf_phase_1..4 \
     modules_manual \
     log \
     security \
@@ -25,7 +25,7 @@ script_list_kill_reboot="\
 
 rc_script_list_run() {
 
-    # Phase:
+    # Mode:
     # 0 - sequential bootup
     # 1 - sequential init scripts start
     # 2 - parallel   init scripts start
@@ -38,14 +38,23 @@ rc_script_list_run() {
     local shutdown_count
     local script
 
+    rm -rf /var/init/*.inprogress
+
     shutdown_count=`/bin/echo ${script_list} | /usr/bin/wc -w`
     boot_count=${shutdown_count}
-    if   /usr/bin/test ${phase} -eq 0 ; then
-        mm_splash_progress_set 0        $(( ${boot_count} + ${boot_count} ))
-    elif /usr/bin/test ${phase} -eq 1 ; then
+
+    if   [ ${phase} -eq 0 ] ; then
+
+        mm_splash_progress_set 0  $(( ${boot_count} + ${boot_count} ))
+
+    elif [ ${phase} -eq 1 ] ; then
+
         mm_splash_progress_set ${boot_count} $(( ${boot_count} + ${boot_count} ))
-    elif /usr/bin/test ${phase} -eq 3 ; then
-        mm_splash_progress_set 0        ${shutdown_count}
+
+    elif [ ${phase} -eq 3 ] ; then
+
+        mm_splash_progress_set 0 ${shutdown_count}
+
     fi
 
     # Uncommet this if You want local console at boot
@@ -55,89 +64,147 @@ rc_script_list_run() {
 
     for script in ${script_list} ; do
 
-        if   /usr/bin/test ${phase} -eq 2 ; then
+        if [ ${phase} -eq 2 ] ; then
+
             mm_command_run "${script} ${action}" &
+
         else
+
             mm_command_run "${script} ${action}"
+
         fi
 
         mm_splash_progress_update
 
-        # An error occured, so start a virtual console login and a telnet login.
-        # This is a serious security hole, but users have difficulty debugging
-        # when they cannot connect.
-        if /usr/bin/test $? -ne 0 ; then
-            if /usr/bin/test -z "`/bin/pidof telnetd`" ; then
-                /usr/sbin/telnetd
+    done
+
+    # Awaiting till this pahse all init scripts will be executed
+    timeout=20
+    i=0
+    while [ $i -lt ${timeout} ] ; do
+
+        in_progress=`/bin/ls -1 /var/init/*.inprogress 2>/dev/null`
+
+        i=$((${i} + 1))
+
+        if [  "x${in_progress}" = "x" ] ; then
+
+            i=${timeout}
+
+            /bin/true
+            return
+
+        else
+
+            if [ $i -eq ${timeout} ] ; then
+
+                failed=`/bin/ls -1 /var/init/*.inprogress 2>/dev/null`
+                /usr/bin/logger -t minimyth -p "local0.err" "[init.d/rc_script_list_run] Timeout executing init list caused by ${failed} !"
+                mv /var/init/*.inprogress /var/log/
+
+                /bin/false
+                return
+
+            else
+
+                /bin/sleep 1
             fi
-            if /usr/bin/test -z "`/bin/pidof agetty`" ; then
-                /sbin/agetty 9600 tty1 &
-            fi
-            exit $?
         fi
 
-        # Hack for restarting splash after stopping X.
-        #if /usr/bin/test ${phase} -eq 3 ; then
-        #    echo ${script} | grep -q "K[0-9][0-9]x"
-        #    if /usr/bin/test $? -eq 0 ; then
-        #       mm_splash_init 'reboot'
-        #       mm_splash_progress_set 0 ${shutdown_count}
-        #       mm_splash_progress_update
-        #    fi
-        #fi
-
     done
+
 }
 
-if /usr/bin/test `/usr/bin/id -u` -eq 0 ; then
+if [ `/usr/bin/id -u` -eq 0 ] ; then
+
     if /usr/bin/test -z "${USER}" ; then
+
         USER=`/bin/cat /etc/passwd | /bin/grep -e '^[^:]*:[^:]*:0:' | /usr/bin/cut -d ':' -f 1`
         export USER
+
     fi
+
     if /usr/bin/test -z "${HOME}" || /usr/bin/test "${HOME}" = "/" ; then
+
         HOME=`/bin/cat /etc/passwd | /bin/grep -e '^[^:]*:[^:]*:0:' | /usr/bin/cut -d ':' -f 6`
         export HOME
+
     fi
 fi
 
 case $1 in
+
     1|2|3|4|5)
 
         # Start bootup scripts sequentially
+
         mm_splash_init 'bootup'
+
         script_list="`scripts=${script_list_start}; \
                       for script in ${scripts} ; do /bin/echo /etc/rc.d/init.d/${script} ; done`"
+
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/rc] Sequential launch init scripts: Bootup list ..."
+
         rc_script_list_run 0 "start" "${script_list}"
 
-        # Start init scripts needed to run sequentially
-        /bin/rm -fr   /var/lib/init/*
-        /bin/mkdir -p /var/lib/init
-        script_list=`/bin/ls -1 /etc/rc.d/rc.d/I*`
-        rc_script_list_run 1 "start" "${script_list}"
+        # Start init scripts parallelly
+        /bin/rm -fr   /var/init/*
+        /bin/mkdir -p /var/init
+
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/rc] Parallel launch init scripts: List1 ..."
+
+        script_list=`/bin/ls -1 /etc/rc.d/rc.d/I1_* 2>/dev/null`
+        rc_script_list_run 2 "start" "${script_list}"
+
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/rc] Parallel launch init scripts. List2 ..."
+
+        script_list=`/bin/ls -1 /etc/rc.d/rc.d/I2_* 2>/dev/null`
+        rc_script_list_run 2 "start" "${script_list}"
+
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/rc] Parallel launch init scripts. List3 ..."
+
+        script_list=`/bin/ls -1 /etc/rc.d/rc.d/I3_* 2>/dev/null`
+        rc_script_list_run 2 "start" "${script_list}"
+
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/rc] Parallel launch init scripts. List4 ..."
+
+        script_list=`/bin/ls -1 /etc/rc.d/rc.d/I4_* 2>/dev/null`
+        rc_script_list_run 2 "start" "${script_list}"
+
         mm_splash_halt
 
         /bin/sleep 25
 
         # Start init scripts allowable to run parallel
-        script_list=`/bin/ls -1 /etc/rc.d/rc.d/S*`
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/rc] Parallel launch init scripts. List5 ..."
+
+        script_list=`/bin/ls -1 /etc/rc.d/rc.d/I5_* 2>/dev/null`
         rc_script_list_run 2 "start" "${script_list}"
+
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/rc] All init scripts launched ..."
         ;;
+
     0)
         # Stop all scripts allowable to stop parallel
         mm_splash_init 'shutdown'
+
         script_list=" `/bin/ls -1 /etc/rc.d/rc.d/K*` \
                       `scripts=${script_list_kill_halt} ; \
                        for script in ${scripts} ; do /bin/echo /etc/rc.d/init.d/${script} ; done`"
         rc_script_list_run 3 "stop" "${script_list}"
+
         mm_splash_halt
         ;;
+
     6)
         # Stop all scripts allowable to stop parallel
         mm_splash_init 'reboot'
+
         script_list="`/bin/ls -1 /etc/rc.d/rc.d/K*` \
                      `scripts=${script_list_kill_reboot} ; \
                       for script in ${scripts} ; do /bin/echo /etc/rc.d/init.d/${script} ; done`"
         rc_script_list_run 3 "stop" "${script_list}"
+
         mm_splash_halt
         ;;
 esac

@@ -6,6 +6,8 @@
 
 start() {
 
+    /bin/touch /var/init/time.inprogress
+
     local NTP_SERVER
     local NTP_SERVERS
     local NTP_SUCCESS
@@ -13,42 +15,58 @@ start() {
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/time] Starting..."
 
     if [ -e /etc/localtime ] ; then
+
         timezone=`cat /etc/localtime`
     fi
+
     if [ -z ${timezone} ] ; then
+
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ not set by DHCP or MM_DHCP_TCODE. Starting auto-detection..."
+
         i=0
         while [ $i -lt 10 ] ; do
+
             i=$((${i} + 1))
+
             rc=`/usr/bin/python /usr/bin/tzupdate`
             if [ $? -ne 0 ] ; then
+
                 /bin/sleep 2
                 if [ $i -lt 10 ] ; then
+
                     /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] try ${i}: TZ auto-detection failed! Daemon returns: ${rc}"
                 else
+
                     /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] try ${i}: TZ auto-detection failed! Daemon returns: ${rc}"
                 fi
             else
+
                 /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ auto-detection detected: ${rc}"
                 i=10
             fi
         done
+
     else
+
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/time] TZ set by DHCP or MM_DHCP_TCODE. Skipping auto-detection..."
     fi
 
     # Set time.
     NTP_SERVERS=`/bin/cat /etc/ntp.conf | /bin/grep '^server ' | /bin/sed 's%^server  *%%'`
     NTP_SUCCESS=0
+
     for NTP_SERVER in ${NTP_SERVERS} ; do
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/time] Kicking ntpdate on ${NTP_SERVER}"
         /usr/bin/ntpdate -p1 -b -s "${NTP_SERVER}"
+
         if [ $? -eq 0 ] ; then
             NTP_SUCCESS=1
             continue
         fi
     done
+
     if [ ${NTP_SUCCESS} -eq 0 ] ; then
+
         /usr/bin/logger -s -t minimyth -p "local0.err" "[init.d/time] Failed to set local time from NTP server !"
     fi
 
@@ -61,10 +79,12 @@ start() {
 
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/time] Started with return code=0..."
 
+    /bin/rm -f /var/init/time.inprogress
     return 0
 }
 
 stop() {
+
     mm_message_output info "saving time ..."
 
     if [ -n "`/bin/pidof ntpd`" ] ; then

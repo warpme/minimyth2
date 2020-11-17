@@ -8,6 +8,8 @@
 
 start() {
 
+    /bin/touch /var/lib/init/mythtv.inprogress
+
     local jumppoints
     local jumppoints_destination
     local jumppoints_keylist
@@ -23,16 +25,16 @@ start() {
     local dir
     local found
 
-    /bin/touch /var/lib/init/mythtv.inprogress
-
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Starting..."
 
     # Setup myth home dir. if configured.
     if [ -n "${MM_MYTHTV_HOME_URL}" ] ; then
+
         HOST_NAME=`/bin/hostname`
 
         # Automounting myth home dir
         if [ "x${MM_MYTHTV_HOME_URL}" = "xauto" ] ; then
+
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Trying to automount mythtv home dir...(auto)"
 
             /bin/rm -f /home/minimyth/_.test_
@@ -40,28 +42,45 @@ start() {
 
             # Checking is conten of home dir is laready initialized. If no then initialize it.
             if [ -f "/home/minimyth/_.test_" ] ; then
+
                 # Home dir. content looks OK. Using it as myth home dir.
                 /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home has correct content. Will mount...(auto)"
+
                 if [ -f "/var/lib/minimyth.bootdir.nfs_mounted" ] ; then
+
                     /bin/cp -rf /home/minimyth/. /var/minimyth.bootdir/conf-rw/${HOST_NAME}/minimyth_home/
                     /bin/rm -rf /home/minimyth
                     /bin/ln -sf /var/minimyth.bootdir/conf-rw/${HOST_NAME}/minimyth_home /home/minimyth
+
                     if /bin/su -c "/usr/bin/test ! -w /home/minimyth" - minimyth ; then
+
                         mm_message_output err "error: remote mythtv home dir is not writable by user 'minimyth'."
+
+                        /bin/rm -f /var/lib/init/mythtv.inprogress
                         exit 1
+
                     fi
+
                     /bin/ln -sf /etc/lirc/lircrc /home/minimyth/.lircrc
                     /bin/ln -sf /etc/lirc/lircrc /home/minimyth/.mythtv/.lircrc
                     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home dir automounted...(auto)"
+
                 else
+
                     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] ERROR: NFS base dir not mounted..."
+
                     mm_message_output err "ERORR: NFS base bootdir not mounted..."
-                    exit 1
+                    return 1
+
                 fi
+
             else
+
                 # Initialize myth home dir.
                 /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home incorect content. Will initialize...(auto)"
+
                 if [ -f "/var/lib/minimyth.bootdir.nfs_mounted" ] ; then
+
                     /bin/rm -rf /var/minimyth.bootdir/conf-rw/${HOST_NAME}/minimyth_home
                     /bin/cp -rf /home/minimyth/. /var/minimyth.bootdir/conf-rw/${HOST_NAME}/minimyth_home/
                     /bin/rm -rf /home/minimyth
@@ -69,10 +88,13 @@ start() {
                     /bin/ln -sf /etc/lirc/lircrc /home/minimyth/.lircrc
                     /bin/ln -sf /etc/lirc/lircrc /home/minimyth/.mythtv/.lircrc
                     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home dir initialized and mounted... (auto)"
+
                 else
+
                     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] ERROR: NFS base dir not mounted..."
+
                     mm_message_output err "ERORR: NFS base bootdir not mounted..."
-                    exit 1
+                    return 1
                 fi
             fi
 
@@ -85,6 +107,7 @@ start() {
 
             # Checking is conten of home dir is laready initialized. If no then initialize it.
             if [ -f "/var/minimyth_home/.mythtv/mysql.txt" ] ; then
+
                 # Home dir. content look OK. Using it as myth home dir. 
                 /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home has correct content. Will mount...(URL)"  
                 /bin/cp -rf /home/minimyth/. /var/minimyth_home/
@@ -93,7 +116,9 @@ start() {
                 /bin/ln -sf /etc/lirc/lircrc /home/minimyth/.lircrc
                 /bin/ln -sf /etc/lirc/lircrc /home/minimyth/.mythtv/.lircrc
                 /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home dir mounted via URL..."
+
             else
+
                 # Initialize myth home dir. 
                 /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home incorect content. Will initialize...(URL)" 
                 /bin/cp -rf /home/minimyth/. /var/minimyth_home/
@@ -112,18 +137,25 @@ start() {
 
     # Set the MythTV theme.
     if [ -n "${MM_THEME_NAME}" ] ; then
+
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Asking MythTV to use theme:${MM_THEME_NAME}"
         mm_mythdb_settings_set "Theme" "${MM_THEME_NAME}"
+
     fi
  
     # Try to mount MythTV theme directory.
     if [ -n "${MM_THEME_URL}" ] ; then
+
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Trying to mount theme from ${MM_THEME_URL}"
+
         if ! mm_url_mount "${MM_THEME_URL}" "/usr/share/mythtv/themes/${MM_THEME_NAME}" ; then
+
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Can't download/mount theme from ${MM_THEME_URL}. Fallback to build-in MythCenter-wide..."
             mm_message_output info "Can't load theme. Fall-back to build-in MythCenter-wide theme..."
             mm_mythdb_settings_set "Theme" "MythCenter-wide"
+
         else
+
             #mm_message_output info "selecting ${MM_THEME_NAME} theme ..."
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Theme from ${MM_THEME_URL} successfuly mounted..."
         fi
@@ -131,16 +163,22 @@ start() {
 
     # Set the MythTV theme menu.
     if [ -n "${MM_THEMEMENU_NAME}" ] ; then
+
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Forcing MenuTheme ${MM_THEME_NAME} from config file..."
         mm_mythdb_settings_set "MenuTheme" "${MM_THEMEMENU_NAME}"
+
     fi
  
     # Mount MythTV Menu directory.
     if [ -n "${MM_THEMEMENU_URL}" ] ; then
+
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Mounting MenuTheme from ${MM_THEMEMENU_URL}"
+
         if ! mm_url_mount "${MM_THEMEMENU_URL}" "/usr/share/mythtv/themes/${MM_THEMEMENU_NAME}" ; then
+
             mm_message_output err "error: mount of 'MM_THEMEMENU_URL=${MM_THEMEMENU_URL}' failed."
-            exit 1
+            return 1
+
         fi
     fi
 
@@ -148,91 +186,129 @@ start() {
     # Mount remotecache directory.
     if [ -n "${MM_REMOTECACHE_URL}" ] && [ -z "${MM_MYTHTV_HOME_URL}" ] ; then
         HOST_NAME=`/bin/hostname`
+
         if [ "x${MM_REMOTECACHE_URL}" = "xauto" ] ; then
+
             /bin/rm -f /home/minimyth/_.test_
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Trying to automount mythtv home dir...(auto)"
             mm_confrw_get /minimyth_home/.mythtv/mysql.txt /home/minimyth/_.test_
+
             if [ -f "/var/lib/minimyth.bootdir.nfs_mounted" ] ; then
+
                 /bin/ln -sf /var/minimyth.bootdir/conf-rw/${HOST_NAME}/remotecache /home/minimyth/.mythtv/cache/remotecache
+
                 if /bin/su -c "/usr/bin/test ! -w /home/minimyth/.mythtv/cache/remotecache" - minimyth ; then
+
                     mm_message_output err "ERROR: RemoteCache dir is not writable by user 'minimyth'."
-                    exit 1
+                    return 1
                 fi
+
                 /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] RemoteCache mounted... (auto)"
+
             else
+
                 /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] ERROR mounting RemoteCache: NFS base dir not mounted..."
                 mm_message_output err "ERORR: NFS base bootdir not mounted..."
-                exit 1
+                return 1
+
             fi
+
         else
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Mounting MythTV cache from ${MM_REMOTECACHE_URL}/${HOST_NAME}"
+
             if ! mm_url_mount "${MM_REMOTECACHE_URL}/${HOST_NAME}" "/home/minimyth/.mythtv/cache" ; then
+
                 if ! mm_url_mount "${MM_REMOTECACHE_URL}" "/home/minimyth/.mythtv/cache" ; then
+
                     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Failed to mount ${MM_REMOTECACHE_URL} URL. Is it correct URL?"
                     mm_message_output err "ERROR: Can't mount MM_REMOTECACHE_URL..."
-                    exit 1
+                    return 1
+
                 else
                     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Creating ${HOST_NAME} subdir on ${MM_REMOTECACHE_URL} for mythtv cache..."
+
                     if ! /bin/mkdir -p -m 777 "/home/minimyth/.mythtv/cache/${HOST_NAME}" ; then
+
                         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Can't create subdir ${HOST_NAME}. Has ${MM_REMOTECACHE_URL} 777 rights?"
                         mm_message_output err "ERROR: Can't create subdir ${HOST_NAME} in MM_REMOTECACHE_URL..."
-                        exit 1
+                        return 1
+
                     fi
+
                     /bin/umount "/home/minimyth/.mythtv/cache"
                     if ! mm_url_mount "${MM_REMOTECACHE_URL}/${HOST_NAME}" "/home/minimyth/.mythtv/cache" ; then
+
                         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Failed to mount mythtv cache from ${MM_REMOTECACHE_URL}/${HOST_NAME}"
                         mm_message_output err "ERROR: Can't mount MM_REMOTECACHE_URL/${HOST_NAME}..."
-                        exit 1
+                        return 1
+
                     else
+
                         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] mythtv cache from ${MM_REMOTECACHE_URL}/${HOST_NAME} mounted OK..."
                     fi
                 fi
             fi
         fi
     else
+
         # create empty remotecache dir. mm_show_sysstat.pl needs it for channel icons storage
         /bin/mkdir -p -m 777 "/home/minimyth/.mythtv/cache/remotecache"
     fi
 
     # Mount themecache directory.
     if [ -n "${MM_THEMECACHE_URL}" ] && [ -z "${MM_MYTHTV_HOME_URL}" ] ; then
+
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Mounting ThemeCache from ${MM_THEMECACHE_URL}"
+
         if ! mm_url_mount "${MM_THEMECACHE_URL}" "/home/minimyth/.mythtv/cache/themecache" ; then
+
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Failed to mount ThemeCache from ${MM_THEMECACHE_URL}"
             /bin/mkdir -p -m 777 "/home/minimyth/.mythtv/cache/themecache"
             /bin/chmod 777 "/home/minimyth/.mythtv/cache/themecache"
+
         else
+
             /bin/chmod 777 "/home/minimyth/.mythtv/cache/themecache"
         fi
     fi
 
     # Configure Myth database jumppoints to match MiniMyth frontend.
     set | /bin/grep -e '^MM_MYTHDB_JUMPPOINTS_[^=]*=' | /bin/sed -e 's%^MM_MYTHDB_JUMPPOINTS_[^=]*=%%' -e "s%^'%%" -e "s%'$%%" | \
+
     while read jumppoints ; do
+
         jumppoints_destination=`/bin/echo ${jumppoints} | /usr/bin/cut -d '~' -f 1`
         jumppoints_keylist=`/bin/echo ${jumppoints} | /usr/bin/cut -d '~' -f 2`
         mm_mythdb_jumppoints_update "${jumppoints_destination}" "${jumppoints_keylist}"
+
     done
 
     # Configure Myth database keybindings to match MiniMyth frontend.
     set | /bin/grep -e '^MM_MYTHDB_KEYBINDINGS_[^=]*=' | /bin/sed -e 's%^MM_MYTHDB_KEYBINDINGS_[^=]*=%%' -e "s%^'%%" -e "s%'$%%" | \
+
     while read keybindings ; do
+
         keybindings_context=`/bin/echo ${keybindings} | /usr/bin/cut -d '~' -f 1`
         keybindings_action=`/bin/echo ${keybindings} | /usr/bin/cut -d '~' -f 2`
         keybindings_keylist=`/bin/echo ${keybindings} | /usr/bin/cut -d '~' -f 3`
         mm_mythdb_keybindings_update "${keybindings_context}" "${keybindings_action}" "${keybindings_keylist}"
+
     done
 
     # Configure Myth database settings to match MiniMyth frontend.
     set | /bin/grep -e '^MM_MYTHDB_SETTINGS_[^=]*=' | /bin/sed -e 's%^MM_MYTHDB_SETTINGS_[^=]*=%%' -e "s%^'%%" -e "s%'$%%" | \
+
     while read settings ; do
+
         settings_value=`/bin/echo ${settings} | /usr/bin/cut -d '~' -f 1`
         settings_data=`/bin/echo ${settings} | /usr/bin/cut -d '~' -f 2`
         mm_mythdb_settings_set "${settings_value}" "${settings_data}"
+
     done
 
     # Delete disabled plugins.
     if [ "x${MM_PLUGIN_OPTICAL_DISK_ENABLED}" = "xno" ] ; then
+
         /bin/sed -i -e 's%<!--optical_disk<depends>disabled</depends>-->%<depends>disabled</depends>%' \
             /usr/share/mythtv/themes/classic/videomenu.xml
         /bin/sed -i -e 's%<!--optical_disk<depends>disabled</depends>-->%<depends>disabled</depends>%' \
@@ -245,36 +321,51 @@ start() {
 
     # Disable plugins if configured to do so...
     if [ "x${MM_PLUGIN_BROWSER_ENABLED}"     = "xno" ] ; then
+
         /bin/rm -rf /usr/lib/mythtv/plugins/libmythbrowser.so
     fi
+
     if [ "x${MM_PLUGIN_GAME_ENABLED}"        = "xno" ] ; then
+
         /bin/rm -rf /usr/lib/mythtv/plugins/libmythgame.so
         /bin/rm -rf /usr/share/mythtv/game*
         /bin/rm -rf /usr/share/mythtv/mythgame*
+
     fi
+
     if [ "x${MM_PLUGIN_MUSIC_ENABLED}"       = "xno" ] ; then
+
         /bin/rm -rf /usr/lib/mythtv/plugins/libmythmusic.so
         /bin/rm -rf /usr/share/mythtv/mythmusic*
     fi
+
     if [ "x${MM_PLUGIN_NETVISION_ENABLED}"   = "xno" ] ; then
+
         /bin/rm -rf /usr/lib/mythtv/plugins/libmythnetvision.so
         /bin/rm -rf /usr/share/mythtv/mythnetvision*
     fi
+
     if [ "x${MM_PLUGIN_NEWS_ENABLED}"        = "xno" ] ; then
+
         /bin/rm -rf /usr/lib/mythtv/plugins/libmythnews.so
         /bin/rm -rf /usr/share/mythtv/mythnews*
     fi
+
     if [ "x${MM_PLUGIN_WEATHER_ENABLED}"     = "xno" ] ; then
+
         /bin/rm -rf /usr/lib/mythtv/plugins/libmythweather.so
         /bin/rm -rf /usr/share/mythtv/mythweather*
     fi
+
     if [ "x${MM_PLUGIN_ZONEMINDER_ENABLED}"  = "xno" ] ; then
+
         /bin/rm -rf /usr/lib/mythtv/plugins/libmythzoneminder.so
         /bin/rm -rf /usr/share/mythtv/mythzoneminder*
     fi
 
     # Removing VoIP menu entry if VoIP is disabled
     if [ ! "x${MM_VOIP_ENABLED}" = "xyes" ] ; then
+
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Disabling VoIP menu entry in themes..."
         /bin/sed -i -e 's%<!--voip<depends>disabled</depends>-->%<depends>disabled</depends>%' \
             /usr/share/mythtv/themes/classic/mainmenu.xml
@@ -288,6 +379,7 @@ start() {
 
     # Removing Optical RIP menu entry if not enabled
     if [ ! "x${MM_OPTICAL_RIP_ENABLED}" = "xyes" ] ; then
+
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Disabling OpticalRip menu entry in themes..."
         /bin/sed -i -e 's%<!--optical_rip<depends>disabled</depends>-->%<depends>disabled</depends>%' \
             /usr/share/mythtv/themes/classic/videomenu.xml
@@ -301,6 +393,7 @@ start() {
 
     # Removing Netflix  menu entry if not enabled
     if [ ! "x${MM_NETFLIX_ENABLED}" = "xyes" ] ; then
+
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Disabling Netflix menu entry in themes..."
         /bin/sed -i -e 's%<!--netflix<depends>disabled</depends>-->%<depends>disabled</depends>%' \
             /usr/share/mythtv/themes/DVR/util_menu.xml
@@ -317,15 +410,21 @@ start() {
     # Check for libdvdcss.so.2
     if [ "x${MM_PLUGIN_DVD_ENABLED}"     = "xyes" ] || \
        [ "x${MM_PLUGIN_VIDEO_ENABLED}"   = "xyes" ] ; then
+
         found=0
         if [ -e "/etc/ld.so.conf" ] ; then
+
             for dir in `/bin/cat /etc/ld.so.conf` ; do
+
                 if [ -e "${dir}/libdvdcss.so.2" ] ; then
                     found=1
                 fi
+
             done
         fi
+
         if [ ${found} -eq 0 ] ; then
+
             /usr/bin/logger -t minimyth -p "local0.warn" \
                 "warning: certain DVDs may not play. see <http://`/bin/hostname`/minimyth/document-faq.html#dvd>"
         fi
@@ -333,6 +432,7 @@ start() {
 
     # Align mythtv settings when mythfrontend exit/relaunch on sleep is configured
     if [ "x${MM_RESTART_ON_SLEEP}" = "xmythfrontend" ] ; then
+
         mm_mythdb_settings_set "NoPromptOnExit" "0"
         mm_mythdb_keybindings_update "Main Menu" "EXIT" "Ctrl+Esc"
     fi
@@ -346,18 +446,21 @@ start() {
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/mythtv] Started with return code=0..."
 
     /bin/rm -f /var/lib/init/mythtv.inprogress
-
     return 0
 }
 
 stop() {
 
     if [ -n "${MM_MYTHTV_HOME_URL}" ] ; then
+
         mm_message_output info "unmounting mythtv home dir ..."
+
         if [ -f "/var/lib/minimyth.bootdir.nfs_mounted" ] ; then
+
             /bin/rm -rf /home/minimyth
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] mythtv home dir unmounted... (auto)"
         else
+
             /bin/umount "${MM_MYTHTV_HOME_URL}"
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/media] Remote mythtv home dir umnounted..."
         fi

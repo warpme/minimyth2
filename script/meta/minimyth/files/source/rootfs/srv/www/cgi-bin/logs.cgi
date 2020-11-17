@@ -30,6 +30,9 @@ if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'no')
     if (-e "/var/log/online-update.log") {
         push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/online-update.log">On-Line Update Log</li> ));
     }
+    if (-e "/var/log/init.log") {
+        push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/init.log">Init Scripts Flow</li> ));
+    }
     push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/settings">MiniMyth2 Settings</li> ));
     push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/system-info">MiniMyth2 Diagnostic Info</li> ));
     if (-e "/var/log/minimyth.err") {

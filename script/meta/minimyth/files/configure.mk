@@ -6,7 +6,10 @@ all: mm-all
 GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk perl/perl/package-api.mk python/python/package-api.mk
 include ../../gar.mk
 
-MM_INIT_START_SEQUENTIAL := \
+# List of scripta defined in MM_INIT_START_PHASE_X
+# is executed when all scripts defined in MM_INIT_START_PHASE_X-1
+# end successfuly
+MM_INIT_START_PHASE_1 := \
     time \
     hotplug \
     master \
@@ -15,10 +18,13 @@ MM_INIT_START_SEQUENTIAL := \
     mythtv \
     lirc \
     lcdproc \
-    font \
-    x \
-    conf_parallel
-MM_INIT_START_PARALLEL := \
+    font
+MM_INIT_START_PHASE_2 := 
+MM_INIT_START_PHASE_3 := \
+    x
+MM_INIT_START_PHASE_4 := \
+    conf_phase_5
+MM_INIT_START_PHASE_5 := \
     media \
     irtrans \
     acpi \
@@ -138,8 +144,11 @@ MM_CONFIG_VARS := $(sort \
 	mm_OPENGL_PROVIDER \
 	mm_HOME \
 	MM_INIT_KILL \
-	MM_INIT_START_SEQUENTIAL \
-	MM_INIT_START_PARALLEL \
+	MM_INIT_START_PHASE_1 \
+	MM_INIT_START_PHASE_2 \
+	MM_INIT_START_PHASE_3 \
+	MM_INIT_START_PHASE_4 \
+	MM_INIT_START_PHASE_5 \
 	mm_SDCARD_FILES \
 	mm_INSTALL_NFS_BOOT \
 	mm_INSTALL_RAM_BOOT \

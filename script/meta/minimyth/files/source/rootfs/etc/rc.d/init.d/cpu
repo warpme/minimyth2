@@ -6,6 +6,8 @@
 
 start() {
 
+    /bin/touch /var/init/cpu.inprogress
+
     local kernel_module
     local kernel_module_path
     local dir
@@ -15,49 +17,62 @@ start() {
     if [ "x${MM_CPU_FETCH_MICROCODE_DAT}" = "xyes" ] ; then
 
         if [ ! -e /lib/firmware/microcode.dat ] ; then
+
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/cpu] error: /lib/firmware/microcode.dat' does not exist!"
-            exit 1
+            return 1
+
         fi
 
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/cpu] Converting microcode.dat to ucode..."
         cd /lib/firmware && /usr/bin/intel-microcode2ucode > /dev/null 2>&1
 
         if [ -e /lib/firmware/intel-ucode ] ; then
+
             /usr/bin/logger -t minimyth -p "local0.info" "[init.d/cpu] Loading ucode to CPU..."
             /sbin/modprobe microcode
+
         else
+
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/cpu] error: converting microcode.dat to ucode failed..."
         fi
     fi
 
     if [ "x${MM_CPU_FREQUENCY_GOVERNOR}" != "x" ] ; then
+
         # Load CPU frequency scaling processor kernel modules.
         # Kernel modules that do not support the CPU should fail to load.
         /bin/ls /lib/modules/*/kernel/drivers/cpufreq/ \
         | while read kernel_module_path ; do
+
             kernel_module=`/usr/bin/basename "${kernel_module_path}" '.ko'`
             /sbin/modprobe ${kernel_module} || /bin/true
+
         done
 
         # Load CPU frequency governor kernel module.
         kernel_module="cpufreq-${MM_CPU_FREQUENCY_GOVERNOR}"
         if ! /sbin/modprobe ${kernel_module} > /dev/null 2>&1 ; then
+
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/cpu] error: failed to load kernel module: ${kernel_module}"
-            exit 1
+            return 1
+
         fi
 
         # Wait for everything to settle.
         /usr/bin/udevadm settle --timeout=60
 
         for dir in /sys/devices/system/cpu/cpu*/cpufreq ; do
+
             /bin/echo "${MM_CPU_FREQUENCY_GOVERNOR}" > ${dir}/scaling_governor
+
         done
 
         if [ "x${MM_CPU_FREQUENCY_GOVERNOR}" = "xuserspace" ] ; then
+
             /usr/bin/logger -t minimyth -p "local0.info" "[init.d/cpu] Starting userspace daemon with ${MM_CPU_USERSPACE_GOV_PARAMS} parameters"
             /usr/sbin/powernowd ${MM_CPU_USERSPACE_GOV_PARAMS}
-        fi
 
+        fi
     fi
 
     if [ x${MM_GPU_FREQUENCY_GOVERNOR} != "x" ] ; then
@@ -65,17 +80,23 @@ start() {
         gpu_governor=`find /sys/class/devfreq/*.gpu/ -name governor`
 
         if [ x${gpu_governor} = "x" ] ; then
+
             /usr/bin/logger -t minimyth -p "local0.err" "[init.d/cpu] failed to identify GPU DVFS governor sysfs entry..."
+
         else
+
             echo ${MM_GPU_FREQUENCY_GOVERNOR} > ${gpu_governor}
             /usr/bin/logger -t minimyth -p "local0.info" "[init.d/cpu] Setting GPU DVFS in ${gpu_governor} to ${MM_GPU_FREQUENCY_GOVERNOR}"
+
         fi
 
     fi
 
     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/cpu] Started with return code=0..."
 
+    /bin/rm -f /var/init/cpu.inprogress
     return 0
+
 }
 
 stop() {
