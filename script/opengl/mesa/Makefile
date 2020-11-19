@@ -4,8 +4,8 @@ GARVERSION   = 20.3.0-rc1
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
-PATCHFILES   = fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
+PATCHFILES   = fix-compile-softfp-abi-on-arm-target.patch
+PATCHFILES  += fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 
 DESCRIPTION = 
