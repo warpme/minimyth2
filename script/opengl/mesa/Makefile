@@ -1,11 +1,11 @@
 
 GARNAME      = mesa
-GARVERSION   = 20.3.0-rc1
+GARVERSION   = 20.3.0-rc2
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-PATCHFILES   = fix-compile-softfp-abi-on-arm-target.patch
-PATCHFILES  += fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
+PATCHFILES   = fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
+PATCHFILES  += fix-compile-softfp-abi-on-arm-target.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 
 DESCRIPTION = 
