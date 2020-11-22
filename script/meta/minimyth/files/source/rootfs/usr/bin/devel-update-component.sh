@@ -58,11 +58,14 @@ src_rsync_module="192.168.1.190::devel-updates"
 # Log file with output from rsync
 log_file="/var/log/online-update.log"
 
+# Prefix in path to store updated files on persistent storage
+persist_store_pref="/initrd/rootfs-ro"
+
 # ---- MythTV dir/files ---
 component_1="MythTV"
 directory_list1="/usr/lib/mythtv/plugins/:/usr/lib/mythtv/plugins"
 file_list1=" \
-/usr/lib/libmyth-*.so*:/usr/lib/ \
+/usr/lib/libmyth*.so*:/usr/lib/ \
 /usr/bin/mythfrontend:/usr/bin/ \
 /usr/bin/mythffmpeg:/usr/bin/ \
 /usr/bin/mythffplay:/usr/bin/ \
@@ -88,7 +91,7 @@ epilog_cmd2="mm_manage restart_xserver"
 component_3="Linux kernel"
 directory_list3="
 /boot/dtbs/:/media/boot/dtbs \
-/lib/modules/:/initrd/rootfs-ro/lib/modules \
+/lib/modules/:/lib/modules \
 "
 file_list3="/boot/*Image:/media/boot/"
 epilog_cmd3="sync"
@@ -116,14 +119,14 @@ epilog_cmd4=""
 # --- All lib/bin files ---
 component_5="All libs & bins"
 directory_list5=" \
-/lib/:/initrd/rootfs-ro/lib \
-/lib64/:/initrd/rootfs-ro/lib64 \
-/bin/:/initrd/rootfs-ro/bin \
-/sbin/:/initrd/rootfs-ro/sbin \
-/usr/lib/:/initrd/rootfs-ro/usr/lib \
-/usr/bin/:/initrd/rootfs-ro/usr/bin \
-/usr/sbin/:/initrd/rootfs-ro/usr/sbin \
-/usr/share/:/initrd/rootfs-ro/usr/share \
+/lib/:/lib \
+/lib64/:/lib64 \
+/bin/:/bin \
+/sbin/:/sbin \
+/usr/lib/:/usr/lib \
+/usr/bin/:/usr/bin \
+/usr/sbin/:/usr/sbin \
+/usr/share/:/usr/share \
 "
 file_list5=""
 epilog_cmd5="sync"
@@ -155,11 +158,18 @@ epilog_cmd5="sync"
 
 
 
-ver="v1.1 by (c)Piotr Oniszczuk"
+ver="v1.2 by (c)Piotr Oniszczuk"
 
 clear
 
 selection=$1
+persistent=$2
+
+if [ x${persistent} = "xpersistent" ] ; then
+    dest_prefix=${persist_store_pref}
+else
+    dest_prefix=""
+fi
 
 if [ x${selection} = "x" ] ; then
 
@@ -195,6 +205,7 @@ case "${selection}" in
         epilog_cmd="${epilog_cmd2}" ;;
 
     3)  echo "Updating ${component_3} ..."
+        dest_prefix=${persist_store_pref}
         directory_list=${directory_list3}
         file_list=${file_list3}
         epilog_cmd="${epilog_cmd3}" ;;
@@ -210,7 +221,7 @@ case "${selection}" in
         epilog_cmd="${epilog_cmd5}" ;;
 
     *)
-        echo "Unknown selction !"
+        echo "Unknown selection !"
         echo "Exiting..."
         echo ""
         exit 1 ;;
@@ -289,7 +300,7 @@ if [ "x${directory_list}" != "x" ] ; then
         src_dir=`echo ${tuple} | cut -d":" -f1`
         dst_dir=`echo ${tuple} | cut -d":" -f2`
 
-        run_rsync "${src_rsync_module}${src_dir}" "${dst_dir}" "${dry_run}"
+        run_rsync "${src_rsync_module}${src_dir}" "${dest_prefix}${dst_dir}" "${dry_run}"
 
     done
 
@@ -306,7 +317,7 @@ if [ "x${file_list}" != "x" ] ; then
         src_file=`echo ${tuple} | cut -d":" -f1`
         dst_file=`echo ${tuple} | cut -d":" -f2`
 
-        run_rsync "${src_rsync_module}${src_file}" "${dst_file}" "${dry_run}"
+        run_rsync "${src_rsync_module}${src_file}" "${dest_prefix}${dst_file}" "${dry_run}"
 
     done
 
