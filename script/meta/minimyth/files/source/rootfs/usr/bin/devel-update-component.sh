@@ -165,7 +165,7 @@ clear
 selection=$1
 persistent=$2
 
-if [ x${persistent} = "xpersistent" ] ; then
+if [ x${persistent} = "xpersist" ] ; then
     dest_prefix=${persist_store_pref}
 else
     dest_prefix=""
@@ -366,17 +366,28 @@ if [ ${is_error} -eq 0 ] ; then
         echo "            "${files_total}" files were updated ..."
         echo " -------------------------------------------------"
 
-        if [ "x${epilog_cmd}" != "x" ] ; then
+        if [ x${persistent} = "xpersist" ] ; then
+
             sleep 3
+            echo " "
+            echo "Running epilog cmd : [sync]"
+            echo " "
+            sync
+
+        elif [ "x${epilog_cmd}" != "x" ] ; then
+
+            sleep 3
+            echo " "
             echo "Running epilog cmd : [${epilog_cmd}]"
             echo " "
             ${epilog_cmd}
-            echo " "
-            echo "All Done ! "
-            echo " "
+
         fi
 
     fi
+
+    echo "All Done ! "
+    echo " "
 
 else
 
