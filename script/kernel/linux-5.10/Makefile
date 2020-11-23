@@ -35,8 +35,6 @@ PATCHFILES += linux-5.10-defaults.patch
 PATCHFILES += linux-5.10-vgaarb-add-3D-accell-detection.patch
 
 ifeq (1,1)
-# fix for regression https://lkml.org/lkml/2020/10/24/69
-PATCHFILES += 0100-regulators-fix-aea6cb9-regression.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.10 kernel
@@ -96,8 +94,6 @@ PATCHFILES += 0508-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
 # Adding support for some H6 boards
 PATCHFILES += 0509-mfd-add-AC200.patch
 PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
-# Fix dead Eth at booting on GS1
-PATCHFILES += 0511-arm64-dts-allwinner-fix-dead-Eth-on-beelink-GS1.patch
 
 PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
 PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch

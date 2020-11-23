@@ -1,0 +1,802 @@
+From patchwork Wed Jan  8 21:07:47 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,01/14] phy/rockchip: inno-hdmi: use correct vco_div_5 macro on
+ rk3328
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347839
+Message-Id: <20200108210740.28769-2-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:47 +0000 (UTC)
+
+inno_hdmi_phy_rk3328_clk_set_rate() is using the RK3228 macro
+when configuring vco_div_5 on RK3328.
+
+Fix this by using correct vco_div_5 macro for RK3328.
+
+Fixes: 53706a116863 ("phy: add Rockchip Innosilicon hdmi phy")
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/phy/rockchip/phy-rockchip-inno-hdmi.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+index 9ca20c947283..b0ac1d3ee390 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+@@ -790,8 +790,8 @@ static int inno_hdmi_phy_rk3328_clk_set_rate(struct clk_hw *hw,
+ 			 RK3328_PRE_PLL_POWER_DOWN);
+ 
+ 	/* Configure pre-pll */
+-	inno_update_bits(inno, 0xa0, RK3228_PCLK_VCO_DIV_5_MASK,
+-			 RK3228_PCLK_VCO_DIV_5(cfg->vco_div_5_en));
++	inno_update_bits(inno, 0xa0, RK3328_PCLK_VCO_DIV_5_MASK,
++			 RK3328_PCLK_VCO_DIV_5(cfg->vco_div_5_en));
+ 	inno_write(inno, 0xa1, RK3328_PRE_PLL_PRE_DIV(cfg->prediv));
+ 
+ 	val = RK3328_SPREAD_SPECTRUM_MOD_DISABLE;
+
+From patchwork Wed Jan  8 21:07:48 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,02/14] phy/rockchip: inno-hdmi: round fractal pixclock in rk3328
+ recalc_rate
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347835
+Message-Id: <20200108210740.28769-3-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:48 +0000 (UTC)
+
+From: Zheng Yang <zhengyang@rock-chips.com>
+
+inno_hdmi_phy_rk3328_clk_recalc_rate() is returning a rate not found
+in the pre pll config table when the fractal divider is used.
+This can prevent proper power_on because a tmdsclock for the new rate
+is not found in the pre pll config table.
+
+Fix this by saving and returning a rounded pixel rate that exist
+in the pre pll config table.
+
+Fixes: 53706a116863 ("phy: add Rockchip Innosilicon hdmi phy")
+Signed-off-by: Zheng Yang <zhengyang@rock-chips.com>
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/phy/rockchip/phy-rockchip-inno-hdmi.c | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+index b0ac1d3ee390..093d2334e8cd 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+@@ -745,10 +745,12 @@ unsigned long inno_hdmi_phy_rk3328_clk_recalc_rate(struct clk_hw *hw,
+ 		do_div(vco, (nd * (no_a == 1 ? no_b : no_a) * no_d * 2));
+ 	}
+ 
+-	inno->pixclock = vco;
+-	dev_dbg(inno->dev, "%s rate %lu\n", __func__, inno->pixclock);
++	inno->pixclock = DIV_ROUND_CLOSEST((unsigned long)vco, 1000) * 1000;
+ 
+-	return vco;
++	dev_dbg(inno->dev, "%s rate %lu vco %llu\n",
++		__func__, inno->pixclock, vco);
++
++	return inno->pixclock;
+ }
+ 
+ static long inno_hdmi_phy_rk3328_clk_round_rate(struct clk_hw *hw,
+
+From patchwork Wed Jan  8 21:07:48 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,03/14] phy/rockchip: inno-hdmi: remove unused no_c from rk3328
+ recalc_rate
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347837
+Message-Id: <20200108210740.28769-4-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:48 +0000 (UTC)
+
+no_c is not used in any calculation, lets remove it.
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/phy/rockchip/phy-rockchip-inno-hdmi.c | 5 +----
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+index 093d2334e8cd..06db69c8373e 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+@@ -714,7 +714,7 @@ unsigned long inno_hdmi_phy_rk3328_clk_recalc_rate(struct clk_hw *hw,
+ {
+ 	struct inno_hdmi_phy *inno = to_inno_hdmi_phy(hw);
+ 	unsigned long frac;
+-	u8 nd, no_a, no_b, no_c, no_d;
++	u8 nd, no_a, no_b, no_d;
+ 	u64 vco;
+ 	u16 nf;
+ 
+@@ -737,9 +737,6 @@ unsigned long inno_hdmi_phy_rk3328_clk_recalc_rate(struct clk_hw *hw,
+ 		no_b = inno_read(inno, 0xa5) & RK3328_PRE_PLL_PCLK_DIV_B_MASK;
+ 		no_b >>= RK3328_PRE_PLL_PCLK_DIV_B_SHIFT;
+ 		no_b += 2;
+-		no_c = inno_read(inno, 0xa6) & RK3328_PRE_PLL_PCLK_DIV_C_MASK;
+-		no_c >>= RK3328_PRE_PLL_PCLK_DIV_C_SHIFT;
+-		no_c = 1 << no_c;
+ 		no_d = inno_read(inno, 0xa6) & RK3328_PRE_PLL_PCLK_DIV_D_MASK;
+ 
+ 		do_div(vco, (nd * (no_a == 1 ? no_b : no_a) * no_d * 2));
+
+From patchwork Wed Jan  8 21:07:48 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,04/14] phy/rockchip: inno-hdmi: do not power on rk3328 post pll
+ on reg write
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347845
+Message-Id: <20200108210740.28769-5-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:48 +0000 (UTC)
+
+inno_write is used to configure 0xaa reg, that also hold the
+POST_PLL_POWER_DOWN bit.
+When POST_PLL_REFCLK_SEL_TMDS is configured the power down bit is not
+taken into consideration.
+
+Fix this by keeping the power down bit until configuration is complete.
+Also reorder the reg write order for consistency.
+
+Fixes: 53706a116863 ("phy: add Rockchip Innosilicon hdmi phy")
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/phy/rockchip/phy-rockchip-inno-hdmi.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+index 06db69c8373e..3a59a6da0440 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+@@ -1020,9 +1020,10 @@ inno_hdmi_phy_rk3328_power_on(struct inno_hdmi_phy *inno,
+ 
+ 	inno_write(inno, 0xac, RK3328_POST_PLL_FB_DIV_7_0(cfg->fbdiv));
+ 	if (cfg->postdiv == 1) {
+-		inno_write(inno, 0xaa, RK3328_POST_PLL_REFCLK_SEL_TMDS);
+ 		inno_write(inno, 0xab, RK3328_POST_PLL_FB_DIV_8(cfg->fbdiv) |
+ 			   RK3328_POST_PLL_PRE_DIV(cfg->prediv));
++		inno_write(inno, 0xaa, RK3328_POST_PLL_REFCLK_SEL_TMDS |
++			   RK3328_POST_PLL_POWER_DOWN);
+ 	} else {
+ 		v = (cfg->postdiv / 2) - 1;
+ 		v &= RK3328_POST_PLL_POST_DIV_MASK;
+@@ -1030,7 +1031,8 @@ inno_hdmi_phy_rk3328_power_on(struct inno_hdmi_phy *inno,
+ 		inno_write(inno, 0xab, RK3328_POST_PLL_FB_DIV_8(cfg->fbdiv) |
+ 			   RK3328_POST_PLL_PRE_DIV(cfg->prediv));
+ 		inno_write(inno, 0xaa, RK3328_POST_PLL_POST_DIV_ENABLE |
+-			   RK3328_POST_PLL_REFCLK_SEL_TMDS);
++			   RK3328_POST_PLL_REFCLK_SEL_TMDS |
++			   RK3328_POST_PLL_POWER_DOWN);
+ 	}
+ 
+ 	for (v = 0; v < 14; v++)
+
+From patchwork Wed Jan  8 21:07:49 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,05/14] phy/rockchip: inno-hdmi: force set_rate on power_on
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347834
+Message-Id: <20200108210740.28769-6-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, Huicong Xu <xhc@rock-chips.com>,
+ linux-arm-kernel@lists.infradead.org, Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:49 +0000 (UTC)
+
+From: Huicong Xu <xhc@rock-chips.com>
+
+Regular 8-bit and Deep Color video formats mainly differ in TMDS rate and
+not in pixel clock rate.
+When the hdmiphy clock is configured with the same pixel clock rate using
+clk_set_rate() the clock framework do not signal the hdmi phy driver
+to set_rate when switching between 8-bit and Deep Color.
+This result in pre/post pll not being re-configured when switching between
+regular 8-bit and Deep Color video formats.
+
+Fix this by calling set_rate in power_on to force pre pll re-configuration.
+
+Signed-off-by: Huicong Xu <xhc@rock-chips.com>
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/phy/rockchip/phy-rockchip-inno-hdmi.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+index 3a59a6da0440..3719309ad0d0 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+@@ -245,6 +245,7 @@ struct inno_hdmi_phy {
+ 	struct clk_hw hw;
+ 	struct clk *phyclk;
+ 	unsigned long pixclock;
++	unsigned long tmdsclock;
+ };
+ 
+ struct pre_pll_config {
+@@ -485,6 +486,8 @@ static int inno_hdmi_phy_power_on(struct phy *phy)
+ 
+ 	dev_dbg(inno->dev, "Inno HDMI PHY Power On\n");
+ 
++	inno->plat_data->clk_ops->set_rate(&inno->hw, inno->pixclock, 24000000);
++
+ 	ret = clk_prepare_enable(inno->phyclk);
+ 	if (ret)
+ 		return ret;
+@@ -509,6 +512,8 @@ static int inno_hdmi_phy_power_off(struct phy *phy)
+ 
+ 	clk_disable_unprepare(inno->phyclk);
+ 
++	inno->tmdsclock = 0;
++
+ 	dev_dbg(inno->dev, "Inno HDMI PHY Power Off\n");
+ 
+ 	return 0;
+@@ -628,6 +633,9 @@ static int inno_hdmi_phy_rk3228_clk_set_rate(struct clk_hw *hw,
+ 	dev_dbg(inno->dev, "%s rate %lu tmdsclk %lu\n",
+ 		__func__, rate, tmdsclock);
+ 
++	if (inno->pixclock == rate && inno->tmdsclock == tmdsclock)
++		return 0;
++
+ 	cfg = inno_hdmi_phy_get_pre_pll_cfg(inno, rate);
+ 	if (IS_ERR(cfg))
+ 		return PTR_ERR(cfg);
+@@ -670,6 +678,7 @@ static int inno_hdmi_phy_rk3228_clk_set_rate(struct clk_hw *hw,
+ 	}
+ 
+ 	inno->pixclock = rate;
++	inno->tmdsclock = tmdsclock;
+ 
+ 	return 0;
+ }
+@@ -781,6 +790,9 @@ static int inno_hdmi_phy_rk3328_clk_set_rate(struct clk_hw *hw,
+ 	dev_dbg(inno->dev, "%s rate %lu tmdsclk %lu\n",
+ 		__func__, rate, tmdsclock);
+ 
++	if (inno->pixclock == rate && inno->tmdsclock == tmdsclock)
++		return 0;
++
+ 	cfg = inno_hdmi_phy_get_pre_pll_cfg(inno, rate);
+ 	if (IS_ERR(cfg))
+ 		return PTR_ERR(cfg);
+@@ -820,6 +832,7 @@ static int inno_hdmi_phy_rk3328_clk_set_rate(struct clk_hw *hw,
+ 	}
+ 
+ 	inno->pixclock = rate;
++	inno->tmdsclock = tmdsclock;
+ 
+ 	return 0;
+ }
+
+From patchwork Wed Jan  8 21:07:49 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,06/14] drm/rockchip: dw-hdmi: allow high tmds bit rates
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347836
+Message-Id: <20200108210740.28769-7-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:49 +0000 (UTC)
+
+Prepare support for High TMDS Bit Rates used by HDMI2.0 display modes.
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+index 7f56d8c3491d..fae38b323a0c 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+@@ -318,6 +318,8 @@ static int dw_hdmi_rockchip_genphy_init(struct dw_hdmi *dw_hdmi, void *data,
+ {
+ 	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
+ 
++	dw_hdmi_set_high_tmds_clock_ratio(dw_hdmi, display);
++
+ 	return phy_power_on(hdmi->phy);
+ }
+ 
+
+From patchwork Wed Jan  8 21:07:50 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,07/14] drm/rockchip: dw-hdmi: require valid vpll clock rate on
+ rk3228/rk3328
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347838
+Message-Id: <20200108210740.28769-8-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:50 +0000 (UTC)
+
+RK3228/RK3328 can only support clock rates defined in the pre pll table.
+Lets validate the mode clock rate against the pre pll config and filter
+out any mode with a clock rate returning error from clk_round_rate().
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+index fae38b323a0c..45fcdce3f27f 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+@@ -245,6 +245,22 @@ static void dw_hdmi_rockchip_encoder_disable(struct drm_encoder *encoder)
+ {
+ }
+ 
++static enum drm_mode_status
++dw_hdmi_rockchip_encoder_mode_valid(struct drm_encoder *encoder,
++				    const struct drm_display_mode *mode)
++{
++	struct rockchip_hdmi *hdmi = to_rockchip_hdmi(encoder);
++	long rate;
++
++	if (hdmi->vpll_clk) {
++		rate = clk_round_rate(hdmi->vpll_clk, mode->clock * 1000);
++		if (rate < 0)
++			return MODE_CLOCK_RANGE;
++	}
++
++	return MODE_OK;
++}
++
+ static bool
+ dw_hdmi_rockchip_encoder_mode_fixup(struct drm_encoder *encoder,
+ 				    const struct drm_display_mode *mode,
+@@ -306,6 +322,7 @@ dw_hdmi_rockchip_encoder_atomic_check(struct drm_encoder *encoder,
+ }
+ 
+ static const struct drm_encoder_helper_funcs dw_hdmi_rockchip_encoder_helper_funcs = {
++	.mode_valid = dw_hdmi_rockchip_encoder_mode_valid,
+ 	.mode_fixup = dw_hdmi_rockchip_encoder_mode_fixup,
+ 	.mode_set   = dw_hdmi_rockchip_encoder_mode_set,
+ 	.enable     = dw_hdmi_rockchip_encoder_enable,
+
+From patchwork Wed Jan  8 21:07:50 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,08/14] clk: rockchip: set parent rate for DCLK_VOP clock on
+ rk3228
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347842
+Message-Id: <20200108210740.28769-9-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:50 +0000 (UTC)
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/clk/rockchip/clk-rk3228.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/clk/rockchip/clk-rk3228.c b/drivers/clk/rockchip/clk-rk3228.c
+index d17cfb7a3ff4..25f79af22cb8 100644
+--- a/drivers/clk/rockchip/clk-rk3228.c
++++ b/drivers/clk/rockchip/clk-rk3228.c
+@@ -410,7 +410,7 @@ static struct rockchip_clk_branch rk3228_clk_branches[] __initdata = {
+ 			RK2928_CLKSEL_CON(29), 0, 3, DFLAGS),
+ 	DIV(0, "sclk_vop_pre", "sclk_vop_src", 0,
+ 			RK2928_CLKSEL_CON(27), 8, 8, DFLAGS),
+-	MUX(DCLK_VOP, "dclk_vop", mux_dclk_vop_p, 0,
++	MUX(DCLK_VOP, "dclk_vop", mux_dclk_vop_p, CLK_SET_RATE_PARENT | CLK_SET_RATE_NO_REPARENT,
+ 			RK2928_CLKSEL_CON(27), 1, 1, MFLAGS),
+ 
+ 	FACTOR(0, "xin12m", "xin24m", 0, 1, 2),
+
+From patchwork Wed Jan  8 21:07:51 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,09/14] arm64: dts: rockchip: increase vop clock rate on rk3328
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347841
+Message-Id: <20200108210740.28769-10-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:51 +0000 (UTC)
+
+The VOP on RK3328 needs to run at higher rate in order to
+produce a proper 3840x2160 signal.
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ arch/arm64/boot/dts/rockchip/rk3328.dtsi | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3328.dtsi b/arch/arm64/boot/dts/rockchip/rk3328.dtsi
+index c9ff1188bd7b..fee896338cc1 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3328.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3328.dtsi
+@@ -803,8 +803,8 @@
+ 			<0>, <24000000>,
+ 			<24000000>, <24000000>,
+ 			<15000000>, <15000000>,
+-			<100000000>, <100000000>,
+-			<50000000>, <100000000>,
++			<300000000>, <100000000>,
++			<400000000>, <100000000>,
+ 			<100000000>, <100000000>,
+ 			<50000000>, <50000000>,
+ 			<50000000>, <50000000>,
+
+From patchwork Wed Jan  8 21:07:51 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,10/14] arm64: dts: rockchip: add vpll clock to hdmi node on
+ rk3328
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347846
+Message-Id: <20200108210740.28769-11-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:51 +0000 (UTC)
+
+Add the hdmiphy clock as the vpll in hdmi node.
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ arch/arm64/boot/dts/rockchip/rk3328.dtsi | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3328.dtsi b/arch/arm64/boot/dts/rockchip/rk3328.dtsi
+index fee896338cc1..5d8807aca62e 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3328.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3328.dtsi
+@@ -720,9 +720,11 @@
+ 			     <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>;
+ 		clocks = <&cru PCLK_HDMI>,
+ 			 <&cru SCLK_HDMI_SFC>,
++			 <&hdmiphy>,
+ 			 <&cru SCLK_RTC32K>;
+ 		clock-names = "iahb",
+ 			      "isfr",
++			      "vpll",
+ 			      "cec";
+ 		phys = <&hdmiphy>;
+ 		phy-names = "hdmi";
+
+From patchwork Wed Jan  8 21:07:51 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,11/14] ARM: dts: rockchip: add vpll clock to hdmi node on rk3228
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347847
+Message-Id: <20200108210740.28769-12-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:51 +0000 (UTC)
+
+Add the hdmiphy clock as the vpll in hdmi node.
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ arch/arm/boot/dts/rk322x.dtsi | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/boot/dts/rk322x.dtsi b/arch/arm/boot/dts/rk322x.dtsi
+index 340ed6ccb08f..16ad240d5f7f 100644
+--- a/arch/arm/boot/dts/rk322x.dtsi
++++ b/arch/arm/boot/dts/rk322x.dtsi
+@@ -639,8 +639,8 @@
+ 		interrupts = <GIC_SPI 35 IRQ_TYPE_LEVEL_HIGH>;
+ 		assigned-clocks = <&cru SCLK_HDMI_PHY>;
+ 		assigned-clock-parents = <&hdmi_phy>;
+-		clocks = <&cru SCLK_HDMI_HDCP>, <&cru PCLK_HDMI_CTRL>, <&cru SCLK_HDMI_CEC>;
+-		clock-names = "isfr", "iahb", "cec";
++		clocks = <&cru SCLK_HDMI_HDCP>, <&cru PCLK_HDMI_CTRL>, <&hdmi_phy>, <&cru SCLK_HDMI_CEC>;
++		clock-names = "isfr", "iahb", "vpll", "cec";
+ 		pinctrl-names = "default";
+ 		pinctrl-0 = <&hdmii2c_xfer &hdmi_hpd &hdmi_cec>;
+ 		resets = <&cru SRST_HDMI_P>;
+
+From patchwork Wed Jan  8 21:07:52 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,12/14] drm/rockchip: dw-hdmi: limit tmds to 340mhz on
+ rk3228/rk3328
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347843
+Message-Id: <20200108210740.28769-13-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:52 +0000 (UTC)
+
+RK3228/RK3328 does not provide a stable hdmi signal at TMDS rates
+above 371.25MHz (340MHz pixel clock).
+
+Limit the pixel clock rate to 340MHz to provide a stable signal.
+Also limit the pixel clock to the display reported max tmds clock.
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c | 22 +++++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+index 45fcdce3f27f..66c14df4a680 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+@@ -237,6 +237,24 @@ dw_hdmi_rockchip_mode_valid(struct drm_connector *connector,
+ 	return (valid) ? MODE_OK : MODE_BAD;
+ }
+ 
++static enum drm_mode_status
++dw_hdmi_rk3228_mode_valid(struct dw_hdmi *hdmi, void *data,
++			  const struct drm_display_info *info,
++			  const struct drm_display_mode *mode)
++{
++	int max_tmds_clock = max(info->max_tmds_clock, 165000);
++	int clock = mode->clock;
++
++	if (drm_mode_is_420(info, mode) &&
++	   (info->color_formats & DRM_COLOR_FORMAT_YCRCB420))
++		clock /= 2;
++
++	if (clock > max_tmds_clock || clock > 340000)
++		return MODE_CLOCK_HIGH;
++
++	return MODE_OK;
++}
++
+ static void dw_hdmi_rockchip_encoder_disable(struct drm_encoder *encoder)
+ {
+ }
+@@ -424,7 +442,7 @@ static struct rockchip_hdmi_chip_data rk3228_chip_data = {
+ };
+ 
+ static const struct dw_hdmi_plat_data rk3228_hdmi_drv_data = {
+-	.mode_valid = dw_hdmi_rockchip_mode_valid,
++	.mode_valid = dw_hdmi_rk3228_mode_valid,
+ 	.mpll_cfg = rockchip_mpll_cfg,
+ 	.cur_ctr = rockchip_cur_ctr,
+ 	.phy_config = rockchip_phy_config,
+@@ -461,7 +479,7 @@ static struct rockchip_hdmi_chip_data rk3328_chip_data = {
+ };
+ 
+ static const struct dw_hdmi_plat_data rk3328_hdmi_drv_data = {
+-	.mode_valid = dw_hdmi_rockchip_mode_valid,
++	.mode_valid = dw_hdmi_rk3228_mode_valid,
+ 	.mpll_cfg = rockchip_mpll_cfg,
+ 	.cur_ctr = rockchip_cur_ctr,
+ 	.phy_config = rockchip_phy_config,
+
+From patchwork Wed Jan  8 21:07:52 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,13/14] drm/rockchip: dw-hdmi: remove unused plat_data on
+ rk3228/rk3328
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347840
+Message-Id: <20200108210740.28769-14-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Jonas Karlman <jonas@kwiboo.se>, linux-kernel@vger.kernel.org,
+ dri-devel@lists.freedesktop.org, Kishon Vijay Abraham I <kishon@ti.com>,
+ linux-rockchip@lists.infradead.org, linux-arm-kernel@lists.infradead.org,
+ Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:52 +0000 (UTC)
+
+mpll_cfg/cur_ctr/phy_config is not used when phy_force_vendor is true,
+lets remove them.
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+index 66c14df4a680..a813299e97a2 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+@@ -443,9 +443,6 @@ static struct rockchip_hdmi_chip_data rk3228_chip_data = {
+ 
+ static const struct dw_hdmi_plat_data rk3228_hdmi_drv_data = {
+ 	.mode_valid = dw_hdmi_rk3228_mode_valid,
+-	.mpll_cfg = rockchip_mpll_cfg,
+-	.cur_ctr = rockchip_cur_ctr,
+-	.phy_config = rockchip_phy_config,
+ 	.phy_data = &rk3228_chip_data,
+ 	.phy_ops = &rk3228_hdmi_phy_ops,
+ 	.phy_name = "inno_dw_hdmi_phy2",
+@@ -480,9 +477,6 @@ static struct rockchip_hdmi_chip_data rk3328_chip_data = {
+ 
+ static const struct dw_hdmi_plat_data rk3328_hdmi_drv_data = {
+ 	.mode_valid = dw_hdmi_rk3228_mode_valid,
+-	.mpll_cfg = rockchip_mpll_cfg,
+-	.cur_ctr = rockchip_cur_ctr,
+-	.phy_config = rockchip_phy_config,
+ 	.phy_data = &rk3328_chip_data,
+ 	.phy_ops = &rk3328_hdmi_phy_ops,
+ 	.phy_name = "inno_dw_hdmi_phy2",
+
+From patchwork Wed Jan  8 21:07:53 2020
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Subject: [v2,14/14] phy/rockchip: inno-hdmi: Support more pre-pll
+ configuration
+From: Jonas Karlman <jonas@kwiboo.se>
+X-Patchwork-Id: 347844
+Message-Id: <20200108210740.28769-15-jonas@kwiboo.se>
+To: Heiko Stuebner <heiko@sntech.de>, Sandy Huang <hjc@rock-chips.com>
+Cc: Algea Cao <algea.cao@rock-chips.com>, Jonas Karlman <jonas@kwiboo.se>,
+ linux-kernel@vger.kernel.org, dri-devel@lists.freedesktop.org,
+ Kishon Vijay Abraham I <kishon@ti.com>, linux-rockchip@lists.infradead.org,
+ linux-arm-kernel@lists.infradead.org, Zheng Yang <zhengyang@rock-chips.com>
+Date: Wed, 08 Jan 2020 21:07:53 +0000 (UTC)
+
+From: Algea Cao <algea.cao@rock-chips.com>
+
+Adding the following freq cfg in 8-bit and 10-bit color depth:
+
+{
+  40000000,  65000000,  71000000,  83500000, 85750000,
+  88750000, 108000000, 119000000, 162000000
+}
+
+New freq has been validated by quantumdata 980.
+
+For some freq which can't be got by only using integer freq div,
+frac freq div is needed, Such as 88.75Mhz 10-bit. But The actual
+freq is different from the target freq, We must try to narrow
+the gap between them. RK322X only support integer freq div.
+
+The VCO of pre-PLL must be more than 2Ghz, otherwise PLL may be
+unlocked.
+
+Signed-off-by: Algea Cao <algea.cao@rock-chips.com>
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+Acked-by: Heiko Stuebner <heiko@sntech.de>
+---
+ drivers/phy/rockchip/phy-rockchip-inno-hdmi.c | 74 ++++++++++++-------
+ 1 file changed, 49 insertions(+), 25 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+index 3719309ad0d0..bb8bdf5e3301 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
+@@ -291,32 +291,56 @@ struct inno_hdmi_phy_drv_data {
+ 	const struct phy_config		*phy_cfg_table;
+ };
+ 
++/*
++ * If only using integer freq div can't get frequency we want, frac
++ * freq div is needed. For example, pclk 88.75 Mhz and tmdsclk
++ * 110.9375 Mhz must use frac div 0xF00000. The actual frequency is different
++ * from the target frequency. Such as the tmds clock 110.9375 Mhz,
++ * the actual tmds clock we get is 110.93719 Mhz. It is important
++ * to note that RK322X platforms do not support frac div.
++ */
+ static const struct pre_pll_config pre_pll_cfg_table[] = {
+-	{ 27000000,  27000000, 1,  90, 3, 2, 2, 10, 3, 3, 4, 0, 0},
+-	{ 27000000,  33750000, 1,  90, 1, 3, 3, 10, 3, 3, 4, 0, 0},
+-	{ 40000000,  40000000, 1,  80, 2, 2, 2, 12, 2, 2, 2, 0, 0},
+-	{ 59341000,  59341000, 1,  98, 3, 1, 2,  1, 3, 3, 4, 0, 0xE6AE6B},
+-	{ 59400000,  59400000, 1,  99, 3, 1, 1,  1, 3, 3, 4, 0, 0},
+-	{ 59341000,  74176250, 1,  98, 0, 3, 3,  1, 3, 3, 4, 0, 0xE6AE6B},
+-	{ 59400000,  74250000, 1,  99, 1, 2, 2,  1, 3, 3, 4, 0, 0},
+-	{ 74176000,  74176000, 1,  98, 1, 2, 2,  1, 2, 3, 4, 0, 0xE6AE6B},
+-	{ 74250000,  74250000, 1,  99, 1, 2, 2,  1, 2, 3, 4, 0, 0},
+-	{ 74176000,  92720000, 4, 494, 1, 2, 2,  1, 3, 3, 4, 0, 0x816817},
+-	{ 74250000,  92812500, 4, 495, 1, 2, 2,  1, 3, 3, 4, 0, 0},
+-	{148352000, 148352000, 1,  98, 1, 1, 1,  1, 2, 2, 2, 0, 0xE6AE6B},
+-	{148500000, 148500000, 1,  99, 1, 1, 1,  1, 2, 2, 2, 0, 0},
+-	{148352000, 185440000, 4, 494, 0, 2, 2,  1, 3, 2, 2, 0, 0x816817},
+-	{148500000, 185625000, 4, 495, 0, 2, 2,  1, 3, 2, 2, 0, 0},
+-	{296703000, 296703000, 1,  98, 0, 1, 1,  1, 0, 2, 2, 0, 0xE6AE6B},
+-	{297000000, 297000000, 1,  99, 0, 1, 1,  1, 0, 2, 2, 0, 0},
+-	{296703000, 370878750, 4, 494, 1, 2, 0,  1, 3, 1, 1, 0, 0x816817},
+-	{297000000, 371250000, 4, 495, 1, 2, 0,  1, 3, 1, 1, 0, 0},
+-	{593407000, 296703500, 1,  98, 0, 1, 1,  1, 0, 2, 1, 0, 0xE6AE6B},
+-	{594000000, 297000000, 1,  99, 0, 1, 1,  1, 0, 2, 1, 0, 0},
+-	{593407000, 370879375, 4, 494, 1, 2, 0,  1, 3, 1, 1, 1, 0x816817},
+-	{594000000, 371250000, 4, 495, 1, 2, 0,  1, 3, 1, 1, 1, 0},
+-	{593407000, 593407000, 1,  98, 0, 2, 0,  1, 0, 1, 1, 0, 0xE6AE6B},
+-	{594000000, 594000000, 1,  99, 0, 2, 0,  1, 0, 1, 1, 0, 0},
++	{ 27000000,  27000000, 1,  90, 3, 2, 2, 10, 3, 3,  4, 0, 0},
++	{ 27000000,  33750000, 1,  90, 1, 3, 3, 10, 3, 3,  4, 0, 0},
++	{ 40000000,  40000000, 1,  80, 2, 2, 2, 12, 2, 2,  2, 0, 0},
++	{ 40000000,  50000000, 1, 100, 2, 2, 2,  1, 0, 0, 15, 0, 0},
++	{ 59341000,  59341000, 1,  98, 3, 1, 2,  1, 3, 3,  4, 0, 0xE6AE6B},
++	{ 59400000,  59400000, 1,  99, 3, 1, 1,  1, 3, 3,  4, 0, 0},
++	{ 59341000,  74176250, 1,  98, 0, 3, 3,  1, 3, 3,  4, 0, 0xE6AE6B},
++	{ 59400000,  74250000, 1,  99, 1, 2, 2,  1, 3, 3,  4, 0, 0},
++	{ 65000000,  65000000, 1, 130, 2, 2, 2,  1, 0, 0, 12, 0, 0},
++	{ 65000000,  81250000, 3, 325, 0, 3, 3,  1, 0, 0, 10, 0, 0},
++	{ 71000000,  71000000, 3, 284, 0, 3, 3,  1, 0, 0,  8, 0, 0},
++	{ 71000000,  88750000, 3, 355, 0, 3, 3,  1, 0, 0, 10, 0, 0},
++	{ 74176000,  74176000, 1,  98, 1, 2, 2,  1, 2, 3,  4, 0, 0xE6AE6B},
++	{ 74250000,  74250000, 1,  99, 1, 2, 2,  1, 2, 3,  4, 0, 0},
++	{ 74176000,  92720000, 4, 494, 1, 2, 2,  1, 3, 3,  4, 0, 0x816817},
++	{ 74250000,  92812500, 4, 495, 1, 2, 2,  1, 3, 3,  4, 0, 0},
++	{ 83500000,  83500000, 2, 167, 2, 1, 1,  1, 0, 0,  6, 0, 0},
++	{ 83500000, 104375000, 1, 104, 2, 1, 1,  1, 1, 0,  5, 0, 0x600000},
++	{ 85750000,  85750000, 3, 343, 0, 3, 3,  1, 0, 0,  8, 0, 0},
++	{ 88750000,  88750000, 3, 355, 0, 3, 3,  1, 0, 0,  8, 0, 0},
++	{ 88750000, 110937500, 1, 110, 2, 1, 1,  1, 1, 0,  5, 0, 0xF00000},
++	{108000000, 108000000, 1,  90, 3, 0, 0,  1, 0, 0,  5, 0, 0},
++	{108000000, 135000000, 1,  90, 0, 2, 2,  1, 0, 0,  5, 0, 0},
++	{119000000, 119000000, 1, 119, 2, 1, 1,  1, 0, 0,  6, 0, 0},
++	{119000000, 148750000, 1,  99, 0, 2, 2,  1, 0, 0,  5, 0, 0x2AAAAA},
++	{148352000, 148352000, 1,  98, 1, 1, 1,  1, 2, 2,  2, 0, 0xE6AE6B},
++	{148500000, 148500000, 1,  99, 1, 1, 1,  1, 2, 2,  2, 0, 0},
++	{148352000, 185440000, 4, 494, 0, 2, 2,  1, 3, 2,  2, 0, 0x816817},
++	{148500000, 185625000, 4, 495, 0, 2, 2,  1, 3, 2,  2, 0, 0},
++	{162000000, 162000000, 1, 108, 0, 2, 2,  1, 0, 0,  4, 0, 0},
++	{162000000, 202500000, 1, 135, 0, 2, 2,  1, 0, 0,  5, 0, 0},
++	{296703000, 296703000, 1,  98, 0, 1, 1,  1, 0, 2,  2, 0, 0xE6AE6B},
++	{297000000, 297000000, 1,  99, 0, 1, 1,  1, 0, 2,  2, 0, 0},
++	{296703000, 370878750, 4, 494, 1, 2, 0,  1, 3, 1,  1, 0, 0x816817},
++	{297000000, 371250000, 4, 495, 1, 2, 0,  1, 3, 1,  1, 0, 0},
++	{593407000, 296703500, 1,  98, 0, 1, 1,  1, 0, 2,  1, 0, 0xE6AE6B},
++	{594000000, 297000000, 1,  99, 0, 1, 1,  1, 0, 2,  1, 0, 0},
++	{593407000, 370879375, 4, 494, 1, 2, 0,  1, 3, 1,  1, 1, 0x816817},
++	{594000000, 371250000, 4, 495, 1, 2, 0,  1, 3, 1,  1, 1, 0},
++	{593407000, 593407000, 1,  98, 0, 2, 0,  1, 0, 1,  1, 0, 0xE6AE6B},
++	{594000000, 594000000, 1,  99, 0, 2, 0,  1, 0, 1,  1, 0, 0},
+ 	{ /* sentinel */ }
+ };
+ 
