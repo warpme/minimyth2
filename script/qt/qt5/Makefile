@@ -1,11 +1,10 @@
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 5.15.1
+GARVERSION   = 5.15.2
 CATEGORIES   = qt
 MASTER_SITES = http://download.qt.io/official_releases/qt/5.15/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME).patch.gar
-PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
@@ -94,6 +93,7 @@ CONFIGURE_ARGS = \
 	-skip qtserialport \
 	-skip qtspeech \
 	-skip qttranslations \
+	-skip qttools \
 	-skip qtwebengine \
 	-skip qtvirtualkeyboard \
 	-skip qtwinextras \
