@@ -5,6 +5,7 @@ CATEGORIES   = qt
 MASTER_SITES = http://download.qt.io/official_releases/qt/5.15/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME).patch.gar
+PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
