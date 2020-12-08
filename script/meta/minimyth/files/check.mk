@@ -346,25 +346,27 @@ mm-all:
 	fi
 	@echo "    mm_BOARD_TYPE"
 	@for board in $(mm_BOARD_TYPE) ; do \
-		if [ ! "$${board}" = "board-g12"               ] && \
-		   [ ! "$${board}" = "board-h6.beelink_gs1"    ] && \
-		   [ ! "$${board}" = "board-h6.eachlink_mini"  ] && \
-		   [ ! "$${board}" = "board-h6.tanix_tx6"      ] && \
-		   [ ! "$${board}" = "board-h6.tanix_tx6_mini" ] && \
-		   [ ! "$${board}" = "board-rk3328.beelink_a1" ] && \
-		   [ ! "$${board}" = "board-rk3399.rockpi4-b"  ] && \
-		   [ ! "$${board}" = "board-rpi2"              ] && \
-		   [ ! "$${board}" = "board-rpi3.mainline32"   ] && \
-		   [ ! "$${board}" = "board-rpi3.mainline64"   ] && \
-		   [ ! "$${board}" = "board-rpi3.rpi32"        ] && \
-		   [ ! "$${board}" = "board-rpi4.mainline64"   ] && \
-		   [ ! "$${board}" = "board-rpi4.rpi32"        ] && \
-		   [ ! "$${board}" = "board-s905"              ] && \
-		   [ ! "$${board}" = "board-s912"              ] && \
-		   [ ! "$${board}" = "board-sm1"               ] && \
-		   [ ! "$${board}" = "board-x86pc.bios"        ] && \
-		   [ ! "$${board}" = "board-x86pc.bios_efi64"  ] && \
-		   [ ! "$${board}" = "board-x86pc.efi64"       ] ; then \
+		if [ ! "$${board}" = "board-g12"                  ] && \
+		   [ ! "$${board}" = "board-h6.beelink_gs1"       ] && \
+		   [ ! "$${board}" = "board-h6.eachlink_mini"     ] && \
+		   [ ! "$${board}" = "board-h6.tanix_tx6"         ] && \
+		   [ ! "$${board}" = "board-h6.tanix_tx6_mini"    ] && \
+		   [ ! "$${board}" = "board-h616.tanix_tx6s"      ] && \
+		   [ ! "$${board}" = "board-h616.orangepi_lite2"  ] && \
+		   [ ! "$${board}" = "board-rk3328.beelink_a1"    ] && \
+		   [ ! "$${board}" = "board-rk3399.rockpi4-b"     ] && \
+		   [ ! "$${board}" = "board-rpi2"                 ] && \
+		   [ ! "$${board}" = "board-rpi3.mainline32"      ] && \
+		   [ ! "$${board}" = "board-rpi3.mainline64"      ] && \
+		   [ ! "$${board}" = "board-rpi3.rpi32"           ] && \
+		   [ ! "$${board}" = "board-rpi4.mainline64"      ] && \
+		   [ ! "$${board}" = "board-rpi4.rpi32"           ] && \
+		   [ ! "$${board}" = "board-s905"                 ] && \
+		   [ ! "$${board}" = "board-s912"                 ] && \
+		   [ ! "$${board}" = "board-sm1"                  ] && \
+		   [ ! "$${board}" = "board-x86pc.bios"           ] && \
+		   [ ! "$${board}" = "board-x86pc.bios_efi64"     ] && \
+		   [ ! "$${board}" = "board-x86pc.efi64"          ] ; then \
 			echo " " ; \
 			echo "error: mm_BOARD_TYPE=\"$${board}\" is an invalid value." ; \
 			echo " " ; \

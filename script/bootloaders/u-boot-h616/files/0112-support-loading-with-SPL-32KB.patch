@@ -1,0 +1,49 @@
+From ec87bfc93b56a9dbbf1f8a09c9b2c030e951ae68 Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Fri, 27 Nov 2020 12:27:19 +0000
+Subject: [PATCH 12/13] support loading with SPL > 32KB
+
+---
+ arch/arm/mach-sunxi/board.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/arch/arm/mach-sunxi/board.c b/arch/arm/mach-sunxi/board.c
+index 5cb8dca6..d78cb893 100644
+--- a/arch/arm/mach-sunxi/board.c
++++ b/arch/arm/mach-sunxi/board.c
+@@ -281,6 +281,14 @@ uint32_t sunxi_get_boot_device(void)
+ }
+ 
+ #ifdef CONFIG_SPL_BUILD
++static u32 sunxi_get_spl_size(void)
++{
++	if (!is_boot0_magic(SPL_ADDR + 4)) /* eGON.BT0 */
++		return 32768;
++
++	return readl(SPL_ADDR + 0x10);
++}
++
+ /*
+  * The eGON SPL image can be located at 8KB or at 128KB into an SD card or
+  * an eMMC device. The boot source has bit 4 set in the latter case.
+@@ -290,6 +298,7 @@ uint32_t sunxi_get_boot_device(void)
+ unsigned long spl_mmc_get_uboot_raw_sector(struct mmc *mmc)
+ {
+ 	unsigned long sector = CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_SECTOR;
++	u32 spl_size = sunxi_get_spl_size();
+ 
+ 	switch (sunxi_get_boot_source()) {
+ 	case SUNXI_BOOTED_FROM_MMC0_HIGH:
+@@ -298,6 +307,9 @@ unsigned long spl_mmc_get_uboot_raw_sector(struct mmc *mmc)
+ 		break;
+ 	}
+ 
++	if (spl_size > 32768)
++		sector += (spl_size - 32768) / 512;
++
+ 	return sector;
+ }
+ 
+-- 
+2.29.2
+
