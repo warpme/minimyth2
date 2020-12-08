@@ -100,6 +100,17 @@ PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
 
 # Add TanixTX6 Mini (WiFi still not working :-( )
 PATCHFILES += 0515-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
+
+# Add initial support for H616
+# https://github.com/apritzel/linux/commits/h616-v1
+PATCHFILES += 0521-clk-sunxi-ng-h6-Fix-clock-divider-range-on-some-cloc.patch
+PATCHFILES += 0522-pinctrl-sunxi-Add-support-for-the-Allwinner-H616-pin.patch
+PATCHFILES += 0523-pinctrl-sunxi-Add-support-for-the-Allwinner-H616-R-p.patch
+PATCHFILES += 0524-clk-sunxi-ng-Add-support-for-the-Allwinner-H616-R-CC.patch
+PATCHFILES += 0525-clk-sunxi-ng-Add-support-for-the-Allwinner-H616-CCU.patch
+PATCHFILES += 0526-mmc-sunxi-add-support-for-A100-mmc-controller.patch
+PATCHFILES += 0527-arm64-dts-allwinner-Add-Allwinner-H616-.dtsi-file.patch
+PATCHFILES += 0528-arm64-dts-allwinner-Add-OrangePi-Zero-2-.dts.patch
 endif
 
 ifeq (1,1)
