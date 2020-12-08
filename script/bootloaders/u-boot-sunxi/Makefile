@@ -1,6 +1,6 @@
 
-GARNAME      = u-boot-sunxi-20200815
-GARVERSION   = 1e7d00ae262e124eaf97d9e3ce4fb25739e4f5d6
+GARNAME      = u-boot-sunxi-20201208
+GARVERSION   = 27007e5d4a6c4ac1bbd1bc81fb4c19bc45191f35
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
@@ -14,6 +14,7 @@ PATCHFILES  += 0003-sunxi-H6-Add-basic-Tanix-TX6-mini-support.patch
 PATCHFILES  += 0006-sunxi-H6-improve-DDR-init.patch
 
 LICENSE = GPL2
+
 
 DESCRIPTION =
 define BLURB
