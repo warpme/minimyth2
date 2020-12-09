@@ -25,8 +25,8 @@ INSTALL_SCRIPTS = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean -C ../u-boot-sunxi
-	@$(MAKE) install -C ../u-boot-sunxi
+	@$(MAKE) clean -C ../u-boot-h6
+	@$(MAKE) install -C ../u-boot-h6
 	@$(MAKECOOKIE)
 
 install-custom:
