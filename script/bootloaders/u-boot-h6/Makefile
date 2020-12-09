@@ -1,5 +1,5 @@
 
-GARNAME      = u-boot-sunxi-20201208
+GARNAME      = u-boot-h6-20201208
 GARVERSION   = 27007e5d4a6c4ac1bbd1bc81fb4c19bc45191f35
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
