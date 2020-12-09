@@ -9,13 +9,14 @@ extra_params="mm_STRIP_IMAGE=yes"
 
 selection_1="board-rpi4.rpi32"
 selection_2="board-rpi4.mainline64"
-selection_3="board-s905 board-h6.eachlink_mini"
+selection_3="board-s905 board-h616.tanix_tx6s"
 selection_4="board-s912 board-h6.tanix_tx6_mini"
 selection_5="board-sm1 board-h6.beelink_gs1"
 selection_6="board-rk3328.beelink_a1"
 selection_7="board-rk3399.rockpi4-b"
 selection_8="board-rpi3.mainline64 board-s905"
-selection_9="my testbed boards"
+selection_9="board-h616.orangepi_lite2"
+selection_a="my testbed boards"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -80,6 +81,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (7) for "${selection_7}
     echo "  (8) for "${selection_8}
     echo "  (9) for "${selection_9}
+    echo "  (a) for "${selection_a}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -141,7 +143,11 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_8}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
-    9)
+    9)  cache_board_list "${selection_9}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_9}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    a)
 #        make reinstall-new-board mm_BOARD_TYPE="${selection_1}" ${extra_params}
 #        make reinstall-new-board mm_BOARD_TYPE="${selection_2}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_3}" ${extra_params}
@@ -150,6 +156,7 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_6}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_7}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_8}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_9}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
