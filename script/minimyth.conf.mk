@@ -184,8 +184,8 @@ mm_SDCARD_FILES           ?= ${HOME}/build
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of kernel to use.
-# Valid values are 'rpi-5.4' 'rpi-5.9' '5.8' '5.8' '5.10'
-mm_KERNEL_VERSION         ?= 5.9
+# Valid values are 'rpi-5.4' 'rpi-5.9' '5.9' '5.10'
+mm_KERNEL_VERSION         ?= 5.10
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -198,7 +198,7 @@ mm_MYTH_VERSION           ?= master
 
 # The version of the NVIDIA driver.
 # Valid values are '440.36'
-mm_NVIDIA_VERSION         ?= 450.66
+mm_NVIDIA_VERSION         ?= 455.45
 
 # The version of the NVIDIA legacy driver.
 # Valid values are '340.107' '340.108'
