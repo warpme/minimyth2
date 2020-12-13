@@ -10,10 +10,10 @@ endef
 DEPENDS = \
 	kernel/linux-$(mm_KERNEL_VERSION) \
 	$(if $(filter armsoc,$(mm_GRAPHICS)),kernel/meson-gx-mali450) \
-	kernel/rtl8189es \
-	kernel/rtl8821cu \
-	kernel/rtl8822cs \
-	kernel/xr819 \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8189es)    \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8821cu)    \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8822cs)    \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/xr819)        \
 
 include ../../gar.mk
 
