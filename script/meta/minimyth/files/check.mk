@@ -185,9 +185,9 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "5.8"           ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "5.9"           ] && \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "5.9"           ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.10"          ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "5.11"          ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.4"       ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.9"       ] ; then \
 		echo " " ; \
@@ -208,8 +208,8 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_NVIDIA_VERSION"
-	@if [ ! "$(mm_NVIDIA_VERSION)" = "450.57"    ] && \
-	    [ ! "$(mm_NVIDIA_VERSION)" = "450.66"    ] ; then \
+	@if [ ! "$(mm_NVIDIA_VERSION)" = "450.66"    ] && \
+	    [ ! "$(mm_NVIDIA_VERSION)" = "455.45"    ] ; then \
 		echo " " ; \
 		echo "error: mm_NVIDIA_VERSION=\"$(mm_NVIDIA_VERSION)\" is an invalid value." ; \
 		echo " " ; \
