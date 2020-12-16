@@ -2,6 +2,15 @@
 ifeq (1,1)
 LINUX_MAJOR_VERSION = 5
 LINUX_MINOR_VERSION = 10
+LINUX_TEENY_VERSION = 1
+LINUX_EXTRA_VERSION = 
+endif
+#-------------------------------------------
+
+#--Use this for first release of mainline kernel
+ifeq (0,1)
+LINUX_MAJOR_VERSION = 5
+LINUX_MINOR_VERSION = 10
 LINUX_TEENY_VERSION = 
 LINUX_EXTRA_VERSION = 
 endif
