@@ -8,13 +8,13 @@
 #
 # Example:
 # devel. machine at 192.168.1.190 has mirror of target root file system
-# at <@MM_HOME@>/main
+# at </home/piotro/minimyth-dev>/main
 #
 # To configure:
 #
 # 1. On devel. machine edit /etc/rsyncd.conf with content:
 # [devel-updates]
-# path = @MM_HOME@/main/
+# path = /home/piotro/minimyth-dev/main/
 # use chroot = true
 # read only = true
 #
@@ -91,7 +91,7 @@ epilog_cmd2="mm_manage restart_xserver"
 component_3="Linux kernel"
 directory_list3="
 /boot/dtbs/:/media/boot/dtbs \
-/lib/modules/:/lib/modules \
+/lib/modules/:/initrd/rootfs-ro/lib/modules \
 "
 file_list3="/boot/*Image:/media/boot/"
 epilog_cmd3="sync"
@@ -205,7 +205,6 @@ case "${selection}" in
         epilog_cmd="${epilog_cmd2}" ;;
 
     3)  echo "Updating ${component_3} ..."
-        dest_prefix=${persist_store_pref}
         directory_list=${directory_list3}
         file_list=${file_list3}
         epilog_cmd="${epilog_cmd3}" ;;
