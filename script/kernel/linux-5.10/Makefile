@@ -128,8 +128,32 @@ PATCHFILES += 0704-gpu-drm-rockchip-fixes-from-LE.patch
 PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
 # Add hvec support for Rockchip rkvdec
 PATCHFILES += 0706-media-rkvdec-add-hevc-support.patch
+# Support for 4k modes
+# https://github.com/Kwiboo/linux-rockchip/commits/v5.10.1-drm-rockchip-hack
+PATCHFILES += 0711-drm-rockchip-vop-fix-crtc-duplicate-state.patch
+PATCHFILES += 0712-drm-rockchip-vop-filter-modes-outside-0.5-pixel-cloc.patch
+PATCHFILES += 0713-drm-rockchip-vop-filter-interlaced-modes.patch
+PATCHFILES += 0714-drm-rockchip-vop-define-max-output-resolution-suppor.patch
+PATCHFILES += 0715-drm-rockchip-vop-filter-modes-above-max-output-suppo.patch
+PATCHFILES += 0716-drm-rockchip-dw_hdmi-adjust-cklvl-txlvl-for-RF-EMI.patch
+PATCHFILES += 0717-drm-rockchip-dw_hdmi-add-phy_config-for-594Mhz-pixel.patch
+PATCHFILES += 0718-drm-rockchip-dw_hdmi-Set-cur_ctr-to-0-always.patch
+PATCHFILES += 0719-drm-rockchip-dw_hdmi-Use-auto-generated-tables.patch
+PATCHFILES += 0720-drm-rockchip-dw-hdmi-limit-tmds-to-340mhz.patch
+PATCHFILES += 0721-drm-rockchip-dw-hdmi-limit-resolution-to-3840x2160.patch
+PATCHFILES += 0722-drm-rockchip-dw-hdmi-allow-high-tmds-bit-rates.patch
+PATCHFILES += 0723-drm-rockchip-dw-hdmi-remove-unused-plat_data-on-rk32.patch
+PATCHFILES += 0724-drm-rockchip-dw-hdmi-encoder-error-handling.patch
+PATCHFILES += 0725-clk-rockchip-set-parent-rate-for-DCLK_VOP-clock-on-r.patch
+PATCHFILES += 0726-arm64-dts-rockchip-increase-vop-clock-rate-on-rk3328.patch
+PATCHFILES += 0727-drm-rockchip-vop-split-rk3288-vop.patch
+PATCHFILES += 0728-ARM-dts-rockchip-split-rk3288-vop.patch
+PATCHFILES += 0729-HACK-clk-rockchip-rk3288-dedicate-npll-for-vopb-and-.patch
+PATCHFILES += 0730-HACK-clk-rockchip-rk3288-use-npll-table-to-to-improv.patch
+PATCHFILES += 0731-HACK-clk-rockchip-rk3288-add-more-npll-clocks.patch
+PATCHFILES += 0732-HACK-clk-rockchip-rk3399-dedicate-vpll-for-vopb-and-.patch
+PATCHFILES += 0733-HACK-dts-rockchip-do-not-use-vopl-for-hdmi.patch
 endif
-
 
 # Add TanixTX6 WiFi support (patch disabled as no HW to test :-( )
 #PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
