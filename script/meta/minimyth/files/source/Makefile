@@ -740,7 +740,7 @@ $(top_build)/stage/version:
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
 	@touch $@~
-	@echo "$(mm_VERSION)" > $@~
+	@echo "$(mm_VERSION_MINIMYTH)" > $@~
 	@chmod 0644 $@~
 	@touch $@~
 	@mv $@~ $@
