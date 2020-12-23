@@ -78,6 +78,10 @@ PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 PATCHFILES += 0375-net-dwmac-meson8b-picosecond-precision-RX-delay-support.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=384505
 PATCHFILES += 0376-thermal-amlogic-Add-hwmon-support.patch
+
+# fix for broken seeking on almogic vdec
+PATCHFILES += 0380-messon-vdec-add-debugging.patch
+PATCHFILES += 0381-messon-vdec-Dont-check-streamon-when-getting-start-cmd.patch
 endif
 
 # Allwinner patches
@@ -88,6 +92,9 @@ PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio-v5.patch
 
 # https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux 7.08.2020
 PATCHFILES += 0505-media-sunxi-cedrus-improvements.patch
+
+# fix from LE slack 9:14AM 23.12.2020
+PATCHFILES += 0506-media-sunxi-cedrus-fix.patch
 
 # Fix hanging GS1 boot on loading kernel modules
 PATCHFILES += 0508-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
