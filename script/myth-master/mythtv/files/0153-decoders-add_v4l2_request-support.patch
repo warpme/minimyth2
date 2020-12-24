@@ -1,6 +1,6 @@
 diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp mythtv-master-20201223-g283caa7b84-new/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp
---- mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp	2020-12-23 09:48:10.563332911 +0100
-+++ mythtv-master-20201223-g283caa7b84-new/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp	2020-12-23 09:56:54.813332882 +0100
+--- mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp	2020-12-24 09:20:52.000000000 +0100
++++ mythtv-master-20201223-g283caa7b84-new/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp	2020-12-24 10:18:51.673333301 +0100
 @@ -23,12 +23,11 @@
  // FFmpeg
  extern "C" {
@@ -135,7 +135,7 @@ diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders
      if (!(Codec->priv_class && Context->priv_data))
          return;
  
-@@ -224,10 +248,9 @@
+@@ -222,10 +246,9 @@
  #define V4L2_PIX_FMT_VP9 v4l2_fourcc('V', 'P', '9', '0')
  #endif
  
@@ -148,7 +148,7 @@ diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders
      {{
          { V4L2_PIX_FMT_MPEG1,       MythCodecContext::MPEG1 },
          { V4L2_PIX_FMT_MPEG2,       MythCodecContext::MPEG2 },
-@@ -245,17 +268,22 @@
+@@ -243,17 +266,22 @@
      static V4L2Profiles s_profiles;
  
      QMutexLocker locker(&lock);
@@ -179,7 +179,7 @@ diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders
  
      const QString root("/dev/");
      QDir dir(root);
-@@ -293,7 +321,8 @@
+@@ -291,7 +319,8 @@
          // check codec support
          QStringList debug;
          QSize dummy{0, 0};
@@ -189,7 +189,7 @@ diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders
          {
              bool found = false;
              uint32_t v4l2pixfmt = profile.first;
-@@ -326,19 +355,10 @@
+@@ -324,19 +353,10 @@
                      if (res)
                          break;
                      pixformats.append(fourcc_str(static_cast<int>(fdesc.pixelformat)));
@@ -212,7 +212,7 @@ diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders
                          foundfmt = true;
                          break;
                      }
-@@ -356,22 +376,32 @@
+@@ -354,19 +374,29 @@
          }
      }
  
@@ -249,12 +249,8 @@ diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders
 -        Decoders.append(MythCodecContext::GetProfileDescription(profile, size));
  }
  
--bool MythV4L2M2MContext::HaveV4L2Codecs(bool Reinit /*=false*/)
-+bool MythV4L2M2MContext::HaveV4L2Codecs(bool Reinit /*=false*/)
- {
-     static QMutex lock(QMutex::Recursive);
-     QMutexLocker locker(&lock);
-@@ -382,8 +412,9 @@
+ bool MythV4L2M2MContext::HaveV4L2Codecs(bool Reinit /*=false*/)
+@@ -380,8 +410,9 @@
          return s_available;
      s_checked = true;
  
@@ -266,7 +262,7 @@ diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders
      {
          LOG(VB_GENERAL, LOG_INFO, LOC + "No V4L2 decoders found");
          return s_available;
-@@ -391,21 +422,67 @@
+@@ -389,21 +420,67 @@
  
      LOG(VB_GENERAL, LOG_INFO, LOC + "Supported/available V4L2 decoders:");
      s_available = true;
@@ -338,13 +334,13 @@ diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders
          }
          PixFmt++;
      }
-@@ -417,53 +494,51 @@
+@@ -415,50 +492,51 @@
      if (!Context || !gCoreContext->IsUIThread())
          return -1;
  
 -    // The interop must have a reference to the ui player so it can be deleted
 -    // from the main thread.
--    MythPlayerUI* player = GetPlayerUI(Context);
+-    auto * player = GetPlayerUI(Context);
 -    if (!player)
 -        return -1;
 -
@@ -357,29 +353,26 @@ diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders
 -    // Create interop
 -    MythOpenGLInterop *interop = nullptr;
 -#ifdef USING_EGL
--    interop = MythDRMPRIMEInterop::CreateDRM(render);
+-    interop = MythDRMPRIMEInterop::CreateDRM(render, player);
 -#endif
 -    if (!interop)
 -        return -1;
 -
--    // Set the player required to process interop release
--    interop->SetPlayer(player);
--
 +    // N.B. Interop support should already have been checked
      // Allocate the device context
--    AVBufferRef* hwdeviceref = MythCodecContext::CreateDevice(AV_HWDEVICE_TYPE_DRM, interop);
-+    AVBufferRef* hwdeviceref = MythCodecContext::CreateDevice(AV_HWDEVICE_TYPE_DRM, nullptr);
+-    auto * hwdeviceref = MythCodecContext::CreateDevice(AV_HWDEVICE_TYPE_DRM, interop);
++    auto * hwdeviceref = MythCodecContext::CreateDevice(AV_HWDEVICE_TYPE_DRM, nullptr);
      if (!hwdeviceref)
 -    {
 -        interop->DecrRef();
-         return -1;
+-        return -1;
 -    }
 -
--    auto* hwdevicecontext = reinterpret_cast<AVHWDeviceContext*>(hwdeviceref->data);
+-    auto * hwdevicecontext = reinterpret_cast<AVHWDeviceContext*>(hwdeviceref->data);
 -    if (!hwdevicecontext || !hwdevicecontext->hwctx)
 -    {
 -        interop->DecrRef();
--        return -1;
+         return -1;
 -    }
  
      // Initialise device context
@@ -426,8 +419,8 @@ diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders
 +    return true;
 +}
 diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.h mythtv-master-20201223-g283caa7b84-new/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.h
---- mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.h	2020-12-23 09:10:08.000000000 +0100
-+++ mythtv-master-20201223-g283caa7b84-new/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.h	2020-12-23 09:49:15.646666225 +0100
+--- mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.h	2020-12-24 09:20:52.000000000 +0100
++++ mythtv-master-20201223-g283caa7b84-new/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.h	2020-12-24 10:10:34.413333310 +0100
 @@ -5,6 +5,7 @@
  #include "mythdrmprimecontext.h"
  
@@ -443,8 +436,7 @@ diff -Naur mythtv-master-20201223-g283caa7b84-old/mythtv/libs/libmythtv/decoders
 -    bool        DecoderWillResetOnFlush  (void) override;
 +    bool        DecoderWillResetOnFlush  () override;
      static bool GetBuffer                (AVCodecContext *Context, MythVideoFrame *Frame, AVFrame *AvFrame, int/*Flags*/);
--    static bool HaveV4L2Codecs           (bool Reinit = false);
-+    static bool HaveV4L2Codecs           (bool Reinit = false);
+     static bool HaveV4L2Codecs           (bool Reinit = false);
      static void GetDecoderList           (QStringList &Decoders);
  
      static enum AVPixelFormat GetV4L2RequestFormat(AVCodecContext *Context, const AVPixelFormat *PixFmt);
