@@ -2,13 +2,12 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# MESA 20.3.0-devel GIT from 6.11.2020 working well on all of my mali450/t720/t760/t820/g31 devices
-GARVERSION   = 6a96729448738476ddb126692311d3b0af7ec4a6
+# MESA 21.0.0-devel GIT from 26.12.2020
+GARVERSION   = 7d8d99ea129a367497512ec8df25b5995e32a2b7
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
-PATCHFILES   = fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
 endif
 
 ifeq (0,1)
@@ -100,7 +99,7 @@ ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
-	-D platforms=x11,drm \
+	-D platforms=x11 \
 	-D gallium-vdpau=disabled \
 	-D gallium-xa=disabled \
 	-D llvm=disabled
@@ -109,7 +108,7 @@ ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
-	-D platforms=x11,drm \
+	-D platforms=x11 \
 	-D gallium-vdpau=disabled \
 	-D gallium-xa=disabled \
 	-D llvm=disabled
@@ -117,7 +116,7 @@ else
 CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
 	-D dri-drivers=i915,i965,r100,r200 \
-	-D platforms=x11,drm \
+	-D platforms=x11 \
 	-D gallium-vdpau=enabled \
 	-D gallium-va=enabled \
 	-D gallium-xa=enabled \
