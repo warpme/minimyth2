@@ -2,7 +2,7 @@
 # URL GIT: https://github.com/chewitt/RTL8822CS
 
 GARNAME      = RTL8822CS
-GARVERSION   = fe0900fd8e26c36ab808bccb0e2db2b2dab31d9a
+GARVERSION   = 60cd82134d63aa9436b43c42933a86d6e5a191ba
 CATEGORIES   = system
 MASTER_SITES = https://github.com/chewitt/RTL8822CS/archive/
 DISTFILES    = $(GARVERSION).zip
