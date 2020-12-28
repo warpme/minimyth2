@@ -78,10 +78,6 @@ PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 PATCHFILES += 0375-net-dwmac-meson8b-picosecond-precision-RX-delay-support.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=384505
 PATCHFILES += 0376-thermal-amlogic-Add-hwmon-support.patch
-
-# fix for broken seeking on almogic vdec
-PATCHFILES += 0380-messon-vdec-add-debugging.patch
-PATCHFILES += 0381-messon-vdec-Dont-check-streamon-when-getting-start-cmd.patch
 endif
 
 # Allwinner patches
@@ -173,6 +169,9 @@ PATCHFILES += 0901-drm-v3d-fix-Kconfig.patch
 PATCHFILES += 0902-rpi-vc04_services-update-audio-for-rpi4-14112020.patch
 # Some additions to rpi4 DT
 PATCHFILES += 0904-arm-dts-bcm2711-rpi4-dt-additions.patch
+# drm/v3d: Minor improvements
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=405969
+PATCHFILES += 0905-drm-v3d-Minor-improvements.patch
 
 endif
 
