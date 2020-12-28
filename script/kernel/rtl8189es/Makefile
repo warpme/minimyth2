@@ -6,6 +6,7 @@ GARVERSION   = 930d3d7cfe3b25c0cf8a57ca4b79f6aef5b6de4b
 CATEGORIES   = system
 MASTER_SITES = https://github.com/jwrdegoede/rtl8189ES_linux/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = rtl8189es-fix-5.10-kernel-build.patch
 WORKSRC      = $(WORKDIR)/rtl8189ES_linux-$(GARVERSION)
 
 LICENSE      = GPL2
