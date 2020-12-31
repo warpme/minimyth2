@@ -25,6 +25,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libfl.la
+	@ln -srf $(DESTDIR)$(bindir)/flex $(DESTDIR)$(bindir)/lex
 	@$(MAKECOOKIE)
 
 include ../../gar.mk
