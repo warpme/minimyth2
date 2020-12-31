@@ -110,7 +110,7 @@ endif
 	@cp -f $(mm_HOME)/html/minimyth/conf/minimyth.conf $(DESTDIR)/boot/
 
 clean-all:
-	@$(foreach dir, $(wildcard ../u-boot ../u-boot-* ../board-* ../arm-trusted-firmware*), $(MAKE) clean clean-all -C $(dir) ; )
+	@$(foreach dir, $(wildcard ../u-boot ../u-boot-* ../board-* ../arm-trusted-firmware* ../crust), $(MAKE) clean clean-all -C $(dir) ; )
 	$(MAKE) clean
 
 clean-bootloader:
