@@ -115,6 +115,10 @@ PATCHFILES += 0516-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 endif
 
+# Crust support for a64/h3/h6
+PATCHFILES += 0550-allwinner-add-crust-support.patch
+PATCHFILES += 0551-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
+
 
 # Rockchip patches
 ifeq (1,1)
