@@ -10,6 +10,7 @@ DISTFILES    = \
                h6-boot.txt       \
 
 export mm_U-BOOT_BOARD_TYPE = tanix_tx6_mini_defconfig
+export CRUST_CONFIG = orangepi_3_defconfig
 
 WORKSRC      = $(WORKDIR)
 
@@ -25,6 +26,7 @@ INSTALL_SCRIPTS = custom
 include ../../gar.mk
 
 build-custom:
+	@@$(MAKE) clean clean-all -C ../crust
 	@$(MAKE) clean -C ../u-boot-h6
 	@$(MAKE) install -C ../u-boot-h6
 	@$(MAKECOOKIE)
