@@ -36,7 +36,11 @@ BUILD_ARGS = \
 	BL31=$(DESTDIR)$(libdir)/u-boot/h6/bl31.bin \
 
 configure-custom:
-	@cp -f $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/scp.bin $(WORKSRC)/scp.bin
+	@if [ -e $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/scp.bin ] ; then \
+		echo "Copying [$(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/scp.bin] to u-boot tree ..." ; \
+		cp -pd $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/scp.bin \
+		$(WORKSRC)/scp.bin ; \
+	 fi
 	@echo "Configuring u-boot for SunXi H6..."
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
