@@ -82,28 +82,30 @@ endif
 
 # Allwinner patches
 ifeq (1,1)
-# Add Allwinner H3/H5/H6/A64 HDMI audio
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=356189 v5 27.09.2020
-PATCHFILES += 0501-ASoC-sun4i-add-H3-H5-H6-A64-HDMI-audio-v5.patch
-
-# https://github.com/LibreELEC/LibreELEC.tv/tree/master/projects/Allwinner/patches/linux 7.08.2020
+# Add Allwinner H3/H5/H6/A64 HDMI audio suuport. Patches are from LibeELEC 24.12.2020
+PATCHFILES += 0501-ASoC-sun4i-i2s-improvements.patch
+PATCHFILES += 0502-ASoC-hdmi-codec-fix-channel-allocation.patch
+PATCHFILES += 0503-arm64-dts-sun50i-h6.dtsi-add-sound-node.patch
+PATCHFILES += 0504-arm64-dts-sun50i-h6.dtsi-add-frame-inversion-to-correct-multi-channel.patch
+# Cedrus improvements. Patches are from LibeELEC 24.12.2020
 PATCHFILES += 0505-media-sunxi-cedrus-improvements.patch
-
-# fix from LE slack 9:14AM 23.12.2020
+# Fix from broken H264 decoding for some content. Patches are from LibeELEC 24.12.2020
 PATCHFILES += 0506-media-sunxi-cedrus-fix.patch
+# Add CEC support. Patches are from LibeELEC 24.12.2020
+PATCHFILES += 0507-drm-sun8i-dw-hdmi-add-cec-support.patch
+# Add some HDMI fixes. Patches are from LibeELEC 24.12.2020
+PATCHFILES += 0508-gpu-drm-sun4i-hdmi-mixer-improvements.patch
 
-# Fix hanging GS1 boot on loading kernel modules
-PATCHFILES += 0508-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
-# Adding support for some H6 boards
+# Adding support for MFD devices on some H6 boards
 PATCHFILES += 0509-mfd-add-AC200.patch
 PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
-
+# Fix hanging GS1 boot on loading kernel modules
+PATCHFILES += 0512-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
+# Improvements and addidtions for some H6 boards
 PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
 PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
-
 # Add TanixTX6 Mini (WiFi still not working :-( )
 PATCHFILES += 0515-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
-
 # Add initial support for H616
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=400181 v2 11.12.2020
 PATCHFILES += 0520-arm64-sunxi-Initial-Allwinner-H616-SoC-support.patch
@@ -115,10 +117,12 @@ PATCHFILES += 0516-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 endif
 
-# Crust support for a64/h3/h6
+# Add TanixTX6 WiFi support (patch disabled as no HW to test :-( )
+#PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
+
+# Crust support for a64/h3/h5/h6
 PATCHFILES += 0550-allwinner-add-crust-support.patch
 PATCHFILES += 0551-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
-
 
 # Rockchip patches
 ifeq (1,1)
@@ -136,34 +140,9 @@ PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
 # Add hvec support for Rockchip rkvdec
 PATCHFILES += 0706-media-rkvdec-add-hevc-support.patch
 # Support for 4k modes
-# https://github.com/Kwiboo/linux-rockchip/commits/v5.10.1-drm-rockchip-hack
-PATCHFILES += 0711-drm-rockchip-vop-fix-crtc-duplicate-state.patch
-PATCHFILES += 0712-drm-rockchip-vop-filter-modes-outside-0.5-pixel-cloc.patch
-PATCHFILES += 0713-drm-rockchip-vop-filter-interlaced-modes.patch
-PATCHFILES += 0714-drm-rockchip-vop-define-max-output-resolution-suppor.patch
-PATCHFILES += 0715-drm-rockchip-vop-filter-modes-above-max-output-suppo.patch
-PATCHFILES += 0716-drm-rockchip-dw_hdmi-adjust-cklvl-txlvl-for-RF-EMI.patch
-PATCHFILES += 0717-drm-rockchip-dw_hdmi-add-phy_config-for-594Mhz-pixel.patch
-PATCHFILES += 0718-drm-rockchip-dw_hdmi-Set-cur_ctr-to-0-always.patch
-PATCHFILES += 0719-drm-rockchip-dw_hdmi-Use-auto-generated-tables.patch
-PATCHFILES += 0720-drm-rockchip-dw-hdmi-limit-tmds-to-340mhz.patch
-PATCHFILES += 0721-drm-rockchip-dw-hdmi-limit-resolution-to-3840x2160.patch
-PATCHFILES += 0722-drm-rockchip-dw-hdmi-allow-high-tmds-bit-rates.patch
-PATCHFILES += 0723-drm-rockchip-dw-hdmi-remove-unused-plat_data-on-rk32.patch
-PATCHFILES += 0724-drm-rockchip-dw-hdmi-encoder-error-handling.patch
-PATCHFILES += 0725-clk-rockchip-set-parent-rate-for-DCLK_VOP-clock-on-r.patch
-PATCHFILES += 0726-arm64-dts-rockchip-increase-vop-clock-rate-on-rk3328.patch
-PATCHFILES += 0727-drm-rockchip-vop-split-rk3288-vop.patch
-PATCHFILES += 0728-ARM-dts-rockchip-split-rk3288-vop.patch
-PATCHFILES += 0729-HACK-clk-rockchip-rk3288-dedicate-npll-for-vopb-and-.patch
-PATCHFILES += 0730-HACK-clk-rockchip-rk3288-use-npll-table-to-to-improv.patch
-PATCHFILES += 0731-HACK-clk-rockchip-rk3288-add-more-npll-clocks.patch
-PATCHFILES += 0732-HACK-clk-rockchip-rk3399-dedicate-vpll-for-vopb-and-.patch
-PATCHFILES += 0733-HACK-dts-rockchip-do-not-use-vopl-for-hdmi.patch
+# https://github.com/Kwiboo/linux-rockchip/commits/v5.10.1-drm-rockchip-hack 17.12.2020
+PATCHFILES += 0711-drm-rockchip-add-4k-videomodes-support.patch
 endif
-
-# Add TanixTX6 WiFi support (patch disabled as no HW to test :-( )
-#PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
 
 # Hack for adding H264 v4l2 decoding on RPI
 PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
