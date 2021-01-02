@@ -16,7 +16,7 @@ ifeq (1,1)
 PATCHFILES += 0001-Recorders-Delay-to-avoid-no-concurent-recordings-start.patch
 PATCHFILES += 0002-Systemstatus-Show-devicename-instead-videodevice.patch
 PATCHFILES += 0003-SCR-keep-disecq-always-18V.patch
-PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
+#PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
 PATCHFILES += 0005-EIT-ticket9480-fix-PL-eit-encodings.patch
 PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
@@ -63,9 +63,6 @@ ifeq (1,1)
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.10kernel.patch
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
-# Enable v4l2_request decoding kn myth v4l2 decoder
-# https://github.com/MythTV/mythtv/issues/278
-PATCHFILES += 0153-decoders-add_v4l2_request-support.patch
 endif
 
 # buffers bump-up required for AML HD playbck
