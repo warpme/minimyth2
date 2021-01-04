@@ -184,7 +184,7 @@ mm_SDCARD_FILES           ?= ${HOME}/build
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of kernel to use.
-# Valid values are 'rpi-5.4' 'rpi-5.9' '5.9' '5.10'
+# Valid values are 'rpi-5.10' '5.9' '5.10' '5.11'
 mm_KERNEL_VERSION         ?= 5.10
 
 # The kernel configuration file to use.
