@@ -67,3 +67,4 @@ endif
 	@$(MAKECOOKIE)
 
 clean-all:
+	@$(MAKE) clean

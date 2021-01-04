@@ -20,7 +20,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c bootloaders/arm-trusted-firmware-h6 bootloaders/crust
+DEPENDS   = lang/c bootloaders/arm-trusted-firmware-h6
 BUILDDEPS = devel/swig utils/dtc
 
 CONFIGURE_SCRIPTS   = custom
@@ -57,3 +57,4 @@ install-custom:
 	@$(MAKECOOKIE)
 
 clean-all:
+	@$(MAKE) clean

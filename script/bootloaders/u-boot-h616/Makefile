@@ -1,17 +1,26 @@
 
-GARNAME      = u-boot-h616-20201208
-GARVERSION   = 27007e5d4a6c4ac1bbd1bc81fb4c19bc45191f35
+GARNAME      = u-boot-h616-20201231
+GARVERSION   = 21e1cae7902e6a9b1d7cf47cf4764e6fe7d3452a
 CATEGORIES   = kernel
-MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
-DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
-WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
+MASTER_SITES = https://github.com/u-boot/u-boot/archive/
+DISTFILES    = $(GARVERSION).zip
+WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 PATCHFILES   = 0001-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
 PATCHFILES  += 0002-sunxi-H6-Add-basic-Tanix-TX6-support.patch
 PATCHFILES  += 0003-sunxi-H6-Add-basic-Tanix-TX6-mini-support.patch
 # PATCHFILES  += 0004-sunxi-H6-enable-dram-debug.patch
 PATCHFILES  += 0006-sunxi-H6-improve-DDR-init.patch
+
+ifeq (1,1)
 # initial support for H616
+# https://patchwork.ozlabs.org/project/uboot/list/?series=215309 18.11.2020
+PATCHFILES  += 0007-tools-sunxi-Use-mkimage-for-SPL-generation.patch
+# https://patchwork.ozlabs.org/project/uboot/list/?series=222511 03.01.2021
+PATCHFILES  += 0008-arm64-sunxi-H616-Add-OrangePI-Zero2-support.patch
+endif
+
+ifeq (0,1)
 # https://github.com/apritzel/u-boot/commits/h616-WIP
 PATCHFILES  += 0101-sunxi-Add-arm64-FEL-support.patch
 PATCHFILES  += 0102-sunxi-Add-H616-FEL-support.patch
@@ -26,6 +35,7 @@ PATCHFILES  += 0110-bring-back-SPL_FIT-support.patch
 PATCHFILES  += 0111-orangepi_zero2_defconfig-720MHz-DRAM-SPL_SPI.patch
 PATCHFILES  += 0112-support-loading-with-SPL-32KB.patch
 PATCHFILES  += 0113-H616-use-TF-A-address-in-DRAM.patch
+endif
 
 LICENSE = GPL2
 
@@ -66,3 +76,4 @@ install-custom:
 	@$(MAKECOOKIE)
 
 clean-all:
+	@$(MAKE) clean

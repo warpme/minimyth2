@@ -44,3 +44,4 @@ install-custom:
 	@$(MAKECOOKIE)
 
 clean-all:
+	@$(MAKE) clean

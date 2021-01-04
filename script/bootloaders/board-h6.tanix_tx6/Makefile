@@ -26,9 +26,8 @@ INSTALL_SCRIPTS = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean clean-all -C ../crust
-	@$(MAKE) clean -C ../u-boot-h6
-	@$(MAKE) install -C ../u-boot-h6
+	@$(MAKE) clean-all -C ../crust
+	@$(MAKE) clean-all install -C ../u-boot-h6
 	@$(MAKECOOKIE)
 
 install-custom:

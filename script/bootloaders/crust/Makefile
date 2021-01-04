@@ -1,6 +1,6 @@
 
-GARNAME      = crust-20201230
-GARVERSION   = 18f74f493690844a4392dc28d879abd4ba995513
+GARNAME      = crust-20210103
+GARVERSION   = 935017ed1e3b24ccd41071755767334fed74097d
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/crust-firmware/crust/archive/
 DISTFILES    = $(GARVERSION).tar.gz
@@ -23,10 +23,11 @@ include ../../gar.mk
 
 export CROSS_COMPILE=$(build_libdir)/gcc-or1k-linux/bin/or1k-linux-
 
-# CRUST_CONFIG is defined in board-x package as config is per bard specific!
+# CRUST_CONFIG is defined in board-x package as config is per board specific!
 configure-custom:
 	@echo "Configuring crust with $(CRUST_CONFIG) ..."
 	@echo "CONFIG_DEBUG_LOG=y" >> $(WORKSRC)/configs/$(CRUST_CONFIG)
+	@echo "CONFIG_PMIC_SHUTDOWN=n" >> $(WORKSRC)/configs/$(CRUST_CONFIG)
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CRUST_CONFIG)
 	@$(MAKECOOKIE)
 
@@ -42,4 +43,5 @@ install-custom:
 	@$(MAKECOOKIE)
 
 clean-all:
+	@$(MAKE) clean
 	@rm -rf $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/scp.bin
