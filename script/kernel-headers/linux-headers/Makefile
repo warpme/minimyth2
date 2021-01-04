@@ -13,8 +13,8 @@ BUILDDEPS = \
 include ../../minimyth.conf.mk
 
 
-ifneq (,$(filter %5.4,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-rpi-5.4
+ifneq (,$(filter %rpi,$(mm_KERNEL_VERSION)))
+DEPENDS = kernel/linux-headers-rpi-5.10
 endif
 ifneq (,$(filter %5.9,$(mm_KERNEL_VERSION)))
 DEPENDS = kernel/linux-headers-5.9
