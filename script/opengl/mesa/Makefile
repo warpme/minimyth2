@@ -6,7 +6,7 @@ CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = fix-compile-softfp-abi-on-arm-target.patch
-PATCHFILES   = fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
+PATCHFILES  += fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 endif
 
@@ -18,7 +18,7 @@ CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(GARVERSION).tar.bz2
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
-PATCHFILES   = fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
+PATCHFILES  += fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
 WORKSRC      = $(WORKDIR)/mesa-$(GARVERSION)
 endif
 
