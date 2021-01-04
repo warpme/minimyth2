@@ -11,7 +11,7 @@ DEPENDS = \
 	kernel/linux-$(mm_KERNEL_VERSION) \
 	$(if $(filter armsoc,$(mm_GRAPHICS)),kernel/meson-gx-mali450) \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8189es)    \
-	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8821cu)    \
+	$(if $(filter arm64,$(GARCH_FAMILY)),kernel/rtl8821cu)    \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8822cs)    \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/xr819)        \
 
