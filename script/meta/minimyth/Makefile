@@ -142,6 +142,7 @@ DEPENDS = \
 		system/bumblebee \
 		system/bbswitch) \
 	X11/xdotool \
+	utils/tinymembench \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
 		python/python-pyalsaaudio \
 		gtk/gconf \
