@@ -19,7 +19,7 @@ PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
 PATCHFILES += 0005-EIT-ticket9480-fix-PL-eit-encodings.patch
 PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
-PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
+#PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
 # Solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
 PATCHFILES += 0010-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
