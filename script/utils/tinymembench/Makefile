@@ -3,6 +3,7 @@ GARNAME      = tinymembench
 GARVERSION   = a2cf6d7e382e3aea1eb39173174d9fa28cad15f3
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/ssvb/tinymembench/archive/
+PATCHFILES   = 01-Make-Makefile-more-robust-readable-and-safe.patch
 DISTFILES    = $(GARVERSION).zip
 LICENSE      = GPL2
 

@@ -1,0 +1,100 @@
+From c77a222eb922dec0de7e4835a20854c584939519 Mon Sep 17 00:00:00 2001
+From: Pierre-Clement Tosi <pierre-clement.tosi@arm.com>
+Date: Tue, 10 Apr 2018 15:55:05 +0100
+Subject: [PATCH] Make the Makefile more robust, readable and safe
+
+The Makefile has been modified to make use of the features of Make
+with the general objective of increasing robustness, readability
+and safety of the code through a reduction in redundancy and an
+increase in automatic work.
+
+The dependencies have been grouped to express clearly that they can
+be of one of 2 kinds: hardware-dependant assembly or higher-level
+source. Thanks to this, the dependency tree that the Makefile defines
+becomes clearer (main depends on source and source depends on asm).
+The use of Pattern Rules (Static or not) and variables (Automatic
+or not) make the code more readable and robuster by expressing
+redundancy in a non-literal way.
+
+Extending the tool to support a new hardware (i.e. adding to the
+project a new .S file and some code in asm-opt) now only requires to
+add the name of the extension in ${ASM} and this will cascade down
+the tree. This is more robust than the previous solution which required
+multiple modifications. This new approach fixes a mistake on line 13
+where the rule 'asm-opt.o : aarch64-asm.h' was NOT defined while
+being required from line 335 in asm-opt.c!
+
+all and clean are declared as phony variables to increase robustness.
+
+'-O2' was removed from the call to the compiler as it is a compiler
+flag and we believe that it should be in ${CFLAGS}.
+
+Thanks to the previous change, the `rm -f *.o` command in the clean
+rule was made safer so it is now unable to delete .o files that it
+couldn't have created.
+
+A ${NAME} variable is used to further reduce redundancy.
+---
+ Makefile | 42 ++++++++++++++++++++++++------------------
+ 1 file changed, 24 insertions(+), 18 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 31ca60e..aa5fb8a 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,31 +1,37 @@
+-all: tinymembench
++.PHONY : all clean
++
++NAME = tinymembench
+ 
+ ifdef WINDIR
+ 	CC = gcc
+ endif
+ 
+-tinymembench: main.c util.o util.h asm-opt.h version.h asm-opt.o x86-sse2.o arm-neon.o mips-32.o aarch64-asm.o
+-	${CC} -O2 ${CFLAGS} -o tinymembench main.c util.o asm-opt.o x86-sse2.o arm-neon.o mips-32.o aarch64-asm.o -lm
++# override CFLAGS += -O2
++
++ASM = aarch64-asm arm-neon mips-32 x86-sse2
++SRC = asm-opt util
++
++ASM.h = $(addsuffix .h, ${ASM})
++ASM.o = $(addsuffix .o, ${ASM})
++SRC.h = $(addsuffix .h, ${SRC})
++SRC.o = $(addsuffix .o, ${SRC})
+ 
+-util.o: util.c util.h
+-	${CC} -O2 ${CFLAGS} -c util.c
+ 
+-asm-opt.o: asm-opt.c asm-opt.h x86-sse2.h arm-neon.h mips-32.h
+-	${CC} -O2 ${CFLAGS} -c asm-opt.c
++all : ${NAME}
+ 
+-x86-sse2.o: x86-sse2.S
+-	${CC} -O2 ${CFLAGS} -c x86-sse2.S
++${NAME} : main.c version.h ${SRC.h} ${ASM.h} ${SRC.o} ${ASM.o}
++	${CC} ${CFLAGS} $< ${SRC.o} ${ASM.o} -o $@ -lm
+ 
+-arm-neon.o: arm-neon.S
+-	${CC} -O2 ${CFLAGS} -c arm-neon.S
++asm-opt.o : %.o : %.c %.h ${ASM.h}
++	${CC} ${CFLAGS} -c $<
+ 
+-aarch64-asm.o: aarch64-asm.S
+-	${CC} -O2 ${CFLAGS} -c aarch64-asm.S
++util.o : %.o : %.c %.h
++	${CC} ${CFLAGS} -c $<
+ 
+-mips-32.o: mips-32.S
+-	${CC} -O2 ${CFLAGS} -c mips-32.S
++%.o : %.S
++	${CC} ${CFLAGS} -c $<
+ 
+ clean:
+-	-rm -f tinymembench
+-	-rm -f tinymembench.exe
+-	-rm -f *.o
++	-rm -f ${NAME}
++	-rm -f ${NAME}.exe
++	-rm -f ${ASM.o} ${SRC.o}
