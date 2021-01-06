@@ -9,7 +9,7 @@ extra_params="mm_STRIP_IMAGE=yes"
 
 selection_1="board-rpi4.rpi32"
 selection_2="board-rpi4.mainline64"
-selection_3="board-s905 board-h616.tanix_tx6s"
+selection_3="board-s905 board-h6.eachlink_mini"
 selection_4="board-s912 board-h6.tanix_tx6_mini"
 selection_5="board-sm1 board-h6.beelink_gs1"
 selection_6="board-rk3328.beelink_a1"
