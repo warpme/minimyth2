@@ -15,7 +15,7 @@ diff -Naur mythtv-master-20201010-g68e85b9-old/mythtv/libs/libmythtv/tv_rec.cpp 
 @@ -1051,6 +1055,8 @@
          ClearFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
          m_eitScanStartTime = MythDate::current().addSecs(
-             m_eitCrawlIdleStart + eit_start_rand(m_eitTransportTimeout));
+             m_eitCrawlIdleStart + eit_start_rand(m_inputId, m_eitTransportTimeout));
 +        LOG(VB_GENERAL, LOG_INFO, LOC +
 +            "EIT active scanner stopped by Recording or LiveTV");
      }
@@ -30,15 +30,15 @@ diff -Naur mythtv-master-20201010-g68e85b9-old/mythtv/libs/libmythtv/tv_rec.cpp 
      if (m_scanner && (m_internalState == kState_None))
      {
 -        m_eitScanStartTime = m_eitScanStartTime.addSecs(
--            m_eitCrawlIdleStart + eit_start_rand(m_eitTransportTimeout));
-+        int start_delay = eit_start_rand(m_eitTransportTimeout);
+-            m_eitCrawlIdleStart + eit_start_rand(m_inputId, m_eitTransportTimeout));
++        int start_delay = eit_start_rand(m_inputId, m_eitTransportTimeout);
 +        // If eitCrawlIdleStart is above 3600 then we enter schedulled mode.
 +        // For values 3600 and below we have old behaviour.
 +        if (m_eitCrawlIdleStart <= 3600)
 +        {
 +            m_eitScanStartTime = m_eitScanStartTime.addSecs(
 +                m_eitCrawlIdleStart + start_delay);
-+            m_eitScanEndTime   = m_eitScanStartTime.addYears(1);
++            m_eitScanEndTime   = m_eitScanStartTime.addYears(10);
 +            LOG(VB_GENERAL, LOG_INFO, LOC +
 +                QString("EIT active scan will resume after %1 sec.").arg(m_eitCrawlIdleStart + start_delay));
 +        }
@@ -84,20 +84,21 @@ diff -Naur mythtv-master-20201010-g68e85b9-old/mythtv/libs/libmythtv/tv_rec.cpp 
  
 -    m_eitScanStartTime = MythDate::current();
 +    m_eitScanStartTime = QDateTime::currentDateTime();
-     // check whether we should use the EITScanner in this TVRec instance
-     if (CardUtil::IsEITCapable(m_genOpt.m_inputType) &&
-         (!GetDTVChannel() || GetDTVChannel()->IsMaster()) &&
-         (m_dvbOpt.m_dvbEitScan || get_use_eit(m_inputId)))
+ 
+     // Check whether we should use the EITScanner in this TVRec instance
+     if (CardUtil::IsEITCapable(m_genOpt.m_inputType) &&         // Card type capable of receiving EIT?
+         (!GetDTVChannel() || GetDTVChannel()->IsMaster()) &&    // Card is master and not a multirec instance
+         (m_dvbOpt.m_dvbEitScan || get_use_eit(m_inputId)))      // EIT is selected for card OR EIT is selected for video source
      {
          m_scanner = new EITScanner(m_inputId);
 -        m_eitScanStartTime = m_eitScanStartTime.addSecs(
-+        int start_delay = eit_start_rand(m_eitTransportTimeout);
++        int start_delay = eit_start_rand(m_inputId, m_eitTransportTimeout);
 +
 +        if (m_eitCrawlIdleStart <= 3600)
 +        {
 +            m_eitScanStartTime = m_eitScanStartTime.addSecs(m_eitCrawlIdleStart + start_delay);
 +
-+            m_eitScanEndTime   = m_eitScanStartTime.addYears(1);
++            m_eitScanEndTime   = m_eitScanStartTime.addYears(10);
 +            LOG(VB_GENERAL, LOG_INFO, LOC +
 +                QString("EIT active scan start after %1 sec.").arg(m_eitCrawlIdleStart + start_delay));
 +        }
@@ -130,18 +131,18 @@ diff -Naur mythtv-master-20201010-g68e85b9-old/mythtv/libs/libmythtv/tv_rec.cpp 
 +                QString("EIT active scan window: %1").arg(m_eitScanStartTime.toString(Qt::ISODate)) +
 +                QString(" <--> %1 ").arg(m_eitScanEndTime.toString(Qt::ISODate)) + QString("(%1min duration)").arg(m_eitCrawlDuration));
 +        }        m_eitScanStartTime = m_eitScanStartTime.addSecs(
-             m_eitCrawlIdleStart + eit_start_rand(m_eitTransportTimeout));
+             m_eitCrawlIdleStart + eit_start_rand(m_inputId, m_eitTransportTimeout));
      }
      else
      {
-         m_eitScanStartTime = m_eitScanStartTime.addYears(1);
+         m_eitScanStartTime = m_eitScanStartTime.addYears(10);
 +        m_eitScanEndTime = m_eitScanStartTime;
      }
  
      while (HasFlags(kFlagRunMainLoop))
 @@ -1462,46 +1549,61 @@
-         }
  
+         // Start active EIT scan
          if (m_scanner && m_channel &&
 -            MythDate::current() > m_eitScanStartTime)
 +            (QDateTime::currentDateTime() > m_eitScanStartTime || QDateTime::currentDateTime() > m_eitScanEndTime))
@@ -150,15 +151,15 @@ diff -Naur mythtv-master-20201010-g68e85b9-old/mythtv/libs/libmythtv/tv_rec.cpp 
              {
                  LOG(VB_EIT, LOG_INFO, LOC +
                      "EIT scanning disabled for this input.");
-                 m_eitScanStartTime = m_eitScanStartTime.addYears(1);
-+                m_eitScanEndTime = m_eitScanEndTime.addYears(1);
+                 m_eitScanStartTime = m_eitScanStartTime.addYears(10);
++                m_eitScanEndTime = m_eitScanEndTime.addYears(10);
              }
              else if (!get_use_eit(GetInputId()))
              {
                  LOG(VB_EIT, LOG_INFO, LOC +
-                     "EIT scanning disabled for all sources on this input.");
-                 m_eitScanStartTime = m_eitScanStartTime.addYears(1);
-+                m_eitScanEndTime = m_eitScanEndTime.addYears(1);
+                     "EIT scanning disabled for all channels on this input.");
+                 m_eitScanStartTime = m_eitScanStartTime.addYears(10);
++                m_eitScanEndTime = m_eitScanEndTime.addYears(10);
              }
              else
              {
@@ -177,7 +178,7 @@ diff -Naur mythtv-master-20201010-g68e85b9-old/mythtv/libs/libmythtv/tv_rec.cpp 
 -                    m_scanner->StartActiveScan(this, m_eitTransportTimeout);
 -                    SetFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
 -                    m_eitScanStartTime =
--                        QDateTime::currentDateTime().addYears(1);
+-                        QDateTime::currentDateTime().addYears(10);
 -                }
 -                else
 +
@@ -199,7 +200,7 @@ diff -Naur mythtv-master-20201010-g68e85b9-old/mythtv/libs/libmythtv/tv_rec.cpp 
 +                    {
 +                        m_scanner->StartActiveScan(this, m_eitTransportTimeout);
 +                        SetFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
-+                        m_eitScanStartTime = MythDate::current().addYears(1);
++                        m_eitScanStartTime = MythDate::current().addYears(10);
 +                        LOG(VB_GENERAL, LOG_INFO, LOC +
 +                            "EIT active scan started.");
 +                    }

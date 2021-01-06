@@ -16,11 +16,10 @@ ifeq (1,1)
 PATCHFILES += 0001-Recorders-Delay-to-avoid-no-concurent-recordings-start.patch
 PATCHFILES += 0002-Systemstatus-Show-devicename-instead-videodevice.patch
 PATCHFILES += 0003-SCR-keep-disecq-always-18V.patch
-#PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
+PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
 PATCHFILES += 0005-EIT-ticket9480-fix-PL-eit-encodings.patch
 PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
-# PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme.
 PATCHFILES += 0013-MythMainWindow-not-use-qRound-in-MythUIScreenBounds.patch
 
@@ -33,7 +32,6 @@ PATCHFILES += 0031-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-th
 PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music.patch
 
 # Some patches for better logging
-PATCHFILES += 0050-Loging-Add-better-EIT-verbosity.patch
 PATCHFILES += 0051-Loging-Add-better-TID-verbosity.patch
 PATCHFILES += 0052-Loging-Decrease-some-PMT-DVB-errors-Loging.patch
 PATCHFILES += 0053-Loging-Add-verbose-dvb-lock-loging.patch
