@@ -243,6 +243,8 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@GAR_datadir@%$(datadir)%g'                     $@~$(sysconfdir)/fonts/local.conf
 	@sed -i 's%@EXTRAS_ROOTDIR@%$(extras_rootdir)%'            $@~$(sysconfdir)/rc.d/init.d/extras
 	@sed -i 's%@EXTRAS_ROOTDIR@%$(extras_rootdir)%'            $@~$(sysconfdir)/rc.d/init.d/media
+	@sed -i 's%@ARCH@%$(mm_GARCH_FAMILY)%'                     $@~$(sysconfdir)/rc.d/init.d/conf.d/S_MINIMYTH
+	@sed -i 's%@BRANCH@%$(mm_MYTH_VERSION)%'                   $@~$(sysconfdir)/rc.d/init.d/conf.d/S_MINIMYTH
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/*.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)-$(mm_GARCH)%g' $@~/etc/os_myth_release
 	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_SVN_VERSION)%g'   $@~/etc/os_myth_release
@@ -1020,8 +1022,8 @@ install: build
 		echo '  creating examplary rsyncd.conf file'                                               ; \
 		rm -f $(mm_ONLINE_UPDATES)/rsyncd.conf                                                     ; \
 		touch $(mm_ONLINE_UPDATES)/rsyncd.conf                                                     ; \
-		echo "# Add in minimyth.conf: 'MM_MINIMYTH_ONLINE_UPDATES_URL='<host>::mm2-updates' " >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
-		echo "# where <host> is machine hosting files at $(mm_ONLINE_UPDATES)"                >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
+		echo "# Add in minimyth.conf: 'MM_MINIMYTH_ONLINE_UPDATES_URL='<host>::mm2-updates/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)' " >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
+		echo "# where <host> is machine hosting files at $(mm_ONLINE_UPDATES)"                                                      >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
 		echo "port = 7135"                       >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
 		echo "use chroot = yes"                  >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
 		echo "list = no"                         >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
