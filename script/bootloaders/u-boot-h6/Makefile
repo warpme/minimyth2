@@ -47,7 +47,7 @@ configure-custom:
 
 build-custom:
 	@echo "Building u-boot for SunXi H6..."
-	@$(BUILD_ARGS) $(warning HOSTCC is:$(HOSTCC)) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
 	@$(MAKECOOKIE)
 
 install-custom:
