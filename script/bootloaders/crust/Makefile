@@ -3,6 +3,7 @@ GARNAME      = crust-20210103
 GARVERSION   = 935017ed1e3b24ccd41071755767334fed74097d
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/crust-firmware/crust/archive/
+PATCHFILES   = 001-cir-sunxi-cir-add-crust-support-for-tanixTX6.patch
 DISTFILES    = $(GARVERSION).tar.gz
 WORKSRC      = $(WORKDIR)/crust-$(GARVERSION)
 
@@ -27,7 +28,6 @@ export CROSS_COMPILE=$(build_libdir)/gcc-or1k-linux/bin/or1k-linux-
 configure-custom:
 	@echo "Configuring crust with $(CRUST_CONFIG) ..."
 	@echo "CONFIG_DEBUG_LOG=y" >> $(WORKSRC)/configs/$(CRUST_CONFIG)
-	@echo "CONFIG_PMIC_SHUTDOWN=n" >> $(WORKSRC)/configs/$(CRUST_CONFIG)
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CRUST_CONFIG)
 	@$(MAKECOOKIE)
 
