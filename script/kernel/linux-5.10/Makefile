@@ -35,9 +35,10 @@ PATCHFILES += linux-5.10-defaults.patch
 PATCHFILES += linux-5.10-vgaarb-add-3D-accell-detection.patch
 
 ifeq (1,1)
+# Above is for disabling ALL patches
 
 ifeq (1,1)
-# Misc panfrost patches for 5.10 kernel
+#-- Misc panfrost patches for 5.10 kernel -------------------
 PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
 # Add suport for tests on Bifrost
@@ -45,15 +46,15 @@ PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
 PATCHFILES += 0105-Also-use-meson-hack-on-amlogic-meson-g12a-mali.patch
 PATCHFILES += 0106-Sync-G31-features-with-kbase.patch
 endif
-
 ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
 PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
 PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
 endif
+#------------------------------------------------------------
 
 ifeq (1,1)
-# Amlogic: vdec various patches
+#-- Amlogic patches -----------------------------------------
 # Add HVEC decode from https://gitlab.com/baylibre/amlogic/atv/linux/-/commit/1f9a7f9904dfb58be623d1048f6dad3df7bf61f4
 PATCHFILES += 0310-messon-vdec-add-hvec-support.patch
 # increas CMA pool for 4k decode
@@ -74,14 +75,15 @@ PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320731
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 # Improve perf. on G12 and newer
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=384491
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=410053 06.01.2021
 PATCHFILES += 0375-net-dwmac-meson8b-picosecond-precision-RX-delay-support.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=384505
 PATCHFILES += 0376-thermal-amlogic-Add-hwmon-support.patch
 endif
+#------------------------------------------------------------
 
-# Allwinner patches
 ifeq (1,1)
+#-- Allwinner patches -----------------------------------------
 # Add Allwinner H3/H5/H6/A64 HDMI audio suuport. Patches are from LibeELEC 24.12.2020
 PATCHFILES += 0501-ASoC-sun4i-i2s-improvements.patch
 PATCHFILES += 0502-ASoC-hdmi-codec-fix-channel-allocation.patch
@@ -95,7 +97,6 @@ PATCHFILES += 0506-media-sunxi-cedrus-fix.patch
 PATCHFILES += 0507-drm-sun8i-dw-hdmi-add-cec-support.patch
 # Add some HDMI fixes. Patches are from LibeELEC 24.12.2020
 PATCHFILES += 0508-gpu-drm-sun4i-hdmi-mixer-improvements.patch
-
 # Adding support for MFD devices on some H6 boards
 PATCHFILES += 0509-mfd-add-AC200.patch
 PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
@@ -106,26 +107,22 @@ PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
 PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
 # Add TanixTX6 Mini (WiFi still not working :-( )
 PATCHFILES += 0515-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
-# Add initial support for H616
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=400181 v2 11.12.2020
-PATCHFILES += 0520-arm64-sunxi-Initial-Allwinner-H616-SoC-support.patch
-endif
-
-ifeq (1,1)
 # Allwinner: enable H6 GPU DVFS
 PATCHFILES += 0516-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
-endif
-
-# Add TanixTX6 WiFi support (patch disabled as no HW to test :-( )
-#PATCHFILES += 0518-arm64-dts-Tanix-TX6-add-WiFi-support.patch
-
+# Add support for BT2020 to DE3
+# https://github.com/jernejsk/linux-1/commits/10bit
+PATCHFILES += 0518-drm-sun4i-Add-support-for-BT2020-to-DE3.patch
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=400181 v2 11.12.2020
+PATCHFILES += 0520-arm64-sunxi-Initial-Allwinner-H616-SoC-support.patch
 # Crust support for a64/h3/h5/h6
 PATCHFILES += 0550-allwinner-add-crust-support.patch
 PATCHFILES += 0551-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
+endif
+#------------------------------------------------------------
 
-# Rockchip patches
 ifeq (1,1)
+#-- Rockchip patches -----------------------------------------
 # Inc.some clocks on rk3328
 PATCHFILES += 0702-arm64-dts-rockchip-inc-cpu-clock-add-gpu-DVFS-on-rk3328.patch
 # Enable rkvdec on rk3328
@@ -143,7 +140,10 @@ PATCHFILES += 0706-media-rkvdec-add-hevc-support.patch
 # https://github.com/Kwiboo/linux-rockchip/commits/v5.10.1-drm-rockchip-hack 17.12.2020
 PATCHFILES += 0711-drm-rockchip-add-4k-videomodes-support.patch
 endif
+#------------------------------------------------------------
 
+ifeq (1,1)
+#-- RaspberryPI patches -----------------------------------------
 # Hack for adding H264 v4l2 decoding on RPI
 PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
 # Fix building V3D for rpi4
@@ -155,8 +155,10 @@ PATCHFILES += 0904-arm-dts-bcm2711-rpi4-dt-additions.patch
 # drm/v3d: Minor improvements
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=405969
 PATCHFILES += 0905-drm-v3d-Minor-improvements.patch
-
 endif
+#------------------------------------------------------------
+
+endif # for all patches
 
 LICENSE = GPL2
 
