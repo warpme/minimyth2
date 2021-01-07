@@ -12,15 +12,15 @@ PATCHFILES  += 0003-sunxi-H6-Add-basic-Tanix-TX6-mini-support.patch
 # PATCHFILES  += 0004-sunxi-H6-enable-dram-debug.patch
 PATCHFILES  += 0006-sunxi-H6-improve-DDR-init.patch
 
-ifeq (1,1)
+ifeq (0,1)
 # initial support for H616
-# https://patchwork.ozlabs.org/project/uboot/list/?series=215309 18.11.2020
+# https://patchwork.ozlabs.org/project/uboot/list/?series=222956 06.01.2021
 PATCHFILES  += 0007-tools-sunxi-Use-mkimage-for-SPL-generation.patch
 # https://patchwork.ozlabs.org/project/uboot/list/?series=222511 03.01.2021
 PATCHFILES  += 0008-arm64-sunxi-H616-Add-OrangePI-Zero2-support.patch
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # https://github.com/apritzel/u-boot/commits/h616-WIP
 PATCHFILES  += 0101-sunxi-Add-arm64-FEL-support.patch
 PATCHFILES  += 0102-sunxi-Add-H616-FEL-support.patch
@@ -66,7 +66,7 @@ configure-custom:
 
 build-custom:
 	@echo "Building u-boot for SunXi H616..."
-	@$(BUILD_ARGS) $(warning HOSTCC is:$(HOSTCC)) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
 	@$(MAKECOOKIE)
 
 install-custom:
