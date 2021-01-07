@@ -67,7 +67,8 @@ endif
 
 # buffers bump-up required for AML HD playbck
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
-
+# mute Invalid UE golomb code reposts on hevc tv playback
+PATCHFILES += 0172-ffmpeg-libavcodec-reduce-Invalid-UE-golomb-error-code.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 
