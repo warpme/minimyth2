@@ -7,7 +7,7 @@ mm_conf_file="${HOME}/.minimyth2/minimyth.conf.mk"
 
 extra_params="mm_STRIP_IMAGE=yes"
 
-selection_1="board-rpi4.rpi32"
+selection_1="board-rpi3.mainline64"
 selection_2="board-rpi4.mainline64"
 selection_3="board-s905 board-h6.eachlink_mini"
 selection_4="board-s912 board-h6.tanix_tx6_mini"
@@ -17,6 +17,8 @@ selection_7="board-rk3399.rockpi4-b"
 selection_8="board-rpi3.mainline64 board-s905"
 selection_9="board-h616.orangepi_lite2"
 selection_a="my testbed boards"
+selection_b="board-h6.tanix_tx6"
+selection_c="board-h616.tanix_tx6s"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -82,6 +84,8 @@ if [ x${selection} = "x" ] ; then
     echo "  (8) for "${selection_8}
     echo "  (9) for "${selection_9}
     echo "  (a) for "${selection_a}
+    echo "  (b) for "${selection_b}
+    echo "  (c) for "${selection_c}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -157,6 +161,14 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_7}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_8}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_9}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    b)  cache_board_list "${selection_b}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_b}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    c)  cache_board_list "${selection_c}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_b}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
