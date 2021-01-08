@@ -118,6 +118,8 @@ PATCHFILES += 0520-arm64-sunxi-Initial-Allwinner-H616-SoC-support.patch
 # Crust support for a64/h3/h5/h6
 PATCHFILES += 0550-allwinner-add-crust-support.patch
 PATCHFILES += 0551-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
+# hck for dead Eth after resume from sleep
+PATCHFILES += 0552-dwmac-sun8i-hack-for-dead-Eth-on-crust-resume.patch
 endif
 #------------------------------------------------------------
 
