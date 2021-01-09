@@ -5,6 +5,7 @@ CATEGORIES   = kernel
 MASTER_SITES = https://github.com/crust-firmware/crust/archive/
 PATCHFILES   = 001-cir-sunxi-cir-add-crust-support-for-tanixTX6.patch
 PATCHFILES  += 002-add-NEC-NECX-wakeup-support.patch
+PATCHFILES  += 003-add-beelink-gs1_defconfig.patch
 DISTFILES    = $(GARVERSION).tar.gz
 WORKSRC      = $(WORKDIR)/crust-$(GARVERSION)
 
