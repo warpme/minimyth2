@@ -16,9 +16,10 @@ ifeq (1,1)
 PATCHFILES += ffmpeg-add-v4l2-drmprime.patch
 PATCHFILES += ffmpeg-add-v4l2_request.patch
 PATCHFILES += ffmpeg-libavcodec-hevc-add-rkvdec-fields.patch
+# h6 hardware DI support
+PATCHFILES += ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel-1.patch
+PATCHFILES += ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel-2.patch
 endif
-
-
 
 LICENSE = GPL2/LGPL2_1
 
