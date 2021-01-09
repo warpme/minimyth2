@@ -63,6 +63,8 @@ ifeq (1,1)
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.10kernel-rpi.patch
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
+# Add HW deinterlacer support on Allwinner H6
+PATCHFILES += 0153-ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel.patch
 endif
 
 # buffers bump-up required for AML HD playbck
