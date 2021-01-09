@@ -10,7 +10,7 @@ DISTFILES    = \
                h6-boot.txt \
 
 export mm_U-BOOT_BOARD_TYPE = beelink_gs1_defconfig
-export CRUST_CONFIG = orangepi_3_defconfig
+export CRUST_CONFIG = tanix_tx6_defconfig
 
 WORKSRC      = $(WORKDIR)
 
