@@ -1,0 +1,359 @@
+From aa64639a36db0a1e1c1a85be921b29eb222eb03a Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@siol.net>
+Date: Fri, 8 Jan 2021 22:59:39 +0100
+Subject: [PATCH] NEC/NECX wip
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@siol.net>
+---
+ drivers/cir/Kconfig     |  21 ++++++++
+ drivers/cir/Makefile    |   5 +-
+ drivers/cir/nec.c       | 109 ++++++++++++++++++++++++++++++++++++++++
+ drivers/cir/rc6.c       |  33 +++++++++++-
+ drivers/cir/rc6.h       |  38 +++++++-------
+ drivers/cir/sunxi-cir.c |  38 +++-----------
+ 6 files changed, 190 insertions(+), 54 deletions(-)
+ create mode 100644 drivers/cir/nec.c
+
+diff --git a/drivers/cir/Kconfig b/drivers/cir/Kconfig
+index 5fed465c..38540baa 100644
+--- a/drivers/cir/Kconfig
++++ b/drivers/cir/Kconfig
+@@ -11,6 +11,27 @@ config CIR
+ 
+ if CIR
+ 
++choice
++	bool "IR protocol"
++	default CIR_RC6
++
++config CIR_RC6
++	bool "RC6"
++	help
++		Select this for standard RC6 MCE remotes.
++
++config CIR_NEC
++	bool "NEC"
++	help
++		Select this if your remote speaks NEC.
++
++config CIR_NECX
++	bool "Extended NEC"
++	help
++		Select this if your remote speaks extended NEC.
++
++endchoice
++
+ config CIR_WAKE_CODE
+ 	hex "Scan code for wakeup"
+ 	range 0x1 0xffffffff
+diff --git a/drivers/cir/Makefile b/drivers/cir/Makefile
+index 66430258..d5269638 100644
+--- a/drivers/cir/Makefile
++++ b/drivers/cir/Makefile
+@@ -4,6 +4,9 @@
+ #
+ 
+ obj-y += cir.o
+-obj-y += rc6.o
++obj-$(CONFIG_CIR_RC6) += rc6.o
++obj-$(CONFIG_CIR_NEC) += nec.o
++obj-$(CONFIG_CIR_NECX) += nec.o
++
+ 
+ obj-y += sunxi-cir.o
+diff --git a/drivers/cir/nec.c b/drivers/cir/nec.c
+new file mode 100644
+index 00000000..37d9e3b1
+--- /dev/null
++++ b/drivers/cir/nec.c
+@@ -0,0 +1,109 @@
++/*
++ * Copyright © 2020-2021 The Crust Firmware Authors.
++ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0-only
++ */
++
++#include <debug.h>
++#include <stdbool.h>
++#include <util.h>
++
++#include "rc6.h"
++
++#define NUM_DATA_BITS   32
++
++#define NEC_UNIT 563UL
++
++#define NEC_UNITS_TO_CLKS(num) US_TO_CLKS((num) * NEC_UNIT)
++
++#if CONFIG(CIR_NECX)
++#define NEC_LEAD_P   NEC_UNITS_TO_CLKS(8)
++#else
++#define NEC_LEAD_P   NEC_UNITS_TO_CLKS(16)
++#endif
++#define NEC_LEAD_S   NEC_UNITS_TO_CLKS(8)
++#define NEC_DATA_P   NEC_UNITS_TO_CLKS(1)
++#define NEC_DATA_S_0 NEC_UNITS_TO_CLKS(1)
++#define NEC_DATA_S_1 NEC_UNITS_TO_CLKS(3)
++
++#define NEC_HALF_MARGIN   (NEC_UNITS_TO_CLKS(1) / 2)
++#define NEC_SINGLE_MARGIN NEC_UNITS_TO_CLKS(1)
++#define NEC_DOUBLE_MARGIN NEC_UNITS_TO_CLKS(2)
++
++enum {
++	NEC_IDLE,
++	NEC_HEAD_S,
++	NEC_PULSE,
++	NEC_DATA,
++	NEC_STATES
++};
++
++static const uint8_t nec_pulse_states[NEC_STATES] = {
++	[NEC_IDLE] = 1,
++	[NEC_HEAD_S] = 0,
++	[NEC_PULSE] = 1,
++	[NEC_DATA] = 0,
++};
++
++uint32_t
++rc6_decode(struct dec_rtx *ctx)
++{
++	uint32_t ret = 0;
++
++	if (nec_pulse_states[ctx->state] == ctx->pulse) {
++		ctx->counter += ctx->width;
++		ctx->width = 0;
++		return 0;
++	}
++
++	switch (ctx->state) {
++	case NEC_IDLE:
++		if (EQ_MARGIN(ctx->counter, NEC_LEAD_P, NEC_DOUBLE_MARGIN))
++			ctx->state = NEC_HEAD_S;
++		else
++			ctx->width = 0;
++		break;
++	case NEC_HEAD_S:
++		if (EQ_MARGIN(ctx->counter, NEC_LEAD_S, NEC_SINGLE_MARGIN)) {
++			ctx->bits = 0;
++			ctx->buffer = 0;
++			ctx->state = NEC_PULSE;
++		} else {
++			ctx->state = NEC_IDLE;
++		}
++		break;
++	case NEC_PULSE:
++		ctx->state = NEC_IDLE;
++		if (!EQ_MARGIN(ctx->counter, NEC_DATA_P, NEC_HALF_MARGIN))
++			break;
++		if (ctx->bits == NUM_DATA_BITS) {
++			/* it would be nice to check if inverted values match */
++			if (CONFIG(CIR_NECX))
++				ret = ((ctx->buffer << 16) & GENMASK(23, 16)) |
++				      (ctx->buffer & GENMASK(15, 8)) |
++				      ((ctx->buffer >> 16) & GENMASK(7, 0));
++			else
++				ret = ((ctx->buffer << 8) & GENMASK(15, 8)) |
++				      ((ctx->buffer >> 16) & GENMASK(7, 0));
++			debug("NEC code %08x", ret);
++		} else {
++			ctx->state = NEC_DATA;
++		}
++		break;
++	case NEC_DATA:
++		/* NEC is LSB first */
++		ctx->buffer >>= 1;
++		ctx->bits++;
++		ctx->state = NEC_PULSE;
++		if (EQ_MARGIN(ctx->counter, NEC_DATA_S_1, NEC_HALF_MARGIN))
++			ctx->buffer |= BIT(31);
++		else if (!EQ_MARGIN(ctx->counter, NEC_DATA_S_0, NEC_HALF_MARGIN))
++			ctx->state = NEC_IDLE;
++		break;
++	default:
++		unreachable();
++	}
++
++	ctx->counter = 0;
++
++	return ret;
++}
+diff --git a/drivers/cir/rc6.c b/drivers/cir/rc6.c
+index 698c130c..ead40a82 100644
+--- a/drivers/cir/rc6.c
++++ b/drivers/cir/rc6.c
+@@ -12,10 +12,39 @@
+ #define NUM_DATA_BITS   32
+ #define NUM_HEADER_BITS 4
+ 
++/* RC6 time unit is 16 periods @ 36 kHz, ~444 us */
++#define RC6_TIME_UNIT 444UL
++
++/* convert specified number of time units to number of clock cycles */
++#define RC6_UNITS_TO_CLKS(num) US_TO_CLKS((num) * RC6_TIME_UNIT)
++
++enum {
++	RC6_IDLE,
++	RC6_LEADER_S,
++	RC6_HEADER_P,
++	RC6_HEADER_N,
++	RC6_TRAILER_P,
++	RC6_TRAILER_N,
++	RC6_DATA_P,
++	RC6_DATA_N,
++	RC6_STATES
++};
++
++static const int16_t rc6_durations[RC6_STATES] = {
++	[RC6_IDLE]      = RC6_UNITS_TO_CLKS(6),
++	[RC6_LEADER_S]  = RC6_UNITS_TO_CLKS(2),
++	[RC6_HEADER_P]  = RC6_UNITS_TO_CLKS(1),
++	[RC6_HEADER_N]  = RC6_UNITS_TO_CLKS(1),
++	[RC6_TRAILER_P] = RC6_UNITS_TO_CLKS(2),
++	[RC6_TRAILER_N] = RC6_UNITS_TO_CLKS(2),
++	[RC6_DATA_P]    = RC6_UNITS_TO_CLKS(1),
++	[RC6_DATA_N]    = RC6_UNITS_TO_CLKS(1),
++};
++
+ uint32_t
+-rc6_decode(struct rc6_ctx *ctx)
++rc6_decode(struct dec_rtx *ctx)
+ {
+-	int32_t duration = ctx->durations[ctx->state];
++	int32_t duration = rc6_durations[ctx->state];
+ 	int32_t epsilon  = duration >> 1;
+ 
+ 	/* Subtract the expected pulse with from the sample width. */
+diff --git a/drivers/cir/rc6.h b/drivers/cir/rc6.h
+index 7c16c701..4ffae31e 100644
+--- a/drivers/cir/rc6.h
++++ b/drivers/cir/rc6.h
+@@ -8,25 +8,25 @@
+ 
+ #include <stdint.h>
+ 
+-enum {
+-	RC6_IDLE,
+-	RC6_LEADER_S,
+-	RC6_HEADER_P,
+-	RC6_HEADER_N,
+-	RC6_TRAILER_P,
+-	RC6_TRAILER_N,
+-	RC6_DATA_P,
+-	RC6_DATA_N,
+-	RC6_STATES
+-};
++#if CONFIG(CIR_USE_OSC24M)
++/* parent clock is predivided by 192 */
++#define CIR_CLK_RATE 125000UL
++#else
++#define CIR_CLK_RATE 32768UL
++#endif
++
++#define US_TO_CLKS(num) (((num) * CIR_CLK_RATE) / 1000000UL)
++
++#define EQ_MARGIN(val, time, margin) \
++	(((time) - (margin)) < (val) && (val) < ((time) + (margin)))
+ 
+-struct rc6_ctx {
+-	const int16_t *durations;
+-	uint32_t       buffer;
+-	uint8_t        bits;
+-	uint8_t        state;
+-	uint8_t        pulse;
+-	int8_t         width;
++struct dec_rtx {
++	uint32_t buffer;
++	uint32_t counter;
++	uint8_t  bits;
++	uint8_t  state;
++	uint8_t  pulse;
++	int8_t   width;
+ };
+ 
+ /**
+@@ -40,6 +40,6 @@ struct rc6_ctx {
+  *
+  * @return A successfully decoded scancode, or zero.
+  */
+-uint32_t rc6_decode(struct rc6_ctx *ctx);
++uint32_t rc6_decode(struct dec_rtx *ctx);
+ 
+ #endif /* RC6_PRIVATE_H */
+diff --git a/drivers/cir/sunxi-cir.c b/drivers/cir/sunxi-cir.c
+index 630b113e..f32bde0a 100644
+--- a/drivers/cir/sunxi-cir.c
++++ b/drivers/cir/sunxi-cir.c
+@@ -21,38 +21,14 @@
+ #define CIR_RXSTA  0x30
+ #define CIR_RXCFG  0x34
+ 
+-#if CONFIG(CIR_USE_OSC24M)
+-/* parent clock is predivided by 192 */
+-#define CIR_CLK_RATE 125000UL
+-#else
+-#define CIR_CLK_RATE 32768UL
+-#endif
+-
+-/* RC6 time unit is 16 periods @ 36 kHz, ~444 us */
+-#define RC6_TIME_UNIT 444UL
+-
+-/* convert specified number of time units to number of clock cycles */
+-#define UNITS_TO_CLKS(num) (((num) * CIR_CLK_RATE * RC6_TIME_UNIT) / 1000000UL)
+-
+ struct sunxi_cir_state {
+ 	struct device_state ds;
+-	struct rc6_ctx      rc6_ctx;
++	struct dec_rtx      dec_rtx;
+ 	uint32_t            clk_stash;
+ 	uint32_t            cfg_stash;
+ 	uint32_t            ctl_stash;
+ };
+ 
+-static const int16_t sunxi_cir_rc6_durations[RC6_STATES] = {
+-	[RC6_IDLE]      = UNITS_TO_CLKS(6),
+-	[RC6_LEADER_S]  = UNITS_TO_CLKS(2),
+-	[RC6_HEADER_P]  = UNITS_TO_CLKS(1),
+-	[RC6_HEADER_N]  = UNITS_TO_CLKS(1),
+-	[RC6_TRAILER_P] = UNITS_TO_CLKS(2),
+-	[RC6_TRAILER_N] = UNITS_TO_CLKS(2),
+-	[RC6_DATA_P]    = UNITS_TO_CLKS(1),
+-	[RC6_DATA_N]    = UNITS_TO_CLKS(1),
+-};
+-
+ static inline const struct sunxi_cir *
+ to_sunxi_cir(const struct device *dev)
+ {
+@@ -70,20 +46,20 @@ sunxi_cir_poll(const struct device *dev)
+ {
+ 	const struct sunxi_cir *self  = to_sunxi_cir(dev);
+ 	struct sunxi_cir_state *state = sunxi_cir_state_for(dev);
+-	struct rc6_ctx *rc6_ctx       = &state->rc6_ctx;
++	struct dec_rtx *dec_rtx       = &state->dec_rtx;
+ 
+ 	/* Feed the decoder data as needed and as it becomes available. */
+-	if (rc6_ctx->width <= 0) {
++	if (dec_rtx->width <= 0) {
+ 		/* If no data is available, do not call the decoder. */
+ 		if (!(mmio_read_32(self->regs + CIR_RXSTA) >> 8))
+ 			return 0;
+ 
+ 		uint32_t sample = mmio_read_32(self->regs + CIR_RXFIFO);
+-		rc6_ctx->pulse = sample >> 7;
+-		rc6_ctx->width = sample & GENMASK(6, 0);
++		dec_rtx->pulse = sample >> 7;
++		dec_rtx->width = sample & GENMASK(6, 0);
+ 	}
+ 
+-	return rc6_decode(rc6_ctx);
++	return rc6_decode(dec_rtx);
+ }
+ 
+ static int
+@@ -92,8 +68,6 @@ sunxi_cir_probe(const struct device *dev UNUSED)
+ 	const struct sunxi_cir *self  = to_sunxi_cir(dev);
+ 	struct sunxi_cir_state *state = sunxi_cir_state_for(dev);
+ 
+-	state->rc6_ctx.durations = sunxi_cir_rc6_durations;
+-
+ 	state->clk_stash = mmio_read_32(R_CIR_RX_CLK_REG);
+ 	state->cfg_stash = mmio_read_32(self->regs + CIR_RXCFG);
+ 

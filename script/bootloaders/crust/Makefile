@@ -4,6 +4,7 @@ GARVERSION   = 935017ed1e3b24ccd41071755767334fed74097d
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/crust-firmware/crust/archive/
 PATCHFILES   = 001-cir-sunxi-cir-add-crust-support-for-tanixTX6.patch
+PATCHFILES  += 002-add-NEC-NECX-wakeup-support.patch
 DISTFILES    = $(GARVERSION).tar.gz
 WORKSRC      = $(WORKDIR)/crust-$(GARVERSION)
 
