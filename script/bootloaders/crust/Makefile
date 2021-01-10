@@ -1,11 +1,10 @@
 
-GARNAME      = crust-20210103
-GARVERSION   = 935017ed1e3b24ccd41071755767334fed74097d
+GARNAME      = crust-20210110
+GARVERSION   = 1609cb0dbb70e5698032a0e39408756467289e6e
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/crust-firmware/crust/archive/
-PATCHFILES   = 001-cir-sunxi-cir-add-crust-support-for-tanixTX6.patch
-PATCHFILES  += 002-add-NEC-NECX-wakeup-support.patch
-PATCHFILES  += 003-add-beelink-gs1_defconfig.patch
+PATCHFILES   = 0001-configs-Add-Beelink-GS1-defconfig.patch
+PATCHFILES  += 0002-switch-TanixTX6-proto-to-NEC.patch
 DISTFILES    = $(GARVERSION).tar.gz
 WORKSRC      = $(WORKDIR)/crust-$(GARVERSION)
 
