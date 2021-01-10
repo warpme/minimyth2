@@ -116,6 +116,7 @@ PATCHFILES += 0518-drm-sun4i-Add-support-for-BT2020-to-DE3.patch
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=400181 v2 11.12.2020
 PATCHFILES += 0520-arm64-sunxi-Initial-Allwinner-H616-SoC-support.patch
 # Crust support for a64/h3/h5/h6
+PATCHFILES += 0553-media-sunxi-cir-allow-timeout-to-be-set-at-runtime.patch
 PATCHFILES += 0550-allwinner-add-crust-support.patch
 PATCHFILES += 0551-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
 # hack for dead Eth after resume from sleep
