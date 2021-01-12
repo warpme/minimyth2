@@ -1,15 +1,16 @@
-GARNAME = avahi
-GARVERSION = 0.6.31
-CATEGORIES = lib
+
+GARNAME      = avahi
+GARVERSION   = 0.8
+CATEGORIES   = lib
 MASTER_SITES = http://avahi.org/download/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = LGPL2_1
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = LGPL2_1
 
 DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/dbus lib/expat lib/libdaemon
+DEPENDS = lang/c lib/dbus lib/expat lib/libdaemon lib/libevent
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -24,6 +25,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-introspection \
 	--disable-qt3 \
 	--disable-qt4 \
+	--disable-qt5 \
 	--disable-gtk \
 	--disable-gtk3 \
 	--enable-dbus \
@@ -31,7 +33,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-gdbm \
 	--enable-libdaemon \
 	--disable-python \
-	--disable-pygtk \
 	--disable-python-dbus \
 	--disable-mono \
 	--disable-monodoc \
@@ -57,12 +58,13 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
+#pre-configure:
+#	@$(call RUN_AUTOTOOLS)
+#	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+#	@$(MAKECOOKIE)
 
 post-install:
+	@rm -f $(DESTDIR)$(libdir)/libavahi-libevent.la
 	@rm -f $(DESTDIR)$(libdir)/libavahi-common.la
 	@rm -f $(DESTDIR)$(libdir)/libavahi-core.la
 	@rm -f $(DESTDIR)$(libdir)/libavahi-client.la
