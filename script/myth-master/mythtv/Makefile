@@ -134,14 +134,15 @@ DEPENDS = \
 	lib/libavc1394 \
 	lib/libcdio \
 	lib/libcdio-paranoia \
+	lib/libcec \
 	lib/libiec61883 \
 	lib/libxml2 \
+	lib/lzo \
 	lib/openssl \
 	lib/libsamplerate \
 	lib/libbluray \
 	lib/SDL2 \
 	lib/taglib \
-	lib/lzo \
 	devel/zlib \
 	devel/yasm \
 	python/python \
