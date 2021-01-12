@@ -22,7 +22,6 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 CONFIGURE_ARGS = \
 	-DCMAKE_INSTALL_PREFIX="$(prefix)" \
 	-DCMAKE_INSTALL_LIBDIR:PATH="$(patsubst $(prefix)/%,%,$(libdir))" \
-	-DCMAKE_INSTALL_LIBDIR_NOARCH:PATH="$(patsubst $(prefix)/%,%,$(libdir))" \
 	-DCMAKE_FIND_ROOT_PATH="$(DESTDIR)$(prefix)" \
 	-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM="NEVER" \
 	-DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY="ONLY" \
@@ -37,7 +36,11 @@ CONFIGURE_ARGS = \
 	-DCMAKE_OBJDUMP="$(build_DESTDIR)$(build_bindir)/$(OBJDUMP)" \
 	-DCMAKE_RANLIB="$(build_DESTDIR)$(build_bindir)/$(RANLIB)" \
 	-DCMAKE_STRIP="$(build_DESTDIR)$(build_bindir)/$(STRIP)" \
-	-DCMAKE_VERBOSE_MAKEFILE="1"
+	-DBUILD_SHARED_LIBS=1 \
+	-DHAVE_AOCEC_API=0 \
+	-DHAVE_LINUX_API=1 \
+	-DCMAKE_VERBOSE_MAKEFILE=1 \
+
 ifneq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
 	-DCMAKE_SYSTEM_NAME="Linux"
@@ -50,4 +53,9 @@ configure-%/cmake:
 	@rm -rf $*
 	@mkdir -p $*
 	@cd $* && $(CONFIGURE_ENV) cmake $(CONFIGURE_ARGS) ../$(patsubst %_build,%,$(notdir $*))
+	@$(MAKECOOKIE)
+
+post-install:
+	@rm -f $(DESTDIR)$(bindir)/cec-client
+	@mv -f $(DESTDIR)$(bindir)/cec-client-$(GARVERSION) $(DESTDIR)$(bindir)/cec-client
 	@$(MAKECOOKIE)
