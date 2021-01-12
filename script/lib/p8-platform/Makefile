@@ -37,7 +37,9 @@ CONFIGURE_ARGS = \
 	-DCMAKE_OBJDUMP="$(build_DESTDIR)$(build_bindir)/$(OBJDUMP)" \
 	-DCMAKE_RANLIB="$(build_DESTDIR)$(build_bindir)/$(RANLIB)" \
 	-DCMAKE_STRIP="$(build_DESTDIR)$(build_bindir)/$(STRIP)" \
-	-DCMAKE_VERBOSE_MAKEFILE="1"
+	-DBUILD_SHARED_LIBS="0" \
+	-DCMAKE_VERBOSE_MAKEFILE="1" \
+
 ifneq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
 	-DCMAKE_SYSTEM_NAME="Linux"
