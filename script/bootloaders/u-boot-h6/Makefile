@@ -1,17 +1,14 @@
 
-GARNAME      = u-boot-h6-20210108
-GARVERSION   = 344e0d6665e53b116a5f422a9f6fae83af786689
+GARNAME      = u-boot-h6-20210111
+GARVERSION   = 9267ff89ee27a624ddb5d8eb7d90830ee0ff6f77
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 
 # Patches from https://github.com/jernejsk/LibreELEC.tv/commits/aw-u-boot
-PATCHFILES   += 0001-sunxi-dram-h6-Improve-DDR3-config-detection.patch
 PATCHFILES   += 0002-ARM-dts-sunxi-h6-Update-DT-files.patch
 PATCHFILES   += 0003-sunxi-Add-support-for-Tanix-TX6.patch
-PATCHFILES   += 0004-sunxi-board-extract-creating-a-unique-sid-into-a-hel.patch
-PATCHFILES   += 0005-arm-sunxi-add-a-config-option-to-fixup-a-Bluetooth-a.patch
 PATCHFILES   += 0007-arm64-dts-sun50i-Add-support-for-Orange-Pi-3.patch
 PATCHFILES   += 0008-orange-pi-3-ethernet.patch
 PATCHFILES   += 0009-tanix-tx6-ethernet-hack.patch
