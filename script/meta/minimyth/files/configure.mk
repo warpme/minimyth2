@@ -17,6 +17,7 @@ MM_INIT_START_PHASE_1 := \
     mythtv  \
     lcdproc \
     font    \
+    avahi   \
 
 MM_INIT_START_PHASE_2 := 
 
@@ -39,7 +40,6 @@ MM_INIT_START_PHASE_5 := \
     swap       \
     telnet     \
     ssh_server \
-    avahi      \
     mail       \
     voip       \
     browsers   \
