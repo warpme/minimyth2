@@ -156,11 +156,9 @@ PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
 PATCHFILES += 0901-drm-v3d-fix-Kconfig.patch
 # Support for 2xHDMI audio on RPI4
 PATCHFILES += 0902-rpi-vc04_services-update-audio-for-rpi4-14112020.patch
-# Some additions to rpi4 DT
-PATCHFILES += 0904-arm-dts-bcm2711-rpi4-dt-additions.patch
-# drm/v3d: Minor improvements
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=405969
-PATCHFILES += 0905-drm-v3d-Minor-improvements.patch
+# Some hacks for rpi4
+PATCHFILES += 0906-vc4_hdmi-Move-hdmi-reset-to-bind.patch
+PATCHFILES += 0907-drm-v3d-hack-to-enable-v3d-on-rpi4.patch
 endif
 #------------------------------------------------------------
 
