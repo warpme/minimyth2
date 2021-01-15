@@ -84,46 +84,65 @@ endif
 
 ifeq (1,1)
 #-- Allwinner patches -----------------------------------------
-# Add Allwinner H3/H5/H6/A64 HDMI audio suuport. Patches are from LibeELEC 24.12.2020
-PATCHFILES += 0501-ASoC-sun4i-i2s-improvements.patch
-PATCHFILES += 0502-ASoC-hdmi-codec-fix-channel-allocation.patch
-PATCHFILES += 0503-arm64-dts-sun50i-h6.dtsi-add-sound-node.patch
-PATCHFILES += 0504-arm64-dts-sun50i-h6.dtsi-add-frame-inversion-to-correct-multi-channel.patch
-# Cedrus improvements. Patches are from LibeELEC 24.12.2020
-PATCHFILES += 0505-media-sunxi-cedrus-improvements.patch
-# Fix from broken H264 decoding for some content. Patches are from LibeELEC 24.12.2020
-PATCHFILES += 0506-media-sunxi-cedrus-fix.patch
-# Add CEC support. Patches are from LibeELEC 24.12.2020
-PATCHFILES += 0507-drm-sun8i-dw-hdmi-add-cec-support.patch
-# Add some HDMI fixes. Patches are from LibeELEC 24.12.2020
-PATCHFILES += 0508-gpu-drm-sun4i-hdmi-mixer-improvements.patch
+# https://github.com/jernejsk/LibreELEC.tv/commit/2daa46719b5843daf9a9125d69ef3a126394e71f 15.01.2021
+# audio patches
+PATCHFILES += 0500-ASoC-hdmi-codec-fix-channel-allocation.patch
+PATCHFILES += 0501-ASoC-sun4i-i2s-Change-set_chan_cfg-params.patch
+PATCHFILES += 0502-ASoC-sun4i-i2s-Add-support-for-H6-I2S.patch
+PATCHFILES += 0503-ASoC-sun4i-i2s-Change-get_sr-and-get_wss-to-be-more-.patch
+PATCHFILES += 0504-ASoC-sun4i-i2s-Set-sign-extend-sample.patch
+PATCHFILES += 0505-ASoC-sun4i-i2s-Add-20-and-24-bit-support.patch
+PATCHFILES += 0506-ASoC-sun4i-i2s-Fix-sun8i-volatile-regs.patch
+PATCHFILES += 0507-ASoC-sun4i-i2s-Fix-setting-of-FIFO-modes.patch
+PATCHFILES += 0508-ASoC-sun4i-i2s-fix-coding-style-for-callback-definit.patch
+PATCHFILES += 0509-ASoC-sun4i-i2s-Add-parenthesis-around-macro-argument.patch
+PATCHFILES += 0510-ASoC-sun4i-i2s-WiP-multi-channel.patch
+PATCHFILES += 0511-arm64-dts-sun50i-h6-dtsi-add-sound-node.patch
+PATCHFILES += 0512-arm64-dts-sun50i-h6-dtsi-add-frame-inversion-to-correct-multi-channel.patch
+# https://github.com/jernejsk/LibreELEC.tv/commit/2daa46719b5843daf9a9125d69ef3a126394e71f 15.01.2021
+# cedrus patches
+PATCHFILES += 0515-media-cedrus-Fix-H264-decoding.patch
+PATCHFILES += 0516-media-uapi-hevc-Add-scaling-matrix-control.patch
+PATCHFILES += 0517-media-cedrus-hevc-Add-support-for-scaling-matrix.patch
+PATCHFILES += 0518-media-uapi-hevc-Add-segment-address-field.patch
+PATCHFILES += 0519-media-cedrus-hevc-Add-support-for-multiple-slices.patch
+PATCHFILES += 0520-media-cedrus-hevc-tiles-hack.patch
+PATCHFILES += 0521-media-cedrus-Add-callback-for-buffer-cleanup.patch
+PATCHFILES += 0522-media-cedrus-hevc-Improve-buffer-management.patch
+PATCHFILES += 0523-media-cedrus-h264-Improve-buffer-management.patch
+PATCHFILES += 0524-media-cedrus-WiP-10-bit-HEVC-support.patch
+PATCHFILES += 0525-media-cedrus-add-check-for-H264-and-HEVC-limitations.patch
+PATCHFILES += 0526-media-cedrus-Add-support-for-VP8-decoding.patch
+PATCHFILES += 0528-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
+# Some HDMI fixes. Patches are from LibeELEC 24.12.2020
+PATCHFILES += 0529-gpu-drm-sun4i-hdmi-mixer-improvements.patch
 # Adding support for MFD devices on some H6 boards
-PATCHFILES += 0509-mfd-add-AC200.patch
-PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
+PATCHFILES += 0530-mfd-add-AC200.patch
+PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
 # Fix hanging GS1 boot on loading kernel modules
-PATCHFILES += 0512-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
+PATCHFILES += 0532-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
 # Improvements and addidtions for some H6 boards
-PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
-PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
+PATCHFILES += 0533-arm64-dts-Tanix-TX6-improvements.patch
+PATCHFILES += 0534-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
 # Add TanixTX6 Mini (WiFi still not working :-( )
-PATCHFILES += 0515-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
+PATCHFILES += 0535-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
 # Allwinner: enable H6 GPU DVFS
-PATCHFILES += 0516-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
-PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
+PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
+PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 # Add support for BT2020 to DE3
 # https://github.com/jernejsk/linux-1/commits/10bit
-PATCHFILES += 0518-drm-sun4i-Add-support-for-BT2020-to-DE3.patch
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=400181 v2 11.12.2020
-PATCHFILES += 0520-arm64-sunxi-Initial-Allwinner-H616-SoC-support.patch
+PATCHFILES += 0538-drm-sun4i-Add-support-for-BT2020-to-DE3.patch
 # Crust support for a64/h3/h5/h6
-PATCHFILES += 0553-media-sunxi-cir-allow-timeout-to-be-set-at-runtime.patch
-PATCHFILES += 0550-allwinner-add-crust-support.patch
-PATCHFILES += 0551-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
+PATCHFILES += 0550-media-sunxi-cir-allow-timeout-to-be-set-at-runtime.patch
+PATCHFILES += 0551-allwinner-add-crust-support.patch
+PATCHFILES += 0552-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
 # hack for dead Eth after resume from sleep
-PATCHFILES += 0552-dwmac-sun8i-hack-for-dead-Eth-on-crust-resume.patch
+PATCHFILES += 0553-dwmac-sun8i-hack-for-dead-Eth-on-crust-resume.patch
 # add hw deinterlce support for h6
 PATCHFILES += 0560-H6-add-sun50i-di-deinterlace-WiP.patch
 PATCHFILES += 0561-arm64-dts-h6-add-deinterlace-node.patch
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=400181 v2 11.12.2020
+PATCHFILES += 0570-arm64-sunxi-Initial-Allwinner-H616-SoC-support.patch
 endif
 #------------------------------------------------------------
 
