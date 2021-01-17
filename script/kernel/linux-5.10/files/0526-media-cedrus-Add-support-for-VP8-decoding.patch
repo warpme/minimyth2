@@ -1,7 +1,7 @@
-From 18484a2fedc167718540be6356ebabf5782df763 Mon Sep 17 00:00:00 2001
+From 574ba48fa87225fbf3e39ffd2b11a6fb93cb6c98 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@siol.net>
 Date: Wed, 20 May 2020 23:01:29 +0200
-Subject: [PATCH 17/35] media: cedrus: Add support for VP8 decoding
+Subject: [PATCH 33/44] media: cedrus: Add support for VP8 decoding
 
 VP8 in Cedrus shares same engine as H264.
 
@@ -25,8 +25,6 @@ Signed-off-by: Jernej Skrabec <jernej.skrabec@siol.net>
  8 files changed, 819 insertions(+), 1 deletion(-)
  create mode 100644 drivers/staging/media/sunxi/cedrus/cedrus_vp8.c
 
-diff --git a/drivers/staging/media/sunxi/cedrus/Makefile b/drivers/staging/media/sunxi/cedrus/Makefile
-index 1bce49d3e7e2..a647b3690bf8 100644
 --- a/drivers/staging/media/sunxi/cedrus/Makefile
 +++ b/drivers/staging/media/sunxi/cedrus/Makefile
 @@ -2,4 +2,5 @@
@@ -36,11 +34,9 @@ index 1bce49d3e7e2..a647b3690bf8 100644
 -		 cedrus_mpeg2.o cedrus_h264.o cedrus_h265.o
 +		 cedrus_mpeg2.o cedrus_h264.o cedrus_h265.o \
 +		 cedrus_vp8.o
-diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.c b/drivers/staging/media/sunxi/cedrus/cedrus.c
-index 7ed38ea95a18..8d9ef660be4b 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus.c
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus.c
-@@ -195,6 +195,13 @@ static const struct cedrus_control cedrus_controls[] = {
+@@ -195,6 +195,13 @@ static const struct cedrus_control cedru
  		.codec		= CEDRUS_CODEC_H265,
  		.required	= false,
  	},
@@ -54,7 +50,7 @@ index 7ed38ea95a18..8d9ef660be4b 100644
  };
  
  #define CEDRUS_CONTROLS_COUNT	ARRAY_SIZE(cedrus_controls)
-@@ -446,6 +453,7 @@ static int cedrus_probe(struct platform_device *pdev)
+@@ -446,6 +453,7 @@ static int cedrus_probe(struct platform_
  	dev->dec_ops[CEDRUS_CODEC_MPEG2] = &cedrus_dec_ops_mpeg2;
  	dev->dec_ops[CEDRUS_CODEC_H264] = &cedrus_dec_ops_h264;
  	dev->dec_ops[CEDRUS_CODEC_H265] = &cedrus_dec_ops_h265;
@@ -62,8 +58,6 @@ index 7ed38ea95a18..8d9ef660be4b 100644
  
  	mutex_init(&dev->dev_mutex);
  
-diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.h b/drivers/staging/media/sunxi/cedrus/cedrus.h
-index 2c9e14c6396f..2eeb825e5847 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus.h
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus.h
 @@ -36,6 +36,7 @@ enum cedrus_codec {
@@ -116,8 +110,6 @@ index 2c9e14c6396f..2eeb825e5847 100644
  
  static inline void cedrus_write(struct cedrus_dev *dev, u32 reg, u32 val)
  {
-diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
-index 81050cde9ed7..842c7058eacf 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
 @@ -72,6 +72,11 @@ void cedrus_device_run(void *priv)
@@ -132,11 +124,9 @@ index 81050cde9ed7..842c7058eacf 100644
  	default:
  		break;
  	}
-diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_hw.c b/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
-index bcf050a04ffc..3ef3af5bc9ab 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_hw.c
-@@ -48,6 +48,7 @@ int cedrus_engine_enable(struct cedrus_ctx *ctx, enum cedrus_codec codec)
+@@ -48,6 +48,7 @@ int cedrus_engine_enable(struct cedrus_c
  		break;
  
  	case CEDRUS_CODEC_H264:
@@ -144,8 +134,6 @@ index bcf050a04ffc..3ef3af5bc9ab 100644
  		reg |= VE_MODE_DEC_H264;
  		break;
  
-diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_regs.h b/drivers/staging/media/sunxi/cedrus/cedrus_regs.h
-index 150eae2d92d2..6cb1c279790f 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus_regs.h
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_regs.h
 @@ -552,6 +552,7 @@
@@ -261,22 +249,20 @@ index 150eae2d92d2..6cb1c279790f 100644
  #define VE_ISP_INPUT_SIZE		0xa00
  #define VE_ISP_INPUT_STRIDE		0xa04
  #define VE_ISP_CTRL			0xa08
-diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_video.c b/drivers/staging/media/sunxi/cedrus/cedrus_video.c
-index ce0eac2c7cfc..237177723b3a 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus_video.c
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_video.c
-@@ -48,6 +48,10 @@ static struct cedrus_format cedrus_formats[] = {
- 		.directions	= CEDRUS_DECODE_SRC,
+@@ -49,6 +49,10 @@ static struct cedrus_format cedrus_forma
  		.capabilities	= CEDRUS_CAPABILITY_H265_DEC,
  	},
-+	{
+ 	{
 +		.pixelformat	= V4L2_PIX_FMT_VP8_FRAME,
 +		.directions	= CEDRUS_DECODE_SRC,
 +	},
- 	{
++	{
  		.pixelformat	= V4L2_PIX_FMT_SUNXI_TILED_NV12,
  		.directions	= CEDRUS_DECODE_DST,
-@@ -110,6 +114,7 @@ void cedrus_prepare_format(struct v4l2_pix_format *pix_fmt, int extended)
+ 	},
+@@ -110,6 +114,7 @@ void cedrus_prepare_format(struct v4l2_p
  	case V4L2_PIX_FMT_MPEG2_SLICE:
  	case V4L2_PIX_FMT_H264_SLICE:
  	case V4L2_PIX_FMT_HEVC_SLICE:
@@ -284,7 +270,7 @@ index ce0eac2c7cfc..237177723b3a 100644
  		/* Zero bytes per line for encoded source. */
  		bytesperline = 0;
  		/* Choose some minimum size since this can't be 0 */
-@@ -506,6 +511,10 @@ static int cedrus_start_streaming(struct vb2_queue *vq, unsigned int count)
+@@ -506,6 +511,10 @@ static int cedrus_start_streaming(struct
  		ctx->current_codec = CEDRUS_CODEC_H265;
  		break;
  
@@ -295,9 +281,6 @@ index ce0eac2c7cfc..237177723b3a 100644
  	default:
  		return -EINVAL;
  	}
-diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vp8.c b/drivers/staging/media/sunxi/cedrus/cedrus_vp8.c
-new file mode 100644
-index 000000000000..93beffd07c35
 --- /dev/null
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_vp8.c
 @@ -0,0 +1,699 @@
@@ -1000,6 +983,3 @@ index 000000000000..93beffd07c35
 +	.stop		= cedrus_vp8_stop,
 +	.trigger	= cedrus_vp8_trigger,
 +};
--- 
-2.30.0
-
