@@ -1,5 +1,6 @@
 
 ifeq (0,1)
+# Mainline U-boot
 GARNAME      = u-boot-h616-20210111
 # v2021.01
 GARVERSION   = c4fddedc48f336eabc4ce3f74940e6aa372de18c
@@ -9,14 +10,26 @@ DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
-ifeq (1,1)
+ifeq (0,1)
+# Sunxi custodians + u-boot ML patch for H616
 GARNAME      = u-boot-h616-20210111
 GARVERSION   = 9267ff89ee27a624ddb5d8eb7d90830ee0ff6f77
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
-PATCHFILES  += 0020-arm64-sunxi-H616-Add-OrangePI-Zero2-support.patch
+PATCHFILES   = 0020-arm64-sunxi-H616-Add-OrangePI-Zero2-support.patch
+endif
+
+ifeq (1,1)
+# Jernejsk GIT https://github.com/jernejsk/u-boot/commits/h616-v2
+GARNAME      = u-boot-h616-20210111
+# 11.01.2021
+GARVERSION   = 88627261fcb8cd949b30d6f534fbf7734e468684
+CATEGORIES   = kernel
+MASTER_SITES = https://github.com/jernejsk/u-boot/archive/
+DISTFILES    = $(GARVERSION).zip
+WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
 LICENSE = GPL2
