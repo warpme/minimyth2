@@ -100,6 +100,9 @@ PATCHFILES += 0516-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 endif
 
+PATCHFILES += 0568-clk-sunxi-ng-h6-r-add-R_APB2_RSB-clock-and-reset.patch
+PATCHFILES += 0569-bus-sunxi-rsb-Implement-power-managment.patch
+PATCHFILES += 0570-arm64-sunxi-Initial-Allwinner-H616-SoC-support.patch
 
 # Rockchip patches
 ifeq (1,1)
