@@ -53,3 +53,7 @@ configure-%/cmake:
 	@mkdir -p $*
 	@cd $* && $(CONFIGURE_ENV) cmake $(CONFIGURE_ARGS) ../$(patsubst %_build,%,$(notdir $*))
 	@$(MAKECOOKIE)
+
+post-install:
+	@sed -e 's%/usr/%$(DESTDIR)/usr/%g' -i $(DESTDIR)/usr/lib/p8-platform/p8-platform-config.cmake
+	@$(MAKECOOKIE)
