@@ -30,6 +30,9 @@ if [ x$1 = "xgdb" ] || [ x$2 = "xgdb" ]; then
 elif [ x$1 = "xapitrace" ] || [ x$2 = "xapitrace" ]; then
     echo "Running myth under apitrace"
     su minimyth -c "apitrace trace -a egl -o /usr/local/share/mythfrontend-apitrace.txt mythfrontend ${params}"
+elif [ x$1 = "xstrace" ] || [ x$2 = "xstrace" ]; then
+    echo "Running myth under strace"
+    su minimyth -c "strace -o /usr/local/share/mythfrontend-strace.txt mythfrontend ${params}"
 else
     su minimyth -c "/usr/bin/mythfrontend ${params}"
 fi
