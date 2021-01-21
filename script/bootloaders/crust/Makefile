@@ -1,6 +1,6 @@
 
-GARNAME      = crust-20210111
-GARVERSION   = 2912afc61eda9fcfdf26f7f59504840850475847
+GARNAME      = crust-20210119
+GARVERSION   = 2abb49c37b0302399b98498b9a51f5ed30454aea
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/crust-firmware/crust/archive/
 PATCHFILES   = 0001-configs-Add-Beelink-GS1-defconfig.patch
