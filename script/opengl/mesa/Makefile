@@ -1,25 +1,22 @@
 
-ifeq (1,1)
+ifeq (0,1)
 GARNAME      = mesa
 GARVERSION   = 20.3.3
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = fix-compile-softfp-abi-on-arm-target.patch
-PATCHFILES  += fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 endif
 
-ifeq (0,1)
-# 20.3 staging GIT from 26.12.2020
+ifeq (1,1)
 GARNAME      = mesa
-GARVERSION   = b4cbf3776a73e5687c2657da4f3d5cbc6661b409
+GARVERSION   = 21.0.0-rc2
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
-DISTFILES    = mesa-$(GARVERSION).tar.bz2
-PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
-PATCHFILES  += fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
-WORKSRC      = $(WORKDIR)/mesa-$(GARVERSION)
+MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
+DISTFILES    = mesa-$(DISTNAME).tar.bz2
+PATCHFILES   = fix-compile-softfp-abi-on-arm-target.patch
+WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 endif
 
 DESCRIPTION = 
