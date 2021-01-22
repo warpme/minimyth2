@@ -1,19 +1,19 @@
 CATEGORIES = $(CATEGORY)
 
 ifeq (1,1)
-GARNAME = libdrm
-GARVERSION = 2.4.104
+GARNAME      = libdrm
+GARVERSION   = 2.4.104
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
-DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = Import-sun4i-drm-header-for-MB32-tiled-NV12-support.patch
+DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = Import-sun4i-drm-header-for-MB32-tiled-NV12-support.patch
 endif
 
 ifeq (0,1)
 # https://github.com/bootlin/libdrm-sun4i/commits/master
-GARNAME = libdrm-sun4i
-GARVERSION = f833c88eaa19f1904e757dd4f26f03819a68421b
+GARNAME      = libdrm-sun4i
+GARVERSION   = f833c88eaa19f1904e757dd4f26f03819a68421b
 MASTER_SITES = https://github.com/bootlin/libdrm-sun4i/archive/
-DISTFILES = $(GARVERSION).zip
+DISTFILES    = $(GARVERSION).zip
 endif
 
 LICENSE = MIT
@@ -80,6 +80,10 @@ install-custom:
 	@$(MAKECOOKIE)
 
 post-install:
+	@files=`ls -1 $(DESTDIR)$(libdir)/pkgconfig/libdrm*.pc` ; \
+	 for file in $${files} ; do \
+		 sed -e 's%^prefix=.*%prefix=%g' -i $${file} ; \
+	 done
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_intel.la
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_nouveau.la
