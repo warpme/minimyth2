@@ -136,6 +136,8 @@ PATCHFILES += 0551-allwinner-add-crust-support.patch
 PATCHFILES += 0552-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
 # hack for dead Eth after resume from sleep
 PATCHFILES += 0553-dwmac-sun8i-hack-for-dead-Eth-on-crust-resume.patch
+# hack for fixng distorted screen on X11/Glamour
+PATCHFILES += 0554-drm-sun4i-report-no-midifiers.patch
 # Add hw deinterlce support from 17.01.2021
 PATCHFILES += 0560-H6-add-sun50i-di-deinterlace-WiP.patch
 PATCHFILES += 0561-arm64-dts-h6-add-deinterlace-node.patch
