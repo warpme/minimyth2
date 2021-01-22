@@ -2,9 +2,9 @@ CATEGORIES = $(CATEGORY)
 
 ifeq (1,1)
 GARNAME = libdrm
-GARVERSION = 2.4.100
+GARVERSION = 2.4.104
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
-DISTFILES = $(DISTNAME).tar.bz2
+DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES = Import-sun4i-drm-header-for-MB32-tiled-NV12-support.patch
 endif
 
@@ -31,40 +31,55 @@ endif
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+CONFIGURE_SCRIPTS  = custom
+BUILD_SCRIPTS      = custom
+INSTALL_SCRIPTS    = custom
 
-CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules \
-	--disable-static \
-	--enable-shared \
-	--enable-libkms \
-	--enable-intel \
-	--enable-radeon \
-	--disable-nouveau \
-	--enable-vmwgfx \
-	--enable-vc4 \
-	--disable-cairo-tests \
-	--with-gnu-ld \
-	--disable-valgrind
+CONFIGURE_ARGS = \
+	--prefix="$(DESTDIR)" \
+	--buildtype=release \
+	--optimization=s \
+	-D cairo-tests="false" \
+	-D man-pages="false" \
+	-D valgrind="false" \
+	-D intel="true" \
+	-D nouveau="false" \
+
 ifeq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
-	--disable-udev
+	--bindir="$(bindir)" \
+	--libdir="$(libdir)" \
+	--datadir="$(datadir)" \
+	--includedir="$(includedir)" \
+	-D install-test-programs="false" \
+	-D udev="false"
 else
 CONFIGURE_ARGS += \
-	--enable-udev
+	--bindir="$(DESTDIR)$(bindir)" \
+	--libdir="$(DESTDIR)$(libdir)" \
+	--datadir="$(DESTDIR)$(datadir)" \
+	--includedir="$(DESTDIR)$(includedir)" \
+	--cross-file=$(build_DESTDIR)$(build_datadir)/meson/cross/$(GARHOST).conf \
+	-D install-test-programs="true" \
+	-D udev="true"
 endif
 
 include ../../gar.mk
 
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+configure-custom:
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson build $(CONFIGURE_ARGS)
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson configure build
+	@$(MAKECOOKIE)
+
+build-custom:
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/ninja -C build
+	@$(MAKECOOKIE)
+
+install-custom:
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/ninja -C build install
 	@$(MAKECOOKIE)
 
 post-install:
-	@cp -f $(WORKSRC)/tests/modetest/.libs/modetest $(DESTDIR)$(bindir)/modetest
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_intel.la
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME)_nouveau.la
