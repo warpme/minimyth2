@@ -42,7 +42,6 @@ DEPENDS = \
 	utils/lsdvd \
 	utils/lsof \
 	$(if $(filter intel, $(mm_GRAPHICS)),X11/intel-vaapi-driver) \
-	$(if $(filter sun4i rockchip, $(mm_GRAPHICS)),X11/libva-v4l2-request) \
 	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),utils/intel-microcode2ucode) \
 	utils/kmod \
 	$(if $(filter nvidia,$(mm_GRAPHICS)), \
