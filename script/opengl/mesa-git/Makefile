@@ -2,8 +2,8 @@
 GARNAME      = mesa
 
 ifeq (1,1)
-# MESA 21.0.0-devel GIT from 26.12.2020
-GARVERSION   = 7d8d99ea129a367497512ec8df25b5995e32a2b7
+# MESA 21.0.0-rc2
+GARVERSION   = 8dc038e80e6fa500211360d61d660ed4081a4673
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -17,7 +17,6 @@ CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
-PATCHFILES   = fix-t720-revert-panfrost-Implement-panfrost_query_dmabuf_modifiers.patch
 endif
 
 LICENSE = LGPL2/MIT
