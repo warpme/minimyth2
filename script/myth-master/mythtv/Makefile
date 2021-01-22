@@ -89,6 +89,7 @@ PATCHFILES += 0205-mediamonitor-exclude-standard-tvbox-disks.patch
 PATCHFILES += 0211-decrease-minQt-ver-to-4.8.patch
 PATCHFILES += 0212-external-udfread-fix-arm5te-compilation.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
+PATCHFILES += 0214-themes-recordings-ui-all-episode-listing.patch
 
 # Patches related to OSD
 PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
