@@ -13,6 +13,10 @@ if [ x$1 = "xeglfs" ] || [ x$2 = "xeglfs" ]; then
     export QT_QPA_EGLFS_DEBUG=1
     export QT_QPA_DEBUG=1
     # export QT_QPA_EGLFS_FORCE888=1 # needed only for some platforms
+    if [ "x${MM_MYTHTV_DRM_VIDEO}" = "xyes" ] ; then
+        echo "Using DRM_PRIME in DRM planes mode"
+        export MYTHTV_DRM_VIDEO=1
+    fi
 else
     echo "Runing myth in XCB"
     export QT_QPA_PLATFORM=xcb
