@@ -114,7 +114,8 @@ PATCHFILES += 0526-media-cedrus-Add-support-for-VP8-decoding.patch
 PATCHFILES += 0527-media-cedrus-Add-support-for-R40.patch
 # From LE 19.01.2021
 PATCHFILES += 0528-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
-PATCHFILES += 0529-gpu-drm-sun4i-hdmi-mixer-improvements.patch
+# Disabled as casues black screen in drm planes playback
+# PATCHFILES += 0529-gpu-drm-sun4i-hdmi-mixer-improvements.patch
 # Adding support for MFD devices on some H6 boards
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
