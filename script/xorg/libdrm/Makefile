@@ -5,7 +5,6 @@ GARNAME      = libdrm
 GARVERSION   = 2.4.104
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES    = $(DISTNAME).tar.xz
-PATCHFILES   = Import-sun4i-drm-header-for-MB32-tiled-NV12-support.patch
 endif
 
 ifeq (0,1)
