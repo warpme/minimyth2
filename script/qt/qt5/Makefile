@@ -6,6 +6,7 @@ MASTER_SITES = http://download.qt.io/official_releases/qt/5.15/$(GARVERSION)/sin
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME).patch.gar
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
+PATCHFILES  += $(DISTNAME)-eglfs_kms-qeglfskmsgbmintegration-use-drm-card0.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 

@@ -1,0 +1,51 @@
+
+This hack fixes issue of non-working EGLFS mode on some platforms like i.e. Amlogic SoC.
+In case of Amlogic issue with non-working EGLFS is because Qt selects as QEglFSKmsGbmDeviceto an
+EGLFS GPU DRM device (/dev/dri/card1) instead of /dev/dri/card0 (display controller).
+This happens because of way how Qt elects DRM device for EGLFS integration.
+
+Currently Qt does following:
+1. Calls udev device discovery with type Device_DRM|Device_VideoMask
+2. Selects first found DRM device and returns it to EGLFS integration as QEglFSKmsGbmDevice
+
+In steep 1, Qt calls libudev's udev_monitor_filter_add_match_subsystem_devtype (qdevicediscovery_udev.cpp)
+to get list of DRM devices and next checks DRM device is by DRM_PRIMARY_GPU udev attribute - but only for
+DRM devices attached on PCI bus. Check DRM_PRIMARY_GPU udev attribute is not conducted on non-PCI attached 
+DRM display controlers. In these non-PCI cases, selected DRM device is simlpy first device from list 
+returned by udev_monitor_filter_add_match_subsystem_devtype call.
+As udev_monitor_filter_add_match_subsystem_devtype call enumerates by walking on sysfs, it is possible
+on some systems (amlogic case) first DRM device is GPU - not display controller.
+Qt selects this GPU DRM device as QEglFSKmsGbmDevice and...fails.
+
+Proper IMHO solution should extend DRM device selection by udev DRM_PRIMARY_GPU attribute checking also
+for non-PCI attached DRM devices. This unfortunatelly will require adding DRM_PRIMARY_GPU udev attribute
+in SoC display DRM device code.
+
+This patch is rather dirty hack to apply on current (too simple IMHO) way how Qt QEglFSKmsGbmIntegration
+selects display DRM device as QEglFSKmsGbmDevice.
+
+Patch simply sorts DRM devices used to QEglFSKmsGbmDevice selection. As display DRM is initialized
+much earlier that GPU - there is v.high probalility that first DRM device will be display DRM device.
+This hack unfortunatelly makes EGLFS working out-of-box only on systems where display DRM device
+is first DRM device in system....
+
+
+diff -Naur qt-everywhere-src-5.15.2-old/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmintegration.cpp qt-everywhere-src-5.15.2-new/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmintegration.cpp
+--- qt-everywhere-src-5.15.2-old/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmintegration.cpp	2021-01-25 22:19:51.769999724 +0100
++++ qt-everywhere-src-5.15.2-new/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmintegration.cpp	2021-01-25 22:16:33.693333062 +0100
+@@ -135,13 +135,14 @@
+         qCDebug(qLcEglfsKmsDebug) << "GBM: Using DRM device" << path << "specified in config file";
+     } else {
+         QDeviceDiscovery *d = QDeviceDiscovery::create(QDeviceDiscovery::Device_VideoMask);
+-        const QStringList devices = d->scanConnectedDevices();
++        QStringList devices = d->scanConnectedDevices();
+         qCDebug(qLcEglfsKmsDebug) << "Found the following video devices:" << devices;
+         d->deleteLater();
+ 
+         if (Q_UNLIKELY(devices.isEmpty()))
+             qFatal("Could not find DRM device!");
+ 
++        devices.sort();
+         path = devices.first();
+         qCDebug(qLcEglfsKmsDebug) << "Using" << path;
+     }
