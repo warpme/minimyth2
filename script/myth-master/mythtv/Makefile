@@ -16,7 +16,7 @@ ifeq (1,1)
 PATCHFILES += 0001-Recorders-Delay-to-avoid-no-concurent-recordings-start.patch
 PATCHFILES += 0002-Systemstatus-Show-devicename-instead-videodevice.patch
 PATCHFILES += 0003-SCR-keep-disecq-always-18V.patch
-PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
+#PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
 PATCHFILES += 0005-EIT-ticket9480-fix-PL-eit-encodings.patch
 PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
 PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
