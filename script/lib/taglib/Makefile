@@ -1,5 +1,5 @@
 GARNAME = taglib
-GARVERSION = 1.9.1
+GARVERSION = 1.11.1
 CATEGORIES = lib
 MASTER_SITES = http://taglib.github.io/releases/
 DISTFILES = $(DISTNAME).tar.gz
@@ -36,7 +36,7 @@ CONFIGURE_ARGS = \
 	-DCMAKE_RANLIB="$(build_DESTDIR)$(build_bindir)/$(RANLIB)" \
 	-DCMAKE_STRIP="$(build_DESTDIR)$(build_bindir)/$(STRIP)" \
 	-DCMAKE_VERBOSE_MAKEFILE="1" \
-	-DENABLE_STATIC="OFF" \
+	-DBUILD_SHARED_LIBS="ON" \
 	-DBUILD_TESTS="OFF" \
 	-DBUILD_EXAMPLES="OFF" \
 	-DNO_ITUNES_HACKS="OFF" \
