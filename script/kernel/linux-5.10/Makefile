@@ -66,8 +66,9 @@ PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
-# hack to fix non-working Eth on sm1 x96air
-PATCHFILES += 0370-arm64-dts-amlogic-disable-ethernet-reset-on-sm1.patch
+# hack to fix non-working Eth on some boxes
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=421715
+PATCHFILES += 0370-arm64-dts-amlogic-revert-add-missing-ethernet-resetID.patch
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
 PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
