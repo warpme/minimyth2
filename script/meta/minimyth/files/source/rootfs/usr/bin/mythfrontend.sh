@@ -6,6 +6,9 @@ params="--verbose libav,playback,audio,gpu --loglevel=debug --syslog none --logp
 
 
 
+
+. /etc/rc.d/functions
+
 if [ x$1 = "xeglfs" ] || [ x$2 = "xeglfs" ]; then
     echo "Runing myth in EGLFS"
     export QT_QPA_PLATFORM=eglfs
