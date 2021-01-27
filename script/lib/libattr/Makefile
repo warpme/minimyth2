@@ -1,9 +1,10 @@
-GARNAME = attr
-GARVERSION = 2.4.46
-CATEGORIES = lib
-MASTER_SITES = http://download.savannah.gnu.org/releases-noredirect/attr/
-DISTFILES = $(DISTNAME).src.tar.gz
-LICENSE = GPL2/LGPL2_1
+
+GARNAME      = attr
+GARVERSION   = 2.4.48
+CATEGORIES   = lib
+MASTER_SITES = https://download.savannah.gnu.org/releases/$(GARNAME)/
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -22,7 +23,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-lib64 \
 	--with-gnu-ld
 BUILD_ARGS     = SHELL=$(CONFIG_SHELL)
-INSTALL_ARGS   = SHELL=$(CONFIG_SHELL) install-dev install-lib
+INSTALL_ARGS   = SHELL=$(CONFIG_SHELL) install
 
 CONFIGURE_ENV = \
 	ac_cv_path_MAKE=$(build_DESTDIR)$(build_bindir)/make
