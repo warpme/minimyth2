@@ -80,6 +80,8 @@ PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 PATCHFILES += 0375-net-dwmac-meson8b-picosecond-precision-RX-delay-support.patch
 # https://patchwork.kernel.org/project/linux-amlogic/list/?series=384505
 PATCHFILES += 0376-thermal-amlogic-Add-hwmon-support.patch
+# Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic HW I have
+PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
 endif
 #------------------------------------------------------------
 
