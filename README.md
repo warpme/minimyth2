@@ -39,17 +39,17 @@ running MythTV Frontend (and preactically only MythTV Frontend).
 ## Current Status
 This is functionality avaliable on current code (Linux kernel + Mesa + MythTV)
 At this moment quality of playback is good for technology preview. It is __not ready yet to daily usage__ as playback seek not works correctly.
-SoC           | Tested on                                    | Decoder      |Currently supported video decode HW.accel | Remarks                            |
-------------- |----------------------------------------------|--------------|------------------------------------------|------------------------------------|
-Allwinner H6  | EachLink H6 Mini, TanixTX6-Mini, Beelink GS1 | v4l2_request |MPEG2, H264, HEVC, VP8                    | Good playback, seek not works 
-Rockchip 3328 | Beelink A1                                   | v4l2_request |MPEG2, H264, HEVC, VP8, VP9               | Playback not fluent, seek not works
-Rockchip 3399 | RockPI 4-b                                   | v4l2_request |MPEG2, H264, HEVC, VP8, VP9               | Good playback, seek not works
-Amlogic s905  | TanixTX3-Mini                                | v4l2_m2m     |MPEG2, H264, HEVC, VP9                    | Playback not fluent, seek not works, no HEVC on s905w
-Amlogic s912  | Beelink GT1                                  | v4l2_m2m     |MPEG2, H264, HEVC, VP9                    | Good playback, seek not works
-Amlogic sm1   | x96Air                                       | v4l2_m2m     |MPEG2, H264, HEVC, VP9                    | Good playback, seek not works, artefacts on h264
-Broadcom 2837 | Rpi3-b                                       | v4l2_m2m     |MPEG4, H264                               | Good playback, seek not works
-Broadcom 2711 | Rpi4-b                                       | v4l2_m2m     |                                          | Not working yet (issue with mainline kernel)
-x86_64        | i5 NUC, Beelink BT4, AMD Kabini, ION2        | VAAPI, VDPAU, NvDEC |MPEG2, MPEG4, H264, HVEC           | Perfect playback
+SoC           | Tested on                                    | Decoder/API                           | Currently supported video decode HW.accel | Screen drawing | Video rendering                     | Remarks                            |
+------------- |----------------------------------------------|---------------------------------------|-------------------------------------------|----------------|-------------------------------------|------------------------------------|
+Allwinner H6  | EachLink H6 Mini, TanixTX6-Mini, Beelink GS1 | cedrus/v4l2_request                   | MPEG2, H264, HEVC, VP8                    | X11, EGLFS     | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek not works 
+Rockchip 3328 | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H264, HEVC, VP8, VP9               | X11, EGLFS     | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek not works
+Rockchip 3399 | RockPI 4-b                                   | rkvdec/v4l2_request                   | MPEG2, H264, HEVC, VP8, VP9               | X11, EGLFS     | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek not works
+Amlogic s905  | TanixTX3-Mini                                | vdec/v4l2_m2m                         | MPEG2, H264, HEVC, VP9                    | X11, EGLFS     | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek not works, limited HEVC on s905w
+Amlogic s912  | Beelink GT1                                  | vdec/v4l2_m2m                         | MPEG2, H264, HEVC, VP9                    | X11, EGLFS     | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek not works
+Amlogic sm1   | x96Air                                       | vdec/v4l2_m2m                         | MPEG2, H264, HEVC, VP9                    | X11, EGLFS     | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek not works, artefacts on h264
+Broadcom 2837 | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | MPEG4, H264                               | X11, EGLFS     | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek not works
+Broadcom 2711 | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H264, HEVC                                | X11, EGLFS     | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Works only with RPI kernel, HEVC not works yet
+x86_64        | i5 NUC, Beelink BT4, AMD Kabini, ION2        | VAAPI, VDPAU, NvDEC                   | MPEG2, MPEG4, H264, HVEC                  | X11, EGLFS     | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Perfect playback
 
 ## More Info
 - MiniMyth2 [Changelog](https://raw.githubusercontent.com/warpme/minimyth2/master/html/minimyth/document-changelog.txt)
