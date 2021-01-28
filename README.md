@@ -54,7 +54,7 @@ x86_64        | i5 NUC, Beelink BT4, AMD Kabini, ION2        | VAAPI, VDPAU, NvD
 This is general functionality avaliable on current code (Mainline Linux kernel)
 SoC           | Tested on        | WiFi Chip & Support                     | CEC Support            | Sleep/Resume                   | Remarks                       |
 ------------- |------------------|-----------------------------------------|------------------------|--------------------------------|-------------------------------|
-Allwinner H6  | EachLink H6 Mini | unknown chip; not works                 | works                  | works                          | well supported                | 
+Allwinner H6  | EachLink H6 Mini | rtl8723bs@SDIO; not works (I/O issue)   | works                  | works                          | well supported                | 
 Allwinner H6  | TanixTX6-Mini    | xr819@SDIO; not works (firmware issue)  | works                  | works                          | well supported                | 
 Allwinner H6  | Beelink GS1      | fn-link6222@PCI-e; not works (no PCI-e) | works                  | not works (firmware issue)     | some things are still missing | 
 Rockchip 3328 | Beelink A1       | rtl8821@USB; works                      | works                  | not works (not implmented yet) | good prospects                |
