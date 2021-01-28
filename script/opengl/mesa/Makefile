@@ -11,7 +11,7 @@ endif
 
 ifeq (1,1)
 GARNAME      = mesa
-GARVERSION   = 21.0.0-rc2
+GARVERSION   = 21.0.0-rc3
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
