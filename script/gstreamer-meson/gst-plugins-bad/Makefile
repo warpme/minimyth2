@@ -1,9 +1,10 @@
-GARNAME = gst-plugins-bad
-GARVERSION = $(GST_VERSION)
-CATEGORIES = gst
+
+GARNAME      = gst-plugins-bad
+GARVERSION   = $(GST_VERSION)
+CATEGORIES   = gst
 MASTER_SITES = $(GST_MASTER_SITES)
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
@@ -24,21 +25,13 @@ DEPENDS = \
 	lib/libgudev \
 	lib/libusb \
 	X11/libvdpau \
-	xorg/wayland \
+	wayland/wayland \
 
-CONFIGURE_SCRIPTS  = custom
-BUILD_SCRIPTS      = custom
-INSTALL_SCRIPTS    = custom
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
-GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
-include ../../gar.mk
-
-CONFIGURE_ARGS = \
-	--prefix="$(DESTDIR)" \
-	--libdir="$(DESTDIR)$(libdir)" \
-	--includedir="$(DESTDIR)$(includedir)" \
-	--datadir="$(DESTDIR)$(datadir)" \
-	--cross-file=$(build_DESTDIR)$(build_datadir)/meson/cross/$(GARHOST).conf \
+CONFIGURE_ARGS = $(DIRPATHS_MESON) \
 	--buildtype=release \
 	-D examples=disabled \
 	-D tests=disabled \
@@ -46,18 +39,8 @@ CONFIGURE_ARGS = \
 	-D gobject-cast-checks=disabled \
 	-D glib-asserts=disabled \
 
-configure-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson build $(CONFIGURE_ARGS)
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson configure build
-	@$(MAKECOOKIE)
-
-build-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/ninja -C build
-	@$(MAKECOOKIE)
-
-install-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/ninja -C build install
-	@$(MAKECOOKIE)
+GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
+include ../../gar.mk
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgstadaptivedemux-1.0.la
