@@ -207,6 +207,12 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		if [ -e $(DESTDIR)$(qt5prefix)/plugins/egldeviceintegrations ] ; then \
 			cp -pdR $(DESTDIR)$(qt5prefix)/plugins/egldeviceintegrations $@~$(qt5prefix)/plugins ; \
 		fi ; \
+		if [ -e $(DESTDIR)$(qt5prefix)/plugins/platforminputcontexts ] ; then \
+			cp -pdR $(DESTDIR)$(qt5prefix)/plugins/platforminputcontexts $@~$(qt5prefix)/plugins ; \
+		fi ; \
+		if [ -e $(DESTDIR)$(qt5prefix)/plugins/wayland-shell-integration ] ; then \
+			cp -pdR $(DESTDIR)$(qt5prefix)/plugins/wayland-shell-integration $@~$(qt5prefix)/plugins ; \
+		fi ; \
 	 fi
 	@# adding supported video HW list
 	@mkdir -m 0755 -p $@~/srv/www
