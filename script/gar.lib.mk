@@ -294,6 +294,27 @@ NODIRPATHS += --lispdir
 
 DIRPATHS = $(filter-out $(addsuffix %,$(NODIRPATHS)), $(TMP_DIRPATHS))
 
+#################### MESON VARIABLES & RULES ####################
+
+DIRPATHS_MESON = --prefix=$(prefix) --bindir=$(bindir) --sbindir=$(sbindir) --libexecdir=$(libexecdir) --datadir=$(datadir) --sysconfdir=$(sysconfdir) --sharedstatedir=$(sharedstatedir) --localstatedir=$(localstatedir) --libdir=$(libdir) --infodir=$(infodir) --includedir=$(includedir) --mandir=$(mandir)
+MESON_CROSS_CONF = $(build_DESTDIR)$(build_datadir)/meson/cross/$(GARHOST).conf
+MESON = $(build_DESTDIR)$(build_bindir)/meson
+NINJA = $(build_DESTDIR)$(build_bindir)/ninja
+
+configure-meson:
+	@cd $(WORKSRC); $(MESON) build $(CONFIGURE_ARGS) --cross-file=$(MESON_CROSS_CONF)
+	@cd $(WORKSRC); $(MESON) configure build
+	@$(MAKECOOKIE)
+
+build-meson:
+	@cd $(WORKSRC); $(NINJA) -C build
+	@$(MAKECOOKIE)
+
+install-meson:
+	@cd $(WORKSRC); DESTDIR=$(DESTDIR) $(NINJA) -C build install
+	@$(MAKECOOKIE)
+
+
 # configure a package that has an autoconf-style configure
 # script.
 configure-%/configure: 
