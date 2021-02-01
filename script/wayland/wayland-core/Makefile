@@ -1,9 +1,10 @@
-GARNAME = wayland
-GARVERSION = 1.16.0
-CATEGORIES = $(CATEGORY)
+
+GARNAME      = wayland
+GARVERSION   = 1.18.0
+CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://wayland.freedesktop.org/releases/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
 DESCRIPTION = 
@@ -17,7 +18,7 @@ DEPENDS = lang/c    \
 	lib/libffi  \
 
 ifneq ($(DESTIMG),build)
-BUILDDEPS += xorg/wayland
+BUILDDEPS += wayland/wayland-core
 endif
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
@@ -35,7 +36,7 @@ ifneq ($(DESTIMG),build)
 CONFIGURE_ARGS += --with-host-scanner "$(build_DESTDIR)$(build_bindir)/wayland-scanner"
 endif
 
-GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
+GAR_EXTRA_CONF += $(CATEGORY)/wayland/package-api.mk
 include ../../gar.mk
 
 post-install:
