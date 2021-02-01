@@ -174,6 +174,8 @@ mm-all:
 		   [ ! "$${software}" = "ffmpeg"         ] && \
 		   [ ! "$${software}" = "iwd"            ] && \
 		   [ ! "$${software}" = "connman"        ] && \
+		   [ ! "$${software}" = "sway"           ] && \
+		   [ ! "$${software}" = "weston"         ] && \
 		   [ ! "$${software}" = "apitrace"       ] && \
 		   [ ! "$${software}" = "gdb"            ] && \
 		   [ ! "$${software}" = "valgrind"       ] && \

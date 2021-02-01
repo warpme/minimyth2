@@ -119,6 +119,7 @@ DEPENDS = \
 	$(if $(filter mc,$(mm_SOFTWARE)),utils/mc) \
 	$(if $(filter dvdcss,$(mm_SOFTWARE)),lib/libdvdcss) \
 	lib/nss-mdns \
+	lib/libinput \
 	net/mount.cifs \
 	net/iwd \
 	utils/alsacap \
@@ -140,6 +141,10 @@ DEPENDS = \
 	$(if $(filter bumblebee,$(mm_SOFTWARE)), \
 		system/bumblebee \
 		system/bbswitch) \
+	$(if $(filter sway,$(mm_SOFTWARE)), \
+		wayland/sway) \
+	$(if $(filter weston,$(mm_SOFTWARE)), \
+		wayland/weston) \
 	X11/xdotool \
 	utils/tinymembench \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
