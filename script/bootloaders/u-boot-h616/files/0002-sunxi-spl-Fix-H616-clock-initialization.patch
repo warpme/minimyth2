@@ -1,0 +1,111 @@
+From patchwork Sun Jan 31 20:25:39 2021
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: =?utf-8?q?Jernej_=C5=A0krabec?=
+ <jernej.skrabec@siol.net>
+X-Patchwork-Id: 1433952
+Return-Path: <u-boot-bounces@lists.denx.de>
+X-Original-To: incoming@patchwork.ozlabs.org
+Delivered-To: patchwork-incoming@bilbo.ozlabs.org
+Authentication-Results: ozlabs.org;
+ spf=pass (sender SPF authorized) smtp.mailfrom=lists.denx.de
+ (client-ip=85.214.62.61; helo=phobos.denx.de;
+ envelope-from=u-boot-bounces@lists.denx.de; receiver=<UNKNOWN>)
+Received: from phobos.denx.de (phobos.denx.de [85.214.62.61])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest
+ SHA256)
+	(No client certificate requested)
+	by ozlabs.org (Postfix) with ESMTPS id 4DTMzL2Tqcz9t1C
+	for <incoming@patchwork.ozlabs.org>; Mon,  1 Feb 2021 07:25:55 +1100 (AEDT)
+Received: from h2850616.stratoserver.net (localhost [IPv6:::1])
+	by phobos.denx.de (Postfix) with ESMTP id 0F9A48239D;
+	Sun, 31 Jan 2021 21:25:48 +0100 (CET)
+Authentication-Results: phobos.denx.de;
+ dmarc=fail (p=none dis=none) header.from=siol.net
+Authentication-Results: phobos.denx.de;
+ spf=pass smtp.mailfrom=u-boot-bounces@lists.denx.de
+Received: by phobos.denx.de (Postfix, from userid 109)
+ id D5A308240E; Sun, 31 Jan 2021 21:25:46 +0100 (CET)
+X-Spam-Checker-Version: SpamAssassin 3.4.2 (2018-09-13) on phobos.denx.de
+X-Spam-Level: 
+X-Spam-Status: No, score=-2.6 required=5.0 tests=BAYES_00,RCVD_IN_DNSWL_LOW,
+ SPF_HELO_NONE autolearn=ham autolearn_force=no version=3.4.2
+Received: from mail.siol.net (mailoutvs12.siol.net [185.57.226.203])
+ (using TLSv1.2 with cipher AECDH-AES256-SHA (256/256 bits))
+ (No client certificate requested)
+ by phobos.denx.de (Postfix) with ESMTPS id 4104482318
+ for <u-boot@lists.denx.de>; Sun, 31 Jan 2021 21:25:44 +0100 (CET)
+Authentication-Results: phobos.denx.de;
+ dmarc=pass (p=none dis=none) header.from=siol.net
+Authentication-Results: phobos.denx.de;
+ spf=pass smtp.mailfrom=jernej.skrabec@siol.net
+Received: from localhost (localhost [127.0.0.1])
+ by mail.siol.net (Zimbra) with ESMTP id CB482521CEF;
+ Sun, 31 Jan 2021 21:25:43 +0100 (CET)
+Received: from mail.siol.net ([127.0.0.1])
+ by localhost (psrvmta12.zcs-production.pri [127.0.0.1]) (amavisd-new,
+ port 10032)
+ with ESMTP id D6TqgL7-vZUv; Sun, 31 Jan 2021 21:25:43 +0100 (CET)
+Received: from mail.siol.net (localhost [127.0.0.1])
+ by mail.siol.net (Zimbra) with ESMTPS id 92DDA521D61;
+ Sun, 31 Jan 2021 21:25:43 +0100 (CET)
+Received: from kista.localdomain (cpe-86-58-58-53.static.triera.net
+ [86.58.58.53]) (Authenticated sender: 031275009)
+ by mail.siol.net (Zimbra) with ESMTPSA id 277B0521CEF;
+ Sun, 31 Jan 2021 21:25:43 +0100 (CET)
+From: Jernej Skrabec <jernej.skrabec@siol.net>
+To: jagan@amarulasolutions.com,
+	andre.przywara@arm.com
+Cc: u-boot@lists.denx.de,
+	linux-sunxi@googlegroups.com
+Subject: [PATCH] sunxi: spl: Fix H616 clock initialization
+Date: Sun, 31 Jan 2021 21:25:39 +0100
+Message-Id: <20210131202539.3735672-1-jernej.skrabec@siol.net>
+X-Mailer: git-send-email 2.30.0
+MIME-Version: 1.0
+X-BeenThere: u-boot@lists.denx.de
+X-Mailman-Version: 2.1.34
+Precedence: list
+List-Id: U-Boot discussion <u-boot.lists.denx.de>
+List-Unsubscribe: <https://lists.denx.de/options/u-boot>,
+ <mailto:u-boot-request@lists.denx.de?subject=unsubscribe>
+List-Archive: <https://lists.denx.de/pipermail/u-boot/>
+List-Post: <mailto:u-boot@lists.denx.de>
+List-Help: <mailto:u-boot-request@lists.denx.de?subject=help>
+List-Subscribe: <https://lists.denx.de/listinfo/u-boot>,
+ <mailto:u-boot-request@lists.denx.de?subject=subscribe>
+Errors-To: u-boot-bounces@lists.denx.de
+Sender: "U-Boot" <u-boot-bounces@lists.denx.de>
+X-Virus-Scanned: clamav-milter 0.102.3 at phobos.denx.de
+X-Virus-Status: Clean
+
+It turns out that there is a magic bit in PRCM region which seemingly
+makes PLLs work if it's enabled. Sadly, there is no documentation what
+it does exactly, so we'll just mimick BSP boot0 behaviour and enable it
+before any clock is set up.
+
+Fixes: b18bd53d6cde ("sunxi: introduce support for H616 clocks")
+Signed-off-by: Jernej Skrabec <jernej.skrabec@siol.net>
+---
+ arch/arm/mach-sunxi/clock_sun50i_h6.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm/mach-sunxi/clock_sun50i_h6.c b/arch/arm/mach-sunxi/clock_sun50i_h6.c
+index 06d84eb158d7..68c8e7f2afbe 100644
+--- a/arch/arm/mach-sunxi/clock_sun50i_h6.c
++++ b/arch/arm/mach-sunxi/clock_sun50i_h6.c
+@@ -9,6 +9,12 @@ void clock_init_safe(void)
+ {
+ 	struct sunxi_ccm_reg *const ccm =
+ 		(struct sunxi_ccm_reg *)SUNXI_CCM_BASE;
++
++#ifdef CONFIG_MACH_SUN50I_H616
++	/* this seems to enable PLLs */
++	setbits_le32(SUNXI_PRCM_BASE + 0x250, 0x10);
++#endif
++
+ 	clock_set_pll1(408000000);
+ 
+ 	writel(CCM_PLL6_DEFAULT, &ccm->pll6_cfg);
