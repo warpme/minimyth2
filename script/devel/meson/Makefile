@@ -1,10 +1,11 @@
-GARNAME = meson
-GARVERSION = 0.54.2
-CATEGORIES = devel
+
+GARNAME      = meson
+GARVERSION   = 0.56.2
+CATEGORIES   = devel
 MASTER_SITES = https://github.com/mesonbuild/meson/releases/download/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE =
-DESCRIPTION = 
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      =
+DESCRIPTION  = 
 define BLURB
 endef
 
