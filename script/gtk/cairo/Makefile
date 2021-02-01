@@ -1,9 +1,9 @@
-GARNAME = cairo
-GARVERSION = 1.14.2
-CATEGORIES = gtk
+GARNAME      = cairo
+GARVERSION   = 1.14.2
+CATEGORIES   = gtk
 MASTER_SITES = http://www.cairographics.org/releases/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = LGPL2_1
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = LGPL2_1
 
 DESCRIPTION =
 define BLURB
@@ -28,7 +28,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-valgrind \
 	--enable-xlib \
 	--enable-xlib-xrender \
-	--disable-xcb \
+	--enable-xcb \
 	--disable-xlib-xcb \
 	--disable-xcb-shm \
 	--disable-qt \
