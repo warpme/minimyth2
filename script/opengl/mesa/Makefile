@@ -41,37 +41,31 @@ DEPENDS =                      \
 	xorg/libXfixes         \
 	xorg/libXxf86vm        \
 	xorg/libxshmfence      \
-	xorg/wayland-protocols \
-	xorg/wayland           \
+	wayland/wayland-protocols \
+	wayland/wayland-core   \
 	system/eudev           \
 
 BUILDDEPS  = \
-	lib/libxml2         \
-	python3/python      \
-	python3/python-mako \
-	devel/meson         \
-	opengl/makedepend   \
-	xorg/xorgproto      \
-	xorg/libxshmfence   \
-	xorg/wayland        \
+	lib/libxml2          \
+	python3/python       \
+	python3/python-mako  \
+	devel/meson          \
+	opengl/makedepend    \
+	xorg/xorgproto       \
+	xorg/libxshmfence    \
+	wayland/wayland-core \
 
 PWD := $(shell pwd)
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
-CONFIGURE_SCRIPTS  = custom
-BUILD_SCRIPTS      = custom
-INSTALL_SCRIPTS    = custom
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
 include ../../gar.mk
 
-CONFIGURE_ARGS = \
-	--prefix="$(DESTDIR)" \
-	--libdir="$(DESTDIR)$(libdir)" \
-	--includedir="$(DESTDIR)$(includedir)" \
-	--datadir="$(DESTDIR)$(datadir)" \
-	--cross-file=$(build_DESTDIR)$(build_datadir)/meson/cross/$(GARHOST).conf \
+CONFIGURE_ARGS = $(DIRPATHS_MESON) \
 	--buildtype=release \
-	--optimization=s \
 	-D dri-search-path="/usr/lib/dri" \
 	-D va-libs-path="$(DESTDIR)$(libdir)/va" \
 	-D vdpau-libs-path="$(DESTDIR)$(libdir)" \
@@ -120,32 +114,6 @@ CONFIGURE_ARGS += \
 	-D llvm=enabled
 endif
 endif
-
-git//%$(DISTNAME).tar.xz:
-	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
-	@$(MAKECOOKIE)
-
-configure-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson build $(CONFIGURE_ARGS)
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/meson configure build
-	@$(MAKECOOKIE)
-
-build-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/ninja -C build
-	@$(MAKECOOKIE)
-
-install-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/ninja -C build install
-	@$(MAKECOOKIE)
-
-install-source:
-	@mkdir -p $(DESTDIR)$(sourcedir)
-	@rm -f $(DESTDIR)$(sourcedir)/mesa
-	@ln -sf $(PWD)/$(WORKSRC) $(DESTDIR)$(sourcedir)/mesa
-	@$(MAKECOOKIE)
-
-install-cross:
-	@$(MAKECOOKIE)
 
 post-install:
 	@files="dri.pc egl.pc gbm.pc gl.pc glesv1_cm.pc glesv2.pc" ; \
