@@ -608,6 +608,14 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 	@if [ -e $@~/rootfs-ro/usr/bin/aplay ] ; then \
 		ln -srf $@~/rootfs-ro/usr/bin/aplay $@~/rootfs-ro/usr/bin/arecord ; \
 	 fi
+	@# Set SUID on weston-launch binary required by weston as we are not using systemd nor setcap
+	@if [ -e $@~/rootfs-ro/usr/bin/weston-launch ] ; then    \
+		chmod +s $@~/rootfs-ro/usr/bin/weston-launch ; \
+	 fi
+	@# Set SUID on sway binary required by sway as we are not using systemd nor setcap
+	@if [ -e $@~/rootfs-ro/usr/bin/sway ] ; then    \
+		chmod +s $@~/rootfs-ro/usr/bin/sway ; \
+	 fi
 	@# Hack for strip wich is cheated by mplayer exec
 	@if [ -e $@~/rootfs-ro/usr/bin/mplayer ] ; then    \
 		chmod 0755 $@~/rootfs-ro/usr/bin/mplayer ; \
