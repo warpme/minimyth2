@@ -20,8 +20,8 @@ if [ x$1 = "xeglfs" ] || [ x$2 = "xeglfs" ]; then
         export MYTHTV_DRM_VIDEO=1
     fi
 elif [ x$1 = "xwayland" ] || [ x$2 = "xwayland" ]; then
-    echo "Runing myth in Wayland"
-    export QT_QPA_PLATFORM=wayland
+    echo "Runing myth in Wayland-EGL"
+    export QT_QPA_PLATFORM=wayland-egl
     export QT_QPA_DEBUG=1
     if [ "x${MM_MYTHTV_DRM_VIDEO}" = "xyes" ] ; then
         echo "Using DRM_PRIME in DRM planes mode"
