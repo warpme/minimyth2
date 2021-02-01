@@ -107,5 +107,12 @@ ln -sf /proc/self/mounts /etc/mtab > /dev/null
 # Myth expects rtcx as /dev/rtc
 ln -sf /dev/rtc0 /dev/rtc > /dev/null
 
+# Create wayland IPC socket dir with world access
+/bin/mkdir -p  /var/run/xdg/root
+/bin/chmod 0700 /var/run/xdg/root
+/bin/mkdir -p  /var/run/xdg/minimyth
+/bin/chown 1000:1000 /var/run/xdg/minimyth
+/bin/chmod 0700 /var/run/xdg/minimyth
+
 # /bin/echo "real init: done! (exit code 0) ..."
 exit 0
