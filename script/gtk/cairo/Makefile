@@ -1,8 +1,9 @@
+
 GARNAME      = cairo
-GARVERSION   = 1.14.2
+GARVERSION   = 1.17.4
 CATEGORIES   = gtk
-MASTER_SITES = http://www.cairographics.org/releases/
-DISTFILES    = $(DISTNAME).tar.xz
+MASTER_SITES = https://gitlab.freedesktop.org/cairo/cairo/-/archive/$(GARVERSION)/
+DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      = LGPL2_1
 
 DESCRIPTION =
@@ -11,72 +12,21 @@ endef
 
 DEPENDS = lang/c gtk/glib lib/fontconfig lib/freetype lib/libpng xorg/xorg
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--x-includes="$(DESTDIR)$(includedir)" \
-	--x-libraries="$(DESTDIR)$(libdir)" \
-	--disable-silent-rules \
-	--enable-shared \
-	--disable-static \
-	--disable-gtk-doc \
-	--enable-largefile \
-	--enable-atomic \
-	--disable-gcov \
-	--disable-valgrind \
-	--enable-xlib \
-	--enable-xlib-xrender \
-	--enable-xcb \
-	--disable-xlib-xcb \
-	--disable-xcb-shm \
-	--disable-qt \
-	--disable-quartz \
-	--disable-quartz-font \
-	--disable-quartz-image \
-	--disable-win32 \
-	--disable-win32-font \
-	--disable-skia \
-	--disable-os2 \
-	--disable-beos \
-	--disable-drm \
-	--disable-drm-xr \
-	--disable-gallium \
-	--disable-xcb-drm \
-	--enable-png \
-	--enable-gl \
-	--disable-glesv2 \
-	--disable-cogl \
-	--disable-directfb \
-	--disable-vg \
-	--disable-egl \
-	--enable-glx \
-	--disable-wgl \
-	--disable-script \
-	--enable-ft \
-	--enable-fc \
-	--enable-ps \
-	--enable-pdf \
-	--enable-svg \
-	--disable-test-surfaces \
-	--disable-tee \
-	--disable-xml \
-	--enable-pthread \
-	--enable-gobject \
-	--disable-full-testing \
-	--disable-trace \
-	--enable-interpreter \
-	--disable-symbol-lookup \
-	--enable-some-floating-point \
-	--with-gnu-ld \
-	--with-x
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
+
+CONFIGURE_ARGS = $(DIRPATHS_MESON) \
+	--buildtype=release \
+	-D tests="disabled" \
+	-D gtk2-utils="disabled" \
+	-D gl-backend="glesv2" \
+	-D drm="enabled" \
+	-D glesv2="enabled" \
+	-D glesv3="enabled" \
 
 include ../../gar.mk
-
-pre-configure:
-	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -rf $(DESTDIR)$(libdir)/libcairo.la
