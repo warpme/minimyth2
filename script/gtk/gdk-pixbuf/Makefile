@@ -13,28 +13,12 @@ endef
 DEPENDS    = lang/c lang/cxx gtk/glib lib/libjpeg lib/libpng lib/libtiff xorg/xorg
 BUILDDEPS  = gtk/gtk-doc
 
-CONFIGURE_SCRIPTS  = custom
-BUILD_SCRIPTS      = custom
-INSTALL_SCRIPTS    = custom
-
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules \
-	--disable-static \
-	--enable-shared \
-	--enable-debug=minimal \
-	--enable-rebuilds \
-	--enable-explicit-deps=auto \
-	--enable-nls \
-	--disable-rpath \
-
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
 INSTALL_SCRIPTS    = meson
 
 CONFIGURE_ARGS = $(DIRPATHS_MESON) \
-	-D examples="false" \
-	-D man-pages="false" \
-	-D valgrind="false" \
+	--buildtype=release \
 	-D gtk_doc="false" \
 	-D docs="false" \
 	-D introspection="disabled" \
