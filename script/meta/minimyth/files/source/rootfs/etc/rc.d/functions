@@ -1877,7 +1877,7 @@ mm_x_start() {
     local mailnotifypid
     local timeout=60
 
-    if [ "x${MM_MYTHTV_RUN_ON_EGLFS}" = "xyes" ] ; then
+    if [ "x${MM_MYTHTV_DRAW_ON}" = "xeglfs" ] ; then
 
         if [ "x${MM_X_MYTH_PROGRAM}" = "xmythfrontend" ] ; then
             /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Kicking mythfrontend on EGLFS..."
@@ -2189,18 +2189,31 @@ myth_start() {
 
     /usr/bin/mm_modify_mainmenu & 2> /dev/null
 
-    if [ "x${MM_MYTHTV_RUN_ON_EGLFS}" = "xyes" ] ; then
-        export QT_QPA_PLATFORM=eglfs
-        export QT_QPA_EGLFS_INTEGRATION=eglfs_kms
-        export QT_LOGGING_RULES=qt.qpa.*=true
-        # export QT_QPA_EGLFS_FORCE888=1 # needed only for some platforms
-        if [ "x${MM_MYTHTV_DRM_VIDEO}" = "xyes" ] ; then
-            export MYTHTV_DRM_VIDEO=1
-        fi
-        env
-    else
-        export QT_QPA_PLATFORM=xcb
-    fi
+    case "${MM_MYTHTV_DRAW_ON}" in
+
+        eglfs)
+            export QT_QPA_PLATFORM=eglfs
+            export QT_QPA_EGLFS_INTEGRATION=eglfs_kms
+            export QT_LOGGING_RULES=qt.qpa.*=true
+            if [ "x${MM_MYTHTV_DRM_VIDEO}" = "xyes" ] ; then
+                export MYTHTV_DRM_VIDEO=1
+            fi
+            ;;
+
+        wayland)
+            export QT_QPA_PLATFORM=wayland-egl
+            export QT_QPA_DEBUG=1
+            export QT_LOGGING_RULES=qt.qpa.*=true
+            if [ "x${MM_MYTHTV_DRM_VIDEO}" = "xyes" ] ; then
+                export MYTHTV_DRM_VIDEO=1
+            fi
+            ;;
+
+        x11|*)
+            export QT_QPA_PLATFORM=xcb
+            ;;
+
+    esac
 
     export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
     export __GL_SYNC_TO_VBLANK=1
@@ -2215,19 +2228,32 @@ myth_start() {
 
     cd /home/minimyth/.mythtv
 
-    if [ x${mode} = 'xforeground' ] ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in foreground in X11..."
-        su minimyth -c "${args}"
-    else
-        if [ "x${MM_MYTHTV_RUN_ON_EGLFS}" = "xyes" ] ; then
+    case "${MM_MYTHTV_DRAW_ON}" in
+
+        eglfs)
             /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in EGLFS..."
-        else
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in background in X11..."
-        fi
-        su minimyth -c "${args}" &
-    fi
+            su minimyth -c "${args}" &
+            ;;
+
+        wayland)
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in Wayland..."
+            su minimyth -c "/bin/sh ${args}" &
+            ;;
+
+        x11|*)
+            if [ x${mode} = 'xforeground' ] ; then
+                /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in foreground in X11..."
+                su minimyth -c "${args}"
+            else
+                /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in background in X11..."
+                su minimyth -c "${args}" &
+            fi
+            ;;
+
+    esac
 
     /bin/true
+
     return
 }
 
