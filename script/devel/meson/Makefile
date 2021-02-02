@@ -63,4 +63,7 @@ else
 endif
 endif
 endif
+	@echo ""                           >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
+	@echo "[properties]"               >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
+	@echo "needs_exe_wrapper = false"  >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
 	@$(MAKECOOKIE)
