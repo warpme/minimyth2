@@ -49,7 +49,7 @@ CONFIGURE_ARGS = $(DIRPATHS_MESON) \
 	-D image-webp="false" \
 	-D tools="debug,info,terminal" \
 	-D demo-clients="false" \
-	-D simple-clients="" \
+	-D simple-clients="egl,dmabuf-egl" \
 	-D launcher-logind="false" \
 
 include ../../gar.mk
