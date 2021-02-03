@@ -22,7 +22,7 @@ MM_INIT_START_PHASE_1 := \
 MM_INIT_START_PHASE_2 := 
 
 MM_INIT_START_PHASE_3 := \
-    x
+    frontend
 
 MM_INIT_START_PHASE_4 := \
     lirc         \
