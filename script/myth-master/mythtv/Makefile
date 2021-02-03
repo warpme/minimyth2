@@ -19,7 +19,7 @@ PATCHFILES += 0003-SCR-keep-disecq-always-18V.patch
 #PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
 PATCHFILES += 0005-EIT-ticket9480-fix-PL-eit-encodings.patch
 PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
-PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
+#PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
 # Fixes issue with only 3 menu entries in MythMediaStream theme.
 PATCHFILES += 0013-MythMainWindow-not-use-qRound-in-MythUIScreenBounds.patch
 
