@@ -91,7 +91,7 @@ ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
-	-D platforms=x11 \
+	-D platforms=x11,wayland \
 	-D gallium-vdpau=disabled \
 	-D gallium-xa=disabled \
 	-D llvm=disabled
@@ -100,7 +100,7 @@ ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
-	-D platforms=x11 \
+	-D platforms=x11,wayland \
 	-D gallium-vdpau=disabled \
 	-D gallium-xa=disabled \
 	-D llvm=disabled
@@ -108,7 +108,7 @@ else
 CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
 	-D dri-drivers=i915,i965,r100,r200 \
-	-D platforms=x11 \
+	-D platforms=x11,wayland \
 	-D gallium-vdpau=enabled \
 	-D gallium-va=enabled \
 	-D gallium-xa=enabled \
