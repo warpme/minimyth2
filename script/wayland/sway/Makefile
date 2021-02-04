@@ -21,8 +21,7 @@ DEPENDS = lang/c \
 	lib/pcre \
 	lib/libjson-c \
 	wayland/wlroots \
-
-#	data/shared-mime-info \
+	data/shared-mime-info \
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
