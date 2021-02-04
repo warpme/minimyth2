@@ -67,8 +67,8 @@ include ../../gar.mk
 CONFIGURE_ARGS = $(DIRPATHS_MESON) \
 	--buildtype=release \
 	-D dri-search-path="/usr/lib/dri" \
-	-D va-libs-path="$(DESTDIR)$(libdir)/va" \
-	-D vdpau-libs-path="$(DESTDIR)$(libdir)" \
+	-D va-libs-path="$(libdir)/va" \
+	-D vdpau-libs-path="$(libdir)/vdpau" \
 	-D shared-glapi=true \
 	-D shared-llvm=enabled \
 	-D gbm=enabled \
