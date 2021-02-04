@@ -1,5 +1,5 @@
 GARNAME = Linux-PAM
-GARVERSION = 1.3.1
+GARVERSION = 1.5.1
 CATEGORIES = lib
 MASTER_SITES = https://github.com/linux-pam/linux-pam/releases/download/v$(GARVERSION)/
 DISTFILES = $(GARNAME)-$(GARVERSION).tar.xz
@@ -22,6 +22,8 @@ include ../../gar.mk
 
 post-install:
 	@cp -rf $(WORKSRC)/libpam/include/security $(DESTDIR)$(includedir)/
+	@ln -srf $(DESTDIR)$(includedir)/pam_misc.h $(DESTDIR)$(includedir)/security/pam_misc.h
+	@ln -srf $(DESTDIR)$(includedir)/pam_client.h $(DESTDIR)$(includedir)/security/pam_client.h
 	@rm -f $(DESTDIR)$(libdir)/libpam.la
 	@rm -f $(DESTDIR)$(libdir)/libpamc.la
 	@rm -f $(DESTDIR)$(libdir)/libpam_misc.la
