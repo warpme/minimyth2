@@ -27,7 +27,7 @@ elif [ x$1 = "xwayland" ] || [ x$2 = "xwayland" ]; then
         echo "Using DRM_PRIME in DRM planes mode"
         export MYTHTV_DRM_VIDEO=1
     fi
-    XDG_RUNTIME_DIR=/var/run/xdg/minimyth
+    export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
 else
     echo "Runing myth in XCB"
     export QT_QPA_PLATFORM=xcb
