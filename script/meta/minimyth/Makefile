@@ -147,6 +147,7 @@ DEPENDS = \
 		wayland/weston) \
 	X11/xdotool \
 	utils/tinymembench \
+	utils/kbd \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
 		python/python-pyalsaaudio \
 		gtk/gconf \
