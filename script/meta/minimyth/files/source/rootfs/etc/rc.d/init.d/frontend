@@ -16,12 +16,7 @@ start() {
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/frontend] Starting myth in EGLFS mode ..."
         mm_message_output info "Starting mythfrontend ..."
 
-        su minimyth -c "mythfrontend.sh eglfs > /var/log/mythfrontend.log 2>&1 &"
-
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/frontend] Started myth in EGLFS mode with return code=0..."
-
-        /bin/rm -f /var/lib/init/frontend.inprogress
-        return 0
+        su minimyth -c "mythfrontend.sh > /var/log/mythfrontend.log 2>&1 &"
 
     elif [ "x${MM_MYTHTV_DRAW_ON}" = "xwayland" ] ; then
 
@@ -29,15 +24,35 @@ start() {
         /bin/chmod 777 -R /dev/vchiq
 
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/frontend] Starting Weston ..."
-        mm_message_output info "Starting weston ..."
-
-        start-weston.sh &
+        if [ -z "`/bin/pidof weston`" ] ; then
+            openvt -v -w -s -- su minimyth -c "/usr/bin/weston.sh --config=/etc/weston-minimal.ini" &
+            i=0
+            timeout=10
+            while [ $i -lt ${timeout} ] ; do
+                i=$((${i} + 1))
+                if [ -e /var/run/xdg/minimyth/wayland-0 ] ; then
+                    i=${timeout}
+                    break
+                else
+                    if [ $i -ge ${timeout} ] ; then
+                        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/frontend] Timeout starting Weston ..."
+                        exit 1
+                    else
+                        /bin/sleep 0.5
+                    fi
+                fi
+            done
+        fi
 
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/frontend] Starting mythfrontend ..."
+        mm_message_output info "Starting mythfrontend ..."
 
-        su minimyth -c "mythfrontend.sh wayland > /var/log/mythfrontend.log 2>&1 &"
+        su minimyth -c "mythfrontend.sh > /var/log/mythfrontend.log 2>&1 &"
 
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/frontend] Started myth in Wayland mode with return code=0..."
+    elif [ "x${MM_MYTHTV_DRAW_ON}" = "xterm" ] ; then
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/frontend] Starting agtty terminal ..."
+        /sbin/agetty 9600 tty1 &
 
         /bin/rm -f /var/lib/init/frontend.inprogress
         return 0
@@ -245,14 +260,57 @@ start() {
 
         mm_x_start
 
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/frontend] Started with return code=0..."
+        su minimyth -c "mythfrontend.sh > /var/log/mythfrontend.log 2>&1 &"
 
-        /bin/rm -f /var/lib/init/frontend.inprogress
-        return 0
     fi
+
+    # Start myth watchdog if enabled
+    if [ "x${MM_X_WATCHDOG_MYTH_PROC}" = "xyes" ] ; then
+        /usr/bin/mm_watchdog &
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/frontend] Starting MM_WATCHDOG script..."
+    fi
+
+    # Auto-configure usage of 'irxevent'.
+    if [ "x${MM_LIRC_IRXEVENT_ENABLED}" = "xauto" ] ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/frontend] Attempting to auto-configure usage of irxevent"
+            MM_LIRC_IRXEVENT_ENABLED='no'
+            if [ -e /etc/lirc/lircrc ] ; then
+                # Only one level of includes is supported.
+                lircrc_files="/etc/lirc/lircrc `/bin/cat /etc/lirc/lircrc | /bin/grep -e '^include ' | /bin/sed -e 's%^include *%%'`"
+                for lircrc_file in ${lircrc_files} ; do
+                    if [ `/bin/cat ${lircrc_file} | /bin/grep -q -e '^ *prog *= *irxevent'` ] ; then
+                        MM_LIRC_IRXEVENT_ENABLED='yes'
+                    fi
+                done
+            fi
+    fi
+
+    # Start the irxevent daemon.
+    if [ "x${MM_LIRC_IRXEVENT_ENABLED}" = "xyes" ] ; then
+        /usr/bin/test -n "`/bin/pidof irxevent`" && /usr/bin/killall irxevent
+        /bin/sleep 5
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/frontend] Starting irxevent daemon..."
+        /usr/bin/irxevent -d /etc/lirc/lircrc
+    fi
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/frontend] Started with return code=0..."
+
+    /bin/rm -f /var/lib/init/frontend.inprogress
+    return 0
+
 }
 
 stop() {
+
+    if [ -n "`/bin/pidof irxevent`" ] ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/frontend] Killing irxevent daemon..."
+        /usr/bin/killall irxevent
+    fi
+
+    if [ -n "`/bin/pidof mm_watchdog`" ] ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/frontend] Killing mm_watchdog script..."
+        /usr/bin/killall -9 mm_watchdog
+    fi
 
     if [ "x${MM_MYTHTV_DRAW_ON}" = "xeglfs" ] ; then
 
@@ -271,7 +329,6 @@ stop() {
 
     else
 
-
         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/frontend] Stoping mythfrontend (in X11 mode) ..."
         killall mythfrontend
 
@@ -281,7 +338,6 @@ stop() {
         mm_x_stop
 
     fi
-
 
     return 0
 

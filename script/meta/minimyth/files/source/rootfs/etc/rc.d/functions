@@ -1877,17 +1877,7 @@ mm_x_start() {
     local mailnotifypid
     local timeout=60
 
-    if [ "x${MM_MYTHTV_DRAW_ON}" = "xeglfs" ] ; then
-
-        if [ "x${MM_X_MYTH_PROGRAM}" = "xmythfrontend" ] ; then
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Kicking mythfrontend on EGLFS..."
-            mm_mythfrontend_start
-        elif [ "x${MM_X_MYTH_PROGRAM}" = "xmythwelcome" ]  ; then
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Kicking mythwelcome on EGLFS..."
-            mm_mythwelcome_start
-        fi
-
-    else
+    if [ "x${MM_MYTHTV_DRAW_ON}" = "xx11" ] ; then
 
         /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting procedure for start X..."
 
@@ -1913,8 +1903,7 @@ mm_x_start() {
         fi
 
         /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Kicking Xinit..."
-
-        /usr/bin/prlimit --rtprio=50 /bin/su -c "/usr/bin/nohup /usr/bin/xinit > /dev/null 2>&1 &" - minimyth
+        /bin/su -c "/usr/bin/nohup /usr/bin/xinit > /dev/null 2>&1 &" - minimyth
 
         # Start xscreensaver if enabled
         if [ "x${MM_X_SCREENSAVER_HACK}" = "xsleep" ] ; then
@@ -1923,35 +1912,6 @@ mm_x_start() {
                 /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting SLEEP_ON_SS script..."
             fi
         fi
-    fi
-
-    # Start myth watchdog if enabled
-    if [ "x${MM_X_WATCHDOG_MYTH_PROC}" = "xyes" ] ; then
-        /usr/bin/mm_watchdog &
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting MM_WATCHDOG script..."
-    fi
-
-    # Auto-configure usage of 'irxevent'.
-    if [ "x${MM_LIRC_IRXEVENT_ENABLED}" = "xauto" ] ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Attempting to auto-configure usage of irxevent"
-            MM_LIRC_IRXEVENT_ENABLED='no'
-            if [ -e /etc/lirc/lircrc ] ; then
-                # Only one level of includes is supported.
-                lircrc_files="/etc/lirc/lircrc `/bin/cat /etc/lirc/lircrc | /bin/grep -e '^include ' | /bin/sed -e 's%^include *%%'`"
-                for lircrc_file in ${lircrc_files} ; do
-                    if [ `/bin/cat ${lircrc_file} | /bin/grep -q -e '^ *prog *= *irxevent'` ] ; then
-                        MM_LIRC_IRXEVENT_ENABLED='yes'
-                    fi
-                done
-            fi
-    fi
-
-    # Start the irxevent daemon.
-    if [ "x${MM_LIRC_IRXEVENT_ENABLED}" = "xyes" ] ; then
-        /usr/bin/test -n "`/bin/pidof irxevent`" && /usr/bin/killall irxevent
-        /bin/sleep 5
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_start] Starting irxevent daemon..."
-        /usr/bin/irxevent -d /etc/lirc/lircrc
     fi
 
     return 0
@@ -1970,11 +1930,6 @@ mm_x_stop() {
         return 0
     fi
 
-    if [ -n "`/bin/pidof irxevent`" ] ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing irxevent daemon..."
-        /usr/bin/killall irxevent
-    fi
-
     if [ -n "`/bin/pidof mm_sleep_on_ss`" ] ; then
         /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing mm_sleep_on_ss script..."
         /usr/bin/killall -9 mm_sleep_on_ss
@@ -1988,11 +1943,6 @@ mm_x_stop() {
     if [ -n "`/bin/pidof xscreensaver-command`" ] ; then
         /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing xscreensaver-cammand..."
         /usr/bin/killall xscreensaver-command
-    fi
-
-    if [ -n "`/bin/pidof mm_watchdog`" ] ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_x_stop] Killing mm_watchdog script..."
-        /usr/bin/killall -9 mm_watchdog
     fi
 
 #    # Exit X applications that are known not to be started by xinit
