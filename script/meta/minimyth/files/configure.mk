@@ -48,7 +48,7 @@ MM_INIT_START_PHASE_5 := \
     mythdb_buffer_delete \
 
 MM_INIT_KILL := \
-    x           \
+    frontend    \
     avahi       \
     lcdproc     \
     dbus        \

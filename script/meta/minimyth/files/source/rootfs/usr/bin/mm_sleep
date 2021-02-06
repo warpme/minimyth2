@@ -55,6 +55,10 @@ if [ -n "${pid}" ] ; then
     kill -2 ${pid}
 fi
 
+# Asking myth go go to main menu
+/usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Asking myth to go to main menu..."
+mm_jump_myth_mainmenu
+
 # Asking SIP-DAEMON to exit
 if [ "x${MM_VOIP_ENABLED}" = "xyes" ] ; then
     /bin/touch /tmp/exit.sem
@@ -70,6 +74,8 @@ if [ ! "x${MM_NOTIFY_ABOUT_UPDATES}" = "xno" ] ; then
 fi
 
 if [ "x${MM_RESTART_ON_SLEEP}" = "xmythfrontend" ] ; then
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Configured to restart mythfrontned at sleep ..."
+
     if [ -n "`/bin/pidof mm_watchdog`" ] ; then
 
         /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Killing mm_watchdog script..."
@@ -84,7 +90,7 @@ if [ "x${MM_RESTART_ON_SLEEP}" = "xmythfrontend" ] ; then
     fi
 
     /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Asking mythfrontend to exit..."
-    mm_x_applications_exit ':mythfrontend'
+    killall mythfrontend
 
     /bin/sleep 3
 
@@ -106,27 +112,22 @@ if [ "x${MM_RESTART_ON_SLEEP}" = "xmythfrontend" ] ; then
         killall -9 mythfrontend
         /bin/sleep 1
     fi
-else
-    # Asking frontend to go to main menu
-    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Asking myth to go to main menu..."
-    mm_x_xmacroplay "Mythfrontend" "KeyStrPress Alt_L\n KeyStr h\n  KeyStrRelease Alt_L\n"
-    /bin/sleep 2
 
+elif [ "x${MM_RESTART_ON_SLEEP}" = "xdisplayserver" ] ; then
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Configured to restart display server at sleep ..."
+    /etc/rc.d/init.d/frontend stop
+
+else
     if [ -n "${MM_X_MYTH_RSS_FOR_X_RESTART}" ] ; then
         myth_rss=`/bin/ps --no-headers -o pmem -C mythfrontend | /usr/bin/cut -c 1-2`
         /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Checking RAM usage. mythfrontend uses $myth_rss%; restart treshold is ${MM_X_MYTH_RSS_FOR_X_RESTART}%"
         if [ ${myth_rss} -gt ${MM_X_MYTH_RSS_FOR_X_RESTART} ] ; then
             /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] mythfrontend uses $myth_rss% of total RAM, restarting X for maintenance"
-            /usr/bin/mm_manage _restart_mythfrontend
-           /bin/sleep 20
+            killall mythfrontend
+           /bin/sleep 5
+           /etc/rc.d/init.d/frontend start
         fi
     fi
-fi
-
-if [ "x${MM_RESTART_ON_SLEEP}" = "xmythstandby" ] ; then
-    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Asking mythfrontend to enter Standby mode..."
-    mm_x_xmacroplay "Mythfrontend" "KeyStrPress Alt_L\n KeyStrPress b KeyStrRelease b KeyStrRelease Alt_L\n"
-    /bin/sleep 3
 fi
 
 # Stop LCDd because it can stop working as a result of suspend.
@@ -249,19 +250,10 @@ if [ "x${MM_MEDIA_UNMOUNT_ON_SLEEP}" = "xyes" ] ; then
     /etc/rc.d/init.d/media start
 fi
 
-# Start X if configuration asks to stop-restart Xorg during sleep-resume
-if [ "x${MM_RESTART_ON_SLEEP}" = "xxorg" ] ; then
-    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Starting X-server..."
-    /bin/sleep 3
-    mm_x_start
-fi
+if [ "x${MM_RESTART_ON_SLEEP}" = "xmythfrontend" ] || [ "x${MM_RESTART_ON_SLEEP}" = "xdisplayserver" ] ; then
 
-# Reststart X if configuration asks to restart Xorg during sleep-resume
-if [ "x${MM_RESTART_ON_SLEEP}" = "xxorg-after-resume" ] ; then
-    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Forcing restart of X-server by MM_RESTART_ON_SLEEP..."
-    mm_x_stop
-    /bin/sleep 1
-    mm_x_start
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Restarting mythfrontend and diaplay server ..."
+    /etc/rc.d/init.d/frontend start
 fi
 
 # Restart screensaver
@@ -317,46 +309,6 @@ fi
 
 # Check is there new PXE image. If Yes thaen reboot.
 /usr/bin/mm_check_new_image &
-
-# Check is reload of ELD needed. If Yes then reload ELD.
-if [ "x${MM_AUDIO_RECON_DISP_FOR_RELOAD_ELD}" = "xyes" ] ; then
-    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Reconnecting display to trigger reload ELD data..."
-    connected_screen=$(/usr/bin/xrandr -display :0 -q | /bin/sed '/ connected/!d;s/ .*//;q')
-    if [ -n "${connected_screen}" ] ; then
-        screen_mode=$(/usr/bin/xrandr -display :0 -q | grep " connected " | /usr/bin/cut -d " " -f 3 | /bin/sed 's/+.*//;q')
-        /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Disconnecting display on ${connected_screen}/mode '${screen_mode}' for ${MM_AUDIO_RECON_DISP_FOR_RELOAD_ELD}sec"
-        /usr/bin/xrandr -display :0 --output ${connected_screen} --off
-        /bin/sleep ${MM_AUDIO_RECON_DISP_FOR_RELOAD_ELD}
-        if [ -n "${connected_screen}" ] ; then
-            /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Reconnecting display on ${connected_screen} with mode ${screen_mode}..."
-            /usr/bin/xrandr -display :0 --output ${connected_screen} --mode ${screen_mode}
-        else
-            /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Reconnecting display on ${connected_screen} with mode 'auto'..."
-            /usr/bin/xrandr -display :0 --output ${connected_screen} auto
-        fi
-    else
-        /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] ERORR: can't identify display to reconnect..."
-    fi
-fi
-
-if [ "x${MM_RESTART_ON_SLEEP}" = "xmythfrontend" ] ; then
-    if [ "x${MM_X_MYTH_PROGRAM}" = "xmythfrontend" ] ; then
-        mm_mythfrontend_start
-        if [ "x${MM_X_WATCHDOG_MYTH_PROC}" = "xyes" ] ; then
-            /usr/bin/mm_watchdog &
-            /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Starting MM_WATCHDOG script."
-        fi
-    elif [ "x${MM_X_MYTH_PROGRAM}" = "xmythwelcome" ]  ; then
-        mm_mythwelcome_start
-    fi
-fi
-
-if [ "x${MM_RESTART_ON_SLEEP}" = "xmythstandby" ] ; then
-    mm_test_master_db_connection
-    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Pulling mythfrontend from standy mode..."
-    mm_x_xmacroplay "Mythfrontend" "KeyStrPress Alt_L\n KeyStr h\n  KeyStrRelease Alt_L\n"
-
-fi
 
 # Restart mailnotifier script
 if [ "x${MM_MAIL_NOTIFY_NEW_MAILS}" = "xyes" ] ; then

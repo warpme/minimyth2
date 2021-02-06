@@ -4,7 +4,7 @@
 . /etc/mm_ui_localizations_sh
 
 
-ssh_command="/usr/bin/ssh -c aes128-ctr root@@MM_MASTER_SERVER@"
+ssh_command="/usr/bin/ssh -c aes128-ctr root@192.168.1.254"
 
 command=$1
 
@@ -46,30 +46,12 @@ fi
 if [ "x${command}" = "x_restart_mythfrontend" ] ; then
   mm_show_mythnotify "${restart_mythfrontend_str}" '' 'warning'
   /bin/sleep 5
-  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Killing mythfrontend by user"
-  if [ -n "`/bin/pidof mm_watchdog`" ] ; then
-    /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Killing mm_watchdog script."
-    /usr/bin/killall -9 mm_watchdog
-  fi
-  pid=`/bin/pidof mythfrontend`
-  kill -9 $pid
+  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Killing mythfrontend ..."
+  /usr/bin/killall -9 mythfrontend
   /bin/umount /media/disk
-  if [ "x${MM_RESTART_ON_SLEEP}" = "xmythfrontend" ] ; then
-    mm_mythfrontend_start
-  else
-    /bin/sleep 2
-    # Only start X if X is not already running.
-    if [ -n "`/bin/pidof X`" ] ; then
-        /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Skippig Xinit as X is already running"
-        exit 1
-    else
-        /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Kicking Xinit..."
-        /usr/bin/prlimit --rtprio=50 /bin/su -c "/usr/bin/nohup /usr/bin/xinit > /dev/null 2>&1 &" - minimyth
-    fi
-  fi
-  if [ "x${MM_X_WATCHDOG_MYTH_PROC}" = "xyes" ] ; then
-    /usr/bin/mm_watchdog &
-    /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Starting MM_WATCHDOG script."
+  if [ -z "`/bin/pidof mm_watchdog`" ] ; then
+    sleep 1
+    /etc/rc.d/init.d/frontend start
   fi
   exit 0
 fi
@@ -83,20 +65,20 @@ fi
 if [ "x${command}" = "x_restart_xserver" ] ; then 
   mm_show_mythnotify "${restart_xserver_str}" '' 'warning'
   /bin/sleep 5
-  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Killing google-chrome"
-  /usr/bin/killall chrome
-  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Stopping X"
-  mm_x_stop
   /bin/umount /media/disk
-  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Reloading mceusb module..."
+  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Killing google-chrome ..."
+  /usr/bin/killall chrome
+  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Killing mythfrontend and display server ..."
+  /etc/rc.d/init.d/frontend stop
+  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Reloading mceusb module ..."
   /sbin/rmmod mceusb
   /sbin/modprobe mceusb
-  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Reloading lirc daemons..."
+  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Reloading lirc daemons ..."
   /bin/sleep 2
   /etc/rc.d/init.d/lirc stop
   /etc/rc.d/init.d/lirc start
-  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Starting X"
-  mm_x_start
+  /usr/bin/logger -t minimyth -p "local0.info" "[mm_manage] Starting mythfrontend and display server ..."
+  /etc/rc.d/init.d/frontend start
   exit 0
 fi
 
@@ -307,16 +289,16 @@ if [ "x${command}" = "x_check_updates" ] ; then
       /bin/su root -c "mm_do_online_update"
     else
       mm_show_mythnotify "Checking for system updates..." '' 'warning' '12' 'System Updates'
-      mm_term_start /bin/su root -c "\
-      echo \" \"; \
-      echo \" \"; \
-      echo \"----- CHECK FOR FULL SYSTEM UPDATES -----\"; \
-      echo \" \"; \
+      mm_term_start "/bin/su root -c \" \
+      echo ''; \
+      echo ''; \
+      echo '----- CHECK FOR FULL SYSTEM UPDATES -----'; \
+      echo ''; \
       mm_do_online_update; \
-      echo \" \"; \
-      echo \" \"; \
-      echo \"Press BACK or Esc for exit...\"; \
-      read"
+      echo ''; \
+      echo ''; \
+      echo 'Press BACK or Esc for exit...'; \
+      read \""
     fi
   fi
   exit 0
@@ -334,26 +316,26 @@ if [ "x${command}" = "x_install_updates" ] ; then
   if [ "x${MM_MINIMYTH_ONLINE_UPDATES_URL}" = "x" ] ; then
     # Do update update for PXE booted diskless case
     mm_show_mythnotify "Installing system updates..." '' 'warning' '12' 'System Updates'
-    mm_term_start /bin/su root -c "\
-    echo \" \"; \
-    echo \" \"; \
-    echo \"--------- FULL SYSTEM UPDATE ---------\"; \
-    echo \" \"; \
+    mm_term_start "/bin/su root -c \" \
+    echo ''; \
+    echo ''; \
+    echo '--------- FULL SYSTEM UPDATE ---------'; \
+    echo ''; \
     ${ssh_command} pacman -Syu --force --noconfirm; \
-    echo \" \"; \
-    echo \"-------- DELETING OLD PACKAGES --------\"; \
-    echo \" \"; \
+    echo ''; \
+    echo '-------- DELETING OLD PACKAGES --------'; \
+    echo ''; \
     ${ssh_command} pacman -Scq --force --noconfirm; \
-    echo \" \"; \
-    echo \"----- RELOADING DAEMONS ON SERVER -----\"; \
-    echo \" \"; \
+    echo ''; \
+    echo '----- RELOADING DAEMONS ON SERVER -----'; \
+    echo ''; \
     ${ssh_command} /usr/bin/systemctl daemon-reload; \
-    echo \"Done ! \"; \
-    echo \" \"; \
-    echo \"----- UPDATES WILL BE ACTIVATED AFTER REBOOT ! -----\"; \
-    echo \" \"; \
-    echo \"Press BACK or Esc for exit...\"; \
-    read"
+    echo 'Done ! '; \
+    echo ''; \
+    echo '----- UPDATES WILL BE ACTIVATED AFTER REBOOT ! -----'; \
+    echo ''; \
+    echo 'Press BACK or Esc for exit...'; \
+    read\""
 
     # If new PXE image was installed - then force reboot to load this ne image
     if [ -e /usr/local/share/myth-at-home/version ] ; then
@@ -369,17 +351,17 @@ if [ "x${command}" = "x_install_updates" ] ; then
       /bin/su root -c "mm_do_online_update doupdate"
     else
       mm_show_mythnotify "Installing system updates..." '' 'warning' '12' 'System Updates'
-      mm_term_start /bin/su root -c "\
-      echo \" \"; \
-      echo \" \"; \
-      echo \"----- FULL SYSTEM UPDATE -----\"; \
-      echo \" \"; \
+      mm_term_start "/bin/su root -c \" \
+      echo ''; \
+      echo ''; \
+      echo '----- FULL SYSTEM UPDATE -----'; \
+      echo ''; \
       mm_do_online_update doupdate; \
-      echo \" \"; \
-      echo \"----- UPDATES WILL BE ACTIVATED AFTER REBOOT ! -----\"; \
-      echo \" \"; \
-      echo \"Press BACK or Esc for exit...\"; \
-      read"
+      echo ''; \
+      echo '----- UPDATES WILL BE ACTIVATED AFTER REBOOT ! -----'; \
+      echo ''; \
+      echo 'Press BACK or Esc for exit...'; \
+      read\""
     fi
   fi
   exit 0
@@ -390,16 +372,16 @@ fi
 #-------------------------------------------------------------------------------
 
 if [ "x${command}" = "xcheck_mythtv_db" ] ; then
-  mm_term_start /bin/su root -c "\
-  echo \" \"; \
-  echo \" \"; \
-  echo \"----- SPRAWDZAM BAZE DANYCH MythTV -----\"; \
-  echo \" \"; \
+  mm_term_start "/bin/su root -c \" \
+  echo ''; \
+  echo ''; \
+  echo '----- SPRAWDZAM BAZE DANYCH MythTV -----'; \
+  echo ''; \
   ${ssh_command} /usr/local/bin/maintenance/check-optimize-db.sh; \
-  echo \" \"; \
-  echo \" \"; \
-  echo \"Press BACK or Esc for exit...\"; \
-  read"
+  echo ''; \
+  echo ''; \
+  echo 'Press BACK or Esc for exit...'; \
+  read\""
   exit 0
 fi
 
@@ -407,14 +389,14 @@ fi
 #-------------------------------------------------------------------------------
 
 if [ "x${command}" = "xtest_network_speed" ] ; then
-  mm_term_start /bin/su root -c "\
-  echo \" \"; \
-  echo \" \"; \
+  mm_term_start "/bin/su root -c \" \
+  echo ''; \
+  echo ''; \
   /usr/bin/mm_test_network_speed; \
-  echo \" \"; \
-  echo \" \"; \
-  echo \"Press BACK or Esc for exit...\"; \
-  read"
+  echo ''; \
+  echo ''; \
+  echo 'Press BACK or Esc for exit...'; \
+  read\""
   exit 0
 fi
 

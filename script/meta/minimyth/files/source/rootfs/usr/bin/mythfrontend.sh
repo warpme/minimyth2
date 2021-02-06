@@ -30,14 +30,15 @@
 
 
 export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
+export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
 export QT_LOGGING_RULES=qt.qpa.*=true
 
 # Setup desired env variables
 case "${MM_MYTHTV_DRAW_ON}" in
 
     eglfs)
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in EGLFS..."
         echo "Runing with drawing to EGLFS"
+        /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in EGLFS..."
         export QT_QPA_PLATFORM=eglfs
         export QT_QPA_EGLFS_INTEGRATION=eglfs_kms
         # export QT_QPA_EGLFS_DEBUG=1
@@ -48,20 +49,19 @@ case "${MM_MYTHTV_DRAW_ON}" in
         ;;
 
     wayland)
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in Wayland..."
         echo "Runing with drawing to Wayland-EGL"
+        /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in Wayland..."
         export QT_QPA_PLATFORM=wayland-egl
-        export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
         ;;
 
     x11|*)
         echo "Runing with drawing to Xorg"
         export QT_QPA_PLATFORM=xcb
         if [ x${mode} = 'xforeground' ] ; then
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in foreground in X11..."
+            /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in foreground in X11..."
             su minimyth -c "${args}"
         else
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions] Starting '${args}' in background in X11..."
+            /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in background in X11..."
             su minimyth -c "${args}" &
         fi
         ;;
