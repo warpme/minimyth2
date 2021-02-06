@@ -3,6 +3,7 @@ GARNAME      = weston
 GARVERSION   = 9.0.0
 CATEGORIES   = wayland
 MASTER_SITES = https://wayland.freedesktop.org/releases/
+PATCHFILES   = weston-terminal-add-cwd-and-command.patch
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
