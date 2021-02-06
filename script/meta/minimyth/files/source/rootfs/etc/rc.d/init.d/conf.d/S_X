@@ -26,46 +26,111 @@ conf_write_S_X() {
         sleep 20
     fi
 
-    if [ "x${MM_X_HW_TYPE}" = "xnvidia_vdpau"          ] ; then
-        MM_X_DRIVER='nvidia'
-    elif [ "x${MM_X_HW_TYPE}" = "xnvidia_legacy_vdpau" ] ; then
-        MM_X_DRIVER='nvidia_legacy'
-    elif [ "x${MM_X_HW_TYPE}" = "xradeon_vdpau"        ] ; then
-        MM_X_DRIVER='radeon'
-    elif [ "x${MM_X_HW_TYPE}" = "xradeon_vaapi"        ] ; then
-        MM_X_DRIVER='radeon'
-    elif [ "x${MM_X_HW_TYPE}" = "xintel_vaapi"         ] ; then
-        MM_X_DRIVER='intel_i915'
-    else
-        MM_X_DRIVER="${MM_X_HW_TYPE}"
-    fi
+    # values of MM_X_HW_TYPE set by udev rules by MM_X_HW_TYPE=`mm_detect_state_get 'x'
+    # sun4i
+    # meson
+    # vc4
+    # intel_i915.
+    # intel_vaapi.
+    # nvidia_legacy.
+    # nvidia_legacy_vdpau.
+    # radeon.
+    # radeon_vaapi.
+    # rockchip
+    # vmware
+    case "${MM_X_HW_TYPE}" in
+        intel_i915)
+            /bin/rm -rf /lib/modules/*/misc/nvidia* /usr/lib/nvidia* /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
+            MM_X_DRIVER='intel_i915'
+            ;;
+        intel_vaapi)
+            /bin/rm -rf /lib/modules/*/misc/nvidia* /usr/lib/nvidia* /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
+            MM_X_DRIVER='intel_i915'
+            ;;
+        nvidia_vdpau)
+            LIB_PATHS=`/bin/cat /etc/ld.so.conf`
+            LIB_PATHS="/usr/lib/nvidia ${LIB_PATHS}"
+            /bin/echo -n > /etc/ld.so.conf
+            for LIB_PATH in ${LIB_PATHS} ; do
+                /bin/echo "${LIB_PATH}" >> /etc/ld.so.conf
+            done
+            # Remove Open Source libraries that conflict with proprietary libraries.
+            LIBS=`/usr/bin/find /usr/lib/nvidia -type f | /bin/sed -e "s%^.*/%%"`
+            for LIB in ${LIBS} ; do
+                LIB_PATH=`/usr/bin/find /usr/lib -name ${LIB} | /bin/sed -e "s%^/usr/lib/nvidia/.*\$%%"`
+                if [ -n "${LIB_PATH}" ] ; then
+                    /bin/rm -f ${LIB_PATH}
+                fi
+            done
+            # Remove legacy drivers
+            /bin/rm -rf /usr/lib/nvidia-legacy/* /usr/lib/vdpau-nvidia-legacy/libvdpau_nvidia.so.1
+            # Rebuild library cache.
+            /sbin/ldconfig
+            MM_X_DRIVER='nvidia'
+            ;;
+        nvidia_legacy_vdpau)
+            # Include path to proprietary libraries.
+            LIB_PATHS=`/bin/cat /etc/ld.so.conf`
+            LIB_PATHS="/usr/lib/nvidia-legacy ${LIB_PATHS}"
+            /bin/echo -n > /etc/ld.so.conf
+            for LIB_PATH in ${LIB_PATHS} ; do
+                /bin/echo "${LIB_PATH}" >> /etc/ld.so.conf
+            done
+            # Remove Open Source libraries that conflict with proprietary libraries.
+            LIBS=`/usr/bin/find /usr/lib/nvidia-legacy -type f | /bin/sed -e "s%^.*/%%"`
+            for LIB in ${LIBS} ; do
+                LIB_PATH=`/usr/bin/find /usr/lib -name ${LIB} | /bin/sed -e "s%^/usr/lib/nvidia-legacy/.*\$%%"`
+                if [ -n "${LIB_PATH}" ] ; then
+                    /bin/rm -f ${LIB_PATH}
+                fi
+            done
+            # Remove non-legacy drivers
+            /bin/rm -rf /usr/lib/nvidia/* /usr/lib/vdpau/libvdpau_nvidia.so.1 /usr/bin/nvidia-smi
+            # Move legacy libvdpau to /usr/lib/vdpau
+            /bin/mv /usr/lib/vdpau-nvidia-legacy/libvdpau_nvidia.so.1 /usr/lib/vdpau/
+            # Move legacy nvidia-smi to /usr/bin
+            /bin/mv /usr/bin/nvidia-legacy/nvidia-smi /usr/bin/
+            # Rebuild library cache.
+            /sbin/ldconfig
+            MM_X_DRIVER='nvidia_legacy'
+            ;;
+        radeon_vdpau)
+            /bin/rm -rf /lib/modules/*/misc/nvidia* /usr/lib/nvidia* /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
+            MM_X_DRIVER='radeon'
+            ;;
+        radeon_vaapi)
+            /bin/rm -rf /lib/modules/*/misc/nvidia* /usr/lib/nvidia* /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
+            MM_X_DRIVER='radeon'
+            ;;
+        vmware)
+            /bin/rm -rf /lib/modules/*/misc/nvidia* /usr/lib/nvidia* /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
+            MM_X_DRIVER='vmware'
+            ;;
+        armsoc)
+            /bin/rm -rf /lib/modules/*/misc/nvidia* /usr/lib/nvidia* /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
+            /sbin/rmmod lima ttm gpu_sched
+            MM_X_DRIVER='armsoc'
+            ;;
+        meson)
+            /bin/rm -rf /lib/modules/*/misc/nvidia* /usr/lib/nvidia* /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
+            MM_X_DRIVER='meson'
+            ;;
+        vc4)
+            /bin/rm -rf /lib/modules/*/misc/nvidia* /usr/lib/nvidia* /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
+            MM_X_DRIVER='vc4'
+            ;;
+        rockchip)
+            /bin/rm -rf /lib/modules/*/misc/nvidia* /usr/lib/nvidia* /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
+            MM_X_DRIVER='rockchip'
+            ;;
+        sun4i)
+            /bin/rm -rf /lib/modules/*/misc/nvidia* /usr/lib/nvidia* /usr/lib/vdpau-nvidia* /usr/lib/vdpau/libvdpau_nvidia.so.1
+            MM_X_DRIVER='sun4i'
+            ;;
+    esac
 
-    if [ -z "${MM_X_ENABLED}"                  ] ; then
-        MM_X_ENABLED='yes'
-    fi
-    if [ -z "${MM_X_RESTART_ON_SLEEP_ENABLED}" ] ; then
-        MM_X_RESTART_ON_SLEEP_ENABLED='no'
-    fi
-    if [ -z "${MM_X_WM_ENABLED}"               ] ; then
-        MM_X_WM_ENABLED='yes'
-    fi
     if [ -z "${MM_X_VNC_ENABLED}"              ] ; then
         MM_X_VNC_ENABLED='yes'
-    fi
-    if [ -z "${MM_X_SCREENSAVER}"              ] ; then
-        MM_X_SCREENSAVER='none'
-    fi
-    if [ -z "${MM_X_SCREENSAVER_TIMEOUT}"      ] ; then
-        MM_X_SCREENSAVER_TIMEOUT='10'
-    fi
-    if [ -z "${MM_X_SCREENSAVER_HACK}"         ] ; then
-        MM_X_SCREENSAVER_HACK='sleep'
-    fi
-    if [ -z "${MM_X_MYTH_PROGRAM}"             ] ; then
-        MM_X_MYTH_PROGRAM='mythfrontend'
-    fi
-    if [ -z "${MM_X_FETCH_XINITRC}"   ] ; then
-        MM_X_FETCH_XINITRC='no'
     fi
     if [ -z "${MM_X_FETCH_XORG_CONF}" ] ; then
         MM_X_FETCH_XORG_CONF='no'
@@ -80,11 +145,6 @@ conf_write_S_X() {
         MM_RESTART_ON_SLEEP='none'
     fi
 
-    # Disable mythwatchdog when mythwelcome is selected
-    if [ "x${MM_X_MYTH_PROGRAM}" = "xmythwelcome" ] ; then
-        MM_X_WATCHDOG_MYTH_PROC='no'
-    fi
-
     MM_HARDWARE_KERNEL_MODULES="${MM_HARDWARE_KERNEL_MODULES} `mm_hardware_x2kernel_map ${MM_X_DRIVER}`"
     MM_HARDWARE_KERNEL_MODULES="${MM_HARDWARE_KERNEL_MODULES} `mm_hardware_cpu_process mm_hardware_cpu2kernel_map`"
     MM_HARDWARE_KERNEL_MODULES=`/bin/echo ${MM_HARDWARE_KERNEL_MODULES} | /bin/sed -e 's%  *% %g' | /bin/sed -e 's%^  *%%' | /bin/sed -e 's%  *$%%'`
@@ -94,16 +154,7 @@ conf_write_S_X() {
     conf_variable_write "${conf_file}" MM_X_DRIVER                      "${MM_X_DRIVER}"
     conf_variable_write "${conf_file}" MM_X_HW_TYPE                     "${MM_X_HW_TYPE}"
 
-    conf_variable_write "${conf_file}" MM_X_ENABLED                     "${MM_X_ENABLED}"
-    conf_variable_write "${conf_file}" MM_X_RESTART_ON_SLEEP_ENABLED    "${MM_X_RESTART_ON_SLEEP_ENABLED}"
-    conf_variable_write "${conf_file}" MM_X_WM_ENABLED                  "${MM_X_WM_ENABLED}"
     conf_variable_write "${conf_file}" MM_X_VNC_ENABLED                 "${MM_X_VNC_ENABLED}"
-    conf_variable_write "${conf_file}" MM_X_SCREENSAVER                 "${MM_X_SCREENSAVER}"
-    conf_variable_write "${conf_file}" MM_X_SCREENSAVER_TIMEOUT         "${MM_X_SCREENSAVER_TIMEOUT}"
-    conf_variable_write "${conf_file}" MM_X_SCREENSAVER_HACK            "${MM_X_SCREENSAVER_HACK}"
-    conf_variable_write "${conf_file}" MM_X_MYTH_PROGRAM                "${MM_X_MYTH_PROGRAM}"
-
-    conf_variable_write "${conf_file}" MM_X_FETCH_XINITRC               "${MM_X_FETCH_XINITRC}"
     conf_variable_write "${conf_file}" MM_X_FETCH_XORG_CONF             "${MM_X_FETCH_XORG_CONF}"
     conf_variable_write "${conf_file}" MM_X_MYTH_RSS_FOR_X_RESTART      "${MM_X_MYTH_RSS_FOR_X_RESTART}"
     conf_variable_write "${conf_file}" MM_X_WATCHDOG_MYTH_PROC          "${MM_X_WATCHDOG_MYTH_PROC}"
@@ -111,13 +162,6 @@ conf_write_S_X() {
 
     conf_variable_write "${conf_file}" MM_HARDWARE_KERNEL_MODULES       "${MM_HARDWARE_KERNEL_MODULES}" 
 
-    if [ "x${MM_X_FETCH_XINITRC}"   = "xyes" ] ; then
-        /bin/rm -f /etc/X11/xinit/xinitrc
-        mm_confro_get /xinitrc /etc/X11/xinit/xinitrc
-        if [ ! -e /etc/X11/xinit/xinitrc ] ; then
-            mm_message_output err "error: failed to fetch 'xinitrc' file."
-        fi
-    fi
     if [ "x${MM_X_FETCH_XORG_CONF}" = "xyes" ] ; then
         /bin/rm -f /etc/X11/xorg.conf
         mm_confro_get /xorg.conf /etc/X11/xorg.conf

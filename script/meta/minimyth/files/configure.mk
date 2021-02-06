@@ -42,12 +42,14 @@ MM_INIT_START_PHASE_5 := \
     ssh_server \
     mail       \
     voip       \
+    sleep      \
     browsers   \
     updates    \
     housekeep  \
     mythdb_buffer_delete \
 
 MM_INIT_KILL := \
+    sleep       \
     frontend    \
     avahi       \
     lcdproc     \
