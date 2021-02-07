@@ -102,6 +102,7 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 
 # Patches enhancing Network Control
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
+PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 
 # --------Patches 400+ are plugins patches---------------------
 
