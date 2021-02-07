@@ -1,19 +1,13 @@
 
-GARNAME      = u-boot-h6-20210111
-GARVERSION   = 9267ff89ee27a624ddb5d8eb7d90830ee0ff6f77
+GARNAME      = u-boot-h6-20210131
+GARVERSION   = a38bb0d0377dd47dfc9270fb46112bca263e8885
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 
-# Patches from https://github.com/jernejsk/LibreELEC.tv/commits/aw-u-boot
-PATCHFILES   += 0002-ARM-dts-sunxi-h6-Update-DT-files.patch
-PATCHFILES   += 0003-sunxi-Add-support-for-Tanix-TX6.patch
-PATCHFILES   += 0007-arm64-dts-sun50i-Add-support-for-Orange-Pi-3.patch
-PATCHFILES   += 0008-orange-pi-3-ethernet.patch
-PATCHFILES   += 0009-tanix-tx6-ethernet-hack.patch
-PATCHFILES   += 0010-unreliable-dram.patch
-PATCHFILES   += 0011-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
+PATCHFILES   = 0009-tanix-tx6-ethernet-hack.patch
+PATCHFILES  += 0011-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
 
 LICENSE = GPL2
 
