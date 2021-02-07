@@ -33,7 +33,7 @@ PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music
 
 # Some patches for better logging
 PATCHFILES += 0051-Loging-Add-better-TID-verbosity.patch
-PATCHFILES += 0052-Loging-Decrease-some-PMT-DVB-errors-Loging.patch
+#PATCHFILES += 0052-Loging-Decrease-some-PMT-DVB-errors-Loging.patch
 PATCHFILES += 0053-Loging-Add-verbose-dvb-lock-loging.patch
 PATCHFILES += 0054-Loging-Add-better-loging-for-failed-tunings.patch
 PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
