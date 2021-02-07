@@ -1,4 +1,6 @@
 
+# Current GA release
+ifeq (0,1)
 GARNAME      = weston
 GARVERSION   = 9.0.0
 CATEGORIES   = wayland
@@ -8,6 +10,19 @@ PATCHFILES  += $(DISTNAME)-terminal-add-cwd-and-command.patch
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
+endif
+
+# Current master
+ifeq (1,1)
+GARNAME      = weston
+GARVERSION   = 557dea566075f1840562529fd5aa4971d7e76e0d
+CATEGORIES   = wayland
+MASTER_SITES = https://gitlab.freedesktop.org/wayland/weston/-/archive/$(GARVERSION)/
+PATCHFILES  += weston-9.0.0-terminal-add-cwd-and-command.patch
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = $(GARNAME)
+$(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
+endif
 
 DESCRIPTION =
 define BLURB
@@ -55,3 +70,8 @@ CONFIGURE_ARGS = $(DIRPATHS_MESON) \
 	-D launcher-logind="false" \
 
 include ../../gar.mk
+
+clean-all:
+	@rm -rf $(DESTDIR)$(libdir)/weston*
+	@rm -rf $(DESTDIR)$(libdir)/libweston*
+	@rm -rf $(DESTDIR)$(bindir)/weston*
