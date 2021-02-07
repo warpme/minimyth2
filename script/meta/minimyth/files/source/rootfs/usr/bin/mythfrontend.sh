@@ -20,18 +20,23 @@
 #   starts 'xxx'
 #
 
+# Uncomment to degug Qt QPA
+# export QT_QPA_DEBUG=1
+# export QT_LOGGING_RULES=qt.qpa.*=true
+# export QT_QPA_EGLFS_DEBUG=1
+
+
+
+
+
+
 
 
 
 . /etc/rc.d/functions
 
-# Uncomment to degug Qt QPA
-# export QT_QPA_DEBUG=1
-
-
 export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
 export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
-export QT_LOGGING_RULES=qt.qpa.*=true
 
 # Setup desired env variables
 case "${MM_MYTHTV_DRAW_ON}" in
@@ -41,7 +46,6 @@ case "${MM_MYTHTV_DRAW_ON}" in
         /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in EGLFS..."
         export QT_QPA_PLATFORM=eglfs
         export QT_QPA_EGLFS_INTEGRATION=eglfs_kms
-        # export QT_QPA_EGLFS_DEBUG=1
         if [ "x${MM_MYTHTV_DRM_VIDEO}" = "xyes" ] ; then
             echo "Using DRM_PRIME in DRM planes mode"
             export MYTHTV_DRM_VIDEO=1
@@ -73,7 +77,7 @@ env
 if [ -n "${MM_MYTHFRONTEND_CMDLINE}" ] ; then
     myth_cmdline="${MM_MYTHFRONTEND_CMDLINE}"
 else
-    myth_cmdline="mythfrontend --no-syslog"
+    myth_cmdline="mythfrontend"
 fi
 
 echo "Myth cmd.line:"${myth_cmdline}
