@@ -14,7 +14,12 @@ my @middle = ();
 
 push(@middle,  q(<div class="section">));
 push(@middle,  q(  <p>));
-if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'no')
+if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'yes')
+{
+    push(@middle,  q(    Your system has security enabled.));
+    push(@middle,  q(    Therefore, you cannot access your system logs.));
+}
+else
 {
     my $command = "/bin/ps -A --no-headers -o pid,%cpu,%mem,rss,args --sort -%cpu 2>&1 2>/dev/null |";
     my $proc_list = '';
@@ -34,11 +39,6 @@ if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'no')
     push(@middle,  qq($proc_list));
     push(@middle,  q(   </table>));
 
-}
-else
-{
-    push(@middle,  q(    Your system has security enabled.));
-    push(@middle,  q(    Therefore, you cannot access your system logs.));
 }
 push(@middle,  q(  </p>));
 push(@middle,  q(</div>));

@@ -14,14 +14,14 @@ my @middle = ();
 
 push(@middle,  q(<div class="section">));
 push(@middle,  q(  <p>));
-if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'no')
-{
-    push(@middle, qq(    You can use the URL <a href="http://$http_host:8080/">http://$http_host:8080/</a> to access your MiniMyth2 system's filesystem.));
-}
-else
+if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'yes')
 {
     push(@middle,  q(    Your system has security enabled.));
     push(@middle,  q(    Therefore, you cannot access your system's filesystem.));
+}
+else
+{
+    push(@middle, qq(    You can use the URL <a href="http://$http_host:8080/">http://$http_host:8080/</a> to access your MiniMyth2 system's filesystem.));
 }
 push(@middle,  q(  </p>));
 push(@middle,  q(</div>));

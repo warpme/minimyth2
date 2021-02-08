@@ -14,7 +14,12 @@ my @middle = ();
 
 push(@middle,  q(<div class="section">));
 push(@middle,  q(  <p>));
-if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'no')
+if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'yes')
+{
+    push(@middle,  q(    Your system has security enabled.));
+    push(@middle,  q(    Therefore, you cannot access your system's logs.));
+}
+else
 {
     push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/mythfrontend.log">Mythfrontend Log</li> ));
     push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/messages">System Log</li> ));
@@ -47,11 +52,6 @@ if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'no')
     if (-e "/var/log/minimyth.log") {
         push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/minimyth.log">MiniMyth2 Log</li> ));
     }
-}
-else
-{
-    push(@middle,  q(    Your system has security enabled.));
-    push(@middle,  q(    Therefore, you cannot access your system's logs.));
 }
 push(@middle,  q(  </p>));
 push(@middle,  q(</div>));
