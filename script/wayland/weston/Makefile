@@ -1,6 +1,6 @@
 
 # Current GA release
-ifeq (0,1)
+ifeq (1,1)
 GARNAME      = weston
 GARVERSION   = 9.0.0
 CATEGORIES   = wayland
@@ -13,7 +13,7 @@ $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 endif
 
 # Current master
-ifeq (1,1)
+ifeq (0,1)
 GARNAME      = weston
 GARVERSION   = 557dea566075f1840562529fd5aa4971d7e76e0d
 CATEGORIES   = wayland
