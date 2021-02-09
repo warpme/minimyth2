@@ -272,42 +272,8 @@ start() {
         fi
     fi
 
-    # Configure Myth database jumppoints to match MiniMyth frontend.
-    set | /bin/grep -e '^MM_MYTHDB_JUMPPOINTS_[^=]*=' | /bin/sed -e 's%^MM_MYTHDB_JUMPPOINTS_[^=]*=%%' -e "s%^'%%" -e "s%'$%%" | \
-
-    while read jumppoints ; do
-
-        jumppoints_destination=`/bin/echo ${jumppoints} | /usr/bin/cut -d '~' -f 1`
-        jumppoints_keylist=`/bin/echo ${jumppoints} | /usr/bin/cut -d '~' -f 2`
-        mm_mythdb_jumppoints_update "${jumppoints_destination}" "${jumppoints_keylist}"
-
-    done
-
-    # Configure Myth database keybindings to match MiniMyth frontend.
-    set | /bin/grep -e '^MM_MYTHDB_KEYBINDINGS_[^=]*=' | /bin/sed -e 's%^MM_MYTHDB_KEYBINDINGS_[^=]*=%%' -e "s%^'%%" -e "s%'$%%" | \
-
-    while read keybindings ; do
-
-        keybindings_context=`/bin/echo ${keybindings} | /usr/bin/cut -d '~' -f 1`
-        keybindings_action=`/bin/echo ${keybindings} | /usr/bin/cut -d '~' -f 2`
-        keybindings_keylist=`/bin/echo ${keybindings} | /usr/bin/cut -d '~' -f 3`
-        mm_mythdb_keybindings_update "${keybindings_context}" "${keybindings_action}" "${keybindings_keylist}"
-
-    done
-
-    # Configure Myth database settings to match MiniMyth frontend.
-    set | /bin/grep -e '^MM_MYTHDB_SETTINGS_[^=]*=' | /bin/sed -e 's%^MM_MYTHDB_SETTINGS_[^=]*=%%' -e "s%^'%%" -e "s%'$%%" | \
-
-    while read settings ; do
-
-        settings_value=`/bin/echo ${settings} | /usr/bin/cut -d '~' -f 1`
-        settings_data=`/bin/echo ${settings} | /usr/bin/cut -d '~' -f 2`
-        mm_mythdb_settings_set "${settings_value}" "${settings_data}"
-
-    done
-
     # Delete disabled plugins.
-    if [ "x${MM_PLUGIN_OPTICAL_DISK_ENABLED}" = "xno" ] ; then
+    if [ ! "x${MM_PLUGIN_OPTICAL_DISK_ENABLED}" = "xyes" ] ; then
 
         /bin/sed -i -e 's%<!--optical_disk<depends>disabled</depends>-->%<depends>disabled</depends>%' \
             /usr/share/mythtv/themes/classic/videomenu.xml
@@ -405,36 +371,6 @@ start() {
             /usr/share/mythtv/themes/mediacentermenu/mainmenu.xml
         /bin/sed -i -e 's%<!--netflix<depends>disabled</depends>-->%<depends>disabled</depends>%' \
             /usr/share/mythtv/themes/Default/mms_web.xml
-    fi
-
-    # Check for libdvdcss.so.2
-    if [ "x${MM_PLUGIN_DVD_ENABLED}"     = "xyes" ] || \
-       [ "x${MM_PLUGIN_VIDEO_ENABLED}"   = "xyes" ] ; then
-
-        found=0
-        if [ -e "/etc/ld.so.conf" ] ; then
-
-            for dir in `/bin/cat /etc/ld.so.conf` ; do
-
-                if [ -e "${dir}/libdvdcss.so.2" ] ; then
-                    found=1
-                fi
-
-            done
-        fi
-
-        if [ ${found} -eq 0 ] ; then
-
-            /usr/bin/logger -t minimyth -p "local0.warn" \
-                "warning: certain DVDs may not play. see <http://`/bin/hostname`/minimyth/document-faq.html#dvd>"
-        fi
-    fi
-
-    # Align mythtv settings when mythfrontend exit/relaunch on sleep is configured
-    if [ "x${MM_RESTART_ON_SLEEP}" = "xmythfrontend" ] ; then
-
-        mm_mythdb_settings_set "NoPromptOnExit" "0"
-        mm_mythdb_keybindings_update "Main Menu" "EXIT" "Ctrl+Esc"
     fi
 
     # Restore game settings (if avaliable)
