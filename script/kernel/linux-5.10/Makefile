@@ -102,7 +102,6 @@ PATCHFILES += 0510-ASoC-sun4i-i2s-WiP-multi-channel.patch
 PATCHFILES += 0511-arm64-dts-sun50i-h6-dtsi-add-sound-node.patch
 PATCHFILES += 0512-arm64-dts-sun50i-h6-dtsi-add-frame-inversion-to-correct-multi-channel.patch
 # Cedrus patches From LE 19.01.2021
-PATCHFILES += 0515-media-cedrus-Fix-H264-decoding.patch
 PATCHFILES += 0516-media-uapi-hevc-Add-scaling-matrix-control.patch
 PATCHFILES += 0517-media-cedrus-hevc-Add-support-for-scaling-matrix.patch
 PATCHFILES += 0518-media-uapi-hevc-Add-segment-address-field.patch
@@ -149,7 +148,7 @@ PATCHFILES += 0562-mmc-sunxi-mmc-Ensure-host-is-suspended-during-system.patch
 PATCHFILES += 0563-arm-dts-sun8i-r40-Add-deinterlace-node.patch
 PATCHFILES += 0564-arm64-dts-allwinner-h5-Add-deinterlace-node.patch
 # H6 4k hdmi signal stability improvements
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=429923
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=430883
 PATCHFILES += 0565-sunxi-fix-H6-HDMI-related-issues.patch
 # h616 initial support
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=416431 v3 18.01.2021
