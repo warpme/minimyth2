@@ -43,7 +43,7 @@ case "${MM_MYTHTV_DRAW_ON}" in
 
     eglfs)
         echo "Runing with drawing to EGLFS"
-        /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in EGLFS..."
+        /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in EGLFS ..."
         export QT_QPA_PLATFORM=eglfs
         export QT_QPA_EGLFS_INTEGRATION=eglfs_kms
         if [ "x${MM_MYTHTV_DRM_VIDEO}" = "xyes" ] ; then
@@ -54,20 +54,14 @@ case "${MM_MYTHTV_DRAW_ON}" in
 
     wayland)
         echo "Runing with drawing to Wayland-EGL"
-        /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in Wayland..."
+        /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in Wayland ..."
         export QT_QPA_PLATFORM=wayland-egl
         ;;
 
     x11|*)
         echo "Runing with drawing to Xorg"
         export QT_QPA_PLATFORM=xcb
-        if [ x${mode} = 'xforeground' ] ; then
-            /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in foreground in X11..."
-            su minimyth -c "${args}"
-        else
-            /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in background in X11..."
-            su minimyth -c "${args}" &
-        fi
+        /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in X11 ..."
         ;;
 
 esac
