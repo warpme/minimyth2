@@ -1,9 +1,10 @@
-GARNAME = htop
-GARVERSION = 2.2.0
-CATEGORIES = utils
-MASTER_SITES = https://hisham.hm/$(GARNAME)/releases/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = GPL2
+
+GARNAME      = htop
+GARVERSION   = 3.0.5
+CATEGORIES   = utils
+MASTER_SITES = https://github.com/htop-dev/htop/archive/
+DISTFILES    = $(GARVERSION).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
@@ -20,5 +21,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
+pre-configure:
+	@$(call RUN_AUTOTOOLS)
+	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	@$(MAKECOOKIE)
