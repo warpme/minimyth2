@@ -75,6 +75,7 @@ mm_SOFTWARE               ?= \
                             makemkv \
                             connman \
                             iwd \
+                            weston \
                             bootloader \
                             $(if $(filter $(mm_DEBUG),yes),debug)
 
