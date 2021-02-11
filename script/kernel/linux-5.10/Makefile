@@ -101,6 +101,7 @@ PATCHFILES += 0509-ASoC-sun4i-i2s-Add-parenthesis-around-macro-argument.patch
 PATCHFILES += 0510-ASoC-sun4i-i2s-WiP-multi-channel.patch
 PATCHFILES += 0511-arm64-dts-sun50i-h6-dtsi-add-sound-node.patch
 PATCHFILES += 0512-arm64-dts-sun50i-h6-dtsi-add-frame-inversion-to-correct-multi-channel.patch
+PATCHFILES += 0514-arm64-dts-enable-audio-gs1.patch
 # Cedrus patches From LE 19.01.2021
 PATCHFILES += 0516-media-uapi-hevc-Add-scaling-matrix-control.patch
 PATCHFILES += 0517-media-cedrus-hevc-Add-support-for-scaling-matrix.patch
