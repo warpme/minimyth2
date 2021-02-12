@@ -26,7 +26,7 @@ DEPENDS = \
 	lib/libgudev \
 	lib/libusb \
 	X11/libvdpau \
-	wayland/wayland \
+	wayland/wayland-core \
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
