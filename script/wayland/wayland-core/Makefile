@@ -44,4 +44,9 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libwayland-cursor.la
 	@rm -f $(DESTDIR)$(libdir)/libwayland-egl.la
 	@rm -f $(DESTDIR)$(libdir)/libwayland-server.la
+ifneq ($(DESTIMG),build)
+	@# hack for libxkbcommon not detecting wayland-scanner
+	@mv $(DESTDIR)$(libdir)/pkgconfig/wayland-scanner.pc /$(DESTDIR)$(libdir)/pkgconfig/wayland-scanner.pc.main
+	@cp -f $(build_DESTDIR)$(build_libdir)/pkgconfig/wayland-scanner.pc $(DESTDIR)$(libdir)/pkgconfig/wayland-scanner.pc
+endif
 	@$(MAKECOOKIE)
