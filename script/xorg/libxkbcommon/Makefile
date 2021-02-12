@@ -10,7 +10,7 @@ DESCRIPTION =.
 define BLURB
 endef
 
-DEPENDS = lang/c
+DEPENDS = lang/c wayland/wayland-core wayland/wayland-protocols
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
