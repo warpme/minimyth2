@@ -1,15 +1,16 @@
-GARNAME = libxshmfence
-GARVERSION = 1.1
-CATEGORIES = $(CATEGORY)
+
+GARNAME      = libxshmfence
+GARVERSION   = 1.3
+CATEGORIES   = $(CATEGORY)
 MASTER_SITES = http://xorg.freedesktop.org/releases/individual/lib/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/c
+DEPENDS = lang/c xorg/util-macros xorg/xorgproto
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
@@ -23,10 +24,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules
 
 include ../../gar.mk
-
-#pre-configure:
-#	@$(call RUN_AUTOTOOLS)
-#	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
