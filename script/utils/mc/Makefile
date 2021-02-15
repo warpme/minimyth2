@@ -1,9 +1,10 @@
-GARNAME = mc
-GARVERSION = 4.8.24
-CATEGORIES = utils
+
+GARNAME      = mc
+GARVERSION   = 4.8.25
+CATEGORIES   = utils
 MASTER_SITES = http://www.midnight-commander.org/downloads/
-DISTFILES = $(GARNAME)-$(GARVERSION).tar.bz2
-LICENSE = GPL2
+DISTFILES    = $(GARNAME)-$(GARVERSION).tar.bz2
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
