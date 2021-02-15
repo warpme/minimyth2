@@ -1,10 +1,12 @@
-GARNAME = fakeroot
-GARVERSION = 1.18.4
-CATEGORIES = devel
+
+GARNAME      = fakeroot
+GARVERSION   = 1.18.4
+CATEGORIES   = devel
 MASTER_SITES = https://deb.debian.org/debian/pool/main/f/fakeroot/
-DISTFILES = $(GARNAME)_$(GARVERSION).orig.tar.bz2
-PATCHFILES= fakeroot-1.18.4-fix-glibc2.31.patch
-LICENSE = GPL3
+DISTFILES    = $(GARNAME)_$(GARVERSION).orig.tar.bz2
+PATCHFILES   = fakeroot-1.18.4-fix-glibc2.31.patch
+PATCHFILES  += fakeroot-1.18.4-fix-glibc2.33.patch
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
