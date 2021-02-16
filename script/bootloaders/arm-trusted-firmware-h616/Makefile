@@ -1,5 +1,6 @@
 GARNAME      = arm-trusted-firmware-20201208-h616
-GARVERSION   = 383df1789ea82ead7887b79f53f712c154ab4acf
+# v3 15.02.2021
+GARVERSION   = a7d1ae372469a32d27d4274f14d5d55473ceef79
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/apritzel/arm-trusted-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
