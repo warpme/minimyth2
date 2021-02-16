@@ -3,9 +3,6 @@
 . /etc/rc.d/functions
 . /etc/mm_ui_localizations_sh
 
-
-ssh_command="/usr/bin/ssh -c aes128-ctr root@@MM_MASTER_SERVER@"
-
 command=$1
 
 pids=`/bin/pidof mm_manage`
@@ -130,7 +127,7 @@ fi
 if [ "x${command}" = "x_restart_mythbackend" ] ; then
   mm_show_mythnotify "${restart_mythbackend_str}" '' 'warning'
   /bin/sleep 5
-  ${ssh_command} /usr/bin/systemctl restart mythbackend.service
+  ssh -c aes128-ctr root@@MM_MASTER_SERVER@ /usr/bin/systemctl restart mythbackend.service
   exit 0
 fi
 
@@ -144,7 +141,7 @@ fi
 if [ "x${command}" = "x_restart_server" ] ; then
   mm_show_mythnotify "${restart_server_str}" '' 'warning'
   /bin/sleep 5
-  ${ssh_command} reboot
+  ssh -c aes128-ctr root@@MM_MASTER_SERVER@ reboot
   exit 0
 fi
 
@@ -270,11 +267,11 @@ if [ "x${command}" = "xcheck_updates" ] ; then
   exit 0
 fi
 if [ "x${command}" = "x_check_updates" ] ; then
-  if [ "x${MM_MINIMYTH_ONLINE_UPDATES_URL}" = "x" ] ; then
+  if [ "x${MM_MINIMYTH_ONLINE_UPDATES_URL}" = "xlocal" ] ; then
     # Do update check for PXE booted diskless case
     mm_show_mythnotify "Checking for system updates..." '' 'warning' '12' 'System Updates'
-    ${ssh_command} pacman -Sy > /dev/null 2>&1
-    updates=`${ssh_command} pacman -Qqu | /usr/bin/wc -w 2> /dev/null`
+    ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Sy > /dev/null 2>&1
+    updates=`ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Qqu | /usr/bin/wc -w 2> /dev/null`
     if [ -n ${updates} ] ; then
       if [ ! ${updates} = 0 ] ; then
         mm_show_mythnotify "${updates_detected_str}" "There is ${updates} updated package(s)..." 'warning' '12'
@@ -289,16 +286,7 @@ if [ "x${command}" = "x_check_updates" ] ; then
       /bin/su root -c "mm_do_online_update"
     else
       mm_show_mythnotify "Checking for system updates..." '' 'warning' '12' 'System Updates'
-      mm_term_start "/bin/su root -c \" \
-      echo ''; \
-      echo ''; \
-      echo '----- CHECK FOR FULL SYSTEM UPDATES -----'; \
-      echo ''; \
-      mm_do_online_update; \
-      echo ''; \
-      echo ''; \
-      echo 'Press BACK or Esc for exit...'; \
-      read \""
+      mm_term_start /bin/su root -c 'mm_do_online_update; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;'
     fi
   fi
   exit 0
@@ -313,55 +301,32 @@ if [ "x${command}" = "xinstall_updates" ] ; then
   exit 0
 fi
 if [ "x${command}" = "x_install_updates" ] ; then
-  if [ "x${MM_MINIMYTH_ONLINE_UPDATES_URL}" = "x" ] ; then
+  if [ "x${MM_MINIMYTH_ONLINE_UPDATES_URL}" = "xlocal" ] ; then
     # Do update update for PXE booted diskless case
-    mm_show_mythnotify "Installing system updates..." '' 'warning' '12' 'System Updates'
-    mm_term_start "/bin/su root -c \" \
-    echo ''; \
-    echo ''; \
-    echo '--------- FULL SYSTEM UPDATE ---------'; \
-    echo ''; \
-    ${ssh_command} pacman -Syu --force --noconfirm; \
-    echo ''; \
-    echo '-------- DELETING OLD PACKAGES --------'; \
-    echo ''; \
-    ${ssh_command} pacman -Scq --force --noconfirm; \
-    echo ''; \
-    echo '----- RELOADING DAEMONS ON SERVER -----'; \
-    echo ''; \
-    ${ssh_command} /usr/bin/systemctl daemon-reload; \
-    echo 'Done ! '; \
-    echo ''; \
-    echo '----- UPDATES WILL BE ACTIVATED AFTER REBOOT ! -----'; \
-    echo ''; \
-    echo 'Press BACK or Esc for exit...'; \
-    read\""
-
-    # If new PXE image was installed - then force reboot to load this ne image
-    if [ -e /usr/local/share/myth-at-home/version ] ; then
-      rc=`/usr/bin/cmp /etc/version /usr/local/share/myth-at-home/version`
-      if [ -n "${rc}" ] ; then
-        mm_manage reload_this_system &
+    if [ "x${MM_MYTHTV_DRAW_ON}" = "xeglfs" ] ; then
+      mm_show_mythnotify "Installing updates in background ..." '' 'warning' '900' 'System Updates'
+      ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Syu --noconfirm
+      ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Scq --noconfirm
+      ssh -c aes128-ctr root@@MM_MASTER_SERVER@ /usr/bin/systemctl daemon-reload
+    else
+      mm_show_mythnotify "Installing system updates..." '' 'warning' '12' 'System Updates'
+      mm_term_start /bin/su root -c 'ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Syu --noconfirm; ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Scq --noconfirm; ssh -c aes128-ctr root@@MM_MASTER_SERVER@ /usr/bin/systemctl daemon-reload; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;'
+      # If new PXE image was installed - then force reboot to load this ne image
+      if [ -e /usr/local/share/myth-at-home/version ] ; then
+        rc=`/usr/bin/cmp /etc/version /usr/local/share/myth-at-home/version`
+        if [ -n "${rc}" ] ; then
+          mm_manage reload_this_system &
+        fi
       fi
     fi
   else
     # Do update for SD card/USB key booted case
     if [ "x${MM_MYTHTV_DRAW_ON}" = "xeglfs" ] ; then
       mm_show_mythnotify "Installing updates in background ..." '' 'warning' '900' 'System Updates'
-      /bin/su root -c "mm_do_online_update doupdate"
+      /bin/su root -c "mm_do_online_update"
     else
       mm_show_mythnotify "Installing system updates..." '' 'warning' '12' 'System Updates'
-      mm_term_start "/bin/su root -c \" \
-      echo ''; \
-      echo ''; \
-      echo '----- FULL SYSTEM UPDATE -----'; \
-      echo ''; \
-      mm_do_online_update doupdate; \
-      echo ''; \
-      echo '----- UPDATES WILL BE ACTIVATED AFTER REBOOT ! -----'; \
-      echo ''; \
-      echo 'Press BACK or Esc for exit...'; \
-      read\""
+      mm_term_start /bin/su root -c 'mm_do_online_update doupdate; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;'
     fi
   fi
   exit 0
@@ -372,16 +337,7 @@ fi
 #-------------------------------------------------------------------------------
 
 if [ "x${command}" = "xcheck_mythtv_db" ] ; then
-  mm_term_start "/bin/su root -c \" \
-  echo ''; \
-  echo ''; \
-  echo '----- SPRAWDZAM BAZE DANYCH MythTV -----'; \
-  echo ''; \
-  ${ssh_command} /usr/local/bin/maintenance/check-optimize-db.sh; \
-  echo ''; \
-  echo ''; \
-  echo 'Press BACK or Esc for exit...'; \
-  read\""
+  mm_term_start /bin/su root -c 'ssh -c aes128-ctr root@@MM_MASTER_SERVER@ /usr/local/bin/maintenance/check-optimize-db.sh; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;'
   exit 0
 fi
 
@@ -389,14 +345,7 @@ fi
 #-------------------------------------------------------------------------------
 
 if [ "x${command}" = "xtest_network_speed" ] ; then
-  mm_term_start "/bin/su root -c \" \
-  echo ''; \
-  echo ''; \
-  /usr/bin/mm_test_network_speed; \
-  echo ''; \
-  echo ''; \
-  echo 'Press BACK or Esc for exit...'; \
-  read\""
+  mm_term_start /bin/su root -c '/usr/bin/mm_test_network_speed; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;'
   exit 0
 fi
 
