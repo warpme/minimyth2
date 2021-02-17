@@ -53,7 +53,7 @@ PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
 endif
 
 ifeq (1,1)
-# Amlogic: vdec various patches
+#-- Amlogic patches -----------------------------------------
 # Add HVEC decode from https://gitlab.com/baylibre/amlogic/atv/linux/-/commit/1f9a7f9904dfb58be623d1048f6dad3df7bf61f4
 PATCHFILES += 0310-messon-vdec-add-hvec-support.patch
 # increas CMA pool for 4k decode
@@ -65,87 +65,113 @@ PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
-# hack to fix non-working Eth on sm1 x96air
-PATCHFILES += 0370-arm64-dts-amlogic-disable-ethernet-reset-on-sm1.patch
 # Add more GX soundcards
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
+PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
 # Add more G12/SM1 soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320731
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 # Improve perf. on G12 and newer
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=384491
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=410053 06.01.2021
 PATCHFILES += 0375-net-dwmac-meson8b-picosecond-precision-RX-delay-support.patch
+# Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic HW I have
+PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
 endif
+#------------------------------------------------------------
 
-# Allwinner patches
 ifeq (1,1)
-# fix from LE slack 9:14AM 23.12.2020
-PATCHFILES += 0506-media-sunxi-cedrus-fix.patch
-
+#-- Allwinner patches -----------------------------------------
+# Audio patches From LE 19.01.2021
+PATCHFILES += 0500-ASoC-hdmi-codec-fix-channel-allocation.patch
+PATCHFILES += 0510-ASoC-sun4i-i2s-WiP-multi-channel.patch
+PATCHFILES += 0511-arm64-dts-sun50i-h6-dtsi-add-sound-node.patch
+PATCHFILES += 0512-arm64-dts-sun50i-h6-dtsi-add-frame-inversion-to-correct-multi-channel.patch
+PATCHFILES += 0514-arm64-dts-enable-audio-gs1.patch
+# Cedrus patches From LE 19.01.2021
+PATCHFILES += 0516-media-uapi-hevc-Add-scaling-matrix-control.patch
+PATCHFILES += 0517-media-cedrus-hevc-Add-support-for-scaling-matrix.patch
+PATCHFILES += 0518-media-uapi-hevc-Add-segment-address-field.patch
+PATCHFILES += 0519-media-cedrus-hevc-Add-support-for-multiple-slices.patch
+PATCHFILES += 0520-media-cedrus-hevc-tiles-hack.patch
+PATCHFILES += 0521-media-cedrus-Add-callback-for-buffer-cleanup.patch
+PATCHFILES += 0522-media-cedrus-hevc-Improve-buffer-management.patch
+PATCHFILES += 0523-media-cedrus-h264-Improve-buffer-management.patch
+PATCHFILES += 0524-media-cedrus-WiP-10-bit-HEVC-support.patch
+PATCHFILES += 0525-media-cedrus-add-check-for-H264-and-HEVC-limitations.patch
+PATCHFILES += 0527-media-cedrus-Add-support-for-R40.patch
+# From LE 19.01.2021
+PATCHFILES += 0528-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
+# Disabled as casues black screen in drm planes playback
+# PATCHFILES += 0529-gpu-drm-sun4i-hdmi-mixer-improvements.patch
+# Adding support for MFD devices on some H6 boards
+PATCHFILES += 0530-mfd-add-AC200.patch
+PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
 # Fix hanging GS1 boot on loading kernel modules
-PATCHFILES += 0508-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
-# Adding support for some H6 boards
-PATCHFILES += 0509-mfd-add-AC200.patch
-PATCHFILES += 0510-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
-
-PATCHFILES += 0513-arm64-dts-Tanix-TX6-improvements.patch
-PATCHFILES += 0514-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
-
+PATCHFILES += 0532-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
+# Improvements and addidtions for some H6 boards
+PATCHFILES += 0533-arm64-dts-Tanix-TX6-improvements.patch
+PATCHFILES += 0534-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
 # Add TanixTX6 Mini (WiFi still not working :-( )
-PATCHFILES += 0515-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
-endif
-
-ifeq (1,1)
+PATCHFILES += 0535-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
 # Allwinner: enable H6 GPU DVFS
-PATCHFILES += 0516-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
-PATCHFILES += 0517-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
-endif
-
+PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
+PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
+# Video BT2020 support. From LE 19.01.2021
+PATCHFILES += 0538-drm-sun4i-Add-support-for-BT2020-to-DE3.patch
+# Crust support from LE 17.01.2021
+PATCHFILES += 0551-allwinner-add-crust-support.patch
+PATCHFILES += 0552-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
+# hack for dead Eth after resume from sleep
+PATCHFILES += 0553-dwmac-sun8i-hack-for-dead-Eth-on-crust-resume.patch
+# hack for fixng distorted screen on X11/Glamour
+PATCHFILES += 0554-drm-sun4i-report-no-midifiers.patch
+# Add hw deinterlce support from 17.01.2021
+PATCHFILES += 0560-H6-add-sun50i-di-deinterlace-WiP.patch
+PATCHFILES += 0561-arm64-dts-h6-add-deinterlace-node.patch
+PATCHFILES += 0562-mmc-sunxi-mmc-Ensure-host-is-suspended-during-system.patch
+PATCHFILES += 0563-arm-dts-sun8i-r40-Add-deinterlace-node.patch
+PATCHFILES += 0564-arm64-dts-allwinner-h5-Add-deinterlace-node.patch
+# h616 initial support
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=416431 v3 18.01.2021
 PATCHFILES += 0568-clk-sunxi-ng-h6-r-add-R_APB2_RSB-clock-and-reset.patch
-PATCHFILES += 0569-bus-sunxi-rsb-Implement-power-managment.patch
 PATCHFILES += 0570-arm64-sunxi-Initial-Allwinner-H616-SoC-support.patch
+endif
+#------------------------------------------------------------
 
-# Rockchip patches
 ifeq (1,1)
+#-- Rockchip patches -----------------------------------------
 # Inc.some clocks on rk3328
 PATCHFILES += 0702-arm64-dts-rockchip-inc-cpu-clock-add-gpu-DVFS-on-rk3328.patch
 # Enable rkvdec on rk3328
 PATCHFILES += 0703-arm64-dts-rockchip-enable-rkvdec-on-rk3328.patch
+# adds support for high profile10, 4:2:2 and deinterlaced h264 decode on rkvdec
+# https://github.com/Kwiboo/linux-rockchip/commits/linuxtv-rkvdec-work-in-progress
+# https://github.com/knaerzche/linux/commit/2d9e1a5b0b2ca9dfae43f30d80d014605337cf2a
+# https://github.com/knaerzche/linux/commit/68c947da3affcfdf48699008b5869325e15bfdcd
+PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
+# Add hvec support for Rockchip rkvdec
+PATCHFILES += 0706-media-rkvdec-add-hevc-support.patch
 # Support for 4k modes
-# https://github.com/Kwiboo/linux-rockchip/commits/v5.10.1-drm-rockchip-hack
-PATCHFILES += 0711-drm-rockchip-vop-fix-crtc-duplicate-state.patch
-PATCHFILES += 0712-drm-rockchip-vop-filter-modes-outside-0.5-pixel-cloc.patch
-PATCHFILES += 0713-drm-rockchip-vop-filter-interlaced-modes.patch
-PATCHFILES += 0714-drm-rockchip-vop-define-max-output-resolution-suppor.patch
-PATCHFILES += 0715-drm-rockchip-vop-filter-modes-above-max-output-suppo.patch
-PATCHFILES += 0716-drm-rockchip-dw_hdmi-adjust-cklvl-txlvl-for-RF-EMI.patch
-PATCHFILES += 0717-drm-rockchip-dw_hdmi-add-phy_config-for-594Mhz-pixel.patch
-PATCHFILES += 0718-drm-rockchip-dw_hdmi-Set-cur_ctr-to-0-always.patch
-PATCHFILES += 0719-drm-rockchip-dw_hdmi-Use-auto-generated-tables.patch
-PATCHFILES += 0720-drm-rockchip-dw-hdmi-limit-tmds-to-340mhz.patch
-PATCHFILES += 0721-drm-rockchip-dw-hdmi-limit-resolution-to-3840x2160.patch
-PATCHFILES += 0722-drm-rockchip-dw-hdmi-allow-high-tmds-bit-rates.patch
-PATCHFILES += 0723-drm-rockchip-dw-hdmi-remove-unused-plat_data-on-rk32.patch
-PATCHFILES += 0724-drm-rockchip-dw-hdmi-encoder-error-handling.patch
-PATCHFILES += 0725-clk-rockchip-set-parent-rate-for-DCLK_VOP-clock-on-r.patch
-PATCHFILES += 0726-arm64-dts-rockchip-increase-vop-clock-rate-on-rk3328.patch
-PATCHFILES += 0727-drm-rockchip-vop-split-rk3288-vop.patch
-PATCHFILES += 0728-ARM-dts-rockchip-split-rk3288-vop.patch
-PATCHFILES += 0729-HACK-clk-rockchip-rk3288-dedicate-npll-for-vopb-and-.patch
-PATCHFILES += 0730-HACK-clk-rockchip-rk3288-use-npll-table-to-to-improv.patch
-PATCHFILES += 0731-HACK-clk-rockchip-rk3288-add-more-npll-clocks.patch
-PATCHFILES += 0732-HACK-clk-rockchip-rk3399-dedicate-vpll-for-vopb-and-.patch
-PATCHFILES += 0733-HACK-dts-rockchip-do-not-use-vopl-for-hdmi.patch
+# https://github.com/Kwiboo/linux-rockchip/commits/v5.10.1-drm-rockchip-hack 17.12.2020
+PATCHFILES += 0711-drm-rockchip-add-4k-videomodes-support.patch
+# add HW deinterlace support for 3228/3328/3399
+PATCHFILES += 0713-media-rockchip-add-hw-deinterlace-support.patch
 endif
+#------------------------------------------------------------
 
+ifeq (1,1)
+#-- RaspberryPI patches -----------------------------------------
+# Hack for adding H264 v4l2 decoding on RPI
+PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
 # Fix building V3D for rpi4
 PATCHFILES += 0901-drm-v3d-fix-Kconfig.patch
 # Support for 2xHDMI audio on RPI4
-#PATCHFILES += 0902-rpi-vc04_services-update-audio-for-rpi4-14112020.patch
-# Some additions to rpi4 DT
-PATCHFILES += 0904-arm-dts-bcm2711-rpi4-dt-additions.patch
-# drm/v3d: Minor improvements
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=405969
-PATCHFILES += 0905-drm-v3d-Minor-improvements.patch
+PATCHFILES += 0902-rpi-vc04_services-update-audio-for-rpi4-14112020.patch
+# Some hacks for rpi4
+PATCHFILES += 0906-vc4_hdmi-Move-hdmi-reset-to-bind.patch
+PATCHFILES += 0907-drm-v3d-hack-to-enable-v3d-on-rpi4.patch
+endif
+#------------------------------------------------------------
 
 endif
 

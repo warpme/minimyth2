@@ -1,0 +1,43 @@
+
+This hack fixes failed KMS atomic_commit in Qt on Amlogic. Issue seems to be related to meson-drm zpos
+property reports for overlay and primarly planes.
+
+Currnetly meson-drm driver reports zpos=1 for primarly plane - so Qt usues this zpos value at KMS
+modeset atomic_commits. Unfortunatelly, with this zpos value Qt atomic_commits are failing. Error
+code suggest failure is due wrong parameters provided by Qt to drmModeAtomicCommit libdrm call.
+
+Changing primarly plane zpos value to 0 makes Qt atomic_commits working - so this may suggest mesond-drm
+DRM kernel driver wrognly reposts zpos values for primarly & overlay planes.
+Unfortunatelly DRM experts have different opinion about this...
+
+Anyway, proposed hack makes Qt atomic_commits working out-of-box on all test platforms I have
+(s905w, s912 and SM1).
+
+diff -Naur linux-5.10.9-old/drivers/gpu/drm/meson/meson_overlay.c linux-5.10.9-new/drivers/gpu/drm/meson/meson_overlay.c
+--- linux-5.10.9-old/drivers/gpu/drm/meson/meson_overlay.c	2021-01-19 18:27:34.000000000 +0100
++++ linux-5.10.9-new/drivers/gpu/drm/meson/meson_overlay.c	2021-01-28 11:25:23.196666429 +0100
+@@ -850,8 +850,8 @@
+ 
+ 	drm_plane_helper_add(plane, &meson_overlay_helper_funcs);
+ 
+-	/* For now, VD Overlay plane is always on the back */
+-	drm_plane_create_zpos_immutable_property(plane, 0);
++	/* For now, VD Overlay plane is always on the front */
++	drm_plane_create_zpos_immutable_property(plane, 1);
+ 
+ 	priv->overlay_plane = plane;
+ 
+diff -Naur linux-5.10.9-old/drivers/gpu/drm/meson/meson_plane.c linux-5.10.9-new/drivers/gpu/drm/meson/meson_plane.c
+--- linux-5.10.9-old/drivers/gpu/drm/meson/meson_plane.c	2021-01-19 18:27:34.000000000 +0100
++++ linux-5.10.9-new/drivers/gpu/drm/meson/meson_plane.c	2021-01-28 11:25:08.919999760 +0100
+@@ -552,8 +552,8 @@
+ 
+ 	drm_plane_helper_add(plane, &meson_plane_helper_funcs);
+ 
+-	/* For now, OSD Primary plane is always on the front */
+-	drm_plane_create_zpos_immutable_property(plane, 1);
++	/* For now, OSD Primary plane is always on the back */
++	drm_plane_create_zpos_immutable_property(plane, 0);
+ 
+ 	priv->primary_plane = plane;
+ 
