@@ -148,9 +148,6 @@ PATCHFILES += 0561-arm64-dts-h6-add-deinterlace-node.patch
 PATCHFILES += 0562-mmc-sunxi-mmc-Ensure-host-is-suspended-during-system.patch
 PATCHFILES += 0563-arm-dts-sun8i-r40-Add-deinterlace-node.patch
 PATCHFILES += 0564-arm64-dts-allwinner-h5-Add-deinterlace-node.patch
-# H6 4k hdmi signal stability improvements
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=430883
-PATCHFILES += 0565-sunxi-fix-H6-HDMI-related-issues.patch
 # h616 initial support
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=416431 v3 18.01.2021
 PATCHFILES += 0568-clk-sunxi-ng-h6-r-add-R_APB2_RSB-clock-and-reset.patch
@@ -177,6 +174,8 @@ PATCHFILES += 0706-media-rkvdec-add-hevc-support.patch
 # Support for 4k modes
 # https://github.com/Kwiboo/linux-rockchip/commits/v5.10.1-drm-rockchip-hack 17.12.2020
 PATCHFILES += 0711-drm-rockchip-add-4k-videomodes-support.patch
+# add HW deinterlace support for 3228/3328/3399
+PATCHFILES += 0713-media-rockchip-add-hw-deinterlace-support.patch
 endif
 #------------------------------------------------------------
 
