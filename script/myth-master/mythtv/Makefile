@@ -6,6 +6,8 @@ MASTER_SITES = svn://svn.mythtv.org/svn/trunk/
 DISTFILES    = $(DISTNAME).tar.bz2
 PATCHFILES   =
 
+include ../../minimyth.conf.mk
+
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0000-configure-set-to-GAR-perl-python.patch.gar
 
@@ -58,9 +60,13 @@ ifeq (1,1)
 # Based on:
 # https://github.com/jernejsk/LibreELEC.tv/tree/69fae8524b9ef02cd2e3415ece1ae01dfc2b5426/packages/multimedia/ffmpeg/patches 29.10.2020
 # https://github.com/Kwiboo/FFmpeg/commit/5e9575a822a94139bdcfe6a7fa78e4ef771ccb39
-# PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.10kernel.patch
-# patch with experimental rpi v4l2_request added 
+# patch with experimental rpi v4l2_request added
+ifneq (,$(filter %5.10,$(mm_KERNEL_VERSION)))
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.10kernel-rpi.patch
+endif
+ifneq (,$(filter %5.11,$(mm_KERNEL_VERSION)))
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.11kernel-rpi.patch
+endif
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner H6
@@ -131,6 +137,7 @@ DEPENDS = \
 	lib/avahi \
 	lib/exiv2 \
 	lib/fftw3 \
+	lib/fftw3f \
 	lib/freetype \
 	lib/lame \
 	lib/libass \
@@ -289,6 +296,7 @@ INSTALL_ENV    = $(MYTHTV_INSTALL_ENV)
 
 BUILD_ENV     += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
 INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
+
 
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
