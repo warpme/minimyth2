@@ -98,7 +98,6 @@ PATCHFILES += 0522-media-cedrus-hevc-Improve-buffer-management.patch
 PATCHFILES += 0523-media-cedrus-h264-Improve-buffer-management.patch
 PATCHFILES += 0524-media-cedrus-WiP-10-bit-HEVC-support.patch
 PATCHFILES += 0525-media-cedrus-add-check-for-H264-and-HEVC-limitations.patch
-PATCHFILES += 0527-media-cedrus-Add-support-for-R40.patch
 # From LE 19.01.2021
 PATCHFILES += 0528-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 # Disabled as casues black screen in drm planes playback
