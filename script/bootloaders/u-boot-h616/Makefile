@@ -11,16 +11,12 @@ WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
 ifeq (1,1)
-# Sunxi custodians 31.01.2021
-GARNAME      = u-boot-h616-20210131
-GARVERSION   = a38bb0d0377dd47dfc9270fb46112bca263e8885
+# Sunxi custodians 20.02.2021
+GARNAME      = u-boot-h616-20210220
+GARVERSION   = e036a1d227112565cdf32b5558ac6ccaf5d1633f
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = $(GARVERSION).zip
-# https://patchwork.ozlabs.org/project/uboot/list/?series=226542
-# PATCHFILES   = 0001-sunxi-OrangePi-Zero-2-Ethernet-support.patch
-# https://patchwork.ozlabs.org/project/uboot/list/?series=227279
-PATCHFILES  += 0002-sunxi-spl-Fix-H616-clock-initialization.patch
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 endif
 
