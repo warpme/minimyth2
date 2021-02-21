@@ -131,9 +131,7 @@ PATCHFILES += 0562-mmc-sunxi-mmc-Ensure-host-is-suspended-during-system.patch
 PATCHFILES += 0563-arm-dts-sun8i-r40-Add-deinterlace-node.patch
 PATCHFILES += 0564-arm64-dts-allwinner-h5-Add-deinterlace-node.patch
 # h616 initial support
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=416431 v3 18.01.2021
-PATCHFILES += 0568-clk-sunxi-ng-h6-r-add-R_APB2_RSB-clock-and-reset.patch
-PATCHFILES += 0570-arm64-sunxi-Initial-Allwinner-H616-SoC-support.patch
+PATCHFILES += 0570-sunxi-Initial-Allwinner-H616-SoC-support-v2.patch
 endif
 #------------------------------------------------------------
 
