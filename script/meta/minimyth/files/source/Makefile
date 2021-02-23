@@ -236,10 +236,6 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@find $(top_source)/rootfs -depth -type f \
 		| sed -e 's%^\(\$(top_source)/rootfs\)/\(.*\)$$%\1/\2 $@~/\2%' \
 		| xargs -n 2 cp -fpd
-	@# Copy mm_local scripts.
-	@cp  -pd $(top_source)/mm_local/mm_local_update $@~/usr/bin/mm_local_update
-	@chmod 0755 $@~/usr/bin/mm_local_update
-	@cp  -pd $(top_source)/mm_local/mm_local_helper $@~/usr/bin/mm_local_helper_old
 	@# Substitute values for variables in files
 	@sed -i 's%@MM_VERSION@%$(mm_VERSION)%g'                   $@~$(sysconfdir)/conf.d/core
 	@sed -i 's%@MM_VERSION_MYTH@%$(mm_VERSION_MYTH)%g'         $@~$(sysconfdir)/conf.d/core
@@ -702,21 +698,6 @@ $(top_build)/stage/pxe-$(mm_NAME): $(top_source)/pxe
 	@touch $@~
 	@mv $@~ $@
 
-$(top_build)/stage/helper: \
-		$(top_source)/mm_local/mm_local_helper
-	@echo "making helper directory"
-	@mkdir -m 0755 -p $(@D)
-	@rm -rf $@ $@~
-	@mkdir -m 0755 -p $@~
-	@cp -pdR $^ $@~
-	@cd $@~ ; for file in `ls -1` ; do  \
-		md5sum $${file} > $${file}.md5 ; \
-	 done
-	@find $@~ -depth -type d -exec chmod 0755 '{}' \;
-	@find $@~ -depth -type f -exec chmod 0644 '{}' \;
-	@touch $@~
-	@mv $@~ $@
-
 $(top_build)/stage/html: \
 		$(top_source)/html \
 		$(top_build)/stage/supported-gfx-hardware.txt \
@@ -758,19 +739,6 @@ $(top_build)/stage/version:
 	@touch $@~
 	@echo "$(mm_VERSION)" > $@~
 	@chmod 0644 $@~
-	@touch $@~
-	@mv $@~ $@
-
-$(top_build)/stage/scripts: \
-		$(top_source)/mm_local/mm_local_install \
-		$(top_source)/mm_local/mm_local_helper
-	@echo "making scripts directory"
-	@mkdir -m 0755 -p $(@D)
-	@rm -rf $@ $@~
-	@mkdir -m 0755 -p $@~
-	@cp -pdR $^ $@~
-	@find $@~ -depth -type d -exec chmod 0755 '{}' \;
-	@find $@~ -depth -type f -exec chmod 0644 '{}' \;
 	@touch $@~
 	@mv $@~ $@
 
