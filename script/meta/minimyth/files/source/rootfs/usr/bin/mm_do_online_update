@@ -65,8 +65,39 @@ $2 \
 
 }
 
+rm -f ${log_file}
 
-if [ "x${command}" = "xdoupdate" ] ; then
+if [ "x${command}" = "xcheck_new_version" ] ; then
+
+    dry_run="--dry-run"
+
+    run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/version" "/etc/version" ${dry_run}
+
+    is_error=`cat ${log_file} | grep -c "error"`
+
+    if [ ${is_error} -eq 0 ] ; then
+
+        number_upd_files=`cat ${log_file} | grep "Number of regular files transferred" | cut -d" " -f9 | sed -e 's/,//g'`
+
+        if [ x${files_total} = "x0" ] ; then
+
+            echo "SystemIsAlreadyUpToDate"
+            exit 0
+
+        else
+
+            echo "NewVersionIsAvaliable"
+            exit 0
+
+        fi
+
+    else
+
+        echo 'Error contacting updates server !'
+        exit 1
+    fi
+
+elif [ "x${command}" = "xdoupdate" ] ; then
 
     echo 'Starting on-line update ...'
     dry_run="--delete"
@@ -78,7 +109,6 @@ else
 
 fi
 
-rm -f ${log_file}
 
 run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/boot/dtbs/"      "/media/boot/dtbs"  ${dry_run}
 run_rsync "${MM_MINIMYTH_ONLINE_UPDATES_URL}/boot/*Image"     "/media/boot"       ${dry_run}
