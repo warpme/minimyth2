@@ -237,24 +237,24 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		| sed -e 's%^\(\$(top_source)/rootfs\)/\(.*\)$$%\1/\2 $@~/\2%' \
 		| xargs -n 2 cp -fpd
 	@# Substitute values for variables in files
-	@sed -i 's%@MM_VERSION@%$(mm_VERSION)%g'                   $@~$(sysconfdir)/conf.d/core
-	@sed -i 's%@MM_VERSION_MYTH@%$(mm_VERSION_MYTH)%g'         $@~$(sysconfdir)/conf.d/core
-	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/conf.d/core
-	@sed -i 's%@MM_CONF_VERSION@%$(mm_CONF_VERSION)%g'         $@~$(sysconfdir)/conf.d/core
-	@sed -i 's%@PATH@%$(call MAKE_PATH,$(bindirs_base))%g'     $@~$(sysconfdir)/conf.d/core
-	@sed -i 's%@GAR_datadir@%$(datadir)%g'                     $@~$(sysconfdir)/fonts/local.conf
-	@sed -i 's%@EXTRAS_ROOTDIR@%$(extras_rootdir)%'            $@~$(sysconfdir)/rc.d/init.d/extras
-	@sed -i 's%@EXTRAS_ROOTDIR@%$(extras_rootdir)%'            $@~$(sysconfdir)/rc.d/init.d/media
-	@sed -i 's%@ARCH@%$(mm_GARCH_FAMILY)%'                     $@~$(sysconfdir)/rc.d/init.d/conf.d/S_MINIMYTH
-	@sed -i 's%@BRANCH@%$(mm_MYTH_VERSION)%'                   $@~$(sysconfdir)/rc.d/init.d/conf.d/S_MINIMYTH
-	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g' $@~$(sysconfdir)/splash/minimyth/*.cfg
-	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)-$(mm_GARCH)%g' $@~/etc/os_myth_release
-	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_SVN_VERSION)%g'   $@~/etc/os_myth_release
-	@sed -i 's%@MM_GARCH@%$(mm_GARCH)%g'                       $@~/etc/os_myth_release
-	@sed -i 's%@MM_VERSION@%$(mm_VERSION_MINIMYTH)%g'          $@~/etc/version
-	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                         $@~/usr/bin/devel-update-component.sh
+	@sed -i 's%@MM_VERSION@%$(mm_VERSION)%g'                    $@~$(sysconfdir)/conf.d/core
+	@sed -i 's%@MM_VERSION_MYTH@%$(mm_VERSION_MYTH)%g'          $@~$(sysconfdir)/conf.d/core
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g'  $@~$(sysconfdir)/conf.d/core
+	@sed -i 's%@MM_CONF_VERSION@%$(mm_CONF_VERSION)%g'          $@~$(sysconfdir)/conf.d/core
+	@sed -i 's%@PATH@%$(call MAKE_PATH,$(bindirs_base))%g'      $@~$(sysconfdir)/conf.d/core
+	@sed -i 's%@GAR_datadir@%$(datadir)%g'                      $@~$(sysconfdir)/fonts/local.conf
+	@sed -i 's%@EXTRAS_ROOTDIR@%$(extras_rootdir)%'             $@~$(sysconfdir)/rc.d/init.d/extras
+	@sed -i 's%@EXTRAS_ROOTDIR@%$(extras_rootdir)%'             $@~$(sysconfdir)/rc.d/init.d/media
+	@sed -i 's%@ARCH@%$(mm_GARCH_FAMILY)%'                      $@~$(sysconfdir)/rc.d/init.d/conf.d/S_MINIMYTH
+	@sed -i 's%@BRANCH@%$(mm_MYTH_VERSION)%'                    $@~$(sysconfdir)/rc.d/init.d/conf.d/S_MINIMYTH
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g'  $@~$(sysconfdir)/splash/minimyth/*.cfg
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g'  $@~/etc/os_myth_release
+	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_SVN_VERSION)%g'    $@~/etc/os_myth_release
+	@sed -i 's%@MM_GARCH@%$(mm_GARCH_FAMILY)%g'                 $@~/etc/os_myth_release
+	@sed -i 's%@MM_VERSION@%$(mm_VERSION)-$(mm_GARCH_FAMILY)%g' $@~/etc/version
+	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                          $@~/usr/bin/devel-update-component.sh
 ifneq (,$(findstring rpi,$(mm_KERNEL_VERSION)))
-	@sed -i 's%    # mm_splash_init%    mm_splash_init%'       $@~$(sysconfdir)/rc.d/init.d/modules_automatic
+	@sed -i 's%    # mm_splash_init%    mm_splash_init%'        $@~$(sysconfdir)/rc.d/init.d/modules_automatic
 endif
 	@# Adding updated HTML index.html file
 	@cp -pd $(top_build)/stage/html/index.html $@~/srv/www/index.html
@@ -737,7 +737,7 @@ $(top_build)/stage/version:
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
 	@touch $@~
-	@echo "$(mm_VERSION)" > $@~
+	@echo "$(mm_VERSION)-$(mm_GARCH_FAMILY)" > $@~
 	@chmod 0644 $@~
 	@touch $@~
 	@mv $@~ $@
@@ -910,7 +910,6 @@ $(top_build)/stage/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME):
 $(top_build)/stage/ram-$(mm_GARCH_FAMILY)-$(mm_NAME):                       \
 	$(top_build)/stage/version                                          \
 	$(top_build)/stage/html                                             \
-	$(top_build)/stage/scripts                                          \
 	$(if $(filter i386,$(mm_GARCH_FAMILY)),$(top_build)/stage/kernel)   \
 	$(if $(filter x86_64,$(mm_GARCH_FAMILY)),$(top_build)/stage/kernel) \
 	$(top_build)/stage/rootfs                                           \
@@ -923,7 +922,6 @@ $(top_build)/stage/ram-$(mm_GARCH_FAMILY)-$(mm_NAME):                       \
 $(top_build)/stage/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME):                       \
 	$(top_build)/stage/version                                          \
 	$(top_build)/stage/html                                             \
-	$(top_build)/stage/scripts                                          \
 	$(if $(filter i386,$(mm_GARCH_FAMILY)),$(top_build)/stage/kernel)   \
 	$(if $(filter x86_64,$(mm_GARCH_FAMILY)),$(top_build)/stage/kernel) \
 	$(top_build)/stage/rootfs.tar.bz2                                   \
