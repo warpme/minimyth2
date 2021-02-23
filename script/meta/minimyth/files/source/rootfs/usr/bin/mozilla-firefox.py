@@ -24,7 +24,6 @@ def main(args):
     if has_dpms:
         subprocess.Popen(["xset", "-dpms"])
     try:
-        subprocess.Popen(["/usr/bin/mm_ss_suspend", "firefox &"])
         browser(args)
     finally:
         if has_dpms:

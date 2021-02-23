@@ -23,13 +23,10 @@ def main(args):
     if has_dpms:
         subprocess.Popen(["xset", "-dpms"])
     try:
-        ss_disabler = subprocess.Popen(["/usr/bin/mm_ss_suspend", "chrome &"])
         browser(args)
     finally:
         if has_dpms:
             subprocess.Popen(["xset", "+dpms"])
-        print "Exiting screensaver disabler...."
-        ss_disabler.terminate()
 
 def browser(args):
     browser = subprocess.Popen(["/usr/local/bin/google-chrome/chrome"] + args[1:])
