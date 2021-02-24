@@ -1,0 +1,68 @@
+#!/bin/sh
+################################################################################
+# localization
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    /bin/touch /var/init/localization.inprogress
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/localization] Starting..."
+
+    if [ "x${MM_FETCH_UI_LOCALIZATIONS}" = "xyes" ] ; then
+
+        /bin/rm -rf /etc/mm_ui_localizations
+        mm_confro_get mm_ui_localizations /etc/mm_ui_localizations
+        if [ ! -e /etc/mm_ui_localizations ] ; then
+            mm_message_output err "error: failed to fetch 'mm_ui_localizations' file."
+        fi
+
+        string_list=`/bin/cat /etc/mm_ui_localizations | /bin/sed -e '/^#/ d' -e '/^$/ d' | /bin/sed -e 's/ /+/g' | /bin/sed -e 's/\t//g'`
+        for string in ${string_list} ; do
+            str=`/bin/echo ${string} | /bin/sed -e 's/^\(.*\)=.*/\1/' | /bin/sed -e 's/+//g'`
+            val=`/bin/echo ${string} | /bin/sed -e 's/^.*=+*\(.*\)/\1/'`
+            /bin/sed -e "s/${str}=.*/${str}=${val}/g" -i /etc/mm_ui_localizations_sh
+            /bin/sed -e "s/^our \$${str}\s*=.*/our \$${str}=${val}/g" -i /etc/mm_ui_localizations_perl
+        done
+
+        /bin/sed -e "s/+/ /g" -i /etc/mm_ui_localizations_sh
+        /bin/sed -e "s/+/ /g" -i /etc/mm_ui_localizations_perl
+
+    elif [ ! "x${MM_FETCH_UI_LOCALIZATIONS}" = "x" ] ; then
+
+        mm_confro_get ${MM_FETCH_UI_LOCALIZATIONS}.sh /etc/mm_ui_localizations.sh
+        if [ ! -e /etc/mm_ui_localizations.sh ] ; then
+            mm_message_output err "error: failed to fetch 'mm_ui_localizations_sh' file."
+        else
+            /bin/rm -rf /etc/mm_ui_localizations_sh
+            mv /etc/mm_ui_localizations.sh /etc/mm_ui_localizations_sh
+        fi
+
+        mm_confro_get ${MM_FETCH_UI_LOCALIZATIONS}.pl /etc/mm_ui_localizations.pl
+        if [ ! -e /etc/mm_ui_localizations.pl ] ; then
+            mm_message_output err "error: failed to fetch 'mm_ui_localizations_pl' file."
+        else
+            /bin/rm -rf /etc/mm_ui_localizations_pl
+            mv /etc/mm_ui_localizations.pl /etc/mm_ui_localizations_pl
+        fi
+    fi
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/localization] Started with return code=0..."
+
+    /bin/rm -f /var/init/localization.inprogress
+    return 0
+
+}
+
+stop() {
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0

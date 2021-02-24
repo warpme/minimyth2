@@ -30,22 +30,23 @@ MM_INIT_START_PHASE_4 := \
     conf_phase_5 \
 
 MM_INIT_START_PHASE_5 := \
-    media      \
-    irtrans    \
-    acpi       \
-    web        \
-    extras     \
-    game       \
-    cpu        \
-    swap       \
-    telnet     \
-    ssh_server \
-    mail       \
-    voip       \
-    sleep      \
-    browsers   \
-    updates    \
-    housekeep  \
+    localization \
+    media        \
+    irtrans      \
+    acpi         \
+    web          \
+    extras       \
+    game         \
+    cpu          \
+    swap         \
+    telnet       \
+    ssh_server   \
+    mail         \
+    voip         \
+    sleep        \
+    browsers     \
+    updates      \
+    housekeep    \
     mythdb_buffer_delete \
 
 MM_INIT_KILL := \
