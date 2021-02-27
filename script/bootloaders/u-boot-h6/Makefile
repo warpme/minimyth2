@@ -1,6 +1,6 @@
 
-GARNAME      = u-boot-h6-20210131
-GARVERSION   = a38bb0d0377dd47dfc9270fb46112bca263e8885
+GARNAME      = u-boot-h6-20210219
+GARVERSION   = e036a1d227112565cdf32b5558ac6ccaf5d1633f
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
@@ -8,6 +8,9 @@ WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 
 PATCHFILES   = 0009-tanix-tx6-ethernet-hack.patch
 PATCHFILES  += 0011-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
+# video: sunxi: Rework DE2 driver
+# https://patchwork.ozlabs.org/project/uboot/list/?series=230744
+PATCHFILES  += 0012-video-sunxi-Rework-DE2-driver.patch
 
 LICENSE = GPL2
 
