@@ -71,9 +71,6 @@ PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
 # Add more G12/SM1 soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320731
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
-# Improve perf. on G12 and newer
-# https://patchwork.kernel.org/project/linux-amlogic/list/?series=410053 06.01.2021
-PATCHFILES += 0375-net-dwmac-meson8b-picosecond-precision-RX-delay-support.patch
 # Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic HW I have
 PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
 endif
@@ -100,8 +97,6 @@ PATCHFILES += 0524-media-cedrus-WiP-10-bit-HEVC-support.patch
 PATCHFILES += 0525-media-cedrus-add-check-for-H264-and-HEVC-limitations.patch
 # From LE 19.01.2021
 PATCHFILES += 0528-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
-# Disabled as casues black screen in drm planes playback
-# PATCHFILES += 0529-gpu-drm-sun4i-hdmi-mixer-improvements.patch
 # Adding support for MFD devices on some H6 boards
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
@@ -165,7 +160,6 @@ PATCHFILES += 0901-drm-v3d-fix-Kconfig.patch
 # Support for 2xHDMI audio on RPI4
 PATCHFILES += 0902-rpi-vc04_services-update-audio-for-rpi4-14112020.patch
 # Some hacks for rpi4
-PATCHFILES += 0906-vc4_hdmi-Move-hdmi-reset-to-bind.patch
 PATCHFILES += 0907-drm-v3d-hack-to-enable-v3d-on-rpi4.patch
 endif
 #------------------------------------------------------------
