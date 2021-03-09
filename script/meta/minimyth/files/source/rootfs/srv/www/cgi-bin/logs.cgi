@@ -41,6 +41,9 @@ else
     if (-e "/var/log/online-update.log") {
         push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/online-update.log">On-Line Update Log</li> ));
     }
+    if (-e "/var/log/makemkv.log") {
+        push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/makemkv.log">MakeMKV Log</li> ));
+    }
     if (-e "/var/log/init.log") {
         push(@middle, qq(    <li><a href="http://$http_host:8080/var/log/init.log">Init Scripts Flow</li> ));
     }
