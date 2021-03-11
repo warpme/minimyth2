@@ -1,5 +1,5 @@
 GARNAME = linux-firmware
-GARVERSION = 20210107-f580dc2b
+GARVERSION = 20210305-e425f760
 CATEGORIES = firmware
 MASTER_SITES = git://git.kernel.org/pub/scm/linux/kernel/git/firmware/
 DISTFILES = $(DISTNAME).tar.bz2
