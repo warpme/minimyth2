@@ -1,6 +1,6 @@
 GARNAME      = brcmfmac_sdio-firmware
-# Git master from 21.09.2020
-GARVERSION   = 4b4acd5f91fcf3c8190a08b74e1afd2274080860
+# Git master from 15.02.2021
+GARVERSION   = c1d7d3a5ea3134984ee53c57ab3648b8f68473c9
 CATEGORIES   = firmware
 MASTER_SITES = https://github.com/LibreELEC/brcmfmac_sdio-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
