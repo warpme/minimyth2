@@ -155,12 +155,12 @@ ifeq (1,1)
 #-- RaspberryPI patches -----------------------------------------
 # Hack for adding H264 v4l2 decoding on RPI
 PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
-# Fix building V3D for rpi4
-PATCHFILES += 0901-drm-v3d-fix-Kconfig.patch
-# Support for 2xHDMI audio on RPI4
-PATCHFILES += 0902-rpi-vc04_services-update-audio-for-rpi4-14112020.patch
-# Some hacks for rpi4
-PATCHFILES += 0907-drm-v3d-hack-to-enable-v3d-on-rpi4.patch
+# V3d enablement in RPI4
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=434471
+PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch
+# Support for CEC on RPI4
+# https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210111142309.193441-1-maxime@cerno.tech/
+PATCHFILES += 0902-drm-vc4-hdmi-Add-CEC-support-for-the-BCM2711.patch
 endif
 #------------------------------------------------------------
 
