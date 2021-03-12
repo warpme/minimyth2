@@ -9,6 +9,12 @@ DISTFILES    = config.txt             \
                bootcode.bin           \
                boot.txt               \
                boot.scr               \
+               fixup_db.dat           \
+               fixup.dat              \
+               fixup_x.dat            \
+               start_cd.elf           \
+               start.elf              \
+               start_x.elf            \
                fixup4cd.dat           \
                fixup4.dat             \
                fixup4x.dat            \
@@ -45,6 +51,12 @@ install-custom:
 	@cp -f $(WORKSRC)/config.txt          $(DESTDIR)/boot/config.txt
 	@cp -f $(WORKSRC)/cmdline.txt         $(DESTDIR)/boot/cmdline.txt
 	@cp -f $(WORKSRC)/bootcode.bin        $(DESTDIR)/boot/bootcode.bin
+	@cp -f $(WORKSRC)/fixup.dat           $(DESTDIR)/boot/fixup.dat
+	@cp -f $(WORKSRC)/fixup_db.dat        $(DESTDIR)/boot/fixup_db.dat
+	@cp -f $(WORKSRC)/fixup_x.dat         $(DESTDIR)/boot/fixup_x.dat
+	@cp -f $(WORKSRC)/start.elf           $(DESTDIR)/boot/start.elf
+	@cp -f $(WORKSRC)/start_cd.elf        $(DESTDIR)/boot/start_cd.elf
+	@cp -f $(WORKSRC)/start_x.elf         $(DESTDIR)/boot/start_x.elf
 	@cp -f $(WORKSRC)/fixup4.dat          $(DESTDIR)/boot/fixup4.dat
 	@cp -f $(WORKSRC)/fixup4cd.dat        $(DESTDIR)/boot/fixup4cd.dat
 	@cp -f $(WORKSRC)/fixup4x.dat         $(DESTDIR)/boot/fixup4x.dat
@@ -62,6 +74,12 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/config.txt
 	@rm -f $(DESTDIR)/boot/cmdline.txt
 	@rm -f $(DESTDIR)/boot/bootcode.bin
+	@rm -f $(DESTDIR)/boot/fixup.dat
+	@rm -f $(DESTDIR)/boot/fixup_db.dat
+	@rm -f $(DESTDIR)/boot/fixup_x.dat
+	@rm -f $(DESTDIR)/boot/start.elf
+	@rm -f $(DESTDIR)/boot/start_cd.elf
+	@rm -f $(DESTDIR)/boot/start_x.elf
 	@rm -f $(DESTDIR)/boot/fixup4.dat
 	@rm -f $(DESTDIR)/boot/fixup4db.dat
 	@rm -f $(DESTDIR)/boot/fixup4cd.dat
