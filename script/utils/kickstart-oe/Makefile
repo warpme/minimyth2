@@ -14,6 +14,8 @@ DISTFILES = \
 	board-rpi3.rpi32.wks        \
 	board-rpi4.mainline64.conf  \
 	board-rpi4.mainline64.wks   \
+	board-rpi34.mainline64.conf \
+	board-rpi34.mainline64.wks  \
 	board-rpi4.rpi32.conf       \
 	board-rpi4.rpi32.wks        \
 	board-s905.conf             \

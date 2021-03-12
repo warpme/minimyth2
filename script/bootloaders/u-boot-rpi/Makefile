@@ -51,6 +51,10 @@ ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_3_32b_defconfig)
 	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)"
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)/kernel.img
 endif
+ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_arm64_defconfig)
+	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rpi34/$(mm_U-BOOT_BOARD_TYPE)"
+	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)$(libdir)/u-boot/rpi34/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img
+endif
 	@$(MAKECOOKIE)
 
 clean-all:

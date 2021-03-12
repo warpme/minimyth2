@@ -362,6 +362,7 @@ mm-all:
 		   [ ! "$${board}" = "board-rpi3.mainline64"      ] && \
 		   [ ! "$${board}" = "board-rpi3.rpi32"           ] && \
 		   [ ! "$${board}" = "board-rpi4.mainline64"      ] && \
+		   [ ! "$${board}" = "board-rpi34.mainline64"     ] && \
 		   [ ! "$${board}" = "board-rpi4.rpi32"           ] && \
 		   [ ! "$${board}" = "board-s905"                 ] && \
 		   [ ! "$${board}" = "board-s912"                 ] && \
