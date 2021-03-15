@@ -187,10 +187,11 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "5.9"           ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "5.10"          ] && \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "5.10"          ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.11"          ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.12"          ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "5.13"          ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "5.14"          ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.10"      ] ; then \
 		echo " " ; \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
@@ -364,6 +365,7 @@ mm-all:
 		   [ ! "$${board}" = "board-rpi4.mainline64"      ] && \
 		   [ ! "$${board}" = "board-rpi34.mainline64"     ] && \
 		   [ ! "$${board}" = "board-rpi4.rpi32"           ] && \
+		   [ ! "$${board}" = "board-rpi4.rpi64"           ] && \
 		   [ ! "$${board}" = "board-s905"                 ] && \
 		   [ ! "$${board}" = "board-s912"                 ] && \
 		   [ ! "$${board}" = "board-sm1"                  ] && \
