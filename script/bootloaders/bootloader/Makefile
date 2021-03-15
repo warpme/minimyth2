@@ -51,6 +51,10 @@ ifneq (,$(findstring board-rpi4.rpi32,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rpi4.rpi32
 endif
 
+ifneq (,$(findstring board-rpi4.rpi64,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rpi4.rpi64
+endif
+
 ifneq (,$(findstring board-s905,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s905
 endif

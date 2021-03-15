@@ -106,6 +106,7 @@ mm_GARCH                  ?= x86-64
 # 'board-rpi4.mainline64'
 # 'board-rpi34.mainline64'
 # 'board-rpi4.rpi32'
+# 'board-rpi4.rpi64'
 # 'board-s905'
 # 'board-s912'
 # 'board-g12'
