@@ -48,8 +48,7 @@ ifeq (1,1)
 # patch with experimental rpi v4l2_request added
 ifneq (,$(filter %5.10,$(mm_KERNEL_VERSION)))
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.10kernel-rpi.patch
-endif
-ifneq (,$(filter %5.11,$(mm_KERNEL_VERSION)))
+else
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.11kernel-rpi.patch
 endif
 # Enable v4l2_request in myth configure
