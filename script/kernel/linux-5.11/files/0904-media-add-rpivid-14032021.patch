@@ -32,16 +32,16 @@ diff -Naur linux-rpivid-old/arch/arm/boot/dts/bcm2711.dtsi linux-rpivid-new/arch
 +		};
 +
 +		hevc-decoder@7eb00000 {
-+			status = "enabled";
++			status = "disabled";
 +		};
 +		rpivid-local-intc@7eb10000 {
-+			status = "enabled";
++			status = "disabled";
 +		};
 +		h264-decoder@7eb20000 {
-+			status = "enabled";
++			status = "disabled";
 +		};
 +		vp9-decoder@7eb30000 {
-+			status = "enabled";
++			status = "disabled";
 +		};
  	};
  };
@@ -62,20 +62,6 @@ diff -Naur linux-rpivid-old/arch/arm/boot/dts/bcm2711.dtsi linux-rpivid-new/arch
 diff -Naur linux-rpivid-old/drivers/media/v4l2-core/v4l2-mem2mem.c linux-rpivid-new/drivers/media/v4l2-core/v4l2-mem2mem.c
 --- linux-rpivid-old/drivers/media/v4l2-core/v4l2-mem2mem.c	2021-03-11 14:19:18.000000000 +0100
 +++ linux-rpivid-new/drivers/media/v4l2-core/v4l2-mem2mem.c	2021-03-14 09:52:32.989993788 +0100
-@@ -301,9 +301,10 @@
- 
- 	dprintk("Trying to schedule a job for m2m_ctx: %p\n", m2m_ctx);
- 
--	if (!m2m_ctx->out_q_ctx.q.streaming
--	    || !m2m_ctx->cap_q_ctx.q.streaming) {
--		dprintk("Streaming needs to be on for both queues\n");
-+	if (!(m2m_ctx->out_q_ctx.q.streaming &&
-+	      m2m_ctx->cap_q_ctx.q.streaming) &&
-+	    !(m2m_ctx->out_q_ctx.buffered && m2m_ctx->out_q_ctx.q.streaming)) {
-+		dprintk("Streaming needs to be on for both queues, or buffered and OUTPUT streaming\n");
- 		return;
- 	}
- 
 @@ -416,15 +417,18 @@
  {
  	struct v4l2_m2m_dev *m2m_dev;
@@ -4716,3 +4702,16 @@ diff -Naur linux-rpivid-old/include/uapi/linux/videodev2.h linux-rpivid-new/incl
  
  /* 10bit raw bayer packed, 32 bytes for every 25 pixels, last LSB 6 bits unused */
  #define V4L2_PIX_FMT_IPU3_SBGGR10	v4l2_fourcc('i', 'p', '3', 'b') /* IPU3 packed 10-bit BGGR bayer */
+
+diff -Naur linux-rpivid-old/drivers/media/v4l2-core/v4l2-ioctl.c linux-rpivid-new/drivers/media/v4l2-core/v4l2-ioctl.c
+--- linux-rpivid-old/drivers/media/v4l2-core/v4l2-ioctl.c	2021-03-17 15:36:23.003330535 +0100
++++ linux-rpivid-new/drivers/media/v4l2-core/v4l2-ioctl.c	2021-03-14 09:52:32.989993788 +0100
+@@ -1322,6 +1321,8 @@
+ 	case V4L2_PIX_FMT_NV61M:	descr = "Y/CrCb 4:2:2 (N-C)"; break;
+ 	case V4L2_PIX_FMT_NV12MT:	descr = "Y/CbCr 4:2:0 (64x32 MB, N-C)"; break;
+ 	case V4L2_PIX_FMT_NV12MT_16X16:	descr = "Y/CbCr 4:2:0 (16x16 MB, N-C)"; break;
++	case V4L2_PIX_FMT_NV12_COL128:	descr = "Y/CbCr 4:2:0 (128b cols)"; break;
++	case V4L2_PIX_FMT_NV12_10_COL128: descr = "10-bit Y/CbCr 4:2:0 (128b cols)"; break;
+ 	case V4L2_PIX_FMT_YUV420M:	descr = "Planar YUV 4:2:0 (N-C)"; break;
+ 	case V4L2_PIX_FMT_YVU420M:	descr = "Planar YVU 4:2:0 (N-C)"; break;
+ 	case V4L2_PIX_FMT_YUV422M:	descr = "Planar YUV 4:2:2 (N-C)"; break;

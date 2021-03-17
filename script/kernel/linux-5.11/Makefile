@@ -164,7 +164,7 @@ PATCHFILES += 0902-drm-vc4-hdmi-Add-CEC-support-for-the-BCM2711.patch
 # small updates to v4l2_m2m
 PATCHFILES += 0903-rpi-vc04_services-add_h264_v4l2-m2m_decode-14032021.patch
 # add H265 rpivid driver (not works)
-# PATCHFILES += 0904-media-add-rpivid-14032021.patch
+PATCHFILES += 0904-media-add-rpivid-14032021.patch
 endif
 #------------------------------------------------------------
 
