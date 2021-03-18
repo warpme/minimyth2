@@ -63,9 +63,14 @@ install-custom:
 	@cp -f $(WORKSRC)/start4.elf          $(DESTDIR)/boot/start4.elf
 	@cp -f $(WORKSRC)/start4cd.elf        $(DESTDIR)/boot/start4cd.elf
 	@cp -f $(WORKSRC)/start4x.elf         $(DESTDIR)/boot/start4x.elf
-	@cp -f $(WORKSRC)/bcm2710-rpi-3-b-plus.dtb $(DESTDIR)/boot/bcm2710-rpi-3-b-plus.dtb
-	@cp -f $(WORKSRC)/bcm2710-rpi-3-b.dtb $(DESTDIR)/boot/bcm2710-rpi-3-b.dtb
-	@cp -f $(WORKSRC)/bcm2711-rpi-4-b.dtb $(DESTDIR)/boot/bcm2711-rpi-4-b.dtb
+	@# uncomment to use rpi DTBs
+	@#cp -f $(WORKSRC)/bcm2710-rpi-3-b-plus.dtb $(DESTDIR)/boot/bcm2710-rpi-3-b-plus.dtb
+	@#cp -f $(WORKSRC)/bcm2710-rpi-3-b.dtb      $(DESTDIR)/boot/bcm2710-rpi-3-b.dtb
+	@#cp -f $(WORKSRC)/bcm2711-rpi-4-b.dtb      $(DESTDIR)/boot/bcm2711-rpi-4-b.dtb
+	@# uncomment to use kernel DTBs
+	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2710-rpi-3-b-plus.dtb $(DESTDIR)/boot/bcm2710-rpi-3-b-plus.dtb
+	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2710-rpi-3-b.dtb      $(DESTDIR)/boot/bcm2710-rpi-3-b.dtb
+	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2711-rpi-4-b.dtb      $(DESTDIR)/boot/bcm2711-rpi-4-b.dtb
 	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi34/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img $(DESTDIR)/boot/kernel8.img
 
 clean-all:
