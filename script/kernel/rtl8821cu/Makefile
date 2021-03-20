@@ -2,10 +2,10 @@
 # URL GIT: https://github.com/brektrou/rtl8821CU
 
 GARNAME      = rtl8821cu
-GARVERSION   = deff094b9d361b75dd3522aab4eb7f2ca3f3b0be
+GARVERSION   = bd2ef2d6990d0e42d03042f1dd1e9eba82f1ccb0
 CATEGORIES   = system
 MASTER_SITES = https://github.com/brektrou/rtl8821CU/archive/
-PATCHFILES   = fix-5.8-kernel-compile.patch decrease-verbosity.patch
+PATCHFILES   = fix-5.8-kernel-compile.patch decrease-verbosity.patch fix-5.12-kernel-compile.patch
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/rtl8821CU-$(GARVERSION)
 
