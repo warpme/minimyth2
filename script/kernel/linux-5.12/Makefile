@@ -110,6 +110,11 @@ PATCHFILES += 0535-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
 # Allwinner: enable H6 GPU DVFS
 PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
+# Crust support from LE 17.01.2021
+#PATCHFILES += 0551-allwinner-add-crust-support.patch
+#PATCHFILES += 0552-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
+# hack for dead Eth after resume from sleep
+#PATCHFILES += 0553-dwmac-sun8i-hack-for-dead-Eth-on-crust-resume.patch
 # hack for fixng distorted screen on X11/Glamour
 PATCHFILES += 0554-drm-sun4i-report-no-midifiers.patch
 # Add hw deinterlce support from 17.01.2021
@@ -146,9 +151,10 @@ PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
 # V3d enablement in RPI4
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=434471
 PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch
-# Support for CEC on RPI4
 # small updates to v4l2_m2m
 PATCHFILES += 0903-rpi-vc04_services-add_h264_v4l2-m2m_decode-14032021.patch
+# add H265 rpivid driver (not works)
+PATCHFILES += 0904-media-add-rpivid-14032021.patch
 endif
 #------------------------------------------------------------
 
