@@ -15,6 +15,7 @@ DEPENDS = \
 	firmware/brcmfmac_sdio-firmware \
 	firmware/brcmfmac_sdio-openwrt-firmware \
 	firmware/bluez-firmware-rpi     \
+	firmware/brcmfmac-firmware-nonfree \
 	firmware/linux-firmware-meson   \
 
 include ../../gar.mk
@@ -30,6 +31,7 @@ clean-all:
 	@$(MAKE) clean     -C ../brcmfmac_sdio-firmware
 	@$(MAKE) clean     -C ../brcmfmac_sdio-openwrt-firmware
 	@$(MAKE) clean     -C ../bluez-firmware-rpi
+	@$(MAKE) clean     -C ../brcmfmac-firmware-nonfree
 	@$(MAKE) clean     -C ../linux-firmware-meson
 	@$(MAKE) clean-all -C ../alsa-sof-firmware
 	@$(MAKE) clean-all -C ../wireless-regdb
@@ -38,4 +40,5 @@ clean-all:
 	@$(MAKE) clean-all -C ../brcmfmac_sdio-firmware
 	@$(MAKE) clean-all -C ../brcmfmac_sdio-openwrt-firmware
 	@$(MAKE) clean-all -C ../bluez-firmware-rpi
+	@$(MAKE) clean-all -C ../brcmfmac-firmware-nonfree
 	@$(MAKE) clean-all -C ../linux-firmware-meson
