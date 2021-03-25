@@ -10,28 +10,13 @@ endef
 BUILDDEPS = \
 	utils/rsync \
 
+INSTALL_SCRIPTS   = custom
+
 include ../../minimyth.conf.mk
 
-
-ifneq (,$(filter rpi%,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-rpi-5.10
-else
-ifneq (,$(filter %5.10,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-5.10
-endif
-ifneq (,$(filter %5.11,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-5.11
-endif
-ifneq (,$(filter %5.12,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-5.12
-endif
-ifneq (,$(filter %5.13,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-5.13
-endif
-ifneq (,$(filter %5.14,$(mm_KERNEL_VERSION)))
-DEPENDS = kernel/linux-headers-5.14
-endif
-endif
+install-custom:
+	@$(MAKE) -C ../../kernel/linux-$(mm_KERNEL_VERSION) install-headers
+	@$(MAKECOOKIE)
 
 include ../../gar.mk
 
@@ -41,3 +26,4 @@ post-install:
 	@$(MAKECOOKIE)
 
 clean-all:
+	@$(MAKE) -C ../../kernel/linux-$(mm_KERNEL_VERSION) clean
