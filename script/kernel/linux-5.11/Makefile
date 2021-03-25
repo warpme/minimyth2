@@ -145,7 +145,8 @@ PATCHFILES += 0703-arm64-dts-rockchip-enable-rkvdec-on-rk3328.patch
 # https://github.com/knaerzche/linux/commit/68c947da3affcfdf48699008b5869325e15bfdcd
 PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
 # Add hvec support for Rockchip rkvdec
-PATCHFILES += 0706-media-rkvdec-add-hevc-support.patch
+PATCHFILES += 0706-media-uapi-add-rkvdec-hevc-support.patch
+PATCHFILES += 0707-media-rkvdec-add-hevc-support.patch
 # Support for 4k modes
 # https://github.com/Kwiboo/linux-rockchip/commits/v5.10.1-drm-rockchip-hack 17.12.2020
 PATCHFILES += 0711-drm-rockchip-add-4k-videomodes-support.patch
@@ -258,6 +259,12 @@ else
 	@$(MAKECOOKIE)
 endif
 endif
+
+install-headers:
+	@$(MAKE) patch
+	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) headers_install
+	@mkdir -p $(DESTDIR)$(includedir)
+	@cp -rf $(WORKSRC)/usr/include/* $(DESTDIR)$(includedir)
 
 post-install:
 	@echo "------------------------------------"     > $(DESTDIR)/usr/share/supported-IR-remotes.txt
