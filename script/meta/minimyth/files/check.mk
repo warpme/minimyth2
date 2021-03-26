@@ -192,6 +192,7 @@ mm-all:
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.12"          ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.13"          ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.14"          ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.11"      ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.10"      ] ; then \
 		echo " " ; \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
