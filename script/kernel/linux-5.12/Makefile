@@ -246,6 +246,13 @@ else
 endif
 endif
 
+install-headers:
+	@$(MAKE) patch
+	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) headers_install
+	@mkdir -p $(DESTDIR)$(includedir)
+	@cp -rf $(WORKSRC)/usr/include/* $(DESTDIR)$(includedir)
+	@$(MAKECOOKIE)
+
 post-install:
 	@echo "------------------------------------"     > $(DESTDIR)/usr/share/supported-IR-remotes.txt
 	@echo "List of supported IR receivers as of"    >> $(DESTDIR)/usr/share/supported-IR-remotes.txt
