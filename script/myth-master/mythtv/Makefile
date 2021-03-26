@@ -46,10 +46,11 @@ ifeq (1,1)
 # https://github.com/jernejsk/LibreELEC.tv/tree/69fae8524b9ef02cd2e3415ece1ae01dfc2b5426/packages/multimedia/ffmpeg/patches 29.10.2020
 # https://github.com/Kwiboo/FFmpeg/commit/5e9575a822a94139bdcfe6a7fa78e4ef771ccb39
 # patch with experimental rpi v4l2_request added
+PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header.patch
 ifneq (,$(filter %5.10,$(mm_KERNEL_VERSION)))
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.10kernel-rpi.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.10kernel.patch
 else
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.11kernel-rpi.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.11kernel.patch
 endif
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
