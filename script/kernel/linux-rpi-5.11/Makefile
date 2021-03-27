@@ -247,7 +247,6 @@ install-headers:
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) headers_install
 	@mkdir -p $(DESTDIR)$(includedir)
 	@cp -rf $(WORKSRC)/usr/include/* $(DESTDIR)$(includedir)
-	@$(MAKECOOKIE)
 
 post-install:
 	@echo "------------------------------------"     > $(DESTDIR)/usr/share/supported-IR-remotes.txt

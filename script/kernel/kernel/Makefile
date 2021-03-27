@@ -45,8 +45,8 @@ clean-all:
 	@$(MAKE) clean     -C ../../system/bbswitch
 
 reinstall:
-	@$(MAKE) reinstall -C ../../kernel-headers/linux-headers
-	@$(MAKE) reinstall -C ../../kernel/linux-$(mm_KERNEL_VERSION)
+	@$(MAKE) install-headers -C ../../kernel/linux-$(mm_KERNEL_VERSION)
+	@$(MAKE) reinstall       -C ../../kernel/linux-$(mm_KERNEL_VERSION)
 	$(if $(filter armsoc,$(mm_GRAPHICS)),@$(MAKE) reinstall -C ../../kernel/meson-gx-mali450)
 	@$(MAKE) reinstall -C ../../kernel/rtl8189es
 	@$(MAKE) reinstall -C ../../kernel/rtl8821cu
