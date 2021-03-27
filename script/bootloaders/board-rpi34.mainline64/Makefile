@@ -21,6 +21,7 @@ DISTFILES    = config.txt             \
                start4cd.elf           \
                start4.elf             \
                start4x.elf            \
+               minimyth.conf          \
 
 WORKSRC      = $(WORKDIR)
 
@@ -66,6 +67,7 @@ install-custom:
 	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2837-rpi-3-b-plus.dtb               $(DESTDIR)/boot/upstream/bcm2837-rpi-3-b-plus.dtb
 	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2837-rpi-3-b.dtb                    $(DESTDIR)/boot/upstream/bcm2837-rpi-3-b.dtb
 	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi34/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img $(DESTDIR)/boot/upstream/kernel8.img
+	@cp -f $(WORKSRC)/minimyth.conf       $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/boot.scr
@@ -87,3 +89,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/start4cd.elf
 	@rm -f $(DESTDIR)/boot/start4x.elf
 	@rm -f $(DESTDIR)/boot/upstream*
+	@rm -f $(DESTDIR)/boot/minimyth.conf

@@ -11,6 +11,7 @@ DISTFILES    = idbloader.img \
                rk3328-boot-debug.txt \
                rk3328-boot.scr \
                rk3328-boot.txt \
+               minimyth.conf   \
 
 export mm_U-BOOT_BOARD_TYPE = evb-rk3328_defconfig
 
@@ -41,8 +42,10 @@ install-custom:
 	@cp -f    $(WORKSRC)/idbloader.img                        $(DESTDIR)/boot/rk3328loaderfiles/idbloader.img
 	@cp -f    $(WORKSRC)/trust.img                            $(DESTDIR)/boot/rk3328loaderfiles/trust.img
 	@cp -f    $(WORKSRC)/uboot.img                            $(DESTDIR)/boot/rk3328loaderfiles/uboot.img
+	@cp -f    $(WORKSRC)/minimyth.conf                        $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
 	@rm -f  $(DESTDIR)/boot/boot-debug.scr
 	@rm -f  $(DESTDIR)/boot/boot.scr
 	@rm -rf $(DESTDIR)/boot/rk3328loaderfiles*
+	@rm -f  $(DESTDIR)/boot/minimyth.conf

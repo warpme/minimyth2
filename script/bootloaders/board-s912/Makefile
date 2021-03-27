@@ -6,6 +6,7 @@ MASTER_SITES =
 DISTFILES    = s905_autoscript \
                s905_autoscript.txt \
                uEnv.ini \
+               minimyth.conf \
 
 export mm_U-BOOT_BOARD_TYPE = p212_defconfig
 
@@ -32,7 +33,9 @@ install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/s905_autoscript                       $(DESTDIR)/boot/s905_autoscript
 	@cp -f $(WORKSRC)/uEnv.ini                              $(DESTDIR)/boot/uEnv.ini
+	@cp -f $(WORKSRC)/minimyth.conf                         $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/s905_autoscript
 	@rm -f $(DESTDIR)/boot/uEnv.ini
+	@rm -f $(DESTDIR)/boot/minimyth.conf

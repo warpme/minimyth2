@@ -8,6 +8,7 @@ DISTFILES    = \
                h6-boot-debug.txt \
                h6-boot.scr \
                h6-boot.txt \
+               minimyth.conf \
 
 export mm_U-BOOT_BOARD_TYPE = beelink_gs1_defconfig
 export CRUST_CONFIG = beelink_gs1_defconfig
@@ -37,8 +38,10 @@ install-custom:
 	@mkdir -p $(DESTDIR)/boot/h6loaderfiles
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
 		  $(DESTDIR)/boot/h6loaderfiles/u-boot-sunxi-with-spl.bin
+	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
 	@rm -f  $(DESTDIR)/boot/boot-debug.scr
 	@rm -f  $(DESTDIR)/boot/boot.scr
 	@rm -rf $(DESTDIR)/boot/h6loaderfiles*
+	@rm -f  $(DESTDIR)/boot/minimyth.conf

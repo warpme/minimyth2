@@ -42,3 +42,4 @@ clean-all:
 	@rm -f  $(DESTDIR)/boot/boot-debug.scr
 	@rm -f  $(DESTDIR)/boot/boot.scr
 	@rm -rf $(DESTDIR)/boot/h6loaderfiles*
+	@rm -f  $(DESTDIR)/boot/minimyth.conf

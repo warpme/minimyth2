@@ -8,6 +8,7 @@ DISTFILES    = s905_autoscript \
                uEnv.ini \
                boot.ini \
                u-boot.ext \
+               minimyth.conf \
 
 export mm_U-BOOT_BOARD_TYPE = p212_defconfig
 
@@ -36,9 +37,11 @@ install-custom:
 	@cp -f $(WORKSRC)/uEnv.ini                                   $(DESTDIR)/boot/uEnv.ini
 	@cp -f $(WORKSRC)/boot.ini                                   $(DESTDIR)/boot/boot.ini
 	@cp -f $(WORKSRC)/u-boot.ext                                 $(DESTDIR)/boot/u-boot.ext
+	@cp -f $(WORKSRC)/minimyth.conf                              $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/s905_autoscript
 	@rm -f $(DESTDIR)/boot/uEnv.ini
 	@rm -f $(DESTDIR)/boot/boot.ini
 	@rm -f $(DESTDIR)/boot/u-boot.ext
+	@rm -f $(DESTDIR)/boot/minimyth.conf

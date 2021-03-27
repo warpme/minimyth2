@@ -24,6 +24,7 @@ DISTFILES    = \
 	start_cd.elf \
 	start_db.elf \
 	start_x.elf  \
+	minimyth.conf \
 
 WORKSRC      = $(WORKDIR)
 
@@ -60,6 +61,7 @@ install-custom:
 	@cp -f $(WORKSRC)/start_db.elf        $(DESTDIR)/boot/start_db.elf
 	@cp -f $(WORKSRC)/start_x.elf         $(DESTDIR)/boot/start_x.elf
 	@cp -f $(DESTDIR)/boot/zImage         $(DESTDIR)/boot/kernel7.img
+	@cp -f $(WORKSRC)/minimyth.conf       $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/bootcode.bin
@@ -82,4 +84,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/start_db.elf
 	@rm -f $(DESTDIR)/boot/start_x.elf
 	@rm -f $(DESTDIR)/boot/kernel7.img
-
+	@rm -f $(DESTDIR)/boot/minimyth.conf

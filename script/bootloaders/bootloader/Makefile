@@ -115,8 +115,6 @@ ifneq (,$(findstring board-x86pc.bios_efi64,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-x86pc.bios_efi64
 endif
 
-	@cp -f $(mm_HOME)/html/minimyth/conf/minimyth.conf $(DESTDIR)/boot/
-
 clean-all:
 	@$(foreach dir, $(wildcard ../u-boot ../u-boot-* ../board-* ../arm-trusted-firmware* ../crust), $(MAKE) clean clean-all -C $(dir) ; )
 	$(MAKE) clean

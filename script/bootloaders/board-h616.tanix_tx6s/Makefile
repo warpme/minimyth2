@@ -8,6 +8,7 @@ DISTFILES    = \
                h616-boot-debug.txt \
                h616-boot.scr       \
                h616-boot.txt       \
+               minimyth.conf       \
 
 # using orangepi_zero2_defconfig as uboot-h616 don't have yet dedicated defconfig for tx6s
 export mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
@@ -36,8 +37,10 @@ install-custom:
 	@mkdir -p $(DESTDIR)/boot/h616loaderfiles
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/h616/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
 		  $(DESTDIR)/boot/h616loaderfiles/u-boot-sunxi-with-spl.bin
+	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
 	@rm -f  $(DESTDIR)/boot/boot-debug.scr
 	@rm -f  $(DESTDIR)/boot/boot.scr
 	@rm -rf $(DESTDIR)/boot/h616loaderfiles*
+	@rm -f  $(DESTDIR)/boot/minimyth.conf

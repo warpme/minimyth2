@@ -3,7 +3,7 @@ GARNAME      = bootfiles-x86pc.efi64
 GARVERSION   = 2020-03-15
 CATEGORIES   = bootloaders
 MASTER_SITES = 
-DISTFILES    = 
+DISTFILES    = minimyth.conf
 
 WORKSRC      = $(WORKDIR)
 
@@ -23,6 +23,8 @@ include ../../gar.mk
 install-custom:
 	@mkdir -p $(DESTDIR)/boot/
 	@cp $(build_libdir)/grub/x86_64-efi/core.efi $(DESTDIR)/boot/grub-efi-bootx64.efi
+	@cp -f $(WORKSRC)/minimyth.conf              $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/grub-efi-bootx64.efi
+	@rm -f $(DESTDIR)/boot/minimyth.conf

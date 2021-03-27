@@ -16,6 +16,7 @@ DISTFILES    = config.txt             \
                start4.elf             \
                start4x.elf            \
                bcm2711-rpi-4-b.dtb    \
+               minimyth.conf          \
 
 WORKSRC      = $(WORKDIR)
 
@@ -54,6 +55,7 @@ install-custom:
 	@# uncomment to use kernel DTBs
 	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2711-rpi-4-b.dtb $(DESTDIR)/boot/bcm2711-rpi-4-b.dtb
 	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi4/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img $(DESTDIR)/boot/kernel8.img
+	@cp -f $(WORKSRC)/minimyth.conf       $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/boot.scr
@@ -70,3 +72,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/start4x.elf
 	@rm -f $(DESTDIR)/boot/bcm2711-rpi-4-b.dtb
 	@rm -f $(DESTDIR)/boot/kernel8.img
+	@rm -f $(DESTDIR)/boot/minimyth.conf

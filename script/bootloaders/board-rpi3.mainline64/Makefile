@@ -15,6 +15,7 @@ DISTFILES    = rpi3-boot.scr       \
                start_cd.elf        \
                start.elf           \
                start_x.elf         \
+               minimyth.conf       \
 
 export mm_U-BOOT_BOARD_TYPE = rpi_3_defconfig
 
@@ -50,6 +51,7 @@ install-custom:
 	@cp -f $(WORKSRC)/start_cd.elf        $(DESTDIR)/boot/start_cd.elf
 	@cp -f $(WORKSRC)/start_x.elf         $(DESTDIR)/boot/start_x.elf
 	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img $(DESTDIR)/boot/kernel8.img
+	@cp -f $(WORKSRC)/minimyth.conf       $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/bootcode.bin
@@ -64,3 +66,4 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/start_cd.elf
 	@rm -f $(DESTDIR)/boot/start_x.elf
 	@rm -f $(DESTDIR)/boot/kernel8.img
+	@rm -f $(DESTDIR)/boot/minimyth.conf

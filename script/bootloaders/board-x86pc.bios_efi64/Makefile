@@ -3,7 +3,7 @@ GARNAME      = board-x86pc.bios_efi64
 GARVERSION   = 2020-03-15
 CATEGORIES   = bootloaders
 MASTER_SITES = 
-DISTFILES    = 
+DISTFILES    = minimyth.conf
 
 WORKSRC      = $(WORKDIR)
 
@@ -30,6 +30,7 @@ install-custom:
 	@cp -f $(build_datadir)/syslinux/gptmbr.bin     $(DESTDIR)/boot/syslinux/gptmbr.bin
 	@cp -f $(build_datadir)/syslinux/vesamenu.c32   $(DESTDIR)/boot/syslinux/vesamenu.c32
 	@cp -f $(build_libdir)/grub/x86_64-efi/core.efi $(DESTDIR)/boot/grub-efi-bootx64.efi
+	@cp -f $(WORKSRC)/minimyth.conf                 $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
 	@rm -rf $(DESTDIR)/boot/syslinux*
@@ -40,3 +41,4 @@ clean-all:
 	@rm -f  $(DESTDIR)/boot/syslinux/gptmbr.bin
 	@rm -f  $(DESTDIR)/boot/syslinux/vesamenu.c32
 	@rm -f  $(DESTDIR)/boot/grub-efi-bootx64.efi
+	@rm -f  $(DESTDIR)/boot/minimyth.conf
