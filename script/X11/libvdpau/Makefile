@@ -1,9 +1,10 @@
-GARNAME = libvdpau
-GARVERSION = 1.2
-CATEGORIES = $(CATEGORY)
-MASTER_SITES = https://gitlab.freedesktop.org/vdpau/libvdpau/uploads/14b620084c027d546fa0b3f083b800c6/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = MIT
+
+GARNAME      = libvdpau
+GARVERSION   = 1.4
+CATEGORIES   = $(CATEGORY)
+MASTER_SITES = https://gitlab.freedesktop.org/vdpau/libvdpau/-/archive/$(GARVERSION)/
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = MIT
 
 DESCRIPTION = 
 define BLURB
