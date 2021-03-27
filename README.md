@@ -69,8 +69,8 @@ Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                    | wor
 Amlogic s905  | TanixTX3-Mini    | not works  (sv6051@SDIO no driver aval) | not works (kernel bug) | not works (firmware issue)     | support stalled               |
 Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)       | not works (kernel bug) | not works (firmware issue)     | support stalled               |
 Amlogic sm1   | x96Air           | works  (rtl8189@SDIO                    | not works (kernel bug) | not works (firmware issue)     | support stalled               |
-Broadcom 2837 | Rpi3-b           | works  (brcm43430@SDIO)                 | works                  | not works (not implmented yet) | good prospects                |
-Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                  | works                  | not works (not implmented yet) | good prospects                |
+Broadcom 2837 | Rpi3-b           | works  (brcm43430@SDIO)                 | works                  | not works (not implmented yet) | all basics works nicelly      |
+Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                  | works                  | not works (not implmented yet) | all basics works nicelly      |
 x86_64        | i5 NUC           | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
 x86_64        | Beelink BT4      | works  (ac3165@PCI-e)                   | n/a                    | works (s1idle)                 | perfect support               |
 x86_64        | AMD Kabini       | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
@@ -79,7 +79,7 @@ x86_64        | ION2             | n/a                                     | n/a
 ### Hardware Video Decode support
 This is video related functionality avaliable on current code (Linux kernel + Mesa + MythTV)
 At this moment quality of playback is good for technology preview. 
-It is __not ready yet to daily usage__ as H.264 playback seek on v4l2_request platforms not works correctly yet.
+On some platforms it is __not ready to daily usage__ as H.264 playback seek on v4l2_request platforms not works correctly yet.
 Note: seek issue is only with H.264 v4l2_request. MPEG2/HEVC/VP8/VP9 seek works ok :-)
 SoC           | Tested on                                    | Decoder/API                           | Currently supported video decode HW.accel  | Screen drawing      | Video rendering                     | Remarks                                              |
 ------------- |----------------------------------------------|---------------------------------------|--------------------------------------------|---------------------|-------------------------------------|------------------------------------------------------|
