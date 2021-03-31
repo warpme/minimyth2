@@ -11,9 +11,9 @@ WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
 ifeq (1,1)
-# Sunxi custodians 20.02.2021
-GARNAME      = u-boot-h616-20210220
-GARVERSION   = e036a1d227112565cdf32b5558ac6ccaf5d1633f
+# Sunxi custodians 31.03.2021
+GARNAME      = u-boot-h616-20210331
+GARVERSION   = 62acef239f77583f3083f8c842ea2d28f4a1623c
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = $(GARVERSION).zip
