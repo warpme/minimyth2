@@ -115,6 +115,8 @@ PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 # Video BT2020 support. From LE 19.01.2021
 PATCHFILES += 0538-drm-sun4i-Add-support-for-BT2020-to-DE3.patch
+# fix CEC on GS1
+PATCHFILES += 0539-arm64-dts-allwinner-fix-cec-on-beelink-GS1.patch
 # Crust support from LE 17.01.2021
 PATCHFILES += 0551-allwinner-add-crust-support.patch
 PATCHFILES += 0552-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
