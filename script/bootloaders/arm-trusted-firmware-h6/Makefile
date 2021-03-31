@@ -1,11 +1,9 @@
 
-GARNAME      = arm-trusted-firmware-20201117-h6
-# mainline v2.4 GA 17.11.2020
-GARVERSION   = e2c509a39c6cc4dda8734e6509cdbe6e3603cdfc
+GARNAME      = arm-trusted-firmware-20210330-h6
+# mainline master 30.03.2021
+GARVERSION   = 8078b5c5a0c2a47710df96412d88df53486e2b29
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/ARM-software/arm-trusted-firmware/archive/
-PATCHFILES   = 0001-sunxi-Don-t-enable-referenced-regulators.patch
-PATCHFILES  += 0002-allwinner-psci-Improve-system-shutdown-reset-sequenc.patch
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/arm-trusted-firmware-$(GARVERSION)
 
