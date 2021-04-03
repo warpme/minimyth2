@@ -18,7 +18,7 @@ PATCHFILES += 0003-SCR-keep-disecq-always-18V.patch
 PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
 PATCHFILES += 0005-EIT-ticket9480-fix-PL-eit-encodings.patch
 PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
-PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
+#PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
 #PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
 # Solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
 PATCHFILES += 0010-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
@@ -56,21 +56,6 @@ PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
 PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 
-# v4l2-request support in ffmpeg
-# https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-master
-PATCHFILES += 0151-ffmpeg-v4l2request-avutil-add-av_buffer_pool_flush.patch
-PATCHFILES += 0152-ffmpeg-v4l2request-Add-common-V4L2-request-API-code.patch
-PATCHFILES += 0153-ffmpeg-v4l2request-Add-V4L2-request-API-mpeg2-hwaccel.patch
-PATCHFILES += 0154-ffmpeg-v4l2request-Add-V4L2-request-API-h264-hwaccel.patch
-PATCHFILES += 0155-ffmpeg-v4l2request-Add-V4L2-request-API-hevc-hwaccel.patch
-PATCHFILES += 0156-ffmpeg-v4l2request-Add-V4L2-request-API-vp8-hwaccel.patch
-PATCHFILES += 0157-ffmpeg-v4l2request-Add-and-use-private-linux-headers-for-V4L2-request-A.patch
-PATCHFILES += 0158-ffmpeg-v4l2request-hwcontext_drm-do-not-require-drm-device.patch
-PATCHFILES += 0159-ffmpeg-v4l2request-avcodec-h264-parse-idr_pic_id.patch
-PATCHFILES += 0160-ffmpeg-v4l2request-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
-PATCHFILES += 0161-ffmpeg-v4l2request-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
-PATCHFILES += 0162-ffmpeg-v4l2request-WIP-v4l2-request-rolling-timestamps.patch
-PATCHFILES += 0163-configure-add-v4l2request-support.patch
 # misc v4l2 patches
 # https://github.com/FFmpeg/FFmpeg/commit/8a8966295fbc9278042f4be76b795fea39f9a810
 PATCHFILES += 0164-ffmpeg-avcodec-v4l2_context-Use-AVERROR-macro.patch
@@ -292,12 +277,6 @@ INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
-
-ifneq (,$(findstring rpi,$(mm_KERNEL_VERSION)))
-CONFIGURE_ARGS += --disable-v4l2request
-else
-CONFIGURE_ARGS += --enable-v4l2request
-endif
 
 CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
