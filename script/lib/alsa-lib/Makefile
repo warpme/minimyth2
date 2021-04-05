@@ -7,8 +7,6 @@ MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
 # amlogic patches https://github.com/chewitt/alsa-lib/commits/amlogic
 PATCHFILES    = $(DISTNAME)-add-Amlogic-cards.patch
 PATCHFILES   += $(DISTNAME)-add-rpi4-support.patch
-PATCHFILES   += $(DISTNAME)-missing_files.patch
-PATCHFILES   += $(DISTNAME)-pcm-iec958-amlogic-dw-hdmi-changes.patch
 DISTFILES     = $(DISTNAME).tar.bz2
 LICENSE       = LGPL2_1
 
@@ -26,25 +24,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
 	--disable-static \
 	--enable-shared \
-	--enable-symbolic-functions \
-	--disable-debug-assert \
-	--enable-aload \
-	--disable-resmgr \
-	--enable-mixer \
-	--enable-pcm \
-	--enable-rawmidi \
-	--enable-hwdep \
-	--enable-seq \
-	--enable-alisp \
-	--disable-old-symbols \
-	--disable-python \
-	--with-gnu-ld \
-	--with-versioned \
-	--without-debug \
-	--with-tmpdir="$(rootdir)/tmp" \
-	--with-alsa-devdir="$(rootdir)/dev/snd" \
-	--with-aload-devdir="$(rootdir)/dev" \
-	--disable-alsaconf
 
 include ../../gar.mk
 
