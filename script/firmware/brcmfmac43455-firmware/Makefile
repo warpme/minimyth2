@@ -1,5 +1,5 @@
 
-GARNAME      = brcmfmac-firmware-nonfree
+GARNAME      = brcmfmac43455-firmware
 # Git master from 25.01.2021
 GARVERSION   = master
 CATEGORIES   = firmware
@@ -19,8 +19,8 @@ INSTALL_SCRIPTS = custom
 include ../../gar.mk
 
 install-custom:
-	@cp -Rdf $(WORKSRC)/brcm/* $(DESTDIR)$(elibdir)/firmware/brcm/
+	@cp -Rdf $(WORKSRC)/brcm/brcmfmac43455* $(DESTDIR)$(elibdir)/firmware/brcm/
 	@$(MAKECOOKIE)
 
 clean-all:
-	@true
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455*

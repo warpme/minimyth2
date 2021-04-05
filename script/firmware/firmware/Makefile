@@ -12,10 +12,10 @@ DEPENDS = \
 	firmware/wireless-regdb         \
 	firmware/xr819-firmware         \
 	firmware/qca9377-firmware       \
-	firmware/brcmfmac_sdio-firmware \
-	firmware/brcmfmac_sdio-openwrt-firmware \
+	firmware/brcmfmac43456-firmware \
+	firmware/brcmfmac43430-firmware \
+	firmware/brcmfmac43455-firmware \
 	firmware/bluez-firmware-rpi     \
-	firmware/brcmfmac-firmware-nonfree \
 	firmware/linux-firmware-meson   \
 
 include ../../gar.mk
@@ -28,17 +28,17 @@ clean-all:
 	@$(MAKE) clean     -C ../wireless-regdb
 	@$(MAKE) clean     -C ../xr819-firmware
 	@$(MAKE) clean     -C ../qca9377-firmware
-	@$(MAKE) clean     -C ../brcmfmac_sdio-firmware
-	@$(MAKE) clean     -C ../brcmfmac_sdio-openwrt-firmware
+	@$(MAKE) clean     -C ../brcmfmac43456-firmware
+	@$(MAKE) clean     -C ../brcmfmac43430-firmware
+	@$(MAKE) clean     -C ../brcmfmac43455-firmware
 	@$(MAKE) clean     -C ../bluez-firmware-rpi
-	@$(MAKE) clean     -C ../brcmfmac-firmware-nonfree
 	@$(MAKE) clean     -C ../linux-firmware-meson
 	@$(MAKE) clean-all -C ../alsa-sof-firmware
 	@$(MAKE) clean-all -C ../wireless-regdb
 	@$(MAKE) clean-all -C ../xr819-firmware
 	@$(MAKE) clean-all -C ../qca9377-firmware
-	@$(MAKE) clean-all -C ../brcmfmac_sdio-firmware
-	@$(MAKE) clean-all -C ../brcmfmac_sdio-openwrt-firmware
+	@$(MAKE) clean-all -C ../brcmfmac43456-firmware
+	@$(MAKE) clean-all -C ../brcmfmac43430-firmware
 	@$(MAKE) clean-all -C ../bluez-firmware-rpi
-	@$(MAKE) clean-all -C ../brcmfmac-firmware-nonfree
+	@$(MAKE) clean-all -C ../brcmfmac43455-firmware
 	@$(MAKE) clean-all -C ../linux-firmware-meson
