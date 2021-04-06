@@ -2,22 +2,11 @@
 GARNAME      = ffmpeg
 CATEGORIES   = lib
 
-GARVERSION   = 4.3.1
+GARVERSION   = 4.3.2
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES    = $(DISTNAME).tar.bz2
 PATCHFILES   = ffmpeg-fix-building-with-lto.patch
-
-ifeq (1,1)
-# https://github.com/jernejsk/LibreELEC.tv/tree/69fae8524b9ef02cd2e3415ece1ae01dfc2b5426/packages/multimedia/ffmpeg/patches 29.10.2020
-PATCHFILES += ffmpeg-add-v4l2-drmprime.patch
-PATCHFILES += ffmpeg-add-v4l2_request.patch
-PATCHFILES += ffmpeg-libavcodec-hevc-add-rkvdec-fields.patch
-# h6 hardware DI support
-PATCHFILES += ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel-1.patch
-PATCHFILES += ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel-2.patch
-endif
-
-LICENSE = GPL2/LGPL2_1
+LICENSE      = GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -111,9 +100,6 @@ CONFIGURE_ARGS = \
 	--enable-optimizations \
 	--pkg-config="pkg-config" \
 	--enable-libdrm \
-	--enable-libudev \
-	--enable-v4l2-m2m \
-	--enable-v4l2_request \
 
 BUILD_ARGS     = \
 	V='0'
