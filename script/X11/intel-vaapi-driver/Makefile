@@ -35,5 +35,5 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/va/i965_drv_video.la
+	@rm -f $(DESTDIR)$(libdir)/i965_drv_video.la
 	@$(MAKECOOKIE)

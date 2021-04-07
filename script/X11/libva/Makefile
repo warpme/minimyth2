@@ -27,7 +27,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-dummy-driver \
 	--disable-static \
 	--enable-shared \
-	--with-drivers-path="$(libdir)/va" \
+	--with-drivers-path="$(libdir)" \
 	--with-gnu-ld
 
 include ../../gar.mk

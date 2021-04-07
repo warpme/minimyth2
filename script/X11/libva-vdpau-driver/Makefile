@@ -36,6 +36,6 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/va/vdpau_drv_video.la
-	@ln -s $(DESTDIR)$(libdir)/va/vdpau_drv_video.so $(DESTDIR)$(libdir)/va/r600_drv_video.so
+	@rm -f $(DESTDIR)$(libdir)/vdpau_drv_video.la
+	@ln -s $(DESTDIR)$(libdir)/vdpau_drv_video.so $(DESTDIR)$(libdir)/r600_drv_video.so
 	@$(MAKECOOKIE)

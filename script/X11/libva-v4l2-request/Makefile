@@ -31,8 +31,8 @@ pre-configure:
 
 post-install:
 	@rm -rf $(DESTDIR)$(libdir)/dri/v4l2_request_drv_video.la
-	@mkdir -p $(DESTDIR)$(libdir)/va
-	@mv $(DESTDIR)$(libdir)/dri/v4l2_request_drv_video.so $(DESTDIR)$(libdir)/va/v4l2_request_drv_video.so
+	@mkdir -p $(DESTDIR)$(libdir)
+	@mv $(DESTDIR)$(libdir)/dri/v4l2_request_drv_video.so $(DESTDIR)$(libdir)/v4l2_request_drv_video.so
 
 clean-all:
-	@rm -rf $(DESTDIR)$(libdir)/va/v4l2_request_drv_video.so
+	@rm -rf $(DESTDIR)$(libdir)/v4l2_request_drv_video.so
