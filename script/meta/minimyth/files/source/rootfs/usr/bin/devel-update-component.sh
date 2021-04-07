@@ -83,6 +83,9 @@ file_list2=" \
 /usr/lib/libgbm.so*:/usr/lib/ \
 /usr/lib/libGLESv2.so*:/usr/lib/ \
 /usr/lib/libGLESv1_CM.so*:/usr/lib/ \
+/usr/lib/libvdpau_r*:/usr/lib/ \
+/usr/lib/radeonsi_drv_video.so*:/usr/lib/ \
+/usr/lib/r600_drv_video.so*:/usr/lib/ \
 "
 epilog_cmd2="mm_manage restart_xserver"
 #--------------------------
