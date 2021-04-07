@@ -1,26 +1,11 @@
 
 GARNAME      = mesa
-
-ifeq (1,1)
-# MESA 21.0.0-rc3
-GARVERSION   = 21.0.0-rc3
+GARVERSION   = 21.0.1
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
+MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
+PATCHFILES   = fix-compile-softfp-abi-on-arm-target.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
-endif
-
-ifeq (0,1)
-# Mainline MESA GIT for testing (snapshot from 6.11.2020)
-GARVERSION   = 6a96729448738476ddb126692311d3b0af7ec4a6
-CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
-DISTFILES    = mesa-$(DISTNAME).tar.bz2
-PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
-endif
-
-LICENSE = LGPL2/MIT
 
 DESCRIPTION = 
 define BLURB
@@ -65,11 +50,13 @@ CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
 INSTALL_SCRIPTS    = meson
 
+include ../../gar.mk
+
 CONFIGURE_ARGS = $(DIRPATHS_MESON) \
 	--buildtype=release \
 	-D dri-search-path="/usr/lib/dri" \
-	-D va-libs-path="$(libdir)/va" \
-	-D vdpau-libs-path="$(libdir)/vdpau" \
+	-D va-libs-path="$(libdir)" \
+	-D vdpau-libs-path="$(libdir)" \
 	-D shared-glapi=true \
 	-D shared-llvm=enabled \
 	-D gbm=enabled \
@@ -115,8 +102,6 @@ CONFIGURE_ARGS += \
 	-D llvm=enabled
 endif
 endif
-
-include ../../gar.mk
 
 post-install:
 	@files="dri.pc egl.pc gbm.pc gl.pc glesv1_cm.pc glesv2.pc" ; \
@@ -355,16 +340,10 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_swrast*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_radeonsi*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_vmwgfx*
-	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_r300*
-	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_r600*
-	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_radeonsi*
-	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_softpipe*
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_r300*
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_r600*
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_radeonsi*
 	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe*
-	@rm -f $(DESTDIR)$(libdir)/va/radeonsi_drv_video.so*
-	@rm -f $(DESTDIR)$(libdir)/va/r600_drv_video.so*
 	@rm -f $(DESTDIR)$(libdir)/radeonsi_drv_video.so*
 	@rm -f $(DESTDIR)$(libdir)/r600_drv_video.so*
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/d3d.pc
