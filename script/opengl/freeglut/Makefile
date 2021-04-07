@@ -17,7 +17,6 @@ DEPENDS = lang/c \
 	xorg/libXxf86vm \
 	opengl/glu \
 	$(if $(filter mesa,$(mm_OPENGL_PROVIDER)),opengl/mesa) \
-	$(if $(filter lima,$(mm_OPENGL_PROVIDER)),opengl/mesa-lima) \
 
 PWD := $(shell pwd)
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))

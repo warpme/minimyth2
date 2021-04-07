@@ -124,8 +124,7 @@ mm-all:
 	done
 	@echo "    mm_OPENGL_PROVIDER"
 	@for opengl in $(mm_OPENGL_PROVIDER) ; do \
-		if [ ! "$${opengl}" = "lima"            ] && \
-		   [ ! "$${opengl}" = "mali450-dummy"   ] && \
+		if [ ! "$${opengl}" = "mali450-dummy"   ] && \
 		   [ ! "$${opengl}" = "mali450-fbdev"   ] && \
 		   [ ! "$${opengl}" = "mali450-wayland" ] && \
 		   [ ! "$${opengl}" = "mali450-x11"     ] && \
