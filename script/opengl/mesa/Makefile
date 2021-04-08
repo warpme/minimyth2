@@ -1,10 +1,10 @@
 
 GARNAME      = mesa
-GARVERSION   = 21.0.2
+GARVERSION   = 20.3.5
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-PATCHFILES   = fix-compile-softfp-abi-on-arm-target.patch
+PATCHFILES   = meson-use-softfp-abi-vc4-v3d-tilling.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 
 DESCRIPTION = 
