@@ -98,8 +98,11 @@ PATCHFILES += 0525-media-cedrus-add-check-for-H264-and-HEVC-limitations.patch
 # add VC1 decode support
 # https://github.com/jernejsk/linux-1/commits/vc1
 PATCHFILES += 0526-media-cedrus-add-VC1-decode-support.patch
+# fix hevc decode on some samples
+PATCHFILES += 0527-media-cedrus-Fix-HEVC-status-macros.patch
+PATCHFILES += 0528-media-cedrus-wip-hevc-dependent-flag.patch
 # From LE 19.01.2021
-PATCHFILES += 0528-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
+PATCHFILES += 0529-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 # Adding support for MFD devices on some H6 boards
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
@@ -171,6 +174,11 @@ PATCHFILES += 0902-drm-vc4-hdmi-Add-CEC-support-for-the-BCM2711.patch
 PATCHFILES += 0903-rpi-vc04_services-add_h264_v4l2-m2m_decode-14032021.patch
 # add H265 rpivid driver (not works)
 PATCHFILES += 0904-media-add-rpivid-14032021.patch
+# https://github.com/raspberrypi/linux/pull/4238/commits
+PATCHFILES += 0905-staging-bcm2835-camera-Add-support-for-H264-levels-4.1-and-4.2.patch
+PATCHFILES += 0906-staging-bcm2835-codec-Pass-corrupt-frame-flag.patch
+PATCHFILES += 0907-staging-bcm2835-codec-Set-colourspace-appropriat-for-RGB-fmt.patch
+PATCHFILES += 0908-staging-bcm2835-codec-Fix-support-for-levels-4.1-and-4.2.patch
 endif
 #------------------------------------------------------------
 
