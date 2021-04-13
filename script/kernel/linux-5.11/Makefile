@@ -150,13 +150,20 @@ PATCHFILES += 0703-arm64-dts-rockchip-enable-rkvdec-on-rk3328.patch
 # https://github.com/knaerzche/linux/commit/68c947da3affcfdf48699008b5869325e15bfdcd
 PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
 # Add hvec support for Rockchip rkvdec
+# update rkvdec to code from https://github.com/knaerzche/linux/commits/v5.10.26-rk-10-bit
 PATCHFILES += 0706-media-uapi-add-rkvdec-hevc-support.patch
 PATCHFILES += 0707-media-rkvdec-add-hevc-support.patch
 # Support for 4k modes
-# https://github.com/Kwiboo/linux-rockchip/commits/v5.10.1-drm-rockchip-hack 17.12.2020
 PATCHFILES += 0711-drm-rockchip-add-4k-videomodes-support.patch
-# add HW deinterlace support for 3228/3328/3399
-PATCHFILES += 0713-media-rockchip-add-hw-deinterlace-support.patch
+# enhacements from https://github.com/knaerzche/linux/commits/v5.10.26-rk-10-bit
+PATCHFILES += 0712-media-rockchip-add-hw-deinterlace-support.patch
+PATCHFILES += 0713-arm64-dts-rockchip-enable-iep-on-rk3328-rk3399.patch
+PATCHFILES += 0714-arm64-dts-add-enable-spdif-on-rk3328.patch
+PATCHFILES += 0715-phy-rockchip-add-rockchip-usb3-innosilicon-phy-drive.patch
+PATCHFILES += 0716-usb-dwc3-add-rockchip-innosilicon-usb3-glue-layer.patch
+PATCHFILES += 0717-arm64-dts-add-enable-usb3-on-rk3328.patch
+PATCHFILES += 0718-arm64-dts-rockchip-disable-rkvdec_iommu_reset-rk3328-rk3399.patch
+PATCHFILES += 0720-arm64-dts-enable-dwmmc-on-rk3328.patch
 endif
 #------------------------------------------------------------
 
