@@ -36,6 +36,9 @@ PATCHFILES += linux-5.11-vgaarb-add-3D-accell-detection.patch
 
 ifeq (1,1)
 
+# Add hevc v4l2_request crtl fields used by Allwinner/Rockchip/Broadcom
+PATCHFILES += 0101-include-media-hevc-uapi-add-aw-rk-brcm-fields.patch
+
 ifeq (1,1)
 # Misc panfrost patches for 5.11 kernel
 PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
@@ -87,7 +90,6 @@ PATCHFILES += 0514-arm64-dts-enable-audio-gs1.patch
 # Cedrus patches From LE 19.01.2021
 PATCHFILES += 0516-media-uapi-hevc-Add-scaling-matrix-control.patch
 PATCHFILES += 0517-media-cedrus-hevc-Add-support-for-scaling-matrix.patch
-PATCHFILES += 0518-media-uapi-hevc-Add-segment-address-field.patch
 PATCHFILES += 0519-media-cedrus-hevc-Add-support-for-multiple-slices.patch
 PATCHFILES += 0520-media-cedrus-hevc-tiles-hack.patch
 PATCHFILES += 0521-media-cedrus-Add-callback-for-buffer-cleanup.patch
@@ -151,7 +153,6 @@ PATCHFILES += 0703-arm64-dts-rockchip-enable-rkvdec-on-rk3328.patch
 PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
 # Add hvec support for Rockchip rkvdec
 # update rkvdec to code from https://github.com/knaerzche/linux/commits/v5.10.26-rk-10-bit
-PATCHFILES += 0706-media-uapi-add-rkvdec-hevc-support.patch
 PATCHFILES += 0707-media-rkvdec-add-hevc-support.patch
 # Support for 4k modes
 PATCHFILES += 0711-drm-rockchip-add-4k-videomodes-support.patch
