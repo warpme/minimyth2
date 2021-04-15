@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 21.0.2
+GARVERSION   = 21.1.0-rc1
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -90,7 +90,7 @@ CONFIGURE_ARGS += \
 	-D platforms=x11,wayland \
 	-D gallium-vdpau=disabled \
 	-D gallium-xa=disabled \
-	-D llvm=disabled
+	-D llvm=enabled
 else
 CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
