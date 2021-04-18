@@ -1,19 +1,9 @@
-CATEGORIES = $(CATEGORY)
 
-ifeq (1,1)
+CATEGORIES = $(CATEGORY)
 GARNAME      = libdrm
-GARVERSION   = 2.4.104
+GARVERSION   = 2.4.105
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES    = $(DISTNAME).tar.xz
-endif
-
-ifeq (0,1)
-# https://github.com/bootlin/libdrm-sun4i/commits/master
-GARNAME      = libdrm-sun4i
-GARVERSION   = f833c88eaa19f1904e757dd4f26f03819a68421b
-MASTER_SITES = https://github.com/bootlin/libdrm-sun4i/archive/
-DISTFILES    = $(GARVERSION).zip
-endif
 
 LICENSE = MIT
 
