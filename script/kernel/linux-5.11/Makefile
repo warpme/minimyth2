@@ -76,6 +76,9 @@ PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 # Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic HW I have
 PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
+# Fixes cec on AML when dw-hdmi cec for aw/rk is enabled
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=468401
+PATCHFILES += 0380-drm-dw-hdmi-disable-loading-DW-HDMI-CEC-sub-driver-on-some-SoC.patch
 endif
 #------------------------------------------------------------
 
