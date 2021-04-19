@@ -90,7 +90,7 @@ Amlogic s905  | TanixTX3-Mini                                | vdec/v4l2_m2m    
 Amlogic s912  | Beelink GT1                                  | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek on v4l2_request H.264 not works
 Amlogic sm1   | x96Air                                       | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek on v4l2_request H.264 not works, artefacts on H.264
 Broadcom 2837 | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | MPEG4, H.264                               | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek on v4l2_m2m H.264 jumpy
-Broadcom 2711 | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek on v4l2_m2m H.264 jumpy, HEVC not works yet
+Broadcom 2711 | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek on v4l2_m2m H.264 jumpy
 x86_64        | i5 NUC, Beelink BT4, AMD Kabini, ION2        | VAAPI, VDPAU, NvDEC                   | MPEG2, MPEG4, H.264, HVEC                  | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Perfect playback
 
 ### Video Decoding Test results
