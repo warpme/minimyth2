@@ -1,15 +1,65 @@
-diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/Makefile linux-5.10-rc3-new/drivers/staging/media/rkvdec/Makefile
---- linux-5.10-rc3-old/drivers/staging/media/rkvdec/Makefile	2020-11-09 20:55:59.346666665 +0100
-+++ linux-5.10-rc3-new/drivers/staging/media/rkvdec/Makefile	2020-11-09 20:57:50.146666642 +0100
+diff -Naur linux-5.11.15-old/drivers/soc/rockchip/pm_domains.c linux-5.11.15-new/drivers/soc/rockchip/pm_domains.c
+--- linux-5.11.15-old/drivers/soc/rockchip/pm_domains.c	2021-04-16 11:38:15.000000000 +0200
++++ linux-5.11.15-new/drivers/soc/rockchip/pm_domains.c	2021-04-19 18:04:48.049999896 +0200
+@@ -196,6 +196,29 @@
+ 	return 0;
+ }
+ 
++int rockchip_pmu_idle_request(struct device *dev, bool idle)
++{
++	struct generic_pm_domain *genpd;
++	struct rockchip_pm_domain *pd;
++	int ret;
++
++	if (IS_ERR_OR_NULL(dev))
++		return -EINVAL;
++
++	if (IS_ERR_OR_NULL(dev->pm_domain))
++		return -EINVAL;
++
++	genpd = pd_to_genpd(dev->pm_domain);
++	pd = to_rockchip_pd(genpd);
++
++	mutex_lock(&pd->pmu->mutex);
++	ret = rockchip_pmu_set_idle_request(pd, idle);
++	mutex_unlock(&pd->pmu->mutex);
++
++	return ret;
++}
++EXPORT_SYMBOL(rockchip_pmu_idle_request);
++
+ static int rockchip_pmu_save_qos(struct rockchip_pm_domain *pd)
+ {
+ 	int i;
+diff -Naur linux-5.11.15-old/drivers/staging/media/rkvdec/Makefile linux-5.11.15-new/drivers/staging/media/rkvdec/Makefile
+--- linux-5.11.15-old/drivers/staging/media/rkvdec/Makefile	2021-04-19 21:10:19.246666506 +0200
++++ linux-5.11.15-new/drivers/staging/media/rkvdec/Makefile	2021-04-19 21:11:50.593333155 +0200
 @@ -1,3 +1,3 @@
  obj-$(CONFIG_VIDEO_ROCKCHIP_VDEC) += rockchip-vdec.o
  
 -rockchip-vdec-y += rkvdec.o rkvdec-h264.o rkvdec-vp9.o
 +rockchip-vdec-y += rkvdec.o rkvdec-h264.o rkvdec-hevc.o rkvdec-vp9.o
-diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec.c linux-5.10-rc3-new/drivers/staging/media/rkvdec/rkvdec.c
---- linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec.c	2020-11-09 20:55:59.349999999 +0100
-+++ linux-5.10-rc3-new/drivers/staging/media/rkvdec/rkvdec.c	2020-11-09 20:57:50.146666642 +0100
-@@ -76,6 +76,26 @@
+diff -Naur linux-5.11.15-old/drivers/staging/media/rkvdec/rkvdec.c linux-5.11.15-new/drivers/staging/media/rkvdec/rkvdec.c
+--- linux-5.11.15-old/drivers/staging/media/rkvdec/rkvdec.c	2021-04-19 21:10:19.246666506 +0200
++++ linux-5.11.15-new/drivers/staging/media/rkvdec/rkvdec.c	2021-04-19 20:46:11.183333173 +0200
+@@ -10,12 +10,16 @@
+  */
+ 
+ #include <linux/clk.h>
++#include <linux/delay.h>
+ #include <linux/interrupt.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
++#include <linux/of_device.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm.h>
+ #include <linux/pm_runtime.h>
++#include <linux/reset.h>
++#include <linux/rockchip_pmu.h>
+ #include <linux/slab.h>
+ #include <linux/videodev2.h>
+ #include <linux/workqueue.h>
+@@ -76,6 +80,26 @@
  		if (width > ctx->coded_fmt.fmt.pix_mp.width ||
  		    height > ctx->coded_fmt.fmt.pix_mp.height)
  			return -EINVAL;
@@ -36,7 +86,7 @@ diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec.c linux-5.10-r
  	}
  	return 0;
  }
-@@ -84,7 +104,7 @@
+@@ -84,7 +108,7 @@
  {
  	struct rkvdec_ctx *ctx = container_of(ctrl->handler, struct rkvdec_ctx, ctrl_hdl);
  
@@ -45,7 +95,18 @@ diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec.c linux-5.10-r
  		ctx->valid_fmt = rkvdec_valid_fmt(ctx, ctrl);
  		if (ctx->valid_fmt) {
  			struct v4l2_pix_format_mplane *pix_mp;
-@@ -159,6 +179,62 @@
+@@ -134,8 +158,8 @@
+ 	},
+ 	{
+ 		.cfg.id = V4L2_CID_MPEG_VIDEO_H264_PROFILE,
+-		.cfg.min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+-		.cfg.max = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
++		.cfg.min = V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
++		.cfg.max = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_422,
+ 		.cfg.menu_skip_mask =
+ 			BIT(V4L2_MPEG_VIDEO_H264_PROFILE_EXTENDED),
+ 		.cfg.def = V4L2_MPEG_VIDEO_H264_PROFILE_MAIN,
+@@ -159,6 +183,62 @@
  	V4L2_PIX_FMT_NV20,
  };
  
@@ -108,9 +169,9 @@ diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec.c linux-5.10-r
  static const struct rkvdec_ctrl_desc rkvdec_vp9_ctrl_descs[] = {
  	{
  		.mandatory = true,
-@@ -210,6 +286,21 @@
- 		.decoded_fmts = rkvdec_h264_decoded_fmts,
- 	},
+@@ -195,6 +275,22 @@
+ 
+ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
  	{
 +		.fourcc = V4L2_PIX_FMT_HEVC_SLICE,
 +		.frmsize = {
@@ -125,15 +186,386 @@ diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec.c linux-5.10-r
 +		.ops = &rkvdec_hevc_fmt_ops,
 +		.num_decoded_fmts = ARRAY_SIZE(rkvdec_hevc_decoded_fmts),
 +		.decoded_fmts = rkvdec_hevc_decoded_fmts,
++		.capability = RKVDEC_CAPABILITY_HEVC,
 +	},
 +	{
- 		.fourcc = V4L2_PIX_FMT_VP9_FRAME,
+ 		.fourcc = V4L2_PIX_FMT_H264_SLICE,
  		.frmsize = {
- 			.min_width = 64,
-diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec.h linux-5.10-rc3-new/drivers/staging/media/rkvdec/rkvdec.h
---- linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec.h	2020-11-09 20:55:59.349999999 +0100
-+++ linux-5.10-rc3-new/drivers/staging/media/rkvdec/rkvdec.h	2020-11-09 20:57:50.146666642 +0100
-@@ -124,6 +124,7 @@
+ 			.min_width = 48,
+@@ -208,6 +304,7 @@
+ 		.ops = &rkvdec_h264_fmt_ops,
+ 		.num_decoded_fmts = ARRAY_SIZE(rkvdec_h264_decoded_fmts),
+ 		.decoded_fmts = rkvdec_h264_decoded_fmts,
++		.capability = RKVDEC_CAPABILITY_H264,
+ 	},
+ 	{
+ 		.fourcc = V4L2_PIX_FMT_VP9_FRAME,
+@@ -223,16 +320,31 @@
+ 		.ops = &rkvdec_vp9_fmt_ops,
+ 		.num_decoded_fmts = ARRAY_SIZE(rkvdec_vp9_decoded_fmts),
+ 		.decoded_fmts = rkvdec_vp9_decoded_fmts,
+-	}
++		.capability = RKVDEC_CAPABILITY_VP9,
++	},
+ };
+ 
+ static const struct rkvdec_coded_fmt_desc *
+-rkvdec_find_coded_fmt_desc(u32 fourcc)
++rkvdec_default_coded_fmt_desc(unsigned int capabilities)
+ {
+ 	unsigned int i;
+ 
+ 	for (i = 0; i < ARRAY_SIZE(rkvdec_coded_fmts); i++) {
+-		if (rkvdec_coded_fmts[i].fourcc == fourcc)
++		if (rkvdec_coded_fmts[i].capability & capabilities)
++			return &rkvdec_coded_fmts[i];
++	}
++
++	return NULL;
++}
++
++static const struct rkvdec_coded_fmt_desc *
++rkvdec_find_coded_fmt_desc(u32 fourcc, unsigned int capabilities)
++{
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(rkvdec_coded_fmts); i++) {
++		if (rkvdec_coded_fmts[i].fourcc == fourcc &&
++		    (rkvdec_coded_fmts[i].capability & capabilities))
+ 			return &rkvdec_coded_fmts[i];
+ 	}
+ 
+@@ -255,7 +367,7 @@
+ {
+ 	struct v4l2_format *f = &ctx->coded_fmt;
+ 
+-	ctx->coded_fmt_desc = &rkvdec_coded_fmts[0];
++	ctx->coded_fmt_desc = rkvdec_default_coded_fmt_desc(ctx->dev->capabilities);
+ 	rkvdec_reset_fmt(ctx, f, ctx->coded_fmt_desc->fourcc);
+ 
+ 	f->type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
+@@ -282,11 +394,13 @@
+ 				  struct v4l2_frmsizeenum *fsize)
+ {
+ 	const struct rkvdec_coded_fmt_desc *fmt;
++	struct rkvdec_dev *rkvdec = video_drvdata(file);
+ 
+ 	if (fsize->index != 0)
+ 		return -EINVAL;
+ 
+-	fmt = rkvdec_find_coded_fmt_desc(fsize->pixel_format);
++	fmt = rkvdec_find_coded_fmt_desc(fsize->pixel_format,
++					 rkvdec->capabilities);
+ 	if (!fmt)
+ 		return -EINVAL;
+ 
+@@ -357,10 +471,11 @@
+ 	struct rkvdec_ctx *ctx = fh_to_rkvdec_ctx(priv);
+ 	const struct rkvdec_coded_fmt_desc *desc;
+ 
+-	desc = rkvdec_find_coded_fmt_desc(pix_mp->pixelformat);
++	desc = rkvdec_find_coded_fmt_desc(pix_mp->pixelformat,
++					  ctx->dev->capabilities);
+ 	if (!desc) {
+-		pix_mp->pixelformat = rkvdec_coded_fmts[0].fourcc;
+-		desc = &rkvdec_coded_fmts[0];
++		desc = rkvdec_default_coded_fmt_desc(ctx->dev->capabilities);
++		pix_mp->pixelformat = desc->fourcc;
+ 	}
+ 
+ 	v4l2_apply_frmsize_constraints(&pix_mp->width,
+@@ -422,7 +537,7 @@
+ 	struct v4l2_m2m_ctx *m2m_ctx = ctx->fh.m2m_ctx;
+ 	const struct rkvdec_coded_fmt_desc *desc;
+ 	struct v4l2_format *cap_fmt;
+-	struct vb2_queue *peer_vq;
++	struct vb2_queue *peer_vq, *vq;
+ 	int ret;
+ 
+ 	/*
+@@ -434,11 +549,21 @@
+ 	if (vb2_is_busy(peer_vq))
+ 		return -EBUSY;
+ 
++	/*
++	 * Some codecs like VP9 can contain dynamic resolution changes which
++	 * are currently not supported by the V4L2 API or driver, so return
++	 * an error if userspace tries to reconfigure the output format.
++	 */
++	vq = v4l2_m2m_get_vq(m2m_ctx, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
++	if (vb2_is_busy(vq))
++		return -EINVAL;
++
+ 	ret = rkvdec_s_fmt(file, priv, f, rkvdec_try_output_fmt);
+ 	if (ret)
+ 		return ret;
+ 
+-	desc = rkvdec_find_coded_fmt_desc(f->fmt.pix_mp.pixelformat);
++	desc = rkvdec_find_coded_fmt_desc(f->fmt.pix_mp.pixelformat,
++					  ctx->dev->capabilities);
+ 	if (!desc)
+ 		return -EINVAL;
+ 	ctx->coded_fmt_desc = desc;
+@@ -486,7 +611,10 @@
+ static int rkvdec_enum_output_fmt(struct file *file, void *priv,
+ 				  struct v4l2_fmtdesc *f)
+ {
+-	if (f->index >= ARRAY_SIZE(rkvdec_coded_fmts))
++	struct rkvdec_ctx *ctx = fh_to_rkvdec_ctx(priv);
++
++	if (f->index >= ARRAY_SIZE(rkvdec_coded_fmts) ||
++	    !(ctx->dev->capabilities & rkvdec_coded_fmts[f->index].capability))
+ 		return -EINVAL;
+ 
+ 	f->pixelformat = rkvdec_coded_fmts[f->index].fourcc;
+@@ -594,7 +722,9 @@
+ 	}
+ 
+ 	/*
+-	 * Buffer's bytesused is written by the driver for CAPTURE buffers.
++	 * Buffer bytesused is written by driver for CAPTURE buffers.
++	 * (if userspace passes 0 bytesused for OUTPUT buffers, v4l2-core sets
++	 * it to buffer length).
+ 	 */
+ 	if (!V4L2_TYPE_IS_OUTPUT(vq->type))
+ 		vb2_set_plane_payload(vb, 0, f->fmt.pix_mp.plane_fmt[0].sizeimage);
+@@ -780,8 +910,11 @@
+ 
+ 	pm_runtime_mark_last_busy(rkvdec->dev);
+ 	pm_runtime_put_autosuspend(rkvdec->dev);
+-	if (result == VB2_BUF_STATE_ERROR)
+-		rkvdec->soft_reset = true;
++
++	if (result == VB2_BUF_STATE_ERROR &&
++	    rkvdec->reset_mask == RESET_NONE)
++		rkvdec->reset_mask |= RESET_SOFT;
++
+ 	rkvdec_job_finish_no_pm(ctx, result);
+ }
+ 
+@@ -819,10 +952,33 @@
+ 
+ 	if (WARN_ON(!desc))
+ 		return;
++	if (rkvdec->reset_mask != RESET_NONE) {
++
++		if (rkvdec->reset_mask & RESET_SOFT) {
++			writel(RKVDEC_SOFTRST_EN_P,
++			       rkvdec->regs + RKVDEC_REG_INTERRUPT);
++			udelay(RKVDEC_RESET_DELAY);
++			if (readl(rkvdec->regs + RKVDEC_REG_INTERRUPT)
++			    & RKVDEC_SOFTRESET_RDY)
++				dev_info_ratelimited(rkvdec->dev,
++						      "softreset failed\n");
++		}
+ 
+-	if (rkvdec->soft_reset) {
+-		pm_runtime_suspend(rkvdec->dev);
+-		rkvdec->soft_reset = false;
++		if (rkvdec->reset_mask & RESET_HARD) {
++			pm_runtime_suspend(rkvdec->dev);
++			rockchip_pmu_idle_request(rkvdec->dev, true);
++			ret = reset_control_assert(rkvdec->rstc);
++			if (!ret) {
++				udelay(RKVDEC_RESET_DELAY);
++				ret = reset_control_deassert(rkvdec->rstc);
++			}
++			rockchip_pmu_idle_request(rkvdec->dev, false);
++			if (ret)
++				dev_notice_ratelimited(rkvdec->dev,
++							"hardreset failed\n");
++		}
++
++		rkvdec->reset_mask = RESET_NONE;
+ 	}
+ 
+ 	ret = pm_runtime_get_sync(rkvdec->dev);
+@@ -910,14 +1066,17 @@
+ 	int ret;
+ 
+ 	for (i = 0; i < ARRAY_SIZE(rkvdec_coded_fmts); i++)
+-		nctrls += rkvdec_coded_fmts[i].ctrls->num_ctrls;
++		if (rkvdec_coded_fmts[i].capability & ctx->dev->capabilities)
++			nctrls += rkvdec_coded_fmts[i].ctrls->num_ctrls;
+ 
+ 	v4l2_ctrl_handler_init(&ctx->ctrl_hdl, nctrls);
+ 
+ 	for (i = 0; i < ARRAY_SIZE(rkvdec_coded_fmts); i++) {
+-		ret = rkvdec_add_ctrls(ctx, rkvdec_coded_fmts[i].ctrls);
+-		if (ret)
+-			goto err_free_handler;
++		if (rkvdec_coded_fmts[i].capability & ctx->dev->capabilities) {
++			ret = rkvdec_add_ctrls(ctx, rkvdec_coded_fmts[i].ctrls);
++			if (ret)
++				goto err_free_handler;
++		}
+ 	}
+ 
+ 	ret = v4l2_ctrl_handler_setup(&ctx->ctrl_hdl);
+@@ -1091,6 +1250,11 @@
+ 	if (cancel_delayed_work(&rkvdec->watchdog_work)) {
+ 		struct rkvdec_ctx *ctx;
+ 
++		if (state == VB2_BUF_STATE_ERROR) {
++			rkvdec->reset_mask |= (status & RKVDEC_ERR_MASK) ?
++						RESET_HARD : RESET_SOFT;
++		}
++
+ 		ctx = v4l2_m2m_get_curr_priv(rkvdec->m2m_dev);
+ 		rkvdec_job_finish(ctx, state);
+ 	}
+@@ -1108,15 +1272,33 @@
+ 	ctx = v4l2_m2m_get_curr_priv(rkvdec->m2m_dev);
+ 	if (ctx) {
+ 		dev_err(rkvdec->dev, "Frame processing timed out!\n");
+-		writel(RKVDEC_CONFIG_DEC_CLK_GATE_E | RKVDEC_IRQ_DIS | RKVDEC_SOFTRST_EN_P,
++		rkvdec->reset_mask |= RESET_HARD;
++		writel(RKVDEC_CONFIG_DEC_CLK_GATE_E | RKVDEC_IRQ_DIS,
+ 		       rkvdec->regs + RKVDEC_REG_INTERRUPT);
+ 		writel(0, rkvdec->regs + RKVDEC_REG_SYSCTRL);
+ 		rkvdec_job_finish(ctx, VB2_BUF_STATE_ERROR);
+ 	}
+ }
+ 
++static const struct rkvdec_variant rk3399_rkvdec_variant = {
++        .capabilities   = RKVDEC_CAPABILITY_H264 |
++		           RKVDEC_CAPABILITY_HEVC |
++			   RKVDEC_CAPABILITY_VP9
++};
++
++static const struct rkvdec_variant rk3288_hevc_variant = {
++        .capabilities   = RKVDEC_CAPABILITY_HEVC
++};
++
+ static const struct of_device_id of_rkvdec_match[] = {
+-	{ .compatible = "rockchip,rk3399-vdec" },
++	{
++		.compatible = "rockchip,rk3399-vdec",
++		.data = &rk3399_rkvdec_variant,
++	},
++	{
++		.compatible = "rockchip,rk3288-hevc",
++		.data = &rk3288_hevc_variant,
++	},
+ 	{ /* sentinel */ }
+ };
+ MODULE_DEVICE_TABLE(of, of_rkvdec_match);
+@@ -1129,6 +1311,7 @@
+ {
+ 	struct rkvdec_dev *rkvdec;
+ 	struct resource *res;
++	const struct rkvdec_variant *variant;
+ 	unsigned int i;
+ 	int ret, irq;
+ 
+@@ -1154,6 +1337,12 @@
+ 	if (ret)
+ 		return ret;
+ 
++	variant = of_device_get_match_data(rkvdec->dev);
++	if (!variant)
++		return -EINVAL;
++
++	rkvdec->capabilities = variant->capabilities;
++
+ 	/*
+ 	 * Bump ACLK to max. possible freq. (500 MHz) to improve performance
+ 	 * When 4k video playback.
+@@ -1174,8 +1363,10 @@
+ 	vb2_dma_contig_set_max_seg_size(&pdev->dev, DMA_BIT_MASK(32));
+ 
+ 	irq = platform_get_irq(pdev, 0);
+-	if (irq <= 0)
++	if (irq <= 0) {
++		dev_err(&pdev->dev, "Could not get vdec IRQ\n");
+ 		return -ENXIO;
++	}
+ 
+ 	ret = devm_request_threaded_irq(&pdev->dev, irq, NULL,
+ 					rkvdec_irq_handler, IRQF_ONESHOT,
+@@ -1185,6 +1376,18 @@
+ 		return ret;
+ 	}
+ 
++
++	rkvdec->rstc = devm_reset_control_array_get(&pdev->dev, false, true);
++	if (IS_ERR(rkvdec->rstc)) {
++		dev_err(&pdev->dev,
++			"get resets failed %ld\n", PTR_ERR(rkvdec->rstc));
++		return PTR_ERR(rkvdec->rstc);
++	} else {
++		dev_dbg(&pdev->dev,
++			 "requested %d resets\n",
++			 reset_control_get_count(&pdev->dev));
++	}
++
+ 	pm_runtime_set_autosuspend_delay(&pdev->dev, 100);
+ 	pm_runtime_use_autosuspend(&pdev->dev);
+ 	pm_runtime_enable(&pdev->dev);
+diff -Naur linux-5.11.15-old/drivers/staging/media/rkvdec/rkvdec.h linux-5.11.15-new/drivers/staging/media/rkvdec/rkvdec.h
+--- linux-5.11.15-old/drivers/staging/media/rkvdec/rkvdec.h	2021-04-19 21:10:19.246666506 +0200
++++ linux-5.11.15-new/drivers/staging/media/rkvdec/rkvdec.h	2021-04-19 18:05:09.683333231 +0200
+@@ -11,10 +11,11 @@
+ #ifndef RKVDEC_H_
+ #define RKVDEC_H_
+ 
++#include <linux/clk.h>
+ #include <linux/platform_device.h>
++#include <linux/reset.h>
+ #include <linux/videodev2.h>
+ #include <linux/wait.h>
+-#include <linux/clk.h>
+ 
+ #include <media/v4l2-ctrls.h>
+ #include <media/v4l2-device.h>
+@@ -22,6 +23,16 @@
+ #include <media/videobuf2-core.h>
+ #include <media/videobuf2-dma-contig.h>
+ 
++#define RESET_NONE		0
++#define RESET_SOFT		BIT(0)
++#define RESET_HARD		BIT(1)
++
++#define RKVDEC_RESET_DELAY	5
++
++#define RKVDEC_CAPABILITY_H264	BIT(0)
++#define RKVDEC_CAPABILITY_HEVC	BIT(1)
++#define RKVDEC_CAPABILITY_VP9	BIT(2)
++
+ struct rkvdec_ctx;
+ 
+ struct rkvdec_ctrl_desc {
+@@ -64,6 +75,10 @@
+ 			    base.vb.vb2_buf);
+ }
+ 
++struct rkvdec_variant {
++        unsigned int capabilities;
++};
++
+ struct rkvdec_coded_fmt_ops {
+ 	int (*adjust_fmt)(struct rkvdec_ctx *ctx,
+ 			  struct v4l2_format *f);
+@@ -83,6 +98,7 @@
+ 	const struct rkvdec_coded_fmt_ops *ops;
+ 	unsigned int num_decoded_fmts;
+ 	const u32 *decoded_fmts;
++	unsigned int capability;
+ };
+ 
+ struct rkvdec_dev {
+@@ -95,7 +111,9 @@
+ 	void __iomem *regs;
+ 	struct mutex vdev_lock; /* serializes ioctls */
+ 	struct delayed_work watchdog_work;
+-	bool soft_reset;
++	struct reset_control *rstc;
++	u8 reset_mask;
++	unsigned int capabilities;
+ };
+ 
+ struct rkvdec_ctx {
+@@ -124,6 +142,7 @@
  void rkvdec_run_postamble(struct rkvdec_ctx *ctx, struct rkvdec_run *run);
  
  extern const struct rkvdec_coded_fmt_ops rkvdec_h264_fmt_ops;
@@ -141,10 +573,10 @@ diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec.h linux-5.10-r
  extern const struct rkvdec_coded_fmt_ops rkvdec_vp9_fmt_ops;
  
  #endif /* RKVDEC_H_ */
-diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec-hevc.c linux-5.10-rc3-new/drivers/staging/media/rkvdec/rkvdec-hevc.c
---- linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec-hevc.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-5.10-rc3-new/drivers/staging/media/rkvdec/rkvdec-hevc.c	2020-11-09 20:57:50.149999976 +0100
-@@ -0,0 +1,2533 @@
+diff -Naur linux-5.11.15-old/drivers/staging/media/rkvdec/rkvdec-hevc.c linux-5.11.15-new/drivers/staging/media/rkvdec/rkvdec-hevc.c
+--- linux-5.11.15-old/drivers/staging/media/rkvdec/rkvdec-hevc.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.15-new/drivers/staging/media/rkvdec/rkvdec-hevc.c	2021-04-19 18:05:09.683333231 +0200
+@@ -0,0 +1,2545 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip Video Decoder HEVC backend
@@ -2311,9 +2743,9 @@ diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec-hevc.c linux-5
 +		for (i = 0; i <= pps->num_tile_rows_minus1; i++)
 +			WRITE_PPS(pps->row_height_minus1[i], ROW_HEIGHT(i));
 +	} else {
-+		WRITE_PPS(round_up(sps->pic_width_in_luma_samples, ctb_size_y) - 1,
++		WRITE_PPS(((sps->pic_width_in_luma_samples + ctb_size_y - 1) / ctb_size_y) - 1,
 +			  COLUMN_WIDTH(0));
-+		WRITE_PPS(round_up(sps->pic_height_in_luma_samples, ctb_size_y) - 1,
++		WRITE_PPS(((sps->pic_height_in_luma_samples + ctb_size_y - 1) / ctb_size_y) - 1,
 +			  ROW_HEIGHT(0));
 +	}
 +
@@ -2332,6 +2764,7 @@ diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec-hevc.c linux-5
 +	struct rkvdec_hevc_priv_tbl *priv_tbl = hevc_ctx->priv_tbl.cpu;
 +	struct rkvdec_rps_packet *hw_ps;
 +	int i, j;
++	unsigned int lowdelay;
 +
 +#define WRITE_RPS(value, field) set_ps_field(hw_ps->info, field, value)
 +
@@ -2341,13 +2774,14 @@ diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec-hevc.c linux-5
 +#define REF_PIC_IDX_L1(i)			PS_FIELD((i < 4 ? 76 : 128) + (i * 5), 4)
 +
 +#define LOWDELAY				PS_FIELD(182, 1)
-+#define SHORT_TERM_REF_PIC_SET_SIZE		PS_FIELD(183, 10)
-+#define LONG_TERM_REF_PIC_SET_SIZE		PS_FIELD(193, 9)
++#define LONG_TERM_RPS_BIT_OFFSET		PS_FIELD(183, 10)
++#define SHORT_TERM_RPS_BIT_OFFSET		PS_FIELD(193, 9)
 +#define NUM_RPS_POC				PS_FIELD(202, 4)
 +
 +	for (j = 0; j < run->num_slices; j++) {
 +		sl_params = &run->slices_params[j];
 +		dpb = sl_params->dpb;
++		lowdelay = 0;
 +
 +		hw_ps = &priv_tbl->rps[j];
 +		memset(hw_ps, 0, sizeof(*hw_ps));
@@ -2366,14 +2800,24 @@ diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec-hevc.c linux-5
 +
 +		//WRITE_RPS(0xffffffff, PS_FIELD(96, 32));
 +
-+		// TODO: lowdelay
-+		WRITE_RPS(0, LOWDELAY);
++		if (sl_params->slice_type != V4L2_HEVC_SLICE_TYPE_I &&
++		   !(!!(sl_params->flags & V4L2_HEVC_SLICE_PARAMS_FLAG_DEPENDENT_SLICE_SEGMENT))) {
++			lowdelay = 1;
++			for (i = 0; i < sl_params->num_active_dpb_entries; i++) {
++				if (dpb[i].pic_order_cnt[0] > sl_params->slice_pic_order_cnt) {
++					lowdelay = 0;
++					break;
++				}
++			}
++		}
 +
-+		// NOTE: these two differs from mpp
++		WRITE_RPS(lowdelay, LOWDELAY);
++
++		WRITE_RPS(sl_params->long_term_ref_pic_set_size +
++			  sl_params->short_term_ref_pic_set_size,
++			  LONG_TERM_RPS_BIT_OFFSET);
 +		WRITE_RPS(sl_params->short_term_ref_pic_set_size,
-+			  SHORT_TERM_REF_PIC_SET_SIZE);
-+		WRITE_RPS(sl_params->long_term_ref_pic_set_size,
-+			  LONG_TERM_REF_PIC_SET_SIZE);
++			  SHORT_TERM_RPS_BIT_OFFSET);
 +
 +		WRITE_RPS(sl_params->num_rps_poc_st_curr_before +
 +			  sl_params->num_rps_poc_st_curr_after +
@@ -2678,10 +3122,22 @@ diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec-hevc.c linux-5
 +	.stop = rkvdec_hevc_stop,
 +	.run = rkvdec_hevc_run,
 +};
-diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec-regs.h linux-5.10-rc3-new/drivers/staging/media/rkvdec/rkvdec-regs.h
---- linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec-regs.h	2020-11-09 01:10:16.000000000 +0100
-+++ linux-5.10-rc3-new/drivers/staging/media/rkvdec/rkvdec-regs.h	2020-11-09 20:57:50.149999976 +0100
-@@ -43,6 +43,7 @@
+diff -Naur linux-5.11.15-old/drivers/staging/media/rkvdec/rkvdec-regs.h linux-5.11.15-new/drivers/staging/media/rkvdec/rkvdec-regs.h
+--- linux-5.11.15-old/drivers/staging/media/rkvdec/rkvdec-regs.h	2021-04-16 11:38:15.000000000 +0200
++++ linux-5.11.15-new/drivers/staging/media/rkvdec/rkvdec-regs.h	2021-04-19 18:05:09.679999897 +0200
+@@ -28,6 +28,11 @@
+ #define RKVDEC_SOFTRST_EN_P				BIT(20)
+ #define RKVDEC_FORCE_SOFTRESET_VALID			BIT(21)
+ #define RKVDEC_SOFTRESET_RDY				BIT(22)
++#define RKVDEC_ERR_MASK					(RKVDEC_BUS_STA \
++							 | RKVDEC_ERR_STA \
++							 | RKVDEC_TIMEOUT_STA \
++							 | RKVDEC_BUF_EMPTY_STA \
++							 | RKVDEC_COLMV_REF_ERR_STA )
+ 
+ #define RKVDEC_REG_SYSCTRL				0x008
+ #define RKVDEC_IN_ENDIAN				BIT(0)
+@@ -43,6 +48,7 @@
  #define RKVDEC_RLC_MODE					BIT(11)
  #define RKVDEC_STRM_START_BIT(x)			(((x) & 0x7f) << 12)
  #define RKVDEC_MODE(x)					(((x) & 0x03) << 20)
@@ -2689,323 +3145,34 @@ diff -Naur linux-5.10-rc3-old/drivers/staging/media/rkvdec/rkvdec-regs.h linux-5
  #define RKVDEC_MODE_H264				1
  #define RKVDEC_MODE_VP9					2
  #define RKVDEC_RPS_MODE					BIT(24)
-diff -Naur linux-5.11.13-old/drivers/staging/media/rkvdec/rkvdec.c linux-5.11.13-new/drivers/staging/media/rkvdec/rkvdec.c
---- linux-5.11.13-old/drivers/staging/media/rkvdec/rkvdec.c	2021-04-12 13:54:04.956665498 +0200
-+++ linux-5.11.13-new/drivers/staging/media/rkvdec/rkvdec.c	2021-04-12 10:34:47.636665609 +0200
-@@ -13,6 +13,7 @@
- #include <linux/interrupt.h>
- #include <linux/module.h>
- #include <linux/of.h>
-+#include <linux/of_device.h>
- #include <linux/platform_device.h>
- #include <linux/pm.h>
- #include <linux/pm_runtime.h>
-@@ -154,8 +155,8 @@
- 	},
- 	{
- 		.cfg.id = V4L2_CID_MPEG_VIDEO_H264_PROFILE,
--		.cfg.min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
--		.cfg.max = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
-+		.cfg.min = V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
-+		.cfg.max = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_422,
- 		.cfg.menu_skip_mask =
- 			BIT(V4L2_MPEG_VIDEO_H264_PROFILE_EXTENDED),
- 		.cfg.def = V4L2_MPEG_VIDEO_H264_PROFILE_MAIN,
-@@ -271,21 +272,6 @@
+diff -Naur linux-5.11.15-old/drivers/staging/media/rkvdec/rkvdec-vp9.c linux-5.11.15-new/drivers/staging/media/rkvdec/rkvdec-vp9.c
+--- linux-5.11.15-old/drivers/staging/media/rkvdec/rkvdec-vp9.c	2021-04-19 21:10:19.246666506 +0200
++++ linux-5.11.15-new/drivers/staging/media/rkvdec/rkvdec-vp9.c	2021-04-19 18:04:59.133333226 +0200
+@@ -154,7 +154,7 @@
  
- static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
- 	{
--		.fourcc = V4L2_PIX_FMT_H264_SLICE,
--		.frmsize = {
--			.min_width = 48,
--			.max_width = 4096,
--			.step_width = 16,
--			.min_height = 48,
--			.max_height = 2304,
--			.step_height = 16,
--		},
--		.ctrls = &rkvdec_h264_ctrls,
--		.ops = &rkvdec_h264_fmt_ops,
--		.num_decoded_fmts = ARRAY_SIZE(rkvdec_h264_decoded_fmts),
--		.decoded_fmts = rkvdec_h264_decoded_fmts,
--	},
--	{
- 		.fourcc = V4L2_PIX_FMT_HEVC_SLICE,
- 		.frmsize = {
- 			.min_width = 64,
-@@ -299,6 +285,23 @@
- 		.ops = &rkvdec_hevc_fmt_ops,
- 		.num_decoded_fmts = ARRAY_SIZE(rkvdec_hevc_decoded_fmts),
- 		.decoded_fmts = rkvdec_hevc_decoded_fmts,
-+		.capability = RKVDEC_CAPABILITY_HEVC,
-+	},
-+	{
-+		.fourcc = V4L2_PIX_FMT_H264_SLICE,
-+		.frmsize = {
-+			.min_width = 48,
-+			.max_width = 4096,
-+			.step_width = 16,
-+			.min_height = 48,
-+			.max_height = 2304,
-+			.step_height = 16,
-+		},
-+		.ctrls = &rkvdec_h264_ctrls,
-+		.ops = &rkvdec_h264_fmt_ops,
-+		.num_decoded_fmts = ARRAY_SIZE(rkvdec_h264_decoded_fmts),
-+		.decoded_fmts = rkvdec_h264_decoded_fmts,
-+		.capability = RKVDEC_CAPABILITY_H264,
- 	},
- 	{
- 		.fourcc = V4L2_PIX_FMT_VP9_FRAME,
-@@ -314,16 +317,31 @@
- 		.ops = &rkvdec_vp9_fmt_ops,
- 		.num_decoded_fmts = ARRAY_SIZE(rkvdec_vp9_decoded_fmts),
- 		.decoded_fmts = rkvdec_vp9_decoded_fmts,
--	}
-+		.capability = RKVDEC_CAPABILITY_VP9,
-+	},
- };
- 
- static const struct rkvdec_coded_fmt_desc *
--rkvdec_find_coded_fmt_desc(u32 fourcc)
-+rkvdec_default_coded_fmt_desc(unsigned int capabilities)
+ static u32 rkvdec_fastdiv(u32 dividend, u16 divisor)
  {
- 	unsigned int i;
- 
- 	for (i = 0; i < ARRAY_SIZE(rkvdec_coded_fmts); i++) {
--		if (rkvdec_coded_fmts[i].fourcc == fourcc)
-+		if (rkvdec_coded_fmts[i].capability & capabilities)
-+			return &rkvdec_coded_fmts[i];
-+	}
+-#define DIV_INV(d)	(u32)(((1ULL << 32) + ((d) - 1)) / (d))
++#define DIV_INV(d)	((u32)(((1ULL << 32) + ((d) - 1)) / (d)))
+ #define DIVS_INV(d0, d1, d2, d3, d4, d5, d6, d7, d8, d9)	\
+ 	DIV_INV(d0), DIV_INV(d1), DIV_INV(d2), DIV_INV(d3),	\
+ 	DIV_INV(d4), DIV_INV(d5), DIV_INV(d6), DIV_INV(d7),	\
+diff -Naur linux-5.11.15-old/include/linux/rockchip_pmu.h linux-5.11.15-new/include/linux/rockchip_pmu.h
+--- linux-5.11.15-old/include/linux/rockchip_pmu.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.15-new/include/linux/rockchip_pmu.h	2021-04-19 18:04:48.049999896 +0200
+@@ -0,0 +1,15 @@
++/*
++ * pm_domain.h - Definitions and headers related to device power domains.
++ *
++ * Copyright (C) 2017 Randy Li <ayaka@soulik.info>.
++ *
++ * This file is released under the GPLv2.
++ */
 +
-+	return NULL;
-+}
++#ifndef _LINUX_ROCKCHIP_PM_H
++#define _LINUX_ROCKCHIP_PM_H
++#include <linux/device.h>
 +
-+static const struct rkvdec_coded_fmt_desc *
-+rkvdec_find_coded_fmt_desc(u32 fourcc, unsigned int capabilities)
-+{
-+	unsigned int i;
++int rockchip_pmu_idle_request(struct device *dev, bool idle);
 +
-+	for (i = 0; i < ARRAY_SIZE(rkvdec_coded_fmts); i++) {
-+		if (rkvdec_coded_fmts[i].fourcc == fourcc &&
-+		    (rkvdec_coded_fmts[i].capability & capabilities))
- 			return &rkvdec_coded_fmts[i];
- 	}
- 
-@@ -346,7 +364,7 @@
- {
- 	struct v4l2_format *f = &ctx->coded_fmt;
- 
--	ctx->coded_fmt_desc = &rkvdec_coded_fmts[0];
-+	ctx->coded_fmt_desc = rkvdec_default_coded_fmt_desc(ctx->dev->capabilities);
- 	rkvdec_reset_fmt(ctx, f, ctx->coded_fmt_desc->fourcc);
- 
- 	f->type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-@@ -373,11 +391,13 @@
- 				  struct v4l2_frmsizeenum *fsize)
- {
- 	const struct rkvdec_coded_fmt_desc *fmt;
-+	struct rkvdec_dev *rkvdec = video_drvdata(file);
- 
- 	if (fsize->index != 0)
- 		return -EINVAL;
- 
--	fmt = rkvdec_find_coded_fmt_desc(fsize->pixel_format);
-+	fmt = rkvdec_find_coded_fmt_desc(fsize->pixel_format,
-+					 rkvdec->capabilities);
- 	if (!fmt)
- 		return -EINVAL;
- 
-@@ -448,10 +468,11 @@
- 	struct rkvdec_ctx *ctx = fh_to_rkvdec_ctx(priv);
- 	const struct rkvdec_coded_fmt_desc *desc;
- 
--	desc = rkvdec_find_coded_fmt_desc(pix_mp->pixelformat);
-+	desc = rkvdec_find_coded_fmt_desc(pix_mp->pixelformat,
-+					  ctx->dev->capabilities);
- 	if (!desc) {
--		pix_mp->pixelformat = rkvdec_coded_fmts[0].fourcc;
--		desc = &rkvdec_coded_fmts[0];
-+		desc = rkvdec_default_coded_fmt_desc(ctx->dev->capabilities);
-+		pix_mp->pixelformat = desc->fourcc;
- 	}
- 
- 	v4l2_apply_frmsize_constraints(&pix_mp->width,
-@@ -513,7 +534,7 @@
- 	struct v4l2_m2m_ctx *m2m_ctx = ctx->fh.m2m_ctx;
- 	const struct rkvdec_coded_fmt_desc *desc;
- 	struct v4l2_format *cap_fmt;
--	struct vb2_queue *peer_vq;
-+	struct vb2_queue *peer_vq, *vq;
- 	int ret;
- 
- 	/*
-@@ -525,11 +546,21 @@
- 	if (vb2_is_busy(peer_vq))
- 		return -EBUSY;
- 
-+	/*
-+	 * Some codecs like VP9 can contain dynamic resolution changes which
-+	 * are currently not supported by the V4L2 API or driver, so return
-+	 * an error if userspace tries to reconfigure the output format.
-+	 */
-+	vq = v4l2_m2m_get_vq(m2m_ctx, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
-+	if (vb2_is_busy(vq))
-+		return -EINVAL;
-+
- 	ret = rkvdec_s_fmt(file, priv, f, rkvdec_try_output_fmt);
- 	if (ret)
- 		return ret;
- 
--	desc = rkvdec_find_coded_fmt_desc(f->fmt.pix_mp.pixelformat);
-+	desc = rkvdec_find_coded_fmt_desc(f->fmt.pix_mp.pixelformat,
-+					  ctx->dev->capabilities);
- 	if (!desc)
- 		return -EINVAL;
- 	ctx->coded_fmt_desc = desc;
-@@ -577,7 +608,10 @@
- static int rkvdec_enum_output_fmt(struct file *file, void *priv,
- 				  struct v4l2_fmtdesc *f)
- {
--	if (f->index >= ARRAY_SIZE(rkvdec_coded_fmts))
-+	struct rkvdec_ctx *ctx = fh_to_rkvdec_ctx(priv);
-+
-+	if (f->index >= ARRAY_SIZE(rkvdec_coded_fmts) ||
-+	    !(ctx->dev->capabilities & rkvdec_coded_fmts[f->index].capability))
- 		return -EINVAL;
- 
- 	f->pixelformat = rkvdec_coded_fmts[f->index].fourcc;
-@@ -685,7 +719,9 @@
- 	}
- 
- 	/*
--	 * Buffer's bytesused is written by the driver for CAPTURE buffers.
-+	 * Buffer bytesused is written by driver for CAPTURE buffers.
-+	 * (if userspace passes 0 bytesused for OUTPUT buffers, v4l2-core sets
-+	 * it to buffer length).
- 	 */
- 	if (!V4L2_TYPE_IS_OUTPUT(vq->type))
- 		vb2_set_plane_payload(vb, 0, f->fmt.pix_mp.plane_fmt[0].sizeimage);
-@@ -1001,14 +1037,17 @@
- 	int ret;
- 
- 	for (i = 0; i < ARRAY_SIZE(rkvdec_coded_fmts); i++)
--		nctrls += rkvdec_coded_fmts[i].ctrls->num_ctrls;
-+		if (rkvdec_coded_fmts[i].capability & ctx->dev->capabilities)
-+			nctrls += rkvdec_coded_fmts[i].ctrls->num_ctrls;
- 
- 	v4l2_ctrl_handler_init(&ctx->ctrl_hdl, nctrls);
- 
- 	for (i = 0; i < ARRAY_SIZE(rkvdec_coded_fmts); i++) {
--		ret = rkvdec_add_ctrls(ctx, rkvdec_coded_fmts[i].ctrls);
--		if (ret)
--			goto err_free_handler;
-+		if (rkvdec_coded_fmts[i].capability & ctx->dev->capabilities) {
-+			ret = rkvdec_add_ctrls(ctx, rkvdec_coded_fmts[i].ctrls);
-+			if (ret)
-+				goto err_free_handler;
-+		}
- 	}
- 
- 	ret = v4l2_ctrl_handler_setup(&ctx->ctrl_hdl);
-@@ -1206,8 +1245,25 @@
- 	}
- }
- 
-+static const struct rkvdec_variant rk3399_rkvdec_variant = {
-+        .capabilities   = RKVDEC_CAPABILITY_H264 |
-+		           RKVDEC_CAPABILITY_HEVC |
-+			   RKVDEC_CAPABILITY_VP9
-+};
-+
-+static const struct rkvdec_variant rk3288_hevc_variant = {
-+        .capabilities   = RKVDEC_CAPABILITY_HEVC
-+};
-+
- static const struct of_device_id of_rkvdec_match[] = {
--	{ .compatible = "rockchip,rk3399-vdec" },
-+	{
-+		.compatible = "rockchip,rk3399-vdec",
-+		.data = &rk3399_rkvdec_variant,
-+	},
-+	{
-+		.compatible = "rockchip,rk3288-hevc",
-+		.data = &rk3288_hevc_variant,
-+	},
- 	{ /* sentinel */ }
- };
- MODULE_DEVICE_TABLE(of, of_rkvdec_match);
-@@ -1220,6 +1276,7 @@
- {
- 	struct rkvdec_dev *rkvdec;
- 	struct resource *res;
-+	const struct rkvdec_variant *variant;
- 	unsigned int i;
- 	int ret, irq;
- 
-@@ -1245,6 +1302,12 @@
- 	if (ret)
- 		return ret;
- 
-+	variant = of_device_get_match_data(rkvdec->dev);
-+	if (!variant)
-+		return -EINVAL;
-+
-+	rkvdec->capabilities = variant->capabilities;
-+
- 	/*
- 	 * Bump ACLK to max. possible freq. (500 MHz) to improve performance
- 	 * When 4k video playback.
-@@ -1265,8 +1328,10 @@
- 	vb2_dma_contig_set_max_seg_size(&pdev->dev, DMA_BIT_MASK(32));
- 
- 	irq = platform_get_irq(pdev, 0);
--	if (irq <= 0)
-+	if (irq <= 0) {
-+		dev_err(&pdev->dev, "Could not get vdec IRQ\n");
- 		return -ENXIO;
-+	}
- 
- 	ret = devm_request_threaded_irq(&pdev->dev, irq, NULL,
- 					rkvdec_irq_handler, IRQF_ONESHOT,
-diff -Naur linux-5.11.13-old/drivers/staging/media/rkvdec/rkvdec.h linux-5.11.13-new/drivers/staging/media/rkvdec/rkvdec.h
---- linux-5.11.13-old/drivers/staging/media/rkvdec/rkvdec.h	2021-04-12 13:54:04.956665498 +0200
-+++ linux-5.11.13-new/drivers/staging/media/rkvdec/rkvdec.h	2021-04-12 10:13:54.909998944 +0200
-@@ -22,6 +22,10 @@
- #include <media/videobuf2-core.h>
- #include <media/videobuf2-dma-contig.h>
- 
-+#define RKVDEC_CAPABILITY_H264	BIT(0)
-+#define RKVDEC_CAPABILITY_HEVC	BIT(1)
-+#define RKVDEC_CAPABILITY_VP9	BIT(2)
-+
- struct rkvdec_ctx;
- 
- struct rkvdec_ctrl_desc {
-@@ -64,6 +68,10 @@
- 			    base.vb.vb2_buf);
- }
- 
-+struct rkvdec_variant {
-+        unsigned int capabilities;
-+};
-+
- struct rkvdec_coded_fmt_ops {
- 	int (*adjust_fmt)(struct rkvdec_ctx *ctx,
- 			  struct v4l2_format *f);
-@@ -83,6 +91,7 @@
- 	const struct rkvdec_coded_fmt_ops *ops;
- 	unsigned int num_decoded_fmts;
- 	const u32 *decoded_fmts;
-+	unsigned int capability;
- };
- 
- struct rkvdec_dev {
-@@ -96,6 +105,7 @@
- 	struct mutex vdev_lock; /* serializes ioctls */
- 	struct delayed_work watchdog_work;
- 	bool soft_reset;
-+	unsigned int capabilities;
- };
- 
- struct rkvdec_ctx {
++#endif /* _LINUX_ROCKCHIP_PM_H */

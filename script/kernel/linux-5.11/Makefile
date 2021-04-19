@@ -155,7 +155,7 @@ PATCHFILES += 0703-arm64-dts-rockchip-enable-rkvdec-on-rk3328.patch
 # https://github.com/knaerzche/linux/commit/68c947da3affcfdf48699008b5869325e15bfdcd
 PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
 # Add hvec support for Rockchip rkvdec
-# update rkvdec to code from https://github.com/knaerzche/linux/commits/v5.10.26-rk-10-bit
+# update rkvdec to code from https://github.com/knaerzche/LibreELEC.tv/tree/rk-fixes-b2
 PATCHFILES += 0707-media-rkvdec-add-hevc-support.patch
 # Support for 4k modes
 PATCHFILES += 0711-drm-rockchip-add-4k-videomodes-support.patch
