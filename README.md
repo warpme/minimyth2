@@ -71,11 +71,11 @@ Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)       | not
 Amlogic sm1   | x96Air           | works  (rtl8189@SDIO                    | not works (kernel bug) | not works (firmware issue)     | support stalled               |
 Broadcom 2837 | Rpi3-b           | works  (brcm43430@SDIO)                 | works                  | no plans                       | all basics works nicelly      |
 Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                  | works                  | no plans                       | all basics works nicelly      |
-x86_64        | i5 NUC           | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
-x86_64        | Beelink MII-V    | works  (ac3165@PCI-e)                   | n/a                    | works (s1idle)                 | perfect support               |
-x86_64        | Beelink BT4      | works  (ac3165@PCI-e)                   | n/a                    | works (s3ram)                  | perfect support               |
-x86_64        | AMD Kabini       | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
-x86_64        | ION2             | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
+Intel i5      | i5 NUC           | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
+Intel Z8500   | Beelink MII-V    | works  (ac3165@PCI-e)                   | n/a                    | works (s1idle)                 | perfect support               |
+Intel N3450   | Beelink BT4      | works  (ac3165@PCI-e)                   | n/a                    | works (s3ram)                  | perfect support               |
+AMD E1-2100   | AMD Kabini       | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
+Intel D2550   | ION2             | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
 
 ### Hardware Video Decode support
 This is video related functionality avaliable on current code (Linux kernel + Mesa + MythTV)
@@ -92,11 +92,11 @@ Amlogic s912  | Beelink GT1                                  | vdec/v4l2_m2m    
 Amlogic sm1   | x96Air                                       | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek on v4l2_request H.264 not works, artefacts on H.264
 Broadcom 2837 | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | H.264                                      | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek on v4l2_m2m H.264 jumpy
 Broadcom 2711 | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF & DRM_DMABUF) | Good playback, seek on v4l2_m2m H.264 jumpy
-x86_64        | i5 NUC                                       | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF)              | Perfect playback
-x86_64        | Beelink BT4                                  | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8               | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF)              | Perfect playback
-x86_64        | Beelink MII-V                                | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8, VP9          | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF)              | Perfect playback
-x86_64        | AMD Kabini                                   | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF)              | Perfect playback
-x86_64        | ION2                                         | VDPAU                                 | MPEG2, MPEG4, H.264                        | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF)              | Perfect playback
+Intel i5      | i5 NUC                                       | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF)              | Perfect playback
+Intel Z8500   | Beelink BT4                                  | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8               | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF)              | Perfect playback
+Intel N3450   | Beelink MII-V                                | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8, VP9          | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF)              | Perfect playback
+AMD E1-2100   | AMD Kabini                                   | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF)              | Perfect playback
+Intel D2550   | ION2                                         | VDPAU                                 | MPEG2, MPEG4, H.264                        | X11, EGLFS, Wayland | DRM_PRIME (EGL_DMABUF)              | Perfect playback
 
 ### Video Decoding Test results
 
