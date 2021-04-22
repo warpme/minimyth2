@@ -1,10 +1,11 @@
 
 GARNAME      = wlroots
-GARVERSION   = 0.12.0
+GARVERSION   = 0.13.0
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://github.com/swaywm/wlroots/archive/
 DISTFILES    = $(GARVERSION).tar.gz
 PATCHFILES   = $(DISTNAME)-disable-Wmissing-includes.patch
+PATCHFILES  += $(DISTNAME)-fix-ticket2852.patch
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
 
