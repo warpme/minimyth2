@@ -70,37 +70,33 @@ CONFIGURE_ARGS = $(DIRPATHS_MESON) \
 	-D gallium-opencl=disabled \
 	-D glvnd=false \
 	-D gallium-xvmc=disabled \
+	-D gallium-xa=disabled \
 	-D gallium-nine=false \
 	-D b_lto=true \
 	-D b_ndebug=true \
 	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
+	-D platforms=x11,wayland \
+	-D llvm=enabled \
 
 ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
-	-D platforms=x11,wayland \
 	-D gallium-vdpau=disabled \
-	-D gallium-xa=disabled \
-	-D llvm=disabled
+	-D gallium-va=disabled
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
-	-D platforms=x11,wayland \
 	-D gallium-vdpau=disabled \
-	-D gallium-xa=disabled \
-	-D llvm=disabled
+	-D gallium-va=disabled
 else
 CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
 	-D dri-drivers=i915,i965,r100,r200 \
-	-D platforms=x11,wayland \
 	-D gallium-vdpau=enabled \
-	-D gallium-va=enabled \
-	-D gallium-xa=enabled \
-	-D llvm=enabled
+	-D gallium-va=enabled
 endif
 endif
 
@@ -120,7 +116,6 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgbm.la
 	@rm -f $(DESTDIR)$(libdir)/libGLESv2.la
 	@rm -f $(DESTDIR)$(libdir)/libGLESv1_CM.la
-	@rm -f $(DESTDIR)$(libdir)/libwayland-egl.la
 	@rm -f $(DESTDIR)$(libdir)/libxatracker.la
 	@rm -f $(DESTDIR)$(libdir)/dri/gallium_drv_video.la
 	@rm -f $(DESTDIR)$(libdir)/dri/i915_dri.la
@@ -316,7 +311,6 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libgbm.*
 	@rm -f $(DESTDIR)$(libdir)/libGLESv2.*
 	@rm -f $(DESTDIR)$(libdir)/libGLESv1_CM.*
-	@rm -f $(DESTDIR)$(libdir)/libwayland-egl.*
 	@rm -f $(DESTDIR)$(libdir)/libxatracker.*
 	@rm -f $(DESTDIR)$(libdir)/libvulkan_radeon.so*
 	@rm -f $(DESTDIR)$(libdir)/libvulkan_intel.so*
