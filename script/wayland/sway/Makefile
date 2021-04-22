@@ -1,6 +1,6 @@
 
 GARNAME      = sway
-GARVERSION   = 1.5.1
+GARVERSION   = 1.6
 CATEGORIES   = wayland
 MASTER_SITES = https://github.com/swaywm/sway/releases/download/$(GARVERSION)/
 PATCHFILES   = $(DISTNAME)-skip-uid-guid-drop-check.patch
