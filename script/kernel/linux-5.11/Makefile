@@ -55,6 +55,10 @@ PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
 PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
 endif
 
+# upstream fixes from linux-media to v4l2_request
+PATCHFILES += 0130-media-v4l2-ctrls.c-fix-race-condition-in-hdl-request.patch
+PATCHFILES += 0131-media-v4l2-ctrls-fix-reference-to-freed-memory.patch
+
 ifeq (1,1)
 #-- Amlogic patches -----------------------------------------
 # Add HVEC decode from https://gitlab.com/baylibre/amlogic/atv/linux/-/commit/1f9a7f9904dfb58be623d1048f6dad3df7bf61f4
@@ -123,8 +127,6 @@ PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 # Video BT2020 support. From LE 19.01.2021
 PATCHFILES += 0538-drm-sun4i-Add-support-for-BT2020-to-DE3.patch
-# fix CEC on GS1
-PATCHFILES += 0539-arm64-dts-allwinner-fix-cec-on-beelink-GS1.patch
 # Crust support from LE 17.01.2021
 PATCHFILES += 0551-allwinner-add-crust-support.patch
 PATCHFILES += 0552-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
