@@ -16,6 +16,21 @@
 # If param is 'strace':
 #   strace -o /usr/local/share/mythfrontend-strace.txt ${myth_cmdline}
 #
+# If param is 'eglfs':
+#   select drawing method: eglfs
+#   if MM_MYTHFRONTEND_CMDLINE defined)  - use it as ${myth_cmdline}
+#   if MM_MYTHFRONTEND_CMDLINE not defined, starts with ${myth_cmdline}='mythfrontend --no-syslog'
+#
+# If param is 'eglfsdrm':
+#   select drawing method: eglfs with MYTHTV_DRM_VIDEO=1 set
+#   if MM_MYTHFRONTEND_CMDLINE defined)  - use it as ${myth_cmdline}
+#   if MM_MYTHFRONTEND_CMDLINE not defined, starts with ${myth_cmdline}='mythfrontend --no-syslog'
+#
+# If param is 'wayland':
+#   select drawing method: wayland
+#   if MM_MYTHFRONTEND_CMDLINE defined)  - use it as ${myth_cmdline}
+#   if MM_MYTHFRONTEND_CMDLINE not defined, starts with ${myth_cmdline}='mythfrontend --no-syslog'
+#
 # If param is 'xxx':
 #   starts 'xxx'
 #
@@ -90,6 +105,28 @@ elif [ x$1 = "xstrace" ] ; then
 
     echo "Starting under strace"
     su minimyth -c "strace -o /usr/local/share/mythfrontend-strace.txt ${myth_cmdline}"
+
+elif [ x$1 = "xeglfs" ] ; then
+    echo "Runing with drawing to EGLFS"
+    /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in EGLFS EGL DMABUF ..."
+    export QT_QPA_PLATFORM=eglfs
+    export QT_QPA_EGLFS_INTEGRATION=eglfs_kms
+    su minimyth -c "${myth_cmdline}"
+
+elif [ x$1 = "xeglfsdrm" ] ; then
+    echo "Runing with drawing to EGLFS"
+    /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in EGLFS DRM DMABUF ..."
+    export QT_QPA_PLATFORM=eglfs
+    export QT_QPA_EGLFS_INTEGRATION=eglfs_kms
+    echo "Using DRM_PRIME in DRM planes mode"
+    export MYTHTV_DRM_VIDEO=1
+    su minimyth -c "${myth_cmdline}"
+
+elif [ x$1 = "xwayland" ] ; then
+    echo "Runing with drawing to Wayland-EGL"
+    /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in Wayland ..."
+    export QT_QPA_PLATFORM=wayland-egl
+    su minimyth -c "${myth_cmdline}"
 
 elif [ x$1 != "x" ] ; then
 
