@@ -7,6 +7,7 @@ CATEGORIES   = wayland
 MASTER_SITES = https://wayland.freedesktop.org/releases/
 PATCHFILES   = $(DISTNAME)-drm-allow-to-continue-without-input-dev.patch
 PATCHFILES  += $(DISTNAME)-terminal-add-cwd-and-command.patch
+PATCHFILES  += $(DISTNAME)-hack-wayland1.19.patch
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
