@@ -68,7 +68,7 @@ PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
 PATCHFILES += 0201-Mediamonitor-reduce-udisks-timeout-to-1500msec.patch
-PATCHFILES += 0202-Mediamonitor-make-mediamonitor-bluray-mounts-persistent.patch
+#PATCHFILES += 0202-Mediamonitor-make-mediamonitor-bluray-mounts-persistent.patch
 # Fixes issue with LiveTV 'All tuners busy' just after FE resume (if media monitor is not enabled)
 PATCHFILES += 0203-Mediamonitor-revert-16086d2-Honor-the-MonitorDrives-setting.patch
 # Added UI to select multimedia handler in multimode CD's
@@ -84,7 +84,7 @@ PATCHFILES += 0214-themes-recordings-ui-all-episode-listing.patch
 PATCHFILES += 0215-libmythtv-mythvideooutgpu-fix-tearing.patch
 
 # Patches related to OSD
-PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
+#PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
 PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
 PATCHFILES += 0223-OSD-Add-mythnotification-custom-styles-support-via-UDP.patch
 PATCHFILES += 0224-OSD-Add-status-notify-to-mythmediacenter-wide.patch
