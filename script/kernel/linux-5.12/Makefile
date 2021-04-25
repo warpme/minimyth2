@@ -36,6 +36,9 @@ PATCHFILES += linux-5.12-vgaarb-add-3D-accell-detection.patch
 
 ifeq (1,1)
 
+# Add hevc v4l2_request crtl fields used by Allwinner/Rockchip/Broadcom
+PATCHFILES += 0101-include-media-hevc-uapi-add-aw-rk-brcm-fields.patch
+
 ifeq (1,1)
 # Misc panfrost patches for 5.12 kernel
 PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
@@ -51,6 +54,10 @@ ifeq (1,1)
 PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
 PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
 endif
+
+# upstream fixes from linux-media to v4l2_request
+PATCHFILES += 0130-media-v4l2-ctrls.c-fix-race-condition-in-hdl-request.patch
+PATCHFILES += 0131-media-v4l2-ctrls-fix-reference-to-freed-memory.patch
 
 ifeq (1,1)
 #-- Amlogic patches -----------------------------------------
@@ -73,6 +80,8 @@ PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 # Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic HW I have
 PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=468401
+PATCHFILES += 0380-drm-dw-hdmi-disable-loading-DW-HDMI-CEC-sub-driver-on-some-SoC.patch
 endif
 #------------------------------------------------------------
 
@@ -87,7 +96,6 @@ PATCHFILES += 0514-arm64-dts-enable-audio-gs1.patch
 # Cedrus patches From LE 19.01.2021
 PATCHFILES += 0516-media-uapi-hevc-Add-scaling-matrix-control.patch
 PATCHFILES += 0517-media-cedrus-hevc-Add-support-for-scaling-matrix.patch
-PATCHFILES += 0518-media-uapi-hevc-Add-segment-address-field.patch
 PATCHFILES += 0519-media-cedrus-hevc-Add-support-for-multiple-slices.patch
 PATCHFILES += 0520-media-cedrus-hevc-tiles-hack.patch
 PATCHFILES += 0521-media-cedrus-Add-callback-for-buffer-cleanup.patch
@@ -95,8 +103,14 @@ PATCHFILES += 0522-media-cedrus-hevc-Improve-buffer-management.patch
 PATCHFILES += 0523-media-cedrus-h264-Improve-buffer-management.patch
 PATCHFILES += 0524-media-cedrus-WiP-10-bit-HEVC-support.patch
 PATCHFILES += 0525-media-cedrus-add-check-for-H264-and-HEVC-limitations.patch
+# add VC1 decode support
+# https://github.com/jernejsk/linux-1/commits/vc1
+PATCHFILES += 0526-media-cedrus-add-VC1-decode-support.patch
+# fix hevc decode on some samples
+PATCHFILES += 0527-media-cedrus-Fix-HEVC-status-macros.patch
+PATCHFILES += 0528-media-cedrus-wip-hevc-dependent-flag.patch
 # From LE 19.01.2021
-PATCHFILES += 0528-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
+PATCHFILES += 0529-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 # Adding support for MFD devices on some H6 boards
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
@@ -110,8 +124,10 @@ PATCHFILES += 0535-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
 # Allwinner: enable H6 GPU DVFS
 PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
+# https://github.com/smaeul/linux/commits/patch/rsb-extra
+PATCHFILES += 0550-allwinner-add-rsb-extra.patch
 # Crust support from LE 17.01.2021
-#PATCHFILES += 0551-allwinner-add-crust-support.patch
+PATCHFILES += 0551-allwinner-add-crust-support.patch
 #PATCHFILES += 0552-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
 # hack for dead Eth after resume from sleep
 #PATCHFILES += 0553-dwmac-sun8i-hack-for-dead-Eth-on-crust-resume.patch
@@ -120,6 +136,8 @@ PATCHFILES += 0554-drm-sun4i-report-no-midifiers.patch
 # Add hw deinterlce support from 17.01.2021
 PATCHFILES += 0560-H6-add-sun50i-di-deinterlace-WiP.patch
 PATCHFILES += 0561-arm64-dts-h6-add-deinterlace-node.patch
+# h616 initial support
+PATCHFILES += 0570-sunxi-Initial-Allwinner-H616-SoC-support-v2.patch
 endif
 #------------------------------------------------------------
 
@@ -135,12 +153,19 @@ PATCHFILES += 0703-arm64-dts-rockchip-enable-rkvdec-on-rk3328.patch
 # https://github.com/knaerzche/linux/commit/68c947da3affcfdf48699008b5869325e15bfdcd
 PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
 # Add hvec support for Rockchip rkvdec
-PATCHFILES += 0706-media-rkvdec-add-hevc-support.patch
+# update rkvdec to code from https://github.com/knaerzche/LibreELEC.tv/tree/rk-fixes-b2
+PATCHFILES += 0707-media-rkvdec-add-hevc-support.patch
 # Support for 4k modes
-# https://github.com/Kwiboo/linux-rockchip/commits/v5.10.1-drm-rockchip-hack 17.12.2020
 PATCHFILES += 0711-drm-rockchip-add-4k-videomodes-support.patch
-# add HW deinterlace support for 3228/3328/3399
-PATCHFILES += 0713-media-rockchip-add-hw-deinterlace-support.patch
+# enhacements from https://github.com/knaerzche/linux/commits/v5.10.26-rk-10-bit
+PATCHFILES += 0712-media-rockchip-add-hw-deinterlace-support.patch
+PATCHFILES += 0713-arm64-dts-rockchip-enable-iep-on-rk3328-rk3399.patch
+PATCHFILES += 0714-arm64-dts-add-enable-spdif-on-rk3328.patch
+PATCHFILES += 0715-phy-rockchip-add-rockchip-usb3-innosilicon-phy-drive.patch
+PATCHFILES += 0716-usb-dwc3-add-rockchip-innosilicon-usb3-glue-layer.patch
+PATCHFILES += 0717-arm64-dts-add-enable-usb3-on-rk3328.patch
+PATCHFILES += 0718-arm64-dts-rockchip-disable-rkvdec_iommu_reset-rk3328-rk3399.patch
+PATCHFILES += 0720-arm64-dts-enable-dwmmc-on-rk3328.patch
 endif
 #------------------------------------------------------------
 
@@ -151,10 +176,18 @@ PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
 # V3d enablement in RPI4
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=434471
 PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch
+# Support for CEC on RPI4
+# https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210111142309.193441-1-maxime@cerno.tech/
+#PATCHFILES += 0902-drm-vc4-hdmi-Add-CEC-support-for-the-BCM2711.patch
 # small updates to v4l2_m2m
 PATCHFILES += 0903-rpi-vc04_services-add_h264_v4l2-m2m_decode-14032021.patch
-# add H265 rpivid driver (not works)
-PATCHFILES += 0904-media-add-rpivid-14032021.patch
+# add H265 rpivid driver
+PATCHFILES += 0904-media-add-rpivid-24022021.patch
+# https://github.com/raspberrypi/linux/pull/4238/commits
+PATCHFILES += 0905-staging-bcm2835-camera-Add-support-for-H264-levels-4.1-and-4.2.patch
+PATCHFILES += 0906-staging-bcm2835-codec-Pass-corrupt-frame-flag.patch
+PATCHFILES += 0907-staging-bcm2835-codec-Set-colourspace-appropriat-for-RGB-fmt.patch
+PATCHFILES += 0908-staging-bcm2835-codec-Fix-support-for-levels-4.1-and-4.2.patch
 endif
 #------------------------------------------------------------
 

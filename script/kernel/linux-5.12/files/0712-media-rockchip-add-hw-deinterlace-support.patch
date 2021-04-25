@@ -1,98 +1,7 @@
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Alex Bee <knaerzche@gmail.com>
-Date: Sun, 11 Oct 2020 17:03:12 +0200
-Subject: [PATCH] dt-bindings: media: Add Rockchip IEP binding
-
-Signed-off-by: Alex Bee <knaerzche@gmail.com>
----
- .../bindings/media/rockchip-iep.yaml          | 73 +++++++++++++++++++
- 1 file changed, 73 insertions(+)
- create mode 100644 Documentation/devicetree/bindings/media/rockchip-iep.yaml
-
-diff --git a/Documentation/devicetree/bindings/media/rockchip-iep.yaml b/Documentation/devicetree/bindings/media/rockchip-iep.yaml
-new file mode 100644
-index 000000000000..a9efcda13fc1
---- /dev/null
-+++ b/Documentation/devicetree/bindings/media/rockchip-iep.yaml
-@@ -0,0 +1,73 @@
-+# SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
-+%YAML 1.2
-+---
-+$id: http://devicetree.org/schemas/media/rockchip-iep.yaml#
-+$schema: http://devicetree.org/meta-schemas/core.yaml#
-+
-+title: Rockchip Image Enhancement Processor (IEP)
-+
-+description:
-+    Rockchip IEP supports various image enhancement operations for YUV and RGB domains.
-+    Deinterlacing, spatial and temporal sampling noise reduction are supported by the
-+    YUV block. Gamma adjustment, edge enhancement, detail enhancement are supported in
-+    the RGB block. Brightness, Saturation, Contrast, Hue adjustment is supported for
-+    both domains. Furthermore it supports converting RGB to YUV / YUV to RGB.
-+
-+maintainers:
-+  - Heiko Stuebner <heiko@sntech.de>
-+
-+properties:
-+  compatible:
-+    oneOf:
-+      - const: rockchip,rk3228-iep
-+      - items:
-+          - enum:
-+              - rockchip,rk3288-iep
-+              - rockchip,rk3328-iep
-+              - rockchip,rk3368-iep
-+              - rockchip,rk3399-iep
-+          - const: rockchip,rk3228-iep
-+
-+  reg:
-+    maxItems: 1
-+
-+  interrupts:
-+    maxItems: 1
-+
-+  clocks:
-+    maxItems: 2
-+
-+  clock-names:
-+    items:
-+      - const: axi
-+      - const: ahb
-+
-+  power-domains:
-+    maxItems: 1
-+
-+  iommus:
-+    maxItems: 1
-+
-+required:
-+  - compatible
-+  - reg
-+  - interrupts
-+  - clocks
-+  - clock-names
-+
-+additionalProperties: false
-+
-+examples:
-+  - |
-+    #include <dt-bindings/clock/rk3228-cru.h>
-+    #include <dt-bindings/interrupt-controller/arm-gic.h>
-+    #include <dt-bindings/power/rk3228-power.h>
-+    iep: iep@20070000 {
-+      compatible = "rockchip,rk3228-iep";
-+      reg = <0x20070000 0x800>;
-+      interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
-+      clocks = <&cru ACLK_IEP>, <&cru HCLK_IEP>;
-+      clock-names = "axi", "ahb";
-+      iommus = <&iep_mmu>;
-+      power-domains = <&power RK3228_PD_VIO>;
-+    };
-
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From 6bb84e0da0809e833c74d0544479d15a597166c6 Mon Sep 17 00:00:00 2001
 From: Alex Bee <knaerzche@gmail.com>
 Date: Sun, 11 Oct 2020 21:24:10 +0200
-Subject: [PATCH] media: rockchip: Add Rockchip IEP driver
+Subject: [PATCH 187/190] media: rockchip: Add Rockchip IEP driver
 
 Signed-off-by: Alex Bee <knaerzche@gmail.com>
 ---
@@ -109,7 +18,7 @@ Signed-off-by: Alex Bee <knaerzche@gmail.com>
  create mode 100644 drivers/media/platform/rockchip/iep/iep.h
 
 diff --git a/drivers/media/platform/Kconfig b/drivers/media/platform/Kconfig
-index 7e152bbb4fa6..eee78b20c791 100644
+index 7e152bbb4..eee78b20c 100644
 --- a/drivers/media/platform/Kconfig
 +++ b/drivers/media/platform/Kconfig
 @@ -462,6 +462,20 @@ config VIDEO_RENESAS_VSP1
@@ -134,20 +43,21 @@ index 7e152bbb4fa6..eee78b20c791 100644
  	tristate "Rockchip Raster 2d Graphic Acceleration Unit"
  	depends on VIDEO_DEV && VIDEO_V4L2
 diff --git a/drivers/media/platform/Makefile b/drivers/media/platform/Makefile
-index 62b6cdc8c730..f99a873818d5 100644
+index 62b6cdc8c..f99a87381 100644
 --- a/drivers/media/platform/Makefile
 +++ b/drivers/media/platform/Makefile
 @@ -52,6 +52,7 @@ obj-$(CONFIG_VIDEO_RENESAS_FDP1)	+= rcar_fdp1.o
+ obj-$(CONFIG_VIDEO_RENESAS_JPU)		+= rcar_jpu.o
  obj-$(CONFIG_VIDEO_RENESAS_VSP1)	+= vsp1/
  
- obj-$(CONFIG_VIDEO_ROCKCHIP_ISP1)	+= rockchip/rkisp1/
 +obj-$(CONFIG_VIDEO_ROCKCHIP_IEP)	+= rockchip/iep/
+ obj-$(CONFIG_VIDEO_ROCKCHIP_ISP1)	+= rockchip/rkisp1/
  obj-$(CONFIG_VIDEO_ROCKCHIP_RGA)	+= rockchip/rga/
  
  obj-y	+= omap/
 diff --git a/drivers/media/platform/rockchip/iep/Makefile b/drivers/media/platform/rockchip/iep/Makefile
 new file mode 100644
-index 000000000000..5c89b3277469
+index 000000000..5c89b3277
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/iep/Makefile
 @@ -0,0 +1,5 @@
@@ -158,7 +68,7 @@ index 000000000000..5c89b3277469
 +obj-$(CONFIG_VIDEO_ROCKCHIP_IEP) += rockchip-iep.o
 diff --git a/drivers/media/platform/rockchip/iep/iep-regs.h b/drivers/media/platform/rockchip/iep/iep-regs.h
 new file mode 100644
-index 000000000000..a68685ef3604
+index 000000000..a68685ef3
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/iep/iep-regs.h
 @@ -0,0 +1,291 @@
@@ -455,7 +365,7 @@ index 000000000000..a68685ef3604
 +#endif
 diff --git a/drivers/media/platform/rockchip/iep/iep.c b/drivers/media/platform/rockchip/iep/iep.c
 new file mode 100644
-index 000000000000..f4b9320733be
+index 000000000..f4b932073
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/iep/iep.c
 @@ -0,0 +1,1089 @@
@@ -1550,7 +1460,7 @@ index 000000000000..f4b9320733be
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/media/platform/rockchip/iep/iep.h b/drivers/media/platform/rockchip/iep/iep.h
 new file mode 100644
-index 000000000000..7d9fc61624b6
+index 000000000..7d9fc6162
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/iep/iep.h
 @@ -0,0 +1,112 @@
@@ -1666,133 +1576,6 @@ index 000000000000..7d9fc61624b6
 +};
 +
 +#endif
+-- 
+2.29.2
 
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Alex Bee <knaerzche@gmail.com>
-Date: Wed, 14 Oct 2020 20:22:38 +0200
-Subject: [PATCH] ARM64: dts: rockchip: Add IEP node for RK3328
-
-while at that also add the mmu required
-
-Signed-off-by: Alex Bee <knaerzche@gmail.com>
----
- arch/arm64/boot/dts/rockchip/rk3328.dtsi | 25 +++++++++++++++++++++++-
- 1 file changed, 24 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm64/boot/dts/rockchip/rk3328.dtsi b/arch/arm64/boot/dts/rockchip/rk3328.dtsi
-index bd1e5edfbf95..b91c0bbe5ad1 100644
-@@ -767,6 +768,28 @@ vop_mmu: iommu@ff373f00 {
- 		status = "disabled";
- 	};
- 
-+	iep: iep@ff3a0000 {
-+		compatible = "rockchip,rk3328-iep", "rockchip,rk3228-iep";
-+		reg = <0x0 0xff3a0000 0x0 0x800>;
-+		interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
-+		interrupt-names = "iep";
-+		clocks = <&cru ACLK_IEP>, <&cru HCLK_IEP>;
-+		clock-names = "axi", "ahb";
-+		power-domains = <&power RK3328_PD_VIDEO>;
-+		iommus = <&iep_mmu>;
-+	};
-+
-+	iep_mmu: iommu@ff3a0800 {
-+		compatible = "rockchip,iommu";
-+		reg = <0x0 0xff3a0800 0x0 0x40>;
-+		interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
-+		interrupt-names = "iep_mmu";
-+		clocks = <&cru ACLK_IEP>, <&cru HCLK_IEP>;
-+		clock-names = "aclk", "iface";
-+		power-domains = <&power RK3328_PD_VIDEO>;
-+		#iommu-cells = <0>;
-+	};
-+
- 	hdmi: hdmi@ff3c0000 {
- 		compatible = "rockchip,rk3328-dw-hdmi";
- 		reg = <0x0 0xff3c0000 0x0 0x20000>;
-
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Alex Bee <knaerzche@gmail.com>
-Date: Wed, 14 Oct 2020 20:43:12 +0200
-Subject: [PATCH] ARM64: dts: rockchip: Add IEP node for RK3399
-
-Signed-off-by: Alex Bee <knaerzche@gmail.com>
----
- arch/arm64/boot/dts/rockchip/rk3399.dtsi | 13 ++++++++++++-
- 1 file changed, 12 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm64/boot/dts/rockchip/rk3399.dtsi b/arch/arm64/boot/dts/rockchip/rk3399.dtsi
-index 4d5004c9c778..7969aeec0bd0 100644
---- a/arch/arm64/boot/dts/rockchip/rk3399.dtsi
-+++ b/arch/arm64/boot/dts/rockchip/rk3399.dtsi
-@@ -1297,6 +1297,17 @@ vdec_mmu: iommu@ff660480 {
- 		#iommu-cells = <0>;
- 	};
- 
-+	iep: iep@ff670000 {
-+		compatible = "rockchip,rk3399-iep", "rockchip,rk3228-iep";
-+		reg = <0x0 0xff670000 0x0 0x800>;
-+		interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH 0>;
-+		interrupt-names = "iep";
-+		clocks = <&cru ACLK_IEP>, <&cru HCLK_IEP>;
-+		clock-names = "axi", "ahb";
-+		power-domains = <&power RK3399_PD_IEP>;
-+		iommus = <&iep_mmu>;
-+	};
-+
- 	iep_mmu: iommu@ff670800 {
- 		compatible = "rockchip,iommu";
- 		reg = <0x0 0xff670800 0x0 0x40>;
-@@ -1304,8 +1315,8 @@ iep_mmu: iommu@ff670800 {
- 		interrupt-names = "iep_mmu";
- 		clocks = <&cru ACLK_IEP>, <&cru HCLK_IEP>;
- 		clock-names = "aclk", "iface";
-+		power-domains = <&power RK3399_PD_IEP>;
- 		#iommu-cells = <0>;
--		status = "disabled";
- 	};
- 
- 	rga: rga@ff680000 {
-
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Alex Bee <knaerzche@gmail.com>
-Date: Wed, 14 Oct 2020 20:53:56 +0200
-Subject: [PATCH] ARM: dts: rockchip: Add IEP node for RK3288
-
-Signed-off-by: Alex Bee <knaerzche@gmail.com>
----
- arch/arm/boot/dts/rk3288.dtsi | 13 ++++++++++++-
- 1 file changed, 12 insertions(+), 1 deletion(-)
-
-diff --git a/arch/arm/boot/dts/rk3288.dtsi b/arch/arm/boot/dts/rk3288.dtsi
-index ba43ee6b91e8..e9bd68cd926e 100644
---- a/arch/arm/boot/dts/rk3288.dtsi
-+++ b/arch/arm/boot/dts/rk3288.dtsi
-@@ -1002,6 +1002,17 @@ crypto: cypto-controller@ff8a0000 {
- 		status = "okay";
- 	};
- 
-+	iep: iep@ff90000 {
-+		compatible = "rockchip,rk3288-iep", "rockchip,rk3228-iep";
-+		reg = <0x0 0xff900000 0x0 0x800>;
-+		interrupts = <GIC_SPI 17 IRQ_TYPE_LEVEL_HIGH>;
-+		interrupt-names = "iep";
-+		clocks = <&cru ACLK_IEP>, <&cru HCLK_IEP>;
-+		clock-names = "axi", "ahb";
-+		power-domains = <&power RK3288_PD_VIO>;
-+		iommus = <&iep_mmu>;
-+	};
-+
- 	iep_mmu: iommu@ff900800 {
- 		compatible = "rockchip,iommu";
- 		reg = <0x0 0xff900800 0x0 0x40>;
-@@ -1009,8 +1020,8 @@ iep_mmu: iommu@ff900800 {
- 		interrupt-names = "iep_mmu";
- 		clocks = <&cru ACLK_IEP>, <&cru HCLK_IEP>;
- 		clock-names = "aclk", "iface";
-+		power-domains = <&power RK3288_PD_VIO>;
- 		#iommu-cells = <0>;
--		status = "disabled";
- 	};
- 
- 	isp_mmu: iommu@ff914000 {

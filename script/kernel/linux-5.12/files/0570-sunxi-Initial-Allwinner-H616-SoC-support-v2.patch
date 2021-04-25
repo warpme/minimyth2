@@ -1,0 +1,2754 @@
+diff -Naur linux-5.11-old/arch/arm64/boot/dts/allwinner/Makefile linux-5.11-new/arch/arm64/boot/dts/allwinner/Makefile
+--- linux-5.11-old/arch/arm64/boot/dts/allwinner/Makefile	2021-02-21 17:53:32.966665585 +0100
++++ linux-5.11-new/arch/arm64/boot/dts/allwinner/Makefile	2021-02-21 17:57:15.189998916 +0100
+@@ -37,3 +37,4 @@
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-pine-h64.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-pine-h64-model-b.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-tanix-tx6.dtb
++dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h616-orangepi-zero2.dtb
+diff -Naur linux-5.11-old/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi linux-5.11-new/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+--- linux-5.11-old/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11-new/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi	2021-02-21 17:57:15.193332250 +0100
+@@ -0,0 +1,949 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++// Copyright (C) 2020 Arm Ltd.
++// based on the H6 dtsi, which is:
++//   Copyright (C) 2017 Icenowy Zheng <icenowy@aosc.io>
++
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/clock/sun50i-h616-ccu.h>
++#include <dt-bindings/clock/sun50i-h6-r-ccu.h>
++#include <dt-bindings/clock/sun8i-de2.h>
++#include <dt-bindings/clock/sun8i-tcon-top.h>
++#include <dt-bindings/reset/sun50i-h616-ccu.h>
++#include <dt-bindings/reset/sun50i-h6-r-ccu.h>
++#include <dt-bindings/reset/sun8i-de2.h>
++
++/ {
++	interrupt-parent = <&gic>;
++	#address-cells = <2>;
++	#size-cells = <2>;
++
++	cpus {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		cpu0: cpu@0 {
++			compatible = "arm,cortex-a53";
++			device_type = "cpu";
++			reg = <0>;
++			enable-method = "psci";
++			clocks = <&ccu CLK_CPUX>;
++		};
++
++		cpu1: cpu@1 {
++			compatible = "arm,cortex-a53";
++			device_type = "cpu";
++			reg = <1>;
++			enable-method = "psci";
++			clocks = <&ccu CLK_CPUX>;
++		};
++
++		cpu2: cpu@2 {
++			compatible = "arm,cortex-a53";
++			device_type = "cpu";
++			reg = <2>;
++			enable-method = "psci";
++			clocks = <&ccu CLK_CPUX>;
++		};
++
++		cpu3: cpu@3 {
++			compatible = "arm,cortex-a53";
++			device_type = "cpu";
++			reg = <3>;
++			enable-method = "psci";
++			clocks = <&ccu CLK_CPUX>;
++		};
++	};
++
++	de: display-engine {
++		compatible = "allwinner,sun50i-h6-display-engine";
++		allwinner,pipelines = <&mixer0>;
++		status = "disabled";
++	};
++
++	reserved-memory {
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++
++		/* 512KiB reserved for ARM Trusted Firmware (BL31) */
++		secmon_reserved: secmon@40000000 {
++			reg = <0x0 0x40000000 0x0 0x80000>;
++			no-map;
++		};
++	};
++
++	osc24M: osc24M_clk {
++		#clock-cells = <0>;
++		compatible = "fixed-clock";
++		clock-frequency = <24000000>;
++		clock-output-names = "osc24M";
++	};
++
++	pmu {
++		compatible = "arm,cortex-a53-pmu";
++		interrupts = <GIC_SPI 140 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 141 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 142 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 143 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-affinity = <&cpu0>, <&cpu1>, <&cpu2>, <&cpu3>;
++	};
++
++	psci {
++		compatible = "arm,psci-0.2";
++		method = "smc";
++	};
++
++	timer {
++		compatible = "arm,armv8-timer";
++		arm,no-tick-in-suspend;
++		interrupts = <GIC_PPI 13
++			(GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_HIGH)>,
++			     <GIC_PPI 14
++			(GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_HIGH)>,
++			     <GIC_PPI 11
++			(GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_HIGH)>,
++			     <GIC_PPI 10
++			(GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_HIGH)>;
++	};
++
++	soc {
++		compatible = "simple-bus";
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges = <0x0 0x0 0x0 0x40000000>;
++
++		bus@1000000 {
++			compatible = "allwinner,sun50i-h616-de33",
++				     "allwinner,sun50i-a64-de2";
++			reg = <0x1000000 0x400000>;
++			allwinner,sram = <&de3_sram 1>;
++			#address-cells = <1>;
++			#size-cells = <1>;
++			ranges = <0 0x1000000 0x400000>;
++
++			display_clocks: clock@8000 {
++				compatible = "allwinner,sun50i-h616-de33-clk";
++				reg = <0x8000 0x100>;
++				clocks = <&ccu CLK_DE>, <&ccu CLK_BUS_DE>;
++				clock-names = "mod", "bus";
++				resets = <&ccu RST_BUS_DE>;
++				#clock-cells = <1>;
++				#reset-cells = <1>;
++			};
++
++			mixer0: mixer@100000 {
++				compatible = "allwinner,sun50i-h616-de33-mixer-0";
++				reg = <0x100000 0x100000>,
++				      <0x8100 0x40>,
++				      <0x280000 0x20000>;
++				clocks = <&display_clocks CLK_BUS_MIXER0>,
++					 <&display_clocks CLK_MIXER0>;
++				clock-names = "bus", "mod";
++				resets = <&display_clocks RST_MIXER0>;
++
++				ports {
++					#address-cells = <1>;
++					#size-cells = <0>;
++
++					mixer0_out: port@1 {
++						reg = <1>;
++
++						mixer0_out_tcon_top_mixer0: endpoint {
++							remote-endpoint = <&tcon_top_mixer0_in_mixer0>;
++						};
++					};
++				};
++			};
++		};
++
++		syscon: syscon@3000000 {
++			compatible = "allwinner,sun50i-h616-system-control";
++			reg = <0x03000000 0x1000>;
++			#address-cells = <1>;
++			#size-cells = <1>;
++			ranges;
++
++			sram_c: sram@28000 {
++				compatible = "mmio-sram";
++				reg = <0x00028000 0x30000>;
++				#address-cells = <1>;
++				#size-cells = <1>;
++				ranges = <0 0x00028000 0x30000>;
++
++				de3_sram: sram-section@0 {
++					compatible = "allwinner,sun50i-h616-sram-c",
++						     "allwinner,sun50i-a64-sram-c";
++					reg = <0x0000 0x1e000>;
++				};
++			};
++		};
++
++		ccu: clock@3001000 {
++			compatible = "allwinner,sun50i-h616-ccu";
++			reg = <0x03001000 0x1000>;
++			clocks = <&osc24M>, <&rtc 0>, <&rtc 2>;
++			clock-names = "hosc", "losc", "iosc";
++			#clock-cells = <1>;
++			#reset-cells = <1>;
++		};
++
++		watchdog: watchdog@30090a0 {
++			compatible = "allwinner,sun50i-h616-wdt",
++				     "allwinner,sun6i-a31-wdt";
++			reg = <0x030090a0 0x20>;
++			interrupts = <GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&osc24M>;
++			status = "okay";
++		};
++
++		pio: pinctrl@300b000 {
++			compatible = "allwinner,sun50i-h616-pinctrl";
++			reg = <0x0300b000 0x400>;
++			interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 53 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 57 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_APB1>, <&osc24M>, <&rtc 0>;
++			clock-names = "apb", "hosc", "losc";
++			gpio-controller;
++			#gpio-cells = <3>;
++			interrupt-controller;
++			#interrupt-cells = <3>;
++
++			ext_rgmii_pins: rgmii-pins {
++				pins = "PI0", "PI1", "PI2", "PI3", "PI4",
++				       "PI5", "PI7", "PI8", "PI9", "PI10",
++				       "PI11", "PI12", "PI13", "PI14", "PI15",
++				       "PI16";
++				function = "emac0";
++				drive-strength = <40>;
++			};
++
++			i2c0_pins: i2c0-pins {
++				pins = "PI6", "PI7";
++				function = "i2c0";
++			};
++
++			i2c3_ph_pins: i2c3-ph-pins {
++				pins = "PH4", "PH5";
++				function = "i2c3";
++			};
++
++			ir_rx_pin: ir_rx_pin {
++				pins = "PH10";
++				function = "ir_rx";
++			};
++
++			mmc0_pins: mmc0-pins {
++				pins = "PF0", "PF1", "PF2", "PF3",
++				       "PF4", "PF5";
++				function = "mmc0";
++				drive-strength = <30>;
++				bias-pull-up;
++			};
++
++			mmc1_pins: mmc1-pins {
++				pins = "PG0", "PG1", "PG2", "PG3",
++				       "PG4", "PG5";
++				function = "mmc1";
++				drive-strength = <30>;
++				bias-pull-up;
++			};
++
++			mmc2_pins: mmc2-pins {
++				pins = "PC0", "PC1", "PC5", "PC6",
++				       "PC8", "PC9", "PC10", "PC11",
++				       "PC13", "PC14", "PC15", "PC16";
++				function = "mmc2";
++				drive-strength = <30>;
++				bias-pull-up;
++			};
++
++			spi0_pins: spi0-pins {
++				pins = "PC0", "PC2", "PC3", "PC4";
++				function = "spi0";
++			};
++
++			spi1_pins: spi1-pins {
++				pins = "PH6", "PH7", "PH8";
++				function = "spi1";
++			};
++
++			spi1_cs_pin: spi1-cs-pin {
++				pins = "PH5";
++				function = "spi1";
++			};
++
++			uart0_ph_pins: uart0-ph-pins {
++				pins = "PH0", "PH1";
++				function = "uart0";
++			};
++
++			uart1_pins: uart1-pins {
++				pins = "PG6", "PG7";
++				function = "uart1";
++			};
++
++			uart1_rts_cts_pins: uart1-rts-cts-pins {
++				pins = "PG8", "PG9";
++				function = "uart1";
++			};
++		};
++
++		gic: interrupt-controller@3021000 {
++			compatible = "arm,gic-400";
++			reg = <0x03021000 0x1000>,
++			      <0x03022000 0x2000>,
++			      <0x03024000 0x2000>,
++			      <0x03026000 0x2000>;
++			interrupts = <GIC_PPI 9 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_HIGH)>;
++			interrupt-controller;
++			#interrupt-cells = <3>;
++		};
++
++		mmc0: mmc@4020000 {
++			compatible = "allwinner,sun50i-h616-mmc",
++				     "allwinner,sun50i-a100-mmc";
++			reg = <0x04020000 0x1000>;
++			clocks = <&ccu CLK_BUS_MMC0>, <&ccu CLK_MMC0>;
++			clock-names = "ahb", "mmc";
++			resets = <&ccu RST_BUS_MMC0>;
++			reset-names = "ahb";
++			interrupts = <GIC_SPI 35 IRQ_TYPE_LEVEL_HIGH>;
++			pinctrl-names = "default";
++			pinctrl-0 = <&mmc0_pins>;
++			status = "disabled";
++			cap-sd-highspeed;
++			cap-mmc-highspeed;
++			mmc-ddr-3_3v;
++			mmc-ddr-1_8v;
++			cap-sdio-irq;
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		mmc1: mmc@4021000 {
++			compatible = "allwinner,sun50i-h616-mmc",
++				     "allwinner,sun50i-a100-mmc";
++			reg = <0x04021000 0x1000>;
++			clocks = <&ccu CLK_BUS_MMC1>, <&ccu CLK_MMC1>;
++			clock-names = "ahb", "mmc";
++			resets = <&ccu RST_BUS_MMC1>;
++			reset-names = "ahb";
++			interrupts = <GIC_SPI 36 IRQ_TYPE_LEVEL_HIGH>;
++			pinctrl-names = "default";
++			pinctrl-0 = <&mmc1_pins>;
++			status = "disabled";
++			cap-sd-highspeed;
++			cap-mmc-highspeed;
++			mmc-ddr-3_3v;
++			mmc-ddr-1_8v;
++			cap-sdio-irq;
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		mmc2: mmc@4022000 {
++			compatible = "allwinner,sun50i-h616-emmc",
++				     "allwinner,sun50i-a100-emmc";
++			reg = <0x04022000 0x1000>;
++			clocks = <&ccu CLK_BUS_MMC2>, <&ccu CLK_MMC2>;
++			clock-names = "ahb", "mmc";
++			resets = <&ccu RST_BUS_MMC2>;
++			reset-names = "ahb";
++			interrupts = <GIC_SPI 37 IRQ_TYPE_LEVEL_HIGH>;
++			pinctrl-names = "default";
++			pinctrl-0 = <&mmc2_pins>;
++			status = "disabled";
++			cap-sd-highspeed;
++			cap-mmc-highspeed;
++			mmc-ddr-3_3v;
++			mmc-ddr-1_8v;
++			cap-sdio-irq;
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		uart0: serial@5000000 {
++			compatible = "snps,dw-apb-uart";
++			reg = <0x05000000 0x400>;
++			interrupts = <GIC_SPI 0 IRQ_TYPE_LEVEL_HIGH>;
++			reg-shift = <2>;
++			reg-io-width = <4>;
++			clocks = <&ccu CLK_BUS_UART0>;
++			resets = <&ccu RST_BUS_UART0>;
++			status = "disabled";
++		};
++
++		uart1: serial@5000400 {
++			compatible = "snps,dw-apb-uart";
++			reg = <0x05000400 0x400>;
++			interrupts = <GIC_SPI 1 IRQ_TYPE_LEVEL_HIGH>;
++			reg-shift = <2>;
++			reg-io-width = <4>;
++			clocks = <&ccu CLK_BUS_UART1>;
++			resets = <&ccu RST_BUS_UART1>;
++			status = "disabled";
++		};
++
++		uart2: serial@5000800 {
++			compatible = "snps,dw-apb-uart";
++			reg = <0x05000800 0x400>;
++			interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
++			reg-shift = <2>;
++			reg-io-width = <4>;
++			clocks = <&ccu CLK_BUS_UART2>;
++			resets = <&ccu RST_BUS_UART2>;
++			status = "disabled";
++		};
++
++		uart3: serial@5000c00 {
++			compatible = "snps,dw-apb-uart";
++			reg = <0x05000c00 0x400>;
++			interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
++			reg-shift = <2>;
++			reg-io-width = <4>;
++			clocks = <&ccu CLK_BUS_UART3>;
++			resets = <&ccu RST_BUS_UART3>;
++			status = "disabled";
++		};
++
++		uart4: serial@5001000 {
++			compatible = "snps,dw-apb-uart";
++			reg = <0x05001000 0x400>;
++			interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
++			reg-shift = <2>;
++			reg-io-width = <4>;
++			clocks = <&ccu CLK_BUS_UART4>;
++			resets = <&ccu RST_BUS_UART4>;
++			status = "disabled";
++		};
++
++		uart5: serial@5001400 {
++			compatible = "snps,dw-apb-uart";
++			reg = <0x05001400 0x400>;
++			interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
++			reg-shift = <2>;
++			reg-io-width = <4>;
++			clocks = <&ccu CLK_BUS_UART5>;
++			resets = <&ccu RST_BUS_UART5>;
++			status = "disabled";
++		};
++
++		i2c0: i2c@5002000 {
++			compatible = "allwinner,sun50i-h616-i2c",
++				     "allwinner,sun6i-a31-i2c";
++			reg = <0x05002000 0x400>;
++			interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_I2C0>;
++			resets = <&ccu RST_BUS_I2C0>;
++			pinctrl-names = "default";
++			pinctrl-0 = <&i2c0_pins>;
++			status = "disabled";
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		i2c1: i2c@5002400 {
++			compatible = "allwinner,sun50i-h616-i2c",
++				     "allwinner,sun6i-a31-i2c";
++			reg = <0x05002400 0x400>;
++			interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_I2C1>;
++			resets = <&ccu RST_BUS_I2C1>;
++			status = "disabled";
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		i2c2: i2c@5002800 {
++			compatible = "allwinner,sun50i-h616-i2c",
++				     "allwinner,sun6i-a31-i2c";
++			reg = <0x05002800 0x400>;
++			interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_I2C2>;
++			resets = <&ccu RST_BUS_I2C2>;
++			status = "disabled";
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		i2c3: i2c@5002c00 {
++			compatible = "allwinner,sun50i-h616-i2c",
++				     "allwinner,sun6i-a31-i2c";
++			reg = <0x05002c00 0x400>;
++			interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_I2C3>;
++			resets = <&ccu RST_BUS_I2C3>;
++			status = "disabled";
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		i2c4: i2c@5003000 {
++			compatible = "allwinner,sun50i-h616-i2c",
++				     "allwinner,sun6i-a31-i2c";
++			reg = <0x05003000 0x400>;
++			interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_I2C4>;
++			resets = <&ccu RST_BUS_I2C4>;
++			status = "disabled";
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		spi0: spi@5010000 {
++			compatible = "allwinner,sun50i-h616-spi",
++				     "allwinner,sun8i-h3-spi";
++			reg = <0x05010000 0x1000>;
++			interrupts = <GIC_SPI 12 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_SPI0>, <&ccu CLK_SPI0>;
++			clock-names = "ahb", "mod";
++			resets = <&ccu RST_BUS_SPI0>;
++			pinctrl-names = "default";
++			pinctrl-0 = <&spi0_pins>;
++			status = "disabled";
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		spi1: spi@5011000 {
++			compatible = "allwinner,sun50i-h616-spi",
++				     "allwinner,sun8i-h3-spi";
++			reg = <0x05011000 0x1000>;
++			interrupts = <GIC_SPI 13 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_SPI1>, <&ccu CLK_SPI1>;
++			clock-names = "ahb", "mod";
++			resets = <&ccu RST_BUS_SPI1>;
++			pinctrl-names = "default";
++			pinctrl-0 = <&spi1_pins>;
++			status = "disabled";
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		emac0: ethernet@5020000 {
++			compatible = "allwinner,sun50i-h616-emac",
++				     "allwinner,sun50i-a64-emac";
++			syscon = <&syscon>;
++			reg = <0x05020000 0x10000>;
++			interrupts = <GIC_SPI 14 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-names = "macirq";
++			resets = <&ccu RST_BUS_EMAC0>;
++			reset-names = "stmmaceth";
++			clocks = <&ccu CLK_BUS_EMAC0>;
++			clock-names = "stmmaceth";
++			status = "disabled";
++
++			mdio0: mdio {
++				compatible = "snps,dwmac-mdio";
++				#address-cells = <1>;
++				#size-cells = <0>;
++			};
++		};
++
++		emac1: ethernet@5030000 {
++			compatible = "allwinner,sun50i-h616-emac";
++			syscon = <&syscon 1>;
++			reg = <0x05030000 0x10000>;
++			interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-names = "macirq";
++			resets = <&ccu RST_BUS_EMAC1>;
++			reset-names = "stmmaceth";
++			clocks = <&ccu CLK_BUS_EMAC1>;
++			clock-names = "stmmaceth";
++			status = "disabled";
++
++			mdio1: mdio {
++				compatible = "snps,dwmac-mdio";
++				#address-cells = <1>;
++				#size-cells = <0>;
++			};
++		};
++
++		usbotg: usb@5100000 {
++			compatible = "allwinner,sun50i-h616-musb",
++				     "allwinner,sun8i-h3-musb";
++			reg = <0x05100000 0x0400>;
++			clocks = <&ccu CLK_BUS_OTG>;
++			resets = <&ccu RST_BUS_OTG>;
++			interrupts = <GIC_SPI 25 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-names = "mc";
++			phys = <&usbphy 0>;
++			phy-names = "usb";
++			extcon = <&usbphy 0>;
++			status = "disabled";
++		};
++
++		usbphy: phy@5100400 {
++			compatible = "allwinner,sun50i-h616-usb-phy";
++			reg = <0x05100400 0x24>,
++			      <0x05101800 0x14>,
++			      <0x05200800 0x14>,
++			      <0x05310800 0x14>,
++			      <0x05311800 0x14>;
++			reg-names = "phy_ctrl",
++				    "pmu0",
++				    "pmu1",
++				    "pmu2",
++				    "pmu3";
++			clocks = <&ccu CLK_USB_PHY0>,
++				 <&ccu CLK_USB_PHY1>,
++				 <&ccu CLK_USB_PHY2>,
++				 <&ccu CLK_USB_PHY3>;
++			clock-names = "usb0_phy",
++				      "usb1_phy",
++				      "usb2_phy",
++				      "usb3_phy";
++			resets = <&ccu RST_USB_PHY0>,
++				 <&ccu RST_USB_PHY1>,
++				 <&ccu RST_USB_PHY2>,
++				 <&ccu RST_USB_PHY3>;
++			reset-names = "usb0_reset",
++				      "usb1_reset",
++				      "usb2_reset",
++				      "usb3_reset";
++			status = "disabled";
++			#phy-cells = <1>;
++		};
++
++		ehci0: usb@5101000 {
++			compatible = "allwinner,sun50i-h616-ehci",
++				     "generic-ehci";
++			reg = <0x05101000 0x100>;
++			interrupts = <GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_OHCI0>,
++				 <&ccu CLK_BUS_EHCI0>,
++				 <&ccu CLK_USB_OHCI0>;
++			resets = <&ccu RST_BUS_OHCI0>,
++				 <&ccu RST_BUS_EHCI0>;
++			phys = <&usbphy 0>;
++			phy-names = "usb";
++			status = "disabled";
++		};
++
++		ohci0: usb@5101400 {
++			compatible = "allwinner,sun50i-h616-ohci",
++				     "generic-ohci";
++			reg = <0x05101400 0x100>;
++			interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_OHCI0>,
++				 <&ccu CLK_USB_OHCI0>;
++			resets = <&ccu RST_BUS_OHCI0>;
++			phys = <&usbphy 0>;
++			phy-names = "usb";
++			status = "disabled";
++		};
++
++		ehci1: usb@5200000 {
++			compatible = "allwinner,sun50i-h616-ehci",
++				     "generic-ehci";
++			reg = <0x05200000 0x100>;
++			interrupts = <GIC_SPI 28 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_OHCI1>,
++				 <&ccu CLK_BUS_EHCI1>,
++				 <&ccu CLK_USB_OHCI1>;
++			resets = <&ccu RST_BUS_OHCI1>,
++				 <&ccu RST_BUS_EHCI1>;
++			phys = <&usbphy 1>;
++			phy-names = "usb";
++			status = "disabled";
++		};
++
++		ohci1: usb@5200400 {
++			compatible = "allwinner,sun50i-h616-ohci",
++				     "generic-ohci";
++			reg = <0x05200400 0x100>;
++			interrupts = <GIC_SPI 29 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_OHCI1>,
++				 <&ccu CLK_USB_OHCI1>;
++			resets = <&ccu RST_BUS_OHCI1>;
++			phys = <&usbphy 1>;
++			phy-names = "usb";
++			status = "disabled";
++		};
++
++		ehci2: usb@5310000 {
++			compatible = "allwinner,sun50i-h616-ehci",
++				     "generic-ehci";
++			reg = <0x05310000 0x100>;
++			interrupts = <GIC_SPI 30 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_OHCI2>,
++				 <&ccu CLK_BUS_EHCI2>,
++				 <&ccu CLK_USB_OHCI2>;
++			resets = <&ccu RST_BUS_OHCI2>,
++				 <&ccu RST_BUS_EHCI2>;
++			phys = <&usbphy 2>;
++			phy-names = "usb";
++			status = "disabled";
++		};
++
++		ohci2: usb@5310400 {
++			compatible = "allwinner,sun50i-h616-ohci",
++				     "generic-ohci";
++			reg = <0x05310400 0x100>;
++			interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_OHCI2>,
++				 <&ccu CLK_USB_OHCI2>;
++			resets = <&ccu RST_BUS_OHCI2>;
++			phys = <&usbphy 2>;
++			phy-names = "usb";
++			status = "disabled";
++		};
++
++		ehci3: usb@5311000 {
++			compatible = "allwinner,sun50i-h616-ehci",
++				     "generic-ehci";
++			reg = <0x05311000 0x100>;
++			interrupts = <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_OHCI3>,
++				 <&ccu CLK_BUS_EHCI3>,
++				 <&ccu CLK_USB_OHCI3>;
++			resets = <&ccu RST_BUS_OHCI3>,
++				 <&ccu RST_BUS_EHCI3>;
++			phys = <&usbphy 3>;
++			phy-names = "usb";
++			status = "disabled";
++		};
++
++		ohci3: usb@5311400 {
++			compatible = "allwinner,sun50i-h616-ohci",
++				     "generic-ohci";
++			reg = <0x05311400 0x100>;
++			interrupts = <GIC_SPI 33 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_OHCI3>,
++				 <&ccu CLK_USB_OHCI3>;
++			resets = <&ccu RST_BUS_OHCI3>;
++			phys = <&usbphy 3>;
++			phy-names = "usb";
++			status = "disabled";
++		};
++
++		hdmi: hdmi@6000000 {
++			compatible = "allwinner,sun50i-h616-dw-hdmi",
++				     "allwinner,sun50i-h6-dw-hdmi";
++			reg = <0x06000000 0x10000>;
++			reg-io-width = <1>;
++			interrupts = <GIC_SPI 63 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_HDMI>, <&ccu CLK_HDMI_SLOW>,
++				 <&ccu CLK_HDMI>, <&ccu CLK_HDMI_CEC>,
++				 <&ccu CLK_HDCP>, <&ccu CLK_BUS_HDCP>;
++			clock-names = "iahb", "isfr", "tmds", "cec", "hdcp",
++				      "hdcp-bus";
++			resets = <&ccu RST_BUS_HDMI>, <&ccu RST_BUS_HDCP>;
++			reset-names = "ctrl", "hdcp";
++			phys = <&hdmi_phy>;
++			phy-names = "phy";
++			status = "disabled";
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				hdmi_in: port@0 {
++					reg = <0>;
++
++					hdmi_in_tcon_top: endpoint {
++						remote-endpoint = <&tcon_top_hdmi_out_hdmi>;
++					};
++				};
++
++				hdmi_out: port@1 {
++					reg = <1>;
++				};
++			};
++		};
++
++		hdmi_phy: hdmi-phy@6010000 {
++			compatible = "allwinner,sun50i-h616-hdmi-phy";
++			reg = <0x06010000 0x10000>;
++			clocks = <&ccu CLK_BUS_HDMI>, <&ccu CLK_HDMI_SLOW>;
++			clock-names = "bus", "mod";
++			resets = <&ccu RST_BUS_HDMI_SUB>;
++			reset-names = "phy";
++			#phy-cells = <0>;
++		};
++
++		tcon_top: tcon-top@6510000 {
++			compatible = "allwinner,sun50i-h6-tcon-top";
++			reg = <0x06510000 0x1000>;
++			clocks = <&ccu CLK_BUS_TCON_TOP>,
++				 <&ccu CLK_TCON_TV0>;
++			clock-names = "bus",
++				      "tcon-tv0";
++			clock-output-names = "tcon-top-tv0";
++			resets = <&ccu RST_BUS_TCON_TOP>;
++			#clock-cells = <1>;
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				tcon_top_mixer0_in: port@0 {
++					#address-cells = <1>;
++					#size-cells = <0>;
++					reg = <0>;
++
++					tcon_top_mixer0_in_mixer0: endpoint@0 {
++						reg = <0>;
++						remote-endpoint = <&mixer0_out_tcon_top_mixer0>;
++					};
++				};
++
++				tcon_top_mixer0_out: port@1 {
++					#address-cells = <1>;
++					#size-cells = <0>;
++					reg = <1>;
++
++					tcon_top_mixer0_out_tcon_tv: endpoint@2 {
++						reg = <2>;
++						remote-endpoint = <&tcon_tv_in_tcon_top_mixer0>;
++					};
++				};
++
++				tcon_top_hdmi_in: port@4 {
++					#address-cells = <1>;
++					#size-cells = <0>;
++					reg = <4>;
++
++					tcon_top_hdmi_in_tcon_tv: endpoint@0 {
++						reg = <0>;
++						remote-endpoint = <&tcon_tv_out_tcon_top>;
++					};
++				};
++
++				tcon_top_hdmi_out: port@5 {
++					reg = <5>;
++
++					tcon_top_hdmi_out_hdmi: endpoint {
++						remote-endpoint = <&hdmi_in_tcon_top>;
++					};
++				};
++			};
++		};
++
++		tcon_tv: lcd-controller@6515000 {
++			compatible = "allwinner,sun50i-h6-tcon-tv",
++				     "allwinner,sun8i-r40-tcon-tv";
++			reg = <0x06515000 0x1000>;
++			interrupts = <GIC_SPI 66 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&ccu CLK_BUS_TCON_TV0>,
++				 <&tcon_top CLK_TCON_TOP_TV0>;
++			clock-names = "ahb",
++				      "tcon-ch1";
++			resets = <&ccu RST_BUS_TCON_TV0>;
++			reset-names = "lcd";
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				tcon_tv_in: port@0 {
++					reg = <0>;
++
++					tcon_tv_in_tcon_top_mixer0: endpoint {
++						remote-endpoint = <&tcon_top_mixer0_out_tcon_tv>;
++					};
++				};
++
++				tcon_tv_out: port@1 {
++					#address-cells = <1>;
++					#size-cells = <0>;
++					reg = <1>;
++
++					tcon_tv_out_tcon_top: endpoint@1 {
++						reg = <1>;
++						remote-endpoint = <&tcon_top_hdmi_in_tcon_tv>;
++					};
++				};
++			};
++		};
++
++		rtc: rtc@7000000 {
++			compatible = "allwinner,sun50i-h616-rtc",
++				     "allwinner,sun50i-h6-rtc";
++			reg = <0x07000000 0x400>;
++			interrupts = <GIC_SPI 101 IRQ_TYPE_LEVEL_HIGH>,
++				     <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>;
++			clock-output-names = "osc32k", "osc32k-out", "iosc";
++			#clock-cells = <1>;
++		};
++
++		r_ccu: clock@7010000 {
++			compatible = "allwinner,sun50i-h616-r-ccu";
++			reg = <0x07010000 0x210>;
++			clocks = <&osc24M>, <&rtc 0>, <&rtc 2>,
++				 <&ccu CLK_PLL_PERIPH0>;
++			clock-names = "hosc", "losc", "iosc", "pll-periph";
++			#clock-cells = <1>;
++			#reset-cells = <1>;
++		};
++
++		r_pio: pinctrl@7022000 {
++			compatible = "allwinner,sun50i-h616-r-pinctrl";
++			reg = <0x07022000 0x400>;
++			interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&r_ccu CLK_R_APB1>, <&osc24M>, <&rtc 0>;
++			clock-names = "apb", "hosc", "losc";
++			gpio-controller;
++			#gpio-cells = <3>;
++			interrupt-controller;
++			#interrupt-cells = <3>;
++
++			r_i2c_pins: r-i2c-pins {
++				pins = "PL0", "PL1";
++				function = "s_i2c";
++			};
++
++			r_rsb_pins: r-rsb-pins {
++				pins = "PL0", "PL1";
++				function = "s_rsb";
++			};
++		};
++
++		ir: ir@7040000 {
++				compatible = "allwinner,sun50i-h616-ir",
++					     "allwinner,sun6i-a31-ir";
++				reg = <0x07040000 0x400>;
++				interrupts = <GIC_SPI 106 IRQ_TYPE_LEVEL_HIGH>;
++				clocks = <&r_ccu CLK_R_APB1_IR>,
++					 <&r_ccu CLK_IR>;
++				clock-names = "apb", "ir";
++				resets = <&r_ccu RST_R_APB1_IR>;
++				pinctrl-names = "default";
++				pinctrl-0 = <&ir_rx_pin>;
++				status = "disabled";
++		};
++
++		r_i2c: i2c@7081400 {
++			compatible = "allwinner,sun50i-h616-i2c",
++				     "allwinner,sun6i-a31-i2c";
++			reg = <0x07081400 0x400>;
++			interrupts = <GIC_SPI 105 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&r_ccu CLK_R_APB2_I2C>;
++			resets = <&r_ccu RST_R_APB2_I2C>;
++			status = "disabled";
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++
++		r_rsb: rsb@7083000 {
++			compatible = "allwinner,sun50i-h616-rsb",
++				     "allwinner,sun8i-a23-rsb";
++			reg = <0x07083000 0x400>;
++			interrupts = <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&r_ccu CLK_R_APB2_RSB>;
++			clock-frequency = <3000000>;
++			resets = <&r_ccu RST_R_APB2_RSB>;
++			pinctrl-names = "default";
++			pinctrl-0 = <&r_rsb_pins>;
++			status = "disabled";
++			#address-cells = <1>;
++			#size-cells = <0>;
++		};
++	};
++};
+diff -Naur linux-5.11-old/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts linux-5.11-new/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts
+--- linux-5.11-old/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11-new/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts	2021-02-21 17:57:15.189998916 +0100
+@@ -0,0 +1,284 @@
++// SPDX-License-Identifier: (GPL-2.0+ or MIT)
++/*
++ * Copyright (C) 2020 Arm Ltd.
++ */
++
++/dts-v1/;
++
++#include "sun50i-h616.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/leds/common.h>
++
++/ {
++	model = "OrangePi Zero2";
++	compatible = "xunlong,orangepi-zero2", "allwinner,sun50i-h616";
++
++	aliases {
++		ethernet0 = &emac0;
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	connector {
++		compatible = "hdmi-connector";
++		type = "d";
++
++		port {
++			hdmi_con_in: endpoint {
++				remote-endpoint = <&hdmi_out_con>;
++			};
++		};
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led-0 {
++			function = LED_FUNCTION_POWER;
++			color = <LED_COLOR_ID_RED>;
++			gpios = <&pio 2 12 GPIO_ACTIVE_HIGH>; /* PC12 */
++			default-state = "on";
++		};
++
++		led-1 {
++			function = LED_FUNCTION_STATUS;
++			color = <LED_COLOR_ID_GREEN>;
++			gpios = <&pio 2 13 GPIO_ACTIVE_HIGH>; /* PC13 */
++		};
++	};
++
++	reg_vcc5v: vcc5v {
++		/* board wide 5V supply directly from the USB-C socket */
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-5v";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++
++	reg_usb1_vbus: usb1-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb1-vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&reg_vcc5v>;
++		enable-active-high;
++		gpio = <&pio 2 16 GPIO_ACTIVE_HIGH>; /* PC16 */
++		status = "okay";
++	};
++};
++
++&de {
++	status = "okay";
++};
++
++&ehci0 {
++	status = "okay";
++};
++
++&ehci1 {
++	status = "okay";
++};
++
++&ehci2 {
++	status = "okay";
++};
++
++&ehci3 {
++	status = "okay";
++};
++
++&hdmi {
++	hvcc-supply = <&reg_bldo1>;
++	status = "okay";
++};
++
++&hdmi_out {
++	hdmi_out_con: endpoint {
++		remote-endpoint = <&hdmi_con_in>;
++	};
++};
++
++/* USB 2 & 3 are on headers only. */
++
++&emac0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&ext_rgmii_pins>;
++	phy-mode = "rgmii";
++	phy-handle = <&ext_rgmii_phy>;
++	phy-supply = <&reg_dcdce>;
++	allwinner,rx-delay-ps = <3100>;
++	allwinner,tx-delay-ps = <700>;
++	status = "okay";
++};
++
++&mdio0 {
++	ext_rgmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
++};
++
++&mmc0 {
++	vmmc-supply = <&reg_dcdce>;
++	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
++	bus-width = <4>;
++	status = "okay";
++};
++
++&ohci0 {
++	status = "okay";
++};
++
++&ohci1 {
++	status = "okay";
++};
++
++&ohci2 {
++	status = "okay";
++};
++
++&ohci3 {
++	status = "okay";
++};
++
++&r_rsb {
++	status = "okay";
++
++	axp305: pmic@745 {
++		compatible = "x-powers,axp305", "x-powers,axp805",
++			     "x-powers,axp806";
++		interrupt-controller;
++		#interrupt-cells = <1>;
++		reg = <0x745>;
++
++		x-powers,self-working-mode;
++		vina-supply = <&reg_vcc5v>;
++		vinb-supply = <&reg_vcc5v>;
++		vinc-supply = <&reg_vcc5v>;
++		vind-supply = <&reg_vcc5v>;
++		vine-supply = <&reg_vcc5v>;
++		aldoin-supply = <&reg_vcc5v>;
++		bldoin-supply = <&reg_vcc5v>;
++		cldoin-supply = <&reg_vcc5v>;
++
++		regulators {
++			reg_aldo1: aldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-sys";
++			};
++
++			reg_aldo2: aldo2 {	/* 3.3V on headers */
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3-ext";
++			};
++
++			reg_aldo3: aldo3 {	/* 3.3V on headers */
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3-ext2";
++			};
++
++			reg_bldo1: bldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc1v8";
++			};
++
++			bldo2 {
++				/* unused */
++			};
++
++			bldo3 {
++				/* unused */
++			};
++
++			bldo4 {
++				/* unused */
++			};
++
++			cldo1 {
++				/* reserved */
++			};
++
++			cldo2 {
++				/* unused */
++			};
++
++			cldo3 {
++				/* unused */
++			};
++
++			reg_dcdca: dcdca {
++				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1080000>;
++				regulator-name = "vdd-cpu";
++			};
++
++			reg_dcdcc: dcdcc {
++				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1080000>;
++				regulator-name = "vdd-gpu-sys";
++			};
++
++			reg_dcdcd: dcdcd {
++				regulator-always-on;
++				regulator-min-microvolt = <1500000>;
++				regulator-max-microvolt = <1500000>;
++				regulator-name = "vdd-dram";
++			};
++
++			reg_dcdce: dcdce {
++				regulator-boot-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-eth-mmc";
++			};
++
++			sw {
++				/* unused */
++			};
++		};
++	};
++};
++
++&spi0  {
++	status = "okay";
++
++	flash@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <40000000>;
++	};
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_ph_pins>;
++	status = "okay";
++};
++
++&usbotg {
++	dr_mode = "peripheral";
++	status = "okay";
++};
++
++&usbphy {
++	usb1_vbus-supply = <&reg_usb1_vbus>;
++	status = "okay";
++};
+
+diff -Naur linux-5.11-old/drivers/clk/sunxi-ng/sun8i-de33.c linux-5.11-new/drivers/clk/sunxi-ng/sun8i-de33.c
+--- linux-5.11-old/drivers/clk/sunxi-ng/sun8i-de33.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11-new/drivers/clk/sunxi-ng/sun8i-de33.c	2021-02-21 17:57:15.193332250 +0100
+@@ -0,0 +1,185 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2017 Icenowy Zheng <icenowy@aosc.io>
++ */
++
++#include <linux/clk.h>
++#include <linux/clk-provider.h>
++#include <linux/of_address.h>
++#include <linux/of_platform.h>
++#include <linux/platform_device.h>
++#include <linux/reset.h>
++
++#include "ccu_common.h"
++#include "ccu_div.h"
++#include "ccu_gate.h"
++#include "ccu_reset.h"
++
++#include "sun8i-de33.h"
++
++static SUNXI_CCU_GATE(bus_mixer0_clk,	"bus-mixer0",	"bus-de",
++		      0x04, BIT(0), 0);
++static SUNXI_CCU_GATE(bus_mixer1_clk,	"bus-mixer1",	"bus-de",
++		      0x04, BIT(1), 0);
++static SUNXI_CCU_GATE(bus_wb_clk,	"bus-wb",	"bus-de",
++		      0x04, BIT(2), 0);
++
++static SUNXI_CCU_GATE(mixer0_clk,	"mixer0",	"mixer0-div",
++		      0x00, BIT(0), CLK_SET_RATE_PARENT);
++static SUNXI_CCU_GATE(mixer1_clk,	"mixer1",	"mixer1-div",
++		      0x00, BIT(1), CLK_SET_RATE_PARENT);
++static SUNXI_CCU_GATE(wb_clk,		"wb",		"wb-div",
++		      0x00, BIT(2), CLK_SET_RATE_PARENT);
++
++static SUNXI_CCU_M(mixer0_div_clk, "mixer0-div", "de", 0x0c, 0, 4,
++		   CLK_SET_RATE_PARENT);
++static SUNXI_CCU_M(mixer1_div_clk, "mixer1-div", "de", 0x0c, 4, 4,
++		   CLK_SET_RATE_PARENT);
++static SUNXI_CCU_M(wb_div_clk, "wb-div", "de", 0x0c, 8, 4,
++		   CLK_SET_RATE_PARENT);
++
++static struct ccu_common *sun50i_h616_de33_clks[] = {
++	&mixer0_clk.common,
++	&mixer1_clk.common,
++	&wb_clk.common,
++
++	&bus_mixer0_clk.common,
++	&bus_mixer1_clk.common,
++	&bus_wb_clk.common,
++
++	&mixer0_div_clk.common,
++	&mixer1_div_clk.common,
++	&wb_div_clk.common,
++};
++
++static struct clk_hw_onecell_data sun50i_h616_de33_hw_clks = {
++	.hws	= {
++		[CLK_MIXER0]		= &mixer0_clk.common.hw,
++		[CLK_MIXER1]		= &mixer1_clk.common.hw,
++		[CLK_WB]		= &wb_clk.common.hw,
++
++		[CLK_BUS_MIXER0]	= &bus_mixer0_clk.common.hw,
++		[CLK_BUS_MIXER1]	= &bus_mixer1_clk.common.hw,
++		[CLK_BUS_WB]		= &bus_wb_clk.common.hw,
++
++		[CLK_MIXER0_DIV]	= &mixer0_div_clk.common.hw,
++		[CLK_MIXER1_DIV]	= &mixer1_div_clk.common.hw,
++		[CLK_WB_DIV]		= &wb_div_clk.common.hw,
++	},
++	.num	= CLK_NUMBER,
++};
++
++static struct ccu_reset_map sun50i_h616_de33_resets[] = {
++	[RST_MIXER0]	= { 0x08, BIT(0) },
++	[RST_MIXER1]	= { 0x08, BIT(1) },
++	[RST_WB]	= { 0x08, BIT(2) },
++};
++
++static const struct sunxi_ccu_desc sun50i_h616_de33_clk_desc = {
++	.ccu_clks	= sun50i_h616_de33_clks,
++	.num_ccu_clks	= ARRAY_SIZE(sun50i_h616_de33_clks),
++
++	.hw_clks	= &sun50i_h616_de33_hw_clks,
++
++	.resets		= sun50i_h616_de33_resets,
++	.num_resets	= ARRAY_SIZE(sun50i_h616_de33_resets),
++};
++
++static int sunxi_de33_clk_probe(struct platform_device *pdev)
++{
++	struct resource *res;
++	struct clk *bus_clk, *mod_clk;
++	struct reset_control *rstc;
++	void __iomem *reg;
++	const struct sunxi_ccu_desc *ccu_desc;
++	int ret;
++
++	ccu_desc = of_device_get_match_data(&pdev->dev);
++	if (!ccu_desc)
++		return -EINVAL;
++
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	reg = devm_ioremap_resource(&pdev->dev, res);
++	if (IS_ERR(reg))
++		return PTR_ERR(reg);
++
++	bus_clk = devm_clk_get(&pdev->dev, "bus");
++	if (IS_ERR(bus_clk)) {
++		ret = PTR_ERR(bus_clk);
++		if (ret != -EPROBE_DEFER)
++			dev_err(&pdev->dev, "Couldn't get bus clk: %d\n", ret);
++		return ret;
++	}
++
++	mod_clk = devm_clk_get(&pdev->dev, "mod");
++	if (IS_ERR(mod_clk)) {
++		ret = PTR_ERR(mod_clk);
++		if (ret != -EPROBE_DEFER)
++			dev_err(&pdev->dev, "Couldn't get mod clk: %d\n", ret);
++		return ret;
++	}
++
++	rstc = devm_reset_control_get_exclusive(&pdev->dev, NULL);
++	if (IS_ERR(rstc)) {
++		ret = PTR_ERR(rstc);
++		if (ret != -EPROBE_DEFER)
++			dev_err(&pdev->dev,
++				"Couldn't get reset control: %d\n", ret);
++		return ret;
++	}
++
++	/* The clocks need to be enabled for us to access the registers */
++	ret = clk_prepare_enable(bus_clk);
++	if (ret) {
++		dev_err(&pdev->dev, "Couldn't enable bus clk: %d\n", ret);
++		return ret;
++	}
++
++	ret = clk_prepare_enable(mod_clk);
++	if (ret) {
++		dev_err(&pdev->dev, "Couldn't enable mod clk: %d\n", ret);
++		goto err_disable_bus_clk;
++	}
++
++	/* The reset control needs to be asserted for the controls to work */
++	ret = reset_control_deassert(rstc);
++	if (ret) {
++		dev_err(&pdev->dev,
++			"Couldn't deassert reset control: %d\n", ret);
++		goto err_disable_mod_clk;
++	}
++
++	writel(0, reg + 0x24);
++	writel(0x0000A980, reg + 0x28);
++
++	ret = sunxi_ccu_probe(pdev->dev.of_node, reg, ccu_desc);
++	if (ret)
++		goto err_assert_reset;
++
++	return 0;
++
++err_assert_reset:
++	reset_control_assert(rstc);
++err_disable_mod_clk:
++	clk_disable_unprepare(mod_clk);
++err_disable_bus_clk:
++	clk_disable_unprepare(bus_clk);
++	return ret;
++}
++
++static const struct of_device_id sunxi_de33_clk_ids[] = {
++	{
++		.compatible = "allwinner,sun50i-h616-de33-clk",
++		.data = &sun50i_h616_de33_clk_desc,
++	},
++	{ }
++};
++
++static struct platform_driver sunxi_de33_clk_driver = {
++	.probe	= sunxi_de33_clk_probe,
++	.driver	= {
++		.name	= "sunxi-de33-clks",
++		.of_match_table	= sunxi_de33_clk_ids,
++	},
++};
++builtin_platform_driver(sunxi_de33_clk_driver);
+diff -Naur linux-5.11-old/drivers/clk/sunxi-ng/sun8i-de33.h linux-5.11-new/drivers/clk/sunxi-ng/sun8i-de33.h
+--- linux-5.11-old/drivers/clk/sunxi-ng/sun8i-de33.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11-new/drivers/clk/sunxi-ng/sun8i-de33.h	2021-02-21 17:57:15.193332250 +0100
+@@ -0,0 +1,19 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++/*
++ * Copyright 2016 Icenowy Zheng <icenowy@aosc.io>
++ */
++
++#ifndef _CCU_SUN8I_DE2_H_
++#define _CCU_SUN8I_DE2_H_
++
++#include <dt-bindings/clock/sun8i-de2.h>
++#include <dt-bindings/reset/sun8i-de2.h>
++
++/* Intermediary clock dividers are not exported */
++#define CLK_MIXER0_DIV	3
++#define CLK_MIXER1_DIV	4
++#define CLK_WB_DIV	5
++
++#define CLK_NUMBER	(CLK_WB + 1)
++
++#endif /* _CCU_SUN8I_DE2_H_ */
+diff -Naur linux-5.11-old/drivers/gpu/drm/sun4i/sun4i_tcon.c linux-5.11-new/drivers/gpu/drm/sun4i/sun4i_tcon.c
+--- linux-5.11-old/drivers/gpu/drm/sun4i/sun4i_tcon.c	2021-02-14 23:32:24.000000000 +0100
++++ linux-5.11-new/drivers/gpu/drm/sun4i/sun4i_tcon.c	2021-02-20 12:50:11.533332324 +0100
+@@ -1285,6 +1285,10 @@
+ 			goto err_free_dotclock;
+ 	}
+ 
++	regmap_update_bits(tcon->regs, SUN4I_TCON_GCTL_REG,
++			   SUN4I_TCON_GCTL_PAD_SEL,
++			   SUN4I_TCON_GCTL_PAD_SEL);
++
+ 	if (tcon->quirks->needs_de_be_mux) {
+ 		/*
+ 		 * We assume there is no dynamic muxing of backends
+diff -Naur linux-5.11-old/drivers/gpu/drm/sun4i/sun4i_tcon.h linux-5.11-new/drivers/gpu/drm/sun4i/sun4i_tcon.h
+--- linux-5.11-old/drivers/gpu/drm/sun4i/sun4i_tcon.h	2021-02-14 23:32:24.000000000 +0100
++++ linux-5.11-new/drivers/gpu/drm/sun4i/sun4i_tcon.h	2021-02-20 12:50:11.533332324 +0100
+@@ -18,6 +18,7 @@
+ 
+ #define SUN4I_TCON_GCTL_REG			0x0
+ #define SUN4I_TCON_GCTL_TCON_ENABLE			BIT(31)
++#define SUN4I_TCON_GCTL_PAD_SEL				BIT(1)
+ #define SUN4I_TCON_GCTL_IOMAP_MASK			BIT(0)
+ #define SUN4I_TCON_GCTL_IOMAP_TCON1			(1 << 0)
+ #define SUN4I_TCON_GCTL_IOMAP_TCON0			(0 << 0)
+diff -Naur linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_csc.c linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_csc.c
+--- linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_csc.c	2021-02-21 17:53:33.293332252 +0100
++++ linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_csc.c	2021-02-20 12:50:11.536665657 +0100
+@@ -46,6 +46,33 @@
+ 	},
+ };
+ 
++static const u32 yvu2rgb[2][2][12] = {
++	[DRM_COLOR_YCBCR_LIMITED_RANGE] = {
++		[DRM_COLOR_YCBCR_BT601] = {
++			0x000004A8, 0x00000662, 0x00000000, 0xFFFC8451,
++			0x000004A8, 0xFFFFFCC0, 0xFFFFFE6F, 0x00021E4D,
++			0x000004A8, 0x00000000, 0x00000811, 0xFFFBACA9,
++		},
++		[DRM_COLOR_YCBCR_BT709] = {
++			0x000004A8, 0x0000072B, 0x00000000, 0xFFFC1F99,
++			0x000004A8, 0xFFFFFDDF, 0xFFFFFF26, 0x00013383,
++			0x000004A8, 0x00000000, 0x00000873, 0xFFFB7BEF,
++		}
++	},
++	[DRM_COLOR_YCBCR_FULL_RANGE] = {
++		[DRM_COLOR_YCBCR_BT601] = {
++			0x00000400, 0x0000059B, 0x00000000, 0xFFFD322E,
++			0x00000400, 0xFFFFFD25, 0xFFFFFEA0, 0x00021DD5,
++			0x00000400, 0x00000000, 0x00000716, 0xFFFC74BD,
++		},
++		[DRM_COLOR_YCBCR_BT709] = {
++			0x00000400, 0x0000064C, 0x00000000, 0xFFFCD9B4,
++			0x00000400, 0xFFFFFE21, 0xFFFFFF41, 0x00014F96,
++			0x00000400, 0x00000000, 0x0000076C, 0xFFFC49EF,
++		}
++	},
++};
++
+ /*
+  * DE3 has a bit different CSC units. Factors are in two's complement format.
+  * First three factors in a row are multiplication factors which have 17 bits
+@@ -69,7 +96,7 @@
+  * c20 c21 c22 [d2 const2]
+  */
+ 
+-static const u32 yuv2rgb_de3[2][3][12] = {
++static const u32 yuv2rgb_de3[2][2][12] = {
+ 	[DRM_COLOR_YCBCR_LIMITED_RANGE] = {
+ 		[DRM_COLOR_YCBCR_BT601] = {
+ 			0x0002542A, 0x00000000, 0x0003312A, 0xFFC00000,
+@@ -80,11 +107,6 @@
+ 			0x0002542A, 0x00000000, 0x000395E2, 0xFFC00000,
+ 			0x0002542A, 0xFFFF92D2, 0xFFFEEF27, 0xFE000000,
+ 			0x0002542A, 0x0004398C, 0x00000000, 0xFE000000,
+-		},
+-		[DRM_COLOR_YCBCR_BT2020] = {
+-			0x0002542A, 0x00000000, 0x00035B7B, 0xFFC00000,
+-			0x0002542A, 0xFFFFA017, 0xFFFEB2FC, 0xFE000000,
+-			0x0002542A, 0x00044896, 0x00000000, 0xFE000000,
+ 		}
+ 	},
+ 	[DRM_COLOR_YCBCR_FULL_RANGE] = {
+@@ -97,15 +119,45 @@
+ 			0x00020000, 0x00000000, 0x0003264C, 0x00000000,
+ 			0x00020000, 0xFFFFA018, 0xFFFF1053, 0xFE000000,
+ 			0x00020000, 0x0003B611, 0x00000000, 0xFE000000,
++		}
++	},
++};
++
++static const u32 yvu2rgb_de3[2][2][12] = {
++	[DRM_COLOR_YCBCR_LIMITED_RANGE] = {
++		[DRM_COLOR_YCBCR_BT601] = {
++			0x0002542A, 0x0003312A, 0x00000000, 0xFFC00000,
++			0x0002542A, 0xFFFE5FC3, 0xFFFF376B, 0xFE000000,
++			0x0002542A, 0x00000000, 0x000408D2, 0xFE000000,
+ 		},
+-		[DRM_COLOR_YCBCR_BT2020] = {
+-			0x00020000, 0x00000000, 0x0002F2FE, 0x00000000,
+-			0x00020000, 0xFFFFABC0, 0xFFFEDB78, 0xFE000000,
+-			0x00020000, 0x0003C346, 0x00000000, 0xFE000000,
++		[DRM_COLOR_YCBCR_BT709] = {
++			0x0002542A, 0x000395E2, 0x00000000, 0xFFC00000,
++			0x0002542A, 0xFFFEEF27, 0xFFFF92D2, 0xFE000000,
++			0x0002542A, 0x00000000, 0x0004398C, 0xFE000000,
++		}
++	},
++	[DRM_COLOR_YCBCR_FULL_RANGE] = {
++		[DRM_COLOR_YCBCR_BT601] = {
++			0x00020000, 0x0002CDD2, 0x00000000, 0x00000000,
++			0x00020000, 0xFFFE925D, 0xFFFF4FCE, 0xFE000000,
++			0x00020000, 0x00000000, 0x00038B43, 0xFE000000,
++		},
++		[DRM_COLOR_YCBCR_BT709] = {
++			0x00020000, 0x0003264C, 0x00000000, 0x00000000,
++			0x00020000, 0xFFFF1053, 0xFFFFA018, 0xFE000000,
++			0x00020000, 0x00000000, 0x0003B611, 0xFE000000,
+ 		}
+ 	},
+ };
+ 
++static u32 sun8i_csc_base(struct sun8i_mixer *mixer, int layer)
++{
++	if (mixer->cfg->de_type == sun8i_mixer_de33)
++		return sun8i_channel_base(mixer, layer) - 0x200;
++	else
++		return ccsc_base[mixer->cfg->ccsc][layer];
++}
++
+ static void sun8i_csc_set_coefficients(struct regmap *map, u32 base,
+ 				       enum sun8i_csc_mode mode,
+ 				       enum drm_color_encoding encoding,
+@@ -113,30 +165,21 @@
+ {
+ 	const u32 *table;
+ 	u32 base_reg;
+-	int i;
+-
+-	table = yuv2rgb[range][encoding];
+ 
+ 	switch (mode) {
+ 	case SUN8I_CSC_MODE_YUV2RGB:
+-		base_reg = SUN8I_CSC_COEFF(base, 0);
+-		regmap_bulk_write(map, base_reg, table, 12);
++		table = yuv2rgb[range][encoding];
+ 		break;
+ 	case SUN8I_CSC_MODE_YVU2RGB:
+-		for (i = 0; i < 12; i++) {
+-			if ((i & 3) == 1)
+-				base_reg = SUN8I_CSC_COEFF(base, i + 1);
+-			else if ((i & 3) == 2)
+-				base_reg = SUN8I_CSC_COEFF(base, i - 1);
+-			else
+-				base_reg = SUN8I_CSC_COEFF(base, i);
+-			regmap_write(map, base_reg, table[i]);
+-		}
++		table = yvu2rgb[range][encoding];
+ 		break;
+ 	default:
+ 		DRM_WARN("Wrong CSC mode specified.\n");
+ 		return;
+ 	}
++
++	base_reg = SUN8I_CSC_COEFF(base, 0);
++	regmap_bulk_write(map, base_reg, table, 12);
+ }
+ 
+ static void sun8i_de3_ccsc_set_coefficients(struct regmap *map, int layer,
+@@ -145,36 +188,60 @@
+ 					    enum drm_color_range range)
+ {
+ 	const u32 *table;
+-	u32 addr;
++	u32 base_reg;
++
++	switch (mode) {
++	case SUN8I_CSC_MODE_YUV2RGB:
++		table = yuv2rgb_de3[range][encoding];
++		break;
++	case SUN8I_CSC_MODE_YVU2RGB:
++		table = yvu2rgb_de3[range][encoding];
++		break;
++	default:
++		DRM_WARN("Wrong CSC mode specified.\n");
++		return;
++	}
++
++	base_reg = SUN50I_MIXER_BLEND_CSC_COEFF(DE3_BLD_BASE, layer, 0, 0);
++	regmap_bulk_write(map, base_reg, table, 12);
++}
++
++static void sun8i_de33_ccsc_set_coefficients(struct sun8i_mixer *mixer,
++					     int layer,
++					     enum sun8i_csc_mode mode,
++					     enum drm_color_encoding encoding,
++					     enum drm_color_range range)
++{
++	const u32 *table;
++	u32 base;
+ 	int i;
+ 
+-	table = yuv2rgb_de3[range][encoding];
++	base = sun8i_csc_base(mixer, layer);
+ 
+ 	switch (mode) {
+ 	case SUN8I_CSC_MODE_YUV2RGB:
+-		addr = SUN50I_MIXER_BLEND_CSC_COEFF(DE3_BLD_BASE, layer, 0);
+-		regmap_bulk_write(map, addr, table, 12);
++		table = yuv2rgb_de3[range][encoding];
+ 		break;
+ 	case SUN8I_CSC_MODE_YVU2RGB:
+-		for (i = 0; i < 12; i++) {
+-			if ((i & 3) == 1)
+-				addr = SUN50I_MIXER_BLEND_CSC_COEFF(DE3_BLD_BASE,
+-								    layer,
+-								    i + 1);
+-			else if ((i & 3) == 2)
+-				addr = SUN50I_MIXER_BLEND_CSC_COEFF(DE3_BLD_BASE,
+-								    layer,
+-								    i - 1);
+-			else
+-				addr = SUN50I_MIXER_BLEND_CSC_COEFF(DE3_BLD_BASE,
+-								    layer, i);
+-			regmap_write(map, addr, table[i]);
+-		}
++		table = yvu2rgb_de3[range][encoding];
+ 		break;
+ 	default:
+ 		DRM_WARN("Wrong CSC mode specified.\n");
+ 		return;
+ 	}
++
++	regmap_write(mixer->engine.regs, base + 4, table[3] >> 16);
++	regmap_write(mixer->engine.regs, base + 8, table[7] >> 16);
++	regmap_write(mixer->engine.regs, base + 12, table[11] >> 16);
++
++	for (i = 0; i < 12; i++) {
++		u32 val = table[i];
++
++		if (i == 3 || i == 7 || i == 11)
++			val &= 0xffff;
++
++		regmap_write(mixer->engine.regs, SUN8I_CSC_COEFF(base, i), val);
++	}
+ }
+ 
+ static void sun8i_csc_enable(struct regmap *map, u32 base, bool enable)
+@@ -211,10 +278,14 @@
+ {
+ 	u32 base;
+ 
+-	if (mixer->cfg->is_de3) {
++	if (mixer->cfg->de_type == sun8i_mixer_de3) {
+ 		sun8i_de3_ccsc_set_coefficients(mixer->engine.regs, layer,
+ 						mode, encoding, range);
+ 		return;
++	} else if (mixer->cfg->de_type == sun8i_mixer_de33) {
++		sun8i_de33_ccsc_set_coefficients(mixer, layer, mode,
++						 encoding, range);
++		return;
+ 	}
+ 
+ 	base = ccsc_base[mixer->cfg->ccsc][layer];
+@@ -227,12 +298,12 @@
+ {
+ 	u32 base;
+ 
+-	if (mixer->cfg->is_de3) {
++	if (mixer->cfg->de_type == sun8i_mixer_de3) {
+ 		sun8i_de3_ccsc_enable(mixer->engine.regs, layer, enable);
+ 		return;
+ 	}
+ 
+-	base = ccsc_base[mixer->cfg->ccsc][layer];
++	base = sun8i_csc_base(mixer, layer);
+ 
+ 	sun8i_csc_enable(mixer->engine.regs, base, enable);
+ }
+diff -Naur linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c
+--- linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c	2021-02-14 23:32:24.000000000 +0100
++++ linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c	2021-02-20 12:50:11.536665657 +0100
+@@ -122,6 +122,66 @@
+ 	{ ~0UL,	     0x0000, 0x0000, 0x0000}
+ };
+ 
++static const struct dw_hdmi_mpll_config sun50i_h616_mpll_cfg[] = {
++	{
++		27000000, {
++			{ 0x00b3, 0x0003 },
++			{ 0x2153, 0x0003 },
++			{ 0x40f3, 0x0003 },
++		},
++	},  {
++		74250000, {
++			{ 0x0072, 0x0003 },
++			{ 0x2145, 0x0003 },
++			{ 0x4061, 0x0003 },
++		},
++	},  {
++		148500000, {
++			{ 0x0051, 0x0003 },
++			{ 0x214c, 0x0003 },
++			{ 0x4064, 0x0003 },
++		},
++	},  {
++		297000000, {
++			{ 0x0040, 0x0003 },
++			{ 0x3b4c, 0x0003 },
++			{ 0x5a64, 0x0003 },
++		},
++	},  {
++		594000000, {
++			{ 0x1a40, 0x0003 },
++			{ 0x3b4c, 0x0003 },
++			{ 0x5a64, 0x0003 },
++		},
++	}, {
++		~0UL, {
++			{ 0x0000, 0x0000 },
++			{ 0x0000, 0x0000 },
++			{ 0x0000, 0x0000 },
++		},
++	}
++};
++
++static const struct dw_hdmi_curr_ctrl sun50i_h616_cur_ctr[] = {
++	/* pixelclk    bpp8    bpp10   bpp12 */
++	{ 27000000,  { 0x0012, 0x0000, 0x0000 }, },
++	{ 74250000,  { 0x0013, 0x0013, 0x0013 }, },
++	{ 148500000, { 0x0019, 0x0019, 0x0019 }, },
++	{ 297000000, { 0x0019, 0x001b, 0x0019 }, },
++	{ 594000000, { 0x0010, 0x0010, 0x0010 }, },
++	{ ~0UL,      { 0x0000, 0x0000, 0x0000 }, }
++};
++
++static const struct dw_hdmi_phy_config sun50i_h616_phy_config[] = {
++	/*pixelclk   symbol   term   vlev*/
++	{ 27000000,  0x8009, 0x0007, 0x02b0},
++	{ 74250000,  0x8019, 0x0004, 0x0290},
++	{ 148500000, 0x8019, 0x0004, 0x0290},
++	{ 297000000, 0x8039, 0x0004, 0x022b},
++	{ 594000000, 0x8029, 0x0000, 0x008a},
++	{ ~0UL,	     0x0000, 0x0000, 0x0000}
++};
++
+ static int sun8i_hdmi_phy_config_a83t(struct dw_hdmi *hdmi,
+ 				      struct sun8i_hdmi_phy *phy,
+ 				      unsigned int clk_rate)
+@@ -573,6 +633,13 @@
+ 	.phy_init = &sun50i_hdmi_phy_init_h6,
+ };
+ 
++static const struct sun8i_hdmi_phy_variant sun50i_h616_hdmi_phy = {
++	.cur_ctr  = sun50i_h616_cur_ctr,
++	.mpll_cfg = sun50i_h616_mpll_cfg,
++	.phy_cfg  = sun50i_h616_phy_config,
++	.phy_init = &sun50i_hdmi_phy_init_h6,
++};
++
+ static const struct of_device_id sun8i_hdmi_phy_of_table[] = {
+ 	{
+ 		.compatible = "allwinner,sun8i-a83t-hdmi-phy",
+@@ -594,6 +661,10 @@
+ 		.compatible = "allwinner,sun50i-h6-hdmi-phy",
+ 		.data = &sun50i_h6_hdmi_phy,
+ 	},
++	{
++		.compatible = "allwinner,sun50i-h616-hdmi-phy",
++		.data = &sun50i_h616_hdmi_phy,
++	},
+ 	{ /* sentinel */ }
+ };
+ 
+diff -Naur linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_mixer.c linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_mixer.c
+--- linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_mixer.c	2021-02-14 23:32:24.000000000 +0100
++++ linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_mixer.c	2021-02-20 12:50:11.536665657 +0100
+@@ -250,10 +250,16 @@
+ 
+ static void sun8i_mixer_commit(struct sunxi_engine *engine)
+ {
++	struct sun8i_mixer *mixer = engine_to_sun8i_mixer(engine);
++
+ 	DRM_DEBUG_DRIVER("Committing changes\n");
+ 
+-	regmap_write(engine->regs, SUN8I_MIXER_GLOBAL_DBUFF,
+-		     SUN8I_MIXER_GLOBAL_DBUFF_ENABLE);
++	if (mixer->cfg->de_type == sun8i_mixer_de33)
++		regmap_write(mixer->top_regs, SUN50I_MIXER_GLOBAL_DBUFF,
++			     SUN8I_MIXER_GLOBAL_DBUFF_ENABLE);
++	else
++		regmap_write(engine->regs, SUN8I_MIXER_GLOBAL_DBUFF,
++			     SUN8I_MIXER_GLOBAL_DBUFF_ENABLE);
+ }
+ 
+ static struct drm_plane **sun8i_layers_init(struct drm_device *drm,
+@@ -310,6 +316,20 @@
+ 	.max_register	= 0xffffc, /* guessed */
+ };
+ 
++static const struct regmap_config sun8i_top_regmap_config = {
++	.reg_bits	= 32,
++	.val_bits	= 32,
++	.reg_stride	= 4,
++	.max_register	= 0x3c,
++};
++
++static const struct regmap_config sun8i_disp_regmap_config = {
++	.reg_bits	= 32,
++	.val_bits	= 32,
++	.reg_stride	= 4,
++	.max_register	= 0x20000,
++};
++
+ static int sun8i_mixer_of_get_id(struct device_node *node)
+ {
+ 	struct device_node *ep, *remote;
+@@ -330,6 +350,76 @@
+ 	return of_ep.id;
+ }
+ 
++static void sun8i_mixer_de2_init(struct sun8i_mixer *mixer)
++{
++	unsigned int base;
++	int plane_cnt, i;
++
++	base = sun8i_blender_base(mixer);
++
++	/* Enable the mixer */
++	regmap_write(mixer->engine.regs, SUN8I_MIXER_GLOBAL_CTL,
++		     SUN8I_MIXER_GLOBAL_CTL_RT_EN);
++
++	/* Set background color to black */
++	regmap_write(mixer->engine.regs, SUN8I_MIXER_BLEND_BKCOLOR(base),
++		     SUN8I_MIXER_BLEND_COLOR_BLACK);
++
++	/*
++	 * Set fill color of bottom plane to black. Generally not needed
++	 * except when VI plane is at bottom (zpos = 0) and enabled.
++	 */
++	regmap_write(mixer->engine.regs, SUN8I_MIXER_BLEND_PIPE_CTL(base),
++		     SUN8I_MIXER_BLEND_PIPE_CTL_FC_EN(0));
++	regmap_write(mixer->engine.regs, SUN8I_MIXER_BLEND_ATTR_FCOLOR(base, 0),
++		     SUN8I_MIXER_BLEND_COLOR_BLACK);
++
++	plane_cnt = mixer->cfg->vi_num + mixer->cfg->ui_num;
++	for (i = 0; i < plane_cnt; i++)
++		regmap_write(mixer->engine.regs,
++			     SUN8I_MIXER_BLEND_MODE(base, i),
++			     SUN8I_MIXER_BLEND_MODE_DEF);
++
++	regmap_update_bits(mixer->engine.regs, SUN8I_MIXER_BLEND_PIPE_CTL(base),
++			   SUN8I_MIXER_BLEND_PIPE_CTL_EN_MSK, 0);
++}
++
++static void sun8i_mixer_de33_init(struct sun8i_mixer *mixer)
++{
++	unsigned int base;
++	int plane_cnt, i;
++
++	base = sun8i_blender_base(mixer);
++
++	/* Enable the mixer */
++	regmap_write(mixer->top_regs, SUN50I_MIXER_GLOBAL_CTL,
++		     SUN8I_MIXER_GLOBAL_CTL_RT_EN);
++
++	regmap_write(mixer->top_regs, SUN50I_MIXER_GLOBAL_CLK, 1);
++
++	/* Set background color to black */
++	regmap_write(mixer->disp_regs, SUN8I_MIXER_BLEND_BKCOLOR(base),
++		     SUN8I_MIXER_BLEND_COLOR_BLACK);
++
++	/*
++	 * Set fill color of bottom plane to black. Generally not needed
++	 * except when VI plane is at bottom (zpos = 0) and enabled.
++	 */
++	regmap_write(mixer->disp_regs, SUN8I_MIXER_BLEND_PIPE_CTL(base),
++		     SUN8I_MIXER_BLEND_PIPE_CTL_FC_EN(0));
++	regmap_write(mixer->disp_regs, SUN8I_MIXER_BLEND_ATTR_FCOLOR(base, 0),
++		     SUN8I_MIXER_BLEND_COLOR_BLACK);
++
++	plane_cnt = mixer->cfg->vi_num + mixer->cfg->ui_num;
++	for (i = 0; i < plane_cnt; i++)
++		regmap_write(mixer->disp_regs,
++			     SUN8I_MIXER_BLEND_MODE(base, i),
++			     SUN8I_MIXER_BLEND_MODE_DEF);
++
++	regmap_update_bits(mixer->disp_regs, SUN8I_MIXER_BLEND_PIPE_CTL(base),
++			   SUN8I_MIXER_BLEND_PIPE_CTL_EN_MSK, 0);
++}
++
+ static int sun8i_mixer_bind(struct device *dev, struct device *master,
+ 			      void *data)
+ {
+@@ -339,8 +429,6 @@
+ 	struct sun8i_mixer *mixer;
+ 	struct resource *res;
+ 	void __iomem *regs;
+-	unsigned int base;
+-	int plane_cnt;
+ 	int i, ret;
+ 
+ 	/*
+@@ -402,6 +490,32 @@
+ 		return PTR_ERR(mixer->engine.regs);
+ 	}
+ 
++	if (mixer->cfg->de_type == sun8i_mixer_de33) {
++		res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
++		regs = devm_ioremap_resource(dev, res);
++		if (IS_ERR(regs))
++			return PTR_ERR(regs);
++
++		mixer->top_regs = devm_regmap_init_mmio(dev, regs,
++							&sun8i_top_regmap_config);
++		if (IS_ERR(mixer->top_regs)) {
++			dev_err(dev, "Couldn't create the top regmap\n");
++			return PTR_ERR(mixer->top_regs);
++		}
++
++		res = platform_get_resource(pdev, IORESOURCE_MEM, 2);
++		regs = devm_ioremap_resource(dev, res);
++		if (IS_ERR(regs))
++			return PTR_ERR(regs);
++
++		mixer->disp_regs = devm_regmap_init_mmio(dev, regs,
++							&sun8i_disp_regmap_config);
++		if (IS_ERR(mixer->disp_regs)) {
++			dev_err(dev, "Couldn't create the disp regmap\n");
++			return PTR_ERR(mixer->disp_regs);
++		}
++	}
++
+ 	mixer->reset = devm_reset_control_get(dev, NULL);
+ 	if (IS_ERR(mixer->reset)) {
+ 		dev_err(dev, "Couldn't get our reset line\n");
+@@ -441,10 +555,10 @@
+ 
+ 	list_add_tail(&mixer->engine.list, &drv->engine_list);
+ 
+-	base = sun8i_blender_base(mixer);
+-
+ 	/* Reset registers and disable unused sub-engines */
+-	if (mixer->cfg->is_de3) {
++	if (mixer->cfg->de_type == sun8i_mixer_de33) {
++		sun8i_mixer_de33_init(mixer);
++	} else if (mixer->cfg->de_type == sun8i_mixer_de3) {
+ 		for (i = 0; i < DE3_MIXER_UNIT_SIZE; i += 4)
+ 			regmap_write(mixer->engine.regs, i, 0);
+ 
+@@ -458,7 +572,9 @@
+ 		regmap_write(mixer->engine.regs, SUN50I_MIXER_FMT_EN, 0);
+ 		regmap_write(mixer->engine.regs, SUN50I_MIXER_CDC0_EN, 0);
+ 		regmap_write(mixer->engine.regs, SUN50I_MIXER_CDC1_EN, 0);
+-	} else {
++
++		sun8i_mixer_de2_init(mixer);
++	} else if (mixer->cfg->de_type == sun8i_mixer_de2) {
+ 		for (i = 0; i < DE2_MIXER_UNIT_SIZE; i += 4)
+ 			regmap_write(mixer->engine.regs, i, 0);
+ 
+@@ -469,33 +585,9 @@
+ 		regmap_write(mixer->engine.regs, SUN8I_MIXER_ASE_EN, 0);
+ 		regmap_write(mixer->engine.regs, SUN8I_MIXER_FCC_EN, 0);
+ 		regmap_write(mixer->engine.regs, SUN8I_MIXER_DCSC_EN, 0);
+-	}
+-
+-	/* Enable the mixer */
+-	regmap_write(mixer->engine.regs, SUN8I_MIXER_GLOBAL_CTL,
+-		     SUN8I_MIXER_GLOBAL_CTL_RT_EN);
+-
+-	/* Set background color to black */
+-	regmap_write(mixer->engine.regs, SUN8I_MIXER_BLEND_BKCOLOR(base),
+-		     SUN8I_MIXER_BLEND_COLOR_BLACK);
+ 
+-	/*
+-	 * Set fill color of bottom plane to black. Generally not needed
+-	 * except when VI plane is at bottom (zpos = 0) and enabled.
+-	 */
+-	regmap_write(mixer->engine.regs, SUN8I_MIXER_BLEND_PIPE_CTL(base),
+-		     SUN8I_MIXER_BLEND_PIPE_CTL_FC_EN(0));
+-	regmap_write(mixer->engine.regs, SUN8I_MIXER_BLEND_ATTR_FCOLOR(base, 0),
+-		     SUN8I_MIXER_BLEND_COLOR_BLACK);
+-
+-	plane_cnt = mixer->cfg->vi_num + mixer->cfg->ui_num;
+-	for (i = 0; i < plane_cnt; i++)
+-		regmap_write(mixer->engine.regs,
+-			     SUN8I_MIXER_BLEND_MODE(base, i),
+-			     SUN8I_MIXER_BLEND_MODE_DEF);
+-
+-	regmap_update_bits(mixer->engine.regs, SUN8I_MIXER_BLEND_PIPE_CTL(base),
+-			   SUN8I_MIXER_BLEND_PIPE_CTL_EN_MSK, 0);
++		sun8i_mixer_de2_init(mixer);
++	}
+ 
+ 	return 0;
+ 
+@@ -537,6 +629,7 @@
+ 
+ static const struct sun8i_mixer_cfg sun8i_a83t_mixer0_cfg = {
+ 	.ccsc		= 0,
++	.de_type	= sun8i_mixer_de2,
+ 	.scaler_mask	= 0xf,
+ 	.scanline_yuv	= 2048,
+ 	.ui_num		= 3,
+@@ -545,6 +638,7 @@
+ 
+ static const struct sun8i_mixer_cfg sun8i_a83t_mixer1_cfg = {
+ 	.ccsc		= 1,
++	.de_type	= sun8i_mixer_de2,
+ 	.scaler_mask	= 0x3,
+ 	.scanline_yuv	= 2048,
+ 	.ui_num		= 1,
+@@ -553,6 +647,7 @@
+ 
+ static const struct sun8i_mixer_cfg sun8i_h3_mixer0_cfg = {
+ 	.ccsc		= 0,
++	.de_type	= sun8i_mixer_de2,
+ 	.mod_rate	= 432000000,
+ 	.scaler_mask	= 0xf,
+ 	.scanline_yuv	= 2048,
+@@ -562,6 +657,7 @@
+ 
+ static const struct sun8i_mixer_cfg sun8i_r40_mixer0_cfg = {
+ 	.ccsc		= 0,
++	.de_type	= sun8i_mixer_de2,
+ 	.mod_rate	= 297000000,
+ 	.scaler_mask	= 0xf,
+ 	.scanline_yuv	= 2048,
+@@ -571,6 +667,7 @@
+ 
+ static const struct sun8i_mixer_cfg sun8i_r40_mixer1_cfg = {
+ 	.ccsc		= 1,
++	.de_type	= sun8i_mixer_de2,
+ 	.mod_rate	= 297000000,
+ 	.scaler_mask	= 0x3,
+ 	.scanline_yuv	= 2048,
+@@ -579,6 +676,7 @@
+ };
+ 
+ static const struct sun8i_mixer_cfg sun8i_v3s_mixer_cfg = {
++	.de_type = sun8i_mixer_de2,
+ 	.vi_num = 2,
+ 	.ui_num = 1,
+ 	.scaler_mask = 0x3,
+@@ -589,6 +687,7 @@
+ 
+ static const struct sun8i_mixer_cfg sun50i_a64_mixer0_cfg = {
+ 	.ccsc		= 0,
++	.de_type	= sun8i_mixer_de2,
+ 	.mod_rate	= 297000000,
+ 	.scaler_mask	= 0xf,
+ 	.scanline_yuv	= 4096,
+@@ -598,6 +697,7 @@
+ 
+ static const struct sun8i_mixer_cfg sun50i_a64_mixer1_cfg = {
+ 	.ccsc		= 1,
++	.de_type	= sun8i_mixer_de2,
+ 	.mod_rate	= 297000000,
+ 	.scaler_mask	= 0x3,
+ 	.scanline_yuv	= 2048,
+@@ -607,12 +707,23 @@
+ 
+ static const struct sun8i_mixer_cfg sun50i_h6_mixer0_cfg = {
+ 	.ccsc		= 0,
+-	.is_de3		= true,
++	.de_type	= sun8i_mixer_de3,
++	.mod_rate	= 600000000,
++	.scaler_mask	= 0xf,
++	.scanline_yuv	= 4096,
++	.ui_num		= 3,
++	.vi_num		= 1,
++};
++
++static const struct sun8i_mixer_cfg sun50i_h616_mixer0_cfg = {
++	.ccsc		= 0,
++	.de_type	= sun8i_mixer_de33,
+ 	.mod_rate	= 600000000,
+ 	.scaler_mask	= 0xf,
+ 	.scanline_yuv	= 4096,
+ 	.ui_num		= 3,
+ 	.vi_num		= 1,
++	.map		= {0, 6, 7, 8},
+ };
+ 
+ static const struct of_device_id sun8i_mixer_of_table[] = {
+@@ -652,6 +763,10 @@
+ 		.compatible = "allwinner,sun50i-h6-de3-mixer-0",
+ 		.data = &sun50i_h6_mixer0_cfg,
+ 	},
++	{
++		.compatible = "allwinner,sun50i-h616-de33-mixer-0",
++		.data = &sun50i_h616_mixer0_cfg,
++	},
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(of, sun8i_mixer_of_table);
+diff -Naur linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_mixer.h linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_mixer.h
+--- linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_mixer.h	2021-02-21 17:53:33.269998919 +0100
++++ linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_mixer.h	2021-02-20 12:50:11.536665657 +0100
+@@ -20,6 +20,12 @@
+ #define SUN8I_MIXER_GLOBAL_DBUFF		0x8
+ #define SUN8I_MIXER_GLOBAL_SIZE			0xc
+ 
++#define SUN50I_MIXER_GLOBAL_CTL			0x0
++#define SUN50I_MIXER_GLOBAL_STATUS		0x4
++#define SUN50I_MIXER_GLOBAL_SIZE		0x8
++#define SUN50I_MIXER_GLOBAL_CLK			0xc
++#define SUN50I_MIXER_GLOBAL_DBUFF		0x10
++
+ #define SUN8I_MIXER_GLOBAL_CTL_RT_EN		BIT(0)
+ 
+ #define SUN8I_MIXER_GLOBAL_DBUFF_ENABLE		BIT(0)
+@@ -50,8 +56,10 @@
+ #define SUN8I_MIXER_BLEND_CK_MIN(base, x)	((base) + 0xe0 + 0x04 * (x))
+ #define SUN8I_MIXER_BLEND_OUTCTL(base)		((base) + 0xfc)
+ #define SUN50I_MIXER_BLEND_CSC_CTL(base)	((base) + 0x100)
+-#define SUN50I_MIXER_BLEND_CSC_COEFF(base, layer, x) \
+-	((base) + 0x110 + (layer) * 0x30 + (x) * 4)
++#define SUN50I_MIXER_BLEND_CSC_COEFF(base, layer, x, y) \
++	((base) + 0x110 + (layer) * 0x30 +  (x) * 0x10 + 4 * (y))
++#define SUN50I_MIXER_BLEND_CSC_CONST(base, layer, i) \
++	((base) + 0x110 + (layer) * 0x30 +  (i) * 0x10 + 0x0c)
+
+ #define SUN8I_MIXER_BLEND_PIPE_CTL_EN_MSK	GENMASK(12, 8)
+ #define SUN8I_MIXER_BLEND_PIPE_CTL_EN(pipe)	BIT(8 + pipe)
+@@ -141,6 +149,12 @@
+ #define SUN50I_MIXER_CDC0_EN			0xd0000
+ #define SUN50I_MIXER_CDC1_EN			0xd8000
+ 
++enum sun8i_mixer_type {
++	sun8i_mixer_de2,
++	sun8i_mixer_de3,
++	sun8i_mixer_de33,
++};
++
+ /**
+  * struct sun8i_mixer_cfg - mixer HW configuration
+  * @vi_num: number of VI channels
+@@ -164,8 +178,9 @@
+ 	int		scaler_mask;
+ 	int		ccsc;
+ 	unsigned long	mod_rate;
+-	unsigned int	is_de3 : 1;
++	unsigned int	de_type;
+ 	unsigned int	scanline_yuv;
++	unsigned int	map[6];
+ };
+ 
+ struct sun8i_mixer {
+@@ -177,6 +192,9 @@
+ 
+ 	struct clk			*bus_clk;
+ 	struct clk			*mod_clk;
++
++	struct regmap			*top_regs;
++	struct regmap			*disp_regs;
+ };
+ 
+ static inline struct sun8i_mixer *
+@@ -188,13 +206,22 @@
+ static inline u32
+ sun8i_blender_base(struct sun8i_mixer *mixer)
+ {
+-	return mixer->cfg->is_de3 ? DE3_BLD_BASE : DE2_BLD_BASE;
++	return mixer->cfg->de_type == sun8i_mixer_de3 ? DE3_BLD_BASE : DE2_BLD_BASE;
++}
++
++static inline struct regmap *
++sun8i_blender_regmap(struct sun8i_mixer *mixer)
++{
++	return mixer->cfg->de_type == sun8i_mixer_de33 ?
++		mixer->disp_regs : mixer->engine.regs;
+ }
+ 
+ static inline u32
+ sun8i_channel_base(struct sun8i_mixer *mixer, int channel)
+ {
+-	if (mixer->cfg->is_de3)
++	if (mixer->cfg->de_type == sun8i_mixer_de33)
++		return mixer->cfg->map[channel] * 0x20000 + DE2_CH_SIZE;
++	else if (mixer->cfg->de_type == sun8i_mixer_de3)
+ 		return DE3_CH_BASE + channel * DE3_CH_SIZE;
+ 	else
+ 		return DE2_CH_BASE + channel * DE2_CH_SIZE;
+diff -Naur linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_ui_layer.c linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_ui_layer.c
+--- linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_ui_layer.c	2021-02-21 17:53:33.636665586 +0100
++++ linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_ui_layer.c	2021-02-20 12:50:11.536665657 +0100
+@@ -22,14 +22,17 @@
+ #include "sun8i_mixer.h"
+ #include "sun8i_ui_layer.h"
+ #include "sun8i_ui_scaler.h"
++#include "sun8i_vi_scaler.h"
+ 
+ static void sun8i_ui_layer_enable(struct sun8i_mixer *mixer, int channel,
+ 				  int overlay, bool enable, unsigned int zpos,
+ 				  unsigned int old_zpos)
+ {
+ 	u32 val, bld_base, ch_base;
++	struct regmap *bld_regs;
+ 
+ 	bld_base = sun8i_blender_base(mixer);
++	bld_regs = sun8i_blender_regmap(mixer);
+ 	ch_base = sun8i_channel_base(mixer, channel);
+ 
+ 	DRM_DEBUG_DRIVER("%sabling channel %d overlay %d\n",
+@@ -45,12 +48,12 @@
+ 			   SUN8I_MIXER_CHAN_UI_LAYER_ATTR_EN, val);
+ 
+ 	if (!enable || zpos != old_zpos) {
+-		regmap_update_bits(mixer->engine.regs,
++		regmap_update_bits(bld_regs,
+ 				   SUN8I_MIXER_BLEND_PIPE_CTL(bld_base),
+ 				   SUN8I_MIXER_BLEND_PIPE_CTL_EN(old_zpos),
+ 				   0);
+ 
+-		regmap_update_bits(mixer->engine.regs,
++		regmap_update_bits(bld_regs,
+ 				   SUN8I_MIXER_BLEND_ROUTE(bld_base),
+ 				   SUN8I_MIXER_BLEND_ROUTE_PIPE_MSK(old_zpos),
+ 				   0);
+@@ -59,13 +62,13 @@
+ 	if (enable) {
+ 		val = SUN8I_MIXER_BLEND_PIPE_CTL_EN(zpos);
+ 
+-		regmap_update_bits(mixer->engine.regs,
++		regmap_update_bits(bld_regs,
+ 				   SUN8I_MIXER_BLEND_PIPE_CTL(bld_base),
+ 				   val, val);
+ 
+ 		val = channel << SUN8I_MIXER_BLEND_ROUTE_PIPE_SHIFT(zpos);
+ 
+-		regmap_update_bits(mixer->engine.regs,
++		regmap_update_bits(bld_regs,
+ 				   SUN8I_MIXER_BLEND_ROUTE(bld_base),
+ 				   SUN8I_MIXER_BLEND_ROUTE_PIPE_MSK(zpos),
+ 				   val);
+@@ -78,6 +81,7 @@
+ {
+ 	struct drm_plane_state *state = plane->state;
+ 	u32 src_w, src_h, dst_w, dst_h;
++	struct regmap *bld_regs;
+ 	u32 bld_base, ch_base;
+ 	u32 outsize, insize;
+ 	u32 hphase, vphase;
+@@ -86,6 +90,7 @@
+ 			 channel, overlay);
+ 
+ 	bld_base = sun8i_blender_base(mixer);
++	bld_regs = sun8i_blender_regmap(mixer);
+ 	ch_base = sun8i_channel_base(mixer, channel);
+ 
+ 	src_w = drm_rect_width(&state->src) >> 16;
+@@ -105,10 +110,15 @@
+ 
+ 		DRM_DEBUG_DRIVER("Primary layer, updating global size W: %u H: %u\n",
+ 				 dst_w, dst_h);
+-		regmap_write(mixer->engine.regs,
+-			     SUN8I_MIXER_GLOBAL_SIZE,
+-			     outsize);
+-		regmap_write(mixer->engine.regs,
++
++		if (mixer->cfg->de_type == sun8i_mixer_de33)
++			regmap_write(mixer->top_regs,
++				     SUN50I_MIXER_GLOBAL_SIZE, outsize);
++		else
++			regmap_write(mixer->engine.regs,
++				     SUN8I_MIXER_GLOBAL_SIZE, outsize);
++
++		regmap_write(bld_regs,
+ 			     SUN8I_MIXER_BLEND_OUTSIZE(bld_base), outsize);
+ 
+ 		if (state->crtc)
+@@ -120,7 +130,7 @@
+ 		else
+ 			val = 0;
+ 
+-		regmap_update_bits(mixer->engine.regs,
++		regmap_update_bits(bld_regs,
+ 				   SUN8I_MIXER_BLEND_OUTCTL(bld_base),
+ 				   SUN8I_MIXER_BLEND_OUTCTL_INTERLACED,
+ 				   val);
+@@ -148,9 +158,18 @@
+ 		hscale = state->src_w / state->crtc_w;
+ 		vscale = state->src_h / state->crtc_h;
+ 
+-		sun8i_ui_scaler_setup(mixer, channel, src_w, src_h, dst_w,
+-				      dst_h, hscale, vscale, hphase, vphase);
+-		sun8i_ui_scaler_enable(mixer, channel, true);
++		if (mixer->cfg->de_type == sun8i_mixer_de33) {
++			sun8i_vi_scaler_setup(mixer, channel, src_w, src_h,
++					      dst_w, dst_h, hscale, vscale,
++					      hphase, vphase,
++					      state->fb->format);
++			sun8i_vi_scaler_enable(mixer, channel, true);
++		} else {
++			sun8i_ui_scaler_setup(mixer, channel, src_w, src_h,
++					      dst_w, dst_h, hscale, vscale,
++					      hphase, vphase);
++			sun8i_ui_scaler_enable(mixer, channel, true);
++		}
+ 	} else {
+ 		DRM_DEBUG_DRIVER("HW scaling is not needed\n");
+ 		sun8i_ui_scaler_enable(mixer, channel, false);
+@@ -160,10 +179,10 @@
+ 	DRM_DEBUG_DRIVER("Layer destination coordinates X: %d Y: %d\n",
+ 			 state->dst.x1, state->dst.y1);
+ 	DRM_DEBUG_DRIVER("Layer destination size W: %d H: %d\n", dst_w, dst_h);
+-	regmap_write(mixer->engine.regs,
++	regmap_write(bld_regs,
+ 		     SUN8I_MIXER_BLEND_ATTR_COORD(bld_base, zpos),
+ 		     SUN8I_MIXER_COORD(state->dst.x1, state->dst.y1));
+-	regmap_write(mixer->engine.regs,
++	regmap_write(bld_regs,
+ 		     SUN8I_MIXER_BLEND_ATTR_INSIZE(bld_base, zpos),
+ 		     outsize);
+ 
+diff -Naur linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_ui_scaler.c linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_ui_scaler.c
+--- linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_ui_scaler.c	2021-02-14 23:32:24.000000000 +0100
++++ linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_ui_scaler.c	2021-02-20 12:50:11.536665657 +0100
+@@ -93,7 +93,7 @@
+ {
+ 	int vi_num = mixer->cfg->vi_num;
+ 
+-	if (mixer->cfg->is_de3)
++	if (mixer->cfg->de_type == sun8i_mixer_de3)
+ 		return DE3_VI_SCALER_UNIT_BASE +
+ 		       DE3_VI_SCALER_UNIT_SIZE * vi_num +
+ 		       DE3_UI_SCALER_UNIT_SIZE * (channel - vi_num);
+diff -Naur linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_vi_layer.c linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_vi_layer.c
+--- linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_vi_layer.c	2021-02-21 17:53:33.636665586 +0100
++++ linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_vi_layer.c	2021-02-20 12:50:11.536665657 +0100
+@@ -22,8 +22,10 @@
+ 				  unsigned int old_zpos)
+ {
+ 	u32 val, bld_base, ch_base;
++	struct regmap *bld_regs;
+ 
+ 	bld_base = sun8i_blender_base(mixer);
++	bld_regs = sun8i_blender_regmap(mixer);
+ 	ch_base = sun8i_channel_base(mixer, channel);
+ 
+ 	DRM_DEBUG_DRIVER("%sabling VI channel %d overlay %d\n",
+@@ -39,12 +41,12 @@
+ 			   SUN8I_MIXER_CHAN_VI_LAYER_ATTR_EN, val);
+ 
+ 	if (!enable || zpos != old_zpos) {
+-		regmap_update_bits(mixer->engine.regs,
++		regmap_update_bits(bld_regs,
+ 				   SUN8I_MIXER_BLEND_PIPE_CTL(bld_base),
+ 				   SUN8I_MIXER_BLEND_PIPE_CTL_EN(old_zpos),
+ 				   0);
+ 
+-		regmap_update_bits(mixer->engine.regs,
++		regmap_update_bits(bld_regs,
+ 				   SUN8I_MIXER_BLEND_ROUTE(bld_base),
+ 				   SUN8I_MIXER_BLEND_ROUTE_PIPE_MSK(old_zpos),
+ 				   0);
+@@ -53,13 +55,13 @@
+ 	if (enable) {
+ 		val = SUN8I_MIXER_BLEND_PIPE_CTL_EN(zpos);
+ 
+-		regmap_update_bits(mixer->engine.regs,
++		regmap_update_bits(bld_regs,
+ 				   SUN8I_MIXER_BLEND_PIPE_CTL(bld_base),
+ 				   val, val);
+ 
+ 		val = channel << SUN8I_MIXER_BLEND_ROUTE_PIPE_SHIFT(zpos);
+ 
+-		regmap_update_bits(mixer->engine.regs,
++		regmap_update_bits(bld_regs,
+ 				   SUN8I_MIXER_BLEND_ROUTE(bld_base),
+ 				   SUN8I_MIXER_BLEND_ROUTE_PIPE_MSK(zpos),
+ 				   val);
+@@ -73,6 +75,7 @@
+ 	struct drm_plane_state *state = plane->state;
+ 	const struct drm_format_info *format = state->fb->format;
+ 	u32 src_w, src_h, dst_w, dst_h;
++	struct regmap *bld_regs;
+ 	u32 bld_base, ch_base;
+ 	u32 outsize, insize;
+ 	u32 hphase, vphase;
+@@ -84,6 +87,7 @@
+ 			 channel, overlay);
+ 
+ 	bld_base = sun8i_blender_base(mixer);
++	bld_regs = sun8i_blender_regmap(mixer);
+ 	ch_base = sun8i_channel_base(mixer, channel);
+ 
+ 	src_w = drm_rect_width(&state->src) >> 16;
+@@ -201,10 +205,10 @@
+ 	DRM_DEBUG_DRIVER("Layer destination coordinates X: %d Y: %d\n",
+ 			 state->dst.x1, state->dst.y1);
+ 	DRM_DEBUG_DRIVER("Layer destination size W: %d H: %d\n", dst_w, dst_h);
+-	regmap_write(mixer->engine.regs,
++	regmap_write(bld_regs,
+ 		     SUN8I_MIXER_BLEND_ATTR_COORD(bld_base, zpos),
+ 		     SUN8I_MIXER_COORD(state->dst.x1, state->dst.y1));
+-	regmap_write(mixer->engine.regs,
++	regmap_write(bld_regs,
+ 		     SUN8I_MIXER_BLEND_ATTR_INSIZE(bld_base, zpos),
+ 		     outsize);
+ 
+@@ -269,7 +273,7 @@
+ 			   SUN8I_MIXER_CHAN_VI_LAYER_ATTR_RGB_MODE, val);
+ 
+ 	/* It seems that YUV formats use global alpha setting. */
+-	if (mixer->cfg->is_de3)
++	if (mixer->cfg->de_type >= sun8i_mixer_de3)
+ 		regmap_update_bits(mixer->engine.regs,
+ 				   SUN8I_MIXER_CHAN_VI_LAYER_ATTR(ch_base,
+ 								  overlay),
+@@ -519,7 +518,7 @@
+ 	if (!layer)
+ 		return ERR_PTR(-ENOMEM);
+ 
+-	if (mixer->cfg->is_de3) {
++	if (mixer->cfg->de_type >= sun8i_mixer_de3) {
+ 		formats = sun8i_vi_layer_de3_formats;
+ 		format_count = ARRAY_SIZE(sun8i_vi_layer_de3_formats);
+ 	} else {
+@@ -549,8 +547,6 @@
+ 
+ 	supported_encodings = BIT(DRM_COLOR_YCBCR_BT601) |
+ 			      BIT(DRM_COLOR_YCBCR_BT709);
+-	if (mixer->cfg->is_de3)
+-		supported_encodings |= BIT(DRM_COLOR_YCBCR_BT2020);
+ 
+ 	supported_ranges = BIT(DRM_COLOR_YCBCR_LIMITED_RANGE) |
+ 			   BIT(DRM_COLOR_YCBCR_FULL_RANGE);
+diff -Naur linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_vi_scaler.c linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_vi_scaler.c
+--- linux-5.11-old/drivers/gpu/drm/sun4i/sun8i_vi_scaler.c	2021-02-14 23:32:24.000000000 +0100
++++ linux-5.11-new/drivers/gpu/drm/sun4i/sun8i_vi_scaler.c	2021-02-20 12:50:11.536665657 +0100
+@@ -835,7 +835,9 @@
+ 
+ static u32 sun8i_vi_scaler_base(struct sun8i_mixer *mixer, int channel)
+ {
+-	if (mixer->cfg->is_de3)
++	if (mixer->cfg->de_type == sun8i_mixer_de33)
++		return sun8i_channel_base(mixer, channel) + 0x3000;
++	else if (mixer->cfg->de_type == sun8i_mixer_de3)
+ 		return DE3_VI_SCALER_UNIT_BASE +
+ 		       DE3_VI_SCALER_UNIT_SIZE * channel;
+ 	else
+@@ -956,7 +958,7 @@
+ 		cvphase = vphase;
+ 	}
+ 
+-	if (mixer->cfg->is_de3) {
++	if (mixer->cfg->de_type >= sun8i_mixer_de3) {
+ 		u32 val;
+ 
+ 		if (format->hsub == 1 && format->vsub == 1)
+diff -Naur linux-5.11-old/drivers/input/misc/axp20x-pek.c linux-5.11-new/drivers/input/misc/axp20x-pek.c
+--- linux-5.11-old/drivers/input/misc/axp20x-pek.c	2021-02-14 23:32:24.000000000 +0100
++++ linux-5.11-new/drivers/input/misc/axp20x-pek.c	2021-02-21 17:57:15.183332249 +0100
+@@ -309,6 +309,10 @@
+ 
+ 	axp20x_pek->axp20x = dev_get_drvdata(pdev->dev.parent);
+ 
++	/* In case there is no interrupt line from the AXP towards the CPU. */
++	if (!axp20x_pek->axp20x->regmap_irqc)
++		return -ENODEV;
++
+ 	axp20x_pek->irq_dbr = platform_get_irq_byname(pdev, "PEK_DBR");
+ 	if (axp20x_pek->irq_dbr < 0)
+ 		return axp20x_pek->irq_dbr;
+diff -Naur linux-5.11-old/drivers/mfd/axp20x.c linux-5.11-new/drivers/mfd/axp20x.c
+--- linux-5.11-old/drivers/mfd/axp20x.c	2021-02-14 23:32:24.000000000 +0100
++++ linux-5.11-new/drivers/mfd/axp20x.c	2021-02-21 17:57:15.183332249 +0100
+@@ -959,12 +959,17 @@
+ 				     AXP806_REG_ADDR_EXT_ADDR_SLAVE_MODE);
+ 	}
+ 
+-	ret = regmap_add_irq_chip(axp20x->regmap, axp20x->irq,
+-			  IRQF_ONESHOT | IRQF_SHARED | axp20x->irq_flags,
+-			   -1, axp20x->regmap_irq_chip, &axp20x->regmap_irqc);
+-	if (ret) {
+-		dev_err(axp20x->dev, "failed to add irq chip: %d\n", ret);
+-		return ret;
++	/* Only if there is an interrupt line connected towards the CPU. */
++	if (axp20x->irq > 0) {
++		ret = regmap_add_irq_chip(axp20x->regmap, axp20x->irq,
++				IRQF_ONESHOT | IRQF_SHARED | axp20x->irq_flags,
++				-1, axp20x->regmap_irq_chip,
++				&axp20x->regmap_irqc);
++		if (ret) {
++			dev_err(axp20x->dev, "failed to add irq chip: %d\n",
++				ret);
++			return ret;
++		}
+ 	}
+ 
+ 	ret = mfd_add_devices(axp20x->dev, -1, axp20x->cells,
+diff -Naur linux-5.11-old/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c linux-5.11-new/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c
+--- linux-5.11-old/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c	2021-02-21 17:53:33.539998919 +0100
++++ linux-5.11-new/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c	2021-02-21 17:57:15.183332249 +0100
+@@ -1128,11 +1128,13 @@
+ 	struct stmmac_resources stmmac_res;
+ 	struct sunxi_priv_data *gmac;
+ 	struct device *dev = &pdev->dev;
++	struct reg_field syscon_field;
+ 	phy_interface_t interface;
+ 	int ret;
+ 	struct stmmac_priv *priv;
+ 	struct net_device *ndev;
+ 	struct regmap *regmap;
++	u32 syscon_idx = 0;
+ 
+ 	ret = stmmac_get_platform_resources(pdev, &stmmac_res);
+ 	if (ret)
+@@ -1190,8 +1192,12 @@
+ 		return ret;
+ 	}
+ 
+-	gmac->regmap_field = devm_regmap_field_alloc(dev, regmap,
+-						     *gmac->variant->syscon_field);
++	syscon_field = *gmac->variant->syscon_field;
++	ret = of_property_read_u32_index(pdev->dev.of_node, "syscon", 1,
++					 &syscon_idx);
++	if (!ret)
++		syscon_field.reg += syscon_idx * sizeof(u32);
++	gmac->regmap_field = devm_regmap_field_alloc(dev, regmap, syscon_field);
+ 	if (IS_ERR(gmac->regmap_field)) {
+ 		ret = PTR_ERR(gmac->regmap_field);
+ 		dev_err(dev, "Unable to map syscon register: %d\n", ret);
+@@ -1298,6 +1304,8 @@
+ 		.data = &emac_variant_a64 },
+ 	{ .compatible = "allwinner,sun50i-h6-emac",
+ 		.data = &emac_variant_h6 },
++	{ .compatible = "allwinner,sun50i-h616-emac",
++		.data = &emac_variant_h6 },
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(of, sun8i_dwmac_match);
+diff -Naur linux-5.11-old/drivers/phy/allwinner/phy-sun4i-usb.c linux-5.11-new/drivers/phy/allwinner/phy-sun4i-usb.c
+--- linux-5.11-old/drivers/phy/allwinner/phy-sun4i-usb.c	2021-02-14 23:32:24.000000000 +0100
++++ linux-5.11-new/drivers/phy/allwinner/phy-sun4i-usb.c	2021-02-21 17:57:15.186665583 +0100
+@@ -43,7 +43,7 @@
+ #define REG_PHYCTL_A33			0x10
+ #define REG_PHY_OTGCTL			0x20
+ 
+-#define REG_PMU_UNK1			0x10
++#define REG_HCI_PHY_CTL			0x10
+ 
+ #define PHYCTL_DATA			BIT(7)
+ 
+@@ -115,9 +115,9 @@
+ 	int hsic_index;
+ 	enum sun4i_usb_phy_type type;
+ 	u32 disc_thresh;
++	u32 hci_phy_ctl_siddq;
+ 	u8 phyctl_offset;
+ 	bool dedicated_clocks;
+-	bool enable_pmu_unk1;
+ 	bool phy0_dual_route;
+ 	int missing_phys;
+ };
+@@ -288,6 +288,12 @@
+ 		return ret;
+ 	}
+ 
++	if (phy->pmu && data->cfg->hci_phy_ctl_siddq) {
++		val = readl(phy->pmu + REG_HCI_PHY_CTL);
++		val &= ~data->cfg->hci_phy_ctl_siddq;
++		writel(val, phy->pmu + REG_HCI_PHY_CTL);
++	}
++
+ 	if (data->cfg->type == sun8i_a83t_phy ||
+ 	    data->cfg->type == sun50i_h6_phy) {
+ 		if (phy->index == 0) {
+@@ -297,11 +303,6 @@
+ 			writel(val, data->base + data->cfg->phyctl_offset);
+ 		}
+ 	} else {
+-		if (phy->pmu && data->cfg->enable_pmu_unk1) {
+-			val = readl(phy->pmu + REG_PMU_UNK1);
+-			writel(val & ~2, phy->pmu + REG_PMU_UNK1);
+-		}
+-
+ 		/* Enable USB 45 Ohm resistor calibration */
+ 		if (phy->index == 0)
+ 			sun4i_usb_phy_write(phy, PHY_RES45_CAL_EN, 0x01, 1);
+@@ -863,7 +864,6 @@
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A10,
+ 	.dedicated_clocks = false,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun5i_a13_cfg = {
+@@ -872,7 +872,6 @@
+ 	.disc_thresh = 2,
+ 	.phyctl_offset = REG_PHYCTL_A10,
+ 	.dedicated_clocks = false,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun6i_a31_cfg = {
+@@ -881,7 +880,6 @@
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A10,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun7i_a20_cfg = {
+@@ -890,7 +888,6 @@
+ 	.disc_thresh = 2,
+ 	.phyctl_offset = REG_PHYCTL_A10,
+ 	.dedicated_clocks = false,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun8i_a23_cfg = {
+@@ -899,7 +896,6 @@
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A10,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun8i_a33_cfg = {
+@@ -908,7 +904,6 @@
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A33,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun8i_a83t_cfg = {
+@@ -925,7 +920,7 @@
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A33,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = true,
++	.hci_phy_ctl_siddq = BIT(1),
+ 	.phy0_dual_route = true,
+ };
+ 
+@@ -935,7 +930,7 @@
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A33,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = true,
++	.hci_phy_ctl_siddq = BIT(1),
+ 	.phy0_dual_route = true,
+ };
+ 
+@@ -945,7 +940,7 @@
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A33,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = true,
++	.hci_phy_ctl_siddq = BIT(1),
+ 	.phy0_dual_route = true,
+ };
+ 
+@@ -955,7 +950,7 @@
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A33,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = true,
++	.hci_phy_ctl_siddq = BIT(1),
+ 	.phy0_dual_route = true,
+ };
+ 
+@@ -969,6 +964,16 @@
+ 	.missing_phys = BIT(1) | BIT(2),
+ };
+ 
++static const struct sun4i_usb_phy_cfg sun50i_h616_cfg = {
++	.num_phys = 4,
++	.type = sun50i_h6_phy,
++	.disc_thresh = 3,
++	.phyctl_offset = REG_PHYCTL_A33,
++	.dedicated_clocks = true,
++	.phy0_dual_route = true,
++	.hci_phy_ctl_siddq = BIT(3),
++};
++
+ static const struct of_device_id sun4i_usb_phy_of_match[] = {
+ 	{ .compatible = "allwinner,sun4i-a10-usb-phy", .data = &sun4i_a10_cfg },
+ 	{ .compatible = "allwinner,sun5i-a13-usb-phy", .data = &sun5i_a13_cfg },
+@@ -983,6 +988,7 @@
+ 	{ .compatible = "allwinner,sun50i-a64-usb-phy",
+ 	  .data = &sun50i_a64_cfg},
+ 	{ .compatible = "allwinner,sun50i-h6-usb-phy", .data = &sun50i_h6_cfg },
++	{ .compatible = "allwinner,sun50i-h616-usb-phy", .data = &sun50i_h616_cfg },
+ 	{ },
+ };
+ MODULE_DEVICE_TABLE(of, sun4i_usb_phy_of_match);

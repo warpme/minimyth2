@@ -1,6 +1,6 @@
-diff -Naur linux-rpivid-old/arch/arm/boot/dts/bcm2711.dtsi linux-rpivid-new/arch/arm/boot/dts/bcm2711.dtsi
---- linux-rpivid-old/arch/arm/boot/dts/bcm2711.dtsi	2021-03-14 15:30:49.999993527 +0100
-+++ linux-rpivid-new/arch/arm/boot/dts/bcm2711.dtsi	2021-03-14 19:39:44.309993268 +0100
+diff -Naur linux-5.11.9-old/arch/arm/boot/dts/bcm2711.dtsi linux-5.11.9-new/arch/arm/boot/dts/bcm2711.dtsi
+--- linux-5.11.9-old/arch/arm/boot/dts/bcm2711.dtsi	2021-03-26 15:18:45.613327057 +0100
++++ linux-5.11.9-new/arch/arm/boot/dts/bcm2711.dtsi	2021-03-26 15:20:20.773327053 +0100
 @@ -31,6 +31,12 @@
  		clock-output-names = "108MHz-clock";
  	};
@@ -59,175 +59,21 @@ diff -Naur linux-rpivid-old/arch/arm/boot/dts/bcm2711.dtsi linux-rpivid-new/arch
  	interrupts = <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>;
  };
 +
-diff -Naur linux-rpivid-old/drivers/media/v4l2-core/v4l2-mem2mem.c linux-rpivid-new/drivers/media/v4l2-core/v4l2-mem2mem.c
---- linux-rpivid-old/drivers/media/v4l2-core/v4l2-mem2mem.c	2021-03-11 14:19:18.000000000 +0100
-+++ linux-rpivid-new/drivers/media/v4l2-core/v4l2-mem2mem.c	2021-03-14 09:52:32.989993788 +0100
-@@ -416,15 +417,18 @@
- {
- 	struct v4l2_m2m_dev *m2m_dev;
- 	unsigned long flags;
-+	bool det_abort_req;
- 
- 	m2m_dev = m2m_ctx->m2m_dev;
- 	spin_lock_irqsave(&m2m_dev->job_spinlock, flags);
- 
-+	det_abort_req = !list_empty(&m2m_ctx->det_list);
- 	m2m_ctx->job_flags |= TRANS_ABORT;
- 	if (m2m_ctx->job_flags & TRANS_RUNNING) {
- 		spin_unlock_irqrestore(&m2m_dev->job_spinlock, flags);
- 		if (m2m_dev->m2m_ops->job_abort)
- 			m2m_dev->m2m_ops->job_abort(m2m_ctx->priv);
-+		det_abort_req = false;
- 		dprintk("m2m_ctx %p running, will wait to complete\n", m2m_ctx);
- 		wait_event(m2m_ctx->finished,
- 				!(m2m_ctx->job_flags & TRANS_RUNNING));
-@@ -438,6 +442,11 @@
- 		/* Do nothing, was not on queue/running */
- 		spin_unlock_irqrestore(&m2m_dev->job_spinlock, flags);
- 	}
-+
-+	/* Wait for detached buffers to come back too */
-+	if (det_abort_req && m2m_dev->m2m_ops->job_abort)
-+		m2m_dev->m2m_ops->job_abort(m2m_ctx->priv);
-+	wait_event(m2m_ctx->det_empty, list_empty(&m2m_ctx->det_list));
- }
- 
- /*
-@@ -475,6 +484,7 @@
- 
- 	list_del(&m2m_dev->curr_ctx->queue);
- 	m2m_dev->curr_ctx->job_flags &= ~(TRANS_QUEUED | TRANS_RUNNING);
-+	m2m_ctx->cap_detached = false;
- 	wake_up(&m2m_dev->curr_ctx->finished);
- 	m2m_dev->curr_ctx = NULL;
- 	return true;
-@@ -502,6 +512,80 @@
- }
- EXPORT_SYMBOL(v4l2_m2m_job_finish);
- 
-+struct vb2_v4l2_buffer *_v4l2_m2m_cap_buf_detach(struct v4l2_m2m_ctx *m2m_ctx)
-+{
-+	struct vb2_v4l2_buffer *buf;
-+
-+	buf = v4l2_m2m_dst_buf_remove(m2m_ctx);
-+	list_add_tail(&container_of(buf, struct v4l2_m2m_buffer, vb)->list,
-+		      &m2m_ctx->det_list);
-+	m2m_ctx->cap_detached = true;
-+	buf->is_held = true;
-+	buf->det_state = VB2_BUF_STATE_ACTIVE;
-+
-+	return buf;
-+}
-+
-+struct vb2_v4l2_buffer *v4l2_m2m_cap_buf_detach(struct v4l2_m2m_dev *m2m_dev,
-+						struct v4l2_m2m_ctx *m2m_ctx)
-+{
-+	unsigned long flags;
-+	struct vb2_v4l2_buffer *src_buf, *dst_buf;
-+
-+	spin_lock_irqsave(&m2m_dev->job_spinlock, flags);
-+
-+	dst_buf = NULL;
-+	src_buf = v4l2_m2m_next_src_buf(m2m_ctx);
-+
-+	if (!(src_buf->flags & V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF) &&
-+	    !m2m_ctx->cap_detached)
-+		dst_buf = _v4l2_m2m_cap_buf_detach(m2m_ctx);
-+
-+	spin_unlock_irqrestore(&m2m_dev->job_spinlock, flags);
-+	return dst_buf;
-+}
-+EXPORT_SYMBOL(v4l2_m2m_cap_buf_detach);
-+
-+static void _v4l2_m2m_cap_buf_return(struct v4l2_m2m_ctx *m2m_ctx,
-+				     struct vb2_v4l2_buffer *buf,
-+				     enum vb2_buffer_state state)
-+{
-+	buf->det_state = state;
-+
-+	/*
-+	 * Always signal done in the order we got stuff
-+	 * Stop if we find a buf that is still in use
-+	 */
-+	while (!list_empty(&m2m_ctx->det_list)) {
-+		buf = &list_first_entry(&m2m_ctx->det_list,
-+					struct v4l2_m2m_buffer, list)->vb;
-+		state = buf->det_state;
-+		if (state != VB2_BUF_STATE_DONE &&
-+		    state != VB2_BUF_STATE_ERROR)
-+			return;
-+		list_del(&container_of(buf, struct v4l2_m2m_buffer, vb)->list);
-+		buf->det_state = VB2_BUF_STATE_DEQUEUED;
-+		v4l2_m2m_buf_done(buf, state);
-+	}
-+	wake_up(&m2m_ctx->det_empty);
-+}
-+
-+void v4l2_m2m_cap_buf_return(struct v4l2_m2m_dev *m2m_dev,
-+			     struct v4l2_m2m_ctx *m2m_ctx,
-+			     struct vb2_v4l2_buffer *buf,
-+			     enum vb2_buffer_state state)
-+{
-+	unsigned long flags;
-+
-+	if (!buf)
-+		return;
-+
-+	spin_lock_irqsave(&m2m_dev->job_spinlock, flags);
-+	_v4l2_m2m_cap_buf_return(m2m_ctx, buf, state);
-+	spin_unlock_irqrestore(&m2m_dev->job_spinlock, flags);
-+}
-+EXPORT_SYMBOL(v4l2_m2m_cap_buf_return);
-+
- void v4l2_m2m_buf_done_and_job_finish(struct v4l2_m2m_dev *m2m_dev,
- 				      struct v4l2_m2m_ctx *m2m_ctx,
- 				      enum vb2_buffer_state state)
-@@ -512,14 +596,21 @@
- 
- 	spin_lock_irqsave(&m2m_dev->job_spinlock, flags);
- 	src_buf = v4l2_m2m_src_buf_remove(m2m_ctx);
--	dst_buf = v4l2_m2m_next_dst_buf(m2m_ctx);
- 
--	if (WARN_ON(!src_buf || !dst_buf))
-+	if (WARN_ON(!src_buf))
- 		goto unlock;
--	dst_buf->is_held = src_buf->flags & V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF;
--	if (!dst_buf->is_held) {
--		v4l2_m2m_dst_buf_remove(m2m_ctx);
--		v4l2_m2m_buf_done(dst_buf, state);
-+	if (!m2m_ctx->cap_detached) {
-+		dst_buf = v4l2_m2m_next_dst_buf(m2m_ctx);
-+		if (WARN_ON(!dst_buf))
-+			goto unlock;
-+
-+		dst_buf->is_held = src_buf->flags
-+				    & V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF;
-+
-+		if (!dst_buf->is_held) {
-+			dst_buf = _v4l2_m2m_cap_buf_detach(m2m_ctx);
-+			_v4l2_m2m_cap_buf_return(m2m_ctx, dst_buf, state);
-+		}
- 	}
- 	/*
- 	 * If the request API is being used, returning the OUTPUT
-@@ -1167,12 +1258,14 @@
- 	m2m_ctx->priv = drv_priv;
- 	m2m_ctx->m2m_dev = m2m_dev;
- 	init_waitqueue_head(&m2m_ctx->finished);
-+	init_waitqueue_head(&m2m_ctx->det_empty);
- 
- 	out_q_ctx = &m2m_ctx->out_q_ctx;
- 	cap_q_ctx = &m2m_ctx->cap_q_ctx;
- 
- 	INIT_LIST_HEAD(&out_q_ctx->rdy_queue);
- 	INIT_LIST_HEAD(&cap_q_ctx->rdy_queue);
-+	INIT_LIST_HEAD(&m2m_ctx->det_list);
- 	spin_lock_init(&out_q_ctx->rdy_spinlock);
- 	spin_lock_init(&cap_q_ctx->rdy_spinlock);
- 
-diff -Naur linux-rpivid-old/drivers/staging/media/Kconfig linux-rpivid-new/drivers/staging/media/Kconfig
---- linux-rpivid-old/drivers/staging/media/Kconfig	2021-03-11 14:19:18.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/Kconfig	2021-03-14 12:58:17.493326986 +0100
+diff -Naur linux-5.11.9-old/drivers/media/v4l2-core/v4l2-ioctl.c linux-5.11.9-new/drivers/media/v4l2-core/v4l2-ioctl.c
+--- linux-5.11.9-old/drivers/media/v4l2-core/v4l2-ioctl.c	2021-03-26 15:18:45.366660390 +0100
++++ linux-5.11.9-new/drivers/media/v4l2-core/v4l2-ioctl.c	2021-03-26 15:20:20.783327053 +0100
+@@ -1330,6 +1330,8 @@
+ 	case V4L2_PIX_FMT_NV61M:	descr = "Y/CrCb 4:2:2 (N-C)"; break;
+ 	case V4L2_PIX_FMT_NV12MT:	descr = "Y/CbCr 4:2:0 (64x32 MB, N-C)"; break;
+ 	case V4L2_PIX_FMT_NV12MT_16X16:	descr = "Y/CbCr 4:2:0 (16x16 MB, N-C)"; break;
++	case V4L2_PIX_FMT_NV12_COL128:	descr = "Y/CbCr 4:2:0 (128b cols)"; break;
++	case V4L2_PIX_FMT_NV12_10_COL128: descr = "10-bit Y/CbCr 4:2:0 (128b cols)"; break;
+ 	case V4L2_PIX_FMT_YUV420M:	descr = "Planar YUV 4:2:0 (N-C)"; break;
+ 	case V4L2_PIX_FMT_YVU420M:	descr = "Planar YVU 4:2:0 (N-C)"; break;
+ 	case V4L2_PIX_FMT_YUV422M:	descr = "Planar YUV 4:2:2 (N-C)"; break;
+diff -Naur linux-5.11.9-old/drivers/staging/media/Kconfig linux-5.11.9-new/drivers/staging/media/Kconfig
+--- linux-5.11.9-old/drivers/staging/media/Kconfig	2021-03-24 11:54:19.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/Kconfig	2021-03-26 15:20:20.776660387 +0100
 @@ -34,6 +34,8 @@
  
  source "drivers/staging/media/rkvdec/Kconfig"
@@ -237,9 +83,9 @@ diff -Naur linux-rpivid-old/drivers/staging/media/Kconfig linux-rpivid-new/drive
  source "drivers/staging/media/sunxi/Kconfig"
  
  source "drivers/staging/media/tegra-vde/Kconfig"
-diff -Naur linux-rpivid-old/drivers/staging/media/Makefile linux-rpivid-new/drivers/staging/media/Makefile
---- linux-rpivid-old/drivers/staging/media/Makefile	2021-03-11 14:19:18.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/Makefile	2021-03-14 12:58:54.979993653 +0100
+diff -Naur linux-5.11.9-old/drivers/staging/media/Makefile linux-5.11.9-new/drivers/staging/media/Makefile
+--- linux-5.11.9-old/drivers/staging/media/Makefile	2021-03-24 11:54:19.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/Makefile	2021-03-26 15:20:20.776660387 +0100
 @@ -5,6 +5,7 @@
  obj-$(CONFIG_VIDEO_MESON_VDEC)	+= meson/vdec/
  obj-$(CONFIG_VIDEO_OMAP4)	+= omap4iss/
@@ -248,9 +94,9 @@ diff -Naur linux-rpivid-old/drivers/staging/media/Makefile linux-rpivid-new/driv
  obj-$(CONFIG_VIDEO_SUNXI)	+= sunxi/
  obj-$(CONFIG_VIDEO_TEGRA)	+= tegra-video/
  obj-$(CONFIG_TEGRA_VDE)		+= tegra-vde/
-diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/Kconfig linux-rpivid-new/drivers/staging/media/rpivid/Kconfig
---- linux-rpivid-old/drivers/staging/media/rpivid/Kconfig	1970-01-01 01:00:00.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/rpivid/Kconfig	2021-03-14 09:52:34.313327121 +0100
+diff -Naur linux-5.11.9-old/drivers/staging/media/rpivid/Kconfig linux-5.11.9-new/drivers/staging/media/rpivid/Kconfig
+--- linux-5.11.9-old/drivers/staging/media/rpivid/Kconfig	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/rpivid/Kconfig	2021-03-26 15:20:20.776660387 +0100
 @@ -0,0 +1,16 @@
 +# SPDX-License-Identifier: GPL-2.0
 +
@@ -268,18 +114,18 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/Kconfig linux-rpivid-ne
 +	  To compile this driver as a module, choose M here: the module
 +	  will be called rpivid-hevc.
 +
-diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/Makefile linux-rpivid-new/drivers/staging/media/rpivid/Makefile
---- linux-rpivid-old/drivers/staging/media/rpivid/Makefile	1970-01-01 01:00:00.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/rpivid/Makefile	2021-03-14 09:52:34.313327121 +0100
+diff -Naur linux-5.11.9-old/drivers/staging/media/rpivid/Makefile linux-5.11.9-new/drivers/staging/media/rpivid/Makefile
+--- linux-5.11.9-old/drivers/staging/media/rpivid/Makefile	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/rpivid/Makefile	2021-03-26 15:20:20.776660387 +0100
 @@ -0,0 +1,5 @@
 +# SPDX-License-Identifier: GPL-2.0
 +obj-$(CONFIG_VIDEO_RPIVID) += rpivid-hevc.o
 +
 +rpivid-hevc-y = rpivid.o rpivid_video.o rpivid_dec.o \
 +		 rpivid_hw.o rpivid_h265.o
-diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid.c linux-rpivid-new/drivers/staging/media/rpivid/rpivid.c
---- linux-rpivid-old/drivers/staging/media/rpivid/rpivid.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/rpivid/rpivid.c	2021-03-14 09:52:34.313327121 +0100
+diff -Naur linux-5.11.9-old/drivers/staging/media/rpivid/rpivid.c linux-5.11.9-new/drivers/staging/media/rpivid/rpivid.c
+--- linux-5.11.9-old/drivers/staging/media/rpivid/rpivid.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/rpivid/rpivid.c	2021-03-26 15:20:20.776660387 +0100
 @@ -0,0 +1,432 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
@@ -713,9 +559,9 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid.c linux-rpivid-n
 +MODULE_LICENSE("GPL v2");
 +MODULE_AUTHOR("John Cox <jc@kynesim.co.uk>");
 +MODULE_DESCRIPTION("Raspberry Pi HEVC V4L2 driver");
-diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_dec.c linux-rpivid-new/drivers/staging/media/rpivid/rpivid_dec.c
---- linux-rpivid-old/drivers/staging/media/rpivid/rpivid_dec.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/rpivid/rpivid_dec.c	2021-03-14 09:52:34.313327121 +0100
+diff -Naur linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_dec.c linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_dec.c
+--- linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_dec.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_dec.c	2021-03-26 15:20:20.776660387 +0100
 @@ -0,0 +1,79 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
@@ -796,9 +642,9 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_dec.c linux-rpiv
 +
 +	dev->dec_ops->trigger(ctx);
 +}
-diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_dec.h linux-rpivid-new/drivers/staging/media/rpivid/rpivid_dec.h
---- linux-rpivid-old/drivers/staging/media/rpivid/rpivid_dec.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/rpivid/rpivid_dec.h	2021-03-14 09:52:34.313327121 +0100
+diff -Naur linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_dec.h linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_dec.h
+--- linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_dec.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_dec.h	2021-03-26 15:20:20.776660387 +0100
 @@ -0,0 +1,19 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
@@ -819,9 +665,9 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_dec.h linux-rpiv
 +void rpivid_device_run(void *priv);
 +
 +#endif
-diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid.h linux-rpivid-new/drivers/staging/media/rpivid/rpivid.h
---- linux-rpivid-old/drivers/staging/media/rpivid/rpivid.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/rpivid/rpivid.h	2021-03-14 09:52:34.313327121 +0100
+diff -Naur linux-5.11.9-old/drivers/staging/media/rpivid/rpivid.h linux-5.11.9-new/drivers/staging/media/rpivid/rpivid.h
+--- linux-5.11.9-old/drivers/staging/media/rpivid/rpivid.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/rpivid/rpivid.h	2021-03-26 15:20:20.776660387 +0100
 @@ -0,0 +1,184 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
@@ -1007,10 +853,10 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid.h linux-rpivid-n
 +void *rpivid_find_control_data(struct rpivid_ctx *ctx, u32 id);
 +
 +#endif
-diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_h265.c linux-rpivid-new/drivers/staging/media/rpivid/rpivid_h265.c
---- linux-rpivid-old/drivers/staging/media/rpivid/rpivid_h265.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/rpivid/rpivid_h265.c	2021-03-14 09:52:34.316660454 +0100
-@@ -0,0 +1,2315 @@
+diff -Naur linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_h265.c linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_h265.c
+--- linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_h265.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_h265.c	2021-03-26 15:15:50.539993727 +0100
+@@ -0,0 +1,2295 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later
 +/*
 + * Raspberry Pi HEVC driver
@@ -2577,14 +2423,12 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_h265.c linux-rpi
 +
 +		if (memcmp(&s->sps, run->h265.sps, sizeof(s->sps)) != 0) {
 +			/* SPS changed */
-+			v4l2_info(&dev->v4l2_dev, "SPS changed\n");
 +			memcpy(&s->sps, run->h265.sps, sizeof(s->sps));
 +			sps_changed = true;
 +		}
 +		if (sps_changed ||
 +		    memcmp(&s->pps, run->h265.pps, sizeof(s->pps)) != 0) {
 +			/* SPS changed */
-+			v4l2_info(&dev->v4l2_dev, "PPS changed\n");
 +			memcpy(&s->pps, run->h265.pps, sizeof(s->pps));
 +
 +			/* Recalc stuff as required */
@@ -2937,8 +2781,6 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_h265.c linux-rpi
 +
 +	xtrace_in(dev, de);
 +
-+	v4l2_m2m_cap_buf_return(dev->m2m_dev, ctx->fh.m2m_ctx, de->frame_buf,
-+				VB2_BUF_STATE_DONE);
 +	de->frame_buf = NULL;
 +
 +	/* Delete de before finish as finish might immediately trigger a reuse
@@ -3001,12 +2843,6 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_h265.c linux-rpi
 +			  !de->frame_aux ? 0 : de->frame_aux->col.addr);
 +	apb_write_vc_addr(dev, RPI_COLBASE,
 +			  !de->col_aux ? 0 : de->col_aux->col.addr);
-+
-+	//v4l2_info(&dev->v4l2_dev,
-+	//	   "Mv=%llx, Col=%llx, Stride=%x, Buf=%llx->%llx\n",
-+	//	   de->rpi_mvbase, de->rpi_colbase, de->ctx->colmv_stride,
-+	//	   de->ctx->colmvbuf.addr, de->ctx->colmvbuf.addr +
-+	//	   de->ctx->colmvbuf.size);
 +
 +	rpivid_hw_irq_active2_irq(dev, &de->irq_ent, cb_phase2, de);
 +
@@ -3088,16 +2924,6 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_h265.c linux-rpi
 +		rpivid_hw_irq_active1_thread(dev, &de->irq_ent,
 +					     phase1_thread, de);
 +		return;
-+	}
-+
-+	/* After the frame-buf is detached it must be returned but from
-+	 * this point onward (phase2_claimed, cb_phase2) there are no error
-+	 * paths so the return at the end of cb_phase2 is all that is needed
-+	 */
-+	de->frame_buf = v4l2_m2m_cap_buf_detach(dev->m2m_dev, ctx->fh.m2m_ctx);
-+	if (!de->frame_buf) {
-+		v4l2_err(&dev->v4l2_dev, "%s: No detached buffer\n", __func__);
-+		goto fail;
 +	}
 +
 +	ctx->p2idx =
@@ -3326,9 +3152,9 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_h265.c linux-rpi
 +	.stop = rpivid_h265_stop,
 +	.trigger = rpivid_h265_trigger,
 +};
-diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_hw.c linux-rpivid-new/drivers/staging/media/rpivid/rpivid_hw.c
---- linux-rpivid-old/drivers/staging/media/rpivid/rpivid_hw.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/rpivid/rpivid_hw.c	2021-03-14 09:52:34.316660454 +0100
+diff -Naur linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_hw.c linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_hw.c
+--- linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_hw.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_hw.c	2021-03-26 15:20:20.779993720 +0100
 @@ -0,0 +1,321 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
@@ -3651,9 +3477,9 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_hw.c linux-rpivi
 +	ictl_uninit(&dev->ic_active2);
 +}
 +
-diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_hw.h linux-rpivid-new/drivers/staging/media/rpivid/rpivid_hw.h
---- linux-rpivid-old/drivers/staging/media/rpivid/rpivid_hw.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/rpivid/rpivid_hw.h	2021-03-14 09:52:34.316660454 +0100
+diff -Naur linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_hw.h linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_hw.h
+--- linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_hw.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_hw.h	2021-03-26 15:20:20.779993720 +0100
 @@ -0,0 +1,300 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
@@ -3955,9 +3781,9 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_hw.h linux-rpivi
 +void rpivid_hw_remove(struct rpivid_dev *dev);
 +
 +#endif
-diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_video.c linux-rpivid-new/drivers/staging/media/rpivid/rpivid_video.c
---- linux-rpivid-old/drivers/staging/media/rpivid/rpivid_video.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/rpivid/rpivid_video.c	2021-03-14 09:52:34.316660454 +0100
+diff -Naur linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_video.c linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_video.c
+--- linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_video.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_video.c	2021-03-26 15:20:20.779993720 +0100
 @@ -0,0 +1,593 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
@@ -4552,9 +4378,9 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_video.c linux-rp
 +
 +	return vb2_queue_init(dst_vq);
 +}
-diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_video.h linux-rpivid-new/drivers/staging/media/rpivid/rpivid_video.h
---- linux-rpivid-old/drivers/staging/media/rpivid/rpivid_video.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-rpivid-new/drivers/staging/media/rpivid/rpivid_video.h	2021-03-14 09:52:34.316660454 +0100
+diff -Naur linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_video.h linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_video.h
+--- linux-5.11.9-old/drivers/staging/media/rpivid/rpivid_video.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.11.9-new/drivers/staging/media/rpivid/rpivid_video.h	2021-03-26 15:20:20.779993720 +0100
 @@ -0,0 +1,30 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
@@ -4586,111 +4412,9 @@ diff -Naur linux-rpivid-old/drivers/staging/media/rpivid/rpivid_video.h linux-rp
 +int rpivid_prepare_dst_format(struct v4l2_pix_format *pix_fmt);
 +
 +#endif
-diff -Naur linux-rpivid-old/include/media/hevc-ctrls.h linux-rpivid-new/include/media/hevc-ctrls.h
---- linux-rpivid-old/include/media/hevc-ctrls.h	2021-03-14 13:30:33.929993636 +0100
-+++ linux-rpivid-new/include/media/hevc-ctrls.h	2021-03-14 13:14:19.149993653 +0100
-@@ -168,6 +168,7 @@
- #define V4L2_HEVC_SLICE_PARAMS_FLAG_USE_INTEGER_MV		(1ULL << 6)
- #define V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_DEBLOCKING_FILTER_DISABLED (1ULL << 7)
- #define V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_LOOP_FILTER_ACROSS_SLICES_ENABLED (1ULL << 8)
-+#define V4L2_HEVC_SLICE_PARAMS_FLAG_DEPENDENT_SLICE_SEGMENT	(1ULL << 9)
- 
- struct v4l2_ctrl_hevc_slice_params {
- 	__u32	bit_size;
-diff -Naur linux-rpivid-old/include/media/v4l2-mem2mem.h linux-rpivid-new/include/media/v4l2-mem2mem.h
---- linux-rpivid-old/include/media/v4l2-mem2mem.h	2021-03-11 14:19:18.000000000 +0100
-+++ linux-rpivid-new/include/media/v4l2-mem2mem.h	2021-03-14 09:52:35.216660454 +0100
-@@ -92,6 +92,9 @@
-  *		%TRANS_QUEUED, %TRANS_RUNNING and %TRANS_ABORT.
-  * @finished: Wait queue used to signalize when a job queue finished.
-  * @priv: Instance private data
-+ * @cap_detached: Current job's capture buffer has been detached
-+ * @det_list: List of detached (post-job but still in flight) capture buffers
-+ * @det_empty: Wait queue signalled when det_list goes empty
-  *
-  * The memory to memory context is specific to a file handle, NOT to e.g.
-  * a device.
-@@ -120,6 +123,11 @@
- 	wait_queue_head_t		finished;
- 
- 	void				*priv;
-+
-+	/* Detached buffer handling */
-+	bool	cap_detached;
-+	struct list_head		det_list;
-+	wait_queue_head_t		det_empty;
- };
- 
- /**
-@@ -327,6 +335,45 @@
- void v4l2_m2m_resume(struct v4l2_m2m_dev *m2m_dev);
- 
- /**
-+ * v4l2_m2m_cap_buf_detach() - detach the capture buffer from the job and
-+ * return it.
-+ *
-+ * @m2m_dev: opaque pointer to the internal data to handle M2M context
-+ * @m2m_ctx: m2m context assigned to the instance given by struct &v4l2_m2m_ctx
-+ *
-+ * This function is designed to be used in conjunction with
-+ * v4l2_m2m_buf_done_and_job_finish(). It allows the next job to start
-+ * execution before the capture buffer is returned to the user which can be
-+ * important if the underlying processing has multiple phases that are more
-+ * efficiently executed in parallel.
-+ *
-+ * If used then it must be called before v4l2_m2m_buf_done_and_job_finish()
-+ * as otherwise the buffer will have already gone.
-+ *
-+ * It is the callers reponsibilty to ensure that all detached buffers are
-+ * returned.
-+ */
-+struct vb2_v4l2_buffer *v4l2_m2m_cap_buf_detach(struct v4l2_m2m_dev *m2m_dev,
-+						struct v4l2_m2m_ctx *m2m_ctx);
-+
-+/**
-+ * v4l2_m2m_cap_buf_return() - return a capture buffer, previously detached
-+ * with v4l2_m2m_cap_buf_detach() to the user.
-+ *
-+ * @m2m_dev: opaque pointer to the internal data to handle M2M context
-+ * @m2m_ctx: m2m context assigned to the instance given by struct &v4l2_m2m_ctx
-+ * @buf: the buffer to return
-+ * @state: vb2 buffer state passed to v4l2_m2m_buf_done().
-+ *
-+ * Buffers returned by this function will be returned to the user in the order
-+ * of the original jobs rather than the order in which this function is called.
-+ */
-+void v4l2_m2m_cap_buf_return(struct v4l2_m2m_dev *m2m_dev,
-+			     struct v4l2_m2m_ctx *m2m_ctx,
-+			     struct vb2_v4l2_buffer *buf,
-+			     enum vb2_buffer_state state);
-+
-+/**
-  * v4l2_m2m_reqbufs() - multi-queue-aware REQBUFS multiplexer
-  *
-  * @file: pointer to struct &file
-diff -Naur linux-rpivid-old/include/media/videobuf2-v4l2.h linux-rpivid-new/include/media/videobuf2-v4l2.h
---- linux-rpivid-old/include/media/videobuf2-v4l2.h	2021-03-11 14:19:18.000000000 +0100
-+++ linux-rpivid-new/include/media/videobuf2-v4l2.h	2021-03-14 09:52:35.216660454 +0100
-@@ -37,6 +37,8 @@
-  * @request_fd:	the request_fd associated with this buffer
-  * @is_held:	if true, then this capture buffer was held
-  * @planes:	plane information (userptr/fd, length, bytesused, data_offset).
-+ * @det_state:	if a detached request capture buffer then this contains its
-+ *		current state
-  *
-  * Should contain enough information to be able to cover all the fields
-  * of &struct v4l2_buffer at ``videodev2.h``.
-@@ -51,6 +53,7 @@
- 	__s32			request_fd;
- 	bool			is_held;
- 	struct vb2_plane	planes[VB2_MAX_PLANES];
-+	enum vb2_buffer_state	det_state;
- };
- 
- /* VB2 V4L2 flags as set in vb2_queue.subsystem_flags */
-diff -Naur linux-rpivid-old/include/uapi/linux/videodev2.h linux-rpivid-new/include/uapi/linux/videodev2.h
---- linux-rpivid-old/include/uapi/linux/videodev2.h	2021-03-14 13:30:34.243326970 +0100
-+++ linux-rpivid-new/include/uapi/linux/videodev2.h	2021-03-14 13:07:44.346660321 +0100
+diff -Naur linux-5.11.9-old/include/uapi/linux/videodev2.h linux-5.11.9-new/include/uapi/linux/videodev2.h
+--- linux-5.11.9-old/include/uapi/linux/videodev2.h	2021-03-26 15:18:45.383327057 +0100
++++ linux-5.11.9-new/include/uapi/linux/videodev2.h	2021-03-26 15:20:20.783327053 +0100
 @@ -740,6 +740,10 @@
  #define V4L2_PIX_FMT_SUNXI_TILED_NV12 v4l2_fourcc('S', 'T', '1', '2') /* Sunxi Tiled NV12 Format */
  #define V4L2_PIX_FMT_CNF4     v4l2_fourcc('C', 'N', 'F', '4') /* Intel 4-bit packed depth confidence information */
@@ -4703,15 +4427,50 @@ diff -Naur linux-rpivid-old/include/uapi/linux/videodev2.h linux-rpivid-new/incl
  /* 10bit raw bayer packed, 32 bytes for every 25 pixels, last LSB 6 bits unused */
  #define V4L2_PIX_FMT_IPU3_SBGGR10	v4l2_fourcc('i', 'p', '3', 'b') /* IPU3 packed 10-bit BGGR bayer */
 
-diff -Naur linux-rpivid-old/drivers/media/v4l2-core/v4l2-ioctl.c linux-rpivid-new/drivers/media/v4l2-core/v4l2-ioctl.c
---- linux-rpivid-old/drivers/media/v4l2-core/v4l2-ioctl.c	2021-03-17 15:36:23.003330535 +0100
-+++ linux-rpivid-new/drivers/media/v4l2-core/v4l2-ioctl.c	2021-03-14 09:52:32.989993788 +0100
-@@ -1322,6 +1321,8 @@
- 	case V4L2_PIX_FMT_NV61M:	descr = "Y/CrCb 4:2:2 (N-C)"; break;
- 	case V4L2_PIX_FMT_NV12MT:	descr = "Y/CbCr 4:2:0 (64x32 MB, N-C)"; break;
- 	case V4L2_PIX_FMT_NV12MT_16X16:	descr = "Y/CbCr 4:2:0 (16x16 MB, N-C)"; break;
-+	case V4L2_PIX_FMT_NV12_COL128:	descr = "Y/CbCr 4:2:0 (128b cols)"; break;
-+	case V4L2_PIX_FMT_NV12_10_COL128: descr = "10-bit Y/CbCr 4:2:0 (128b cols)"; break;
- 	case V4L2_PIX_FMT_YUV420M:	descr = "Planar YUV 4:2:0 (N-C)"; break;
- 	case V4L2_PIX_FMT_YVU420M:	descr = "Planar YVU 4:2:0 (N-C)"; break;
- 	case V4L2_PIX_FMT_YUV422M:	descr = "Planar YUV 4:2:2 (N-C)"; break;
+diff -Naur linux-5.11.15-old/drivers/staging/media/rpivid/rpivid_video.c linux-5.11.15-new/drivers/staging/media/rpivid/rpivid_video.c
+--- linux-5.11.15-old/drivers/staging/media/rpivid/rpivid_video.c	2021-04-19 15:42:08.346666625 +0200
++++ linux-5.11.15-new/drivers/staging/media/rpivid/rpivid_video.c	2021-04-19 15:32:17.903333291 +0200
+@@ -490,6 +490,7 @@
+ {
+ 	struct rpivid_ctx *ctx = vb2_get_drv_priv(vq);
+ 	struct rpivid_dev *dev = ctx->dev;
++	long max_hevc_clock = clk_round_rate(dev->clock, ULONG_MAX);
+ 	int ret = 0;
+ 
+ 	if (ctx->src_fmt.pixelformat != V4L2_PIX_FMT_HEVC_SLICE)
+@@ -498,10 +499,12 @@
+ 	if (V4L2_TYPE_IS_OUTPUT(vq->type) && dev->dec_ops->start)
+ 		ret = dev->dec_ops->start(ctx);
+ 
+-	ret = clk_set_rate(dev->clock, 500 * 1000 * 1000);
++	ret = clk_set_rate(dev->clock, max_hevc_clock);
+ 	if (ret) {
+ 		dev_err(dev->dev, "Failed to set clock rate\n");
+ 		goto out;
++	} else {
++		dev_info(dev->dev, "set clock to:%ld\n", max_hevc_clock);
+ 	}
+ 
+ 	ret = clk_prepare_enable(dev->clock);
+@@ -519,12 +522,21 @@
+ {
+ 	struct rpivid_ctx *ctx = vb2_get_drv_priv(vq);
+ 	struct rpivid_dev *dev = ctx->dev;
++	long min_hevc_clock = clk_round_rate(dev->clock, 0);
++	int ret;
+ 
+ 	if (V4L2_TYPE_IS_OUTPUT(vq->type) && dev->dec_ops->stop)
+ 		dev->dec_ops->stop(ctx);
+ 
+ 	rpivid_queue_cleanup(vq, VB2_BUF_STATE_ERROR);
+ 
++	ret = clk_set_rate(dev->clock, min_hevc_clock);
++	if (ret) {
++		dev_err(dev->dev, "Failed to set minimum clock rate\n");
++	} else {
++		dev_info(dev->dev, "set clock to:%ld\n", min_hevc_clock);
++	}
++
+ 	clk_disable_unprepare(dev->clock);
+ }
+ 
