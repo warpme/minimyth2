@@ -128,16 +128,23 @@ PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 PATCHFILES += 0550-allwinner-add-rsb-extra.patch
 # Crust support from LE 17.01.2021
 PATCHFILES += 0551-allwinner-add-crust-support.patch
-#PATCHFILES += 0552-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
-# hack for dead Eth after resume from sleep
-#PATCHFILES += 0553-dwmac-sun8i-hack-for-dead-Eth-on-crust-resume.patch
+PATCHFILES += 0552-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
 # hack for fixng distorted screen on X11/Glamour
 PATCHFILES += 0554-drm-sun4i-report-no-midifiers.patch
 # Add hw deinterlce support from 17.01.2021
 PATCHFILES += 0560-H6-add-sun50i-di-deinterlace-WiP.patch
 PATCHFILES += 0561-arm64-dts-h6-add-deinterlace-node.patch
-# h616 initial support
-PATCHFILES += 0570-sunxi-Initial-Allwinner-H616-SoC-support-v2.patch
+# hacks for h616 initial support (Eth, USB, HDMI works; no GL/Audio yet)
+# https://github.com/jernejsk/linux-1/commits/h616-hdmi
+PATCHFILES += 0578-mfd-fix-axp20x-loading-on-h616.patch
+PATCHFILES += 0579-net-stmmac-dwmac-sun8i-Prepare-for-second-EMAC-clock.patch
+PATCHFILES += 0580-phy-sun4i-usb-Rework-HCI-PHY-aka.-pmu_unk1-handling.patch
+PATCHFILES += 0583-phy-sun4i-usb-Add-support-for-the-H616-USB-PHY.patch
+PATCHFILES += 0584-arm64-dts-allwinner-Add-Allwinner-H616-.dtsi-file.patch
+PATCHFILES += 0586-arm64-dts-allwinner-Add-OrangePi-Zero-2-.dts.patch
+PATCHFILES += 0591-wip-h616-hdmi.patch
+PATCHFILES += 0592-drm-sun4i-de2-de3-add-back-redundant-CSC-matrices.patch
+PATCHFILES += 0593-wip-h616-drm-driver.patch
 endif
 #------------------------------------------------------------
 
