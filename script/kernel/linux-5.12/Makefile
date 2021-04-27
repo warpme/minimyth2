@@ -185,9 +185,6 @@ PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
 # V3d enablement in RPI4
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=434471
 PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch
-# Support for CEC on RPI4
-# https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210111142309.193441-1-maxime@cerno.tech/
-#PATCHFILES += 0902-drm-vc4-hdmi-Add-CEC-support-for-the-BCM2711.patch
 # small updates to v4l2_m2m
 PATCHFILES += 0903-rpi-vc04_services-add_h264_v4l2-m2m_decode-14032021.patch
 # add H265 rpivid driver
