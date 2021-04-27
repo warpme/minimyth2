@@ -124,6 +124,8 @@ PATCHFILES += 0535-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
 # Allwinner: enable H6 GPU DVFS
 PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=470633
+PATCHFILES += 0538-arm64-dts-allwinner-H6-USB3-device-tree-updates.patch
 # https://github.com/smaeul/linux/commits/patch/rsb-extra
 PATCHFILES += 0550-allwinner-add-rsb-extra.patch
 # Crust support from LE 17.01.2021
