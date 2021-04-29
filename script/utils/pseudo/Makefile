@@ -1,9 +1,11 @@
-GARNAME = pseudo
-GARVERSION = 1.9.0
-CATEGORIES = utils
+
+GARNAME      = pseudo
+GARVERSION   = 1.9.0
+CATEGORIES   = utils
 MASTER_SITES = http://git.yoctoproject.org/cgit/cgit.cgi/pseudo/snapshot/
-DISTFILES = $(GARNAME)-$(GARVERSION).tar.bz2
-LICENSE = GPL2
+DISTFILES    = $(GARNAME)-$(GARVERSION).tar.bz2
+PATCHFILES   = $(DISTNAME)-fix-building-on-hosts-with-glibc2.33.patch
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
