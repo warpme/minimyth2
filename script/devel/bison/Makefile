@@ -1,10 +1,10 @@
 
 GARNAME      = bison
-GARVERSION   = 3.6.3
+GARVERSION   = 3.7.6
 CATEGORIES   = devel
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = $(DISTNAME)-perl.patch.gar
+PATCHFILES   = $(DISTNAME)-perl.patch.gar $(DISTNAME)-hack-skip-build-bison-info.patch
 LICENSE      = GPL3
 
 DESCRIPTION =
@@ -15,7 +15,7 @@ DEPENDS   = lang/c
 BUILDDEPS = utils/m4 perl/perl-Text-Unidecode perl/perl-libintl perl/perl-unicode-eastasianwidth
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
+BUILD_SCRIPTS     = $(WORKSRC)/Makefile 
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
