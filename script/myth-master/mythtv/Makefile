@@ -287,9 +287,9 @@ INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
 
-CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
-CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
-CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
+CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
+CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
+CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
 
 CPPFLAGS += -fPIC -fuse-linker-plugin
 CFLAGS   += -fPIC -fuse-linker-plugin
