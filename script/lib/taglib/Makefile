@@ -1,10 +1,11 @@
-GARNAME = taglib
-GARVERSION = 1.11.1
-CATEGORIES = lib
+
+GARNAME      = taglib
+GARVERSION   = 1.12
+CATEGORIES   = lib
 MASTER_SITES = http://taglib.github.io/releases/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME).patch.gar
-LICENSE = LGPL2_1
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = $(DISTNAME).patch.gar
+LICENSE      = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
