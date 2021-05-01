@@ -1,9 +1,10 @@
-GARNAME = llvm
-GARVERSION = 9.0.1
-CATEGORIES = devel
+
+GARNAME      = llvm
+GARVERSION   = 9.0.1
+CATEGORIES   = devel
 MASTER_SITES = https://github.com/llvm/llvm-project/releases/download/llvmorg-$(GARVERSION)/
-DISTFILES = $(DISTNAME).src.tar.xz
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).src.tar.xz
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKDIR)/$(DISTNAME)/LICENSE.TXT
 
 DESCRIPTION = 
@@ -81,12 +82,8 @@ configure-%/cmake:
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libLLVM*.a
-	@rm -f $(DESTDIR)$(bindir)-config/llvm-config
-	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config
 	@mkdir -p $(DESTDIR)$(bindir)-config
-	@$(if $(filter build, $(DESTIMG)), \
-		cp $(WORKBLD)/bin/llvm-config                         $(DESTDIR)$(bindir)-config/llvm-config, \
-		ln -srf $(build_DESTDIR)$(build_bindir)-config/llvm-config $(DESTDIR)$(bindir)-config/llvm-config  )
+	@cp $(WORKBLD)/bin/llvm-config $(DESTDIR)$(bindir)-config/llvm-config
 	@$(if $(compiler_prefix), ln -s llvm-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config)
 	@$(MAKECOOKIE)
 

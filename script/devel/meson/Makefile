@@ -42,7 +42,7 @@ install-%/setup.py:
 	@echo "ar          = '$(build_DESTDIR)$(build_bindir)/$(mm_GARHOST)-ar'"    >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
 	@echo "strip       = '$(build_DESTDIR)$(build_bindir)/$(mm_GARHOST)-strip'" >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
 	@echo "pkgconfig   = '$(build_DESTDIR)$(build_bindir)/pkg-config'"          >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
-	@echo "llvm-config = '$(main_DESTDIR)$(main_bindir)-config/llvm-config'"    >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
+	@echo "llvm-config = '$(main_DESTDIR)$(build_bindir)-config/llvm-config'"   >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
 	@echo "[host_machine]"                                                      >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
 	@echo "system     = 'linux'"                                                >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
 	@echo "endian     = 'little'"                                               >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
