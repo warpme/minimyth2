@@ -164,6 +164,8 @@ PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
 # Add hvec support for Rockchip rkvdec
 # update rkvdec to code from https://github.com/knaerzche/LibreELEC.tv/tree/rk-fixes-b2
 PATCHFILES += 0707-media-rkvdec-add-hevc-support.patch
+# Improve rkvdec stability on rk3399 for hevc stream errors
+PATCHFILES += 0708-media-rkvdec-dec-clocks-for-stability.patch
 # Support for 4k modes
 PATCHFILES += 0711-drm-rockchip-add-4k-videomodes-support.patch
 # enhacements from https://github.com/knaerzche/linux/commits/v5.10.26-rk-10-bit
