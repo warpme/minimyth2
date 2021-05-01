@@ -1,6 +1,6 @@
 
 GARNAME      = iwd
-GARVERSION   = 1.12
+GARVERSION   = 1.13
 CATEGORIES   = net
 MASTER_SITES = https://www.kernel.org/pub/linux/network/wireless/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.xz
