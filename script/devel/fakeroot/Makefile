@@ -1,18 +1,19 @@
 
 GARNAME      = fakeroot
-GARVERSION   = 1.18.4
+GARVERSION   = 1.25.3
 CATEGORIES   = devel
 MASTER_SITES = https://deb.debian.org/debian/pool/main/f/fakeroot/
-DISTFILES    = $(GARNAME)_$(GARVERSION).orig.tar.bz2
-PATCHFILES   = fakeroot-1.18.4-fix-glibc2.31.patch
-PATCHFILES  += fakeroot-1.18.4-fix-glibc2.33.patch
+DISTFILES    = $(GARNAME)_$(GARVERSION).orig.tar.gz
+PATCHFILES   = $(DISTNAME)-glibc-2.33-fix-1.patch
+PATCHFILES  += $(DISTNAME)-glibc-2.33-fix-2.patch
+PATCHFILES  += $(DISTNAME)-glibc-2.33-fix-3.patch
 LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/c
+DEPENDS = lang/c lib/libcap
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure shell
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
