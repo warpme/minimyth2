@@ -23,7 +23,6 @@ DEPENDS = \
 	disk/eject \
 	utils/ethtool \
 	utils/evtest \
-	devel/fakeroot \
 	devel/glibc-locale \
 	disk/hdparm \
 	net/ifplugd \
