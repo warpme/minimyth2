@@ -196,6 +196,8 @@ PATCHFILES += 0905-staging-bcm2835-camera-Add-support-for-H264-levels-4.1-and-4.
 PATCHFILES += 0906-staging-bcm2835-codec-Pass-corrupt-frame-flag.patch
 PATCHFILES += 0907-staging-bcm2835-codec-Set-colourspace-appropriat-for-RGB-fmt.patch
 PATCHFILES += 0908-staging-bcm2835-codec-Fix-support-for-levels-4.1-and-4.2.patch
+# hack for https://github.com/raspberrypi/linux/issues/4320
+PATCHFILES += 0909-drm-vc4-hack-ticket4320-revert-f3c420fe19-82faa327.patch
 endif
 #------------------------------------------------------------
 
