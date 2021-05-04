@@ -1,6 +1,6 @@
 
 GARNAME      = llvm
-GARVERSION   = 9.0.1
+GARVERSION   = 12.0.0
 CATEGORIES   = devel
 MASTER_SITES = https://github.com/llvm/llvm-project/releases/download/llvmorg-$(GARVERSION)/
 DISTFILES    = $(DISTNAME).src.tar.xz
@@ -24,7 +24,6 @@ WORKBLD = $(WORKSRC)_build
 CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
 BUILD_SCRIPTS     = $(WORKBLD)/Makefile
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
-
 
 CONFIGURE_ARGS = \
 	-DCMAKE_INSTALL_PREFIX="$(prefix)" \
@@ -53,24 +52,21 @@ CONFIGURE_ARGS = \
 	-DLLVM_BUILD_DOCS="OFF" \
 	-DLLVM_ENABLE_DOXYGEN="OFF" \
 	-DCMAKE_BUILD_TYPE=Release \
-	-DLLVM_TARGETS_TO_BUILD="host;AMDGPU;BPF"
 
 ifneq ($(DESTIMG),build)
-CONFIGURE_ARGS += -DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
+CONFIGURE_ARGS += \
+	-DLLVM_TARGETS_TO_BUILD="X86;AMDGPU;ARM;AArch64" \
+	$(if $(filter i386,  $(GARCH_FAMILY)),-DLLVM_TARGET_ARCH="AMDGPU" ) \
+	$(if $(filter x86_64,$(GARCH_FAMILY)),-DLLVM_TARGET_ARCH="AMDGPU" ) \
+	$(if $(filter arm,   $(GARCH_FAMILY)),-DLLVM_TARGET_ARCH="ARM"    ) \
+	$(if $(filter arm64, $(GARCH_FAMILY)),-DLLVM_TARGET_ARCH="AArch64") \
+	-DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
+else
+CONFIGURE_ARGS += \
+	-DLLVM_TARGETS_TO_BUILD="X86;AMDGPU;ARM;AArch64"
 endif
 
 include ../../gar.mk
-
-TARGETS_i386   := "x86"
-TARGETS_x86_64 := "x86"
-
-EXTRA_OPTIONS    := $(CFLAGS)
-EXTRA_LD_OPTIONS := $(LDFLAGS)
-
-# the configure script applies the host compiler flags when checking the build compiler.
-CFLAGS   :=
-CXXFLAGS :=
-LDFLAGS  :=
 
 configure-%/cmake: 
 	@mv $(WORKDIR)/$(DISTNAME).src $(WORKDIR)/$(DISTNAME)
@@ -83,9 +79,15 @@ configure-%/cmake:
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libLLVM*.a
 	@mkdir -p $(DESTDIR)$(bindir)-config
-	@cp $(WORKBLD)/bin/llvm-config $(DESTDIR)$(bindir)-config/llvm-config
-	@$(if $(compiler_prefix), ln -s llvm-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config)
-	@$(MAKECOOKIE)
+	@$(if $(filter build, $(DESTIMG)), \
+	 cp $(WORKBLD)/bin/llvm-config  $(DESTDIR)$(bindir)-config/llvm-config, \
+	 echo '#!/bin/sh'                      > $(DESTDIR)$(bindir)-config/llvm-config ; \
+	 echo 'echo "$$@" >> llvm-config.log' >> $(DESTDIR)$(bindir)-config/llvm-config ; \
+	 echo '$(build_DESTDIR)$(build_bindir)-config/llvm-config "$$@" | sed -e "s/build/main/g" >> llvm-config.log 2>&1' >> $(DESTDIR)$(bindir)-config/llvm-config ; \
+	 echo '$(build_DESTDIR)$(build_bindir)-config/llvm-config "$$@" | sed -e "s/build/main/g"'                         >> $(DESTDIR)$(bindir)-config/llvm-config ; \
+	 chmod +x $(DESTDIR)$(bindir)-config/llvm-config )
+	@$(if $(compiler_prefix), ln -sf llvm-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config)
+	@#$(MAKECOOKIE)
 
 clean-all:
 	@rm -f $(DESTDIR)$(bindir)-config/llvm-config
