@@ -53,6 +53,10 @@
 export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
 export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
 
+if [ -n "${MM_MYTHTV_SET_ENV_VAR}" ] ; then
+    export ${MM_MYTHTV_SET_ENV_VAR}
+fi
+
 # Setup desired env variables
 case "${MM_MYTHTV_DRAW_ON}" in
 
