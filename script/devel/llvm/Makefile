@@ -87,7 +87,7 @@ post-install:
 	 echo '$(build_DESTDIR)$(build_bindir)-config/llvm-config "$$@" | sed -e "s/build/main/g"'                         >> $(DESTDIR)$(bindir)-config/llvm-config ; \
 	 chmod +x $(DESTDIR)$(bindir)-config/llvm-config )
 	@$(if $(compiler_prefix), ln -sf llvm-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config)
-	@#$(MAKECOOKIE)
+	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -f $(DESTDIR)$(bindir)-config/llvm-config
