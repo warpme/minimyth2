@@ -77,13 +77,6 @@ CONFIGURE_ARGS = \
 
 include ../../gar.mk
 
-configure-%/cmake:
-	@echo " ==> Running configure in $*"
-	@rm -rf $*
-	@mkdir -p $*
-	@cd $* && $(CONFIGURE_ENV) cmake $(CONFIGURE_ARGS) ../$(DISTNAME)
-	@$(MAKECOOKIE)
-
 post-install:
 	@rm -f $(DESTDIR)$(qt5libdir)/*.la
 	@sed \
