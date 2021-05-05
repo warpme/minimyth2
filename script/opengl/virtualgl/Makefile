@@ -17,22 +17,17 @@ DEPENDS = lang/c \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
+WORKBLD = $(WORKSRC)_build
+
 CONFIGURE_SCRIPTS = $(WORKSRC)/cmake
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-CONFIGURE_ARGS = \
-	-DCMAKE_INSTALL_PREFIX="$(prefix)" \
-	-DCMAKE_FIND_ROOT_PATH="$(DESTDIR)$(prefix)" \
-	-DCMAKE_VERBOSE_MAKEFILE="1" \
+CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 	-DTJPEG_INCLUDE_DIR=$(DESTDIR)$(includedir) \
 	-DTJPEG_LIBRARY=$(DESTDIR)$(libdir)/libturbojpeg.so \
 	-DVGL_FAKEXCB=1
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-configure-%/cmake: 
-	@echo " ==> Running configure in $*"
-	@cd $* && $(CONFIGURE_ENV) cmake $(CONFIGURE_ARGS)
-	@$(MAKECOOKIE)
