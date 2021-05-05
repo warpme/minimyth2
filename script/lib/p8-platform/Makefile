@@ -1,9 +1,9 @@
 
-GARNAME      = p8-platform
+GARNAME      = platform-p8-platform
 GARVERSION   = 2.1.0.1
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/Pulse-Eight/platform/archive/
-DISTFILES    = $(DISTNAME).tar.gz
+DISTFILES    = p8-platform-$(GARVERSION).tar.gz
 LICENSE      = GPL2
 
 DESCRIPTION = 
@@ -12,31 +12,13 @@ endef
 
 DEPENDS = lang/cxx
 
-WORKSRC = $(WORKDIR)/platform-$(DISTNAME)
 WORKBLD = $(WORKSRC)_build
 
 CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
 BUILD_SCRIPTS     = $(WORKBLD)/Makefile
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
-CONFIGURE_ARGS = \
-	-DCMAKE_INSTALL_PREFIX="$(prefix)" \
-	-DCMAKE_INSTALL_LIBDIR:PATH="$(patsubst $(prefix)/%,%,$(libdir))" \
-	-DCMAKE_INSTALL_LIBDIR_NOARCH:PATH="$(patsubst $(prefix)/%,%,$(libdir))" \
-	-DCMAKE_FIND_ROOT_PATH="$(DESTDIR)$(prefix)" \
-	-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM="NEVER" \
-	-DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY="ONLY" \
-	-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE="ONLY" \
-	-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE="ONLY" \
-	-DCMAKE_C_COMPILER="$(build_DESTDIR)$(build_bindir)/$(CC)" \
-	-DCMAKE_CXX_COMPILER="$(build_DESTDIR)$(build_bindir)/$(CXX)" \
-	-DCMAKE_AR="$(build_DESTDIR)$(build_bindir)/$(AR)" \
-	-DCMAKE_LINKER="$(build_DESTDIR)$(build_bindir)/$(LD)" \
-	-DCMAKE_NM="$(build_DESTDIR)$(build_bindir)/$(NM)" \
-	-DCMAKE_OBJCOPY="$(build_DESTDIR)$(build_bindir)/$(OBJCOPY)" \
-	-DCMAKE_OBJDUMP="$(build_DESTDIR)$(build_bindir)/$(OBJDUMP)" \
-	-DCMAKE_RANLIB="$(build_DESTDIR)$(build_bindir)/$(RANLIB)" \
-	-DCMAKE_STRIP="$(build_DESTDIR)$(build_bindir)/$(STRIP)" \
+CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-DBUILD_SHARED_LIBS="1" \
 	-DCMAKE_VERBOSE_MAKEFILE="1" \
 
@@ -46,13 +28,6 @@ CONFIGURE_ARGS += \
 endif
 
 include ../../gar.mk
-
-configure-%/cmake: 
-	@echo " ==> Running configure in $*"
-	@rm -rf $*
-	@mkdir -p $*
-	@cd $* && $(CONFIGURE_ENV) cmake $(CONFIGURE_ARGS) ../$(patsubst %_build,%,$(notdir $*))
-	@$(MAKECOOKIE)
 
 post-install:
 	@sed -e 's%/usr/%$(DESTDIR)/usr/%g' -i $(DESTDIR)/usr/lib/p8-platform/p8-platform-config.cmake
