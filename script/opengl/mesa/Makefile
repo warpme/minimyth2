@@ -1,11 +1,10 @@
 
 GARNAME      = mesa
-GARVERSION   = 21.0.3
+GARVERSION   = 21.1.0
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = fix-compile-softfp-abi-on-arm-target.patch
-PATCHFILES  += fix_for_ticket4605.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 
 DESCRIPTION = 
