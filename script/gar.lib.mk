@@ -314,6 +314,31 @@ install-meson:
 	@cd $(WORKSRC); DESTDIR=$(DESTDIR) $(NINJA) -C build install
 	@$(MAKECOOKIE)
 
+#################### CMAKE VARIABLES & RULES ####################
+CMAKE = $(build_DESTDIR)$(build_bindir)/cmake
+DIRPATHS_CMAKE = \
+	-DCMAKE_INSTALL_PREFIX="$(prefix)" \
+	-DCMAKE_FIND_ROOT_PATH="$(DESTDIR)$(prefix)" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM="NEVER" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY="ONLY" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE="ONLY" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE="ONLY" \
+	-DCMAKE_C_COMPILER="$(build_DESTDIR)$(build_bindir)/$(CC)" \
+	-DCMAKE_CXX_COMPILER="$(build_DESTDIR)$(build_bindir)/$(CXX)" \
+	-DCMAKE_AR="$(build_DESTDIR)$(build_bindir)/$(AR)" \
+	-DCMAKE_LINKER="$(build_DESTDIR)$(build_bindir)/$(LD)" \
+	-DCMAKE_NM="$(build_DESTDIR)$(build_bindir)/$(NM)" \
+	-DCMAKE_OBJCOPY="$(build_DESTDIR)$(build_bindir)/$(OBJCOPY)" \
+	-DCMAKE_OBJDUMP="$(build_DESTDIR)$(build_bindir)/$(OBJDUMP)" \
+	-DCMAKE_RANLIB="$(build_DESTDIR)$(build_bindir)/$(RANLIB)" \
+	-DCMAKE_STRIP="$(build_DESTDIR)$(build_bindir)/$(STRIP)" \
+
+configure-%/cmake:
+	@echo " ==> Running configure in $*"
+	@rm -rf $*
+	@mkdir -p $*
+	@cd $* && $(CONFIGURE_ENV) $(CMAKE) $(CONFIGURE_ARGS) ../$(DISTNAME)
+	@$(MAKECOOKIE)
 
 # configure a package that has an autoconf-style configure
 # script.
