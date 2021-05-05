@@ -76,27 +76,29 @@ CONFIGURE_ARGS = $(DIRPATHS_MESON) \
 	-D b_ndebug=true \
 	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 	-D platforms=x11,wayland \
-	-D llvm=enabled \
 
 ifeq ($(GARCH),armv7)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
 	-D gallium-vdpau=disabled \
-	-D gallium-va=disabled
+	-D gallium-va=disabled \
+	-D llvm=enabled
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
 	-D gallium-vdpau=disabled \
-	-D gallium-va=disabled
+	-D gallium-va=disabled \
+	-D llvm=enabled
 else
 CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
 	-D dri-drivers=i915,i965,r100,r200 \
 	-D gallium-vdpau=enabled \
-	-D gallium-va=enabled
+	-D gallium-va=enabled \
+	-D llvm=enabled
 endif
 endif
 
