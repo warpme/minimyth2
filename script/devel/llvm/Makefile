@@ -22,13 +22,15 @@ WORKSRC = $(WORKDIR)/$(DISTNAME).src
 WORKBLD = $(WORKSRC)_build
 
 CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
-BUILD_SCRIPTS     = $(WORKBLD)/Makefile
+BUILD_SCRIPTS     = $(WORKBLD)/Makefile llvm_config
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 	-DLLVM_BUILD_LLVM_DYLIB="ON" \
 	-DLLVM_LINK_LLVM_DYLIB="ON" \
+	-DLLVM_BUILD_TOOLS="OFF" \
+	-DLLVM_INCLUDE_TOOLS="ON" \
 	-DLLVM_BUILD_EXAMPLES="OFF" \
 	-DLLVM_INCLUDE_EXAMPLES="OFF" \
 	-DLLVM_BUILD_TESTS="OFF" \
@@ -37,36 +39,24 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-DLLVM_BUILD_DOCS="OFF" \
 	-DLLVM_ENABLE_DOXYGEN="OFF" \
 	-DCMAKE_BUILD_TYPE=Release \
+	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
+	 -DLLVM_TARGET_ARCH="X86" \
+	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" ) \
+	$(if $(filter arm,   $(mm_GARCH_FAMILY)), \
+	 -DLLVM_TARGET_ARCH="ARM" \
+	 -DLLVM_TARGETS_TO_BUILD="ARM" ) \
+	$(if $(filter arm64, $(mm_GARCH_FAMILY)), \
+	 -DLLVM_TARGET_ARCH="AArch64" \
+	 -DLLVM_TARGETS_TO_BUILD="AArch64" )
 
 include ../../gar.mk
 
 ifneq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
 	-DCMAKE_CROSSCOMPILING="True" \
-	-DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen" \
-	$(if $(filter i386,  $(mm_GARCH_FAMILY)), \
-	 -DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
-	 -DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
-	 -DLLVM_TARGET_ARCH="AMDGPU" \
-	 -DLLVM_TARGETS_TO_BUILD="AMDGPU" ) \
-	$(if $(filter x86_64,$(mm_GARCH_FAMILY)), \
-	 -DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
-	 -DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
-	 -DLLVM_TARGET_ARCH="AMDGPU" \
-	 -DLLVM_TARGETS_TO_BUILD="AMDGPU" ) \
-	$(if $(filter arm,   $(mm_GARCH_FAMILY)), \
-	 -DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
-	 -DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
-	 -DLLVM_TARGET_ARCH="ARM" \
-	 -DLLVM_TARGETS_TO_BUILD="ARM" ) \
-	$(if $(filter arm64, $(mm_GARCH_FAMILY)), \
-	 -DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
-	 -DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
-	 -DLLVM_TARGET_ARCH="AArch64" \
-	 -DLLVM_TARGETS_TO_BUILD="AArch64" )
-else
-CONFIGURE_ARGS += \
-	-DLLVM_TARGETS_TO_BUILD=""
+	-DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
+	-DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
+	-DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
 endif
 
 # disabling LTO to save building memory and time
@@ -78,8 +68,12 @@ pre-configure:
 	@mv $(WORKDIR)/$(DISTNAME).src $(WORKDIR)/$(DISTNAME)
 	@$(MAKECOOKIE)
 
+build-llvm_config:
+	@$(MAKE) -C $(WORKBLD) llvm-config
+	@$(MAKECOOKIE)
+
 post-install:
-	@#rm -f $(DESTDIR)$(libdir)/libLLVM*.a
+	@rm -f $(DESTDIR)$(libdir)/libLLVM*.a
 	@mkdir -p $(DESTDIR)$(bindir)-config
 	@$(if $(filter build, $(DESTIMG)), \
 	 cp $(WORKBLD)/bin/llvm-config $(DESTDIR)$(bindir)-config/llvm-config, \
