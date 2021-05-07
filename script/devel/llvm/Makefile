@@ -59,10 +59,10 @@ CONFIGURE_ARGS += \
 	-DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
 endif
 
-# disabling LTO to save building memory and time
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+# the configure script applies the host compiler flags when checking the build compiler.
+CFLAGS   :=
+CXXFLAGS :=
+LDFLAGS  :=
 
 pre-configure: 
 	@mv $(WORKDIR)/$(DISTNAME).src $(WORKDIR)/$(DISTNAME)
