@@ -147,6 +147,7 @@ DEPENDS = \
 	X11/xdotool \
 	utils/tinymembench \
 	utils/kbd \
+	devel/gdb \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
 		python/python-pyalsaaudio \
 		gtk/gconf \
@@ -172,7 +173,6 @@ DEPENDS = \
 	$(if $(filter connman,$(mm_SOFTWARE)),net/connman) \
 	$(if $(filter debug,$(mm_SOFTWARE)), \
 		devel/apitrace \
-		devel/gdb \
 		devel/valgrind \
 		$(if $(filter i386 x86_64,$(GARCH_FAMILY)),devel/strace)) \
 	$(if $(filter apitrace,$(mm_SOFTWARE)),devel/apitrace) \
