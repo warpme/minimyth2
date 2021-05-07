@@ -98,7 +98,7 @@ echo "Myth cmd.line:"${myth_cmdline}
 if [ x$1 = "xgdb" ] ; then
 
     echo "Starting under GDB"
-    su minimyth -c "gdb ${myth_cmdline} -x /etc/gdb.commands"
+    su minimyth -c "gdb mythfrontend -x /etc/gdb.commands"
 
 elif [ x$1 = "xapitrace" ] ; then
 
