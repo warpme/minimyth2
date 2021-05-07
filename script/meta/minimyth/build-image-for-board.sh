@@ -17,7 +17,7 @@ selection_7="board-rk3399.rockpi4-b"
 selection_8="board-rpi34.mainline64 board-s905"
 selection_9="board-h616.orangepi_lite2"
 selection_a="my testbed boards"
-selection_b="board-h6.tanix_tx6_mini"
+selection_b="board-x86pc.bios_efi64"
 selection_c="board-h616.tanix_tx6s"
 
 # Config area end
@@ -168,7 +168,7 @@ case "${selection}" in
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     c)  cache_board_list "${selection_c}"
-        make reinstall-new-board mm_BOARD_TYPE="${selection_b}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_c}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
