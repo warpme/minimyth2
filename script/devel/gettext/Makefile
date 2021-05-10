@@ -1,9 +1,10 @@
-GARNAME = gettext
-GARVERSION = 0.20.1
-CATEGORIES = devel
+
+GARNAME      = gettext
+GARVERSION   = 0.21
+CATEGORIES   = devel
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = \
+DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = \
 	$(DISTNAME)-non_interactive.patch \
 	$(DISTNAME)-perl.patch.gar
 LICENSE = GPL3
