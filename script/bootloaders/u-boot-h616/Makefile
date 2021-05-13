@@ -11,12 +11,13 @@ WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
 ifeq (1,1)
-# Sunxi custodians 31.03.2021
-GARNAME      = u-boot-h616-20210331
-GARVERSION   = 62acef239f77583f3083f8c842ea2d28f4a1623c
+# Sunxi custodians 11.05.2021
+GARNAME      = u-boot-h616-20210511
+GARVERSION   = 647b392bf20614006917d5fcd3390347a668eee5
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = add-tanix-tx6s-defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 endif
 
