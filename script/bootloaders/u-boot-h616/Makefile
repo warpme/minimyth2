@@ -17,7 +17,9 @@ GARVERSION   = 647b392bf20614006917d5fcd3390347a668eee5
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = add-tanix-tx6s-defconfig.patch
+PATCHFILES   = add-h616-tanix-tx6s-defconfig.patch
+PATCHFILES  += add-h616-x96-mate-defconfig.patch
+PATCHFILES  += add-h616-t95-defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 endif
 
