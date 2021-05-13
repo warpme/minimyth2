@@ -147,6 +147,8 @@ PATCHFILES += 0586-arm64-dts-allwinner-Add-OrangePi-Zero-2-.dts.patch
 PATCHFILES += 0591-wip-h616-hdmi.patch
 PATCHFILES += 0592-drm-sun4i-de2-de3-add-back-redundant-CSC-matrices.patch
 PATCHFILES += 0593-wip-h616-drm-driver.patch
+# https://github.com/apritzel/linux/commit/4c725d6cb99856635e3cf8aceae806c033588407
+PATCHFILES += 0594-arm64-dts-allwnner-h616-add-X96-Mate-TVbox.patch
 endif
 #------------------------------------------------------------
 
