@@ -1,0 +1,354 @@
+From fed992c5d80f8461aee9a5000c488b1aa04f15c2 Mon Sep 17 00:00:00 2001
+From: Samuel Holland <samuel@sholland.org>
+Date: Mon, 30 Dec 2019 21:56:59 -0600
+Subject: [PATCH] bus: sunxi-rsb: Always check register address validity
+
+The register address was validated for read operations before being
+truncated to a u8, but not for write operations. Write operations have
+the same set of possible addresses, and the address is being truncated
+from u32 to u8 here as well, so the same check is needed.
+
+Fixes: d787dcdb9c8f ("bus: sunxi-rsb: Add driver for Allwinner Reduced Serial Bus")
+Signed-off-by: Samuel Holland <samuel@sholland.org>
+---
+ drivers/bus/sunxi-rsb.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/bus/sunxi-rsb.c b/drivers/bus/sunxi-rsb.c
+index d46db132d08591..d547bd9bbdc9b4 100644
+--- a/drivers/bus/sunxi-rsb.c
++++ b/drivers/bus/sunxi-rsb.c
+@@ -433,6 +433,9 @@ static int regmap_sunxi_rsb_reg_write(void *context, unsigned int reg,
+ 	struct sunxi_rsb_ctx *ctx = context;
+ 	struct sunxi_rsb_device *rdev = ctx->rdev;
+ 
++	if (reg > 0xff)
++		return -EINVAL;
++
+ 	return sunxi_rsb_write(rdev->rsb, rdev->rtaddr, reg, &val, ctx->size);
+ }
+ 
+From dea3a44979817a0f414f09c88f68ee7980af0661 Mon Sep 17 00:00:00 2001
+From: Samuel Holland <samuel@sholland.org>
+Date: Mon, 30 Dec 2019 22:09:08 -0600
+Subject: [PATCH] bus: sunxi-rsb: Use devm_platform_ioremap_resource
+
+This simplifies the code and removes the need for a "struct resource".
+
+Signed-off-by: Samuel Holland <samuel@sholland.org>
+---
+ drivers/bus/sunxi-rsb.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/bus/sunxi-rsb.c b/drivers/bus/sunxi-rsb.c
+index d547bd9bbdc9b4..346f3ff9aa5aaf 100644
+--- a/drivers/bus/sunxi-rsb.c
++++ b/drivers/bus/sunxi-rsb.c
+@@ -735,7 +735,6 @@ static int sunxi_rsb_probe(struct platform_device *pdev)
+ {
+ 	struct device *dev = &pdev->dev;
+ 	struct device_node *np = dev->of_node;
+-	struct resource *r;
+ 	struct sunxi_rsb *rsb;
+ 	u32 clk_freq = 3000000;
+ 	int irq, ret;
+@@ -755,8 +754,8 @@ static int sunxi_rsb_probe(struct platform_device *pdev)
+ 	rsb->dev = dev;
+ 	rsb->clk_freq = clk_freq;
+ 	platform_set_drvdata(pdev, rsb);
+-	r = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	rsb->regs = devm_ioremap_resource(dev, r);
++
++	rsb->regs = devm_platform_ioremap_resource(pdev, 0);
+ 	if (IS_ERR(rsb->regs))
+ 		return PTR_ERR(rsb->regs);
+ 
+From 28baef5db49c1e09134188cdabea948663a71aa0 Mon Sep 17 00:00:00 2001
+From: Samuel Holland <samuel@sholland.org>
+Date: Mon, 30 Dec 2019 21:49:29 -0600
+Subject: [PATCH] bus: sunxi-rsb: Precompute read/write commands and mask
+
+Since we know the size of the transfer at context creation time, go
+ahead and determine the commands used for reading and writing then,
+instead of running through a switch statement for every read/write.
+We can do the same thing for the read mask.
+
+The context pointer could be passed directly to sunxi_rsb_read/write
+to avoid adding more parameters (which would be spilled for mutex_lock).
+That would make the regmap read/write wrappers even more trivial, so I
+inlined sunxi_rsb_read/write into them.
+
+I changed the error message to print the name of the device requesting
+the regmap, not the RSB controller; I expect that to be more helpful
+when tracking down the source of the error.
+
+Signed-off-by: Samuel Holland <samuel@sholland.org>
+---
+ drivers/bus/sunxi-rsb.c | 120 +++++++++++++++-------------------------
+ 1 file changed, 44 insertions(+), 76 deletions(-)
+
+diff --git a/drivers/bus/sunxi-rsb.c b/drivers/bus/sunxi-rsb.c
+index 346f3ff9aa5aaf..05a3d0acbd19ba 100644
+--- a/drivers/bus/sunxi-rsb.c
++++ b/drivers/bus/sunxi-rsb.c
+@@ -316,29 +316,26 @@ static int _sunxi_rsb_run_xfer(struct sunxi_rsb *rsb)
+ 	return 0;
+ }
+ 
+-static int sunxi_rsb_read(struct sunxi_rsb *rsb, u8 rtaddr, u8 addr,
+-			  u32 *buf, size_t len)
++/* RSB regmap functions */
++struct sunxi_rsb_ctx {
++	struct sunxi_rsb_device *rdev;
++	u32 mask;
++	u8 rd_cmd;
++	u8 wr_cmd;
++};
++
++static int regmap_sunxi_rsb_reg_read(void *context, unsigned int reg,
++				     unsigned int *val)
+ {
+-	u32 cmd;
++	struct sunxi_rsb_ctx *ctx = context;
++	struct sunxi_rsb_device *rdev = ctx->rdev;
++	struct sunxi_rsb *rsb = rdev->rsb;
+ 	int ret;
+ 
+-	if (!buf)
++	if (!val)
+ 		return -EINVAL;
+-
+-	switch (len) {
+-	case 1:
+-		cmd = RSB_CMD_RD8;
+-		break;
+-	case 2:
+-		cmd = RSB_CMD_RD16;
+-		break;
+-	case 4:
+-		cmd = RSB_CMD_RD32;
+-		break;
+-	default:
+-		dev_err(rsb->dev, "Invalid access width: %zd\n", len);
++	if (reg > 0xff)
+ 		return -EINVAL;
+-	}
+ 
+ 	ret = pm_runtime_resume_and_get(rsb->dev);
+ 	if (ret)
+@@ -346,15 +343,15 @@ static int sunxi_rsb_read(struct sunxi_rsb *rsb, u8 rtaddr, u8 addr,
+ 
+ 	mutex_lock(&rsb->lock);
+ 
+-	writel(addr, rsb->regs + RSB_ADDR);
+-	writel(RSB_DAR_RTA(rtaddr), rsb->regs + RSB_DAR);
+-	writel(cmd, rsb->regs + RSB_CMD);
++	writel(reg, rsb->regs + RSB_ADDR);
++	writel(RSB_DAR_RTA(rdev->rtaddr), rsb->regs + RSB_DAR);
++	writel(ctx->rd_cmd, rsb->regs + RSB_CMD);
+ 
+ 	ret = _sunxi_rsb_run_xfer(rsb);
+ 	if (ret)
+ 		goto unlock;
+ 
+-	*buf = readl(rsb->regs + RSB_DATA) & GENMASK(len * 8 - 1, 0);
++	*val = readl(rsb->regs + RSB_DATA) & ctx->mask;
+ 
+ unlock:
+ 	mutex_unlock(&rsb->lock);
+@@ -365,29 +362,16 @@ static int sunxi_rsb_read(struct sunxi_rsb *rsb, u8 rtaddr, u8 addr,
+ 	return ret;
+ }
+ 
+-static int sunxi_rsb_write(struct sunxi_rsb *rsb, u8 rtaddr, u8 addr,
+-			   const u32 *buf, size_t len)
++static int regmap_sunxi_rsb_reg_write(void *context, unsigned int reg,
++				      unsigned int val)
+ {
+-	u32 cmd;
++	struct sunxi_rsb_ctx *ctx = context;
++	struct sunxi_rsb_device *rdev = ctx->rdev;
++	struct sunxi_rsb *rsb = rdev->rsb;
+ 	int ret;
+ 
+-	if (!buf)
+-		return -EINVAL;
+-
+-	switch (len) {
+-	case 1:
+-		cmd = RSB_CMD_WR8;
+-		break;
+-	case 2:
+-		cmd = RSB_CMD_WR16;
+-		break;
+-	case 4:
+-		cmd = RSB_CMD_WR32;
+-		break;
+-	default:
+-		dev_err(rsb->dev, "Invalid access width: %zd\n", len);
++	if (reg > 0xff)
+ 		return -EINVAL;
+-	}
+ 
+ 	ret = pm_runtime_resume_and_get(rsb->dev);
+ 	if (ret)
+@@ -395,10 +379,11 @@ static int sunxi_rsb_write(struct sunxi_rsb *rsb, u8 rtaddr, u8 addr,
+ 
+ 	mutex_lock(&rsb->lock);
+ 
+-	writel(addr, rsb->regs + RSB_ADDR);
+-	writel(RSB_DAR_RTA(rtaddr), rsb->regs + RSB_DAR);
+-	writel(*buf, rsb->regs + RSB_DATA);
+-	writel(cmd, rsb->regs + RSB_CMD);
++	writel(reg, rsb->regs + RSB_ADDR);
++	writel(RSB_DAR_RTA(rdev->rtaddr), rsb->regs + RSB_DAR);
++	writel(val, rsb->regs + RSB_DATA);
++	writel(ctx->wr_cmd, rsb->regs + RSB_CMD);
++
+ 	ret = _sunxi_rsb_run_xfer(rsb);
+ 
+ 	mutex_unlock(&rsb->lock);
+@@ -409,36 +394,6 @@ static int sunxi_rsb_write(struct sunxi_rsb *rsb, u8 rtaddr, u8 addr,
+ 	return ret;
+ }
+ 
+-/* RSB regmap functions */
+-struct sunxi_rsb_ctx {
+-	struct sunxi_rsb_device *rdev;
+-	int size;
+-};
+-
+-static int regmap_sunxi_rsb_reg_read(void *context, unsigned int reg,
+-				     unsigned int *val)
+-{
+-	struct sunxi_rsb_ctx *ctx = context;
+-	struct sunxi_rsb_device *rdev = ctx->rdev;
+-
+-	if (reg > 0xff)
+-		return -EINVAL;
+-
+-	return sunxi_rsb_read(rdev->rsb, rdev->rtaddr, reg, val, ctx->size);
+-}
+-
+-static int regmap_sunxi_rsb_reg_write(void *context, unsigned int reg,
+-				      unsigned int val)
+-{
+-	struct sunxi_rsb_ctx *ctx = context;
+-	struct sunxi_rsb_device *rdev = ctx->rdev;
+-
+-	if (reg > 0xff)
+-		return -EINVAL;
+-
+-	return sunxi_rsb_write(rdev->rsb, rdev->rtaddr, reg, &val, ctx->size);
+-}
+-
+ static void regmap_sunxi_rsb_free_ctx(void *context)
+ {
+ 	struct sunxi_rsb_ctx *ctx = context;
+@@ -458,13 +413,24 @@ static struct sunxi_rsb_ctx *regmap_sunxi_rsb_init_ctx(struct sunxi_rsb_device *
+ 		const struct regmap_config *config)
+ {
+ 	struct sunxi_rsb_ctx *ctx;
++	u8 rd_cmd, wr_cmd;
+ 
+ 	switch (config->val_bits) {
+ 	case 8:
++		rd_cmd = RSB_CMD_RD8;
++		wr_cmd = RSB_CMD_WR8;
++		break;
+ 	case 16:
++		rd_cmd = RSB_CMD_RD16;
++		wr_cmd = RSB_CMD_WR16;
++		break;
+ 	case 32:
++		rd_cmd = RSB_CMD_RD32;
++		wr_cmd = RSB_CMD_WR32;
+ 		break;
+ 	default:
++		dev_err(&rdev->dev, "Invalid RSB access width: %d\n",
++			config->val_bits);
+ 		return ERR_PTR(-EINVAL);
+ 	}
+ 
+@@ -473,7 +439,9 @@ static struct sunxi_rsb_ctx *regmap_sunxi_rsb_init_ctx(struct sunxi_rsb_device *
+ 		return ERR_PTR(-ENOMEM);
+ 
+ 	ctx->rdev = rdev;
+-	ctx->size = config->val_bits / 8;
++	ctx->mask = GENMASK(config->val_bits - 1, 0);
++	ctx->rd_cmd = rd_cmd;
++	ctx->wr_cmd = wr_cmd;
+ 
+ 	return ctx;
+ }
+From f9a9057aaa09460fb492e1e289859bfb1f1bb15d Mon Sep 17 00:00:00 2001
+From: Samuel Holland <samuel@sholland.org>
+Date: Mon, 30 Dec 2019 22:58:21 -0600
+Subject: [PATCH] bus: sunxi-rsb: Make interrupt handling more robust
+
+The RSB controller has two registers for controlling interrupt inputs:
+RSB_INTE, which has bits for each possible interrupt, and the global
+interrupt enable bit in RSB_CTRL.
+
+Currently, we enable the bits in RSB_INTE before each transfer, but this
+is unnecessary because we never disable them. Move the initialization of
+RSB_INTE so it is done only once.
+
+We also set the global interrupt enable bit before each transfer. Unlike
+other bits in RSB_CTRL, this bit is cleared by writing a zero. Thus, we
+clear the bit in the post-timeout cleanup code, but that is not
+documented, so note that in the comment. However, in the success/error
+path (when an IRQ is received), we do not disable further interrupts.
+Add a register write to do just that.
+
+Signed-off-by: Samuel Holland <samuel@sholland.org>
+---
+ drivers/bus/sunxi-rsb.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/bus/sunxi-rsb.c b/drivers/bus/sunxi-rsb.c
+index 05a3d0acbd19ba..273db2a76f62b4 100644
+--- a/drivers/bus/sunxi-rsb.c
++++ b/drivers/bus/sunxi-rsb.c
+@@ -278,8 +278,6 @@ static int _sunxi_rsb_run_xfer(struct sunxi_rsb *rsb)
+ 
+ 	reinit_completion(&rsb->complete);
+ 
+-	writel(RSB_INTS_LOAD_BSY | RSB_INTS_TRANS_ERR | RSB_INTS_TRANS_OVER,
+-	       rsb->regs + RSB_INTE);
+ 	writel(RSB_CTRL_START_TRANS | RSB_CTRL_GLOBAL_INT_ENB,
+ 	       rsb->regs + RSB_CTRL);
+ 
+@@ -287,7 +285,7 @@ static int _sunxi_rsb_run_xfer(struct sunxi_rsb *rsb)
+ 					    msecs_to_jiffies(100))) {
+ 		dev_dbg(rsb->dev, "RSB timeout\n");
+ 
+-		/* abort the transfer */
++		/* abort the transfer and disable interrupts */
+ 		writel(RSB_CTRL_ABORT_TRANS, rsb->regs + RSB_CTRL);
+ 
+ 		/* clear any interrupt flags */
+@@ -470,7 +468,8 @@ static irqreturn_t sunxi_rsb_irq(int irq, void *dev_id)
+ 	status = readl(rsb->regs + RSB_INTS);
+ 	rsb->status = status;
+ 
+-	/* Clear interrupts */
++	/* Disable and clear interrupts */
++	writel(0, rsb->regs + RSB_CTRL);
+ 	status &= (RSB_INTS_LOAD_BSY | RSB_INTS_TRANS_ERR |
+ 		   RSB_INTS_TRANS_OVER);
+ 	writel(status, rsb->regs + RSB_INTS);
+@@ -650,6 +649,13 @@ static int sunxi_rsb_hw_init(struct sunxi_rsb *rsb)
+ 	writel(RSB_CCR_SDA_OUT_DELAY(clk_delay) | RSB_CCR_CLK_DIV(clk_div - 1),
+ 	       rsb->regs + RSB_CCR);
+ 
++	/*
++	 * Select the interrupts we care about. They will not actually trigger
++	 * until the RSB_CTRL_GLOBAL_INT_ENB bit is set.
++	 */
++	writel(RSB_INTS_LOAD_BSY | RSB_INTS_TRANS_ERR | RSB_INTS_TRANS_OVER,
++	       rsb->regs + RSB_INTE);
++
+ 	return 0;
+ 
+ err_clk_disable:

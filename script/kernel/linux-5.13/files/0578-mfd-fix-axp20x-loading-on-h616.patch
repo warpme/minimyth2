@@ -1,0 +1,41 @@
+diff -Naur linux-5.11-old/drivers/input/misc/axp20x-pek.c linux-5.11-new/drivers/input/misc/axp20x-pek.c
+--- linux-5.11-old/drivers/input/misc/axp20x-pek.c	2021-02-14 23:32:24.000000000 +0100
++++ linux-5.11-new/drivers/input/misc/axp20x-pek.c	2021-02-21 17:57:15.183332249 +0100
+@@ -309,6 +309,10 @@
+ 
+ 	axp20x_pek->axp20x = dev_get_drvdata(pdev->dev.parent);
+ 
++	/* In case there is no interrupt line from the AXP towards the CPU. */
++	if (!axp20x_pek->axp20x->regmap_irqc)
++		return -ENODEV;
++
+ 	axp20x_pek->irq_dbr = platform_get_irq_byname(pdev, "PEK_DBR");
+ 	if (axp20x_pek->irq_dbr < 0)
+ 		return axp20x_pek->irq_dbr;
+diff -Naur linux-5.11-old/drivers/mfd/axp20x.c linux-5.11-new/drivers/mfd/axp20x.c
+--- linux-5.11-old/drivers/mfd/axp20x.c	2021-02-14 23:32:24.000000000 +0100
++++ linux-5.11-new/drivers/mfd/axp20x.c	2021-02-21 17:57:15.183332249 +0100
+@@ -959,12 +959,17 @@
+ 				     AXP806_REG_ADDR_EXT_ADDR_SLAVE_MODE);
+ 	}
+ 
+-	ret = regmap_add_irq_chip(axp20x->regmap, axp20x->irq,
+-			  IRQF_ONESHOT | IRQF_SHARED | axp20x->irq_flags,
+-			   -1, axp20x->regmap_irq_chip, &axp20x->regmap_irqc);
+-	if (ret) {
+-		dev_err(axp20x->dev, "failed to add irq chip: %d\n", ret);
+-		return ret;
++	/* Only if there is an interrupt line connected towards the CPU. */
++	if (axp20x->irq > 0) {
++		ret = regmap_add_irq_chip(axp20x->regmap, axp20x->irq,
++				IRQF_ONESHOT | IRQF_SHARED | axp20x->irq_flags,
++				-1, axp20x->regmap_irq_chip,
++				&axp20x->regmap_irqc);
++		if (ret) {
++			dev_err(axp20x->dev, "failed to add irq chip: %d\n",
++				ret);
++			return ret;
++		}
+ 	}
+ 
+ 	ret = mfd_add_devices(axp20x->dev, -1, axp20x->cells,
