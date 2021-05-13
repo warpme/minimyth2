@@ -10,8 +10,7 @@ DISTFILES    = \
                h616-boot.txt       \
                minimyth.conf       \
 
-# using orangepi_zero2_defconfig as uboot-h616 don't have yet dedicated defconfig for tx6s
-export mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
+export mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
 
 WORKSRC      = $(WORKDIR)
 
