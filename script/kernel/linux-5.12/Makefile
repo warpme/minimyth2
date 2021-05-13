@@ -55,10 +55,6 @@ PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
 PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
 endif
 
-# upstream fixes from linux-media to v4l2_request
-PATCHFILES += 0130-media-v4l2-ctrls.c-fix-race-condition-in-hdl-request.patch
-PATCHFILES += 0131-media-v4l2-ctrls-fix-reference-to-freed-memory.patch
-
 ifeq (1,1)
 #-- Amlogic patches -----------------------------------------
 # Add HVEC decode from https://gitlab.com/baylibre/amlogic/atv/linux/-/commit/1f9a7f9904dfb58be623d1048f6dad3df7bf61f4
