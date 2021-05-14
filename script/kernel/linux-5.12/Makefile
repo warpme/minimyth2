@@ -178,6 +178,10 @@ PATCHFILES += 0716-usb-dwc3-add-rockchip-innosilicon-usb3-glue-layer.patch
 PATCHFILES += 0717-arm64-dts-add-enable-usb3-on-rk3328.patch
 PATCHFILES += 0718-arm64-dts-rockchip-disable-rkvdec_iommu_reset-rk3328-rk3399.patch
 PATCHFILES += 0720-arm64-dts-enable-dwmmc-on-rk3328.patch
+# Add support for rk3399 OrangePI4 board
+PATCHFILES += 0721-clk-rk3399-add-OrangePI4-support.patch
+PATCHFILES += 0722-ASoC-rockchip-add-OrangePI4-support.patch
+PATCHFILES += 0723-arm64-dts-add-OrangePI4-dt.patch
 endif
 #------------------------------------------------------------
 
