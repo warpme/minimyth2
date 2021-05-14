@@ -112,6 +112,7 @@ mm_GARCH                  ?= x86-64
 # 'board-sm1'
 # 'board-rk3328.beelink_a1'
 # 'board-rk3399.rockpi4-b'
+# 'board-rk3399.orangepi_4'
 # 'board-h6.beelink_gs1'
 # 'board-h6.eachlink_mini'
 # 'board-h6.tanix_tx6'

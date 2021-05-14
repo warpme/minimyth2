@@ -20,6 +20,7 @@ selection_a="my testbed boards"
 selection_b="board-x86pc.bios_efi64"
 selection_c="board-h616.tanix_tx6s"
 selection_d="board-rpi3.mainline32"
+selection_e="board-rk3399.orangepi_4"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -88,6 +89,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (b) for "${selection_b}
     echo "  (c) for "${selection_c}
     echo "  (d) for "${selection_d}
+    echo "  (e) for "${selection_e}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -175,6 +177,10 @@ case "${selection}" in
 
     d)  cache_board_list "${selection_d}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_d}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    e)  cache_board_list "${selection_e}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_e}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
