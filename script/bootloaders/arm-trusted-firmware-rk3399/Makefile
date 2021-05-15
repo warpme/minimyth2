@@ -1,11 +1,10 @@
 
-GARNAME      = arm-trusted-firmware-20201117-rk3399
-# mainline v2.4 GA 17.11.2020
-GARVERSION   = e2c509a39c6cc4dda8734e6509cdbe6e3603cdfc
+GARNAME      = arm-trusted-firmware-rk3399-stikonas
+GARVERSION   = 14-05-2021
 CATEGORIES   = kernel
-MASTER_SITES = https://github.com/ARM-software/arm-trusted-firmware/archive/
-DISTFILES    = $(GARVERSION).zip
-WORKSRC      = $(WORKDIR)/arm-trusted-firmware-$(GARVERSION)
+MASTER_SITES = https://stikonas.eu/files/gentoo-sources/u-boot/
+DISTFILES    = bl31.elf
+WORKSRC      = $(WORKDIR)
 
 LICENSE = GPL2
 
@@ -16,20 +15,18 @@ endef
 DEPENDS   = lang/c
 
 CONFIGURE_SCRIPTS   = 
-BUILD_SCRIPTS       = custom
-INSTALL_SCRIPTS     = 
+BUILD_SCRIPTS       = 
+INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
 
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
 
-build-custom:
-	@echo "Building bl31 trusted firmware for rk3399..."
-	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) PLAT=rk3399 bl31
+install-custom:
 	@echo "Instaling bl31 trusted firmware for rk3399..."
 	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rk3399"
-	@cp $(WORKSRC)/build/rk3399/debug/bl31.bin $(DESTDIR)$(libdir)/u-boot/rk3399/bl31.bin
+	@cp $(WORKSRC)/bl31.elf $(DESTDIR)$(libdir)/u-boot/rk3399/bl31.bin
 	@$(MAKECOOKIE)
 
 clean-all:
