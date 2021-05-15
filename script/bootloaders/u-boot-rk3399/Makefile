@@ -5,6 +5,7 @@ CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-rockchip/-/archive/$(GARVERSION)/
 DISTFILES    = u-boot-rockchip-$(GARVERSION).tar.bz2
 PATCHFILES   = 0001-add-orangepi-4.patch
+PATCHFILES  += 0002-rockchip-general-prioritize-sd-over-mmc.patch
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
 
 LICENSE = GPL2
@@ -29,19 +30,23 @@ BUILD_ARGS = \
 	BL31=$(DESTDIR)$(libdir)/u-boot/rk3399/bl31.bin \
 
 configure-custom:
-	@echo "Configuring u-boot for rk3399..."
+	@echo "Configuring u-boot with $(mm_U-BOOT_BOARD_TYPE) ..."
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 build-custom:
-	@echo "Building u-boot for rk3399..."
+	@echo "Building u-boot for $(mm_U-BOOT_BOARD_TYPE) ..."
 	@$(BUILD_ARGS) $(warning HOSTCC is:$(HOSTCC)) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
 	@$(MAKECOOKIE)
 
 install-custom:
-	@mkdir -p "$(DESTDIR)/boot/rk3399loaderfiles"
-	@cp -f  $(WORKSRC)/u-boot-rk3399-with-spl.bin \
-		$(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/u-boot-rk3399-with-spl.bin
+	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)"
+	@echo "Instaling idbloader.img ..."
+	@cp -f  $(WORKSRC)/idbloader.img \
+		$(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img
+	@echo "Instaling u-boot.itb ..."
+	@cp -f  $(WORKSRC)/u-boot.itb \
+		$(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb
 	@$(MAKECOOKIE)
 
 clean-all:
