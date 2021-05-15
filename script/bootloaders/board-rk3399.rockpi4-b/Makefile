@@ -1,9 +1,9 @@
 
 GARNAME      = bootfiles-rk3399.rockpi4-b
-GARVERSION   = 2020-11-07
+GARVERSION   = 2021-05-15
 CATEGORIES   = bootloaders
-MASTER_SITES = http://os.archlinuxarm.org/os/rockchip/boot/rock64/
-DISTFILES    = rksd_loader.img \
+MASTER_SITES = 
+DISTFILES    = \
                extlinux.conf \
                rk3399-boot-debug.scr \
                rk3399-boot-debug.txt \
@@ -26,10 +26,9 @@ INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
-# Skipping U-Boot build as we are using u-boot from Armbian (thx guys!)
 build-custom:
-#	@$(MAKE) clean -C ../u-boot-rk3399
-#	@$(MAKE) install -C ../u-boot-rk3399
+	@$(MAKE) clean   -C ../u-boot-rk3399
+	@$(MAKE) install -C ../u-boot-rk3399
 	@$(MAKECOOKIE)
 
 install-custom:
@@ -37,7 +36,8 @@ install-custom:
 	@cp -f    $(WORKSRC)/rk3399-boot-debug.scr                   $(DESTDIR)/boot/boot-debug.scr
 	@cp -f    $(WORKSRC)/rk3399-boot.scr                         $(DESTDIR)/boot/boot.scr
 	@mkdir -p $(DESTDIR)/boot/rk3399loaderfiles
-	@cp -f    $(WORKSRC)/rksd_loader.img                         $(DESTDIR)/boot/rk3399loaderfiles/rksd_loader.img
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img $(DESTDIR)/boot/rk3399loaderfiles/idbloader.img
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb    $(DESTDIR)/boot/rk3399loaderfiles/u-boot.itb
 	@cp -f    $(WORKSRC)/minimyth.conf                           $(DESTDIR)/boot/minimyth.conf
 
 clean-all:
