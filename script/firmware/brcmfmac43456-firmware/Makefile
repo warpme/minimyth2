@@ -7,9 +7,6 @@ MASTER_SITES  = https://github.com/RPi-Distro/firmware-nonfree/archive/refs/head
 MASTER_SITES += https://gitlab.manjaro.org/manjaro-arm/packages/community/ap6256-firmware/-/archive/master/
 DISTFILES     = $(GARVERSION).zip \
 		ap6256-firmware-master.tar.bz2 \
-		brcmfmac43456-sdio.radxa,rockpi4.txt \
-		brcmfmac43456-sdio.pine64,rockpro64-v2.1.txt \
-		brcmfmac43456-sdio.xunlong,orangepi-3.txt \
 
 LICENSE      =
 DESCRIPTION  =
@@ -34,9 +31,8 @@ install-custom:
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.pine64,pinebook-pro.txt
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.pine64,rockpro64-v2.1.txt
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.rockchip,rk3399-orangepi.txt
-	@#cp -f   $(WORKDIR)/brcmfmac43456-sdio.radxa,rockpi4.txt               $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.radxa,rockpi4b.txt
-	@#cp -f   $(WORKDIR)/brcmfmac43456-sdio.pine64,rockpro64-v2.1.txt       $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.pine64,rockpro64-v2.1.txt
-	@#cp -f   $(WORKDIR)/brcmfmac43456-sdio.xunlong,orangepi-3.txt          $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-3.txt
+	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-3.txt
+	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-4.txt
 	@$(MAKECOOKIE)
 
 clean-all:
