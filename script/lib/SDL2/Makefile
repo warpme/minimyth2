@@ -1,7 +1,7 @@
 GARNAME = SDL2
 GARVERSION = 2.0.7
 CATEGORIES = lib
-MASTER_SITES = http://www.libsdl.org/release/
+MASTER_SITES = https://www.libsdl.org/release/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME).patch.gar
 

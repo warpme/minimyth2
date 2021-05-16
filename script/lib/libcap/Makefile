@@ -2,7 +2,7 @@
 GARNAME      = libcap
 GARVERSION   = 2.47
 CATEGORIES   = lib
-MASTER_SITES = http://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/
+MASTER_SITES = https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = libcap-2.45-makefile.patch
 LICENSE      = GPL2/LGPL2_1

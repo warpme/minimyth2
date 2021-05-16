@@ -1,7 +1,7 @@
 GARNAME = bluez
 GARVERSION = 5.50
 CATEGORIES = lib
-MASTER_SITES = http://www.kernel.org/pub/linux/bluetooth/
+MASTER_SITES = https://www.kernel.org/pub/linux/bluetooth/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-fix-build-kernel-5.2.patch
 LICENSE = GPL2

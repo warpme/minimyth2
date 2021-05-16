@@ -1,7 +1,7 @@
 GARNAME = ethtool
 GARVERSION = 4.0
 CATEGORIES = utils
-MASTER_SITES = http://www.kernel.org/pub/software/network/ethtool/
+MASTER_SITES = https://www.kernel.org/pub/software/network/ethtool/
 DISTFILES = $(DISTNAME).tar.xz
 LICENSE = GPL2
 

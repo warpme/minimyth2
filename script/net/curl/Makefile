@@ -2,7 +2,7 @@
 GARNAME      = curl
 GARVERSION   = 7.72.0
 CATEGORIES   = net
-MASTER_SITES = http://curl.haxx.se/download/
+MASTER_SITES = https://curl.haxx.se/download/
 DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      = MIT
 

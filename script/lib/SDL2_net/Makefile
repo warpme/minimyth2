@@ -1,7 +1,7 @@
 GARNAME = SDL2_net
 GARVERSION = 2.0.0
 CATEGORIES = lib
-MASTER_SITES = http://www.libsdl.org/projects/SDL_net/release/
+MASTER_SITES = https://www.libsdl.org/projects/SDL_net/release/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-configure.patch
 LICENSE = zlib
