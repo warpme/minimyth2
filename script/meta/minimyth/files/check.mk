@@ -12,7 +12,7 @@ mm-all:
 	@which bash > /dev/null 2>&1 ; \
 		if [ ! "$$?" = "0" ] ; then \
 			echo " " ; \
-			echo "erorr: your system does not contain the program 'which' and/or 'bash'" ; \
+			echo "error: your system does not contain the program 'which' and/or 'bash'" ; \
 			echo " " ; \
 			exit 1 ; \
 		fi
