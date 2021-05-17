@@ -1,7 +1,7 @@
 GARNAME = xwiimote
 GARVERSION = 0.3
 CATEGORIES = utils
-MASTER_SITES = http://github.com/downloads/dvdhrm/$(GARNAME)/
+MASTER_SITES = https://github.com/downloads/dvdhrm/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES = \
 	$(DISTNAME)-am_prog_ar.patch

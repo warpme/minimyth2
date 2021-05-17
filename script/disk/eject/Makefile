@@ -2,7 +2,7 @@
 GARNAME      = eject
 GARVERSION   = 2.1.5
 CATEGORIES   = disk
-MASTER_SITES = http://mirrors.kernel.org/slackware/slackware64-14.1/source/a/$(GARNAME)/
+MASTER_SITES = https://mirrors.kernel.org/slackware/slackware64-14.1/source/a/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.bz2
 PATCHFILES   = $(DISTNAME)-opendevice.patch
 PATCHFILES  += $(DISTNAME)-fix-glibc-2.31.patch

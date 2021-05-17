@@ -1,7 +1,7 @@
 GARNAME = rsync
 GARVERSION = 3.1.3
 CATEGORIES = utils
-MASTER_SITES = http://rsync.samba.org/ftp/$(GARNAME)/
+MASTER_SITES = https://rsync.samba.org/ftp/$(GARNAME)/
 DISTFILES = $(DISTNAME).tar.gz
 LICENSE = GPL2
 

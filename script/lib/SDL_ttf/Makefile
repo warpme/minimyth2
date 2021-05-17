@@ -1,7 +1,7 @@
 GARNAME = SDL_ttf
 GARVERSION = 2.0.11
 CATEGORIES = lib
-MASTER_SITES = http://www.libsdl.org/projects/$(GARNAME)/release/
+MASTER_SITES = https://www.libsdl.org/projects/$(GARNAME)/release/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES = $(DISTNAME)-configure.patch
 LICENSE = $(GARNAME)

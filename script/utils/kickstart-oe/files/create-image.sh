@@ -101,7 +101,7 @@ ${PYTHON} ${base_dir}/scripts/wic create ${base_dir}/MiniMyth2.wks \
 echo '  removing working files...'
 rm -rf ${root_files_loc}/../pseudo*
 
-echo '  copmpressing SD image...'
+echo '  compressing SD image...'
 rename MiniMyth2-*.direct MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img *
 xz -f MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img
 
