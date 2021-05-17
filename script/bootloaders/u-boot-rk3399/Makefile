@@ -6,6 +6,7 @@ MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-rockchip/-/archiv
 DISTFILES    = u-boot-rockchip-$(GARVERSION).tar.bz2
 PATCHFILES   = 0001-add-orangepi-4.patch
 PATCHFILES  += 0002-rockchip-general-prioritize-sd-over-mmc.patch
+PATCHFILES  += 0003-rk3399-rockpi4-disable-video-and-hdmi.patch
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
 
 LICENSE = GPL2
