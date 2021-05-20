@@ -181,6 +181,9 @@ PATCHFILES += 0720-arm64-dts-enable-dwmmc-on-rk3328.patch
 PATCHFILES += 0721-clk-rk3399-add-OrangePI4-support.patch
 PATCHFILES += 0722-ASoC-rockchip-add-OrangePI4-support.patch
 PATCHFILES += 0723-arm64-dts-add-OrangePI4-dt.patch
+# fix for boot hang on OrangePI4 with enabled cdn_dp
+# https://patchwork.kernel.org/project/linux-rockchip/patch/20210519134928.2696617-1-yangyingliang@huawei.com/
+PATCHFILES += 0724-drm-rockchip-cdn-dp-core-add-missing-clk_disable_unprepare-on-error-in-cdn_dp_grf_write.patch
 endif
 #------------------------------------------------------------
 
