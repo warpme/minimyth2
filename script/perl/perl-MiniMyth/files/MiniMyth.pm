@@ -14,6 +14,9 @@ use File::Spec ();
 use Net::Telnet ();
 use WWW::Curl::Easy qw(CURLINFO_HTTP_CODE CURLOPT_FOLLOWLOCATION CURLOPT_HTTPHEADER CURLOPT_INFILE CURLOPT_INFILESIZE CURLOPT_UPLOAD CURLOPT_URL CURLOPT_VERBOSE CURLOPT_WRITEDATA);
 
+no warnings 'deprecated';
+no warnings 'experimental';
+
 sub new
 {
     my $proto = shift;
