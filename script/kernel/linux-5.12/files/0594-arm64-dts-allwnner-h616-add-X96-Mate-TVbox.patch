@@ -1,40 +1,18 @@
-From 4c725d6cb99856635e3cf8aceae806c033588407 Mon Sep 17 00:00:00 2001
-From: Andre Przywara <andre.przywara@arm.com>
-Date: Wed, 28 Apr 2021 00:06:26 +0100
-Subject: [PATCH] arm64: dts: allwinner: h616: Add X96 Mate TV box support
-
-The X96 Mate is a TV box with 4GB RAM and eMMC, also Fast Ethernet.
-Add a basic devicetree for it, with SD card, eMMC and USB working, as
-well as serial and the essential peripherals, like the AXP PMIC.
-
-The Ethernet port uses the PHY integrated in the H616, which is
-currently not yet supported in Linux.
-
-Signed-off-by: Andre Przywara <andre.przywara@arm.com>
----
- arch/arm64/boot/dts/allwinner/Makefile        |   1 +
- .../dts/allwinner/sun50i-h616-x96-mate.dts    | 199 ++++++++++++++++++
- 2 files changed, 200 insertions(+)
- create mode 100644 arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts
-
-diff --git a/arch/arm64/boot/dts/allwinner/Makefile b/arch/arm64/boot/dts/allwinner/Makefile
-index 9ba4b5d926577..370d24ebaacf7 100644
---- a/arch/arm64/boot/dts/allwinner/Makefile
-+++ b/arch/arm64/boot/dts/allwinner/Makefile
-@@ -37,3 +37,4 @@ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-pine-h64.dtb
+diff -Naur linux-5.12.5-old/arch/arm64/boot/dts/allwinner/Makefile linux-5.12.5-new/arch/arm64/boot/dts/allwinner/Makefile
+--- linux-5.12.5-old/arch/arm64/boot/dts/allwinner/Makefile	2021-05-25 18:07:05.973332521 +0200
++++ linux-5.12.5-new/arch/arm64/boot/dts/allwinner/Makefile	2021-05-25 18:11:44.803332508 +0200
+@@ -39,3 +39,4 @@
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-pine-h64-model-b.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-tanix-tx6.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h616-orangepi-zero2.dtb
 +dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h616-x96-mate.dtb
-diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts b/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts
-new file mode 100644
-index 0000000000000..e666317427064
---- /dev/null
-+++ b/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts
-@@ -0,0 +1,199 @@
+diff -Naur linux-5.12.5-old/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts linux-5.12.5-new/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts
+--- linux-5.12.5-old/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.12.5-new/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts	2021-05-25 18:14:05.056665841 +0200
+@@ -0,0 +1,287 @@
 +// SPDX-License-Identifier: (GPL-2.0+ or MIT)
 +/*
-+ * Copyright (C) 2021 Arm Ltd.
++ * Copyright (C) 2020 Arm Ltd.
 + */
 +
 +/dts-v1/;
@@ -50,6 +28,7 @@ index 0000000000000..e666317427064
 +	compatible = "hechuang,x96-mate", "allwinner,sun50i-h616";
 +
 +	aliases {
++		ethernet0 = &emac1;
 +		serial0 = &uart0;
 +	};
 +
@@ -57,17 +36,64 @@ index 0000000000000..e666317427064
 +		stdout-path = "serial0:115200n8";
 +	};
 +
++	connector {
++		compatible = "hdmi-connector";
++		type = "d";
++
++		port {
++			hdmi_con_in: endpoint {
++				remote-endpoint = <&hdmi_out_con>;
++			};
++		};
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led-0 {
++			function = LED_FUNCTION_POWER;
++			color = <LED_COLOR_ID_RED>;
++			gpios = <&pio 2 12 GPIO_ACTIVE_HIGH>; /* PC12 */
++			default-state = "on";
++		};
++
++		led-1 {
++			function = LED_FUNCTION_STATUS;
++			color = <LED_COLOR_ID_GREEN>;
++			gpios = <&pio 2 13 GPIO_ACTIVE_HIGH>; /* PC13 */
++		};
++	};
++
 +	reg_vcc5v: vcc5v {
-+		/* board wide 5V supply directly from the DC input */
++		/* board wide 5V supply directly from the USB-C socket */
 +		compatible = "regulator-fixed";
 +		regulator-name = "vcc-5v";
 +		regulator-min-microvolt = <5000000>;
 +		regulator-max-microvolt = <5000000>;
 +		regulator-always-on;
 +	};
++
++	reg_usb1_vbus: usb1-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb1-vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&reg_vcc5v>;
++		enable-active-high;
++		gpio = <&pio 2 16 GPIO_ACTIVE_HIGH>; /* PC16 */
++		status = "okay";
++	};
++};
++
++&de {
++	status = "okay";
 +};
 +
 +&ehci0 {
++	status = "okay";
++};
++
++&ehci1 {
 +	status = "okay";
 +};
 +
@@ -75,24 +101,48 @@ index 0000000000000..e666317427064
 +	status = "okay";
 +};
 +
-+&ir {
++&ehci3 {
 +	status = "okay";
++};
++
++&hdmi {
++	hvcc-supply = <&reg_bldo1>;
++	status = "okay";
++};
++
++&hdmi_out {
++	hdmi_out_con: endpoint {
++		remote-endpoint = <&hdmi_con_in>;
++	};
++};
++
++&i2c3 {
++	status = "okay";
++};
++
++&emac1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&rmii_phy>;
++	phy-supply = <&reg_aldo1>;
++	allwinner,rx-delay-ps = <3100>;
++	allwinner,tx-delay-ps = <700>;
++	status = "okay";
++};
++
++&mdio1 {
++	rmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
 +};
 +
 +&mmc0 {
 +	vmmc-supply = <&reg_dcdce>;
-+	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
++	//cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
++	broken-cd;
 +	bus-width = <4>;
-+	status = "okay";
-+};
-+
-+&mmc2 {
-+	vmmc-supply = <&reg_dcdce>;
-+	vqmmc-supply = <&reg_bldo1>;
-+	bus-width = <8>;
-+	non-removable;
-+	cap-mmc-hw-reset;
-+	mmc-hs200-1_8v;
 +	status = "okay";
 +};
 +
@@ -100,7 +150,15 @@ index 0000000000000..e666317427064
 +	status = "okay";
 +};
 +
++&ohci1 {
++	status = "okay";
++};
++
 +&ohci2 {
++	status = "okay";
++};
++
++&ohci3 {
 +	status = "okay";
 +};
 +
@@ -132,18 +190,18 @@ index 0000000000000..e666317427064
 +				regulator-name = "vcc-sys";
 +			};
 +
-+			reg_aldo2: aldo2 {
++			reg_aldo2: aldo2 {	/* 3.3V on headers */
++				regulator-always-on;
 +				regulator-min-microvolt = <3300000>;
 +				regulator-max-microvolt = <3300000>;
 +				regulator-name = "vcc3v3-ext";
-+				status = "disabled";
 +			};
 +
-+			reg_aldo3: aldo3 {
++			reg_aldo3: aldo3 {	/* 3.3V on headers */
++				regulator-always-on;
 +				regulator-min-microvolt = <3300000>;
 +				regulator-max-microvolt = <3300000>;
 +				regulator-name = "vcc3v3-ext2";
-+				status = "disabled";
 +			};
 +
 +			reg_bldo1: bldo1 {
@@ -153,11 +211,8 @@ index 0000000000000..e666317427064
 +				regulator-name = "vcc1v8";
 +			};
 +
-+			reg_bldo2: bldo2 {
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <1800000>;
-+				regulator-name = "vcc1v8-2";
-+				status = "disabled";
++			bldo2 {
++				/* unused */
 +			};
 +
 +			bldo3 {
@@ -169,9 +224,7 @@ index 0000000000000..e666317427064
 +			};
 +
 +			cldo1 {
-+				regulator-min-microvolt = <2500000>;
-+				regulator-max-microvolt = <2500000>;
-+				regulator-name = "vcc2v5";
++				/* reserved */
 +			};
 +
 +			cldo2 {
@@ -198,8 +251,8 @@ index 0000000000000..e666317427064
 +
 +			reg_dcdcd: dcdcd {
 +				regulator-always-on;
-+				regulator-min-microvolt = <1360000>;
-+				regulator-max-microvolt = <1360000>;
++				regulator-min-microvolt = <1500000>;
++				regulator-max-microvolt = <1500000>;
 +				regulator-name = "vdd-dram";
 +			};
 +
@@ -217,6 +270,18 @@ index 0000000000000..e666317427064
 +	};
 +};
 +
++&spi0  {
++	status = "okay";
++
++	flash@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <40000000>;
++	};
++};
++
 +&uart0 {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&uart0_ph_pins>;
@@ -224,10 +289,11 @@ index 0000000000000..e666317427064
 +};
 +
 +&usbotg {
-+	dr_mode = "host";	/* USB A type receptable */
++	dr_mode = "peripheral";
 +	status = "okay";
 +};
 +
 +&usbphy {
++	usb1_vbus-supply = <&reg_usb1_vbus>;
 +	status = "okay";
 +};

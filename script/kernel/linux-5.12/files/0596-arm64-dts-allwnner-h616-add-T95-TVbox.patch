@@ -1,18 +1,18 @@
-diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/Makefile linux-5.12.2-new/arch/arm64/boot/dts/allwinner/Makefile
---- linux-5.12.2-old/arch/arm64/boot/dts/allwinner/Makefile	2021-05-13 15:52:36.823332951 +0200
-+++ linux-5.12.2-new/arch/arm64/boot/dts/allwinner/Makefile	2021-05-13 15:58:57.609999614 +0200
+diff -Naur linux-5.12.5-old/arch/arm64/boot/dts/allwinner/Makefile linux-5.12.5-new/arch/arm64/boot/dts/allwinner/Makefile
+--- linux-5.12.5-old/arch/arm64/boot/dts/allwinner/Makefile	2021-05-25 18:16:53.603332509 +0200
++++ linux-5.12.5-new/arch/arm64/boot/dts/allwinner/Makefile	2021-05-25 18:19:39.523332484 +0200
 @@ -41,3 +41,4 @@
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h616-orangepi-zero2.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h616-x96-mate.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h616-tanix-tx6s.dtb
 +dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h616-t95.dtb
-diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts linux-5.12.2-new/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts
---- linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts	1970-01-01 01:00:00.000000000 +0100
-+++ linux-5.12.2-new/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts	2021-05-13 15:58:31.733332951 +0200
-@@ -0,0 +1,199 @@
+diff -Naur linux-5.12.5-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts linux-5.12.5-new/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts
+--- linux-5.12.5-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.12.5-new/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts	2021-05-25 18:21:43.586665834 +0200
+@@ -0,0 +1,287 @@
 +// SPDX-License-Identifier: (GPL-2.0+ or MIT)
 +/*
-+ * Copyright (C) 2021 Arm Ltd.
++ * Copyright (C) 2020 Arm Ltd.
 + */
 +
 +/dts-v1/;
@@ -28,6 +28,7 @@ diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts li
 +	compatible = "ExcelDigital,T95", "allwinner,sun50i-h616";
 +
 +	aliases {
++		ethernet0 = &emac1;
 +		serial0 = &uart0;
 +	};
 +
@@ -35,17 +36,64 @@ diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts li
 +		stdout-path = "serial0:115200n8";
 +	};
 +
++	connector {
++		compatible = "hdmi-connector";
++		type = "d";
++
++		port {
++			hdmi_con_in: endpoint {
++				remote-endpoint = <&hdmi_out_con>;
++			};
++		};
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led-0 {
++			function = LED_FUNCTION_POWER;
++			color = <LED_COLOR_ID_RED>;
++			gpios = <&pio 2 12 GPIO_ACTIVE_HIGH>; /* PC12 */
++			default-state = "on";
++		};
++
++		led-1 {
++			function = LED_FUNCTION_STATUS;
++			color = <LED_COLOR_ID_GREEN>;
++			gpios = <&pio 2 13 GPIO_ACTIVE_HIGH>; /* PC13 */
++		};
++	};
++
 +	reg_vcc5v: vcc5v {
-+		/* board wide 5V supply directly from the DC input */
++		/* board wide 5V supply directly from the USB-C socket */
 +		compatible = "regulator-fixed";
 +		regulator-name = "vcc-5v";
 +		regulator-min-microvolt = <5000000>;
 +		regulator-max-microvolt = <5000000>;
 +		regulator-always-on;
 +	};
++
++	reg_usb1_vbus: usb1-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb1-vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&reg_vcc5v>;
++		enable-active-high;
++		gpio = <&pio 2 16 GPIO_ACTIVE_HIGH>; /* PC16 */
++		status = "okay";
++	};
++};
++
++&de {
++	status = "okay";
 +};
 +
 +&ehci0 {
++	status = "okay";
++};
++
++&ehci1 {
 +	status = "okay";
 +};
 +
@@ -53,24 +101,48 @@ diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts li
 +	status = "okay";
 +};
 +
-+&ir {
++&ehci3 {
 +	status = "okay";
++};
++
++&hdmi {
++	hvcc-supply = <&reg_bldo1>;
++	status = "okay";
++};
++
++&hdmi_out {
++	hdmi_out_con: endpoint {
++		remote-endpoint = <&hdmi_con_in>;
++	};
++};
++
++&i2c3 {
++	status = "okay";
++};
++
++&emac1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&rmii_phy>;
++	phy-supply = <&reg_aldo1>;
++	allwinner,rx-delay-ps = <3100>;
++	allwinner,tx-delay-ps = <700>;
++	status = "okay";
++};
++
++&mdio1 {
++	rmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
 +};
 +
 +&mmc0 {
 +	vmmc-supply = <&reg_dcdce>;
-+	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
++	//cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
++	broken-cd;
 +	bus-width = <4>;
-+	status = "okay";
-+};
-+
-+&mmc2 {
-+	vmmc-supply = <&reg_dcdce>;
-+	vqmmc-supply = <&reg_bldo1>;
-+	bus-width = <8>;
-+	non-removable;
-+	cap-mmc-hw-reset;
-+	mmc-hs200-1_8v;
 +	status = "okay";
 +};
 +
@@ -78,7 +150,15 @@ diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts li
 +	status = "okay";
 +};
 +
++&ohci1 {
++	status = "okay";
++};
++
 +&ohci2 {
++	status = "okay";
++};
++
++&ohci3 {
 +	status = "okay";
 +};
 +
@@ -110,18 +190,18 @@ diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts li
 +				regulator-name = "vcc-sys";
 +			};
 +
-+			reg_aldo2: aldo2 {
++			reg_aldo2: aldo2 {	/* 3.3V on headers */
++				regulator-always-on;
 +				regulator-min-microvolt = <3300000>;
 +				regulator-max-microvolt = <3300000>;
 +				regulator-name = "vcc3v3-ext";
-+				status = "disabled";
 +			};
 +
-+			reg_aldo3: aldo3 {
++			reg_aldo3: aldo3 {	/* 3.3V on headers */
++				regulator-always-on;
 +				regulator-min-microvolt = <3300000>;
 +				regulator-max-microvolt = <3300000>;
 +				regulator-name = "vcc3v3-ext2";
-+				status = "disabled";
 +			};
 +
 +			reg_bldo1: bldo1 {
@@ -131,11 +211,8 @@ diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts li
 +				regulator-name = "vcc1v8";
 +			};
 +
-+			reg_bldo2: bldo2 {
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <1800000>;
-+				regulator-name = "vcc1v8-2";
-+				status = "disabled";
++			bldo2 {
++				/* unused */
 +			};
 +
 +			bldo3 {
@@ -147,9 +224,7 @@ diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts li
 +			};
 +
 +			cldo1 {
-+				regulator-min-microvolt = <2500000>;
-+				regulator-max-microvolt = <2500000>;
-+				regulator-name = "vcc2v5";
++				/* reserved */
 +			};
 +
 +			cldo2 {
@@ -176,8 +251,8 @@ diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts li
 +
 +			reg_dcdcd: dcdcd {
 +				regulator-always-on;
-+				regulator-min-microvolt = <1360000>;
-+				regulator-max-microvolt = <1360000>;
++				regulator-min-microvolt = <1500000>;
++				regulator-max-microvolt = <1500000>;
 +				regulator-name = "vdd-dram";
 +			};
 +
@@ -195,6 +270,18 @@ diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts li
 +	};
 +};
 +
++&spi0  {
++	status = "okay";
++
++	flash@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <40000000>;
++	};
++};
++
 +&uart0 {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&uart0_ph_pins>;
@@ -202,11 +289,11 @@ diff -Naur linux-5.12.2-old/arch/arm64/boot/dts/allwinner/sun50i-h616-t95.dts li
 +};
 +
 +&usbotg {
-+	dr_mode = "host";	/* USB A type receptable */
++	dr_mode = "peripheral";
 +	status = "okay";
 +};
 +
 +&usbphy {
++	usb1_vbus-supply = <&reg_usb1_vbus>;
 +	status = "okay";
 +};
-
