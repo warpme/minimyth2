@@ -146,6 +146,7 @@ DEPENDS = \
 		wayland/weston) \
 	X11/xdotool \
 	utils/tinymembench \
+	utils/inxi \
 	utils/kbd \
 	devel/gdb \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
