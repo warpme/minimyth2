@@ -44,6 +44,8 @@ DISTFILES = \
 	board-h616.orangepi_lite2.wks \
 	board-h616.tanix_tx6s.conf  \
 	board-h616.tanix_tx6s.wks   \
+	board-h616.t95.conf         \
+	board-h616.t95.wks          \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \
