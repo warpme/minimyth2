@@ -46,6 +46,8 @@ DISTFILES = \
 	board-h616.tanix_tx6s.wks   \
 	board-h616.t95.conf         \
 	board-h616.t95.wks          \
+	board-h616.x96_mate.conf    \
+	board-h616.x96_mate.wks     \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \
