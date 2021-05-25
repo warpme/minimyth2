@@ -17,17 +17,18 @@ GARVERSION   = 647b392bf20614006917d5fcd3390347a668eee5
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = add-h616-tanix-tx6s-defconfig.patch
+PATCHFILES   = add-emac2-to-h6-h616.patch
+PATCHFILES  += add-h616-tanix-tx6s-defconfig.patch
 PATCHFILES  += add-h616-x96-mate-defconfig.patch
 PATCHFILES  += add-h616-t95-defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 endif
 
 ifeq (0,1)
-# Jernejsk GIT https://github.com/jernejsk/u-boot/commits/h616-v2
-GARNAME      = u-boot-h616-20210111
-# 11.01.2021
-GARVERSION   = 88627261fcb8cd949b30d6f534fbf7734e468684
+# Jernejsk GIT https://github.com/jernejsk/u-boot/commits/t95
+GARNAME      = u-boot-h616-20201201
+# 01.12.2020
+GARVERSION   = 53d4a7302318f1d188abbbad59dccaf453087d2c
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/jernejsk/u-boot/archive/
 DISTFILES    = $(GARVERSION).zip
@@ -49,6 +50,9 @@ INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
 
+#mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
+#mm_U-BOOT_BOARD_TYPE = t95_defconfig
+
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
 BUILD_ARGS = \
@@ -56,12 +60,12 @@ BUILD_ARGS = \
 	BL31=$(DESTDIR)$(libdir)/u-boot/h616/bl31.bin \
 
 configure-custom:
-	@echo "Configuring u-boot for SunXi H616..."
+	@echo "Configuring u-boot for SunXi H616 with $(CONFIGURE_ARGS)..."
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 build-custom:
-	@echo "Building u-boot for SunXi H616..."
+	@echo "Building u-boot for SunXi H616 with $(CONFIGURE_ARGS)..."
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
 	@$(MAKECOOKIE)
 

@@ -14,7 +14,7 @@ diff -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/arch/arm/dt
 diff -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/arch/arm/dts/sun50i-h616-x96-mate.dts u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-new/arch/arm/dts/sun50i-h616-x96-mate.dts
 --- u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/arch/arm/dts/sun50i-h616-x96-mate.dts	1970-01-01 01:00:00.000000000 +0100
 +++ u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-new/arch/arm/dts/sun50i-h616-x96-mate.dts	2021-05-11 00:14:58.000000000 +0200
-@@ -0,0 +1,201 @@
+@@ -0,0 +1,224 @@
 +// SPDX-License-Identifier: (GPL-2.0+ or MIT)
 +/*
 + * Copyright (C) 2021 Arm Ltd.
@@ -26,12 +26,14 @@ diff -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/arch/arm/dt
 +
 +#include <dt-bindings/gpio/gpio.h>
 +#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/leds/common.h>
 +
 +/ {
 +	model = "X96 Mate";
 +	compatible = "hechuang,x96-mate", "allwinner,sun50i-h616";
 +
 +	aliases {
++		ethernet0 = &emac1;
 +		serial0 = &uart0;
 +	};
 +
@@ -61,20 +63,44 @@ diff -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/arch/arm/dt
 +	status = "okay";
 +};
 +
-+&mmc0 {
-+	vmmc-supply = <&reg_dcdce>;
-+	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
-+	bus-width = <4>;
++&emac1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&rmii_phy>;
++	phy-supply = <&reg_aldo1>;
++	allwinner,rx-delay-ps = <3100>;
++	allwinner,tx-delay-ps = <700>;
 +	status = "okay";
 +};
 +
-+&mmc2 {
++&mdio1 {
++	rmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
++};
++
++&r_i2c {
++	status = "okay";
++
++	axp305_1: pmic@36 {
++		compatible = "x-powers,axp305", "x-powers,axp805",
++		"x-powers,axp806";
++		reg = <0x36>;
++
++		/* dummy interrupt to appease the driver for now */
++		interrupts = <GIC_SPI 103 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-controller;
++		#interrupt-cells = <1>;
++	};
++};
++
++&mmc0 {
 +	vmmc-supply = <&reg_dcdce>;
-+	vqmmc-supply = <&reg_bldo1>;
-+	bus-width = <8>;
-+	non-removable;
-+	cap-mmc-hw-reset;
-+	mmc-hs200-1_8v;
++	//cd-gpios = <&pio 8 16 GPIO_ACTIVE_LOW>;	/* PI16 */
++	broken-cd;
++	bus-width = <4>;
 +	status = "okay";
 +};
 +
@@ -114,7 +140,6 @@ diff -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/arch/arm/dt
 +				regulator-name = "vcc-sys";
 +			};
 +
-+			/* Enabled by the Android BSP */
 +			reg_aldo2: aldo2 {
 +				regulator-min-microvolt = <3300000>;
 +				regulator-max-microvolt = <3300000>;
@@ -122,7 +147,6 @@ diff -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/arch/arm/dt
 +				status = "disabled";
 +			};
 +
-+			/* Enabled by the Android BSP */
 +			reg_aldo3: aldo3 {
 +				regulator-min-microvolt = <3300000>;
 +				regulator-max-microvolt = <3300000>;
@@ -137,7 +161,6 @@ diff -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/arch/arm/dt
 +				regulator-name = "vcc1v8";
 +			};
 +
-+			/* Enabled by the Android BSP */
 +			reg_bldo2: bldo2 {
 +				regulator-min-microvolt = <1800000>;
 +				regulator-max-microvolt = <1800000>;
@@ -219,7 +242,7 @@ diff -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/arch/arm/dt
 diff -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/configs/x96_mate_defconfig u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-new/configs/x96_mate_defconfig
 --- u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/configs/x96_mate_defconfig	1970-01-01 01:00:00.000000000 +0100
 +++ u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-new/configs/x96_mate_defconfig	2021-05-13 14:45:37.549999630 +0200
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,16 @@
 +CONFIG_ARM=y
 +CONFIG_ARCH_SUNXI=y
 +CONFIG_SPL=y
@@ -229,12 +252,10 @@ diff -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5-old/configs/x96
 +# CONFIG_DRAM_SUN50I_H616_READ_TRAINING is not set
 +# CONFIG_DRAM_SUN50I_H616_WRITE_TRAINING is not set
 +CONFIG_DRAM_SUN50I_H616_UNKNOWN_FEATURE=y
-+CONFIG_AXP_DCDC4_VOLT=1350
 +CONFIG_MMC0_CD_PIN="PF6"
 +CONFIG_R_I2C_ENABLE=y
 +CONFIG_DEFAULT_DEVICE_TREE="sun50i-h616-x96-mate"
 +# CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
 +CONFIG_SPL_I2C_SUPPORT=y
-+CONFIG_MMC_SUNXI_SLOT_EXTRA=2
-+CONFIG_USB_EHCI_HCD=y
-+CONFIG_USB_OHCI_HCD=y
++CONFIG_SUN8I_EMAC=y
++CONFIG_I2C3_ENABLE=y

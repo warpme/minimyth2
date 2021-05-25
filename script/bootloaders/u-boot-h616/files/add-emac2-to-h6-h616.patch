@@ -1,0 +1,170 @@
+diff --git a/arch/arm/dts/sun50i-h616.dtsi b/arch/arm/dts/sun50i-h616.dtsi
+index 3d02a3f7aa..838973bdda 100644
+--- a/arch/arm/dts/sun50i-h616.dtsi
++++ b/arch/arm/dts/sun50i-h616.dtsi
+@@ -216,6 +216,13 @@
+ 				bias-pull-up;
+ 			};
+ 
++			rmii_pins: rmii-pins {
++				pins = "PA0", "PA1", "PA2", "PA3", "PA4",
++				       "PA5", "PA6", "PA7", "PA8", "PA9";
++				function = "emac2";
++				drive-strength = <40>;
++			};
++
+ 			spi0_pins: spi0-pins {
+ 				pins = "PC0", "PC2", "PC3", "PC4";
+ 				function = "spi0";
+@@ -385,7 +392,7 @@
+ 			interrupts = <GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>;
+ 			clocks = <&ccu CLK_BUS_I2C3>;
+ 			resets = <&ccu RST_BUS_I2C3>;
+-			status = "disabled";
++			//status = "disabled";
+ 			#address-cells = <1>;
+ 			#size-cells = <0>;
+ 		};
+diff --git a/arch/arm/mach-sunxi/Kconfig b/arch/arm/mach-sunxi/Kconfig
+index 54d3d81692..56e78f706c 100644
+--- a/arch/arm/mach-sunxi/Kconfig
++++ b/arch/arm/mach-sunxi/Kconfig
+@@ -771,7 +771,7 @@ config I2C2_ENABLE
+ 	---help---
+ 	See I2C0_ENABLE help text.
+ 
+-if MACH_SUN6I || MACH_SUN7I
++if MACH_SUN6I || MACH_SUN7I || MACH_SUN50I_H616
+ config I2C3_ENABLE
+ 	bool "Enable I2C/TWI controller 3"
+ 	default n
+diff --git a/arch/arm/mach-sunxi/board.c b/arch/arm/mach-sunxi/board.c
+index 730faeb82a..d21e9c6ba8 100644
+--- a/arch/arm/mach-sunxi/board.c
++++ b/arch/arm/mach-sunxi/board.c
+@@ -326,6 +326,7 @@ void board_init_f(ulong dummy)
+ #ifdef CONFIG_SPL_I2C_SUPPORT
+ 	/* Needed early by sunxi_board_init if PMU is enabled */
+ 	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
++	i2c_set_bus_num(1);
+ #endif
+ 	sunxi_board_init();
+ }
+diff --git a/arch/arm/mach-sunxi/clock_sun50i_h6.c b/arch/arm/mach-sunxi/clock_sun50i_h6.c
+index 637c48142c..9ed6545169 100644
+--- a/arch/arm/mach-sunxi/clock_sun50i_h6.c
++++ b/arch/arm/mach-sunxi/clock_sun50i_h6.c
+@@ -27,6 +27,10 @@ void clock_init_safe(void)
+ 	 * DRAM initialization code.
+ 	 */
+ 	writel(MBUS_CLK_SRC_PLL6X2 | MBUS_CLK_M(3), &ccm->mbus_cfg);
++
++	writel(0x10001, 0x030017ac);
++	writel(0x50, 0x0300a028);
++	writel(0x20, 0x0300a040);
+ }
+ #endif
+ 
+diff --git a/board/sunxi/board.c b/board/sunxi/board.c
+index 727e832031..bb14845a8e 100644
+--- a/board/sunxi/board.c
++++ b/board/sunxi/board.c
+@@ -14,6 +14,7 @@
+ #include <dm.h>
+ #include <env.h>
+ #include <hang.h>
++#include <i2c.h>
+ #include <image.h>
+ #include <init.h>
+ #include <log.h>
+@@ -179,6 +180,13 @@ void i2c_init_board(void)
+ 	sunxi_gpio_set_cfgpin(SUNXI_GPI(0), SUN7I_GPI_TWI3);
+ 	sunxi_gpio_set_cfgpin(SUNXI_GPI(1), SUN7I_GPI_TWI3);
+ 	clock_twi_onoff(3, 1);
++#elif defined(CONFIG_MACH_SUN50I_H616)
++	sunxi_gpio_set_cfgpin(SUNXI_GPA(10), 2);
++	sunxi_gpio_set_cfgpin(SUNXI_GPA(11), 2);
++	sunxi_gpio_set_cfgpin(SUNXI_GPA(12), 2);
++	sunxi_gpio_set_pull(SUNXI_GPA(10), SUNXI_GPIO_PULL_UP);
++	sunxi_gpio_set_pull(SUNXI_GPA(11), SUNXI_GPIO_PULL_UP);
++	clock_twi_onoff(3, 1);
+ #endif
+ #endif
+ 
+@@ -632,6 +640,7 @@ static void sunxi_spl_store_dram_size(phys_addr_t dram_size)
+ void sunxi_board_init(void)
+ {
+ 	int power_failed = 0;
++	u8 data[2];
+ 
+ #ifdef CONFIG_SY8106A_POWER
+ 	power_failed = sy8106a_set_vout1(CONFIG_SY8106A_VOUT1_VOLT);
+@@ -711,6 +720,23 @@ void sunxi_board_init(void)
+ 		clock_set_pll1(CONFIG_SYS_CLK_FREQ);
+ 	else
+ 		printf("Failed to set core voltage! Can't set CPU frequency\n");
++
++	i2c_set_bus_num(0);
++	data[0] = 0;
++	data[1] = 0;
++	i2c_write(0x10, 0xfe, 1, data, 2);
++	i2c_write(0x10, 2, 1, data, 2);
++	data[1] = 1;
++	i2c_write(0x10, 2, 1, data, 2);
++	data[1] = 0xf;
++	i2c_write(0x10, 0x16, 1, data, 2);
++	data[1] = 3;
++	i2c_write(0x10, 0x14, 1, data, 2);
++	data[1] = 0x60;
++	i2c_write(0x10, 0xfe, 1, data, 2);
++	data[0] = 0x08;
++	data[1] = 0x14;
++	i2c_write(0x10, 0, 1, data, 2);
+ }
+ #endif
+ 
+
+diff --git a/drivers/net/sun8i_emac.c b/drivers/net/sun8i_emac.c
+index 7e57f1d01c..192f07cc34 100644
+--- a/drivers/net/sun8i_emac.c
++++ b/drivers/net/sun8i_emac.c
+@@ -336,7 +336,7 @@ static int sun8i_emac_set_syscon(struct sun8i_eth_pdata *pdata,
+ 		return 0;
+ 	}
+ 
+-	reg = readl(priv->sysctl_reg + 0x30);
++	reg = readl(priv->sysctl_reg + 0x34);
+ 
+ 	if (priv->variant == H3_EMAC || priv->variant == H6_EMAC) {
+ 		ret = sun8i_emac_set_syscon_ephy(priv, &reg);
+@@ -378,7 +378,7 @@ static int sun8i_emac_set_syscon(struct sun8i_eth_pdata *pdata,
+ 		reg |= ((pdata->rx_delay_ps / 100) << SC_ERXDC_OFFSET)
+ 			 & SC_ERXDC_MASK;
+ 
+-	writel(reg, priv->sysctl_reg + 0x30);
++	writel(reg, priv->sysctl_reg + 0x34);
+ 
+ 	return 0;
+ }
+@@ -1006,6 +1006,8 @@ static const struct udevice_id sun8i_emac_eth_ids[] = {
+ 		.data = (uintptr_t)R40_GMAC },
+ 	{.compatible = "allwinner,sun50i-h6-emac",
+ 		.data = (uintptr_t)H6_EMAC },
++	{.compatible = "allwinner,sun50i-h616-emac1",
++		.data = (uintptr_t)H6_EMAC },
+ 	{ }
+ };
+ 
+diff --git a/include/configs/sunxi-common.h b/include/configs/sunxi-common.h
+index 6e8f547214..d70ed43e33 100644
+--- a/include/configs/sunxi-common.h
++++ b/include/configs/sunxi-common.h
+@@ -212,7 +212,7 @@
+ #define CONFIG_SYS_I2C_MVTWSI
+ #ifndef CONFIG_DM_I2C
+ #define CONFIG_SYS_I2C
+-#define CONFIG_SYS_I2C_SPEED		400000
++#define CONFIG_SYS_I2C_SPEED		100000
+ #define CONFIG_SYS_I2C_SLAVE		0x7f
+ #endif
+ #endif
