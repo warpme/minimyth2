@@ -147,7 +147,7 @@ DEPENDS = \
 	X11/xdotool \
 	utils/tinymembench \
 	utils/inxi \
-	utils/devmem2 \
+	utils/peekpoke \
 	utils/kbd \
 	devel/gdb \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
