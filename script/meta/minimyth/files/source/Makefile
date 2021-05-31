@@ -11,6 +11,8 @@ cookiedir  := $(top_build)/cookie
 
 include $(top_build)/config.mk
 
+
+
 mm_NAME := minimyth2-$(mm_VERSION)
 MYTHTV_SVN_VERSION = $(shell grep "MYTHTV_SVN_VERSION =" $(mm_HOME)/script/myth-$(mm_VERSION_MYTH)/mythtv/package-api.mk | sed -e "s/MYTHTV_SVN_VERSION =\s*//")
 
@@ -253,6 +255,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@MM_GARCH@%$(mm_GARCH_FAMILY)%g'                 $@~/etc/os_myth_release
 	@sed -i 's%@MM_VERSION@%$(mm_VERSION)-$(mm_GARCH_FAMILY)%g' $@~/etc/version
 	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                          $@~/usr/bin/devel-update-component.sh
+	@MM_DEVEL_HOST_IP="$(shell /bin/hostname -i | sed -e 's/\s//g')"; sed -i "s%@MM_DEVEL_IP@%$$MM_DEVEL_HOST_IP%g" $@~/usr/bin/devel-update-component.sh
 ifneq (,$(findstring rpi,$(mm_KERNEL_VERSION)))
 	@sed -i 's%    # mm_splash_init%    mm_splash_init%'        $@~$(sysconfdir)/rc.d/init.d/modules_automatic
 endif

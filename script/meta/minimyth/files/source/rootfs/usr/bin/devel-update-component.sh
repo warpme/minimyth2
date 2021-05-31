@@ -7,21 +7,27 @@
 # it replaces old files on target with new files from devel. machine.
 #
 # Example:
-# devel. machine at 192.168.1.190 has mirror of target root file system
-# at </home/piotro/minimyth-dev>/main
+# devel. machine at @MM_DEVEL_IP@ has mirror of target root file system
+# at <@MM_HOME@>/main
 #
 # To configure:
 #
-# 1. On devel. machine edit /etc/rsyncd.conf with content:
-# [devel-updates]
-# path = /home/piotro/minimyth-dev/main/
-# use chroot = true
-# read only = true
+# 1. On devel. machine edit /etc/rsyncd.conf to add snipped like below:
+#
+#---rsync snippet start----
+#
+#[devel-updates]
+#    path = @MM_HOME@/main/
+#    use chroot = true
+#    read only = true
+#
+#"---rsync snippet end------
 #
 # 2.run '/usr/bin/rsync --daemon' on devel. machine
 #
-# 3.on target machine in this script set variable 'src_rsync_module' like:
-# src_rsync_module="192.168.1.190::devel-updates"
+# 3.make sure on target machine in this script variable 'src_rsync_module' has
+# correct IP address on devel.machine. Current autosetup IP for your env. is:
+# src_rsync_module="@MM_DEVEL_IP@::devel-updates"
 #
 # 4. Run script on target and select component to update...
 #
@@ -53,7 +59,7 @@
 # dry_run="yes"
 
 # Default host IP::Module where new files reside
-src_rsync_module="192.168.1.190::devel-updates"
+src_rsync_module="@MM_DEVEL_IP@::devel-updates"
 
 # Log file with output from rsync
 log_file="/var/log/online-update.log"
@@ -179,6 +185,17 @@ if [ x${persistent} = "xpersist" ] ; then
 else
     dest_prefix=""
 fi
+
+echo " "
+echo "---rsync snippet start----"
+echo " "
+echo "[devel-updates]"
+echo "    path = @MM_HOME@/main/"
+echo "    use chroot = true"
+echo "    read only = true"
+echo " "
+echo "---rsync snippet end------"
+echo " "
 
 if [ x${selection} = "x" ] ; then
 
