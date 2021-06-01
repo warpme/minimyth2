@@ -9,7 +9,7 @@ diff -Naur linux-5.12.5-old/arch/arm64/boot/dts/allwinner/Makefile linux-5.12.5-
 diff -Naur linux-5.12.5-old/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts linux-5.12.5-new/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts
 --- linux-5.12.5-old/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts	1970-01-01 01:00:00.000000000 +0100
 +++ linux-5.12.5-new/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.dts	2021-05-25 18:14:05.056665841 +0200
-@@ -0,0 +1,297 @@
+@@ -0,0 +1,329 @@
 +// SPDX-License-Identifier: (GPL-2.0+ or MIT)
 +/*
 + * Copyright (C) 2020 Arm Ltd.
@@ -56,12 +56,6 @@ diff -Naur linux-5.12.5-old/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.d
 +			gpios = <&pio 2 12 GPIO_ACTIVE_HIGH>; /* PC12 */
 +			default-state = "on";
 +		};
-+
-+		led-1 {
-+			function = LED_FUNCTION_STATUS;
-+			color = <LED_COLOR_ID_GREEN>;
-+			gpios = <&pio 2 13 GPIO_ACTIVE_HIGH>; /* PC13 */
-+		};
 +	};
 +
 +	reg_vcc5v: vcc5v {
@@ -80,8 +74,15 @@ diff -Naur linux-5.12.5-old/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.d
 +		regulator-max-microvolt = <5000000>;
 +		vin-supply = <&reg_vcc5v>;
 +		enable-active-high;
-+		gpio = <&pio 2 16 GPIO_ACTIVE_HIGH>; /* PC16 */
++		/* gpio = <&pio 2 16 GPIO_ACTIVE_HIGH>; PC16 */
 +		status = "okay";
++	};
++
++	wifi_pwrseq: wifi_pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		reset-gpios = <&r_pio 0 2 GPIO_ACTIVE_LOW>; /* PL2 */
++		clocks = <&rtc 1>;
++		clock-names = "ext_clock";
 +	};
 +};
 +
@@ -148,6 +149,31 @@ diff -Naur linux-5.12.5-old/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.d
 +	//cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
 +	broken-cd;
 +	bus-width = <4>;
++	status = "okay";
++};
++
++&mmc1 {
++	vmmc-supply = <&reg_dcdce>;
++	vqmmc-supply = <&reg_dcdce>;
++	mmc-pwrseq = <&wifi_pwrseq>;
++	bus-width = <4>;
++	non-removable;
++	status = "okay";
++
++	brcmf: wifi@1 {
++		reg = <1>;
++		compatible = "brcm,bcm4329-fmac";
++		interrupt-parent = <&r_pio>;
++		interrupts = <0 3 IRQ_TYPE_LEVEL_LOW>; /* PL3 */
++		interrupt-names = "host-wake";
++	};
++};
++
++&mmc2 {
++	vmmc-supply = <&reg_dcdce>;
++	bus-width = <8>;
++	non-removable;
++	cap-mmc-hw-reset;
 +	status = "okay";
 +};
 +
@@ -275,22 +301,28 @@ diff -Naur linux-5.12.5-old/arch/arm64/boot/dts/allwinner/sun50i-h616-x96-mate.d
 +	};
 +};
 +
-+&spi0  {
-+	status = "okay";
-+
-+	flash@0 {
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		compatible = "jedec,spi-nor";
-+		reg = <0>;
-+		spi-max-frequency = <40000000>;
-+	};
-+};
-+
 +&uart0 {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&uart0_ph_pins>;
 +	status = "okay";
++};
++
++&uart1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart1_pins>, <&uart1_rts_cts_pins>;
++	uart-has-rtscts;
++	status = "okay";
++
++	bluetooth {
++		compatible = "brcm,bcm43438-bt";
++		clocks = <&rtc 1>;
++		clock-names = "lpo";
++		vbat-supply = <&reg_dcdce>;
++		vddio-supply = <&reg_dcdce>;
++		device-wakeup-gpios = <&r_pio 0 6 GPIO_ACTIVE_HIGH>; /* PL6 */
++		host-wakeup-gpios = <&r_pio 0 5 GPIO_ACTIVE_HIGH>; /* PL5 */
++		shutdown-gpios = <&r_pio 0 4 GPIO_ACTIVE_HIGH>; /* PL4 */
++	};
 +};
 +
 +&usbotg {
