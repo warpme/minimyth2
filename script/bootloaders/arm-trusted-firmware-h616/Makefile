@@ -32,5 +32,5 @@ build-custom:
 	@cp $(WORKSRC)/build/sun50i_h616/debug/bl31.bin $(DESTDIR)$(libdir)/u-boot/h616/bl31.bin
 	@$(MAKECOOKIE)
 
-clean-all:
+clean-all: clean
 	@rm -f $(DESTDIR)$(libdir)/u-boot/h616/bl31.bin

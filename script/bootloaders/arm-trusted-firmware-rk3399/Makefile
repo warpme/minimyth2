@@ -29,5 +29,5 @@ install-custom:
 	@cp $(WORKSRC)/bl31.elf $(DESTDIR)$(libdir)/u-boot/rk3399/bl31.bin
 	@$(MAKECOOKIE)
 
-clean-all:
+clean-all: clean
 	@rm -f $(DESTDIR)$(libdir)/u-boot/rk3399/bl31.bin

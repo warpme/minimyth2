@@ -32,5 +32,5 @@ build-custom:
 	@cp $(WORKSRC)/build/rk3328/debug/bl31/bl31.elf $(DESTDIR)$(libdir)/u-boot/rk3328/bl31.bin
 	@$(MAKECOOKIE)
 
-clean-all:
+clean-all: clean
 	@rm -f $(DESTDIR)$(libdir)/u-boot/rk3328/bl31.bin
