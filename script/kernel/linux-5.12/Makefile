@@ -43,11 +43,11 @@ ifeq (1,1)
 # Misc panfrost patches for 5.12 kernel
 PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
-# Add suport for tests on Bifrost
-# https://github.com/superna9999/linux/commits/amlogic/v5.9/bifrost
-PATCHFILES += 0105-Also-use-meson-hack-on-amlogic-meson-g12a-mali.patch
-PATCHFILES += 0106-Sync-G31-features-with-kbase.patch
 endif
+
+# https://patchwork.kernel.org/project/linux-pm/cover/20210314163408.22292-1-digetx@gmail.com/
+#Introduce devm_pm_opp_* API
+PATCHFILES += 0120-drivers-PM-introduceidevm_pm_opp_index.html_iAPI.patch
 
 ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
@@ -146,11 +146,15 @@ PATCHFILES += 0585-drm-sun4i-de2-de3-add-back-redundant-CSC-matrices.patch
 PATCHFILES += 0586-wip-h616-drm-driver.patch
 PATCHFILES += 0590-arm64-dts-allwinner-Add-Allwinner-H616.dtsi-file.patch
 PATCHFILES += 0591-arm64-dts-allwinner-Add-OrangePi-Zero2.patch
+# add ths support
+PATCHFILES += 0592-drivers-thermal-allwinner-add-h616-ths-support.patch
 # https://github.com/apritzel/linux/commit/4c725d6cb99856635e3cf8aceae806c033588407
 PATCHFILES += 0594-arm64-dts-allwnner-h616-add-X96-Mate-TVbox.patch
 # based on apritzel work
 PATCHFILES += 0595-arm64-dts-allwnner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0596-arm64-dts-allwnner-h616-add-T95-TVbox.patch
+# add ths support
+PATCHFILES += 0597-arm64-dts-allwinner-add-h616-ths-support.patch
 endif
 #------------------------------------------------------------
 
@@ -208,7 +212,9 @@ PATCHFILES += 0906-staging-bcm2835-codec-Pass-corrupt-frame-flag.patch
 PATCHFILES += 0907-staging-bcm2835-codec-Set-colourspace-appropriat-for-RGB-fmt.patch
 PATCHFILES += 0908-staging-bcm2835-codec-Fix-support-for-levels-4.1-and-4.2.patch
 # hack for https://github.com/raspberrypi/linux/issues/4320
-PATCHFILES += 0909-drm-vc4-hack-ticket4320-revert-f3c420fe19-82faa327.patch
+#PATCHFILES += 0909-drm-vc4-hack-ticket4320-revert-f3c420fe19-82faa327.patch
+# https://github.com/mripard/rpi-linux/commit/bdb339dfc173cb8236157a17b9eed3e07191b217
+PATCHFILES += 0909-drm-vc4-Fix-non-blocking-commit-getting-stuck-forever.patch
 endif
 #------------------------------------------------------------
 
