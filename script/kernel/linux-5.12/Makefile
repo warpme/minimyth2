@@ -110,7 +110,7 @@ PATCHFILES += 0529-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
 # Fix hanging GS1 boot on loading kernel modules
-PATCHFILES += 0532-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
+PATCHFILES += 0532-arm64-dts-allwinner-gs1-fix-eMMC-and-incr-vcpu-limit.patch
 # Improvements and addidtions for some H6 boards
 PATCHFILES += 0533-arm64-dts-Tanix-TX6-improvements.patch
 PATCHFILES += 0534-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
@@ -155,6 +155,8 @@ PATCHFILES += 0595-arm64-dts-allwnner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0596-arm64-dts-allwnner-h616-add-T95-TVbox.patch
 # add ths support
 PATCHFILES += 0597-arm64-dts-allwinner-add-h616-ths-support.patch
+
+PATCHFILES += 0599-drivers-net-wireless-add-uwe5622.patch
 endif
 #------------------------------------------------------------
 
