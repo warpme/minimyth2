@@ -155,8 +155,6 @@ PATCHFILES += 0595-arm64-dts-allwnner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0596-arm64-dts-allwnner-h616-add-T95-TVbox.patch
 # add ths support
 PATCHFILES += 0597-arm64-dts-allwinner-add-h616-ths-support.patch
-
-PATCHFILES += 0599-drivers-net-wireless-add-uwe5622.patch
 endif
 #------------------------------------------------------------
 
