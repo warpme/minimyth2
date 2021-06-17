@@ -43,7 +43,7 @@ PATCHFILES += linux-5.13-disable_dma_for_cfa.patch
 PATCHFILES += linux-5.13-defaults.patch
 PATCHFILES += linux-5.13-vgaarb-add-3D-accell-detection.patch
 
-ifeq (0,1)
+ifeq (1,1)
 
 # Add hevc v4l2_request crtl fields used by Allwinner/Rockchip/Broadcom
 PATCHFILES += 0101-include-media-hevc-uapi-add-aw-rk-brcm-fields.patch
@@ -52,16 +52,12 @@ ifeq (1,1)
 # Misc panfrost patches for 5.13 kernel
 PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
-# Add suport for tests on Bifrost
-# https://github.com/superna9999/linux/commits/amlogic/v5.9/bifrost
-PATCHFILES += 0105-Also-use-meson-hack-on-amlogic-meson-g12a-mali.patch
-PATCHFILES += 0106-Sync-G31-features-with-kbase.patch
 endif
 
 ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
-#PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
-#PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
+PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
+PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
 endif
 
 ifeq (1,1)
@@ -120,7 +116,7 @@ PATCHFILES += 0529-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
 # Fix hanging GS1 boot on loading kernel modules
-PATCHFILES += 0532-arm64-dts-allwinner-fix-eMMC-on-beelink-GS1.patch
+PATCHFILES += 0532-arm64-dts-allwinner-gs1-fix-eMMC-and-incr-vcpu-limit.patch
 # Improvements and addidtions for some H6 boards
 PATCHFILES += 0533-arm64-dts-Tanix-TX6-improvements.patch
 PATCHFILES += 0534-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
@@ -135,25 +131,24 @@ PATCHFILES += 0538-arm64-dts-allwinner-H6-USB3-device-tree-updates.patch
 PATCHFILES += 0550-allwinner-add-rsb-extra.patch
 # Crust support from LE 17.01.2021
 PATCHFILES += 0551-allwinner-add-crust-support.patch
-#PATCHFILES += 0552-arm64-dts-ARM-dts-allwinner-a64-h3-h6-add-crust-support.patch
+PATCHFILES += 0552-arm64-dts-ARM-dts-allwinnerh6-enable-crust.patch
 # hack for fixng distorted screen on X11/Glamour
 PATCHFILES += 0554-drm-sun4i-report-no-midifiers.patch
 # Add hw deinterlce support from 17.01.2021
 PATCHFILES += 0560-H6-add-sun50i-di-deinterlace-WiP.patch
 PATCHFILES += 0561-arm64-dts-h6-add-deinterlace-node.patch
-# hacks for h616 initial support (Eth, USB, HDMI works; no GL/Audio yet)
+# hacks for h616 initial support (fast Eth, USB, HDMI)
 # https://github.com/jernejsk/linux-1/commits/h616-hdmi
-PATCHFILES += 0578-mfd-fix-axp20x-loading-on-h616.patch
-PATCHFILES += 0579-net-stmmac-dwmac-sun8i-Prepare-for-second-EMAC-clock.patch
-PATCHFILES += 0580-phy-sun4i-usb-Rework-HCI-PHY-aka.-pmu_unk1-handling.patch
-PATCHFILES += 0583-phy-sun4i-usb-Add-support-for-the-H616-USB-PHY.patch
-PATCHFILES += 0584-arm64-dts-allwinner-Add-Allwinner-H616-.dtsi-file.patch
-PATCHFILES += 0586-arm64-dts-allwinner-Add-OrangePi-Zero-2-.dts.patch
-PATCHFILES += 0591-wip-h616-hdmi.patch
-PATCHFILES += 0592-drm-sun4i-de2-de3-add-back-redundant-CSC-matrices.patch
-#PATCHFILES += 0593-wip-h616-drm-driver.patch
-# https://github.com/apritzel/linux/commit/4c725d6cb99856635e3cf8aceae806c033588407
-PATCHFILES += 0594-arm64-dts-allwnner-h616-add-X96-Mate-TVbox.patch
+PATCHFILES += 0570-drivers-h616-wip-add-usb-emac2-hdmi-support.patch
+# add ths support
+PATCHFILES += 0571-drivers-thermal-allwinner-add-h616-ths-support.patch
+# enable some h616 boards
+PATCHFILES += 0590-arm64-dts-allwinner-h616-add-dtsi.patch
+PATCHFILES += 0591-arm64-dts-allwinner-h616-add-OrangePi-Zero2.patch
+PATCHFILES += 0594-arm64-dts-allwinner-h616-add-X96-Mate-TVbox.patch
+PATCHFILES += 0595-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
+PATCHFILES += 0596-arm64-dts-allwinner-h616-add-T95-TVbox.patch
+PATCHFILES += 0597-arm64-dts-allwinner-h616-enable-ths-support.patch
 endif
 #------------------------------------------------------------
 
@@ -167,10 +162,10 @@ PATCHFILES += 0703-arm64-dts-rockchip-enable-rkvdec-on-rk3328.patch
 # https://github.com/Kwiboo/linux-rockchip/commits/linuxtv-rkvdec-work-in-progress
 # https://github.com/knaerzche/linux/commit/2d9e1a5b0b2ca9dfae43f30d80d014605337cf2a
 # https://github.com/knaerzche/linux/commit/68c947da3affcfdf48699008b5869325e15bfdcd
-#PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
+PATCHFILES += 0705-media-rkvdec-hantro-add-interlaced-h264-support.patch
 # Add hvec support for Rockchip rkvdec
 # update rkvdec to code from https://github.com/knaerzche/LibreELEC.tv/tree/rk-fixes-b2
-#PATCHFILES += 0707-media-rkvdec-add-hevc-support.patch
+PATCHFILES += 0707-media-rkvdec-add-hevc-support.patch
 # Improve rkvdec stability on rk3399 for hevc stream errors
 PATCHFILES += 0708-media-rkvdec-dec-clocks-for-stability.patch
 # Support for 4k modes
@@ -179,9 +174,6 @@ PATCHFILES += 0711-drm-rockchip-add-4k-videomodes-support.patch
 PATCHFILES += 0712-media-rockchip-add-hw-deinterlace-support.patch
 PATCHFILES += 0713-arm64-dts-rockchip-enable-iep-on-rk3328-rk3399.patch
 PATCHFILES += 0714-arm64-dts-add-enable-spdif-on-rk3328.patch
-PATCHFILES += 0715-phy-rockchip-add-rockchip-usb3-innosilicon-phy-drive.patch
-#PATCHFILES += 0716-usb-dwc3-add-rockchip-innosilicon-usb3-glue-layer.patch
-PATCHFILES += 0717-arm64-dts-add-enable-usb3-on-rk3328.patch
 PATCHFILES += 0718-arm64-dts-rockchip-disable-rkvdec_iommu_reset-rk3328-rk3399.patch
 PATCHFILES += 0720-arm64-dts-enable-dwmmc-on-rk3328.patch
 endif
@@ -203,8 +195,8 @@ PATCHFILES += 0905-staging-bcm2835-camera-Add-support-for-H264-levels-4.1-and-4.
 PATCHFILES += 0906-staging-bcm2835-codec-Pass-corrupt-frame-flag.patch
 PATCHFILES += 0907-staging-bcm2835-codec-Set-colourspace-appropriat-for-RGB-fmt.patch
 PATCHFILES += 0908-staging-bcm2835-codec-Fix-support-for-levels-4.1-and-4.2.patch
-# hack for https://github.com/raspberrypi/linux/issues/4320
-PATCHFILES += 0909-drm-vc4-hack-ticket4320-revert-f3c420fe19-82faa327.patch
+# fix for flip_dome timeouts on rpi4
+PATCHFILES += 0909-drm-vc4-Fix-non-blocking-commit-getting-stuck-forever.patch
 endif
 #------------------------------------------------------------
 
