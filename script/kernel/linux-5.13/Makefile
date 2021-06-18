@@ -129,9 +129,9 @@ PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 PATCHFILES += 0538-arm64-dts-allwinner-H6-USB3-device-tree-updates.patch
 # https://github.com/smaeul/linux/commits/patch/rsb-extra
 PATCHFILES += 0550-allwinner-add-rsb-extra.patch
-# Crust support from LE 17.01.2021
+# Crust support from https://github.com/crust-firmware/linux/commits/crust 15.05.2021
 PATCHFILES += 0551-allwinner-add-crust-support.patch
-PATCHFILES += 0552-arm64-dts-ARM-dts-allwinnerh6-enable-crust.patch
+PATCHFILES += 0552-arm64-dts-ARM-dts-allwinner-h3-h5-h6-enable-crust.patch
 # hack for fixng distorted screen on X11/Glamour
 PATCHFILES += 0554-drm-sun4i-report-no-midifiers.patch
 # Add hw deinterlce support from 17.01.2021
