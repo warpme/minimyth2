@@ -16,7 +16,9 @@ GARNAME      = wifi-xradio
 GARVERSION   = 354e8c32e7948d46a63796d0ca266b1f702999b0
 CATEGORIES   = system
 MASTER_SITES = https://github.com/karabek/xradio/archive/
-PATCHFILES   = fix_compile.patch enable-out-of-tree-compilation.patch
+PATCHFILES   = fix_compile.patch 
+PATCHFILES  += enable-out-of-tree-compilation.patch
+PATCHFILES  += fix-5.13-kernel-compile.patch
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/xradio-$(GARVERSION)
 endif
