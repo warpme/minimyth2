@@ -13,8 +13,7 @@ DEPENDS = \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8189es)    \
 	$(if $(filter arm64,$(GARCH_FAMILY)),kernel/rtl8821cu)    \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8822cs)    \
-
-#	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/xr819)        \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/xr819)        \
 
 include ../../gar.mk
 
@@ -52,4 +51,4 @@ reinstall:
 	@$(MAKE) reinstall -C ../../kernel/rtl8189es
 	@$(MAKE) reinstall -C ../../kernel/rtl8821cu
 	@$(MAKE) reinstall -C ../../kernel/rtl8822cs
-#	@$(MAKE) reinstall -C ../../kernel/xr819
+	@$(MAKE) reinstall -C ../../kernel/xr819
