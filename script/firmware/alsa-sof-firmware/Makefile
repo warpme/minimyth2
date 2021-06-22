@@ -27,5 +27,5 @@ install-custom:
 	@cp -Rdf $(WORKSRC)/* $(DESTDIR)$(elibdir)/firmware/
 	@$(MAKECOOKIE)
 
-clean-all:
+clean-all: clean
 

@@ -35,5 +35,5 @@ install-custom:
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-4.txt
 	@$(MAKECOOKIE)
 
-clean-all:
+clean-all: clean
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456*

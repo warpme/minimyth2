@@ -22,7 +22,7 @@ install-custom:
 	@cp -Rdf $(WORKSRC)/ath10k/QCA9377 $(DESTDIR)$(elibdir)/firmware/ath10k/
 	@$(MAKECOOKIE)
 
-clean-all:
+clean-all: clean
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/ath10k/QCA9377hw1.0/board-sdio.bin
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/ath10k/QCA9377hw1.0/firmware-sdio-5.bin
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/ath10k/QCA9377hw1.0/notice.txt

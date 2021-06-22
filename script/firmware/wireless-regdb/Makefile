@@ -23,7 +23,7 @@ install-custom:
 	@cp -Rdf $(WORKSRC)/sforshee.key.pub.pem $(DESTDIR)$(libdir)/crda/pubkeys/sforshee.key.pub.pem
 	@$(MAKECOOKIE)
 
-clean-all:
+clean-all: clean
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/regulatory.db
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/regulatory.db.p7s
 	@rm -rf $(DESTDIR)$(libdir)/crda*

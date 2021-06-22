@@ -27,5 +27,5 @@ install-custom:
 	@cp -Rdf $(WORKSRC)/*.bin $(DESTDIR)$(elibdir)/firmware/meson/vdec/
 	@$(MAKECOOKIE)
 
-clean-all:
-	@true
+clean-all: clean
+

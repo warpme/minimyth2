@@ -18,8 +18,8 @@ include ../../gar.mk
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/
-	@cp -Rdf $(WORKSRC)/xr819 $(DESTDIR)$(elibdir)/firmware/
+	@cp -Rdf $(WORKSRC)/brcm/brcmfmac-ap6330* $(DESTDIR)$(elibdir)/firmware/brcm/
 	@$(MAKECOOKIE)
 
 clean-all: clean
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/xr819*
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm//brcmfmac-ap6330*

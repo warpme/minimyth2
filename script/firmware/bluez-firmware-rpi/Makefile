@@ -22,5 +22,5 @@ install-custom:
 	@cp -Rdf $(WORKSRC)/broadcom/*.{txt,bin,hex,hcd} $(DESTDIR)$(elibdir)/firmware/brcm/
 	@$(MAKECOOKIE)
 
-clean-all:
-	@true
+clean-all: clean
+

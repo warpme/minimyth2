@@ -21,5 +21,5 @@ install-custom:
 	@cp -Rdf $(WORKSRC)/firmware/brcmfmac43430* $(DESTDIR)$(elibdir)/firmware/brcm/
 	@$(MAKECOOKIE)
 
-clean-all:
+clean-all: clean
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430*
