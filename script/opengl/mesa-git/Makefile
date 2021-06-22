@@ -1,11 +1,11 @@
 
 GARNAME      = mesa
-GARVERSION   = 21.1.0-rc3
+GARVERSION   = 91a1849ff04fc6b7b921a303823a111196ff8559
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
+MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 PATCHFILES   = fix-compile-softfp-abi-on-arm-target.patch
-WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
+WORKSRC      = $(WORKDIR)/$(DISTNAME)
 
 DESCRIPTION = 
 define BLURB
