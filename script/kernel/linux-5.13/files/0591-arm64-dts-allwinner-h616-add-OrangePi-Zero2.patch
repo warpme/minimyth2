@@ -1,7 +1,3 @@
-From 93f8fb12cd1246f1e261504d44e9faa3e34cb357 Mon Sep 17 00:00:00 2001
-From: Andre Przywara <andre.przywara@arm.com>
-Date: Fri, 27 Nov 2020 15:28:40 +0000
-Subject: [PATCH 86/93] arm64: dts: allwinner: Add OrangePi Zero 2 .dts
 
 The OrangePi Zero 2 is a development board with the new H616 SoC.
 
@@ -10,7 +6,6 @@ with the AXP305, which seems to be compatible with the AXP805.
 
 For more details see: http://linux-sunxi.org/Xunlong_Orange_Pi_Zero2
 
-Signed-off-by: Andre Przywara <andre.przywara@arm.com>
 ---
  arch/arm64/boot/dts/allwinner/Makefile        |   1 +
  .../allwinner/sun50i-h616-orangepi-zero2.dts  | 242 ++++++++++++++++++
@@ -31,7 +26,7 @@ new file mode 100644
 index 00000000000..e6de49f89e3
 --- /dev/null
 +++ b/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts
-@@ -0,0 +1,242 @@
+@@ -0,0 +1,334 @@
 +// SPDX-License-Identifier: (GPL-2.0+ or MIT)
 +/*
 + * Copyright (C) 2020 Arm Ltd.
@@ -56,6 +51,17 @@ index 00000000000..e6de49f89e3
 +
 +	chosen {
 +		stdout-path = "serial0:115200n8";
++	};
++
++	connector {
++		compatible = "hdmi-connector";
++		type = "d";
++
++		port {
++			hdmi_con_in: endpoint {
++				remote-endpoint = <&hdmi_out_con>;
++			};
++		};
 +	};
 +
 +	leds {
@@ -94,6 +100,21 @@ index 00000000000..e6de49f89e3
 +		gpio = <&pio 2 16 GPIO_ACTIVE_HIGH>; /* PC16 */
 +		status = "okay";
 +	};
++
++	reg_vcc_wifi: reg_vcc_wifi {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-wifi";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		gpio = <&pio 6 18 GPIO_ACTIVE_HIGH>; /* PG18 WL_REG_ON */
++		regulator-always-on;
++		enable-active-high;
++		status = "okay";
++	};
++};
++
++&de {
++	status = "okay";
 +};
 +
 +&ehci0 {
@@ -101,6 +122,30 @@ index 00000000000..e6de49f89e3
 +};
 +
 +&ehci1 {
++	status = "okay";
++};
++
++&ehci2 {
++	status = "okay";
++};
++
++&ehci3 {
++	status = "okay";
++};
++
++&hdmi {
++	hvcc-supply = <&reg_bldo1>;
++	status = "okay";
++};
++
++&hdmi_out {
++	hdmi_out_con: endpoint {
++		remote-endpoint = <&hdmi_con_in>;
++	};
++};
++
++&gpu {
++	mali-supply = <&reg_dcdcc>;
 +	status = "okay";
 +};
 +
@@ -131,11 +176,35 @@ index 00000000000..e6de49f89e3
 +	status = "okay";
 +};
 +
++&mmc1 {
++	vmmc-supply = <&reg_dcdce>;
++	vqmmc-supply = <&reg_vcc_wifi>;
++	bus-width = <4>;
++	non-removable;
++	status = "okay";
++
++	wlan: wifi@1 {
++		reg = <1>;
++		compatible = "allwinner,aw859a";
++		interrupt-parent = <&pio>;
++		interrupts = <GIC_SPI 207 IRQ_TYPE_EDGE_RISING>;
++		interrupt-names = "host-wake";
++	};
++};
++
 +&ohci0 {
 +	status = "okay";
 +};
 +
 +&ohci1 {
++	status = "okay";
++};
++
++&ohci2 {
++	status = "okay";
++};
++
++&ohci3 {
 +	status = "okay";
 +};
 +
@@ -265,6 +334,24 @@ index 00000000000..e6de49f89e3
 +	status = "okay";
 +};
 +
++&uart1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart1_pins>, <&uart1_rts_cts_pins>;
++	uart-has-rtscts;
++	status = "okay";
++
++	bluetooth {
++		compatible = "brcm,bcm43438-bt";
++		clocks = <&rtc 1>;
++		clock-names = "lpo";
++		vbat-supply = <&reg_dcdce>;
++		vddio-supply = <&reg_dcdce>;
++		device-wakeup-gpios = <&r_pio 0 6 GPIO_ACTIVE_HIGH>; /* PL6 */
++		host-wakeup-gpios = <&r_pio 0 5 GPIO_ACTIVE_HIGH>; /* PL5 */
++		shutdown-gpios = <&r_pio 0 4 GPIO_ACTIVE_HIGH>; /* PL4 */
++	};
++};
++
 +&usbotg {
 +	dr_mode = "peripheral";
 +	status = "okay";
@@ -275,97 +362,3 @@ index 00000000000..e6de49f89e3
 +	status = "okay";
 +};
 -- 
-2.29.2
-
-From a57b81d6188b0f8888d4856c17eff5c5e9816fd8 Mon Sep 17 00:00:00 2001
-From: Jernej Skrabec <jernej.skrabec@siol.net>
-Date: Tue, 9 Feb 2021 19:34:18 +0100
-Subject: [PATCH 92/93] wip h616 hdmi
-
----
- .../allwinner/sun50i-h616-orangepi-zero2.dts  |  42 ++++
- .../arm64/boot/dts/allwinner/sun50i-h616.dtsi | 205 +++++++++++++++++-
- drivers/gpu/drm/sun4i/sun4i_tcon.c            |   4 +
- drivers/gpu/drm/sun4i/sun4i_tcon.h            |   1 +
- drivers/gpu/drm/sun4i/sun8i_hdmi_phy.c        |  71 ++++++
- 5 files changed, 319 insertions(+), 4 deletions(-)
-
-diff --git a/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts b/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts
-index e6de49f89e3..cc227627284 100644
---- a/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts
-+++ b/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts
-@@ -24,6 +24,17 @@ chosen {
- 		stdout-path = "serial0:115200n8";
- 	};
- 
-+	connector {
-+		compatible = "hdmi-connector";
-+		type = "d";
-+
-+		port {
-+			hdmi_con_in: endpoint {
-+				remote-endpoint = <&hdmi_out_con>;
-+			};
-+		};
-+	};
-+
- 	leds {
- 		compatible = "gpio-leds";
- 
-@@ -62,6 +73,10 @@ reg_usb1_vbus: usb1-vbus {
- 	};
- };
- 
-+&de {
-+	status = "okay";
-+};
-+
- &ehci0 {
- 	status = "okay";
- };
-@@ -70,6 +85,30 @@ &ehci1 {
- 	status = "okay";
- };
- 
-+&ehci2 {
-+	status = "okay";
-+};
-+
-+&ehci3 {
-+	status = "okay";
-+};
-+
-+&hdmi {
-+	hvcc-supply = <&reg_bldo1>;
-+	status = "okay";
-+};
-+
-+&hdmi_out {
-+	hdmi_out_con: endpoint {
-+		remote-endpoint = <&hdmi_con_in>;
-+	};
-+};
-+
-+&gpu {
-+	mali-supply = <&reg_dcdcc>;
-+	status = "okay";
-+};
-+
- /* USB 2 & 3 are on headers only. */
- 
- &emac0 {
-@@ -105,6 +139,14 @@ &ohci1 {
- 	status = "okay";
- };
- 
-+&ohci2 {
-+	status = "okay";
-+};
-+
-+&ohci3 {
-+	status = "okay";
-+};
-+
- &r_rsb {
- 	status = "okay";
- 
