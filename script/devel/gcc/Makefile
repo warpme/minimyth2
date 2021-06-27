@@ -10,6 +10,7 @@ PATCHFILES  = $(DISTNAME)-disable_multilib_i386_linux64.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
 PATCHFILES += $(DISTNAME)-perl.patch.gar
 PATCHFILES += $(DISTNAME)-libstdc++-v3-force_sdt.h-detect-to-no.patch
+PATCHFILES += $(DISTNAME)-remove-cyclades.patch
 endif
 LICENSE = GPL2/GPL3/LGPL2_1/LGPL3
 
