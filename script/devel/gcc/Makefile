@@ -7,6 +7,7 @@ MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/prerelease-$(GCC_VERSION)/
 MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/snapshots/$(GCC_VERSION)/
 DISTFILES = $(DISTNAME).tar.xz
 PATCHFILES  = $(DISTNAME)-disable_multilib_i386_linux64.patch
+PATCHFILES += $(DISTNAME)-libsanitizer-remove-cyclades.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
 PATCHFILES += $(DISTNAME)-perl.patch.gar
 PATCHFILES += $(DISTNAME)-libstdc++-v3-force_sdt.h-detect-to-no.patch
