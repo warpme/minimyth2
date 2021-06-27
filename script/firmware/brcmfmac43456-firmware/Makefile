@@ -1,6 +1,5 @@
 
 GARNAME       = brcmfmac43456-firmware
-# Git master from 25.01.2021
 GARVERSION    = master
 CATEGORIES    = firmware
 MASTER_SITES  = https://github.com/RPi-Distro/firmware-nonfree/archive/refs/heads/
