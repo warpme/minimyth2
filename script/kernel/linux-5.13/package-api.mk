@@ -1,23 +1,23 @@
 #--Use this for mainline x.y.z kernel-------
 ifeq (0,1)
 LINUX_MAJOR_VERSION = 5
-LINUX_MINOR_VERSION = 12
-LINUX_TEENY_VERSION = 2
+LINUX_MINOR_VERSION = 13
+LINUX_TEENY_VERSION = 1
 LINUX_EXTRA_VERSION = 
 endif
 #-------------------------------------------
 
 #--Use this for first release of mainline kernel
-ifeq (0,1)
+ifeq (1,1)
 LINUX_MAJOR_VERSION = 5
-LINUX_MINOR_VERSION = 12
+LINUX_MINOR_VERSION = 13
 LINUX_TEENY_VERSION = 
 LINUX_EXTRA_VERSION = 
 endif
 #-------------------------------------------
 
 #--Use this for RC mainline kernel----------
-ifeq (1,1)
+ifeq (0,1)
 LINUX_MAJOR_VERSION = 5
 LINUX_MINOR_VERSION = 13
 LINUX_TEENY_VERSION = 
