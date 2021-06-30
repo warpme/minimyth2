@@ -1,0 +1,114 @@
+diff -Naur xradio-354e8c32e7948d46a63796d0ca266b1f702999b0-old/hwio.c xradio-354e8c32e7948d46a63796d0ca266b1f702999b0-new/hwio.c
+--- xradio-354e8c32e7948d46a63796d0ca266b1f702999b0-old/hwio.c	2020-05-02 19:17:06.000000000 +0200
++++ xradio-354e8c32e7948d46a63796d0ca266b1f702999b0-new/hwio.c	2021-06-29 19:38:52.796665892 +0200
+@@ -75,13 +75,33 @@
+ static inline int __xradio_read_reg32(struct xradio_common *hw_priv,
+                                        u16 addr, u32 *val)
+ {
+-	return __xradio_read(hw_priv, addr, val, sizeof(val), 0);
++	__le32 *tmp;
++	int rc;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	rc = __xradio_read(hw_priv, addr, tmp, sizeof(*tmp), 0);
++	*val = le32_to_cpu(*tmp);
++	kfree(tmp);
++	return rc;
+ }
+ 
+ static inline int __xradio_write_reg32(struct xradio_common *hw_priv,
+                                         u16 addr, u32 val)
+ {
+-	return __xradio_write(hw_priv, addr, &val, sizeof(val), 0);
++	__le32 *tmp;
++	int rc;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	*tmp = cpu_to_le32(val);
++	rc =  __xradio_write(hw_priv, addr, tmp, sizeof(*tmp), 0);
++	kfree(tmp);
++	return rc;
+ }
+ 
+ int xradio_reg_read(struct xradio_common *hw_priv, u16 addr, 
+diff -Naur xradio-354e8c32e7948d46a63796d0ca266b1f702999b0-old/hwio.h xradio-354e8c32e7948d46a63796d0ca266b1f702999b0-new/hwio.h
+--- xradio-354e8c32e7948d46a63796d0ca266b1f702999b0-old/hwio.h	2020-05-02 19:17:06.000000000 +0200
++++ xradio-354e8c32e7948d46a63796d0ca266b1f702999b0-new/hwio.h	2021-06-29 19:51:26.016665883 +0200
+@@ -163,29 +163,64 @@
+                                      u16 addr, u16 *val)
+ {
+ 	int ret    = 0;
+-	u32 bigVal = 0;
+-	ret = xradio_reg_read(hw_priv, addr, &bigVal, sizeof(bigVal));
+-	*val = (u16)bigVal;
++	__le32 *tmp;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	ret = xradio_reg_read(hw_priv, addr, tmp, sizeof(*tmp));
++	*val = le32_to_cpu(*tmp) & 0xfffff;
++	kfree(tmp);
+ 	return ret;
+ }
+ 
+ static inline int xradio_reg_write_16(struct xradio_common *hw_priv,
+                                       u16 addr, u16 val)
+ {
+-	u32 bigVal = (u32)val;
+-	return xradio_reg_write(hw_priv, addr, &bigVal, sizeof(bigVal));
++	__le32 *tmp;
++	int ret;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	*tmp = cpu_to_le32((u32)val);
++	ret = xradio_reg_write(hw_priv, addr, tmp, sizeof(*tmp));
++	kfree(tmp);
++	return ret;
+ }
+ 
+ static inline int xradio_reg_read_32(struct xradio_common *hw_priv,
+                                       u16 addr, u32 *val)
+ {
+-	return xradio_reg_read(hw_priv, addr, val, sizeof(val));
++	__le32 *tmp;
++	int ret;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	ret = xradio_reg_read(hw_priv, addr, tmp, sizeof(*tmp));
++	*val = le32_to_cpu(*tmp);
++	kfree(tmp);
++	return ret;
+ }
+ 
+ static inline int xradio_reg_write_32(struct xradio_common *hw_priv,
+                                       u16 addr, u32 val)
+ {
+-	return xradio_reg_write(hw_priv, addr, &val, sizeof(val));
++	__le32 *tmp;
++	int ret;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	*tmp = cpu_to_le32(val);
++	ret = xradio_reg_write(hw_priv, addr, tmp, sizeof(val));
++	kfree(tmp);
++	return ret;
+ }
+ 
+ static inline int xradio_apb_read(struct xradio_common *hw_priv, u32 addr,

@@ -5,7 +5,9 @@ GARNAME      = wifi-xradio
 GARVERSION   = 6bf0e2e21c80456e2a3d4ad1267caecde7165871
 CATEGORIES   = system
 MASTER_SITES = https://github.com/fifteenhex/xradio/archive/
-PATCHFILES   = fix_compile.patch
+#PATCHFILES   = 01-enable-out-of-tree-compilation.patch
+#PATCHFILES  += 02-wip-pass-kmalloc-bufs-to-sdio-transactions.patch
+#PATCHFILES  += 03-fix-of_get_mac_address-on-5.13-kernel.patch
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/xradio-$(GARVERSION)
 endif
@@ -16,9 +18,9 @@ GARNAME      = wifi-xradio
 GARVERSION   = 354e8c32e7948d46a63796d0ca266b1f702999b0
 CATEGORIES   = system
 MASTER_SITES = https://github.com/karabek/xradio/archive/
-PATCHFILES   = fix_compile.patch 
-PATCHFILES  += enable-out-of-tree-compilation.patch
-PATCHFILES  += fix-5.13-kernel-compile.patch
+PATCHFILES   = 01-enable-out-of-tree-compilation.patch
+PATCHFILES  += 02-wip-pass-kmalloc-bufs-to-sdio-transactions.patch
+PATCHFILES  += 03-fix-of_get_mac_address-on-5.13-kernel.patch
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/xradio-$(GARVERSION)
 endif
