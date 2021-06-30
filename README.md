@@ -62,13 +62,13 @@ This is general functionality avaliable on current code (Mainline Linux kernel)
 SoC           | Tested on        | WiFi Chip & Support                     | CEC Support            | Sleep/Resume                   | Remarks                       |
 ------------- |------------------|-----------------------------------------|------------------------|--------------------------------|-------------------------------|
 Allwinner H6  | EachLink H6 Mini | not works  (rtl8723bs@SDIO I/O issue)   | works                  | works                          | well supported                |
-Allwinner H6  | TanixTX6-Mini    | not works  (xr819@SDIO firmware issue)  | works                  | works                          | well supported                |
+Allwinner H6  | TanixTX6-Mini    | works      (xr819@SDIO)                 | works                  | works                          | well supported                |
 Allwinner H6  | Beelink GS1      | not works  (fn-link6222@PCI-e no PCI-e) | works                  | not works (firmware issue)     | some things are still missing |
 Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                    | works                  | currently power off/on         | good prospects                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                    | works                  | currently power off/on         | well supported                |
 Amlogic s905  | TanixTX3-Mini    | not works  (sv6051@SDIO no driver aval) | not works (kernel bug) | not works (firmware issue)     | support stalled               |
 Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)       | not works (kernel bug) | not works (firmware issue)     | support stalled               |
-Amlogic sm1   | x96Air           | works  (rtl8189@SDIO                    | not works (kernel bug) | not works (firmware issue)     | support stalled               |
+Amlogic sm1   | x96Air           | works  (rtl8189@SDIO)                   | not works (kernel bug) | not works (firmware issue)     | support stalled               |
 Broadcom 2837 | Rpi3-b           | works  (brcm43430@SDIO)                 | works                  | no plans                       | all basics works nicelly      |
 Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                  | works                  | no plans                       | all basics works nicelly      |
 Intel i5      | i5 NUC           | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
