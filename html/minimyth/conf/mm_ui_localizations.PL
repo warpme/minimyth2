@@ -60,8 +60,12 @@ update_will_effect_after_reboot_str	="Aktualizacja zadziała po restarcie !"
 files_to_update_str			=" plik(ów) jest do aktualizacji !"
 something_went_wrong_str		="Oj, coś poszło nie tak :-("
 
+#---- OSD messaging in test LAN speed
+# /usr/bin/mm_test_network_speed 02.07.2021
 
-
+test_network_speed_str			="Test prędkości LAN/WiFi"
+measured_network_speed_str		="Aktualna Prędkość: "
+error_testing_network_speed_str>	="Błąd połączenia z demonem netperf!"
 
 
 
