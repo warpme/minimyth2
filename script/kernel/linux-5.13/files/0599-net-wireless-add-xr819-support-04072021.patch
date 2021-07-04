@@ -1,0 +1,607 @@
+From 1cba9a7764c7d5bbdeb4ddeaa91ff20a0339f6ff Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Tue, 22 Jun 2021 22:12:12 +0200
+Subject: [PATCH 22/26] cw1200: use kmalloc() allocation instead of stack
+
+It turns out that if CONFIG_VMAP_STACK is enabled and src or dst is
+memory allocated on stack, SDIO operations fail due to invalid memory
+address conversion.
+
+Fix that by using kmalloc() allocated memory for read/write 16/32
+funtions.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/net/wireless/st/cw1200/bh.c   | 11 +++-
+ drivers/net/wireless/st/cw1200/hwio.c | 52 ++++++++++++---
+ drivers/net/wireless/st/cw1200/hwio.h | 93 +++++++++++++++++++++------
+ 3 files changed, 126 insertions(+), 30 deletions(-)
+
+diff --git a/drivers/net/wireless/st/cw1200/bh.c b/drivers/net/wireless/st/cw1200/bh.c
+index 8bade5d89f1..b27e1de861b 100644
+--- a/drivers/net/wireless/st/cw1200/bh.c
++++ b/drivers/net/wireless/st/cw1200/bh.c
+@@ -423,9 +423,13 @@ static int cw1200_bh(void *arg)
+ 	int pending_tx = 0;
+ 	int tx_burst;
+ 	long status;
+-	u32 dummy;
++	u32 *dummy;
+ 	int ret;
+ 
++	dummy = kmalloc(sizeof(*dummy), GFP_KERNEL);
++	if (!dummy)
++		return -ENOMEM;
++
+ 	for (;;) {
+ 		if (!priv->hw_bufs_used &&
+ 		    priv->powersave_enabled &&
+@@ -447,7 +451,7 @@ static int cw1200_bh(void *arg)
+ 		    (atomic_read(&priv->bh_rx) == 0) &&
+ 		    (atomic_read(&priv->bh_tx) == 0))
+ 			cw1200_reg_read(priv, ST90TDS_CONFIG_REG_ID,
+-					&dummy, sizeof(dummy));
++					dummy, sizeof(*dummy));
+ 
+ 		pr_debug("[BH] waiting ...\n");
+ 		status = wait_event_interruptible_timeout(priv->bh_wq, ({
+@@ -609,5 +613,8 @@ static int cw1200_bh(void *arg)
+ 		priv->bh_error = 1;
+ 		/* TODO: schedule_work(recovery) */
+ 	}
++
++	kfree(dummy);
++
+ 	return 0;
+ }
+diff --git a/drivers/net/wireless/st/cw1200/hwio.c b/drivers/net/wireless/st/cw1200/hwio.c
+index 3ba462de8e9..5521cb7f223 100644
+--- a/drivers/net/wireless/st/cw1200/hwio.c
++++ b/drivers/net/wireless/st/cw1200/hwio.c
+@@ -66,33 +66,65 @@ static int __cw1200_reg_write(struct cw1200_common *priv, u16 addr,
+ static inline int __cw1200_reg_read_32(struct cw1200_common *priv,
+ 					u16 addr, u32 *val)
+ {
+-	__le32 tmp;
+-	int i = __cw1200_reg_read(priv, addr, &tmp, sizeof(tmp), 0);
+-	*val = le32_to_cpu(tmp);
++	__le32 *tmp;
++	int i;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	i = __cw1200_reg_read(priv, addr, tmp, sizeof(*tmp), 0);
++	*val = le32_to_cpu(*tmp);
++	kfree(tmp);
+ 	return i;
+ }
+ 
+ static inline int __cw1200_reg_write_32(struct cw1200_common *priv,
+ 					u16 addr, u32 val)
+ {
+-	__le32 tmp = cpu_to_le32(val);
+-	return __cw1200_reg_write(priv, addr, &tmp, sizeof(tmp), 0);
++	__le32 *tmp;
++	int i;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	*tmp = cpu_to_le32(val);
++	i = __cw1200_reg_write(priv, addr, tmp, sizeof(*tmp), 0);
++	kfree(tmp);
++	return i;
+ }
+ 
+ static inline int __cw1200_reg_read_16(struct cw1200_common *priv,
+ 					u16 addr, u16 *val)
+ {
+-	__le16 tmp;
+-	int i = __cw1200_reg_read(priv, addr, &tmp, sizeof(tmp), 0);
+-	*val = le16_to_cpu(tmp);
++	__le16 *tmp;
++	int i;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	i = __cw1200_reg_read(priv, addr, tmp, sizeof(*tmp), 0);
++	*val = le16_to_cpu(*tmp);
++	kfree(tmp);
+ 	return i;
+ }
+ 
+ static inline int __cw1200_reg_write_16(struct cw1200_common *priv,
+ 					u16 addr, u16 val)
+ {
+-	__le16 tmp = cpu_to_le16(val);
+-	return __cw1200_reg_write(priv, addr, &tmp, sizeof(tmp), 0);
++	__le16 *tmp;
++	int i;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	*tmp = cpu_to_le16(val);
++	i = __cw1200_reg_write(priv, addr, tmp, sizeof(*tmp), 0);
++	kfree(tmp);
++	return i;
+ }
+ 
+ int cw1200_reg_read(struct cw1200_common *priv, u16 addr, void *buf,
+diff --git a/drivers/net/wireless/st/cw1200/hwio.h b/drivers/net/wireless/st/cw1200/hwio.h
+index d1e629a566c..3a8e6c68261 100644
+--- a/drivers/net/wireless/st/cw1200/hwio.h
++++ b/drivers/net/wireless/st/cw1200/hwio.h
+@@ -166,34 +166,65 @@ int cw1200_reg_write(struct cw1200_common *priv, u16 addr,
+ static inline int cw1200_reg_read_16(struct cw1200_common *priv,
+ 				     u16 addr, u16 *val)
+ {
+-	__le32 tmp;
++	__le32 *tmp;
+ 	int i;
+-	i = cw1200_reg_read(priv, addr, &tmp, sizeof(tmp));
+-	*val = le32_to_cpu(tmp) & 0xfffff;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	i = cw1200_reg_read(priv, addr, tmp, sizeof(*tmp));
++	*val = le32_to_cpu(*tmp) & 0xfffff;
++	kfree(tmp);
+ 	return i;
+ }
+ 
+ static inline int cw1200_reg_write_16(struct cw1200_common *priv,
+ 				      u16 addr, u16 val)
+ {
+-	__le32 tmp = cpu_to_le32((u32)val);
+-	return cw1200_reg_write(priv, addr, &tmp, sizeof(tmp));
++	__le32 *tmp;
++	int i;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	*tmp = cpu_to_le32((u32)val);
++	i = cw1200_reg_write(priv, addr, tmp, sizeof(*tmp));
++	kfree(tmp);
++	return i;
+ }
+ 
+ static inline int cw1200_reg_read_32(struct cw1200_common *priv,
+ 				     u16 addr, u32 *val)
+ {
+-	__le32 tmp;
+-	int i = cw1200_reg_read(priv, addr, &tmp, sizeof(tmp));
+-	*val = le32_to_cpu(tmp);
++	__le32 *tmp;
++	int i;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	i = cw1200_reg_read(priv, addr, tmp, sizeof(*tmp));
++	*val = le32_to_cpu(*tmp);
++	kfree(tmp);
+ 	return i;
+ }
+ 
+ static inline int cw1200_reg_write_32(struct cw1200_common *priv,
+ 				      u16 addr, u32 val)
+ {
+-	__le32 tmp = cpu_to_le32(val);
+-	return cw1200_reg_write(priv, addr, &tmp, sizeof(val));
++	__le32 *tmp;
++	int i;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	*tmp = cpu_to_le32(val);
++	i = cw1200_reg_write(priv, addr, tmp, sizeof(val));
++	kfree(tmp);
++	return i;
+ }
+ 
+ int cw1200_indirect_read(struct cw1200_common *priv, u32 addr, void *buf,
+@@ -220,24 +251,50 @@ static inline int cw1200_ahb_read(struct cw1200_common *priv, u32 addr,
+ static inline int cw1200_apb_read_32(struct cw1200_common *priv,
+ 				     u32 addr, u32 *val)
+ {
+-	__le32 tmp;
+-	int i = cw1200_apb_read(priv, addr, &tmp, sizeof(tmp));
+-	*val = le32_to_cpu(tmp);
++	__le32 *tmp;
++	int i;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	i = cw1200_apb_read(priv, addr, tmp, sizeof(*tmp));
++	*val = le32_to_cpu(*tmp);
++	kfree(tmp);
++
+ 	return i;
+ }
+ 
+ static inline int cw1200_apb_write_32(struct cw1200_common *priv,
+ 				      u32 addr, u32 val)
+ {
+-	__le32 tmp = cpu_to_le32(val);
+-	return cw1200_apb_write(priv, addr, &tmp, sizeof(val));
++	__le32 *tmp;
++	int i;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	*tmp = cpu_to_le32(val);
++	i = cw1200_apb_write(priv, addr, tmp, sizeof(*tmp));
++	kfree(tmp);
++
++	return i;
+ }
+ static inline int cw1200_ahb_read_32(struct cw1200_common *priv,
+ 				     u32 addr, u32 *val)
+ {
+-	__le32 tmp;
+-	int i = cw1200_ahb_read(priv, addr, &tmp, sizeof(tmp));
+-	*val = le32_to_cpu(tmp);
++	__le32 *tmp;
++	int i;
++
++	tmp = kmalloc(sizeof(*tmp), GFP_KERNEL);
++	if (!tmp)
++		return -ENOMEM;
++
++	i = cw1200_ahb_read(priv, addr, tmp, sizeof(*tmp));
++	*val = le32_to_cpu(*tmp);
++	kfree(tmp);
++
+ 	return i;
+ }
+ 
+-- 
+2.29.2
+
+From c01914dd971af80ff85023f98c57955584c3beda Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Wed, 23 Jun 2021 19:54:56 +0200
+Subject: [PATCH 23/26] cw1200: support loading cw1x60 FW
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/net/wireless/st/cw1200/fwio.c | 47 +++++++++++++++++++++++----
+ drivers/net/wireless/st/cw1200/hwio.h |  1 +
+ 2 files changed, 42 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/st/cw1200/fwio.c b/drivers/net/wireless/st/cw1200/fwio.c
+index 2a03dc533b6..a71e90fff61 100644
+--- a/drivers/net/wireless/st/cw1200/fwio.c
++++ b/drivers/net/wireless/st/cw1200/fwio.c
+@@ -48,6 +48,39 @@ static int cw1200_get_hw_type(u32 config_reg_val, int *major_revision)
+ 	return hw_type;
+ }
+ 
++static int cw1200_load_bootloader(struct cw1200_common *priv)
++{
++	const struct firmware *bootloader = NULL;
++	const char *bl_path = BOOTLOADER_CW1X60;
++	u32 *data, i, addr = AHB_MEMORY_ADDRESS;
++	int ret;
++
++	ret = request_firmware(&bootloader, bl_path, priv->pdev);
++	if (ret) {
++		pr_err("Can't load bootloader file %s.\n", bl_path);
++		goto error;
++	}
++
++	data = (u32 *)bootloader->data;
++	for (i = 0; i < bootloader->size / 4; i++, addr += 4) {
++		ret = cw1200_reg_write_32(priv,
++					  ST90TDS_SRAM_BASE_ADDR_REG_ID, addr);
++		if (ret < 0)
++			goto error;
++		ret = cw1200_reg_write_32(priv,
++					  ST90TDS_AHB_DPORT_REG_ID, data[i]);
++		if (ret < 0)
++			goto error;
++	}
++
++	pr_info("Bootloader download complete\n");
++
++error:
++	release_firmware(bootloader);
++
++	return ret;
++}
++
+ static int cw1200_load_firmware_cw1200(struct cw1200_common *priv)
+ {
+ 	int ret, block, num_blocks;
+@@ -128,9 +161,11 @@ static int cw1200_load_firmware_cw1200(struct cw1200_common *priv)
+ 	APB_WRITE(DOWNLOAD_STATUS_REG, DOWNLOAD_PENDING);
+ 	APB_WRITE(DOWNLOAD_FLAGS_REG, 0);
+ 
+-	/* Write the NOP Instruction */
+-	REG_WRITE(ST90TDS_SRAM_BASE_ADDR_REG_ID, 0xFFF20000);
+-	REG_WRITE(ST90TDS_AHB_DPORT_REG_ID, 0xEAFFFFFE);
++	if (priv->hw_revision != CW1X60_HW_REV) {
++		/* Write the NOP Instruction */
++		REG_WRITE(ST90TDS_SRAM_BASE_ADDR_REG_ID, 0xFFF20000);
++		REG_WRITE(ST90TDS_AHB_DPORT_REG_ID, 0xEAFFFFFE);
++	}
+ 
+ 	/* Release CPU from RESET */
+ 	REG_READ(ST90TDS_CONFIG_REG_ID, val32);
+@@ -469,9 +504,9 @@ int cw1200_load_firmware(struct cw1200_common *priv)
+ 	switch (priv->hw_type)  {
+ 	case HIF_8601_SILICON:
+ 		if (priv->hw_revision == CW1X60_HW_REV) {
+-			pr_err("Can't handle CW1160/1260 firmware load yet.\n");
+-			ret = -ENOTSUPP;
+-			goto out;
++			ret = cw1200_load_bootloader(priv);
++			if (ret)
++				goto out;
+ 		}
+ 		ret = cw1200_load_firmware_cw1200(priv);
+ 		break;
+diff --git a/drivers/net/wireless/st/cw1200/hwio.h b/drivers/net/wireless/st/cw1200/hwio.h
+index 3a8e6c68261..49387f43e37 100644
+--- a/drivers/net/wireless/st/cw1200/hwio.h
++++ b/drivers/net/wireless/st/cw1200/hwio.h
+@@ -89,6 +89,7 @@ struct download_cntl_t {
+ 
+ 
+ #define SYS_BASE_ADDR_SILICON		(0)
++#define AHB_MEMORY_ADDRESS		(SYS_BASE_ADDR_SILICON + 0x08000000)
+ #define PAC_BASE_ADDRESS_SILICON	(SYS_BASE_ADDR_SILICON + 0x09000000)
+ #define PAC_SHARED_MEMORY_SILICON	(PAC_BASE_ADDRESS_SILICON)
+ 
+-- 
+2.29.2
+
+From cd1b02b876ba09b7b637eae0bfe753dec6162e37 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sat, 3 Jul 2021 08:59:21 +0200
+Subject: [PATCH 26/26] xr819 hacks
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/net/wireless/st/cw1200/cw1200_sdio.c | 38 +++++++++++++++-
+ drivers/net/wireless/st/cw1200/queue.h       |  7 ++-
+ drivers/net/wireless/st/cw1200/sta.c         | 47 +++++++++++---------
+ drivers/net/wireless/st/cw1200/wsm.c         |  5 +++
+ 4 files changed, 72 insertions(+), 25 deletions(-)
+
+diff --git a/drivers/net/wireless/st/cw1200/cw1200_sdio.c b/drivers/net/wireless/st/cw1200/cw1200_sdio.c
+index b65ec14136c..f913c1bf651 100644
+--- a/drivers/net/wireless/st/cw1200/cw1200_sdio.c
++++ b/drivers/net/wireless/st/cw1200/cw1200_sdio.c
+@@ -15,6 +15,8 @@
+ #include <linux/mmc/card.h>
+ #include <linux/mmc/sdio.h>
+ #include <linux/mmc/sdio_ids.h>
++#include <linux/of.h>
++#include <linux/of_irq.h>
+ #include <net/mac80211.h>
+ 
+ #include "cw1200.h"
+@@ -30,9 +32,9 @@ MODULE_LICENSE("GPL");
+ 
+ /* Default platform data for Sagrad modules */
+ static struct cw1200_platform_data_sdio sagrad_109x_evk_platform_data = {
+-	.ref_clk = 38400,
++	.ref_clk = 24000,
+ 	.have_5ghz = false,
+-	.sdd_file = "sdd_sagrad_1091_1098.bin",
++	.sdd_file = "sdd_cw1x60.bin",
+ };
+ 
+ /* Allow platform data to be overridden */
+@@ -51,8 +53,10 @@ struct hwbus_priv {
+ 
+ static const struct sdio_device_id cw1200_sdio_ids[] = {
+ 	{ SDIO_DEVICE(SDIO_VENDOR_ID_STE, SDIO_DEVICE_ID_STE_CW1200) },
++	{ SDIO_DEVICE(SDIO_VENDOR_ID_STE, 0x2281) },
+ 	{ /* end: all zeroes */			},
+ };
++MODULE_DEVICE_TABLE(sdio, cw1200_sdio_ids);
+ 
+ /* hwbus_ops implemetation */
+ 
+@@ -265,6 +269,33 @@ static const struct hwbus_ops cw1200_sdio_hwbus_ops = {
+ 	.power_mgmt		= cw1200_sdio_pm,
+ };
+ 
++static const struct of_device_id xradio_sdio_of_match_table[] = {
++	{ .compatible = "xradio,xr819" },
++	{ }
++};
++
++static int cw1200_probe_of(struct sdio_func *func)
++{
++	struct device *dev = &func->dev;
++	struct device_node *np = dev->of_node;
++	const struct of_device_id *of_id;
++	int irq;
++
++	of_id = of_match_node(xradio_sdio_of_match_table, np);
++	if (!of_id)
++		return -ENODEV;
++
++	irq = irq_of_parse_and_map(np, 0);
++	if (!irq) {
++		pr_err("SDIO: No irq in platform data\n");
++		return -EINVAL;
++	}
++
++	global_plat_data->irq = irq;
++
++	return 0;
++}
++
+ /* Probe Function to be called by SDIO stack when device is discovered */
+ static int cw1200_sdio_probe(struct sdio_func *func,
+ 			     const struct sdio_device_id *id)
+@@ -278,6 +309,8 @@ static int cw1200_sdio_probe(struct sdio_func *func,
+ 	if (func->num != 0x01)
+ 		return -ENODEV;
+ 
++	cw1200_probe_of(func);
++
+ 	self = kzalloc(sizeof(*self), GFP_KERNEL);
+ 	if (!self) {
+ 		pr_err("Can't allocate SDIO hwbus_priv.\n");
+@@ -285,6 +318,7 @@ static int cw1200_sdio_probe(struct sdio_func *func,
+ 	}
+ 
+ 	func->card->quirks |= MMC_QUIRK_LENIENT_FN0;
++	func->card->quirks |= MMC_QUIRK_BROKEN_BYTE_MODE_512;
+ 
+ 	self->pdata = global_plat_data; /* FIXME */
+ 	self->func = func;
+diff --git a/drivers/net/wireless/st/cw1200/queue.h b/drivers/net/wireless/st/cw1200/queue.h
+index 96ac69ae97d..103b56d81b9 100644
+--- a/drivers/net/wireless/st/cw1200/queue.h
++++ b/drivers/net/wireless/st/cw1200/queue.h
+@@ -102,7 +102,12 @@ bool cw1200_queue_stats_is_empty(struct cw1200_queue_stats *stats,
+ 
+ static inline u8 cw1200_queue_get_queue_id(u32 packet_id)
+ {
+-	return (packet_id >> 16) & 0xFF;
++	return (packet_id >> 16) & 0xF;
++}
++
++static inline u8 cw1200_queue_get_link_id(u32 packet_id)
++{
++	return (packet_id >> 24) & 0xF;
+ }
+ 
+ static inline u8 cw1200_queue_get_generation(u32 packet_id)
+diff --git a/drivers/net/wireless/st/cw1200/sta.c b/drivers/net/wireless/st/cw1200/sta.c
+index 236022d4ae2..f224460e3dd 100644
+--- a/drivers/net/wireless/st/cw1200/sta.c
++++ b/drivers/net/wireless/st/cw1200/sta.c
+@@ -343,30 +343,32 @@ int cw1200_config(struct ieee80211_hw *dev, u32 changed)
+ 	if ((changed & IEEE80211_CONF_CHANGE_CHANNEL) &&
+ 	    (priv->channel != conf->chandef.chan)) {
+ 		struct ieee80211_channel *ch = conf->chandef.chan;
+-		struct wsm_switch_channel channel = {
++		/*struct wsm_switch_channel channel = {
+ 			.channel_number = ch->hw_value,
+-		};
++		};*/
+ 		pr_debug("[STA] Freq %d (wsm ch: %d).\n",
+ 			 ch->center_freq, ch->hw_value);
+ 
++		priv->channel = ch;
++
+ 		/* __cw1200_flush() implicitly locks tx, if successful */
+-		if (!__cw1200_flush(priv, false)) {
+-			if (!wsm_switch_channel(priv, &channel)) {
+-				ret = wait_event_timeout(priv->channel_switch_done,
+-							 !priv->channel_switch_in_progress,
+-							 3 * HZ);
+-				if (ret) {
+-					/* Already unlocks if successful */
+-					priv->channel = ch;
+-					ret = 0;
+-				} else {
+-					ret = -ETIMEDOUT;
+-				}
+-			} else {
+-				/* Unlock if switch channel fails */
+-				wsm_unlock_tx(priv);
+-			}
+-		}
++// 		if (!__cw1200_flush(priv, false)) {
++// 			if (!wsm_switch_channel(priv, &channel)) {
++// 				ret = wait_event_timeout(priv->channel_switch_done,
++// 							 !priv->channel_switch_in_progress,
++// 							 3 * HZ);
++// 				if (ret) {
++// 					/* Already unlocks if successful */
++// 					priv->channel = ch;
++// 					ret = 0;
++// 				} else {
++// 					ret = -ETIMEDOUT;
++// 				}
++// 			} else {
++// 				/* Unlock if switch channel fails */
++// 				wsm_unlock_tx(priv);
++// 			}
++// 		}
+ 	}
+ 
+ 	if (changed & IEEE80211_CONF_CHANGE_PS) {
+@@ -1302,10 +1304,10 @@ static void cw1200_do_join(struct cw1200_common *priv)
+ 	}
+ 
+ 	/* Enable asynchronous join calls */
+-	if (!conf->ibss_joined) {
++	/*if (!conf->ibss_joined) {
+ 		join.flags |= WSM_JOIN_FLAGS_FORCE;
+ 		join.flags |= WSM_JOIN_FLAGS_FORCE_WITH_COMPLETE_IND;
+-	}
++	}*/
+ 
+ 	wsm_flush_tx(priv);
+ 
+@@ -1742,7 +1744,8 @@ void cw1200_set_cts_work(struct work_struct *work)
+ 
+ 	wsm_write_mib(priv, WSM_MIB_ID_NON_ERP_PROTECTION,
+ 		      &use_cts_prot, sizeof(use_cts_prot));
+-	wsm_update_ie(priv, &update_ie);
++	if (priv->mode != NL80211_IFTYPE_STATION)
++		wsm_update_ie(priv, &update_ie);
+ 
+ 	return;
+ }
+diff --git a/drivers/net/wireless/st/cw1200/wsm.c b/drivers/net/wireless/st/cw1200/wsm.c
+index 99624dd3488..86ee86130fa 100644
+--- a/drivers/net/wireless/st/cw1200/wsm.c
++++ b/drivers/net/wireless/st/cw1200/wsm.c
+@@ -360,9 +360,14 @@ static int wsm_tx_confirm(struct cw1200_common *priv,
+ 	tx_confirm.tx_rate = WSM_GET8(buf);
+ 	tx_confirm.ack_failures = WSM_GET8(buf);
+ 	tx_confirm.flags = WSM_GET16(buf);
++	/* tx_confirm.rate_try[0] = */ WSM_GET32(buf);
++	/* tx_confirm.rate_try[1] = */ WSM_GET32(buf);
++	/* tx_confirm.rate_try[2] = */ WSM_GET32(buf);
+ 	tx_confirm.media_delay = WSM_GET32(buf);
+ 	tx_confirm.tx_queue_delay = WSM_GET32(buf);
+ 
++	link_id = cw1200_queue_get_link_id(tx_confirm.packet_id);
++
+ 	cw1200_tx_confirm_cb(priv, link_id, &tx_confirm);
+ 	return 0;
+ 
+-- 
+2.29.2
+
+diff -Naur linux-5.13-old/drivers/net/wireless/st/cw1200/main.c linux-5.13-new/drivers/net/wireless/st/cw1200/main.c
+--- linux-5.13-old/drivers/net/wireless/st/cw1200/main.c	2021-06-28 00:21:11.000000000 +0200
++++ linux-5.13-new/drivers/net/wireless/st/cw1200/main.c	2021-07-04 19:30:30.346666660 +0200
+@@ -42,7 +42,7 @@
+ MODULE_ALIAS("cw1200_core");
+ 
+ /* Accept MAC address of the form macaddr=0x00,0x80,0xE1,0x30,0x40,0x50 */
+-static u8 cw1200_mac_template[ETH_ALEN] = {0x02, 0x80, 0xe1, 0x00, 0x00, 0x00};
++static u8 cw1200_mac_template[ETH_ALEN] = {0xdc, 0x44, 0x6d, 0xc0, 0xff, 0x01};
+ module_param_array_named(macaddr, cw1200_mac_template, byte, NULL, 0444);
+ MODULE_PARM_DESC(macaddr, "Override platform_data MAC address");
+ 
