@@ -1,8 +1,9 @@
-GARNAME      = armbian-firmware
-GARVERSION   = 044da7528ba6b0e96e7b67e01cd67f8d2639bcd1
+
+GARNAME      = xr819-firmware
+GARVERSION   = XR_C01.08.52.65-Jul-16-2019
 CATEGORIES   = firmware
-MASTER_SITES = https://github.com/armbian/firmware/archive/
-DISTFILES    = $(GARVERSION).zip \
+MASTER_SITES = 
+DISTFILES    = \
 		boot_cw1x60.bin \
 		sdd_cw1x60.bin \
 		wsm_cw1x60.bin \
@@ -12,17 +13,17 @@ DESCRIPTION  =
 define BLURB
 endef
 
-WORKSRC = $(WORKDIR)/firmware-$(GARVERSION)
-
-DEPENDS = lang/c
+DEPENDS = 
 
 INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
 install-custom:
-	@mkdir -p $(DESTDIR)$(elibdir)/firmware/
-	@cp -Rdf $(WORKSRC)/xr819 $(DESTDIR)$(elibdir)/firmware/
+	@mkdir -p $(DESTDIR)$(elibdir)/firmware/xr819
+	@cp -f $(WORKDIR)/boot_cw1x60.bin $(DESTDIR)$(elibdir)/firmware/xr819/boot_xr819.bin
+	@cp -f $(WORKDIR)/sdd_cw1x60.bin  $(DESTDIR)$(elibdir)/firmware/xr819/sdd_xr819.bin
+	@cp -f $(WORKDIR)/wsm_cw1x60.bin  $(DESTDIR)$(elibdir)/firmware/xr819/fw_xr819.bin
 	@cp -f $(WORKDIR)/boot_cw1x60.bin $(DESTDIR)$(elibdir)/firmware/
 	@cp -f $(WORKDIR)/sdd_cw1x60.bin  $(DESTDIR)$(elibdir)/firmware/
 	@cp -f $(WORKDIR)/wsm_cw1x60.bin  $(DESTDIR)$(elibdir)/firmware/
