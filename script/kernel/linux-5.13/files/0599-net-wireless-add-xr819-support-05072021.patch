@@ -1,7 +1,7 @@
-From 1cba9a7764c7d5bbdeb4ddeaa91ff20a0339f6ff Mon Sep 17 00:00:00 2001
+From f02e1e26444a3ae52eabae754e21ce9b25dbac29 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Tue, 22 Jun 2021 22:12:12 +0200
-Subject: [PATCH 22/26] cw1200: use kmalloc() allocation instead of stack
+Subject: [PATCH 23/27] cw1200: use kmalloc() allocation instead of stack
 
 It turns out that if CONFIG_VMAP_STACK is enabled and src or dst is
 memory allocated on stack, SDIO operations fail due to invalid memory
@@ -276,10 +276,10 @@ index d1e629a566c..3a8e6c68261 100644
 -- 
 2.29.2
 
-From c01914dd971af80ff85023f98c57955584c3beda Mon Sep 17 00:00:00 2001
+From 810d786f2e9fe3462af6c0f8aa414889da79361f Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Wed, 23 Jun 2021 19:54:56 +0200
-Subject: [PATCH 23/26] cw1200: support loading cw1x60 FW
+Subject: [PATCH 24/27] cw1200: support loading cw1x60 FW
 
 Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
 ---
@@ -374,56 +374,81 @@ index 3a8e6c68261..49387f43e37 100644
 -- 
 2.29.2
 
-From cd1b02b876ba09b7b637eae0bfe753dec6162e37 Mon Sep 17 00:00:00 2001
+From 84027744b4bd4d5c9e207c79d7f19f1fb427a5e6 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
-Date: Sat, 3 Jul 2021 08:59:21 +0200
-Subject: [PATCH 26/26] xr819 hacks
+Date: Mon, 5 Jul 2021 19:51:29 +0200
+Subject: [PATCH 26/27] cw1200: export SDIO IDs
+
+This will allow for module to be loaded automatically, when matching
+SDIO ID is detected.
 
 Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
 ---
- drivers/net/wireless/st/cw1200/cw1200_sdio.c | 38 +++++++++++++++-
- drivers/net/wireless/st/cw1200/queue.h       |  7 ++-
- drivers/net/wireless/st/cw1200/sta.c         | 47 +++++++++++---------
- drivers/net/wireless/st/cw1200/wsm.c         |  5 +++
- 4 files changed, 72 insertions(+), 25 deletions(-)
+ drivers/net/wireless/st/cw1200/cw1200_sdio.c | 1 +
+ 1 file changed, 1 insertion(+)
 
 diff --git a/drivers/net/wireless/st/cw1200/cw1200_sdio.c b/drivers/net/wireless/st/cw1200/cw1200_sdio.c
-index b65ec14136c..f913c1bf651 100644
+index b65ec14136c..4c30b5772ce 100644
 --- a/drivers/net/wireless/st/cw1200/cw1200_sdio.c
 +++ b/drivers/net/wireless/st/cw1200/cw1200_sdio.c
-@@ -15,6 +15,8 @@
- #include <linux/mmc/card.h>
- #include <linux/mmc/sdio.h>
- #include <linux/mmc/sdio_ids.h>
-+#include <linux/of.h>
-+#include <linux/of_irq.h>
- #include <net/mac80211.h>
- 
- #include "cw1200.h"
-@@ -30,9 +32,9 @@ MODULE_LICENSE("GPL");
- 
- /* Default platform data for Sagrad modules */
- static struct cw1200_platform_data_sdio sagrad_109x_evk_platform_data = {
--	.ref_clk = 38400,
-+	.ref_clk = 24000,
- 	.have_5ghz = false,
--	.sdd_file = "sdd_sagrad_1091_1098.bin",
-+	.sdd_file = "sdd_cw1x60.bin",
- };
- 
- /* Allow platform data to be overridden */
-@@ -51,8 +53,10 @@ struct hwbus_priv {
- 
- static const struct sdio_device_id cw1200_sdio_ids[] = {
+@@ -53,6 +53,7 @@ static const struct sdio_device_id cw1200_sdio_ids[] = {
  	{ SDIO_DEVICE(SDIO_VENDOR_ID_STE, SDIO_DEVICE_ID_STE_CW1200) },
-+	{ SDIO_DEVICE(SDIO_VENDOR_ID_STE, 0x2281) },
  	{ /* end: all zeroes */			},
  };
 +MODULE_DEVICE_TABLE(sdio, cw1200_sdio_ids);
  
  /* hwbus_ops implemetation */
  
-@@ -265,6 +269,33 @@ static const struct hwbus_ops cw1200_sdio_hwbus_ops = {
+-- 
+2.29.2
+
+From 0e2dbeef9b05d5bd285d7fb2cf5bde1bb212c96d Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sat, 3 Jul 2021 08:59:21 +0200
+Subject: [PATCH 27/27] xr819 hacks
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/net/wireless/st/cw1200/cw1200_sdio.c | 46 +++++++++++++++++--
+ drivers/net/wireless/st/cw1200/queue.h       |  7 ++-
+ drivers/net/wireless/st/cw1200/sta.c         | 47 +++++++++++---------
+ drivers/net/wireless/st/cw1200/wsm.c         |  5 +++
+ 4 files changed, 79 insertions(+), 26 deletions(-)
+
+diff --git a/drivers/net/wireless/st/cw1200/cw1200_sdio.c b/drivers/net/wireless/st/cw1200/cw1200_sdio.c
+index 4c30b5772ce..981d7309bc3 100644
+--- a/drivers/net/wireless/st/cw1200/cw1200_sdio.c
++++ b/drivers/net/wireless/st/cw1200/cw1200_sdio.c
+@@ -15,6 +15,9 @@
+ #include <linux/mmc/card.h>
+ #include <linux/mmc/sdio.h>
+ #include <linux/mmc/sdio_ids.h>
++#include <linux/of.h>
++#include <linux/of_irq.h>
++#include <linux/of_net.h>
+ #include <net/mac80211.h>
+ 
+ #include "cw1200.h"
+@@ -30,9 +33,7 @@ MODULE_LICENSE("GPL");
+ 
+ /* Default platform data for Sagrad modules */
+ static struct cw1200_platform_data_sdio sagrad_109x_evk_platform_data = {
+-	.ref_clk = 38400,
+-	.have_5ghz = false,
+-	.sdd_file = "sdd_sagrad_1091_1098.bin",
++	.ref_clk = 24000,
+ };
+ 
+ /* Allow platform data to be overridden */
+@@ -51,6 +52,7 @@ struct hwbus_priv {
+ 
+ static const struct sdio_device_id cw1200_sdio_ids[] = {
+ 	{ SDIO_DEVICE(SDIO_VENDOR_ID_STE, SDIO_DEVICE_ID_STE_CW1200) },
++	{ SDIO_DEVICE(SDIO_VENDOR_ID_STE, 0x2281) },
+ 	{ /* end: all zeroes */			},
+ };
+ MODULE_DEVICE_TABLE(sdio, cw1200_sdio_ids);
+@@ -266,6 +268,41 @@ static const struct hwbus_ops cw1200_sdio_hwbus_ops = {
  	.power_mgmt		= cw1200_sdio_pm,
  };
  
@@ -437,6 +462,7 @@ index b65ec14136c..f913c1bf651 100644
 +	struct device *dev = &func->dev;
 +	struct device_node *np = dev->of_node;
 +	const struct of_device_id *of_id;
++	u8 *macaddr;
 +	int irq;
 +
 +	of_id = of_match_node(xradio_sdio_of_match_table, np);
@@ -451,13 +477,20 @@ index b65ec14136c..f913c1bf651 100644
 +
 +	global_plat_data->irq = irq;
 +
++	macaddr = devm_kmalloc(dev, ETH_ALEN, GFP_KERNEL);
++	if (!macaddr)
++		return -ENOMEM;
++
++	if (!of_get_mac_address(np, macaddr))
++		global_plat_data->macaddr = macaddr;
++
 +	return 0;
 +}
 +
  /* Probe Function to be called by SDIO stack when device is discovered */
  static int cw1200_sdio_probe(struct sdio_func *func,
  			     const struct sdio_device_id *id)
-@@ -278,6 +309,8 @@ static int cw1200_sdio_probe(struct sdio_func *func,
+@@ -279,6 +316,8 @@ static int cw1200_sdio_probe(struct sdio_func *func,
  	if (func->num != 0x01)
  		return -ENODEV;
  
@@ -466,7 +499,7 @@ index b65ec14136c..f913c1bf651 100644
  	self = kzalloc(sizeof(*self), GFP_KERNEL);
  	if (!self) {
  		pr_err("Can't allocate SDIO hwbus_priv.\n");
-@@ -285,6 +318,7 @@ static int cw1200_sdio_probe(struct sdio_func *func,
+@@ -286,6 +325,7 @@ static int cw1200_sdio_probe(struct sdio_func *func,
  	}
  
  	func->card->quirks |= MMC_QUIRK_LENIENT_FN0;
@@ -593,15 +626,3 @@ index 99624dd3488..86ee86130fa 100644
 -- 
 2.29.2
 
-diff -Naur linux-5.13-old/drivers/net/wireless/st/cw1200/main.c linux-5.13-new/drivers/net/wireless/st/cw1200/main.c
---- linux-5.13-old/drivers/net/wireless/st/cw1200/main.c	2021-06-28 00:21:11.000000000 +0200
-+++ linux-5.13-new/drivers/net/wireless/st/cw1200/main.c	2021-07-04 19:30:30.346666660 +0200
-@@ -42,7 +42,7 @@
- MODULE_ALIAS("cw1200_core");
- 
- /* Accept MAC address of the form macaddr=0x00,0x80,0xE1,0x30,0x40,0x50 */
--static u8 cw1200_mac_template[ETH_ALEN] = {0x02, 0x80, 0xe1, 0x00, 0x00, 0x00};
-+static u8 cw1200_mac_template[ETH_ALEN] = {0xdc, 0x44, 0x6d, 0xc0, 0xff, 0x01};
- module_param_array_named(macaddr, cw1200_mac_template, byte, NULL, 0444);
- MODULE_PARM_DESC(macaddr, "Override platform_data MAC address");
- 
