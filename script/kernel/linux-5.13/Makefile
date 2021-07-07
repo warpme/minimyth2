@@ -74,6 +74,8 @@ PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
+# add support for radxa zero board
+PATCHFILES += 0370-arm64-dts-meson-g12a-add-support-for-radxa-zero.patch
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
 PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
@@ -150,8 +152,8 @@ PATCHFILES += 0594-arm64-dts-allwinner-h616-add-X96-Mate-TVbox.patch
 PATCHFILES += 0595-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0596-arm64-dts-allwinner-h616-add-T95-TVbox.patch
 PATCHFILES += 0597-arm64-dts-allwinner-h616-enable-ths-support.patch
-# add support for xr819 wifi https://github.com/jernejsk/linux-1/tree/cd1b02b876ba09b7b637eae0bfe753dec6162e37
-PATCHFILES += 0599-net-wireless-add-xr819-support-04072021.patch
+# add support for xr819 wifi https://github.com/jernejsk/linux-1/tree/0e2dbeef9b05d5bd285d7fb2cf5bde1bb212c96d
+PATCHFILES += 0599-net-wireless-add-xr819-support-05072021.patch
 endif
 #------------------------------------------------------------
 
