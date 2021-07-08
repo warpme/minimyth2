@@ -1,15 +1,15 @@
 
 GARNAME      = bootfiles-g12.radxa_zero
-GARVERSION   = 2021-07-02
+GARVERSION   = 2021-07-08
 CATEGORIES   = bootloaders
-MASTER_SITES = 
+MASTER_SITES = https://dl.radxa.com/zero/images/loader/
 DISTFILES    = \
 		g12a-boot-debug.scr \
 		g12a-boot-debug.txt \
 		g12a-boot.scr \
 		g12a-boot.txt \
 		minimyth.conf \
-		radxa-zero-uboot.bin \
+		u-boot.bin.sd.bin \
 
 LICENSE = GPL2
 
@@ -25,10 +25,11 @@ include ../../gar.mk
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f    $(WORKDIR)/g12a-boot-debug.scr $(DESTDIR)/boot/boot-debug.scr
-	@cp -f    $(WORKDIR)/g12a-boot.scr       $(DESTDIR)/boot/boot.scr
+	@#cp -f    $(WORKDIR)/g12a-boot.scr       $(DESTDIR)/boot/boot.scr
+	@cp -f    $(WORKDIR)/g12a-boot-debug.scr $(DESTDIR)/boot/boot.scr
 	@cp -f    $(WORKDIR)/minimyth.conf       $(DESTDIR)/boot/minimyth.conf
 	@mkdir -p $(DESTDIR)/boot/g12aloaderfiles
-	@cp -f    $(WORKDIR)/radxa-zero-uboot.bin $(DESTDIR)/boot/g12aloaderfiles/radxa-zero-uboot.bin
+	@cp -f    $(WORKDIR)/u-boot.bin.sd.bin $(DESTDIR)/boot/g12aloaderfiles/radxa-zero-uboot.bin
 	@$(MAKECOOKIE)
 
 clean-all: clean
