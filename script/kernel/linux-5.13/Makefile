@@ -153,7 +153,7 @@ PATCHFILES += 0595-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0596-arm64-dts-allwinner-h616-add-T95-TVbox.patch
 PATCHFILES += 0597-arm64-dts-allwinner-h616-enable-ths-support.patch
 # add support for xr819 wifi https://github.com/jernejsk/linux-1/tree/0e2dbeef9b05d5bd285d7fb2cf5bde1bb212c96d
-PATCHFILES += 0599-net-wireless-add-xr819-support-05072021.patch
+PATCHFILES += 0599-net-wireless-add-xr819-support-07072021.patch
 endif
 #------------------------------------------------------------
 
