@@ -365,6 +365,7 @@ mm-all:
 		   [ ! "$${board}" = "board-s905"                 ] && \
 		   [ ! "$${board}" = "board-s912"                 ] && \
 		   [ ! "$${board}" = "board-sm1"                  ] && \
+		   [ ! "$${board}" = "board-g12.radxa_zero"       ] && \
 		   [ ! "$${board}" = "board-x86pc.bios"           ] && \
 		   [ ! "$${board}" = "board-x86pc.bios_efi64"     ] && \
 		   [ ! "$${board}" = "board-x86pc.efi64"          ] ; then \

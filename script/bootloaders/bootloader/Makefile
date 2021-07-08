@@ -63,8 +63,8 @@ ifneq (,$(findstring board-s912,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s912
 endif
 
-ifneq (,$(findstring board-g12,$(mm_BOARD_TYPE)))
-	$(MAKE) install -C ../board-g12
+ifneq (,$(findstring board-g12.radxa_zero,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-g12.radxa_zero
 endif
 
 ifneq (,$(findstring board-sm1,$(mm_BOARD_TYPE)))

@@ -1,0 +1,39 @@
+#
+# To prepare u-boot script, run:
+# mkimage -A arm64 -T script -O linux -d g12a-boot-debug.txt g12a-boot-debug.scr
+#
+
+part uuid ${devtype} ${devnum}:2 uuid
+
+setenv bootargs root=PARTUUID=${uuid} rw rootwait earlycon console=ttyS0,115200n8 logo.nologo vt.cur_default=1
+
+setenv fdtfile dtbs/amlogic/meson-g12a-radxa-zero.dtb
+setenv userfdtfile g12a_dtb
+
+if load ${devtype} ${devnum}:${bootpart} ${kernel_addr_r} /Image; then
+  if load ${devtype} ${devnum}:${bootpart} ${fdt_addr_r} /${userfdtfile}; then
+    fdt addr ${fdt_addr_r}
+    fdt resize
+    if load ${devtype} ${devnum}:${bootpart} ${ramdisk_addr_r} /initramfs-linux.img; then
+      booti ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+    else
+      booti ${kernel_addr_r} - ${fdt_addr_r}
+    fi;
+  else
+    if load ${devtype} ${devnum}:${bootpart} ${fdt_addr_r} /${fdtfile}; then
+      fdt addr ${fdt_addr_r}
+      fdt resize
+      if load ${devtype} ${devnum}:${bootpart} ${ramdisk_addr_r} /initramfs-linux.img; then
+        booti ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+      else
+        booti ${kernel_addr_r} - ${fdt_addr_r}
+      fi;
+    else
+      if load ${devtype} ${devnum}:${bootpart} ${ramdisk_addr_r} /initramfs-linux.img; then
+        booti ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdtcontroladdr}
+      else
+        booti ${kernel_addr_r} - ${fdtcontroladdr}
+      fi;
+    fi;
+  fi;
+fi
