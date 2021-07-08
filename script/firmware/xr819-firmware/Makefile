@@ -24,9 +24,6 @@ install-custom:
 	@cp -f $(WORKDIR)/boot_cw1x60.bin $(DESTDIR)$(elibdir)/firmware/xr819/boot_xr819.bin
 	@cp -f $(WORKDIR)/sdd_cw1x60.bin  $(DESTDIR)$(elibdir)/firmware/xr819/sdd_xr819.bin
 	@cp -f $(WORKDIR)/wsm_cw1x60.bin  $(DESTDIR)$(elibdir)/firmware/xr819/fw_xr819.bin
-	@cp -f $(WORKDIR)/boot_cw1x60.bin $(DESTDIR)$(elibdir)/firmware/
-	@cp -f $(WORKDIR)/sdd_cw1x60.bin  $(DESTDIR)$(elibdir)/firmware/
-	@cp -f $(WORKDIR)/wsm_cw1x60.bin  $(DESTDIR)$(elibdir)/firmware/
 	@$(MAKECOOKIE)
 
 clean-all: clean
