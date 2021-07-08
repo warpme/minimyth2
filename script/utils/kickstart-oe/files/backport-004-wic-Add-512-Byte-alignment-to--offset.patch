@@ -1,0 +1,99 @@
+From 5fa3c3d2e3aa29f4011670d6032e4f7debc88f73 Mon Sep 17 00:00:00 2001
+From: Joshua Watt <JPEWhacker@gmail.com>
+Date: Fri, 21 Aug 2020 14:46:23 -0500
+Subject: wic: Add 512 Byte alignment to --offset
+
+Allows the --offset argument to use the "s" or "S" suffix to specify
+that it is reporting the number of 512 byte sectors.
+
+This is required for some SoCs where the mask ROM looks for an item at a
+sector that isn't aligned to a 1KB boundary.
+
+(From OE-Core rev: 938595d1dc4abaf5f7f3a7900add3f0492b805d0)
+
+Signed-off-by: Joshua Watt <JPEWhacker@gmail.com>
+Signed-off-by: Richard Purdie <richard.purdie@linuxfoundation.org>
+---
+ scripts/lib/wic/ksparser.py              | 20 ++++++++++++++------
+ scripts/lib/wic/plugins/imager/direct.py |  8 ++++----
+ 2 files changed, 18 insertions(+), 10 deletions(-)
+
+(limited to 'scripts/lib/wic')
+
+diff --git a/scripts/lib/wic/ksparser.py b/scripts/lib/wic/ksparser.py
+index 3453d9cb9d..913e3283dc 100644
+--- a/scripts/lib/wic/ksparser.py
++++ b/scripts/lib/wic/ksparser.py
+@@ -51,11 +51,11 @@ class KickStartParser(ArgumentParser):
+     def error(self, message):
+         raise ArgumentError(None, message)
+ 
+-def sizetype(default):
++def sizetype(default, size_in_bytes=False):
+     def f(arg):
+         """
+         Custom type for ArgumentParser
+-        Converts size string in <num>[K|k|M|G] format into the integer value
++        Converts size string in <num>[S|s|K|k|M|G] format into the integer value
+         """
+         try:
+             suffix = default
+@@ -67,12 +67,20 @@ def sizetype(default):
+             except ValueError:
+                 raise ArgumentTypeError("Invalid size: %r" % arg)
+ 
++
++        if size_in_bytes:
++            if suffix == 's' or suffix == 'S':
++                return size * 512
++            mult = 1024
++        else:
++            mult = 1
++
+         if suffix == "k" or suffix == "K":
+-            return size
++            return size * mult
+         if suffix == "M":
+-            return size * 1024
++            return size * mult * 1024
+         if suffix == "G":
+-            return size * 1024 * 1024
++            return size * mult * 1024 * 1024
+ 
+         raise ArgumentTypeError("Invalid size: %r" % arg)
+     return f
+@@ -141,7 +149,7 @@ class KickStart():
+         part.add_argument('mountpoint', nargs='?')
+         part.add_argument('--active', action='store_true')
+         part.add_argument('--align', type=int)
+-        part.add_argument('--offset', type=sizetype("K"))
++        part.add_argument('--offset', type=sizetype("K", True))
+         part.add_argument('--exclude-path', nargs='+')
+         part.add_argument('--include-path', nargs='+', action='append')
+         part.add_argument('--change-directory')
+diff --git a/scripts/lib/wic/plugins/imager/direct.py b/scripts/lib/wic/plugins/imager/direct.py
+index 2f01999405..55db826e93 100644
+--- a/scripts/lib/wic/plugins/imager/direct.py
++++ b/scripts/lib/wic/plugins/imager/direct.py
+@@ -429,14 +429,14 @@ class PartitionedImage():
+                     self.offset += align_sectors
+ 
+             if part.offset is not None:
+-                offset = (part.offset * 1024) // self.sector_size
++                offset = part.offset // self.sector_size
+ 
+-                if offset * self.sector_size != part.offset * 1024:
+-                    raise WicError("Could not place %s%s at offset %dK with sector size %d" % (part.disk, self.numpart, part.offset, self.sector_size))
++                if offset * self.sector_size != part.offset:
++                    raise WicError("Could not place %s%s at offset %d with sector size %d" % (part.disk, self.numpart, part.offset, self.sector_size))
+ 
+                 delta = offset - self.offset
+                 if delta < 0:
+-                    raise WicError("Could not place %s%s at offset %dK: next free sector is %d (delta: %d)" % (part.disk, self.numpart, part.offset, self.offset, delta))
++                    raise WicError("Could not place %s%s at offset %d: next free sector is %d (delta: %d)" % (part.disk, self.numpart, part.offset, self.offset, delta))
+ 
+                 logger.debug("Skipping %d sectors to place %s%s at offset %dK",
+                              delta, part.disk, self.numpart, part.offset)
+-- 
+cgit v1.2.3-13-gbd6f
+

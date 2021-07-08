@@ -1,5 +1,20 @@
 
 use_minimyth_python3="yes"
+debug_verbosity="no"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #--------------------------------------------------------------------------------------
 
@@ -42,11 +57,16 @@ export PYTHONPATH=${base_dir}/bitbake/lib:${PYTHONPATH}
 
 if [ x${use_minimyth_python3} = "xyes" ] ; then 
     export PATH=${mm_home}/images/build/bin:${mm_home}/images/build/usr/bin:${PATH}
-    export PYTHONPATH=${mm_home}/images/build/usr/lib/python3.7:${PYTHONPATH}
+    export PYTHONPATH=${mm_home}/images/build/usr/lib/python3.8:${PYTHONPATH}
     export PYTHON=${mm_home}/images/build/usr/bin/python3
     export LD_LIBRARY_PATH=${mm_home}/images/build/usr/lib
 else
     export PYTHON=/usr/bin/python3
+fi
+
+if [ x${debug_verbosity} = "xyes" ] ; then
+   echo "  build with debug verbosity"
+   debug_flag=" --debug"
 fi
 
 rm -f ${base_dir}/conf/multiconfig/default.conf
@@ -95,9 +115,8 @@ ${PYTHON} ${base_dir}/scripts/wic create ${base_dir}/MiniMyth2.wks \
 --kernel-dir=${boot_files_loc} \
 --rootfs-dir=${root_files_loc} \
 --native-sysroot=${mm_home}/images/build \
+${debug_flag}
 "
-#--debug \
-
 echo '  removing working files...'
 rm -rf ${root_files_loc}/../pseudo*
 

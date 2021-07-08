@@ -1,0 +1,144 @@
+From ba9be4bfa58efc73f1485eb5dc0dff0d23716821 Mon Sep 17 00:00:00 2001
+From: Joshua Watt <JPEWhacker@gmail.com>
+Date: Tue, 2 Jun 2020 08:42:05 -0500
+Subject: wic: Add --offset argument for partitions
+
+Add support for an --offset argument when defining a partition. Many
+SoCs require that boot partitions be located at specific offsets. Prior
+to this argument, most WKS files were using the --align attribute to
+specify the location of these fixed partitions but this is not ideal
+because in the event that the partition couldn't be placed in the
+specified location, wic would move it to the next sector with that
+alignment, often preventing the device from booting. Unlike the --align
+argument, wic will fail if a partition cannot be placed at the exact
+offset specified with --offset.
+
+Changes in V2:
+* Fixed a small typo that prevented test_fixed_size_error from passing
+
+(From OE-Core rev: 467f84e12b96bc977d57575023517dd6f8ef7f29)
+
+Signed-off-by: Joshua Watt <JPEWhacker@gmail.com>
+Signed-off-by: Richard Purdie <richard.purdie@linuxfoundation.org>
+---
+ scripts/lib/wic/ksparser.py              | 46 ++++++++++++++++++--------------
+ scripts/lib/wic/partition.py             |  1 +
+ scripts/lib/wic/plugins/imager/direct.py | 15 +++++++++++
+ 3 files changed, 42 insertions(+), 20 deletions(-)
+
+(limited to 'scripts/lib/wic')
+
+diff --git a/scripts/lib/wic/ksparser.py b/scripts/lib/wic/ksparser.py
+index b8befe78e3..05ae292ef5 100644
+--- a/scripts/lib/wic/ksparser.py
++++ b/scripts/lib/wic/ksparser.py
+@@ -51,26 +51,31 @@ class KickStartParser(ArgumentParser):
+     def error(self, message):
+         raise ArgumentError(None, message)
+ 
+-def sizetype(arg):
+-    """
+-    Custom type for ArgumentParser
+-    Converts size string in <num>[K|k|M|G] format into the integer value
+-    """
+-    if arg.isdigit():
+-        return int(arg) * 1024
++def sizetype(default):
++    def f(arg):
++        """
++        Custom type for ArgumentParser
++        Converts size string in <num>[K|k|M|G] format into the integer value
++        """
++        try:
++            suffix = default
++            size = int(arg)
++        except ValueError:
++            try:
++                suffix = arg[-1:]
++                size = int(arg[:-1])
++            except ValueError:
++                raise ArgumentTypeError("Invalid size: %r" % arg)
++
++        if suffix == "k" or suffix == "K":
++            return size
++        if suffix == "M":
++            return size * 1024
++        if suffix == "G":
++            return size * 1024 * 1024
+ 
+-    if not arg[:-1].isdigit():
+         raise ArgumentTypeError("Invalid size: %r" % arg)
+-
+-    size = int(arg[:-1])
+-    if arg.endswith("k") or arg.endswith("K"):
+-        return size
+-    if arg.endswith("M"):
+-        return size * 1024
+-    if arg.endswith("G"):
+-        return size * 1024 * 1024
+-
+-    raise ArgumentTypeError("Invalid size: %r" % arg)
++    return f
+ 
+ def overheadtype(arg):
+     """
+@@ -136,6 +141,7 @@ class KickStart():
+         part.add_argument('mountpoint', nargs='?')
+         part.add_argument('--active', action='store_true')
+         part.add_argument('--align', type=int)
++        part.add_argument('--offset', type=sizetype("K"))
+         part.add_argument('--exclude-path', nargs='+')
+         part.add_argument('--include-path', nargs='+', action='append')
+         part.add_argument('--change-directory')
+@@ -161,8 +167,8 @@ class KickStart():
+         # --error, but since nesting mutually exclusive groups does not work,
+         # ----extra-space/--overhead-factor are handled later
+         sizeexcl = part.add_mutually_exclusive_group()
+-        sizeexcl.add_argument('--size', type=sizetype, default=0)
+-        sizeexcl.add_argument('--fixed-size', type=sizetype, default=0)
++        sizeexcl.add_argument('--size', type=sizetype("M"), default=0)
++        sizeexcl.add_argument('--fixed-size', type=sizetype("M"), default=0)
+ 
+         part.add_argument('--source')
+         part.add_argument('--sourceparams')
+diff --git a/scripts/lib/wic/partition.py b/scripts/lib/wic/partition.py
+index 7d9dd616a6..85eb15c8b8 100644
+--- a/scripts/lib/wic/partition.py
++++ b/scripts/lib/wic/partition.py
+@@ -40,6 +40,7 @@ class Partition():
+         self.mountpoint = args.mountpoint
+         self.no_table = args.no_table
+         self.num = None
++        self.offset = args.offset
+         self.overhead_factor = args.overhead_factor
+         self.part_name = args.part_name
+         self.part_type = args.part_type
+diff --git a/scripts/lib/wic/plugins/imager/direct.py b/scripts/lib/wic/plugins/imager/direct.py
+index 2d06c242b6..1f65a7afe5 100644
+--- a/scripts/lib/wic/plugins/imager/direct.py
++++ b/scripts/lib/wic/plugins/imager/direct.py
+@@ -428,6 +428,21 @@ class PartitionedImage():
+                     # increase the offset so we actually start the partition on right alignment
+                     self.offset += align_sectors
+ 
++            if part.offset is not None:
++                offset = (part.offset * 1024) // self.sector_size
++
++                if offset * self.sector_size != part.offset * 1024:
++                    raise WicError("Could not place %s%s at offset %dK with sector size %d" % (part.disk, self.numpart, part.offset, self.sector_size))
++
++                delta = offset - self.offset
++                if delta < 0:
++                    raise WicError("Could not place %s%s at offset %dK: next free sector is %d (delta: %d)" % (part.disk, self.numpart, part.offset, offset, delta))
++
++                logger.debug("Skipping %d sectors to place %s%s at offset %dK",
++                             delta, part.disk, self.numpart, part.offset)
++
++                self.offset = offset
++
+             part.start = self.offset
+             self.offset += part.size_sec
+ 
+-- 
+cgit v1.2.3-13-gbd6f
+

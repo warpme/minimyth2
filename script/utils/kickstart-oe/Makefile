@@ -1,8 +1,9 @@
-GARNAME = kickstart-oe
-GARVERSION = 2.7.3
-CATEGORIES = utils
+
+GARNAME      = kickstart-oe
+GARVERSION   = 2.7.3
+CATEGORIES   = utils
 MASTER_SITES = http://git.yoctoproject.org/cgit/cgit.cgi/poky/snapshot/
-DISTFILES = \
+DISTFILES    = \
 	poky-yocto-$(GARVERSION).tar.bz2 \
 	board-rpi2.conf             \
 	board-rpi2.wks              \
@@ -26,6 +27,8 @@ DISTFILES = \
 	board-s912.wks              \
 	board-sm1.conf              \
 	board-sm1.wks               \
+	board-g12.radxa_zero.conf   \
+	board-g12.radxa_zero.wks    \
 	board-rk3328.beelink_a1.conf \
 	board-rk3328.beelink_a1.wks \
 	board-rk3399.rockpi4-b.conf \
@@ -61,6 +64,10 @@ PATCHFILES  = poky-yocto-2.7.3-bitbake-skip-python2-checks.patch
 PATCHFILES += poky-yocto-2.7.3-add-biosplusefi-image-plugin.patch
 PATCHFILES += poky-yocto-2.7.3-add-copy-mm2-files-into-image-boot-part.patch
 PATCHFILES += poky-yocto-2.7.3-make-PARTUUID-as-constant-0x346d1a6a.patch
+PATCHFILES += backport-001-wic-Add--offset-argument-for-partitions.patch
+PATCHFILES += backport-002-wic-Fix--extra-space-argument-handling.patch
+PATCHFILES += backport-003-wic-Fix-error-message-when-reporting-invalid-offset.patch
+PATCHFILES += backport-004-wic-Add-512-Byte-alignment-to--offset.patch
 
 WORKSRC = $(WORKDIR)/poky-yocto-$(GARVERSION)
 LICENSE = GPL2
@@ -133,6 +140,6 @@ install-custom:
 	@echo 'HOSTTOOLS += " "' >> $(DESTDIR)$(bindir)/kickstart/conf/bitbake.conf
 	@$(MAKECOOKIE)
 
-clean-all:
+clean-all: clean
 	@rm -rf $(DESTDIR)$(bindir)/kickstart*
 	@$(MAKECOOKIE)
