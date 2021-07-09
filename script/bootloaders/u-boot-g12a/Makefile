@@ -10,21 +10,18 @@ DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
-ifeq (0,1)
-# Amlogic custodians 11.05.2021
-GARNAME      = u-boot-h616-20210511
-GARVERSION   = 647b392bf20614006917d5fcd3390347a668eee5
+ifeq (1,1)
+# Amlogic custodians 25.05.2021
+GARNAME      = u-boot-g12a-20210525
+GARVERSION   = f4b2786b80583c8b48245ac5f90fda47328f3a6c
 CATEGORIES   = kernel
-MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
+MASTER_SITES = https://source.denx.de/u-boot/custodians/u-boot-amlogic/-/archive/$(GARVERSION)/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = add-emac2-to-h6-h616.patch
-PATCHFILES  += add-h616-tanix-tx6s-defconfig.patch
-PATCHFILES  += add-h616-x96-mate-defconfig.patch
-PATCHFILES  += add-h616-t95-defconfig.patch
-WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
+PATCHFILES   = 0001-add-Radxa-Zero-support.patch
+WORKSRC      = $(WORKDIR)/u-boot-amlogic-$(GARVERSION)
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 # Radxa u-boot https://github.com/radxa/u-boot/commits/aml-atv-fastboot-loader
 GARNAME      = u-boot-g12a-20210702
 # 02.07.2021
@@ -49,8 +46,6 @@ BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
-
-#mm_U-BOOT_BOARD_TYPE = radxa-zero_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
