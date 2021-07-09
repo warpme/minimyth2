@@ -12,8 +12,8 @@ DISTFILES     = $(GARVERSION).zip \
 		minimyth.conf \
 		generate-bins-new.sh \
 
-# export mm_U-BOOT_BOARD_TYPE = radxa-zero_defconfig
-export mm_U-BOOT_BOARD_TYPE = u200_defconfig
+export mm_U-BOOT_BOARD_TYPE = radxa-zero_defconfig
+# export mm_U-BOOT_BOARD_TYPE = u200_defconfig
 
 WORKSRC      = $(WORKDIR)/amlogic-boot-fip-$(GARVERSION)/radxa-zero
 
