@@ -1,16 +1,17 @@
 
-ifeq (0,1)
+ifeq (1,1)
 # Mainline U-boot
-GARNAME      = u-boot-h616-20210111
-# v2021.01
-GARVERSION   = c4fddedc48f336eabc4ce3f74940e6aa372de18c
+GARNAME      = u-boot-g12a-20200705
+# v2021.07
+GARVERSION   = 840658b093976390e9537724f802281c9c8439f5
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
+PATCHFILES   = 0001-add-Radxa-Zero-support.patch
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 # Amlogic custodians 25.05.2021
 GARNAME      = u-boot-g12a-20210525
 GARVERSION   = f4b2786b80583c8b48245ac5f90fda47328f3a6c
