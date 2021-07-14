@@ -48,7 +48,7 @@ install-custom:
 	@rm -rf   uboot-bins*
 	@$(MAKECOOKIE)
 
-clean-all: clean
+clean-all:
 	@rm -f $(DESTDIR)/boot/boot.scr
 	@rm -f $(DESTDIR)/boot/boot-debug.scr
 	@rm -f $(DESTDIR)/boot/minimyth.conf
