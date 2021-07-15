@@ -110,9 +110,6 @@ PATCHFILES += 0525-media-cedrus-add-check-for-H264-and-HEVC-limitations.patch
 # add VC1 decode support
 # https://github.com/jernejsk/linux-1/commits/vc1
 PATCHFILES += 0526-media-cedrus-add-VC1-decode-support.patch
-# fix hevc decode on some samples
-#PATCHFILES += 0527-media-cedrus-Fix-HEVC-status-macros.patch
-PATCHFILES += 0528-media-cedrus-wip-hevc-dependent-flag.patch
 # From LE 19.01.2021
 PATCHFILES += 0529-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 # Adding support for MFD devices on some H6 boards
