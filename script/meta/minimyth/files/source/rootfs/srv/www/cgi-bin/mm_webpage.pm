@@ -34,7 +34,6 @@ sub page
 
     my $page_host  = $minimyth->hostname();
     my $page_date  = Date::Manip::UnixDate('now', '%Y-%m-%d %H:%M:%S %Z');
-    my $mm_version = $minimyth->var_get('MM_VERSION');
 
     my @page = ();
 
@@ -70,8 +69,7 @@ sub page
     push(@page,  q(        </div>));
     push(@page,  q(        <div class="note">));
     push(@page, qq(          $page_date<br />));
-    push(@page, qq(          $page_host<br />));
-    push(@page, qq(          $mm_version));
+    push(@page, qq(          $page_host));
     push(@page,  q(        </div>));
     push(@page,  q(      </div>));
     push(@page,  q(      <div class="middle">));
