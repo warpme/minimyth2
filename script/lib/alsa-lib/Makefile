@@ -1,6 +1,6 @@
 
 GARNAME       = alsa-lib
-GARVERSION    = 1.2.4
+GARVERSION    = 1.2.5.1
 CATEGORIES    = lib
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/lib/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
