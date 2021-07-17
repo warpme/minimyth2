@@ -118,7 +118,7 @@ PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
 # Fix hanging GS1 boot on loading kernel modules
 PATCHFILES += 0532-arm64-dts-allwinner-gs1-fix-eMMC-and-incr-vcpu-limit.patch
 # Improvements and addidtions for some H6 boards
-PATCHFILES += 0533-arm64-dts-Tanix-TX6-improvements.patch
+PATCHFILES += 0533-arm64-dts-Tanix-TX6-enable-eth-emmc-wifi.patch
 PATCHFILES += 0534-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
 # Add TanixTX6 Mini (WiFi still not working :-( )
 PATCHFILES += 0535-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
@@ -142,6 +142,10 @@ PATCHFILES += 0561-arm64-dts-h6-add-deinterlace-node.patch
 PATCHFILES += 0570-drivers-h616-wip-add-usb-emac2-hdmi-support.patch
 # add ths support
 PATCHFILES += 0571-drivers-thermal-allwinner-add-h616-ths-support.patch
+# add support for xr819 wifi https://github.com/jernejsk/linux-1/tree/0e2dbeef9b05d5bd285d7fb2cf5bde1bb212c96d
+PATCHFILES += 0580-net-wireless-add-xr819-support-07072021.patch
+# add support for rtl8822bs/8822cs by rtw88 https://github.com/jernejsk/linux-1/commits/rtw88-sdio
+PATCHFILES += 0581-net-wireless-add-rt8822-support-17072021.patch
 # enable some h616 boards
 PATCHFILES += 0590-arm64-dts-allwinner-h616-add-dtsi.patch
 PATCHFILES += 0591-arm64-dts-allwinner-h616-add-OrangePi-Zero2.patch
@@ -149,8 +153,6 @@ PATCHFILES += 0594-arm64-dts-allwinner-h616-add-X96-Mate-TVbox.patch
 PATCHFILES += 0595-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0596-arm64-dts-allwinner-h616-add-T95-TVbox.patch
 PATCHFILES += 0597-arm64-dts-allwinner-h616-enable-ths-support.patch
-# add support for xr819 wifi https://github.com/jernejsk/linux-1/tree/0e2dbeef9b05d5bd285d7fb2cf5bde1bb212c96d
-PATCHFILES += 0599-net-wireless-add-xr819-support-07072021.patch
 endif
 #------------------------------------------------------------
 
