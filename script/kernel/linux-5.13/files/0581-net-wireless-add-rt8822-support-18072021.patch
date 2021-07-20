@@ -1,247 +1,7 @@
-From c90a14042fac51c522fcedfc2b015e1b32f0f2a6 Mon Sep 17 00:00:00 2001
+From dc626fbc2c14b18ddf1cc983a453d00a5c2999d0 Mon Sep 17 00:00:00 2001
 From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
-Date: Tue, 13 Jul 2021 19:25:31 +0200
-Subject: [PATCH 3/9] rtw88: hci: Convert rf_lock from a spinlock to a mutex
-
-Upcoming SDIO support may sleep in the read/write handlers. Switch
-rf_lock from a spinlock to a mutex to allow for this behavior.
-
-Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
----
- drivers/net/wireless/realtek/rtw88/hci.h  | 11 ++++-------
- drivers/net/wireless/realtek/rtw88/main.c |  2 +-
- drivers/net/wireless/realtek/rtw88/main.h |  2 +-
- 3 files changed, 6 insertions(+), 9 deletions(-)
-
-diff --git a/drivers/net/wireless/realtek/rtw88/hci.h b/drivers/net/wireless/realtek/rtw88/hci.h
-index 4c6fc6fb3..3c730b7a9 100644
---- a/drivers/net/wireless/realtek/rtw88/hci.h
-+++ b/drivers/net/wireless/realtek/rtw88/hci.h
-@@ -166,12 +166,11 @@ static inline u32
- rtw_read_rf(struct rtw_dev *rtwdev, enum rtw_rf_path rf_path,
- 	    u32 addr, u32 mask)
- {
--	unsigned long flags;
- 	u32 val;
- 
--	spin_lock_irqsave(&rtwdev->rf_lock, flags);
-+	mutex_lock(&rtwdev->rf_lock);
- 	val = rtwdev->chip->ops->read_rf(rtwdev, rf_path, addr, mask);
--	spin_unlock_irqrestore(&rtwdev->rf_lock, flags);
-+	mutex_unlock(&rtwdev->rf_lock);
- 
- 	return val;
- }
-@@ -180,11 +179,9 @@ static inline void
- rtw_write_rf(struct rtw_dev *rtwdev, enum rtw_rf_path rf_path,
- 	     u32 addr, u32 mask, u32 data)
- {
--	unsigned long flags;
--
--	spin_lock_irqsave(&rtwdev->rf_lock, flags);
-+	mutex_lock(&rtwdev->rf_lock);
- 	rtwdev->chip->ops->write_rf(rtwdev, rf_path, addr, mask, data);
--	spin_unlock_irqrestore(&rtwdev->rf_lock, flags);
-+	mutex_unlock(&rtwdev->rf_lock);
- }
- 
- static inline u32
-diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
-index c6364837e..21189a4de 100644
---- a/drivers/net/wireless/realtek/rtw88/main.c
-+++ b/drivers/net/wireless/realtek/rtw88/main.c
-@@ -1836,12 +1836,12 @@ int rtw_core_init(struct rtw_dev *rtwdev)
- 	skb_queue_head_init(&rtwdev->coex.queue);
- 	skb_queue_head_init(&rtwdev->tx_report.queue);
- 
--	spin_lock_init(&rtwdev->rf_lock);
- 	spin_lock_init(&rtwdev->h2c.lock);
- 	spin_lock_init(&rtwdev->txq_lock);
- 	spin_lock_init(&rtwdev->tx_report.q_lock);
- 
- 	mutex_init(&rtwdev->mutex);
-+	mutex_init(&rtwdev->rf_lock);
- 	mutex_init(&rtwdev->coex.mutex);
- 	mutex_init(&rtwdev->hal.tx_power_mutex);
- 
-diff --git a/drivers/net/wireless/realtek/rtw88/main.h b/drivers/net/wireless/realtek/rtw88/main.h
-index e5af375b3..fd213252f 100644
---- a/drivers/net/wireless/realtek/rtw88/main.h
-+++ b/drivers/net/wireless/realtek/rtw88/main.h
-@@ -1842,7 +1842,7 @@ struct rtw_dev {
- 	struct mutex mutex;
- 
- 	/* read/write rf register */
--	spinlock_t rf_lock;
-+	struct mutex rf_lock;
- 
- 	/* watch dog every 2 sec */
- 	struct delayed_work watch_dog_work;
--- 
-2.29.2
-
-From d48da0bab6e31056539338956895ce8a0662de13 Mon Sep 17 00:00:00 2001
-From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
-Date: Tue, 13 Jul 2021 19:28:36 +0200
-Subject: [PATCH 4/9] rtw88: fw: Convert h2c.lock from a spinlock to a mutex
-
-Upcoming SDIO support may sleep in the read/write handlers. Switch
-the h2c.lock from a spinlock to a mutex to allow for this behavior.
-
-Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
----
- drivers/net/wireless/realtek/rtw88/fw.c   | 14 +++++++-------
- drivers/net/wireless/realtek/rtw88/main.c |  2 +-
- drivers/net/wireless/realtek/rtw88/main.h |  2 +-
- 3 files changed, 9 insertions(+), 9 deletions(-)
-
-diff --git a/drivers/net/wireless/realtek/rtw88/fw.c b/drivers/net/wireless/realtek/rtw88/fw.c
-index 3bfa5ecc0..5acc79829 100644
---- a/drivers/net/wireless/realtek/rtw88/fw.c
-+++ b/drivers/net/wireless/realtek/rtw88/fw.c
-@@ -285,7 +285,7 @@ static void rtw_fw_send_h2c_command(struct rtw_dev *rtwdev,
- 		h2c[3], h2c[2], h2c[1], h2c[0],
- 		h2c[7], h2c[6], h2c[5], h2c[4]);
- 
--	spin_lock(&rtwdev->h2c.lock);
-+	mutex_lock(&rtwdev->h2c.lock);
- 
- 	box = rtwdev->h2c.last_box_num;
- 	switch (box) {
-@@ -310,9 +310,9 @@ static void rtw_fw_send_h2c_command(struct rtw_dev *rtwdev,
- 		goto out;
- 	}
- 
--	ret = read_poll_timeout_atomic(rtw_read8, box_state,
--				       !((box_state >> box) & 0x1), 100, 3000,
--				       false, rtwdev, REG_HMETFR);
-+	ret = read_poll_timeout(rtw_read8, box_state,
-+				!((box_state >> box) & 0x1), 100, 3000, false,
-+				rtwdev, REG_HMETFR);
- 
- 	if (ret) {
- 		rtw_err(rtwdev, "failed to send h2c command\n");
-@@ -328,7 +328,7 @@ static void rtw_fw_send_h2c_command(struct rtw_dev *rtwdev,
- 		rtwdev->h2c.last_box_num = 0;
- 
- out:
--	spin_unlock(&rtwdev->h2c.lock);
-+	mutex_unlock(&rtwdev->h2c.lock);
- }
- 
- void rtw_fw_h2c_cmd_dbg(struct rtw_dev *rtwdev, u8 *h2c)
-@@ -340,7 +340,7 @@ static void rtw_fw_send_h2c_packet(struct rtw_dev *rtwdev, u8 *h2c_pkt)
- {
- 	int ret;
- 
--	spin_lock(&rtwdev->h2c.lock);
-+	mutex_lock(&rtwdev->h2c.lock);
- 
- 	FW_OFFLOAD_H2C_SET_SEQ_NUM(h2c_pkt, rtwdev->h2c.seq);
- 	ret = rtw_hci_write_data_h2c(rtwdev, h2c_pkt, H2C_PKT_SIZE);
-@@ -348,7 +348,7 @@ static void rtw_fw_send_h2c_packet(struct rtw_dev *rtwdev, u8 *h2c_pkt)
- 		rtw_err(rtwdev, "failed to send h2c packet\n");
- 	rtwdev->h2c.seq++;
- 
--	spin_unlock(&rtwdev->h2c.lock);
-+	mutex_unlock(&rtwdev->h2c.lock);
- }
- 
- void
-diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
-index 21189a4de..9765f9722 100644
---- a/drivers/net/wireless/realtek/rtw88/main.c
-+++ b/drivers/net/wireless/realtek/rtw88/main.c
-@@ -1836,12 +1836,12 @@ int rtw_core_init(struct rtw_dev *rtwdev)
- 	skb_queue_head_init(&rtwdev->coex.queue);
- 	skb_queue_head_init(&rtwdev->tx_report.queue);
- 
--	spin_lock_init(&rtwdev->h2c.lock);
- 	spin_lock_init(&rtwdev->txq_lock);
- 	spin_lock_init(&rtwdev->tx_report.q_lock);
- 
- 	mutex_init(&rtwdev->mutex);
- 	mutex_init(&rtwdev->rf_lock);
-+	mutex_init(&rtwdev->h2c.lock);
- 	mutex_init(&rtwdev->coex.mutex);
- 	mutex_init(&rtwdev->hal.tx_power_mutex);
- 
-diff --git a/drivers/net/wireless/realtek/rtw88/main.h b/drivers/net/wireless/realtek/rtw88/main.h
-index fd213252f..1788fc339 100644
---- a/drivers/net/wireless/realtek/rtw88/main.h
-+++ b/drivers/net/wireless/realtek/rtw88/main.h
-@@ -1868,7 +1868,7 @@ struct rtw_dev {
- 		/* incicate the mail box to use with fw */
- 		u8 last_box_num;
- 		/* protect to send h2c to fw */
--		spinlock_t lock;
-+		struct mutex lock;
- 		u32 seq;
- 	} h2c;
- 
--- 
-2.29.2
-
-From f108ab7f635c77843e256ba9a211f59914b321c2 Mon Sep 17 00:00:00 2001
-From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
-Date: Wed, 14 Jul 2021 00:26:55 +0200
-Subject: [PATCH 5/9] rtw88: Use rtw_iterate_vifs where the iterator reads or
- writes registers
-
-Upcoming SDIO support may sleep in the read/write handlers. Switch
-all users of rtw_iterate_vifs_atomic() which are either reading or
-writing a register to rtw_iterate_vifs().
-
-Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
----
- drivers/net/wireless/realtek/rtw88/main.c | 6 +++---
- drivers/net/wireless/realtek/rtw88/ps.c   | 2 +-
- 2 files changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
-index 9765f9722..d39b43e1e 100644
---- a/drivers/net/wireless/realtek/rtw88/main.c
-+++ b/drivers/net/wireless/realtek/rtw88/main.c
-@@ -229,8 +229,8 @@ static void rtw_watch_dog_work(struct work_struct *work)
- 	rtw_phy_dynamic_mechanism(rtwdev);
- 
- 	data.rtwdev = rtwdev;
--	/* use atomic version to avoid taking local->iflist_mtx mutex */
--	rtw_iterate_vifs_atomic(rtwdev, rtw_vif_watch_dog_iter, &data);
-+
-+	rtw_iterate_vifs(rtwdev, rtw_vif_watch_dog_iter, &data);
- 
- 	/* fw supports only one station associated to enter lps, if there are
- 	 * more than two stations associated to the AP, then we can not enter
-@@ -578,7 +578,7 @@ static void __fw_recovery_work(struct rtw_dev *rtwdev)
- 	rtw_iterate_keys_rcu(rtwdev, NULL, rtw_reset_key_iter, rtwdev);
- 	rcu_read_unlock();
- 	rtw_iterate_stas_atomic(rtwdev, rtw_reset_sta_iter, rtwdev);
--	rtw_iterate_vifs_atomic(rtwdev, rtw_reset_vif_iter, rtwdev);
-+	rtw_iterate_vifs(rtwdev, rtw_reset_vif_iter, rtwdev);
- 	rtw_enter_ips(rtwdev);
- }
- 
-diff --git a/drivers/net/wireless/realtek/rtw88/ps.c b/drivers/net/wireless/realtek/rtw88/ps.c
-index 3f0ac3315..95f9060b0 100644
---- a/drivers/net/wireless/realtek/rtw88/ps.c
-+++ b/drivers/net/wireless/realtek/rtw88/ps.c
-@@ -58,7 +58,7 @@ int rtw_leave_ips(struct rtw_dev *rtwdev)
- 		return ret;
- 	}
- 
--	rtw_iterate_vifs_atomic(rtwdev, rtw_restore_port_cfg_iter, rtwdev);
-+	rtw_iterate_vifs(rtwdev, rtw_restore_port_cfg_iter, rtwdev);
- 
- 	rtw_coex_ips_notify(rtwdev, COEX_IPS_LEAVE);
- 
--- 
-2.29.2
-
-From fd83ec121a030f5e03b488987649555c28b8918a Mon Sep 17 00:00:00 2001
-From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
-Date: Wed, 14 Jul 2021 22:38:56 +0200
-Subject: [PATCH 6/9] mac80211: Add stations iterator where the iterator
+Date: Sat, 17 Jul 2021 22:40:51 +0200
+Subject: [PATCH 03/11] mac80211: Add stations iterator where the iterator
  function may sleep
 
 ieee80211_iterate_active_interfaces() and
@@ -316,10 +76,66 @@ index 05e96212b..c6984d046 100644
 -- 
 2.29.2
 
-From 6eb4fe5be56ca404386197747175be637419b924 Mon Sep 17 00:00:00 2001
+From 1d0834e62ded875e30575e25f76b1a5887e32c81 Mon Sep 17 00:00:00 2001
 From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
-Date: Wed, 14 Jul 2021 22:54:43 +0200
-Subject: [PATCH 7/9] rtw88: Use rtw_iterate_stas where the iterator reads or
+Date: Sat, 17 Jul 2021 22:40:52 +0200
+Subject: [PATCH 04/11] rtw88: Use rtw_iterate_vifs where the iterator reads or
+ writes registers
+
+Upcoming SDIO support may sleep in the read/write handlers. Switch
+all users of rtw_iterate_vifs_atomic() which are either reading or
+writing a register to rtw_iterate_vifs().
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+ drivers/net/wireless/realtek/rtw88/main.c | 6 +++---
+ drivers/net/wireless/realtek/rtw88/ps.c   | 2 +-
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
+index c6364837e..207161a8f 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.c
++++ b/drivers/net/wireless/realtek/rtw88/main.c
+@@ -229,8 +229,8 @@ static void rtw_watch_dog_work(struct work_struct *work)
+ 	rtw_phy_dynamic_mechanism(rtwdev);
+ 
+ 	data.rtwdev = rtwdev;
+-	/* use atomic version to avoid taking local->iflist_mtx mutex */
+-	rtw_iterate_vifs_atomic(rtwdev, rtw_vif_watch_dog_iter, &data);
++
++	rtw_iterate_vifs(rtwdev, rtw_vif_watch_dog_iter, &data);
+ 
+ 	/* fw supports only one station associated to enter lps, if there are
+ 	 * more than two stations associated to the AP, then we can not enter
+@@ -578,7 +578,7 @@ static void __fw_recovery_work(struct rtw_dev *rtwdev)
+ 	rtw_iterate_keys_rcu(rtwdev, NULL, rtw_reset_key_iter, rtwdev);
+ 	rcu_read_unlock();
+ 	rtw_iterate_stas_atomic(rtwdev, rtw_reset_sta_iter, rtwdev);
+-	rtw_iterate_vifs_atomic(rtwdev, rtw_reset_vif_iter, rtwdev);
++	rtw_iterate_vifs(rtwdev, rtw_reset_vif_iter, rtwdev);
+ 	rtw_enter_ips(rtwdev);
+ }
+ 
+diff --git a/drivers/net/wireless/realtek/rtw88/ps.c b/drivers/net/wireless/realtek/rtw88/ps.c
+index 3f0ac3315..95f9060b0 100644
+--- a/drivers/net/wireless/realtek/rtw88/ps.c
++++ b/drivers/net/wireless/realtek/rtw88/ps.c
+@@ -58,7 +58,7 @@ int rtw_leave_ips(struct rtw_dev *rtwdev)
+ 		return ret;
+ 	}
+ 
+-	rtw_iterate_vifs_atomic(rtwdev, rtw_restore_port_cfg_iter, rtwdev);
++	rtw_iterate_vifs(rtwdev, rtw_restore_port_cfg_iter, rtwdev);
+ 
+ 	rtw_coex_ips_notify(rtwdev, COEX_IPS_LEAVE);
+ 
+-- 
+2.29.2
+
+From 1c06191672fd952f69cd91ec212dc03c725bdf16 Mon Sep 17 00:00:00 2001
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Date: Sat, 17 Jul 2021 22:40:53 +0200
+Subject: [PATCH 05/11] rtw88: Use rtw_iterate_stas where the iterator reads or
  writes registers
 
 Upcoming SDIO support may sleep in the read/write handlers. Switch
@@ -349,7 +165,7 @@ index 6f5629852..7650a1ca0 100644
  
  static int rtw_ops_set_bitrate_mask(struct ieee80211_hw *hw,
 diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
-index d39b43e1e..945e62bc5 100644
+index 207161a8f..6e0d25f0a 100644
 --- a/drivers/net/wireless/realtek/rtw88/main.c
 +++ b/drivers/net/wireless/realtek/rtw88/main.c
 @@ -577,7 +577,7 @@ static void __fw_recovery_work(struct rtw_dev *rtwdev)
@@ -412,10 +228,298 @@ index fc9544f4e..9c4050d4c 100644
 -- 
 2.29.2
 
-From c80ff0411da3c736b64ef222fd8b5ce6689f6a7d Mon Sep 17 00:00:00 2001
+From f531395433725878510a51be7394b981fa2ed25c Mon Sep 17 00:00:00 2001
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Date: Sat, 17 Jul 2021 22:40:54 +0200
+Subject: [PATCH 06/11] rtw88: Replace usage of rtw_iterate_keys_rcu() with
+ rtw_iterate_keys()
+
+Upcoming SDIO support may sleep in the read/write handlers. The only
+occurrence of rtw_iterate_keys_rcu() reads and writes registers from
+it's iterator function. Replace it with rtw_iterate_keys() (the non-RCU
+version). This will prevent an "scheduling while atomic" issue when
+using an SDIO device.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+ drivers/net/wireless/realtek/rtw88/main.c | 4 +---
+ drivers/net/wireless/realtek/rtw88/util.h | 2 --
+ 2 files changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
+index 6e0d25f0a..e40432b1d 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.c
++++ b/drivers/net/wireless/realtek/rtw88/main.c
+@@ -574,9 +574,7 @@ static void __fw_recovery_work(struct rtw_dev *rtwdev)
+ 
+ 	WARN(1, "firmware crash, start reset and recover\n");
+ 
+-	rcu_read_lock();
+-	rtw_iterate_keys_rcu(rtwdev, NULL, rtw_reset_key_iter, rtwdev);
+-	rcu_read_unlock();
++	rtw_iterate_keys(rtwdev, NULL, rtw_reset_key_iter, rtwdev);
+ 	rtw_iterate_stas(rtwdev, rtw_reset_sta_iter, rtwdev);
+ 	rtw_iterate_vifs(rtwdev, rtw_reset_vif_iter, rtwdev);
+ 	rtw_enter_ips(rtwdev);
+diff --git a/drivers/net/wireless/realtek/rtw88/util.h b/drivers/net/wireless/realtek/rtw88/util.h
+index b0dfadf8b..06a5b4c41 100644
+--- a/drivers/net/wireless/realtek/rtw88/util.h
++++ b/drivers/net/wireless/realtek/rtw88/util.h
+@@ -19,8 +19,6 @@ struct rtw_dev;
+ 	ieee80211_iterate_stations_atomic(rtwdev->hw, iterator, data)
+ #define rtw_iterate_keys(rtwdev, vif, iterator, data)			       \
+ 	ieee80211_iter_keys(rtwdev->hw, vif, iterator, data)
+-#define rtw_iterate_keys_rcu(rtwdev, vif, iterator, data)		       \
+-	ieee80211_iter_keys_rcu((rtwdev)->hw, vif, iterator, data)
+ 
+ static inline u8 *get_hdr_bssid(struct ieee80211_hdr *hdr)
+ {
+-- 
+2.29.2
+
+From b483981794006b8b8c9d5202d65894363e3c844b Mon Sep 17 00:00:00 2001
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Date: Sat, 17 Jul 2021 22:40:55 +0200
+Subject: [PATCH 07/11] rtw88: Configure the registers from rtw_bf_assoc()
+ outside the RCU lock
+
+Upcoming SDIO support may sleep in the read/write handlers. Configure
+the chip's BFEE configuration set from rtw_bf_assoc() outside the
+rcu_read_lock section to prevent a "scheduling while atomic" issue.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+ drivers/net/wireless/realtek/rtw88/bf.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/bf.c b/drivers/net/wireless/realtek/rtw88/bf.c
+index aff70e4ae..06034d5d6 100644
+--- a/drivers/net/wireless/realtek/rtw88/bf.c
++++ b/drivers/net/wireless/realtek/rtw88/bf.c
+@@ -39,6 +39,7 @@ void rtw_bf_assoc(struct rtw_dev *rtwdev, struct ieee80211_vif *vif,
+ 	struct ieee80211_sta_vht_cap *vht_cap;
+ 	struct ieee80211_sta_vht_cap *ic_vht_cap;
+ 	const u8 *bssid = bss_conf->bssid;
++	bool config_bfee = false;
+ 	u32 sound_dim;
+ 	u8 i;
+ 
+@@ -70,7 +71,7 @@ void rtw_bf_assoc(struct rtw_dev *rtwdev, struct ieee80211_vif *vif,
+ 		bfee->aid = bss_conf->aid;
+ 		bfinfo->bfer_mu_cnt++;
+ 
+-		rtw_chip_config_bfee(rtwdev, rtwvif, bfee, true);
++		config_bfee = true;
+ 	} else if ((ic_vht_cap->cap & IEEE80211_VHT_CAP_SU_BEAMFORMEE_CAPABLE) &&
+ 		   (vht_cap->cap & IEEE80211_VHT_CAP_SU_BEAMFORMER_CAPABLE)) {
+ 		if (bfinfo->bfer_su_cnt >= chip->bfer_su_max_num) {
+@@ -96,11 +97,14 @@ void rtw_bf_assoc(struct rtw_dev *rtwdev, struct ieee80211_vif *vif,
+ 			}
+ 		}
+ 
+-		rtw_chip_config_bfee(rtwdev, rtwvif, bfee, true);
++		config_bfee = true;
+ 	}
+ 
+ out_unlock:
+ 	rcu_read_unlock();
++
++	if (config_bfee)
++		rtw_chip_config_bfee(rtwdev, rtwvif, bfee, true);
+ }
+ 
+ void rtw_bf_init_bfer_entry_mu(struct rtw_dev *rtwdev,
+-- 
+2.29.2
+
+From 890d2135fb555fd4cc30147f3784e07e6ef6238d Mon Sep 17 00:00:00 2001
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Date: Sat, 17 Jul 2021 22:40:56 +0200
+Subject: [PATCH 08/11] rtw88: hci: Convert rf_lock from a spinlock to a mutex
+
+Upcoming SDIO support may sleep in the read/write handlers. Switch
+rf_lock from a spinlock to a mutex to allow for this behavior.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+ drivers/net/wireless/realtek/rtw88/hci.h  | 11 ++++-------
+ drivers/net/wireless/realtek/rtw88/main.c |  2 +-
+ drivers/net/wireless/realtek/rtw88/main.h |  2 +-
+ 3 files changed, 6 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/hci.h b/drivers/net/wireless/realtek/rtw88/hci.h
+index 4c6fc6fb3..3c730b7a9 100644
+--- a/drivers/net/wireless/realtek/rtw88/hci.h
++++ b/drivers/net/wireless/realtek/rtw88/hci.h
+@@ -166,12 +166,11 @@ static inline u32
+ rtw_read_rf(struct rtw_dev *rtwdev, enum rtw_rf_path rf_path,
+ 	    u32 addr, u32 mask)
+ {
+-	unsigned long flags;
+ 	u32 val;
+ 
+-	spin_lock_irqsave(&rtwdev->rf_lock, flags);
++	mutex_lock(&rtwdev->rf_lock);
+ 	val = rtwdev->chip->ops->read_rf(rtwdev, rf_path, addr, mask);
+-	spin_unlock_irqrestore(&rtwdev->rf_lock, flags);
++	mutex_unlock(&rtwdev->rf_lock);
+ 
+ 	return val;
+ }
+@@ -180,11 +179,9 @@ static inline void
+ rtw_write_rf(struct rtw_dev *rtwdev, enum rtw_rf_path rf_path,
+ 	     u32 addr, u32 mask, u32 data)
+ {
+-	unsigned long flags;
+-
+-	spin_lock_irqsave(&rtwdev->rf_lock, flags);
++	mutex_lock(&rtwdev->rf_lock);
+ 	rtwdev->chip->ops->write_rf(rtwdev, rf_path, addr, mask, data);
+-	spin_unlock_irqrestore(&rtwdev->rf_lock, flags);
++	mutex_unlock(&rtwdev->rf_lock);
+ }
+ 
+ static inline u32
+diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
+index e40432b1d..5ebc4c0b4 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.c
++++ b/drivers/net/wireless/realtek/rtw88/main.c
+@@ -1834,12 +1834,12 @@ int rtw_core_init(struct rtw_dev *rtwdev)
+ 	skb_queue_head_init(&rtwdev->coex.queue);
+ 	skb_queue_head_init(&rtwdev->tx_report.queue);
+ 
+-	spin_lock_init(&rtwdev->rf_lock);
+ 	spin_lock_init(&rtwdev->h2c.lock);
+ 	spin_lock_init(&rtwdev->txq_lock);
+ 	spin_lock_init(&rtwdev->tx_report.q_lock);
+ 
+ 	mutex_init(&rtwdev->mutex);
++	mutex_init(&rtwdev->rf_lock);
+ 	mutex_init(&rtwdev->coex.mutex);
+ 	mutex_init(&rtwdev->hal.tx_power_mutex);
+ 
+diff --git a/drivers/net/wireless/realtek/rtw88/main.h b/drivers/net/wireless/realtek/rtw88/main.h
+index e5af375b3..fd213252f 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.h
++++ b/drivers/net/wireless/realtek/rtw88/main.h
+@@ -1842,7 +1842,7 @@ struct rtw_dev {
+ 	struct mutex mutex;
+ 
+ 	/* read/write rf register */
+-	spinlock_t rf_lock;
++	struct mutex rf_lock;
+ 
+ 	/* watch dog every 2 sec */
+ 	struct delayed_work watch_dog_work;
+-- 
+2.29.2
+
+From 93542ab2333d2c40264e95a087f96aeef4deecde Mon Sep 17 00:00:00 2001
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Date: Sat, 17 Jul 2021 22:40:57 +0200
+Subject: [PATCH 09/11] rtw88: fw: Convert h2c.lock from a spinlock to a mutex
+
+Upcoming SDIO support may sleep in the read/write handlers. Switch
+the h2c.lock from a spinlock to a mutex to allow for this behavior.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+ drivers/net/wireless/realtek/rtw88/fw.c   | 14 +++++++-------
+ drivers/net/wireless/realtek/rtw88/main.c |  2 +-
+ drivers/net/wireless/realtek/rtw88/main.h |  2 +-
+ 3 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/fw.c b/drivers/net/wireless/realtek/rtw88/fw.c
+index 3bfa5ecc0..5acc79829 100644
+--- a/drivers/net/wireless/realtek/rtw88/fw.c
++++ b/drivers/net/wireless/realtek/rtw88/fw.c
+@@ -285,7 +285,7 @@ static void rtw_fw_send_h2c_command(struct rtw_dev *rtwdev,
+ 		h2c[3], h2c[2], h2c[1], h2c[0],
+ 		h2c[7], h2c[6], h2c[5], h2c[4]);
+ 
+-	spin_lock(&rtwdev->h2c.lock);
++	mutex_lock(&rtwdev->h2c.lock);
+ 
+ 	box = rtwdev->h2c.last_box_num;
+ 	switch (box) {
+@@ -310,9 +310,9 @@ static void rtw_fw_send_h2c_command(struct rtw_dev *rtwdev,
+ 		goto out;
+ 	}
+ 
+-	ret = read_poll_timeout_atomic(rtw_read8, box_state,
+-				       !((box_state >> box) & 0x1), 100, 3000,
+-				       false, rtwdev, REG_HMETFR);
++	ret = read_poll_timeout(rtw_read8, box_state,
++				!((box_state >> box) & 0x1), 100, 3000, false,
++				rtwdev, REG_HMETFR);
+ 
+ 	if (ret) {
+ 		rtw_err(rtwdev, "failed to send h2c command\n");
+@@ -328,7 +328,7 @@ static void rtw_fw_send_h2c_command(struct rtw_dev *rtwdev,
+ 		rtwdev->h2c.last_box_num = 0;
+ 
+ out:
+-	spin_unlock(&rtwdev->h2c.lock);
++	mutex_unlock(&rtwdev->h2c.lock);
+ }
+ 
+ void rtw_fw_h2c_cmd_dbg(struct rtw_dev *rtwdev, u8 *h2c)
+@@ -340,7 +340,7 @@ static void rtw_fw_send_h2c_packet(struct rtw_dev *rtwdev, u8 *h2c_pkt)
+ {
+ 	int ret;
+ 
+-	spin_lock(&rtwdev->h2c.lock);
++	mutex_lock(&rtwdev->h2c.lock);
+ 
+ 	FW_OFFLOAD_H2C_SET_SEQ_NUM(h2c_pkt, rtwdev->h2c.seq);
+ 	ret = rtw_hci_write_data_h2c(rtwdev, h2c_pkt, H2C_PKT_SIZE);
+@@ -348,7 +348,7 @@ static void rtw_fw_send_h2c_packet(struct rtw_dev *rtwdev, u8 *h2c_pkt)
+ 		rtw_err(rtwdev, "failed to send h2c packet\n");
+ 	rtwdev->h2c.seq++;
+ 
+-	spin_unlock(&rtwdev->h2c.lock);
++	mutex_unlock(&rtwdev->h2c.lock);
+ }
+ 
+ void
+diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
+index 5ebc4c0b4..34e5bc97d 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.c
++++ b/drivers/net/wireless/realtek/rtw88/main.c
+@@ -1834,12 +1834,12 @@ int rtw_core_init(struct rtw_dev *rtwdev)
+ 	skb_queue_head_init(&rtwdev->coex.queue);
+ 	skb_queue_head_init(&rtwdev->tx_report.queue);
+ 
+-	spin_lock_init(&rtwdev->h2c.lock);
+ 	spin_lock_init(&rtwdev->txq_lock);
+ 	spin_lock_init(&rtwdev->tx_report.q_lock);
+ 
+ 	mutex_init(&rtwdev->mutex);
+ 	mutex_init(&rtwdev->rf_lock);
++	mutex_init(&rtwdev->h2c.lock);
+ 	mutex_init(&rtwdev->coex.mutex);
+ 	mutex_init(&rtwdev->hal.tx_power_mutex);
+ 
+diff --git a/drivers/net/wireless/realtek/rtw88/main.h b/drivers/net/wireless/realtek/rtw88/main.h
+index fd213252f..1788fc339 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.h
++++ b/drivers/net/wireless/realtek/rtw88/main.h
+@@ -1868,7 +1868,7 @@ struct rtw_dev {
+ 		/* incicate the mail box to use with fw */
+ 		u8 last_box_num;
+ 		/* protect to send h2c to fw */
+-		spinlock_t lock;
++		struct mutex lock;
+ 		u32 seq;
+ 	} h2c;
+ 
+-- 
+2.29.2
+
+From 33dcb3324144d2b7b142a8aeb514511bcfb662ca Mon Sep 17 00:00:00 2001
 From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
 Date: Thu, 2 Jul 2020 00:59:24 +0200
-Subject: [PATCH 8/9] mmc: sdio: add Realtek SDIO vendor ID and various wifi
+Subject: [PATCH 10/11] mmc: sdio: add Realtek SDIO vendor ID and various wifi
  device IDs
 
 Add the SDIO vendor ID for Realtek and some device IDs extracted from
@@ -448,10 +552,10 @@ index 120366193..006f3109f 100644
 -- 
 2.29.2
 
-From 1b460a42818c3dc2f739fdb44894872777aad472 Mon Sep 17 00:00:00 2001
+From 298a7b5ccd5dd376c084510772a7e64128107dfe Mon Sep 17 00:00:00 2001
 From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
 Date: Sat, 4 Jul 2020 00:56:34 +0200
-Subject: [PATCH 9/9] rtw88: sdio: Initial SDIO support
+Subject: [PATCH 11/11] rtw88: sdio: Initial SDIO support
 
 It kinda works.
 
@@ -460,12 +564,11 @@ Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
 ---
  drivers/net/wireless/realtek/rtw88/Kconfig    |   17 +
  drivers/net/wireless/realtek/rtw88/Makefile   |    9 +
- drivers/net/wireless/realtek/rtw88/bf.c       |    8 +-
  drivers/net/wireless/realtek/rtw88/debug.h    |    1 +
  drivers/net/wireless/realtek/rtw88/hci.h      |    8 +
  drivers/net/wireless/realtek/rtw88/mac.c      |   43 +-
  drivers/net/wireless/realtek/rtw88/mac.h      |    1 -
- drivers/net/wireless/realtek/rtw88/main.c     |    9 +-
+ drivers/net/wireless/realtek/rtw88/main.c     |    5 +
  drivers/net/wireless/realtek/rtw88/rtw8822b.c |    9 +
  drivers/net/wireless/realtek/rtw88/rtw8822b.h |    6 +
  .../net/wireless/realtek/rtw88/rtw8822bs.c    |   34 +
@@ -474,11 +577,10 @@ Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
  drivers/net/wireless/realtek/rtw88/rtw8822c.h |    6 +
  .../net/wireless/realtek/rtw88/rtw8822cs.c    |   34 +
  .../net/wireless/realtek/rtw88/rtw8822cs.h    |   10 +
- drivers/net/wireless/realtek/rtw88/sdio.c     | 1091 +++++++++++++++++
+ drivers/net/wireless/realtek/rtw88/sdio.c     | 1082 +++++++++++++++++
  drivers/net/wireless/realtek/rtw88/sdio.h     |  167 +++
  drivers/net/wireless/realtek/rtw88/tx.h       |   17 +
- drivers/net/wireless/realtek/rtw88/util.h     |    2 -
- 20 files changed, 1483 insertions(+), 9 deletions(-)
+ 18 files changed, 1467 insertions(+), 2 deletions(-)
  create mode 100644 drivers/net/wireless/realtek/rtw88/rtw8822bs.c
  create mode 100644 drivers/net/wireless/realtek/rtw88/rtw8822bs.h
  create mode 100644 drivers/net/wireless/realtek/rtw88/rtw8822cs.c
@@ -551,43 +653,6 @@ index c0e4b111c..b69c159d3 100644
 +
 +obj-$(CONFIG_RTW88_SDIO)	+= rtw88_sdio.o
 +rtw88_sdio-objs			:= sdio.o
-diff --git a/drivers/net/wireless/realtek/rtw88/bf.c b/drivers/net/wireless/realtek/rtw88/bf.c
-index aff70e4ae..06034d5d6 100644
---- a/drivers/net/wireless/realtek/rtw88/bf.c
-+++ b/drivers/net/wireless/realtek/rtw88/bf.c
-@@ -39,6 +39,7 @@ void rtw_bf_assoc(struct rtw_dev *rtwdev, struct ieee80211_vif *vif,
- 	struct ieee80211_sta_vht_cap *vht_cap;
- 	struct ieee80211_sta_vht_cap *ic_vht_cap;
- 	const u8 *bssid = bss_conf->bssid;
-+	bool config_bfee = false;
- 	u32 sound_dim;
- 	u8 i;
- 
-@@ -70,7 +71,7 @@ void rtw_bf_assoc(struct rtw_dev *rtwdev, struct ieee80211_vif *vif,
- 		bfee->aid = bss_conf->aid;
- 		bfinfo->bfer_mu_cnt++;
- 
--		rtw_chip_config_bfee(rtwdev, rtwvif, bfee, true);
-+		config_bfee = true;
- 	} else if ((ic_vht_cap->cap & IEEE80211_VHT_CAP_SU_BEAMFORMEE_CAPABLE) &&
- 		   (vht_cap->cap & IEEE80211_VHT_CAP_SU_BEAMFORMER_CAPABLE)) {
- 		if (bfinfo->bfer_su_cnt >= chip->bfer_su_max_num) {
-@@ -96,11 +97,14 @@ void rtw_bf_assoc(struct rtw_dev *rtwdev, struct ieee80211_vif *vif,
- 			}
- 		}
- 
--		rtw_chip_config_bfee(rtwdev, rtwvif, bfee, true);
-+		config_bfee = true;
- 	}
- 
- out_unlock:
- 	rcu_read_unlock();
-+
-+	if (config_bfee)
-+		rtw_chip_config_bfee(rtwdev, rtwvif, bfee, true);
- }
- 
- void rtw_bf_init_bfer_entry_mu(struct rtw_dev *rtwdev,
 diff --git a/drivers/net/wireless/realtek/rtw88/debug.h b/drivers/net/wireless/realtek/rtw88/debug.h
 index 0dd3f9a88..b126c5d4c 100644
 --- a/drivers/net/wireless/realtek/rtw88/debug.h
@@ -751,7 +816,7 @@ index 3172aa5ac..58c3dccc1 100644
  #define C2H_PKT_BUF		256
  #define REPORT_BUF		128
 diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
-index 945e62bc5..e10886787 100644
+index 34e5bc97d..e10886787 100644
 --- a/drivers/net/wireless/realtek/rtw88/main.c
 +++ b/drivers/net/wireless/realtek/rtw88/main.c
 @@ -17,6 +17,7 @@
@@ -762,18 +827,7 @@ index 945e62bc5..e10886787 100644
  
  bool rtw_disable_lps_deep_mode;
  EXPORT_SYMBOL(rtw_disable_lps_deep_mode);
-@@ -574,9 +575,7 @@ static void __fw_recovery_work(struct rtw_dev *rtwdev)
- 
- 	WARN(1, "firmware crash, start reset and recover\n");
- 
--	rcu_read_lock();
--	rtw_iterate_keys_rcu(rtwdev, NULL, rtw_reset_key_iter, rtwdev);
--	rcu_read_unlock();
-+	rtw_iterate_keys(rtwdev, NULL, rtw_reset_key_iter, rtwdev);
- 	rtw_iterate_stas(rtwdev, rtw_reset_sta_iter, rtwdev);
- 	rtw_iterate_vifs(rtwdev, rtw_reset_vif_iter, rtwdev);
- 	rtw_enter_ips(rtwdev);
-@@ -1558,6 +1557,10 @@ static int rtw_chip_parameter_setup(struct rtw_dev *rtwdev)
+@@ -1556,6 +1557,10 @@ static int rtw_chip_parameter_setup(struct rtw_dev *rtwdev)
  		rtwdev->hci.rpwm_addr = 0x03d9;
  		rtwdev->hci.cpwm_addr = 0x03da;
  		break;
@@ -1008,10 +1062,10 @@ index 000000000..b43b4d2c7
 +#endif
 diff --git a/drivers/net/wireless/realtek/rtw88/sdio.c b/drivers/net/wireless/realtek/rtw88/sdio.c
 new file mode 100644
-index 000000000..ddac040c6
+index 000000000..e29cf2079
 --- /dev/null
 +++ b/drivers/net/wireless/realtek/rtw88/sdio.c
-@@ -0,0 +1,1092 @@
+@@ -0,0 +1,1083 @@
 +// SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
 +/* Copyright (C) 2020 Martin Blumenstingl <martin.blumenstingl@googlemail.com>
 + *
@@ -1444,16 +1498,6 @@ index 000000000..ddac040c6
 +		rtw_warn(rtwdev, "sdio write32 failed (0x%x): %d", addr, ret);
 +}
 +
-+static size_t rtw_sdio_cmd53_align_size(size_t len)
-+{
-+	len = ALIGN(len, 4);
-+
-+	if (len < RTW_SDIO_BLOCK_SIZE)
-+		return len;
-+
-+	return ALIGN(len, RTW_SDIO_BLOCK_SIZE);
-+}
-+
 +static u32 rtw_sdio_get_tx_addr(struct rtw_dev *rtwdev, size_t size, u8 queue)
 +{
 +	u32 txaddr;
@@ -1520,7 +1564,7 @@ index 000000000..ddac040c6
 +	if (!txaddr)
 +		return -EINVAL;
 +
-+	txsize = rtw_sdio_cmd53_align_size(count);
++	txsize = sdio_align_size(rtwsdio->sdio_func, count);
 +
 +	ptr = kmalloc(txsize, GFP_KERNEL | GFP_DMA);
 +	if (!ptr)
@@ -1742,6 +1786,7 @@ index 000000000..ddac040c6
 +
 +static void rtw_sdio_rxfifo_recv(struct rtw_dev *rtwdev, u32 rx_len)
 +{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
 +	struct rtw_chip_info *chip = rtwdev->chip;
 +	u32 pkt_desc_sz = chip->rx_pkt_desc_sz;
 +	struct rtw_rx_pkt_stat pkt_stat;
@@ -1751,7 +1796,7 @@ index 000000000..ddac040c6
 +	u8 *rx_desc;
 +	int ret;
 +
-+	bufsz = rtw_sdio_cmd53_align_size(rx_len);
++	bufsz = sdio_align_size(rtwsdio->sdio_func, rx_len);
 +
 +	skb = dev_alloc_skb(bufsz);
 +	if (!skb)
@@ -2310,19 +2355,6 @@ index 56371eff9..00255ca17 100644
 +}
 +
  #endif
-diff --git a/drivers/net/wireless/realtek/rtw88/util.h b/drivers/net/wireless/realtek/rtw88/util.h
-index b0dfadf8b..06a5b4c41 100644
---- a/drivers/net/wireless/realtek/rtw88/util.h
-+++ b/drivers/net/wireless/realtek/rtw88/util.h
-@@ -19,8 +19,6 @@ struct rtw_dev;
- 	ieee80211_iterate_stations_atomic(rtwdev->hw, iterator, data)
- #define rtw_iterate_keys(rtwdev, vif, iterator, data)			       \
- 	ieee80211_iter_keys(rtwdev->hw, vif, iterator, data)
--#define rtw_iterate_keys_rcu(rtwdev, vif, iterator, data)		       \
--	ieee80211_iter_keys_rcu((rtwdev)->hw, vif, iterator, data)
- 
- static inline u8 *get_hdr_bssid(struct ieee80211_hdr *hdr)
- {
 -- 
 2.29.2
 
