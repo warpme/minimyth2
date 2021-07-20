@@ -173,6 +173,7 @@ mm-all:
 		   [ ! "$${software}" = "apitrace"       ] && \
 		   [ ! "$${software}" = "gdb"            ] && \
 		   [ ! "$${software}" = "valgrind"       ] && \
+		   [ ! "$${software}" = "libgpiod"       ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
