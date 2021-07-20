@@ -88,6 +88,7 @@ mm_SOFTWARE               ?= \
 #                             apitrace \
 #                             gdb \
 #                             valgrind \
+#                             libgpiod \
 
 # Indicates the microprocessor architecture.
 # Valid values for mm_GARCH are 'pentium-mmx', 'x86-64', 'armv7', 'armv8'.
