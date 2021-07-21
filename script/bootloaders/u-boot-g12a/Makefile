@@ -1,5 +1,5 @@
 
-ifeq (1,1)
+ifeq (0,1)
 # Mainline U-boot
 GARNAME      = u-boot-g12a-20200705
 # v2021.07
@@ -22,11 +22,11 @@ PATCHFILES   = 0001-add-Radxa-Zero-support.patch
 WORKSRC      = $(WORKDIR)/u-boot-amlogic-$(GARVERSION)
 endif
 
-ifeq (0,1)
-# Radxa u-boot https://github.com/radxa/u-boot/commits/aml-atv-fastboot-loader
-GARNAME      = u-boot-g12a-20210702
-# 02.07.2021
-GARVERSION   = 81de0f1f95b65a9446b8b180162b98025c910d3a
+ifeq (1,1)
+# Radxa u-boot https://github.com/radxa/u-boot/commits/radxa-zero-v2021.01
+GARNAME      = u-boot-g12a-20210721
+# 21.07.2021
+GARVERSION   = 7da35aca65955179cd9162de5d60b558b1551d14
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/radxa/u-boot/archive/
 DISTFILES    = $(GARVERSION).zip
