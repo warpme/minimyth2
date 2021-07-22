@@ -2971,3 +2971,111 @@ index fffff310a..e10491832 100644
 -- 
 2.29.2
 
+From 87b4a37884c765b2096af9992c851b56541bce85 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Wed, 21 Jul 2021 18:26:08 +0200
+Subject: [PATCH] rtw88-sdio: realign buffer only if necessary
+
+---
+ drivers/net/wireless/realtek/rtw88/sdio.c | 42 +++++++++++++----------
+ 1 file changed, 24 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/sdio.c b/drivers/net/wireless/realtek/rtw88/sdio.c
+index e10491832b1bab..6761b308a3a3d4 100644
+--- a/drivers/net/wireless/realtek/rtw88/sdio.c
++++ b/drivers/net/wireless/realtek/rtw88/sdio.c
+@@ -384,42 +384,53 @@ static int rtw_sdio_read_port(struct rtw_dev *rtwdev, u8 *buf, size_t count)
+ 	return ret;
+ }
+ 
+-static int rtw_sdio_write_port(struct rtw_dev *rtwdev, u8 *buf,
+-			       size_t count, u8 queue)
++static int rtw_sdio_write_port(struct rtw_dev *rtwdev, struct sk_buff *skb,
++			       u8 queue)
+ {
+ 	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
+ 	bool bus_claim;
+ 	size_t txsize;
+ 	u32 txaddr;
+-	void *ptr;
+ 	int ret;
+ 
+-	txaddr = rtw_sdio_get_tx_addr(rtwdev, count, queue);
++	txaddr = rtw_sdio_get_tx_addr(rtwdev, skb->len, queue);
+ 	if (!txaddr)
+ 		return -EINVAL;
+ 
+-	txsize = sdio_align_size(rtwsdio->sdio_func, count);
++	txsize = sdio_align_size(rtwsdio->sdio_func, skb->len);
+ 
+-	ptr = kmalloc(txsize, GFP_KERNEL | GFP_DMA);
+-	if (!ptr)
+-		return -ENOMEM;
++	/* re-align buffer, if needed, so SDIO DMA can consume it */
++	if (!IS_ALIGNED((unsigned long)skb->data, 8)) {
++		struct sk_buff *nskb;
+ 
+-	memcpy(ptr, buf, count);
++		nskb = skb_copy_expand(skb, 0, 0, GFP_ATOMIC);
++		if (!nskb) {
++			ret = -ENOMEM;
++			goto write_port_end;
++		}
++
++		kfree_skb(skb);
++		skb = nskb;
++	}
+ 
+ 	bus_claim = rtw_sdio_bus_claim_needed(rtwsdio);
+ 
+ 	if (bus_claim)
+ 		sdio_claim_host(rtwsdio->sdio_func);
+-	ret = sdio_memcpy_toio(rtwsdio->sdio_func, txaddr, ptr, txsize);
++
++	ret = sdio_memcpy_toio(rtwsdio->sdio_func, txaddr, skb->data, txsize);
++
+ 	if (bus_claim)
+ 		sdio_release_host(rtwsdio->sdio_func);
+ 
++write_port_end:
++
+ 	if (ret)
+ 		rtw_warn(rtwdev,
+ 			 "Failed to write %lu byte(s) to SDIO port 0x%08x",
+ 			 txsize, txaddr);
+ 
+-	kfree(ptr);
++	kfree_skb(skb);
+ 
+ 	return ret;
+ }
+@@ -551,7 +562,6 @@ static int rtw_sdio_write_data(struct rtw_dev *rtwdev,
+ {
+ 	struct rtw_chip_info *chip = rtwdev->chip;
+ 	u8 *pkt_desc;
+-	int ret;
+ 
+ 	pkt_desc = skb_push(skb, chip->tx_pkt_desc_sz);
+ 	memset(pkt_desc, 0, chip->tx_pkt_desc_sz);
+@@ -559,10 +569,7 @@ static int rtw_sdio_write_data(struct rtw_dev *rtwdev,
+ 	rtw_tx_fill_tx_desc(pkt_info, skb);
+ 	fill_txdesc_checksum_common(skb->data);
+ 
+-	ret = rtw_sdio_write_port(rtwdev, skb->data, skb->len, queue);
+-	dev_kfree_skb_any(skb);
+-
+-	return ret;
++	return rtw_sdio_write_port(rtwdev, skb, queue);
+ }
+ 
+ static int rtw_sdio_write_data_rsvd_page(struct rtw_dev *rtwdev, u8 *buf,
+@@ -810,8 +817,7 @@ static void rtw_sdio_tx_handler(struct work_struct *work)
+ 			if (!skb)
+ 				break;
+ 
+-			rtw_sdio_write_port(rtwdev, skb->data, skb->len, index);
+-			dev_kfree_skb_any(skb);
++			rtw_sdio_write_port(rtwdev, skb, index);
+ 		}
+ 	}
+ }
