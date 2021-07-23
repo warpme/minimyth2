@@ -35,17 +35,18 @@ build-custom:
 	@chmod +x $(WORKDIR)/generate-bins-new.sh
 	@cp -f $(WORKSRC)/aml_encrypt_g12a $(WORKSRC)/aml_encrypt
 	@$(WORKDIR)/generate-bins-new.sh $(WORKSRC) $(DESTDIR)$(libdir)/u-boot/g12a/$(mm_U-BOOT_BOARD_TYPE)/bl33.bin
+	@cp -f    $(WORKDIR)/../../uboot-bins/u-boot.bin.sd.bin $(DESTDIR)$(libdir)/u-boot/g12a/$(mm_U-BOOT_BOARD_TYPE)/radxa-zero-uboot.bin
+	@rm -rf   uboot-bins*
 	@$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f    $(WORKDIR)/g12a-boot-debug.scr $(DESTDIR)/boot/boot-debug.scr
-	@cp -f    $(WORKDIR)/g12a-boot.scr       $(DESTDIR)/boot/boot.scr
+	@#cp -f    $(WORKDIR)/g12a-boot.scr       $(DESTDIR)/boot/boot.scr
+	@cp -f    $(WORKDIR)/g12a-boot-debug.scr $(DESTDIR)/boot/boot.scr
 	@cp -f    $(WORKDIR)/minimyth.conf       $(DESTDIR)/boot/minimyth.conf
 	@mkdir -p $(DESTDIR)/boot/g12aloaderfiles
-	@cp -f    $(WORKDIR)/../../uboot-bins/u-boot.bin.sd.bin $(DESTDIR)/boot/g12aloaderfiles/radxa-zero-uboot.bin
-	@rm -rf   uboot-bins*
-	@$(MAKECOOKIE)
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/g12a/$(mm_U-BOOT_BOARD_TYPE)/radxa-zero-uboot.bin $(DESTDIR)/boot/g12aloaderfiles/radxa-zero-uboot.bin
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/boot.scr
