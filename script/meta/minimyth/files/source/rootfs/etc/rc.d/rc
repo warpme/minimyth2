@@ -2,6 +2,24 @@
 ################################################################################
 # rc
 ################################################################################
+
+# Timeout for exectuing init script list. When reached - timeouting script
+# name is stored in /var/log as '<script>.inprogress' and init moves to next
+# init list
+list_exec_timeout=20
+
+# Delay after last seguntial init list end and start of parallel
+# init list5
+parallel_list5_start_delay=25
+
+# set to 'yes' if you want to have started tty in background (i.e. to
+# inspect boot/init errors..."
+always_start_tty="no"
+
+
+
+
+
 . /etc/rc.d/functions
 
 script_list_start="\
@@ -57,10 +75,11 @@ rc_script_list_run() {
 
     fi
 
-    # Uncommet this if You want local console at boot
-    #if /usr/bin/test -z "`/bin/pidof agetty`" ; then
-    #    /sbin/agetty 9600 tty1 &
-    #fi
+    if [ x${always_start_tty} = "xyes" ] ; then
+        if /usr/bin/test -z "`/bin/pidof agetty`" ; then
+            /sbin/agetty 9600 tty1 &
+        fi
+    fi
 
     for script in ${script_list} ; do
 
@@ -79,9 +98,8 @@ rc_script_list_run() {
     done
 
     # Awaiting till this pahse all init scripts will be executed
-    timeout=20
     i=0
-    while [ $i -lt ${timeout} ] ; do
+    while [ $i -lt ${list_exec_timeout} ] ; do
 
         in_progress=`/bin/ls -1 /var/init/*.inprogress 2>/dev/null`
 
@@ -89,17 +107,17 @@ rc_script_list_run() {
 
         if [  "x${in_progress}" = "x" ] ; then
 
-            i=${timeout}
+            i=${list_exec_timeout}
 
             /bin/true
             return
 
         else
 
-            if [ $i -eq ${timeout} ] ; then
+            if [ $i -eq ${list_exec_timeout} ] ; then
 
                 failed=`/bin/ls -1 /var/init/*.inprogress 2>/dev/null`
-                /usr/bin/logger -t minimyth -p "local0.err" "[init.d/rc_script_list_run] Timeout executing init list caused by ${failed} !"
+                /usr/bin/logger -t minimyth -p "local0.err" "[init.d/rc_script_list_run] timeout executing init list caused by ${failed} !"
                 mv /var/init/*.inprogress /var/log/
 
                 /bin/false
@@ -173,7 +191,7 @@ case $1 in
 
         mm_splash_halt
 
-        /bin/sleep 25
+        /bin/sleep ${parallel_list5_start_delay}
 
         # Start init scripts allowable to run parallel
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/rc] Parallel launch init scripts. List5 ..."
