@@ -1,5 +1,5 @@
 
-ifeq (0,1)
+ifeq (1,1)
 # Mainline U-boot
 GARNAME      = u-boot-g12a-20200705
 # v2021.07
@@ -22,7 +22,7 @@ PATCHFILES   = 0001-add-Radxa-Zero-support.patch
 WORKSRC      = $(WORKDIR)/u-boot-amlogic-$(GARVERSION)
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 # Radxa u-boot https://github.com/radxa/u-boot/commits/radxa-zero-v2021.01
 GARNAME      = u-boot-g12a-20210721
 # 21.07.2021
