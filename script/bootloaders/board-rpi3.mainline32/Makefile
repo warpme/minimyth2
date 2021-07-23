@@ -52,6 +52,7 @@ install-custom:
 	@cp -f $(WORKSRC)/start_x.elf         $(DESTDIR)/boot/start_x.elf
 	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)/kernel.img $(DESTDIR)/boot/kernel7.img
 	@cp -f $(WORKSRC)/minimyth.conf       $(DESTDIR)/boot/minimyth.conf
+	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/bootcode.bin

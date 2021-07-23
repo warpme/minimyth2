@@ -51,6 +51,7 @@ install-custom:
 	@cp -f $(WORKSRC)/kernel7.img   $(DESTDIR)/boot/kernel7.img
 	@# Ust this for mainline u-boot
 	@#cp -f $(DESTDIR)$(libdir)/u-boot/rpi2/$(mm_U-BOOT_BOARD_TYPE)/kernel7.img $(DESTDIR)/boot/kernel7.img
+	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/bootcode.bin

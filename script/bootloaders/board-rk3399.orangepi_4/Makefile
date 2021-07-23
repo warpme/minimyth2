@@ -39,6 +39,7 @@ install-custom:
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img $(DESTDIR)/boot/rk3399loaderfiles/idbloader.img
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb    $(DESTDIR)/boot/rk3399loaderfiles/u-boot.itb
 	@cp -f    $(WORKSRC)/minimyth.conf                           $(DESTDIR)/boot/minimyth.conf
+	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-all:
 	@rm -f  $(DESTDIR)/boot/boot-debug.scr

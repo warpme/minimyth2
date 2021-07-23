@@ -43,6 +43,7 @@ install-custom:
 	@cp -f    $(WORKSRC)/trust.img                            $(DESTDIR)/boot/rk3328loaderfiles/trust.img
 	@cp -f    $(WORKSRC)/uboot.img                            $(DESTDIR)/boot/rk3328loaderfiles/uboot.img
 	@cp -f    $(WORKSRC)/minimyth.conf                        $(DESTDIR)/boot/minimyth.conf
+	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-all:
 	@rm -f  $(DESTDIR)/boot/boot-debug.scr

@@ -37,6 +37,7 @@ install-custom:
 	@mkdir -p $(DESTDIR)/boot/h6loaderfiles
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
 		  $(DESTDIR)/boot/h6loaderfiles/u-boot-sunxi-with-spl.bin
+	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-all:
 	@rm -f  $(DESTDIR)/boot/boot-debug.scr

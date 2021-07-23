@@ -72,6 +72,7 @@ install-custom:
 	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2837-rpi-3-b.dtb                    $(DESTDIR)/boot/upstream/bcm2837-rpi-3-b.dtb
 	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi34/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img $(DESTDIR)/boot/upstream/kernel8.img
 	@cp -f $(WORKSRC)/minimyth.conf       $(DESTDIR)/boot/minimyth.conf
+	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-all:
 	@rm -f $(DESTDIR)/boot/boot.scr

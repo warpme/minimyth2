@@ -30,6 +30,7 @@ install-custom:
 	@cp -f $(build_datadir)/syslinux/gptmbr.bin   $(DESTDIR)/boot/syslinux/gptmbr.bin
 	@cp -f $(build_datadir)/syslinux/vesamenu.c32 $(DESTDIR)/boot/syslinux/vesamenu.c32
 	@cp -f $(WORKSRC)/minimyth.conf               $(DESTDIR)/boot/minimyth.conf
+	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-all:
 	@rm -rf $(DESTDIR)/boot/syslinux*
