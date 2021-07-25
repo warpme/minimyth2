@@ -145,7 +145,7 @@ PATCHFILES += 0571-drivers-thermal-allwinner-add-h616-ths-support.patch
 # add support for xr819 wifi https://github.com/jernejsk/linux-1/tree/0e2dbeef9b05d5bd285d7fb2cf5bde1bb212c96d
 PATCHFILES += 0580-net-wireless-add-xr819-support-07072021.patch
 # add support for rtl8822bs/8822cs by rtw88 https://github.com/jernejsk/linux-1/commits/rtw88-sdio
-PATCHFILES += 0581-net-wireless-add-rt8822-support-21072021.patch
+PATCHFILES += 0581-net-wireless-add-rt8822-support-24072021.patch
 # enable some h616 boards
 PATCHFILES += 0590-arm64-dts-allwinner-h616-add-dtsi.patch
 PATCHFILES += 0591-arm64-dts-allwinner-h616-add-OrangePi-Zero2.patch
