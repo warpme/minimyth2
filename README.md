@@ -66,9 +66,10 @@ Allwinner H6  | TanixTX6-Mini    | works      (xr819@SDIO)                 | wor
 Allwinner H6  | Beelink GS1      | not works  (fn-link6222@PCI-e no PCI-e) | works                  | not works (firmware issue)     | some things are still missing |
 Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                    | works                  | currently power off/on         | good prospects                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                    | works                  | currently power off/on         | well supported                |
-Amlogic s905  | TanixTX3-Mini    | not works  (sv6051@SDIO no driver aval) | not works (kernel bug) | not works (firmware issue)     | support stalled               |
-Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)       | not works (kernel bug) | not works (firmware issue)     | support stalled               |
-Amlogic sm1   | x96Air           | works  (rtl8189@SDIO)                   | not works (kernel bug) | not works (firmware issue)     | support stalled               |
+Amlogic s905  | TanixTX3-Mini    | not works  (sv6051@SDIO no driver aval) | works                  | not works (firmware issue)     | support stalled               |
+Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)       | works                  | not works (firmware issue)     | support stalled               |
+Amlogic sm1   | x96Air           | works  (rtl8189@SDIO)                   | works                  | not works (firmware issue)     | support stalled               |
+Amlogic g12a  | Radxa-Zero       | not works yet (ap6256@SDIO)             | works                  | not works (firmware issue)     | support stalled               |
 Broadcom 2837 | Rpi3-b           | works  (brcm43430@SDIO)                 | works                  | no plans                       | all basics works nicelly      |
 Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                  | works                  | no plans                       | all basics works nicelly      |
 Intel i5      | i5 NUC           | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
@@ -90,6 +91,7 @@ Rockchip 3399 | RockPI 4-b                                   | rkvdec/v4l2_reque
 Amlogic s905  | TanixTX3-Mini                                | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, Wayland (2)    | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works, limited HEVC on s905w
 Amlogic s912  | Beelink GT1                                  | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works
 Amlogic sm1   | x96Air                                       | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works, artefacts on H.264
+Amlogic g12a  | Radxa-Zero                                   | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works
 Broadcom 2837 | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | H.264                                      | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_m2m H.264 jumpy
 Broadcom 2711 | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_m2m H.264 jumpy
 Intel i5      | i5 NUC                                       | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland | EGL_DMABUF (3)         | Perfect playback
