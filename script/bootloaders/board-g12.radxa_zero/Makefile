@@ -42,8 +42,7 @@ build-custom:
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f    $(WORKDIR)/g12a-boot-debug.scr $(DESTDIR)/boot/boot-debug.scr
-	@#cp -f    $(WORKDIR)/g12a-boot.scr       $(DESTDIR)/boot/boot.scr
-	@cp -f    $(WORKDIR)/g12a-boot-debug.scr $(DESTDIR)/boot/boot.scr
+	@cp -f    $(WORKDIR)/g12a-boot.scr       $(DESTDIR)/boot/boot.scr
 	@cp -f    $(WORKDIR)/minimyth.conf       $(DESTDIR)/boot/minimyth.conf
 	@mkdir -p $(DESTDIR)/boot/g12aloaderfiles
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/g12a/$(mm_U-BOOT_BOARD_TYPE)/radxa-zero-uboot.bin $(DESTDIR)/boot/g12aloaderfiles/radxa-zero-uboot.bin
