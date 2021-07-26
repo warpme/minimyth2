@@ -86,6 +86,8 @@ PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=468401
 PATCHFILES += 0380-drm-dw-hdmi-disable-loading-DW-HDMI-CEC-sub-driver-on-some-SoC.patch
+# fix to get ap6256 working on amlogic
+PATCHFILES += 0381-drivrs-mmc-revert-g103a5348c-to-fix-some-wifi.patch
 endif
 #------------------------------------------------------------
 
