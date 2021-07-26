@@ -2,11 +2,11 @@
 # URL GIT: https://github.com/jwrdegoede/rtl8189ES_linux
 
 GARNAME      = rtl8189es
-GARVERSION   = 930d3d7cfe3b25c0cf8a57ca4b79f6aef5b6de4b
+# 2.03.2021
+GARVERSION   = 03ac413135a355b55b693154c44b70f86a39732e
 CATEGORIES   = system
 MASTER_SITES = https://github.com/jwrdegoede/rtl8189ES_linux/archive/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = rtl8189es-fix-5.10-kernel-build.patch
 WORKSRC      = $(WORKDIR)/rtl8189ES_linux-$(GARVERSION)
 
 LICENSE      = GPL2
