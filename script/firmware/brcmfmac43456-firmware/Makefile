@@ -26,6 +26,7 @@ install-custom:
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/fw_bcm43456c5_ag.bin        $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.bin
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/brcmfmac43456-sdio.clm_blob $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.clm_blob
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.radxa,rockpi4b.txt
+	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.radxa,zero.txt
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.radxa,rockpi4c.txt
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.pine64,pinebook-pro.txt
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.pine64,rockpro64-v2.1.txt
