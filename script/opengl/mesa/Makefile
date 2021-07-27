@@ -92,7 +92,7 @@ CONFIGURE_ARGS += \
 	-D gallium-va=disabled
 else
 CONFIGURE_ARGS += \
-	-D gallium-drivers=r300,r600,radeonsi,svga,swrast \
+	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,svga,swrast \
 	-D dri-drivers=i915,i965,r100,r200 \
 	-D gallium-vdpau=enabled
 endif
