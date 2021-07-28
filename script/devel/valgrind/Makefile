@@ -1,6 +1,6 @@
 
 GARNAME      = valgrind
-GARVERSION   = 3.16.1
+GARVERSION   = 3.17.0
 CATEGORIES   = devel
 MASTER_SITES = https://sourceware.org/pub/valgrind/
 DISTFILES    = $(DISTNAME).tar.bz2
@@ -17,7 +17,8 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules
+	--disable-silent-rules \
+	$(if $(filter x86_64,$(GARCH_FAMILY)),--enable-only64bit) \
 
 include ../../gar.mk
 
