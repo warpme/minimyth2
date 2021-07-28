@@ -298,8 +298,8 @@ endif
 		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-vmwgfx.rules.disabled" \
 		"$(DESTDIR)/usr/share/supported-vmwgfx-gfx-hardware.txt" \
 		"15ad" \
-		"radeon" \
-		"radeon_vaapi" \
+		"vmware" \
+		"vmware" \
 		"./vmwgfx_names_with_HW_accell.lst" \
 		"vmwgfx"
 	@$(MAKECOOKIE)
