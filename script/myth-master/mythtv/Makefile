@@ -133,6 +133,7 @@ DEPENDS = \
 	lib/libcec \
 	lib/libiec61883 \
 	lib/libxml2 \
+	lib/libzip \
 	lib/lzo \
 	lib/openssl \
 	lib/libsamplerate \
