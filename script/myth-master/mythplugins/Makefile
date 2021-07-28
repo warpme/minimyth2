@@ -24,7 +24,7 @@ DEPENDS = \
 	lib/libvorbis \
 	lib/SDL \
 	lib/taglib \
-	lib/minizip \
+	lib/libzip \
 	python/python \
 	python/python-aniso8601 \
 	python/python-beautifulsoup4 \
