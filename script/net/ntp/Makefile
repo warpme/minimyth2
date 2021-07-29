@@ -1,16 +1,10 @@
-GARNAME = ntp
-GARVERSION = 4.2.8p3
-CATEGORIES = net
+
+GARNAME      = ntp
+GARVERSION   = 4.2.8p15
+CATEGORIES   = net
 MASTER_SITES = http://www.eecis.udel.edu/~$(GARNAME)/$(GARNAME)_spool/$(GARNAME)4/$(GARNAME)-4.2/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES  = \
-#	$(DISTNAME)-automake_1.13.patch \
-	$(DISTNAME)-glibc_2.10.patch
-ifneq ($(DESTIMG),build)
-PATCHFILES += \
-	$(DISTNAME)-cross.patch
-endif
-LICENSE = ntp
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = ntp
 ntp_LICENSE_TEXT = $(WORKSRC)/COPYRIGHT
 
 DESCRIPTION =
