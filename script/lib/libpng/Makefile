@@ -1,11 +1,10 @@
-GARNAME = libpng
-GARVERSION = 1.6.34
-CATEGORIES = lib
+
+GARNAME      = libpng
+GARVERSION   = 1.6.37
+CATEGORIES   = lib
 MASTER_SITES = https://sourceforge.net/projects/$(GARNAME)/files/$(GARNAME)16/$(GARVERSION)/
-DISTFILES  = $(DISTNAME).tar.xz
-# DISTFILES += config.cache.$(GARCH_FAMILY)
-# PATCHFILES = $(DISTNAME).patch.gar
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
 
 DESCRIPTION = 
@@ -27,10 +26,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	LIBS="-L$(DESTDIR)$(libdir)/"
 
 include ../../gar.mk
-
-extract-config.cache.$(GARCH_FAMILY):
-	@cp $(DOWNLOADDIR)/config.cache.$(GARCH_FAMILY) $(WORKSRC)/config.cache
-	@$(MAKECOOKIE)
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
