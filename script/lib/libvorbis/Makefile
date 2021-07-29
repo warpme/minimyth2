@@ -1,12 +1,10 @@
-GARNAME = libvorbis
-GARVERSION = 1.3.3
-CATEGORIES = lib
+
+GARNAME      = libvorbis
+GARVERSION   = 1.3.7
+CATEGORIES   = lib
 MASTER_SITES = http://downloads.xiph.org/releases/vorbis/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch \
-	$(DISTNAME)-configure.patch
-LICENSE = xiph
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = xiph
 xiph_LICENSE_TEXT = $(WORKSRC)/COPYING
 
 DESCRIPTION =
