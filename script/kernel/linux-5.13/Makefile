@@ -72,7 +72,7 @@ PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
 PATCHFILES += 0313-meson-vdec-HEVC-decoder-add-handling-to-show-frames-when-ready.patch
 # Amlogic: Misc patches
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
-#PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
+PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
