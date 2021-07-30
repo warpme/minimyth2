@@ -15,6 +15,7 @@ DESTIMG = $(MINIMYTHIMG)
 
 DEPENDS = \
 	system/acpid \
+	system/acpitool \
 	utils/alsa-utils \
 	utils/busybox \
 	data/ca-bundle.crt \
