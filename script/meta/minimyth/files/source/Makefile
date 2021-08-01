@@ -625,6 +625,14 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 	@if [ -e $@~/rootfs-ro/usr/bin/mplayer ] ; then    \
 		chmod 0755 $@~/rootfs-ro/usr/bin/mplayer ; \
 	 fi
+	@# Hack for strip wich is cheated by ntp exec
+	@if [ -e $@~/rootfs-ro/usr/bin/ntp ] ; then    \
+		chmod 0755 $@~/rootfs-ro/usr/bin/ntp ; \
+	 fi
+	@# Hack for strip wich is cheated by ntpdate exec
+	@if [ -e $@~/rootfs-ro/usr/bin/ntpdate ] ; then    \
+		chmod 0755 $@~/rootfs-ro/usr/bin/ntpdate ; \
+	 fi
 	@touch $@~
 	@mv $@~ $@
 
