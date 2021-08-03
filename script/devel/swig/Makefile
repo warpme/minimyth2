@@ -1,8 +1,9 @@
-GARNAME = swig
-GARVERSION = 4.0.0
-CATEGORIES = lib
+
+GARNAME      = swig
+GARVERSION   = 4.0.2
+CATEGORIES   = lib
 MASTER_SITES = https://downloads.sourceforge.net/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
+DISTFILES    = $(DISTNAME).tar.gz
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
 
 DESCRIPTION =
