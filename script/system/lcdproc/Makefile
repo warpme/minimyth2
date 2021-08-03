@@ -1,10 +1,10 @@
-GARNAME = lcdproc
-GARVERSION = 0.5.7
-CATEGORIES = system
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME)-dm140_henlar_v0.2.patch
-LICENSE = GPL2
+
+GARNAME      = lcdproc
+GARVERSION   = 0.5.9
+CATEGORIES   = system
+MASTER_SITES = https://github.com/lcdproc/lcdproc/releases/download/v0.5.9/
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
