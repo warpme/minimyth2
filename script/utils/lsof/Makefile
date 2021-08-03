@@ -1,17 +1,16 @@
-GARNAME = lsof
-GARVERSION = 4.91
-CATEGORIES = utils
-MASTER_SITES = ftp://ftp.fu-berlin.de/pub/unix/tools/lsof/
-DISTFILES = $(GARNAME)_$(GARVERSION).tar.bz2
-LICENSE =
+
+GARNAME      = lsof
+GARVERSION   = 4.94.0
+CATEGORIES   = utils
+MASTER_SITES = https://github.com/lsof-org/lsof/archive/$(GARVERSION)/
+DISTFILES    = $(GARNAME).tar.gz
+LICENSE      =
 
 DESCRIPTION =
 define BLURB
 endef
 
 DEPENDS = lang/c
-
-WORKSRC = $(WORKDIR)/$(GARNAME)_$(GARVERSION)/$(GARNAME)_$(GARVERSION)_src
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -48,11 +47,8 @@ LSOF_INCLUDE := $(DESTDIR)$(includedir)
 LSOF_RANLIB  := $(RANLIB) \$${LIB}
 LSOF_VSTR    := $(LINUX_VERSION)
 
-extract-$(GARNAME)_$(GARVERSION).tar.bz2:
-	@echo " ==> Extracting $(DOWNLOADDIR)/$(GARNAME)_$(GARVERSION).tar.bz2"
-	@bzip2 -dc $(DOWNLOADDIR)/$(GARNAME)_$(GARVERSION).tar.bz2* | tar -xf - -C $(EXTRACTDIR)
-	@tar -xf $(EXTRACTDIR)/$(GARNAME)_$(GARVERSION)/$(GARNAME)_$(GARVERSION)_src.tar -C $(EXTRACTDIR)/$(GARNAME)_$(GARVERSION)
-	@ln -sf Configure $(EXTRACTDIR)/$(GARNAME)_$(GARVERSION)/$(GARNAME)_$(GARVERSION)_src/configure
+pre-configure:
+	@ln -srf $(WORKSRC)/Configure $(WORKSRC)/configure
 	@$(MAKECOOKIE)
 
 install-custom:
