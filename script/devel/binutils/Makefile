@@ -1,16 +1,17 @@
-GARNAME = binutils
-GARVERSION = $(BINUTILS_VERSION)
-CATEGORIES = devel
+
+GARNAME       = binutils
+GARVERSION    = $(BINUTILS_VERSION)
+CATEGORIES    = devel
 MASTER_SITES  = https://ftp.gnu.org/gnu/$(GARNAME)/
 MASTER_SITES += ftp://ftp.kernel.org/pub/linux/devel/$(GARNAME)/
 MASTER_SITES += ftp://sourceware.org/pub/$(GARNAME)/snapshots/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES  = $(DISTNAME)-multi_os_directory.patch
-PATCHFILES += $(DISTNAME)-disable-doc-po-build.patch
+DISTFILES     = $(DISTNAME).tar.bz2
+PATCHFILES    = $(DISTNAME)-multi_os_directory.patch
+PATCHFILES   += $(DISTNAME)-disable-doc-po-build.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
-PATCHFILES += $(DISTNAME)-perl.patch.gar
+PATCHFILES   += $(DISTNAME)-perl.patch.gar
 endif
-LICENSE = GPL2/LGPL2
+LICENSE       = GPL2/LGPL2
 
 DESCRIPTION =
 define BLURB
@@ -56,11 +57,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--with-libelf-include=$(DESTDIR)$(includedir) \
 	--with-libelf-lib=$(DESTDIR)$(libdir) \
 	--with-sysroot=$($(CROSSIMG)_DESTDIR)
-# I do not know what '=' does at the beginning of the path name. However, the correct libraries are not found without it.
-# For the native environment, glibc is not installed, so the native environment needs to pick up glibc from the system.
-# Libraries are located in /lib and /usr/lib. On some systems (e.g. Ubuntu 11.04), some libraries (e.g. libc.so) are
-# located in /lib/$(GARBUILD) and /usr/lib/$(GARBUILD). On some systems, i386 libraries are located in /lib32 and /usr/lib32,
-# and on some systems x86_64 libraries are located in /lib64 and /usr/lib64.
+
 ifeq ("$(DESTIMG)+$(CROSSIMG)","build+build")
 CONFIGURE_ARGS += \
 	--with-lib-path="=$($(CROSSIMG)_elibdir):=$($(CROSSIMG)_libdir):/lib/$(GARBUILD):/usr/lib/$(GARBUILD):$(strip $(if $(filter i386,$(GARCH_FAMILY)),:/lib32:/usr/lib32:/lib:/usr/lib) $(if $(filter x86_64,$(GARCH_FAMILY)),:/lib64:/usr/lib64:/lib:/usr/lib))"
