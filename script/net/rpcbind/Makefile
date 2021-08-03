@@ -1,9 +1,10 @@
-GARNAME = rpcbind
-GARVERSION = 1.2.5
-CATEGORIES = net
+
+GARNAME      = rpcbind
+GARVERSION   = 1.2.6
+CATEGORIES   = net
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = BSD_3_Clause
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = BSD_3_Clause
 
 DESCRIPTION = 
 define BLURB
