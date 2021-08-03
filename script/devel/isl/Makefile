@@ -1,9 +1,10 @@
-GARNAME = isl
-GARVERSION = 0.19
-CATEGORIES = devel
+
+GARNAME      = isl
+GARVERSION   = 0.24
+CATEGORIES   = devel
 MASTER_SITES = http://isl.gforge.inria.fr/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = LGPL2_1
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
