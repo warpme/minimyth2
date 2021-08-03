@@ -1,18 +1,18 @@
-GARNAME = gcc
-GARVERSION = $(GCC_VERSION)
-CATEGORIES = devel
+
+GARNAME       = gcc
+GARVERSION    = $(GCC_VERSION)
+CATEGORIES    = devel
 MASTER_SITES  = https://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)/
 MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/releases/$(DISTNAME)/
 MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/prerelease-$(GCC_VERSION)/
 MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/snapshots/$(GCC_VERSION)/
-DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES  = $(DISTNAME)-disable_multilib_i386_linux64.patch
-PATCHFILES += $(DISTNAME)-libsanitizer-remove-cyclades.patch
+DISTFILES     = $(DISTNAME).tar.xz
+PATCHFILES    = $(DISTNAME)-disable_multilib_i386_linux64.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
-PATCHFILES += $(DISTNAME)-perl.patch.gar
-PATCHFILES += $(DISTNAME)-libstdc++-v3-force_sdt.h-detect-to-no.patch
+PATCHFILES   += $(DISTNAME)-perl.patch.gar
+PATCHFILES   += $(DISTNAME)-libstdc++-v3-force_sdt.h-detect-to-no.patch
 endif
-LICENSE = GPL2/GPL3/LGPL2_1/LGPL3
+LICENSE       = GPL2/GPL3/LGPL2_1/LGPL3
 
 DESCRIPTION =
 define BLURB
