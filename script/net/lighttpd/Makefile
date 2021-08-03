@@ -39,9 +39,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-webdav-locks \
 	--without-gdbm \
 	--without-memcache \
-	--without-lua
-CONFIGURE_ENV  = \
-	PCRECONFIG="$(build_DESTDIR)$(build_bindir)/pkg-config libpcre"
+	--without-lua \
+	PCRECONFIG="$(build_rootdir)/usr/bin-config/pcre-config"
 
 include ../../gar.mk
 
