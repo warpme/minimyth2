@@ -1,9 +1,10 @@
-GARNAME = sed
-GARVERSION = 4.2.2
-CATEGORIES = utils
+
+GARNAME      = sed
+GARVERSION   = 4.8
+CATEGORIES   = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = GPL3/FDL1_3
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL3/FDL1_3
 
 DESCRIPTION = 
 define BLURB
