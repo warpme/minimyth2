@@ -1,9 +1,10 @@
-GARNAME = intltool
-GARVERSION = 0.50.2
-CATEGORIES = devel
+
+GARNAME      = intltool
+GARVERSION   = 0.51.0
+CATEGORIES   = devel
 MASTER_SITES = https://launchpad.net/intltool/trunk/$(GARVERSION)/+download/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
