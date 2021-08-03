@@ -1,6 +1,6 @@
 
 GARNAME      = iptables
-GARVERSION   = 1.8.5
+GARVERSION   = 1.8.7
 CATEGORIES   = new
 MASTER_SITES = https://www.netfilter.org/projects/iptables/files/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.bz2
