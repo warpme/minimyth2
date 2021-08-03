@@ -1,6 +1,6 @@
 
 GARNAME      = nfs-utils
-GARVERSION   = 2.5.1
+GARVERSION   = 2.5.4
 CATEGORIES   = net
 MASTER_SITES = http://downloads.sourceforge.net/project/nfs/$(GARNAME)/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.bz2
