@@ -4,6 +4,7 @@ GARVERSION   = 5.60
 CATEGORIES   = lib
 MASTER_SITES = https://www.kernel.org/pub/linux/bluetooth/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = $(DISTNAME)-hack-to-compile-with-glib2.59.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
