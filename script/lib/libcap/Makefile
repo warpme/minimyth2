@@ -1,6 +1,6 @@
 
 GARNAME      = libcap
-GARVERSION   = 2.47
+GARVERSION   = 2.51
 CATEGORIES   = lib
 MASTER_SITES = https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/
 DISTFILES    = $(DISTNAME).tar.xz
@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c
+DEPENDS = lang/c lib/pam
 
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
