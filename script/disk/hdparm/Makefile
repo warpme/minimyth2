@@ -1,9 +1,8 @@
 
 GARNAME      = hdparm
-GARVERSION   = 9.53
+GARVERSION   = 9.62
 CATEGORIES   = disk
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/
-PATCHFILES   = $(DISTNAME)-fix-glibc-2.31-compile.patch
 DISTFILES    = $(DISTNAME).tar.gz
 LICENSE      = hdparm
 
