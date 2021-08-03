@@ -1,9 +1,10 @@
-GARNAME = mount.cifs
-GARVERSION = 3.5.9
-CATEGORIES = net
-DISTFILES = samba-$(GARVERSION).tar.gz
+
+GARNAME      = mount.cifs
+GARVERSION   = 4.14.6
+CATEGORIES   = net
+DISTFILES    = samba-$(GARVERSION).tar.gz
 MASTER_SITES = https://us1.samba.org/samba/ftp/stable/
-LICENSE = GPL2
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
