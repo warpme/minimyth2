@@ -1,8 +1,8 @@
 
 GARNAME      = ruby
-GARVERSION   = 2.7.1
+GARVERSION   = 3.0.2
 CATEGORIES   = utils
-MASTER_SITES = https://cache.ruby-lang.org/pub/ruby/2.7/
+MASTER_SITES = https://cache.ruby-lang.org/pub/ruby/3.0/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.xz
 LICENSE      = GPL2
 
