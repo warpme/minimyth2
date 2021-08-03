@@ -1,8 +1,9 @@
-GARNAME = flac
-GARVERSION = 1.3.1
-CATEGORIES = lib
+
+GARNAME      = flac
+GARVERSION   = 1.3.3
+CATEGORIES   = lib
 MASTER_SITES = http://downloads.xiph.org/releases/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.xz
+DISTFILES    = $(DISTNAME).tar.xz
 xiph_LICENSE_TEXT = $(WORKSRC)/COPYING.Xiph
 
 DESCRIPTION =
