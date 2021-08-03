@@ -1,9 +1,10 @@
-GARNAME = eudev
-GARVERSION = 3.2.7
-CATEGORIES = system
+
+GARNAME      = eudev
+GARVERSION   = 3.2.10
+CATEGORIES   = system
 MASTER_SITES = https://github.com/gentoo/eudev/archive/
-DISTFILES = v$(GARVERSION).tar.gz
-LICENSE = GPL2
+DISTFILES    = v$(GARVERSION).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
