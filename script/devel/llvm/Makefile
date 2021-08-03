@@ -1,6 +1,6 @@
 
 GARNAME      = llvm
-GARVERSION   = 12.0.0
+GARVERSION   = 12.0.1
 CATEGORIES   = devel
 MASTER_SITES = https://github.com/llvm/llvm-project/releases/download/llvmorg-$(GARVERSION)/
 DISTFILES    = $(DISTNAME).src.tar.xz
