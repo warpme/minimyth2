@@ -1,8 +1,9 @@
-GARNAME = hwids
-GARVERSION = 20180518
-CATEGORIES = data
+
+GARNAME      = hwids
+GARVERSION   = 20210613
+CATEGORIES   = data
 MASTER_SITES = https://github.com/gentoo/hwids/archive/
-DISTFILES = $(DISTNAME).tar.gz
+DISTFILES    = $(DISTNAME).tar.gz
 
 DESCRIPTION = 
 define BLURB
