@@ -1,9 +1,10 @@
-GARNAME = rsync
-GARVERSION = 3.1.3
-CATEGORIES = utils
+
+GARNAME      = rsync
+GARVERSION   = 3.2.3
+CATEGORIES   = utils
 MASTER_SITES = https://rsync.samba.org/ftp/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
