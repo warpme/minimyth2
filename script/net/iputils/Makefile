@@ -1,32 +1,21 @@
-GARNAME = iputils
-GARVERSION = s20121221
-CATEGORIES = net
-MASTER_SITES = http://www.skbuff.net/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME).patch
-LICENSE = BSD_4_Clause
 
-DESCRIPTION =
-define BLURB
-endef
+GARNAME      = iputils
+GARVERSION   = 20210722
+CATEGORIES   = net
+MASTER_SITES = https://github.com/iputils/iputils/archive/refs/tags/
+DISTFILES    = $(GARVERSION).tar.gz
+PATCHFILES   = $(DISTNAME)-remove-ping-tests.patch
+LICENSE      = BSD_4_Clause
 
-DEPENDS = lang/c
+DEPENDS = lang/c lib/libcap net/iproute2
 
-BUILD_SCRIPTS   = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS = custom
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
-BUILD_ARGS   = \
-	USE_CAP=no \
-	USE_SYSFS=no \
-	LIBC_INCLUDE=$(includedir) \
-	CC="$(CC)" \
-	ping
+CONFIGURE_ARGS = $(DIRPATHS_MESON) \
+	--buildtype=release \
+	-D BUILD_MANS=false \
+	-D BUILD_HTML_MANS=false \
 
 include ../../gar.mk
-
-LDFLAGS := $(LDFLAGS) -fwhole-program
-
-install-custom:
-	@mkdir -p $(DESTDIR)$(ebindir)
-	@install -m 755 $(WORKSRC)/ping $(DESTDIR)$(ebindir)
-	@$(MAKECOOKIE)
