@@ -1,9 +1,10 @@
-GARNAME = kmod
-GARVERSION = 25
-CATEGORIES = lib
+
+GARNAME      = kmod
+GARVERSION   = 29
+CATEGORIES   = utils
 MASTER_SITES = https://www.kernel.org/pub/linux/utils/kernel/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL2/LGPL2_1
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB
