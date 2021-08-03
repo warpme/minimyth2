@@ -1,9 +1,10 @@
-GARNAME = gptfdisk
-GARVERSION = 1.0.5
-CATEGORIES = utils
+
+GARNAME      = gptfdisk
+GARVERSION   = 1.0.8
+CATEGORIES   = utils
 MASTER_SITES = https://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
