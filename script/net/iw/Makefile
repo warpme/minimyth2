@@ -1,6 +1,6 @@
 
 GARNAME      = iw
-GARVERSION   = 5.4
+GARVERSION   = 5.9
 CATEGORIES   = net
 MASTER_SITES = https://www.kernel.org/pub/software/network/iw/
 DISTFILES    = $(DISTNAME).tar.xz
