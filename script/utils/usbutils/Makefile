@@ -1,9 +1,10 @@
-GARNAME = usbutils
-GARVERSION = 009
-CATEGORIES = utils
+
+GARNAME      = usbutils
+GARVERSION   = 013
+CATEGORIES   = utils
 MASTER_SITES = https://www.kernel.org/pub/linux/utils/usb/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
