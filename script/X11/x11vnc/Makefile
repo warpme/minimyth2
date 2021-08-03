@@ -1,13 +1,10 @@
-GARNAME = x11vnc
-GARVERSION = 0.9.13
-CATEGORIES = X11
-MASTER_SITES = http://downloads.sourceforge.net/project/libvncserver/$(GARNAME)/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch \
-	$(DISTNAME)-ar.patch \
-	$(DISTNAME)-xlinker.patch
-LICENSE = GPL2
+
+GARNAME      = x11vnc
+GARVERSION   = 0.9.16
+CATEGORIES   = X11
+MASTER_SITES = https://github.com/LibVNC/x11vnc/archive/refs/tags/
+DISTFILES    = $(GARVERSION).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
