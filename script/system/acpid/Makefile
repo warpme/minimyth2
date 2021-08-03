@@ -1,9 +1,10 @@
-GARNAME = acpid
-GARVERSION = 2.0.23
-CATEGORIES = system
+
+GARNAME      = acpid
+GARVERSION   = 2.0.32
+CATEGORIES   = system
 MASTER_SITES = http://downloads.sourceforge.net/project/acpid2/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
