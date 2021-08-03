@@ -1,9 +1,10 @@
-GARNAME = dosfstools
-GARVERSION = 4.1
-CATEGORIES = utils
+
+GARNAME      = dosfstools
+GARVERSION   = 4.2
+CATEGORIES   = utils
 MASTER_SITES = https://github.com/$(GARNAME)/$(GARNAME)/releases/download/v$(GARVERSION)/
-DISTFILES = $(GARNAME)-$(GARVERSION).tar.xz
-LICENSE = GPL2
+DISTFILES    = $(GARNAME)-$(GARVERSION).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
