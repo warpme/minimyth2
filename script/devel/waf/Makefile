@@ -1,6 +1,6 @@
 
 GARNAME      = waf
-GARVERSION   = 2.0.20
+GARVERSION   = 2.0.22
 CATEGORIES   = devel
 MASTER_SITES = https://gitlab.com/ita1024/waf/-/archive/waf-$(GARVERSION)/
 DISTFILES    = waf-waf-$(GARVERSION).tar.bz2
