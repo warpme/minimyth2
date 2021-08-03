@@ -1,10 +1,10 @@
-GARNAME = bluez
-GARVERSION = 5.50
-CATEGORIES = lib
+
+GARNAME      = bluez
+GARVERSION   = 5.60
+CATEGORIES   = lib
 MASTER_SITES = https://www.kernel.org/pub/linux/bluetooth/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME)-fix-build-kernel-5.2.patch
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
