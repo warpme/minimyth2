@@ -1,9 +1,10 @@
-GARNAME = e2fsprogs
-GARVERSION = 1.44.4
-CATEGORIES = utils
+
+GARNAME      = e2fsprogs
+GARVERSION   = 1.46.2
+CATEGORIES   = utils
 MASTER_SITES = https://www.kernel.org/pub/linux/kernel/people/tytso/$(GARNAME)/v$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
