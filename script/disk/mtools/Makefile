@@ -1,9 +1,10 @@
-GARNAME = mtools
-GARVERSION = 4.0.23
-CATEGORIES = utils
+
+GARNAME      = mtools
+GARVERSION   = 4.0.34
+CATEGORIES   = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/mtools/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
