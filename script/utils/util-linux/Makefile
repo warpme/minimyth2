@@ -1,9 +1,10 @@
-GARNAME = util-linux
-GARVERSION = 2.31.1
-CATEGORIES = utils
-MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.31/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL2
+
+GARNAME      = util-linux
+GARVERSION   = 2.37.1
+CATEGORIES   = utils
+MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.37/
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
@@ -43,7 +44,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-unshare \
 	--disable-nsenter \
 	--disable-setpriv \
-	--disable-eject \
+	--enable-eject \
 	--enable-agetty \
 	--enable-cramfs \
 	--disable-bfs \
