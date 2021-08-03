@@ -1,9 +1,10 @@
-GARNAME = expat
-GARVERSION = 2.2.5
-CATEGORIES = lib
-MASTER_SITES = https://github.com/libexpat/libexpat/releases/download/R_2_2_5/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = MIT
+
+GARNAME      = expat
+GARVERSION   = 2.4.1
+CATEGORIES   = lib
+MASTER_SITES = https://github.com/libexpat/libexpat/releases/download/R_2_4_1/
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = MIT
 
 DESCRIPTION =
 define BLURB
