@@ -22,9 +22,6 @@ ALL_DESTIMGS = main build
 # makefiles.  They're also used by autoconf, and can be adapted
 # for a variety of build systems.
 # 
-# TODO: set $(SYSCONFDIR) and $(LOCALSTATEDIR) to never use
-# /usr/etc or /usr/var
-
 # Directory config for the "main" image
 main_rootdir ?= 
 # Warning: any changes to these paths will cause certain packages to break.

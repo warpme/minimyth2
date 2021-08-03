@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/fontconfig lib/freetype lib/fribidi
+DEPENDS = lang/c lib/fontconfig lib/freetype lib/fribidi gtk/harfbuzz
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -20,9 +20,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
 	--disable-test \
-	--disable-enca \
 	--enable-fontconfig \
-	--disable-harfbuzz \
 	--disable-silent-rules \
 	--with-gnu-ld \
 
