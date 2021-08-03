@@ -1,10 +1,11 @@
-GARNAME = cmake
-GARVERSION = 3.18.0
-CATEGORIES = devel
-MASTER_SITES = http://www.cmake.org/files/v3.18/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME)-disable-qt5-chcking-with-no-qt.patch
-LICENSE = BSD_3_Clause
+
+GARNAME      = cmake
+GARVERSION   = 3.21.1
+CATEGORIES   = devel
+MASTER_SITES = http://www.cmake.org/files/v3.21/
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = $(DISTNAME)-disable-qt5-chcking-with-no-qt.patch
+LICENSE      = BSD_3_Clause
 
 DESCRIPTION = 
 define BLURB
