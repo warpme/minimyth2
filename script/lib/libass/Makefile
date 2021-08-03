@@ -1,10 +1,10 @@
-GARNAME = libass
-GARVERSION = 0.14.0
-CATEGORIES = lib
+
+GARNAME      = libass
+GARVERSION   = 0.15.1
+CATEGORIES   = lib
 MASTER_SITES = https://github.com/libass/libass/releases/download/$(GARVERSION)/
-# https://github.com/libass/libass/releases/download/${pkgver}/libass-${pkgver}.tar.xz
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = ISC
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = ISC
 
 DESCRIPTION =
 define BLURB
