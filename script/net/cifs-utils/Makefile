@@ -1,9 +1,10 @@
-GARNAME = cifs-utils
-GARVERSION = 5.8
-CATEGORIES = net
+
+GARNAME      = cifs-utils
+GARVERSION   = 6.13
+CATEGORIES   = net
 MASTER_SITES = https://download.samba.org/pub/linux-cifs/cifs-utils/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
