@@ -1,9 +1,10 @@
-GARNAME = lighttpd
-GARVERSION = 1.4.36
-CATEGORIES = net
+
+GARNAME      = lighttpd
+GARVERSION   = 1.4.59
+CATEGORIES   = net
 MASTER_SITES = http://download.lighttpd.net/lighttpd/releases-1.4.x/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = BSD_3_Clause
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = BSD_3_Clause
 
 DESCRIPTION =
 define BLURB
