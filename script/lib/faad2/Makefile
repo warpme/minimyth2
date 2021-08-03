@@ -1,20 +1,16 @@
-GARNAME = faad2
-GARVERSION = 2.7
-CATEGORIES = lib
-MASTER_SITES = http://downloads.sourceforge.net/project/faac/$(GARNAME)-src/$(DISTNAME)/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = \
-	$(DISTNAME)-mp4ff_shared.patch \
-	$(DISTNAME)-automake_1.13.patch
-LICENSE = GPL2
+
+GARNAME      = faad2
+GARVERSION   = 2_10_0
+CATEGORIES   = lib
+MASTER_SITES = https://github.com/knik0/faad2/archive/refs/tags/
+DISTFILES    = $(GARVERSION).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
 endef
 
 DEPENDS = lang/c
-
-#WORKSRC = $(WORKDIR)/$(GARNAME)
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
