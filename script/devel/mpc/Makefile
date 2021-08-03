@@ -1,9 +1,10 @@
-GARNAME = mpc
-GARVERSION = $(MPC_VERSION)
-CATEGORIES = devel
+
+GARNAME      = mpc
+GARVERSION   = $(MPC_VERSION)
+CATEGORIES   = devel
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = LGPL2_1
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
