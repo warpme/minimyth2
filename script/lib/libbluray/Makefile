@@ -1,8 +1,8 @@
 
 GARNAME      = libbluray
-GARVERSION   = 1.2.0
+GARVERSION   = 1.3.0
 CATEGORIES   = lib
-MASTER_SITES = https://code.videolan.org/videolan/libbluray/-/archive/1.2.0/
+MASTER_SITES = https://code.videolan.org/videolan/libbluray/-/archive/1.3.0/
 DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      = LGPL2_1
 
