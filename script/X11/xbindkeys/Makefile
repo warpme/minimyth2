@@ -1,11 +1,10 @@
-GARNAME = xbindkeys
-GARVERSION = 1.8.6
-CATEGORIES = X11
+
+GARNAME      = xbindkeys
+GARVERSION   = 1.8.7
+CATEGORIES   = X11
 MASTER_SITES = http://www.nongnu.org/xbindkeys/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
