@@ -1,11 +1,10 @@
-GARNAME = pkg-config
-GARVERSION = 0.28
-CATEGORIES = devel
+
+GARNAME      = pkg-config
+GARVERSION   = 0.29.2
+CATEGORIES   = devel
 MASTER_SITES = http://pkgconfig.freedesktop.org/releases/
-DISTFILES = $(DISTNAME).tar.gz 
-PATCHFILES = \
-	$(DISTNAME)-automake_1.13.patch
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.gz 
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
