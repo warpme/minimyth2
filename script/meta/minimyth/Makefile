@@ -12,6 +12,7 @@ endef
 MINIMYTHIMG = main
 
 DESTIMG = $(MINIMYTHIMG)
+#	net/iputils \
 
 DEPENDS = \
 	system/acpid \
@@ -21,13 +22,11 @@ DEPENDS = \
 	data/ca-bundle.crt \
 	net/curl \
 	disk/e2fsprogs \
-	disk/eject \
 	utils/ethtool \
 	utils/evtest \
 	devel/glibc-locale \
 	disk/hdparm \
 	net/ifplugd \
-	net/iputils \
 	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),system/irclient) \
 	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),system/irserver) \
 	system/irxkeys \
