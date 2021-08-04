@@ -1,16 +1,16 @@
 
 GARNAME      = x11vnc
-GARVERSION   = 0.9.16
+GARVERSION   = c88bf5af79a1abc40d82cdc76d8ea50a8cfc4cfd
 CATEGORIES   = X11
-MASTER_SITES = https://github.com/LibVNC/x11vnc/archive/refs/tags/
-DISTFILES    = $(GARVERSION).tar.gz
+MASTER_SITES = https://github.com/LibVNC/x11vnc/archive/
+DISTFILES    = $(GARVERSION).zip
 LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c xorg/xorg lib/libjpeg devel/zlib
+DEPENDS = lang/c xorg/xorg lib/libjpeg devel/zlib xorg/libvncserver
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -46,23 +46,11 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-jpeg=$(DESTDIR)$(prefix) \
 	--with-zlib \
 	--with-zlib=$(DESTDIR)$(prefix) \
-	--with-pthread \
 	--without-gnutls \
 	--without-client-tls \
 	--without-ipv6
 
-CONFIGURE_ENV = \
-	ac_cv_func_fork_works=yes \
-	ac_cv_func_lstat_dereferences_slashed_symlink=yes \
-	ac_cv_func_memcmp_working=yes \
-	ac_cv_func_stat_empty_string_bug=no
-
 include ../../gar.mk
-
-LDFLAGS := $(LDFLAGS) -fwhole-program
-
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
