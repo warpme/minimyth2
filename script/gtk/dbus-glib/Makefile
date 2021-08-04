@@ -1,6 +1,6 @@
 
 GARNAME      = dbus-glib
-GARVERSION   = 0.110
+GARVERSION   = 0.112
 CATEGORIES   = gtk
 MASTER_SITES = http://dbus.freedesktop.org/releases/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.gz
