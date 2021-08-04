@@ -90,6 +90,8 @@ PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
 PATCHFILES += 0380-drm-dw-hdmi-disable-loading-DW-HDMI-CEC-sub-driver-on-some-SoC.patch
 # fix to get ap6256 working on amlogic
 PATCHFILES += 0381-drivrs-mmc-revert-g103a5348c-to-fix-some-wifi.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=523623
+PATCHFILES += 0382-arm64-dts-meson-Add-Reset-controller-to-Ethernet-PHY.patch
 endif
 #------------------------------------------------------------
 
