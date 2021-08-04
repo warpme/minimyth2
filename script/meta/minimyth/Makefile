@@ -12,7 +12,6 @@ endef
 MINIMYTHIMG = main
 
 DESTIMG = $(MINIMYTHIMG)
-#	net/iputils \
 
 DEPENDS = \
 	system/acpid \
@@ -51,7 +50,6 @@ DEPENDS = \
 	myth-$(mm_MYTH_VERSION)/mythtv \
 	lib/ncursesw \
 	net/nfs-utils \
-	net/ntp \
 	net/openssh \
 	net/rpcbind \
 	utils/pciutils \
@@ -83,13 +81,12 @@ DEPENDS = \
 	net/wakelan \
 	net/netpipes \
 	net/netperf \
-	X11/x11vnc \
 	X11/xbindkeys \
 	X11/xmacro \
 	xorg/xorg \
-	X11/xscreensaver \
 	X11/xvattr \
 	X11/xdotool \
+	X11/x11vnc \
 	system/zoneinfo \
 	utils/htop \
 	utils/bashtop \
@@ -119,7 +116,9 @@ DEPENDS = \
 	$(if $(filter dvdcss,$(mm_SOFTWARE)),lib/libdvdcss) \
 	lib/nss-mdns \
 	lib/libinput \
-	net/mount.cifs \
+	net/iputils \
+	net/ntp \
+	net/cifs-utils \
 	net/iwd \
 	utils/alsacap \
 	utils/alsa-ucm2 \
@@ -181,6 +180,7 @@ DEPENDS = \
 	$(if $(filter gdb,$(mm_SOFTWARE)),devel/gdb) \
 	$(if $(filter valgrind,$(mm_SOFTWARE)),devel/valgrind) \
 	$(if $(filter libgpiod,$(mm_SOFTWARE)),system/libgpiod) \
+	$(if $(filter xscreensaver,$(mm_SOFTWARE)),X11/xscreensaver) \
 	$(filter-out %/Makefile extras/extras-% extras/extras.%,$(subst ../../,,$(wildcard ../../extras/*))) \
 	$(mm_USER_PACKAGES)
 

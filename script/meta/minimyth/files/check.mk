@@ -174,6 +174,7 @@ mm-all:
 		   [ ! "$${software}" = "gdb"            ] && \
 		   [ ! "$${software}" = "valgrind"       ] && \
 		   [ ! "$${software}" = "libgpiod"       ] && \
+		   [ ! "$${software}" = "xscreensaver"   ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
