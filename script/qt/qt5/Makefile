@@ -5,6 +5,7 @@ CATEGORIES   = qt
 MASTER_SITES = http://download.qt.io/official_releases/qt/5.15/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME).patch.gar
+PATCHFILES  += $(DISTNAME)-fix-gcc11-compile.patch
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
 PATCHFILES  += $(DISTNAME)-eglfs_kms-qeglfskmsgbmintegration-use-drm-card0.patch
 LICENSE      = LGPL2_1
