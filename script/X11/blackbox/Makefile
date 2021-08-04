@@ -1,6 +1,6 @@
 
 GARNAME      = blackboxwm
-GARVERSION   = 0.77
+GARVERSION   = 0.76
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/bbidulock/blackboxwm/archive/
 DISTFILES    = $(GARVERSION).tar.gz
