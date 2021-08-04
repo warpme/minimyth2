@@ -1,5 +1,5 @@
 GARNAME = dtc
-GARVERSION = 1.6.0
+GARVERSION = 1.6.1
 CATEGORIES = utils
 MASTER_SITES = https://www.kernel.org/pub/software/utils/dtc/
 DISTFILES = $(DISTNAME).tar.xz
