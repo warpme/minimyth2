@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/libcap-ng
+DEPENDS = lang/c lib/libcap
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -24,17 +24,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-cifsidmap \
 	--disable-cifsacl \
 	--disable-systemd \
-	--with-libcap-ng \
-	--without-libcap
-
-CONFIGURE_ENV = \
-	ac_cv_func_malloc_0_nonnull=yes \
-	ac_cv_func_realloc_0_nonnull=yes
 
 include ../../gar.mk
-
-CFLAGS  := $(CFLAGS) -fPIC
-LDFLAGS := $(LDFLAGS) -fPIC
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
