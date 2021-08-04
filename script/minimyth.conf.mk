@@ -16,7 +16,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter trunk  ,      $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
 
-mm_VERSION_MINIMYTH ?= 11.20.4.r2816
+mm_VERSION_MINIMYTH ?= 11.21.0.r2816
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -89,6 +89,7 @@ mm_SOFTWARE               ?= \
 #                             gdb \
 #                             valgrind \
 #                             libgpiod \
+#                             xscreensaver \
 
 # Indicates the microprocessor architecture.
 # Valid values for mm_GARCH are 'pentium-mmx', 'x86-64', 'armv7', 'armv8'.
