@@ -1,9 +1,10 @@
-GARNAME = automake
-GARVERSION = 1.16.2
-CATEGORIES = devel
+
+GARNAME      = automake
+GARVERSION   = 1.16.3
+CATEGORIES   = devel
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
