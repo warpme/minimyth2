@@ -1,14 +1,15 @@
-GARNAME = Python
-GARVERSION =  $(PYTHON_VERSION)
-CATEGORIES = python
+
+GARNAME      = Python
+GARVERSION   = $(PYTHON_VERSION)
+CATEGORIES   = python
 MASTER_SITES = http://www.python.org/ftp/python/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.xz
+DISTFILES    = $(DISTNAME).tar.xz
 ifneq ($(DESTIMG),build)
-PATCHFILES  = Python-$(PYTHON_VERSION)-cross.patch 
-PATCHFILES += Python-$(PYTHON_VERSION)-fix-crosscompile-glibc-2.27.patch
-PATCHFILES += Python-$(PYTHON_VERSION)-unblacklist-ctypes-in-crosscompile.patch
+PATCHFILES   = Python-$(PYTHON_VERSION)-cross.patch 
+PATCHFILES  += Python-$(PYTHON_VERSION)-fix-crosscompile-glibc-2.27.patch
+PATCHFILES  += Python-$(PYTHON_VERSION)-unblacklist-ctypes-in-crosscompile.patch
 endif
-LICENSE = $(GARNAME)
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
 
 DESCRIPTION = 
@@ -36,6 +37,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-dbmliborder=gdbm:ndbm \
 	--without-ensurepip \
 	--with-system-ffi \
+	--with-lto \
 	ac_cv_working_tzset=yes \
 	CPPFLAGS="-I$(DESTDIR)$(includedir) -L$(DESTDIR)$(libdir)" \
 
@@ -61,16 +63,6 @@ CONFIGURE_ENV = \
 endif
 
 include ../../gar.mk
-
-# Disabling LTO on armv7 target as LTO causing segmentation fault on Gcc10.2 ar
-ifeq ($(GARCH),armv7)
-CONFIGURE_ARGS += --without-lto
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-else
-CONFIGURE_ARGS += --with-lto
-endif
 
 # Needed so that Python can find the correct libpython shared library.
 LDFLAGS := $(LDFLAGS) -L$(PWD)/$(WORKSRC)
