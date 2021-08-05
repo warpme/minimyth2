@@ -25,8 +25,10 @@ DISTFILES    = \
 	board-s905.wks              \
 	board-s912.conf             \
 	board-s912.wks              \
-	board-sm1.conf              \
-	board-sm1.wks               \
+	board-sm1.x96_air2g.conf    \
+	board-sm1.x96_air2g.wks     \
+	board-sm1.tanix_tx5_plus.conf \
+	board-sm1.tanix_tx5_plus.wks \
 	board-g12.radxa_zero.conf   \
 	board-g12.radxa_zero.wks    \
 	board-rk3328.beelink_a1.conf \

@@ -1,5 +1,5 @@
 
-GARNAME      = bootfiles-sm1
+GARNAME      = bootfiles-sm1.x96_air2g
 GARVERSION   = 2020-11-07
 CATEGORIES   = bootloaders
 MASTER_SITES = 

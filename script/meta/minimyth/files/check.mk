@@ -366,7 +366,8 @@ mm-all:
 		   [ ! "$${board}" = "board-rpi4.rpi64"           ] && \
 		   [ ! "$${board}" = "board-s905"                 ] && \
 		   [ ! "$${board}" = "board-s912"                 ] && \
-		   [ ! "$${board}" = "board-sm1"                  ] && \
+		   [ ! "$${board}" = "board-sm1.x96_air2g"        ] && \
+		   [ ! "$${board}" = "board-sm1.tanix_tx5_plus"   ] && \
 		   [ ! "$${board}" = "board-g12.radxa_zero"       ] && \
 		   [ ! "$${board}" = "board-x86pc.bios"           ] && \
 		   [ ! "$${board}" = "board-x86pc.bios_efi64"     ] && \
