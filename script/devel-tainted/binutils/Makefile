@@ -1,8 +1,9 @@
-GARNAME = binutils
+
+GARNAME    = binutils
 GARVERSION = $(BINUTILS_VERSION)
 CATEGORIES = devel-tainted
-SOURCEPKG = devel/binutils
-LICENSE = GPL2/LGPL2
+SOURCEPKG  = devel/binutils
+LICENSE    = GPL2/LGPL2
 
 DESCRIPTION =
 define BLURB
@@ -59,4 +60,8 @@ post-install:
 	rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libbfd.la
 	rm -f $(DESTDIR)$(libdir)/libopcodes.la
 	rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libopcodes.la
+	rm -f $(DESTDIR)$(libdir)/libctf.la
+	rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libctf.la
+	rm -f $(DESTDIR)$(libdir)/libctf-nobfd.la
+	rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libctf-nobfd.la
 	@$(MAKECOOKIE)
