@@ -11,7 +11,7 @@ selection_1="board-rpi3.mainline64"
 selection_2="board-rpi4.rpi64"
 selection_3="board-s905 board-h6.eachlink_mini"
 selection_4="board-s912 board-h6.tanix_tx6_mini"
-selection_5="board-sm1 board-h6.beelink_gs1"
+selection_5="board-sm1.x96_air2g board-h6.beelink_gs1"
 selection_6="board-rk3328.beelink_a1"
 selection_7="board-rk3399.rockpi4-b"
 selection_8="board-rpi34.mainline64 board-s905"
@@ -24,6 +24,7 @@ selection_e="board-rk3399.orangepi_4"
 selection_f="board-h616.t95"
 selection_g="board-h616.x96_mate"
 selection_h="board-g12.radxa_zero"
+selection_i="board-sm1.tanix_tx5_plus"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -173,6 +174,7 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_9}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_c}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_h}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_i}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     b)  cache_board_list "${selection_b}"
@@ -201,6 +203,10 @@ case "${selection}" in
 
     h)  cache_board_list "${selection_h}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_h}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    i)  cache_board_list "${selection_i}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_i}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
