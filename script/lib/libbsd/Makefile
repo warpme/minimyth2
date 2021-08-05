@@ -21,7 +21,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST)
 
 include ../../gar.mk
 
-# disabling LTO as with gcc10.2 LTO build fails
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+post-install:
+	@rm -f $(DESTDIR)$(libdir)/libbsd.la
+	@$(MAKECOOKIE)
+
+
