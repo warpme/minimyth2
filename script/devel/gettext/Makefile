@@ -38,4 +38,5 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgettextlib.la
 	@rm -f $(DESTDIR)$(libdir)/libgettextsrc.la
 	@rm -f $(DESTDIR)$(libdir)/libgettextpo.la
+	@rm -f $(DESTDIR)$(libdir)/libtextstyle.la
 	@$(MAKECOOKIE)
