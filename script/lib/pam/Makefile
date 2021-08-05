@@ -1,16 +1,16 @@
-GARNAME = Linux-PAM
-GARVERSION = 1.5.1
-CATEGORIES = lib
-MASTER_SITES = https://github.com/linux-pam/linux-pam/releases/download/v$(GARVERSION)/
-DISTFILES = $(GARNAME)-$(GARVERSION).tar.xz
 
-LICENSE = LGPL2
+GARNAME      = Linux-PAM
+GARVERSION   = 1.5.1
+CATEGORIES   = lib
+MASTER_SITES = https://github.com/linux-pam/linux-pam/releases/download/v$(GARVERSION)/
+DISTFILES    = $(GARNAME)-$(GARVERSION).tar.xz
+LICENSE      = LGPL2
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/c devel/flex
+DEPENDS = lang/c devel/flex devel/libtirpc
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
