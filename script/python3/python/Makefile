@@ -4,6 +4,7 @@ GARVERSION   = $(PYTHON_VERSION)
 CATEGORIES   = python
 MASTER_SITES = http://www.python.org/ftp/python/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = $(DISTNAME)-hack-compilation-on-Ubuntu19.patch
 LICENSE      = $(GARNAME)
 
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
@@ -33,6 +34,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-system-expat \
 	--with-dbmliborder=gdbm:ndbm \
 	--without-ensurepip \
+	--with-lto \
 	CPPFLAGS="-I$(DESTDIR)$(includedir)" \
 	ac_cv_enable_implicit_function_declaration_error=no \
 
@@ -64,16 +66,6 @@ LDFLAGS := $(LDFLAGS) -L$(PWD)/$(WORKSRC)
 
 # Needed as configure fails on 'float word ordering is bigendian' detection
 CFLAGS  += -ffat-lto-objects
-
-# Disabling LTO on armv7 target as LTO causing segmentation fault on Gcc10.2 ar
-ifeq ($(GARCH),armv7)
-CONFIGURE_ARGS += --without-lto
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-else
-CONFIGURE_ARGS += --with-lto
-endif
 
 pre-configure:
 	@cd $(WORKSRC) ; autoreconf --verbose --install --force
