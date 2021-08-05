@@ -78,6 +78,8 @@ PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
 PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
 # add support for radxa zero board
 PATCHFILES += 0370-arm64-dts-meson-g12a-add-support-for-radxa-zero.patch
+# add support for Tanix TX5 Plus tvbox
+PATCHFILES += 0371-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
 PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
