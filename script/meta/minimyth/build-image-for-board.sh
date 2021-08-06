@@ -97,6 +97,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (f) for "${selection_f}
     echo "  (g) for "${selection_g}
     echo "  (h) for "${selection_h}
+    echo "  (i) for "${selection_i}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
