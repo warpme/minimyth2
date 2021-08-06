@@ -67,8 +67,12 @@ ifneq (,$(findstring board-g12.radxa_zero,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-g12.radxa_zero
 endif
 
-ifneq (,$(findstring board-sm1,$(mm_BOARD_TYPE)))
-	$(MAKE) install -C ../board-sm1
+ifneq (,$(findstring board-sm1.x96_air2g,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-sm1.x96_air2g
+endif
+
+ifneq (,$(findstring board-sm1.tanix_tx5_plus,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-sm1.tanix_tx5_plus
 endif
 
 ifneq (,$(findstring board-rk3328.beelink_a1,$(mm_BOARD_TYPE)))
