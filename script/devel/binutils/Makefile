@@ -76,8 +76,8 @@ LDFLAGS  :=
 
 post-install:
 	@$(if $(filter $(GARHOST), $(GARTARGET)) , \
-		rm -f $(DESTDIR)$(libdir)/libbfd.la , \
-		rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libbfd.la \
+		rm -f $(DESTDIR)$(libdir)/libbfd.la $(DESTDIR)$(libdir)/libctf.la $(DESTDIR)$(libdir)/libctf-nobfd.la, \
+		rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libbfd.la $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libctf.la $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libctf-nobfd.la \
 	)
 	@$(if $(filter $(GARHOST), $(GARTARGET)) , \
 		rm -f $(DESTDIR)$(libdir)/libopcodes.la , \
