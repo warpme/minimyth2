@@ -30,6 +30,7 @@ pre-configure:
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libfaad.la
+	@rm -f $(DESTDIR)$(libdir)/libfaad_drm.la
 	@rm -f $(DESTDIR)$(libdir)/libmp4ff.a
 	@rm -f $(DESTDIR)$(libdir)/libmp4ff.la
 	@$(MAKECOOKIE)
