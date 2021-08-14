@@ -1,9 +1,11 @@
-GARNAME = evtest
-GARVERSION = 1.32
-CATEGORIES = utils
-MASTER_SITES = http://cgit.freedesktop.org/$(GARNAME)/snapshot/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = GPL2
+
+GARNAME      = evtest
+GARVERSION   = 1.34
+CATEGORIES   = utils
+MASTER_SITES = https://gitlab.freedesktop.org/libevdev/evtest/-/archive/evtest-1.34/
+DISTFILES    = evtest-$(DISTNAME).tar.gz
+WORKSRC      = $(WORKDIR)/evtest-$(DISTNAME)
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
