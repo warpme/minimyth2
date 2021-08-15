@@ -1,10 +1,11 @@
-GARNAME = python-argparse
-GARVERSION = 1.2.1
-CATEGORIES = python
-MASTER_SITES = http://argparse.googlecode.com/files/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
-LICENSE =
-DESCRIPTION = 
+
+GARNAME      = python-argparse
+GARVERSION   = 1.4.0
+CATEGORIES   = python
+MASTER_SITES = https://pypi.python.org/packages/source/a/argparse/
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+LICENSE      =
+DESCRIPTION  = 
 define BLURB
 endef
 
