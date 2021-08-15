@@ -4,7 +4,6 @@ GARVERSION   = 21.2.0
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-PATCHFILES   = fix-compile-softfp-abi-on-arm-target.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 
 DESCRIPTION = 
@@ -82,7 +81,8 @@ CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D dri-drivers= \
 	-D gallium-vdpau=disabled \
-	-D gallium-va=disabled
+	-D gallium-va=disabled \
+	-D c_args="-mfpu=neon -mfloat-abi=softfp"
 else
 ifeq ($(GARCH),armv8)
 CONFIGURE_ARGS += \
