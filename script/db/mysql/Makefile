@@ -1,7 +1,7 @@
 GARNAME = mysql
 GARVERSION = 5.1.67
 CATEGORIES = db
-MASTER_SITES = http://mysql.he.net/Downloads/MySQL-5.1/
+MASTER_SITES = https://downloads.mysql.com/archives/get/p/23/file/
 DISTFILES = $(DISTNAME).tar.gz
 PATCHFILES  = \
 	$(DISTNAME)-automake_1.13.patch \
