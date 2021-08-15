@@ -20,6 +20,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-silent-rules \
 	--disable-rpath \
 	--with-gnu-ld \
-	--with-crond-dir=$(DESTDIR)$(sysconfdir) \
+	--with-crond-dir=$(sysconfdir) \
 
 include ../../gar.mk
