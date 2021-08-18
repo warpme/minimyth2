@@ -1,8 +1,8 @@
 GARNAME = python-oauth
-GARVERSION = 1269
+GARVERSION = 1.0.1
 CATEGORIES = python
-MASTER_SITES = svn://oauth.googlecode.com/svn/code/python/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.bz2
+MASTER_SITES = https://files.pythonhosted.org/packages/e2/10/d7d6ae26ef7686109a10b3e88d345c4ec6686d07850f4ef7baefb7eb61e1/
+DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE = MIT
 
 DESCRIPTION = 
