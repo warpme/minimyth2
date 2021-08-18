@@ -1,5 +1,5 @@
 GARNAME      = perl-Try-Tiny
-GARVERSION   = 0.18
-MASTER_SITES = http://www.cpan.org/authors/id/D/DO/DOY/
+GARVERSION   = 0.30
+MASTER_SITES = https://search.cpan.org/CPAN/authors/id/E/ET/ETHER/
 
 include ../../perl/perl/perl-module.mk
