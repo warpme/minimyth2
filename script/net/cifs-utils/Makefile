@@ -24,6 +24,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-cifsidmap \
 	--disable-cifsacl \
 	--disable-systemd \
+	ac_cv_func_malloc_0_nonnull=yes \
 
 include ../../gar.mk
 
