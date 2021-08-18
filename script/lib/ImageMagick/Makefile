@@ -1,10 +1,11 @@
-GARNAME = ImageMagick
-GARVERSION = 6.9.10-2
-CATEGORIES = lib
-MASTER_SITES = ftp://ftp.imagemagick.org/pub/ImageMagick/
-DISTFILES = $(GARNAME)-$(GARVERSION).tar.xz
 
-LICENSE = LGPL2
+GARNAME      = ImageMagick
+GARVERSION   = 6.9.12-19
+CATEGORIES   = lib
+MASTER_SITES = https://download.imagemagick.org/ImageMagick/download/
+DISTFILES    = $(GARNAME)-$(GARVERSION).tar.xz
+
+LICENSE      = LGPL2
 
 DESCRIPTION = 
 define BLURB
