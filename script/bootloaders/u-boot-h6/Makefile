@@ -11,6 +11,9 @@ PATCHFILES  += 0011-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
 # video: sunxi: Rework DE2 driver
 # https://patchwork.ozlabs.org/project/uboot/list/?series=230744
 PATCHFILES  += 0012-video-sunxi-Rework-DE2-driver.patch
+# fix non-booting H6 on gcc11.2
+# https://patchwork.ozlabs.org/project/uboot/list/?series=258132
+PATCHFILES  += 0013-ARM-Prevent-the-compiler-from-using-NEON-registers.patch
 
 LICENSE = GPL2
 
