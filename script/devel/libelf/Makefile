@@ -1,9 +1,9 @@
+
 GARNAME      = elfutils
-GARVERSION   = 0.178
+GARVERSION   = 0.185
 CATEGORIES   = devel
 MASTER_SITES = https://fedorahosted.org/releases/e/l/$(GARNAME)/$(GARVERSION)/
 PATCHFILES   = $(DISTNAME)-hack-to-fix-compile.patch
-PATCHFILES  += $(DISTNAME)-turnoff-warings-as-errors.patch
 DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      = LGPL3
 
@@ -22,6 +22,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--program-prefix="eu-" \
 	--disable-silent-rules \
 	--disable-debuginfod \
+	--disable-libdebuginfod \
 
 include ../../gar.mk
 
