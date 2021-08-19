@@ -1,0 +1,67 @@
+From b7aadc5a63e42a5a37e20c3ef20bd85033ab7e44 Mon Sep 17 00:00:00 2001
+From: Philipp Zabel <p.zabel@pengutronix.de>
+Date: Fri, 9 Aug 2019 17:59:03 +0200
+Subject: [PATCH 06/13] h264: add H.264 Annex B start codes if required
+
+If the driver reports that it expects H.264 Annex B start codes,
+provide them.
+
+Signed-off-by: Philipp Zabel <p.zabel@pengutronix.de>
+---
+ src/h264.c    |  2 ++
+ src/picture.c | 12 +++++++++++-
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/src/h264.c b/src/h264.c
+index a59d9c1..509c876 100644
+--- a/src/h264.c
++++ b/src/h264.c
+@@ -330,6 +330,8 @@ static void h264_va_slice_to_v4l2(struct request_data *driver_data,
+ 				  struct v4l2_ctrl_h264_slice_params *slice)
+ {
+ 	slice->size = VASlice->slice_data_size;
++	if (context->h264_start_code)
++		slice->size += 3;
+ 	slice->header_bit_size = VASlice->slice_data_bit_offset;
+ 	slice->first_mb_in_slice = VASlice->first_mb_in_slice;
+ 	slice->slice_type = VASlice->slice_type;
+diff --git a/src/picture.c b/src/picture.c
+index aa86265..819fdbd 100644
+--- a/src/picture.c
++++ b/src/picture.c
+@@ -51,6 +51,7 @@
+ #include "autoconfig.h"
+ 
+ static VAStatus codec_store_buffer(struct request_data *driver_data,
++				   struct object_context *context,
+ 				   VAProfile profile,
+ 				   struct object_surface *surface_object,
+ 				   struct object_buffer *buffer_object)
+@@ -63,6 +64,14 @@ static VAStatus codec_store_buffer(struct request_data *driver_data,
+ 		 * RenderPicture), we can't use a V4L2 buffer directly
+ 		 * and have to copy from a regular buffer.
+ 		 */
++		if (context->h264_start_code) {
++			static const char start_code[3] = { 0x00, 0x00, 0x01 };
++
++			memcpy(surface_object->source_data +
++			       surface_object->slices_size,
++			       start_code, sizeof(start_code));
++			surface_object->slices_size += sizeof(start_code);
++		}
+ 		memcpy(surface_object->source_data +
+ 			       surface_object->slices_size,
+ 		       buffer_object->data,
+@@ -255,7 +264,8 @@ VAStatus RequestRenderPicture(VADriverContextP context, VAContextID context_id,
+ 		if (buffer_object == NULL)
+ 			return VA_STATUS_ERROR_INVALID_BUFFER;
+ 
+-		rc = codec_store_buffer(driver_data, config_object->profile,
++		rc = codec_store_buffer(driver_data, context_object,
++					config_object->profile,
+ 					surface_object, buffer_object);
+ 		if (rc != VA_STATUS_SUCCESS)
+ 			return rc;
+-- 
+2.30.2
+

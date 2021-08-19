@@ -1,0 +1,463 @@
+From acbdfb1caa20f21a04a8ea488c9e9c81ac99137b Mon Sep 17 00:00:00 2001
+From: "Andy Chun @noneucat" <andy@lolc.at>
+Date: Thu, 12 Aug 2021 12:06:50 +0000
+Subject: [PATCH 12/13] Update backend for kernel 5.14 (POC)
+
+This commit reworks the codebase so that it builds and functions in
+Linux 5.14. This comes with the following caveat:
+
+- V4L2_PIX_FMT_H264_SLICE is currently hardcoded as the pixel format for
+  all output streams in surface.c . You will need to do some significant
+  refactoring to get it working with the rest of the codecs.
+---
+ src/config.c    |  1 -
+ src/config.h    |  1 +
+ src/context.c   | 35 ------------------
+ src/h264.c      | 95 +++++++++++++++++++++++++++++--------------------
+ src/image.c     |  4 +++
+ src/surface.c   | 28 ++++++++++++++-
+ src/surface.h   |  2 +-
+ src/tiled_yuv.S |  2 +-
+ 8 files changed, 91 insertions(+), 77 deletions(-)
+
+diff --git a/src/config.c b/src/config.c
+index 8c08148..60a63ff 100644
+--- a/src/config.c
++++ b/src/config.c
+@@ -35,7 +35,6 @@
+ #include <linux/videodev2.h>
+ 
+ #include <mpeg2-ctrls.h>
+-#include <h264-ctrls.h>
+ #include <hevc-ctrls.h>
+ 
+ #include "utils.h"
+diff --git a/src/config.h b/src/config.h
+index b7b12e7..1377e49 100644
+--- a/src/config.h
++++ b/src/config.h
+@@ -43,6 +43,7 @@ struct object_config {
+ 	VAEntrypoint entrypoint;
+ 	VAConfigAttrib attributes[V4L2_REQUEST_MAX_CONFIG_ATTRIBUTES];
+ 	int attributes_count;
++	unsigned int pixelformat;
+ };
+ 
+ VAStatus RequestCreateConfig(VADriverContextP context, VAProfile profile,
+diff --git a/src/context.c b/src/context.c
+index c32eacb..d07cea6 100644
+--- a/src/context.c
++++ b/src/context.c
+@@ -40,7 +40,6 @@
+ #include <linux/videodev2.h>
+ 
+ #include <mpeg2-ctrls.h>
+-#include <h264-ctrls.h>
+ #include <hevc-ctrls.h>
+ 
+ #include "utils.h"
+@@ -65,7 +64,6 @@ VAStatus RequestCreateContext(VADriverContextP context, VAConfigID config_id,
+ 	VAContextID id;
+ 	VAStatus status;
+ 	unsigned int output_type, capture_type;
+-	unsigned int pixelformat;
+ 	unsigned int index_base;
+ 	unsigned int index;
+ 	unsigned int i;
+@@ -92,39 +90,6 @@ VAStatus RequestCreateContext(VADriverContextP context, VAConfigID config_id,
+ 	}
+ 	memset(&context_object->dpb, 0, sizeof(context_object->dpb));
+ 
+-	switch (config_object->profile) {
+-
+-	case VAProfileMPEG2Simple:
+-	case VAProfileMPEG2Main:
+-		pixelformat = V4L2_PIX_FMT_MPEG2_SLICE;
+-		break;
+-
+-	case VAProfileH264Main:
+-	case VAProfileH264High:
+-	case VAProfileH264ConstrainedBaseline:
+-	case VAProfileH264MultiviewHigh:
+-	case VAProfileH264StereoHigh:
+-		pixelformat = V4L2_PIX_FMT_H264_SLICE;
+-		/* Query decode mode and start code */
+-		h264_get_controls(driver_data, context_object);
+-		break;
+-
+-	case VAProfileHEVCMain:
+-		pixelformat = V4L2_PIX_FMT_HEVC_SLICE;
+-		break;
+-
+-	default:
+-		status = VA_STATUS_ERROR_UNSUPPORTED_PROFILE;
+-		goto error;
+-	}
+-
+-	rc = v4l2_set_format(driver_data->video_fd, output_type, pixelformat,
+-			     picture_width, picture_height);
+-	if (rc < 0) {
+-		status = VA_STATUS_ERROR_OPERATION_FAILED;
+-		goto error;
+-	}
+-
+ 	rc = v4l2_create_buffers(driver_data->video_fd, output_type,
+ 				 surfaces_count, &index_base);
+ 	if (rc < 0) {
+diff --git a/src/h264.c b/src/h264.c
+index 1209c8f..f3f08b0 100644
+--- a/src/h264.c
++++ b/src/h264.c
+@@ -33,7 +33,6 @@
+ #include <sys/mman.h>
+ 
+ #include <linux/videodev2.h>
+-#include <h264-ctrls.h>
+ 
+ #include "request.h"
+ #include "surface.h"
+@@ -95,7 +94,8 @@ static struct h264_dpb_entry *dpb_find_entry(struct object_context *context)
+ }
+ 
+ static struct h264_dpb_entry *dpb_lookup(struct object_context *context,
+-					 VAPictureH264 *pic, unsigned int *idx)
++					 VAPictureH264 *pic, unsigned int *idx,
++					 unsigned char *fields)
+ {
+ 	unsigned int i;
+ 
+@@ -109,6 +109,16 @@ static struct h264_dpb_entry *dpb_lookup(struct object_context *context,
+ 			if (idx)
+ 				*idx = i;
+ 
++			if (fields) {
++				//if (entry->pic.TopFieldOrderCnt < entry->pic.BottomFieldOrderCnt) {
++				//	*fields = V4L2_H264_TOP_FIELD_REF;
++				//} else if (entry->pic.TopFieldOrderCnt > entry->pic.BottomFieldOrderCnt) {
++				//	*fields = V4L2_H264_BOTTOM_FIELD_REF;
++				//} else {
++					*fields = V4L2_H264_FRAME_REF;
++				//}
++			}
++
+ 			return entry;
+ 		}
+ 	}
+@@ -130,7 +140,7 @@ static void dpb_insert(struct object_context *context, VAPictureH264 *pic,
+ 	if (is_picture_null(pic))
+ 		return;
+ 
+-	if (dpb_lookup(context, pic, NULL))
++	if (dpb_lookup(context, pic, NULL, NULL))
+ 		return;
+ 
+ 	if (!entry)
+@@ -165,7 +175,7 @@ static void dpb_update(struct object_context *context,
+ 		if (is_picture_null(pic))
+ 			continue;
+ 
+-		entry = dpb_lookup(context, pic, NULL);
++		entry = dpb_lookup(context, pic, NULL, NULL);
+ 		if (entry) {
+ 			entry->age = context->dpb.age;
+ 			entry->used = true;
+@@ -232,7 +242,7 @@ static void h264_va_picture_to_v4l2(struct request_data *driver_data,
+ 
+ 	h264_fill_dpb(driver_data, context, decode);
+ 
+-	decode->num_slices = surface->slices_count;
++	//decode->num_slices = surface->slices_count;
+ 	decode->nal_ref_idc = nal_ref_idc;
+ 	if (nal_unit_type == 5)
+ 		decode->flags = V4L2_H264_DECODE_PARAM_FLAG_IDR_PIC;
+@@ -343,15 +353,14 @@ static void h264_va_slice_to_v4l2(struct request_data *driver_data,
+ 				  struct object_context *context,
+ 				  VASliceParameterBufferH264 *VASlice,
+ 				  VAPictureParameterBufferH264 *VAPicture,
+-				  struct v4l2_ctrl_h264_slice_params *slice)
++				  struct v4l2_ctrl_h264_slice_params *slice,
++				  struct v4l2_ctrl_h264_pred_weights *weights)
+ {
+-	slice->size = VASlice->slice_data_size;
+-	if (context->h264_start_code)
+-		slice->size += 3;
+ 	slice->header_bit_size = VASlice->slice_data_bit_offset;
++	//if (context->h264_start_code)	
++	//	slice->header_bit_size += 3 * 8;
+ 	slice->first_mb_in_slice = VASlice->first_mb_in_slice;
+ 	slice->slice_type = VASlice->slice_type;
+-	slice->frame_num = VAPicture->frame_num;
+ 	slice->cabac_init_idc = VASlice->cabac_init_idc;
+ 	slice->slice_qp_delta = VASlice->slice_qp_delta;
+ 	slice->disable_deblocking_filter_idc =
+@@ -370,12 +379,14 @@ static void h264_va_slice_to_v4l2(struct request_data *driver_data,
+ 			VAPictureH264 *pic = &VASlice->RefPicList0[i];
+ 			struct h264_dpb_entry *entry;
+ 			unsigned int idx;
++			unsigned char fields;
+ 
+-			entry = dpb_lookup(context, pic, &idx);
++			entry = dpb_lookup(context, pic, &idx, &fields);
+ 			if (!entry)
+ 				continue;
+ 
+-			slice->ref_pic_list0[i] = idx;
++			slice->ref_pic_list0[i].index = idx;
++			slice->ref_pic_list0[i].fields = fields;
+ 		}
+ 	}
+ 
+@@ -389,26 +400,28 @@ static void h264_va_slice_to_v4l2(struct request_data *driver_data,
+ 			VAPictureH264 *pic = &VASlice->RefPicList1[i];
+ 			struct h264_dpb_entry *entry;
+ 			unsigned int idx;
++			unsigned char fields;
+ 
+-			entry = dpb_lookup(context, pic, &idx);
++			entry = dpb_lookup(context, pic, &idx, &fields);
+ 			if (!entry)
+ 				continue;
+ 
+-			slice->ref_pic_list1[i] = idx;
++			slice->ref_pic_list1[i].index = idx;
++			slice->ref_pic_list0[i].fields = fields;
+ 		}
+ 	}
+ 
+ 	if (VASlice->direct_spatial_mv_pred_flag)
+ 		slice->flags |= V4L2_H264_SLICE_FLAG_DIRECT_SPATIAL_MV_PRED;
+ 
+-	slice->pred_weight_table.chroma_log2_weight_denom =
++	weights->chroma_log2_weight_denom =
+ 		VASlice->chroma_log2_weight_denom;
+-	slice->pred_weight_table.luma_log2_weight_denom =
++	weights->luma_log2_weight_denom =
+ 		VASlice->luma_log2_weight_denom;
+ 
+ 	if (((VASlice->slice_type % 5) == H264_SLICE_P) ||
+ 	    ((VASlice->slice_type % 5) == H264_SLICE_B))
+-		h264_copy_pred_table(&slice->pred_weight_table.weight_factors[0],
++		h264_copy_pred_table(&weights->weight_factors[0],
+ 				     slice->num_ref_idx_l0_active_minus1 + 1,
+ 				     VASlice->luma_weight_l0,
+ 				     VASlice->luma_offset_l0,
+@@ -416,7 +429,7 @@ static void h264_va_slice_to_v4l2(struct request_data *driver_data,
+ 				     VASlice->chroma_offset_l0);
+ 
+ 	if ((VASlice->slice_type % 5) == H264_SLICE_B)
+-		h264_copy_pred_table(&slice->pred_weight_table.weight_factors[1],
++		h264_copy_pred_table(&weights->weight_factors[1],
+ 				     slice->num_ref_idx_l1_active_minus1 + 1,
+ 				     VASlice->luma_weight_l1,
+ 				     VASlice->luma_offset_l1,
+@@ -429,9 +442,9 @@ int h264_get_controls(struct request_data *driver_data,
+ {
+ 	struct v4l2_ext_control controls[2] = {
+ 		{
+-			.id = V4L2_CID_MPEG_VIDEO_H264_DECODE_MODE,
++			.id = V4L2_CID_STATELESS_H264_DECODE_MODE,
+ 		}, {
+-			.id = V4L2_CID_MPEG_VIDEO_H264_START_CODE,
++			.id = V4L2_CID_STATELESS_H264_START_CODE,
+ 		}
+ 	};
+ 	int rc;
+@@ -441,9 +454,9 @@ int h264_get_controls(struct request_data *driver_data,
+ 		return VA_STATUS_ERROR_OPERATION_FAILED;
+ 
+ 	switch (controls[0].value) {
+-	case V4L2_MPEG_VIDEO_H264_DECODE_MODE_SLICE_BASED:
++	case V4L2_STATELESS_H264_DECODE_MODE_SLICE_BASED:
+ 		break;
+-	case V4L2_MPEG_VIDEO_H264_DECODE_MODE_FRAME_BASED:
++	case V4L2_STATELESS_H264_DECODE_MODE_FRAME_BASED:
+ 		break;
+ 	default:
+ 		request_log("Unsupported decode mode\n");
+@@ -451,9 +464,10 @@ int h264_get_controls(struct request_data *driver_data,
+ 	}
+ 
+ 	switch (controls[1].value) {
+-	case V4L2_MPEG_VIDEO_H264_START_CODE_NONE:
++	case V4L2_STATELESS_H264_START_CODE_NONE:
++		context->h264_start_code = false;
+ 		break;
+-	case V4L2_MPEG_VIDEO_H264_START_CODE_ANNEX_B:
++	case V4L2_STATELESS_H264_START_CODE_ANNEX_B:
+ 		context->h264_start_code = true;
+ 		break;
+ 	default:
+@@ -490,13 +504,14 @@ int h264_set_controls(struct request_data *driver_data,
+ 	struct v4l2_ctrl_h264_scaling_matrix matrix = { 0 };
+ 	struct v4l2_ctrl_h264_decode_params decode = { 0 };
+ 	struct v4l2_ctrl_h264_slice_params slice = { 0 };
++	struct v4l2_ctrl_h264_pred_weights weights = { 0 };
+ 	struct v4l2_ctrl_h264_pps pps = { 0 };
+ 	struct v4l2_ctrl_h264_sps sps = { 0 };
+ 	struct h264_dpb_entry *output;
+ 	int rc;
+ 
+ 	output = dpb_lookup(context, &surface->params.h264.picture.CurrPic,
+-			    NULL);
++			    NULL, NULL);
+ 	if (!output)
+ 		output = dpb_find_entry(context);
+ 
+@@ -511,36 +526,40 @@ int h264_set_controls(struct request_data *driver_data,
+ 			       &surface->params.h264.matrix, &matrix);
+ 	h264_va_slice_to_v4l2(driver_data, context,
+ 			      &surface->params.h264.slice,
+-			      &surface->params.h264.picture, &slice);
++			      &surface->params.h264.picture, &slice, &weights);
+ 
+ 	sps.profile_idc = h264_profile_to_idc(profile);
+ 
+-	struct v4l2_ext_control controls[5] = {
++	struct v4l2_ext_control controls[6] = {
+ 		{
+-			.id = V4L2_CID_MPEG_VIDEO_H264_SPS,
+-			.ptr = &sps,
++			.id = V4L2_CID_STATELESS_H264_SPS,
++			.p_h264_sps = &sps,
+ 			.size = sizeof(sps),
+ 		}, {
+-			.id = V4L2_CID_MPEG_VIDEO_H264_PPS,
+-			.ptr = &pps,
++			.id = V4L2_CID_STATELESS_H264_PPS,
++			.p_h264_pps = &pps,
+ 			.size = sizeof(pps),
+ 		}, {
+-			.id = V4L2_CID_MPEG_VIDEO_H264_SCALING_MATRIX,
+-			.ptr = &matrix,
++			.id = V4L2_CID_STATELESS_H264_SCALING_MATRIX,
++			.p_h264_scaling_matrix = &matrix,
+ 			.size = sizeof(matrix),
+ 		}, {
+-			.id = V4L2_CID_MPEG_VIDEO_H264_SLICE_PARAMS,
+-			.ptr = &slice,
++			.id = V4L2_CID_STATELESS_H264_SLICE_PARAMS,
++			.p_h264_slice_params = &slice,
+ 			.size = sizeof(slice),
+ 		}, {
+-			.id = V4L2_CID_MPEG_VIDEO_H264_DECODE_PARAMS,
+-			.ptr = &decode,
++			.id = V4L2_CID_STATELESS_H264_DECODE_PARAMS,
++			.p_h264_decode_params = &decode,
+ 			.size = sizeof(decode),
++		}, {
++			.id = V4L2_CID_STATELESS_H264_PRED_WEIGHTS,
++			.ptr = &weights,
++			.size = sizeof(weights),
+ 		}
+ 	};
+ 
+ 	rc = v4l2_set_controls(driver_data->video_fd, surface->request_fd,
+-			       controls, 5);
++			       controls, 6);
+ 	if (rc < 0)
+ 		return VA_STATUS_ERROR_OPERATION_FAILED;
+ 
+diff --git a/src/image.c b/src/image.c
+index fa8b0ea..05ed455 100644
+--- a/src/image.c
++++ b/src/image.c
+@@ -155,6 +155,7 @@ static VAStatus copy_surface_to_image (struct request_data *driver_data,
+ 		return VA_STATUS_ERROR_INVALID_BUFFER;
+ 
+ 	for (i = 0; i < surface_object->destination_planes_count; i++) {
++#ifdef __arm__
+ 		if (!video_format_is_linear(driver_data->video_format))
+ 			tiled_to_planar(surface_object->destination_data[i],
+ 					buffer_object->data + image->offsets[i],
+@@ -162,10 +163,13 @@ static VAStatus copy_surface_to_image (struct request_data *driver_data,
+ 					i == 0 ? image->height :
+ 						 image->height / 2);
+ 		else {
++#endif
+ 			memcpy(buffer_object->data + image->offsets[i],
+ 			       surface_object->destination_data[i],
+ 			       surface_object->destination_sizes[i]);
++#ifdef __arm__
+ 		}
++#endif
+ 	}
+ 
+ 	return VA_STATUS_SUCCESS;
+diff --git a/src/surface.c b/src/surface.c
+index a6abb9b..478f0cc 100644
+--- a/src/surface.c
++++ b/src/surface.c
+@@ -46,6 +46,8 @@
+ #include "v4l2.h"
+ #include "video.h"
+ 
++bool SET_FORMAT_OF_OUTPUT_ONCE = false;
++
+ VAStatus RequestCreateSurfaces2(VADriverContextP context, unsigned int format,
+ 				unsigned int width, unsigned int height,
+ 				VASurfaceID *surfaces_ids,
+@@ -68,10 +70,34 @@ VAStatus RequestCreateSurfaces2(VADriverContextP context, unsigned int format,
+ 	bool found;
+ 	int rc;
+ 
++	//////////// HACK: this portion of the code should get cleaned up.
++
++	// v4l2_set_format needs to be called BEFORE we create any buffers
++	//
++	// we originally did this for the output stream in context.c, but 
++	// RequestCreateSurfaces2 gets called multiple times before RequestCreateContext 
++	// to allocate & map buffers. this doesn't seem to work in recent kernel versions.
++	// 
++	// we declare SET_FORMAT_OF_OUTPUT_ONCE to ensure v4l2_set_format only gets called once
++	// (in the first RequestCreateSurfaces2 call BEFORE any buffers are created later on)
++	unsigned int pixelformat = V4L2_PIX_FMT_H264_SLICE;
++	unsigned int output_type = v4l2_type_video_output(false);
++
++	if (!SET_FORMAT_OF_OUTPUT_ONCE) {
++		rc = v4l2_set_format(driver_data->video_fd, output_type, pixelformat,
++				width, height);
++		if (rc < 0) {
++			return VA_STATUS_ERROR_OPERATION_FAILED;
++		}
++
++		SET_FORMAT_OF_OUTPUT_ONCE = true;
++	}
++
++	/////////// ENDHACK
++
+ 	if (format != VA_RT_FORMAT_YUV420)
+ 		return VA_STATUS_ERROR_UNSUPPORTED_RT_FORMAT;
+ 
+-
+         if (!driver_data->video_format) {
+ 		found = v4l2_find_format(driver_data->video_fd,
+ 					 V4L2_BUF_TYPE_VIDEO_CAPTURE,
+diff --git a/src/surface.h b/src/surface.h
+index 41007f8..a9be915 100644
+--- a/src/surface.h
++++ b/src/surface.h
+@@ -40,7 +40,7 @@
+ struct object_surface {
+ 	struct object_base base;
+ 
+-	VAStatus status;
++	VASurfaceStatus status;
+ 	int width;
+ 	int height;
+ 
+diff --git a/src/tiled_yuv.S b/src/tiled_yuv.S
+index c6fa833..4bce33f 100644
+--- a/src/tiled_yuv.S
++++ b/src/tiled_yuv.S
+@@ -27,7 +27,7 @@
+ .section .note.GNU-stack,"",%progbits /* mark stack as non-executable */
+ #endif
+ 
+-#ifndef __aarch64__
++#ifdef __arm__
+ 
+ .text
+ .syntax unified
+-- 
+2.30.2
+
