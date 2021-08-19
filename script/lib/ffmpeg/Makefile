@@ -6,6 +6,9 @@ GARVERSION   = 4.3.2
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES    = $(DISTNAME).tar.bz2
 PATCHFILES   = ffmpeg-fix-building-with-lto.patch
+PATCHFILES  += 0150-ffmpeg-uapi-update-hevc-ctl-header.patch
+PATCHFILES  += 0151-ffmpeg-add-V4l2_request-support-5.11kernel.patch
+PATCHFILES  += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
 LICENSE      = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -100,6 +103,9 @@ CONFIGURE_ARGS = \
 	--enable-optimizations \
 	--pkg-config="pkg-config" \
 	--enable-libdrm \
+	--enable-libudev \
+	--enable-v4l2-m2m \
+	--enable-v4l2_request \
 
 BUILD_ARGS     = \
 	V='0'

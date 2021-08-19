@@ -1,0 +1,68 @@
+diff -Naur FFmpeg-4.3.2-old/libavcodec/v4l2_request.c FFmpeg-4.3.2-new/libavcodec/v4l2_request.c
+--- FFmpeg-4.3.2-old/libavcodec/v4l2_request.c	2021-05-18 16:12:18.466666605 +0200
++++ FFmpeg-4.3.2-new/libavcodec/v4l2_request.c	2021-05-18 16:12:21.549999938 +0200
+@@ -162,14 +162,12 @@
+         .type = buf->buffer.type,
+         .memory = buf->buffer.memory,
+         .index = buf->index,
+-        .timestamp.tv_usec = ctx->timestamp,
++        .timestamp.tv_usec = buf->index + 1,
+         .bytesused = buf->used,
+         .request_fd = request_fd,
+         .flags = ((request_fd >= 0) ? V4L2_BUF_FLAG_REQUEST_FD : 0) | flags,
+     };
+ 
+-    buf->buffer.timestamp = buffer.timestamp;
+-
+     if (V4L2_TYPE_IS_MULTIPLANAR(buf->buffer.type)) {
+         planes[0].bytesused = buf->used;
+         buffer.bytesused = 0;
+@@ -305,9 +303,6 @@
+ 
+     av_log(avctx, AV_LOG_DEBUG, "%s: avctx=%p used=%u controls=%d index=%d fd=%d request_fd=%d first_slice=%d last_slice=%d\n", __func__, avctx, req->output.used, count, req->capture.index, req->capture.fd, req->request_fd, first_slice, last_slice);
+ 
+-    if (first_slice)
+-        ctx->timestamp++;
+-
+     ret = v4l2_request_set_controls(ctx, req->request_fd, control, count);
+     if (ret < 0) {
+         av_log(avctx, AV_LOG_ERROR, "%s: set controls failed for request %d, %s (%d)\n", __func__, req->request_fd, strerror(errno), errno);
+@@ -759,7 +754,6 @@
+ 
+     ctx->media_fd = -1;
+     ctx->video_fd = -1;
+-    ctx->timestamp = 0;
+ 
+     udev = udev_new();
+     if (!udev) {
+@@ -893,6 +887,8 @@
+         return ret;
+     }
+ 
++    buf->buffer.timestamp.tv_usec = buf->index + 1;
++
+     if (V4L2_TYPE_IS_OUTPUT(type)) {
+         void *addr = mmap(NULL, buf->size, PROT_READ | PROT_WRITE, MAP_SHARED, ctx->video_fd, V4L2_TYPE_IS_MULTIPLANAR(type) ? buf->buffer.m.planes[0].m.mem_offset : buf->buffer.m.offset);
+         if (addr == MAP_FAILED) {
+diff -Naur FFmpeg-4.3.2-old/libavcodec/v4l2_request_h264.c FFmpeg-4.3.2-new/libavcodec/v4l2_request_h264.c
+--- FFmpeg-4.3.2-old/libavcodec/v4l2_request_h264.c	2021-05-18 16:12:18.466666605 +0200
++++ FFmpeg-4.3.2-new/libavcodec/v4l2_request_h264.c	2021-05-18 16:12:21.549999938 +0200
+@@ -253,7 +253,7 @@
+ 
+     fill_dpb(&controls->decode_params, h);
+ 
+-    controls->first_slice = !FIELD_PICTURE(h) || h->first_field;
++    controls->first_slice = 1;
+     controls->num_slices = 0;
+ 
+     return ff_v4l2_request_reset_frame(avctx, h->cur_pic_ptr->f);
+@@ -384,8 +384,7 @@
+ 
+ static int v4l2_request_h264_end_frame(AVCodecContext *avctx)
+ {
+-    const H264Context *h = avctx->priv_data;
+-    return v4l2_request_h264_queue_decode(avctx, !FIELD_PICTURE(h) || !h->first_field);
++    return v4l2_request_h264_queue_decode(avctx, 1);
+ }
+ 
+ static int v4l2_request_h264_set_controls(AVCodecContext *avctx)
