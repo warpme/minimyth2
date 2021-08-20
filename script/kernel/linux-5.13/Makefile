@@ -92,8 +92,6 @@ PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
 PATCHFILES += 0380-drm-dw-hdmi-disable-loading-DW-HDMI-CEC-sub-driver-on-some-SoC.patch
 # fix to get ap6256 working on amlogic
 PATCHFILES += 0381-drivrs-mmc-revert-g103a5348c-to-fix-some-wifi.patch
-# fix for wrong colors on SM1 when vendor uboot is used
-PATCHFILES += 0383-drm-meson-fix-colours-from-HDR-set-durring-vendor-uboot.patch
 endif
 #------------------------------------------------------------
 
