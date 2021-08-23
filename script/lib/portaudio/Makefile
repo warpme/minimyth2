@@ -1,10 +1,10 @@
-GARNAME = portaudio
-GARVERSION = v190600_20161030
-CATEGORIES = lib
-MASTER_SITES = http://www.portaudio.com/archives/
-DISTFILES  = pa_stable_v190600_20161030.tgz
-LICENSE = GPL2
-WORKSRC = $(WORKDIR)/$(GARNAME)
+
+GARNAME      = portaudio
+GARVERSION   = 19.7.0
+CATEGORIES   = lib
+MASTER_SITES = https://github.com/PortAudio/portaudio/archive/refs/tags/
+DISTFILES    = v$(GARVERSION).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
@@ -27,14 +27,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-debug-output
 
 include ../../gar.mk
-
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
-
-post-configure:
-	@# hack to fix failed build due double pipe in nm commnds
-	@sed -e 's%| \\$$global_symbol_pipe%\\$$global_symbol_pipe%g' -i $(WORKSRC)/libtool
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libportaudio.a
