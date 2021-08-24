@@ -201,11 +201,11 @@ mm_KERNEL_CONFIG          ?=
 mm_MYTH_VERSION           ?= master
 
 # The version of the NVIDIA driver.
-# Valid values are '440.36'
-mm_NVIDIA_VERSION         ?= 455.45
+# Valid values are '470.63'
+mm_NVIDIA_VERSION         ?= 470.63
 
 # The version of the NVIDIA legacy driver.
-# Valid values are '340.107' '340.108'
+# Valid values are '340.108'
 mm_NVIDIA_LEGACY_VERSION  ?= 340.108
 
 # The version of xorg to use.
