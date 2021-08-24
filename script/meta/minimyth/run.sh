@@ -57,7 +57,6 @@ selection=$1
 
 if [ x${selection} = "x" ] ; then
 
-    reset
     echo " "
     echo "---- Convienience script v${ver}, (c)Piotr Oniszczuk ----"
     echo " "
