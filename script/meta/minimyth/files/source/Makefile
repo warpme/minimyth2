@@ -11,8 +11,6 @@ cookiedir  := $(top_build)/cookie
 
 include $(top_build)/config.mk
 
-
-
 mm_NAME := minimyth2-$(mm_VERSION)
 MYTHTV_SVN_VERSION = $(shell grep "MYTHTV_SVN_VERSION =" $(mm_HOME)/script/myth-$(mm_VERSION_MYTH)/mythtv/package-api.mk | sed -e "s/MYTHTV_SVN_VERSION =\s*//")
 
@@ -1022,16 +1020,6 @@ install: build
 		echo "path = $(mm_ONLINE_UPDATES)/"      >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
 		echo "read only = true"                  >> $(mm_ONLINE_UPDATES)/rsyncd.conf ; \
 	 fi
-	@if [ $(mm_DISTRIBUTION_RAM) = yes ] ; then                                \
-		echo '  copying ram-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2'       ; \
-		cp -a $(top_build)/stage/ram-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2 \
-		$(mm_SHARE_FILES)/ram-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2      ; \
-	 fi
-	@if [ $(mm_DISTRIBUTION_NFS) = yes ] ; then                                \
-		echo '  copying nfs-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2'       ; \
-		cp -a $(top_build)/stage/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2 \
-		$(mm_SHARE_FILES)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME).tar.bz2      ; \
-	 fi
 	@if [ $(mm_DISTRIBUTION_SDCARD) = yes ] ; then                                                 \
 		echo "made SD card distribution"                                                     ; \
 		$(build_bindir)/kickstart/create-image.sh "$(mm_BOARD_TYPE)"                         ; \
@@ -1050,10 +1038,10 @@ install: build
 			echo '  copying kernel & boot files'                                                                   ; \
 			if [  $(mm_GARCH_FAMILY) = arm ] ; then                                                                  \
 				mkdir -p $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/boot                                           ; \
-				cp -a $(mm_SHARE_FILES)/boot $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/                           ; \
+				cp -a $(top_build)/stage/boot $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/                          ; \
 			elif [  $(mm_GARCH_FAMILY) = arm64 ] ; then                                                              \
 				mkdir -p $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/boot                                           ; \
-				cp -a $(mm_SHARE_FILES)/boot $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/                           ; \
+				cp -a $(top_build)/stage/boot $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/                          ; \
 			else                                                                                                     \
 				cp -a $(top_build)/stage/kernel $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/kernel                  ; \
 			fi                                                                                                     ; \
