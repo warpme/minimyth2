@@ -5,7 +5,12 @@
 
 -include $(HOME)/.minimyth2/minimyth.conf.mk
 
+# Indicates the directory where the GAR MiniMyth build system is installed.
+mm_HOME                   ?= /home/minimyth/minimyth2
+
 # The version of MiniMyth2.
+mm_VERSION_MINIMYTH       ?= 11.21.0.r2836
+
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
 mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter 29     ,      $(mm_MYTH_VERSION)),29                            ) \
@@ -15,8 +20,6 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter test   ,      $(mm_MYTH_VERSION)),test                          ) \
                                 $(if $(filter trunk  ,      $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \
                               )
-
-mm_VERSION_MINIMYTH ?= 11.21.0.r2836
 
 mm_VERSION_EXTRA          ?= $(strip \
                                 $(if $(filter yes,$(mm_DEBUG)),-debug) \
@@ -152,14 +155,14 @@ mm_DISTRIBUTION_RAM       ?= yes
 
 # Indicates whether or not to install the MiniMyth files needed to network boot
 # with a RAM root file system. This will cause files to be installed in
-# directory $(mm_TFTP_ROOT)/minimyth-$(mm_VERSION)/.
+# directory $(mm_TFTP_ROOT)/$(mm_VERSION_MINIMYTH)/.
 # Valid values for mm_INSTALL_RAM_BOOT are 'yes' and 'no'.
 mm_INSTALL_RAM_BOOT       ?= yes
 
 # Indicates the pxeboot TFTP directory.
 # The MiniMyth kernel, the MiniMyth file system image and MiniMyth themes are
 # installed in this directory. The files will be installed in a subdirectory
-# named 'minimyth-$(mm_VERSION)'.
+# named '$(mm_VERSION_MINIMYTH)'.
 mm_TFTP_ROOT              ?= ${HOME}/build/tftp/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)
 
 # Indicates whether or not to create the NFS based part of the share distribution.
@@ -167,14 +170,13 @@ mm_DISTRIBUTION_NFS       ?= no
 
 # Indicates whether or not to install the MiniMyth files needed to network boot
 # with an NFS root file system. This will cause files to be installed in
-# directories $(mm_TFTP_ROOT)/minimyth-$(mm_VERSION) and
-# $(mm_NFS_ROOT)/minimyth-$(mm_VERSION).
+# $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-minimyth2-$(mm_VERSION).
 # Valid values for mm_INSTALL_NFS_BOOT are 'yes' and 'no'.
 mm_INSTALL_NFS_BOOT       ?= no
 
 # Indicates the directory in which the directory containing the MiniMyth root
 # file system for mounting using NFS. The MiniMyth root file system will be
-# installed in a subdirectory named 'minimyth-$(mm_VERSION)'.
+# installed in a subdirectory named 'nfs-$(mm_GARCH_FAMILY)-minimyth2-$(mm_VERSION)'.
 mm_NFS_ROOT               ?= ${HOME}/build/nfs/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)
 
 # Indicates whether or not to create the SD card image. Generated image will
@@ -183,9 +185,6 @@ mm_DISTRIBUTION_SDCARD    ?= yes
 
 # Indicates the directory in which SD Card image will be installed.
 mm_SDCARD_FILES           ?= ${HOME}/build
-
-# Indicates the directory where the GAR MiniMyth build system is installed.
-mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of kernel to use.
 # Valid values are 'rpi-5.12' '5.13'
