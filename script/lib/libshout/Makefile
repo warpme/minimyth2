@@ -19,7 +19,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
-	LIBS=$(DESTDIR)$(elibdir64)/libmvec.so.1 \
+	$(if $(filter x86_64,$(GARCH_FAMILY)),LIBS=$(DESTDIR)$(elibdir64)/libmvec.so.1) \
 
 include ../../gar.mk
 
