@@ -243,6 +243,16 @@ endif
 		"intel_vaapi" \
 		"./iris_names_with_HW_accell.lst" \
 		"iris"
+	@# Generate udev rules for Intel crocus
+	@cd files/udev-generator; ./generate-x-udev-rules.sh \
+		"../../$(WORKSRC)/include/pci_ids/crocus_pci_ids.h" \
+		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-crocus.rules.disabled" \
+		"$(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt" \
+		"8086" \
+		"intel_i915" \
+		"intel_vaapi" \
+		"./crocus_names_with_HW_accell.lst" \
+		"crocus"
 	@rm -f "$(DESTDIR)/usr/share/supported-ati-gfx-hardware.txt"
 	@# Generate udev rules for AMD r200
 	@cd files/udev-generator; ./generate-x-udev-rules.sh \
@@ -300,7 +310,7 @@ endif
 		"vmware" \
 		"./vmwgfx_names_with_HW_accell.lst" \
 		"vmwgfx"
-	@$(MAKECOOKIE)
+	@#$(MAKECOOKIE)
 
 clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libGL.*
