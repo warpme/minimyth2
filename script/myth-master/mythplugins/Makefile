@@ -61,7 +61,7 @@ BUILDDEPS = \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
-WORKSRC = $(WORKDIR)/mythtv-$(MYTHTV_VERSION)
+WORKSRC = $(WORKDIR)/mythtv-$(MYTHTV_GIT_HASH)
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/mythplugins/configure
 BUILD_SCRIPTS     = $(WORKSRC)/mythplugins/Makefile
