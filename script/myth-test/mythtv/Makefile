@@ -1,9 +1,10 @@
-GARNAME = mythtv
-GARVERSION = $(MYTHTV_VERSION)
-CATEGORIES = $(CATEGORY)
+
+GARNAME      = mythtv
+GARVERSION   = $(MYTHTV_GIT_HASH)
+CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://github.com/MythTV/mythtv/archive/
 DISTFILES    = $(MYTHTV_GIT_HASH).zip
-PATCHFILES  =
+PATCHFILES   =
 
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0000-configure-set-to-GAR-perl-python.patch.gar
