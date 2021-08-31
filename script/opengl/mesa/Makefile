@@ -310,7 +310,7 @@ endif
 		"vmware" \
 		"./vmwgfx_names_with_HW_accell.lst" \
 		"vmwgfx"
-	@#$(MAKECOOKIE)
+	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libGL.*
