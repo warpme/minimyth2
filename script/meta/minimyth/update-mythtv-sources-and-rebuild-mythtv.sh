@@ -194,9 +194,9 @@ echo "--------------------------------------------"
 
 echo "==> Updating versions in document-changelog.txt, package-api.mk, minimyth.conf.mk)"
 sed --in-place --follow-symlinks "0,/\s*-update\s*mythtv\s*to\s*r.*/ s/\s*-update\s*mythtv\s*to\s*r.*/  -update mythtv to r${gitrel}/" ${mm_home}/html/minimyth/document-changelog.txt
-sed --in-place --follow-symlinks 's/MYTHTV_SVN_VERSION =.*/MYTHTV_SVN_VERSION = '${stamp}-${githash}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
-sed --in-place --follow-symlinks 's/MYTHTV_GIT_VERSION =.*/MYTHTV_GIT_VERSION = '${gitversion}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
-sed --in-place --follow-symlinks 's/MYTHTV_GIT_HASH =.*/MYTHTV_GIT_HASH = '${gitfullhash}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
+sed --in-place --follow-symlinks 's/MYTHTV_SVN_VERSION\s*=.*/MYTHTV_SVN_VERSION      = '${stamp}-${githash}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
+sed --in-place --follow-symlinks 's/MYTHTV_GIT_VERSION\s*=.*/MYTHTV_GIT_VERSION      = '${gitversion}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
+sed --in-place --follow-symlinks    's/MYTHTV_GIT_HASH\s*=.*/MYTHTV_GIT_HASH         = '${gitfullhash}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
 sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" ${mm_conf_file}
 sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" "${mm_home}/script/minimyth.conf.mk"
 sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.aarch64"
