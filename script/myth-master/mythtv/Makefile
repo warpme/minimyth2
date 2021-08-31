@@ -1,9 +1,9 @@
 
 GARNAME      = mythtv
-GARVERSION   = $(MYTHTV_VERSION)
+GARVERSION   = $(MYTHTV_GIT_HASH)
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = svn://svn.mythtv.org/svn/trunk/
-DISTFILES    = $(DISTNAME).tar.bz2
+MASTER_SITES = https://github.com/MythTV/mythtv/archive/
+DISTFILES    = $(MYTHTV_GIT_HASH).zip
 PATCHFILES   =
 
 include ../../minimyth.conf.mk

@@ -1,13 +1,11 @@
 #
 # Script:
 # 1. clones mythtv sources in ${mm_home}/source/git-mythtv-{branch}
-# 2. makes mythtv sources archive file:
-#    mythtv-{branch}-{date}-{githash}.tar.bz2 in
-#    directory ${mm_home}/source/git-mythtv-{branch}
-# 3. Updates ver.string in:
+# 2. Updates ver.string in:
 #     ${mm_home}/script/myth-{branch}/mythtv/package-api.mk
 #     ${mm_home}/html/minimyth/document-changelog.txt
 #     ${HOME}/.minimyth2/minimyth.conf.mk
+# 3. Generates makesums & run garchive
 # 4. Cleans mythtv build
 # 5. Cleans MiniMyth2 build
 # 6. Rebuilds mythtv
@@ -186,54 +184,29 @@ fi
 gitversion=$(git describe)
 githash=$(echo $gitversion | sed -e "s/.*\-.*\-\(.*\)/\1/") #"
 gitrel=$(git describe | sed -e "s/.*\-\(.*\)\-\(.*\)/\1/") #"
+gitfullhash=$(git rev-parse HEAD)
 
 echo " Cloned GIT rel  : r${gitrel}"
 echo " Cloned GIT hash : ${githash}"
+echo " "
+echo " "
+echo "--------------------------------------------"
 
-arch_file="mythtv-${branch}-${stamp}-${githash}.tar.bz2"
-arch_dir="${git_src_home}/mythtv-${branch}-${stamp}-${githash}"
-
-if [ ! -e ${arch_dir}/${arch_file} ]; then
-
-  echo "==> No (${arch_file}) archive..."
-  echo "==> Creating (${arch_file})..."
-  rm -rf ${arch_dir}
-  mkdir ${arch_dir}
-  cp -r  $srcdir/. ${arch_dir}/
-  cd ${arch_dir}/
-  find . -name '.git' | xargs /bin/rm -rf
-  cd ../
-  tar -cjf ${arch_file} ./mythtv-${branch}-${stamp}-${githash}
-  rm -rf ${arch_dir}
-
-  mkdir ${arch_dir}
-  mv ${arch_file} ${arch_dir}/
-
-else
-
-  echo "==> (${arch_file}) archive present..."
-
-fi
-
-echo "==> Updating version in (${mm_home}/html/minimyth/document-changelog.txt)"
+echo "==> Updating versions in document-changelog.txt, package-api.mk, minimyth.conf.mk)"
 sed --in-place --follow-symlinks "0,/\s*-update\s*mythtv\s*to\s*r.*/ s/\s*-update\s*mythtv\s*to\s*r.*/  -update mythtv to r${gitrel}/" ${mm_home}/html/minimyth/document-changelog.txt
-
-echo "==> Updating SVN ver. in (${mm_home}/script/myth-${branch}/mythtv/package-api.mk)"
 sed --in-place --follow-symlinks 's/MYTHTV_SVN_VERSION =.*/MYTHTV_SVN_VERSION = '${stamp}-${githash}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
-echo "==> Updating GIT hash in (${mm_home}/script/myth-${branch}/mythtv/package-api.mk)"
 sed --in-place --follow-symlinks 's/MYTHTV_GIT_VERSION =.*/MYTHTV_GIT_VERSION = '${gitversion}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
-
-echo "==> Updating version in (${mm_conf_file})"
+sed --in-place --follow-symlinks 's/MYTHTV_GIT_HASH =.*/MYTHTV_GIT_HASH = '${gitfullhash}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
 sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" ${mm_conf_file}
-
-echo "==> Updating version in minimyth.conf examplary files"
 sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" "${mm_home}/script/minimyth.conf.mk"
 sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.aarch64"
 sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.arm"
 sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.x86-64"
 
+make makesums garchive -C ${mm_home}/script/myth-${branch}/mythtv
+
 echo " "
-echo "Now ready to build myth-${branch} ..."
+echo " Now ready to build myth-${branch} ..."
 echo " "
 
 echo "Press ANY key to build or Ctrl-C to break ..."

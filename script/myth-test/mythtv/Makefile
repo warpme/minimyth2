@@ -1,8 +1,8 @@
 GARNAME = mythtv
 GARVERSION = $(MYTHTV_VERSION)
 CATEGORIES = $(CATEGORY)
-MASTER_SITES = svn://svn.mythtv.org/svn/trunk/
-DISTFILES = $(DISTNAME).tar.bz2
+MASTER_SITES = https://github.com/MythTV/mythtv/archive/
+DISTFILES    = $(MYTHTV_GIT_HASH).zip
 PATCHFILES  =
 
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
