@@ -1,0 +1,319 @@
+ifeq (1,1)
+#--Use this for mainline official x.y.z kernel from SCM----
+MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
+DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
+#----------------------------------------------------------
+endif
+
+ifeq (0,1)
+#--Use this for mainline official x.y.z kernel from GIT----
+MASTER_SITES       += https://github.com/torvalds/linux/archive/
+DISTFILES           = v$(LINUX_VERSION).tar.gz $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
+#----------------------------------------------------------
+endif
+
+ifeq (0,1)
+#--Use this for mainline git-commit kernel-----------------
+MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
+DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/$(GITHASH)
+#----------------------------------------------------------
+endif
+
+ifeq (0,1)
+#--Use this for apritzel h616 repo kernel-----------------
+MASTER_SITES        = https://github.com/apritzel/linux/archive/
+GITHASH             = 319c938735b9c1726de3b7e09c20637fad2a0960
+DISTFILES           = $(GITHASH).zip $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/linux-$(GITHASH)
+#----------------------------------------------------------
+endif
+
+GARNAME = linux
+GARVERSION = $(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)$(if $(LINUX_TEENY_VERSION),$(if $(filter-out 0,$(LINUX_TEENY_VERSION)),.$(LINUX_TEENY_VERSION)))$(LINUX_EXTRA_VERSION)
+CATEGORIES = kernel-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)
+
+CONFIGFILE = linux-$(LINUX_MAJOR_VERSION).$(LINUX_MINOR_VERSION)-$(GARCH_FAMILY)-$(GARCH).config
+
+PATCHFILES  = linux-5.14.patch.gar
+PATCHFILES += linux-5.14-perl.patch.gar
+PATCHFILES += linux-5.14-defaults.patch
+PATCHFILES += linux-5.14-vgaarb-add-3D-accell-detection.patch
+
+ifeq (1,1)
+
+# Add hevc v4l2_request crtl fields used by Allwinner/Rockchip/Broadcom
+PATCHFILES += 0101-include-media-hevc-uapi-add-aw-rk-brcm-fields.patch
+
+ifeq (1,1)
+# Misc panfrost patches for 5.14 kernel
+PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
+PATCHFILES += 0103-drm-panfrost-make-panfrost_job_run_rte_ERR_PTR.patch
+PATCHFILES += 0110-drivers-net-wireless-brcmfmac-add-ap6330-firmware.patch
+endif
+
+ifeq (1,1)
+# Switch GPU DVFS governors default as 'performance'
+PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
+PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
+endif
+
+ifeq (1,1)
+#-- Amlogic patches -----------------------------------------
+# Add HVEC decode from https://gitlab.com/baylibre/amlogic/atv/linux/-/commit/1f9a7f9904dfb58be623d1048f6dad3df7bf61f4
+PATCHFILES += 0310-messon-vdec-add-hvec-support.patch
+# increas CMA pool for 4k decode
+PATCHFILES += 0311-arm64-dts-meson-set-dma-pool-to-896MB.patch
+PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
+# fixing a lot of the hangs on hevc decoding
+PATCHFILES += 0313-meson-vdec-HEVC-decoder-add-handling-to-show-frames-when-ready.patch
+# Amlogic: Misc patches
+PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
+PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
+PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
+PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
+PATCHFILES += 0369-arm64-dts-meson-sm1-add-support-for-CYX-A95XF3-AIR.patch
+# add support for radxa zero board
+PATCHFILES += 0370-arm64-dts-meson-g12a-add-support-for-radxa-zero.patch
+# add support for Tanix TX5 Plus tvbox
+PATCHFILES += 0371-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
+# Add more GX soundcards
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
+PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
+# Add more G12/SM1 soundcards
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320731
+PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
+# Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic HW I have
+PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
+# fix to get ap6256 working on amlogic
+PATCHFILES += 0380-drivers-mmc-meson-gx-do-not-use-memcpy_to-fromio-for-dram-access-quirk.patch
+endif
+#------------------------------------------------------------
+
+ifeq (1,1)
+#-- Allwinner H6 patches -----------------------------------------
+# patches from LE 5.09.2021
+PATCHFILES += 0500-clk-Implement-protected-clocks-for-all-OF-clock-prov.patch
+PATCHFILES += 0501-Revert-clk-qcom-Support-protected-clocks-property.patch
+PATCHFILES += 0502-arm64-dts-allwinner-h6-Protect-SCP-clock.patch
+PATCHFILES += 0503-rtc-sun6i-Allow-RTC-wakeup-after-shutdown.patch
+PATCHFILES += 0504-firmware-arm_scpi-Support-unidirectional-mailbox-cha.patch
+PATCHFILES += 0505-arm64-dts-allwinner-h6-Add-SCPI-protocol.patch
+PATCHFILES += 0508-ASoC-hdmi-codec-fix-channel-allocation.patch
+PATCHFILES += 0509-ASoC-sun4i-i2s-Add-parenthesis-around-macro-argument.patch
+PATCHFILES += 0510-ASoC-sun4i-i2s-WiP-multi-channel.patch
+PATCHFILES += 0511-arm64-dts-sun50i-h6-dtsi-add-sound-node.patch
+PATCHFILES += 0512-arm64-dts-enable-audio-gs1.patch
+PATCHFILES += 0521-media-hevc-Add-scaling-matrix-control.patch
+PATCHFILES += 0522-media-cedrus-hevc-Add-support-for-multiple-slices.patch
+PATCHFILES += 0523-media-cedrus-hevc-Add-support-for-scaling-lists.patch
+PATCHFILES += 0524-media-cedrus-hevc-tiles-hack.patch
+PATCHFILES += 0525-media-cedrus-Add-callback-for-buffer-cleanup.patch
+PATCHFILES += 0526-media-cedrus-hevc-Improve-buffer-management.patch
+PATCHFILES += 0527-media-cedrus-h264-Improve-buffer-management.patch
+PATCHFILES += 0528-media-cedrus-wip-10-bit-HEVC-support.patch
+PATCHFILES += 0529-media-cedrus-add-check-for-H264-and-HEVC-limitations.patch
+# Adding support for MFD devices on some H6 boards
+PATCHFILES += 0530-mfd-add-AC200.patch
+PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
+# Fix hanging GS1 boot on loading kernel modules
+PATCHFILES += 0532-arm64-dts-allwinner-gs1-fix-eMMC-and-incr-vcpu-limit.patch
+# Improvements and addidtions for some H6 boards
+PATCHFILES += 0533-arm64-dts-Tanix-TX6-enable-eth-emmc-wifi.patch
+PATCHFILES += 0534-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
+PATCHFILES += 0535-arm64-dts-allwinner-add-Tanix-Tx6-Mini.patch
+# Allwinner: enable H6 GPU DVFS (seems not work OK atm)
+PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
+PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=470633
+PATCHFILES += 0538-arm64-dts-allwinner-H6-USB3-device-tree-updates.patch
+# patches from LE 5.09.2021 for Eth improvements
+PATCHFILES += 0539-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
+PATCHFILES += 0540-net-stmmac-sun8i-Use-devm_regulator_get-for-PHY-regu.patch
+PATCHFILES += 0541-net-stmmac-sun8i-Rename-PHY-regulator-variable-to-re.patch
+PATCHFILES += 0542-net-stmmac-sun8i-Add-support-for-enabling-a-regulato.patch
+PATCHFILES += 0543-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
+# patches from LE 5.09.2021 for fixing playback corruption after 10min of playback
+PATCHFILES += 0544-drm-sun4i-mixer-Add-caching-support.patch
+# Add hw deinterlce support from LE 5.09.2021
+PATCHFILES += 0545-H6-add-sun50i-di-deinterlace-WiP.patch
+PATCHFILES += 0546-arm64-dts-h6-add-deinterlace-node.patch
+# add support for xr819 wifi https://github.com/jernejsk/linux-1/tree/0e2dbeef9b05d5bd285d7fb2cf5bde1bb212c96d
+PATCHFILES += 0547-net-wireless-add-xr819-support-07072021.patch
+# add support for rtl8822bs/8822cs by rtw88 https://github.com/jernejsk/linux-1/commits/rtw88-sdio
+PATCHFILES += 0548-net-wireless-add-rt8822-support-24072021.patch
+endif
+#------------------------------------------------------------
+
+ifeq (1,1)
+#-- Allwinner H616 patches -----------------------------------------
+# https://github.com/jernejsk/linux-1/commits/h616-hdmi
+PATCHFILES += 0600-drivers-h616-wip-add-usb-emac2-hdmi-support.patch
+# add THS support
+PATCHFILES += 0601-drivers-thermal-allwinner-add-h616-ths-support.patch
+# enable some h616 boards
+PATCHFILES += 0602-arm64-dts-allwinner-h616-add-dtsi.patch
+PATCHFILES += 0603-arm64-dts-allwinner-h616-add-OrangePi-Zero2.patch
+PATCHFILES += 0604-arm64-dts-allwinner-h616-add-X96-Mate-TVbox.patch
+PATCHFILES += 0605-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
+PATCHFILES += 0606-arm64-dts-allwinner-h616-add-T95-TVbox.patch
+PATCHFILES += 0607-arm64-dts-allwinner-h616-enable-ths-support.patch
+endif
+#------------------------------------------------------------
+
+ifeq (1,1)
+#-- Rockchip patches -----------------------------------------
+# patches from LE 5.09.2021
+PATCHFILES += 0701-rockchip-from-5.15.patch
+PATCHFILES += 0702-rockchip-from-list.patch
+PATCHFILES += 0710-v4l2-from-5.15.patch
+PATCHFILES += 0711-v4l2-from-list.patch
+PATCHFILES += 0720-drm-from-list.patch
+PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
+PATCHFILES += 0731-v4l2-rockchip.patch
+PATCHFILES += 0732-for-libreelec.patch
+PATCHFILES += 0740-v4l-wip-rkvdec-vp9.patch
+PATCHFILES += 0741-v4l-wip-rkvdec-hevc.patch
+PATCHFILES += 0742-v4l-wip-iep-driver.patch
+endif
+#------------------------------------------------------------
+
+ifeq (1,1)
+#-- RaspberryPI patches -----------------------------------------
+# Hack for adding H264 v4l2 decoding on RPI
+PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
+# V3d enablement in RPI4
+# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=434471
+PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch
+# small updates to v4l2_m2m
+PATCHFILES += 0903-rpi-vc04_services-add_h264_v4l2-m2m_decode-14032021.patch
+# add H265 rpivid driver
+PATCHFILES += 0904-media-add-rpivid-24022021.patch
+# https://github.com/raspberrypi/linux/pull/4238/commits
+PATCHFILES += 0905-staging-bcm2835-camera-Add-support-for-H264-levels-4.1-and-4.2.patch
+PATCHFILES += 0906-staging-bcm2835-codec-Pass-corrupt-frame-flag.patch
+PATCHFILES += 0907-staging-bcm2835-codec-Set-colourspace-appropriat-for-RGB-fmt.patch
+PATCHFILES += 0908-staging-bcm2835-codec-Fix-support-for-levels-4.1-and-4.2.patch
+# fix for flip_dome timeouts on rpi4
+PATCHFILES += 0909-drm-vc4-Fix-non-blocking-commit-getting-stuck-forever.patch
+endif
+#------------------------------------------------------------
+
+endif
+
+LICENSE = GPL2
+
+DESCRIPTION = 
+define BLURB
+endef
+
+BUILDDEPS = \
+	utils/bc \
+	$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),bootloaders/u-boot.tools) \
+
+DEPENDS = \
+	kernel-headers/linux-headers \
+	firmware/firmware \
+
+CONFIGURE_SCRIPTS = custom
+BUILD_SCRIPTS     = custom
+INSTALL_SCRIPTS   = custom
+
+CONFIGURE_ARGS    = $(LINUX_MAKE_ARGS)
+BUILD_ARGS        = $(LINUX_MAKE_ARGS)
+INSTALL_ARGS      = $(LINUX_MAKE_ARGS) INSTALL_HDR_PATH="$(DESTDIR)$(LINUX_INCLUDEDIR)"
+
+CONFIGURE_ENV = $(LINUX_MAKE_ENV)
+BUILD_ENV     = $(LINUX_MAKE_ENV)
+INSTALL_ENV   = $(LINUX_MAKE_ENV) INSTALL_PATH="$(DESTDIR)$(LINUX_DIR)" INSTALL_MOD_PATH="$(DESTDIR)$(rootdir)" INSTALL_DTBS_PATH="$(DESTDIR)$(rootdir)/boot/dtbs" INSTALL_HDR_PATH="$(DESTDIR)$(LINUX_INCLUDEDIR)"
+
+include ../../gar.mk
+
+configure-custom:
+	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) mrproper
+	@cp $(if $(mm_KERNEL_CONFIG),$(HOME)/.minimyth/$(mm_KERNEL_CONFIG),$(DOWNLOADDIR)/$(CONFIGFILE)) $(WORKSRC)/.config
+	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) oldconfig
+	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) clean
+	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) prepare
+	@$(MAKECOOKIE)
+
+build-custom:
+ifeq ($(GARCH),armv7)
+	@$(CONFIGURE_ENV) $(MAKE) $(BUILD_ARGS) -C $(WORKSRC) zImage modules dtbs
+else
+ifeq ($(GARCH),armv8)
+	@$(CONFIGURE_ENV) $(MAKE) $(BUILD_ARGS) -C $(WORKSRC) Image modules dtbs
+else
+	@$(CONFIGURE_ENV) $(MAKE) $(BUILD_ARGS) -C $(WORKSRC) bzImage modules
+endif
+endif
+	@$(MAKECOOKIE)
+
+pre-install:
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/Image
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/zImage
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/uImage
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/Image.gz
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/System.map
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/vmlinuz
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs*
+	@rm -rf $(DESTDIR)$(LINUX_MODULESDIR)
+	@$(MAKECOOKIE)
+
+install-custom:
+	@echo "Installing Linux modules in [$(DESTDIR)$(LINUX_DIR)]..."
+	@mkdir -p $(DESTDIR)$(LINUX_DIR)
+	@# cp  $(WORKSRC)/System.map $(DESTDIR)$(LINUX_DIR)/System.map
+	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) modules_install
+	@echo "Installing Linux headers in [$(DESTDIR)$(LINUX_INCLUDEDIR)]..."
+	@mkdir -p $(DESTDIR)$(LINUX_INCLUDEDIR)
+	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) headers_install
+ifeq ($(GARCH),armv7)
+	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/zImage > $(DESTDIR)$(LINUX_DIR)/zImage
+	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)$(LINUX_DIR)/Image
+	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
+	@$(MAKECOOKIE)
+else
+ifeq ($(GARCH),armv8)
+	@# cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image.gz > $(DESTDIR)$(LINUX_DIR)/Image.gz
+	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)$(LINUX_DIR)/Image
+	@$(build_DESTDIR)$(build_bindir)/mkimage -A arm64 -O linux -T kernel -C none -a 0x1080000 -e 0x1080000 -n linux-next -d $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image $(DESTDIR)$(LINUX_DIR)/uImage
+	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
+	@$(MAKECOOKIE)
+else
+	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/bzImage > $(DESTDIR)$(LINUX_DIR)/vmlinuz
+	@ln -srf $(DESTDIR)$(LINUX_DIR)/vmlinuz $(DESTDIR)$(LINUX_DIR)/bzImage
+	@$(MAKECOOKIE)
+endif
+endif
+
+install-headers:
+	@$(MAKE) patch
+	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) headers_install
+	@mkdir -p $(DESTDIR)$(includedir)
+	@cp -rf $(WORKSRC)/usr/include/* $(DESTDIR)$(includedir)
+
+post-install:
+	@echo "------------------------------------"     > $(DESTDIR)/usr/share/supported-IR-remotes.txt
+	@echo "List of supported IR receivers as of"    >> $(DESTDIR)/usr/share/supported-IR-remotes.txt
+	@echo "MiniMyth2 $(LINUX_FULL_VERSION) kernel " >> $(DESTDIR)/usr/share/supported-IR-remotes.txt
+	@echo "------------------------------------"    >> $(DESTDIR)/usr/share/supported-IR-remotes.txt
+	@ls -1 $(WORKSRC)/drivers/media/rc/keymaps/*.mod.c | sed -e "s/.*rc-//" -e "s/.mod.c//" >> $(DESTDIR)/usr/share/supported-IR-remotes.txt
+	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/Image
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/zImage
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/uImage
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/Image.gz
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/System.map
+	@rm -f  $(DESTDIR)$(LINUX_DIR)/vmlinuz
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs*
+	@rm -rf $(DESTDIR)$(LINUX_MODULESPREFIX)
+	@$(MAKE) clean       -C ../../kernel-headers/linux-headers
+	@$(MAKE) clean-all   -C ../../kernel-headers/linux-headers
+
+menuconfig:
+	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) menuconfig

@@ -183,8 +183,7 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "5.12"          ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "5.13"          ] && \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "5.13"          ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.14"          ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.15"          ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.12"      ] ; then \

@@ -1,0 +1,1071 @@
+
+This converts the brcm,bcm2835-pm bindings from text to proper schema.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+Reviewed-by: Rob Herring <robh@kernel.org>
+---
+
+Changes since v2:
+ - Slightly change things to make it less dependent on next commits
+
+ .../bindings/soc/bcm/brcm,bcm2835-pm.txt      | 46 -----------
+ .../bindings/soc/bcm/brcm,bcm2835-pm.yaml     | 79 +++++++++++++++++++
+ 2 files changed, 79 insertions(+), 46 deletions(-)
+ delete mode 100644 Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.txt
+ create mode 100644 Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml
+
+diff --git a/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.txt b/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.txt
+deleted file mode 100644
+index 72ff033565e5..000000000000
+--- a/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.txt
++++ /dev/null
+@@ -1,46 +0,0 @@
+-BCM2835 PM (Power domains, watchdog)
+-
+-The PM block controls power domains and some reset lines, and includes
+-a watchdog timer.  This binding supersedes the brcm,bcm2835-pm-wdt
+-binding which covered some of PM's register range and functionality.
+-
+-Required properties:
+-
+-- compatible:		Should be "brcm,bcm2835-pm"
+-- reg:			Specifies base physical address and size of the two
+-			  register ranges ("PM" and "ASYNC_BRIDGE" in that
+-			  order)
+-- clocks:		a) v3d: The V3D clock from CPRMAN
+-			b) peri_image: The PERI_IMAGE clock from CPRMAN
+-			c) h264: The H264 clock from CPRMAN
+-			d) isp: The ISP clock from CPRMAN
+-- #reset-cells: 	Should be 1.  This property follows the reset controller
+-			  bindings[1].
+-- #power-domain-cells:	Should be 1.  This property follows the power domain
+-			  bindings[2].
+-
+-Optional properties:
+-
+-- timeout-sec:		Contains the watchdog timeout in seconds
+-- system-power-controller: Whether the watchdog is controlling the
+-    system power.  This node follows the power controller bindings[3].
+-
+-[1] Documentation/devicetree/bindings/reset/reset.txt
+-[2] Documentation/devicetree/bindings/power/power-domain.yaml
+-[3] Documentation/devicetree/bindings/power/power-controller.txt
+-
+-Example:
+-
+-pm {
+-	compatible = "brcm,bcm2835-pm", "brcm,bcm2835-pm-wdt";
+-	#power-domain-cells = <1>;
+-	#reset-cells = <1>;
+-	reg = <0x7e100000 0x114>,
+-	      <0x7e00a000 0x24>;
+-	clocks = <&clocks BCM2835_CLOCK_V3D>,
+-		 <&clocks BCM2835_CLOCK_PERI_IMAGE>,
+-		 <&clocks BCM2835_CLOCK_H264>,
+-		 <&clocks BCM2835_CLOCK_ISP>;
+-	clock-names = "v3d", "peri_image", "h264", "isp";
+-	system-power-controller;
+-};
+diff --git a/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml b/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml
+new file mode 100644
+index 000000000000..47b9c266ddd1
+--- /dev/null
++++ b/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml
+@@ -0,0 +1,79 @@
++# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
++%YAML 1.2
++---
++$id: "http://devicetree.org/schemas/soc/bcm/brcm,bcm2835-pm.yaml#"
++$schema: "http://devicetree.org/meta-schemas/core.yaml#"
++
++title: BCM2835 PM (Power domains, watchdog)
++
++description: |
++  The PM block controls power domains and some reset lines, and includes a
++  watchdog timer.
++
++maintainers:
++  - Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
++
++allOf:
++  - $ref: ../../watchdog/watchdog.yaml#
++
++properties:
++  compatible:
++    items:
++      - const: brcm,bcm2835-pm
++      - const: brcm,bcm2835-pm-wdt
++
++  reg:
++    minItems: 1
++    maxItems: 2
++    items:
++      - description: PM registers
++      - description: ASB registers
++
++  "#power-domain-cells":
++    const: 1
++
++  "#reset-cells":
++    const: 1
++
++  clocks:
++    minItems: 4
++    maxItems: 4
++
++  clock-names:
++    items:
++      - const: v3d
++      - const: peri_image
++      - const: h264
++      - const: isp
++
++  system-power-controller:
++    type: boolean
++
++  timeout-sec: true
++
++required:
++  - compatible
++  - reg
++  - "#power-domain-cells"
++  - "#reset-cells"
++  - clocks
++
++additionalProperties: false
++
++examples:
++  - |
++    #include <dt-bindings/clock/bcm2835.h>
++
++    watchdog@7e100000 {
++        compatible = "brcm,bcm2835-pm", "brcm,bcm2835-pm-wdt";
++        #power-domain-cells = <1>;
++        #reset-cells = <1>;
++        reg = <0x7e100000 0x114>,
++              <0x7e00a000 0x24>;
++        clocks = <&clocks BCM2835_CLOCK_V3D>,
++        	 <&clocks BCM2835_CLOCK_PERI_IMAGE>,
++        	 <&clocks BCM2835_CLOCK_H264>,
++        	 <&clocks BCM2835_CLOCK_ISP>;
++        clock-names = "v3d", "peri_image", "h264", "isp";
++        system-power-controller;
++    };
+
+Anticipating the introduction of BCM2711, of which we'll need to support
+its new RPiVid ASB, introduce reg-names into bcm2835-pm's binding. This
+will help to have a consistent mapping between resources and their
+meaning.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+Reviewed-by: Rob Herring <robh@kernel.org>
+---
+ .../devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml     | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml b/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml
+index 47b9c266ddd1..837963e9f219 100644
+--- a/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml
++++ b/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml
+@@ -25,9 +25,13 @@ properties:
+   reg:
+     minItems: 1
+     maxItems: 2
++
++  reg-names:
++    minItems: 1
++    maxItems: 2
+     items:
+-      - description: PM registers
+-      - description: ASB registers
++      - const: pm
++      - const: asb
+ 
+   "#power-domain-cells":
+     const: 1
+@@ -70,6 +74,7 @@ examples:
+         #reset-cells = <1>;
+         reg = <0x7e100000 0x114>,
+               <0x7e00a000 0x24>;
++        reg-names = "pm", "asb";
+         clocks = <&clocks BCM2835_CLOCK_V3D>,
+         	 <&clocks BCM2835_CLOCK_PERI_IMAGE>,
+         	 <&clocks BCM2835_CLOCK_H264>,
+
+Add a new compatible string for BCM2711 and the option to provide a
+third reg property for the board's new RPiVid ASB.
+
+In BCM2711 the new RPiVid ASB took over V3D, which is our only consumer
+of this driver so far. The old ASB is still be present with ISP and H264
+bits but no V3D.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+Reviewed-by: Rob Herring <robh@kernel.org>
+---
+
+Changes since v2:
+ - Correct names s/argon/rpivid/
+
+ .../devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml  | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml b/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml
+index 837963e9f219..0dd264f80fb3 100644
+--- a/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml
++++ b/Documentation/devicetree/bindings/soc/bcm/brcm,bcm2835-pm.yaml
+@@ -19,19 +19,22 @@ allOf:
+ properties:
+   compatible:
+     items:
+-      - const: brcm,bcm2835-pm
++      - enum:
++          - brcm,bcm2835-pm
++          - brcm,bcm2711-pm
+       - const: brcm,bcm2835-pm-wdt
+ 
+   reg:
+     minItems: 1
+-    maxItems: 2
++    maxItems: 3
+ 
+   reg-names:
+     minItems: 1
+-    maxItems: 2
++    maxItems: 3
+     items:
+       - const: pm
+       - const: asb
++      - const: rpivid_asb
+ 
+   "#power-domain-cells":
+     const: 1
+@@ -74,7 +77,7 @@ examples:
+         #reset-cells = <1>;
+         reg = <0x7e100000 0x114>,
+               <0x7e00a000 0x24>;
+-        reg-names = "pm", "asb";
++        reg-names = "pm", "asb", "rpivid_asb";
+         clocks = <&clocks BCM2835_CLOCK_V3D>,
+         	 <&clocks BCM2835_CLOCK_PERI_IMAGE>,
+         	 <&clocks BCM2835_CLOCK_H264>,
+
+bcm2835-pm's bindings now support explicitly setting 'reg-names,' so use
+them.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+---
+ arch/arm/boot/dts/bcm2711.dtsi        | 1 +
+ arch/arm/boot/dts/bcm2835-common.dtsi | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/arch/arm/boot/dts/bcm2711.dtsi b/arch/arm/boot/dts/bcm2711.dtsi
+index 462b1dfb0385..e4bbc1a83452 100644
+--- a/arch/arm/boot/dts/bcm2711.dtsi
++++ b/arch/arm/boot/dts/bcm2711.dtsi
+@@ -113,6 +113,7 @@ pm: watchdog@7e100000 {
+ 			reg = <0x7e100000 0x114>,
+ 			      <0x7e00a000 0x24>,
+ 			      <0x7ec11000 0x20>;
++			reg-names = "pm", "asb", "rpivid_asb";
+ 			clocks = <&clocks BCM2835_CLOCK_V3D>,
+ 				 <&clocks BCM2835_CLOCK_PERI_IMAGE>,
+ 				 <&clocks BCM2835_CLOCK_H264>,
+diff --git a/arch/arm/boot/dts/bcm2835-common.dtsi b/arch/arm/boot/dts/bcm2835-common.dtsi
+index 4119271c979d..db0ed88edec2 100644
+--- a/arch/arm/boot/dts/bcm2835-common.dtsi
++++ b/arch/arm/boot/dts/bcm2835-common.dtsi
+@@ -62,6 +62,7 @@ pm: watchdog@7e100000 {
+ 			#reset-cells = <1>;
+ 			reg = <0x7e100000 0x114>,
+ 			      <0x7e00a000 0x24>;
++			reg-names = "pm", "asb";
+ 			clocks = <&clocks BCM2835_CLOCK_V3D>,
+ 				 <&clocks BCM2835_CLOCK_PERI_IMAGE>,
+ 				 <&clocks BCM2835_CLOCK_H264>,
+
+A new compatible string was introduced specifically for BCM2711, so make
+use of it.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+---
+ arch/arm/boot/dts/bcm2711.dtsi | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/bcm2711.dtsi b/arch/arm/boot/dts/bcm2711.dtsi
+index e4bbc1a83452..e864974b10c9 100644
+--- a/arch/arm/boot/dts/bcm2711.dtsi
++++ b/arch/arm/boot/dts/bcm2711.dtsi
+@@ -107,7 +107,7 @@ dma: dma@7e007000 {
+ 		};
+ 
+ 		pm: watchdog@7e100000 {
+-			compatible = "brcm,bcm2835-pm", "brcm,bcm2835-pm-wdt";
++			compatible = "brcm,bcm2711-pm", "brcm,bcm2835-pm-wdt";
+ 			#power-domain-cells = <1>;
+ 			#reset-cells = <1>;
+ 			reg = <0x7e100000 0x114>,
+
+If available in firmware, find resources by their 'reg-names' position
+instead of relying on hardcoded offsets. Care is taken to support old
+firmware nonetheless.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+---
+
+Changes since v2:
+ - correct names
+
+ drivers/mfd/bcm2835-pm.c | 55 ++++++++++++++++++++++++++--------------
+ 1 file changed, 36 insertions(+), 19 deletions(-)
+
+diff --git a/drivers/mfd/bcm2835-pm.c b/drivers/mfd/bcm2835-pm.c
+index 42fe67f1538e..36fede92775c 100644
+--- a/drivers/mfd/bcm2835-pm.c
++++ b/drivers/mfd/bcm2835-pm.c
+@@ -25,9 +25,37 @@ static const struct mfd_cell bcm2835_power_devs[] = {
+ 	{ .name = "bcm2835-power" },
+ };
+ 
++static int bcm2835_pm_get_pdata(struct platform_device *pdev,
++				struct bcm2835_pm *pm)
++{
++	/* If no 'reg-names' property is found we can assume we're using old
++	 * firmware.
++	 */
++	if (!of_find_property(pm->dev->of_node, "reg-names", NULL)) {
++		dev_warn(pm->dev, "Old devicetree detected, please update your firmware.\n");
++
++		pm->base = devm_platform_ioremap_resource(pdev, 0);
++		if (IS_ERR(pm->base))
++			return PTR_ERR(pm->base);
++
++		pm->asb = devm_platform_ioremap_resource(pdev, 1);
++		if (IS_ERR(pm->asb))
++			pm->asb = NULL;
++	} else {
++		pm->base = devm_platform_ioremap_resource_byname(pdev, "pm");
++		if (IS_ERR(pm->base))
++			return PTR_ERR(pm->base);
++
++		pm->asb = devm_platform_ioremap_resource_byname(pdev, "asb");
++		if (IS_ERR(pm->base))
++			pm->asb = NULL;
++	}
++
++	return 0;
++}
++
+ static int bcm2835_pm_probe(struct platform_device *pdev)
+ {
+-	struct resource *res;
+ 	struct device *dev = &pdev->dev;
+ 	struct bcm2835_pm *pm;
+ 	int ret;
+@@ -39,10 +67,9 @@ static int bcm2835_pm_probe(struct platform_device *pdev)
+ 
+ 	pm->dev = dev;
+ 
+-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-	pm->base = devm_ioremap_resource(dev, res);
+-	if (IS_ERR(pm->base))
+-		return PTR_ERR(pm->base);
++	ret = bcm2835_pm_get_pdata(pdev, pm);
++	if (ret)
++		return ret;
+ 
+ 	ret = devm_mfd_add_devices(dev, -1,
+ 				   bcm2835_pm_devs, ARRAY_SIZE(bcm2835_pm_devs),
+@@ -54,20 +81,10 @@ static int bcm2835_pm_probe(struct platform_device *pdev)
+ 	 * bcm2835-pm binding as the key for whether we can reference
+ 	 * the full PM register range and support power domains.
+ 	 */
+-	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+-	if (res) {
+-		pm->asb = devm_ioremap_resource(dev, res);
+-		if (IS_ERR(pm->asb))
+-			return PTR_ERR(pm->asb);
+-
+-		ret = devm_mfd_add_devices(dev, -1,
+-					   bcm2835_power_devs,
+-					   ARRAY_SIZE(bcm2835_power_devs),
+-					   NULL, 0, NULL);
+-		if (ret)
+-			return ret;
+-	}
+-
++	if (pm->asb)
++		return devm_mfd_add_devices(dev, -1, bcm2835_power_devs,
++					    ARRAY_SIZE(bcm2835_power_devs),
++					    NULL, 0, NULL);
+ 	return 0;
+ }
+ 
+
+In BCM2711 the new RPiVid ASB took over V3D. The old ASB is still present
+with the ISP and H264 bits, and V3D is in the same place in the new ASB
+as the old one.
+
+As per the devicetree bindings, BCM2711 will provide both the old and
+new ASB resources, so get both of them and pass them into
+'bcm2835-power,' which will take care of selecting which one to use
+accordingly.
+
+Since the RPiVid ASB's resources were being provided prior to formalizing
+the bindings[1], also support the old firmwares that didn't use
+'reg-names.'
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+
+[1] See: 7dbe8c62ceeb ("ARM: dts: Add minimal Raspberry Pi 4 support")
+---
+
+Changes since v2:
+ - Correct names again!
+
+Changes since v1:
+ - Use reg-names
+ - Correct ASB names
+
+ drivers/mfd/bcm2835-pm.c       | 25 +++++++++++++++++++++++--
+ include/linux/mfd/bcm2835-pm.h |  1 +
+ 2 files changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mfd/bcm2835-pm.c b/drivers/mfd/bcm2835-pm.c
+index 36fede92775c..a06e9cf19b64 100644
+--- a/drivers/mfd/bcm2835-pm.c
++++ b/drivers/mfd/bcm2835-pm.c
+@@ -6,6 +6,7 @@
+  * the WDT and power drivers.
+  */
+ 
++#include <linux/bits.h>
+ #include <linux/delay.h>
+ #include <linux/io.h>
+ #include <linux/mfd/bcm2835-pm.h>
+@@ -17,6 +18,9 @@
+ #include <linux/types.h>
+ #include <linux/watchdog.h>
+ 
++#define BCM2835		BIT(1)
++#define BCM2711		BIT(2)
++
+ static const struct mfd_cell bcm2835_pm_devs[] = {
+ 	{ .name = "bcm2835-wdt" },
+ };
+@@ -28,6 +32,8 @@ static const struct mfd_cell bcm2835_power_devs[] = {
+ static int bcm2835_pm_get_pdata(struct platform_device *pdev,
+ 				struct bcm2835_pm *pm)
+ {
++	bool is_bcm2711 = (uintptr_t)device_get_match_data(pm->dev) & BCM2711;
++
+ 	/* If no 'reg-names' property is found we can assume we're using old
+ 	 * firmware.
+ 	 */
+@@ -41,6 +47,10 @@ static int bcm2835_pm_get_pdata(struct platform_device *pdev,
+ 		pm->asb = devm_platform_ioremap_resource(pdev, 1);
+ 		if (IS_ERR(pm->asb))
+ 			pm->asb = NULL;
++
++		pm->rpivid_asb = devm_platform_ioremap_resource(pdev, 2);
++		if (IS_ERR(pm->rpivid_asb))
++			pm->rpivid_asb = NULL;
+ 	} else {
+ 		pm->base = devm_platform_ioremap_resource_byname(pdev, "pm");
+ 		if (IS_ERR(pm->base))
+@@ -49,6 +59,16 @@ static int bcm2835_pm_get_pdata(struct platform_device *pdev,
+ 		pm->asb = devm_platform_ioremap_resource_byname(pdev, "asb");
+ 		if (IS_ERR(pm->base))
+ 			pm->asb = NULL;
++
++		pm->rpivid_asb = devm_platform_ioremap_resource_byname(pdev,
++								      "rpivid_asb");
++		if (IS_ERR(pm->base))
++			pm->rpivid_asb = NULL;
++
++		if (pm->rpivid_asb && !is_bcm2711) {
++			dev_err(pm->dev, "RPiVid ASB support only present in BCM2711\n");
++			return -EINVAL;
++		}
+ 	}
+ 
+ 	return 0;
+@@ -89,8 +109,9 @@ static int bcm2835_pm_probe(struct platform_device *pdev)
+ }
+ 
+ static const struct of_device_id bcm2835_pm_of_match[] = {
+-	{ .compatible = "brcm,bcm2835-pm-wdt", },
+-	{ .compatible = "brcm,bcm2835-pm", },
++	{ .compatible = "brcm,bcm2835-pm-wdt", .data = (void *)BCM2835},
++	{ .compatible = "brcm,bcm2835-pm", .data = (void *)BCM2835},
++	{ .compatible = "brcm,bcm2711-pm", .data = (void *)BCM2711},
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, bcm2835_pm_of_match);
+diff --git a/include/linux/mfd/bcm2835-pm.h b/include/linux/mfd/bcm2835-pm.h
+index ed37dc40e82a..f70a810c55f7 100644
+--- a/include/linux/mfd/bcm2835-pm.h
++++ b/include/linux/mfd/bcm2835-pm.h
+@@ -9,6 +9,7 @@ struct bcm2835_pm {
+ 	struct device *dev;
+ 	void __iomem *base;
+ 	void __iomem *asb;
++	void __iomem *rpivid_asb;
+ };
+ 
+ #endif /* BCM2835_MFD_PM_H */
+
+
+In BCM2711 the new RPiVid ASB took over V3D. The old ASB is still present
+with the ISP and H264 bits, and V3D is in the same place in the new ASB
+as the old one.
+
+Use the fact that 'pm->rpivid_asb' is populated as a hint that we're on
+BCM2711. On top of that introduce the macro ASB_BASE() which will select
+the correct ASB register base, based on whether we're trying to access
+V3D and which platform we're on.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+---
+
+Changes since v2:
+ - Correct names again
+
+Changes since v1:
+ - Correct names
+
+ drivers/soc/bcm/bcm2835-power.c | 66 ++++++++++++++++++++-------------
+ 1 file changed, 41 insertions(+), 25 deletions(-)
+
+diff --git a/drivers/soc/bcm/bcm2835-power.c b/drivers/soc/bcm/bcm2835-power.c
+index 1e0041ec8132..eea31f75dc64 100644
+--- a/drivers/soc/bcm/bcm2835-power.c
++++ b/drivers/soc/bcm/bcm2835-power.c
+@@ -126,8 +126,9 @@
+ 
+ #define ASB_AXI_BRDG_ID			0x20
+ 
+-#define ASB_READ(reg) readl(power->asb + (reg))
+-#define ASB_WRITE(reg, val) writel(PM_PASSWORD | (val), power->asb + (reg))
++#define ASB_BASE(is_v3d) (is_v3d && power->rpivid_asb ? power->rpivid_asb : power->asb)
++#define ASB_READ(reg, is_v3d) readl(ASB_BASE(is_v3d) + (reg))
++#define ASB_WRITE(reg, val, is_v3d) writel(PM_PASSWORD | (val), ASB_BASE(is_v3d) + (reg))
+ 
+ struct bcm2835_power_domain {
+ 	struct generic_pm_domain base;
+@@ -142,13 +143,16 @@ struct bcm2835_power {
+ 	void __iomem		*base;
+ 	/* AXI Async bridge registers. */
+ 	void __iomem		*asb;
++	/* RPiVid bridge registers. */
++	void __iomem		*rpivid_asb;
+ 
+ 	struct genpd_onecell_data pd_xlate;
+ 	struct bcm2835_power_domain domains[BCM2835_POWER_DOMAIN_COUNT];
+ 	struct reset_controller_dev reset;
+ };
+ 
+-static int bcm2835_asb_enable(struct bcm2835_power *power, u32 reg)
++static int bcm2835_asb_enable(struct bcm2835_power *power, u32 reg,
++			      bool is_v3d)
+ {
+ 	u64 start;
+ 
+@@ -158,8 +162,8 @@ static int bcm2835_asb_enable(struct bcm2835_power *power, u32 reg)
+ 	start = ktime_get_ns();
+ 
+ 	/* Enable the module's async AXI bridges. */
+-	ASB_WRITE(reg, ASB_READ(reg) & ~ASB_REQ_STOP);
+-	while (ASB_READ(reg) & ASB_ACK) {
++	ASB_WRITE(reg, ASB_READ(reg, is_v3d) & ~ASB_REQ_STOP, is_v3d);
++	while (ASB_READ(reg, is_v3d) & ASB_ACK) {
+ 		cpu_relax();
+ 		if (ktime_get_ns() - start >= 1000)
+ 			return -ETIMEDOUT;
+@@ -168,7 +172,8 @@ static int bcm2835_asb_enable(struct bcm2835_power *power, u32 reg)
+ 	return 0;
+ }
+ 
+-static int bcm2835_asb_disable(struct bcm2835_power *power, u32 reg)
++static int bcm2835_asb_disable(struct bcm2835_power *power, u32 reg,
++			       bool is_v3d)
+ {
+ 	u64 start;
+ 
+@@ -178,8 +183,8 @@ static int bcm2835_asb_disable(struct bcm2835_power *power, u32 reg)
+ 	start = ktime_get_ns();
+ 
+ 	/* Enable the module's async AXI bridges. */
+-	ASB_WRITE(reg, ASB_READ(reg) | ASB_REQ_STOP);
+-	while (!(ASB_READ(reg) & ASB_ACK)) {
++	ASB_WRITE(reg, ASB_READ(reg, is_v3d) | ASB_REQ_STOP, is_v3d);
++	while (!(ASB_READ(reg, is_v3d) & ASB_ACK)) {
+ 		cpu_relax();
+ 		if (ktime_get_ns() - start >= 1000)
+ 			return -ETIMEDOUT;
+@@ -274,7 +279,8 @@ static int bcm2835_asb_power_on(struct bcm2835_power_domain *pd,
+ 				u32 pm_reg,
+ 				u32 asb_m_reg,
+ 				u32 asb_s_reg,
+-				u32 reset_flags)
++				u32 reset_flags,
++				bool is_v3d)
+ {
+ 	struct bcm2835_power *power = pd->power;
+ 	int ret;
+@@ -301,13 +307,13 @@ static int bcm2835_asb_power_on(struct bcm2835_power_domain *pd,
+ 		goto err_enable_resets;
+ 	}
+ 
+-	ret = bcm2835_asb_enable(power, asb_m_reg);
++	ret = bcm2835_asb_enable(power, asb_m_reg, is_v3d);
+ 	if (ret) {
+ 		dev_err(power->dev, "Failed to enable ASB master for %s\n",
+ 			pd->base.name);
+ 		goto err_disable_clk;
+ 	}
+-	ret = bcm2835_asb_enable(power, asb_s_reg);
++	ret = bcm2835_asb_enable(power, asb_s_reg, is_v3d);
+ 	if (ret) {
+ 		dev_err(power->dev, "Failed to enable ASB slave for %s\n",
+ 			pd->base.name);
+@@ -317,7 +323,7 @@ static int bcm2835_asb_power_on(struct bcm2835_power_domain *pd,
+ 	return 0;
+ 
+ err_disable_asb_master:
+-	bcm2835_asb_disable(power, asb_m_reg);
++	bcm2835_asb_disable(power, asb_m_reg, is_v3d);
+ err_disable_clk:
+ 	clk_disable_unprepare(pd->clk);
+ err_enable_resets:
+@@ -329,22 +335,23 @@ static int bcm2835_asb_power_off(struct bcm2835_power_domain *pd,
+ 				 u32 pm_reg,
+ 				 u32 asb_m_reg,
+ 				 u32 asb_s_reg,
+-				 u32 reset_flags)
++				 u32 reset_flags,
++				 bool is_v3d)
+ {
+ 	struct bcm2835_power *power = pd->power;
+ 	int ret;
+ 
+-	ret = bcm2835_asb_disable(power, asb_s_reg);
++	ret = bcm2835_asb_disable(power, asb_s_reg, is_v3d);
+ 	if (ret) {
+ 		dev_warn(power->dev, "Failed to disable ASB slave for %s\n",
+ 			 pd->base.name);
+ 		return ret;
+ 	}
+-	ret = bcm2835_asb_disable(power, asb_m_reg);
++	ret = bcm2835_asb_disable(power, asb_m_reg, is_v3d);
+ 	if (ret) {
+ 		dev_warn(power->dev, "Failed to disable ASB master for %s\n",
+ 			 pd->base.name);
+-		bcm2835_asb_enable(power, asb_s_reg);
++		bcm2835_asb_enable(power, asb_s_reg, is_v3d);
+ 		return ret;
+ 	}
+ 
+@@ -369,7 +376,7 @@ static int bcm2835_power_pd_power_on(struct generic_pm_domain *domain)
+ 	case BCM2835_POWER_DOMAIN_GRAFX_V3D:
+ 		return bcm2835_asb_power_on(pd, PM_GRAFX,
+ 					    ASB_V3D_M_CTRL, ASB_V3D_S_CTRL,
+-					    PM_V3DRSTN);
++					    PM_V3DRSTN, true);
+ 
+ 	case BCM2835_POWER_DOMAIN_IMAGE:
+ 		return bcm2835_power_power_on(pd, PM_IMAGE);
+@@ -377,17 +384,17 @@ static int bcm2835_power_pd_power_on(struct generic_pm_domain *domain)
+ 	case BCM2835_POWER_DOMAIN_IMAGE_PERI:
+ 		return bcm2835_asb_power_on(pd, PM_IMAGE,
+ 					    0, 0,
+-					    PM_PERIRSTN);
++					    PM_PERIRSTN, false);
+ 
+ 	case BCM2835_POWER_DOMAIN_IMAGE_ISP:
+ 		return bcm2835_asb_power_on(pd, PM_IMAGE,
+ 					    ASB_ISP_M_CTRL, ASB_ISP_S_CTRL,
+-					    PM_ISPRSTN);
++					    PM_ISPRSTN, false);
+ 
+ 	case BCM2835_POWER_DOMAIN_IMAGE_H264:
+ 		return bcm2835_asb_power_on(pd, PM_IMAGE,
+ 					    ASB_H264_M_CTRL, ASB_H264_S_CTRL,
+-					    PM_H264RSTN);
++					    PM_H264RSTN, false);
+ 
+ 	case BCM2835_POWER_DOMAIN_USB:
+ 		PM_WRITE(PM_USB, PM_USB_CTRLEN);
+@@ -435,7 +442,7 @@ static int bcm2835_power_pd_power_off(struct generic_pm_domain *domain)
+ 	case BCM2835_POWER_DOMAIN_GRAFX_V3D:
+ 		return bcm2835_asb_power_off(pd, PM_GRAFX,
+ 					     ASB_V3D_M_CTRL, ASB_V3D_S_CTRL,
+-					     PM_V3DRSTN);
++					     PM_V3DRSTN, true);
+ 
+ 	case BCM2835_POWER_DOMAIN_IMAGE:
+ 		return bcm2835_power_power_off(pd, PM_IMAGE);
+@@ -443,17 +450,17 @@ static int bcm2835_power_pd_power_off(struct generic_pm_domain *domain)
+ 	case BCM2835_POWER_DOMAIN_IMAGE_PERI:
+ 		return bcm2835_asb_power_off(pd, PM_IMAGE,
+ 					     0, 0,
+-					     PM_PERIRSTN);
++					     PM_PERIRSTN, false);
+ 
+ 	case BCM2835_POWER_DOMAIN_IMAGE_ISP:
+ 		return bcm2835_asb_power_off(pd, PM_IMAGE,
+ 					     ASB_ISP_M_CTRL, ASB_ISP_S_CTRL,
+-					     PM_ISPRSTN);
++					     PM_ISPRSTN, false);
+ 
+ 	case BCM2835_POWER_DOMAIN_IMAGE_H264:
+ 		return bcm2835_asb_power_off(pd, PM_IMAGE,
+ 					     ASB_H264_M_CTRL, ASB_H264_S_CTRL,
+-					     PM_H264RSTN);
++					     PM_H264RSTN, false);
+ 
+ 	case BCM2835_POWER_DOMAIN_USB:
+ 		PM_WRITE(PM_USB, 0);
+@@ -626,13 +633,22 @@ static int bcm2835_power_probe(struct platform_device *pdev)
+ 	power->dev = dev;
+ 	power->base = pm->base;
+ 	power->asb = pm->asb;
++	power->rpivid_asb = pm->rpivid_asb;
+ 
+-	id = ASB_READ(ASB_AXI_BRDG_ID);
++	id = ASB_READ(ASB_AXI_BRDG_ID, false);
+ 	if (id != 0x62726467 /* "BRDG" */) {
+ 		dev_err(dev, "ASB register ID returned 0x%08x\n", id);
+ 		return -ENODEV;
+ 	}
+ 
++	if (pm->rpivid_asb) {
++		id = ASB_READ(ASB_AXI_BRDG_ID, true);
++		if (id != 0x62726467 /* "BRDG" */) {
++			dev_err(dev, "RPiVid ASB register ID returned 0x%08x\n", id);
++			return -ENODEV;
++		}
++	}
++
+ 	power->pd_xlate.domains = devm_kcalloc(dev,
+ 					       ARRAY_SIZE(power_domain_names),
+ 					       sizeof(*power->pd_xlate.domains),
+
+
+Bypass power_on/power_off() when running on BCM2711 as they are not
+needed.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+---
+
+Changes since v2:
+ - Correct names
+
+ drivers/soc/bcm/bcm2835-power.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/soc/bcm/bcm2835-power.c b/drivers/soc/bcm/bcm2835-power.c
+index eea31f75dc64..b65a39cc2788 100644
+--- a/drivers/soc/bcm/bcm2835-power.c
++++ b/drivers/soc/bcm/bcm2835-power.c
+@@ -197,6 +197,10 @@ static int bcm2835_power_power_off(struct bcm2835_power_domain *pd, u32 pm_reg)
+ {
+ 	struct bcm2835_power *power = pd->power;
+ 
++	/* We don't run this on BCM2711 */
++	if (power->rpivid_asb)
++		return 0;
++
+ 	/* Enable functional isolation */
+ 	PM_WRITE(pm_reg, PM_READ(pm_reg) & ~PM_ISFUNC);
+ 
+@@ -218,6 +222,10 @@ static int bcm2835_power_power_on(struct bcm2835_power_domain *pd, u32 pm_reg)
+ 	int inrush;
+ 	bool powok;
+ 
++	/* We don't run this on BCM2711 */
++	if (power->rpivid_asb)
++		return 0;
++
+ 	/* If it was already powered on by the fw, leave it that way. */
+ 	if (PM_READ(pm_reg) & PM_POWUP)
+ 		return 0;
+
+
+
+Runtime PM doesn't seem to work correctly on this driver. On top of
+that, commit 8b6864e3e138 ("drm/v3d/v3d_drv: Remove unused static
+variable 'v3d_v3d_pm_ops'") hints that it most likely never did as the
+driver's PM ops were not hooked-up.
+
+So, in order to support regular operation with V3D on BCM2711 (Raspberry
+Pi 4), get rid of the PM code. PM will be reinstated once we figure out
+the underlying issues.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+---
+ drivers/gpu/drm/v3d/v3d_debugfs.c | 18 +-----------------
+ drivers/gpu/drm/v3d/v3d_drv.c     | 11 -----------
+ drivers/gpu/drm/v3d/v3d_gem.c     |  9 ---------
+ 3 files changed, 1 insertion(+), 37 deletions(-)
+
+diff --git a/drivers/gpu/drm/v3d/v3d_debugfs.c b/drivers/gpu/drm/v3d/v3d_debugfs.c
+index e76b24bb8828..e1d5f3423059 100644
+--- a/drivers/gpu/drm/v3d/v3d_debugfs.c
++++ b/drivers/gpu/drm/v3d/v3d_debugfs.c
+@@ -4,7 +4,6 @@
+ #include <linux/circ_buf.h>
+ #include <linux/ctype.h>
+ #include <linux/debugfs.h>
+-#include <linux/pm_runtime.h>
+ #include <linux/seq_file.h>
+ 
+ #include <drm/drm_debugfs.h>
+@@ -130,11 +129,7 @@ static int v3d_v3d_debugfs_ident(struct seq_file *m, void *unused)
+ 	struct drm_device *dev = node->minor->dev;
+ 	struct v3d_dev *v3d = to_v3d_dev(dev);
+ 	u32 ident0, ident1, ident2, ident3, cores;
+-	int ret, core;
+-
+-	ret = pm_runtime_get_sync(v3d->drm.dev);
+-	if (ret < 0)
+-		return ret;
++	int core;
+ 
+ 	ident0 = V3D_READ(V3D_HUB_IDENT0);
+ 	ident1 = V3D_READ(V3D_HUB_IDENT1);
+@@ -187,9 +182,6 @@ static int v3d_v3d_debugfs_ident(struct seq_file *m, void *unused)
+ 			   (misccfg & V3D_MISCCFG_OVRTMUOUT) != 0);
+ 	}
+ 
+-	pm_runtime_mark_last_busy(v3d->drm.dev);
+-	pm_runtime_put_autosuspend(v3d->drm.dev);
+-
+ 	return 0;
+ }
+ 
+@@ -217,11 +209,6 @@ static int v3d_measure_clock(struct seq_file *m, void *unused)
+ 	uint32_t cycles;
+ 	int core = 0;
+ 	int measure_ms = 1000;
+-	int ret;
+-
+-	ret = pm_runtime_get_sync(v3d->drm.dev);
+-	if (ret < 0)
+-		return ret;
+ 
+ 	if (v3d->ver >= 40) {
+ 		V3D_CORE_WRITE(core, V3D_V4_PCTR_0_SRC_0_3,
+@@ -245,9 +232,6 @@ static int v3d_measure_clock(struct seq_file *m, void *unused)
+ 		   cycles / (measure_ms * 1000),
+ 		   (cycles / (measure_ms * 100)) % 10);
+ 
+-	pm_runtime_mark_last_busy(v3d->drm.dev);
+-	pm_runtime_put_autosuspend(v3d->drm.dev);
+-
+ 	return 0;
+ }
+ 
+diff --git a/drivers/gpu/drm/v3d/v3d_drv.c b/drivers/gpu/drm/v3d/v3d_drv.c
+index 99e22beea90b..7a3336443a12 100644
+--- a/drivers/gpu/drm/v3d/v3d_drv.c
++++ b/drivers/gpu/drm/v3d/v3d_drv.c
+@@ -19,7 +19,6 @@
+ #include <linux/module.h>
+ #include <linux/of_platform.h>
+ #include <linux/platform_device.h>
+-#include <linux/pm_runtime.h>
+ #include <linux/reset.h>
+ 
+ #include <drm/drm_drv.h>
+@@ -43,7 +42,6 @@ static int v3d_get_param_ioctl(struct drm_device *dev, void *data,
+ {
+ 	struct v3d_dev *v3d = to_v3d_dev(dev);
+ 	struct drm_v3d_get_param *args = data;
+-	int ret;
+ 	static const u32 reg_map[] = {
+ 		[DRM_V3D_PARAM_V3D_UIFCFG] = V3D_HUB_UIFCFG,
+ 		[DRM_V3D_PARAM_V3D_HUB_IDENT1] = V3D_HUB_IDENT1,
+@@ -69,17 +67,12 @@ static int v3d_get_param_ioctl(struct drm_device *dev, void *data,
+ 		if (args->value != 0)
+ 			return -EINVAL;
+ 
+-		ret = pm_runtime_get_sync(v3d->drm.dev);
+-		if (ret < 0)
+-			return ret;
+ 		if (args->param >= DRM_V3D_PARAM_V3D_CORE0_IDENT0 &&
+ 		    args->param <= DRM_V3D_PARAM_V3D_CORE0_IDENT2) {
+ 			args->value = V3D_CORE_READ(0, offset);
+ 		} else {
+ 			args->value = V3D_READ(offset);
+ 		}
+-		pm_runtime_mark_last_busy(v3d->drm.dev);
+-		pm_runtime_put_autosuspend(v3d->drm.dev);
+ 		return 0;
+ 	}
+ 
+@@ -271,10 +264,6 @@ static int v3d_platform_drm_probe(struct platform_device *pdev)
+ 		return -ENOMEM;
+ 	}
+ 
+-	pm_runtime_use_autosuspend(dev);
+-	pm_runtime_set_autosuspend_delay(dev, 50);
+-	pm_runtime_enable(dev);
+-
+ 	ret = v3d_gem_init(drm);
+ 	if (ret)
+ 		goto dma_free;
+diff --git a/drivers/gpu/drm/v3d/v3d_gem.c b/drivers/gpu/drm/v3d/v3d_gem.c
+index 4eb354226972..75582b03470b 100644
+--- a/drivers/gpu/drm/v3d/v3d_gem.c
++++ b/drivers/gpu/drm/v3d/v3d_gem.c
+@@ -6,7 +6,6 @@
+ #include <linux/io.h>
+ #include <linux/module.h>
+ #include <linux/platform_device.h>
+-#include <linux/pm_runtime.h>
+ #include <linux/reset.h>
+ #include <linux/sched/signal.h>
+ #include <linux/uaccess.h>
+@@ -372,9 +371,6 @@ v3d_job_free(struct kref *ref)
+ 	dma_fence_put(job->irq_fence);
+ 	dma_fence_put(job->done_fence);
+ 
+-	pm_runtime_mark_last_busy(job->v3d->drm.dev);
+-	pm_runtime_put_autosuspend(job->v3d->drm.dev);
+-
+ 	kfree(job);
+ }
+ 
+@@ -441,10 +437,6 @@ v3d_job_init(struct v3d_dev *v3d, struct drm_file *file_priv,
+ 	job->v3d = v3d;
+ 	job->free = free;
+ 
+-	ret = pm_runtime_get_sync(v3d->drm.dev);
+-	if (ret < 0)
+-		return ret;
+-
+ 	xa_init_flags(&job->deps, XA_FLAGS_ALLOC);
+ 
+ 	ret = drm_syncobj_find_fence(file_priv, in_sync, 0, 0, &in_fence);
+@@ -460,7 +452,6 @@ v3d_job_init(struct v3d_dev *v3d, struct drm_file *file_priv,
+ 	return 0;
+ fail:
+ 	xa_destroy(&job->deps);
+-	pm_runtime_put_autosuspend(v3d->drm.dev);
+ 	return ret;
+ }
+ 
+
+Add compatible string and Kconfig options for bcm2711.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+---
+ drivers/gpu/drm/v3d/Kconfig   | 2 +-
+ drivers/gpu/drm/v3d/v3d_drv.c | 1 +
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/v3d/Kconfig b/drivers/gpu/drm/v3d/Kconfig
+index 9a5c44606337..b0e048697964 100644
+--- a/drivers/gpu/drm/v3d/Kconfig
++++ b/drivers/gpu/drm/v3d/Kconfig
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ config DRM_V3D
+ 	tristate "Broadcom V3D 3.x and newer"
+-	depends on ARCH_BCM || ARCH_BCMSTB || COMPILE_TEST
++	depends on ARCH_BCM || ARCH_BCMSTB || ARCH_BCM2835 || COMPILE_TEST
+ 	depends on DRM
+ 	depends on COMMON_CLK
+ 	depends on MMU
+diff --git a/drivers/gpu/drm/v3d/v3d_drv.c b/drivers/gpu/drm/v3d/v3d_drv.c
+index 7a3336443a12..1504b6f84441 100644
+--- a/drivers/gpu/drm/v3d/v3d_drv.c
++++ b/drivers/gpu/drm/v3d/v3d_drv.c
+@@ -184,6 +184,7 @@ static const struct drm_driver v3d_drm_driver = {
+ static const struct of_device_id v3d_of_match[] = {
+ 	{ .compatible = "brcm,7268-v3d" },
+ 	{ .compatible = "brcm,7278-v3d" },
++	{ .compatible = "brcm,bcm2711-v3d" },
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, v3d_of_match);
+
+
+This enables V3D for bcm2711 (used in the Raspberry Pi 4).
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+---
+
+Changes since v1:
+ - Correct node's name address
+
+ arch/arm/boot/dts/bcm2711.dtsi | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/arch/arm/boot/dts/bcm2711.dtsi b/arch/arm/boot/dts/bcm2711.dtsi
+index e864974b10c9..d2bbfc7c4daa 100644
+--- a/arch/arm/boot/dts/bcm2711.dtsi
++++ b/arch/arm/boot/dts/bcm2711.dtsi
+@@ -549,6 +549,18 @@ genet_mdio: mdio@e14 {
+ 				#size-cells = <0x1>;
+ 			};
+ 		};
++
++		v3d: gpu@7ec00000 {
++			compatible = "brcm,bcm2711-v3d";
++			reg = <0x0 0x7ec00000 0x4000>,
++			      <0x0 0x7ec04000 0x4000>;
++			reg-names = "hub", "core0";
++
++			power-domains = <&pm BCM2835_POWER_DOMAIN_GRAFX_V3D>;
++			resets = <&pm BCM2835_RESET_V3D>;
++			clocks = <&firmware_clocks 5>;
++			interrupts = <GIC_SPI 74 IRQ_TYPE_LEVEL_HIGH>;
++		};
+ 	};
+ };
+ 
+
+
+BCM2711, the SoC used on the Raspberry Pi 4 has a different GPU than its
+predecessors. Enable it.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+---
+ arch/arm/configs/multi_v7_defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm/configs/multi_v7_defconfig b/arch/arm/configs/multi_v7_defconfig
+index 3823da605430..0ad4ffe4e6f6 100644
+--- a/arch/arm/configs/multi_v7_defconfig
++++ b/arch/arm/configs/multi_v7_defconfig
+@@ -713,6 +713,7 @@ CONFIG_DRM_TOSHIBA_TC358764=m
+ CONFIG_DRM_I2C_ADV7511=m
+ CONFIG_DRM_I2C_ADV7511_AUDIO=y
+ CONFIG_DRM_STI=m
++CONFIG_DRM_V3D=m
+ CONFIG_DRM_VC4=m
+ CONFIG_DRM_ETNAVIV=m
+ CONFIG_DRM_MXSFB=m
+
+
+BCM2711, the SoC used on the Raspberry Pi 4 has a different GPU than its
+predecessors. Enable it.
+
+Signed-off-by: Nicolas Saenz Julienne <nsaenzjulienne@suse.de>
+---
+ arch/arm64/configs/defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/configs/defconfig b/arch/arm64/configs/defconfig
+index d612f633b771..a13e631b7c50 100644
+--- a/arch/arm64/configs/defconfig
++++ b/arch/arm64/configs/defconfig
+@@ -699,6 +699,7 @@ CONFIG_DRM_I2C_ADV7511_AUDIO=y
+ CONFIG_DRM_DW_HDMI_AHB_AUDIO=m
+ CONFIG_DRM_DW_HDMI_CEC=m
+ CONFIG_DRM_IMX_DCSS=m
++CONFIG_DRM_V3D=m
+ CONFIG_DRM_VC4=m
+ CONFIG_DRM_ETNAVIV=m
+ CONFIG_DRM_HISI_HIBMC=m
