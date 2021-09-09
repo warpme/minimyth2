@@ -17,7 +17,7 @@
 #---rsync snippet start----
 #
 #[devel-updates]
-#    path = @MM_HOME@/main/
+#    path = @MM_HOME@/images/main/
 #    use chroot = true
 #    read only = true
 #
