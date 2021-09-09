@@ -41,16 +41,13 @@ PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 
 ifeq (1,1)
-# v4l2-request support in ffmpeg for 5.10 kernel (requires patching also 5.10 kernel)
-# Based on:
-# https://github.com/jernejsk/LibreELEC.tv/tree/69fae8524b9ef02cd2e3415ece1ae01dfc2b5426/packages/multimedia/ffmpeg/patches 29.10.2020
-# https://github.com/Kwiboo/FFmpeg/commit/5e9575a822a94139bdcfe6a7fa78e4ef771ccb39
-# patch with experimental rpi v4l2_request added
-PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header.patch
-ifneq (,$(filter %5.10,$(mm_KERNEL_VERSION)))
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.10kernel.patch
+# v4l2-request support in ffmpeg (requires also kernel patching)
+ifneq (,$(filter %5.13,$(mm_KERNEL_VERSION)))
+PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.13kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.13kernel.patch
 else
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.11kernel.patch
+PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.14kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.14kernel.patch
 endif
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
@@ -353,7 +350,7 @@ source-update-patches:
 	@$(foreach PATCHFILE, $(PATCHFILES), \
 		cd $(WORKDIR) || exit 1 ; \
 		mv $(DISTNAME) $(DISTNAME)-old || exit 1 ; \
-		cp -r $(DISTNAME)-old $(DISTNAME)-new || exit 1 ; \
+		cp -a $(DISTNAME)-old $(DISTNAME)-new || exit 1 ; \
 		cd $(DISTNAME)-new || exit 1 ; \
 		SIMPLE_BACKUP_SUFFIX=.gar-source-update-patches patch -p1 < ../../../files/$(PATCHFILE) || exit 1 ; \
 		cd ../ || exit 1 ; \
