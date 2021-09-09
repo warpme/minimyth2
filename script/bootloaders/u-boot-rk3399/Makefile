@@ -1,12 +1,10 @@
 
-GARNAME      = u-boot-rk3399-20210430
-GARVERSION   = a99d70c180dc083b47673b5f0282fc8ba8193bc9
+GARNAME      = u-boot-rk3399-20210812
+GARVERSION   = 60df49d22d2586f50bba11eaa59a55f2baa4671f
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-rockchip/-/archive/$(GARVERSION)/
 DISTFILES    = u-boot-rockchip-$(GARVERSION).tar.bz2
 PATCHFILES   = 0001-add-orangepi-4.patch
-PATCHFILES  += 0002-rockchip-general-prioritize-sd-over-mmc.patch
-PATCHFILES  += 0003-rk3399-rockpi4-disable-video-and-hdmi.patch
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
 
 LICENSE = GPL2
