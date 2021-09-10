@@ -59,6 +59,7 @@ MiniMyth2 [Wiki](https://github.com/warpme/minimyth2/wiki)
 
 ### General Functionality
 This is general functionality avaliable on current code (Mainline Linux kernel)
+
 SoC           | Tested on        | WiFi Chip & Support                     | CEC Support            | Sleep/Resume                   | Remarks                       |
 ------------- |------------------|-----------------------------------------|------------------------|--------------------------------|-------------------------------|
 Allwinner H6  | EachLink H6 Mini | not works (rtl8723bs@SDIO no detected)  | works                  | works                          | well supported                |
@@ -83,6 +84,7 @@ This is video related functionality avaliable on current code (Linux kernel + Me
 At this moment quality of playback is good for technology preview. 
 On some platforms it is __not ready to daily usage__ as H.264 playback seek on v4l2_request platforms not works correctly yet.
 Note: seek issue is only with H.264 v4l2_request. MPEG2/HEVC/VP8/VP9 seek works ok :-)
+
 SoC           | Tested on                                    | Supported Decoder/ Hw.decode API      | Currently supported video decode HW.accel  | Supported drawing   | Supported video render | Remarks                                              |
 ------------- |----------------------------------------------|---------------------------------------|--------------------------------------------|---------------------|------------------------|------------------------------------------------------|
 Allwinner H6  | EachLink H6 Mini, TanixTX6-Mini, Beelink GS1 | cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works
