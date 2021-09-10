@@ -6,8 +6,13 @@ GARVERSION   = 4.3.2
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES    = $(DISTNAME).tar.bz2
 PATCHFILES   = ffmpeg-fix-building-with-lto.patch
-PATCHFILES  += 0150-ffmpeg-uapi-update-hevc-ctl-header.patch
-PATCHFILES  += 0151-ffmpeg-add-V4l2_request-support-5.11kernel.patch
+ifneq (,$(filter %5.13,$(mm_KERNEL_VERSION)))
+PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.13kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.13kernel.patch
+else
+PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.14kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.14kernel.patch
+endif
 PATCHFILES  += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
 LICENSE      = GPL2/LGPL2_1
 
