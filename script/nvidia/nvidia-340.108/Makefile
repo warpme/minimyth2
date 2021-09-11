@@ -3,14 +3,13 @@ NVIDIA_MAJOR_VERSION = 340
 NVIDIA_MINOR_VERSION = 108
 NVIDIA_TEENY_VERSION =
 
-PATCHFILES  = nvidia-340.108-fix-5.6-kernel-compile.patch
-PATCHFILES += nvidia-340.108-fix-5.7-kernel-compile.patch
-PATCHFILES += nvidia-340.108-5.7-kernel-reinstate-legacy-support.patch
-PATCHFILES += nvidia-340.108-fix-5.8-kernel-compile.patch
-PATCHFILES += nvidia-340.108-fix-5.9-kernel-compile.patch
-PATCHFILES += nvidia-340.108-fix-5.10-kernel-compile.patch
-PATCHFILES += nvidia-340.108-fix-5.11-kernel-compile.patch
-PATCHFILES += nvidia-340.108-fix-5.14-kernel-compile.patch
+PATCHFILES  = 0001-fix-5.6-rc1.patch
+PATCHFILES += 0002-fix-5.7-rc1.patch
+PATCHFILES += 0003-fix-5.7-rc1-reinstate-legacy-support.patch
+PATCHFILES += 0004-fix-5.8.patch
+PATCHFILES += 0005-fix-5.9.patch
+PATCHFILES += 0006-fix-5.10.patch
+PATCHFILES += 0007-fix-5.14.patch
 
 BUILD_SCRIPTS   = nvidia
 INSTALL_SCRIPTS = nvidia
