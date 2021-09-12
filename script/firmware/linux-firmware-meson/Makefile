@@ -1,17 +1,15 @@
 
-# https://github.com/superna9999/aml_ucode_parser/tree/log-fws/firmwares 25.12.2019
-# https://github.com/superna9999/aml_ucode_parser/archive/992080f341fe94961c1d406c35ded246fa955214.zip
 GARNAME      = linux-firmware-meson
-GARVERSION   = 992080f341fe94961c1d406c35ded246fa955214
+GARVERSION   = 908a4c034ca77617f77c030d6ee4a6c41cfbf8d6
 CATEGORIES   = firmware
-MASTER_SITES = https://github.com/superna9999/aml_ucode_parser/archive/
+MASTER_SITES = https://github.com/chewitt/meson-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
 LICENSE      =
 DESCRIPTION  =
 define BLURB
 endef
 
-WORKSRC = $(WORKDIR)/aml_ucode_parser-992080f341fe94961c1d406c35ded246fa955214/firmwares
+WORKSRC = $(WORKDIR)/meson-firmware-908a4c034ca77617f77c030d6ee4a6c41cfbf8d6/meson/vdec
 
 DEPENDS = lang/c
 
@@ -28,4 +26,3 @@ install-custom:
 	@$(MAKECOOKIE)
 
 clean-all: clean
-
