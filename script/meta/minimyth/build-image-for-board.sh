@@ -175,7 +175,6 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_9}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_c}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_h}" ${extra_params}
-        make reinstall-new-board mm_BOARD_TYPE="${selection_i}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     b)  cache_board_list "${selection_b}"
