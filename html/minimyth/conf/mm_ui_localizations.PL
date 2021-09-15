@@ -67,8 +67,12 @@ test_network_speed_str			="Test prędkości LAN/WiFi"
 measured_network_speed_str		="Aktualna Prędkość: "
 error_testing_network_speed_str>	="Błąd połączenia z demonem netperf!"
 
+#---- OSD messaging in mythtv_cache_prunner
+# /usr/bin/mm_mythtv_cache_prunner 15.09.2021
 
-
+pruning_mythtv_cache_str		="Zarządzanie MythTV Cache"
+mythtv_cache_occupation_str		="Bieżący rozmiar cache: "
+mythtv_cache_prunning_str		="Oczyszczenie do "
 
 #--show OSD--
 

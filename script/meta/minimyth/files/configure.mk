@@ -46,6 +46,7 @@ MM_INIT_START_PHASE_5 := \
     sleep        \
     browsers     \
     updates      \
+    cache_pruner \
     housekeep    \
     mythdb_buffer_delete \
 

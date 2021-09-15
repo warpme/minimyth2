@@ -1,0 +1,86 @@
+#!/bin/sh
+
+check_period=60
+delay_between_deletes=15
+cache_path="/home/minimyth/.mythtv/cache"
+
+
+
+
+
+
+
+. /etc/rc.d/functions
+. /etc/mm_ui_localizations_sh
+
+get_cache_occupation() {
+
+    cache_too_big=0
+
+    myth_cache=`du -d0 -m ${cache_path} | cut -f 1`
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_mythtv_cache_pruner] current occupation: $myth_cache MB ..."
+
+    if [ ${myth_cache} -gt ${MM_MYTHTV_CACHE_FOR_PRUNE} ] ; then
+
+        /usr/bin/logger -t minimyth -p "local0.info" "[mm_mythtv_cache_pruner] current occupation ($myth_cache MB) exceeded treshold ${MM_MYTHTV_CACHE_FOR_PRUNE} MB !"
+        cache_too_big=1
+
+    fi
+
+}
+
+prune_biggest_file_from_cache() {
+
+    file=`find ${cache_path} -type f | xargs ls -1S | head -n1`
+
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_mythtv_cache_pruner] prunning ${file} ..."
+    rm ${file}
+
+}
+
+if [ "x${MM_MYTHTV_CACHE_FOR_PRUNE}" = "xno" ] ; then
+
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_mythtv_cache_pruner] Disabled by MM_MYTHTV_CACHE_FOR_PRUNE=no"
+    echo "Disabled by MM_MYTHTV_CACHE_FOR_PRUNE=no"
+
+    exit 0
+
+else
+
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_mythtv_cache_pruner] Started! Treshold is ${MM_MYTHTV_CACHE_FOR_PRUNE} MB, check period: ${check_period} sec ..."
+
+    while true ; do
+
+        get_cache_occupation
+
+        if [ ${cache_too_big} = 1 ] ; then
+
+            mm_show_mythnotify "${pruning_mythtv_cache_str}" "${mythtv_cache_occupation_str}:$myth_cache MB! ${mythtv_cache_prunning_str}${MM_MYTHTV_CACHE_FOR_PRUNE} MB" ''
+
+            while true ; do
+
+                prune_biggest_file_from_cache
+
+                get_cache_occupation
+
+                if [ ${cache_too_big} = 1 ] ; then
+
+                    sleep ${delay_between_deletes}
+
+                else
+
+                    break
+
+                fi
+
+            done
+
+
+        fi
+
+            sleep ${check_period}
+
+    done
+fi
+
+exit 0
