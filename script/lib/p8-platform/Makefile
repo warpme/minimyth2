@@ -22,11 +22,6 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-DBUILD_SHARED_LIBS="1" \
 	-DCMAKE_VERBOSE_MAKEFILE="1" \
 
-ifneq ($(DESTIMG),build)
-CONFIGURE_ARGS += \
-	-DCMAKE_SYSTEM_NAME="Linux"
-endif
-
 include ../../gar.mk
 
 post-install:

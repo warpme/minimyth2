@@ -317,6 +317,8 @@ install-meson:
 #################### CMAKE VARIABLES & RULES ####################
 CMAKE = $(build_DESTDIR)$(build_bindir)/cmake
 DIRPATHS_CMAKE = \
+	-DCMAKE_SYSTEM_NAME="Linux" \
+	-DCMAKE_SYSROOT="$(DESTDIR)" \
 	-DCMAKE_INSTALL_PREFIX="$(prefix)" \
 	-DCMAKE_FIND_ROOT_PATH="$(DESTDIR)$(prefix)" \
 	-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM="NEVER" \

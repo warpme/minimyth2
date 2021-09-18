@@ -28,11 +28,6 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-DWITH_ASF="ON" \
 	-DWITH_MP4="ON"
 
-ifneq ($(DESTIMG),build)
-CONFIGURE_ARGS += \
-	-DCMAKE_SYSTEM_NAME="Linux"
-endif
-
 include ../../gar.mk
 
 post-install:
