@@ -16,6 +16,7 @@ DEPENDS   =            \
 	lang/cxx       \
 	db/mysql       \
 	lib/dbus       \
+	lib/double-conversion \
 	lib/freetype   \
 	lib/fontconfig \
 	lib/icu        \
@@ -52,7 +53,9 @@ CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
 INSTALL_SCRIPTS   = custom
 
-CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
+include ../../gar.mk
+
+CONFIGURE_ARGS = \
 	-prefix $(DESTDIR)$(qt6prefix) \
 	-bindir $(DESTDIR)$(qt6bindir) \
 	-libdir $(DESTDIR)$(qt6libdir) \
@@ -67,77 +70,56 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-opensource \
 	-no-rpath \
 	-no-optimized-qmake \
-	-platform $(PLATFORM_GARBUILD_NAME) \
-	-xplatform $(PLATFORM_GARHOST_NAME) \
 	-c++std c++1z \
 	-nomake examples \
 	-nomake tests \
+	-skip qt3d \
+	-skip qtcharts \
+	-skip qtcoap \
+	-skip qtdatavis3d \
+	-skip qtdoc \
+	-skip qtimageformats \
+	-skip qtlottie \
+	-skip qtmqtt \
+	-skip qtnetworkauth \
+	-skip qtopcua \
+	-skip qtquick3d \
+	-skip qtquickcontrols2 \
+	-skip qtquicktimeline \
+	-skip qtscxml \
+	-skip qtshadertools \
+	-skip qttranslations \
+	-skip qtvirtualkeyboard \
+	-skip qtwayland \
 
 ifeq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
+	-platform $(PLATFORM_GARBUILD_NAME) \
 	-no-{eventfd,glib,icu,openssl,opengl,dbus,pcre} \
 	-no-sql-{db2,ibase,mysql,oci,odbc,psql,sqlite} \
 	-qt-{zlib,libjpeg,libpng,freetype,pcre,harfbuzz} \
-	-no-use-gold-linker \
-	-make tools \
 	-static \
-	-optimize-size \
 	-no-ltcg \
-	-skip qt3d \
-	-skip qt5compat \
-	-skip qtactiveqt \
-	-skip qtcharts \
-	-skip qtcoap \
-	-skip qtdatavis3d \
-	-skip qtdeclarative \
-	-skip qtdoc \
-	-skip qtimageformats \
-	-skip qtlottie \
-	-skip qtmqtt \
-	-skip qtnetworkauth \
-	-skip qtopcua \
-	-skip qtquick3d \
-	-skip qtquickcontrols2 \
-	-skip qtquicktimeline \
-	-skip qtscxml \
-	-skip qtshadertools \
-	-skip qtsvg \
-	-skip qttranslations \
-	-skip qtvirtualkeyboard \
-	-skip qtwayland \
-	-skip qttools
+	-optimize-size \
+	-make tools \
+	-skip qt5compat
 else
 CONFIGURE_ARGS += \
+	-xplatform $(PLATFORM_GARHOST_NAME) \
 	-qt-host-path $(build_qt6prefix) \
-	-plugin-sql-mysql \
-	-I $(DESTDIR)$(includedir)/mysql \
-	-L $(DESTDIR)$(libdir)/mysql \
 	-no-sql-{db2,ibase,oci,odbc,psql,sqlite} \
+	-plugin-sql-mysql \
+	-qt-pcre \
 	-shared \
 	-ltcg \
-	-qt-pcre \
+	-feature-optimize_full \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	-make tools \
-	-skip qt3d \
-	-skip qtactiveqt \
-	-skip qtcharts \
-	-skip qtcoap \
-	-skip qtdatavis3d \
-	-skip qtdoc \
-	-skip qtimageformats \
-	-skip qtlottie \
-	-skip qtmqtt \
-	-skip qtnetworkauth \
-	-skip qtopcua \
-	-skip qtquick3d \
-	-skip qtquickcontrols2 \
-	-skip qtquicktimeline \
-	-skip qtscxml \
-	-skip qtshadertools \
-	-skip qttranslations \
-	-skip qtvirtualkeyboard \
-	-skip qtwayland \
-	-skip qttools
+	-- $(DIRPATHS_CMAKE) \
+	-DQT_WILL_BUILD_TOOLS="ON" \
+	-DQT_BUILD_TOOLS_WHEN_CROSSCOMPILING="ON" \
+	-DMySQL_INCLUDE_DIR="$(DESTDIR)$(includedir)/mysql" \
+	-DMySQL_LIBRARY="$(DESTDIR)$(libdir)/mysql/libmysqlclient.so.16"
 endif
 
 configure-custom:
@@ -157,8 +139,6 @@ install-custom:
 	@cd $(WORKBLD) && $(CMAKE) --install .
 	@$(MAKECOOKIE)
 
-GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
-include ../../gar.mk
 
 PLATFORM_GARBUILD_BASE_NAME = $(strip \
 	$(if $(filter i386,$(build_GARCH_FAMILY)),linux-g++-32,) \
