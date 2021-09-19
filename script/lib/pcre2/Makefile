@@ -15,3 +15,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --prefix="$(prefix)" \
 
 include ../../gar.mk
+
+post-install:
+	@rm -f $(DESTDIR)$(libdir)/libpcre2*.la
+	@$(MAKECOOKIE)
