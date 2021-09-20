@@ -54,9 +54,12 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/mod_accesslog.la
 	@rm -f $(DESTDIR)$(libdir)/mod_alias.la
 	@rm -f $(DESTDIR)$(libdir)/mod_auth.la
+	@rm -f $(DESTDIR)$(libdir)/mod_ajp13.la
+	@rm -f $(DESTDIR)$(libdir)/mod_authn_file.la
 	@rm -f $(DESTDIR)$(libdir)/mod_cgi.la
 	@rm -f $(DESTDIR)$(libdir)/mod_cml.la
 	@rm -f $(DESTDIR)$(libdir)/mod_compress.la
+	@rm -f $(DESTDIR)$(libdir)/mod_deflate.la
 	@rm -f $(DESTDIR)$(libdir)/mod_dirlisting.la
 	@rm -f $(DESTDIR)$(libdir)/mod_evasive.la
 	@rm -f $(DESTDIR)$(libdir)/mod_evhost.la
@@ -74,12 +77,17 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/mod_scgi.la
 	@rm -f $(DESTDIR)$(libdir)/mod_secdownload.la
 	@rm -f $(DESTDIR)$(libdir)/mod_setenv.la
+	@rm -f $(DESTDIR)$(libdir)/mod_sockproxy.la
 	@rm -f $(DESTDIR)$(libdir)/mod_simple_vhost.la
 	@rm -f $(DESTDIR)$(libdir)/mod_ssi.la
 	@rm -f $(DESTDIR)$(libdir)/mod_staticfile.la
 	@rm -f $(DESTDIR)$(libdir)/mod_status.la
 	@rm -f $(DESTDIR)$(libdir)/mod_trigger_b4_dl.la
+	@rm -f $(DESTDIR)$(libdir)/mod_uploadprogress.la
 	@rm -f $(DESTDIR)$(libdir)/mod_userdir.la
 	@rm -f $(DESTDIR)$(libdir)/mod_usertrack.la
+	@rm -f $(DESTDIR)$(libdir)/mod_vhostdb.la
 	@rm -f $(DESTDIR)$(libdir)/mod_webdav.la
+	@rm -f $(DESTDIR)$(libdir)/mod_wstunnel.la
 	@$(MAKECOOKIE)
+
