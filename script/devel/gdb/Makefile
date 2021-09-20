@@ -36,10 +36,10 @@ install-custom:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(elibdir)/libbfd.la
-	@rm -f $(DESTDIR)$(elibdir)/libctf.la
-	@rm -f $(DESTDIR)$(elibdir)/libctf-nobfd.la
-	@rm -f $(DESTDIR)$(elibdir)/libopcodes.la
+	@rm -f $(DESTDIR)$(libdir)/libbfd.la
+	@rm -f $(DESTDIR)$(libdir)/libctf.la
+	@rm -f $(DESTDIR)$(libdir)/libctf-nobfd.la
+	@rm -f $(DESTDIR)$(libdir)/libopcodes.la
 	@$(if $(filter $(GARHOST), $(GARTARGET)),, rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libbfd.la)
 	@$(if $(filter $(GARHOST), $(GARTARGET)),, rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libctf.la)
 	@$(if $(filter $(GARHOST), $(GARTARGET)),, rm -f $(DESTDIR)$(prefix)/$(GARHOST)/$(GARTARGET)/lib/libctf-nobfd.la)
