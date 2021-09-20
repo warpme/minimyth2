@@ -20,8 +20,8 @@ DEPENDS = \
 	net/curl    \
 
 CONFIGURE_SCRIPTS = custom
-BUILD_SCRIPTS     = custom
-INSTALL_SCRIPTS   = custom
+BUILD_SCRIPTS     = custom native_mariadb_config
+INSTALL_SCRIPTS   = custom native_mariadb_config
 
 CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
     -DCMAKE_VERBOSE_MAKEFILE="OFF" \
@@ -79,4 +79,20 @@ build-custom:
 
 install-custom:
 	@cd $(WORKSRC)/target && $(MAKE) DESTDIR=$(DESTDIR) install
+	@$(MAKECOOKIE)
+
+build-native_mariadb_config:
+	@cd $(WORKSRC)/target/libmariadb && $(build_CC) $(build_CFLAGS) -I./include -o ./mariadb_config/mariadb_config.native ./mariadb_config/mariadb_config.c
+	@$(MAKECOOKIE)
+
+install-native_mariadb_config:
+	@cd $(WORKSRC)/target/libmariadb && cp ./mariadb_config/mariadb_config.native $(DESTDIR)$(bindir)/mysql_config.native
+	@$(MAKECOOKIE)
+
+post-install:
+	@rm -f $(DESTDIR)$(bindir)-config/mysql_config
+	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)mysql_config
+	@mkdir -p $(DESTDIR)$(bindir)-config
+	@mv $(DESTDIR)$(bindir)/mysql_config.native $(DESTDIR)$(bindir)-config/mysql_config
+	@$(if $(compiler_prefix), ln -s mysql_config $(DESTDIR)$(bindir)-config/$(compiler_prefix)mysql_config)
 	@$(MAKECOOKIE)
