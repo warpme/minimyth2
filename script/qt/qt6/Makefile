@@ -131,14 +131,13 @@ configure-custom:
 
 build-custom:
 	@echo " ==> Running build in $(WORKBLD)"
-	@cd $(WORKBLD) && $(CMAKE) --build .
+	@cd $(WORKBLD) && $(CMAKE) --build . --parallel $(PARALLELMFLAGS)
 	@$(MAKECOOKIE)
 
 install-custom:
 	@echo " ==> Running install in $(WORKBLD)"
 	@cd $(WORKBLD) && $(CMAKE) --install .
 	@$(MAKECOOKIE)
-
 
 PLATFORM_GARBUILD_BASE_NAME = $(strip \
 	$(if $(filter i386,$(build_GARCH_FAMILY)),linux-g++-32,) \
