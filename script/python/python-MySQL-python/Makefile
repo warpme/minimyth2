@@ -1,15 +1,20 @@
-GARNAME = python-MySQL-python
-GARVERSION = 1.2.5
-CATEGORIES = python
+
+GARNAME      = python-MySQL-python
+GARVERSION   = 1.2.5
+CATEGORIES   = python
 MASTER_SITES = https://pypi.python.org/packages/a5/e9/51b544da85a36a68debe7a7091f068d802fc515a3a202652828c73453cad/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).zip
-LICENSE =
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).zip
+PATCHFILES   = MySQL-python-1.2.5-fix-mariadb-10.2-reconnect.patch
+LICENSE      =
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS   = lang/c python/python db/mysql lib/libnsl
+DEPENDS   = lang/c python/python lib/libnsl
+ifneq ($(DESTIMG),build)
+DEPENDS  += db/mariadb
+endif
 BUILDDEPS = python/python-distutilscross
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)

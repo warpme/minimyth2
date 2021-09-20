@@ -48,7 +48,7 @@ DEPENDS = \
 	perl/perl-XML-Simple \
 	perl/perl-XML-TreeBuilder \
 	perl/perl-XML-XPath \
-	db/mysql
+	db/mariadb
 
 BUILDDEPS = \
 	python/python \

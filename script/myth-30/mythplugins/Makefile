@@ -37,7 +37,7 @@ DEPENDS = \
 	perl/perl-SOAP-Lite \
 	perl/perl-XML-Simple \
 	perl/perl-XML-XPath \
-	db/mysql
+	db/mariadb
 
 BUILDDEPS = \
 	python/python \

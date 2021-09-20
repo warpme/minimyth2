@@ -17,7 +17,7 @@ endef
 DEPENDS   =            \
 	lang/c         \
 	lang/cxx       \
-	db/mysql       \
+	db/mariadb     \
 	lib/dbus       \
 	lib/freetype   \
 	lib/fontconfig \
@@ -43,6 +43,9 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
+#	-I $(DESTDIR)$(includedir)/mysql \
+#	-L $(DESTDIR)$(libdir)/mysql \
+
 CONFIGURE_ARGS = \
 	-prefix $(DESTDIR)$(qt5prefix) \
 	-bindir $(DESTDIR)$(qt5bindir) \
@@ -66,7 +69,6 @@ CONFIGURE_ARGS = \
 	-ltcg \
 	-plugin-sql-mysql \
 	-I $(DESTDIR)$(includedir)/mysql \
-	-L $(DESTDIR)$(libdir)/mysql \
 	-no-sql-db2 \
 	-no-sql-ibase \
 	-no-sql-oci \
@@ -103,9 +105,8 @@ CONFIGURE_ARGS = \
 	-silent \
 	-skip qtwebglplugin \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
-	$(if $(filter brcm-vc4 mali450-dummy mali450-fbdev mali450-x11 mali450-wayland,$(mm_OPENGL_PROVIDER)),-eglfs) \
 
-GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
+#GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
 
 PLATFORM_GARBUILD_BASE_NAME = $(strip \
@@ -176,24 +177,9 @@ CREATE_PLATFORM   = \
 	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_EGL        , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir)) ; \
 	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBDIR_EGL        , , $($(strip $(3))DESTDIR)$($(strip $(3))libdir))
 
-# Based on qtbase/mkspecs/devices/linux-rasp-pi3-g++/qmake.conf
-MODIFY_PLATFORM_RPI   = \
-	echo "QMAKE_LFLAGS_RELEASE += -lpthread"                                       >> $(strip $(2))/qmake.conf ; \
-	echo "EGLFS_DEVICE_INTEGRATION= eglfs_brcm"                                    >> $(strip $(2))/qmake.conf ; \
-	echo "QMAKE_RPATHLINKDIR_POST = $($(strip $(3))DESTDIR)$($(strip $(3))libdir)" >> $(strip $(2))/qmake.conf ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_INCDIR_EGL        , , $($(strip $(3))DESTDIR)$($(strip $(3))includedir) $($(strip $(3))DESTDIR)$($(strip $(3))includedir)/interface/vcos/pthreads $($(strip $(3))DESTDIR)$($(strip $(3))includedir)/interface/vmcs_host/linux) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBS_EGL          , , -L$($(strip $(3))DESTDIR)$($(strip $(3))libdir) -lEGL -lGLESv2) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_LIBS_OPENGL_ES2   , , -L$($(strip $(3))DESTDIR)$($(strip $(3))libdir) -lGLESv2) ; \
-	$(call UPDATE_PLATFORM, $(2), QMAKE_LFLAGS_THREAD     ,+, -lpthread) ; \
-	sed -i 's%load(qt_config)%%g'                            $(strip $(2))/qmake.conf ; \
-	echo 'load(qt_config)'                                >> $(strip $(2))/qmake.conf
-
 pre-configure:
 	$(call CREATE_PLATFORM, $(PLATFORM_GARBUILD_BASE_PATH), $(PLATFORM_GARBUILD_PATH), build_)
 	$(call CREATE_PLATFORM, $(PLATFORM_GARHOST_BASE_PATH) , $(PLATFORM_GARHOST_PATH) ,       )
-ifeq ($(mm_OPENGL_PROVIDER),brcm-vc4)
-	$(call MODIFY_PLATFORM_RPI, $(PLATFORM_GARHOST_BASE_PATH), $(PLATFORM_GARHOST_PATH), )
-endif
 	@$(MAKECOOKIE)
 
 configure-%/configure:
