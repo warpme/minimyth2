@@ -1,0 +1,82 @@
+
+GARNAME      = mariadb
+GARVERSION   = 10.6.4
+CATEGORIES   = db
+MASTER_SITES = https://rsync.osuosl.org/pub/mariadb/mariadb-$(GARVERSION)/source/
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL
+
+DEPENDS = \
+	devel/zlib  \
+	devel/boost \
+	devel/zlib  \
+	utils/bzip2 \
+	lib/libxml2 \
+	lib/lzo     \
+	lib/openssl \
+	lib/libaio  \
+	lib/libzstd \
+	lib/liblz4  \
+	net/curl    \
+
+CONFIGURE_SCRIPTS = custom
+BUILD_SCRIPTS     = custom
+INSTALL_SCRIPTS   = custom
+
+CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
+    -DCMAKE_VERBOSE_MAKEFILE="OFF" \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -Wno-dev \
+    -DINSTALL_SYSCONFDIR=/etc \
+    -DINSTALL_SYSCONF2DIR=/etc/my.cnf.d \
+    -DINSTALL_UNIX_ADDRDIR=/run/mysqld/mysqld.sock \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DINSTALL_SCRIPTDIR=bin \
+    -DINSTALL_INCLUDEDIR=include/mysql \
+    -DINSTALL_PLUGINDIR=lib/mysql/plugin \
+    -DINSTALL_SYSTEMD_UNITDIR=/usr/lib/systemd/system/ \
+    -DINSTALL_SYSTEMD_SYSUSERSDIR=/usr/lib/sysusers.d/ \
+    -DINSTALL_SYSTEMD_TMPFILESDIR=/usr/lib/tmpfiles.d/ \
+    -DINSTALL_SHAREDIR=share \
+    -DINSTALL_SUPPORTFILESDIR=share/mysql \
+    -DINSTALL_MYSQLSHAREDIR=share/mysql \
+    -DINSTALL_DOCREADMEDIR=share/doc/mariadb \
+    -DINSTALL_DOCDIR=share/doc/mariadb \
+    -DINSTALL_MANDIR=share/man \
+    -DMYSQL_DATADIR=/var/lib/mysql \
+    -DDEFAULT_CHARSET=utf8mb4 \
+    -DDEFAULT_COLLATION=utf8mb4_unicode_ci \
+    -DENABLED_LOCAL_INFILE=ON \
+    -DPLUGIN_EXAMPLE=NO \
+    -DPLUGIN_FEDERATED=NO \
+    -DPLUGIN_FEEDBACK=NO \
+    -DWITH_EMBEDDED_SERVER=ON \
+    -DWITH_EXTRA_CHARSETS=complex \
+    -DWITH_JEMALLOC=OFF \
+    -DWITH_LIBWRAP=OFF \
+    -DWITH_PCRE=bundled \
+    -DWITH_READLINE=ON \
+    -DWITH_SSL=system \
+    -DWITH_SYSTEMD=no \
+    -DWITH_UNIT_TESTS=OFF \
+    -DWITH_ZLIB=system \
+    -DSTACK_DIRECTION=1 \
+    -DIMPORT_EXECUTABLES=../host/import_executables.cmake \
+
+include ../../gar.mk
+
+pre-configure:
+	@mkdir -p $(WORKSRC)/host && cd $(WORKSRC)/host && $(CMAKE) .. && $(MAKE) import_executables
+	@$(MAKECOOKIE)
+
+configure-custom:
+	@mkdir -p $(WORKSRC)/target && cd $(WORKSRC)/target && $(CMAKE) .. $(CONFIGURE_ARGS)
+	@$(MAKECOOKIE)
+
+build-custom:
+	@cd $(WORKSRC)/target && $(MAKE) $(PARALLELMFLAGS)
+	@$(MAKECOOKIE)
+
+install-custom:
+	@cd $(WORKSRC)/target && $(MAKE) DESTDIR=$(DESTDIR) install
+	@$(MAKECOOKIE)
