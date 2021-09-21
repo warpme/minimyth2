@@ -12,7 +12,11 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/sysfsutils qt/qt5 lib/slang
+DEPENDS = \
+	lang/c \
+	lib/sysfsutils \
+	lib/slang \
+	qt/qt \
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile

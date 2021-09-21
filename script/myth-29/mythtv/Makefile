@@ -5,6 +5,8 @@ MASTER_SITES = svn://svn.mythtv.org/svn/trunk/
 DISTFILES = $(DISTNAME).tar.bz2
 PATCHFILES  =
 
+include ../../minimyth.conf.mk
+
 PATCHFILES += 0000-configure-set-to-GAR-perl-python.patch.gar
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 
@@ -174,17 +176,16 @@ DEPENDS = \
 	python/python-MySQL-python \
 	python/python-lxml \
 	python/python-urlgrabber \
-	qt/qt5 \
-	qt/qt5-webkit \
 	system/lirc \
 	system/eudev \
 	X11/libvdpau \
 	xorg/xorg \
 	devel/yasm \
+	qt/qt \
 
 BUILDDEPS = \
-    python/python-MySQL-python \
-    python/python-urlgrabber \
+	python/python-MySQL-python \
+	python/python-urlgrabber \
 
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 

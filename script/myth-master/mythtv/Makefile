@@ -4,10 +4,10 @@ GARVERSION   = $(MYTHTV_GIT_HASH)
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://github.com/MythTV/mythtv/archive/
 DISTFILES    = $(MYTHTV_GIT_HASH).zip
-PATCHFILES   =
 
 include ../../minimyth.conf.mk
 
+PATCHFILES  =
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0000-configure-set-to-GAR-perl-python.patch.gar
 
@@ -158,8 +158,7 @@ DEPENDS = \
 	X11/libvdpau \
 	X11/libva \
 	xorg/xorg \
-	qt/qt5 \
-	qt/qt5-webkit \
+	qt/qt \
 
 BUILDDEPS = \
 	python/python \
@@ -186,7 +185,6 @@ PWD := $(shell pwd)
 CONFIGURE_SCRIPTS = $(WORKSRC)/mythtv/configure
 BUILD_SCRIPTS     = $(WORKSRC)/mythtv/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/mythtv/Makefile source
-
 
 CONFIGURE_ARGS = \
 	--compile-type=$(if $(filter yes,$(mm_DEBUG)),"debug","release") \
@@ -280,7 +278,6 @@ INSTALL_ENV    = $(MYTHTV_INSTALL_ENV)
 
 BUILD_ENV     += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
 INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
-
 
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk

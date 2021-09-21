@@ -56,6 +56,12 @@ mm_GRAPHICS               ?= intel nvidia nvidia-legacy radeon vmware
 # 'brcm-vc4' (3D library BLOB provided by Broadcom for RPI)
 mm_OPENGL_PROVIDER        ?= mesa
 
+# Selects Qt version used by mythtv. Valid values for
+# mm_QT_VERSION are:
+# '5',
+# '6',
+mm_QT_VERSION             ?= 5
+
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of list below:
 mm_SOFTWARE               ?= \

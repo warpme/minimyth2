@@ -132,6 +132,16 @@ mm-all:
 			exit 1 ; \
 		fi ; \
 	done
+	@echo "    mm_QT_VERSION"
+	@for qt in $(mm_QT_VERSION) ; do \
+		if [ ! "$${qt}" = "5"     ] && \
+		   [ ! "$${qt}" = "6" ] ; then \
+			echo " " ; \
+			echo "error: mm_QT_VERSION=\"$${qt}\" is an invalid value." ; \
+			echo " " ; \
+			exit 1 ; \
+		fi ; \
+	done
 	@echo "    mm_SOFTWARE"
 	@for software in $(mm_SOFTWARE) ; do \
 		if [ ! "$${software}" = "mythplugins"    ] && \

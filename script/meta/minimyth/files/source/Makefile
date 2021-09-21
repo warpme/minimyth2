@@ -187,32 +187,51 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@# Copy shares.
 	@$(call COPY_FILES, "shares", "share", $(DESTDIR), $@~, $(sharedirs), $(MM_SHARES))
 	@# Copy the QT plugins needed by MythTV.
-	@if [ $(mm_MYTH_VERSION) = "0.27" ] ; then \
+	@if [ $(mm_QT_VERSION) = "4" ] ; then \
 		rm -rf   $@~$(qt4prefix)/plugins                                                 ; \
 		mkdir -p $@~$(qt4prefix)/plugins                                                 ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/graphicssystems   $@~$(qt4prefix)/plugins ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/iconengines       $@~$(qt4prefix)/plugins ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/imageformats      $@~$(qt4prefix)/plugins ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/sqldrivers        $@~$(qt4prefix)/plugins ; \
-	else                                                                                       \
+	 elif [ $(mm_QT_VERSION) = "6" ] ; then                                                    \
+		rm -rf   $@~$(qt6prefix)/plugins                                                 ; \
+		mkdir -p $@~$(qt6prefix)/plugins                                                 ; \
+		cp -pdR  $(DESTDIR)$(qt6prefix)/plugins/platforms        $@~$(qt6prefix)/plugins ; \
+		cp -pdR  $(DESTDIR)$(qt6prefix)/plugins/iconengines      $@~$(qt6prefix)/plugins ; \
+		cp -pdR  $(DESTDIR)$(qt6prefix)/plugins/imageformats     $@~$(qt6prefix)/plugins ; \
+		cp -pdR  $(DESTDIR)$(qt6prefix)/plugins/sqldrivers       $@~$(qt6prefix)/plugins ; \
+		if [ -e $(DESTDIR)$(qt6prefix)/plugins/xcbglintegrations ] ; then                                  \
+			cp -pdR $(DESTDIR)$(qt6prefix)/plugins/xcbglintegrations $@~$(qt6prefix)/plugins         ; \
+		fi                                                                                               ; \
+		if [ -e $(DESTDIR)$(qt6prefix)/plugins/egldeviceintegrations ] ; then                              \
+			cp -pdR $(DESTDIR)$(qt6prefix)/plugins/egldeviceintegrations $@~$(qt6prefix)/plugins     ; \
+		fi                                                                                               ; \
+		if [ -e $(DESTDIR)$(qt6prefix)/plugins/platforminputcontexts ] ; then                              \
+			cp -pdR $(DESTDIR)$(qt6prefix)/plugins/platforminputcontexts $@~$(qt6prefix)/plugins     ; \
+		fi                                                                                               ; \
+		if [ -e $(DESTDIR)$(qt6prefix)/plugins/wayland-shell-integration ] ; then                          \
+			cp -pdR $(DESTDIR)$(qt6prefix)/plugins/wayland-shell-integration $@~$(qt6prefix)/plugins ; \
+		fi                                                                               ; \
+	 else                                                                                      \
 		rm -rf   $@~$(qt5prefix)/plugins                                                 ; \
 		mkdir -p $@~$(qt5prefix)/plugins                                                 ; \
-		cp -pdR  $(DESTDIR)$(qt5prefix)/plugins/platforms             $@~$(qt5prefix)/plugins ; \
-		cp -pdR  $(DESTDIR)$(qt5prefix)/plugins/iconengines           $@~$(qt5prefix)/plugins ; \
-		cp -pdR  $(DESTDIR)$(qt5prefix)/plugins/imageformats          $@~$(qt5prefix)/plugins ; \
-		cp -pdR  $(DESTDIR)$(qt5prefix)/plugins/sqldrivers            $@~$(qt5prefix)/plugins ; \
-		if [ -e $(DESTDIR)$(qt5prefix)/plugins/xcbglintegrations ] ; then \
-			cp -pdR $(DESTDIR)$(qt5prefix)/plugins/xcbglintegrations $@~$(qt5prefix)/plugins ; \
-		fi ; \
-		if [ -e $(DESTDIR)$(qt5prefix)/plugins/egldeviceintegrations ] ; then \
-			cp -pdR $(DESTDIR)$(qt5prefix)/plugins/egldeviceintegrations $@~$(qt5prefix)/plugins ; \
-		fi ; \
-		if [ -e $(DESTDIR)$(qt5prefix)/plugins/platforminputcontexts ] ; then \
-			cp -pdR $(DESTDIR)$(qt5prefix)/plugins/platforminputcontexts $@~$(qt5prefix)/plugins ; \
-		fi ; \
-		if [ -e $(DESTDIR)$(qt5prefix)/plugins/wayland-shell-integration ] ; then \
+		cp -pdR  $(DESTDIR)$(qt5prefix)/plugins/platforms        $@~$(qt5prefix)/plugins ; \
+		cp -pdR  $(DESTDIR)$(qt5prefix)/plugins/iconengines      $@~$(qt5prefix)/plugins ; \
+		cp -pdR  $(DESTDIR)$(qt5prefix)/plugins/imageformats     $@~$(qt5prefix)/plugins ; \
+		cp -pdR  $(DESTDIR)$(qt5prefix)/plugins/sqldrivers       $@~$(qt5prefix)/plugins ; \
+		if [ -e $(DESTDIR)$(qt5prefix)/plugins/xcbglintegrations ] ; then                  \
+			cp -pdR $(DESTDIR)$(qt5prefix)/plugins/xcbglintegrations $@~$(qt5prefix)/plugins         ; \
+		fi                                                                                               ; \
+		if [ -e $(DESTDIR)$(qt5prefix)/plugins/egldeviceintegrations ] ; then                              \
+			cp -pdR $(DESTDIR)$(qt5prefix)/plugins/egldeviceintegrations $@~$(qt5prefix)/plugins     ; \
+		fi                                                                                               ; \
+		if [ -e $(DESTDIR)$(qt5prefix)/plugins/platforminputcontexts ] ; then                              \
+			cp -pdR $(DESTDIR)$(qt5prefix)/plugins/platforminputcontexts $@~$(qt5prefix)/plugins     ; \
+		fi                                                                                               ; \
+		if [ -e $(DESTDIR)$(qt5prefix)/plugins/wayland-shell-integration ] ; then                          \
 			cp -pdR $(DESTDIR)$(qt5prefix)/plugins/wayland-shell-integration $@~$(qt5prefix)/plugins ; \
-		fi ; \
+		fi                                                                                               ; \
 	 fi
 	@# adding supported video HW list
 	@mkdir -m 0755 -p $@~/srv/www
