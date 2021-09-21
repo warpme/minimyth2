@@ -95,4 +95,7 @@ post-install:
 	@mkdir -p $(DESTDIR)$(bindir)-config
 	@mv $(DESTDIR)$(bindir)/mysql_config.native $(DESTDIR)$(bindir)-config/mysql_config
 	@$(if $(compiler_prefix), ln -s mysql_config $(DESTDIR)$(bindir)-config/$(compiler_prefix)mysql_config)
+	@rm -f $(build_DESTDIR)$(bindir)-config/mysql_config
+	@# hack needed for building mysql dependent packages for BUILD target when they require myslq_config
+	@ln -srf $(DESTDIR)$(bindir)-config/mysql_config $(build_rootdir)$(bindir)-config/mysql_config
 	@$(MAKECOOKIE)
