@@ -65,14 +65,17 @@ $(DESTIMG)_qt4prefix ?= $(main_qt4prefix)
 $(DESTIMG)_qt4bindir ?= $(main_qt4bindir)
 $(DESTIMG)_qt4includedir ?= $(main_qt4includedir)
 $(DESTIMG)_qt4libdir ?= $(main_qt4libdir)
+$(DESTIMG)_qt4qmake ?= $(DESTDIR)$(qt4bindir)/qmake
 $(DESTIMG)_qt5prefix ?= $(main_qt5prefix)
 $(DESTIMG)_qt5bindir ?= $(main_qt5bindir)
 $(DESTIMG)_qt5includedir ?= $(main_qt5includedir)
 $(DESTIMG)_qt5libdir ?= $(main_qt5libdir)
+$(DESTIMG)_qt5qmake ?= $(DESTDIR)$(qt5bindir)/qmake
 $(DESTIMG)_qt6prefix ?= $(main_qt6prefix)
 $(DESTIMG)_qt6bindir ?= $(main_qt6bindir)
 $(DESTIMG)_qt6includedir ?= $(main_qt6includedir)
 $(DESTIMG)_qt6libdir ?= $(main_qt6libdir)
+$(DESTIMG)_qt6qmake ?= $(DESTDIR)$(qt6bindir)/qmake
 
 $(DESTIMG)_DESTDIR ?= $(main_DESTDIR)
 
@@ -132,16 +135,29 @@ qt4prefix = $($(DESTIMG)_qt4prefix)
 qt4bindir = $($(DESTIMG)_qt4bindir)
 qt4includedir = $($(DESTIMG)_qt4includedir)
 qt4libdir = $($(DESTIMG)_qt4libdir)
+qt4qmake = $($(DESTIMG)_qt4qmake)
 qt5prefix = $($(DESTIMG)_qt5prefix)
 qt5bindir = $($(DESTIMG)_qt5bindir)
 qt5includedir = $($(DESTIMG)_qt5includedir)
 qt5libdir = $($(DESTIMG)_qt5libdir)
+qt5qmake = $($(DESTIMG)_qt5qmake)
 qt6prefix = $($(DESTIMG)_qt6prefix)
 qt6bindir = $($(DESTIMG)_qt6bindir)
 qt6includedir = $($(DESTIMG)_qt6includedir)
 qt6libdir = $($(DESTIMG)_qt6libdir)
+qt6qmake = $($(DESTIMG)_qt6qmake)
 
 DESTDIR = $($(DESTIMG)_DESTDIR)
+
+ifeq ($(mm_QT_VERSION),4)
+qtqmake = $(qt4qmake)
+else
+ifeq ($(mm_QT_VERSION),6)
+qtqmake = $(qt6qmake)
+else
+qtqmake = $(qt5qmake)
+endif
+endif
 
 # Architecture
 GARCH = $($(DESTIMG)_GARCH)
