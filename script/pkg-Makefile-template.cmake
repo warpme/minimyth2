@@ -36,6 +36,7 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DCMAKE_SYSTEM_NAME="Linux" \
 
 include ../../gar.mk
 

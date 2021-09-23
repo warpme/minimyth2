@@ -22,4 +22,9 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 	-DENABLE_GUI="OFF" \
 
+ifneq ($(DESTIMG),build)
+CONFIGURE_ARGS += \
+	-DCMAKE_SYSTEM_NAME="Linux"
+endif
+
 include ../../gar.mk

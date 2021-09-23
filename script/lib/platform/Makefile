@@ -36,6 +36,10 @@ CONFIGURE_ARGS = \
 	-DCMAKE_RANLIB="$(build_DESTDIR)$(build_bindir)/$(RANLIB)" \
 	-DCMAKE_STRIP="$(build_DESTDIR)$(build_bindir)/$(STRIP)" \
 	-DCMAKE_VERBOSE_MAKEFILE="1"
+ifneq ($(DESTIMG),build)
+xCONFIGURE_ARGS += \
+	-DCMAKE_SYSTEM_NAME="Linux"
+endif
 
 include ../../gar.mk
 
