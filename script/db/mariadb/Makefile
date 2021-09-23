@@ -24,6 +24,8 @@ BUILD_SCRIPTS     = custom native_mariadb_config
 INSTALL_SCRIPTS   = custom native_mariadb_config
 
 CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
+    -DCMAKE_SYSTEM_NAME="Linux" \
+    -DCMAKE_SYSROOT="$(DESTDIR)" \
     -DCMAKE_VERBOSE_MAKEFILE="OFF" \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -Wno-dev \

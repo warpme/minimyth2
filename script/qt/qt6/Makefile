@@ -116,6 +116,8 @@ CONFIGURE_ARGS += \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	-make tools \
 	-- $(DIRPATHS_CMAKE) \
+	-DCMAKE_SYSTEM_NAME="Linux" \
+	-DCMAKE_SYSROOT="$(DESTDIR)" \
 	-DQT_WILL_BUILD_TOOLS="ON" \
 	-DQT_BUILD_TOOLS_WHEN_CROSSCOMPILING="ON" \
 	-DMySQL_INCLUDE_DIR="$(DESTDIR)$(includedir)/mysql"
