@@ -66,4 +66,22 @@ endif
 	@echo ""                           >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
 	@echo "[properties]"               >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
 	@echo "needs_exe_wrapper = false"  >> $(build_DESTDIR)$(build_datadir)/meson/cross/$(mm_GARHOST).conf
+	@#
+	@echo " ==> Generating $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf native-compile config"
+	@mkdir -p $(build_DESTDIR)$(build_datadir)/meson/native/
+	@echo "[binaries]"                                                           > $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "c           = '$(build_DESTDIR)$(build_bindir)/gcc'"                 >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "cpp         = '$(build_DESTDIR)$(build_bindir)/g++'"                 >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "ar          = '$(build_DESTDIR)$(build_bindir)/ar'"                  >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "strip       = '$(build_DESTDIR)$(build_bindir)/strip'"               >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "pkgconfig   = '$(build_DESTDIR)$(build_bindir)/pkg-config'"          >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "llvm-config = '$(build_DESTDIR)$(build_bindir)-config/llvm-config'"  >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "[host_machine]"                                                      >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "system     = 'linux'"                                                >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "endian     = 'little'"                                               >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "cpu_family = 'x86_64'"      >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "cpu        = 'x86_64'"      >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo ""                           >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "[properties]"               >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
+	@echo "needs_exe_wrapper = false"  >> $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
 	@$(MAKECOOKIE)

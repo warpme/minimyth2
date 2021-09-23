@@ -298,6 +298,7 @@ DIRPATHS = $(filter-out $(addsuffix %,$(NODIRPATHS)), $(TMP_DIRPATHS))
 
 DIRPATHS_MESON = --prefix=$(prefix) --bindir=$(bindir) --sbindir=$(sbindir) --libexecdir=$(libexecdir) --datadir=$(datadir) --sysconfdir=$(sysconfdir) --sharedstatedir=$(sharedstatedir) --localstatedir=$(localstatedir) --libdir=$(libdir) --infodir=$(infodir) --includedir=$(includedir) --mandir=$(mandir)
 MESON_CROSS_CONF = $(build_DESTDIR)$(build_datadir)/meson/cross/$(GARHOST).conf
+MESON_NATIVE_CONF = $(build_DESTDIR)$(build_datadir)/meson/native/$(GARBUILD).conf
 MESON = $(build_DESTDIR)$(build_bindir)/meson
 NINJA = $(build_DESTDIR)$(build_bindir)/ninja
 
