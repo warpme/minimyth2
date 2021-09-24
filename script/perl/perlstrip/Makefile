@@ -1,14 +1,15 @@
-GARNAME = perlstrip
-GARVERSION =
+
+GARNAME    = perlstrip
+GARVERSION = 20210924
 CATEGORIES = perl
-DISTFILES = perlstrip.pl
-LICENSE =
+DISTFILES  = perlstrip.pl
+LICENSE    =
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = perl/perl perl/perl-Perl-Tidy
+DEPENDS = perl/perl perl/perl-Strip
 
 DISTNAME = $(GARNAME)
 
