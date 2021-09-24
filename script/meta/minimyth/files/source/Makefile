@@ -499,8 +499,8 @@ endif
 		threads="$(patsubst -j%,%,$(filter -j%,$(PARALLELMFLAGS)))"             ; \
 		echo "stripping perl ($${threads} threads)"                             ; \
 		[ "$${threads}" = "" ] && threads="1"                                   ; \
-		dir_list="$@~$(PERL_libdir) $@~$(datadir)/mythtv"                       ; \
-		echo "  size before:"`du -sh $${dir_list} | sed -e "s/\(\.*\)\t.*/\1/"` ; \
+		dir_list="$@~$(PERL_libdir)"                                            ; \
+		echo "  size before :"`du -sh $${dir_list} | sed -e "s/\(\.*\)\t.*/\1/"` ; \
 		LD_LIBRARY_PATH=$(build_bindir)/../lib $(build_bindir)/perl /$(build_bindir)/perlstrip.pl $${threads} $${dir_list} > /dev/null 2>&1 ; \
 		revert_list=`find $${dir_list} -depth -name *.ERR | sed -e 's%\.ERR$$%%' -e 's%^$@~%%'` ; \
 		for revert in $${revert_list} ; do                                        \
@@ -546,10 +546,12 @@ endif
 		fi ; \
 	 fi
 	@# Clean up permissions (at least somewhat)
+	@echo "clean up permissions on execs"
 	@find $@~ -depth -exec file '{}' \; \
 		| grep -i 'ELF ..-bit LSB executable' \
 		| sed -e 's%:.*%%' \
 		| xargs chmod 0755
+	@echo "clean up permissions on non-execs"
 	@find $@~ -depth -exec file '{}' \; \
 		| grep -i 'ELF ..-bit LSB shared object' \
 		| sed -e 's%:.*%%' \
@@ -558,6 +560,7 @@ endif
 		| grep -v '/ld-linux.so.[0-9]\+$$' \
 		| grep -v '/ld-linux-x86-64.so.[0-9]\+$$' \
 		| xargs chmod 0644
+	@echo "set up permissions on execs"
 	@$(call SET_PERMISSIONS,$@~)
 	@touch $@~
 	@mv $@~ $@
