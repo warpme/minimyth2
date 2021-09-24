@@ -39,13 +39,6 @@ DEPENDS = \
 	perl/perl-XML-XPath \
 	db/mariadb
 
-BUILDDEPS = \
-	python/python \
-	python/python-pycurl \
-	python/python-lxml \
-	python/python-oauth \
-	perl/perl-DateTime
-
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
 WORKSRC = $(WORKDIR)/mythtv-$(MYTHTV_GIT_HASH)

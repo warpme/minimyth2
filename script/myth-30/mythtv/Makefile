@@ -9,7 +9,8 @@ PATCHFILES   =
 include ../../minimyth.conf.mk
 
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
-PATCHFILES += 0000-configure-set-to-GAR-perl-python.patch.gar
+PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
+PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
@@ -150,11 +151,6 @@ DEPENDS = \
 	X11/libvdpau \
 	xorg/xorg \
 	qt/qt \
-
-BUILDDEPS = \
-	python/python-MySQL-python \
-	python/python-urlgrabber \
-	python/python-lxml \
 
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 
