@@ -1,8 +1,9 @@
-GARNAME = mythplugins
+
+GARNAME    = mythplugins
 GARVERSION = $(MYTHTV_VERSION)
 CATEGORIES = $(CATEGORY)
-SOURCEPKG = $(CATEGORY)/mythtv
-LICENSE = GPL2
+SOURCEPKG  = $(CATEGORY)/mythtv
+LICENSE    = GPL2
 
 DESCRIPTION = 
 define BLURB
@@ -36,13 +37,6 @@ DEPENDS = \
 	perl/perl-XML-Simple \
 	perl/perl-XML-XPath \
 	db/mariadb
-
-BUILDDEPS = \
-	python/python \
-	python/python-pycurl \
-	python/python-lxml \
-	python/python-oauth \
-	perl/perl-DateTime
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 

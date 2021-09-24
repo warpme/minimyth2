@@ -1,14 +1,16 @@
-GARNAME = mythtv
-GARVERSION = $(MYTHTV_VERSION)
-CATEGORIES = $(CATEGORY)
-MASTER_SITES = svn://svn.mythtv.org/svn/trunk/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES  =
+
+GARNAME      = mythtv
+GARVERSION   = $(MYTHTV_GIT_HASH)
+CATEGORIES   = $(CATEGORY)
+MASTER_SITES = https://github.com/MythTV/mythtv/archive/
+DISTFILES    = $(MYTHTV_GIT_HASH).zip
+PATCHFILES   =
 
 include ../../minimyth.conf.mk
 
-PATCHFILES += 0000-configure-set-to-GAR-perl-python.patch.gar
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
+PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
+PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
 
 # Backend needed patches
 PATCHFILES += 0002-ticket9480_pl_eit_encodings.patch
@@ -183,10 +185,6 @@ DEPENDS = \
 	devel/yasm \
 	qt/qt \
 
-BUILDDEPS = \
-	python/python-MySQL-python \
-	python/python-urlgrabber \
-
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
@@ -295,13 +293,6 @@ CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 CPPFLAGS += -fPIC
 CFLAGS   += -fPIC
 
-ifeq ($(mm_OPENGL_PROVIDER),brcm-vc4)
-CONFIGURE_ARGS += \
-	--extra-cflags="-I$(DESTDIR)$(includedir)/IL" \
-	--extra-cxxflags="-I$(DESTDIR)$(includedir)/IL" \
-	--enable-openmax
-endif
-
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -O0
@@ -311,8 +302,6 @@ endif
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-
-# "--extra-cxxflags='-DIGNORE_SCHEMA_VER_MISMATCH -DIGNORE_PROTO_VER_MISMATCH'
 
 svn//%/$(DISTNAME).tar.bz2:
 	@$(call FETCH_SVN, http://$*, $(MYTHTV_SVN_VERSION), $(DISTNAME))
