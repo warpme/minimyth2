@@ -476,6 +476,13 @@ endif
 	@# Generate font files.
 	@cd $@~$(datadir)/fonts/X11/misc ; mkfontscale . ; mkfontdir .
 	@cd $@~$(datadir)/fonts/X11/TTF  ; mkfontscale . ; mkfontdir .
+	@# All mesa dri drivers are infact thesame binary. Make all as symlink to singe binary to save rootfs size
+	@cp $@~$(libdir)/dri/panfrost_dri.so $@~$(libdir)/dri/generic_mesa_dri_driver
+	@files=`ls -1 $@~$(libdir)/dri/*.so` ; \
+		for file in $${files} ; do \
+			rm -f $${file} ; \
+			ln -srf $@~$(libdir)/dri/generic_mesa_dri_driver $${file} ; \
+		done
 	@# Strip binaries and shared libraries.
 	@if [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then                     \
 		echo 'stripping binaries and shared libraries'                              ; \
@@ -1021,12 +1028,12 @@ install: build
 		mkdir -p $(mm_ONLINE_UPDATES)/                                                             ; \
 		echo '  copying boot files'                                                                ; \
 		mkdir -p $(mm_ONLINE_UPDATES)/boot                                                         ; \
-		cp -arf $(top_build)/stage/boot/* $(mm_ONLINE_UPDATES)/boot/                               ; \
+		cp -a $(top_build)/stage/boot/* $(mm_ONLINE_UPDATES)/boot/                                 ; \
 		echo '  copying rootfs files'                                                              ; \
 		mkdir -p $(mm_ONLINE_UPDATES)/root                                                         ; \
-		cp -arf $(top_build)/stage/image/rootfs/* $(mm_ONLINE_UPDATES)/root/                       ; \
+		cp -a $(top_build)/stage/image/rootfs/* $(mm_ONLINE_UPDATES)/root/                         ; \
 		echo '  copying version file'                                                              ; \
-		cp -af $(top_build)/stage/version $(mm_ONLINE_UPDATES)/version                             ; \
+		cp -a $(top_build)/stage/version $(mm_ONLINE_UPDATES)/version                              ; \
 		echo '  creating examplary rsyncd.conf file'                                               ; \
 		rm -f $(mm_ONLINE_UPDATES)/rsyncd.conf                                                     ; \
 		touch $(mm_ONLINE_UPDATES)/rsyncd.conf                                                     ; \
