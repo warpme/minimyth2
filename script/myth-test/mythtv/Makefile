@@ -4,50 +4,30 @@ GARVERSION   = $(MYTHTV_GIT_HASH)
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://github.com/MythTV/mythtv/archive/
 DISTFILES    = $(MYTHTV_GIT_HASH).zip
-PATCHFILES   =
 
 include ../../minimyth.conf.mk
 
+PATCHFILES  =
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
-PATCHFILES += 0000-configure-set-to-GAR-perl-python.patch.gar
+PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
+PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
 
-# Backend misc patches
-PATCHFILES += 0001-Recorders-Delay-to-avoid-no-concurent-recordings-start.patch
-PATCHFILES += 0002-Systemstatus-Show-devicename-instead-videodevice.patch
-PATCHFILES += 0003-SCR-keep-disecq-always-18V.patch
-PATCHFILES += 0004-EIT-make-EIT-start-at-time.patch
-PATCHFILES += 0005-EIT-ticket9480-fix-PL-eit-encodings.patch
-PATCHFILES += 0006-Mythlink-pretty-with-recgroup-subdir.patch
-PATCHFILES += 0007-TMDB-pull103-Add-heuristic-in-TMDB-script-to-detect-movie-release-years.patch
-PATCHFILES += 0009-disable-python-warnings-because-py2.6.patch
-# Solves issue of BE sometimes enter state with no aparent constant 100% load on single core.
-PATCHFILES += 0010-revert-3330e28-Mark-rec-failing-if-ThreadedFileWriter-starts-ignoring.patch
-# Adds metadata grabbers timeout be configurable
-PATCHFILES += 0011-Metadata-allow-graber-timeout-configurable.patch
-# Fixes issue with only 3 menu entries in MythMediaStream theme. t.b.i why?
-PATCHFILES += 0013-revert-42bae47-MythMainWindow-Norm-With-very-small-values-of-x-scal.patch
-
-# Comflagging related patches
-PATCHFILES += 0016-Mythcommflag-ticket13335-add-3-settings-to-enhance-logo-detection.patch
-
+# Fixes issue with only 3 menu entries in MythMediaStream theme.
+PATCHFILES += 0013-MythMainWindow-not-use-qRound-in-MythUIScreenBounds.patch
 # UPnP patches
 PATCHFILES += 0030-UPnP-Change-reported-ver-to-1.patch
 PATCHFILES += 0031-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-thread.patch
 PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music.patch
 
 # Some patches for better logging
-PATCHFILES += 0050-Loging-Add-better-EIT-verbosity.patch
-PATCHFILES += 0051-Loging-Add-better-TID-verbosity.patch
-PATCHFILES += 0052-Loging-Decrease-some-PMT-DVB-errors-Loging.patch
-PATCHFILES += 0053-Loging-Add-verbose-dvb-lock-loging.patch
-PATCHFILES += 0054-Loging-Add-better-loging-for-failed-tunings.patch
 PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
-PATCHFILES += 0056-Loging-Add-signal-monitor-warning-msg-if-NID-or-TSID-dont-match.patch
 PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
+# speedup a bit portcheck
+PATCHFILES += 0059-portchecker-speedup.patch
 
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
@@ -61,33 +41,29 @@ PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
 PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 
-# v4l2-request support in ffmpeg
-# https://github.com/Kwiboo/FFmpeg/commits/v4l2-request-hwaccel-master
-PATCHFILES += 0151-ffmpeg-v4l2request-avutil-add-av_buffer_pool_flush.patch
-PATCHFILES += 0152-ffmpeg-v4l2request-Add-common-V4L2-request-API-code.patch
-PATCHFILES += 0153-ffmpeg-v4l2request-Add-V4L2-request-API-mpeg2-hwaccel.patch
-PATCHFILES += 0154-ffmpeg-v4l2request-Add-V4L2-request-API-h264-hwaccel.patch
-PATCHFILES += 0155-ffmpeg-v4l2request-Add-V4L2-request-API-hevc-hwaccel.patch
-PATCHFILES += 0156-ffmpeg-v4l2request-Add-V4L2-request-API-vp8-hwaccel.patch
-PATCHFILES += 0157-ffmpeg-v4l2request-Add-and-use-private-linux-headers-for-V4L2-request-A.patch
-PATCHFILES += 0158-ffmpeg-v4l2request-hwcontext_drm-do-not-require-drm-device.patch
-PATCHFILES += 0159-ffmpeg-v4l2request-avcodec-h264-parse-idr_pic_id.patch
-PATCHFILES += 0160-ffmpeg-v4l2request-avcodec-h264-parse-ref_pic_marking_size_in_bits-and-.patch
-PATCHFILES += 0161-ffmpeg-v4l2request-HACK-add-dpb-flags-for-reference-usage-and-field-pic.patch
-PATCHFILES += 0162-ffmpeg-v4l2request-WIP-v4l2-request-rolling-timestamps.patch
-PATCHFILES += 0163-configure-add-v4l2request-support.patch
-# misc v4l2 patches
-PATCHFILES += 0164-ffmpeg-avcodec-v4l2_context-Use-AVERROR-macro.patch
-# https://github.com/tmm1/FFmpeg/commit/a0a00b958c524f3b0e2ca26d60dad1a674f872c7
-PATCHFILES += 0165-ffmpeg-avcodec-v4l2m2m-clean-up-buffer-options-and-pick-sane-defaults.patch
-# https://github.com/tmm1/FFmpeg/commit/3e397f382974cca43e3fbb24bb850fc3f3225c30
-PATCHFILES += 0166-ffmpeg-avcodec-v4l2_m2m_dec-remove-temporary-avpkt-and-read-directyl-to-buffer.patch
-# https://github.com/tmm1/FFmpeg/commit/196bab90a29323722050111e936532ac9ac9bfda
-PATCHFILES += 0167-ffmpeg-avcodec-handle-errors-more-explicitly.patch
+ifeq (1,1)
+# v4l2-request support in ffmpeg (requires also kernel patching)
+ifneq (,$(filter %5.13,$(mm_KERNEL_VERSION)))
+PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.13kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.13kernel.patch
+else
+PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.14kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.14kernel.patch
+endif
+# Enable v4l2_request in myth configure
+PATCHFILES += 0152-configure-add-v4l2request-support.patch
+# Add HW deinterlacer support on Allwinner H6
+PATCHFILES += 0153-ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel.patch
+# Improve v4l2_request resiliency on so DVB stream errors (http://jernej.libreelec.tv/videos/cedrus_broken.ts)
+PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
+endif
 
-PATCHFILES += 0169-ffmpeg-libavdevice-produce-0byte-if-dequeued-size-unexpected.patch
-PATCHFILES += 0170-ffmpeg-libavcodec-log-requested-pixfmt.patch
+# buffers bump-up required for AML HD playbck
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
+# mute Invalid UE golomb code reposts on hevc tv playback
+PATCHFILES += 0172-ffmpeg-libavcodec-reduce-Invalid-UE-golomb-error-code.patch
+# enable LTO; patches from issue #224
+PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
@@ -97,13 +73,17 @@ PATCHFILES += 0202-Mediamonitor-make-mediamonitor-bluray-mounts-persistent.patch
 PATCHFILES += 0203-Mediamonitor-revert-16086d2-Honor-the-MonitorDrives-setting.patch
 # Added UI to select multimedia handler in multimode CD's
 PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
+# Exclude some standard block dev.in TVboxes from mediamonitor
+PATCHFILES += 0205-mediamonitor-exclude-standard-tvbox-disks.patch
 
 # Misc frontend patches
 PATCHFILES += 0211-decrease-minQt-ver-to-4.8.patch
+PATCHFILES += 0212-external-udfread-fix-arm5te-compilation.patch
 PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
+PATCHFILES += 0214-themes-recordings-ui-all-episode-listing.patch
+PATCHFILES += 0215-libmythtv-mythvideooutgpu-fix-tearing.patch
 
 # Patches related to OSD
-PATCHFILES += 0221-OSD-fix-_LMSC-on-osd.patch
 PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
 PATCHFILES += 0223-OSD-Add-mythnotification-custom-styles-support-via-UDP.patch
 PATCHFILES += 0224-OSD-Add-status-notify-to-mythmediacenter-wide.patch
@@ -112,21 +92,12 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 
 # Patches enhancing Network Control
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
-
-# Nice Roger Siddons guide grid enhacement
-PATCHFILES += 0304-ticket12683-MythUI-Implement-zoomable-GuideGrids-v2.patch
-
-# Roger Siddons patches from PeterBennet repo
-PATCHFILES += 0305-ticket12809-Enable-Play-from-last-play-position.patch
-PATCHFILES += 0307-ticket12809-Playback-Watchlist-Improvements.patch
-PATCHFILES += 0308-ticket12809-Playback-Add-Unfinished-recording-filter.patch
-
+PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 
 # --------Patches 400+ are plugins patches---------------------
 
 # Various mythmusic patches
 PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
-PATCHFILES += 0401-MythMusic-disable-screensaver-only-in-fullscreen.patch
 PATCHFILES += 0404-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
@@ -150,20 +121,23 @@ DEPENDS = \
 	lib/avahi \
 	lib/exiv2 \
 	lib/fftw3 \
+	lib/fftw3f \
 	lib/freetype \
 	lib/lame \
 	lib/libass \
 	lib/libavc1394 \
 	lib/libcdio \
 	lib/libcdio-paranoia \
+	lib/libcec \
 	lib/libiec61883 \
 	lib/libxml2 \
+	lib/libzip \
+	lib/lzo \
 	lib/openssl \
 	lib/libsamplerate \
 	lib/libbluray \
 	lib/SDL2 \
 	lib/taglib \
-	lib/lzo \
 	devel/zlib \
 	devel/yasm \
 	python/python \
@@ -183,24 +157,9 @@ DEPENDS = \
 	system/lirc \
 	system/eudev \
 	X11/libvdpau \
+	X11/libva \
 	xorg/xorg \
 	qt/qt \
-
-BUILDDEPS = \
-	python/python \
-	python/python-future \
-	python/python-lxml \
-	python/python-MySQL-python \
-	python/python-requests-cache \
-	python/python-simplejson \
-	python/python-urlgrabber \
-	perl/perl-DBD-mysql \
-	perl/perl-DBI \
-	perl/perl-HTTP-Message \
-	perl/perl-IO-Socket-INET6 \
-	perl/perl-libwww-perl \
-	perl/perl-Net-UPnP \
-	perl/perl-XML-Simple \
 
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 
@@ -231,7 +190,9 @@ CONFIGURE_ARGS = \
 	--sysroot="$(DESTDIR)$(rootdir)" \
 	--sysinclude="$(DESTDIR)$(includedir)" \
 	--target-os="linux" \
+	--ar="$(AR)" \
 	--nm="$(NM)" \
+	--ranlib="$(RANLIB)" \
 	--as="$(CC)" \
 	--cc="$(CC)" \
 	--cxx="$(CXX)" \
@@ -252,6 +213,10 @@ CONFIGURE_ARGS = \
 	--enable-sse \
 	--enable-ssse3 \
 	--enable-yasm \
+	--enable-asm \
+	--enable-fast-unaligned \
+	--enable-optimizations \
+	--enable-lto \
 	--disable-proc-opt \
 	--enable-audio-oss \
 	--enable-audio-alsa \
@@ -264,15 +229,16 @@ CONFIGURE_ARGS = \
 	--disable-hdhomerun \
 	--disable-ceton \
 	--enable-v4l2 \
+	--enable-v4l2request \
 	--enable-vaapi \
 	--enable-ivtv \
 	--enable-hdpvr \
 	--enable-dvb \
 	--dvb-path="$(DESTDIR)$(includedir)" \
+	--libcec-path="$(DESTDIR)$(includedir)/libcec" \
 	--disable-asi \
 	--enable-x11 \
 	--x11-path="$(DESTDIR)$(includedir)" \
-	--enable-xrandr \
 	--disable-dxva2 \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
 		--disable-vdpau) \
@@ -284,11 +250,12 @@ CONFIGURE_ARGS = \
 	--with-bindings="perl" \
 	--with-bindings="python" \
 	--enable-pic \
-	--disable-libcec \
+	--enable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 	--enable-ffplay \
 	--enable-sdl2 \
 	--python="python" \
+	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
@@ -297,31 +264,20 @@ INSTALL_ENV    = $(MYTHTV_INSTALL_ENV)
 BUILD_ENV     += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
 INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
-ifneq (,$(findstring rpi,$(mm_KERNEL_VERSION)))
-CONFIGURE_ARGS += --disable-v4l2request
-else
-CONFIGURE_ARGS += --enable-v4l2request
-endif
-
 GAR_EXTRA_CONF += python/python/package-api.mk
 include ../../gar.mk
 
-CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
-CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
-CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
+CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
+CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
+CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
 
-CPPFLAGS += -fPIC
-CFLAGS   += -fPIC
+CPPFLAGS += -fPIC -fuse-linker-plugin
+CFLAGS   += -fPIC -fuse-linker-plugin
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -O0
 endif
-
-# mythtv don't compiles with gcc5.3.0 LTO
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 svn//%/$(DISTNAME).tar.bz2:
 	@$(call FETCH_SVN, http://$*, $(MYTHTV_SVN_VERSION), $(DISTNAME))
@@ -376,7 +332,7 @@ source-update-patches:
 	@$(foreach PATCHFILE, $(PATCHFILES), \
 		cd $(WORKDIR) || exit 1 ; \
 		mv $(DISTNAME) $(DISTNAME)-old || exit 1 ; \
-		cp -r $(DISTNAME)-old $(DISTNAME)-new || exit 1 ; \
+		cp -a $(DISTNAME)-old $(DISTNAME)-new || exit 1 ; \
 		cd $(DISTNAME)-new || exit 1 ; \
 		SIMPLE_BACKUP_SUFFIX=.gar-source-update-patches patch -p1 < ../../../files/$(PATCHFILE) || exit 1 ; \
 		cd ../ || exit 1 ; \
