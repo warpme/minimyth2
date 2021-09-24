@@ -17,10 +17,11 @@ MYTHTV_INSTALL_ENV   = \
 MYTHTV_PLUGINS_CONFIGURE_ARGS = \
 	--prefix="$(DESTDIR)$(prefix)" \
 	--sysroot="$(DESTDIR)$(rootdir)" \
-	--qmake="$(DESTDIR)$(qt5bindir)/qmake" \
+	--qmake="$(qtqmake)" \
 	--libdir-name="$(patsubst $(prefix)/%,%,$(libdir))" \
 	--disable-all \
-	--enable-opengl
+	--enable-opengl \
+	--enable-cross-compile \
 
 post-install-mythtv-version:
 	@install -d $(DESTDIR)$(versiondir) 
