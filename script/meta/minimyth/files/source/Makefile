@@ -476,13 +476,44 @@ endif
 	@# Generate font files.
 	@cd $@~$(datadir)/fonts/X11/misc ; mkfontscale . ; mkfontdir .
 	@cd $@~$(datadir)/fonts/X11/TTF  ; mkfontscale . ; mkfontdir .
-	@# All mesa dri drivers are infact thesame binary. Make all as symlink to singe binary to save rootfs size
-	@cp $@~$(libdir)/dri/panfrost_dri.so $@~$(libdir)/dri/generic_mesa_dri_driver
-	@files=`ls -1 $@~$(libdir)/dri/*.so` ; \
-		for file in $${files} ; do \
-			rm -f $${file} ; \
-			ln -srf $@~$(libdir)/dri/generic_mesa_dri_driver $${file} ; \
-		done
+	@# For given class of HW, mesa dri drivers are infact thesame binary. 
+	@# Make all as symlink to singe binary to save rootfs size
+	@if [ -e $@~$(libdir)/dri/panfrost_dri.so ] && [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then \
+		echo 'symlinking mesa panfrost per-SoC DRI drivers to generic DRI driver'                          ; \
+		cp $@~$(libdir)/dri/panfrost_dri.so $@~$(libdir)/dri/generic_mesa_dri_driver                       ; \
+		files=`ls -1 $@~$(libdir)/dri/*.so`                                                                ; \
+			for file in $${files} ; do                                                                   \
+				rm -f $${file}                                                                     ; \
+				ln -srf $@~$(libdir)/dri/generic_mesa_dri_driver $${file}                          ; \
+			done                                                                                       ; \
+	 fi
+	@if [ -e $@~$(libdir)/dri/radeonsi_dri.so ] && [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then \
+		echo 'symlinking mesa Intel/AMD latest DRI drivers to mesa all-in-one DRI driver'                  ; \
+		cp $@~$(libdir)/dri/radeonsi_dri.so $@~$(libdir)/dri/generic_mesa_dri_driver1                      ; \
+		files="crocus_dri.so iris_dri.so kms_swrast_dri.so r300_dri.so r600_dri.so radeonsi_dri.so swrast_dri.so vmwgfx_dri.so" ; \
+			for file in $${files} ; do                                                                   \
+				rm -f $@~$(libdir)/dri/$${file}                                                    ; \
+				ln -srf $@~$(libdir)/dri/generic_mesa_dri_driver1 $@~$(libdir)/dri/$${file}        ; \
+			done                                                                                       ; \
+	 fi
+	@if [ -e $@~$(libdir)/dri/radeon_dri.so ] && [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then \
+		echo 'symlinking mesa Intel/AMD legacy DRI drivers to mesa all-in-one DRI driver'                ; \
+		cp $@~$(libdir)/dri/radeon_dri.so $@~$(libdir)/dri/generic_mesa_dri_driver2                      ; \
+		files="i830_dri.so i915_dri.so i965_dri.so radeon_dri.so r200_dri.so"                            ; \
+			for file in $${files} ; do                                                                 \
+				rm -f $@~$(libdir)/dri/$${file}                                                  ; \
+				ln -srf $@~$(libdir)/dri/generic_mesa_dri_driver2 $@~$(libdir)/dri/$${file}      ; \
+			done                                                                                     ; \
+	 fi
+	@if [ -e $@~$(libdir)/libvdpau_r300.so ] && [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then \
+		echo 'symlinking mesa vdpau drivers to generic mesa all-in-one vdpau driver'                    ; \
+		cp $@~$(libdir)/libvdpau_r300.so $@~$(libdir)/libvdpau_generic                                  ; \
+		files="libvdpau_r300.so libvdpau_r600.so libvdpau_radeonsi.so"                                  ; \
+			for file in $${files} ; do                                                                \
+				rm -f $@~$(libdir)/$${file}                                                     ; \
+				ln -srf $@~$(libdir)/libvdpau_generic $@~$(libdir)/$${file}                     ; \
+			done                                                                                    ; \
+	 fi
 	@# Strip binaries and shared libraries.
 	@if [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then                     \
 		echo 'stripping binaries and shared libraries'                              ; \
