@@ -519,7 +519,7 @@ ifeq (1,0)
 		file_list=`find $${dir_list} -depth -name '*.py'`                       ; \
 		echo "  size before:"`du -sh $${dir_list} | sed -e "s/\(\.*\)\t.*/\1/"` ; \
 		for file in $${file_list} ; do                                            \
-			LD_LIBRARY_PATH=$(build_bindir)/../lib $(build_bindir)/python $(build_bindir)/pyminifier "$${file}" 1> "$${file}~" 2> /dev/null ; \
+			LD_LIBRARY_PATH=$(build_bindir)/../lib $(build_bindir)/python3 $(build_bindir)/pyminifier "$${file}" 1> "$${file}~" 2> /dev/null ; \
 			if [ "x$$?" = "x0" ] ; then                                       \
 				mv -f "$${file}~" "$${file}"                            ; \
 			else                                                              \
