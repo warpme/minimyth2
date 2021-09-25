@@ -1,0 +1,538 @@
+diff -Naur mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythmetadata/videometadata.cpp mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythmetadata/videometadata.cpp
+--- mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythmetadata/videometadata.cpp	2021-09-24 22:43:39.000000000 +0200
++++ mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythmetadata/videometadata.cpp	2021-09-25 09:45:45.847883268 +0200
+@@ -331,7 +331,6 @@
+     bool IsHostSet() const;
+ 
+     void GetImageMap(InfoMap &imageMap) const;
+-    QString GetImage(const QString &name) const;
+ 
+   private:
+     void fillCountries();
+@@ -955,71 +954,6 @@
+     imageMap[QStringLiteral(u"smartimage")] = smartimage;
+ }
+ 
+-// This should be the equivalent of GetImageMap, only the image names
+-// are computed one at a time as needed.
+-QString VideoMetadataImp::GetImage(const QString& name) const
+-{
+-    if ((name == QStringLiteral(u"coverfile")) ||
+-        (name == QStringLiteral(u"coverart")))
+-    {
+-        QString coverfile = GetCoverFile();
+-        if (IsHostSet()
+-            && !coverfile.startsWith(u'/')
+-            && !coverfile.isEmpty()
+-            && !IsDefaultCoverFile(coverfile))
+-            return generate_file_url(QStringLiteral(u"Coverart"), GetHost(),
+-                                     coverfile);
+-        return coverfile;
+-    }
+-
+-    if ((name == QStringLiteral(u"screenshotfile")) ||
+-        (name == QStringLiteral(u"screenshot")))
+-    {
+-        QString screenshot = GetScreenshot();
+-        if (IsHostSet() && !screenshot.startsWith(u'/')
+-            && !screenshot.isEmpty())
+-            return generate_file_url(QStringLiteral(u"Screenshots"),
+-                                     GetHost(), screenshot);
+-        return screenshot;
+-    }
+-
+-    if ((name == QStringLiteral(u"bannerfile")) ||
+-        (name == QStringLiteral(u"banner")))
+-    {
+-        QString bannerfile = GetBanner();
+-        if (IsHostSet() && !bannerfile.startsWith(u'/')
+-            && !bannerfile.isEmpty())
+-            return generate_file_url(QStringLiteral(u"Banners"), GetHost(),
+-                                     bannerfile);
+-        return bannerfile;
+-    }
+-
+-    if ((name == QStringLiteral(u"fanartfile")) ||
+-        (name == QStringLiteral(u"fanart")))
+-    {
+-        QString fanartfile = GetFanart();
+-        if (IsHostSet() && !fanartfile.startsWith('/')
+-            && !fanartfile.isEmpty())
+-            return generate_file_url(QStringLiteral(u"Fanart"), GetHost(),
+-                                     fanartfile);
+-        return fanartfile;
+-    }
+-
+-    if ((name == QStringLiteral(u"smartimage")) ||
+-        (name == QStringLiteral(u"buttonimage")))
+-    {
+-        if (GetSeason() > 0 || GetEpisode() > 0)
+-        {
+-            QString screenshotfile = GetImage("screenshot");
+-            if (!screenshotfile.isEmpty())
+-                return screenshotfile;
+-        }
+-        return GetImage("coverart");
+-    }
+-
+-    return QString();
+-}
+-
+ ////////////////////////////////////////
+ //// Metadata
+ ////////////////////////////////////////
+@@ -1333,93 +1267,6 @@
+     metadataMap[QStringLiteral(u"category")] = GetCategory();
+ }
+ 
+-// This should be the equivalent of toMap, only the text strings
+-// are computed one at a time as needed.
+-QString VideoMetadata::GetText(const QString& name) const
+-{
+-    if (name == QStringLiteral(u"filename"))
+-        return GetFilename();
+-    if (name == QStringLiteral(u"sortfilename"))
+-        return GetSortFilename();
+-    if (name == QStringLiteral(u"title"))
+-        return GetTitle();
+-    if (name == QStringLiteral(u"sorttitle"))
+-        return GetSortTitle();
+-    if (name == QStringLiteral(u"subtitle"))
+-        return GetSubtitle();
+-    if (name == QStringLiteral(u"sortsubtitle"))
+-        return GetSortSubtitle();
+-    if (name == QStringLiteral(u"tagline"))
+-        return GetTagline();
+-    if (name == QStringLiteral(u"director"))
+-        return GetDirector();
+-    if (name == QStringLiteral(u"studio"))
+-        return GetStudio();
+-    if ((name == QStringLiteral(u"description")) ||
+-        (name == QStringLiteral(u"description0")))
+-        return GetPlot();
+-    if (name == QStringLiteral(u"genres"))
+-        return GetDisplayGenres(*this);
+-    if (name == QStringLiteral(u"countries"))
+-        return GetDisplayCountries(*this);
+-    if (name == QStringLiteral(u"cast"))
+-        return GetDisplayCast(*this).join(", ");
+-    if (name == QStringLiteral(u"rating"))
+-        return GetDisplayRating(GetRating());
+-    if (name == QStringLiteral(u"length"))
+-        return GetDisplayLength(GetLength());
+-    if (name == QStringLiteral(u"playcount"))
+-        return QString::number(GetPlayCount());
+-    if (name == QStringLiteral(u"year"))
+-        return GetDisplayYear(GetYear());
+-
+-    if (name == QStringLiteral(u"releasedate"))
+-        return MythDate::toString(GetReleaseDate(), MythDate::kDateFull | MythDate::kAddYear);
+-
+-    if (name == QStringLiteral(u"userrating"))
+-        return GetDisplayUserRating(GetUserRating());
+-
+-    if (GetSeason() > 0 || GetEpisode() > 0)
+-    {
+-        if (name == QStringLiteral(u"season"))
+-            return format_season_and_episode(GetSeason(), 1);
+-        if (name == QStringLiteral(u"episode"))
+-            return format_season_and_episode(GetEpisode(), 1);
+-        if ((name == QStringLiteral(u"s##e##")) ||
+-            (name == QStringLiteral(u"s00e00")))
+-        {
+-            return QStringLiteral(u"s%1e%2")
+-                .arg(format_season_and_episode(GetSeason(), 2),
+-                     format_season_and_episode(GetEpisode(), 2));
+-        }
+-        if ((name == QStringLiteral(u"##x##")) ||
+-            (name == QStringLiteral(u"00x00")))
+-        {
+-            return QStringLiteral(u"%1x%2")
+-                .arg(format_season_and_episode(GetSeason(), 1),
+-                     format_season_and_episode(GetEpisode(), 2));
+-        }
+-    }
+-
+-    if (name == QStringLiteral(u"insertdate"))
+-        return MythDate::toString(
+-            GetInsertdate(), MythDate::kDateFull | MythDate::kAddYear);
+-    if (name == QStringLiteral(u"inetref"))
+-        return GetInetRef();
+-    if (name == QStringLiteral(u"homepage"))
+-        return GetHomepage();
+-    if (name == QStringLiteral(u"child_id"))
+-        return QString::number(GetChildID());
+-    if (name == QStringLiteral(u"browseable"))
+-        return GetDisplayBrowse(GetBrowse());
+-    if (name == QStringLiteral(u"watched"))
+-        return GetDisplayWatched(GetWatched());
+-    if (name == QStringLiteral(u"processed"))
+-        return GetDisplayProcessed(GetProcessed());
+-    if (name == QStringLiteral(u"category"))
+-        return GetCategory();
+-    return QString();
+-}
+ 
+ void VideoMetadata::GetStateMap(InfoMap &stateMap) const
+ {
+@@ -1430,31 +1277,11 @@
+     stateMap[QStringLiteral(u"videolevel")] = ParentalLevelToState(GetShowLevel());
+ }
+ 
+-// This should be the equivalent of GetStateMap, only the state strings
+-// are computed one at a time as needed.
+-QString VideoMetadata::GetState(const QString& name) const
+-{
+-    if (name == QStringLiteral(u"trailerstate"))
+-        return TrailerToState(GetTrailer());
+-    if (name == QStringLiteral(u"userratingstate"))
+-        return QString::number((int)(GetUserRating()));
+-    if (name == QStringLiteral(u"watchedstate"))
+-        return WatchedToState(GetWatched());
+-    if (name == QStringLiteral(u"videolevel"))
+-        return ParentalLevelToState(GetShowLevel());
+-    return QString();
+-}
+-
+ void VideoMetadata::GetImageMap(InfoMap &imageMap)
+ {
+     m_imp->GetImageMap(imageMap);
+ }
+ 
+-QString VideoMetadata::GetImage(const QString& name) const
+-{
+-    return m_imp->GetImage(name);
+-}
+-
+ void ClearMap(InfoMap &metadataMap)
+ {
+     metadataMap["coverfile"] = "";
+@@ -1499,36 +1326,6 @@
+     metadataMap["processed"] = "";
+ }
+ 
+-QString VideoMetadata::MetadataGetTextCb(const QString& name, void *data)
+-{
+-    if (data == nullptr)
+-        return QString();
+-    auto *metadata = static_cast<VideoMetadata *>(data);
+-    QString result = metadata->GetText(name);
+-    if (!result.isEmpty())
+-        return result;
+-    result = metadata->GetImage(name);
+-    if (!result.isEmpty())
+-        return result;
+-    return metadata->GetState(name);
+-}
+-
+-QString VideoMetadata::MetadataGetImageCb(const QString& name, void *data)
+-{
+-    if (data == nullptr)
+-        return QString();
+-    auto *metadata = static_cast<VideoMetadata *>(data);
+-    return metadata->GetImage(name);
+-}
+-
+-QString VideoMetadata::MetadataGetStateCb(const QString& name, void *data)
+-{
+-    if (data == nullptr)
+-        return QString();
+-    auto *metadata = static_cast<VideoMetadata *>(data);
+-    return metadata->GetState(name);
+-}
+-
+ const QString &VideoMetadata::GetPrefix() const
+ {
+     return m_imp->GetPrefix();
+diff -Naur mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythmetadata/videometadata.h mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythmetadata/videometadata.h
+--- mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythmetadata/videometadata.h	2021-09-24 22:43:39.000000000 +0200
++++ mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythmetadata/videometadata.h	2021-09-25 09:45:45.847883268 +0200
+@@ -90,15 +90,8 @@
+     bool sortBefore(const VideoMetadata &rhs) const;
+ 
+     void toMap(InfoMap &metadataMap);
+-    QString GetText(const QString& name) const;
+     void GetStateMap(InfoMap &stateMap) const;
+-    QString GetState(const QString& name) const;
+     void GetImageMap(InfoMap &imageMap);
+-    QString GetImage(const QString& name) const;
+-
+-    static QString MetadataGetTextCb(const QString& name, void *data);
+-    static QString MetadataGetImageCb(const QString& name, void *data);
+-    static QString MetadataGetStateCb(const QString& name, void *data);
+ 
+     const QString &GetPrefix() const;
+     void SetPrefix(const QString &prefix);
+diff -Naur mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythui/mythgenerictree.cpp mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythui/mythgenerictree.cpp
+--- mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythui/mythgenerictree.cpp	2021-09-24 22:43:39.000000000 +0200
++++ mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythui/mythgenerictree.cpp	2021-09-25 09:45:45.847883268 +0200
+@@ -545,24 +545,10 @@
+     }
+ }
+ 
+-void MythGenericTree::SetTextCb(mgtCbFn fn, void *data)
+-{
+-    m_textCb.fn = fn;
+-    m_textCb.data = data;
+-}
+-
+ QString MythGenericTree::GetText(const QString &name) const
+ {
+     if (name.isEmpty())
+         return m_text;
+-
+-    if (m_textCb.fn != nullptr)
+-    {
+-        QString result = m_textCb.fn(name, m_textCb.data);
+-        if (!result.isEmpty())
+-            return result;
+-    }
+-
+     if (m_strings.contains(name))
+         return m_strings[name].text;
+     return QString();
+@@ -580,24 +566,11 @@
+     m_imageFilenames = infoMap;
+ }
+ 
+-void MythGenericTree::SetImageCb(mgtCbFn fn, void *data)
+-{
+-    m_imageCb.fn = fn;
+-    m_imageCb.data = data;
+-}
+-
+ QString MythGenericTree::GetImage(const QString &name) const
+ {
+     if (name.isEmpty())
+         return QString();
+ 
+-    if (m_imageCb.fn != nullptr)
+-    {
+-        QString result = m_imageCb.fn(name, m_imageCb.data);
+-        if (!result.isEmpty())
+-            return result;
+-    }
+-
+     InfoMap::const_iterator it = m_imageFilenames.find(name);
+     if (it != m_imageFilenames.end())
+         return *it;
+@@ -611,12 +584,6 @@
+     m_states = infoMap;
+ }
+ 
+-void MythGenericTree::SetStateCb(mgtCbFn fn, void *data)
+-{
+-    m_stateCb.fn = fn;
+-    m_stateCb.data = data;
+-}
+-
+ void MythGenericTree::DisplayState(const QString &state, const QString &name)
+ {
+     if (!name.isEmpty())
+@@ -628,13 +595,6 @@
+     if (name.isEmpty())
+         return QString();
+ 
+-    if (m_stateCb.fn != nullptr)
+-    {
+-        QString result = m_stateCb.fn(name, m_stateCb.data);
+-        if (!result.isEmpty())
+-            return result;
+-    }
+-
+     InfoMap::const_iterator it = m_states.find(name);
+     if (it != m_states.end())
+         return *it;
+diff -Naur mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythui/mythgenerictree.h mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythui/mythgenerictree.h
+--- mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythui/mythgenerictree.h	2021-09-24 22:43:39.000000000 +0200
++++ mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythui/mythgenerictree.h	2021-09-25 09:45:45.847883268 +0200
+@@ -17,13 +17,6 @@
+ 
+ class SortableMythGenericTreeList;
+ 
+-using mgtCbFn = QString (*)(const QString &name, void *data);
+-struct mgtCbInfo
+-{
+-    mgtCbFn fn   {nullptr};
+-    void*   data {nullptr};
+-};
+-
+ class MUI_PUBLIC MythGenericTree
+ {
+     using IntVector = QVector<int>;
+@@ -78,7 +71,6 @@
+     void SetText(const QString &text, const QString &name="",
+                  const QString &state="");
+     void SetTextFromMap(const InfoMap &infoMap, const QString &state="");
+-    void SetTextCb(mgtCbFn fn, void *data);
+     QString GetText(const QString &name="") const;
+ 
+     QString GetSortText() const { return m_sortText; }
+@@ -86,12 +78,10 @@
+ 
+     void SetImage(const QString &filename, const QString &name="");
+     void SetImageFromMap(const InfoMap &infoMap);
+-    void SetImageCb(mgtCbFn fn, void *data);
+     QString GetImage(const QString &name="") const;
+ 
+     void DisplayState(const QString &state, const QString &name="");
+     void DisplayStateFromMap(const InfoMap &infoMap);
+-    void SetStateCb(mgtCbFn fn, void *data);
+     QString GetState(const QString &name="") const;
+ 
+     void SetData(QVariant data) { m_data = std::move(data); }
+@@ -132,9 +122,6 @@
+     QMap<QString, TextProperties> m_strings;
+     InfoMap m_imageFilenames;
+     InfoMap m_states;
+-    mgtCbInfo m_textCb;
+-    mgtCbInfo m_imageCb;
+-    mgtCbInfo m_stateCb;
+     int      m_int                          {0};
+     QVariant m_data                         {0};
+     uint     m_visibleCount                 {0};
+diff -Naur mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythui/test/test_mythgenerictree/test_mythgenerictree.cpp mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythui/test/test_mythgenerictree/test_mythgenerictree.cpp
+--- mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythui/test/test_mythgenerictree/test_mythgenerictree.cpp	2021-09-24 22:43:39.000000000 +0200
++++ mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythui/test/test_mythgenerictree/test_mythgenerictree.cpp	2021-09-25 09:45:45.851216601 +0200
+@@ -94,87 +94,6 @@
+     QCOMPARE(QString("tres"), node.GetState("three"));
+ }
+ 
+-static QString test_cb_fn(const QString &name, void *data)
+-{
+-    Q_UNUSED(data);
+-    if (name == QStringLiteral("key2"))
+-        return QStringLiteral("beta");
+-    if (name == QStringLiteral("key3"))
+-        return QStringLiteral("gamma");
+-    if (name == QStringLiteral("two"))
+-        return QStringLiteral("dos");
+-    if (name == QStringLiteral("three"))
+-        return QStringLiteral("tres");
+-    return QString();
+-}
+-
+-void TestMythGenericTree::test_text_cb(void)
+-{
+-    MythGenericTree node("title");
+-    node.SetTextCb(test_cb_fn, nullptr);
+-
+-    QCOMPARE(QString("title"), node.GetText());
+-
+-    node.SetText("new title");
+-    QCOMPARE(QString("new title"), node.GetText());
+-
+-    node.SetText("alpha", "key1");
+-    QCOMPARE(QString("alpha"), node.GetText("key1"));
+-    QCOMPARE(QString("beta"),  node.GetText("key2"));
+-    QCOMPARE(QString("gamma"), node.GetText("key3"));
+-
+-    node.SetText("delta", "key1");
+-    QCOMPARE(QString("delta"), node.GetText("key1"));
+-
+-    InfoMap map = {{"one", "uno"}};
+-    node.SetTextFromMap(map);
+-    QCOMPARE(QString("uno"),  node.GetText("one"));
+-    QCOMPARE(QString("dos"),  node.GetText("two"));
+-    QCOMPARE(QString("tres"), node.GetText("three"));
+-}
+-
+-void TestMythGenericTree::test_image_cb(void)
+-{
+-    MythGenericTree node("no title");
+-
+-    node.SetImageCb(test_cb_fn, nullptr);
+-
+-    node.SetImage("alpha", "key1");
+-    QCOMPARE(QString("alpha"), node.GetImage("key1"));
+-    QCOMPARE(QString("beta"),  node.GetImage("key2"));
+-    QCOMPARE(QString("gamma"), node.GetImage("key3"));
+-
+-    node.SetImage("delta", "key1");
+-    QCOMPARE(QString("delta"), node.GetImage("key1"));
+-
+-    InfoMap map = {{"one", "uno"}};
+-    node.SetImageFromMap(map);
+-    QCOMPARE(QString("uno"),  node.GetImage("one"));
+-    QCOMPARE(QString("dos"),  node.GetImage("two"));
+-    QCOMPARE(QString("tres"), node.GetImage("three"));
+-}
+-
+-void TestMythGenericTree::test_state_cb(void)
+-{
+-    MythGenericTree node("no title");
+-
+-    node.SetStateCb(test_cb_fn, nullptr);
+-
+-    node.DisplayState("alpha", "key1");
+-    QCOMPARE(QString("alpha"), node.GetState("key1"));
+-    QCOMPARE(QString("beta"),  node.GetState("key2"));
+-    QCOMPARE(QString("gamma"), node.GetState("key3"));
+-
+-    node.DisplayState("delta", "key1");
+-    QCOMPARE(QString("delta"), node.GetState("key1"));
+-
+-    InfoMap map = {{"one", "uno"}};
+-    node.DisplayStateFromMap(map);
+-    QCOMPARE(QString("uno"),  node.GetState("one"));
+-    QCOMPARE(QString("dos"),  node.GetState("two"));
+-    QCOMPARE(QString("tres"), node.GetState("three"));
+-}
+-
+ void TestMythGenericTree::cleanupTestCase()
+ {
+ }
+diff -Naur mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythui/test/test_mythgenerictree/test_mythgenerictree.h mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythui/test/test_mythgenerictree/test_mythgenerictree.h
+--- mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/libs/libmythui/test/test_mythgenerictree/test_mythgenerictree.h	2021-09-24 22:43:39.000000000 +0200
++++ mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/libs/libmythui/test/test_mythgenerictree/test_mythgenerictree.h	2021-09-25 09:45:45.851216601 +0200
+@@ -31,10 +31,5 @@
+     static void test_text(void);
+     static void test_image(void);
+     static void test_state(void);
+-
+-    static void test_text_cb(void);
+-    static void test_image_cb(void);
+-    static void test_state_cb(void);
+-
+     static void cleanupTestCase();
+ };
+diff -Naur mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/programs/mythfrontend/videolist.cpp mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/programs/mythfrontend/videolist.cpp
+--- mythtv-d12d08e25574ea167e2184c451d067b44560309b-old/mythtv/programs/mythfrontend/videolist.cpp	2021-09-24 22:43:39.000000000 +0200
++++ mythtv-d12d08e25574ea167e2184c451d067b44560309b-new/mythtv/programs/mythfrontend/videolist.cpp	2021-09-25 09:45:45.851216601 +0200
+@@ -307,20 +307,31 @@
+ {
+     MythGenericTree *sub_node = where_to_add->addNode(name, 0, true);
+     sub_node->SetData(QVariant::fromValue(TreeNodeData(metadata)));
+-    sub_node->SetTextCb( &VideoMetadata::MetadataGetTextCb, metadata);
+-    sub_node->SetImageCb(&VideoMetadata::MetadataGetImageCb, metadata);
+-    sub_node->SetStateCb(&VideoMetadata::MetadataGetStateCb, metadata);
++
++    // Text
++    InfoMap textMap;
++    metadata->toMap(textMap);
++    sub_node->SetTextFromMap(textMap);
++
++    // Images
++    InfoMap imageMap;
++    metadata->GetImageMap(imageMap);
++    sub_node->SetImageFromMap(imageMap);
++    sub_node->SetImage("buttonimage", imageMap["smartimage"]);
+ 
+     // Assign images to parent node if this is the first child
+     if (where_to_add->visibleChildCount() == 1 &&
+         where_to_add->getInt() == kSubFolder)
+     {
+-        InfoMap imageMap;
+-        metadata->GetImageMap(imageMap);
+         where_to_add->SetImageFromMap(imageMap);
+         where_to_add->SetImage("buttonimage", imageMap["smartimage"]);
+     }
+ 
++    // Statetypes
++    InfoMap stateMap;
++    metadata->GetStateMap(stateMap);
++    sub_node->DisplayStateFromMap(stateMap);
++
+     return 1;
+ }
+ 

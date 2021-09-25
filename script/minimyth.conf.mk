@@ -9,7 +9,7 @@
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of MiniMyth2.
-mm_VERSION_MINIMYTH ?= 11.22.0.r2839
+mm_VERSION_MINIMYTH ?= 11.22.0.r2883
 
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
 mm_VERSION_MYTH           ?= $(strip \
