@@ -479,7 +479,7 @@ endif
 	@# For given class of HW, mesa dri drivers are infact thesame binary. 
 	@# Make all as symlink to singe binary to save rootfs size
 	@if [ -e $@~$(libdir)/dri/panfrost_dri.so ] && [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then \
-		echo 'symlinking mesa panfrost per-SoC DRI drivers to generic DRI driver'                          ; \
+		echo 'symlinking mesa panfrost per-SoC DRI drivers to all-in-one mesa DRI driver'                  ; \
 		cp $@~$(libdir)/dri/panfrost_dri.so $@~$(libdir)/dri/generic_mesa_dri_driver                       ; \
 		files=`ls -1 $@~$(libdir)/dri/*.so`                                                                ; \
 			for file in $${files} ; do                                                                   \
@@ -593,6 +593,52 @@ endif
 		| xargs chmod 0644
 	@echo "set up permissions on execs"
 	@$(call SET_PERMISSIONS,$@~)
+	@echo "set ssh permissions"
+	@chmod 0700 $@~/root/.ssh
+	@chmod 0600 $@~/root/.ssh/id_rsa
+	@chmod 0700 $@~/home/minimyth/.ssh
+	@chmod 0600 $@~/home/minimyth/.ssh/id_rsa
+	@chmod 0755 $@~$(bindir)/ssh
+	@chmod 0755 $@~/usr/sbin/sshd
+	@chmod 0755 $@~$(bindir)/scp
+	@echo "set symlinks for 64bit ARM glibc"
+	@if [ -e $@~$(elibdir)/ld-linux-* ] ; then    \
+		chmod 0755 $@~$(elibdir)/ld-linux-* ; \
+	 fi
+	@if [ ! -e $@~$(elibdir64)/libmount.so* ] ; then \
+		ln -sr $@~$(elibdir)/libmount.so.1 $@~$(elibdir64)/libmount.so.1 ; \
+	 fi
+	@if [ ! -e $@~$(elibdir64)/libblkid.so* ] ; then \
+		ln -sr $@~$(elibdir)/libblkid.so.1 $@~$(elibdir64)/libblkid.so.1 ; \
+	 fi
+	@if [ ! -e $@~$(elibdir64)/libuuid.so* ] ; then \
+		ln -sr $@~$(elibdir)/libuuid.so.1 $@~$(elibdir64)/libuuid.so.1 ; \
+	 fi
+	@# Symlinks needed by Qt5 GLES propper support
+	@if [ -e $@~$(libdir)/libGLESv2.so.2 ] ; then \
+		ln -srf $@~$(libdir)/libGLESv2.so.2 $@~$(libdir)/libGLESv2.so ; \
+	 fi
+	@if [ -e $@~$(libdir)/libEGL.so.1 ] ; then \
+		ln -srf $@~$(libdir)/libEGL.so.1 $@~$(libdir)/libEGL.so ; \
+	 fi
+	@if [ -e $@~$(bindir)/aplay ] ; then \
+		ln -srf $@~$(bindir)/aplay $@~$(bindir)/arecord ; \
+	 fi
+	@# Set SUID on weston-launch binary required by weston as we are not using systemd nor setcap
+	@if [ -e $@~$(bindir)/weston-launch ] ; then    \
+		chmod +s $@~$(bindir)/weston-launch ; \
+	 fi
+	@# Set SUID on sway binary required by sway as we are not using systemd nor setcap
+	@if [ -e $@~$(bindir)/sway ] ; then    \
+		chmod +s $@~$(bindir)/sway ; \
+	 fi
+	@echo "last exe permission fixups on some execs" ; \
+	 files="mplayer ntpd ntpdate mysql" ; \
+	 for file in $${files} ; do \
+			if [ -e $@~$(bindir)/$${file} ] ; then \
+				chmod +x $@~$(bindir)/$${file} ; \
+			fi ; \
+	 done
 	@touch $@~
 	@mv $@~ $@
 
@@ -640,57 +686,6 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 		| sed -e 's%^\(\$(top_source)/initrd\)/\(.*\)$$%\1/\2 $@~/\2%' \
 		| xargs -n 2 cp -fpd
 	@$(call SET_PERMISSIONS,$@~)
-	@# Setup ssh id_RSA permissions
-	@chmod 0700 $@~/rootfs-ro/root/.ssh
-	@chmod 0600 $@~/rootfs-ro/root/.ssh/id_rsa
-	@chmod 0700 $@~/rootfs-ro/home/minimyth/.ssh
-	@chmod 0600 $@~/rootfs-ro/home/minimyth/.ssh/id_rsa
-	@chmod 0755 $@~/rootfs-ro/usr/bin/ssh
-	@chmod 0755 $@~/rootfs-ro/usr/sbin/sshd
-	@chmod 0755 $@~/rootfs-ro/usr/bin/scp
-	@# Set of hacks for 64bit ARM platforms glibc
-	@if [ -e $@~/rootfs-ro/lib/ld-linux-* ] ; then    \
-		chmod 0755 $@~/rootfs-ro/lib/ld-linux-* ; \
-	 fi
-	@if [ ! -e $@~/rootfs-ro/lib64/libmount.so* ] ; then \
-		ln -sr $@~/rootfs-ro/lib/libmount.so.1 $@~/rootfs-ro/lib64/libmount.so.1 ; \
-	 fi
-	@if [ ! -e $@~/rootfs-ro/lib64/libblkid.so* ] ; then \
-		ln -sr $@~/rootfs-ro/lib/libblkid.so.1 $@~/rootfs-ro/lib64/libblkid.so.1 ; \
-	 fi
-	@if [ ! -e $@~/rootfs-ro/lib64/libuuid.so* ] ; then \
-		ln -sr $@~/rootfs-ro/lib/libuuid.so.1 $@~/rootfs-ro/lib64/libuuid.so.1 ; \
-	 fi
-	@# Symlinks needed by Qt5 GLES propper support
-	@if [ -e $@~/rootfs-ro/usr/lib/libGLESv2.so.2 ] ; then \
-		ln -srf $@~/rootfs-ro/usr/lib/libGLESv2.so.2 $@~/rootfs-ro/usr/lib/libGLESv2.so ; \
-	 fi
-	@if [ -e $@~/rootfs-ro/usr/lib/libEGL.so.1 ] ; then \
-		ln -srf $@~/rootfs-ro/usr/lib/libEGL.so.1 $@~/rootfs-ro/usr/lib/libEGL.so ; \
-	 fi
-	@if [ -e $@~/rootfs-ro/usr/bin/aplay ] ; then \
-		ln -srf $@~/rootfs-ro/usr/bin/aplay $@~/rootfs-ro/usr/bin/arecord ; \
-	 fi
-	@# Set SUID on weston-launch binary required by weston as we are not using systemd nor setcap
-	@if [ -e $@~/rootfs-ro/usr/bin/weston-launch ] ; then    \
-		chmod +s $@~/rootfs-ro/usr/bin/weston-launch ; \
-	 fi
-	@# Set SUID on sway binary required by sway as we are not using systemd nor setcap
-	@if [ -e $@~/rootfs-ro/usr/bin/sway ] ; then    \
-		chmod +s $@~/rootfs-ro/usr/bin/sway ; \
-	 fi
-	@# Hack for strip wich is cheated by mplayer exec
-	@if [ -e $@~/rootfs-ro/usr/bin/mplayer ] ; then    \
-		chmod 0755 $@~/rootfs-ro/usr/bin/mplayer ; \
-	 fi
-	@# Hack for strip wich is cheated by ntp exec
-	@if [ -e $@~/rootfs-ro/usr/bin/ntp ] ; then    \
-		chmod 0755 $@~/rootfs-ro/usr/bin/ntp ; \
-	 fi
-	@# Hack for strip wich is cheated by ntpdate exec
-	@if [ -e $@~/rootfs-ro/usr/bin/ntpdate ] ; then    \
-		chmod 0755 $@~/rootfs-ro/usr/bin/ntpdate ; \
-	 fi
 	@touch $@~
 	@mv $@~ $@
 
