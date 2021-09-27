@@ -22,7 +22,7 @@ BUILD_ARGS   = \
 	CXXFLAGS="$(CXXFLAGS) $(LDFLAGS)"
 
 configure-custom:
-	@cd $(WORKSRC) && ./bootstrap.sh --with-toolset=gcc --with-icu --with-python=python3 --prefix=$(DESTDIR)$(libdir)/boost_1_73_0
+	@cd $(WORKSRC) && ./bootstrap.sh --with-toolset=gcc --with-icu --without-libraries=python --prefix=$(DESTDIR)$(libdir)/boost_1_73_0
 	@$(MAKECOOKIE)
 
 post-configure:
