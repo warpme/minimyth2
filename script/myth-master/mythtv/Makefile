@@ -106,7 +106,7 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
 
 # Revert needed to have proper titles in movelist when Monochrome theme is used
-PATCHFILES += 0500-revert-48c16d0c0c6-perf-Add-callbacks-as-an-option-to-read-data-from-MythGenericTree.patch
+# PATCHFILES += 0500-revert-48c16d0c0c6-perf-Add-callbacks-as-an-option-to-read-data-from-MythGenericTree.patch
 
 endif
 
