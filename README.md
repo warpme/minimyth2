@@ -12,6 +12,17 @@ From the software perspective, MiniMyth2 is MythTV frontend with minimal require
 (Linux kernel, GNU libraries, video/audio/IR remote drivers) allowing to run MythTV frontend with full speed & features
 on recent hardware from Intel/AMD/Amlogic/Rockchip/Allwinner/Raspbery.
 
+Comparing MiniMyth2 with other distributions, MiniMyth2 is closest to buildroot - with difference MiniMyth2 uses canadian
+cross cross-compilation. In MiniMyth2 issuing make build command automates:
+- downloading sources
+- building build enviroment for building cross-toolchain
+- building cross-toolchain
+- building target binaries with cross-toolchain
+- preparing bootable image
+- uploading created bootable image to i.e. PXE server or NFS server or starts flashing SD card
+
+From building perspective - MiniMyth2 is closest to LFS build in fully automated way.
+
 
 
 ## Project Goals
