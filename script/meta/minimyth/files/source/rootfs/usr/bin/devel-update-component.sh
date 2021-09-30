@@ -69,7 +69,9 @@ persist_store_pref="/initrd/rootfs-ro"
 
 # ---- MythTV dir/files ---
 component_1="MythTV"
+# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list1="/usr/lib/mythtv/plugins/:/usr/lib/mythtv/plugins"
+# file_list format: <src_path>/<files>:<dest_path>/
 file_list1=" \
 /usr/lib/libmyth*.so*:/usr/lib/ \
 /usr/bin/mythfrontend:/usr/bin/ \
@@ -81,7 +83,9 @@ epilog_cmd1="mm_manage restart_mythfrontend"
 
 # ---- Mesa dir/files ---
 component_2="Mesa3D"
+# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list2="/usr/lib/dri/:/usr/lib/dri"
+# file_list format: <src_path>/<files>:<dest_path>/
 file_list2=" \
 /usr/lib/libEGL.so*:/usr/lib/ \
 /usr/lib/libGL.so*:/usr/lib/ \
@@ -104,17 +108,21 @@ epilog_cmd2="mm_manage restart_xserver"
 
 # ---- Kernel dir/files ---
 component_3="Linux kernel"
+# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list3="
 /boot/dtbs/:/media/boot/dtbs \
 /lib/modules/:/initrd/rootfs-ro/lib/modules \
 "
+# file_list format: <src_path>/<files>:<dest_path>/
 file_list3="/boot/*Image:/media/boot/"
 epilog_cmd3="sync"
 #--------------------------
 
 # ---- FFmpeg dir/files ---
 component_4="FFmpeg"
+# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list4=""
+# file_list format: <src_path>/<files>:<dest_path>/
 file_list4=" \
 /usr/lib/libswscale.so*:/usr/lib/ \
 /usr/lib/libswresample.so*:/usr/lib/ \
@@ -128,12 +136,27 @@ file_list4=" \
 /usr/bin/ffplay:/usr/bin/ \
 /usr/bin/ffmpeg:/usr/bin/ \
 "
-epilog_cmd4=""
+epilog_cmd4="sync"
 #--------------------------
 
 # --- All lib/bin files ---
-component_5="All libs & bins"
+component_5="gstreamer"
+# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list5=" \
+/usr/lib/gstreamer-1.0/:/usr/lib/gstreamer-1.0 \
+"
+# file_list format: <src_path>/<files>:<dest_path>/
+file_list5="
+/usr/lib/libgst*.so*:/usr/lib/ \
+/usr/bin/gst-*:/usr/bin/ \
+"
+epilog_cmd5="sync"
+#--------------------------
+
+# --- All lib/bin files ---
+component_6="All libs & bins"
+# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+directory_list6=" \
 /lib/:/lib \
 /lib64/:/lib64 \
 /bin/:/bin \
@@ -143,8 +166,9 @@ directory_list5=" \
 /usr/sbin/:/usr/sbin \
 /usr/share/:/usr/share \
 "
-file_list5=""
-epilog_cmd5="sync"
+# file_list format: <src_path>/<files>:<dest_path>/
+file_list6=""
+epilog_cmd6="sync"
 #--------------------------
 
 
@@ -173,7 +197,7 @@ epilog_cmd5="sync"
 
 
 
-ver="v1.2 by (c)Piotr Oniszczuk"
+ver="v1.3 by (c)Piotr Oniszczuk"
 
 clear
 
@@ -202,13 +226,14 @@ if [ x${selection} = "x" ] ; then
     echo " "
     echo "Script version:${ver}"
     echo " "
-    echo "Please choose component to update by pressing key [1..5]"
+    echo "Please choose component to update by pressing key [1..6]"
     echo " "
     echo "  (1) for "${component_1}
     echo "  (2) for "${component_2}
     echo "  (3) for "${component_3}
     echo "  (4) for "${component_4}
     echo "  (5) for "${component_5}
+    echo "  (6) for "${component_6}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -244,6 +269,11 @@ case "${selection}" in
         directory_list=${directory_list5}
         file_list=${file_list5}
         epilog_cmd="${epilog_cmd5}" ;;
+
+    6)  echo "Updating ${component_6} ..."
+        directory_list=${directory_list6}
+        file_list=${file_list6}
+        epilog_cmd="${epilog_cmd6}" ;;
 
     *)
         echo "Unknown selection !"
