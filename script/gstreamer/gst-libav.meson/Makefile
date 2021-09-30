@@ -25,8 +25,7 @@ DEPENDS = \
 	lang/c \
 	gstreamer/gst-plugins-base \
 	utils/bzip2 \
-
-#	lib/ffmpeg
+	lib/ffmpeg
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
@@ -34,7 +33,6 @@ INSTALL_SCRIPTS    = meson
 
 CONFIGURE_ARGS = $(DIRPATHS_MESON) \
 	--buildtype=release \
-	--wrap-mode=forcefallback \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
@@ -45,11 +43,3 @@ post-install:
 
 clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/gstreamer-1.0/libgstlibav.so*
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libswscale.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libswresample.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libpostproc.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavutil.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavformat.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavfilter.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavdevice.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavcodec.pc

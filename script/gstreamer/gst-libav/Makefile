@@ -1,6 +1,13 @@
 
+# this package is build with old Automake way as I can't find
+# way to build it on Meson with build-in FFmpeg.
+# Building with build-in FFmpeg and exact 1.16.2 version of gst-libav
+# is only solution to get HTML video playback working ok in QtWebKIT.
+# This package build against external FFmpeg gives still picture in HTML5
+# video playback in QtWebKIT
+
 GARNAME      = gst-libav
-GARVERSION   = $(GST_VERSION)
+GARVERSION   = 1.16.2
 CATEGORIES   = gst
 MASTER_SITES = $(GST_MASTER_SITES)
 DISTFILES    = $(DISTNAME).tar.xz
@@ -15,8 +22,6 @@ DEPENDS = \
 	gstreamer/gst-plugins-base \
 	utils/bzip2 \
 
-#	lib/ffmpeg
-
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
@@ -26,10 +31,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--with-libav-extra-configure="--enable-runtime-cpudetect --as=$(CC)" \
 	--with-pic \
-
-# By some reason mythwebroweser has not working vh264 ideo playback when external
-# gstlibav uses external ffmpeg...
-#	--with-system-libav \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
@@ -43,11 +44,3 @@ post-install:
 
 clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/gstreamer-1.0/libgstlibav.so*
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libswscale.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libswresample.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libpostproc.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavutil.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavformat.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavfilter.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavdevice.pc
-	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libavcodec.pc

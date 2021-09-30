@@ -3,7 +3,6 @@ GARNAME      = gst-plugins-bad
 GARVERSION   = $(GST_VERSION)
 CATEGORIES   = gst
 MASTER_SITES = $(GST_MASTER_SITES)
-PATCHFILES   = $(DISTNAME)-make43.patch
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = GPL2
 
@@ -28,21 +27,20 @@ DEPENDS = \
 	X11/libvdpau \
 	wayland/wayland-core \
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--prefix=/usr \
-	--disable-qt
+CONFIGURE_ARGS = $(DIRPATHS_MESON) \
+	--buildtype=release \
+	-D examples=disabled \
+	-D tests=disabled \
+	-D introspection=disabled \
+	-D gobject-cast-checks=disabled \
+	-D glib-asserts=disabled \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgstadaptivedemux-1.0.la
@@ -140,7 +138,6 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrtmp.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrtpbad.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstrtponvif.la
-	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstsctp-1.0.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstsdpelem.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstsegmentclip.la
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstshm.la

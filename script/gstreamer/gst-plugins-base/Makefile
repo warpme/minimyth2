@@ -3,7 +3,6 @@ GARNAME      = gst-plugins-base
 GARVERSION   = $(GST_VERSION)
 CATEGORIES   = gst
 MASTER_SITES = $(GST_MASTER_SITES)
-PATCHFILES   = $(DISTNAME)-make43.patch
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = GPL2
 
@@ -12,32 +11,32 @@ define BLURB
 endef
 
 DEPENDS = lang/c \
-          gstreamer/gstreamer \
-          lib/alsa-lib \
-          gtk/graphene \
-          lib/libjpeg \
-          lib/libjpeg-turbo \
-          lib/libpng \
-          lib/libtheora \
-          lib/libvorbis \
-          gtk/pango \
-          lib/SDL \
+	gstreamer/gstreamer \
+	lib/alsa-lib \
+	gtk/graphene \
+	lib/libjpeg \
+	lib/libjpeg-turbo \
+	lib/libpng \
+	lib/libtheora \
+	lib/libvorbis \
+	gtk/pango \
+	lib/SDL \
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--prefix=/usr \
-	--disable-examples \
+CONFIGURE_ARGS = $(DIRPATHS_MESON) \
+	--buildtype=release \
+	-D examples=disabled \
+	-D tests=disabled \
+	-D tools=enabled \
+	-D introspection=disabled \
+	-D gobject-cast-checks=disabled \
+	-D glib-asserts=disabled \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgstallocators-1.0.la

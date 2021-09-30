@@ -3,7 +3,6 @@ GARNAME      = gstreamer
 GARVERSION   = $(GST_VERSION)
 CATEGORIES   = gst
 MASTER_SITES = $(GST_MASTER_SITES)
-PATCHFILES   = $(DISTNAME)-make43.patch
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = GPL2
 
@@ -16,37 +15,29 @@ DEPENDS = \
 	lib/libxml2 \
 	devel/libelf \
 
-BUILDDEPS = gtk/glib
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
-
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--prefix=/usr \
-	--disable-gst-debug \
-	--disable-gst-debug \
-	--disable-examples \
-	--disable-tests \
-	--disable-failing-tests \
-	--disable-benchmarks \
-	--enable-tools \
-	--enable-introspection=no \
-	--disable-gtk-doc \
-	--disable-gtk-doc-html \
-	--disable-gtk-doc-pdf \
-	--enable-gobject-cast-checks=no \
-	--enable-glib-asserts=no \
-	--disable-check \
-	--disable-Bsymbolic \
+CONFIGURE_ARGS = $(DIRPATHS_MESON) \
+	--buildtype=release \
+	-D gst-debug=false \
+	-D examples=disabled \
+	-D tests=disabled \
+	-D failing-tests=false \
+	-D benchmarks=disabled \
+	-D tools=disabled \
+	-D introspection=disabled \
+	-D gtk-doc=false \
+	-D gtk-doc-html=false \
+	-D gtk-doc-pdf=false \
+	-D gobject-cast-checks=disabled \
+	-D glib-asserts=disabled \
+	-D check=disabled \
+	-D Bsymbolic=false \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libgstbase-1.0.la
