@@ -57,14 +57,6 @@ include ../../gar.mk
 
 CONFIGURE_ARGS = \
 	-prefix $(DESTDIR)$(qt6prefix) \
-	-bindir $(DESTDIR)$(qt6bindir) \
-	-libdir $(DESTDIR)$(qt6libdir) \
-	-docdir $(DESTDIR)$(qt6prefix)/doc \
-	-headerdir $(DESTDIR)$(qt6includedir) \
-	-datadir $(DESTDIR)$(qt6libdir) \
-	-translationdir $(DESTDIR)$(qt6prefix)/translations \
-	-sysconfdir $(DESTDIR)$(qt6libdir)/settings \
-	-examplesdir $(DESTDIR)$(qt6prefix)/examples \
 	-release \
 	-confirm-license \
 	-opensource \
@@ -85,7 +77,6 @@ CONFIGURE_ARGS = \
 	-skip qtnetworkauth \
 	-skip qtopcua \
 	-skip qtquick3d \
-	-skip qtquickcontrols2 \
 	-skip qtquicktimeline \
 	-skip qtremoteobjects \
 	-skip qtscxml \
@@ -235,18 +226,9 @@ post-install:
 	@rm -f $(PLATFORM_DEFAULT_PATH)
 	@ln -sf $(PLATFORM_GARHOST_NAME) $(PLATFORM_DEFAULT_PATH)
 	@$(call GLIBC_ADD_LIB_PATH, $(qt6libdir))
-	@files=`ls -1 $(DESTDIR)$(qt6libdir)/pkgconfig/*.pc` ; \
-	 for file in $${files} ; do \
-		sed \
-		 -e 's%^prefix=$(DESTDIR)$(qt6prefix)$$%prefix=$(qt6prefix)%g' \
-		 -e 's%-I$(DESTDIR)$(includedir)%-I$(includedir)%g'            \
-		 -e 's%-L$(DESTDIR)$(libdir)%-L$(libdir)%g'                    \
-		 -e 's%-I$(DESTDIR)$(qt6includedir)%-I$(qt6includedir)%g'      \
-		 -e 's%-L$(DESTDIR)$(qt6libdir)%-L$(qt6libdir)%g'              \
-		 -e 's%-I$(DESTDIR)$(qt6prefix)%-I$(qt6prefix)%g'              \
-		 -e 's%-L$(DESTDIR)$(qt6prefix)%-L$(qt6prefix)%g'              \
-		 -i $${file} ; \
-	 done
+	@if [ -e $(DESTDIR)$(qt6bindir)/target_qt.conf ] ; then \
+	 sed -i 's/^SysrootifyPrefix=.*/SysrootifyPrefix=false/g' $(DESTDIR)$(qt6bindir)/target_qt.conf ; \
+	 fi
 	@$(MAKECOOKIE)
 
 clean-all:
