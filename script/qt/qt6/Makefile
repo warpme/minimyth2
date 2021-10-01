@@ -1,8 +1,8 @@
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 6.1.3
+GARVERSION   = 6.2.0
 CATEGORIES   = qt
-MASTER_SITES = http://download.qt.io/official_releases/qt/6.1/$(GARVERSION)/single/
+MASTER_SITES = http://download.qt.io/official_releases/qt/6.2/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = LGPL2_1
 
@@ -79,6 +79,7 @@ CONFIGURE_ARGS = \
 	-skip qtdatavis3d \
 	-skip qtdoc \
 	-skip qtimageformats \
+	-skip qtlocation \
 	-skip qtlottie \
 	-skip qtmqtt \
 	-skip qtnetworkauth \
@@ -86,11 +87,18 @@ CONFIGURE_ARGS = \
 	-skip qtquick3d \
 	-skip qtquickcontrols2 \
 	-skip qtquicktimeline \
+	-skip qtremoteobjects \
 	-skip qtscxml \
-	-skip qtshadertools \
+	-skip qtsensors \
+	-skip qtserialbus \
+	-skip qtserialport \
 	-skip qttranslations \
 	-skip qtvirtualkeyboard \
 	-skip qtwayland \
+	-skip qtwebchannel \
+	-skip qtwebengine \
+	-skip qtwebsockets \
+	-skip qtwebview \
 
 ifeq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
@@ -102,7 +110,8 @@ CONFIGURE_ARGS += \
 	-no-ltcg \
 	-optimize-size \
 	-make tools \
-	-skip qt5compat
+	-skip qt5compat \
+	-skip qtmultimedia
 else
 CONFIGURE_ARGS += \
 	-xplatform $(PLATFORM_GARHOST_NAME) \
