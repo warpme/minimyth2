@@ -187,14 +187,14 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@# Copy shares.
 	@$(call COPY_FILES, "shares", "share", $(DESTDIR), $@~, $(sharedirs), $(MM_SHARES))
 	@# Copy the QT plugins needed by MythTV.
-	@if [ $(mm_QT_VERSION) = "4" ] ; then \
+	@if [ $(mm_QT_VERSION) = "qt4" ] ; then \
 		rm -rf   $@~$(qt4prefix)/plugins                                                 ; \
 		mkdir -p $@~$(qt4prefix)/plugins                                                 ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/graphicssystems   $@~$(qt4prefix)/plugins ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/iconengines       $@~$(qt4prefix)/plugins ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/imageformats      $@~$(qt4prefix)/plugins ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/sqldrivers        $@~$(qt4prefix)/plugins ; \
-	 elif [ $(mm_QT_VERSION) = "6" ] ; then                                                    \
+	 elif [ $(mm_QT_VERSION) = "qt6" ] ; then                                                  \
 		rm -rf   $@~$(qt6prefix)/plugins                                                 ; \
 		mkdir -p $@~$(qt6prefix)/plugins                                                 ; \
 		cp -pdR  $(DESTDIR)$(qt6prefix)/plugins/platforms        $@~$(qt6prefix)/plugins ; \

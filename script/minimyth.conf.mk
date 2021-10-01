@@ -58,9 +58,9 @@ mm_OPENGL_PROVIDER        ?= mesa
 
 # Selects Qt version used by mythtv. Valid values for
 # mm_QT_VERSION are:
-# '5',
-# '6',
-mm_QT_VERSION             ?= 5
+# 'qt5',
+# 'qt6',
+mm_QT_VERSION             ?= qt5
 
 # Lists the software to be supported.
 # Valid values for MM_SOFTWARE are zero or more of list below:

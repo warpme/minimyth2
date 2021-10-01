@@ -83,7 +83,7 @@ bindirs_base := \
 	$(sbindir) \
 	$(bindir) \
 	$(libexecdir) \
-	$(if $(filter 0.27,$(mm_MYTH_VERSION)), $(qt4bindir), $(qt5bindir)) \
+	$(if $(filter 6,$(mm_QT_VERSION)), $(qt6bindir), $(qt5bindir)) \
 	$(kdebindir)
 bindirs := \
 	$(bindirs_base) \

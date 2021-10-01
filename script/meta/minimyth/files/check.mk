@@ -134,8 +134,8 @@ mm-all:
 	done
 	@echo "    mm_QT_VERSION"
 	@for qt in $(mm_QT_VERSION) ; do \
-		if [ ! "$${qt}" = "5"     ] && \
-		   [ ! "$${qt}" = "6" ] ; then \
+		if [ ! "$${qt}" = "qt5" ] && \
+		   [ ! "$${qt}" = "qt6" ] ; then \
 			echo " " ; \
 			echo "error: mm_QT_VERSION=\"$${qt}\" is an invalid value." ; \
 			echo " " ; \
