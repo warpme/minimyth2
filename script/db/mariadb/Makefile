@@ -4,6 +4,7 @@ GARVERSION   = 10.6.4
 CATEGORIES   = db
 MASTER_SITES = https://rsync.osuosl.org/pub/mariadb/mariadb-$(GARVERSION)/source/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = c11_atomics.patch
 LICENSE      = GPL
 
 DEPENDS = \
