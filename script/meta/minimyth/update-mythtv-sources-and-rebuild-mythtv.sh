@@ -18,9 +18,9 @@ use_test_branch_as_amster="no"
 # GIT branch name used when above is set to "yes"
 # or when minimyth.conf.mk var. mm_MYTH_VERSION is
 # set as "test"
-test_branch_name="devel/2020-player"
+test_branch_name="devel/qt6"
 # Dir where myth test branch sources will be
-test_git_src_dir="git-mythtv-2020-player"
+test_git_src_dir="git-mythtv-qt6"
 
 # Location of MiniMyth2 main build config file
 mm_conf_file="${HOME}/.minimyth2/minimyth.conf.mk"
