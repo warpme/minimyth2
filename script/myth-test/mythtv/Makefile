@@ -11,6 +11,7 @@ PATCHFILES  =
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
+PATCHFILES += 0003-configure-fix-qt6-gles-detection.patch
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
@@ -203,7 +204,7 @@ CONFIGURE_ARGS = \
 	--host-ldflags="$(build_LDFLAGS)" \
 	--extra-cflags="$(CFLAGS)" \
 	--extra-cxxflags="$(CXXFLAGS)" \
-	--extra-ldflags="$(LDFLAGS)" \
+	--extra-ldflags="$(LDFLAGS) -Wl,-rpath-link,$(DESTDIR)$(qt6libdir)" \
 	--enable-symbol-visibility \
 	--arch=$(GARCH_FAMILY) \
 	--disable-altivec \
