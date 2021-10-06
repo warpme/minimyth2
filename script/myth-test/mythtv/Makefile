@@ -172,8 +172,6 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/mythtv/configure
 BUILD_SCRIPTS     = $(WORKSRC)/mythtv/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/mythtv/Makefile source
 
-#	--extra-ldflags="$(LDFLAGS) -Wl,-rpath-link,$(DESTDIR)$(qt6libdir)" \
-
 comma:= ,
 
 CONFIGURE_ARGS = \
