@@ -186,8 +186,8 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@$(call COPY_FILES, "libraries", "library", $(DESTDIR), $@~, $(libdirs), $(MM_LIBS))
 	@# Copy shares.
 	@$(call COPY_FILES, "shares", "share", $(DESTDIR), $@~, $(sharedirs), $(MM_SHARES))
-	@# Copy the QT plugins needed by MythTV.
 	@if [ $(mm_QT_VERSION) = "qt4" ] ; then \
+		echo "copy qt4 plugins required by mythtv"                                       ; \
 		rm -rf   $@~$(qt4prefix)/plugins                                                 ; \
 		mkdir -p $@~$(qt4prefix)/plugins                                                 ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/graphicssystems   $@~$(qt4prefix)/plugins ; \
@@ -195,6 +195,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/imageformats      $@~$(qt4prefix)/plugins ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/sqldrivers        $@~$(qt4prefix)/plugins ; \
 	 elif [ $(mm_QT_VERSION) = "qt6" ] ; then                                                  \
+		echo "copy qt6 plugins required by mythtv"                                       ; \
 		rm -rf   $@~$(qt6prefix)/plugins                                                 ; \
 		mkdir -p $@~$(qt6prefix)/plugins                                                 ; \
 		cp -pdR  $(DESTDIR)$(qt6prefix)/plugins/platforms        $@~$(qt6prefix)/plugins ; \
@@ -214,6 +215,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 			cp -pdR $(DESTDIR)$(qt6prefix)/plugins/wayland-shell-integration $@~$(qt6prefix)/plugins ; \
 		fi                                                                               ; \
 	 else                                                                                      \
+		echo "copy qt5 plugins required by mythtv"                                       ; \
 		rm -rf   $@~$(qt5prefix)/plugins                                                 ; \
 		mkdir -p $@~$(qt5prefix)/plugins                                                 ; \
 		cp -pdR  $(DESTDIR)$(qt5prefix)/plugins/platforms        $@~$(qt5prefix)/plugins ; \
@@ -272,6 +274,8 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@MM_GARCH@%$(mm_GARCH_FAMILY)%g'                 $@~/etc/os_myth_release
 	@sed -i 's%@MM_VERSION@%$(mm_VERSION)-$(mm_GARCH_FAMILY)%g' $@~/etc/version
 	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                          $@~/usr/bin/devel-update-component.sh
+	@sed -i 's%@mm_QT_VERSION@%$(mm_QT_VERSION)%g' $@~/etc/conf.d/core
+	@sed -i 's%@mm_QT_VERSION@%$(mm_QT_VERSION)%g' $@~/usr/bin/mythfrontend.sh
 	@MM_DEVEL_HOST_IP="$(shell /bin/hostname -i | sed -e 's/\s//g')"; sed -i "s%@MM_DEVEL_IP@%$$MM_DEVEL_HOST_IP%g" $@~/usr/bin/devel-update-component.sh
 ifneq (,$(findstring rpi,$(mm_KERNEL_VERSION)))
 	@sed -i 's%    # mm_splash_init%    mm_splash_init%'        $@~$(sysconfdir)/rc.d/init.d/modules_automatic

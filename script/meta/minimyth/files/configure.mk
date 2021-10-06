@@ -83,7 +83,9 @@ bindirs_base := \
 	$(sbindir) \
 	$(bindir) \
 	$(libexecdir) \
-	$(if $(filter 6,$(mm_QT_VERSION)), $(qt6bindir), $(qt5bindir)) \
+	$(if $(filter qt4,$(mm_QT_VERSION)), $(qt4bindir),) \
+	$(if $(filter qt5,$(mm_QT_VERSION)), $(qt5bindir),) \
+	$(if $(filter qt6,$(mm_QT_VERSION)), $(qt6bindir),) \
 	$(kdebindir)
 bindirs := \
 	$(bindirs_base) \
@@ -96,7 +98,9 @@ libdirs_base := \
 	$(libexecdir) \
 	$(libdir)/mysql \
 	$(if $(filter $(mm_GRAPHICS),radeon),$(libdir)/vdpau) \
-	$(if $(filter 0.27,$(mm_MYTH_VERSION)), $(qt4libdir), $(qt5libdir)) \
+	$(if $(filter qt4,$(mm_QT_VERSION)), $(qt4libdir),) \
+	$(if $(filter qt5,$(mm_QT_VERSION)), $(qt5libdir),) \
+	$(if $(filter qt6,$(mm_QT_VERSION)), $(qt6libdir),) \
 	$(kdelibdir)
 libdirs := \
 	$(libdirs_base) \
@@ -182,6 +186,7 @@ MM_CONFIG_VARS := $(sort \
 	PYTHON_libdir \
 	qt4prefix \
 	qt5prefix \
+	qt6prefix \
 	rootdir \
 	sharedirs \
 	sourcedir \

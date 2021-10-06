@@ -50,7 +50,7 @@
 
 . /etc/rc.d/functions
 
-export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
+export QT_PLUGIN_PATH=/usr/lib/@mm_QT_VERSION@/plugins
 export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
 
 if [ -n "${MM_MYTHTV_SET_ENV_VAR}" ] ; then
