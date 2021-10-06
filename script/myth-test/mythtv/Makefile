@@ -98,7 +98,8 @@ PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 # --------Patches 400+ are plugins patches---------------------
 
 # Various mythmusic patches
-PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
+# patch 0400 fails on Qt6
+#PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
 PATCHFILES += 0404-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
