@@ -85,7 +85,6 @@ CONFIGURE_ARGS = \
 	-skip qtserialport \
 	-skip qttranslations \
 	-skip qtvirtualkeyboard \
-	-skip qtwayland \
 	-skip qtwebchannel \
 	-skip qtwebengine \
 	-skip qtwebsockets \
