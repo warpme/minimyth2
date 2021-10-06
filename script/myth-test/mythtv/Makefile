@@ -172,6 +172,10 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/mythtv/configure
 BUILD_SCRIPTS     = $(WORKSRC)/mythtv/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/mythtv/Makefile source
 
+#	--extra-ldflags="$(LDFLAGS) -Wl,-rpath-link,$(DESTDIR)$(qt6libdir)" \
+
+comma:= ,
+
 CONFIGURE_ARGS = \
 	--compile-type=$(if $(filter yes,$(mm_DEBUG)),"debug","release") \
 	--prefix="$(DESTDIR)$(prefix)" \
@@ -204,7 +208,9 @@ CONFIGURE_ARGS = \
 	--host-ldflags="$(build_LDFLAGS)" \
 	--extra-cflags="$(CFLAGS)" \
 	--extra-cxxflags="$(CXXFLAGS)" \
-	--extra-ldflags="$(LDFLAGS) -Wl,-rpath-link,$(DESTDIR)$(qt6libdir)" \
+	$(if $(filter qt6,$(mm_QT_VERSION)), \
+		--extra-ldflags="$(LDFLAGS) -Wl$(comma)-rpath-link$(comma)$(DESTDIR)$(qt6libdir)", \
+		--extra-ldflags="$(LDFLAGS)") \
 	--enable-symbol-visibility \
 	--arch=$(GARCH_FAMILY) \
 	--disable-altivec \
