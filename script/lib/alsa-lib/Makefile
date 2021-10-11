@@ -7,6 +7,7 @@ MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
 # amlogic patches https://github.com/chewitt/alsa-lib/commits/amlogic
 PATCHFILES    = $(DISTNAME)-add-Amlogic-cards.patch
 PATCHFILES   += $(DISTNAME)-add-rpi4-support.patch
+PATCHFILES   += $(DISTNAME)-add-simple-card.patch
 DISTFILES     = $(DISTNAME).tar.bz2
 LICENSE       = LGPL2_1
 
