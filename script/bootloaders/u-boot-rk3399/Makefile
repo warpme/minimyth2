@@ -1,11 +1,24 @@
 
-GARNAME      = u-boot-rk3399-20210812
+ifeq (1,0)
+# Rockchip custodians u-boot
+GARNAME      = u-boot-rk3399-20211012
 GARVERSION   = 60df49d22d2586f50bba11eaa59a55f2baa4671f
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-rockchip/-/archive/$(GARVERSION)/
 DISTFILES    = u-boot-rockchip-$(GARVERSION).tar.bz2
 PATCHFILES   = 0001-add-orangepi-4.patch
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
+endif
+
+ifeq (1,1)
+# Mainline u-boot
+GARNAME      = u-boot-rk3399-2020.07
+GARVERSION   = 2020.07
+CATEGORIES   = kernel
+MASTER_SITES = https://github.com/u-boot/u-boot/archive/
+DISTFILES    = v$(GARVERSION).zip
+WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
+endif
 
 LICENSE = GPL2
 
