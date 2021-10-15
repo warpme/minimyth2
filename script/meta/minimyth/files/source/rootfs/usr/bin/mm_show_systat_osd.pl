@@ -67,8 +67,8 @@
 my $be_ip                 = "@MM_MASTER_SERVER@";
 my $fe_ip_list            = "127.0.0.1";
 
-my $frontend_proces_list  = "mythfrontend,X";
-my $backend_proces_list   = "mythbackend,sasc-ng\n,mysqld";
+my $frontend_proces_list  = "mythfrontend";
+my $backend_proces_list   = "mythbackend,sasc-ng,mariadbd";
 
 my $osd_temps_timeout     = "12";
 my $osd_recorders_timeout = "10";
@@ -623,7 +623,7 @@ sub show_processes_stats {
             $_ =~ s/^\s//;
 
             $out = $_;
-            if ($out =~ /.*$process.*/) {
+            if ($out =~ /.*$process\n/) {
                 print ("top for (".$process.") returns:\n".$out."\n") if $debug2;
                 #PID   USER   PR  NI  VIRT    RES   SHR  S %CPU %MEM TIME+     COMMAND
                 #21228 mythtv 16 -4 7424628 383424 20548 S 18.8 4.7 219:00.54 mythbackend
