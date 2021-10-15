@@ -32,8 +32,7 @@ build-custom:
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f    $(WORKSRC)/h616-boot-debug.scr                                 $(DESTDIR)/boot/boot-debug.scr
-	@#cp -f    $(WORKSRC)/h616-boot.scr                                       $(DESTDIR)/boot/boot.scr
-	@cp -f    $(WORKSRC)/h616-boot-debug.scr                                 $(DESTDIR)/boot/boot.scr
+	@cp -f    $(WORKSRC)/h616-boot.scr                                       $(DESTDIR)/boot/boot.scr
 	@mkdir -p $(DESTDIR)/boot/h616loaderfiles
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/h616/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
 		  $(DESTDIR)/boot/h616loaderfiles/u-boot-sunxi-with-spl.bin
