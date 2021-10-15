@@ -595,16 +595,9 @@ endif
 		| grep -v '/ld-linux.so.[0-9]\+$$' \
 		| grep -v '/ld-linux-x86-64.so.[0-9]\+$$' \
 		| xargs chmod 0644
-	@echo "set up permissions on execs"
-	@$(call SET_PERMISSIONS,$@~)
-	@echo "set ssh permissions"
-	@chmod 0700 $@~/root/.ssh
-	@chmod 0600 $@~/root/.ssh/id_rsa
-	@chmod 0700 $@~/home/minimyth/.ssh
-	@chmod 0600 $@~/home/minimyth/.ssh/id_rsa
-	@chmod 0755 $@~$(bindir)/ssh
-	@chmod 0755 $@~/usr/sbin/sshd
-	@chmod 0755 $@~$(bindir)/scp
+	@#chmod 0755 $@~$(bindir)/ssh
+	@#chmod 0755 $@~/usr/sbin/sshd
+	@#chmod 0755 $@~$(bindir)/scp
 	@echo "set symlinks for 64bit ARM glibc"
 	@if [ -e $@~$(elibdir)/ld-linux-* ] ; then    \
 		chmod 0755 $@~$(elibdir)/ld-linux-* ; \
@@ -628,6 +621,8 @@ endif
 	@if [ -e $@~$(bindir)/aplay ] ; then \
 		ln -srf $@~$(bindir)/aplay $@~$(bindir)/arecord ; \
 	 fi
+	@echo "set up permissions on execs"
+	@$(call SET_PERMISSIONS,$@~)
 	@# Set SUID on weston-launch binary required by weston as we are not using systemd nor setcap
 	@if [ -e $@~$(bindir)/weston-launch ] ; then    \
 		chmod +s $@~$(bindir)/weston-launch ; \
@@ -637,7 +632,7 @@ endif
 		chmod +s $@~$(bindir)/sway ; \
 	 fi
 	@echo "last exe permission fixups on some execs" ; \
-	 files="mplayer ntpd ntpdate mysql" ; \
+	 files="ssh sshd scp mplayer ntpd ntpdate mysql" ; \
 	 for file in $${files} ; do \
 			if [ -e $@~$(bindir)/$${file} ] ; then \
 				chmod +x $@~$(bindir)/$${file} ; \
@@ -690,6 +685,11 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 		| sed -e 's%^\(\$(top_source)/initrd\)/\(.*\)$$%\1/\2 $@~/\2%' \
 		| xargs -n 2 cp -fpd
 	@$(call SET_PERMISSIONS,$@~)
+	@# set ssh 0600/0700 permissions
+	@chmod 0700 $@~/rootfs-ro/root/.ssh
+	@chmod 0600 $@~/rootfs-ro/root/.ssh/id_rsa
+	@chmod 0700 $@~/rootfs-ro/home/minimyth/.ssh
+	@chmod 0600 $@~/rootfs-ro/home/minimyth/.ssh/id_rsa
 	@touch $@~
 	@mv $@~ $@
 
