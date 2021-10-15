@@ -292,6 +292,7 @@ endif
 	@$(foreach dir, $(libdirs_base), \
 		echo $(dir) >> $@~$(sysconfdir)/ld.so.conf ; )
 	@rm -f $@~$(sysconfdir)/ld.so.cache{,~}
+	@mkdir -m 0755 -p $@~/etc/inittab.d
 	@# Make documentation links.
 	@mkdir -m 0755 -p $@~/srv/www/software/base
 	@ln -sf $(patsubst /%,%,$(call DIRSTODOTS,/srv/www/software/base))$(versiondir) \
