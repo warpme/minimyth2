@@ -1,4 +1,6 @@
 
+
+ifeq (0,1)
 GARNAME      = arm-trusted-firmware-20210330-h616
 # mainline master 30.03.2021
 GARVERSION   = 8078b5c5a0c2a47710df96412d88df53486e2b29
@@ -6,6 +8,17 @@ CATEGORIES   = kernel
 MASTER_SITES = https://github.com/ARM-software/arm-trusted-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/arm-trusted-firmware-$(GARVERSION)
+endif
+
+ifeq (1,1)
+GARNAME      = arm-trusted-firmware-v2.5-h616
+# mainline v2.5 GA
+GARVERSION   = 2.5
+CATEGORIES   = kernel
+MASTER_SITES = https://github.com/ARM-software/arm-trusted-firmware/archive/refs/tags/
+DISTFILES    = v$(GARVERSION).zip
+WORKSRC      = $(WORKDIR)/arm-trusted-firmware-$(GARVERSION)
+endif
 
 LICENSE = GPL2
 
