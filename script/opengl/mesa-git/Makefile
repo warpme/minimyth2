@@ -5,6 +5,7 @@ GARVERSION   = 2dc6aa567fcd198b8d0dafe3dfabdaed167d5153
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
+PATCHFILES   = ticket13205-panfrost-Detect-implementations-support-AFBC.patch
 WORKSRC      = $(WORKDIR)/$(DISTNAME)
 
 DESCRIPTION = 
