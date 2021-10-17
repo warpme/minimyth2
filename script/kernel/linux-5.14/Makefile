@@ -87,8 +87,6 @@ PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 # Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic HW I have
 PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
-# fix to get ap6256 working on amlogic
-PATCHFILES += 0380-drivers-mmc-meson-gx-do-not-use-memcpy_to-fromio-for-dram-access-quirk.patch
 endif
 #------------------------------------------------------------
 
@@ -153,13 +151,18 @@ ifeq (1,1)
 PATCHFILES += 0600-drivers-h616-wip-add-usb-emac2-hdmi-support.patch
 # add THS support
 PATCHFILES += 0601-drivers-thermal-allwinner-add-h616-ths-support.patch
+# add cedrus support
+# https://github.com/jernejsk/linux-1/commits/h616-full
+PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
+PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
+PATCHFILES += 0604-bus-sun50i-de2-Adjust-printing-error-message.patch
 # enable some h616 boards
-PATCHFILES += 0602-arm64-dts-allwinner-h616-add-dtsi.patch
-PATCHFILES += 0603-arm64-dts-allwinner-h616-add-OrangePi-Zero2.patch
-PATCHFILES += 0604-arm64-dts-allwinner-h616-add-X96-Mate-TVbox.patch
-PATCHFILES += 0605-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
-PATCHFILES += 0606-arm64-dts-allwinner-h616-add-T95-TVbox.patch
-PATCHFILES += 0607-arm64-dts-allwinner-h616-enable-ths-support.patch
+PATCHFILES += 0630-arm64-dts-allwinner-h616-add-dtsi.patch
+PATCHFILES += 0631-arm64-dts-allwinner-h616-add-OrangePi-Zero2.patch
+PATCHFILES += 0632-arm64-dts-allwinner-h616-add-X96-Mate-TVbox.patch
+PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
+PATCHFILES += 0634-arm64-dts-allwinner-h616-add-T95-TVbox.patch
+PATCHFILES += 0635-arm64-dts-allwinner-h616-enable-ths-support.patch
 endif
 #------------------------------------------------------------
 
