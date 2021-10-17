@@ -1,27 +1,17 @@
 
-ifeq (0,1)
-# Mainline U-boot
-GARNAME      = u-boot-h616-20210111
-# v2021.01
-GARVERSION   = c4fddedc48f336eabc4ce3f74940e6aa372de18c
-CATEGORIES   = kernel
-MASTER_SITES = https://github.com/u-boot/u-boot/archive/
-DISTFILES    = $(GARVERSION).zip
-WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
-endif
-
 ifeq (1,1)
-# Sunxi custodians 11.05.2021
-GARNAME      = u-boot-h616-20210511
-GARVERSION   = 647b392bf20614006917d5fcd3390347a668eee5
+# Mainline U-boot
+GARNAME      = u-boot-h616-2021.10
+# v2021.10
+GARVERSION   = 2021.10
 CATEGORIES   = kernel
-MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
-DISTFILES    = $(GARVERSION).zip
+MASTER_SITES = https://github.com/u-boot/u-boot/archive/refs/tags/
+DISTFILES    = v$(GARVERSION).zip
 PATCHFILES   = add-emac2-to-h6-h616.patch
 PATCHFILES  += add-h616-tanix-tx6s-defconfig.patch
 PATCHFILES  += add-h616-x96-mate-defconfig.patch
 PATCHFILES  += add-h616-t95-defconfig.patch
-WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
+WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
 ifeq (0,1)
@@ -49,9 +39,6 @@ BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
-
-#mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
-#mm_U-BOOT_BOARD_TYPE = t95_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
