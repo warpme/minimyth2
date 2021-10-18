@@ -21,6 +21,7 @@ PATCHFILES   = add-emac2-to-h6-h616.patch
 PATCHFILES  += add-h616-tanix-tx6s-defconfig.patch
 PATCHFILES  += add-h616-x96-mate-defconfig.patch
 PATCHFILES  += add-h616-t95-defconfig.patch
+PATCHFILES  += sunxi-H616-GPU-enable-hack.patch
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 endif
 
