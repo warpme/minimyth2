@@ -1,0 +1,89 @@
+From 8fde9d49bf9fbf0a1a9fdf242753c2b1b6ae377c Mon Sep 17 00:00:00 2001
+From: Jonas Karlman <jonas@kwiboo.se>
+Date: Fri, 15 May 2020 16:54:05 +0000
+Subject: [PATCH 16/19] WIP: add NV15 and NV20 support
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ libavcodec/h264_slice.c   | 14 ++++++++++++--
+ libavcodec/v4l2_request.c | 23 +++++++++++++++++++++++
+ 2 files changed, 35 insertions(+), 2 deletions(-)
+
+diff --git a/libavcodec/h264_slice.c b/libavcodec/h264_slice.c
+index 0a10d00..45057fd 100644
+--- a/libavcodec/h264_slice.c
++++ b/libavcodec/h264_slice.c
+@@ -794,10 +794,17 @@ static enum AVPixelFormat get_pixel_format(H264Context *h, int force_callback)
+                 *fmt++ = AV_PIX_FMT_GBRP10;
+             } else
+                 *fmt++ = AV_PIX_FMT_YUV444P10;
+-        } else if (CHROMA422(h))
++        } else if (CHROMA422(h)) {
++#if CONFIG_H264_V4L2REQUEST_HWACCEL
++            *fmt++ = AV_PIX_FMT_DRM_PRIME;
++#endif
+             *fmt++ = AV_PIX_FMT_YUV422P10;
+-        else
++        } else {
++#if CONFIG_H264_V4L2REQUEST_HWACCEL
++            *fmt++ = AV_PIX_FMT_DRM_PRIME;
++#endif
+             *fmt++ = AV_PIX_FMT_YUV420P10;
++        }
+         break;
+     case 12:
+         if (CHROMA444(h)) {
+@@ -836,6 +843,9 @@ static enum AVPixelFormat get_pixel_format(H264Context *h, int force_callback)
+             else
+                 *fmt++ = AV_PIX_FMT_YUV444P;
+         } else if (CHROMA422(h)) {
++#if CONFIG_H264_V4L2REQUEST_HWACCEL
++                *fmt++ = AV_PIX_FMT_DRM_PRIME;
++#endif
+             if (h->avctx->color_range == AVCOL_RANGE_JPEG)
+                 *fmt++ = AV_PIX_FMT_YUVJ422P;
+             else
+diff --git a/libavcodec/v4l2_request.c b/libavcodec/v4l2_request.c
+index 5234b50..0b294fe 100644
+--- a/libavcodec/v4l2_request.c
++++ b/libavcodec/v4l2_request.c
+@@ -188,6 +188,13 @@ const uint32_t v4l2_request_capture_pixelformats[] = {
+ #ifdef DRM_FORMAT_MOD_ALLWINNER_TILED
+     V4L2_PIX_FMT_SUNXI_TILED_NV12,
+ #endif
++#if defined(V4L2_PIX_FMT_NV15) && defined(DRM_FORMAT_NV15)
++    V4L2_PIX_FMT_NV15,
++#endif
++    V4L2_PIX_FMT_NV16,
++#if defined(V4L2_PIX_FMT_NV20) && defined(DRM_FORMAT_NV20)
++    V4L2_PIX_FMT_NV20,
++#endif
+ };
+ 
+ static int v4l2_request_set_drm_descriptor(V4L2RequestDescriptor *req, struct v4l2_format *format)
+@@ -206,6 +213,22 @@ static int v4l2_request_set_drm_descriptor(V4L2RequestDescriptor *req, struct v4
+         layer->format = DRM_FORMAT_NV12;
+         desc->objects[0].format_modifier = DRM_FORMAT_MOD_ALLWINNER_TILED;
+         break;
++#endif
++#if defined(V4L2_PIX_FMT_NV15) && defined(DRM_FORMAT_NV15)
++    case V4L2_PIX_FMT_NV15:
++        layer->format = DRM_FORMAT_NV15;
++        desc->objects[0].format_modifier = DRM_FORMAT_MOD_LINEAR;
++        break;
++#endif
++    case V4L2_PIX_FMT_NV16:
++        layer->format = DRM_FORMAT_NV16;
++        desc->objects[0].format_modifier = DRM_FORMAT_MOD_LINEAR;
++        break;
++#if defined(V4L2_PIX_FMT_NV20) && defined(DRM_FORMAT_NV20)
++    case V4L2_PIX_FMT_NV20:
++        layer->format = DRM_FORMAT_NV20;
++        desc->objects[0].format_modifier = DRM_FORMAT_MOD_LINEAR;
++        break;
+ #endif
+     default:
+         return -1;
+-- 
+2.29.2
+

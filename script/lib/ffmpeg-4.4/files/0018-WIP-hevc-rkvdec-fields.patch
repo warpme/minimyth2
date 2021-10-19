@@ -1,0 +1,118 @@
+From 688bb66bf9715c02565b63446b75933282d41805 Mon Sep 17 00:00:00 2001
+From: Jonas Karlman <jonas@kwiboo.se>
+Date: Wed, 13 May 2020 22:51:21 +0000
+Subject: [PATCH 18/19] WIP: hevc rkvdec fields
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ libavcodec/hevc-ctrls.h        | 11 ++++++++++-
+ libavcodec/v4l2_request_hevc.c | 12 ++++++++++++
+ 2 files changed, 22 insertions(+), 1 deletion(-)
+
+diff --git a/libavcodec/hevc-ctrls.h b/libavcodec/hevc-ctrls.h
+index a249166..cd14352 100644
+--- a/libavcodec/hevc-ctrls.h
++++ b/libavcodec/hevc-ctrls.h
+@@ -58,6 +58,8 @@ enum v4l2_mpeg_video_hevc_start_code {
+ /* The controls are not stable at the moment and will likely be reworked. */
+ struct v4l2_ctrl_hevc_sps {
+ 	/* ISO/IEC 23008-2, ITU-T Rec. H.265: Sequence parameter set */
++	__u8	video_parameter_set_id;
++	__u8	seq_parameter_set_id;
+ 	__u16	pic_width_in_luma_samples;
+ 	__u16	pic_height_in_luma_samples;
+ 	__u8	bit_depth_luma_minus8;
+@@ -81,6 +83,9 @@ struct v4l2_ctrl_hevc_sps {
+ 	__u8	chroma_format_idc;
+ 	__u8	sps_max_sub_layers_minus1;
+ 
++	__u8	num_slices;
++	__u8	padding[5];
++
+ 	__u64	flags;
+ };
+ 
+@@ -108,6 +113,7 @@ struct v4l2_ctrl_hevc_sps {
+ 
+ struct v4l2_ctrl_hevc_pps {
+ 	/* ISO/IEC 23008-2, ITU-T Rec. H.265: Picture parameter set */
++	__u8	pic_parameter_set_id;
+ 	__u8	num_extra_slice_header_bits;
+ 	__u8	num_ref_idx_l0_default_active_minus1;
+ 	__u8	num_ref_idx_l1_default_active_minus1;
+@@ -123,7 +129,7 @@ struct v4l2_ctrl_hevc_pps {
+ 	__s8	pps_tc_offset_div2;
+ 	__u8	log2_parallel_merge_level_minus2;
+ 
+-	__u8	padding[4];
++	__u8	padding;
+ 	__u64	flags;
+ };
+ 
+@@ -202,6 +208,9 @@ struct v4l2_ctrl_hevc_slice_params {
+ 	__u8	ref_idx_l0[V4L2_HEVC_DPB_ENTRIES_NUM_MAX];
+ 	__u8	ref_idx_l1[V4L2_HEVC_DPB_ENTRIES_NUM_MAX];
+ 
++	__u16	short_term_ref_pic_set_size;
++	__u16	long_term_ref_pic_set_size;
++	
+ 	__u32	num_entry_point_offsets;
+ 	__u32	entry_point_offset_minus1[256];
+ 	__u8	padding[8];
+diff --git a/libavcodec/v4l2_request_hevc.c b/libavcodec/v4l2_request_hevc.c
+index 601202a..be78382 100644
+--- a/libavcodec/v4l2_request_hevc.c
++++ b/libavcodec/v4l2_request_hevc.c
+@@ -214,6 +214,9 @@ static void v4l2_request_hevc_fill_slice_params(const HEVCContext *h,
+ 
+         /* ISO/IEC 23008-2, ITU-T Rec. H.265: Picture timing SEI message */
+         .pic_struct = h->sei.picture_timing.picture_struct,
++
++        .short_term_ref_pic_set_size = sh->short_term_ref_pic_set_size,
++        .long_term_ref_pic_set_size = sh->long_term_ref_pic_set_size,
+     };
+ 
+     if (sh->slice_sample_adaptive_offset_flag[0])
+@@ -270,9 +273,12 @@ static void v4l2_request_hevc_fill_slice_params(const HEVCContext *h,
+ static void fill_sps(struct v4l2_ctrl_hevc_sps *ctrl, const HEVCContext *h)
+ {
+     const HEVCSPS *sps = h->ps.sps;
++    const HEVCPPS *pps = h->ps.pps;
+ 
+     /* ISO/IEC 23008-2, ITU-T Rec. H.265: Sequence parameter set */
+     *ctrl = (struct v4l2_ctrl_hevc_sps) {
++        .video_parameter_set_id = sps->vps_id,
++        .seq_parameter_set_id = pps->sps_id,
+         .pic_width_in_luma_samples = sps->width,
+         .pic_height_in_luma_samples = sps->height,
+         .bit_depth_luma_minus8 = sps->bit_depth - 8,
+@@ -336,6 +342,7 @@ static int v4l2_request_hevc_start_frame(AVCodecContext *avctx,
+                             &pps->scaling_list :
+                             sps->scaling_list_enable_flag ?
+                             &sps->scaling_list : NULL;
++    const SliceHeader *sh = &h->sh;
+     V4L2RequestControlsHEVC *controls = h->ref->hwaccel_picture_private;
+ 
+     fill_sps(&controls->sps, h);
+@@ -359,6 +366,9 @@ static int v4l2_request_hevc_start_frame(AVCodecContext *avctx,
+ 
+     /* ISO/IEC 23008-2, ITU-T Rec. H.265: Picture parameter set */
+     controls->pps = (struct v4l2_ctrl_hevc_pps) {
++        .pic_parameter_set_id = sh->pps_id,
++        .num_ref_idx_l0_default_active_minus1 = pps->num_ref_idx_l0_default_active - 1,
++        .num_ref_idx_l1_default_active_minus1 = pps->num_ref_idx_l1_default_active - 1,
+         .num_extra_slice_header_bits = pps->num_extra_slice_header_bits,
+         .num_ref_idx_l0_default_active_minus1 = pps->num_ref_idx_l0_default_active - 1,
+         .num_ref_idx_l1_default_active_minus1 = pps->num_ref_idx_l1_default_active - 1,
+@@ -488,6 +498,8 @@ static int v4l2_request_hevc_queue_decode(AVCodecContext *avctx, int last_slice)
+     if (ctx->decode_mode == V4L2_MPEG_VIDEO_HEVC_DECODE_MODE_SLICE_BASED)
+         return ff_v4l2_request_decode_slice(avctx, h->ref->frame, control, FF_ARRAY_ELEMS(control), controls->first_slice, last_slice);
+ 
++    controls->sps.num_slices = controls->num_slices;
++
+     return ff_v4l2_request_decode_frame(avctx, h->ref->frame, control, FF_ARRAY_ELEMS(control));
+ }
+ 
+-- 
+2.29.2
+

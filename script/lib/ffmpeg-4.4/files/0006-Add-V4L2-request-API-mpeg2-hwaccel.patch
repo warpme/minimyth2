@@ -1,0 +1,252 @@
+From 02b8fb17c2a019463dcab4baa1cb0bec63353183 Mon Sep 17 00:00:00 2001
+From: Jonas Karlman <jonas@kwiboo.se>
+Date: Sat, 15 Dec 2018 22:32:16 +0100
+Subject: [PATCH 06/19] Add V4L2 request API mpeg2 hwaccel
+
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+---
+ configure                       |   3 +
+ libavcodec/Makefile             |   1 +
+ libavcodec/hwaccels.h           |   1 +
+ libavcodec/mpeg12dec.c          |   6 ++
+ libavcodec/v4l2_request_mpeg2.c | 159 ++++++++++++++++++++++++++++++++
+ 5 files changed, 170 insertions(+)
+ create mode 100644 libavcodec/v4l2_request_mpeg2.c
+
+diff --git a/configure b/configure
+index b17e410..ec141fa 100755
+--- a/configure
++++ b/configure
+@@ -2995,6 +2995,8 @@ mpeg2_dxva2_hwaccel_deps="dxva2"
+ mpeg2_dxva2_hwaccel_select="mpeg2video_decoder"
+ mpeg2_nvdec_hwaccel_deps="nvdec"
+ mpeg2_nvdec_hwaccel_select="mpeg2video_decoder"
++mpeg2_v4l2request_hwaccel_deps="v4l2_request mpeg2_v4l2_request"
++mpeg2_v4l2request_hwaccel_select="mpeg2video_decoder"
+ mpeg2_vaapi_hwaccel_deps="vaapi"
+ mpeg2_vaapi_hwaccel_select="mpeg2video_decoder"
+ mpeg2_vdpau_hwaccel_deps="vdpau"
+@@ -6631,6 +6633,7 @@ fi
+ 
+ check_func_headers "linux/media.h linux/videodev2.h" v4l2_timeval_to_ns
+ check_cc h264_v4l2_request linux/videodev2.h "int i = V4L2_PIX_FMT_H264_SLICE;"
++check_cc mpeg2_v4l2_request linux/videodev2.h "int i = V4L2_PIX_FMT_MPEG2_SLICE;"
+ 
+ check_headers sys/videoio.h
+ test_code cc sys/videoio.h "struct v4l2_frmsizeenum vfse; vfse.discrete.width = 0;" && enable_sanitized struct_v4l2_frmivalenum_discrete
+diff --git a/libavcodec/Makefile b/libavcodec/Makefile
+index 426c752..02c023a 100644
+--- a/libavcodec/Makefile
++++ b/libavcodec/Makefile
+@@ -955,6 +955,7 @@ OBJS-$(CONFIG_MPEG2_D3D11VA_HWACCEL)      += dxva2_mpeg2.o
+ OBJS-$(CONFIG_MPEG2_DXVA2_HWACCEL)        += dxva2_mpeg2.o
+ OBJS-$(CONFIG_MPEG2_NVDEC_HWACCEL)        += nvdec_mpeg12.o
+ OBJS-$(CONFIG_MPEG2_QSV_HWACCEL)          += qsvdec.o
++OBJS-$(CONFIG_MPEG2_V4L2REQUEST_HWACCEL)  += v4l2_request_mpeg2.o
+ OBJS-$(CONFIG_MPEG2_VAAPI_HWACCEL)        += vaapi_mpeg2.o
+ OBJS-$(CONFIG_MPEG2_VDPAU_HWACCEL)        += vdpau_mpeg12.o
+ OBJS-$(CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL) += videotoolbox.o
+diff --git a/libavcodec/hwaccels.h b/libavcodec/hwaccels.h
+index 969a1da..a8ae148 100644
+--- a/libavcodec/hwaccels.h
++++ b/libavcodec/hwaccels.h
+@@ -53,6 +53,7 @@ extern const AVHWAccel ff_mpeg2_d3d11va_hwaccel;
+ extern const AVHWAccel ff_mpeg2_d3d11va2_hwaccel;
+ extern const AVHWAccel ff_mpeg2_nvdec_hwaccel;
+ extern const AVHWAccel ff_mpeg2_dxva2_hwaccel;
++extern const AVHWAccel ff_mpeg2_v4l2request_hwaccel;
+ extern const AVHWAccel ff_mpeg2_vaapi_hwaccel;
+ extern const AVHWAccel ff_mpeg2_vdpau_hwaccel;
+ extern const AVHWAccel ff_mpeg2_videotoolbox_hwaccel;
+diff --git a/libavcodec/mpeg12dec.c b/libavcodec/mpeg12dec.c
+index 94221da..4b0176f 100644
+--- a/libavcodec/mpeg12dec.c
++++ b/libavcodec/mpeg12dec.c
+@@ -1147,6 +1147,9 @@ static const enum AVPixelFormat mpeg2_hwaccel_pixfmt_list_420[] = {
+ #endif
+ #if CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL
+     AV_PIX_FMT_VIDEOTOOLBOX,
++#endif
++#if CONFIG_MPEG2_V4L2REQUEST_HWACCEL
++    AV_PIX_FMT_DRM_PRIME,
+ #endif
+     AV_PIX_FMT_YUV420P,
+     AV_PIX_FMT_NONE
+@@ -2961,6 +2964,9 @@ AVCodec ff_mpeg2video_decoder = {
+ #endif
+ #if CONFIG_MPEG2_XVMC_HWACCEL
+                         HWACCEL_XVMC(mpeg2),
++#endif
++#if CONFIG_MPEG2_V4L2REQUEST_HWACCEL
++                        HWACCEL_V4L2REQUEST(mpeg2),
+ #endif
+                         NULL
+                     },
+diff --git a/libavcodec/v4l2_request_mpeg2.c b/libavcodec/v4l2_request_mpeg2.c
+new file mode 100644
+index 0000000..84d5320
+--- /dev/null
++++ b/libavcodec/v4l2_request_mpeg2.c
+@@ -0,0 +1,159 @@
++/*
++ * This file is part of FFmpeg.
++ *
++ * FFmpeg is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2.1 of the License, or (at your option) any later version.
++ *
++ * FFmpeg is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with FFmpeg; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
++ */
++
++#include "hwconfig.h"
++#include "mpegvideo.h"
++#include "v4l2_request.h"
++
++typedef struct V4L2RequestControlsMPEG2 {
++    struct v4l2_ctrl_mpeg2_sequence sequence;
++    struct v4l2_ctrl_mpeg2_picture picture;
++    struct v4l2_ctrl_mpeg2_quantisation quantisation;
++} V4L2RequestControlsMPEG2;
++
++static int v4l2_request_mpeg2_start_frame(AVCodecContext *avctx,
++                                          av_unused const uint8_t *buffer,
++                                          av_unused uint32_t size)
++{
++    const MpegEncContext *s = avctx->priv_data;
++    V4L2RequestControlsMPEG2 *controls = s->current_picture_ptr->hwaccel_picture_private;
++    V4L2RequestDescriptor *req = (V4L2RequestDescriptor*)s->current_picture_ptr->f->data[0];
++
++    controls->sequence = (struct v4l2_ctrl_mpeg2_sequence) {
++        /* ISO/IEC 13818-2, ITU-T Rec. H.262: Sequence header */
++        .horizontal_size = s->width,
++        .vertical_size = s->height,
++        .vbv_buffer_size = req->output.size,
++
++        /* ISO/IEC 13818-2, ITU-T Rec. H.262: Sequence extension */
++        .profile_and_level_indication = 0,
++        .chroma_format = s->chroma_format,
++    };
++
++    if (s->progressive_sequence)
++        controls->sequence.flags |= V4L2_MPEG2_SEQ_FLAG_PROGRESSIVE;
++
++    controls->picture = (struct v4l2_ctrl_mpeg2_picture) {
++        /* ISO/IEC 13818-2, ITU-T Rec. H.262: Picture header */
++        .picture_coding_type = s->pict_type,
++
++        /* ISO/IEC 13818-2, ITU-T Rec. H.262: Picture coding extension */
++        .f_code[0][0] = s->mpeg_f_code[0][0],
++        .f_code[0][1] = s->mpeg_f_code[0][1],
++        .f_code[1][0] = s->mpeg_f_code[1][0],
++        .f_code[1][1] = s->mpeg_f_code[1][1],
++        .picture_structure = s->picture_structure,
++        .intra_dc_precision = s->intra_dc_precision,
++    };
++
++    if (s->top_field_first)
++        controls->picture.flags |= V4L2_MPEG2_PIC_FLAG_TOP_FIELD_FIRST;
++
++    if (s->frame_pred_frame_dct)
++        controls->picture.flags |= V4L2_MPEG2_PIC_FLAG_FRAME_PRED_DCT;
++
++    if (s->concealment_motion_vectors)
++        controls->picture.flags |= V4L2_MPEG2_PIC_FLAG_CONCEALMENT_MV;
++
++    if (s->intra_vlc_format)
++        controls->picture.flags |= V4L2_MPEG2_PIC_FLAG_INTRA_VLC;
++
++    if (s->q_scale_type)
++        controls->picture.flags |= V4L2_MPEG2_PIC_FLAG_Q_SCALE_TYPE;
++
++    if (s->alternate_scan)
++        controls->picture.flags |= V4L2_MPEG2_PIC_FLAG_ALT_SCAN;
++
++    if (s->repeat_first_field)
++        controls->picture.flags |= V4L2_MPEG2_PIC_FLAG_REPEAT_FIRST;
++
++    if (s->progressive_frame)
++        controls->picture.flags |= V4L2_MPEG2_PIC_FLAG_PROGRESSIVE;
++
++    switch (s->pict_type) {
++    case AV_PICTURE_TYPE_B:
++        controls->picture.backward_ref_ts = ff_v4l2_request_get_capture_timestamp(s->next_picture.f);
++        // fall-through
++    case AV_PICTURE_TYPE_P:
++        controls->picture.forward_ref_ts = ff_v4l2_request_get_capture_timestamp(s->last_picture.f);
++    }
++
++    for (int i = 0; i < 64; i++) {
++        int n = s->idsp.idct_permutation[ff_zigzag_direct[i]];
++        controls->quantisation.intra_quantiser_matrix[i] = s->intra_matrix[n];
++        controls->quantisation.non_intra_quantiser_matrix[i] = s->inter_matrix[n];
++        controls->quantisation.chroma_intra_quantiser_matrix[i] = s->chroma_intra_matrix[n];
++        controls->quantisation.chroma_non_intra_quantiser_matrix[i] = s->chroma_inter_matrix[n];
++    }
++
++    return ff_v4l2_request_reset_frame(avctx, s->current_picture_ptr->f);
++}
++
++static int v4l2_request_mpeg2_decode_slice(AVCodecContext *avctx, const uint8_t *buffer, uint32_t size)
++{
++    const MpegEncContext *s = avctx->priv_data;
++
++    return ff_v4l2_request_append_output_buffer(avctx, s->current_picture_ptr->f, buffer, size);
++}
++
++static int v4l2_request_mpeg2_end_frame(AVCodecContext *avctx)
++{
++    const MpegEncContext *s = avctx->priv_data;
++    V4L2RequestControlsMPEG2 *controls = s->current_picture_ptr->hwaccel_picture_private;
++
++    struct v4l2_ext_control control[] = {
++        {
++            .id = V4L2_CID_STATELESS_MPEG2_SEQUENCE,
++            .ptr = &controls->sequence,
++            .size = sizeof(controls->sequence),
++        },
++        {
++            .id = V4L2_CID_STATELESS_MPEG2_PICTURE,
++            .ptr = &controls->picture,
++            .size = sizeof(controls->picture),
++        },
++        {
++            .id = V4L2_CID_STATELESS_MPEG2_QUANTISATION,
++            .ptr = &controls->quantisation,
++            .size = sizeof(controls->quantisation),
++        },
++    };
++
++    return ff_v4l2_request_decode_frame(avctx, s->current_picture_ptr->f, control, FF_ARRAY_ELEMS(control));
++}
++
++static int v4l2_request_mpeg2_init(AVCodecContext *avctx)
++{
++    return ff_v4l2_request_init(avctx, V4L2_PIX_FMT_MPEG2_SLICE, 1024 * 1024, NULL, 0);
++}
++
++const AVHWAccel ff_mpeg2_v4l2request_hwaccel = {
++    .name           = "mpeg2_v4l2request",
++    .type           = AVMEDIA_TYPE_VIDEO,
++    .id             = AV_CODEC_ID_MPEG2VIDEO,
++    .pix_fmt        = AV_PIX_FMT_DRM_PRIME,
++    .start_frame    = v4l2_request_mpeg2_start_frame,
++    .decode_slice   = v4l2_request_mpeg2_decode_slice,
++    .end_frame      = v4l2_request_mpeg2_end_frame,
++    .frame_priv_data_size = sizeof(V4L2RequestControlsMPEG2),
++    .init           = v4l2_request_mpeg2_init,
++    .uninit         = ff_v4l2_request_uninit,
++    .priv_data_size = sizeof(V4L2RequestContext),
++    .frame_params   = ff_v4l2_request_frame_params,
++    .caps_internal  = HWACCEL_CAP_ASYNC_SAFE,
++};
+-- 
+2.29.2
+
