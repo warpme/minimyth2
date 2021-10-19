@@ -1,0 +1,39 @@
+
+GARNAME      = waylandpp
+GARVERSION   = 0.2.8
+CATEGORIES   = wayland
+MASTER_SITES = https://github.com/NilsBrause/waylandpp/archive/
+DISTFILES    = $(GARVERSION).zip
+LICENSE      = MIT
+
+DEPENDS = wayland/wayland-core lib/pugixml
+ifneq ($(DESTIMG),build)
+BUILDDEPS += lib/pugixml wayland/waylandpp
+endif
+
+WORKBLD = $(WORKSRC)_build
+
+CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
+BUILD_SCRIPTS     = $(WORKBLD)/Makefile
+INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
+
+ifneq ($(DESTIMG),build)
+CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DCMAKE_SYSTEM_NAME="Linux" \
+	-DCMAKE_CROSSCOMPILING="ON" \
+	-DBUILD_SCANNER="OFF" \
+	-DWAYLAND_SCANNERPP="$(build_DESTDIR)$(build_bindir)/wayland-scanner++" \
+	-DBUILD_LIBRARIES="ON" \
+	-DBUILD_DOCUMENTATION="OFF" \
+	-DBUILD_EXAMPLES="OFF"
+else
+CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DBUILD_SCANNER="ON" \
+	-DBUILD_LIBRARIES="OFF" \
+	-DBUILD_DOCUMENTATION="OFF" \
+	-DBUILD_EXAMPLES="OFF"
+endif
+
+include ../../gar.mk
