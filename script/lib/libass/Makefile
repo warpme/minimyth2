@@ -1,6 +1,6 @@
 
 GARNAME      = libass
-GARVERSION   = 0.15.1
+GARVERSION   = 0.15.2
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/libass/libass/releases/download/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
