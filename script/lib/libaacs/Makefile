@@ -1,10 +1,11 @@
-GARNAME = libaacs
-GARVERSION = 20180320-85da18b
-CATEGORIES = lib
-MASTER_SITES = git://git.videolan.org/libaacs.git/
-PATCHFILES = fix-compilation.patch
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = LGPL2_1
+
+GARNAME      = libaacs
+GARVERSION   = 0.11.0
+CATEGORIES   = lib
+MASTER_SITES = https://code.videolan.org/videolan/libaacs/-/archive/0.11.0/
+#PATCHFILES   = fix-compilation.patch
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -27,10 +28,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-gnu-ld
 
 include ../../gar.mk
-
-git//%$(DISTNAME).tar.bz2:
-	@$(call FETCH_GIT, $*, $(GARVERSION), $(DISTNAME))
-	@$(MAKECOOKIE)
 
 checksum-$(DISTNAME).tar.bz2:
 	@$(MAKECOOKIE) 
