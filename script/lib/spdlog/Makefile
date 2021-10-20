@@ -1,0 +1,28 @@
+
+GARNAME      = spdlog
+GARVERSION   = 1.9.2
+CATEGORIES   = lib
+MASTER_SITES = https://github.com/gabime/spdlog/archive/
+DISTFILES    = v$(GARVERSION).tar.gz
+LICENSE      = MIT
+
+DEPENDS = lib/libfmt
+
+WORKBLD = $(WORKSRC)_build
+
+CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
+BUILD_SCRIPTS     = $(WORKBLD)/Makefile
+INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
+
+CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DCMAKE_SYSTEM_NAME="Linux" \
+	-DSPDLOG_BUILD_BENCH=OFF \
+	-DSPDLOG_FMT_EXTERNAL=ON \
+	-DSPDLOG_BUILD_SHARED=ON \
+	-DSPDLOG_BUILD_TESTS=OFF \
+	-DCMAKE_BUILD_TYPE=None \
+	-DCMAKE_INSTALL_PREFIX=/usr \
+	-Wno-dev
+
+include ../../gar.mk
