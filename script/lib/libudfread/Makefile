@@ -1,8 +1,8 @@
 
 GARNAME      = libudfread
-GARVERSION   = 1.1.0
+GARVERSION   = 1.1.2
 CATEGORIES   = lib
-MASTER_SITES = https://code.videolan.org/videolan/libudfread/-/archive/1.1.0/
+MASTER_SITES = https://code.videolan.org/videolan/libudfread/-/archive/1.1.2/
 DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      = GPL2
 
@@ -20,9 +20,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-gnu-ld
 
 include ../../gar.mk
-
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
