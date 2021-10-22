@@ -303,8 +303,16 @@ MESON = $(build_DESTDIR)$(build_bindir)/meson
 NINJA = $(build_DESTDIR)$(build_bindir)/ninja
 
 configure-meson:
-	@cd $(WORKSRC); $(MESON) build $(CONFIGURE_ARGS) --cross-file=$(MESON_CROSS_CONF)
-	@cd $(WORKSRC); $(MESON) configure build
+ifneq ($(DESTIMG),build)
+	@cd $(WORKSRC); $(MESON) build $(DIRPATHS_MESON) $(MESON_CONFIGURE_ARGS) --cross-file=$(MESON_CROSS_CONF)
+else
+ifneq ($(MESON_CONFIGURE_ARGS_BUILD),)
+	@cd $(WORKSRC); $(MESON) build $(DIRPATHS_MESON) $(MESON_CONFIGURE_ARGS_BUILD) --native-file=$(MESON_NATIVE_CONF)
+else
+	@cd $(WORKSRC); $(MESON) build $(DIRPATHS_MESON) $(MESON_CONFIGURE_ARGS) --native-file=$(MESON_NATIVE_CONF)
+endif
+endif
+	@cd $(WORKSRC); $(MESON) configure
 	@$(MAKECOOKIE)
 
 build-meson:
@@ -316,6 +324,7 @@ install-meson:
 	@$(MAKECOOKIE)
 
 #################### CMAKE VARIABLES & RULES ####################
+
 CMAKE = $(build_DESTDIR)$(build_bindir)/cmake
 DIRPATHS_CMAKE = \
 	-DCMAKE_INSTALL_PREFIX="$(prefix)" \
@@ -349,6 +358,8 @@ endif
 endif
 	@$(MAKECOOKIE)
 
+#################### AUTOMAKE VARIABLES & RULES ####################
+
 # configure a package that has an autoconf-style configure
 # script.
 configure-%/configure: 
@@ -363,8 +374,6 @@ configure-%/Imakefile:
 	@echo " ==> Running imake in $*"
 	@cd $* && $(CONFIGURE_ENV) imake -DUseInstalled -DBOOTSTRAPCFLAGS="$(CFLAGS)" -I$(DESTDIR)$(includedir)/X11/config $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
-
-#################### BUILD RULES ####################
 
 # build from a standard gnu-style makefile's default rule.
 build-%/Makefile:
