@@ -19,13 +19,13 @@ BUILDDEPS += devel/llvm
 endif
 
 WORKSRC = $(WORKDIR)/$(DISTNAME).src
-WORKBLD = $(WORKSRC)_build
+WORKBLD = $(WORKDIR)/$(DISTNAME)_build
 
-CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
-BUILD_SCRIPTS     = $(WORKBLD)/Makefile llvm_config
+CONFIGURE_SCRIPTS = llvm
+BUILD_SCRIPTS     = llvm llvm_config
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
-CMAKE_CONFIGURE_ARGS_BUILD = \
+CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 	-DLLVM_BUILD_LLVM_DYLIB="ON" \
 	-DLLVM_LINK_LLVM_DYLIB="ON" \
@@ -51,32 +51,13 @@ CMAKE_CONFIGURE_ARGS_BUILD = \
 
 include ../../gar.mk
 
-CMAKE_CONFIGURE_ARGS = \
-	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
-	-DLLVM_BUILD_LLVM_DYLIB="ON" \
-	-DLLVM_LINK_LLVM_DYLIB="ON" \
-	-DLLVM_BUILD_TOOLS="OFF" \
-	-DLLVM_INCLUDE_TOOLS="ON" \
-	-DLLVM_BUILD_EXAMPLES="OFF" \
-	-DLLVM_INCLUDE_EXAMPLES="OFF" \
-	-DLLVM_BUILD_TESTS="OFF" \
-	-DLLVM_INCLUDE_TESTS="OFF" \
-	-DLLVM_ENABLE_LTO="OFF" \
-	-DLLVM_BUILD_DOCS="OFF" \
-	-DLLVM_ENABLE_DOXYGEN="OFF" \
-	-DCMAKE_BUILD_TYPE=Release \
-	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="X86" \
-	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" ) \
-	$(if $(filter arm,   $(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="ARM" \
-	 -DLLVM_TARGETS_TO_BUILD="ARM" ) \
-	$(if $(filter arm64, $(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="AArch64" \
-	 -DLLVM_TARGETS_TO_BUILD="AArch64" )
+ifneq ($(DESTIMG),build)
+CONFIGURE_ARGS += \
+	-DCMAKE_CROSSCOMPILING="True" \
 	-DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
 	-DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
 	-DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
+endif
 
 # the configure script applies the host compiler flags when checking the build compiler.
 CFLAGS   :=
@@ -85,6 +66,18 @@ LDFLAGS  :=
 
 pre-configure: 
 	@mv $(WORKDIR)/$(DISTNAME).src $(WORKDIR)/$(DISTNAME)
+	@$(MAKECOOKIE)
+
+configure-llvm:
+	@echo " ==> Running configure in $(WORKBLD)"
+	@rm -rf $(WORKBLD)
+	@mkdir -p $(WORKBLD)
+	@cd $(WORKBLD) && $(CONFIGURE_ENV) $(CMAKE) $(DIRPATHS_CMAKE) $(CONFIGURE_ARGS) ../$(DISTNAME)
+	@$(MAKECOOKIE)
+
+build-llvm:
+	@echo " ==> Running build in $(WORKBLD)"
+	@cd $(WORKBLD) && $(CMAKE) --build . --parallel $(PARALLELMFLAGS)
 	@$(MAKECOOKIE)
 
 build-llvm_config:
