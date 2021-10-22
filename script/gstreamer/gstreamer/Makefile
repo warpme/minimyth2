@@ -19,7 +19,7 @@ CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
 INSTALL_SCRIPTS    = meson
 
-CONFIGURE_ARGS = $(DIRPATHS_MESON) \
+MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
 	-D gst-debug=false \
 	-D examples=disabled \

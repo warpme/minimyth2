@@ -31,7 +31,7 @@ CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
 INSTALL_SCRIPTS    = meson
 
-CONFIGURE_ARGS = $(DIRPATHS_MESON) \
+MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
