@@ -12,6 +12,8 @@ endef
 
 DEPENDS = lang/c lib/libpng lib/libjpeg lib/libgcrypt lib/libnsl
 
+WORKBLD = $(WORKSRC)_build
+
 CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
 BUILD_SCRIPTS     = $(WORKBLD)/Makefile
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile

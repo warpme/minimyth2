@@ -16,6 +16,8 @@ DEPENDS = lang/c \
 	opengl/glu \
 	lib/libjpeg-turbo
 
+WORKBLD = $(WORKSRC)_build
+
 CONFIGURE_SCRIPTS = $(WORKSRC)/cmake
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
