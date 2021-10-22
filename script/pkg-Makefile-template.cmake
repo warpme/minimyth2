@@ -34,9 +34,13 @@ CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
 BUILD_SCRIPTS     = $(WORKBLD)/Makefile
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
-CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
+# CMake configure args used for compiling build variant. 
+# If not defined, build variant will be build with CMAKE_CONFIGURE_ARGS
+CMAKE_CONFIGURE_ARGS_BUILD =
+
+# CMake configure args used for compiling target variant
+CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
-	-DCMAKE_SYSTEM_NAME="Linux" \
 
 include ../../gar.mk
 

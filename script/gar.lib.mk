@@ -338,7 +338,15 @@ configure-%/cmake:
 	@echo " ==> Running configure in $*"
 	@rm -rf $*
 	@mkdir -p $*
-	@cd $* && $(CONFIGURE_ENV) $(CMAKE) $(CONFIGURE_ARGS) ../$(DISTNAME)
+ifneq ($(DESTIMG),build)
+	@cd $* && $(CONFIGURE_ENV) $(CMAKE) -DCMAKE_SYSTEM_NAME="Linux" -DCMAKE_CROSSCOMPILING="ON" $(DIRPATHS_CMAKE) $(CMAKE_CONFIGURE_ARGS) ../$(DISTNAME)
+else
+ifneq ($(CMAKE_CONFIGURE_ARGS_BUILD),)
+	@cd $* && $(CONFIGURE_ENV) $(CMAKE) $(DIRPATHS_CMAKE) $(CMAKE_CONFIGURE_ARGS_BUILD) ../$(DISTNAME)
+else
+	@cd $* && $(CONFIGURE_ENV) $(CMAKE) $(DIRPATHS_CMAKE) $(CMAKE_CONFIGURE_ARGS) ../$(DISTNAME)
+endif
+endif
 	@$(MAKECOOKIE)
 
 # configure a package that has an autoconf-style configure
