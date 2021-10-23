@@ -41,7 +41,7 @@ include ../../gar.mk
 
 pre-configure:
 	@$(MAKE) -C ../libudfread patch
-	@cp -rf ../libudfread/work/main.d/libudfread-1.1.0/* $(WORKSRC)/contrib/libudfread/
+	@cp -rf ../libudfread/work/main.d/libudfread-1.1.2/* $(WORKSRC)/contrib/libudfread/
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
