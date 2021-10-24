@@ -28,3 +28,10 @@ CMAKE_CONFIGURE_ARGS = \
 
 include ../../gar.mk
 
+post-install:
+ifneq ($(DESTIMG),build)
+	@# hack for kodi not using native flatc
+	@mv $(DESTDIR)$(bindir)/flatc /$(DESTDIR)$(bindir)/flatc.main
+	@cp -f $(build_DESTDIR)$(build_bindir)/flatc $(DESTDIR)$(bindir)/flatc
+endif
+	@$(MAKECOOKIE)
