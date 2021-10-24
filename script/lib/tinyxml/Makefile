@@ -32,7 +32,7 @@ build-custom:
 
 install-custom:
 	@cp -f "$(WORKSRC)/lib$(GARNAME).so.0.$(GARVERSION)" $(DESTDIR)$(libdir)
-	@ls -srf $(DESTDIR)$(libdir)/lib$(GARNAME).so.0.$(GARVERSION) $(DESTDIR)$(libdir)/lib$(GARNAME).so
+	@ln -srf $(DESTDIR)$(libdir)/lib$(GARNAME).so.0.$(GARVERSION) $(DESTDIR)$(libdir)/lib$(GARNAME).so
 	@cp -f $(WORKSRC)/tinyxml.h $(WORKSRC)/tinystr.h $(DESTDIR)$(includedir)
 	@cp -f $(WORKSRC)/../tinyxml.pc $(DESTDIR)$(libdir)/pkgconfig
 	@$(MAKECOOKIE)
