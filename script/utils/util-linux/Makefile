@@ -123,6 +123,7 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
+	@ln -srf $(DESTDIR)$(elibdir)/libuuid.so $(DESTDIR)$(libdir)/libuuid.so
 	@rm -f $(DESTDIR)$(elibdir)/libblkid.la
 	@rm -f $(DESTDIR)$(elibdir)/libmount.la
 	@rm -f $(DESTDIR)$(elibdir)/libuuid.la
