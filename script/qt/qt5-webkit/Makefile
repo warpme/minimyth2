@@ -29,7 +29,7 @@ DEPENDS   = lang/c    \
 WORKSRC = $(WORKDIR)/$(DISTNAME)/Source
 WORKBLD = $(WORKDIR)/$(DISTNAME)_build
 
-CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
+CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKBLD)/Makefile
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
@@ -81,6 +81,12 @@ CONFIGURE_ARGS = \
 	-DCMAKE_CXX_FLAGS="-fPIC" \
 
 include ../../gar.mk
+
+configure-custom:
+	@echo " ==> Running configure in $*"
+	@mkdir -p $(WORKBLD)
+	@cd $(WORKBLD) && $(CONFIGURE_ENV) $(CMAKE) $(CONFIGURE_ARGS) ../$(DISTNAME)
+	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(qt5libdir)/*.la
