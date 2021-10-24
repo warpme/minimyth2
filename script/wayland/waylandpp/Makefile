@@ -30,7 +30,7 @@ CMAKE_CONFIGURE_ARGS = \
 CMAKE_CONFIGURE_ARGS_BUILD =  \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 	-DBUILD_SCANNER="ON" \
-	-DBUILD_LIBRARIES="OFF" \
+	-DBUILD_LIBRARIES="ON" \
 	-DBUILD_DOCUMENTATION="OFF" \
 	-DBUILD_EXAMPLES="OFF"
 
@@ -39,7 +39,7 @@ include ../../gar.mk
 post-install:
 ifneq ($(DESTIMG),build)
 	@# hack for kodi not using native wayland-scanner
-	@#mv $(DESTDIR)$(libdir)/pkgconfig/wayland-scanner++.pc /$(DESTDIR)$(libdir)/pkgconfig/wayland-scanner++.pc.main
+	@mv $(DESTDIR)$(libdir)/pkgconfig/wayland-scanner++.pc /$(DESTDIR)$(libdir)/pkgconfig/wayland-scanner++.pc.main
 	@cp -f $(build_DESTDIR)$(build_libdir)/pkgconfig/wayland-scanner++.pc $(DESTDIR)$(libdir)/pkgconfig/wayland-scanner++.pc
 endif
 	@$(MAKECOOKIE)
