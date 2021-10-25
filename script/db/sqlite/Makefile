@@ -1,9 +1,11 @@
-GARNAME = sqlite
-GARVERSION = autoconf-3071502
-CATEGORIES = db
-MASTER_SITES = http://www.sqlite.org/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE =
+
+GARNAME      = sqlite
+GARVERSION   = 3360000
+CATEGORIES   = db
+MASTER_SITES = https://www.sqlite.org/2021/
+DISTFILES    = sqlite-src-$(GARVERSION).zip
+WORKSRC      = $(WORKDIR)/sqlite-src-$(GARVERSION)
+LICENSE      =
 
 DESCRIPTION = 
 define BLURB
