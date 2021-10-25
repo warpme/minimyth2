@@ -44,7 +44,6 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/libtclstub8.6.a
 	@rm -f $(DESTDIR)$(libdir)/tdbc1.0.3/libtdbcstub1.0.3.a
 	@rm -f $(DESTDIR)$(libdir)/itcl4.0.3/libitclstub4.0.3.a
 	@rm -f $(DESTDIR)$(bindir)/tclsh
