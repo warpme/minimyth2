@@ -129,6 +129,8 @@ DEPENDS = \
 		mediaplayers/ffmpeg-drm) \
 	$(if $(filter mpv,$(mm_SOFTWARE)), \
 		mediaplayers/mpv) \
+	$(if $(filter kodi,$(mm_SOFTWARE)), \
+		mediaplayers/kodi) \
 	$(if $(filter udisks,$(mm_SOFTWARE)), \
 		lib/udisks) \
 	$(if $(filter voip,$(mm_SOFTWARE)), \
