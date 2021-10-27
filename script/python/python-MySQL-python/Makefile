@@ -13,7 +13,7 @@ endef
 
 DEPENDS   = lang/c python/python lib/libnsl
 ifneq ($(DESTIMG),build)
-DEPENDS  += db/mariadb
+DEPENDS  += db/mysql
 endif
 BUILDDEPS = python/python-distutilscross
 

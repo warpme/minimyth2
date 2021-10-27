@@ -37,7 +37,7 @@ DEPENDS = \
 	perl/perl-SOAP-Lite \
 	perl/perl-XML-Simple \
 	perl/perl-XML-XPath \
-	db/mariadb
+	db/mysql
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
