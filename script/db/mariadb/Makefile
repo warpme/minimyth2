@@ -4,7 +4,7 @@ GARVERSION   = 10.6.4
 CATEGORIES   = db
 MASTER_SITES = https://rsync.osuosl.org/pub/mariadb/mariadb-$(GARVERSION)/source/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = c11_atomics.patch fix-arm-atomic.patch
+PATCHFILES   = c11_atomics.patch fix-arm-atomic.patch fix_fompile_without_server_feature.patch
 LICENSE      = GPL
 
 DEPENDS = \
@@ -26,10 +26,9 @@ INSTALL_SCRIPTS   = custom native_mariadb_config
 
 CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
     -DCMAKE_SYSTEM_NAME="Linux" \
+    -DCMAKE_CROSSCOMPILING=on \
     -DCMAKE_SYSROOT="$(DESTDIR)" \
-    -DCMAKE_VERBOSE_MAKEFILE="OFF" \
-    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -Wno-dev \
+    -DCMAKE_VERBOSE_MAKEFILE=off \
     -DINSTALL_SYSCONFDIR=/etc \
     -DINSTALL_SYSCONF2DIR=/etc/my.cnf.d \
     -DINSTALL_UNIX_ADDRDIR=/run/mysqld/mysqld.sock \
@@ -47,24 +46,22 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
     -DINSTALL_DOCDIR=share/doc/mariadb \
     -DINSTALL_MANDIR=share/man \
     -DMYSQL_DATADIR=/var/lib/mysql \
-    -DDEFAULT_CHARSET=utf8mb4 \
-    -DDEFAULT_COLLATION=utf8mb4_unicode_ci \
-    -DENABLED_LOCAL_INFILE=ON \
-    -DPLUGIN_EXAMPLE=NO \
-    -DPLUGIN_FEDERATED=NO \
-    -DPLUGIN_FEEDBACK=NO \
-    -DWITH_EMBEDDED_SERVER=ON \
-    -DWITH_EXTRA_CHARSETS=complex \
-    -DWITH_JEMALLOC=OFF \
-    -DWITH_LIBWRAP=OFF \
-    -DWITH_PCRE=bundled \
-    -DWITH_READLINE=ON \
+    -DINSTALL_SQLBENCHDIR=share/mysql/bench \
+    -DINSTALL_SUPPORTFILESDIR=share/mysql \
+    -DWITH_READLINE=on \
+    -DWITH_UNIT_TESTS=off \
+    -DSTACK_DIRECTION=-1 \
+    -DWITH_JEMALLOC=off \
+    -DWITH_LIBWRAP=off \
+    -DWITHOUT_TOKUDB=on \
+    -DWITHOUT_ROCKSDB=on \
+    -DENABLE_DTRACE=off \
+    -DWITH_EMBEDDED_SERVER=off \
+    -DWITHOUT_SERVER=on \
     -DWITH_SSL=system \
     -DWITH_SYSTEMD=no \
-    -DWITH_UNIT_TESTS=OFF \
-    -DWITH_ZLIB=system \
-    -DSTACK_DIRECTION=1 \
     -DIMPORT_EXECUTABLES=../host/import_executables.cmake \
+    -Wno-dev \
 
 include ../../gar.mk
 
