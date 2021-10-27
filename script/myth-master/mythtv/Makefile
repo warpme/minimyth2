@@ -140,6 +140,7 @@ DEPENDS = \
 	lib/libsamplerate \
 	lib/libbluray \
 	lib/SDL2 \
+	lib/libsoundtouch \
 	lib/taglib \
 	devel/zlib \
 	devel/yasm \
