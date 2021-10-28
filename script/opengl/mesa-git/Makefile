@@ -1,11 +1,10 @@
 
 GARNAME      = mesa
-# 21.3.0-rc2 21.10.2021
-GARVERSION   = 7976828ae314bbe139dc879a5ff0746f3f9f5b1c
+# 21.3.0-rc3 28.10.2021
+GARVERSION   = bb9bdc4b7392dd46efe09be554e370f547b7080a
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-PATCHFILES   = ticket13205-panfrost-Detect-implementations-support-AFBC.patch
 WORKSRC      = $(WORKDIR)/$(DISTNAME)
 
 DESCRIPTION = 
