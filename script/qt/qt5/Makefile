@@ -43,9 +43,6 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-#	-I $(DESTDIR)$(includedir)/mysql \
-#	-L $(DESTDIR)$(libdir)/mysql \
-
 CONFIGURE_ARGS = \
 	-prefix $(DESTDIR)$(qt5prefix) \
 	-bindir $(DESTDIR)$(qt5bindir) \
@@ -108,7 +105,7 @@ CONFIGURE_ARGS = \
 	-I $(DESTDIR)$(includedir)/mysql \
 	-L $(DESTDIR)$(libdir)/mysql \
 
-#GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
+GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
 
 PLATFORM_GARBUILD_BASE_NAME = $(strip \
