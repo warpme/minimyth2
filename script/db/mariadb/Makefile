@@ -99,3 +99,20 @@ post-install:
 	@# hack needed for building mysql dependent packages for BUILD target when they require myslq_config
 	@ln -srf $(DESTDIR)$(bindir)-config/mysql_config $(build_rootdir)$(bindir)-config/mysql_config
 	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -rf $(DESTDIR)$(bindir)/mariadb*
+	@rm -rf $(DESTDIR)$(bindir)/mysql*
+	@rm -rf $(DESTDIR)$(bindir)/msql2mysql
+	@rm -rf $(DESTDIR)$(bindir)/wsrep_sst_mysqldump
+	@rm -rf $(DESTDIR)$(bindir)/wsrep_sst_mariabackup
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libmariadb.pc
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/mariadb.pc
+	@rm -rf $(DESTDIR)$(libdir)/mysql*
+	@rm -rf $(DESTDIR)$(libdir)/libmysql*
+	@rm -rf $(DESTDIR)$(libdir)/libmariadb*
+	@rm -rf $(DESTDIR)$(datadir)/mysql*
+	@rm -rf $(DESTDIR)$(datadir)/aclocal/mysql.m4
+	@rm -rf $(DESTDIR)$(prefix)/bin-config/*mysql_config
+	@rm -rf $(DESTDIR)$(prefix)/mysql-test*
+	@rm -rf $(DESTDIR)$(includedir)/mysql*
