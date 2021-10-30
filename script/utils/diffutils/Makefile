@@ -1,9 +1,10 @@
-GARNAME = diffutils
-GARVERSION = 3.3
-CATEGORIES = utils
+
+GARNAME      = diffutils
+GARVERSION   = 3.8
+CATEGORIES   = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
