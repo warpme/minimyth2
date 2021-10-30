@@ -1,11 +1,10 @@
-GARNAME = m4
-GARVERSION = 1.4.18
-CATEGORIES = utils
+
+GARNAME      = m4
+GARVERSION   = 1.4.19
+CATEGORIES   = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES  = $(DISTNAME)-glibc2.28-fflush-adjust-to-libio.h-removal.patch
-PATCHFILES += $(DISTNAME)-glibc2.28-fflush-be-more-paranoid-about-libio.h-change.patch
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
