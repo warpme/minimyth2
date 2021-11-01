@@ -57,6 +57,7 @@ if [ -n "${MM_MYTHTV_SET_ENV_VAR}" ] ; then
     export ${MM_MYTHTV_SET_ENV_VAR}
 fi
 
+
 # Setup desired env variables
 case "${MM_MYTHTV_DRAW_ON}" in
 
@@ -68,6 +69,11 @@ case "${MM_MYTHTV_DRAW_ON}" in
         if [ "x${MM_MYTHTV_DRM_VIDEO}" = "xyes" ] ; then
             echo "Using DRM_PRIME in DRM planes mode"
             export MYTHTV_DRM_VIDEO=1
+        fi
+        if [ -e /home/minimyth/.mythtv/eglfs-config.json ] ; then
+            export export QT_QPA_EGLFS_KMS_CONFIG="/home/minimyth/.mythtv/eglfs-config.json"
+            echo "Using custom eglfs-config.json with content:"
+            cat /home/minimyth/.mythtv/eglfs-config.json
         fi
         ;;
 
