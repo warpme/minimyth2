@@ -1,6 +1,6 @@
 
 GARNAME       = busybox
-GARVERSION    = 1.34.1
+GARVERSION    = 1.33.1
 CATEGORIES    = utils
 MASTER_SITES  = http://www.busybox.net/downloads/
 MASTER_SITES += http://www.busybox.net/downloads/fixes-$(GARVERSION)/
@@ -37,6 +37,8 @@ BUILD_ARGS     = $(DEFAULT_ARGS)
 INSTALL_ARGS   = $(DEFAULT_ARGS)
 
 include ../../gar.mk
+
+LDFLAGS += -fwhole-program
 
 extract-$(CONFIGFILE):
 	@cat $(DOWNLOADDIR)/$(CONFIGFILE) \
