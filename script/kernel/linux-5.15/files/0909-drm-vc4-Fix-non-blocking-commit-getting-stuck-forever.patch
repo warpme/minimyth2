@@ -1,0 +1,149 @@
+From bdb339dfc173cb8236157a17b9eed3e07191b217 Mon Sep 17 00:00:00 2001
+From: Maxime Ripard <maxime@cerno.tech>
+Date: Thu, 10 Jun 2021 17:48:28 +0200
+Subject: [PATCH] drm/vc4: Fix non-blocking commit getting stuck forever
+
+In some situation, we can end up being stuck on a non-blocking that went
+through properly.
+
+The situation that seems to trigger it reliably is to first start a
+non-blocking commit, and then right after, and before we had any vblank
+interrupt), start a blocking commit.
+
+This will lead to the first commit workqueue to be scheduled, setup the
+display, while the second commit is waiting for the first one to be
+completed.
+
+The vblank interrupt will then be raised, vc4_crtc_handle_vblank() will
+run and will compare the active dlist in the HVS channel to the one
+associated with the crtc->state.
+
+However, at that point, the second commit is waiting using
+drm_atomic_helper_wait_for_dependencies that occurs after
+drm_atomic_helper_swap_state has been called, so crtc->state points to
+the second commit state. vc4_crtc_handle_vblank() will compare the two
+dlist addresses and since they don't match will ignore the interrupt.
+
+The vblank event will never be reported, and the first and second commit
+will wait for the first commit completion until they timeout.
+
+Since the code path between drm_atomic_helper_wait_for_dependencies()
+and drm_atomic_helper_wait_for_vblanks() is serialised and we can't get
+two commits in that path at the same time, we can work around this
+issue by setting a variable associated to struct drm_crtc to the dlist
+we expect, and then using it from the vc4_crtc_handle_vblank() function.
+
+Fixes: 82faa3276012 ("drm/vc4: kms: Remove async modeset semaphore")
+Signed-off-by: Maxime Ripard <maxime@cerno.tech>
+---
+ drivers/gpu/drm/vc4/vc4_crtc.c |  7 ++++-
+ drivers/gpu/drm/vc4/vc4_drv.h  |  3 +++
+ drivers/gpu/drm/vc4/vc4_hvs.c  | 47 ++++++++++++++++++++++++++++++++++
+ 3 files changed, 56 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/vc4/vc4_crtc.c b/drivers/gpu/drm/vc4/vc4_crtc.c
+index 76657dcdf9b00..4d96936b52309 100644
+--- a/drivers/gpu/drm/vc4/vc4_crtc.c
++++ b/drivers/gpu/drm/vc4/vc4_crtc.c
+@@ -654,9 +654,13 @@ static void vc4_crtc_handle_page_flip(struct vc4_crtc *vc4_crtc)
+ 	u32 chan = vc4_state->assigned_channel;
+ 	unsigned long flags;
+ 
++	/*
++	 * Before changing this, please have a look at the comment for
++	 * vc4_hvs_atomic_begin().
++	 */
+ 	spin_lock_irqsave(&dev->event_lock, flags);
+ 	if (vc4_crtc->event &&
+-	    (vc4_state->mm.start == HVS_READ(SCALER_DISPLACTX(chan)) ||
++	    (vc4_crtc->current_dlist == HVS_READ(SCALER_DISPLACTX(chan)) ||
+ 	     vc4_state->feed_txp)) {
+ 		drm_crtc_send_vblank_event(crtc, vc4_crtc->event);
+ 		vc4_crtc->event = NULL;
+@@ -895,6 +899,7 @@ static const struct drm_crtc_funcs vc4_crtc_funcs = {
+ 
+ static const struct drm_crtc_helper_funcs vc4_crtc_helper_funcs = {
+ 	.mode_valid = vc4_crtc_mode_valid,
++	.atomic_begin = vc4_hvs_atomic_begin,
+ 	.atomic_check = vc4_crtc_atomic_check,
+ 	.atomic_flush = vc4_hvs_atomic_flush,
+ 	.atomic_enable = vc4_crtc_atomic_enable,
+diff --git a/drivers/gpu/drm/vc4/vc4_drv.h b/drivers/gpu/drm/vc4/vc4_drv.h
+index a7500716cf3f1..9a31efb1c50e8 100644
+--- a/drivers/gpu/drm/vc4/vc4_drv.h
++++ b/drivers/gpu/drm/vc4/vc4_drv.h
+@@ -493,6 +493,8 @@ struct vc4_crtc {
+ 	struct drm_pending_vblank_event *event;
+ 
+ 	struct debugfs_regset32 regset;
++
++	unsigned current_dlist;
+ };
+ 
+ static inline struct vc4_crtc *
+@@ -906,6 +908,7 @@ extern struct platform_driver vc4_hvs_driver;
+ void vc4_hvs_stop_channel(struct drm_device *dev, unsigned int output);
+ int vc4_hvs_get_fifo_from_output(struct drm_device *dev, unsigned int output);
+ int vc4_hvs_atomic_check(struct drm_crtc *crtc, struct drm_atomic_state *state);
++void vc4_hvs_atomic_begin(struct drm_crtc *crtc, struct drm_atomic_state *state);
+ void vc4_hvs_atomic_enable(struct drm_crtc *crtc, struct drm_atomic_state *state);
+ void vc4_hvs_atomic_disable(struct drm_crtc *crtc, struct drm_atomic_state *state);
+ void vc4_hvs_atomic_flush(struct drm_crtc *crtc, struct drm_atomic_state *state);
+diff --git a/drivers/gpu/drm/vc4/vc4_hvs.c b/drivers/gpu/drm/vc4/vc4_hvs.c
+index c239045e05d6f..7f7836c0959a4 100644
+--- a/drivers/gpu/drm/vc4/vc4_hvs.c
++++ b/drivers/gpu/drm/vc4/vc4_hvs.c
+@@ -359,6 +359,53 @@ int vc4_hvs_atomic_check(struct drm_crtc *crtc, struct drm_atomic_state *state)
+ 	return 0;
+ }
+ 
++/*
++ * The logic in vc4_crtc_handle_vblank() will only report the vblank
++ * event if the active dlist in the HVS channel matches what we're
++ * expecting.
++ *
++ * This used to be compared with crtc->state, however this raised a
++ * subtle bug when we had the following sequence:
++ *
++ * - A non-blocking commit (commit 1) is queued, its workqueue being
++ *   scheduled.
++ *
++ * - Right after that commit returns, a new blocking commit (commit 2)
++ *   is done. If this commit goes through drm_atomic_check_only(), it
++ *   will then do the remaining part of the commit, will call
++ *   commit_tail() which will call drm_atomic_helper_wait_for_dependencies()
++ *   for commit 1. However, drm_atomic_helper_swap_state has been
++ *   called, so at that point crtc->state points to the state associated
++ *   to commit 2.
++ *
++ * - Now, our vblank interrupts fires. If we use the vc4_crtc_state
++ *   structure associated to state->crtc and its mm.start field to
++ *   compare with the active dlist, we're actually comparing the dlist
++ *   from commit 2 (that has never been setup), while we expect the one
++ *   from commit 1.
++ *
++ * This leads to the vblank event associated to commit 1 never being
++ * reported (even though we had interrupts), and commit 2 waiting until
++ * it times out and reporting an error.
++ *
++ * Since everything in commit_tail works as expected and is serialised
++ * between drm_atomic_helper_wait_for_dependencies() and
++ * drm_atomic_helper_wait_for_vblanks(), we can store the dlist we
++ * expect to be active after this commit in the struct vc4_crtc and
++ * compare the active dlist in our vblank to this value.
++ */
++void vc4_hvs_atomic_begin(struct drm_crtc *crtc,
++			  struct drm_atomic_state *state)
++{
++	struct vc4_crtc *vc4_crtc = to_vc4_crtc(crtc);
++	struct drm_crtc_state *crtc_state =
++		drm_atomic_get_new_crtc_state(state, crtc);
++	struct vc4_crtc_state *vc4_crtc_state =
++		to_vc4_crtc_state(crtc_state);
++
++	vc4_crtc->current_dlist = vc4_crtc_state->mm.start;
++}
++
+ static void vc4_hvs_update_dlist(struct drm_crtc *crtc)
+ {
+ 	struct drm_device *dev = crtc->dev;
