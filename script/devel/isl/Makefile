@@ -2,7 +2,7 @@
 GARNAME      = isl
 GARVERSION   = 0.24
 CATEGORIES   = devel
-MASTER_SITES = http://isl.gforge.inria.fr/
+MASTER_SITES = https://libisl.sourceforge.io/
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = LGPL2_1
 
