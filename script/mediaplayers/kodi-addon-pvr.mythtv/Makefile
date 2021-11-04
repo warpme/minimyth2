@@ -18,7 +18,7 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 	-DCMAKE_BUILD_TYPE=Debug \
-	-DCMAKE_INSTALL_PREFIX=$(bindir)/xbmc-addons \
+	-DCMAKE_INSTALL_PREFIX=$(datadir)/kodi/addons \
 	-DCMAKE_MODULE_PATH=$(DESTDIR)$(datadir)/kodi/cmake \
 	-DPACKAGE_ZIP=ON \
 	-DKODI_INCLUDE_DIR=$(DESTDIR)$(includedir)/kodi \
@@ -26,4 +26,4 @@ CMAKE_CONFIGURE_ARGS = \
 include ../../gar.mk
 
 clean-all:
-	@rm -rf $(DESTDIR)$(bindir)/xbmc-addons/pvr.mythtv
+	@rm -rf $(DESTDIR)$(datadir)/kodi/addons/pvr.mythtv
