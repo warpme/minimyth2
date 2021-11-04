@@ -92,6 +92,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DWITH_JSONSCHEMABUILDER=$(build_DESTDIR)$(build_bindir)/JsonSchemaBuilder \
 	-DFLATBUFFERS_FLATC_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/flatc \
 	-DSWIG_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/swig \
+	-DPYTHON_LIB_PATH=$(DESTDIR)$(PYTHON_libdir) \
 	-DUSE_LTO=ON \
 	-DENABLE_LDGOLD=OFF \
 	-DENABLE_AIRTUNES=OFF \
@@ -122,16 +123,32 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_INTERNAL_FSTRCMP=OFF \
 	-DENABLE_INTERNAL_FLATBUFFERS=OFF \
 	-DENABLE_INTERNAL_UDFREAD=OFF \
-	-DAPP_RENDER_SYSTEM=gl \
 	-DLIBDVDCSS_URL=../../../download/libdvdcss-1.4.3.tar.bz2 \
 	-DLIBDVDNAV_URL=../../../download/libdvdnav-6.1.1.tar.bz2 \
 	-DLIBDVDREAD_URL=../../../download/libdvdread-6.1.2.tar.bz2 \
 	-DUDFREAD_URL=../../../download/libudfread-1.1.0.tar.gz \
+	$(if $(filter i386 x86_64, $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=x11 -DAPP_RENDER_SYSTEM=gl) \
+	$(if $(filter arm arm64,   $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=gbm -DAPP_RENDER_SYSTEM=gles) \
+
+ifeq (0,1)
+# enable to use mythtv ffmpeg (i.e. for testing API of mythtv ffmpeg)
+CMAKE_CONFIGURE_ARGS += \
+	-DFFMPEG_INCLUDE_DIRS=$(DESTDIR)$(includedir)/mythtv \
+	-DFFMPEG_LDFLAGS="-lmythavcodec;-lmythavfilter;-lmythavformat;-lmythavutil;-lmythswscale;-lmythswresample;-lmythpostproc" \
+	-DFFMPEG_LIBAVCODEC=$(DESTDIR)$(libdir)/libmythavcodec.so \
+	-DFFMPEG_LIBAVFILTER=$(DESTDIR)$(libdir)/libmythavfilter.so \
+	-DFFMPEG_LIBAVFORMAT=$(DESTDIR)$(libdir)/libmythavformat.so \
+	-DFFMPEG_LIBAVUTIL=$(DESTDIR)$(libdir)/libmythavutil.so \
+	-DFFMPEG_LIBPOSTPROC=$(DESTDIR)$(libdir)/libmythpostproc.so \
+	-DFFMPEG_LIBSWRESAMPLE=$(DESTDIR)$(libdir)/libmythswresample.so \
+	-DFFMPEG_LIBSWSCALE=$(DESTDIR)$(libdir)/libmythswscale.so
+endif
 
 BUILD_ARGS   = \
 	DESTDIR="" \
 
 include ../../gar.mk
+include ../../python3/python/package-api.mk
 
 clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/kodi*
