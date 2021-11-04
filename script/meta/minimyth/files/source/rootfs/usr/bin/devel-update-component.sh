@@ -139,8 +139,8 @@ file_list4=" \
 epilog_cmd4="sync"
 #--------------------------
 
-# --- All lib/bin files ---
-component_5="gstreamer"
+# --- gstreamer lib/bin files ---
+component_5="Gstreamer"
 # directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list5=" \
 /usr/lib/gstreamer-1.0/:/usr/lib/gstreamer-1.0 \
@@ -153,10 +153,46 @@ file_list5="
 epilog_cmd5="sync"
 #--------------------------
 
-# --- All lib/bin files ---
-component_6="All libs & bins"
+# --- kodi lib/bin files ---
+component_6="Kodi"
 # directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list6=" \
+/usr/lib/kodi/:/usr/lib/kodi \
+/usr/share/kodi/:/usr/share/kodi \
+"
+# file_list format: <src_path>/<files>:<dest_path>/
+file_list6="
+/usr/bin/kodi*:/usr/bin/ \
+"
+epilog_cmd6="sync"
+#--------------------------
+
+# --- qt5 lib/bin files ---
+component_7="Qt5"
+# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+directory_list7=" \
+/usr/lib/qt5/:/usr/lib/qt5 \
+"
+# file_list format: <src_path>/<files>:<dest_path>/
+file_list7=""
+epilog_cmd7="sync"
+#--------------------------
+
+# --- qt6 lib/bin files ---
+component_8="Qt6"
+# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+directory_list8=" \
+/usr/lib/qt6/:/usr/lib/qt6 \
+"
+# file_list format: <src_path>/<files>:<dest_path>/
+file_list8=""
+epilog_cmd8="sync"
+#--------------------------
+
+# --- qt6 lib/bin files ---
+component_0="All libs & bins"
+# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+directory_list0=" \
 /lib/:/lib \
 /lib64/:/lib64 \
 /bin/:/bin \
@@ -167,8 +203,8 @@ directory_list6=" \
 /usr/share/:/usr/share \
 "
 # file_list format: <src_path>/<files>:<dest_path>/
-file_list6=""
-epilog_cmd6="sync"
+file_list0=""
+epilog_cmd0="sync"
 #--------------------------
 
 
@@ -226,7 +262,7 @@ if [ x${selection} = "x" ] ; then
     echo " "
     echo "Script version:${ver}"
     echo " "
-    echo "Please choose component to update by pressing key [1..6]"
+    echo "Please choose component to update by pressing key [1..7]"
     echo " "
     echo "  (1) for "${component_1}
     echo "  (2) for "${component_2}
@@ -234,6 +270,10 @@ if [ x${selection} = "x" ] ; then
     echo "  (4) for "${component_4}
     echo "  (5) for "${component_5}
     echo "  (6) for "${component_6}
+    echo "  (7) for "${component_7}
+    echo "  (8) for "${component_8}
+    echo "  (9) for "${component_9}
+    echo "  (0) for "${component_0}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -274,6 +314,26 @@ case "${selection}" in
         directory_list=${directory_list6}
         file_list=${file_list6}
         epilog_cmd="${epilog_cmd6}" ;;
+
+    7)  echo "Updating ${component_7} ..."
+        directory_list=${directory_list7}
+        file_list=${file_list7}
+        epilog_cmd="${epilog_cmd7}" ;;
+
+    8)  echo "Updating ${component_8} ..."
+        directory_list=${directory_list8}
+        file_list=${file_list8}
+        epilog_cmd="${epilog_cmd8}" ;;
+
+    9)  echo "Updating ${component_9} ..."
+        directory_list=${directory_list9}
+        file_list=${file_list9}
+        epilog_cmd="${epilog_cmd9}" ;;
+
+    0)  echo "Updating ${component_0} ..."
+        directory_list=${directory_list0}
+        file_list=${file_list0}
+        epilog_cmd="${epilog_cmd0}" ;;
 
     *)
         echo "Unknown selection !"
