@@ -92,7 +92,6 @@ CMAKE_CONFIGURE_ARGS = \
 	-DWITH_JSONSCHEMABUILDER=$(build_DESTDIR)$(build_bindir)/JsonSchemaBuilder \
 	-DFLATBUFFERS_FLATC_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/flatc \
 	-DSWIG_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/swig \
-	-DPYTHON_LIB_PATH=$(DESTDIR)$(PYTHON_libdir) \
 	-DUSE_LTO=ON \
 	-DENABLE_LDGOLD=OFF \
 	-DENABLE_AIRTUNES=OFF \
@@ -103,7 +102,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_DBUS=OFF \
 	-DENABLE_DVDCSS=ON \
 	-DENABLE_EGL=ON \
-	-DENABLE_EVENTCLIENTS=ON \
+	-DENABLE_EVENTCLIENTS=OFF \
 	-DENABLE_MICROHTTPD=ON \
 	-DENABLE_MYSQLCLIENT=ON \
 	-DENABLE_NFS=OFF \
@@ -148,7 +147,6 @@ BUILD_ARGS   = \
 	DESTDIR="" \
 
 include ../../gar.mk
-include ../../python3/python/package-api.mk
 
 clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/kodi*
