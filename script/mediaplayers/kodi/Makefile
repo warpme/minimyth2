@@ -132,3 +132,9 @@ BUILD_ARGS   = \
 	DESTDIR="" \
 
 include ../../gar.mk
+
+clean-all:
+	@rm -rf $(DESTDIR)$(libdir)/kodi*
+	@rm -rf $(DESTDIR)$(bindir)/kodi*
+	@rm -rf $(DESTDIR)$(datadir)/kodi*
+	@rm -rf $(DESTDIR)$(includedir)/kodi*
