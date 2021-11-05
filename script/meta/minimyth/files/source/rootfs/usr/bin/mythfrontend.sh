@@ -50,18 +50,44 @@
 
 . /etc/rc.d/functions
 
-export QT_PLUGIN_PATH=/usr/lib/@mm_QT_VERSION@/plugins
+stop_kodi() {
+    list_to_stop="kodi-gbm kodi-wayland kodi-x11"
+    for prog in ${list_to_stop} ; do
+        if [ -n "`/bin/pidof ${prog}`" ] ; then
+            /usr/bin/killall ${prog} 2> /dev/null
+            while [ -n "`/bin/pidof ${prog}`" ] ; do
+                /usr/bin/killall ${prog} 2> /dev/null
+                /bin/sleep 1
+                echo "Waiting ${prog} to exit ..."
+            done
+            echo "${prog} successfuly stopped ..."
+        else
+            echo "${prog} is not running ..."
+        fi
+    done
+    sleep 1
+}
+
+export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
 export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
 
 if [ -n "${MM_MYTHTV_SET_ENV_VAR}" ] ; then
     export ${MM_MYTHTV_SET_ENV_VAR}
 fi
 
+if [ x${MM_MYTHTV_DRAW_ON} = "xterm" ] ; then
+    echo " "
+    echo "You configured 'term' in MM_MYTHTV_DRAW_ON !!!"
+    echo "despite that we will start mythtv in least demanding mode: EGLFS"
+    echo " "
+fi
+
+stop_kodi
 
 # Setup desired env variables
 case "${MM_MYTHTV_DRAW_ON}" in
 
-    eglfs)
+    eglfs|term)
         echo "Runing with drawing to EGLFS"
         /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in EGLFS ..."
         export QT_QPA_PLATFORM=eglfs
@@ -86,6 +112,7 @@ case "${MM_MYTHTV_DRAW_ON}" in
     x11|*)
         echo "Runing with drawing to Xorg"
         export QT_QPA_PLATFORM=xcb
+        export DISPLAY=':0.0'
         /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in X11 ..."
         ;;
 
