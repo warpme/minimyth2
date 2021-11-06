@@ -156,6 +156,7 @@ PATCHFILES += 0601-drivers-thermal-allwinner-add-h616-ths-support.patch
 PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
 PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
 PATCHFILES += 0604-bus-sun50i-de2-Adjust-printing-error-message.patch
+PATCHFILES += 0605-bus-sunxi-rsb-Fix-shutdown.patch
 # enable some h616 boards
 PATCHFILES += 0630-arm64-dts-allwinner-h616-add-dtsi.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-add-OrangePi-Zero2.patch
