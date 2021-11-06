@@ -8,6 +8,7 @@ DISTFILES    = \
                h6-boot-debug.txt \
                h6-boot.scr       \
                h6-boot.txt       \
+               minimyth.conf     \
 
 export mm_U-BOOT_BOARD_TYPE = tanix_tx6_defconfig
 export CRUST_CONFIG = tanix_tx6_defconfig
