@@ -142,6 +142,8 @@ PATCHFILES += 0546-arm64-dts-h6-add-deinterlace-node.patch
 PATCHFILES += 0547-net-wireless-add-xr819-support-07072021.patch
 # add support for rtl8822bs/8822cs by rtw88 https://github.com/jernejsk/linux-1/commits/rtw88-sdio
 PATCHFILES += 0548-net-wireless-add-rt8822-support-24072021.patch
+# fix CEC not working after sleep/resume
+PATCHFILES += 0549-drm-bridge-synopsys-Fix-CEC-not-working-after-power.patch
 endif
 #------------------------------------------------------------
 
