@@ -3,10 +3,13 @@
 
 GARNAME      = rtl8821cu
 # 5.06.2021
-GARVERSION   = 2e4363444b294a52fc9c7b527199bb403060eee7
+GARVERSION   = 9828dcb51d81171330e3e1fd1de9b58ba2f7a62a
 CATEGORIES   = system
 MASTER_SITES = https://github.com/brektrou/rtl8821CU/archive/
-PATCHFILES   = fix-compile-for-armv7-softfp.patch decrease-verbosity.patch fix-compile-on-mm2.patch
+PATCHFILES   = fix-compile-for-armv7-softfp.patch
+PATCHFILES  += decrease-verbosity.patch
+PATCHFILES  += fix-compile-on-mm2.patch
+PATCHFILES  += fix-compile-with-5.15-kernel.patch
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/rtl8821CU-$(GARVERSION)
 
