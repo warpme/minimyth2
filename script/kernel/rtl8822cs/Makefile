@@ -6,7 +6,7 @@ GARNAME      = RTL8822CS
 GARVERSION   = 60cd82134d63aa9436b43c42933a86d6e5a191ba
 CATEGORIES   = system
 MASTER_SITES = https://github.com/chewitt/RTL8822CS/archive/
-PATCHFILES   = fix-5.12-kernel-compile.patch
+PATCHFILES   = fix-5.12-kernel-compile.patch fix-5.15-kernel-compile.patch
 DISTFILES    = $(GARVERSION).zip
 
 LICENSE      = GPL2
