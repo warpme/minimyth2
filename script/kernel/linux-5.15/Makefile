@@ -80,7 +80,7 @@ PATCHFILES += 0370-arm64-dts-meson-g12a-add-support-for-radxa-zero.patch
 PATCHFILES += 0371-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
-#PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
+PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
 # Add more G12/SM1 soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320731
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
@@ -154,6 +154,7 @@ PATCHFILES += 0601-drivers-thermal-allwinner-add-h616-ths-support.patch
 PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
 PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
 PATCHFILES += 0604-bus-sun50i-de2-Adjust-printing-error-message.patch
+PATCHFILES += 0605-bus-sunxi-rsb-Fix-shutdown.patch
 # enable some h616 boards
 PATCHFILES += 0630-arm64-dts-allwinner-h616-add-dtsi.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-add-OrangePi-Zero2.patch
@@ -166,7 +167,8 @@ endif
 
 ifeq (1,1)
 #-- Rockchip patches -----------------------------------------
-# patches from LE 5.09.2021
+# patches from LE 7.11.2021
+PATCHFILES += 0701-rockchip-from-5.16.patch
 PATCHFILES += 0702-rockchip-from-list.patch
 PATCHFILES += 0711-v4l2-from-list.patch
 PATCHFILES += 0720-drm-from-list.patch
@@ -179,22 +181,22 @@ PATCHFILES += 0742-v4l-wip-iep-driver.patch
 endif
 #------------------------------------------------------------
 
-ifeq (1,1)
+ifeq (0,1)
 #-- RaspberryPI patches -----------------------------------------
 # Hack for adding H264 v4l2 decoding on RPI
-#PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
+PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
 # V3d enablement in RPI4
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=434471
-#PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch
+PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch
 # small updates to v4l2_m2m
-#PATCHFILES += 0903-rpi-vc04_services-add_h264_v4l2-m2m_decode-14032021.patch
+PATCHFILES += 0903-rpi-vc04_services-add_h264_v4l2-m2m_decode-14032021.patch
 # add H265 rpivid driver
 PATCHFILES += 0904-media-add-rpivid-24022021.patch
 # https://github.com/raspberrypi/linux/pull/4238/commits
-#PATCHFILES += 0905-staging-bcm2835-camera-Add-support-for-H264-levels-4.1-and-4.2.patch
-#PATCHFILES += 0906-staging-bcm2835-codec-Pass-corrupt-frame-flag.patch
-#PATCHFILES += 0907-staging-bcm2835-codec-Set-colourspace-appropriat-for-RGB-fmt.patch
-#PATCHFILES += 0908-staging-bcm2835-codec-Fix-support-for-levels-4.1-and-4.2.patch
+PATCHFILES += 0905-staging-bcm2835-camera-Add-support-for-H264-levels-4.1-and-4.2.patch
+PATCHFILES += 0906-staging-bcm2835-codec-Pass-corrupt-frame-flag.patch
+PATCHFILES += 0907-staging-bcm2835-codec-Set-colourspace-appropriat-for-RGB-fmt.patch
+PATCHFILES += 0908-staging-bcm2835-codec-Fix-support-for-levels-4.1-and-4.2.patch
 # fix for flip_dome timeouts on rpi4
 PATCHFILES += 0909-drm-vc4-Fix-non-blocking-commit-getting-stuck-forever.patch
 endif
