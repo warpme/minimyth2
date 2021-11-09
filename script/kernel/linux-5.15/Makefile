@@ -181,22 +181,15 @@ PATCHFILES += 0742-v4l-wip-iep-driver.patch
 endif
 #------------------------------------------------------------
 
-ifeq (0,1)
+ifeq (1,1)
 #-- RaspberryPI patches -----------------------------------------
 # Hack for adding H264 v4l2 decoding on RPI
-PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-14112020.patch
+PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-08112021.patch
 # V3d enablement in RPI4
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=434471
 PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch
-# small updates to v4l2_m2m
-PATCHFILES += 0903-rpi-vc04_services-add_h264_v4l2-m2m_decode-14032021.patch
 # add H265 rpivid driver
 PATCHFILES += 0904-media-add-rpivid-24022021.patch
-# https://github.com/raspberrypi/linux/pull/4238/commits
-PATCHFILES += 0905-staging-bcm2835-camera-Add-support-for-H264-levels-4.1-and-4.2.patch
-PATCHFILES += 0906-staging-bcm2835-codec-Pass-corrupt-frame-flag.patch
-PATCHFILES += 0907-staging-bcm2835-codec-Set-colourspace-appropriat-for-RGB-fmt.patch
-PATCHFILES += 0908-staging-bcm2835-codec-Fix-support-for-levels-4.1-and-4.2.patch
 # fix for flip_dome timeouts on rpi4
 PATCHFILES += 0909-drm-vc4-Fix-non-blocking-commit-getting-stuck-forever.patch
 endif
