@@ -55,3 +55,195 @@ diff -Naur NVIDIA-Linux-x86_64-340.108-old/kernel/os-mlock.c NVIDIA-Linux-x86_64
  
      if (ret < 0)
      {
+diff -Naur NVIDIA-Linux-x86_64-340.108-old/kernel/uvm/nvidia_uvm_lite_api.c NVIDIA-Linux-x86_64-340.108-new/kernel/uvm/nvidia_uvm_lite_api.c
+--- NVIDIA-Linux-x86_64-340.108-old/kernel/uvm/nvidia_uvm_lite_api.c	2020-04-16 15:37:41.000000000 +0300
++++ NVIDIA-Linux-x86_64-340.108-new/kernel/uvm/nvidia_uvm_lite_api.c	2020-08-08 15:28:40.110186418 +0300
+@@ -161,13 +161,21 @@ uvm_api_region_commit(UVM_REGION_COMMIT_
+         return RM_ERR_NOT_SUPPORTED;
+     }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_lock(current->mm);
++#else
+     down_write(&current->mm->mmap_sem);
++#endif
+ 
+     vma = find_uvmlite_vma(pParams->requestedBase, pParams->length, filp);
+ 
+     if (!vma)
+     {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++        mmap_write_unlock(current->mm);
++#else
+         up_write(&current->mm->mmap_sem);
++#endif
+         UVM_ERR_PRINT("Failed to find the vma (base: 0x%llx, length: %llu\n",
+                       pParams->requestedBase, pParams->length);
+         return RM_ERR_UVM_ADDRESS_IN_USE;
+@@ -178,7 +186,11 @@ uvm_api_region_commit(UVM_REGION_COMMIT_
+ 
+     if (!pRecord)
+     {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++        mmap_write_unlock(current->mm);
++#else
+         up_write(&current->mm->mmap_sem);
++#endif
+         UVM_ERR_PRINT("attempted to commit region without a preceding mmap() "
+                       "call\n");
+         return RM_ERR_OBJECT_NOT_FOUND;
+@@ -187,7 +199,11 @@ uvm_api_region_commit(UVM_REGION_COMMIT_
+     if ((pRecord->baseAddress != pParams->requestedBase) ||
+         (PAGE_ALIGN(pRecord->length) != PAGE_ALIGN(pParams->length)))
+     {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++        mmap_write_unlock(current->mm);
++#else
+         up_write(&current->mm->mmap_sem);
++#endif
+         UVM_ERR_PRINT("attempted to commit region with different VA or length"
+                       " than used by preceding mmap\n");
+         return RM_ERR_UVM_ADDRESS_IN_USE;
+@@ -206,7 +222,11 @@ uvm_api_region_commit(UVM_REGION_COMMIT_
+     }
+ 
+     up_write(&pPriv->uvmPrivLock);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_unlock(current->mm);
++#else
+     up_write(&current->mm->mmap_sem);
++#endif
+ 
+     return rmStatus;
+ }
+@@ -235,12 +255,20 @@ uvm_api_region_set_stream(UVM_REGION_SET
+                      pParams->requestedBase, pParams->length,
+                      pParams->newStreamId);
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_lock(current->mm);
++#else
+     down_write(&current->mm->mmap_sem);
++#endif
+ 
+     vma = find_uvmlite_vma(pParams->requestedBase, pParams->length, filp);
+     if (vma == NULL)
+     {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++        mmap_write_unlock(current->mm);
++#else
+         up_write(&current->mm->mmap_sem);
++#endif
+         return RM_ERR_UVM_ADDRESS_IN_USE;
+     }
+ 
+@@ -250,7 +278,11 @@ uvm_api_region_set_stream(UVM_REGION_SET
+     rmStatus = uvmlite_region_set_stream(pRecord, pParams->newStreamId);
+ 
+     up_write(&pPriv->uvmPrivLock);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_unlock(current->mm);
++#else
+     up_write(&current->mm->mmap_sem);
++#endif
+ 
+     return rmStatus;
+ }
+@@ -264,11 +296,19 @@ uvm_api_region_set_stream_running(UVM_SE
+ 
+     UVM_DBG_PRINT_RL("streamID: 0x%llx\n", pParams->streamId);
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_lock(current->mm);
++#else
+     down_write(&current->mm->mmap_sem);
++#endif
+     down_write(&pPriv->uvmPrivLock);
+     rmStatus = uvmlite_set_stream_running(pPriv, pParams->streamId);
+     up_write(&pPriv->uvmPrivLock);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_unlock(current->mm);
++#else
+     up_write(&current->mm->mmap_sem);
++#endif
+ 
+     return rmStatus;
+ }
+@@ -290,12 +330,20 @@ uvm_api_region_set_stream_stopped(UVM_SE
+                          pParams->streamIdArray[pParams->nStreams - 1]);
+     }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_lock(current->mm);
++#else
+     down_write(&current->mm->mmap_sem);
++#endif
+     down_write(&pPriv->uvmPrivLock);
+     rmStatus = uvmlite_set_streams_stopped(pPriv, pParams->streamIdArray,
+                                            pParams->nStreams);
+     up_write(&pPriv->uvmPrivLock);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_unlock(current->mm);
++#else
+     up_write(&current->mm->mmap_sem);
++#endif
+     return rmStatus;
+ }
+ 
+@@ -311,12 +359,20 @@ uvm_api_migrate_to_gpu(UVM_MIGRATE_TO_GP
+                      "flags: 0x%x\n",
+                      pParams->requestedBase, pParams->length, pParams->flags);
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_lock(current->mm);
++#else
+     down_write(&current->mm->mmap_sem);
++#endif
+ 
+     vma = find_uvmlite_vma(pParams->requestedBase, pParams->length, filp);
+     if (vma == NULL)
+     {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++        mmap_write_unlock(current->mm);
++#else
+         up_write(&current->mm->mmap_sem);
++#endif
+         return RM_ERR_UVM_ADDRESS_IN_USE;
+     }
+ 
+@@ -329,7 +385,11 @@ uvm_api_migrate_to_gpu(UVM_MIGRATE_TO_GP
+                                        vma,
+                                        pRecord);
+     up_write(&pPriv->uvmPrivLock);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_unlock(current->mm);
++#else
+     up_write(&current->mm->mmap_sem);
++#endif
+ 
+     return rmStatus;
+ }
+@@ -385,7 +445,11 @@ uvm_api_add_session(UVM_ADD_SESSION_PARA
+         return rmStatus;
+     }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_lock(current->mm);
++#else
+     down_write(&current->mm->mmap_sem);
++#endif
+     rmStatus = RM_ERR_INVALID_ARGUMENT; 
+     vma = find_counters_vma((unsigned long long) countersBaseAddress, 
+                             UVM_MAX_GPUS * UVM_PER_RESOURCE_COUNTERS_SIZE +
+@@ -416,7 +480,11 @@ uvm_api_add_session(UVM_ADD_SESSION_PARA
+         }
+     }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
++    mmap_write_unlock(current->mm);
++#else
+     up_write(&current->mm->mmap_sem);
++#endif
+ 
+     // 
+     // We can not reverse uvm_map_page, so inserted pages will stay
