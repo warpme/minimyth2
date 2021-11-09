@@ -20,6 +20,8 @@ include ../../gar.mk
 
 install-custom:
 	@cp -Rdf $(WORKSRC)/brcm/brcmfmac43455* $(DESTDIR)$(elibdir)/firmware/brcm/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.bin $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.raspberrypi,3-model-b-plus
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.bin $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.raspberrypi,4-model-b.bin
 	@$(MAKECOOKIE)
 
 clean-all: clean
