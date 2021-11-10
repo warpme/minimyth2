@@ -12,6 +12,14 @@ stop_mythfrontend() {
     echo "Mythfrontend is not running ..."
 }
 
+if [ ! -e /usr/lib/kodi/kodi* ] ; then
+    echo " "
+    echo "It looks Kodi binaries are not included in Your MiniMyth2 image ..."
+    echo "Script will exit without any action :-("
+    echo " "
+    exit 1
+fi
+
 if [ -n "${MM_MYTHTV_SET_ENV_VAR}" ] ; then
     export ${MM_MYTHTV_SET_ENV_VAR}
 fi
