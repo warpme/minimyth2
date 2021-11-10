@@ -68,12 +68,18 @@ stop_kodi() {
     sleep 1
 }
 
+set_myth_user_env() {
+    if [ -n "${MM_MYTHTV_SET_ENV_VAR}" ] ; then
+        for VAR in `echo ${MM_MYTHTV_SET_ENV_VAR} | sed -e "s/:/ /g"` ; do
+            export ${VAR}
+            echo "setting ${VAR}"
+        done
+    fi
+}
+
 export QT_PLUGIN_PATH=/usr/lib/@mm_QT_VERSION@/plugins
 export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
 
-if [ -n "${MM_MYTHTV_SET_ENV_VAR}" ] ; then
-    export ${MM_MYTHTV_SET_ENV_VAR}
-fi
 
 if [ x${MM_MYTHTV_DRAW_ON} = "xterm" ] ; then
     echo " "
@@ -117,6 +123,8 @@ case "${MM_MYTHTV_DRAW_ON}" in
         ;;
 
 esac
+
+set_myth_user_env
 
 env
 
