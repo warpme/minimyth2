@@ -105,9 +105,6 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
 
-# Revert needed to have proper titles in movelist when Monochrome theme is used
-# PATCHFILES += 0500-revert-48c16d0c0c6-perf-Add-callbacks-as-an-option-to-read-data-from-MythGenericTree.patch
-
 endif
 
 LICENSE = GPL2
@@ -239,8 +236,6 @@ CONFIGURE_ARGS = \
 	--enable-v4l2 \
 	--enable-v4l2request \
 	--enable-vaapi \
-	--enable-ivtv \
-	--enable-hdpvr \
 	--enable-dvb \
 	--dvb-path="$(DESTDIR)$(includedir)" \
 	--libcec-path="$(DESTDIR)$(includedir)/libcec" \
