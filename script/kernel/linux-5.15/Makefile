@@ -178,6 +178,7 @@ PATCHFILES += 0732-for-libreelec.patch
 PATCHFILES += 0740-v4l-wip-rkvdec-vp9.patch
 PATCHFILES += 0741-v4l-wip-rkvdec-hevc.patch
 PATCHFILES += 0742-v4l-wip-iep-driver.patch
+PATCHFILES += 0743-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
 endif
 #------------------------------------------------------------
 
