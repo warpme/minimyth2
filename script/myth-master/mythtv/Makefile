@@ -144,7 +144,7 @@ DEPENDS = \
 	python3/python \
 	python3/python-future \
 	python3/python-lxml \
-	python3/python-mysql-connector \
+	python3/python-mysqlclient \
 	python3/python-requests-cache \
 	python3/python-simplejson \
 	python3/python-urlgrabber \

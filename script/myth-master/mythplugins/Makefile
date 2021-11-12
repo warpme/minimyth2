@@ -33,7 +33,7 @@ DEPENDS = \
 	python3/python-future \
 	python3/python-lxml \
 	python3/python-musicbrainzngs \
-	python3/python-mysql-connector \
+	python3/python-mysqlclient \
 	python3/python-pycurl \
 	python3/python-requests-cache \
 	python3/python-oauth \
