@@ -9,7 +9,7 @@ import socket
 from imapclient import IMAPClient
 from collections import defaultdict
 
-debug = 0
+debug = 1
 cfg_file = "/etc/mailnotifier.rc"
 
 
@@ -21,18 +21,18 @@ cfg_file = "/etc/mailnotifier.rc"
 
 
 if debug:
-    print "\n\nMail notifier v1.0 (c) Piotr Oniszczuk\n\n"
+    print("\n\nMail notifier v1.1 (c) Piotr Oniszczuk\n\n")
 
 argc = len(sys.argv)
 
 if argc < 2:
     sleep = "60"
     if debug:
-        print "Check period is:" + sleep + "sec.\n"
+        print("Check period is:" + sleep + "sec.\n")
 else:
     sleep = sys.argv[1]
     if debug:
-        print "Check period is:" + sleep + "sec.\n\nInitial delaying of check by " + sleep + "sec.\n"
+        print("Check period is:" + sleep + "sec.\n\nInitial delaying of check by " + sleep + "sec.\n")
     time.sleep(int(sleep))
 
 current_mails = defaultdict(int)
@@ -56,13 +56,13 @@ def send_osd (IP, TITLE, ORIGIN, DESCRIPTION, EXTRA, IMAGE, PROGRESS_TEXT, PROGR
     MESSAGE = MESSAGE + "</mythnotification>"
 
     if debug:
-        print "OSD_notify:"
-        print "Target IP:", IP
-        print "Target port:", PORT
-        print "Message:", MESSAGE
+        print("OSD_notify:")
+        print("Target IP:", IP)
+        print("Target port:", PORT)
+        print("Message:", MESSAGE)
 
     sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-    sock.sendto(MESSAGE, (IP, PORT))
+    sock.sendto(bytes(MESSAGE, 'utf-8'), (IP, PORT))
 
 
 
@@ -84,14 +84,14 @@ while True:
             picture  = x[6]
 
             if debug:
-                print "Checking account:" + \
+                print("Checking account:" + \
                 "\n  type     : " + type + \
                 "\n  server   : " + server + \
                 "\n  login    : " + login + \
                 "\n  password : " + password + \
                 "\n  timeout  : " + timeout + \
                 "\n  ip       : " + ip + \
-                "\n  picture  : " + picture
+                "\n  picture  : " + picture)
 
             cleanlogin = re.sub('\@', "-at-", login)
 
@@ -112,23 +112,23 @@ while True:
                     select_info = imapserver.select_folder(mailbox)
 
                     if debug:
-                        print('%d messages in INBOX' % select_info['EXISTS'])
+                        print('%d messages in INBOX' % select_info[b'EXISTS'])
 
-                    folder_status = imapserver.folder_status(mailbox, 'UNSEEN')
-                    newmails = int(folder_status['UNSEEN'])
+                    folder_status = imapserver.folder_status(mailbox, b'UNSEEN')
+                    newmails = int(folder_status[b'UNSEEN'])
 
                     if debug:
-                        print "Account have", newmails, "new emails!"
+                        print("Account have", newmails, "new emails!")
 
                     if newmails > current_mails[cleanlogin]:
                         current_mails[cleanlogin] = newmails
                         if debug:
-                            print "Sending notification about new emails!"
-                        send_osd(ip, "Konto E-Mail:", "", login, str(newmails) + " nowych wiad.", picture, "", "", timeout, "")
+                            print("Sending notification about new emails!")
+                        send_osd(ip, "Konto E-Mail:", "", str(newmails) + " nowych wiad.", picture, "", "", timeout, "", "")
                     else:
                         current_mails[cleanlogin] = newmails
                         if debug:
-                            print "No notification about new emails!"
+                            print("No notification about new emails!")
 
             if (type == "pop3" or type == "pop3ssl"):
                 if type == "pop3ssl":
@@ -149,21 +149,21 @@ while True:
                     newmails = stat[0]
 
                     if debug:
-                        print "Account have", newmails, "new emails!"
+                        print("Account have", newmails, "new emails!")
 
                     if newmails > current_mails[cleanlogin]:
                         if debug:
-                            print "Sending notification about new emails!"
+                            print("Sending notification about new emails!")
                         current_mails[cleanlogin] = newmails
                         send_osd(ip, "Konto E-Mail:", "", login + "@" + server, str(newmails) + " nowych wiad.", picture, "", "", timeout, "")
                     else:
                         current_mails[cleanlogin] = newmails
                         if debug:
-                            print "No notification about new emails!"
+                            print("No notification about new emails!")
 
 
     if debug:
-        print current_mails
+        print(current_mails)
 
     time.sleep(int(sleep))
 
