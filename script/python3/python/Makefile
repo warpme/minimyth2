@@ -37,6 +37,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-lto \
 	CPPFLAGS="-I$(DESTDIR)$(includedir)" \
 	ac_cv_enable_implicit_function_declaration_error=no \
+	ac_cv_working_tzset=yes \
 
 ifneq ($(DESTIMG),build)
 BUILD_ARGS     = \
@@ -84,6 +85,7 @@ post-install:
 	@mv $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR)-config $(DESTDIR)$(bindir)-config/python$(PYTHON_VERSION_MAJOR)-config
 	@$(if $(compiler_prefix), ln -s python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config)
 	@$(if $(compiler_prefix), ln -s python$(PYTHON_VERSION_MAJOR)-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)python$(PYTHON_VERSION_MAJOR)-config)
+	@ln -sr $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR) $(DESTDIR)$(bindir)/python
 	@$(MAKECOOKIE)
 
 clean-all:
