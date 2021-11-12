@@ -117,7 +117,8 @@ post-install:
 	@$(if $(compiler_prefix), ln -s python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config)
 	@$(if $(compiler_prefix), ln -s python-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)python-config)
 	@rm -f $(DESTDIR)$(bindir)/python
-	@ln -sr $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR) $(DESTDIR)$(bindir)/python
+	@# Uncomment to make python2 as default python
+	@#ln -sr $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR) $(DESTDIR)$(bindir)/python
 	@rm -rf $(WORKSRC)/../../../build*
 	@rm -f $(WORKSRC)/../../../pybuilddir.txt
 	@$(MAKECOOKIE)
