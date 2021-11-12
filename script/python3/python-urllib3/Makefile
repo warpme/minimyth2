@@ -9,7 +9,7 @@ DESCRIPTION  =
 define BLURB
 endef
 
-DEPENDS = python3/python
+DEPENDS = python3/python python3/python-setuptools
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
