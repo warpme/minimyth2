@@ -1,11 +1,10 @@
 
 GARNAME      = pjproject
-GARVERSION   = 2.10
+GARVERSION   = 2.11.1
 CATEGORIES   = lib
-MASTER_SITES = http://www.pjsip.org/release/$(GARVERSION)/
+MASTER_SITES = https://github.com/pjsip/pjproject/archive/
 DISTFILES    = $(GARVERSION).tar.gz
 PATCHFILES   = $(DISTNAME)-fix-cross-compile.patch
-PATCHFILES  += $(DISTNAME)-aarch64_detection.patch
 LICENSE      = GPL2
 DESCRIPTION  = 
 define BLURB
@@ -30,12 +29,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-external-pa \
 	--with-gnu-ld
 
-PARALLELMFLAGS := -j1
-
 include ../../gar.mk
-
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
 
 pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
