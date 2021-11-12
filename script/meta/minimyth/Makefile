@@ -1,8 +1,9 @@
-GARNAME = minimyth
+
+GARNAME    = minimyth
 GARVERSION = $(mm_VERSION)
 CATEGORIES = meta
-LICENSE = minimyth
-DISTFILES = $(DISTNAME).tar.bz2
+LICENSE    = minimyth
+DISTFILES  = $(DISTNAME).tar.bz2
 minimyth_LICENSE_TEXT = $(mm_HOME)/html/minimyth/license.txt
 
 DESCRIPTION =
@@ -58,10 +59,16 @@ DEPENDS = \
 		perl/perl-MiniMyth) \
 	utils/pmount \
 	utils/procps \
-	python/python \
-	python/python-argparse \
-	python/python-tzupdate \
-	python/python-pylirc \
+	$(if $(filter python2,$(mm_SOFTWARE)), \
+		python/python \
+		python/python-argparse \
+		python/python-tzupdate \
+		python/python-pylirc) \
+	$(if $(filter python3,$(mm_SOFTWARE)), \
+		python3/python \
+		python3/python-argparse \
+		python3/python-tzupdate \
+		python3/python-pylirc) \
 	X11/blackbox \
 	utils/regionset \
 	X11/rxvt \
@@ -94,9 +101,12 @@ DEPENDS = \
 	$(if $(filter mesa mesa-git lima,$(mm_OPENGL_PROVIDER)),opengl/mesa-demos) \
 	$(if $(filter mythplugins,$(mm_SOFTWARE)), \
 		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythplugins),myth-$(mm_MYTH_VERSION)/mythplugins) \
-		$(if $(filter python,$(mm_SOFTWARE)), \
+		$(if $(filter python2,$(mm_SOFTWARE)), \
 			python/python-IMAPClient \
 			python/python-pycurl) \
+		$(if $(filter python3,$(mm_SOFTWARE)), \
+			python3/python-IMAPClient \
+			python3/python-pycurl) \
 		perl/perl-Net-HTTP \
 		perl/perl-Shell \
 		perl/perl-Switch) \
@@ -135,7 +145,8 @@ DEPENDS = \
 		lib/udisks) \
 	$(if $(filter voip,$(mm_SOFTWARE)), \
 		lib/libpjsip \
-		python/python-pjsip) \
+		$(if $(filter python2,$(mm_SOFTWARE)),python/python-pjsip) \
+		$(if $(filter python3,$(mm_SOFTWARE)),python3/python-pjsip)) \
 	$(if $(filter makemkv,$(mm_SOFTWARE)), \
 		utils/makemkv-oss \
 		utils/makemkv-bin) \
@@ -153,7 +164,6 @@ DEPENDS = \
 	utils/kbd \
 	devel/gdb \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
-		python/python-pyalsaaudio \
 		gtk/gconf \
 		gtk/gtk3 \
 		gtk/harfbuzz \
@@ -163,7 +173,6 @@ DEPENDS = \
 		xorg/libxscrnsaver \
 		browsers/google-chrome) \
 	$(if $(filter firefox,$(mm_SOFTWARE)), \
-		python/python-pyalsaaudio \
 		gtk/gconf \
 		gtk/gtk3 \
 		lib/libcups \

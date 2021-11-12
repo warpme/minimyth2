@@ -150,7 +150,8 @@ mm-all:
 		   [ ! "$${software}" = "mpv"            ] && \
 		   [ ! "$${software}" = "vlc"            ] && \
 		   [ ! "$${software}" = "perl"           ] && \
-		   [ ! "$${software}" = "python"         ] && \
+		   [ ! "$${software}" = "python2"        ] && \
+		   [ ! "$${software}" = "python3"        ] && \
 		   [ ! "$${software}" = "airplay"        ] && \
 		   [ ! "$${software}" = "avahi"          ] && \
 		   [ ! "$${software}" = "udisks"         ] && \
