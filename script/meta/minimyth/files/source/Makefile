@@ -547,25 +547,15 @@ endif
 		done                                                                    ; \
 		echo "  size after :"`du -sh $${dir_list} | sed -e "s/\(\.*\)\t.*/\1/"` ; \
 	 fi
-	@# Strip Python scripts (currently disabled due issues)
-ifeq (1,0)
+	@# Strip Python
 	@if [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then                 \
 		echo 'stripping python'                                                 ; \
 		dir_list="$@~$(PYTHON_libdir) $@~$(datadir)/mythtv"                     ; \
-		file_list=`find $${dir_list} -depth -name '*.py'`                       ; \
 		echo "  size before:"`du -sh $${dir_list} | sed -e "s/\(\.*\)\t.*/\1/"` ; \
-		for file in $${file_list} ; do                                            \
-			LD_LIBRARY_PATH=$(build_bindir)/../lib $(build_bindir)/python3 $(build_bindir)/pyminifier "$${file}" 1> "$${file}~" 2> /dev/null ; \
-			if [ "x$$?" = "x0" ] ; then                                       \
-				mv -f "$${file}~" "$${file}"                            ; \
-			else                                                              \
-				# echo "stripping python: failed to strip file [...]$${file}". Skipping it... ; \
-				rm -f "$${file}~"                                       ; \
-			fi                                                              ; \
-		done                                                                    ; \
+		find $${dir_list} -regex "^.*\(__pycache__\|\.py[co]\)$$" -delete       ; \
 		echo "  size after :"`du -sh $${dir_list} | sed -e "s/\(\.*\)\t.*/\1/"` ; \
 	 fi
-endif
+	@echo "Total rootfs size:"`du -sh $@~ | sed -e "s/\(\.*\)\t.*/\1/"`
 	@# Create library loader symbolic link to help out binary applications.
 	@if [ -e $@~$(elibdir)/ld-linux.so.2 ] ; then \
 		if [ ! $(elibdir) = '/lib32' ] ; then \
@@ -632,7 +622,7 @@ endif
 	@if [ -e $@~$(bindir)/sway ] ; then    \
 		chmod +s $@~$(bindir)/sway ; \
 	 fi
-	@echo "last exe permission fixups on some execs" ; \
+	@echo "final permission fixups on some execs" ; \
 	 files="ssh sshd scp mplayer ntpd ntpdate mysql" ; \
 	 for file in $${files} ; do \
 			if [ -e $@~$(bindir)/$${file} ] ; then \
