@@ -142,13 +142,13 @@ DEPENDS = \
 	lib/taglib \
 	devel/zlib \
 	devel/yasm \
-	python/python \
-	python/python-future \
-	python/python-lxml \
-	python/python-MySQL-python \
-	python/python-requests-cache \
-	python/python-simplejson \
-	python/python-urlgrabber \
+	python3/python \
+	python3/python-future \
+	python3/python-lxml \
+	python3/python-MySQL-python \
+	python3/python-requests-cache \
+	python3/python-simplejson \
+	python3/python-urlgrabber \
 	perl/perl-DBD-mysql \
 	perl/perl-DBI \
 	perl/perl-HTTP-Message \
@@ -260,7 +260,7 @@ CONFIGURE_ARGS = \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
 	--enable-ffplay \
 	--enable-sdl2 \
-	--python="python" \
+	--python="python3" \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
@@ -270,7 +270,7 @@ INSTALL_ENV    = $(MYTHTV_INSTALL_ENV)
 BUILD_ENV     += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
 INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
-GAR_EXTRA_CONF += python/python/package-api.mk
+GAR_EXTRA_CONF += python3/python/package-api.mk
 include ../../gar.mk
 
 CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib

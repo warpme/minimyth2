@@ -25,10 +25,10 @@ DEPENDS = \
 	lib/libvorbis \
 	lib/SDL \
 	lib/taglib \
-	python/python \
-	python/python-pycurl \
-	python/python-lxml \
-	python/python-oauth \
+	python2/python \
+	python2/python-pycurl \
+	python2/python-lxml \
+	python2/python-oauth \
 	perl/perl-Date-Manip \
 	perl/perl-DateTime-Format-ISO8601 \
 	perl/perl-Image-Size \

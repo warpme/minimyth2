@@ -26,17 +26,17 @@ DEPENDS = \
 	lib/SDL \
 	lib/taglib \
 	lib/minizip \
-	python/python \
-	python/python-aniso8601 \
-	python/python-beautifulsoup4 \
-	python/python-discid \
-	python/python-future \
-	python/python-lxml \
-	python/python-musicbrainzngs \
-	python/python-MySQL-python \
-	python/python-pycurl \
-	python/python-requests-cache \
-	python/python-oauth \
+	python2/python \
+	python2/python-aniso8601 \
+	python2/python-beautifulsoup4 \
+	python2/python-discid \
+	python2/python-future \
+	python2/python-lxml \
+	python2/python-musicbrainzngs \
+	python2/python-MySQL-python \
+	python2/python-pycurl \
+	python2/python-requests-cache \
+	python2/python-oauth \
 	perl/perl-Date-Calc \
 	perl/perl-Date-Manip \
 	perl/perl-DateTime-Format-ISO8601 \

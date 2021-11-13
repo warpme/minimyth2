@@ -140,12 +140,12 @@ DEPENDS = \
 	lib/libXNVctrl \
 	devel/zlib \
 	devel/yasm \
-	python/python \
-	python/python-MySQL-python \
-	python/python-lxml \
-	python/python-urlgrabber \
-	python/python-future \
-	python/python-requests-cache \
+	python2/python \
+	python2/python-MySQL-python \
+	python2/python-lxml \
+	python2/python-urlgrabber \
+	python2/python-future \
+	python2/python-requests-cache \
 	system/lirc \
 	system/eudev \
 	X11/libvdpau \
@@ -257,7 +257,7 @@ CONFIGURE_ARGS += \
 	--enable-openmax
 endif
 
-GAR_EXTRA_CONF += python/python/package-api.mk
+GAR_EXTRA_CONF += python2/python/package-api.mk
 include ../../gar.mk
 
 CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd

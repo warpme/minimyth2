@@ -12,7 +12,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c lang/cxx
-BUILDDEPS = python/python
+BUILDDEPS = python2/python
 
 ifneq ($(DESTIMG),build)
 BUILDDEPS += devel/llvm

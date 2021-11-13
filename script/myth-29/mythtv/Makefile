@@ -174,10 +174,10 @@ DEPENDS = \
 	lib/openssl \
 	lib/taglib \
 	devel/zlib \
-	python/python \
-	python/python-MySQL-python \
-	python/python-lxml \
-	python/python-urlgrabber \
+	python2/python \
+	python2/python-MySQL-python \
+	python2/python-lxml \
+	python2/python-urlgrabber \
 	system/lirc \
 	system/eudev \
 	X11/libvdpau \
@@ -283,7 +283,7 @@ INSTALL_ENV    = $(MYTHTV_INSTALL_ENV)
 BUILD_ENV     += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
 INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
-GAR_EXTRA_CONF += python/python/package-api.mk
+GAR_EXTRA_CONF += python2/python/package-api.mk
 include ../../gar.mk
 
 CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd

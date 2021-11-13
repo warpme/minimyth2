@@ -11,7 +11,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c
-BUILDDEPS = python/python
+BUILDDEPS = python2/python
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = custom

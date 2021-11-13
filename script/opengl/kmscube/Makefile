@@ -17,7 +17,7 @@ DEPENDS = lang/c          \
 	xorg/libX11       \
 	xorg/libxcb       \
 	xorg/libdrm       \
-	python/python     \
+	python2/python    \
 
 CONFIGURE_SCRIPTS  = custom
 BUILD_SCRIPTS      = custom

@@ -12,7 +12,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c lang/cxx lib/SDL2 lib/SDL2_ttf xorg/xorg
-BUILDDEPS = python/python
+BUILDDEPS = python2/python
 
 BUILD_SCRIPTS   = $(WORKSRC)/makefile
 INSTALL_SCRIPTS = custom

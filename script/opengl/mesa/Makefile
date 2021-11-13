@@ -18,7 +18,7 @@ DEPENDS =                      \
 	X11/libva-minimal      \
 	devel/llvm             \
 	devel/libelf           \
-	python/python-mako     \
+	python2/python-mako    \
 	xorg/xorgproto         \
 	xorg/libdrm            \
 	xorg/libX11            \

@@ -11,7 +11,7 @@ endef
 
 DEPENDS  = lang/c devel/zlib
 ifeq ($(DESTIMG),build)
-DEPENDS += python/python
+DEPENDS += python2/python
 endif
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure

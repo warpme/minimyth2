@@ -12,7 +12,7 @@ endef
 
 WORKSRC = $(WORKDIR)/waf-waf-$(GARVERSION)
 
-DEPENDS = python/python
+DEPENDS = python2/python
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
