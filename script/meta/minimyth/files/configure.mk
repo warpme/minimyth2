@@ -3,7 +3,12 @@ GARVERSION ?= $(mm_VERSION)
 
 all: mm-all
 
-GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk perl/perl/package-api.mk python/python/package-api.mk
+GAR_EXTRA_CONF += \
+	kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk \
+	perl/perl/package-api.mk \
+	$(if $(filter py2,$(mm_PYTHON_VERSION)),python2/python/package-api.mk) \
+	$(if $(filter py3,$(mm_PYTHON_VERSION)),python3/python/package-api.mk) \
+
 include ../../gar.mk
 
 # List of scripta defined in MM_INIT_START_PHASE_X
@@ -156,6 +161,7 @@ MM_CONFIG_VARS := $(sort \
 	mm_GRAPHICS \
 	mm_OPENGL_PROVIDER \
 	mm_QT_VERSION \
+	mm_PYTHON_VERSION \
 	mm_HOME \
 	MM_INIT_KILL \
 	MM_INIT_START_PHASE_1 \

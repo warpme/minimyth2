@@ -60,15 +60,16 @@ DEPENDS = \
 	utils/pmount \
 	utils/procps \
 	$(if $(filter python2,$(mm_SOFTWARE)), \
-		python/python \
-		python/python-argparse \
-		python/python-tzupdate \
-		python/python-pylirc) \
+		python2/python \
+		python2/python-argparse \
+		python2/python-tzupdate \
+		python2/python-pylirc) \
 	$(if $(filter python3,$(mm_SOFTWARE)), \
 		python3/python \
 		python3/python-argparse \
 		python3/python-tzupdate \
 		python3/python-pylirc) \
+	python3/python-pyminifier \
 	X11/blackbox \
 	utils/regionset \
 	X11/rxvt \
@@ -102,8 +103,8 @@ DEPENDS = \
 	$(if $(filter mythplugins,$(mm_SOFTWARE)), \
 		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythplugins),myth-$(mm_MYTH_VERSION)/mythplugins) \
 		$(if $(filter python2,$(mm_SOFTWARE)), \
-			python/python-IMAPClient \
-			python/python-pycurl) \
+			python2/python-IMAPClient \
+			python2/python-pycurl) \
 		$(if $(filter python3,$(mm_SOFTWARE)), \
 			python3/python-IMAPClient \
 			python3/python-pycurl) \
@@ -145,7 +146,7 @@ DEPENDS = \
 		lib/udisks) \
 	$(if $(filter voip,$(mm_SOFTWARE)), \
 		lib/libpjsip \
-		$(if $(filter python2,$(mm_SOFTWARE)),python/python-pjsip) \
+		$(if $(filter python2,$(mm_SOFTWARE)),python2/python-pjsip) \
 		$(if $(filter python3,$(mm_SOFTWARE)),python3/python-pjsip)) \
 	$(if $(filter makemkv,$(mm_SOFTWARE)), \
 		utils/makemkv-oss \

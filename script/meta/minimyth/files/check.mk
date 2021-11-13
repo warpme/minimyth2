@@ -142,6 +142,16 @@ mm-all:
 			exit 1 ; \
 		fi ; \
 	done
+	@echo "    mm_PYTHON_VERSION"
+	@for py in $(mm_PYTHON_VERSION) ; do \
+		if [ ! "$${py}" = "py2" ] && \
+		   [ ! "$${py}" = "py3" ] ; then \
+			echo " " ; \
+			echo "error: mm_PYTHON_VERSION=\"$${py}\" is an invalid value." ; \
+			echo " " ; \
+			exit 1 ; \
+		fi ; \
+	done
 	@echo "    mm_SOFTWARE"
 	@for software in $(mm_SOFTWARE) ; do \
 		if [ ! "$${software}" = "mythplugins"    ] && \
