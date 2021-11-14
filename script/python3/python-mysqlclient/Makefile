@@ -10,6 +10,7 @@ define BLURB
 endef
 
 DEPENDS = python3/python python3/python-setuptools
+BUILDDEPS = python3/python-crossenv
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
@@ -30,10 +31,10 @@ include ../../gar.mk
 
 build-%/setup.py:
 	@echo " ==> Running setup.py build in $*"
-	@cd $* && $(CONFIGURE_ENV) $(BUILD_ENV) python3 setup.py $(CONFIGURE_ARGS) build $(BUILD_ARGS)
+	@cd $* && . $(build_DESTDIR)$(build_bindir)/python3-crossenv/bin/activate && python3 setup.py $(CONFIGURE_ARGS) build $(BUILD_ARGS)
 	@$(MAKECOOKIE)
 
-install-%/setup.py: 
+install-%/setup.py:
 	@echo " ==> Running setup.py install in $*"
-	@cd $* && $(CONFIGURE_ENV) $(INSTALL_ENV) python3 setup.py $(CONFIGURE_ARGS) install --skip-build $(INSTALL_ARGS)
+	@cd $* && . $(build_DESTDIR)$(build_bindir)/python3-crossenv/bin/activate && python3 setup.py $(CONFIGURE_ARGS) install --skip-build $(INSTALL_ARGS)
 	@$(MAKECOOKIE)
