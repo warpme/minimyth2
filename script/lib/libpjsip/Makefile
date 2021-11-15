@@ -44,16 +44,15 @@ GAR_EXTRA_CONF += python3/python/package-api.mk
 include ../../gar.mk
 
 pre-configure:
-	@#$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@cp -rf $(WORKDIR)/python3-pjsip-$(PYTHONMODVER)/ $(WORKSRC)/pjsip-apps/src/python3
 	@$(MAKECOOKIE)
 
 build-python_bindings:
 	@echo " ==> Running setup.py build in $(WORKSRC)/pjsip-apps/src/python3"
-	@cd $(WORKSRC)/pjsip-apps/src/python3 && . $(build_DESTDIR)$(build_bindir)/python3-crossenv/bin/activate && python3 setup.py $(PYTHON3_CONFIGURE_ARGS) build $(PYTHON3_BUILD_ARGS)
+	@cd $(WORKSRC)/pjsip-apps/src/python3 && python3 setup.py $(PYTHON3_CONFIGURE_ARGS) build $(PYTHON3_BUILD_ARGS)
 	@$(MAKECOOKIE)
 
 install-python_bindings:
 	@echo " ==> Running setup.py install in $(WORKSRC)/pjsip-apps/src/python3"
-	@cd $(WORKSRC)/pjsip-apps/src/python3 && . $(build_DESTDIR)$(build_bindir)/python3-crossenv/bin/activate && python3 setup.py $(PYTHON3_CONFIGURE_ARGS) install --skip-build $(PYTHON3_INSTALL_ARGS)
+	@cd $(WORKSRC)/pjsip-apps/src/python3 && python3 setup.py $(PYTHON3_CONFIGURE_ARGS) install --skip-build $(PYTHON3_INSTALL_ARGS)
 	@$(MAKECOOKIE)
