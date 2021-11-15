@@ -22,4 +22,5 @@ BUILD_ENV      =
 INSTALL_ENV    = \
 	PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
-include ../../python3/python/python3-module.mk
+include ../python/python3-module.mk
+include ../python/package-api.mk
