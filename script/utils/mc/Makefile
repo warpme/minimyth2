@@ -1,6 +1,6 @@
 
 GARNAME      = mc
-GARVERSION   = 4.8.26
+GARVERSION   = 4.8.27
 CATEGORIES   = utils
 MASTER_SITES = http://www.midnight-commander.org/downloads/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.bz2
