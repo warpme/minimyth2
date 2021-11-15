@@ -13,7 +13,7 @@ endef
 DEPENDS   = lang/c lib/portaudio
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile swig pyhon_bindigs
+BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
@@ -30,20 +30,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-gnu-ld
 
 include ../../gar.mk
-GAR_EXTRA_CONF += python3/python/package-api.mk
 
 pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
-
-build-swig:
-	@$(MAKE) -C $(WORKSRC)/pjsip-apps/src/swig
-
-build-pyhon_bindigs:
-	@cd $(WORKSRC)/pjsip-apps/src/swig/python && $(BUILD_ENV) python3 setup.py build $(BUILD_ARGS)
-	@cd $(WORKSRC)/pjsip-apps/src/swig/python && $(INSTALL_ENV) python3 setup.py install --skip-build $(INSTALL_ARGS)
-
-post-install:
-	@rm -f $(DESTDIR)$(libdir)/libpj*.a
-	@cp $(WORKSRC)/pjsip-apps/bin/samples/*-linux-gnu/auddemo $(DESTDIR)$(bindir)/auddemo
 	@$(MAKECOOKIE)
