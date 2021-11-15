@@ -69,7 +69,6 @@ DEPENDS = \
 		python3/python-argparse \
 		python3/python-tzupdate \
 		python3/python-pylirc) \
-	python3/python-pyminifier \
 	X11/blackbox \
 	utils/regionset \
 	X11/rxvt \
