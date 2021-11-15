@@ -73,9 +73,56 @@ pre-configure:
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
 
+post-configure:
+ifneq ($(DESTIMG),build)
+	@# Target python shared modules are built by host python. Host python uses in this building process
+	@# _sysconfdata.py from host enviroment. This is problem as to successfuly build target shared modules
+	@# we need target _sysconfdata.py (with target compiler flags, etc) - which is not present as there is
+	@# no yet target python. So below is workarround for this chicken-and-egg problem:
+	@# After target configure stage (when we alredy have correct target Makefile), we will:
+	@# 1.switch in host python Makefile
+	@# 2.call host python sysconfig.py to generate target _sysconfdata.py from Makefile from p1
+	@# 3.compile target shared modules with target _sysconfdata.py;
+	@# 4.restore in host python Makefile
+	@echo "==> Regenerating _sysconfigdata.py with cross-compile data..."
+	@if [ ! -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu/Makefile.build ] ; then \
+	 cp -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu/Makefile \
+	       $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu/Makefile.build ; \
+	fi
+	@echo "  Getting target Makefile as input..."
+	@cp -f $(WORKSRC)/Makefile \
+	  $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu/Makefile
+	@echo "  Calling host sysconfig.py to generate _sysconfigdata.py with target arch..."
+	@$(build_DESTDIR)$(build_bindir)/python3 -S -m sysconfig --generate-posix-vars
+	@if [ ! -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py.build ] ; then \
+	 cp -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py \
+	       $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py.build ; \
+	fi
+	@echo "  Restoring host python Makefile..."
+	@cp -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu/Makefile \
+	 $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu/Makefile.main
+	@if [ -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu/Makefile.build ] ; then \
+	 cp -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu/Makefile.build \
+	       $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu/Makefile ; \
+	fi
+	@echo "  Copy new _sysconfigdata.py with target arch to host python..."
+	@cp -f $(WORKSRC)/../../../build/lib.linux*/_sysconfigdata__linux_x86_64-linux-gnu.py \
+	 $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py
+	@echo "  Turn-off LTO & use -Os in $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py"
+	@sed -i "s|-O3|-Os|g" $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py
+	@sed -i "s|-flto||g" $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py
+	@rm -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/__pycache__/_sysconfigdata__*.pyc
+	@echo "  Fixing LIB dirs in target arch _sysconfigdata.py..."
+	@sed -i "s%'LIBDIR':.*%'LIBDIR': '$(DESTDIR)$(libdir)',%" $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py
+	@echo "  Fixing INCLUDE dirs in target arch _sysconfigdata.py..."
+	@sed -i "s%'INCLUDEDIR':.*%'INCLUDEDIR': '$(DESTDIR)$(includedir)',%" $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py
+	@cp -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py.main
+endif
+	@$(MAKECOOKIE)
+
 post-install:
 	@rm -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.pyc
-	@rm -f $(DESTDIR)$(libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config/libpython$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR).a
+	@rm -f $(DESTDIR)$(libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu/libpython$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR).a
 	@rm -f $(DESTDIR)$(bindir)-config/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config
 	@rm -f $(DESTDIR)$(bindir)-config/python$(PYTHON_VERSION_MAJOR)-config
 	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-config
@@ -87,6 +134,8 @@ post-install:
 	@$(if $(compiler_prefix), ln -s python$(PYTHON_VERSION_MAJOR)-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)python$(PYTHON_VERSION_MAJOR)-config)
 	@# uncomment to make python3 as default python
 	@#ln -srf $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR) $(DESTDIR)$(bindir)/python
+	@rm -rf $(WORKSRC)/../../../build*
+	@rm -f $(WORKSRC)/../../../pybuilddir.txt
 	@$(MAKECOOKIE)
 
 clean-all:
