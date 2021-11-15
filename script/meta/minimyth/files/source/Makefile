@@ -555,6 +555,13 @@ endif
 		find $${dir_list} -regex "^.*\(__pycache__\|\.py[co]\)$$" -delete       ; \
 		echo "  size after :"`du -sh $${dir_list} | sed -e "s/\(\.*\)\t.*/\1/"` ; \
 	 fi
+	@if [ $(mm_PYTHON_VERSION) = "py2" ] ; then                \
+		echo 'making python2 default'                    ; \
+		ln -srf $@~$(bindir)/python2 $@~$(bindir)/python ; \
+	 elif [ $(mm_PYTHON_VERSION) = "py3" ] ; then              \
+		echo 'making python3 default'                    ; \
+		ln -srf $@~$(bindir)/python3 $@~$(bindir)/python ; \
+	 fi
 	@echo "Total rootfs size:"`du -sh $@~ | sed -e "s/\(\.*\)\t.*/\1/"`
 	@# Create library loader symbolic link to help out binary applications.
 	@if [ -e $@~$(elibdir)/ld-linux.so.2 ] ; then \
