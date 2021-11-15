@@ -41,4 +41,7 @@ install-%/setup.py:
 post-install:
 	@echo " ==> Creating crossenv from $(main_DESTDIR)/usr/bin/python3 in $(DESTDIR)$(bindir)/python3-crossenv"
 	@cd $* && python3 -m crossenv $(main_DESTDIR)/usr/bin/python3 $(DESTDIR)$(bindir)/python3-crossenv
+	@echo " ==> Turn-off LTO & use -Os in crossenv"
+	@sed -i "s|-O3|-Os|g" $(DESTDIR)$(bindir)/python3-crossenv/lib/_sysconfigdata__linux_aarch64-linux-gnu.py
+	@sed -i "s|-flto||g" $(DESTDIR)$(bindir)/python3-crossenv/lib/_sysconfigdata__linux_aarch64-linux-gnu.py
 	@$(MAKECOOKIE)
