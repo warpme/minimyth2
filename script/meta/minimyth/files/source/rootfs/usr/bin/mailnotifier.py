@@ -9,7 +9,7 @@ import socket
 from imapclient import IMAPClient
 from collections import defaultdict
 
-debug = 1
+debug = 0
 cfg_file = "/etc/mailnotifier.rc"
 
 
@@ -124,7 +124,7 @@ while True:
                         current_mails[cleanlogin] = newmails
                         if debug:
                             print("Sending notification about new emails!")
-                        send_osd(ip, "Konto E-Mail:", "", str(newmails) + " nowych wiad.", picture, "", "", timeout, "", "")
+                        send_osd(ip, "Konto E-Mail:", "", login, str(newmails) + " nowych wiad.", picture, "", "", timeout, "")
                     else:
                         current_mails[cleanlogin] = newmails
                         if debug:
