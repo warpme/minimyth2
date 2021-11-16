@@ -5,9 +5,6 @@ CATEGORIES   = python
 MASTER_SITES = https://files.pythonhosted.org/packages/e7/01/3569e0b535fb2e4a6c384bdbed00c55b9d78b5084e0fb7f4d0bf523d7670/
 DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE      =
-DESCRIPTION  = 
-define BLURB
-endef
 
 DEPENDS = \
 	python3/python \
@@ -15,11 +12,10 @@ DEPENDS = \
 	python3/python-urllib3 \
 	python3/python-idna \
 	python3/python-chardet \
+	python3/python-charset_normalizer \
+	python3/python-certifi \
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
-
-BUILD_SCRIPTS   = $(WORKSRC)/setup.py
-INSTALL_SCRIPTS = $(WORKSRC)/setup.py
 
 CONFIGURE_ARGS =
 BUILD_ARGS     =
@@ -30,15 +26,5 @@ BUILD_ENV      =
 INSTALL_ENV    = \
 	PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
 
-GAR_EXTRA_CONF += python3/python/package-api.mk
-include ../../gar.mk
-
-build-%/setup.py:
-	@echo " ==> Running setup.py build in $*"
-	@cd $* && $(CONFIGURE_ENV) $(BUILD_ENV) python3 setup.py $(CONFIGURE_ARGS) build $(BUILD_ARGS)
-	@$(MAKECOOKIE)
-
-install-%/setup.py: 
-	@echo " ==> Running setup.py install in $*"
-	@cd $* && $(CONFIGURE_ENV) $(INSTALL_ENV) python3 setup.py $(CONFIGURE_ARGS) install --skip-build $(INSTALL_ARGS)
-	@$(MAKECOOKIE)
+include ../../python3/python/python3-module.mk
+include ../python/package-api.mk
