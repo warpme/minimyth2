@@ -38,10 +38,10 @@ def log(str):
     localtime = time.localtime(now)
     milliseconds = '%03d' % int((now - int(now)) * 1000)
     timestamp = time.strftime('%H:%M:%S', localtime) + "." + milliseconds
-    print timestamp + " " + str
+    print (timestamp + " " + str)
 
 
-log("SIP Telephony Daemon v3.3 (c) Piotr Oniszczuk\n")
+log("SIP Telephony Daemon v3.4 (c) Piotr Oniszczuk\n")
 
 def LoadConfig( cfg_file ):
     file = open(cfg_file,"r")
@@ -56,7 +56,7 @@ def LoadConfig( cfg_file ):
             b = x[1]
             config[a] = b
             if debug:
-                print cfg_file + ": " + a + "=" + b
+                print (cfg_file + ": " + a + "=" + b)
     return config;
 
 def SendOSDNotify( title, origin, description, extra, image, progress_text, progress, timeout, style, fe_ip ):
@@ -66,9 +66,9 @@ def SendOSDNotify( title, origin, description, extra, image, progress_text, prog
     msg = msg + "</mythnotification>"
     fe_port = 6948
     if debug:
-        print "UDP target IP:", fe_ip
-        print "UDP target port:", fe_port
-        print "message:", msg
+        print ("UDP target IP:", fe_ip)
+        print ("UDP target port:", fe_port)
+        print ("message:", msg)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.sendto(msg, (fe_ip, fe_port))
 
@@ -146,27 +146,27 @@ fe_audio_playback_resume_cmd = "play music play\n"
 fe_audio_playback_restart_cmd = "jump playmusic\n"
 fe_jump_to_mainmenu          = "jump mainmenu\n"
 
-print "Current config:"
-print "  -user               : " + user
-print "  -password           : " + password
-print "  -SIP registrar      : " + sip_registrar
-print "  -Audio Dev. IN      : " + str(audio_dev_in)
-print "  -Audio Dev. OUT     : " + str(audio_dev_out)
-print "  -Voicemail ann.     : " + voicemail_ann
-print "  -Voicemail rec.dir. : " + voicemail_recording_dir
-print "  -Phonebook pic.dir. : " + phonebook_pictures_dir
-print "  -Disable VAD        : " + str(no_vad)
+print ("Current config:")
+print ("  -user               : " + user)
+print ("  -password           : " + password)
+print ("  -SIP registrar      : " + sip_registrar)
+print ("  -Audio Dev. IN      : " + str(audio_dev_in))
+print ("  -Audio Dev. OUT     : " + str(audio_dev_out))
+print ("  -Voicemail ann.     : " + voicemail_ann)
+print ("  -Voicemail rec.dir. : " + voicemail_recording_dir)
+print ("  -Phonebook pic.dir. : " + phonebook_pictures_dir)
+print ("  -Disable VAD        : " + str(no_vad))
 if channel_count != -1:
-    print "  -Channel count      : " + str(channel_count)
+    print ("  -Channel count      : " + str(channel_count))
 if snd_clock_rate != -1:
-    print "  -Sound CLK.rate     : " + str(snd_clock_rate)
+    print ("  -Sound CLK.rate     : " + str(snd_clock_rate))
 if ptime != -1:
-    print "  -pTime              : " + str(ptime)
+    print ("  -pTime              : " + str(ptime))
 if echo_cancel_type != -1:
-    print "  -Echo Cancel Type   : " + str(echo_cancel_type)
+    print ("  -Echo Cancel Type   : " + str(echo_cancel_type))
 if echo_cancel_tail != -1:
-    print "  -Echo Cancel Tail   : " + str(echo_cancel_tail)
-print " "
+    print ("  -Echo Cancel Tail   : " + str(echo_cancel_tail))
+print (" ")
 
 for filePath in glob.glob(semaphores_path + "/*.sem"):
     if os.path.isfile(filePath):
@@ -175,7 +175,7 @@ for filePath in glob.glob(semaphores_path + "/*.sem"):
         os.remove(filePath)
 
 def log_cb(level, str, len):
-    print str,
+    print (str,)
 
 class MyAccountCallback(pj.AccountCallback):
     sem = None
@@ -364,7 +364,7 @@ def make_call(uri):
     try:
         log("Making call to:" + uri)
         return acc.make_call(uri, cb=MyCallCallback())
-    except pj.Error, e:
+    except (pj.Error) as e:
         log("Exception: " + str(e))
         return None
 
@@ -417,15 +417,15 @@ try:
     if interactive:
 
         while True:
-            print "\n\nMenu:\n  m=make call\n  h=hangup call\n  a=answer call\n  v=voice-mail\n  q=quit\n\n"
+            print ("\n\nMenu:\n  m=make call\n  h=hangup call\n  a=answer call\n  v=voice-mail\n  q=quit\n\n")
 
             input = sys.stdin.readline().rstrip("\r\n")
 
             if input == "m":
-                print "Enter destination URI to call: ", 
+                print ("Enter destination URI to call: ",)
 
                 if current_call:
-                    print "Already have another call"
+                    print ("Already have another call")
                     continue
 
                 input = sys.stdin.readline().rstrip("\r\n")
@@ -438,40 +438,40 @@ try:
                 del lck
 
             elif input == "h":
-                print "Hanging-up call..."
+                print ("Hanging-up call...")
 
                 if not current_call:
-                    print "There is no call"
+                    print ("There is no call")
                     continue
 
                 play_voice_mail = 0
                 current_call.hangup()
                 call_duration = time.time() - start_time
                 call_duration = '%.1f' % call_duration
-                print "Call duration: "+call_duration+"sec."
+                print ("Call duration: "+call_duration+"sec.")
 
             elif input == "a":
-                print "Aswering call..."
+                print ("Aswering call...")
 
                 if not current_call:
-                    print "There is no call"
+                    print ("There is no call")
                     continue
 
                 play_voice_mail = 0
                 current_call.answer(200)
 
             elif input == "v":
-                print "Redirecting to voice-mail..."
+                print ("Redirecting to voice-mail...")
 
                 if not current_call:
-                    print "There is no call"
+                    print ("There is no call")
                     continue
 
                 play_voice_mail = 1
                 current_call.answer(200)
 
             elif input == "q":
-                print "Exiting..."
+                print ("Exiting...")
                 break
 
         transport = None
@@ -656,7 +656,7 @@ try:
 
             time.sleep(0.2)
 
-except pj.Error, e:
+except (pj.Error) as e:
     log("Exception: " + str(e))
 
     transport = None
