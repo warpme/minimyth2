@@ -6,6 +6,8 @@ MASTER_SITES = https://files.pythonhosted.org/packages/a1/69/daeee6d8f22c997e522
 DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE      =
 
+DEPENDS = python3/python-soupsieve python3/python-simplediff
+
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
 CONFIGURE_ARGS =
