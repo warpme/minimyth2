@@ -70,7 +70,7 @@ def SendOSDNotify( title, origin, description, extra, image, progress_text, prog
         print ("UDP target port:", fe_port)
         print ("message:", msg)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.sendto(msg, (fe_ip, fe_port))
+    sock.sendto(bytes(msg,'utf-8'),(fe_ip, fe_port))
 
 def TelnetCmdToFE(cmd):
     global tn,telnet_opened
