@@ -21,7 +21,9 @@ cross cross-compilation. In MiniMyth2 issuing make build command automates:
 - preparing bootable image
 - uploading created bootable image to i.e. PXE server or NFS server or starts flashing SD card
 
-From building perspective - MiniMyth2 is closest to LFS build in fully automated way.
+From building perspective - MiniMyth2 is closest to LFS build in fully automated way. When compared to i.e. LibreELEC - MiniMyth2
+builds single universal rootfs image for all supported boards. Difference beetween SD card images for each supported board
+is only in bootloader (SD card BOOT partition).
 
 
 
