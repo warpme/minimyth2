@@ -263,3 +263,15 @@ PYTHON2_SET_MAIN_SYSCONF= \
 	      $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.py; \
 	rm -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.pyc; \
 	rm -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.pyo; \
+
+PYTHON3_SET_BUILD_SYSCONF= \
+	echo "Setting _sysconfigdata__linux_x86_64-linux-gnu.py to host config as DESTIMG=build"; \
+	cp -v $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py.build \
+	      $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py; \
+	rm -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/__pycache__/_sysconfigdata__*.pyc
+
+PYTHON3_SET_MAIN_SYSCONF= \
+	echo "Restoring _sysconfigdata__linux_x86_64-linux-gnu.py to target config as DESTIMG=main"; \
+	cp -v $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py.main \
+	      $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_x86_64-linux-gnu.py; \
+	rm -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/__pycache__/_sysconfigdata__*.pyc
