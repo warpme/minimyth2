@@ -12,7 +12,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c lib/portaudio
-BUILDDEPS = python3/python python3/python-setuptools python3/python-crossenv
+BUILDDEPS = python3/python python3/python-setuptools
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile python_bindings
