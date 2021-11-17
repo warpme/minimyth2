@@ -47,6 +47,7 @@ BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
+include ../../python3/python/package-api.mk
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
@@ -54,13 +55,15 @@ BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
 
 configure-custom:
-	@echo "Configuring u-boot for Amlogic G12A with $(CONFIGURE_ARGS)..."
+	@echo "Configuring u-boot for Amlogic G12A with $(CONFIGURE_ARGS) ..."
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 build-custom:
-	@echo "Building u-boot for Amlogic G12A  with $(CONFIGURE_ARGS)..."
+	@echo "Building u-boot for Amlogic G12A with $(CONFIGURE_ARGS) ..."
+	@$(call PYTHON3_SET_BUILD_SYSCONF)
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@$(MAKECOOKIE)
 
 install-custom:

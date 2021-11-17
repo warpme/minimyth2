@@ -19,6 +19,7 @@ BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
+include ../../python3/python/package-api.mk
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
@@ -26,12 +27,15 @@ BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
 
 configure-custom:
-	@sed -i "s%HOSTCC%CC%g" $(WORKSRC)/scripts/dtc/pylibfdt/Makefile
+	@echo "Configuring u-boot rpi with $(CONFIGURE_ARGS) ..."
 	@$(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 build-custom:
+	@echo "Building u-boot rpi with $(CONFIGURE_ARGS) ..."
+	@$(call PYTHON3_SET_BUILD_SYSCONF)
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@$(MAKECOOKIE)
 
 install-custom:

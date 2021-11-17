@@ -50,9 +50,11 @@ BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
+include ../../python3/python/package-api.mk
 
-#mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
-#mm_U-BOOT_BOARD_TYPE = t95_defconfig
+# For forcing given board (usually for testing)
+# mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
+# mm_U-BOOT_BOARD_TYPE = t95_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
@@ -61,13 +63,15 @@ BUILD_ARGS = \
 	BL31=$(DESTDIR)$(libdir)/u-boot/h616/bl31.bin \
 
 configure-custom:
-	@echo "Configuring u-boot for SunXi H616 with $(CONFIGURE_ARGS)..."
+	@echo "Configuring u-boot for SunXi H616 with $(CONFIGURE_ARGS) ..."
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 build-custom:
-	@echo "Building u-boot for SunXi H616 with $(CONFIGURE_ARGS)..."
+	@echo "Building u-boot for SunXi H616 with $(CONFIGURE_ARGS) ..."
+	@$(call PYTHON3_SET_BUILD_SYSCONF)
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@$(MAKECOOKIE)
 
 install-custom:

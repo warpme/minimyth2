@@ -29,6 +29,7 @@ BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
+include ../../python3/python/package-api.mk
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
@@ -42,13 +43,15 @@ configure-custom:
 		cp -pd $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/scp.bin \
 		$(WORKSRC)/scp.bin ; \
 	 fi
-	@echo "Configuring u-boot for SunXi H6..."
+	@echo "Configuring u-boot for SunXi H6 with $(CONFIGURE_ARGS) ..."
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 build-custom:
-	@echo "Building u-boot for SunXi H6..."
+	@echo "Building u-boot for SunXi H6 with $(CONFIGURE_ARGS) ..."
+	@$(call PYTHON3_SET_BUILD_SYSCONF)
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@$(MAKECOOKIE)
 
 install-custom:

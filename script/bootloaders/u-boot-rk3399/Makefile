@@ -34,6 +34,7 @@ BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
+include ../../python3/python/package-api.mk
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
@@ -42,13 +43,15 @@ BUILD_ARGS = \
 	BL31=$(DESTDIR)$(libdir)/u-boot/rk3399/bl31.bin \
 
 configure-custom:
-	@echo "Configuring u-boot with $(mm_U-BOOT_BOARD_TYPE) ..."
+	@echo "Configuring u-boot rk3399 with $(CONFIGURE_ARGS) ..."
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 build-custom:
-	@echo "Building u-boot for $(mm_U-BOOT_BOARD_TYPE) ..."
-	@$(BUILD_ARGS) $(warning HOSTCC is:$(HOSTCC)) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@echo "Building u-boot rk3399 with $(CONFIGURE_ARGS) ..."
+	@$(call PYTHON3_SET_BUILD_SYSCONF)
+	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@$(MAKECOOKIE)
 
 install-custom:

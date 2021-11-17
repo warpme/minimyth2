@@ -16,6 +16,7 @@ BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
+include ../../python3/python/package-api.mk
 
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
@@ -26,7 +27,9 @@ configure-custom:
 	@$(MAKECOOKIE)
 
 build-custom:
-	@$(MAKE) -C $(WORKSRC) tools-all
+	@$(call PYTHON3_SET_BUILD_SYSCONF)
+	@$(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS) tools-all
+	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@$(MAKECOOKIE)
 
 git//%$(DISTNAME).tar.bz2:
