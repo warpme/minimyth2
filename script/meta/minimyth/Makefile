@@ -144,9 +144,7 @@ DEPENDS = \
 	$(if $(filter udisks,$(mm_SOFTWARE)), \
 		lib/udisks) \
 	$(if $(filter voip,$(mm_SOFTWARE)), \
-		lib/libpjsip \
-		$(if $(filter python2,$(mm_SOFTWARE)),python2/python-pjsip) \
-		$(if $(filter python3,$(mm_SOFTWARE)),python3/python-pjsip)) \
+		lib/libpjsip) \
 	$(if $(filter makemkv,$(mm_SOFTWARE)), \
 		utils/makemkv-oss \
 		utils/makemkv-bin) \
