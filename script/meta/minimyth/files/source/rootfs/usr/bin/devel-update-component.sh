@@ -189,6 +189,19 @@ file_list8=""
 epilog_cmd8="sync"
 #--------------------------
 
+# --- pjsip lib/bin files ---
+component_9="pjsip"
+# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+directory_list9=""
+# file_list format: <src_path>/<files>:<dest_path>/
+file_list9=" \
+/usr/lib/libpj*.so.*:/usr/lib \
+/usr/lib/python3.8/site-packages/*pjsua*:/usr/lib/python3.8/site-packages \
+/usr/bin/sip-daemon.py:/usr/bin \
+"
+epilog_cmd9="sync"
+#--------------------------
+
 # --- qt6 lib/bin files ---
 component_0="All libs & bins"
 # directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
