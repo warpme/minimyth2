@@ -79,21 +79,21 @@ def TelnetCmdToFE(cmd):
         log("Opening Telent session to FE...")
         tn = telnetlib.Telnet("127.0.0.1", 6546)
         log("Waiting for Telent connection to FE...")
-        tn.read_until("#")
+        tn.read_until(b'#')
         log("Telent opened. Daemon is ready...")
         telnet_opened = 1
     else:
         log("Telent to FE already opened...")
 
-    tn.write(cmd)
-    loc = tn.read_until("#")
+    tn.write(bytes(cmd, 'ascii'))
+    loc = tn.read_until(b'#')
     return loc;
 
 def CloseTelnet():
     global tn,telnet_opened
 
     if telnet_opened:
-        tn.write("exit\n")
+        tn.write(b'exit\n')
         tn.close()
         log("Closing Telnet to FE...")
         telnet_opened = 0
