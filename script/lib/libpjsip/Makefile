@@ -1,18 +1,17 @@
 
 GARNAME      = pjproject
 GARVERSION   = 2.11.1
-PYTHONMODVER = d6bce7f2089d920ed02023872f35e62585a3d0d9
 CATEGORIES   = lib
-MASTER_SITES = https://github.com/pjsip/pjproject/archive/ https://github.com/mgwilliams/python3-pjsip/archive/
-DISTFILES    = $(GARVERSION).tar.gz $(PYTHONMODVER).zip
-PATCHFILES   = $(DISTNAME)-fix-cross-compile.patch
+MASTER_SITES = https://github.com/pjsip/pjproject/archive/
+DISTFILES    = $(GARVERSION).tar.gz
+PATCHFILES   = $(DISTNAME)-fix-cross-compile.patch $(DISTNAME)-dont-build-java-bindings.patch
 LICENSE      = GPL2
 DESCRIPTION  = 
 define BLURB
 endef
 
 DEPENDS   = lang/c lib/portaudio
-BUILDDEPS = python3/python python3/python-setuptools
+BUILDDEPS = python3/python python3/python-setuptools devel/swig
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile python_bindings
@@ -21,6 +20,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile python_bindings
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--prefix=/usr \
 	--enable-shared \
+	--disable-static \
 	--disable-opencore-amr \
 	--disable-video \
 	--disable-sdl \
@@ -43,16 +43,29 @@ PYTHON3_INSTALL_ENV    = \
 GAR_EXTRA_CONF += python3/python/package-api.mk
 include ../../gar.mk
 
-pre-configure:
-	@cp -rf $(WORKDIR)/python3-pjsip-$(PYTHONMODVER)/ $(WORKSRC)/pjsip-apps/src/python3
-	@$(MAKECOOKIE)
+# Turn-off LTO & use -Os to save size
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+CFLAGS   := $(filter-out -O%, $(CFLAGS)) -Os
+CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -Os
+LDFLAGS  := $(filter-out -O%, $(LDFLAGS)) -Os
 
 build-python_bindings:
-	@echo " ==> Running setup.py build in $(WORKSRC)/pjsip-apps/src/python3"
-	@cd $(WORKSRC)/pjsip-apps/src/python3 && python3 setup.py $(PYTHON3_CONFIGURE_ARGS) build $(PYTHON3_BUILD_ARGS)
+	@$(MAKE) -C $(WORKSRC)/pjsip-apps/src/swig
+	@cd $(WORKSRC)/pjsip-apps/src/swig/python && python3 setup.py $(PYTHON3_CONFIGURE_ARGS) build $(PYTHON3_BUILD_ARGS)
 	@$(MAKECOOKIE)
 
 install-python_bindings:
-	@echo " ==> Running setup.py install in $(WORKSRC)/pjsip-apps/src/python3"
-	@cd $(WORKSRC)/pjsip-apps/src/python3 && python3 setup.py $(PYTHON3_CONFIGURE_ARGS) install --skip-build $(PYTHON3_INSTALL_ARGS)
+	@cd $(WORKSRC)/pjsip-apps/src/swig/python && python3 setup.py $(PYTHON3_CONFIGURE_ARGS) install --skip-build $(PYTHON3_INSTALL_ARGS)
+	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -rf $(DESTDIR)$(libdir)/libpj*
+	@rm -rf $(DESTDIR)$(libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/site-packages/pjsua2*
+	@rm -rf $(DESTDIR)$(libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)//site-packages/_pjsua2*
+
+post-install:
+	@cp -f $(WORKSRC)/pjsip/lib/libpjsua2.so.2 $(DESTDIR)$(libdir)/libpjsua2.so.2
+	@ln -srf $(DESTDIR)$(libdir)/libpjsua2.so.2 $(DESTDIR)$(libdir)/libpjsua2.so
 	@$(MAKECOOKIE)
