@@ -4,7 +4,10 @@ GARVERSION   = 2.11.1
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/pjsip/pjproject/archive/
 DISTFILES    = $(GARVERSION).tar.gz
-PATCHFILES   = $(DISTNAME)-fix-cross-compile.patch $(DISTNAME)-dont-build-java-bindings.patch
+PATCHFILES   = \
+	$(DISTNAME)-fix-cross-compile.patch \
+	$(DISTNAME)-dont-build-java-bindings.patch \
+	$(DISTNAME)-fix-installation-libpjsua2-libs.patch
 LICENSE      = GPL2
 DESCRIPTION  = 
 define BLURB
@@ -64,8 +67,3 @@ clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/libpj*
 	@rm -rf $(DESTDIR)$(libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/site-packages/pjsua2*
 	@rm -rf $(DESTDIR)$(libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)//site-packages/_pjsua2*
-
-post-install:
-	@cp -f $(WORKSRC)/pjsip/lib/libpjsua2.so.2 $(DESTDIR)$(libdir)/libpjsua2.so.2
-	@ln -srf $(DESTDIR)$(libdir)/libpjsua2.so.2 $(DESTDIR)$(libdir)/libpjsua2.so
-	@$(MAKECOOKIE)
