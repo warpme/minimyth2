@@ -19,7 +19,7 @@ def main(args):
     """
     xstatus = subprocess.Popen(["xset", "-q"], stdout = subprocess.PIPE)
     xstatus.wait()
-    has_dpms = any("DPMS is Enabled" in line for line in xstatus.stdout)
+    has_dpms = any(b'DPMS is Enabled' in line for line in xstatus.stdout)
     if has_dpms:
         subprocess.Popen(["xset", "-dpms"])
     try:
