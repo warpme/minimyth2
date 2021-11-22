@@ -11,7 +11,6 @@ PATCHFILES  =
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
-PATCHFILES += 0003-configure-fix-qt6-gles-detection.patch
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
@@ -41,28 +40,19 @@ PATCHFILES += 0106-hack-for-correct-perl-bindings-install.patch
 PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
 PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
-
-ifeq (1,1)
+PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 # v4l2-request support in ffmpeg (requires also kernel patching)
-ifneq (,$(filter %5.13,$(mm_KERNEL_VERSION)))
-PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.13kernel.patch
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.13kernel.patch
-else
 PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.14kernel.patch
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.14kernel.patch
-endif
+PATCHFILES += 0151-ffmpeg4.4-add-V4l2_request-support-5.14kernel.patch
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner H6
 PATCHFILES += 0153-ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel.patch
 # Improve v4l2_request resiliency on so DVB stream errors (http://jernej.libreelec.tv/videos/cedrus_broken.ts)
 PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
-endif
 
 # buffers bump-up required for AML HD playbck
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
-# mute Invalid UE golomb code reposts on hevc tv playback
-PATCHFILES += 0172-ffmpeg-libavcodec-reduce-Invalid-UE-golomb-error-code.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 
@@ -98,8 +88,7 @@ PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 # --------Patches 400+ are plugins patches---------------------
 
 # Various mythmusic patches
-# patch 0400 fails on Qt6
-#PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
+PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
 PATCHFILES += 0404-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
@@ -139,13 +128,14 @@ DEPENDS = \
 	lib/libsamplerate \
 	lib/libbluray \
 	lib/SDL2 \
+	lib/libsoundtouch \
 	lib/taglib \
 	devel/zlib \
 	devel/yasm \
 	python3/python \
 	python3/python-future \
 	python3/python-lxml \
-	python3/python-MySQL-python \
+	python3/python-mysqlclient \
 	python3/python-requests-cache \
 	python3/python-simplejson \
 	python3/python-urlgrabber \
@@ -237,8 +227,6 @@ CONFIGURE_ARGS = \
 	--enable-v4l2 \
 	--enable-v4l2request \
 	--enable-vaapi \
-	--enable-ivtv \
-	--enable-hdpvr \
 	--enable-dvb \
 	--dvb-path="$(DESTDIR)$(includedir)" \
 	--libcec-path="$(DESTDIR)$(includedir)/libcec" \
