@@ -18,6 +18,13 @@ use_test_branch_as_amster="no"
 # GIT branch name used when above is set to "yes"
 # or when minimyth.conf.mk var. mm_MYTH_VERSION is
 # set as "test"
+
+# testing branch for ffmpeg-resync
+#test_branch_name="devel/ffmpeg-resync"
+# Dir where myth test branch sources will be
+#test_git_src_dir="git-mythtv-ffmpeg-resync"
+
+# testing branch for qt6
 test_branch_name="devel/qt6"
 # Dir where myth test branch sources will be
 test_git_src_dir="git-mythtv-qt6"
