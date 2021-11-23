@@ -1,8 +1,8 @@
 
 GARNAME      = kodi-jsonschemabuilder
-GARVERSION   = 19.2-Matrix
+GARVERSION   = $(KODI_VERSION)
+MASTER_SITES = $(KODI_MASTER_SITES)
 CATEGORIES   = mediaplayers
-MASTER_SITES = https://github.com/xbmc/xbmc/archive/refs/tags/
 DISTFILES    = $(GARVERSION).tar.gz
 WORKSRC      = $(WORKDIR)/xbmc-$(GARVERSION)/tools/depends/native/JsonSchemaBuilder/src
 
@@ -14,6 +14,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --prefix="$(prefix)" \
 
+GAR_EXTRA_CONF += mediaplayers/kodi/package-api.mk
 include ../../gar.mk
 
 pre-configure:

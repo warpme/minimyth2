@@ -1,21 +1,21 @@
 
-GARNAME      = xbmc
-GARVERSION   = 19.2-Matrix
-CATEGORIES   = mediaplayers
-MASTER_SITES = \
-		https://github.com/xbmc/xbmc/archive/refs/tags/ \
+GARNAME       = xbmc
+GARVERSION    = $(KODI_VERSION)
+CATEGORIES    = mediaplayers
+MASTER_SITES  = \
+		$(KODI_MASTER_SITES) \
 		https://download.videolan.org/pub/libdvdcss/1.4.3/ \
 		https://download.videolan.org/pub/videolan/libdvdnav/6.1.1/ \
 		https://download.videolan.org/pub/videolan/libdvdread/6.1.2/ \
 		http://mirrors.kodi.tv/build-deps/sources/
-DISTFILES    = \
+DISTFILES     = \
 		$(GARVERSION).tar.gz \
 		libdvdcss-1.4.3.tar.bz2 \
 		libdvdnav-6.1.1.tar.bz2 \
 		libdvdread-6.1.2.tar.bz2 \
 		libudfread-1.1.0.tar.gz
-WORKSRC      = $(WORKDIR)/xbmc-$(GARVERSION)
-LICENSE      = GPL
+WORKSRC       = $(WORKDIR)/xbmc-$(GARVERSION)
+LICENSE       = GPL
 
 DEPENDS = \
 	db/sqlite \
@@ -30,6 +30,7 @@ DEPENDS = \
 	lib/fontconfig \
 	lib/freetype \
 	lib/giflib \
+	lib/libiconv \
 	lib/libaacs \
 	lib/libass \
 	lib/libbluray \
@@ -147,9 +148,11 @@ BUILD_ARGS   = \
 	DESTDIR="" \
 
 include ../../gar.mk
+GAR_EXTRA_CONF += mediaplayers/kodi/package-api.mk
 
 clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/kodi*
 	@rm -rf $(DESTDIR)$(bindir)/kodi*
 	@rm -rf $(DESTDIR)$(datadir)/kodi*
 	@rm -rf $(DESTDIR)$(includedir)/kodi*
+	@$(foreach dir, $(wildcard ../kodi-* ), $(MAKE) clean clean-all -C $(dir) ;)
