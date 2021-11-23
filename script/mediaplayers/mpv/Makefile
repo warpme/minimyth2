@@ -1,7 +1,7 @@
 
 GARNAME      = mpv
-# master @ 12.11.2020
-GARVERSION   = f85de9e6d6d2785b0a40af052d245e07e2ae14c5
+# 0.34.0 @ 02.11.2021
+GARVERSION   = 9ca9066d052acecb5b05369141a76993a753ee1e
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://github.com/mpv-player/mpv/archive/
 DISTFILES    = $(GARVERSION).zip
