@@ -140,7 +140,8 @@ DEPENDS = \
 	$(if $(filter mpv,$(mm_SOFTWARE)), \
 		mediaplayers/mpv) \
 	$(if $(filter kodi,$(mm_SOFTWARE)), \
-		mediaplayers/kodi) \
+		mediaplayers/kodi \
+		mediaplayers/kodi-addon-pvr.mythtv) \
 	$(if $(filter udisks,$(mm_SOFTWARE)), \
 		lib/udisks) \
 	$(if $(filter voip,$(mm_SOFTWARE)), \
