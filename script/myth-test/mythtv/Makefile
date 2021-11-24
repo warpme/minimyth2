@@ -11,6 +11,7 @@ PATCHFILES  =
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
+PATCHFILES += 0003-configure-fix-qt6-gles-detection.patch
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
@@ -43,7 +44,7 @@ PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 # v4l2-request support in ffmpeg (requires also kernel patching)
 PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.14kernel.patch
-PATCHFILES += 0151-ffmpeg4.4-add-V4l2_request-support-5.14kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.14kernel.patch
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner H6
@@ -88,7 +89,7 @@ PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 # --------Patches 400+ are plugins patches---------------------
 
 # Various mythmusic patches
-PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
+#PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
 PATCHFILES += 0404-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
