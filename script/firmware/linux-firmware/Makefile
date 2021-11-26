@@ -1,9 +1,10 @@
-GARNAME = linux-firmware
-GARVERSION = 20210719-1f29bc7d
-CATEGORIES = firmware
+
+GARNAME      = linux-firmware
+GARVERSION   = 20211126-b0e898f
+CATEGORIES   = firmware
 MASTER_SITES = git://git.kernel.org/pub/scm/linux/kernel/git/firmware/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE =
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      =
 
 DESCRIPTION =
 define BLURB
