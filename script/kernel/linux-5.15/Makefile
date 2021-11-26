@@ -103,12 +103,13 @@ PATCHFILES += 0509-ASoC-sun4i-i2s-Add-parenthesis-around-macro-argument.patch
 PATCHFILES += 0510-ASoC-sun4i-i2s-WiP-multi-channel.patch
 PATCHFILES += 0511-arm64-dts-sun50i-h6-dtsi-add-sound-node.patch
 PATCHFILES += 0512-arm64-dts-enable-audio-gs1.patch
+PATCHFILES += 0513-media-cedrus-Don-t-kernel-map-most-buffers.patch
+PATCHFILES += 0514-media-cedrus-hevc-Improve-buffer-management.patch
+PATCHFILES += 0515-media-cedrus-hevc-tiles-hack.patch
+PATCHFILES += 0516-media-cedrus-h264-Improve-buffer-management.patch
 PATCHFILES += 0521-media-hevc-Add-scaling-matrix-control.patch
 PATCHFILES += 0523-media-cedrus-hevc-Add-support-for-scaling-lists.patch
-PATCHFILES += 0524-media-cedrus-hevc-tiles-hack.patch
 PATCHFILES += 0525-media-cedrus-Add-callback-for-buffer-cleanup.patch
-PATCHFILES += 0526-media-cedrus-hevc-Improve-buffer-management.patch
-PATCHFILES += 0527-media-cedrus-h264-Improve-buffer-management.patch
 PATCHFILES += 0528-media-cedrus-wip-10-bit-HEVC-support.patch
 PATCHFILES += 0529-media-cedrus-add-check-for-H264-and-HEVC-limitations.patch
 # Adding support for MFD devices on some H6 boards
