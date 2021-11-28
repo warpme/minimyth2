@@ -187,7 +187,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@# Copy shares.
 	@$(call COPY_FILES, "shares", "share", $(DESTDIR), $@~, $(sharedirs), $(MM_SHARES))
 	@if [ $(mm_QT_VERSION) = "qt4" ] ; then \
-		echo "copy qt4 plugins required by mythtv"                                       ; \
+		echo "copy qt4 plugins"                                                          ; \
 		rm -rf   $@~$(qt4prefix)/plugins                                                 ; \
 		mkdir -p $@~$(qt4prefix)/plugins                                                 ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/graphicssystems   $@~$(qt4prefix)/plugins ; \
@@ -195,7 +195,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/imageformats      $@~$(qt4prefix)/plugins ; \
 		cp -pdR $(DESTDIR)$(qt4prefix)/plugins/sqldrivers        $@~$(qt4prefix)/plugins ; \
 	 elif [ $(mm_QT_VERSION) = "qt6" ] ; then                                                  \
-		echo "copy qt6 plugins required by mythtv"                                       ; \
+		echo "copy qt6 plugins"                                                          ; \
 		rm -rf   $@~$(qt6prefix)/plugins                                                 ; \
 		mkdir -p $@~$(qt6prefix)/plugins                                                 ; \
 		cp -pdR  $(DESTDIR)$(qt6prefix)/plugins/platforms        $@~$(qt6prefix)/plugins ; \
@@ -215,7 +215,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 			cp -pdR $(DESTDIR)$(qt6prefix)/plugins/wayland-shell-integration $@~$(qt6prefix)/plugins ; \
 		fi                                                                               ; \
 	 else                                                                                      \
-		echo "copy qt5 plugins required by mythtv"                                       ; \
+		echo "copy qt5 plugins"                                                          ; \
 		rm -rf   $@~$(qt5prefix)/plugins                                                 ; \
 		mkdir -p $@~$(qt5prefix)/plugins                                                 ; \
 		cp -pdR  $(DESTDIR)$(qt5prefix)/plugins/platforms        $@~$(qt5prefix)/plugins ; \
