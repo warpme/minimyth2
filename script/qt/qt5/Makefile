@@ -8,6 +8,8 @@ PATCHFILES   = $(DISTNAME).patch.gar
 PATCHFILES  += $(DISTNAME)-fix-gcc11-compile.patch
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
 PATCHFILES  += $(DISTNAME)-eglfs_kms-qeglfskmsgbmintegration-use-drm-card0.patch
+PATCHFILES  += $(DISTNAME)-add-drm-atomic-commits-logging.patch
+PATCHFILES  += $(DISTNAME)-report-only-GPU_PRIMARY-devs-on-non-pci-platforms.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
