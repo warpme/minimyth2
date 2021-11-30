@@ -156,6 +156,9 @@ PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
 PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
 PATCHFILES += 0604-bus-sun50i-de2-Adjust-printing-error-message.patch
 PATCHFILES += 0605-bus-sunxi-rsb-Fix-shutdown.patch
+# audio support
+PATCHFILES += 0606-dma-sun6i-dma-add-h616-support.patch
+PATCHFILES += 0610-sound-soc-add-h616-audio-support.patch
 # enable some h616 boards
 PATCHFILES += 0630-arm64-dts-allwinner-h616-add-dtsi.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-add-OrangePi-Zero2.patch
@@ -163,6 +166,8 @@ PATCHFILES += 0632-arm64-dts-allwinner-h616-add-X96-Mate-TVbox.patch
 PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0634-arm64-dts-allwinner-h616-add-T95-TVbox.patch
 PATCHFILES += 0635-arm64-dts-allwinner-h616-enable-ths-support.patch
+# audio support
+PATCHFILES += 0636-arm64-dts-allwinner-h616-add-audio-support.patch
 endif
 #------------------------------------------------------------
 
