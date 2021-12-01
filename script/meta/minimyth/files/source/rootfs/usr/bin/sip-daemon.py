@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 import sys
-import pjsua2 as pj
+import pjsua as pj
 import threading
 import os
 import glob
