@@ -68,6 +68,8 @@ PATCHFILES += 0311-arm64-dts-meson-set-dma-pool-to-896MB.patch
 PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
 # fixing a lot of the hangs on hevc decoding
 PATCHFILES += 0313-meson-vdec-HEVC-decoder-add-handling-to-show-frames-when-ready.patch
+# https://patchwork.kernel.org/project/linux-amlogic/list/?series=587995
+PATCHFILES += 0314-media-meson-vdec-Fix-a-NULL-pointer-dereference-in-amvdec_add_ts.patch
 # Amlogic: Misc patches
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
