@@ -394,6 +394,7 @@ checkpatch: extract
 PATCH_TARGETS = $(addprefix patch-,$(PATCHFILES))
 
 patch: extract $(WORKSRC) pre-patch $(PATCH_TARGETS) post-patch
+	@find . -name '*.orig' -print -exec rm -rf {} \;
 	$(DONADA)
 
 # returns true if patch has completed successfully, false
@@ -404,7 +405,8 @@ patch-p:
 # makepatch		- Grab the upstream source and diff against $(WORKSRC).  Since
 # 				  diff returns 1 if there are differences, we remove the patch
 # 				  file on "success".  Goofy diff.
-makepatch: $(SCRATCHDIR) $(FILEDIR) $(FILEDIR)/gar-base.diff
+makepatch: patch $(SCRATCHDIR) $(FILEDIR) $(FILEDIR)/gar-base.diff
+	@mv $(FILEDIR)/gar-base.diff $(FILEDIR)/../$(DISTNAME)-all-mm2-changes-in-one-patch.patch
 	$(DONADA)
 
 # this takes the changes you've made to a working directory,
@@ -527,6 +529,7 @@ clean: cookieclean
 
 cookieclean: buildclean
 	@rm -rf $(COOKIEROOTDIR)
+	@rm -rf tmp-$(COOKIEROOTDIR)
 
 buildclean:
 	@rm -rf $(WORKSRC) $(WORKROOTDIR) $(EXTRACTDIR) $(SCRATCHDIR) $(SCRATCHDIR)-$(COOKIEDIR) $(SCRATCHDIR)-build *~
