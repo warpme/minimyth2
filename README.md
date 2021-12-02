@@ -26,8 +26,8 @@ From building perspective - MiniMyth2 is closest to LFS build in fully automated
 When compared to i.e. LibreELEC - MiniMyth2 builds single universal rootfs image for all supported boards.
 Difference beetween SD card images for each supported board is only in bootloader (SD card BOOT partition).
 It also offers multi-board capability so teoretically it can build - in one build session - single SD card
-image for all SoC. Practically - due some SoC boot conflicts - only subset of SoC can work with universal
-card SD iamge currently.
+image for all SoC. Practically - due some SoC boot procedure conflicts/bootloader SoC speciffic overlaps -
+only subset of SoC can work with universal card SD image currently.
 
 
 
