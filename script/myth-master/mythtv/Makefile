@@ -47,7 +47,7 @@ PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.13kernel.patch
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.13kernel.patch
 else
 PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.14kernel.patch
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.14kernel.patch
+PATCHFILES += 0151-ffmpeg4.4-add-V4l2_request-support-5.14kernel.patch
 endif
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
