@@ -256,7 +256,13 @@ normal-patch-%:
 %/gar-base.diff:
 	@echo " ==> Creating patch $@"
 	@EXTRACTDIR=$(SCRATCHDIR) COOKIEDIR=$(SCRATCHDIR)-$(COOKIEDIR) $(MAKE) extract
-	@if diff --speed-large-files --no-dereference --minimal -Nru $(SCRATCHDIR) $(WORKDIR) > $@; then \
+	@if diff --speed-large-files --no-dereference --minimal -Naur $(SCRATCHDIR) $(WORKDIR) > $@; then \
+		rm $@; \
+	fi
+%/gar-patched-base.diff:
+	@echo " ==> Creating incremental patch $@"
+	@EXTRACTDIR=$(SCRATCHDIR) WORKDIR=$(SCRATCHDIR) COOKIEDIR=$(SCRATCHDIR)-$(COOKIEDIR) $(MAKE) patch
+	@if diff --speed-large-files --no-dereference --minimal -Naur $(SCRATCHDIR) $(WORKDIR) > $@; then \
 		rm $@; \
 	fi
 

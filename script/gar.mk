@@ -202,7 +202,7 @@ WORKROOTDIR ?= work
 WORKDIR ?= $(WORKROOTDIR)/$(DESTIMG).d
 WORKSRC ?= $(WORKDIR)/$(DISTNAME)
 EXTRACTDIR ?= $(WORKDIR)
-SCRATCHDIR ?= tmp
+SCRATCHDIR ?= $(WORKROOTDIR)/tmp
 CHECKSUM_FILE ?= checksums
 MANIFEST_FILE ?= manifest
 ALLFILES ?= $(DISTFILES) $(PATCHFILES)
@@ -402,10 +402,17 @@ patch: extract $(WORKSRC) pre-patch $(PATCH_TARGETS) post-patch
 patch-p:
 	@$(foreach COOKIEFILE,$(PATCH_TARGETS), test -e $(COOKIEDIR)/$(COOKIEFILE) ;)
 
-# makepatch		- Grab the upstream source and diff against $(WORKSRC).  Since
+# makepatch		- Grab the upstream source, patch it and diff against $(WORKSRC).  Since
 # 				  diff returns 1 if there are differences, we remove the patch
 # 				  file on "success".  Goofy diff.
-makepatch: patch $(SCRATCHDIR) $(FILEDIR) $(FILEDIR)/gar-base.diff
+makepatch: patch $(SCRATCHDIR) $(FILEDIR) $(FILEDIR)/gar-patched-base.diff
+	@mv $(FILEDIR)/gar-patched-base.diff $(FILEDIR)/../current-changes.patch
+	$(DONADA)
+
+# makebasepatch		- Grab the upstream source and diff against $(WORKSRC).  Since
+# 				  diff returns 1 if there are differences, we remove the patch
+# 				  file on "success".  Goofy diff.
+makebasepatch: patch $(SCRATCHDIR) $(FILEDIR) $(FILEDIR)/gar-base.diff
 	@mv $(FILEDIR)/gar-base.diff $(FILEDIR)/../$(DISTNAME)-all-mm2-changes-in-one-patch.patch
 	$(DONADA)
 
