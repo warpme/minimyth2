@@ -57,7 +57,6 @@ endif
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 # this makes v4l2_request seeking on h264 content atleast paritally working
 PATCHFILES += 0172-ffmpeg-libavcodec-v4l2_request.c-increase-initial_poll-to-24-for-h264.patch
-PATCHFILES += 0174-ffmpeg-libavcodec-v4l2_request-disable-av_buffer_pool_flush.patch
 # hack improvig a bit h264 seeks on rpi3/rpi4 & amlogic
 PATCHFILES += 0173-ffmpeg-libavcodec-v4l2_m2m_h264_dec-clean-input-buf-at-flush.patch
 # enable LTO; patches from issue #224
