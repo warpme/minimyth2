@@ -1,6 +1,6 @@
 
 GARNAME      = libva-utils
-GARVERSION   = 2.12.0
+GARVERSION   = 2.13.0
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/01org/libva-utils/archive/
 DISTFILES    = $(GARVERSION).tar.gz
