@@ -407,6 +407,8 @@ patch-p:
 # 				  file on "success".  Goofy diff.
 makepatch: patch $(SCRATCHDIR) $(FILEDIR) $(FILEDIR)/gar-patched-base.diff
 	@mv $(FILEDIR)/gar-patched-base.diff $(FILEDIR)/../current-changes.patch
+	@sed 's|work/tmp/||g' -i $(FILEDIR)/../current-changes.patch
+	@sed 's|work/main.d/||g' -i $(FILEDIR)/../current-changes.patch
 	$(DONADA)
 
 # makebasepatch		- Grab the upstream source and diff against $(WORKSRC).  Since
@@ -414,6 +416,8 @@ makepatch: patch $(SCRATCHDIR) $(FILEDIR) $(FILEDIR)/gar-patched-base.diff
 # 				  file on "success".  Goofy diff.
 makebasepatch: patch $(SCRATCHDIR) $(FILEDIR) $(FILEDIR)/gar-base.diff
 	@mv $(FILEDIR)/gar-base.diff $(FILEDIR)/../$(DISTNAME)-all-mm2-changes-in-one-patch.patch
+	@sed 's|work/tmp/||g' -i $(FILEDIR)/../$(DISTNAME)-all-mm2-changes-in-one-patch.patch
+	@sed 's|work/main.d/||g' -i $(FILEDIR)/../$(DISTNAME)-all-mm2-changes-in-one-patch.patch
 	$(DONADA)
 
 # this takes the changes you've made to a working directory,
