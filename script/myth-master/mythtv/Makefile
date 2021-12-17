@@ -40,15 +40,11 @@ PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
 PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
+
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
-ifneq (,$(filter %5.13,$(mm_KERNEL_VERSION)))
-PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.13kernel.patch
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.13kernel.patch
-else
 PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.14kernel.patch
-PATCHFILES += 0151-ffmpeg4.4-add-V4l2_request-support-5.14kernel.patch
-endif
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.14kernel.patch
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner H6
@@ -59,6 +55,11 @@ endif
 
 # buffers bump-up required for AML HD playbck
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
+# this makes v4l2_request seeking on h264 content atleast paritally working
+PATCHFILES += 0172-ffmpeg-libavcodec-v4l2_request.c-increase-initial_poll-to-24-for-h264.patch
+PATCHFILES += 0174-ffmpeg-libavcodec-v4l2_request-disable-av_buffer_pool_flush.patch
+# hack improvig a bit h264 seeks on rpi3/rpi4 & amlogic
+PATCHFILES += 0173-ffmpeg-libavcodec-v4l2_m2m_h264_dec-clean-input-buf-at-flush.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 
