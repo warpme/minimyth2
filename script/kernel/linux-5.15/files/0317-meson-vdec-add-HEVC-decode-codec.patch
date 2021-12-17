@@ -1,19 +1,36 @@
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_h264.c linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_h264.c
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_h264.c	2020-10-17 08:31:22.000000000 +0200
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_h264.c	2020-10-28 13:19:39.209999984 +0100
-@@ -353,7 +353,8 @@
- 		frame_width, frame_height, crop_right, crop_bottom);
+From 93f8dc597c82a88c69bb4edeec333b443fd59596 Mon Sep 17 00:00:00 2001
+From: benjamin545 <benjamin545@gmail.com>
+Date: Thu, 15 Jul 2021 17:08:42 -0400
+Subject: [PATCH 48/68] WIP: drivers: meson: vdec: add HEVC decode codec
+
+---
+ drivers/staging/media/meson/vdec/Makefile     |    2 +-
+ drivers/staging/media/meson/vdec/codec_hevc.c | 1440 +++++++++++++++++
+ drivers/staging/media/meson/vdec/codec_hevc.h |   13 +
+ drivers/staging/media/meson/vdec/esparser.c   |    2 +-
+ drivers/staging/media/meson/vdec/hevc_regs.h  |    1 +
+ .../staging/media/meson/vdec/vdec_platform.c  |   49 +
+ 6 files changed, 1505 insertions(+), 2 deletions(-)
+ create mode 100644 drivers/staging/media/meson/vdec/codec_hevc.c
+ create mode 100644 drivers/staging/media/meson/vdec/codec_hevc.h
+
+diff --git a/drivers/staging/media/meson/vdec/Makefile b/drivers/staging/media/meson/vdec/Makefile
+index 6e726af84a..16f848e456 100644
+--- a/drivers/staging/media/meson/vdec/Makefile
++++ b/drivers/staging/media/meson/vdec/Makefile
+@@ -3,6 +3,6 @@
  
- 	codec_h264_set_par(sess);
--	amvdec_src_change(sess, frame_width, frame_height, h264->max_refs + 5);
-+	amvdec_src_change(sess, frame_width, frame_height,
-+			  h264->max_refs + 5, 8);
- }
+ meson-vdec-objs = esparser.o vdec.o vdec_helpers.o vdec_platform.o
+ meson-vdec-objs += vdec_1.o vdec_hevc.o
+-meson-vdec-objs += codec_mpeg12.o codec_h264.o codec_hevc_common.o codec_vp9.o
++meson-vdec-objs += codec_mpeg12.o codec_h264.o codec_hevc_common.o codec_vp9.o codec_hevc.o
  
- /*
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_hevc.c linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_hevc.c
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_hevc.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_hevc.c	2020-10-28 13:19:39.213333317 +0100
+ obj-$(CONFIG_VIDEO_MESON_VDEC) += meson-vdec.o
+diff --git a/drivers/staging/media/meson/vdec/codec_hevc.c b/drivers/staging/media/meson/vdec/codec_hevc.c
+new file mode 100644
+index 0000000000..3a6fd04a2d
+--- /dev/null
++++ b/drivers/staging/media/meson/vdec/codec_hevc.c
 @@ -0,0 +1,1440 @@
 +// SPDX-License-Identifier: GPL-2.0+
 +/*
@@ -1455,302 +1472,11 @@ diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_hevc.c linux-5
 +	.drain = codec_hevc_flush_output,
 +	.resume = codec_hevc_resume,
 +};
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_hevc_common.c linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_hevc_common.c
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_hevc_common.c	2020-10-17 08:31:22.000000000 +0200
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_hevc_common.c	2020-10-28 13:19:39.213333317 +0100
-@@ -30,8 +30,11 @@
- void codec_hevc_setup_decode_head(struct amvdec_session *sess, int is_10bit)
- {
- 	struct amvdec_core *core = sess->core;
--	u32 body_size = amvdec_am21c_body_size(sess->width, sess->height);
--	u32 head_size = amvdec_am21c_head_size(sess->width, sess->height);
-+	u32 use_mmu = codec_hevc_use_mmu(core->platform->revision,
-+					 sess->pixfmt_cap, is_10bit);
-+	u32 body_size = amvdec_amfbc_body_size(sess->width, sess->height,
-+					       is_10bit, use_mmu);
-+	u32 head_size = amvdec_amfbc_head_size(sess->width, sess->height);
- 
- 	if (!codec_hevc_use_fbc(sess->pixfmt_cap, is_10bit)) {
- 		/* Enable 2-plane reference read mode */
-@@ -39,9 +42,17 @@
- 		return;
- 	}
- 
-+	/* enable mem saving mode for 8-bit */
-+	if (!is_10bit)
-+		amvdec_write_dos_bits(core, HEVC_SAO_CTRL5, BIT(9));
-+	else
-+		amvdec_clear_dos_bits(core, HEVC_SAO_CTRL5, BIT(9));
-+
- 	if (codec_hevc_use_mmu(core->platform->revision,
- 			       sess->pixfmt_cap, is_10bit))
- 		amvdec_write_dos(core, HEVCD_MPP_DECOMP_CTL1, BIT(4));
-+	else if (!is_10bit)
-+		amvdec_write_dos(core, HEVCD_MPP_DECOMP_CTL1, BIT(3));
- 	else
- 		amvdec_write_dos(core, HEVCD_MPP_DECOMP_CTL1, 0);
- 
-@@ -73,7 +84,7 @@
- 
- 		idx = vb->index;
- 
--		if (codec_hevc_use_downsample(sess->pixfmt_cap, is_10bit))
-+		if (codec_hevc_use_fbc(sess->pixfmt_cap, is_10bit))
- 			buf_y_paddr = comm->fbc_buffer_paddr[idx];
- 		else
- 			buf_y_paddr = vb2_dma_contig_plane_dma_addr(vb, 0);
-@@ -114,8 +125,8 @@
- {
- 	struct amvdec_core *core = sess->core;
- 	struct v4l2_m2m_buffer *buf;
--	u32 revision = core->platform->revision;
- 	u32 pixfmt_cap = sess->pixfmt_cap;
-+	const u32 revision = core->platform->revision;
- 	int i;
- 
- 	amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CONF_ADDR,
-@@ -127,12 +138,14 @@
- 		dma_addr_t buf_uv_paddr = 0;
- 		u32 idx = vb->index;
- 
--		if (codec_hevc_use_mmu(revision, pixfmt_cap, is_10bit))
--			buf_y_paddr = comm->mmu_header_paddr[idx];
--		else if (codec_hevc_use_downsample(pixfmt_cap, is_10bit))
--			buf_y_paddr = comm->fbc_buffer_paddr[idx];
--		else
-+		if (codec_hevc_use_downsample(pixfmt_cap, is_10bit)) {
-+			if (codec_hevc_use_mmu(revision, pixfmt_cap, is_10bit))
-+				buf_y_paddr = comm->mmu_header_paddr[idx];
-+			else
-+				buf_y_paddr = comm->fbc_buffer_paddr[idx];
-+		} else {
- 			buf_y_paddr = vb2_dma_contig_plane_dma_addr(vb, 0);
-+		}
- 
- 		amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_DATA,
- 				 buf_y_paddr >> 5);
-@@ -150,60 +163,64 @@
- 		amvdec_write_dos(core, HEVCD_MPP_ANC_CANVAS_DATA_ADDR, 0);
- }
- 
--void codec_hevc_free_fbc_buffers(struct amvdec_session *sess,
-+void codec_hevc_free_mmu_headers(struct amvdec_session *sess,
- 				 struct codec_hevc_common *comm)
- {
- 	struct device *dev = sess->core->dev;
--	u32 am21_size = amvdec_am21c_size(sess->width, sess->height);
- 	int i;
- 
- 	for (i = 0; i < MAX_REF_PIC_NUM; ++i) {
--		if (comm->fbc_buffer_vaddr[i]) {
--			dma_free_coherent(dev, am21_size,
--					  comm->fbc_buffer_vaddr[i],
--					  comm->fbc_buffer_paddr[i]);
--			comm->fbc_buffer_vaddr[i] = NULL;
-+		if (comm->mmu_header_vaddr[i]) {
-+			dma_free_coherent(dev, MMU_COMPRESS_HEADER_SIZE,
-+					  comm->mmu_header_vaddr[i],
-+					  comm->mmu_header_paddr[i]);
-+			comm->mmu_header_vaddr[i] = NULL;
- 		}
- 	}
- }
--EXPORT_SYMBOL_GPL(codec_hevc_free_fbc_buffers);
-+EXPORT_SYMBOL_GPL(codec_hevc_free_mmu_headers);
- 
--static int codec_hevc_alloc_fbc_buffers(struct amvdec_session *sess,
-+static int codec_hevc_alloc_mmu_headers(struct amvdec_session *sess,
- 					struct codec_hevc_common *comm)
- {
- 	struct device *dev = sess->core->dev;
- 	struct v4l2_m2m_buffer *buf;
--	u32 am21_size = amvdec_am21c_size(sess->width, sess->height);
- 
- 	v4l2_m2m_for_each_dst_buf(sess->m2m_ctx, buf) {
- 		u32 idx = buf->vb.vb2_buf.index;
- 		dma_addr_t paddr;
--		void *vaddr = dma_alloc_coherent(dev, am21_size, &paddr,
--						 GFP_KERNEL);
-+		void *vaddr = dma_alloc_coherent(dev, MMU_COMPRESS_HEADER_SIZE,
-+						 &paddr, GFP_KERNEL);
- 		if (!vaddr) {
--			codec_hevc_free_fbc_buffers(sess, comm);
-+			codec_hevc_free_mmu_headers(sess, comm);
- 			return -ENOMEM;
- 		}
- 
--		comm->fbc_buffer_vaddr[idx] = vaddr;
--		comm->fbc_buffer_paddr[idx] = paddr;
-+		comm->mmu_header_vaddr[idx] = vaddr;
-+		comm->mmu_header_paddr[idx] = paddr;
- 	}
- 
- 	return 0;
- }
- 
--void codec_hevc_free_mmu_headers(struct amvdec_session *sess,
-+void codec_hevc_free_fbc_buffers(struct amvdec_session *sess,
- 				 struct codec_hevc_common *comm)
- {
- 	struct device *dev = sess->core->dev;
-+	u32 use_mmu = codec_hevc_use_mmu(sess->core->platform->revision,
-+					 sess->pixfmt_cap,
-+					 sess->bitdepth == 10 ? 1 : 0);
-+	u32 am21_size = amvdec_amfbc_size(sess->width, sess->height,
-+					  sess->bitdepth == 10 ? 1 : 0,
-+					  use_mmu);
- 	int i;
- 
- 	for (i = 0; i < MAX_REF_PIC_NUM; ++i) {
--		if (comm->mmu_header_vaddr[i]) {
--			dma_free_coherent(dev, MMU_COMPRESS_HEADER_SIZE,
--					  comm->mmu_header_vaddr[i],
--					  comm->mmu_header_paddr[i]);
--			comm->mmu_header_vaddr[i] = NULL;
-+		if (comm->fbc_buffer_vaddr[i]) {
-+			dma_free_coherent(dev, am21_size,
-+					  comm->fbc_buffer_vaddr[i],
-+					  comm->fbc_buffer_paddr[i]);
-+			comm->fbc_buffer_vaddr[i] = NULL;
- 		}
- 	}
- 
-@@ -213,33 +230,47 @@
- 				  comm->mmu_map_paddr);
- 		comm->mmu_map_vaddr = NULL;
- 	}
-+
-+	codec_hevc_free_mmu_headers(sess, comm);
- }
--EXPORT_SYMBOL_GPL(codec_hevc_free_mmu_headers);
-+EXPORT_SYMBOL_GPL(codec_hevc_free_fbc_buffers);
- 
--static int codec_hevc_alloc_mmu_headers(struct amvdec_session *sess,
-+static int codec_hevc_alloc_fbc_buffers(struct amvdec_session *sess,
- 					struct codec_hevc_common *comm)
- {
- 	struct device *dev = sess->core->dev;
- 	struct v4l2_m2m_buffer *buf;
-+	const u32 revision = sess->core->platform->revision;
-+	const u32 is_10bit = sess->bitdepth == 10 ? 1 : 0;
-+	u32 use_mmu = codec_hevc_use_mmu(revision, sess->pixfmt_cap,
-+					 is_10bit);
-+	u32 am21_size = amvdec_amfbc_size(sess->width, sess->height,
-+					  is_10bit,
-+					  use_mmu);
- 
--	comm->mmu_map_vaddr = dma_alloc_coherent(dev, MMU_MAP_SIZE,
--						 &comm->mmu_map_paddr,
--						 GFP_KERNEL);
--	if (!comm->mmu_map_vaddr)
--		return -ENOMEM;
-+	int ret;
- 
- 	v4l2_m2m_for_each_dst_buf(sess->m2m_ctx, buf) {
- 		u32 idx = buf->vb.vb2_buf.index;
- 		dma_addr_t paddr;
--		void *vaddr = dma_alloc_coherent(dev, MMU_COMPRESS_HEADER_SIZE,
--						 &paddr, GFP_KERNEL);
-+		void *vaddr = dma_alloc_coherent(dev, am21_size, &paddr,
-+						 GFP_KERNEL);
- 		if (!vaddr) {
--			codec_hevc_free_mmu_headers(sess, comm);
-+			codec_hevc_free_fbc_buffers(sess, comm);
- 			return -ENOMEM;
- 		}
- 
--		comm->mmu_header_vaddr[idx] = vaddr;
--		comm->mmu_header_paddr[idx] = paddr;
-+		comm->fbc_buffer_vaddr[idx] = vaddr;
-+		comm->fbc_buffer_paddr[idx] = paddr;
-+	}
-+
-+	if (codec_hevc_use_mmu(revision, sess->pixfmt_cap, is_10bit) &&
-+	    codec_hevc_use_downsample(sess->pixfmt_cap, is_10bit)) {
-+		ret = codec_hevc_alloc_mmu_headers(sess, comm);
-+		if (ret) {
-+			codec_hevc_free_fbc_buffers(sess, comm);
-+			return ret;
-+		}
- 	}
- 
- 	return 0;
-@@ -250,21 +281,24 @@
- 			     int is_10bit)
- {
- 	struct amvdec_core *core = sess->core;
-+	struct device *dev = core->dev;
- 	int ret;
- 
--	if (codec_hevc_use_downsample(sess->pixfmt_cap, is_10bit)) {
--		ret = codec_hevc_alloc_fbc_buffers(sess, comm);
--		if (ret)
--			return ret;
-+	if (codec_hevc_use_mmu(core->platform->revision,
-+			       sess->pixfmt_cap, is_10bit)) {
-+		comm->mmu_map_vaddr = dma_alloc_coherent(dev, MMU_MAP_SIZE,
-+							 &comm->mmu_map_paddr,
-+							 GFP_KERNEL);
-+		if (!comm->mmu_map_vaddr)
-+			return -ENOMEM;
- 	}
- 
- 	if (codec_hevc_use_mmu(core->platform->revision,
--			       sess->pixfmt_cap, is_10bit)) {
--		ret = codec_hevc_alloc_mmu_headers(sess, comm);
--		if (ret) {
--			codec_hevc_free_fbc_buffers(sess, comm);
-+			       sess->pixfmt_cap, is_10bit) ||
-+	    codec_hevc_use_downsample(sess->pixfmt_cap, is_10bit)) {
-+		ret = codec_hevc_alloc_fbc_buffers(sess, comm);
-+		if (ret)
- 			return ret;
--		}
- 	}
- 
- 	if (core->platform->revision == VDEC_REVISION_GXBB)
-@@ -278,19 +312,19 @@
- 
- void codec_hevc_fill_mmu_map(struct amvdec_session *sess,
- 			     struct codec_hevc_common *comm,
--			     struct vb2_buffer *vb)
-+			     struct vb2_buffer *vb,
-+			     u32 is_10bit)
- {
--	u32 size = amvdec_am21c_size(sess->width, sess->height);
-+	u32 use_mmu = codec_hevc_use_mmu(sess->core->platform->revision,
-+					 sess->pixfmt_cap, is_10bit);
-+	u32 size = amvdec_amfbc_size(sess->width, sess->height, is_10bit,
-+				     use_mmu);
- 	u32 nb_pages = size / PAGE_SIZE;
- 	u32 *mmu_map = comm->mmu_map_vaddr;
- 	u32 first_page;
- 	u32 i;
- 
--	if (sess->pixfmt_cap == V4L2_PIX_FMT_NV12M)
--		first_page = comm->fbc_buffer_paddr[vb->index] >> PAGE_SHIFT;
--	else
--		first_page = vb2_dma_contig_plane_dma_addr(vb, 0) >> PAGE_SHIFT;
--
-+	first_page = comm->fbc_buffer_paddr[vb->index] >> PAGE_SHIFT;
- 	for (i = 0; i < nb_pages; ++i)
- 		mmu_map[i] = first_page + i;
- }
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_hevc_common.h linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_hevc_common.h
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_hevc_common.h	2020-10-17 08:31:22.000000000 +0200
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_hevc_common.h	2020-10-28 13:19:39.213333317 +0100
-@@ -66,6 +66,7 @@
- 
- void codec_hevc_fill_mmu_map(struct amvdec_session *sess,
- 			     struct codec_hevc_common *comm,
--			     struct vb2_buffer *vb);
-+			     struct vb2_buffer *vb,
-+			     u32 is_10bit);
- 
- #endif
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_hevc.h linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_hevc.h
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_hevc.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_hevc.h	2020-10-28 13:19:39.213333317 +0100
+diff --git a/drivers/staging/media/meson/vdec/codec_hevc.h b/drivers/staging/media/meson/vdec/codec_hevc.h
+new file mode 100644
+index 0000000000..f2f9b2464d
+--- /dev/null
++++ b/drivers/staging/media/meson/vdec/codec_hevc.h
 @@ -0,0 +1,13 @@
 +/* SPDX-License-Identifier: GPL-2.0+ */
 +/*
@@ -1765,95 +1491,11 @@ diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_hevc.h linux-5
 +extern struct amvdec_codec_ops codec_hevc_ops;
 +
 +#endif
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_vp9.c linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_vp9.c
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/codec_vp9.c	2020-10-17 08:31:22.000000000 +0200
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/codec_vp9.c	2020-10-28 13:19:39.213333317 +0100
-@@ -458,12 +458,6 @@
- 	struct list_head ref_frames_list;
- 	u32 frames_num;
- 
--	/* In case of downsampling (decoding with FBC but outputting in NV12M),
--	 * we need to allocate additional buffers for FBC.
--	 */
--	void      *fbc_buffer_vaddr[MAX_REF_PIC_NUM];
--	dma_addr_t fbc_buffer_paddr[MAX_REF_PIC_NUM];
--
- 	int ref_frame_map[REF_FRAMES];
- 	int next_ref_frame_map[REF_FRAMES];
- 	struct vp9_frame *frame_refs[REFS_PER_FRAME];
-@@ -901,11 +895,8 @@
- 		buf_y_paddr =
- 		       vb2_dma_contig_plane_dma_addr(vb, 0);
- 
--	if (codec_hevc_use_fbc(sess->pixfmt_cap, vp9->is_10bit)) {
--		val = amvdec_read_dos(core, HEVC_SAO_CTRL5) & ~0xff0200;
--		amvdec_write_dos(core, HEVC_SAO_CTRL5, val);
-+	if (codec_hevc_use_fbc(sess->pixfmt_cap, vp9->is_10bit))
- 		amvdec_write_dos(core, HEVC_CM_BODY_START_ADDR, buf_y_paddr);
--	}
- 
- 	if (sess->pixfmt_cap == V4L2_PIX_FMT_NV12M) {
- 		buf_y_paddr =
-@@ -920,8 +911,12 @@
- 
- 	if (codec_hevc_use_mmu(core->platform->revision, sess->pixfmt_cap,
- 			       vp9->is_10bit)) {
--		amvdec_write_dos(core, HEVC_CM_HEADER_START_ADDR,
--				 vp9->common.mmu_header_paddr[vb->index]);
-+		dma_addr_t header_adr;
-+		if (codec_hevc_use_downsample(sess->pixfmt_cap, vp9->is_10bit))
-+			header_adr = vp9->common.mmu_header_paddr[vb->index];
-+		else
-+			header_adr = vb2_dma_contig_plane_dma_addr(vb, 0);
-+		amvdec_write_dos(core, HEVC_CM_HEADER_START_ADDR, header_adr);
- 		/* use HEVC_CM_HEADER_START_ADDR */
- 		amvdec_write_dos_bits(core, HEVC_SAO_CTRL5, BIT(10));
- 	}
-@@ -1147,6 +1142,8 @@
- 			     struct codec_vp9 *vp9)
- {
- 	struct amvdec_core *core = sess->core;
-+	u32 use_mmu = codec_hevc_use_mmu(core->platform->revision,
-+					 sess->pixfmt_cap, vp9->is_10bit);
- 	u32 scale = 0;
- 	u32 sz;
- 	int i;
-@@ -1166,8 +1163,9 @@
- 		    vp9->frame_refs[i]->height != vp9->height)
- 			scale = 1;
- 
--		sz = amvdec_am21c_body_size(vp9->frame_refs[i]->width,
--					    vp9->frame_refs[i]->height);
-+		sz = amvdec_amfbc_body_size(vp9->frame_refs[i]->width,
-+					    vp9->frame_refs[i]->height,
-+					    vp9->is_10bit, use_mmu);
- 
- 		amvdec_write_dos(core, VP9D_MPP_REFINFO_DATA,
- 				 vp9->frame_refs[i]->width);
-@@ -1283,7 +1281,8 @@
- 	if (codec_hevc_use_mmu(core->platform->revision, sess->pixfmt_cap,
- 			       vp9->is_10bit))
- 		codec_hevc_fill_mmu_map(sess, &vp9->common,
--					&vp9->cur_frame->vbuf->vb2_buf);
-+					&vp9->cur_frame->vbuf->vb2_buf,
-+					vp9->is_10bit);
- 
- 	intra_only = param->p.show_frame ? 0 : param->p.intra_only;
- 
-@@ -2132,7 +2131,8 @@
- 
- 	codec_vp9_fetch_rpm(sess);
- 	if (codec_vp9_process_rpm(vp9)) {
--		amvdec_src_change(sess, vp9->width, vp9->height, 16);
-+		amvdec_src_change(sess, vp9->width, vp9->height, 16,
-+				  vp9->is_10bit ? 10 : 8);
- 
- 		/* No frame is actually processed */
- 		vp9->cur_frame = NULL;
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/esparser.c linux-5.9.1-new/drivers/staging/media/meson/vdec/esparser.c
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/esparser.c	2020-10-17 08:31:22.000000000 +0200
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/esparser.c	2020-10-28 13:07:00.099999972 +0100
-@@ -309,12 +309,12 @@
+diff --git a/drivers/staging/media/meson/vdec/esparser.c b/drivers/staging/media/meson/vdec/esparser.c
+index 610a92b9f6..9b6034936d 100644
+--- a/drivers/staging/media/meson/vdec/esparser.c
++++ b/drivers/staging/media/meson/vdec/esparser.c
+@@ -309,7 +309,7 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
  	 * they could pause when there is no capture buffer available and
  	 * resume on this notification.
  	 */
@@ -1862,15 +1504,10 @@ diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/esparser.c linux-5.9
  		if (codec_ops->num_pending_bufs)
  			num_dst_bufs = codec_ops->num_pending_bufs(sess);
  
- 		num_dst_bufs += v4l2_m2m_num_dst_bufs_ready(sess->m2m_ctx);
--		if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VP9)
-+		if (sess->fmt_out->pixfmt == V4L2_PIX_FMT_VP9 || sess->fmt_out->pixfmt ==V4L2_PIX_FMT_HEVC)
- 			num_dst_bufs -= 3;
- 
- 		if (esparser_vififo_get_free_space(sess) < payload_size ||
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/hevc_regs.h linux-5.9.1-new/drivers/staging/media/meson/vdec/hevc_regs.h
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/hevc_regs.h	2020-10-17 08:31:22.000000000 +0200
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/hevc_regs.h	2020-10-28 13:19:39.213333317 +0100
+diff --git a/drivers/staging/media/meson/vdec/hevc_regs.h b/drivers/staging/media/meson/vdec/hevc_regs.h
+index 0392f41a1e..e7eabdd2b1 100644
+--- a/drivers/staging/media/meson/vdec/hevc_regs.h
++++ b/drivers/staging/media/meson/vdec/hevc_regs.h
 @@ -205,6 +205,7 @@
  #define HEVC_CM_HEADER_START_ADDR 0xd8a0
  #define HEVC_CM_HEADER_LENGTH 0xd8a4
@@ -1879,157 +1516,10 @@ diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/hevc_regs.h linux-5.
  #define HEVC_SAO_MMU_VH0_ADDR 0xd8e8
  #define HEVC_SAO_MMU_VH1_ADDR 0xd8ec
  
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/Makefile linux-5.9.1-new/drivers/staging/media/meson/vdec/Makefile
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/Makefile	2020-10-17 08:31:22.000000000 +0200
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/Makefile	2020-10-28 13:19:39.209999984 +0100
-@@ -3,6 +3,6 @@
- 
- meson-vdec-objs = esparser.o vdec.o vdec_helpers.o vdec_platform.o
- meson-vdec-objs += vdec_1.o vdec_hevc.o
--meson-vdec-objs += codec_mpeg12.o codec_h264.o codec_hevc_common.o codec_vp9.o
-+meson-vdec-objs += codec_mpeg12.o codec_h264.o codec_hevc_common.o codec_vp9.o codec_hevc.o
- 
- obj-$(CONFIG_VIDEO_MESON_VDEC) += meson-vdec.o
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec.h linux-5.9.1-new/drivers/staging/media/meson/vdec/vdec.h
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec.h	2020-10-17 08:31:22.000000000 +0200
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/vdec.h	2020-10-28 13:19:39.213333317 +0100
-@@ -234,6 +234,7 @@
- 	u32 width;
- 	u32 height;
- 	u32 colorspace;
-+	u32 bitdepth;
- 	u8 ycbcr_enc;
- 	u8 quantization;
- 	u8 xfer_func;
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec_helpers.c linux-5.9.1-new/drivers/staging/media/meson/vdec/vdec_helpers.c
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec_helpers.c	2020-10-17 08:31:22.000000000 +0200
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/vdec_helpers.c	2020-10-28 13:19:39.213333317 +0100
-@@ -50,32 +50,40 @@
- }
- EXPORT_SYMBOL_GPL(amvdec_write_parser);
- 
--/* 4 KiB per 64x32 block */
--u32 amvdec_am21c_body_size(u32 width, u32 height)
-+/* AMFBC body is made out of 64x32 blocks with varying block size */
-+u32 amvdec_amfbc_body_size(u32 width, u32 height, u32 is_10bit, u32 use_mmu)
- {
- 	u32 width_64 = ALIGN(width, 64) / 64;
- 	u32 height_32 = ALIGN(height, 32) / 32;
-+	u32 blk_size = 4096;
- 
--	return SZ_4K * width_64 * height_32;
-+	if (!is_10bit) {
-+		if (use_mmu)
-+			blk_size = 3200;
-+		else
-+			blk_size = 3072;
-+	}
-+
-+	return blk_size * width_64 * height_32;
- }
--EXPORT_SYMBOL_GPL(amvdec_am21c_body_size);
-+EXPORT_SYMBOL_GPL(amvdec_amfbc_body_size);
- 
- /* 32 bytes per 128x64 block */
--u32 amvdec_am21c_head_size(u32 width, u32 height)
-+u32 amvdec_amfbc_head_size(u32 width, u32 height)
- {
- 	u32 width_128 = ALIGN(width, 128) / 128;
- 	u32 height_64 = ALIGN(height, 64) / 64;
- 
- 	return 32 * width_128 * height_64;
- }
--EXPORT_SYMBOL_GPL(amvdec_am21c_head_size);
-+EXPORT_SYMBOL_GPL(amvdec_amfbc_head_size);
- 
--u32 amvdec_am21c_size(u32 width, u32 height)
-+u32 amvdec_amfbc_size(u32 width, u32 height, u32 is_10bit, u32 use_mmu)
- {
--	return ALIGN(amvdec_am21c_body_size(width, height) +
--		     amvdec_am21c_head_size(width, height), SZ_64K);
-+	return ALIGN(amvdec_amfbc_body_size(width, height, is_10bit, use_mmu) +
-+		     amvdec_amfbc_head_size(width, height), SZ_64K);
- }
--EXPORT_SYMBOL_GPL(amvdec_am21c_size);
-+EXPORT_SYMBOL_GPL(amvdec_amfbc_size);
- 
- static int canvas_alloc(struct amvdec_session *sess, u8 *canvas_id)
- {
-@@ -436,7 +444,7 @@
- EXPORT_SYMBOL_GPL(amvdec_set_par_from_dar);
- 
- void amvdec_src_change(struct amvdec_session *sess, u32 width,
--		       u32 height, u32 dpb_size)
-+		       u32 height, u32 dpb_size, u32 bitdepth)
- {
- 	static const struct v4l2_event ev = {
- 		.type = V4L2_EVENT_SOURCE_CHANGE,
-@@ -444,25 +452,27 @@
- 
- 	v4l2_ctrl_s_ctrl(sess->ctrl_min_buf_capture, dpb_size);
- 
-+	sess->bitdepth = bitdepth;
-+
- 	/*
- 	 * Check if the capture queue is already configured well for our
--	 * usecase. If so, keep decoding with it and do not send the event
-+	 * usecase. If so, keep decoding with it.
- 	 */
- 	if (sess->streamon_cap &&
- 	    sess->width == width &&
- 	    sess->height == height &&
- 	    dpb_size <= sess->num_dst_bufs) {
- 		sess->fmt_out->codec_ops->resume(sess);
--		return;
-+	} else {
-+		sess->status = STATUS_NEEDS_RESUME;
-+		sess->changed_format = 0;
- 	}
- 
--	sess->changed_format = 0;
- 	sess->width = width;
- 	sess->height = height;
--	sess->status = STATUS_NEEDS_RESUME;
- 
--	dev_dbg(sess->core->dev, "Res. changed (%ux%u), DPB size %u\n",
--		width, height, dpb_size);
-+	dev_dbg(sess->core->dev, "Res. changed (%ux%u), DPB %u, bitdepth %u\n",
-+		width, height, dpb_size, bitdepth);
- 	v4l2_event_queue_fh(&sess->fh, &ev);
- }
- EXPORT_SYMBOL_GPL(amvdec_src_change);
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec_helpers.h linux-5.9.1-new/drivers/staging/media/meson/vdec/vdec_helpers.h
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec_helpers.h	2020-10-17 08:31:22.000000000 +0200
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/vdec_helpers.h	2020-10-28 13:19:39.213333317 +0100
-@@ -27,9 +27,10 @@
- u32 amvdec_read_parser(struct amvdec_core *core, u32 reg);
- void amvdec_write_parser(struct amvdec_core *core, u32 reg, u32 val);
- 
--u32 amvdec_am21c_body_size(u32 width, u32 height);
--u32 amvdec_am21c_head_size(u32 width, u32 height);
--u32 amvdec_am21c_size(u32 width, u32 height);
-+/* Helpers for the Amlogic compressed framebuffer format */
-+u32 amvdec_amfbc_body_size(u32 width, u32 height, u32 is_10bit, u32 use_mmu);
-+u32 amvdec_amfbc_head_size(u32 width, u32 height);
-+u32 amvdec_amfbc_size(u32 width, u32 height, u32 is_10bit, u32 use_mmu);
- 
- /**
-  * amvdec_dst_buf_done_idx() - Signal that a buffer is done decoding
-@@ -76,9 +77,10 @@
-  * @width: picture width detected by the hardware
-  * @height: picture height detected by the hardware
-  * @dpb_size: Decoded Picture Buffer size (= amount of buffers for decoding)
-+ * @bitdepth: Bit depth (usually 10 or 8) of the coded content
-  */
- void amvdec_src_change(struct amvdec_session *sess, u32 width,
--		       u32 height, u32 dpb_size);
-+		       u32 height, u32 dpb_size, u32 bitdepth);
- 
- /**
-  * amvdec_abort() - Abort the current decoding session
-diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec_platform.c linux-5.9.1-new/drivers/staging/media/meson/vdec/vdec_platform.c
---- linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec_platform.c	2020-10-17 08:31:22.000000000 +0200
-+++ linux-5.9.1-new/drivers/staging/media/meson/vdec/vdec_platform.c	2020-10-28 13:19:39.216666650 +0100
+diff --git a/drivers/staging/media/meson/vdec/vdec_platform.c b/drivers/staging/media/meson/vdec/vdec_platform.c
+index eabbebab2d..3f463e0538 100644
+--- a/drivers/staging/media/meson/vdec/vdec_platform.c
++++ b/drivers/staging/media/meson/vdec/vdec_platform.c
 @@ -11,6 +11,7 @@
  #include "vdec_hevc.h"
  #include "codec_mpeg12.h"
@@ -2038,10 +1528,29 @@ diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec_platform.c linu
  #include "codec_vp9.h"
  
  static const struct amvdec_format vdec_formats_gxbb[] = {
-@@ -65,6 +66,18 @@
+@@ -64,6 +65,18 @@ static const struct amvdec_format vdec_formats_gxl[] = {
+ 		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
  		.flags = V4L2_FMT_FLAG_COMPRESSED |
  			 V4L2_FMT_FLAG_DYN_RESOLUTION,
++	}, {
++		.pixfmt = V4L2_PIX_FMT_HEVC,
++		.min_buffers = 4,
++		.max_buffers = 24,
++		.max_width = 3840,
++		.max_height = 2160,
++		.vdec_ops = &vdec_hevc_ops,
++		.codec_ops = &codec_hevc_ops,
++		.firmware_path = "meson/vdec/gxl_hevc.bin",
++		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
++		.flags = V4L2_FMT_FLAG_COMPRESSED |
++			 V4L2_FMT_FLAG_DYN_RESOLUTION,
  	}, {
+ 		.pixfmt = V4L2_PIX_FMT_H264,
+ 		.min_buffers = 2,
+@@ -103,6 +116,18 @@ static const struct amvdec_format vdec_formats_gxl[] = {
+ 
+ static const struct amvdec_format vdec_formats_gxm[] = {
+ 	{
 +		.pixfmt = V4L2_PIX_FMT_HEVC,
 +		.min_buffers = 4,
 +		.max_buffers = 24,
@@ -2057,26 +1566,7 @@ diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec_platform.c linu
  		.pixfmt = V4L2_PIX_FMT_H264,
  		.min_buffers = 2,
  		.max_buffers = 24,
-@@ -115,6 +128,18 @@
- 		.flags = V4L2_FMT_FLAG_COMPRESSED |
- 			 V4L2_FMT_FLAG_DYN_RESOLUTION,
- 	}, {
-+		.pixfmt = V4L2_PIX_FMT_HEVC,
-+		.min_buffers = 4,
-+		.max_buffers = 24,
-+		.max_width = 3840,
-+		.max_height = 2160,
-+		.vdec_ops = &vdec_hevc_ops,
-+		.codec_ops = &codec_hevc_ops,
-+		.firmware_path = "meson/vdec/gxl_hevc.bin",
-+		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
-+		.flags = V4L2_FMT_FLAG_COMPRESSED |
-+			 V4L2_FMT_FLAG_DYN_RESOLUTION,
-+	}, {
- 		.pixfmt = V4L2_PIX_FMT_MPEG1,
- 		.min_buffers = 8,
- 		.max_buffers = 8,
-@@ -153,6 +178,18 @@
+@@ -153,6 +178,18 @@ static const struct amvdec_format vdec_formats_g12a[] = {
  		.flags = V4L2_FMT_FLAG_COMPRESSED |
  			 V4L2_FMT_FLAG_DYN_RESOLUTION,
  	}, {
@@ -2095,7 +1585,7 @@ diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec_platform.c linu
  		.pixfmt = V4L2_PIX_FMT_H264,
  		.min_buffers = 2,
  		.max_buffers = 24,
-@@ -202,6 +239,18 @@
+@@ -202,6 +239,18 @@ static const struct amvdec_format vdec_formats_sm1[] = {
  		.pixfmts_cap = { V4L2_PIX_FMT_NV12M, 0 },
  		.flags = V4L2_FMT_FLAG_COMPRESSED |
  			 V4L2_FMT_FLAG_DYN_RESOLUTION,
@@ -2114,3 +1604,6 @@ diff -Naur linux-5.9.1-old/drivers/staging/media/meson/vdec/vdec_platform.c linu
  	}, {
  		.pixfmt = V4L2_PIX_FMT_H264,
  		.min_buffers = 2,
+-- 
+2.29.2
+

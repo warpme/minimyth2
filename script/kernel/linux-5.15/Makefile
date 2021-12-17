@@ -61,14 +61,21 @@ endif
 
 ifeq (1,1)
 #-- Amlogic patches -----------------------------------------
-# Add HVEC decode from https://gitlab.com/baylibre/amlogic/atv/linux/-/commit/1f9a7f9904dfb58be623d1048f6dad3df7bf61f4
-PATCHFILES += 0310-messon-vdec-add-hvec-support.patch
 # increas CMA pool for 4k decode
 PATCHFILES += 0311-arm64-dts-meson-set-dma-pool-to-896MB.patch
 PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
-# fixing a lot of the hangs on hevc decoding
-PATCHFILES += 0313-meson-vdec-HEVC-decoder-add-handling-to-show-frames-when-ready.patch
+# add hevc & 10bit decode support
+PATCHFILES += 0315-meson-vdec-remove-redundant-if-statement.patch
+PATCHFILES += 0316-meson-vdec-improve-mmu-and-fbc-handling-.patch
+PATCHFILES += 0317-meson-vdec-add-HEVC-decode-codec.patch
+PATCHFILES += 0318-meson-vdec-add-handling-to-HEVC-decoder-.patch
+PATCHFILES += 0319-meson-vdec-add-HEVC-support-to-GXBB.patch
+PATCHFILES += 0320-meson-vdec-check-if-parser-has-really-pa.patch
 # Amlogic: Misc patches
+PATCHFILES += 0330-net-wireless-ath10k-Fix-the-MTU-size-on-QCA9377-SDIO.patch
+PATCHFILES += 0331-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
+PATCHFILES += 0332-arm64-dts-meson-add-support-for-GX-PM-and-Virtu.patch
+PATCHFILES += 0333-of-partial-revert-of-fdt.c-changes.patch
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
