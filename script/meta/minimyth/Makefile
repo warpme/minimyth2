@@ -40,7 +40,9 @@ DEPENDS = \
 	utils/lm_sensors \
 	utils/lsdvd \
 	utils/lsof \
-	$(if $(filter intel, $(mm_GRAPHICS)),X11/intel-vaapi-driver) \
+	$(if $(filter intel, $(mm_GRAPHICS)), \
+		X11/intel-media-driver \
+		X11/intel-vaapi-driver) \
 	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),utils/intel-microcode2ucode) \
 	utils/kmod \
 	$(if $(filter nvidia,$(mm_GRAPHICS)), \
