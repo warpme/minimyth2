@@ -101,22 +101,20 @@ Intel D2550   | ION2             | n/a                                     | n/a
 ### Hardware Video Decode support
 This is video related functionality avaliable on current code (Linux kernel + Mesa + MythTV)
 At the moment quality of playback is good for technology preview. 
-On some platforms it is __not ready to daily usage__ as H.264 playback seek on v4l2_request platforms not works correctly yet.
-
-Note: seek issue is only with H.264 v4l2_request. MPEG2/HEVC/VP8/VP9 seek works ok :-)
+On platforms with statefull v4l2_m2m video codecs (Amlogic/RPI3/RPI4 H.264) playback seek works not fully smooth (but it is generally usable).
 
 SoC              | Tested on                                    | Supported Decoder/ Hw.decode API      | Currently supported video decode HW.accel  | Supported drawing   | Supported video render | Remarks                                              |
 -----------------|----------------------------------------------|---------------------------------------|--------------------------------------------|---------------------|------------------------|------------------------------------------------------|
-Allwinner H6     | EachLink H6 Mini, TanixTX6-Mini, Beelink GS1 | cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works
-Allwinner H616(6)| TanixTX6s, OrangePI-Zero2                    | cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works
-Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works
-Rockchip 3399    | RockPI 4-b                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)     | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works, wyaland gives black.screen
-Amlogic s905     | TanixTX3-Mini                                | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, Wayland (2)    | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works, limited HEVC on s905w
-Amlogic s912     | Beelink GT1                                  | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works
-Amlogic sm1      | x96Air                                       | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works, artefacts on H.264
-Amlogic g12a     | Radxa-Zero                                   | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_request H.264 not works
-Broadcom 2837    | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | H.264                                      | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_m2m H.264 jumpy
-Broadcom 2711    | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_m2m H.264 jumpy
+Allwinner H6     | EachLink H6 Mini, TanixTX6-Mini, Beelink GS1 | cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback
+Allwinner H616(6)| TanixTX6s, OrangePI-Zero2                    | cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback
+Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback
+Rockchip 3399    | RockPI 4-b                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)     | EGL_DMABUF, DRM_DMABUF | Good playback, wyaland gives black.screen
+Amlogic s905     | TanixTX3-Mini                                | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, Wayland (2)    | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_m2m not smooth, limited HEVC on s905w
+Amlogic s912     | Beelink GT1                                  | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_m2m not smooth
+Amlogic sm1      | x96Air                                       | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_m2m not smooth, artefacts on H.264
+Amlogic g12a     | Radxa-Zero                                   | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_m2m not smooth
+Broadcom 2837    | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | H.264                                      | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_m2m H.264 not smooth
+Broadcom 2711    | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland | EGL_DMABUF, DRM_DMABUF | Good playback, seek on v4l2_m2m H.264 not smooth
 Intel i5         | i5 NUC                                       | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland | EGL_DMABUF (3)         | Perfect playback
 Intel Z8500      | Beelink BT4                                  | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8               | X11, EGLFS (4)      | EGL_DMABUF (3)         | Perfect playback
 Intel N3450      | Beelink MII-V                                | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8, VP9          | X11, EGLFS, Wayland | EGL_DMABUF (3)         | Perfect playback
@@ -127,8 +125,8 @@ Intel D2550      | ION2                                         | VDPAU         
 - (2) - EGLFS not works due z-position issue in messon-drm driver on this HW
 - (3) - DRM Planes fails with KMS Atomic Commit on this HW
 - (4) - mythfrontend segfaults in Wayland on this HW
-- (5) - EGLFS and Wayland not working on this HW as installed Nvidia BLOB is not providing EGL nor DRM
-- (6) - no Audio support yey on this SoC
+- (5) - EGLFS and Wayland not working on this HW as legacy Nvidia drivers are not providing EGL nor DRM
+- (6) - no Audio support yet on this SoC
 
 ### Video Decoding Test results
 
