@@ -7,7 +7,7 @@ DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME).patch.gar
 PATCHFILES  += $(DISTNAME)-fix-gcc11-compile.patch
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
-PATCHFILES  += $(DISTNAME)-add-drm-atomic-commits-logging.patch
+PATCHFILES  += $(DISTNAME)-eglfskms-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-report-first-GPU_PRIMARY-devs-on-non-pci-platforms.patch
 LICENSE      = LGPL2_1
 

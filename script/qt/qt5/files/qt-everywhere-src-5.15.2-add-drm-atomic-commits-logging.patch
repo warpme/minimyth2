@@ -1,61 +1,93 @@
-diff -Naur qt-everywhere-src-5.15.2-old/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp qt-everywhere-src-5.15.2-new/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp
---- qt-everywhere-src-5.15.2-old/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp	2020-10-27 09:02:11.000000000 +0100
-+++ qt-everywhere-src-5.15.2-new/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp	2021-11-28 19:30:25.242825145 +0100
-@@ -317,6 +317,20 @@
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp
+--- qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp	2020-10-27 09:02:11.000000000 +0100
++++ qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp	2021-12-27 15:05:37.769660278 +0100
+@@ -230,8 +230,10 @@
+         const bool alreadySet = currentMode && currentMode->buffer_id == fb && !memcmp(&currentMode->mode, &op.modes[op.mode], sizeof(drmModeModeInfo));
+         if (currentMode)
+             drmModeFreeCrtc(currentMode);
+-        if (alreadySet)
++        if (alreadySet) {
++            qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::ensureModeSet mode already set";
+             doModeSet = false;
++        }
+ 
+         if (doModeSet) {
+             qCDebug(qLcEglfsKmsDebug, "Setting mode for screen %s", qPrintable(name()));
+@@ -240,6 +242,14 @@
+ #if QT_CONFIG(drm_atomic)
+                 drmModeAtomicReq *request = device()->threadLocalAtomicRequest();
+                 if (request) {
++
++                    qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::ensureModeSet:drmModeAtomicAddProperty"
++                                 << "\n    request_id=" << request
++                                 << "\n    connector_id=" << op.connector_id
++                                 << "\n    crtc_id=" << op.crtc_id
++                                 << "\n    mode_blob_id=" << op.mode_blob_id
++                                 << "\n    active=" << 1;
++
+                     drmModeAtomicAddProperty(request, op.connector_id, op.crtcIdPropertyId, op.crtc_id);
+                     drmModeAtomicAddProperty(request, op.crtc_id, op.modeIdPropertyId, op.mode_blob_id);
+                     drmModeAtomicAddProperty(request, op.crtc_id, op.activePropertyId, 1);
+@@ -317,6 +327,21 @@
  #if QT_CONFIG(drm_atomic)
          drmModeAtomicReq *request = device()->threadLocalAtomicRequest();
          if (request) {
 +
-+            qCDebug(qLcEglfsKmsDebug) << "drmModeAtomicReq" << request
-+                                 << "\n    EglfsPlaneId=" << op.eglfs_plane->id
-+                                 << "\n    framebufferProperty=" << fb->fb
-+                                 << "\n    crtcProperty=" << op.crtc_id
-+                                 << "\n    srcwidthProperty=" << op.size.width()
-+                                 << "\n    srcXProperty=" << 0
-+                                 << "\n    srcYProperty=" << 0
-+                                 << "\n    srcheightProperty=" << op.size.height()
-+                                 << "\n    crtcXProperty=" << 0
-+                                 << "\n    crtcYProperty=" << 0
-+                                 << "\n    crtcwidthProperty=" << m_output.modes[m_output.mode].hdisplay
-+                                 << "\n    crtcheightProperty=" << m_output.modes[m_output.mode].vdisplay;
++            qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::flip:drmModeAtomicAddProperty"
++                                 << "\n    request_id=" << request
++                                 << "\n    eglfs_plane_id=" << op.eglfs_plane->id
++                                 << "\n    framebuffer_id=" << fb->fb
++                                 << "\n    crtc_id=" << op.crtc_id
++                                 << "\n    srcWidth=" << op.size.width()
++                                 << "\n    srcX=" << 0
++                                 << "\n    srcY=" << 0
++                                 << "\n    srcHeight=" << op.size.height()
++                                 << "\n    crtcX=" << 0
++                                 << "\n    crtcY=" << 0
++                                 << "\n    crtcWidth=" << m_output.modes[m_output.mode].hdisplay
++                                 << "\n    crtcHeight=" << m_output.modes[m_output.mode].vdisplay;
 +
              drmModeAtomicAddProperty(request, op.eglfs_plane->id, op.eglfs_plane->framebufferPropertyId, fb->fb);
              drmModeAtomicAddProperty(request, op.eglfs_plane->id, op.eglfs_plane->crtcPropertyId, op.crtc_id);
              drmModeAtomicAddProperty(request, op.eglfs_plane->id, op.eglfs_plane->srcwidthPropertyId,
-@@ -333,11 +347,19 @@
+@@ -333,11 +358,21 @@
                                       m_output.modes[m_output.mode].vdisplay);
  
              static int zpos = qEnvironmentVariableIntValue("QT_QPA_EGLFS_KMS_ZPOS");
 -            if (zpos)
 +            if (zpos) {
-+                qCDebug(qLcEglfsKmsDebug) << "drmModeAtomicReq" << request
-+                                          << "\n    EglfsPlaneId="  << op.eglfs_plane->id
-+                                          << "\n    zposPropertyId=" << zpos;
++                qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::flip:drmModeAtomicAddProperty"
++                                          << "\n    requestID=" << request
++                                          << "\n    eglfs_plane_id="  << op.eglfs_plane->id
++                                          << "\n    zpos=" << zpos;
                  drmModeAtomicAddProperty(request, op.eglfs_plane->id, op.eglfs_plane->zposPropertyId, zpos);
 +            }
              static uint blendOp = uint(qEnvironmentVariableIntValue("QT_QPA_EGLFS_KMS_BLEND_OP"));
 -            if (blendOp)
 +            if (blendOp) {
-+                qCDebug(qLcEglfsKmsDebug) << "drmModeAtomicReq" << request
-+                                          << "\n    EglfsPlaneId=" << op.eglfs_plane->id
-+                                          << "\n    blendOpProperty" << blendOp;
++                qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::flip:drmModeAtomicAddProperty"
++                                          << "\n    requestID=" << request
++                                          << "\n    eglfs_plane_id=" << op.eglfs_plane->id
++                                          << "\n    blendOp=" << blendOp;
                  drmModeAtomicAddProperty(request, op.eglfs_plane->id, op.eglfs_plane->blendOpPropertyId, blendOp);
 +            }
          }
  #endif
      } else {
-@@ -364,8 +386,14 @@
+@@ -364,8 +399,16 @@
  #if QT_CONFIG(drm_atomic)
                  drmModeAtomicReq *request = device()->threadLocalAtomicRequest();
                  if (request) {
-+                    qCDebug(qLcEglfsKmsDebug) << "drmModeAtomicReq" << request
-+                                              << "\n    EglfsPlaneId=" << d.screen->output().eglfs_plane->id 
-+                                              << "\n    framebufferProperty" << fb->fb;
++                    qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::flip:drmModeAtomicAddProperty"
++                                              << "\n    requestID=" << request
++                                              << "\n    eglfs_plane_id=" << d.screen->output().eglfs_plane->id 
++                                              << "\n    framebuffer_id=" << fb->fb;
                      drmModeAtomicAddProperty(request, d.screen->output().eglfs_plane->id,
                                                        d.screen->output().eglfs_plane->framebufferPropertyId, fb->fb);
-+                    qCDebug(qLcEglfsKmsDebug) << "drmModeAtomicReq" << request
-+                                              << "\n    property: EglfsPlaneId="  << d.screen->output().eglfs_plane->id 
-+                                              << "\n    crtcProperty" << op.crtc_id;
++                    qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::flip:drmModeAtomicAddProperty"
++                                              << "\n    requestID=" << request
++                                              << "\n    eglfs_plane_id="  << d.screen->output().eglfs_plane->id 
++                                              << "\n    crtc_id" << op.crtc_id;
                      drmModeAtomicAddProperty(request, d.screen->output().eglfs_plane->id,
                                                        d.screen->output().eglfs_plane->crtcPropertyId, op.crtc_id);
                  }
