@@ -63,6 +63,8 @@ endif
 PATCHFILES += 0173-ffmpeg-libavcodec-v4l2_m2m_h264_dec-clean-input-buf-at-flush.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
+# hack to get refresh rate changing on drm
+PATCHFILES += 0198-libmythui-mythdrmdevice-add-refresh-change-capability.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
