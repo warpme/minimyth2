@@ -7,8 +7,8 @@
 # it replaces old files on target with new files from devel. machine.
 #
 # Example:
-# devel. machine at @MM_DEVEL_IP@ has mirror of target root file system
-# at <@MM_HOME@>/main
+# devel. machine at 192.168.1.190 has mirror of target root file system
+# at </home/piotro/minimyth2-aarch64>/main
 #
 # To configure:
 #
@@ -17,7 +17,7 @@
 #---rsync snippet start----
 #
 #[devel-updates]
-#    path = @MM_HOME@/images/main/
+#    path = /home/piotro/minimyth2-aarch64/images/main/
 #    use chroot = true
 #    read only = true
 #
@@ -27,7 +27,7 @@
 #
 # 3.make sure on target machine in this script variable 'src_rsync_module' has
 # correct IP address on devel.machine. Current autosetup IP for your env. is:
-# src_rsync_module="@MM_DEVEL_IP@::devel-updates"
+# src_rsync_module="192.168.1.190::devel-updates"
 #
 # 4. Run script on target and select component to update...
 #
@@ -82,7 +82,7 @@ epilog_cmd1="mm_manage restart_mythfrontend"
 #--------------------------
 
 # ---- Mesa dir/files ---
-component_2="Mesa3D"
+component_2="Mesa"
 # directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list2="/usr/lib/dri/:/usr/lib/dri"
 # file_list format: <src_path>/<files>:<dest_path>/
@@ -171,7 +171,9 @@ epilog_cmd6="sync"
 component_7="Qt5"
 # directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list7=" \
-/usr/lib/qt5/:/usr/lib/qt5 \
+/usr/lib/qt5/bin/:/usr/lib/qt5/bin \
+/usr/lib/qt5/lib/:/usr/lib/qt5/lib \
+/usr/lib/qt5/plugins/:/usr/lib/qt5/plugins \
 "
 # file_list format: <src_path>/<files>:<dest_path>/
 file_list7=""
@@ -182,7 +184,9 @@ epilog_cmd7="sync"
 component_8="Qt6"
 # directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list8=" \
-/usr/lib/qt6/:/usr/lib/qt6 \
+/usr/lib/qt6/bin/:/usr/lib/qt6/bin \
+/usr/lib/qt6/lib/:/usr/lib/qt6/lib \
+/usr/lib/qt6/plugins/:/usr/lib/qt6/plugins \
 "
 # file_list format: <src_path>/<files>:<dest_path>/
 file_list8=""
@@ -263,7 +267,7 @@ echo " "
 echo "---rsync snippet start----"
 echo " "
 echo "[devel-updates]"
-echo "    path = @MM_HOME@/main/"
+echo "    path = /home/piotro/minimyth2-aarch64/main/"
 echo "    use chroot = true"
 echo "    read only = true"
 echo " "
