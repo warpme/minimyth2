@@ -377,6 +377,7 @@ mm-all:
 		   [ ! "$${board}" = "board-rk3328.beelink_a1"    ] && \
 		   [ ! "$${board}" = "board-rk3399.rockpi4-b"     ] && \
 		   [ ! "$${board}" = "board-rk3399.orangepi_4"    ] && \
+		   [ ! "$${board}" = "board-rk3566.x96_x6"        ] && \
 		   [ ! "$${board}" = "board-rpi2"                 ] && \
 		   [ ! "$${board}" = "board-rpi3.mainline32"      ] && \
 		   [ ! "$${board}" = "board-rpi3.mainline64"      ] && \
