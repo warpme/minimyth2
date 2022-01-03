@@ -84,9 +84,15 @@ for board in ${boards} ; do
 done
 echo "#----Entries to create boot & rootfs partitions" >> ${base_dir}/MiniMyth2.wks
 
-# Skip adding common (for multibords) .wks entries when board is x86pc
-if [ -z `echo ${boards} | grep -o "board-x86pc"` ] ; then
-    cat ${base_dir}/default.wks >> ${base_dir}/MiniMyth2.wks
+# Selecting appropriate common.wks file
+if [ ! -z `echo ${boards} | grep -o "board-x86pc"` ] ; then
+    echo "  board-x86pc detected. skipping default-mbr[gpt].wks"
+elif [ ! -z `echo ${boards} | grep -o "board-rk35"` ] ; then
+    echo "  board-rk35xx detected. Using default-gpt.wks"
+    cat ${base_dir}/default-gpt.wks >> ${base_dir}/MiniMyth2.wks
+else
+    echo "  board-x86pc detected. Using default-mbr.wks"
+    cat ${base_dir}/default-mbr.wks >> ${base_dir}/MiniMyth2.wks
 fi
 
 sed -i "s%@MM_HOME@%${mm_home}%g" ${base_dir}/MiniMyth2.wks

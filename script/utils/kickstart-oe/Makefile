@@ -37,6 +37,8 @@ DISTFILES    = \
 	board-rk3399.rockpi4-b.wks  \
 	board-rk3399.orangepi_4.conf \
 	board-rk3399.orangepi_4.wks \
+	board-rk3566.x96_x6.conf    \
+	board-rk3566.x96_x6.wks     \
 	board-h6.beelink_gs1.conf   \
 	board-h6.beelink_gs1.wks    \
 	board-h6.eachlink_mini.conf \
@@ -59,7 +61,8 @@ DISTFILES    = \
 	board-x86pc.efi64.wks       \
 	board-x86pc.bios_efi64.conf \
 	board-x86pc.bios_efi64.wks  \
-	default.wks                 \
+	default-mbr.wks             \
+	default-gpt.wks             \
 	create-image.sh             \
 
 PATCHFILES  = poky-yocto-2.7.3-bitbake-skip-python2-checks.patch
@@ -70,6 +73,7 @@ PATCHFILES += backport-001-wic-Add--offset-argument-for-partitions.patch
 PATCHFILES += backport-002-wic-Fix--extra-space-argument-handling.patch
 PATCHFILES += backport-003-wic-Fix-error-message-when-reporting-invalid-offset.patch
 PATCHFILES += backport-004-wic-Add-512-Byte-alignment-to--offset.patch
+PATCHFILES += poky-yocto-2.7.3-allow-arbitral-part-start-sector.patch
 
 WORKSRC = $(WORKDIR)/poky-yocto-$(GARVERSION)
 LICENSE = GPL2
@@ -135,7 +139,8 @@ install-custom:
 	@#
 	@cp -f $(WORKDIR)/board-*.conf      $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/
 	@cp -f $(WORKDIR)/board-*.wks       $(DESTDIR)$(bindir)/kickstart/
-	@cp -f $(WORKDIR)/default.wks       $(DESTDIR)$(bindir)/kickstart/default.wks
+	@cp -f $(WORKDIR)/default-mbr.wks   $(DESTDIR)$(bindir)/kickstart/default-mbr.wks
+	@cp -f $(WORKDIR)/default-gpt.wks   $(DESTDIR)$(bindir)/kickstart/default-gpt.wks
 	@#
 	@# Remove all host tools requirements as we are listing them in BUILDEPS
 	@sed -i -e "s/HOSTTOOLS +=/__HOSTTOOLS +=/g" $(DESTDIR)$(bindir)/kickstart/conf/bitbake.conf
