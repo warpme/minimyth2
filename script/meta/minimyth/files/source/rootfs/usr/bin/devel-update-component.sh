@@ -7,8 +7,8 @@
 # it replaces old files on target with new files from devel. machine.
 #
 # Example:
-# devel. machine at 192.168.1.190 has mirror of target root file system
-# at </home/piotro/minimyth2-aarch64>/main
+# devel. machine at @MM_HOME@ has mirror of target root file system
+# at <@MM_HOME@>/main
 #
 # To configure:
 #
@@ -17,7 +17,7 @@
 #---rsync snippet start----
 #
 #[devel-updates]
-#    path = /home/piotro/minimyth2-aarch64/images/main/
+#    path = @MM_HOME@
 #    use chroot = true
 #    read only = true
 #
@@ -27,7 +27,7 @@
 #
 # 3.make sure on target machine in this script variable 'src_rsync_module' has
 # correct IP address on devel.machine. Current autosetup IP for your env. is:
-# src_rsync_module="192.168.1.190::devel-updates"
+# src_rsync_module="@MM_HOME@::devel-updates"
 #
 # 4. Run script on target and select component to update...
 #
@@ -267,7 +267,7 @@ echo " "
 echo "---rsync snippet start----"
 echo " "
 echo "[devel-updates]"
-echo "    path = /home/piotro/minimyth2-aarch64/main/"
+echo "    path = @MM_HOME@/main/"
 echo "    use chroot = true"
 echo "    read only = true"
 echo " "
