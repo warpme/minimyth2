@@ -1,5 +1,5 @@
 GARNAME = mozilla-firefox
-GARVERSION = 55.0.1
+GARVERSION = 95.0.2
 CATEGORIES = browsers
 MASTER_SITES = https://sourceforge.net/projects/ubuntuzilla/files/mozilla/apt/pool/main/f/firefox-mozilla-build/
 DISTFILES = firefox-mozilla-build_$(GARVERSION)-0ubuntu1_amd64.deb
@@ -20,6 +20,6 @@ install-custom:
 	@mkdir -p $(DESTDIR)$(rootdir)/usr/bin/mozilla-firefox-$(GARVERSION)
 
 	@cp -rf $(WORKSRC)/opt/firefox/* $(DESTDIR)$(rootdir)/usr/bin/mozilla-firefox-$(GARVERSION)
-	@rm $(DESTDIR)$(rootdir)/usr/bin/mozilla-firefox
+	@rm -rf $(DESTDIR)$(rootdir)/usr/bin/mozilla-firefox
 	@ln -sf ./mozilla-firefox-$(GARVERSION) $(DESTDIR)$(rootdir)/usr/bin/mozilla-firefox
 	@$(MAKECOOKIE)
