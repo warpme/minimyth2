@@ -20,7 +20,7 @@ def main(args):
     """
     xstatus = subprocess.Popen(["xset", "-q"], stdout = subprocess.PIPE)
     xstatus.wait()
-    has_dpms = any("DPMS is Enabled" in line for line in xstatus.stdout)
+    has_dpms = any(b'DPMS is Enabled' in line for line in xstatus.stdout)
     if has_dpms:
         subprocess.Popen(["xset", "-dpms"])
     try:
@@ -38,7 +38,7 @@ def browser(args):
     p1.wait()
     windows = p1.stdout.readline().split()
     for window in windows:
-        print "'%s'" % window
+        print ("'%s'" % window)
         subprocess.Popen(["xdotool", "windowfocus", str(window)])
         subprocess.Popen(["xdotool", "key", "F11"])
 
@@ -51,7 +51,7 @@ def browser(args):
             if codes is None:
                 continue
             for code in codes:
-                print code
+                print (code)
                 if code is None:
                     continue
                 config = code["config"].split()
@@ -67,23 +67,26 @@ def browser(args):
                     config[3] = str(int(config[3]) * mousestep ** 2)
                 subprocess.Popen(["xdotool"] + config)
     except KeyboardInterrupt:
-        print "Exiting...."
+        print ("Exiting ...")
     p1 = subprocess.Popen(["xdotool", "search", "--name", "Mozilla Firefox"], stdout = subprocess.PIPE)
     p1.wait()
     windows = p1.stdout.readline().split()
     for window in windows:
-        print "'%s'" % window
+        print ("'%s'" % window)
         subprocess.Popen(["xdotool", "windowfocus", str(window)])
+        print ("Asking mozilla-firefox to exit by Ctrl+Shift+W ...")
         subprocess.Popen(["xdotool", "key", "Ctrl+Shift+W"])
 
     # If we found windows and they're still running, wait 3 seconds
     if len(windows) != 0 and browser.poll() is None:
+        print ("Still waiting 3sec for eiting mozilla-firefox ...")
         for i in range(30):
             time.sleep(.1)
             if browser.poll() is not None:
                 break
     # Okay now we can forcibly kill browser
     if browser.poll() is None:
+        print ("Terminating mozilla-firefox ...")
         browser.terminate()
 
     return 0
