@@ -11,6 +11,7 @@ PATCHFILES += 0005-fix-5.9.patch
 PATCHFILES += 0006-fix-5.10.patch
 PATCHFILES += 0007-fix-5.14.patch
 PATCHFILES += 0008-fix-5.15.patch
+PATCHFILES += 0009-fix-5.16.patch
 
 BUILD_SCRIPTS   = nvidia
 INSTALL_SCRIPTS = nvidia
