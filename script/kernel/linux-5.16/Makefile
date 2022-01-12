@@ -108,10 +108,11 @@ PATCHFILES += 0509-ASoC-sun4i-i2s-Add-parenthesis-around-macro-argument.patch
 PATCHFILES += 0510-ASoC-sun4i-i2s-WiP-multi-channel.patch
 PATCHFILES += 0511-arm64-dts-sun50i-h6-dtsi-add-sound-node.patch
 PATCHFILES += 0512-arm64-dts-enable-audio-gs1.patch
-#PATCHFILES += 0514-media-cedrus-hevc-Improve-buffer-management.patch TODO
+PATCHFILES += 0514-media-cedrus-hevc-Improve-buffer-management.patch
 PATCHFILES += 0515-media-cedrus-hevc-tiles-hack.patch
 PATCHFILES += 0516-media-cedrus-h264-Improve-buffer-management.patch
 PATCHFILES += 0525-media-cedrus-Add-callback-for-buffer-cleanup.patch
+PATCHFILES += 0528-media-cedrus-wip-10-bit-HEVC-support.patch
 # Adding support for MFD devices on some H6 boards
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
@@ -187,6 +188,20 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 356x patches -----------------------------------------
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=548797
+#PATCHFILES += 0806-arm64-dts-rockchip-move-aliases-to-rk356x-dtsi.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=598177
+PATCHFILES += 0808-drm-rockchip-RK356x-VOP2-support.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=586441
+PATCHFILES += 0810-add-GPU-for-RK356x-SoCs.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=586371
+#PATCHFILES += 0809-hdmi-Audio-on-RK356x-Quartz64-Model-A.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=586691
+#PATCHFILES += 0811-RK356x-Quartz64-Model-A-SPI.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=592271
+#PATCHFILES += 0812-arm64-dts-rockchip-rk356x-Change-pwm-pinctrl-name-to-default.patch
+#
+PATCHFILES += 0850-arm64-dts-add-x96-x6-tvbox-dt.patch
 endif
 #------------------------------------------------------------
 
