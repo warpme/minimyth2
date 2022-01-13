@@ -9,7 +9,7 @@
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of MiniMyth2.
-mm_VERSION_MINIMYTH ?=       11.26.0.r3360
+mm_VERSION_MINIMYTH ?=       11.26.0.r3388
 
 # The version of Myth to use.
 # # Valid values are '29', '30', '31', 'master' and 'test'
