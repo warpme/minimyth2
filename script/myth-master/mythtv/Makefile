@@ -106,12 +106,6 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
 
-PATCHFILES += 1000-Flip-the-ALLOWLASTPLAYPOS-flag-to-become-the-IGNORELASTPLAYPOS-flag.patch
-PATCHFILES += 1001-Seperate-the-concepts-of-last-play-position-and-bookmarks.patch
-PATCHFILES += 1002-Split-part-of-ViewScheduled-FillList-into-a-separate-function.patch
-PATCHFILES += 1003-Fix-indentation-of-MythCenter-recordings-ui.xml.patch
-PATCHFILES += 1004-Add-percentage-finished-to-View-Recordings-and-Upcoming-Recordings.patch
-
 endif
 
 LICENSE = GPL2
