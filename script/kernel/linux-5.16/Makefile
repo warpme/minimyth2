@@ -59,6 +59,8 @@ PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
 PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
 endif
 
+#PATCHFILES += 0130-net-wireless-add-rtw88-20220114.patch
+
 ifeq (1,1)
 #-- Amlogic patches -----------------------------------------
 # increas CMA pool for 4k decode
@@ -188,16 +190,19 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 356x patches -----------------------------------------
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=548797
-#PATCHFILES += 0806-arm64-dts-rockchip-move-aliases-to-rk356x-dtsi.patch
+PATCHFILES += 0800-phy-add-usb2-phy.patch
+PATCHFILES += 0801-arm64-dts-rockchip-add-usb2-nodes-to-rk3568-device-tree.patch
+PATCHFILES += 0802-phy-rockchip-add-naneng-combo-phy-for-pcie-sata-usb3.patch
+PATCHFILES += 0803-arm64-dts-rockchip-add-rk356x-usb3-pcie-sata-nodes.patch
+
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=598177
 PATCHFILES += 0808-drm-rockchip-RK356x-VOP2-support.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=586441
 PATCHFILES += 0810-add-GPU-for-RK356x-SoCs.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=586371
-#PATCHFILES += 0809-hdmi-Audio-on-RK356x-Quartz64-Model-A.patch
+PATCHFILES += 0809-hdmi-Audio-on-RK356x-Quartz64-Model-A.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=586691
-#PATCHFILES += 0811-RK356x-Quartz64-Model-A-SPI.patch
+PATCHFILES += 0811-RK356x-Quartz64-Model-A-SPI.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=592271
 #PATCHFILES += 0812-arm64-dts-rockchip-rk356x-Change-pwm-pinctrl-name-to-default.patch
 #
