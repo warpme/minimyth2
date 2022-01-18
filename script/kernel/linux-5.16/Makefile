@@ -194,18 +194,12 @@ PATCHFILES += 0800-phy-add-usb2-phy.patch
 PATCHFILES += 0801-arm64-dts-rockchip-add-usb2-nodes-to-rk3568-device-tree.patch
 PATCHFILES += 0802-phy-rockchip-add-naneng-combo-phy-for-pcie-sata-usb3.patch
 PATCHFILES += 0803-arm64-dts-rockchip-add-rk356x-usb3-pcie-sata-nodes.patch
-
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=598177
 PATCHFILES += 0808-drm-rockchip-RK356x-VOP2-support.patch
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=586441
 PATCHFILES += 0810-add-GPU-for-RK356x-SoCs.patch
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=586371
 PATCHFILES += 0809-hdmi-Audio-on-RK356x-Quartz64-Model-A.patch
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=586691
 PATCHFILES += 0811-RK356x-Quartz64-Model-A-SPI.patch
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=592271
-#PATCHFILES += 0812-arm64-dts-rockchip-rk356x-Change-pwm-pinctrl-name-to-default.patch
-#
+PATCHFILES += 0813-arm64-dts-enable-hantro-on-rk356x.patch
+PATCHFILES += 0812-media-hantro-add-rk3566-support.patch
 PATCHFILES += 0850-arm64-dts-add-x96-x6-tvbox-dt.patch
 endif
 #------------------------------------------------------------
