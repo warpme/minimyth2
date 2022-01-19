@@ -7,7 +7,7 @@ DISTFILES    = \
                extlinux.conf \
                minimyth.conf   \
 
-export mm_U-BOOT_BOARD_TYPE = rk3566-x96-x6_defconfig
+export mm_U-BOOT_BOARD_TYPE = rk3566-x96_x6_defconfig
 
 WORKSRC      = $(WORKDIR)
 
