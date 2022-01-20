@@ -373,7 +373,7 @@ mm-all:
 		   [ ! "$${board}" = "board-h616.tanix_tx6s"      ] && \
 		   [ ! "$${board}" = "board-h616.t95"             ] && \
 		   [ ! "$${board}" = "board-h616.x96_mate"        ] && \
-		   [ ! "$${board}" = "board-h616.orangepi_lite2"  ] && \
+		   [ ! "$${board}" = "board-h616.orangepi_zero2"  ] && \
 		   [ ! "$${board}" = "board-rk3328.beelink_a1"    ] && \
 		   [ ! "$${board}" = "board-rk3399.rockpi4-b"     ] && \
 		   [ ! "$${board}" = "board-rk3399.orangepi_4"    ] && \
