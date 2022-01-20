@@ -2,7 +2,7 @@
 ifeq (1,1)
 LINUX_MAJOR_VERSION = 5
 LINUX_MINOR_VERSION = 16
-LINUX_TEENY_VERSION = 1
+LINUX_TEENY_VERSION = 2
 LINUX_EXTRA_VERSION = 
 endif
 #-------------------------------------------
