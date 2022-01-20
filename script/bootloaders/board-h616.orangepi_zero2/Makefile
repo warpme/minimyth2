@@ -1,5 +1,5 @@
 
-GARNAME      = bootfiles-h616.orangepi_lite2
+GARNAME      = bootfiles-h616.orangepi_zero2
 GARVERSION   = 2020-12-08
 CATEGORIES   = bootloaders
 MASTER_SITES = 
