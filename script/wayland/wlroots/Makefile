@@ -1,11 +1,9 @@
 
 GARNAME      = wlroots
-GARVERSION   = 0.13.0
+GARVERSION   = 0.14.1
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://github.com/swaywm/wlroots/archive/
 DISTFILES    = $(GARVERSION).tar.gz
-PATCHFILES   = $(DISTNAME)-disable-Wmissing-includes.patch
-PATCHFILES  += $(DISTNAME)-fix-ticket2852.patch
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
 
@@ -18,9 +16,7 @@ DEPENDS = lang/c \
 	xorg/libxkbcommon \
 	opengl/opengl \
 	xorg/pixman \
-	xorg/xcb-util-image \
-	xorg/xcb-util-wm \
-	xorg/xcb-util-errors \
+	utils/seatd \
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
@@ -31,5 +27,8 @@ MESON_CONFIGURE_ARGS = \
 	-D man-pages="false" \
 	-D valgrind="false" \
 	-D examples="false" \
+	-D xwayland="disabled" \
+	-D x11-backend="disabled" \
+	-D logind-provider=elogind \
 
 include ../../gar.mk
