@@ -334,3 +334,8 @@ clean-all:
 
 menuconfig:
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) menuconfig
+
+savedefconfig:
+	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) savedefconfig
+	mv $(WORKSRC)/defconfig $(CONFIGFILE)
+
