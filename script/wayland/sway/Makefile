@@ -1,6 +1,6 @@
 
 GARNAME      = sway
-GARVERSION   = 1.6
+GARVERSION   = 1.6.1
 CATEGORIES   = wayland
 MASTER_SITES = https://github.com/swaywm/sway/releases/download/$(GARVERSION)/
 PATCHFILES   = $(DISTNAME)-skip-uid-guid-drop-check.patch
@@ -31,5 +31,6 @@ MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
 	-D man-pages="disabled" \
 	-D gdk-pixbuf="disabled" \
+	-D xwayland="disabled" \
 
 include ../../gar.mk
