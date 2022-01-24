@@ -174,11 +174,12 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
-# patches from LE 7.11.2021
+# patches from LE 23.01.2022
 PATCHFILES += 0702-rockchip-from-list.patch
 PATCHFILES += 0711-v4l2-from-list.patch
 PATCHFILES += 0720-drm-from-list.patch
 PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
+# PATCHFILES += 0730-drm-rockchip.patch
 PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
 PATCHFILES += 0740-v4l-wip-rkvdec-vp9.patch
