@@ -15,6 +15,7 @@ DEPENDS = \
 	firmware/brcmfmac43456-firmware \
 	firmware/brcmfmac43430-firmware \
 	firmware/brcmfmac43455-firmware \
+	firmware/brcmfmac4354-firmware  \
 	firmware/brcmfmac6330-firmware  \
 	firmware/bluez-firmware-rpi     \
 	firmware/linux-firmware-meson   \
@@ -32,6 +33,7 @@ clean-all:
 	@$(MAKE) clean-all -C ../brcmfmac43456-firmware
 	@$(MAKE) clean-all -C ../brcmfmac43430-firmware
 	@$(MAKE) clean-all -C ../brcmfmac43455-firmware
+	@$(MAKE) clean-all -C ../brcmfmac4354-firmware
 	@$(MAKE) clean-all -C ../brcmfmac6330-firmware
 	@$(MAKE) clean-all -C ../bluez-firmware-rpi
 	@$(MAKE) clean-all -C ../linux-firmware-meson
