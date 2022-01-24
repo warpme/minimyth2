@@ -25,12 +25,10 @@ clean-all:
 	@$(MAKE) clean
 	@$(MAKE) clean-all -C ../../kernel-headers/linux-headers
 	@$(MAKE) clean-all -C ../../firmware/firmware
-	@$(MAKE) clean-all -C ../../bootloaders/bootloader
 	@$(MAKE) clean-all -C ../../kernel/rtl8189es
 	@$(MAKE) clean-all -C ../../kernel/rtl8821cu
 	@$(MAKE) clean     -C ../../kernel-headers/linux-headers
 	@$(MAKE) clean     -C ../../firmware/firmware
-	@$(MAKE) clean     -C ../../bootloaders/bootloader
 	@$(MAKE) clean     -C ../../kernel/rtl8189es
 	@$(MAKE) clean     -C ../../kernel/rtl8821cu
 	@$(MAKE) clean     -C ../../nvidia
