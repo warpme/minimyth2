@@ -535,7 +535,9 @@ garpkg: $(GARPKGDIR)
 # The clean rule.  It must be run if you want to re-download a
 # file after a successful checksum (or just remove the checksum
 # cookie, but that would be lame and unportable).
-clean: cookieclean
+clean: $(if $(strip $(CLEAN_SCRIPTS)),$(addprefix clean-,$(CLEAN_SCRIPTS)),downloadclean cookieclean)
+
+downloadclean:
 	@rm -rf $(DOWNLOADDIR)
 
 cookieclean: buildclean
