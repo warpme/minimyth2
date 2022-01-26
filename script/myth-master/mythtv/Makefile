@@ -51,6 +51,8 @@ PATCHFILES += 0152-configure-add-v4l2request-support.patch
 PATCHFILES += 0153-ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel.patch
 # Improve v4l2_request resiliency on so DVB stream errors (http://jernej.libreelec.tv/videos/cedrus_broken.ts)
 PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
+# Fix green screen on hantro h264 vdpu2 hw video decode
+PATCHFILES += 0155-ffmpeg-libavcodec-h264_slice-fix-decoding-on-hantro-vdpu2.patch
 endif
 
 # buffers bump-up required for AML HD playbck
