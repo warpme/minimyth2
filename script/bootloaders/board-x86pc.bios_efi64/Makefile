@@ -17,6 +17,7 @@ BUILDDEPS   = bootloaders/syslinux bootloaders/grub2
 
 BUILD_SCRIPTS   =
 INSTALL_SCRIPTS = custom
+CLEAN_SCRIPTS   = custom
 
 include ../../gar.mk
 
@@ -33,7 +34,7 @@ install-custom:
 	@cp -f $(WORKSRC)/minimyth.conf                 $(DESTDIR)/boot/minimyth.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-all:
+clean-custom:
 	@rm -rf $(DESTDIR)/boot/syslinux*
 	@rm -f  $(DESTDIR)/boot/syslinux/ldlinux.sys
 	@rm -f  $(DESTDIR)/boot/syslinux/libcom32.c32
@@ -43,3 +44,5 @@ clean-all:
 	@rm -f  $(DESTDIR)/boot/syslinux/vesamenu.c32
 	@rm -f  $(DESTDIR)/boot/grub-efi-bootx64.efi
 	@rm -f  $(DESTDIR)/boot/minimyth.conf
+
+clean-all: clean-custom cookieclean

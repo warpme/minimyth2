@@ -22,6 +22,7 @@ endef
 
 BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
+CLEAN_SCRIPTS   = custom
 
 include ../../gar.mk
 
@@ -39,8 +40,10 @@ install-custom:
 	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-all:
+clean-custom:
 	@rm -f  $(DESTDIR)/boot/boot-debug.scr
 	@rm -f  $(DESTDIR)/boot/boot.scr
 	@rm -rf $(DESTDIR)/boot/h616loaderfiles*
 	@rm -f  $(DESTDIR)/boot/minimyth.conf
+
+clean-all: clean-custom cookieclean

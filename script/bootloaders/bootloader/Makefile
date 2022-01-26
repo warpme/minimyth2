@@ -1,9 +1,9 @@
 
-# make clean: clean only this packahe
-# make clean-all: cleans ALL packages in bootloaders
-# make clean-bootloader: cleans only bootloadr-related files in main/boot
+# make clean: clean all boards bootloaders. Built U-boot, boot block binaries in main/lib/u-boot/* are NOT deleted
+# make clean-all: cleans ALL packages in bootloaders and also DELETING built binaries in main/lib/u-boot/*
+# make clean-bootloader: the same like clean
 # For refresh bootloader after changing board run:
-# 1. make bootloaders/clean-bootloader
+# 1. make bootloaders/clean
 # 2. make bootloaders/install
 
 GARNAME = bootloader
@@ -17,6 +17,7 @@ endef
 BUILDDEPS = utils/kickstart-oe
 
 INSTALL_SCRIPTS = custom
+CLEAN_SCRIPTS   = custom
 
 include ../../gar.mk
 
@@ -135,11 +136,11 @@ ifneq (,$(findstring board-x86pc.bios_efi64,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-x86pc.bios_efi64
 endif
 
-clean-all:
-	@$(foreach dir, $(wildcard ../u-boot ../u-boot-* ../board-* ../arm-trusted-firmware* ../crust), $(MAKE) clean clean-all -C $(dir) ; )
-	$(MAKE) clean
+clean-custom: clean-bootloader cookieclean
 
 clean-bootloader:
-	@$(foreach dir, $(wildcard ../board-* ), $(MAKE) clean-all -C $(dir) ; )
+	@$(foreach dir, $(wildcard ../board-* ), $(MAKE) clean -C $(dir) ; )
 	@rm -f $(DESTDIR)/boot/minimyth.conf
-	$(MAKE) clean
+
+clean-all:
+	@$(foreach dir, $(wildcard ../u-boot ../u-boot-* ../board-* ../arm-trusted-firmware* ../crust), $(MAKE) clean clean-all -C $(dir) ; )

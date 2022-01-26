@@ -19,6 +19,7 @@ endef
 
 BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
+CLEAN_SCRIPTS   = custom
 
 include ../../gar.mk
 
@@ -37,8 +38,10 @@ install-custom:
 	@cp -f    $(WORKSRC)/extlinux.conf                           $(DESTDIR)/boot/extlinux/extlinux.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-all:
+clean-custom:
 	@rm -f  $(DESTDIR)/boot/rk3566_u-boot
 	@rm -rf $(DESTDIR)/boot/rk3566loaderfiles*
 	@rm -f  $(DESTDIR)/boot/minimyth.conf
-	@rm -rf $(DESTDIR)/boot/extlinux/extlinux.conf
+	@rm -rf $(DESTDIR)/boot/extlinux*
+
+clean-all: clean-custom cookieclean

@@ -25,6 +25,7 @@ endef
 
 BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
+CLEAN_SCRIPTS   = custom
 
 include ../../gar.mk
 
@@ -48,8 +49,10 @@ install-custom:
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/g12a/$(mm_U-BOOT_BOARD_TYPE)/radxa-zero-uboot.bin $(DESTDIR)/boot/g12aloaderfiles/radxa-zero-uboot.bin
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-all:
+clean-custom:
 	@rm -f $(DESTDIR)/boot/boot.scr
 	@rm -f $(DESTDIR)/boot/boot-debug.scr
 	@rm -f $(DESTDIR)/boot/minimyth.conf
 	@rm -f $(DESTDIR)/boot/g12aloaderfiles/radxa-zero-uboot.bin
+
+clean-all: clean-custom cookieclean

@@ -27,6 +27,7 @@ endef
 
 BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
+CLEAN_SCRIPTS   = custom
 
 include ../../gar.mk
 
@@ -53,7 +54,7 @@ install-custom:
 	@#cp -f $(DESTDIR)$(libdir)/u-boot/rpi2/$(mm_U-BOOT_BOARD_TYPE)/kernel7.img $(DESTDIR)/boot/kernel7.img
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-all:
+clean-custom:
 	@rm -f $(DESTDIR)/boot/bootcode.bin
 	@rm -f $(DESTDIR)/boot/fixup.dat
 	@rm -f $(DESTDIR)/boot/fixup_db.dat
@@ -64,3 +65,5 @@ clean-all:
 	@rm -f $(DESTDIR)/boot/start_cd.elf
 	@rm -f $(DESTDIR)/boot/start_x.elf
 	@rm -f $(DESTDIR)/boot/kernel7.img
+
+clean-all: clean-custom cookieclean
