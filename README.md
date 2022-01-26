@@ -86,7 +86,7 @@ Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                     | wor
 Allwinner H616| OrangePI-Zero2   | not works (aw859a@SDIO)                 | works                  | not works (firmware issue)     | some things are still missing |
 Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                    | works                  | currently power off/on         | good prospects                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                    | works                  | currently power off/on         | well supported                |
-Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                    | not works(yet)         | not works                      | good prospects                |
+Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                    | works                  | not works                      | good prospects                |
 Amlogic s905  | TanixTX3-Mini    | not works  (sv6051@SDIO no driver aval) | works                  | not works (firmware issue)     | support stalled               |
 Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)       | works                  | not works (firmware issue)     | support stalled               |
 Amlogic sm1   | x96Air           | works  (rtl8189@SDIO)                   | works                  | not works (firmware issue)     | support stalled               |
