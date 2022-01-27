@@ -11,6 +11,7 @@ MASTER_SITES = \
 DISTFILES    = $(RKBINVERSION).zip $(GARVERSION).tar.bz2 
 PATCHFILES   = 01-add-x96_x6-tvbox.patch
 PATCHFILES  += 02-fix-compilation.patch
+PATCHFILES  += 03-swap-gmac0-gmac1-in-aliases.patch
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
 
 LICENSE = GPL2
