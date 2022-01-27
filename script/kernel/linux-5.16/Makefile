@@ -74,10 +74,8 @@ PATCHFILES += 0318-meson-vdec-add-handling-to-HEVC-decoder-.patch
 PATCHFILES += 0319-meson-vdec-add-HEVC-support-to-GXBB.patch
 PATCHFILES += 0320-meson-vdec-check-if-parser-has-really-pa.patch
 # Amlogic: Misc patches
-PATCHFILES += 0330-net-wireless-ath10k-Fix-the-MTU-size-on-QCA9377-SDIO.patch
 PATCHFILES += 0331-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 0332-arm64-dts-meson-add-support-for-GX-PM-and-Virtu.patch
-PATCHFILES += 0333-of-partial-revert-of-fdt.c-changes.patch
 PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
@@ -195,7 +193,8 @@ PATCHFILES += 0800-phy-add-usb2-phy.patch
 PATCHFILES += 0801-arm64-dts-rockchip-add-usb2-nodes-to-rk3568-device-tree.patch
 PATCHFILES += 0802-phy-rockchip-add-naneng-combo-phy-for-pcie-sata-usb3.patch
 PATCHFILES += 0803-arm64-dts-rockchip-add-rk356x-usb3-pcie-sata-nodes.patch
-PATCHFILES += 0808-drm-rockchip-RK356x-VOP2-support.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=608673
+PATCHFILES += 0808-drm-rockchip-RK356x-VOP2-support-v4.1.patch
 PATCHFILES += 0810-add-GPU-for-RK356x-SoCs.patch
 PATCHFILES += 0809-hdmi-Audio-on-RK356x-Quartz64-Model-A.patch
 PATCHFILES += 0811-RK356x-Quartz64-Model-A-SPI.patch
@@ -214,8 +213,6 @@ PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-08112021.patch
 PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch 
 # add H265 rpivid driver
 PATCHFILES += 0904-media-add-rpivid-24022021.patch
-# fix for flip_dome timeouts on rpi4
-PATCHFILES += 0909-drm-vc4-Fix-non-blocking-commit-getting-stuck-forever.patch
 endif
 #------------------------------------------------------------
 
