@@ -92,14 +92,50 @@ start() {
                 if /bin/echo "+${MM_AUDIO_TYPE}+" | /bin/grep -q '+digital+'  ; then
 
                     case "${MM_AUDIO_DEVICE_UCM_PROFILE}" in
-                        # Amlogic G12 HDMI
-                        NANOPI-K2|ODROID-C2|NEXBOX-A95X|P201|WETEK-HUB|LIBRETECH-S805X-AC|LIBRETECH-S905X-CC|LIBRETECH-S9XX-PC|S905X-P212|KHADAS-VIM2|SEI510|GTKING-PRO|KHADAS-VIM3|ODROID-N2|A95XF3-AIR|KHADAS-VIM3L|ODROID-C4|SEI610|X96-AIR|TX5-PLUS|RADXA-ZERO)
-                                    enable_digital_audio="set _verb HDMI set _enadev Speaker" ;;
-                        # Amlogic G12 HDMI-SPDIF
-                        P200|VEGA-S95|WETEK-PLAY2|P230-Q200|NEXBOX-A1|RBOX-PRO|WETEK-CORE2|BEELINK-GT1|TANIX-TX5MAX|U200|X96-MAX|GTKING|UGOOS-AM6)
-                                    enable_digital_audio="set _verb HDMI set _enadev Speaker set _verb SPDIF set _enadev Speaker" ;;
-                        chtrt5645)  enable_digital_audio="set _verb HiFi set _enadev Speaker" ;;
-                        *)          enable_digital_audio="set _verb HiFi set _enadev Speaker" ;;
+                        # Amlogic G12/SM1 devices
+                        ODROID-C2|SEI510|GTKING-PRO|KHADAS-VIM3|ODROID-N2|A95XF3-AIR|KHADAS-VIM3L|ODROID-C4|SEI610|X96-AIR|TX5-PLUS|RADXA-ZERO)
+                            # workarround for alsaucm not working properly on amlogic - start
+                            TDMOUT=$(awk '/TDMOUT/ && $2=="OUT" {print substr($1,length($1),1)}' /sys/firmware/devicetree/base/sound/audio-routing | sort | head -n 1) #'
+                            if [ "${TDMOUT}" = "A" ]; then
+                                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Amlogic: Enabling HDMI on TDMOUT A on G12/SM1"
+                                ${amixer_command} set 'FRDDR_A SINK 1 SEL' 'OUT 0'
+                                ${amixer_command} set 'FRDDR_A SRC 1 EN' on
+                                ${amixer_command} set 'TDMOUT_A SRC SEL' 'IN 0'
+                                ${amixer_command} set 'TOHDMITX' on
+                                ${amixer_command} set 'TOHDMITX I2S SRC' 'I2S A'
+                            elif [ "${TDMOUT}" = "B" ]; then
+                                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Amlogic: Enabling HDMI on TDMOUT B on G12/SM1"
+                                ${amixer_command} set 'FRDDR_A SINK 1 SEL' 'OUT 1'
+                                ${amixer_command} set 'FRDDR_A SRC 1 EN' on
+                                ${amixer_command} set 'TDMOUT_B SRC SEL' 'IN 0'
+                                ${amixer_command} set 'TOHDMITX' on
+                                ${amixer_command} set 'TOHDMITX I2S SRC' 'I2S B'
+                            fi
+                            # AXG S/PDIF
+                            SPDIFOUT=$(awk '/SPDIF/' /sys/firmware/devicetree/base/sound/audio-routing | sort | head -n 1)
+                            if [ -n "${SPDIFOUT}" ]; then
+                                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Amlogic: Enabling SPDIF on G12/SM1"
+                                ${amixer_command} set 'FRDDR_B SINK 1 SEL' 'OUT 3'
+                                ${amixer_command} set 'FRDDR_B SRC 1 EN' on
+                                ${amixer_command} set 'SPDIFOUT SRC SEL' 'IN 1'
+                                ${amixer_command} set 'SPDIFOUT Playback' on
+                            fi
+                            # enable_digital_audio="set _verb HDMI set _enadev Speaker"
+                            # workarround for alsaucm not working properly on amlogic - end
+                            ;;
+                        # Amlogic GXL/GXM devices
+                        NEXBOX-A95X|LIBRETECH-S905X-CC|LIBRETECH-S9XX-PC|S905X-P212|KHADAS-VIM2|VEGA-S95|P230-Q200|NEXBOX-A1|RBOX-PRO|WETEK-CORE2|BEELINK-GT1)
+                            # workarround for alsaucm not working properly on amlogic - start
+                            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] Amlogic: Enabling HDMI/SPDIF on GXL/GXM"
+                            ${amixer_command} 'AIU HDMI CTRL SRC' 'I2S'
+                            ${amixer_command} 'AIU SPDIF SRC SEL' 'SPDIF'
+                            # enable_digital_audio="set _verb HDMI set _enadev Speaker set _verb SPDIF set _enadev Speaker"
+                            # workarround for alsaucm not working properly on amlogic - end
+                            ;;
+                        chtrt5645)
+                            enable_digital_audio="set _verb HiFi set _enadev Speaker" ;;
+                        *)
+                            enable_digital_audio="set _verb HiFi set _enadev Speaker" ;;
                     esac
 
                     /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/audio] alsaucm digital cmd.: \"${ucm_command} ${enable_digital_audio}\""
