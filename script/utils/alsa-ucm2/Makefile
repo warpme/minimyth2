@@ -1,11 +1,12 @@
 
-GARNAME      = alsa-ucm2
-GARVERSION   = f8c2428ccc42488c5e96801cce9f7e28080ecb71
+GARNAME      = alsa-ucm-conf
+GARVERSION   = 1.2.6.3
 CATEGORIES   = utils
-MASTER_SITES = https://github.com/alsa-project/alsa-ucm-conf/archive/
-DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = alsa-ucm-conf-add-amlogic-cards.patch
-WORKSRC      = $(WORKDIR)/alsa-ucm-conf-$(GARVERSION)/
+MASTER_SITES = https://www.alsa-project.org/files/pub/lib/
+DISTFILES    = $(DISTNAME).tar.bz2
+# ucm2 stopped to work correctly on amlogic
+# PATCHFILES   = alsa-ucm-conf-add-amlogic-cards.patch
+WORKSRC      = $(WORKDIR)/$(DISTNAME)/ucm2
 
 DENENDS      = lib/alsa-lib
 
@@ -21,7 +22,7 @@ include ../../gar.mk
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(datadir)/alsa/ucm2
-	@cp -rf $(WORKSRC)/ucm2/* $(DESTDIR)$(datadir)/alsa/ucm2/
+	@cp -rf $(WORKSRC)/* $(DESTDIR)$(datadir)/alsa/ucm2/
 	@$(MAKECOOKIE)
 
 clean-all:
