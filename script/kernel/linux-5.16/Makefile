@@ -1,7 +1,8 @@
 ifeq (1,1)
 #--Use this for mainline official x.y.z kernel from SCM----
-MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
-DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
+MASTER_SITES        = https://cdn.kernel.org/pub/linux/kernel/v5.x/
+#MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
+DISTFILES           = $(DISTNAME).tar.xz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 #----------------------------------------------------------
 endif
@@ -142,6 +143,28 @@ PATCHFILES += 0546-arm64-dts-h6-add-deinterlace-node.patch
 PATCHFILES += 0547-net-wireless-add-xr819-support-07072021.patch
 # fix setting 4k60 mode on some TVs.
 PATCHFILES += 0549-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
+# VP9 support on hantro LE 29.01.2022
+PATCHFILES += 0566-drm-sun4i-virtual-CMA-addresses-are-not-needed.patch
+PATCHFILES += 0567-hantro-postproc-Fix-motion-vector-space-size.patch
+PATCHFILES += 0568-hantro-postproc-Introduce-struct-hantro_postproc_ops.patch
+PATCHFILES += 0569-hantro-Simplify-postprocessor.patch
+PATCHFILES += 0570-hantro-Add-quirk-for-NV12-NV12_4L4-capture-format.patch
+PATCHFILES += 0571-media-uapi-Add-VP9-stateless-decoder-controls.patch
+PATCHFILES += 0572-media-Add-VP9-v4l2-library.patch
+PATCHFILES += 0573-media-rkvdec-Add-the-VP9-backend.patch
+PATCHFILES += 0574-media-hantro-Rename-registers.patch
+PATCHFILES += 0575-media-hantro-Prepare-for-other-G2-codecs.patch
+PATCHFILES += 0576-media-hantro-Support-VP9-on-the-G2-core.patch
+PATCHFILES += 0577-media-hantro-Staticize-a-struct-in-postprocessor-cod.patch
+PATCHFILES += 0578-media-hantro-Support-NV12-on-the-G2-core.patch
+PATCHFILES += 0580-media-hantro-add-support-for-reset-lines.patch
+PATCHFILES += 0581-media-hantro-vp9-use-double-buffering-if-needed.patch
+PATCHFILES += 0582-media-hantro-vp9-add-support-for-legacy-register-set.patch
+PATCHFILES += 0583-media-hantro-move-postproc-enablement-for-old-cores.patch
+PATCHFILES += 0584-media-hantro-Convert-imx8m_vpu_g2_irq-to-helper.patch
+PATCHFILES += 0585-media-hantro-Add-support-for-Allwinner-H6.patch
+PATCHFILES += 0586-arm64-dts-allwinner-h6-Add-Hantro-G2-node.patch
+PATCHFILES += 0587-media-hantro-sunxi-Fix-VP9-steps.patch
 endif
 #------------------------------------------------------------
 
@@ -172,18 +195,16 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
-# patches from LE 23.01.2022
+# patches from LE 29.01.2022
 PATCHFILES += 0702-rockchip-from-list.patch
 PATCHFILES += 0711-v4l2-from-list.patch
 PATCHFILES += 0720-drm-from-list.patch
 PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
-# PATCHFILES += 0730-drm-rockchip.patch
+#PATCHFILES += 0730-drm-rockchip.patch
 PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
-PATCHFILES += 0740-v4l-wip-rkvdec-vp9.patch
-PATCHFILES += 0741-v4l-wip-rkvdec-hevc.patch
-PATCHFILES += 0742-v4l-wip-iep-driver.patch
-PATCHFILES += 0743-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
+PATCHFILES += 0741-v4l2-wip-rkvdec-hevc.patch
+PATCHFILES += 0742-v4l2-wip-iep-driver.patch
 endif
 #------------------------------------------------------------
 
