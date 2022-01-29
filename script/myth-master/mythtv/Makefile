@@ -43,8 +43,7 @@ PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
-PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.14kernel.patch
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.14kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.16kernel.patch
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner H6
@@ -224,7 +223,7 @@ CONFIGURE_ARGS = \
 	--enable-asm \
 	--enable-fast-unaligned \
 	--enable-optimizations \
-	--enable-lto \
+	--disable-lto \
 	--disable-proc-opt \
 	--enable-audio-oss \
 	--enable-audio-alsa \
@@ -279,6 +278,10 @@ CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(inclu
 
 CPPFLAGS += -fPIC -fuse-linker-plugin
 CFLAGS   += -fPIC -fuse-linker-plugin
+
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
