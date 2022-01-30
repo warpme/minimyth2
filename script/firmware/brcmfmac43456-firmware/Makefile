@@ -9,7 +9,7 @@ DISTFILES     = $(GARVERSION).zip \
 
 LICENSE      =
 DESCRIPTION  =
-WORKSRC = $(WORKDIR)/firmware-nonfree-$(GARVERSION)
+WORKSRC = $(WORKDIR)/ap6256-firmware-$(GARVERSION)
 
 define BLURB
 endef
@@ -21,7 +21,7 @@ INSTALL_SCRIPTS = custom
 include ../../gar.mk
 
 install-custom:
-	@cp -Rdf $(WORKSRC)/brcm/brcmfmac43456*  $(DESTDIR)$(elibdir)/firmware/brcm/
+	@cp -Rdf $(WORKSRC)/brcmfmac43456*  $(DESTDIR)$(elibdir)/firmware/brcm/
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/nvram_ap6256.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.txt
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/fw_bcm43456c5_ag.bin        $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.bin
 	@cp -f   $(WORKDIR)/ap6256-firmware-master/brcmfmac43456-sdio.clm_blob $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.clm_blob
