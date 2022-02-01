@@ -1,8 +1,8 @@
 
 GARNAME      = peekpoke
-GARVERSION   = master
-MASTER_SITES = https://github.com/apritzel/peekpoke/archive/refs/heads/
-DISTFILES    = master.zip
+GARVERSION   = d056ff7090de9e1d4ccd36c5a6d365c779f8505b
+MASTER_SITES = https://github.com/apritzel/peekpoke/archive/
+DISTFILES    = $(GARVERSION).zip
 CATEGORIES   = util
 LICENSE      = GPL2/LGPL2_1
 
