@@ -49,7 +49,7 @@ build-custom:
 	@$(MAKECOOKIE)
 
 install-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python $(build_DESTDIR)$(build_bindir)/waf install --destdir=$(DESTDIR)
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python3 $(build_DESTDIR)$(build_bindir)/waf install --destdir=$(DESTDIR)
 	@echo '# echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/mpv-drm.sh
 	@echo 'mpv --drm-connector=HDMI-A-1 --vo=gpu --gpu-context=drm --hwdec=auto $$1' >> $(DESTDIR)$(bindir)/mpv-drm.sh
 	@chmod +x $(DESTDIR)$(bindir)/mpv-drm.sh
