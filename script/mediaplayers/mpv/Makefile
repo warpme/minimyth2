@@ -1,7 +1,7 @@
 
 GARNAME      = mpv
-# 0.34.0 @ 02.11.2021
-GARVERSION   = 9ca9066d052acecb5b05369141a76993a753ee1e
+# v0.34.1
+GARVERSION   = 349e437466163cb52f7d0aa227d4606edd9db501
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://github.com/mpv-player/mpv/archive/
 DISTFILES    = $(GARVERSION).zip
@@ -41,11 +41,11 @@ CONFIGURE_ARGS = \
 include ../../gar.mk
 
 configure-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python $(build_DESTDIR)$(build_bindir)/waf configure $(CONFIGURE_ARGS)
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python3 $(build_DESTDIR)$(build_bindir)/waf configure $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
 build-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python $(build_DESTDIR)$(build_bindir)/waf
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python3 $(build_DESTDIR)$(build_bindir)/waf
 	@$(MAKECOOKIE)
 
 install-custom:
