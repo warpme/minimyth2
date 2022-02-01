@@ -1,0 +1,46 @@
+
+The commit that sets the direction directly without calling
+pinctrl_gpio_direction(), forgot to add chip->base to the offset when
+calling sunxi_pmx_gpio_set_direction().
+
+This caused failures for various Allwinner boards which have two
+GPIO blocks.
+
+Signed-off-by: Hans Verkuil <hverkuil-cisco@xs4all.nl>
+Reported-by: 5kft <5kft@5kft.org>
+Suggested-by: 5kft <5kft@5kft.org>
+Reported-by: Corentin Labbe <clabbe.montjoie@gmail.com>
+Fixes: 8df89a7cbc63 (pinctrl-sunxi: don't call pinctrl_gpio_direction())
+Tested-by: Corentin Labbe <clabbe.montjoie@gmail.com>
+Tested-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+Acked-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+Tested-by: Guenter Roeck <linux@roeck-us.net>
+---
+Corentin, can you please test this patch to verify that this fixes your
+issue on the orangepiPC?
+---
+
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.c b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+index 80d6750c74a6..061323eab8b1 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sunxi.c
++++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+@@ -837,7 +837,8 @@ static int sunxi_pinctrl_gpio_direction_input(struct gpio_chip *chip,
+ {
+ 	struct sunxi_pinctrl *pctl = gpiochip_get_data(chip);
+
+-	return sunxi_pmx_gpio_set_direction(pctl->pctl_dev, NULL, offset, true);
++	return sunxi_pmx_gpio_set_direction(pctl->pctl_dev, NULL,
++					    chip->base + offset, true);
+ }
+
+ static int sunxi_pinctrl_gpio_get(struct gpio_chip *chip, unsigned offset)
+@@ -890,7 +891,8 @@ static int sunxi_pinctrl_gpio_direction_output(struct gpio_chip *chip,
+ 	struct sunxi_pinctrl *pctl = gpiochip_get_data(chip);
+
+ 	sunxi_pinctrl_gpio_set(chip, offset, value);
+-	return sunxi_pmx_gpio_set_direction(pctl->pctl_dev, NULL, offset, false);
++	return sunxi_pmx_gpio_set_direction(pctl->pctl_dev, NULL,
++					    chip->base + offset, false);
+ }
+
+ static int sunxi_pinctrl_gpio_of_xlate(struct gpio_chip *gc,

@@ -140,6 +140,8 @@ PATCHFILES += 0546-arm64-dts-h6-add-deinterlace-node.patch
 PATCHFILES += 0547-net-wireless-add-xr819-support-07072021.patch
 # fix setting 4k60 mode on some TVs.
 PATCHFILES += 0549-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
+# for for non-working wifi on 5.17
+PATCHFILES += 0550-pinctrl-sunxi-sunxi_pinctrl_gpio_direction_in-output-use-correct-offset.patch
 PATCHFILES += 0570-hantro-Add-quirk-for-NV12-NV12_4L4-capture-format.patch
 PATCHFILES += 0587-media-hantro-sunxi-Fix-VP9-steps.patch
 endif
