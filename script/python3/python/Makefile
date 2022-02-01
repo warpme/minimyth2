@@ -85,7 +85,7 @@ ifneq ($(DESTIMG),build)
 	@# 3.compile target shared modules with target _sysconfdata.py;
 	@# 4.restore in host python Makefile
 	@echo "==> Saving host Makefile and _sysconfigdata.py ..."
-	@if [ ! -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_*-linux-gnu.py.build ] ; then \
+	@-if [ ! -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_*-linux-gnu.py.build ] ; then \
 	 cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR) ; \
 	 mv -f _sysconfigdata__linux_i386-linux-gnu.py _sysconfigdata__linux_i386-linux-gnu.py.build 2>/dev/null ; \
 	 mv -f _sysconfigdata__linux_x86_64-linux-gnu.py _sysconfigdata__linux_x86_64-linux-gnu.py.build 2>/dev/null ; \
@@ -116,7 +116,8 @@ ifneq ($(DESTIMG),build)
 	 cp -f _sysconfigdata__linux_i386-linux-gnu.py _sysconfigdata__linux_i386-linux-gnu.py.main 2>/dev/null ; \
 	 cp -f _sysconfigdata__linux_x86_64-linux-gnu.py _sysconfigdata__linux_x86_64-linux-gnu.py.main 2>/dev/null
 endif
-	@$(MAKECOOKIE)
+	@echo "done"
+	@#$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.pyc
