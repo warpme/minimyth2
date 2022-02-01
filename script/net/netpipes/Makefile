@@ -1,9 +1,10 @@
-GARNAME = netpipes
-GARVERSION = 4.2
-CATEGORIES = net
-MASTER_SITES = http://ftp.hu.freebsd.org/debian/pool/main/n/$(GARNAME)/
-DISTFILES = $(GARNAME)_$(GARVERSION).orig.tar.gz
-LICENSE = GPL2
+
+GARNAME      = netpipes
+GARVERSION   = 4.2
+CATEGORIES   = net
+MASTER_SITES = https://sourceforge.net/projects/netpipes/files/netpipes/4.2/
+DISTFILES    = $(DISTNAME)-export.tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
@@ -11,7 +12,7 @@ endef
 
 DEPENDS = lang/c
 
-WORKSRC = $(WORKDIR)/$(DISTNAME).orig
+WORKSRC = $(WORKDIR)
 
 BUILD_SCRIPTS   = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS = $(WORKSRC)/Makefile
@@ -24,9 +25,6 @@ INSTALL_ARGS = \
 	INSTROOT=$(DESTDIR)$(prefix) \
 	INSTBIN=$(DESTDIR)$(bindir) \
 	INSTMAN=$(DESTDIR)$(mandir)
-
-#BUILD_OVERRIDE_DIRS   = prefix bindir mandir locdir
-#INSTALL_OVERRIDE_DIRS = prefix bindir mandir locdir
 
 include ../../gar.mk
 
