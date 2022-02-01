@@ -116,8 +116,7 @@ ifneq ($(DESTIMG),build)
 	 cp -f _sysconfigdata__linux_i386-linux-gnu.py _sysconfigdata__linux_i386-linux-gnu.py.main 2>/dev/null ; \
 	 cp -f _sysconfigdata__linux_x86_64-linux-gnu.py _sysconfigdata__linux_x86_64-linux-gnu.py.main 2>/dev/null
 endif
-	@echo "done"
-	@#$(MAKECOOKIE)
+	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata.pyc
