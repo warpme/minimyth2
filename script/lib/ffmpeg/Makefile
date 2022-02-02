@@ -8,25 +8,8 @@ DISTFILES    = $(DISTNAME).tar.bz2
 include ../../minimyth.conf.mk
 
 PATCHFILES  = ffmpeg-fix-building-with-lto.patch
-PATCHFILES += 0001-avutil-add-av_buffer_pool_flush.patch
-PATCHFILES += 0002-Add-common-V4L2-request-API-code.patch
-PATCHFILES += 0003-h264dec-add-idr_pic_id-to-slice-context.patch
-PATCHFILES += 0004-h264dec-add-ref_pic_marking-and-pic_order_cnt-bit_si.patch
-PATCHFILES += 0005-Add-V4L2-request-API-h264-hwaccel.patch
-PATCHFILES += 0006-Add-V4L2-request-API-mpeg2-hwaccel.patch
-PATCHFILES += 0007-Add-V4L2-request-API-vp8-hwaccel.patch
-PATCHFILES += 0008-Add-V4L2-request-API-hevc-hwaccel.patch
-PATCHFILES += 0009-Add-and-use-private-linux-v5.14-headers-for-V4L2-req.patch
-PATCHFILES += 0010-HACK-hwcontext_drm-do-not-require-drm-device.patch
-PATCHFILES += 0011-WIP-hevc-scaling-matrix.patch
-PATCHFILES += 0012-WIP-hevc-segment-address.patch
-PATCHFILES += 0013-WIP-hevc-entry-point-offsets.patch
-PATCHFILES += 0014-WIP-Add-V4L2-request-API-vp9-hwaccel.patch
-PATCHFILES += 0015-WIP-Add-and-use-vp9-private-linux-header.patch
-PATCHFILES += 0016-WIP-add-NV15-and-NV20-support.patch
-PATCHFILES += 0017-HACK-define-drm-NV15-and-NV20-format.patch
-PATCHFILES += 0018-WIP-hevc-rkvdec-fields.patch
-PATCHFILES += 0019-v4l2_request-validate-supported-framesizes.patch
+PATCHFILES += ffmpeg-001-v4l2-drmprime.patch
+PATCHFILES += ffmpeg-001-v4l2-request.patch
 
 LICENSE      = GPL2/LGPL2_1
 
