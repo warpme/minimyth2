@@ -138,6 +138,8 @@ PATCHFILES += 0545-H6-add-sun50i-di-deinterlace-WiP.patch
 PATCHFILES += 0546-arm64-dts-h6-add-deinterlace-node.patch
 # add support for xr819 wifi https://github.com/jernejsk/linux-1/tree/0e2dbeef9b05d5bd285d7fb2cf5bde1bb212c96d
 PATCHFILES += 0547-net-wireless-add-xr819-support-07072021.patch
+# add support for new chips in rtw88 https://github.com/jernejsk/linux-1/commits/b707c25dbf0dd1e4b993d4d4106a6eb0bb20b19d 
+PATCHFILES += 0548-net-wireless-add-rtw88-support-10012022.patch
 # fix setting 4k60 mode on some TVs.
 PATCHFILES += 0549-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
 # for for non-working wifi on 5.17
