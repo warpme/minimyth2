@@ -9,11 +9,11 @@
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of MiniMyth2.
-mm_VERSION_MINIMYTH ?=       11.26.2.r3496
+mm_VERSION_MINIMYTH ?=       11.26.2.r3493
 
 # The version of Myth to use.
-# # Valid values are '29', '30', '31', 'master' and 'test'
-mm_MYTH_VERSION           ?= master
+# Valid values are '29', '30', '31', '32', 'master' and 'test'
+mm_MYTH_VERSION           ?= 32
 
 # Lists the software to be included in image.
 # Valid values for MM_SOFTWARE are zero or more of list below:
@@ -237,6 +237,7 @@ mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter 29     ,      $(mm_MYTH_VERSION)),29                            ) \
                                 $(if $(filter 30     ,      $(mm_MYTH_VERSION)),30                            ) \
                                 $(if $(filter 31     ,      $(mm_MYTH_VERSION)),31                            ) \
+                                $(if $(filter 32     ,      $(mm_MYTH_VERSION)),32                            ) \
                                 $(if $(filter master ,      $(mm_MYTH_VERSION)),master                        ) \
                                 $(if $(filter test   ,      $(mm_MYTH_VERSION)),test                          ) \
                                 $(if $(filter trunk  ,      $(mm_MYTH_VERSION)),trunk.$(mm_MYTH_TRUNK_VERSION)) \

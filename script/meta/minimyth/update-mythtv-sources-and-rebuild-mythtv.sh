@@ -75,35 +75,44 @@ mm_debug=`grep "^mm_DEBUG "           ${mm_conf_file} | sed -e 's/.*\?=*\s//' -e
 git_src_home="${mm_home}/source"
 stamp=`date +%Y%m%d`
 
-if [ x${branch} == "x29" ]; then
+echo " "
+echo "Parsing \"${mm_conf_file}\""
+echo "  branch   : \"${branch}\""
+echo "  version  : \"${version}\""
+echo "  arch     : \"${arch}\""
+echo "  mm_HOME  : \"${mm_home}\""
+echo "  mm_DEBUG : \"${mm_debug}\""
+echo " "
+
+if [ x${branch} = "x29" ]; then
 
   _gitname=mythtv
   _gitroot=git://github.com/MythTV/mythtv.git
   _gitbranch=fixes/29
   srcdir="${git_src_home}/git-mythtv-${branch}"
 
-elif [ x${branch} == "x30" ]; then
+elif [ x${branch} = "x30" ]; then
 
   _gitname=mythtv
   _gitroot=git://github.com/MythTV/mythtv.git
   _gitbranch=fixes/30
   srcdir="${git_src_home}/git-mythtv-${branch}"
 
-elif [ x${branch} == "x31" ]; then
+elif [ x${branch} = "x31" ]; then
 
   _gitname=mythtv
   _gitroot=git://github.com/MythTV/mythtv.git
   _gitbranch=fixes/31
   srcdir="${git_src_home}/git-mythtv-${branch}"
 
-elif [ x{$branch} == "x32" ]; then
+elif [ x${branch} = "x32" ]; then
 
   _gitname=mythtv
   _gitroot=git://github.com/MythTV/mythtv.git
   _gitbranch=fixes/32
   srcdir="${git_src_home}/git-mythtv-${branch}"
 
-elif [ x${branch} == "xmaster" ]; then
+elif [ x${branch} = "xmaster" ]; then
 
   _gitname=mythtv
   _gitroot=git://github.com/MythTV/mythtv.git
@@ -116,7 +125,7 @@ elif [ x${branch} == "xmaster" ]; then
     srcdir="${git_src_home}/git-mythtv-${branch}"
   fi
 
-elif [ x${branch} == "xtest" ]; then
+elif [ x${branch} = "xtest" ]; then
 
   _gitname=mythtv
   _gitroot=git://github.com/MythTV/mythtv.git
