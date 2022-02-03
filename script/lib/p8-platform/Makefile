@@ -25,5 +25,6 @@ CMAKE_CONFIGURE_ARGS = \
 include ../../gar.mk
 
 post-install:
-	@sed -e 's%/usr/%$(DESTDIR)/usr/%g' -i $(DESTDIR)/usr/lib/p8-platform/p8-platform-config.cmake
+	@-sed -e 's%/usr/%$(DESTDIR)/usr/%g' -i $(DESTDIR)/usr/lib/p8-platform/p8-platform-config.cmake
+	@-sed -e 's%/usr/%$(DESTDIR)/usr/%g' -i $(DESTDIR)/usr/lib/platform/platform-config.cmake
 	@$(MAKECOOKIE)
