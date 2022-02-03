@@ -87,8 +87,8 @@ ifneq ($(DESTIMG),build)
 	@echo "==> Saving host Makefile and _sysconfigdata.py ..."
 	@-if [ ! -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/_sysconfigdata__linux_*-linux-gnu.py.build ] ; then \
 	 cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR) ; \
-	 mv -f _sysconfigdata__linux_i386-linux-gnu.py _sysconfigdata__linux_i386-linux-gnu.py.build 2>/dev/null ; \
-	 mv -f _sysconfigdata__linux_x86_64-linux-gnu.py _sysconfigdata__linux_x86_64-linux-gnu.py.build 2>/dev/null ; \
+	 cp -f _sysconfigdata__linux_i386-linux-gnu.py _sysconfigdata__linux_i386-linux-gnu.py.build 2>/dev/null ; \
+	 cp -f _sysconfigdata__linux_x86_64-linux-gnu.py _sysconfigdata__linux_x86_64-linux-gnu.py.build 2>/dev/null ; \
 	fi
 	@if [ ! -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-*-linux-gnu/Makefile.build ] ; then \
 	 cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-*-linux-gnu ; cp -f Makefile Makefile.build ; \
