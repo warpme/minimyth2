@@ -1,0 +1,2705 @@
+From 692ea73e4a2def3e4e112ca7c2a206c843999b5e Mon Sep 17 00:00:00 2001
+From: Yifeng Zhao <yifeng.zhao@rock-chips.com>
+Date: Thu, 30 Dec 2021 16:48:14 +0800
+Subject: [PATCH 08/83] phy: rockchip: add naneng combo phy for RK3568
+
+This patch implements a combo phy driver for Rockchip SoCs
+with NaNeng IP block. This phy can be used as pcie-phy, usb3-phy,
+sata-phy or sgmii-phy.
+
+Signed-off-by: Yifeng Zhao <yifeng.zhao@rock-chips.com>
+Signed-off-by: Johan Jonker <jbx6244@gmail.com>
+---
+ drivers/phy/rockchip/Kconfig                  |   8 +
+ drivers/phy/rockchip/Makefile                 |   1 +
+ .../rockchip/phy-rockchip-naneng-combphy.c    | 589 ++++++++++++++++++
+ 3 files changed, 598 insertions(+)
+ create mode 100644 drivers/phy/rockchip/phy-rockchip-naneng-combphy.c
+
+diff --git a/drivers/phy/rockchip/Kconfig b/drivers/phy/rockchip/Kconfig
+index e812adad7..9022e395c 100644
+--- a/drivers/phy/rockchip/Kconfig
++++ b/drivers/phy/rockchip/Kconfig
+@@ -66,6 +66,14 @@ config PHY_ROCKCHIP_INNO_DSIDPHY
+ 	  Enable this to support the Rockchip MIPI/LVDS/TTL PHY with
+ 	  Innosilicon IP block.
+ 
++config PHY_ROCKCHIP_NANENG_COMBO_PHY
++	tristate "Rockchip NANENG COMBO PHY Driver"
++	depends on ARCH_ROCKCHIP && OF
++	select GENERIC_PHY
++	help
++	  Enable this to support the Rockchip PCIe/USB3.0/SATA/QSGMII
++	  combo PHY with NaNeng IP block.
++
+ config PHY_ROCKCHIP_PCIE
+ 	tristate "Rockchip PCIe PHY Driver"
+ 	depends on (ARCH_ROCKCHIP && OF) || COMPILE_TEST
+diff --git a/drivers/phy/rockchip/Makefile b/drivers/phy/rockchip/Makefile
+index f0eec212b..a5041efb5 100644
+--- a/drivers/phy/rockchip/Makefile
++++ b/drivers/phy/rockchip/Makefile
+@@ -6,6 +6,7 @@ obj-$(CONFIG_PHY_ROCKCHIP_INNO_CSIDPHY)	+= phy-rockchip-inno-csidphy.o
+ obj-$(CONFIG_PHY_ROCKCHIP_INNO_DSIDPHY)	+= phy-rockchip-inno-dsidphy.o
+ obj-$(CONFIG_PHY_ROCKCHIP_INNO_HDMI)	+= phy-rockchip-inno-hdmi.o
+ obj-$(CONFIG_PHY_ROCKCHIP_INNO_USB2)	+= phy-rockchip-inno-usb2.o
++obj-$(CONFIG_PHY_ROCKCHIP_NANENG_COMBO_PHY)	+= phy-rockchip-naneng-combphy.o
+ obj-$(CONFIG_PHY_ROCKCHIP_PCIE)		+= phy-rockchip-pcie.o
+ obj-$(CONFIG_PHY_ROCKCHIP_TYPEC)	+= phy-rockchip-typec.o
+ obj-$(CONFIG_PHY_ROCKCHIP_USB)		+= phy-rockchip-usb.o
+diff --git a/drivers/phy/rockchip/phy-rockchip-naneng-combphy.c b/drivers/phy/rockchip/phy-rockchip-naneng-combphy.c
+new file mode 100644
+index 000000000..47137a5c4
+--- /dev/null
++++ b/drivers/phy/rockchip/phy-rockchip-naneng-combphy.c
+@@ -0,0 +1,589 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Rockchip PIPE USB3.0 PCIE SATA Combo Phy driver
++ *
++ * Copyright (C) 2021 Rockchip Electronics Co., Ltd.
++ */
++
++#include <dt-bindings/phy/phy.h>
++#include <linux/clk.h>
++#include <linux/mfd/syscon.h>
++#include <linux/of_device.h>
++#include <linux/phy/phy.h>
++#include <linux/regmap.h>
++#include <linux/reset.h>
++#include <linux/units.h>
++
++#define BIT_WRITEABLE_SHIFT		16
++#define REF_CLOCK_24MHz			(24 * HZ_PER_MHZ)
++#define REF_CLOCK_25MHz			(25 * HZ_PER_MHZ)
++#define REF_CLOCK_100MHz		(100 * HZ_PER_MHZ)
++
++/* COMBO PHY REG */
++#define PHYREG6				0x14
++#define PHYREG6_PLL_DIV_MASK		GENMASK(7, 6)
++#define PHYREG6_PLL_DIV_SHIFT		6
++#define PHYREG6_PLL_DIV_2		1
++
++#define PHYREG7				0x18
++#define PHYREG7_TX_RTERM_MASK		GENMASK(7, 4)
++#define PHYREG7_TX_RTERM_SHIFT		4
++#define PHYREG7_TX_RTERM_50OHM		8
++#define PHYREG7_RX_RTERM_MASK		GENMASK(3, 0)
++#define PHYREG7_RX_RTERM_SHIFT		0
++#define PHYREG7_RX_RTERM_44OHM		15
++
++#define PHYREG8				0x1C
++#define PHYREG8_SSC_EN			BIT(4)
++
++#define PHYREG11			0x28
++#define PHYREG11_SU_TRIM_0_7		0xF0
++
++#define PHYREG12			0x2C
++#define PHYREG12_PLL_LPF_ADJ_VALUE	4
++
++#define PHYREG13			0x30
++#define PHYREG13_RESISTER_MASK		GENMASK(5, 4)
++#define PHYREG13_RESISTER_SHIFT		0x4
++#define PHYREG13_RESISTER_HIGH_Z	3
++#define PHYREG13_CKRCV_AMP0		BIT(7)
++
++#define PHYREG14			0x34
++#define PHYREG14_CKRCV_AMP1		BIT(0)
++
++#define PHYREG15			0x38
++#define PHYREG15_CTLE_EN		BIT(0)
++#define PHYREG15_SSC_CNT_MASK		GENMASK(7, 6)
++#define PHYREG15_SSC_CNT_SHIFT		6
++#define PHYREG15_SSC_CNT_VALUE		1
++
++#define PHYREG16			0x3C
++#define PHYREG16_SSC_CNT_VALUE		0x5f
++
++#define PHYREG18			0x44
++#define PHYREG18_PLL_LOOP		0x32
++
++#define PHYREG32			0x7C
++#define PHYREG32_SSC_MASK		GENMASK(7, 4)
++#define PHYREG32_SSC_DIR_SHIFT		4
++#define PHYREG32_SSC_UPWARD		0
++#define PHYREG32_SSC_DOWNWARD		1
++#define PHYREG32_SSC_OFFSET_SHIFT	6
++#define PHYREG32_SSC_OFFSET_500PPM	1
++
++#define PHYREG33			0x80
++#define PHYREG33_PLL_KVCO_MASK		GENMASK(4, 2)
++#define PHYREG33_PLL_KVCO_SHIFT		2
++#define PHYREG33_PLL_KVCO_VALUE		2
++
++struct rockchip_combphy_priv;
++
++struct combphy_reg {
++	u16 offset;
++	u16 bitend;
++	u16 bitstart;
++	u16 disable;
++	u16 enable;
++};
++
++struct rockchip_combphy_grfcfg {
++	struct combphy_reg pcie_mode_set;
++	struct combphy_reg usb_mode_set;
++	struct combphy_reg sgmii_mode_set;
++	struct combphy_reg qsgmii_mode_set;
++	struct combphy_reg pipe_rxterm_set;
++	struct combphy_reg pipe_txelec_set;
++	struct combphy_reg pipe_txcomp_set;
++	struct combphy_reg pipe_clk_25m;
++	struct combphy_reg pipe_clk_100m;
++	struct combphy_reg pipe_phymode_sel;
++	struct combphy_reg pipe_rate_sel;
++	struct combphy_reg pipe_rxterm_sel;
++	struct combphy_reg pipe_txelec_sel;
++	struct combphy_reg pipe_txcomp_sel;
++	struct combphy_reg pipe_clk_ext;
++	struct combphy_reg pipe_sel_usb;
++	struct combphy_reg pipe_sel_qsgmii;
++	struct combphy_reg pipe_phy_status;
++	struct combphy_reg con0_for_pcie;
++	struct combphy_reg con1_for_pcie;
++	struct combphy_reg con2_for_pcie;
++	struct combphy_reg con3_for_pcie;
++	struct combphy_reg con0_for_sata;
++	struct combphy_reg con1_for_sata;
++	struct combphy_reg con2_for_sata;
++	struct combphy_reg con3_for_sata;
++	struct combphy_reg pipe_con0_for_sata;
++	struct combphy_reg pipe_xpcs_phy_ready;
++};
++
++struct rockchip_combphy_cfg {
++	const struct rockchip_combphy_grfcfg *grfcfg;
++	int (*combphy_cfg)(struct rockchip_combphy_priv *priv);
++};
++
++struct rockchip_combphy_priv {
++	u8 mode;
++	void __iomem *mmio;
++	int num_clks;
++	struct clk_bulk_data *clks;
++	struct device *dev;
++	struct regmap *pipe_grf;
++	struct regmap *phy_grf;
++	struct phy *phy;
++	struct reset_control *phy_rst;
++	const struct rockchip_combphy_cfg *cfg;
++	bool enable_ssc;
++	bool ext_refclk;
++	struct clk *refclk;
++};
++
++static void rockchip_combphy_updatel(struct rockchip_combphy_priv *priv,
++				     int mask, int val, int reg)
++{
++	unsigned int temp;
++
++	temp = readl(priv->mmio + reg);
++	temp = (temp & ~(mask)) | val;
++	writel(temp, priv->mmio + reg);
++}
++
++static int rockchip_combphy_param_write(struct regmap *base,
++					const struct combphy_reg *reg, bool en)
++{
++	u32 val, mask, tmp;
++
++	tmp = en ? reg->enable : reg->disable;
++	mask = GENMASK(reg->bitend, reg->bitstart);
++	val = (tmp << reg->bitstart) | (mask << BIT_WRITEABLE_SHIFT);
++
++	return regmap_write(base, reg->offset, val);
++}
++
++static u32 rockchip_combphy_is_ready(struct rockchip_combphy_priv *priv)
++{
++	const struct rockchip_combphy_grfcfg *cfg = priv->cfg->grfcfg;
++	u32 mask, val;
++
++	mask = GENMASK(cfg->pipe_phy_status.bitend,
++		       cfg->pipe_phy_status.bitstart);
++
++	regmap_read(priv->phy_grf, cfg->pipe_phy_status.offset, &val);
++	val = (val & mask) >> cfg->pipe_phy_status.bitstart;
++
++	return val;
++}
++
++static int rockchip_combphy_set_mode(struct rockchip_combphy_priv *priv)
++{
++	int ret = 0;
++
++	switch (priv->mode) {
++	case PHY_TYPE_PCIE:
++	case PHY_TYPE_USB3:
++	case PHY_TYPE_SATA:
++	case PHY_TYPE_SGMII:
++	case PHY_TYPE_QSGMII:
++		if (priv->cfg->combphy_cfg)
++			ret = priv->cfg->combphy_cfg(priv);
++		break;
++	default:
++		dev_err(priv->dev, "incompatible PHY type\n");
++		return -EINVAL;
++	}
++
++	if (ret)
++		dev_err(priv->dev, "failed to init phy for phy mode %x\n", priv->mode);
++
++	return ret;
++}
++
++static int rockchip_combphy_init(struct phy *phy)
++{
++	struct rockchip_combphy_priv *priv = phy_get_drvdata(phy);
++	const struct rockchip_combphy_grfcfg *cfg = priv->cfg->grfcfg;
++	u32 val;
++	int ret;
++
++	ret = clk_bulk_prepare_enable(priv->num_clks, priv->clks);
++	if (ret) {
++		dev_err(priv->dev, "failed to enable clks\n");
++		return ret;
++	}
++
++	ret = rockchip_combphy_set_mode(priv);
++	if (ret)
++		goto err_clk;
++
++	ret = reset_control_deassert(priv->phy_rst);
++	if (ret)
++		goto err_clk;
++
++	if (priv->mode == PHY_TYPE_USB3) {
++		ret = readx_poll_timeout_atomic(rockchip_combphy_is_ready,
++						priv, val,
++						val == cfg->pipe_phy_status.enable,
++						10, 1000);
++		if (ret)
++			dev_warn(priv->dev, "wait phy status ready timeout\n");
++	}
++
++	return 0;
++
++err_clk:
++	clk_bulk_disable_unprepare(priv->num_clks, priv->clks);
++
++	return ret;
++}
++
++static int rockchip_combphy_exit(struct phy *phy)
++{
++	struct rockchip_combphy_priv *priv = phy_get_drvdata(phy);
++
++	clk_bulk_disable_unprepare(priv->num_clks, priv->clks);
++	reset_control_assert(priv->phy_rst);
++
++	return 0;
++}
++
++static const struct phy_ops rochchip_combphy_ops = {
++	.init = rockchip_combphy_init,
++	.exit = rockchip_combphy_exit,
++	.owner = THIS_MODULE,
++};
++
++static struct phy *rockchip_combphy_xlate(struct device *dev, struct of_phandle_args *args)
++{
++	struct rockchip_combphy_priv *priv = dev_get_drvdata(dev);
++
++	if (args->args_count != 1) {
++		dev_err(dev, "invalid number of arguments\n");
++		return ERR_PTR(-EINVAL);
++	}
++
++	if (priv->mode != PHY_NONE && priv->mode != args->args[0])
++		dev_warn(dev, "phy type select %d overwriting type %d\n",
++			 args->args[0], priv->mode);
++
++	priv->mode = args->args[0];
++
++	return priv->phy;
++}
++
++static int rockchip_combphy_parse_dt(struct device *dev, struct rockchip_combphy_priv *priv)
++{
++	int i;
++
++	priv->num_clks = devm_clk_bulk_get_all(dev, &priv->clks);
++	if (priv->num_clks < 1)
++		return -EINVAL;
++
++	priv->refclk = NULL;
++	for (i = 0; i < priv->num_clks; i++) {
++		if (!strncmp(priv->clks[i].id, "ref", 3)) {
++			priv->refclk = priv->clks[i].clk;
++			break;
++		}
++	}
++
++	if (!priv->refclk) {
++		dev_err(dev, "no refclk found\n");
++		return -EINVAL;
++	}
++
++	priv->pipe_grf = syscon_regmap_lookup_by_phandle(dev->of_node, "rockchip,pipe-grf");
++	if (IS_ERR(priv->pipe_grf)) {
++		dev_err(dev, "failed to find peri_ctrl pipe-grf regmap\n");
++		return PTR_ERR(priv->pipe_grf);
++	}
++
++	priv->phy_grf = syscon_regmap_lookup_by_phandle(dev->of_node, "rockchip,pipe-phy-grf");
++	if (IS_ERR(priv->phy_grf)) {
++		dev_err(dev, "failed to find peri_ctrl pipe-phy-grf regmap\n");
++		return PTR_ERR(priv->phy_grf);
++	}
++
++	priv->enable_ssc = device_property_present(dev, "rockchip,enable-ssc");
++
++	priv->ext_refclk = device_property_present(dev, "rockchip,ext-refclk");
++
++	priv->phy_rst = devm_reset_control_array_get(dev, false, false);
++	if (IS_ERR(priv->phy_rst))
++		return dev_err_probe(dev, PTR_ERR(priv->phy_rst), "failed to get phy reset\n");
++
++	return 0;
++}
++
++static int rockchip_combphy_probe(struct platform_device *pdev)
++{
++	struct phy_provider *phy_provider;
++	struct device *dev = &pdev->dev;
++	struct rockchip_combphy_priv *priv;
++	const struct rockchip_combphy_cfg *phy_cfg;
++	struct resource *res;
++	int ret;
++
++	phy_cfg = of_device_get_match_data(dev);
++	if (!phy_cfg) {
++		dev_err(dev, "no OF match data provided\n");
++		return -EINVAL;
++	}
++
++	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
++	if (!priv)
++		return -ENOMEM;
++
++	priv->mmio = devm_platform_get_and_ioremap_resource(pdev, 0, &res);
++	if (IS_ERR(priv->mmio)) {
++		ret = PTR_ERR(priv->mmio);
++		return ret;
++	}
++
++	priv->dev = dev;
++	priv->mode = PHY_NONE;
++	priv->cfg = phy_cfg;
++
++	ret = rockchip_combphy_parse_dt(dev, priv);
++	if (ret)
++		return ret;
++
++	ret = reset_control_assert(priv->phy_rst);
++	if (ret) {
++		dev_err(dev, "failed to reset phy\n");
++		return ret;
++	}
++
++	priv->phy = devm_phy_create(dev, NULL, &rochchip_combphy_ops);
++	if (IS_ERR(priv->phy)) {
++		dev_err(dev, "failed to create combphy\n");
++		return PTR_ERR(priv->phy);
++	}
++
++	dev_set_drvdata(dev, priv);
++	phy_set_drvdata(priv->phy, priv);
++
++	phy_provider = devm_of_phy_provider_register(dev, rockchip_combphy_xlate);
++
++	return PTR_ERR_OR_ZERO(phy_provider);
++}
++
++static int rk3568_combphy_cfg(struct rockchip_combphy_priv *priv)
++{
++	const struct rockchip_combphy_grfcfg *cfg = priv->cfg->grfcfg;
++	unsigned long rate;
++	u32 val;
++
++	switch (priv->mode) {
++	case PHY_TYPE_PCIE:
++		/* Set SSC downward spread spectrum. */
++		rockchip_combphy_updatel(priv, PHYREG32_SSC_MASK,
++					 PHYREG32_SSC_DOWNWARD << PHYREG32_SSC_DIR_SHIFT,
++					 PHYREG32);
++
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->con0_for_pcie, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->con1_for_pcie, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->con2_for_pcie, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->con3_for_pcie, true);
++		break;
++
++	case PHY_TYPE_USB3:
++		/* Set SSC downward spread spectrum. */
++		rockchip_combphy_updatel(priv, PHYREG32_SSC_MASK,
++					 PHYREG32_SSC_DOWNWARD << PHYREG32_SSC_DIR_SHIFT,
++					 PHYREG32);
++
++		/* Enable adaptive CTLE for USB3.0 Rx. */
++		val = readl(priv->mmio + PHYREG15);
++		val |= PHYREG15_CTLE_EN;
++		writel(val, priv->mmio + PHYREG15);
++
++		/* Set PLL KVCO fine tuning signals. */
++		rockchip_combphy_updatel(priv, PHYREG33_PLL_KVCO_MASK,
++					 PHYREG33_PLL_KVCO_VALUE << PHYREG33_PLL_KVCO_SHIFT,
++					 PHYREG33);
++
++		/* Enable controlling random jitter. */
++		writel(PHYREG12_PLL_LPF_ADJ_VALUE, priv->mmio + PHYREG12);
++
++		/* Set PLL input clock divider 1/2. */
++		rockchip_combphy_updatel(priv, PHYREG6_PLL_DIV_MASK,
++					 PHYREG6_PLL_DIV_2 << PHYREG6_PLL_DIV_SHIFT,
++					 PHYREG6);
++
++		writel(PHYREG18_PLL_LOOP, priv->mmio + PHYREG18);
++		writel(PHYREG11_SU_TRIM_0_7, priv->mmio + PHYREG11);
++
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->pipe_sel_usb, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->pipe_txcomp_sel, false);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->pipe_txelec_sel, false);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->usb_mode_set, true);
++		break;
++
++	case PHY_TYPE_SATA:
++		/* Enable adaptive CTLE for SATA Rx. */
++		val = readl(priv->mmio + PHYREG15);
++		val |= PHYREG15_CTLE_EN;
++		writel(val, priv->mmio + PHYREG15);
++		/*
++		 * Set tx_rterm=50ohm and rx_rterm=44ohm for SATA.
++		 * 0: 60ohm, 8: 50ohm 15: 44ohm (by step abort 1ohm)
++		 */
++		val = PHYREG7_TX_RTERM_50OHM << PHYREG7_TX_RTERM_SHIFT;
++		val |= PHYREG7_RX_RTERM_44OHM << PHYREG7_RX_RTERM_SHIFT;
++		writel(val, priv->mmio + PHYREG7);
++
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->con0_for_sata, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->con1_for_sata, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->con2_for_sata, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->con3_for_sata, true);
++		rockchip_combphy_param_write(priv->pipe_grf, &cfg->pipe_con0_for_sata, true);
++		break;
++
++	case PHY_TYPE_SGMII:
++		rockchip_combphy_param_write(priv->pipe_grf, &cfg->pipe_xpcs_phy_ready, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->pipe_phymode_sel, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->pipe_sel_qsgmii, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->sgmii_mode_set, true);
++		break;
++
++	case PHY_TYPE_QSGMII:
++		rockchip_combphy_param_write(priv->pipe_grf, &cfg->pipe_xpcs_phy_ready, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->pipe_phymode_sel, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->pipe_rate_sel, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->pipe_sel_qsgmii, true);
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->qsgmii_mode_set, true);
++		break;
++
++	default:
++		dev_err(priv->dev, "incompatible PHY type\n");
++		return -EINVAL;
++	}
++
++	rate = clk_get_rate(priv->refclk);
++
++	switch (rate) {
++	case REF_CLOCK_24MHz:
++		if (priv->mode == PHY_TYPE_USB3 || priv->mode == PHY_TYPE_SATA) {
++			/* Set ssc_cnt[9:0]=0101111101 & 31.5KHz. */
++			val = PHYREG15_SSC_CNT_VALUE << PHYREG15_SSC_CNT_SHIFT;
++			rockchip_combphy_updatel(priv, PHYREG15_SSC_CNT_MASK,
++						 val, PHYREG15);
++
++			writel(PHYREG16_SSC_CNT_VALUE, priv->mmio + PHYREG16);
++		}
++		break;
++
++	case REF_CLOCK_25MHz:
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->pipe_clk_25m, true);
++		break;
++
++	case REF_CLOCK_100MHz:
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->pipe_clk_100m, true);
++		if (priv->mode == PHY_TYPE_PCIE) {
++			/* PLL KVCO  fine tuning. */
++			val = PHYREG33_PLL_KVCO_VALUE << PHYREG33_PLL_KVCO_SHIFT;
++			rockchip_combphy_updatel(priv, PHYREG33_PLL_KVCO_MASK,
++						 val, PHYREG33);
++
++			/* Enable controlling random jitter. */
++			writel(PHYREG12_PLL_LPF_ADJ_VALUE, priv->mmio + PHYREG12);
++
++			val = PHYREG6_PLL_DIV_2 << PHYREG6_PLL_DIV_SHIFT;
++			rockchip_combphy_updatel(priv, PHYREG6_PLL_DIV_MASK,
++						 val, PHYREG6);
++
++			writel(PHYREG18_PLL_LOOP, priv->mmio + PHYREG18);
++			writel(PHYREG11_SU_TRIM_0_7, priv->mmio + PHYREG11);
++		} else if (priv->mode == PHY_TYPE_SATA) {
++			/* downward spread spectrum +500ppm */
++			val = PHYREG32_SSC_DOWNWARD << PHYREG32_SSC_DIR_SHIFT;
++			val |= PHYREG32_SSC_OFFSET_500PPM << PHYREG32_SSC_OFFSET_SHIFT;
++			rockchip_combphy_updatel(priv, PHYREG32_SSC_MASK, val, PHYREG32);
++		}
++		break;
++
++	default:
++		dev_err(priv->dev, "unsupported rate: %lu\n", rate);
++		return -EINVAL;
++	}
++
++	if (priv->ext_refclk) {
++		rockchip_combphy_param_write(priv->phy_grf, &cfg->pipe_clk_ext, true);
++		if (priv->mode == PHY_TYPE_PCIE && rate == REF_CLOCK_100MHz) {
++			val = PHYREG13_RESISTER_HIGH_Z << PHYREG13_RESISTER_SHIFT;
++			val |= PHYREG13_CKRCV_AMP0;
++			rockchip_combphy_updatel(priv, PHYREG13_RESISTER_MASK, val, PHYREG13);
++
++			val = readl(priv->mmio + PHYREG14);
++			val |= PHYREG14_CKRCV_AMP1;
++			writel(val, priv->mmio + PHYREG14);
++		}
++	}
++
++	if (priv->enable_ssc) {
++		val = readl(priv->mmio + PHYREG8);
++		val |= PHYREG8_SSC_EN;
++		writel(val, priv->mmio + PHYREG8);
++	}
++
++	return 0;
++}
++
++static const struct rockchip_combphy_grfcfg rk3568_combphy_grfcfgs = {
++	/* pipe-phy-grf */
++	.pcie_mode_set		= { 0x0000, 5, 0, 0x00, 0x11 },
++	.usb_mode_set		= { 0x0000, 5, 0, 0x00, 0x04 },
++	.sgmii_mode_set		= { 0x0000, 5, 0, 0x00, 0x01 },
++	.qsgmii_mode_set	= { 0x0000, 5, 0, 0x00, 0x21 },
++	.pipe_rxterm_set	= { 0x0000, 12, 12, 0x00, 0x01 },
++	.pipe_txelec_set	= { 0x0004, 1, 1, 0x00, 0x01 },
++	.pipe_txcomp_set	= { 0x0004, 4, 4, 0x00, 0x01 },
++	.pipe_clk_25m		= { 0x0004, 14, 13, 0x00, 0x01 },
++	.pipe_clk_100m		= { 0x0004, 14, 13, 0x00, 0x02 },
++	.pipe_phymode_sel	= { 0x0008, 1, 1, 0x00, 0x01 },
++	.pipe_rate_sel		= { 0x0008, 2, 2, 0x00, 0x01 },
++	.pipe_rxterm_sel	= { 0x0008, 8, 8, 0x00, 0x01 },
++	.pipe_txelec_sel	= { 0x0008, 12, 12, 0x00, 0x01 },
++	.pipe_txcomp_sel	= { 0x0008, 15, 15, 0x00, 0x01 },
++	.pipe_clk_ext		= { 0x000c, 9, 8, 0x02, 0x01 },
++	.pipe_sel_usb		= { 0x000c, 14, 13, 0x00, 0x01 },
++	.pipe_sel_qsgmii	= { 0x000c, 15, 13, 0x00, 0x07 },
++	.pipe_phy_status	= { 0x0034, 6, 6, 0x01, 0x00 },
++	.con0_for_pcie		= { 0x0000, 15, 0, 0x00, 0x1000 },
++	.con1_for_pcie		= { 0x0004, 15, 0, 0x00, 0x0000 },
++	.con2_for_pcie		= { 0x0008, 15, 0, 0x00, 0x0101 },
++	.con3_for_pcie		= { 0x000c, 15, 0, 0x00, 0x0200 },
++	.con0_for_sata		= { 0x0000, 15, 0, 0x00, 0x0119 },
++	.con1_for_sata		= { 0x0004, 15, 0, 0x00, 0x0040 },
++	.con2_for_sata		= { 0x0008, 15, 0, 0x00, 0x80c3 },
++	.con3_for_sata		= { 0x000c, 15, 0, 0x00, 0x4407 },
++	/* pipe-grf */
++	.pipe_con0_for_sata	= { 0x0000, 15, 0, 0x00, 0x2220 },
++	.pipe_xpcs_phy_ready	= { 0x0040, 2, 2, 0x00, 0x01 },
++};
++
++static const struct rockchip_combphy_cfg rk3568_combphy_cfgs = {
++	.grfcfg		= &rk3568_combphy_grfcfgs,
++	.combphy_cfg	= rk3568_combphy_cfg,
++};
++
++static const struct of_device_id rockchip_combphy_of_match[] = {
++	{
++		.compatible = "rockchip,rk3568-naneng-combphy",
++		.data = &rk3568_combphy_cfgs,
++	},
++	{ },
++};
++MODULE_DEVICE_TABLE(of, rockchip_combphy_of_match);
++
++static struct platform_driver rockchip_combphy_driver = {
++	.probe	= rockchip_combphy_probe,
++	.driver = {
++		.name = "rockchip-naneng-combphy",
++		.of_match_table = rockchip_combphy_of_match,
++	},
++};
++module_platform_driver(rockchip_combphy_driver);
++
++MODULE_DESCRIPTION("Rockchip NANENG COMBPHY driver");
++MODULE_LICENSE("GPL v2");
+-- 
+2.29.2
+
+From 13f4a6437d62bf59f4979443a325f3c22e887bea Mon Sep 17 00:00:00 2001
+From: Peter Geis <pgwipeout@gmail.com>
+Date: Tue, 21 Dec 2021 18:05:50 -0500
+Subject: [PATCH 10/83] mfd: rk808: add reboot support to rk808.c
+
+This adds reboot support to the rk808 pmic driver and enables it for
+the rk809 and rk817 devices.
+This only enables if the rockchip,system-power-controller flag is set.
+
+Signed-off-by: Peter Geis <pgwipeout@gmail.com>
+Signed-off-by: Frank Wunderlich <frank-w@public-files.de>
+Reviewed-by: Dmitry Osipenko <digetx@gmail.com>
+---
+ drivers/mfd/rk808.c       | 44 +++++++++++++++++++++++++++++++++++++++
+ include/linux/mfd/rk808.h |  1 +
+ 2 files changed, 45 insertions(+)
+
+diff --git a/drivers/mfd/rk808.c b/drivers/mfd/rk808.c
+index b181fe401..874d461dd 100644
+--- a/drivers/mfd/rk808.c
++++ b/drivers/mfd/rk808.c
+@@ -19,6 +19,7 @@
+ #include <linux/module.h>
+ #include <linux/of_device.h>
+ #include <linux/regmap.h>
++#include <linux/reboot.h>
+ 
+ struct rk808_reg_data {
+ 	int addr;
+@@ -543,6 +544,7 @@ static void rk808_pm_power_off(void)
+ 		reg = RK808_DEVCTRL_REG,
+ 		bit = DEV_OFF_RST;
+ 		break;
++	case RK809_ID:
+ 	case RK817_ID:
+ 		reg = RK817_SYS_CFG(3);
+ 		bit = DEV_OFF;
+@@ -559,6 +561,34 @@ static void rk808_pm_power_off(void)
+ 		dev_err(&rk808_i2c_client->dev, "Failed to shutdown device!\n");
+ }
+ 
++static int rk808_restart_notify(struct notifier_block *this, unsigned long mode, void *cmd)
++{
++	struct rk808 *rk808 = i2c_get_clientdata(rk808_i2c_client);
++	unsigned int reg, bit;
++	int ret;
++
++	switch (rk808->variant) {
++	case RK809_ID:
++	case RK817_ID:
++		reg = RK817_SYS_CFG(3);
++		bit = DEV_RST;
++		break;
++
++	default:
++		return NOTIFY_DONE;
++	}
++	ret = regmap_update_bits(rk808->regmap, reg, bit, bit);
++	if (ret)
++		dev_err(&rk808_i2c_client->dev, "Failed to restart device!\n");
++
++	return NOTIFY_DONE;
++}
++
++static struct notifier_block rk808_restart_handler = {
++	.notifier_call = rk808_restart_notify,
++	.priority = 192,
++};
++
+ static void rk8xx_shutdown(struct i2c_client *client)
+ {
+ 	struct rk808 *rk808 = i2c_get_clientdata(client);
+@@ -727,6 +757,18 @@ static int rk808_probe(struct i2c_client *client,
+ 	if (of_property_read_bool(np, "rockchip,system-power-controller")) {
+ 		rk808_i2c_client = client;
+ 		pm_power_off = rk808_pm_power_off;
++
++		switch (rk808->variant) {
++		case RK809_ID:
++		case RK817_ID:
++			ret = register_restart_handler(&rk808_restart_handler);
++			if (ret)
++				dev_warn(&client->dev, "failed to register restart handler, %d\n", ret);
++			break;
++		default:
++			dev_dbg(&client->dev, "pmic controlled board reset not supported\n");
++			break;
++		}
+ 	}
+ 
+ 	return 0;
+@@ -749,6 +791,8 @@ static int rk808_remove(struct i2c_client *client)
+ 	if (pm_power_off == rk808_pm_power_off)
+ 		pm_power_off = NULL;
+ 
++	unregister_restart_handler(&rk808_restart_handler);
++
+ 	return 0;
+ }
+ 
+diff --git a/include/linux/mfd/rk808.h b/include/linux/mfd/rk808.h
+index a96e6d43c..58602032e 100644
+--- a/include/linux/mfd/rk808.h
++++ b/include/linux/mfd/rk808.h
+@@ -373,6 +373,7 @@ enum rk805_reg {
+ #define SWITCH2_EN	BIT(6)
+ #define SWITCH1_EN	BIT(5)
+ #define DEV_OFF_RST	BIT(3)
++#define DEV_RST		BIT(2)
+ #define DEV_OFF		BIT(0)
+ #define RTC_STOP	BIT(0)
+ 
+-- 
+2.29.2
+
+From a05270ea7677c893f6ba0616a88c2c9ded26af67 Mon Sep 17 00:00:00 2001
+From: Peter Geis <pgwipeout@gmail.com>
+Date: Thu, 3 Jun 2021 11:36:35 -0400
+Subject: [PATCH 11/83] irqchip: gic-v3: add hackaround for rk3568 its
+
+---
+ drivers/irqchip/irq-gic-v3-its.c | 70 +++++++++++++++++++++++++++++---
+ 1 file changed, 65 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/irqchip/irq-gic-v3-its.c b/drivers/irqchip/irq-gic-v3-its.c
+index 9e93ff2b6..e8fd05d58 100644
+--- a/drivers/irqchip/irq-gic-v3-its.c
++++ b/drivers/irqchip/irq-gic-v3-its.c
+@@ -45,6 +45,7 @@
+ 
+ #define RDIST_FLAGS_PROPBASE_NEEDS_FLUSHING	(1 << 0)
+ #define RDIST_FLAGS_RD_TABLES_PREALLOCATED	(1 << 1)
++#define RDIST_FLAGS_FORCE_NO_LOCAL_CACHE	(1 << 2)
+ 
+ #define RD_LOCAL_LPI_ENABLED                    BIT(0)
+ #define RD_LOCAL_PENDTABLE_PREALLOCATED         BIT(1)
+@@ -2176,6 +2177,11 @@ static struct page *its_allocate_prop_table(gfp_t gfp_flags)
+ {
+ 	struct page *prop_page;
+ 
++	if (gic_rdists->flags & RDIST_FLAGS_FORCE_NO_LOCAL_CACHE) {
++		pr_err("ITS ALLOCATE PROP WORKAROUND\n");
++		gfp_flags |= GFP_DMA;
++	}
++
+ 	prop_page = alloc_pages(gfp_flags, get_order(LPI_PROPBASE_SZ));
+ 	if (!prop_page)
+ 		return NULL;
+@@ -2299,6 +2305,7 @@ static int its_setup_baser(struct its_node *its, struct its_baser *baser,
+ 	u32 alloc_pages, psz;
+ 	struct page *page;
+ 	void *base;
++	gfp_t gfp_flags;
+ 
+ 	psz = baser->psz;
+ 	alloc_pages = (PAGE_ORDER_TO_SIZE(order) / psz);
+@@ -2310,7 +2317,10 @@ static int its_setup_baser(struct its_node *its, struct its_baser *baser,
+ 		order = get_order(GITS_BASER_PAGES_MAX * psz);
+ 	}
+ 
+-	page = alloc_pages_node(its->numa_node, GFP_KERNEL | __GFP_ZERO, order);
++	gfp_flags = GFP_KERNEL | __GFP_ZERO;
++	if (gic_rdists->flags & RDIST_FLAGS_FORCE_NO_LOCAL_CACHE)
++		gfp_flags |= GFP_DMA;
++	page = alloc_pages_node(its->numa_node, gfp_flags, order);
+ 	if (!page)
+ 		return -ENOMEM;
+ 
+@@ -2357,6 +2367,13 @@ static int its_setup_baser(struct its_node *its, struct its_baser *baser,
+ 	its_write_baser(its, baser, val);
+ 	tmp = baser->val;
+ 
++	if (gic_rdists->flags & RDIST_FLAGS_FORCE_NO_LOCAL_CACHE) {
++		if (tmp & GITS_BASER_SHAREABILITY_MASK)
++			tmp &= ~GITS_BASER_SHAREABILITY_MASK;
++		else
++			gic_flush_dcache_to_poc(base, PAGE_ORDER_TO_SIZE(order));
++	}
++
+ 	if ((val ^ tmp) & GITS_BASER_SHAREABILITY_MASK) {
+ 		/*
+ 		 * Shareability didn't stick. Just use
+@@ -2939,6 +2956,10 @@ static struct page *its_allocate_pending_table(gfp_t gfp_flags)
+ {
+ 	struct page *pend_page;
+ 
++	if (gic_rdists->flags & RDIST_FLAGS_FORCE_NO_LOCAL_CACHE) {
++		gfp_flags |= GFP_DMA;
++	}
++
+ 	pend_page = alloc_pages(gfp_flags | __GFP_ZERO,
+ 				get_order(LPI_PENDBASE_SZ));
+ 	if (!pend_page)
+@@ -3084,6 +3105,9 @@ static void its_cpu_init_lpis(void)
+ 	gicr_write_propbaser(val, rbase + GICR_PROPBASER);
+ 	tmp = gicr_read_propbaser(rbase + GICR_PROPBASER);
+ 
++	if (gic_rdists->flags & RDIST_FLAGS_FORCE_NO_LOCAL_CACHE)
++		tmp &= ~GICR_PROPBASER_SHAREABILITY_MASK;
++
+ 	if ((tmp ^ val) & GICR_PROPBASER_SHAREABILITY_MASK) {
+ 		if (!(tmp & GICR_PROPBASER_SHAREABILITY_MASK)) {
+ 			/*
+@@ -3108,6 +3132,9 @@ static void its_cpu_init_lpis(void)
+ 	gicr_write_pendbaser(val, rbase + GICR_PENDBASER);
+ 	tmp = gicr_read_pendbaser(rbase + GICR_PENDBASER);
+ 
++	if (gic_rdists->flags & RDIST_FLAGS_FORCE_NO_LOCAL_CACHE)
++		tmp &= ~GICR_PENDBASER_SHAREABILITY_MASK;
++
+ 	if (!(tmp & GICR_PENDBASER_SHAREABILITY_MASK)) {
+ 		/*
+ 		 * The HW reports non-shareable, we must remove the
+@@ -3271,7 +3298,12 @@ static bool its_alloc_table_entry(struct its_node *its,
+ 
+ 	/* Allocate memory for 2nd level table */
+ 	if (!table[idx]) {
+-		page = alloc_pages_node(its->numa_node, GFP_KERNEL | __GFP_ZERO,
++		gfp_t gfp_flags = GFP_KERNEL | __GFP_ZERO;
++		if (gic_rdists->flags & RDIST_FLAGS_FORCE_NO_LOCAL_CACHE) {
++			gfp_flags |= GFP_DMA;
++		}
++
++		page = alloc_pages_node(its->numa_node, gfp_flags,
+ 					get_order(baser->psz));
+ 		if (!page)
+ 			return false;
+@@ -3360,6 +3392,7 @@ static struct its_device *its_create_device(struct its_node *its, u32 dev_id,
+ 	int nr_lpis;
+ 	int nr_ites;
+ 	int sz;
++	gfp_t gfp_flags;
+ 
+ 	if (!its_alloc_device_table(its, dev_id))
+ 		return NULL;
+@@ -3367,7 +3400,11 @@ static struct its_device *its_create_device(struct its_node *its, u32 dev_id,
+ 	if (WARN_ON(!is_power_of_2(nvecs)))
+ 		nvecs = roundup_pow_of_two(nvecs);
+ 
+-	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
++	gfp_flags = GFP_KERNEL;
++	if (gic_rdists->flags & RDIST_FLAGS_FORCE_NO_LOCAL_CACHE)
++		gfp_flags |= GFP_DMA;
++
++	dev = kzalloc(sizeof(*dev), gfp_flags);
+ 	/*
+ 	 * Even if the device wants a single LPI, the ITT must be
+ 	 * sized as a power of two (and you need at least one bit...).
+@@ -3375,7 +3412,8 @@ static struct its_device *its_create_device(struct its_node *its, u32 dev_id,
+ 	nr_ites = max(2, nvecs);
+ 	sz = nr_ites * (FIELD_GET(GITS_TYPER_ITT_ENTRY_SIZE, its->typer) + 1);
+ 	sz = max(sz, ITS_ITT_ALIGN) + ITS_ITT_ALIGN - 1;
+-	itt = kzalloc_node(sz, GFP_KERNEL, its->numa_node);
++
++	itt = kzalloc_node(sz, gfp_flags, its->numa_node);
+ 	if (alloc_lpis) {
+ 		lpi_map = its_lpi_alloc(nvecs, &lpi_base, &nr_lpis);
+ 		if (lpi_map)
+@@ -4698,6 +4736,13 @@ static bool __maybe_unused its_enable_quirk_hip07_161600802(void *data)
+ 	return true;
+ }
+ 
++static bool __maybe_unused its_enable_quirk_rk3568(void *data)
++{
++	gic_rdists->flags |= RDIST_FLAGS_FORCE_NO_LOCAL_CACHE;
++
++	return true;
++}
++
+ static const struct gic_quirk its_quirks[] = {
+ #ifdef CONFIG_CAVIUM_ERRATUM_22375
+ 	{
+@@ -4744,6 +4789,13 @@ static const struct gic_quirk its_quirks[] = {
+ 		.init	= its_enable_quirk_hip07_161600802,
+ 	},
+ #endif
++	{
++		.desc	= "ITS: Rockchip RK3568 force no_local_cache",
++		.iidr	= 0x0201743b,
++		.mask	= 0xffffffff,
++		.init	= its_enable_quirk_rk3568,
++	},
++
+ 	{
+ 	}
+ };
+@@ -4999,6 +5051,7 @@ static int __init its_probe_one(struct resource *res,
+ 	struct page *page;
+ 	u32 ctlr;
+ 	int err;
++	gfp_t gfp_flags;
+ 
+ 	its_base = its_map_one(res, &err);
+ 	if (!its_base)
+@@ -5052,7 +5105,11 @@ static int __init its_probe_one(struct resource *res,
+ 
+ 	its->numa_node = numa_node;
+ 
+-	page = alloc_pages_node(its->numa_node, GFP_KERNEL | __GFP_ZERO,
++	gfp_flags = GFP_KERNEL | __GFP_ZERO | GFP_DMA;
++//	if (gic_rdists->flags & RDIST_FLAGS_FORCE_NO_LOCAL_CACHE)
++//		gfp_flags |= GFP_DMA;
++
++	page = alloc_pages_node(its->numa_node, gfp_flags,
+ 				get_order(ITS_CMD_QUEUE_SZ));
+ 	if (!page) {
+ 		err = -ENOMEM;
+@@ -5083,6 +5140,9 @@ static int __init its_probe_one(struct resource *res,
+ 	gits_write_cbaser(baser, its->base + GITS_CBASER);
+ 	tmp = gits_read_cbaser(its->base + GITS_CBASER);
+ 
++	if (gic_rdists->flags & RDIST_FLAGS_FORCE_NO_LOCAL_CACHE)
++		tmp &= ~GITS_CBASER_SHAREABILITY_MASK;
++
+ 	if ((tmp ^ baser) & GITS_CBASER_SHAREABILITY_MASK) {
+ 		if (!(tmp & GITS_CBASER_SHAREABILITY_MASK)) {
+ 			/*
+-- 
+2.29.2
+
+From da88c58e9ac152de584ead60b169c0e391b886a1 Mon Sep 17 00:00:00 2001
+From: Peter Geis <pgwipeout@gmail.com>
+Date: Wed, 4 Aug 2021 09:13:41 -0400
+Subject: [PATCH 12/83] PCI: dwc: rockchip: add legacy interrupt support
+
+The legacy interrupts on the rk356x pcie controller are handled by a
+single muxed interrupt. Add irq domain support to the pcie-dw-rockchip
+driver to support the virtual domain.
+
+Signed-off-by: Peter Geis <pgwipeout@gmail.com>
+---
+ drivers/pci/controller/dwc/pcie-dw-rockchip.c | 92 ++++++++++++++++++-
+ 1 file changed, 89 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/pci/controller/dwc/pcie-dw-rockchip.c b/drivers/pci/controller/dwc/pcie-dw-rockchip.c
+index c9b341e55..d14518039 100644
+--- a/drivers/pci/controller/dwc/pcie-dw-rockchip.c
++++ b/drivers/pci/controller/dwc/pcie-dw-rockchip.c
+@@ -10,9 +10,12 @@
+ 
+ #include <linux/clk.h>
+ #include <linux/gpio/consumer.h>
++#include <linux/irqchip/chained_irq.h>
++#include <linux/irqdomain.h>
+ #include <linux/mfd/syscon.h>
+ #include <linux/module.h>
+ #include <linux/of_device.h>
++#include <linux/of_irq.h>
+ #include <linux/phy/phy.h>
+ #include <linux/platform_device.h>
+ #include <linux/regmap.h>
+@@ -36,10 +39,12 @@
+ #define PCIE_LINKUP			(PCIE_SMLH_LINKUP | PCIE_RDLH_LINKUP)
+ #define PCIE_L0S_ENTRY			0x11
+ #define PCIE_CLIENT_GENERAL_CONTROL	0x0
++#define PCIE_CLIENT_INTR_MASK_LEGACY	0x1c
+ #define PCIE_CLIENT_GENERAL_DEBUG	0x104
+-#define PCIE_CLIENT_HOT_RESET_CTRL      0x180
++#define PCIE_CLIENT_HOT_RESET_CTRL	0x180
+ #define PCIE_CLIENT_LTSSM_STATUS	0x300
+-#define PCIE_LTSSM_ENABLE_ENHANCE       BIT(4)
++#define PCIE_LEGACY_INT_ENABLE		GENMASK(7, 0)
++#define PCIE_LTSSM_ENABLE_ENHANCE	BIT(4)
+ #define PCIE_LTSSM_STATUS_MASK		GENMASK(5, 0)
+ 
+ struct rockchip_pcie {
+@@ -51,6 +56,7 @@ struct rockchip_pcie {
+ 	struct reset_control		*rst;
+ 	struct gpio_desc		*rst_gpio;
+ 	struct regulator                *vpcie3v3;
++	struct irq_domain		*irq_domain;
+ };
+ 
+ static int rockchip_pcie_readl_apb(struct rockchip_pcie *rockchip,
+@@ -65,6 +71,68 @@ static void rockchip_pcie_writel_apb(struct rockchip_pcie *rockchip,
+ 	writel_relaxed(val, rockchip->apb_base + reg);
+ }
+ 
++static void rockchip_pcie_legacy_int_handler(struct irq_desc *desc)
++{
++	struct irq_chip *chip = irq_desc_get_chip(desc);
++	struct rockchip_pcie *rockchip = irq_desc_get_handler_data(desc);
++	struct device *dev = rockchip->pci.dev;
++	u32 reg;
++	u32 hwirq;
++	u32 virq;
++
++	chained_irq_enter(chip, desc);
++
++	reg = rockchip_pcie_readl_apb(rockchip, 0x8);
++
++	while (reg) {
++		hwirq = ffs(reg) - 1;
++		reg &= ~BIT(hwirq);
++
++		virq = irq_find_mapping(rockchip->irq_domain, hwirq);
++		if (virq)
++			generic_handle_irq(virq);
++		else
++			dev_err(dev, "unexpected IRQ, INT%d\n", hwirq);
++	}
++
++	chained_irq_exit(chip, desc);
++}
++
++static int rockchip_pcie_intx_map(struct irq_domain *domain, unsigned int irq,
++				  irq_hw_number_t hwirq)
++{
++	irq_set_chip_and_handler(irq, &dummy_irq_chip, handle_simple_irq);
++	irq_set_chip_data(irq, domain->host_data);
++
++	return 0;
++}
++
++static const struct irq_domain_ops intx_domain_ops = {
++	.map = rockchip_pcie_intx_map,
++};
++
++static int rockchip_pcie_init_irq_domain(struct rockchip_pcie *rockchip)
++{
++	struct device *dev = rockchip->pci.dev;
++	struct device_node *intc;
++
++	intc = of_get_child_by_name(dev->of_node, "legacy-interrupt-controller");
++	if (!intc) {
++		dev_err(dev, "missing child interrupt-controller node\n");
++		return -EINVAL;
++	}
++
++	rockchip->irq_domain = irq_domain_add_linear(intc, PCI_NUM_INTX,
++						    &intx_domain_ops, rockchip);
++	of_node_put(intc);
++	if (!rockchip->irq_domain) {
++		dev_err(dev, "failed to get a INTx IRQ domain\n");
++		return -EINVAL;
++	}
++
++	return 0;
++}
++
+ static void rockchip_pcie_enable_ltssm(struct rockchip_pcie *rockchip)
+ {
+ 	rockchip_pcie_writel_apb(rockchip, PCIE_CLIENT_ENABLE_LTSSM,
+@@ -111,9 +179,27 @@ static int rockchip_pcie_host_init(struct pcie_port *pp)
+ {
+ 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
+ 	struct rockchip_pcie *rockchip = to_rockchip_pcie(pci);
+-	u32 val = HIWORD_UPDATE_BIT(PCIE_LTSSM_ENABLE_ENHANCE);
++	struct device *dev = rockchip->pci.dev;
++	int irq, ret;
++	u32 val;
++
++	irq = of_irq_get_byname(dev->of_node, "legacy");
++	if (irq < 0)
++		return irq;
++
++	irq_set_chained_handler_and_data(irq, rockchip_pcie_legacy_int_handler, rockchip);
++
++	ret = rockchip_pcie_init_irq_domain(rockchip);
++	if (ret < 0)
++		dev_err(dev, "failed to init irq domain\n");
++
++	/* enable legacy interrupts */
++	val = HIWORD_UPDATE_BIT(PCIE_LEGACY_INT_ENABLE);
++	val &= ~PCIE_LEGACY_INT_ENABLE;
++	rockchip_pcie_writel_apb(rockchip, val, PCIE_CLIENT_INTR_MASK_LEGACY);
+ 
+ 	/* LTSSM enable control mode */
++	val = HIWORD_UPDATE_BIT(PCIE_LTSSM_ENABLE_ENHANCE);
+ 	rockchip_pcie_writel_apb(rockchip, val, PCIE_CLIENT_HOT_RESET_CTRL);
+ 
+ 	rockchip_pcie_writel_apb(rockchip, PCIE_CLIENT_RC_MODE,
+-- 
+2.29.2
+
+From e3c318f9e8c1e36885eb24635631c9360ee21fc4 Mon Sep 17 00:00:00 2001
+From: Peter Geis <pgwipeout@gmail.com>
+Date: Sun, 1 Aug 2021 16:30:52 -0400
+Subject: [PATCH 21/83] drivers: soc: rockchip: fix usb3otg port on rk3566
+
+The usb3otg port defaults to using the usb3phy clock, which isn't
+available on the rk3566 (due to the usb3phy being physically missing).
+
+We need to switch to the usb2phy clock for the usb3otg controller to
+function.
+
+Signed-off-by: Peter Geis <pgwipeout@gmail.com>
+---
+ drivers/soc/rockchip/grf.c               | 17 +++++++++++++++++
+ 4 files changed, 25 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/rockchip/grf.c b/drivers/soc/rockchip/grf.c
+index 494cf2b5b..3aebb2588 100644
+--- a/drivers/soc/rockchip/grf.c
++++ b/drivers/soc/rockchip/grf.c
+@@ -108,6 +108,20 @@ static const struct rockchip_grf_info rk3399_grf __initconst = {
+ 	.num_values = ARRAY_SIZE(rk3399_defaults),
+ };
+ 
++#define RK3566_GRF_USB3OTG0_CON1	0x0104
++
++static const struct rockchip_grf_value rk3566_defaults[] __initconst = {
++	{ "usb3otg port switch", RK3566_GRF_USB3OTG0_CON1, HIWORD_UPDATE(0, 1, 12) },
++	{ "usb3otg clock switch", RK3566_GRF_USB3OTG0_CON1, HIWORD_UPDATE(1, 1, 7) },
++	{ "usb3otg disable usb3", RK3566_GRF_USB3OTG0_CON1, HIWORD_UPDATE(1, 1, 0) },
++};
++
++static const struct rockchip_grf_info rk3566_pipegrf __initconst = {
++	.values = rk3566_defaults,
++	.num_values = ARRAY_SIZE(rk3566_defaults),
++};
++
++
+ static const struct of_device_id rockchip_grf_dt_match[] __initconst = {
+ 	{
+ 		.compatible = "rockchip,rk3036-grf",
+@@ -130,6 +144,9 @@ static const struct of_device_id rockchip_grf_dt_match[] __initconst = {
+ 	}, {
+ 		.compatible = "rockchip,rk3399-grf",
+ 		.data = (void *)&rk3399_grf,
++	}, {
++		.compatible = "rockchip,rk3566-pipegrf",
++		.data = (void *)&rk3566_pipegrf,
+ 	},
+ 	{ /* sentinel */ },
+ };
+-- 
+2.29.2
+
+From 7738e7f0e4db5a6110ce536b71d20e30c041ec4a Mon Sep 17 00:00:00 2001
+From: Bin Yang <yangbin@rock-chips.com>
+Date: Wed, 11 Nov 2020 11:06:37 +0800
+Subject: [PATCH 22/83] usb: dwc3: core: do not use 3.0 clock when operating in
+ 2.0 mode
+
+In the 3.0 device core, if the core is programmed to operate in
+2.0 only, then setting the GUCTL1.DEV_FORCE_20_CLK_FOR_30_CLK makes
+the internal 2.0(utmi/ulpi) clock to be routed as the 3.0 (pipe)
+clock. Enabling this feature allows the pipe3 clock to be not-running
+when forcibly operating in 2.0 device mode.
+
+Signed-off-by: Bin Yang <yangbin@rock-chips.com>
+Change-Id: I217a380815c21903c1090bd003c1d8ba2fadbe7c
+Signed-off-by: Peter Geis <pgwipeout@gmail.com>
+---
+ drivers/usb/dwc3/core.c | 4 ++++
+ drivers/usb/dwc3/core.h | 1 +
+ 2 files changed, 5 insertions(+)
+
+diff --git a/drivers/usb/dwc3/core.c b/drivers/usb/dwc3/core.c
+index f4c09951b..f7eb139f3 100644
+--- a/drivers/usb/dwc3/core.c
++++ b/drivers/usb/dwc3/core.c
+@@ -1088,6 +1088,10 @@ static int dwc3_core_init(struct dwc3 *dwc)
+ 		if (dwc->parkmode_disable_ss_quirk)
+ 			reg |= DWC3_GUCTL1_PARKMODE_DISABLE_SS;
+ 
++		if (dwc->maximum_speed == USB_SPEED_HIGH ||
++		    dwc->maximum_speed == USB_SPEED_FULL)
++			reg |= DWC3_GUCTL1_DEV_FORCE_20_CLK_FOR_30_CLK;
++
+ 		dwc3_writel(dwc->regs, DWC3_GUCTL1, reg);
+ 	}
+ 
+diff --git a/drivers/usb/dwc3/core.h b/drivers/usb/dwc3/core.h
+index e1cc3f739..aca1fbe7a 100644
+--- a/drivers/usb/dwc3/core.h
++++ b/drivers/usb/dwc3/core.h
+@@ -259,6 +259,7 @@
+ /* Global User Control 1 Register */
+ #define DWC3_GUCTL1_DEV_DECOUPLE_L1L2_EVT	BIT(31)
+ #define DWC3_GUCTL1_TX_IPGAP_LINECHECK_DIS	BIT(28)
++#define DWC3_GUCTL1_DEV_FORCE_20_CLK_FOR_30_CLK	BIT(26)
+ #define DWC3_GUCTL1_DEV_L1_EXIT_BY_HW		BIT(24)
+ #define DWC3_GUCTL1_PARKMODE_DISABLE_SS		BIT(17)
+ 
+-- 
+2.29.2
+
+From 8fb52d35c090f68d657744b2a226848d695afbf1 Mon Sep 17 00:00:00 2001
+From: Chris Morgan <macromorgan@hotmail.com>
+Date: Mon, 23 Aug 2021 23:09:53 -0500
+Subject: [PATCH 28/83] mfd: Add Rockchip rk817 battery charger support
+
+Add rk817 charger support cell to rk808 mfd driver.
+
+Acked-for-MFD-by: Lee Jones <lee.jones@linaro.org>
+Signed-off-by: Chris Morgan <macromorgan@hotmail.com>
+Signed-off-by: Maya Matuszczyk <maccraft123mc@gmail.com>
+---
+ drivers/mfd/rk808.c       | 16 ++++++-
+ include/linux/mfd/rk808.h | 87 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 102 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/mfd/rk808.c b/drivers/mfd/rk808.c
+index 874d461dd..533d740a5 100644
+--- a/drivers/mfd/rk808.c
++++ b/drivers/mfd/rk808.c
+@@ -67,6 +67,10 @@ static bool rk817_is_volatile_reg(struct device *dev, unsigned int reg)
+ 	case RK817_SECONDS_REG ... RK817_WEEKS_REG:
+ 	case RK817_RTC_STATUS_REG:
+ 	case RK817_CODEC_DTOP_LPT_SRST:
++	case RK817_GAS_GAUGE_ADC_CONFIG0 ... RK817_GAS_GAUGE_CUR_ADC_K0:
++	case RK817_PMIC_CHRG_STS:
++	case RK817_PMIC_CHRG_OUT:
++	case RK817_PMIC_CHRG_IN:
+ 	case RK817_INT_STS_REG0:
+ 	case RK817_INT_STS_REG1:
+ 	case RK817_INT_STS_REG2:
+@@ -74,7 +78,7 @@ static bool rk817_is_volatile_reg(struct device *dev, unsigned int reg)
+ 		return true;
+ 	}
+ 
+-	return true;
++	return false;
+ }
+ 
+ static const struct regmap_config rk818_regmap_config = {
+@@ -127,6 +131,11 @@ static const struct resource rk817_pwrkey_resources[] = {
+ 	DEFINE_RES_IRQ(RK817_IRQ_PWRON_FALL),
+ };
+ 
++static const struct resource rk817_charger_resources[] = {
++	DEFINE_RES_IRQ(RK817_IRQ_PLUG_IN),
++	DEFINE_RES_IRQ(RK817_IRQ_PLUG_OUT),
++};
++
+ static const struct mfd_cell rk805s[] = {
+ 	{ .name = "rk808-clkout", },
+ 	{ .name = "rk808-regulator", },
+@@ -166,6 +175,11 @@ static const struct mfd_cell rk817s[] = {
+ 		.resources = &rk817_rtc_resources[0],
+ 	},
+ 	{ .name = "rk817-codec",},
++	{
++		.name = "rk817-charger",
++		.num_resources = ARRAY_SIZE(rk817_charger_resources),
++		.resources = &rk817_charger_resources[0],
++	},
+ };
+ 
+ static const struct mfd_cell rk818s[] = {
+diff --git a/include/linux/mfd/rk808.h b/include/linux/mfd/rk808.h
+index 58602032e..53b6a70a2 100644
+--- a/include/linux/mfd/rk808.h
++++ b/include/linux/mfd/rk808.h
+@@ -519,6 +519,74 @@ enum rk809_reg_id {
+ #define MIC_DIFF_DIS			(0x0 << 7)
+ #define MIC_DIFF_EN			(0x1 << 7)
+ 
++/* RK817 Battery Registers */
++#define RK817_GAS_GAUGE_ADC_CONFIG0	0x50
++#define RK817_GG_EN			(0x1 << 7)
++#define RK817_SYS_VOL_ADC_EN		(0x1 << 6)
++#define RK817_TS_ADC_EN			(0x1 << 5)
++#define RK817_USB_VOL_ADC_EN		(0x1 << 4)
++#define RK817_BAT_VOL_ADC_EN		(0x1 << 3)
++#define RK817_BAT_CUR_ADC_EN		(0x1 << 2)
++
++#define RK817_GAS_GAUGE_ADC_CONFIG1	0x55
++
++#define RK817_CUR_CALIB_UPD		(0x1 << 7)
++#define RK817_VOL_CALIB_UPD		(0x1 << 6)
++
++#define RK817_GAS_GAUGE_GG_CON		0x56
++#define RK817_GAS_GAUGE_GG_STS		0x57
++
++#define RK817_RELAX_VOL_UPD		(0x3 << 2)
++#define RK817_RELAX_STS			(0x1 << 1)
++
++#define RK817_GAS_GAUGE_RELAX_THRE_H	0x58
++#define RK817_GAS_GAUGE_RELAX_THRE_L	0x59
++#define RK817_GAS_GAUGE_OCV_THRE_VOL	0x62
++#define RK817_GAS_GAUGE_OCV_VOL_H	0x63
++#define RK817_GAS_GAUGE_OCV_VOL_L	0x64
++#define RK817_GAS_GAUGE_PWRON_VOL_H	0x6b
++#define RK817_GAS_GAUGE_PWRON_VOL_L	0x6c
++#define RK817_GAS_GAUGE_PWRON_CUR_H	0x6d
++#define RK817_GAS_GAUGE_PWRON_CUR_L	0x6e
++#define RK817_GAS_GAUGE_OFF_CNT		0x6f
++#define RK817_GAS_GAUGE_Q_INIT_H3	0x70
++#define RK817_GAS_GAUGE_Q_INIT_H2	0x71
++#define RK817_GAS_GAUGE_Q_INIT_L1	0x72
++#define RK817_GAS_GAUGE_Q_INIT_L0	0x73
++#define RK817_GAS_GAUGE_Q_PRES_H3	0x74
++#define RK817_GAS_GAUGE_Q_PRES_H2	0x75
++#define RK817_GAS_GAUGE_Q_PRES_L1	0x76
++#define RK817_GAS_GAUGE_Q_PRES_L0	0x77
++#define RK817_GAS_GAUGE_BAT_VOL_H	0x78
++#define RK817_GAS_GAUGE_BAT_VOL_L	0x79
++#define RK817_GAS_GAUGE_BAT_CUR_H	0x7a
++#define RK817_GAS_GAUGE_BAT_CUR_L	0x7b
++#define RK817_GAS_GAUGE_USB_VOL_H	0x7e
++#define RK817_GAS_GAUGE_USB_VOL_L	0x7f
++#define RK817_GAS_GAUGE_SYS_VOL_H	0x80
++#define RK817_GAS_GAUGE_SYS_VOL_L	0x81
++#define RK817_GAS_GAUGE_Q_MAX_H3	0x82
++#define RK817_GAS_GAUGE_Q_MAX_H2	0x83
++#define RK817_GAS_GAUGE_Q_MAX_L1	0x84
++#define RK817_GAS_GAUGE_Q_MAX_L0	0x85
++#define RK817_GAS_GAUGE_SLEEP_CON_SAMP_CUR_H	0x8f
++#define RK817_GAS_GAUGE_SLEEP_CON_SAMP_CUR_L	0x90
++#define RK817_GAS_GAUGE_CAL_OFFSET_H	0x91
++#define RK817_GAS_GAUGE_CAL_OFFSET_L	0x92
++#define RK817_GAS_GAUGE_VCALIB0_H	0x93
++#define RK817_GAS_GAUGE_VCALIB0_L	0x94
++#define RK817_GAS_GAUGE_VCALIB1_H	0x95
++#define RK817_GAS_GAUGE_VCALIB1_L	0x96
++#define RK817_GAS_GAUGE_IOFFSET_H	0x97
++#define RK817_GAS_GAUGE_IOFFSET_L	0x98
++#define RK817_GAS_GAUGE_BAT_R1		0x9a
++#define RK817_GAS_GAUGE_BAT_R2		0x9b
++#define RK817_GAS_GAUGE_BAT_R3		0x9c
++#define RK817_GAS_GAUGE_DATA3		0xa0
++#define RK817_GAS_GAUGE_DATA4		0xa1
++#define RK817_GAS_GAUGE_DATA5		0xa2
++#define RK817_GAS_GAUGE_CUR_ADC_K0	0xb0
++
+ #define RK817_POWER_EN_REG(i)		(0xb1 + (i))
+ #define RK817_POWER_SLP_EN_REG(i)	(0xb5 + (i))
+ 
+@@ -544,10 +612,29 @@ enum rk809_reg_id {
+ #define RK817_LDO_ON_VSEL_REG(idx)	(0xcc + (idx) * 2)
+ #define RK817_BOOST_OTG_CFG		(0xde)
+ 
++#define RK817_PMIC_CHRG_OUT		0xe4
++#define RK817_CHRG_VOL_SEL		(0x07 << 4)
++#define RK817_CHRG_CUR_SEL		(0x07 << 0)
++
++#define RK817_PMIC_CHRG_IN		0xe5
++#define RK817_USB_VLIM_EN		(0x01 << 7)
++#define RK817_USB_VLIM_SEL		(0x07 << 4)
++#define RK817_USB_ILIM_EN		(0x01 << 3)
++#define RK817_USB_ILIM_SEL		(0x07 << 0)
++#define RK817_PMIC_CHRG_TERM		0xe6
++#define RK817_CHRG_TERM_ANA_DIG		(0x01 << 2)
++#define RK817_CHRG_TERM_ANA_SEL		(0x03 << 0)
++#define RK817_CHRG_EN			(0x01 << 6)
++
++#define RK817_PMIC_CHRG_STS		0xeb
++#define RK817_CHG_STS			(0x07 << 4)
++
+ #define RK817_ID_MSB			0xed
+ #define RK817_ID_LSB			0xee
+ 
+ #define RK817_SYS_STS			0xf0
++#define RK817_PLUG_IN_STS		(0x1 << 6)
++
+ #define RK817_SYS_CFG(i)		(0xf1 + (i))
+ 
+ #define RK817_ON_SOURCE_REG		0xf5
+-- 
+2.29.2
+
+From f2a046e2388916346cd16ab57fdcfdc8e52a5840 Mon Sep 17 00:00:00 2001
+From: Chris Morgan <macromorgan@hotmail.com>
+Date: Mon, 23 Aug 2021 23:09:54 -0500
+Subject: [PATCH 29/83] power: supply: Add charger driver for Rockchip RK817
+
+Add support for the Rockchip rk817 battery charger integrated into the
+rk817 PMIC.
+
+Signed-off-by: Chris Morgan <macromorgan@hotmail.com>
+Signed-off-by: Maya Matuszczyk <maccraft123mc@gmail.com>
+Signed-off-by: Peter Geis <pgwipeout@gmail.com>
+---
+ drivers/power/supply/Kconfig         |   6 +
+ drivers/power/supply/Makefile        |   1 +
+ drivers/power/supply/rk817_charger.c | 958 +++++++++++++++++++++++++++
+ 3 files changed, 965 insertions(+)
+ create mode 100644 drivers/power/supply/rk817_charger.c
+
+diff --git a/drivers/power/supply/Kconfig b/drivers/power/supply/Kconfig
+index b366e2fd8..48192be8a 100644
+--- a/drivers/power/supply/Kconfig
++++ b/drivers/power/supply/Kconfig
+@@ -694,6 +694,12 @@ config CHARGER_BQ256XX
+ 	  charge management and system power path management devices for single
+ 	  cell Li-ion and Li-polymer batteries.
+ 
++config CHARGER_RK817
++	tristate "Rockchip RK817 PMIC Battery Charger"
++	depends on MFD_RK808
++	help
++	  Say Y to include support for Rockchip RK817 Battery Charger.
++
+ config CHARGER_SMB347
+ 	tristate "Summit Microelectronics SMB3XX Battery Charger"
+ 	depends on I2C
+diff --git a/drivers/power/supply/Makefile b/drivers/power/supply/Makefile
+index 2c1b264b2..5fce94e7c 100644
+--- a/drivers/power/supply/Makefile
++++ b/drivers/power/supply/Makefile
+@@ -89,6 +89,7 @@ obj-$(CONFIG_CHARGER_BQ2515X)	+= bq2515x_charger.o
+ obj-$(CONFIG_CHARGER_BQ25890)	+= bq25890_charger.o
+ obj-$(CONFIG_CHARGER_BQ25980)	+= bq25980_charger.o
+ obj-$(CONFIG_CHARGER_BQ256XX)	+= bq256xx_charger.o
++obj-$(CONFIG_CHARGER_RK817)	+= rk817_charger.o
+ obj-$(CONFIG_CHARGER_SMB347)	+= smb347-charger.o
+ obj-$(CONFIG_CHARGER_TPS65090)	+= tps65090-charger.o
+ obj-$(CONFIG_CHARGER_TPS65217)	+= tps65217_charger.o
+diff --git a/drivers/power/supply/rk817_charger.c b/drivers/power/supply/rk817_charger.c
+new file mode 100644
+index 000000000..3aaf7babf
+--- /dev/null
++++ b/drivers/power/supply/rk817_charger.c
+@@ -0,0 +1,958 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Charger Driver for Rockchip rk817
++ *
++ * Copyright (c) 2021
++ *
++ * Authors: Maya Matuszczyk <maccraft123mc@gmail.com>
++ *	    Chris Morgan <macromorgan@hotmail.com>
++ */
++
++#include <linux/mfd/rk808.h>
++#include <linux/irq.h>
++#include <linux/of_gpio.h>
++#include <linux/platform_device.h>
++#include <linux/regmap.h>
++#include <linux/power_supply.h>
++#include <asm/unaligned.h>
++
++/* Charging statuses reported by hardware register */
++enum rk817_charge_status {
++	CHRG_OFF,
++	DEAD_CHRG,
++	TRICKLE_CHRG,
++	CC_OR_CV_CHRG,
++	CHARGE_FINISH,
++	USB_OVER_VOL,
++	BAT_TMP_ERR,
++	BAT_TIM_ERR,
++};
++
++/* Max charging current read to/written from hardware register.
++ * Note how highest value corresponding to 0x7 is the lowest
++ * current, this is per the datasheet.
++ */
++enum rk817_chg_cur {
++	CHG_1A,
++	CHG_1_5A,
++	CHG_2A,
++	CHG_2_5A,
++	CHG_2_75A,
++	CHG_3A,
++	CHG_3_5A,
++	CHG_0_5A,
++};
++
++struct rk817_charger {
++	struct device *dev;
++	struct rk808 *rk808;
++
++	struct power_supply *bat_ps;
++	struct power_supply *chg_ps;
++	bool plugged_in;
++
++	/* The voltage_k and voltage_b values are used to calibrate the ADC
++	 * voltage readings. While they are documented in the BSP kernel and
++	 * datasheet as voltage_k and voltage_b, there is no further
++	 * information explaining them in more detail.
++	 */
++
++	uint32_t voltage_k;
++	uint32_t voltage_b;
++
++	/* Storing immutable values of battery here so we can release
++	 * get_battery_info after the probe and use these values.
++	 */
++	int bat_charge_full_design_uah;
++	int bat_voltage_min_design_uv;
++	int bat_voltage_max_design_uv;
++
++	/* dsoc seems to be difference between full charge and actual charge in
++	 * BSP stored as a percentage, to the thousandth.
++	 */
++	int dsoc;
++
++	/* Calibrate the DSOC on a fully charged battery, this way we can use
++	 * the calibrated DSOC value to correct for columb counter drift.
++	 */
++	bool dsoc_cal;
++
++	/* Implementation specific properties from device tree */
++	int res_div;
++	int sleep_enter_current;
++	int sleep_filter_current;
++};
++
++/* ADC coefficients extracted from BSP kernel */
++#define ADC_TO_CURRENT(adc_value, res_div)	\
++	(adc_value * 172 / res_div)
++
++#define CURRENT_TO_ADC(current, samp_res)	\
++	(current * samp_res / 172)
++
++#define CHARGE_TO_ADC(capacity, res_div)	\
++	(capacity * res_div * 3600 / 172 * 1000)
++
++#define ADC_TO_CHARGE_UAH(adc_value, res_div)	\
++	(adc_value / 3600 * 172 / res_div)
++
++#define ADC_TO_CAPACITY(adc_value, res_div)	\
++	(adc_value / 1000 * 172 / 3600 / res_div)
++
++static u8 rk817_chg_cur_to_reg(u32 chg_cur_ma)
++{
++	if (chg_cur_ma > 3500)
++		return CHG_3_5A;
++	else if (chg_cur_ma > 3000)
++		return CHG_3A;
++	else if (chg_cur_ma > 2750)
++		return CHG_2_75A;
++	else if (chg_cur_ma > 2500)
++		return CHG_2_5A;
++	else if (chg_cur_ma > 2000)
++		return CHG_2A;
++	else if (chg_cur_ma > 1500)
++		return CHG_1_5A;
++	else if (chg_cur_ma > 1000)
++		return CHG_1A;
++	else if (chg_cur_ma > 500)
++		return CHG_0_5A;
++	else
++		return -EINVAL;
++}
++
++static int rk817_chg_cur_from_reg(u8 reg)
++{
++	switch (reg) {
++	case CHG_0_5A:
++		return 500000;
++	case CHG_1A:
++		return 1000000;
++	case CHG_1_5A:
++		return 1500000;
++	case CHG_2A:
++		return 2000000;
++	case CHG_2_5A:
++		return 2500000;
++	case CHG_2_75A:
++		return 2750000;
++	case CHG_3A:
++		return 3000000;
++	case CHG_3_5A:
++		return 3500000;
++	default:
++		return -EINVAL;
++	}
++}
++
++static void rk817_bat_calib_vol(struct rk817_charger *charger)
++{
++	uint32_t vcalib0 = 0;
++	uint32_t vcalib1 = 0;
++	u8 bulk_reg[2];
++
++	/* calibrate voltage */
++	regmap_bulk_read(charger->rk808->regmap, RK817_GAS_GAUGE_VCALIB0_H,
++			 bulk_reg, 2);
++	vcalib0 = get_unaligned_be16(bulk_reg);
++
++	regmap_bulk_read(charger->rk808->regmap, RK817_GAS_GAUGE_VCALIB1_H,
++			 bulk_reg, 2);
++	vcalib1 = get_unaligned_be16(bulk_reg);
++
++	/* values were taken from BSP kernel */
++	charger->voltage_k = (4025 - 2300) * 1000 /
++			     ((vcalib1 - vcalib0) ? (vcalib1 - vcalib0) : 1);
++	charger->voltage_b = 4025 - (charger->voltage_k * vcalib1) / 1000;
++}
++
++static void rk817_bat_calib_cur(struct rk817_charger *charger)
++{
++	u8 bulk_reg[2];
++
++	/* calibrate current */
++	regmap_bulk_read(charger->rk808->regmap, RK817_GAS_GAUGE_IOFFSET_H,
++			 bulk_reg, 2);
++	regmap_bulk_write(charger->rk808->regmap, RK817_GAS_GAUGE_CAL_OFFSET_H,
++			  bulk_reg, 2);
++}
++
++static int rk817_bat_calib_cap(struct rk817_charger *charger)
++{
++	struct rk808 *rk808 = charger->rk808;
++	int reg, tmp, charge_now, charge_now_adc, dsoc_value;
++	u8 bulk_reg[4];
++
++	/* Calibrate the dsoc on a fully charged battery */
++
++	regmap_read(rk808->regmap, RK817_PMIC_CHRG_STS, &reg);
++	tmp = (reg >> 4) & 0x07;
++	if (tmp == CHARGE_FINISH) {
++		/* Read the columb counter */
++		regmap_bulk_read(rk808->regmap, RK817_GAS_GAUGE_Q_PRES_H3,
++				 bulk_reg, 4);
++		charge_now_adc = get_unaligned_be32(bulk_reg);
++		if (charge_now_adc < 0)
++			charge_now_adc = 0;
++		charge_now = ADC_TO_CHARGE_UAH(charge_now_adc, charger->res_div);
++
++		/* Get and set our DSOC value with a full charge */
++
++		dsoc_value = ((charge_now * 100) /
++			      (charger->bat_charge_full_design_uah / 1000));
++
++		if (!charger->dsoc_cal) {
++			if (dsoc_value > 100000)
++				charger->dsoc = 100000;
++			if (dsoc_value != charger->dsoc) {
++				charger->dsoc = dsoc_value;
++				put_unaligned_le24(dsoc_value, bulk_reg);
++				regmap_bulk_write(rk808->regmap,
++						  RK817_GAS_GAUGE_BAT_R1,
++						  bulk_reg, 3);
++			}
++			/* Mark our dsoc as calibrated. */
++			charger->dsoc_cal = 1;
++		}
++
++		/* In the event our columb counter has drifted over the
++		 * calibrated dsoc of the battery, adjust the columb counter
++		 * to correct the drift. Don't do this unless we already
++		 * calibrated our dsoc at a fully charged state.
++		 */
++
++		if (dsoc_value > charger->dsoc && charger->dsoc_cal) {
++			/* Order of operations matters here to ensure we keep
++			 * enough precision until the last step to keep from
++			 * making needless updates to columb counter.
++			 */
++			charge_now = charger->dsoc *
++				     (charger->bat_charge_full_design_uah
++				     / 1000) / 100;
++			charge_now_adc = CHARGE_TO_ADC((charge_now / 1000),
++					 charger->res_div);
++
++			put_unaligned_be32(charge_now_adc, bulk_reg);
++			regmap_bulk_write(rk808->regmap,
++					  RK817_GAS_GAUGE_Q_INIT_H3,
++					  bulk_reg, 4);
++		}
++	}
++
++	return 0;
++}
++
++static int rk817_bat_get_prop(struct power_supply *ps,
++		enum power_supply_property prop,
++		union power_supply_propval *val)
++{
++	struct rk817_charger *charger = power_supply_get_drvdata(ps);
++	uint32_t tmp = 0;
++	/* Registers for current is a signed 16bit int */
++	short int cur = 0;
++	/* Registers for capacity-now is a signed 32bit int */
++	int32_t charge_now = 0;
++	int ret = 0;
++	int reg = 0;
++	u8 bulk_reg[4];
++	struct rk808 *rk808 = charger->rk808;
++
++	/* Recalibrate voltage and current readings if we need to BSP does both
++	 * on CUR_CALIB_UPD, ignoring VOL_CALIB_UPD. Curiously enough, both
++	 * documentation and the BSP show that you perform an update if bit 7
++	 * is 1, but you clear the status by writing a 1 to bit 7.
++	 */
++	regmap_read(rk808->regmap, RK817_GAS_GAUGE_ADC_CONFIG1, &reg);
++	tmp = (reg >> 7) & 0x01;
++	if (tmp) {
++		rk817_bat_calib_cur(charger);
++		rk817_bat_calib_vol(charger);
++		regmap_write_bits(rk808->regmap, RK817_GAS_GAUGE_ADC_CONFIG1,
++				   RK817_CUR_CALIB_UPD, (1 << 7));
++	}
++
++	rk817_bat_calib_cap(charger);
++
++	switch (prop) {
++	case POWER_SUPPLY_PROP_PRESENT:
++		regmap_read(rk808->regmap, RK817_PMIC_CHRG_STS, &reg);
++		val->intval = (reg >> 7);
++		break;
++	case POWER_SUPPLY_PROP_STATUS:
++		if (!charger->plugged_in) {
++			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
++			break;
++		}
++		ret = regmap_read(rk808->regmap, RK817_PMIC_CHRG_STS, &reg);
++		if (ret)
++			return ret;
++		tmp = (reg >> 4) & 0x07;
++		switch (tmp) {
++		case CHRG_OFF:
++			val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
++			break;
++		/* Dead charge is documented, but not explained. I never
++		 * observed it but assume it's a pre-charge for a dead
++		 * battery.
++		 */
++		case DEAD_CHRG:
++		case TRICKLE_CHRG:
++		case CC_OR_CV_CHRG:
++			val->intval = POWER_SUPPLY_STATUS_CHARGING;
++			break;
++		case CHARGE_FINISH:
++			val->intval = POWER_SUPPLY_STATUS_FULL;
++			break;
++		default:
++			val->intval = POWER_SUPPLY_STATUS_UNKNOWN;
++			return -EINVAL;
++
++		}
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_TYPE:
++		ret = regmap_read(rk808->regmap, RK817_PMIC_CHRG_STS, &reg);
++		if (ret)
++			return ret;
++		tmp = (reg >> 4) & 0x07;
++		switch (tmp) {
++		case CHRG_OFF:
++		case CHARGE_FINISH:
++			val->intval = POWER_SUPPLY_CHARGE_TYPE_NONE;
++			break;
++		case TRICKLE_CHRG:
++			val->intval = POWER_SUPPLY_CHARGE_TYPE_TRICKLE;
++			break;
++		case DEAD_CHRG:
++		case CC_OR_CV_CHRG:
++			val->intval = POWER_SUPPLY_CHARGE_TYPE_STANDARD;
++			break;
++		default:
++			val->intval = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
++			break;
++		}
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_FULL:
++		val->intval = ((charger->bat_charge_full_design_uah /
++			       1000) * charger->dsoc) / 100;
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
++		val->intval = charger->bat_charge_full_design_uah;
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_EMPTY_DESIGN:
++		val->intval = 0;
++		break;
++	case POWER_SUPPLY_PROP_CHARGE_NOW:
++		regmap_bulk_read(rk808->regmap, RK817_GAS_GAUGE_Q_PRES_H3,
++				 bulk_reg, 4);
++		charge_now = get_unaligned_be32(bulk_reg);
++		if (charge_now < 0)
++			charge_now = 0;
++		val->intval = ADC_TO_CHARGE_UAH(charge_now, charger->res_div);
++		break;
++	case POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN:
++		val->intval = charger->bat_voltage_min_design_uv;
++		break;
++	case POWER_SUPPLY_PROP_VOLTAGE_BOOT:
++		regmap_bulk_read(rk808->regmap, RK817_GAS_GAUGE_PWRON_VOL_H,
++				 bulk_reg, 2);
++		tmp = get_unaligned_be16(bulk_reg);
++		val->intval = (charger->voltage_k * tmp) +
++			       1000 * charger->voltage_b;
++		break;
++	case POWER_SUPPLY_PROP_VOLTAGE_AVG:
++		regmap_bulk_read(rk808->regmap, RK817_GAS_GAUGE_BAT_VOL_H,
++				 bulk_reg, 2);
++		tmp = get_unaligned_be16(bulk_reg);
++		val->intval = (charger->voltage_k * tmp) +
++			       1000 * charger->voltage_b;
++		break;
++	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
++		regmap_bulk_read(rk808->regmap, RK817_GAS_GAUGE_OCV_VOL_H,
++				 bulk_reg, 2);
++		tmp = get_unaligned_be16(bulk_reg);
++		val->intval = (charger->voltage_k * tmp) +
++			       1000 * charger->voltage_b;
++		break;
++	case POWER_SUPPLY_PROP_CURRENT_BOOT:
++		regmap_bulk_read(rk808->regmap, RK817_GAS_GAUGE_PWRON_CUR_H,
++				 bulk_reg, 2);
++		cur = get_unaligned_be16(bulk_reg);
++		val->intval = ADC_TO_CURRENT(cur, charger->res_div);
++		break;
++	case POWER_SUPPLY_PROP_CURRENT_AVG:
++		regmap_bulk_read(rk808->regmap, RK817_GAS_GAUGE_BAT_CUR_H,
++				 bulk_reg, 2);
++		cur = get_unaligned_be16(bulk_reg);
++		val->intval = ADC_TO_CURRENT(cur, charger->res_div);
++		break;
++	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX:
++		regmap_read(rk808->regmap, RK817_PMIC_CHRG_OUT, &tmp);
++		val->intval = rk817_chg_cur_from_reg(tmp & RK817_CHRG_CUR_SEL);
++		break;
++	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
++		regmap_read(rk808->regmap, RK817_PMIC_CHRG_OUT, &tmp);
++		val->intval = ((((tmp & RK817_CHRG_VOL_SEL) >> 4) * 50000) +
++			       4100000);
++		break;
++	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
++		val->intval = charger->bat_voltage_max_design_uv;
++		break;
++	default:
++		return -EINVAL;
++	}
++	return 0;
++}
++
++static int rk817_chg_get_prop(struct power_supply *ps,
++			      enum power_supply_property prop,
++			      union power_supply_propval *val)
++{
++	struct rk817_charger *charger = power_supply_get_drvdata(ps);
++	int vol, tmp = 0;
++	u8 bulk_reg[2];
++
++	switch (prop) {
++	case POWER_SUPPLY_PROP_ONLINE:
++		val->intval = charger->plugged_in;
++		break;
++	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
++		/* max voltage from datasheet at 5.5v (default 5.0v) */
++		val->intval = 5500000;
++		break;
++	case POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN:
++		/* min voltage from datasheet at 3.8v (default 5.0v) */
++		val->intval = 3800000;
++		break;
++	case POWER_SUPPLY_PROP_VOLTAGE_AVG:
++		/* Note that on my example hardware (an Odroid Go Advance) the
++		 * voltage of the power connector is measured on the register
++		 * labelled USB in the datasheet; I don't know if this is how
++		 * it is designed or just a quirk of the implementation. I
++		 * believe this will also measure the voltage of the USB output
++		 * when in OTG mode, if that is the case we may need to change
++		 * this in the future to return 0 if the power supply status
++		 * is offline.
++		 */
++		regmap_bulk_read(charger->rk808->regmap,
++				 RK817_GAS_GAUGE_USB_VOL_H,
++				 bulk_reg, 2);
++		tmp = get_unaligned_be16(bulk_reg);
++		vol = ((charger->voltage_k * tmp / 1000 + charger->voltage_b) *
++		       60 / 46);
++		val->intval = vol * 1000;
++		break;
++	/* While it's possible that other implementations could use different
++	 * USB types, the current implementation for this PMIC (the Odroid Go
++	 * Advance) only uses a dedicated charging port with no rx/tx lines.
++	 */
++	case POWER_SUPPLY_PROP_USB_TYPE:
++		val->intval = POWER_SUPPLY_USB_TYPE_DCP;
++		break;
++	default:
++		return -EINVAL;
++	}
++	return 0;
++
++}
++
++static irqreturn_t rk817_plug_in_isr(int irq, void *cg)
++{
++	struct rk817_charger *charger;
++
++	charger = (struct rk817_charger *)cg;
++	charger->plugged_in = 1;
++	power_supply_changed(charger->chg_ps);
++	power_supply_changed(charger->bat_ps);
++	dev_dbg(charger->dev, "Power Cord Inserted\n");
++
++	return IRQ_HANDLED;
++}
++
++static irqreturn_t rk817_plug_out_isr(int irq, void *cg)
++{
++	struct rk817_charger *charger;
++	struct rk808 *rk808;
++
++	charger = (struct rk817_charger *)cg;
++	rk808 = charger->rk808;
++	charger->plugged_in = 0;
++	power_supply_changed(charger->bat_ps);
++	power_supply_changed(charger->chg_ps);
++
++	/* For some reason the bits of RK817_PMIC_CHRG_IN reset whenever the
++	 * power cord is unplugged. This was not documented in the BSP kernel
++	 * or the datasheet and only discovered by trial and error. Set minimum
++	 * USB input voltage to 4.5v and enable USB voltage input limit.
++	 */
++	regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_IN,
++			  RK817_USB_VLIM_SEL, (0x05 << 4));
++	regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_IN, RK817_USB_VLIM_EN,
++			  (0x01 << 7));
++
++	/* Set average USB input current limit to 1.5A and enable USB current
++	 * input limit.
++	 */
++	regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_IN,
++			  RK817_USB_ILIM_SEL, 0x03);
++	regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_IN, RK817_USB_ILIM_EN,
++			  (0x01 << 3));
++
++	dev_dbg(charger->dev, "Power Cord Removed\n");
++
++	return IRQ_HANDLED;
++}
++
++static enum power_supply_property rk817_bat_props[] = {
++	POWER_SUPPLY_PROP_PRESENT,
++	POWER_SUPPLY_PROP_STATUS,
++	POWER_SUPPLY_PROP_CHARGE_TYPE,
++	POWER_SUPPLY_PROP_CHARGE_FULL,
++	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
++	POWER_SUPPLY_PROP_CHARGE_EMPTY_DESIGN,
++	POWER_SUPPLY_PROP_CHARGE_NOW,
++	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
++	POWER_SUPPLY_PROP_VOLTAGE_BOOT,
++	POWER_SUPPLY_PROP_VOLTAGE_AVG,
++	POWER_SUPPLY_PROP_VOLTAGE_OCV,
++	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX,
++	POWER_SUPPLY_PROP_CURRENT_BOOT,
++	POWER_SUPPLY_PROP_CURRENT_AVG,
++	POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN,
++	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
++};
++
++static enum power_supply_property rk817_chg_props[] = {
++	POWER_SUPPLY_PROP_ONLINE,
++	POWER_SUPPLY_PROP_USB_TYPE,
++	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
++	POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN,
++	POWER_SUPPLY_PROP_VOLTAGE_AVG,
++};
++
++static enum power_supply_usb_type rk817_usb_type[] = {
++	POWER_SUPPLY_USB_TYPE_DCP,
++	POWER_SUPPLY_USB_TYPE_UNKNOWN,
++};
++
++static const struct power_supply_desc rk817_bat_desc = {
++	.name = "rk817-battery",
++	.type = POWER_SUPPLY_TYPE_BATTERY,
++	.properties = rk817_bat_props,
++	.num_properties = ARRAY_SIZE(rk817_bat_props),
++	.get_property = rk817_bat_get_prop,
++};
++
++static const struct power_supply_desc rk817_chg_desc = {
++	.name = "rk817-charger",
++	.type = POWER_SUPPLY_TYPE_USB,
++	.usb_types = rk817_usb_type,
++	.num_usb_types = ARRAY_SIZE(rk817_usb_type),
++	.properties = rk817_chg_props,
++	.num_properties = ARRAY_SIZE(rk817_chg_props),
++	.get_property = rk817_chg_get_prop,
++};
++
++static int
++rk817_read_or_set_full_charge_on_boot(struct rk817_charger *charger,
++				      struct power_supply_battery_info *bat_info)
++{
++	struct rk808 *rk808 = charger->rk808;
++	u8 bulk_reg[4];
++	u32 design_charge_mah = (charger->bat_charge_full_design_uah / 1000);
++	u32 boot_voltage, boot_charge, tmp, full_charge_cap;
++	int ret, boot_capacity;
++
++	/* Read DSOC value if pre-existing. If not, initialize at 100%.
++	 * Note endianness, also register says it's for resistance,
++	 * however BSP kernel treats this as an nvram field for the DSOC
++	 * as best I can tell. Doing the same for backwards compatibility.
++	 */
++	ret = regmap_bulk_read(rk808->regmap, RK817_GAS_GAUGE_BAT_R1, bulk_reg, 3);
++	if (ret < 0)
++		return ret;
++	charger->dsoc = get_unaligned_le24(bulk_reg);
++	/* If we have an invalid DSOC, write 100 (100000) as default. */
++	if (charger->dsoc < 1000 || charger->dsoc > 100000) {
++		charger->dsoc = 100000;
++		put_unaligned_le24(charger->dsoc, bulk_reg);
++		regmap_bulk_write(rk808->regmap, RK817_GAS_GAUGE_BAT_R1,
++				  bulk_reg, 3);
++	}
++
++	/* Register appears to be nvram that stores capacity in mAH. Note
++	 * endianness, keeping consistent with BSP kernel, however it looks
++	 * like we can use any arbitrary method to store value if we don't care
++	 * about compatibility. Additionally, it doesn't appear that this value
++	 * is used for anything, so realistically getting it and setting it is
++	 * to ensure backward compatibility with BSP and serves no purpose with
++	 * this driver, and I'm not sure if the BSP driver does anything with
++	 * this value either.
++	 */
++
++	ret = regmap_bulk_read(rk808->regmap, RK817_GAS_GAUGE_DATA3, bulk_reg, 3);
++	if (ret < 0)
++		return ret;
++
++	full_charge_cap = get_unaligned_le24(bulk_reg);
++
++	/* Sanity checking for values equal to zero or less than would be
++	 * practical for this device (BSP Kernel assumes 500mAH or less) for
++	 * practicality purposes.
++	 */
++	if (full_charge_cap < 500) {
++		put_unaligned_le24(design_charge_mah, bulk_reg);
++		ret = regmap_bulk_write(rk808->regmap, RK817_GAS_GAUGE_DATA3, bulk_reg, 3);
++		if (ret < 0)
++			return ret;
++		dev_info(charger->dev,
++			 "Invalid NVRAM Data for max charge, setting to design capacity %u uAH\n",
++			 design_charge_mah*1000);
++	}
++
++	/* Capture boot voltage and look up boot capacity from OCV tables. */
++
++	regmap_bulk_read(rk808->regmap, RK817_GAS_GAUGE_PWRON_VOL_H,
++			 bulk_reg, 2);
++	tmp = get_unaligned_be16(bulk_reg);
++	boot_voltage = (charger->voltage_k * tmp) + 1000 * charger->voltage_b;
++	/* Since only implementation has no working thermistor, assume 20C for
++	 * OCV lookup. If lookup fails, report error with OCV table.
++	 */
++	boot_capacity = power_supply_batinfo_ocv2cap(bat_info, boot_voltage, 20);
++	if (boot_capacity < 0) {
++		return dev_err_probe(charger->dev,
++				     boot_capacity,
++				     "Unable to read boot charge from OCV table: %i\n",
++				     boot_capacity);
++	}
++
++	/* Write boot charge to registers, estimate boot charge based on
++	 * capacity and max charge of battery.
++	 */
++	boot_charge = (boot_capacity * charger->bat_charge_full_design_uah) / 100;
++	tmp = CHARGE_TO_ADC((boot_charge / 1000), charger->res_div);
++	put_unaligned_be32(tmp, bulk_reg);
++	regmap_bulk_write(rk808->regmap, RK817_GAS_GAUGE_Q_INIT_H3,
++			  bulk_reg, 4);
++
++	/* Set QMAX value to max design capacity. */
++	tmp = CHARGE_TO_ADC((charger->bat_charge_full_design_uah / 1000),
++			    charger->res_div);
++	put_unaligned_be32(tmp, bulk_reg);
++	ret = regmap_bulk_write(rk808->regmap, RK817_GAS_GAUGE_Q_MAX_H3,
++				bulk_reg, 4);
++	if (ret < 0)
++		return ret;
++
++	return 0;
++}
++
++static int rk817_battery_init(struct rk817_charger *charger,
++			      struct power_supply_battery_info *bat_info)
++{
++	struct rk808 *rk808 = charger->rk808;
++	u32 tmp, max_chg_vol_mv, max_chg_cur_ma;
++	u8 max_chg_vol_reg, chg_term_i_reg, max_chg_cur_reg;
++	int ret, chg_term_ma;
++	u8 bulk_reg[2];
++
++	/* Get initial plug state */
++	regmap_read(rk808->regmap, RK817_SYS_STS, &tmp);
++	charger->plugged_in = (tmp & RK817_PLUG_IN_STS);
++
++	/* Turn on all ADC functions to measure battery, USB, and sys voltage,
++	 * as well as batt temp. Note only tested implementation so far does
++	 * not use a battery with a thermistor.
++	 */
++	regmap_write(rk808->regmap, RK817_GAS_GAUGE_ADC_CONFIG0, 0xfc);
++
++	/* Set relax mode voltage sampling interval and ADC offset calibration
++	 * interval to 8 minutes to mirror BSP kernel. Set voltage and current
++	 * modes to average to mirror BSP kernel.
++	 */
++	regmap_write(rk808->regmap, RK817_GAS_GAUGE_GG_CON, 0x04);
++
++	/* Write relax threshold, derived from sleep enter current. */
++	tmp = CURRENT_TO_ADC(charger->sleep_enter_current, charger->res_div);
++	put_unaligned_be16(tmp, bulk_reg);
++	regmap_bulk_write(rk808->regmap, RK817_GAS_GAUGE_RELAX_THRE_H,
++			  bulk_reg, 2);
++
++	/* Write sleep sample current, derived from sleep filter current. */
++	tmp = CURRENT_TO_ADC(charger->sleep_filter_current, charger->res_div);
++	put_unaligned_be16(tmp, bulk_reg);
++	regmap_bulk_write(rk808->regmap, RK817_GAS_GAUGE_SLEEP_CON_SAMP_CUR_H,
++			  bulk_reg, 2);
++
++	/* Restart battery relax voltage */
++	regmap_write_bits(rk808->regmap, RK817_GAS_GAUGE_GG_STS,
++			  RK817_RELAX_VOL_UPD, (0x0 << 2));
++
++	/* Set OCV Threshold Voltage to 127.5mV. This was hard coded like this
++	 * in the BSP.
++	 */
++	regmap_write(rk808->regmap, RK817_GAS_GAUGE_OCV_THRE_VOL, 0xff);
++
++	/* Set maximum charging voltage to battery max voltage. Trying to be
++	 * incredibly safe with these value, as setting them wrong could
++	 * overcharge the battery, which would be very bad.
++	 */
++	max_chg_vol_mv = bat_info->constant_charge_voltage_max_uv / 1000;
++	max_chg_cur_ma = bat_info->constant_charge_current_max_ua / 1000;
++
++	if (max_chg_vol_mv < 4100) {
++		return dev_err_probe(charger->dev, -EINVAL,
++		       "invalid max charger voltage, value %u unsupported\n",
++			max_chg_vol_mv * 1000);
++	}
++	if (max_chg_vol_mv > 4450) {
++		dev_info(charger->dev,
++			 "Setting max charge voltage to 4450000uv\n");
++		max_chg_vol_mv = 4450;
++	}
++
++	if (max_chg_cur_ma < 500) {
++		return dev_err_probe(charger->dev, -EINVAL,
++		       "invalid max charger current, value %u unsupported\n",
++		       max_chg_cur_ma * 1000);
++	}
++	if (max_chg_cur_ma > 3500)
++		dev_info(charger->dev,
++			 "Setting max charge current to 3500000ua\n");
++
++	/* Now that the values are sanity checked, if we subtract 4100 from the
++	 * max voltage and divide by 50, we conviently get the exact value for
++	 * the registers, which are 4.1v, 4.15v, 4.2v, 4.25v, 4.3v, 4.35v,
++	 * 4.4v, and 4.45v; these correspond to values 0x00 through 0x07.
++	 */
++	max_chg_vol_reg = (max_chg_vol_mv - 4100) / 50;
++
++	max_chg_cur_reg = rk817_chg_cur_to_reg(max_chg_cur_ma);
++
++	if (max_chg_vol_reg < 0 || max_chg_vol_reg > 7) {
++		return dev_err_probe(charger->dev, -EINVAL,
++		       "invalid max charger voltage, value %u unsupported\n",
++		       max_chg_vol_mv * 1000);
++	}
++	if (max_chg_cur_reg < 0 || max_chg_cur_reg > 7) {
++		return dev_err_probe(charger->dev, -EINVAL,
++		       "invalid max charger current, value %u unsupported\n",
++		       max_chg_cur_ma * 1000);
++	}
++
++	/* Write the values to the registers, and deliver an emergency warning
++	 * in the event they are not written correctly.
++	 */
++	ret = regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_OUT,
++				RK817_CHRG_VOL_SEL, (max_chg_vol_reg << 4));
++	if (ret) {
++		dev_emerg(charger->dev,
++			  "Danger, unable to set max charger voltage: %u\n",
++			  ret);
++	}
++
++	ret = regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_OUT,
++				RK817_CHRG_CUR_SEL, max_chg_cur_reg);
++	if (ret) {
++		dev_emerg(charger->dev,
++			  "Danger, unable to set max charger current: %u\n",
++			  ret);
++	}
++
++	/* Set charge finishing mode to analog */
++	regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_TERM,
++			  RK817_CHRG_TERM_ANA_DIG, (0x0 << 2));
++
++	/* Set charge finish current, warn if value not in range and keep
++	 * default.
++	 */
++	chg_term_ma = bat_info->charge_term_current_ua / 1000;
++	if (chg_term_ma < 150 || chg_term_ma > 400) {
++		dev_warn(charger->dev,
++			 "Invalid charge termination value %u, keeping default\n",
++			 chg_term_ma * 1000);
++		chg_term_ma = 200;
++	}
++
++	/* Values of 150ma, 200ma, 300ma, and 400ma correspond to 00, 01, 10,
++	 * and 11.
++	 */
++	chg_term_i_reg = (chg_term_ma - 100) / 100;
++	regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_TERM,
++			  RK817_CHRG_TERM_ANA_SEL, chg_term_i_reg);
++
++	ret = rk817_read_or_set_full_charge_on_boot(charger, bat_info);
++	if (ret < 0)
++		return ret;
++
++	/* Set minimum USB input voltage to 4.5v and enable USB voltage input
++	 * limit.
++	 */
++	regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_IN,
++			  RK817_USB_VLIM_SEL, (0x05 << 4));
++	regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_IN, RK817_USB_VLIM_EN,
++			  (0x01 << 7));
++
++	/* Set average USB input current limit to 1.5A and enable USB current
++	 * input limit.
++	 */
++	regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_IN,
++			  RK817_USB_ILIM_SEL, 0x03);
++	regmap_write_bits(rk808->regmap, RK817_PMIC_CHRG_IN, RK817_USB_ILIM_EN,
++			  (0x01 << 3));
++
++	return 0;
++}
++
++static int rk817_charger_probe(struct platform_device *pdev)
++{
++	struct rk808 *rk808 = dev_get_drvdata(pdev->dev.parent);
++	struct rk817_charger *charger;
++	struct device_node *node;
++	struct power_supply_battery_info *bat_info;
++	struct device *dev = &pdev->dev;
++	struct power_supply_config pscfg = {};
++	int plugin_irq, plugout_irq;
++	int of_value;
++	int ret;
++
++	node = of_get_child_by_name(dev->parent->of_node, "battery");
++	if (!node)
++		return -ENODEV;
++
++	charger = devm_kzalloc(&pdev->dev, sizeof(*charger), GFP_KERNEL);
++	if (!charger)
++		return -ENOMEM;
++
++	charger->rk808 = rk808;
++
++	charger->dev = &pdev->dev;
++	platform_set_drvdata(pdev, charger);
++
++	rk817_bat_calib_vol(charger);
++
++	pscfg.drv_data = charger;
++	pscfg.of_node = node;
++
++	/* Get sample resistor value. Note only values of 10000 or 20000
++	 * microohms are allowed. Schematic for my test implementation (an
++	 * Odroid Go Advance) shows a 10 milliohm resistor for reference.
++	 */
++	ret = of_property_read_u32(node, "rockchip,resistor-sense-micro-ohms",
++				   &of_value);
++	if (ret < 0) {
++		return dev_err_probe(dev, ret,
++				     "Error reading sample resistor value\n");
++	}
++	/* Store as a 1 or a 2, since all we really use the value for is as a
++	 * divisor in some calculations.
++	 */
++	charger->res_div = (of_value == 20000) ? 2 : 1;
++
++	/* Get sleep enter current value. Not sure what this value is for
++	 * other than to help calibrate the relax threshold.
++	 */
++	ret = of_property_read_u32(node,
++				   "rockchip,sleep-enter-current-microamp",
++				   &of_value);
++	if (ret < 0) {
++		return dev_err_probe(dev, ret,
++				     "Error reading sleep enter cur value\n");
++	}
++	charger->sleep_enter_current = of_value;
++
++	/* Get sleep filter current value */
++	ret = of_property_read_u32(node,
++				   "rockchip,sleep-filter-current-microamp",
++				   &of_value);
++	if (ret < 0) {
++		return dev_err_probe(dev, ret,
++				     "Error reading sleep filter cur value\n");
++	}
++
++	charger->sleep_filter_current = of_value;
++
++	charger->bat_ps = devm_power_supply_register(&pdev->dev,
++						     &rk817_bat_desc, &pscfg);
++
++	charger->chg_ps = devm_power_supply_register(&pdev->dev,
++						     &rk817_chg_desc, &pscfg);
++
++	if (IS_ERR(charger->chg_ps))
++		return dev_err_probe(dev, -EINVAL,
++				     "Battery failed to probe\n");
++
++	if (IS_ERR(charger->chg_ps))
++		return dev_err_probe(dev, -EINVAL,
++				     "Charger failed to probe\n");
++
++	ret = power_supply_get_battery_info(charger->bat_ps, &bat_info);
++	if (ret) {
++		return dev_err_probe(dev, ret,
++				     "Unable to get battery info: %d\n", ret);
++	}
++
++	if ((!bat_info->charge_full_design_uah) ||
++	    (!bat_info->voltage_min_design_uv) ||
++	    (!bat_info->voltage_max_design_uv) ||
++	    (!bat_info->constant_charge_voltage_max_uv) ||
++	    (!bat_info->constant_charge_current_max_ua) ||
++	    (!bat_info->charge_term_current_ua)) {
++		return dev_err_probe(dev, -EINVAL,
++				     "Required battery info missing.\n");
++	}
++
++	charger->bat_charge_full_design_uah = bat_info->charge_full_design_uah;
++	charger->bat_voltage_min_design_uv = bat_info->voltage_min_design_uv;
++	charger->bat_voltage_max_design_uv = bat_info->voltage_max_design_uv;
++
++	/* Has to run after power_supply_get_battery_info as it depends on some
++	 * values discovered from that routine.
++	 */
++	ret = rk817_battery_init(charger, bat_info);
++	if (ret)
++		return ret;
++
++	power_supply_put_battery_info(charger->bat_ps, bat_info);
++
++	plugin_irq = platform_get_irq(pdev, 0);
++	if (plugin_irq < 0)
++		return plugin_irq;
++
++	plugout_irq = platform_get_irq(pdev, 1);
++	if (plugout_irq < 0)
++		return plugout_irq;
++
++	ret = devm_request_threaded_irq(charger->dev, plugin_irq, NULL,
++					rk817_plug_in_isr,
++					IRQF_TRIGGER_RISING | IRQF_ONESHOT,
++					"rk817_plug_in", charger);
++	if (ret) {
++		return dev_err_probe(&pdev->dev, ret,
++				      "plug_in_irq request failed!\n");
++	}
++
++	ret = devm_request_threaded_irq(charger->dev, plugout_irq, NULL,
++					rk817_plug_out_isr,
++					IRQF_TRIGGER_RISING | IRQF_ONESHOT,
++					"rk817_plug_out", charger);
++	if (ret) {
++		return dev_err_probe(&pdev->dev, ret,
++				     "plug_out_irq request failed!\n");
++	}
++
++	return 0;
++}
++
++
++static struct platform_driver rk817_charger_driver = {
++	.probe    = rk817_charger_probe,
++	.driver   = {
++		.name  = "rk817-charger",
++	},
++};
++module_platform_driver(rk817_charger_driver);
++
++MODULE_DESCRIPTION("Battery power supply driver for RK817 PMIC");
++MODULE_AUTHOR("Maya Matuszczyk <maccraft123mc@gmail.com>");
++MODULE_LICENSE("GPL");
+-- 
+2.29.2
+
+From c49eec4632cfbf1d24702cc46376031bc4671de5 Mon Sep 17 00:00:00 2001
+From: Peter Geis <pgwipeout@gmail.com>
+Date: Tue, 4 Jan 2022 16:25:15 -0500
+Subject: [PATCH 62/83] net: phy: fix motorcomm module automatic loading
+
+The sentinel compatible entry has whitespace errors that cause automatic
+module loading to fail. Fix this by removing the whitespace error.
+While we are here, there's no need to denote the sentenel at all so
+remove it.
+
+Fixes: 48e8c6f1612b ("net: phy: add driver for Motorcomm yt8511 phy")
+
+Signed-off-by: Peter Geis <pgwipeout@gmail.com>
+---
+ drivers/net/phy/motorcomm.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/net/phy/motorcomm.c b/drivers/net/phy/motorcomm.c
+index 7e6ac2c5e..1e3a4eed3 100644
+--- a/drivers/net/phy/motorcomm.c
++++ b/drivers/net/phy/motorcomm.c
+@@ -131,7 +131,7 @@ MODULE_LICENSE("GPL");
+ 
+ static const struct mdio_device_id __maybe_unused motorcomm_tbl[] = {
+ 	{ PHY_ID_MATCH_EXACT(PHY_ID_YT8511) },
+-	{ /* sentinal */ }
++	{}
+ };
+ 
+ MODULE_DEVICE_TABLE(mdio, motorcomm_tbl);
+-- 
+2.29.2
+
+From d7edfcb76f35b3eca738bb1bb80c12ccbfec0cf6 Mon Sep 17 00:00:00 2001
+From: Samuel Holland <samuel@sholland.org>
+Date: Sun, 24 Oct 2021 03:37:12 -0500
+Subject: [PATCH 72/83] mfd: rk808: Fix power key polarity
+
+The key up and key down events were backwards, as seen by evtest.
+
+Signed-off-by: Samuel Holland <samuel@sholland.org>
+Signed-off-by: Peter Geis <pgwipeout@gmail.com>
+---
+ drivers/mfd/rk808.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mfd/rk808.c b/drivers/mfd/rk808.c
+index 533d740a5..fc0c57c20 100644
+--- a/drivers/mfd/rk808.c
++++ b/drivers/mfd/rk808.c
+@@ -122,13 +122,13 @@ static const struct resource rk817_rtc_resources[] = {
+ };
+ 
+ static const struct resource rk805_key_resources[] = {
+-	DEFINE_RES_IRQ(RK805_IRQ_PWRON_RISE),
+ 	DEFINE_RES_IRQ(RK805_IRQ_PWRON_FALL),
++	DEFINE_RES_IRQ(RK805_IRQ_PWRON_RISE),
+ };
+ 
+ static const struct resource rk817_pwrkey_resources[] = {
+-	DEFINE_RES_IRQ(RK817_IRQ_PWRON_RISE),
+ 	DEFINE_RES_IRQ(RK817_IRQ_PWRON_FALL),
++	DEFINE_RES_IRQ(RK817_IRQ_PWRON_RISE),
+ };
+ 
+ static const struct resource rk817_charger_resources[] = {
+-- 
+2.29.2
+
+From 43e2c8c219a7387b63fd06f0eb84f69bef1e5d9d Mon Sep 17 00:00:00 2001
+From: Samuel Holland <samuel@sholland.org>
+Date: Mon, 3 Jan 2022 14:07:47 -0600
+Subject: [PATCH 79/83] fixup! fixup! phy: phy-rockchip-inno-usb2: support
+ muxed interrupts
+
+---
+ drivers/phy/rockchip/phy-rockchip-inno-usb2.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+index eca77e44a..cba5c32cb 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+@@ -940,8 +940,14 @@ static irqreturn_t rockchip_usb2phy_irq(int irq, void *data)
+ 		if (!rport->phy)
+ 			continue;
+ 
+-		/* Handle linestate irq for both otg port and host port */
+-		ret = rockchip_usb2phy_linestate_irq(irq, rport);
++		switch (rport->port_id) {
++		case USB2PHY_PORT_OTG:
++			ret |= rockchip_usb2phy_otg_mux_irq(irq, rport);
++			break;
++		case USB2PHY_PORT_HOST:
++			ret |= rockchip_usb2phy_linestate_irq(irq, rport);
++			break;
++		}
+ 	}
+ 
+ 	return ret;
+-- 
+2.29.2
+
+From 66d3d5ee29ff7ed759e7f7ce7bb8da8618b95b97 Mon Sep 17 00:00:00 2001
+From: Samuel Holland <samuel@sholland.org>
+Date: Mon, 3 Jan 2022 14:03:19 -0600
+Subject: [PATCH 80/83] phy: phy-rockchip-inno-usb2: Support multi-bit mask
+ properties
+
+This allows using a single property for both rising/falling
+interrupts for bvalid or id.
+
+Signed-off-by: Samuel Holland <samuel@sholland.org>
+---
+ drivers/phy/rockchip/phy-rockchip-inno-usb2.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+index cba5c32cb..d6287356c 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+@@ -253,7 +253,7 @@ static inline bool property_enabled(struct regmap *base,
+ 		return false;
+ 
+ 	tmp = (orig & mask) >> reg->bitstart;
+-	return tmp == reg->enable;
++	return tmp != reg->disable;
+ }
+ 
+ static int rockchip_usb2phy_clk480m_prepare(struct clk_hw *hw)
+-- 
+2.29.2
+
+From b76f5a2854ac37913f0a96eac39679ae608c5b90 Mon Sep 17 00:00:00 2001
+From: Samuel Holland <samuel@sholland.org>
+Date: Mon, 3 Jan 2022 14:05:50 -0600
+Subject: [PATCH 81/83] phy: phy-rockchip-inno-usb2: Handle bvalid falling
+
+This detects OTG plugout immediately.
+
+Signed-off-by: Samuel Holland <samuel@sholland.org>
+---
+ drivers/phy/rockchip/phy-rockchip-inno-usb2.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+index d6287356c..d40a5591f 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+@@ -1518,9 +1518,9 @@ static const struct rockchip_usb2phy_cfg rk3568_phy_cfgs[] = {
+ 		.port_cfgs	= {
+ 			[USB2PHY_PORT_OTG] = {
+ 				.phy_sus	= { 0x0000, 8, 0, 0, 0x1d1 },
+-				.bvalid_det_en	= { 0x0080, 2, 2, 0, 1 },
+-				.bvalid_det_st	= { 0x0084, 2, 2, 0, 1 },
+-				.bvalid_det_clr = { 0x0088, 2, 2, 0, 1 },
++				.bvalid_det_en	= { 0x0080, 3, 2, 0, 0x3 },
++				.bvalid_det_st	= { 0x0084, 3, 2, 0, 0x3 },
++				.bvalid_det_clr = { 0x0088, 3, 2, 0, 0x3 },
+ 				.utmi_avalid	= { 0x00c0, 10, 10, 0, 1 },
+ 				.utmi_bvalid	= { 0x00c0, 9, 9, 0, 1 },
+ 			},
+-- 
+2.29.2
+
+From 5f99b92cd263719730ad29567e368c316b9fa4b0 Mon Sep 17 00:00:00 2001
+From: Samuel Holland <samuel@sholland.org>
+Date: Mon, 3 Jan 2022 14:08:50 -0600
+Subject: [PATCH 82/83] phy: phy-rockchip-inno-usb2: Handle ID IRQ
+
+This supports USB OTG host mode without another extcon.
+
+Signed-off-by: Samuel Holland <samuel@sholland.org>
+---
+ drivers/phy/rockchip/phy-rockchip-inno-usb2.c | 54 +++++++++++++++++--
+ 1 file changed, 50 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+index d40a5591f..7538a7526 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+@@ -116,11 +116,15 @@ struct rockchip_chg_det_reg {
+  * @bvalid_det_en: vbus valid rise detection enable register.
+  * @bvalid_det_st: vbus valid rise detection status register.
+  * @bvalid_det_clr: vbus valid rise detection clear register.
++ * @id_det_en: id detection enable register.
++ * @id_det_st: id detection state register.
++ * @id_det_clr: id detection clear register.
+  * @ls_det_en: linestate detection enable register.
+  * @ls_det_st: linestate detection state register.
+  * @ls_det_clr: linestate detection clear register.
+  * @utmi_avalid: utmi vbus avalid status register.
+  * @utmi_bvalid: utmi vbus bvalid status register.
++ * @utmi_id: utmi id state register.
+  * @utmi_ls: utmi linestate state register.
+  * @utmi_hstdet: utmi host disconnect register.
+  */
+@@ -129,11 +133,15 @@ struct rockchip_usb2phy_port_cfg {
+ 	struct usb2phy_reg	bvalid_det_en;
+ 	struct usb2phy_reg	bvalid_det_st;
+ 	struct usb2phy_reg	bvalid_det_clr;
++	struct usb2phy_reg	id_det_en;
++	struct usb2phy_reg	id_det_st;
++	struct usb2phy_reg	id_det_clr;
+ 	struct usb2phy_reg	ls_det_en;
+ 	struct usb2phy_reg	ls_det_st;
+ 	struct usb2phy_reg	ls_det_clr;
+ 	struct usb2phy_reg	utmi_avalid;
+ 	struct usb2phy_reg	utmi_bvalid;
++	struct usb2phy_reg	utmi_id;
+ 	struct usb2phy_reg	utmi_ls;
+ 	struct usb2phy_reg	utmi_hstdet;
+ };
+@@ -419,6 +427,19 @@ static int rockchip_usb2phy_init(struct phy *phy)
+ 			if (ret)
+ 				goto out;
+ 
++			/* clear id status and enable id detect irq */
++			ret = property_enable(rphy->grf,
++					      &rport->port_cfg->id_det_clr,
++					      true);
++			if (ret)
++				goto out;
++
++			ret = property_enable(rphy->grf,
++					      &rport->port_cfg->id_det_en,
++					      true);
++			if (ret)
++				goto out;
++
+ 			schedule_delayed_work(&rport->otg_sm_work,
+ 					      OTG_SCHEDULE_DELAY * 3);
+ 		} else {
+@@ -917,15 +938,36 @@ static irqreturn_t rockchip_usb2phy_bvalid_irq(int irq, void *data)
+ 	return IRQ_HANDLED;
+ }
+ 
+-static irqreturn_t rockchip_usb2phy_otg_mux_irq(int irq, void *data)
++static irqreturn_t rockchip_usb2phy_id_irq(int irq, void *data)
+ {
+ 	struct rockchip_usb2phy_port *rport = data;
+ 	struct rockchip_usb2phy *rphy = dev_get_drvdata(rport->phy->dev.parent);
++	bool id;
+ 
+-	if (property_enabled(rphy->grf, &rport->port_cfg->bvalid_det_st))
+-		return rockchip_usb2phy_bvalid_irq(irq, data);
+-	else
++	if (!property_enabled(rphy->grf, &rport->port_cfg->id_det_st))
+ 		return IRQ_NONE;
++
++	mutex_lock(&rport->mutex);
++
++	/* clear bvalid detect irq pending status */
++	property_enable(rphy->grf, &rport->port_cfg->id_det_clr, true);
++
++	mutex_unlock(&rport->mutex);
++
++	id = property_enabled(rphy->grf, &rport->port_cfg->utmi_id);
++	extcon_set_state_sync(rphy->edev, EXTCON_USB_HOST, !id);
++
++	return IRQ_HANDLED;
++}
++
++static irqreturn_t rockchip_usb2phy_otg_mux_irq(int irq, void *data)
++{
++	irqreturn_t ret = IRQ_NONE;
++
++	ret |= rockchip_usb2phy_bvalid_irq(irq, data);
++	ret |= rockchip_usb2phy_id_irq(irq, data);
++
++	return ret;
+ }
+ 
+ static irqreturn_t rockchip_usb2phy_irq(int irq, void *data)
+@@ -1521,8 +1563,12 @@ static const struct rockchip_usb2phy_cfg rk3568_phy_cfgs[] = {
+ 				.bvalid_det_en	= { 0x0080, 3, 2, 0, 0x3 },
+ 				.bvalid_det_st	= { 0x0084, 3, 2, 0, 0x3 },
+ 				.bvalid_det_clr = { 0x0088, 3, 2, 0, 0x3 },
++				.id_det_en	= { 0x0080, 5, 4, 0, 0x3 },
++				.id_det_st	= { 0x0084, 5, 4, 0, 0x3 },
++				.id_det_clr	= { 0x0088, 5, 4, 0, 0x3 },
+ 				.utmi_avalid	= { 0x00c0, 10, 10, 0, 1 },
+ 				.utmi_bvalid	= { 0x00c0, 9, 9, 0, 1 },
++				.utmi_id	= { 0x00c0, 6, 6, 0, 1 },
+ 			},
+ 			[USB2PHY_PORT_HOST] = {
+ 				/* Select suspend control from controller */
+-- 
+2.29.2
+

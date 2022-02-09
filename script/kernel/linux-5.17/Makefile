@@ -179,7 +179,7 @@ ifeq (1,1)
 # patches from LE 29.01.2022
 PATCHFILES += 0702-rockchip-from-list.patch
 PATCHFILES += 0711-v4l2-from-list.patch
-#PATCHFILES += 0720-drm-from-list.patch
+PATCHFILES += 0720-drm-from-list.patch
 PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
 #PATCHFILES += 0730-drm-rockchip.patch
 PATCHFILES += 0731-v4l2-rockchip.patch
@@ -191,17 +191,17 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 356x patches -----------------------------------------
-PATCHFILES += 0800-phy-add-usb2-phy.patch
-PATCHFILES += 0801-arm64-dts-rockchip-add-usb2-nodes-to-rk3568-device-tree.patch
-PATCHFILES += 0802-phy-rockchip-add-naneng-combo-phy-for-pcie-sata-usb3.patch
-PATCHFILES += 0803-arm64-dts-rockchip-add-rk356x-usb3-pcie-sata-nodes.patch
+# based on https://gitlab.com/pine64-org/quartz-bsp/linux-next/-/commits/quartz64-v5.17 @8.02.2022
+PATCHFILES += 0800-rk356x-add-USB2-USB3-PCIe-mfd.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=608673
-PATCHFILES += 0808-drm-rockchip-RK356x-VOP2-support-v4.1.patch
-PATCHFILES += 0810-add-GPU-for-RK356x-SoCs.patch
-PATCHFILES += 0809-hdmi-Audio-on-RK356x-Quartz64-Model-A.patch
-PATCHFILES += 0813-arm64-dts-enable-hantro-on-rk356x.patch
-PATCHFILES += 0812-media-hantro-add-rk3566-support.patch
-PATCHFILES += 0850-arm64-dts-add-x96-x6-tvbox-dt.patch
+PATCHFILES += 0801-drm-rockchip-RK356x-VOP2-support-v4.1.patch
+PATCHFILES += 0803-media-hantro-add-rk3566-support.patch
+PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-pcie-in-rk35xx.dtsi.patch
+PATCHFILES += 0832-arm64-dts-rockchip-enable-hantro-on-rk356x.patch
+PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
+PATCHFILES += 0834-arm64-dts-rockchip-add-dts-for-Firefly-Station-M2-rk.patch
+PATCHFILES += 0835-arm64-dts-rockchip-add-early-quartz64-model-b.patch
+PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
 endif
 #------------------------------------------------------------
 
