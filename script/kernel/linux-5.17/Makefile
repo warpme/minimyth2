@@ -196,7 +196,7 @@ ifeq (1,1)
 # based on https://gitlab.com/pine64-org/quartz-bsp/linux-next/-/commits/quartz64-v5.17 @8.02.2022
 PATCHFILES += 0800-rk356x-add-USB2-USB3-PCIe-mfd.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=608673
-PATCHFILES += 0801-drm-rockchip-RK356x-VOP2-support-v4.1.patch
+PATCHFILES += 0801-drm-rockchip-RK356x-VOP2-support-v5.1.patch
 PATCHFILES += 0803-media-hantro-add-rk3566-support.patch
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-pcie-in-rk35xx.dtsi.patch
 PATCHFILES += 0832-arm64-dts-rockchip-enable-hantro-on-rk356x.patch

@@ -155,7 +155,6 @@ index 8677c8271678..e352e0404f77 100644
  
  static const struct component_ops dw_hdmi_rockchip_ops = {
 
-
 Add a new dw_hdmi_plat_data struct and new compatible for rk3568.
 
 Signed-off-by: Benjamin Gaignard <benjamin.gaignard@collabora.com>
@@ -234,7 +233,6 @@ index e352e0404f77..262eef614cb1 100644
  	drm_encoder_helper_add(encoder, &dw_hdmi_rockchip_encoder_helper_funcs);
  	drm_simple_encoder_init(drm, encoder, DRM_MODE_ENCODER_TMDS);
  
-
 
 The RK3568 has HDMI_TX_AVDD0V9 and HDMI_TX_AVDD_1V8 supply inputs needed
 for the HDMI port. add support for these to the driver for boards which
@@ -339,209 +337,22 @@ index 262eef614cb1..3d7c3f6fdf22 100644
  
  static const struct component_ops dw_hdmi_rockchip_ops = {
 
-
-The rk3568 HDMI has an additional clock that needs to be enabled for the
-HDMI controller to work. The purpose of that clock is not clear. It is
-named "hclk" in the downstream driver, so use the same name.
-
-Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
----
- drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c | 18 ++++++++++++++++++
- 1 file changed, 18 insertions(+)
-
-diff --git a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
-index 3d7c3f6fdf22..b9928e622adf 100644
---- a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
-+++ b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
-@@ -76,6 +76,7 @@ struct rockchip_hdmi {
- 	const struct rockchip_hdmi_chip_data *chip_data;
- 	struct clk *ref_clk;
- 	struct clk *grf_clk;
-+	struct clk *hclk_clk;
- 	struct dw_hdmi *hdmi;
- 	struct regulator *avdd_0v9;
- 	struct regulator *avdd_1v8;
-@@ -226,6 +227,16 @@ static int rockchip_hdmi_parse_dt(struct rockchip_hdmi *hdmi)
- 		return PTR_ERR(hdmi->grf_clk);
- 	}
- 
-+	hdmi->hclk_clk = devm_clk_get(hdmi->dev, "hclk");
-+	if (PTR_ERR(hdmi->hclk_clk) == -ENOENT) {
-+		hdmi->hclk_clk = NULL;
-+	} else if (PTR_ERR(hdmi->hclk_clk) == -EPROBE_DEFER) {
-+		return -EPROBE_DEFER;
-+	} else if (IS_ERR(hdmi->hclk_clk)) {
-+		DRM_DEV_ERROR(hdmi->dev, "failed to get hclk_clk clock\n");
-+		return PTR_ERR(hdmi->hclk_clk);
-+	}
-+
- 	hdmi->avdd_0v9 = devm_regulator_get(hdmi->dev, "avdd-0v9");
- 	if (IS_ERR(hdmi->avdd_0v9))
- 		return PTR_ERR(hdmi->avdd_0v9);
-@@ -593,6 +604,13 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
- 		goto err_clk;
- 	}
- 
-+	ret = clk_prepare_enable(hdmi->hclk_clk);
-+	if (ret) {
-+		DRM_DEV_ERROR(hdmi->dev, "Failed to enable HDMI hclk clock: %d\n",
-+			      ret);
-+		goto err_clk;
-+	}
-+
- 	if (hdmi->chip_data == &rk3568_chip_data) {
- 		regmap_write(hdmi->regmap, RK3568_GRF_VO_CON1,
- 			     HIWORD_UPDATE(RK3568_HDMI_SDAIN_MSK |
-
-
-
-The driver checks if the pixel clock of the given mode matches an entry
-in the mpll config table. The frequencies in the mpll table are meant as
-a frequency range up to which the entry works, not as a frequency that
-must match the pixel clock. The downstream Kernel also does not have
-this check, so drop it to allow for more display resolutions.
-
-Changes since v3:
-- new patch
-
-Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
----
- drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c | 25 ---------------------
- 1 file changed, 25 deletions(-)
-
-diff --git a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
-index 160107b333ef..c44eb4d2e2d5 100644
---- a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
-+++ b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
-@@ -458,7 +437,6 @@ static struct rockchip_hdmi_chip_data rk3288_chip_data = {
- };
- 
- static const struct dw_hdmi_plat_data rk3288_hdmi_drv_data = {
--	.mode_valid = dw_hdmi_rockchip_mode_valid,
- 	.mpll_cfg   = rockchip_mpll_cfg,
- 	.cur_ctr    = rockchip_cur_ctr,
- 	.phy_config = rockchip_phy_config,
-@@ -496,7 +473,6 @@ static struct rockchip_hdmi_chip_data rk3399_chip_data = {
- };
- 
- static const struct dw_hdmi_plat_data rk3399_hdmi_drv_data = {
--	.mode_valid = dw_hdmi_rockchip_mode_valid,
- 	.mpll_cfg   = rockchip_mpll_cfg,
- 	.cur_ctr    = rockchip_cur_ctr,
- 	.phy_config = rockchip_phy_config,
-@@ -509,7 +485,6 @@ static struct rockchip_hdmi_chip_data rk3568_chip_data = {
- };
- 
- static const struct dw_hdmi_plat_data rk3568_hdmi_drv_data = {
--	.mode_valid = dw_hdmi_rockchip_mode_valid,
- 	.mpll_cfg   = rockchip_mpll_cfg,
- 	.cur_ctr    = rockchip_cur_ctr,
- 	.phy_config = rockchip_phy_config,
-
-
-
-This adds a few more PLL settings needed for some standard resolutions:
-
-297MHz    3840x2160-30.00
-241.5MHz  2560x1440-59.95
-135MHz    1280x1024-75.02
-119MHz    1680x1050-59.88
-108MHz    1280x1024-60.02
- 78.75MHz 1024x768-75.03
-
-Changes since v3:
-- new patch
-
-Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
----
- drivers/clk/rockchip/clk-rk3568.c | 6 ++++++
- 1 file changed, 6 insertions(+)
-
-diff --git a/drivers/clk/rockchip/clk-rk3568.c b/drivers/clk/rockchip/clk-rk3568.c
-index 69a9e8069a48..9d889fc46811 100644
---- a/drivers/clk/rockchip/clk-rk3568.c
-+++ b/drivers/clk/rockchip/clk-rk3568.c
-@@ -71,11 +71,17 @@ static struct rockchip_pll_rate_table rk3568_pll_rates[] = {
- 	RK3036_PLL_RATE(500000000, 1, 125, 6, 1, 1, 0),
- 	RK3036_PLL_RATE(408000000, 1, 68, 2, 2, 1, 0),
- 	RK3036_PLL_RATE(312000000, 1, 78, 6, 1, 1, 0),
-+	RK3036_PLL_RATE(297000000, 2, 99, 4, 1, 1, 0),
-+	RK3036_PLL_RATE(241500000, 2, 161, 4, 2, 1, 0),
- 	RK3036_PLL_RATE(216000000, 1, 72, 4, 2, 1, 0),
- 	RK3036_PLL_RATE(200000000, 1, 100, 3, 4, 1, 0),
- 	RK3036_PLL_RATE(148500000, 1, 99, 4, 4, 1, 0),
-+	RK3036_PLL_RATE(135000000, 2, 45, 4, 1, 1, 0),
-+	RK3036_PLL_RATE(119000000, 3, 119, 4, 2, 1, 0),
-+	RK3036_PLL_RATE(108000000, 2, 45, 5, 1, 1, 0),
- 	RK3036_PLL_RATE(100000000, 1, 150, 6, 6, 1, 0),
- 	RK3036_PLL_RATE(96000000, 1, 96, 6, 4, 1, 0),
-+	RK3036_PLL_RATE(78750000, 1, 96, 6, 4, 1, 0),
- 	RK3036_PLL_RATE(74250000, 2, 99, 4, 4, 1, 0),
- 	{ /* sentinel */ },
- };
-
-The binding specifies the clock order to "cec", "grf", "vpll". Reorder
-the clocks accordingly.
-
-Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
----
- arch/arm64/boot/dts/rockchip/rk3399.dtsi | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/arch/arm64/boot/dts/rockchip/rk3399.dtsi b/arch/arm64/boot/dts/rockchip/rk3399.dtsi
-index d3cdf6f42a30..080457a68e3c 100644
---- a/arch/arm64/boot/dts/rockchip/rk3399.dtsi
-+++ b/arch/arm64/boot/dts/rockchip/rk3399.dtsi
-@@ -1881,10 +1881,10 @@ hdmi: hdmi@ff940000 {
- 		interrupts = <GIC_SPI 23 IRQ_TYPE_LEVEL_HIGH 0>;
- 		clocks = <&cru PCLK_HDMI_CTRL>,
- 			 <&cru SCLK_HDMI_SFR>,
--			 <&cru PLL_VPLL>,
-+			 <&cru SCLK_HDMI_CEC>,
- 			 <&cru PCLK_VIO_GRF>,
--			 <&cru SCLK_HDMI_CEC>;
--		clock-names = "iahb", "isfr", "vpll", "grf", "cec";
-+			 <&cru PLL_VPLL>;
-+		clock-names = "iahb", "isfr", "cec", "grf", "vpll";
- 		power-domains = <&power RK3399_PD_HDCP>;
- 		reg-io-width = <4>;
- 		rockchip,grf = <&grf>;
-
-
-The reference clock for the HDMI controller has been renamed to 'ref',
-the previous 'vpll' name is only left for compatibility in the driver.
-Rename the clock to the new name.
-
-Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
----
- arch/arm64/boot/dts/rockchip/rk3399.dtsi | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/arch/arm64/boot/dts/rockchip/rk3399.dtsi b/arch/arm64/boot/dts/rockchip/rk3399.dtsi
-index 080457a68e3c..d0add619b0d2 100644
---- a/arch/arm64/boot/dts/rockchip/rk3399.dtsi
-+++ b/arch/arm64/boot/dts/rockchip/rk3399.dtsi
-@@ -1884,7 +1884,7 @@ hdmi: hdmi@ff940000 {
- 			 <&cru SCLK_HDMI_CEC>,
- 			 <&cru PCLK_VIO_GRF>,
- 			 <&cru PLL_VPLL>;
--		clock-names = "iahb", "isfr", "cec", "grf", "vpll";
-+		clock-names = "iahb", "isfr", "cec", "grf", "ref";
- 		power-domains = <&power RK3399_PD_HDCP>;
- 		reg-io-width = <4>;
- 		rockchip,grf = <&grf>;
-
-
 The VOP2 is the display output controller on the RK3568. Add the node
 for it to the dtsi file along with the required display-subsystem node
 and the iommu node.
 
-changes since v3:
-- Bring back gamma_lut regs
-- Drop redundant _vop suffix from clock names
-
 Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+Acked-by: Rob Herring <robh@kernel.org>
 ---
+
+Notes:
+    Changes since v4:
+    - Add Robs Ack
+    
+    Changes since v3:
+    - Bring back gamma_lut regs
+    - Drop redundant _vop suffix from clock names
+
  arch/arm64/boot/dts/rockchip/rk3566.dtsi |  4 ++
  arch/arm64/boot/dts/rockchip/rk3568.dtsi |  4 ++
  arch/arm64/boot/dts/rockchip/rk356x.dtsi | 51 ++++++++++++++++++++++++
@@ -739,16 +550,21 @@ This enabled the VOP2 display controller along with hdmi and the
 required port routes which is enough to get a picture out of the
 hdmi port of the board.
 
-Changes since v3:
-- Fix HDMI connector type
-
 Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
 ---
+
+Notes:
+    Changes since v4:
+    - Sort nodes alphabetically
+    
+    Changes since v3:
+    - Fix HDMI connector type
+
  .../boot/dts/rockchip/rk3568-evb1-v10.dts     | 48 +++++++++++++++++++
  1 file changed, 48 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/rockchip/rk3568-evb1-v10.dts b/arch/arm64/boot/dts/rockchip/rk3568-evb1-v10.dts
-index 184e2aa2416a..9a669240e49a 100644
+index 184e2aa2416a..18f0f5abddcf 100644
 --- a/arch/arm64/boot/dts/rockchip/rk3568-evb1-v10.dts
 +++ b/arch/arm64/boot/dts/rockchip/rk3568-evb1-v10.dts
 @@ -7,6 +7,7 @@
@@ -777,31 +593,13 @@ index 184e2aa2416a..9a669240e49a 100644
  	vcc3v3_sys: vcc3v3-sys {
  		compatible = "regulator-fixed";
  		regulator-name = "vcc3v3_sys";
-@@ -106,6 +118,12 @@ &gmac1m1_rgmii_clk
+@@ -106,6 +118,25 @@ &gmac1m1_rgmii_clk
  	status = "okay";
  };
  
 +&hdmi {
 +	avdd-0v9-supply = <&vdda0v9_image>;
 +	avdd-1v8-supply = <&vcca1v8_image>;
-+	status = "okay";
-+};
-+
- &i2c0 {
- 	status = "okay";
- 
-@@ -390,3 +408,33 @@ &sdmmc0 {
- &uart2 {
- 	status = "okay";
- };
-+
-+&vop {
-+	assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
-+	assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
-+	status = "okay";
-+};
-+
-+&vop_mmu {
 +	status = "okay";
 +};
 +
@@ -818,6 +616,24 @@ index 184e2aa2416a..9a669240e49a 100644
 +	};
 +};
 +
+ &i2c0 {
+ 	status = "okay";
+ 
+@@ -390,3 +421,20 @@ &sdmmc0 {
+ &uart2 {
+ 	status = "okay";
+ };
++
++&vop {
++	assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
++	assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
++	status = "okay";
++};
++
++&vop_mmu {
++	status = "okay";
++};
++
 +&vp0 {
 +	vp0_out_hdmi: endpoint@RK3568_VOP2_EP_HDMI {
 +		reg = <RK3568_VOP2_EP_HDMI>;
@@ -831,17 +647,22 @@ From: Michael Riesch <michael.riesch@wolfvision.net>
 Enable the RK356x Video Output Processor (VOP) 2 on the Pine64
 Quartz64 Model A.
 
-Changes since v3:
-- Fix HDMI connector type
-
 Signed-off-by: Michael Riesch <michael.riesch@wolfvision.net>
 Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
 ---
+
+Notes:
+    Changes since v4:
+    - Sort nodes alphabetically
+    
+    Changes since v3:
+    - Fix HDMI connector type
+
  .../boot/dts/rockchip/rk3566-quartz64-a.dts   | 48 +++++++++++++++++++
  1 file changed, 48 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/rockchip/rk3566-quartz64-a.dts b/arch/arm64/boot/dts/rockchip/rk3566-quartz64-a.dts
-index 166399b7f13f..64de5b15f572 100644
+index 166399b7f13f..1501f4c3722a 100644
 --- a/arch/arm64/boot/dts/rockchip/rk3566-quartz64-a.dts
 +++ b/arch/arm64/boot/dts/rockchip/rk3566-quartz64-a.dts
 @@ -4,6 +4,7 @@
@@ -870,7 +691,7 @@ index 166399b7f13f..64de5b15f572 100644
  	leds {
  		compatible = "gpio-leds";
  
-@@ -205,6 +217,18 @@ &gmac1m0_clkinout
+@@ -205,6 +217,25 @@ &gmac1m0_clkinout
  	status = "okay";
  };
  
@@ -878,6 +699,13 @@ index 166399b7f13f..64de5b15f572 100644
 +	avdd-0v9-supply = <&vdda_0v9>;
 +	avdd-1v8-supply = <&vcc_1v8>;
 +	status = "okay";
++};
++
++&hdmi_in {
++	hdmi_in_vp0: endpoint@0 {
++		reg = <0>;
++		remote-endpoint = <&vp0_out_hdmi>;
++	};
 +};
 +
 +&hdmi_out {
@@ -889,7 +717,7 @@ index 166399b7f13f..64de5b15f572 100644
  &i2c0 {
  	status = "okay";
  
-@@ -551,3 +575,27 @@ bluetooth {
+@@ -551,3 +582,20 @@ bluetooth {
  &uart2 {
  	status = "okay";
  };
@@ -904,100 +732,12 @@ index 166399b7f13f..64de5b15f572 100644
 +	status = "okay";
 +};
 +
-+&hdmi_in {
-+	hdmi_in_vp0: endpoint@0 {
-+		reg = <0>;
-+		remote-endpoint = <&vp0_out_hdmi>;
-+	};
-+};
-+
 +&vp0 {
 +	vp0_out_hdmi: endpoint@RK3568_VOP2_EP_HDMI {
 +		reg = <RK3568_VOP2_EP_HDMI>;
 +		remote-endpoint = <&hdmi_in_vp0>;
 +	};
 +};
-
-
-The pixel clocks dclk_vop[012] can be clocked from hpll, vpll, gpll or
-cpll. gpll and cpll also drive many other clocks, so changing the
-dclk_vop[012] clocks could change these other clocks as well. Drop
-CLK_SET_RATE_PARENT to fix that. With this change the VOP2 driver can
-only adjust the pixel clocks with the divider between the PLL and the
-dclk_vop[012] which means the user may have to adjust the PLL clock to a
-suitable rate using the assigned-clock-rate device tree property.
-
-Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
----
- drivers/clk/rockchip/clk-rk3568.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
-
-diff --git a/drivers/clk/rockchip/clk-rk3568.c b/drivers/clk/rockchip/clk-rk3568.c
-index 9d889fc46811..7687c62d1fa8 100644
---- a/drivers/clk/rockchip/clk-rk3568.c
-+++ b/drivers/clk/rockchip/clk-rk3568.c
-@@ -1044,13 +1044,13 @@ static struct rockchip_clk_branch rk3568_clk_branches[] __initdata = {
- 			RK3568_CLKGATE_CON(20), 8, GFLAGS),
- 	GATE(HCLK_VOP, "hclk_vop", "hclk_vo", 0,
- 			RK3568_CLKGATE_CON(20), 9, GFLAGS),
--	COMPOSITE(DCLK_VOP0, "dclk_vop0", hpll_vpll_gpll_cpll_p, CLK_SET_RATE_PARENT | CLK_SET_RATE_NO_REPARENT,
-+	COMPOSITE(DCLK_VOP0, "dclk_vop0", hpll_vpll_gpll_cpll_p, CLK_SET_RATE_NO_REPARENT,
- 			RK3568_CLKSEL_CON(39), 10, 2, MFLAGS, 0, 8, DFLAGS,
- 			RK3568_CLKGATE_CON(20), 10, GFLAGS),
--	COMPOSITE(DCLK_VOP1, "dclk_vop1", hpll_vpll_gpll_cpll_p, CLK_SET_RATE_PARENT | CLK_SET_RATE_NO_REPARENT,
-+	COMPOSITE(DCLK_VOP1, "dclk_vop1", hpll_vpll_gpll_cpll_p, CLK_SET_RATE_NO_REPARENT,
- 			RK3568_CLKSEL_CON(40), 10, 2, MFLAGS, 0, 8, DFLAGS,
- 			RK3568_CLKGATE_CON(20), 11, GFLAGS),
--	COMPOSITE(DCLK_VOP2, "dclk_vop2", hpll_vpll_gpll_cpll_p, 0,
-+	COMPOSITE(DCLK_VOP2, "dclk_vop2", hpll_vpll_gpll_cpll_p, CLK_SET_RATE_NO_REPARENT,
- 			RK3568_CLKSEL_CON(41), 10, 2, MFLAGS, 0, 8, DFLAGS,
- 			RK3568_CLKGATE_CON(20), 12, GFLAGS),
- 	GATE(CLK_VOP_PWM, "clk_vop_pwm", "xin24m", 0,
-
-
-On the rk3568 we have this (simplified) situation:
-
- .--------.     .-----.    .---------.
--| hpll   |--.--| /n  |----|dclk_vop0|-
- `--------´  |  `-----´    `---------´
-             |  .-----.    .---------.
-             `--| /m  |----|dclk_vop1|-
-             |  `-----´    `---------´
-             |             .---------.
-             `-------------|hdmi_ref |-
-                           `---------´
-
-For the HDMI to work the HDMI reference clock needs to be the same as the
-pixel clock which means the dividers have be set to one. The last patch removed
-the CLK_SET_RATE_PARENT flag from the pixel clocks which means the hpll is not
-changed on pixel clock changes. In order to allow the HDMI controller to
-set a suitable PLL rate we now add the CLK_SET_RATE_PARENT flag to the
-HDMI reference clock. With this the flow becomes:
-
-1) HDMI controller driver sets the rate to its pixel clock which means
-   hpll is set to the pixel clock
-2) VOP2 driver sets dclk_vop[012] to the pixel clock. As this can't change
-   the hpll clock anymore this means only the divider is adjusted to the
-   desired value of dividing by one.
-
-Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
----
- drivers/clk/rockchip/clk-rk3568.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/drivers/clk/rockchip/clk-rk3568.c b/drivers/clk/rockchip/clk-rk3568.c
-index 7687c62d1fa8..63dfbeeeb06d 100644
---- a/drivers/clk/rockchip/clk-rk3568.c
-+++ b/drivers/clk/rockchip/clk-rk3568.c
-@@ -1568,7 +1568,7 @@ static struct rockchip_clk_branch rk3568_clk_pmu_branches[] __initdata = {
- 			RK3568_PMU_CLKGATE_CON(2), 14, GFLAGS),
- 	GATE(XIN_OSC0_EDPPHY_G, "xin_osc0_edpphy_g", "xin24m", 0,
- 			RK3568_PMU_CLKGATE_CON(2), 15, GFLAGS),
--	MUX(CLK_HDMI_REF, "clk_hdmi_ref", clk_hdmi_ref_p, 0,
-+	MUX(CLK_HDMI_REF, "clk_hdmi_ref", clk_hdmi_ref_p, CLK_SET_RATE_PARENT,
- 			RK3568_PMU_CLKSEL_CON(8), 7, 1, MFLAGS),
- };
- 
 
 
 With upcoming VOP2 support VOP won't be the only choice anymore, so make
@@ -1035,7 +775,7 @@ diff --git a/drivers/gpu/drm/rockchip/Makefile b/drivers/gpu/drm/rockchip/Makefi
 index 1a56f696558c..dfc5512fdb9f 100644
 --- a/drivers/gpu/drm/rockchip/Makefile
 +++ b/drivers/gpu/drm/rockchip/Makefile
-@@ -4,9 +4,10 @@
+@@ -4,8 +4,9 @@
  # Direct Rendering Infrastructure (DRI) in XFree86 4.1.0 and higher.
  
  rockchipdrm-y := rockchip_drm_drv.o rockchip_drm_fb.o \
@@ -1046,7 +786,6 @@ index 1a56f696558c..dfc5512fdb9f 100644
  rockchipdrm-$(CONFIG_ROCKCHIP_ANALOGIX_DP) += analogix_dp-rockchip.o
  rockchipdrm-$(CONFIG_ROCKCHIP_CDN_DP) += cdn-dp-core.o cdn-dp-reg.o
  rockchipdrm-$(CONFIG_ROCKCHIP_DW_HDMI) += dw_hdmi-rockchip.o
-
 diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_drv.c b/drivers/gpu/drm/rockchip/rockchip_drm_drv.c
 index bec207de4544..82c8faf1fb6b 100644
 --- a/drivers/gpu/drm/rockchip/rockchip_drm_drv.c
@@ -1082,26 +821,31 @@ board. Overlay support is tested with the modetest utility. AFBC support
 on the cluster windows is tested with weston-simple-dmabuf-egl on
 weston using the (yet to be upstreamed) panfrost driver support.
 
-Changes since v3:
-- Sort includes
-- fix typos
-- Drop spinlock
-- Use regmap_set_bits()/regmap_clear_bits()
-- simplify vop2_scale_factor()
-- simplify vop2_afbc_transform_offset()
-
 Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
 ---
+
+Notes:
+    Changes since v4:
+    - Avoid stack frame overflow by not allocating big array on the stack
+    
+    Changes since v3:
+    - Sort includes
+    - fix typos
+    - Drop spinlock
+    - Use regmap_set_bits()/regmap_clear_bits()
+    - simplify vop2_scale_factor()
+    - simplify vop2_afbc_transform_offset()
+
  drivers/gpu/drm/rockchip/Kconfig             |    6 +
  drivers/gpu/drm/rockchip/Makefile            |    1 +
  drivers/gpu/drm/rockchip/rockchip_drm_drv.c  |    1 +
  drivers/gpu/drm/rockchip/rockchip_drm_drv.h  |    7 +-
  drivers/gpu/drm/rockchip/rockchip_drm_fb.c   |    2 +
  drivers/gpu/drm/rockchip/rockchip_drm_vop.h  |   15 +
- drivers/gpu/drm/rockchip/rockchip_drm_vop2.c | 2665 ++++++++++++++++++
+ drivers/gpu/drm/rockchip/rockchip_drm_vop2.c | 2689 ++++++++++++++++++
  drivers/gpu/drm/rockchip/rockchip_drm_vop2.h |  480 ++++
  drivers/gpu/drm/rockchip/rockchip_vop2_reg.c |  285 ++
- 9 files changed, 3461 insertions(+), 1 deletion(-)
+ 9 files changed, 3485 insertions(+), 1 deletion(-)
  create mode 100644 drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
  create mode 100644 drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
  create mode 100644 drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
@@ -1224,10 +968,10 @@ index 857d97cdc67c..1e364d7b50e6 100644
  #endif /* _ROCKCHIP_DRM_VOP_H */
 diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
 new file mode 100644
-index 000000000000..9ceaae97ed0c
+index 000000000000..e9ec79445f3f
 --- /dev/null
 +++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
-@@ -0,0 +1,2665 @@
+@@ -0,0 +1,2689 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
@@ -3576,152 +3320,176 @@ index 000000000000..9ceaae97ed0c
 +	drm_crtc_cleanup(crtc);
 +}
 +
++static struct reg_field vop2_cluster_regs[VOP2_WIN_MAX_REG] = {
++	[VOP2_WIN_ENABLE] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 0, 0),
++	[VOP2_WIN_FORMAT] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 1, 5),
++	[VOP2_WIN_RB_SWAP] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 14, 14),
++	[VOP2_WIN_DITHER_UP] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 18, 18),
++	[VOP2_WIN_ACT_INFO] = REG_FIELD(RK3568_CLUSTER_WIN_ACT_INFO, 0, 31),
++	[VOP2_WIN_DSP_INFO] = REG_FIELD(RK3568_CLUSTER_WIN_DSP_INFO, 0, 31),
++	[VOP2_WIN_DSP_ST] = REG_FIELD(RK3568_CLUSTER_WIN_DSP_ST, 0, 31),
++	[VOP2_WIN_YRGB_MST] = REG_FIELD(RK3568_CLUSTER_WIN_YRGB_MST, 0, 31),
++	[VOP2_WIN_UV_MST] = REG_FIELD(RK3568_CLUSTER_WIN_CBR_MST, 0, 31),
++	[VOP2_WIN_YUV_CLIP] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 19, 19),
++	[VOP2_WIN_YRGB_VIR] = REG_FIELD(RK3568_CLUSTER_WIN_VIR, 0, 15),
++	[VOP2_WIN_UV_VIR] = REG_FIELD(RK3568_CLUSTER_WIN_VIR, 16, 31),
++	[VOP2_WIN_Y2R_EN] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 8, 8),
++	[VOP2_WIN_R2Y_EN] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 9, 9),
++	[VOP2_WIN_CSC_MODE] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 10, 11),
++
++	/* Scale */
++	[VOP2_WIN_SCALE_YRGB_X] = REG_FIELD(RK3568_CLUSTER_WIN_SCL_FACTOR_YRGB, 0, 15),
++	[VOP2_WIN_SCALE_YRGB_Y] = REG_FIELD(RK3568_CLUSTER_WIN_SCL_FACTOR_YRGB, 16, 31),
++	[VOP2_WIN_YRGB_VER_SCL_MODE] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL1, 14, 15),
++	[VOP2_WIN_YRGB_HOR_SCL_MODE] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL1, 12, 13),
++	[VOP2_WIN_BIC_COE_SEL] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL1, 2, 3),
++	[VOP2_WIN_VSD_YRGB_GT2] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL1, 28, 28),
++	[VOP2_WIN_VSD_YRGB_GT4] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL1, 29, 29),
++
++	/* cluster regs */
++	[VOP2_WIN_AFBC_ENABLE] = REG_FIELD(RK3568_CLUSTER_CTRL, 1, 1),
++	[VOP2_WIN_CLUSTER_ENABLE] = REG_FIELD(RK3568_CLUSTER_CTRL, 0, 0),
++	[VOP2_WIN_CLUSTER_LB_MODE] = REG_FIELD(RK3568_CLUSTER_CTRL, 4, 7),
++
++	/* afbc regs */
++	[VOP2_WIN_AFBC_FORMAT] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_CTRL, 2, 6),
++	[VOP2_WIN_AFBC_RB_SWAP] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_CTRL, 9, 9),
++	[VOP2_WIN_AFBC_UV_SWAP] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_CTRL, 10, 10),
++	[VOP2_WIN_AFBC_AUTO_GATING_EN] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_OUTPUT_CTRL, 4, 4),
++	[VOP2_WIN_AFBC_HALF_BLOCK_EN] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_CTRL, 7, 7),
++	[VOP2_WIN_AFBC_BLOCK_SPLIT_EN] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_CTRL, 8, 8),
++	[VOP2_WIN_AFBC_HDR_PTR] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_HDR_PTR, 0, 31),
++	[VOP2_WIN_AFBC_PIC_SIZE] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_PIC_SIZE, 0, 31),
++	[VOP2_WIN_AFBC_PIC_VIR_WIDTH] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_VIR_WIDTH, 0, 15),
++	[VOP2_WIN_AFBC_TILE_NUM] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_VIR_WIDTH, 16, 31),
++	[VOP2_WIN_AFBC_PIC_OFFSET] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_PIC_OFFSET, 0, 31),
++	[VOP2_WIN_AFBC_DSP_OFFSET] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_DSP_OFFSET, 0, 31),
++	[VOP2_WIN_AFBC_TRANSFORM_OFFSET] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_TRANSFORM_OFFSET, 0, 31),
++	[VOP2_WIN_AFBC_ROTATE_90] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_ROTATE_MODE, 0, 0),
++	[VOP2_WIN_AFBC_ROTATE_270] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_ROTATE_MODE, 1, 1),
++	[VOP2_WIN_XMIRROR] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_ROTATE_MODE, 2, 2),
++	[VOP2_WIN_YMIRROR] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_ROTATE_MODE, 3, 3),
++	[VOP2_WIN_UV_SWAP] = { .reg = 0xffffffff },
++	[VOP2_WIN_COLOR_KEY] = { .reg = 0xffffffff },
++	[VOP2_WIN_COLOR_KEY_EN] = { .reg = 0xffffffff },
++	[VOP2_WIN_SCALE_CBCR_X] = { .reg = 0xffffffff },
++	[VOP2_WIN_SCALE_CBCR_Y] = { .reg = 0xffffffff },
++	[VOP2_WIN_YRGB_HSCL_FILTER_MODE] = { .reg = 0xffffffff },
++	[VOP2_WIN_YRGB_VSCL_FILTER_MODE] = { .reg = 0xffffffff },
++	[VOP2_WIN_CBCR_VER_SCL_MODE] = { .reg = 0xffffffff },
++	[VOP2_WIN_CBCR_HSCL_FILTER_MODE] = { .reg = 0xffffffff },
++	[VOP2_WIN_CBCR_HOR_SCL_MODE] = { .reg = 0xffffffff },
++	[VOP2_WIN_CBCR_VSCL_FILTER_MODE] = { .reg = 0xffffffff },
++	[VOP2_WIN_VSD_CBCR_GT2] = { .reg = 0xffffffff },
++	[VOP2_WIN_VSD_CBCR_GT4] = { .reg = 0xffffffff },
++};
++
 +static int vop2_cluster_init(struct vop2_win *win)
 +{
 +	struct vop2 *vop2 = win->vop2;
-+	int i;
-+	struct reg_field vop2_cluster_regs[VOP2_WIN_MAX_REG] = {
-+		[VOP2_WIN_ENABLE] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 0, 0),
-+		[VOP2_WIN_FORMAT] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 1, 5),
-+		[VOP2_WIN_RB_SWAP] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 14, 14),
-+		[VOP2_WIN_DITHER_UP] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 18, 18),
-+		[VOP2_WIN_ACT_INFO] = REG_FIELD(RK3568_CLUSTER_WIN_ACT_INFO, 0, 31),
-+		[VOP2_WIN_DSP_INFO] = REG_FIELD(RK3568_CLUSTER_WIN_DSP_INFO, 0, 31),
-+		[VOP2_WIN_DSP_ST] = REG_FIELD(RK3568_CLUSTER_WIN_DSP_ST, 0, 31),
-+		[VOP2_WIN_YRGB_MST] = REG_FIELD(RK3568_CLUSTER_WIN_YRGB_MST, 0, 31),
-+		[VOP2_WIN_UV_MST] = REG_FIELD(RK3568_CLUSTER_WIN_CBR_MST, 0, 31),
-+		[VOP2_WIN_YUV_CLIP] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 19, 19),
-+		[VOP2_WIN_YRGB_VIR] = REG_FIELD(RK3568_CLUSTER_WIN_VIR, 0, 15),
-+		[VOP2_WIN_UV_VIR] = REG_FIELD(RK3568_CLUSTER_WIN_VIR, 16, 31),
-+		[VOP2_WIN_Y2R_EN] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 8, 8),
-+		[VOP2_WIN_R2Y_EN] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 9, 9),
-+		[VOP2_WIN_CSC_MODE] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL0, 10, 11),
++	struct reg_field *cluster_regs;
++	int ret, i;
 +
-+		/* Scale */
-+		[VOP2_WIN_SCALE_YRGB_X] = REG_FIELD(RK3568_CLUSTER_WIN_SCL_FACTOR_YRGB, 0, 15),
-+		[VOP2_WIN_SCALE_YRGB_Y] = REG_FIELD(RK3568_CLUSTER_WIN_SCL_FACTOR_YRGB, 16, 31),
-+		[VOP2_WIN_YRGB_VER_SCL_MODE] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL1, 14, 15),
-+		[VOP2_WIN_YRGB_HOR_SCL_MODE] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL1, 12, 13),
-+		[VOP2_WIN_BIC_COE_SEL] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL1, 2, 3),
-+		[VOP2_WIN_VSD_YRGB_GT2] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL1, 28, 28),
-+		[VOP2_WIN_VSD_YRGB_GT4] = REG_FIELD(RK3568_CLUSTER_WIN_CTRL1, 29, 29),
-+
-+		/* cluster regs */
-+		[VOP2_WIN_AFBC_ENABLE] = REG_FIELD(RK3568_CLUSTER_CTRL, 1, 1),
-+		[VOP2_WIN_CLUSTER_ENABLE] = REG_FIELD(RK3568_CLUSTER_CTRL, 0, 0),
-+		[VOP2_WIN_CLUSTER_LB_MODE] = REG_FIELD(RK3568_CLUSTER_CTRL, 4, 7),
-+
-+		/* afbc regs */
-+		[VOP2_WIN_AFBC_FORMAT] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_CTRL, 2, 6),
-+		[VOP2_WIN_AFBC_RB_SWAP] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_CTRL, 9, 9),
-+		[VOP2_WIN_AFBC_UV_SWAP] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_CTRL, 10, 10),
-+		[VOP2_WIN_AFBC_AUTO_GATING_EN] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_OUTPUT_CTRL, 4, 4),
-+		[VOP2_WIN_AFBC_HALF_BLOCK_EN] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_CTRL, 7, 7),
-+		[VOP2_WIN_AFBC_BLOCK_SPLIT_EN] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_CTRL, 8, 8),
-+		[VOP2_WIN_AFBC_HDR_PTR] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_HDR_PTR, 0, 31),
-+		[VOP2_WIN_AFBC_PIC_SIZE] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_PIC_SIZE, 0, 31),
-+		[VOP2_WIN_AFBC_PIC_VIR_WIDTH] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_VIR_WIDTH, 0, 15),
-+		[VOP2_WIN_AFBC_TILE_NUM] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_VIR_WIDTH, 16, 31),
-+		[VOP2_WIN_AFBC_PIC_OFFSET] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_PIC_OFFSET, 0, 31),
-+		[VOP2_WIN_AFBC_DSP_OFFSET] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_DSP_OFFSET, 0, 31),
-+		[VOP2_WIN_AFBC_TRANSFORM_OFFSET] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_TRANSFORM_OFFSET, 0, 31),
-+		[VOP2_WIN_AFBC_ROTATE_90] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_ROTATE_MODE, 0, 0),
-+		[VOP2_WIN_AFBC_ROTATE_270] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_ROTATE_MODE, 1, 1),
-+		[VOP2_WIN_XMIRROR] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_ROTATE_MODE, 2, 2),
-+		[VOP2_WIN_YMIRROR] = REG_FIELD(RK3568_CLUSTER_WIN_AFBCD_ROTATE_MODE, 3, 3),
-+		[VOP2_WIN_UV_SWAP] = { .reg = 0xffffffff },
-+		[VOP2_WIN_COLOR_KEY] = { .reg = 0xffffffff },
-+		[VOP2_WIN_COLOR_KEY_EN] = { .reg = 0xffffffff },
-+		[VOP2_WIN_SCALE_CBCR_X] = { .reg = 0xffffffff },
-+		[VOP2_WIN_SCALE_CBCR_Y] = { .reg = 0xffffffff },
-+		[VOP2_WIN_YRGB_HSCL_FILTER_MODE] = { .reg = 0xffffffff },
-+		[VOP2_WIN_YRGB_VSCL_FILTER_MODE] = { .reg = 0xffffffff },
-+		[VOP2_WIN_CBCR_VER_SCL_MODE] = { .reg = 0xffffffff },
-+		[VOP2_WIN_CBCR_HSCL_FILTER_MODE] = { .reg = 0xffffffff },
-+		[VOP2_WIN_CBCR_HOR_SCL_MODE] = { .reg = 0xffffffff },
-+		[VOP2_WIN_CBCR_VSCL_FILTER_MODE] = { .reg = 0xffffffff },
-+		[VOP2_WIN_VSD_CBCR_GT2] = { .reg = 0xffffffff },
-+		[VOP2_WIN_VSD_CBCR_GT4] = { .reg = 0xffffffff },
-+	};
++	cluster_regs = kmemdup(vop2_cluster_regs, sizeof(vop2_cluster_regs),
++			       GFP_KERNEL);
++	if (!cluster_regs)
++		return -ENOMEM;
 +
 +	for (i = 0; i < ARRAY_SIZE(vop2_cluster_regs); i++)
-+		vop2_cluster_regs[i].reg += win->offset;
++		if (cluster_regs[i].reg != 0xffffffff)
++			cluster_regs[i].reg += win->offset;
 +
-+	return devm_regmap_field_bulk_alloc(vop2->dev, vop2->map, win->reg,
-+					    vop2_cluster_regs,
++	ret = devm_regmap_field_bulk_alloc(vop2->dev, vop2->map, win->reg,
++					    cluster_regs,
 +					    ARRAY_SIZE(vop2_cluster_regs));
++
++	kfree(cluster_regs);
++
++	return ret;
++};
++
++static struct reg_field vop2_esmart_regs[VOP2_WIN_MAX_REG] = {
++	[VOP2_WIN_ENABLE] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 0, 0),
++	[VOP2_WIN_FORMAT] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 1, 5),
++	[VOP2_WIN_DITHER_UP] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 12, 12),
++	[VOP2_WIN_RB_SWAP] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 14, 14),
++	[VOP2_WIN_UV_SWAP] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 16, 16),
++	[VOP2_WIN_ACT_INFO] = REG_FIELD(RK3568_SMART_REGION0_ACT_INFO, 0, 31),
++	[VOP2_WIN_DSP_INFO] = REG_FIELD(RK3568_SMART_REGION0_DSP_INFO, 0, 31),
++	[VOP2_WIN_DSP_ST] = REG_FIELD(RK3568_SMART_REGION0_DSP_ST, 0, 28),
++	[VOP2_WIN_YRGB_MST] = REG_FIELD(RK3568_SMART_REGION0_YRGB_MST, 0, 31),
++	[VOP2_WIN_UV_MST] = REG_FIELD(RK3568_SMART_REGION0_CBR_MST, 0, 31),
++	[VOP2_WIN_YUV_CLIP] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 17, 17),
++	[VOP2_WIN_YRGB_VIR] = REG_FIELD(RK3568_SMART_REGION0_VIR, 0, 15),
++	[VOP2_WIN_UV_VIR] = REG_FIELD(RK3568_SMART_REGION0_VIR, 16, 31),
++	[VOP2_WIN_Y2R_EN] = REG_FIELD(RK3568_SMART_CTRL0, 0, 0),
++	[VOP2_WIN_R2Y_EN] = REG_FIELD(RK3568_SMART_CTRL0, 1, 1),
++	[VOP2_WIN_CSC_MODE] = REG_FIELD(RK3568_SMART_CTRL0, 2, 3),
++	[VOP2_WIN_YMIRROR] = REG_FIELD(RK3568_SMART_CTRL1, 31, 31),
++	[VOP2_WIN_COLOR_KEY] = REG_FIELD(RK3568_SMART_COLOR_KEY_CTRL, 0, 29),
++	[VOP2_WIN_COLOR_KEY_EN] = REG_FIELD(RK3568_SMART_COLOR_KEY_CTRL, 31, 31),
++
++	/* Scale */
++	[VOP2_WIN_SCALE_YRGB_X] = REG_FIELD(RK3568_SMART_REGION0_SCL_FACTOR_YRGB, 0, 15),
++	[VOP2_WIN_SCALE_YRGB_Y] = REG_FIELD(RK3568_SMART_REGION0_SCL_FACTOR_YRGB, 16, 31),
++	[VOP2_WIN_SCALE_CBCR_X] = REG_FIELD(RK3568_SMART_REGION0_SCL_FACTOR_CBR, 0, 15),
++	[VOP2_WIN_SCALE_CBCR_Y] = REG_FIELD(RK3568_SMART_REGION0_SCL_FACTOR_CBR, 16, 31),
++	[VOP2_WIN_YRGB_HOR_SCL_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 0, 1),
++	[VOP2_WIN_YRGB_HSCL_FILTER_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 2, 3),
++	[VOP2_WIN_YRGB_VER_SCL_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 4, 5),
++	[VOP2_WIN_YRGB_VSCL_FILTER_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 6, 7),
++	[VOP2_WIN_CBCR_HOR_SCL_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 8, 9),
++	[VOP2_WIN_CBCR_HSCL_FILTER_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 10, 11),
++	[VOP2_WIN_CBCR_VER_SCL_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 12, 13),
++	[VOP2_WIN_CBCR_VSCL_FILTER_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 14, 15),
++	[VOP2_WIN_BIC_COE_SEL] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 16, 17),
++	[VOP2_WIN_VSD_YRGB_GT2] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 8, 8),
++	[VOP2_WIN_VSD_YRGB_GT4] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 9, 9),
++	[VOP2_WIN_VSD_CBCR_GT2] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 10, 10),
++	[VOP2_WIN_VSD_CBCR_GT4] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 11, 11),
++	[VOP2_WIN_XMIRROR] = { .reg = 0xffffffff },
++	[VOP2_WIN_CLUSTER_ENABLE] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_ENABLE] = { .reg = 0xffffffff },
++	[VOP2_WIN_CLUSTER_LB_MODE] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_FORMAT] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_RB_SWAP] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_UV_SWAP] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_AUTO_GATING_EN] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_BLOCK_SPLIT_EN] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_PIC_VIR_WIDTH] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_TILE_NUM] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_PIC_OFFSET] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_PIC_SIZE] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_DSP_OFFSET] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_TRANSFORM_OFFSET] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_HDR_PTR] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_HALF_BLOCK_EN] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_ROTATE_270] = { .reg = 0xffffffff },
++	[VOP2_WIN_AFBC_ROTATE_90] = { .reg = 0xffffffff },
 +};
 +
 +static int vop2_esmart_init(struct vop2_win *win)
 +{
 +	struct vop2 *vop2 = win->vop2;
-+	int i;
-+	struct reg_field vop2_esmart_regs[VOP2_WIN_MAX_REG] = {
-+		[VOP2_WIN_ENABLE] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 0, 0),
-+		[VOP2_WIN_FORMAT] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 1, 5),
-+		[VOP2_WIN_DITHER_UP] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 12, 12),
-+		[VOP2_WIN_RB_SWAP] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 14, 14),
-+		[VOP2_WIN_UV_SWAP] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 16, 16),
-+		[VOP2_WIN_ACT_INFO] = REG_FIELD(RK3568_SMART_REGION0_ACT_INFO, 0, 31),
-+		[VOP2_WIN_DSP_INFO] = REG_FIELD(RK3568_SMART_REGION0_DSP_INFO, 0, 31),
-+		[VOP2_WIN_DSP_ST] = REG_FIELD(RK3568_SMART_REGION0_DSP_ST, 0, 28),
-+		[VOP2_WIN_YRGB_MST] = REG_FIELD(RK3568_SMART_REGION0_YRGB_MST, 0, 31),
-+		[VOP2_WIN_UV_MST] = REG_FIELD(RK3568_SMART_REGION0_CBR_MST, 0, 31),
-+		[VOP2_WIN_YUV_CLIP] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 17, 17),
-+		[VOP2_WIN_YRGB_VIR] = REG_FIELD(RK3568_SMART_REGION0_VIR, 0, 15),
-+		[VOP2_WIN_UV_VIR] = REG_FIELD(RK3568_SMART_REGION0_VIR, 16, 31),
-+		[VOP2_WIN_Y2R_EN] = REG_FIELD(RK3568_SMART_CTRL0, 0, 0),
-+		[VOP2_WIN_R2Y_EN] = REG_FIELD(RK3568_SMART_CTRL0, 1, 1),
-+		[VOP2_WIN_CSC_MODE] = REG_FIELD(RK3568_SMART_CTRL0, 2, 3),
-+		[VOP2_WIN_YMIRROR] = REG_FIELD(RK3568_SMART_CTRL1, 31, 31),
-+		[VOP2_WIN_COLOR_KEY] = REG_FIELD(RK3568_SMART_COLOR_KEY_CTRL, 0, 29),
-+		[VOP2_WIN_COLOR_KEY_EN] = REG_FIELD(RK3568_SMART_COLOR_KEY_CTRL, 31, 31),
++	struct reg_field *esmart_regs;
++	int ret, i;
 +
-+		/* Scale */
-+		[VOP2_WIN_SCALE_YRGB_X] = REG_FIELD(RK3568_SMART_REGION0_SCL_FACTOR_YRGB, 0, 15),
-+		[VOP2_WIN_SCALE_YRGB_Y] = REG_FIELD(RK3568_SMART_REGION0_SCL_FACTOR_YRGB, 16, 31),
-+		[VOP2_WIN_SCALE_CBCR_X] = REG_FIELD(RK3568_SMART_REGION0_SCL_FACTOR_CBR, 0, 15),
-+		[VOP2_WIN_SCALE_CBCR_Y] = REG_FIELD(RK3568_SMART_REGION0_SCL_FACTOR_CBR, 16, 31),
-+		[VOP2_WIN_YRGB_HOR_SCL_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 0, 1),
-+		[VOP2_WIN_YRGB_HSCL_FILTER_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 2, 3),
-+		[VOP2_WIN_YRGB_VER_SCL_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 4, 5),
-+		[VOP2_WIN_YRGB_VSCL_FILTER_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 6, 7),
-+		[VOP2_WIN_CBCR_HOR_SCL_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 8, 9),
-+		[VOP2_WIN_CBCR_HSCL_FILTER_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 10, 11),
-+		[VOP2_WIN_CBCR_VER_SCL_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 12, 13),
-+		[VOP2_WIN_CBCR_VSCL_FILTER_MODE] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 14, 15),
-+		[VOP2_WIN_BIC_COE_SEL] = REG_FIELD(RK3568_SMART_REGION0_SCL_CTRL, 16, 17),
-+		[VOP2_WIN_VSD_YRGB_GT2] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 8, 8),
-+		[VOP2_WIN_VSD_YRGB_GT4] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 9, 9),
-+		[VOP2_WIN_VSD_CBCR_GT2] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 10, 10),
-+		[VOP2_WIN_VSD_CBCR_GT4] = REG_FIELD(RK3568_SMART_REGION0_CTRL, 11, 11),
-+		[VOP2_WIN_XMIRROR] = { .reg = 0xffffffff },
-+		[VOP2_WIN_CLUSTER_ENABLE] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_ENABLE] = { .reg = 0xffffffff },
-+		[VOP2_WIN_CLUSTER_LB_MODE] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_FORMAT] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_RB_SWAP] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_UV_SWAP] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_AUTO_GATING_EN] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_BLOCK_SPLIT_EN] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_PIC_VIR_WIDTH] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_TILE_NUM] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_PIC_OFFSET] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_PIC_SIZE] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_DSP_OFFSET] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_TRANSFORM_OFFSET] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_HDR_PTR] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_HALF_BLOCK_EN] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_ROTATE_270] = { .reg = 0xffffffff },
-+		[VOP2_WIN_AFBC_ROTATE_90] = { .reg = 0xffffffff },
-+	};
++	esmart_regs = kmemdup(vop2_esmart_regs, sizeof(vop2_esmart_regs),
++			       GFP_KERNEL);
++	if (!esmart_regs)
++		return -ENOMEM;
 +
 +	for (i = 0; i < ARRAY_SIZE(vop2_esmart_regs); i++)
-+		vop2_esmart_regs[i].reg += win->offset;
++		if (esmart_regs[i].reg != 0xffffffff)
++			esmart_regs[i].reg += win->offset;
 +
-+	return devm_regmap_field_bulk_alloc(vop2->dev, vop2->map, win->reg,
-+					    vop2_esmart_regs,
++	ret = devm_regmap_field_bulk_alloc(vop2->dev, vop2->map, win->reg,
++					    esmart_regs,
 +					    ARRAY_SIZE(vop2_esmart_regs));
++
++	kfree(esmart_regs);
++
++	return ret;
 +};
 +
 +static int vop2_win_init(struct vop2 *vop2)
@@ -4665,3 +4433,57 @@ index 000000000000..2376e63d9478
 +		.of_match_table = of_match_ptr(vop2_dt_match),
 +	},
 +};
+
+
+The rk3568 HDMI has an additional clock that needs to be enabled for the
+HDMI controller to work. The purpose of that clock is not clear. It is
+named "hclk" in the downstream driver, so use the same name.
+
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+---
+ drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+index 3d7c3f6fdf22..b9928e622adf 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+@@ -76,6 +76,7 @@ struct rockchip_hdmi {
+ 	const struct rockchip_hdmi_chip_data *chip_data;
+ 	struct clk *ref_clk;
+ 	struct clk *grf_clk;
++	struct clk *hclk_clk;
+ 	struct dw_hdmi *hdmi;
+ 	struct regulator *avdd_0v9;
+ 	struct regulator *avdd_1v8;
+@@ -226,6 +227,16 @@ static int rockchip_hdmi_parse_dt(struct rockchip_hdmi *hdmi)
+ 		return PTR_ERR(hdmi->grf_clk);
+ 	}
+ 
++	hdmi->hclk_clk = devm_clk_get(hdmi->dev, "hclk");
++	if (PTR_ERR(hdmi->hclk_clk) == -ENOENT) {
++		hdmi->hclk_clk = NULL;
++	} else if (PTR_ERR(hdmi->hclk_clk) == -EPROBE_DEFER) {
++		return -EPROBE_DEFER;
++	} else if (IS_ERR(hdmi->hclk_clk)) {
++		DRM_DEV_ERROR(hdmi->dev, "failed to get hclk_clk clock\n");
++		return PTR_ERR(hdmi->hclk_clk);
++	}
++
+ 	hdmi->avdd_0v9 = devm_regulator_get(hdmi->dev, "avdd-0v9");
+ 	if (IS_ERR(hdmi->avdd_0v9))
+ 		return PTR_ERR(hdmi->avdd_0v9);
+@@ -593,6 +604,13 @@ static int dw_hdmi_rockchip_bind(struct device *dev, struct device *master,
+ 		goto err_clk;
+ 	}
+ 
++	ret = clk_prepare_enable(hdmi->hclk_clk);
++	if (ret) {
++		DRM_DEV_ERROR(hdmi->dev, "Failed to enable HDMI hclk clock: %d\n",
++			      ret);
++		goto err_clk;
++	}
++
+ 	if (hdmi->chip_data == &rk3568_chip_data) {
+ 		regmap_write(hdmi->regmap, RK3568_GRF_VO_CON1,
+ 			     HIWORD_UPDATE(RK3568_HDMI_SDAIN_MSK |
