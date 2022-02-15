@@ -115,6 +115,7 @@ PATCHFILES += 0525-media-cedrus-Add-callback-for-buffer-cleanup.patch
 PATCHFILES += 0528-media-cedrus-wip-10-bit-HEVC-support.patch
 PATCHFILES += 0529-media-cedrus-Fix-H265-aux-buffer-size.patch
 PATCHFILES += 0530-media-cedrus-Add-watchdog-for-job-completion.patch
+PATCHFILES += 0530-media-cedrus-h264-Fix-neighbour-info-buffer-size.patch
 # Adding support for MFD devices on some H6 boards
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
