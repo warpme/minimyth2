@@ -1,9 +1,9 @@
 
 GARNAME      = xorg-server
-GARVERSION   = 1.20.8
+GARVERSION   = 1.20.14
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = $(XORG_MASTER_SITES)
-DISTFILES    = $(DISTNAME).tar.bz2
+MASTER_SITES = https://xorg.freedesktop.org/releases/individual/xserver/
+DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = \
 	$(DISTNAME)-perl.patch.gar \
 	$(DISTNAME)-pkg_config.patch \
@@ -121,10 +121,4 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/multimedia/tda9885_drv.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/multimedia/uda1380_drv.la
 	@cp $(WORKSRC)/composite/compositeext.h $(DESTDIR)$(includedir)/xorg/compositeext.h
-	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/i915_pci_ids.h $(WORKSRC)/../../../files/
-	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/i965_pci_ids.h $(WORKSRC)/../../../files/
-	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/r200_pci_ids.h $(WORKSRC)/../../../files/
-	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/r300_pci_ids.h $(WORKSRC)/../../../files/
-	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/r600_pci_ids.h $(WORKSRC)/../../../files/
-	@cp $(WORKSRC)/hw/xfree86/dri2/pci_ids/radeonsi_pci_ids.h $(WORKSRC)/../../../files/
 	@$(MAKECOOKIE)
