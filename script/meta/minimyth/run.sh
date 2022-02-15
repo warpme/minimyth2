@@ -156,7 +156,8 @@ case "${selection}" in
         reinstall
         ;;
 
-    s)  make \
+    s)  make reinstall-new-board mm_BOARD_TYPE="board-x86pc.bios_efi64"
+        make \
         mm_DISTRIBUTION_SHARE="no" \
         mm_INSTALL_ONLINE_UPDATES="no" \
         mm_DISTRIBUTION_RAM="no" \
