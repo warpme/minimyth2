@@ -3,15 +3,15 @@ NVIDIA_MAJOR_VERSION = 340
 NVIDIA_MINOR_VERSION = 108
 NVIDIA_TEENY_VERSION =
 
-PATCHFILES  = 0001-fix-5.6-rc1.patch
-PATCHFILES += 0002-fix-5.7-rc1.patch
-PATCHFILES += 0003-fix-5.7-rc1-reinstate-legacy-support.patch
-PATCHFILES += 0004-fix-5.8.patch
-PATCHFILES += 0005-fix-5.9.patch
-PATCHFILES += 0006-fix-5.10.patch
-PATCHFILES += 0007-fix-5.14.patch
-PATCHFILES += 0008-fix-5.15.patch
-PATCHFILES += 0009-fix-5.16.patch
+PATCHFILES  = 0001-fix-compile-on-5.6-rc1.patch
+PATCHFILES += 0002-fix-compile-on-5.7-rc1.patch
+PATCHFILES += 0004-fix-compile-on-5.8.patch
+PATCHFILES += 0005-fix-compile-on-5.9.patch
+PATCHFILES += 0006-fix-compile-on-5.10.patch
+PATCHFILES += 0007-fix-compile-on-5.14.patch
+PATCHFILES += 0008-fix-compile-on-5.15.patch
+PATCHFILES += 0009-fix-compile-on-5.16.patch
+PATCHFILES += 0010-fix-compile-on-5.17.patch
 
 BUILD_SCRIPTS   = nvidia
 INSTALL_SCRIPTS = nvidia
