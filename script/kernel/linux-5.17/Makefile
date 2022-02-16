@@ -73,6 +73,7 @@ PATCHFILES += 0317-meson-vdec-add-HEVC-decode-codec.patch
 PATCHFILES += 0318-meson-vdec-add-handling-to-HEVC-decoder-.patch
 PATCHFILES += 0319-meson-vdec-add-HEVC-support-to-GXBB.patch
 PATCHFILES += 0320-meson-vdec-check-if-parser-has-really-pa.patch
+PATCHFILES += 0321-meson-vdec-add-VP9-support-to-GXM.patch
 # Amlogic: Misc patches
 PATCHFILES += 0331-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 0332-arm64-dts-meson-add-support-for-GX-PM-and-Virtu.patch
