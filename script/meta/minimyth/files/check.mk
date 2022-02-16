@@ -152,6 +152,17 @@ mm-all:
 			exit 1 ; \
 		fi ; \
 	done
+	@echo "    mm_SHELL"
+	@for shell in $(mm_SHELL) ; do \
+		if [ ! "$${shell}" = "busybox" ] && \
+		   [ ! "$${shell}" = "dash"    ] && \
+		   [ ! "$${shell}" = "bash"    ] ; then \
+			echo " " ; \
+			echo "error: mm_SHELL=\"$${shell}\" is an invalid value." ; \
+			echo " " ; \
+			exit 1 ; \
+		fi ; \
+	done
 	@echo "    mm_SOFTWARE"
 	@for software in $(mm_SOFTWARE) ; do \
 		if [ ! "$${software}" = "mythplugins"    ] && \

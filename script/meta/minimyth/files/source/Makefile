@@ -235,6 +235,17 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 			cp -pdR $(DESTDIR)$(qt5prefix)/plugins/wayland-shell-integration $@~$(qt5prefix)/plugins ; \
 		fi                                                                                               ; \
 	 fi
+	@if [ $(mm_SHELL) = "bash" ] ; then                           \
+		echo "setting bash as shell"                        ; \
+		cp -pd $(DESTDIR)$(ebindir)/bash $@~$(ebindir)/bash ; \
+		rm -f $@~$(ebindir)/sh                              ; \
+		ln -srf $@~$(ebindir)/bash $@~$(ebindir)/sh         ; \
+	 elif [ $(mm_SHELL) = "dash" ] ; then                         \
+		echo "setting dash as shell"                        ; \
+		cp -pd $(DESTDIR)$(ebindir)/dash $@~$(ebindir)/dash ; \
+		rm -f $@~$(ebindir)/sh                              ; \
+		ln -srf $@~$(ebindir)/dash $@~$(ebindir)/sh         ; \
+	 fi
 	@# adding supported video HW list
 	@mkdir -m 0755 -p $@~/srv/www
 	@cp -pd $(top_build)/stage/supported-gfx-hardware.txt $@~/srv/www/document-supported-gfx-hardware.txt
