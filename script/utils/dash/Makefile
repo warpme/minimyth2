@@ -1,6 +1,6 @@
 
 GARNAME       = dash
-GARVERSION    = 0.5.10.2
+GARVERSION    = 0.5.11.5
 CATEGORIES    = utils
 MASTER_SITES  = http://gondor.apana.org.au/~herbert/dash/files/
 DISTFILES     = $(DISTNAME).tar.gz
