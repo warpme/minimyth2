@@ -11,7 +11,6 @@ PATCHFILES  =
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
-PATCHFILES += 0003-configure-fix-qt6-gles-detection.patch
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
@@ -24,7 +23,6 @@ PATCHFILES += 0031-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-th
 PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music.patch
 
 # Some patches for better logging
-PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
 PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 # speedup a bit portcheck
@@ -42,20 +40,32 @@ PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
 PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
+
+ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
-PATCHFILES += 0150-ffmpeg-uapi-update-hevc-ctl-header-5.14kernel.patch
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.14kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.16kernel.patch
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner H6
 PATCHFILES += 0153-ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel.patch
 # Improve v4l2_request resiliency on so DVB stream errors (http://jernej.libreelec.tv/videos/cedrus_broken.ts)
 PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
+# Fix green screen on hantro h264 vdpu2 hw video decode
+PATCHFILES += 0155-ffmpeg-libavcodec-h264_slice-fix-decoding-on-hantro-vdpu2.patch
+endif
 
 # buffers bump-up required for AML HD playbck
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
+# this makes v4l2_request seeking on h264 content working
+ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
+PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
+endif
+# hack improvig a bit h264 seeks on rpi3/rpi4 & amlogic
+PATCHFILES += 0173-ffmpeg-libavcodec-v4l2_m2m_h264_dec-clean-input-buf-at-flush.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
+# hack to get refresh rate changing on drm
+PATCHFILES += 0198-libmythui-mythdrmdevice-add-refresh-change-capability.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
@@ -86,10 +96,13 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
 PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 
+# hack to fix livetv bad video playback at start livetv casued by g754d740d0
+PATCHFILES += 0300-mythtv-player-revert754d740d004-to-fix-livetv-start.patch
+
 # --------Patches 400+ are plugins patches---------------------
 
 # Various mythmusic patches
-#PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
+PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
 PATCHFILES += 0404-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
