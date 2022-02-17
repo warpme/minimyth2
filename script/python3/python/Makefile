@@ -90,12 +90,18 @@ ifneq ($(DESTIMG),build)
 	 cp -f _sysconfigdata__linux_i386-linux-gnu.py _sysconfigdata__linux_i386-linux-gnu.py.build 2>/dev/null ; \
 	 cp -f _sysconfigdata__linux_x86_64-linux-gnu.py _sysconfigdata__linux_x86_64-linux-gnu.py.build 2>/dev/null ; \
 	fi
-	@if [ ! -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-*-linux-gnu/Makefile.build ] ; then \
-	 cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-*-linux-gnu ; cp -f Makefile Makefile.build ; \
+	@if [ ! -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-i386-linux-gnu/Makefile.build ] ; then \
+	 cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-i386-linux-gnu ; cp -f Makefile Makefile.build ; \
+	fi
+	@if [ ! -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu/Makefile.build ] ; then \
+	 cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu ; cp -f Makefile Makefile.build ; \
 	fi
 	@echo "==> Regenerating _sysconfigdata.py with cross-compile data ..."
 	@cp -fv $(WORKSRC)/Makefile $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/Makefile.xxxx
 	@cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-*-linux-gnu ; mv -f ../Makefile.xxxx Makefile
+	@if [ ! -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-i386-linux-gnu/Makefile.build ] ; then \
+	 ln -srf $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-i386-linux-gnu ; \
+	fi
 	@echo "  Calling host sysconfig.py to generate _sysconfigdata.py with target arch..."
 	@$(build_DESTDIR)$(build_bindir)/python3 -S -m sysconfig --generate-posix-vars
 	@echo "  Disabling LTO and -O3 in target arch _sysconfigdata.py..."
@@ -107,11 +113,15 @@ ifneq ($(DESTIMG),build)
 	@sed -i "s%'INCLUDEDIR':.*%'INCLUDEDIR': '$(DESTDIR)$(includedir)',%" $(WORKSRC)/../../../build/lib.linux*/_sysconfigdata__linux_*-linux-gnu.py
 	@rm -f $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/__pycache__/_sysconfigdata__*.pyc
 	@echo "  Restoring host python Makefile..."
-	@cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-*-linux-gnu ; \
+	@-cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-i386-linux-gnu ; \
+	 cp -f Makefile Makefile.main ; \
+	 cp -f Makefile.build Makefile
+	@-cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu ; \
 	 cp -f Makefile Makefile.main ; \
 	 cp -f Makefile.build Makefile
 	@echo "  Copy new _sysconfigdata.py with target arch to host python..."
-	@cp -f $(WORKSRC)/../../../build/lib.linux*/_sysconfigdata__linux_*-linux-gnu.py $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/
+	@-cp -f $(WORKSRC)/../../../build/lib.linux*/_sysconfigdata__linux_i386-linux-gnu.py $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/
+	@-cp -f $(WORKSRC)/../../../build/lib.linux*/_sysconfigdata__linux_x86_64-linux-gnu.py $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/
 	@-cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR) ; \
 	 cp -f _sysconfigdata__linux_i386-linux-gnu.py _sysconfigdata__linux_i386-linux-gnu.py.main 2>/dev/null ; \
 	 cp -f _sysconfigdata__linux_x86_64-linux-gnu.py _sysconfigdata__linux_x86_64-linux-gnu.py.main 2>/dev/null
