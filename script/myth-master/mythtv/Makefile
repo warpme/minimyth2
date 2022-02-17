@@ -96,9 +96,6 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
 PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 
-# hack to fix livetv bad video playback at start livetv casued by g754d740d0
-PATCHFILES += 0300-mythtv-player-revert754d740d004-to-fix-livetv-start.patch
-
 # --------Patches 400+ are plugins patches---------------------
 
 # Various mythmusic patches
