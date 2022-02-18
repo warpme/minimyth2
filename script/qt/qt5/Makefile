@@ -9,6 +9,7 @@ PATCHFILES  += $(DISTNAME)-fix-gcc11-compile.patch
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
+PATCHFILES  += $(DISTNAME)-fixQTBUG-95071-MySQL-dont-format-QDateTime-with-timezones.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
@@ -18,7 +19,7 @@ endef
 DEPENDS   =            \
 	lang/c         \
 	lang/cxx       \
-	db/mysql       \
+	db/mariadb     \
 	lib/dbus       \
 	lib/freetype   \
 	lib/fontconfig \
