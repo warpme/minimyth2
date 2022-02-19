@@ -14,7 +14,7 @@ ifneq ($(DESTIMG),build)
 DEPENDS   =            \
 	lang/c         \
 	lang/cxx       \
-	db/mysql       \
+	db/mariadb     \
 	lib/dbus       \
 	lib/double-conversion \
 	lib/freetype   \
@@ -119,8 +119,7 @@ CONFIGURE_ARGS += \
 	-DCMAKE_SYSROOT="$(DESTDIR)" \
 	-DQT_WILL_BUILD_TOOLS="ON" \
 	-DQT_BUILD_TOOLS_WHEN_CROSSCOMPILING="ON" \
-	-DMySQL_INCLUDE_DIR="$(DESTDIR)$(includedir)/mysql" \
-	-DMySQL_LIBRARY="$(DESTDIR)$(libdir)/mysql/libmysqlclient.so.16"
+	-DMySQL_INCLUDE_DIR="$(DESTDIR)$(includedir)/mysql"
 endif
 
 configure-custom:
