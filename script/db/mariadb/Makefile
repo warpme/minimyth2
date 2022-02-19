@@ -1,10 +1,10 @@
 
 GARNAME      = mariadb
-GARVERSION   = 10.6.4
+GARVERSION   = 10.6.7
 CATEGORIES   = db
 MASTER_SITES = https://rsync.osuosl.org/pub/mariadb/mariadb-$(GARVERSION)/source/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = c11_atomics.patch fix-arm-atomic.patch fix_fompile_without_server_feature.patch
+PATCHFILES   = fix_fompile_without_server_feature.patch
 LICENSE      = GPL
 
 DEPENDS = \
@@ -50,7 +50,6 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
     -DINSTALL_SUPPORTFILESDIR=share/mysql \
     -DWITH_READLINE=on \
     -DWITH_UNIT_TESTS=off \
-    -DSTACK_DIRECTION=-1 \
     -DWITH_JEMALLOC=off \
     -DWITH_LIBWRAP=off \
     -DWITHOUT_TOKUDB=on \
@@ -61,6 +60,7 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
     -DWITH_SSL=system \
     -DWITH_SYSTEMD=no \
     -DIMPORT_EXECUTABLES=../host/import_executables.cmake \
+    -DSTACK_DIRECTION=-1 \
     -Wno-dev \
 
 include ../../gar.mk
