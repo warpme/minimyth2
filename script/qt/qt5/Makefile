@@ -104,8 +104,6 @@ CONFIGURE_ARGS = \
 	-silent \
 	-skip qtwebglplugin \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
-	-I $(DESTDIR)$(includedir)/mysql \
-	-L $(DESTDIR)$(libdir)/mysql \
 
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
