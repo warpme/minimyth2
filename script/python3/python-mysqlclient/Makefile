@@ -9,7 +9,7 @@ DESCRIPTION  =
 define BLURB
 endef
 
-DEPENDS  = db/mysql
+DEPENDS  = db/mariadb
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
