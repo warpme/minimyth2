@@ -604,9 +604,7 @@ endif
 		| grep -v '/ld-linux.so.[0-9]\+$$' \
 		| grep -v '/ld-linux-x86-64.so.[0-9]\+$$' \
 		| xargs chmod 0644
-	@#chmod 0755 $@~$(bindir)/ssh
-	@#chmod 0755 $@~/usr/sbin/sshd
-	@#chmod 0755 $@~$(bindir)/scp
+	@chmod 0755 $@~$(esbindir)/ldconfig
 	@echo "set symlinks for 64bit ARM glibc"
 	@if [ -e $@~$(elibdir)/ld-linux-* ] ; then    \
 		chmod 0755 $@~$(elibdir)/ld-linux-* ; \
