@@ -50,7 +50,8 @@ mm_SOFTWARE               ?= \
 #                             apitrace \
 #                             valgrind \
 #                             xscreensaver \
-#                             kodi
+#                             kodi \
+#                             openvfd \
 
 # Indicates bootloader board type. Valid values are:
 # 'board-rpi2'

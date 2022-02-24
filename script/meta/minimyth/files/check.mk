@@ -208,6 +208,7 @@ mm-all:
 		   [ ! "$${software}" = "libgpiod"       ] && \
 		   [ ! "$${software}" = "xscreensaver"   ] && \
 		   [ ! "$${software}" = "kodi"           ] && \
+		   [ ! "$${software}" = "openvfd"        ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
