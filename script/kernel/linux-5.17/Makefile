@@ -77,7 +77,6 @@ PATCHFILES += 0321-meson-vdec-add-VP9-support-to-GXM.patch
 # Amlogic: Misc patches
 PATCHFILES += 0331-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 0332-arm64-dts-meson-add-support-for-GX-PM-and-Virtu.patch
-PATCHFILES += 0360-arm64-dts-meson-tanix-tx3-add-thermal-zones.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0367-arm64-dts-meson-sm1-add-common-ac2xx-dtsi.patch
 PATCHFILES += 0368-arm64-dts-meson-sm1-add-support-for-X96-AIR.patch
@@ -129,6 +128,7 @@ PATCHFILES += 0535-arm64-dts-allwinner-tanix-tx6-mini-enable-wifi-cpu-dvfs.patch
 # Allwinner: enable H6 GPU DVFS (seems not work OK atm)
 PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
+PATCHFILES += 0538-arm64-dts-allwinner-tanix-tx6-enable-wifi-cpu-dvfs.patch
 # patches from LE 5.09.2021 for Eth improvements
 PATCHFILES += 0539-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 PATCHFILES += 0540-net-stmmac-sun8i-Use-devm_regulator_get-for-PHY-regu.patch
