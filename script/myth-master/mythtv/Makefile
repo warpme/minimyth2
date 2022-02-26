@@ -125,8 +125,6 @@ DEPENDS = \
 	lib/alsa-lib \
 	lib/avahi \
 	lib/exiv2 \
-	lib/fftw3 \
-	lib/fftw3f \
 	lib/freetype \
 	lib/lame \
 	lib/libass \

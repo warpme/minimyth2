@@ -15,8 +15,6 @@ DEPENDS = \
 	lib/libexif \
 	lib/libtiff \
 	lib/flac \
-	lib/fftw3 \
-	lib/fftw3f \
 	lib/lame \
 	lib/libcdaudio \
 	lib/libcdio \
@@ -64,7 +62,6 @@ CONFIGURE_ARGS = \
 	--enable-mythgame \
 	--enable-mythmusic \
 		--enable-cdio \
-		--enable-fftw \
 	--enable-mythnetvision \
 	--enable-mythnews \
 	--enable-mythweather \
