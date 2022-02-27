@@ -214,10 +214,10 @@ sed --in-place --follow-symlinks 's/MYTHTV_SVN_VERSION\s*=.*/MYTHTV_SVN_VERSION 
 sed --in-place --follow-symlinks 's/MYTHTV_GIT_VERSION\s*=.*/MYTHTV_GIT_VERSION      = '${gitversion}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
 sed --in-place --follow-symlinks    's/MYTHTV_GIT_HASH\s*=.*/MYTHTV_GIT_HASH         = '${gitfullhash}'/' "${mm_home}/script/myth-${branch}/mythtv/package-api.mk"
 sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?= \1.r${gitrel}/" ${mm_conf_file}
-sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?=       \1.r${gitrel}/" "${mm_home}/script/minimyth.conf.mk"
-sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?=       \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.aarch64"
-sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?=       \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.arm"
-sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?=       \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.x86-64"
+# sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?=       \1.r${gitrel}/" "${mm_home}/script/minimyth.conf.mk"
+# sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?=       \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.aarch64"
+# sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?=       \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.arm"
+# sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?=       \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.x86-64"
 
 make makesums garchive -C ${mm_home}/script/myth-${branch}/mythtv
 
