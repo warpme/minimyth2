@@ -59,8 +59,6 @@ PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
 PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
 endif
 
-#PATCHFILES += 0130-net-wireless-add-rtw88-20220114.patch
-
 ifeq (1,1)
 #-- Amlogic patches -----------------------------------------
 # increas CMA pool for 4k decode
@@ -206,6 +204,7 @@ PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.pat
 PATCHFILES += 0834-arm64-dts-rockchip-add-dts-for-Firefly-Station-M2-rk.patch
 PATCHFILES += 0835-arm64-dts-rockchip-add-early-quartz64-model-b.patch
 PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
+PATCHFILES += 0837-arm64-dts-rockchip-enable-sfc-on-rk356x-boards.patch
 endif
 #------------------------------------------------------------
 
