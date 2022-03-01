@@ -6,6 +6,7 @@ CATEGORIES     = kernel
 MASTER_SITES   = \
 		https://github.com/arthur-liberman/linux_openvfd/archive/ \
 		https://github.com/arthur-liberman/vfd-configurations/archive/
+PATCHFILES     = 01-increase-support-to-4-gpio-banks.patch
 DISTFILES      = $(GARVERSION).zip $(CONFIGSVERSION).zip openvfd
 WORKSRC        = $(WORKDIR)/linux_openvfd-$(GARVERSION)
 
