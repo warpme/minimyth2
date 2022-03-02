@@ -193,7 +193,9 @@ DEPENDS = \
 	$(if $(filter apitrace,$(mm_SOFTWARE)),devel/apitrace) \
 	$(if $(filter gdb,$(mm_SOFTWARE)),devel/gdb) \
 	$(if $(filter valgrind,$(mm_SOFTWARE)),devel/valgrind) \
-	$(if $(filter libgpiod,$(mm_SOFTWARE)),system/libgpiod) \
+	$(if $(filter libgpiod,$(mm_SOFTWARE)), \
+		system/libgpiod \
+		python3/python-libgpiod) \
 	$(if $(filter xscreensaver,$(mm_SOFTWARE)),X11/xscreensaver) \
 	$(filter-out %/Makefile extras/extras-% extras/extras.%,$(subst ../../,,$(wildcard ../../extras/*))) \
 	$(mm_USER_PACKAGES)
