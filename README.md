@@ -12,22 +12,33 @@ From the software perspective, MiniMyth2 is MythTV frontend with minimal require
 (Linux kernel, GNU libraries, video/audio/IR remote drivers) allowing to run MythTV frontend with full speed & features
 on recent hardware from Intel/AMD/Amlogic/Rockchip/Allwinner/Raspbery.
 
-Comparing MiniMyth2 with other distributions, MiniMyth2 is closest to buildroot - with difference MiniMyth2 uses canadian
-cross cross-compilation. In MiniMyth2 issuing make build command automates:
+Conceptually, MiniMyth2 potential differentiator is full state-less design.
+Practically it means MiniMyth2 offers fully functional MythTV fronted without ANY
+hardware & user specific data needed at deployment. MiniMyth2 hardware specific config is automatically generated from HW
+autodetection while user specific config is set with MythTV defaults. This allows real zero-config deployment.
+After deployment - in normal usage - MiniMyth2 stays fully state-less. No runtime/user data is stored on local storage (for best
+runtime speed - MiniMyth2 uses RAM disks. NFS is not used - as slow network links like FastEthernet or WiFi - are too slow
+for good user experience). In this context - MiniMyth2 is exactly like live USB / SD card distro with capability of automatic
+customizations at every boot time. Boot customization data is stored in single config file and MiniMyth2 can automatically
+download it at boot from central location (or read it from SD card / USB stick when central server not offers config file).
+
+From development perspective - comparing MiniMyth2 with other distributions - MiniMyth2 is closest to buildroot - with
+difference MiniMyth2 uses canadian cross cross-compilation. In MiniMyth2 issuing make build command automates:
 - downloading sources
-- building build enviroment for building cross-toolchain
+- building build environment for building cross-toolchain
 - building cross-toolchain
 - building target binaries with cross-toolchain
 - preparing bootable image
 - uploading created bootable image to i.e. PXE server or NFS server or starts flashing SD card
 
-From building perspective - MiniMyth2 is closest to LFS build in fully automated way.
+In this context - MiniMyth2 is closest to LFS build in fully automated way.
 
-When compared to i.e. LibreELEC - MiniMyth2 builds single universal rootfs image for all supported boards.
-Difference beetween SD card images for each supported board is only in bootloader (SD card BOOT partition).
-It also offers multi-board capability so teoretically it can build - in one build session - single SD card
-image for all SoC. Practically - due some SoC boot procedure conflicts/bootloader SoC speciffic overlaps -
-only subset of SoC can work with universal card SD image currently.
+From distro perspective - when compared to other media-player-like distributions (i.e. CoreELEC, LibreELEC, etc) - MiniMyth2
+is single universal rootfs image prepared for all supported boards.
+Difference between SD card image / USB key for each supported board lays only in bootloader (SD card BOOT partition).
+It offers multi-board capability - so theoretically - it can build in one build session an single SD card
+image for all SoC. Practically - due some SoC boot procedure conflicts/bootloader SoC specific overlaps -
+only subset of SoC are working well with universal card SD image currently.
 
 
 
@@ -43,16 +54,16 @@ No any drivers install nor configuration is required for any from 1500+ of graph
 - Make easy adoption of recent FOSS achievements as base for creating zero-effort provisioned out-of-box ready to use
 dedicated MythTV appliance.
 Project is exploiting developments in GNU/Linux area like:
-  - mainline Linux kernel support for Amlogic/Rockchip/Allwinner/Raspbery SoCs
-  - Mesa3D Panfrost/Lima as FOSS support for ARM 3D IP
-  - stateless/stateful V4L2 Video decode (Amlogic VDEC, Rockchip HANTRO/RKVDEC and Allwinner CEDRUS)
+  - common single mainline Linux kernel support for Amlogic/Rockchip/Allwinner/Raspbery SoCs
+  - Mesa3D support for ARM 3D IP
+  - stateless/stateful V4L2 Video decode (Amlogic VDEC, Rockchip HANTRO/RKVDEC, Allwinner CEDRUS and Bradcom RPIVID)
   - in-kernel IR remote decode for covering wide variety of supported IR remotes
 
 
 
 ## What it is not
 MiniMyth2 is not just another Linux distro which is
-designed to install on PC hardware and to used as computer
+designed to install on PC hardware and to use as computer
 running various software.
 Target scenario with MiniMyth2 is small, disk-less dedicated appliance
 running MythTV Frontend (and practically only MythTV Frontend).
