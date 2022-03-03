@@ -88,27 +88,28 @@ MiniMyth2 [Wiki](https://github.com/warpme/minimyth2/wiki)
 ### General Functionality
 This is general functionality avaliable on current code (Mainline Linux kernel)
 
-SoC           | Tested on        | WiFi Chip & Support                     | CEC Support            | Sleep/Resume                   | Remarks                       |
-------------- |------------------|-----------------------------------------|------------------------|--------------------------------|-------------------------------|
-Allwinner H6  | EachLink H6 Mini | not works (rtl8723bs@SDIO no detected)  | works                  | works                          | well supported                |
-Allwinner H6  | TanixTX6-Mini    | works      (xr819@SDIO)                 | works                  | works                          | well supported                |
-Allwinner H6  | Beelink GS1      | not works  (fn-link6222@PCI-e no PCI-e) | works                  | not works (firmware issue)     | some things are still missing |
-Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                     | works                  | not works (firmware issue)     | some things are still missing |
-Allwinner H616| OrangePI-Zero2   | not works (aw859a@SDIO)                 | works                  | not works (firmware issue)     | some things are still missing |
-Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                    | works                  | currently power off/on         | good prospects                |
-Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                    | works                  | currently power off/on         | well supported                |
-Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                    | works                  | not works                      | good prospects                |
-Amlogic s905  | TanixTX3-Mini    | not works  (sv6051@SDIO no driver aval) | works                  | not works (firmware issue)     | support stalled               |
-Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)       | works                  | not works (firmware issue)     | support stalled               |
-Amlogic sm1   | x96Air           | works  (rtl8189@SDIO)                   | works                  | not works (firmware issue)     | support stalled               |
-Amlogic g12a  | Radxa-Zero       | works  (ap6256@SDIO)                    | works                  | not works (firmware issue)     | support stalled               |
-Broadcom 2837 | Rpi3-b           | works  (brcm43430@SDIO)                 | works                  | no plans                       | all basics works nicelly      |
-Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                  | works                  | no plans                       | all basics works nicelly      |
-Intel i5      | i5 NUC           | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
-Intel Z8500   | Beelink MII-V    | works  (ac3165@PCI-e)                   | n/a                    | works (s1idle)                 | perfect support               |
-Intel N3450   | Beelink BT4      | works  (ac3165@PCI-e)                   | n/a                    | not works (bios issue)         | perfect support, bootsplah nok|
-AMD E1-2100   | AMD Kabini       | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
-Intel D2550   | ION2             | n/a                                     | n/a                    | works (s3ram)                  | perfect support               |
+SoC           | Tested on        | WiFi Chip & Support                     | CEC Support | LED display | Sleep/Resume                   | Remarks                       |
+------------- |------------------|-----------------------------------------|-------------|-------------|--------------------------------|-------------------------------|
+Allwinner H6  | EachLink H6 Mini | not works (rtl8723bs@SDIO no detected)  | works       |    N/A      | works                          | well supported                |
+Allwinner H6  | TanixTX6         | works      (rtl8822cs@SDIO)             | works       |   works     | works                          | well supported                |
+Allwinner H6  | TanixTX6-Mini    | works      (xr819@SDIO)                 | works       |    N/A      | not works                      | well supported                |
+Allwinner H6  | Beelink GS1      | not works  (fn-link6222@PCI-e no PCI-e) | works       |    WiP      | not works (firmware issue)     | some things are still missing |
+Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                     | works       |    WiP      | not works (firmware issue)     | some things are still missing |
+Allwinner H616| OrangePI-Zero2   | not works (aw859a@SDIO)                 | works       |    N/A      | not works (firmware issue)     | some things are still missing |
+Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                    | works       |    WiP      | currently power off/on         | good prospects                |
+Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                    | works       |    N/A      | currently power off/on         | well supported                |
+Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                    | works       |   works     | not works                      | good prospects                |
+Amlogic s905  | TanixTX3-Mini    | not works  (sv6051@SDIO no driver aval) | works       |   works     | not works (firmware issue)     | support stalled               |
+Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)       | works       |    WiP      | not works (firmware issue)     | support stalled               |
+Amlogic sm1   | x96Air           | works  (rtl8189@SDIO)                   | works       |    WiP      | not works (firmware issue)     | support stalled               |
+Amlogic g12a  | Radxa-Zero       | works  (ap6256@SDIO)                    | works       |    N/A      | not works (firmware issue)     | support stalled               |
+Broadcom 2837 | Rpi3-b           | works  (brcm43430@SDIO)                 | works       |    N/A      | no plans                       | all basics works nicelly      |
+Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                  | works       |    N/A      | no plans                       | all basics works nicelly      |
+Intel i5      | i5 NUC           | n/a                                     | n/a         |    N/A      | works (s3ram)                  | perfect support               |
+Intel Z8500   | Beelink MII-V    | works  (ac3165@PCI-e)                   | n/a         |    N/A      | works (s1idle)                 | perfect support               |
+Intel N3450   | Beelink BT4      | works  (ac3165@PCI-e)                   | n/a         |    N/A      | not works (bios issue)         | perfect support, bootsplah nok|
+AMD E1-2100   | AMD Kabini       | n/a                                     | n/a         |    N/A      | works (s3ram)                  | perfect support               |
+Intel D2550   | ION2             | n/a                                     | n/a         |    N/A      | works (s3ram)                  | perfect support               |
 
 ### Hardware Video Decode support
 This is video related functionality avaliable on current code (Linux kernel + Mesa + MythTV)
