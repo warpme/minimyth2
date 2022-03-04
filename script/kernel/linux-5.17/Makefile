@@ -148,6 +148,7 @@ PATCHFILES += 0549-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
 PATCHFILES += 0550-pinctrl-sunxi-sunxi_pinctrl_gpio_direction_in-output-use-correct-offset.patch
 PATCHFILES += 0570-hantro-Add-quirk-for-NV12-NV12_4L4-capture-format.patch
 PATCHFILES += 0587-media-hantro-sunxi-Fix-VP9-steps.patch
+PATCHFILES += 0588-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 endif
 #------------------------------------------------------------
 

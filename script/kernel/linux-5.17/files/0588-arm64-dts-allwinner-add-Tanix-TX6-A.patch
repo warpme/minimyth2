@@ -1,0 +1,126 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-5.17-rc6/arch/arm64/boot/dts/allwinner/Makefile linux-5.17-rc6/arch/arm64/boot/dts/allwinner/Makefile
+--- linux-5.17-rc6/arch/arm64/boot/dts/allwinner/Makefile	2022-03-04 22:27:12.005918396 +0100
++++ linux-5.17-rc6/arch/arm64/boot/dts/allwinner/Makefile	2022-03-04 22:26:03.609252973 +0100
+@@ -38,6 +38,7 @@
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-pine-h64.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-pine-h64-model-b.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-tanix-tx6.dtb
++dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-tanix-tx6-a.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-tanix-tx6-mini.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h616-orangepi-zero2.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h616-x96-mate.dtb
+diff --speed-large-files --no-dereference --minimal -Naur linux-5.17-rc6/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6-a.dts linux-5.17-rc6/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6-a.dts
+--- linux-5.17-rc6/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6-a.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.17-rc6/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6-a.dts	2022-03-04 22:21:46.539257607 +0100
+@@ -0,0 +1,111 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++// Copyright (c) 2019 Jernej Skrabec <jernej.skrabec@siol.net> Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++
++/dts-v1/;
++
++#include "sun50i-h6-tanix.dtsi"
++
++/ {
++	model = "Tanix TX6-A";
++	compatible = "oranth,tanix-tx6", "allwinner,sun50i-h6";
++
++	aliases {
++		ethernet0 = &emac;
++		ethernet1 = &wifi;
++	};
++
++	reg_vcc33_wifi: vcc33-wifi {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc33-wifi";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		gpio = <&pio 7 4 GPIO_ACTIVE_HIGH>; /* PH4 */
++		regulator-always-on;
++		enable-active-high;
++	};
++
++	reg_vdd_cpu: vdd-cpu {
++		compatible = "regulator-fixed";
++		regulator-name = "vdd-cpu";
++		regulator-min-microvolt = <1200000>;
++		regulator-max-microvolt = <1200000>;
++	};
++
++	openvfd {
++		compatible = "open,vfd";
++		dev_name = "openvfd";
++		openvfd_gpio_clk = <&pio 7 5 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PH5 */
++		openvfd_gpio_dat = <&pio 7 6 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PH6 */
++		vfd_gpio_chip_name = "300b000.pinctrl";
++		openvfd_chars = [02 04 03 02 01];
++		openvfd_dot_bits = [00 01 03 02 04 05 06];
++		openvfd_display_type = <0x03000001>;
++		status = "okay";
++	};
++};
++
++&cpu0 {
++	cpu-supply = <&reg_vdd_cpu>;
++};
++
++&r_ir {
++	linux,rc-map-name = "rc-tanix-tx3mini";
++};
++
++&uart1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart1_pins>, <&uart1_rts_cts_pins>;
++	uart-has-rtscts;
++	status = "okay";
++
++	bluetooth {
++		compatible = "realtek,rtl8822cs-bt";
++		device-wake-gpios = <&r_pio 1 2 GPIO_ACTIVE_HIGH>; /* PM2 */
++		host-wake-gpios = <&r_pio 1 1 GPIO_ACTIVE_HIGH>; /* PM1 */
++		enable-gpios = <&r_pio 1 4 GPIO_ACTIVE_HIGH>; /* PM4 */
++	};
++};
++
++&ac200_pwm_clk {
++	status = "okay";
++};
++
++&emac {
++	pinctrl-names = "default";
++	pinctrl-0 = <&ext_rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&ext_rmii_phy>;
++	status = "okay";
++};
++
++&i2c3 {
++	status = "okay";
++};
++
++&mdio {
++	ext_rmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
++};
++
++&pwm {
++	status = "okay";
++};
++
++&mmc1 {
++	vmmc-supply = <&reg_vcc3v3>;
++	vqmmc-supply = <&reg_vcc33_wifi>;
++	mmc-pwrseq = <&wifi_pwrseq>;
++	bus-width = <4>;
++	non-removable;
++	status = "okay";
++
++	wifi: sdio_wifi@1 {
++		reg = <1>;
++		interrupt-parent = <&r_pio>;
++		interrupts = <1 0 IRQ_TYPE_EDGE_RISING>; /* PM0 */
++		interrupt-names = "host-wake";
++		local-mac-address = [dc 44 6d c0 ff 01];
++	};
++};
