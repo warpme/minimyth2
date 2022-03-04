@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 21.3.6
+GARVERSION   = 21.3.7
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
