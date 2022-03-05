@@ -1,7 +1,7 @@
 
 GARNAME      = mesa
-# 22.0.0-rc2 12.02.2022
-GARVERSION   = 	716fc5280adcb1912c817298353c0edc731e76a8
+# 22.0.0-rc3 12.02.2022
+GARVERSION   = 148aac1b3bfd12a654e4b8366d041ecdff63426c
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
