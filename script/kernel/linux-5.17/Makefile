@@ -189,6 +189,7 @@ PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
 PATCHFILES += 0741-v4l2-wip-rkvdec-hevc.patch
 PATCHFILES += 0742-v4l2-wip-iep-driver.patch
+PATCHFILES += 0743-arm64-dts-rockchip-beelink-a1-enable-openvfd.patch
 endif
 #------------------------------------------------------------
 
