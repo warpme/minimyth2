@@ -190,6 +190,9 @@ PATCHFILES += 0732-for-libreelec.patch
 PATCHFILES += 0741-v4l2-wip-rkvdec-hevc.patch
 PATCHFILES += 0742-v4l2-wip-iep-driver.patch
 PATCHFILES += 0743-arm64-dts-rockchip-beelink-a1-enable-openvfd.patch
+PATCHFILES += 0744-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
+PATCHFILES += 0745-arm64-dts-rockchip-beelink-a1-enable-androind-dram-timmings.patch
+PATCHFILES += 0746-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
 endif
 #------------------------------------------------------------
 
