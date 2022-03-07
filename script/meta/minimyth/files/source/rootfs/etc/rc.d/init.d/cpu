@@ -37,7 +37,7 @@ start() {
         fi
     fi
 
-    if [ "x${MM_CPU_FREQUENCY_GOVERNOR}" != "x" ] ; then
+    if [ ! "x${MM_CPU_FREQUENCY_GOVERNOR}" = "x" ] ; then
 
         # Load CPU frequency scaling processor kernel modules.
         # Kernel modules that do not support the CPU should fail to load.
@@ -64,12 +64,14 @@ start() {
         for dir in /sys/devices/system/cpu/cpu*/cpufreq ; do
 
             /bin/echo "${MM_CPU_FREQUENCY_GOVERNOR}" > ${dir}/scaling_governor
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/cpu] Setting CPU DVFS in ${dir}/scaling_governor to ${MM_CPU_FREQUENCY_GOVERNOR}"
 
         done
 
+
     fi
 
-    if [ x${MM_GPU_FREQUENCY_GOVERNOR} != "x" ] ; then
+    if [ ! x${MM_GPU_FREQUENCY_GOVERNOR} = "x" ] ; then
 
         gpu_governor=`find /sys/class/devfreq/*.gpu/ -name governor`
 
@@ -83,6 +85,23 @@ start() {
             /usr/bin/logger -t minimyth -p "local0.info" "[init.d/cpu] Setting GPU DVFS in ${gpu_governor} to ${MM_GPU_FREQUENCY_GOVERNOR}"
 
         fi
+
+    fi
+
+    if [ -e /sys/class/devfreq/dmc/governor ] ; then
+
+        if [ ! "x${MM_CPU_FREQUENCY_GOVERNOR}" = "x" ] ; then
+
+            /bin/echo "${MM_CPU_FREQUENCY_GOVERNOR}" > /sys/class/devfreq/dmc/governor
+
+        else
+
+            MM_CPU_FREQUENCY_GOVERNOR='performance'
+            /bin/echo "${MM_CPU_FREQUENCY_GOVERNOR}" > /sys/class/devfreq/dmc/governor
+
+        fi
+
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/cpu] Setting Memory DVFS in /sys/class/devfreq/dmc/governor to ${MM_CPU_FREQUENCY_GOVERNOR}"
 
     fi
 
