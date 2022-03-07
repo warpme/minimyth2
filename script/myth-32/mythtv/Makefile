@@ -96,6 +96,9 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
 PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 
+# hack to make LiveTV start not stuttering
+PATCHFILES += 0300-mythplayer-hack-to-stuttering-starting-LiveTV.patch
+
 # --------Patches 400+ are plugins patches---------------------
 
 # Various mythmusic patches
