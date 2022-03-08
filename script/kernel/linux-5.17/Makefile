@@ -144,6 +144,7 @@ PATCHFILES += 0547-net-wireless-add-xr819-support-07072021.patch
 PATCHFILES += 0548-net-wireless-add-rtw88-support-10012022.patch
 # fix setting 4k60 mode on some TVs.
 PATCHFILES += 0549-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
+# for for non-working wifi on 5.17
 PATCHFILES += 0570-hantro-Add-quirk-for-NV12-NV12_4L4-capture-format.patch
 PATCHFILES += 0587-media-hantro-sunxi-Fix-VP9-steps.patch
 PATCHFILES += 0588-arm64-dts-allwinner-add-Tanix-TX6-A.patch
@@ -191,6 +192,7 @@ PATCHFILES += 0743-arm64-dts-rockchip-beelink-a1-enable-openvfd.patch
 PATCHFILES += 0744-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
 PATCHFILES += 0745-arm64-dts-rockchip-beelink-a1-enable-androind-dram-timmings.patch
 PATCHFILES += 0746-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
+PATCHFILES += 0747-arm64-dts-rockchip-add-enable-dmc-on-roc-cc.patch
 endif
 #------------------------------------------------------------
 
