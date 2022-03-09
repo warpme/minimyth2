@@ -94,7 +94,7 @@ Allwinner H6  | EachLink H6 Mini | not works (rtl8723bs@SDIO no detected) | work
 Allwinner H6  | TanixTX6         | works     (rtl8822cs@SDIO)             | works       | works       | works                          | well supported                |
 Allwinner H6  | TanixTX6-Mini    | works     (xr819@SDIO)                 | works       | n/a         | not works                      | well supported                |
 Allwinner H6  | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | WiP         | not works (firmware issue)     | some things are still missing |
+Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| OrangePI-Zero2   | not works (aw859a@SDIO)                | works       | n/a         | not works (firmware issue)     | some things are still missing |
 Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | works       | works       | currently power off/on         | good prospects                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
