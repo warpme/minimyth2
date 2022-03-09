@@ -96,7 +96,7 @@ Allwinner H6  | TanixTX6-Mini    | works     (xr819@SDIO)                 | work
 Allwinner H6  | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works       | n/a         | not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| OrangePI-Zero2   | not works (aw859a@SDIO)                | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | works       | works       | currently power off/on         | good prospects                |
+Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | works       | works       | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
 Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                   | works       | works       | not works                      | good prospects                |
 Amlogic s905  | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | works       | WiP         | not works (firmware issue)     | support stalled               |
@@ -108,6 +108,7 @@ Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                 | work
 Intel i5      | i5 NUC           | n/a                                    | n/a         | n/a         | works (s3ram)                  | perfect support               |
 Intel Z8500   | Beelink MII-V    | works  (ac3165@PCI-e)                  | n/a         | n/a         | works (s1idle)                 | perfect support               |
 Intel N3450   | Beelink BT4      | works  (ac3165@PCI-e)                  | n/a         | n/a         | not works (bios issue)         | perfect support, bootsplah nok|
+Intel N3450   | Beelink T34      | works  (ac3165@PCI-e)                  | n/a         | n/a         | works (s3ram)                  | perfect support, bootsplah nok|
 AMD E1-2100   | AMD Kabini       | n/a                                    | n/a         | n/a         | works (s3ram)                  | perfect support               |
 Intel D2550   | ION2             | n/a                                    | n/a         | n/a         | works (s3ram)                  | perfect support               |
 
