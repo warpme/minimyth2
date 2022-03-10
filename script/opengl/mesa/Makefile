@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 21.3.7
+GARVERSION   = 22.0.0
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -75,6 +75,7 @@ MESON_CONFIGURE_ARGS = \
 	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 	-D platforms=x11,wayland \
 	-D llvm=enabled \
+	-D cpp_rtti=false \
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
