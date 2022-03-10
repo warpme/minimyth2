@@ -5,7 +5,6 @@ CATEGORIES   = qt
 GARVERSION = 5a4cfb58842dd3225b574198ec41ee76179dfe10
 MASTER_SITES = https://github.com/qtwebkit/qtwebkit/archive/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = qt5-webkit-revert-ac17da2-Check-Qt-private-headers-available-before-compilation.patch
 
 DESCRIPTION = 
 define BLURB
@@ -79,6 +78,21 @@ CONFIGURE_ARGS = \
 	-DENABLE_SPELLCHECK="OFF" \
 	-DENABLE_TOUCH_EVENTS="OFF" \
 	-DCMAKE_CXX_FLAGS="-fPIC" \
+
+CONFIGURE_ARGS1 = \
+	-DQt5Core_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Core" \
+	-DQt5Gui_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Gui" \
+	-DQt5Network_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Network" \
+	-DQt5Widgets_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Widgets" \
+	-DQt5Quick_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Quick" \
+	-DQt5QmlModels_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5QmlModels" \
+	-DQt5Qml_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Qml" \
+	-DQt5WebChannel_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5WebChannel" \
+	-DGLIB_INCLUDE_DIRS="/home/piotro/minimyth-dev/images/main/usr/include" \
+	-DGLIB_LIBRARIES="/home/piotro/minimyth-dev/images/main/usr/lib" \
+
+#	-DCMAKE_PREFIX_PATH="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake" \
+
 
 include ../../gar.mk
 
