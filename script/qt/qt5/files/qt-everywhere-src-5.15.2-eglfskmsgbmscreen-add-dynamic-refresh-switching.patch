@@ -1,0 +1,109 @@
+
+This hack adds capability for on-demand refresh rate switching on eglfskms QPA in atomic_commit mode.
+
+With this hack - to trigger change refresh rate - it is ehough to write new mode index (with desired
+refresh) in QKmsOutput.mode structure. Qt DRM/MKS Qpa with automatically reprogram DRM CRTC with desired
+refresh rate.
+
+Context:
+
+At normal DRM/KMS operation, everty v-blank calls [1]QEglFSKmsGbmScreen::flip()to do DRM Atomic Flip.
+Above Qt function checks is mode set correctly by calling [2]ensureModeSet().
+Calling [2] checks mode_set variable and if it is false, [2] compares current mode read from connected CRTC with
+mode stored in QKmsOutput.mode. When they not matching - [2] prepares [3]drmModeAtomicReq to set mode on CRTC which will
+take effect at next [1].
+ALso - when [2] is called - it also sets mode_set to true - so effectivelly CRTC mode is set once - at
+[4]QKmsDevice::createScreenForConnector
+
+Issue:
+
+If Qt application wants to change refresh rate for current mode - AFAIK there seems to no way to realize this.
+Setting QKmsOutput.mode to new mode index + clearing QKmsOutput.mode_set is not enough as this will trigger [3] but with
+QKmsOutput.mode_blob_id [5]created for current mode - not for new mode. (it looks for me Qt [5]creates
+mode.blob.id once - at [4]call).
+
+Proposed hack:
+
+Add in [2] discovery of mode change - and if discovered:
+1.generate in [2] valid mode_blob_id for new mode.
+2.prepre [3]drmModeAtomicReq with updated mode_blob_id.
+3.let [1]program CRTC with new, desired refresh.
+
+Comment:
+Some applications (MythTV) tried to achieve refresh rate changes by [6]generating mode_blob_id then [7]issuing
+AtomicCommit directly to CRTC. Unfortunatelly this fails with error:
+
+Qt: Failed to commit atomic request (code=-22)
+
+Above error seems to me as result of wrong DRM commit properties setup when [7] is issued. This is confirmed 
+in kernel DRM logging:
+
+[ 3439.154434] [drm:drm_atomic_set_mode_prop_for_crtc] [CRTC:41:crtc-0] invalid mode (ret=-22, status=H_ILLEGAL):
+[ 3439.154451] [drm:drm_mode_debug_printmodeline] Modeline "": 0 1042780224 0 0 40080 15911 0 37040 15911 0 0x20 0x0
+
+At this moment i don't see more elegant way to achieve on-demand refresh rate switching on eglfskms QPA in atomic_commit mode....
+Any ideas welcommed!
+
+[1] https://github.com/qt/qtbase/blob/40143c189b7c1bf3c2058b77d00ea5c4e3be8b28/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp#L286
+[2] https://github.com/qt/qtbase/blob/40143c189b7c1bf3c2058b77d00ea5c4e3be8b28/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp#L310 
+[3] https://github.com/qt/qtbase/blob/40143c189b7c1bf3c2058b77d00ea5c4e3be8b28/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp#L241
+[4] https://github.com/qt/qtbase/blob/40143c189b7c1bf3c2058b77d00ea5c4e3be8b28/src/platformsupport/kmsconvenience/qkmsdevice.cpp#L188
+[5] https://github.com/qt/qtbase/blob/40143c189b7c1bf3c2058b77d00ea5c4e3be8b28/src/platformsupport/kmsconvenience/qkmsdevice.cpp#L451
+[6] https://github.com/MythTV/mythtv/blob/991d0f473226d68693b40bf2ae3a5b3c5b6cd461/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp#L677
+[7] https://github.com/MythTV/mythtv/blob/991d0f473226d68693b40bf2ae3a5b3c5b6cd461/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp#L679
+
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp
+--- qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp	2020-10-27 09:02:11.000000000 +0100
++++ qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp	2021-12-29 12:51:32.239790489 +0100
+@@ -217,29 +217,48 @@
+     }
+ }
+ 
++int actual_mode = -1;
+ void QEglFSKmsGbmScreen::ensureModeSet(uint32_t fb)
+ {
+     QKmsOutput &op(output());
+     const int fd = device()->fd();
+ 
+-    if (!op.mode_set) {
++    if (!op.mode_set || actual_mode != op.mode) {
+         op.mode_set = true;
++        actual_mode = op.mode;
+ 
+         bool doModeSet = true;
+         drmModeCrtcPtr currentMode = drmModeGetCrtc(fd, op.crtc_id);
+         const bool alreadySet = currentMode && currentMode->buffer_id == fb && !memcmp(&currentMode->mode, &op.modes[op.mode], sizeof(drmModeModeInfo));
+         if (currentMode)
+             drmModeFreeCrtc(currentMode);
+-        if (alreadySet)
++        if (alreadySet) {
++            qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::ensureModeSet: mode already set";
+             doModeSet = false;
++        }
+ 
+         if (doModeSet) {
+-            qCDebug(qLcEglfsKmsDebug, "Setting mode for screen %s", qPrintable(name()));
++            qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::ensureModeSet:: setting mode for screen:" << qPrintable(name()) << " with mode_index=" << op.mode;
+ 
+             if (device()->hasAtomicSupport()) {
+ #if QT_CONFIG(drm_atomic)
++                // creating mode blob to current mode. required when there is switch to new mode
++                qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::ensureModeSet: creating mode blob for mode_index:" << op.mode;
++                if (drmModeCreatePropertyBlob(fd, &op.modes[op.mode], sizeof(drmModeModeInfo),
++                                              &op.mode_blob_id) != 0) {
++                    qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::ensureModeSet: failed to create mode blob for mode_index:" << op.mode;
++                }
++
+                 drmModeAtomicReq *request = device()->threadLocalAtomicRequest();
+                 if (request) {
++
++                    qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsGbmScreen::ensureModeSet: add drmModeAtomicAddProperties for mode_index=" << op.mode
++                                 << "\n    request_id=" << request
++                                 << "\n    connector_id=" << op.connector_id
++                                 << "\n    crtc_id=" << op.crtc_id
++                                 << "\n    mode_blob_id=" << op.mode_blob_id
++                                 << "\n    active=" << 1;
++
+                     drmModeAtomicAddProperty(request, op.connector_id, op.crtcIdPropertyId, op.crtc_id);
+                     drmModeAtomicAddProperty(request, op.crtc_id, op.modeIdPropertyId, op.mode_blob_id);
+                     drmModeAtomicAddProperty(request, op.crtc_id, op.activePropertyId, 1);
