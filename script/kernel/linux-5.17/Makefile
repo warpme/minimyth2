@@ -148,6 +148,7 @@ PATCHFILES += 0549-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
 PATCHFILES += 0570-hantro-Add-quirk-for-NV12-NV12_4L4-capture-format.patch
 PATCHFILES += 0587-media-hantro-sunxi-Fix-VP9-steps.patch
 PATCHFILES += 0588-arm64-dts-allwinner-add-Tanix-TX6-A.patch
+PATCHFILES += 0589-bluetooth-hci-h5-add-power-reset-via-gpio-in-h5-btrtl-open.patch
 endif
 #------------------------------------------------------------
 
@@ -178,12 +179,15 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=622542
+PATCHFILES += 0700-drm-rockchip-RK356x-VOP2-support-v8.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=608813
+PATCHFILES += 0701-drm-bridge-synopsys-dw-hdmi-set-cec-clock-rate.patch
 # patches from LE 29.01.2022
 PATCHFILES += 0702-rockchip-from-list.patch
 PATCHFILES += 0711-v4l2-from-list.patch
 PATCHFILES += 0720-drm-from-list.patch
 PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
-#PATCHFILES += 0730-drm-rockchip.patch
 PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
 PATCHFILES += 0741-v4l2-wip-rkvdec-hevc.patch
@@ -200,8 +204,6 @@ ifeq (1,1)
 #-- Rockchip 356x patches -----------------------------------------
 # based on https://gitlab.com/pine64-org/quartz-bsp/linux-next/-/commits/quartz64-v5.17 @8.02.2022
 PATCHFILES += 0800-rk356x-add-USB2-USB3-PCIe-mfd.patch
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=608673
-PATCHFILES += 0801-drm-rockchip-RK356x-VOP2-support-v5.1.patch
 PATCHFILES += 0803-media-hantro-add-rk3566-support.patch
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-pcie-in-rk35xx.dtsi.patch
 PATCHFILES += 0832-arm64-dts-rockchip-enable-hantro-on-rk356x.patch
@@ -209,7 +211,6 @@ PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.pat
 PATCHFILES += 0834-arm64-dts-rockchip-add-dts-for-Firefly-Station-M2-rk.patch
 PATCHFILES += 0835-arm64-dts-rockchip-add-early-quartz64-model-b.patch
 PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
-PATCHFILES += 0837-arm64-dts-rockchip-enable-sfc-on-rk356x-boards.patch
 endif
 #------------------------------------------------------------
 
