@@ -94,7 +94,7 @@ MESON_CONFIGURE_ARGS += \
 else
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,svga,swrast \
-	-D dri-drivers=i915,i965,r100,r200 \
+	-D dri-drivers= \
 	-D gallium-vdpau=enabled
 endif
 endif
