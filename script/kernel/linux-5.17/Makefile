@@ -181,8 +181,6 @@ ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=622542
 PATCHFILES += 0700-drm-rockchip-RK356x-VOP2-support-v8.patch
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=608813
-PATCHFILES += 0701-drm-bridge-synopsys-dw-hdmi-set-cec-clock-rate.patch
 # patches from LE 29.01.2022
 PATCHFILES += 0702-rockchip-from-list.patch
 PATCHFILES += 0711-v4l2-from-list.patch
