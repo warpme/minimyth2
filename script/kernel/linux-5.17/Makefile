@@ -188,6 +188,7 @@ PATCHFILES += 0720-drm-from-list.patch
 PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
 PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
+PATCHFILES += 0733-drm-rockchip-fix-non-working-cec-after-power-cycle.patch
 PATCHFILES += 0741-v4l2-wip-rkvdec-hevc.patch
 PATCHFILES += 0742-v4l2-wip-iep-driver.patch
 PATCHFILES += 0743-arm64-dts-rockchip-beelink-a1-enable-openvfd.patch
