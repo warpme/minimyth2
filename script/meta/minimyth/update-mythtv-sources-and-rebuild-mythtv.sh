@@ -87,35 +87,35 @@ echo " "
 if [ x${branch} = "x29" ]; then
 
   _gitname=mythtv
-  _gitroot=git://github.com/MythTV/mythtv.git
+  _gitroot=https://github.com/MythTV/mythtv.git
   _gitbranch=fixes/29
   srcdir="${git_src_home}/git-mythtv-${branch}"
 
 elif [ x${branch} = "x30" ]; then
 
   _gitname=mythtv
-  _gitroot=git://github.com/MythTV/mythtv.git
+  _gitroot=https://github.com/MythTV/mythtv.git
   _gitbranch=fixes/30
   srcdir="${git_src_home}/git-mythtv-${branch}"
 
 elif [ x${branch} = "x31" ]; then
 
   _gitname=mythtv
-  _gitroot=git://github.com/MythTV/mythtv.git
+  _gitroot=https://github.com/MythTV/mythtv.git
   _gitbranch=fixes/31
   srcdir="${git_src_home}/git-mythtv-${branch}"
 
 elif [ x${branch} = "x32" ]; then
 
   _gitname=mythtv
-  _gitroot=git://github.com/MythTV/mythtv.git
+  _gitroot=https://github.com/MythTV/mythtv.git
   _gitbranch=fixes/32
   srcdir="${git_src_home}/git-mythtv-${branch}"
 
 elif [ x${branch} = "xmaster" ]; then
 
   _gitname=mythtv
-  _gitroot=git://github.com/MythTV/mythtv.git
+  _gitroot=https://github.com/MythTV/mythtv.git
 
   if [ x$use_test_branch_as_amster = "xyes" ]; then
     _gitbranch="${test_branch_name}"
@@ -128,7 +128,7 @@ elif [ x${branch} = "xmaster" ]; then
 elif [ x${branch} = "xtest" ]; then
 
   _gitname=mythtv
-  _gitroot=git://github.com/MythTV/mythtv.git
+  _gitroot=https://github.com/MythTV/mythtv.git
 
   _gitbranch="${test_branch_name}"
   srcdir="${git_src_home}/${test_git_src_dir}"
