@@ -51,6 +51,7 @@ ifeq (1,1)
 # Misc panfrost patches for 5.17 kernel
 PATCHFILES += 0102-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0110-drivers-net-wireless-brcmfmac-add-ap6330-firmware.patch
+PATCHFILES += 0111-wireless-brcmfmac-stop-60sec-waiting-without-clm_blob.patch
 endif
 
 ifeq (1,1)
