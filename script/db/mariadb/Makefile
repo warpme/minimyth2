@@ -61,7 +61,6 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
     -DWITH_SSL=system \
     -DWITH_SYSTEMD=no \
     -DIMPORT_EXECUTABLES=../host/import_executables.cmake \
-    -DLZ4_INCLUDE_DIR=/home/piotro/Desktop/minimyth2/images/main/usr/include \
     -Wno-dev \
 
 include ../../gar.mk
