@@ -1,6 +1,6 @@
 
 GARNAME      = mariadb
-GARVERSION   = 10.6.7
+GARVERSION   = 10.8.2
 CATEGORIES   = db
 MASTER_SITES = https://rsync.osuosl.org/pub/mariadb/mariadb-$(GARVERSION)/source/
 DISTFILES    = $(DISTNAME).tar.gz
@@ -50,6 +50,7 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
     -DINSTALL_SUPPORTFILESDIR=share/mysql \
     -DWITH_READLINE=on \
     -DWITH_UNIT_TESTS=off \
+    -DSTACK_DIRECTION=-1 \
     -DWITH_JEMALLOC=off \
     -DWITH_LIBWRAP=off \
     -DWITHOUT_TOKUDB=on \
@@ -60,7 +61,7 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
     -DWITH_SSL=system \
     -DWITH_SYSTEMD=no \
     -DIMPORT_EXECUTABLES=../host/import_executables.cmake \
-    -DSTACK_DIRECTION=-1 \
+    -DLZ4_INCLUDE_DIR=/home/piotro/Desktop/minimyth2/images/main/usr/include \
     -Wno-dev \
 
 include ../../gar.mk
