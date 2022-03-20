@@ -1,13 +1,15 @@
-GARNAME = nss
-GARVERSION = $(NSS_VERSION)
-CATEGORIES = lib
+
+GARNAME      = nss
+GARVERSION   = $(NSS_VERSION)
+CATEGORIES   = lib
 MASTER_SITES = https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/$(shell echo $(DISTNAME) | sed -e 's/-/_/g' -e 's/\./_/g' -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')_RTM/src/
-PATCHFILES = fix-used-chaintools.patch
-DISTFILES = $(DISTNAME).tar.gz
+PATCHFILES   = fix-used-chaintools.patch
+DISTFILES    = $(DISTNAME).tar.gz
 ifneq ($(DESTIMG),build)
-PATCHFILES += nss-cross.patch
+PATCHFILES  += nss-cross.patch
+PATCHFILES  += freebl-add-a-configure-option-to-disable-ARM-HW-cryp.patch
 endif
-LICENSE = MPL1_1/GPL2/LGPL2_1
+LICENSE      = MPL1_1/GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -41,14 +43,10 @@ BUILD_ARGS = \
 	ZLIB_LIBS="-lz" \
 	NSS_ENABLE_WERROR=0 \
 	NSS_DISABLE_CHACHAPOLY=1 \
+	NS_USE_GCC="1" \
 	all
 
 include ../../gar.mk
-
-PARALLELMFLAGS := -j1
-
-# nss 3.19.3 uses cross LDFLAGS during native build.
-LDFLAGS :=
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(libdir)
@@ -60,7 +58,7 @@ install-custom:
 	 -e "s,%prefix%,/usr,g" \
 	 -e "s,%exec_prefix%,/usr/bin,g" \
 	 -e "s,%includedir%,/usr/include/nss,g" \
-	 -e "s,%NSPR_VERSION%,4.19,g" \
+	 -e "s,%NSPR_VERSION%,4.25,g" \
 	 -e "s,%NSS_VERSION%,$(NSS_VERSION),g" \
 	 -i $(DESTDIR)$(libdir)/pkgconfig/nss.pc
 	@cp $(WORKSRC)/nss/pkg/pkg-config/nss-config.in $(DESTDIR)$(bindir)-config/nss-config
@@ -70,7 +68,7 @@ install-custom:
 	 -e "s,@exec_prefix@,/usr/bin,g" \
 	 -e "s,@includedir@,/usr/include/nss,g" \
 	 -e "s,@MOD_MAJOR_VERSION@,3,g" \
-	 -e "s,@MOD_MINOR_VERSION@,38,g" \
+	 -e "s,@MOD_MINOR_VERSION@,76,g" \
 	 -e "s,@MOD_PATCH_VERSION@,0,g" \
 	 -i $(DESTDIR)$(bindir)-config/nss-config
 	@chmod +x $(DESTDIR)$(bindir)-config/nss-config
