@@ -72,6 +72,8 @@ install-custom:
 	 -e "s,@MOD_PATCH_VERSION@,0,g" \
 	 -i $(DESTDIR)$(bindir)-config/nss-config
 	@chmod +x $(DESTDIR)$(bindir)-config/nss-config
+	@mkdir -p $(DESTDIR)$(includedir)/nss
+	@cp -fL $(WORKSRC)/dist/public/nss/*.h $(DESTDIR)$(includedir)/nss/
 	@$(MAKECOOKIE)
 
 install-shlibsign:
