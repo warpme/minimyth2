@@ -58,7 +58,7 @@ install-custom:
 	 -e "s,%prefix%,/usr,g" \
 	 -e "s,%exec_prefix%,/usr/bin,g" \
 	 -e "s,%includedir%,/usr/include/nss,g" \
-	 -e "s,%NSPR_VERSION%,4.25,g" \
+	 -e "s,%NSPR_VERSION%,4.33,g" \
 	 -e "s,%NSS_VERSION%,$(NSS_VERSION),g" \
 	 -i $(DESTDIR)$(libdir)/pkgconfig/nss.pc
 	@cp $(WORKSRC)/nss/pkg/pkg-config/nss-config.in $(DESTDIR)$(bindir)-config/nss-config
