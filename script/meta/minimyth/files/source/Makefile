@@ -287,7 +287,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                          $@~/usr/bin/devel-update-component.sh
 	@sed -i 's%@mm_QT_VERSION@%$(mm_QT_VERSION)%g' $@~/etc/conf.d/core
 	@sed -i 's%@mm_QT_VERSION@%$(mm_QT_VERSION)%g' $@~/usr/bin/mythfrontend.sh
-	@MM_DEVEL_HOST_IP="$(shell /bin/hostname -i | sed -e 's/\s//g')"; sed -i "s%@MM_DEVEL_IP@%$$MM_DEVEL_HOST_IP%g" $@~/usr/bin/devel-update-component.sh
+	@MM_DEVEL_HOST_IP="$(shell hostname -i | sed -e 's/\s//g')"; sed -i "s%@MM_DEVEL_IP@%$$MM_DEVEL_HOST_IP%g" $@~/usr/bin/devel-update-component.sh
 ifneq (,$(findstring rpi,$(mm_KERNEL_VERSION)))
 	@sed -i 's%    # mm_splash_init%    mm_splash_init%'        $@~$(sysconfdir)/rc.d/init.d/modules_automatic
 endif
