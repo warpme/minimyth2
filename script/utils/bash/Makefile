@@ -38,20 +38,15 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
+CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --exec-prefix=$(prefix) --prefix=$(prefix) \
 	--with-gnu-ld
 
 include ../../gar.mk
-
-libdir  := $(elibdir)
-bindir  := $(ebindir)
-sbindir := $(esbindir)
 
 patch-%: normal-patch-%
 	@$(MAKECOOKIE)
 
 pre-configure:
-	@# Running autotools fails.
 	@#$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
