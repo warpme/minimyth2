@@ -34,6 +34,7 @@ mm_SOFTWARE               ?= \
                             weston \
                             iwd \
                             bootloader \
+                            openvfd \
                             $(if $(filter $(mm_DEBUG),yes),debug)
 
 #                             mednafen \
@@ -51,7 +52,6 @@ mm_SOFTWARE               ?= \
 #                             valgrind \
 #                             xscreensaver \
 #                             kodi \
-#                             openvfd \
 
 # Indicates bootloader board type. Valid values are:
 # 'board-rpi2'
