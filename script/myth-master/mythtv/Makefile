@@ -54,6 +54,8 @@ PATCHFILES += 0153-ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel.patch
 PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
 # Fix green screen on hantro h264 vdpu2 hw video decode
 PATCHFILES += 0155-ffmpeg-libavcodec-h264_slice-fix-decoding-on-hantro-vdpu2.patch
+# Add NEON based VC1 decoding on arm/aarch64
+PATCHFILES += 0156-ffmpeg-libavcodec-vc1-arm-use-neon-optimisations.patch
 endif
 
 # buffers bump-up required for AML HD playbck
