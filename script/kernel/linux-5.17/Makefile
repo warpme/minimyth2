@@ -181,7 +181,7 @@ endif
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=626925
-PATCHFILES += 0700-drm-rockchip-RK356x-VOP2-support-v9.patch
+PATCHFILES += 0700-drm-rockchip-RK356x-VOP2-support-v9.1.patch
 # patches from LE 29.01.2022
 PATCHFILES += 0702-rockchip-from-list.patch
 PATCHFILES += 0711-v4l2-from-list.patch

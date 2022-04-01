@@ -5555,3 +5555,44 @@ index 7687c62d1fa8..63dfbeeeb06d 100644
  			RK3568_PMU_CLKSEL_CON(8), 7, 1, MFLAGS),
  };
  
+
+Fix for shifted picture when rendering to DRM planes
+Fix for green screen on rk3566 when rendering to DRM planes
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-5.17.1/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c linux-5.17.1/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+--- linux-5.17.1/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c	2022-04-01 16:33:28.280195937 +0200
++++ linux-5.17.1/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c	2022-04-01 14:56:42.533431564 +0200
+@@ -1979,10 +1979,10 @@
+ 			sdly |= FIELD_PREP(RK3568_SMART_DLY_NUM__ESMART1, dly);
+ 			break;
+ 		case ROCKCHIP_VOP2_SMART0:
+-			sdly |= FIELD_PREP(RK3568_SMART_DLY_NUM__SMART1, dly);
++			sdly |= FIELD_PREP(RK3568_SMART_DLY_NUM__SMART0, dly);
+ 			break;
+ 		case ROCKCHIP_VOP2_SMART1:
+-			sdly |= FIELD_PREP(RK3568_SMART_DLY_NUM__SMART0, dly);
++			sdly |= FIELD_PREP(RK3568_SMART_DLY_NUM__SMART1, dly);
+ 			break;
+ 		}
+ 	}
+@@ -2287,6 +2287,20 @@
+ 			}
+ 		}
+ 
++		if (vop2->data->soc_id == 3566) {
++			/*
++			 * On RK3566 these windows don't have an independent
++			 * framebuffer. They share the framebuffer with smart0,
++			 * esmart0 and cluster0 respectively.
++			 */
++			switch (win->data->phys_id) {
++			case ROCKCHIP_VOP2_SMART1:
++			case ROCKCHIP_VOP2_ESMART1:
++			case ROCKCHIP_VOP2_CLUSTER1:
++				continue;
++			}
++		}
++
+ 		if (win->type == DRM_PLANE_TYPE_OVERLAY)
+ 			possible_crtcs = (1 << nvps) - 1;
+ 
