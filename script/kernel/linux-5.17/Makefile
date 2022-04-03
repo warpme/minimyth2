@@ -211,6 +211,7 @@ PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.pat
 PATCHFILES += 0834-arm64-dts-rockchip-add-dts-for-Firefly-Station-M2-rk.patch
 PATCHFILES += 0835-arm64-dts-rockchip-add-early-quartz64-model-b.patch
 PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
+PATCHFILES += 0837-arm64-dts-rockchip-add-dts-for-box-demo-v10.patch
 endif
 #------------------------------------------------------------
 
