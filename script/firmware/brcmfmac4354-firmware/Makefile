@@ -21,12 +21,12 @@ install-custom:
 	@cp -f   $(WORKDIR)/$(DISTNAME)/lib/firmware/brcm/brcmfmac4354-sdio.bin      $(DESTDIR)$(elibdir)/firmware/brcm/
 	@cp -f   $(WORKDIR)/$(DISTNAME)/lib/firmware/brcm/brcmfmac4354-sdio.clm_blob $(DESTDIR)$(elibdir)/firmware/brcm/
 	@cp -Rdf $(WORKDIR)/nvram_ap6354.txt                                         $(DESTDIR)$(elibdir)/firmware/brcm/
-	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4354-sdio.bin $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4354-sdio.pine64,quartz64-a.bin
-	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/nvram_ap6354.txt      $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4354-sdio.pine64,quartz64-a.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4354-sdio.bin $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4354-sdio.amediatech,x96-x6.bin
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/nvram_ap6354.txt      $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4354-sdio.amediatech,x96-x6.txt
 	@$(MAKECOOKIE)
 
 clean-all: clean
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4354-sdio.bin
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/nvram_ap6354.txt
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4354-sdio.pine64,quartz64-a.bin
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4354-sdio.pine64,quartz64-a.txt
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4354-sdio.amediatech,x96-x6.bin
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4354-sdio.amediatech,x96-x6.txt
