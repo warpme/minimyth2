@@ -224,6 +224,8 @@ PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-08112021.patch
 PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch 
 # add H265 rpivid driver
 PATCHFILES += 0904-media-add-rpivid-24022021.patch
+# improvements for statefull v4l2_m2m seeking on rpi
+PATCHFILES += 0905-vc4_services-improve_h264_seek.patch
 endif
 #------------------------------------------------------------
 
