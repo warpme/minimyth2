@@ -9,7 +9,8 @@ include ../../minimyth.conf.mk
 
 PATCHFILES  = ffmpeg-fix-building-with-lto.patch
 PATCHFILES += ffmpeg-001-v4l2-drmprime.patch
-PATCHFILES += ffmpeg-001-v4l2-request.patch
+PATCHFILES += ffmpeg-002-v4l2-request.patch
+PATCHFILES += ffmpeg-003-v4l2-m2m-improve-seeking-on-rpi.patch
 
 LICENSE      = GPL2/LGPL2_1
 
