@@ -1,6 +1,6 @@
 
 GARNAME      = libva
-GARVERSION   = 2.13.0
+GARVERSION   = 2.14.0
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/libva/archive/
 DISTFILES    = $(GARVERSION).tar.gz
