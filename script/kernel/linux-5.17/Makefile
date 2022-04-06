@@ -150,6 +150,8 @@ PATCHFILES += 0570-hantro-Add-quirk-for-NV12-NV12_4L4-capture-format.patch
 PATCHFILES += 0587-media-hantro-sunxi-Fix-VP9-steps.patch
 PATCHFILES += 0588-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 PATCHFILES += 0589-bluetooth-hci-h5-add-power-reset-via-gpio-in-h5-btrtl-open.patch
+# improving op3
+PATCHFILES += 0590-arm64-dts-allwinner-improve-opi3-support.patch
 endif
 #------------------------------------------------------------
 
