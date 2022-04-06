@@ -383,6 +383,7 @@ mm-all:
 		   [ ! "$${board}" = "board-h6.eachlink_mini"     ] && \
 		   [ ! "$${board}" = "board-h6.tanix_tx6"         ] && \
 		   [ ! "$${board}" = "board-h6.tanix_tx6_mini"    ] && \
+		   [ ! "$${board}" = "board-h6.orangepi_3"        ] && \
 		   [ ! "$${board}" = "board-h616.tanix_tx6s"      ] && \
 		   [ ! "$${board}" = "board-h616.t95"             ] && \
 		   [ ! "$${board}" = "board-h616.x96_mate"        ] && \
