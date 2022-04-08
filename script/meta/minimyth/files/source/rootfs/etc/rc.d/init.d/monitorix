@@ -1,0 +1,56 @@
+#!/bin/sh
+################################################################################
+# monitorix
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    /bin/touch /var/init/monitorix.inprogress
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/monitorix] Starting..."
+
+    if [ ! -z ${MM_MONITORIX_ENABLE} ] ; then
+
+        if [ ! -e /var/lib/monitorix ] ; then
+            mkdir -p /var/lib/monitorix
+            ln -sf /usr/share/www/monitorix /srv/www/monitorix
+            chmod -R 777 /srv/www/monitorix/imgs
+        fi
+
+        #monitorix -d all -n -c /etc/monitorix.conf
+        monitorix -c /etc/monitorix.conf
+
+        # Enabling monitorix links in index.html page
+        /bin/sed -i -e 's%<!--@monitorix@%%g' -e 's%@monitorix@-->%%g' /srv/www/index.html
+    fi
+
+    sleep 5
+
+    # Query monitorix cgi to generate initial png images
+    curl "http://localhost/monitorix/cgi/monitorix.cgi?mode=localhost&graph=all&when=1day&color=black" > /dev/null 2>&1
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/monitorix] Started with return code=0..."
+
+    /bin/rm -f /var/init/monitorix.inprogress
+    return 0
+}
+
+stop() {
+
+    if [ ! -z ${MM_MONITORIX_ENABLE} ] ; then
+
+        killall monitorix
+
+    fi
+
+    return 0
+
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0
