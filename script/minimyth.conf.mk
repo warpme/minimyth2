@@ -35,6 +35,7 @@ mm_SOFTWARE               ?= \
                             iwd \
                             bootloader \
                             openvfd \
+                            monitorix \
                             $(if $(filter $(mm_DEBUG),yes),debug)
 
 #                             mednafen \

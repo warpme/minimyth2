@@ -210,6 +210,7 @@ mm-all:
 		   [ ! "$${software}" = "xscreensaver"   ] && \
 		   [ ! "$${software}" = "kodi"           ] && \
 		   [ ! "$${software}" = "openvfd"        ] && \
+		   [ ! "$${software}" = "monitorix"      ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
