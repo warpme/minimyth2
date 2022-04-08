@@ -112,9 +112,7 @@ PATCHFILES += 0515-media-cedrus-hevc-tiles-hack.patch
 PATCHFILES += 0516-media-cedrus-h264-Improve-buffer-management.patch
 PATCHFILES += 0525-media-cedrus-Add-callback-for-buffer-cleanup.patch
 PATCHFILES += 0528-media-cedrus-wip-10-bit-HEVC-support.patch
-PATCHFILES += 0529-media-cedrus-Fix-H265-aux-buffer-size.patch
 PATCHFILES += 0530-media-cedrus-Add-watchdog-for-job-completion.patch
-PATCHFILES += 0530-media-cedrus-h264-Fix-neighbour-info-buffer-size.patch
 # Adding support for MFD devices on some H6 boards
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
@@ -147,7 +145,6 @@ PATCHFILES += 0548-net-wireless-add-rtw88-support-10012022.patch
 PATCHFILES += 0549-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
 # for for non-working wifi on 5.17
 PATCHFILES += 0570-hantro-Add-quirk-for-NV12-NV12_4L4-capture-format.patch
-PATCHFILES += 0587-media-hantro-sunxi-Fix-VP9-steps.patch
 PATCHFILES += 0588-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 PATCHFILES += 0589-bluetooth-hci-h5-add-power-reset-via-gpio-in-h5-btrtl-open.patch
 # improving op3
@@ -182,8 +179,12 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=626925
-PATCHFILES += 0700-drm-rockchip-RK356x-VOP2-support-v9.1.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=622384
+PATCHFILES += 0701-arm64-dts-rockchip-add-basic-dts-for-the-radxa-rock3-model-a.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=630407
+PATCHFILES += 0700-drm-rockchip-RK356x-VOP2-support-v10.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=629156
+PATCHFILES += 0701-drm-rockchip-Refactor-IOMMU-initialisation.patch
 # patches from LE 29.01.2022
 PATCHFILES += 0702-rockchip-from-list.patch
 PATCHFILES += 0711-v4l2-from-list.patch
