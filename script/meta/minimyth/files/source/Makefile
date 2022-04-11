@@ -641,7 +641,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		chmod +s $@~$(bindir)/sway ; \
 	 fi
 	@echo "final permission fixups on some execs" ; \
-	 files="ssh sshd scp mplayer ntpd ntpdate mysql" ; \
+	 files="ssh sshd scp mplayer ntpd ntpdate mysql getconf" ; \
 	 for file in $${files} ; do \
 			if [ -e $@~$(bindir)/$${file} ] ; then \
 				chmod +x $@~$(bindir)/$${file} ; \
@@ -785,10 +785,8 @@ $(top_build)/stage/html: \
 	@cp -pdR $(top_source)/html/ $@~
 	@echo "updating index.html"
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g'           $@~/index.html
-	@sed -i 's%@MM_NVIDIA_VERSION@%$(mm_NVIDIA_VERSION)%g'               $@~/index.html
-	@sed -i 's%@MM_NVIDIA_LEGACY_VERSION@%$(mm_NVIDIA_LEGACY_VERSION)%g' $@~/index.html
 	@sed -i 's%@LINUX_FULL_VERSION@%$(LINUX_FULL_VERSION)%g'             $@~/index.html
-	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_SVN_VERSION)%g'             $@~/index.html
+	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_GIT_VERSION)%g'             $@~/index.html
 	@echo "updating version and licenses in HTML docs"
 	@mkdir -m 0755 -p $@~/software/base
 	@cp -pdR $(DESTDIR)$(versiondir) $@~/software/base/
