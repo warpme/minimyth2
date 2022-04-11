@@ -13,6 +13,7 @@ DEPENDS = \
 	perl/perl-Config-Simple \
 	perl/perl-Config-General \
 	perl/perl-RRDtool-bindings \
+	net/iptables \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
