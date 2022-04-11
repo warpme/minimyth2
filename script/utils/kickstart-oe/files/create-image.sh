@@ -59,7 +59,7 @@ if [ x${use_minimyth_python3} = "xyes" ] ; then
     export PATH=${mm_home}/images/build/bin:${mm_home}/images/build/usr/bin:${PATH}
     export PYTHONPATH=${mm_home}/images/build/usr/lib/python3.8:${PYTHONPATH}
     export PYTHON=${mm_home}/images/build/usr/bin/python3
-    export LD_LIBRARY_PATH=${mm_home}/images/build/usr/lib
+    export LD_LIBRARY_PATH=${mm_home}/images/build/lib:${mm_home}/images/build/usr/lib
 else
     export PYTHON=/usr/bin/python3
 fi
