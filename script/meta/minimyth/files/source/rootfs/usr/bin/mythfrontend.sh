@@ -94,13 +94,14 @@ stop_kodi
 case "${MM_MYTHTV_DRAW_ON}" in
 
     eglfs|term)
-        echo "Runing with drawing to EGLFS"
         /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in EGLFS ..."
         export QT_QPA_PLATFORM=eglfs
         export QT_QPA_EGLFS_INTEGRATION=eglfs_kms
         if [ "x${MM_MYTHTV_DRM_VIDEO}" = "xyes" ] ; then
-            echo "Using DRM_PRIME in DRM planes mode"
+            echo "Runing with drawing to EGLFS and video render to DRM plane"
             export MYTHTV_DRM_VIDEO=1
+        else
+            echo "Runing with drawing to EGLFS and video render via EGL DMAbuf"
         fi
         if [ -e /home/minimyth/.mythtv/eglfs-config.json ] ; then
             export export QT_QPA_EGLFS_KMS_CONFIG="/home/minimyth/.mythtv/eglfs-config.json"
@@ -110,13 +111,13 @@ case "${MM_MYTHTV_DRAW_ON}" in
         ;;
 
     wayland)
-        echo "Runing with drawing to Wayland-EGL"
+        echo "Runing with drawing to Wayland-EGL and video render via EGL DMAbuf"
         /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in Wayland ..."
         export QT_QPA_PLATFORM=wayland-egl
         ;;
 
     x11|*)
-        echo "Runing with drawing to Xorg"
+        echo "Runing with drawing to Xorg and video render via EGL DMAbuf"
         export QT_QPA_PLATFORM=xcb
         export DISPLAY=':0.0'
         /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in X11 ..."
