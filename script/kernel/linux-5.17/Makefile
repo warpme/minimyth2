@@ -112,7 +112,7 @@ PATCHFILES += 0515-media-cedrus-hevc-tiles-hack.patch
 PATCHFILES += 0516-media-cedrus-h264-Improve-buffer-management.patch
 PATCHFILES += 0525-media-cedrus-Add-callback-for-buffer-cleanup.patch
 PATCHFILES += 0528-media-cedrus-wip-10-bit-HEVC-support.patch
-PATCHFILES += 0530-media-cedrus-Add-watchdog-for-job-completion.patch
+PATCHFILES += 0529-media-cedrus-Add-watchdog-for-job-completion.patch
 # Adding support for MFD devices on some H6 boards
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
@@ -180,13 +180,14 @@ endif
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=622384
-PATCHFILES += 0701-arm64-dts-rockchip-add-basic-dts-for-the-radxa-rock3-model-a.patch
+PATCHFILES += 0700-arm64-dts-rockchip-add-basic-dts-for-the-radxa-rock3-model-a.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=630407
-PATCHFILES += 0700-drm-rockchip-RK356x-VOP2-support-v10.patch
+PATCHFILES += 0701-drm-rockchip-RK356x-VOP2-support-v10.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=629156
-PATCHFILES += 0701-drm-rockchip-Refactor-IOMMU-initialisation.patch
+PATCHFILES += 0702-drm-rockchip-Refactor-IOMMU-initialisation.patch
+PATCHFILES += 0703-drm-rockchip-RK356x-VOP2-add-extra-video-modes.patch
 # patches from LE 29.01.2022
-PATCHFILES += 0702-rockchip-from-list.patch
+PATCHFILES += 0705-rockchip-from-list.patch
 PATCHFILES += 0711-v4l2-from-list.patch
 PATCHFILES += 0720-drm-from-list.patch
 PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
