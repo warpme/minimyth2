@@ -1,0 +1,590 @@
+
+From d3620e71cd61a9b5ec938fd9604830e8af416b9e Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Fri, 26 Feb 2021 10:27:51 +0000
+Subject: [PATCH 04/21] rtc: sun6i: Add support for linear day storage
+
+Newer versions of the Allwinner RTC, as for instance found in the H616
+SoC, no longer store a broken-down day/month/year representation in the
+RTC_DAY_REG, but just a linear day number.
+The user manual does not give any indication about the expected epoch
+time of this day count, but the BSP kernel uses the UNIX epoch, which
+allows easy support due to existing conversion functions in the kernel.
+
+Allow tagging a compatible string with a flag, and use that to mark
+those new RTCs. Then convert between a UNIX day number (converted into
+seconds) and the broken-down day representation using mktime64() and
+time64_to_tm() in the set_time/get_time functions.
+
+That enables support for the RTC in those new chips.
+
+Reviewed-by: Andre Przywara <andre.przywara@arm.com>
+---
+ drivers/rtc/rtc-sun6i.c | 58 +++++++++++++++++++++++++++++------------
+ 1 file changed, 41 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/rtc/rtc-sun6i.c b/drivers/rtc/rtc-sun6i.c
+index adec1b14a8d..0228e9dfd96 100644
+--- a/drivers/rtc/rtc-sun6i.c
++++ b/drivers/rtc/rtc-sun6i.c
+@@ -133,12 +133,15 @@ struct sun6i_rtc_clk_data {
+ 	unsigned int has_auto_swt : 1;
+ };
+ 
++#define RTC_LINEAR_DAY	BIT(0)
++
+ struct sun6i_rtc_dev {
+ 	struct rtc_device *rtc;
+ 	const struct sun6i_rtc_clk_data *data;
+ 	void __iomem *base;
+ 	int irq;
+ 	unsigned long alarm;
++	unsigned long flags;
+ 
+ 	struct clk_hw hw;
+ 	struct clk_hw *int_osc;
+@@ -471,17 +474,30 @@ static int sun6i_rtc_gettime(struct device *dev, struct rtc_time *rtc_tm)
+ 	rtc_tm->tm_min  = SUN6I_TIME_GET_MIN_VALUE(time);
+ 	rtc_tm->tm_hour = SUN6I_TIME_GET_HOUR_VALUE(time);
+ 
+-	rtc_tm->tm_mday = SUN6I_DATE_GET_DAY_VALUE(date);
+-	rtc_tm->tm_mon  = SUN6I_DATE_GET_MON_VALUE(date);
+-	rtc_tm->tm_year = SUN6I_DATE_GET_YEAR_VALUE(date);
+-
+-	rtc_tm->tm_mon  -= 1;
+-
+-	/*
+-	 * switch from (data_year->min)-relative offset to
+-	 * a (1900)-relative one
+-	 */
+-	rtc_tm->tm_year += SUN6I_YEAR_OFF;
++	if (chip->flags & RTC_LINEAR_DAY) {
++		struct tm tm;
++
++		/*
++		 * Newer chips store a linear day number, the manual
++		 * does not mandate any epoch base. The BSP driver uses
++		 * the UNIX epoch, let's just copy that, as it's the
++		 * easiest anyway.
++		 */
++		time64_to_tm((date & 0xffff) * 3600ULL * 24, 0, &tm);
++		rtc_tm->tm_mday = tm.tm_mday;
++		rtc_tm->tm_mon  = tm.tm_mon;
++		rtc_tm->tm_year = tm.tm_year;
++	} else {
++		rtc_tm->tm_mday = SUN6I_DATE_GET_DAY_VALUE(date);
++		rtc_tm->tm_mon  = SUN6I_DATE_GET_MON_VALUE(date) - 1;
++		rtc_tm->tm_year = SUN6I_DATE_GET_YEAR_VALUE(date);
++
++		/*
++		 * switch from (data_year->min)-relative offset to
++		 * a (1900)-relative one
++		 */
++		rtc_tm->tm_year += SUN6I_YEAR_OFF;
++	}
+ 
+ 	return 0;
+ }
+@@ -571,15 +587,21 @@ static int sun6i_rtc_settime(struct device *dev, struct rtc_time *rtc_tm)
+ 	u32 date = 0;
+ 	u32 time = 0;
+ 
+-	rtc_tm->tm_year -= SUN6I_YEAR_OFF;
+ 	rtc_tm->tm_mon += 1;
+ 
+-	date = SUN6I_DATE_SET_DAY_VALUE(rtc_tm->tm_mday) |
+-		SUN6I_DATE_SET_MON_VALUE(rtc_tm->tm_mon)  |
+-		SUN6I_DATE_SET_YEAR_VALUE(rtc_tm->tm_year);
++	if (chip->flags & RTC_LINEAR_DAY) {
++		date = mktime64(rtc_tm->tm_year + 1900, rtc_tm->tm_mon,
++				rtc_tm->tm_mday, 0, 0, 0) / (3600ULL * 24);
++	} else {
++		rtc_tm->tm_year -= SUN6I_YEAR_OFF;
++
++		date = SUN6I_DATE_SET_DAY_VALUE(rtc_tm->tm_mday) |
++			SUN6I_DATE_SET_MON_VALUE(rtc_tm->tm_mon)  |
++			SUN6I_DATE_SET_YEAR_VALUE(rtc_tm->tm_year);
+ 
+-	if (is_leap_year(rtc_tm->tm_year + SUN6I_YEAR_MIN))
+-		date |= SUN6I_LEAP_SET_VALUE(1);
++		if (is_leap_year(rtc_tm->tm_year + SUN6I_YEAR_MIN))
++			date |= SUN6I_LEAP_SET_VALUE(1);
++	}
+ 
+ 	time = SUN6I_TIME_SET_SEC_VALUE(rtc_tm->tm_sec)  |
+ 		SUN6I_TIME_SET_MIN_VALUE(rtc_tm->tm_min)  |
+@@ -678,6 +700,8 @@ static int sun6i_rtc_probe(struct platform_device *pdev)
+ 
+ 	platform_set_drvdata(pdev, chip);
+ 
++	chip->flags = (unsigned long)of_device_get_match_data(&pdev->dev);
++
+ 	chip->irq = platform_get_irq(pdev, 0);
+ 	if (chip->irq < 0)
+ 		return chip->irq;
+-- 
+2.29.2
+
+From 708ff2fd6b53397ede34a2fdce5ec5a037c857f1 Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Wed, 21 Apr 2021 12:46:43 +0100
+Subject: [PATCH 05/21] rtc: sun6i: Add Allwinner H616 support
+
+The H616 RTC changes its day storage to the newly introduced linear day
+scheme, so pair the new compatible string with this feature flag.
+So far the clock parts seem to be the same as the H6, so combine the
+compatible string with the existing H6 support bits.
+
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+---
+ drivers/rtc/rtc-sun6i.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/rtc/rtc-sun6i.c b/drivers/rtc/rtc-sun6i.c
+index 0228e9dfd96..ec0cd0ee539 100644
+--- a/drivers/rtc/rtc-sun6i.c
++++ b/drivers/rtc/rtc-sun6i.c
+@@ -382,6 +382,8 @@ static void __init sun50i_h6_rtc_clk_init(struct device_node *node)
+ }
+ CLK_OF_DECLARE_DRIVER(sun50i_h6_rtc_clk, "allwinner,sun50i-h6-rtc",
+ 		      sun50i_h6_rtc_clk_init);
++CLK_OF_DECLARE_DRIVER(sun50i_h616_rtc_clk, "allwinner,sun50i-h616-rtc",
++		      sun50i_h6_rtc_clk_init);
+ 
+ /*
+  * The R40 user manual is self-conflicting on whether the prescaler is
+@@ -773,6 +775,8 @@ static const struct of_device_id sun6i_rtc_dt_ids[] = {
+ 	{ .compatible = "allwinner,sun8i-v3-rtc" },
+ 	{ .compatible = "allwinner,sun50i-h5-rtc" },
+ 	{ .compatible = "allwinner,sun50i-h6-rtc" },
++	{ .compatible = "allwinner,sun50i-h616-rtc",
++		.data = (void *)RTC_LINEAR_DAY },
+ 	{ /* sentinel */ },
+ };
+ MODULE_DEVICE_TABLE(of, sun6i_rtc_dt_ids);
+-- 
+2.29.2
+
+From 078f591017794a0ec689345b0eeb7150908cf85a Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Thu, 10 Dec 2020 14:42:12 +0000
+Subject: [PATCH 07/21] net: stmmac: dwmac-sun8i: Prepare for second EMAC clock
+ register
+
+The Allwinner H616 SoC has two EMAC controllers, with the second one
+being tied to the internal PHY, but also using a separate EMAC clock
+register.
+
+To tell the driver about which clock register to use, we add a parameter
+to our syscon phandle. The driver will use this value as an index into
+the regmap, so that we can address more than the first register, if
+needed.
+
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+---
+ drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c b/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c
+index 4422baeed3d..5f3fefd9a74 100644
+--- a/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c
++++ b/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c
+@@ -1147,11 +1147,13 @@ static int sun8i_dwmac_probe(struct platform_device *pdev)
+ 	struct stmmac_resources stmmac_res;
+ 	struct sunxi_priv_data *gmac;
+ 	struct device *dev = &pdev->dev;
++	struct reg_field syscon_field;
+ 	phy_interface_t interface;
+ 	int ret;
+ 	struct stmmac_priv *priv;
+ 	struct net_device *ndev;
+ 	struct regmap *regmap;
++	u32 syscon_idx = 0;
+ 
+ 	ret = stmmac_get_platform_resources(pdev, &stmmac_res);
+ 	if (ret)
+@@ -1209,8 +1211,12 @@ static int sun8i_dwmac_probe(struct platform_device *pdev)
+ 		return ret;
+ 	}
+ 
+-	gmac->regmap_field = devm_regmap_field_alloc(dev, regmap,
+-						     *gmac->variant->syscon_field);
++	syscon_field = *gmac->variant->syscon_field;
++	ret = of_property_read_u32_index(pdev->dev.of_node, "syscon", 1,
++					 &syscon_idx);
++	if (!ret)
++		syscon_field.reg += syscon_idx * sizeof(u32);
++	gmac->regmap_field = devm_regmap_field_alloc(dev, regmap, syscon_field);
+ 	if (IS_ERR(gmac->regmap_field)) {
+ 		ret = PTR_ERR(gmac->regmap_field);
+ 		dev_err(dev, "Unable to map syscon register: %d\n", ret);
+@@ -1330,6 +1336,8 @@ static const struct of_device_id sun8i_dwmac_match[] = {
+ 		.data = &emac_variant_a64 },
+ 	{ .compatible = "allwinner,sun50i-h6-emac",
+ 		.data = &emac_variant_h6 },
++	{ .compatible = "allwinner,sun50i-h616-emac",
++		.data = &emac_variant_h6 },
+ 	{ }
+ };
+ MODULE_DEVICE_TABLE(of, sun8i_dwmac_match);
+-- 
+2.29.2
+
+From 1d43c77283594b00884cdca131c5d02707e351f4 Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Sun, 6 Dec 2020 01:39:24 +0000
+Subject: [PATCH 10/21] phy: sun4i-usb: Rework HCI PHY (aka. "pmu_unk1")
+ handling
+
+As Icenowy pointed out, newer manuals (starting with H6) actually
+document the register block at offset 0x800 as "HCI controller and PHY
+interface", also describe the bits in our "PMU_UNK1" register.
+Let's put proper names to those "unknown" variables and symbols.
+
+While we are at it, generalise the existing code by allowing a bitmap
+of bits to clear and set, to cover newer SoCs: The A100 and H616 use a
+different bit for the SIDDQ control.
+
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+---
+ drivers/phy/allwinner/phy-sun4i-usb.c | 30 ++++++++++++---------------
+ 1 file changed, 13 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/phy/allwinner/phy-sun4i-usb.c b/drivers/phy/allwinner/phy-sun4i-usb.c
+index 788dd5cdbb7..142f4cafdc7 100644
+--- a/drivers/phy/allwinner/phy-sun4i-usb.c
++++ b/drivers/phy/allwinner/phy-sun4i-usb.c
+@@ -43,7 +43,7 @@
+ #define REG_PHYCTL_A33			0x10
+ #define REG_PHY_OTGCTL			0x20
+ 
+-#define REG_PMU_UNK1			0x10
++#define REG_HCI_PHY_CTL			0x10
+ 
+ #define PHYCTL_DATA			BIT(7)
+ 
+@@ -82,6 +82,7 @@
+ /* A83T specific control bits for PHY0 */
+ #define PHY_CTL_VBUSVLDEXT		BIT(5)
+ #define PHY_CTL_SIDDQ			BIT(3)
++#define PHY_CTL_H3_SIDDQ		BIT(1)
+ 
+ /* A83T specific control bits for PHY2 HSIC */
+ #define SUNXI_EHCI_HS_FORCE		BIT(20)
+@@ -115,9 +116,9 @@ struct sun4i_usb_phy_cfg {
+ 	int hsic_index;
+ 	enum sun4i_usb_phy_type type;
+ 	u32 disc_thresh;
++	u32 hci_phy_ctl_clear;
+ 	u8 phyctl_offset;
+ 	bool dedicated_clocks;
+-	bool enable_pmu_unk1;
+ 	bool phy0_dual_route;
+ 	int missing_phys;
+ };
+@@ -288,6 +289,12 @@ static int sun4i_usb_phy_init(struct phy *_phy)
+ 		return ret;
+ 	}
+ 
++	if (phy->pmu && data->cfg->hci_phy_ctl_clear) {
++		val = readl(phy->pmu + REG_HCI_PHY_CTL);
++		val &= ~data->cfg->hci_phy_ctl_clear;
++		writel(val, phy->pmu + REG_HCI_PHY_CTL);
++	}
++
+ 	if (data->cfg->type == sun8i_a83t_phy ||
+ 	    data->cfg->type == sun50i_h6_phy) {
+ 		if (phy->index == 0) {
+@@ -297,11 +304,6 @@ static int sun4i_usb_phy_init(struct phy *_phy)
+ 			writel(val, data->base + data->cfg->phyctl_offset);
+ 		}
+ 	} else {
+-		if (phy->pmu && data->cfg->enable_pmu_unk1) {
+-			val = readl(phy->pmu + REG_PMU_UNK1);
+-			writel(val & ~2, phy->pmu + REG_PMU_UNK1);
+-		}
+-
+ 		/* Enable USB 45 Ohm resistor calibration */
+ 		if (phy->index == 0)
+ 			sun4i_usb_phy_write(phy, PHY_RES45_CAL_EN, 0x01, 1);
+@@ -863,7 +865,6 @@ static const struct sun4i_usb_phy_cfg sun4i_a10_cfg = {
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A10,
+ 	.dedicated_clocks = false,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun5i_a13_cfg = {
+@@ -872,7 +873,6 @@ static const struct sun4i_usb_phy_cfg sun5i_a13_cfg = {
+ 	.disc_thresh = 2,
+ 	.phyctl_offset = REG_PHYCTL_A10,
+ 	.dedicated_clocks = false,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun6i_a31_cfg = {
+@@ -881,7 +881,6 @@ static const struct sun4i_usb_phy_cfg sun6i_a31_cfg = {
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A10,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun7i_a20_cfg = {
+@@ -890,7 +889,6 @@ static const struct sun4i_usb_phy_cfg sun7i_a20_cfg = {
+ 	.disc_thresh = 2,
+ 	.phyctl_offset = REG_PHYCTL_A10,
+ 	.dedicated_clocks = false,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun8i_a23_cfg = {
+@@ -899,7 +897,6 @@ static const struct sun4i_usb_phy_cfg sun8i_a23_cfg = {
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A10,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun8i_a33_cfg = {
+@@ -908,7 +905,6 @@ static const struct sun4i_usb_phy_cfg sun8i_a33_cfg = {
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A33,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = false,
+ };
+ 
+ static const struct sun4i_usb_phy_cfg sun8i_a83t_cfg = {
+@@ -925,7 +921,7 @@ static const struct sun4i_usb_phy_cfg sun8i_h3_cfg = {
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A33,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = true,
++	.hci_phy_ctl_clear = PHY_CTL_H3_SIDDQ,
+ 	.phy0_dual_route = true,
+ };
+ 
+@@ -935,7 +931,7 @@ static const struct sun4i_usb_phy_cfg sun8i_r40_cfg = {
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A33,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = true,
++	.hci_phy_ctl_clear = PHY_CTL_H3_SIDDQ,
+ 	.phy0_dual_route = true,
+ };
+ 
+@@ -945,7 +941,7 @@ static const struct sun4i_usb_phy_cfg sun8i_v3s_cfg = {
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A33,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = true,
++	.hci_phy_ctl_clear = PHY_CTL_H3_SIDDQ,
+ 	.phy0_dual_route = true,
+ };
+ 
+@@ -955,7 +951,7 @@ static const struct sun4i_usb_phy_cfg sun50i_a64_cfg = {
+ 	.disc_thresh = 3,
+ 	.phyctl_offset = REG_PHYCTL_A33,
+ 	.dedicated_clocks = true,
+-	.enable_pmu_unk1 = true,
++	.hci_phy_ctl_clear = PHY_CTL_H3_SIDDQ,
+ 	.phy0_dual_route = true,
+ };
+ 
+-- 
+2.29.2
+
+From b6b51033f95eb43a22d12134235e5a01f638533c Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Mon, 10 May 2021 11:01:31 +0100
+Subject: [PATCH 11/21] phy: sun4i-usb: Allow reset line to be shared
+
+The USB HCIs (and PHYs?) in Allwinner's newer generation SoCs (H616)
+rely on the reset line of USB PHY 2 to be de-asserted, even when only
+one of the other PHYs is actually in use.
+
+To make those ports work, we include this reset line in the HCIs' resets
+property, which requires this line to be shareable.
+
+Change the call to allocate the reset line to mark it as shared, to
+enable the other ports on those SoCs.
+
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+---
+ drivers/phy/allwinner/phy-sun4i-usb.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/phy/allwinner/phy-sun4i-usb.c b/drivers/phy/allwinner/phy-sun4i-usb.c
+index 142f4cafdc7..126ef74d013 100644
+--- a/drivers/phy/allwinner/phy-sun4i-usb.c
++++ b/drivers/phy/allwinner/phy-sun4i-usb.c
+@@ -788,7 +788,7 @@ static int sun4i_usb_phy_probe(struct platform_device *pdev)
+ 		}
+ 
+ 		snprintf(name, sizeof(name), "usb%d_reset", i);
+-		phy->reset = devm_reset_control_get(dev, name);
++		phy->reset = devm_reset_control_get_shared(dev, name);
+ 		if (IS_ERR(phy->reset)) {
+ 			dev_err(dev, "failed to get reset %s\n", name);
+ 			return PTR_ERR(phy->reset);
+-- 
+2.29.2
+
+From 2ee9aa445442354a7fef0cdef31e2ac5ccd82c69 Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Mon, 10 May 2021 11:01:31 +0100
+Subject: [PATCH 12/21] phy: sun4i-usb: Introduce port2 SIDDQ quirk
+
+At least the Allwinner H616 SoC requires a weird quirk to make most
+USB PHYs work: Only port2 works out of the box, but all other ports
+need some help from this port2 to work correctly: The CLK_BUS_PHY2 and
+RST_USB_PHY2 clock and reset need to be enabled, and the SIDDQ bit in
+the PMU PHY control register needs to be cleared. For this register to
+be accessible, CLK_BUS_ECHI2 needs to be ungated. Don't ask ....
+
+Instead of disguising this as some generic feature, do exactly that
+in our PHY init:
+If the quirk bit is set, and we initialise a PHY other than PHY2, ungate
+this one special clock, and clear the SIDDQ bit. We can pull in the
+other required clocks via the DT.
+
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+---
+ drivers/phy/allwinner/phy-sun4i-usb.c | 29 +++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+
+diff --git a/drivers/phy/allwinner/phy-sun4i-usb.c b/drivers/phy/allwinner/phy-sun4i-usb.c
+index 126ef74d013..ed7b9cc5a42 100644
+--- a/drivers/phy/allwinner/phy-sun4i-usb.c
++++ b/drivers/phy/allwinner/phy-sun4i-usb.c
+@@ -120,6 +120,7 @@ struct sun4i_usb_phy_cfg {
+ 	u8 phyctl_offset;
+ 	bool dedicated_clocks;
+ 	bool phy0_dual_route;
++	bool needs_phy2_siddq;
+ 	int missing_phys;
+ };
+ 
+@@ -331,6 +332,27 @@ static int sun4i_usb_phy_init(struct phy *_phy)
+ 		queue_delayed_work(system_wq, &data->detect, 0);
+ 	}
+ 
++	/* Some PHYs on some SoCs need the help of PHY2 to work. */
++	if (data->cfg->needs_phy2_siddq && phy->index != 2) {
++		struct sun4i_usb_phy *phy2 = &data->phys[2];
++
++		/*
++		 * This extra clock is just needed to access the
++		 * REG_HCI_PHY_CTL PMU register for PHY2.
++		 */
++		ret = clk_prepare_enable(phy2->clk2);
++		if (ret)
++			return ret;
++
++		if (phy2->pmu && data->cfg->hci_phy_ctl_clear) {
++			val = readl(phy2->pmu + REG_HCI_PHY_CTL);
++			val &= ~data->cfg->hci_phy_ctl_clear;
++			writel(val, phy2->pmu + REG_HCI_PHY_CTL);
++		}
++
++		clk_disable_unprepare(phy->clk2);
++	}
++
+ 	return 0;
+ }
+ 
+@@ -785,6 +807,13 @@ static int sun4i_usb_phy_probe(struct platform_device *pdev)
+ 				dev_err(dev, "failed to get clock %s\n", name);
+ 				return PTR_ERR(phy->clk2);
+ 			}
++		} else {
++			snprintf(name, sizeof(name), "pmu%d_clk", i);
++			phy->clk2 = devm_clk_get_optional(dev, name);
++			if (IS_ERR(phy->clk2)) {
++				dev_err(dev, "failed to get clock %s\n", name);
++				return PTR_ERR(phy->clk2);
++			}
+ 		}
+ 
+ 		snprintf(name, sizeof(name), "usb%d_reset", i);
+-- 
+2.29.2
+
+From bfc1d35673e8b4e0846c2a8fb87a01f796ca906f Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Sun, 6 Dec 2020 01:40:16 +0000
+Subject: [PATCH 13/21] phy: sun4i-usb: Add support for the H616 USB PHY
+
+The USB PHY used in the Allwinner H616 SoC inherits some traits from its
+various predecessors: it has four full PHYs like the H3, needs some
+extra bits to be set like the H6, and puts SIDDQ on a different bit like
+the A100. Plus it needs this weird PHY2 quirk.
+
+Name all those properties in a new config struct and assign a new
+compatible name to it.
+
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+---
+ drivers/phy/allwinner/phy-sun4i-usb.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/drivers/phy/allwinner/phy-sun4i-usb.c b/drivers/phy/allwinner/phy-sun4i-usb.c
+index ed7b9cc5a42..a55765ad7ba 100644
+--- a/drivers/phy/allwinner/phy-sun4i-usb.c
++++ b/drivers/phy/allwinner/phy-sun4i-usb.c
+@@ -994,6 +994,17 @@ static const struct sun4i_usb_phy_cfg sun50i_h6_cfg = {
+ 	.missing_phys = BIT(1) | BIT(2),
+ };
+ 
++static const struct sun4i_usb_phy_cfg sun50i_h616_cfg = {
++	.num_phys = 4,
++	.type = sun50i_h6_phy,
++	.disc_thresh = 3,
++	.phyctl_offset = REG_PHYCTL_A33,
++	.dedicated_clocks = true,
++	.phy0_dual_route = true,
++	.hci_phy_ctl_clear = PHY_CTL_SIDDQ,
++	.needs_phy2_siddq = true,
++};
++
+ static const struct of_device_id sun4i_usb_phy_of_match[] = {
+ 	{ .compatible = "allwinner,sun4i-a10-usb-phy", .data = &sun4i_a10_cfg },
+ 	{ .compatible = "allwinner,sun5i-a13-usb-phy", .data = &sun5i_a13_cfg },
+@@ -1008,6 +1019,7 @@ static const struct of_device_id sun4i_usb_phy_of_match[] = {
+ 	{ .compatible = "allwinner,sun50i-a64-usb-phy",
+ 	  .data = &sun50i_a64_cfg},
+ 	{ .compatible = "allwinner,sun50i-h6-usb-phy", .data = &sun50i_h6_cfg },
++	{ .compatible = "allwinner,sun50i-h616-usb-phy", .data = &sun50i_h616_cfg },
+ 	{ },
+ };
+ MODULE_DEVICE_TABLE(of, sun4i_usb_phy_of_match);
+-- 
+2.29.2
+
+From f1e703ce2a2b30a4db9554e8ebe30d404d4a1b93 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sat, 5 Jun 2021 12:34:51 +0200
+Subject: [PATCH 18/21] Revert "Revert "Revert "driver core: Set fw_devlink=on
+ by default"""
+
+This reverts commit ea718c699055c8566eb64432388a04974c43b2ea.
+---
+ drivers/base/core.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/base/core.c b/drivers/base/core.c
+index 4a8bf8cda52..004d21a3c46 100644
+--- a/drivers/base/core.c
++++ b/drivers/base/core.c
+@@ -1539,7 +1539,7 @@ static void device_links_purge(struct device *dev)
+ #define FW_DEVLINK_FLAGS_RPM		(FW_DEVLINK_FLAGS_ON | \
+ 					 DL_FLAG_PM_RUNTIME)
+ 
+-static u32 fw_devlink_flags = FW_DEVLINK_FLAGS_ON;
++static u32 fw_devlink_flags = FW_DEVLINK_FLAGS_PERMISSIVE;
+ static int __init fw_devlink_setup(char *arg)
+ {
+ 	if (!arg)
+-- 
+2.29.2
+
