@@ -120,7 +120,7 @@ On platforms with statefull v4l2_m2m video codecs (Amlogic/RPI3/RPI4 H.264) play
 SoC              | Tested on                                    | Supported Decoder/ Hw.decode API      | Currently supported video decode HW.accel  | Supported drawing     | Supported video render | Remarks                                              |
 -----------------|----------------------------------------------|---------------------------------------|--------------------------------------------|-----------------------|------------------------|------------------------------------------------------|
 Allwinner H6     | EachLink H6 Mini, TanixTX6-Mini, Beelink GS1 | cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF | Good playback
-Allwinner H616(6)| TanixTX6s, OrangePI-Zero2                    | cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF | Good playback
+Allwinner H616   | TanixTX6s, OrangePI-Zero2                    | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF | Good playback
 Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF | Good playback
 Rockchip 3399    | RockPI 4-b                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF | Good playback, wyaland gives black.screen
 Rockchip 3566    | X96-X6                                       | hantro(7)/v4l2_request                | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF | Good playback, rendering to DRM plane has no OSD
@@ -141,7 +141,7 @@ Intel D2550      | ION2                                         | VDPAU         
 - (3) - DRM Planes fails with KMS Atomic Commit on this HW
 - (4) - mythfrontend segfaults in Wayland on this HW
 - (5) - EGLFS and Wayland not working on this HW as legacy Nvidia drivers are not providing EGL nor DRM
-- (6) - no Audio support yet on this SoC
+- (6) - hw.video decode with rendering to DRM planes has black screen (probably CSC conv.issue)
 - (7) - rkvdec is not yet supported on this SoC
 - (8) - hevc/vp9 is not yet supported on this SoC (due no rkvdec support)
 - (9) - hw.video decode with rendering to DRM planes has no OSD (probably Z-order issue)
