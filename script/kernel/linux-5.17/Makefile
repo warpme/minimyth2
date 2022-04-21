@@ -164,11 +164,11 @@ PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
 PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
 # audio support
 PATCHFILES += 0606-dma-sun6i-dma-add-h616-support.patch
-PATCHFILES += 0610-sound-soc-add-h616-audio-support.patch
+PATCHFILES += 0610-sound-soc-add-h616-audio-support-v2.patch
 PATCHFILES += 0611-drivers-add-h616-hdmi.patch
 # this code is from xulong 5.16 bsp kernel. It looks they done this only for
 # h616 audio - but this code breaks audio on other soc so must be commented
-# PATCHFILES += 0612-drivers-dw-hdmi-h616-audio-hack.patch
+PATCHFILES += 0612-drivers-dw-hdmi-h616-audio-hack-v2.patch
 # enable some h616 boards
 PATCHFILES += 0630-arm64-dts-allwinner-h616-add-dtsi.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-add-OrangePi-Zero2.patch
