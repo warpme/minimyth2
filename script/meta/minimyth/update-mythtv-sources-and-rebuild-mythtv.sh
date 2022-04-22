@@ -171,22 +171,33 @@ fi
 
 cd ${srcdir}
 
-
 if [ -d $srcdir/.git ]; then
+
+    echo "==> Updating local copy of branch $_gitbranch"
+    echo "---GIT output---"
+    git pull origin $_gitbranch
+    echo "---GIT output---"
 
     if [ -z ${req_tree} ]; then
 
-        echo "---GIT output---"
-        git pull origin $_gitbranch
-        echo "---GIT output---"
+        req_tree=`curl -s https://api.github.com/repos/MythTV/mythtv/commits?sha=$_gitbranch | grep "sha" | head -n 1 | sed -e 's/["|,|:| *]//g' -e 's/^sha//'`
 
-    else
+        if [ -z ${req_tree} ]; then
 
-        echo "---GIT output---"
-        git checkout ${req_tree}
-        echo "---GIT output---"
+            echo "==> Unable to get SHA of last commit in branch $_gitbranch. Exiting !"
+            exit 1
+
+        else
+
+            echo "==> SHA of last commit in branch $_gitbranch is ${req_tree}"
+
+        fi
 
     fi
+
+    echo "---GIT output---"
+    git checkout ${req_tree}
+    echo "---GIT output---"
 
 else
 
@@ -195,7 +206,6 @@ else
     echo "---GIT output---"
 
 fi
-
 
 gitversion=$(git describe)
 githash=$(echo $gitversion | sed -e "s/.*\-.*\-\(.*\)/\1/") #"
@@ -227,6 +237,8 @@ echo " "
 
 echo "Press ANY key to build or Ctrl-C to break ..."
 read
+
+version=`grep "^mm_VERSION_MINIMYTH " ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 
 echo " "
 echo "--------------------------------------------------------"
