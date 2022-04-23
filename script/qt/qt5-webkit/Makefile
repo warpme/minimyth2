@@ -1,8 +1,8 @@
 
 GARNAME      = qtwebkit
 CATEGORIES   = qt
-# ver 13.10.2020
-GARVERSION = 5a4cfb58842dd3225b574198ec41ee76179dfe10
+# ver 23.12.2021
+GARVERSION = 84ad475fcaadc156568964eb1994f440a7ba9fdd
 MASTER_SITES = https://github.com/qtwebkit/qtwebkit/archive/
 PATCHFILES   = fix-building-with-icu68.patch
 DISTFILES    = $(GARVERSION).zip
@@ -79,21 +79,6 @@ CONFIGURE_ARGS = \
 	-DENABLE_SPELLCHECK="OFF" \
 	-DENABLE_TOUCH_EVENTS="OFF" \
 	-DCMAKE_CXX_FLAGS="-fPIC" \
-
-CONFIGURE_ARGS1 = \
-	-DQt5Core_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Core" \
-	-DQt5Gui_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Gui" \
-	-DQt5Network_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Network" \
-	-DQt5Widgets_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Widgets" \
-	-DQt5Quick_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Quick" \
-	-DQt5QmlModels_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5QmlModels" \
-	-DQt5Qml_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5Qml" \
-	-DQt5WebChannel_DIR="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake/Qt5WebChannel" \
-	-DGLIB_INCLUDE_DIRS="/home/piotro/minimyth-dev/images/main/usr/include" \
-	-DGLIB_LIBRARIES="/home/piotro/minimyth-dev/images/main/usr/lib" \
-
-#	-DCMAKE_PREFIX_PATH="/home/piotro/minimyth-dev/images/main/usr/lib/qt5/lib/cmake" \
-
 
 include ../../gar.mk
 
