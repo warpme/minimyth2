@@ -4,7 +4,6 @@ CATEGORIES   = qt
 # ver 23.12.2021
 GARVERSION = 84ad475fcaadc156568964eb1994f440a7ba9fdd
 MASTER_SITES = https://github.com/qtwebkit/qtwebkit/archive/
-PATCHFILES   = fix-building-with-icu68.patch
 DISTFILES    = $(GARVERSION).zip
 
 DESCRIPTION = 
