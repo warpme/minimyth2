@@ -229,7 +229,7 @@ sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/m
 # sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?=       \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.arm"
 # sed --in-place --follow-symlinks "s/^mm_VERSION_MINIMYTH.*\?=*\s\(.*\).r\(.*\)/mm_VERSION_MINIMYTH \?=       \1.r${gitrel}/" "${mm_home}/minimyth.conf.mk.example.x86-64"
 
-make makesums garchive -C ${mm_home}/script/myth-${branch}/mythtv
+make makesums-all garchive -C ${mm_home}/script/myth-${branch}/mythtv
 
 echo " "
 echo " Now ready to build myth-${branch} ..."
