@@ -1,3 +1,26 @@
+
+This patch adds initial audio support for H616.
+Code is based on xulong BSP kernel + some improvements in code
+to not break audio on other SOCs (as Xulong BSP code does).
+
+This patch offers working audio and has the same issues like Xulong BSP code:
+i.e. https://github.com/orangepi-xunlong/linux-orangepi/issues/18
+
+To get audio on H616 you need:
+1. setup proper audio routing in AHUB
+2. "enable" audio on HDMI driver: by some reason H616 HDMI needs to be "enabled" by exact .wav file. 
+(My Q to Xulong about this wasn't answered)
+
+Ad 1:
+https://github.com/warpme/minimyth2/blob/beb4603be01f1a5e9726db0322ea3a524d933a7e/script/meta/minimyth/files/source/rootfs/etc/rc.d/init.d/audio#L136
+
+Ad 2:
+This is also done (like below) in Xulong Linux distros (Ubuntu, Debian)
+https://github.com/warpme/minimyth2/blob/beb4603be01f1a5e9726db0322ea3a524d933a7e/script/meta/minimyth/files/source/rootfs/etc/rc.d/init.d/audio#L149
+
+author: piotr.oniszczuk@gmail.com
+
+
 diff --speed-large-files --no-dereference --minimal -Naur linux-5.17.4/drivers/clk/sunxi-ng/ccu-sun50i-h616.c linux-5.17.4/drivers/clk/sunxi-ng/ccu-sun50i-h616.c
 --- linux-5.17.4/drivers/clk/sunxi-ng/ccu-sun50i-h616.c	2022-04-20 09:36:28.000000000 +0200
 +++ linux-5.17.4/drivers/clk/sunxi-ng/ccu-sun50i-h616.c	2022-04-20 21:29:46.963288026 +0200
@@ -4578,3 +4601,162 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-5.17.4/sound/soc
 +MODULE_AUTHOR("Chen-Yu Tsai <wens@csie.org>");
 +MODULE_AUTHOR("Leeboby <leeboby@aliyun.com>");
 +MODULE_LICENSE("GPL");
+diff --speed-large-files --no-dereference --minimal -Naur linux-5.17.4/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi linux-5.17.4/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi
+--- linux-5.17.4/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi	2022-04-25 20:51:04.276664307 +0200
++++ linux-5.17.4/arch/arm64/boot/dts/allwinner/sun50i-h616.dtsi	2022-04-25 13:33:13.162726548 +0200
+@@ -941,6 +941,7 @@
+ 			phys = <&hdmi_phy>;
+ 			phy-names = "phy";
+ 			status = "disabled";
++			aw-hdmi-codec-quirk;
+ 
+ 			ports {
+ 				#address-cells = <1>;
+diff --speed-large-files --no-dereference --minimal -Naur linux-5.17.4/sound/soc/codecs/hdmi-codec.c linux-5.17.4/sound/soc/codecs/hdmi-codec.c
+--- linux-5.17.4/sound/soc/codecs/hdmi-codec.c	2022-04-25 20:51:02.249997653 +0200
++++ linux-5.17.4/sound/soc/codecs/hdmi-codec.c	2022-04-25 21:17:40.706654732 +0200
+@@ -281,6 +281,18 @@
+ 	DAI_ID_SPDIF,
+ };
+ 
++static int check_h616_quirk(void)
++{
++	struct device_node *dt_node;
++
++	dt_node = of_find_node_by_path("/soc/hdmi@6000000");
++	if (dt_node)
++		if (of_get_property(dt_node, "aw-hdmi-codec-quirk", NULL))
++			return 1;
++
++	return 0;
++}
++
+ static int hdmi_eld_ctl_info(struct snd_kcontrol *kcontrol,
+ 			     struct snd_ctl_elem_info *uinfo)
+ {
+@@ -423,19 +435,25 @@
+ {
+ 	struct hdmi_codec_priv *hcp = snd_soc_dai_get_drvdata(dai);
+ 	bool tx = substream->stream == SNDRV_PCM_STREAM_PLAYBACK;
+-	int ret = 0;
++	int ret = 0, aw_quirk = 0;
+ 
+-	mutex_lock(&hcp->lock);
+-	if (hcp->busy) {
+-		dev_err(dai->dev, "Only one simultaneous stream supported!\n");
+-		mutex_unlock(&hcp->lock);
+-		return -EINVAL;
+-	}
++	aw_quirk = check_h616_quirk();
+ 
+-	if (hcp->hcd.ops->audio_startup) {
+-		ret = hcp->hcd.ops->audio_startup(dai->dev->parent, hcp->hcd.data);
+-		if (ret)
+-			goto err;
++	if (aw_quirk)
++		printk("hdmi_codec_startup: using aw-hdmi-codec-quirk for H616\n");
++	else {
++		mutex_lock(&hcp->lock);
++		if (hcp->busy) {
++			dev_err(dai->dev, "Only one simultaneous stream supported!\n");
++			mutex_unlock(&hcp->lock);
++			return -EINVAL;
++		}
++
++		if (hcp->hcd.ops->audio_startup) {
++			ret = hcp->hcd.ops->audio_startup(dai->dev->parent, hcp->hcd.data);
++			if (ret)
++				goto err;
++		}
+ 	}
+ 
+ 	if (tx && hcp->hcd.ops->get_eld) {
+@@ -463,13 +481,20 @@
+ 				struct snd_soc_dai *dai)
+ {
+ 	struct hdmi_codec_priv *hcp = snd_soc_dai_get_drvdata(dai);
++	int aw_quirk = 0;
+ 
+-	hcp->chmap_idx = HDMI_CODEC_CHMAP_IDX_UNKNOWN;
+-	hcp->hcd.ops->audio_shutdown(dai->dev->parent, hcp->hcd.data);
++	aw_quirk = check_h616_quirk();
+ 
+-	mutex_lock(&hcp->lock);
+-	hcp->busy = false;
+-	mutex_unlock(&hcp->lock);
++	if (aw_quirk)
++		printk("hdmi_codec_shutdown: using aw-hdmi-codec-quirk for H616\n");
++	else {
++		hcp->chmap_idx = HDMI_CODEC_CHMAP_IDX_UNKNOWN;
++		hcp->hcd.ops->audio_shutdown(dai->dev->parent, hcp->hcd.data);
++
++		mutex_lock(&hcp->lock);
++		hcp->busy = false;
++		mutex_unlock(&hcp->lock);
++	}
+ }
+ 
+ static int hdmi_codec_fill_codec_params(struct snd_soc_dai *dai,
+@@ -983,7 +1008,7 @@
+ 	struct snd_soc_dai_driver *daidrv;
+ 	struct device *dev = &pdev->dev;
+ 	struct hdmi_codec_priv *hcp;
+-	int dai_count, i = 0;
++	int dai_count, i = 0, aw_quirk = 0;
+ 	int ret;
+ 
+ 	if (!hcd) {
+@@ -1033,6 +1058,18 @@
+ 			__func__, ret);
+ 		return ret;
+ 	}
++
++	aw_quirk = check_h616_quirk();
++
++	if (aw_quirk) {
++		printk("hdmi_codec_probe: using aw-hdmi-codec-quirk for H616\n");
++		if (hcp->hcd.ops->audio_startup) {
++			ret = hcp->hcd.ops->audio_startup(dev, hcp->hcd.data);
++			if (ret)
++				return 0;
++		}
++	}
++
+ 	return 0;
+ }
+ 
+diff --speed-large-files --no-dereference --minimal -Naur linux-5.17.4/sound/soc/soc-utils.c linux-5.17.4/sound/soc/soc-utils.c
+--- linux-5.17.4/sound/soc/soc-utils.c	2022-04-20 09:36:28.000000000 +0200
++++ linux-5.17.4/sound/soc/soc-utils.c	2022-04-25 21:15:30.653322185 +0200
+@@ -70,16 +70,26 @@
+ 			  struct snd_pcm_substream *substream)
+ {
+ 	struct snd_soc_pcm_runtime *rtd = asoc_substream_to_rtd(substream);
+-	int i;
++	int i, aw_quirks = 0;
++	struct device_node *dt_node;
+ 
+ 	/*
+ 	 * If there are other components associated with rtd, we shouldn't
+ 	 * override their hwparams
+ 	 */
+-	for_each_rtd_components(rtd, i, component) {
+-		if (component->driver == &dummy_platform)
+-			return 0;
+-	}
++
++	dt_node = of_find_node_by_path("/soc/hdmi@6000000");
++	if (dt_node)
++		if (of_get_property(dt_node, "aw-hdmi-codec-quirk", NULL))
++			aw_quirks = 1;
++
++	if (aw_quirks)
++		printk("dummy_dma_open: using aw-hdmi-codec-quirk for H616\n");
++	else
++		for_each_rtd_components(rtd, i, component) {
++			if (component->driver == &dummy_platform)
++				return 0;
++		}
+ 
+ 	/* BE's dont need dummy params */
+ 	if (!rtd->dai_link->no_pcm)
