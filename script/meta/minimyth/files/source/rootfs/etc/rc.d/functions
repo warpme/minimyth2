@@ -1902,7 +1902,8 @@ mm_mythfrontend_networkcontrol() {
 
     if [ -n "`/bin/pidof mythfrontend`" ] ; then
         host='localhost'
-        port=`mm_mythdb_settings_get NetworkControlPort`
+        #port=`mm_mythdb_settings_get NetworkControlPort`
+        port='6546'
 
         response=`/bin/echo -e "${command}\nexit" | /usr/bin/nc ${host} ${port} -i1 | /bin/grep '^#' | /bin/sed -e 's%[[:cntrl:]]% %' | /bin/grep -v '^# *$' | /bin/sed -e 's%^#%%' -e 's%  *% %' -e 's%^ %%' -e 's% $%%'`
 
@@ -2008,4 +2009,20 @@ mm_redownload_theme() {
     return
 }
 
-
+mm_check_rss_reload_mythfrontend() {
+    if [ -n "${MM_MYTHTV_RSS_FOR_RESTART}" ] ; then
+        myth_rss=`/bin/ps --no-headers -o pmem -C mythfrontend | /usr/bin/cut -c 1-2`
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_check_rss_reload_mythfrontend] RSS=$myth_rss% ..."
+        if [ ${myth_rss} -gt ${MM_MYTHTV_RSS_FOR_RESTART} ] ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_check_rss_reload_mythfrontend] RSS=$myth_rss% > ${MM_MYTHTV_RSS_FOR_RESTART}% treshold! Restarting to free RSS ..."
+            /usr/bin/mm_manage _restart_mythfrontend
+            /bin/true
+            return
+        else
+            /bin/false
+            return
+        fi
+    fi
+    /bin/false
+    return
+}

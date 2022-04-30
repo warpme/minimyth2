@@ -48,7 +48,7 @@ MM_INIT_START_PHASE_5 := \
     ssh_server   \
     mail         \
     voip         \
-    sleep        \
+    standby      \
     browsers     \
     updates      \
     cache_pruner \
@@ -57,7 +57,7 @@ MM_INIT_START_PHASE_5 := \
     mythdb_buffer_delete \
 
 MM_INIT_KILL := \
-    sleep       \
+    standby     \
     frontend    \
     avahi       \
     lcdproc     \
