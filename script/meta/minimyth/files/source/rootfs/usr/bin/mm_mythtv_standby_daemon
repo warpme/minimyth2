@@ -1,0 +1,103 @@
+#!/bin/sh
+
+. /etc/rc.d/functions
+
+pids=`/bin/pidof mm_mythtv_standby_daemon`
+instances=`/bin/echo ${pids} | /usr/bin/wc -w`
+if [ ${instances} -ne 1 ] ; then
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[mm_mythtv_standby_daemon] Another instance is running ..."
+    exit 1
+fi
+
+/usr/bin/logger -s -t minimyth -p "local0.info" "[mm_mythtv_standby_daemon] Started monitoring for standby ..."
+
+external_is_off="0"
+rss_is_checked="0"
+
+while true ; do
+
+    loc=`mm_mythfrontend_networkcontrol "query location"`
+    #echo "Myth remote control returns:"${loc}
+
+    if [ "x${loc}" = "xstandbymode" ] ; then
+
+        if [ -e /var/log/makemkv.progress  ] ; then
+
+            /usr/bin/logger -t minimyth -p "local0.info" "[mm_mythtv_standby_daemon] standby detected while optical rip in progress. waiting till end ..."
+
+            /bin/sleep 120
+
+        else
+
+            if [ x${MM_MYTHTV_STANDBY_ACTION} = "xsleep" ] ; then
+
+                /usr/bin/logger -t minimyth -p "local0.info" "[mm_mythtv_standby_daemon] standby mode detected: configured to send system to sleep ..."
+
+                mm_sleep &
+
+                /bin/sleep 60
+
+            fi
+
+            if /bin/echo "+${MM_MYTHTV_STANDBY_ACTION}+" | /bin/grep -q '+external_off+' ; then
+
+                if [ ${external_is_off} = "0" ] ; then
+
+                    external_is_off="1"
+
+                    /usr/bin/logger -t minimyth -p "local0.info" "[mm_mythtv_standby_daemon] standby mode detected: Turn-off external equipment ..."
+
+                    /usr/bin/mm_external tv_power_off
+                    /usr/bin/mm_external ampli_power_off
+
+                    /bin/sleep 1
+
+                    mm_mythfrontend_networkcontrol "key f22"
+
+                fi
+
+            fi
+
+            if /bin/echo "+${MM_MYTHTV_STANDBY_ACTION}+" | /bin/grep -q '+rss_reload+' ; then
+
+                if [ ${rss_is_checked} = "0" ] ; then
+
+                    rss_is_checked="1"
+
+                    if mm_check_rss_reload_mythfrontend ; then
+
+                        /bin/sleep 20
+
+                        /usr/bin/logger -t minimyth -p "local0.info" "[mm_mythtv_standby_daemon] entering again standby after mythfrontend reload ..."
+
+                        mm_jump_myth_mainmenu
+                        /bin/sleep 2
+                        mm_mythfrontend_networkcontrol "key f22"
+
+                    fi
+                fi
+            fi
+
+        fi
+
+        /bin/sleep 1
+
+    else
+
+        rss_is_checked="0"
+
+        if [ ${external_is_off} = 1 ] ; then
+
+            /usr/bin/logger -t minimyth -p "local0.info" "[mm_mythtv_standby_daemon] standby mode exit detected: Turn-on external equipment ..."
+
+            external_is_off="0"
+            /usr/bin/mm_external tv_power_on
+            /usr/bin/mm_external ampli_power_on
+
+        fi
+
+        /bin/sleep 15
+
+    fi
+
+done
