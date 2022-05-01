@@ -1,0 +1,52 @@
+#!/bin/sh
+################################################################################
+# standby
+################################################################################
+. /etc/rc.d/functions
+
+# RSSreload ExternalOFF standby
+
+start() {
+
+    /bin/touch /var/init/standby.inprogress
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/standby] Started with return code=0..."
+
+    idle_time=`mm_mythdb_settings_get "FrontendIdleTimeout"`
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/standby] FrontendIdleTimeout for this FE is:${idle_time}"
+
+    if [ "x${idle_time}" = "x0" ] ; then
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/standby] Standby actions on FrontendIdle are disabled ..."
+
+    else
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/standby] Launching in background mm_mythtv_standby_daemon ..."
+        mm_mythtv_standby_daemon &
+    fi
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/standby] Started with return code=0..."
+
+    /bin/rm -f /var/init/standby.inprogress
+    return 0
+
+}
+
+stop() {
+
+    if [ -n "`/bin/pidof mm_mythtv_standby_daemon`" ] ; then
+
+        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/standby] Killing mm_mythtv_standby_daemon script..."
+        /usr/bin/killall -9 mm_mythtv_standby_daemon
+
+    fi
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
+
+exit 0
