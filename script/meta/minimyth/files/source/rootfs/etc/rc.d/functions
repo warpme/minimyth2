@@ -1889,7 +1889,12 @@ mm_test_master_db_connection() {
 }
 
 mm_mythfrontend_networkcontrol() {
+# 1st param is command
+# 2nd param (option) is port. If not provided, function
+# will query setting DB
+
     local command=$1
+    local port=$2
 
     local failed
     local response
@@ -1902,16 +1907,34 @@ mm_mythfrontend_networkcontrol() {
 
     if [ -n "`/bin/pidof mythfrontend`" ] ; then
         host='localhost'
-        #port=`mm_mythdb_settings_get NetworkControlPort`
-        port='6546'
+        if [ x${port} = "x" ] ; then
+            port=`mm_mythdb_settings_get NetworkControlPort`
+        fi
 
-        response=`/bin/echo -e "${command}\nexit" | /usr/bin/nc ${host} ${port} -i1 | /bin/grep '^#' | /bin/sed -e 's%[[:cntrl:]]% %' | /bin/grep -v '^# *$' | /bin/sed -e 's%^#%%' -e 's%  *% %' -e 's%^ %%' -e 's% $%%'`
+        response=`/bin/echo -e "${command}\nexit" \
+                   | /usr/bin/hose ${host} ${port} --out --in \
+                     /bin/sh -c "/bin/cat <&3 & \
+                                 /bin/grep '^#' \
+                                 | /bin/sed 's%[[:cntrl:]]% %' \
+                                 | /bin/grep -v '^# *$' \
+                                 | /bin/sed 's%^#%%' \
+                                 | /bin/sed 's%  *% %' \
+                                 | /bin/sed 's%^ %%' \
+                                 | /bin/sed 's% $%%' >&4" \
+                     3<&0 4>&1`
 
-        /bin/echo ${response}
-        /bin/true
+         if [ $? -eq 0 ] ; then
+             failed=0
+         fi
+    fi
+
+    /bin/echo ${response}
+
+    if [ ${failed} -eq 1 ] ; then
+        /bin/false
         return
     else
-        /bin/false
+        /bin/true
         return
     fi
 }
