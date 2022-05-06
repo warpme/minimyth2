@@ -122,11 +122,7 @@ PATCHFILES += 0535-arm64-dts-allwinner-tanix-tx6-mini-enable-wifi-cpu-dvfs.patch
 PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 PATCHFILES += 0538-arm64-dts-allwinner-tanix-tx6-enable-wifi-cpu-dvfs.patch
-# patches from LE 5.09.2021 for Eth improvements
 PATCHFILES += 0539-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
-#PATCHFILES += 0540-net-stmmac-sun8i-Use-devm_regulator_get-for-PHY-regu.patch
-#PATCHFILES += 0541-net-stmmac-sun8i-Rename-PHY-regulator-variable-to-re.patch to update
-#PATCHFILES += 0542-net-stmmac-sun8i-Add-support-for-enabling-a-regulato.patch to update
 PATCHFILES += 0543-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 # patches from LE 5.09.2021 for fixing playback corruption after 10min of playback
 PATCHFILES += 0544-drm-sun4i-mixer-Add-caching-support.patch
@@ -150,18 +146,19 @@ endif
 ifeq (1,1)
 #-- Allwinner H616 patches -----------------------------------------
 # https://github.com/jernejsk/linux-1/commits/h616-hdmi
-#PATCHFILES += 0600-drivers-h616-wip-add-usb-emac2-hdmi-support.patch to update
+PATCHFILES += 0600-drivers-h616-wip-add-usb-emac2-support.patch
 # add THS support
 PATCHFILES += 0601-drivers-thermal-allwinner-add-h616-ths-support.patch
 # add cedrus support
 # https://github.com/jernejsk/linux-1/commits/h616-full
 PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
 PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
-# audio support
+# add HDMI, audio support
+PATCHFILES += 0609-arm64-dts-allwinner-h616-add-dtsi.patch
 PATCHFILES += 0606-dma-sun6i-dma-add-h616-support.patch
 PATCHFILES += 0610-sound-soc-add-h616-audio-support.patch
+PATCHFILES += 0611-drivers-add-h616-hdmi.patch
 # enable some h616 boards
-PATCHFILES += 0630-arm64-dts-allwinner-h616-add-dtsi.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-add-OrangePi-Zero2.patch
 PATCHFILES += 0632-arm64-dts-allwinner-h616-add-X96-Mate-TVbox.patch
 PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
@@ -177,7 +174,7 @@ ifeq (1,1)
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=622384
 PATCHFILES += 0700-arm64-dts-rockchip-add-basic-dts-for-the-radxa-rock3-model-a.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=630407
-PATCHFILES += 0701-drm-rockchip-RK356x-VOP2-support-v10.patch
+PATCHFILES += 0701-drm-rockchip-RK356x-VOP2-support-v11.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=629156
 PATCHFILES += 0702-drm-rockchip-Refactor-IOMMU-initialisation.patch
 # patches from LE 29.01.2022
