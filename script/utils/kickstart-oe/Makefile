@@ -39,6 +39,8 @@ DISTFILES    = \
 	board-rk3399.orangepi_4.wks \
 	board-rk3566.x96_x6.conf    \
 	board-rk3566.x96_x6.wks     \
+	board-rk3568.rock3-a.conf   \
+	board-rk3568.rock3-a.wks    \
 	board-h6.beelink_gs1.conf   \
 	board-h6.beelink_gs1.wks    \
 	board-h6.eachlink_mini.conf \

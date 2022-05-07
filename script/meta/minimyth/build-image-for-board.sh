@@ -27,6 +27,7 @@ selection_h="board-g12.radxa_zero"
 selection_i="board-sm1.tanix_tx5_plus"
 selection_j="board-rk3566.x96_x6"
 selection_k="board-h6.orangepi_3"
+selection_l="board-rk3568.rock3-a"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -102,6 +103,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (i) for "${selection_i}
     echo "  (j) for "${selection_j}
     echo "  (k) for "${selection_k}
+    echo "  (l) for "${selection_l}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -221,6 +223,10 @@ case "${selection}" in
 
     k)  cache_board_list "${selection_k}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_k}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    l)  cache_board_list "${selection_l}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_l}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
