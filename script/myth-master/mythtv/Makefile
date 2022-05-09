@@ -268,6 +268,7 @@ CONFIGURE_ARGS = \
 	--enable-ffplay \
 	--enable-sdl2 \
 	--python="python3" \
+	--enable-silent-cc \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
