@@ -197,16 +197,35 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 356x patches -----------------------------------------
-# based on https://gitlab.com/pine64-org/quartz-bsp/linux-next/-/commits/quartz64-v5.17 @8.02.2022
-PATCHFILES += 0800-rk356x-add-USB2-USB3-PCIe-mfd.patch
-PATCHFILES += 0803-media-hantro-add-rk3566-support.patch
-PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-pcie-in-rk35xx.dtsi.patch
+# Enable rk356x PCIe controller
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=634925
+PATCHFILES += 0800-Enable-rk356x-PCIe-controller.patch
+# RK3568 PCIe V3 support
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=635768
+PATCHFILES += 0801-RK3568-PCIe-V3-support.patch
+# enable usb support on rk356x
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=618321
+PATCHFILES += 0803-enable-usb-support-on-rk356x.patch
+# arm64: dts: rockchip: Fix clocks for rk356x usb
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=630653
+PATCHFILES += 0804-arm64-dts-rockchip-Fix-clocks-for-rk356x-usb.patch
+# phy: rockchip-inno-usb2: RK356x OTG fix and enhancements
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=632091
+PATCHFILES += 0806-phy-rockchip-inno-usb2-RK356x-OTG-fix-and-enhancements.patch
+# arm64: dts: rockchip: enable otg/drd operation of usb_host0_xhci in rk3568
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=637475
+PATCHFILES += 0807-arm64-dts-rockchip-enable-otg-drd-operation-of-usb_host0_xhci-in-rk3568.patch
+# add hantro G1 support
+PATCHFILES += 0820-media-hantro-add-rk3566-support.patch
+# various boards enablement
+PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 0832-arm64-dts-rockchip-enable-hantro-on-rk356x.patch
 PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
 PATCHFILES += 0834-arm64-dts-rockchip-add-dts-for-Firefly-Station-M2-rk.patch
 PATCHFILES += 0835-arm64-dts-rockchip-add-early-quartz64-model-b.patch
 PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
 PATCHFILES += 0837-arm64-dts-rockchip-add-dts-for-box-demo-v10.patch
+PATCHFILES += 0838-arm64-dts-rockchip-rock3a-enable-hdmi-audio-and-usb2.patch
 endif
 #------------------------------------------------------------
 
