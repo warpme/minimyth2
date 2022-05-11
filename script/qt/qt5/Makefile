@@ -1,6 +1,6 @@
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 5.15.3
+GARVERSION   = 5.15.4
 CATEGORIES   = qt
 MASTER_SITES = https://download.qt.io/archive/qt/5.15/$(GARVERSION)/single/
 DISTFILES    = qt-everywhere-opensource-src-$(GARVERSION).tar.xz
