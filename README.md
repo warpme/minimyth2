@@ -102,6 +102,7 @@ Allwinner H616| OrangePI-Zero2   | not works (aw859a@SDIO)                | work
 Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | works       | works       | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
 Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                   | works       | works       | not works                      | good prospects                |
+Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | works       | works       | not works                      | good prospects                |
 Amlogic s905  | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | works       | WiP         | not works (firmware issue)     | support stalled               |
 Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | works       | n/a         | not works (firmware issue)     | support stalled               |
 Amlogic sm1   | x96Air           | works  (rtl8189@SDIO)                  | works       | WiP         | not works (firmware issue)     | support stalled               |
@@ -127,6 +128,7 @@ Allwinner H616   | TanixTX6s, OrangePI-Zero2                    | cedrus(6)/v4l2
 Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF | Good playback
 Rockchip 3399    | RockPI 4-b                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF | Good playback, wyaland gives black.screen
 Rockchip 3566    | X96-X6                                       | hantro(7)/v4l2_request                | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF | Good playback, rendering to DRM plane has no OSD
+Rockchip 3568    | Rock3-A                                      | hantro(7)/v4l2_request                | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF | Good playback, rendering to DRM plane has no OSD
 Amlogic s905     | TanixTX3-Mini                                | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, Wayland (2)      | EGL_DMABUF, DRM_DMABUF | Good playback, seek on breaks playback, limited HEVC on s905w
 Amlogic s912     | Beelink GT1                                  | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF | Good playback, seek on breaks playback
 Amlogic sm1      | x96Air                                       | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF | Good playback, seek on breaks playback, artefacts on H.264
