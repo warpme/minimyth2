@@ -1,0 +1,127 @@
+
+This fixes building 304.108 legacy diviers on 5.18+ kernels as 5.18 kernel introduced:
+
+Rename dma-buf-map to iosys-map [1]
+Remove the deprecated "pci-dma-compat.h" in PCI API [2]
+Eliminate acpi_bus_get_device() in ACPI/bus [3]
+
+[1] https://github.com/torvalds/linux/commit/7938f4218168ae9fc4bdddb15976f9ebbae41999
+[2] https://github.com/torvalds/linux/commit/7968778914e53788a01c2dee2692cab157de9ac0
+[3] https://github.com/torvalds/linux/commit/ac2a3feefad549814f5e7cca30be07a255c8494a
+
+Patch developed(c) by Piotr Oniszczuk <piotr.oniszczuk@gmail.com> for
+https://github.com/warpme/minimyth2
+
+
+diff --speed-large-files --no-dereference --minimal -Naur NVIDIA-Linux-x86_64-340.108/kernel/nv-acpi.c NVIDIA-Linux-x86_64-340.108/kernel/nv-acpi.c
+--- NVIDIA-Linux-x86_64-340.108/kernel/nv-acpi.c	2019-12-11 23:04:24.000000000 +0100
++++ NVIDIA-Linux-x86_64-340.108/kernel/nv-acpi.c	2022-05-12 12:59:18.003229087 +0200
+@@ -577,9 +577,11 @@
+         {
+             if (!nvif_parent_gpu_handle) /* unknown error */
+                 break;
+-            
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
++            device = acpi_fetch_acpi_dev(nvif_parent_gpu_handle);
++#else
+             retVal = acpi_bus_get_device(nvif_parent_gpu_handle, &device);
+-
++#endif
+             if (ACPI_FAILURE(retVal) || !device)
+                 break;
+ 
+@@ -652,8 +654,11 @@
+     if (nvif_parent_gpu_handle == NULL) 
+         return;
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
++    device = acpi_fetch_acpi_dev(nvif_parent_gpu_handle);
++#else
+     acpi_bus_get_device(nvif_parent_gpu_handle, &device);
+-
++#endif
+     nv_uninstall_notifier(device, nv_acpi_event);
+     nvif_parent_gpu_handle = NULL;
+ 
+@@ -1212,7 +1217,11 @@
+     if (!dev_handle)
+         return RM_ERR_INVALID_ARGUMENT;
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
++    device = acpi_fetch_acpi_dev(dev_handle);
++#else
+     status = acpi_bus_get_device(dev_handle, &device);
++#endif
+ 
+     if (ACPI_FAILURE(status) || !device)
+         return RM_ERR_INVALID_ARGUMENT;
+diff --speed-large-files --no-dereference --minimal -Naur NVIDIA-Linux-x86_64-340.108/kernel/nv-dma.c NVIDIA-Linux-x86_64-340.108/kernel/nv-dma.c
+--- NVIDIA-Linux-x86_64-340.108/kernel/nv-dma.c	2019-12-11 23:04:24.000000000 +0100
++++ NVIDIA-Linux-x86_64-340.108/kernel/nv-dma.c	2022-05-12 12:45:30.363233712 +0200
+@@ -136,10 +136,17 @@
+         return status;
+     }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
++    dma_map->sg_map_count = dma_map_sg(&dma_map->dev->dev,
++            NV_DMA_MAP_SCATTERLIST(dma_map),
++            NV_DMA_MAP_SCATTERLIST_LENGTH(dma_map),
++            DMA_BIDIRECTIONAL);
++#else
+     dma_map->sg_map_count = pci_map_sg(dma_map->dev,
+             NV_DMA_MAP_SCATTERLIST(dma_map),
+             NV_DMA_MAP_SCATTERLIST_LENGTH(dma_map),
+             PCI_DMA_BIDIRECTIONAL);
++#endif
+     if (dma_map->sg_map_count == 0)
+     {
+         nv_printf(NV_DBG_ERRORS,
+@@ -211,8 +218,13 @@
+ 
+     if (dma_map->sg_map_count != 0)
+     {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
++        dma_unmap_sg(&dma_map->dev->dev, NV_DMA_MAP_SCATTERLIST(dma_map),
++                NV_DMA_MAP_SCATTERLIST_LENGTH(dma_map), DMA_BIDIRECTIONAL);
++#else
+         pci_unmap_sg(dma_map->dev, NV_DMA_MAP_SCATTERLIST(dma_map),
+                 NV_DMA_MAP_SCATTERLIST_LENGTH(dma_map), PCI_DMA_BIDIRECTIONAL);
++#endif
+     }
+ 
+     *priv = dma_map->user_pages;
+diff --speed-large-files --no-dereference --minimal -Naur NVIDIA-Linux-x86_64-340.108/kernel/nv-drm.c NVIDIA-Linux-x86_64-340.108/kernel/nv-drm.c
+--- NVIDIA-Linux-x86_64-340.108/kernel/nv-drm.c	2022-05-12 13:03:49.996560918 +0200
++++ NVIDIA-Linux-x86_64-340.108/kernel/nv-drm.c	2022-05-12 12:02:14.576581485 +0200
+@@ -381,9 +381,15 @@
+     return nv_gem_prime_get_sg_table(gem);
+ }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
++static int nv_drm_gem_vmap(struct drm_gem_object *gem,
++                           struct iosys_map *map)
++{
++#else
+ static int nv_drm_gem_vmap(struct drm_gem_object *gem,
+                            struct dma_buf_map *map)
+ {
++#endif
+     map->vaddr = nv_gem_prime_vmap(gem);
+     if (map->vaddr == NULL) {
+         return -ENOMEM;
+@@ -392,9 +398,15 @@
+     return 0;
+ }
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
++static void nv_drm_gem_vunmap(struct drm_gem_object *gem,
++                              struct iosys_map *map)
++{
++#else
+ static void nv_drm_gem_vunmap(struct drm_gem_object *gem,
+                               struct dma_buf_map *map)
+ {
++#endif
+     nv_gem_prime_vunmap(gem, map->vaddr);
+     map->vaddr = NULL;
+ }
