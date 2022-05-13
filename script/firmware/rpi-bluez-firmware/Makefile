@@ -1,9 +1,9 @@
 
 GARNAME      = bluez-firmware-rpi
-# Git master from 20.03.2021
-GARVERSION   = master
+# Git master from 5.05.2022
+GARVERSION   = 31ad68831357d2019624004f1f0846475671088f
 CATEGORIES   = firmware
-MASTER_SITES = https://github.com/RPi-Distro/bluez-firmware/archive/refs/heads/
+MASTER_SITES = https://github.com/RPi-Distro/bluez-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
 LICENSE      =
 DESCRIPTION  =
