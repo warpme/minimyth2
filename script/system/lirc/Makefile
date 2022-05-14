@@ -1,10 +1,12 @@
-GARNAME = lirc
-GARVERSION = 0.10.1
-CATEGORIES = system
+
+GARNAME      = lirc
+GARVERSION   = 0.10.1
+CATEGORIES   = system
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/LIRC/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES  = $(DISTNAME)-disable-irsend-debug-logging.patch
+DISTFILES    = $(DISTNAME).tar.bz2
+PATCHFILES   = $(DISTNAME)-disable-irsend-debug-logging.patch
 PATCHFILES  += $(DISTNAME)-add-python35-autodetection.patch
+PATCHFILES  += $(DISTNAME)-fix-building-on-5.18-kernel.patch
 
 LICENSE = GPL2
 
@@ -58,8 +60,9 @@ post-configure:
 	@$(MAKECOOKIE)
 
 pre-install:
-	@rm -rf $(DESTDIR)$(libdir)/python2.6/site-packages/lirc*
-	@rm -rf $(DESTDIR)$(libdir)/python3.5/site-packages/lirc*
+	@rm -rf $(DESTDIR)$(libdir)/python2*/site-packages/lirc*
+	@rm -rf $(DESTDIR)$(libdir)/python3*/site-packages/lirc*
+	@rm -rf $(DESTDIR)$(includedir)/lirc*
 	@$(MAKECOOKIE)
 
 post-install:
