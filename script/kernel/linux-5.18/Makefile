@@ -201,7 +201,7 @@ ifeq (1,1)
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=634925
 PATCHFILES += 0800-Enable-rk356x-PCIe-controller.patch
 # RK3568 PCIe V3 support
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=635768
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=641646
 PATCHFILES += 0801-RK3568-PCIe-V3-support.patch
 # enable usb support on rk356x
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=618321
