@@ -213,6 +213,7 @@ BUILDDEPS = \
 	perl/perlstrip \
 	$(if $(filter bootloader,$(mm_SOFTWARE)),utils/kickstart-oe) \
 	devel/meson \
+	net/inetutils \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile

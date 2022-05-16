@@ -287,12 +287,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                          $@~/usr/bin/devel-update-component.sh
 	@sed -i 's%@mm_QT_VERSION@%$(mm_QT_VERSION)%g' $@~/etc/conf.d/core
 	@sed -i 's%@mm_QT_VERSION@%$(mm_QT_VERSION)%g' $@~/usr/bin/mythfrontend.sh
-	@if [ -e /bin/hostname ] ; then \
-		MM_DEVEL_HOST_IP="$(shell /bin/hostname -i | sed -e 's/\s//g')"; sed -i "s%@MM_DEVEL_IP@%$$MM_DEVEL_HOST_IP%g" $@~/usr/bin/devel-update-component.sh ; \
-	 fi
-	@if [ -e /usr/bin/hostname ] ; then \
-		MM_DEVEL_HOST_IP="$(shell /usr/bin/hostname -i | sed -e 's/\s//g')"; sed -i "s%@MM_DEVEL_IP@%$$MM_DEVEL_HOST_IP%g" $@~/usr/bin/devel-update-component.sh ; \
-	 fi
+	@MM_DEVEL_HOST_IP="$(shell hostname -i | sed -e 's/\s//g')"; sed -i "s%@MM_DEVEL_IP@%$$MM_DEVEL_HOST_IP%g" $@~/usr/bin/devel-update-component.sh
 	@# Adding updated HTML index.html file
 	@cp -pd $(top_build)/stage/html/index.html $@~/srv/www/index.html
 	@# Create the minimyth build configuration file.
