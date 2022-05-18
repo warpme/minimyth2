@@ -87,7 +87,7 @@ echo "#----Entries to create boot & rootfs partitions" >> ${base_dir}/MiniMyth2.
 # Selecting appropriate common.wks file
 if [ ! -z `echo ${boards} | grep -o "board-x86pc"` ] ; then
     echo "  board-x86pc detected. skipping default-mbr[gpt].wks"
-elif [ ! -z `echo ${boards} | grep -o "board-rk35"` ] ; then
+elif [ ! -z `echo ${boards} | grep -o "board-rk3566.*"` ] ; then
     echo "  board-rk35xx detected. Using default-gpt.wks"
     cat ${base_dir}/default-gpt.wks >> ${base_dir}/MiniMyth2.wks
 else
