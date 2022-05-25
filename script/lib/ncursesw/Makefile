@@ -1,8 +1,9 @@
-GARNAME = ncursesw
+
+GARNAME    = ncursesw
 GARVERSION = $(NCURSES_VERSION)
 CATEGORIES = lib
-SOURCEPKG = lib/ncurses
-LICENSE = MIT_Modified
+SOURCEPKG  = lib/ncurses
+LICENSE    = MIT_Modified
 
 DESCRIPTION =
 define BLURB
@@ -37,6 +38,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-widec \
 	--with-tic-path="$(build_DESTDIR)$(build_bindir)/tic" \
 	--disable-stripping \
+	--with-versioned-syms \
 
 GAR_EXTRA_CONF += lib/ncurses/package-api.mk
 include ../../gar.mk
