@@ -43,9 +43,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --exec-prefix
 
 include ../../gar.mk
 
-libdir  := $(elibdir)
-bindir  := $(ebindir)
-sbindir := $(esbindir)
+libdir  := $(libdir)
+bindir  := $(bindir)
+sbindir := $(sbindir)
 
 patch-%: normal-patch-%
 	@$(MAKECOOKIE)
