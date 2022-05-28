@@ -11,7 +11,7 @@ DISTFILES    = \
                rk3399-boot.txt \
                minimyth.conf   \
 
-export mm_U-BOOT_BOARD_TYPE = orangepi-4-rk3399_defconfig
+export mm_U-BOOT_BOARD_TYPE = orangepi-rk3399_defconfig
 
 WORKSRC      = $(WORKDIR)
 
