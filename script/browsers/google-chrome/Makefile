@@ -33,7 +33,6 @@ install-custom:
 	@mkdir -p $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)
 
 	@cp -rf $(WORKSRC)/opt/google/chrome/WidevineCdm*            $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
-	@cp -rf $(WORKSRC)/opt/google/chrome/swiftshader*            $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -rf $(WORKSRC)/opt/google/chrome/locales*                $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 
 	@cp -f $(WORKSRC)/opt/google/chrome/chrome                   $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
