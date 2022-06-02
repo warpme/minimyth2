@@ -164,6 +164,7 @@ DEPENDS = \
 	utils/peekpoke \
 	utils/kbd \
 	utils/dash \
+	utils/read-edid \
 	devel/gdb \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
 		gtk/gconf \
