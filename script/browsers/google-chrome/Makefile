@@ -35,6 +35,7 @@ install-custom:
 	@cp -rf $(WORKSRC)/opt/google/chrome/WidevineCdm*            $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -rf $(WORKSRC)/opt/google/chrome/locales*                $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 
+	@cp -f $(WORKSRC)/opt/google/chrome/liboptimization_guide_internal.so $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/chrome                   $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/chrome-sandbox           $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
 	@cp -f $(WORKSRC)/opt/google/chrome/chrome_100_percent.pak   $(DESTDIR)$(rootdir)/usr/bin/google-chrome-$(GARVERSION)/
