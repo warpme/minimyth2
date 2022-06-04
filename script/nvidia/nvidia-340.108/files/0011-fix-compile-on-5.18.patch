@@ -1,21 +1,6 @@
-
-This fixes building 304.108 legacy diviers on 5.18+ kernels as 5.18 kernel introduced:
-
-Rename dma-buf-map to iosys-map [1]
-Remove the deprecated "pci-dma-compat.h" in PCI API [2]
-Eliminate acpi_bus_get_device() in ACPI/bus [3]
-
-[1] https://github.com/torvalds/linux/commit/7938f4218168ae9fc4bdddb15976f9ebbae41999
-[2] https://github.com/torvalds/linux/commit/7968778914e53788a01c2dee2692cab157de9ac0
-[3] https://github.com/torvalds/linux/commit/ac2a3feefad549814f5e7cca30be07a255c8494a
-
-Patch developed(c) by Piotr Oniszczuk <piotr.oniszczuk@gmail.com> for
-https://github.com/warpme/minimyth2
-
-
 diff --speed-large-files --no-dereference --minimal -Naur NVIDIA-Linux-x86_64-340.108/kernel/nv-acpi.c NVIDIA-Linux-x86_64-340.108/kernel/nv-acpi.c
 --- NVIDIA-Linux-x86_64-340.108/kernel/nv-acpi.c	2019-12-11 23:04:24.000000000 +0100
-+++ NVIDIA-Linux-x86_64-340.108/kernel/nv-acpi.c	2022-05-12 12:59:18.003229087 +0200
++++ NVIDIA-Linux-x86_64-340.108/kernel/nv-acpi.c	2022-06-04 16:06:58.676675377 +0200
 @@ -577,9 +577,11 @@
          {
              if (!nvif_parent_gpu_handle) /* unknown error */
@@ -57,7 +42,7 @@ diff --speed-large-files --no-dereference --minimal -Naur NVIDIA-Linux-x86_64-34
          return RM_ERR_INVALID_ARGUMENT;
 diff --speed-large-files --no-dereference --minimal -Naur NVIDIA-Linux-x86_64-340.108/kernel/nv-dma.c NVIDIA-Linux-x86_64-340.108/kernel/nv-dma.c
 --- NVIDIA-Linux-x86_64-340.108/kernel/nv-dma.c	2019-12-11 23:04:24.000000000 +0100
-+++ NVIDIA-Linux-x86_64-340.108/kernel/nv-dma.c	2022-05-12 12:45:30.363233712 +0200
++++ NVIDIA-Linux-x86_64-340.108/kernel/nv-dma.c	2022-06-04 16:06:58.676675377 +0200
 @@ -136,10 +136,17 @@
          return status;
      }
@@ -91,8 +76,8 @@ diff --speed-large-files --no-dereference --minimal -Naur NVIDIA-Linux-x86_64-34
  
      *priv = dma_map->user_pages;
 diff --speed-large-files --no-dereference --minimal -Naur NVIDIA-Linux-x86_64-340.108/kernel/nv-drm.c NVIDIA-Linux-x86_64-340.108/kernel/nv-drm.c
---- NVIDIA-Linux-x86_64-340.108/kernel/nv-drm.c	2022-05-12 13:03:49.996560918 +0200
-+++ NVIDIA-Linux-x86_64-340.108/kernel/nv-drm.c	2022-05-12 12:02:14.576581485 +0200
+--- NVIDIA-Linux-x86_64-340.108/kernel/nv-drm.c	2022-06-04 16:11:26.613344012 +0200
++++ NVIDIA-Linux-x86_64-340.108/kernel/nv-drm.c	2022-06-04 16:06:58.676675377 +0200
 @@ -381,9 +381,15 @@
      return nv_gem_prime_get_sg_table(gem);
  }
@@ -125,3 +110,27 @@ diff --speed-large-files --no-dereference --minimal -Naur NVIDIA-Linux-x86_64-34
      nv_gem_prime_vunmap(gem, map->vaddr);
      map->vaddr = NULL;
  }
+diff --speed-large-files --no-dereference --minimal -Naur NVIDIA-Linux-x86_64-340.108/kernel/nv-vm.c NVIDIA-Linux-x86_64-340.108/kernel/nv-vm.c
+--- NVIDIA-Linux-x86_64-340.108/kernel/nv-vm.c	2019-12-11 23:04:24.000000000 +0100
++++ NVIDIA-Linux-x86_64-340.108/kernel/nv-vm.c	2022-06-04 16:11:10.323343892 +0200
+@@ -169,12 +169,20 @@
+ 
+ static inline int nv_map_sg(struct pci_dev *dev, struct scatterlist *sg)
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
++    return dma_map_sg(&dev->dev, sg, 1, DMA_BIDIRECTIONAL);
++#else
+     return pci_map_sg(dev, sg, 1, PCI_DMA_BIDIRECTIONAL);
++#endif
+ }
+ 
+ static inline void nv_unmap_sg(struct pci_dev *dev, struct scatterlist *sg)
+ {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
++    dma_unmap_sg(&dev->dev, sg, 1, DMA_BIDIRECTIONAL);
++#else
+     pci_unmap_sg(dev, sg, 1, PCI_DMA_BIDIRECTIONAL);
++#endif
+ }
+ 
+ #define NV_MAP_SG_MAX_RETRIES 16
