@@ -1,8 +1,8 @@
 
 GARNAME      = util-linux
-GARVERSION   = 2.37.1
+GARVERSION   = 2.38
 CATEGORIES   = utils
-MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.37/
+MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.38/
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = GPL2
 
@@ -117,9 +117,9 @@ INSTALL_ARGS   = \
 include ../../gar.mk
 
 pre-configure:
-	@$(call RUN_GETTEXTIZE)
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	@#$(call RUN_GETTEXTIZE)
+	@#$(call RUN_AUTOTOOLS)
+	@#$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
 
 post-install:
