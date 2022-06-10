@@ -1,5 +1,5 @@
 GARNAME = ninja
-GARVERSION = 1.10.2
+GARVERSION = 1.11.0
 CATEGORIES = devel
 MASTER_SITES = https://github.com/martine/ninja/archive/
 DISTFILES = v$(GARVERSION).zip
