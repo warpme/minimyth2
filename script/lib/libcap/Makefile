@@ -1,10 +1,9 @@
 
 GARNAME      = libcap
-GARVERSION   = 2.51
+GARVERSION   = 2.64
 CATEGORIES   = lib
 MASTER_SITES = https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/
 DISTFILES    = $(DISTNAME).tar.xz
-PATCHFILES   = libcap-2.45-makefile.patch
 LICENSE      = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -20,15 +19,12 @@ include ../../gar.mk
 
 BUILD_ARGS   = \
     PREFIX="$(prefix)" \
-    CPPFLAGS="$(CPPFLAGS)" \
-    CFLAGS="$(CFLAGS) $(LDFLAGS)" \
-    CXXFLAGS="$(CXXFLAGS) $(LDFLAGS)" \
     BUILD_CC=$(build_CC) \
     CC=$(CC) \
-    AR=$(AR) \
-    RANLIB=$(RANLIB) \
+    OBJCOPY=$(OBJCOPY) \
 
 INSTALL_ARGS = \
     DESTDIR="$(DESTDIR)" \
     PREFIX="$(prefix)" \
     LIBDIR="$(libdir)" \
+    sbindir=$(bindir) \
