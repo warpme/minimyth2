@@ -1,10 +1,10 @@
-GARNAME = coreutils
-GARVERSION = 8.32
-CATEGORIES = utils
+
+GARNAME      = coreutils
+GARVERSION   = 9.1
+CATEGORIES   = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.xz
-PATCHFILES = $(DISTNAME)-sysinfo.patch
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
