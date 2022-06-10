@@ -1,6 +1,6 @@
 
 GARNAME      = elfutils
-GARVERSION   = 0.185
+GARVERSION   = 0.187
 CATEGORIES   = devel
 MASTER_SITES = https://fedorahosted.org/releases/e/l/$(GARNAME)/$(GARVERSION)/
 PATCHFILES   = $(DISTNAME)-hack-to-fix-compile.patch
