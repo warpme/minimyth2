@@ -23,13 +23,11 @@ INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS_BUILD = \
 	-D documentation="false" \
-	-D examples="false" \
 	-D scanner="true" \
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
 	-D documentation="false" \
-	-D examples="false" \
 	-D scanner="false" \
 
 include ../../gar.mk
