@@ -5,6 +5,7 @@ CATEGORIES   = utils
 MASTER_SITES = http://git.yoctoproject.org/cgit/cgit.cgi/pseudo/snapshot/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.bz2
 PATCHFILES   = $(DISTNAME)-fix-building-on-hosts-with-glibc2.33.patch
+PATCHFILES  += $(DISTNAME)-fix-building-on-hosts-with-gcc12.1.patch
 LICENSE      = GPL2
 
 DESCRIPTION = 
@@ -21,4 +22,6 @@ include ../../gar.mk
 
 CONFIGURE_ARGS = \
         --prefix="$(prefix)" \
-        --with-sqlite=$(build_rootdir)/usr
+        --with-sqlite=$(build_rootdir)/usr \
+
+#        --enable-xattr \
