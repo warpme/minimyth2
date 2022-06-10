@@ -21,20 +21,14 @@ INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
-	-D gst-debug=false \
 	-D examples=disabled \
 	-D tests=disabled \
-	-D failing-tests=false \
 	-D benchmarks=disabled \
 	-D tools=disabled \
 	-D introspection=disabled \
-	-D gtk-doc=false \
-	-D gtk-doc-html=false \
-	-D gtk-doc-pdf=false \
 	-D gobject-cast-checks=disabled \
 	-D glib-asserts=disabled \
 	-D check=disabled \
-	-D Bsymbolic=false \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
