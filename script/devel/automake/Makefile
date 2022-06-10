@@ -1,6 +1,6 @@
 
 GARNAME      = automake
-GARVERSION   = 1.16.3
+GARVERSION   = 1.16.5
 CATEGORIES   = devel
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.gz
