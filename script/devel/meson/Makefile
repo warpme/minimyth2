@@ -1,6 +1,6 @@
 
 GARNAME      = meson
-GARVERSION   = 0.59.0
+GARVERSION   = 0.62.2
 CATEGORIES   = devel
 MASTER_SITES = https://github.com/mesonbuild/meson/releases/download/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
