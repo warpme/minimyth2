@@ -17,8 +17,6 @@ BUILD_SCRIPTS      = meson
 INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
-	-D test="false" \
-	-D udev="true" \
 	-D libwacom="false" \
 	-D documentation="false" \
 	-D debug-gui="false"
