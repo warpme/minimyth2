@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c db/sqlite
+DEPENDS = lang/c db/sqlite lib/libattr
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -22,7 +22,3 @@ include ../../gar.mk
 CONFIGURE_ARGS = \
         --prefix="$(prefix)" \
         --with-sqlite=$(build_rootdir)/usr
-
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
-
