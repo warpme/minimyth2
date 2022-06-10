@@ -17,7 +17,5 @@ MESON_CONFIGURE_ARGS_BUILD =
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
-	-D man-pages="false" \
-	-D examples="false" \
 
 include ../../gar.mk
