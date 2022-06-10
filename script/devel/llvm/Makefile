@@ -1,6 +1,6 @@
 
 GARNAME      = llvm
-GARVERSION   = 12.0.1
+GARVERSION   = 14.0.4
 CATEGORIES   = devel
 MASTER_SITES = https://github.com/llvm/llvm-project/releases/download/llvmorg-$(GARVERSION)/
 DISTFILES    = $(DISTNAME).src.tar.xz
@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c lang/cxx
+DEPENDS   = lang/c lang/cxx lib/libedit
 BUILDDEPS = python2/python
 
 ifneq ($(DESTIMG),build)
@@ -39,6 +39,8 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-DLLVM_BUILD_DOCS="OFF" \
 	-DLLVM_ENABLE_DOXYGEN="OFF" \
 	-DCMAKE_BUILD_TYPE=Release \
+	-DLLVM_BUILD_BENCHMARKS="OFF" \
+	-DLLVM_INCLUDE_BENCHMARKS="OFF" \
 	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
 	 -DLLVM_TARGET_ARCH="X86" \
 	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" ) \
