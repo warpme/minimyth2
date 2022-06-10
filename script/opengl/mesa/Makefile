@@ -100,6 +100,9 @@ endif
 endif
 
 post-install:
+	@if [ $(grep -c "libdir" $(DESTDIR)$(libdir)/pkgconfig/dri.pc) = "0" ] ; then \
+		echo "libdir=${prefix}/lib" >> $(DESTDIR)$(libdir)/pkgconfig/dri.pc \
+	fi
 	@files="dri.pc egl.pc gbm.pc gl.pc glesv1_cm.pc glesv2.pc" ; \
 	 for file in $${files} ; do \
 		sed \
