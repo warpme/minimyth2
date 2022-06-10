@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/ncurses
+DEPENDS = lang/c lib/ncurses devel/gmp
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
