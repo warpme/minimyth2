@@ -19,7 +19,6 @@ BUILD_SCRIPTS      = meson
 INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
-	-D man-pages="false" \
 	-D enable-docs="false" \
 
 include ../../gar.mk
