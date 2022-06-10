@@ -212,7 +212,6 @@ BUILDDEPS = \
 	utils/tar \
 	utils/util-linux \
 	perl/perlstrip \
-	$(if $(filter bootloader,$(mm_SOFTWARE)),utils/kickstart-oe) \
 	devel/meson \
 	net/inetutils \
 
