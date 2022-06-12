@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/libftdi lib/libg15render lib/libirman lib/ncurses lib/freetype lib/libpng lib/libusb lib/libusb-compat system/g15daemon system/lirc
+DEPENDS = lang/c lib/libftdi lib/libirman lib/ncurses lib/freetype lib/libpng lib/libusb lib/libusb-compat system/lirc
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -29,7 +29,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-dot \
 	--disable-html-dox \
 	--disable-latex-dox \
-	--enable-drivers=all
+	--enable-drivers=all,!g15
 
 include ../../gar.mk
 
