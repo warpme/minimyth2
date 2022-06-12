@@ -6,6 +6,8 @@ MASTER_SITES = https://code.videolan.org/videolan/dav1d/-/archive/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      = BSD
 
+BUILDDEPS = devel/nasm
+
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
 INSTALL_SCRIPTS    = meson
