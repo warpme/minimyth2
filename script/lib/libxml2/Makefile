@@ -1,10 +1,9 @@
-
-GARNAME      = libxml2
-GARVERSION   = v2.9.14
-CATEGORIES   = lib
-MASTER_SITES = https://gitlab.gnome.org/GNOME/libxml2/-/archive/$(GARVERSION)/
-DISTFILES    = $(DISTNAME).tar.gz
-LICENSE      = MIT/MIT_Modified
+GARNAME = libxml2
+GARVERSION = 2.9.0
+CATEGORIES = lib
+MASTER_SITES = ftp://xmlsoft.org/$(GARNAME)/
+DISTFILES = $(DISTNAME).tar.gz
+LICENSE = MIT/MIT_Modified
 
 DESCRIPTION = 
 define BLURB
@@ -37,7 +36,6 @@ endif
 include ../../gar.mk
 
 pre-configure:
-	@mkdir -p $(WORKSRC)/m4
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
