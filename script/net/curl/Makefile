@@ -72,7 +72,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-libidn \
 
 ifeq ($(DESTIMG),build)
-CONFIGURE_ARGS +=
+CONFIGURE_ARGS += \
 	--without-nghttp2 \
 	--without-brotli
 endif
