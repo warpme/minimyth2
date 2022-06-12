@@ -76,11 +76,11 @@ MESON_CONFIGURE_ARGS = \
 	-D platforms=x11,wayland \
 	-D llvm=enabled \
 	-D cpp_rtti=false \
+	-D dri-drivers= \
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
-	-D dri-drivers= \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
 	-D c_args="-mfpu=neon -mfloat-abi=softfp"
@@ -88,21 +88,17 @@ else
 ifeq ($(GARCH),armv8)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
-	-D dri-drivers= \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled
 else
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,svga,swrast \
-	-D dri-drivers= \
 	-D gallium-vdpau=enabled
 endif
 endif
 
 post-install:
-	@if [ $(grep -c "libdir" $(DESTDIR)$(libdir)/pkgconfig/dri.pc) = "0" ] ; then \
-		echo "libdir=${prefix}/lib" >> $(DESTDIR)$(libdir)/pkgconfig/dri.pc \
-	fi
+	@sed 's|prefix=.*|prefix=/usr\nlibdir=\$${prefix}/lib|g' -i $(DESTDIR)$(libdir)/pkgconfig/dri.pc
 	@files="dri.pc egl.pc gbm.pc gl.pc glesv1_cm.pc glesv2.pc" ; \
 	 for file in $${files} ; do \
 		sed \
@@ -207,16 +203,6 @@ ifneq (,$(findstring sun4i,$(mm_GRAPHICS)))
 endif
 endif
 	@rm -f "$(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt"
-	@# Generate udev rules for Intel i810
-	@cd files/udev-generator; ./generate-x-udev-rules.sh \
-		"../../$(WORKSRC)/include/pci_ids/i810_pci_ids.h" \
-		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-i810.rules.disabled" \
-		"$(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt" \
-		"8086" \
-		"intel_i915" \
-		"intel_vaapi" \
-		"./i810_names_with_HW_accell.lst" \
-		"i810"
 	@# Generate udev rules for Intel i915
 	@cd files/udev-generator; ./generate-x-udev-rules.sh \
 		"../../$(WORKSRC)/include/pci_ids/i915_pci_ids.h" \
