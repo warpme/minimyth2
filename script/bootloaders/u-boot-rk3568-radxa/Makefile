@@ -10,6 +10,7 @@ MASTER_SITES = \
 		https://github.com/JeffyCN/rockchip_mirrors/archive/
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
 PATCHFILES   = 04-net.h-make-random-mac-constant.patch
+PATCHFILES  += 05-fix-building-gcc12.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
