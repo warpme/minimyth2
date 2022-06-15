@@ -228,6 +228,7 @@ PATCHFILES += 0837-arm64-dts-rockchip-add-dts-for-box-demo-v10.patch
 PATCHFILES += 0838-arm64-dts-rockchip-rock3a-enable-hdmi-audio-and-usb2.patch
 PATCHFILES += 0839-arm64-dts-rockchip-rock3a-enable-pcie.patch
 PATCHFILES += 0840-arm64-dts-rockchip-add-dts-for-rock3b.patch
+PATCHFILES += 0841-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
 endif
 #------------------------------------------------------------
 
