@@ -1,0 +1,376 @@
+
+The VOP2 is the display output controller on the RK3568. Add the node
+for it to the dtsi file along with the required display-subsystem node
+and the iommu node.
+
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+Acked-by: Rob Herring <robh@kernel.org>
+---
+
+Notes:
+    Changes since v6:
+    - Change RK3568_ prefix to ROCKCHIP_ prefix
+    - start counting from one instead of zero
+    
+    Changes since v4:
+    - Add Robs Ack
+    
+    Changes since v3:
+    - Bring back gamma_lut regs
+    - Drop redundant _vop suffix from clock names
+
+ arch/arm64/boot/dts/rockchip/rk3566.dtsi |  4 ++
+ arch/arm64/boot/dts/rockchip/rk3568.dtsi |  4 ++
+ arch/arm64/boot/dts/rockchip/rk356x.dtsi | 51 ++++++++++++++++++++++++
+ 4 files changed, 73 insertions(+)
+ create mode 100644 include/dt-bindings/soc/rockchip,vop2.h
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3566.dtsi b/arch/arm64/boot/dts/rockchip/rk3566.dtsi
+index 3839eef5e4f76..595fa2562cb8e 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3566.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3566.dtsi
+@@ -18,3 +18,7 @@ power-domain@RK3568_PD_PIPE {
+ 		#power-domain-cells = <0>;
+ 	};
+ };
++
++&vop {
++	compatible = "rockchip,rk3566-vop";
++};
+diff --git a/arch/arm64/boot/dts/rockchip/rk3568.dtsi b/arch/arm64/boot/dts/rockchip/rk3568.dtsi
+index 5b0f528d68180..4deab90e83834 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3568.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3568.dtsi
+@@ -114,3 +114,7 @@ power-domain@RK3568_PD_PIPE {
+ 		#power-domain-cells = <0>;
+ 	};
+ };
++
++&vop {
++	compatible = "rockchip,rk3568-vop";
++};
+diff --git a/arch/arm64/boot/dts/rockchip/rk356x.dtsi b/arch/arm64/boot/dts/rockchip/rk356x.dtsi
+index 7cdef800cb3ce..fdb7a9a6ca743 100644
+--- a/arch/arm64/boot/dts/rockchip/rk356x.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk356x.dtsi
+@@ -129,6 +129,11 @@ opp-1800000000 {
+ 		};
+ 	};
+ 
++	display_subsystem: display-subsystem {
++		compatible = "rockchip,display-subsystem";
++		ports = <&vop_out>;
++	};
++
+ 	firmware {
+ 		scmi: scmi {
+ 			compatible = "arm,scmi-smc";
+@@ -569,6 +574,52 @@ gmac1_mtl_tx_setup: tx-queues-config {
+ 		};
+ 	};
+ 
++	vop: vop@fe040000 {
++		reg = <0x0 0xfe040000 0x0 0x3000>, <0x0 0xfe044000 0x0 0x1000>;
++		reg-names = "regs", "gamma_lut";
++		interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru ACLK_VOP>, <&cru HCLK_VOP>, <&cru DCLK_VOP0>,
++			 <&cru DCLK_VOP1>, <&cru DCLK_VOP2>;
++		clock-names = "aclk", "hclk", "dclk_vp0", "dclk_vp1", "dclk_vp2";
++		iommus = <&vop_mmu>;
++		power-domains = <&power RK3568_PD_VO>;
++		rockchip,grf = <&grf>;
++		status = "disabled";
++
++		vop_out: ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			vp0: port@0 {
++				reg = <0>;
++				#address-cells = <1>;
++				#size-cells = <0>;
++			};
++
++			vp1: port@1 {
++				reg = <1>;
++				#address-cells = <1>;
++				#size-cells = <0>;
++			};
++
++			vp2: port@2 {
++				reg = <2>;
++				#address-cells = <1>;
++				#size-cells = <0>;
++			};
++		};
++	};
++
++	vop_mmu: iommu@fe043e00 {
++		compatible = "rockchip,rk3568-iommu";
++		reg = <0x0 0xfe043e00 0x0 0x100>, <0x0 0xfe043f00 0x0 0x100>;
++		interrupts = <GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru ACLK_VOP>, <&cru HCLK_VOP>;
++		clock-names = "aclk", "iface";
++		#iommu-cells = <0>;
++		status = "disabled";
++	};
++
+ 	qos_gpu: qos@fe128000 {
+ 		compatible = "rockchip,rk3568-qos", "syscon";
+ 		reg = <0x0 0xfe128000 0x0 0x20>;
+
+Add support for the HDMI port found on RK3568.
+
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+---
+
+Notes:
+    Changes since v7:
+    - Rename hclk to niu
+    
+    Changes since v5:
+    - Drop unnecessary #size-cells/#address-cells from nodes with only single endpoint
+
+ arch/arm64/boot/dts/rockchip/rk356x.dtsi | 32 ++++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk356x.dtsi b/arch/arm64/boot/dts/rockchip/rk356x.dtsi
+index fdb7a9a6ca743..1a359bbf65300 100644
+--- a/arch/arm64/boot/dts/rockchip/rk356x.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk356x.dtsi
+@@ -620,6 +620,38 @@ vop_mmu: iommu@fe043e00 {
+ 		status = "disabled";
+ 	};
+ 
++	hdmi: hdmi@fe0a0000 {
++		compatible = "rockchip,rk3568-dw-hdmi";
++		reg = <0x0 0xfe0a0000 0x0 0x20000>;
++		interrupts = <GIC_SPI 45 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru PCLK_HDMI_HOST>,
++			 <&cru CLK_HDMI_SFR>,
++			 <&cru CLK_HDMI_CEC>,
++			 <&pmucru CLK_HDMI_REF>,
++			 <&cru HCLK_VO>;
++		clock-names = "iahb", "isfr", "cec", "ref";
++		pinctrl-names = "default";
++		pinctrl-0 = <&hdmitx_scl &hdmitx_sda &hdmitxm0_cec>;
++		power-domains = <&power RK3568_PD_VO>;
++		reg-io-width = <4>;
++		rockchip,grf = <&grf>;
++		#sound-dai-cells = <0>;
++		status = "disabled";
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			hdmi_in: port@0 {
++				reg = <0>;
++			};
++
++			hdmi_out: port@1 {
++				reg = <1>;
++			};
++		};
++	};
++
+ 	qos_gpu: qos@fe128000 {
+ 		compatible = "rockchip,rk3568-qos", "syscon";
+ 		reg = <0x0 0xfe128000 0x0 0x20>;
+
+
+From: Michael Riesch <michael.riesch@wolfvision.net>
+
+Enable the RK356x Video Output Processor (VOP) 2 on the Pine64
+Quartz64 Model A.
+
+Signed-off-by: Michael Riesch <michael.riesch@wolfvision.net>
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+---
+
+Notes:
+    Changes since v5:
+    - Drop reg property from single endpoint node
+    
+    Changes since v4:
+    - Sort nodes alphabetically
+    
+    Changes since v3:
+    - Fix HDMI connector type
+
+ .../boot/dts/rockchip/rk3566-quartz64-a.dts   | 47 +++++++++++++++++++
+ 1 file changed, 47 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3566-quartz64-a.dts b/arch/arm64/boot/dts/rockchip/rk3566-quartz64-a.dts
+index dd7f4b9b686b8..6504f7ab3ea77 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3566-quartz64-a.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3566-quartz64-a.dts
+@@ -4,6 +4,7 @@
+ 
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/pinctrl/rockchip.h>
++#include <dt-bindings/soc/rockchip,vop2.h>
+ #include "rk3566.dtsi"
+ 
+ / {
+@@ -35,6 +36,17 @@ fan: gpio_fan {
+ 		#cooling-cells = <2>;
+ 	};
+ 
++	hdmi-con {
++		compatible = "hdmi-connector";
++		type = "a";
++
++		port {
++			hdmi_con_in: endpoint {
++				remote-endpoint = <&hdmi_out_con>;
++			};
++		};
++	};
++
+ 	leds {
+ 		compatible = "gpio-leds";
+ 
+@@ -248,6 +260,24 @@ &gpu {
+ 	status = "okay";
+ };
+ 
++&hdmi {
++	avdd-0v9-supply = <&vdda_0v9>;
++	avdd-1v8-supply = <&vcc_1v8>;
++	status = "okay";
++};
++
++&hdmi_in {
++	hdmi_in_vp0: endpoint {
++		remote-endpoint = <&vp0_out_hdmi>;
++	};
++};
++
++&hdmi_out {
++	hdmi_out_con: endpoint {
++		remote-endpoint = <&hdmi_con_in>;
++	};
++};
++
+ &i2c0 {
+ 	status = "okay";
+ 
+@@ -685,3 +715,20 @@ &usb2phy1_otg {
+ 	phy-supply = <&vcc5v0_usb20_host>;
+ 	status = "okay";
+ };
++
++&vop {
++	assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
++	assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
++	status = "okay";
++};
++
++&vop_mmu {
++	status = "okay";
++};
++
++&vp0 {
++	vp0_out_hdmi: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
++		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
++		remote-endpoint = <&hdmi_in_vp0>;
++	};
++};
+
+
+From: Michael Riesch <michael.riesch@wolfvision.net>
+
+Enable the RK356x Video Output Processor (VOP) 2 on the Radxa
+ROCK3 Model A.
+
+Signed-off-by: Michael Riesch <michael.riesch@wolfvision.net>
+Reported-by: kernel test robot <lkp@intel.com>
+Link: https://lore.kernel.org/r/20220310210352.451136-4-michael.riesch@wolfvision.net
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+---
+
+Notes:
+    Changes since v9:
+    - new patch
+
+ .../boot/dts/rockchip/rk3568-rock-3a.dts      | 47 +++++++++++++++++++
+ 1 file changed, 47 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3568-rock-3a.dts b/arch/arm64/boot/dts/rockchip/rk3568-rock-3a.dts
+index 18d2d8e5e6933..e568ce3770551 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3568-rock-3a.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3568-rock-3a.dts
+@@ -4,6 +4,7 @@
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/leds/common.h>
+ #include <dt-bindings/pinctrl/rockchip.h>
++#include <dt-bindings/soc/rockchip,vop2.h>
+ #include "rk3568.dtsi"
+ 
+ / {
+@@ -20,6 +21,17 @@ chosen: chosen {
+ 		stdout-path = "serial2:1500000n8";
+ 	};
+ 
++	hdmi-con {
++		compatible = "hdmi-connector";
++		type = "a";
++
++		port {
++			hdmi_con_in: endpoint {
++				remote-endpoint = <&hdmi_out_con>;
++			};
++		};
++	};
++
+ 	leds {
+ 		compatible = "gpio-leds";
+ 
+@@ -134,6 +146,24 @@ &gpu {
+ 	status = "okay";
+ };
+ 
++&hdmi {
++	avdd-0v9-supply = <&vdda0v9_image>;
++	avdd-1v8-supply = <&vcca1v8_image>;
++	status = "okay";
++};
++
++&hdmi_in {
++	hdmi_in_vp0: endpoint {
++		remote-endpoint = <&vp0_out_hdmi>;
++	};
++};
++
++&hdmi_out {
++	hdmi_out_con: endpoint {
++		remote-endpoint = <&hdmi_con_in>;
++	};
++};
++
+ &i2c0 {
+ 	status = "okay";
+ 
+@@ -499,3 +529,20 @@ &usb2phy1_otg {
+ 	phy-supply = <&vcc5v0_usb_host>;
+ 	status = "okay";
+ };
++
++&vop {
++	assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
++	assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
++	status = "okay";
++};
++
++&vop_mmu {
++	status = "okay";
++};
++
++&vp0 {
++	vp0_out_hdmi: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
++		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
++		remote-endpoint = <&hdmi_in_vp0>;
++	};
++};
+
