@@ -219,9 +219,9 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "5.17"          ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "5.18"          ] && \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "5.18"          ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "5.19"          ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "5.20"          ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.12"      ] ; then \
 		echo " " ; \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
