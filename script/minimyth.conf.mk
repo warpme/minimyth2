@@ -53,6 +53,7 @@ mm_SOFTWARE               ?= \
 #                             valgrind \
 #                             xscreensaver \
 #                             kodi \
+#                             termbin \
 
 # Indicates bootloader board type. Valid values are:
 # 'board-rpi2'

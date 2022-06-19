@@ -211,6 +211,7 @@ mm-all:
 		   [ ! "$${software}" = "kodi"           ] && \
 		   [ ! "$${software}" = "openvfd"        ] && \
 		   [ ! "$${software}" = "monitorix"      ] && \
+		   [ ! "$${software}" = "termbin"        ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
