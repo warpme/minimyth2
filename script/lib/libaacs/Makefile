@@ -1,6 +1,6 @@
 
 GARNAME      = libaacs
-GARVERSION   = 0.11.0
+GARVERSION   = 0.11.1
 CATEGORIES   = lib
 MASTER_SITES = https://code.videolan.org/videolan/libaacs/-/archive/0.11.0/
 #PATCHFILES   = fix-compilation.patch
