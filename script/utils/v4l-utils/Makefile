@@ -1,6 +1,6 @@
 
 GARNAME      = v4l-utils
-GARVERSION   = 20210106-f4316861d
+GARVERSION   = 20220616-ef8c5223b
 CATEGORIES   = utils
 MASTER_SITES = git://linuxtv.org/v4l-utils.git/
 DISTFILES    = $(DISTNAME).tar.bz2
