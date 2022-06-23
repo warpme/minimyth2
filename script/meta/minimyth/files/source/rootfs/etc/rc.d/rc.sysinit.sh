@@ -26,6 +26,7 @@
 /bin/mkdir -p /var/run
 /bin/touch    /var/run/utmp
 /bin/mkdir -p /var/tmp
+
 /bin/mount -t tmpfs -o nodev,nosuid,size=64M,mode=1777 tmpfs /var/tmp
 /bin/mount -t tmpfs -o nodev,nosuid,size=64M,mode=1777 tmpfs /var/log
 
@@ -113,6 +114,9 @@ ln -sf /dev/rtc0 /dev/rtc > /dev/null
 /bin/mkdir -p  /var/run/xdg/minimyth
 /bin/chown 1000:1000 /var/run/xdg/minimyth
 /bin/chmod 0700 /var/run/xdg/minimyth
+
+# Mount debugfs
+mount -t debugfs debugfs /sys/kernel/debug
 
 # /bin/echo "real init: done! (exit code 0) ..."
 exit 0
