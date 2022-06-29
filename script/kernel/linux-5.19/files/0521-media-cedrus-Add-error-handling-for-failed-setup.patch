@@ -1,0 +1,189 @@
+From 61a9a92e3eb870379216a1368aaf40567da30274 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sat, 4 Jun 2022 14:19:04 +0200
+Subject: [PATCH 21/30] media: cedrus: Add error handling for failed setup
+
+During decoding setup stage for complex codecs like HEVC driver can
+detect inconsistent values in controls or some other task, like
+allocating memory, can fail.
+
+Currently setup stage has no way of signalling error. Change return type
+of setup callback to int and if returned value is not zero, skip
+decoding and finish job immediately with error flag.
+
+While currently there is only one place when setup can fail, it's
+expected that there will be more such cases in the future, when HEVC
+decoding is improved.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/staging/media/sunxi/cedrus/cedrus.h   |  2 +-
+ .../staging/media/sunxi/cedrus/cedrus_dec.c   | 23 ++++++++++++++-----
+ .../staging/media/sunxi/cedrus/cedrus_h264.c  |  5 ++--
+ .../staging/media/sunxi/cedrus/cedrus_h265.c  |  8 +++----
+ .../staging/media/sunxi/cedrus/cedrus_mpeg2.c |  4 +++-
+ .../staging/media/sunxi/cedrus/cedrus_vp8.c   |  5 ++--
+ 6 files changed, 31 insertions(+), 16 deletions(-)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.h b/drivers/staging/media/sunxi/cedrus/cedrus.h
+index 3bc094eb49..d2b697a9de 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus.h
++++ b/drivers/staging/media/sunxi/cedrus/cedrus.h
+@@ -162,7 +162,7 @@ struct cedrus_dec_ops {
+ 	void (*irq_clear)(struct cedrus_ctx *ctx);
+ 	void (*irq_disable)(struct cedrus_ctx *ctx);
+ 	enum cedrus_irq_status (*irq_status)(struct cedrus_ctx *ctx);
+-	void (*setup)(struct cedrus_ctx *ctx, struct cedrus_run *run);
++	int (*setup)(struct cedrus_ctx *ctx, struct cedrus_run *run);
+ 	int (*start)(struct cedrus_ctx *ctx);
+ 	void (*stop)(struct cedrus_ctx *ctx);
+ 	void (*trigger)(struct cedrus_ctx *ctx);
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
+index aabe625307..b0944abaac 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_dec.c
+@@ -28,6 +28,7 @@ void cedrus_device_run(void *priv)
+ 	struct cedrus_dev *dev = ctx->dev;
+ 	struct cedrus_run run = {};
+ 	struct media_request *src_req;
++	int error;
+ 
+ 	run.src = v4l2_m2m_next_src_buf(ctx->fh.m2m_ctx);
+ 	run.dst = v4l2_m2m_next_dst_buf(ctx->fh.m2m_ctx);
+@@ -89,16 +90,26 @@ void cedrus_device_run(void *priv)
+ 
+ 	cedrus_dst_format_set(dev, &ctx->dst_fmt);
+ 
+-	dev->dec_ops[ctx->current_codec]->setup(ctx, &run);
++	error = dev->dec_ops[ctx->current_codec]->setup(ctx, &run);
++	if (error)
++		v4l2_err(&ctx->dev->v4l2_dev,
++			 "Failed to setup decoding job: %d\n", error);
+ 
+ 	/* Complete request(s) controls if needed. */
+ 
+ 	if (src_req)
+ 		v4l2_ctrl_request_complete(src_req, &ctx->hdl);
+ 
+-	dev->dec_ops[ctx->current_codec]->trigger(ctx);
+-
+-	/* Start the watchdog timer. */
+-	schedule_delayed_work(&dev->watchdog_work,
+-			      msecs_to_jiffies(2000));
++	/* Trigger decoding if setup went well, bail out otherwise. */
++	if (!error) {
++		dev->dec_ops[ctx->current_codec]->trigger(ctx);
++
++		/* Start the watchdog timer. */
++		schedule_delayed_work(&dev->watchdog_work,
++				      msecs_to_jiffies(2000));
++	} else {
++		v4l2_m2m_buf_done_and_job_finish(ctx->dev->m2m_dev,
++						 ctx->fh.m2m_ctx,
++						 VB2_BUF_STATE_ERROR);
++	}
+ }
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_h264.c b/drivers/staging/media/sunxi/cedrus/cedrus_h264.c
+index d8fb930354..c345e67ba9 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_h264.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_h264.c
+@@ -493,8 +493,7 @@ static void cedrus_h264_irq_disable(struct cedrus_ctx *ctx)
+ 		     reg & ~VE_H264_CTRL_INT_MASK);
+ }
+ 
+-static void cedrus_h264_setup(struct cedrus_ctx *ctx,
+-			      struct cedrus_run *run)
++static int cedrus_h264_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ {
+ 	struct cedrus_dev *dev = ctx->dev;
+ 
+@@ -510,6 +509,8 @@ static void cedrus_h264_setup(struct cedrus_ctx *ctx,
+ 	cedrus_write_frame_list(ctx, run);
+ 
+ 	cedrus_set_params(ctx, run);
++
++	return 0;
+ }
+ 
+ static int cedrus_h264_start(struct cedrus_ctx *ctx)
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_h265.c b/drivers/staging/media/sunxi/cedrus/cedrus_h265.c
+index 46119912c3..cfde4ccf60 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_h265.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_h265.c
+@@ -326,8 +326,7 @@ static int cedrus_h265_is_low_delay(struct cedrus_run *run)
+ 	return 0;
+ }
+ 
+-static void cedrus_h265_setup(struct cedrus_ctx *ctx,
+-			      struct cedrus_run *run)
++static int cedrus_h265_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ {
+ 	struct cedrus_dev *dev = ctx->dev;
+ 	const struct v4l2_ctrl_hevc_sps *sps;
+@@ -385,8 +384,7 @@ static void cedrus_h265_setup(struct cedrus_ctx *ctx,
+ 					GFP_KERNEL, DMA_ATTR_NO_KERNEL_MAPPING);
+ 		if (!ctx->codec.h265.mv_col_buf) {
+ 			ctx->codec.h265.mv_col_buf_size = 0;
+-			// TODO: Abort the process here.
+-			return;
++			return -ENOMEM;
+ 		}
+ 	}
+ 
+@@ -703,6 +701,8 @@ static void cedrus_h265_setup(struct cedrus_ctx *ctx,
+ 
+ 	/* Enable appropriate interruptions. */
+ 	cedrus_write(dev, VE_DEC_H265_CTRL, VE_DEC_H265_CTRL_IRQ_MASK);
++
++	return 0;
+ }
+ 
+ static int cedrus_h265_start(struct cedrus_ctx *ctx)
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_mpeg2.c b/drivers/staging/media/sunxi/cedrus/cedrus_mpeg2.c
+index 5dad2f296c..4cfc4a3c8a 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_mpeg2.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_mpeg2.c
+@@ -48,7 +48,7 @@ static void cedrus_mpeg2_irq_disable(struct cedrus_ctx *ctx)
+ 	cedrus_write(dev, VE_DEC_MPEG_CTRL, reg);
+ }
+ 
+-static void cedrus_mpeg2_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
++static int cedrus_mpeg2_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ {
+ 	const struct v4l2_ctrl_mpeg2_sequence *seq;
+ 	const struct v4l2_ctrl_mpeg2_picture *pic;
+@@ -185,6 +185,8 @@ static void cedrus_mpeg2_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ 	      VE_DEC_MPEG_CTRL_MC_CACHE_EN;
+ 
+ 	cedrus_write(dev, VE_DEC_MPEG_CTRL, reg);
++
++	return 0;
+ }
+ 
+ static void cedrus_mpeg2_trigger(struct cedrus_ctx *ctx)
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_vp8.c b/drivers/staging/media/sunxi/cedrus/cedrus_vp8.c
+index f4016684b3..3f750d1795 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_vp8.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_vp8.c
+@@ -651,8 +651,7 @@ static void cedrus_vp8_irq_disable(struct cedrus_ctx *ctx)
+ 		     reg & ~VE_H264_CTRL_INT_MASK);
+ }
+ 
+-static void cedrus_vp8_setup(struct cedrus_ctx *ctx,
+-			     struct cedrus_run *run)
++static int cedrus_vp8_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+ {
+ 	const struct v4l2_ctrl_vp8_frame *slice = run->vp8.frame_params;
+ 	struct vb2_queue *cap_q = &ctx->fh.m2m_ctx->cap_q_ctx.q;
+@@ -855,6 +854,8 @@ static void cedrus_vp8_setup(struct cedrus_ctx *ctx,
+ 		ctx->codec.vp8.last_sharpness_level =
+ 			slice->lf.sharpness_level;
+ 	}
++
++	return 0;
+ }
+ 
+ static int cedrus_vp8_start(struct cedrus_ctx *ctx)
+-- 
+2.36.1
+
