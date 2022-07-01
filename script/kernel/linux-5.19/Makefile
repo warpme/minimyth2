@@ -43,7 +43,8 @@ PATCHFILES += linux-5.19-defaults.patch
 
 ifeq (1,1)
 
-# Add hevc v4l2_request crtl fields used by Allwinner/Rockchip/Broadcom
+# Destage hevc v4l2_request uAPI for Allwinner/Rockchip/Broadcom
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=651321
 PATCHFILES += 0101-Move-HEVC-stateless-controls-out-of-staging-v9-ML.patch
 
 ifeq (1,1)
@@ -218,7 +219,7 @@ PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-08112021.patch
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=434471
 PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch
 # add H265 rpivid driver
-#PATCHFILES += 0904-media-add-rpivid-24022021.patch not works on 5.19 (oops in kernel)
+PATCHFILES += 0904-media-add-rpivid-24022021.patch
 # improvements for statefull v4l2_m2m seeking on rpi
 PATCHFILES += 0905-vc4_services-improve_h264_seek.patch
 endif
