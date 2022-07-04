@@ -11,6 +11,8 @@ PATCHFILES  =
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
+# hack to fix building on fedora35. Absolutelely dont know why it fails without this change
+PATCHFILES += 0003-libmythbase-include-version.h-in-mythversion.h.patch
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
@@ -40,10 +42,14 @@ PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
 PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
-
+PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
+ifneq (,$(filter %5.18,$(mm_KERNEL_VERSION)))
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.16kernel.patch
+else
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.19kernel.patch
+endif
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner H6
@@ -52,6 +58,8 @@ PATCHFILES += 0153-ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel.patch
 PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
 # Fix green screen on hantro h264 vdpu2 hw video decode
 PATCHFILES += 0155-ffmpeg-libavcodec-h264_slice-fix-decoding-on-hantro-vdpu2.patch
+# Add NEON based VC1 decoding on arm/aarch64
+PATCHFILES += 0156-ffmpeg-libavcodec-vc1-arm-use-neon-optimisations.patch
 endif
 
 # buffers bump-up required for AML HD playbck
@@ -66,6 +74,8 @@ PATCHFILES += 0173-ffmpeg-libavcodec-v4l2_m2m_h264_dec-clean-input-buf-at-flush.
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # hack to get refresh rate changing on drm
 PATCHFILES += 0198-libmythui-mythdrmdevice-add-refresh-change-capability.patch
+# improvements for statefull v4l2_m2m seeking on rpi
+PATCHFILES += 0199-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
@@ -96,8 +106,8 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
 PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 
-# hack to fix livetv bad video playback at start livetv casued by g754d740d0
-PATCHFILES += 0300-mythtv-player-revert754d740d004-to-fix-livetv-start.patch
+# hack to make LiveTV start not stuttering
+PATCHFILES += 0300-mythplayer-hack-to-stuttering-starting-LiveTV.patch
 
 # --------Patches 400+ are plugins patches---------------------
 
@@ -124,9 +134,8 @@ DEPENDS = \
 	db/sqlite \
 	lib/alsa-lib \
 	lib/avahi \
+	lib/dav1d \
 	lib/exiv2 \
-	lib/fftw3 \
-	lib/fftw3f \
 	lib/freetype \
 	lib/lame \
 	lib/libass \
@@ -226,7 +235,7 @@ CONFIGURE_ARGS = \
 	--enable-asm \
 	--enable-fast-unaligned \
 	--enable-optimizations \
-	--enable-lto \
+	--disable-lto \
 	--disable-proc-opt \
 	--enable-audio-oss \
 	--enable-audio-alsa \
@@ -263,6 +272,7 @@ CONFIGURE_ARGS = \
 	--enable-ffplay \
 	--enable-sdl2 \
 	--python="python3" \
+	--enable-silent-cc \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
@@ -281,6 +291,10 @@ CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(inclu
 
 CPPFLAGS += -fPIC -fuse-linker-plugin
 CFLAGS   += -fPIC -fuse-linker-plugin
+
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0

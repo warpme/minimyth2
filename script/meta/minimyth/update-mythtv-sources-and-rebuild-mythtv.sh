@@ -25,9 +25,14 @@ use_test_branch_as_amster="no"
 #test_git_src_dir="git-mythtv-ffmpeg-resync"
 
 # testing branch for qt6
-test_branch_name="devel/qt6"
+#test_branch_name="devel/qt6"
 # Dir where myth test branch sources will be
-test_git_src_dir="git-mythtv-qt6"
+#test_git_src_dir="git-mythtv-qt6"
+
+# testing branch for ffmpeg-resync
+test_branch_name="devel/ffmpeg-resync"
+# Dir where myth test branch sources will be
+test_git_src_dir="git-mythtv-ffmpeg-resync"
 
 # Location of MiniMyth2 main build config file
 mm_conf_file="${HOME}/.minimyth2/minimyth.conf.mk"
