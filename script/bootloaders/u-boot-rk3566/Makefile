@@ -13,6 +13,7 @@ PATCHFILES   = 01-add-x96_x6-tvbox.patch
 PATCHFILES  += 02-fix-compilation.patch
 PATCHFILES  += 03-swap-gmac0-gmac1-in-aliases.patch
 PATCHFILES  += 04-net.h-make-random-mac-constant.patch
+PATCHFILES  += 05-drivers-mmc-rockchip_dw_mmc-fix-eval-always-true.patch
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
 
 LICENSE = GPL2
