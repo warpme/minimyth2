@@ -1,12 +1,29 @@
 diff --speed-large-files --no-dereference --minimal -Naur linux-5.18.9/arch/arm64/boot/dts/rockchip/rk3566-quartz64-b.dts linux-5.18.9/arch/arm64/boot/dts/rockchip/rk3566-quartz64-b.dts
 --- linux-5.18.9/arch/arm64/boot/dts/rockchip/rk3566-quartz64-b.dts	2022-07-05 19:38:16.229776331 +0200
-+++ linux-5.18.9/arch/arm64/boot/dts/rockchip/rk3566-quartz64-b.dts	2022-07-05 19:30:49.739779027 +0200
-@@ -1,19 +1,22 @@
++++ linux-5.18.9/arch/arm64/boot/dts/rockchip/rk3566-quartz64-b.dts	2022-07-06 10:32:55.849983267 +0200
+@@ -1,19 +1,40 @@
  // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +
  /*
-- *
 + * Author: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++ * This DT offers support for:
++ *   SD card
++ *   USB2 port1/port2
++ *   USB3 port1
++ *   Eth (fixed bad performance)
++ *   HDMI video
++ *   HDMI audio
++ *   Analog Audio
++ *   GPU
++ *   WiFi
++ *   CEC
++ *   IR
++ *   BT
++ *   CPU/GPU DVFS
++ *   MPEG2/H.264 HW video decoding
+  *
++ * Missing:
++ *   HEVC/VP9 HW video decoding
   */
  
  /dts-v1/;
@@ -26,7 +43,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-5.18.9/arch/arm6
  		mmc0 = &sdmmc0;
  		mmc1 = &sdhci;
  		mmc2 = &sdmmc1;
-@@ -30,6 +33,17 @@
+@@ -30,6 +51,17 @@
  		#clock-cells = <0>;
  	};
  
@@ -44,7 +61,29 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-5.18.9/arch/arm6
  	leds {
  		compatible = "gpio-leds";
  
-@@ -121,6 +135,14 @@
+@@ -44,6 +76,21 @@
+ 		};
+ 	};
+ 
++	rk809-sound {
++		compatible = "simple-audio-card";
++		simple-audio-card,format = "i2s";
++		simple-audio-card,name = "Analog RK809";
++		simple-audio-card,mclk-fs = <256>;
++
++		simple-audio-card,cpu {
++			sound-dai = <&i2s1_8ch>;
++		};
++
++		simple-audio-card,codec {
++			sound-dai = <&rk809>;
++		};
++	};
++
+ 	sdio_pwrseq: sdio-pwrseq {
+ 		status = "okay";
+ 		compatible = "mmc-pwrseq-simple";
+@@ -121,6 +168,14 @@
  		regulator-max-microvolt = <3300000>;
  		vin-supply = <&vcc_3v3>;
  	};
@@ -59,7 +98,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-5.18.9/arch/arm6
  };
  
  &combphy1 {
-@@ -148,28 +170,132 @@
+@@ -148,28 +203,131 @@
  };
  
  &gmac1 {
@@ -73,16 +112,13 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-5.18.9/arch/arm6
  	phy-supply = <&vcc_3v3>;
  	pinctrl-names = "default";
  	pinctrl-0 = <&gmac1m1_miim
--		     &gmac1m1_tx_bus2
--		     &gmac1m1_rx_bus2
--		     &gmac1m1_rgmii_clk
+ 		     &gmac1m1_tx_bus2
+ 		     &gmac1m1_rx_bus2
+ 		     &gmac1m1_rgmii_clk
 -		     &gmac1m1_clkinout
 -		     &gmac1m1_rgmii_bus>;
-+		    &gmac1m1_tx_bus2
-+		    &gmac1m1_rx_bus2
-+		    &gmac1m1_rgmii_clk
-+		    &gmac1m1_rgmii_bus
-+		    &gmac1m1_clkinout>;
++		     &gmac1m1_rgmii_bus
++		     &gmac1m1_clkinout>;
  	snps,reset-gpio = <&gpio3 RK_PC0 GPIO_ACTIVE_LOW>;
  	snps,reset-active-low;
  	/* Reset time is 20ms, 100ms for rtl8211f */
@@ -91,7 +127,6 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-5.18.9/arch/arm6
 -	rx_delay = <0x24>;
 +	rx_delay = <0x2d>;
  	phy-handle = <&rgmii_phy1>;
-+	mac-address = [00 50 43 02 02 02];
  	status = "okay";
  };
  
@@ -201,7 +236,28 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-5.18.9/arch/arm6
  &i2c0 {
  	status = "okay";
  
-@@ -412,22 +538,8 @@
+@@ -195,13 +353,17 @@
+ 		reg = <0x20>;
+ 		interrupt-parent = <&gpio0>;
+ 		interrupts = <RK_PA7 IRQ_TYPE_LEVEL_LOW>;
++		assigned-clocks = <&cru I2S1_MCLKOUT_TX>;
++		assigned-clock-parents = <&cru CLK_I2S1_8CH_TX>;
++		#clock-cells = <1>;
++		clock-names = "mclk";
++		clocks = <&cru I2S1_MCLKOUT_TX>;
+ 		clock-output-names = "rk808-clkout1", "rk808-clkout2";
+-
+ 		pinctrl-names = "default";
+-		pinctrl-0 = <&pmic_int>;
++		pinctrl-0 = <&pmic_int>, <&i2s1m0_mclk>;
++		#sound-dai-cells = <0>;
+ 		rockchip,system-power-controller;
+ 		wakeup-source;
+-		#clock-cells = <1>;
+ 
+ 		vcc1-supply = <&vcc3v3_sys>;
+ 		vcc2-supply = <&vcc3v3_sys>;
+@@ -412,22 +574,18 @@
  	};
  };
  
@@ -217,16 +273,24 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-5.18.9/arch/arm6
 -//	status = "okay";
 -//	pinctrl-names = "default";
 -//	pinctrl-0 = <&i2c3m1_xfer>;
--};
--
++&i2s0_8ch {
++	status = "okay";
+ };
+ 
 -&i2c5 {
 -//	status = "okay";
-+&i2s0_8ch {
-+    status = "okay";
++&i2s1_8ch {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2s1m0_sclktx
++	&i2s1m0_lrcktx
++	&i2s1m0_sdi0
++	&i2s1m0_sdo0>;
++	rockchip,trcm-sync-tx-only;
++	status = "okay";
  };
  
  &mdio1 {
-@@ -498,6 +610,12 @@
+@@ -498,6 +656,12 @@
  			rockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
  		};
  	};
@@ -239,7 +303,20 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-5.18.9/arch/arm6
  };
  
  &pmu_io_domains {
-@@ -595,6 +713,31 @@
+@@ -565,12 +729,6 @@
+ 	status = "okay";
+ };
+ 
+-&uart0 {
+-	pinctrl-names = "default";
+-	pinctrl-0 = <&uart0_xfer>;
+-//	status = "okay";
+-};
+-
+ &uart1 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&uart1m0_xfer &uart1m0_ctsn &uart1m0_rtsn>;
+@@ -595,6 +753,31 @@
  	status = "okay";
  };
  
