@@ -1,19 +1,19 @@
-From 1040d74c2a684e1b8b65583471b22a0548a7dc4a Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@siol.net>
 Date: Sat, 9 Nov 2019 13:22:05 +0100
-Subject: [PATCH 30/30] media: cedrus: hevc: Improve buffer management
+Subject: [PATCH] media: cedrus: hevc: Improve buffer management
 
 Signed-off-by: Jernej Skrabec <jernej.skrabec@siol.net>
 ---
  drivers/staging/media/sunxi/cedrus/cedrus.h   |   9 +-
- .../staging/media/sunxi/cedrus/cedrus_h265.c  | 118 ++++++++++--------
- 2 files changed, 69 insertions(+), 58 deletions(-)
+ .../staging/media/sunxi/cedrus/cedrus_h265.c  | 119 ++++++++++--------
+ 2 files changed, 69 insertions(+), 59 deletions(-)
 
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.h b/drivers/staging/media/sunxi/cedrus/cedrus.h
-index a3b084ed3d..62cb4d7e4d 100644
+index ab7653c8915e..54a860ec738d 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus.h
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus.h
-@@ -109,6 +109,11 @@ struct cedrus_buffer {
+@@ -106,6 +106,11 @@ struct cedrus_buffer {
  			unsigned int			position;
  			enum cedrus_h264_pic_type	pic_type;
  		} h264;
@@ -25,7 +25,7 @@ index a3b084ed3d..62cb4d7e4d 100644
  	} codec;
  };
  
-@@ -142,10 +147,6 @@ struct cedrus_ctx {
+@@ -139,10 +144,6 @@ struct cedrus_ctx {
  			ssize_t		intra_pred_buf_size;
  		} h264;
  		struct {
@@ -37,7 +37,7 @@ index a3b084ed3d..62cb4d7e4d 100644
  			dma_addr_t	neighbor_info_buf_addr;
  			void		*entry_points_buf;
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_h265.c b/drivers/staging/media/sunxi/cedrus/cedrus_h265.c
-index 275fff1ab3..7f48b14f05 100644
+index 4b01d3881214..4d425196d415 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus_h265.c
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_h265.c
 @@ -91,26 +91,65 @@ static void cedrus_h265_sram_write_data(struct cedrus_dev *dev, void *data,
@@ -133,7 +133,7 @@ index 275fff1ab3..7f48b14f05 100644
  	}
  }
  
-@@ -428,36 +468,6 @@ static int cedrus_h265_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+@@ -388,37 +428,6 @@ static void cedrus_h265_setup(struct cedrus_ctx *ctx,
  	width_in_ctb_luma =
  		DIV_ROUND_UP(sps->pic_width_in_luma_samples, ctb_size_luma);
  
@@ -163,14 +163,15 @@ index 275fff1ab3..7f48b14f05 100644
 -					GFP_KERNEL, DMA_ATTR_NO_KERNEL_MAPPING);
 -		if (!ctx->codec.h265.mv_col_buf) {
 -			ctx->codec.h265.mv_col_buf_size = 0;
--			return -ENOMEM;
+-			// TODO: Abort the process here.
+-			return;
 -		}
 -	}
 -
  	/* Activate H265 engine. */
  	cedrus_engine_enable(ctx, CEDRUS_CODEC_H265);
  
-@@ -736,7 +746,7 @@ static int cedrus_h265_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+@@ -672,7 +681,7 @@ static void cedrus_h265_setup(struct cedrus_ctx *ctx,
  
  	/* Write decoded picture buffer in pic list. */
  	cedrus_h265_frame_info_write_dpb(ctx, decode_params->dpb,
@@ -179,7 +180,7 @@ index 275fff1ab3..7f48b14f05 100644
  
  	/* Output frame. */
  
-@@ -747,7 +757,7 @@ static int cedrus_h265_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+@@ -683,7 +692,7 @@ static void cedrus_h265_setup(struct cedrus_ctx *ctx,
  	cedrus_h265_frame_info_write_single(ctx, output_pic_list_index,
  					    slice_params->pic_struct != 0,
  					    pic_order_cnt,
@@ -188,7 +189,7 @@ index 275fff1ab3..7f48b14f05 100644
  
  	cedrus_write(dev, VE_DEC_H265_OUTPUT_FRAME_IDX, output_pic_list_index);
  
-@@ -798,9 +808,6 @@ static int cedrus_h265_start(struct cedrus_ctx *ctx)
+@@ -732,9 +741,6 @@ static int cedrus_h265_start(struct cedrus_ctx *ctx)
  {
  	struct cedrus_dev *dev = ctx->dev;
  
@@ -198,7 +199,7 @@ index 275fff1ab3..7f48b14f05 100644
  	/* Buffer is never accessed by CPU, so we can skip kernel mapping. */
  	ctx->codec.h265.neighbor_info_buf =
  		dma_alloc_attrs(dev->dev, CEDRUS_H265_NEIGHBOR_INFO_BUF_SIZE,
-@@ -828,15 +835,6 @@ static void cedrus_h265_stop(struct cedrus_ctx *ctx)
+@@ -761,15 +767,6 @@ static void cedrus_h265_stop(struct cedrus_ctx *ctx)
  {
  	struct cedrus_dev *dev = ctx->dev;
  
@@ -214,7 +215,7 @@ index 275fff1ab3..7f48b14f05 100644
  	dma_free_attrs(dev->dev, CEDRUS_H265_NEIGHBOR_INFO_BUF_SIZE,
  		       ctx->codec.h265.neighbor_info_buf,
  		       ctx->codec.h265.neighbor_info_buf_addr,
-@@ -853,6 +851,17 @@ static void cedrus_h265_trigger(struct cedrus_ctx *ctx)
+@@ -786,6 +783,17 @@ static void cedrus_h265_trigger(struct cedrus_ctx *ctx)
  	cedrus_write(dev, VE_DEC_H265_TRIGGER, VE_DEC_H265_TRIGGER_DEC_SLICE);
  }
  
@@ -232,12 +233,9 @@ index 275fff1ab3..7f48b14f05 100644
  struct cedrus_dec_ops cedrus_dec_ops_h265 = {
  	.irq_clear	= cedrus_h265_irq_clear,
  	.irq_disable	= cedrus_h265_irq_disable,
-@@ -861,4 +870,5 @@ struct cedrus_dec_ops cedrus_dec_ops_h265 = {
+@@ -794,4 +802,5 @@ struct cedrus_dec_ops cedrus_dec_ops_h265 = {
  	.start		= cedrus_h265_start,
  	.stop		= cedrus_h265_stop,
  	.trigger	= cedrus_h265_trigger,
 +	.buf_cleanup	= cedrus_h265_buf_cleanup,
  };
--- 
-2.36.1
-

@@ -44,8 +44,8 @@ PATCHFILES += linux-5.19-defaults.patch
 ifeq (1,1)
 
 # Destage hevc v4l2_request uAPI for Allwinner/Rockchip/Broadcom
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=651321
-PATCHFILES += 0101-Move-HEVC-stateless-controls-out-of-staging-v9-ML.patch
+PATCHFILES += 0101-include-media-hevc-uapi-add-aw-rk-brcm-fields.patch
+PATCHFILES += 0102-media-hevc-cedrus-hantro-revert-Remove-RPS-named-flags.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.19 kernel
@@ -104,15 +104,11 @@ PATCHFILES += 0509-ASoC-sun4i-i2s-Add-parenthesis-around-macro-argument.patch
 PATCHFILES += 0510-ASoC-sun4i-i2s-WiP-multi-channel.patch
 PATCHFILES += 0511-arm64-dts-sun50i-h6-dtsi-add-sound-node.patch
 PATCHFILES += 0512-arm64-dts-enable-audio-gs1.patch
-PATCHFILES += 0518-media-cedrus-h265-Fix-flag-name.patch
-PATCHFILES += 0519-media-cedrus-h265-Fix-logic-for-not-low-delay-flag.patch
-PATCHFILES += 0520-media-cedrus-Improve-error-messages-for-controls.patch
-PATCHFILES += 0521-media-cedrus-Add-error-handling-for-failed-setup.patch
-PATCHFILES += 0522-media-cedrus-h265-Add-a-couple-of-error-checks.patch
-PATCHFILES += 0523-media-cedrus-Add-helper-for-determining-number-of-el.patch
-PATCHFILES += 0524-media-cedrus-h265-Implement-support-for-tiles.patch
-PATCHFILES += 0529-media-cedrus-Add-callback-for-buffer-cleanup.patch
-PATCHFILES += 0530-media-cedrus-hevc-Improve-buffer-management.patch
+PATCHFILES += 0514-media-cedrus-hevc-Improve-buffer-management.patch
+PATCHFILES += 0515-media-cedrus-hevc-tiles-hack.patch
+PATCHFILES += 0516-media-cedrus-h264-Improve-buffer-management.patch
+PATCHFILES += 0525-media-cedrus-Add-callback-for-buffer-cleanup.patch
+PATCHFILES += 0528-media-cedrus-wip-10-bit-HEVC-support.patch
 # Adding support for MFD devices on some H6 boards
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
@@ -175,11 +171,15 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
-# patches from LE 29.01.2022
+# patches from knaerzche LE 4.07.2022
 PATCHFILES += 0705-rockchip-from-list.patch
+PATCHFILES += 0711-v4l2-from-list.patch
+PATCHFILES += 0720-drm-from-list.patch
 PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
+PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
 PATCHFILES += 0733-drm-rockchip-fix-non-working-cec-after-power-cycle.patch
+PATCHFILES += 0741-v4l2-wip-rkvdec-hevc.patch
 PATCHFILES += 0742-v4l2-wip-iep-driver.patch
 PATCHFILES += 0743-arm64-dts-rockchip-beelink-a1-enable-openvfd.patch
 PATCHFILES += 0744-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
