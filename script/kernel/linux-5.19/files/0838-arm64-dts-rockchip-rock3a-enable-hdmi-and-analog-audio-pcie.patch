@@ -1,0 +1,194 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-5.19-rc5/arch/arm64/boot/dts/rockchip/rk3568-rock-3a.dts linux-5.19-rc5/arch/arm64/boot/dts/rockchip/rk3568-rock-3a.dts
+--- linux-5.19-rc5/arch/arm64/boot/dts/rockchip/rk3568-rock-3a.dts	2022-07-09 18:36:13.099860561 +0200
++++ linux-5.19-rc5/arch/arm64/boot/dts/rockchip/rk3568-rock-3a.dts	2022-07-09 18:26:05.046530847 +0200
+@@ -1,5 +1,13 @@
+ // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+ 
++/*
++ * Author: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++ * Based on work of:
++ *   Michael Riesch <michael.riesch@wolfvision.net>
++ *   Frank Wunderlich <frank-w@public-files.de>
++ *   Peter Geis <pgwipeout@gmail.com>
++ */
++
+ /dts-v1/;
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/leds/common.h>
+@@ -131,6 +139,38 @@
+ 		regulator-max-microvolt = <5000000>;
+ 		vin-supply = <&vcc5v0_usb>;
+ 	};
++
++	pcie30_avdd0v9: pcie30-avdd0v9 {
++		compatible = "regulator-fixed";
++		regulator-name = "pcie30_avdd0v9";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <900000>;
++		regulator-max-microvolt = <900000>;
++		vin-supply = <&vcc3v3_sys>;
++	};
++
++	pcie30_avdd1v8: pcie30-avdd1v8 {
++		compatible = "regulator-fixed";
++		regulator-name = "pcie30_avdd1v8";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		vin-supply = <&vcc3v3_sys>;
++	};
++
++	vcc3v3_pcie_p: vcc3v3-pcie-p {
++		compatible = "regulator-fixed";
++		enable-active-high;
++		gpio = <&gpio0 RK_PD4 GPIO_ACTIVE_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pcie_enable_h>;
++		regulator-name = "vcc3v3_pcie_p";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&vcc12v_dcin>;
++	};
+ };
+ 
+ &combphy0 {
+@@ -158,18 +198,24 @@
+ };
+ 
+ &gmac1 {
++	snps,reset-gpio = <&gpio3 RK_PB0 GPIO_ACTIVE_LOW>;
++	snps,reset-active-low;
++	/* Reset time is 20ms, 100ms for rtl8211f */
++	snps,reset-delays-us = <0 20000 100000>;
+ 	assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1>;
+ 	assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>;
+ 	assigned-clock-rates = <0>, <125000000>;
+ 	clock_in_out = "output";
+ 	phy-handle = <&rgmii_phy1>;
+-	phy-mode = "rgmii-id";
++	phy-mode = "rgmii";
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&gmac1m1_miim
+ 		     &gmac1m1_tx_bus2
+ 		     &gmac1m1_rx_bus2
+ 		     &gmac1m1_rgmii_clk
+ 		     &gmac1m1_rgmii_bus>;
++	tx_delay = <0x42>;
++	rx_delay = <0x28>;
+ 	status = "okay";
+ };
+ 
+@@ -179,8 +225,11 @@
+ };
+ 
+ &hdmi {
++	assigned-clocks = <&cru CLK_HDMI_CEC>;
++	assigned-clock-rates = <32768>;
+ 	avdd-0v9-supply = <&vdda0v9_image>;
+ 	avdd-1v8-supply = <&vcca1v8_image>;
++	pinctrl-0 = <&hdmitx_scl &hdmitx_sda &hdmitxm1_cec>;
+ 	status = "okay";
+ };
+ 
+@@ -196,6 +245,14 @@
+ 	};
+ };
+ 
++&i2s0_8ch {
++	status = "okay";
++};
++
++&hdmi_sound {
++	status = "okay";
++};
++
+ &i2c0 {
+ 	status = "okay";
+ 
+@@ -437,6 +494,11 @@
+ };
+ 
+ &i2s1_8ch {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2s1m0_sclktx
++		     &i2s1m0_lrcktx
++		     &i2s1m0_sdi0
++		     &i2s1m0_sdo0>;
+ 	rockchip,trcm-sync-tx-only;
+ 	status = "okay";
+ };
+@@ -445,14 +507,29 @@
+ 	rgmii_phy1: ethernet-phy@0 {
+ 		compatible = "ethernet-phy-ieee802.3-c22";
+ 		reg = <0x0>;
+-		pinctrl-names = "default";
+-		pinctrl-0 = <&eth_phy_rst>;
+-		reset-assert-us = <20000>;
+-		reset-deassert-us = <100000>;
+-		reset-gpios = <&gpio3 RK_PB0 GPIO_ACTIVE_LOW>;
+ 	};
+ };
+ 
++&pcie30phy {
++	status = "okay";
++};
++
++&pcie3x2 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pcie_reset_x2>;
++	reset-gpios = <&gpio2 RK_PD6 GPIO_ACTIVE_HIGH>;
++	vpcie3v3-supply = <&vcc3v3_pcie_p>;
++	status = "okay";
++};
++
++&pcie2x1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pcie_reset_x1>;
++	reset-gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
++	vpcie3v3-supply = <&vcc3v3_pcie_p>;
++	status = "okay";
++};
++
+ &pinctrl {
+ 	ethernet {
+ 		eth_phy_rst: eth_phy_rst {
+@@ -484,6 +561,21 @@
+ 			rockchip,pins = <0 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
+ 		};
+ 	};
++
++	pcie {
++		pcie_enable_h: pcie-enable-h {
++			rockchip,pins = <0 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++
++		pcie_reset_x1: pcie-reset-x1 {
++			rockchip,pins = <3 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		pcie_reset_x2: pcie-reset-x2 {
++			rockchip,pins = <2 RK_PD6 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
+ };
+ 
+ &pmu_io_domains {
+@@ -607,3 +699,15 @@
+ 		remote-endpoint = <&hdmi_in_vp0>;
+ 	};
+ };
++
++&vpu {
++	status = "okay";
++};
++
++&vdpu_mmu {
++	status = "okay";
++};
++
++&usb_host0_ehci {
++	status = "okay";
++};
