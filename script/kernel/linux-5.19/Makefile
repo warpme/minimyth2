@@ -45,7 +45,6 @@ ifeq (1,1)
 
 # Destage hevc v4l2_request uAPI for Allwinner/Rockchip/Broadcom
 PATCHFILES += 0101-include-media-hevc-uapi-add-aw-rk-brcm-fields.patch
-PATCHFILES += 0102-media-hevc-cedrus-hantro-revert-Remove-RPS-named-flags.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.19 kernel
