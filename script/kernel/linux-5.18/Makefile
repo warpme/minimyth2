@@ -45,7 +45,6 @@ ifeq (1,1)
 
 # Add hevc v4l2_request crtl fields used by Allwinner/Rockchip/Broadcom
 PATCHFILES += 0101-include-media-hevc-uapi-add-aw-rk-brcm-fields.patch
-PATCHFILES += 0102-media-hevc-cedrus-hantro-revert-Remove-RPS-named-flags.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.18 kernel
