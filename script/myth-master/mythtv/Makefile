@@ -45,11 +45,11 @@ PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
-ifneq (,$(filter %5.18,$(mm_KERNEL_VERSION)))
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.16kernel.patch
-else
+#ifneq (,$(filter %5.18,$(mm_KERNEL_VERSION)))
+#PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.16kernel.patch
+#else
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.19kernel.patch
-endif
+#endif
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner H6
