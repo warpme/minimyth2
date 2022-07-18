@@ -23,6 +23,8 @@ install-custom:
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C0.hcd $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C0.pine64,quartz64-b.hcd
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C0.hcd $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C0.raspberrypi,3-model-b-plus.hcd
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C0.hcd $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C0.raspberrypi,4-model-b.hcd
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.hcd $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.radxa.rockpi4b.hcd
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.hcd $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.radxa.rockpi4c.hcd
 	@$(MAKECOOKIE)
 
 clean-all: clean
