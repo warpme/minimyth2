@@ -77,7 +77,9 @@ set_myth_user_env() {
     fi
 }
 
-export QT_PLUGIN_PATH=/usr/lib/@mm_QT_VERSION@/plugins
+date
+
+export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
 export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
 
 
@@ -89,6 +91,8 @@ if [ x${MM_MYTHTV_DRAW_ON} = "xterm" ] ; then
 fi
 
 stop_kodi
+
+date
 
 # Setup desired env variables
 case "${MM_MYTHTV_DRAW_ON}" in
@@ -136,6 +140,8 @@ else
 fi
 
 echo "Myth cmd.line:"${myth_cmdline}
+
+date
 
 if [ x$1 = "xgdb" ] ; then
 
