@@ -117,6 +117,7 @@ case "${MM_MYTHTV_DRAW_ON}" in
     wayland)
         echo "Runing with drawing to Wayland-EGL and video render via EGL DMAbuf"
         /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in Wayland ..."
+        export WAYLAND_DISPLAY=wayland-1
         export QT_QPA_PLATFORM=wayland-egl
         ;;
 
@@ -177,6 +178,7 @@ elif [ x$1 = "xeglfsdrm" ] ; then
 elif [ x$1 = "xwayland" ] ; then
     echo "Runing with drawing to Wayland-EGL"
     /usr/bin/logger -t minimyth -p "local0.info" "[mythfrontend.sh] Starting mythfrontend in Wayland ..."
+    export WAYLAND_DISPLAY=wayland-1
     export QT_QPA_PLATFORM=wayland-egl
     su minimyth -c "${myth_cmdline}"
 
