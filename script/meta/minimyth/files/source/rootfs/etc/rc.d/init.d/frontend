@@ -4,6 +4,9 @@
 ################################################################################
 . /etc/rc.d/functions
 
+# steep is 0.5 sec
+weston_start_timeout=20
+
 start() {
 
     /bin/touch /var/init/frontend.inprogress
@@ -42,15 +45,17 @@ start() {
             openvt -v -w -s -- su minimyth -c "/usr/bin/weston.sh --config=/etc/weston-minimal.ini" &
 
             i=0
-            timeout=10
-            while [ $i -lt ${timeout} ] ; do
+            while [ $i -lt ${weston_start_timeout} ] ; do
+
                 i=$((${i} + 1))
-                if [ -e /var/run/xdg/minimyth/wayland-0 ] ; then
-                    i=${timeout}
+                # it looks like dash not works as expected with [ -e "/var/run/xdg/minimyth/wayland*.lock" ]
+                # so check wayland socket more brutally...
+                if ls /var/run/xdg/minimyth/wayland* > /dev/null 2>&1; then
+                    i=${weston_start_timeout}
                     break
                 else
-                    if [ $i -ge ${timeout} ] ; then
-                        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/frontend] Timeout starting Weston ..."
+                    if [ $i -ge ${weston_start_timeout} ] ; then
+                        /usr/bin/logger -s -t minimyth -p "local0.err" "[init.d/frontend] Timeout starting Weston ..."
                         exit 1
                     else
                         /bin/sleep 0.5
