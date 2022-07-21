@@ -206,10 +206,30 @@ file_list9=" \
 epilog_cmd9="sync"
 #--------------------------
 
-# --- qt6 lib/bin files ---
-component_0="All libs & bins"
+# --- pjsip lib/bin files ---
+component_0="Weston10"
 # directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list0=" \
+/usr/lib/weston/:/usr/lib/weston \
+/usr/lib/libweston-10/:/usr/lib/libweston-10 \
+/usr/share/weston/:/usr/share/weston \
+/usr/share/wayland-sessions/:/usr/share/wayland-sessions \
+/usr/share/libweston-10/:/usr/share/libweston-10 \
+"
+# file_list format: <src_path>/<files>:<dest_path>/
+file_list0=" \
+/usr/libexec/weston*:/usr/libexec \
+/usr/lib/libweston*.so.*:/usr/lib \
+/usr/bin/weston*:/usr/bin \
+/usr/bin/wcap-decode:/usr/bin \
+"
+epilog_cmd0="sync"
+#--------------------------
+
+# --- qt6 lib/bin files ---
+component_z="All libs & bins"
+# directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
+directory_listz=" \
 /lib/:/lib \
 /lib64/:/lib64 \
 /bin/:/bin \
@@ -220,8 +240,8 @@ directory_list0=" \
 /usr/share/:/usr/share \
 "
 # file_list format: <src_path>/<files>:<dest_path>/
-file_list0=""
-epilog_cmd0="sync"
+file_listz=""
+epilog_cmdz="sync"
 #--------------------------
 
 
@@ -279,7 +299,7 @@ if [ x${selection} = "x" ] ; then
     echo " "
     echo "Script version:${ver}"
     echo " "
-    echo "Please choose component to update by pressing key [1..7]"
+    echo "Please choose component to update by pressing key [0..z]"
     echo " "
     echo "  (1) for "${component_1}
     echo "  (2) for "${component_2}
@@ -291,6 +311,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (8) for "${component_8}
     echo "  (9) for "${component_9}
     echo "  (0) for "${component_0}
+    echo "  (z) for "${component_z}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -351,6 +372,11 @@ case "${selection}" in
         directory_list=${directory_list0}
         file_list=${file_list0}
         epilog_cmd="${epilog_cmd0}" ;;
+
+    z)  echo "Updating ${component_z} ..."
+        directory_list=${directory_listz}
+        file_list=${file_listz}
+        epilog_cmd="${epilog_cmdz}" ;;
 
     *)
         echo "Unknown selection !"
