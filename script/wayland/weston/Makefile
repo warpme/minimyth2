@@ -1,29 +1,14 @@
 
-# Current GA release
-ifeq (1,1)
 GARNAME      = weston
-GARVERSION   = 9.0.0
+GARVERSION   = 10.0.1
 CATEGORIES   = wayland
-MASTER_SITES = https://wayland.freedesktop.org/releases/
+MASTER_SITES = https://gitlab.freedesktop.org/wayland/weston/-/releases/$(GARVERSION)/downloads/
 PATCHFILES   = $(DISTNAME)-drm-allow-to-continue-without-input-dev.patch
 PATCHFILES  += $(DISTNAME)-terminal-add-cwd-and-command.patch
 PATCHFILES  += $(DISTNAME)-hack-wayland1.19.patch
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
-endif
-
-# Current master
-ifeq (0,1)
-GARNAME      = weston
-GARVERSION   = 557dea566075f1840562529fd5aa4971d7e76e0d
-CATEGORIES   = wayland
-MASTER_SITES = https://gitlab.freedesktop.org/wayland/weston/-/archive/$(GARVERSION)/
-PATCHFILES  += weston-9.0.0-terminal-add-cwd-and-command.patch
-DISTFILES    = $(DISTNAME).tar.bz2
-LICENSE      = $(GARNAME)
-$(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
-endif
 
 DESCRIPTION =
 define BLURB
@@ -55,8 +40,6 @@ MESON_CONFIGURE_ARGS = \
 	-D backend-drm-screencast-vaapi="false" \
 	-D backend-rdp="false" \
 	-D backend-x11="true" \
-	-D backend-fbdev="false" \
-	-D weston-launch="true" \
 	-D xwayland="true" \
 	-D systemd="false" \
 	-D remoting="false" \
@@ -69,10 +52,16 @@ MESON_CONFIGURE_ARGS = \
 	-D demo-clients="false" \
 	-D simple-clients="egl,dmabuf-egl" \
 	-D launcher-logind="false" \
+	-D deprecated-weston-launch="true" \
+	-D deprecated-wl-shell="true" \
 
 include ../../gar.mk
 
 clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/weston*
+	@rm -rf $(DESTDIR)$(libexecdir)/weston*
 	@rm -rf $(DESTDIR)$(libdir)/libweston*
 	@rm -rf $(DESTDIR)$(bindir)/weston*
+	@rm -rf $(DESTDIR)$(datadir)/libweston-*
+	@rm -rf $(DESTDIR)$(datadir)/wayland-sessions
+	@rm -rf $(DESTDIR)$(datadir)/weston
