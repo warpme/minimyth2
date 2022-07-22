@@ -6,6 +6,7 @@ MASTER_SITES = https://gitlab.freedesktop.org/wayland/weston/-/releases/$(GARVER
 PATCHFILES   = $(DISTNAME)-drm-allow-to-continue-without-input-dev.patch
 PATCHFILES  += $(DISTNAME)-terminal-add-cwd-and-command.patch
 PATCHFILES  += $(DISTNAME)-hack-wayland1.19.patch
+PATCHFILES  += $(DISTNAME)-ticket798-no-terminal-without-input-devs.patch
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
