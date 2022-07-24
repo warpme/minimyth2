@@ -46,7 +46,7 @@ PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.pa
 
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.16kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.19kernel.patch
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner H6
@@ -312,13 +312,6 @@ install-source:
 post-install: post-install-mythtv-version
 	@rm -f $(DESTDIR)$(bindir)/mythtv
 	@mv $(DESTDIR)$(bindir)/mythavtest $(DESTDIR)$(bindir)/mythtv
-	@$(MAKECOOKIE)
-
-pre-configure:
-	@#Myth ver.containing also MM2 version
-	@#sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\(.*\)/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
-	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
-	@sed -i -e "s/MYTH_SOURCE_PATH.*/MYTH_SOURCE_PATH \"$(mm_MYTH_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
 	@$(MAKECOOKIE)
 
 clean-all:
