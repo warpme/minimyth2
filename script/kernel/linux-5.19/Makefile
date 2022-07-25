@@ -185,8 +185,6 @@ PATCHFILES += 0744-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
 PATCHFILES += 0745-arm64-dts-rockchip-beelink-a1-enable-androind-dram-timmings.patch
 PATCHFILES += 0746-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
 PATCHFILES += 0747-arm64-dts-rockchip-add-enable-dmc-on-roc-cc.patch
-# fix no hdmi audio when DT has no pinctrl
-PATCHFILES += 0748-sound-soc-rockchip-rockchip_i2s.c-fix-hdmi-audio-with-no-pinctrl.patch
 endif
 #------------------------------------------------------------
 
