@@ -98,7 +98,7 @@ DEPENDS = \
 	disk/e2fsprogs \
 	disk/gptfdisk \
 	utils/pseudo \
-	lib/parted \
+	disk/parted \
 	bootloaders/syslinux \
 	bootloaders/grub2 \
 	python3/python \
