@@ -1,0 +1,208 @@
+diff --speed-large-files --no-dereference --minimal -Naur udisks-udisks-2.9.4/autogen.sh udisks-udisks-2.9.4/autogen.sh
+--- udisks-udisks-2.9.4/autogen.sh	2021-09-29 17:58:50.000000000 +0200
++++ udisks-udisks-2.9.4/autogen.sh	2022-07-27 16:49:17.533324687 +0200
+@@ -15,13 +15,12 @@
+ 
+ PKG_NAME=$(autoconf --trace 'AC_INIT:$1' configure.ac)
+ 
+-gtkdocize --copy || exit 1
+ autoreconf --verbose --force --install || exit 1
+ 
+ cd "$olddir"
+ 
+ if [ "$NOCONFIGURE" = "" ]; then
+-        $srcdir/configure --enable-gtk-doc "$@" || exit 1
++        $srcdir/configure "$@" || exit 1
+ 
+         if [ "$1" = "--help" ]; then
+                 exit 0
+diff --speed-large-files --no-dereference --minimal -Naur udisks-udisks-2.9.4/configure.ac udisks-udisks-2.9.4/configure.ac
+--- udisks-udisks-2.9.4/configure.ac	2021-09-29 17:58:50.000000000 +0200
++++ udisks-udisks-2.9.4/configure.ac	2022-07-27 16:54:54.539989352 +0200
+@@ -96,8 +96,6 @@
+   enable_available_modules=no
+ fi
+ 
+-GTK_DOC_CHECK([1.3],[--flavour no-tmpl])
+-
+ AC_ARG_ENABLE(man,
+               [AS_HELP_STRING([--enable-man],
+                               [generate man pages [default=auto]])],,
+@@ -693,17 +689,11 @@
+   fi
+ fi
+ 
+-
+-# Internationalization
+-#
++AC_DEFINE([GETTEXT_PACKAGE], "udisks", "")
+ 
+ AM_GNU_GETTEXT_VERSION([0.19.8])
+ AM_GNU_GETTEXT([external])
+ 
+-GETTEXT_PACKAGE=udisks2
+-AC_SUBST([GETTEXT_PACKAGE])
+-AC_DEFINE_UNQUOTED([GETTEXT_PACKAGE],["$GETTEXT_PACKAGE"],[gettext domain])
+-
+ AC_DEFINE([PROJECT_SYSCONF_DIR], ["udisks2"], [Project configuration directory])
+ AC_DEFINE([PACKAGE_NAME_UDISKS2], ["udisks2"], [Full package name for UDisks2 compatibility])
+ 
+@@ -799,7 +789,6 @@
+ doc/udisks2-docs.xml.vdo.generated
+ doc/udisks2-sections.txt.vdo.sections
+ doc/udisks2.types.vdo
+-po/Makefile.in
+ ])
+ 
+ dnl ==========================================================================
+diff --speed-large-files --no-dereference --minimal -Naur udisks-udisks-2.9.4/data/Makefile.am udisks-udisks-2.9.4/data/Makefile.am
+--- udisks-udisks-2.9.4/data/Makefile.am	2021-09-29 17:58:50.000000000 +0200
++++ udisks-udisks-2.9.4/data/Makefile.am	2022-07-27 17:18:51.076647412 +0200
+@@ -36,7 +36,7 @@
+ polkit_DATA      = $(polkit_in_files:.policy.in=.policy)
+ 
+ $(polkit_DATA): $(polkit_in_files)
+-	$(AM_V_GEN) $(MSGFMT) --xml --template $< -d $(top_srcdir)/po -o $@
++	cp $< $@
+ endif
+ 
+ completionsdir = $(datadir)/bash-completion/completions
+diff --speed-large-files --no-dereference --minimal -Naur udisks-udisks-2.9.4/doc/Makefile.am udisks-udisks-2.9.4/doc/Makefile.am
+--- udisks-udisks-2.9.4/doc/Makefile.am	2021-09-29 17:58:50.000000000 +0200
++++ udisks-udisks-2.9.4/doc/Makefile.am	2022-07-27 17:24:58.656645223 +0200
+@@ -58,18 +58,6 @@
+ 	$(GIO_CFLAGS)                                                          \
+ 	$(NULL)
+ 
+-GTKDOC_LIBS =                                                                  \
+-	$(GLIB_LIBS)                                                           \
+-	$(GIO_LIBS)                                                            \
+-	$(top_builddir)/udisks/libudisks2.la                                   \
+-	$(NULL)
+-
+-if ENABLE_DAEMON
+-GTKDOC_LIBS +=                                                                 \
+-	$(top_builddir)/src/libudisks-daemon.la                                \
+-	$(NULL)
+-endif # ENABLE_DAEMON
+-
+ # Extra options to supply to gtkdoc-mkdb
+ MKDB_OPTIONS = --output-format=xml --sgml-mode --name-space=udisks
+ 
+@@ -95,10 +83,6 @@
+ 
+ # ------------------------------------------------------------------------------
+ 
+-if ENABLE_GTK_DOC
+-all-local: generate-main-sgml-file
+-endif
+-
+ # New gtk-doc 2.16 for some reason automatically creates a no-op
+ # "$(DOC_MAIN_SGML_FILE)" make target that overrides our target
+ $(DOC_MAIN_SGML_FILE): generate-main-sgml-file
+@@ -179,65 +163,51 @@
+ 
+ # GTKDOC for LVM2
+ if HAVE_LVM2
+-DOC_SOURCE_DIR += $(top_srcdir)/modules/lvm2
+ HFILE_GLOB += $(top_srcdir)/modules/lvm2/*.h
+ CFILE_GLOB += $(top_srcdir)/modules/lvm2/*.c
+ AM_CPPFLAGS += -I$(top_srcdir)/modules/lvm2
+-GTKDOC_LIBS += $(top_builddir)/modules/lvm2/libudisks2_lvm2.la
+ endif # HAVE_LVM2
+ 
+ # GTKDOC for ISCSI
+ if HAVE_ISCSI
+-DOC_SOURCE_DIR += $(top_srcdir)/modules/iscsi
+ HFILE_GLOB += $(top_srcdir)/modules/iscsi/*.h
+ CFILE_GLOB += $(top_srcdir)/modules/iscsi/*.c
+ AM_CPPFLAGS += -I$(top_srcdir)/modules/iscsi
+-GTKDOC_LIBS += $(top_builddir)/modules/iscsi/libudisks2_iscsi.la
+ endif # HAVE_ISCSI
+ 
+ # GTKDOC for BTRFS
+ if HAVE_BTRFS
+-DOC_SOURCE_DIR += $(top_srcdir)/modules/btrfs
+ HFILE_GLOB += $(top_srcdir)/modules/btrfs/*.h
+ CFILE_GLOB += $(top_srcdir)/modules/btrfs/*.c
+ AM_CPPFLAGS += -I$(top_srcdir)/modules/btrfs
+-GTKDOC_LIBS += $(top_builddir)/modules/btrfs/libudisks2_btrfs.la
+ endif # HAVE_BTRFS
+ 
+ # GTKDOC for ZRAM
+ if HAVE_ZRAM
+-DOC_SOURCE_DIR += $(top_srcdir)/modules/zram
+ HFILE_GLOB += $(top_srcdir)/modules/zram/*.h
+ CFILE_GLOB += $(top_srcdir)/modules/zram/*.c
+ AM_CPPFLAGS += -I$(top_srcdir)/modules/zram
+-GTKDOC_LIBS += $(top_builddir)/modules/zram/libudisks2_zram.la
+ endif # HAVE_ZRAM
+ 
+ # GTKDOC for LSM
+ if HAVE_LSM
+-DOC_SOURCE_DIR += $(top_srcdir)/modules/lsm
+ HFILE_GLOB += $(top_srcdir)/modules/lsm/*.h
+ CFILE_GLOB += $(top_srcdir)/modules/lsm/*.c
+ AM_CPPFLAGS += -I$(top_srcdir)/modules/lsm
+-GTKDOC_LIBS += $(top_builddir)/modules/lsm/libudisks2_lsm.la
+ endif # HAVE_LSM
+ 
+ # GTKDOC for BCACHE
+ if HAVE_BCACHE
+-DOC_SOURCE_DIR += $(top_srcdir)/modules/bcache
+ HFILE_GLOB += $(top_srcdir)/modules/bcache/*.h
+ CFILE_GLOB += $(top_srcdir)/modules/bcache/*.c
+ AM_CPPFLAGS += -I$(top_srcdir)/modules/bcache
+-GTKDOC_LIBS += $(top_builddir)/modules/bcache/libudisks2_bcache.la
+ endif # HAVE_BCACHE
+ 
+ # GTKDOC for VDO
+ if HAVE_VDO
+-DOC_SOURCE_DIR += $(top_srcdir)/modules/vdo
+ HFILE_GLOB += $(top_srcdir)/modules/vdo/*.h
+ CFILE_GLOB += $(top_srcdir)/modules/vdo/*.c
+ AM_CPPFLAGS += -I$(top_srcdir)/modules/vdo
+-GTKDOC_LIBS += $(top_builddir)/modules/vdo/libudisks2_vdo.la
+ endif # HAVE_VDO
+ 
+ endif # ENABLE_DAEMON
+@@ -245,9 +215,7 @@
+ 
+ # ------------------------------------------------------------------------------
+ 
+-include $(top_srcdir)/gtk-doc.make
+-
+-EXTRA_DIST +=                                                                  \
++EXTRA_DIST =                                                                   \
+ 	$(DOC_MAIN_SGML_FILE).in.in                                            \
+ 	$(DOC_MAIN_SGML_FILE).in                                               \
+ 	$(DOC_MAIN_SGML_FILE).bcache.dbus.in                                   \
+@@ -315,7 +283,7 @@
+ 	version.xml.in                                                         \
+ 	TODO-ISCSI
+ 
+-CLEANFILES +=                                                                  \
++CLEANFILES  =                                                                  \
+ 	$(DOC_MAIN_SGML_FILE)                                                  \
+ 	$(UDISKS_SECTIONS)                                                     \
+ 	$(UDISKS_TYPES)                                                        \
+diff --speed-large-files --no-dereference --minimal -Naur udisks-udisks-2.9.4/Makefile.am udisks-udisks-2.9.4/Makefile.am
+--- udisks-udisks-2.9.4/Makefile.am	2021-09-29 17:58:50.000000000 +0200
++++ udisks-udisks-2.9.4/Makefile.am	2022-07-27 16:47:56.809991833 +0200
+@@ -13,7 +13,7 @@
+ SUBDIRS += src
+ endif
+ 
+-SUBDIRS += tools modules po doc
++SUBDIRS += tools modules doc
+ 
+ ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
+ 
+@@ -26,7 +26,6 @@
+ 	$(NULL)
+ 
+ DISTCHECK_CONFIGURE_FLAGS =                                                    \
+-	--enable-gtk-doc                                                       \
+ 	--enable-modules                                                       \
+ 	--disable-introspection                                                \
+ 	--with-udevdir=$$dc_install_base/$(udevdir)                            \
