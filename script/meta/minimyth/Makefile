@@ -144,8 +144,10 @@ DEPENDS = \
 	$(if $(filter kodi,$(mm_SOFTWARE)), \
 		mediaplayers/kodi \
 		mediaplayers/kodi-addon-pvr.mythtv) \
-	$(if $(filter udisks,$(mm_SOFTWARE)), \
-		lib/udisks) \
+	$(if $(filter udisks1,$(mm_SOFTWARE)), \
+		disk/udisks) \
+	$(if $(filter udisks2,$(mm_SOFTWARE)), \
+		disk/udisks2) \
 	$(if $(filter voip,$(mm_SOFTWARE)), \
 		lib/libpjsip) \
 	$(if $(filter makemkv,$(mm_SOFTWARE)), \
