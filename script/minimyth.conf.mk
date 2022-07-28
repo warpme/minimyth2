@@ -23,7 +23,7 @@ mm_SOFTWARE               ?= \
                             mythplugins \
                             airplay \
                             avahi \
-                            udisks \
+                            udisks1 \
                             dvdcss \
                             gstreamer \
                             mc \
@@ -38,6 +38,7 @@ mm_SOFTWARE               ?= \
                             monitorix \
                             $(if $(filter $(mm_DEBUG),yes),debug)
 
+#                             udisks1 \
 #                             mednafen \
 #                             stella \
 #                             jzintv \
