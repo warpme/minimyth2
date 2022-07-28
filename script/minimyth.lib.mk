@@ -167,6 +167,7 @@ RUN_AUTOTOOLS = \
 		$(if $(strip $(1)),                                                              \
 			$(strip $(1)) ,                                                          \
 			mkdir -p $(DESTDIR)$(datadir)/aclocal                                  ; \
+			mkdir -p $(WORKSRC)/m4                                                 ; \
 			cd $(WORKSRC)                                                          ; \
 			autoreconf --verbose --install --force -I $(DESTDIR)$(datadir)/aclocal   \
 		)                                                                                   ; \
