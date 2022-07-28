@@ -176,7 +176,8 @@ mm-all:
 		   [ ! "$${software}" = "python3"        ] && \
 		   [ ! "$${software}" = "airplay"        ] && \
 		   [ ! "$${software}" = "avahi"          ] && \
-		   [ ! "$${software}" = "udisks"         ] && \
+		   [ ! "$${software}" = "udisks1"        ] && \
+		   [ ! "$${software}" = "udisks2"        ] && \
 		   [ ! "$${software}" = "mc"             ] && \
 		   [ ! "$${software}" = "dvdcss"         ] && \
 		   [ ! "$${software}" = "bdaacs"         ] && \
