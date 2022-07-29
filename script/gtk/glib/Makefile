@@ -4,6 +4,7 @@ GARVERSION   = 2.72.3
 CATEGORIES   = gtk
 MASTER_SITES = https://ftp.gnome.org/pub/gnome/sources/glib/2.72/
 DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = $(DISTNAME)-hack-to-pass-frexpl-check-on-arm64.patch
 LICENSE      = LGPL2
 
 DESCRIPTION =
