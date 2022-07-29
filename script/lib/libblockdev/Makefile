@@ -25,7 +25,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-bcache \
 	--without-escrow \
 	--without-dmraid \
-	--with-tools \
+	--without-tools \
 	--without-btrfs \
 	--with-crypto \
 	--without-dm \
