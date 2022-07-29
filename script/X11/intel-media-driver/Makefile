@@ -1,6 +1,6 @@
 
 GARNAME      = media-driver-intel-media
-GARVERSION   = 22.4.3
+GARVERSION   = 22.5.1
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/media-driver/archive/refs/tags/
 DISTFILES    = intel-media-$(GARVERSION).tar.gz
