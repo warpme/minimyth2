@@ -1,8 +1,8 @@
 
 GARNAME      = pango
-GARVERSION   = 1.40.5
+GARVERSION   = 1.50.8
 CATEGORIES   = gtk
-MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/pango/1.40/
+MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/pango/1.50/
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = LGPL2
 
@@ -11,37 +11,17 @@ define BLURB
 endef
 
 DEPENDS   = lang/c lang/cxx gtk/cairo gtk/glib gtk/harfbuzz lib/freetype lib/fontconfig xorg/xorg
-BUILDDEPS = gtk/gtk-doc
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules \
-	--disable-static \
-	--enable-shared \
-	--disable-debug \
-	--enable-rebuilds \
-	--disable-gtk-doc \
-	--enable-gtk-doc-html \
-	--enable-gtk-doc-pdf \
-	--enable-man \
-	--disable-doc-cross-references \
-	--enable-explicit-deps=auto \
-	--with-gnu-ld \
-	--with-xft
+MESON_CONFIGURE_ARGS = \
+	--buildtype=release \
+	-D gtk_doc="false" \
+	-D install-tests="false" \
 
 include ../../gar.mk
-
-pre-configure:
-	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
-	@$(MAKECOOKIE)
-
-post-configure:
-	@# hack to fix failed build due double pipe in nm commnds
-	@sed -e 's%| \\$$global_symbol_pipe%\\$$global_symbol_pipe%g' -i $(WORKSRC)/libtool
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -rf $(DESTDIR)$(libdir)/libpango-1.0.la
