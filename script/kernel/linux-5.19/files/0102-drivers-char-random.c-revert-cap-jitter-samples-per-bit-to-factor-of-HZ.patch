@@ -1,0 +1,49 @@
+
+This patch revets 829d680e82a961c5370d9636130b43009ac36eb8
+
+829d680e makes regession on rk3328 expressing as with 80sec delay at Qt app
+startup. This 80sec delay is seen: only after reboot when user starts
+Qt app as soon as possible. 
+It appears 80sec delay is likely caused by some system resources early
+unavaliability for Qt, as adding simple 'sleep 80' before Qt app launch
+makes Qt app start without any extra delay.
+
+
+Git log regarding problematic commit (reverted by this patch):
+
+From 829d680e82a961c5370d9636130b43009ac36eb8 Mon Sep 17 00:00:00 2001
+From: "Jason A. Donenfeld" <Jason@zx2c4.com>
+Date: Wed, 13 Jul 2022 17:11:15 +0200
+Subject: [PATCH] random: cap jitter samples per bit to factor of HZ
+
+Currently the jitter mechanism will require two timer ticks per
+iteration, and it requires N iterations per bit. This N is determined
+with a small measurement, and if it's too big, it won't waste time with
+jitter entropy because it'd take too long or not have sufficient entropy
+anyway.
+
+With the current max N of 32, there are large timeouts on systems with a
+small CONFIG_HZ. Rather than set that maximum to 32, instead choose a
+factor of CONFIG_HZ. In this case, 1/30 seems to yield sane values for
+different configurations of CONFIG_HZ.
+
+Reported-by: Vladimir Murzin <vladimir.murzin@arm.com>
+Fixes: 78c768e619fb ("random: vary jitter iterations based on cycle counter speed")
+Signed-off-by: Jason A. Donenfeld <Jason@zx2c4.com>
+Tested-by: Vladimir Murzin <vladimir.murzin@arm.com>
+Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+---
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-5.19/drivers/char/random.c linux-5.19/drivers/char/random.c
+--- linux-5.19/drivers/char/random.c	2022-07-31 23:03:01.000000000 +0200
++++ linux-5.19/drivers/char/random.c	2022-08-02 18:22:17.379800620 +0200
+@@ -1174,7 +1174,7 @@
+  */
+ static void __cold try_to_generate_entropy(void)
+ {
+-	enum { NUM_TRIAL_SAMPLES = 8192, MAX_SAMPLES_PER_BIT = HZ / 30 };
++	enum { NUM_TRIAL_SAMPLES = 8192, MAX_SAMPLES_PER_BIT = 32 };
+ 	struct entropy_timer_state stack;
+ 	unsigned int i, num_different = 0;
+ 	unsigned long last = random_get_entropy();

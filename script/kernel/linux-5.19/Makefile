@@ -45,6 +45,8 @@ ifeq (1,1)
 
 # Destage hevc v4l2_request uAPI for Allwinner/Rockchip/Broadcom
 PATCHFILES += 0101-include-media-hevc-uapi-add-aw-rk-brcm-fields.patch
+# Fix for 80sec delay within Qt when mythfrontend starts just at boot
+PATCHFILES += 0102-drivers-char-random.c-revert-cap-jitter-samples-per-bit-to-factor-of-HZ.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.19 kernel
