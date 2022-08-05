@@ -6,6 +6,7 @@ MASTER_SITES = http://download.berlios.de/fbsplash/
 DISTFILES    = $(GARNAME)-lite-$(GARVERSION).tar.bz2
 PATCHFILES   = $(DISTNAME)-dash.patch
 PATCHFILES  += $(DISTNAME)-fix-gcc9.3.0-build.patch
+PATCHFILES  += $(DISTNAME)-fix-compile-on-glibc2.36.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
