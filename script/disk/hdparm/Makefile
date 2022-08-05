@@ -1,9 +1,10 @@
 
 GARNAME      = hdparm
-GARVERSION   = 9.62
+GARVERSION   = 9.64
 CATEGORIES   = disk
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = $(DISTNAME)-fix-glib2.36.patch
 LICENSE      = hdparm
 
 hdparm_LICENSE_TEXT = $(WORKSRC)/LICENSE.TXT
@@ -32,6 +33,6 @@ INSTALL_ARGS = \
 
 include ../../gar.mk
 
-LDFLAGS := $(LDFLAGS) -fwhole-program
+#LDFLAGS := $(LDFLAGS) -fwhole-program
 
 LDFLAGS := $(CFLAGS) $(LDFLAGS)
