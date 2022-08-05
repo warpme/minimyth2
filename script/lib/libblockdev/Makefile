@@ -11,7 +11,14 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c disk/dosfstools disk/gptfdisk utils/kmod lib/libbytesize disk/cryptsetup
+DEPENDS = \
+	lang/c \
+	disk/dosfstools \
+	disk/gptfdisk \
+	utils/kmod \
+	lib/libbytesize \
+	disk/cryptsetup \
+	disk/parted \
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
