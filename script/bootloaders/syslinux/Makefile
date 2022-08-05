@@ -13,6 +13,7 @@ PATCHFILES  += 0018-prevent-pow-optimization.patch
 PATCHFILES  += 0025-reproducible-build.patch
 PATCHFILES  += 0026-fix-gcc-10-compile.patch
 PATCHFILES  += 0027-Replace-builtin-strlen-that-appears-to-get-optimized.patch
+PATCHFILES  += 0028-fix-build-with-glibc_2.36.patch
 
 DISTFILES    = $(GARVERSION).tar.gz
 WORKSRC      = $(WORKDIR)/syslinux-bf6db5b
