@@ -1,0 +1,36 @@
+
+It is generally not a good idea to mix usage of glibc headers and Linux UAPI
+headers (https://sourceware.org/glibc/wiki/Synchronizing_Headers). In glibc
+since 7eae6a91e9b1670330c9f15730082c91c0b1d570 (milestone: 2.36), sys/mount.h
+defines fsconfig_command which conflicts with linux/mount.h:
+
+.../usr/include/linux/mount.h:95:6: error: redeclaration of ‘enum fsconfig_command’
+
+Remove #include <linux/fs.h> which pulls in linux/mount.h. Expand its 4 macros manually.
+
+diff -Naur gcc-12.1.0-old/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cpp gcc-12.1.0-new/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cpp
+--- gcc-12.1.0-old/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cpp	2022-05-06 09:31:00.000000000 +0200
++++ gcc-12.1.0-new/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cpp	2022-08-04 20:48:26.136658707 +0200
+@@ -73,7 +73,6 @@
+ #include <sys/vt.h>
+ #include <linux/cdrom.h>
+ #include <linux/fd.h>
+-#include <linux/fs.h>
+ #include <linux/hdreg.h>
+ #include <linux/input.h>
+ #include <linux/ioctl.h>
+@@ -842,10 +841,10 @@
+   unsigned IOCTL_EVIOCGPROP = IOCTL_NOT_PRESENT;
+   unsigned IOCTL_EVIOCSKEYCODE_V2 = IOCTL_NOT_PRESENT;
+ #endif
+-  unsigned IOCTL_FS_IOC_GETFLAGS = FS_IOC_GETFLAGS;
+-  unsigned IOCTL_FS_IOC_GETVERSION = FS_IOC_GETVERSION;
+-  unsigned IOCTL_FS_IOC_SETFLAGS = FS_IOC_SETFLAGS;
+-  unsigned IOCTL_FS_IOC_SETVERSION = FS_IOC_SETVERSION;
++  unsigned IOCTL_FS_IOC_GETFLAGS = _IOR('f', 1, long);
++  unsigned IOCTL_FS_IOC_GETVERSION = _IOR('v', 1, long);
++  unsigned IOCTL_FS_IOC_SETFLAGS = _IOW('f', 2, long);
++  unsigned IOCTL_FS_IOC_SETVERSION = _IOW('v', 2, long);
+   unsigned IOCTL_GIO_CMAP = GIO_CMAP;
+   unsigned IOCTL_GIO_FONT = GIO_FONT;
+   unsigned IOCTL_GIO_UNIMAP = GIO_UNIMAP;
