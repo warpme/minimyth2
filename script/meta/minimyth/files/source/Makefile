@@ -652,20 +652,9 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 	@mkdir -m 0755 -p $@~
 	@# Create the read-only root file system from the base file system.
 	@# Copy the base file system to the read-only root file system location.
-	@# Remove extras directory items because they is included in the extras file system image.
-	@# Remove the non-menu themes and non-default themes (except MythCenter/MythCenter-wide) because they are included in the themes file system.
 	@cp -pdR $< $@~/rootfs-ro
 	@rm -rf           $@~/rootfs-ro/$(extras_rootdir)
 	@mkdir -m 0755 -p $@~/rootfs-ro/$(extras_rootdir)
-	@for theme in `cd $@~/rootfs-ro/usr/share/mythtv/themes ; ls -1` ; do \
-		if [ ! -e $@~/rootfs-ro/usr/share/mythtv/themes/$${theme}/mainmenu.xml ] && \
-		   [ ! "$${theme}" = "MythCenter"                                      ] && \
-		   [ ! "$${theme}" = "MythCenter-wide"                                 ] && \
-		   [ ! "$${theme}" = "default"                                         ] && \
-		   [ ! "$${theme}" = "default-wide"                                    ] ; then \
-			rm -rf $@~/rootfs-ro/usr/share/mythtv/themes/$${theme} ; \
-		fi ; \
-	 done
 	@# Create the rest for root file system.
 	@mkdir -m 0755 -p                   $@~/rootfs
 	@mkdir -m 0755 -p                   $@~/rw
