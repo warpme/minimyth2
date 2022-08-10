@@ -43,6 +43,7 @@ PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
+PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
 #ifneq (,$(filter %5.18,$(mm_KERNEL_VERSION)))
@@ -105,9 +106,6 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 # Patches enhancing Network Control
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
 PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
-
-# hack to make LiveTV start not stuttering
-#PATCHFILES += 0300-mythplayer-hack-to-stuttering-starting-LiveTV.patch
 
 # --------Patches 400+ are plugins patches---------------------
 
@@ -310,9 +308,10 @@ install-source:
 	@ln -sf $(PWD)/$(WORKSRC)/mythtv $(DESTDIR)$(MYTHTV_SOURCEDIR)
 	@$(MAKECOOKIE)
 
-post-install: post-install-mythtv-version
+post-install:
 	@rm -f $(DESTDIR)$(bindir)/mythtv
 	@mv $(DESTDIR)$(bindir)/mythavtest $(DESTDIR)$(bindir)/mythtv
+	@$(MAKE) -C ../myththeme-monochrome install
 	@$(MAKECOOKIE)
 
 clean-all:
@@ -324,7 +323,7 @@ clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/myth*
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV-*
-	@$(foreach dir,$(filter-out %/Makefile,$(wildcard ../../myth/* ../../myth-*/*)),$(MAKE) -C $(dir) clean ; )
+	@$(foreach dir,$(filter-out %/Makefile,$(wildcard ../../myth/* ../../myth-*/* ../myththeme-*)),$(MAKE) -C $(dir) clean ; )
 
 source-update:
 	@$(MAKE) source-update-source
