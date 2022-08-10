@@ -20,6 +20,7 @@ mm_MYTH_VERSION           ?= 32
 mm_SOFTWARE               ?= \
                             python3 \
                             perl \
+                            mythfrontend \
                             mythplugins \
                             airplay \
                             avahi \
