@@ -47,6 +47,9 @@ ifeq (1,1)
 PATCHFILES += 0101-include-media-hevc-uapi-add-aw-rk-brcm-fields.patch
 # Fix for 80sec delay within Qt when mythfrontend starts just at boot
 PATCHFILES += 0102-drivers-char-random.c-revert-cap-jitter-samples-per-bit-to-factor-of-HZ.patch
+# MGLRU patch improving kernel memory management on low memory systems
+# https://patchwork.kernel.org/project/linux-mm/list/?series=657196
+PATCHFILES += 0103-mm-Multi-Gen-LRU-Framework-v13.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.19 kernel
