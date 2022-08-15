@@ -8,7 +8,8 @@ DISTFILES    = $(GARVERSION).zip
 
 PATCHFILES   = add-mm2-ui-notifications.patch
 PATCHFILES  += change-running-color-to-amber.patch
-PATCHFILES  += improve-osd-playback-stats-add-osdnavigation.patch
+PATCHFILES  += improve-osd-playback-stats.patch
+PATCHFILES  += osd--add-osdnavigation.patch
 PATCHFILES  += modify-watched-progressbar-in-recordings-ui-and-scheduled.patch
 PATCHFILES  += browser-ui-mode-browser-wintod-to-end.patch
 PATCHFILES  += add-current-next-rec-in-standby-screen.patch
