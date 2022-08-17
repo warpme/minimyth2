@@ -17,17 +17,9 @@ endif
 ifeq (0,1)
 #--Use this for mainline git-commit kernel-----------------
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
+GITHASH             = 
 DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/$(GITHASH)
-#----------------------------------------------------------
-endif
-
-ifeq (0,1)
-#--Use this for apritzel h616 repo kernel-----------------
-MASTER_SITES        = https://github.com/apritzel/linux/archive/
-GITHASH             = 319c938735b9c1726de3b7e09c20637fad2a0960
-DISTFILES           = $(GITHASH).zip $(CONFIGFILE)
-WORKSRC             = $(WORKDIR)/linux-$(GITHASH)
 #----------------------------------------------------------
 endif
 
