@@ -10,6 +10,7 @@ GAR_EXTRA_CONF += \
 	$(if $(filter py3,$(mm_PYTHON_VERSION)),python3/python/package-api.mk) \
 
 include ../../gar.mk
+include ../../myth-$(mm_MYTH_VERSION)/mythtv/package-api.mk
 
 # List of scripta defined in MM_INIT_START_PHASE_X
 # is executed when all scripts defined in MM_INIT_START_PHASE_X-1
@@ -189,6 +190,7 @@ MM_CONFIG_VARS := $(sort \
 	mm_VERSION_MINIMYTH \
 	mm_VERSION_MYTH \
 	mm_VERSION \
+	MYTHTV_GIT_VERSION \
 	OBJDUMP \
 	PERL_libdir \
 	PYTHON_libdir \

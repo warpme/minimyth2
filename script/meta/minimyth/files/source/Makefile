@@ -768,7 +768,7 @@ $(top_build)/stage/html: \
 	@rm -rf $@ $@~
 	@cp -pdR $(top_source)/html/ $@~
 	@echo "updating index.html"
-	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g'           $@~/index.html
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION)%g'                    $@~/index.html
 	@sed -i 's%@LINUX_FULL_VERSION@%$(LINUX_FULL_VERSION)%g'             $@~/index.html
 	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_GIT_VERSION)%g'             $@~/index.html
 	@echo "updating version and licenses in HTML docs"
