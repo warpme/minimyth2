@@ -1,11 +1,12 @@
 
 # URL GIT: https://github.com/morrownr/8821cu-20210118
 GARNAME      = rtl8821cu
-# 18.02.2022 v5.12
-GARVERSION   = 76c4656cdc460ad47555851b672ea430fddc662b
+# v20220705
+GARVERSION   = a27e9dd621480ac2a28441bc6c7732e0e58ddd8d
 CATEGORIES   = system
 MASTER_SITES = https://github.com/morrownr/8821cu-20210118/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = fix-compile-under-5.19.2-kernel.patch
 WORKSRC      = $(WORKDIR)/8821cu-20210118-$(GARVERSION)
 
 LICENSE      = GPL2
