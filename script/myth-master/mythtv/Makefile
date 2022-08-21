@@ -311,7 +311,7 @@ install-source:
 post-install:
 	@rm -f $(DESTDIR)$(bindir)/mythtv
 	@mv $(DESTDIR)$(bindir)/mythavtest $(DESTDIR)$(bindir)/mythtv
-	@$(MAKE) -C ../myththeme-monochrome install
+	@$(MAKE) -C ../myththeme-Monochrome-mm2 install
 	@$(MAKECOOKIE)
 
 clean-all:
