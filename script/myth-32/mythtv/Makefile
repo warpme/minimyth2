@@ -47,7 +47,11 @@ PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
 
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
+ifneq (,$(filter %5.18,$(mm_KERNEL_VERSION)))
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.18kernel.patch
+else
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.19kernel.patch
+endif
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner H6
