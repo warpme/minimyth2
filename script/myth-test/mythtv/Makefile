@@ -43,10 +43,11 @@ PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
+PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
 ifneq (,$(filter %5.18,$(mm_KERNEL_VERSION)))
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.16kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.18kernel.patch
 else
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.19kernel.patch
 endif
@@ -106,14 +107,10 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
 PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 
-# hack to make LiveTV start not stuttering
-PATCHFILES += 0300-mythplayer-hack-to-stuttering-starting-LiveTV.patch
-
 # --------Patches 400+ are plugins patches---------------------
 
 # Various mythmusic patches
 PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
-PATCHFILES += 0404-MythMusic-Prevent-corruption-of-ripped-CD-music-file.patch
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
 
@@ -235,7 +232,7 @@ CONFIGURE_ARGS = \
 	--enable-asm \
 	--enable-fast-unaligned \
 	--enable-optimizations \
-	--disable-lto \
+	--enable-lto \
 	--disable-proc-opt \
 	--enable-audio-oss \
 	--enable-audio-alsa \
@@ -292,10 +289,6 @@ CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(inclu
 CPPFLAGS += -fPIC -fuse-linker-plugin
 CFLAGS   += -fPIC -fuse-linker-plugin
 
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -O0
@@ -315,16 +308,10 @@ install-source:
 	@ln -sf $(PWD)/$(WORKSRC)/mythtv $(DESTDIR)$(MYTHTV_SOURCEDIR)
 	@$(MAKECOOKIE)
 
-post-install: post-install-mythtv-version
+post-install:
 	@rm -f $(DESTDIR)$(bindir)/mythtv
 	@mv $(DESTDIR)$(bindir)/mythavtest $(DESTDIR)$(bindir)/mythtv
-	@$(MAKECOOKIE)
-
-pre-configure:
-	@#Myth ver.containing also MM2 version
-	@#sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)-v`grep "^mm_VERSION_MINIMYTH" ~/.minimyth/minimyth.conf.mk | sed -e 's/.*\?=\s*\(.*\)/\1/'`\"/" $(WORKSRC)/mythtv/version.sh
-	@sed -i -e "s/MYTH_SOURCE_VERSION.*/MYTH_SOURCE_VERSION \"$(MYTHTV_GIT_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
-	@sed -i -e "s/MYTH_SOURCE_PATH.*/MYTH_SOURCE_PATH \"$(mm_MYTH_VERSION)\"/" $(WORKSRC)/mythtv/version.sh
+	@$(MAKE) -C ../myththeme-Monochrome-mm2 install
 	@$(MAKECOOKIE)
 
 clean-all:
@@ -336,7 +323,7 @@ clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/myth*
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV-*
-	@$(foreach dir,$(filter-out %/Makefile,$(wildcard ../../myth/* ../../myth-*/*)),$(MAKE) -C $(dir) clean ; )
+	@$(foreach dir,$(filter-out %/Makefile,$(wildcard ../../myth/* ../../myth-*/* ../myththeme-*)),$(MAKE) -C $(dir) clean ; )
 
 source-update:
 	@$(MAKE) source-update-source
