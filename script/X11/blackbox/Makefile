@@ -4,6 +4,7 @@ GARVERSION   = 0.76
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/bbidulock/blackboxwm/archive/
 DISTFILES    = $(GARVERSION).tar.gz
+PATCHFILES   = fix-buildng-under-gcc12.2.0.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
