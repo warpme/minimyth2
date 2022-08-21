@@ -32,8 +32,8 @@ INSTALL_SCRIPTS = custom
 include ../../gar.mk
 
 install-custom:
-	@mkdir -p $(DESTDIR)$(datadir)/mythtv/themes/Monochrome
-	@cp -Rdf $(WORKSRC)/* $(DESTDIR)$(datadir)/mythtv/themes/Monochrome/
+	@mkdir -p $(DESTDIR)$(datadir)/mythtv/themes/Monochrome-mm2
+	@cp -Rdf $(WORKSRC)/* $(DESTDIR)$(datadir)/mythtv/themes/Monochrome-mm2/
 	@$(MAKECOOKIE)
 
 clean-all: clean
