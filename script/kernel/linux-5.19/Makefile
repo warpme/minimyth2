@@ -213,8 +213,13 @@ ifeq (1,1)
 # Hack for adding H264 v4l2 decoding on RPI
 PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-08112021.patch
 # V3d enablement in RPI4
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=434471
+# https://patchwork.kernel.org/project/linux-arm-kernel/cover/20220603092610.1909675-1-pbrobinson@gmail.com/
 PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch
+# drm/vc4: Fix the core clock behaviour
+# https://patchwork.kernel.org/project/linux-arm-kernel/cover/20220815-rpi-fix-4k-60-v1-0-c52bd642f7c6@cerno.tech/
+#PATCHFILES += 0902-drm-vc4-Fix-the-core-clock-behaviour.patch
+# fix for kernel oops in vc4 driver
+PATCHFILES += 0902-drm-vc4-fix-kernel-oops-on-vc4-pm.patch
 # add H265 rpivid driver
 PATCHFILES += 0904-media-add-rpivid-24022021.patch
 # improvements for statefull v4l2_m2m seeking on rpi
