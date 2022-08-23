@@ -16,6 +16,7 @@ PATCHFILES  += browser-ui-mode-browser-wintod-to-end.patch
 PATCHFILES  += add-current-next-rec-in-standby-screen.patch
 PATCHFILES  += add-zoneminder-support.patch
 PATCHFILES  += add-right-arrow-to-list-episodes.patch
+PATCHFILES  += add-virtual-keyboard.patch
 # PATCHFILES  += add-snow-animations.patch
 
 LICENSE      = GPL2
