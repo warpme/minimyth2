@@ -42,6 +42,8 @@ PATCHFILES += 0102-drivers-char-random.c-revert-cap-jitter-samples-per-bit-to-fa
 # MGLRU patch improving kernel memory management on low memory systems
 # https://patchwork.kernel.org/project/linux-mm/list/?series=657196
 PATCHFILES += 0103-mm-Multi-Gen-LRU-Framework-v13.patch
+# Fix for broken vaapi video decode on i964 vaapi driver
+PATCHFILES += 0104-drm-i915-revert-Individualize_fences_before_adding_to_dma_resv_obj.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 5.19 kernel
@@ -219,7 +221,7 @@ PATCHFILES += 0901-Raspberry-PI-4-V3D-enablement.patch
 # https://patchwork.kernel.org/project/linux-arm-kernel/cover/20220815-rpi-fix-4k-60-v1-0-c52bd642f7c6@cerno.tech/
 #PATCHFILES += 0902-drm-vc4-Fix-the-core-clock-behaviour.patch
 # fix for kernel oops in vc4 driver
-PATCHFILES += 0902-drm-vc4-fix-kernel-oops-on-vc4-pm.patch
+#PATCHFILES += 0902-drm-vc4-fix-kernel-oops-on-vc4-pm.patch
 # add H265 rpivid driver
 PATCHFILES += 0904-media-add-rpivid-24022021.patch
 # improvements for statefull v4l2_m2m seeking on rpi
