@@ -9,6 +9,8 @@ DISTFILES    = config.txt             \
                bootcode.bin           \
                boot.txt               \
                boot.scr               \
+               boot-debug.txt         \
+               boot-debug.scr         \
                fixup4cd.dat           \
                fixup4.dat             \
                fixup4x.dat            \
@@ -42,6 +44,8 @@ install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/boot.scr            $(DESTDIR)/boot/boot.scr
 	@cp -f $(WORKSRC)/boot.txt            $(DESTDIR)/boot/boot.txt
+	@cp -f $(WORKSRC)/boot-debug.scr      $(DESTDIR)/boot/boot-debug.scr
+	@cp -f $(WORKSRC)/boot-debug.txt      $(DESTDIR)/boot/boot-debug.txt
 	@cp -f $(WORKSRC)/config.txt          $(DESTDIR)/boot/config.txt
 	@cp -f $(WORKSRC)/cmdline.txt         $(DESTDIR)/boot/cmdline.txt
 	@cp -f $(WORKSRC)/bootcode.bin        $(DESTDIR)/boot/bootcode.bin
@@ -62,6 +66,8 @@ install-custom:
 clean-custom:
 	@rm -f $(DESTDIR)/boot/boot.scr
 	@rm -f $(DESTDIR)/boot/boot.txt
+	@rm -f $(DESTDIR)/boot/boot-debug.scr
+	@rm -f $(DESTDIR)/boot/boot-debug.txt
 	@rm -f $(DESTDIR)/boot/config.txt
 	@rm -f $(DESTDIR)/boot/cmdline.txt
 	@rm -f $(DESTDIR)/boot/bootcode.bin
