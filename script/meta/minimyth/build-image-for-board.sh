@@ -30,6 +30,7 @@ selection_k="board-h6.orangepi_3"
 selection_l="board-rk3568.rock3-a"
 selection_m="board-rk3568.rock3-b"
 selection_n="board-rk3566.quartz64"
+selection_o="board-rpi4.mainline64"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -108,6 +109,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (l) for "${selection_l}
     echo "  (m) for "${selection_m}
     echo "  (n) for "${selection_n}
+    echo "  (o) for "${selection_o}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -240,6 +242,10 @@ case "${selection}" in
 
     n)  cache_board_list "${selection_n}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_n}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    o)  cache_board_list "${selection_o}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_o}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
