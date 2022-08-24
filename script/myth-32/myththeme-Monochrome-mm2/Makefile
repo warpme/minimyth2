@@ -1,5 +1,5 @@
 
-GARNAME      = Monochrome
+GARNAME      = Monochrome-mm2-v32
 # Git master from 26.04.2022
 GARVERSION   = 8569391fd35dc01aaec19f8085b3002ede8148b2
 CATEGORIES   = mythtv
@@ -16,6 +16,7 @@ PATCHFILES  += browser-ui-mode-browser-wintod-to-end.patch
 PATCHFILES  += add-current-next-rec-in-standby-screen.patch
 PATCHFILES  += add-zoneminder-support.patch
 PATCHFILES  += add-right-arrow-to-list-episodes.patch
+PATCHFILES  += add-virtual-keyboard.patch
 # PATCHFILES  += add-snow-animations.patch
 
 LICENSE      = GPL2
