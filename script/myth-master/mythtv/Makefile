@@ -117,6 +117,10 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
 
+# Various mythzoneminder patches
+PATCHFILES += 0500-mythzmserver-update-to-support-zm1.36.13.patch
+PATCHFILES += 0501-mythzmserver-fix-event-streaming.patch
+
 endif
 
 LICENSE = GPL2
