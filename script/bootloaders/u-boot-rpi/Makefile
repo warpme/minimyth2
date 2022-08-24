@@ -1,6 +1,6 @@
-# Mainline U-boot v2021.01
-GARNAME      = u-boot-20210111-rpi
-GARVERSION   = 2021.01
+# Mainline U-boot v2022.10-rc3
+GARNAME      = u-boot-202210rc3-rpi
+GARVERSION   = 2022.10-rc3
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).zip
