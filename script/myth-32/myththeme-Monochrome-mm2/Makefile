@@ -1,5 +1,5 @@
 
-GARNAME      = Monochrome-mm2-v32
+GARNAME      = Monochrome-mm2
 # Git master from 26.04.2022
 GARVERSION   = 8569391fd35dc01aaec19f8085b3002ede8148b2
 CATEGORIES   = mythtv
