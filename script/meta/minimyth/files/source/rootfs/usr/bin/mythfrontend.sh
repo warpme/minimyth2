@@ -39,7 +39,7 @@
 # export QT_QPA_DEBUG=1
 # export QT_LOGGING_RULES=qt.qpa.*=true
 # export QT_QPA_EGLFS_DEBUG=1
-
+# export QT_DEBUG_PLUGINS=1
 
 
 
