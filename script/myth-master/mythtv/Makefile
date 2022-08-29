@@ -1,4 +1,6 @@
 
+NO_LTO       = no
+
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
 CATEGORIES   = $(CATEGORY)
@@ -236,7 +238,7 @@ CONFIGURE_ARGS = \
 	--enable-asm \
 	--enable-fast-unaligned \
 	--enable-optimizations \
-	--enable-lto \
+	$(if $(filter yes,$(NO_LTO)),"--disable-lto","--enable-lto") \
 	--disable-proc-opt \
 	--enable-audio-oss \
 	--enable-audio-alsa \
@@ -296,6 +298,12 @@ CFLAGS   += -fPIC -fuse-linker-plugin
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -O0
+endif
+
+ifeq ($(NO_LTO),yes)
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 endif
 
 svn//%/$(DISTNAME).tar.bz2:
