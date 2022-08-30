@@ -388,6 +388,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		fi ; \
 	 done
 	@# Remove unwanted binaries, etcs, shares and libraries.
+	@#echo 'removing unwanted files: $(addprefix $@~,$(MM_REMOVES))'
 	@echo 'removing unwanted files'
 	@for file_item in $(addprefix $@~,$(MM_REMOVES)) ; do \
 		if echo $${file_item} | grep -q -e '/$$' > /dev/null 2>&1 ; then \
@@ -503,7 +504,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@if [ -e $@~$(libdir)/dri/radeonsi_dri.so ] && [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then \
 		echo 'symlinking mesa Intel/AMD latest DRI drivers to mesa all-in-one DRI driver'                  ; \
 		cp $@~$(libdir)/dri/radeonsi_dri.so $@~$(libdir)/dri/generic_mesa_dri_driver1                      ; \
-		files="crocus_dri.so iris_dri.so kms_swrast_dri.so r300_dri.so r600_dri.so radeonsi_dri.so swrast_dri.so vmwgfx_dri.so" ; \
+		files="crocus_dri.so iris_dri.so kms_swrast_dri.so nouveau_dri.so r300_dri.so r600_dri.so radeonsi_dri.so swrast_dri.so vmwgfx_dri.so" ; \
 			for file in $${files} ; do                                                                   \
 				rm -f $@~$(libdir)/dri/$${file}                                                    ; \
 				ln -srf $@~$(libdir)/dri/generic_mesa_dri_driver1 $@~$(libdir)/dri/$${file}        ; \
