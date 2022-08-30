@@ -513,7 +513,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	 fi
 	@# mesa legacy dri drivers optimization
 	@if [ -e $@~$(libdir)/dri/radeon_dri.so ] && [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then \
-		echo 'symlinking mesa legacy DRI drivers to mesa all-in-one DRI driver'                          ; \
+		echo 'symlinking mesa legacy dri drivers to mesa all-in-one dri driver'                          ; \
 		cp $@~$(libdir)/dri/radeon_dri.so $@~$(libdir)/dri/generic_mesa_dri_driver2                      ; \
 		files="i830_dri.so i915_dri.so i965_dri.so radeon_dri.so r200_dri.so"                            ; \
 			for file in $${files} ; do                                                                 \
