@@ -20,7 +20,8 @@ DEPENDS = \
 	firmware/brcmfmac4359-firmware  \
 	firmware/brcmfmac6330-firmware  \
 	firmware/rpi-bluez-firmware     \
-	firmware/amlogic-meson-firmware \
+	$(if $(filter meson, $(mm_GRAPHICS)),firmware/amlogic-meson-firmware) \
+	$(if $(filter nouveau, $(mm_GRAPHICS)),firmware/nouveau-firmware) \
 
 include ../../gar.mk
 
