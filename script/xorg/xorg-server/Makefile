@@ -1,16 +1,10 @@
 
 GARNAME      = xorg-server
-GARVERSION   = 1.20.14
+GARVERSION   = 21.1.4
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://xorg.freedesktop.org/releases/individual/xserver/
 DISTFILES    = $(DISTNAME).tar.xz
-PATCHFILES   = \
-	$(DISTNAME)-perl.patch.gar \
-	$(DISTNAME)-pkg_config.patch \
-	$(DISTNAME)-detect_radeon.patch \
-	$(DISTNAME)-add-monotonic-clock-in-crosscompile.patch
-
-LICENSE = $(GARNAME)
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
 DESCRIPTION = 
@@ -21,6 +15,7 @@ DEPENDS  = lang/c lib/openssl \
 	$(CATEGORY)/xorgproto \
 	$(CATEGORY)/font-util \
 	$(CATEGORY)/libdrm \
+	$(CATEGORY)/libxcvt \
 	$(CATEGORY)/libpciaccess \
 	$(CATEGORY)/libX11 \
 	$(CATEGORY)/libXau \
