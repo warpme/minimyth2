@@ -92,7 +92,7 @@ MESON_CONFIGURE_ARGS += \
 	-D gallium-va=disabled
 else
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,svga,swrast \
+	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,nouveau,svga,swrast \
 	-D gallium-vdpau=enabled
 endif
 endif
@@ -326,6 +326,7 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/dri/vc4_dri.so.*
 	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_drv_video.so*
 	@rm -f $(DESTDIR)$(libdir)/dri/r600_drv_video.so*
+	@rm -f $(DESTDIR)$(libdir)/dri/nouveau_dri.so*
 	@rm -f $(DESTDIR)$(libdir)/dri/kms_swrast_dri.so*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r600*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r300*
