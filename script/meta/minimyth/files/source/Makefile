@@ -501,8 +501,9 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 				ln -srf $@~$(libdir)/dri/generic_mesa_dri_driver $${file}                          ; \
 			done                                                                                       ; \
 	 fi
+	@# mesa dri drivers optimization
 	@if [ -e $@~$(libdir)/dri/radeonsi_dri.so ] && [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then \
-		echo 'symlinking mesa Intel/AMD latest DRI drivers to mesa all-in-one DRI driver'                  ; \
+		echo 'symlinking mesa DRI drivers to mesa all-in-one DRI driver'                                   ; \
 		cp $@~$(libdir)/dri/radeonsi_dri.so $@~$(libdir)/dri/generic_mesa_dri_driver1                      ; \
 		files="crocus_dri.so iris_dri.so kms_swrast_dri.so nouveau_dri.so r300_dri.so r600_dri.so radeonsi_dri.so swrast_dri.so vmwgfx_dri.so" ; \
 			for file in $${files} ; do                                                                   \
@@ -510,8 +511,9 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 				ln -srf $@~$(libdir)/dri/generic_mesa_dri_driver1 $@~$(libdir)/dri/$${file}        ; \
 			done                                                                                       ; \
 	 fi
+	@# mesa legacy dri drivers optimization
 	@if [ -e $@~$(libdir)/dri/radeon_dri.so ] && [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then \
-		echo 'symlinking mesa Intel/AMD legacy DRI drivers to mesa all-in-one DRI driver'                ; \
+		echo 'symlinking mesa legacy DRI drivers to mesa all-in-one DRI driver'                          ; \
 		cp $@~$(libdir)/dri/radeon_dri.so $@~$(libdir)/dri/generic_mesa_dri_driver2                      ; \
 		files="i830_dri.so i915_dri.so i965_dri.so radeon_dri.so r200_dri.so"                            ; \
 			for file in $${files} ; do                                                                 \
@@ -519,13 +521,24 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 				ln -srf $@~$(libdir)/dri/generic_mesa_dri_driver2 $@~$(libdir)/dri/$${file}      ; \
 			done                                                                                     ; \
 	 fi
+	@# mesa vdpau drivers optimization
 	@if [ -e $@~$(libdir)/libvdpau_r300.so ] && [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then \
 		echo 'symlinking mesa vdpau drivers to generic mesa all-in-one vdpau driver'                    ; \
 		cp $@~$(libdir)/libvdpau_r300.so $@~$(libdir)/libvdpau_generic                                  ; \
-		files="libvdpau_r300.so libvdpau_r600.so libvdpau_radeonsi.so"                                  ; \
+		files="libvdpau_r300.so libvdpau_r600.so libvdpau_radeonsi.so libvdpau_nouveau.so"              ; \
 			for file in $${files} ; do                                                                \
 				rm -f $@~$(libdir)/$${file}                                                     ; \
 				ln -srf $@~$(libdir)/libvdpau_generic $@~$(libdir)/$${file}                     ; \
+			done                                                                                    ; \
+	 fi
+	@# mesa vaapi drivers optimization
+	@if [ -e $@~$(libdir)/radeonsi_drv_video.so ] && [ ! $(mm_DEBUG) = yes ] && [ $(mm_STRIP_IMAGE) = yes ] ; then \
+		echo 'symlinking mesa vaapi drivers to generic mesa all-in-one vaapi driver'                    ; \
+		cp $@~$(libdir)/radeonsi_drv_video.so $@~$(libdir)/libvaapi_generic                             ; \
+		files="nouveau_drv_video.so r600_drv_video.so radeonsi_drv_video.so"                            ; \
+			for file in $${files} ; do                                                                \
+				rm -f $@~$(libdir)/$${file}                                                     ; \
+				ln -srf $@~$(libdir)/libvaapi_generic $@~$(libdir)/$${file}                     ; \
 			done                                                                                    ; \
 	 fi
 	@# Strip binaries and shared libraries.
