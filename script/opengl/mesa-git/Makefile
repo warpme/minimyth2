@@ -1,7 +1,7 @@
 
 GARNAME      = mesa
-# 22.0.0-rc3 12.02.2022
-GARVERSION   = 148aac1b3bfd12a654e4b8366d041ecdff63426c
+# 22.2.0-rc3 18.08.2022
+GARVERSION   = 9a80d2f73b530ce9207e03ea516ea3caf8c5961b
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -77,11 +77,11 @@ MESON_CONFIGURE_ARGS = \
 	-D platforms=x11,wayland \
 	-D llvm=enabled \
 	-D cpp_rtti=false \
+	-D dri-drivers= \
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
-	-D dri-drivers= \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
 	-D c_args="-mfpu=neon -mfloat-abi=softfp"
@@ -89,18 +89,17 @@ else
 ifeq ($(GARCH),armv8)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
-	-D dri-drivers= \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled
 else
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,svga,swrast \
-	-D dri-drivers=i915,i965,r100,r200 \
+	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,nouveau,svga,swrast \
 	-D gallium-vdpau=enabled
 endif
 endif
 
 post-install:
+	@sed 's|prefix=.*|prefix=/usr\nlibdir=\$${prefix}/lib|g' -i $(DESTDIR)$(libdir)/pkgconfig/dri.pc
 	@files="dri.pc egl.pc gbm.pc gl.pc glesv1_cm.pc glesv2.pc" ; \
 	 for file in $${files} ; do \
 		sed \
@@ -205,16 +204,6 @@ ifneq (,$(findstring sun4i,$(mm_GRAPHICS)))
 endif
 endif
 	@rm -f "$(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt"
-	@# Generate udev rules for Intel i810
-	@cd files/udev-generator; ./generate-x-udev-rules.sh \
-		"../../$(WORKSRC)/include/pci_ids/i810_pci_ids.h" \
-		"../../../../../script/meta/minimyth/files/source/rootfs/usr/lib/udev/rules.d/05-minimyth-detect-x-i810.rules.disabled" \
-		"$(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt" \
-		"8086" \
-		"intel_i915" \
-		"intel_vaapi" \
-		"./i810_names_with_HW_accell.lst" \
-		"i810"
 	@# Generate udev rules for Intel i915
 	@cd files/udev-generator; ./generate-x-udev-rules.sh \
 		"../../$(WORKSRC)/include/pci_ids/i915_pci_ids.h" \
@@ -338,6 +327,7 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/dri/vc4_dri.so.*
 	@rm -f $(DESTDIR)$(libdir)/dri/radeonsi_drv_video.so*
 	@rm -f $(DESTDIR)$(libdir)/dri/r600_drv_video.so*
+	@rm -f $(DESTDIR)$(libdir)/dri/nouveau_dri.so*
 	@rm -f $(DESTDIR)$(libdir)/dri/kms_swrast_dri.so*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r600*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_r300*
