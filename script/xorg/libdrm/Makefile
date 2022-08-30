@@ -1,7 +1,7 @@
 
 CATEGORIES = $(CATEGORY)
 GARNAME      = libdrm
-GARVERSION   = 2.4.110
+GARVERSION   = 2.4.112
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES    = $(DISTNAME).tar.xz
 
@@ -32,7 +32,10 @@ CONFIGURE_ARGS = \
 	-D man-pages="false" \
 	-D valgrind="false" \
 	-D intel="true" \
-	-D nouveau="false" \
+	-D amdgpu="true" \
+	-D vmwgfx="true" \
+	-D nouveau="true" \
+	-D vc4="true" \
 
 ifeq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
