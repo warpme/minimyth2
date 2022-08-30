@@ -42,6 +42,7 @@ BUILDDEPS  = \
 	xorg/xorgproto       \
 	xorg/libxshmfence    \
 	wayland/wayland-core \
+	opengl/glslang       \
 
 PWD := $(shell pwd)
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
