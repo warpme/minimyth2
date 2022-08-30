@@ -116,6 +116,7 @@ Intel Z8500   | Beelink MII-V    | works  (ac3165@PCI-e)                  | n/a 
 Intel N3450   | Beelink BT4      | works  (ac3165@PCI-e)                  | n/a         | n/a         | not works (bios issue)         | perfect support, bootsplah nok|
 Intel N3450   | Beelink T34      | works  (ac3165@PCI-e)                  | n/a         | n/a         | works (s3ram)                  | perfect support, bootsplah nok|
 AMD E1-2100   | AMD Kabini       | n/a                                    | n/a         | n/a         | works (s3ram)                  | perfect support               |
+Intel D525    | ION1             | n/a                                    | n/a         | n/a         | works (s3ram)                  | perfect support               |
 Intel D2550   | ION2             | n/a                                    | n/a         | n/a         | works (s3ram)                  | perfect support               |
 
 ### Hardware Video Decode support
@@ -143,7 +144,8 @@ Intel i5         | i5 NUC                                       | VAAPI         
 Intel Z8500      | Beelink BT4                                  | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8               | X11, EGLFS (4)        | EGL_DMABUF (3)            | Perfect playback
 Intel N3450      | Beelink MII-V                                | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8, VP9          | X11, EGLFS, Wayland   | EGL_DMABUF (3)            | Perfect playback
 AMD E1-2100      | AMD Kabini                                   | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland   | EGL_DMABUF (3)            | Perfect playback
-Intel D2550      | ION2                                         | VDPAU                                 | MPEG2, MPEG4, H.264                        | X11, (5)              | By GFx internally         | Perfect playback
+Intel D525       | ION1                                         | VDPAU,VAAPI(11)                       | MPEG2, MPEG4, H.264                        | X11, (5)              | By GFx internally         | Perfect playback
+Intel D2550      | ION2                                         | VDPAU,VAPPI(11)                       | MPEG2, MPEG4, H.264, VC1                   | X11, (5)              | By GFx internally         | Perfect playback
 
 - (1) - Wayland gives black screen on this HW
 - (2) - EGLFS not works due z-position issue in messon-drm driver on this HW
@@ -155,6 +157,7 @@ Intel D2550      | ION2                                         | VDPAU         
 - (8) - hevc/vp9 is not yet supported on this SoC (due no rkvdec support)
 - (9) - hw.video decode with rendering to DRM planes has no OSD (probably Z-order issue)
 - (10) - rendering to DRM Planes gives not visible OSD on this HW
+- (11) - mesa nouveau as of 22.2.0 has issue with VAAPI decode on Nvidia ION1/ION2
 
 ### Video Decoding Test results
 
