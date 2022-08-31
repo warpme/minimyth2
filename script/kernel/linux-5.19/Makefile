@@ -229,6 +229,12 @@ PATCHFILES += 0905-vc4_services-improve_h264_seek.patch
 endif
 #------------------------------------------------------------
 
+ifeq (1,1)
+#-- Nouveau patches -----------------------------------------
+PATCHFILES += 1000-drm-nouveau-sync-to-drm-next-fixes-20220826.patch
+#------------------------------------------------------------
+endif
+
 endif
 
 LICENSE = GPL2
