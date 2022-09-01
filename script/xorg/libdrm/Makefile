@@ -1,7 +1,7 @@
 
 CATEGORIES = $(CATEGORY)
 GARNAME      = libdrm
-GARVERSION   = 2.4.112
+GARVERSION   = 2.4.113
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES    = $(DISTNAME).tar.xz
 
@@ -28,14 +28,14 @@ CONFIGURE_ARGS = \
 	--prefix="$(DESTDIR)" \
 	--buildtype=release \
 	--optimization=s \
-	-D cairo-tests="false" \
-	-D man-pages="false" \
-	-D valgrind="false" \
-	-D intel="true" \
-	-D amdgpu="true" \
-	-D vmwgfx="true" \
-	-D nouveau="true" \
-	-D vc4="true" \
+	-D cairo-tests="disabled" \
+	-D man-pages="disabled" \
+	-D valgrind="disabled" \
+	-D intel="enabled" \
+	-D amdgpu="enabled" \
+	-D vmwgfx="enabled" \
+	-D nouveau="enabled" \
+	-D vc4="enabled" \
 
 ifeq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
