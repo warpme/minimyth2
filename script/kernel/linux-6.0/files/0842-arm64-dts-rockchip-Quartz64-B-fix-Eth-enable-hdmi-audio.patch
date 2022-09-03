@@ -1,0 +1,226 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-5.19-rc4/arch/arm64/boot/dts/rockchip/rk3566-quartz64-b.dts linux-5.19-rc4/arch/arm64/boot/dts/rockchip/rk3566-quartz64-b.dts
+--- linux-5.19-rc4/arch/arm64/boot/dts/rockchip/rk3566-quartz64-b.dts	2022-06-26 23:22:10.000000000 +0200
++++ linux-5.19-rc4/arch/arm64/boot/dts/rockchip/rk3566-quartz64-b.dts	2022-07-07 13:45:16.446639341 +0200
+@@ -4,6 +4,7 @@
+ 
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/pinctrl/rockchip.h>
++#include <dt-bindings/soc/rockchip,vop2.h>
+ #include "rk3566.dtsi"
+ 
+ / {
+@@ -28,6 +29,17 @@
+ 		#clock-cells = <0>;
+ 	};
+ 
++	hdmi-con {
++		compatible = "hdmi-connector";
++		type = "a";
++
++		port {
++			hdmi_con_in: endpoint {
++				remote-endpoint = <&hdmi_out_con>;
++			};
++		};
++	};
++
+ 	leds {
+ 		compatible = "gpio-leds";
+ 
+@@ -42,6 +54,21 @@
+ 		};
+ 	};
+ 
++	rk809-sound {
++		compatible = "simple-audio-card";
++		simple-audio-card,format = "i2s";
++		simple-audio-card,name = "Analog RK809";
++		simple-audio-card,mclk-fs = <256>;
++
++		simple-audio-card,cpu {
++			sound-dai = <&i2s1_8ch>;
++		};
++
++		simple-audio-card,codec {
++			sound-dai = <&rk809>;
++		};
++	};
++
+ 	sdio_pwrseq: sdio-pwrseq {
+ 		status = "okay";
+ 		compatible = "mmc-pwrseq-simple";
+@@ -107,6 +134,14 @@
+ 		regulator-max-microvolt = <5000000>;
+ 		vin-supply = <&vcc5v0_sys>;
+ 	};
++
++	ir-receiver {
++		compatible = "gpio-ir-receiver";
++		gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_LOW>;
++		pinctrl-0 = <&ir_int>;
++		linux,rc-map-name = "rc-beelink-gs1";
++		status = "okay";
++	};
+ };
+ 
+ &combphy1 {
+@@ -130,28 +165,57 @@
+ };
+ 
+ &gmac1 {
+-	assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1_RGMII_SPEED>, <&cru SCLK_GMAC1>;
+-	assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>, <&cru SCLK_GMAC1>, <&gmac1_clkin>;
++	assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1>;
++	assigned-clock-parents =  <&cru SCLK_GMAC1_RGMII_SPEED>, <&gmac1_clkin>;
+ 	clock_in_out = "input";
+-	phy-mode = "rgmii";
++	phy-mode = "rgmii";
+ 	phy-supply = <&vcc_3v3>;
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&gmac1m1_miim
+ 		     &gmac1m1_tx_bus2
+ 		     &gmac1m1_rx_bus2
+ 		     &gmac1m1_rgmii_clk
+-		     &gmac1m1_clkinout
+-		     &gmac1m1_rgmii_bus>;
++		     &gmac1m1_rgmii_bus
++		     &gmac1m1_clkinout>;
+ 	snps,reset-gpio = <&gpio3 RK_PC0 GPIO_ACTIVE_LOW>;
+ 	snps,reset-active-low;
+ 	/* Reset time is 20ms, 100ms for rtl8211f, also works well here */
+ 	snps,reset-delays-us = <0 20000 100000>;
+ 	tx_delay = <0x4f>;
+-	rx_delay = <0x24>;
++	rx_delay = <0x2d>;
+ 	phy-handle = <&rgmii_phy1>;
+ 	status = "okay";
+ };
+ 
++&hdmi {
++	assigned-clocks = <&cru CLK_HDMI_CEC>;
++	assigned-clock-rates = <32768>;
++	avdd-0v9-supply = <&vdda0v9_image>;
++	avdd-1v8-supply = <&vcca1v8_image>;
++	status = "okay";
++};
++
++&hdmi_in {
++	hdmi_in_vp0: endpoint {
++		remote-endpoint = <&vp0_out_hdmi>;
++	};
++};
++
++&hdmi_out {
++	hdmi_out_con: endpoint {
++		remote-endpoint = <&hdmi_con_in>;
++	};
++};
++
++&hdmi_sound {
++	status = "okay";
++};
++
++&gpu {
++	mali-supply = <&vdd_gpu>;
++	status = "okay";
++};
++
+ &i2c0 {
+ 	status = "okay";
+ 
+@@ -177,13 +241,17 @@
+ 		reg = <0x20>;
+ 		interrupt-parent = <&gpio0>;
+ 		interrupts = <RK_PA7 IRQ_TYPE_LEVEL_LOW>;
++		assigned-clocks = <&cru I2S1_MCLKOUT_TX>;
++		assigned-clock-parents = <&cru CLK_I2S1_8CH_TX>;
++		#clock-cells = <1>;
++		clock-names = "mclk";
++		clocks = <&cru I2S1_MCLKOUT_TX>;
+ 		clock-output-names = "rk808-clkout1", "rk808-clkout2";
+-
+ 		pinctrl-names = "default";
+-		pinctrl-0 = <&pmic_int>;
++		pinctrl-0 = <&pmic_int>, <&i2s1m0_mclk>;
++		#sound-dai-cells = <0>;
+ 		rockchip,system-power-controller;
+ 		wakeup-source;
+-		#clock-cells = <1>;
+ 
+ 		vcc1-supply = <&vcc3v3_sys>;
+ 		vcc2-supply = <&vcc3v3_sys>;
+@@ -215,7 +283,7 @@
+ 				regulator-name = "vdd_gpu";
+ 				regulator-always-on;
+ 				regulator-boot-on;
+-				regulator-min-microvolt = <900000>;
++				regulator-min-microvolt = <825000>;
+ 				regulator-max-microvolt = <1350000>;
+ 				regulator-init-microvolt = <900000>;
+ 				regulator-ramp-delay = <6001>;
+@@ -388,6 +456,20 @@
+ 	};
+ };
+ 
++&i2s0_8ch {
++	status = "okay";
++};
++ 
++&i2s1_8ch {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2s1m0_sclktx
++	&i2s1m0_lrcktx
++	&i2s1m0_sdi0
++	&i2s1m0_sdo0>;
++	rockchip,trcm-sync-tx-only;
++	status = "okay";
++};
++
+ /* i2c2_m1 exposed on csi port, pulled up to vcc_3v3 */
+ &i2c2 {
+ 	pinctrl-names = "default";
+@@ -470,6 +552,12 @@
+ 			rockchip,pins = <0 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
+ 		};
+ 	};
++
++	ir {
++		ir_int: ir-int {
++			rockchip,pins = <3 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
+ };
+ 
+ &pmu_io_domains {
+@@ -575,6 +663,31 @@
+ 	status = "okay";
+ };
+ 
++&vop {
++	assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
++	assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
++	status = "okay";
++};
++
++&vop_mmu {
++	status = "okay";
++};
++
++&vp0 {
++	vp0_out_hdmi: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
++		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
++		remote-endpoint = <&hdmi_in_vp0>;
++	};
++};
++
++&vpu {
++	status = "okay";
++};
++
++&vdpu_mmu {
++	status = "okay";
++};
++
+ &usb2phy0_host {
+ 	phy-supply = <&vcc5v0_usb30_host>;
+ 	status = "okay";
