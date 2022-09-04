@@ -166,9 +166,8 @@ PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
 PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
 #PATCHFILES += 0733-drm-rockchip-fix-non-working-cec-after-power-cycle.patch
-PATCHFILES += 0741-v4l2-wip-rkvdec-hevc.patch
 # https://patchwork.kernel.org/project/linux-media/list/?series=659402
-#PATCHFILES += 0741-media-staging-add-rkvdec-hevc-driver.patch
+PATCHFILES += 0741-media-staging-add-rkvdec-hevc-driver.patch
 PATCHFILES += 0742-v4l2-wip-iep-driver.patch
 PATCHFILES += 0743-arm64-dts-rockchip-beelink-a1-enable-openvfd.patch
 PATCHFILES += 0744-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
@@ -178,7 +177,7 @@ PATCHFILES += 0747-arm64-dts-rockchip-add-enable-dmc-on-roc-cc.patch
 endif
 #------------------------------------------------------------
 
-ifeq (0,1)
+ifeq (1,1)
 #-- Rockchip 356x patches -----------------------------------------
 # Enable rk356x PCIe controller
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=634925
