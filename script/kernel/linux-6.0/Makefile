@@ -133,7 +133,7 @@ PATCHFILES += 0588-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 endif
 #------------------------------------------------------------
 
-ifeq (1,1)
+ifeq (0,1)
 #-- Allwinner H616 patches -----------------------------------------
 # https://github.com/jernejsk/linux-1/commits/h616-hdmi
 PATCHFILES += 0600-drivers-h616-wip-add-usb-emac2-support.patch
@@ -201,11 +201,10 @@ endif
 ifeq (1,1)
 #-- RaspberryPI patches -----------------------------------------
 # Hack for adding H264 v4l2 decoding on RPI
-#PATCHFILES += 0900-rpi-vc04_services-add_h264_v4l2-m2m_decode-08112021.patch
+PATCHFILES += 0900-rpi-vc04_services-add_h~l2-m2m_decode-04092022.patch
+PATCHFILES += 0901-rpi-vc04_services-bcm2835-codec-remove-isp-formats.patch
 # add H265 rpivid driver
 PATCHFILES += 0904-media-add-rpivid-24022021.patch
-# improvements for statefull v4l2_m2m seeking on rpi
-# PATCHFILES += 0905-vc4_services-improve_h264_seek.patch todo
 endif
 #------------------------------------------------------------
 
