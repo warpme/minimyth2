@@ -135,25 +135,22 @@ endif
 
 ifeq (1,1)
 #-- Allwinner H616 patches -----------------------------------------
-# https://github.com/jernejsk/linux-1/commits/h616-hdmi
 PATCHFILES += 0600-drivers-h616-wip-add-usb-emac2-support.patch
 # add THS support
 PATCHFILES += 0601-drivers-thermal-allwinner-add-h616-ths-support.patch
 # add cedrus support
-# https://github.com/jernejsk/linux-1/commits/h616-full
 PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
 PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
 # add HDMI, audio support
 PATCHFILES += 0606-dma-sun6i-dma-add-h616-support.patch
 PATCHFILES += 0610-sound-soc-add-h616-audio-support.patch
 PATCHFILES += 0611-hack-hack-drivers-add-h616-hdmi.patch
-PATCHFILES += 0630-arm64-dts-allwinner-h616-add-ths-audio-hdmi-usb.patch
 # enable some h616 boards
+PATCHFILES += 0630-arm64-dts-allwinner-h616.dtsi-add-ths-audio-hdmi-usb.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-OrangePI-Zero2-enable-ths-hdmi-usb.patch
 PATCHFILES += 0632-arm64-dts-allwinner-h616-X96-mate-enable-ths-hdmi-usb.patch
 PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0634-arm64-dts-allwinner-h616-add-T95-TVbox.patch
-PATCHFILES += 0635-arm64-dts-allwinner-h616-enable-ths-support.patch
 endif
 #------------------------------------------------------------
 
