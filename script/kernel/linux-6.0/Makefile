@@ -133,7 +133,7 @@ PATCHFILES += 0588-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 endif
 #------------------------------------------------------------
 
-ifeq (0,1)
+ifeq (1,1)
 #-- Allwinner H616 patches -----------------------------------------
 # https://github.com/jernejsk/linux-1/commits/h616-hdmi
 PATCHFILES += 0600-drivers-h616-wip-add-usb-emac2-support.patch
