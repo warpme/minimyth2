@@ -1,4 +1,6 @@
 
+NO_LTO       = no
+
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
 CATEGORIES   = $(CATEGORY)
@@ -45,22 +47,22 @@ PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
 PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
 ifeq (1,1)
-# v4l2-request support in ffmpeg (requires also kernel patching)
+# v4l2-request support in ffmpeg (requires also 5.18/5.19 kernel patching)
 ifneq (,$(filter %5.18,$(mm_KERNEL_VERSION)))
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.18kernel.patch
 else
+ifneq (,$(filter %5.19,$(mm_KERNEL_VERSION)))
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.19kernel.patch
+else
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-6.0kernel.patch
+endif
 endif
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner H6
-PATCHFILES += 0153-ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel.patch
+#PATCHFILES += 0153-ffmpeg-add-H6-HW-deinterlacer-support-5.10kernel.patch todo
 # Improve v4l2_request resiliency on so DVB stream errors (http://jernej.libreelec.tv/videos/cedrus_broken.ts)
 PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
-# Fix green screen on hantro h264 vdpu2 hw video decode
-PATCHFILES += 0155-ffmpeg-libavcodec-h264_slice-fix-decoding-on-hantro-vdpu2.patch
-# Add NEON based VC1 decoding on arm/aarch64
-PATCHFILES += 0156-ffmpeg-libavcodec-vc1-arm-use-neon-optimisations.patch
 endif
 
 # buffers bump-up required for AML HD playbck
@@ -76,7 +78,7 @@ PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # hack to get refresh rate changing on drm
 PATCHFILES += 0198-libmythui-mythdrmdevice-add-refresh-change-capability.patch
 # improvements for statefull v4l2_m2m seeking on rpi
-PATCHFILES += 0199-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
+#PATCHFILES += 0199-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
@@ -116,6 +118,10 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
+
+# Various mythzoneminder patches
+PATCHFILES += 0500-mythzmserver-update-to-support-zm1.36.13.patch
+PATCHFILES += 0501-mythzmserver-fix-event-streaming.patch
 
 endif
 
@@ -232,7 +238,7 @@ CONFIGURE_ARGS = \
 	--enable-asm \
 	--enable-fast-unaligned \
 	--enable-optimizations \
-	--enable-lto \
+	$(if $(filter yes,$(NO_LTO)),"--disable-lto","--enable-lto") \
 	--disable-proc-opt \
 	--enable-audio-oss \
 	--enable-audio-alsa \
@@ -292,6 +298,12 @@ CFLAGS   += -fPIC -fuse-linker-plugin
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -O0
+endif
+
+ifeq ($(NO_LTO),yes)
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 endif
 
 svn//%/$(DISTNAME).tar.bz2:
