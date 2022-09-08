@@ -4684,9 +4684,9 @@ index 9b95c76cdb82..ec0300f66dbe 100644
  const AVHWAccel ff_vp9_v4l2request_hwaccel = {
 
 
+
+
 Update v4l2_request to https://github.com/jernejsk/FFmpeg/commits/v4l2-request-hwaccel-4.4
-
-
 
 diff --speed-large-files --no-dereference --minimal -Naur mythtv-14e0779741133a863204e855a58266dfcd4b8f6e/mythtv/external/FFmpeg/libavcodec/hevc-ctrls.h mythtv-14e0779741133a863204e855a58266dfcd4b8f6e/mythtv/external/FFmpeg/libavcodec/hevc-ctrls.h
 --- mythtv-14e0779741133a863204e855a58266dfcd4b8f6e/mythtv/external/FFmpeg/libavcodec/hevc-ctrls.h	2022-07-12 16:51:45.646510433 +0200
@@ -4872,6 +4872,12 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-14e0779741133a8
      ret = ff_vaapi_decode_issue(avctx, pic);
      if (ret < 0)
          goto finish;
+
+
+
+
+This updates v4l2_request code to ffmpeg5.1
+
 diff --speed-large-files --no-dereference --minimal -Naur mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264dec.h mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264dec.h
 --- mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264dec.h	2022-09-06 15:33:48.000000000 +0200
 +++ mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264dec.h	2022-09-07 14:44:55.378065797 +0200
@@ -4930,3 +4936,36 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-676d7f50af83bb9
  #include "hevc-ctrls.h"
  
  #define MAX_SLICES 32
+
+
+
+This fixes green screen on h264 decoding on rockchip
+
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-848bfbf55ea56ed6dc62d64f7f0dd676de3143f5/mythtv/external/FFmpeg/libavcodec/h264_slice.c mythtv-848bfbf55ea56ed6dc62d64f7f0dd676de3143f5/mythtv/external/FFmpeg/libavcodec/h264_slice.c
+--- mythtv-848bfbf55ea56ed6dc62d64f7f0dd676de3143f5/mythtv/external/FFmpeg/libavcodec/h264_slice.c	2022-01-29 14:36:09.359692928 +0100
++++ mythtv-848bfbf55ea56ed6dc62d64f7f0dd676de3143f5/mythtv/external/FFmpeg/libavcodec/h264_slice.c	2022-01-29 13:59:14.539732888 +0100
+@@ -1844,8 +1844,7 @@
+     if (nal->type == H264_NAL_IDR_SLICE)
+         sl->idr_pic_id = get_ue_golomb_long(&sl->gb);
+ 
+-    sl->poc_lsb = 0;
+-    sl->delta_poc_bottom = 0;
++    pos = sl->gb.index;
+     if (sps->poc_type == 0) {
+         sl->poc_lsb = get_bits(&sl->gb, sps->log2_max_poc_lsb);
+ 
+@@ -1853,13 +1852,13 @@
+             sl->delta_poc_bottom = get_se_golomb(&sl->gb);
+     }
+ 
+-    sl->delta_poc[0] = sl->delta_poc[1] = 0;
+     if (sps->poc_type == 1 && !sps->delta_pic_order_always_zero_flag) {
+         sl->delta_poc[0] = get_se_golomb(&sl->gb);
+ 
+         if (pps->pic_order_present == 1 && picture_structure == PICT_FRAME)
+             sl->delta_poc[1] = get_se_golomb(&sl->gb);
+     }
++    sl->pic_order_cnt_bit_size = sl->gb.index - pos;
+ 
+     sl->redundant_pic_count = 0;
+     if (pps->redundant_pic_cnt_present)
