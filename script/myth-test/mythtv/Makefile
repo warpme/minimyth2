@@ -123,6 +123,8 @@ PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.pa
 PATCHFILES += 0500-mythzmserver-update-to-support-zm1.36.13.patch
 PATCHFILES += 0501-mythzmserver-fix-event-streaming.patch
 
+PATCHFILES += 1000-libmythtv-avformatdecoder-fix-crash-by-new-channel-layout.patch
+
 endif
 
 LICENSE = GPL2
