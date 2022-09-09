@@ -41,7 +41,7 @@ PATCHFILES += 0102-drivers-char-random.c-revert-cap-jitter-samples-per-bit-to-fa
 # https://patchwork.kernel.org/project/linux-mm/list/?series=667540
 PATCHFILES += 0103-mm-Multi-Gen-LRU-Framework-v14.1.patch
 # Fix for broken vaapi video decode on i964 vaapi driver
-PATCHFILES += 0104-drm-i915-revert-Individualize_fences_before_adding_to_dma_resv_obj.patch
+PATCHFILES += 0104-drm-i915-Set-correct-domains-values-at-_i915_vma_move_to_active.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 6.0 kernel
