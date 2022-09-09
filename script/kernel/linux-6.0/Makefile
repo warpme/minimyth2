@@ -39,7 +39,7 @@ ifeq (1,1)
 PATCHFILES += 0102-drivers-char-random.c-revert-cap-jitter-samples-per-bit-to-factor-of-HZ.patch
 # MGLRU patch improving kernel memory management on low memory systems
 # https://patchwork.kernel.org/project/linux-mm/list/?series=667540
-#PATCHFILES += 0103-mm-Multi-Gen-LRU-Framework-v14.patch
+PATCHFILES += 0103-mm-Multi-Gen-LRU-Framework-v14.1.patch
 # Fix for broken vaapi video decode on i964 vaapi driver
 PATCHFILES += 0104-drm-i915-revert-Individualize_fences_before_adding_to_dma_resv_obj.patch
 
@@ -133,7 +133,7 @@ PATCHFILES += 0588-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 endif
 #------------------------------------------------------------
 
-ifeq (1,1)
+ifeq (0,1)
 #-- Allwinner H616 patches -----------------------------------------
 PATCHFILES += 0600-drivers-h616-wip-add-usb-emac2-support.patch
 # add THS support
@@ -171,6 +171,7 @@ PATCHFILES += 0744-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
 PATCHFILES += 0745-arm64-dts-rockchip-beelink-a1-enable-androind-dram-timmings.patch
 PATCHFILES += 0746-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
 PATCHFILES += 0747-arm64-dts-rockchip-add-enable-dmc-on-roc-cc.patch
+PATCHFILES += 0749-arm64-dts-rockchip-add-LED-for-ROCK-Pi-4A-B-C-A-B.patch
 endif
 #------------------------------------------------------------
 
