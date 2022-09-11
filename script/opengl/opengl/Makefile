@@ -1,24 +1,22 @@
-GARNAME = opengl
-CATEGORIES = $(CATEGORY)
-LICENSE =
+
+GARNAME    = opengl
+LICENSE    =
 
 DESCRIPTION = 
 define BLURB
 endef
 
 DEPENDS = \
-	$(if $(filter mesa,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mesa) \
-	$(if $(filter mesa-git,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/mesa-git) \
-	$(if $(filter brcm-vc4,$(mm_OPENGL_PROVIDER)),$(CATEGORY)/brcm-vc4) \
+	$(if $(filter mesa,$(mm_OPENGL_PROVIDER)),opengl/mesa) \
+	$(if $(filter mesa-git,$(mm_OPENGL_PROVIDER)),opengl/mesa-git) \
+	$(if $(filter brcm-vc4,$(mm_OPENGL_PROVIDER)),opengl/brcm-vc4) \
 	$(if $(filter mesa mesa-git,$(mm_OPENGL_PROVIDER)), \
-		$(CATEGORY)/gslang \
-		$(CATEGORY)/freeglut \
-		$(CATEGORY)/glu) \
-	$(if $(filter glmark2,$(mm_SOFTWARE)),$(CATEGORY)/glmark2) \
-	$(if $(filter kmscube,$(mm_SOFTWARE)),$(CATEGORY)/kmscube) \
-	$(if $(filter mesa-demos,$(mm_SOFTWARE)),$(CATEGORY)/mesa-demos) \
-
-CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
+		opengl/glslang \
+		opengl/freeglut \
+		opengl/glu) \
+	$(if $(filter glmark2,$(mm_SOFTWARE)),opengl/glmark2) \
+	$(if $(filter kmscube,$(mm_SOFTWARE)),opengl/kmscube) \
+	$(if $(filter mesa-demos,$(mm_SOFTWARE)),opengl/mesa-demos) \
 
 include ../../gar.mk
 
