@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 22.1.7
+GARVERSION   = 22.2.0-rc3
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -41,6 +41,7 @@ BUILDDEPS  = \
 	xorg/xorgproto       \
 	xorg/libxshmfence    \
 	wayland/wayland-core \
+	opengl/glslang       \
 
 PWD := $(shell pwd)
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
@@ -93,7 +94,10 @@ MESON_CONFIGURE_ARGS += \
 else
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,nouveau,svga,swrast \
-	-D gallium-vdpau=enabled
+	-D gallium-vdpau=enabled \
+	-D gallium-va=enabled \
+	-D video-codecs=vc1dec,h264dec,h265dec
+
 endif
 endif
 
