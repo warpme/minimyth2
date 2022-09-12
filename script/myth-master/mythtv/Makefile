@@ -135,6 +135,10 @@ DESCRIPTION =
 define BLURB
 endef
 
+BUILDDEPS = \
+	python3/python \
+	python3/python-setuptools \
+
 DEPENDS = \
 	lang/cxx \
 	db/mariadb \
