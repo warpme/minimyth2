@@ -1,4 +1,4 @@
-ifeq (1,1)
+ifeq (0,1)
 #--Use this for mainline official x.y.z kernel from SCM----
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
@@ -14,7 +14,7 @@ WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 #----------------------------------------------------------
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 #--Use this for mainline git-commit kernel-----------------
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 GITHASH             = 
@@ -157,12 +157,10 @@ endif
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
 PATCHFILES += 0705-rockchip-from-list.patch
-PATCHFILES += 0711-v4l2-from-list.patch
 PATCHFILES += 0720-drm-from-list.patch
 PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
 PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
-#PATCHFILES += 0733-drm-rockchip-fix-non-working-cec-after-power-cycle.patch
 # https://patchwork.kernel.org/project/linux-media/list/?series=659402
 PATCHFILES += 0741-media-staging-add-rkvdec-hevc-driver.patch
 PATCHFILES += 0742-v4l2-wip-iep-driver.patch
