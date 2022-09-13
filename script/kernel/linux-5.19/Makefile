@@ -139,6 +139,15 @@ PATCHFILES += 0570-hantro-Add-quirk-for-NV12-NV12_4L4-capture-format.patch
 PATCHFILES += 0588-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 # improving op3
 PATCHFILES += 0590-arm64-dts-allwinner-improve-opi3-support.patch
+# add hantro g2 vp9 support
+PATCHFILES += 0592-media-Add-P010-tiled-format.patch
+PATCHFILES += 0593-media-Add-P010-format.patch
+PATCHFILES += 0594-media-hantro-Support-format-filtering-by-depth.patch
+PATCHFILES += 0595-media-hantro-postproc-Fix-buffer-size-calculation.patch
+PATCHFILES += 0596-media-hantro-postproc-Fix-legacy-regs-configuration.patch
+PATCHFILES += 0597-media-hantro-Store-VP9-bit-depth-in-context.patch
+PATCHFILES += 0598-media-hantro-sunxi-Enable-10-bit-decoding.patch
+PATCHFILES += 0599-media-hantro-postproc-Properly-calculate-chroma-offs.patch
 endif
 #------------------------------------------------------------
 
