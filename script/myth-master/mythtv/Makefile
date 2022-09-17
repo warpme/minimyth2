@@ -75,6 +75,8 @@ PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
 endif
+# fix deinterlacing when EGL DMAbuf is used
+PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # hack improvig a bit h264 seeks on rpi3/rpi4 & amlogic
 PATCHFILES += 0173-ffmpeg-libavcodec-v4l2_m2m_h264_dec-clean-input-buf-at-flush.patch
 # enable LTO; patches from issue #224
