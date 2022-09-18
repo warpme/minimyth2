@@ -1,5 +1,5 @@
 
-NO_LTO       = no
+DISABLE_LTO  = no
 
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
@@ -77,8 +77,6 @@ PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
 endif
 # fix deinterlacing when EGL DMAbuf is used
 PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
-# hack improvig a bit h264 seeks on rpi3/rpi4 & amlogic
-PATCHFILES += 0173-ffmpeg-libavcodec-v4l2_m2m_h264_dec-clean-input-buf-at-flush.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # hack to get refresh rate changing on drm
@@ -248,7 +246,7 @@ CONFIGURE_ARGS = \
 	--enable-asm \
 	--enable-fast-unaligned \
 	--enable-optimizations \
-	$(if $(filter yes,$(NO_LTO)),"--disable-lto","--enable-lto") \
+	$(if $(filter yes,$(DISABLE_LTO)),"--disable-lto","--enable-lto") \
 	--disable-proc-opt \
 	--enable-audio-oss \
 	--enable-audio-alsa \
@@ -310,7 +308,7 @@ CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -O0
 endif
 
-ifeq ($(NO_LTO),yes)
+ifeq ($(DISABLE_LTO),yes)
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
