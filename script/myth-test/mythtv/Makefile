@@ -1,5 +1,5 @@
 
-NO_LTO       = no
+DISABLE_LTO  = no
 
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
@@ -71,16 +71,16 @@ PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
 endif
-# hack improvig a bit h264 seeks on rpi3/rpi4 & amlogic
-PATCHFILES += 0173-ffmpeg-libavcodec-v4l2_m2m_h264_dec-clean-input-buf-at-flush.patch
 # fix deinterlacing when EGL DMAbuf is used
 PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
+# fix for h264 pixelization on v4l2_m2m decoders (issue is after 6m40s playback of 25fps content)
+PATCHFILES += 0175-ffmpeg-libavutil-inc-max-fifo-to-64MB.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # hack to get refresh rate changing on drm
 PATCHFILES += 0198-libmythui-mythdrmdevice-add-refresh-change-capability.patch
 # improvements for statefull v4l2_m2m seeking on rpi
-PATCHFILES += 0199-hack-hack-hack-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
+#PATCHFILES += 0199-hack-hack-hack-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
@@ -244,7 +244,7 @@ CONFIGURE_ARGS = \
 	--enable-asm \
 	--enable-fast-unaligned \
 	--enable-optimizations \
-	$(if $(filter yes,$(NO_LTO)),"--disable-lto","--enable-lto") \
+	$(if $(filter yes,$(DISABLE_LTO)),"--disable-lto","--enable-lto") \
 	--disable-proc-opt \
 	--enable-audio-oss \
 	--enable-audio-alsa \
@@ -306,7 +306,7 @@ CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -O0
 endif
 
-ifeq ($(NO_LTO),yes)
+ifeq ($(DISABLE_LTO),yes)
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
