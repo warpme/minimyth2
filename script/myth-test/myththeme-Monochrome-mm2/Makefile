@@ -17,6 +17,7 @@ PATCHFILES  += add-current-next-rec-in-standby-screen.patch
 PATCHFILES  += add-zoneminder-support.patch
 PATCHFILES  += add-right-arrow-to-list-episodes.patch
 PATCHFILES  += add-virtual-keyboard.patch
+PATCHFILES  += add-osd_subtitle-xml.patch
 # PATCHFILES  += add-snow-animations.patch
 
 LICENSE      = GPL2
