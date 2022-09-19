@@ -63,10 +63,6 @@ PATCHFILES += 0152-configure-add-v4l2request-support.patch
 PATCHFILES += 0153-ffmpeg-libavfilter-add-v4l2deinterlace-filter.patch
 # Improve v4l2_request resiliency on so DVB stream errors (http://jernej.libreelec.tv/videos/cedrus_broken.ts)
 PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
-# Fix green screen on hantro h264 vdpu2 hw video decode
-PATCHFILES += 0155-ffmpeg-libavcodec-h264_slice-fix-decoding-on-hantro-vdpu2.patch
-# Add NEON based VC1 decoding on arm/aarch64
-PATCHFILES += 0156-ffmpeg-libavcodec-vc1-arm-use-neon-optimisations.patch
 endif
 
 # buffers bump-up required for AML HD playbck
@@ -77,12 +73,14 @@ PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
 endif
 # fix deinterlacing when EGL DMAbuf is used
 PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
+# fix for h264 pixelization on v4l2_m2m decoders (issue is after 6m40s playback of 25fps content)
+PATCHFILES += 0175-ffmpeg-libavutil-inc-max-fifo-to-64MB.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # hack to get refresh rate changing on drm
 PATCHFILES += 0198-libmythui-mythdrmdevice-add-refresh-change-capability.patch
 # improvements for statefull v4l2_m2m seeking on rpi
-PATCHFILES += 0199-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
+PATCHFILES += 0199-hack-hack-hack-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch

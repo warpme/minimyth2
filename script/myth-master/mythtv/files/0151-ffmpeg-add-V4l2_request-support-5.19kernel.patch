@@ -1,3 +1,24 @@
+
+
+This adds support for v4l2_request hw decode for:
+ -mpeg2
+ -h264
+ -hevc
+ -vp8
+ -vp9
+
+on ffmpeg5.1
+
+Based on LibreELEC code, Jernej improvements and my update to ffmpeg5.1 +
+some fixes
+
+developed by piotr.oniszczuk@gmail.com
+
+
+
+
+
+
 From 904af26693095364851bbc6c6557fca9b3437b69 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Mon, 3 Dec 2018 23:48:04 +0100
@@ -97,11 +118,11 @@ index d7a3f507e834..f2e203d13463 100755
      libvmaf
      libvorbis
 @@ -1868,6 +1871,7 @@ HWACCEL_LIBRARY_LIST="
-     mmal
-     omx
-     opencl
-+    v4l2_request
+     vdpau
+     videotoolbox
      vulkan
++    v4l2_request
+     v4l2_m2m
  "
  
 @@ -2919,6 +2923,7 @@ d3d11va_deps="dxva_h ID3D11VideoDecoder ID3D11VideoContext"
@@ -109,7 +130,7 @@ index d7a3f507e834..f2e203d13463 100755
  ffnvcodec_deps_any="libdl LoadLibrary"
  nvdec_deps="ffnvcodec"
 +v4l2_request_deps="linux_videodev2_h linux_media_h v4l2_timeval_to_ns libdrm libudev"
- vaapi_x11_deps="xlib"
+ vaapi_x11_deps="xlib_x11"
  videotoolbox_hwaccel_deps="videotoolbox pthreads"
  videotoolbox_hwaccel_extralibs="-framework QuartzCore"
 @@ -6438,6 +6443,7 @@ enabled libtwolame        && require libtwolame twolame.h twolame_init -ltwolame
@@ -157,9 +178,10 @@ index f421dc909f44..ee78d8ab8e89 100644
 --- mythtv-master-20211101-old/mythtv/external/FFmpeg/libavcodec/hwconfig.h
 +++ mythtv-master-20211101-new/mythtv/external/FFmpeg/libavcodec/hwconfig.h
 @@ -80,6 +80,8 @@ typedef struct AVCodecHWConfigInternal {
+#define HWACCEL_VIDEOTOOLBOX(codec) \
+     HW_CONFIG_HWACCEL(1, 1, 1, VIDEOTOOLBOX, VIDEOTOOLBOX, ff_ ## codec ## _videotoolbox_hwaccel)
+ #define HWACCEL_D3D11VA(codec) \
      HW_CONFIG_HWACCEL(0, 0, 1, D3D11VA_VLD,  NONE,         ff_ ## codec ## _d3d11va_hwaccel)
- #define HWACCEL_XVMC(codec) \
-     HW_CONFIG_HWACCEL(0, 0, 1, XVMC,         NONE,         ff_ ## codec ## _xvmc_hwaccel)
 +#define HWACCEL_V4L2REQUEST(codec) \
 +    HW_CONFIG_HWACCEL(1, 0, 0, DRM_PRIME,    DRM,          ff_ ## codec ## _v4l2request_hwaccel)
  
@@ -1239,46 +1261,6 @@ index 000000000000..58d2aa70af80
 +
 +#endif /* AVCODEC_V4L2_REQUEST_H */
 
-From e432d3151f4c5507e40fb1fe8b3c3fb7c7a0a08c Mon Sep 17 00:00:00 2001
-From: Ezequiel Garcia <ezequiel@collabora.com>
-Date: Wed, 20 Feb 2019 11:18:00 -0300
-Subject: [PATCH 03/16] h264dec: add idr_pic_id to slice context
-
-Used by V4L2 request API h264 hwaccel
-
-Signed-off-by: Ezequiel Garcia <ezequiel@collabora.com>
-Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
----
- libavcodec/h264_slice.c | 2 +-
- libavcodec/h264dec.h    | 1 +
- 2 files changed, 2 insertions(+), 1 deletion(-)
-
-diff --git mythtv-master-20211101-old/mythtv/external/FFmpeg/libavcodec/h264_slice.c mythtv-master-20211101-new/mythtv/external/FFmpeg/libavcodec/h264_slice.c
-index 2d0605c7f4f6..c3a7338a7043 100644
---- mythtv-master-20211101-old/mythtv/external/FFmpeg/libavcodec/h264_slice.c
-+++ mythtv-master-20211101-new/mythtv/external/FFmpeg/libavcodec/h264_slice.c
-@@ -1830,7 +1830,7 @@ static int h264_slice_header_parse(const H264Context *h, H264SliceContext *sl,
-     }
- 
-     if (nal->type == H264_NAL_IDR_SLICE)
--        get_ue_golomb_long(&sl->gb); /* idr_pic_id */
-+        sl->idr_pic_id = get_ue_golomb_long(&sl->gb);
- 
-     if (sps->poc_type == 0) {
-         sl->poc_lsb = get_bits(&sl->gb, sps->log2_max_poc_lsb);
-diff --git mythtv-master-20211101-old/mythtv/external/FFmpeg/libavcodec/h264dec.h mythtv-master-20211101-new/mythtv/external/FFmpeg/libavcodec/h264dec.h
-index b7b19ba4f162..0698ab95ba51 100644
---- mythtv-master-20211101-old/mythtv/external/FFmpeg/libavcodec/h264dec.h
-+++ mythtv-master-20211101-new/mythtv/external/FFmpeg/libavcodec/h264dec.h
-@@ -336,6 +336,7 @@ typedef struct H264SliceContext {
-     int delta_poc[2];
-     int curr_pic_num;
-     int max_pic_num;
-+    int idr_pic_id;
- } H264SliceContext;
- 
- /**
-
 From 5a8628cf6368fe18457d02bf551d5935609efab5 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@siol.net>
 Date: Sat, 15 Dec 2018 22:32:16 +0100
@@ -1914,16 +1896,16 @@ index 94221da2c158..4b0176f6cb19 100644
  #endif
      AV_PIX_FMT_YUV420P,
      AV_PIX_FMT_NONE
-@@ -2961,6 +2964,9 @@ AVCodec ff_mpeg2video_decoder = {
+@@ -3124,6 +3127,9 @@
+ #if CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL
+                         HWACCEL_VIDEOTOOLBOX(mpeg2),
  #endif
- #if CONFIG_MPEG2_XVMC_HWACCEL
-                         HWACCEL_XVMC(mpeg2),
-+#endif
 +#if CONFIG_MPEG2_V4L2REQUEST_HWACCEL
 +                        HWACCEL_V4L2REQUEST(mpeg2),
- #endif
++#endif
                          NULL
                      },
+ };
 diff --git mythtv-master-20211101-old/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg2.c mythtv-master-20211101-new/mythtv/external/FFmpeg/libavcodec/v4l2_request_mpeg2.c
 new file mode 100644
 index 000000000000..84d53209c79d
@@ -3426,26 +3408,26 @@ index 4659f94ee8b6..1b2f1eeaf69c 100644
                       CONFIG_VP9_VAAPI_HWACCEL + \
                       CONFIG_VP9_VDPAU_HWACCEL)
      enum AVPixelFormat pix_fmts[HWACCEL_MAX + 2], *fmtp = pix_fmts;
-@@ -223,6 +224,9 @@ static int update_size(AVCodecContext *avctx, int w, int h)
+@@ -221,6 +222,9 @@
+ #if CONFIG_VP9_VIDEOTOOLBOX_HWACCEL
+             *fmtp++ = AV_PIX_FMT_VIDEOTOOLBOX;
  #endif
- #if CONFIG_VP9_VDPAU_HWACCEL
-             *fmtp++ = AV_PIX_FMT_VDPAU;
-+#endif
 +#if CONFIG_VP9_V4L2REQUEST_HWACCEL
 +            *fmtp++ = AV_PIX_FMT_DRM_PRIME;
- #endif
++#endif
              break;
          case AV_PIX_FMT_YUV420P12:
-@@ -234,6 +238,9 @@ static int update_size(AVCodecContext *avctx, int w, int h)
- #endif
+ #if CONFIG_VP9_NVDEC_HWACCEL
+@@ -232,6 +236,9 @@
  #if CONFIG_VP9_VDPAU_HWACCEL
              *fmtp++ = AV_PIX_FMT_VDPAU;
-+#endif
+ #endif
 +#if CONFIG_VP9_V4L2REQUEST_HWACCEL
 +            *fmtp++ = AV_PIX_FMT_DRM_PRIME;
- #endif
++#endif
              break;
          }
+
 @@ -382,7 +389,7 @@ static av_always_inline int inv_recenter_nonneg(int v, int m)
  }
  
@@ -3767,16 +3749,17 @@ index 4659f94ee8b6..1b2f1eeaf69c 100644
              }
          }
      }
-@@ -1912,6 +1991,9 @@ AVCodec ff_vp9_decoder = {
+@@ -1905,6 +1984,9 @@
+ #if CONFIG_VP9_VIDEOTOOLBOX_HWACCEL
+                                HWACCEL_VIDEOTOOLBOX(vp9),
  #endif
- #if CONFIG_VP9_VDPAU_HWACCEL
-                                HWACCEL_VDPAU(vp9),
-+#endif
 +#if CONFIG_VP9_V4L2REQUEST_HWACCEL
 +                               HWACCEL_V4L2REQUEST(vp9),
- #endif
++#endif
                                 NULL
                             },
+ };
+ 
 diff --git mythtv-master-20211101-old/mythtv/external/FFmpeg/libavcodec/vp9dec.h mythtv-master-20211101-new/mythtv/external/FFmpeg/libavcodec/vp9dec.h
 index d82b258a3d81..8d2c341e0b97 100644
 --- mythtv-master-20211101-old/mythtv/external/FFmpeg/libavcodec/vp9dec.h
@@ -4733,9 +4716,9 @@ index 9b95c76cdb82..ec0300f66dbe 100644
  const AVHWAccel ff_vp9_v4l2request_hwaccel = {
 
 
+
+
 Update v4l2_request to https://github.com/jernejsk/FFmpeg/commits/v4l2-request-hwaccel-4.4
-
-
 
 diff --speed-large-files --no-dereference --minimal -Naur mythtv-14e0779741133a863204e855a58266dfcd4b8f6e/mythtv/external/FFmpeg/libavcodec/hevc-ctrls.h mythtv-14e0779741133a863204e855a58266dfcd4b8f6e/mythtv/external/FFmpeg/libavcodec/hevc-ctrls.h
 --- mythtv-14e0779741133a863204e855a58266dfcd4b8f6e/mythtv/external/FFmpeg/libavcodec/hevc-ctrls.h	2022-07-12 16:51:45.646510433 +0200
@@ -4921,3 +4904,100 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-14e0779741133a8
      ret = ff_vaapi_decode_issue(avctx, pic);
      if (ret < 0)
          goto finish;
+
+
+
+
+This updates v4l2_request code to ffmpeg5.1
+
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264dec.h mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264dec.h
+--- mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264dec.h	2022-09-06 15:33:48.000000000 +0200
++++ mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264dec.h	2022-09-07 14:44:55.378065797 +0200
+@@ -322,6 +322,8 @@
+     int delta_poc[2];
+     int curr_pic_num;
+     int max_pic_num;
++    int ref_pic_marking_bit_size;
++    int pic_order_cnt_bit_size;
+ } H264SliceContext;
+ 
+ /**
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264_slice.c mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264_slice.c
+--- mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264_slice.c	2022-09-07 15:01:48.464714171 +0200
++++ mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264_slice.c	2022-09-07 14:55:03.284721473 +0200
+@@ -1852,7 +1852,7 @@
+     unsigned int slice_type, tmp, i;
+     int field_pic_flag, bottom_field_flag;
+     int first_slice = sl == h->slice_ctx && !h->current_slice;
+-    int picture_structure;
++    int picture_structure, pos;
+ 
+     if (first_slice)
+         av_assert0(!h->setup_finished);
+@@ -1996,9 +1996,11 @@
+ 
+     sl->explicit_ref_marking = 0;
+     if (nal->ref_idc) {
++        pos = sl->gb.index;
+         ret = ff_h264_decode_ref_pic_marking(sl, &sl->gb, nal, h->avctx);
+         if (ret < 0 && (h->avctx->err_recognition & AV_EF_EXPLODE))
+             return AVERROR_INVALIDDATA;
++        sl->ref_pic_marking_bit_size = sl->gb.index - pos;
+     }
+ 
+     if (sl->slice_type_nos != AV_PICTURE_TYPE_I && pps->cabac) {
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_h264.c mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_h264.c
+--- mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_h264.c	2022-09-07 15:01:48.704714167 +0200
++++ mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_h264.c	2022-09-07 14:30:36.214747943 +0200
+@@ -19,6 +19,7 @@
+ #include "h264dec.h"
+ #include "hwconfig.h"
+ #include "v4l2_request.h"
++#include "internal.h"
+ 
+ typedef struct V4L2RequestControlsH264 {
+     struct v4l2_ctrl_h264_sps sps;
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c
+--- mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c	2022-09-07 15:01:48.468047504 +0200
++++ mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c	2022-09-07 14:30:36.144747945 +0200
+@@ -19,6 +19,7 @@
+ #include "hevcdec.h"
+ #include "hwconfig.h"
+ #include "v4l2_request.h"
++#include "internal.h"
+ #include "hevc-ctrls.h"
+ 
+ #define MAX_SLICES 32
+
+
+
+This fixes green screen on h264 decoding on rockchip
+
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-848bfbf55ea56ed6dc62d64f7f0dd676de3143f5/mythtv/external/FFmpeg/libavcodec/h264_slice.c mythtv-848bfbf55ea56ed6dc62d64f7f0dd676de3143f5/mythtv/external/FFmpeg/libavcodec/h264_slice.c
+--- mythtv-848bfbf55ea56ed6dc62d64f7f0dd676de3143f5/mythtv/external/FFmpeg/libavcodec/h264_slice.c	2022-01-29 14:36:09.359692928 +0100
++++ mythtv-848bfbf55ea56ed6dc62d64f7f0dd676de3143f5/mythtv/external/FFmpeg/libavcodec/h264_slice.c	2022-01-29 13:59:14.539732888 +0100
+@@ -1844,8 +1844,7 @@
+     if (nal->type == H264_NAL_IDR_SLICE)
+         sl->idr_pic_id = get_ue_golomb_long(&sl->gb);
+ 
+-    sl->poc_lsb = 0;
+-    sl->delta_poc_bottom = 0;
++    pos = sl->gb.index;
+     if (sps->poc_type == 0) {
+         sl->poc_lsb = get_bits(&sl->gb, sps->log2_max_poc_lsb);
+ 
+@@ -1853,13 +1852,13 @@
+             sl->delta_poc_bottom = get_se_golomb(&sl->gb);
+     }
+ 
+-    sl->delta_poc[0] = sl->delta_poc[1] = 0;
+     if (sps->poc_type == 1 && !sps->delta_pic_order_always_zero_flag) {
+         sl->delta_poc[0] = get_se_golomb(&sl->gb);
+ 
+         if (pps->pic_order_present == 1 && picture_structure == PICT_FRAME)
+             sl->delta_poc[1] = get_se_golomb(&sl->gb);
+     }
++    sl->pic_order_cnt_bit_size = sl->gb.index - pos;
+ 
+     sl->redundant_pic_count = 0;
+     if (pps->redundant_pic_cnt_present)
