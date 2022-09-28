@@ -1,5 +1,5 @@
 
-DISABLE_LTO  = no
+DISABLE_LTO  = yes
 
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
@@ -27,7 +27,6 @@ PATCHFILES += 0031-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-th
 PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music.patch
 
 # Some patches for better logging
-PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
 PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 # speedup a bit portcheck
@@ -50,12 +49,12 @@ PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also 5.18/5.19 kernel patching)
 ifneq (,$(filter %5.18,$(mm_KERNEL_VERSION)))
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.18kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.18kernel-ffmpeg4.4.patch
 else
 ifneq (,$(filter %5.19,$(mm_KERNEL_VERSION)))
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.19kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.19kernel-ffmpeg4.4.patch
 else
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-6.0kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-6.0kernel-ffmpeg4.4.patch
 endif
 endif
 # Enable v4l2_request in myth configure
@@ -74,14 +73,12 @@ PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
 endif
 # fix deinterlacing when EGL DMAbuf is used
 PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
-# fix for h264 pixelization on v4l2_m2m decoders (issue is after 6m40s playback of 25fps content)
-PATCHFILES += 0175-ffmpeg-libavutil-inc-max-fifo-to-64MB.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # hack to get refresh rate changing on drm
 PATCHFILES += 0198-libmythui-mythdrmdevice-add-refresh-change-capability.patch
 # improvements for statefull v4l2_m2m seeking on rpi
-PATCHFILES += 0199-hack-hack-hack-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
+#PATCHFILES += 0199-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
