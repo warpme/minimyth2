@@ -112,7 +112,6 @@ PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 PATCHFILES += 0538-arm64-dts-allwinner-tanix-tx6-enable-wifi-cpu-dvfs.patch
 PATCHFILES += 0539-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
-#PATCHFILES += 0540-WIP-drm-bridge-synopsys-Fix-CEC-not-working-after-power.patch
 PATCHFILES += 0543-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 PATCHFILES += 0544-drm-sun4i-mixer-Add-caching-support.patch
 PATCHFILES += 0545-H6-add-sun50i-di-deinterlace-WiP.patch
