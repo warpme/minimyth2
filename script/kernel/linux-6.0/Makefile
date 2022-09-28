@@ -1,4 +1,4 @@
-ifeq (0,1)
+ifeq (1,1)
 #--Use this for mainline official x.y.z kernel from SCM----
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
@@ -14,7 +14,7 @@ WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 #----------------------------------------------------------
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 #--Use this for mainline git-commit kernel-----------------
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 GITHASH             = 
@@ -39,9 +39,7 @@ ifeq (1,1)
 PATCHFILES += 0102-drivers-char-random.c-revert-cap-jitter-samples-per-bit-to-factor-of-HZ.patch
 # MGLRU patch improving kernel memory management on low memory systems
 # https://patchwork.kernel.org/project/linux-mm/list/?series=667540
-PATCHFILES += 0103-mm-Multi-Gen-LRU-Framework-v14.1.patch
-# Fix for broken vaapi video decode on i964 vaapi driver
-PATCHFILES += 0104-drm-i915-Set-correct-domains-values-at-_i915_vma_move_to_active.patch
+# PATCHFILES += 0103-mm-Multi-Gen-LRU-Framework-v14.1.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 6.0 kernel
@@ -114,7 +112,7 @@ PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 PATCHFILES += 0538-arm64-dts-allwinner-tanix-tx6-enable-wifi-cpu-dvfs.patch
 PATCHFILES += 0539-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
-PATCHFILES += 0540-WIP-drm-bridge-synopsys-Fix-CEC-not-working-after-power.patch
+#PATCHFILES += 0540-WIP-drm-bridge-synopsys-Fix-CEC-not-working-after-power.patch
 PATCHFILES += 0543-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 PATCHFILES += 0544-drm-sun4i-mixer-Add-caching-support.patch
 PATCHFILES += 0545-H6-add-sun50i-di-deinterlace-WiP.patch
@@ -161,6 +159,7 @@ PATCHFILES += 0720-drm-from-list.patch
 PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
 PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
+PATCHFILES += 0733-drm-rockchip-fix-non-working-cec-after-power-cycle.patch
 # https://patchwork.kernel.org/project/linux-media/list/?series=659402
 PATCHFILES += 0741-media-staging-add-rkvdec-hevc-driver.patch
 PATCHFILES += 0742-v4l2-wip-iep-driver.patch
@@ -190,7 +189,6 @@ PATCHFILES += 0838-arm64-dts-rockchip-rock3a-enable-hdmi-and-analog-audio-pcie.p
 PATCHFILES += 0840-arm64-dts-rockchip-add-dts-for-rock3b.patch
 PATCHFILES += 0841-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
 PATCHFILES += 0842-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
-PATCHFILES += 0843-arm64-dts-rockchip-Lower-sd-speed-on-quartz64-b.patch
 endif
 #------------------------------------------------------------
 
