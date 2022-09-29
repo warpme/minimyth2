@@ -1,5 +1,5 @@
 
-DISABLE_LTO  = no
+DISABLE_LTO  = yes
 
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
