@@ -2549,7 +2549,7 @@ new file mode 100644
 index 0000000000..c30f3a5bff
 --- /dev/null
 +++ mythtv-master-20211101-new/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c
-@@ -0,0 +1,628 @@
+@@ -0,0 +1,673 @@
 +/*
 + * This file is part of FFmpeg.
 + *
@@ -2572,7 +2572,7 @@ index 0000000000..c30f3a5bff
 +#include "hwconfig.h"
 +#include "v4l2_request.h"
 +
-+#define MAX_SLICES 16
++#define MAX_SLICES 600 // as per HEVC spec ?
 +
 +typedef struct V4L2RequestControlsHEVC {
 +    struct v4l2_ctrl_hevc_sps sps;
@@ -2590,7 +2590,10 @@ index 0000000000..c30f3a5bff
 +    V4L2RequestContext base;
 +    int decode_mode;
 +    int start_code;
-+    int max_slices;
++    __u32 max_slices;
++    int supports_entry_point_offsets;
++    int supports_slices;
++    int supports_scaling_matrix;
 +} V4L2RequestContextHEVC;
 +
 +static uint8_t nalu_slice_start_code[] = { 0x00, 0x00, 0x01 };
@@ -3037,8 +3040,13 @@ index 0000000000..c30f3a5bff
 +    };
 +
 +    num_controls = FF_ARRAY_ELEMS(control);
-+    /* skip entry points offsets control if no entry points are present */
-+    if (!slice_params->num_entry_point_offsets) //XXXX comenting fixes rockchip but breaks allwinner
++
++    /* TODO: this currently assumes, that there is no decoder which supports entry_points but no slices etc.: Find a better way (dynamic array: performance?) */
++    if (!ctx->supports_entry_point_offsets || !slice_params->num_entry_point_offsets)
++        --num_controls;
++    if (!ctx->supports_slices)
++        --num_controls;
++    if (!ctx->supports_scaling_matrix)
 +        --num_controls;
 +
 +    if (ctx->decode_mode == V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED)
@@ -3106,8 +3114,14 @@ index 0000000000..c30f3a5bff
 +        { .id = V4L2_CID_STATELESS_HEVC_DECODE_MODE, },
 +        { .id = V4L2_CID_STATELESS_HEVC_START_CODE, },
 +    };
++    struct v4l2_query_ext_ctrl entry_point_offsets = {
++        .id = V4L2_CID_STATELESS_HEVC_ENTRY_POINT_OFFSETS,
++    };
 +    struct v4l2_query_ext_ctrl slice_params = {
 +        .id = V4L2_CID_STATELESS_HEVC_SLICE_PARAMS,
++    };
++    struct v4l2_query_ext_ctrl scaling_matrix = {
++        .id = V4L2_CID_STATELESS_HEVC_SCALING_MATRIX,
 +    };
 +
 +    ctx->decode_mode = ff_v4l2_request_query_control_default_value(avctx, V4L2_CID_STATELESS_HEVC_DECODE_MODE);
@@ -3124,15 +3138,46 @@ index 0000000000..c30f3a5bff
 +        return AVERROR(EINVAL);
 +    }
 +
-+    ret = ff_v4l2_request_query_control(avctx, &slice_params);
-+    if (ret)
-+        return ret;
-+
-+    ctx->max_slices = slice_params.elems;
-+    if (ctx->max_slices > MAX_SLICES) {
-+        av_log(avctx, AV_LOG_ERROR, "%s: unsupported max slices, %d\n", __func__, ctx->max_slices);
-+        return AVERROR(EINVAL);
++    ret = ff_v4l2_request_query_control(avctx, &entry_point_offsets);
++    if (ret) {
++      ctx->supports_entry_point_offsets = 0;
++    } else {
++      ctx->supports_entry_point_offsets = 1;
 +    }
++
++    ret = ff_v4l2_request_query_control(avctx, &slice_params);
++    if (ret) {
++      ctx->supports_slices = 0;
++      ctx->max_slices = 0;
++      if (ctx->decode_mode == V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED) {
++        av_log(avctx, AV_LOG_ERROR, "%s: decoder is V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED, \
++               but doesn't support V4L2_CID_STATELESS_HEVC_SLICE_PARAMS control \n", __func__);
++        return AVERROR(EINVAL);
++      }
++    } else {
++      ctx->supports_slices = 1;
++      ctx->max_slices = slice_params.dims[0];
++      if (ctx->max_slices > MAX_SLICES) {
++        av_log(avctx, AV_LOG_ERROR, "%s: unsupported max slices, %u\n", __func__, ctx->max_slices);
++        return AVERROR(EINVAL);
++      }
++    }
++
++    ret = ff_v4l2_request_query_control(avctx, &scaling_matrix);
++    if (ret) {
++      ctx->supports_scaling_matrix = 0;
++    } else {
++      ctx->supports_scaling_matrix = 1;
++    }
++
++    av_log(avctx, AV_LOG_DEBUG, "%s: decoder is %s and supports slices %d, supports entry_point_offsets: %d supports scaling_matrix: %d max slices: %u\n",
++           __func__,
++          ctx->decode_mode == V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED ? "slice based" : "frame based",
++          ctx->supports_slices,
++          ctx->supports_entry_point_offsets,
++          ctx->supports_scaling_matrix,
++          ctx->max_slices
++    );
 +
 +    control[0].value = ctx->decode_mode;
 +    control[1].value = ctx->start_code;
