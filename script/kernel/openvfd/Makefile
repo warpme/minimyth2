@@ -1,7 +1,8 @@
 
 GARNAME        = openvfd
-GARVERSION     = 766c6a948836bbf350bd90917fc925079e297e6e
-CONFIGSVERSION = 18f2ec6b24ae3b507e1de0cb18248497f19bdc02
+# v1.4.2 6.09.2022
+GARVERSION     = ac2d94c8f466d6d1d56b5dc818a342b0ce01a750
+CONFIGSVERSION = e36499532ac9583cdfd1fcb2e42c0567c5a1f892
 CATEGORIES     = kernel
 MASTER_SITES   = \
 		https://github.com/arthur-liberman/linux_openvfd/archive/ \
