@@ -40,6 +40,7 @@ PATCHFILES += 0102-drivers-char-random.c-revert-cap-jitter-samples-per-bit-to-fa
 # MGLRU patch improving kernel memory management on low memory systems
 # https://patchwork.kernel.org/project/linux-mm/list/?series=667540
 # PATCHFILES += 0103-mm-Multi-Gen-LRU-Framework-v14.1.patch
+PATCHFILES += 0105-drivers-led-add-openvfd-1.4.2.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 6.0 kernel
