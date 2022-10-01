@@ -1,5 +1,5 @@
 
-DISABLE_LTO  = no
+DISABLE_LTO  = yes
 
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
@@ -81,7 +81,7 @@ PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # hack to get refresh rate changing on drm
 PATCHFILES += 0198-libmythui-mythdrmdevice-add-refresh-change-capability.patch
 # improvements for statefull v4l2_m2m seeking on rpi
-PATCHFILES += 0199-hack-hack-hack-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
+#PATCHFILES += 0199-hack-hack-hack-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
@@ -325,6 +325,16 @@ install-source:
 	@mkdir -p $(DESTDIR)$(MYTHTV_SOURCEDIR)
 	@rm -rf $(DESTDIR)$(MYTHTV_SOURCEDIR)
 	@ln -sf $(PWD)/$(WORKSRC)/mythtv $(DESTDIR)$(MYTHTV_SOURCEDIR)
+	@$(MAKECOOKIE)
+
+pre-install:
+	@rm -rf $(DESTDIR)$(bindir)/mtd
+	@rm -rf $(DESTDIR)$(bindir)/myth*
+	@rm -rf $(DESTDIR)$(datadir)/myth*
+	@rm -rf $(DESTDIR)$(includedir)/myth*
+	@rm -rf $(DESTDIR)$(libdir)/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV
+	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV-*
 	@$(MAKECOOKIE)
 
 post-install:

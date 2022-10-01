@@ -323,6 +323,16 @@ install-source:
 	@ln -sf $(PWD)/$(WORKSRC)/mythtv $(DESTDIR)$(MYTHTV_SOURCEDIR)
 	@$(MAKECOOKIE)
 
+pre-install:
+	@rm -rf $(DESTDIR)$(bindir)/mtd
+	@rm -rf $(DESTDIR)$(bindir)/myth*
+	@rm -rf $(DESTDIR)$(datadir)/myth*
+	@rm -rf $(DESTDIR)$(includedir)/myth*
+	@rm -rf $(DESTDIR)$(libdir)/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV
+	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV-*
+	@$(MAKECOOKIE)
+
 post-install:
 	@rm -f $(DESTDIR)$(bindir)/mythtv
 	@mv $(DESTDIR)$(bindir)/mythavtest $(DESTDIR)$(bindir)/mythtv
