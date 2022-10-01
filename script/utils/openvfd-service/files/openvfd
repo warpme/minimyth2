@@ -1,0 +1,61 @@
+#!/bin/sh
+
+USRCONFFILE="/etc/openvfd/vfd.conf"
+
+DriverLoaded() {
+
+  grep -qse openvfd /proc/modules
+
+}
+
+if ! DriverLoaded; then
+
+    if [ -f "$USRCONFFILE" ]; then
+
+        . "$USRCONFFILE"
+
+        module_params=" \
+vfd_gpio_clk=${vfd_gpio_clk} \
+vfd_gpio_dat=${vfd_gpio_dat} \
+vfd_gpio_stb=${vfd_gpio_stb:-0,0,0xFF} \
+vfd_gpio0=${vfd_gpio0:-0,0,0xFF} \
+vfd_gpio1=${vfd_gpio1:-0,0,0xFF} \
+vfd_gpio2=${vfd_gpio2:-0,0,0xFF} \
+vfd_gpio3=${vfd_gpio3:-0,0,0xFF} \
+vfd_gpio_chip_name=${vfd_gpio_chip_name:-0,0} \
+vfd_chars=${vfd_chars} vfd_dot_bits=${vfd_dot_bits} \
+vfd_display_type=${vfd_display_type}"
+
+        echo "loading openvfd.ko with ${module_params}"
+
+    else
+
+        module_params=""
+        echo "loading openvfd.ko"
+
+    fi
+        /sbin/modprobe openvfd ${module_params}
+fi
+
+if DriverLoaded; then
+
+    if [ -n "`/bin/pidof OpenVFDService`" ] ; then
+
+        echo "OpenVFDService already  started. Exiting with rc=0"
+        exit 0
+
+    else
+
+        echo "starting OpenVFDService daemon"
+        /usr/bin/OpenVFDService ${clock_12h_format:+-12h} &
+        echo "OpenVFDService daemon started. Exiting with rc=0"
+        exit 0
+
+    fi
+
+else
+
+    echo "OpenVFDService daemon not started as loading openvfd.ko failed ..."
+    exit 1
+
+fi
