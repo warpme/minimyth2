@@ -202,6 +202,7 @@ DEPENDS = \
 	$(if $(filter xscreensaver,$(mm_SOFTWARE)),X11/xscreensaver) \
 	$(if $(filter monitorix,$(mm_SOFTWARE)),utils/monitorix) \
 	$(if $(filter termbin,$(mm_SOFTWARE)),utils/termbin) \
+	$(if $(filter openvfd,$(mm_SOFTWARE)),utils/openvfd-service) \
 	$(filter-out %/Makefile extras/extras-% extras/extras.%,$(subst ../../,,$(wildcard ../../extras/*))) \
 	$(mm_USER_PACKAGES)
 
