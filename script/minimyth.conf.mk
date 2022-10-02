@@ -210,7 +210,7 @@ mm_PYTHON_VERSION         ?= py3
 mm_SHELL                  ?= busybox
 
 # The version of kernel to use.
-# Valid values are '5.18' and '5'19'
+# Valid values are '5.19' and '6'0'
 mm_KERNEL_VERSION         ?= 5.19
 
 # The kernel configuration file to use.

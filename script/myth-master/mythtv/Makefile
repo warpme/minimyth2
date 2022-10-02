@@ -48,15 +48,11 @@ PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
 PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
 ifeq (1,1)
-# v4l2-request support in ffmpeg (requires also 5.18/5.19 kernel patching)
-ifneq (,$(filter %5.18,$(mm_KERNEL_VERSION)))
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.18kernel.patch
-else
+# v4l2-request support in ffmpeg (requires also kernel patching)
 ifneq (,$(filter %5.19,$(mm_KERNEL_VERSION)))
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.19kernel.patch
 else
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-6.0kernel.patch
-endif
 endif
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
@@ -64,8 +60,6 @@ PATCHFILES += 0152-configure-add-v4l2request-support.patch
 PATCHFILES += 0153-ffmpeg-libavfilter-add-v4l2deinterlace-filter.patch
 # Improve v4l2_request resiliency on so DVB stream errors (http://jernej.libreelec.tv/videos/cedrus_broken.ts)
 PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
-endif
-
 # buffers bump-up required for AML HD playbck
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 # this makes v4l2_request seeking on h264 content working
@@ -82,6 +76,7 @@ PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 PATCHFILES += 0198-libmythui-mythdrmdevice-add-refresh-change-capability.patch
 # improvements for statefull v4l2_m2m seeking on rpi
 #PATCHFILES += 0199-hack-hack-hack-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
+endif
 
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
