@@ -1365,7 +1365,7 @@ new file mode 100644
 index 000000000000..88da8f0a2db0
 --- /dev/null
 +++ mythtv-master-20211101-new/mythtv/external/FFmpeg/libavcodec/v4l2_request_h264.c
-@@ -0,0 +1,456 @@
+@@ -0,0 +1,457 @@
 +/*
 + * This file is part of FFmpeg.
 + *
@@ -1386,6 +1386,7 @@ index 000000000000..88da8f0a2db0
 +
 +#include "h264dec.h"
 +#include "hwconfig.h"
++#include "internal.h"
 +#include "v4l2_request.h"
 +
 +typedef struct V4L2RequestControlsH264 {
@@ -2454,7 +2455,7 @@ new file mode 100644
 index 0000000000..c30f3a5bff
 --- /dev/null
 +++ mythtv-master-20211101-new/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c
-@@ -0,0 +1,674 @@
+@@ -0,0 +1,682 @@
 +/*
 + * This file is part of FFmpeg.
 + *
@@ -2479,6 +2480,7 @@ index 0000000000..c30f3a5bff
 +#include "v4l2_request.h"
 +
 +#define MAX_SLICES 600 // as per HEVC spec ?
++#define V4L2_HEVC_CONTROLS_MAX 6
 +
 +typedef struct V4L2RequestControlsHEVC {
 +    struct v4l2_ctrl_hevc_sps sps;
@@ -2489,17 +2491,17 @@ index 0000000000..c30f3a5bff
 +    __u32 *entry_point_offsets;
 +    unsigned int num_entry_point_offsets;
 +    int first_slice;
-+    int num_slices; //TODO: this should be in control
++    int num_slices;
 +} V4L2RequestControlsHEVC;
 +
 +typedef struct V4L2RequestContextHEVC {
 +    V4L2RequestContext base;
-+    int decode_mode;
-+    int start_code;
++    unsigned int decode_mode;
++    unsigned int start_code;
 +    __u32 max_slices;
-+    int supports_entry_point_offsets;
-+    int supports_slices;
-+    int supports_scaling_matrix;
++    unsigned int supports_entry_point_offsets;
++    unsigned int supports_slices;
++    unsigned int supports_scaling_matrix;
 +} V4L2RequestContextHEVC;
 +
 +static uint8_t nalu_slice_start_code[] = { 0x00, 0x00, 0x01 };
@@ -2908,52 +2910,53 @@ index 0000000000..c30f3a5bff
 +{
 +    const HEVCContext *h = avctx->priv_data;
 +    V4L2RequestControlsHEVC *controls = h->ref->hwaccel_picture_private;
-+    struct v4l2_ctrl_hevc_slice_params *slice_params = controls->slice_params;
++    struct v4l2_ctrl_hevc_slice_params *first_slice_params = &controls->slice_params[0];
 +    V4L2RequestContextHEVC *ctx = avctx->internal->hwaccel_priv_data;
-+    int num_controls;
++    int num_controls = 0;
 +
-+    struct v4l2_ext_control control[] = {
-+        {
++    struct v4l2_ext_control control[V4L2_HEVC_CONTROLS_MAX] = {};
++
++    control[num_controls++] = (struct v4l2_ext_control) {
 +            .id = V4L2_CID_STATELESS_HEVC_SPS,
 +            .ptr = &controls->sps,
 +            .size = sizeof(controls->sps),
-+        },
-+        {
++    };
++
++    control[num_controls++] = (struct v4l2_ext_control) {
 +            .id = V4L2_CID_STATELESS_HEVC_PPS,
 +            .ptr = &controls->pps,
 +            .size = sizeof(controls->pps),
-+        },
-+        {
-+            .id = V4L2_CID_STATELESS_HEVC_DECODE_PARAMS,
-+            .ptr = &controls->dec_params,
-+            .size = sizeof(controls->dec_params),
-+        },
-+        {
++    };
++
++    control[num_controls++] = (struct v4l2_ext_control) {
++         .id = V4L2_CID_STATELESS_HEVC_DECODE_PARAMS,
++         .ptr = &controls->dec_params,
++         .size = sizeof(controls->dec_params),
++    };
++
++    if (ctx->supports_scaling_matrix) {
++       control[num_controls++] = (struct v4l2_ext_control) {
 +            .id = V4L2_CID_STATELESS_HEVC_SCALING_MATRIX,
 +            .ptr = &controls->scaling_matrix,
 +            .size = sizeof(controls->scaling_matrix),
-+        },
-+        {
++        };
++    }
++
++    if (ctx->supports_slices) {
++       control[num_controls++] = (struct v4l2_ext_control) {
 +            .id = V4L2_CID_STATELESS_HEVC_SLICE_PARAMS,
 +            .ptr = &controls->slice_params,
-+            .size = sizeof(controls->slice_params[0]) * controls->num_slices,
-+        },
-+        {
++            .size = sizeof(*first_slice_params) * controls->num_slices,
++        };
++    }
++    //this assumes that decoders supporting entry_point_offsets submit a single slice per request
++    if (ctx->supports_entry_point_offsets && first_slice_params->num_entry_point_offsets > 0) {
++       control[num_controls++] = (struct v4l2_ext_control) {
 +            .id = V4L2_CID_STATELESS_HEVC_ENTRY_POINT_OFFSETS,
 +            .ptr = controls->entry_point_offsets,
-+            .size = sizeof(*controls->entry_point_offsets) * slice_params->num_entry_point_offsets,
-+        },
-+    };
-+
-+    num_controls = FF_ARRAY_ELEMS(control);
-+
-+    /* TODO: this currently assumes, that there is no decoder which supports entry_points but no slices etc.: Find a better way (dynamic array: performance?) */
-+    if (!ctx->supports_entry_point_offsets || !slice_params->num_entry_point_offsets)
-+        --num_controls;
-+    if (!ctx->supports_slices)
-+        --num_controls;
-+    if (!ctx->supports_scaling_matrix)
-+        --num_controls;
++            .size = sizeof(*controls->entry_point_offsets) * first_slice_params->num_entry_point_offsets,
++        };
++    }
 +
 +    if (ctx->decode_mode == V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED)
 +        return ff_v4l2_request_decode_slice(avctx, h->ref->frame, control, num_controls, controls->first_slice, last_slice);
@@ -3056,7 +3059,13 @@ index 0000000000..c30f3a5bff
 +      ctx->supports_slices = 0;
 +      ctx->max_slices = 0;
 +      if (ctx->decode_mode == V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED) {
-+        av_log(avctx, AV_LOG_ERROR, "%s: decoder is V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED, \
++        av_log(avctx, AV_LOG_ERROR, "%s: decoder is slice-based, \
++               but doesn't support V4L2_CID_STATELESS_HEVC_SLICE_PARAMS control \n", __func__);
++        return AVERROR(EINVAL);
++      }
++
++      if (ctx->supports_entry_point_offsets) {
++        av_log(avctx, AV_LOG_ERROR, "%s: decoder supports entry_point_offsets, \
 +               but doesn't support V4L2_CID_STATELESS_HEVC_SLICE_PARAMS control \n", __func__);
 +        return AVERROR(EINVAL);
 +      }
@@ -3129,7 +3138,6 @@ index 0000000000..c30f3a5bff
 +    .frame_params   = ff_v4l2_request_frame_params,
 +    .caps_internal  = HWACCEL_CAP_ASYNC_SAFE,
 +};
-
 
 From 140874637c7d3d99b69e6b30f0ad32b07d4e43e8 Mon Sep 17 00:00:00 2001
 From: Boris Brezillon <boris.brezillon@collabora.com>
@@ -4359,7 +4367,7 @@ index 9b95c76cdb82..ec0300f66dbe 100644
 
 
 
-Update v4l2_request to https://github.com/jernejsk/FFmpeg/commits/v4l2-request-hwaccel-4.4
+Some updates of v4l2_request code
 
 diff --speed-large-files --no-dereference --minimal -Naur mythtv-14e0779741133a863204e855a58266dfcd4b8f6e/mythtv/external/FFmpeg/libavcodec/hevc_sei.c mythtv-14e0779741133a863204e855a58266dfcd4b8f6e/mythtv/external/FFmpeg/libavcodec/hevc_sei.c
 --- mythtv-14e0779741133a863204e855a58266dfcd4b8f6e/mythtv/external/FFmpeg/libavcodec/hevc_sei.c	2022-07-10 23:03:12.000000000 +0200
@@ -4430,7 +4438,10 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-14e0779741133a8
 
 
 
-This updates v4l2_request code to ffmpeg5.1
+
+
+
+This are some fixups of v4l2_request h264 code to ffmpeg5.1
 
 diff --speed-large-files --no-dereference --minimal -Naur mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264dec.h mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264dec.h
 --- mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/h264dec.h	2022-09-06 15:33:48.000000000 +0200
@@ -4468,17 +4479,9 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-676d7f50af83bb9
      }
  
      if (sl->slice_type_nos != AV_PICTURE_TYPE_I && pps->cabac) {
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_h264.c mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_h264.c
---- mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_h264.c	2022-09-07 15:01:48.704714167 +0200
-+++ mythtv-676d7f50af83bb9cada4bf3ca10d0b69da3e7817/mythtv/external/FFmpeg/libavcodec/v4l2_request_h264.c	2022-09-07 14:30:36.214747943 +0200
-@@ -19,6 +19,7 @@
- #include "h264dec.h"
- #include "hwconfig.h"
- #include "v4l2_request.h"
-+#include "internal.h"
- 
- typedef struct V4L2RequestControlsH264 {
-     struct v4l2_ctrl_h264_sps sps;
+
+
+
 
 
 
