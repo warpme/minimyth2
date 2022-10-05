@@ -90,7 +90,7 @@ endif
 
 ifeq (1,1)
 #-- Allwinner H6 patches -----------------------------------------
-# patches from LE 5.09.2021
+# patches from LE
 PATCHFILES += 0500-clk-Implement-protected-clocks-for-all-OF-clock-prov.patch
 PATCHFILES += 0501-Revert-clk-qcom-Support-protected-clocks-property.patch
 PATCHFILES += 0502-arm64-dts-allwinner-h6-Protect-SCP-clock.patch
@@ -105,8 +105,8 @@ PATCHFILES += 0512-arm64-dts-enable-audio-gs1.patch
 PATCHFILES += 0514-media-cedrus-hevc-Improve-buffer-management.patch
 PATCHFILES += 0515-media-cedrus-hevc-tiles-hack.patch
 PATCHFILES += 0516-media-cedrus-h264-Improve-buffer-management.patch
-PATCHFILES += 0525-media-cedrus-Add-callback-for-buffer-cleanup.patch
-PATCHFILES += 0528-media-cedrus-wip-10-bit-HEVC-support.patch
+PATCHFILES += 0517-media-cedrus-Add-callback-for-buffer-cleanup.patch
+PATCHFILES += 0518-media-cedrus-wip-10-bit-HEVC-support.patch
 # Adding support for MFD devices on some H6 boards
 PATCHFILES += 0530-mfd-add-AC200.patch
 PATCHFILES += 0531-arm64-dts-sun50i-h6.dtsi-add-ac200-nodes.patch
@@ -121,6 +121,7 @@ PATCHFILES += 0536-arm64-dts-allwinner-h6-Add-cooling-map-for-GPU.patch
 PATCHFILES += 0537-arm64-dts-allwinner-h6-Add-GPU-OPP-table.patch
 PATCHFILES += 0538-arm64-dts-allwinner-tanix-tx6-enable-wifi-cpu-dvfs.patch
 PATCHFILES += 0539-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
+PATCHFILES += 0540-drm-bridge-synopsys-Fix-CEC-not-working-after-power.patch
 PATCHFILES += 0543-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 # patches from LE 5.09.2021 for fixing playback corruption after 10min of playback
 PATCHFILES += 0544-drm-sun4i-mixer-Add-caching-support.patch
