@@ -323,12 +323,13 @@ install-source:
 	@$(MAKECOOKIE)
 
 post-configure:
-pre-install:
 	@rm -rf $(DESTDIR)$(includedir)/myth*
 	@rm -rf $(DESTDIR)$(libdir)/libmyth*
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV-*
 	@$(MAKECOOKIE)
+
+pre-install: post-configure
 
 post-install:
 	@rm -f $(DESTDIR)$(bindir)/mythtv
