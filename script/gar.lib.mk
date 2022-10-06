@@ -153,7 +153,7 @@ tar-xz-extract-%:
 # rule to extract files with unzip
 zip-extract-%:
 	@echo " ==> Extracting $(DOWNLOADDIR)/$*"
-	@unzip $(DOWNLOADDIR)/$* -d $(EXTRACTDIR)
+	@unzip $(DOWNLOADDIR)/$* -d $(EXTRACTDIR) >/dev/null
 	@$(MAKECOOKIE)
 
 # this is a null extract rule for files which are constant and
