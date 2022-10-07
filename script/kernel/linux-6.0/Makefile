@@ -147,6 +147,7 @@ PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
 PATCHFILES += 0606-dma-sun6i-dma-add-h616-support.patch
 PATCHFILES += 0610-sound-soc-add-h616-audio-support.patch
 PATCHFILES += 0611-hack-hack-drivers-add-h616-hdmi.patch
+PATCHFILES += 0612-gpu-drm-panfrost-panfrost-devfreq-revert-set-opp-to-the-recommended.patch
 # enable some h616 boards
 PATCHFILES += 0630-arm64-dts-allwinner-h616.dtsi-add-ths-audio-hdmi-usb.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-OrangePI-Zero2-enable-ths-hdmi-usb.patch
