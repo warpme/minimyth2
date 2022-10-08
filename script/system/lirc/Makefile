@@ -1,12 +1,9 @@
 
 GARNAME      = lirc
-GARVERSION   = 0.10.1
+GARVERSION   = 0.10.2
 CATEGORIES   = system
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/LIRC/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.bz2
-PATCHFILES   = $(DISTNAME)-disable-irsend-debug-logging.patch
-PATCHFILES  += $(DISTNAME)-add-python35-autodetection.patch
-PATCHFILES  += $(DISTNAME)-fix-building-on-5.18-kernel.patch
 
 LICENSE = GPL2
 
@@ -27,16 +24,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--with-gnu-ld \
 	--with-x \
-	HAVE_WORKING_POLL="no" \
-	SH_PATH="/bin/sh" \
-	DEVINPUT_HEADER="$(DESTDIR)$(includedir)/linux/input.h" \
-
-BUILD_ARGS     = $(LINUX_MAKE_ARGS)
-INSTALL_ARGS   = $(LINUX_MAKE_ARGS)
-
-CONFIGURE_ENV = $(LINUX_MAKE_ENV)
-BUILD_ENV     = $(LINUX_MAKE_ENV)
-INSTALL_ENV   = $(LINUX_MAKE_ENV)
 
 GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk
 include ../../gar.mk
@@ -46,23 +33,6 @@ git//%$(DISTNAME).tar.bz2:
 	@$(MAKECOOKIE)
 
 x-checksum-$(DISTNAME).tar.bz2:
-	@$(MAKECOOKIE)
-
-pre-configure:
-	@mkdir -p $(WORKSRC)/m4
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
-
-post-configure:
-	@# hack to fix failed build due double pipe in nm commnds
-	@sed -e 's%| \\$$global_symbol_pipe%\\$$global_symbol_pipe%g' -i $(WORKSRC)/libtool
-	@$(MAKECOOKIE)
-
-pre-install:
-	@rm -rf $(DESTDIR)$(libdir)/python2*/site-packages/lirc*
-	@rm -rf $(DESTDIR)$(libdir)/python3*/site-packages/lirc*
-	@rm -rf $(DESTDIR)$(includedir)/lirc*
 	@$(MAKECOOKIE)
 
 post-install:
