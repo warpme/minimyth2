@@ -24,6 +24,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--with-gnu-ld \
 	--with-x \
+	SH_PATH="/bin/sh" \
+	DEVINPUT_HEADER="$(DESTDIR)$(includedir)/linux/input.h" \
 
 GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk
 include ../../gar.mk
