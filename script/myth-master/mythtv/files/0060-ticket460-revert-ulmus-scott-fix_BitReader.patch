@@ -1,0 +1,96 @@
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-84a913147c13092ca6b1e39df18f15d064cceb14/mythtv/libs/libmythtv/bitreader.h mythtv-84a913147c13092ca6b1e39df18f15d064cceb14/mythtv/libs/libmythtv/bitreader.h
+--- mythtv-84a913147c13092ca6b1e39df18f15d064cceb14/mythtv/libs/libmythtv/bitreader.h	2022-10-11 21:51:43.000000000 +0200
++++ mythtv-84a913147c13092ca6b1e39df18f15d064cceb14/mythtv/libs/libmythtv/bitreader.h	2022-10-12 13:30:23.482966511 +0200
+@@ -45,18 +45,16 @@
+     }
+     ~BitReader() = default;
+ 
+-    void skip_bits(unsigned n)
++    void skip_bits(unsigned n = 1)
+     {
+-        if (m_cacheSize > n)
++        if (m_cacheSize >= n)
+         {
+             m_cache <<= n;
+             m_cacheSize -= n;
+         }
+         else
+         {
+-            n -= m_cacheSize;
+             m_cacheSize = 0;
+-            m_cache      = 0;
+             m_bitIndex += n;
+             int quotient = m_bitIndex / CHAR_BIT;
+             m_bitIndex %= CHAR_BIT;
+@@ -72,7 +70,7 @@
+         }
+         return uint32_t(get_upper_bits(m_cache, n));
+     }
+-    uint64_t show_bits64(unsigned n)
++    uint32_t show_bits64(unsigned n)
+     {
+         //assert(n <= 64);
+         if (m_cacheSize < n)
+@@ -83,7 +81,7 @@
+     }
+     bool next_bit() { return get_bits(1) == 1; }
+     /// @brief Read 0-32 bits.
+-    uint32_t get_bits(unsigned n)
++    uint32_t get_bits(unsigned n = 1)
+     {
+         uint32_t ret = show_bits(n);
+         skip_bits(n);
+@@ -187,6 +185,14 @@
+ #endif
+     }
+ 
++    static constexpr uint64_t mask_upper(unsigned bits)
++    {
++        // protect against undefined behavior
++        if (bits ==  0) return  UINT64_C(0);
++        if (bits >  64) return ~UINT64_C(0);
++        return ~((UINT64_C(1) << (64 - bits)) - 1);
++    }
++
+     static constexpr uint64_t get_upper_bits(uint64_t val, unsigned bits)
+     {
+         // protect against undefined behavior
+@@ -198,7 +204,7 @@
+         {
+             return val;
+         }
+-        return val >> (64 - bits);
++        return (val & mask_upper(bits)) >> (64 - bits);
+     }
+ 
+     void refill_cache(unsigned min_bits);
+@@ -246,16 +252,15 @@
+     {
+         int shift = 64 - m_cacheSize;
+         int bits = CHAR_BIT - m_bitIndex;
++        m_cache |= int64_t(*m_buffer & ((1 << bits) - 1)) << (shift - bits);
+         if (shift > bits)
+         {
+-            m_cache |= int64_t(*m_buffer & ((1 << bits) - 1)) << (shift - bits);
+             m_bitIndex   = 0;
+             m_buffer++;
+             m_cacheSize += bits;
+         }
+         else
+         {
+-            m_cache |= int64_t(*m_buffer & ((1 << bits) - 1)) >> (bits - shift);
+             m_bitIndex  += shift;
+             m_cacheSize += shift;
+         }
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-84a913147c13092ca6b1e39df18f15d064cceb14/mythtv/libs/libmythtv/mpeg/HEVCParser.cpp mythtv-84a913147c13092ca6b1e39df18f15d064cceb14/mythtv/libs/libmythtv/mpeg/HEVCParser.cpp
+--- mythtv-84a913147c13092ca6b1e39df18f15d064cceb14/mythtv/libs/libmythtv/mpeg/HEVCParser.cpp	2022-10-11 21:51:43.000000000 +0200
++++ mythtv-84a913147c13092ca6b1e39df18f15d064cceb14/mythtv/libs/libmythtv/mpeg/HEVCParser.cpp	2022-10-12 13:30:23.482966511 +0200
+@@ -1295,7 +1295,7 @@
+         br.get_ue_golomb(); // slice_type; // ue(v)
+         if (pps->output_flag_present_flag)
+         {
+-            br.get_bits(1); // pic_output_flag; // u(1)
++            br.get_bits(); // pic_output_flag; // u(1)
+         }
+         if (sps->separate_colour_plane_flag)
+         {
