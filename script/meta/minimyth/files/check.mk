@@ -212,6 +212,7 @@ mm-all:
 		   [ ! "$${software}" = "libgpiod"       ] && \
 		   [ ! "$${software}" = "xscreensaver"   ] && \
 		   [ ! "$${software}" = "kodi"           ] && \
+		   [ ! "$${software}" = "kodi19"         ] && \
 		   [ ! "$${software}" = "openvfd"        ] && \
 		   [ ! "$${software}" = "monitorix"      ] && \
 		   [ ! "$${software}" = "termbin"        ] && \

@@ -141,6 +141,9 @@ DEPENDS = \
 		mediaplayers/ffmpeg-drm) \
 	$(if $(filter mpv,$(mm_SOFTWARE)), \
 		mediaplayers/mpv) \
+	$(if $(filter kodi19,$(mm_SOFTWARE)), \
+		mediaplayers/kodi-19 \
+		mediaplayers/kodi-addon-pvr.mythtv-19) \
 	$(if $(filter kodi,$(mm_SOFTWARE)), \
 		mediaplayers/kodi \
 		mediaplayers/kodi-addon-pvr.mythtv) \
