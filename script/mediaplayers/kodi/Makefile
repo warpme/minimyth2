@@ -4,16 +4,14 @@ GARVERSION    = $(KODI_VERSION)
 CATEGORIES    = mediaplayers
 MASTER_SITES  = \
 		$(KODI_MASTER_SITES) \
-		https://download.videolan.org/pub/libdvdcss/1.4.3/ \
-		https://download.videolan.org/pub/videolan/libdvdnav/6.1.1/ \
-		https://download.videolan.org/pub/videolan/libdvdread/6.1.2/ \
 		http://mirrors.kodi.tv/build-deps/sources/
-DISTFILES     = \
-		$(GARVERSION).tar.gz \
-		libdvdcss-1.4.3.tar.bz2 \
-		libdvdnav-6.1.1.tar.bz2 \
-		libdvdread-6.1.2.tar.bz2 \
-		libudfread-1.1.0.tar.gz
+DISTFILES     = $(GARVERSION).zip
+PATCHFILES    = 0001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
+PATCHFILES   += 0002-WIP-DRMPRIME-deinterlace-filter.patch
+PATCHFILES   += 0003-DVDVideoCodecDRMPRIME-Avoid-exception-with-AV_PIX_FM.patch
+PATCHFILES   += 0004-DVDVideoCodecDRMPRIME-Leave-deinterlace-filter-activ.patch
+PATCHFILES   += 0005-SetVideoInterlaced-Set-and-unset-deinterlace-method-.patch
+PATCHFILES   += 0006-DVDVideoCodecDRMPRIME-Close-deinterlace-filter-on-er.patch
 WORKSRC       = $(WORKDIR)/xbmc-$(GARVERSION)
 LICENSE       = GPL
 
@@ -86,19 +84,16 @@ CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_INSTALL_LIBDIR=/usr/lib \
 	-DENABLE_INTERNAL_FFMPEG=OFF \
 	-DFFMPEG_PATH=$(DESTDIR)$(prefix) \
-	-DPC_WAYLANDPP_SCANNER_FOUND=ON \
-	-DPC_WAYLANDPP_SCANNER=$(build_DESTDIR)$(build_bindir)/wayland-scanner++ \
-	-DWAYLANDPP_PROTOCOLS_DIR=$(build_DESTDIR)$(build_sharedstatedir)/waylandpp/protocols \
+	-DPYTHON_PATH=$(DESTDIR)$(prefix) \
 	-DWITH_TEXTUREPACKER=$(build_DESTDIR)$(build_bindir)/TexturePacker \
 	-DWITH_JSONSCHEMABUILDER=$(build_DESTDIR)$(build_bindir)/JsonSchemaBuilder \
 	-DFLATBUFFERS_FLATC_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/flatc \
 	-DSWIG_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/swig \
 	-DUSE_LTO=ON \
-	-DENABLE_LDGOLD=OFF \
 	-DENABLE_AIRTUNES=OFF \
 	-DENABLE_ALSA=ON \
 	-DENABLE_AVAHI=ON \
-	-DENABLE_BLURAY=OFF \
+	-DENABLE_BLURAY=ON \
 	-DENABLE_CEC=ON \
 	-DENABLE_DBUS=OFF \
 	-DENABLE_DVDCSS=ON \
@@ -123,10 +118,6 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_INTERNAL_FSTRCMP=OFF \
 	-DENABLE_INTERNAL_FLATBUFFERS=OFF \
 	-DENABLE_INTERNAL_UDFREAD=OFF \
-	-DLIBDVDCSS_URL=../../../download/libdvdcss-1.4.3.tar.bz2 \
-	-DLIBDVDNAV_URL=../../../download/libdvdnav-6.1.1.tar.bz2 \
-	-DLIBDVDREAD_URL=../../../download/libdvdread-6.1.2.tar.bz2 \
-	-DUDFREAD_URL=../../../download/libudfread-1.1.0.tar.gz \
 	$(if $(filter i386 x86_64, $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=x11 -DAPP_RENDER_SYSTEM=gl) \
 	$(if $(filter arm arm64,   $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=gbm -DAPP_RENDER_SYSTEM=gles) \
 
