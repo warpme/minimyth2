@@ -177,6 +177,7 @@ PATCHFILES += 0745-arm64-dts-rockchip-beelink-a1-enable-androind-dram-timmings.p
 PATCHFILES += 0746-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
 PATCHFILES += 0747-arm64-dts-rockchip-add-enable-dmc-on-roc-cc.patch
 PATCHFILES += 0749-arm64-dts-rockchip-add-LED-for-ROCK-Pi-4A-B-C-A-B.patch
+PATCHFILES += 0750-phy-rockchip-inno-usb2-Sync-initial-otg-state.patch
 endif
 #------------------------------------------------------------
 
