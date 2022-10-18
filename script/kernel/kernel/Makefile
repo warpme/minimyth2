@@ -40,4 +40,3 @@ reinstall: clean
 	@$(MAKE) install-headers -C ../../kernel/linux-$(mm_KERNEL_VERSION)
 	@$(MAKE) reinstall       -C ../../kernel/linux-$(mm_KERNEL_VERSION)
 	@$(MAKE) reinstall       -C ../../kernel/rtl8821cu
-	@$(MAKE) reinstall       -C ../../kernel/openvfd
