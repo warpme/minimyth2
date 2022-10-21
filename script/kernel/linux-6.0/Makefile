@@ -35,8 +35,6 @@ PATCHFILES += linux-6.0-defaults.patch
 
 ifeq (1,1)
 
-# Fix for 80sec delay within Qt when mythfrontend starts just at boot
-PATCHFILES += 0102-drivers-char-random.c-revert-cap-jitter-samples-per-bit-to-factor-of-HZ.patch
 # MGLRU patch improving kernel memory management on low memory systems
 # https://patchwork.kernel.org/project/linux-mm/list/?series=667540
 PATCHFILES += 0103-mm-Multi-Gen-LRU-Framework-v14.1.patch
@@ -103,7 +101,6 @@ PATCHFILES += 0517-media-cedrus-Add-callback-for-buffer-cleanup.patch
 PATCHFILES += 0518-media-cedrus-wip-10-bit-HEVC-support.patch
 PATCHFILES += 0519-media-cedrus--Don-t-CPU-map-source-buffers.patch
 PATCHFILES += 0520-media-cedrus-hevc-Fix-offset-adjustments.patch
-PATCHFILES += 0521-media-cedrus-Fix-watchdog-race-condition.patch
 PATCHFILES += 0525-Input-axp20x-pek-allow-wakeup-after-shutdown.patch
 PATCHFILES += 0526-iommu-sun50i-add-cedrus-hantro-g2support.patch
 PATCHFILES += 0527-revert-drm-sun4i-dw-hdmi-Fix-ddc-en-GPIO-consumer-conflict.patch
@@ -177,7 +174,6 @@ PATCHFILES += 0745-arm64-dts-rockchip-beelink-a1-enable-androind-dram-timmings.p
 PATCHFILES += 0746-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
 PATCHFILES += 0747-arm64-dts-rockchip-add-enable-dmc-on-roc-cc.patch
 PATCHFILES += 0749-arm64-dts-rockchip-add-LED-for-ROCK-Pi-4A-B-C-A-B.patch
-PATCHFILES += 0750-phy-rockchip-inno-usb2-Sync-initial-otg-state.patch
 endif
 #------------------------------------------------------------
 
