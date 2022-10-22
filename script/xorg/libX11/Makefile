@@ -50,21 +50,11 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-fop \
 	--with-gnu-ld \
 	--without-launchd \
-	--without-lint
-
-CONFIGURE_ENV = \
-	CC_FOR_BUILD="$(build_CC)" \
-	CPPFLAGS_FOR_BUILD="$(build_CPPFLAGS)" \
-	CFLAGS_FOR_BUILD="$(build_CFLAGS)" \
-	LDFLAGS_FOR_BUILD="$(build_LDFLAGS)"
+	--without-lint \
+	--with-keysymdefdir=$(DESTDIR)$(includedir)/X11 \
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
