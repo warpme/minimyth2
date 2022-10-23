@@ -34,7 +34,8 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-gtk-doc \
 	--disable-gtk-doc-html \
 	--disable-gtk-doc-pdf \
-	--with-gnu-ld
+	--with-gnu-ld \
+	GLIB_GENMARSHAL=$(build_DESTDIR)$(build_bindir)/glib-genmarshal
 ifneq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
 	--enable-shared \
