@@ -1,0 +1,136 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-5.17-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts linux-5.17-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts
+--- linux-5.17-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts	2022-02-20 22:07:20.000000000 +0100
++++ linux-5.17-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts	2022-02-25 18:13:24.746118171 +0100
+@@ -1,5 +1,5 @@
+ // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+-// Copyright (c) 2019 Jernej Skrabec <jernej.skrabec@siol.net>
++// Copyright (c) 2019 Jernej Skrabec <jernej.skrabec@siol.net> Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+ 
+ /dts-v1/;
+ 
+@@ -8,10 +8,48 @@
+ / {
+ 	model = "Tanix TX6";
+ 	compatible = "oranth,tanix-tx6", "allwinner,sun50i-h6";
++
++	aliases {
++		ethernet0 = &emac;
++		ethernet1 = &wifi;
++	};
++
++	reg_vcc33_wifi: vcc33-wifi {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc33-wifi";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		gpio = <&pio 7 4 GPIO_ACTIVE_HIGH>; /* PH4 */
++		regulator-always-on;
++		enable-active-high;
++	};
++
++	reg_vdd_cpu: vdd-cpu {
++		compatible = "regulator-fixed";
++		regulator-name = "vdd-cpu";
++		regulator-min-microvolt = <1200000>;
++		regulator-max-microvolt = <1200000>;
++	};
++
++	openvfd {
++		compatible = "open,vfd";
++		dev_name = "openvfd";
++		openvfd_gpio_clk = <&pio 3 25 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PD25 */
++		openvfd_gpio_dat = <&pio 3 26 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PD26 */
++		vfd_gpio_chip_name = "300b000.pinctrl";
++		openvfd_chars = [02 04 03 02 01];
++		openvfd_dot_bits = [00 01 03 02 04 05 06];
++		openvfd_display_type = <0x03000001>;
++		status = "okay";
++	};
++};
++
++&cpu0 {
++	cpu-supply = <&reg_vdd_cpu>;
+ };
+ 
+ &r_ir {
+-	linux,rc-map-name = "rc-tanix-tx5max";
++	linux,rc-map-name = "rc-tanix-tx3mini";
+ };
+ 
+ &uart1 {
+@@ -27,3 +64,47 @@
+ 		enable-gpios = <&r_pio 1 4 GPIO_ACTIVE_HIGH>; /* PM4 */
+ 	};
+ };
++
++&ac200_pwm_clk {
++	status = "okay";
++};
++
++&emac {
++	pinctrl-names = "default";
++	pinctrl-0 = <&ext_rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&ext_rmii_phy>;
++	status = "okay";
++};
++
++&i2c3 {
++	status = "okay";
++};
++
++&mdio {
++	ext_rmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
++};
++
++&pwm {
++	status = "okay";
++};
++
++&mmc1 {
++	vmmc-supply = <&reg_vcc3v3>;
++	vqmmc-supply = <&reg_vcc33_wifi>;
++	mmc-pwrseq = <&wifi_pwrseq>;
++	bus-width = <4>;
++	non-removable;
++	status = "okay";
++
++	wifi: sdio_wifi@1 {
++		reg = <1>;
++		interrupt-parent = <&r_pio>;
++		interrupts = <1 0 IRQ_TYPE_EDGE_RISING>; /* PM0 */
++		interrupt-names = "host-wake";
++		local-mac-address = [dc 44 6d c0 ff 01];
++	};
++};
+diff --speed-large-files --no-dereference --minimal -Naur linux-5.17-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix.dtsi linux-5.17-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix.dtsi
+--- linux-5.17-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix.dtsi	2022-02-20 22:07:20.000000000 +0100
++++ linux-5.17-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix.dtsi	2022-02-28 12:30:28.303326585 +0100
+@@ -29,14 +29,6 @@
+ 		};
+ 	};
+ 
+-	/* used for FD650 LED display driver */
+-	i2c {
+-		compatible = "i2c-gpio";
+-		sda-gpios = <&pio 7 6 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PH6 */
+-		scl-gpios = <&pio 7 5 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PH5 */
+-		i2c-gpio,delay-us = <5>;
+-	};
+-
+ 	reg_vcc1v8: regulator-vcc1v8 {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "vcc1v8";
+--- a/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix.dtsi	2022-06-25 14:21:11.340219073 +0000
++++ b/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix.dtsi	2022-06-26 09:52:05.018133375 +0000
+@@ -168,6 +168,7 @@
+ 	mmc-pwrseq = <&wifi_pwrseq>;
+ 	bus-width = <4>;
+ 	non-removable;
++	keep-power-in-suspend;
+ 	status = "okay";
+ 
+ 	rtl8822cs: sdio-wifi@1 {
