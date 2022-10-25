@@ -1,0 +1,75 @@
+From 86949d46271967747adbb2ead26d73294c448299 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Mon, 24 Oct 2022 17:52:28 +0200
+Subject: [PATCH 26/27] media: cedrus: Adjust buffer size based on control
+ values
+
+In some cases decoding engine needs extra space in capture buffers. This
+is the case for decoding 10-bit HEVC frames into 8-bit capture format.
+This commit only adds infrastructure for such cases.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/staging/media/sunxi/cedrus/cedrus.c       | 14 ++++++++++++++
+ drivers/staging/media/sunxi/cedrus/cedrus.h       |  2 ++
+ drivers/staging/media/sunxi/cedrus/cedrus_video.c |  4 ++++
+ 3 files changed, 20 insertions(+)
+
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.c b/drivers/staging/media/sunxi/cedrus/cedrus.c
+index 70b07d8ba..fbe3b2e7c 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus.c
+@@ -68,8 +68,22 @@ static int cedrus_try_ctrl(struct v4l2_ctrl *ctrl)
+ 	return 0;
+ }
+ 
++static int cedrus_s_ctrl(struct v4l2_ctrl *ctrl)
++{
++	struct cedrus_ctx *ctx = container_of(ctrl->handler,
++					      struct cedrus_ctx, hdl);
++	struct vb2_queue *vq = v4l2_m2m_get_vq(ctx->fh.m2m_ctx,
++					       V4L2_BUF_TYPE_VIDEO_CAPTURE);
++
++	if (!vb2_is_busy(vq) && !vb2_is_streaming(vq))
++		cedrus_reset_cap_format(ctx);
++
++	return 0;
++}
++
+ static const struct v4l2_ctrl_ops cedrus_ctrl_ops = {
+ 	.try_ctrl = cedrus_try_ctrl,
++	.s_ctrl = cedrus_s_ctrl,
+ };
+ 
+ static const struct cedrus_control cedrus_controls[] = {
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus.h b/drivers/staging/media/sunxi/cedrus/cedrus.h
+index 5904294f3..774fe8048 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus.h
++++ b/drivers/staging/media/sunxi/cedrus/cedrus.h
+@@ -162,6 +162,8 @@ struct cedrus_dec_ops {
+ 	int (*start)(struct cedrus_ctx *ctx);
+ 	void (*stop)(struct cedrus_ctx *ctx);
+ 	void (*trigger)(struct cedrus_ctx *ctx);
++	unsigned int (*extra_cap_size)(struct cedrus_ctx *ctx,
++				       struct v4l2_pix_format *pix_fmt);
+ };
+ 
+ struct cedrus_variant {
+diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_video.c b/drivers/staging/media/sunxi/cedrus/cedrus_video.c
+index f9f723ea3..53e65f740 100644
+--- a/drivers/staging/media/sunxi/cedrus/cedrus_video.c
++++ b/drivers/staging/media/sunxi/cedrus/cedrus_video.c
+@@ -251,6 +251,10 @@ static int cedrus_try_fmt_vid_cap_p(struct cedrus_ctx *ctx,
+ 	pix_fmt->height = ctx->src_fmt.height;
+ 	cedrus_prepare_format(pix_fmt);
+ 
++	if (ctx->current_codec->extra_cap_size)
++		pix_fmt->sizeimage +=
++			ctx->current_codec->extra_cap_size(ctx, pix_fmt);
++
+ 	return 0;
+ }
+ 
+-- 
+2.36.1
+

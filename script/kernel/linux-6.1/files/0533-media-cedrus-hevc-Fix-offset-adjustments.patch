@@ -1,7 +1,7 @@
-From e85edafea5122a1357c884559db1a00046102807 Mon Sep 17 00:00:00 2001
+From 89a3d9850297e7a0ffe07a81713115c81740c3a3 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Tue, 4 Oct 2022 20:28:44 +0200
-Subject: [PATCH] media: cedrus: hevc: Fix offset adjustments
+Subject: [PATCH 13/27] media: cedrus: hevc: Fix offset adjustments
 
 As it turns out, current padding size check works fine in theory but it
 doesn't in practice. Most probable reason are caching issues.
@@ -13,15 +13,15 @@ same data as Cedrus.
 Fixes: e7060d9a78c2 ("media: uapi: Change data_bit_offset definition")
 Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
 ---
- .../staging/media/sunxi/cedrus/cedrus_h265.c  | 24 ++++++++++++++-----
+ .../staging/media/sunxi/cedrus/cedrus_h265.c  | 25 ++++++++++++++-----
  .../staging/media/sunxi/cedrus/cedrus_regs.h  |  2 ++
- 2 files changed, 20 insertions(+), 6 deletions(-)
+ 2 files changed, 21 insertions(+), 6 deletions(-)
 
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_h265.c b/drivers/staging/media/sunxi/cedrus/cedrus_h265.c
-index 82e2e510e62509..400a7bc1670df3 100644
+index 4952fc17f..625f77a8c 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus_h265.c
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_h265.c
-@@ -281,6 +281,17 @@ static void cedrus_h265_skip_bits(struct cedrus_dev *dev, int num)
+@@ -242,6 +242,18 @@ static void cedrus_h265_skip_bits(struct cedrus_dev *dev, int num)
  	}
  }
  
@@ -30,16 +30,17 @@ index 82e2e510e62509..400a7bc1670df3 100644
 +	cedrus_write(dev, VE_DEC_H265_TRIGGER,
 +		     VE_DEC_H265_TRIGGER_SHOW_BITS |
 +		     VE_DEC_H265_TRIGGER_TYPE_N_BITS(num));
-+	while (cedrus_read(dev, VE_DEC_H265_STATUS) & VE_DEC_H265_STATUS_VLD_BUSY)
-+		udelay(1);
 +
-+	return cedrus_read(dev, VE_DEC_H265_READED_BITS);
++	cedrus_wait_for(dev, VE_DEC_H265_STATUS,
++			VE_DEC_H265_STATUS_VLD_BUSY);
++
++	return cedrus_read(dev, VE_DEC_H265_BITS_READ);
 +}
 +
  static void cedrus_h265_write_scaling_list(struct cedrus_ctx *ctx,
  					   struct cedrus_run *run)
  {
-@@ -445,7 +456,7 @@ static int cedrus_h265_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+@@ -406,7 +418,7 @@ static int cedrus_h265_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
  	u32 num_entry_point_offsets;
  	u32 output_pic_list_index;
  	u32 pic_order_cnt[2];
@@ -48,7 +49,7 @@ index 82e2e510e62509..400a7bc1670df3 100644
  	int count;
  	u32 reg;
  
-@@ -529,21 +540,22 @@ static int cedrus_h265_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
+@@ -520,21 +532,22 @@ static int cedrus_h265_setup(struct cedrus_ctx *ctx, struct cedrus_run *run)
  	if (slice_params->data_byte_offset == 0)
  		return -EOPNOTSUPP;
  
@@ -77,15 +78,18 @@ index 82e2e510e62509..400a7bc1670df3 100644
  	/* Bitstream parameters. */
  
 diff --git a/drivers/staging/media/sunxi/cedrus/cedrus_regs.h b/drivers/staging/media/sunxi/cedrus/cedrus_regs.h
-index 2f7dbd8b8896e9..424049f567c465 100644
+index d81f7513a..655c05b38 100644
 --- a/drivers/staging/media/sunxi/cedrus/cedrus_regs.h
 +++ b/drivers/staging/media/sunxi/cedrus/cedrus_regs.h
-@@ -509,6 +509,8 @@
+@@ -505,6 +505,8 @@
  #define VE_DEC_H265_LOW_ADDR_ENTRY_POINTS_BUF(a) \
  	SHIFT_AND_MASK_BITS(a, 7, 0)
  
-+#define VE_DEC_H265_READED_BITS			(VE_ENGINE_DEC_H265 + 0xdc)
++#define VE_DEC_H265_BITS_READ			(VE_ENGINE_DEC_H265 + 0xdc)
 +
  #define VE_DEC_H265_SRAM_OFFSET			(VE_ENGINE_DEC_H265 + 0xe0)
  
  #define VE_DEC_H265_SRAM_OFFSET_PRED_WEIGHT_LUMA_L0	0x00
+-- 
+2.36.1
+

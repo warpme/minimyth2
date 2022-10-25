@@ -1,15 +1,20 @@
+From 65b4ca3cc53cb3298309c418e82efd25f94572b5 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Fri, 14 Oct 2022 23:35:13 +0200
+Subject: [PATCH 01/27] Revert "drm/sun4i: dw-hdmi: Fix ddc-en GPIO consumer
+ conflict"
 
-This reverts https://github.com/edgeble/linux-next/commit/920169041baa0a7497ed702aa97d6a2d6285efd3
+This reverts commit 920169041baa0a7497ed702aa97d6a2d6285efd3.
+---
+ drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c | 54 +++++++++++++++++++++++++--
+ drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h |  2 +
+ 2 files changed, 52 insertions(+), 4 deletions(-)
 
-Context: There is a bug in dependency managing, so HDMI connector driver, which enables DDC lines on 
-some H6 boards is probed after EDID is first attempted to read. 
-In past - having IOMMU driver disabled accidentally delayed HDMI driver probe to right time.
-Now - with IOMMU enabled - issue becomes visible.
-
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.0.1/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c linux-6.0.1/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c
---- linux-6.0.1/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c	2022-10-12 09:39:05.000000000 +0200
-+++ linux-6.0.1/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c	2022-10-15 10:01:01.993278939 +0200
-@@ -93,10 +93,34 @@
+diff --git a/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c b/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c
+index 477cb6985..a8d75fd7e 100644
+--- a/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c
++++ b/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.c
+@@ -93,10 +93,34 @@ static u32 sun8i_dw_hdmi_find_possible_crtcs(struct drm_device *drm,
  	return crtcs;
  }
  
@@ -45,7 +50,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.0.1/drivers/gp
  	struct dw_hdmi_plat_data *plat_data;
  	struct drm_device *drm = data;
  	struct device_node *phy_node;
-@@ -143,16 +167,30 @@
+@@ -143,16 +167,30 @@ static int sun8i_dw_hdmi_bind(struct device *dev, struct device *master,
  		return dev_err_probe(dev, PTR_ERR(hdmi->regulator),
  				     "Couldn't get regulator\n");
  
@@ -78,7 +83,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.0.1/drivers/gp
  	}
  
  	ret = clk_prepare_enable(hdmi->clk_tmds);
-@@ -207,8 +245,12 @@
+@@ -207,8 +245,12 @@ static int sun8i_dw_hdmi_bind(struct device *dev, struct device *master,
  	clk_disable_unprepare(hdmi->clk_tmds);
  err_assert_ctrl_reset:
  	reset_control_assert(hdmi->rst_ctrl);
@@ -92,7 +97,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.0.1/drivers/gp
  
  	return ret;
  }
-@@ -222,7 +264,11 @@
+@@ -222,7 +264,11 @@ static void sun8i_dw_hdmi_unbind(struct device *dev, struct device *master,
  	sun8i_hdmi_phy_deinit(hdmi->phy);
  	clk_disable_unprepare(hdmi->clk_tmds);
  	reset_control_assert(hdmi->rst_ctrl);
@@ -104,9 +109,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.0.1/drivers/gp
  }
  
  static const struct component_ops sun8i_dw_hdmi_ops = {
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.0.1/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h linux-6.0.1/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h
---- linux-6.0.1/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h	2022-10-12 09:39:05.000000000 +0200
-+++ linux-6.0.1/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h	2022-10-15 10:01:01.993278939 +0200
+diff --git a/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h b/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h
+index ab80d52a7..f082b8ecf 100644
+--- a/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h
++++ b/drivers/gpu/drm/sun4i/sun8i_dw_hdmi.h
 @@ -9,6 +9,7 @@
  #include <drm/bridge/dw_hdmi.h>
  #include <drm/drm_encoder.h>
@@ -115,7 +121,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.0.1/drivers/gp
  #include <linux/regmap.h>
  #include <linux/regulator/consumer.h>
  #include <linux/reset.h>
-@@ -187,6 +188,7 @@
+@@ -187,6 +188,7 @@ struct sun8i_dw_hdmi {
  	struct regulator		*regulator;
  	const struct sun8i_dw_hdmi_quirks *quirks;
  	struct reset_control		*rst_ctrl;
@@ -123,3 +129,6 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.0.1/drivers/gp
  };
  
  extern struct platform_driver sun8i_hdmi_phy_driver;
+-- 
+2.36.1
+
