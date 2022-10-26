@@ -201,6 +201,7 @@ PATCHFILES += 0840-arm64-dts-rockchip-add-dts-for-rock3b.patch
 PATCHFILES += 0841-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
 PATCHFILES += 0842-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
 PATCHFILES += 0843-arm64-dts-rockchip-fix-eth-cec-in-rock3a.patch
+PATCHFILES += 0844-arm64-dts-rockchip-fix-cec-in-quartz64-b.patch
 endif
 #------------------------------------------------------------
 
