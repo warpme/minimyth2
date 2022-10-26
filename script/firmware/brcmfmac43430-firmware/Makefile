@@ -19,8 +19,13 @@ include ../../gar.mk
 install-custom:
 	@tar -xf $(WORKDIR)/cypress-firmware-v$(GARVERSION).tar.gz -C $(WORKSRC)
 	@cp -Rdf $(WORKSRC)/firmware/brcmfmac43430* $(DESTDIR)$(elibdir)/firmware/brcm/
+
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.bin    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.AP6212.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.bin    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.raspberrypi,3-model-b.bin
+
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.clm_blob    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.AP6212.clm_blob
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.clm_blob    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.raspberrypi,3-model-b.clm_blob
+
 	@$(MAKECOOKIE)
 
 clean-all: clean

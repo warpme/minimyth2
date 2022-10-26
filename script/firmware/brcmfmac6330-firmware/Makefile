@@ -19,11 +19,17 @@ include ../../gar.mk
 install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/
 	@cp -Rdf $(WORKSRC)/brcm/brcmfmac-ap6330*           $(DESTDIR)$(elibdir)/firmware/brcm/
-	@cp -Rdf $(WORKSRC)/brcm/brcmfmac4356-sdio.clm_blob $(DESTDIR)$(elibdir)/firmware/brcm/
-	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.txt   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6-mini.txt
+	@cp -Rdf $(WORKSRC)/brcm/brcmfmac4356-sdio.clm_blob $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.clm_blob
+
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.bin   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6-mini.bin
-	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.txt   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.bin   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6.bin
+
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.clm_blob   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6-mini.clm_blob
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.clm_blob   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6.clm_blob
+
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.txt   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6-mini.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.txt   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6.txt
+
 	@$(MAKECOOKIE)
 
 clean-all: clean

@@ -18,11 +18,19 @@ include ../../gar.mk
 
 install-custom:
 	@cp -f   $(WORKDIR)/brcmfmac4359-sdio.txt                            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.txt
+
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.txt    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.AP6398S.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.txt    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.rockchip,rk3566-box-demo-v10.txt
+
 	@tar -xf $(WORKDIR)/cypress-firmware-v$(GARVERSION).tar.gz -C $(WORKSRC)
 	@cp -Rdf $(WORKSRC)/firmware/brcmfmac4359* $(DESTDIR)$(elibdir)/firmware/brcm/
+
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.bin    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.AP6398S.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.bin    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.rockchip,rk3566-box-demo-v10.bin
+
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.clm_blob    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.AP6398S.clm_blob
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.clm_blob    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.rockchip,rk3566-box-demo-v10.clm_blob
+
 	@$(MAKECOOKIE)
 
 clean-all: clean
