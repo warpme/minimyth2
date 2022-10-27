@@ -1,9 +1,9 @@
 
 GARNAME      = bootfiles-rpi2
-GITHASH      = 2595b815bf0e3c2af4b9a6be2151661df1ed4710
-GARVERSION   = 2022-04-01-$(GITHASH)
+GITHASH      = $(RPI_GITHASH)
+GARVERSION   = $(RPI_GARVERSION)-$(RPI_GITHASH)
 CATEGORIES   = bootloaders
-MASTER_SITES = https://github.com/raspberrypi/firmware/raw/$(GITHASH)/boot/
+MASTER_SITES = $(RPI_MASTER_SITES)
 DISTFILES    = rpi2-boot.scr \
                rpi2-boot.txt \
                bootcode.bin \
@@ -29,6 +29,7 @@ BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
 CLEAN_SCRIPTS   = custom
 
+GAR_EXTRA_CONF += bootloaders/board-rpi34.mainline64/package-api.mk
 include ../../gar.mk
 
 build-custom:

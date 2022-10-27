@@ -1,9 +1,9 @@
 
 GARNAME      = bootfiles-rpi3.mainline64
-GITHASH      = 8ca25048d08420eac28a97b00ab134ee3535e105
-GARVERSION   = 2022-08-24-$(GITHASH)
+GITHASH      = $(RPI_GITHASH)
+GARVERSION   = $(RPI_GARVERSION)-$(RPI_GITHASH)
 CATEGORIES   = bootloaders
-MASTER_SITES = https://github.com/raspberrypi/firmware/raw/$(GITHASH)/boot/
+MASTER_SITES = $(RPI_MASTER_SITES)
 DISTFILES    = rpi3-boot.scr       \
                rpi3-boot.txt       \
                rpi3-boot-debug.scr \
@@ -31,6 +31,7 @@ BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
 CLEAN_SCRIPTS   = custom
 
+GAR_EXTRA_CONF += bootloaders/board-rpi34.mainline64/package-api.mk
 include ../../gar.mk
 
 build-custom:
