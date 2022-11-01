@@ -10,7 +10,7 @@ DISTFILES    = \
                rk3568-boot-debug.scr \
                rk3568-boot-debug.txt \
 
-export mm_U-BOOT_BOARD_TYPE = rock-3-b-rk3568_defconfig
+export mm_U-BOOT_BOARD_TYPE = rock-3b-rk3568_defconfig
 
 WORKSRC      = $(WORKDIR)
 
