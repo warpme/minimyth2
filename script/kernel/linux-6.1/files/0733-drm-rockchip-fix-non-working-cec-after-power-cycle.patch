@@ -58,10 +58,10 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  4 files changed, 29 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/media/cec/core/cec-adap.c b/drivers/media/cec/core/cec-adap.c
-index cd9cb354dc2c..b9a3d7af4a0b 100644
+index 41a79293ee02..542ab1425339 100644
 --- a/drivers/media/cec/core/cec-adap.c
 +++ b/drivers/media/cec/core/cec-adap.c
-@@ -1614,8 +1614,15 @@ void cec_s_phys_addr(struct cec_adapter *adap, u16 phys_addr, bool block)
+@@ -1674,8 +1674,15 @@ void cec_s_phys_addr(struct cec_adapter *adap, u16 phys_addr, bool block)
  	if (IS_ERR_OR_NULL(adap))
  		return;
  
@@ -79,10 +79,10 @@ index cd9cb354dc2c..b9a3d7af4a0b 100644
  }
  EXPORT_SYMBOL_GPL(cec_s_phys_addr);
 diff --git a/drivers/media/cec/core/cec-core.c b/drivers/media/cec/core/cec-core.c
-index 551689d371a7..e3e038021e29 100644
+index af358e901b5f..bece8c56e5af 100644
 --- a/drivers/media/cec/core/cec-core.c
 +++ b/drivers/media/cec/core/cec-core.c
-@@ -28,6 +28,10 @@ static bool debug_phys_addr;
+@@ -40,6 +40,10 @@ static bool debug_phys_addr;
  module_param(debug_phys_addr, bool, 0644);
  MODULE_PARM_DESC(debug_phys_addr, "add CEC_CAP_PHYS_ADDR if set");
  
@@ -93,7 +93,7 @@ index 551689d371a7..e3e038021e29 100644
  static dev_t cec_dev_t;
  
  /* Active devices */
-@@ -174,6 +178,8 @@ static void cec_devnode_unregister(struct cec_adapter *adap)
+@@ -188,6 +192,8 @@ static void cec_devnode_unregister(struct cec_adapter *adap)
  
  	mutex_unlock(&devnode->lock);
  
@@ -102,7 +102,7 @@ index 551689d371a7..e3e038021e29 100644
  	mutex_lock(&adap->lock);
  	__cec_s_phys_addr(adap, CEC_PHYS_ADDR_INVALID, false);
  	__cec_s_log_addrs(adap, NULL, false);
-@@ -232,6 +238,17 @@ static const struct file_operations cec_error_inj_fops = {
+@@ -246,6 +252,17 @@ static const struct file_operations cec_error_inj_fops = {
  };
  #endif
  
@@ -120,7 +120,7 @@ index 551689d371a7..e3e038021e29 100644
  struct cec_adapter *cec_allocate_adapter(const struct cec_adap_ops *ops,
  					 void *priv, const char *name, u32 caps,
  					 u8 available_las)
-@@ -269,6 +286,7 @@ struct cec_adapter *cec_allocate_adapter(const struct cec_adap_ops *ops,
+@@ -283,6 +300,7 @@ struct cec_adapter *cec_allocate_adapter(const struct cec_adap_ops *ops,
  	INIT_LIST_HEAD(&adap->transmit_queue);
  	INIT_LIST_HEAD(&adap->wait_queue);
  	init_waitqueue_head(&adap->kthread_waitq);
@@ -129,10 +129,10 @@ index 551689d371a7..e3e038021e29 100644
  	/* adap->devnode initialization */
  	INIT_LIST_HEAD(&adap->devnode.fhs);
 diff --git a/drivers/media/cec/core/cec-priv.h b/drivers/media/cec/core/cec-priv.h
-index 9bbd05053d42..d479dbd50528 100644
+index b78df931aa74..ebbea63ea9de 100644
 --- a/drivers/media/cec/core/cec-priv.h
 +++ b/drivers/media/cec/core/cec-priv.h
-@@ -27,6 +27,7 @@ static inline bool msg_is_raw(const struct cec_msg *msg)
+@@ -37,6 +37,7 @@ static inline bool msg_is_raw(const struct cec_msg *msg)
  
  /* cec-core.c */
  extern int cec_debug;
@@ -141,10 +141,10 @@ index 9bbd05053d42..d479dbd50528 100644
  void cec_put_device(struct cec_devnode *devnode);
  
 diff --git a/include/media/cec.h b/include/media/cec.h
-index 208c9613c07e..6cea463b37bd 100644
+index abee41ae02d0..544eedb5d671 100644
 --- a/include/media/cec.h
 +++ b/include/media/cec.h
-@@ -217,6 +217,8 @@ struct cec_adapter {
+@@ -236,6 +236,8 @@ struct cec_adapter {
  	struct task_struct *kthread;
  	wait_queue_head_t kthread_waitq;
  
@@ -153,4 +153,55 @@ index 208c9613c07e..6cea463b37bd 100644
  	const struct cec_adap_ops *ops;
  	void *priv;
  	u32 capabilities;
+
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alex Bee <knaerzche@gmail.com>
+Date: Fri, 22 Oct 2021 11:17:30 +0200
+Subject: [PATCH] WIP: drm/bridge: synopsys: Fix CEC not working after
+ power-cyclying
+
+This fixes standby -> power-on on Rockchip platform for, at least,
+RK3288/RK3328/RK3399 where CEC wasn't working after powering on again.
+It might differ for other phy implementations:
+The whole HPD-detection part shoud be reworked and we should in general
+avoid to rely in RX_SENSE phy status (at least for HDMI), since it differs
+depending on sink's implementation.
+
+Signed-off-by: Alex Bee <knaerzche@gmail.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c
+index 92e621f2714f..7551e3ab77d6 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c
+@@ -3179,12 +3179,6 @@ static irqreturn_t dw_hdmi_irq(int irq, void *dev_id)
+ 				       phy_stat & HDMI_PHY_HPD,
+ 				       phy_stat & HDMI_PHY_RX_SENSE);
+ 
+-		if ((phy_stat & (HDMI_PHY_RX_SENSE | HDMI_PHY_HPD)) == 0) {
+-			mutex_lock(&hdmi->cec_notifier_mutex);
+-			cec_notifier_phys_addr_invalidate(hdmi->cec_notifier);
+-			mutex_unlock(&hdmi->cec_notifier_mutex);
+-		}
+-
+ 		if (phy_stat & HDMI_PHY_HPD)
+ 			status = connector_status_connected;
+ 
+@@ -3201,6 +3195,14 @@ static irqreturn_t dw_hdmi_irq(int irq, void *dev_id)
+ 			drm_helper_hpd_irq_event(hdmi->bridge.dev);
+ 			drm_bridge_hpd_notify(&hdmi->bridge, status);
+ 		}
++
++		if (status == connector_status_disconnected &&
++		    (phy_stat & HDMI_PHY_RX_SENSE) &&
++		    (phy_int_pol & HDMI_PHY_RX_SENSE)) {
++			mutex_lock(&hdmi->cec_notifier_mutex);
++			cec_notifier_phys_addr_invalidate(hdmi->cec_notifier);
++			mutex_unlock(&hdmi->cec_notifier_mutex);
++		}
+ 	}
+ 
+ 	hdmi_writeb(hdmi, intr_stat, HDMI_IH_PHY_STAT0);
 

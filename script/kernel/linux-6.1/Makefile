@@ -127,7 +127,7 @@ PATCHFILES += 0565-arm64-dts-allwinner-tanix-tx6-mini-enable-wifi-cpu-dvfs.patch
 PATCHFILES += 0567-arm64-dts-enable-audio-gs1.patch
 PATCHFILES += 0568-arm64-dts-allwinner-tanix-tx6-enable-wifi-cpu-dvfs.patch
 PATCHFILES += 0569-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
-PATCHFILES += 0570-drm-bridge-synopsys-Fix-CEC-not-working-after-power.patch
+#PATCHFILES += 0570-drm-bridge-synopsys-Fix-CEC-not-working-after-power.patch - realized by 0733
 PATCHFILES += 0573-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 PATCHFILES += 0574-drm-sun4i-mixer-Add-caching-support.patch
 PATCHFILES += 0575-H6-add-sun50i-di-deinterlace-WiP.patch
@@ -173,7 +173,8 @@ ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
 PATCHFILES += 0705-rockchip-from-list.patch
 PATCHFILES += 0720-drm-from-list.patch
-PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
+#PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
+PATCHFILES += 0730-drm-rockchip.patch
 PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
 PATCHFILES += 0733-drm-rockchip-fix-non-working-cec-after-power-cycle.patch
