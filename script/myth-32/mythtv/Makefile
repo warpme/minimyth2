@@ -44,7 +44,7 @@ PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
 PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
-
+PATCHFILES += 0113-Minimyth-reverse-profiles-in-v4l2-videoprofile.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
 ifneq (,$(filter %5.19,$(mm_KERNEL_VERSION)))
@@ -66,6 +66,8 @@ PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
 endif
 # hack improvig a bit h264 seeks on rpi3/rpi4 & amlogic
 PATCHFILES += 0173-ffmpeg-libavcodec-v4l2_m2m_h264_dec-clean-input-buf-at-flush.patch
+# fix deinterlacing when EGL DMAbuf is used
+PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # hack to get refresh rate changing on drm
@@ -116,6 +118,9 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
+
+# Various mythzoneminder patches
+PATCHFILES += 0500-mythzmserver-update-to-support-zm1.36.13.patch
 
 endif
 
