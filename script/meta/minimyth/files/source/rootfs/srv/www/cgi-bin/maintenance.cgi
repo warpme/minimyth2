@@ -35,7 +35,7 @@ if ($command eq "show-log") {
     }
 
 } elsif ($command eq "mm_manage") {
-    system("/usr/bin/mm_manage $arg");
+    system("su -c \"/usr/bin/mm_manage $arg 2>&1 > /dev/null\"");
 
 } elsif ($command eq "execute") {
         if ($arg) {
