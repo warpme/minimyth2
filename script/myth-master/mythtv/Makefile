@@ -47,6 +47,7 @@ PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
 PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
+PATCHFILES += 0113-Minimyth-reverse-profiles-in-v4l2-videoprofile.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
 ifneq (,$(filter %5.19,$(mm_KERNEL_VERSION)))
