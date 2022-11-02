@@ -32,8 +32,6 @@ PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 # speedup a bit portcheck
 PATCHFILES += 0059-portchecker-speedup.patch
-# tmp workarround for ticket #460
-PATCHFILES += 0060-ticket460-revert-ulmus-scott-fix_BitReader.patch
 
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
