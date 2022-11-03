@@ -318,7 +318,6 @@ else
 	@cd $(WORKSRC); $(MESON) build $(DIRPATHS_MESON) $(MESON_CONFIGURE_ARGS) --native-file=$(MESON_NATIVE_CONF)
 endif
 endif
-	@cd $(WORKSRC); $(MESON) configure
 	@$(MAKECOOKIE)
 
 build-meson:
