@@ -1,7 +1,7 @@
 
 GARNAME      = mesa
-# 22.2.0-rc3 18.08.2022
-GARVERSION   = 9a80d2f73b530ce9207e03ea516ea3caf8c5961b
+# 22.3.0-rc1 03.11.2022
+GARVERSION   = f1beb9bfb3a4d50afdffa1aa983d9e1cac691995
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -69,7 +69,6 @@ MESON_CONFIGURE_ARGS = \
 	-D dri3=enabled \
 	-D gallium-opencl=disabled \
 	-D glvnd=false \
-	-D gallium-xvmc=disabled \
 	-D gallium-xa=disabled \
 	-D gallium-nine=false \
 	-D b_lto=true \
