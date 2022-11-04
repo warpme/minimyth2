@@ -1,5 +1,5 @@
 
-GARNAME      = bootfiles-rk3566.quartz64
+GARNAME      = bootfiles-rk3566.quartz64-b
 GARVERSION   = 2022-05-18
 CATEGORIES   = bootloaders
 MASTER_SITES = 

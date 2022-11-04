@@ -39,8 +39,8 @@ DISTFILES    = \
 	board-rk3399.orangepi_4.wks \
 	board-rk3566.x96_x6.conf    \
 	board-rk3566.x96_x6.wks     \
-	board-rk3566.quartz64.conf  \
-	board-rk3566.quartz64.wks   \
+	board-rk3566.quartz64-b.conf \
+	board-rk3566.quartz64-b.wks \
 	board-rk3568.rock3-a.conf   \
 	board-rk3568.rock3-a.wks    \
 	board-rk3568.rock3-b.conf   \

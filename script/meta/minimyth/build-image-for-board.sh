@@ -29,7 +29,7 @@ selection_j="board-rk3566.x96_x6"
 selection_k="board-h6.orangepi_3"
 selection_l="board-rk3568.rock3-a"
 selection_m="board-rk3568.rock3-b"
-selection_n="board-rk3566.quartz64"
+selection_n="board-rk3566.quartz64-b"
 selection_o="board-rpi4.mainline64"
 
 # Config area end

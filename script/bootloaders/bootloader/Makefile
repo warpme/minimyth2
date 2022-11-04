@@ -92,8 +92,8 @@ ifneq (,$(findstring board-rk3566.x96_x6,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3566.x96_x6
 endif
 
-ifneq (,$(findstring board-rk3566.quartz64,$(mm_BOARD_TYPE)))
-	$(MAKE) install -C ../board-rk3566.quartz64
+ifneq (,$(findstring board-rk3566.quartz64-b,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3566.quartz64-b
 endif
 
 ifneq (,$(findstring board-rk3568.rock3-a,$(mm_BOARD_TYPE)))
