@@ -104,6 +104,10 @@ ifneq (,$(findstring board-rk3568.rock3-b,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3568.rock3-b
 endif
 
+ifneq (,$(findstring board-rk3566.rock3-c,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3566.rock3-c
+endif
+
 ifneq (,$(findstring board-h6.beelink_gs1,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h6.beelink_gs1
 endif
