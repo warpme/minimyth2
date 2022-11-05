@@ -10,6 +10,7 @@ MASTER_SITES = \
 		https://github.com/radxa/rkbin/archive/
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
 PATCHFILES   = 05-fix-building-gcc12.patch
+PATCHFILES  += 06-arch-arm-dts-add-rk3566-quartz64.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
@@ -29,6 +30,7 @@ include ../../gar.mk
 include ../../python3/python/package-api.mk
 
 # mm_U-BOOT_BOARD_TYPE = rock-3c-rk3566_defconfig
+# mm_U-BOOT_BOARD_TYPE = rk3566-quartz64_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
