@@ -53,6 +53,6 @@ clean-custom:
 	@rm -f $(DESTDIR)/boot/boot.scr
 	@rm -f $(DESTDIR)/boot/boot-debug.scr
 	@rm -f $(DESTDIR)/boot/minimyth.conf
-	@rm -f $(DESTDIR)/boot/g12aloaderfiles/radxa-zero-uboot.bin
+	@rm -rf $(DESTDIR)/boot/g12aloaderfiles*
 
 clean-all: clean-custom cookieclean
