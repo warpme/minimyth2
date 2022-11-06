@@ -188,6 +188,9 @@ PATCHFILES += 0746-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
 PATCHFILES += 0747-arm64-dts-rockchip-add-enable-dmc-on-roc-cc.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=689309
 PATCHFILES += 0748-media-rkvdec-vp9-Add-required-padding.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=385165&archive=both
+PATCHFILES += 0749-phy-rockchip-phy-add-rockchip-inno-usb3.patch
+PATCHFILES += 0750-arm64-dts-rockchip-enable-inno-usb3-beelinkA1-roc-cc.patch
 endif
 #------------------------------------------------------------
 
@@ -205,6 +208,7 @@ PATCHFILES += 0841-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
 PATCHFILES += 0842-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
 PATCHFILES += 0843-arm64-dts-rockchip-fix-eth-cec-in-rock3a.patch
 PATCHFILES += 0844-arm64-dts-rockchip-fix-cec-in-quartz64-b.patch
+PATCHFILES += 0845-arm64-dts-rockchip-add-dts-for-rock3c.patch
 endif
 #------------------------------------------------------------
 
