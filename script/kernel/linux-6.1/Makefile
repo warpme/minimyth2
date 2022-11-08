@@ -43,6 +43,9 @@ PATCHFILES += 0109-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0110-drivers-net-wireless-brcmfmac-add-ap6330-firmware.patch
 endif
 
+# update nvidia nouveau to drm-next 20221108
+PATCHFILES += 0115-drm-nouveau-next-20221108.patch
+
 ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
 PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
