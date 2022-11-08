@@ -1,6 +1,6 @@
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 5.15.5
+GARVERSION   = 5.15.7
 CATEGORIES   = qt
 MASTER_SITES = https://download.qt.io/archive/qt/5.15/$(GARVERSION)/single/
 DISTFILES    = qt-everywhere-opensource-src-$(GARVERSION).tar.xz
@@ -9,7 +9,7 @@ PATCHFILES  += $(DISTNAME)-fix-gcc11-compile.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
-PATCHFILES  += $(DISTNAME)-fixQTBUG-95071-MySQL-dont-format-QDateTime-with-timezones.patch
+PATCHFILES  += $(DISTNAME)-plugins-sqldrivers-mysql-backport-kde-fixes.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
