@@ -1,9 +1,9 @@
 
 GARNAME      = linux-firmware
-GARVERSION   = 20220509-b19cbdc
+GARVERSION   = 8bb75626e9dd831d323c4e460414b56260f0b700
 CATEGORIES   = firmware
-MASTER_SITES = git://git.kernel.org/pub/scm/linux/kernel/git/firmware/
-DISTFILES    = $(DISTNAME).tar.bz2
+MASTER_SITES = https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/snapshot/
+DISTFILES    = linux-firmware-$(GARVERSION).tar.gz
 LICENSE      =
 
 DESCRIPTION =
@@ -15,12 +15,6 @@ DEPENDS = lang/c
 INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
-
-git//%/$(DISTNAME).tar.bz2:
-	@$(call FETCH_GIT, $*/$(GARNAME).git, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
-
-checksum-$(DISTNAME).tar.bz2:
-	@$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/
