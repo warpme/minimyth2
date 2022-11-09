@@ -18,6 +18,7 @@ PATCHFILES  += add-zoneminder-support.patch
 PATCHFILES  += add-right-arrow-to-list-episodes.patch
 PATCHFILES  += add-virtual-keyboard.patch
 PATCHFILES  += add-osd_subtitle-xml.patch
+PATCHFILES  += video-ui-remove-cond-disp-tile-on-presence-00x00.patch
 # PATCHFILES  += add-snow-animations.patch
 
 LICENSE      = GPL2
