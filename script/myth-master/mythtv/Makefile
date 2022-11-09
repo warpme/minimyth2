@@ -333,8 +333,6 @@ post-configure:
 pre-install: post-configure
 
 post-install:
-	@rm -f $(DESTDIR)$(bindir)/mythtv
-	@mv $(DESTDIR)$(bindir)/mythavtest $(DESTDIR)$(bindir)/mythtv
 	@$(MAKE) -C ../myththeme-Monochrome-mm2 install
 	@$(MAKECOOKIE)
 
