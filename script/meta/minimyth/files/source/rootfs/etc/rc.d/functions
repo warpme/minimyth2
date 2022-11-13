@@ -2034,16 +2034,25 @@ mm_redownload_theme() {
 
 mm_check_rss_reload_mythfrontend() {
     if [ -n "${MM_MYTHTV_RSS_FOR_RESTART}" ] ; then
-        myth_rss=`/bin/ps --no-headers -o pmem -C mythfrontend | /usr/bin/cut -c 1-2`
-        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_check_rss_reload_mythfrontend] RSS=$myth_rss% ..."
-        if [ ${myth_rss} -gt ${MM_MYTHTV_RSS_FOR_RESTART} ] ; then
-            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_check_rss_reload_mythfrontend] RSS=$myth_rss% > ${MM_MYTHTV_RSS_FOR_RESTART}% treshold! Restarting to free RSS ..."
-            /usr/bin/mm_manage _restart_mythfrontend
-            /bin/true
-            return
-        else
+        total_installed_memory=`expr $(sed -n '/^MemTotal:/ s/[^0-9]//gp' /proc/meminfo) / 1024`
+        avalable_memory=`expr ${total_installed_memory} - ${MM_MYTHTV_HOME_RAMDISK}`
+        if [ ${avalable_memory} -lt 512 ] ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_check_rss_reload_mythfrontend] determined RAM is ${avalable_memory}MB and below 512MB.Exitig this function ..."
             /bin/false
             return
+        else
+            myth_rss=`expr $(/bin/ps --no-headers -o rss -C mythfrontend) / 1024`
+            myth_rss_percent=`expr 100 \* ${myth_rss} / ${avalable_memory}`
+            /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_check_rss_reload_mythfrontend] RAM=${avalable_memory}MB, mythfrontend RSS=${myth_rss}MB (${myth_rss_percent}%) ..."
+            if [ ${myth_rss_percent} -gt ${MM_MYTHTV_RSS_FOR_RESTART} ] ; then
+                /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_check_rss_reload_mythfrontend] RSS=$myth_rss% > ${MM_MYTHTV_RSS_FOR_RESTART}% treshold! Restarting to free RSS ..."
+                /usr/bin/mm_manage _restart_mythfrontend
+                /bin/true
+                return
+            else
+                /bin/false
+                return
+            fi
         fi
     fi
     /bin/false
