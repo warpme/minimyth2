@@ -7,19 +7,19 @@ WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 endif
 
 ifeq (0,1)
-#--Use this for mainline official x.y.z kernel from GIT----
-MASTER_SITES       += https://github.com/torvalds/linux/archive/
-DISTFILES           = v$(LINUX_VERSION).tar.gz $(CONFIGFILE)
-WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
-#----------------------------------------------------------
-endif
-
-ifeq (0,1)
-#--Use this for mainline git-commit kernel-----------------
+#--Use this for mainline git-commit kernel from SCM--------
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 GITHASH             = 
 DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/$(GITHASH)
+#----------------------------------------------------------
+endif
+
+ifeq (0,1)
+#--Use this for mainline official x.y.z kernel from GIT----
+MASTER_SITES       += https://github.com/torvalds/linux/archive/
+DISTFILES           = v$(LINUX_VERSION).tar.gz $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 #----------------------------------------------------------
 endif
 
@@ -219,8 +219,6 @@ PATCHFILES += 0900-rpi-vc04_services-add_h~l2-m2m_decode-04092022.patch
 PATCHFILES += 0901-rpi-vc04_services-bcm2835-codec-remove-isp-formats.patch
 # add H265 rpivid driver
 PATCHFILES += 0904-media-add-rpivid-driver.patch
-# fix regression in rc2 resulting unsuported mode on vc4 hdmi
-PATCHFILES += 0905-drm-vc4-hdmi-fix-Enforce-the-minimum-rate-at-runtime_resume.patch
 endif
 #------------------------------------------------------------
 
