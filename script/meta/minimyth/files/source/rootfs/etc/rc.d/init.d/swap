@@ -12,50 +12,12 @@ start() {
 
     if [ "x${MM_SWAP_ENABLED}" = "xyes" ] ; then
 
-        cpulist=$( /bin/cat /sys/devices/system/cpu/present | tr ',' ' ' )
-        local num_cpus=0
-        for item in $cpulist; do
+        /usr/bin/zram-swap start
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/swap] Started with return code=$? ..."
 
-            if ( /bin/echo $item | /bin/grep -s '-' ); then
-
-                greater_cpunum=$( /bin/echo $item | cut -d '-' -f 2 )
-                lesser_cpunum=$( /bin/echo $item | cut -d '-' -f 1 )
-                local num_cpus=$(( $num_cpus + $greater_cpunum - $lesser_cpunum + 1 ))
-
-            else
-
-                local num_cpus=$(( $num_cpus + 1 ))
-            fi
-        done
-
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/swap] system has ${num_cpus} CPUs..."
-
-        mem_total_kb=$(/bin/grep MemTotal /proc/meminfo | /bin/grep -E -o '[[:digit:]]+')
-        mem_total=$((mem_total_kb * 1024))
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/swap] system has ${mem_total} bytes of RAM..."
-
-        /sbin/modprobe zram num_devices=$num_cpus
-
-        decr_num_cpus=$((num_cpus - 1))
-        zram_size=$((mem_total / 2 / num_cpus))
-        for i in $(/usr/bin/seq 0 $decr_num_cpus); do
-
-            /bin/echo  $zram_size > /sys/block/zram$i/disksize
-        done
-
-        for i in $(/usr/bin/seq 0 $decr_num_cpus); do
-
-            /sbin/mkswap /dev/zram$i
-        done
-
-        for i in $(/usr/bin/seq 0 $decr_num_cpus); do
-
-            /sbin/swapon -p 100 /dev/zram$i
-        done
-
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/swap] Started with return code=0 ..."
     fi
-
-    /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/swap] Started with return code=0..."
 
     /bin/rm -f /var/init/swap.inprogress
     return 0
@@ -65,27 +27,8 @@ stop() {
 
     if [ "x${MM_SWAP_ENABLED}" = "xyes" ] ; then
 
-        cpulist=$( /bin/cat /sys/devices/system/cpu/present | tr ',' ' ' )
-        local num_cpus=0
-        for item in $cpulist; do
-
-            if ( /bin/echo $item | /bin/grep -s '-' ); then
-
-                greater_cpunum=$( /bin/echo $item | cut -d '-' -f 2 )
-                lesser_cpunum=$( /bin/echo $item | cut -d '-' -f 1 )
-                local num_cpus=$(( $num_cpus + $greater_cpunum - $lesser_cpunum + 1 ))
-            else
-
-                local num_cpus=$(( $num_cpus + 1 ))
-            fi
-        done
-
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/swap] switch-off swap filesystems..."
-        decr_num_cpus=$((num_cpus - 1))
-        for i in $(/usr/bin/seq 0 $decr_num_cpus); do
-
-            /sbin/swapoff /dev/zram$i
-        done
+        /usr/bin/zram-swap stop
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/swap] Stopped with return code=0..."
 
     fi
 
