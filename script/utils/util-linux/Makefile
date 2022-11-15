@@ -35,7 +35,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-libfdisk \
 	--enable-mount \
 	--disable-losetup \
-	--disable-zramctl \
+	--enable-zramctl \
 	--disable-fsck \
 	--disable-partx \
 	--enable-uuidd \
