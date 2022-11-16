@@ -72,7 +72,6 @@ DISTFILES    = \
 	board-x86pc.bios_efi64.conf \
 	board-x86pc.bios_efi64.wks  \
 	default-mbr.wks             \
-	rk3566.x96_x6-gpt.wks       \
 	default-gpt.wks             \
 	create-image.sh             \
 
