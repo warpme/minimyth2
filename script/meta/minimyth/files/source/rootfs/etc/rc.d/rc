@@ -83,6 +83,12 @@ rc_script_list_run() {
 
     for script in ${script_list} ; do
 
+        filename="$(basename "$(test -L "${script}" && readlink "${script}" || echo "${script}")")" #"
+
+        /bin/touch /var/init/${filename}.inprogress
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/${filename}] Starting..."
+
         if [ ${phase} -eq 2 ] ; then
 
             mm_command_run "${script} ${action}" &
@@ -154,6 +160,7 @@ case $1 in
 
     1|2|3|4|5)
 
+        touch /var/log/init-script-durations.log
         # Start bootup scripts sequentially
 
         mm_splash_init 'bootup'
@@ -165,8 +172,6 @@ case $1 in
 
         rc_script_list_run 0 "start" "${script_list}"
 
-        # Start init scripts parallelly
-        /bin/rm -fr   /var/init/*
         /bin/mkdir -p /var/init
 
         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/rc] Parallel launch init scripts: List1 ..."

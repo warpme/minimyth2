@@ -26,6 +26,7 @@
 /bin/mkdir -p /var/run
 /bin/touch    /var/run/utmp
 /bin/mkdir -p /var/tmp
+/bin/mkdir -p /var/init
 
 /bin/mount -t tmpfs -o nodev,nosuid,size=64M,mode=1777 tmpfs /var/tmp
 /bin/mount -t tmpfs -o nodev,nosuid,size=64M,mode=1777 tmpfs /var/log
