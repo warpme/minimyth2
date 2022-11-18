@@ -1,12 +1,11 @@
-GARNAME = parted
-GARVERSION = 3.2
-CATEGORIES = lib
+
+GARNAME      = parted
+GARVERSION   = 3.5
+CATEGORIES   = lib
 MASTER_SITES = http://ftp.gnu.org/gnu/parted/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = $(GARNAME)
-PATCHFILES = $(DISTNAME)-fix-compile.patch
-PATCHFILES += $(DISTNAME)-fix-man-dir.patch
-PATCHFILES += $(DISTNAME)-glibc2.28-add-sysmacros.patch
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = $(GARNAME)
+PATCHFILES   = $(DISTNAME)-fix-man-dir.patch
 $(GARNAME)_LICENSE_TEXT=$(WORKSRC)/COPYING
 
 DESCRIPTION =
