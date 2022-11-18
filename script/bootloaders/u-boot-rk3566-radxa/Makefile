@@ -11,6 +11,7 @@ MASTER_SITES = \
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
 PATCHFILES   = 05-fix-building-gcc12.patch
 PATCHFILES  += 06-arch-arm-dts-add-rk3566-quartz64.patch
+PATCHFILES  += 07-net.h-make-random-mac-constant.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
