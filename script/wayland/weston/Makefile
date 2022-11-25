@@ -36,6 +36,7 @@ INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
+	--datadir="$(libdir)" \
 	-D backend-drm-screencast-vaapi="false" \
 	-D backend-rdp="false" \
 	-D backend-x11="true" \
