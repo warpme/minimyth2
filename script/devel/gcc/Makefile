@@ -39,6 +39,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --target=$(G
 	--with-gnu-as \
 	--with-gnu-ld \
 	--with-local-prefix=$(patsubst %/include,%,$($(CROSSIMG)_includedir)) \
+	--enable-silent-rules \
 	--enable-plugin \
 	--enable-__cxa_atexit \
 	--enable-clocale=gnu \
