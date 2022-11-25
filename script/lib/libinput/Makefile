@@ -1,6 +1,6 @@
 
 GARNAME      = libinput
-GARVERSION   = 1.21.0
+GARVERSION   = 1.22.0
 CATEGORIES   = lib
 MASTER_SITES = https://gitlab.freedesktop.org/libinput/libinput/-/archive/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.bz2
