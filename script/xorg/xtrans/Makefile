@@ -1,10 +1,10 @@
-GARNAME = xtrans
-GARVERSION = 1.3.5
-CATEGORIES = $(CATEGORY)
+
+GARNAME      = xtrans
+GARVERSION   = 1.4.0
+CATEGORIES   = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-abstract_only.patch
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
 DESCRIPTION = 
@@ -20,7 +20,8 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules \
+	--datadir=$(libdir) \
+	--enable-silent-rules \
 	--disable-docs
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
