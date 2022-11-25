@@ -19,7 +19,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 include ../../gar.mk
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--enable-drm \
 	--enable-x11 \
 	--disable-wayland \
