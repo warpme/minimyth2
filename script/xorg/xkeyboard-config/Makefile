@@ -1,12 +1,10 @@
-GARNAME = xkeyboard-config
-GARVERSION = 2.23.1
-CATEGORIES = $(CATEGORY)
-MASTER_SITES  = http://xorg.freedesktop.org/releases/individual/data/$(GARNAME)/
-MASTER_SITES += http://xorg.freedesktop.org/releases/individual/data/
-MASTER_SITES += http://xlibs.freedesktop.org/xkbdesc/
-MASTER_SITES += http://people.freedesktop.org/~svu/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = $(GARNAME)
+
+GARNAME       = xkeyboard-config
+GARVERSION    = 2.37
+CATEGORIES    = $(CATEGORY)
+MASTER_SITES  = https://xorg.freedesktop.org/archive/individual/data/$(GARNAME)/
+DISTFILES     = $(DISTNAME).tar.xz
+LICENSE       = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
 DESCRIPTION = 
@@ -22,24 +20,13 @@ BUILDDEPS = \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--enable-compat-rules \
-	--enable-nls \
-	--disable-rpath \
-	--without-xsltproc \
-	--with-xkb-base="$(datadir)/X11/xkb" \
-	--without-xkb-rules-symlink \
-	--with-gnu-ld
+MESON_CONFIGURE_ARGS = \
+	--buildtype=release \
+	--datadir="$(libdir)" \
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-pre-configure:
-	@#Broken intltoolize.
-	@#$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
