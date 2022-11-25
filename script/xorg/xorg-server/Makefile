@@ -43,7 +43,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-strict-compilation \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--disable-static \
 	--enable-shared \
 	--disable-debug \
