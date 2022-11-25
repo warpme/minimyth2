@@ -17,5 +17,6 @@ MESON_CONFIGURE_ARGS_BUILD =
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
+	--datadir="$(libdir)" \
 
 include ../../gar.mk
