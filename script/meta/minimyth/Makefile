@@ -170,7 +170,6 @@ DEPENDS = \
 	utils/kbd \
 	utils/dash \
 	utils/read-edid \
-	system/zram-swap \
 	devel/gdb \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
 		gtk/gconf \
