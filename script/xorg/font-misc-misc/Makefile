@@ -28,7 +28,7 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--enable-iso8859-1 \
 	--disable-iso8859-2 \
 	--disable-iso8859-3 \

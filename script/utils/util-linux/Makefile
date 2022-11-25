@@ -20,7 +20,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--bindir=$(ebindir) \
 	--sbindir=$(esbindir) \
 	--libdir=$(elibdir) \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--enable-shared \
 	--disable-static \
 	--disable-gtk-doc \

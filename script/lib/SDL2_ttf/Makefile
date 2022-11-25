@@ -20,7 +20,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--x-libraries="$(DESTDIR)$(libdir)" \
 	--enable-shared \
 	--disable-static \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--disable-sdltest \
 	--with-gnu-ld \
 	--with-x

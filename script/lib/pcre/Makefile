@@ -26,7 +26,7 @@ INSTALL_SCRIPTS   += cross
 endif
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--enable-shared \
 	--disable-static \
 	--enable-utf8 \

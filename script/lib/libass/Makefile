@@ -21,7 +21,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-static \
 	--disable-test \
 	--enable-fontconfig \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--with-gnu-ld \
 
 include ../../gar.mk

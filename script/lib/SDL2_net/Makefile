@@ -19,7 +19,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--disable-sdltest \
 	--disable-gui \
 	--with-gnu-ld

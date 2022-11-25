@@ -28,7 +28,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--disable-docs \
 	--disable-specs \
 	--enable-malloc0returnsnull \

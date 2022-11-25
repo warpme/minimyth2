@@ -21,7 +21,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 BUILDDEPS  = xorg/util-macros xorg/xorgproto
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules
+	--enable-silent-rules
 
 include ../../gar.mk
 

@@ -24,7 +24,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
 	--enable-xthreads \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--with-gnu-ld \
 	xorg_cv_malloc0_returns_null=true
 

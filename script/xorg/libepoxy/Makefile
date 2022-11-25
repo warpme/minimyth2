@@ -20,7 +20,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 BUILDDEPS  = python2/python-argparse
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules
+	--enable-silent-rules
 
 include ../../gar.mk
 

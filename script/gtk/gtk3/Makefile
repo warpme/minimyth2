@@ -22,7 +22,7 @@ endif
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--x-includes="$(DESTDIR)$(includedir)" \
 	--x-libraries="$(DESTDIR)$(libdir)" \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--disable-static \
 	--enable-shared \
 	--enable-debug=minimal \

@@ -18,7 +18,7 @@ BUILD_SCRIPTS     = $(WORKSRC)/utils/keytable/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/utils/keytable/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--enable-shared \
 	--disable-static \
 	--disable-doxygen-doc \

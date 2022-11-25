@@ -20,7 +20,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/libelf/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--program-prefix="eu-" \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--disable-debuginfod \
 	--disable-libdebuginfod \
 

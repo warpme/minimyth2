@@ -40,7 +40,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--disable-static \
 	--enable-shared \
 	--enable-udev \

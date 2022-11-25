@@ -39,7 +39,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--program-prefix="" \
 	--with-bootdir="$(DESTDIR)/boot" \
 	--with-grubdir="grub" \
-	--disable-silent-rules \
+	--enable-silent-rules \
 	--disable-werror \
 	--with-platform="efi" \
 	--target="x86_64" \
