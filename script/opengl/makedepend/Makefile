@@ -1,8 +1,8 @@
 
 GARNAME      = makedepend
-GARVERSION   = 1.0.6
+GARVERSION   = 1.0.7
 CATEGORIES   = opengl
-MASTER_SITES = https://gitlab.freedesktop.org/xorg/util/makedepend/-/archive/makedepend-1.0.6/
+MASTER_SITES = https://gitlab.freedesktop.org/xorg/util/makedepend/-/archive/makedepend-$(GARVERSION)/
 DISTFILES    = makedepend-$(DISTNAME).tar.bz2
 WORKSRC      = $(WORKDIR)/makedepend-$(DISTNAME)
 LICENSE      = $(GARNAME)
