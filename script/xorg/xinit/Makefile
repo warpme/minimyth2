@@ -1,9 +1,10 @@
-GARNAME = xinit
-GARVERSION = 1.3.2
-CATEGORIES = $(CATEGORY)
+
+GARNAME      = xinit
+GARVERSION   = 1.4.1
+CATEGORIES   = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
 DESCRIPTION = 
@@ -24,10 +25,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(MAKECOOKIE)
 
 pre-install:
 	@sed -i -e "s/mcookie=.*/mcookie=\`\/\/usr\/bin\/mcookie\`/" $(WORKSRC)/startx
