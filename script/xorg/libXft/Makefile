@@ -2,7 +2,7 @@
 GARNAME      = libXft
 GARVERSION   = 2.3.7
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://xorg.freedesktop.org/releases/individual/lib/
+MASTER_SITES = $(XORG_MASTER_SITES)
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
