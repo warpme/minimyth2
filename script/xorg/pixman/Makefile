@@ -1,9 +1,10 @@
-GARNAME = pixman
-GARVERSION = 0.40.0
-CATEGORIES = $(CATEGORY)
+
+GARNAME      = pixman
+GARVERSION   = 0.42.2
+CATEGORIES   = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
 DESCRIPTION = 
@@ -14,29 +15,15 @@ DEPENDS = lang/c
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--enable-silent-rules \
-	--enable-shared \
-	--disable-static \
-	--disable-openmp \
-	--disable-timers \
-	--disable-gtk \
-	--disable-libpng \
-	--disable-arm-iwmmxt \
-	--disable-arm-iwmmxt2 \
-	--with-gnu-ld
+MESON_CONFIGURE_ARGS = \
+	--buildtype=release \
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libpixman-1.la
