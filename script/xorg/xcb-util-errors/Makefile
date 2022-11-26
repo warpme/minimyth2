@@ -1,9 +1,9 @@
 
 GARNAME      = xcb-util-errors
-GARVERSION   = 1.0
+GARVERSION   = 1.0.1
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = http://xcb.freedesktop.org/dist/
-DISTFILES    = $(DISTNAME).tar.bz2
+MASTER_SITES = $(XORG_MASTER_SITES)
+DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = MIT
 
 DESCRIPTION = 
@@ -29,11 +29,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libxcb-errors.la
