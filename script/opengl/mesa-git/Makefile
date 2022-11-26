@@ -38,7 +38,6 @@ BUILDDEPS  = \
 	python3/python       \
 	python3/python-mako  \
 	devel/meson          \
-	opengl/makedepend    \
 	xorg/xorgproto       \
 	xorg/libxshmfence    \
 	wayland/wayland-core \
