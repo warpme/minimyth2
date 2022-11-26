@@ -1,9 +1,10 @@
-GARNAME = libXt
-GARVERSION = 1.1.3
-CATEGORIES = $(CATEGORY)
+
+GARNAME      = libXt
+GARVERSION   = 1.2.1
+CATEGORIES   = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
 DESCRIPTION = 
@@ -38,12 +39,6 @@ CONFIGURE_ENV = \
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-pre-configure:
-	@rm -f $(WORKSRC)/acinclude.m4
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
