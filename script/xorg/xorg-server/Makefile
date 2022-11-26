@@ -85,11 +85,6 @@ CFLAGS   += -Wno-array-bounds
 CPPFLAGS += -Wno-array-bounds
 LDFLAGS  += -Wno-array-bounds
 
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
-
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/drivers/modesetting_drv.la
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/extensions/libdbe.la
