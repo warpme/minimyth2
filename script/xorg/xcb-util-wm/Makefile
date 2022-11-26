@@ -1,9 +1,10 @@
-GARNAME = xcb-util-wm
-GARVERSION = 0.4.1
-CATEGORIES = $(CATEGORY)
-MASTER_SITES = http://xcb.freedesktop.org/dist/
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = MIT
+
+GARNAME      = xcb-util-wm
+GARVERSION   = 0.4.2
+CATEGORIES   = $(CATEGORY)
+MASTER_SITES = $(XORG_MASTER_SITES)
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = MIT
 
 DESCRIPTION = 
 define BLURB
@@ -28,11 +29,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libxcb-keysyms.la
