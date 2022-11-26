@@ -1,15 +1,14 @@
-GARNAME = xorg
+
+GARNAME    = xorg
 GARVERSION = $(XORG_VERSION)
 CATEGORIES = $(CATEGORY)
-LICENSE =
+LICENSE    =
 
 DESCRIPTION = 
 define BLURB
 endef
 
 DEPENDS = \
-	$(CATEGORY)/font-alias \
-	$(CATEGORY)/font-bh-ttf \
 	$(CATEGORY)/iceauth \
 	$(CATEGORY)/libX11 \
 	$(CATEGORY)/libxcomposite \
