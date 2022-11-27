@@ -26,7 +26,10 @@ INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
-	--datadir="$(libdir)" \
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
+
+post-install:
+	@mv $(DESTDIR)$(datadir)/pkgconfig/xkeyboard-config.pc $(DESTDIR)$(libdir)/pkgconfig/xkeyboard-config.pc
+	@$(MAKECOOKIE)

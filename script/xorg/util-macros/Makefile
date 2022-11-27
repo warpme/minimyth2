@@ -20,11 +20,14 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--datadir=$(libdir)
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
+	@$(MAKECOOKIE)
+
+post-install:
+	@mv $(DESTDIR)$(datadir)/pkgconfig/xorg-macros.pc $(DESTDIR)$(libdir)/pkgconfig/xorg-macros.pc
 	@$(MAKECOOKIE)
