@@ -17,6 +17,9 @@ MESON_CONFIGURE_ARGS_BUILD =
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
-	--datadir="$(libdir)" \
 
 include ../../gar.mk
+
+post-install:
+	@mv $(DESTDIR)$(datadir)/pkgconfig/wayland-protocols.pc $(DESTDIR)$(libdir)/pkgconfig/wayland-protocols.pc
+	@$(MAKECOOKIE)

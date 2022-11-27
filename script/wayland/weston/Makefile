@@ -36,7 +36,6 @@ INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
-	--datadir="$(libdir)" \
 	-D backend-drm-screencast-vaapi="false" \
 	-D backend-rdp="false" \
 	-D backend-x11="true" \
@@ -56,6 +55,10 @@ MESON_CONFIGURE_ARGS = \
 	-D deprecated-wl-shell="true" \
 
 include ../../gar.mk
+
+post-install:
+	@mv $(DESTDIR)$(datadir)/pkgconfig/libweston-10-protocols.pc $(DESTDIR)$(libdir)/pkgconfig/libweston-10-protocols.pc
+	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/weston*
