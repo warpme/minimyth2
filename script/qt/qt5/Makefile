@@ -10,6 +10,7 @@ PATCHFILES  += $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
 PATCHFILES  += $(DISTNAME)-fixQTBUG-95071-MySQL-dont-format-QDateTime-with-timezones.patch
+PATCHFILES  += $(DISTNAME)-fix-egl-x11-detection-mesa-22.3.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
@@ -182,7 +183,11 @@ pre-configure:
 	@$(MAKECOOKIE)
 
 configure-%/configure:
-	@cd $* && $(CONFIGURE_ENV) echo "yes" | ./configure $(CONFIGURE_ARGS)
+	@cd $* && $(CONFIGURE_ENV) echo "yes" | ./configure $(CONFIGURE_ARGS) -recheck-all
+	@$(MAKECOOKIE)
+
+reconfig:
+	@cd $* && $(CONFIGURE_ENV) echo "yes" | ./configure $(CONFIGURE_ARGS) -recheck-all
 	@$(MAKECOOKIE)
 
 pre-install:
