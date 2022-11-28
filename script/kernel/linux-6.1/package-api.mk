@@ -17,21 +17,21 @@ endif
 #-------------------------------------------
 
 #--Use this for RC mainline kernel----------
-ifeq (1,1)
-LINUX_MAJOR_VERSION = 6
-LINUX_MINOR_VERSION = 1
-LINUX_TEENY_VERSION = 
-LINUX_EXTRA_VERSION = -rc6
-endif
-#-------------------------------------------
-
-#--Use this for RC git hash snapshot of mainline kernel----------
 ifeq (0,1)
 LINUX_MAJOR_VERSION = 6
 LINUX_MINOR_VERSION = 1
 LINUX_TEENY_VERSION = 
-GITHASH             = eb7081409f94a9a8608593d0fb63a1aa3d6f95d8
-LINUX_EXTRA_VERSION = -rc6
+LINUX_EXTRA_VERSION = -rc7
+endif
+#-------------------------------------------
+
+#--Use this for RC git hash snapshot of mainline kernel----------
+ifeq (1,1)
+LINUX_MAJOR_VERSION = 6
+LINUX_MINOR_VERSION = 1
+LINUX_TEENY_VERSION = 
+GITHASH             = b7b275e60bcd5f89771e865a8239325f86d9927d
+LINUX_EXTRA_VERSION = -rc7
 endif
 #-------------------------------------------
 

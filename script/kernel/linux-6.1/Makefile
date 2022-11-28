@@ -1,4 +1,4 @@
-ifeq (1,1)
+ifeq (0,1)
 #--Use this for mainline official x.y.z kernel from SCM----
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
@@ -15,7 +15,7 @@ WORKSRC             = $(WORKDIR)/$(GITHASH)
 #----------------------------------------------------------
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 #--Use this for mainline official x.y.z kernel from GIT----
 MASTER_SITES       += https://github.com/torvalds/linux/archive/
 DISTFILES           = v$(LINUX_VERSION).tar.gz $(CONFIGFILE)
@@ -94,7 +94,6 @@ PATCHFILES += 0509-Input-axp20x-pek-allow-wakeup-after-shutdown.patch
 # https://github.com/jernejsk/linux-1/commits/hevc-10
 PATCHFILES += 0523-drm-sun4i-dw-hdmi-revert-Fix-ddc-en-GPIO-consumer.patch
 PATCHFILES += 0524-arm64-dts-allwinner-h6-Fix-Cedrus-IOMMU-again.patch
-PATCHFILES += 0525-arm64-dts-allwinner-h6-Add-Hantro-G2-IOMMU-phandle.patch
 PATCHFILES += 0526-iommu-sun50i-Fix-reset-release.patch
 PATCHFILES += 0527-iommu-sun50i-Consider-all-fault-sources-for-reset.patch
 PATCHFILES += 0528-iommu-sun50i-Fix-R-W-permission-check.patch
@@ -207,7 +206,7 @@ PATCHFILES += 0840-arm64-dts-rockchip-add-dts-for-rock3b.patch
 PATCHFILES += 0841-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
 PATCHFILES += 0842-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
 PATCHFILES += 0843-arm64-dts-rockchip-fix-eth-cec-in-rock3a.patch
-PATCHFILES += 0844-arm64-dts-rockchip-fix-cec-pmic-int-quartz64-b.patch
+PATCHFILES += 0844-arm64-dts-rockchip-fix-cec-quartz64-b.patch
 PATCHFILES += 0845-arm64-dts-rockchip-add-dts-for-rock3c.patch
 endif
 #------------------------------------------------------------
