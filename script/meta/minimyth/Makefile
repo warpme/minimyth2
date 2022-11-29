@@ -221,6 +221,7 @@ BUILDDEPS = \
 	perl/perlstrip \
 	devel/meson \
 	net/inetutils \
+	xorg/mkfontscale \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
