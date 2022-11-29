@@ -17,9 +17,7 @@ DEPENDS   = lang/c \
 BUILDDEPS = \
 	$(CATEGORY)/bdftopcf \
 	$(CATEGORY)/font-util \
-	$(CATEGORY)/mkfontdir \
-	$(CATEGORY)/mkfontscale
-
+	$(CATEGORY)/mkfontscale \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 

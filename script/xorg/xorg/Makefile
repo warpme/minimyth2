@@ -9,6 +9,7 @@ define BLURB
 endef
 
 DEPENDS = \
+	$(CATEGORY)/font-alias \
 	$(CATEGORY)/iceauth \
 	$(CATEGORY)/libX11 \
 	$(CATEGORY)/libxcomposite \
@@ -27,7 +28,6 @@ DEPENDS = \
 	$(CATEGORY)/libXt \
 	$(CATEGORY)/libXtst \
 	opengl/opengl \
-	$(CATEGORY)/mkfontdir \
 	$(CATEGORY)/mkfontscale \
 	$(CATEGORY)/rgb \
 	$(CATEGORY)/xcb-util-image \
@@ -39,11 +39,7 @@ DEPENDS = \
 	$(if $(filter-out build, $(DESTIMG)), \
 		$(CATEGORY)/xf86-input-evdev \
 		$(CATEGORY)/xf86-input-void \
-		$(if $(filter radeon,$(mm_GRAPHICS)),$(CATEGORY)/xf86-video-ati) \
-		$(if $(filter intel, $(mm_GRAPHICS)),$(CATEGORY)/xf86-video-intel) \
 		$(if $(filter vmware,$(mm_GRAPHICS)),$(CATEGORY)/xf86-video-vmware) \
-		$(if $(filter armsoc,$(mm_GRAPHICS)), \
-			$(CATEGORY)/xf86-video-armsoc) \
 	) \
 	$(CATEGORY)/xinit \
 	$(CATEGORY)/xkbcomp \
@@ -55,7 +51,6 @@ DEPENDS = \
 	$(CATEGORY)/xset \
 	$(CATEGORY)/xsetroot \
 	$(CATEGORY)/xauth
-
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 

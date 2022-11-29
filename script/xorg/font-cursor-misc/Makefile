@@ -1,3 +1,4 @@
+
 GARNAME = font-cursor-misc
 GARVERSION = 1.0.3
 CATEGORIES = $(CATEGORY)
@@ -15,9 +16,7 @@ DEPENDS   = lang/c \
 	$(CATEGORY)/util-macros
 BUILDDEPS = \
 	$(CATEGORY)/bdftopcf \
-	$(CATEGORY)/mkfontdir \
-	$(CATEGORY)/mkfontscale
-
+	$(CATEGORY)/mkfontscale \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 

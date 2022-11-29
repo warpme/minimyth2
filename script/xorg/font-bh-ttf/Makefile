@@ -1,9 +1,10 @@
-GARNAME = font-bh-ttf
-GARVERSION = 1.0.3
-CATEGORIES = $(CATEGORY)
+
+GARNAME      = font-bh-ttf
+GARVERSION   = 1.0.3
+CATEGORIES   = $(CATEGORY)
 MASTER_SITES = $(XORG_MASTER_SITES)
-DISTFILES = $(DISTNAME).tar.bz2
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
 DESCRIPTION = 
@@ -14,8 +15,7 @@ DEPENDS   = lang/c \
 	$(CATEGORY)/font-util \
 	$(CATEGORY)/util-macros
 BUILDDEPS = lib/fontconfig  \
-	$(CATEGORY)/mkfontdir \
-	$(CATEGORY)/mkfontscale
+	$(CATEGORY)/mkfontscale \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
@@ -28,7 +28,3 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(MAKECOOKIE)
