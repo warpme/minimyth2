@@ -115,6 +115,8 @@ PATCHFILES += 0544-media-cedrus-prefer-untiled-capture-format.patch
 PATCHFILES += 0545-media-cedrus-initialize-controls-a-bit-later.patch
 PATCHFILES += 0546-media-cedrus-Adjust-buffer-size-based-on-control-val.patch
 PATCHFILES += 0547-media-cedrus-h265-Support-decoding-10-bit-frames.patch
+# vc1 decoding support https://github.com/jernejsk/linux-1/commits/vc1 22.11.2022
+PATCHFILES += 0548-media-cedrus-add-vc1-decoding-support.patch
 # various patches for H6
 PATCHFILES += 0559-mfd-add-AC200.patch
 PATCHFILES += 0560-net-phy-Add-support-for-AC200-EPHY.patch
