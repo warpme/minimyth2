@@ -1,5 +1,5 @@
 
-# DISABLE_LTO  = yes
+DISABLE_LTO  = yes
 
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
@@ -61,6 +61,8 @@ PATCHFILES += 0152-configure-add-v4l2request-support.patch
 PATCHFILES += 0153-ffmpeg-libavfilter-add-v4l2deinterlace-filter.patch
 # Improve v4l2_request resiliency on so DVB stream errors (http://jernej.libreelec.tv/videos/cedrus_broken.ts)
 PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
+# https://github.com/jernejsk/FFmpeg/tree/vc1-v2
+PATCHFILES += 0155-ffmpeg-v4l2_request-add-vc1-support.patch
 # buffers bump-up required for AML HD playbck
 PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 # this makes v4l2_request seeking on h264 content working
