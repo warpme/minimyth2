@@ -30,8 +30,8 @@ ifeq (1,1)
 LINUX_MAJOR_VERSION = 6
 LINUX_MINOR_VERSION = 1
 LINUX_TEENY_VERSION = 
-GITHASH             = b7b275e60bcd5f89771e865a8239325f86d9927d
-LINUX_EXTRA_VERSION = -rc7
+GITHASH             = 76dcd734eca23168cb008912c0f69ff408905235
+LINUX_EXTRA_VERSION = -rc8
 endif
 #-------------------------------------------
 
