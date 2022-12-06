@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# v2021.02.24
+# v2022.12.06
 
 . /etc/rc.d/functions
 . /etc/mm_ui_localizations_sh
@@ -107,7 +107,7 @@ fi
 if [ "x${command}" = "x_restart_mythbackend" ] ; then
   mm_show_mythnotify "${restart_mythbackend_str}" '' ''
   /bin/sleep 5
-  ssh -c aes128-ctr root@@MM_MASTER_SERVER@ /usr/bin/systemctl restart mythbackend.service
+  ssh -c aes128-ctr root@192.168.1.254 /usr/bin/systemctl restart mythbackend.service
   exit 0
 fi
 
@@ -121,7 +121,7 @@ fi
 if [ "x${command}" = "x_restart_server" ] ; then
   mm_show_mythnotify "${restart_server_str}" '' ''
   /bin/sleep 5
-  ssh -c aes128-ctr root@@MM_MASTER_SERVER@ reboot
+  ssh -c aes128-ctr root@192.168.1.254 reboot
   exit 0
 fi
 
@@ -250,8 +250,8 @@ if [ "x${command}" = "x_check_updates" ] ; then
   if [ "x${MM_MINIMYTH_ONLINE_UPDATES_URL}" = "xlocal" ] ; then
     # Do update check for PXE booted diskless case
     mm_show_mythnotify "${checking_for_system_updates_str}" '' '' '12' "${system_updates_str}"
-    ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Sy > /dev/null 2>&1
-    updates=`ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Qqu | /usr/bin/wc -w 2> /dev/null`
+    ssh -c aes128-ctr root@192.168.1.254 pacman -Sy > /dev/null 2>&1
+    updates=`ssh -c aes128-ctr root@192.168.1.254 pacman -Qqu | /usr/bin/wc -w 2> /dev/null`
     if [ -n ${updates} ] ; then
       if [ ! ${updates} = 0 ] ; then
         mm_show_mythnotify "${updates_detected_str}" ${updates}"${packages_were_updated_str}" 'warning' '12'
@@ -285,12 +285,12 @@ if [ "x${command}" = "x_install_updates" ] ; then
     # Do update update for PXE booted diskless case
     if [ "x${MM_MYTHTV_DRAW_ON}" = "xeglfs" ] ; then
       mm_show_mythnotify "${installing_updates_in_background_str}" '' '' '900' "${system_updates_str}"
-      ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Syu --noconfirm
-      ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Scq --noconfirm
-      ssh -c aes128-ctr root@@MM_MASTER_SERVER@ /usr/bin/systemctl daemon-reload
+      ssh -c aes128-ctr root@192.168.1.254 pacman -Syu --noconfirm
+      ssh -c aes128-ctr root@192.168.1.254 pacman -Scq --noconfirm
+      ssh -c aes128-ctr root@192.168.1.254 /usr/bin/systemctl daemon-reload
     else
       mm_show_mythnotify "${installing_system_updates_str}" '' '' '12' "${system_updates_str}"
-      mm_term_start /bin/su root -c 'ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Syu --noconfirm; ssh -c aes128-ctr root@@MM_MASTER_SERVER@ pacman -Scq --noconfirm; ssh -c aes128-ctr root@@MM_MASTER_SERVER@ /usr/bin/systemctl daemon-reload; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;'
+      mm_term_start /bin/su root -c 'ssh -c aes128-ctr root@192.168.1.254 pacman -Syu --noconfirm; ssh -c aes128-ctr root@192.168.1.254 pacman -Scq --noconfirm; ssh -c aes128-ctr root@192.168.1.254 /usr/bin/systemctl daemon-reload; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;'
       # If new PXE image was installed - then force reboot to load this ne image
       if [ -e /usr/local/share/myth-at-home/version ] ; then
         rc=`/usr/bin/cmp /etc/version /usr/local/share/myth-at-home/version`
@@ -317,7 +317,7 @@ fi
 #-------------------------------------------------------------------------------
 
 if [ "x${command}" = "xcheck_mythtv_db" ] ; then
-  mm_term_start /bin/su root -c 'ssh -c aes128-ctr root@@MM_MASTER_SERVER@ /usr/local/bin/maintenance/check-optimize-db.sh; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;'
+  mm_term_start /bin/su root -c 'ssh -c aes128-ctr root@192.168.1.254 /usr/local/bin/maintenance/check-optimize-db.sh; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;'
   exit 0
 fi
 
@@ -384,6 +384,24 @@ fi
 
 #-------------------------------------------------------------------------------
 
+if [ "x${command}" = "xsend_sysinfo" ] ; then
+  mm_manage _send_sysinfo &
+  exit 0
+fi
+if [ "x${command}" = "x_send_sysinfo" ] ; then
+  mm_show_mythnotify "${start_send_systeminfo_str}" '' '' '8'
+  url=`cat /var/log/system-info | nc termbin.com 9999`
+  if [ $? -eq 0 ] ; then
+    mm_show_mythnotify "${url}" '' '' '900' "${send_systeminfo_url_str}"
+  else
+    mm_show_mythnotify "${start_send_systeminfo_str}" "${error_str}" 'error'
+  fi
+  exit 0
+fi
+
+
+#-------------------------------------------------------------------------------
+
 if [ "x${command}" = "xnotify_added_remote" ] ; then
   mm_show_mythnotify "${new_ir_remote_connected_str}" '' 'ok' '5'
   exit 0
@@ -443,6 +461,7 @@ echo "bluray_rip_start"
 echo "bluray_copy_start"
 echo "bluray_rip_progress"
 echo "bluray_rip_stop"
+echo "send_sysinfo"
 echo ""
 echo "Exiting..."
 echo ""
