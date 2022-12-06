@@ -74,6 +74,11 @@ pruning_mythtv_cache_str		="Zarządzanie MythTV Cache"
 mythtv_cache_occupation_str		="Bieżący rozmiar cache: "
 mythtv_cache_prunning_str		="Oczyszczenie do "
 
+#---- OSD messaging in send sysinfo
+# /usr/bin/mm_manage 06.12.2022
+start_send_systeminfo_str		="Wysyłam Raport Systemowy"
+send_systeminfo_url_str			="URL raportu:"
+
 #--show OSD--
 
 server_title_str		= "Serwer";
