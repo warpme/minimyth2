@@ -1,9 +1,10 @@
 
 GARNAME      = monitorix
-GARVERSION   = 3.14.0
+GARVERSION   = 3.15.0
 CATEGORIES   = utils
 MASTER_SITES = http://www.monitorix.org/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = $(DISTNAME)-minimyth2.conf.patch
 LICENSE      = GPL2
 
 DEPENDS = \
