@@ -36,6 +36,7 @@ MM_INIT_START_PHASE_4 := \
     conf_phase_5 \
 
 MM_INIT_START_PHASE_5 := \
+    userleds     \
     localization \
     media        \
     irtrans      \
