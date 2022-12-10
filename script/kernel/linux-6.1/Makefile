@@ -192,6 +192,7 @@ PATCHFILES += 0748-media-rkvdec-vp9-Add-required-padding.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=385165&archive=both
 PATCHFILES += 0749-phy-rockchip-phy-add-rockchip-inno-usb3.patch
 PATCHFILES += 0750-arm64-dts-rockchip-enable-inno-usb3-beelinkA1-roc-cc.patch
+PATCHFILES += 0751-arm64-dts-rockchip-rk33xx-set-userled-to-mmc.patch
 endif
 #------------------------------------------------------------
 
@@ -210,6 +211,7 @@ PATCHFILES += 0842-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
 PATCHFILES += 0843-arm64-dts-rockchip-fix-eth-cec-in-rock3a.patch
 PATCHFILES += 0844-arm64-dts-rockchip-fix-cec-quartz64-b.patch
 PATCHFILES += 0845-arm64-dts-rockchip-add-dts-for-rock3c.patch
+PATCHFILES += 0846-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
 endif
 #------------------------------------------------------------
 
@@ -220,6 +222,7 @@ PATCHFILES += 0900-rpi-vc04_services-add_h~l2-m2m_decode-04092022.patch
 PATCHFILES += 0901-rpi-vc04_services-bcm2835-codec-remove-isp-formats.patch
 # add H265 rpivid driver
 PATCHFILES += 0904-media-add-rpivid-driver.patch
+PATCHFILES += 0905-arm64-dts-brcm-set-userled-to-mmc.patch
 endif
 #------------------------------------------------------------
 
