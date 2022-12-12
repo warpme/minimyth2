@@ -281,8 +281,10 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@BRANCH@%$(mm_MYTH_VERSION)%'                    $@~$(sysconfdir)/rc.d/init.d/conf.d/S_MINIMYTH
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g'  $@~$(sysconfdir)/splash/minimyth/*.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g'  $@~/etc/os_myth_release
-	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_SVN_VERSION)%g'    $@~/etc/os_myth_release
+	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_GIT_VERSION)%g'    $@~/etc/os_myth_release
 	@sed -i 's%@MM_GARCH@%$(mm_GARCH_FAMILY)%g'                 $@~/etc/os_myth_release
+	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g'  $@~/etc/minimyth2-release
+	@sed -i 's%@MM_GARCH@%$(mm_GARCH_FAMILY)%g'                 $@~/etc/minimyth2-release
 	@sed -i 's%@MM_VERSION@%$(mm_VERSION)-$(mm_GARCH_FAMILY)%g' $@~/etc/version
 	@sed -i 's%@MM_HOME@%$(mm_HOME)%g'                          $@~/usr/bin/devel-update-component.sh
 	@sed -i 's%@mm_QT_VERSION@%$(mm_QT_VERSION)%g' $@~/etc/conf.d/core
