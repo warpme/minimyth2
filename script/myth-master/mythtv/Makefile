@@ -110,6 +110,9 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
 PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 
+# Patches for scripts
+PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
+
 # --------Patches 400+ are plugins patches---------------------
 
 # Various mythmusic patches
