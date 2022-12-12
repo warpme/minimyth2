@@ -1,4 +1,4 @@
-ifeq (0,1)
+ifeq (1,1)
 #--Use this for mainline official x.y.z kernel from SCM----
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
@@ -15,7 +15,7 @@ WORKSRC             = $(WORKDIR)/$(GITHASH)
 #----------------------------------------------------------
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 #--Use this for mainline official x.y.z kernel from GIT----
 MASTER_SITES       += https://github.com/torvalds/linux/archive/
 DISTFILES           = v$(LINUX_VERSION).tar.gz $(CONFIGFILE)
@@ -174,7 +174,6 @@ ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
 PATCHFILES += 0705-rockchip-from-list.patch
 PATCHFILES += 0720-drm-from-list.patch
-#PATCHFILES += 0730-drm-rockchip-add-4k-videomodes-support.patch
 PATCHFILES += 0730-drm-rockchip.patch
 PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
