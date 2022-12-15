@@ -60,7 +60,7 @@ install-custom:
 		$(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img
 	@echo "Instaling u-boot.img ..."
 	@cp -f  $(WORKDIR)/out//u-boot/uboot.img \
-		$(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/u-boot.img
+		$(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/uboot.img
 	@echo "Instaling trust.img ..."
 	@cp -f  $(WORKDIR)/out/u-boot/trust.img \
 		$(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/trust.img
