@@ -20,6 +20,8 @@ fi
 
 /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Script started..."
 
+port=`mm_mythdb_settings_get NetworkControlPort`
+
 if [ -e /var/tmp/mm_tv_is_off ] ; then
     /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] POWER key pressed while TV is OFF -> Ignoring POWER key and turning-on TV"
     /bin/rm -f /var/tmp/mm_tv_is_off
@@ -37,16 +39,11 @@ fi
 # Turn off external equipment.
 /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Turning-off external equipment..."
 if [ -e /var/tmp/mm_tv_is_off ] ; then
-   /bin/rm -f /var/tmp/mm_tv_is_off
-   /usr/bin/mm_external ampli_power_off
+    /bin/rm -f /var/tmp/mm_tv_is_off
+    /usr/bin/mm_external ampli_power_off
 else
-   /usr/bin/mm_external tv_power_off
-   /usr/bin/mm_external ampli_power_off
-fi
-
-if [ "x${MM_AVAHI_ENABLED}" = "xyes" ] ; then
-   /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Unpublishing frontend services by AVANI..."
-   /usr/bin/killall avahi-publish
+    /usr/bin/mm_external tv_power_off
+    /usr/bin/mm_external ampli_power_off
 fi
 
 # Asking google chrome to exit
@@ -59,6 +56,39 @@ fi
 # Asking myth go go to main menu
 /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Asking myth to go to main menu..."
 mm_jump_myth_mainmenu
+/bin/sleep 2
+
+if [ x${MM_MYTHTV_SLEEP_ACTION} = "xnone" ] ; then
+    # Remove the state directory for mm_sleep.
+    /bin/rm -fr   /var/lib/mm_sleep.$$
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Configure to do nothing. Exiting..."
+    exit 0
+elif [ x${MM_MYTHTV_SLEEP_ACTION} = "xstandby" ] ; then
+    # Remove the state directory for mm_sleep.
+    /bin/rm -fr   /var/lib/mm_sleep.$$
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Entering standby ..."
+    mm_mythfrontend_networkcontrol "key f22" ${port}
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Exiting..."
+    exit 0
+elif [ x${MM_MYTHTV_SLEEP_ACTION} = "xpoweroff" ] ; then
+    # Remove the state directory for mm_sleep.
+    /bin/rm -fr   /var/lib/mm_sleep.$$
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Doing poweroff ..."
+    /etc/rc.d/init.d/halt start
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Exiting..."
+    exit 0
+elif [ ! x${MM_MYTHTV_SLEEP_ACTION} = "xsuspend" ] ; then
+    # Remove the state directory for mm_sleep.
+    /bin/rm -fr   /var/lib/mm_sleep.$$
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Unrecognized MM_MYTHTV_SLEEP_ACTION value. Exiting..."
+    exit 0
+fi
+
+# below is case when MM_MYTHTV_SLEEP_ACTION is set to suspend
+if [ "x${MM_AVAHI_ENABLED}" = "xyes" ] ; then
+   /usr/bin/logger -t minimyth -p "local0.info" "[mm_sleep] Unpublishing frontend services by AVANI..."
+   /usr/bin/killall avahi-publish
+fi
 
 # Asking SIP-DAEMON to exit
 if [ "x${MM_VOIP_ENABLED}" = "xyes" ] ; then
