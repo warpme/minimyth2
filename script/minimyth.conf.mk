@@ -24,7 +24,7 @@ mm_SOFTWARE               ?= \
                             mythplugins \
                             airplay \
                             avahi \
-                            udisks1 \
+                            udisks2 \
                             dvdcss \
                             gstreamer \
                             mc \
