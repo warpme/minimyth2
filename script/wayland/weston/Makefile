@@ -1,8 +1,8 @@
 
 GARNAME      = weston
-GARVERSION   = 10.0.2
+GARVERSION   = 10.0.3
 CATEGORIES   = wayland
-MASTER_SITES = https://gitlab.freedesktop.org/wayland/weston/-/releases/$(GARVERSION)/downloads/
+MASTER_SITES = https://gitlab.freedesktop.org/wayland/weston/uploads/4b1cde58d7853553d0371ad7093924aa/
 PATCHFILES  += $(DISTNAME)-terminal-add-cwd-and-command.patch
 PATCHFILES  += $(DISTNAME)-ticket798-no-terminal-without-input-devs.patch
 DISTFILES    = $(DISTNAME).tar.xz
