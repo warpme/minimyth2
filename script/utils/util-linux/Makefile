@@ -117,9 +117,9 @@ INSTALL_ARGS   = \
 include ../../gar.mk
 
 pre-configure:
-	@#$(call RUN_GETTEXTIZE)
-	@#$(call RUN_AUTOTOOLS)
-	@#$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	@$(call RUN_GETTEXTIZE)
+	@$(call RUN_AUTOTOOLS)
+	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
 
 post-install:
