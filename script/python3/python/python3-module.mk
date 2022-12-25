@@ -7,6 +7,7 @@ INSTALL_SCRIPTS = $(WORKSRC)/setup.py
 
 include ../../gar.mk
 GAR_EXTRA_CONF += package-api.mk
+include ../../python3/python/package-api.mk
 
 # Turn-off LTO to save size
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
@@ -14,7 +15,7 @@ CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 # Turn-off -O3 to save size
-CFLAGS   := $(filter-out -O%, $(CFLAGS)) -Os
+CFLAGS   := $(filter-out -O%, $(CFLAGS)) -Os -I$(DESTDIR)$(includedir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -Os
 LDFLAGS  := $(filter-out -O%, $(LDFLAGS)) -Os
 

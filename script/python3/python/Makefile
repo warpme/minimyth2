@@ -34,7 +34,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-system-expat \
 	--with-dbmliborder=gdbm:ndbm \
 	--without-ensurepip \
-	--with-lto \
+	--without-lto \
 	CPPFLAGS="-I$(DESTDIR)$(includedir)" \
 	ac_cv_enable_implicit_function_declaration_error=no \
 	ac_cv_working_tzset=yes \
@@ -68,6 +68,13 @@ LDFLAGS := $(LDFLAGS) -L$(PWD)/$(WORKSRC)
 # Needed as configure fails on 'float word ordering is bigendian' detection
 CFLAGS  += -ffat-lto-objects
 
+ifeq ($(GARCH),armv7)
+# disabling LTO on arm target
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+endif
+
 pre-configure:
 	@cd $(WORKSRC) ; autoreconf --verbose --install --force
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
@@ -97,11 +104,11 @@ ifneq ($(DESTIMG),build)
 	 cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu ; cp -f Makefile Makefile.build ; \
 	fi
 	@echo "==> Regenerating _sysconfigdata.py with cross-compile data ..."
-	@cp -fv $(WORKSRC)/Makefile $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/Makefile.xxxx
-	@cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-*-linux-gnu ; mv -f ../Makefile.xxxx Makefile
+	@cp -fv $(WORKSRC)/Makefile $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/Makefile.tmp
 	@if [ ! -e $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-i386-linux-gnu/Makefile.build ] ; then \
 	 ln -srf $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-x86_64-linux-gnu $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-i386-linux-gnu ; \
 	fi
+	@cd $(build_DESTDIR)$(build_libdir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/config-$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)-i386-linux-gnu ; mv -f ../Makefile.tmp Makefile
 	@echo "  Calling host sysconfig.py to generate _sysconfigdata.py with target arch..."
 	@$(build_DESTDIR)$(build_bindir)/python3 -S -m sysconfig --generate-posix-vars
 	@echo "  Disabling LTO and -O3 in target arch _sysconfigdata.py..."
