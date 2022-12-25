@@ -78,6 +78,7 @@ CONFIGURE_ARGS = \
 	-DENABLE_SPELLCHECK="OFF" \
 	-DENABLE_TOUCH_EVENTS="OFF" \
 	-DCMAKE_CXX_FLAGS="-fPIC" \
+	$(if $(filter arm,$(GARCH_FAMILY)),-DENABLE_JIT="OFF") \
 
 include ../../gar.mk
 
