@@ -1,8 +1,8 @@
 
 GARNAME      = python-lxml
-GARVERSION   = 4.6.4
+GARVERSION   = 4.9.2
 CATEGORIES   = python
-MASTER_SITES = https://files.pythonhosted.org/packages/fe/4c/a4dbb4e389f75e69dbfb623462dfe0d0e652107a95481d40084830d29b37/
+MASTER_SITES = https://files.pythonhosted.org/packages/06/5a/e11cad7b79f2cf3dd2ff8f81fa8ca667e7591d3d8451768589996b65dec1/
 DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE      = BSD_3_Clause
 
