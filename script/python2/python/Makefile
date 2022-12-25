@@ -67,6 +67,13 @@ include ../../gar.mk
 # Needed so that Python can find the correct libpython shared library.
 LDFLAGS := $(LDFLAGS) -L$(PWD)/$(WORKSRC)
 
+ifeq ($(GARCH),armv7)
+# disabling LTO on arm target
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+endif
+
 pre-configure:
 	@cd $(WORKSRC) ; autoreconf --verbose --install --force
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
