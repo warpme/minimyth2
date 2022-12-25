@@ -1,6 +1,6 @@
 
 GARNAME      = gptfdisk
-GARVERSION   = 1.0.8
+GARVERSION   = 1.0.9
 CATEGORIES   = utils
 MASTER_SITES = https://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
@@ -23,6 +23,13 @@ BUILD_ARGS   = \
 	CXXFLAGS="$(CXXFLAGS) $(LDFLAGS)"
 
 include ../../gar.mk
+
+ifeq ($(GARCH),armv7)
+# disabling LTO
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+endif
 
 build-custom:
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC)
