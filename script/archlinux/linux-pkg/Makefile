@@ -6,7 +6,6 @@ MASTER_SITES  =
 DISTFILES     = \
 	60-linux.hook \
 	90-linux.hook \
-	config \
 	kernel_data_key.vbprivk \
 	kernel.keyblock \
 	linux-aarch64.install \
@@ -17,7 +16,8 @@ WORKSRC      = $(WORKDIR)
 
 LICENSE = GPL2
 
-DEPENDS = kernel/kernel archlinux/pacman
+BUILDDEPS = archlinux/pacman
+DEPENDS   = kernel/kernel
 
 BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
