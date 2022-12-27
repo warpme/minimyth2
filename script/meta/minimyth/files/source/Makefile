@@ -660,6 +660,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	 done
 	@touch $@~
 	@mv $@~ $@
+	@ln -srf $@ $(DESTDIR)$(rootdir)/mm2-rootfs
 
 $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 	@echo "making root file system directory"
