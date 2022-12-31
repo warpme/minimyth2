@@ -709,7 +709,6 @@ $(top_build)/stage/image/rootfs.fakeroot: $(top_build)/stage/image/rootfs
 	@rm -rf $@ $@~
 	@fakeroot -s $@~ sh -c                                             " \
 		chmod    u+s     $</rootfs-ro/$(ebindir)/busybox           ; \
-		chmod    u+s     $</rootfs-ro/$(ebindir)/ping              ; \
 		chmod    u+s     $</rootfs-ro/$(bindir)/pmount             ; \
 		chmod    u+s     $</rootfs-ro/$(esbindir)/poweroff         ; \
 		chmod    u+s     $</rootfs-ro/$(bindir)/pumount            ; \
