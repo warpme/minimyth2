@@ -94,13 +94,7 @@ PATCHFILES += 0509-Input-axp20x-pek-allow-wakeup-after-shutdown.patch
 # https://github.com/jernejsk/linux-1/commits/hevc-10
 PATCHFILES += 0523-drm-sun4i-dw-hdmi-revert-Fix-ddc-en-GPIO-consumer.patch
 PATCHFILES += 0524-arm64-dts-allwinner-h6-Fix-Cedrus-IOMMU-again.patch
-PATCHFILES += 0526-iommu-sun50i-Fix-reset-release.patch
-PATCHFILES += 0527-iommu-sun50i-Consider-all-fault-sources-for-reset.patch
-PATCHFILES += 0528-iommu-sun50i-Fix-R-W-permission-check.patch
-PATCHFILES += 0529-iommu-sun50i-Fix-flush-size.patch
-PATCHFILES += 0530-iommu-sun50i-Implement-.iotlb_sync_map.patch
 PATCHFILES += 0531-iommu-sun50i-Allow-page-sizes-multiple-of-4096.patch
-PATCHFILES += 0533-media-cedrus-hevc-Fix-offset-adjustments.patch
 PATCHFILES += 0534-media-cedrus-Don-t-CPU-map-source-buffers.patch
 PATCHFILES += 0535-media-cedrus-h265-Associate-mv-col-buffers-with-buff.patch
 PATCHFILES += 0536-media-cedrus-h264-Optimize-mv-col-buffer-allocation.patch
@@ -186,8 +180,6 @@ PATCHFILES += 0744-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
 PATCHFILES += 0745-arm64-dts-rockchip-beelink-a1-enable-androind-dram-timmings.patch
 PATCHFILES += 0746-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
 PATCHFILES += 0747-arm64-dts-rockchip-add-enable-dmc-on-roc-cc.patch
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=689309
-PATCHFILES += 0748-media-rkvdec-vp9-Add-required-padding.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=385165&archive=both
 PATCHFILES += 0749-phy-rockchip-phy-add-rockchip-inno-usb3.patch
 PATCHFILES += 0750-arm64-dts-rockchip-enable-inno-usb3-beelinkA1-roc-cc.patch
