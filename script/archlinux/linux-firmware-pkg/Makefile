@@ -30,6 +30,5 @@ build-custom:
 	@$(MAKECOOKIE)
 
 install-custom:
-	@mkdir -p $(DESTDIR)/archlinux-pkgs
-	@cp -f $(WORKDIR)/linux-firmware-* $(DESTDIR)/archlinux-pkgs/
+	@cp -f $(WORKDIR)/linux-firmware-* $(mm_SDCARD_FILES)/
 	@$(MAKECOOKIE)
