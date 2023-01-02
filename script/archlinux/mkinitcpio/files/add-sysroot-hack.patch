@@ -1,0 +1,189 @@
+diff --speed-large-files --no-dereference --minimal -Naur mkinitcpio-v34/functions mkinitcpio-v34/functions
+--- mkinitcpio-v34/functions	2022-12-07 21:58:22.000000000 +0100
++++ mkinitcpio-v34/functions	2023-01-02 18:53:16.666478102 +0100
+@@ -1,6 +1,17 @@
+ #!/usr/bin/env bash
+ # SPDX-License-Identifier: GPL-2.0-only
+ 
++add_sysroot_path() {
++    local tmp=`echo $1 | sed -e "s|//|/|g" -e "s|${sysroot}||g"`
++    local norm_path=${sysroot}/$tmp
++    printf '%s' "$norm_path"
++}
++
++remove_sysroot_path() {
++    local norm_path=`echo $1 | sed -e "s|//|/|g" -e "s|${sysroot}||g"`
++    printf '%s' "$norm_path"
++}
++
+ parseopts() {
+     local opt= optarg= i= shortopts=$1
+     local -a longopts=() unused_argv=()
+@@ -610,6 +621,8 @@
+ 
+     add_dir "${name%/*}"
+ 
++    target=$(remove_sysroot_path "$target")
++
+     if [[ -L $BUILDROOT$1 ]]; then
+         quiet "overwriting symlink %s -> %s" "$name" "$target"
+     else
+@@ -628,7 +641,10 @@
+     (( $# )) || return 1
+ 
+     # determine source and destination
+-    local src="$1" dest="${2:-$1}" mode="$3" srcrealpath
++    local src dest="${2:-$1}" mode="$3" srcrealpath
++
++    src=$(add_sysroot_path "$1")
++    dest=$(remove_sysroot_path "$dest")
+ 
+     if [[ ! -f $src ]]; then
+         error "file not found: \`%s'" "$src"
+@@ -668,9 +684,6 @@
+         return
+     fi
+ 
+-    if [[ -L "$script" ]]; then
+-        script="$(realpath -- "$script")"
+-    fi
+     add_file "$script" "/hooks/$hookname" 755
+ 
+     mapfile -t funcs < <(funcgrep '^run_[[:alnum:]_]+' "$script")
+@@ -702,23 +715,19 @@
+     local -a sodeps
+     local line='' regex='' binary='' dest='' mode='' sodep='' resolved='' shebang='' interpreter=''
+ 
+-    if [[ ${1:0:1} != '/' ]]; then
+-        binary=$(type -P "$1")
+-    else
+-        binary=$1
+-    fi
++    binary=$(add_sysroot_path "$1")
++    dest=$(remove_sysroot_path "$2")
+ 
+     if [[ ! -f $binary ]]; then
+-        error "file not found: \`%s'" "$1"
++        error "binary not found: \`%s'" "$1"
+         return 1
+     fi
+ 
+     dest=${2:-$binary}
+-
+-    add_file "$binary" "$dest"
++    add_file "$1" "$dest"
+ 
+     # non-binaries
+-    if ! lddout="$(ldd "$binary" 2>/dev/null)"; then
++    if ! lddout="$(${ldd} "$binary" 2>/dev/null)"; then
+         # detect if the file has a shebang
+         if IFS='' LC_ALL=C read -rn2 -d '' shebang < "$binary" && [[ "$shebang" == '#!' ]]; then
+             read -r shebang < "$binary"
+@@ -743,9 +752,10 @@
+         return 0
+     fi
+ 
+-    # resolve sodeps
++    # echo "add_binary() ldd out for $binary:"$lddout
+     regex='^(|.+ )(/.+) \(0x[a-fA-F0-9]+\)'
+     while read -r line; do
++        # echo "processing sodep:"$line
+         if [[ $line =~ $regex ]]; then
+             sodep=${BASH_REMATCH[2]}
+         elif [[ $line = *'not found' ]]; then
+@@ -754,9 +764,7 @@
+             continue
+         fi
+ 
+-        if [[ -f $sodep && ! -e $BUILDROOT$sodep ]]; then
+-            add_file "$sodep" "$sodep"
+-        fi
++        add_file "$sodep" "$sodep"
+     done <<< "$lddout"
+ 
+     return 0
+@@ -770,7 +778,7 @@
+     local rules="$1" rule= key= value= binary=
+ 
+     if [[ ${rules:0:1} != '/' ]]; then
+-        rules=$(PATH=/usr/lib/udev/rules.d:/lib/udev/rules.d type -P "$rules")
++        rules=$(PATH=${sysroot}/usr/lib/udev/rules.d:${sysroot}/lib/udev/rules.d type -P "$rules")
+     fi
+     if [[ -z $rules ]]; then
+         # complain about not found rules
+@@ -793,7 +801,7 @@
+                     binary=${binary%% *}
+                     [[ ${binary:0:1} == '$' ]] && continue
+                     if [[ ${binary:0:1} != '/' ]]; then
+-                        binary=$(PATH=/usr/lib/udev:/lib/udev type -P "$binary")
++                        binary=$(PATH=${sysroot}/usr/lib/udev:${sysroot}/lib/udev type -P "$binary")
+                     fi
+                     add_binary "$binary"
+                     ;;
+@@ -972,7 +980,9 @@
+     fi
+ 
+     for m in "$@"; do
+-        add_file "$m" "$m" 644
++        src=$(add_sysroot_path "$m")
++        dst=$(remove_sysroot_path "$m")
++        add_file "$src" "$dst" 644
+         # unzip modules prior to recompression
+         if [[ "$MODULES_DECOMPRESS" == 'yes' ]]; then
+             case "$m" in
+@@ -998,6 +1008,7 @@
+     depmod -b "$BUILDROOT" "$KERNELVERSION"
+ 
+     # remove all non-binary module.* files (except devname for on-demand module loading)
++    _d_kmoduledir=$(remove_sysroot_path "$_d_kmoduledir")
+     rm "${BUILDROOT}${_d_kmoduledir}"/modules.!(*.bin|devname|softdep)
+ }
+ 
+diff --speed-large-files --no-dereference --minimal -Naur mkinitcpio-v34/mkinitcpio mkinitcpio-v34/mkinitcpio
+--- mkinitcpio-v34/mkinitcpio	2022-12-07 21:58:22.000000000 +0100
++++ mkinitcpio-v34/mkinitcpio	2023-01-01 21:40:14.886655817 +0100
+@@ -29,6 +29,8 @@
+ _optquiet=1 _optcolor=1
+ _optskiphooks=() _optaddhooks=() _hooks=()  _optpreset=()
+ declare -A _runhooks _addedmodules _modpaths _autodetect_cache
++sysroot=
++ldd=/usr/bin/ldd
+ 
+ # export a sane PATH
+ export PATH='/usr/local/sbin:/usr/local/bin:/usr/bin'
+@@ -59,6 +61,8 @@
+    -R, --remove                 Remove specified preset images
+                                 This option can only be used with either '-p|--presets' or '-P|--allpresets'
+    -r, --moduleroot <dir>       Root directory for modules (default: /)
++   -x, --sysroot <dir>          Cross Root directory (default: /)
++   -y, --ldd                    LDD used to track dependencies (default: /usr/bin/ldd)
+    -S, --skiphooks <hooks>      Skip specified hooks, comma-separated, during build
+    -s, --save                   Save build directory. (default: no)
+    -d, --generatedir <dir>      Write generated image into <dir>
+@@ -513,9 +517,9 @@
+ trap 'cleanup 130' INT
+ trap 'cleanup 143' TERM
+ 
+-_opt_short='A:c:D:g:H:hk:nLMPp:Rr:S:sd:t:U:Vvz:'
++_opt_short='A:c:D:g:H:hk:nLMPp:Rr:x:y:S:sd:t:U:Vvz'
+ _opt_long=('add:' 'addhooks:' 'config:' 'generate:' 'hookdir': 'hookhelp:' 'help'
+-          'kernel:' 'listhooks' 'automods' 'moduleroot:' 'nocolor' 'allpresets'
++          'kernel:' 'listhooks' 'automods' 'moduleroot:' 'sysroot:' 'ldd:' 'nocolor' 'allpresets'
+           'preset:' 'remove' 'skiphooks:' 'save' 'generatedir:' 'builddir:' 'version' 'verbose' 'compress:'
+           'uki:' 'uefi:' 'microcode:' 'splash:' 'kernelimage:' 'uefistub:' 'cmdline:' 'osrelease:')
+ 
+@@ -645,6 +649,14 @@
+             shift
+             _optmoduleroot=$1
+             ;;
++        -x|--sysroot)
++            shift
++            sysroot=$1
++            ;;
++        -y|--ldd)
++            shift
++            ldd=$1
++            ;;
+         -D|--hookdir)
+             shift
+             _d_flag_hooks+="$1/hooks:"
