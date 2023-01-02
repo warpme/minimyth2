@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-2.0-only
+
+build() {
+    local fsck= added=0
+
+    add_fsck() {
+        case "$1" in
+        ext[234])
+            add_binary /bin/e2fsck
+            add_symlink /usr/bin/fsck.ext2 /bin/e2fsck
+            add_symlink /usr/bin/fsck.ext3 /bin/e2fsck
+            add_symlink /usr/bin/fsck.ext4 /bin/e2fsck
+            if [[ -e /etc/e2fsck.conf ]]; then
+                add_file /etc/e2fsck.conf
+            fi
+            ;;
+        xfs)
+            add_binary /bin/fsck.xfs
+            add_binary /bin/xfs_repair
+            ;;
+        *)
+            if compgen -c "fsck.$1" &> /dev/null; then
+                add_binary "fsck.$1"
+            else
+                return 1
+            fi
+            ;;
+        esac
+    }
+
+    if (( ! fs_autodetect_failed )) && [[ $rootfstype$usrfstype ]]; then
+        if [[ $rootfstype ]]; then
+            add_fsck $rootfstype && (( ++added ))
+        fi
+        if [[ $usrfstype && $usrfstype != $rootfstype ]]; then
+            add_fsck $usrfstype && (( ++added ))
+        fi
+    else
+        for fsck in $(compgen -c fsck.); do
+            add_fsck "${fsck#fsck.}" && (( ++added ))
+        done
+    fi
+
+    if (( ! added )); then
+        warning "No fsck helpers found. fsck will not be run on boot."
+        return
+    fi
+
+    add_binary /bin/fsck
+}
+
+help() {
+    cat <<HELPEOF
+This hook provides fsck and filesystem specific helpers to perform an fsck
+operation on the root device prior to mounting. If the autodetect hook is used,
+only the fsck helper specific to your filesystem will be added to the image. It
+is highly recommended that if you include this hook that you also include any
+necessary modules to ensure your keyboard will work in early userspace.
+
+To control the behavior of fsck on bootup, fsck.mode=force can be passed on
+the kernel command line to insist on running a full filesystem check. Similarly
+fsck.mode=skip can be passed to cause fsck not to run at all.
+HELPEOF
+}
+
+# vim: set ft=sh ts=4 sw=4 et:
