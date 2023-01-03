@@ -1,7 +1,7 @@
 
-GARNAME       = archlinux-linux.pkg
+GARNAME       = miniarch-linux.pkg
 GARVERSION    = 1.0
-CATEGORIES    = archlinux
+CATEGORIES    = miniarch
 MASTER_SITES  = 
 DISTFILES     = \
 	60-linux.hook \
@@ -16,7 +16,7 @@ WORKSRC      = $(WORKDIR)
 
 LICENSE = GPL2
 
-BUILDDEPS = archlinux/pacman
+BUILDDEPS = miniarch/pacman
 DEPENDS   = kernel/kernel
 
 BUILD_SCRIPTS   = custom

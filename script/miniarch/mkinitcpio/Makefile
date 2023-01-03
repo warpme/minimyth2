@@ -1,7 +1,7 @@
 
 GARNAME      = mkinitcpio
 GARVERSION   = v34
-CATEGORIES   = archlinux
+CATEGORIES   = miniarch
 MASTER_SITES = https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/archive/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.bz2
 PATCHFILES   = allow-install-without-build.patch fix_install_paths.patch add-sysroot-hack.patch

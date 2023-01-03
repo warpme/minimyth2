@@ -1,7 +1,7 @@
 
-GARNAME       = archlinux-firmware.pkg
+GARNAME       = miniarch-firmware.pkg
 GARVERSION    = 1.0
-CATEGORIES    = archlinux
+CATEGORIES    = miniarch
 MASTER_SITES  = 
 DISTFILES     = \
 	PKGBUILD \
@@ -10,7 +10,7 @@ WORKSRC      = $(WORKDIR)
 
 LICENSE = GPL2
 
-BUILDDEPS = archlinux/pacman
+BUILDDEPS = miniarch/pacman
 DEPENDS   = meta/minimyth
 
 BUILD_SCRIPTS   = custom
