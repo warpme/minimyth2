@@ -158,7 +158,7 @@ endif
 
 clean-custom: clean-bootloader cookieclean
 
-clean-bootloader:
+clean-bootloader: cookieclean
 	@$(foreach dir, $(wildcard ../board-* ), $(MAKE) clean -C $(dir) ; )
 	@rm -f $(DESTDIR)/boot/minimyth.conf
 
