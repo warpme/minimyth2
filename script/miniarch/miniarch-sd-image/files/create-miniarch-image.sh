@@ -30,7 +30,7 @@ boards="$1"
 
 if [ "x${boards}" = "x" ] ; then
     boards=${board_list}
-    echo "  using boards list (${boards}) from minimyth.conf.mk"
+    echo "  using boards list (${boards}) from make invocation var"
 else
     echo "  using boards list (${boards}) from script command-line"
 fi
@@ -42,7 +42,7 @@ if [ ! -e ${base_dir} ] ; then
     exit 1
 fi
 
-if [ x${boards} = "x" ] ; then
+if [ x"${boards}" = "x" ] ; then
     echo "ERROR: no boards list defined. Exiting"
     exit 1
 fi
