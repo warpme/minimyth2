@@ -42,13 +42,12 @@ extract-$(DISTFILES):
 	   bsdtar -xpf $(DOWNLOADDIR)/$(DISTFILES) -C $(DESTDIR)/miniarch-rootfs ; \
 	   echo \"removing some uneeded/unused files from archlinuxarm image ...\" ; \
 	   rm -rf $(DESTDIR)/miniarch-rootfs/boot/initramfs-linux-fallback.img ; \
-	   rm -rf $(DESTDIR)/miniarch-rootfs/{usr/share/doc/*,usr/share/man/*} ; \
 	   echo \"adding some fixups in archlinuxarm image ...\" ; \
 	   cp -f $(WORKSRC)/../../files/{base,fsck} \
 	     $(DESTDIR)/miniarch-rootfs/usr/lib/initcpio/install/ ; \
 	   cp -f $(WORKSRC)/../../files/bluetooth-usb.conf $(DESTDIR)/miniarch-rootfs/usr/lib/modprobe.d/bluetooth-usb.conf ; \
 	   echo \"adding MiniArch artefacts to /etc ...\" ; \
-	   cp -f $(WORKSRC)/../../files/{pacman.conf,fstab,hostname} \
+	   cp -f $(WORKSRC)/../../files/{pacman.conf,pacman-miniarch.conf,fstab,hostname} \
 	     $(DESTDIR)/miniarch-rootfs/etc/ ; \
 	   echo \"adding MiniArch artefacts to /local/bin ...\" ; \
 	   cp -f $(WORKSRC)/../../files/{start,resize-rootfs} \
@@ -109,13 +108,18 @@ pack-image:
 	 echo " " ; \
 	 su -c " \
 	   echo 'packing to MiniArch-aarch64-latest ...' ; \
-	   cd $(DESTDIR)/miniarch-rootfs ; tar -zpcf MiniArch-aarch64-$(GARVERSION).tar.gz * ; \
+	   cd $(DESTDIR)/miniarch-rootfs ; tar -zpcf ../MiniArch-aarch64-$(GARVERSION).tar.gz * ; \
 	 "
-	@#$(MAKECOOKIE)
 
 install-custom: extract update-kernel update-firmware run-mkinitcpio pack-image
-	@echo "installing MiniArch-aarch64-latest.tar.gz in [$(mm_SDCARD_FILES)]"
-	cp -f $(DESTDIR)/miniarch-rootfs/MiniArch-aarch64-$(GARVERSION).tar.gz $(mm_SDCARD_FILES)/
+	@echo " " ; \
+	 echo "  Installing image requires root privilidges" ; \
+	 echo "  Please provide root password..." ; \
+	 echo " " ; \
+	 su -c " \
+	   echo 'installing MiniArch-aarch64-latest.tar.gz in [$(mm_SDCARD_FILES)]' ; \
+	   mv -f $(DESTDIR)/MiniArch-aarch64-$(GARVERSION).tar.gz $(mm_SDCARD_FILES)/ ; \
+	 "
 	@$(MAKECOOKIE)
 
 clean-all: clean
@@ -126,6 +130,7 @@ clean-all: clean
 	 su -c " \
 	   echo 'cleaning MiniArch-aarch64-$(GARVERSION) ...' ; \
 	   rm -rf $(DESTDIR)/miniarch-rootfs ; \
+	   rm -ff $(DESTDIR)/MiniArch-aarch64-$(GARVERSION).tar.gz ; \
 	 "
 
 
