@@ -3,7 +3,7 @@ GARNAME    = miniarch
 GARVERSION = $(mm_VERSION)
 CATEGORIES = meta
 LICENSE    = minimyth
-DISTFILES  = $(DISTNAME).tar.bz2
+DISTFILES  = 
 minimyth_LICENSE_TEXT = $(mm_HOME)/html/minimyth/license.txt
 
 DESCRIPTION =
@@ -26,6 +26,7 @@ BUILDDEPS = \
 	utils/module-init-tools \
 	utils/tar \
 	utils/util-linux \
+	lib/libarchive \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom
@@ -34,8 +35,9 @@ CLEAN_SCRIPTS     = custom
 
 include ../../gar.mk
 
+reinstall-new-board: build
+
 custom-build:
-reinstall-new-board:
 	@echo " ==> Cleaning MiniArch SD card image ..."
 	@$(MAKE) -C ../../miniarch/miniarch-sd-image clean
 	@echo " ==> Cleaning bootloaders ..."
@@ -50,7 +52,7 @@ update-kernel:
 	@$(MAKE) -C ../../miniarch/miniarch-rootfs clean
 	@$(MAKE) reinstall-new-board
 
-clean-custom:
+clean-custom: cookieclean
 	@echo " ==> Cleaning MiniArch rootfs ..."
 	@$(MAKE) -C ../../miniarch/miniarch-rootfs clean
 	@echo " ==> Cleaning MiniArch SD card image ..."
