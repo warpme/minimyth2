@@ -141,6 +141,7 @@ ${debug_flag}
 echo '  removing working files...'
 rm -rf ${root_files_loc}/../pseudo*
 rm -f ${mm_home}/images/main/boot/initramfs-linux.img
+rm -f ${base_dir}/MiniArch.wks
 
 echo '  compressing SD image...'
 rename MiniArch-*.direct MiniArch-${boards_list}SD-Image.img *
