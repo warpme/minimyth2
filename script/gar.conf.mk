@@ -212,3 +212,5 @@ GAR_EXTRA_CONF += extras/extras.conf.mk devel/gcc/package-api.mk
 
 # Extra libs to include with gar.mk
 GAR_EXTRA_LIBS += minimyth.lib.mk
+
+MINIARCH_ROOTFS = $(mm_HOME)/images/miniarch-rootfs

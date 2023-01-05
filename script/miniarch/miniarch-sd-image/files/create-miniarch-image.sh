@@ -21,10 +21,12 @@ debug_verbosity="no"
 # mm_home="/home/piotro/minimyth2-aarch64-next"
 # install_dir="/home/piotro/backup/minimyth"
 # board_list="board-h6.tanix_tx6"
+# root_files_loc="/home/piotro/minimyth2-aarch64-next/images/miniarch-rootfs"
 
-mm_home="@@MM_HOME@@"
-install_dir="@@MM_INSTALL@@"
-board_list="@@MM_BOARDS@@"
+mm_home="@@HOME@@"
+install_dir="@@INSTALL@@"
+board_list="@@BOARDS@@"
+root_files_loc="@@ROOTFS@@"
 
 boards="$1"
 
@@ -49,9 +51,8 @@ fi
 
 mm_build_dir=${mm_home}/script/meta/minimyth/work/main.d/miniarch
 mkdir -p ${mm_build_dir}/stage
-root_files_loc=${mm_home}/images/main/miniarch-rootfs
+#root_files_loc=${mm_home}/images/miniarch-rootfs
 boot_files_loc=${mm_home}/images/main/boot
-cp -f ${mm_home}/images/main/miniarch-rootfs/boot/initramfs-linux.img ${mm_home}/images/main/boot/
 
 export BUILDDIR=${mm_build_dir}/stage
 export BBPATH=${base_dir}
@@ -125,7 +126,7 @@ rm -f  ${BUILDDIR}/*.ext4
 rm -rf ${BUILDDIR}/tmp
 rm -rf ${root_files_loc}/../pseudo*
 # By bug kickstart-oe not looks for pseudo binary in ative-sysroot loc.
-mkdir -p ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin ${mm_home}/images/main/pseudo
+mkdir -p ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin ${root_files_loc}/../pseudo
 ln -srf ${mm_home}/images/build/usr/bin/pseudo ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin/pseudo
 
 #echo '  entering fakeroot enviroment...'
@@ -140,8 +141,10 @@ ${debug_flag}
 #"
 echo '  removing working files...'
 rm -rf ${root_files_loc}/../pseudo*
-rm -f ${mm_home}/images/main/boot/initramfs-linux.img
 rm -f ${base_dir}/MiniArch.wks
+rm -f ${base_dir}/conf/multiconfig/default.conf
+rm -rf ${base_dir}/cache*
+rm -rf ${base_dir}/tmp*
 
 echo '  compressing SD image...'
 rename MiniArch-*.direct MiniArch-${boards_list}SD-Image.img *

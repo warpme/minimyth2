@@ -9,9 +9,8 @@ WORKSRC       = $(WORKDIR)
 # PACMAN_ARGS  = --upgrade --noconfirm --debug --overwrite \*
 PACMAN_ARGS  = --upgrade --noconfirm --overwrite \*
 PACMAN_DIRS = \
-	--root $(DESTDIR)/miniarch-rootfs \
-	--dbpath $(DESTDIR)/miniarch-rootfs/var/lib/pacman/ \
-
+	--root $(MINIARCH_ROOTFS) \
+	--dbpath $(MINIARCH_ROOTFS)/var/lib/pacman/ \
 
 LICENSE = GPL2
 
@@ -37,23 +36,21 @@ extract-$(DISTFILES):
 	 echo " " ; \
 	 su -c " \
 	   echo 'unpacking ArchLinuxARM-aarch64-latest ...' ; \
-	   rm -rf $(DESTDIR)/miniarch-rootfs ; \
-	   mkdir -p $(DESTDIR)/miniarch-rootfs ; \
-	   bsdtar -xpf $(DOWNLOADDIR)/$(DISTFILES) -C $(DESTDIR)/miniarch-rootfs ; \
-	   echo \"removing some uneeded/unused files from archlinuxarm image ...\" ; \
-	   rm -rf $(DESTDIR)/miniarch-rootfs/boot/initramfs-linux-fallback.img ; \
+	   rm -rf $(MINIARCH_ROOTFS) ; \
+	   mkdir -p $(MINIARCH_ROOTFS) ; \
+	   bsdtar -xpf $(DOWNLOADDIR)/$(DISTFILES) -C $(MINIARCH_ROOTFS) ; \
 	   echo \"adding some fixups in archlinuxarm image ...\" ; \
 	   cp -f $(WORKSRC)/../../files/{base,fsck} \
-	     $(DESTDIR)/miniarch-rootfs/usr/lib/initcpio/install/ ; \
-	   cp -f $(WORKSRC)/../../files/bluetooth-usb.conf $(DESTDIR)/miniarch-rootfs/usr/lib/modprobe.d/bluetooth-usb.conf ; \
+	     $(MINIARCH_ROOTFS)/usr/lib/initcpio/install/ ; \
+	   cp -f $(WORKSRC)/../../files/bluetooth-usb.conf $(MINIARCH_ROOTFS)/usr/lib/modprobe.d/bluetooth-usb.conf ; \
 	   echo \"adding MiniArch artefacts to /etc ...\" ; \
 	   cp -f $(WORKSRC)/../../files/{pacman.conf,pacman-miniarch.conf,fstab,hostname} \
-	     $(DESTDIR)/miniarch-rootfs/etc/ ; \
+	     $(MINIARCH_ROOTFS)/etc/ ; \
 	   cp -f $(WORKSRC)/../../files/sshd_config \
-	     $(DESTDIR)/miniarch-rootfs/etc/ssh/ ; \
+	     $(MINIARCH_ROOTFS)/etc/ssh/ ; \
 	   echo \"adding MiniArch artefacts to /local/bin ...\" ; \
 	   cp -f $(WORKSRC)/../../files/{start,resize-rootfs} \
-	     $(DESTDIR)/miniarch-rootfs/usr/local/bin/ ; \
+	     $(MINIARCH_ROOTFS)/usr/local/bin/ ; \
 	 "
 	@$(MAKECOOKIE)
 
@@ -88,15 +85,18 @@ run-mkinitcpio:
 	 echo " " ; \
 	 su -c " \
 	   echo 'running mkinitcpio after kernel update ...' ; \
-	   cd $(DESTDIR)/miniarch-rootfs ; $(build_DESTDIR)$(build_bindir)/mkinitcpio \
-	     --config $(DESTDIR)/miniarch-rootfs/etc/mkinitcpio.conf \
-	     --generate $(DESTDIR)/miniarch-rootfs/boot/initramfs-linux.img \
-	     --hookdir $(DESTDIR)/miniarch-rootfs/usr/lib/initcpio/ \
-	     --moduleroot $(DESTDIR)/miniarch-rootfs/ \
+	   cd $(MINIARCH_ROOTFS) ; $(build_DESTDIR)$(build_bindir)/mkinitcpio \
+	     --config $(MINIARCH_ROOTFS)/etc/mkinitcpio.conf \
+	     --generate $(MINIARCH_ROOTFS)/boot/initramfs-linux.img \
+	     --hookdir $(MINIARCH_ROOTFS)/usr/lib/initcpio/ \
+	     --moduleroot $(MINIARCH_ROOTFS)/ \
 	     --kernel='$(LINUX_FULL_VERSION)' \
-	     --sysroot $(DESTDIR)/miniarch-rootfs \
+	     --sysroot $(MINIARCH_ROOTFS) \
 	     --ldd $(build_DESTDIR)$(build_bindir)/$(compiler_prefix)ldd.arch \
-	     --compress gzip \
+	     --compress gzip ; \
+	   echo \"moving generated initramfs-linux.img to mm2 boot dir ...\" ; \
+	     mv -f $(MINIARCH_ROOTFS)/boot/initramfs-linux.img \
+	     $(DESTDIR)/boot/ ; \
 	 "
 	@$(MAKECOOKIE)
 # add if you want debug mkinitpcio
@@ -110,7 +110,7 @@ pack-image:
 	 echo " " ; \
 	 su -c " \
 	   echo 'packing to MiniArch-aarch64-latest ...' ; \
-	   cd $(DESTDIR)/miniarch-rootfs ; tar -zpcf ../MiniArch-aarch64-$(GARVERSION).tar.gz * ; \
+	   cd $(MINIARCH_ROOTFS) ; tar -zpcf ../MiniArch-aarch64-$(GARVERSION).tar.gz * ; \
 	 "
 
 install-custom: extract update-kernel update-firmware run-mkinitcpio pack-image
@@ -120,7 +120,7 @@ install-custom: extract update-kernel update-firmware run-mkinitcpio pack-image
 	 echo " " ; \
 	 su -c " \
 	   echo 'installing MiniArch-aarch64-latest.tar.gz in [$(mm_SDCARD_FILES)]' ; \
-	   mv -f $(DESTDIR)/MiniArch-aarch64-$(GARVERSION).tar.gz $(mm_SDCARD_FILES)/ ; \
+	   mv -f $(MINIARCH_ROOTFS)/../MiniArch-aarch64-$(GARVERSION).tar.gz $(mm_SDCARD_FILES)/ ; \
 	 "
 	@$(MAKECOOKIE)
 
@@ -131,7 +131,7 @@ clean-all: clean
 	 echo " " ; \
 	 su -c " \
 	   echo 'cleaning MiniArch-aarch64-$(GARVERSION) ...' ; \
-	   rm -rf $(DESTDIR)/miniarch-rootfs ; \
+	   rm -rf $(MINIARCH_ROOTFS) ; \
 	   rm -ff $(DESTDIR)/MiniArch-aarch64-$(GARVERSION).tar.gz ; \
 	 "
 

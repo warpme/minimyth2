@@ -25,6 +25,6 @@ install-custom:
 	@cp -v $(WORKSRC)/cross-compile-ldd $(build_rootdir)$(bindir)/$(compiler_prefix)ldd
 	@chmod +x $(build_rootdir)$(bindir)/$(compiler_prefix)ldd
 
-	@sed -e "s|^sysroot=.*|sysroot=\"$(main_DESTDIR)/miniarch-rootfs\"|g" -i $(WORKSRC)/cross-compile-ldd
+	@sed -e "s|^sysroot=.*|sysroot=\"$(MINIARCH_ROOTFS)\"|g" -i $(WORKSRC)/cross-compile-ldd
 	@cp -v $(WORKSRC)/cross-compile-ldd $(build_rootdir)$(bindir)/$(compiler_prefix)ldd.arch
 	@chmod +x $(build_rootdir)$(bindir)/$(compiler_prefix)ldd.arch

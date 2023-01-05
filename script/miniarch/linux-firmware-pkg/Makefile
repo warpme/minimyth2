@@ -24,7 +24,7 @@ build-custom:
 	@echo "symlinking sources ..."
 	@# ln -srf $(DESTDIR)$(elibdir)/firmware $(WORKSRC)/src/
 	@# use highly optimized mm2 firmware fileset
-	@ln -srf $(DESTDIR)/mm2-rootfs/lib/firmware $(WORKSRC)/src/
+	@ln -srf $(DESTDIR)/../mm2-rootfs/lib/firmware $(WORKSRC)/src/
 	@echo "starting packaging with MAKEPKG ..."
 	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/makepkg --skipinteg
 	@$(MAKECOOKIE)
