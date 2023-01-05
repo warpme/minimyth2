@@ -51,9 +51,7 @@ mm_build_dir=${mm_home}/script/meta/minimyth/work/main.d/miniarch
 mkdir -p ${mm_build_dir}/stage
 root_files_loc=${mm_home}/images/main/miniarch-rootfs
 boot_files_loc=${mm_home}/images/main/boot
-if [ -e ${mm_home}/images/main/miniarch-rootfs/boot/initramfs-linux.img ] ; then
-    mv ${mm_home}/images/main/miniarch-rootfs/boot/initramfs-linux.img ${mm_home}/images/main/boot
-fi
+cp -f ${mm_home}/images/main/miniarch-rootfs/boot/initramfs-linux.img ${mm_home}/images/main/boot/
 
 export BUILDDIR=${mm_build_dir}/stage
 export BBPATH=${base_dir}
@@ -142,6 +140,7 @@ ${debug_flag}
 #"
 echo '  removing working files...'
 rm -rf ${root_files_loc}/../pseudo*
+rm -f ${mm_home}/images/main/boot/initramfs-linux.img
 
 echo '  compressing SD image...'
 rename MiniArch-*.direct MiniArch-${boards_list}SD-Image.img *
