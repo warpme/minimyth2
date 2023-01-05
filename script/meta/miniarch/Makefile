@@ -28,7 +28,7 @@ BUILDDEPS = \
 	utils/util-linux \
 	lib/libarchive \
 
-CONFIGURE_SCRIPTS = custom
+CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = custom
 INSTALL_SCRIPTS   = 
 CLEAN_SCRIPTS     = custom
@@ -37,7 +37,7 @@ include ../../gar.mk
 
 reinstall-new-board: build
 
-custom-build:
+build-custom:
 	@echo " ==> Cleaning MiniArch SD card image ..."
 	@$(MAKE) -C ../../miniarch/miniarch-sd-image clean
 	@echo " ==> Cleaning bootloaders ..."
