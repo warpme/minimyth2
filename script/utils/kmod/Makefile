@@ -1,6 +1,6 @@
 
 GARNAME      = kmod
-GARVERSION   = 29
+GARVERSION   = 30
 CATEGORIES   = utils
 MASTER_SITES = https://www.kernel.org/pub/linux/utils/kernel/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.xz
@@ -36,11 +36,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-zlib
 
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
 
 install-links:
 	@rm -f $(DESTDIR)$(esbindir)/depmod
