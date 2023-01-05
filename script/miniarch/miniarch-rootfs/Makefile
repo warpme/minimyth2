@@ -1,6 +1,6 @@
 
 GARNAME       = miniarch-rootfs
-GARVERSION    = 20230103
+GARVERSION    = 20230105
 CATEGORIES    = miniarch
 MASTER_SITES  = http://os.archlinuxarm.org/os/
 DISTFILES     = ArchLinuxARM-aarch64-latest.tar.gz
@@ -49,6 +49,8 @@ extract-$(DISTFILES):
 	   echo \"adding MiniArch artefacts to /etc ...\" ; \
 	   cp -f $(WORKSRC)/../../files/{pacman.conf,pacman-miniarch.conf,fstab,hostname} \
 	     $(DESTDIR)/miniarch-rootfs/etc/ ; \
+	   cp -f $(WORKSRC)/../../files/sshd_config \
+	     $(DESTDIR)/miniarch-rootfs/etc/ssh/ ; \
 	   echo \"adding MiniArch artefacts to /local/bin ...\" ; \
 	   cp -f $(WORKSRC)/../../files/{start,resize-rootfs} \
 	     $(DESTDIR)/miniarch-rootfs/usr/local/bin/ ; \
