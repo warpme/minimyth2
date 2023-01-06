@@ -1,6 +1,6 @@
 
 GARNAME       = miniarch-rootfs
-GARVERSION    = 20230105
+GARVERSION    = 20230106
 CATEGORIES    = miniarch
 MASTER_SITES  = http://os.archlinuxarm.org/os/
 DISTFILES     = ArchLinuxARM-aarch64-latest.tar.gz
@@ -25,6 +25,7 @@ DEPENDS = \
 
 BUILD_SCRIPTS   = 
 INSTALL_SCRIPTS = custom
+CLEAN_SCRIPTS   = custom
 
 include ../../gar.mk
 include ../../kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk
@@ -62,7 +63,8 @@ update-kernel:
 	 su -c " \
 	   echo 'updating kernel ...' ; \
 	   $(build_DESTDIR)$(build_bindir)/pacman $(PACMAN_ARGS) $(PACMAN_DIRS) \
-	     $(WORKDIR)/../../../linux-pkg/work/main.d/linux-aarch64-* ; \
+	     $(WORKDIR)/../../../linux-pkg/work/main.d/linux-aarch64-[0-9].* \
+	     $(WORKDIR)/../../../linux-pkg/work/main.d/linux-aarch64-api-headers* ; \
 	 "
 	@$(MAKECOOKIE)
 
@@ -121,10 +123,13 @@ install-custom: extract update-kernel update-firmware run-mkinitcpio pack-image
 	 su -c " \
 	   echo 'installing MiniArch-aarch64-latest.tar.gz in [$(mm_SDCARD_FILES)]' ; \
 	   mv -f $(MINIARCH_ROOTFS)/../MiniArch-aarch64-$(GARVERSION).tar.gz $(mm_SDCARD_FILES)/ ; \
+	   echo \"$(GARVERSION)-$(LINUX_FULL_VERSION)\" > $(MINIARCH_ROOTFS)/version ; \
 	 "
 	@$(MAKECOOKIE)
 
-clean-all: clean
+clean-custom: cookieclean clean-all
+
+clean-all: cookieclean
 	@echo " " ; \
 	 echo "  Cleaning MiniArch-aarch64-$(GARVERSION) build requires root privilidges" ; \
 	 echo "  Please provide root password..." ; \
@@ -133,7 +138,7 @@ clean-all: clean
 	   echo 'cleaning MiniArch-aarch64-$(GARVERSION) ...' ; \
 	   rm -rf $(MINIARCH_ROOTFS) ; \
 	   rm -ff $(DESTDIR)/MiniArch-aarch64-$(GARVERSION).tar.gz ; \
+	   rm -f $(DESTDIR)/boot/initramfs-linux.img ; \
 	 "
-
 
 #@fakeroot -i $<.fakeroot sh -c "tar -C $(<D) -jcf $@~ $(<F)"

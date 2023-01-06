@@ -27,6 +27,7 @@ mm_home="@@HOME@@"
 install_dir="@@INSTALL@@"
 board_list="@@BOARDS@@"
 root_files_loc="@@ROOTFS@@"
+image_version="@@VERSION@@"
 
 boards="$1"
 
@@ -51,7 +52,6 @@ fi
 
 mm_build_dir=${mm_home}/script/meta/minimyth/work/main.d/miniarch
 mkdir -p ${mm_build_dir}/stage
-#root_files_loc=${mm_home}/images/miniarch-rootfs
 boot_files_loc=${mm_home}/images/main/boot
 
 export BUILDDIR=${mm_build_dir}/stage
@@ -113,7 +113,10 @@ echo "Doing MiniAch fixups in ${base_dir}/conf/multiconfig/default.conf"
 sed -i "s%minimyth.conf%initramfs-linux.img%g" ${base_dir}/conf/multiconfig/default.conf
 sed -i "s%Image%Image Image.gz%g" ${base_dir}/conf/multiconfig/default.conf
 
+image_filename="MiniArch-${image_version}-${boards_list}SD-Image"
+
 echo "  boards        : ${boards_list}"
+echo "  img.filename  : ${image_filename}"
 echo "  mm2 home dir  : [${mm_home}]"
 echo "  boot files    : [${boot_files_loc}]"
 echo "  rootfs files  : [${root_files_loc}]"
@@ -147,12 +150,12 @@ rm -rf ${base_dir}/cache*
 rm -rf ${base_dir}/tmp*
 
 echo '  compressing SD image...'
-rename MiniArch-*.direct MiniArch-${boards_list}SD-Image.img *
-xz -f MiniArch-${boards_list}SD-Image.img
+rename MiniArch-*.direct ${image_filename}.img *
+xz -f ${image_filename}.img
 
 echo '  SD image creation done!'
-mv -f ${BUILDDIR}/MiniArch-${boards_list}SD-Image* ${install_dir}/
-echo "  Image is here:${install_dir}/MiniArch-${boards_list}SD-Image.img.xz"
+mv -f ${BUILDDIR}/${image_filename}* ${install_dir}/
+echo "  Image is here:${install_dir}/${image_filename}.xz"
 
 echo '  removing working dirs ...'
 rm -rf ${mm_build_dir}*
