@@ -99,6 +99,7 @@ run-mkinitcpio:
 	   echo \"moving generated initramfs-linux.img to mm2 boot dir ...\" ; \
 	     mv -f $(MINIARCH_ROOTFS)/boot/initramfs-linux.img \
 	     $(DESTDIR)/boot/ ; \
+	     chmod 0666 $(DESTDIR)/boot/initramfs-linux.img ; \
 	 "
 	@$(MAKECOOKIE)
 # add if you want debug mkinitpcio
