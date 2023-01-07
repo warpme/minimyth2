@@ -140,6 +140,7 @@ ${PYTHON} ${base_dir}/scripts/wic create ${base_dir}/MiniArch.wks \
 --kernel-dir=${boot_files_loc} \
 --rootfs-dir=${root_files_loc} \
 --native-sysroot=${mm_home}/images/build \
+--no-fstab-update \
 ${debug_flag}
 #"
 echo '  removing working files...'
