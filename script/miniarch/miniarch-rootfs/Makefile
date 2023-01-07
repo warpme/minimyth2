@@ -20,6 +20,7 @@ BUILDDEPS = \
 
 DEPENDS = \
 	miniarch/cross-compile-ldd \
+	miniarch/miniarch-pkg \
 	miniarch/linux-pkg \
 	miniarch/linux-firmware-pkg \
 
@@ -44,14 +45,18 @@ extract-$(DISTFILES):
 	   cp -f $(WORKSRC)/../../files/{base,fsck} \
 	     $(MINIARCH_ROOTFS)/usr/lib/initcpio/install/ ; \
 	   cp -f $(WORKSRC)/../../files/bluetooth-usb.conf $(MINIARCH_ROOTFS)/usr/lib/modprobe.d/bluetooth-usb.conf ; \
-	   echo \"adding MiniArch artefacts to /etc ...\" ; \
-	   cp -f $(WORKSRC)/../../files/{pacman.conf,pacman-miniarch.conf,fstab,hostname} \
-	     $(MINIARCH_ROOTFS)/etc/ ; \
-	   cp -f $(WORKSRC)/../../files/sshd_config \
-	     $(MINIARCH_ROOTFS)/etc/ssh/ ; \
-	   echo \"adding MiniArch artefacts to /local/bin ...\" ; \
-	   cp -f $(WORKSRC)/../../files/{start,resize-rootfs} \
-	     $(MINIARCH_ROOTFS)/usr/local/bin/ ; \
+	 "
+	@$(MAKECOOKIE)
+
+install-miniarch:
+	@echo " " ; \
+	 echo "  Installing miniarch-meta requires root privilidges" ; \
+	 echo "  Please provide root password..." ; \
+	 echo " " ; \
+	 su -c " \
+	   echo 'installing miniarch-meta ...' ; \
+	   $(build_DESTDIR)$(build_bindir)/pacman $(PACMAN_ARGS) $(PACMAN_DIRS) \
+	     $(WORKDIR)/../../../miniarch-pkg/work/main.d/miniarch-meta-* ; \
 	 "
 	@$(MAKECOOKIE)
 
@@ -79,6 +84,7 @@ update-firmware:
 	     $(WORKDIR)/../../../linux-firmware-pkg/work/main.d/linux-firmware-* ; \
 	 "
 	@$(MAKECOOKIE)
+
 
 run-mkinitcpio:
 	@echo " " ; \
@@ -116,7 +122,7 @@ pack-image:
 	   cd $(MINIARCH_ROOTFS) ; tar -zpcf ../MiniArch-aarch64-$(GARVERSION).tar.gz * ; \
 	 "
 
-install-custom: extract update-kernel update-firmware run-mkinitcpio pack-image
+install-custom: extract install-miniarch update-kernel update-firmware run-mkinitcpio pack-image
 	@echo " " ; \
 	 echo "  Installing image requires root privilidges" ; \
 	 echo "  Please provide root password..." ; \
