@@ -92,17 +92,17 @@ echo "#----Entries to create boot & rootfs partitions" >> ${base_dir}/MiniArch.w
 if [ ! -z `echo ${boards} | grep -o "board-x86pc"` ] ; then
     echo "  board-x86pc detected. skipping default-mbr[gpt].wks"
 elif [ ! -z `echo ${boards} | grep -o "board-rk3566.x96_x6"` ] ; then
-    echo "  board-rk35xx detected: using all in one board-rk3566.x96_x6.wks"
+    echo "  board-rk3566.x96_x6 detected: using all in one board-rk3566.x96_x6.wks"
     # cat board-rk3566.x96_x6.wks to MiniArch.wks is comented-out as x96_x6
     # box is single exception where board-rk3566.x96_x6.wks
     # creates all paritions (boot related and rootfs). This is because this
     # box speciffics.
     #cat ${base_dir}/board-rk3566.x96_x6.wks >> ${base_dir}/MiniArch.wks
 elif [ ! -z `echo ${boards} | grep -o "board-rk3566.*"` ] ; then
-    echo "  board-rk35xx detected: using default-gpt.wks"
+    echo "  board-rk3566 detected: using default-gpt.wks"
     cat ${base_dir}/default-gpt.wks >> ${base_dir}/MiniArch.wks
 else
-    echo "  board-x86pc detected. Using default-mbr.wks"
+    echo "  Using default-mbr.wks"
     cat ${base_dir}/default-mbr.wks >> ${base_dir}/MiniArch.wks
 fi
 
@@ -135,7 +135,7 @@ ln -srf ${mm_home}/images/build/usr/bin/pseudo ${mm_build_dir}/stage/tmp/sysroot
 #echo '  entering fakeroot enviroment...'
 #fakeroot -i ${mm_build_dir}/stage/image/rootfs.fakeroot sh -c " \
 echo '  WIC output:'
-${PYTHON} ${base_dir}/scripts/wic create ${base_dir}/MiniArch.wks \
+${PYTHON} -B ${base_dir}/scripts/wic create ${base_dir}/MiniArch.wks \
 --bootimg-dir=${boot_files_loc} \
 --kernel-dir=${boot_files_loc} \
 --rootfs-dir=${root_files_loc} \
