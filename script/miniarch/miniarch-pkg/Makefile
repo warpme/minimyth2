@@ -10,7 +10,7 @@ WORKSRC      = $(WORKDIR)
 LICENSE = GPL2
 
 BUILDDEPS = miniarch/pacman
-DEPENDS   = meta/minimyth
+DEPENDS   = 
 
 BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
