@@ -41,7 +41,7 @@ extract-$(DISTFILES):
 	   rm -rf $(MINIARCH_ROOTFS) ; \
 	   mkdir -p $(MINIARCH_ROOTFS) ; \
 	   bsdtar -xpf $(DOWNLOADDIR)/$(DISTFILES) -C $(MINIARCH_ROOTFS) ; \
-	   echo \"adding some fixups in archlinuxarm image ...\" ; \
+	   echo \"adding some fixups in archlinuxarm image to make mkinitcpio happy ...\" ; \
 	   cp -f $(WORKSRC)/../../files/{base,fsck} \
 	     $(MINIARCH_ROOTFS)/usr/lib/initcpio/install/ ; \
 	   cp -f $(WORKSRC)/../../files/bluetooth-usb.conf $(MINIARCH_ROOTFS)/usr/lib/modprobe.d/bluetooth-usb.conf ; \
@@ -119,6 +119,8 @@ pack-image:
 	 echo " " ; \
 	 su -c " \
 	   echo 'packing to MiniArch-aarch64-latest ...' ; \
+	   echo 'hack removing /usr/lib/modprobe.d/bluetooth-usb.conf to make pacman happy when user is installing bluez pkg...' ; \
+	   rm -f $(MINIARCH_ROOTFS)/usr/lib/modprobe.d/bluetooth-usb.conf ; \
 	   cd $(MINIARCH_ROOTFS) ; tar -zpcf ../MiniArch-aarch64-$(GARVERSION).tar.gz * ; \
 	 "
 
