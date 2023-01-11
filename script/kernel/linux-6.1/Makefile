@@ -198,6 +198,8 @@ PATCHFILES += 0800-Enable-rk356x-PCIe-controller.patch
 PATCHFILES += 0801-pinctrl-rockchip-fix-reading-pull-type-on-rk3568.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=710722
 PATCHFILES += 0802-Fix-HDMI-CEC-on-Radxa-ROCK-3-Model-A.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=710429
+PATCHFILES += 0803-pinctrl-rockchip-fix-mux-route-data-for-rk3568.patch
 # various boards enablement
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
