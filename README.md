@@ -123,7 +123,7 @@ Intel D2550   | ION2             | n/a                                    | n/a 
 ### Hardware Video Decode support
 This is video related functionality avaliable on current code (Linux kernel + Mesa + MythTV)
 At the moment quality of playback is good for technology preview. 
-On platforms with statefull v4l2_m2m video codecs (Amlogic/RPI3/RPI4 H.264) playback seek works not fully smooth (but it is generally usable).
+On platforms with statefull v4l2_m2m video codecs: RPI3/RPI4 H.264 playback seek works well but fails on Amlogic.
 
 SoC              | Tested on                                    | Supported Decoder/ Hw.decode API      | Currently supported video decode HW.accel  | Supported drawing     | Supported video render    | Remarks                                              |
 -----------------|----------------------------------------------|---------------------------------------|--------------------------------------------|-----------------------|---------------------------|------------------------------------------------------|
