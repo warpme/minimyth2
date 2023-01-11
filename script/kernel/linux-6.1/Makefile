@@ -194,6 +194,10 @@ ifeq (1,1)
 # Enable rk356x PCIe controller
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=634925
 PATCHFILES += 0800-Enable-rk356x-PCIe-controller.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=710606
+PATCHFILES += 0801-pinctrl-rockchip-fix-reading-pull-type-on-rk3568.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=710722
+PATCHFILES += 0802-Fix-HDMI-CEC-on-Radxa-ROCK-3-Model-A.patch
 # various boards enablement
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
@@ -201,7 +205,7 @@ PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
 PATCHFILES += 0840-arm64-dts-rockchip-add-dts-for-rock3b.patch
 PATCHFILES += 0841-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
 PATCHFILES += 0842-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
-PATCHFILES += 0843-arm64-dts-rockchip-fix-eth-cec-in-rock3a.patch
+PATCHFILES += 0843-arm64-dts-rockchip-fix-eth-in-rock3a.patch
 PATCHFILES += 0844-arm64-dts-rockchip-fix-cec-quartz64-b.patch
 PATCHFILES += 0845-arm64-dts-rockchip-add-dts-for-rock3c.patch
 PATCHFILES += 0846-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
