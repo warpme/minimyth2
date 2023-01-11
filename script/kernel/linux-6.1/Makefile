@@ -67,7 +67,7 @@ PATCHFILES += 0331-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 0332-arm64-dts-meson-add-support-for-GX-PM-and-Virtu.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 # add support for Tanix TX5 Plus tvbox
-#PATCHFILES += 0371-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
+PATCHFILES += 0371-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
 # Add more GX soundcards
 # https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
 PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
@@ -122,7 +122,6 @@ PATCHFILES += 0565-arm64-dts-allwinner-tanix-tx6-mini-enable-wifi-cpu-dvfs.patch
 PATCHFILES += 0567-arm64-dts-enable-audio-gs1.patch
 PATCHFILES += 0568-arm64-dts-allwinner-tanix-tx6-enable-wifi-cpu-dvfs.patch
 PATCHFILES += 0569-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
-#PATCHFILES += 0570-drm-bridge-synopsys-Fix-CEC-not-working-after-power.patch - realized by 0733
 PATCHFILES += 0573-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 PATCHFILES += 0574-drm-sun4i-mixer-Add-caching-support.patch
 PATCHFILES += 0575-H6-add-sun50i-di-deinterlace-WiP.patch
