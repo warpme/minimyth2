@@ -132,8 +132,8 @@ rm -rf ${root_files_loc}/../pseudo*
 mkdir -p ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin ${root_files_loc}/../pseudo
 ln -srf ${mm_home}/images/build/usr/bin/pseudo ${mm_build_dir}/stage/tmp/sysroots-components/x86_64/pseudo-native/usr/bin/pseudo
 
-#echo '  entering fakeroot enviroment...'
-#fakeroot -i ${mm_build_dir}/stage/image/rootfs.fakeroot sh -c " \
+echo '  entering fakeroot enviroment...'
+fakeroot -i ${root_files_loc}/../miniarch-rootfs.fakeroot sh -c " \
 echo '  WIC output:'
 ${PYTHON} -B ${base_dir}/scripts/wic create ${base_dir}/MiniArch.wks \
 --bootimg-dir=${boot_files_loc} \
@@ -142,7 +142,7 @@ ${PYTHON} -B ${base_dir}/scripts/wic create ${base_dir}/MiniArch.wks \
 --native-sysroot=${mm_home}/images/build \
 --no-fstab-update \
 ${debug_flag}
-#"
+"
 echo '  removing working files...'
 rm -rf ${root_files_loc}/../pseudo*
 rm -f ${base_dir}/MiniArch.wks

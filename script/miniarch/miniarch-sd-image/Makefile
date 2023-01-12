@@ -26,25 +26,15 @@ build-custom:
 	@sed -e "s|@@ROOTFS@@|$(MINIARCH_ROOTFS)|g" -i $(WORKDIR)/create-miniarch-image.sh
 	@sed -e "s|@@VERSION@@|$(MINIARCH_VERSION)|g" -i $(WORKDIR)/create-miniarch-image.sh
 	@echo " " ; \
-	 echo "  Building SD card image requires root privilidges" ; \
-	 echo "  Please provide root password..." ; \
-	 echo " " ; \
-	 su -c " \
 	   echo \"removing /boot files from rootfs as they are in sperate boot dir ...\" ; \
 	   rm -rf $(MINIARCH_ROOTFS)/boot/* ; \
 	   echo 'building SD card image ...' ; \
-	   $(WORKDIR)/create-miniarch-image.sh ; \
-	 "
+	   $(WORKDIR)/create-miniarch-image.sh
 	@$(MAKECOOKIE)
 
 # not used at install is done by create-miniarch-image.sh script...
 install-custom:
 	@echo " " ; \
-	 echo "  Installing image requires root privilidges" ; \
-	 echo "  Please provide root password..." ; \
-	 echo " " ; \
-	 su -c " \
 	   echo 'installing MiniArch $(MINIARCH_VERSION) SD Image.img.xz in [$(mm_SDCARD_FILES)]' ; \
-	   mv -f $(WORKDIR)/MiniArch*SD-Image.img.xz $(mm_SDCARD_FILES)/ ; \
-	 "
+	   mv -f $(WORKDIR)/MiniArch*SD-Image.img.xz $(mm_SDCARD_FILES)/
 	@$(MAKECOOKIE)
