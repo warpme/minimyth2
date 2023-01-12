@@ -119,6 +119,7 @@ PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
+PATCHFILES += 0407-MythMusic-pull695-WaveForm-visualization-of-whole-track.patch
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
