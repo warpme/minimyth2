@@ -27,7 +27,6 @@ DEPENDS = \
 	miniarch/linux-firmware-pkg \
 
 BUILD_SCRIPTS   = custom
-INSTALL_SCRIPTS = custom
 CLEAN_SCRIPTS   = custom
 
 include ../../gar.mk
@@ -77,7 +76,7 @@ run-mkinitcpio:
 	    --moduleroot $(MINIARCH_ROOTFS)/ \
 	    --kernel='$(LINUX_FULL_VERSION)' \
 	    --sysroot $(MINIARCH_ROOTFS) \
-	    --ldd $(build_DESTDIR)$(build_bindir)/$(compiler_prefix)ldd.arch \
+	    --ldd $(build_DESTDIR)$(build_bindir)/$(compiler_prefix)ldd \
 	    --compress gzip ; \
 	  echo \"moving generated initramfs-linux.img to mm2 boot dir ...\" ; \
 	  mv -f $(MINIARCH_ROOTFS)/boot/initramfs-linux.img \
@@ -85,12 +84,12 @@ run-mkinitcpio:
 	  chmod 0666 $(DESTDIR)/boot/initramfs-linux.img ; \
 	  echo 'hack removing /usr/lib/modprobe.d/bluetooth-usb.conf to make pacman happy when user is installing bluez pkg...' ; \
 	    rm -f $(MINIARCH_ROOTFS)/usr/lib/modprobe.d/bluetooth-usb.conf
-	@$(MAKECOOKIE)
-# add if you want debug mkinitpcio
+	@#$(MAKECOOKIE)
+# add if you want debug mkinitpcio add after --ldd $(build_DESTDIR)$(build_bindir)/$(compiler_prefix)ldd
 #	     --verbose \
 #	     --save \
 
-pack-image:
+pack-rootfs:
 	@echo " " ; \
 	  echo 'packing to MiniArch-aarch64-latest ...' ; \
 	  fakeroot -i $(MINIARCH_ROOTFS).fakeroot sh -c " \
@@ -122,7 +121,7 @@ build-custom: $(MINIARCH_ROOTFS) update-kernel update-firmware run-mkinitcpio in
 	@echo 'building MiniArch-aarch64-$(MINIARCH_VERSION) ...'
 	@$(MAKECOOKIE)
 
-install-custom: pack-image
+install-rootfs: pack-rootfs
 	@echo " " ; \
 	  echo 'installing MiniArch-aarch64-$(MINIARCH_VERSION).tar.gz in [$(mm_SDCARD_FILES)]' ; \
 	  mv -f $(MINIARCH_ROOTFS)/../MiniArch-aarch64-$(MINIARCH_VERSION).tar.gz $(mm_SDCARD_FILES)/ ; \
