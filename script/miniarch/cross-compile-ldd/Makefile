@@ -16,15 +16,30 @@ INSTALL_SCRIPTS   = custom
 include ../../gar.mk
 
 install-custom:
-	@sed -e "s|^gcc=.*|gcc=\"$(build_rootdir)$(bindir)/$(compiler_prefix)gcc\"|g" -i $(WORKSRC)/cross-compile-ldd
-	@sed -e "s|^readelf=.*|readelf=\"$(build_rootdir)$(bindir)/$(compiler_prefix)readelf\"|g" -i $(WORKSRC)/cross-compile-ldd
 	@sed -e "s|^ld_library_path=\"/lib:/usr/lib\"|ld_library_path=\"/lib64:/lib:/usr/lib64:/usr/lib\"|g" -i $(WORKSRC)/cross-compile-ldd
 	@sed -e "s|^bits=\"32\"|bits=\"64\"|g" -i $(WORKSRC)/cross-compile-ldd
 
-	@sed -e "s|^sysroot=.*|sysroot=\"$(main_DESTDIR)\"|g" -i $(WORKSRC)/cross-compile-ldd
 	@cp -v $(WORKSRC)/cross-compile-ldd $(build_rootdir)$(bindir)/$(compiler_prefix)ldd
 	@chmod +x $(build_rootdir)$(bindir)/$(compiler_prefix)ldd
 
-	@sed -e "s|^sysroot=.*|sysroot=\"$(MINIARCH_ROOTFS)\"|g" -i $(WORKSRC)/cross-compile-ldd
-	@cp -v $(WORKSRC)/cross-compile-ldd $(build_rootdir)$(bindir)/$(compiler_prefix)ldd.arch
-	@chmod +x $(build_rootdir)$(bindir)/$(compiler_prefix)ldd.arch
+test-ldd-miniarch:
+	@echo " "
+	@echo "running of $(build_rootdir)$(bindir)/$(compiler_prefix)ldd for $(MINIARCH_ROOTFS)/bin/bash"
+	@echo " "
+	@$(build_rootdir)$(bindir)/$(compiler_prefix)ldd --root=$(MINIARCH_ROOTFS) $(MINIARCH_ROOTFS)/bin/bash
+	@echo " "
+	@echo "running of $(build_rootdir)$(bindir)/$(compiler_prefix)ldd for $(MINIARCH_ROOTFS)/usr/bin/udevadm"
+	@echo " "
+	@$(build_rootdir)$(bindir)/$(compiler_prefix)ldd --root=$(MINIARCH_ROOTFS) $(MINIARCH_ROOTFS)/usr/bin/udevadm
+	@echo " "
+
+test-ldd-minimyth2: 
+	@echo " "
+	@echo "running of $(build_rootdir)$(bindir)/$(compiler_prefix)ldd for $(main_DESTDIR)/bin/bash"
+	@echo " "
+	@$(build_rootdir)$(bindir)/$(compiler_prefix)ldd $(main_DESTDIR)/bin/bash
+	@echo " "
+	@echo "running of $(build_rootdir)$(bindir)/$(compiler_prefix)ldd for $(main_DESTDIR)/usr/bin/udevadm"
+	@echo " "
+	@$(build_rootdir)$(bindir)/$(compiler_prefix)ldd $(main_DESTDIR)/usr/bin/udevadm
+	@echo " "
