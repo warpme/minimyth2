@@ -209,6 +209,8 @@ PATCHFILES += 0842-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
 PATCHFILES += 0843-arm64-dts-rockchip-fix-eth-in-rock3a.patch
 PATCHFILES += 0845-arm64-dts-rockchip-add-dts-for-rock3c.patch
 PATCHFILES += 0846-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=711622
+PATCHFILES += 0847-arm64-dts-rockchip-add-missing-interrupt-cells-to-rk356x-pcie2x1.patch
 endif
 #------------------------------------------------------------
 
