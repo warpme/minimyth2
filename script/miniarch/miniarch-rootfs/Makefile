@@ -56,7 +56,8 @@ update-kernel:
 	  echo 'updating kernel ...' ; \
 	  fakeroot $(build_DESTDIR)$(build_bindir)/pacman $(PACMAN_ARGS) $(PACMAN_DIRS) \
 	    $(WORKDIR)/../../../linux-pkg/work/main.d/linux-aarch64-[0-9].* \
-	    $(WORKDIR)/../../../linux-pkg/work/main.d/linux-aarch64-api-headers*
+	    $(WORKDIR)/../../../linux-pkg/work/main.d/linux-aarch64-api-headers* ; \
+	  echo \"$(MINIARCH_VERSION)\" > $(MINIARCH_ROOTFS)/version
 	@$(MAKECOOKIE)
 
 update-firmware:
@@ -84,7 +85,7 @@ run-mkinitcpio:
 	  chmod 0666 $(DESTDIR)/boot/initramfs-linux.img ; \
 	  echo 'hack removing /usr/lib/modprobe.d/bluetooth-usb.conf to make pacman happy when user is installing bluez pkg...' ; \
 	    rm -f $(MINIARCH_ROOTFS)/usr/lib/modprobe.d/bluetooth-usb.conf
-	@#$(MAKECOOKIE)
+	@$(MAKECOOKIE)
 # add if you want debug mkinitpcio add after --ldd $(build_DESTDIR)$(build_bindir)/$(compiler_prefix)ldd
 #	     --verbose \
 #	     --save \
@@ -101,16 +102,27 @@ $(MINIARCH_ROOTFS): extract
 $(MINIARCH_ROOTFS).fakeroot: $(MINIARCH_ROOTFS)
 	@echo " " ; \
 	  echo 'generating miniarch-rootfs.fakeroot for $@ ...'
-	@fakeroot -s $@~ sh -c                        " \
-		chmod    u+s     $</bin/bash          ; \
-		chmod    u+s     $</bin/mount         ; \
-		chmod    u+s     $</bin/systemctl     ; \
-		chmod    u+s     $</bin/umount        ; \
-		rm -rf           $</dev               ; \
-		mkdir -m 0755 -p $</dev               ; \
-		mknod -m 0600    $</dev/console c 5 1 ; \
-		mknod -m 0600    $</dev/initctl p     ; \
-		mknod -m 0666    $</dev/null    c 1 3 "
+	@fakeroot -s $@~ sh -c                          " \
+		chmod    u+s       $</bin/chage         ; \
+		chmod    u+s       $</bin/chfn          ; \
+		chmod    u+s       $</bin/chsh          ; \
+		chmod    u+s       $</bin/expiry        ; \
+		chmod    u+s       $</bin/gpasswd       ; \
+		chmod    u+s       $</bin/ksu           ; \
+		chmod    u+s       $</bin/mount         ; \
+		chmod    u+s       $</bin/newgrp        ; \
+		chmod    u+s       $</bin/passwd        ; \
+		chmod    u+s       $</bin/sg            ; \
+		chmod    u+s       $</bin/su            ; \
+		chmod    u+s       $</bin/systemctl     ; \
+		chmod    u+s       $</bin/umount        ; \
+		chmod    u+s       $</bin/unix_chkpwd   ; \
+		chown -R 1000:1000 $</home/alarm*       ; \
+		rm -rf             $</dev               ; \
+		mkdir -m 0755 -p   $</dev               ; \
+		mknod -m 0600      $</dev/console c 5 1 ; \
+		mknod -m 0600      $</dev/initctl p     ; \
+		mknod -m 0666      $</dev/null    c 1 3 "
 		@touch $@~
 		@mv $@~ $@
 	@$(MAKECOOKIE)
@@ -124,8 +136,7 @@ build-custom: $(MINIARCH_ROOTFS) update-kernel update-firmware run-mkinitcpio in
 install-rootfs: pack-rootfs
 	@echo " " ; \
 	  echo 'installing MiniArch-aarch64-$(MINIARCH_VERSION).tar.gz in [$(mm_SDCARD_FILES)]' ; \
-	  mv -f $(MINIARCH_ROOTFS)/../MiniArch-aarch64-$(MINIARCH_VERSION).tar.gz $(mm_SDCARD_FILES)/ ; \
-	  echo \"$(MINIARCH_VERSION)\" > $(MINIARCH_ROOTFS)/version
+	  mv -f $(MINIARCH_ROOTFS)/../MiniArch-aarch64-$(MINIARCH_VERSION).tar.gz $(mm_SDCARD_FILES)/
 	@$(MAKECOOKIE)
 
 clean-custom: cookieclean clean-all
