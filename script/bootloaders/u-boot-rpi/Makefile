@@ -1,12 +1,11 @@
-# Mainline U-boot v2022.10-rc3
-GARNAME      = u-boot-202210rc3-rpi
-GARVERSION   = 2022.10-rc3
+# Mainline U-boot v2023.01
+GARNAME      = u-boot-2023.01
+GARVERSION   = 2023.01
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
-
-LICENSE = GPL2
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
