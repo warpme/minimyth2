@@ -35,8 +35,8 @@ GAR_EXTRA_CONF += bootloaders/board-rpi34.mainline64/package-api.mk
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean -C ../u-boot-rpi
-	@$(MAKE) install -C ../u-boot-rpi
+	@$(MAKE) clean -C ../u-boot
+	@$(MAKE) install -C ../u-boot
 	@$(MAKECOOKIE)
 
 install-custom:
