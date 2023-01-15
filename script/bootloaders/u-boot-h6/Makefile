@@ -1,14 +1,21 @@
 
-GARNAME      = u-boot-h6-20220626
-GARVERSION   = 47ca7b574faaa514677457e23a7197c47b0b597c
+# Mainline U-boot v2023.01
+GARNAME      = u-boot-2023.01
+GARVERSION   = 2023.01
 CATEGORIES   = kernel
-MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
-DISTFILES    = u-boot-sunxi-$(GARVERSION).tar.bz2
-WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
-
-PATCHFILES   = 0011-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
-
-LICENSE = GPL2
+MASTER_SITES = https://github.com/u-boot/u-boot/archive/
+DISTFILES    = v$(GARVERSION).zip
+PATCHFILES   = 0001-Kconfig-Remove-an-impossible-condition.patch
+PATCHFILES  += 0002-binman-Prevent-entries-in-a-section-from-overlapping.patch
+#PATCHFILES  += 0003-sunxi-binman-Enable-SPL-FIT-loading-for-32-bit-SoCs.patch
+PATCHFILES  += 0005-sunxi-psci-Avoid-hanging-when-CPU-0-is-hot-unplugged.patch
+PATCHFILES  += 0008-remoteproc-Add-a-driver-for-the-Allwinner-AR100.patch
+PATCHFILES  += 0009-arm-dts-sunxi-h3-Add-nodes-for-AR100-remoteproc.patch
+PATCHFILES  += 0011-arm-psci-Add-definitions-for-PSCI-v1.1.patch
+PATCHFILES  += 0012-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
+PATCHFILES  += 0013-sunxi-mmc-increase-stabilization-delay-from-1ms-to-20ms.patch
+WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
