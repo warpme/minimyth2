@@ -235,6 +235,7 @@ endef
 
 BUILDDEPS = \
 	utils/bc \
+	utils/kmod \
 	$(if $(filter arm arm64,$(mm_GARCH_FAMILY)),bootloaders/u-boot.tools) \
 
 DEPENDS = \
