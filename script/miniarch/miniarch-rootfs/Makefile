@@ -19,9 +19,9 @@ LICENSE = GPL2
 BUILDDEPS = \
 	miniarch/pacman \
 	miniarch/mkinitcpio \
+	devel/fakeroot \
 
 DEPENDS = \
-	miniarch/cross-compile-ldd \
 	miniarch/miniarch-pkg \
 	miniarch/linux-pkg \
 	miniarch/linux-firmware-pkg \
