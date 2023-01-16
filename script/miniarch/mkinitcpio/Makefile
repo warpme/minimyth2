@@ -19,6 +19,7 @@ DEPENDS = \
 	utils/findutils \
 	utils/grep \
 	lib/libzstd \
+	miniarch/cross-compile-ldd \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
