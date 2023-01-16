@@ -15,17 +15,9 @@ MINIMYTHIMG = main
 DESTIMG = $(MINIMYTHIMG)
 
 DEPENDS = \
-	kernel/kernel \
 	miniarch/miniarch-rootfs
 
 BUILDDEPS = \
-	utils/coreutils \
-	devel/fakeroot \
-	utils/file \
-	utils/findutils \
-	utils/module-init-tools \
-	utils/tar \
-	utils/util-linux \
 	lib/libarchive \
 
 CONFIGURE_SCRIPTS = 
