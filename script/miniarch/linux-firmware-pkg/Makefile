@@ -11,7 +11,7 @@ WORKSRC      = $(WORKDIR)
 LICENSE = GPL2
 
 BUILDDEPS = miniarch/pacman
-DEPENDS   = meta/minimyth
+DEPENDS   = firmware/firmware
 
 BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
@@ -20,11 +20,15 @@ include ../../gar.mk
 include ../../kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk
 
 build-custom:
-	@mkdir -p $(WORKSRC)/src
+	@mkdir -p $(WORKSRC)/src/firmware
 	@echo "symlinking sources ..."
-	@# ln -srf $(DESTDIR)$(elibdir)/firmware $(WORKSRC)/src/
-	@# use highly optimized mm2 firmware fileset
-	@ln -srf $(DESTDIR)/../mm2-rootfs/lib/firmware $(WORKSRC)/src/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware $(WORKSRC)/
+	@filelist=`cd $(WORKSRC) ; cat ../../../../meta/minimyth/files/source/lists/kernel-arm64/minimyth-lib-list-$(mm_KERNEL_VERSION) | sed -e "/#.*/d;/.*modules.*/d"` ; \
+	  # echo $${filelist} ; \
+	  for file in $${filelist} ; do \
+	  # echo "adding firmware: $${file}" ; \
+	  cp -rf $(WORKSRC)/$${file} $(WORKSRC)/src/firmware/ ; \
+	  done
 	@echo "starting packaging with MAKEPKG ..."
 	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/makepkg --skipinteg
 	@$(MAKECOOKIE)
