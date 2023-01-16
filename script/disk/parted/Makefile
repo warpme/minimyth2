@@ -12,7 +12,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c
+DEPENDS = lang/c lib/libiconv
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -21,7 +21,8 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-device-mapper \
 	--disable-nls \
-	--without-man
+	--without-man \
+	--with-libiconv-prefix=$(DESTDIR)$(libdir) \
 
 include ../../gar.mk
 
