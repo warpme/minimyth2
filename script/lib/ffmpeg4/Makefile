@@ -1,27 +1,17 @@
 
-GARNAME      = FFmpeg
+GARNAME      = ffmpeg
 CATEGORIES   = lib
-GARVERSION   = 4.4.1-Nexus-Alpha1
-MASTER_SITES = https://github.com/xbmc/FFmpeg/archive/
-DISTFILES    = $(GARVERSION).tar.gz
-
-include ../../minimyth.conf.mk
-
-ifneq (,$(filter %5.19,$(mm_KERNEL_VERSION)))
-PATCHFILES  = ffmpeg-fix-building-with-lto.patch
-PATCHFILES += ffmpeg-001-v4l2-drmprime-kernel5.19.patch
-PATCHFILES += ffmpeg-002-v4l2-request-kernel5.19.patch
-PATCHFILES += ffmpeg-003-v4l2-m2m-improve-seeking-on-rpi-kernel5.19.patch
-else
-PATCHFILES += ffmpeg-fix-building-with-lto.patch
-PATCHFILES += ffmpeg-001-v4l2-drmprime.patch
-PATCHFILES += ffmpeg-002-v4l2-request.patch
-#PATCHFILES += ffmpeg-003-v4l2-m2m-improve-seeking-on-rpi.patch to update this patch
-PATCHFILES += ffmpeg-004-libavfilter-add-deinterlace-filter.patch
-PATCHFILES += ffmpeg-005-libavfilter-v4l2deinterlace-dequeue-both-destination.patch
-PATCHFILES += ffmpeg-006-v4l2_request-revert-changes.patch
-PATCHFILES += ffmpeg-007-libavfilter-v4l2deinterlace-support-more-formats-aut.patch
-endif
+GARVERSION   = 4.4.1
+MASTER_SITES = http://ffmpeg.org/releases/
+DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = ffmpeg-fix-building-with-lto.patch
+# patches from https://github.com/LibreELEC/LibreELEC.tv/tree/08ad88dd0ab9f714489c279f9f3204dcca3722bc/packages/multimedia/ffmpeg/patches
+PATCHFILES  += ffmpeg-001-v4l2-drmprime.patch
+PATCHFILES  += ffmpeg-001-v4l2-request.patch
+PATCHFILES  += ffmpeg-0002-WIP-deint-filter.patch
+PATCHFILES  += ffmpeg-0003-libavfilter-v4l2deinterlace-dequeue-both-destination.patch
+PATCHFILES  += ffmpeg-0006-deint_v4l2m2m-increase-input-and-output-buffers.patch
+PATCHFILES  += ffmpeg-0006-libavfilter-v4l2deinterlace-support-more-formats-aut.patch
 
 LICENSE      = GPL2/LGPL2_1
 
