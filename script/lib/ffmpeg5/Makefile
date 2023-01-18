@@ -55,7 +55,6 @@ CONFIGURE_ARGS = \
 	--enable-avfilter \
 	--enable-pthreads \
 	--enable-network \
-	--enable-lzo \
 	--enable-mdct \
 	--enable-rdft \
 	--enable-fft \
