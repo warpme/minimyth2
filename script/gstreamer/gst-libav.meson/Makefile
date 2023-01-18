@@ -25,7 +25,7 @@ DEPENDS = \
 	lang/c \
 	gstreamer/gst-plugins-base \
 	utils/bzip2 \
-	lib/ffmpeg
+	lib/ffmpeg4
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson

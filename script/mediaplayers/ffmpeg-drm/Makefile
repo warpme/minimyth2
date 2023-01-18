@@ -13,7 +13,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c lib/ffmpeg
+DEPENDS   = lang/c lib/ffmpeg4
 
 BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom

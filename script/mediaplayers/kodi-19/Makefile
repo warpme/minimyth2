@@ -25,7 +25,7 @@ DEPENDS = \
 	utils/gperf \
 	lib/bluez \
 	lib/flatbuffers \
-	lib/ffmpeg \
+	lib/ffmpeg4 \
 	lib/libfmt \
 	lib/fontconfig \
 	lib/freetype \

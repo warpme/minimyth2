@@ -12,7 +12,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/alsa-lib lib/ffmpeg lib/libass lib/SDL2 xorg/libdrm
+DEPENDS = lang/c lib/alsa-lib lib/ffmpeg5 lib/libass lib/SDL2 xorg/libdrm
 BUILDDEPS = devel/waf
 
 CONFIGURE_SCRIPTS = custom
