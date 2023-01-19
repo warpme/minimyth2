@@ -1,18 +1,38 @@
 
 GARNAME       = xbmc
+
+# mainline nexus-20
+ifeq (0,1)
 GARVERSION    = $(KODI_VERSION)
 CATEGORIES    = mediaplayers
 MASTER_SITES  = \
 		$(KODI_MASTER_SITES) \
 		http://mirrors.kodi.tv/build-deps/sources/
 DISTFILES     = $(GARVERSION).zip
-PATCHFILES    = 0001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
-PATCHFILES   += 0002-WIP-DRMPRIME-deinterlace-filter.patch
-PATCHFILES   += 0003-DVDVideoCodecDRMPRIME-Avoid-exception-with-AV_PIX_FM.patch
-PATCHFILES   += 0004-DVDVideoCodecDRMPRIME-Leave-deinterlace-filter-activ.patch
-PATCHFILES   += 0005-SetVideoInterlaced-Set-and-unset-deinterlace-method-.patch
-PATCHFILES   += 0006-DVDVideoCodecDRMPRIME-Close-deinterlace-filter-on-er.patch
+PATCHFILES   += 2001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
+PATCHFILES   += 2002-WIP-DRMPRIME-deinterlace-filter.patch
+PATCHFILES   += 2003-DVDVideoCodecDRMPRIME-Avoid-exception-with-AV_PIX_FM.patch
+PATCHFILES   += 2004-DVDVideoCodecDRMPRIME-Leave-deinterlace-filter-activ.patch
+PATCHFILES   += 2005-SetVideoInterlaced-Set-and-unset-deinterlace-method-.patch
+PATCHFILES   += 2006-DVDVideoCodecDRMPRIME-Close-deinterlace-filter-on-er.patch
 WORKSRC       = $(WORKDIR)/xbmc-$(GARVERSION)
+endif
+
+# ffmpeg5 nexus-20 branch
+ifeq (1,1)
+GARVERSION    = ffmpeg5.0-Nexus
+CATEGORIES    = mediaplayers
+MASTER_SITES  = https://github.com/xbmc/xbmc/archive/refs/heads/
+DISTFILES     = $(GARVERSION).zip
+PATCHFILES   += 2001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
+PATCHFILES   += 2002-WIP-DRMPRIME-deinterlace-filter.patch
+PATCHFILES   += 2003-DVDVideoCodecDRMPRIME-Avoid-exception-with-AV_PIX_FM.patch
+PATCHFILES   += 2004-DVDVideoCodecDRMPRIME-Leave-deinterlace-filter-activ.patch
+PATCHFILES   += 2005-SetVideoInterlaced-Set-and-unset-deinterlace-method-.patch
+PATCHFILES   += 2006-DVDVideoCodecDRMPRIME-Close-deinterlace-filter-on-er.patch
+WORKSRC       = $(WORKDIR)/xbmc-$(GARVERSION)
+endif
+
 LICENSE       = GPL
 
 DEPENDS = \
