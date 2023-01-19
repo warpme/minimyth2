@@ -19,7 +19,6 @@ DEPENDS = \
 	utils/findutils \
 	utils/grep \
 	lib/libzstd \
-	miniarch/cross-compile-ldd \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
@@ -28,4 +27,6 @@ INSTALL_SCRIPTS   = custom
 include ../../gar.mk
 
 install-custom:
+	@# build cross-ldd with for target as mkinitcpio uses it on cross architecture
+	@$(MAKE) -C ../cross-compile-ldd DESTIMG="main" install
 	@$(MAKE) -C $(WORKSRC) install DESTDIR=$(build_rootdir)/
