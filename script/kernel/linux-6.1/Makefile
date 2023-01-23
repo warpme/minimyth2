@@ -151,6 +151,9 @@ PATCHFILES += 0601-drivers-thermal-allwinner-add-h616-ths-support.patch
 # add cedrus support
 PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
 PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
+# add rtc support
+PATCHFILES += 0604-rtc-sun6i-Add-Allwinner-H616-support.patch
+PATCHFILES += 0605-rtc-sun6i-support-RTCs-without-external-LOSCs.patch
 # add HDMI, audio support
 PATCHFILES += 0606-dma-sun6i-dma-add-h616-support.patch
 PATCHFILES += 0610-sound-soc-add-h616-audio-support.patch
