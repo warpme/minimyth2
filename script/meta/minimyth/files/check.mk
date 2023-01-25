@@ -395,6 +395,7 @@ mm-all:
 		   [ ! "$${board}" = "board-h616.orangepi_zero2"  ] && \
 		   [ ! "$${board}" = "board-rk3328.beelink_a1"    ] && \
 		   [ ! "$${board}" = "board-rk3399.rockpi4-b"     ] && \
+		   [ ! "$${board}" = "board-rk3399.rockpi4-se"    ] && \
 		   [ ! "$${board}" = "board-rk3399.orangepi_4"    ] && \
 		   [ ! "$${board}" = "board-rk3566.x96_x6"        ] && \
 		   [ ! "$${board}" = "board-rk3566.quartz64-b"    ] && \

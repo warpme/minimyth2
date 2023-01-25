@@ -84,6 +84,10 @@ ifneq (,$(findstring board-rk3399.rockpi4-b,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3399.rockpi4-b
 endif
 
+ifneq (,$(findstring board-rk3399.rockpi4-se,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3399.rockpi4-se
+endif
+
 ifneq (,$(findstring board-rk3399.orangepi_4,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3399.orangepi_4
 endif
