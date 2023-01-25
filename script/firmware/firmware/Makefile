@@ -14,9 +14,9 @@ DEPENDS = \
 	firmware/xr819-firmware         \
 	firmware/qca9377-firmware       \
 	firmware/brcmfmac43456-firmware \
-	firmware/brcmfmac43430-firmware \
-	firmware/brcmfmac43455-firmware \
-	firmware/brcmfmac4354-firmware  \
+	firmware/brcmfmac43430-firmware-txt \
+	firmware/brcmfmac43455-firmware-txt \
+	firmware/brcmfmac4354-firmware-txt  \
 	firmware/brcmfmac4359-firmware  \
 	firmware/brcmfmac6330-firmware  \
 	firmware/rpi-bluez-firmware     \
@@ -26,7 +26,7 @@ DEPENDS = \
 include ../../gar.mk
 
 clean-all:
-	@$(foreach dir, $(wildcard ../*-firmware), $(MAKE) clean clean-all -C $(dir) ; )
+	@$(foreach dir, $(wildcard ../*-firmware*), $(MAKE) clean clean-all -C $(dir) ; )
 	@$(MAKE) clean
 	@$(MAKE) clean-all -C ../wireless-regdb
 

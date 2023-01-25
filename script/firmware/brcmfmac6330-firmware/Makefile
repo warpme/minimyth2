@@ -1,4 +1,4 @@
-GARNAME      = armbian-firmware
+GARNAME      = brcmfmac6330-firmware
 GARVERSION   = 3a9902186c3d4e81747ca69528af150dcf82fe3c
 CATEGORIES   = firmware
 MASTER_SITES = https://github.com/armbian/firmware/archive/
