@@ -32,6 +32,7 @@ selection_m="board-rk3568.rock3-b"
 selection_n="board-rk3566.quartz64-b"
 selection_o="board-rpi4.mainline64"
 selection_p="board-rk3566.rock3-c"
+selection_r="board-rk3399.rockpi4-se"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -112,6 +113,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (n) for "${selection_n}
     echo "  (o) for "${selection_o}
     echo "  (p) for "${selection_p}
+    echo "  (r) for "${selection_r}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -181,6 +183,7 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_l}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_n}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_p}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_r}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     b)  cache_board_list "${selection_b}"
@@ -241,6 +244,10 @@ case "${selection}" in
 
     p)  cache_board_list "${selection_p}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_p}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    r)  cache_board_list "${selection_r}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_r}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
