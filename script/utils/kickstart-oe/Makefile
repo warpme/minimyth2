@@ -29,16 +29,18 @@ DISTFILES    = \
 	board-sm1.x96_air2g.wks     \
 	board-sm1.tanix_tx5_plus.conf \
 	board-sm1.tanix_tx5_plus.wks \
-	board-g12.radxa_zero.conf   \
-	board-g12.radxa_zero.wks    \
+	board-g12.radxa_zero.conf    \
+	board-g12.radxa_zero.wks     \
 	board-rk3328.beelink_a1.conf \
-	board-rk3328.beelink_a1.wks \
-	board-rk3399.rockpi4-b.conf \
-	board-rk3399.rockpi4-b.wks  \
+	board-rk3328.beelink_a1.wks  \
+	board-rk3399.rockpi4-b.conf  \
+	board-rk3399.rockpi4-b.wks   \
+	board-rk3399.rockpi4-se.conf \
+	board-rk3399.rockpi4-se.wks  \
 	board-rk3399.orangepi_4.conf \
-	board-rk3399.orangepi_4.wks \
-	board-rk3566.x96_x6.conf    \
-	board-rk3566.x96_x6.wks     \
+	board-rk3399.orangepi_4.wks  \
+	board-rk3566.x96_x6.conf     \
+	board-rk3566.x96_x6.wks      \
 	board-rk3566.quartz64-b.conf \
 	board-rk3566.quartz64-b.wks \
 	board-rk3568.rock3-a.conf   \
