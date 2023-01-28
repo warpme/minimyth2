@@ -20,12 +20,10 @@ include ../../gar.mk
 
 install-custom:
 	@cp -Rdf $(WORKSRC)/brcm/brcmfmac43455*.txt $(DESTDIR)$(elibdir)/firmware/brcm/
-	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt          $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.pine64,quartz64-a.txt
-	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt          $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.pine64,quartz64-b.txt
-	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt          $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.radxa,rock3c.txt
-	@# rockpi-4se wifi needs brcmfmac43455-sdio.acepc-t8.txt from linux-firmware as
-	@# with brcmfmac43455-sdio.txt is fails to initialize with error -110
-	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.acepc-t8.txt $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.radxa,rockpi4se.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.pine64,quartz64-a.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.pine64,quartz64-b.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.radxa,rock3c.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.AW-CM256SM.txt $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.radxa,rockpi4se.txt
 	@$(MAKECOOKIE)
 
 clean-all: clean
