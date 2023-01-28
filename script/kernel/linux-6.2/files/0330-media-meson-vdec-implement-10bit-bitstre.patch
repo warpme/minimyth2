@@ -1,22 +1,35 @@
-From 6931ff5110d6c91713a5665f3cf7368c4b98cfab Mon Sep 17 00:00:00 2001
-From: benjamin545 <benjamin545@gmail.com>
-Date: Thu, 15 Jul 2021 16:32:39 -0400
-Subject: [PATCH 47/68] WIP: drivers: meson: vdec: improve mmu and fbc handling
- and add 10 bit handling
+From bdb9058af820a88190961eecda2d814f2fff233c Mon Sep 17 00:00:00 2001
+From: Benjamin Roszak <benjamin545@gmail.com>
+Date: Mon, 23 Jan 2023 10:56:46 +0000
+Subject: [PATCH 50/94] FROMLIST(v2): media: meson: vdec: implement 10bit
+ bitstream handling
 
+In order to support 10bit bitstream decoding, buffers and MMU
+handling must be cleaned up to support either downscale output
+from compressed 10bit decoding to uncompressed 8bit NV12 output
+or to compressed 10bit proprietary encoded frame format.
+
+For that, "am21c" name is moved to "amfbc" to reflect the upstream
+Amlogic Compressed framebuffer modifier naming.
+
+Compressed frame buffers allocation is also cleaned up so it
+can be shared with the HEVC decoder implementation.
+
+Signed-off-by: Benjamin Roszak <benjamin545@gmail.com>
+Signed-off-by: Christian Hewitt <christianshewitt@gmail.com>
 ---
  drivers/staging/media/meson/vdec/codec_h264.c |   3 +-
- .../media/meson/vdec/codec_hevc_common.c      | 164 +++++++++++-------
+ .../media/meson/vdec/codec_hevc_common.c      | 161 +++++++++++-------
  .../media/meson/vdec/codec_hevc_common.h      |   3 +-
- drivers/staging/media/meson/vdec/codec_vp9.c  |  36 ++--
+ drivers/staging/media/meson/vdec/codec_vp9.c  |  35 ++--
  drivers/staging/media/meson/vdec/esparser.c   |   1 +
  drivers/staging/media/meson/vdec/vdec.h       |   1 +
- .../staging/media/meson/vdec/vdec_helpers.c   |  46 +++--
+ .../staging/media/meson/vdec/vdec_helpers.c   |  44 +++--
  .../staging/media/meson/vdec/vdec_helpers.h   |  10 +-
- 8 files changed, 163 insertions(+), 101 deletions(-)
+ 8 files changed, 161 insertions(+), 97 deletions(-)
 
 diff --git a/drivers/staging/media/meson/vdec/codec_h264.c b/drivers/staging/media/meson/vdec/codec_h264.c
-index c61128fc4b..d53c9a464b 100644
+index c61128fc4..d53c9a464 100644
 --- a/drivers/staging/media/meson/vdec/codec_h264.c
 +++ b/drivers/staging/media/meson/vdec/codec_h264.c
 @@ -353,7 +353,8 @@ static void codec_h264_src_change(struct amvdec_session *sess)
@@ -30,7 +43,7 @@ index c61128fc4b..d53c9a464b 100644
  
  /*
 diff --git a/drivers/staging/media/meson/vdec/codec_hevc_common.c b/drivers/staging/media/meson/vdec/codec_hevc_common.c
-index 0315cc0911..d6ed82dc93 100644
+index 0315cc091..1c74b4837 100644
 --- a/drivers/staging/media/meson/vdec/codec_hevc_common.c
 +++ b/drivers/staging/media/meson/vdec/codec_hevc_common.c
 @@ -30,8 +30,11 @@ const u16 vdec_hevc_parser_cmd[] = {
@@ -80,7 +93,7 @@ index 0315cc0911..d6ed82dc93 100644
  	struct v4l2_m2m_buffer *buf;
 -	u32 revision = core->platform->revision;
  	u32 pixfmt_cap = sess->pixfmt_cap;
-+    const u32 revision = core->platform->revision;
++	const u32 revision = core->platform->revision;
  	int i;
  
  	amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_CONF_ADDR,
@@ -93,14 +106,13 @@ index 0315cc0911..d6ed82dc93 100644
 -		else if (codec_hevc_use_downsample(pixfmt_cap, is_10bit))
 -			buf_y_paddr = comm->fbc_buffer_paddr[idx];
 -		else
--			buf_y_paddr = vb2_dma_contig_plane_dma_addr(vb, 0);
 +		if (codec_hevc_use_downsample(pixfmt_cap, is_10bit)) {
 +			if (codec_hevc_use_mmu(revision, pixfmt_cap, is_10bit))
 +				buf_y_paddr = comm->mmu_header_paddr[idx];
 +			else
 +				buf_y_paddr = comm->fbc_buffer_paddr[idx];
 +		} else {
-+ 			buf_y_paddr = vb2_dma_contig_plane_dma_addr(vb, 0);
+ 			buf_y_paddr = vb2_dma_contig_plane_dma_addr(vb, 0);
 +		}
  
  		amvdec_write_dos(core, HEVCD_MPP_ANC2AXI_TBL_DATA,
@@ -174,11 +186,11 @@ index 0315cc0911..d6ed82dc93 100644
  	int i;
  
 +	use_mmu = codec_hevc_use_mmu(sess->core->platform->revision,
-+					 sess->pixfmt_cap,
-+					 sess->bitdepth == 10 ? 1 : 0);
++				     sess->pixfmt_cap,
++				sess->bitdepth == 10 ? 1 : 0);
 +
 +	am21_size = amvdec_amfbc_size(sess->width, sess->height,
-+					  sess->bitdepth == 10 ? 1 : 0,  use_mmu);
++				      sess->bitdepth == 10 ? 1 : 0, use_mmu);
 +
  	for (i = 0; i < MAX_REF_PIC_NUM; ++i) {
 -		if (comm->mmu_header_vaddr[i]) {
@@ -194,12 +206,12 @@ index 0315cc0911..d6ed82dc93 100644
  		}
  	}
  
-@@ -213,33 +233,49 @@ void codec_hevc_free_mmu_headers(struct amvdec_session *sess,
+@@ -213,33 +233,50 @@ void codec_hevc_free_mmu_headers(struct amvdec_session *sess,
  				  comm->mmu_map_paddr);
  		comm->mmu_map_vaddr = NULL;
  	}
 +
-+    codec_hevc_free_mmu_headers(sess, comm);
++	codec_hevc_free_mmu_headers(sess, comm);
  }
 -EXPORT_SYMBOL_GPL(codec_hevc_free_mmu_headers);
 +EXPORT_SYMBOL_GPL(codec_hevc_free_fbc_buffers);
@@ -222,16 +234,17 @@ index 0315cc0911..d6ed82dc93 100644
 -	if (!comm->mmu_map_vaddr)
 -		return -ENOMEM;
 +	use_mmu = codec_hevc_use_mmu(revision, sess->pixfmt_cap,
-+					 is_10bit);
++				     is_10bit);
 +
 +	am21_size = amvdec_amfbc_size(sess->width, sess->height,
-+					  is_10bit, use_mmu);
++				      is_10bit, use_mmu);
  
  	v4l2_m2m_for_each_dst_buf(sess->m2m_ctx, buf) {
  		u32 idx = buf->vb.vb2_buf.index;
  		dma_addr_t paddr;
 -		void *vaddr = dma_alloc_coherent(dev, MMU_COMPRESS_HEADER_SIZE,
 -						 &paddr, GFP_KERNEL);
++
 +		void *vaddr = dma_alloc_coherent(dev, am21_size, &paddr,
 +						 GFP_KERNEL);
  		if (!vaddr) {
@@ -256,11 +269,11 @@ index 0315cc0911..d6ed82dc93 100644
  	}
  
  	return 0;
-@@ -250,21 +286,24 @@ int codec_hevc_setup_buffers(struct amvdec_session *sess,
+@@ -250,21 +287,24 @@ int codec_hevc_setup_buffers(struct amvdec_session *sess,
  			     int is_10bit)
  {
  	struct amvdec_core *core = sess->core;
-+    struct device *dev = core->dev;
++	struct device *dev = core->dev;
  	int ret;
  
 -	if (codec_hevc_use_downsample(sess->pixfmt_cap, is_10bit)) {
@@ -281,17 +294,16 @@ index 0315cc0911..d6ed82dc93 100644
 -		ret = codec_hevc_alloc_mmu_headers(sess, comm);
 -		if (ret) {
 -			codec_hevc_free_fbc_buffers(sess, comm);
--			return ret;
--		}
 +			       sess->pixfmt_cap, is_10bit) ||
 +	    codec_hevc_use_downsample(sess->pixfmt_cap, is_10bit)) {
 +		ret = codec_hevc_alloc_fbc_buffers(sess, comm);
 +		if (ret)
-+ 			return ret;
+ 			return ret;
+-		}
  	}
  
  	if (core->platform->revision == VDEC_REVISION_GXBB)
-@@ -278,19 +317,24 @@ EXPORT_SYMBOL_GPL(codec_hevc_setup_buffers);
+@@ -278,19 +318,24 @@ EXPORT_SYMBOL_GPL(codec_hevc_setup_buffers);
  
  void codec_hevc_fill_mmu_map(struct amvdec_session *sess,
  			     struct codec_hevc_common *comm,
@@ -313,10 +325,10 @@ index 0315cc0911..d6ed82dc93 100644
 -	else
 -		first_page = vb2_dma_contig_plane_dma_addr(vb, 0) >> PAGE_SHIFT;
 +	use_mmu = codec_hevc_use_mmu(sess->core->platform->revision,
-+				    	 sess->pixfmt_cap, is_10bit);
++				     sess->pixfmt_cap, is_10bit);
 +
 +	size = amvdec_amfbc_size(sess->width, sess->height, is_10bit,
-+				         use_mmu);
++				 use_mmu);
  
 +	nb_pages = size / PAGE_SIZE;
 +	first_page = comm->fbc_buffer_paddr[vb->index] >> PAGE_SHIFT;
@@ -324,7 +336,7 @@ index 0315cc0911..d6ed82dc93 100644
  		mmu_map[i] = first_page + i;
  }
 diff --git a/drivers/staging/media/meson/vdec/codec_hevc_common.h b/drivers/staging/media/meson/vdec/codec_hevc_common.h
-index cf072b8a9d..13f9f1d90a 100644
+index cf072b8a9..13f9f1d90 100644
 --- a/drivers/staging/media/meson/vdec/codec_hevc_common.h
 +++ b/drivers/staging/media/meson/vdec/codec_hevc_common.h
 @@ -64,6 +64,7 @@ int codec_hevc_setup_buffers(struct amvdec_session *sess,
@@ -337,7 +349,7 @@ index cf072b8a9d..13f9f1d90a 100644
  
  #endif
 diff --git a/drivers/staging/media/meson/vdec/codec_vp9.c b/drivers/staging/media/meson/vdec/codec_vp9.c
-index 897f5d7a6a..bfc312ec2a 100644
+index 897f5d7a6..33b758cde 100644
 --- a/drivers/staging/media/meson/vdec/codec_vp9.c
 +++ b/drivers/staging/media/meson/vdec/codec_vp9.c
 @@ -458,12 +458,6 @@ struct codec_vp9 {
@@ -360,20 +372,20 @@ index 897f5d7a6a..bfc312ec2a 100644
 -	if (codec_hevc_use_fbc(sess->pixfmt_cap, vp9->is_10bit)) {
 -		val = amvdec_read_dos(core, HEVC_SAO_CTRL5) & ~0xff0200;
 -		amvdec_write_dos(core, HEVC_SAO_CTRL5, val);
--		amvdec_write_dos(core, HEVC_CM_BODY_START_ADDR, buf_y_paddr);
--	}
 +	if (codec_hevc_use_fbc(sess->pixfmt_cap, vp9->is_10bit))
-+ 		amvdec_write_dos(core, HEVC_CM_BODY_START_ADDR, buf_y_paddr);
+ 		amvdec_write_dos(core, HEVC_CM_BODY_START_ADDR, buf_y_paddr);
+-	}
  
  	if (sess->pixfmt_cap == V4L2_PIX_FMT_NV12M) {
  		buf_y_paddr =
-@@ -920,8 +911,12 @@ static void codec_vp9_set_sao(struct amvdec_session *sess,
+@@ -920,8 +911,13 @@ static void codec_vp9_set_sao(struct amvdec_session *sess,
  
  	if (codec_hevc_use_mmu(core->platform->revision, sess->pixfmt_cap,
  			       vp9->is_10bit)) {
 -		amvdec_write_dos(core, HEVC_CM_HEADER_START_ADDR,
 -				 vp9->common.mmu_header_paddr[vb->index]);
 +		dma_addr_t header_adr;
++
 +		if (codec_hevc_use_downsample(sess->pixfmt_cap, vp9->is_10bit))
 +			header_adr = vp9->common.mmu_header_paddr[vb->index];
 +		else
@@ -382,7 +394,7 @@ index 897f5d7a6a..bfc312ec2a 100644
  		/* use HEVC_CM_HEADER_START_ADDR */
  		amvdec_write_dos_bits(core, HEVC_SAO_CTRL5, BIT(10));
  	}
-@@ -1148,9 +1143,13 @@ static void codec_vp9_set_mc(struct amvdec_session *sess,
+@@ -1148,9 +1144,13 @@ static void codec_vp9_set_mc(struct amvdec_session *sess,
  {
  	struct amvdec_core *core = sess->core;
  	u32 scale = 0;
@@ -391,12 +403,12 @@ index 897f5d7a6a..bfc312ec2a 100644
  	int i;
  
 +	use_mmu = codec_hevc_use_mmu(core->platform->revision,
-+					 sess->pixfmt_cap, vp9->is_10bit);
++				     sess->pixfmt_cap, vp9->is_10bit);
 +
  	amvdec_write_dos(core, HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR, 1);
  	codec_vp9_set_refs(sess, vp9);
  	amvdec_write_dos(core, HEVCD_MPP_ANC_CANVAS_ACCCONFIG_ADDR,
-@@ -1166,8 +1165,9 @@ static void codec_vp9_set_mc(struct amvdec_session *sess,
+@@ -1166,8 +1166,9 @@ static void codec_vp9_set_mc(struct amvdec_session *sess,
  		    vp9->frame_refs[i]->height != vp9->height)
  			scale = 1;
  
@@ -408,7 +420,7 @@ index 897f5d7a6a..bfc312ec2a 100644
  
  		amvdec_write_dos(core, VP9D_MPP_REFINFO_DATA,
  				 vp9->frame_refs[i]->width);
-@@ -1283,7 +1283,8 @@ static void codec_vp9_process_frame(struct amvdec_session *sess)
+@@ -1283,7 +1284,8 @@ static void codec_vp9_process_frame(struct amvdec_session *sess)
  	if (codec_hevc_use_mmu(core->platform->revision, sess->pixfmt_cap,
  			       vp9->is_10bit))
  		codec_hevc_fill_mmu_map(sess, &vp9->common,
@@ -418,7 +430,7 @@ index 897f5d7a6a..bfc312ec2a 100644
  
  	intra_only = param->p.show_frame ? 0 : param->p.intra_only;
  
-@@ -2132,7 +2133,8 @@ static irqreturn_t codec_vp9_threaded_isr(struct amvdec_session *sess)
+@@ -2132,7 +2134,8 @@ static irqreturn_t codec_vp9_threaded_isr(struct amvdec_session *sess)
  
  	codec_vp9_fetch_rpm(sess);
  	if (codec_vp9_process_rpm(vp9)) {
@@ -429,10 +441,10 @@ index 897f5d7a6a..bfc312ec2a 100644
  		/* No frame is actually processed */
  		vp9->cur_frame = NULL;
 diff --git a/drivers/staging/media/meson/vdec/esparser.c b/drivers/staging/media/meson/vdec/esparser.c
-index e18334e57f..610a92b9f6 100644
+index 1904d5887..3cd29ab4f 100644
 --- a/drivers/staging/media/meson/vdec/esparser.c
 +++ b/drivers/staging/media/meson/vdec/esparser.c
-@@ -319,6 +319,7 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
+@@ -320,6 +320,7 @@ esparser_queue(struct amvdec_session *sess, struct vb2_v4l2_buffer *vbuf)
  		if (esparser_vififo_get_free_space(sess) < payload_size ||
  		    atomic_read(&sess->esparser_queued_bufs) >= num_dst_bufs)
  			return -EAGAIN;
@@ -441,7 +453,7 @@ index e18334e57f..610a92b9f6 100644
  		return -EAGAIN;
  	}
 diff --git a/drivers/staging/media/meson/vdec/vdec.h b/drivers/staging/media/meson/vdec/vdec.h
-index 0906b8fb5c..a48170fe4c 100644
+index 0906b8fb5..a48170fe4 100644
 --- a/drivers/staging/media/meson/vdec/vdec.h
 +++ b/drivers/staging/media/meson/vdec/vdec.h
 @@ -244,6 +244,7 @@ struct amvdec_session {
@@ -453,7 +465,7 @@ index 0906b8fb5c..a48170fe4c 100644
  	u8 quantization;
  	u8 xfer_func;
 diff --git a/drivers/staging/media/meson/vdec/vdec_helpers.c b/drivers/staging/media/meson/vdec/vdec_helpers.c
-index b9125c295d..bae69b55ba 100644
+index 7d2a75653..fef76142f 100644
 --- a/drivers/staging/media/meson/vdec/vdec_helpers.c
 +++ b/drivers/staging/media/meson/vdec/vdec_helpers.c
 @@ -50,32 +50,40 @@ void amvdec_write_parser(struct amvdec_core *core, u32 reg, u32 val)
@@ -507,7 +519,7 @@ index b9125c295d..bae69b55ba 100644
  
  static int canvas_alloc(struct amvdec_session *sess, u8 *canvas_id)
  {
-@@ -436,7 +444,7 @@ void amvdec_set_par_from_dar(struct amvdec_session *sess,
+@@ -440,7 +448,7 @@ void amvdec_set_par_from_dar(struct amvdec_session *sess,
  EXPORT_SYMBOL_GPL(amvdec_set_par_from_dar);
  
  void amvdec_src_change(struct amvdec_session *sess, u32 width,
@@ -516,7 +528,7 @@ index b9125c295d..bae69b55ba 100644
  {
  	static const struct v4l2_event ev = {
  		.type = V4L2_EVENT_SOURCE_CHANGE,
-@@ -444,25 +452,27 @@ void amvdec_src_change(struct amvdec_session *sess, u32 width,
+@@ -448,25 +456,27 @@ void amvdec_src_change(struct amvdec_session *sess, u32 width,
  
  	v4l2_ctrl_s_ctrl(sess->ctrl_min_buf_capture, dpb_size);
  
@@ -533,11 +545,10 @@ index b9125c295d..bae69b55ba 100644
  	    dpb_size <= sess->num_dst_bufs) {
  		sess->fmt_out->codec_ops->resume(sess);
 -		return;
--	}
 +	} else {
 +		sess->status = STATUS_NEEDS_RESUME;
 +		sess->changed_format = 0;
-+ 	}
+ 	}
  
 -	sess->changed_format = 0;
  	sess->width = width;
@@ -552,7 +563,7 @@ index b9125c295d..bae69b55ba 100644
  }
  EXPORT_SYMBOL_GPL(amvdec_src_change);
 diff --git a/drivers/staging/media/meson/vdec/vdec_helpers.h b/drivers/staging/media/meson/vdec/vdec_helpers.h
-index 88137d15aa..fca4251f75 100644
+index 4bf3e61d0..1a711679d 100644
 --- a/drivers/staging/media/meson/vdec/vdec_helpers.h
 +++ b/drivers/staging/media/meson/vdec/vdec_helpers.h
 @@ -27,9 +27,10 @@ void amvdec_clear_dos_bits(struct amvdec_core *core, u32 reg, u32 val);
@@ -582,5 +593,5 @@ index 88137d15aa..fca4251f75 100644
  /**
   * amvdec_abort() - Abort the current decoding session
 -- 
-2.29.2
+2.36.1
 
