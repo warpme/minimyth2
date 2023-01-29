@@ -4,6 +4,7 @@ GARVERSION   = 2.2
 CATEGORIES   = net
 MASTER_SITES = https://www.kernel.org/pub/linux/network/wireless/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.xz
+PATCHFILES   = iwd-0001-wiphy-Fix-buffer-overflow-due-to-off-by-one-error.patch
 LICENSE      = GPL2
 
 DESCRIPTION = 
