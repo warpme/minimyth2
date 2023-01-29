@@ -402,6 +402,8 @@ mm-all:
 		   [ ! "$${board}" = "board-rk3568.rock3-a"       ] && \
 		   [ ! "$${board}" = "board-rk3568.rock3-b"       ] && \
 		   [ ! "$${board}" = "board-rk3566.rock3-c"       ] && \
+		   [ ! "$${board}" = "board-rk3588.rock5-b"       ] && \
+		   [ ! "$${board}" = "board-rk3588s.rock5-a"      ] && \
 		   [ ! "$${board}" = "board-rpi2"                 ] && \
 		   [ ! "$${board}" = "board-rpi3.mainline32"      ] && \
 		   [ ! "$${board}" = "board-rpi3.mainline64"      ] && \
