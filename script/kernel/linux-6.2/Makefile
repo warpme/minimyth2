@@ -206,6 +206,16 @@ PATCHFILES += 0905-arm64-dts-brcm-set-userled-to-mmc.patch
 endif
 #------------------------------------------------------------
 
+ifeq (1,1)
+#-- Rockchip 3588 patches -----------------------------------------
+# Basic DT https://patchwork.kernel.org/project/linux-rockchip/list/?series=710150
+PATCHFILES += 1000-arm64-dts-rockchip-rk3588-Initial-rk3588-DT.patch
+# Thermal support https://patchwork.kernel.org/project/linux-rockchip/list/?series=709279
+PATCHFILES += 1001-drivers-thermal-add-rk3588-support.patch
+endif
+#------------------------------------------------------------
+
+
 endif
 
 LICENSE = GPL2
