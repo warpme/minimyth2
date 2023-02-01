@@ -326,6 +326,7 @@ export LANGUAGE
 PATCH_GET=0
 export PATCH_GET
 
-# Set the number of parallel makes to the number of processors.
-PARALLELMFLAGS=-j$(shell cat /proc/cpuinfo | grep -c '^processor[[:cntrl:]]*:' | sed -e 's/2/3/' -e 's/4/5/' -e 's/8/9/')
+# Set the number of parallel makes to the number of processors + 1.
+CPUS=$(shell cat /proc/cpuinfo | grep -c '^processor[[:cntrl:]]*:')
+PARALLELMFLAGS=-j$(shell expr $(CPUS) + 1)
 export PARALLELMFLAGS
