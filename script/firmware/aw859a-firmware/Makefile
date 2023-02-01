@@ -19,11 +19,11 @@ INSTALL_SCRIPTS = custom
 include ../../gar.mk
 
 install-custom:
-	@mkdir -p $(DESTDIR)$(elibdir)/firmware/
-	@cp -Rdf $(WORKSRC)/wcnmodem.bin           $(DESTDIR)$(elibdir)/firmware/wcnmodem.bin
-	@cp -Rdf $(WORKSRC)/wifi_2355b001_1ant.ini $(DESTDIR)$(elibdir)/firmware/wifi_2355b001_1ant.ini
+	@mkdir -p $(DESTDIR)$(elibdir)/firmware/uwe5622
+	@cp -Rdf $(WORKSRC)/wcnmodem.bin           $(DESTDIR)$(elibdir)/firmware/uwe5622/wcnmodem.bin
+	@cp -Rdf $(WORKSRC)/wifi_2355b001_1ant.ini $(DESTDIR)$(elibdir)/firmware/uwe5622/wifi_2355b001_1ant.ini
 	@$(MAKECOOKIE)
 
 clean-all: clean
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/wcnmodem.bin
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/wifi_2355b001_1ant.ini
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/uwe5622/wcnmodem.bin
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/uwe5622/wifi_2355b001_1ant.ini
