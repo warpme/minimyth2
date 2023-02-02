@@ -329,4 +329,7 @@ export PATCH_GET
 # Set the number of parallel makes to the number of processors + 1.
 CPUS=$(shell cat /proc/cpuinfo | grep -c '^processor[[:cntrl:]]*:')
 PARALLELMFLAGS=-j$(shell expr $(CPUS) + 1)
+XZ_DEFAULTS=-T $(CPUS)
+export CPUS
 export PARALLELMFLAGS
+export XZ_DEFAULTS
