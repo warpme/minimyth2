@@ -29,7 +29,7 @@ INSTALL_SCRIPTS     = custom
 include ../../gar.mk
 include ../../python3/python/package-api.mk
 
-mm_U-BOOT_BOARD_TYPE = rock-5b-rk3588_defconfig
+# mm_U-BOOT_BOARD_TYPE = rock-5b-rk3588_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
