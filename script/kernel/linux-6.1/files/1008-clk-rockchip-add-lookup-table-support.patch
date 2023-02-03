@@ -1,0 +1,135 @@
+From ef4a371acfff3e7015049a3e92f32b1e0b12759b Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Wed, 28 Sep 2022 14:09:45 +0200
+Subject: [PATCH 08/63] clk: rockchip: add lookup table support
+
+Add support for mapping reset IDs to register offsets
+to support gapless continous platform reset IDs.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/clk/rockchip/clk.h     | 21 +++++++++++++++------
+ drivers/clk/rockchip/softrst.c | 34 +++++++++++++++++++++++++---------
+ 2 files changed, 40 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/clk/rockchip/clk.h b/drivers/clk/rockchip/clk.h
+index 6e84ab85b37..7ee231d9585 100644
+--- a/drivers/clk/rockchip/clk.h
++++ b/drivers/clk/rockchip/clk.h
+@@ -958,15 +958,24 @@ struct clk *rockchip_clk_register_halfdiv(const char *name,
+ 					  spinlock_t *lock);
+ 
+ #ifdef CONFIG_RESET_CONTROLLER
+-void rockchip_register_softrst(struct device_node *np,
+-			       unsigned int num_regs,
+-			       void __iomem *base, u8 flags);
++void rockchip_register_softrst_lut(struct device_node *np,
++				   const int *lookup_table,
++				   unsigned int num_regs,
++				   void __iomem *base, u8 flags);
+ #else
+-static inline void rockchip_register_softrst(struct device_node *np,
+-			       unsigned int num_regs,
+-			       void __iomem *base, u8 flags)
++static inline void rockchip_register_softrst_lut(struct device_node *np,
++				   const int *lookup_table,
++				   unsigned int num_regs,
++				   void __iomem *base, u8 flags)
+ {
+ }
+ #endif
+ 
++static inline void rockchip_register_softrst(struct device_node *np,
++					     unsigned int num_regs,
++					     void __iomem *base, u8 flags)
++{
++	return rockchip_register_softrst_lut(np, NULL, num_regs, base, flags);
++}
++
+ #endif
+diff --git a/drivers/clk/rockchip/softrst.c b/drivers/clk/rockchip/softrst.c
+index 5d07266745b..fd56aaefe6d 100644
+--- a/drivers/clk/rockchip/softrst.c
++++ b/drivers/clk/rockchip/softrst.c
+@@ -12,6 +12,7 @@
+ 
+ struct rockchip_softrst {
+ 	struct reset_controller_dev	rcdev;
++	const int			*lut;
+ 	void __iomem			*reg_base;
+ 	int				num_regs;
+ 	int				num_per_reg;
+@@ -25,8 +26,13 @@ static int rockchip_softrst_assert(struct reset_controller_dev *rcdev,
+ 	struct rockchip_softrst *softrst = container_of(rcdev,
+ 						     struct rockchip_softrst,
+ 						     rcdev);
+-	int bank = id / softrst->num_per_reg;
+-	int offset = id % softrst->num_per_reg;
++	int bank, offset;
++
++	if (softrst->lut)
++		id = softrst->lut[id];
++
++	bank = id / softrst->num_per_reg;
++	offset = id % softrst->num_per_reg;
+ 
+ 	if (softrst->flags & ROCKCHIP_SOFTRST_HIWORD_MASK) {
+ 		writel(BIT(offset) | (BIT(offset) << 16),
+@@ -52,8 +58,13 @@ static int rockchip_softrst_deassert(struct reset_controller_dev *rcdev,
+ 	struct rockchip_softrst *softrst = container_of(rcdev,
+ 						     struct rockchip_softrst,
+ 						     rcdev);
+-	int bank = id / softrst->num_per_reg;
+-	int offset = id % softrst->num_per_reg;
++	int bank, offset;
++
++	if (softrst->lut)
++		id = softrst->lut[id];
++
++	bank = id / softrst->num_per_reg;
++	offset = id % softrst->num_per_reg;
+ 
+ 	if (softrst->flags & ROCKCHIP_SOFTRST_HIWORD_MASK) {
+ 		writel((BIT(offset) << 16), softrst->reg_base + (bank * 4));
+@@ -77,9 +88,10 @@ static const struct reset_control_ops rockchip_softrst_ops = {
+ 	.deassert	= rockchip_softrst_deassert,
+ };
+ 
+-void rockchip_register_softrst(struct device_node *np,
+-			       unsigned int num_regs,
+-			       void __iomem *base, u8 flags)
++void rockchip_register_softrst_lut(struct device_node *np,
++				   const int *lookup_table,
++				   unsigned int num_regs,
++				   void __iomem *base, u8 flags)
+ {
+ 	struct rockchip_softrst *softrst;
+ 	int ret;
+@@ -91,13 +103,17 @@ void rockchip_register_softrst(struct device_node *np,
+ 	spin_lock_init(&softrst->lock);
+ 
+ 	softrst->reg_base = base;
++	softrst->lut = lookup_table;
+ 	softrst->flags = flags;
+ 	softrst->num_regs = num_regs;
+ 	softrst->num_per_reg = (flags & ROCKCHIP_SOFTRST_HIWORD_MASK) ? 16
+ 								      : 32;
+ 
+ 	softrst->rcdev.owner = THIS_MODULE;
+-	softrst->rcdev.nr_resets =  num_regs * softrst->num_per_reg;
++	if (lookup_table)
++		softrst->rcdev.nr_resets = num_regs;
++	else
++		softrst->rcdev.nr_resets = num_regs * softrst->num_per_reg;
+ 	softrst->rcdev.ops = &rockchip_softrst_ops;
+ 	softrst->rcdev.of_node = np;
+ 	ret = reset_controller_register(&softrst->rcdev);
+@@ -107,4 +123,4 @@ void rockchip_register_softrst(struct device_node *np,
+ 		kfree(softrst);
+ 	}
+ };
+-EXPORT_SYMBOL_GPL(rockchip_register_softrst);
++EXPORT_SYMBOL_GPL(rockchip_register_softrst_lut);
+-- 
+2.36.1
+

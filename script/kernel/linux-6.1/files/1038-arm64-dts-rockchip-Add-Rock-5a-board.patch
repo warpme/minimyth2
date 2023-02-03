@@ -1,0 +1,110 @@
+From 2b6d955b6238cde23d23e10c762a5ebd3121c878 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Mon, 17 Oct 2022 17:45:33 +0200
+Subject: [PATCH 38/63] arm64: dts: rockchip: Add Rock 5a board
+
+Add board file for the RK3588s Rock 5A board. While the hardware
+offers plenty of peripherals and connectivity this basic implementation
+just handles things required to access eMMC, UART and Ethernet (i.e.
+enough to successfully boot Linux).
+
+Note: This is compile-tested only.
+
+Cc: Benjamin Gaignard <benjamin.gaignard@collabora.com>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ arch/arm64/boot/dts/rockchip/Makefile         |  1 +
+ .../boot/dts/rockchip/rk3588s-rock-5a.dts     | 72 +++++++++++++++++++
+ 2 files changed, 73 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/rockchip/rk3588s-rock-5a.dts
+
+diff --git a/arch/arm64/boot/dts/rockchip/Makefile b/arch/arm64/boot/dts/rockchip/Makefile
+index 12ed53de11e..31fa55750a0 100644
+--- a/arch/arm64/boot/dts/rockchip/Makefile
++++ b/arch/arm64/boot/dts/rockchip/Makefile
+@@ -73,3 +73,4 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-bpi-r2-pro.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-evb1-v10.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-rock-3a.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-evb1-v10.dtb
++dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588s-rock-5a.dtb
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588s-rock-5a.dts b/arch/arm64/boot/dts/rockchip/rk3588s-rock-5a.dts
+new file mode 100644
+index 00000000000..16a7c17bee8
+--- /dev/null
++++ b/arch/arm64/boot/dts/rockchip/rk3588s-rock-5a.dts
+@@ -0,0 +1,72 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++
++/dts-v1/;
++
++#include <dt-bindings/pinctrl/rockchip.h>
++#include <dt-bindings/gpio/gpio.h>
++#include "rk3588s.dtsi"
++
++/ {
++	model = "Rockchip RK3588s Rock 5a Board";
++	compatible = "rockchip,rk3588s-rock-5a", "rockchip,rk3588";
++
++	chosen {
++		stdout-path = "serial2:1500000n8";
++	};
++
++	vcc5v0_sys: vcc5v0-sys {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc5v0_sys";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++	};
++};
++
++&gmac1 {
++	phy-mode = "rgmii-rxid";
++	clock_in_out = "output";
++
++	snps,reset-gpio = <&gpio3 RK_PB7 GPIO_ACTIVE_LOW>;
++	snps,reset-active-low;
++	/* Reset time is 20ms, 100ms for rtl8211f */
++	snps,reset-delays-us = <0 20000 100000>;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&gmac1_miim
++		     &gmac1_tx_bus2
++		     &gmac1_rx_bus2
++		     &gmac1_rgmii_clk
++		     &gmac1_rgmii_bus>;
++
++	tx_delay = <0x3a>;
++	rx_delay = <0x3e>;
++
++	phy-handle = <&rgmii_phy1>;
++	status = "okay";
++};
++
++&mdio1 {
++	rgmii_phy1: phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <0x1>;
++		#phy-cells = <0>;
++	};
++};
++
++&sdhci {
++	bus-width = <8>;
++	no-sdio;
++	no-sd;
++	non-removable;
++	max-frequency = <200000000>;
++	mmc-hs400-1_8v;
++	mmc-hs400-enhanced-strobe;
++	status = "okay";
++};
++
++&uart2 {
++	pinctrl-0 = <&uart2m0_xfer>;
++	status = "okay";
++};
+-- 
+2.36.1
+

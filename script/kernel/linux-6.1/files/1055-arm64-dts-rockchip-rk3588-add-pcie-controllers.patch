@@ -1,0 +1,365 @@
+From 714c5e01d8f0f73b3a49cbdee29e3ffe0f3353dd Mon Sep 17 00:00:00 2001
+From: neg2led <4232981+neg2led@users.noreply.github.com>
+Date: Sun, 11 Sep 2022 00:31:57 +1000
+Subject: [PATCH 55/63] arm64: dts: rockchip: rk3588: add pcie controllers
+
+---
+ .../boot/dts/rockchip/rk3588-quartzpro64.dts  | 49 +++++++++++--
+ arch/arm64/boot/dts/rockchip/rk3588.dtsi      | 50 +++++++------
+ arch/arm64/boot/dts/rockchip/rk3588s.dtsi     | 70 +++++++++++++------
+ 3 files changed, 118 insertions(+), 51 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-quartzpro64.dts b/arch/arm64/boot/dts/rockchip/rk3588-quartzpro64.dts
+index f6264e4a694..9beeff8ba9f 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-quartzpro64.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-quartzpro64.dts
+@@ -9,12 +9,13 @@
+ #include <dt-bindings/pinctrl/rockchip.h>
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/leds/common.h>
++#include <dt-bindings/interrupt-controller/irq.h>
+ #include "rk3588.dtsi"
+ #include "rk3588-rk806-dual.dtsi"
+ 
+ / {
+ 	model = "Pine64 RK3588 QuartzPro64 Board";
+-	compatible = "pine64,quartzpro64", "rockchip,rk3588-evb1-v10", "rockchip,rk3588";
++	compatible = "pine64,quartzpro64", "rockchip,rk3588";
+ 
+ 	chosen {
+ 		stdout-path = "serial2:1500000n8";
+@@ -163,6 +164,12 @@ &sdhci {
+ 	// mmc-hs400-enhanced-strobe;
+ 	vmmc-supply = <&vcc_3v3_s0>;
+ 	vqmmc-supply = <&vcc_1v8_s0>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&emmc_bus8
++		     &emmc_clk
++		     &emmc_cmd
++		     &emmc_data_strobe
++		     &emmc_rstnout>;
+ 	status = "okay";
+ };
+ 
+@@ -181,11 +188,8 @@ &sdmmc {
+ 	status = "okay";
+ };
+ 
+-&sdio {
+-
+-};
+-
+ &uart2 {
++	pinctrl-names = "default";
+ 	pinctrl-0 = <&uart2m0_xfer>;
+ 	status = "okay";
+ };
+@@ -193,11 +197,20 @@ &uart2 {
+ &uart8 {
+ 	status = "okay";
+ 	pinctrl-names = "default";
+-	pinctrl-0 = <&uart8m1_xfer &uart8m1_ctsn>;
++	pinctrl-0 = <&uart8m1_xfer &uart8m1_rtsn>;
+ 	uart-has-rtscts;
+ 
+ 	bluetooth {
+ 		compatible = "brcm,bcm4375-bt";
++		max-speed = <921600>;
++		clocks = <&hym8563>;
++		clock-names = "lpo";
++		pinctrl-names = "default";
++		pinctrl-0 = <&bt_pwren_gpio &bt_wake_gpio &bt_irq_gpio>;
++		shutdown-gpios = <&gpio3 RK_PA6 GPIO_ACTIVE_HIGH>;
++		device-wakeup-gpios = <&gpio3 RK_PA1 GPIO_ACTIVE_HIGH>;
++		interrupt-parent = <&gpio3>;
++		interrupts = <RK_PA0 GPIO_ACTIVE_HIGH>;
+ 		status = "disabled";
+ 	};
+ };
+@@ -241,4 +254,28 @@ vcc5v0_usbc_host_en_h: typec5v-pwren {
+ 			rockchip,pins = <0 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
+ 		};
+ 	};
++
++	wireless-bluetooth {
++		bt_pwren_gpio: bt-pwren-gpio {
++			rockchip,pins = <3 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		bt_wake_gpio: bt-wake-gpio {
++			rockchip,pins = <3 RK_PA1 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		bt_irq_gpio: bt-irq-gpio {
++			rockchip,pins = <3 RK_PA0 RK_FUNC_GPIO &pcfg_pull_down>;
++		};
++	};
++
++	wireless-wlan {
++		wifi_wake_host_h: wifi-wake-host-h {
++			rockchip,pins = <3 RK_PA7 RK_FUNC_GPIO &pcfg_pull_down>;
++		};
++
++		wifi_pwr_en_h: wifi-pwren-h {
++			rockchip,pins = <3 RK_PB1 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++	};
+ };
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588.dtsi b/arch/arm64/boot/dts/rockchip/rk3588.dtsi
+index 1c7d0b58d61..adc6864663f 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588.dtsi
+@@ -4,9 +4,10 @@
+  */
+ 
+ #include "rk3588s.dtsi"
+-#include "rk3588-pinctrl.dtsi"
+ 
+ / {
++	compatible = "rockchip,rk3588";
++
+ 	aliases {
+ 		ethernet0 = &gmac0;
+ 		mmc0 = &sdhci;
+@@ -114,19 +115,19 @@ pcie3x4: pcie@fe150000 {
+ 		linux,pci-domain = <0>;
+ 		num-ib-windows = <16>;
+ 		num-ob-windows = <16>;
+-		num-viewport = <8>;
+ 		max-link-speed = <3>;
+ 		msi-map = <0x0000 &its1 0x0000 0x1000>;
+ 		num-lanes = <4>;
+ 		phys = <&pcie30phy>;
+ 		phy-names = "pcie-phy";
+ 		power-domains = <&power RK3588_PD_PCIE>;
+-		ranges = <0x01000000 0x0 0x3ef00000 0x9 0x3ef00000 0x0 0x00100000>,
+-			 <0x02000000 0x0 0x00000000 0x9 0x00000000 0x0 0x3ef00000>;
+-		reg = <0x0 0xfe150000 0x0 0x00010000>,
+-		      <0xa 0x40000000 0x0 0x00400000>,
+-		      <0x9 0x3f000000 0x0 0x01000000>;
+-		reg-names = "apb", "dbi", "config";
++		ranges = <0x01000000 0x0 0xf0100000 0x0 0xf0100000 0x0 0x00100000>,
++			 <0x02000000 0x9 0xf0200000 0x0 0xf0200000 0x0 0x00e00000>,
++			 <0x03000000 0x9 0x00000000 0x9 0x00000000 0x0 0x40000000>;
++		reg = <0xa 0x40000000 0x0 0x00400000>,
++		      <0x0 0xfe150000 0x0 0x00010000>,
++		      <0x0 0xf0000000 0x0 0x00100000>;
++		reg-names = "dbi", "apb", "config";
+ 		resets = <&cru SRST_PCIE0_POWER_UP>, <&cru SRST_P_PCIE0>;
+ 		reset-names = "pcie", "periph";
+ 		rockchip,pipe-grf = <&php_grf>;
+@@ -168,19 +169,19 @@ pcie3x2: pcie@fe160000 {
+ 		linux,pci-domain = <1>;
+ 		num-ib-windows = <16>;
+ 		num-ob-windows = <16>;
+-		num-viewport = <8>;
+ 		max-link-speed = <3>;
+ 		msi-map = <0x1000 &its1 0x1000 0x1000>;
+ 		num-lanes = <2>;
+ 		phys = <&pcie30phy>;
+ 		phy-names = "pcie-phy";
+ 		power-domains = <&power RK3588_PD_PCIE>;
+-		ranges = <0x01000000 0x0 0x3ef00000 0x9 0x7ef00000 0x0 0x00100000>,
+-			 <0x02000000 0x0 0x00000000 0x9 0x40000000 0x0 0x3ef00000>;
+-		reg = <0x0 0xfe160000 0x0 0x00010000>,
+-		      <0xa 0x40400000 0x0 0x00400000>,
+-		      <0x9 0x7f000000 0x0 0x01000000>;
+-		reg-names = "apb", "dbi", "config";
++		ranges = <0x01000000 0x0 0xf1100000 0x0 0xf1100000 0x0 0x00100000>,
++			 <0x02000000 0x0 0xf1200000 0x0 0xf1200000 0x0 0x00e00000>,
++			 <0x03000000 0x9 0x40000000 0x9 0x40000000 0x0 0x40000000>;
++		reg = <0xa 0x40400000 0x0 0x00400000>,
++		      <0x0 0xfe160000 0x0 0x00010000>,
++		      <0x0 0xf1000000 0x0 0x00100000>;
++		reg-names = "dbi", "apb", "config";
+ 		resets = <&cru SRST_PCIE1_POWER_UP>, <&cru SRST_P_PCIE1>;
+ 		reset-names = "pcie", "periph";
+ 		rockchip,pipe-grf = <&php_grf>;
+@@ -222,18 +223,19 @@ pcie2x1l0: pcie@fe170000 {
+ 		linux,pci-domain = <2>;
+ 		num-ib-windows = <8>;
+ 		num-ob-windows = <8>;
+-		num-viewport = <4>;
+ 		max-link-speed = <2>;
+ 		msi-map = <0x2000 &its0 0x2000 0x1000>;
+ 		num-lanes = <1>;
+ 		phys = <&combphy1 PHY_TYPE_PCIE>;
+ 		phy-names = "pcie-phy";
+-		ranges = <0x01000000 0x0 0x3ef00000 0x9 0xbef00000 0x0 0x00100000>,
+-			 <0x02000000 0x0 0x00000000 0x9 0x80000000 0x0 0x3ef00000>;
+-		reg = <0x0 0xfe170000 0x0 0x00010000>,
+-		      <0xa 0x40800000 0x0 0x00400000>,
+-		      <0x9 0xbf000000 0x0 0x01000000>;
+-		reg-names = "apb", "dbi", "config";
++		power-domains = <&power RK3588_PD_PCIE>;
++		ranges = <0x01000000 0x0 0xf2100000 0x0 0xf2100000 0x0 0x00100000>,
++			 <0x02000000 0x0 0xf2200000 0x0 0xf2200000 0x0 0x00e00000>,
++			 <0x03000000 0x9 0x80000000 0x9 0x80000000 0x0 0x40000000>;
++		reg = <0xa 0x40800000 0x0 0x00400000>,
++		      <0x0 0xfe170000 0x0 0x00010000>,
++		      <0x0 0xf2000000 0x0 0x00100000>;
++		reg-names = "dbi", "apb", "config";
+ 		resets = <&cru SRST_PCIE2_POWER_UP>, <&cru SRST_P_PCIE2>;
+ 		reset-names = "pcie", "periph";
+ 		rockchip,pipe-grf = <&php_grf>;
+@@ -334,7 +336,7 @@ combphy1: phy@fee10000 {
+ 		#phy-cells = <1>;
+ 		clocks = <&cru CLK_REF_PIPE_PHY1>, <&cru PCLK_PCIE_COMBO_PIPE_PHY1>,
+ 			 <&cru PCLK_PHP_ROOT>;
+-		clock-names = "refclk", "apbclk", "phpclk";
++		clock-names = "ref", "apb", "pipe";
+ 		assigned-clocks = <&cru CLK_REF_PIPE_PHY1>;
+ 		assigned-clock-rates = <100000000>;
+ 		resets = <&cru SRST_P_PCIE2_PHY1>, <&cru SRST_REF_PIPE_PHY1>;
+@@ -357,3 +359,5 @@ pcie30phy: phy@fee80000 {
+ 		status = "disabled";
+ 	};
+ };
++
++#include "rk3588-pinctrl.dtsi"
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588s.dtsi b/arch/arm64/boot/dts/rockchip/rk3588s.dtsi
+index 9223ae232b4..da45ea6b4b8 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588s.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588s.dtsi
+@@ -9,10 +9,12 @@
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
+ #include <dt-bindings/interrupt-controller/irq.h>
+ #include <dt-bindings/phy/phy.h>
++#include <dt-bindings/power/rk3588-power.h>
++#include <dt-bindings/reset/rockchip,rk3588-cru.h>
+ #include <dt-bindings/thermal/thermal.h>
+ 
+ / {
+-	compatible = "rockchip,rk3588";
++	compatible = "rockchip,rk3588s";
+ 
+ 	interrupt-parent = <&gic>;
+ 	#address-cells = <2>;
+@@ -1043,7 +1045,7 @@ cru: clock-controller@fd7c0000 {
+ 	};
+ 
+ 	pcie2x1l1: pcie@fe180000 {
+-		compatible = "rockchip,rk3588-pcie", "snps,dw-pcie";
++		compatible = "rockchip,rk3588-pcie";
+ 		#address-cells = <3>;
+ 		#size-cells = <2>;
+ 		bus-range = <0x30 0x3f>;
+@@ -1069,19 +1071,19 @@ pcie2x1l1: pcie@fe180000 {
+ 		linux,pci-domain = <3>;
+ 		num-ib-windows = <8>;
+ 		num-ob-windows = <8>;
+-		num-viewport = <4>;
+ 		max-link-speed = <2>;
+ 		msi-map = <0x3000 &its0 0x3000 0x1000>;
+ 		num-lanes = <1>;
+ 		phys = <&combphy2 PHY_TYPE_PCIE>;
+ 		phy-names = "pcie-phy";
+-		ranges = <0x00000800 0x0 0xf3000000 0x0 0xf3000000 0x0 0x100000
+-			  0x81000000 0x0 0xf3100000 0x0 0xf3100000 0x0 0x100000
+-			  0x82000000 0x0 0xf3200000 0x0 0xf3200000 0x0 0xe00000
+-			  0xc3000000 0x9 0xc0000000 0x9 0xc0000000 0x0 0x40000000>;
+-		reg = <0x0 0xfe180000 0x0 0x10000>,
+-		      <0xa 0x40c00000 0x0 0x400000>;
+-		reg-names = "pcie-apb", "pcie-dbi";
++		power-domains = <&power RK3588_PD_PCIE>;
++		ranges = <0x01000000 0x0 0xf3100000 0x0 0xf3100000 0x0 0x00100000>,
++			 <0x02000000 0x0 0xf3200000 0x0 0xf3200000 0x0 0x00e00000>,
++			 <0x03000000 0x9 0xc0000000 0x9 0xc0000000 0x0 0x40000000>;
++		reg = <0x0 0xfe180000 0x0 0x00010000>,
++		      <0xa 0x40c00000 0x0 0x00400000>,
++		      <0x0 0xf3000000 0x0 0x00100000>;
++		reg-names = "apb", "dbi", "config";
+ 		resets = <&cru SRST_PCIE3_POWER_UP>, <&cru SRST_P_PCIE3>;
+ 		reset-names = "pcie", "periph";
+ 		rockchip,pipe-grf = <&php_grf>;
+@@ -1123,19 +1125,19 @@ pcie2x1l2: pcie@fe190000 {
+ 		linux,pci-domain = <4>;
+ 		num-ib-windows = <8>;
+ 		num-ob-windows = <8>;
+-		num-viewport = <4>;
+ 		max-link-speed = <2>;
+ 		msi-map = <0x4000 &its0 0x4000 0x1000>;
+ 		num-lanes = <1>;
+ 		phys = <&combphy0 PHY_TYPE_PCIE>;
+ 		phy-names = "pcie-phy";
+-		ranges = <0x00000800 0x0 0xf4000000 0x0 0xf4000000 0x0 0x100000
+-			  0x81000000 0x0 0xf4100000 0x0 0xf4100000 0x0 0x100000
+-			  0x82000000 0x0 0xf4200000 0x0 0xf4200000 0x0 0xe00000
+-			  0xc3000000 0xa 0x00000000 0xa 0x00000000 0x0 0x40000000>;
+-		reg = <0x0 0xfe190000 0x0 0x10000>,
+-		      <0xa 0x41000000 0x0 0x400000>;
+-		reg-names = "pcie-apb", "pcie-dbi";
++		power-domains = <&power RK3588_PD_PCIE>;
++		ranges = <0x01000000 0x0 0xf4100000 0x0 0xf4100000 0x0 0x00100000>,
++			 <0x02000000 0x0 0xf4200000 0x0 0xf4200000 0x0 0x00e00000>,
++			 <0x03000000 0xa 0x00000000 0xa 0x00000000 0x0 0x40000000>;
++		reg = <0xa 0x41000000 0x0 0x00400000>,
++		      <0x0 0xfe190000 0x0 0x00010000>,
++		      <0x0 0xf4000000 0x0 0x00100000>;
++		reg-names = "dbi", "apb", "config";
+ 		resets = <&cru SRST_PCIE4_POWER_UP>, <&cru SRST_P_PCIE4>;
+ 		reset-names = "pcie", "periph";
+ 		rockchip,pipe-grf = <&php_grf>;
+@@ -1247,24 +1249,47 @@ sdhci: mmc@fe2e0000 {
+ 		status = "disabled";
+ 	};
+ 
++	iommu_pcie: iommu@fc900000 {
++		compatible = "arm,smmu-v3";
++		reg = <0x0 0xfc900000 0x0 0x200000>;
++		interrupts = <GIC_SPI 369 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 371 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 374 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 367 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-names = "eventq", "gerror", "priq", "cmdq-sync";
++		#iommu-cells = <1>;
++		status = "disabled";
++	};
++
++	iommu_php: iommu@fcb00000 {
++		compatible = "arm,smmu-v3";
++		reg = <0x0 0xfcb00000 0x0 0x200000>;
++		interrupts = <GIC_SPI 381 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 383 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 386 IRQ_TYPE_LEVEL_HIGH>,
++			     <GIC_SPI 379 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-names = "eventq", "gerror", "priq", "cmdq-sync";
++		#iommu-cells = <1>;
++		status = "disabled";
++	};
++
+ 	gic: interrupt-controller@fe600000 {
+ 		compatible = "arm,gic-v3";
+-		reg = <0x0 0xfe600000 0 0x10000>, /* GICD */
++		reg = <0x0 0xfe600000 0 0x010000>, /* GICD */
+ 		      <0x0 0xfe680000 0 0x100000>; /* GICR */
+ 		interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+ 		interrupt-controller;
+ 		#interrupt-cells = <3>;
+ 		#address-cells = <2>;
+ 		#size-cells = <2>;
+-		mbi-alias = <0x0 0xfe610000>;
+-		mbi-ranges = <424 56>;
+-		msi-controller;
++		ranges;
+ 
+ 		its0: msi-controller@fe640000 {
+ 			compatible = "arm,gic-v3-its";
+ 			msi-controller;
+ 			#msi-cells = <1>;
+ 			reg = <0x0 0xfe640000 0x0 0x20000>;
++			power-domains = <&power RK3588_PD_PCIE>;
+ 		};
+ 
+ 		its1: msi-controller@fe660000 {
+@@ -1272,6 +1297,7 @@ its1: msi-controller@fe660000 {
+ 			msi-controller;
+ 			#msi-cells = <1>;
+ 			reg = <0x0 0xfe660000 0x0 0x20000>;
++			power-domains = <&power RK3588_PD_PCIE>;
+ 		};
+ 
+ 		ppi-partitions {
+-- 
+2.36.1
+

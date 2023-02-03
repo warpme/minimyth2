@@ -74,7 +74,7 @@ PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 # Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic HW I have
 PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
 endif
-#------------------------------------------------------------
+#-----------------------------------------------------------------
 
 ifeq (1,1)
 #-- Allwinner H6 patches -----------------------------------------
@@ -138,7 +138,7 @@ PATCHFILES += 0588-arm64-dts-allwinner-enable-gpu-opp-multiple-boards.patch
 PATCHFILES += 0589-net-phy-add-support-for-motorcomm-yt8531c-phy.patch
 PATCHFILES += 0590-arm64-dts-allwinner-add-orangepi-3-lts.patch
 endif
-#------------------------------------------------------------
+#-------------------------------------------------------------------
 
 ifeq (1,1)
 #-- Allwinner H616 patches -----------------------------------------
@@ -163,7 +163,7 @@ PATCHFILES += 0632-arm64-dts-allwinner-h616-X96-mate-enable-ths-hdmi-usb.patch
 PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0634-arm64-dts-allwinner-h616-add-T95-TVbox.patch
 endif
-#------------------------------------------------------------
+#-----------------------------------------------------------------
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
@@ -187,7 +187,7 @@ PATCHFILES += 0750-arm64-dts-rockchip-enable-inno-usb3-beelinkA1-roc-cc.patch
 PATCHFILES += 0751-arm64-dts-rockchip-rk33xx-set-userled-to-mmc.patch
 PATCHFILES += 0752-arm64-dts-rockchip-rk3399-add-radxa-rockpi-4se.patch
 endif
-#------------------------------------------------------------
+#------------------------------------------------------------------
 
 ifeq (1,1)
 #-- Rockchip 356x patches -----------------------------------------
@@ -209,7 +209,7 @@ PATCHFILES += 0846-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=711622
 PATCHFILES += 0847-arm64-dts-rockchip-add-missing-interrupt-cells-to-rk356x-pcie2x1.patch
 endif
-#------------------------------------------------------------
+#----------------------------------------------------------------
 
 ifeq (1,1)
 #-- RaspberryPI patches -----------------------------------------
@@ -220,7 +220,78 @@ PATCHFILES += 0901-rpi-vc04_services-bcm2835-codec-remove-isp-formats.patch
 PATCHFILES += 0904-media-add-rpivid-driver.patch
 PATCHFILES += 0905-arm64-dts-brcm-set-userled-to-mmc.patch
 endif
-#------------------------------------------------------------
+#------------------------------------------------------------------
+
+ifeq (1,1)
+#-- Rockchip 3588 patches -----------------------------------------
+PATCHFILES += 1001-dt-bindings-clock-add-rk3588-clock-definitions.patch
+PATCHFILES += 1002-dt-bindings-reset-add-rk3588-reset-definitions.patch
+PATCHFILES += 1003-dt-bindings-clock-add-rk3588-cru-bindings.patch
+PATCHFILES += 1004-clk-rockchip-add-register-offset-of-the-cores-select.patch
+PATCHFILES += 1005-clk-rockchip-add-pll-type-for-RK3588.patch
+PATCHFILES += 1006-clk-rockchip-clk-cpu-add-mux-setting-for-cpu-change-.patch
+PATCHFILES += 1007-clk-rockchip-simplify-rockchip_clk_add_lookup.patch
+PATCHFILES += 1008-clk-rockchip-add-lookup-table-support.patch
+PATCHFILES += 1009-clk-rockchip-add-clock-controller-for-the-RK3588.patch
+PATCHFILES += 1010-dt-bindings-soc-rockchip-add-initial-rk3588-syscon-c.patch
+PATCHFILES += 1011-arm64-dts-rockchip-Add-rk3588-pinctrl-data.patch
+PATCHFILES += 1012-arm64-dts-rockchip-Add-base-DT-for-rk3588-SoC.patch
+PATCHFILES += 1013-arm64-dts-rockchip-Add-rk3588-evb1-board.patch
+PATCHFILES += 1014-clk-RK808-reduce-struct-rk808-usage.patch
+PATCHFILES += 1015-regulator-rk808-reduce-struct-rk808-usage.patch
+PATCHFILES += 1016-rtc-rk808-reduce-struct-rk808-usage.patch
+PATCHFILES += 1017-mfd-rk808-convert-to-device-managed-resources.patch
+PATCHFILES += 1018-mfd-rk808-use-dev_err_probe.patch
+PATCHFILES += 1019-mfd-rk808-replace-struct-i2c_client-with-struct-devi.patch
+PATCHFILES += 1020-mfd-rk808-split-into-core-and-i2c.patch
+PATCHFILES += 1021-dt-bindings-mfd-add-rk806-binding.patch
+PATCHFILES += 1022-mfd-rk8xx-add-rk806-support.patch
+PATCHFILES += 1023-pinctrl-rk805-add-rk806-pinctrl-support.patch
+PATCHFILES += 1024-regulator-rk808-Use-dev_err_probe.patch
+PATCHFILES += 1025-regulator-expose-regulator_find_closest_bigger.patch
+PATCHFILES += 1026-regulator-rk808-add-rk806-support.patch
+PATCHFILES += 1027-thermal-rockchip-Support-RK3588-SoC-in-the-thermal-d.patch
+PATCHFILES += 1028-arm64-dts-rockchip-rk3588-evb1-add-pmic.patch
+PATCHFILES += 1029-cpufreq-rockchip-Introduce-driver-for-rk3588.patch
+PATCHFILES += 1030-arm64-dts-rockchip-rk3588-add-cpu-frequency-scaling-.patch
+PATCHFILES += 1031-arm64-dts-rockchip-rk3588-evb1-add-cpu-regulator-inf.patch
+PATCHFILES += 1032-dt-bindings-rtc-convert-hym8563-bindings-to-json-sch.patch
+PATCHFILES += 1033-dt-bindings-net-snps-dwmac-Document-queue-config-sub.patch
+PATCHFILES += 1034-dt-bindings-rockchip-thermal-Support-the-RK3588-SoC-.patch
+PATCHFILES += 1035-dt-bindings-power-rockchip-Increase-pm_qos-number.patch
+PATCHFILES += 1036-dt-bindings-mmc-sdhci-of-dwcmhsc-Add-reset-support.patch
+PATCHFILES += 1037-dt-bindings-pinctrl-rockchip-increase-max-amount-of-.patch
+PATCHFILES += 1038-arm64-dts-rockchip-Add-Rock-5a-board.patch
+PATCHFILES += 1039-arm64-dts-rockchip-rk3588s-fix-missing-SCMI-clock-fo.patch
+PATCHFILES += 1040-arm64-dts-rockchip-rk3588-evb1-add-ethernet.patch
+PATCHFILES += 1041-arm64-dts-rockchip-rk3588-add-sdmmc-and-sdio-control.patch
+PATCHFILES += 1042-nvmem-rockchip-otp-add-rk3568-and-rk3588-support.patch
+PATCHFILES += 1043-arm64-dts-rockchip-rk3588s-add-otp.patch
+PATCHFILES += 1044-arm64-dts-rockchip-add-rk3588-rk806-dual.dtsi.patch
+PATCHFILES += 1045-arm64-dts-rockchip-rk3588s-add-GPU-and-little-core-G.patch
+PATCHFILES += 1046-arm64-dts-rockchip-rk3588s-add-OPP-table.patch
+PATCHFILES += 1047-arm64-dts-rockchip-rk3588s-add-aliases-for-gpio-i2c-.patch
+PATCHFILES += 1048-arm64-dts-rockchip-Add-mmc-aliases-for-rk3588.dtsi.patch
+PATCHFILES += 1049-arm64-dts-rockchip-rk3588-add-pine64-quartzpro64-boa.patch
+PATCHFILES += 1050-dt-bindings-pci-rockchip-dw-pcie-add-rk3588-compatib.patch
+PATCHFILES += 1051-pci-pcie-dw-rockchip-add-RK3588-compatibles.patch
+PATCHFILES += 1052-dt-bindings-phy-rockchip-pcie3-phy-add-rk3588-compat.patch
+PATCHFILES += 1053-phy-rockchip-add-RK3588-combphy-support.patch
+PATCHFILES += 1054-phy-rockchip-support-multiple-PCIe-3.0-lanes-on-RK35.patch
+PATCHFILES += 1055-arm64-dts-rockchip-rk3588-add-pcie-controllers.patch
+PATCHFILES += 1056-arm64-dts-rockchip-rk3588-quartzpro64-add-pcie-thing.patch
+PATCHFILES += 1057-irqchip-gic-v3-add-hackaround-for-rk3568-its.patch
+PATCHFILES += 1058-arm64-dts-rockchip-rk3588-quartzpro64-update-GMAC-PH.patch
+PATCHFILES += 1059-arm64-dts-rockchip-rk3588-quartzpro64-override-OPP-t.patch
+PATCHFILES += 1060-ATA-ahci_platform-enable-FBS-for-RK3588.patch
+PATCHFILES += 1061-arm64-dts-rockchip-add-RK3588-SATA-controller.patch
+PATCHFILES += 1062-usb-typec-tcpci_husb311-Chip-level-TCPC-driver.patch
+PATCHFILES += 1063-add-support-for-enabling-vbus-to-husb311-driver.patch
+PATCHFILES += 1064-arm64-dts-rockchip-Add-RK806-regulator-config.patch
+PATCHFILES += 1065-arm64-dts-rockchip-Add-support-for-SD-card-for-Rock5A.patch
+PATCHFILES += 1066-arm64-dts-rockchip-Add-Rock-5b-board.patch
+endif
+#------------------------------------------------------------------
 
 endif
 
