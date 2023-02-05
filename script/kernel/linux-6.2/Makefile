@@ -208,10 +208,42 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 3588 patches -----------------------------------------
-# Basic DT https://patchwork.kernel.org/project/linux-rockchip/list/?series=710150
-PATCHFILES += 1000-arm64-dts-rockchip-rk3588-Initial-rk3588-DT.patch
-# Thermal support https://patchwork.kernel.org/project/linux-rockchip/list/?series=709279
-PATCHFILES += 1001-drivers-thermal-add-rk3588-support.patch
+# https://git.kernel.org/pub/scm/linux/kernel/git/sre/linux-misc.git/log/?h=rk3588
+# last commit from 27.02.2023
+PATCHFILES += 1001-dt-bindings-soc-rockchip-add-initial-rk3588-syscon-c.patch
+PATCHFILES += 1002-arm64-dts-rockchip-Add-rk3588-pinctrl-data.patch
+PATCHFILES += 1003-arm64-dts-rockchip-Add-base-DT-for-rk3588-SoC.patch
+PATCHFILES += 1004-dt-bindings-arm-rockchip-add-initial-rk3588-boards.patch
+PATCHFILES += 1005-arm64-dts-rockchip-Add-rk3588-evb1-board.patch
+PATCHFILES += 1006-arm64-dts-rockchip-Add-rock-5a-board.patch
+PATCHFILES += 1007-arm64-dts-rockchip-Add-rock-5b-board.patch
+PATCHFILES += 1008-clk-RK808-reduce-struct-rk808-usage.patch
+PATCHFILES += 1009-mfd-rk808-convert-to-device-managed-resources.patch
+PATCHFILES += 1010-mfd-rk808-use-dev_err_probe.patch
+PATCHFILES += 1011-mfd-rk808-replace-struct-i2c_client-with-struct-devi.patch
+PATCHFILES += 1012-mfd-rk808-split-into-core-and-i2c.patch
+PATCHFILES += 1013-mfd-rk8xx-i2c-use-device_get_match_data.patch
+PATCHFILES += 1014-dt-bindings-mfd-add-rk806-binding.patch
+PATCHFILES += 1015-mfd-rk8xx-add-rk806-support.patch
+PATCHFILES += 1016-pinctrl-rk805-add-rk806-pinctrl-support.patch
+PATCHFILES += 1017-regulator-expose-regulator_find_closest_bigger.patch
+PATCHFILES += 1018-regulator-rk808-add-rk806-support.patch
+PATCHFILES += 1019-thermal-rockchip-Simplify-getting-match-data.patch
+PATCHFILES += 1020-thermal-rockchip-Simplify-clock-logic.patch
+PATCHFILES += 1021-thermal-rockchip-Use-dev_err_probe.patch
+PATCHFILES += 1022-thermal-rockchip-Simplify-channel-id-logic.patch
+PATCHFILES += 1023-thermal-rockchip-Support-dynamic-sized-sensor-array.patch
+PATCHFILES += 1024-thermal-rockchip-Support-RK3588-SoC-in-the-thermal-d.patch
+PATCHFILES += 1025-dt-bindings-rockchip-thermal-Support-the-RK3588-SoC-.patch
+PATCHFILES += 1026-arm64-dts-rockchip-rk3588-evb1-add-pmic.patch
+PATCHFILES += 1027-cpufreq-rockchip-Introduce-driver-for-rk3588.patch
+PATCHFILES += 1028-arm64-dts-rockchip-rk3588-add-cpu-frequency-scaling-.patch
+PATCHFILES += 1029-arm64-dts-rockchip-rk3588-evb1-add-cpu-regulator-inf.patch
+PATCHFILES += 1030-dt-bindings-mmc-rockchip-dw-mshc-Add-RK3588-compatib.patch
+PATCHFILES += 1031-arm64-dts-rockchip-rk3588-Add-sdmmc-node.patch
+PATCHFILES += 1032-arm64-dts-rockchip-Add-RK806-regulator-config.patch
+PATCHFILES += 1033-arm64-dts-rockchip-Add-support-for-SD-card-for-Rock5a.patch
+PATCHFILES += 1034-arm64-dts-rockchip-Add-support-for-SD-card-for-Rock5b.patch
 endif
 #------------------------------------------------------------
 
