@@ -14,7 +14,7 @@ PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
 # hack to fix building on fedora35. Absolutelely dont know why it fails without this change
-PATCHFILES += 0003-libmythbase-include-version.h-in-mythversion.h.patch
+# PATCHFILES += 0003-libmythbase-include-version.h-in-mythversion.h.patch
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
