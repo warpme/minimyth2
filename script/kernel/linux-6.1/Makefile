@@ -137,6 +137,7 @@ PATCHFILES += 0587-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 PATCHFILES += 0588-arm64-dts-allwinner-enable-gpu-opp-multiple-boards.patch
 PATCHFILES += 0589-net-phy-add-support-for-motorcomm-yt8531c-phy.patch
 PATCHFILES += 0590-arm64-dts-allwinner-add-orangepi-3-lts.patch
+PATCHFILES += 0591-net-wireless-rtw88-USB-fixes.patch
 endif
 #-------------------------------------------------------------------
 
