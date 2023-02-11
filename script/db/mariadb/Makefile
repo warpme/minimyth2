@@ -1,6 +1,6 @@
 
 GARNAME      = mariadb
-GARVERSION   = 10.8.2
+GARVERSION   = 10.9.5
 CATEGORIES   = db
 MASTER_SITES = https://rsync.osuosl.org/pub/mariadb/mariadb-$(GARVERSION)/source/
 DISTFILES    = $(DISTNAME).tar.gz
