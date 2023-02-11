@@ -1,6 +1,6 @@
 
 GARNAME       = xkeyboard-config
-GARVERSION    = 2.37
+GARVERSION    = 2.38
 CATEGORIES    = $(CATEGORY)
 MASTER_SITES  = https://xorg.freedesktop.org/archive/individual/data/$(GARNAME)/
 DISTFILES     = $(DISTNAME).tar.xz
