@@ -44,7 +44,7 @@ configure-%/Configure:
 
 build-custom:
 	@cd $(WORKSRC); $(MAKE) depend
-	@cd $(WORKSRC); $(MAKE)
+	@cd $(WORKSRC); $(MAKE) $(PARALLELMFLAGS)
 	@$(MAKECOOKIE)
 
 post-install:
