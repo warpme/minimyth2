@@ -14,6 +14,7 @@ PATCHFILES += 0009-fix-compile-on-5.16.patch
 PATCHFILES += 0010-fix-compile-on-5.17.patch
 PATCHFILES += 0011-fix-compile-on-5.18.patch
 PATCHFILES += 0012-hack-linus-to-nvidia-licensing-middle-finger-5.18.patch
+PATCHFILES += 0013-fix-compile-on-6.1.patch
 
 BUILD_SCRIPTS   = nvidia
 INSTALL_SCRIPTS = nvidia
