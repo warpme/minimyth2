@@ -1,0 +1,129 @@
+diff -Naur mythtv-master-20210518-gc8c226c9b4-old/mythplugins/mythmusic/mythmusic/mythmusic.cpp mythtv-master-20210518-gc8c226c9b4-new/mythplugins/mythmusic/mythmusic/mythmusic.cpp
+--- mythtv-master-20210518-gc8c226c9b4-old/mythplugins/mythmusic/mythmusic/mythmusic.cpp	2021-05-18 16:13:18.799999937 +0200
++++ mythtv-master-20210518-gc8c226c9b4-new/mythplugins/mythmusic/mythmusic/mythmusic.cpp	2021-05-18 16:13:21.069999936 +0200
+@@ -858,6 +858,8 @@
+         "Switch to the fullscreen visualiser view"), "");
+     REG_KEY("Music", "SWITCHTORADIO",                 QT_TRANSLATE_NOOP("MythControls",
+         "Switch to the radio stream view"), "");
++    REG_KEY("Music", "ADDTRACKSANDPLAY",              QT_TRANSLATE_NOOP("MythControls",
++        "Add selected tracks to playlist and start playback"), "Ctrl+P");
+ 
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+         "MythMusic Media Handler 1/2"), QT_TRANSLATE_NOOP("MythControls",
+@@ -897,7 +899,6 @@
+     return 0;
+ }
+ 
+-
+ int mythplugin_run(void)
+ {
+     return runMenu("musicmenu.xml");
+diff -Naur mythtv-master-20210518-gc8c226c9b4-old/mythplugins/mythmusic/mythmusic/musiccommon.cpp mythtv-master-20210518-gc8c226c9b4-new/mythplugins/mythmusic/mythmusic/musiccommon.cpp
+--- mythtv-master-20210518-gc8c226c9b4-old/mythplugins/mythmusic/mythmusic/musiccommon.cpp	2021-05-18 16:13:18.796666603 +0200
++++ mythtv-master-20210518-gc8c226c9b4-new/mythplugins/mythmusic/mythmusic/musiccommon.cpp	2021-05-18 16:13:21.099999937 +0200
+@@ -1525,11 +1525,29 @@
+                 m_playlistOptions.insertPLOption = PL_REPLACE;
+                 doUpdatePlaylist();
+             }
++            else if (resulttext == tr("Replace Tracks and Play"))
++            {
++                int trackCount = 0;
++                if (gPlayer->getCurrentPlaylist())
++                    trackCount= gPlayer->getCurrentPlaylist()->getTrackCount();
++                m_playlistOptions.insertPLOption = PL_REPLACE;
++                doUpdatePlaylist();
++                gPlayer->setCurrentTrackPos(trackCount);
++            }
+             else if (resulttext == tr("Add Tracks"))
+             {
+                 m_playlistOptions.insertPLOption = PL_INSERTATEND;
+                 doUpdatePlaylist();
+             }
++            else if (resulttext == tr("Add Tracks and Play"))
++            {
++                int trackCount = 0;
++                if (gPlayer->getCurrentPlaylist())
++                    trackCount = gPlayer->getCurrentPlaylist()->getTrackCount();
++                m_playlistOptions.insertPLOption = PL_INSERTATEND;
++                doUpdatePlaylist();
++                gPlayer->setCurrentTrackPos(trackCount);
++            }
+         }
+         else if (resultid == "visualizermenu")
+         {
+@@ -2389,7 +2407,9 @@
+     auto *menu = new MythMenu(label, this, "playlistoptionsmenu");
+ 
+     menu->AddItem(tr("Replace Tracks"));
++    menu->AddItem(tr("Replace Tracks and Play"));
+     menu->AddItem(tr("Add Tracks"));
++    menu->AddItem(tr("Add Tracks and Play"));
+ 
+     return menu;
+ }
+diff -Naur mythtv-master-20210518-gc8c226c9b4-old/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp mythtv-master-20210518-gc8c226c9b4-new/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp
+--- mythtv-master-20210518-gc8c226c9b4-old/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp	2021-05-18 16:13:18.799999937 +0200
++++ mythtv-master-20210518-gc8c226c9b4-new/mythplugins/mythmusic/mythmusic/playlisteditorview.cpp	2021-05-18 16:13:21.099999937 +0200
+@@ -509,6 +509,62 @@
+                  }
+              }
+         }
++        else if (action == "ADDTRACKSANDPLAY")
++        {
++            int trackCount = 0;
++            if (gPlayer->getCurrentPlaylist())
++                trackCount = gPlayer->getCurrentPlaylist()->getTrackCount();
++
++            MythUIButtonListItem *item = m_playlistTree->GetItemCurrent();
++            if (item)
++            {
++                MythGenericTree *node = qVariantValue<MythGenericTree*> (item->GetData());
++                MusicGenericTree *mnode = dynamic_cast<MusicGenericTree*>(node);
++
++                if (mnode)
++                {
++                    if (mnode->getAction() == "trackid")
++                    {
++                        // A single track was selected, check if the track is
++                        // already in the playlist and only if not, add track
++                        // to the current playlist and mark the song as added.
++                        // The playlist will be updated automatically
++                        if (gPlayer->getCurrentPlaylist())
++                        {
++                            if (!gPlayer->getCurrentPlaylist()->checkTrack(mnode->getInt()))
++                            {
++                                gPlayer->addTrack(mnode->getInt(), true);
++                                mnode->setCheck(MythUIButtonListItem::FullChecked);
++                            }
++                        }
++                    }
++                    else
++                    {
++                        // A node (album, genre,...) was selected, add all songs
++                        // from this one to the playlist. This functionality
++                        // was previously only available via the menu
++                        m_songList.clear();
++                        MetadataPtrList *tracks = qVariantValue<MetadataPtrList*> (mnode->GetData());
++                        for (int x = 0; x < tracks->count(); x++)
++                        {
++                            MusicMetadata *mdata = tracks->at(x);
++                            if (mdata)
++                                m_songList.append((int)mdata->ID());
++                        }
++
++                        // Put the selected songs at the end of the playlist
++                        m_playlistOptions.insertPLOption = PL_INSERTATEND;
++                        doUpdatePlaylist();
++                    }
++
++                    // Set the track number to the trackcount. This would be the
++                    // previously last song plus one. This is then either the
++                    // newly added track or the first track in the album
++                    gPlayer->setCurrentTrackPos(trackCount);
++                }
++            }
++            handled = true;
++        }
+         else
+             handled = false;
+     }

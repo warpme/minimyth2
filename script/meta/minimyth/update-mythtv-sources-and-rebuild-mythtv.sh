@@ -89,32 +89,25 @@ echo "  mm_HOME  : \"${mm_home}\""
 echo "  mm_DEBUG : \"${mm_debug}\""
 echo " "
 
-if [ x${branch} = "x29" ]; then
-
-  _gitname=mythtv
-  _gitroot=https://github.com/MythTV/mythtv.git
-  _gitbranch=fixes/29
-  srcdir="${git_src_home}/git-mythtv-${branch}"
-
-elif [ x${branch} = "x30" ]; then
-
-  _gitname=mythtv
-  _gitroot=https://github.com/MythTV/mythtv.git
-  _gitbranch=fixes/30
-  srcdir="${git_src_home}/git-mythtv-${branch}"
-
-elif [ x${branch} = "x31" ]; then
-
-  _gitname=mythtv
-  _gitroot=https://github.com/MythTV/mythtv.git
-  _gitbranch=fixes/31
-  srcdir="${git_src_home}/git-mythtv-${branch}"
-
-elif [ x${branch} = "x32" ]; then
+if [ x${branch} = "x32" ]; then
 
   _gitname=mythtv
   _gitroot=https://github.com/MythTV/mythtv.git
   _gitbranch=fixes/32
+  srcdir="${git_src_home}/git-mythtv-${branch}"
+
+elif [ x${branch} = "x33" ]; then
+
+  _gitname=mythtv
+  _gitroot=https://github.com/MythTV/mythtv.git
+  _gitbranch=fixes/33
+  srcdir="${git_src_home}/git-mythtv-${branch}"
+
+elif [ x${branch} = "x34" ]; then
+
+  _gitname=mythtv
+  _gitroot=https://github.com/MythTV/mythtv.git
+  _gitbranch=fixes/34
   srcdir="${git_src_home}/git-mythtv-${branch}"
 
 elif [ x${branch} = "xmaster" ]; then
