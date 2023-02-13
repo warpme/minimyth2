@@ -1,0 +1,297 @@
+From patchwork Fri Feb 10 11:16:30 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Sascha Hauer <s.hauer@pengutronix.de>
+X-Patchwork-Id: 13135706
+X-Patchwork-Delegate: kvalo@adurom.com
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4E1C2C636CD
+	for <linux-wireless@archiver.kernel.org>;
+ Fri, 10 Feb 2023 11:16:58 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S232077AbjBJLQ4 (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Fri, 10 Feb 2023 06:16:56 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57712 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232282AbjBJLQt (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Fri, 10 Feb 2023 06:16:49 -0500
+Received: from metis.ext.pengutronix.de (metis.ext.pengutronix.de
+ [IPv6:2001:67c:670:201:290:27ff:fe1d:cc33])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 087D272DD5
+        for <linux-wireless@vger.kernel.org>;
+ Fri, 10 Feb 2023 03:16:39 -0800 (PST)
+Received: from drehscheibe.grey.stw.pengutronix.de ([2a0a:edc0:0:c01:1d::a2])
+        by metis.ext.pengutronix.de with esmtps
+ (TLS1.3:ECDHE_RSA_AES_256_GCM_SHA384:256)
+        (Exim 4.92)
+        (envelope-from <sha@pengutronix.de>)
+        id 1pQROO-0003KW-Oy; Fri, 10 Feb 2023 12:16:36 +0100
+Received: from [2a0a:edc0:0:1101:1d::28] (helo=dude02.red.stw.pengutronix.de)
+        by drehscheibe.grey.stw.pengutronix.de with esmtp (Exim 4.94.2)
+        (envelope-from <sha@pengutronix.de>)
+        id 1pQROM-003xEZ-EI; Fri, 10 Feb 2023 12:16:35 +0100
+Received: from sha by dude02.red.stw.pengutronix.de with local (Exim 4.94.2)
+        (envelope-from <sha@pengutronix.de>)
+        id 1pQROM-008k9Z-Nh; Fri, 10 Feb 2023 12:16:34 +0100
+From: Sascha Hauer <s.hauer@pengutronix.de>
+To: linux-wireless@vger.kernel.org
+Cc: Neo Jou <neojou@gmail.com>, Hans Ulli Kroll <linux@ulli-kroll.de>,
+        Ping-Ke Shih <pkshih@realtek.com>,
+        Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>, netdev@vger.kernel.org,
+        linux-kernel@vger.kernel.org,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>,
+        kernel@pengutronix.de, Alexander Hochbaum <alex@appudo.com>,
+        Da Xue <da@libre.computer>, Po-Hao Huang <phhuang@realtek.com>,
+        Andreas Henriksson <andreas@fatal.se>,
+        Viktor Petrenko <g0000ga@gmail.com>,
+        Sascha Hauer <s.hauer@pengutronix.de>
+Subject: [PATCH v2 1/3] wifi: rtw88: usb: Set qsel correctly
+Date: Fri, 10 Feb 2023 12:16:30 +0100
+Message-Id: <20230210111632.1985205-2-s.hauer@pengutronix.de>
+X-Mailer: git-send-email 2.30.2
+In-Reply-To: <20230210111632.1985205-1-s.hauer@pengutronix.de>
+References: <20230210111632.1985205-1-s.hauer@pengutronix.de>
+MIME-Version: 1.0
+X-SA-Exim-Connect-IP: 2a0a:edc0:0:c01:1d::a2
+X-SA-Exim-Mail-From: sha@pengutronix.de
+X-SA-Exim-Scanned: No (on metis.ext.pengutronix.de);
+ SAEximRunCond expanded to false
+X-PTX-Original-Recipient: linux-wireless@vger.kernel.org
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+We have to extract qsel from the skb before doing skb_push() on it,
+otherwise qsel will always be 0.
+
+Fixes: a82dfd33d1237 ("wifi: rtw88: Add common USB chip support")
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+---
+ drivers/net/wireless/realtek/rtw88/usb.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
+index 4ef38279b64c9..d9e995544e405 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.c
++++ b/drivers/net/wireless/realtek/rtw88/usb.c
+@@ -471,9 +471,9 @@ static int rtw_usb_tx_write(struct rtw_dev *rtwdev,
+ 	u8 *pkt_desc;
+ 	int ep;
+ 
++	pkt_info->qsel = rtw_usb_tx_queue_mapping_to_qsel(skb);
+ 	pkt_desc = skb_push(skb, chip->tx_pkt_desc_sz);
+ 	memset(pkt_desc, 0, chip->tx_pkt_desc_sz);
+-	pkt_info->qsel = rtw_usb_tx_queue_mapping_to_qsel(skb);
+ 	ep = qsel_to_ep(rtwusb, pkt_info->qsel);
+ 	rtw_tx_fill_tx_desc(pkt_info, skb);
+ 	rtw_tx_fill_txdesc_checksum(rtwdev, pkt_info, skb->data);
+
+From patchwork Fri Feb 10 11:16:31 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Sascha Hauer <s.hauer@pengutronix.de>
+X-Patchwork-Id: 13135708
+X-Patchwork-Delegate: kvalo@adurom.com
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5BEC9C636D3
+	for <linux-wireless@archiver.kernel.org>;
+ Fri, 10 Feb 2023 11:17:01 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S232306AbjBJLQ7 (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Fri, 10 Feb 2023 06:16:59 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57548 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S232027AbjBJLQt (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Fri, 10 Feb 2023 06:16:49 -0500
+Received: from metis.ext.pengutronix.de (metis.ext.pengutronix.de
+ [IPv6:2001:67c:670:201:290:27ff:fe1d:cc33])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 31D5372DDA
+        for <linux-wireless@vger.kernel.org>;
+ Fri, 10 Feb 2023 03:16:39 -0800 (PST)
+Received: from drehscheibe.grey.stw.pengutronix.de ([2a0a:edc0:0:c01:1d::a2])
+        by metis.ext.pengutronix.de with esmtps
+ (TLS1.3:ECDHE_RSA_AES_256_GCM_SHA384:256)
+        (Exim 4.92)
+        (envelope-from <sha@pengutronix.de>)
+        id 1pQROO-0003KU-Os; Fri, 10 Feb 2023 12:16:36 +0100
+Received: from [2a0a:edc0:0:1101:1d::28] (helo=dude02.red.stw.pengutronix.de)
+        by drehscheibe.grey.stw.pengutronix.de with esmtp (Exim 4.94.2)
+        (envelope-from <sha@pengutronix.de>)
+        id 1pQROM-003xEU-Aa; Fri, 10 Feb 2023 12:16:35 +0100
+Received: from sha by dude02.red.stw.pengutronix.de with local (Exim 4.94.2)
+        (envelope-from <sha@pengutronix.de>)
+        id 1pQROM-008k9c-OR; Fri, 10 Feb 2023 12:16:34 +0100
+From: Sascha Hauer <s.hauer@pengutronix.de>
+To: linux-wireless@vger.kernel.org
+Cc: Neo Jou <neojou@gmail.com>, Hans Ulli Kroll <linux@ulli-kroll.de>,
+        Ping-Ke Shih <pkshih@realtek.com>,
+        Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>, netdev@vger.kernel.org,
+        linux-kernel@vger.kernel.org,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>,
+        kernel@pengutronix.de, Alexander Hochbaum <alex@appudo.com>,
+        Da Xue <da@libre.computer>, Po-Hao Huang <phhuang@realtek.com>,
+        Andreas Henriksson <andreas@fatal.se>,
+        Viktor Petrenko <g0000ga@gmail.com>,
+        Sascha Hauer <s.hauer@pengutronix.de>
+Subject: [PATCH v2 2/3] wifi: rtw88: usb: send Zero length packets if
+ necessary
+Date: Fri, 10 Feb 2023 12:16:31 +0100
+Message-Id: <20230210111632.1985205-3-s.hauer@pengutronix.de>
+X-Mailer: git-send-email 2.30.2
+In-Reply-To: <20230210111632.1985205-1-s.hauer@pengutronix.de>
+References: <20230210111632.1985205-1-s.hauer@pengutronix.de>
+MIME-Version: 1.0
+X-SA-Exim-Connect-IP: 2a0a:edc0:0:c01:1d::a2
+X-SA-Exim-Mail-From: sha@pengutronix.de
+X-SA-Exim-Scanned: No (on metis.ext.pengutronix.de);
+ SAEximRunCond expanded to false
+X-PTX-Original-Recipient: linux-wireless@vger.kernel.org
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+Zero length packets are necessary when sending URBs with size
+multiple of bulkout_size, otherwise the hardware just stalls.
+
+Fixes: a82dfd33d1237 ("wifi: rtw88: Add common USB chip support")
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+---
+ drivers/net/wireless/realtek/rtw88/usb.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
+index d9e995544e405..1a09c9288198a 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.c
++++ b/drivers/net/wireless/realtek/rtw88/usb.c
+@@ -271,6 +271,7 @@ static int rtw_usb_write_port(struct rtw_dev *rtwdev, u8 qsel, struct sk_buff *s
+ 		return -ENOMEM;
+ 
+ 	usb_fill_bulk_urb(urb, usbd, pipe, skb->data, skb->len, cb, context);
++	urb->transfer_flags |= URB_ZERO_PACKET;
+ 	ret = usb_submit_urb(urb, GFP_ATOMIC);
+ 
+ 	usb_free_urb(urb);
+
+From patchwork Fri Feb 10 11:16:32 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Sascha Hauer <s.hauer@pengutronix.de>
+X-Patchwork-Id: 13135705
+X-Patchwork-Delegate: kvalo@adurom.com
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 4A596C05027
+	for <linux-wireless@archiver.kernel.org>;
+ Fri, 10 Feb 2023 11:16:57 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S232002AbjBJLQz (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Fri, 10 Feb 2023 06:16:55 -0500
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:57352 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231660AbjBJLQt (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Fri, 10 Feb 2023 06:16:49 -0500
+Received: from metis.ext.pengutronix.de (metis.ext.pengutronix.de
+ [IPv6:2001:67c:670:201:290:27ff:fe1d:cc33])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 0791272DD2
+        for <linux-wireless@vger.kernel.org>;
+ Fri, 10 Feb 2023 03:16:39 -0800 (PST)
+Received: from drehscheibe.grey.stw.pengutronix.de ([2a0a:edc0:0:c01:1d::a2])
+        by metis.ext.pengutronix.de with esmtps
+ (TLS1.3:ECDHE_RSA_AES_256_GCM_SHA384:256)
+        (Exim 4.92)
+        (envelope-from <sha@pengutronix.de>)
+        id 1pQROO-0003KX-Ok; Fri, 10 Feb 2023 12:16:36 +0100
+Received: from [2a0a:edc0:0:1101:1d::28] (helo=dude02.red.stw.pengutronix.de)
+        by drehscheibe.grey.stw.pengutronix.de with esmtp (Exim 4.94.2)
+        (envelope-from <sha@pengutronix.de>)
+        id 1pQROM-003xEb-EO; Fri, 10 Feb 2023 12:16:35 +0100
+Received: from sha by dude02.red.stw.pengutronix.de with local (Exim 4.94.2)
+        (envelope-from <sha@pengutronix.de>)
+        id 1pQROM-008k9f-P8; Fri, 10 Feb 2023 12:16:34 +0100
+From: Sascha Hauer <s.hauer@pengutronix.de>
+To: linux-wireless@vger.kernel.org
+Cc: Neo Jou <neojou@gmail.com>, Hans Ulli Kroll <linux@ulli-kroll.de>,
+        Ping-Ke Shih <pkshih@realtek.com>,
+        Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>, netdev@vger.kernel.org,
+        linux-kernel@vger.kernel.org,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>,
+        kernel@pengutronix.de, Alexander Hochbaum <alex@appudo.com>,
+        Da Xue <da@libre.computer>, Po-Hao Huang <phhuang@realtek.com>,
+        Andreas Henriksson <andreas@fatal.se>,
+        Viktor Petrenko <g0000ga@gmail.com>,
+        Sascha Hauer <s.hauer@pengutronix.de>
+Subject: [PATCH v2 3/3] wifi: rtw88: usb: drop now unnecessary URB size check
+Date: Fri, 10 Feb 2023 12:16:32 +0100
+Message-Id: <20230210111632.1985205-4-s.hauer@pengutronix.de>
+X-Mailer: git-send-email 2.30.2
+In-Reply-To: <20230210111632.1985205-1-s.hauer@pengutronix.de>
+References: <20230210111632.1985205-1-s.hauer@pengutronix.de>
+MIME-Version: 1.0
+X-SA-Exim-Connect-IP: 2a0a:edc0:0:c01:1d::a2
+X-SA-Exim-Mail-From: sha@pengutronix.de
+X-SA-Exim-Scanned: No (on metis.ext.pengutronix.de);
+ SAEximRunCond expanded to false
+X-PTX-Original-Recipient: linux-wireless@vger.kernel.org
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+Now that we send URBs with the URB_ZERO_PACKET flag set we no longer
+need to make sure that the URB sizes are not multiple of the
+bulkout_size. Drop the check.
+
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+---
+ drivers/net/wireless/realtek/rtw88/usb.c | 15 +--------------
+ 1 file changed, 1 insertion(+), 14 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
+index 1a09c9288198a..2a8336b1847a5 100644
+--- a/drivers/net/wireless/realtek/rtw88/usb.c
++++ b/drivers/net/wireless/realtek/rtw88/usb.c
+@@ -414,24 +414,11 @@ static int rtw_usb_write_data_rsvd_page(struct rtw_dev *rtwdev, u8 *buf,
+ 					u32 size)
+ {
+ 	const struct rtw_chip_info *chip = rtwdev->chip;
+-	struct rtw_usb *rtwusb;
+ 	struct rtw_tx_pkt_info pkt_info = {0};
+-	u32 len, desclen;
+-
+-	rtwusb = rtw_get_usb_priv(rtwdev);
+ 
+ 	pkt_info.tx_pkt_size = size;
+ 	pkt_info.qsel = TX_DESC_QSEL_BEACON;
+-
+-	desclen = chip->tx_pkt_desc_sz;
+-	len = desclen + size;
+-	if (len % rtwusb->bulkout_size == 0) {
+-		len += RTW_USB_PACKET_OFFSET_SZ;
+-		pkt_info.offset = desclen + RTW_USB_PACKET_OFFSET_SZ;
+-		pkt_info.pkt_offset = 1;
+-	} else {
+-		pkt_info.offset = desclen;
+-	}
++	pkt_info.offset = chip->tx_pkt_desc_sz;
+ 
+ 	return rtw_usb_write_data(rtwdev, &pkt_info, buf);
+ }
