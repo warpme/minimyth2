@@ -244,6 +244,7 @@ PATCHFILES += 1031-arm64-dts-rockchip-rk3588-Add-sdmmc-node.patch
 PATCHFILES += 1032-arm64-dts-rockchip-Add-RK806-regulator-config.patch
 PATCHFILES += 1033-arm64-dts-rockchip-Add-support-for-SD-card-for-Rock5a.patch
 PATCHFILES += 1034-arm64-dts-rockchip-Add-support-for-SD-card-for-Rock5b.patch
+PATCHFILES += 1035-arm64-dts-rockchip-Add-support-user-led-Rock5a-5b.patch
 endif
 #------------------------------------------------------------
 
