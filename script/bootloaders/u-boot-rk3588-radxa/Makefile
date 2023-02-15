@@ -1,7 +1,7 @@
 
-GARNAME      = u-boot-rk3588-rockchip-12012023
-# git@23.01.2023 https://github.com/radxa/u-boot/commits/stable-5.10-rock5
-GARVERSION   = 5753b21aa92481ec3191fdf1f4d53274590ac5aa
+GARNAME      = u-boot-rk3588-rockchip-08022023
+# git@08.02.2023 https://github.com/radxa/u-boot/commits/stable-5.10-rock5
+GARVERSION   = 77a5f377ab102272081ac6094a3e5892276de7d6
 # git@19.10.2022 https://github.com/radxa/rkbin/commits/master
 RKBINVERSION = 9840e87723eef7c41235b89af8c049c1bcd3d133
 CATEGORIES   = kernel
@@ -9,8 +9,7 @@ MASTER_SITES = \
 		https://github.com/radxa/u-boot/archive/ \
 		https://github.com/radxa/rkbin/archive/
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
-PATCHFILES   = 05-fix-building-gcc12.patch 
-PATCHFILES  += rock-5b-rk3588_defconfig-add-logging.patch
+#PATCHFILES  += rock-5b-rk3588_defconfig-add-logging.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
