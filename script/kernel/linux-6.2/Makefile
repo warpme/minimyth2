@@ -245,6 +245,11 @@ PATCHFILES += 1032-arm64-dts-rockchip-Add-RK806-regulator-config.patch
 PATCHFILES += 1033-arm64-dts-rockchip-Add-support-for-SD-card-for-Rock5a.patch
 PATCHFILES += 1034-arm64-dts-rockchip-Add-support-for-SD-card-for-Rock5b.patch
 PATCHFILES += 1035-arm64-dts-rockchip-Add-support-user-led-Rock5a-5b.patch
+PATCHFILES += 1036-regulators-add-RK860X-support.patch
+PATCHFILES += 1037-arm64-dts-rockchip-enable-missing-regulators-rk806-singe.dtsi.patch
+PATCHFILES += 1039-arm64-dts-rockchip-enable-cpu-freq-scalling-rock5b.patch
+PATCHFILES += 1040-arm64-rockchip-enable-PCIE3-controller-and-its-phy-for-Rock5B-boards.patch
+PATCHFILES += 1041-arm64-dts-rockchip-enable-cpu-freq-scalling-rock5a.patch
 endif
 #------------------------------------------------------------
 
