@@ -248,8 +248,13 @@ PATCHFILES += 1035-arm64-dts-rockchip-Add-support-user-led-Rock5a-5b.patch
 PATCHFILES += 1036-regulators-add-RK860X-support.patch
 PATCHFILES += 1037-arm64-dts-rockchip-enable-missing-regulators-rk806-singe.dtsi.patch
 PATCHFILES += 1039-arm64-dts-rockchip-enable-cpu-freq-scalling-rock5b.patch
-PATCHFILES += 1040-arm64-rockchip-enable-PCIE3-controller-and-its-phy-for-Rock5B-boards.patch
+PATCHFILES += 1040-arm64-dts-rockchip-rk3588s-fix-missing-SCMI-clock-for-little-cores.patch
 PATCHFILES += 1041-arm64-dts-rockchip-enable-cpu-freq-scalling-rock5a.patch
+PATCHFILES += 1053-phy-rockchip-add-RK3588-combphy-support.patch
+PATCHFILES += 1054-phy-rockchip-support-multiple-PCIe-3.0-lanes-on-RK35.patch
+PATCHFILES += 1055-arm64-dts-rockchip-rk3588-add-pcie-controllers.patch
+PATCHFILES += 1057-irqchip-gic-v3-add-hackaround-for-rk3568-its.patch
+PATCHFILES += 1058-arm64-dts-rockchip-enable-pcie-rock5b.patch
 endif
 #------------------------------------------------------------
 
