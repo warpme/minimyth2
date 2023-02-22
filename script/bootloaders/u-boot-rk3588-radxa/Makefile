@@ -8,8 +8,7 @@ CATEGORIES   = kernel
 MASTER_SITES = \
 		https://github.com/radxa/u-boot/archive/ \
 		https://github.com/radxa/rkbin/archive/
-DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
-#PATCHFILES  += rock-5b-rk3588_defconfig-add-logging.patch
+DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
@@ -29,6 +28,7 @@ include ../../gar.mk
 include ../../python3/python/package-api.mk
 
 # mm_U-BOOT_BOARD_TYPE = rock-5b-rk3588_defconfig
+# mm_U-BOOT_BOARD_TYPE = rock-5a-rk3588s_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
