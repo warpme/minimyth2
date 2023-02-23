@@ -28,7 +28,7 @@ configure-custom:
 
 build-custom:
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
-	@$(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS) tools-all
+	@$(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) tools-all
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@$(MAKECOOKIE)
 

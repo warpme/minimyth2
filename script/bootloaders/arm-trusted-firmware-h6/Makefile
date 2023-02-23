@@ -28,7 +28,7 @@ BUILD_ARGS = \
 
 build-custom:
 	@echo "Building bl31 trusted firmware for Allwinner H6..."
-	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) PLAT=sun50i_h6 DEBUG=1 bl31
+	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) PLAT=sun50i_h6 DEBUG=1 bl31
 	@echo "Instaling bl31 trusted firmware for Allwinner H6..."
 	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/h6"
 	@cp $(WORKSRC)/build/sun50i_h6/debug/bl31.bin $(DESTDIR)$(libdir)/u-boot/h6/bl31.bin

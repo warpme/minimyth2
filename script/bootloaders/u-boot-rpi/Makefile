@@ -33,7 +33,7 @@ configure-custom:
 build-custom:
 	@echo "Building u-boot rpi with $(CONFIGURE_ARGS) ..."
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
-	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC)
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@$(MAKECOOKIE)
 

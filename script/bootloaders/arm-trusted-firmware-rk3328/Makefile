@@ -26,7 +26,7 @@ BUILD_ARGS = \
 
 build-custom:
 	@echo "Building bl31 trusted firmware for Rockchip RK3328 ..."
-	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) PLAT=rk3328 DEBUG=1 bl31
+	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) PLAT=rk3328 DEBUG=1 bl31
 	@echo "Instaling bl31 trusted firmware for Rockchip RK3328 ..."
 	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rk3328"
 	@cp $(WORKSRC)/build/rk3328/debug/bl31/bl31.elf $(DESTDIR)$(libdir)/u-boot/rk3328/bl31.bin

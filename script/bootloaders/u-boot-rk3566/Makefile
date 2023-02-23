@@ -60,7 +60,7 @@ configure-custom:
 build-custom:
 	@echo "Building u-boot rk3566 with $(CONFIGURE_ARGS) ..."
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
-	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS)
 	@echo "Running Rockchip make.sh to pack images ..."
 	@cd ./$(WORKSRC) && ./make.sh
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
