@@ -1,16 +1,4 @@
 
-ifeq (0,1)
-# Mainline U-boot
-GARNAME      = u-boot-h616-20210111
-# v2021.01
-GARVERSION   = c4fddedc48f336eabc4ce3f74940e6aa372de18c
-CATEGORIES   = kernel
-MASTER_SITES = https://github.com/u-boot/u-boot/archive/
-DISTFILES    = $(GARVERSION).zip
-WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
-endif
-
-ifeq (1,1)
 # Sunxi custodians 11.05.2021
 GARNAME      = u-boot-h616-20210511
 GARVERSION   = 647b392bf20614006917d5fcd3390347a668eee5
@@ -23,18 +11,6 @@ PATCHFILES  += add-h616-x96-mate-defconfig.patch
 PATCHFILES  += add-h616-t95-defconfig.patch
 PATCHFILES  += sunxi-H616-GPU-enable-hack.patch
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
-endif
-
-ifeq (0,1)
-# Jernejsk GIT https://github.com/jernejsk/u-boot/commits/t95
-GARNAME      = u-boot-h616-20201201
-# 01.12.2020
-GARVERSION   = 53d4a7302318f1d188abbbad59dccaf453087d2c
-CATEGORIES   = kernel
-MASTER_SITES = https://github.com/jernejsk/u-boot/archive/
-DISTFILES    = $(GARVERSION).zip
-WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
-endif
 
 LICENSE = GPL2
 
@@ -70,7 +46,7 @@ configure-custom:
 build-custom:
 	@echo "Building u-boot for SunXi H616 with $(CONFIGURE_ARGS) ..."
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
-	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(PARALLELMFLAGS)
+	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS)
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@$(MAKECOOKIE)
 
