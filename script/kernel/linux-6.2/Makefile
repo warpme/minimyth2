@@ -189,7 +189,7 @@ PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
 PATCHFILES += 0840-arm64-dts-rockchip-add-dts-for-rock3b.patch
 PATCHFILES += 0841-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
 PATCHFILES += 0842-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
-PATCHFILES += 0843-arm64-dts-rockchip-fix-eth-in-rock3a.patch
+PATCHFILES += 0843-arm64-dts-rockchip-rock3a-fix-mdio-reset-disable-uart-bt.patch
 PATCHFILES += 0845-arm64-dts-rockchip-add-dts-for-rock3c.patch
 PATCHFILES += 0846-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
 endif
