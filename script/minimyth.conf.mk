@@ -9,7 +9,7 @@
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of MiniMyth2.
-mm_VERSION_MINIMYTH ?=       12.12.0.r1156
+mm_VERSION_MINIMYTH       ?= 12.13.0.r1175
 
 # The version of Myth to use.
 # Valid values are '32', '33', 'master' and 'test'
@@ -215,7 +215,7 @@ mm_SHELL                  ?= busybox
 
 # The version of kernel to use.
 # Valid values are '6.1'
-mm_KERNEL_VERSION         ?= 6.1
+mm_KERNEL_VERSION         ?= 6.2
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
