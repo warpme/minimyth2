@@ -6,6 +6,7 @@ CATEGORIES   = kernel
 MASTER_SITES = https://github.com/ARM-software/arm-trusted-firmware/archive/
 PATCHFILES   = 0001-sunxi-Don-t-enable-referenced-regulators.patch
 PATCHFILES  += 0002-allwinner-psci-Improve-system-shutdown-reset-sequenc.patch
+PATCHFILES  += 0003-fix-building-with-binutils-2.39.patch
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/arm-trusted-firmware-$(GARVERSION)
 

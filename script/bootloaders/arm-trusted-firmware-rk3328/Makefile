@@ -5,6 +5,7 @@ GARVERSION   = e2c509a39c6cc4dda8734e6509cdbe6e3603cdfc
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/ARM-software/arm-trusted-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = 01-fix-building-with-binutils-2.39.patch
 WORKSRC      = $(WORKDIR)/arm-trusted-firmware-$(GARVERSION)
 
 LICENSE = GPL2
