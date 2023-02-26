@@ -206,7 +206,7 @@ PATCHFILES += 0905-arm64-dts-brcm-set-userled-to-mmc.patch
 endif
 #------------------------------------------------------------
 
-ifeq (1,1)
+ifeq (0,1)
 #-- Rockchip 3588 patches -----------------------------------------
 # https://git.kernel.org/pub/scm/linux/kernel/git/sre/linux-misc.git/log/?h=rk3588
 # last commit from 27.02.2023
