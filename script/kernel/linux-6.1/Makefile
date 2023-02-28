@@ -124,7 +124,6 @@ PATCHFILES += 0574-drm-sun4i-mixer-Add-caching-support.patch
 PATCHFILES += 0575-H6-add-sun50i-di-deinterlace-WiP.patch
 PATCHFILES += 0576-arm64-dts-h6-add-deinterlace-node.patch
 PATCHFILES += 0577-net-wireless-add-xr819-support-07072021.patch
-PATCHFILES += 0578-net-wireless-add-rtw88-support-rfc-v1.patch
 PATCHFILES += 0579-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
 PATCHFILES += 0580-net-stmmac-sun8i-Use-devm_regulator_get-for-PHY-regu.patch
 PATCHFILES += 0581-net-stmmac-sun8i-Rename-PHY-regulator-variable-to-re.patch
@@ -137,7 +136,6 @@ PATCHFILES += 0587-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 PATCHFILES += 0588-arm64-dts-allwinner-enable-gpu-opp-multiple-boards.patch
 PATCHFILES += 0589-net-phy-add-support-for-motorcomm-yt8531c-phy.patch
 PATCHFILES += 0590-arm64-dts-allwinner-add-orangepi-3-lts.patch
-PATCHFILES += 0591-net-wireless-rtw88-USB-fixes.patch
 endif
 #-------------------------------------------------------------------
 
