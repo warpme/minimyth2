@@ -121,7 +121,6 @@ PATCHFILES += 0586-hantro-Add-quirk-for-NV12-NV12_4L4-capture-format.patch
 PATCHFILES += 0587-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 PATCHFILES += 0588-arm64-dts-allwinner-enable-gpu-opp-multiple-boards.patch
 PATCHFILES += 0590-arm64-dts-allwinner-add-orangepi-3-lts.patch
-PATCHFILES += 0591-net-wireless-rtw88-USB-fixes.patch
 endif
 #------------------------------------------------------------
 
