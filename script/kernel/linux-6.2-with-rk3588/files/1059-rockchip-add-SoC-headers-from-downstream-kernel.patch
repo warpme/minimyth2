@@ -1,0 +1,1532 @@
+From a26039acbf70d46707fa54638ba3d968e5fc6581 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?G=C3=A1bor=20Stefanik?= <netrolller.3d@gmail.com>
+Date: Sun, 22 Jan 2023 20:04:20 +0000
+Subject: [PATCH 116/205] rockchip: Add SoC headers from downstream kernel
+
+Under include/linux/soc/rockchip, rather than include/linux/rockchip,
+to match existing SoC-specific headers.
+---
+ include/linux/soc/rockchip/cpu.h          | 244 ++++++++
+ include/linux/soc/rockchip/grf.h          | 700 ++++++++++++++++++++++
+ include/linux/soc/rockchip/psci.h         |  76 +++
+ include/linux/soc/rockchip/rockchip_sip.h | 467 +++++++++++++++
+ 4 files changed, 1487 insertions(+)
+ create mode 100644 include/linux/soc/rockchip/cpu.h
+ create mode 100644 include/linux/soc/rockchip/grf.h
+ create mode 100644 include/linux/soc/rockchip/psci.h
+ create mode 100644 include/linux/soc/rockchip/rockchip_sip.h
+
+diff --git a/include/linux/soc/rockchip/cpu.h b/include/linux/soc/rockchip/cpu.h
+new file mode 100644
+index 00000000000..ed881b1c165
+--- /dev/null
++++ b/include/linux/soc/rockchip/cpu.h
+@@ -0,0 +1,244 @@
++/*
++ * Copyright (C) 2017 Rockchip Electronics Co. Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify it
++ * under the terms of version 2 of the GNU General Public License as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
++ * more details.
++ */
++
++#ifndef __LINUX_ROCKCHIP_CPU_H
++#define __LINUX_ROCKCHIP_CPU_H
++
++#include <linux/of.h>
++
++#define ROCKCHIP_CPU_MASK		0xffff0000
++#define ROCKCHIP_CPU_SHIFT		16
++#define ROCKCHIP_CPU_PX30		0x33260000
++#define ROCKCHIP_CPU_RV1103		0x11030000
++#define ROCKCHIP_CPU_RV1106		0x11060000
++#define ROCKCHIP_CPU_RV1109		0x11090000
++#define ROCKCHIP_CPU_RV1126		0x11260000
++#define ROCKCHIP_CPU_RK312X		0x31260000
++#define ROCKCHIP_CPU_RK3288		0x32880000
++#define ROCKCHIP_CPU_RK3308		0x33080000
++#define ROCKCHIP_CPU_RK3566		0x35660000
++#define ROCKCHIP_CPU_RK3568		0x35680000
++
++#if IS_REACHABLE(CONFIG_ROCKCHIP_CPUINFO)
++
++extern unsigned long rockchip_soc_id;
++
++#define ROCKCHIP_CPU_VERION_MASK	0x0000f000
++#define ROCKCHIP_CPU_VERION_SHIFT	12
++
++static inline unsigned long rockchip_get_cpu_version(void)
++{
++	return (rockchip_soc_id & ROCKCHIP_CPU_VERION_MASK)
++		>> ROCKCHIP_CPU_VERION_SHIFT;
++}
++
++static inline void rockchip_set_cpu_version(unsigned long ver)
++{
++	rockchip_soc_id &= ~ROCKCHIP_CPU_VERION_MASK;
++	rockchip_soc_id |=
++		(ver << ROCKCHIP_CPU_VERION_SHIFT) & ROCKCHIP_CPU_VERION_MASK;
++}
++
++static inline void rockchip_set_cpu(unsigned long code)
++{
++	if (!code)
++		return;
++
++	rockchip_soc_id &= ~ROCKCHIP_CPU_MASK;
++	rockchip_soc_id |= (code << ROCKCHIP_CPU_SHIFT) & ROCKCHIP_CPU_MASK;
++}
++
++int rockchip_soc_id_init(void);
++
++#else
++
++#define rockchip_soc_id 0
++
++static inline unsigned long rockchip_get_cpu_version(void)
++{
++	return 0;
++}
++
++static inline void rockchip_set_cpu_version(unsigned long ver)
++{
++}
++
++static inline void rockchip_set_cpu(unsigned long code)
++{
++}
++
++static inline int rockchip_soc_id_init(void)
++{
++	return 0;
++}
++
++#endif
++
++#ifdef CONFIG_CPU_PX30
++static inline bool cpu_is_px30(void)
++{
++	if (rockchip_soc_id)
++		return (rockchip_soc_id & ROCKCHIP_CPU_MASK) == ROCKCHIP_CPU_PX30;
++	return of_machine_is_compatible("rockchip,px30") ||
++	       of_machine_is_compatible("rockchip,px30s") ||
++	       of_machine_is_compatible("rockchip,rk3326") ||
++	       of_machine_is_compatible("rockchip,rk3326s");
++}
++#else
++static inline bool cpu_is_px30(void) { return false; }
++#endif
++
++#if defined(CONFIG_CPU_RV1106)
++static inline bool cpu_is_rv1103(void)
++{
++	if (rockchip_soc_id)
++		return (rockchip_soc_id & ROCKCHIP_CPU_MASK) == ROCKCHIP_CPU_RV1103;
++	return of_machine_is_compatible("rockchip,rv1103");
++}
++
++static inline bool cpu_is_rv1106(void)
++{
++	if (rockchip_soc_id)
++		return (rockchip_soc_id & ROCKCHIP_CPU_MASK) == ROCKCHIP_CPU_RV1106;
++	return of_machine_is_compatible("rockchip,rv1106");
++}
++#else
++static inline bool cpu_is_rv1103(void) { return false; }
++static inline bool cpu_is_rv1106(void) { return false; }
++#endif
++
++#if defined(CONFIG_CPU_RV1126) || defined(CONFIG_CPU_RV1109)
++static inline bool cpu_is_rv1109(void)
++{
++	if (rockchip_soc_id)
++		return (rockchip_soc_id & ROCKCHIP_CPU_MASK) == ROCKCHIP_CPU_RV1109;
++	return of_machine_is_compatible("rockchip,rv1109");
++}
++
++static inline bool cpu_is_rv1126(void)
++{
++	if (rockchip_soc_id)
++		return (rockchip_soc_id & ROCKCHIP_CPU_MASK) == ROCKCHIP_CPU_RV1126;
++	return of_machine_is_compatible("rockchip,rv1126");
++}
++#else
++static inline bool cpu_is_rv1109(void) { return false; }
++static inline bool cpu_is_rv1126(void) { return false; }
++#endif
++
++#ifdef CONFIG_CPU_RK312X
++static inline bool cpu_is_rk312x(void)
++{
++	if (rockchip_soc_id)
++		return (rockchip_soc_id & ROCKCHIP_CPU_MASK) == ROCKCHIP_CPU_RK312X;
++	return of_machine_is_compatible("rockchip,rk3126") ||
++	       of_machine_is_compatible("rockchip,rk3126b") ||
++	       of_machine_is_compatible("rockchip,rk3126c") ||
++	       of_machine_is_compatible("rockchip,rk3128");
++}
++#else
++static inline bool cpu_is_rk312x(void) { return false; }
++#endif
++
++#ifdef CONFIG_CPU_RK3288
++static inline bool cpu_is_rk3288(void)
++{
++	if (rockchip_soc_id)
++		return (rockchip_soc_id & ROCKCHIP_CPU_MASK) == ROCKCHIP_CPU_RK3288;
++	return of_machine_is_compatible("rockchip,rk3288") ||
++	       of_machine_is_compatible("rockchip,rk3288w");
++}
++#else
++static inline bool cpu_is_rk3288(void) { return false; }
++#endif
++
++#ifdef CONFIG_CPU_RK3308
++static inline bool cpu_is_rk3308(void)
++{
++	if (rockchip_soc_id)
++		return (rockchip_soc_id & ROCKCHIP_CPU_MASK) == ROCKCHIP_CPU_RK3308;
++
++	return of_machine_is_compatible("rockchip,rk3308") ||
++	       of_machine_is_compatible("rockchip,rk3308bs");
++}
++#else
++static inline bool cpu_is_rk3308(void) { return false; }
++#endif
++
++#if defined(CONFIG_CPU_RK3568)
++static inline bool cpu_is_rk3566(void)
++{
++	if (rockchip_soc_id)
++		return (rockchip_soc_id & ROCKCHIP_CPU_MASK) == ROCKCHIP_CPU_RK3566;
++	return of_machine_is_compatible("rockchip,rk3566");
++}
++
++static inline bool cpu_is_rk3568(void)
++{
++	if (rockchip_soc_id)
++		return (rockchip_soc_id & ROCKCHIP_CPU_MASK) == ROCKCHIP_CPU_RK3568;
++	return of_machine_is_compatible("rockchip,rk3568");
++}
++#else
++static inline bool cpu_is_rk3566(void) { return false; }
++static inline bool cpu_is_rk3568(void) { return false; }
++#endif
++
++#define ROCKCHIP_SOC_MASK	(ROCKCHIP_CPU_MASK | 0xff)
++#define ROCKCHIP_SOC_PX30	(ROCKCHIP_CPU_PX30 | 0x00)
++#define ROCKCHIP_SOC_PX30S	(ROCKCHIP_CPU_PX30 | 0x01)
++#define ROCKCHIP_SOC_RV1103     (ROCKCHIP_CPU_RV1103 | 0x00)
++#define ROCKCHIP_SOC_RV1106     (ROCKCHIP_CPU_RV1106 | 0x00)
++#define ROCKCHIP_SOC_RV1109     (ROCKCHIP_CPU_RV1109 | 0x00)
++#define ROCKCHIP_SOC_RV1126     (ROCKCHIP_CPU_RV1126 | 0x00)
++#define ROCKCHIP_SOC_RK3126     (ROCKCHIP_CPU_RK312X | 0x00)
++#define ROCKCHIP_SOC_RK3126B    (ROCKCHIP_CPU_RK312X | 0x10)
++#define ROCKCHIP_SOC_RK3126C    (ROCKCHIP_CPU_RK312X | 0x20)
++#define ROCKCHIP_SOC_RK3128     (ROCKCHIP_CPU_RK312X | 0x01)
++#define ROCKCHIP_SOC_RK3288     (ROCKCHIP_CPU_RK3288 | 0x00)
++#define ROCKCHIP_SOC_RK3288W    (ROCKCHIP_CPU_RK3288 | 0x01)
++#define ROCKCHIP_SOC_RK3308	(ROCKCHIP_CPU_RK3308 | 0x00)
++#define ROCKCHIP_SOC_RK3308B	(ROCKCHIP_CPU_RK3308 | 0x01)
++#define ROCKCHIP_SOC_RK3308BS	(ROCKCHIP_CPU_RK3308 | 0x02)
++#define ROCKCHIP_SOC_RK3566	(ROCKCHIP_CPU_RK3566 | 0x00)
++#define ROCKCHIP_SOC_RK3568	(ROCKCHIP_CPU_RK3568 | 0x00)
++
++#define ROCKCHIP_SOC(CPU, id, ID) \
++static inline bool soc_is_##id(void) \
++{ \
++	if (!IS_ENABLED(CONFIG_CPU_##CPU)) \
++		return false; \
++	if (rockchip_soc_id) \
++		return ((rockchip_soc_id & ROCKCHIP_SOC_MASK) == ROCKCHIP_SOC_ ##ID); \
++	return of_machine_is_compatible("rockchip,"#id); \
++}
++
++ROCKCHIP_SOC(PX30, px30, PX30)
++ROCKCHIP_SOC(PX30, px30s, PX30S)
++ROCKCHIP_SOC(RV1106, rv1103, RV1103)
++ROCKCHIP_SOC(RV1106, rv1106, RV1106)
++ROCKCHIP_SOC(RV1126, rv1109, RV1109)
++ROCKCHIP_SOC(RV1126, rv1126, RV1126)
++ROCKCHIP_SOC(RK312X, rk3126, RK3126)
++ROCKCHIP_SOC(RK312X, rk3126b, RK3126B)
++ROCKCHIP_SOC(RK312X, rk3126c, RK3126C)
++ROCKCHIP_SOC(RK312X, rk3128, RK3128)
++ROCKCHIP_SOC(RK3288, rk3288, RK3288)
++ROCKCHIP_SOC(RK3288, rk3288w, RK3288W)
++ROCKCHIP_SOC(RK3308, rk3308, RK3308)
++ROCKCHIP_SOC(RK3308, rk3308b, RK3308B)
++ROCKCHIP_SOC(RK3308, rk3308bs, RK3308BS)
++ROCKCHIP_SOC(RK3568, rk3566, RK3566)
++ROCKCHIP_SOC(RK3568, rk3568, RK3568)
++
++#endif
+diff --git a/include/linux/soc/rockchip/grf.h b/include/linux/soc/rockchip/grf.h
+new file mode 100644
+index 00000000000..fae51232297
+--- /dev/null
++++ b/include/linux/soc/rockchip/grf.h
+@@ -0,0 +1,700 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __MACH_ROCKCHIP_GRF_H
++#define __MACH_ROCKCHIP_GRF_H
++
++#define RK3188_GRF_GPIO0L_DIR           0x0000
++#define RK3188_GRF_GPIO0H_DIR           0x0004
++#define RK3188_GRF_GPIO1L_DIR           0x0008
++#define RK3188_GRF_GPIO1H_DIR           0x000c
++#define RK3188_GRF_GPIO2L_DIR           0x0010
++#define RK3188_GRF_GPIO2H_DIR           0x0014
++#define RK3188_GRF_GPIO3L_DIR           0x0018
++#define RK3188_GRF_GPIO3H_DIR           0x001c
++#define RK3188_GRF_GPIO0L_DO            0x0020
++#define RK3188_GRF_GPIO0H_DO            0x0024
++#define RK3188_GRF_GPIO1L_DO            0x0028
++#define RK3188_GRF_GPIO1H_DO            0x002c
++#define RK3188_GRF_GPIO2L_DO            0x0030
++#define RK3188_GRF_GPIO2H_DO            0x0034
++#define RK3188_GRF_GPIO3L_DO            0x0038
++#define RK3188_GRF_GPIO3H_DO            0x003c
++#define RK3188_GRF_GPIO0L_EN            0x0040
++#define RK3188_GRF_GPIO0H_EN            0x0044
++#define RK3188_GRF_GPIO1L_EN            0x0048
++#define RK3188_GRF_GPIO1H_EN            0x004c
++#define RK3188_GRF_GPIO2L_EN            0x0050
++#define RK3188_GRF_GPIO2H_EN            0x0054
++#define RK3188_GRF_GPIO3L_EN            0x0058
++#define RK3188_GRF_GPIO3H_EN            0x005c
++
++#define RK3188_GRF_GPIO0C_IOMUX         0x0068
++#define RK3188_GRF_GPIO0D_IOMUX         0x006c
++#define RK3188_GRF_GPIO1A_IOMUX         0x0070
++#define RK3188_GRF_GPIO1B_IOMUX         0x0074
++#define RK3188_GRF_GPIO1C_IOMUX         0x0078
++#define RK3188_GRF_GPIO1D_IOMUX         0x007c
++#define RK3188_GRF_GPIO2A_IOMUX         0x0080
++#define RK3188_GRF_GPIO2B_IOMUX         0x0084
++#define RK3188_GRF_GPIO2C_IOMUX         0x0088
++#define RK3188_GRF_GPIO2D_IOMUX         0x008c
++#define RK3188_GRF_GPIO3A_IOMUX         0x0090
++#define RK3188_GRF_GPIO3B_IOMUX         0x0094
++#define RK3188_GRF_GPIO3C_IOMUX         0x0098
++#define RK3188_GRF_GPIO3D_IOMUX         0x009c
++#define RK3188_GRF_SOC_CON0             0x00a0
++#define RK3188_GRF_SOC_CON1             0x00a4
++#define RK3188_GRF_SOC_CON2             0x00a8
++#define RK3188_GRF_SOC_STATUS0          0x00ac
++#define RK3188_GRF_DMAC1_CON0           0x00b0
++#define RK3188_GRF_DMAC1_CON1           0x00b4
++#define RK3188_GRF_DMAC1_CON2           0x00b8
++#define RK3188_GRF_DMAC2_CON0           0x00bc
++#define RK3188_GRF_DMAC2_CON1           0x00c0
++#define RK3188_GRF_DMAC2_CON2           0x00c4
++#define RK3188_GRF_DMAC2_CON3           0x00c8
++#define RK3188_GRF_CPU_CON0             0x00cc
++#define RK3188_GRF_CPU_CON1             0x00d0
++#define RK3188_GRF_CPU_CON2             0x00d4
++#define RK3188_GRF_CPU_CON3             0x00d8
++#define RK3188_GRF_CPU_CON4             0x00dc
++#define RK3188_GRF_CPU_CON5             0x00e0
++
++#define RK3188_GRF_DDRC_CON0            0x00ec
++#define RK3188_GRF_DDRC_STAT            0x00f0
++#define RK3188_GRF_IO_CON0              0x00f4
++#define RK3188_GRF_IO_CON1              0x00f8
++#define RK3188_GRF_IO_CON2              0x00fc
++#define RK3188_GRF_IO_CON3              0x0100
++#define RK3188_GRF_IO_CON4              0x0104
++#define RK3188_GRF_SOC_STATUS1          0x0108
++#define RK3188_GRF_UOC0_CON0            0x010c
++#define RK3188_GRF_UOC0_CON1            0x0110
++#define RK3188_GRF_UOC0_CON2            0x0114
++#define RK3188_GRF_UOC0_CON3            0x0118
++#define RK3188_GRF_UOC1_CON0            0x011c
++#define RK3188_GRF_UOC1_CON1            0x0120
++#define RK3188_GRF_UOC1_CON2            0x0124
++#define RK3188_GRF_UOC1_CON3            0x0128
++#define RK3188_GRF_UOC2_CON0            0x012c
++#define RK3188_GRF_UOC2_CON1            0x0130
++
++#define RK3188_GRF_UOC3_CON0            0x0138
++#define RK3188_GRF_UOC3_CON1            0x013c
++#define RK3188_GRF_EHCI_STAT            0x0140
++#define RK3188_GRF_OS_REG0              0x0144
++#define RK3188_GRF_OS_REG1              0x0148
++#define RK3188_GRF_OS_REG2              0x014c
++#define RK3188_GRF_OS_REG3              0x0150
++#define RK3188_GRF_OS_REG4              0x0154
++#define RK3188_GRF_OS_REG5              0x0158
++#define RK3188_GRF_OS_REG6              0x015c
++#define RK3188_GRF_OS_REG7              0x0160
++#define RK3188_GRF_GPIO0B_PULL          0x0164
++#define RK3188_GRF_GPIO0C_PULL          0x0168
++#define RK3188_GRF_GPIO0D_PULL          0x016c
++#define RK3188_GRF_GPIO1A_PULL          0x0170
++#define RK3188_GRF_GPIO1B_PULL          0x0174
++#define RK3188_GRF_GPIO1C_PULL          0x0178
++#define RK3188_GRF_GPIO1D_PULL          0x017c
++#define RK3188_GRF_GPIO2A_PULL          0x0180
++#define RK3188_GRF_GPIO2B_PULL          0x0184
++#define RK3188_GRF_GPIO2C_PULL          0x0188
++#define RK3188_GRF_GPIO2D_PULL          0x018c
++#define RK3188_GRF_GPIO3A_PULL          0x0190
++#define RK3188_GRF_GPIO3B_PULL          0x0194
++#define RK3188_GRF_GPIO3C_PULL          0x0198
++#define RK3188_GRF_GPIO3D_PULL          0x019c
++#define RK3188_GRF_FLASH_DATA_PULL      0x01a0
++#define RK3188_GRF_FLASH_CMD_PULL       0x01a4
++
++
++#define RK3288_GRF_GPIO0_A_IOMUX	0x0084
++#define RK3288_GRF_GPIO0_B_IOMUX	0x0088
++#define RK3288_GRF_GPIO0_C_IOMUX	0x008c
++
++#define RK3288_GRF_GPIO1D_IOMUX         0x000c
++#define RK3288_GRF_GPIO2A_IOMUX         0x0010
++#define RK3288_GRF_GPIO2B_IOMUX         0x0014
++#define RK3288_GRF_GPIO2C_IOMUX         0x0018
++
++#define RK3288_GRF_GPIO3A_IOMUX         0x0020
++#define RK3288_GRF_GPIO3B_IOMUX         0x0024
++#define RK3288_GRF_GPIO3C_IOMUX         0x0028
++#define RK3288_GRF_GPIO3DL_IOMUX        0x002c
++#define RK3288_GRF_GPIO3DH_IOMUX        0x0030
++#define RK3288_GRF_GPIO4AL_IOMUX        0x0034
++#define RK3288_GRF_GPIO4AH_IOMUX        0x0038
++#define RK3288_GRF_GPIO4BL_IOMUX        0x003c
++
++#define RK3288_GRF_GPIO4C_IOMUX         0x0044
++#define RK3288_GRF_GPIO4D_IOMUX         0x0048
++
++#define RK3288_GRF_GPIO5B_IOMUX         0x0050
++#define RK3288_GRF_GPIO5C_IOMUX         0x0054
++
++#define RK3288_GRF_GPIO6A_IOMUX         0x005c
++#define RK3288_GRF_GPIO6B_IOMUX         0x0060
++#define RK3288_GRF_GPIO6C_IOMUX         0x0064
++
++#define RK3288_GRF_GPIO7A_IOMUX         0x006c
++#define RK3288_GRF_GPIO7B_IOMUX         0x0070
++#define RK3288_GRF_GPIO7CL_IOMUX        0x0074
++#define RK3288_GRF_GPIO7CH_IOMUX        0x0078
++
++#define RK3288_GRF_GPIO8A_IOMUX         0x0080
++#define RK3288_GRF_GPIO8B_IOMUX         0x0084
++
++#define RK3288_GRF_GPIO1H_SR            0x0104
++#define RK3288_GRF_GPIO2L_SR            0x0108
++#define RK3288_GRF_GPIO2H_SR            0x010c
++#define RK3288_GRF_GPIO3L_SR            0x0110
++#define RK3288_GRF_GPIO3H_SR            0x0114
++#define RK3288_GRF_GPIO4L_SR            0x0118
++#define RK3288_GRF_GPIO4H_SR            0x011c
++#define RK3288_GRF_GPIO5L_SR            0x0120
++#define RK3288_GRF_GPIO5H_SR            0x0124
++#define RK3288_GRF_GPIO6L_SR            0x0128
++#define RK3288_GRF_GPIO6H_SR            0x012c
++#define RK3288_GRF_GPIO7L_SR            0x0130
++#define RK3288_GRF_GPIO7H_SR            0x0134
++#define RK3288_GRF_GPIO8L_SR            0x0138
++
++#define RK3288_GRF_GPIO1D_P             0x014c
++#define RK3288_GRF_GPIO2A_P             0x0150
++#define RK3288_GRF_GPIO2B_P             0x0154
++#define RK3288_GRF_GPIO2C_P             0x0158
++
++#define RK3288_GRF_GPIO3A_P             0x0160
++#define RK3288_GRF_GPIO3B_P             0x0164
++#define RK3288_GRF_GPIO3C_P             0x0168
++#define RK3288_GRF_GPIO3D_P             0x016c
++#define RK3288_GRF_GPIO4A_P             0x0170
++#define RK3288_GRF_GPIO4B_P             0x0174
++#define RK3288_GRF_GPIO4C_P             0x0178
++#define RK3288_GRF_GPIO4D_P             0x017c
++
++#define RK3288_GRF_GPIO5B_P             0x0184
++#define RK3288_GRF_GPIO5C_P             0x0188
++
++#define RK3288_GRF_GPIO6A_P             0x0190
++#define RK3288_GRF_GPIO6B_P             0x0194
++#define RK3288_GRF_GPIO6C_P             0x0198
++
++#define RK3288_GRF_GPIO7A_P             0x01a0
++#define RK3288_GRF_GPIO7B_P             0x01a4
++#define RK3288_GRF_GPIO7C_P             0x01a8
++
++#define RK3288_GRF_GPIO8A_P             0x01b0
++#define RK3288_GRF_GPIO8B_P             0x01b4
++
++#define RK3288_GRF_GPIO1D_E             0x01cc
++#define RK3288_GRF_GPIO2A_E             0x01d0
++#define RK3288_GRF_GPIO2B_E             0x01d4
++#define RK3288_GRF_GPIO2C_E             0x01d8
++
++#define RK3288_GRF_GPIO3A_E             0x01e0
++#define RK3288_GRF_GPIO3B_E             0x01e4
++#define RK3288_GRF_GPIO3C_E             0x01e8
++#define RK3288_GRF_GPIO3D_E             0x01ec
++#define RK3288_GRF_GPIO4A_E             0x01f0
++#define RK3288_GRF_GPIO4B_E             0x01f4
++#define RK3288_GRF_GPIO4C_E             0x01f8
++#define RK3288_GRF_GPIO4D_E             0x01fc
++
++#define RK3288_GRF_GPIO5B_E             0x0204
++#define RK3288_GRF_GPIO5C_E             0x0208
++
++#define RK3288_GRF_GPIO6A_E             0x0210
++#define RK3288_GRF_GPIO6B_E             0x0214
++#define RK3288_GRF_GPIO6C_E             0x0218
++
++#define RK3288_GRF_GPIO7A_E             0x0220
++#define RK3288_GRF_GPIO7B_E             0x0224
++#define RK3288_GRF_GPIO7C_E             0x0228
++
++#define RK3288_GRF_GPIO8A_E             0x0230
++#define RK3288_GRF_GPIO8B_E             0x0234
++
++#define RK3288_GRF_GPIO_SMT             0x0240
++#define RK3288_GRF_SOC_CON0             0x0244
++#define RK3288_GRF_SOC_CON1             0x0248
++#define RK3288_GRF_SOC_CON2             0x024c
++#define RK3288_GRF_SOC_CON3             0x0250
++#define RK3288_GRF_SOC_CON4             0x0254
++#define RK3288_GRF_SOC_CON5             0x0258
++#define RK3288_GRF_SOC_CON6             0x025c
++#define RK3288_GRF_SOC_CON7             0x0260
++#define RK3288_GRF_SOC_CON8             0x0264
++#define RK3288_GRF_SOC_CON9             0x0268
++#define RK3288_GRF_SOC_CON10            0x026c
++#define RK3288_GRF_SOC_CON11            0x0270
++#define RK3288_GRF_SOC_CON12            0x0274
++#define RK3288_GRF_SOC_CON13            0x0278
++#define RK3288_GRF_SOC_CON14            0x027c
++#define RK3288_GRF_SOC_STATUS0          0x0280
++#define RK3288_GRF_SOC_STATUS1          0x0284
++#define RK3288_GRF_SOC_STATUS2          0x0288
++#define RK3288_GRF_SOC_STATUS3          0x028c
++#define RK3288_GRF_SOC_STATUS4          0x0290
++#define RK3288_GRF_SOC_STATUS5          0x0294
++#define RK3288_GRF_SOC_STATUS6          0x0298
++#define RK3288_GRF_SOC_STATUS7          0x029c
++#define RK3288_GRF_SOC_STATUS8          0x02a0
++#define RK3288_GRF_SOC_STATUS9          0x02a4
++#define RK3288_GRF_SOC_STATUS10         0x02a8
++#define RK3288_GRF_SOC_STATUS11         0x02ac
++#define RK3288_GRF_SOC_STATUS12         0x02b0
++#define RK3288_GRF_SOC_STATUS13         0x02b4
++#define RK3288_GRF_SOC_STATUS14         0x02b8
++#define RK3288_GRF_SOC_STATUS15         0x02bc
++#define RK3288_GRF_SOC_STATUS16         0x02c0
++#define RK3288_GRF_SOC_STATUS17         0x02c4
++#define RK3288_GRF_SOC_STATUS18         0x02c8
++#define RK3288_GRF_SOC_STATUS19         0x02cc
++#define RK3288_GRF_SOC_STATUS20         0x02d0
++#define RK3288_GRF_SOC_STATUS21         0x02d4
++
++#define RK3288_GRF_PERIDMAC_CON0        0x02e0
++#define RK3288_GRF_PERIDMAC_CON1        0x02e4
++#define RK3288_GRF_PERIDMAC_CON2        0x02e8
++#define RK3288_GRF_PERIDMAC_CON3        0x02ec
++#define RK3288_GRF_DDRC0_CON0           0x02f0
++#define RK3288_GRF_DDRC1_CON0           0x02f4
++#define RK3288_GRF_CPU_CON0             0x02f8
++#define RK3288_GRF_CPU_CON1             0x02fc
++#define RK3288_GRF_CPU_CON2             0x0300
++#define RK3288_GRF_CPU_CON3             0x0304
++#define RK3288_GRF_CPU_CON4             0x0308
++
++#define RK3288_GRF_CPU_STATUS0          0x0318
++
++#define RK3288_GRF_UOC0_CON0            0x0320
++#define RK3288_GRF_UOC0_CON1            0x0324
++#define RK3288_GRF_UOC0_CON2            0x0328
++#define RK3288_GRF_UOC0_CON3            0x032c
++#define RK3288_GRF_UOC0_CON4            0x0330
++#define RK3288_GRF_UOC1_CON0            0x0334
++#define RK3288_GRF_UOC1_CON1            0x0338
++#define RK3288_GRF_UOC1_CON2            0x033c
++#define RK3288_GRF_UOC1_CON3            0x0340
++#define RK3288_GRF_UOC1_CON4            0x0344
++#define RK3288_GRF_UOC2_CON0            0x0348
++#define RK3288_GRF_UOC2_CON1            0x034c
++#define RK3288_GRF_UOC2_CON2            0x0350
++#define RK3288_GRF_UOC2_CON3            0x0354
++#define RK3288_GRF_UOC3_CON0            0x0358
++#define RK3288_GRF_UOC3_CON1            0x035c
++#define RK3288_GRF_UOC4_CON0            0x0360
++#define RK3288_GRF_UOC4_CON1            0x0364
++#define RK3288_GRF_PVTM_CON0            0x0368
++#define RK3288_GRF_PVTM_CON1            0x036c
++#define RK3288_GRF_PVTM_CON2            0x0370
++#define RK3288_GRF_PVTM_STATUS0         0x0374
++#define RK3288_GRF_PVTM_STATUS1         0x0378
++#define RK3288_GRF_PVTM_STATUS2         0x037c
++#define RK3288_GRF_IO_VSEL              0x0380
++#define RK3288_GRF_SARADC_TESTBIT       0x0384
++#define RK3288_GRF_TSADC_TESTBIT_L      0x0388
++#define RK3288_GRF_TSADC_TESTBIT_H      0x038c
++#define RK3288_GRF_OS_REG0              0x0390
++#define RK3288_GRF_OS_REG1              0x0394
++#define RK3288_GRF_OS_REG2              0x0398
++#define RK3288_GRF_OS_REG3              0x039c
++
++#define RK3288_GRF_SOC_CON15            0x03a4
++#define RK3288_GRF_SOC_CON16            0x03a8
++
++#define RK3288_SGRF_SOC_CON0            0x0000
++#define RK3288_SGRF_SOC_CON1            0x0004
++#define RK3288_SGRF_SOC_CON2            0x0008
++#define RK3288_SGRF_SOC_CON3            0x000c
++#define RK3288_SGRF_SOC_CON4            0x0010
++#define RK3288_SGRF_SOC_CON5            0x0014
++
++#define RK3288_SGRF_BUSDMAC_CON0        0x0020
++#define RK3288_SGRF_BUSDMAC_CON1        0x0024
++
++#define RK3288_SGRF_CPU_CON0            0x0040
++#define RK3288_SGRF_CPU_CON1            0x0044
++#define RK3288_SGRF_CPU_CON2            0x0048
++
++#define RK3288_SGRF_SOC_CON6            0x0050
++#define RK3288_SGRF_SOC_CON7            0x0054
++#define RK3288_SGRF_SOC_CON8            0x0058
++#define RK3288_SGRF_SOC_CON9            0x005c
++#define RK3288_SGRF_SOC_CON10           0x0060
++#define RK3288_SGRF_SOC_CON11           0x0064
++#define RK3288_SGRF_SOC_CON12           0x0068
++#define RK3288_SGRF_SOC_CON13           0x006c
++#define RK3288_SGRF_SOC_CON14           0x0070
++#define RK3288_SGRF_SOC_CON15           0x0074
++#define RK3288_SGRF_SOC_CON16           0x0078
++#define RK3288_SGRF_SOC_CON17           0x007c
++#define RK3288_SGRF_SOC_CON18           0x0080
++#define RK3288_SGRF_SOC_CON19           0x0084
++#define RK3288_SGRF_SOC_CON20           0x0088
++#define RK3288_SGRF_SOC_CON21           0x008c
++
++#define RK3288_SGRF_SOC_STATUS0         0x0100
++#define RK3288_SGRF_SOC_STATUS1         0x0104
++
++#define RK3288_SGRF_FAST_BOOT_ADDR      0x0120
++
++
++#define RK3036_GRF_GPIO0A_IOMUX         0x000a8
++#define RK3036_GRF_GPIO0B_IOMUX         0x000ac
++#define RK3036_GRF_GPIO0C_IOMUX         0x000b0
++#define RK3036_GRF_GPIO0D_IOMUX         0x000b4
++#define RK3036_GRF_GPIO1A_IOMUX         0x000b8
++#define RK3036_GRF_GPIO1B_IOMUX         0x000bc
++#define RK3036_GRF_GPIO1C_IOMUX         0x000c0
++#define RK3036_GRF_GPIO1D_IOMUX         0x000c4
++#define RK3036_GRF_GPIO2A_IOMUX         0x000c8
++#define RK3036_GRF_GPIO2B_IOMUX         0x000cc
++#define RK3036_GRF_GPIO2C_IOMUX         0x000d0
++#define RK3036_GRF_GPIO2D_IOMUX         0x000d4
++#define RK3036_GRF_GPIO_DS              0x00100
++#define RK3036_GRF_GPIO0L_PULL          0x00118
++#define RK3036_GRF_GPIO0H_PULL          0x0011c
++#define RK3036_GRF_GPIO1L_PULL          0x00120
++#define RK3036_GRF_GPIO1H_PULL          0x00124
++
++#define RK3036_GRF_GPIO2L_PULL 0x00128
++#define RK3036_GRF_GPIO2H_PULL 0x0012c
++#define RK3036_GRF_SOC_CON0 0x00140
++#define RK3036_GRF_SOC_CON1 0x00144
++#define RK3036_GRF_SOC_CON2 0x00148
++#define RK3036_GRF_SOC_STATUS0 0x0014c
++#define RK3036_GRF_SOC_CON3 0x00154
++#define RK3036_GRF_DMAC_CON0 0x0015c
++#define RK3036_GRF_DMAC_CON1 0x00160
++#define RK3036_GRF_DMAC_CON2 0x00164
++#define RK3036_GRF_UOC0_CON5 0x0017c
++#define RK3036_GRF_UOC1_CON4 0x00190
++#define RK3036_GRF_UOC1_CON5 0x00194
++#define RK3036_GRF_DDRC_STAT 0x0019c
++#define RK3036_GRF_UOC_CON6 0x001a0
++#define RK3036_GRF_SOC_STATUS1 0x001a4
++#define RK3036_GRF_CPU_CON0 0x001a8
++#define RK3036_GRF_CPU_CON1 0x001ac
++#define RK3036_GRF_CPU_CON2 0x001b0
++#define RK3036_GRF_CPU_CON3 0x001b4
++#define RK3036_GRF_CPU_STATUS0 0x001c0
++#define RK3036_GRF_CPU_STATUS1 0x001c4
++#define RK3036_GRF_OS_REG0 0x001c8
++#define RK3036_GRF_OS_REG1 0x001cc
++#define RK3036_GRF_OS_REG2 0x001d0
++#define RK3036_GRF_OS_REG3 0x001d4
++#define RK3036_GRF_OS_REG4 0x001d8
++#define RK3036_GRF_OS_REG5 0x001dc
++#define RK3036_GRF_OS_REG6 0x001e0
++#define RK3036_GRF_OS_REG7 0x001e4
++#define RK3036_GRF_DLL_CON0 0x00200
++#define RK3036_GRF_DLL_CON1 0x00204
++#define RK3036_GRF_DLL_CON2 0x00208
++#define RK3036_GRF_DLL_CON3 0x0020c
++#define RK3036_GRF_DLL_STATUS0 0x00210
++#define RK3036_GRF_DLL_STATUS1 0x00214
++
++#define RK3036_GRF_DLL_STATUS2 0x00218
++#define RK3036_GRF_DLL_STATUS3 0x0021c
++#define RK3036_GRF_DFI_WRNUM 0x00220
++#define RK3036_GRF_DFI_RDNUM 0x00224
++#define RK3036_GRF_DFI_ACTNUM 0x00228
++#define RK3036_GRF_DFI_TIMERVAL 0x0022c
++#define RK3036_GRF_NIF_FIFO0 0x00230
++#define RK3036_GRF_NIF_FIFO1 0x00234
++#define RK3036_GRF_NIF_FIFO2 0x00238
++#define RK3036_GRF_NIF_FIFO3 0x0023c
++#define RK3036_GRF_USBPHY0_CON0 0x00280
++#define RK3036_GRF_USBPHY0_CON1 0x00284
++#define RK3036_GRF_USBPHY0_CON2 0x00288
++#define RK3036_GRF_USBPHY0_CON3 0x0028c
++#define RK3036_GRF_USBPHY0_CON4 0x00290
++#define RK3036_GRF_USBPHY0_CON5 0x00294
++#define RK3036_GRF_USBPHY0_CON6 0x00298
++#define RK3036_GRF_USBPHY0_CON7 0x0029c
++#define RK3036_GRF_USBPHY1_CON0 0x002a0
++#define RK3036_GRF_USBPHY1_CON1 0x002a4
++#define RK3036_GRF_USBPHY1_CON2 0x002a8
++#define RK3036_GRF_USBPHY1_CON3 0x002ac
++#define RK3036_GRF_USBPHY1_CON4 0x002b0
++#define RK3036_GRF_USBPHY1_CON5 0x002b4
++#define RK3036_GRF_USBPHY1_CON6 0x002b8
++
++#define RK3036_GRF_USBPHY1_CON7 0x002bc
++#define RK3036_GRF_CHIP_TAG 0x00300
++#define RK3036_GRF_SDMMC_DET_CNT 0x00304
++
++#define RK312X_GRF_GPIO0A_IOMUX         0x000a8
++#define RK312X_GRF_GPIO0B_IOMUX         0x000ac
++#define RK312X_GRF_GPIO0C_IOMUX         0x000b0
++#define RK312X_GRF_GPIO0D_IOMUX         0x000b4
++#define RK312X_GRF_GPIO1A_IOMUX         0x000b8
++#define RK312X_GRF_GPIO1B_IOMUX         0x000bc
++#define RK312X_GRF_GPIO1C_IOMUX         0x000c0
++#define RK312X_GRF_GPIO1D_IOMUX         0x000c4
++#define RK312X_GRF_GPIO2A_IOMUX         0x000c8
++#define RK312X_GRF_GPIO2B_IOMUX         0x000cc
++#define RK312X_GRF_GPIO2C_IOMUX         0x000d0
++#define RK312X_GRF_GPIO2D_IOMUX         0x000d4
++#define RK312X_GRF_GPIO3A_IOMUX         0x000d8
++#define RK312X_GRF_GPIO3B_IOMUX         0x000dc
++#define RK312X_GRF_GPIO3C_IOMUX         0x000e0
++#define RK312X_GRF_GPIO3D_IOMUX         0x000e4
++#define RK312X_GRF_CIF_IOMUX		0x000ec
++#define RK312X_GRF_CIF_IOMUX1 		0x000f0
++#define RK312X_GRF_GPIO_DS              0x00100
++#define RK312X_GRF_GPIO0L_PULL          0x00118
++#define RK312X_GRF_GPIO0H_PULL          0x0011c
++#define RK312X_GRF_GPIO1L_PULL          0x00120
++#define RK312X_GRF_GPIO1H_PULL          0x00124
++#define RK312X_GRF_GPIO2L_PULL          0x00128
++#define RK312X_GRF_GPIO2H_PULL          0x0012c
++#define RK312X_GRF_GPIO3L_PULL          0x00130
++#define RK312X_GRF_GPIO3H_PULL          0x00134
++#define RK312X_GRF_ACODEC_CON		0x0013c
++
++#define RK312X_GRF_SOC_CON0 0x00140
++#define RK312X_GRF_SOC_CON1 0x00144
++#define RK312X_GRF_SOC_CON2 0x00148
++#define RK312X_GRF_SOC_STATUS0 0x0014c
++#define RK312X_GRF_LVDS_CON0 0x00150
++#define RK312X_GRF_SOC_CON3 0x00154
++#define RK312X_GRF_DMAC_CON0 0x0015c
++#define RK312X_GRF_DMAC_CON1 0x00160
++#define RK312X_GRF_DMAC_CON2 0x00164
++#define RK312X_GRF_MAC_CON0 0x00168
++#define RK312X_GRF_MAC_CON1 0x0016c
++#define RK312X_GRF_TVE_CON 0x00170
++#define RK312X_GRF_UOC0_CON0 0x0017c
++#define RK312X_GRF_UOC1_CON1 0x00184
++#define RK312X_GRF_UOC1_CON2 0x00188
++#define RK312X_GRF_UOC1_CON3 0x0018c
++#define RK312X_GRF_UOC1_CON4 0x00190
++#define RK312X_GRF_UOC1_CON5 0x00194
++#define RK312X_GRF_DDRC_STAT 0x0019c
++#define RK312X_GRF_SOC_STATUS1 0x001a4
++#define RK312X_GRF_CPU_CON0 0x001a8
++#define RK312X_GRF_CPU_CON1 0x001ac
++#define RK312X_GRF_CPU_CON2 0x001b0
++#define RK312X_GRF_CPU_CON3 0x001b4
++#define RK312X_GRF_CPU_STATUS0 0x001c0
++#define RK312X_GRF_CPU_STATUS1 0x001c4
++#define RK312X_GRF_OS_REG0 0x001c8
++#define RK312X_GRF_OS_REG1 0x001cc
++#define RK312X_GRF_OS_REG2 0x001d0
++#define RK312X_GRF_OS_REG3 0x001d4
++#define RK312X_GRF_OS_REG4 0x001d8
++#define RK312X_GRF_OS_REG5 0x001dc
++#define RK312X_GRF_OS_REG6 0x001e0
++#define RK312X_GRF_OS_REG7 0x001e4
++#define RK312X_GRF_PVTM_CON0 0x00200
++#define RK312X_GRF_PVTM_CON1 0x00204
++#define RK312X_GRF_PVTM_CON2 0x00208
++#define RK312X_GRF_PVTM_CON3 0x0020c
++#define RK312X_GRF_PVTM_STATUS0 0x00210
++#define RK312X_GRF_PVTM_STATUS1 0x00214
++#define RK312X_GRF_PVTM_STATUS2 0x00218
++#define RK312X_GRF_PVTM_STATUS3 0x0021c
++#define RK312X_GRF_DFI_WRNUM 0x00220
++#define RK312X_GRF_DFI_RDNUM 0x00224
++#define RK312X_GRF_DFI_ACTNUM 0x00228
++#define RK312X_GRF_DFI_TIMERVAL 0x0022c
++#define RK312X_GRF_NIF_FIFO0 0x00230
++#define RK312X_GRF_NIF_FIFO1 0x00234
++#define RK312X_GRF_NIF_FIFO2 0x00238
++#define RK312X_GRF_NIF_FIFO3 0x0023c
++#define RK312X_GRF_USBPHY0_CON0 0x00280
++#define RK312X_GRF_USBPHY0_CON1 0x00284
++#define RK312X_GRF_USBPHY0_CON2 0x00288
++#define RK312X_GRF_USBPHY0_CON3 0x0028c
++#define RK312X_GRF_USBPHY0_CON4 0x00290
++#define RK312X_GRF_USBPHY0_CON5 0x00294
++#define RK312X_GRF_USBPHY0_CON6 0x00298
++#define RK312X_GRF_USBPHY0_CON7 0x0029c
++#define RK312X_GRF_USBPHY1_CON0 0x002a0
++#define RK312X_GRF_USBPHY1_CON1 0x002a4
++#define RK312X_GRF_USBPHY1_CON2 0x002a8
++#define RK312X_GRF_USBPHY1_CON3 0x002ac
++#define RK312X_GRF_USBPHY1_CON4 0x002b0
++#define RK312X_GRF_USBPHY1_CON5 0x002b4
++#define RK312X_GRF_USBPHY1_CON6 0x002b8
++#define RK312X_GRF_USBPHY1_CON7 0x002bc
++#define RK312X_GRF_UOC_STATUS0 0x002c0
++#define RK312X_GRF_CHIP_TAG 0x00300
++#define RK312X_GRF_SDMMC_DET_CNT 0x00304
++#define RK312X_GRF_EFUSE_PRG_EN 0x0037c
++
++#define RK3228_GRF_GPIO0A_IOMUX		0x0000
++#define RK3228_GRF_GPIO0B_IOMUX		0x0004
++#define RK3228_GRF_GPIO0C_IOMUX		0x0008
++#define RK3228_GRF_GPIO0D_IOMUX		0x000c
++#define RK3228_GRF_GPIO1A_IOMUX		0x0010
++#define RK3228_GRF_GPIO1B_IOMUX		0x0014
++#define RK3228_GRF_GPIO1C_IOMUX		0x0018
++#define RK3228_GRF_GPIO1D_IOMUX		0x001c
++#define RK3228_GRF_GPIO2A_IOMUX		0x0020
++#define RK3228_GRF_GPIO2B_IOMUX		0x0024
++#define RK3228_GRF_GPIO2C_IOMUX		0x0028
++#define RK3228_GRF_GPIO2D_IOMUX		0x002c
++#define RK3228_GRF_GPIO3A_IOMUX		0x0030
++#define RK3228_GRF_GPIO3B_IOMUX		0x0034
++#define RK3228_GRF_GPIO3C_IOMUX		0x0038
++#define RK3228_GRF_GPIO3D_IOMUX		0x003c
++#define RK3228_GRF_COM_IOMUX		0x0050
++#define RK3228_GRF_GPIO0A_P		0x0100
++#define RK3228_GRF_GPIO0B_P		0x0104
++#define RK3228_GRF_GPIO0C_P		0x0108
++#define RK3228_GRF_GPIO0D_P		0x010c
++#define RK3228_GRF_GPIO1A_P		0x0110
++#define RK3228_GRF_GPIO1B_P		0x0114
++#define RK3228_GRF_GPIO1C_P		0x0118
++#define RK3228_GRF_GPIO1D_P		0x011c
++#define RK3228_GRF_GPIO2A_P		0x0120
++#define RK3228_GRF_GPIO2B_P		0x0124
++#define RK3228_GRF_GPIO2C_P		0x0128
++#define RK3228_GRF_GPIO2D_P		0x012c
++#define RK3228_GRF_GPIO3A_P		0x0130
++#define RK3228_GRF_GPIO3B_P		0x0134
++#define RK3228_GRF_GPIO3C_P		0x0138
++#define RK3228_GRF_GPIO3D_P		0x013c
++#define RK3228_GRF_GPIO0A_E		0x0200
++#define RK3228_GRF_GPIO0B_E		0x0204
++#define RK3228_GRF_GPIO0C_E		0x0208
++#define RK3228_GRF_GPIO0D_E		0x020c
++#define RK3228_GRF_GPIO1A_E		0x0210
++#define RK3228_GRF_GPIO1B_E		0x0214
++#define RK3228_GRF_GPIO1C_E		0x0218
++#define RK3228_GRF_GPIO1D_E		0x021c
++#define RK3228_GRF_GPIO2A_E		0x0220
++#define RK3228_GRF_GPIO2B_E		0x0224
++#define RK3228_GRF_GPIO2C_E		0x0228
++#define RK3228_GRF_GPIO2D_E		0x022c
++#define RK3228_GRF_GPIO3A_E		0x0230
++#define RK3228_GRF_GPIO3B_E		0x0234
++#define RK3228_GRF_GPIO3C_E		0x0238
++#define RK3228_GRF_GPIO3D_E		0x023c
++#define RK3228_GRF_GPIO0L_SR		0x0300
++#define RK3228_GRF_GPIO0H_SR		0x0304
++#define RK3228_GRF_GPIO1L_SR		0x0308
++#define RK3228_GRF_GPIO1H_SR		0x030c
++#define RK3228_GRF_GPIO2L_SR		0x0310
++#define RK3228_GRF_GPIO2H_SR		0x0314
++#define RK3228_GRF_GPIO3L_SR		0x0318
++#define RK3228_GRF_GPIO3H_SR		0x031c
++#define RK3228_GRF_GPIO0L_SMT		0x0380
++#define RK3228_GRF_GPIO0H_SMT		0x0384
++#define RK3228_GRF_GPIO1L_SMT		0x0388
++#define RK3228_GRF_GPIO1H_SMT		0x038c
++#define RK3228_GRF_GPIO2L_SMT		0x0390
++#define RK3228_GRF_GPIO2H_SMT		0x0394
++#define RK3228_GRF_GPIO3L_SMT		0x0398
++#define RK3228_GRF_GPIO3H_SMT		0x039c
++#define RK3228_GRF_SOC_CON0		0x0400
++#define RK3228_GRF_SOC_CON1		0x0404
++#define RK3228_GRF_SOC_CON2		0x0408
++#define RK3228_GRF_SOC_CON3		0x040c
++#define RK3228_GRF_SOC_CON4		0x0410
++#define RK3228_GRF_SOC_CON5		0x0414
++#define RK3228_GRF_SOC_CON6		0x0418
++#define RK3228_GRF_SOC_STATUS0		0x0480
++#define RK3228_GRF_SOC_STATUS1		0x0484
++#define RK3228_GRF_SOC_STATUS2		0x0488
++#define RK3228_GRF_CHIP_ID		0x048c
++#define RK3228_GRF_CPU_CON0		0x0500
++#define RK3228_GRF_CPU_CON1		0x0504
++#define RK3228_GRF_CPU_CON2		0x0508
++#define RK3228_GRF_CPU_CON3		0x050c
++#define RK3228_GRF_CPU_STATUS0		0x0520
++#define RK3228_GRF_CPU_STATUS1		0x0524
++#define RK3228_GRF_OS_REG0		0x05c8
++#define RK3228_GRF_OS_REG1		0x05cc
++#define RK3228_GRF_OS_REG2		0x05d0
++#define RK3228_GRF_OS_REG3		0x05d4
++#define RK3228_GRF_OS_REG4		0x05d8
++#define RK3228_GRF_OS_REG5		0x05dc
++#define RK3228_GRF_OS_REG6		0x05e0
++#define RK3228_GRF_OS_REG7		0x05e4
++#define RK3228_GRF_DDRC_STAT		0x0604
++#define RK3228_GRF_SIG_DETECT_CON	0x0680
++#define RK3228_GRF_SIG_DETECT_CON1	0x0684
++#define RK3228_GRF_SIG_DETECT_STATUS	0x0690
++#define RK3228_GRF_SIG_DETECT_STATUS1	0x0694
++#define RK3228_GRF_SIG_DETECT_CLR	0x06a0
++#define RK3228_GRF_SIG_DETECT_CLR1	0x06a4
++#define RK3228_GRF_EMMC_DET		0x06b0
++#define RK3228_GRF_HOST0_CON0		0x0700
++#define RK3228_GRF_HOST0_CON1		0x0704
++#define RK3228_GRF_HOST0_CON2		0x0708
++#define RK3228_GRF_HOST1_CON0		0x0710
++#define RK3228_GRF_HOST1_CON1		0x0714
++#define RK3228_GRF_HOST1_CON2		0x0718
++#define RK3228_GRF_HOST2_CON0		0x0720
++#define RK3228_GRF_HOST2_CON1		0x0724
++#define RK3228_GRF_HOST2_CON2		0x0728
++#define RK3228_GRF_USBPHY0_CON0		0x0760
++#define RK3228_GRF_USBPHY0_CON1		0x0764
++#define RK3228_GRF_USBPHY0_CON2		0x0768
++#define RK3228_GRF_USBPHY0_CON3		0x076c
++#define RK3228_GRF_USBPHY0_CON4		0x0770
++#define RK3228_GRF_USBPHY0_CON5		0x0774
++#define RK3228_GRF_USBPHY0_CON6		0x0778
++#define RK3228_GRF_USBPHY0_CON7		0x077c
++#define RK3228_GRF_USBPHY0_CON8		0x0780
++#define RK3228_GRF_USBPHY0_CON9		0x0784
++#define RK3228_GRF_USBPHY0_CON10	0x0788
++#define RK3228_GRF_USBPHY0_CON11	0x078c
++#define RK3228_GRF_USBPHY0_CON12	0x0790
++#define RK3228_GRF_USBPHY0_CON13	0x0794
++#define RK3228_GRF_USBPHY0_CON14	0x0798
++#define RK3228_GRF_USBPHY0_CON15	0x079c
++#define RK3228_GRF_USBPHY0_CON16	0x07a0
++#define RK3228_GRF_USBPHY0_CON17	0x07a4
++#define RK3228_GRF_USBPHY0_CON18	0x07a8
++#define RK3228_GRF_USBPHY0_CON19	0x07ac
++#define RK3228_GRF_USBPHY0_CON20	0x07b0
++#define RK3228_GRF_USBPHY0_CON21	0x07b4
++#define RK3228_GRF_USBPHY0_CON22	0x07b8
++#define RK3228_GRF_USBPHY0_CON23	0x07bc
++#define RK3228_GRF_USBPHY0_CON24	0x07c0
++#define RK3228_GRF_USBPHY0_CON25	0x07c4
++#define RK3228_GRF_USBPHY0_CON26	0x07c8
++#define RK3228_GRF_USBPHY1_CON0		0x0800
++#define RK3228_GRF_USBPHY1_CON1		0x0804
++#define RK3228_GRF_USBPHY1_CON2		0x0808
++#define RK3228_GRF_USBPHY1_CON3		0x080c
++#define RK3228_GRF_USBPHY1_CON4		0x0810
++#define RK3228_GRF_USBPHY1_CON5		0x0814
++#define RK3228_GRF_USBPHY1_CON6		0x0818
++#define RK3228_GRF_USBPHY1_CON7		0x081c
++#define RK3228_GRF_USBPHY1_CON8		0x0820
++#define RK3228_GRF_USBPHY1_CON9		0x0824
++#define RK3228_GRF_USBPHY1_CON10	0x0828
++#define RK3228_GRF_USBPHY1_CON11	0x082c
++#define RK3228_GRF_USBPHY1_CON12	0x0830
++#define RK3228_GRF_USBPHY1_CON13	0x0834
++#define RK3228_GRF_USBPHY1_CON14	0x0838
++#define RK3228_GRF_USBPHY1_CON15	0x083c
++#define RK3228_GRF_USBPHY1_CON16	0x0840
++#define RK3228_GRF_USBPHY1_CON17	0x0844
++#define RK3228_GRF_USBPHY1_CON18	0x0848
++#define RK3228_GRF_USBPHY1_CON19	0x084c
++#define RK3228_GRF_USBPHY1_CON20	0x0850
++#define RK3228_GRF_USBPHY1_CON21	0x0854
++#define RK3228_GRF_USBPHY1_CON22	0x0858
++#define RK3228_GRF_USBPHY1_CON23	0x085c
++#define RK3228_GRF_USBPHY1_CON24	0x0860
++#define RK3228_GRF_USBPHY1_CON25	0x0864
++#define RK3228_GRF_USBPHY1_CON26	0x0868
++#define RK3228_GRF_OTG_CON0		0x0880
++#define RK3228_GRF_UOC_CON0		0x0884
++#define RK3228_GRF_MAC_CON0		0x0900
++#define RK3228_GRF_MAC_CON1		0x0904
++#define RK3228_GRF_MACPHY_CON0		0x0b00
++#define RK3228_GRF_MACPHY_CON1		0x0b04
++#define RK3228_GRF_MACPHY_CON2		0x0b08
++#define RK3228_GRF_MACPHY_CON3		0x0b0c
++#define RK3228_GRF_MACPHY_STATUS	0x0b10
++
++#endif
+diff --git a/include/linux/soc/rockchip/psci.h b/include/linux/soc/rockchip/psci.h
+new file mode 100644
+index 00000000000..870da27edf6
+--- /dev/null
++++ b/include/linux/soc/rockchip/psci.h
+@@ -0,0 +1,76 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __ROCKCHIP_PSCI_H
++#define __ROCKCHIP_PSCI_H
++
++#define SEC_REG_RD (0x0)
++#define SEC_REG_WR (0x1)
++
++/*
++ * trust firmware verison
++ */
++#define RKTF_VER_MAJOR(ver)		(((ver) >> 16) & 0xffff)
++#define RKTF_VER_MINOR(ver)		((ver) & 0xffff)
++
++/*
++ * pcsi smc funciton id
++ */
++#define PSCI_SIP_RKTF_VER		(0x82000001)
++#define PSCI_SIP_ACCESS_REG		(0x82000002)
++#define PSCI_SIP_ACCESS_REG64		(0xc2000002)
++#define PSCI_SIP_SUSPEND_WR_CTRBITS	(0x82000003)
++#define PSCI_SIP_PENDING_CPUS		(0x82000004)
++#define PSCI_SIP_UARTDBG_CFG		(0x82000005)
++#define PSCI_SIP_UARTDBG_CFG64		(0xc2000005)
++#define PSCI_SIP_EL3FIQ_CFG		(0x82000006)
++#define PSCI_SIP_SMEM_CONFIG		(0x82000007)
++
++/*
++ * pcsi smc funciton err code
++ */
++#define PSCI_SMC_FUNC_UNK		0xffffffff
++
++/*
++ * define PSCI_SIP_UARTDBG_CFG call type
++ */
++#define UARTDBG_CFG_INIT		0xf0
++#define UARTDBG_CFG_OSHDL_TO_OS		0xf1
++#define UARTDBG_CFG_OSHDL_CPUSW		0xf3
++#define UARTDBG_CFG_OSHDL_DEBUG_ENABLE	0xf4
++#define UARTDBG_CFG_OSHDL_DEBUG_DISABLE	0xf5
++
++/*
++ * rockchip psci function call interface
++ */
++
++u32 rockchip_psci_smc_read(u32 function_id, u32 arg0, u32 arg1, u32 arg2,
++			   u32 *val);
++u32 rockchip_psci_smc_write(u32 function_id, u32 arg0, u32 arg1, u32 arg2);
++
++u32 rockchip_psci_smc_get_tf_ver(void);
++u32 rockchip_secure_reg_read(u32 addr_phy);
++u32 rockchip_secure_reg_write(u32 addr_phy, u32 val);
++
++#ifdef CONFIG_ARM64
++u32 rockchip_psci_smc_write64(u64 function_id, u64 arg0, u64 arg1, u64 arg2);
++u32 rockchip_psci_smc_read64(u64 function_id, u64 arg0, u64 arg1, u64 arg2,
++			     u64 *val);
++u64 rockchip_secure_reg_read64(u64 addr_phy);
++u32 rockchip_secure_reg_write64(u64 addr_phy, u64 val);
++
++void psci_fiq_debugger_uart_irq_tf_cb(u64 sp_el1, u64 offset);
++#endif
++
++u32 psci_fiq_debugger_switch_cpu(u32 cpu);
++void psci_fiq_debugger_uart_irq_tf_init(u32 irq_id, void *callback);
++void psci_fiq_debugger_enable_debug(bool val);
++
++#if defined(CONFIG_ARM_PSCI) || defined(CONFIG_ARM64)
++u32 psci_set_memory_secure(bool val);
++#else
++static inline u32 psci_set_memory_secure(bool val)
++{
++	return 0;
++}
++#endif
++
++#endif /* __ROCKCHIP_PSCI_H */
+diff --git a/include/linux/soc/rockchip/rockchip_sip.h b/include/linux/soc/rockchip/rockchip_sip.h
+new file mode 100644
+index 00000000000..8f5f7d3646b
+--- /dev/null
++++ b/include/linux/soc/rockchip/rockchip_sip.h
+@@ -0,0 +1,467 @@
++/* Copyright (c) 2016, Fuzhou Rockchip Electronics Co., Ltd
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++#ifndef __ROCKCHIP_SIP_H
++#define __ROCKCHIP_SIP_H
++
++#include <linux/arm-smccc.h>
++#include <linux/io.h>
++
++/* SMC function IDs for SiP Service queries, compatible with kernel-3.10 */
++#define SIP_ATF_VERSION			0x82000001
++#define SIP_ACCESS_REG			0x82000002
++#define SIP_SUSPEND_MODE		0x82000003
++#define SIP_PENDING_CPUS		0x82000004
++#define SIP_UARTDBG_CFG			0x82000005
++#define SIP_UARTDBG_CFG64		0xc2000005
++#define SIP_MCU_EL3FIQ_CFG		0x82000006
++#define SIP_ACCESS_CHIP_STATE64		0xc2000006
++#define SIP_SECURE_MEM_CONFIG		0x82000007
++#define SIP_ACCESS_CHIP_EXTRA_STATE64	0xc2000007
++#define SIP_DRAM_CONFIG			0x82000008
++#define SIP_SHARE_MEM			0x82000009
++#define SIP_SIP_VERSION			0x8200000a
++#define SIP_REMOTECTL_CFG		0x8200000b
++#define PSCI_SIP_VPU_RESET		0x8200000c
++#define SIP_BUS_CFG			0x8200000d
++#define SIP_LAST_LOG			0x8200000e
++#define SIP_SCMI_AGENT0			0x82000010
++#define SIP_SCMI_AGENT1			0x82000011
++#define SIP_SCMI_AGENT2			0x82000012
++#define SIP_SCMI_AGENT3			0x82000013
++#define SIP_SCMI_AGENT4			0x82000014
++#define SIP_SCMI_AGENT5			0x82000015
++#define SIP_SCMI_AGENT6			0x82000016
++#define SIP_SCMI_AGENT7			0x82000017
++#define SIP_SCMI_AGENT8			0x82000018
++#define SIP_SCMI_AGENT9			0x82000019
++#define SIP_SCMI_AGENT10		0x8200001a
++#define SIP_SCMI_AGENT11		0x8200001b
++#define SIP_SCMI_AGENT12		0x8200001c
++#define SIP_SCMI_AGENT13		0x8200001d
++#define SIP_SCMI_AGENT14		0x8200001e
++#define SIP_SCMI_AGENT15		0x8200001f
++#define SIP_SDEI_FIQ_DBG_SWITCH_CPU	0x82000020
++#define SIP_SDEI_FIQ_DBG_GET_EVENT_ID	0x82000021
++#define RK_SIP_AMP_CFG			0x82000022
++#define RK_SIP_FIQ_CTRL			0x82000024
++#define SIP_HDCP_CONFIG			0x82000025
++#define SIP_WDT_CFG			0x82000026
++
++#define TRUSTED_OS_HDCPKEY_INIT		0xB7000003
++
++/* Rockchip Sip version */
++#define SIP_IMPLEMENT_V1                (1)
++#define SIP_IMPLEMENT_V2                (2)
++
++/* Trust firmware version */
++#define ATF_VER_MAJOR(ver)		(((ver) >> 16) & 0xffff)
++#define ATF_VER_MINOR(ver)		(((ver) >> 0) & 0xffff)
++
++/* SIP_ACCESS_REG: read or write */
++#define SECURE_REG_RD			0x0
++#define SECURE_REG_WR			0x1
++
++/* Fiq debugger share memory: 8KB enough */
++#define FIQ_UARTDBG_PAGE_NUMS		2
++#define FIQ_UARTDBG_SHARE_MEM_SIZE	((FIQ_UARTDBG_PAGE_NUMS) * 4096)
++
++/* Error return code */
++#define IS_SIP_ERROR(x)			(!!(x))
++
++#define SIP_RET_SUCCESS			0
++#define SIP_RET_SMC_UNKNOWN		-1
++#define SIP_RET_NOT_SUPPORTED		-2
++#define SIP_RET_INVALID_PARAMS		-3
++#define SIP_RET_INVALID_ADDRESS		-4
++#define SIP_RET_DENIED			-5
++#define SIP_RET_SET_RATE_TIMEOUT	-6
++
++/* SIP_UARTDBG_CFG64 call types */
++#define UARTDBG_CFG_INIT		0xf0
++#define UARTDBG_CFG_OSHDL_TO_OS		0xf1
++#define UARTDBG_CFG_OSHDL_CPUSW		0xf3
++#define UARTDBG_CFG_OSHDL_DEBUG_ENABLE	0xf4
++#define UARTDBG_CFG_OSHDL_DEBUG_DISABLE	0xf5
++#define UARTDBG_CFG_PRINT_PORT		0xf7
++#define UARTDBG_CFG_FIQ_ENABEL		0xf8
++#define UARTDBG_CFG_FIQ_DISABEL		0xf9
++
++/* SIP_SUSPEND_MODE32 call types */
++#define SUSPEND_MODE_CONFIG		0x01
++#define WKUP_SOURCE_CONFIG		0x02
++#define PWM_REGULATOR_CONFIG		0x03
++#define GPIO_POWER_CONFIG		0x04
++#define SUSPEND_DEBUG_ENABLE		0x05
++#define APIOS_SUSPEND_CONFIG		0x06
++#define VIRTUAL_POWEROFF		0x07
++#define SUSPEND_WFI_TIME_MS		0x08
++#define LINUX_PM_STATE			0x09
++#define SUSPEND_IO_RET_CONFIG		0x0a
++
++/* SIP_REMOTECTL_CFG call types */
++#define	REMOTECTL_SET_IRQ		0xf0
++#define REMOTECTL_SET_PWM_CH		0xf1
++#define REMOTECTL_SET_PWRKEY		0xf2
++#define REMOTECTL_GET_WAKEUP_STATE	0xf3
++#define REMOTECTL_ENABLE		0xf4
++/* wakeup state */
++#define REMOTECTL_PWRKEY_WAKEUP		0xdeadbeaf
++
++struct dram_addrmap_info {
++	u64 ch_mask[2];
++	u64 bk_mask[4];
++	u64 bg_mask[2];
++	u64 cs_mask[2];
++	u32 reserved[20];
++	u32 bank_bit_first;
++	u32 bank_bit_mask;
++};
++
++/* AMP Ctrl */
++enum {
++	RK_AMP_SUB_FUNC_CFG_MODE = 0,
++	RK_AMP_SUB_FUNC_BOOT_ARG01,
++	RK_AMP_SUB_FUNC_BOOT_ARG23,
++	RK_AMP_SUB_FUNC_REQ_CPU_OFF,
++	RK_AMP_SUB_FUNC_GET_CPU_STATUS,
++	RK_AMP_SUB_FUNC_RSV, /* for RTOS */
++	RK_AMP_SUB_FUNC_CPU_ON,
++	RK_AMP_SUB_FUNC_END,
++};
++
++enum {
++	FIRMWARE_NONE,
++	FIRMWARE_TEE_32BIT,
++	FIRMWARE_ATF_32BIT,
++	FIRMWARE_ATF_64BIT,
++	FIRMWARE_END,
++};
++
++/* Share mem page types */
++typedef enum {
++	SHARE_PAGE_TYPE_INVALID = 0,
++	SHARE_PAGE_TYPE_UARTDBG,
++	SHARE_PAGE_TYPE_DDR,
++	SHARE_PAGE_TYPE_DDRDBG,
++	SHARE_PAGE_TYPE_DDRECC,
++	SHARE_PAGE_TYPE_DDRFSP,
++	SHARE_PAGE_TYPE_DDR_ADDRMAP,
++	SHARE_PAGE_TYPE_LAST_LOG,
++	SHARE_PAGE_TYPE_HDCP,
++	SHARE_PAGE_TYPE_MAX,
++} share_page_type_t;
++
++/* fiq control sub func */
++enum {
++	RK_SIP_FIQ_CTRL_FIQ_EN = 1,
++	RK_SIP_FIQ_CTRL_FIQ_DIS,
++	RK_SIP_FIQ_CTRL_SET_AFF
++};
++
++/* hdcp function types */
++enum {
++	HDCP_FUNC_STORAGE_INCRYPT = 1,
++	HDCP_FUNC_KEY_LOAD,
++	HDCP_FUNC_ENCRYPT_MODE
++};
++
++/* support hdcp device list */
++enum {
++	DP_TX0,
++	DP_TX1,
++	EDP_TX0,
++	EDP_TX1,
++	HDMI_TX0,
++	HDMI_TX1,
++	HDMI_RX,
++	MAX_DEVICE,
++};
++
++/* SIP_WDT_CONFIG call types  */
++enum {
++	WDT_START = 0,
++	WDT_STOP = 1,
++	WDT_PING = 2,
++};
++
++/*
++ * Rules: struct arm_smccc_res contains result and data, details:
++ *
++ * a0: error code(0: success, !0: error);
++ * a1~a3: data
++ */
++#if IS_REACHABLE(CONFIG_ROCKCHIP_SIP)
++struct arm_smccc_res sip_smc_get_atf_version(void);
++struct arm_smccc_res sip_smc_get_sip_version(void);
++struct arm_smccc_res sip_smc_dram(u32 arg0, u32 arg1, u32 arg2);
++struct arm_smccc_res sip_smc_request_share_mem(u32 page_num,
++					       share_page_type_t page_type);
++struct arm_smccc_res sip_smc_mcu_el3fiq(u32 arg0, u32 arg1, u32 arg2);
++struct arm_smccc_res sip_smc_vpu_reset(u32 arg0, u32 arg1, u32 arg2);
++struct arm_smccc_res sip_smc_get_suspend_info(u32 info);
++struct arm_smccc_res sip_smc_lastlog_request(void);
++
++int sip_smc_set_suspend_mode(u32 ctrl, u32 config1, u32 config2);
++int sip_smc_virtual_poweroff(void);
++int sip_smc_remotectl_config(u32 func, u32 data);
++
++int sip_smc_secure_reg_write(u32 addr_phy, u32 val);
++u32 sip_smc_secure_reg_read(u32 addr_phy);
++struct arm_smccc_res sip_smc_bus_config(u32 arg0, u32 arg1, u32 arg2);
++struct dram_addrmap_info *sip_smc_get_dram_map(void);
++int sip_smc_amp_config(u32 sub_func_id, u32 arg1, u32 arg2, u32 arg3);
++struct arm_smccc_res sip_smc_get_amp_info(u32 sub_func_id, u32 arg1);
++
++void __iomem *sip_hdcp_request_share_memory(int id);
++struct arm_smccc_res sip_hdcp_config(u32 arg0, u32 arg1, u32 arg2);
++ulong sip_cpu_logical_map_mpidr(u32 cpu);
++/***************************fiq debugger **************************************/
++void sip_fiq_debugger_enable_fiq(bool enable, uint32_t tgt_cpu);
++void sip_fiq_debugger_enable_debug(bool enable);
++int sip_fiq_debugger_uart_irq_tf_init(u32 irq_id, void *callback_fn);
++int sip_fiq_debugger_set_print_port(u32 port_phyaddr, u32 baudrate);
++int sip_fiq_debugger_request_share_memory(void);
++int sip_fiq_debugger_get_target_cpu(void);
++int sip_fiq_debugger_switch_cpu(u32 cpu);
++int sip_fiq_debugger_sdei_switch_cpu(u32 cur_cpu, u32 target_cpu, u32 flag);
++int sip_fiq_debugger_is_enabled(void);
++int sip_fiq_debugger_sdei_get_event_id(u32 *fiq, u32 *sw_cpu, u32 *flag);
++int sip_fiq_control(u32 sub_func, u32 irq, unsigned long data);
++int sip_wdt_config(u32 sub_func, u32 arg1, u32 arg2, u32 arg3);
++int sip_hdcpkey_init(u32 hdcp_id);
++#else
++static inline struct arm_smccc_res sip_smc_get_atf_version(void)
++{
++	struct arm_smccc_res tmp = { .a0 = SIP_RET_NOT_SUPPORTED };
++	return tmp;
++}
++
++static inline struct arm_smccc_res sip_smc_get_sip_version(void)
++{
++	struct arm_smccc_res tmp = { .a0 = SIP_RET_NOT_SUPPORTED };
++	return tmp;
++}
++
++static inline struct arm_smccc_res sip_smc_dram(u32 arg0, u32 arg1, u32 arg2)
++{
++	struct arm_smccc_res tmp = { .a0 = SIP_RET_NOT_SUPPORTED };
++	return tmp;
++}
++
++static inline struct arm_smccc_res sip_smc_request_share_mem
++			(u32 page_num, share_page_type_t page_type)
++{
++	struct arm_smccc_res tmp = { .a0 = SIP_RET_NOT_SUPPORTED };
++	return tmp;
++}
++
++static inline struct arm_smccc_res sip_smc_mcu_el3fiq
++			(u32 arg0, u32 arg1, u32 arg2)
++{
++	struct arm_smccc_res tmp = { .a0 = SIP_RET_NOT_SUPPORTED };
++	return tmp;
++}
++
++static inline struct arm_smccc_res
++sip_smc_vpu_reset(u32 arg0, u32 arg1, u32 arg2)
++{
++	struct arm_smccc_res tmp = { .a0 = SIP_RET_NOT_SUPPORTED };
++	return tmp;
++}
++
++static inline struct arm_smccc_res sip_smc_get_suspend_info(u32 info)
++{
++	struct arm_smccc_res tmp = { .a0 = SIP_RET_NOT_SUPPORTED };
++	return tmp;
++}
++
++static inline struct arm_smccc_res sip_smc_lastlog_request(void)
++{
++	struct arm_smccc_res tmp = { .a0 = SIP_RET_NOT_SUPPORTED };
++	return tmp;
++}
++
++static inline int sip_smc_set_suspend_mode(u32 ctrl, u32 config1, u32 config2)
++{
++	return 0;
++}
++
++static inline int sip_smc_virtual_poweroff(void) { return 0; }
++static inline int sip_smc_remotectl_config(u32 func, u32 data) { return 0; }
++static inline int sip_smc_secure_reg_write(u32 addr_phy, u32 val) { return 0; }
++static inline u32 sip_smc_secure_reg_read(u32 addr_phy) { return 0; }
++
++static inline struct arm_smccc_res sip_smc_bus_config(u32 arg0, u32 arg1, u32 arg2)
++{
++	struct arm_smccc_res tmp = { .a0 = SIP_RET_NOT_SUPPORTED };
++	return tmp;
++}
++
++static inline struct dram_addrmap_info *sip_smc_get_dram_map(void)
++{
++	return NULL;
++}
++
++static inline int sip_smc_amp_config(u32 sub_func_id,
++				     u32 arg1,
++				     u32 arg2,
++				     u32 arg3)
++{
++	return 0;
++}
++
++static inline struct arm_smccc_res sip_smc_get_amp_info(u32 sub_func_id,
++							u32 arg1)
++{
++	struct arm_smccc_res tmp = { .a0 = SIP_RET_NOT_SUPPORTED, };
++
++	return tmp;
++}
++
++static inline void __iomem *sip_hdcp_request_share_memory(int id)
++{
++	return NULL;
++}
++
++static inline struct arm_smccc_res sip_hdcp_config(u32 arg0, u32 arg1, u32 arg2)
++{
++	struct arm_smccc_res tmp = { .a0 = SIP_RET_NOT_SUPPORTED };
++
++	return tmp;
++}
++
++static inline ulong sip_cpu_logical_map_mpidr(u32 cpu) { return 0; }
++
++/***************************fiq debugger **************************************/
++static inline void sip_fiq_debugger_enable_fiq
++			(bool enable, uint32_t tgt_cpu) { return; }
++
++static inline void sip_fiq_debugger_enable_debug(bool enable) { return; }
++static inline int sip_fiq_debugger_uart_irq_tf_init(u32 irq_id,
++						    void *callback_fn)
++{
++	return 0;
++}
++
++static inline int sip_fiq_debugger_set_print_port(u32 port_phyaddr,
++						  u32 baudrate)
++{
++	return 0;
++}
++
++static inline int sip_fiq_debugger_request_share_memory(void) { return 0; }
++static inline int sip_fiq_debugger_get_target_cpu(void) { return 0; }
++static inline int sip_fiq_debugger_switch_cpu(u32 cpu) { return 0; }
++static inline int sip_fiq_debugger_sdei_switch_cpu(u32 cur_cpu, u32 target_cpu,
++						   u32 flag) { return 0; }
++static inline int sip_fiq_debugger_is_enabled(void) { return 0; }
++static inline int sip_fiq_debugger_sdei_get_event_id(u32 *fiq, u32 *sw_cpu, u32 *flag)
++{
++	return SIP_RET_NOT_SUPPORTED;
++}
++
++static inline int sip_fiq_control(u32 sub_func, u32 irq, unsigned long data)
++{
++	return 0;
++}
++
++static inline int sip_wdt_config(u32 sub_func,
++				 u32 arg1,
++				 u32 arg2,
++				 u32 arg3)
++{
++	return 0;
++}
++
++static inline int sip_hdcpkey_init(u32 hdcp_id)
++{
++	return 0;
++}
++#endif
++
++/* 32-bit OP-TEE context, never change order of members! */
++struct sm_nsec_ctx {
++	u32 usr_sp;
++	u32 usr_lr;
++	u32 irq_spsr;
++	u32 irq_sp;
++	u32 irq_lr;
++	u32 fiq_spsr;
++	u32 fiq_sp;
++	u32 fiq_lr;
++	u32 svc_spsr;
++	u32 svc_sp;
++	u32 svc_lr;
++	u32 abt_spsr;
++	u32 abt_sp;
++	u32 abt_lr;
++	u32 und_spsr;
++	u32 und_sp;
++	u32 und_lr;
++	u32 mon_lr;
++	u32 mon_spsr;
++	u32 r4;
++	u32 r5;
++	u32 r6;
++	u32 r7;
++	u32 r8;
++	u32 r9;
++	u32 r10;
++	u32 r11;
++	u32 r12;
++	u32 r0;
++	u32 r1;
++	u32 r2;
++	u32 r3;
++};
++
++/* 64-bit ATF context, never change order of members! */
++struct gp_regs_ctx {
++	u64 x0;
++	u64 x1;
++	u64 x2;
++	u64 x3;
++	u64 x4;
++	u64 x5;
++	u64 x6;
++	u64 x7;
++	u64 x8;
++	u64 x9;
++	u64 x10;
++	u64 x11;
++	u64 x12;
++	u64 x13;
++	u64 x14;
++	u64 x15;
++	u64 x16;
++	u64 x17;
++	u64 x18;
++	u64 x19;
++	u64 x20;
++	u64 x21;
++	u64 x22;
++	u64 x23;
++	u64 x24;
++	u64 x25;
++	u64 x26;
++	u64 x27;
++	u64 x28;
++	u64 x29;
++	u64 lr;
++	u64 sp_el0;
++	u64 scr_el3;
++	u64 runtime_sp;
++	u64 spsr_el3;
++	u64 elr_el3;
++};
++
++#endif
+-- 
+2.36.1
+
