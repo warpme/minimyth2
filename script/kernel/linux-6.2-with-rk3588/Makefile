@@ -239,8 +239,7 @@ PATCHFILES += 1027-cpufreq-rockchip-Introduce-driver-for-rk3588.patch
 PATCHFILES += 1028-dt-bindings-rockchip-thermal-Support-the-RK3588-SoC-.patch
 PATCHFILES += 1029-arm64-dts-rockchip-rk3588-add-cpu-frequency-scaling-.patch
 PATCHFILES += 1030-arm64-dts-rockchip-enable-cpu-freq-scalling-evb1.patch
-PATCHFILES += 1031-arm64-dts-rockchip-enable-cpu-freq-scalling-rock5a.patch
-PATCHFILES += 1032-arm64-dts-rockchip-enable-cpu-freq-scalling-rock5b.patch
+PATCHFILES += 1031-arm64-dts-rockchip-enable-cpu-freq-scalling-rock5x.patch
 # add mmc support
 PATCHFILES += 1033-dt-bindings-mmc-rockchip-dw-mshc-Add-RK3588-compatib.patch
 PATCHFILES += 1034-arm64-dts-rockchip-rk3588-Add-sdmmc-node.patch
@@ -251,12 +250,12 @@ PATCHFILES += 1040-phy-rockchip-add-RK3588-combphy-support.patch
 PATCHFILES += 1041-phy-rockchip-support-multiple-PCIe-3.0-lanes-on-RK35.patch
 PATCHFILES += 1042-irqchip-gic-v3-add-hackaround-for-rk3568-its.patch
 PATCHFILES += 1043-arm64-dts-rockchip-rk3588-add-pcie-controllers.patch
-PATCHFILES += 1045-arm64-dts-rockchip-enable-pcie-rock5b.patch
+PATCHFILES += 1045-arm64-dts-rockchip-enable-pcie-rock5x.patch
 # add usb support
 PATCHFILES += 1050-rockchip-add-SoC-headers-from-downstream-kernel.patch
 PATCHFILES += 1051-phy-rockchip-inno-usb2-update-from-downstream-kernel.patch
 PATCHFILES += 1052-arm64-dts-rockchip-rk3588-enable-usb2.patch
-PATCHFILES += 1054-arm64-dts-rockchip-enable-usb2-rock5b.patch
+PATCHFILES += 1054-arm64-dts-rockchip-enable-usb2-rock5x.patch
 endif
 #------------------------------------------------------------
 
