@@ -121,6 +121,9 @@ PATCHFILES += 0586-hantro-Add-quirk-for-NV12-NV12_4L4-capture-format.patch
 PATCHFILES += 0587-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 PATCHFILES += 0588-arm64-dts-allwinner-enable-gpu-opp-multiple-boards.patch
 PATCHFILES += 0590-arm64-dts-allwinner-add-orangepi-3-lts.patch
+PATCHFILES += 0591-net-wireless-rtw88-sync-wireless-next-20230310.patch
+# https://patchwork.kernel.org/project/linux-wireless/list/?series=728886
+PATCHFILES += 0592-net-wireless-rtw88-add-SDIO-support-v2.patch
 endif
 #------------------------------------------------------------
 
@@ -189,6 +192,7 @@ PATCHFILES += 0842-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
 PATCHFILES += 0843-arm64-dts-rockchip-rock3a-fix-mdio-reset-disable-uart-bt.patch
 PATCHFILES += 0845-arm64-dts-rockchip-add-dts-for-rock3c.patch
 PATCHFILES += 0846-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
+PATCHFILES += 0847-arm64-dts-rockchip-add-dts-for-urve-pi.patch
 endif
 #------------------------------------------------------------
 
