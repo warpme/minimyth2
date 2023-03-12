@@ -35,6 +35,7 @@ selection_p="board-rk3566.rock3-c"
 selection_r="board-rk3399.rockpi4-se"
 selection_s="board-rk3588.rock5-b"
 selection_t="board-rk3588s.rock5-a"
+selection_u="board-rk3566.urve-pi"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -188,6 +189,9 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_n}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_p}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_r}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_s}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_t}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_u}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     b)  cache_board_list "${selection_b}"
@@ -260,6 +264,10 @@ case "${selection}" in
 
     t)  cache_board_list "${selection_t}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_t}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    u)  cache_board_list "${selection_u}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_u}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
