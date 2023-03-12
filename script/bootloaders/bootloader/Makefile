@@ -100,6 +100,10 @@ ifneq (,$(findstring board-rk3566.quartz64-b,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3566.quartz64-b
 endif
 
+ifneq (,$(findstring board-rk3566.urve-pi,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3566.urve-pi
+endif
+
 ifneq (,$(findstring board-rk3568.rock3-a,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3568.rock3-a
 endif

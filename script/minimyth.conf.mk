@@ -77,6 +77,7 @@ mm_SOFTWARE               ?= \
 # 'board-rk3399.orangepi_4'
 # 'board-rk3566.x96_x6'
 # 'board-rk3566.quartz64-b'
+# 'board-rk3566.urve-pi'
 # 'board-rk3568.rock3-a'
 # 'board-rk3568.rock3-b'
 # 'board-rk3566.rock3-c'

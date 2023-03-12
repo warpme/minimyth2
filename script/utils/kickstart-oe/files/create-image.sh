@@ -94,6 +94,13 @@ elif [ ! -z `echo ${boards} | grep -o "board-rk3566.x96_x6"` ] ; then
     # creates all paritions (boot related and rootfs). This is because this
     # box speciffics.
     #cat ${base_dir}/board-rk3566.x96_x6.wks >> ${base_dir}/MiniMyth2.wks
+elif [ ! -z `echo ${boards} | grep -o "board-rk3566.urve-pi"` ] ; then
+    echo "  board-rk3566.urve-pi detected: using all in one board-rk3566.urve-pi.wks"
+    # cat board-rk3566.x96_x6.wks to MiniMyth2.wks is comented-out as x96_x6
+    # box is single exception where board-rk3566.x96_x6.wks
+    # creates all paritions (boot related and rootfs). This is because this
+    # box speciffics.
+    #cat ${base_dir}/board-rk3566.x96_x6.wks >> ${base_dir}/MiniMyth2.wks
 elif [ ! -z `echo ${boards} | grep -o "board-rk3566.*"` ] ; then
     echo "  board-rk3566 detected: using default-gpt.wks"
     cat ${base_dir}/default-gpt.wks >> ${base_dir}/MiniMyth2.wks
