@@ -23,6 +23,7 @@ install-custom:
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.pine64,quartz64-a.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.pine64,quartz64-b.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.radxa,rock3c.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.eachlink,h6mini.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.AW-CM256SM.txt $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.radxa,rockpi4se.txt
 	@$(MAKECOOKIE)
 
