@@ -93,17 +93,18 @@ This is general functionality avaliable on current code (Mainline Linux kernel)
 
 SoC           | Tested on        | WiFi Chip & Support                    | CEC Support | LED display | Sleep/Resume                   | Remarks                       |
 ------------- |------------------|----------------------------------------|-------------|-------------|--------------------------------|-------------------------------|
-Allwinner H6  | EachLink H6 Mini | not works (rtl8723bs@SDIO no detected) | works       | works       | works                          | well supported                |
-Allwinner H6  | TanixTX6         | works     (rtl8822cs@SDIO)             | works       | works       | works                          | well supported                |
-Allwinner H6  | TanixTX6-Mini    | works     (xr819@SDIO)                 | works       | n/a         | not works                      | well supported                |
+Allwinner H6  | EachLink H6 Mini | works  (rtl8723bs@SDIO)                | works       | works       | works                          | well supported                |
+Allwinner H6  | TanixTX6         | works  (rtl8822cs@SDIO)                | works       | works       | works                          | well supported                |
+Allwinner H6  | TanixTX6-Mini    | works  (xr819@SDIO)                    | works       | n/a         | not works                      | well supported                |
 Allwinner H6  | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works       | n/a         | not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | works       | not works (firmware issue)     | some things are still missing |
-Allwinner H616| OrangePI-Zero2   | not works (aw859a@SDIO)                | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H616| OrangePI-Zero2   | not works (aw859a@SDIO no driver aval) | works       | n/a         | not works (firmware issue)     | some things are still missing |
 Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | works       | works       | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-se      | works  (ap6255@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
 Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                   | works       | works       | not works                      | good prospects                |
 Rockchip 3566 | Quartz64 Model B | works  (cm256sm@SDIO)                  | works       | n/a         | not works                      | good prospects                |
+Rockchip 3566 | URVE Pi          | works  (rtl8821@SDIO)                  | not works   | n/a         | not works                      | good prospects                |
 Rockchip 3566 | Rock3-C          | works  (ap6256@SDIO)                   | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-B          | works  (iwl7265@PCI-e)                 | works       | n/a         | not works                      | good prospects                |
@@ -135,6 +136,7 @@ Rockchip 3399    | RockPI 4-b                                   | rkvdec/v4l2_re
 Rockchip 3399    | RockPI 4-se                                  | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF    | Good playback, wyaland gives black.screen
 Rockchip 3566    | X96-X6                                       | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
 Rockchip 3566    | Quartz64 Model B                             | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
+Rockchip 3566    | URVE Pi                                      | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
 Rockchip 3566    | Rock3-C                                      | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
 Rockchip 3568    | Rock3-A                                      | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
 Rockchip 3568    | Rock3-B                                      | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
