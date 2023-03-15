@@ -1,6 +1,6 @@
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.5/arch/arm64/boot/dts/rockchip/Makefile linux-6.2.5/arch/arm64/boot/dts/rockchip/Makefile
---- linux-6.2.5/arch/arm64/boot/dts/rockchip/Makefile	2023-03-12 16:12:23.220813215 +0100
-+++ linux-6.2.5/arch/arm64/boot/dts/rockchip/Makefile	2023-03-12 16:09:47.344152254 +0100
+--- linux-6.2.5/arch/arm64/boot/dts/rockchip/Makefile	2023-03-15 10:53:09.924855783 +0100
++++ linux-6.2.5/arch/arm64/boot/dts/rockchip/Makefile	2023-03-15 10:51:44.738192226 +0100
 @@ -76,6 +76,7 @@
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-quartz64-b.dtb
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-roc-pc.dtb
@@ -11,8 +11,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.5/arch/arm64
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-soquartz-model-a.dtb
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.5/arch/arm64/boot/dts/rockchip/rk3566-urve-pi.dts linux-6.2.5/arch/arm64/boot/dts/rockchip/rk3566-urve-pi.dts
 --- linux-6.2.5/arch/arm64/boot/dts/rockchip/rk3566-urve-pi.dts	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.2.5/arch/arm64/boot/dts/rockchip/rk3566-urve-pi.dts	2023-03-12 16:11:14.884149054 +0100
-@@ -0,0 +1,540 @@
++++ linux-6.2.5/arch/arm64/boot/dts/rockchip/rk3566-urve-pi.dts	2023-03-13 17:12:54.590642809 +0100
+@@ -0,0 +1,619 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +
 +/*
@@ -127,15 +127,6 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.5/arch/arm64
 +		regulator-max-microvolt = <3300000>;
 +	};
 +
-+	vdd_cpu: vdd_cpu {
-+		compatible = "regulator-fixed";
-+		regulator-name = "vdd_cpu";
-+		regulator-always-on;
-+		regulator-boot-on;
-+		regulator-min-microvolt = <1150000>;
-+		regulator-max-microvolt = <1150000>;
-+	};
-+
 +	vdd_gpu: vdd_gpu {
 +		compatible = "regulator-fixed";
 +		regulator-name = "vdd_gpu";
@@ -188,6 +179,83 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.5/arch/arm64
 +		regulator-min-microvolt = <3300000>;
 +		regulator-max-microvolt = <3300000>;
 +		vin-supply = <&vcc_3v3>;
++	};
++
++	es8388-sound {
++		compatible = "simple-audio-card";
++		pinctrl-names = "default";
++		pinctrl-0 = <&hp_det_pin>;
++		simple-audio-card,name = "rockchip,es8388-codec";
++		simple-audio-card,format = "i2s";
++		simple-audio-card,mclk-fs = <256>;
++		simple-audio-card,widgets =
++			"Microphone", "Mic Jack",
++			"Headphone", "Headphones";
++		simple-audio-card,routing =
++			"LINPUT1", "Mic Jack",
++			"Headphone Amp INL", "LOUT2",
++			"Headphone Amp INR", "ROUT2",
++			"Headphones", "Headphone Amp OUTL",
++			"Headphones", "Headphone Amp OUTR";
++		simple-audio-card,hp-det-gpio = <&gpio3 RK_PD1 GPIO_ACTIVE_HIGH>;
++		simple-audio-card,pin-switches = "Headphones";
++
++		simple-audio-card,codec {
++			sound-dai = <&es8388>;
++		};
++
++		simple-audio-card,cpu {
++			sound-dai = <&i2s1_8ch>;
++		};
++	};
++
++};
++
++&i2c0 {
++	status = "okay";
++	vdd_cpu: tcs4525@1c {
++		compatible = "tcs,tcs4525";
++		reg = <0x1c>;
++		vin-supply = <&vcc_sys>;
++		regulator-name = "vdd_cpu";
++		regulator-min-microvolt = <712500>;
++		regulator-max-microvolt = <1390000>;
++		regulator-ramp-delay = <2300>;
++		fcs,suspend-voltage-selector = <1>;
++		regulator-boot-on;
++		regulator-always-on;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	// minimal rk817 declaration only for bluetooth clock
++	rk817: pmic@20 {
++		compatible = "rockchip,rk817";
++		reg = <0x20>;
++		#clock-cells = <1>;
++	};
++
++	hym8563: rtc@51 {
++		compatible = "haoyu,hym8563";
++		reg = <0x51>;
++		//interrupt-parent = <&gpio0>;
++		//interrupts = <RK_PD3 IRQ_TYPE_LEVEL_LOW>; todo - conflict with gpio
++		#clock-cells = <0>;
++		clock-output-names = "rtcic_32kout";
++		pinctrl-names = "default";
++		pinctrl-0 = <&hym8563_int>;
++		wakeup-source;
++	};
++
++	es8388: es8388@10 {
++		compatible = "everest,es8388", "everest,es8328";
++		reg = <0x10>;
++		clocks = <&cru MCLK_I2S1_8CH_TX>;
++		clock-names = "mclk";
++		pinctrl-names = "default";
++		pinctrl-0 = <&i2s1m0_mclk>;
++		#sound-dai-cells = <0>;
 +	};
 +};
 +
@@ -343,18 +411,17 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.5/arch/arm64
 +	};
 +};
 +
-+&i2c0 {
++&i2s0_8ch {
 +	status = "okay";
-+
-+	// minimal rk817 declaration only for bluetooth clock
-+	rk817: pmic@20 {
-+		compatible = "rockchip,rk817";
-+		reg = <0x20>;
-+		#clock-cells = <1>;
-+	};
 +};
 +
-+&i2s0_8ch {
++&i2s1_8ch {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2s1m0_sclktx
++		     &i2s1m0_lrcktx
++		     &i2s1m0_sdi0
++		     &i2s1m0_sdo0>;
++	rockchip,trcm-sync-tx-only;
 +	status = "okay";
 +};
 +
@@ -406,6 +473,18 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.5/arch/arm64
 +
 +		diy_led_enable_h: diy-led-enable-h {
 +			rockchip,pins = <0 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
++	es8388 {
++		hp_det_pin: hp-det-pin {
++			rockchip,pins = <3 RK_PD1 RK_FUNC_GPIO &pcfg_pull_down>;
++		};
++	};
++
++	hym8563 {
++		hym8563_int: hym8563-int {
++			rockchip,pins = <0 RK_PD3 RK_FUNC_GPIO &pcfg_pull_up>;
 +		};
 +	};
 +};
