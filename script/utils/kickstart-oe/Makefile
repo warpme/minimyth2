@@ -73,6 +73,8 @@ DISTFILES    = \
 	board-h616.t95.wks          \
 	board-h616.x96_mate.conf    \
 	board-h616.x96_mate.wks     \
+	board-h313.x96_q.conf       \
+	board-h313.x96_q.wks        \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \
