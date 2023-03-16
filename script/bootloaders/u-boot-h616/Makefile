@@ -10,6 +10,7 @@ PATCHFILES  += add-h616-tanix-tx6s-defconfig.patch
 PATCHFILES  += add-h616-x96-mate-defconfig.patch
 PATCHFILES  += add-h616-t95-defconfig.patch
 PATCHFILES  += sunxi-H616-GPU-enable-hack.patch
+PATCHFILES  += fix-h616-4gb-ram-detection.patch
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 
 LICENSE = GPL2

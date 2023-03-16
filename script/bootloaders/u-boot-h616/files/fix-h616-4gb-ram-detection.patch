@@ -1,0 +1,66 @@
+picked from mainline u-boot
+
+commit b8747854de7f4aaa8d8a60842c5a97358d4ad891
+Author: Andre Przywara <andre.przywara@arm.com>
+Date:   Wed Apr 28 21:29:55 2021 +0100
+
+    sunxi: H616: Enable full 4GB of DRAM
+    
+    The H616 is our first supported Allwinner SoC which goes beyond the 4GB
+    address space "barrier", by having more than 32 address bits.
+    
+    Lift the preliminary 3GB DRAM limit for the H616, and update the page
+    table setup on the way, to actually map that last GB as well.
+    
+    As not all devices are actually capable of dealing with more than 32
+    bits (the DMA in the EMAC for instance), we also limit U-Boot's own
+    DRAM usage to 4GB on the way.
+    
+    Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+
+diff --git a/arch/arm/mach-sunxi/Kconfig b/arch/arm/mach-sunxi/Kconfig
+index bc8509b72a..8e7aa8437d 100644
+--- a/arch/arm/mach-sunxi/Kconfig
++++ b/arch/arm/mach-sunxi/Kconfig
+@@ -190,10 +190,10 @@ config MACH_SUNXI_H3_H5
+ 	select SUPPORT_SPL
+ 
+ # TODO: try out A80's 8GiB DRAM space
+-# TODO: H616 supports 4 GiB DRAM space
+ config SUNXI_DRAM_MAX_SIZE
+ 	hex
+-	default 0xC0000000 if MACH_SUN50I || MACH_SUN50I_H5 || MACH_SUN50I_H6 || MACH_SUN50I_H616
++	default 0x100000000 if MACH_SUN50I_H616
++	default 0xC0000000 if MACH_SUN50I || MACH_SUN50I_H5 || MACH_SUN50I_H6
+ 	default 0x80000000
+ 
+ choice
+diff --git a/arch/arm/mach-sunxi/board.c b/arch/arm/mach-sunxi/board.c
+index 9b84132eda..e979e426dd 100644
+--- a/arch/arm/mach-sunxi/board.c
++++ b/arch/arm/mach-sunxi/board.c
+@@ -56,7 +56,7 @@ static struct mm_region sunxi_mem_map[] = {
+ 		/* RAM */
+ 		.virt = 0x40000000UL,
+ 		.phys = 0x40000000UL,
+-		.size = 0xC0000000UL,
++		.size = CONFIG_SUNXI_DRAM_MAX_SIZE,
+ 		.attrs = PTE_BLOCK_MEMTYPE(MT_NORMAL) |
+ 			 PTE_BLOCK_INNER_SHARE
+ 	}, {
+@@ -65,6 +65,15 @@ static struct mm_region sunxi_mem_map[] = {
+ 	}
+ };
+ struct mm_region *mem_map = sunxi_mem_map;
++
++ulong board_get_usable_ram_top(ulong total_size)
++{
++	/* Some devices (like the EMAC) have a 32-bit DMA limit. */
++	if (gd->ram_top > (1ULL << 32))
++		return 1ULL << 32;
++
++	return gd->ram_top;
++}
+ #endif
+ 
+ static int gpio_init(void)
