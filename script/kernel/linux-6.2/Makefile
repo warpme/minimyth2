@@ -147,6 +147,7 @@ PATCHFILES += 0632-arm64-dts-allwinner-h616-X96-mate-enable-ths-hdmi-usb.patch
 PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0634-arm64-dts-allwinner-h616-add-T95-TVbox.patch
 PATCHFILES += 0635-arm64-dts-allwinner-h616-OrangePI-Zero2-fix-hdmi-audio.patch
+PATCHFILES += 0636-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
 endif
 #------------------------------------------------------------
 
