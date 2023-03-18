@@ -10,10 +10,9 @@ PATCHFILES   = add-h313-x96-q-defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
-https://github.com/jernejsk/u-boot/archive/152d1a37b4856c23976cfd0758cab654b84336cd.zip
 ifeq (1,1)
-# https://github.com/iuncuim/u-boot/commits/h616-dram-lpddr3
-GARNAME      = u-boot-h313-20230227
+# https://github.com/jernejsk/u-boot/commits/h616-dram-imp
+GARNAME      = u-boot-h313-20221212
 GARVERSION   = 152d1a37b4856c23976cfd0758cab654b84336cd
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/jernejsk/u-boot/archive/
