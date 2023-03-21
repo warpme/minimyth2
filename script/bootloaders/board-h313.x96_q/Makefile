@@ -12,7 +12,7 @@ DISTFILES    = \
 
 # export mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
 # export mm_U-BOOT_BOARD_TYPE = h616_lpddr3_tvbox_defconfig
-export mm_U-BOOT_BOARD_TYPE = x96q_defconfig
+export mm_U-BOOT_BOARD_TYPE = x96q_v1_defconfig
 
 WORKSRC      = $(WORKDIR)
 
