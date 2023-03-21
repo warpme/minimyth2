@@ -94,7 +94,7 @@ This is general functionality avaliable on current code (Mainline Linux kernel)
 SoC           | Tested on        | WiFi Chip & Support                    | CEC Support | LED display | Sleep/Resume                   | Remarks                       |
 ------------- |------------------|----------------------------------------|-------------|-------------|--------------------------------|-------------------------------|
 Allwinner H6  | EachLink H6 Mini | works  (rtl8723bs@SDIO)                | works       | works       | works                          | well supported                |
-Allwinner H6  | TanixTX6         | works  (rtl8822cs@SDIO)                | works       | works       | works                          | well supported                |
+Allwinner H6  | TanixTX6         | works  (ap6330@SDIO)                   | works       | works       | works                          | well supported                |
 Allwinner H6  | TanixTX6-Mini    | works  (xr819@SDIO)                    | works       | n/a         | not works                      | well supported                |
 Allwinner H6  | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works       | n/a         | not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | works       | not works (firmware issue)     | some things are still missing |
