@@ -21,7 +21,7 @@ DISTFILES    = $(GARVERSION).zip
 PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
 PATCHFILES  += 50-add-h616-tanix-tx6s-defconfig.patch
 PATCHFILES  += 51-add-h616-t95-defconfig.patch
-PATCHFILES  += 52-add-h313-x96-q-defconfig.patch
+PATCHFILES  += 52-add-h313-x96-q-v1-defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
@@ -75,7 +75,7 @@ include ../../python3/python/package-api.mk
 
 # For forcing given board (usually for testing)
 # mm_U-BOOT_BOARD_TYPE = h616_lpddr3_tvbox_defconfig
-mm_U-BOOT_BOARD_TYPE = x96q_defconfig
+# mm_U-BOOT_BOARD_TYPE = x96q_v1_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
