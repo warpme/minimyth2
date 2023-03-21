@@ -122,8 +122,8 @@ PATCHFILES += 0587-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 PATCHFILES += 0588-arm64-dts-allwinner-enable-gpu-opp-multiple-boards.patch
 PATCHFILES += 0590-arm64-dts-allwinner-add-orangepi-3-lts.patch
 PATCHFILES += 0591-net-wireless-rtw88-sync-wireless-next-20230310.patch
-# https://patchwork.kernel.org/project/linux-wireless/list/?series=728886
-PATCHFILES += 0592-net-wireless-rtw88-add-SDIO-support-v2.patch
+# https://patchwork.kernel.org/project/linux-wireless/cover/20230320213508.2358213-1-martin.blumenstingl@googlemail.com/
+PATCHFILES += 0592-net-wireless-rtw88-add-SDIO-support-v3.patch
 endif
 #------------------------------------------------------------
 
@@ -148,6 +148,7 @@ PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0634-arm64-dts-allwinner-h616-add-T95-TVbox.patch
 PATCHFILES += 0635-arm64-dts-allwinner-h616-OrangePI-Zero2-fix-hdmi-audio.patch
 PATCHFILES += 0636-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
+PATCHFILES += 0637-drivers-mfd-axp20x-add-support-for-AXP313a-PMIC.patch
 endif
 #------------------------------------------------------------
 
