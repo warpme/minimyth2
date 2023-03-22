@@ -123,7 +123,7 @@ PATCHFILES += 0588-arm64-dts-allwinner-enable-gpu-opp-multiple-boards.patch
 PATCHFILES += 0590-arm64-dts-allwinner-add-orangepi-3-lts.patch
 PATCHFILES += 0591-net-wireless-rtw88-sync-wireless-next-20230310.patch
 # https://patchwork.kernel.org/project/linux-wireless/list/?series=728886
-PATCHFILES += 0592-net-wireless-rtw88-add-SDIO-support-v2.patch
+PATCHFILES += 0592-net-wireless-rtw88-add-SDIO-support-v3.patch
 endif
 #------------------------------------------------------------
 
@@ -147,6 +147,8 @@ PATCHFILES += 0632-arm64-dts-allwinner-h616-X96-mate-enable-ths-hdmi-usb.patch
 PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0634-arm64-dts-allwinner-h616-add-T95-TVbox.patch
 PATCHFILES += 0635-arm64-dts-allwinner-h616-OrangePI-Zero2-fix-hdmi-audio.patch
+PATCHFILES += 0636-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
+PATCHFILES += 0637-drivers-mfd-axp20x-add-support-for-AXP313a-PMIC.patch
 endif
 #------------------------------------------------------------
 
@@ -260,9 +262,13 @@ PATCHFILES += 1050-rockchip-add-SoC-headers-from-downstream-kernel.patch
 PATCHFILES += 1051-phy-rockchip-inno-usb2-update-from-downstream-kernel.patch
 PATCHFILES += 1052-arm64-dts-rockchip-rk3588-enable-usb2.patch
 PATCHFILES += 1054-arm64-dts-rockchip-enable-usb2-rock5x.patch
+# add audio support
+# https://patchwork.kernel.org/project/linux-rockchip/list/?series=732501
+PATCHFILES += 1061-arm64-dts-rockchip-rk3588s-Add-I2S-nodes.patch
+PATCHFILES += 1062-arm64-dts-rockchip-rk3588-Add-I2S-nodes.patch
+PATCHFILES += 1063-arm64-dts-rockchip-rk3588-rock-5b-Add-analog-audio.patch
 endif
 #------------------------------------------------------------
-
 
 endif
 

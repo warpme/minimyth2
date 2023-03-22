@@ -1,0 +1,3074 @@
+From patchwork Mon Mar 20 21:35:00 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Martin Blumenstingl
+ <martin.blumenstingl@googlemail.com>
+X-Patchwork-Id: 13181876
+X-Patchwork-Delegate: kvalo@adurom.com
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C02ECC7619A
+	for <linux-wireless@archiver.kernel.org>;
+ Mon, 20 Mar 2023 21:36:06 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S231131AbjCTVgF (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Mon, 20 Mar 2023 17:36:05 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38664 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230452AbjCTVgD (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Mon, 20 Mar 2023 17:36:03 -0400
+Received: from mail-ed1-x52d.google.com (mail-ed1-x52d.google.com
+ [IPv6:2a00:1450:4864:20::52d])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 4331B6A4E;
+        Mon, 20 Mar 2023 14:35:25 -0700 (PDT)
+Received: by mail-ed1-x52d.google.com with SMTP id h8so52326011ede.8;
+        Mon, 20 Mar 2023 14:35:25 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=googlemail.com; s=20210112; t=1679348123;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=iaA7NBVMrZmsPW6yrPvN7sDVRCh1/pGYAWSc+tho3oc=;
+        b=JP6xNb6/aBRNMVW7z1+GlK+izHX4lvOr8FQRzh/hI0CWbCmCUVkvTPgpybGFYhOw2s
+         WE8m4UsjMN4+3Y7UNtTX8laGbE88Lo5xXGJE0ZAA3mYnKT7HTafvw0gSyWL6GUEYscm7
+         qyQY+45cHQsJBQ9pVEXjVWfbima9fkz8qnfBCBYRE5kJb2F11JXh7g1CJsPJFYIFy95O
+         dlsiGtBGipO59fs1Iaep4NX27CPI3icbEsjuYiPLpaRIfD3wY/NDo+ULJph288FwUOQB
+         Q/pSaeQTjJYsRpTxaMFnIYGIgMwOqQ/aPtNpjNQ3N4ipE6KO7sraJSQUg7i8uncG4NnJ
+         hH/A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1679348123;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=iaA7NBVMrZmsPW6yrPvN7sDVRCh1/pGYAWSc+tho3oc=;
+        b=bDaUeRHfQiU+X3xzb3s2j9ZP6qkj8UmnOpxp4ctzNxQcxmzxXPW2SmPYip1534Rqkk
+         n5odr8XY85PtBaoLNI4bBWk9RZHzC+9w7uMusHvZSJTyOG4zi4Nt2r0lt1kNz983MZEY
+         fvcq4rXrvaa1ev4NsgtXNyRt7+CqLSB9dtDyx5RrZRaePrq3CSvcm03dCNTHwGrl1IQv
+         +jsTnUZMD7atIlNBOuURVw4MwMdueYEdRJHRFjRV/1vepsW90RK7M5V2bEIw6YfTmVvz
+         12spYnSJEJkNMjhyGfUVIrbOJmcvZP8KUsuGXYZSuCVs7yEManYvpxx2IgIH+IC2IQ5J
+         IwTg==
+X-Gm-Message-State: AO0yUKUFVIbHzNOax25bzFrUh/cdYr+SxH1Ov5B+LjX5bnEqk19qOCgH
+        AStHja2N+9edoUH0da+YA9Dg+IJA5ls=
+X-Google-Smtp-Source: 
+ AK7set91d0bsoDvXTT2gvnpK4a+8W6sDh86jOXRmRaTj8ONhwFSLkl28UlNXas3+qHr2gcY7/MBSiw==
+X-Received: by 2002:a17:906:578d:b0:92c:138e:ff1f with SMTP id
+ k13-20020a170906578d00b0092c138eff1fmr532251ejq.18.1679348123144;
+        Mon, 20 Mar 2023 14:35:23 -0700 (PDT)
+Received: from localhost.localdomain
+ (dynamic-2a01-0c22-73dd-8200-0000-0000-0000-0e63.c22.pool.telefonica.de.
+ [2a01:c22:73dd:8200::e63])
+        by smtp.googlemail.com with ESMTPSA id
+ z17-20020a5096d1000000b004aee4e2a56esm5413201eda.0.2023.03.20.14.35.22
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 20 Mar 2023 14:35:22 -0700 (PDT)
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+To: linux-wireless@vger.kernel.org
+Cc: Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>,
+        Ulf Hansson <ulf.hansson@linaro.org>,
+        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        linux-mmc@vger.kernel.org, Chris Morgan <macroalpha82@gmail.com>,
+        Nitin Gupta <nitin.gupta981@gmail.com>,
+        Neo Jou <neojou@gmail.com>, Pkshih <pkshih@realtek.com>,
+        Jernej Skrabec <jernej.skrabec@gmail.com>,
+        Larry Finger <Larry.Finger@lwfinger.net>,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Subject: [PATCH v3 1/9] wifi: rtw88: Clear RTW_FLAG_POWERON early in
+ rtw_mac_power_switch()
+Date: Mon, 20 Mar 2023 22:35:00 +0100
+Message-Id: <20230320213508.2358213-2-martin.blumenstingl@googlemail.com>
+X-Mailer: git-send-email 2.40.0
+In-Reply-To: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+References: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+The SDIO HCI implementation needs to know when the MAC is powered on.
+This is needed because 32-bit register access has to be split into 4x
+8-bit register access when the MAC is not fully powered on or while
+powering off. When the MAC is powered on 32-bit register access can be
+used to reduce the number of transfers but splitting into 4x 8-bit
+register access still works in that case.
+
+During the power on sequence is how RTW_FLAG_POWERON is only set when
+the power on sequence has completed successfully. During power off
+however RTW_FLAG_POWERON is set. This means that the upcoming SDIO HCI
+implementation does not know that it has to use 4x 8-bit register
+accessors. Clear the RTW_FLAG_POWERON flag early when powering off the
+MAC so the whole power off sequence is processed with RTW_FLAG_POWERON
+unset. This will make it possible to use the RTW_FLAG_POWERON flag in
+the upcoming SDIO HCI implementation.
+
+Note that a failure in rtw_pwr_seq_parser() while applying
+chip->pwr_off_seq can theoretically result in the RTW_FLAG_POWERON
+flag being cleared while the chip is still powered on. However,
+depending on when the failure occurs in the power off sequence the
+chip may be on or off. Even the original approach of clearing
+RTW_FLAG_POWERON only when the power off sequence has been applied
+successfully could end up in some corner case where the chip is
+powered off but RTW_FLAG_POWERON was not cleared.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+Changes since v2:
+- improve patch description about corner cases when clearing
+  RTW_FLAG_POWERON
+
+Changes since v1:
+- This replaces a previous patch called "rtw88: hci: Add an optional
+  power_switch() callback to rtw_hci_ops" which added a new callback
+  to the HCI ops.
+
+
+ drivers/net/wireless/realtek/rtw88/mac.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/mac.c b/drivers/net/wireless/realtek/rtw88/mac.c
+index f3a566cf979b..cfdfc8a2c836 100644
+--- a/drivers/net/wireless/realtek/rtw88/mac.c
++++ b/drivers/net/wireless/realtek/rtw88/mac.c
+@@ -273,6 +273,9 @@ static int rtw_mac_power_switch(struct rtw_dev *rtwdev, bool pwr_on)
+ 	if (pwr_on == cur_pwr)
+ 		return -EALREADY;
+ 
++	if (!pwr_on)
++		clear_bit(RTW_FLAG_POWERON, rtwdev->flags);
++
+ 	pwr_seq = pwr_on ? chip->pwr_on_seq : chip->pwr_off_seq;
+ 	ret = rtw_pwr_seq_parser(rtwdev, pwr_seq);
+ 	if (ret)
+@@ -280,8 +283,6 @@ static int rtw_mac_power_switch(struct rtw_dev *rtwdev, bool pwr_on)
+ 
+ 	if (pwr_on)
+ 		set_bit(RTW_FLAG_POWERON, rtwdev->flags);
+-	else
+-		clear_bit(RTW_FLAG_POWERON, rtwdev->flags);
+ 
+ 	return 0;
+ }
+
+From patchwork Mon Mar 20 21:35:01 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Martin Blumenstingl
+ <martin.blumenstingl@googlemail.com>
+X-Patchwork-Id: 13181879
+X-Patchwork-Delegate: kvalo@adurom.com
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 5DFE1C6FD1D
+	for <linux-wireless@archiver.kernel.org>;
+ Mon, 20 Mar 2023 21:36:17 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S229849AbjCTVgO (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Mon, 20 Mar 2023 17:36:14 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39138 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231127AbjCTVgI (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Mon, 20 Mar 2023 17:36:08 -0400
+Received: from mail-ed1-x529.google.com (mail-ed1-x529.google.com
+ [IPv6:2a00:1450:4864:20::529])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 8C6B07ABA;
+        Mon, 20 Mar 2023 14:35:28 -0700 (PDT)
+Received: by mail-ed1-x529.google.com with SMTP id cn12so6722938edb.4;
+        Mon, 20 Mar 2023 14:35:28 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=googlemail.com; s=20210112; t=1679348125;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=WkEZc2r47E6kw29IjPJtYPDvGYh1w4KwIdTyZ6Th/6g=;
+        b=n4ygI8hlObgVngDSrknDRpEEu1HFfnUOUa6DrCA2vqL5WjRzhyPeTNkZIh0C3nBg2H
+         h2rbrLgQsbwbOnpt18hxQqbTNfw+5Xg2DspFlbfgEdeZZGbc3daVWHJXRXMkrN+4bRxM
+         bHow8Ia+ayIt7C0zii/6E+0y6Czg6wuKMOSQkB5UBNpx1C7rfm1IgoMXcGPEi34HjrIK
+         OgNPmWOggegSZIgBOyXh93+g/ELg6Oefux+QMFzi1pqMhkmiazqCtVj+A7sh/Ru1Qcik
+         4B+BlpzsM4e+vwrUyqZoV2icdpXHkhBTjf5Sc+Jt0g4zLbUcyDlrm8r/l/VN5e8UEoIT
+         8iRA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1679348125;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=WkEZc2r47E6kw29IjPJtYPDvGYh1w4KwIdTyZ6Th/6g=;
+        b=XSRube5kB4XYxbvkurX3WWU2GOdxkVFnq5nWHazDqJLaGdQQNIeD0T2kVJwD54hlpk
+         Iiy3gkUTXJGVmJY1zrRcHRJJqW/9HrjbtOWxwUJExiyoA2ppn0cNjqlYaMN74eDDj/EH
+         4NX1OpYXs+a3EBqgJ4CKjot+f6Pox5ZCiab1iWNN8bT3Cn25IlvIDx1m+HexsAHKjFki
+         HRH6c3eKy0Fu0kdtYE7Z7+NNhQFIxq6wbinGq/0fTYY5KSsiFlbNq+fFr73QTy16QpFY
+         47kly0Sw1bs0xmOJ6k9P60EMQu4NEI5wbL42w7pIL9C6AsQIOd1BtqZeiJEW4HJjUWP6
+         r7IA==
+X-Gm-Message-State: AO0yUKVGKOol01RbPA470dpcuOAChNnUZL6pARdgwToRoY21a7lQoY2H
+        CUlwBBFdlK8JnQ9T4VU9HR2qhdak/kg=
+X-Google-Smtp-Source: 
+ AK7set98bONpKqXrDeZtKJA2FYlE0/Ic2sTH3kI57c3DgQu6uypXOTN3VdUEdqJO/2TgHrLFU/E17Q==
+X-Received: by 2002:a05:6402:1116:b0:4ac:b528:5727 with SMTP id
+ u22-20020a056402111600b004acb5285727mr1199453edv.1.1679348124284;
+        Mon, 20 Mar 2023 14:35:24 -0700 (PDT)
+Received: from localhost.localdomain
+ (dynamic-2a01-0c22-73dd-8200-0000-0000-0000-0e63.c22.pool.telefonica.de.
+ [2a01:c22:73dd:8200::e63])
+        by smtp.googlemail.com with ESMTPSA id
+ z17-20020a5096d1000000b004aee4e2a56esm5413201eda.0.2023.03.20.14.35.23
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 20 Mar 2023 14:35:23 -0700 (PDT)
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+To: linux-wireless@vger.kernel.org
+Cc: Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>,
+        Ulf Hansson <ulf.hansson@linaro.org>,
+        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        linux-mmc@vger.kernel.org, Chris Morgan <macroalpha82@gmail.com>,
+        Nitin Gupta <nitin.gupta981@gmail.com>,
+        Neo Jou <neojou@gmail.com>, Pkshih <pkshih@realtek.com>,
+        Jernej Skrabec <jernej.skrabec@gmail.com>,
+        Larry Finger <Larry.Finger@lwfinger.net>,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Subject: [PATCH v3 2/9] wifi: rtw88: sdio: Add HCI implementation for SDIO
+ based chipsets
+Date: Mon, 20 Mar 2023 22:35:01 +0100
+Message-Id: <20230320213508.2358213-3-martin.blumenstingl@googlemail.com>
+X-Mailer: git-send-email 2.40.0
+In-Reply-To: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+References: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+Add a sub-driver for SDIO based chipsets which implements the following
+functionality:
+- register accessors for 8, 16 and 32 bits for all states of the card
+  (including usage of 4x 8 bit access for one 32 bit buffer if the card
+  is not fully powered on yet - or if it's fully powered on then 1x 32
+  bit access is used)
+- checking whether there's space in the TX FIFO queue to transmit data
+- transfers from the host to the device for actual network traffic,
+  reserved pages (for firmware download) and H2C (host-to-card)
+  transfers
+- receiving data from the device
+- deep power saving state
+
+The transmit path is optimized so DMA-capable SDIO host controllers can
+directly use the buffers provided because the buffer's physical
+addresses are 8 byte aligned.
+
+The receive path is prepared to support RX aggregation where the
+chipset combines multiple MAC frames into one bigger buffer to reduce
+SDIO transfer overhead.
+
+Co-developed-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+Reviewed-by: Ulf Hansson <ulf.hansson@linaro.org>
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+Changes since v2:
+- add sdio.h include in patch 2 already (instead of patch 3) as
+  suggested by Larry Finger (thank you!) so the build doesn't break
+  during bisect
+- move #include "main.h" from sdio.h to sdio.c
+- sort includes in sdio.c alphabetically as suggested by Ping-Ke
+  (except main.h, which must be included before other rtw88 headers)
+- don't use memcpy to copy struct ieee80211_rx_status in
+  rtw_sdio_rx_skb() as suggested by Ping-Ke
+- prevent infinite looping in rtw_sdio_rx_isr() by limiting the number
+  of bytes to process for one interrupt (if more bytes need to be
+  received the interrupt will immediately fire again - tested by
+  limiting to one transfer, which then hurt RX performance a lot as it
+  went down from 19Mbit/s to 0.5Mbit/s). 64k was chosen as it doesn't
+  hurt RX performance and still prevents infinite loops
+- don't disable RX aggregation for RTL8822CS anymore (either the most
+  recent firmware v9.9.14 had some impact on this or an update of my
+  main AP's firmware improved this) the RX throughput is within 5%
+  regardless of whether RX aggregation is enabled or disabled
+- fix suspend/resume cycle by enabling MMC_PM_KEEP_POWER in
+  rtw_sdio_suspend() as for example reported by Chris Morgan
+- fix smatch false positive "uninitialized symbol 'ret'" in
+  rtw_sdio_read_indirect_bytes() by initializing ret to 0 (Ping-Ke
+  suggested that it may be because "it considers 'count = 0' is
+  possible"). Thanks for the suggestion!
+
+Changes since v1:
+- fixed size_t printk format in rtw_sdio_{read,write}_port as reported
+  by the Intel kernel test robot
+- return -EINVAL from the 11n wcpu case in rtw_sdio_check_free_txpg to
+  fix an uninitialized variable (pages_free) warning as reported by
+  the Intel kernel test robot
+- rename all int *ret to int *err_ret for better consistency with the
+  sdio_readX functions as suggested by Ping-Ke
+- fix typos to use "if (!*err_ret ..." (to read the error code)
+  instead of "if (!err_ret ..." (which just checks if a non-null
+  pointer was passed) in rtw_sdio_read_indirect{8,32})
+- use a u8 tmp variable for reading the indirect status (BIT(4)) in
+  rtw_sdio_read_indirect32
+- change buf[0] to buf[i] in rtw_sdio_read_indirect_bytes
+- remove stray semicolon after rtw_sdio_get_tx_qsel
+- add proper BIT_RXDMA_AGG_PG_TH, BIT_DMA_AGG_TO_V1, BIT_HCI_SUS_REQ,
+  BIT_HCI_RESUME_RDY and BIT_SDIO_PAD_E5 macros as suggested by
+  Ping-Ke (thanks for sharing these names!)
+- use /* ... */ style for copyright comments
+- don't infinitely loop in rtw_sdio_process_tx_queue and limit the
+  number of skbs to process per queue to 1000 in rtw_sdio_tx_handler
+- add bus_claim check to rtw_sdio_read_port() so it works similar to
+  rtw_sdio_write_port() (meaning it can be used from interrupt and
+  non interrupt context)
+- enable RX aggregation on all chips except RTL8822CS (where it hurts
+  RX performance)
+- use rtw_tx_fill_txdesc_checksum() helper instead of open-coding it
+- re-use RTW_FLAG_POWERON instead of a new .power_switch callback
+- added Ulf's Reviewed-by (who had a look at the SDIO specific bits,
+  thank you!)
+
+
+ drivers/net/wireless/realtek/rtw88/Kconfig  |    3 +
+ drivers/net/wireless/realtek/rtw88/Makefile |    3 +
+ drivers/net/wireless/realtek/rtw88/debug.h  |    1 +
+ drivers/net/wireless/realtek/rtw88/mac.c    |    1 +
+ drivers/net/wireless/realtek/rtw88/mac.h    |    1 -
+ drivers/net/wireless/realtek/rtw88/reg.h    |   12 +
+ drivers/net/wireless/realtek/rtw88/sdio.c   | 1252 +++++++++++++++++++
+ drivers/net/wireless/realtek/rtw88/sdio.h   |  173 +++
+ 8 files changed, 1445 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/net/wireless/realtek/rtw88/sdio.c
+ create mode 100644 drivers/net/wireless/realtek/rtw88/sdio.h
+
+diff --git a/drivers/net/wireless/realtek/rtw88/Kconfig b/drivers/net/wireless/realtek/rtw88/Kconfig
+index 651ab56d9c6b..cdf9cb478ee2 100644
+--- a/drivers/net/wireless/realtek/rtw88/Kconfig
++++ b/drivers/net/wireless/realtek/rtw88/Kconfig
+@@ -16,6 +16,9 @@ config RTW88_CORE
+ config RTW88_PCI
+ 	tristate
+ 
++config RTW88_SDIO
++	tristate
++
+ config RTW88_USB
+ 	tristate
+ 
+diff --git a/drivers/net/wireless/realtek/rtw88/Makefile b/drivers/net/wireless/realtek/rtw88/Makefile
+index fe7293ee87b4..892cad60ba31 100644
+--- a/drivers/net/wireless/realtek/rtw88/Makefile
++++ b/drivers/net/wireless/realtek/rtw88/Makefile
+@@ -59,5 +59,8 @@ rtw88_8821cu-objs		:= rtw8821cu.o
+ obj-$(CONFIG_RTW88_PCI)		+= rtw88_pci.o
+ rtw88_pci-objs			:= pci.o
+ 
++obj-$(CONFIG_RTW88_SDIO)	+= rtw88_sdio.o
++rtw88_sdio-objs			:= sdio.o
++
+ obj-$(CONFIG_RTW88_USB)		+= rtw88_usb.o
+ rtw88_usb-objs			:= usb.o
+diff --git a/drivers/net/wireless/realtek/rtw88/debug.h b/drivers/net/wireless/realtek/rtw88/debug.h
+index 066792dd96af..a9149c6c2b48 100644
+--- a/drivers/net/wireless/realtek/rtw88/debug.h
++++ b/drivers/net/wireless/realtek/rtw88/debug.h
+@@ -24,6 +24,7 @@ enum rtw_debug_mask {
+ 	RTW_DBG_ADAPTIVITY	= 0x00008000,
+ 	RTW_DBG_HW_SCAN		= 0x00010000,
+ 	RTW_DBG_STATE		= 0x00020000,
++	RTW_DBG_SDIO		= 0x00040000,
+ 
+ 	RTW_DBG_ALL		= 0xffffffff
+ };
+diff --git a/drivers/net/wireless/realtek/rtw88/mac.c b/drivers/net/wireless/realtek/rtw88/mac.c
+index cfdfc8a2c836..2fcba43a6f72 100644
+--- a/drivers/net/wireless/realtek/rtw88/mac.c
++++ b/drivers/net/wireless/realtek/rtw88/mac.c
+@@ -7,6 +7,7 @@
+ #include "reg.h"
+ #include "fw.h"
+ #include "debug.h"
++#include "sdio.h"
+ 
+ void rtw_set_channel_mac(struct rtw_dev *rtwdev, u8 channel, u8 bw,
+ 			 u8 primary_ch_idx)
+diff --git a/drivers/net/wireless/realtek/rtw88/mac.h b/drivers/net/wireless/realtek/rtw88/mac.h
+index 3172aa5ac4de..58c3dccc14bb 100644
+--- a/drivers/net/wireless/realtek/rtw88/mac.h
++++ b/drivers/net/wireless/realtek/rtw88/mac.h
+@@ -7,7 +7,6 @@
+ 
+ #define RTW_HW_PORT_NUM		5
+ #define cut_version_to_mask(cut) (0x1 << ((cut) + 1))
+-#define SDIO_LOCAL_OFFSET	0x10250000
+ #define DDMA_POLLING_COUNT	1000
+ #define C2H_PKT_BUF		256
+ #define REPORT_BUF		128
+diff --git a/drivers/net/wireless/realtek/rtw88/reg.h b/drivers/net/wireless/realtek/rtw88/reg.h
+index 8852b24d6c2a..2a2ae2081f34 100644
+--- a/drivers/net/wireless/realtek/rtw88/reg.h
++++ b/drivers/net/wireless/realtek/rtw88/reg.h
+@@ -87,6 +87,7 @@
+ #define BIT_LTE_MUX_CTRL_PATH	BIT(26)
+ #define REG_HCI_OPT_CTRL	0x0074
+ #define BIT_USB_SUS_DIS		BIT(8)
++#define BIT_SDIO_PAD_E5		BIT(18)
+ 
+ #define REG_AFE_CTRL_4		0x0078
+ #define BIT_CK320M_AFE_EN	BIT(4)
+@@ -185,6 +186,9 @@
+ 	(((x) & BIT_MASK_TXDMA_VIQ_MAP) << BIT_SHIFT_TXDMA_VIQ_MAP)
+ #define REG_TXDMA_PQ_MAP	0x010C
+ #define BIT_RXDMA_ARBBW_EN	BIT(0)
++#define BIT_RXSHFT_EN		BIT(1)
++#define BIT_RXDMA_AGG_EN	BIT(2)
++#define BIT_TXDMA_BW_EN		BIT(3)
+ #define BIT_SHIFT_TXDMA_BEQ_MAP	8
+ #define BIT_MASK_TXDMA_BEQ_MAP	0x3
+ #define BIT_TXDMA_BEQ_MAP(x)                                                   \
+@@ -283,10 +287,18 @@
+ #define REG_H2C_TAIL		0x0248
+ #define REG_H2C_READ_ADDR	0x024C
+ #define REG_H2C_INFO		0x0254
++#define REG_RXDMA_AGG_PG_TH	0x0280
++#define BIT_RXDMA_AGG_PG_TH	GENMASK(7, 0)
++#define BIT_DMA_AGG_TO_V1	GENMASK(15, 8)
++#define BIT_EN_PRE_CALC		BIT(29)
+ #define REG_RXPKT_NUM		0x0284
+ #define BIT_RXDMA_REQ		BIT(19)
+ #define BIT_RW_RELEASE		BIT(18)
+ #define BIT_RXDMA_IDLE		BIT(17)
++#define REG_RXDMA_STATUS	0x0288
++#define REG_RXDMA_DPR		0x028C
++#define REG_RXDMA_MODE		0x0290
++#define BIT_DMA_MODE		BIT(1)
+ #define REG_RXPKTNUM		0x02B0
+ 
+ #define REG_INT_MIG		0x0304
+diff --git a/drivers/net/wireless/realtek/rtw88/sdio.c b/drivers/net/wireless/realtek/rtw88/sdio.c
+new file mode 100644
+index 000000000000..fbbd247a6634
+--- /dev/null
++++ b/drivers/net/wireless/realtek/rtw88/sdio.c
+@@ -0,0 +1,1252 @@
++// SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
++/* Copyright (C) 2021 Martin Blumenstingl <martin.blumenstingl@googlemail.com>
++ * Copyright (C) 2021 Jernej Skrabec <jernej.skrabec@gmail.com>
++ *
++ * Based on rtw88/pci.c:
++ *   Copyright(c) 2018-2019  Realtek Corporation
++ */
++
++#include <linux/module.h>
++#include <linux/mmc/host.h>
++#include <linux/mmc/sdio_func.h>
++#include "main.h"
++#include "debug.h"
++#include "fw.h"
++#include "ps.h"
++#include "reg.h"
++#include "rx.h"
++#include "sdio.h"
++#include "tx.h"
++
++#define RTW_SDIO_INDIRECT_RW_RETRIES		50
++
++static bool rtw_sdio_is_bus_addr(u32 addr)
++{
++	return (addr & RTW_SDIO_BUS_MSK) != 0;
++}
++
++static bool rtw_sdio_bus_claim_needed(struct rtw_sdio *rtwsdio)
++{
++	return !rtwsdio->irq_thread ||
++	       rtwsdio->irq_thread != current;
++}
++
++static u32 rtw_sdio_to_bus_offset(struct rtw_dev *rtwdev, u32 addr)
++{
++	switch (addr & RTW_SDIO_BUS_MSK) {
++	case WLAN_IOREG_OFFSET:
++		addr &= WLAN_IOREG_REG_MSK;
++		addr |= FIELD_PREP(REG_SDIO_CMD_ADDR_MSK,
++				   REG_SDIO_CMD_ADDR_MAC_REG);
++		break;
++	case SDIO_LOCAL_OFFSET:
++		addr &= SDIO_LOCAL_REG_MSK;
++		addr |= FIELD_PREP(REG_SDIO_CMD_ADDR_MSK,
++				   REG_SDIO_CMD_ADDR_SDIO_REG);
++		break;
++	default:
++		rtw_warn(rtwdev, "Cannot convert addr 0x%08x to bus offset",
++			 addr);
++	}
++
++	return addr;
++}
++
++static bool rtw_sdio_use_32bit_io(struct rtw_dev *rtwdev, u32 addr)
++{
++	return IS_ALIGNED(addr, 4) && test_bit(RTW_FLAG_POWERON, rtwdev->flags);
++}
++
++static void rtw_sdio_writel(struct rtw_dev *rtwdev, u32 val, u32 addr,
++			    int *err_ret)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	u8 buf[4];
++	int i;
++
++	if (rtw_sdio_use_32bit_io(rtwdev, addr)) {
++		sdio_writel(rtwsdio->sdio_func, val, addr, err_ret);
++		return;
++	}
++
++	*(__le32 *)buf = cpu_to_le32(val);
++
++	for (i = 0; i < 4; i++) {
++		sdio_writeb(rtwsdio->sdio_func, buf[i], addr + i, err_ret);
++		if (*err_ret)
++			return;
++	}
++}
++
++static u32 rtw_sdio_readl(struct rtw_dev *rtwdev, u32 addr, int *err_ret)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	u8 buf[4];
++	int i;
++
++	if (rtw_sdio_use_32bit_io(rtwdev, addr))
++		return sdio_readl(rtwsdio->sdio_func, addr, err_ret);
++
++	for (i = 0; i < 4; i++) {
++		buf[i] = sdio_readb(rtwsdio->sdio_func, addr + i, err_ret);
++		if (*err_ret)
++			return 0;
++	}
++
++	return le32_to_cpu(*(__le32 *)buf);
++}
++
++static u8 rtw_sdio_read_indirect8(struct rtw_dev *rtwdev, u32 addr,
++				  int *err_ret)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	u32 reg_cfg, reg_data;
++	int retry;
++	u8 tmp;
++
++	reg_cfg = rtw_sdio_to_bus_offset(rtwdev, REG_SDIO_INDIRECT_REG_CFG);
++	reg_data = rtw_sdio_to_bus_offset(rtwdev, REG_SDIO_INDIRECT_REG_DATA);
++
++	rtw_sdio_writel(rtwdev, BIT(19) | addr, reg_cfg, err_ret);
++	if (*err_ret)
++		return 0;
++
++	for (retry = 0; retry < RTW_SDIO_INDIRECT_RW_RETRIES; retry++) {
++		tmp = sdio_readb(rtwsdio->sdio_func, reg_cfg + 2, err_ret);
++		if (!*err_ret && tmp & BIT(4))
++			break;
++	}
++
++	if (*err_ret)
++		return 0;
++
++	return sdio_readb(rtwsdio->sdio_func, reg_data, err_ret);
++}
++
++static int rtw_sdio_read_indirect_bytes(struct rtw_dev *rtwdev, u32 addr,
++					u8 *buf, int count)
++{
++	int i, ret = 0;
++
++	for (i = 0; i < count; i++) {
++		buf[i] = rtw_sdio_read_indirect8(rtwdev, addr + i, &ret);
++		if (ret)
++			break;
++	}
++
++	return ret;
++}
++
++static u32 rtw_sdio_read_indirect32(struct rtw_dev *rtwdev, u32 addr,
++				    int *err_ret)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	u32 reg_cfg, reg_data;
++	int retry;
++	u8 tmp;
++
++	reg_cfg = rtw_sdio_to_bus_offset(rtwdev, REG_SDIO_INDIRECT_REG_CFG);
++	reg_data = rtw_sdio_to_bus_offset(rtwdev, REG_SDIO_INDIRECT_REG_DATA);
++
++	rtw_sdio_writel(rtwdev, BIT(19) | BIT(17) | addr, reg_cfg, err_ret);
++	if (*err_ret)
++		return 0;
++
++	for (retry = 0; retry < RTW_SDIO_INDIRECT_RW_RETRIES; retry++) {
++		tmp = sdio_readb(rtwsdio->sdio_func, reg_cfg + 2, err_ret);
++		if (!*err_ret && (tmp & BIT(4)))
++			break;
++	}
++
++	if (*err_ret)
++		return 0;
++
++	return rtw_sdio_readl(rtwdev, reg_data, err_ret);
++}
++
++static u8 rtw_sdio_read8(struct rtw_dev *rtwdev, u32 addr)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	bool direct, bus_claim;
++	int ret;
++	u8 val;
++
++	bus_claim = rtw_sdio_bus_claim_needed(rtwsdio);
++	direct = rtw_sdio_is_bus_addr(addr);
++
++	if (bus_claim)
++		sdio_claim_host(rtwsdio->sdio_func);
++
++	if (direct) {
++		addr = rtw_sdio_to_bus_offset(rtwdev, addr);
++		val = sdio_readb(rtwsdio->sdio_func, addr, &ret);
++	} else {
++		val = rtw_sdio_read_indirect8(rtwdev, addr, &ret);
++	}
++
++	if (bus_claim)
++		sdio_release_host(rtwsdio->sdio_func);
++
++	if (ret)
++		rtw_warn(rtwdev, "sdio read8 failed (0x%x): %d", addr, ret);
++
++	return val;
++}
++
++static u16 rtw_sdio_read16(struct rtw_dev *rtwdev, u32 addr)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	bool direct, bus_claim;
++	u8 buf[2];
++	int ret;
++	u16 val;
++
++	bus_claim = rtw_sdio_bus_claim_needed(rtwsdio);
++	direct = rtw_sdio_is_bus_addr(addr);
++
++	if (bus_claim)
++		sdio_claim_host(rtwsdio->sdio_func);
++
++	if (direct) {
++		addr = rtw_sdio_to_bus_offset(rtwdev, addr);
++		buf[0] = sdio_readb(rtwsdio->sdio_func, addr, &ret);
++		if (!ret)
++			buf[1] = sdio_readb(rtwsdio->sdio_func, addr + 1, &ret);
++		val = le16_to_cpu(*(__le16 *)buf);
++	} else if (addr & 1) {
++		ret = rtw_sdio_read_indirect_bytes(rtwdev, addr, buf, 2);
++		val = le16_to_cpu(*(__le16 *)buf);
++	} else {
++		val = rtw_sdio_read_indirect32(rtwdev, addr, &ret);
++	}
++
++	if (bus_claim)
++		sdio_release_host(rtwsdio->sdio_func);
++
++	if (ret)
++		rtw_warn(rtwdev, "sdio read16 failed (0x%x): %d", addr, ret);
++
++	return val;
++}
++
++static u32 rtw_sdio_read32(struct rtw_dev *rtwdev, u32 addr)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	bool direct, bus_claim;
++	u8 buf[4];
++	u32 val;
++	int ret;
++
++	bus_claim = rtw_sdio_bus_claim_needed(rtwsdio);
++	direct = rtw_sdio_is_bus_addr(addr);
++
++	if (bus_claim)
++		sdio_claim_host(rtwsdio->sdio_func);
++
++	if (direct) {
++		addr = rtw_sdio_to_bus_offset(rtwdev, addr);
++		val = rtw_sdio_readl(rtwdev, addr, &ret);
++	} else if (addr & 3) {
++		ret = rtw_sdio_read_indirect_bytes(rtwdev, addr, buf, 4);
++		val = le32_to_cpu(*(__le32 *)buf);
++	} else {
++		val = rtw_sdio_read_indirect32(rtwdev, addr, &ret);
++	}
++
++	if (bus_claim)
++		sdio_release_host(rtwsdio->sdio_func);
++
++	if (ret)
++		rtw_warn(rtwdev, "sdio read32 failed (0x%x): %d", addr, ret);
++
++	return val;
++}
++
++static u32 rtw_sdio_to_write_address(struct rtw_dev *rtwdev, u32 addr)
++{
++	if (!rtw_sdio_is_bus_addr(addr))
++		addr |= WLAN_IOREG_OFFSET;
++
++	return rtw_sdio_to_bus_offset(rtwdev, addr);
++}
++
++static void rtw_sdio_write8(struct rtw_dev *rtwdev, u32 addr, u8 val)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	bool bus_claim;
++	int ret;
++
++	addr = rtw_sdio_to_write_address(rtwdev, addr);
++	bus_claim = rtw_sdio_bus_claim_needed(rtwsdio);
++
++	if (bus_claim)
++		sdio_claim_host(rtwsdio->sdio_func);
++
++	sdio_writeb(rtwsdio->sdio_func, val, addr, &ret);
++
++	if (bus_claim)
++		sdio_release_host(rtwsdio->sdio_func);
++
++	if (ret)
++		rtw_warn(rtwdev, "sdio write8 failed (0x%x): %d", addr, ret);
++}
++
++static void rtw_sdio_write16(struct rtw_dev *rtwdev, u32 addr, u16 val)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	bool bus_claim;
++	int ret;
++
++	addr = rtw_sdio_to_write_address(rtwdev, addr);
++	bus_claim = rtw_sdio_bus_claim_needed(rtwsdio);
++
++	if (bus_claim)
++		sdio_claim_host(rtwsdio->sdio_func);
++
++	sdio_writeb(rtwsdio->sdio_func, val, addr, &ret);
++	if (!ret)
++		sdio_writeb(rtwsdio->sdio_func, val >> 8, addr + 1, &ret);
++
++	if (bus_claim)
++		sdio_release_host(rtwsdio->sdio_func);
++
++	if (ret)
++		rtw_warn(rtwdev, "sdio write16 failed (0x%x): %d", addr, ret);
++}
++
++static void rtw_sdio_write32(struct rtw_dev *rtwdev, u32 addr, u32 val)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	bool bus_claim;
++	int ret;
++
++	addr = rtw_sdio_to_write_address(rtwdev, addr);
++	bus_claim = rtw_sdio_bus_claim_needed(rtwsdio);
++
++	if (bus_claim)
++		sdio_claim_host(rtwsdio->sdio_func);
++
++	rtw_sdio_writel(rtwdev, val, addr, &ret);
++
++	if (bus_claim)
++		sdio_release_host(rtwsdio->sdio_func);
++
++	if (ret)
++		rtw_warn(rtwdev, "sdio write32 failed (0x%x): %d", addr, ret);
++}
++
++static u32 rtw_sdio_get_tx_addr(struct rtw_dev *rtwdev, size_t size,
++				enum rtw_tx_queue_type queue)
++{
++	u32 txaddr;
++
++	switch (queue) {
++	case RTW_TX_QUEUE_BCN:
++	case RTW_TX_QUEUE_H2C:
++	case RTW_TX_QUEUE_HI0:
++		txaddr = FIELD_PREP(REG_SDIO_CMD_ADDR_MSK,
++				    REG_SDIO_CMD_ADDR_TXFF_HIGH);
++		break;
++	case RTW_TX_QUEUE_VI:
++	case RTW_TX_QUEUE_VO:
++		txaddr = FIELD_PREP(REG_SDIO_CMD_ADDR_MSK,
++				    REG_SDIO_CMD_ADDR_TXFF_NORMAL);
++		break;
++	case RTW_TX_QUEUE_BE:
++	case RTW_TX_QUEUE_BK:
++		txaddr = FIELD_PREP(REG_SDIO_CMD_ADDR_MSK,
++				    REG_SDIO_CMD_ADDR_TXFF_LOW);
++		break;
++	case RTW_TX_QUEUE_MGMT:
++		txaddr = FIELD_PREP(REG_SDIO_CMD_ADDR_MSK,
++				    REG_SDIO_CMD_ADDR_TXFF_EXTRA);
++		break;
++	default:
++		rtw_warn(rtwdev, "Unsupported queue for TX addr: 0x%02x\n",
++			 queue);
++		return 0;
++	}
++
++	txaddr += DIV_ROUND_UP(size, 4);
++
++	return txaddr;
++};
++
++static int rtw_sdio_read_port(struct rtw_dev *rtwdev, u8 *buf, size_t count)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	bool bus_claim = rtw_sdio_bus_claim_needed(rtwsdio);
++	u32 rxaddr = rtwsdio->rx_addr++;
++	int ret;
++
++	if (bus_claim)
++		sdio_claim_host(rtwsdio->sdio_func);
++
++	ret = sdio_memcpy_fromio(rtwsdio->sdio_func, buf,
++				 RTW_SDIO_ADDR_RX_RX0FF_GEN(rxaddr), count);
++	if (ret)
++		rtw_warn(rtwdev,
++			 "Failed to read %zu byte(s) from SDIO port 0x%08x",
++			 count, rxaddr);
++
++	if (bus_claim)
++		sdio_release_host(rtwsdio->sdio_func);
++
++	return ret;
++}
++
++static int rtw_sdio_check_free_txpg(struct rtw_dev *rtwdev, u8 queue,
++				    size_t count)
++{
++	unsigned int pages_free, pages_needed;
++
++	if (rtw_chip_wcpu_11n(rtwdev)) {
++		u32 free_txpg;
++
++		free_txpg = rtw_sdio_read32(rtwdev, REG_SDIO_FREE_TXPG);
++
++		switch (queue) {
++		case RTW_TX_QUEUE_BCN:
++		case RTW_TX_QUEUE_H2C:
++		case RTW_TX_QUEUE_HI0:
++		case RTW_TX_QUEUE_MGMT:
++			/* high */
++			pages_free = free_txpg & 0xff;
++			break;
++		case RTW_TX_QUEUE_VI:
++		case RTW_TX_QUEUE_VO:
++			/* normal */
++			pages_free = (free_txpg >> 8) & 0xff;
++			break;
++		case RTW_TX_QUEUE_BE:
++		case RTW_TX_QUEUE_BK:
++			/* low */
++			pages_free = (free_txpg >> 16) & 0xff;
++			break;
++		default:
++			rtw_warn(rtwdev, "Unknown mapping for queue %u\n", queue);
++			return -EINVAL;
++		}
++
++		/* add the pages from the public queue */
++		pages_free += (free_txpg >> 24) & 0xff;
++	} else {
++		u32 free_txpg[3];
++
++		free_txpg[0] = rtw_sdio_read32(rtwdev, REG_SDIO_FREE_TXPG);
++		free_txpg[1] = rtw_sdio_read32(rtwdev, REG_SDIO_FREE_TXPG + 4);
++		free_txpg[2] = rtw_sdio_read32(rtwdev, REG_SDIO_FREE_TXPG + 8);
++
++		switch (queue) {
++		case RTW_TX_QUEUE_BCN:
++		case RTW_TX_QUEUE_H2C:
++		case RTW_TX_QUEUE_HI0:
++			/* high */
++			pages_free = free_txpg[0] & 0xfff;
++			break;
++		case RTW_TX_QUEUE_VI:
++		case RTW_TX_QUEUE_VO:
++			/* normal */
++			pages_free = (free_txpg[0] >> 16) & 0xfff;
++			break;
++		case RTW_TX_QUEUE_BE:
++		case RTW_TX_QUEUE_BK:
++			/* low */
++			pages_free = free_txpg[1] & 0xfff;
++			break;
++		case RTW_TX_QUEUE_MGMT:
++			/* extra */
++			pages_free = free_txpg[2] & 0xfff;
++			break;
++		default:
++			rtw_warn(rtwdev, "Unknown mapping for queue %u\n", queue);
++			return -EINVAL;
++		}
++
++		/* add the pages from the public queue */
++		pages_free += (free_txpg[1] >> 16) & 0xfff;
++	}
++
++	pages_needed = DIV_ROUND_UP(count, rtwdev->chip->page_size);
++
++	if (pages_needed > pages_free) {
++		rtw_dbg(rtwdev, RTW_DBG_SDIO,
++			"Not enough free pages (%u needed, %u free) in queue %u for %zu bytes\n",
++			pages_needed, pages_free, queue, count);
++		return -EBUSY;
++	}
++
++	return 0;
++}
++
++static int rtw_sdio_write_port(struct rtw_dev *rtwdev, struct sk_buff *skb,
++			       enum rtw_tx_queue_type queue)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	bool bus_claim;
++	size_t txsize;
++	u32 txaddr;
++	int ret;
++
++	txaddr = rtw_sdio_get_tx_addr(rtwdev, skb->len, queue);
++	if (!txaddr)
++		return -EINVAL;
++
++	txsize = sdio_align_size(rtwsdio->sdio_func, skb->len);
++
++	ret = rtw_sdio_check_free_txpg(rtwdev, queue, txsize);
++	if (ret)
++		return ret;
++
++	if (!IS_ALIGNED((unsigned long)skb->data, RTW_SDIO_DATA_PTR_ALIGN))
++		rtw_warn(rtwdev, "Got unaligned SKB in %s() for queue %u\n",
++			 __func__, queue);
++
++	bus_claim = rtw_sdio_bus_claim_needed(rtwsdio);
++
++	if (bus_claim)
++		sdio_claim_host(rtwsdio->sdio_func);
++
++	ret = sdio_memcpy_toio(rtwsdio->sdio_func, txaddr, skb->data, txsize);
++
++	if (bus_claim)
++		sdio_release_host(rtwsdio->sdio_func);
++
++	if (ret)
++		rtw_warn(rtwdev,
++			 "Failed to write %zu byte(s) to SDIO port 0x%08x",
++			 txsize, txaddr);
++
++	return ret;
++}
++
++static void rtw_sdio_init(struct rtw_dev *rtwdev)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++
++	rtwsdio->irq_mask = REG_SDIO_HIMR_RX_REQUEST | REG_SDIO_HIMR_CPWM1;
++}
++
++static void rtw_sdio_enable_rx_aggregation(struct rtw_dev *rtwdev)
++{
++	u8 size, timeout;
++
++	if (rtw_chip_wcpu_11n(rtwdev)) {
++		size = 0x6;
++		timeout = 0x6;
++	} else {
++		size = 0xff;
++		timeout = 0x1;
++	}
++
++	/* Make the firmware honor the size limit configured below */
++	rtw_write32_set(rtwdev, REG_RXDMA_AGG_PG_TH, BIT_EN_PRE_CALC);
++
++	rtw_write8_set(rtwdev, REG_TXDMA_PQ_MAP, BIT_RXDMA_AGG_EN);
++
++	rtw_write16(rtwdev, REG_RXDMA_AGG_PG_TH,
++		    FIELD_PREP(BIT_RXDMA_AGG_PG_TH, size) |
++		    FIELD_PREP(BIT_DMA_AGG_TO_V1, timeout));
++
++	rtw_write8_set(rtwdev, REG_RXDMA_MODE, BIT_DMA_MODE);
++}
++
++static void rtw_sdio_enable_interrupt(struct rtw_dev *rtwdev)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++
++	rtw_write32(rtwdev, REG_SDIO_HIMR, rtwsdio->irq_mask);
++}
++
++static void rtw_sdio_disable_interrupt(struct rtw_dev *rtwdev)
++{
++	rtw_write32(rtwdev, REG_SDIO_HIMR, 0x0);
++}
++
++static u8 rtw_sdio_get_tx_qsel(struct rtw_dev *rtwdev, struct sk_buff *skb,
++			       u8 queue)
++{
++	switch (queue) {
++	case RTW_TX_QUEUE_BCN:
++		return TX_DESC_QSEL_BEACON;
++	case RTW_TX_QUEUE_H2C:
++		return TX_DESC_QSEL_H2C;
++	case RTW_TX_QUEUE_MGMT:
++		if (rtw_chip_wcpu_11n(rtwdev))
++			return TX_DESC_QSEL_HIGH;
++		else
++			return TX_DESC_QSEL_MGMT;
++	case RTW_TX_QUEUE_HI0:
++		return TX_DESC_QSEL_HIGH;
++	default:
++		return skb->priority;
++	}
++}
++
++static int rtw_sdio_setup(struct rtw_dev *rtwdev)
++{
++	/* nothing to do */
++	return 0;
++}
++
++static int rtw_sdio_start(struct rtw_dev *rtwdev)
++{
++	rtw_sdio_enable_rx_aggregation(rtwdev);
++	rtw_sdio_enable_interrupt(rtwdev);
++
++	return 0;
++}
++
++static void rtw_sdio_stop(struct rtw_dev *rtwdev)
++{
++	rtw_sdio_disable_interrupt(rtwdev);
++}
++
++static void rtw_sdio_deep_ps_enter(struct rtw_dev *rtwdev)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	bool tx_empty = true;
++	u8 queue;
++
++	if (!rtw_fw_feature_check(&rtwdev->fw, FW_FEATURE_TX_WAKE)) {
++		/* Deep PS state is not allowed to TX-DMA */
++		for (queue = 0; queue < RTK_MAX_TX_QUEUE_NUM; queue++) {
++			/* BCN queue is rsvd page, does not have DMA interrupt
++			 * H2C queue is managed by firmware
++			 */
++			if (queue == RTW_TX_QUEUE_BCN ||
++			    queue == RTW_TX_QUEUE_H2C)
++				continue;
++
++			/* check if there is any skb DMAing */
++			if (skb_queue_len(&rtwsdio->tx_queue[queue])) {
++				tx_empty = false;
++				break;
++			}
++		}
++	}
++
++	if (!tx_empty) {
++		rtw_dbg(rtwdev, RTW_DBG_PS,
++			"TX path not empty, cannot enter deep power save state\n");
++		return;
++	}
++
++	set_bit(RTW_FLAG_LEISURE_PS_DEEP, rtwdev->flags);
++	rtw_power_mode_change(rtwdev, true);
++}
++
++static void rtw_sdio_deep_ps_leave(struct rtw_dev *rtwdev)
++{
++	if (test_and_clear_bit(RTW_FLAG_LEISURE_PS_DEEP, rtwdev->flags))
++		rtw_power_mode_change(rtwdev, false);
++}
++
++static void rtw_sdio_deep_ps(struct rtw_dev *rtwdev, bool enter)
++{
++	if (enter && !test_bit(RTW_FLAG_LEISURE_PS_DEEP, rtwdev->flags))
++		rtw_sdio_deep_ps_enter(rtwdev);
++
++	if (!enter && test_bit(RTW_FLAG_LEISURE_PS_DEEP, rtwdev->flags))
++		rtw_sdio_deep_ps_leave(rtwdev);
++}
++
++static void rtw_sdio_tx_kick_off(struct rtw_dev *rtwdev)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++
++	queue_work(rtwsdio->txwq, &rtwsdio->tx_handler_data->work);
++}
++
++static void rtw_sdio_link_ps(struct rtw_dev *rtwdev, bool enter)
++{
++	/* nothing to do */
++}
++
++static void rtw_sdio_interface_cfg(struct rtw_dev *rtwdev)
++{
++	u32 val;
++
++	rtw_read32(rtwdev, REG_SDIO_FREE_TXPG);
++
++	val = rtw_read32(rtwdev, REG_SDIO_TX_CTRL);
++	val &= 0xfff8;
++	rtw_write32(rtwdev, REG_SDIO_TX_CTRL, val);
++}
++
++static struct rtw_sdio_tx_data *rtw_sdio_get_tx_data(struct sk_buff *skb)
++{
++	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
++
++	BUILD_BUG_ON(sizeof(struct rtw_sdio_tx_data) >
++		     sizeof(info->status.status_driver_data));
++
++	return (struct rtw_sdio_tx_data *)info->status.status_driver_data;
++}
++
++static void rtw_sdio_tx_skb_prepare(struct rtw_dev *rtwdev,
++				    struct rtw_tx_pkt_info *pkt_info,
++				    struct sk_buff *skb,
++				    enum rtw_tx_queue_type queue)
++{
++	const struct rtw_chip_info *chip = rtwdev->chip;
++	unsigned long data_addr, aligned_addr;
++	size_t offset;
++	u8 *pkt_desc;
++
++	pkt_desc = skb_push(skb, chip->tx_pkt_desc_sz);
++
++	data_addr = (unsigned long)pkt_desc;
++	aligned_addr = ALIGN(data_addr, RTW_SDIO_DATA_PTR_ALIGN);
++
++	if (data_addr != aligned_addr) {
++		/* Ensure that the start of the pkt_desc is always aligned at
++		 * RTW_SDIO_DATA_PTR_ALIGN.
++		 */
++		offset = RTW_SDIO_DATA_PTR_ALIGN - (aligned_addr - data_addr);
++
++		pkt_desc = skb_push(skb, offset);
++
++		/* By inserting padding to align the start of the pkt_desc we
++		 * need to inform the firmware that the actual data starts at
++		 * a different offset than normal.
++		 */
++		pkt_info->offset += offset;
++	}
++
++	memset(pkt_desc, 0, chip->tx_pkt_desc_sz);
++
++	pkt_info->qsel = rtw_sdio_get_tx_qsel(rtwdev, skb, queue);
++
++	rtw_tx_fill_tx_desc(pkt_info, skb);
++	rtw_tx_fill_txdesc_checksum(rtwdev, pkt_info, pkt_desc);
++}
++
++static int rtw_sdio_write_data(struct rtw_dev *rtwdev,
++			       struct rtw_tx_pkt_info *pkt_info,
++			       struct sk_buff *skb,
++			       enum rtw_tx_queue_type queue)
++{
++	int ret;
++
++	rtw_sdio_tx_skb_prepare(rtwdev, pkt_info, skb, queue);
++
++	ret = rtw_sdio_write_port(rtwdev, skb, queue);
++	dev_kfree_skb_any(skb);
++
++	return ret;
++}
++
++static int rtw_sdio_write_data_rsvd_page(struct rtw_dev *rtwdev, u8 *buf,
++					 u32 size)
++{
++	struct rtw_tx_pkt_info pkt_info = {};
++	struct sk_buff *skb;
++
++	skb = rtw_tx_write_data_rsvd_page_get(rtwdev, &pkt_info, buf, size);
++	if (!skb)
++		return -ENOMEM;
++
++	return rtw_sdio_write_data(rtwdev, &pkt_info, skb, RTW_TX_QUEUE_BCN);
++}
++
++static int rtw_sdio_write_data_h2c(struct rtw_dev *rtwdev, u8 *buf, u32 size)
++{
++	struct rtw_tx_pkt_info pkt_info = {};
++	struct sk_buff *skb;
++
++	skb = rtw_tx_write_data_h2c_get(rtwdev, &pkt_info, buf, size);
++	if (!skb)
++		return -ENOMEM;
++
++	return rtw_sdio_write_data(rtwdev, &pkt_info, skb, RTW_TX_QUEUE_H2C);
++}
++
++static int rtw_sdio_tx_write(struct rtw_dev *rtwdev,
++			     struct rtw_tx_pkt_info *pkt_info,
++			     struct sk_buff *skb)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	enum rtw_tx_queue_type queue = rtw_tx_queue_mapping(skb);
++	struct rtw_sdio_tx_data *tx_data;
++
++	rtw_sdio_tx_skb_prepare(rtwdev, pkt_info, skb, queue);
++
++	tx_data = rtw_sdio_get_tx_data(skb);
++	tx_data->sn = pkt_info->sn;
++
++	skb_queue_tail(&rtwsdio->tx_queue[queue], skb);
++
++	return 0;
++}
++
++static void rtw_sdio_tx_err_isr(struct rtw_dev *rtwdev)
++{
++	u32 val = rtw_read32(rtwdev, REG_TXDMA_STATUS);
++
++	rtw_write32(rtwdev, REG_TXDMA_STATUS, val);
++}
++
++static void rtw_sdio_rx_skb(struct rtw_dev *rtwdev, struct sk_buff *skb,
++			    u32 pkt_offset, struct rtw_rx_pkt_stat *pkt_stat,
++			    struct ieee80211_rx_status *rx_status)
++{
++	*IEEE80211_SKB_RXCB(skb) = *rx_status;
++
++	if (pkt_stat->is_c2h) {
++		skb_put(skb, pkt_stat->pkt_len + pkt_offset);
++		rtw_fw_c2h_cmd_rx_irqsafe(rtwdev, pkt_offset, skb);
++		return;
++	}
++
++	skb_put(skb, pkt_stat->pkt_len);
++	skb_reserve(skb, pkt_offset);
++
++	rtw_rx_stats(rtwdev, pkt_stat->vif, skb);
++
++	ieee80211_rx_irqsafe(rtwdev->hw, skb);
++}
++
++static void rtw_sdio_rxfifo_recv(struct rtw_dev *rtwdev, u32 rx_len)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	const struct rtw_chip_info *chip = rtwdev->chip;
++	u32 pkt_desc_sz = chip->rx_pkt_desc_sz;
++	struct ieee80211_rx_status rx_status;
++	struct rtw_rx_pkt_stat pkt_stat;
++	struct sk_buff *skb, *split_skb;
++	u32 pkt_offset, curr_pkt_len;
++	size_t bufsz;
++	u8 *rx_desc;
++	int ret;
++
++	bufsz = sdio_align_size(rtwsdio->sdio_func, rx_len);
++
++	skb = dev_alloc_skb(bufsz);
++	if (!skb)
++		return;
++
++	ret = rtw_sdio_read_port(rtwdev, skb->data, bufsz);
++	if (ret) {
++		dev_kfree_skb_any(skb);
++		return;
++	}
++
++	while (true) {
++		rx_desc = skb->data;
++		chip->ops->query_rx_desc(rtwdev, rx_desc, &pkt_stat,
++					 &rx_status);
++		pkt_offset = pkt_desc_sz + pkt_stat.drv_info_sz +
++			     pkt_stat.shift;
++
++		curr_pkt_len = ALIGN(pkt_offset + pkt_stat.pkt_len,
++				     RTW_SDIO_DATA_PTR_ALIGN);
++
++		if ((curr_pkt_len + pkt_desc_sz) >= rx_len) {
++			/* Use the original skb (with it's adjusted offset)
++			 * when processing the last (or even the only) entry to
++			 * have it's memory freed automatically.
++			 */
++			rtw_sdio_rx_skb(rtwdev, skb, pkt_offset, &pkt_stat,
++					&rx_status);
++			break;
++		}
++
++		split_skb = dev_alloc_skb(curr_pkt_len);
++		if (!split_skb) {
++			rtw_sdio_rx_skb(rtwdev, skb, pkt_offset, &pkt_stat,
++					&rx_status);
++			break;
++		}
++
++		skb_copy_header(split_skb, skb);
++		memcpy(split_skb->data, skb->data, curr_pkt_len);
++
++		rtw_sdio_rx_skb(rtwdev, split_skb, pkt_offset, &pkt_stat,
++				&rx_status);
++
++		/* Move to the start of the next RX descriptor */
++		skb_reserve(skb, curr_pkt_len);
++		rx_len -= curr_pkt_len;
++	}
++}
++
++static void rtw_sdio_rx_isr(struct rtw_dev *rtwdev)
++{
++	u32 rx_len, total_rx_bytes = 0;
++
++	while (total_rx_bytes < SZ_64K) {
++		if (rtw_chip_wcpu_11n(rtwdev))
++			rx_len = rtw_read16(rtwdev, REG_SDIO_RX0_REQ_LEN);
++		else
++			rx_len = rtw_read32(rtwdev, REG_SDIO_RX0_REQ_LEN);
++
++		if (!rx_len)
++			break;
++
++		rtw_sdio_rxfifo_recv(rtwdev, rx_len);
++
++		total_rx_bytes += rx_len;
++	}
++}
++
++static void rtw_sdio_handle_interrupt(struct sdio_func *sdio_func)
++{
++	struct ieee80211_hw *hw = sdio_get_drvdata(sdio_func);
++	struct rtw_dev *rtwdev = hw->priv;
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	u32 hisr;
++
++	rtwsdio->irq_thread = current;
++
++	hisr = rtw_read32(rtwdev, REG_SDIO_HISR);
++
++	if (hisr & REG_SDIO_HISR_TXERR)
++		rtw_sdio_tx_err_isr(rtwdev);
++	if (hisr & REG_SDIO_HISR_RX_REQUEST) {
++		hisr &= ~REG_SDIO_HISR_RX_REQUEST;
++		rtw_sdio_rx_isr(rtwdev);
++	}
++
++	rtw_write32(rtwdev, REG_SDIO_HISR, hisr);
++
++	rtwsdio->irq_thread = NULL;
++}
++
++static int __maybe_unused rtw_sdio_suspend(struct device *dev)
++{
++	struct sdio_func *func = dev_to_sdio_func(dev);
++	struct ieee80211_hw *hw = dev_get_drvdata(dev);
++	struct rtw_dev *rtwdev = hw->priv;
++	int ret;
++
++	ret = sdio_set_host_pm_flags(func, MMC_PM_KEEP_POWER);
++	if (ret)
++		rtw_err(rtwdev, "Failed to host PM flag MMC_PM_KEEP_POWER");
++
++	return ret;
++}
++
++static int __maybe_unused rtw_sdio_resume(struct device *dev)
++{
++	return 0;
++}
++
++SIMPLE_DEV_PM_OPS(rtw_sdio_pm_ops, rtw_sdio_suspend, rtw_sdio_resume);
++EXPORT_SYMBOL(rtw_sdio_pm_ops);
++
++static int rtw_sdio_claim(struct rtw_dev *rtwdev, struct sdio_func *sdio_func)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	int ret;
++
++	sdio_claim_host(sdio_func);
++
++	ret = sdio_enable_func(sdio_func);
++	if (ret) {
++		rtw_err(rtwdev, "Failed to enable SDIO func");
++		goto err_release_host;
++	}
++
++	ret = sdio_set_block_size(sdio_func, RTW_SDIO_BLOCK_SIZE);
++	if (ret) {
++		rtw_err(rtwdev, "Failed to set SDIO block size to 512");
++		goto err_disable_func;
++	}
++
++	rtwsdio->sdio_func = sdio_func;
++
++	rtwsdio->sdio3_bus_mode = mmc_card_uhs(sdio_func->card);
++
++	sdio_set_drvdata(sdio_func, rtwdev->hw);
++	SET_IEEE80211_DEV(rtwdev->hw, &sdio_func->dev);
++
++	sdio_release_host(sdio_func);
++
++	return 0;
++
++err_disable_func:
++	sdio_disable_func(sdio_func);
++err_release_host:
++	sdio_release_host(sdio_func);
++	return ret;
++}
++
++static void rtw_sdio_declaim(struct rtw_dev *rtwdev,
++			     struct sdio_func *sdio_func)
++{
++	sdio_claim_host(sdio_func);
++	sdio_disable_func(sdio_func);
++	sdio_release_host(sdio_func);
++}
++
++static struct rtw_hci_ops rtw_sdio_ops = {
++	.tx_write = rtw_sdio_tx_write,
++	.tx_kick_off = rtw_sdio_tx_kick_off,
++	.setup = rtw_sdio_setup,
++	.start = rtw_sdio_start,
++	.stop = rtw_sdio_stop,
++	.deep_ps = rtw_sdio_deep_ps,
++	.link_ps = rtw_sdio_link_ps,
++	.interface_cfg = rtw_sdio_interface_cfg,
++
++	.read8 = rtw_sdio_read8,
++	.read16 = rtw_sdio_read16,
++	.read32 = rtw_sdio_read32,
++	.write8 = rtw_sdio_write8,
++	.write16 = rtw_sdio_write16,
++	.write32 = rtw_sdio_write32,
++	.write_data_rsvd_page = rtw_sdio_write_data_rsvd_page,
++	.write_data_h2c = rtw_sdio_write_data_h2c,
++};
++
++static int rtw_sdio_request_irq(struct rtw_dev *rtwdev,
++				struct sdio_func *sdio_func)
++{
++	int ret;
++
++	sdio_claim_host(sdio_func);
++	ret = sdio_claim_irq(sdio_func, &rtw_sdio_handle_interrupt);
++	sdio_release_host(sdio_func);
++
++	if (ret) {
++		rtw_err(rtwdev, "failed to claim SDIO IRQ");
++		return ret;
++	}
++
++	return 0;
++}
++
++static void rtw_sdio_indicate_tx_status(struct rtw_dev *rtwdev,
++					struct sk_buff *skb)
++{
++	struct rtw_sdio_tx_data *tx_data = rtw_sdio_get_tx_data(skb);
++	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
++	struct ieee80211_hw *hw = rtwdev->hw;
++
++	/* enqueue to wait for tx report */
++	if (info->flags & IEEE80211_TX_CTL_REQ_TX_STATUS) {
++		rtw_tx_report_enqueue(rtwdev, skb, tx_data->sn);
++		return;
++	}
++
++	/* always ACK for others, then they won't be marked as drop */
++	ieee80211_tx_info_clear_status(info);
++	if (info->flags & IEEE80211_TX_CTL_NO_ACK)
++		info->flags |= IEEE80211_TX_STAT_NOACK_TRANSMITTED;
++	else
++		info->flags |= IEEE80211_TX_STAT_ACK;
++
++	ieee80211_tx_status_irqsafe(hw, skb);
++}
++
++static void rtw_sdio_process_tx_queue(struct rtw_dev *rtwdev,
++				      enum rtw_tx_queue_type queue)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	struct sk_buff *skb;
++	int ret;
++
++	skb = skb_dequeue(&rtwsdio->tx_queue[queue]);
++	if (!skb)
++		return;
++
++	ret = rtw_sdio_write_port(rtwdev, skb, queue);
++	if (ret) {
++		skb_queue_head(&rtwsdio->tx_queue[queue], skb);
++		return;
++	}
++
++	if (queue <= RTW_TX_QUEUE_VO)
++		rtw_sdio_indicate_tx_status(rtwdev, skb);
++	else
++		dev_kfree_skb_any(skb);
++}
++
++static void rtw_sdio_tx_handler(struct work_struct *work)
++{
++	struct rtw_sdio_work_data *work_data =
++		container_of(work, struct rtw_sdio_work_data, work);
++	struct rtw_dev *rtwdev = work_data->rtwdev;
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	int limit, queue;
++
++	if (!rtw_fw_feature_check(&rtwdev->fw, FW_FEATURE_TX_WAKE))
++		rtw_sdio_deep_ps_leave(rtwdev);
++
++	for (queue = RTK_MAX_TX_QUEUE_NUM - 1; queue >= 0; queue--) {
++		for (limit = 0; limit < 1000; limit++) {
++			rtw_sdio_process_tx_queue(rtwdev, queue);
++
++			if (skb_queue_empty(&rtwsdio->tx_queue[queue]))
++				break;
++		}
++	}
++}
++
++static void rtw_sdio_free_irq(struct rtw_dev *rtwdev,
++			      struct sdio_func *sdio_func)
++{
++	sdio_release_irq(sdio_func);
++}
++
++static int rtw_sdio_init_tx(struct rtw_dev *rtwdev)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	int i;
++
++	rtwsdio->txwq = create_singlethread_workqueue("rtw88_sdio: tx wq");
++	if (!rtwsdio->txwq) {
++		rtw_err(rtwdev, "failed to create TX work queue\n");
++		return -ENOMEM;
++	}
++
++	for (i = 0; i < RTK_MAX_TX_QUEUE_NUM; i++)
++		skb_queue_head_init(&rtwsdio->tx_queue[i]);
++	rtwsdio->tx_handler_data = kmalloc(sizeof(*rtwsdio->tx_handler_data),
++					   GFP_KERNEL);
++	if (!rtwsdio->tx_handler_data)
++		goto err_destroy_wq;
++
++	rtwsdio->tx_handler_data->rtwdev = rtwdev;
++	INIT_WORK(&rtwsdio->tx_handler_data->work, rtw_sdio_tx_handler);
++
++	return 0;
++
++err_destroy_wq:
++	destroy_workqueue(rtwsdio->txwq);
++	return -ENOMEM;
++}
++
++static void rtw_sdio_deinit_tx(struct rtw_dev *rtwdev)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++	int i;
++
++	for (i = 0; i < RTK_MAX_TX_QUEUE_NUM; i++)
++		skb_queue_purge(&rtwsdio->tx_queue[i]);
++
++	flush_workqueue(rtwsdio->txwq);
++	destroy_workqueue(rtwsdio->txwq);
++	kfree(rtwsdio->tx_handler_data);
++}
++
++int rtw_sdio_probe(struct sdio_func *sdio_func,
++		   const struct sdio_device_id *id)
++{
++	struct ieee80211_hw *hw;
++	struct rtw_dev *rtwdev;
++	int drv_data_size;
++	int ret;
++
++	drv_data_size = sizeof(struct rtw_dev) + sizeof(struct rtw_sdio);
++	hw = ieee80211_alloc_hw(drv_data_size, &rtw_ops);
++	if (!hw) {
++		dev_err(&sdio_func->dev, "failed to allocate hw");
++		return -ENOMEM;
++	}
++
++	rtwdev = hw->priv;
++	rtwdev->hw = hw;
++	rtwdev->dev = &sdio_func->dev;
++	rtwdev->chip = (struct rtw_chip_info *)id->driver_data;
++	rtwdev->hci.ops = &rtw_sdio_ops;
++	rtwdev->hci.type = RTW_HCI_TYPE_SDIO;
++
++	ret = rtw_core_init(rtwdev);
++	if (ret)
++		goto err_release_hw;
++
++	rtw_dbg(rtwdev, RTW_DBG_SDIO,
++		"rtw88 SDIO probe: vendor=0x%04x device=%04x class=%02x",
++		id->vendor, id->device, id->class);
++
++	ret = rtw_sdio_claim(rtwdev, sdio_func);
++	if (ret) {
++		rtw_err(rtwdev, "failed to claim SDIO device");
++		goto err_deinit_core;
++	}
++
++	rtw_sdio_init(rtwdev);
++
++	ret = rtw_sdio_init_tx(rtwdev);
++	if (ret) {
++		rtw_err(rtwdev, "failed to init SDIO TX queue\n");
++		goto err_sdio_declaim;
++	}
++
++	ret = rtw_chip_info_setup(rtwdev);
++	if (ret) {
++		rtw_err(rtwdev, "failed to setup chip information");
++		goto err_destroy_txwq;
++	}
++
++	ret = rtw_register_hw(rtwdev, hw);
++	if (ret) {
++		rtw_err(rtwdev, "failed to register hw");
++		goto err_destroy_txwq;
++	}
++
++	ret = rtw_sdio_request_irq(rtwdev, sdio_func);
++	if (ret)
++		goto err_unregister_hw;
++
++	return 0;
++
++err_unregister_hw:
++	rtw_unregister_hw(rtwdev, hw);
++err_destroy_txwq:
++	rtw_sdio_deinit_tx(rtwdev);
++err_sdio_declaim:
++	rtw_sdio_declaim(rtwdev, sdio_func);
++err_deinit_core:
++	rtw_core_deinit(rtwdev);
++err_release_hw:
++	ieee80211_free_hw(hw);
++
++	return ret;
++}
++EXPORT_SYMBOL(rtw_sdio_probe);
++
++void rtw_sdio_remove(struct sdio_func *sdio_func)
++{
++	struct ieee80211_hw *hw = sdio_get_drvdata(sdio_func);
++	struct rtw_dev *rtwdev;
++
++	if (!hw)
++		return;
++
++	rtwdev = hw->priv;
++
++	rtw_unregister_hw(rtwdev, hw);
++	rtw_sdio_disable_interrupt(rtwdev);
++	rtw_sdio_declaim(rtwdev, sdio_func);
++	rtw_sdio_free_irq(rtwdev, sdio_func);
++	rtw_sdio_deinit_tx(rtwdev);
++	rtw_core_deinit(rtwdev);
++	ieee80211_free_hw(hw);
++}
++EXPORT_SYMBOL(rtw_sdio_remove);
++
++void rtw_sdio_shutdown(struct device *dev)
++{
++	struct sdio_func *sdio_func = dev_to_sdio_func(dev);
++	struct ieee80211_hw *hw = sdio_get_drvdata(sdio_func);
++	const struct rtw_chip_info *chip;
++	struct rtw_dev *rtwdev;
++
++	if (!hw)
++		return;
++
++	rtwdev = hw->priv;
++	chip = rtwdev->chip;
++
++	if (chip->ops->shutdown)
++		chip->ops->shutdown(rtwdev);
++}
++EXPORT_SYMBOL(rtw_sdio_shutdown);
++
++MODULE_AUTHOR("Martin Blumenstingl");
++MODULE_AUTHOR("Jernej Skrabec");
++MODULE_DESCRIPTION("Realtek 802.11ac wireless SDIO driver");
++MODULE_LICENSE("Dual BSD/GPL");
+diff --git a/drivers/net/wireless/realtek/rtw88/sdio.h b/drivers/net/wireless/realtek/rtw88/sdio.h
+new file mode 100644
+index 000000000000..431907f1354d
+--- /dev/null
++++ b/drivers/net/wireless/realtek/rtw88/sdio.h
+@@ -0,0 +1,173 @@
++/* SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause */
++/* Copyright (C) 2021 Martin Blumenstingl <martin.blumenstingl@googlemail.com>
++ * Copyright (C) 2021 Jernej Skrabec <jernej.skrabec@gmail.com>
++ */
++
++#ifndef __REG_SDIO_H_
++#define __REG_SDIO_H_
++
++/* I/O bus domain address mapping */
++#define SDIO_LOCAL_OFFSET			0x10250000
++#define WLAN_IOREG_OFFSET			0x10260000
++#define FIRMWARE_FIFO_OFFSET			0x10270000
++#define TX_HIQ_OFFSET				0x10310000
++#define TX_MIQ_OFFSET				0x10320000
++#define TX_LOQ_OFFSET				0x10330000
++#define TX_EPQ_OFFSET				0x10350000
++#define RX_RX0FF_OFFSET				0x10340000
++
++#define RTW_SDIO_BUS_MSK			0xffff0000
++#define SDIO_LOCAL_REG_MSK			0x00000fff
++#define WLAN_IOREG_REG_MSK			0x0000ffff
++
++/* SDIO Tx Control */
++#define REG_SDIO_TX_CTRL			(SDIO_LOCAL_OFFSET + 0x0000)
++
++/*SDIO status timeout*/
++#define REG_SDIO_TIMEOUT			(SDIO_LOCAL_OFFSET + 0x0002)
++
++/* SDIO Host Interrupt Mask */
++#define REG_SDIO_HIMR				(SDIO_LOCAL_OFFSET + 0x0014)
++#define REG_SDIO_HIMR_RX_REQUEST		BIT(0)
++#define REG_SDIO_HIMR_AVAL			BIT(1)
++#define REG_SDIO_HIMR_TXERR			BIT(2)
++#define REG_SDIO_HIMR_RXERR			BIT(3)
++#define REG_SDIO_HIMR_TXFOVW			BIT(4)
++#define REG_SDIO_HIMR_RXFOVW			BIT(5)
++#define REG_SDIO_HIMR_TXBCNOK			BIT(6)
++#define REG_SDIO_HIMR_TXBCNERR			BIT(7)
++#define REG_SDIO_HIMR_BCNERLY_INT		BIT(16)
++#define REG_SDIO_HIMR_C2HCMD			BIT(17)
++#define REG_SDIO_HIMR_CPWM1			BIT(18)
++#define REG_SDIO_HIMR_CPWM2			BIT(19)
++#define REG_SDIO_HIMR_HSISR_IND			BIT(20)
++#define REG_SDIO_HIMR_GTINT3_IND		BIT(21)
++#define REG_SDIO_HIMR_GTINT4_IND		BIT(22)
++#define REG_SDIO_HIMR_PSTIMEOUT			BIT(23)
++#define REG_SDIO_HIMR_OCPINT			BIT(24)
++#define REG_SDIO_HIMR_ATIMEND			BIT(25)
++#define REG_SDIO_HIMR_ATIMEND_E			BIT(26)
++#define REG_SDIO_HIMR_CTWEND			BIT(27)
++/* the following two are RTL8188 SDIO Specific */
++#define REG_SDIO_HIMR_MCU_ERR			BIT(28)
++#define REG_SDIO_HIMR_TSF_BIT32_TOGGLE		BIT(29)
++
++/* SDIO Host Interrupt Service Routine */
++#define REG_SDIO_HISR				(SDIO_LOCAL_OFFSET + 0x0018)
++#define REG_SDIO_HISR_RX_REQUEST		BIT(0)
++#define REG_SDIO_HISR_AVAL			BIT(1)
++#define REG_SDIO_HISR_TXERR			BIT(2)
++#define REG_SDIO_HISR_RXERR			BIT(3)
++#define REG_SDIO_HISR_TXFOVW			BIT(4)
++#define REG_SDIO_HISR_RXFOVW			BIT(5)
++#define REG_SDIO_HISR_TXBCNOK			BIT(6)
++#define REG_SDIO_HISR_TXBCNERR			BIT(7)
++#define REG_SDIO_HISR_BCNERLY_INT		BIT(16)
++#define REG_SDIO_HISR_C2HCMD			BIT(17)
++#define REG_SDIO_HISR_CPWM1			BIT(18)
++#define REG_SDIO_HISR_CPWM2			BIT(19)
++#define REG_SDIO_HISR_HSISR_IND			BIT(20)
++#define REG_SDIO_HISR_GTINT3_IND		BIT(21)
++#define REG_SDIO_HISR_GTINT4_IND		BIT(22)
++#define REG_SDIO_HISR_PSTIMEOUT			BIT(23)
++#define REG_SDIO_HISR_OCPINT			BIT(24)
++#define REG_SDIO_HISR_ATIMEND			BIT(25)
++#define REG_SDIO_HISR_ATIMEND_E			BIT(26)
++#define REG_SDIO_HISR_CTWEND			BIT(27)
++/* the following two are RTL8188 SDIO Specific */
++#define REG_SDIO_HISR_MCU_ERR			BIT(28)
++#define REG_SDIO_HISR_TSF_BIT32_TOGGLE		BIT(29)
++
++/* HCI Current Power Mode */
++#define REG_SDIO_HCPWM				(SDIO_LOCAL_OFFSET + 0x0019)
++/* RXDMA Request Length */
++#define REG_SDIO_RX0_REQ_LEN			(SDIO_LOCAL_OFFSET + 0x001C)
++/* OQT Free Page */
++#define REG_SDIO_OQT_FREE_PG			(SDIO_LOCAL_OFFSET + 0x001E)
++/* Free Tx Buffer Page */
++#define REG_SDIO_FREE_TXPG			(SDIO_LOCAL_OFFSET + 0x0020)
++/* HCI Current Power Mode 1 */
++#define REG_SDIO_HCPWM1				(SDIO_LOCAL_OFFSET + 0x0024)
++/* HCI Current Power Mode 2 */
++#define REG_SDIO_HCPWM2				(SDIO_LOCAL_OFFSET + 0x0026)
++/* Free Tx Page Sequence */
++#define REG_SDIO_FREE_TXPG_SEQ			(SDIO_LOCAL_OFFSET + 0x0028)
++/* HTSF Informaion */
++#define REG_SDIO_HTSFR_INFO			(SDIO_LOCAL_OFFSET + 0x0030)
++#define REG_SDIO_HCPWM1_V2			(SDIO_LOCAL_OFFSET + 0x0038)
++/* H2C */
++#define REG_SDIO_H2C				(SDIO_LOCAL_OFFSET + 0x0060)
++/* HCI Request Power Mode 1 */
++#define REG_SDIO_HRPWM1				(SDIO_LOCAL_OFFSET + 0x0080)
++/* HCI Request Power Mode 2 */
++#define REG_SDIO_HRPWM2				(SDIO_LOCAL_OFFSET + 0x0082)
++/* HCI Power Save Clock */
++#define REG_SDIO_HPS_CLKR			(SDIO_LOCAL_OFFSET + 0x0084)
++/* SDIO HCI Suspend Control */
++#define REG_SDIO_HSUS_CTRL			(SDIO_LOCAL_OFFSET + 0x0086)
++#define BIT_HCI_SUS_REQ				BIT(0)
++#define BIT_HCI_RESUME_RDY			BIT(1)
++/* SDIO Host Extension Interrupt Mask Always */
++#define REG_SDIO_HIMR_ON			(SDIO_LOCAL_OFFSET + 0x0090)
++/* SDIO Host Extension Interrupt Status Always */
++#define REG_SDIO_HISR_ON			(SDIO_LOCAL_OFFSET + 0x0091)
++
++#define REG_SDIO_INDIRECT_REG_CFG		(SDIO_LOCAL_OFFSET + 0x0040)
++#define REG_SDIO_INDIRECT_REG_DATA		(SDIO_LOCAL_OFFSET + 0x0044)
++
++/* Sdio Address for SDIO Local Reg, TRX FIFO, MAC Reg */
++#define REG_SDIO_CMD_ADDR_MSK			GENMASK(16, 13)
++#define REG_SDIO_CMD_ADDR_SDIO_REG		0
++#define REG_SDIO_CMD_ADDR_MAC_REG		8
++#define REG_SDIO_CMD_ADDR_TXFF_HIGH		4
++#define REG_SDIO_CMD_ADDR_TXFF_LOW		6
++#define REG_SDIO_CMD_ADDR_TXFF_NORMAL		5
++#define REG_SDIO_CMD_ADDR_TXFF_EXTRA		7
++#define REG_SDIO_CMD_ADDR_RXFF			7
++
++#define RTW_SDIO_BLOCK_SIZE			512
++#define RTW_SDIO_ADDR_RX_RX0FF_GEN(_id)		(0x0e000 | ((_id) & 0x3))
++
++#define RTW_SDIO_DATA_PTR_ALIGN			8
++
++struct sdio_func;
++struct sdio_device_id;
++
++struct rtw_sdio_tx_data {
++	u8 sn;
++};
++
++struct rtw_sdio_work_data {
++	struct work_struct work;
++	struct rtw_dev *rtwdev;
++};
++
++struct rtw_sdio {
++	struct sdio_func *sdio_func;
++
++	u32 irq_mask;
++	u8 rx_addr;
++	bool sdio3_bus_mode;
++
++	void *irq_thread;
++
++	struct workqueue_struct *txwq;
++	struct rtw_sdio_work_data *tx_handler_data;
++	struct sk_buff_head tx_queue[RTK_MAX_TX_QUEUE_NUM];
++};
++
++extern const struct dev_pm_ops rtw_sdio_pm_ops;
++
++int rtw_sdio_probe(struct sdio_func *sdio_func,
++		   const struct sdio_device_id *id);
++void rtw_sdio_remove(struct sdio_func *sdio_func);
++void rtw_sdio_shutdown(struct device *dev);
++
++static inline bool rtw_sdio_is_sdio30_supported(struct rtw_dev *rtwdev)
++{
++	struct rtw_sdio *rtwsdio = (struct rtw_sdio *)rtwdev->priv;
++
++	return rtwsdio->sdio3_bus_mode;
++}
++
++#endif
+
+From patchwork Mon Mar 20 21:35:02 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Martin Blumenstingl
+ <martin.blumenstingl@googlemail.com>
+X-Patchwork-Id: 13181880
+X-Patchwork-Delegate: kvalo@adurom.com
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 60012C6FD1D
+	for <linux-wireless@archiver.kernel.org>;
+ Mon, 20 Mar 2023 21:36:23 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S231183AbjCTVgV (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Mon, 20 Mar 2023 17:36:21 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39260 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230512AbjCTVgJ (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Mon, 20 Mar 2023 17:36:09 -0400
+Received: from mail-ed1-x533.google.com (mail-ed1-x533.google.com
+ [IPv6:2a00:1450:4864:20::533])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 123DBA24A;
+        Mon, 20 Mar 2023 14:35:28 -0700 (PDT)
+Received: by mail-ed1-x533.google.com with SMTP id eg48so52246656edb.13;
+        Mon, 20 Mar 2023 14:35:28 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=googlemail.com; s=20210112; t=1679348125;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=wCH40GOhGcrwZBpQuXJd0pp0aW1no1xxPydO+tFyDPs=;
+        b=YRCnC7DPQMO2Mv0Zy+0KTWvCEzk3druYDtI7aF7Djuepodl/MWaIB/BeXnm83nCzBz
+         z2OVuvB/pz/QJFTY2WXhVEiQysAy/03+QYVxFNPlSA4Ltti7NtMyPUKTHaDUbNNXQCHq
+         dMngPOv6RQ8xh9+bZNSJrnQptF0dyCdyfwpOTSKpSMEO4RkOdh98/3PJLHYi8RCgUth7
+         Ur0hOv7qL2TesjmNawOpYlTkC423x4Qod93zwjweM9LiOeyfaTMA4kDzCLrzcP1aUTP/
+         Btib/6vOTOxjUKSbjy0UelqiAzg/DthfGrPzJUdqPHU88ttYowQDP3M2R1HH6QbQNIPE
+         Wn2w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1679348125;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=wCH40GOhGcrwZBpQuXJd0pp0aW1no1xxPydO+tFyDPs=;
+        b=3QG4++fZKdp2/NNeg6T/ieBBJVjRmcq4xxgJvATf50JEVZWRctsUfRYw0lWSD4jydb
+         yueiF3/zk1xYZpzy9yYcqsbzhzutW3qL4JkSUGvNspp90aDDfYr27yD2oDQQlLRsNvU9
+         RoNbVwqLd/f9h22bBT39N4xQiN7GjE49gSmkqjsJ1PIS3k0Hy3AlV8xT2uXu6jjoCjup
+         UEiI3lz/g6DXNkQ8fCOKhkdwO1DUWnT3HPO86WC2VYcxEhvQjOkskSK8UnrJq2IWHp5k
+         Fcn8yz8WjO6xWK5FC/nRAmtGQFNWOtnptFPnt5In6U3M1EQHr9sK0bLyHf+u4YCshRc5
+         GpjA==
+X-Gm-Message-State: AO0yUKUPcFty/CahWedI90HNGVoRrAN4Y9/19hxs+5W8LChfv0mDhESt
+        gu4tIv7UGD/tEc+7sNdOhOVKCyMoSK4=
+X-Google-Smtp-Source: 
+ AK7set9luSTY1niuZygkgUfk3kHjcPov9sCX9Hn3+2YPa7Y/WaRDwkJ9QGaa0egvwPvw2jIrFLLE+g==
+X-Received: by 2002:a17:906:a098:b0:933:12d1:d168 with SMTP id
+ q24-20020a170906a09800b0093312d1d168mr573640ejy.10.1679348125533;
+        Mon, 20 Mar 2023 14:35:25 -0700 (PDT)
+Received: from localhost.localdomain
+ (dynamic-2a01-0c22-73dd-8200-0000-0000-0000-0e63.c22.pool.telefonica.de.
+ [2a01:c22:73dd:8200::e63])
+        by smtp.googlemail.com with ESMTPSA id
+ z17-20020a5096d1000000b004aee4e2a56esm5413201eda.0.2023.03.20.14.35.24
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 20 Mar 2023 14:35:24 -0700 (PDT)
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+To: linux-wireless@vger.kernel.org
+Cc: Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>,
+        Ulf Hansson <ulf.hansson@linaro.org>,
+        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        linux-mmc@vger.kernel.org, Chris Morgan <macroalpha82@gmail.com>,
+        Nitin Gupta <nitin.gupta981@gmail.com>,
+        Neo Jou <neojou@gmail.com>, Pkshih <pkshih@realtek.com>,
+        Jernej Skrabec <jernej.skrabec@gmail.com>,
+        Larry Finger <Larry.Finger@lwfinger.net>,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Subject: [PATCH v3 3/9] wifi: rtw88: mac: Support SDIO specific bits in the
+ power on sequence
+Date: Mon, 20 Mar 2023 22:35:02 +0100
+Message-Id: <20230320213508.2358213-4-martin.blumenstingl@googlemail.com>
+X-Mailer: git-send-email 2.40.0
+In-Reply-To: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+References: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+Add the code specific to SDIO HCI in the MAC power on sequence. This is
+based on the RTL8822BS and RTL8822CS vendor drivers.
+
+Co-developed-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+- add sdio.h include in patch 2 already (instead of patch 3) as
+  suggested by Larry Finger (thank you!) so the build doesn't break
+  during bisect
+- only set RTW_FLAG_POWERON when applying the power on sequence was
+  successful (thanks for the suggestion Ping-Ke!)
+- fix smatch false positive "uninitialized symbol 'imr'" in
+  rtw_mac_power_switch() by initializing imr to 0. Thanks for spotting
+  this and for the suggestion Ping-Ke!
+
+Changes since v1:
+- only access REG_SDIO_HIMR for RTW_HCI_TYPE_SDIO
+- use proper BIT_HCI_SUS_REQ, BIT_HCI_RESUME_RDY and BIT_SDIO_PAD_E5
+  macros as suggested by Ping-Ke
+
+
+ drivers/net/wireless/realtek/rtw88/mac.c | 47 +++++++++++++++++++++---
+ 1 file changed, 42 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/mac.c b/drivers/net/wireless/realtek/rtw88/mac.c
+index 2fcba43a6f72..44e07b61b9b9 100644
+--- a/drivers/net/wireless/realtek/rtw88/mac.c
++++ b/drivers/net/wireless/realtek/rtw88/mac.c
+@@ -61,6 +61,7 @@ EXPORT_SYMBOL(rtw_set_channel_mac);
+ 
+ static int rtw_mac_pre_system_cfg(struct rtw_dev *rtwdev)
+ {
++	unsigned int retry;
+ 	u32 value32;
+ 	u8 value8;
+ 
+@@ -78,6 +79,28 @@ static int rtw_mac_pre_system_cfg(struct rtw_dev *rtwdev)
+ 	case RTW_HCI_TYPE_PCIE:
+ 		rtw_write32_set(rtwdev, REG_HCI_OPT_CTRL, BIT_USB_SUS_DIS);
+ 		break;
++	case RTW_HCI_TYPE_SDIO:
++		rtw_write8_clr(rtwdev, REG_SDIO_HSUS_CTRL, BIT_HCI_SUS_REQ);
++
++		for (retry = 0; retry < RTW_PWR_POLLING_CNT; retry++) {
++			if (rtw_read8(rtwdev, REG_SDIO_HSUS_CTRL) & BIT_HCI_RESUME_RDY)
++				break;
++
++			usleep_range(10, 50);
++		}
++
++		if (retry == RTW_PWR_POLLING_CNT) {
++			rtw_err(rtwdev, "failed to poll REG_SDIO_HSUS_CTRL[1]");
++			return -ETIMEDOUT;
++		}
++
++		if (rtw_sdio_is_sdio30_supported(rtwdev))
++			rtw_write8_set(rtwdev, REG_HCI_OPT_CTRL + 2,
++				       BIT_SDIO_PAD_E5 >> 16);
++		else
++			rtw_write8_clr(rtwdev, REG_HCI_OPT_CTRL + 2,
++				       BIT_SDIO_PAD_E5 >> 16);
++		break;
+ 	case RTW_HCI_TYPE_USB:
+ 		break;
+ 	default:
+@@ -249,6 +272,7 @@ static int rtw_mac_power_switch(struct rtw_dev *rtwdev, bool pwr_on)
+ {
+ 	const struct rtw_chip_info *chip = rtwdev->chip;
+ 	const struct rtw_pwr_seq_cmd **pwr_seq;
++	u32 imr = 0;
+ 	u8 rpwm;
+ 	bool cur_pwr;
+ 	int ret;
+@@ -274,18 +298,24 @@ static int rtw_mac_power_switch(struct rtw_dev *rtwdev, bool pwr_on)
+ 	if (pwr_on == cur_pwr)
+ 		return -EALREADY;
+ 
++	if (rtw_hci_type(rtwdev) == RTW_HCI_TYPE_SDIO) {
++		imr = rtw_read32(rtwdev, REG_SDIO_HIMR);
++		rtw_write32(rtwdev, REG_SDIO_HIMR, 0);
++	}
++
+ 	if (!pwr_on)
+ 		clear_bit(RTW_FLAG_POWERON, rtwdev->flags);
+ 
+ 	pwr_seq = pwr_on ? chip->pwr_on_seq : chip->pwr_off_seq;
+ 	ret = rtw_pwr_seq_parser(rtwdev, pwr_seq);
+-	if (ret)
+-		return ret;
+ 
+-	if (pwr_on)
++	if (rtw_hci_type(rtwdev) == RTW_HCI_TYPE_SDIO)
++		rtw_write32(rtwdev, REG_SDIO_HIMR, imr);
++
++	if (!ret && pwr_on)
+ 		set_bit(RTW_FLAG_POWERON, rtwdev->flags);
+ 
+-	return 0;
++	return ret;
+ }
+ 
+ static int __rtw_mac_init_system_cfg(struct rtw_dev *rtwdev)
+@@ -456,6 +486,9 @@ static void download_firmware_reg_backup(struct rtw_dev *rtwdev,
+ 	rtw_write16(rtwdev, REG_FIFOPAGE_INFO_1, 0x200);
+ 	rtw_write32(rtwdev, REG_RQPN_CTRL_2, bckp[bckp_idx - 1].val);
+ 
++	if (rtw_hci_type(rtwdev) == RTW_HCI_TYPE_SDIO)
++		rtw_read32(rtwdev, REG_SDIO_FREE_TXPG);
++
+ 	/* Disable beacon related functions */
+ 	tmp = rtw_read8(rtwdev, REG_BCN_CTRL);
+ 	bckp[bckp_idx].len = 1;
+@@ -1068,8 +1101,12 @@ static int txdma_queue_mapping(struct rtw_dev *rtwdev)
+ 	if (rtw_chip_wcpu_11ac(rtwdev))
+ 		rtw_write32(rtwdev, REG_H2CQ_CSR, BIT_H2CQ_FULL);
+ 
+-	if (rtw_hci_type(rtwdev) == RTW_HCI_TYPE_USB)
++	if (rtw_hci_type(rtwdev) == RTW_HCI_TYPE_SDIO) {
++		rtw_read32(rtwdev, REG_SDIO_FREE_TXPG);
++		rtw_write32(rtwdev, REG_SDIO_TX_CTRL, 0);
++	} else if (rtw_hci_type(rtwdev) == RTW_HCI_TYPE_USB) {
+ 		rtw_write8_set(rtwdev, REG_TXDMA_PQ_MAP, BIT_RXDMA_ARBBW_EN);
++	}
+ 
+ 	return 0;
+ }
+
+From patchwork Mon Mar 20 21:35:03 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Martin Blumenstingl
+ <martin.blumenstingl@googlemail.com>
+X-Patchwork-Id: 13181881
+X-Patchwork-Delegate: kvalo@adurom.com
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id B8C6CC6FD1C
+	for <linux-wireless@archiver.kernel.org>;
+ Mon, 20 Mar 2023 21:36:36 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S231205AbjCTVgd (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Mon, 20 Mar 2023 17:36:33 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38474 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231142AbjCTVgM (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Mon, 20 Mar 2023 17:36:12 -0400
+Received: from mail-ed1-x533.google.com (mail-ed1-x533.google.com
+ [IPv6:2a00:1450:4864:20::533])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B80E3193DF;
+        Mon, 20 Mar 2023 14:35:30 -0700 (PDT)
+Received: by mail-ed1-x533.google.com with SMTP id o12so52342010edb.9;
+        Mon, 20 Mar 2023 14:35:30 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=googlemail.com; s=20210112; t=1679348126;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=kQARc2IKQ7J+PNhmSMnJI2VcVwSc/7PMjvPSw/XGItg=;
+        b=LJCwuLzAxZxLiPrLzGrI772iagRWmk9PnHVA3Q7GBd+TFvGiluLCX4s7EO1uXY8r1y
+         bko2VZfbL7iVT7piupZyNQ1KuNH24cR2U4YWbOZPVgKa39M0c+8VTjFIGobu0R+zuFSA
+         7Vs4T4StDh2mAT1GhaJdXAbKwQ7EZjiNN+zPkr2dgEobH+WWg28MHooxYflCFnFSfe8C
+         b0yX1fhasF+WIS6l1bntiDkf5L4dGPOOnkNwm/ybN5v/NVelQfxm/OA+X54X2s1Gr/xl
+         FnIiLCWx/qypyyGXMZNXViFVAymQprzY6lxsrKPwRhLC9f+DoHG0WRiHbOqbMtk/aRBQ
+         fEuA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1679348126;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=kQARc2IKQ7J+PNhmSMnJI2VcVwSc/7PMjvPSw/XGItg=;
+        b=Usu7R97C3DFME/EJhw7QAuXDXMfSzRdg9GAJNBhu7pLmaYREn5p3mmhgpiEb1rWzZ+
+         WI5zW1DqKLtfOnKpj8o97eBvlDQmCj6W7el0MxM/5BUsZyDsVQo4+U0ws2tYKkPt/toa
+         KV0Hdoqn6zkBqy3TJ2PC+k7JkzzSWA450DIr7O8uIsoi2tVdaH8xAvSyYnTTSMV6lFGc
+         uJRjY+FdtHGJHTCVi+nLDQJ436qF7cMNC7+fyLZpLkhJS8xFtjX/LI0/pNkYOjYioqsN
+         6ctiA3qY6a3wkkIn1Q+vGxjzPSizg8H1k9PeUKf5uzjfu2rz+4eFF/9cXREMkNuucED0
+         MqPw==
+X-Gm-Message-State: AO0yUKVPv4X+l8d0wmse0A1Emx0GJvD7r6hOxT0N71LjQHyOYliAD0E6
+        gS/r+Y6FoG/85WaVf4UZECnR6mdVuW0=
+X-Google-Smtp-Source: 
+ AK7set9ilmj5hTWsAlRs4VvyfMPNn9uUUvq6oLlfN40g/Dhn4vSfV3sVHlwo/MMcpnR98YEgOYBk1A==
+X-Received: by 2002:aa7:c242:0:b0:500:5627:a20b with SMTP id
+ y2-20020aa7c242000000b005005627a20bmr1095118edo.1.1679348126505;
+        Mon, 20 Mar 2023 14:35:26 -0700 (PDT)
+Received: from localhost.localdomain
+ (dynamic-2a01-0c22-73dd-8200-0000-0000-0000-0e63.c22.pool.telefonica.de.
+ [2a01:c22:73dd:8200::e63])
+        by smtp.googlemail.com with ESMTPSA id
+ z17-20020a5096d1000000b004aee4e2a56esm5413201eda.0.2023.03.20.14.35.25
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 20 Mar 2023 14:35:26 -0700 (PDT)
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+To: linux-wireless@vger.kernel.org
+Cc: Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>,
+        Ulf Hansson <ulf.hansson@linaro.org>,
+        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        linux-mmc@vger.kernel.org, Chris Morgan <macroalpha82@gmail.com>,
+        Nitin Gupta <nitin.gupta981@gmail.com>,
+        Neo Jou <neojou@gmail.com>, Pkshih <pkshih@realtek.com>,
+        Jernej Skrabec <jernej.skrabec@gmail.com>,
+        Larry Finger <Larry.Finger@lwfinger.net>,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Subject: [PATCH v3 4/9] wifi: rtw88: main: Add the {cpwm,rpwm}_addr for SDIO
+ based chipsets
+Date: Mon, 20 Mar 2023 22:35:03 +0100
+Message-Id: <20230320213508.2358213-5-martin.blumenstingl@googlemail.com>
+X-Mailer: git-send-email 2.40.0
+In-Reply-To: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+References: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+Initialize the rpwm_addr and cpwm_addr for power-saving support on SDIO
+based chipsets.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+Changes since v2:
+- none
+
+Changes since v1:
+- none
+
+
+ drivers/net/wireless/realtek/rtw88/main.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
+index b2e78737bd5d..cdc4703ead5f 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.c
++++ b/drivers/net/wireless/realtek/rtw88/main.c
+@@ -18,6 +18,7 @@
+ #include "debug.h"
+ #include "bf.h"
+ #include "sar.h"
++#include "sdio.h"
+ 
+ bool rtw_disable_lps_deep_mode;
+ EXPORT_SYMBOL(rtw_disable_lps_deep_mode);
+@@ -1785,6 +1786,10 @@ static int rtw_chip_parameter_setup(struct rtw_dev *rtwdev)
+ 		rtwdev->hci.rpwm_addr = 0x03d9;
+ 		rtwdev->hci.cpwm_addr = 0x03da;
+ 		break;
++	case RTW_HCI_TYPE_SDIO:
++		rtwdev->hci.rpwm_addr = REG_SDIO_HRPWM1;
++		rtwdev->hci.cpwm_addr = REG_SDIO_HCPWM1_V2;
++		break;
+ 	case RTW_HCI_TYPE_USB:
+ 		rtwdev->hci.rpwm_addr = 0xfe58;
+ 		rtwdev->hci.cpwm_addr = 0xfe57;
+
+From patchwork Mon Mar 20 21:35:04 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Martin Blumenstingl
+ <martin.blumenstingl@googlemail.com>
+X-Patchwork-Id: 13181882
+X-Patchwork-Delegate: kvalo@adurom.com
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id EF2FCC77B60
+	for <linux-wireless@archiver.kernel.org>;
+ Mon, 20 Mar 2023 21:36:37 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S229788AbjCTVge (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Mon, 20 Mar 2023 17:36:34 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39354 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231138AbjCTVgL (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Mon, 20 Mar 2023 17:36:11 -0400
+Received: from mail-ed1-x52a.google.com (mail-ed1-x52a.google.com
+ [IPv6:2a00:1450:4864:20::52a])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B744413D54;
+        Mon, 20 Mar 2023 14:35:30 -0700 (PDT)
+Received: by mail-ed1-x52a.google.com with SMTP id h8so52326584ede.8;
+        Mon, 20 Mar 2023 14:35:30 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=googlemail.com; s=20210112; t=1679348127;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=pAqmA3HhSn5qzyU/VrL6gyfJOdARmRtdcfXfrm+JOHQ=;
+        b=YJWugPH4B8sEXYvv0rEqr4rN0k6vTyouvs4MfchNdJLwh/S7Z2gfGPfXTA2gvfUjr4
+         QGxv/dfwDe/jtoo8hkefB1iIob7CGBRzNWtxOCl2agtjEm3A9yP9G/1SrSjF7T+blGaO
+         pFhy18P03jNTnrLOFrv3VNp+DCP/xHGATsxhVLqyG8Op4nQ3ALDw6GBuAowZ02PSq2AV
+         UMq9uaM31GTq8nCric6XwkE7sS2UGlrVnzfZgyXTp3FX5TUCxyMHYu6AxwALYPGPyw16
+         D6UySlPYHfD0c+pWhiiXUXngitEDz2N/9rP13pWJUOB/p2hmz+vtqbkB52uWKjpM9bcT
+         kp0A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1679348127;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=pAqmA3HhSn5qzyU/VrL6gyfJOdARmRtdcfXfrm+JOHQ=;
+        b=AK7e2ykwqkxGFF9x2n4PNt+uQ1F02BArjXk2pXCRqLFg1Vy9W3mw5uPhrz0dLSExAf
+         mTg7RgHqs6bb57Fql6GeqvYqIc8WRkwsbLUeigNIhafECe9xAOMLPMKhd9BIeRhRt/6+
+         0N8DcaOFrVFiXGKxBJgczWsyV5i9EDzhpgVNLy946EBjFX6gXDsXWpjaEMF8vDmtBG2G
+         3qS6ihkReNSTA3G+e0L3Nfbywk5N08Tsmmbj9lhNef28HFvjZ0dDmaaGtFnyrcGWl4Fc
+         VV5uNxZuOaAiQZ55OWEsE6mC2SMJZvfZp57vq88QQgJNh2Op1oCDqRzhiTf6S/CJ0eEl
+         Vhsw==
+X-Gm-Message-State: AO0yUKWYv6Cvo+cC4eQBUUHL1Z+b+vyTISx89Itd16SlqZyM2TbqxiW/
+        9CCZsbBm0BwaYh5uSsQLDXFbjMvCixQ=
+X-Google-Smtp-Source: 
+ AK7set/B6rUfC2mkYILiOgAhZQ0AIkRSSjMsgPaNKsldHyMHxGl1Egz8cBSBIrWsZMWaf3Mt9T/MFA==
+X-Received: by 2002:a05:6402:148e:b0:4fa:4a27:adba with SMTP id
+ e14-20020a056402148e00b004fa4a27adbamr966700edv.22.1679348127539;
+        Mon, 20 Mar 2023 14:35:27 -0700 (PDT)
+Received: from localhost.localdomain
+ (dynamic-2a01-0c22-73dd-8200-0000-0000-0000-0e63.c22.pool.telefonica.de.
+ [2a01:c22:73dd:8200::e63])
+        by smtp.googlemail.com with ESMTPSA id
+ z17-20020a5096d1000000b004aee4e2a56esm5413201eda.0.2023.03.20.14.35.26
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 20 Mar 2023 14:35:27 -0700 (PDT)
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+To: linux-wireless@vger.kernel.org
+Cc: Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>,
+        Ulf Hansson <ulf.hansson@linaro.org>,
+        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        linux-mmc@vger.kernel.org, Chris Morgan <macroalpha82@gmail.com>,
+        Nitin Gupta <nitin.gupta981@gmail.com>,
+        Neo Jou <neojou@gmail.com>, Pkshih <pkshih@realtek.com>,
+        Jernej Skrabec <jernej.skrabec@gmail.com>,
+        Larry Finger <Larry.Finger@lwfinger.net>,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Subject: [PATCH v3 5/9] wifi: rtw88: main: Reserve 8 bytes of extra TX
+ headroom for SDIO cards
+Date: Mon, 20 Mar 2023 22:35:04 +0100
+Message-Id: <20230320213508.2358213-6-martin.blumenstingl@googlemail.com>
+X-Mailer: git-send-email 2.40.0
+In-Reply-To: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+References: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+For SDIO host controllers with DMA support the TX buffer physical memory
+address need to be aligned at an 8-byte boundary. Reserve 8 bytes of
+extra TX headroom so we can align the data without re-allocating the
+transmit buffer.
+
+While here, also remove the TODO comment regarding extra headroom for
+USB and SDIO. For SDIO the extra headroom is now handled and for USB it
+was not needed so far.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+Changes since v2:
+- none
+
+Changes since v1:
+- none
+
+
+ drivers/net/wireless/realtek/rtw88/main.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
+index cdc4703ead5f..1cb553485cff 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.c
++++ b/drivers/net/wireless/realtek/rtw88/main.c
+@@ -2163,9 +2163,11 @@ int rtw_register_hw(struct rtw_dev *rtwdev, struct ieee80211_hw *hw)
+ 	int max_tx_headroom = 0;
+ 	int ret;
+ 
+-	/* TODO: USB & SDIO may need extra room? */
+ 	max_tx_headroom = rtwdev->chip->tx_pkt_desc_sz;
+ 
++	if (rtw_hci_type(rtwdev) == RTW_HCI_TYPE_SDIO)
++		max_tx_headroom += RTW_SDIO_DATA_PTR_ALIGN;
++
+ 	hw->extra_tx_headroom = max_tx_headroom;
+ 	hw->queues = IEEE80211_NUM_ACS;
+ 	hw->txq_data_size = sizeof(struct rtw_txq);
+
+From patchwork Mon Mar 20 21:35:05 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Martin Blumenstingl
+ <martin.blumenstingl@googlemail.com>
+X-Patchwork-Id: 13181878
+X-Patchwork-Delegate: johannes@sipsolutions.net
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id DDE78C7619A
+	for <linux-wireless@archiver.kernel.org>;
+ Mon, 20 Mar 2023 21:36:18 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S231180AbjCTVgQ (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Mon, 20 Mar 2023 17:36:16 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39252 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230452AbjCTVgI (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Mon, 20 Mar 2023 17:36:08 -0400
+Received: from mail-ed1-x52e.google.com (mail-ed1-x52e.google.com
+ [IPv6:2a00:1450:4864:20::52e])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id B7E5F18AB7;
+        Mon, 20 Mar 2023 14:35:30 -0700 (PDT)
+Received: by mail-ed1-x52e.google.com with SMTP id b20so19411762edd.1;
+        Mon, 20 Mar 2023 14:35:30 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=googlemail.com; s=20210112; t=1679348128;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=cIXZMLxx/ubavYAb0x2y+MWgAklULVLiudoNGsi/gKc=;
+        b=FYWoX7tDPL38lqEnew6QDLMyxgNpv+YHllFLrHJmtU57rgtjxLdtzNvY89CaQzTVxY
+         QbPSDjYX9tBYEmPoiRovQln23elACHXUMlD7YzBAQ2e6Zmm/HP1uah1w8XI4DdJ6assj
+         yz9TLQIg4CEbHwVNcJwRimBQc4K+Cfd5V3fkzf+UmTFmJ/6YRGP+EJPnyDC/Bxn/9643
+         98rh3uwD9CtALydIUCnN7scALnpBzwBAPDRW4KDAcYh4USUjNvifoGcFi1MuU5v8Ei27
+         1wzlHIoRCDsE27Jy56zSZ6thef7jpm1YRhMgjy9svTzdddQ+fE7eN0sC8dUacybarFhB
+         2x/A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1679348128;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=cIXZMLxx/ubavYAb0x2y+MWgAklULVLiudoNGsi/gKc=;
+        b=yYLkuBN66HODi1ZCOskKyb2t/s7KUjgBG9WZy6L63DJtZ0GjB3m5NymNcc966e8wsy
+         yMzGu/kXWUJqN6KshAMWAwxgVmqA6v7YvMCE3NS0J6ZYZNbxozpvqukL0mMCr7jNXuhh
+         hTHP/z1C07ZfinfQyYPbbLKtC1zMdu70Qq5bI9CRtjr7snW53wcHw90kwNT2CwRtL2H4
+         ghdDc4iRlBOrHppIQ36FrcwTBakFzjm70/BJHqVIYqFcwPjvF9o4vlJDCDH5dVe6y2OB
+         7m4SZMpvsB5tz2W18jagdJxgCFQPJ/0RZz5sMBSRwqi8yKZ9LqMapp5rBATLUY8q+W1G
+         DYmA==
+X-Gm-Message-State: AO0yUKVlusyWj2xSVQ5iIKot9zQLYCVusZ67ihEaq3xVNfd7A5FC59yQ
+        zgG9p6JkS+j14r6wBwtPpZ+6KEAaM8k=
+X-Google-Smtp-Source: 
+ AK7set/h1Kuju9OeDuVNsvJ1JURneblLKR4Yr+YpzMoOj1GIhYKvgdGJfzw10O0iiEuLniXxXKk+5Q==
+X-Received: by 2002:a17:906:7c9:b0:8b2:8876:6a3c with SMTP id
+ m9-20020a17090607c900b008b288766a3cmr490868ejc.29.1679348128499;
+        Mon, 20 Mar 2023 14:35:28 -0700 (PDT)
+Received: from localhost.localdomain
+ (dynamic-2a01-0c22-73dd-8200-0000-0000-0000-0e63.c22.pool.telefonica.de.
+ [2a01:c22:73dd:8200::e63])
+        by smtp.googlemail.com with ESMTPSA id
+ z17-20020a5096d1000000b004aee4e2a56esm5413201eda.0.2023.03.20.14.35.27
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 20 Mar 2023 14:35:28 -0700 (PDT)
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+To: linux-wireless@vger.kernel.org
+Cc: Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>,
+        Ulf Hansson <ulf.hansson@linaro.org>,
+        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        linux-mmc@vger.kernel.org, Chris Morgan <macroalpha82@gmail.com>,
+        Nitin Gupta <nitin.gupta981@gmail.com>,
+        Neo Jou <neojou@gmail.com>, Pkshih <pkshih@realtek.com>,
+        Jernej Skrabec <jernej.skrabec@gmail.com>,
+        Larry Finger <Larry.Finger@lwfinger.net>,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Subject: [PATCH v3 6/9] mmc: sdio: add Realtek SDIO vendor ID and various wifi
+ device IDs
+Date: Mon, 20 Mar 2023 22:35:05 +0100
+Message-Id: <20230320213508.2358213-7-martin.blumenstingl@googlemail.com>
+X-Mailer: git-send-email 2.40.0
+In-Reply-To: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+References: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+Add the SDIO vendor ID for Realtek and some device IDs extracted from
+their GPL vendor driver. This will be useful in the future when the
+rtw88 driver gains support for these chips.
+
+Acked-by: Ulf Hansson <ulf.hansson@linaro.org>
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+Changes since v2:
+- none
+
+Changes since v1:
+- Add Ulf's Acked-by (who added: "I assume it's easier if Kalle picks
+  up this patch, along with the series")
+
+
+ include/linux/mmc/sdio_ids.h | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/include/linux/mmc/sdio_ids.h b/include/linux/mmc/sdio_ids.h
+index 0e4ef9c5127a..d7cd39a8ad57 100644
+--- a/include/linux/mmc/sdio_ids.h
++++ b/include/linux/mmc/sdio_ids.h
+@@ -112,6 +112,15 @@
+ #define SDIO_VENDOR_ID_MICROCHIP_WILC		0x0296
+ #define SDIO_DEVICE_ID_MICROCHIP_WILC1000	0x5347
+ 
++#define SDIO_VENDOR_ID_REALTEK			0x024c
++#define SDIO_DEVICE_ID_REALTEK_RTW8723BS	0xb723
++#define SDIO_DEVICE_ID_REALTEK_RTW8723DS	0xd723
++#define SDIO_DEVICE_ID_REALTEK_RTW8821BS	0xb821
++#define SDIO_DEVICE_ID_REALTEK_RTW8821CS	0xc821
++#define SDIO_DEVICE_ID_REALTEK_RTW8821DS	0xd821
++#define SDIO_DEVICE_ID_REALTEK_RTW8822BS	0xb822
++#define SDIO_DEVICE_ID_REALTEK_RTW8822CS	0xc822
++
+ #define SDIO_VENDOR_ID_SIANO			0x039a
+ #define SDIO_DEVICE_ID_SIANO_NOVA_B0		0x0201
+ #define SDIO_DEVICE_ID_SIANO_NICE		0x0202
+
+From patchwork Mon Mar 20 21:35:06 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Martin Blumenstingl
+ <martin.blumenstingl@googlemail.com>
+X-Patchwork-Id: 13181883
+X-Patchwork-Delegate: kvalo@adurom.com
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 2DD83C761A6
+	for <linux-wireless@archiver.kernel.org>;
+ Mon, 20 Mar 2023 21:37:15 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S231177AbjCTVhM (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Mon, 20 Mar 2023 17:37:12 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:39350 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230450AbjCTVga (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Mon, 20 Mar 2023 17:36:30 -0400
+Received: from mail-ed1-x52c.google.com (mail-ed1-x52c.google.com
+ [IPv6:2a00:1450:4864:20::52c])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 07B041554A;
+        Mon, 20 Mar 2023 14:35:38 -0700 (PDT)
+Received: by mail-ed1-x52c.google.com with SMTP id cy23so52242396edb.12;
+        Mon, 20 Mar 2023 14:35:38 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=googlemail.com; s=20210112; t=1679348129;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=Xcee6Xz8r8Flo3g57XPt5CCbkDvJlGcwG5+IRvVtSw0=;
+        b=ZvBgt7EZxDUhII+m81ZtLolKmHjkR3MgtNGKIdeXj0zfy7Mt+VQ36m1+2U9MpzNuLy
+         k9O4RfWxNhmHcnEi+9QyuogJhRjel8v/Z4WHOH6rhWoYNtZXz3gscco9JdkbvwrnofZp
+         ZEUkrsDQC6JBulqSkL+vdMENJ0bFKGJCmUA5vjHhZCOl5AxYHYkyon7wZe/IFYyfprX6
+         6akclTka2oe3k7IcWS3uMkjiXXxVF7lIbIl6q1pgFP/CjgVpNkK6L0Sr7MUhtCmsLD0C
+         8B4/jSl4w2cjyb11toaR/gcBPoHqmACTKwMGkAHfwvIURx0aWdiNIwZOneRdi/9+kMWe
+         FbCw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1679348129;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=Xcee6Xz8r8Flo3g57XPt5CCbkDvJlGcwG5+IRvVtSw0=;
+        b=hL/I9mxFzQb9YwkBVs1vyQua6YQWQYqw6287dckxeS+ZhHZLvfNFMQMzG2yWfXLdZZ
+         4KE7CiRgBLYBdJ99mlouNk35KUR203m2BRX7rw8HOqudIsgWElNnWCTalEy69ZR4VXjf
+         3cbuMZ245JstX4vNygZCMXzp5OPz1mPUWGv/2z/xNUeQMhs82V9jtxFu7XRf+WdpnOOg
+         /aeO9LzEcdY85CU+LptPJsy5a0kRD5HwN7LgRj6lTmvObiqCEn3BdQq455MHKftdYqJH
+         hWeGC9nUx2JJTdiihOv30l8ssukj3VfvZ8MvD8g7HMMlxtLOaYG9KkilVUmSlMOWbpfi
+         eE7A==
+X-Gm-Message-State: AO0yUKVEcxXQsf1u8zrSQ9VbR9JOyi0b5mecfsj0f15rEtbvyWHQX50f
+        5dWoavegrdemjSmhaT4nFydsxWaiGU0=
+X-Google-Smtp-Source: 
+ AK7set+Vw5eEA8z1vlAMmoeB15w4d1gb1sn63IQlubG4Mfy62/gH0MeFYtlfevodH8J2gvxNDYRg6g==
+X-Received: by 2002:a05:6402:114d:b0:4fe:9374:30d0 with SMTP id
+ g13-20020a056402114d00b004fe937430d0mr906743edw.39.1679348129274;
+        Mon, 20 Mar 2023 14:35:29 -0700 (PDT)
+Received: from localhost.localdomain
+ (dynamic-2a01-0c22-73dd-8200-0000-0000-0000-0e63.c22.pool.telefonica.de.
+ [2a01:c22:73dd:8200::e63])
+        by smtp.googlemail.com with ESMTPSA id
+ z17-20020a5096d1000000b004aee4e2a56esm5413201eda.0.2023.03.20.14.35.28
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 20 Mar 2023 14:35:29 -0700 (PDT)
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+To: linux-wireless@vger.kernel.org
+Cc: Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>,
+        Ulf Hansson <ulf.hansson@linaro.org>,
+        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        linux-mmc@vger.kernel.org, Chris Morgan <macroalpha82@gmail.com>,
+        Nitin Gupta <nitin.gupta981@gmail.com>,
+        Neo Jou <neojou@gmail.com>, Pkshih <pkshih@realtek.com>,
+        Jernej Skrabec <jernej.skrabec@gmail.com>,
+        Larry Finger <Larry.Finger@lwfinger.net>,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Subject: [PATCH v3 7/9] wifi: rtw88: Add support for the SDIO based RTL8822BS
+ chipset
+Date: Mon, 20 Mar 2023 22:35:06 +0100
+Message-Id: <20230320213508.2358213-8-martin.blumenstingl@googlemail.com>
+X-Mailer: git-send-email 2.40.0
+In-Reply-To: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+References: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+
+Wire up RTL8822BS chipset support using the new rtw88 SDIO HCI code as
+well as the existing RTL8822B chipset code.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+Changes since v2:
+- sort includes alphabetically as suggested by Ping-Ke
+- add missing #include "main.h" (after it has been removed from sdio.h
+  in patch 2 from this series)
+
+Changes since v1:
+- use /* ... */ style for copyright comments
+
+
+ drivers/net/wireless/realtek/rtw88/Kconfig    | 11 ++++++
+ drivers/net/wireless/realtek/rtw88/Makefile   |  3 ++
+ .../net/wireless/realtek/rtw88/rtw8822bs.c    | 36 +++++++++++++++++++
+ 3 files changed, 50 insertions(+)
+ create mode 100644 drivers/net/wireless/realtek/rtw88/rtw8822bs.c
+
+diff --git a/drivers/net/wireless/realtek/rtw88/Kconfig b/drivers/net/wireless/realtek/rtw88/Kconfig
+index cdf9cb478ee2..0cfc68dcc416 100644
+--- a/drivers/net/wireless/realtek/rtw88/Kconfig
++++ b/drivers/net/wireless/realtek/rtw88/Kconfig
+@@ -45,6 +45,17 @@ config RTW88_8822BE
+ 
+ 	  802.11ac PCIe wireless network adapter
+ 
++config RTW88_8822BS
++	tristate "Realtek 8822BS SDIO wireless network adapter"
++	depends on MMC
++	select RTW88_CORE
++	select RTW88_SDIO
++	select RTW88_8822B
++	help
++	  Select this option will enable support for 8822BS chipset
++
++	  802.11ac SDIO wireless network adapter
++
+ config RTW88_8822BU
+ 	tristate "Realtek 8822BU USB wireless network adapter"
+ 	depends on USB
+diff --git a/drivers/net/wireless/realtek/rtw88/Makefile b/drivers/net/wireless/realtek/rtw88/Makefile
+index 892cad60ba31..2b8f4dd9707f 100644
+--- a/drivers/net/wireless/realtek/rtw88/Makefile
++++ b/drivers/net/wireless/realtek/rtw88/Makefile
+@@ -26,6 +26,9 @@ rtw88_8822b-objs		:= rtw8822b.o rtw8822b_table.o
+ obj-$(CONFIG_RTW88_8822BE)	+= rtw88_8822be.o
+ rtw88_8822be-objs		:= rtw8822be.o
+ 
++obj-$(CONFIG_RTW88_8822BS)	+= rtw88_8822bs.o
++rtw88_8822bs-objs		:= rtw8822bs.o
++
+ obj-$(CONFIG_RTW88_8822BU)	+= rtw88_8822bu.o
+ rtw88_8822bu-objs		:= rtw8822bu.o
+ 
+diff --git a/drivers/net/wireless/realtek/rtw88/rtw8822bs.c b/drivers/net/wireless/realtek/rtw88/rtw8822bs.c
+new file mode 100644
+index 000000000000..31d8645f83bd
+--- /dev/null
++++ b/drivers/net/wireless/realtek/rtw88/rtw8822bs.c
+@@ -0,0 +1,36 @@
++// SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
++/* Copyright(c) Jernej Skrabec <jernej.skrabec@gmail.com>
++ */
++
++#include <linux/mmc/sdio_func.h>
++#include <linux/mmc/sdio_ids.h>
++#include <linux/module.h>
++#include "main.h"
++#include "rtw8822b.h"
++#include "sdio.h"
++
++static const struct sdio_device_id rtw_8822bs_id_table[] =  {
++	{
++		SDIO_DEVICE(SDIO_VENDOR_ID_REALTEK,
++			    SDIO_DEVICE_ID_REALTEK_RTW8822BS),
++		.driver_data = (kernel_ulong_t)&rtw8822b_hw_spec,
++	},
++	{}
++};
++MODULE_DEVICE_TABLE(sdio, rtw_8822bs_id_table);
++
++static struct sdio_driver rtw_8822bs_driver = {
++	.name = "rtw_8822bs",
++	.probe = rtw_sdio_probe,
++	.remove = rtw_sdio_remove,
++	.id_table = rtw_8822bs_id_table,
++	.drv = {
++		.pm = &rtw_sdio_pm_ops,
++		.shutdown = rtw_sdio_shutdown,
++	}
++};
++module_sdio_driver(rtw_8822bs_driver);
++
++MODULE_AUTHOR("Jernej Skrabec <jernej.skrabec@gmail.com>");
++MODULE_DESCRIPTION("Realtek 802.11ac wireless 8822bs driver");
++MODULE_LICENSE("Dual BSD/GPL");
+
+From patchwork Mon Mar 20 21:35:07 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Martin Blumenstingl
+ <martin.blumenstingl@googlemail.com>
+X-Patchwork-Id: 13181884
+X-Patchwork-Delegate: kvalo@adurom.com
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id 8F0C2C6FD1D
+	for <linux-wireless@archiver.kernel.org>;
+ Mon, 20 Mar 2023 21:37:17 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S231253AbjCTVhO (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Mon, 20 Mar 2023 17:37:14 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:38474 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S231189AbjCTVgb (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Mon, 20 Mar 2023 17:36:31 -0400
+Received: from mail-ed1-x52f.google.com (mail-ed1-x52f.google.com
+ [IPv6:2a00:1450:4864:20::52f])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 76C79BBA5;
+        Mon, 20 Mar 2023 14:35:41 -0700 (PDT)
+Received: by mail-ed1-x52f.google.com with SMTP id ek18so52364957edb.6;
+        Mon, 20 Mar 2023 14:35:41 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=googlemail.com; s=20210112; t=1679348130;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=F1r8IjJwVIyRWtJhcwsAyFjYCs6VABNRosrxGLP+PNA=;
+        b=JAO+/xDul1UqdTrsgq1ezgAPvwZODfz33KEcngijCvHOWqmptK/a+O+aGWQC2fVcF7
+         Satva22kFofbyQ2oTtsmdmq9sWh7cAIT26UMO6XDuIhgoX2gPAjtuvSOukfBUb6igPol
+         0SzhSsYUqONO9bFP8Se4AKoUokVBtEbmZzaz5x7JqB9h+lN16bWPhriE9+PNI0O3UaS1
+         GY8+MefHIBaaKKn+tt/guJh0k8RRhAKQqLo8kSfX8s2+zGSafcIQaxTCI4R7xl81FH1D
+         OkvWlvjfroGj+YKxqaMqs/HLlzbQMUNzlZe4WzBRQchF7XyjJKvbzdT4IGwhBg7a+oDl
+         gdPg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1679348130;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=F1r8IjJwVIyRWtJhcwsAyFjYCs6VABNRosrxGLP+PNA=;
+        b=0pazq9O+HT7HPeMMU7w6CVRl/wZowP2ucxvuRk/MV3BBj4EatPOSxvzZqkUfsu5AA2
+         CLKc4mlipKy4EZddB3b/17Iq2KR8+XOqQkocH0QzTll2hrlc+DvO8IzampAHoK0V/UuS
+         EQ42GwloFI4aD4s6Vvrf8gUkXdv1HA4s2e0uTA/W7IUGs2XWL7y0HoW7jMFsBYC4/+tR
+         ChQ14lxP23Tl55+56zNCBp08dZQ29YJbE2laIEBP5FHa4v5yHLSU/h2iq2qLx43sbSwh
+         tlw89Osq3cqWNf/aP9SwYEwe8BJFPia0sg87Csru04m6hH9CH40kOXsp2+10qvA1j/6k
+         tyaQ==
+X-Gm-Message-State: AO0yUKUHUT5EEyVZTm6y1MlelLj5d38t0CpJPV5F0d5KL2z/pJzXWNGv
+        vsMn3QXZZRD2YeRqpyBlhx//xw+Vyds=
+X-Google-Smtp-Source: 
+ AK7set89jB29vPYJBUi6sTdIZt2LaEw3MvMELFUf0ob23Y3NoiU65FcUExIlvQbnKfCIrlk2D2s8tQ==
+X-Received: by 2002:aa7:d4d9:0:b0:4fe:961d:cab0 with SMTP id
+ t25-20020aa7d4d9000000b004fe961dcab0mr1063560edr.5.1679348130257;
+        Mon, 20 Mar 2023 14:35:30 -0700 (PDT)
+Received: from localhost.localdomain
+ (dynamic-2a01-0c22-73dd-8200-0000-0000-0000-0e63.c22.pool.telefonica.de.
+ [2a01:c22:73dd:8200::e63])
+        by smtp.googlemail.com with ESMTPSA id
+ z17-20020a5096d1000000b004aee4e2a56esm5413201eda.0.2023.03.20.14.35.29
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 20 Mar 2023 14:35:29 -0700 (PDT)
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+To: linux-wireless@vger.kernel.org
+Cc: Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>,
+        Ulf Hansson <ulf.hansson@linaro.org>,
+        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        linux-mmc@vger.kernel.org, Chris Morgan <macroalpha82@gmail.com>,
+        Nitin Gupta <nitin.gupta981@gmail.com>,
+        Neo Jou <neojou@gmail.com>, Pkshih <pkshih@realtek.com>,
+        Jernej Skrabec <jernej.skrabec@gmail.com>,
+        Larry Finger <Larry.Finger@lwfinger.net>,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Subject: [PATCH v3 8/9] wifi: rtw88: Add support for the SDIO based RTL8822CS
+ chipset
+Date: Mon, 20 Mar 2023 22:35:07 +0100
+Message-Id: <20230320213508.2358213-9-martin.blumenstingl@googlemail.com>
+X-Mailer: git-send-email 2.40.0
+In-Reply-To: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+References: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+Wire up RTL8822CS chipset support using the new rtw88 SDIO HCI code as
+well as the existing RTL8822C chipset code.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+Changes since v2:
+- sort includes alphabetically as suggested by Ping-Ke
+- add missing #include "main.h" (after it has been removed from sdio.h
+  in patch 2 from this series)
+
+Changes since v1:
+- use /* ... */ style for copyright comments
+
+
+ drivers/net/wireless/realtek/rtw88/Kconfig    | 11 ++++++
+ drivers/net/wireless/realtek/rtw88/Makefile   |  3 ++
+ .../net/wireless/realtek/rtw88/rtw8822cs.c    | 36 +++++++++++++++++++
+ 3 files changed, 50 insertions(+)
+ create mode 100644 drivers/net/wireless/realtek/rtw88/rtw8822cs.c
+
+diff --git a/drivers/net/wireless/realtek/rtw88/Kconfig b/drivers/net/wireless/realtek/rtw88/Kconfig
+index 0cfc68dcc416..6b65da81127f 100644
+--- a/drivers/net/wireless/realtek/rtw88/Kconfig
++++ b/drivers/net/wireless/realtek/rtw88/Kconfig
+@@ -78,6 +78,17 @@ config RTW88_8822CE
+ 
+ 	  802.11ac PCIe wireless network adapter
+ 
++config RTW88_8822CS
++	tristate "Realtek 8822CS SDIO wireless network adapter"
++	depends on MMC
++	select RTW88_CORE
++	select RTW88_SDIO
++	select RTW88_8822C
++	help
++	  Select this option will enable support for 8822CS chipset
++
++	  802.11ac SDIO wireless network adapter
++
+ config RTW88_8822CU
+ 	tristate "Realtek 8822CU USB wireless network adapter"
+ 	depends on USB
+diff --git a/drivers/net/wireless/realtek/rtw88/Makefile b/drivers/net/wireless/realtek/rtw88/Makefile
+index 2b8f4dd9707f..6105c2745bda 100644
+--- a/drivers/net/wireless/realtek/rtw88/Makefile
++++ b/drivers/net/wireless/realtek/rtw88/Makefile
+@@ -38,6 +38,9 @@ rtw88_8822c-objs		:= rtw8822c.o rtw8822c_table.o
+ obj-$(CONFIG_RTW88_8822CE)	+= rtw88_8822ce.o
+ rtw88_8822ce-objs		:= rtw8822ce.o
+ 
++obj-$(CONFIG_RTW88_8822CS)	+= rtw88_8822cs.o
++rtw88_8822cs-objs		:= rtw8822cs.o
++
+ obj-$(CONFIG_RTW88_8822CU)	+= rtw88_8822cu.o
+ rtw88_8822cu-objs		:= rtw8822cu.o
+ 
+diff --git a/drivers/net/wireless/realtek/rtw88/rtw8822cs.c b/drivers/net/wireless/realtek/rtw88/rtw8822cs.c
+new file mode 100644
+index 000000000000..975e81c824f2
+--- /dev/null
++++ b/drivers/net/wireless/realtek/rtw88/rtw8822cs.c
+@@ -0,0 +1,36 @@
++// SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
++/* Copyright(c) Martin Blumenstingl <martin.blumenstingl@googlemail.com>
++ */
++
++#include <linux/mmc/sdio_func.h>
++#include <linux/mmc/sdio_ids.h>
++#include <linux/module.h>
++#include "main.h"
++#include "rtw8822c.h"
++#include "sdio.h"
++
++static const struct sdio_device_id rtw_8822cs_id_table[] =  {
++	{
++		SDIO_DEVICE(SDIO_VENDOR_ID_REALTEK,
++			    SDIO_DEVICE_ID_REALTEK_RTW8822CS),
++		.driver_data = (kernel_ulong_t)&rtw8822c_hw_spec,
++	},
++	{}
++};
++MODULE_DEVICE_TABLE(sdio, rtw_8822cs_id_table);
++
++static struct sdio_driver rtw_8822cs_driver = {
++	.name = "rtw_8822cs",
++	.probe = rtw_sdio_probe,
++	.remove = rtw_sdio_remove,
++	.id_table = rtw_8822cs_id_table,
++	.drv = {
++		.pm = &rtw_sdio_pm_ops,
++		.shutdown = rtw_sdio_shutdown,
++	}
++};
++module_sdio_driver(rtw_8822cs_driver);
++
++MODULE_AUTHOR("Martin Blumenstingl <martin.blumenstingl@googlemail.com>");
++MODULE_DESCRIPTION("Realtek 802.11ac wireless 8822cs driver");
++MODULE_LICENSE("Dual BSD/GPL");
+
+From patchwork Mon Mar 20 21:35:08 2023
+Content-Type: text/plain; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+X-Patchwork-Submitter: Martin Blumenstingl
+ <martin.blumenstingl@googlemail.com>
+X-Patchwork-Id: 13181885
+X-Patchwork-Delegate: kvalo@adurom.com
+Return-Path: <linux-wireless-owner@vger.kernel.org>
+X-Spam-Checker-Version: SpamAssassin 3.4.0 (2014-02-07) on
+	aws-us-west-2-korg-lkml-1.web.codeaurora.org
+Received: from vger.kernel.org (vger.kernel.org [23.128.96.18])
+	by smtp.lore.kernel.org (Postfix) with ESMTP id C0E61C761A6
+	for <linux-wireless@archiver.kernel.org>;
+ Mon, 20 Mar 2023 21:37:37 +0000 (UTC)
+Received: (majordomo@vger.kernel.org) by vger.kernel.org via listexpand
+        id S230428AbjCTVhe (ORCPT
+        <rfc822;linux-wireless@archiver.kernel.org>);
+        Mon, 20 Mar 2023 17:37:34 -0400
+Received: from lindbergh.monkeyblade.net ([23.128.96.19]:40766 "EHLO
+        lindbergh.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+        with ESMTP id S230357AbjCTVgx (ORCPT
+        <rfc822;linux-wireless@vger.kernel.org>);
+        Mon, 20 Mar 2023 17:36:53 -0400
+Received: from mail-ed1-x530.google.com (mail-ed1-x530.google.com
+ [IPv6:2a00:1450:4864:20::530])
+        by lindbergh.monkeyblade.net (Postfix) with ESMTPS id 644D426CFC;
+        Mon, 20 Mar 2023 14:35:45 -0700 (PDT)
+Received: by mail-ed1-x530.google.com with SMTP id x3so52293313edb.10;
+        Mon, 20 Mar 2023 14:35:45 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=googlemail.com; s=20210112; t=1679348131;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=LRUPutZwNWZYPrEdHD3f1bxNn6Sbt826jZtmdfwtuO4=;
+        b=EZaHlDkDdBUQlLo202RLsbkBx+FqP9Je3xgomDebJzgbmwZjIND/+H7gqyF4g+5SUH
+         JqdvcUWhhGCXLci2T67q6gOsAjkpKhXDihEqMe5IlUp/I/V67XF832TbnqTmG/Kb8tgq
+         53xlKqfsMTvUg9a+0k6Z/RW9NVOdwLQZ8tzuSgJRJxMDk7RUHTYU8qyo7O8e/IWP+Ltb
+         K33vf9rvW4xKB8tuhfLS/dx6n5L4J6bOyu6BnV/JbaJmZICBEUWhwY53YHbV5ns6hv4U
+         eCEnVoUm0fBddpJWFURJjtFjkP4f8UbUM3asKuDCBcFv+mb3JEwrkRR4p7qxWz7fsMek
+         /iDA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20210112; t=1679348131;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=LRUPutZwNWZYPrEdHD3f1bxNn6Sbt826jZtmdfwtuO4=;
+        b=CbuLkeQUolnCYEz9HThP5dQJZkmTfw5Gtt2kMKka/Hurm0CYQVy0VUJbZNRDarMD1k
+         le4yIofMNpcdRTJinV6DBQRpdkiKZxVBTLPxAGwLrpStZmod5/qSNC05tPHXUTn5Z4Oy
+         35efDROxWYYDdeCuIeEUGPuX4m8TVfam1h5qsNDIWjz7docW6RPVshFNd530dJf7xXdo
+         a5T8XAAH9i0YuK3+3XA+EQEFqSORmRxNJovcv8FOM+g0SRZrbpWnULyFg7O6dJOkSVQi
+         X97Sy9Y1pqN3mPGPY1uIdAx8b2BAUozwLdiU1anEmnDn69oSxCfa5suxSP8fXHCtPQp5
+         JtLQ==
+X-Gm-Message-State: AO0yUKUQ4d+uTyIQIBejOmHNbXnyZEiuTwePytrH0bpQoyJluCcCA+x0
+        VKhZE59ef9fjEUHlLeFD8fnzv9h391s=
+X-Google-Smtp-Source: 
+ AK7set/taZhkIbhZ6VFy8gpVNGzgOUL+BlWY2PH1Hl9PmB/za6a2jleDoLUChmhenKP5msWXNsyFMw==
+X-Received: by 2002:aa7:c242:0:b0:500:5627:a20b with SMTP id
+ y2-20020aa7c242000000b005005627a20bmr1095338edo.1.1679348131208;
+        Mon, 20 Mar 2023 14:35:31 -0700 (PDT)
+Received: from localhost.localdomain
+ (dynamic-2a01-0c22-73dd-8200-0000-0000-0000-0e63.c22.pool.telefonica.de.
+ [2a01:c22:73dd:8200::e63])
+        by smtp.googlemail.com with ESMTPSA id
+ z17-20020a5096d1000000b004aee4e2a56esm5413201eda.0.2023.03.20.14.35.30
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 20 Mar 2023 14:35:30 -0700 (PDT)
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+To: linux-wireless@vger.kernel.org
+Cc: Yan-Hsuan Chuang <tony0620emma@gmail.com>,
+        Kalle Valo <kvalo@kernel.org>,
+        Ulf Hansson <ulf.hansson@linaro.org>,
+        linux-kernel@vger.kernel.org, netdev@vger.kernel.org,
+        linux-mmc@vger.kernel.org, Chris Morgan <macroalpha82@gmail.com>,
+        Nitin Gupta <nitin.gupta981@gmail.com>,
+        Neo Jou <neojou@gmail.com>, Pkshih <pkshih@realtek.com>,
+        Jernej Skrabec <jernej.skrabec@gmail.com>,
+        Larry Finger <Larry.Finger@lwfinger.net>,
+        Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Subject: [PATCH v3 9/9] wifi: rtw88: Add support for the SDIO based RTL8821CS
+ chipset
+Date: Mon, 20 Mar 2023 22:35:08 +0100
+Message-Id: <20230320213508.2358213-10-martin.blumenstingl@googlemail.com>
+X-Mailer: git-send-email 2.40.0
+In-Reply-To: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+References: <20230320213508.2358213-1-martin.blumenstingl@googlemail.com>
+MIME-Version: 1.0
+Precedence: bulk
+List-ID: <linux-wireless.vger.kernel.org>
+X-Mailing-List: linux-wireless@vger.kernel.org
+
+Wire up RTL8821CS chipset support using the new rtw88 SDIO HCI code as
+well as the existing RTL8821C chipset code.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+Changes since v2:
+- sort includes alphabetically as suggested by Ping-Ke
+- add missing #include "main.h" (after it has been removed from sdio.h
+  in patch 2 from this series)
+
+Changes since v1:
+- use /* ... */ style for copyright comments
+
+
+ drivers/net/wireless/realtek/rtw88/Kconfig    | 11 ++++++
+ drivers/net/wireless/realtek/rtw88/Makefile   |  3 ++
+ .../net/wireless/realtek/rtw88/rtw8821cs.c    | 36 +++++++++++++++++++
+ 3 files changed, 50 insertions(+)
+ create mode 100644 drivers/net/wireless/realtek/rtw88/rtw8821cs.c
+
+diff --git a/drivers/net/wireless/realtek/rtw88/Kconfig b/drivers/net/wireless/realtek/rtw88/Kconfig
+index 6b65da81127f..29eb2f8e0eb7 100644
+--- a/drivers/net/wireless/realtek/rtw88/Kconfig
++++ b/drivers/net/wireless/realtek/rtw88/Kconfig
+@@ -133,6 +133,17 @@ config RTW88_8821CE
+ 
+ 	  802.11ac PCIe wireless network adapter
+ 
++config RTW88_8821CS
++	tristate "Realtek 8821CS SDIO wireless network adapter"
++	depends on MMC
++	select RTW88_CORE
++	select RTW88_SDIO
++	select RTW88_8821C
++	help
++	  Select this option will enable support for 8821CS chipset
++
++	  802.11ac SDIO wireless network adapter
++
+ config RTW88_8821CU
+ 	tristate "Realtek 8821CU USB wireless network adapter"
+ 	depends on USB
+diff --git a/drivers/net/wireless/realtek/rtw88/Makefile b/drivers/net/wireless/realtek/rtw88/Makefile
+index 6105c2745bda..82979b30ae8d 100644
+--- a/drivers/net/wireless/realtek/rtw88/Makefile
++++ b/drivers/net/wireless/realtek/rtw88/Makefile
+@@ -59,6 +59,9 @@ rtw88_8821c-objs		:= rtw8821c.o rtw8821c_table.o
+ obj-$(CONFIG_RTW88_8821CE)	+= rtw88_8821ce.o
+ rtw88_8821ce-objs		:= rtw8821ce.o
+ 
++obj-$(CONFIG_RTW88_8821CS)	+= rtw88_8821cs.o
++rtw88_8821cs-objs		:= rtw8821cs.o
++
+ obj-$(CONFIG_RTW88_8821CU)	+= rtw88_8821cu.o
+ rtw88_8821cu-objs		:= rtw8821cu.o
+ 
+diff --git a/drivers/net/wireless/realtek/rtw88/rtw8821cs.c b/drivers/net/wireless/realtek/rtw88/rtw8821cs.c
+new file mode 100644
+index 000000000000..a359413369a4
+--- /dev/null
++++ b/drivers/net/wireless/realtek/rtw88/rtw8821cs.c
+@@ -0,0 +1,36 @@
++// SPDX-License-Identifier: GPL-2.0 OR BSD-3-Clause
++/* Copyright(c) Martin Blumenstingl <martin.blumenstingl@googlemail.com>
++ */
++
++#include <linux/mmc/sdio_func.h>
++#include <linux/mmc/sdio_ids.h>
++#include <linux/module.h>
++#include "main.h"
++#include "rtw8821c.h"
++#include "sdio.h"
++
++static const struct sdio_device_id rtw_8821cs_id_table[] =  {
++	{
++		SDIO_DEVICE(SDIO_VENDOR_ID_REALTEK,
++			    SDIO_DEVICE_ID_REALTEK_RTW8821CS),
++		.driver_data = (kernel_ulong_t)&rtw8821c_hw_spec,
++	},
++	{}
++};
++MODULE_DEVICE_TABLE(sdio, rtw_8821cs_id_table);
++
++static struct sdio_driver rtw_8821cs_driver = {
++	.name = "rtw_8821cs",
++	.probe = rtw_sdio_probe,
++	.remove = rtw_sdio_remove,
++	.id_table = rtw_8821cs_id_table,
++	.drv = {
++		.pm = &rtw_sdio_pm_ops,
++		.shutdown = rtw_sdio_shutdown,
++	}
++};
++module_sdio_driver(rtw_8821cs_driver);
++
++MODULE_AUTHOR("Martin Blumenstingl <martin.blumenstingl@googlemail.com>");
++MODULE_DESCRIPTION("Realtek 802.11ac wireless 8821cs driver");
++MODULE_LICENSE("Dual BSD/GPL");
