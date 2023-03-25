@@ -19,9 +19,11 @@ MASTER_SITES = https://github.com/jernejsk/u-boot/archive/
 DISTFILES    = $(GARVERSION).zip
 #PATCHFILES   = 01-sunxi-h6-h616-add-emac2.patch
 PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
+PATCHFILES  += 02-fix-x96-q-booting.patch
 PATCHFILES  += 50-add-h616-tanix-tx6s-defconfig.patch
 PATCHFILES  += 51-add-h616-t95-defconfig.patch
 PATCHFILES  += 52-add-h313-x96-q-v1-defconfig.patch
+#PATCHFILES  += 99-enable-debug.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
@@ -63,7 +65,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c bootloaders/arm-trusted-firmware-h616
+DEPENDS   = lang/c bootloaders/arm-trusted-firmware-h313
 BUILDDEPS = devel/swig utils/dtc
 
 CONFIGURE_SCRIPTS   = custom
@@ -86,7 +88,7 @@ LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
-	BL31=$(DESTDIR)$(libdir)/u-boot/h616/bl31.bin \
+	BL31=$(DESTDIR)$(libdir)/u-boot/h313/bl31.bin \
 
 configure-custom:
 	@echo "Configuring u-boot for SunXi H313 with $(CONFIGURE_ARGS) ..."
