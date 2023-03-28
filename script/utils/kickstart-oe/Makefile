@@ -66,9 +66,11 @@ DISTFILES    = \
 	board-h6.orangepi_3.conf    \
 	board-h6.orangepi_3.wks     \
 	board-h616.orangepi_zero2.conf \
-	board-h616.orangepi_zero2.wks \
+	board-h616.orangepi_zero2.wks  \
 	board-h616.tanix_tx6s.conf  \
 	board-h616.tanix_tx6s.wks   \
+	board-h616.tanix_tx6s_lpddr3.conf \
+	board-h616.tanix_tx6s_lpddr3.wks  \
 	board-h616.t95.conf         \
 	board-h616.t95.wks          \
 	board-h616.x96_mate.conf    \

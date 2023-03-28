@@ -1,0 +1,479 @@
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/Makefile u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/Makefile
+--- u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/Makefile	2023-03-01 12:05:25.000000000 +0100
++++ u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/Makefile	2023-03-28 09:57:02.731692859 +0200
+@@ -718,7 +718,9 @@
+ 	sun50i-h6-tanix-tx6-mini.dtb
+ dtb-$(CONFIG_MACH_SUN50I_H616) += \
+ 	sun50i-h616-orangepi-zero2.dtb \
+-	sun50i-h616-x96-mate.dtb
++	sun50i-h616-x96-mate.dtb \
++	sun50i-h616-tanix-tx6s.dtb \
++	sun50i-h616-tanix-tx6s-lpddr3.dtb
+ dtb-$(CONFIG_MACH_SUN50I) += \
+ 	sun50i-a64-amarula-relic.dtb \
+ 	sun50i-a64-bananapi-m64.dtb \
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/sun50i-h616-tanix-tx6s.dts u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/sun50i-h616-tanix-tx6s.dts
+--- u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/sun50i-h616-tanix-tx6s.dts	1970-01-01 01:00:00.000000000 +0100
++++ u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/sun50i-h616-tanix-tx6s.dts	2023-03-28 10:12:32.978325673 +0200
+@@ -0,0 +1,203 @@
++// SPDX-License-Identifier: (GPL-2.0+ or MIT)
++/*
++ * Copyright (C) 2021 Arm Ltd.
++ */
++
++/dts-v1/;
++
++#include "sun50i-h616.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/leds/common.h>
++
++/ {
++	model = "Tanix TX6s";
++	compatible = "tanix,tx6s", "allwinner,sun50i-h616";
++
++	aliases {
++		ethernet0 = &emac1;
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	reg_vcc5v: vcc5v {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-5v";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++};
++
++&emac1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&rmii_phy>;
++	phy-supply = <&reg_aldo1>;
++	allwinner,rx-delay-ps = <3100>;
++	allwinner,tx-delay-ps = <700>;
++	status = "okay";
++};
++
++&mdio1 {
++	rmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
++};
++
++&r_i2c {
++	status = "okay";
++
++	axp305_1: pmic@36 {
++		compatible = "x-powers,axp305", "x-powers,axp805",
++		"x-powers,axp806";
++		reg = <0x36>;
++
++		/* dummy interrupt to appease the driver for now */
++		interrupts = <GIC_SPI 103 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-controller;
++		#interrupt-cells = <1>;
++	};
++};
++
++&mmc0 {
++	vmmc-supply = <&reg_dcdce>;
++	broken-cd;
++	bus-width = <4>;
++	status = "okay";
++};
++
++&mmc2 {
++	vmmc-supply = <&reg_dcdce>;
++	vqmmc-supply = <&reg_bldo1>;
++	bus-width = <8>;
++	non-removable;
++	cap-mmc-hw-reset;
++	mmc-hs200-1_8v;
++	status = "okay";
++};
++
++&r_rsb {
++	status = "okay";
++
++	axp305: pmic@745 {
++		compatible = "x-powers,axp305", "x-powers,axp805",
++			     "x-powers,axp806";
++		interrupt-controller;
++		#interrupt-cells = <1>;
++		reg = <0x745>;
++
++		x-powers,self-working-mode;
++		vina-supply = <&reg_vcc5v>;
++		vinb-supply = <&reg_vcc5v>;
++		vinc-supply = <&reg_vcc5v>;
++		vind-supply = <&reg_vcc5v>;
++		vine-supply = <&reg_vcc5v>;
++		aldoin-supply = <&reg_vcc5v>;
++		bldoin-supply = <&reg_vcc5v>;
++		cldoin-supply = <&reg_vcc5v>;
++
++		regulators {
++			reg_aldo1: aldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-sys";
++			};
++
++			reg_aldo2: aldo2 {
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3-ext";
++				status = "disabled";
++			};
++
++			reg_aldo3: aldo3 {
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3-ext2";
++				status = "disabled";
++			};
++
++			reg_bldo1: bldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc1v8";
++			};
++
++			reg_bldo2: bldo2 {
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc1v8-2";
++				status = "disabled";
++			};
++
++			bldo3 {
++				/* unused */
++			};
++
++			bldo4 {
++				/* unused */
++			};
++
++			cldo1 {
++				regulator-min-microvolt = <2500000>;
++				regulator-max-microvolt = <2500000>;
++				regulator-name = "vcc2v5";
++			};
++
++			cldo2 {
++				/* unused */
++			};
++
++			cldo3 {
++				/* unused */
++			};
++
++			reg_dcdca: dcdca {
++				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1080000>;
++				regulator-name = "vdd-cpu";
++			};
++
++			reg_dcdcc: dcdcc {
++				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1080000>;
++				regulator-name = "vdd-gpu-sys";
++			};
++
++			reg_dcdcd: dcdcd {
++				regulator-always-on;
++				regulator-min-microvolt = <1360000>;
++				regulator-max-microvolt = <1360000>;
++				regulator-name = "vdd-dram";
++			};
++
++			reg_dcdce: dcdce {
++				regulator-boot-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-eth-mmc";
++			};
++
++			sw {
++				/* unused */
++			};
++		};
++	};
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_ph_pins>;
++	status = "okay";
++};
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/sun50i-h616-tanix-tx6s-lpddr3.dts u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/sun50i-h616-tanix-tx6s-lpddr3.dts
+--- u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/sun50i-h616-tanix-tx6s-lpddr3.dts	1970-01-01 01:00:00.000000000 +0100
++++ u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/arch/arm/dts/sun50i-h616-tanix-tx6s-lpddr3.dts	2023-03-28 10:13:09.318324394 +0200
+@@ -0,0 +1,203 @@
++// SPDX-License-Identifier: (GPL-2.0+ or MIT)
++/*
++ * Copyright (C) 2021 Arm Ltd.
++ */
++
++/dts-v1/;
++
++#include "sun50i-h616.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/leds/common.h>
++
++/ {
++	model = "Tanix TX6s LPDDR3";
++	compatible = "tanix,tx6s", "allwinner,sun50i-h616";
++
++	aliases {
++		ethernet0 = &emac1;
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	reg_vcc5v: vcc5v {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-5v";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++};
++
++&emac1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&rmii_phy>;
++	phy-supply = <&reg_aldo1>;
++	allwinner,rx-delay-ps = <3100>;
++	allwinner,tx-delay-ps = <700>;
++	status = "okay";
++};
++
++&mdio1 {
++	rmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
++};
++
++&r_i2c {
++	status = "okay";
++
++	axp305_1: pmic@36 {
++		compatible = "x-powers,axp305", "x-powers,axp805",
++		"x-powers,axp806";
++		reg = <0x36>;
++
++		/* dummy interrupt to appease the driver for now */
++		interrupts = <GIC_SPI 103 IRQ_TYPE_LEVEL_HIGH>;
++		interrupt-controller;
++		#interrupt-cells = <1>;
++	};
++};
++
++&mmc0 {
++	vmmc-supply = <&reg_dcdce>;
++	broken-cd;
++	bus-width = <4>;
++	status = "okay";
++};
++
++&mmc2 {
++	vmmc-supply = <&reg_dcdce>;
++	vqmmc-supply = <&reg_bldo1>;
++	bus-width = <8>;
++	non-removable;
++	cap-mmc-hw-reset;
++	mmc-hs200-1_8v;
++	status = "okay";
++};
++
++&r_rsb {
++	status = "okay";
++
++	axp305: pmic@745 {
++		compatible = "x-powers,axp305", "x-powers,axp805",
++			     "x-powers,axp806";
++		interrupt-controller;
++		#interrupt-cells = <1>;
++		reg = <0x745>;
++
++		x-powers,self-working-mode;
++		vina-supply = <&reg_vcc5v>;
++		vinb-supply = <&reg_vcc5v>;
++		vinc-supply = <&reg_vcc5v>;
++		vind-supply = <&reg_vcc5v>;
++		vine-supply = <&reg_vcc5v>;
++		aldoin-supply = <&reg_vcc5v>;
++		bldoin-supply = <&reg_vcc5v>;
++		cldoin-supply = <&reg_vcc5v>;
++
++		regulators {
++			reg_aldo1: aldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-sys";
++			};
++
++			reg_aldo2: aldo2 {
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3-ext";
++				status = "disabled";
++			};
++
++			reg_aldo3: aldo3 {
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3-ext2";
++				status = "disabled";
++			};
++
++			reg_bldo1: bldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc1v8";
++			};
++
++			reg_bldo2: bldo2 {
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc1v8-2";
++				status = "disabled";
++			};
++
++			bldo3 {
++				/* unused */
++			};
++
++			bldo4 {
++				/* unused */
++			};
++
++			cldo1 {
++				regulator-min-microvolt = <2500000>;
++				regulator-max-microvolt = <2500000>;
++				regulator-name = "vcc2v5";
++			};
++
++			cldo2 {
++				/* unused */
++			};
++
++			cldo3 {
++				/* unused */
++			};
++
++			reg_dcdca: dcdca {
++				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1080000>;
++				regulator-name = "vdd-cpu";
++			};
++
++			reg_dcdcc: dcdcc {
++				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1080000>;
++				regulator-name = "vdd-gpu-sys";
++			};
++
++			reg_dcdcd: dcdcd {
++				regulator-always-on;
++				regulator-min-microvolt = <1360000>;
++				regulator-max-microvolt = <1360000>;
++				regulator-name = "vdd-dram";
++			};
++
++			reg_dcdce: dcdce {
++				regulator-boot-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-eth-mmc";
++			};
++
++			sw {
++				/* unused */
++			};
++		};
++	};
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_ph_pins>;
++	status = "okay";
++};
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/configs/tanix_tx6s_defconfig u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/configs/tanix_tx6s_defconfig
+--- u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/configs/tanix_tx6s_defconfig	1970-01-01 01:00:00.000000000 +0100
++++ u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/configs/tanix_tx6s_defconfig	2023-03-28 09:46:58.131714841 +0200
+@@ -0,0 +1,18 @@
++CONFIG_ARM=y
++CONFIG_ARCH_SUNXI=y
++CONFIG_DEFAULT_DEVICE_TREE="sun50i-h616-tanix-tx6s"
++CONFIG_SPL=y
++CONFIG_DRAM_SUN50I_H616_WRITE_LEVELING=y
++CONFIG_DRAM_SUN50I_H616_READ_CALIBRATION=y
++CONFIG_DRAM_SUN50I_H616_READ_TRAINING=y
++CONFIG_DRAM_SUN50I_H616_WRITE_TRAINING=y
++CONFIG_MACH_SUN50I_H616=y
++CONFIG_R_I2C_ENABLE=y
++CONFIG_SPL_I2C=y
++CONFIG_SPL_SYS_I2C_LEGACY=y
++CONFIG_SYS_I2C_MVTWSI=y
++CONFIG_SYS_I2C_SLAVE=0x7f
++CONFIG_SYS_I2C_SPEED=400000
++CONFIG_PHY_REALTEK=y
++CONFIG_SUN8I_EMAC=y
++CONFIG_I2C3_ENABLE=y
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/configs/tanix_tx6s_lpddr3_defconfig u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/configs/tanix_tx6s_lpddr3_defconfig
+--- u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/configs/tanix_tx6s_lpddr3_defconfig	1970-01-01 01:00:00.000000000 +0100
++++ u-boot-196f9732e78d7d2717dc6ee6d689537d69385261/configs/tanix_tx6s_lpddr3_defconfig	2023-03-28 09:50:20.825040830 +0200
+@@ -0,0 +1,25 @@
++CONFIG_ARM=y
++CONFIG_ARCH_SUNXI=y
++CONFIG_DEFAULT_DEVICE_TREE="sun50i-h616-tanix-tx6s-lpddr3"
++CONFIG_SPL=y
++CONFIG_DRAM_SUN50I_H616_DX_ODT=0x6060606
++CONFIG_DRAM_SUN50I_H616_DX_DRI=0xd0d0d0d
++CONFIG_DRAM_SUN50I_H616_CA_DRI=0x1919
++CONFIG_DRAM_SUN50I_H616_ODT_EN=0x9988eeee
++CONFIG_DRAM_SUN50I_H616_TPR0=0x0
++CONFIG_DRAM_SUN50I_H616_TPR10=0x402f3379
++CONFIG_DRAM_SUN50I_H616_TPR11=0xd100b0f
++CONFIG_DRAM_SUN50I_H616_TPR12=0x11131113
++CONFIG_MACH_SUN50I_H616=y
++CONFIG_SUNXI_DRAM_H616_LPDDR3=y
++# CONFIG_DRAM_LPDDR3_6GBIT_QUIRK=y
++CONFIG_DRAM_CLK=792
++CONFIG_R_I2C_ENABLE=y
++CONFIG_SYS_MONITOR_LEN=786432
++CONFIG_SPL_I2C=y
++CONFIG_SPL_SYS_I2C_LEGACY=y
++CONFIG_SYS_I2C_MVTWSI=y
++CONFIG_SYS_I2C_SLAVE=0x7f
++CONFIG_SYS_I2C_SPEED=400000
++CONFIG_PHY_REALTEK=y
++CONFIG_SUN8I_EMAC=y

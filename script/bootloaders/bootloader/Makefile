@@ -148,6 +148,10 @@ ifneq (,$(findstring board-h616.tanix_tx6s,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h616.tanix_tx6s
 endif
 
+ifneq (,$(findstring board-h616.tanix_tx6s_lpddr3,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-h616.tanix_tx6s_lpddr3
+endif
+
 ifneq (,$(findstring board-h616.t95,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h616.t95
 endif

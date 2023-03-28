@@ -37,6 +37,7 @@ selection_s="board-rk3588.rock5-b"
 selection_t="board-rk3588s.rock5-a"
 selection_u="board-rk3566.urve-pi"
 selection_w="board-h313.x96_q"
+selection_x="board-h616.tanix_tx6s_lpddr3"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -122,6 +123,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (t) for "${selection_t}
     echo "  (u) for "${selection_u}
     echo "  (w) for "${selection_w}
+    echo "  (x) for "${selection_x}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -285,6 +287,10 @@ case "${selection}" in
 
     w)  cache_board_list "${selection_w}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_w}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    x)  cache_board_list "${selection_x}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_x}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
