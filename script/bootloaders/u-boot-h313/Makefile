@@ -24,7 +24,7 @@ GARVERSION   = 152d1a37b4856c23976cfd0758cab654b84336cd
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/jernejsk/u-boot/archive/
 DISTFILES    = $(GARVERSION).zip
-#PATCHFILES   = 01-sunxi-h6-h616-add-emac2.patch
+PATCHFILES   = 01-sunxi-h6-h616-add-emac2.patch
 PATCHFILES  += 02-fix-x96-q-booting.patch
 PATCHFILES  += 03-fix-x96-q-memory-sizing.patch
 PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
@@ -91,7 +91,7 @@ include ../../python3/python/package-api.mk
 # For forcing given board (usually for testing)
 # mm_U-BOOT_BOARD_TYPE = h616_lpddr3_tvbox_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
-mm_U-BOOT_BOARD_TYPE = x96q_v1_defconfig
+# mm_U-BOOT_BOARD_TYPE = x96q_v1_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
