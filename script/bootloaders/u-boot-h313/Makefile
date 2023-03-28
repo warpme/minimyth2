@@ -1,22 +1,4 @@
 
-ifeq (0,1)
-# https://github.com/iuncuim/u-boot/commits/h616-dram-lpddr3 01.03.2023
-GARNAME      = u-boot-h313-20230301
-GARVERSION   = 196f9732e78d7d2717dc6ee6d689537d69385261
-CATEGORIES   = kernel
-MASTER_SITES = https://github.com/iuncuim/u-boot/archive/
-DISTFILES    = $(GARVERSION).zip
-#PATCHFILES   = 01-sunxi-h6-h616-add-emac2.patch
-PATCHFILES  += 02-fix-x96-q-booting.patch
-PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
-PATCHFILES  += 50-add-h616-tanix-tx6s-defconfig.patch
-PATCHFILES  += 51-add-h616-t95-defconfig.patch
-PATCHFILES  += 52-add-h313-x96-q-v1-defconfig.patch
-PATCHFILES  += 99-enable-debug.patch
-PATCHFILES  += 99-dump-dram-controller-regs.patch
-WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
-endif
-
 ifeq (1,1)
 # https://github.com/jernejsk/u-boot/commits/h616-dram-imp 12.12.2022
 GARNAME      = u-boot-h313-20221212
@@ -24,7 +6,6 @@ GARVERSION   = 152d1a37b4856c23976cfd0758cab654b84336cd
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/jernejsk/u-boot/archive/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = 01-sunxi-h6-h616-add-emac2.patch
 PATCHFILES  += 02-fix-x96-q-booting.patch
 PATCHFILES  += 03-fix-x96-q-memory-sizing.patch
 PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
@@ -44,31 +25,13 @@ GARVERSION   = 8e2c0ee3bafbc283b58b66d9007847a5a3ed07be
 CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = $(GARVERSION).zip
-#PATCHFILES   = 01-sunxi-h6-h616-add-emac2.patch
 PATCHFILES  += 02-fix-x96-q-booting.patch
 PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
 PATCHFILES  += 50-add-h616-tanix-tx6s-defconfig.patch
 PATCHFILES  += 51-add-h616-t95-defconfig.patch
 PATCHFILES  += 52-add-h313-x96-q-v1-defconfig.patch
-PATCHFILES  += 99-enable-debug.patch
-PATCHFILES  += 99-dump-dram-controller-regs.patch
-WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
-endif
-
-ifeq (0,1)
-# Sunxi custodians 11.05.2021
-GARNAME      = u-boot-h313-20210511
-GARVERSION   = 647b392bf20614006917d5fcd3390347a668eee5
-CATEGORIES   = kernel
-MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
-DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = add-emac2-to-h6-h616.patch
-PATCHFILES  += add-h616-tanix-tx6s-defconfig.patch
-PATCHFILES  += add-h616-x96-mate-defconfig.patch
-PATCHFILES  += add-h616-t95-defconfig.patch
-PATCHFILES  += sunxi-H616-GPU-enable-hack.patch
-PATCHFILES  += add-h313-x96-q-defconfig.patch
-PATCHFILES  += 02-fix-x96-q-booting.patch
+#PATCHFILES  += 99-enable-debug.patch
+#PATCHFILES  += 99-dump-dram-controller-regs.patch
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 endif
 
