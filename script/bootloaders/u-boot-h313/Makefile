@@ -9,6 +9,7 @@ DISTFILES    = $(GARVERSION).zip
 PATCHFILES  += 02-fix-x96-q-booting.patch
 PATCHFILES  += 03-fix-x96-q-memory-sizing.patch
 PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
+PATCHFILES  += 05-drivers-power-axp305-add-dcdc3-offset.patch
 PATCHFILES  += 50-add-h616-tanix-tx6s-defconfig.patch
 PATCHFILES  += 51-add-h616-t95-defconfig.patch
 PATCHFILES  += 52-add-h313-x96-q-v1-defconfig.patch
@@ -46,6 +47,7 @@ PATCHFILES   = 01-hack-add-h313-int.emac.phy-support.patch
 PATCHFILES  += 02-fix-x96-q-booting.patch
 PATCHFILES  += 03-fix-x96-q-memory-sizing.patch
 PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
+# PATCHFILES  += 05-drivers-power-axp305-add-dcdc3-offset.patch
 PATCHFILES  += 50-add-h616-tanix-tx6s-defconfig.patch
 PATCHFILES  += 51-add-h313-x96-q-v1-defconfig.patch
 # PATCHFILES  += 99-enable-debug.patch
@@ -72,7 +74,7 @@ include ../../python3/python/package-api.mk
 # For forcing given board (usually for testing)
 # mm_U-BOOT_BOARD_TYPE = h616_lpddr3_tvbox_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
-mm_U-BOOT_BOARD_TYPE = x96q_v1_defconfig
+# mm_U-BOOT_BOARD_TYPE = x96q_v1_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
