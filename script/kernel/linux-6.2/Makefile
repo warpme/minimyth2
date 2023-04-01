@@ -149,6 +149,7 @@ PATCHFILES += 0634-arm64-dts-allwinner-h616-add-T95-TVbox.patch
 PATCHFILES += 0635-arm64-dts-allwinner-h616-OrangePI-Zero2-fix-hdmi-audio.patch
 PATCHFILES += 0636-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
 PATCHFILES += 0637-drivers-mfd-axp20x-add-support-for-AXP313a-PMIC.patch
+PATCHFILES += 0638-arm64-dts-allwinner-h313-add-dedicated-cpu-opp-and-use-in-x96q-TVbox.patch
 endif
 #------------------------------------------------------------
 
