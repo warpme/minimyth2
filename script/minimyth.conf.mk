@@ -94,6 +94,7 @@ mm_SOFTWARE               ?= \
 # 'board-h616.x96_mate'
 # 'board-h616.orangepi_lite2'
 # 'board-h313.x96_q'
+# 'board-h313.x96_q_lpddr3'
 # 'board-x86pc.bios'
 # 'board-x86pc.efi64'
 # 'board-x86pc.bios_efi64'

@@ -37,7 +37,7 @@ selection_s="board-rk3588.rock5-b"
 selection_t="board-rk3588s.rock5-a"
 selection_u="board-rk3566.urve-pi"
 selection_w="board-h313.x96_q"
-selection_x="board-h616.tanix_tx6s_lpddr3"
+selection_x="board-h313.x96_q_lpddr3"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -207,6 +207,8 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_p}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_r}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_u}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_w}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_x}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     b)  cache_board_list "${selection_b}"
