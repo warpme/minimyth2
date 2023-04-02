@@ -1,7 +1,22 @@
-diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/dts/sun50i-h616.dtsi u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/dts/sun50i-h616.dtsi
---- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/dts/sun50i-h616.dtsi	2023-03-27 20:23:26.000000000 +0200
-+++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/dts/sun50i-h616.dtsi	2023-03-30 21:52:31.616978603 +0200
-@@ -168,6 +168,13 @@
+
+This patch is hack enabling internal Eth phy on H616/H313 SoCs
+Basically it does following:
+-enables i2c3 (needed to communicate with AC200/AC300)
+-enables PWM (needed for clocking AC200/AC300)
+-programs ephy by i2c - if board has AC200
+-if board has AC300
+  -disables intelligent_ieee and 802_3az_ieee features
+  -checks SID for requirement of "fixed" phy config and applies
+   it if requirement is detected
+-reduces i2c bus clock to 100kHz
+
+All kudos to sputnik2019 for his incredible help!
+
+diff --git a/arch/arm/dts/sun50i-h616.dtsi b/arch/arm/dts/sun50i-h616.dtsi
+index dd4d2f31..84b80156 100644
+--- a/arch/arm/dts/sun50i-h616.dtsi
++++ b/arch/arm/dts/sun50i-h616.dtsi
+@@ -152,6 +152,13 @@
  				drive-strength = <40>;
  			};
  
@@ -15,47 +30,36 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943
  			i2c0_pins: i2c0-pins {
  				pins = "PI6", "PI7";
  				function = "i2c0";
-@@ -501,6 +508,25 @@
- 				compatible = "snps,dwmac-mdio";
- 				#address-cells = <1>;
- 				#size-cells = <0>;
-+			};
-+		};
-+
-+		emac1: ethernet@5030000 {
-+			compatible = "allwinner,sun50i-h616-emac";
-+			syscon = <&syscon 1>;
-+			reg = <0x05030000 0x10000>;
-+			interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
-+			interrupt-names = "macirq";
-+			resets = <&ccu RST_BUS_EMAC1>;
-+			reset-names = "stmmaceth";
-+			clocks = <&ccu CLK_BUS_EMAC1>;
-+			clock-names = "stmmaceth";
-+			status = "disabled";
-+
-+			mdio1: mdio {
-+				compatible = "snps,dwmac-mdio";
-+				#address-cells = <1>;
-+				#size-cells = <0>;
- 			};
- 		};
+diff --git a/arch/arm/mach-sunxi/Kconfig b/arch/arm/mach-sunxi/Kconfig
+index 14c0f3b6..05fed67e 100644
+--- a/arch/arm/mach-sunxi/Kconfig
++++ b/arch/arm/mach-sunxi/Kconfig
+@@ -776,7 +776,7 @@ config I2C2_ENABLE
+ 	---help---
+ 	See I2C0_ENABLE help text.
  
-diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/board.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/board.c
---- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/board.c	2023-03-27 20:23:26.000000000 +0200
-+++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/board.c	2023-03-30 21:49:28.636985216 +0200
-@@ -460,6 +460,7 @@
+-if MACH_SUN6I || MACH_SUN7I
++if MACH_SUN6I || MACH_SUN7I|| MACH_SUN50I_H616
+ config I2C3_ENABLE
+ 	bool "Enable I2C/TWI controller 3"
+ 	default n
+diff --git a/arch/arm/mach-sunxi/board.c b/arch/arm/mach-sunxi/board.c
+index c6ae5b66..5ab96049 100644
+--- a/arch/arm/mach-sunxi/board.c
++++ b/arch/arm/mach-sunxi/board.c
+@@ -348,6 +348,7 @@ void board_init_f(ulong dummy)
+ #ifdef CONFIG_SPL_I2C
  	/* Needed early by sunxi_board_init if PMU is enabled */
- 	i2c_init_board();
  	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
 +	i2c_set_bus_num(1);
  #endif
  	sunxi_board_init();
  }
-diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/clock_sun50i_h6.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/clock_sun50i_h6.c
---- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/clock_sun50i_h6.c	2023-03-27 20:23:26.000000000 +0200
-+++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/clock_sun50i_h6.c	2023-03-30 21:49:28.636985216 +0200
-@@ -46,6 +46,11 @@
+diff --git a/arch/arm/mach-sunxi/clock_sun50i_h6.c b/arch/arm/mach-sunxi/clock_sun50i_h6.c
+index b97a09c3..b70b9beb 100644
+--- a/arch/arm/mach-sunxi/clock_sun50i_h6.c
++++ b/arch/arm/mach-sunxi/clock_sun50i_h6.c
+@@ -35,6 +35,11 @@ void clock_init_safe(void)
  	 * DRAM initialization code.
  	 */
  	writel(MBUS_CLK_SRC_PLL6X2 | MBUS_CLK_M(3), &ccm->mbus_cfg);
@@ -67,10 +71,11 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943
  }
  #endif
  
-diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/board/sunxi/board.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/board/sunxi/board.c
---- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/board/sunxi/board.c	2023-03-27 20:23:26.000000000 +0200
-+++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/board/sunxi/board.c	2023-03-30 21:49:28.636985216 +0200
-@@ -45,6 +45,7 @@
+diff --git a/board/sunxi/board.c b/board/sunxi/board.c
+index c4f69966..38f9a6ba 100644
+--- a/board/sunxi/board.c
++++ b/board/sunxi/board.c
+@@ -43,6 +43,7 @@
  #include <fdt_support.h>
  #include <nand.h>
  #include <net.h>
@@ -78,20 +83,21 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943
  #include <spl.h>
  #include <sy8106a.h>
  #include <asm/setup.h>
-@@ -113,6 +114,12 @@
- 	sunxi_gpio_set_cfgpin(SUNXI_GPL(8), SUN50I_GPL_R_TWI);
- 	sunxi_gpio_set_cfgpin(SUNXI_GPL(9), SUN50I_GPL_R_TWI);
- #elif CONFIG_MACH_SUN50I_H616
-+	clock_twi_onoff(3, 1);
+@@ -181,6 +182,13 @@ void i2c_init_board(void)
+ 	sunxi_gpio_set_cfgpin(SUNXI_GPI(0), SUN7I_GPI_TWI3);
+ 	sunxi_gpio_set_cfgpin(SUNXI_GPI(1), SUN7I_GPI_TWI3);
+ 	clock_twi_onoff(3, 1);
++#elif defined(CONFIG_MACH_SUN50I_H616)
 +	sunxi_gpio_set_cfgpin(SUNXI_GPA(10), 2);
 +	sunxi_gpio_set_cfgpin(SUNXI_GPA(11), 2);
 +	sunxi_gpio_set_cfgpin(SUNXI_GPA(12), 2);
 +	sunxi_gpio_set_pull(SUNXI_GPA(10), SUNXI_GPIO_PULL_UP);
 +	sunxi_gpio_set_pull(SUNXI_GPA(11), SUNXI_GPIO_PULL_UP);
- 	clock_twi_onoff(5, 1);
- 	sunxi_gpio_set_cfgpin(SUNXI_GPL(0), SUN50I_H616_GPL_R_TWI);
- 	sunxi_gpio_set_cfgpin(SUNXI_GPL(1), SUN50I_H616_GPL_R_TWI);
-@@ -572,9 +579,13 @@
++	clock_twi_onoff(3, 1);
+ #endif
+ #endif
+ 
+@@ -677,9 +685,13 @@ static void sunxi_spl_store_dram_size(phys_addr_t dram_size)
  	spl->dram_size = dram_size >> 20;
  }
  
@@ -103,12 +109,18 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943
 +	int val;
 +	u8 data[2];
  
- #ifdef CONFIG_LED_STATUS
- 	if (IS_ENABLED(CONFIG_SPL_DRIVERS_MISC))
-@@ -669,6 +680,27 @@
- 		clock_set_pll1(get_board_sys_clk());
- 	else
- 		printf("Failed to set core voltage! Can't set CPU frequency\n");
+ #ifdef CONFIG_MACH_SUN8I_H3
+ 	/* turn on power LED (PL10) on H3 boards */
+@@ -762,8 +774,31 @@ void sunxi_board_init(void)
+ 	 */
+ 	if (!power_failed)
+ 		clock_set_pll1(CONFIG_SYS_CLK_FREQ);
+-	else
+-		printf("Failed to set core voltage! Can't set CPU frequency\n");
++	else {
++		clock_set_pll1(792000000);
++		printf("Failed to set core voltage!   set CPU 792000000hz frequency\n");
++	}
 +
 +	val=readl(0x300622c);
 +	if((val&sunxi_ac300_key)==0)
@@ -128,14 +140,15 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943
 +		i2c_write(0x10, 0xfe, 1, data, 2);
 +		data[0] = 0x08;
 +		data[1] = 0x14;
-+		i2c_write(0x10, 0, 1, data, 2);
++		i2c_write(0x10, 0, 1, data, 2);	
 +	}
  }
- #endif /* CONFIG_SPL_BUILD */
+ #endif
  
-diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/phy/phy.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/phy/phy.c
---- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/phy/phy.c	2023-03-27 20:23:26.000000000 +0200
-+++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/phy/phy.c	2023-03-30 21:49:28.636985216 +0200
+diff --git a/drivers/net/phy/phy.c b/drivers/net/phy/phy.c
+index 69acb694..218115b3 100644
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
 @@ -16,6 +16,7 @@
  #include <command.h>
  #include <miiphy.h>
@@ -144,7 +157,7 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943
  #include <errno.h>
  #include <asm/global_data.h>
  #include <dm/of_extra.h>
-@@ -384,10 +385,79 @@
+@@ -384,10 +385,79 @@ int genphy_parse_link(struct phy_device *phydev)
  	return 0;
  }
  
@@ -224,10 +237,12 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943
  
  	features = (SUPPORTED_TP | SUPPORTED_MII
  			| SUPPORTED_AUI | SUPPORTED_FIBRE |
-@@ -432,6 +502,42 @@
+@@ -431,7 +501,43 @@ int genphy_config(struct phy_device *phydev)
+ 	phydev->advertising &= features;
  
  	genphy_config_aneg(phydev);
- 
+-
++
 +	val=readl(0x300622c);
 +	sid_value=0xffff&val;
 +	if(val&sunxi_ac300_key)
@@ -267,10 +282,11 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943
  	return 0;
  }
  
-diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/sun8i_emac.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/sun8i_emac.c
---- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/sun8i_emac.c	2023-03-27 20:23:26.000000000 +0200
-+++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/sun8i_emac.c	2023-03-30 21:49:28.636985216 +0200
-@@ -328,7 +328,7 @@
+diff --git a/drivers/net/sun8i_emac.c b/drivers/net/sun8i_emac.c
+index d7553fe1..e90f9a74 100644
+--- a/drivers/net/sun8i_emac.c
++++ b/drivers/net/sun8i_emac.c
+@@ -340,7 +340,7 @@ static int sun8i_emac_set_syscon(struct sun8i_eth_pdata *pdata,
  		return 0;
  	}
  
@@ -279,7 +295,7 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943
  
  	reg = sun8i_emac_set_syscon_ephy(priv, reg);
  
-@@ -369,7 +369,7 @@
+@@ -381,7 +381,7 @@ static int sun8i_emac_set_syscon(struct sun8i_eth_pdata *pdata,
  		reg |= ((pdata->rx_delay_ps / 100) << SC_ERXDC_OFFSET)
  			 & SC_ERXDC_MASK;
  
@@ -288,7 +304,7 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943
  
  	return 0;
  }
-@@ -910,6 +910,8 @@
+@@ -1013,6 +1013,8 @@ static const struct udevice_id sun8i_emac_eth_ids[] = {
  		.data = (uintptr_t)R40_GMAC },
  	{.compatible = "allwinner,sun50i-h6-emac",
  		.data = (uintptr_t)H6_EMAC },
@@ -297,69 +313,16 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943
  	{ }
  };
  
-diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/power/axp305.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/power/axp305.c
---- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/power/axp305.c	2023-03-27 20:23:26.000000000 +0200
-+++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/power/axp305.c	2023-03-30 21:49:28.636985216 +0200
-@@ -31,7 +31,7 @@
- {
- 	int ret;
- 	u8 cfg;
--
-+#if 0
- 	if (mvolt >= 1600)
- 		cfg = AXP305_DCDC4_1600MV_OFFSET +
- 			axp305_mvolt_to_cfg(mvolt, 1600, 3300, 100);
-@@ -48,8 +48,38 @@
- 
- 	return pmic_bus_setbits(AXP305_OUTPUT_CTRL1,
- 				AXP305_OUTPUT_CTRL1_DCDCD_EN);
-+#endif
-+	return 0;
- }
- 
-+#define AXP305_DCDC3_1200MV_OFFSET 71
-+int axp_set_dcdc3(unsigned int mvolt)
-+{
-+	int ret;
-+	u8 cfg;
-+
-+	if (mvolt >= 1220)
-+		cfg = AXP305_DCDC3_1200MV_OFFSET +
-+			axp305_mvolt_to_cfg(mvolt, 1220, 1840, 20);
-+	else
-+		cfg = axp305_mvolt_to_cfg(mvolt, 500, 1200, 10);
-+
-+	if (mvolt == 0)
-+		return pmic_bus_clrbits(AXP305_OUTPUT_CTRL1,
-+					AXP305_OUTPUT_CTRL1_DCDCD_EN);
-+
-+	ret = pmic_bus_write(AXP305_DCDCD_VOLTAGE, cfg);
-+	if (ret)
-+		return ret;
-+
-+//	ret = pmic_bus_write(0x12, 0x7);
-+//	if (ret)
-+//		return ret;
-+
-+	return pmic_bus_setbits(AXP305_OUTPUT_CTRL1,
-+				0x1f);
-+ }
-+ 
- int axp_init(void)
- {
- 	u8 axp_chip_id;
-@@ -63,9 +93,13 @@
- 	if (ret)
- 		return ret;
- 
--	if ((axp_chip_id & AXP305_CHIP_VERSION_MASK) != 0x40)
-+	if ((axp_chip_id & AXP305_CHIP_VERSION_MASK) != 0x4b)
- 		return -ENODEV;
- 
-+	printf("pmic id is 0x%x\n",axp_chip_id);
-+
-+	axp_set_dcdc3(1500);
-+ 
- 	return ret;
- }
- 
+diff --git a/include/configs/sunxi-common.h b/include/configs/sunxi-common.h
+index c4f34dbf..16b25cc3 100644
+--- a/include/configs/sunxi-common.h
++++ b/include/configs/sunxi-common.h
+@@ -200,7 +200,7 @@
+ #define CONFIG_SYS_I2C_MVTWSI
+ #if !CONFIG_IS_ENABLED(DM_I2C)
+ #define CONFIG_SYS_I2C
+-#define CONFIG_SYS_I2C_SPEED		400000
++#define CONFIG_SYS_I2C_SPEED		100000
+ #define CONFIG_SYS_I2C_SLAVE		0x7f
+ #endif
+ #endif

@@ -1,0 +1,169 @@
+From b281c0f1c72c98e5b7b0d43751a19c869ea30dfd Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sat, 10 Dec 2022 22:37:13 +0100
+Subject: [PATCH 03/12] sunxi: parameterize H616 DRAM ODT values
+
+While ODT values for same memory type are similar, they are not
+necessary the same. Let's parameterize them and make parameter same as
+in vendor DRAM settings. That way it will be easy to introduce new board
+support.
+
+Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ .../include/asm/arch-sunxi/dram_sun50i_h616.h |  3 +
+ arch/arm/mach-sunxi/Kconfig                   | 15 +++++
+ arch/arm/mach-sunxi/dram_sun50i_h616.c        | 59 ++++++++++++-------
+ configs/orangepi_zero2_defconfig              |  3 +
+ 4 files changed, 58 insertions(+), 22 deletions(-)
+
+diff --git a/arch/arm/include/asm/arch-sunxi/dram_sun50i_h616.h b/arch/arm/include/asm/arch-sunxi/dram_sun50i_h616.h
+index 134679d5..c9e1f84b 100644
+--- a/arch/arm/include/asm/arch-sunxi/dram_sun50i_h616.h
++++ b/arch/arm/include/asm/arch-sunxi/dram_sun50i_h616.h
+@@ -144,6 +144,9 @@ struct dram_para {
+ 	u8 rows;
+ 	u8 ranks;
+ 	u8 bus_full_width;
++	u32 dx_odt;
++	u32 dx_dri;
++	u32 ca_dri;
+ };
+ 
+ 
+diff --git a/arch/arm/mach-sunxi/Kconfig b/arch/arm/mach-sunxi/Kconfig
+index dbe6005d..cad53f19 100644
+--- a/arch/arm/mach-sunxi/Kconfig
++++ b/arch/arm/mach-sunxi/Kconfig
+@@ -83,6 +83,21 @@ config DRAM_SUN50I_H616_UNKNOWN_FEATURE
+ 	---help---
+ 	  Select this when DRAM on your H616 board needs this unknown
+ 	  feature.
++
++config DRAM_SUN50I_H616_DX_ODT
++	hex "H616 DRAM DX ODT parameter"
++	help
++	  DX ODT value from vendor DRAM settings.
++
++config DRAM_SUN50I_H616_DX_DRI
++	hex "H616 DRAM DX DRI parameter"
++	help
++	  DX DRI value from vendor DRAM settings.
++
++config DRAM_SUN50I_H616_CA_DRI
++	hex "H616 DRAM CA DRI parameter"
++	help
++	  CA DRI value from vendor DRAM settings.
+ endif
+ 
+ config SUN6I_PRCM
+diff --git a/arch/arm/mach-sunxi/dram_sun50i_h616.c b/arch/arm/mach-sunxi/dram_sun50i_h616.c
+index 49983bf7..06a07dfb 100644
+--- a/arch/arm/mach-sunxi/dram_sun50i_h616.c
++++ b/arch/arm/mach-sunxi/dram_sun50i_h616.c
+@@ -234,37 +234,49 @@ static const u8 phy_init[] = {
+ 	0x09, 0x05, 0x18
+ };
+ 
+-static void mctl_phy_configure_odt(void)
++static void mctl_phy_configure_odt(struct dram_para *para)
+ {
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x388);
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x38c);
++	unsigned int val;
+ 
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x3c8);
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x3cc);
++	val = para->dx_dri & 0x1f;
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x388);
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x38c);
+ 
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x408);
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x40c);
++	val = (para->dx_dri >> 8) & 0x1f;
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x3c8);
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x3cc);
+ 
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x448);
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x44c);
++	val = (para->dx_dri >> 16) & 0x1f;
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x408);
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x40c);
+ 
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x340);
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x344);
++	val = (para->dx_dri >> 24) & 0x1f;
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x448);
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x44c);
+ 
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x348);
+-	writel_relaxed(0xe, SUNXI_DRAM_PHY0_BASE + 0x34c);
++	val = para->ca_dri & 0x1f;
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x340);
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x344);
+ 
+-	writel_relaxed(0x8, SUNXI_DRAM_PHY0_BASE + 0x380);
+-	writel_relaxed(0x8, SUNXI_DRAM_PHY0_BASE + 0x384);
++	val = (para->ca_dri >> 8) & 0x1f;
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x348);
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x34c);
+ 
+-	writel_relaxed(0x8, SUNXI_DRAM_PHY0_BASE + 0x3c0);
+-	writel_relaxed(0x8, SUNXI_DRAM_PHY0_BASE + 0x3c4);
++	val = para->dx_odt & 0x1f;
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x380);
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x384);
+ 
+-	writel_relaxed(0x8, SUNXI_DRAM_PHY0_BASE + 0x400);
+-	writel_relaxed(0x8, SUNXI_DRAM_PHY0_BASE + 0x404);
++	val = (para->dx_odt >> 8) & 0x1f;
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x3c0);
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x3c4);
+ 
+-	writel_relaxed(0x8, SUNXI_DRAM_PHY0_BASE + 0x440);
+-	writel_relaxed(0x8, SUNXI_DRAM_PHY0_BASE + 0x444);
++	val = (para->dx_odt >> 16) & 0x1f;
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x400);
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x404);
++
++	val = (para->dx_odt >> 24) & 0x1f;
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x440);
++	writel_relaxed(val, SUNXI_DRAM_PHY0_BASE + 0x444);
+ 
+ 	dmb();
+ }
+@@ -722,7 +734,7 @@ static bool mctl_phy_init(struct dram_para *para)
+ 	writel(0x80, SUNXI_DRAM_PHY0_BASE + 0x45c);
+ 
+ 	if (IS_ENABLED(CONFIG_DRAM_ODT_EN))
+-		mctl_phy_configure_odt();
++		mctl_phy_configure_odt(para);
+ 
+ 	clrsetbits_le32(SUNXI_DRAM_PHY0_BASE + 4, 7, 0xa);
+ 
+@@ -1007,6 +1019,9 @@ unsigned long sunxi_dram_init(void)
+ 	struct dram_para para = {
+ 		.clk = CONFIG_DRAM_CLK,
+ 		.type = SUNXI_DRAM_TYPE_DDR3,
++		.dx_odt = CONFIG_DRAM_SUN50I_H616_DX_ODT,
++		.dx_dri = CONFIG_DRAM_SUN50I_H616_DX_DRI,
++		.ca_dri = CONFIG_DRAM_SUN50I_H616_CA_DRI,
+ 	};
+ 	unsigned long size;
+ 
+diff --git a/configs/orangepi_zero2_defconfig b/configs/orangepi_zero2_defconfig
+index 877eccf3..ca398fae 100644
+--- a/configs/orangepi_zero2_defconfig
++++ b/configs/orangepi_zero2_defconfig
+@@ -6,6 +6,9 @@ CONFIG_DRAM_SUN50I_H616_WRITE_LEVELING=y
+ CONFIG_DRAM_SUN50I_H616_READ_CALIBRATION=y
+ CONFIG_DRAM_SUN50I_H616_READ_TRAINING=y
+ CONFIG_DRAM_SUN50I_H616_WRITE_TRAINING=y
++CONFIG_DRAM_SUN50I_H616_DX_ODT=0x8080808
++CONFIG_DRAM_SUN50I_H616_DX_DRI=0xe0e0e0e
++CONFIG_DRAM_SUN50I_H616_CA_DRI=0xe0e
+ CONFIG_MACH_SUN50I_H616=y
+ CONFIG_MMC0_CD_PIN="PF6"
+ CONFIG_R_I2C_ENABLE=y
+-- 
+2.36.1
+

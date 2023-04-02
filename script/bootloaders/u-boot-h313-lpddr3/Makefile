@@ -1,16 +1,29 @@
 
-# https://github.com/iuncuim/u-boot/commits/h616-dram-lpddr3 29.03.2023
-GARNAME      = u-boot-h313-lpddr3-20230329
-GARVERSION   = b5be74120d4aee645c63aea40c91f315e9513d68
+GARNAME      = u-boot-h313-20210511
+GARVERSION   = 647b392bf20614006917d5fcd3390347a668eee5
 CATEGORIES   = kernel
-MASTER_SITES = https://github.com/iuncuim/u-boot/archive/
+MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = 01-hack-add-h313-int.emac.phy-support.patch
+PATCHFILES   = 0000-sync-h616-dram-to-8f1704087.patch
+PATCHFILES  += 0001-sunxi-Fix-write-to-H616-DRAM-CR-register.patch
+PATCHFILES  += 0002-sunxi-cosmetic-Fix-H616-DRAM-driver-code-style.patch
+PATCHFILES  += 0003-sunxi-parameterize-H616-DRAM-ODT-values.patch
+PATCHFILES  += 0004-sunxi-Convert-H616-DRAM-options-to-single-setting.patch
+PATCHFILES  += 0005-sunxi-Always-configure-ODT-on-H616-DRAM.patch
+PATCHFILES  += 0006-sunxi-Make-bit-delay-function-in-H616-DRAM-code-void.patch
+PATCHFILES  += 0007-sunxi-Parameterize-bit-delay-code-in-H616-DRAM-drive.patch
+PATCHFILES  += 0008-sunxi-Parameterize-H616-DRAM-code-some-more.patch
+PATCHFILES  += 0009-sunxi-add-H616-LPDDR3-DRAM-support.patch
+PATCHFILES  += 0010-sunxi-add-support-for-AXP313-PMIC.patch
+PATCHFILES  += 0011-sunxi-dram-add-lpddr3-6gbit-support.patch
+PATCHFILES  += 0012-sunxi-dram-add-H616-LPDDR4-DRAM-support.patch
+PATCHFILES  += 01-hack-add-h313-int.emac.phy-support.patch
 PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
 PATCHFILES  += 50-add-x96-q-lpddr3-defconfig.patch
-#PATCHFILES  += 99-enable-debug.patch
-#PATCHFILES  += 99-dump-dram-controller-regs.patch
-WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
+PATCHFILES  += 51-add-x96-q-ddr3-defconfig.patch
+# PATCHFILES  += 99-enable-debug.patch
+# PATCHFILES  += 99-dump-dram-controller-regs.patch
+WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
 
 LICENSE = GPL2
 
@@ -29,10 +42,8 @@ include ../../gar.mk
 include ../../python3/python/package-api.mk
 
 # For forcing given board (usually for testing)
-# mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
-# mm_U-BOOT_BOARD_TYPE = tanix_tx6s_lpddr3_defconfig
-# mm_U-BOOT_BOARD_TYPE = h616_lpddr3_tvbox_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_defconfig
+# mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
