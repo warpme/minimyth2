@@ -1,0 +1,365 @@
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/dts/sun50i-h616.dtsi u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/dts/sun50i-h616.dtsi
+--- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/dts/sun50i-h616.dtsi	2023-03-27 20:23:26.000000000 +0200
++++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/dts/sun50i-h616.dtsi	2023-03-30 21:52:31.616978603 +0200
+@@ -168,6 +168,13 @@
+ 				drive-strength = <40>;
+ 			};
+ 
++			rmii_pins: rmii-pins {
++				pins = "PA0", "PA1", "PA2", "PA3", "PA4",
++				       "PA5", "PA6", "PA7", "PA8", "PA9";
++				function = "emac1";
++				drive-strength = <40>;
++			};
++
+ 			i2c0_pins: i2c0-pins {
+ 				pins = "PI6", "PI7";
+ 				function = "i2c0";
+@@ -501,6 +508,25 @@
+ 				compatible = "snps,dwmac-mdio";
+ 				#address-cells = <1>;
+ 				#size-cells = <0>;
++			};
++		};
++
++		emac1: ethernet@5030000 {
++			compatible = "allwinner,sun50i-h616-emac";
++			syscon = <&syscon 1>;
++			reg = <0x05030000 0x10000>;
++			interrupts = <GIC_SPI 15 IRQ_TYPE_LEVEL_HIGH>;
++			interrupt-names = "macirq";
++			resets = <&ccu RST_BUS_EMAC1>;
++			reset-names = "stmmaceth";
++			clocks = <&ccu CLK_BUS_EMAC1>;
++			clock-names = "stmmaceth";
++			status = "disabled";
++
++			mdio1: mdio {
++				compatible = "snps,dwmac-mdio";
++				#address-cells = <1>;
++				#size-cells = <0>;
+ 			};
+ 		};
+ 
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/board.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/board.c
+--- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/board.c	2023-03-27 20:23:26.000000000 +0200
++++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/board.c	2023-03-30 21:49:28.636985216 +0200
+@@ -460,6 +460,7 @@
+ 	/* Needed early by sunxi_board_init if PMU is enabled */
+ 	i2c_init_board();
+ 	i2c_init(CONFIG_SYS_I2C_SPEED, CONFIG_SYS_I2C_SLAVE);
++	i2c_set_bus_num(1);
+ #endif
+ 	sunxi_board_init();
+ }
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/clock_sun50i_h6.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/clock_sun50i_h6.c
+--- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/clock_sun50i_h6.c	2023-03-27 20:23:26.000000000 +0200
++++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/arch/arm/mach-sunxi/clock_sun50i_h6.c	2023-03-30 21:49:28.636985216 +0200
+@@ -46,6 +46,11 @@
+ 	 * DRAM initialization code.
+ 	 */
+ 	writel(MBUS_CLK_SRC_PLL6X2 | MBUS_CLK_M(3), &ccm->mbus_cfg);
++	/* add by rll for pwm ephy */
++	writel(0x10001, 0x030017ac);
++	writel(0x80004, 0x0300a104);
++	writel(0x50, 0x0300a028);
++	writel(0x20, 0x0300a040);
+ }
+ #endif
+ 
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/board/sunxi/board.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/board/sunxi/board.c
+--- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/board/sunxi/board.c	2023-03-27 20:23:26.000000000 +0200
++++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/board/sunxi/board.c	2023-03-30 21:49:28.636985216 +0200
+@@ -45,6 +45,7 @@
+ #include <fdt_support.h>
+ #include <nand.h>
+ #include <net.h>
++#include <i2c.h>
+ #include <spl.h>
+ #include <sy8106a.h>
+ #include <asm/setup.h>
+@@ -113,6 +114,12 @@
+ 	sunxi_gpio_set_cfgpin(SUNXI_GPL(8), SUN50I_GPL_R_TWI);
+ 	sunxi_gpio_set_cfgpin(SUNXI_GPL(9), SUN50I_GPL_R_TWI);
+ #elif CONFIG_MACH_SUN50I_H616
++	clock_twi_onoff(3, 1);
++	sunxi_gpio_set_cfgpin(SUNXI_GPA(10), 2);
++	sunxi_gpio_set_cfgpin(SUNXI_GPA(11), 2);
++	sunxi_gpio_set_cfgpin(SUNXI_GPA(12), 2);
++	sunxi_gpio_set_pull(SUNXI_GPA(10), SUNXI_GPIO_PULL_UP);
++	sunxi_gpio_set_pull(SUNXI_GPA(11), SUNXI_GPIO_PULL_UP);
+ 	clock_twi_onoff(5, 1);
+ 	sunxi_gpio_set_cfgpin(SUNXI_GPL(0), SUN50I_H616_GPL_R_TWI);
+ 	sunxi_gpio_set_cfgpin(SUNXI_GPL(1), SUN50I_H616_GPL_R_TWI);
+@@ -572,9 +579,13 @@
+ 	spl->dram_size = dram_size >> 20;
+ }
+ 
++#define sunxi_ac300_key (1<<8)
++
+ void sunxi_board_init(void)
+ {
+ 	int power_failed = 0;
++	int val;
++	u8 data[2];
+ 
+ #ifdef CONFIG_LED_STATUS
+ 	if (IS_ENABLED(CONFIG_SPL_DRIVERS_MISC))
+@@ -669,6 +680,27 @@
+ 		clock_set_pll1(get_board_sys_clk());
+ 	else
+ 		printf("Failed to set core voltage! Can't set CPU frequency\n");
++
++	val=readl(0x300622c);
++	if((val&sunxi_ac300_key)==0)
++	{
++		i2c_set_bus_num(0);
++		data[0] = 0;
++		data[1] = 0;
++		i2c_write(0x10, 0xfe, 1, data, 2);
++		i2c_write(0x10, 2, 1, data, 2);
++		data[1] = 1;
++		i2c_write(0x10, 2, 1, data, 2);
++		data[1] = 0xf;
++		i2c_write(0x10, 0x16, 1, data, 2);
++		data[1] = 3;
++		i2c_write(0x10, 0x14, 1, data, 2);
++		data[1] = 0x60;
++		i2c_write(0x10, 0xfe, 1, data, 2);
++		data[0] = 0x08;
++		data[1] = 0x14;
++		i2c_write(0x10, 0, 1, data, 2);
++	}
+ }
+ #endif /* CONFIG_SPL_BUILD */
+ 
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/phy/phy.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/phy/phy.c
+--- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/phy/phy.c	2023-03-27 20:23:26.000000000 +0200
++++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/phy/phy.c	2023-03-30 21:49:28.636985216 +0200
+@@ -16,6 +16,7 @@
+ #include <command.h>
+ #include <miiphy.h>
+ #include <phy.h>
++#include <asm/io.h>
+ #include <errno.h>
+ #include <asm/global_data.h>
+ #include <dm/of_extra.h>
+@@ -384,10 +385,79 @@
+ 	return 0;
+ }
+ 
++static void disable_intelligent_ieee(struct phy_device *phydev)
++{
++	unsigned int value;
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0100);	/* switch to page 1 */
++	value = phy_read(phydev, MDIO_DEVAD_NONE, 0x17);	/* read address 0 0x17 register */
++	value &= ~(1 << 3);					/* reg 0x17 bit 3, set 0 to disable IEEE */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x17, value);
++	phy_write(phydev, MDIO_DEVAD_NONE,0x1f, 0x0000);	/* switch to page 0 */
++}
++
++static void disable_802_3az_ieee(struct phy_device *phydev)
++{
++	unsigned int value;
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x3c);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x1 << 14 | 0x7);
++	value = phy_read(phydev, MDIO_DEVAD_NONE, 0xe);
++	value &= ~(0x1 << 1);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x7);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, 0x3c);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xd, 0x1 << 14 | 0x7);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0xe, value);
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0200);	/* switch to page 2 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x0000);
++}
++
++static void ephy_config_default(struct phy_device *phydev)
++{
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0100);	/* Switch to Page 1 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x12, 0x4824);	/* Disable APS */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0200);	/* Switch to Page 2 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x0000);	/* PHYAFE TRX optimization */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0600);	/* Switch to Page 6 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x14, 0x708b);	/* PHYAFE TX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x13, 0xF000);	/* PHYAFE RX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x15, 0x1530);
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0800);	/* Switch to Page 6 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x00bc);	/* PHYAFE TRX optimization */
++}
++
++static void __maybe_unused ephy_config_fixed(struct phy_device *phydev)
++{
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0100);	/*switch to Page 1 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x12, 0x4824);	/*Disable APS */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0200);	/*switch to Page 2 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x0000);	/*PHYAFE TRX optimization */
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0600);	/*switch to Page 6 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x14, 0x7809);	/*PHYAFE TX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x13, 0xf000);	/*PHYAFE RX optimization */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x10, 0x5523);
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x15, 0x3533);
++
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0800);	/*switch to Page 8 */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x1d, 0x0844);	/*disable auto offset */
++	phy_write(phydev, MDIO_DEVAD_NONE, 0x18, 0x00bc);	/*PHYAFE TRX optimization */
++
++}
++
++#define sunxi_ac300_key (1<<8)
++
+ int genphy_config(struct phy_device *phydev)
+ {
+ 	int val;
+ 	u32 features;
++	u16 sid_value;
+ 
+ 	features = (SUPPORTED_TP | SUPPORTED_MII
+ 			| SUPPORTED_AUI | SUPPORTED_FIBRE |
+@@ -432,6 +502,42 @@
+ 
+ 	genphy_config_aneg(phydev);
+ 
++	val=readl(0x300622c);
++	sid_value=0xffff&val;
++	if(val&sunxi_ac300_key)
++	{
++		/*add quirk for h313/H616 emac1 ephy bb version bug*/
++		printf("apply fix for AC300 ephy bb version bug ...\n");
++		phy_write(phydev, MDIO_DEVAD_NONE, 0, 0x1f83);
++		phy_write(phydev, MDIO_DEVAD_NONE, 0, 0x1fb7);
++		phy_write(phydev, MDIO_DEVAD_NONE, 5, 0xa81f);
++		phy_write(phydev, MDIO_DEVAD_NONE, 6, 0);
++		udelay(500000);
++
++		val=phy_read(phydev, MDIO_DEVAD_NONE, 6);
++		val&=~(0x0f<<12);
++		val|=(0x0f&(0x03+sid_value))<<12;
++		phy_write(phydev,MDIO_DEVAD_NONE, 6,val);
++
++		if(sid_value&0x200) {
++			printf("using AC300 emac1 ephy fixed config ...\n");
++			ephy_config_fixed(phydev);
++		}
++		else {
++			printf("using AC300 emac1 ephy default config ...\n");
++			ephy_config_default(phydev);
++		}
++
++		disable_intelligent_ieee(phydev);
++
++		disable_802_3az_ieee(phydev);
++		phy_write(phydev, MDIO_DEVAD_NONE, 0x1f, 0x0000);
++
++		val=phy_read(phydev, MDIO_DEVAD_NONE, 6);
++		val|=(0x1<<11);
++		phy_write(phydev,MDIO_DEVAD_NONE, 6,val);
++		/*add end*/
++	}
+ 	return 0;
+ }
+ 
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/sun8i_emac.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/sun8i_emac.c
+--- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/sun8i_emac.c	2023-03-27 20:23:26.000000000 +0200
++++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/net/sun8i_emac.c	2023-03-30 21:49:28.636985216 +0200
+@@ -328,7 +328,7 @@
+ 		return 0;
+ 	}
+ 
+-	reg = readl(priv->sysctl_reg + 0x30);
++	reg = readl(priv->sysctl_reg + 0x34);
+ 
+ 	reg = sun8i_emac_set_syscon_ephy(priv, reg);
+ 
+@@ -369,7 +369,7 @@
+ 		reg |= ((pdata->rx_delay_ps / 100) << SC_ERXDC_OFFSET)
+ 			 & SC_ERXDC_MASK;
+ 
+-	writel(reg, priv->sysctl_reg + 0x30);
++	writel(reg, priv->sysctl_reg + 0x34);
+ 
+ 	return 0;
+ }
+@@ -910,6 +910,8 @@
+ 		.data = (uintptr_t)R40_GMAC },
+ 	{.compatible = "allwinner,sun50i-h6-emac",
+ 		.data = (uintptr_t)H6_EMAC },
++	{.compatible = "allwinner,sun50i-h616-emac",
++		.data = (uintptr_t)H6_EMAC },
+ 	{ }
+ };
+ 
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/power/axp305.c u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/power/axp305.c
+--- u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/power/axp305.c	2023-03-27 20:23:26.000000000 +0200
++++ u-boot-41a88ad529b3943b1e465846eb24fe2c29203e35/drivers/power/axp305.c	2023-03-30 21:49:28.636985216 +0200
+@@ -31,7 +31,7 @@
+ {
+ 	int ret;
+ 	u8 cfg;
+-
++#if 0
+ 	if (mvolt >= 1600)
+ 		cfg = AXP305_DCDC4_1600MV_OFFSET +
+ 			axp305_mvolt_to_cfg(mvolt, 1600, 3300, 100);
+@@ -48,8 +48,38 @@
+ 
+ 	return pmic_bus_setbits(AXP305_OUTPUT_CTRL1,
+ 				AXP305_OUTPUT_CTRL1_DCDCD_EN);
++#endif
++	return 0;
+ }
+ 
++#define AXP305_DCDC3_1200MV_OFFSET 71
++int axp_set_dcdc3(unsigned int mvolt)
++{
++	int ret;
++	u8 cfg;
++
++	if (mvolt >= 1220)
++		cfg = AXP305_DCDC3_1200MV_OFFSET +
++			axp305_mvolt_to_cfg(mvolt, 1220, 1840, 20);
++	else
++		cfg = axp305_mvolt_to_cfg(mvolt, 500, 1200, 10);
++
++	if (mvolt == 0)
++		return pmic_bus_clrbits(AXP305_OUTPUT_CTRL1,
++					AXP305_OUTPUT_CTRL1_DCDCD_EN);
++
++	ret = pmic_bus_write(AXP305_DCDCD_VOLTAGE, cfg);
++	if (ret)
++		return ret;
++
++//	ret = pmic_bus_write(0x12, 0x7);
++//	if (ret)
++//		return ret;
++
++	return pmic_bus_setbits(AXP305_OUTPUT_CTRL1,
++				0x1f);
++ }
++ 
+ int axp_init(void)
+ {
+ 	u8 axp_chip_id;
+@@ -63,9 +93,13 @@
+ 	if (ret)
+ 		return ret;
+ 
+-	if ((axp_chip_id & AXP305_CHIP_VERSION_MASK) != 0x40)
++	if ((axp_chip_id & AXP305_CHIP_VERSION_MASK) != 0x4b)
+ 		return -ENODEV;
+ 
++	printf("pmic id is 0x%x\n",axp_chip_id);
++
++	axp_set_dcdc3(1500);
++ 
+ 	return ret;
+ }
+ 
