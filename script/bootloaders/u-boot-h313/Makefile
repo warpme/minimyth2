@@ -61,7 +61,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c bootloaders/arm-trusted-firmware-h313
+DEPENDS   = lang/c bootloaders/arm-trusted-firmware-h616
 BUILDDEPS = devel/swig utils/dtc
 
 CONFIGURE_SCRIPTS   = custom
@@ -85,7 +85,7 @@ LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
-	BL31=$(DESTDIR)$(libdir)/u-boot/h313/bl31.bin \
+	BL31=$(DESTDIR)$(libdir)/u-boot/h616/bl31.bin \
 
 configure-custom:
 	@echo "Configuring u-boot for SunXi H313 with $(CONFIGURE_ARGS) ..."
