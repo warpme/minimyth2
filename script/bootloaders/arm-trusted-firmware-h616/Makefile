@@ -5,6 +5,7 @@ CATEGORIES   = kernel
 MASTER_SITES = https://github.com/ARM-software/arm-trusted-firmware/archive/refs/tags/
 DISTFILES    = v$(GARVERSION).zip
 PATCHFILES   = 01-fix-building-with-binutils-2.39.patch
+PATCHFILES  += 02-add-support-for-Allwinner-T507-SoC.patch
 WORKSRC      = $(WORKDIR)/arm-trusted-firmware-$(GARVERSION)
 
 LICENSE = GPL2
