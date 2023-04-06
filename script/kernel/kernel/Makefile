@@ -25,11 +25,9 @@ clean-all:
 	@$(foreach dir, $(wildcard ../linux-*), $(MAKE) clean-all -C $(dir) ; )
 	@$(MAKE) clean
 	@$(MAKE) clean-all -C ../../kernel-headers/linux-headers
-	@$(MAKE) clean-all -C ../../firmware/firmware
 	@$(MAKE) clean-all -C ../../kernel/rtl8189es
 	@$(MAKE) clean-all -C ../../kernel/openvfd
 	@$(MAKE) clean     -C ../../kernel-headers/linux-headers
-	@$(MAKE) clean     -C ../../firmware/firmware
 	@$(MAKE) clean     -C ../../kernel/rtl8189es
 	@$(MAKE) clean     -C ../../kernel/rtl8821cu
 	@$(MAKE) clean     -C ../../nvidia
