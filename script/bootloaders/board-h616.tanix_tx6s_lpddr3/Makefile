@@ -27,7 +27,7 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean-all install -C ../u-boot-h616-lpddr3
+	@$(MAKE) clean-all install -C ../u-boot-h616
 	@$(MAKECOOKIE)
 
 install-custom:
