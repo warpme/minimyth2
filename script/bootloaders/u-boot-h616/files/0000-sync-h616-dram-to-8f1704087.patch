@@ -1,0 +1,79 @@
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5/arch/arm/include/asm/arch-sunxi/prcm_sun50i.h u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5/arch/arm/include/asm/arch-sunxi/prcm_sun50i.h
+--- u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5/arch/arm/include/asm/arch-sunxi/prcm_sun50i.h	2021-04-26 11:12:35.000000000 +0200
++++ u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5/arch/arm/include/asm/arch-sunxi/prcm_sun50i.h	2022-12-08 17:25:08.000000000 +0100
+@@ -37,8 +37,18 @@
+ 	u32 w1_gate_reset;	/* 0x1ec */
+ 	u8 res10[0x1c];		/* 0x1f0 */
+ 	u32 rtc_gate_reset;	/* 0x20c */
++	u8 res11[0x34];		/* 0x210 */
++	u32 pll_ldo_cfg;	/* 0x244 */
++	u8 res12[0x8];		/* 0x248 */
++	u32 sys_pwroff_gating;	/* 0x250 */
++	u8 res13[0xbc];		/* 0x254 */
++	u32 res_cal_ctrl;	/* 0x310 */
++	u32 ohms200;		/* 0x314 */
++	u32 ohms240;		/* 0x318 */
++	u32 res_cal_status;	/* 0x31c */
+ };
+ check_member(sunxi_prcm_reg, rtc_gate_reset, 0x20c);
++check_member(sunxi_prcm_reg, res_cal_status, 0x31c);
+ 
+ #define PRCM_TWI_GATE		(1 << 0)
+ #define PRCM_TWI_RESET		(1 << 16)
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5/arch/arm/mach-sunxi/dram_sun50i_h616.c u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5/arch/arm/mach-sunxi/dram_sun50i_h616.c
+--- u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5/arch/arm/mach-sunxi/dram_sun50i_h616.c	2021-04-26 11:12:35.000000000 +0200
++++ u-boot-sunxi-647b392bf20614006917d5fcd3390347a668eee5/arch/arm/mach-sunxi/dram_sun50i_h616.c	2023-04-02 12:08:07.881740986 +0200
+@@ -19,6 +19,7 @@
+ #include <asm/arch/clock.h>
+ #include <asm/arch/dram.h>
+ #include <asm/arch/cpu.h>
++#include <asm/arch/prcm.h>
+ #include <linux/bitops.h>
+ #include <linux/delay.h>
+ #include <linux/kconfig.h>
+@@ -113,7 +114,7 @@
+ 
+ 	/* Set PLL5 rate to doubled DRAM clock rate */
+ 	writel(CCM_PLL5_CTRL_EN | CCM_PLL5_LOCK_EN | CCM_PLL5_OUT_EN |
+-	       CCM_PLL5_CTRL_N(para->clk * 2 / 24 - 1), &ccm->pll5_cfg);
++	       CCM_PLL5_CTRL_N(para->clk * 2 / 24), &ccm->pll5_cfg);
+ 	mctl_await_completion(&ccm->pll5_cfg, CCM_PLL5_LOCK, CCM_PLL5_LOCK);
+ 
+ 	/* Configure DRAM mod clock */
+@@ -360,7 +361,7 @@
+ 			}
+ 		}
+ 
+-		setbits_le32(SUNXI_DRAM_PHY0_BASE + 8, 1);
++		clrbits_le32(SUNXI_DRAM_PHY0_BASE + 8, 1);
+ 	}
+ 
+ 	clrbits_le32(SUNXI_DRAM_PHY0_BASE + 8, 0x30);
+@@ -720,7 +721,7 @@
+ 	writel(0x80, SUNXI_DRAM_PHY0_BASE + 0x3dc);
+ 	writel(0x80, SUNXI_DRAM_PHY0_BASE + 0x45c);
+ 
+-	if (IS_ENABLED(DRAM_ODT_EN))
++	if (IS_ENABLED(CONFIG_DRAM_ODT_EN))
+ 		mctl_phy_configure_odt();
+ 
+ 	clrsetbits_le32(SUNXI_DRAM_PHY0_BASE + 4, 7, 0xa);
+@@ -1001,14 +1002,16 @@
+ 
+ unsigned long sunxi_dram_init(void)
+ {
++	struct sunxi_prcm_reg *const prcm =
++		(struct sunxi_prcm_reg *)SUNXI_PRCM_BASE;
+ 	struct dram_para para = {
+ 		.clk = CONFIG_DRAM_CLK,
+ 		.type = SUNXI_DRAM_TYPE_DDR3,
+ 	};
+ 	unsigned long size;
+ 
+-	setbits_le32(0x7010310, BIT(8));
+-	clrbits_le32(0x7010318, 0x3f);
++	setbits_le32(&prcm->res_cal_ctrl, BIT(8));
++	clrbits_le32(&prcm->ohms240, 0x3f);
+ 
+ 	mctl_auto_detect_rank_width(&para);
+ 	mctl_auto_detect_dram_size(&para);

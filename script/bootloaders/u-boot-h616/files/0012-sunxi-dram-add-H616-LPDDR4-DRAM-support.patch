@@ -1,0 +1,637 @@
+From b5be74120d4aee645c63aea40c91f315e9513d68 Mon Sep 17 00:00:00 2001
+From: iuncuim <iuncuim@gmail.com>
+Date: Wed, 29 Mar 2023 10:57:28 +0300
+Subject: [PATCH 12/12] sunxi: dram: add H616 LPDDR4 DRAM support
+
+---
+ arch/arm/dts/sun50i-t507-myir-yt507.dts       | 213 ++++++++++++++++++
+ .../include/asm/arch-sunxi/dram_sun50i_h616.h |   1 +
+ arch/arm/mach-sunxi/Kconfig                   |  11 +
+ arch/arm/mach-sunxi/dram_sun50i_h616.c        | 115 +++++++++-
+ arch/arm/mach-sunxi/dram_timings/Makefile     |   3 +-
+ .../arm/mach-sunxi/dram_timings/h616_lpddr4.c |  91 ++++++++
+ configs/myir_yt507_defconfig                  |  28 +++
+ 7 files changed, 456 insertions(+), 6 deletions(-)
+ create mode 100644 arch/arm/dts/sun50i-t507-myir-yt507.dts
+ create mode 100644 arch/arm/mach-sunxi/dram_timings/h616_lpddr4.c
+ create mode 100644 configs/myir_yt507_defconfig
+
+diff --git a/arch/arm/dts/sun50i-t507-myir-yt507.dts b/arch/arm/dts/sun50i-t507-myir-yt507h.dts
+new file mode 100644
+index 00000000..02893f3a
+--- /dev/null
++++ b/arch/arm/dts/sun50i-t507-myir-yt507h.dts
+@@ -0,0 +1,213 @@
++// SPDX-License-Identifier: (GPL-2.0+ or MIT)
++/*
++ * Copyright (C) 2020 Arm Ltd.
++ */
++
++/dts-v1/;
++
++#include "sun50i-h616.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/leds/common.h>
++
++/ {
++	model = "MYC-YT507H SoM";
++	compatible = "MYiR,MYC-YT507H", "allwinner,sun50i-h616";
++
++	aliases {
++		ethernet0 = &emac0;
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led-0 {
++			function = LED_FUNCTION_POWER;
++			color = <LED_COLOR_ID_RED>;
++			gpios = <&pio 2 12 GPIO_ACTIVE_HIGH>; /* PC12 */
++			default-state = "on";
++		};
++
++		led-1 {
++			function = LED_FUNCTION_STATUS;
++			color = <LED_COLOR_ID_GREEN>;
++			gpios = <&pio 2 13 GPIO_ACTIVE_HIGH>; /* PC13 */
++		};
++	};
++
++	reg_vcc5v: vcc5v {
++		/* board wide 5V supply directly from the USB-C socket */
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-5v";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++};
++
++&emac0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&ext_rgmii_pins>;
++	phy-mode = "rgmii";
++	phy-handle = <&ext_rgmii_phy>;
++	phy-supply = <&reg_dcdce>;
++	allwinner,rx-delay-ps = <3100>;
++	allwinner,tx-delay-ps = <700>;
++	status = "okay";
++};
++
++&mdio0 {
++	ext_rgmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
++};
++
++&mmc0 {
++	vmmc-supply = <&reg_dcdce>;
++	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
++	bus-width = <4>;
++	status = "okay";
++};
++
++&r_rsb {
++	status = "okay";
++
++	axp305: pmic@745 {
++		compatible = "x-powers,axp305", "x-powers,axp805",
++			     "x-powers,axp806";
++		interrupt-controller;
++		#interrupt-cells = <1>;
++		reg = <0x745>;
++
++		x-powers,self-working-mode;
++		vina-supply = <&reg_vcc5v>;
++		vinb-supply = <&reg_vcc5v>;
++		vinc-supply = <&reg_vcc5v>;
++		vind-supply = <&reg_vcc5v>;
++		vine-supply = <&reg_vcc5v>;
++		aldoin-supply = <&reg_vcc5v>;
++		bldoin-supply = <&reg_vcc5v>;
++		cldoin-supply = <&reg_vcc5v>;
++
++		regulators {
++			reg_aldo1: aldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-sys";
++			};
++
++			reg_aldo2: aldo2 {	/* 3.3V on headers */
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3-ext";
++			};
++
++			reg_aldo3: aldo3 {	/* 3.3V on headers */
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3-ext2";
++			};
++
++			reg_bldo1: bldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc1v8";
++			};
++
++			bldo2 {
++				/* unused */
++			};
++
++			bldo3 {
++				/* unused */
++			};
++
++			bldo4 {
++				/* unused */
++			};
++
++			cldo1 {
++				/* reserved */
++			};
++
++			cldo2 {
++				/* unused */
++			};
++
++			cldo3 {
++				/* unused */
++			};
++
++			reg_dcdca: dcdca {
++				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1100000>;
++				regulator-name = "vdd-cpu";
++			};
++
++			reg_dcdcc: dcdcc {
++				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <990000>;
++				regulator-name = "vdd-gpu-sys";
++			};
++
++			reg_dcdcd: dcdcd {
++				regulator-always-on;
++				regulator-min-microvolt = <1500000>;
++				regulator-max-microvolt = <1500000>;
++				regulator-name = "vdd-dram";
++			};
++
++			reg_dcdce: dcdce {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-eth-mmc";
++			};
++
++			sw {
++				/* unused */
++			};
++		};
++	};
++};
++
++&pio {
++	vcc-pc-supply = <&reg_aldo1>;
++	vcc-pf-supply = <&reg_aldo1>;
++	vcc-pg-supply = <&reg_bldo1>;
++	vcc-ph-supply = <&reg_aldo1>;
++	vcc-pi-supply = <&reg_aldo1>;
++};
++
++&spi0  {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi0_pins>, <&spi0_cs0_pin>;
++
++	flash@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <40000000>;
++	};
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_ph_pins>;
++	status = "okay";
++};
+diff --git a/arch/arm/include/asm/arch-sunxi/dram_sun50i_h616.h b/arch/arm/include/asm/arch-sunxi/dram_sun50i_h616.h
+index ff736bd8..1ec6ee49 100644
+--- a/arch/arm/include/asm/arch-sunxi/dram_sun50i_h616.h
++++ b/arch/arm/include/asm/arch-sunxi/dram_sun50i_h616.h
+@@ -130,6 +130,7 @@ check_member(sunxi_mctl_ctl_reg, unk_0x4240, 0x4240);
+ #define MSTR_DEVICETYPE_LPDDR2	BIT(2)
+ #define MSTR_DEVICETYPE_LPDDR3	BIT(3)
+ #define MSTR_DEVICETYPE_DDR4	BIT(4)
++#define MSTR_DEVICETYPE_LPDDR4	BIT(5)
+ #define MSTR_DEVICETYPE_MASK	GENMASK(5, 0)
+ #define MSTR_2TMODE		BIT(10)
+ #define MSTR_BUSWIDTH_FULL	(0 << 12)
+diff --git a/arch/arm/mach-sunxi/Kconfig b/arch/arm/mach-sunxi/Kconfig
+index f6a19a8b..ca091bf4 100644
+--- a/arch/arm/mach-sunxi/Kconfig
++++ b/arch/arm/mach-sunxi/Kconfig
+@@ -424,6 +424,9 @@ config SUNXI_DRAM_DDR2
+ config SUNXI_DRAM_LPDDR3
+ 	bool
+ 
++config SUNXI_DRAM_LPDDR4
++	bool
++
+ choice
+ 	prompt "DRAM Type and Timing"
+ 	default SUNXI_DRAM_DDR3_1333 if !MACH_SUN8I_V3S
+@@ -467,6 +470,14 @@ config SUNXI_DRAM_H616_LPDDR3
+ 	This option is the LPDDR3 timing used by the stock boot0 by
+ 	Allwinner.
+ 
++config SUNXI_DRAM_H616_LPDDR4
++	bool "LPDDR4 DRAM chips on the H616 DRAM controller"
++	select SUNXI_DRAM_LPDDR4
++	depends on DRAM_SUN50I_H616
++	---help---
++	This option is the LPDDR4 timing used by the stock boot0 by
++	Allwinner.
++
+ config SUNXI_DRAM_H616_DDR3_1333
+ 	bool "DDR3-1333 boot0 timings on the H616 DRAM controller"
+ 	select SUNXI_DRAM_DDR3
+diff --git a/arch/arm/mach-sunxi/dram_sun50i_h616.c b/arch/arm/mach-sunxi/dram_sun50i_h616.c
+index 09c671c6..7a066dbe 100644
+--- a/arch/arm/mach-sunxi/dram_sun50i_h616.c
++++ b/arch/arm/mach-sunxi/dram_sun50i_h616.c
+@@ -249,6 +250,13 @@ static const u8 phy_init_lpddr3[] = {
+ 	0x17, 0x19, 0x1a
+ };
+ 
++static const u8 phy_init_lpddr4[] = {
++	0x03, 0x00, 0x17, 0x05, 0x02, 0x19, 0x06, 0x07,
++	0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
++	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x01,
++	0x18, 0x04, 0x1a
++};
++
+ static void mctl_phy_configure_odt(struct dram_para *para)
+ {
+ 	unsigned int val;
+@@ -300,6 +308,17 @@ static void mctl_phy_configure_odt(struct dram_para *para)
+ 		writel_relaxed(0, SUNXI_DRAM_PHY0_BASE + 0x440);
+ 	}
+ 
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4){
++		writel_relaxed(4, SUNXI_DRAM_PHY0_BASE + 0x38c);
++		writel_relaxed(4, SUNXI_DRAM_PHY0_BASE + 0x3cc);
++		writel_relaxed(4, SUNXI_DRAM_PHY0_BASE + 0x40c);
++		writel_relaxed(4, SUNXI_DRAM_PHY0_BASE + 0x44c);
++		writel_relaxed(0, SUNXI_DRAM_PHY0_BASE + 0x384);
++		writel_relaxed(0, SUNXI_DRAM_PHY0_BASE + 0x3c4);
++		writel_relaxed(0, SUNXI_DRAM_PHY0_BASE + 0x404);
++		writel_relaxed(0, SUNXI_DRAM_PHY0_BASE + 0x444);
++	}
++
+ 	dmb();
+ }
+ 
+@@ -804,6 +823,9 @@ static bool mctl_phy_init(struct dram_para *para)
+ 	u32 val, *ptr;
+ 	int i;
+ 
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4)
++		clrbits_le32(SUNXI_DRAM_PHY0_BASE + 0x4,0x80);
++
+ 	if (para->bus_full_width)
+ 		val = 0xf;
+ 	else
+@@ -843,6 +865,23 @@ static bool mctl_phy_init(struct dram_para *para)
+ 		writel(8, SUNXI_DRAM_PHY0_BASE + 0x37c);
+ 	}
+ 
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4) {
++		writel(0x14, SUNXI_DRAM_PHY0_BASE + 0x14);
++		writel(0x14, SUNXI_DRAM_PHY0_BASE + 0x35c);
++		writel(0x14, SUNXI_DRAM_PHY0_BASE + 0x368);
++		writel(0x14, SUNXI_DRAM_PHY0_BASE + 0x374);
++
++		writel(0, SUNXI_DRAM_PHY0_BASE + 0x18);
++		writel(0, SUNXI_DRAM_PHY0_BASE + 0x360);
++		writel(0, SUNXI_DRAM_PHY0_BASE + 0x36c);
++		writel(0, SUNXI_DRAM_PHY0_BASE + 0x378);
++
++		writel(0xa, SUNXI_DRAM_PHY0_BASE + 0x1c);
++		writel(0xa, SUNXI_DRAM_PHY0_BASE + 0x364);
++		writel(0xa, SUNXI_DRAM_PHY0_BASE + 0x370);
++		writel(0xa, SUNXI_DRAM_PHY0_BASE + 0x37c);
++	}
++
+ 	ptr = (u32 *)(SUNXI_DRAM_PHY0_BASE + 0xc0);
+ 
+ 	if (para->type == SUNXI_DRAM_TYPE_DDR3)
+@@ -851,7 +890,9 @@ static bool mctl_phy_init(struct dram_para *para)
+ 	if (para->type == SUNXI_DRAM_TYPE_LPDDR3)
+ 		for (i = 0; i < ARRAY_SIZE(phy_init_lpddr3); i++)
+ 			writel(phy_init_lpddr3[i], &ptr[i]);
+-
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4)
++		for (i = 0; i < ARRAY_SIZE(phy_init_lpddr4); i++)
++			writel(phy_init_lpddr4[i], &ptr[i]);
+ 
+ 	if (para->tpr10 & TPR10_UNKNOWN_FEAT0) {
+ 		if (para->tpr0 & BIT(30))
+@@ -901,6 +942,12 @@ static bool mctl_phy_init(struct dram_para *para)
+ 		writel(0xc0, SUNXI_DRAM_PHY0_BASE + 0x3dc);
+ 		writel(0xc0, SUNXI_DRAM_PHY0_BASE + 0x45c);
+ 	}
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4) {
++		writel(0x37, SUNXI_DRAM_PHY0_BASE + 0x3dc);
++		writel(0x37, SUNXI_DRAM_PHY0_BASE + 0x45c);
++		val = (para->tpr10 >> 7) & 0x1e;
++		writel(val, SUNXI_DRAM_PHY0_BASE + 0x788);
++	}
+ 
+ 	mctl_phy_configure_odt(para);
+ 
+@@ -908,6 +955,10 @@ static bool mctl_phy_init(struct dram_para *para)
+ 		clrsetbits_le32(SUNXI_DRAM_PHY0_BASE + 4, 7, 0xa);
+ 	if (para->type == SUNXI_DRAM_TYPE_LPDDR3)
+ 		clrsetbits_le32(SUNXI_DRAM_PHY0_BASE + 4, 7, 0xb);
++	if (para->type == SUNXI_DRAM_TYPE_DDR4)
++		clrsetbits_le32(SUNXI_DRAM_PHY0_BASE + 4, 7, 0xc);
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4)
++		clrsetbits_le32(SUNXI_DRAM_PHY0_BASE + 4, 7, 0xd);
+ 
+ 	if (para->clk <= 672)
+ 		writel(0xf, SUNXI_DRAM_PHY0_BASE + 0x20);
+@@ -987,7 +1038,43 @@ static bool mctl_phy_init(struct dram_para *para)
+ 		writel(0x800000f0, &mctl_ctl->mrctrl0);
+ 		mctl_await_completion(&mctl_ctl->mrctrl0, BIT(31), 0);
+ 	}
+-	
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4) {
++		writel(0x0, &mctl_ctl->mrctrl1);
++		writel(0x80000030, &mctl_ctl->mrctrl0);
++		mctl_await_completion(&mctl_ctl->mrctrl0, BIT(31), 0);
++
++		writel(0x134, &mctl_ctl->mrctrl1);
++		writel(0x80000030, &mctl_ctl->mrctrl0);
++		mctl_await_completion(&mctl_ctl->mrctrl0, BIT(31), 0);
++
++		writel(0x21b, &mctl_ctl->mrctrl1);
++		writel(0x80000030, &mctl_ctl->mrctrl0);
++		mctl_await_completion(&mctl_ctl->mrctrl0, BIT(31), 0);
++
++		writel(0x333, &mctl_ctl->mrctrl1);
++		writel(0x80000030, &mctl_ctl->mrctrl0);
++		mctl_await_completion(&mctl_ctl->mrctrl0, BIT(31), 0);
++
++		writel(0x403, &mctl_ctl->mrctrl1);
++		writel(0x80000030, &mctl_ctl->mrctrl0);
++		mctl_await_completion(&mctl_ctl->mrctrl0, BIT(31), 0);
++
++		writel(0xb04, &mctl_ctl->mrctrl1);
++		writel(0x80000030, &mctl_ctl->mrctrl0);
++		mctl_await_completion(&mctl_ctl->mrctrl0, BIT(31), 0);
++
++		writel(0xc72, &mctl_ctl->mrctrl1);
++		writel(0x80000030, &mctl_ctl->mrctrl0);
++		mctl_await_completion(&mctl_ctl->mrctrl0, BIT(31), 0);
++
++		writel(0xe09, &mctl_ctl->mrctrl1);
++		writel(0x80000030, &mctl_ctl->mrctrl0);
++		mctl_await_completion(&mctl_ctl->mrctrl0, BIT(31), 0);
++
++		writel(0x1624, &mctl_ctl->mrctrl1);
++		writel(0x80000030, &mctl_ctl->mrctrl0);
++		mctl_await_completion(&mctl_ctl->mrctrl0, BIT(31), 0);
++	}
+ 
+ 	writel(0, SUNXI_DRAM_PHY0_BASE + 0x54);
+ 
+@@ -1054,18 +1141,24 @@ static bool mctl_ctrl_init(struct dram_para *para)
+ 	writel(0x8000, &mctl_ctl->clken);
+ 
+ 	setbits_le32(&mctl_com->unk_0x008, 0xff00);
+-
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4)
++		writel(1, SUNXI_DRAM_COM_BASE + 0x50);
+ 	clrsetbits_le32(&mctl_ctl->sched[0], 0xff00, 0x3000);
+ 
+ 	writel(0, &mctl_ctl->hwlpctl);
+ 
+ 	setbits_le32(&mctl_com->unk_0x008, 0xff00);
+-
+-	reg_val = MSTR_BURST_LENGTH(8) | MSTR_ACTIVE_RANKS(para->ranks);
++	
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4)
++		reg_val = MSTR_BURST_LENGTH(0x10) | MSTR_ACTIVE_RANKS(para->ranks);
++	else
++		reg_val = MSTR_BURST_LENGTH(8) | MSTR_ACTIVE_RANKS(para->ranks);
+ 	if (para->type == SUNXI_DRAM_TYPE_DDR3)
+ 		reg_val |= MSTR_DEVICETYPE_DDR3 | MSTR_2TMODE;
+ 	if (para->type == SUNXI_DRAM_TYPE_LPDDR3)
+ 		reg_val |= MSTR_DEVICETYPE_LPDDR3;
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4)
++		reg_val |= MSTR_DEVICETYPE_LPDDR4;
+ 	if (para->bus_full_width)
+ 		reg_val |= MSTR_BUSWIDTH_FULL;
+ 	else
+@@ -1089,6 +1182,12 @@ static bool mctl_ctrl_init(struct dram_para *para)
+ 		writel(0x09020400, &mctl_ctl->unk_0x3240);
+ 		writel(0x09020400, &mctl_ctl->unk_0x4240);
+ 	}
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4) {
++		writel(0x04000400, &mctl_ctl->odtcfg);
++		writel(0x04000400, &mctl_ctl->unk_0x2240);
++		writel(0x04000400, &mctl_ctl->unk_0x3240);
++		writel(0x04000400, &mctl_ctl->unk_0x4240);
++	}
+ 
+ 	writel(BIT(31), &mctl_com->cr);
+ 
+@@ -1104,6 +1203,10 @@ static bool mctl_ctrl_init(struct dram_para *para)
+ 	setbits_le32(&mctl_ctl->unk_0x3180, BIT(31) | BIT(30));
+ 	setbits_le32(&mctl_ctl->unk_0x4180, BIT(31) | BIT(30));
+ 
++	//(LP)DDR4 only set_controller_dbi
++	if (para->type == SUNXI_DRAM_TYPE_LPDDR4)
++		setbits_le32(&mctl_ctl->dbictl, 0x1);
++
+ 	setbits_le32(&mctl_ctl->rfshctl3, BIT(0));
+ 	clrbits_le32(&mctl_ctl->dfimisc, BIT(0));
+ 
+@@ -1231,6 +1334,8 @@ unsigned long sunxi_dram_init(void)
+ 		.type = SUNXI_DRAM_TYPE_DDR3,
+ #elif defined(CONFIG_SUNXI_DRAM_H616_LPDDR3)
+ 		.type = SUNXI_DRAM_TYPE_LPDDR3,
++#elif defined(CONFIG_SUNXI_DRAM_H616_LPDDR4)
++		.type = SUNXI_DRAM_TYPE_LPDDR4,
+ #endif
+ 		.dx_odt = CONFIG_DRAM_SUN50I_H616_DX_ODT,
+ 		.dx_dri = CONFIG_DRAM_SUN50I_H616_DX_DRI,
+diff --git a/arch/arm/mach-sunxi/dram_timings/Makefile b/arch/arm/mach-sunxi/dram_timings/Makefile
+index 1695dea7..1e9c0a4c 100644
+--- a/arch/arm/mach-sunxi/dram_timings/Makefile
++++ b/arch/arm/mach-sunxi/dram_timings/Makefile
+@@ -5,4 +5,5 @@ obj-$(CONFIG_SUNXI_DRAM_H6_LPDDR3)	+= h6_lpddr3.o
+ obj-$(CONFIG_SUNXI_DRAM_H6_DDR3_1333)	+= h6_ddr3_1333.o
+ # currently only DDR3 is supported on H616
+ obj-$(CONFIG_SUNXI_DRAM_H616_DDR3_1333)	+= h616_ddr3_1333.o
+-obj-$(CONFIG_SUNXI_DRAM_H616_LPDDR3)	+= h616_lpddr3.o
+\ No newline at end of file
++obj-$(CONFIG_SUNXI_DRAM_H616_LPDDR3)	+= h616_lpddr3.o
++obj-$(CONFIG_SUNXI_DRAM_H616_LPDDR4)	+= h616_lpddr4.o
+\ No newline at end of file
+diff --git a/arch/arm/mach-sunxi/dram_timings/h616_lpddr4.c b/arch/arm/mach-sunxi/dram_timings/h616_lpddr4.c
+new file mode 100644
+index 00000000..738d8205
+--- /dev/null
++++ b/arch/arm/mach-sunxi/dram_timings/h616_lpddr4.c
+@@ -0,0 +1,91 @@
++/*
++ * sun50i H616 DDR3-1333 timings, as programmed by Allwinner's boot0
++ *
++ * The chips are probably able to be driven by a faster clock, but boot0
++ * uses a more conservative timing (as usual).
++ *
++ * (C) Copyright 2020 Jernej Skrabec <jernej.skrabec@siol.net>
++ * Based on H6 DDR3 timings:
++ * (C) Copyright 2018,2019 Arm Ltd.
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <common.h>
++#include <asm/arch/dram.h>
++#include <asm/arch/cpu.h>
++
++void mctl_set_timing_params(struct dram_para *para)
++{
++	struct sunxi_mctl_ctl_reg * const mctl_ctl =
++			(struct sunxi_mctl_ctl_reg *)SUNXI_DRAM_CTL0_BASE;
++
++	u8 tccd		= 2;			/* JEDEC: 4nCK */
++	u8 tfaw		= ns_to_t(50);		/* JEDEC: 30 ns w/ 1K pages */
++	u8 trrd		= max(ns_to_t(6), 4);	/* JEDEC: max(6 ns, 4nCK) */
++	u8 trcd		= ns_to_t(15);		/* JEDEC: 13.5 ns */
++	u8 trc		= ns_to_t(53);		/* JEDEC: 49.5 ns */
++	u8 txp		= max(ns_to_t(6), 3);	/* JEDEC: max(6 ns, 3nCK) */
++	u8 trtp		= max(ns_to_t(8), 2);	/* JEDEC: max(7.5 ns, 4nCK) */
++	u8 trp		= ns_to_t(15);		/* JEDEC: >= 13.75 ns */
++	u8 tras		= ns_to_t(38);		/* JEDEC >= 36 ns, <= 9*trefi */
++	u16 trefi	= ns_to_t(7800) / 32;	/* JEDEC: 7.8us@Tcase <= 85C */
++	u16 trfc	= ns_to_t(350);		/* JEDEC: 160 ns for 2Gb */
++	u16 txsr	= 4;			/* ? */
++
++	u8 tmrw		= 0;			/* ? */
++	u8 tmrd		= 4;			/* JEDEC: 4nCK */
++	u8 tmod		= max(ns_to_t(15), 12);	/* JEDEC: max(15 ns, 12nCK) */
++	u8 tcke		= max(ns_to_t(6), 3);	/* JEDEC: max(5.625 ns, 3nCK) */
++	u8 tcksrx	= max(ns_to_t(10), 4);	/* JEDEC: max(10 ns, 5nCK) */
++	u8 tcksre	= max(ns_to_t(10), 4);	/* JEDEC: max(10 ns, 5nCK) */
++	u8 tckesr	= tcke + 1;		/* JEDEC: tCKE(min) + 1nCK */
++	u8 trasmax	= (para->clk / 2) / 15;	/* JEDEC: tREFI * 9 */
++	u8 txs		= ns_to_t(360) / 32;	/* JEDEC: max(5nCK,tRFC+10ns) */
++	u8 txsdll	= 16;			/* JEDEC: 512 nCK */
++	u8 txsabort	= 4;			/* ? */
++	u8 txsfast	= 4;			/* ? */
++	u8 tcl		= 7;			/* JEDEC: CL / 2 => 6 */
++	u8 tcwl		= 5;			/* JEDEC: 8 */
++	u8 t_rdata_en	= 9;			/* ? */
++
++	u8 twtp		= 14;			/* (WL + BL / 2 + tWR) / 2 */
++	u8 twr2rd	= trtp + 7;		/* (WL + BL / 2 + tWTR) / 2 */
++	u8 trd2wr	= 5;			/* (RL + BL / 2 + 2 - WL) / 2 */
++
++	/* set DRAM timing */
++	writel(0x180f0c10,&mctl_ctl->dramtmg[0]); //100
++	writel(0x00030418, &mctl_ctl->dramtmg[1]); //104
++	writel(0x050a1212, &mctl_ctl->dramtmg[2]); //108
++	writel(0x0060600c, &mctl_ctl->dramtmg[3]); //10c
++	writel(0x07040408, &mctl_ctl->dramtmg[4]); //110
++	writel(0x02020606, &mctl_ctl->dramtmg[5]); //114
++	/* Value suggested by ZynqMP manual and used by libdram */
++	writel(0x02020005, &mctl_ctl->dramtmg[6]); //118
++	writel(0x04041004, &mctl_ctl->dramtmg[8]); //120
++	writel(0x00020208, &mctl_ctl->dramtmg[9]); //124
++	writel(0xE0C05, &mctl_ctl->dramtmg[10]);   //128
++	writel(0x440C021C, &mctl_ctl->dramtmg[11]); //12c
++	writel(8, &mctl_ctl->dramtmg[12]);         //130
++	writel(0xA100002, &mctl_ctl->dramtmg[13]); //134
++	writel(0x45, &mctl_ctl->dramtmg[14]);      //138
++
++	writel(0x203f0, &mctl_ctl->init[0]);        //0do
++	writel(0x1f20000, &mctl_ctl->init[1]);      //0d4
++	writel(0xd05, &mctl_ctl->init[2]);          //0d8
++	writel(0x0034001b, &mctl_ctl->init[3]);     //0dc
++	writel(0x00330000, &mctl_ctl->init[4]);     //0e0
++	writel(0x00100004, &mctl_ctl->init[5]);     //0e4
++	writel(0x00040072, &mctl_ctl->init[6]);     //0e8
++	writel(0x00240009, &mctl_ctl->init[7]);     //0ec
++
++	writel(0, &mctl_ctl->dfimisc);
++	clrsetbits_le32(&mctl_ctl->rankctl, 0xff0, 0x660);
++
++	/* Configure DFI timing */
++	writel(0x02918005, &mctl_ctl->dfitmg0);
++	writel(0x100202, &mctl_ctl->dfitmg1);
++
++	/* set refresh timing */
++	writel(0x002b0041, &mctl_ctl->rfshtmg);
++}
+\ No newline at end of file
+diff --git a/configs/myir_yt507_defconfig b/configs/myir_yt507_defconfig
+new file mode 100644
+index 00000000..e7a3bd97
+--- /dev/null
++++ b/configs/myir_yt507_defconfig
+@@ -0,0 +1,28 @@
++CONFIG_ARM=y
++CONFIG_ARCH_SUNXI=y
++CONFIG_DEFAULT_DEVICE_TREE="sun50i-t507-myir-yt507h"
++CONFIG_SPL=y
++CONFIG_DRAM_SUN50I_H616_DX_ODT=0x0c0c0c0c
++CONFIG_DRAM_SUN50I_H616_DX_DRI=0x0e0e0e0e
++CONFIG_DRAM_SUN50I_H616_CA_DRI=0x0e0e
++CONFIG_DRAM_SUN50I_H616_ODT_EN=0x7887bbbb
++CONFIG_DRAM_SUN50I_H616_TPR0=0x0
++CONFIG_DRAM_SUN50I_H616_TPR10=0x402e0000
++CONFIG_DRAM_SUN50I_H616_TPR11=0x22262622
++CONFIG_DRAM_SUN50I_H616_TPR12=0x0b0c0d0b
++CONFIG_MACH_SUN50I_H616=y
++CONFIG_SUNXI_DRAM_H616_LPDDR4=y
++CONFIG_DRAM_CLK=792
++CONFIG_R_I2C_ENABLE=y
++CONFIG_SPL_SPI_SUNXI=y
++# CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
++CONFIG_SYS_MONITOR_LEN=786432
++CONFIG_SPL_I2C=y
++CONFIG_SPL_SYS_I2C_LEGACY=y
++CONFIG_SYS_I2C_MVTWSI=y
++CONFIG_SYS_I2C_SLAVE=0x7f
++CONFIG_SYS_I2C_SPEED=400000
++CONFIG_SPI_FLASH_MACRONIX=y
++CONFIG_PHY_REALTEK=y
++CONFIG_SUN8I_EMAC=y
++CONFIG_SPI=y
+-- 
+2.36.1
+
