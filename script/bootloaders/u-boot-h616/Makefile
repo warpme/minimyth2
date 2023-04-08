@@ -26,6 +26,7 @@ PATCHFILES  += 05-fix-ddr3-memory-sizing.patch
 PATCHFILES  += 50-add-x96-q-lpddr3-defconfig.patch
 PATCHFILES  += 51-add-x96-q-ddr3-defconfig.patch
 PATCHFILES  += 52-add-tanix-tx6s-defconfig.patch
+PATCHFILES  += 53-add-tanix_tx6s_axp313_defconfig.patch
 # PATCHFILES  += 99-enable-debug.patch
 # PATCHFILES  += 99-dump-dram-controller-regs.patch
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
@@ -47,6 +48,7 @@ include ../../gar.mk
 include ../../python3/python/package-api.mk
 
 # For forcing given board (usually for testing)
+# mm_U-BOOT_BOARD_TYPE = tanix_tx6s_axp313_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
