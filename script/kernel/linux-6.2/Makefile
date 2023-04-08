@@ -152,6 +152,7 @@ PATCHFILES += 0637-drivers-mfd-axp20x-add-support-for-AXP313a-PMIC-v8.1.patch
 PATCHFILES += 0638-arm64-dts-allwinner-h313-add-dedicated-cpu-opp-and-use-in-x96q-TVbox.patch
 PATCHFILES += 0639-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
 PATCHFILES += 0640-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
+PATCHFILES += 0641-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
 endif
 #------------------------------------------------------------
 
