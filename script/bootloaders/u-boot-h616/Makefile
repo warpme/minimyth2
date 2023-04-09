@@ -22,11 +22,13 @@ PATCHFILES  += 01-hack-add-h313-int.emac.phy-support.patch
 PATCHFILES  += 02-sunxi-arm64-boot0.h-add-support-muliple-h313-variants.patch
 PATCHFILES  += 03-fix-h616-4gb-ram-detection.patch
 PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
-PATCHFILES  += 05-fix-ddr3-memory-sizing.patch
+PATCHFILES  += 05-sunxi-H616-Further-parameterize-DDR3-timings.patch
+PATCHFILES  += 06-sunxi-Add-TPR2-parameter-for-H616-DRAM-driver.patch
 PATCHFILES  += 50-add-x96-q-lpddr3-defconfig.patch
 PATCHFILES  += 51-add-x96-q-ddr3-defconfig.patch
 PATCHFILES  += 52-add-tanix-tx6s-defconfig.patch
 PATCHFILES  += 53-add-tanix_tx6s_axp313_defconfig.patch
+PATCHFILES  += 54-opi-zero2-add-mising-dram-para.patch
 # PATCHFILES  += 99-enable-debug.patch
 # PATCHFILES  += 99-dump-dram-controller-regs.patch
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
@@ -48,10 +50,11 @@ include ../../gar.mk
 include ../../python3/python/package-api.mk
 
 # For forcing given board (usually for testing)
-mm_U-BOOT_BOARD_TYPE = tanix_tx6s_axp313_defconfig
+# mm_U-BOOT_BOARD_TYPE = tanix_tx6s_axp313_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
+# mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
