@@ -153,6 +153,9 @@ PATCHFILES += 0638-arm64-dts-allwinner-h313-add-dedicated-cpu-opp-and-use-in-x96
 PATCHFILES += 0639-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
 PATCHFILES += 0640-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0641-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
+PATCHFILES += 0642-net-wireless-add-uwe5622-support-08042023.patch
+PATCHFILES += 0643-arm64-dts-allwinner-h616-dtsi-add-dump-reg-sysinfo-mac-read.patch
+PATCHFILES += 0644-arm64-dts-allwinner-h616-opi-zero2-enable-wifi.patch
 endif
 #------------------------------------------------------------
 
