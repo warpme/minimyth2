@@ -97,11 +97,12 @@ Allwinner H6  | EachLink H6 Mini | works  (rtl8723bs@SDIO)                | work
 Allwinner H6  | TanixTX6         | works  (ap6330@SDIO)                   | works       | works       | works                          | well supported                |
 Allwinner H6  | TanixTX6-Mini    | works  (xr819@SDIO)                    | works       | n/a         | not works                      | well supported                |
 Allwinner H6  | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H6  | OrangePI-3 LTS   | not works (aw859a)                     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H313| X96-Q (DDR3)     | works  (xr819@SDIO)                    | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H313| X96-Q (LPDDR3)   | works  (xr819@SDIO)                    | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s-axp313 | works  (ap6330@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | works       | not works (firmware issue)     | some things are still missing |
-Allwinner H616| OrangePI-Zero2   | not works (aw859a@SDIO no driver aval) | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H616| OrangePI-Zero2   | works  (aw859a@SDIO)                   | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | works       | works       | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-se      | works  (ap6255@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
@@ -132,7 +133,7 @@ On platforms with statefull v4l2_m2m video codecs: RPI3/RPI4 H.264 playback seek
 
 SoC              | Tested on                                    | Supported Decoder/ Hw.decode API      | Currently supported video decode HW.accel  | Supported drawing     | Supported video render    | Remarks                                              |
 -----------------|----------------------------------------------|---------------------------------------|--------------------------------------------|-----------------------|---------------------------|------------------------------------------------------|
-Allwinner H6     | EachLink H6 Mini, TanixTX6-Mini, Beelink GS1 | cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
+Allwinner H6     | EachLink H6 Mini, TanixTX6, Beelink GS1, OPi3| cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
 Allwinner H313   | X96-Q (DDR3)                                 | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
 Allwinner H313   | X96-Q (LPDDR3)                               | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
 Allwinner H616   | TanixTX6s, OrangePI-Zero2                    | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
