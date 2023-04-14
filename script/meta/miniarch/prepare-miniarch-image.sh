@@ -39,6 +39,7 @@ selection_u="board-rk3566.urve-pi"
 selection_w="board-h313.x96_q"
 selection_x="board-h313.x96_q_lpddr3"
 selection_y="board-h616.tanix_tx6s_axp313"
+selection_z="board-h6.orangepi_3_lts"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -126,6 +127,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (w) for "${selection_w}
     echo "  (x) for "${selection_x}
     echo "  (y) for "${selection_y}
+    echo "  (z) for "${selection_z}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -202,6 +204,7 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_w}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_x}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_y}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_z}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     b)  cache_board_list "${selection_b}"
@@ -290,6 +293,10 @@ case "${selection}" in
 
     y)  cache_board_list "${selection_y}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_y}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    z)  cache_board_list "${selection_z}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_z}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
