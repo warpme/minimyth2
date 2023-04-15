@@ -1,6 +1,6 @@
 
-GARNAME      = crust-20211107
-GARVERSION   = 83b2a57edab6c821ccdd701d743bd0a463be12e7
+GARNAME      = crust-20230301
+GARVERSION   = c308a504853e7fdb47169796c9a832796410ece8
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/crust-firmware/crust/archive/
 PATCHFILES   = 0002-switch-TanixTX6-proto-to-NEC.patch
