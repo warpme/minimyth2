@@ -124,7 +124,6 @@ PATCHFILES += 0590-arm64-dts-allwinner-add-orangepi-3-lts.patch
 PATCHFILES += 0591-net-wireless-rtw88-sync-wireless-next-20230310.patch
 # https://lore.kernel.org/linux-wireless/20230403202440.276757-1-martin.blumenstingl@googlemail.com/
 PATCHFILES += 0592-net-wireless-rtw88-add-SDIO-support-v4.patch
-PATCHFILES += 0593-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 endif
 #------------------------------------------------------------
 
@@ -139,7 +138,7 @@ PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
 # add HDMI, audio support
 PATCHFILES += 0606-dma-sun6i-dma-add-h616-support.patch
 PATCHFILES += 0610-sound-soc-add-h616-audio-support.patch
-PATCHFILES += 0611-hack-hack-drivers-add-h616-hdmi.patch
+PATCHFILES += 0611-drivers-drm-wip-add-h616-hdmi.patch
 PATCHFILES += 0612-gpu-drm-panfrost-panfrost-devfreq-revert-set-opp-to-the-recommended.patch
 # enable some h616 boards
 PATCHFILES += 0630-arm64-dts-allwinner-h616.dtsi-add-ths-audio-hdmi.patch
@@ -157,6 +156,7 @@ PATCHFILES += 0641-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
 PATCHFILES += 0642-net-wireless-add-uwe5622-support-08042023.patch
 PATCHFILES += 0643-arm64-dts-allwinner-h616-dtsi-add-dump-reg-sysinfo-mac-read.patch
 PATCHFILES += 0644-arm64-dts-allwinner-h616-opi-zero2-enable-wifi.patch
+PATCHFILES += 0645-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 endif
 #------------------------------------------------------------
 
