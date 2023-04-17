@@ -18,6 +18,7 @@ PATCHFILES  += 0009-sunxi-add-H616-LPDDR3-DRAM-support.patch
 PATCHFILES  += 0010-sunxi-add-support-for-AXP313-PMIC.patch
 PATCHFILES  += 0011-sunxi-dram-add-lpddr3-6gbit-support.patch
 PATCHFILES  += 0012-sunxi-dram-add-H616-LPDDR4-DRAM-support.patch
+PATCHFILES  += 0014-unreliable-dram.patch
 PATCHFILES  += 01-hack-add-h313-int.emac.phy-support.patch
 PATCHFILES  += 02-sunxi-arm64-boot0.h-add-support-muliple-h313-variants.patch
 PATCHFILES  += 03-fix-h616-4gb-ram-detection.patch
