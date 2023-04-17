@@ -15,6 +15,7 @@ PATCHFILES  += 0010-sunxi-Add-OrangePi-3-LTS-board.patch
 PATCHFILES  += 0011-arm-psci-Add-definitions-for-PSCI-v1.1.patch
 PATCHFILES  += 0012-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
 PATCHFILES  += 0013-sunxi-mmc-increase-stabilization-delay-from-1ms-to-20ms.patch
+PATCHFILES  += 0014-unreliable-dram.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
 
