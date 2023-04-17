@@ -124,6 +124,7 @@ PATCHFILES += 0590-arm64-dts-allwinner-add-orangepi-3-lts.patch
 PATCHFILES += 0591-net-wireless-rtw88-sync-wireless-next-20230310.patch
 # https://lore.kernel.org/linux-wireless/20230403202440.276757-1-martin.blumenstingl@googlemail.com/
 PATCHFILES += 0592-net-wireless-rtw88-add-SDIO-support-v4.patch
+PATCHFILES += 0593-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 endif
 #------------------------------------------------------------
 
