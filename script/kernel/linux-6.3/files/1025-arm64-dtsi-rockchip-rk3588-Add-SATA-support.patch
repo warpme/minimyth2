@@ -1,0 +1,258 @@
+
+https://patchwork.kernel.org/project/linux-phy/list/?series=739573
+
+
+The pipe-phy syscon is used by rockchip,rk3588-naneng-combphy,
+which in turn is the PHY for USB3, PCIe and SATA.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+Acked-by: Rob Herring <robh@kernel.org>
+---
+ Documentation/devicetree/bindings/soc/rockchip/grf.yaml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Documentation/devicetree/bindings/soc/rockchip/grf.yaml b/Documentation/devicetree/bindings/soc/rockchip/grf.yaml
+index a873f74564f2..dda071b66813 100644
+--- a/Documentation/devicetree/bindings/soc/rockchip/grf.yaml
++++ b/Documentation/devicetree/bindings/soc/rockchip/grf.yaml
+@@ -24,6 +24,7 @@ properties:
+               - rockchip,rk3588-bigcore1-grf
+               - rockchip,rk3588-ioc
+               - rockchip,rk3588-php-grf
++              - rockchip,rk3588-pipe-phy-grf
+               - rockchip,rk3588-sys-grf
+               - rockchip,rk3588-pcie3-phy-grf
+               - rockchip,rk3588-pcie3-pipe-grf
+
+
+Just like RK3568, the RK3588 has a DWC based AHCI controller.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+FWIW IDK what exactly the ASIC clock is. The TRM does not provide any
+details unfortunately. It is required for functional SATA, though.
+---
+ .../devicetree/bindings/ata/snps,dwc-ahci-common.yaml       | 6 ++++--
+ Documentation/devicetree/bindings/ata/snps,dwc-ahci.yaml    | 6 ++++--
+ 2 files changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/ata/snps,dwc-ahci-common.yaml b/Documentation/devicetree/bindings/ata/snps,dwc-ahci-common.yaml
+index c1457910520b..0df8f49431eb 100644
+--- a/Documentation/devicetree/bindings/ata/snps,dwc-ahci-common.yaml
++++ b/Documentation/devicetree/bindings/ata/snps,dwc-ahci-common.yaml
+@@ -31,11 +31,11 @@ properties:
+       PM-alive clock, RxOOB detection clock, embedded PHYs reference (Rx/Tx)
+       clock, etc.
+     minItems: 1
+-    maxItems: 4
++    maxItems: 5
+ 
+   clock-names:
+     minItems: 1
+-    maxItems: 4
++    maxItems: 5
+     items:
+       oneOf:
+         - description: Application APB/AHB/AXI BIU clock
+@@ -50,6 +50,8 @@ properties:
+           const: rxoob
+         - description: SATA Ports reference clock
+           const: ref
++        - description: Rockchip ASIC clock
++          const: asic
+ 
+   resets:
+     description:
+diff --git a/Documentation/devicetree/bindings/ata/snps,dwc-ahci.yaml b/Documentation/devicetree/bindings/ata/snps,dwc-ahci.yaml
+index 5afa4b57ce20..c6a0d6c8b62c 100644
+--- a/Documentation/devicetree/bindings/ata/snps,dwc-ahci.yaml
++++ b/Documentation/devicetree/bindings/ata/snps,dwc-ahci.yaml
+@@ -23,9 +23,11 @@ properties:
+         const: snps,dwc-ahci
+       - description: SPEAr1340 AHCI SATA device
+         const: snps,spear-ahci
+-      - description: Rockhip RK3568 AHCI controller
++      - description: Rockhip AHCI controller
+         items:
+-          - const: rockchip,rk3568-dwc-ahci
++          - enum:
++              - rockchip,rk3568-dwc-ahci
++              - rockchip,rk3588-dwc-ahci
+           - const: snps,dwc-ahci
+ 
+ patternProperties:
+
+
+The RK3588 has two reset lines for the combphy. One for the
+APB interface and one for the actual PHY.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ .../bindings/phy/phy-rockchip-naneng-combphy.yaml          | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/phy/phy-rockchip-naneng-combphy.yaml b/Documentation/devicetree/bindings/phy/phy-rockchip-naneng-combphy.yaml
+index 9ae514fa7533..bac1aae07555 100644
+--- a/Documentation/devicetree/bindings/phy/phy-rockchip-naneng-combphy.yaml
++++ b/Documentation/devicetree/bindings/phy/phy-rockchip-naneng-combphy.yaml
+@@ -31,8 +31,13 @@ properties:
+       - const: pipe
+ 
+   resets:
++    minItems: 1
++    maxItems: 2
++
++  reset-names:
+     items:
+-      - description: exclusive PHY reset line
++      - const: phy
++      - const: apb
+ 
+   rockchip,enable-ssc:
+     type: boolean
+
+
+Add all 3 combo PHYs that can be found in RK3588.
+They are used for SATA, PCIe or USB3.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3588.dtsi  | 21 ++++++++++++
+ arch/arm64/boot/dts/rockchip/rk3588s.dtsi | 42 +++++++++++++++++++++++
+ 2 files changed, 63 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588.dtsi b/arch/arm64/boot/dts/rockchip/rk3588.dtsi
+index d085e57fbc4c..fe1866a3697a 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588.dtsi
+@@ -55,4 +60,20 @@ gmac0_mtl_tx_setup: tx-queues-config {
+ 			queue1 {};
+ 		};
+ 	};
++
++	combphy1_ps: phy@fee10000 {
++		compatible = "rockchip,rk3588-naneng-combphy";
++		reg = <0x0 0xfee10000 0x0 0x100>;
++		#phy-cells = <1>;
++		clocks = <&cru CLK_REF_PIPE_PHY1>, <&cru PCLK_PCIE_COMBO_PIPE_PHY1>,
++			 <&cru PCLK_PHP_ROOT>;
++		clock-names = "ref", "apb", "pipe";
++		assigned-clocks = <&cru CLK_REF_PIPE_PHY1>;
++		assigned-clock-rates = <100000000>;
++		resets = <&cru SRST_REF_PIPE_PHY1>, <&cru SRST_P_PCIE2_PHY1>;
++		reset-names = "phy", "apb";
++		rockchip,pipe-grf = <&php_grf>;
++		rockchip,pipe-phy-grf = <&pipe_phy1_grf>;
++		status = "disabled";
++	};
+ };
+
+
+Add all three SATA IP blocks to the RK3588 DT.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3588.dtsi  | 23 +++++++++++
+ arch/arm64/boot/dts/rockchip/rk3588s.dtsi | 48 +++++++++++++++++++++++
+ 2 files changed, 71 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588.dtsi b/arch/arm64/boot/dts/rockchip/rk3588.dtsi
+index fe1866a3697a..65d818964bff 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588.dtsi
+@@ -61,6 +61,29 @@ gmac0_mtl_tx_setup: tx-queues-config {
+ 		};
+ 	};
+ 
++	sata1: sata@fe220000 {
++		compatible = "rockchip,rk3588-dwc-ahci", "snps,dwc-ahci";
++		reg = <0 0xfe220000 0 0x1000>;
++		clocks = <&cru ACLK_SATA1>, <&cru CLK_PMALIVE1>,
++			 <&cru CLK_RXOOB1>, <&cru CLK_PIPEPHY1_REF>,
++			 <&cru CLK_PIPEPHY1_PIPE_ASIC_G>;
++		clock-names = "sata", "pmalive", "rxoob", "ref", "asic";
++		interrupts = <GIC_SPI 274 IRQ_TYPE_LEVEL_HIGH 0>;
++		ports-implemented = <0x1>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		status = "disabled";
++
++		sata-port@0 {
++			reg = <0>;
++			hba-port-cap = <HBA_PORT_FBSCP>;
++			phys = <&combphy1_ps PHY_TYPE_SATA>;
++			phy-names = "sata-phy";
++			snps,rx-ts-max = <32>;
++			snps,tx-ts-max = <32>;
++		};
++	};
++
+ 	combphy1_ps: phy@fee10000 {
+ 		compatible = "rockchip,rk3588-naneng-combphy";
+ 		reg = <0x0 0xfee10000 0x0 0x100>;
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588s.dtsi b/arch/arm64/boot/dts/rockchip/rk3588s.dtsi
+index 7227c918f825..2124c654f665 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588s.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588s.dtsi
+@@ -9,6 +9,8 @@
+ #include <dt-bindings/power/rk3588-power.h>
+ #include <dt-bindings/reset/rockchip,rk3588-cru.h>
+ #include <dt-bindings/thermal/thermal.h>
++#include <dt-bindings/phy/phy.h>
++#include <dt-bindings/ata/ahci.h>
+ 
+ / {
+ 	compatible = "rockchip,rk3588";
+@@ -1666,6 +1668,52 @@ gmac1_mtl_tx_setup: tx-queues-config {
+ 		};
+ 	};
+ 
++	sata0: sata@fe210000 {
++		compatible = "rockchip,rk3588-dwc-ahci", "snps,dwc-ahci";
++		reg = <0 0xfe210000 0 0x1000>;
++		clocks = <&cru ACLK_SATA0>, <&cru CLK_PMALIVE0>,
++			 <&cru CLK_RXOOB0>, <&cru CLK_PIPEPHY0_REF>,
++			 <&cru CLK_PIPEPHY0_PIPE_ASIC_G>;
++		clock-names = "sata", "pmalive", "rxoob", "ref", "asic";
++		interrupts = <GIC_SPI 273 IRQ_TYPE_LEVEL_HIGH 0>;
++		ports-implemented = <0x1>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		status = "disabled";
++
++		sata-port@0 {
++			reg = <0>;
++			hba-port-cap = <HBA_PORT_FBSCP>;
++			phys = <&combphy0_ps PHY_TYPE_SATA>;
++			phy-names = "sata-phy";
++			snps,rx-ts-max = <32>;
++			snps,tx-ts-max = <32>;
++		};
++	};
++
++	sata2: sata@fe230000 {
++		compatible = "rockchip,rk3588-dwc-ahci", "snps,dwc-ahci";
++		reg = <0 0xfe230000 0 0x1000>;
++		clocks = <&cru ACLK_SATA2>, <&cru CLK_PMALIVE2>,
++			 <&cru CLK_RXOOB2>, <&cru CLK_PIPEPHY2_REF>,
++			 <&cru CLK_PIPEPHY2_PIPE_ASIC_G>;
++		clock-names = "sata", "pmalive", "rxoob", "ref", "asic";
++		interrupts = <GIC_SPI 275 IRQ_TYPE_LEVEL_HIGH 0>;
++		ports-implemented = <0x1>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++		status = "disabled";
++
++		sata-port@0 {
++			reg = <0>;
++			hba-port-cap = <HBA_PORT_FBSCP>;
++			phys = <&combphy2_psu PHY_TYPE_SATA>;
++			phy-names = "sata-phy";
++			snps,rx-ts-max = <32>;
++			snps,tx-ts-max = <32>;
++		};
++	};
++
+ 	sdhci: mmc@fe2e0000 {
+ 		compatible = "rockchip,rk3588-dwcmshc";
+ 		reg = <0x0 0xfe2e0000 0x0 0x10000>;
