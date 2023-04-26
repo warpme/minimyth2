@@ -223,7 +223,7 @@ PATCHFILES += 1006-arm64-dts-rockchip-enable-cpu-freq-scalling-rock5x.patch
 PATCHFILES += 1007-arm64-dts-rockchip-rk3588-Add-sdmmc-node.patch
 PATCHFILES += 1008-arm64-dts-rockchip-Add-support-for-SD-card-for-Rock5x.patch
 PATCHFILES += 1009-arm64-dts-rockchip-Add-support-user-led-Rock5x.patch
-PATCHFILES += 1010-arm64-dts-rockchip-rk3588s-fix-missing-SCMI-clock-for-little-cores.patch
+PATCHFILES += 1010-arm64-dtsi-rockchip-rk3588s-some-clocks-fixes.patch
 PATCHFILES += 1011-add-PCIe2-driver-support-for-rk3588-v2.patch
 PATCHFILES += 1012-pci-controller-dwc-pcie-dw-rockchip-add-rk3588-compatible.patch
 PATCHFILES += 1013-arm64-dts-rockchip-Add-support-multiple-PCIe-3.0-lanes-on-rk3588.patch
@@ -239,6 +239,7 @@ PATCHFILES += 1022-arm64-dtsi-rockchip-rk3588-Add-I2S-nodes.patch
 PATCHFILES += 1023-arm64-dts-rockchip-rk3588-rock5b-add-analog-audio.patch
 PATCHFILES += 1024-arm64-dts-rockchip-enable-RTC-support-for-rock5b-v3.patch
 PATCHFILES += 1025-arm64-dtsi-rockchip-rk3588-Add-SATA-support.patch
+PATCHFILES += 1026-clk-rockchip-rk3588-make-gate-linked-clocks-ignore-unused.patch
 endif
 
 endif
