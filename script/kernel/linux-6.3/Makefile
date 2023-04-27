@@ -226,12 +226,12 @@ PATCHFILES += 1009-arm64-dts-rockchip-Add-support-user-led-Rock5x.patch
 PATCHFILES += 1010-arm64-dtsi-rockchip-rk3588s-some-clocks-fixes.patch
 PATCHFILES += 1011-add-PCIe2-driver-support-for-rk3588-v2.patch
 PATCHFILES += 1012-pci-controller-dwc-pcie-dw-rockchip-add-rk3588-compatible.patch
-PATCHFILES += 1013-arm64-dts-rockchip-Add-support-multiple-PCIe-3.0-lanes-on-rk3588.patch
-PATCHFILES += 1014-arm64-dts-rockchip-rk3588.dtsi-add-hack-for-pcie-controllers.patch
-PATCHFILES += 1015-irqchip-gic-v3-add-hackaround-for-rk3568-its.patch
-PATCHFILES += 1016-arm64-dts-rockchip-enable-pcie-rock5b.patch
+PATCHFILES += 1013-arm64-dtsi-rockchip-rk3588-add-PCIe2-support.patch
+PATCHFILES += 1014-arm64-dtsi-rockchip-rk3588-add-GIC-ITS-support.patch
+PATCHFILES += 1015-irqchip-gic-v3-Add-Rockchip-3588001-erratum-workaround.patch
+PATCHFILES += 1016-arm64-dts-rockchip-enable-pcie2-rock5x.patch
 PATCHFILES += 1017-phy-rockchip-inno-usb2-add-RK3588-support-v2.patch
-PATCHFILES += 1018-arm64-dts-rockchip-rk3588-enable-usb2.patch
+PATCHFILES += 1018-arm64-dts-rockchip-rk3588-add-USB2-support.patch
 PATCHFILES += 1019-arm64-dts-rockchip-enable-usb2-rock5x.patch
 PATCHFILES += 1020-arm64-dtsi-rk3588-enable-watchdog-support.patch
 PATCHFILES += 1021-arm64-dts-enable-rk3588-timer-support.patch
@@ -240,6 +240,8 @@ PATCHFILES += 1023-arm64-dts-rockchip-rk3588-rock5b-add-analog-audio.patch
 PATCHFILES += 1024-arm64-dts-rockchip-enable-RTC-support-for-rock5b-v3.patch
 PATCHFILES += 1025-arm64-dtsi-rockchip-rk3588-Add-SATA-support.patch
 PATCHFILES += 1026-clk-rockchip-rk3588-make-gate-linked-clocks-ignore-unused.patch
+PATCHFILES += 1027-arm64-dtsi-rockchip-add-PCIE3-controller-and-phy-for-rk3588.patch
+PATCHFILES += 1028-arm64-dts-rockchip-enable-pcie3-rock5b.patch
 endif
 
 endif
