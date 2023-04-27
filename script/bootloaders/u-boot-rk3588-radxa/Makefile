@@ -1,7 +1,7 @@
 
-GARNAME      = u-boot-rk3588-rockchip-08022023
-# git@08.02.2023 https://github.com/radxa/u-boot/commits/stable-5.10-rock5
-GARVERSION   = 77a5f377ab102272081ac6094a3e5892276de7d6
+GARNAME      = u-boot-rk3588-rockchip-13042023
+# git@13.04.2023 https://github.com/radxa/u-boot/commits/next-dev
+GARVERSION   = a2a9f1df8fa56c38c776dec94915cc80fa66f9c8
 # git@19.10.2022 https://github.com/radxa/rkbin/commits/master
 RKBINVERSION = 9840e87723eef7c41235b89af8c049c1bcd3d133
 CATEGORIES   = kernel
