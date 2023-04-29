@@ -1,9 +1,10 @@
 
 GARNAME      = pango
-GARVERSION   = 1.50.8
+GARVERSION   = 1.50.14
 CATEGORIES   = gtk
 MASTER_SITES = http://ftp.gnome.org/pub/GNOME/sources/pango/1.50/
 DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = fix-gcc13-build.patch
 LICENSE      = LGPL2
 
 DESCRIPTION =
