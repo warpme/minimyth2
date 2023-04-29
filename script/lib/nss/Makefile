@@ -4,6 +4,7 @@ GARVERSION   = $(NSS_VERSION)
 CATEGORIES   = lib
 MASTER_SITES = https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/$(shell echo $(DISTNAME) | sed -e 's/-/_/g' -e 's/\./_/g' -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')_RTM/src/
 PATCHFILES   = fix-used-chaintools.patch
+PATCHFILES  += nss-11-D174822-allow-build-with-gcc-13.patch
 DISTFILES    = $(DISTNAME).tar.gz
 ifneq ($(DESTIMG),build)
 PATCHFILES  += nss-cross.patch
