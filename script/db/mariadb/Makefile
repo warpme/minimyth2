@@ -4,7 +4,7 @@ GARVERSION   = 10.9.5
 CATEGORIES   = db
 MASTER_SITES = https://rsync.osuosl.org/pub/mariadb/mariadb-$(GARVERSION)/source/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = fix_fompile_without_server_feature.patch
+PATCHFILES   = fix_fompile_without_server_feature.patch fix-compile-with-gcc-13.patch
 LICENSE      = GPL
 
 DEPENDS = \
