@@ -1,6 +1,6 @@
 
 GARNAME      = isl
-GARVERSION   = 0.24
+GARVERSION   = 0.26
 CATEGORIES   = devel
 MASTER_SITES = https://libisl.sourceforge.io/
 DISTFILES    = $(DISTNAME).tar.xz
