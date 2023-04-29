@@ -5,6 +5,7 @@ CATEGORIES   = qt
 GARVERSION = 84ad475fcaadc156568964eb1994f440a7ba9fdd
 MASTER_SITES = https://github.com/qtwebkit/qtwebkit/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = fix-gcc13-compile.patch
 
 DESCRIPTION = 
 define BLURB
