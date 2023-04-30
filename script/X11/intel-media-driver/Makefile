@@ -4,6 +4,7 @@ GARVERSION   = 23.1.3
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/media-driver/archive/refs/tags/
 DISTFILES    = intel-media-$(GARVERSION).tar.gz
+PATCHFILES   = fix-compile-gcc13.patch
 LICENSE      = GPL
 
 DEPENDS = X11/libva X11/intel-gmmlib
