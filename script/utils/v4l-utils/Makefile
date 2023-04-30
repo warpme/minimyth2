@@ -26,6 +26,7 @@ include ../../gar.mk
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
 	-D qv4l2="disabled" \
+	-D qvidcap="disabled" \
 	-D gconv="disabled" \
 	-D doxygen-doc="disabled" \
 	-D doxygen-html="false" \
