@@ -1,0 +1,56 @@
+#!/bin/sh
+################################################################################
+# modules_manual_early
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    local kernel_module
+    local MM_HARDWARE_KERNEL_EARLY_MODULES=""
+
+    mm_message_output info "loading kernel modules (early manual) ..."
+
+    MM_HW_DEVICE_NAME=`cat /proc/device-tree/model 2>/dev/null | sed -e "s/\s*//g"`
+    if [ -n "${MM_HW_DEVICE_NAME}" ] ; then
+        MM_HARDWARE_KERNEL_EARLY_MODULES="${MM_HARDWARE_KERNEL_EARLY_MODULES} `mm_hardware_to_kernel_module_map ${MM_HW_DEVICE_NAME} /etc/hardware.d/device2kernel.map`"
+    fi
+
+    MM_HW_DEVICE_COMPATIBLE=`cat /proc/device-tree/compatible 2>/dev/null | sed -e "s/\s*//g" | grep -o "[^,]*$"`
+    if [ -n "${MM_HW_DEVICE_COMPATIBLE}" ] ; then
+        MM_HARDWARE_KERNEL_EARLY_MODULES="${MM_HARDWARE_KERNEL_EARLY_MODULES} `mm_hardware_to_kernel_module_map ${MM_HW_DEVICE_COMPATIBLE} /etc/hardware.d/plat2kernel.map`"
+    fi
+
+    if [ -n "${MM_HARDWARE_KERNEL_EARLY_MODULES}" ] ; then
+        MM_HARDWARE_KERNEL_EARLY_MODULES="${MM_HARDWARE_KERNEL_EARLY_MODULES} `mm_hardware_cpu_process mm_hardware_cpu2kernel_map`"
+
+        MM_HARDWARE_KERNEL_EARLY_MODULES=`/bin/echo ${MM_HARDWARE_KERNEL_EARLY_MODULES} | /bin/sed -e 's%  *% %g' | /bin/sed -e 's%^  *%%' | /bin/sed -e 's%  *$%%'`
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/modules_manual_early] early load modules: [${MM_HARDWARE_KERNEL_EARLY_MODULES}] ..."
+
+        # Load hardware based kernel modules that are not auto-detected.
+        for kernel_module in ${MM_HARDWARE_KERNEL_EARLY_MODULES} ; do
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/modules_manual_early] loading ${kernel_module} kernel module..."
+
+            if ! /sbin/modprobe ${kernel_module} > /dev/null 2>&1 ; then
+                mm_message_output warn "warning: failed to load kernel module: ${kernel_module}"
+            fi
+
+        done
+
+        # safe-guard 2sec awaitng as some HW kernel modules (i.e. aw5622 wifi) giving oops when accessed too quick ater modeprobing
+        # /bin/sleep 2
+    fi
+
+    this_script_done
+}
+
+stop() {
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac
