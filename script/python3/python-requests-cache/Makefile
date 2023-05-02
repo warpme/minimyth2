@@ -1,8 +1,8 @@
 
-GARNAME      = python-requests-cache
-GARVERSION   = 0.8.1
+GARNAME      = python-requests_cache
+GARVERSION   = 0.9.8
 CATEGORIES   = python
-MASTER_SITES = https://files.pythonhosted.org/packages/12/c2/cbdf169cb621aeb8b0f1097e357b65e018a30079501fc88c9f889ad61b00/
+MASTER_SITES = https://files.pythonhosted.org/packages/c6/63/76613d73fb4ec23cc2451c1be30974a373c7258274db2e4f79530bda505d/
 DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE      =
 
