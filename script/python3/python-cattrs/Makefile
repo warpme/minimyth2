@@ -1,12 +1,12 @@
 
 GARNAME      = python-cattrs
-GARVERSION   = 1.8.0
+GARVERSION   = 22.2.0
 CATEGORIES   = python
-MASTER_SITES = https://files.pythonhosted.org/packages/d3/6f/7f753ab5bff9c2522398437f9b08879b890a2ac4d880654029b9302a0a0b/
+MASTER_SITES = https://files.pythonhosted.org/packages/fc/da/ff3239eb4241cbc6f8b69f53d4ca27a178d51f9e5a954f1a3588c8227dc5/
 DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE      = 
 
-DEPENDS = python3/python-attrs
+DEPENDS = python3/python-attrs python3/python-exceptiongroup
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
