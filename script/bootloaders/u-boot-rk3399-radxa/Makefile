@@ -15,6 +15,7 @@ DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip $(BUILDSCRVERSION).zip
 PATCHFILES   = 01-scripts-dtc-Remove-redundant-YYLOC-global-declaration.patch
 PATCHFILES  += 02-fix-building-gcc9.patch
 PATCHFILES  += 03-arm-dts-remove-unused-rk-boards.patch
+PATCHFILES  += 04-fix-building-gcc13.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
@@ -33,7 +34,7 @@ INSTALL_SCRIPTS     = custom
 include ../../gar.mk
 include ../../python2/python/package-api.mk
 
-# mm_U-BOOT_BOARD_TYPE = rockpi4b
+mm_U-BOOT_BOARD_TYPE = rockpi4b
 
 pre-configure:
 	@mkdir -p $(WORKDIR)/u-boot
