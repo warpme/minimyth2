@@ -248,6 +248,8 @@ PATCHFILES += 1030-phy-rockchip-add-usbdp-combo-phy-driver.patch
 PATCHFILES += 1031-arm64-dtsi-rockchip-rk3588s-Add-USB3-controllers.patch
 PATCHFILES += 1032-arm64-dtsi-rockchip-rk3588s-Add-USBDP-phy-nodes.patch
 PATCHFILES += 1033-arm64-dts-rockchip-add-usb3-rock5x.patch
+PATCHFILES += 1034-nvmem-rockchip-otp-add-rk3588-support.patch
+PATCHFILES += 1035-arm64-dtsi-rockchip-add-rk3588-OTP-node.patch
 endif
 #------------------------------------------------------------
 
