@@ -14,6 +14,7 @@ PATCHFILES  += 02-fix-compilation.patch
 PATCHFILES  += 03-swap-gmac0-gmac1-in-aliases.patch
 PATCHFILES  += 04-net.h-make-random-mac-constant.patch
 PATCHFILES  += 05-drivers-mmc-rockchip_dw_mmc-fix-eval-always-true.patch
+PATCHFILES  += 06-fix-building-gcc13.patch
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
 
 LICENSE = GPL2
@@ -32,7 +33,7 @@ INSTALL_SCRIPTS     = custom
 include ../../gar.mk
 include ../../python3/python/package-api.mk
 
-#mm_U-BOOT_BOARD_TYPE = rk3566-x96_x6_defconfig
+# mm_U-BOOT_BOARD_TYPE = rk3566-x96_x6_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
