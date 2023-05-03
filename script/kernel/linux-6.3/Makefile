@@ -210,6 +210,7 @@ PATCHFILES += 0901-rpi-vc04_services-bcm2835-codec-remove-isp-formats.patch
 PATCHFILES += 0904-media-add-rpivid-driver.patch
 PATCHFILES += 0905-arm64-dts-brcm-set-userled-to-mmc.patch
 endif
+#------------------------------------------------------------
 
 ifeq (1,1)
 #-- Rockchip 3588 patches -----------------------------------------
@@ -243,7 +244,12 @@ PATCHFILES += 1026-clk-rockchip-rk3588-make-gate-linked-clocks-ignore-unused.pat
 PATCHFILES += 1027-arm64-dtsi-rockchip-add-PCIE3-controller-and-phy-for-rk3588.patch
 PATCHFILES += 1028-arm64-dts-rockchip-enable-pcie3-rock5b.patch
 PATCHFILES += 1029-arm64-dts-rockchip-hack-fix-failing-its-on-rock5a.patch
+PATCHFILES += 1030-phy-rockchip-add-usbdp-combo-phy-driver.patch
+PATCHFILES += 1031-arm64-dtsi-rockchip-rk3588s-Add-USB3-controllers.patch
+PATCHFILES += 1032-arm64-dtsi-rockchip-rk3588s-Add-USBDP-phy-nodes.patch
+PATCHFILES += 1033-arm64-dts-rockchip-add-usb3-rock5x.patch
 endif
+#------------------------------------------------------------
 
 endif
 
