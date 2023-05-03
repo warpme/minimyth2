@@ -9,7 +9,7 @@ MASTER_SITES = \
 		https://github.com/radxa/u-boot/archive/ \
 		https://github.com/radxa/rkbin/archive/
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
-PATCHFILES   = 05-fix-building-gcc12.patch
+PATCHFILES   = 05-fix-building-gcc12.patch 06-fix-building-gcc13.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
