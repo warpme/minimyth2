@@ -154,6 +154,7 @@ PATCHFILES += 0642-net-wireless-add-uwe5622-support-08042023.patch
 PATCHFILES += 0643-arm64-dts-allwinner-h616-dtsi-add-dump-reg-sysinfo-mac-read.patch
 PATCHFILES += 0644-arm64-dts-allwinner-h616-opi-zero2-enable-wifi.patch
 PATCHFILES += 0645-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
+PATCHFILES += 0646-arm64-dts-allwinner-speedbin-rework-h616-add-h313.patch
 endif
 #------------------------------------------------------------
 
