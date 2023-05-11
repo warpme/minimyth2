@@ -1,6 +1,6 @@
 
 GARNAME      = flatbuffers
-GARVERSION   = 2.0.0
+GARVERSION   = 23.5.9
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/google/flatbuffers/archive/v$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
