@@ -177,9 +177,9 @@ PATCHFILES += 0747-arm64-dts-rockchip-add-enable-dmc-on-roc-cc.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=385165&archive=both
 PATCHFILES += 0749-phy-rockchip-phy-add-rockchip-inno-usb3.patch
 PATCHFILES += 0750-arm64-dts-rockchip-enable-inno-usb3-beelinkA1-roc-cc.patch
-PATCHFILES += 0751-arm64-dts-rockchip-rk33xx-set-userled-to-mmc.patch
 PATCHFILES += 0752-arm64-dts-rockchip-rk3399-add-radxa-rockpi-4se.patch
 PATCHFILES += 0753-arm64-dts-rockchip-rk3399-radxa-rockpi-bc-remove-wifi-compatible.patch
+PATCHFILES += 0754-arm64-dts-rockchip-rk33xx-set-userled-to-mmc.patch
 endif
 #------------------------------------------------------------
 
