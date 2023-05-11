@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 23.0.3
+GARVERSION   = 23.1.0
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -75,7 +75,6 @@ MESON_CONFIGURE_ARGS = \
 	-D platforms=x11,wayland \
 	-D llvm=enabled \
 	-D cpp_rtti=false \
-	-D dri-drivers= \
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
