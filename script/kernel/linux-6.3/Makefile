@@ -120,7 +120,6 @@ PATCHFILES += 0587-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 PATCHFILES += 0588-arm64-dts-allwinner-enable-gpu-opp-multiple-boards.patch
 PATCHFILES += 0590-arm64-dts-allwinner-add-orangepi-3-lts.patch
 PATCHFILES += 0592-net-wireless-rtw88-sdio-rfc-v1.patch
-PATCHFILES += 0593-net-wireless-rtw88-USB-fixes2.patch
 endif
 #------------------------------------------------------------
 
