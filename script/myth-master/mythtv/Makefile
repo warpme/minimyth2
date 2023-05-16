@@ -13,12 +13,9 @@ PATCHFILES  =
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
-# hack to fix building on fedora35. Absolutelely dont know why it fails without this change
-# PATCHFILES += 0003-libmythbase-include-version.h-in-mythversion.h.patch
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
-
 # Fixes issue with only 3 menu entries in MythMediaStream theme.
 PATCHFILES += 0013-MythMainWindow-not-use-qRound-in-MythUIScreenBounds.patch
 # UPnP patches
@@ -50,11 +47,7 @@ PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
 PATCHFILES += 0113-Minimyth-reverse-profiles-in-v4l2-videoprofile.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
-ifneq (,$(filter %5.19,$(mm_KERNEL_VERSION)))
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.19kernel.patch
-else
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-6.0kernel.patch
-endif
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner/Rockchip
