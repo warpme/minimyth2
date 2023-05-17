@@ -1,9 +1,11 @@
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 6.2.3
+GARVERSION   = 6.5.0
 CATEGORIES   = qt
-MASTER_SITES = http://download.qt.io/official_releases/qt/6.2/$(GARVERSION)/single/
+MASTER_SITES = http://download.qt.io/official_releases/qt/6.5/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
+PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
@@ -78,12 +80,14 @@ CONFIGURE_ARGS = \
 	-skip qtopcua \
 	-skip qtquick3d \
 	-skip qtquicktimeline \
+	-skip qtpositioning \
 	-skip qtremoteobjects \
 	-skip qtscxml \
 	-skip qtsensors \
 	-skip qtserialbus \
 	-skip qtserialport \
 	-skip qttranslations \
+	-skip qtquick3dphysics \
 	-skip qtvirtualkeyboard \
 	-skip qtwebchannel \
 	-skip qtwebengine \
