@@ -1,10 +1,11 @@
-GARNAME = nspr
-GARVERSION = 4.33
-CATEGORIES = lib
+
+GARNAME      = nspr
+GARVERSION   = 4.35
+CATEGORIES   = lib
 MASTER_SITES = https://ftp.mozilla.org/pub/mozilla.org/$(GARNAME)/releases/v$(GARVERSION)/src/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = nspr-cross.patch
-LICENSE = MPL1_1/GPL2/LGPL2_1
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = nspr-cross.patch
+LICENSE      = MPL1_1/GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB
