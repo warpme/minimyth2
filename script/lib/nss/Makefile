@@ -69,8 +69,8 @@ install-custom:
 	 -e "s,@exec_prefix@,/usr/bin,g" \
 	 -e "s,@includedir@,/usr/include/nss,g" \
 	 -e "s,@MOD_MAJOR_VERSION@,3,g" \
-	 -e "s,@MOD_MINOR_VERSION@,76,g" \
-	 -e "s,@MOD_PATCH_VERSION@,0,g" \
+	 -e "s,@MOD_MINOR_VERSION@,89,g" \
+	 -e "s,@MOD_PATCH_VERSION@,1,g" \
 	 -i $(DESTDIR)$(bindir)-config/nss-config
 	@chmod +x $(DESTDIR)$(bindir)-config/nss-config
 	@mkdir -p $(DESTDIR)$(includedir)/nss
