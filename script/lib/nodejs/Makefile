@@ -1,9 +1,10 @@
 
 GARNAME      = nodejs
-GARVERSION   = 17.7.2
+GARVERSION   = 20.2.0
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/nodejs/node/archive/v$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = ticket45756-fix-arm64-cross-compilation.patch
 WORKSRC      = $(WORKDIR)/node-$(GARVERSION)
 LICENSE      = MIT
 
@@ -30,6 +31,7 @@ CONFIGURE_ARGS = --prefix="$(prefix)" \
 	--with-intl=system-icu \
 	--without-npm \
 	--shared-openssl \
+	--shared-zlib \
 
 endif
 
@@ -38,7 +40,7 @@ configure-custom:
 
 include ../../gar.mk
 
-# disabling LTO
+# disabling LTO as with LTO build fails
 CFLAGS   := $(filter-out -flto, $(CFLAGS))
 CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
