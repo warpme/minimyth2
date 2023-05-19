@@ -39,6 +39,8 @@ mm_SOFTWARE               ?= \
                             monitorix \
                             $(if $(filter $(mm_DEBUG),yes),debug)
 
+#                             mythnetvision \
+#                             mythwebbrowser \
 #                             udisks1 \
 #                             mednafen \
 #                             stella \
