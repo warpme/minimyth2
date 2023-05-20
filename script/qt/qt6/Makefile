@@ -1,4 +1,6 @@
 
+BUILD_QTWEBENGINE = no
+
 GARNAME      = qt-everywhere-src
 GARVERSION   = 6.5.0
 CATEGORIES   = qt
@@ -6,6 +8,8 @@ MASTER_SITES = http://download.qt.io/official_releases/qt/6.5/$(GARVERSION)/sing
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
+PATCHFILES  += $(DISTNAME)-qtwebengine-hack-to-crosscompile.patch
+PATCHFILES  += $(DISTNAME)-QTBUG-111697-fixes-for-building-with-GCC13.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
@@ -26,6 +30,7 @@ DEPENDS   =            \
 	lib/libmng     \
 	lib/libpng     \
 	lib/libtiff    \
+	$(if $(filter yes,$(BUILD_QTWEBENGINE)),lib/nodejs lib/nss) \
 	lib/openssl    \
 	lib/pcre2      \
 	gstreamer/meta \
@@ -41,10 +46,14 @@ DEPENDS   =            \
 	lang/cxx
 endif
 
-BUILDDEPS = devel/bison devel/flex
+BUILDDEPS = \
+	devel/bison \
+	devel/flex \
 
 ifneq ($(DESTIMG),build)
 BUILDDEPS += qt/qt6
+else
+BUILDDEPS += $(if $(filter yes,$(BUILD_QTWEBENGINE)), devel/gn python3/python-html5lib lib/nodejs)
 endif
 
 PWD := $(shell pwd)
@@ -86,11 +95,11 @@ CONFIGURE_ARGS = \
 	-skip qtsensors \
 	-skip qtserialbus \
 	-skip qtserialport \
+	-skip qttools \
 	-skip qttranslations \
 	-skip qtquick3dphysics \
 	-skip qtvirtualkeyboard \
 	-skip qtwebchannel \
-	-skip qtwebengine \
 	-skip qtwebsockets \
 	-skip qtwebview \
 
@@ -105,7 +114,8 @@ CONFIGURE_ARGS += \
 	-optimize-size \
 	-make tools \
 	-skip qt5compat \
-	-skip qtmultimedia
+	-skip qtmultimedia \
+	-skip qtwebengine
 else
 CONFIGURE_ARGS += \
 	-xplatform $(PLATFORM_GARHOST_NAME) \
@@ -118,12 +128,18 @@ CONFIGURE_ARGS += \
 	-feature-optimize_full \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	-make tools \
+	$(if $(filter yes,$(BUILD_QTWEBENGINE)),,-skip qtwebengine) \
 	-- $(DIRPATHS_CMAKE) \
 	-DCMAKE_SYSTEM_NAME="Linux" \
+	$(if $(filter i386,  $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="i386") \
+	$(if $(filter x86_64,$(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="x86_64") \
+	$(if $(filter arm,   $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="arm") \
+	$(if $(filter arm64, $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="aarch64") \
 	-DCMAKE_SYSROOT="$(DESTDIR)" \
 	-DQT_WILL_BUILD_TOOLS="ON" \
-	-DQT_BUILD_TOOLS_WHEN_CROSSCOMPILING="ON" \
-	-DMySQL_INCLUDE_DIR="$(DESTDIR)$(includedir)/mysql"
+	-DQT_FORCE_BUILD_TOOLS="ON" \
+	-DMySQL_INCLUDE_DIR="$(DESTDIR)$(includedir)/mysql" \
+	-DQT_HOST_GN_PATH="/home/piotro/minimyth2-aarch64-next/images/build/usr/bin/gn"
 endif
 
 configure-custom:
