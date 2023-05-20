@@ -34,5 +34,5 @@ GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/libxcb-errors.la
+	@rm -f $(DESTDIR)$(libdir)/libxcb-cursor.la
 	@$(MAKECOOKIE)
