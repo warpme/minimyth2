@@ -34,6 +34,7 @@ DEPENDS = \
 	$(CATEGORY)/xcb-util-keysyms \
 	$(CATEGORY)/xcb-util-wm \
 	$(CATEGORY)/xcb-util-renderutil \
+	$(CATEGORY)/xcb-util-cursor \
 	$(CATEGORY)/xdpyinfo \
 	$(CATEGORY)/xev \
 	$(if $(filter-out build, $(DESTIMG)), \
