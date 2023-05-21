@@ -28,7 +28,7 @@ configure-custom:
 	@$(MAKECOOKIE)
 
 build-custom:
-	@$(MAKE) -C $(WORKSRC)/build all
+	@$(MAKE) -C $(WORKSRC)/build all $(PARALLELMFLAGS)
 	@$(MAKECOOKIE)
 
 install-custom:
