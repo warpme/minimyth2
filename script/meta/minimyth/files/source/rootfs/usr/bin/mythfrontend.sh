@@ -79,7 +79,6 @@ set_myth_user_env() {
 
 date
 
-export QT_PLUGIN_PATH=/usr/lib/qt5/plugins
 export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
 export MESA_SHADER_CACHE_DISABLE=1
 
