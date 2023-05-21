@@ -169,6 +169,8 @@ mm-all:
 		if [ ! "$${software}" = "mythplugins"    ] && \
 		   [ ! "$${software}" = "mythfrontend"   ] && \
 		   [ ! "$${software}" = "mplayer-svn"    ] && \
+		   [ ! "$${software}" = "mythnetvision"  ] && \
+		   [ ! "$${software}" = "mythbrowser"    ] && \
 		   [ ! "$${software}" = "mythwebbrowser" ] && \
 		   [ ! "$${software}" = "mplayer"        ] && \
 		   [ ! "$${software}" = "mpv"            ] && \
