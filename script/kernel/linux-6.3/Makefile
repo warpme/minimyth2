@@ -240,7 +240,6 @@ PATCHFILES += 1022-arm64-dtsi-rockchip-rk3588-Add-I2S-nodes.patch
 PATCHFILES += 1023-arm64-dts-rockchip-rk3588-rock5b-add-analog-audio.patch
 PATCHFILES += 1024-arm64-dts-rockchip-enable-RTC-support-for-rock5b-v3.patch
 PATCHFILES += 1025-arm64-dtsi-rockchip-rk3588-Add-SATA-support.patch
-PATCHFILES += 1026-clk-rockchip-rk3588-make-gate-linked-clocks-ignore-unused.patch
 PATCHFILES += 1027-arm64-dtsi-rockchip-add-PCIE3-controller-and-phy-for-rk3588.patch
 PATCHFILES += 1028-arm64-dts-rockchip-enable-pcie3-rock5b.patch
 PATCHFILES += 1029-arm64-dts-rockchip-hack-fix-failing-its-on-rock5a.patch
