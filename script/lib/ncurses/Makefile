@@ -35,7 +35,9 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-rpath-hack \
 	--enable-overwrite \
 	--disable-widec \
-	--enable-termcap
+	--enable-termcap \
+	--enable-pc-files \
+	--with-pkg-config-libdir="$(libdir)/pkgconfig"
 ifneq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
 	--without-progs
