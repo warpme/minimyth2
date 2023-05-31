@@ -119,6 +119,13 @@ sed -i "/SWAP/d" ${base_dir}/MiniArch.wks
 echo "Doing MiniAch fixups in ${base_dir}/conf/multiconfig/default.conf"
 sed -i "s%minimyth.conf%initramfs-linux.img%g" ${base_dir}/conf/multiconfig/default.conf
 sed -i "s%Image%Image Image.gz%g" ${base_dir}/conf/multiconfig/default.conf
+echo "Doing MiniAch fixups in ${boot_files_loc}/boot.scr ..."
+# producing source from boot.scr file
+dd bs=72 skip=1 if=${boot_files_loc}/boot.scr of=${boot_files_loc}/boot.src
+# enabling vt cursor; increasing kernel verbosity
+sed -e 's/logo.nologo/loglevel=6/g' -e 's/vt.cur_default=1/consoleblank=0/g' -i ${boot_files_loc}/boot.src
+# compiling back to boot.scr
+mkimage -A arm64 -T script -O linux -d ${boot_files_loc}/boot.src ${boot_files_loc}/boot.scr
 
 image_filename="MiniArch-${image_version}-${boards_list}SD-Image"
 
