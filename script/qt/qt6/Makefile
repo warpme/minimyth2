@@ -2,14 +2,13 @@
 BUILD_QTWEBENGINE = no
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 6.5.0
+GARVERSION   = 6.5.1
 CATEGORIES   = qt
 MASTER_SITES = http://download.qt.io/official_releases/qt/6.5/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-qtwebengine-hack-to-crosscompile.patch
-PATCHFILES  += $(DISTNAME)-QTBUG-111697-fixes-for-building-with-GCC13.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
