@@ -1,41 +1,10 @@
 
-https://patchwork.kernel.org/project/linux-rockchip/list/?series=736541
-
-The usb2phy is accessible via a syscon registers on RK3588, similar
-to rk3399.
-
-Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
-Acked-by: Rob Herring <robh@kernel.org>
----
- Documentation/devicetree/bindings/soc/rockchip/grf.yaml | 2 ++
- 1 file changed, 2 insertions(+)
-
-diff --git a/Documentation/devicetree/bindings/soc/rockchip/grf.yaml b/Documentation/devicetree/bindings/soc/rockchip/grf.yaml
-index e697c928900d..a873f74564f2 100644
---- a/Documentation/devicetree/bindings/soc/rockchip/grf.yaml
-+++ b/Documentation/devicetree/bindings/soc/rockchip/grf.yaml
-@@ -52,6 +52,7 @@ properties:
-               - rockchip,rk3399-pmugrf
-               - rockchip,rk3568-grf
-               - rockchip,rk3568-pmugrf
-+              - rockchip,rk3588-usb2phy-grf
-               - rockchip,rv1108-grf
-               - rockchip,rv1108-pmugrf
-               - rockchip,rv1126-grf
-@@ -195,6 +196,7 @@ allOf:
-               - rockchip,rk3308-usb2phy-grf
-               - rockchip,rk3328-usb2phy-grf
-               - rockchip,rk3399-grf
-+              - rockchip,rk3588-usb2phy-grf
-               - rockchip,rv1108-grf
- 
-     then:
-
+https://patchwork.kernel.org/project/linux-rockchip/list/?series=749871
 
 Add compatible for the USB2 phy in the Rockchip RK3588 SoC.
 
-Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
 Reviewed-by: Rob Herring <robh@kernel.org>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
 ---
  .../bindings/phy/rockchip,inno-usb2phy.yaml   | 21 ++++++++++++++++---
  1 file changed, 18 insertions(+), 3 deletions(-)
@@ -100,11 +69,11 @@ Co-developed-by: William Wu <william.wu@rock-chips.com>
 Signed-off-by: William Wu <william.wu@rock-chips.com>
 Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
 ---
- drivers/phy/rockchip/phy-rockchip-inno-usb2.c | 224 ++++++++++++++++--
- 1 file changed, 210 insertions(+), 14 deletions(-)
+ drivers/phy/rockchip/phy-rockchip-inno-usb2.c | 226 ++++++++++++++++--
+ 1 file changed, 211 insertions(+), 15 deletions(-)
 
 diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
-index a0bc10aa7961..b75712bd20c9 100644
+index a0bc10aa7961..2c4683c67a8e 100644
 --- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
 +++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
 @@ -116,6 +116,12 @@ struct rockchip_chg_det_reg {
@@ -283,6 +252,15 @@ index a0bc10aa7961..b75712bd20c9 100644
  		switch (rport->port_id) {
  		case USB2PHY_PORT_OTG:
  			if (rport->mode != USB_DR_MODE_HOST &&
+@@ -1233,7 +1312,7 @@ static int rockchip_usb2phy_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	/* support address_cells=2 */
+-	if (reg == 0) {
++	if (of_property_count_u32_elems(np, "reg") > 2 && reg == 0) {
+ 		if (of_property_read_u32_index(np, "reg", 1, &reg)) {
+ 			dev_err(dev, "the reg property is not assigned in %pOFn node\n",
+ 				np);
 @@ -1254,14 +1333,14 @@ static int rockchip_usb2phy_probe(struct platform_device *pdev)
  
  	/* find out a proper config which can be matched with dt. */
@@ -442,7 +420,7 @@ Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
  1 file changed, 38 insertions(+)
 
 diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
-index b75712bd20c9..3a78c5bf11d4 100644
+index 2c4683c67a8e..101b46939f0b 100644
 --- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
 +++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
 @@ -24,6 +24,7 @@
@@ -541,7 +519,7 @@ Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
  1 file changed, 63 insertions(+)
 
 diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
-index 3a78c5bf11d4..9f6d09da7fbd 100644
+index 101b46939f0b..aa8c55609c0d 100644
 --- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
 +++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
 @@ -33,6 +33,8 @@
@@ -588,7 +566,7 @@ index 3a78c5bf11d4..9f6d09da7fbd 100644
  
 +static int rk3588_usb2phy_tuning(struct rockchip_usb2phy *rphy)
 +{
-+	int ret = 0;
++	int ret;
 +	bool usb3otg = false;
 +	/*
 +	 * utmi_termselect = 1'b1 (en FS terminations)
@@ -682,7 +660,7 @@ Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
  1 file changed, 6 insertions(+), 13 deletions(-)
 
 diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
-index 9f6d09da7fbd..2de1408eaa60 100644
+index aa8c55609c0d..1cf84869e78b 100644
 --- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
 +++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
 @@ -1390,24 +1390,22 @@ static int rockchip_usb2phy_probe(struct platform_device *pdev)
@@ -739,7 +717,7 @@ Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
  1 file changed, 4 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
-index 2de1408eaa60..e978c73ba1e5 100644
+index 1cf84869e78b..f5c30f117cba 100644
 --- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
 +++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
 @@ -1305,7 +1305,6 @@ static int rockchip_usb2phy_probe(struct platform_device *pdev)
@@ -781,47 +759,20 @@ index 2de1408eaa60..e978c73ba1e5 100644
  	if (ret)
  		return ret;
 
-Rockchip RK3588 OHCI requires 4 clocks to be enabled.
 
-Acked-by: Alan Stern <stern@rowland.harvard.edu>
-Signed-off-by: Sebastian Reichel's avatarSebastian Reichel <sebastian.reichel@collabora.com>
-
-diff --git a/drivers/usb/host/ohci-platform.c b/drivers/usb/host/ohci-platform.c
-index a84305091c434874a4e3d3555fbfe40cc91b60f3..dec38a845cfff1cce50876f9dc4c77ea19fe4980 100644
---- a/drivers/usb/host/ohci-platform.c
-+++ b/drivers/usb/host/ohci-platform.c
-@@ -33,7 +33,7 @@
- #include "ohci.h"
- 
- #define DRIVER_DESC "OHCI generic platform driver"
--#define OHCI_MAX_CLKS 3
-+#define OHCI_MAX_CLKS 4
- #define hcd_to_ohci_priv(h) ((struct ohci_platform_priv *)hcd_to_ohci(h)->priv)
- 
- struct ohci_platform_priv {
-From 1ecfbac979d10020402ce0b686aa73b3f7b29605 Mon Sep 17 00:00:00 2001
-From: Sebastian Reichel <sebastian.reichel@collabora.com>
-Date: Wed, 26 Apr 2023 19:38:38 +0200
-Subject: [PATCH] phy: phy-rockchip-inno-usb2: fix rk3588 support
+Printing the OF node is not useful, since we get the same information
+from the device context. Instead print the reg address, that could
+not be found.
 
 Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
 ---
- drivers/phy/rockchip/phy-rockchip-inno-usb2.c | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ drivers/phy/rockchip/phy-rockchip-inno-usb2.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
-index e978c73ba1e5c..915aa21222408 100644
+index f5c30f117cba..b982c3f0d4b5 100644
 --- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
 +++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
-@@ -1343,7 +1343,7 @@ static int rockchip_usb2phy_probe(struct platform_device *pdev)
- 	}
- 
- 	/* support address_cells=2 */
--	if (reg == 0) {
-+	if (of_property_count_u32_elems(np, "reg") > 2 && reg == 0) {
- 		if (of_property_read_u32_index(np, "reg", 1, &reg)) {
- 			dev_err(dev, "the reg property is not assigned in %pOFn node\n",
- 				np);
 @@ -1377,8 +1377,7 @@ static int rockchip_usb2phy_probe(struct platform_device *pdev)
  	} while (phy_cfgs[index].reg);
  
@@ -832,6 +783,3 @@ index e978c73ba1e5c..915aa21222408 100644
  		return -EINVAL;
  	}
  
--- 
-GitLab
-

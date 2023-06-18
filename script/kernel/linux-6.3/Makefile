@@ -231,7 +231,7 @@ PATCHFILES += 1013-arm64-dtsi-rockchip-rk3588-add-PCIe2-support.patch
 PATCHFILES += 1014-arm64-dtsi-rockchip-rk3588-add-GIC-ITS-support.patch
 PATCHFILES += 1015-irqchip-gic-v3-Add-Rockchip-3588001-erratum-workaround.patch
 PATCHFILES += 1016-arm64-dts-rockchip-enable-pcie2-rock5x.patch
-PATCHFILES += 1017-phy-rockchip-inno-usb2-add-RK3588-support-v2.patch
+PATCHFILES += 1017-phy-rockchip-inno-usb2-add-RK3588-support-v3.patch
 PATCHFILES += 1018-arm64-dts-rockchip-rk3588-add-USB2-support.patch
 PATCHFILES += 1019-arm64-dts-rockchip-enable-usb2-rock5x.patch
 PATCHFILES += 1020-arm64-dtsi-rk3588-enable-watchdog-support.patch
@@ -249,6 +249,11 @@ PATCHFILES += 1032-arm64-dtsi-rockchip-rk3588s-Add-USBDP-phy-nodes.patch
 PATCHFILES += 1033-arm64-dts-rockchip-add-usb3-rock5x.patch
 PATCHFILES += 1034-nvmem-rockchip-otp-add-rk3588-support.patch
 PATCHFILES += 1035-arm64-dtsi-rockchip-add-rk3588-OTP-node.patch
+PATCHFILES += 1036-usb-typec-tcpm-fix-cc-role-at-port-reset-v4.patch
+PATCHFILES += 1037-sound-soc-codecs-es8316-fixes.patch
+PATCHFILES += 1038-arm64-dts-rockchip-Assign-ES8316-MCLK-rate-on-rk3588-rock5b.patch
+PATCHFILES += 1039-iio-adc-rockchip_saradc-add-support-for-rk3588.patch
+PATCHFILES += 1040-arm64-dtsi-rockchip-rk3588s-add-DT-node-for-ADC-support.patch
 endif
 #------------------------------------------------------------
 
