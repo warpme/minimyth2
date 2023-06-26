@@ -1,0 +1,380 @@
+From cb0ddaaa5db09d7d216fcbf0e68779be223a1128 Mon Sep 17 00:00:00 2001
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Date: Mon, 15 May 2023 21:50:43 +0200
+Subject: wifi: rtw88: sdio: Always use two consecutive bytes for word
+ operations
+
+The Allwinner sunxi-mmc controller cannot handle word (16 bit)
+transfers. So and sdio_{read,write}w fails with messages like the
+following example using an RTL8822BS (but the same problems were also
+observed with RTL8822CS and RTL8723DS chips):
+  rtw_8822bs mmc1:0001:1: Firmware version 27.2.0, H2C version 13
+  sunxi-mmc 4021000.mmc: unaligned scatterlist: os f80 length 2
+  sunxi-mmc 4021000.mmc: map DMA failed
+  rtw_8822bs mmc1:0001:1: sdio read16 failed (0x10230): -22
+
+Use two consecutive single byte accesses for word operations instead. It
+turns out that upon closer inspection this is also what the vendor
+driver does, even though it does have support for sdio_{read,write}w. So
+we can conclude that the rtw88 chips do support word access but only on
+SDIO controllers that also support it. Since there's no way to detect if
+the controller supports word access or not the rtw88 sdio driver
+switches to the easiest approach: avoiding word access.
+
+Reported-by: Larry Finger <Larry.Finger@lwfinger.net>
+Closes: https://lore.kernel.org/linux-wireless/527585e5-9cdd-66ed-c3af-6da162f4b720@lwfinger.net/
+Reported-by: Rudi Heitbaum <rudi@heitbaum.com>
+Link: https://github.com/LibreELEC/LibreELEC.tv/pull/7837#issue-1708469467
+Fixes: 65371a3f14e7 ("wifi: rtw88: sdio: Add HCI implementation for SDIO based chipsets")
+Reviewed-by: Ping-Ke Shih <pkshih@realtek.com>
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Signed-off-by: Kalle Valo <kvalo@kernel.org>
+Link: https://lore.kernel.org/r/20230515195043.572375-1-martin.blumenstingl@googlemail.com
+---
+ drivers/net/wireless/realtek/rtw88/sdio.c | 8 --------
+ 1 file changed, 8 deletions(-)
+
+(limited to 'drivers/net/wireless/realtek/rtw88')
+
+diff --git a/drivers/net/wireless/realtek/rtw88/sdio.c b/drivers/net/wireless/realtek/rtw88/sdio.c
+index af0459a79899f..06fce7c3addaa 100644
+--- a/drivers/net/wireless/realtek/rtw88/sdio.c
++++ b/drivers/net/wireless/realtek/rtw88/sdio.c
+@@ -87,11 +87,6 @@ static void rtw_sdio_writew(struct rtw_dev *rtwdev, u16 val, u32 addr,
+ 	u8 buf[2];
+ 	int i;
+ 
+-	if (rtw_sdio_use_memcpy_io(rtwdev, addr, 2)) {
+-		sdio_writew(rtwsdio->sdio_func, val, addr, err_ret);
+-		return;
+-	}
+-
+ 	*(__le16 *)buf = cpu_to_le16(val);
+ 
+ 	for (i = 0; i < 2; i++) {
+@@ -125,9 +120,6 @@ static u16 rtw_sdio_readw(struct rtw_dev *rtwdev, u32 addr, int *err_ret)
+ 	u8 buf[2];
+ 	int i;
+ 
+-	if (rtw_sdio_use_memcpy_io(rtwdev, addr, 2))
+-		return sdio_readw(rtwsdio->sdio_func, addr, err_ret);
+-
+ 	for (i = 0; i < 2; i++) {
+ 		buf[i] = sdio_readb(rtwsdio->sdio_func, addr + i, err_ret);
+ 		if (*err_ret)
+-- 
+cgit 
+
+From 97c75e1adeda78b3794936c617d8b86e9ebd54f5 Mon Sep 17 00:00:00 2001
+From: Sascha Hauer <s.hauer@pengutronix.de>
+Date: Mon, 17 Apr 2023 16:03:57 +0200
+Subject: wifi: rtw88: set pkg_type correctly for specific rtw8821c variants
+
+According to the vendor driver the pkg_type has to be set to '1'
+for some rtw8821c variants. As the pkg_type has been hardcoded to
+'0', add a field for it in struct rtw_hal and set this correctly
+in the rtw8821c part.
+With this parsing of a rtw_table is influenced and check_positive()
+in phy.c returns true for some cases here. The same is done in the
+vendor driver. However, this has no visible effect on the driver
+here.
+
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+Reviewed-by: Ping-Ke Shih <pkshih@realtek.com>
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+Signed-off-by: Kalle Valo <kvalo@kernel.org>
+Link: https://lore.kernel.org/r/20230417140358.2240429-4-s.hauer@pengutronix.de
+---
+ drivers/net/wireless/realtek/rtw88/main.c     | 2 +-
+ drivers/net/wireless/realtek/rtw88/main.h     | 1 +
+ drivers/net/wireless/realtek/rtw88/rtw8821c.c | 3 +++
+ 3 files changed, 5 insertions(+), 1 deletion(-)
+
+(limited to 'drivers/net/wireless/realtek/rtw88')
+
+diff --git a/drivers/net/wireless/realtek/rtw88/main.c b/drivers/net/wireless/realtek/rtw88/main.c
+index 0ba81b87aad55..5bf6b45815578 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.c
++++ b/drivers/net/wireless/realtek/rtw88/main.c
+@@ -2008,7 +2008,7 @@ static int rtw_chip_board_info_setup(struct rtw_dev *rtwdev)
+ 	if (!rfe_def)
+ 		return -ENODEV;
+ 
+-	rtw_phy_setup_phy_cond(rtwdev, 0);
++	rtw_phy_setup_phy_cond(rtwdev, hal->pkg_type);
+ 
+ 	rtw_phy_init_tx_power(rtwdev);
+ 	if (rfe_def->agc_btg_tbl)
+diff --git a/drivers/net/wireless/realtek/rtw88/main.h b/drivers/net/wireless/realtek/rtw88/main.h
+index 621355f84d028..a290fb427e96e 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.h
++++ b/drivers/net/wireless/realtek/rtw88/main.h
+@@ -1900,6 +1900,7 @@ struct rtw_hal {
+ 	u8 cut_version;
+ 	u8 mp_chip;
+ 	u8 oem_id;
++	u8 pkg_type;
+ 	struct rtw_phy_cond phy_cond;
+ 
+ 	u8 ps_mode;
+diff --git a/drivers/net/wireless/realtek/rtw88/rtw8821c.c b/drivers/net/wireless/realtek/rtw88/rtw8821c.c
+index 619fb3adb8329..49d6c4ef68c57 100644
+--- a/drivers/net/wireless/realtek/rtw88/rtw8821c.c
++++ b/drivers/net/wireless/realtek/rtw88/rtw8821c.c
+@@ -47,6 +47,7 @@ enum rtw8821ce_rf_set {
+ 
+ static int rtw8821c_read_efuse(struct rtw_dev *rtwdev, u8 *log_map)
+ {
++	struct rtw_hal *hal = &rtwdev->hal;
+ 	struct rtw_efuse *efuse = &rtwdev->efuse;
+ 	struct rtw8821c_efuse *map;
+ 	int i;
+@@ -70,6 +71,8 @@ static int rtw8821c_read_efuse(struct rtw_dev *rtwdev, u8 *log_map)
+ 	efuse->tx_bb_swing_setting_2g = map->tx_bb_swing_setting_2g;
+ 	efuse->tx_bb_swing_setting_5g = map->tx_bb_swing_setting_5g;
+ 
++	hal->pkg_type = map->rfe_option & BIT(5) ? 1 : 0;
++
+ 	for (i = 0; i < 4; i++)
+ 		efuse->txpwr_idx_table[i] = map->txpwr_idx_table[i];
+ 
+-- 
+cgit 
+
+From 172591baa2cc1ec04869a0d798821a6ca9a2f4b4 Mon Sep 17 00:00:00 2001
+From: Sascha Hauer <s.hauer@pengutronix.de>
+Date: Mon, 17 Apr 2023 16:03:58 +0200
+Subject: wifi: rtw88: call rtw8821c_switch_rf_set() according to chip variant
+
+We have to call rtw8821c_switch_rf_set() with SWITCH_TO_WLG or
+SWITCH_TO_BTG according to the chip variant as denoted in rfe_option.
+The information which argument to use for which variant has been
+taken from the vendor driver.
+
+Signed-off-by: Sascha Hauer <s.hauer@pengutronix.de>
+Reviewed-by: Ping-Ke Shih <pkshih@realtek.com>
+Signed-off-by: Kalle Valo <kvalo@kernel.org>
+Link: https://lore.kernel.org/r/20230417140358.2240429-5-s.hauer@pengutronix.de
+---
+ drivers/net/wireless/realtek/rtw88/main.h     |  1 +
+ drivers/net/wireless/realtek/rtw88/rtw8821c.c | 19 +++++++++++++++----
+ 2 files changed, 16 insertions(+), 4 deletions(-)
+
+(limited to 'drivers/net/wireless/realtek/rtw88')
+
+diff --git a/drivers/net/wireless/realtek/rtw88/main.h b/drivers/net/wireless/realtek/rtw88/main.h
+index a290fb427e96e..155525b8df354 100644
+--- a/drivers/net/wireless/realtek/rtw88/main.h
++++ b/drivers/net/wireless/realtek/rtw88/main.h
+@@ -1902,6 +1902,7 @@ struct rtw_hal {
+ 	u8 oem_id;
+ 	u8 pkg_type;
+ 	struct rtw_phy_cond phy_cond;
++	bool rfe_btg;
+ 
+ 	u8 ps_mode;
+ 	u8 current_channel;
+diff --git a/drivers/net/wireless/realtek/rtw88/rtw8821c.c b/drivers/net/wireless/realtek/rtw88/rtw8821c.c
+index 49d6c4ef68c57..adf224618a2a6 100644
+--- a/drivers/net/wireless/realtek/rtw88/rtw8821c.c
++++ b/drivers/net/wireless/realtek/rtw88/rtw8821c.c
+@@ -73,6 +73,17 @@ static int rtw8821c_read_efuse(struct rtw_dev *rtwdev, u8 *log_map)
+ 
+ 	hal->pkg_type = map->rfe_option & BIT(5) ? 1 : 0;
+ 
++	switch (efuse->rfe_option) {
++	case 0x2:
++	case 0x4:
++	case 0x7:
++	case 0xa:
++	case 0xc:
++	case 0xf:
++		hal->rfe_btg = true;
++		break;
++	}
++
+ 	for (i = 0; i < 4; i++)
+ 		efuse->txpwr_idx_table[i] = map->txpwr_idx_table[i];
+ 
+@@ -298,6 +309,7 @@ static void rtw8821c_switch_rf_set(struct rtw_dev *rtwdev, u8 rf_set)
+ 
+ static void rtw8821c_set_channel_rf(struct rtw_dev *rtwdev, u8 channel, u8 bw)
+ {
++	struct rtw_hal *hal = &rtwdev->hal;
+ 	u32 rf_reg18;
+ 
+ 	rf_reg18 = rtw_read_rf(rtwdev, RF_PATH_A, 0x18, RFREG_MASK);
+@@ -329,11 +341,10 @@ static void rtw8821c_set_channel_rf(struct rtw_dev *rtwdev, u8 channel, u8 bw)
+ 	}
+ 
+ 	if (channel <= 14) {
+-		if (rtwdev->efuse.rfe_option == 0)
+-			rtw8821c_switch_rf_set(rtwdev, SWITCH_TO_WLG);
+-		else if (rtwdev->efuse.rfe_option == 2 ||
+-			 rtwdev->efuse.rfe_option == 4)
++		if (hal->rfe_btg)
+ 			rtw8821c_switch_rf_set(rtwdev, SWITCH_TO_BTG);
++		else
++			rtw8821c_switch_rf_set(rtwdev, SWITCH_TO_WLG);
+ 		rtw_write_rf(rtwdev, RF_PATH_A, RF_LUTDBG, BIT(6), 0x1);
+ 		rtw_write_rf(rtwdev, RF_PATH_A, 0x64, 0xf, 0xf);
+ 	} else {
+-- 
+cgit 
+
+From 64e9d564653566812dfade36d20f1794407e6ca1 Mon Sep 17 00:00:00 2001
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Date: Sat, 18 Feb 2023 16:29:42 +0100
+Subject: wifi: rtw88: rtw8821c: Implement RTL8821CS (SDIO) efuse parsing
+
+The efuse of the SDIO RTL8821CS chip has only one known member: the mac
+address is at offset 0x11a. Add a struct rtw8821cs_efuse describing this
+and use it for copying the mac address when the SDIO bus is used.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Reviewed-by: Ping-Ke Shih <pkshih@realtek.com>
+Signed-off-by: Kalle Valo <kvalo@kernel.org>
+Link: https://lore.kernel.org/r/20230218152944.48842-4-martin.blumenstingl@googlemail.com
+---
+ drivers/net/wireless/realtek/rtw88/rtw8821c.c | 9 +++++++++
+ drivers/net/wireless/realtek/rtw88/rtw8821c.h | 6 ++++++
+ 2 files changed, 15 insertions(+)
+
+(limited to 'drivers/net/wireless/realtek/rtw88')
+
+diff --git a/drivers/net/wireless/realtek/rtw88/rtw8821c.c b/drivers/net/wireless/realtek/rtw88/rtw8821c.c
+index 17f800f6efbd0..7ae0541d7b995 100644
+--- a/drivers/net/wireless/realtek/rtw88/rtw8821c.c
++++ b/drivers/net/wireless/realtek/rtw88/rtw8821c.c
+@@ -32,6 +32,12 @@ static void rtw8821cu_efuse_parsing(struct rtw_efuse *efuse,
+ 	ether_addr_copy(efuse->addr, map->u.mac_addr);
+ }
+ 
++static void rtw8821cs_efuse_parsing(struct rtw_efuse *efuse,
++				    struct rtw8821c_efuse *map)
++{
++	ether_addr_copy(efuse->addr, map->s.mac_addr);
++}
++
+ enum rtw8821ce_rf_set {
+ 	SWITCH_TO_BTG,
+ 	SWITCH_TO_WLG,
+@@ -77,6 +83,9 @@ static int rtw8821c_read_efuse(struct rtw_dev *rtwdev, u8 *log_map)
+ 	case RTW_HCI_TYPE_USB:
+ 		rtw8821cu_efuse_parsing(efuse, map);
+ 		break;
++	case RTW_HCI_TYPE_SDIO:
++		rtw8821cs_efuse_parsing(efuse, map);
++		break;
+ 	default:
+ 		/* unsupported now */
+ 		return -ENOTSUPP;
+diff --git a/drivers/net/wireless/realtek/rtw88/rtw8821c.h b/drivers/net/wireless/realtek/rtw88/rtw8821c.h
+index 1c81260f3a542..fcff31688c453 100644
+--- a/drivers/net/wireless/realtek/rtw88/rtw8821c.h
++++ b/drivers/net/wireless/realtek/rtw88/rtw8821c.h
+@@ -65,6 +65,11 @@ struct rtw8821ce_efuse {
+ 	u8 res7;
+ };
+ 
++struct rtw8821cs_efuse {
++	u8 res4[0x4a];			/* 0xd0 */
++	u8 mac_addr[ETH_ALEN];		/* 0x11a */
++} __packed;
++
+ struct rtw8821c_efuse {
+ 	__le16 rtl_id;
+ 	u8 res0[0x0e];
+@@ -94,6 +99,7 @@ struct rtw8821c_efuse {
+ 	union {
+ 		struct rtw8821ce_efuse e;
+ 		struct rtw8821cu_efuse u;
++		struct rtw8821cs_efuse s;
+ 	};
+ };
+ 
+-- 
+cgit 
+
+From 96c79da2e4d1a25e73916c656fe4ccf7fc8176ae Mon Sep 17 00:00:00 2001
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Date: Sat, 18 Feb 2023 16:29:40 +0100
+Subject: wifi: rtw88: mac: Add support for the SDIO HCI in
+ rtw_pwr_seq_parser()
+
+rtw_pwr_seq_parser() needs to know about the HCI bus interface mask for
+the SDIO bus so it can parse the chip state change sequences.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Reviewed-by: Ping-Ke Shih <pkshih@realtek.com>
+Signed-off-by: Kalle Valo <kvalo@kernel.org>
+Link: https://lore.kernel.org/r/20230218152944.48842-2-martin.blumenstingl@googlemail.com
+---
+ drivers/net/wireless/realtek/rtw88/mac.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+(limited to 'drivers/net/wireless/realtek/rtw88')
+
+diff --git a/drivers/net/wireless/realtek/rtw88/mac.c b/drivers/net/wireless/realtek/rtw88/mac.c
+index dae64901bac5a..c08071a67b41c 100644
+--- a/drivers/net/wireless/realtek/rtw88/mac.c
++++ b/drivers/net/wireless/realtek/rtw88/mac.c
+@@ -222,6 +222,9 @@ static int rtw_pwr_seq_parser(struct rtw_dev *rtwdev,
+ 	case RTW_HCI_TYPE_USB:
+ 		intf_mask = RTW_PWR_INTF_USB_MSK;
+ 		break;
++	case RTW_HCI_TYPE_SDIO:
++		intf_mask = RTW_PWR_INTF_SDIO_MSK;
++		break;
+ 	default:
+ 		return -EINVAL;
+ 	}
+-- 
+cgit 
+
+From 8599ea40582d49afe437badde76e31bd7429c607 Mon Sep 17 00:00:00 2001
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Date: Sat, 18 Feb 2023 16:29:41 +0100
+Subject: wifi: rtw88: mac: Add SDIO HCI support in the TX/page table setup
+
+txdma_queue_mapping() and priority_queue_cfg() can use the first entry
+of each chip's rqpn_table and page_table. Add this mapping so data
+transmission is possible on SDIO based chipsets.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Reviewed-by: Ping-Ke Shih <pkshih@realtek.com>
+Signed-off-by: Kalle Valo <kvalo@kernel.org>
+Link: https://lore.kernel.org/r/20230218152944.48842-3-martin.blumenstingl@googlemail.com
+---
+ drivers/net/wireless/realtek/rtw88/mac.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+(limited to 'drivers/net/wireless/realtek/rtw88')
+
+diff --git a/drivers/net/wireless/realtek/rtw88/mac.c b/drivers/net/wireless/realtek/rtw88/mac.c
+index c08071a67b41c..1c9530a0eb693 100644
+--- a/drivers/net/wireless/realtek/rtw88/mac.c
++++ b/drivers/net/wireless/realtek/rtw88/mac.c
+@@ -1043,6 +1043,9 @@ static int txdma_queue_mapping(struct rtw_dev *rtwdev)
+ 		else
+ 			return -EINVAL;
+ 		break;
++	case RTW_HCI_TYPE_SDIO:
++		rqpn = &chip->rqpn_table[0];
++		break;
+ 	default:
+ 		return -EINVAL;
+ 	}
+@@ -1205,6 +1208,9 @@ static int priority_queue_cfg(struct rtw_dev *rtwdev)
+ 		else
+ 			return -EINVAL;
+ 		break;
++	case RTW_HCI_TYPE_SDIO:
++		pg_tbl = &chip->page_table[0];
++		break;
+ 	default:
+ 		return -EINVAL;
+ 	}
+-- 
+cgit 
+
