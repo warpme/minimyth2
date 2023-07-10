@@ -1,0 +1,798 @@
+
+https://lkml.org/lkml/2023/5/23/1425
+
+
+this patch series adds support for the X-Powers AXP15060 and AXP313a
+PMIC, which are general purpose PMICs as seen on different boards with
+different SOCs, mostly from Allwinner.
+
+This is mostly a repost of the previous patches, combining both the
+AXP313a and AXP15060 series, rebased on top of v6.4-rc3, and omitting
+the patches that already got merged.
+The first two patches are the successors of the AXP313a v10 post,
+the third patch is based on Shengyu's AXP15060 v3 post.
+
+There were no code changes, just some tiny context differences due to
+the rebase, plus I added the newly gained tags.
+
+As the DT bindings and the AXP15060 MFD part are already in the tree,
+this is just completing support with the MFD part for the AXP313a, and
+the regulator support for both PMICs.
+
+Shengyu, Martin: can you please give this a final test?
+
+Cheers,
+Andre
+
+Changelog:
+
+v3/v10 .. v11:
+- add broonie's and Chen-Yu's review tags
+- rebase on top of v6.4-rc3
+
+AXP313a:
+v9 .. v10:
+- use MFD_CELL_RES macro
+- mark dcdc-freq property as "false" for AXP313a
+- add Lee's ACK
+
+v8 .. v9:
+- use MFD_CELL_NAME macro
+- fix LDO regulator names to match the datasheet
+- only mark changing registers as volatile
+- use correct register for shutdown operation
+- add power key resources
+- disallow x-powers,dcdc-freq in the DT binding
+- drop unused OUTPUT_MONITOR register name, add SHUTDOWN_CTRL
+- require dcdcfreq being 0 (non-present DT property default)
+
+v7 .. v8:
+- Add check for dcdcfreq being zero
+
+v6 .. v7:
+- Use alphabetical ordering
+
+v5 .. v6:
+- change name from AXP1530 to AXP313a
+- extend commit messages
+- drop AXP*_FREQUENCY register (not used anyway)
+- better vertically align struct definitions
+- rename IRQs to match names used for other PMICs
+- add RTC_LDO regulator
+- use decimal numbers for selector ranges
+- use macro definitions to name some values
+- force DC/DC switching frequency to be fixed at 3 MHz
+- change LDO source supply to VIN1 (as per datasheet)
+
+v4 .. v5:
+- Use alphabetical ordering in mfd
+- Correct { placement line
+- Replace spaces with tabs in 1 struct
+
+v3 .. v4:
+- Fix indentation
+
+v2 .. v3:
+- Move AXP1530 dt-binding to alphabetical order
+
+v1 .. v2:
+- Remove RSB support.
+- Drop .id = 0
+- Add dt-binding for the AXP1530
+
+AXP15060:
+v2 .. v3:
+- Rebase to AXP313a series v10 [1] + newest (20230420) -next branch
+- Disables DC-DC frequency setting
+- Add axp_regulator_only_cells rather than directly using axp806_cells
+  for cases that IRQ line isn't connected.
+- Fix some whitespace
+- Rename swout to sw to keep up with bindings
+- Add check for setting DC-DC frequency
+
+v1 .. v2:
+- Move cpusldo before drivevbus (Krzysztof Kozlowski)
+
+
+Martin Botka (2):
+  mfd: axp20x: Add support for AXP313a PMIC
+  regulator: axp20x: Add support for AXP313a variant
+
+Shengyu Qu (1):
+  regulator: axp20x: Add AXP15060 support
+
+
+diff --git a/drivers/mfd/axp20x-i2c.c b/drivers/mfd/axp20x-i2c.c
+index b4f5cb457117e..a49e5e217554a 100644
+--- a/drivers/mfd/axp20x-i2c.c
++++ b/drivers/mfd/axp20x-i2c.c
+@@ -63,6 +63,7 @@ static const struct of_device_id axp20x_i2c_of_match[] = {
+ 	{ .compatible = "x-powers,axp209", .data = (void *)AXP209_ID },
+ 	{ .compatible = "x-powers,axp221", .data = (void *)AXP221_ID },
+ 	{ .compatible = "x-powers,axp223", .data = (void *)AXP223_ID },
++	{ .compatible = "x-powers,axp313a", .data = (void *)AXP313A_ID },
+ 	{ .compatible = "x-powers,axp803", .data = (void *)AXP803_ID },
+ 	{ .compatible = "x-powers,axp806", .data = (void *)AXP806_ID },
+ 	{ .compatible = "x-powers,axp15060", .data = (void *)AXP15060_ID },
+@@ -77,6 +78,7 @@ static const struct i2c_device_id axp20x_i2c_id[] = {
+ 	{ "axp209", 0 },
+ 	{ "axp221", 0 },
+ 	{ "axp223", 0 },
++	{ "axp313a", 0 },
+ 	{ "axp803", 0 },
+ 	{ "axp806", 0 },
+ 	{ "axp15060", 0 },
+diff --git a/drivers/mfd/axp20x.c b/drivers/mfd/axp20x.c
+index 72b87aae60cc0..07a846ecbf18e 100644
+--- a/drivers/mfd/axp20x.c
++++ b/drivers/mfd/axp20x.c
+@@ -39,6 +39,7 @@ static const char * const axp20x_model_names[] = {
+ 	"AXP221",
+ 	"AXP223",
+ 	"AXP288",
++	"AXP313a",
+ 	"AXP803",
+ 	"AXP806",
+ 	"AXP809",
+@@ -156,6 +157,25 @@ static const struct regmap_range axp806_writeable_ranges[] = {
+ 	regmap_reg_range(AXP806_REG_ADDR_EXT, AXP806_REG_ADDR_EXT),
+ };
+ 
++static const struct regmap_range axp313a_writeable_ranges[] = {
++	regmap_reg_range(AXP313A_ON_INDICATE, AXP313A_IRQ_STATE),
++};
++
++static const struct regmap_range axp313a_volatile_ranges[] = {
++	regmap_reg_range(AXP313A_SHUTDOWN_CTRL, AXP313A_SHUTDOWN_CTRL),
++	regmap_reg_range(AXP313A_IRQ_STATE, AXP313A_IRQ_STATE),
++};
++
++static const struct regmap_access_table axp313a_writeable_table = {
++	.yes_ranges = axp313a_writeable_ranges,
++	.n_yes_ranges = ARRAY_SIZE(axp313a_writeable_ranges),
++};
++
++static const struct regmap_access_table axp313a_volatile_table = {
++	.yes_ranges = axp313a_volatile_ranges,
++	.n_yes_ranges = ARRAY_SIZE(axp313a_volatile_ranges),
++};
++
+ static const struct regmap_range axp806_volatile_ranges[] = {
+ 	regmap_reg_range(AXP20X_IRQ1_STATE, AXP20X_IRQ2_STATE),
+ };
+@@ -248,6 +268,11 @@ static const struct resource axp288_fuel_gauge_resources[] = {
+ 	DEFINE_RES_IRQ(AXP288_IRQ_WL1),
+ };
+ 
++static const struct resource axp313a_pek_resources[] = {
++	DEFINE_RES_IRQ_NAMED(AXP313A_IRQ_PEK_RIS_EDGE, "PEK_DBR"),
++	DEFINE_RES_IRQ_NAMED(AXP313A_IRQ_PEK_FAL_EDGE, "PEK_DBF"),
++};
++
+ static const struct resource axp803_pek_resources[] = {
+ 	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_PEK_RIS_EDGE, "PEK_DBR"),
+ 	DEFINE_RES_IRQ_NAMED(AXP803_IRQ_PEK_FAL_EDGE, "PEK_DBF"),
+@@ -304,6 +329,15 @@ static const struct regmap_config axp288_regmap_config = {
+ 	.cache_type	= REGCACHE_RBTREE,
+ };
+ 
++static const struct regmap_config axp313a_regmap_config = {
++	.reg_bits = 8,
++	.val_bits = 8,
++	.wr_table = &axp313a_writeable_table,
++	.volatile_table = &axp313a_volatile_table,
++	.max_register = AXP313A_IRQ_STATE,
++	.cache_type = REGCACHE_RBTREE,
++};
++
+ static const struct regmap_config axp806_regmap_config = {
+ 	.reg_bits	= 8,
+ 	.val_bits	= 8,
+@@ -456,6 +490,16 @@ static const struct regmap_irq axp288_regmap_irqs[] = {
+ 	INIT_REGMAP_IRQ(AXP288, BC_USB_CHNG,            5, 1),
+ };
+ 
++static const struct regmap_irq axp313a_regmap_irqs[] = {
++	INIT_REGMAP_IRQ(AXP313A, PEK_RIS_EDGE,		0, 7),
++	INIT_REGMAP_IRQ(AXP313A, PEK_FAL_EDGE,		0, 6),
++	INIT_REGMAP_IRQ(AXP313A, PEK_SHORT,		0, 5),
++	INIT_REGMAP_IRQ(AXP313A, PEK_LONG,		0, 4),
++	INIT_REGMAP_IRQ(AXP313A, DCDC3_V_LOW,		0, 3),
++	INIT_REGMAP_IRQ(AXP313A, DCDC2_V_LOW,		0, 2),
++	INIT_REGMAP_IRQ(AXP313A, DIE_TEMP_HIGH,		0, 0),
++};
++
+ static const struct regmap_irq axp803_regmap_irqs[] = {
+ 	INIT_REGMAP_IRQ(AXP803, ACIN_OVER_V,		0, 7),
+ 	INIT_REGMAP_IRQ(AXP803, ACIN_PLUGIN,		0, 6),
+@@ -606,6 +650,17 @@ static const struct regmap_irq_chip axp288_regmap_irq_chip = {
+ 
+ };
+ 
++static const struct regmap_irq_chip axp313a_regmap_irq_chip = {
++	.name			= "axp313a_irq_chip",
++	.status_base		= AXP313A_IRQ_STATE,
++	.ack_base		= AXP313A_IRQ_STATE,
++	.unmask_base		= AXP313A_IRQ_EN,
++	.init_ack_masked	= true,
++	.irqs			= axp313a_regmap_irqs,
++	.num_irqs		= ARRAY_SIZE(axp313a_regmap_irqs),
++	.num_regs		= 1,
++};
++
+ static const struct regmap_irq_chip axp803_regmap_irq_chip = {
+ 	.name			= "axp803",
+ 	.status_base		= AXP20X_IRQ1_STATE,
+@@ -745,6 +800,11 @@ static const struct mfd_cell axp152_cells[] = {
+ 	},
+ };
+ 
++static struct mfd_cell axp313a_cells[] = {
++	MFD_CELL_NAME("axp20x-regulator"),
++	MFD_CELL_RES("axp313a-pek", axp313a_pek_resources),
++};
++
+ static const struct resource axp288_adc_resources[] = {
+ 	DEFINE_RES_IRQ_NAMED(AXP288_IRQ_GPADC, "GPADC"),
+ };
+@@ -914,8 +974,18 @@ static const struct mfd_cell axp_regulator_only_cells[] = {
+ static int axp20x_power_off(struct sys_off_data *data)
+ {
+ 	struct axp20x_dev *axp20x = data->cb_data;
++	unsigned int shutdown_reg;
+ 
+-	regmap_write(axp20x->regmap, AXP20X_OFF_CTRL, AXP20X_OFF);
++	switch (axp20x->variant) {
++	case AXP313A_ID:
++		shutdown_reg = AXP313A_SHUTDOWN_CTRL;
++		break;
++	default:
++		shutdown_reg = AXP20X_OFF_CTRL;
++		break;
++	}
++
++	regmap_write(axp20x->regmap, shutdown_reg, AXP20X_OFF);
+ 
+ 	/* Give capacitors etc. time to drain to avoid kernel panic msg. */
+ 	mdelay(500);
+@@ -978,6 +1048,12 @@ int axp20x_match_device(struct axp20x_dev *axp20x)
+ 		axp20x->regmap_irq_chip = &axp288_regmap_irq_chip;
+ 		axp20x->irq_flags = IRQF_TRIGGER_LOW;
+ 		break;
++	case AXP313A_ID:
++		axp20x->nr_cells = ARRAY_SIZE(axp313a_cells);
++		axp20x->cells = axp313a_cells;
++		axp20x->regmap_cfg = &axp313a_regmap_config;
++		axp20x->regmap_irq_chip = &axp313a_regmap_irq_chip;
++		break;
+ 	case AXP803_ID:
+ 		axp20x->nr_cells = ARRAY_SIZE(axp803_cells);
+ 		axp20x->cells = axp803_cells;
+diff --git a/include/linux/mfd/axp20x.h b/include/linux/mfd/axp20x.h
+index beb3f44f85c50..fff7fa6b7c5dc 100644
+--- a/include/linux/mfd/axp20x.h
++++ b/include/linux/mfd/axp20x.h
+@@ -17,6 +17,7 @@ enum axp20x_variants {
+ 	AXP221_ID,
+ 	AXP223_ID,
+ 	AXP288_ID,
++	AXP313A_ID,
+ 	AXP803_ID,
+ 	AXP806_ID,
+ 	AXP809_ID,
+@@ -92,6 +93,17 @@ enum axp20x_variants {
+ #define AXP22X_ALDO3_V_OUT		0x2a
+ #define AXP22X_CHRG_CTRL3		0x35
+ 
++#define AXP313A_ON_INDICATE		0x00
++#define AXP313A_OUTPUT_CONTROL		0x10
++#define AXP313A_DCDC1_CONRTOL		0x13
++#define AXP313A_DCDC2_CONRTOL		0x14
++#define AXP313A_DCDC3_CONRTOL		0x15
++#define AXP313A_ALDO1_CONRTOL		0x16
++#define AXP313A_DLDO1_CONRTOL		0x17
++#define AXP313A_SHUTDOWN_CTRL		0x1a
++#define AXP313A_IRQ_EN			0x20
++#define AXP313A_IRQ_STATE		0x21
++
+ #define AXP806_STARTUP_SRC		0x00
+ #define AXP806_CHIP_ID			0x03
+ #define AXP806_PWR_OUT_CTRL1		0x10
+@@ -363,6 +375,16 @@ enum {
+ 	AXP22X_REG_ID_MAX,
+ };
+ 
++enum {
++	AXP313A_DCDC1 = 0,
++	AXP313A_DCDC2,
++	AXP313A_DCDC3,
++	AXP313A_ALDO1,
++	AXP313A_DLDO1,
++	AXP313A_RTC_LDO,
++	AXP313A_REG_ID_MAX,
++};
++
+ enum {
+ 	AXP806_DCDCA = 0,
+ 	AXP806_DCDCB,
+@@ -616,6 +638,16 @@ enum axp288_irqs {
+ 	AXP288_IRQ_BC_USB_CHNG,
+ };
+ 
++enum axp313a_irqs {
++	AXP313A_IRQ_DIE_TEMP_HIGH,
++	AXP313A_IRQ_DCDC2_V_LOW = 2,
++	AXP313A_IRQ_DCDC3_V_LOW,
++	AXP313A_IRQ_PEK_LONG,
++	AXP313A_IRQ_PEK_SHORT,
++	AXP313A_IRQ_PEK_FAL_EDGE,
++	AXP313A_IRQ_PEK_RIS_EDGE,
++};
++
+ enum axp803_irqs {
+ 	AXP803_IRQ_ACIN_OVER_V = 1,
+ 	AXP803_IRQ_ACIN_PLUGIN,
+-- 
+2.35.8
+
+  regulator-{min,max}-microvolt in the DT, but this requires more changes
+to the code. As some other PMICs (AXP2xx, AXP803) seem to paper over the
+same problem as well, we follow suit here and pretend it's a fixed 1.8V
+regulator. A proper fix can follow later. The BSP code seems to ignore
+this regulator altogether.
+
+Describe the AXP313A's voltage settings and switch registers, how the
+voltages are encoded, and connect this to the MFD device via its
+regulator ID.
+
+Signed-off-by: Martin Botka <martin.botka@somainline.org>
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+Reviewed-by: Chen-Yu Tsai <wens@csie.org>
+Reviewed-by: Mark Brown <broonie@kernel.org>
+---
+ drivers/regulator/axp20x-regulator.c | 60 ++++++++++++++++++++++++++++
+ 1 file changed, 60 insertions(+)
+
+diff --git a/drivers/regulator/axp20x-regulator.c b/drivers/regulator/axp20x-regulator.c
+index 943172b197226..db77c72d39a0f 100644
+--- a/drivers/regulator/axp20x-regulator.c
++++ b/drivers/regulator/axp20x-regulator.c
+@@ -134,6 +134,11 @@
+ #define AXP22X_PWR_OUT_DLDO4_MASK	BIT_MASK(6)
+ #define AXP22X_PWR_OUT_ALDO3_MASK	BIT_MASK(7)
+ 
++#define AXP313A_DCDC1_NUM_VOLTAGES	107
++#define AXP313A_DCDC23_NUM_VOLTAGES	88
++#define AXP313A_DCDC_V_OUT_MASK		GENMASK(6, 0)
++#define AXP313A_LDO_V_OUT_MASK		GENMASK(4, 0)
++
+ #define AXP803_PWR_OUT_DCDC1_MASK	BIT_MASK(0)
+ #define AXP803_PWR_OUT_DCDC2_MASK	BIT_MASK(1)
+ #define AXP803_PWR_OUT_DCDC3_MASK	BIT_MASK(2)
+@@ -638,6 +643,48 @@ static const struct regulator_desc axp22x_drivevbus_regulator = {
+ 	.ops		= &axp20x_ops_sw,
+ };
+ 
++static const struct linear_range axp313a_dcdc1_ranges[] = {
++	REGULATOR_LINEAR_RANGE(500000,   0,  70,  10000),
++	REGULATOR_LINEAR_RANGE(1220000, 71,  87,  20000),
++	REGULATOR_LINEAR_RANGE(1600000, 88, 106, 100000),
++};
++
++static const struct linear_range axp313a_dcdc2_ranges[] = {
++	REGULATOR_LINEAR_RANGE(500000,   0, 70, 10000),
++	REGULATOR_LINEAR_RANGE(1220000, 71, 87, 20000),
++};
++
++/*
++ * This is deviating from the datasheet. The values here are taken from the
++ * BSP driver and have been confirmed by measurements.
++ */
++static const struct linear_range axp313a_dcdc3_ranges[] = {
++	REGULATOR_LINEAR_RANGE(500000,   0,  70, 10000),
++	REGULATOR_LINEAR_RANGE(1220000, 71, 102, 20000),
++};
++
++static const struct regulator_desc axp313a_regulators[] = {
++	AXP_DESC_RANGES(AXP313A, DCDC1, "dcdc1", "vin1",
++			axp313a_dcdc1_ranges, AXP313A_DCDC1_NUM_VOLTAGES,
++			AXP313A_DCDC1_CONRTOL, AXP313A_DCDC_V_OUT_MASK,
++			AXP313A_OUTPUT_CONTROL, BIT(0)),
++	AXP_DESC_RANGES(AXP313A, DCDC2, "dcdc2", "vin2",
++			axp313a_dcdc2_ranges, AXP313A_DCDC23_NUM_VOLTAGES,
++			AXP313A_DCDC2_CONRTOL, AXP313A_DCDC_V_OUT_MASK,
++			AXP313A_OUTPUT_CONTROL, BIT(1)),
++	AXP_DESC_RANGES(AXP313A, DCDC3, "dcdc3", "vin3",
++			axp313a_dcdc3_ranges, AXP313A_DCDC23_NUM_VOLTAGES,
++			AXP313A_DCDC3_CONRTOL, AXP313A_DCDC_V_OUT_MASK,
++			AXP313A_OUTPUT_CONTROL, BIT(2)),
++	AXP_DESC(AXP313A, ALDO1, "aldo1", "vin1", 500, 3500, 100,
++		 AXP313A_ALDO1_CONRTOL, AXP313A_LDO_V_OUT_MASK,
++		 AXP313A_OUTPUT_CONTROL, BIT(3)),
++	AXP_DESC(AXP313A, DLDO1, "dldo1", "vin1", 500, 3500, 100,
++		 AXP313A_DLDO1_CONRTOL, AXP313A_LDO_V_OUT_MASK,
++		 AXP313A_OUTPUT_CONTROL, BIT(4)),
++	AXP_DESC_FIXED(AXP313A, RTC_LDO, "rtc-ldo", "vin1", 1800),
++};
++
+ /* DCDC ranges shared with AXP813 */
+ static const struct linear_range axp803_dcdc234_ranges[] = {
+ 	REGULATOR_LINEAR_RANGE(500000,
+@@ -1040,6 +1087,15 @@ static int axp20x_set_dcdc_freq(struct platform_device *pdev, u32 dcdcfreq)
+ 		def = 3000;
+ 		step = 150;
+ 		break;
++	case AXP313A_ID:
++		/* The DCDC PWM frequency seems to be fixed to 3 MHz. */
++		if (dcdcfreq != 0) {
++			dev_err(&pdev->dev,
++				"DCDC frequency on AXP313a is fixed to 3 MHz.\n");
++			return -EINVAL;
++		}
++
++		return 0;
+ 	default:
+ 		dev_err(&pdev->dev,
+ 			"Setting DCDC frequency for unsupported AXP variant\n");
+@@ -1232,6 +1288,10 @@ static int axp20x_regulator_probe(struct platform_device *pdev)
+ 		drivevbus = of_property_read_bool(pdev->dev.parent->of_node,
+ 						  "x-powers,drive-vbus-en");
+ 		break;
++	case AXP313A_ID:
++		regulators = axp313a_regulators;
++		nregulators = AXP313A_REG_ID_MAX;
++		break;
+ 	case AXP803_ID:
+ 		regulators = axp803_regulators;
+ 		nregulators = AXP803_REG_ID_MAX;
+-- 
+2.35.8
+
+  ---
+ drivers/regulator/axp20x-regulator.c | 232 +++++++++++++++++++++++++--
+ 1 file changed, 223 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/regulator/axp20x-regulator.c b/drivers/regulator/axp20x-regulator.c
+index db77c72d39a0f..810f90f3e2a1b 100644
+--- a/drivers/regulator/axp20x-regulator.c
++++ b/drivers/regulator/axp20x-regulator.c
+@@ -275,6 +275,74 @@
+ 
+ #define AXP813_PWR_OUT_DCDC7_MASK	BIT_MASK(6)
+ 
++#define AXP15060_DCDC1_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_DCDC2_V_CTRL_MASK		GENMASK(6, 0)
++#define AXP15060_DCDC3_V_CTRL_MASK		GENMASK(6, 0)
++#define AXP15060_DCDC4_V_CTRL_MASK		GENMASK(6, 0)
++#define AXP15060_DCDC5_V_CTRL_MASK		GENMASK(6, 0)
++#define AXP15060_DCDC6_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_ALDO1_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_ALDO2_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_ALDO3_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_ALDO4_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_ALDO5_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_BLDO1_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_BLDO2_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_BLDO3_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_BLDO4_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_BLDO5_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_CLDO1_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_CLDO2_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_CLDO3_V_CTRL_MASK		GENMASK(4, 0)
++#define AXP15060_CLDO4_V_CTRL_MASK		GENMASK(5, 0)
++#define AXP15060_CPUSLDO_V_CTRL_MASK		GENMASK(3, 0)
++
++#define AXP15060_PWR_OUT_DCDC1_MASK	BIT_MASK(0)
++#define AXP15060_PWR_OUT_DCDC2_MASK	BIT_MASK(1)
++#define AXP15060_PWR_OUT_DCDC3_MASK	BIT_MASK(2)
++#define AXP15060_PWR_OUT_DCDC4_MASK	BIT_MASK(3)
++#define AXP15060_PWR_OUT_DCDC5_MASK	BIT_MASK(4)
++#define AXP15060_PWR_OUT_DCDC6_MASK	BIT_MASK(5)
++#define AXP15060_PWR_OUT_ALDO1_MASK	BIT_MASK(0)
++#define AXP15060_PWR_OUT_ALDO2_MASK	BIT_MASK(1)
++#define AXP15060_PWR_OUT_ALDO3_MASK	BIT_MASK(2)
++#define AXP15060_PWR_OUT_ALDO4_MASK	BIT_MASK(3)
++#define AXP15060_PWR_OUT_ALDO5_MASK	BIT_MASK(4)
++#define AXP15060_PWR_OUT_BLDO1_MASK	BIT_MASK(5)
++#define AXP15060_PWR_OUT_BLDO2_MASK	BIT_MASK(6)
++#define AXP15060_PWR_OUT_BLDO3_MASK	BIT_MASK(7)
++#define AXP15060_PWR_OUT_BLDO4_MASK	BIT_MASK(0)
++#define AXP15060_PWR_OUT_BLDO5_MASK	BIT_MASK(1)
++#define AXP15060_PWR_OUT_CLDO1_MASK	BIT_MASK(2)
++#define AXP15060_PWR_OUT_CLDO2_MASK	BIT_MASK(3)
++#define AXP15060_PWR_OUT_CLDO3_MASK	BIT_MASK(4)
++#define AXP15060_PWR_OUT_CLDO4_MASK	BIT_MASK(5)
++#define AXP15060_PWR_OUT_CPUSLDO_MASK	BIT_MASK(6)
++#define AXP15060_PWR_OUT_SW_MASK		BIT_MASK(7)
++
++#define AXP15060_DCDC23_POLYPHASE_DUAL_MASK		BIT_MASK(6)
++#define AXP15060_DCDC46_POLYPHASE_DUAL_MASK		BIT_MASK(7)
++
++#define AXP15060_DCDC234_500mV_START	0x00
++#define AXP15060_DCDC234_500mV_STEPS	70
++#define AXP15060_DCDC234_500mV_END		\
++	(AXP15060_DCDC234_500mV_START + AXP15060_DCDC234_500mV_STEPS)
++#define AXP15060_DCDC234_1220mV_START	0x47
++#define AXP15060_DCDC234_1220mV_STEPS	16
++#define AXP15060_DCDC234_1220mV_END		\
++	(AXP15060_DCDC234_1220mV_START + AXP15060_DCDC234_1220mV_STEPS)
++#define AXP15060_DCDC234_NUM_VOLTAGES	88
++
++#define AXP15060_DCDC5_800mV_START	0x00
++#define AXP15060_DCDC5_800mV_STEPS	32
++#define AXP15060_DCDC5_800mV_END		\
++	(AXP15060_DCDC5_800mV_START + AXP15060_DCDC5_800mV_STEPS)
++#define AXP15060_DCDC5_1140mV_START	0x21
++#define AXP15060_DCDC5_1140mV_STEPS	35
++#define AXP15060_DCDC5_1140mV_END		\
++	(AXP15060_DCDC5_1140mV_START + AXP15060_DCDC5_1140mV_STEPS)
++#define AXP15060_DCDC5_NUM_VOLTAGES	69
++
+ #define AXP_DESC_IO(_family, _id, _match, _supply, _min, _max, _step, _vreg,	\
+ 		    _vmask, _ereg, _emask, _enable_val, _disable_val)		\
+ 	[_family##_##_id] = {							\
+@@ -1048,6 +1116,104 @@ static const struct regulator_desc axp813_regulators[] = {
+ 		    AXP22X_PWR_OUT_CTRL2, AXP22X_PWR_OUT_DC1SW_MASK),
+ };
+ 
++static const struct linear_range axp15060_dcdc234_ranges[] = {
++	REGULATOR_LINEAR_RANGE(500000,
++			       AXP15060_DCDC234_500mV_START,
++			       AXP15060_DCDC234_500mV_END,
++			       10000),
++	REGULATOR_LINEAR_RANGE(1220000,
++			       AXP15060_DCDC234_1220mV_START,
++			       AXP15060_DCDC234_1220mV_END,
++			       20000),
++};
++
++static const struct linear_range axp15060_dcdc5_ranges[] = {
++	REGULATOR_LINEAR_RANGE(800000,
++			       AXP15060_DCDC5_800mV_START,
++			       AXP15060_DCDC5_800mV_END,
++			       10000),
++	REGULATOR_LINEAR_RANGE(1140000,
++			       AXP15060_DCDC5_1140mV_START,
++			       AXP15060_DCDC5_1140mV_END,
++			       20000),
++};
++
++static const struct regulator_desc axp15060_regulators[] = {
++	AXP_DESC(AXP15060, DCDC1, "dcdc1", "vin1", 1500, 3400, 100,
++		 AXP15060_DCDC1_V_CTRL, AXP15060_DCDC1_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL1, AXP15060_PWR_OUT_DCDC1_MASK),
++	AXP_DESC_RANGES(AXP15060, DCDC2, "dcdc2", "vin2",
++			axp15060_dcdc234_ranges, AXP15060_DCDC234_NUM_VOLTAGES,
++			AXP15060_DCDC2_V_CTRL, AXP15060_DCDC2_V_CTRL_MASK,
++			AXP15060_PWR_OUT_CTRL1, AXP15060_PWR_OUT_DCDC2_MASK),
++	AXP_DESC_RANGES(AXP15060, DCDC3, "dcdc3", "vin3",
++			axp15060_dcdc234_ranges, AXP15060_DCDC234_NUM_VOLTAGES,
++			AXP15060_DCDC3_V_CTRL, AXP15060_DCDC3_V_CTRL_MASK,
++			AXP15060_PWR_OUT_CTRL1, AXP15060_PWR_OUT_DCDC3_MASK),
++	AXP_DESC_RANGES(AXP15060, DCDC4, "dcdc4", "vin4",
++			axp15060_dcdc234_ranges, AXP15060_DCDC234_NUM_VOLTAGES,
++			AXP15060_DCDC4_V_CTRL, AXP15060_DCDC4_V_CTRL_MASK,
++			AXP15060_PWR_OUT_CTRL1, AXP15060_PWR_OUT_DCDC4_MASK),
++	AXP_DESC_RANGES(AXP15060, DCDC5, "dcdc5", "vin5",
++			axp15060_dcdc5_ranges, AXP15060_DCDC5_NUM_VOLTAGES,
++			AXP15060_DCDC5_V_CTRL, AXP15060_DCDC5_V_CTRL_MASK,
++			AXP15060_PWR_OUT_CTRL1, AXP15060_PWR_OUT_DCDC5_MASK),
++	AXP_DESC(AXP15060, DCDC6, "dcdc6", "vin6", 500, 3400, 100,
++		 AXP15060_DCDC6_V_CTRL, AXP15060_DCDC6_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL1, AXP15060_PWR_OUT_DCDC6_MASK),
++	AXP_DESC(AXP15060, ALDO1, "aldo1", "aldoin", 700, 3300, 100,
++		 AXP15060_ALDO1_V_CTRL, AXP15060_ALDO1_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL2, AXP15060_PWR_OUT_ALDO1_MASK),
++	AXP_DESC(AXP15060, ALDO2, "aldo2", "aldoin", 700, 3300, 100,
++		 AXP15060_ALDO2_V_CTRL, AXP15060_ALDO2_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL2, AXP15060_PWR_OUT_ALDO2_MASK),
++	AXP_DESC(AXP15060, ALDO3, "aldo3", "aldoin", 700, 3300, 100,
++		 AXP15060_ALDO3_V_CTRL, AXP15060_ALDO3_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL2, AXP15060_PWR_OUT_ALDO3_MASK),
++	AXP_DESC(AXP15060, ALDO4, "aldo4", "aldoin", 700, 3300, 100,
++		 AXP15060_ALDO4_V_CTRL, AXP15060_ALDO4_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL2, AXP15060_PWR_OUT_ALDO4_MASK),
++	AXP_DESC(AXP15060, ALDO5, "aldo5", "aldoin", 700, 3300, 100,
++		 AXP15060_ALDO5_V_CTRL, AXP15060_ALDO5_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL2, AXP15060_PWR_OUT_ALDO5_MASK),
++	AXP_DESC(AXP15060, BLDO1, "bldo1", "bldoin", 700, 3300, 100,
++		 AXP15060_BLDO1_V_CTRL, AXP15060_BLDO1_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL2, AXP15060_PWR_OUT_BLDO1_MASK),
++	AXP_DESC(AXP15060, BLDO2, "bldo2", "bldoin", 700, 3300, 100,
++		 AXP15060_BLDO2_V_CTRL, AXP15060_BLDO2_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL2, AXP15060_PWR_OUT_BLDO2_MASK),
++	AXP_DESC(AXP15060, BLDO3, "bldo3", "bldoin", 700, 3300, 100,
++		 AXP15060_BLDO3_V_CTRL, AXP15060_BLDO3_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL2, AXP15060_PWR_OUT_BLDO3_MASK),
++	AXP_DESC(AXP15060, BLDO4, "bldo4", "bldoin", 700, 3300, 100,
++		 AXP15060_BLDO4_V_CTRL, AXP15060_BLDO4_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL3, AXP15060_PWR_OUT_BLDO4_MASK),
++	AXP_DESC(AXP15060, BLDO5, "bldo5", "bldoin", 700, 3300, 100,
++		 AXP15060_BLDO5_V_CTRL, AXP15060_BLDO5_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL3, AXP15060_PWR_OUT_BLDO5_MASK),
++	AXP_DESC(AXP15060, CLDO1, "cldo1", "cldoin", 700, 3300, 100,
++		 AXP15060_CLDO1_V_CTRL, AXP15060_CLDO1_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL3, AXP15060_PWR_OUT_CLDO1_MASK),
++	AXP_DESC(AXP15060, CLDO2, "cldo2", "cldoin", 700, 3300, 100,
++		 AXP15060_CLDO2_V_CTRL, AXP15060_CLDO2_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL3, AXP15060_PWR_OUT_CLDO2_MASK),
++	AXP_DESC(AXP15060, CLDO3, "cldo3", "cldoin", 700, 3300, 100,
++		 AXP15060_CLDO3_V_CTRL, AXP15060_CLDO3_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL3, AXP15060_PWR_OUT_CLDO3_MASK),
++	AXP_DESC(AXP15060, CLDO4, "cldo4", "cldoin", 700, 4200, 100,
++		 AXP15060_CLDO4_V_CTRL, AXP15060_CLDO4_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL3, AXP15060_PWR_OUT_CLDO4_MASK),
++	/* Supply comes from DCDC5 */
++	AXP_DESC(AXP15060, CPUSLDO, "cpusldo", NULL, 700, 1400, 50,
++		 AXP15060_CPUSLDO_V_CTRL, AXP15060_CPUSLDO_V_CTRL_MASK,
++		 AXP15060_PWR_OUT_CTRL3, AXP15060_PWR_OUT_CPUSLDO_MASK),
++	/* Supply comes from DCDC1 */
++	AXP_DESC_SW(AXP15060, SW, "sw", NULL,
++		    AXP15060_PWR_OUT_CTRL3, AXP15060_PWR_OUT_SW_MASK),
++	/* Supply comes from ALDO1 */
++	AXP_DESC_FIXED(AXP15060, RTC_LDO, "rtc-ldo", NULL, 1800),
++};
++
+ static int axp20x_set_dcdc_freq(struct platform_device *pdev, u32 dcdcfreq)
+ {
+ 	struct axp20x_dev *axp20x = dev_get_drvdata(pdev->dev.parent);
+@@ -1088,10 +1254,11 @@ static int axp20x_set_dcdc_freq(struct platform_device *pdev, u32 dcdcfreq)
+ 		step = 150;
+ 		break;
+ 	case AXP313A_ID:
++	case AXP15060_ID:
+ 		/* The DCDC PWM frequency seems to be fixed to 3 MHz. */
+ 		if (dcdcfreq != 0) {
+ 			dev_err(&pdev->dev,
+-				"DCDC frequency on AXP313a is fixed to 3 MHz.\n");
++				"DCDC frequency on this PMIC is fixed to 3 MHz.\n");
+ 			return -EINVAL;
+ 		}
+ 
+@@ -1201,6 +1368,15 @@ static int axp20x_set_dcdc_workmode(struct regulator_dev *rdev, int id, u32 work
+ 		workmode <<= id - AXP813_DCDC1;
+ 		break;
+ 
++	case AXP15060_ID:
++		reg = AXP15060_DCDC_MODE_CTRL2;
++		if (id < AXP15060_DCDC1 || id > AXP15060_DCDC6)
++			return -EINVAL;
++
++		mask = AXP22X_WORKMODE_DCDCX_MASK(id - AXP15060_DCDC1);
++		workmode <<= id - AXP15060_DCDC1;
++		break;
++
+ 	default:
+ 		/* should not happen */
+ 		WARN_ON(1);
+@@ -1220,7 +1396,7 @@ static bool axp20x_is_polyphase_slave(struct axp20x_dev *axp20x, int id)
+ 
+ 	/*
+ 	 * Currently in our supported AXP variants, only AXP803, AXP806,
+-	 * and AXP813 have polyphase regulators.
++	 * AXP813 and AXP15060 have polyphase regulators.
+ 	 */
+ 	switch (axp20x->variant) {
+ 	case AXP803_ID:
+@@ -1252,6 +1428,17 @@ static bool axp20x_is_polyphase_slave(struct axp20x_dev *axp20x, int id)
+ 		}
+ 		break;
+ 
++	case AXP15060_ID:
++		regmap_read(axp20x->regmap, AXP15060_DCDC_MODE_CTRL1, &reg);
++
++		switch (id) {
++		case AXP15060_DCDC3:
++			return !!(reg & AXP15060_DCDC23_POLYPHASE_DUAL_MASK);
++		case AXP15060_DCDC6:
++			return !!(reg & AXP15060_DCDC46_POLYPHASE_DUAL_MASK);
++		}
++		break;
++
+ 	default:
+ 		return false;
+ 	}
+@@ -1273,6 +1460,7 @@ static int axp20x_regulator_probe(struct platform_device *pdev)
+ 	u32 workmode;
+ 	const char *dcdc1_name = axp22x_regulators[AXP22X_DCDC1].name;
+ 	const char *dcdc5_name = axp22x_regulators[AXP22X_DCDC5].name;
++	const char *aldo1_name = axp15060_regulators[AXP15060_ALDO1].name;
+ 	bool drivevbus = false;
+ 
+ 	switch (axp20x->variant) {
+@@ -1312,6 +1500,10 @@ static int axp20x_regulator_probe(struct platform_device *pdev)
+ 		drivevbus = of_property_read_bool(pdev->dev.parent->of_node,
+ 						  "x-powers,drive-vbus-en");
+ 		break;
++	case AXP15060_ID:
++		regulators = axp15060_regulators;
++		nregulators = AXP15060_REG_ID_MAX;
++		break;
+ 	default:
+ 		dev_err(&pdev->dev, "Unsupported AXP variant: %ld\n",
+ 			axp20x->variant);
+@@ -1338,8 +1530,9 @@ static int axp20x_regulator_probe(struct platform_device *pdev)
+ 			continue;
+ 
+ 		/*
+-		 * Regulators DC1SW and DC5LDO are connected internally,
+-		 * so we have to handle their supply names separately.
++		 * Regulators DC1SW, DC5LDO and RTCLDO on AXP15060 are
++		 * connected internally, so we have to handle their supply
++		 * names separately.
+ 		 *
+ 		 * We always register the regulators in proper sequence,
+ 		 * so the supply names are correctly read. See the last
+@@ -1348,7 +1541,8 @@ static int axp20x_regulator_probe(struct platform_device *pdev)
+ 		 */
+ 		if ((regulators == axp22x_regulators && i == AXP22X_DC1SW) ||
+ 		    (regulators == axp803_regulators && i == AXP803_DC1SW) ||
+-		    (regulators == axp809_regulators && i == AXP809_DC1SW)) {
++		    (regulators == axp809_regulators && i == AXP809_DC1SW) ||
++		    (regulators == axp15060_regulators && i == AXP15060_SW)) {
+ 			new_desc = devm_kzalloc(&pdev->dev, sizeof(*desc),
+ 						GFP_KERNEL);
+ 			if (!new_desc)
+@@ -1360,7 +1554,8 @@ static int axp20x_regulator_probe(struct platform_device *pdev)
+ 		}
+ 
+ 		if ((regulators == axp22x_regulators && i == AXP22X_DC5LDO) ||
+-		    (regulators == axp809_regulators && i == AXP809_DC5LDO)) {
++		    (regulators == axp809_regulators && i == AXP809_DC5LDO) ||
++		    (regulators == axp15060_regulators && i == AXP15060_CPUSLDO)) {
+ 			new_desc = devm_kzalloc(&pdev->dev, sizeof(*desc),
+ 						GFP_KERNEL);
+ 			if (!new_desc)
+@@ -1371,6 +1566,18 @@ static int axp20x_regulator_probe(struct platform_device *pdev)
+ 			desc = new_desc;
+ 		}
+ 
++
++		if (regulators == axp15060_regulators && i == AXP15060_RTC_LDO) {
++			new_desc = devm_kzalloc(&pdev->dev, sizeof(*desc),
++						GFP_KERNEL);
++			if (!new_desc)
++				return -ENOMEM;
++
++			*new_desc = regulators[i];
++			new_desc->supply_name = aldo1_name;
++			desc = new_desc;
++		}
++
+ 		rdev = devm_regulator_register(&pdev->dev, desc, &config);
+ 		if (IS_ERR(rdev)) {
+ 			dev_err(&pdev->dev, "Failed to register %s\n",
+@@ -1389,19 +1596,26 @@ static int axp20x_regulator_probe(struct platform_device *pdev)
+ 		}
+ 
+ 		/*
+-		 * Save AXP22X DCDC1 / DCDC5 regulator names for later.
++		 * Save AXP22X DCDC1 / DCDC5 / AXP15060 ALDO1 regulator names for later.
+ 		 */
+ 		if ((regulators == axp22x_regulators && i == AXP22X_DCDC1) ||
+-		    (regulators == axp809_regulators && i == AXP809_DCDC1))
++		    (regulators == axp809_regulators && i == AXP809_DCDC1) ||
++		    (regulators == axp15060_regulators && i == AXP15060_DCDC1))
+ 			of_property_read_string(rdev->dev.of_node,
+ 						"regulator-name",
+ 						&dcdc1_name);
+ 
+ 		if ((regulators == axp22x_regulators && i == AXP22X_DCDC5) ||
+-		    (regulators == axp809_regulators && i == AXP809_DCDC5))
++		    (regulators == axp809_regulators && i == AXP809_DCDC5) ||
++		    (regulators == axp15060_regulators && i == AXP15060_DCDC5))
+ 			of_property_read_string(rdev->dev.of_node,
+ 						"regulator-name",
+ 						&dcdc5_name);
++
++		if (regulators == axp15060_regulators && i == AXP15060_ALDO1)
++			of_property_read_string(rdev->dev.of_node,
++						"regulator-name",
++						&aldo1_name);
+ 	}
+ 
+ 	if (drivevbus) {
+-- 
+2.35.8
+
+  

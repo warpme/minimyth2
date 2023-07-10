@@ -145,6 +145,7 @@ PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0634-arm64-dts-allwinner-h616-add-T95-TVbox.patch
 PATCHFILES += 0635-arm64-dts-allwinner-h616-OrangePI-Zero2-fix-hdmi-audio.patch
 PATCHFILES += 0636-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
+PATCHFILES += 0637-drivers-mfd-axp20x-add-support-for-AXP15060-AXP313a-PMIC-v11.patch
 PATCHFILES += 0638-arm64-dts-allwinner-h313-add-dedicated-cpu-opp-and-use-in-x96q-TVbox.patch
 PATCHFILES += 0639-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
 PATCHFILES += 0640-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
