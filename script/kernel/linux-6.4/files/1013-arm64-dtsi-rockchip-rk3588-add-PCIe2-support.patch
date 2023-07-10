@@ -1,0 +1,264 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.2/arch/arm64/boot/dts/rockchip/rk3588.dtsi linux-6.4.2/arch/arm64/boot/dts/rockchip/rk3588.dtsi
+--- linux-6.4.2/arch/arm64/boot/dts/rockchip/rk3588.dtsi	2023-07-05 19:30:31.000000000 +0200
++++ linux-6.4.2/arch/arm64/boot/dts/rockchip/rk3588.dtsi	2023-07-09 12:08:45.800014141 +0200
+@@ -75,6 +75,65 @@
+ 		status = "disabled";
+ 	};
+ 
++	pcie2x1l0: pcie@fe170000 {
++		compatible = "rockchip,rk3588-pcie", "rockchip,rk3568-pcie";
++		#address-cells = <3>;
++		#size-cells = <2>;
++		bus-range = <0x20 0x2f>;
++		clocks = <&cru ACLK_PCIE_1L0_MSTR>, <&cru ACLK_PCIE_1L0_SLV>,
++			 <&cru ACLK_PCIE_1L0_DBI>, <&cru PCLK_PCIE_1L0>,
++			 <&cru CLK_PCIE_AUX2>, <&cru CLK_PCIE1L0_PIPE>;
++		clock-names = "aclk_mst", "aclk_slv",
++			      "aclk_dbi", "pclk",
++			      "aux", "pipe";
++		device_type = "pci";
++		interrupts = <GIC_SPI 243 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 242 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 241 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 240 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 239 IRQ_TYPE_LEVEL_HIGH 0>;
++		interrupt-names = "sys", "pmc", "msg", "legacy", "err";
++		#interrupt-cells = <1>;
++		interrupt-map-mask = <0 0 0 7>;
++		interrupt-map = <0 0 0 1 &pcie2x1l0_intc 0>,
++				<0 0 0 2 &pcie2x1l0_intc 1>,
++				<0 0 0 3 &pcie2x1l0_intc 2>,
++				<0 0 0 4 &pcie2x1l0_intc 3>;
++		linux,pci-domain = <2>;
++		num-ib-windows = <8>;
++		num-ob-windows = <8>;
++		num-viewport = <4>;
++		max-link-speed = <2>;
++		msi-map = <0x2000 &its0 0x2000 0x1000>;
++		num-lanes = <1>;
++		phys = <&combphy1_ps PHY_TYPE_PCIE>;
++		phy-names = "pcie-phy";
++		power-domains = <&power RK3588_PD_PCIE>;
++		ranges = <0x01000000 0x0 0xf2100000 0x0 0xf2100000 0x0 0x00100000>,
++			 <0x02000000 0x0 0xf2200000 0x0 0xf2200000 0x0 0x00e00000>,
++			 <0x03000000 0x9 0x80000000 0x9 0x80000000 0x0 0x40000000>;
++		reg = <0xa 0x40800000 0x0 0x00400000>,
++		      <0x0 0xfe170000 0x0 0x00010000>,
++		      <0x0 0xf2000000 0x0 0x00100000>;
++		reg-names = "dbi", "apb", "config";
++		resets = <&cru SRST_PCIE2_POWER_UP>, <&cru SRST_P_PCIE2>;
++		reset-names = "pwr", "pipe";
++		status = "disabled";
++
++		pcie2x1l0_intc: legacy-interrupt-controller {
++			interrupt-controller;
++			#address-cells = <0>;
++			#interrupt-cells = <1>;
++			interrupt-parent = <&gic>;
++			interrupts = <GIC_SPI 240 IRQ_TYPE_EDGE_RISING 0>;
++		};
++	};
++
++	pipe_phy1_grf: syscon@fd5c0000 {
++		compatible = "rockchip,rk3588-pipe-phy-grf", "syscon";
++		reg = <0x0 0xfd5c0000 0x0 0x100>;
++	};
++
+ 	gmac0: ethernet@fe1b0000 {
+ 		compatible = "rockchip,rk3588-gmac", "snps,dwmac-4.20a";
+ 		reg = <0x0 0xfe1b0000 0x0 0x10000>;
+@@ -123,4 +182,20 @@
+ 			queue1 {};
+ 		};
+ 	};
++
++	combphy1_ps: phy@fee10000 {
++		compatible = "rockchip,rk3588-naneng-combphy";
++		reg = <0x0 0xfee10000 0x0 0x100>;
++		#phy-cells = <1>;
++		clocks = <&cru CLK_REF_PIPE_PHY1>, <&cru PCLK_PCIE_COMBO_PIPE_PHY1>,
++			 <&cru PCLK_PHP_ROOT>;
++		clock-names = "ref", "apb", "pipe";
++		assigned-clocks = <&cru CLK_REF_PIPE_PHY1>;
++		assigned-clock-rates = <100000000>;
++		resets = <&cru SRST_REF_PIPE_PHY1>, <&cru SRST_P_PCIE2_PHY1>;
++		reset-names = "phy", "apb";
++		rockchip,pipe-grf = <&php_grf>;
++		rockchip,pipe-phy-grf = <&pipe_phy1_grf>;
++		status = "disabled";
++	};
+ };
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.2/arch/arm64/boot/dts/rockchip/rk3588s.dtsi linux-6.4.2/arch/arm64/boot/dts/rockchip/rk3588s.dtsi
+--- linux-6.4.2/arch/arm64/boot/dts/rockchip/rk3588s.dtsi	2023-07-09 12:09:55.906680944 +0200
++++ linux-6.4.2/arch/arm64/boot/dts/rockchip/rk3588s.dtsi	2023-07-09 12:06:54.063347278 +0200
+@@ -856,6 +856,16 @@
+ 		reg = <0x0 0xfd5b0000 0x0 0x1000>;
+ 	};
+ 
++	pipe_phy0_grf: syscon@fd5bc000 {
++		compatible = "rockchip,rk3588-pipe-phy-grf", "syscon";
++		reg = <0x0 0xfd5bc000 0x0 0x100>;
++	};
++
++	pipe_phy2_grf: syscon@fd5c4000 {
++		compatible = "rockchip,rk3588-pipe-phy-grf", "syscon";
++		reg = <0x0 0xfd5c4000 0x0 0x100>;
++	};
++
+ 	ioc: syscon@fd5f0000 {
+ 		compatible = "rockchip,rk3588-ioc", "syscon";
+ 		reg = <0x0 0xfd5f0000 0x0 0x10000>;
+@@ -1570,6 +1580,114 @@
+ 		reg = <0x0 0xfdf82200 0x0 0x20>;
+ 	};
+ 
++	pcie2x1l1: pcie@fe180000 {
++		compatible = "rockchip,rk3588-pcie", "rockchip,rk3568-pcie";
++		#address-cells = <3>;
++		#size-cells = <2>;
++		bus-range = <0x30 0x3f>;
++		clocks = <&cru ACLK_PCIE_1L1_MSTR>, <&cru ACLK_PCIE_1L1_SLV>,
++			 <&cru ACLK_PCIE_1L1_DBI>, <&cru PCLK_PCIE_1L1>,
++			 <&cru CLK_PCIE_AUX3>, <&cru CLK_PCIE1L1_PIPE>;
++		clock-names = "aclk_mst", "aclk_slv",
++			      "aclk_dbi", "pclk",
++			      "aux", "pipe";
++		device_type = "pci";
++		interrupts = <GIC_SPI 248 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 247 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 246 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 245 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 244 IRQ_TYPE_LEVEL_HIGH 0>;
++		interrupt-names = "sys", "pmc", "msg", "legacy", "err";
++		#interrupt-cells = <1>;
++		interrupt-map-mask = <0 0 0 7>;
++		interrupt-map = <0 0 0 1 &pcie2x1l1_intc 0>,
++				<0 0 0 2 &pcie2x1l1_intc 1>,
++				<0 0 0 3 &pcie2x1l1_intc 2>,
++				<0 0 0 4 &pcie2x1l1_intc 3>;
++		linux,pci-domain = <3>;
++		num-ib-windows = <8>;
++		num-ob-windows = <8>;
++		num-viewport = <4>;
++		max-link-speed = <2>;
++		msi-map = <0x3000 &its0 0x3000 0x1000>;
++		num-lanes = <1>;
++		phys = <&combphy2_psu PHY_TYPE_PCIE>;
++		phy-names = "pcie-phy";
++		power-domains = <&power RK3588_PD_PCIE>;
++		ranges = <0x01000000 0x0 0xf3100000 0x0 0xf3100000 0x0 0x00100000>,
++			 <0x02000000 0x0 0xf3200000 0x0 0xf3200000 0x0 0x00e00000>,
++			 <0x03000000 0x9 0xc0000000 0x9 0xc0000000 0x0 0x40000000>;
++		reg = <0xa 0x40c00000 0x0 0x00400000>,
++		      <0x0 0xfe180000 0x0 0x00010000>,
++		      <0x0 0xf3000000 0x0 0x00100000>;
++		reg-names = "dbi", "apb", "config";
++		resets = <&cru SRST_PCIE3_POWER_UP>, <&cru SRST_P_PCIE3>;
++		reset-names = "pwr", "pipe";
++		status = "disabled";
++
++		pcie2x1l1_intc: legacy-interrupt-controller {
++			interrupt-controller;
++			#address-cells = <0>;
++			#interrupt-cells = <1>;
++			interrupt-parent = <&gic>;
++			interrupts = <GIC_SPI 245 IRQ_TYPE_EDGE_RISING 0>;
++		};
++	};
++
++	pcie2x1l2: pcie@fe190000 {
++		compatible = "rockchip,rk3588-pcie", "rockchip,rk3568-pcie";
++		#address-cells = <3>;
++		#size-cells = <2>;
++		bus-range = <0x40 0x4f>;
++		clocks = <&cru ACLK_PCIE_1L2_MSTR>, <&cru ACLK_PCIE_1L2_SLV>,
++			 <&cru ACLK_PCIE_1L2_DBI>, <&cru PCLK_PCIE_1L2>,
++			 <&cru CLK_PCIE_AUX4>, <&cru CLK_PCIE1L2_PIPE>;
++		clock-names = "aclk_mst", "aclk_slv",
++			      "aclk_dbi", "pclk",
++			      "aux", "pipe";
++		device_type = "pci";
++		interrupts = <GIC_SPI 253 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 252 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 251 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 250 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 249 IRQ_TYPE_LEVEL_HIGH 0>;
++		interrupt-names = "sys", "pmc", "msg", "legacy", "err";
++		#interrupt-cells = <1>;
++		interrupt-map-mask = <0 0 0 7>;
++		interrupt-map = <0 0 0 1 &pcie2x1l2_intc 0>,
++				<0 0 0 2 &pcie2x1l2_intc 1>,
++				<0 0 0 3 &pcie2x1l2_intc 2>,
++				<0 0 0 4 &pcie2x1l2_intc 3>;
++		linux,pci-domain = <4>;
++		num-ib-windows = <8>;
++		num-ob-windows = <8>;
++		num-viewport = <4>;
++		max-link-speed = <2>;
++		msi-map = <0x4000 &its0 0x4000 0x1000>;
++		num-lanes = <1>;
++		phys = <&combphy0_ps PHY_TYPE_PCIE>;
++		phy-names = "pcie-phy";
++		power-domains = <&power RK3588_PD_PCIE>;
++		ranges = <0x01000000 0x0 0xf4100000 0x0 0xf4100000 0x0 0x00100000>,
++			 <0x02000000 0x0 0xf4200000 0x0 0xf4200000 0x0 0x00e00000>,
++			 <0x03000000 0xa 0x00000000 0xa 0x00000000 0x0 0x40000000>;
++		reg = <0xa 0x41000000 0x0 0x00400000>,
++		      <0x0 0xfe190000 0x0 0x00010000>,
++		      <0x0 0xf4000000 0x0 0x00100000>;
++		reg-names = "dbi", "apb", "config";
++		resets = <&cru SRST_PCIE4_POWER_UP>, <&cru SRST_P_PCIE4>;
++		reset-names = "pwr", "pipe";
++		status = "disabled";
++
++		pcie2x1l2_intc: legacy-interrupt-controller {
++			interrupt-controller;
++			#address-cells = <0>;
++			#interrupt-cells = <1>;
++			interrupt-parent = <&gic>;
++			interrupts = <GIC_SPI 250 IRQ_TYPE_EDGE_RISING 0>;
++		};
++	};
++
+ 	gmac1: ethernet@fe1c0000 {
+ 		compatible = "rockchip,rk3588-gmac", "snps,dwmac-4.20a";
+ 		reg = <0x0 0xfe1c0000 0x0 0x10000>;
+@@ -2303,6 +2421,38 @@
+ 		#dma-cells = <1>;
+ 	};
+ 
++	combphy0_ps: phy@fee00000 {
++		compatible = "rockchip,rk3588-naneng-combphy";
++		reg = <0x0 0xfee00000 0x0 0x100>;
++		#phy-cells = <1>;
++		clocks = <&cru CLK_REF_PIPE_PHY0>, <&cru PCLK_PCIE_COMBO_PIPE_PHY0>,
++			 <&cru PCLK_PHP_ROOT>;
++		clock-names = "ref", "apb", "pipe";
++		assigned-clocks = <&cru CLK_REF_PIPE_PHY0>;
++		assigned-clock-rates = <100000000>;
++		resets = <&cru SRST_REF_PIPE_PHY0>, <&cru SRST_P_PCIE2_PHY0>;
++		reset-names = "phy", "apb";
++		rockchip,pipe-grf = <&php_grf>;
++		rockchip,pipe-phy-grf = <&pipe_phy0_grf>;
++		status = "disabled";
++	};
++
++	combphy2_psu: phy@fee20000 {
++		compatible = "rockchip,rk3588-naneng-combphy";
++		reg = <0x0 0xfee20000 0x0 0x100>;
++		#phy-cells = <1>;
++		clocks = <&cru CLK_REF_PIPE_PHY2>, <&cru PCLK_PCIE_COMBO_PIPE_PHY2>,
++			 <&cru PCLK_PHP_ROOT>;
++		clock-names = "ref", "apb", "pipe";
++		assigned-clocks = <&cru CLK_REF_PIPE_PHY2>;
++		assigned-clock-rates = <100000000>;
++		resets = <&cru SRST_REF_PIPE_PHY2>, <&cru SRST_P_PCIE2_PHY2>;
++		reset-names = "phy", "apb";
++		rockchip,pipe-grf = <&php_grf>;
++		rockchip,pipe-phy-grf = <&pipe_phy2_grf>;
++		status = "disabled";
++	};
++
+ 	system_sram2: sram@ff001000 {
+ 		compatible = "mmio-sram";
+ 		reg = <0x0 0xff001000 0x0 0xef000>;

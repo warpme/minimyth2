@@ -1,0 +1,92 @@
+Certain Amlogic SDIO host controllers have a limit of
+receiving/transmitting at most 1536 bytes at a time.
+It turns out that rtw_sdio_enable_rx_aggregation() from rtw88/sdio.c
+is not taking this into account currently.
+For any RX buffer that is bigger than 1536 bytes (which can happen due
+to RX aggregation) we're unable to do any processing on the host side
+because all bytes beyond the 1536 bytes mark are lost.
+
+Revert size and timout to RFC v1 patch until solution is found.
+https://lore.kernel.org/linux-wireless/CAFBinCBaXtebixKbjkWKW_WXc5k=NdGNaGUjVE8NCPNxOhsb2g@mail.gmail.com/T/#u
+
+Signed-off-by: Patrick Yavitz <pyavitz@gxxxx.com>
+diff -Naur a/drivers/net/wireless/realtek/rtw88/sdio.c b/drivers/net/wireless/realtek/rtw88/sdio.c
+--- a/drivers/net/wireless/realtek/rtw88/sdio.c	2023-06-13 14:16:07.695892972 -0400
++++ b/drivers/net/wireless/realtek/rtw88/sdio.c	2023-06-13 15:04:26.278383326 -0400
+@@ -657,11 +657,11 @@
+ 	u8 size, timeout;
+ 
+ 	if (rtw_chip_wcpu_11n(rtwdev)) {
++		size = 0xff;
++		timeout = 0x20;
++	} else {
+ 		size = 0x6;
+ 		timeout = 0x6;
+-	} else {
+-		size = 0xff;
+-		timeout = 0x1;
+ 	}
+ 
+ 	/* Make the firmware honor the size limit configured below */
+The rtw8822/21cu driver has problems handling high rx or tx rates compared with high
+load (such as high I/O) on slower systems.
+
+Examples: i.MX6 SoloX, NanoPi M1 and similar platforms.
+https://lore.kernel.org/linux-wireless/20230612134048.321500-1-petter@technux.se/T/#t
+
+Signed-off-by: Patrick Yavitz <pyavitz@gxxxx.com>
+diff -Naur a/drivers/net/wireless/realtek/rtw88/usb.c b/drivers/net/wireless/realtek/rtw88/usb.c
+--- a/drivers/net/wireless/realtek/rtw88/usb.c	2023-06-13 14:16:07.696892956 -0400
++++ b/drivers/net/wireless/realtek/rtw88/usb.c	2023-06-13 14:17:13.026863229 -0400
+@@ -716,7 +716,7 @@
+ 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
+ 	int i;
+ 
+-	rtwusb->rxwq = create_singlethread_workqueue("rtw88_usb: rx wq");
++	rtwusb->rxwq = alloc_workqueue("rtw88_usb: rx wq", WQ_UNBOUND | WQ_HIGHPRI, 0);
+ 	if (!rtwusb->rxwq) {
+ 		rtw_err(rtwdev, "failed to create RX work queue\n");
+ 		return -ENOMEM;
+@@ -750,7 +750,7 @@
+ 	struct rtw_usb *rtwusb = rtw_get_usb_priv(rtwdev);
+ 	int i;
+ 
+-	rtwusb->txwq = create_singlethread_workqueue("rtw88_usb: tx wq");
++	rtwusb->txwq = alloc_workqueue("rtw88_usb: tx wq", WQ_UNBOUND | WQ_HIGHPRI, 0);
+ 	if (!rtwusb->txwq) {
+ 		rtw_err(rtwdev, "failed to create TX work queue\n");
+ 		return -ENOMEM;
+From: Patrick Yavitz <pyavitz@gmail.com>
+Subject: v2: rtw88: decrease the log level of tx report
+
+Reduce 'failed to get tx report from firmware' dmesg spam.
+
+https://lore.kernel.org/linux-wireless/20210713104524.47101-1-pkshih@realtek.com/
+https://cgit.freebsd.org/src/commit/?id=e140d551b78670fbf99c83a59438cb13de50420f
+
+Signed-off-by: Patrick Yavitz <pyavitz@gxxx.com>
+diff -Naur a/drivers/net/wireless/realtek/rtw88/tx.c b/drivers/net/wireless/realtek/rtw88/tx.c
+--- a/drivers/net/wireless/realtek/rtw88/tx.c	2023-06-30 13:28:40.396914119 -0400
++++ b/drivers/net/wireless/realtek/rtw88/tx.c	2023-06-30 16:57:33.868259352 -0400
+@@ -177,14 +177,16 @@
+ 	struct rtw_tx_report *tx_report = &rtwdev->tx_report;
+ 	unsigned long flags;
+ 
+-	if (skb_queue_len(&tx_report->queue) == 0)
+-		return;
+-
+-	rtw_warn(rtwdev, "failed to get tx report from firmware\n");
++	uint32_t qlen;
+ 
+ 	spin_lock_irqsave(&tx_report->q_lock, flags);
+-	skb_queue_purge(&tx_report->queue);
++	qlen = skb_queue_len(&tx_report->queue);
++	if (qlen > 0)
++		skb_queue_purge(&tx_report->queue);
+ 	spin_unlock_irqrestore(&tx_report->q_lock, flags);
++
++	rtw_dbg(rtwdev, RTW_DBG_TX, "failed to get tx report from firmware: "
++		"txreport qlen %u\n", qlen);
+ }
+ 
+ void rtw_tx_report_enqueue(struct rtw_dev *rtwdev, struct sk_buff *skb, u8 sn)
