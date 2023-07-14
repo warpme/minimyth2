@@ -88,7 +88,7 @@ PATCHFILES += 0205-mediamonitor-exclude-standard-tvbox-disks.patch
 # Misc frontend patches
 PATCHFILES += 0211-decrease-minQt-ver-to-4.8.patch
 PATCHFILES += 0212-external-udfread-fix-arm5te-compilation.patch
-PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
+PATCHFILES += 0213-make-dvd-images-autoplay-at-media-insert.patch
 PATCHFILES += 0214-themes-recordings-ui-all-episode-listing.patch
 PATCHFILES += 0215-libmythtv-mythvideooutgpu-fix-tearing.patch
 
