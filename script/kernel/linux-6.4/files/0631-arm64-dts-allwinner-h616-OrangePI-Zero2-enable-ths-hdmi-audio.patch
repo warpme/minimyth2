@@ -1,9 +1,20 @@
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.2/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts linux-6.2.2/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts
---- linux-6.2.2/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts	2023-03-03 11:56:18.000000000 +0100
-+++ linux-6.2.2/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts	2023-03-07 12:59:21.904279097 +0100
-@@ -18,26 +18,40 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.3/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts linux-6.4.3/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts
+--- linux-6.4.3/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts	2023-07-11 06:31:05.000000000 +0200
++++ linux-6.4.3/arch/arm64/boot/dts/allwinner/sun50i-h616-orangepi-zero2.dts	2023-07-17 09:48:39.593255668 +0200
+@@ -6,7 +6,7 @@
+ /dts-v1/;
+ 
+ #include "sun50i-h616.dtsi"
+-
++#include "sun50i-h616-cpu-opp.dtsi"
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/interrupt-controller/arm-gic.h>
+ #include <dt-bindings/leds/common.h>
+@@ -17,27 +17,42 @@
+ 
  	aliases {
  		ethernet0 = &emac0;
++		ethernet1 = &wlan;
  		serial0 = &uart0;
 +		mmc0 = &mmc0;  /* mmc0/mmcblk0 for SD */
 +		mmc1 = &mmc1;  /* mmc1/mmcblk1 for SDIO */
@@ -44,19 +55,70 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.2/arch/arm64
  		};
  	};
  
-@@ -61,6 +75,11 @@
+@@ -59,6 +74,41 @@
+ 		enable-active-high;
+ 		gpio = <&pio 2 16 GPIO_ACTIVE_HIGH>; /* PC16 */
  	};
- };
- 
++
++	reg_vcc33_wifi: vcc33-wifi {
++		/* Always on 3.3V regulator for WiFi and BT */
++		compatible = "regulator-fixed";
++		regulator-name = "vcc33-wifi";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++		vin-supply = <&reg_vcc5v>;
++	};
++
++	reg_vcc_wifi_io: vcc-wifi-io {
++		/* Always on 1.8V/300mA regulator for WiFi and BT IO */
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-wifi-io";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		regulator-always-on;
++		vin-supply = <&reg_vcc33_wifi>;
++	};
++
++	wifi_pwrseq: wifi-pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		clocks = <&rtc CLK_OSC32K_FANOUT>;
++		clock-names = "ext_clock";
++		pinctrl-names = "default";
++		pinctrl-0 = <&clk_losc>; /* PG10 with MUX3 set */
++		reset-gpios = <&pio 6 18 GPIO_ACTIVE_LOW>; /* PG18 */
++		post-power-on-delay-ms = <200>;
++	};
++};
++
 +&cpu0 {
 +	cpu-supply = <&reg_dcdca>;
 +	status = "okay";
-+};
-+
+ };
+ 
  &ehci1 {
+@@ -92,6 +142,20 @@
  	status = "okay";
  };
-@@ -172,14 +191,14 @@
+ 
++&mmc1 {
++	vmmc-supply = <&reg_vcc33_wifi>;
++	vqmmc-supply = <&reg_vcc_wifi_io>;
++	mmc-pwrseq = <&wifi_pwrseq>;
++	bus-width = <4>;
++	non-removable;
++	mmc-ddr-1_8v;
++	status = "okay";
++
++	wlan: wifi@1 {
++		reg = <1>;
++	};
++};
++
+ &ohci1 {
+ 	status = "okay";
+ };
+@@ -172,14 +236,14 @@
  			reg_dcdca: dcdca {
  				regulator-always-on;
  				regulator-min-microvolt = <810000>;
@@ -73,7 +135,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.2/arch/arm64
  				regulator-name = "vdd-gpu-sys";
  			};
  
-@@ -204,16 +223,8 @@
+@@ -204,14 +268,6 @@
  	};
  };
  
@@ -86,12 +148,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.2/arch/arm64
 -};
 -
  &spi0  {
--	status = "okay";
-+	status = "okay";
+ 	status = "okay";
  	pinctrl-names = "default";
- 	pinctrl-0 = <&spi0_pins>, <&spi0_cs0_pin>;
- 
-@@ -252,3 +263,80 @@
+@@ -252,3 +308,68 @@
  	usb1_vbus-supply = <&reg_usb1_vbus>;
  	status = "okay";
  };
@@ -118,41 +177,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.2/arch/arm64
 +	status = "okay";
 +};
 +
-+&codec {
-+	allwinner,audio-routing =
-+		"Line Out", "LINEOUT";
-+	status = "okay";
-+};
-+
-+&ahub_codec {
-+	status = "okay";
-+};
-+
-+&ahub_cpudai0 {
-+	status = "okay";
-+};
-+
-+&ahub_cpudai1 {
-+	status = "okay";
-+};
-+
-+&ahub_cpudai2 {
-+	status = "okay";
-+};
-+
-+&sndahub {
-+	status = "okay";
-+};
-+
-+&ahub_i2s1 {
-+	status = "okay";
-+};
-+
 +&de {
-+	status = "okay";
-+};
-+
-+&hdmi_audio {
 +	status = "okay";
 +};
 +
@@ -169,6 +194,28 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.2.2/arch/arm64
 +
 +&gpu {
 +	mali-supply = <&reg_dcdcc>;
++	status = "okay";
++};
++
++&codec {
++	allwinner,audio-routing =
++	        "Line Out", "LINEOUT";
++	status = "okay";
++};
++
++&ahub_dam_plat {
++	status = "okay";
++};
++
++&ahub_dam_mach {
++	status = "okay";
++};
++
++&ahub1_plat {
++	status = "okay";
++};
++
++&ahub1_mach {
 +	status = "okay";
 +};
 +

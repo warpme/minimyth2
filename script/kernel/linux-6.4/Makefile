@@ -134,26 +134,20 @@ PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
 PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
 # add HDMI, audio support
 PATCHFILES += 0606-dma-sun6i-dma-add-h616-support.patch
-PATCHFILES += 0610-sound-soc-add-h616-audio-support.patch
-PATCHFILES += 0611-drivers-drm-wip-add-h616-hdmi.patch
+PATCHFILES += 0607-drivers-drm-wip-add-h616-hdmi-xulong.patch
+PATCHFILES += 0608-sound-soc-sunxi-add-codec-driver-for-h616.patch
+PATCHFILES += 0609-sound-soc-add-sunxi_v2-for-h616-ahub.patch
 PATCHFILES += 0612-gpu-drm-panfrost-panfrost-devfreq-revert-set-opp-to-the-recommended.patch
+PATCHFILES += 0613-drivers-mfd-axp20x-add-support-for-AXP15060-AXP313a-PMIC-v11.patch
+PATCHFILES += 0614-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
+PATCHFILES += 0615-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 # enable some h616 boards
 PATCHFILES += 0630-arm64-dts-allwinner-h616.dtsi-add-ths-audio-hdmi.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-OrangePI-Zero2-enable-ths-hdmi-audio.patch
-PATCHFILES += 0632-arm64-dts-allwinner-h616-X96-mate-enable-ths-hdmi-usb.patch
-PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
-PATCHFILES += 0634-arm64-dts-allwinner-h616-add-T95-TVbox.patch
-PATCHFILES += 0635-arm64-dts-allwinner-h616-OrangePI-Zero2-fix-hdmi-audio.patch
-PATCHFILES += 0636-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
-PATCHFILES += 0637-drivers-mfd-axp20x-add-support-for-AXP15060-AXP313a-PMIC-v11.patch
-PATCHFILES += 0638-arm64-dts-allwinner-h313-add-dedicated-cpu-opp-and-use-in-x96q-TVbox.patch
-PATCHFILES += 0639-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
-PATCHFILES += 0640-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
-PATCHFILES += 0641-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
-PATCHFILES += 0643-arm64-dts-allwinner-h616-dtsi-add-dump-reg-sysinfo-mac-read.patch
-PATCHFILES += 0644-arm64-dts-allwinner-h616-opi-zero2-enable-wifi.patch
-PATCHFILES += 0645-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
-PATCHFILES += 0646-arm64-dts-allwinner-speedbin-rework-h616-add-h313.patch
+PATCHFILES += 0632-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
+PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
+PATCHFILES += 0634-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
+PATCHFILES += 0635-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
 endif
 #------------------------------------------------------------
 
