@@ -1,6 +1,6 @@
 
 GARNAME       = miniarch-rootfs
-GARVERSION    = 20230212
+GARVERSION    = 20230718
 CATEGORIES    = miniarch
 MASTER_SITES  = http://os.archlinuxarm.org/os/
 DISTFILES     = ArchLinuxARM-aarch64-latest.tar.gz
@@ -117,6 +117,8 @@ $(MINIARCH_ROOTFS).fakeroot: $(MINIARCH_ROOTFS)
 		chmod    u+s       $</bin/systemctl     ; \
 		chmod    u+s       $</bin/umount        ; \
 		chmod    u+s       $</bin/unix_chkpwd   ; \
+		chmod    u+r       $</etc/credstore     ; \
+		chmod    u+r       $</etc/credstore.encrypted ; \
 		chown -R 1000:1000 $</home/alarm*       ; \
 		rm -rf             $</dev               ; \
 		mkdir -m 0755 -p   $</dev               ; \
