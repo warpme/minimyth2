@@ -27,7 +27,7 @@ build-custom:
 	@filelist=`cd $(WORKSRC) ; cat ../../../../meta/minimyth/files/source/lists/kernel-arm64/minimyth-lib-list-$(mm_KERNEL_VERSION) | sed -e "/#.*/d;/.*modules.*/d"` ; \
 	  # echo $${filelist} ; \
 	  for file in $${filelist} ; do \
-	    # echo "adding firmware: $${file}" ; \
+	    echo "adding firmware: $${file}" ; \
 	    cp -rf --parents $(WORKSRC)/$${file} $(WORKSRC)/src/tmp ; \
 	  done
 	@cp -rf $(DESTDIR)$(elibdir)/firmware/cypress $(WORKSRC)/src/firmware/
