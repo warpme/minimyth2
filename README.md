@@ -103,6 +103,7 @@ Allwinner H313| X96-Q (LPDDR3)   | works  (xr819@SDIO)                    | work
 Allwinner H616| TanixTX6s-axp313 | works  (ap6330@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| OrangePI-Zero2   | works  (aw859a@SDIO)                   | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H618| Vontar H618      | works  (ap6334@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
 Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | works       | works       | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-se      | works  (ap6255@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
@@ -137,6 +138,7 @@ Allwinner H6     | EachLink H6 Mini, TanixTX6, Beelink GS1, OPi3| cedrus/v4l2_re
 Allwinner H313   | X96-Q (DDR3)                                 | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
 Allwinner H313   | X96-Q (LPDDR3)                               | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
 Allwinner H616   | TanixTX6s, OrangePI-Zero2                    | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
+Allwinner H618   | Vontar H618, OrangePI-Zero3                  | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
 Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
 Rockchip 3399    | RockPI 4-b                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF    | Good playback, wyaland gives black.screen
 Rockchip 3399    | RockPI 4-se                                  | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF    | Good playback, wyaland gives black.screen
