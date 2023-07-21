@@ -23,13 +23,13 @@ install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/
 	@cp -Rdf $(WORKSRC)/* $(DESTDIR)$(elibdir)/firmware/
 
-	# Broadcom 43430 bin and clm_blob
+	@# Broadcom 43430 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.bin      $(BRCM_DEST)/brcmfmac43430-sdio.AP6212.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.bin      $(BRCM_DEST)/brcmfmac43430-sdio.raspberrypi,3-model-b.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.clm_blob $(BRCM_DEST)/brcmfmac43430-sdio.AP6212.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.clm_blob $(BRCM_DEST)/brcmfmac43430-sdio.raspberrypi,3-model-b.clm_blob
 
-	# Broadcom 43455 bin and clm_blob
+	@# Broadcom 43455 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,3-model-b-plus.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,4-model-b.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.pine64,quartz64-a.bin
@@ -45,7 +45,7 @@ install-custom:
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.eachlink,h6mini.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.radxa,rockpi4se.clm_blob
 ifeq (0,1)
-	# Broadcom 43456 bin and clm_blob
+	@# Broadcom 43456 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43456-sdio.bin       $(BRCM_DEST)/brcmfmac43456-sdio.radxa,rockpi4b.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43456-sdio.bin       $(BRCM_DEST)/brcmfmac43456-sdio.radxa,rockpi4c.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43456-sdio.bin       $(BRCM_DEST)/brcmfmac43456-sdio.radxa,zero.bin
@@ -69,18 +69,26 @@ ifeq (0,1)
 	@ln -srf $(BRCM_SOURCE)/cyfmac43456-sdio.clm_blob  $(BRCM_DEST)/brcmfmac43456-sdio.xunlong,orangepi-3.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43456-sdio.clm_blob  $(BRCM_DEST)/brcmfmac43456-sdio.xunlong,orangepi-4.clm_blob
 endif
-	# Broadcom 4354 bin and clm_blob
+
+	@# Broadcom 4334 bin, clm_blob and txt
+	@ln -srf $(BRCM_DEST)/brcmfmac4334-sdio.bin               $(BRCM_DEST)/brcmfmac4334-sdio.tanix,tx6s.bin
+	@# fake clm_blob file as i can't find correct file....
+	@touch                                                    $(BRCM_DEST)/brcmfmac4334-sdio.tanix,tx6s.clm_blob
+	@ln -srf $(BRCM_DEST)/brcmfmac4330-sdio.Prowise-PT301.txt $(BRCM_DEST)/brcmfmac4334-sdio.tanix,tx6s.txt
+
+	@# Broadcom 4354 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac4354-sdio.bin      $(BRCM_DEST)/brcmfmac4354-sdio.amediatech,x96-x6.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac4354-sdio.clm_blob $(BRCM_DEST)/brcmfmac4354-sdio.amediatech,x96-x6.clm_blob
+
 ifeq (0,1)
-	# Broadcom 4359 bin and clm_blob
+	@# Broadcom 4359 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac4359-sdio.bin      $(BRCM_DEST)/brcmfmac4359-sdio.AP6398S.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac4359-sdio.bin      $(BRCM_DEST)/brcmfmac4359-sdio.rockchip,rk3566-box-demo-v10.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac4359-sdio.clm_blob $(BRCM_DEST)/brcmfmac4359-sdio.AP6398S.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac4359-sdio.clm_blob $(BRCM_DEST)/brcmfmac4359-sdio.rockchip,rk3566-box-demo-v10.clm_blob
 endif
 ifeq (0,1)
-	# Broadcom 6330 bin and clm_blob
+	@# Broadcom 6330 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac-ap6330-sdio.bin      $(BRCM_DEST)/brcmfmac-ap6330-sdio.oranth,tanix-tx6-mini.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac-ap6330-sdio.bin      $(BRCM_DEST)/brcmfmac-ap6330-sdio.oranth,tanix-tx6.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac-ap6330-sdio.clm_blob $(BRCM_DEST)/brcmfmac-ap6330-sdio.oranth,tanix-tx6-mini.clm_blob
