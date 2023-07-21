@@ -148,6 +148,8 @@ PATCHFILES += 0632-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0633-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
 PATCHFILES += 0634-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
 PATCHFILES += 0635-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
+PATCHFILES += 0636-arm64-dts-allwinner-h618-add-OrangePI-Zero3.patch
+PATCHFILES += 0637-arm64-dts-allwinner-h618-add-vontar-h618-TVbox.patch
 endif
 #------------------------------------------------------------
 
