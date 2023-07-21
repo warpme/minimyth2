@@ -30,6 +30,7 @@ PATCHFILES  += 51-add-x96-q-ddr3-defconfig.patch
 PATCHFILES  += 52-add-tanix-tx6s-defconfig.patch
 PATCHFILES  += 53-add-tanix_tx6s_axp313_defconfig.patch
 PATCHFILES  += 54-opi-zero2-add-mising-dram-para.patch
+PATCHFILES  += 55-add-opi-zero3-defconfig.patch
 # PATCHFILES  += 99-enable-debug.patch
 # PATCHFILES  += 99-dump-dram-controller-regs.patch
 WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
@@ -56,6 +57,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
+# mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
