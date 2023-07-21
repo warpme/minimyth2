@@ -19,6 +19,7 @@ DEPENDS = \
 	firmware/brcmfmac4354-firmware-txt  \
 	firmware/brcmfmac4359-firmware  \
 	firmware/brcmfmac6330-firmware  \
+	firmware/brcmfmac6334-firmware  \
 	firmware/rpi-bluez-firmware     \
 	firmware/aw859a-firmware        \
 	$(if $(filter meson, $(mm_GRAPHICS)),firmware/amlogic-meson-firmware) \

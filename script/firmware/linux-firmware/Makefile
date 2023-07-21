@@ -70,11 +70,13 @@ ifeq (0,1)
 	@ln -srf $(BRCM_SOURCE)/cyfmac43456-sdio.clm_blob  $(BRCM_DEST)/brcmfmac43456-sdio.xunlong,orangepi-4.clm_blob
 endif
 
-	@# Broadcom 4334 bin, clm_blob and txt
+ifeq (0,1)
+	@# Broadcom 4334 bin, clm_blob and txt -> currently installed by brcmfmac6334-firmware
 	@ln -srf $(BRCM_DEST)/brcmfmac4334-sdio.bin               $(BRCM_DEST)/brcmfmac4334-sdio.tanix,tx6s.bin
 	@# fake clm_blob file as i can't find correct file....
 	@touch                                                    $(BRCM_DEST)/brcmfmac4334-sdio.tanix,tx6s.clm_blob
 	@ln -srf $(BRCM_DEST)/brcmfmac4330-sdio.Prowise-PT301.txt $(BRCM_DEST)/brcmfmac4334-sdio.tanix,tx6s.txt
+endif
 
 	@# Broadcom 4354 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac4354-sdio.bin      $(BRCM_DEST)/brcmfmac4354-sdio.amediatech,x96-x6.bin
