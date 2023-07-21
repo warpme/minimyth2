@@ -85,6 +85,8 @@ DISTFILES    = \
 	board-h313.x96_q_lpddr3.wks \
 	board-h618.orangepi_zero3.conf \
 	board-h618.orangepi_zero3.wks  \
+	board-h618.vontar_h618.conf \
+	board-h618.vontar_h618.wks  \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \
