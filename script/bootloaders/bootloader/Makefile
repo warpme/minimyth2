@@ -172,6 +172,10 @@ ifneq (,$(findstring board-h616.orangepi_zero2,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h616.orangepi_zero2
 endif
 
+ifneq (,$(findstring board-h618.orangepi_zero3,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-h618.orangepi_zero3
+endif
+
 ifneq (,$(findstring board-h313.x96_q,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h313.x96_q
 endif
