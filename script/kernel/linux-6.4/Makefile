@@ -141,6 +141,7 @@ PATCHFILES += 0612-gpu-drm-panfrost-panfrost-devfreq-revert-set-opp-to-the-recom
 PATCHFILES += 0613-drivers-mfd-axp20x-add-support-for-AXP15060-AXP313a-PMIC-v11.patch
 PATCHFILES += 0614-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0615-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
+PATCHFILES += 0616-net-wireless-add-uwe5622-support-08042023.patch
 # enable some h616 boards
 PATCHFILES += 0630-arm64-dts-allwinner-h616.dtsi-add-ths-audio-hdmi.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-OrangePI-Zero2-enable-ths-hdmi-audio.patch
