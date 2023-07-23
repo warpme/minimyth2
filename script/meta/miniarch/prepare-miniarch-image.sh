@@ -40,6 +40,8 @@ selection_w="board-h313.x96_q"
 selection_x="board-h313.x96_q_lpddr3"
 selection_y="board-h616.tanix_tx6s_axp313"
 selection_z="board-h6.orangepi_3_lts"
+selection_a1="board-h618.orangepi_zero3"
+selection_a2="board-h618.vontar_h618"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -128,6 +130,8 @@ if [ x${selection} = "x" ] ; then
     echo "  (x) for "${selection_x}
     echo "  (y) for "${selection_y}
     echo "  (z) for "${selection_z}
+    echo "  (a1)for "${selection_a1}
+    echo "  (a2)for "${selection_a2}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -205,6 +209,8 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_x}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_y}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_z}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a1}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a2}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     b)  cache_board_list "${selection_b}"
@@ -297,6 +303,14 @@ case "${selection}" in
 
     z)  cache_board_list "${selection_z}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_z}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    a1)  cache_board_list "${selection_a1}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a1}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    a2)  cache_board_list "${selection_a2}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a2}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
