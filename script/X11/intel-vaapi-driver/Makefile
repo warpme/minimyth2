@@ -9,9 +9,9 @@ DISTFILES = $(DISTNAME).tar.bz2
 endif
 
 ifeq (1,1)
-# git master @ 28092021
+# git master @ 26072023
 GARNAME = intel-vaapi-driver
-GARVERSION = 3ed3f6a783fdfff3fa1b567888518dcbda7eb2a3
+GARVERSION = 670090027d6cb61f95ef88fc35bc309117a04a94
 CATEGORIES = X11
 MASTER_SITES = https://github.com/intel/intel-vaapi-driver/archive/
 DISTFILES = $(GARVERSION).zip
