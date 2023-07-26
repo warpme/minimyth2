@@ -1,0 +1,61 @@
+From a02857a2eaa1fe768e19793fe76a96fd27007660 Mon Sep 17 00:00:00 2001
+From: Marcus Cooper <codekipper@gmail.com>
+Date: Wed, 26 Jul 2023 11:50:47 +0200
+Subject: [PATCH] wip: fixup for new audio code
+
+---
+ sound/soc/sunxi_v2/snd_sunxi_ahub.c | 23 ++++++++++++++++++++---
+ 1 file changed, 20 insertions(+), 3 deletions(-)
+
+diff --git a/sound/soc/sunxi_v2/snd_sunxi_ahub.c b/sound/soc/sunxi_v2/snd_sunxi_ahub.c
+index 0cbe6611a26513..b53efd2c6d071b 100644
+--- a/sound/soc/sunxi_v2/snd_sunxi_ahub.c
++++ b/sound/soc/sunxi_v2/snd_sunxi_ahub.c
+@@ -286,7 +286,7 @@ static int sunxi_ahub_dai_set_bclk_ratio(struct snd_soc_dai *dai, unsigned int r
+ 
+ 	regmap_update_bits(regmap, SUNXI_AHUB_I2S_CLKD(tdm_num),
+ 			   0xf << I2S_CLKD_BCLKDIV,
+-			   bclk_ratio << I2S_CLKD_BCLKDIV);
++			   (bclk_ratio - 2) << I2S_CLKD_BCLKDIV);
+ 
+ 	return 0;
+ }
+@@ -516,6 +516,23 @@ static int sunxi_ahub_dai_hw_params(struct snd_pcm_substream *substream,
+ 	tx_pin = ahub_info->dts_info.tx_pin;
+ 	rx_pin = ahub_info->dts_info.rx_pin;
+ 
++	/* configure DMA */
++	switch (params_physical_width(params)) {
++	case 16:
++		ahub_info->playback_dma_param.addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
++		ahub_info->capture_dma_param.addr_width = DMA_SLAVE_BUSWIDTH_2_BYTES;
++		break;
++	case 24:
++	case 32:
++		ahub_info->playback_dma_param.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
++		ahub_info->capture_dma_param.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
++		break;
++	default:
++		dev_err(dai->dev, "Unsupported physical sample width: %d\n",
++			params_physical_width(params));
++		return -EINVAL;
++	}
++
+ 	/* set bits */
+ 	switch (params_format(params)) {
+ 	case SNDRV_PCM_FORMAT_S16_LE:
+@@ -1283,12 +1300,12 @@ static void snd_soc_sunxi_dma_params_init(struct sunxi_ahub_info *ahub_info)
+ 	ahub_info->playback_dma_param.addr =
+ 		res->start + SUNXI_AHUB_APBIF_TXFIFO(dts_info->apb_num);
+ 	ahub_info->playback_dma_param.maxburst = 8;
+-	ahub_info->playback_dma_param.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
++	//ahub_info->playback_dma_param.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+ 
+ 	ahub_info->capture_dma_param.addr =
+ 		res->start + SUNXI_AHUB_APBIF_RXFIFO(dts_info->apb_num);
+ 	ahub_info->capture_dma_param.maxburst = 8;
+-	ahub_info->capture_dma_param.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
++	//ahub_info->capture_dma_param.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+ };
+ 
+ static int sunxi_ahub_dev_probe(struct platform_device *pdev)

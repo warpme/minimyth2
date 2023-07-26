@@ -142,6 +142,7 @@ PATCHFILES += 0613-drivers-mfd-axp20x-add-support-for-AXP15060-AXP313a-PMIC-v11.
 PATCHFILES += 0614-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0615-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 PATCHFILES += 0616-net-wireless-add-uwe5622-support-08042023.patch
+PATCHFILES += 0617-0608-sound-soc-sunxi-fix-no-Rch-and-slow-24bit.patch
 # enable some h616 boards
 PATCHFILES += 0630-arm64-dts-allwinner-h616.dtsi-add-ths-audio-hdmi.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-OrangePI-Zero2-enable-ths-hdmi-audio.patch
