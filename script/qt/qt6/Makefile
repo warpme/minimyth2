@@ -2,7 +2,7 @@
 BUILD_QTWEBENGINE = no
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 6.5.1
+GARVERSION   = 6.5.2
 CATEGORIES   = qt
 MASTER_SITES = http://download.qt.io/official_releases/qt/6.5/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
