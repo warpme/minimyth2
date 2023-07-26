@@ -1,10 +1,9 @@
 
-# Sunxi custodians 11.05.2021
-GARNAME      = u-boot-h616-20210511
-GARVERSION   = 647b392bf20614006917d5fcd3390347a668eee5
+GARNAME      = u-boot-h616-v2021.07
+GARVERSION   = 2021.07
 CATEGORIES   = kernel
-MASTER_SITES = https://gitlab.denx.de/u-boot/custodians/u-boot-sunxi/-/archive/$(GARVERSION)/
-DISTFILES    = $(GARVERSION).zip
+MASTER_SITES = https://github.com/u-boot/u-boot/archive/refs/tags/
+DISTFILES    = v$(GARVERSION).tar.gz
 PATCHFILES   = 0000-sync-h616-dram-to-8f1704087.patch
 PATCHFILES  += 0001-sunxi-Fix-write-to-H616-DRAM-CR-register.patch
 PATCHFILES  += 0002-sunxi-cosmetic-Fix-H616-DRAM-driver-code-style.patch
@@ -33,7 +32,7 @@ PATCHFILES  += 54-opi-zero2-add-mising-dram-para.patch
 PATCHFILES  += 55-add-opi-zero3-defconfig.patch
 # PATCHFILES  += 99-enable-debug.patch
 # PATCHFILES  += 99-dump-dram-controller-regs.patch
-WORKSRC      = $(WORKDIR)/u-boot-sunxi-$(GARVERSION)
+WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
 
