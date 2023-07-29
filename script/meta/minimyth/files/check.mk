@@ -404,6 +404,7 @@ mm-all:
 		   [ ! "$${board}" = "board-rk3399.rockpi4-b"     ] && \
 		   [ ! "$${board}" = "board-rk3399.rockpi4-se"    ] && \
 		   [ ! "$${board}" = "board-rk3399.orangepi_4"    ] && \
+		   [ ! "$${board}" = "board-rk3528.vontar_r3"     ] && \
 		   [ ! "$${board}" = "board-rk3566.x96_x6"        ] && \
 		   [ ! "$${board}" = "board-rk3566.quartz64-b"    ] && \
 		   [ ! "$${board}" = "board-rk3566.urve-pi"       ] && \
