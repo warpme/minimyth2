@@ -92,6 +92,10 @@ ifneq (,$(findstring board-rk3399.orangepi_4,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3399.orangepi_4
 endif
 
+ifneq (,$(findstring board-rk3528.vontar_r3,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3528.vontar_r3
+endif
+
 ifneq (,$(findstring board-rk3566.x96_x6,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3566.x96_x6
 endif
