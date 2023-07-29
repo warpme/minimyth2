@@ -9,6 +9,7 @@ MASTER_SITES = \
 		https://github.com/rockchip-linux/u-boot/archive/ \
 		https://github.com/rockchip-linux/rkbin/archive/
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip
+PATCHFILES   = fix-gcc13-compile.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
@@ -27,7 +28,7 @@ INSTALL_SCRIPTS     = custom
 include ../../gar.mk
 include ../../python3/python/package-api.mk
 
-# mm_U-BOOT_BOARD_TYPE = rk3528_defconfig
+mm_U-BOOT_BOARD_TYPE = rk3528_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
@@ -40,6 +41,7 @@ pre-configure:
 	@# dealing with hardcoded toolchain paths in Rockchip's make.sh
 	@sed -i "s|CROSS_COMPILE_ARM32=.*|CROSS_COMPILE_ARM32=$(build_DESTDIR)$(build_bindir)/$(compiler_prefix)|" $(WORKSRC)/make.sh
 	@sed -i "s|CROSS_COMPILE_ARM64=.*|CROSS_COMPILE_ARM64=$(build_DESTDIR)$(build_bindir)/$(compiler_prefix)|" $(WORKSRC)/make.sh
+	@cp $(WORKDIR)/rkbin/bin/rk35/rk3528_bl32_v1.02.bin $(WORKSRC)/tee.bin
 	@$(MAKECOOKIE)
 
 configure-custom:
@@ -50,7 +52,7 @@ configure-custom:
 build-custom:
 	@echo "Building u-boot rk3528 with $(CONFIGURE_ARGS) ..."
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
-	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) BL31=../rkbin/bin/rk35/rk3528_bl31_v1.16.elf spl/u-boot-spl.bin u-boot.dtb u-boot.itb
+	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) BL31=../rkbin/bin/rk35/rk3528_bl31_v1.16.elf
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@echo "Creating idbloader.img ..."
 	@cd ./$(WORKSRC) && ./tools/mkimage -n rk3528 -T rksd -d ../rkbin/bin/rk35/rk3528_ddr_1056MHz_v1.06.bin:spl/u-boot-spl.bin idbloader.img
