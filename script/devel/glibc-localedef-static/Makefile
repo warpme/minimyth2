@@ -1,8 +1,9 @@
-GARNAME = glibc-localedef-static
+
+GARNAME    = glibc-localedef-static
 GARVERSION = $(GLIBC_VERSION)
 CATEGORIES = devel
-SOURCEPKG = devel/glibc
-LICENSE = GPL2/LGPL2_1
+SOURCEPKG  = devel/glibc
+LICENSE    = GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -56,6 +57,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-elf \
 	--disable-werror \
 	--disable-multi-arch \
+	--disable-mathvec \
 
 ifeq ($(use_linuxthreads),yes)
 CONFIGURE_ARGS += \
@@ -88,7 +90,7 @@ INSTALL_ENV   = \
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
  
-# glibc 2.27 fails to compile with gcc 7.3.0's link time optimization enabled.
+# glibc fails to compile with gcc link time optimization enabled.
 CFLAGS  := $(filter-out -flto, $(CFLAGS))  -fno-lto
 LDFLAGS := $(filter-out -flto, $(LDFLAGS)) -fno-lto
 

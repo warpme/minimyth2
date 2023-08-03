@@ -1,8 +1,9 @@
-GARNAME = glibc-headers
+
+GARNAME    = glibc-headers
 GARVERSION = $(GLIBC_VERSION)
 CATEGORIES = devel
-SOURCEPKG = devel/glibc
-LICENSE = GPL2/LGPL2_1
+SOURCEPKG  = devel/glibc
+LICENSE    = GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -19,14 +20,18 @@ INSTALL_SCRIPTS   = custom
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--disable-sanity-checks \
-	--enable-kernel=3.18.0 \
+	--enable-kernel=6.0.0 \
 	--disable-build-nscd \
 	--disable-nscd \
+	--enable-add-ons=nptl \
+	--with-tls \
+	--with-__thread \
 	--without-cvs \
 	--with-headers=$(DESTDIR)$(includedir) \
 	--disable-add-ons \
 	--without-tls \
-	--without-__thread
+	--disable-mathvec
+
 INSTALL_ARGS    = \
 	cross-compiling=yes \
 	install_root=$(DESTDIR)
@@ -36,11 +41,13 @@ CONFIGURE_ENV = \
 	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
 	BUILD_CFLAGS="$(build_CFLAGS)" \
 	BUILD_LDFLAGS="$(build_LDFLAGS)"
+
 BUILD_ENV     = \
 	BUILD_CC="$(build_CC)" \
 	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
 	BUILD_CFLAGS="$(build_CFLAGS)" \
 	BUILD_LDFLAGS="$(build_LDFLAGS)"
+
 INSTALL_ENV   = \
 	BUILD_CC="$(build_CC)" \
 	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
@@ -80,7 +87,4 @@ post-install:
 	@mkdir -p $(DESTDIR)$(includedir)/gnu
 	@mkdir -p $(DESTDIR)$(includedir)/bits
 	@touch $(DESTDIR)$(includedir)/gnu/stubs.h
-	@cp $(WORKBLD)/bits/stdio_lim.h $(DESTDIR)$(includedir)/bits
-	@#cp $(WORKSRC)/nptl/sysdeps/pthread/pthread.h $(DESTDIR)$(includedir)
-	@#cp $(WORKSRC)/nptl/sysdeps/unix/sysv/linux/x86/bits/pthreadtypes.h $(DESTDIR)$(includedir)/bits
 	@$(MAKECOOKIE)

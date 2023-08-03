@@ -1,8 +1,9 @@
-GARNAME = glibc-rpcsvc
+
+GARNAME    = glibc-rpcsvc
 GARVERSION = $(GLIBC_VERSION)
 CATEGORIES = devel
-SOURCEPKG = devel/glibc
-LICENSE = GPL2/LGPL2_1
+SOURCEPKG  = devel/glibc
+LICENSE    = GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB

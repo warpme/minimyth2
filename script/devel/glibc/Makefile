@@ -19,15 +19,6 @@ DEPENDS   = lang/c kernel-headers/linux-headers devel/glibc-headers
 BUILDDEPS = devel/binutils devel/gcc-minimal-shared
 endif
 
-# If this is the build image and the system is using linuxthreads, then we need to use linux threads.
-# Otherwise, the build packages will not compile and run correctly.
-use_linuxthreads = no
-ifeq ($(DESTIMG),build)
-ifeq ($(shell getconf GNU_LIBPTHREAD_VERSION | sed 's%[- ].*%%'),linuxthreads)
-use_linuxthreads = yes
-endif
-endif
-
 WORKBLD = $(WORKSRC)_build
 
 CONFIGURE_SCRIPTS = custom
@@ -37,27 +28,21 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--cache-file=config.cache \
 	--enable-bind-now \
-	--enable-kernel=3.18.0 \
+	--enable-kernel=6.0.0 \
+	--enable-crypt \
 	--disable-build-nscd \
 	--disable-nscd \
+	--enable-add-ons=nptl \
+	--with-tls \
+	--with-__thread \
 	--without-gd \
 	--without-cvs \
 	--with-elf \
 	--with-headers=$(DESTDIR)$(includedir) \
 	--disable-werror \
-	--disable-multi-arch
+	--disable-multi-arch \
+	--disable-mathvec
 
-ifeq ($(use_linuxthreads),yes)
-CONFIGURE_ARGS += \
-	--enable-add-ons=linuxthreads \
-	--without-tls \
-	--without-__thread
-else
-CONFIGURE_ARGS += \
-	--enable-add-ons=nptl \
-	--with-tls \
-	--with-__thread
-endif
 INSTALL_ARGS    = \
 	install_root=$(DESTDIR)
 
@@ -66,11 +51,13 @@ CONFIGURE_ENV = \
 	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
 	BUILD_CFLAGS="$(build_CFLAGS)" \
 	BUILD_LDFLAGS="$(build_LDFLAGS)"
+
 BUILD_ENV     = \
 	BUILD_CC="$(build_CC)" \
 	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
 	BUILD_CFLAGS="$(build_CFLAGS)" \
 	BUILD_LDFLAGS="$(build_LDFLAGS)"
+
 INSTALL_ENV   = \
 	BUILD_CC="$(build_CC)" \
 	BUILD_CPPFLAGS="$(build_CPPFLAGS)" \
@@ -80,7 +67,7 @@ INSTALL_ENV   = \
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
 
-# glibc fails to compile with gcc 7.3.0's link time optimization enabled.
+# glibc fails to compile with gcc link time optimization enabled.
 CFLAGS  := $(filter-out -flto, $(CFLAGS))
 LDFLAGS := $(filter-out -flto, $(LDFLAGS))
 
