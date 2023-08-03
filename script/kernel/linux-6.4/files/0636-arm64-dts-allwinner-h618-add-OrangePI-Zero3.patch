@@ -1,16 +1,16 @@
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.4/arch/arm64/boot/dts/allwinner/Makefile linux-6.4.4/arch/arm64/boot/dts/allwinner/Makefile
---- linux-6.4.4/arch/arm64/boot/dts/allwinner/Makefile	2023-07-21 11:19:51.516630862 +0200
-+++ linux-6.4.4/arch/arm64/boot/dts/allwinner/Makefile	2023-07-21 11:18:36.946632471 +0200
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.7/arch/arm64/boot/dts/allwinner/Makefile linux-6.4.7/arch/arm64/boot/dts/allwinner/Makefile
+--- linux-6.4.7/arch/arm64/boot/dts/allwinner/Makefile	2023-08-03 14:51:15.026159641 +0200
++++ linux-6.4.7/arch/arm64/boot/dts/allwinner/Makefile	2023-08-03 14:49:44.019494930 +0200
 @@ -47,3 +47,5 @@
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h616-tanix-tx6s-axp313.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h313-x96-q.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h313-x96-q-lpddr3.dtb
 +dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h618-orangepi-zero3.dtb
 +
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.4/arch/arm64/boot/dts/allwinner/sun50i-h618-orangepi-zero3.dts linux-6.4.4/arch/arm64/boot/dts/allwinner/sun50i-h618-orangepi-zero3.dts
---- linux-6.4.4/arch/arm64/boot/dts/allwinner/sun50i-h618-orangepi-zero3.dts	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.4.4/arch/arm64/boot/dts/allwinner/sun50i-h618-orangepi-zero3.dts	2023-07-21 11:14:47.756637375 +0200
-@@ -0,0 +1,399 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.7/arch/arm64/boot/dts/allwinner/sun50i-h618-orangepi-zero3.dts linux-6.4.7/arch/arm64/boot/dts/allwinner/sun50i-h618-orangepi-zero3.dts
+--- linux-6.4.7/arch/arm64/boot/dts/allwinner/sun50i-h618-orangepi-zero3.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.4.7/arch/arm64/boot/dts/allwinner/sun50i-h618-orangepi-zero3.dts	2023-08-03 14:44:55.149501146 +0200
+@@ -0,0 +1,348 @@
 +// SPDX-License-Identifier: (GPL-2.0+ or MIT)
 +/*
 + * Copyright (C) 2020 Arm Ltd.
@@ -150,6 +150,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.4/arch/arm64
 +&emac0 {
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&ext_rgmii_pins>;
++	phy-supply = <&reg_dldo1>;
 +	phy-mode = "rgmii";
 +	phy-handle = <&ext_rgmii_phy>;
 +	allwinner,rx-delay-ps = <1800>;
@@ -162,14 +163,15 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.4/arch/arm64
 +		compatible = "ethernet-phy-ieee802.3-c22";
 +		reg = <1>;
 +		motorcomm,clk-out-frequency-hz = <125000000>;
-+		motorcomm,keep-pll-enabled;
-+		motorcomm,auto-sleep-disabled;
++		//motorcomm,keep-pll-enabled;
++		//motorcomm,auto-sleep-disabled;
 +	};
 +};
 +
 +&mmc0 {
 +	vmmc-supply = <&reg_dldo1>;
-+	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
++	//cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>; /* PF6 */
++	broken-cd;
 +	bus-width = <4>;
 +	max-frequency = <50000000>;
 +	status = "okay";
@@ -192,59 +194,65 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.4/arch/arm64
 +&r_i2c {
 +	status = "okay";
 +
-+	axp313a: pmic@36 {
++	axp313: pmic@36 {
 +		compatible = "x-powers,axp313a";
++		interrupt-parent = <&pio>;
++		interrupts = <2 9 IRQ_TYPE_LEVEL_LOW>; /* PC9 */
++		interrupt-controller;
++		#interrupt-cells = <1>;
 +		reg = <0x36>;
-+		wakeup-source;
 +
-+		regulators{
-+			reg_dcdc1: dcdc1 {
-+				regulator-name = "axp313a-dcdc1";
-+				regulator-min-microvolt = <500000>;
-+				regulator-max-microvolt = <1100000>;
-+				regulator-step-delay-us = <25>;
-+				regulator-final-delay-us = <50>;
++		vin1-supply = <&reg_vcc5v>;
++		vin2-supply = <&reg_vcc5v>;
++		vin3-supply = <&reg_vcc5v>;
++
++		regulators {
++			/* Supplies VCC-PLL, so needs to be always on. */
++			reg_aldo1: aldo1 {
 +				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc1v8";
++			};
++
++			/* Supplies VCC-IO, so needs to be always on. */
++			reg_dldo1: dldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3";
++			};
++
++			reg_dcdc1: dcdc1 {
++				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1160000>;
++				regulator-name = "vdd-gpu-sys";
 +			};
 +
 +			reg_dcdc2: dcdc2 {
-+				regulator-name = "axp313a-dcdc2";
-+				regulator-min-microvolt = <500000>;
-+				regulator-max-microvolt = <1200000>;
-+				regulator-step-delay-us = <25>;
-+				regulator-final-delay-us = <50>;
-+				regulator-ramp-delay = <200>;
 +				regulator-always-on;
++				regulator-min-microvolt = <810000>;
++				regulator-max-microvolt = <1160000>;
++				regulator-name = "vdd-cpu";
 +			};
 +
 +			reg_dcdc3: dcdc3 {
-+				regulator-name = "axp313a-dcdc3";
++				regulator-always-on;
 +				regulator-min-microvolt = <1100000>;
 +				regulator-max-microvolt = <1100000>;
-+				regulator-step-delay-us = <25>;
-+				regulator-final-delay-us = <50>;
-+				regulator-always-on;
-+			};
-+
-+			reg_aldo1: ldo1 {
-+				regulator-name = "axp313a-aldo1";
-+				regulator-min-microvolt = <1800000>;
-+				regulator-max-microvolt = <1800000>;
-+				regulator-step-delay-us = <25>;
-+				regulator-final-delay-us = <50>;
-+				regulator-always-on;
-+			};
-+
-+			reg_dldo1: ldo2 {
-+				regulator-name = "axp313a-dldo1";
-+				regulator-min-microvolt = <3300000>;
-+				regulator-max-microvolt = <3300000>;
-+				regulator-step-delay-us = <25>;
-+				regulator-final-delay-us = <50>;
-+				regulator-always-on;
++				regulator-name = "vdd-dram";
 +			};
 +		};
 +	};
++};
++
++&pio {
++	vcc-pc-supply = <&reg_dldo1>;
++	vcc-pf-supply = <&reg_dldo1>;
++	vcc-pg-supply = <&reg_aldo1>;
++	vcc-ph-supply = <&reg_dldo1>;
++	vcc-pi-supply = <&reg_dldo1>;
 +};
 +
 +&uart0 {
@@ -328,65 +336,6 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.4/arch/arm64
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&ir_rx_pin>;
 +	status = "okay";
-+};
-+
-+&i2c1 {
-+	status = "disabled";
-+};
-+
-+&i2c2 {
-+	status = "disabled";
-+};
-+
-+&i2c3 {
-+	status = "disabled";
-+};
-+
-+&i2c4 {
-+	status = "disabled";
-+};
-+
-+&uart5 {
-+	pinctrl-names = "default";
-+	pinctrl-0 = <&uart5_ph_pins>;
-+	status = "disabled";
-+};
-+
-+&spi0  {
-+	status = "okay";
-+	pinctrl-names = "default";
-+	pinctrl-0 = <&spi0_pins>, <&spi0_cs0_pin>;
-+
-+	spidev@0 {
-+		status = "disabled";
-+		compatible = "rohm,dh2228fv";
-+		reg = <0>;
-+		spi-max-frequency = <1000000>;
-+	};
-+
-+	flash@0 {
-+		status = "okay";
-+		#address-cells = <1>;
-+		#size-cells = <1>;
-+		compatible = "jedec,spi-nor";
-+		reg = <0>;
-+		spi-max-frequency = <40000000>;
-+	};
-+};
-+
-+&spi1 {
-+	status = "disabled";
-+	#address-cells = <1>;
-+	#size-cells = <0>;
-+	pinctrl-names = "default";
-+	pinctrl-0 = <&spi1_pins>, <&spi1_cs0_pin>;
-+
-+	spidev@1 {
-+		compatible = "rohm,dh2228fv";
-+		status = "disabled";
-+		reg = <1>;
-+		spi-max-frequency = <1000000>;
-+	};
 +};
 +
 +&codec {
