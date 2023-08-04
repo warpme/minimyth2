@@ -103,6 +103,7 @@ Allwinner H313| X96-Q (LPDDR3)   | works  (xr819@SDIO)                    | work
 Allwinner H616| TanixTX6s-axp313 | works  (ap6330@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| OrangePI-Zero2   | works  (aw859a@SDIO)                   | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H618| OrangePI-Zero3   | works  (aw859a@SDIO)                   | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H618| Vontar H618      | works  (ap6334@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
 Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | works       | works       | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
