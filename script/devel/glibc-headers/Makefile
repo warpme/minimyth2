@@ -30,7 +30,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-headers=$(DESTDIR)$(includedir) \
 	--disable-add-ons \
 	--without-tls \
-	--disable-mathvec
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),--disable-mathvec) \
 
 INSTALL_ARGS    = \
 	cross-compiling=yes \

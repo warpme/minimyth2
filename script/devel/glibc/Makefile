@@ -41,7 +41,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-headers=$(DESTDIR)$(includedir) \
 	--disable-werror \
 	--disable-multi-arch \
-	--disable-mathvec
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),--disable-mathvec) \
 
 INSTALL_ARGS    = \
 	install_root=$(DESTDIR)

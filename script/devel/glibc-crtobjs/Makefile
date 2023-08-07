@@ -32,7 +32,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-cvs \
 	--with-elf \
 	--with-headers=$(DESTDIR)$(includedir) \
-	--disable-mathvec
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),--disable-mathvec) \
 
 BUILD_ARGS      = \
 	csu/subdir_lib
