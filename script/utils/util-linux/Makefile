@@ -24,6 +24,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
 	--disable-gtk-doc \
+	--disable-asciidoc \
+	--disable-poman \
 	--enable-nls \
 	--disable-rpath \
 	--enable-tls \
