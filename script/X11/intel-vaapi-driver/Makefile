@@ -1,21 +1,10 @@
 
-ifeq (0,1)
-# mainline
-GARNAME = intel-vaapi-driver
-GARVERSION = 2.4.1
-CATEGORIES = X11
-MASTER_SITES = https://github.com/01org/intel-vaapi-driver/releases/download/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.bz2
-endif
-
-ifeq (1,1)
-# git master @ 26072023
-GARNAME = intel-vaapi-driver
-GARVERSION = 670090027d6cb61f95ef88fc35bc309117a04a94
-CATEGORIES = X11
+# git master @ 26.07.2023
+GARNAME      = intel-vaapi-driver
+GARVERSION   = 670090027d6cb61f95ef88fc35bc309117a04a94
+CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/intel-vaapi-driver/archive/
-DISTFILES = $(GARVERSION).zip
-endif
+DISTFILES    = $(GARVERSION).zip
 
 LICENSE = GPL2
 
@@ -39,9 +28,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-gnu-ld
 
 include ../../gar.mk
-
-#CPPFLAGS += -fcommon
-#CFLAGS   += -fcommon
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
