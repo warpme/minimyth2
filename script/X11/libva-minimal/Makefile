@@ -1,9 +1,10 @@
 
 GARNAME      = libva
-GARVERSION   = 2.19.0
+GARVERSION   = $(LIBVA_VERSION)
 CATEGORIES   = X11
-MASTER_SITES = https://github.com/intel/libva/archive/
-DISTFILES    = $(GARVERSION).tar.gz
+SOURCEPKG    = X11/libva
+#MASTER_SITES = https://github.com/intel/libva/archive/
+#DISTFILES    = $(GARVERSION).tar.gz
 LICENSE      = MIT
 
 DESCRIPTION = 
@@ -30,6 +31,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-drivers-path="$(libdir)/va-minimal" \
 	--with-gnu-ld
 
+GAR_EXTRA_CONF += X11/libva/package-api.mk
 include ../../gar.mk
 
 pre-configure:
