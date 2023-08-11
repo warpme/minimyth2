@@ -1,12 +1,11 @@
 
-# git master @ 26.07.2023
+# git master @ 28.09.2021
 GARNAME      = intel-vaapi-driver
-GARVERSION   = 670090027d6cb61f95ef88fc35bc309117a04a94
+GARVERSION   = 3ed3f6a783fdfff3fa1b567888518dcbda7eb2a3
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/intel-vaapi-driver/archive/
 DISTFILES    = $(GARVERSION).zip
-
-LICENSE = GPL2
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
