@@ -42,8 +42,7 @@ pre-configure:
 	@sed -i "s|CROSS_COMPILE_ARM32=.*|CROSS_COMPILE_ARM32=$(build_DESTDIR)$(build_bindir)/$(compiler_prefix)|" $(WORKSRC)/make.sh
 	@sed -i "s|CROSS_COMPILE_ARM64=.*|CROSS_COMPILE_ARM64=$(build_DESTDIR)$(build_bindir)/$(compiler_prefix)|" $(WORKSRC)/make.sh
 	@cp $(WORKDIR)/rkbin/bin/rk35/rk3528_bl31_v1.16.elf $(WORKSRC)/bl31.elf
-	@# this seems to be required for successfull compile of uboot....
-	@cp $(WORKDIR)/rkbin/bin/rk35/rk3528_bl31_v1.16.elf $(WORKSRC)/tee.bin
+	@cp $(WORKDIR)/rkbin/bin/rk35/rk3528_bl32_v1.02.bin $(WORKSRC)/tee.bin
 	@$(MAKECOOKIE)
 
 configure-custom:
