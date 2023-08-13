@@ -89,18 +89,25 @@ if [ ! -z `echo ${boards} | grep -o "board-x86pc"` ] ; then
     echo "  board-x86pc detected. skipping default-mbr[gpt].wks"
 elif [ ! -z `echo ${boards} | grep -o "board-rk3566.x96_x6"` ] ; then
     echo "  board-rk3566.x96_x6 detected: using all in one board-rk3566.x96_x6.wks"
-    # cat board-rk3566.x96_x6.wks to MiniMyth2.wks is comented-out as x96_x6
-    # box is single exception where board-rk3566.x96_x6.wks
+    # cat board-*.wks to MiniMyth2.wks is comented-out as this
+    # box is single exception where board-*.wks
     # creates all paritions (boot related and rootfs). This is because this
     # box speciffics.
     #cat ${base_dir}/board-rk3566.x96_x6.wks >> ${base_dir}/MiniMyth2.wks
 elif [ ! -z `echo ${boards} | grep -o "board-rk3566.urve-pi"` ] ; then
     echo "  board-rk3566.urve-pi detected: using all in one board-rk3566.urve-pi.wks"
-    # cat board-rk3566.x96_x6.wks to MiniMyth2.wks is comented-out as x96_x6
-    # box is single exception where board-rk3566.x96_x6.wks
+    # cat board-*.wks to MiniMyth2.wks is comented-out as this
+    # box is single exception where board-*.wks
     # creates all paritions (boot related and rootfs). This is because this
     # box speciffics.
-    #cat ${base_dir}/board-rk3566.x96_x6.wks >> ${base_dir}/MiniMyth2.wks
+    #cat ${base_dir}/board-rk3566.urve-pi.wks >> ${base_dir}/MiniMyth2.wks
+elif [ ! -z `echo ${boards} | grep -o "board-rk3528.vontar_r3"` ] ; then
+    echo "  board-rk3528.vontar_r3.wks detected: using all in one board-rk3528.vontar_r3.wks"
+    # cat board-*.wks to MiniMyth2.wks is comented-out as this
+    # box is single exception where board-*.wks
+    # creates all paritions (boot related and rootfs). This is because this
+    # box speciffics.
+    #cat ${base_dir}/board-rk3528.vontar_r3.wks >> ${base_dir}/MiniMyth2.wks
 elif [ ! -z `echo ${boards} | grep -o "board-rk3566.*"` ] ; then
     echo "  board-rk3566 detected: using default-gpt.wks"
     cat ${base_dir}/default-gpt.wks >> ${base_dir}/MiniMyth2.wks
