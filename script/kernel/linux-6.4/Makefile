@@ -242,6 +242,19 @@ PATCHFILES += 1040-arm64-dtsi-rockchip-rk3588s-add-DT-node-for-ADC-support.patch
 endif
 #------------------------------------------------------------
 
+ifeq (1,1)
+#-- Rockchip 3528 patches -----------------------------------------
+PATCHFILES += 1100-dt-bindings-clock-add-rk3528-clock-definitions.patch
+PATCHFILES += 1101-clk-rockchip-add-clock-controller-for-the-RK3528.patch
+PATCHFILES += 1102-pinctrl-rockchip-add-rk3528-support.patch
+PATCHFILES += 1103-dt-bindings-power-add-RK3528-SoCs-header-for-idle.patch
+PATCHFILES += 1104-ethernet-stmmac-dwmac-rk3528-add-GMAC-support.patch
+# add rk3528 boards
+PATCHFILES += 1150-arm64-dtsi-rockchip-add-3528.dtsi.patch
+PATCHFILES += 1151-arm64-dts-rockchip-add-dts-for-vontar_r3.patch
+endif
+#------------------------------------------------------------
+
 endif
 
 LICENSE = GPL2
