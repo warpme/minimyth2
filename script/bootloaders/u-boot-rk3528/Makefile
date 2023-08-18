@@ -9,7 +9,7 @@ MASTER_SITES = \
 		https://github.com/rockchip-linux/u-boot/archive/ \
 		https://github.com/rockchip-linux/rkbin/archive/
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip
-PATCHFILES   = fix-gcc13-compile.patch
+PATCHFILES   = fix-gcc13-compile.patch arch-arm-dts-rk3528-u-boot.dtsi-add-mmc-eth-aliases.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
