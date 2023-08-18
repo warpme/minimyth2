@@ -249,6 +249,12 @@ PATCHFILES += 1101-clk-rockchip-add-clock-controller-for-the-RK3528.patch
 PATCHFILES += 1102-pinctrl-rockchip-add-rk3528-support.patch
 PATCHFILES += 1103-dt-bindings-power-add-RK3528-SoCs-header-for-idle.patch
 PATCHFILES += 1104-ethernet-stmmac-dwmac-rk3528-add-GMAC-support.patch
+PATCHFILES += 1105-soc-rockchip-power-domain-add-rk3528-support.patch
+PATCHFILES += 1106-phy-rockchip-inno-usb2-add-phy-support-for-rk3528.patch
+PATCHFILES += 1107-hack-hack-soc-rockchip-power-domain-workaround-for-oops-on-rk3528.patch
+#PATCHFILES += 1107-phy-rockchip-naneng-combphy-add-support-for-rk3528.patch
+#PATCHFILES += 1108-nvmem-rockchip-otp-add-support-for-rk3528.patch
+#PATCHFILES += 1109-thermal-rockchip-add-support-for-rk3528.patch
 # add rk3528 boards
 PATCHFILES += 1150-arm64-dtsi-rockchip-add-3528.dtsi.patch
 PATCHFILES += 1151-arm64-dts-rockchip-add-dts-for-vontar_r3.patch
