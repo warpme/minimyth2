@@ -253,7 +253,7 @@ PATCHFILES += 1105-soc-rockchip-power-domain-add-rk3528-support.patch
 PATCHFILES += 1106-phy-rockchip-inno-usb2-add-phy-support-for-rk3528.patch
 PATCHFILES += 1107-hack-hack-soc-rockchip-power-domain-workaround-for-oops-on-rk3528.patch
 PATCHFILES += 1108-thermal-rockchip-add-support-for-rk3528.patch
-#PATCHFILES += 1107-phy-rockchip-naneng-combphy-add-support-for-rk3528.patch
+PATCHFILES += 1109-phy-rockchip-naneng-combphy-add-support-for-rk3528.patch
 #PATCHFILES += 1108-nvmem-rockchip-otp-add-support-for-rk3528.patch
 # add rk3528 boards
 PATCHFILES += 1150-arm64-dtsi-rockchip-add-3528.dtsi.patch
