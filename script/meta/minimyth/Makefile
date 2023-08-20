@@ -170,6 +170,7 @@ DEPENDS = \
 	utils/kbd \
 	utils/dash \
 	utils/read-edid \
+	utils/estimate-arm-cpu-frequency \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
 		gtk/gconf \
 		gtk/gtk3 \
