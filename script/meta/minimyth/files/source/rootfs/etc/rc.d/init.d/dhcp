@@ -3,6 +3,7 @@
 # dhcp
 ################################################################################
 . /etc/rc.d/functions
+. /etc/minimyth.d/minimyth.conf
 
 start() {
 
@@ -13,6 +14,13 @@ start() {
     local IP_ADDRESS
 
     UDHCPC_CONF='/etc/udhcpc.conf'
+
+    # variables used at static networking configuration
+    HOSTS_CONF='/etc/hosts'
+    LOG_CONF='/etc/log.conf'
+    NTP_CONF='/etc/ntp.conf'
+    RESOLV_CONF='/etc/resolv.conf'
+    TZ_CONF='/etc/localtime'
 
     # Create a 'udhcpc.conf' file.
     /bin/rm -f "${UDHCPC_CONF}~"
@@ -33,7 +41,6 @@ start() {
 
     # Start 'udhcpc'.
     if [ -z "`/bin/pidof udhcpc`" ] ; then
-        mm_message_output info "starting DHCP client ..."
         INTERFACE=${MM_NETWORK_INTERFACE}
         if [ -z "${INTERFACE}" ] ; then
             # Locate a connected network interface.
@@ -65,7 +72,7 @@ start() {
         while [ $i -lt 15 ] ; do
             no_iface=`/sbin/ifconfig ${INTERFACE} | /bin/grep "${INTERFACE}"`
             i=$((${i} + 1))
-            if [ -z ${no_iface} ] ; then
+            if [ "x${no_iface}" = "x" ] ; then
                 if [ $i -eq 15 ] ; then
                     mm_message_output err "error: After 15sec still no '${INTERFACE}' interface in system ..."
                     /usr/bin/logger -t minimyth -p "local0.err" "[init.d/dhcp] Timeout waiting for ${INTERFACE} interface ..."
@@ -76,30 +83,115 @@ start() {
                     /bin/sleep 1
                 fi
             else
-                /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] ${INTERFACE} present. Starting DHCP client ..."
+                /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] ${INTERFACE} present. Starting configuring networking ..."
                 i=15
             fi
         done
 
-        # Start DHCP on the interface.
-        IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
-        if [ -z "${IP_ADDRESS}" ] ; then
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Starting DHCP client on ${INTERFACE} ..."
-            /sbin/udhcpc -S -p /var/run/udhcpc.pid -s /etc/udhcpc.script -i ${INTERFACE} -O tzdbstr -O logsrv  > /var/log/udhcpc 2>&1
+        if [ -z "${MM_NETWORK_STATIC_IP}" ] ; then
+            # Start DHCP on the interface.
+            mm_message_output info "starting DHCP client ..."
+            IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
+            if [ -z "${IP_ADDRESS}" ] ; then
+                /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Starting DHCP client on ${INTERFACE} ..."
+                /sbin/udhcpc -S -p /var/run/udhcpc.pid -s /etc/udhcpc.script -i ${INTERFACE} -O tzdbstr -O logsrv  > /var/log/udhcpc 2>&1
+            else
+                /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Starting DHCP client on ${INTERFACE} with forced IP=${IP_ADDRESS} ..."
+                /sbin/udhcpc -S -p /var/run/udhcpc.pid -s /etc/udhcpc.script -i ${INTERFACE} -r ${IP_ADDRESS}  -O tzdbstr -O logsrv > /var/log/udhcpc 2>&1
+            fi
+            if [ $? -ne 0 ] ; then
+                mm_message_output err "error: DHCP on interface '${INTERFACE}' failed."
+                return 1
+            fi
+            # Make sure we got an IP address.
+            IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
+            if [ -z "${IP_ADDRESS}" ] ; then
+                mm_message_output err "error: Can't get IP from DHCP on interface '${INTERFACE}' ..."
+                return 1
+            fi
         else
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Starting DHCP client on ${INTERFACE} with forced IP=${IP_ADDRESS} ..."
-            /sbin/udhcpc -S -p /var/run/udhcpc.pid -s /etc/udhcpc.script -i ${INTERFACE} -r ${IP_ADDRESS}  -O tzdbstr -O logsrv > /var/log/udhcpc 2>&1
-        fi
-        if [ $? -ne 0 ] ; then
-            mm_message_output err "error: DHCP on interface '${INTERFACE}' failed."
-            return 1
-        fi
+            # configuring with static IP
+            mm_message_output info "configuring networking with static config ..."
 
-        # Make sure we got an IP address.
-        IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
-        if [ -z "${IP_ADDRESS}" ] ; then
-            mm_message_output err "error: Can't get IP from DHCP on interface '${INTERFACE}' ..."
-            return 1
+            # Configure interface basics.
+            [ -n "${MM_NETWORK_BROADCAST_IP}" ] && BROADCAST="broadcast ${MM_NETWORK_BROADCAST_IP}"
+            [ -n "${MM_NETWORK_SUBNET}" ] && NETMASK="netmask ${MM_NETWORK_SUBNET}"
+            /sbin/ifconfig ${INTERFACE} ${MM_NETWORK_STATIC_IP} ${BROADCAST} ${NETMASK}
+
+            # Make sure we got an IP address.
+            IP_ADDRESS=`/sbin/ifconfig ${INTERFACE} | /bin/grep '^ *inet addr:' | /bin/sed 's%^ *inet addr:\([^ ]*\) .*%\1%'`
+            if [ -z "${IP_ADDRESS}" ] ; then
+                mm_message_output err "error: Seting static IP on interface '${INTERFACE}' failed ..."
+                return 1
+            fi
+
+            # Configure default gateways.
+            while /sbin/route del default gw 0.0.0.0 dev ${INTERFACE} 2> /dev/null ; do
+                :
+            done
+            for GATEWAY in ${MM_NETWORK_DEFAULT_GW} ; do
+                /sbin/route add default gw ${GATEWAY} dev ${INTERFACE}
+                export MM_NETWORK_DEFAULT_GW=${MM_NETWORK_DEFAULT_GW}
+            done
+
+            # Set host name.
+            [ -n ${MM_NETWORK_HOST_NAME} ] && /bin/hostname "${MM_NETWORK_HOST_NAME}"
+
+            # Set time zone.
+            if   [ -z "${MM_NETWORK_TCODE}" ] ; then
+                /bin/rm -f ${TZ_CONF}
+            elif [ ! -r /usr/share/zoneinfo/${MM_NETWORK_TCODE} ] ; then
+                /bin/rm -f ${TZ_CONF}
+                /usr/bin/logger -s -t udhcpc -p "daemon.err" \
+                    "error: tzdbstr (MM_NETWORK_TCODE) '${MM_NETWORK_TCODE}' not valid."
+            else
+                /bin/rm -f ${TZ_CONF}~
+                /bin/touch ${TZ_CONF}~
+                /bin/chmod 644 ${TZ_CONF}~
+                /bin/cat /usr/share/zoneinfo/${MM_NETWORK_TCODE} > ${TZ_CONF}~
+                /usr/bin/cmp -s "${TZ_CONF}~" "${TZ_CONF}" 2> /dev/null
+                if [ $? -ne 0 ] ; then
+                    /bin/mv -f ${TZ_CONF}~ ${TZ_CONF}
+                else
+                    /bin/rm -f ${TZ_CONF}~
+                fi
+            fi
+
+            # Create domain name resolution file.
+            /bin/rm -f ${RESOLV_CONF}~
+            /bin/touch ${RESOLV_CONF}~
+            /bin/chmod 644 ${RESOLV_CONF}~
+            if [ -n "${MM_NETWORK_DOMAIN_NAME}" ] ; then
+                /bin/echo search ${MM_NETWORK_DOMAIN_NAME} >> ${RESOLV_CONF}~
+            fi
+            for DOMAIN_NAME_SERVER in ${MM_NETWORK_DOMAIN_NAME_SERVERS} ; do
+                if [ -n "${DOMAIN_NAME_SERVER}" ] ; then
+                    /bin/echo nameserver ${DOMAIN_NAME_SERVER} >> ${RESOLV_CONF}~
+                fi
+            done
+            /usr/bin/cmp -s "${RESOLV_CONF}~" "${RESOLV_CONF}" 2> /dev/null
+            if [ $? -ne 0 ] ; then
+                /bin/mv -f ${RESOLV_CONF}~ ${RESOLV_CONF}
+            else
+                /bin/rm -f ${RESOLV_CONF}~
+            fi
+
+            # Create NTP configuration file.
+            /bin/rm -f ${NTP_CONF}~
+            /bin/touch ${NTP_CONF}~
+            /bin/chmod 644 ${NTP_CONF}~
+            for NTP_SERVER in ${MM_NETWORK_NTP_SERVERS}; do
+                if [ -n "${NTP_SERVER}" ] ; then
+                    /bin/echo server ${NTP_SERVER} >> ${NTP_CONF}~
+                fi
+            done
+            /usr/bin/cmp -s "${NTP_CONF}~" "${NTP_CONF}" 2> /dev/null
+            if [ $? -ne 0 ] ; then
+                /bin/mv -f ${NTP_CONF}~ ${NTP_CONF}
+            else
+                /bin/rm -f ${NTP_CONF}~
+            fi
+
         fi
 
     fi
@@ -107,7 +199,7 @@ start() {
     HOST_NAME=`/bin/hostname`
     if [ "x${HOST_NAME}" = "x?" ] ; then
 
-        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/dhcp] NOTICE:    !!! No hostname assigned by DHCP server !!!"
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/dhcp] NOTICE:    !!! No hostname assigned by DHCP server nor by MM_NETWORK_HOST_NAME !!!"
 
         # Add last 2 bytes from MAC as suffix
         # SUFFIX=`cat /sys/class/net/${INTERFACE}/address | sed -e "s/\(.*\):\(.*\):\(.*\):\(.*\):\(.*\):\(.*\)/\6/"`
@@ -124,6 +216,25 @@ start() {
 
         /bin/hostname ${HOST_NAME}
 
+    fi
+
+    # Create local hosts file.
+    /bin/rm -f ${HOSTS_CONF}~
+    /bin/touch ${HOSTS_CONF}~
+    /bin/chmod 644 ${HOSTS_CONF}~
+    /bin/echo "127.0.0.1 localhost.localdomain localhost" >> ${HOSTS_CONF}~
+    if [ -n "${HOST_NAME}" ] ; then
+        /bin/echo -n "${IP_ADDRESS}" >> ${HOSTS_CONF}~
+        if [ -n "${domain}" ] ; then
+            /bin/echo -n " ${MM_NETWORK_HOST_NAME}.${domain}" >> ${HOSTS_CONF}~
+        fi
+        /bin/echo -n " ${HOST_NAME}" >> ${HOSTS_CONF}~
+    fi
+    /usr/bin/cmp -s "${HOSTS_CONF}~" "${HOSTS_CONF}" 2> /dev/null
+    if [ $? -ne 0 ] ; then
+        /bin/mv -f ${HOSTS_CONF}~ ${HOSTS_CONF}
+    else
+        /bin/rm -f ${HOSTS_CONF}~
     fi
 
     this_script_done
