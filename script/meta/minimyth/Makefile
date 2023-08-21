@@ -164,13 +164,14 @@ DEPENDS = \
 	$(if $(filter weston,$(mm_SOFTWARE)), \
 		wayland/weston) \
 	X11/xdotool \
-	utils/tinymembench \
 	utils/inxi \
-	utils/peekpoke \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
+		utils/estimate-arm-cpu-frequency \
+		utils/tinymembench \
+		utils/peekpoke) \
 	utils/kbd \
 	utils/dash \
 	utils/read-edid \
-	utils/estimate-arm-cpu-frequency \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
 		gtk/gconf \
 		gtk/gtk3 \
