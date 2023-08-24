@@ -258,6 +258,7 @@ PATCHFILES += 1111-drm-rockchip-dw_hdmi-add-support-for-rk3528.patch
 PATCHFILES += 1112-hack-hack-clk-rockchip-make-hdmi-clocks-critical.patch
 PATCHFILES += 1113-nvmem-rockchip-otp-add-support-for-rk3528.patch
 PATCHFILES += 1114-sound-soc-codecs-add-rk3528-support.patch
+PATCHFILES += 1115-hack-hack-gpu-drm-rockchip-rockchip_vop2_reg-add-rk3528.patch
 # add rk3528 boards
 PATCHFILES += 1150-arm64-dtsi-rockchip-add-3528.dtsi.patch
 PATCHFILES += 1151-arm64-dts-rockchip-add-dts-for-vontar_r3.patch
