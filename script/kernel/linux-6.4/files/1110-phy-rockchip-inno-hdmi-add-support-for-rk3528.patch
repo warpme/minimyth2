@@ -5,9 +5,18 @@ Code based on BSP by:
 Signed-off-by: Algea Cao <algea.cao@rock-chips.com>
 
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c linux-6.4.11/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c
---- linux-6.4.11/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c	2023-08-20 21:10:24.700000967 +0200
-+++ linux-6.4.11/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c	2023-08-20 18:37:16.333240940 +0200
-@@ -225,6 +225,12 @@
+--- linux-6.4.11/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c	2023-08-25 19:07:47.923461135 +0200
++++ linux-6.4.11/drivers/phy/rockchip/phy-rockchip-inno-hdmi.c	2023-08-25 19:12:58.216795521 +0200
+@@ -6,6 +6,8 @@
+  *         Heiko Stuebner <heiko@sntech.de>
+  */
+ 
++#define DEBUG
++
+ #include <linux/clk.h>
+ #include <linux/clk-provider.h>
+ #include <linux/delay.h>
+@@ -225,6 +227,12 @@
  /* REG: 0xd3 */
  #define RK3328_PRE_PLL_FRAC_DIV_7_0(x)			UPDATE(x, 7, 0)
  
@@ -20,7 +29,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/p
  struct inno_hdmi_phy_drv_data;
  
  struct inno_hdmi_phy {
-@@ -236,6 +242,7 @@
+@@ -236,6 +244,7 @@
  	struct clk *sysclk;
  	struct clk *refoclk;
  	struct clk *refpclk;
@@ -28,7 +37,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/p
  
  	/* platform data */
  	const struct inno_hdmi_phy_drv_data *plat_data;
-@@ -286,6 +293,7 @@
+@@ -286,6 +295,7 @@
  };
  
  struct inno_hdmi_phy_drv_data {
@@ -36,7 +45,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/p
  	const struct inno_hdmi_phy_ops	*ops;
  	const struct clk_ops		*clk_ops;
  	const struct phy_config		*phy_cfg_table;
-@@ -473,9 +481,13 @@
+@@ -473,9 +483,13 @@
  	{33750000,  1, 80, 8, 2},
  	{74250000,  1, 40, 8, 1},
  	{74250000, 18, 80, 8, 2},
@@ -50,7 +59,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/p
  	{ /* sentinel */ }
  };
  
-@@ -498,6 +510,30 @@
+@@ -498,6 +512,30 @@
  	}, { /* sentinel */ },
  };
  
@@ -81,7 +90,41 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/p
  /* phy tuning values for an undocumented set of registers */
  static const struct phy_config rk3328_phy_cfg[] = {
  	{	165000000, {
-@@ -840,6 +876,8 @@
+@@ -611,25 +649,29 @@
+ 	unsigned long tmdsclock = inno_hdmi_phy_get_tmdsclk(inno,
+ 							    inno->pixclock);
+ 	int ret;
++	u32 chipversion = 1;
+ 
+ 	if (!tmdsclock) {
+ 		dev_err(inno->dev, "TMDS clock is zero!\n");
+ 		return -EINVAL;
+ 	}
+ 
++	if (inno->plat_data->dev_type == INNO_HDMI_PHY_RK3528)
++		chipversion = 8;
++
+ 	if (!inno->plat_data->ops->power_on)
+ 		return -EINVAL;
+ 
+-	for (; cfg->tmdsclock != 0; cfg++)
++	for (; cfg->tmdsclock != ~0UL; cfg++)
+ 		if (tmdsclock <= cfg->tmdsclock &&
+-		    cfg->version & inno->chip_version)
++		    cfg->version & chipversion)
+ 			break;
+ 
+-	for (; phy_cfg->tmdsclock != 0; phy_cfg++)
++	for (; phy_cfg->tmdsclock != ~0UL; phy_cfg++)
+ 		if (tmdsclock <= phy_cfg->tmdsclock)
+ 			break;
+ 
+-	if (cfg->tmdsclock == 0 || phy_cfg->tmdsclock == 0)
++	if (cfg->tmdsclock == ~0UL || phy_cfg->tmdsclock == ~0UL)
+ 		return -EINVAL;
+ 
+ 	dev_dbg(inno->dev, "Inno HDMI PHY Power On\n");
+@@ -840,6 +882,8 @@
  	.set_rate = inno_hdmi_phy_rk3228_clk_set_rate,
  };
  
@@ -90,7 +133,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/p
  static int inno_hdmi_phy_rk3328_clk_is_prepared(struct clk_hw *hw)
  {
  	struct inno_hdmi_phy *inno = to_inno_hdmi_phy(hw);
-@@ -994,14 +1032,207 @@
+@@ -994,14 +1038,207 @@
  	.set_rate = inno_hdmi_phy_rk3328_clk_set_rate,
  };
  
@@ -298,7 +341,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/p
  	parent_name = __clk_get_name(inno->refoclk);
  
  	init.parent_names = &parent_name;
-@@ -1011,7 +1242,7 @@
+@@ -1011,7 +1248,7 @@
  	init.ops = inno->plat_data->clk_ops;
  
  	/* optional override of the clock name */
@@ -307,7 +350,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/p
  
  	inno->hw.init = &init;
  
-@@ -1022,7 +1253,7 @@
+@@ -1022,7 +1259,7 @@
  		return ret;
  	}
  
@@ -316,7 +359,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/p
  	if (ret) {
  		dev_err(dev, "failed to register clock provider: %d\n", ret);
  		return ret;
-@@ -1269,31 +1500,193 @@
+@@ -1269,24 +1506,186 @@
  	inno_write(inno, 0x07, 0);
  }
  
@@ -466,12 +509,6 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/p
 +	return 0;
 +}
 +
-+static const struct regmap_config inno_hdmi_phy_regmap_config = {
-+	.reg_bits = 32,
-+	.val_bits = 32,
-+	.reg_stride = 4,
-+	.max_register = 0x400,
-+};
 +
  static const struct inno_hdmi_phy_ops rk3328_hdmi_phy_ops = {
  	.init = inno_hdmi_phy_rk3328_init,
@@ -499,23 +536,17 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/drivers/p
  	.phy_cfg_table = rk3328_phy_cfg,
  };
  
--static const struct regmap_config inno_hdmi_phy_regmap_config = {
--	.reg_bits = 32,
--	.val_bits = 32,
--	.reg_stride = 4,
--	.max_register = 0x400,
 +static const struct inno_hdmi_phy_drv_data rk3528_hdmi_phy_drv_data = {
 +	.dev_type = INNO_HDMI_PHY_RK3528,
 +	.ops = &rk3528_hdmi_phy_ops,
 +	.clk_ops = &inno_hdmi_phy_rk3528_clk_ops,
 +	.phy_cfg_table = rk3528_phy_cfg,
- };
- 
++};
 +
- static void inno_hdmi_phy_action(void *data)
- {
- 	struct inno_hdmi_phy *inno = data;
-@@ -1420,6 +1813,9 @@
+ static const struct regmap_config inno_hdmi_phy_regmap_config = {
+ 	.reg_bits = 32,
+ 	.val_bits = 32,
+@@ -1420,6 +1819,9 @@
  	}, {
  		.compatible = "rockchip,rk3328-hdmi-phy",
  		.data = &rk3328_hdmi_phy_drv_data
