@@ -135,6 +135,7 @@ DEPENDS = \
 	net/iwd \
 	utils/alsacap \
 	utils/alsa-ucm2 \
+	system/zram-swap \
 	$(if $(filter mplayer-svn,$(mm_SOFTWARE)), \
 		mediaplayers/mplayer-svn) \
 	$(if $(filter ffmpeg-drm,$(mm_SOFTWARE)), \
