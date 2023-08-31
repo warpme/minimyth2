@@ -21,8 +21,8 @@ install-custom:
 	@cp -Rdf $(WORKSRC)/zram-swap.sh $(DESTDIR)$(bindir)/zram-swap
 	@mkdir -p $(DESTDIR)$(sysconfdir)/default
 	@cp -Rdf $(WORKSRC)/service/zram-swap.config $(DESTDIR)$(sysconfdir)/default/zram-swap
-	@# change default compression algo to lzo
-	@sed -i "s|_zram_algorithm=.*|_zram_algorithm=\"lzo\"|" $(DESTDIR)$(sysconfdir)/default/zram-swap
+	@# change default compression algo to zstd
+	@sed -i "s|_zram_algorithm=.*|_zram_algorithm=\"zstd\"|" $(DESTDIR)$(sysconfdir)/default/zram-swap
 	@$(MAKECOOKIE)
 
 clean-all: clean
