@@ -1,11 +1,10 @@
 
 GARNAME       = alsa-utils
-GARVERSION    = 1.2.9
+GARVERSION    = 1.2.10
 CATEGORIES    = utils
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/utils/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
 DISTFILES     = $(DISTNAME).tar.bz2
-PATCHFILES    = alsa-utils-1.2.9-fix-glibc2.38-compile.patch
 LICENSE       = GPL2
 
 DESCRIPTION = 
