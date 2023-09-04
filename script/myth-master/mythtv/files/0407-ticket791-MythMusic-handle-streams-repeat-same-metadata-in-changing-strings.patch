@@ -1,0 +1,96 @@
+From 80cdf4cba48254c4df44b1407423dcff244e593c Mon Sep 17 00:00:00 2001
+From: Timothy D Witham <twitham@sbcglobal.net>
+Date: Sun, 20 Aug 2023 23:43:48 -0500
+Subject: [PATCH] MythMusic: handle streams that repeat same metadata in
+ changing strings
+
+Fixes #790 by parsing the string and updating metadata only if
+title/artist/album changes.  This ignores extraneous changes like
+UTC=time of http://ice-sov.musicradio.com/ClassicFMMP3
+---
+ .../mythmusic/mythmusic/avfdecoder.cpp        | 44 +++++++++++--------
+ mythplugins/mythmusic/mythmusic/avfdecoder.h  |  1 +
+ 2 files changed, 26 insertions(+), 19 deletions(-)
+
+diff --git a/mythplugins/mythmusic/mythmusic/avfdecoder.cpp b/mythplugins/mythmusic/mythmusic/avfdecoder.cpp
+index 5af2be6128b..264fa4f1fe4 100644
+--- a/mythplugins/mythmusic/mythmusic/avfdecoder.cpp
++++ b/mythplugins/mythmusic/mythmusic/avfdecoder.cpp
+@@ -149,12 +149,13 @@ ShoutCastMetaMap ShoutCastMetaParser::parseMeta(const QString &mdata)
+         auto match = rx.match(title);
+         if (match.hasMatch())
+         {
+-            LOG(VB_PLAYBACK, LOG_INFO, QString("ShoutCast: Meta     : '%1'")
++            LOG(VB_PLAYBACK, LOG_DEBUG, QString("ShoutCast: Meta     : '%1'")
+                     .arg(mdata));
+-            LOG(VB_PLAYBACK, LOG_INFO,
+-                QString("ShoutCast: Parsed as: '%1' by '%2'")
+-                    .arg(match.captured(m_metaTitlePos),
+-                         match.captured(m_metaArtistPos)));
++            LOG(VB_PLAYBACK, LOG_DEBUG,
++                QString("ShoutCast: Parsed as: '%1' by '%2' on '%3'")
++                .arg(m_metaTitlePos ? match.captured(m_metaTitlePos) : "",
++                     m_metaArtistPos ? match.captured(m_metaArtistPos) : "",
++                     m_metaAlbumPos ? match.captured(m_metaAlbumPos) : ""));
+ 
+             if (m_metaTitlePos > 0)
+                 result["title"] = match.captured(m_metaTitlePos);
+@@ -553,27 +554,32 @@ void avfDecoder::checkMetatdata(void)
+ 
+     if (av_opt_get(m_inputContext->getContext(), "icy_metadata_packet", AV_OPT_SEARCH_CHILDREN, &pdata) >= 0)
+     {
+-        QString s = QString::fromUtf8((const char*) pdata);
++        QString shout = QString::fromUtf8((const char*) pdata);
+ 
+-        if (m_lastMetadata != s)
++        if (m_lastMetadata != shout)
+         {
+-            m_lastMetadata = s;
+-
+-            LOG(VB_PLAYBACK, LOG_INFO, QString("avfDecoder: shoutcast metadata changed - %1").arg(m_lastMetadata));
+-
++            m_lastMetadata = shout;
+             ShoutCastMetaParser parser;
+             parser.setMetaFormat(gPlayer->getDecoderHandler()->getMetadata().MetadataFormat());
++            ShoutCastMetaMap meta_map = parser.parseMeta(shout);
+ 
+-            ShoutCastMetaMap meta_map = parser.parseMeta(m_lastMetadata);
++            QString parsed =  meta_map["title"] + "\\" + meta_map["artist"] + "\\" + meta_map["album"];
++            if (m_lastMetadataParsed != parsed)
++            {
++                m_lastMetadataParsed = parsed;
+ 
+-            MusicMetadata mdata =  gPlayer->getDecoderHandler()->getMetadata();
+-            mdata.setTitle(meta_map["title"]);
+-            mdata.setArtist(meta_map["artist"]);
+-            mdata.setAlbum(meta_map["album"]);
+-            mdata.setLength(-1ms);
++                LOG(VB_PLAYBACK, LOG_INFO, QString("avfDecoder: shoutcast metadata changed - %1").arg(shout));
++                LOG(VB_PLAYBACK, LOG_INFO, QString("avfDecoder: new metadata (%1)").arg(parsed));
+ 
+-            DecoderHandlerEvent ev(DecoderHandlerEvent::kMeta, mdata);
+-            dispatch(ev);
++                MusicMetadata mdata =  gPlayer->getDecoderHandler()->getMetadata();
++                mdata.setTitle(meta_map["title"]);
++                mdata.setArtist(meta_map["artist"]);
++                mdata.setAlbum(meta_map["album"]);
++                mdata.setLength(-1ms);
++
++                DecoderHandlerEvent ev(DecoderHandlerEvent::kMeta, mdata);
++                dispatch(ev);
++            }
+         }
+ 
+         av_free(pdata);
+diff --git a/mythplugins/mythmusic/mythmusic/avfdecoder.h b/mythplugins/mythmusic/mythmusic/avfdecoder.h
+index cb2775976c9..79033b92906 100644
+--- a/mythplugins/mythmusic/mythmusic/avfdecoder.h
++++ b/mythplugins/mythmusic/mythmusic/avfdecoder.h
+@@ -60,6 +60,7 @@ class avfDecoder : public QObject, public Decoder
+ 
+     QTimer *m_mdataTimer                  {nullptr};
+     QString m_lastMetadata;
++    QString m_lastMetadataParsed;
+ 
+     int m_errCode                         {0};
+ };
