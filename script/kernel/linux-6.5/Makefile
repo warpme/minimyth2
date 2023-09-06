@@ -61,13 +61,8 @@ PATCHFILES += 0332-media-meson-vdec-disable-MPEG1-MPEG2-hardware-de.patch
 PATCHFILES += 0341-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 0342-arm64-dts-meson-add-support-for-GX-PM-and-Virtu.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
-# add support for Tanix TX5 Plus tvbox
 PATCHFILES += 0371-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
-# Add more GX soundcards
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320553
 PATCHFILES += 0373-arm64-dts-meson-add-more-GX-soundcards.patch
-# Add more G12/SM1 soundcards
-# https://patchwork.kernel.org/project/linux-arm-kernel/list/?series=320731
 PATCHFILES += 0374-arm64-dts-meson-add-more-G12-SM1-soundcards.patch
 # Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic HW I have
 PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
@@ -85,7 +80,6 @@ PATCHFILES += 0505-arm64-dts-allwinner-h6-Add-SCPI-protocol.patch
 PATCHFILES += 0506-ASoC-hdmi-codec-fix-channel-allocation.patch
 PATCHFILES += 0507-ASoC-sun4i-i2s-WiP-multi-channel.patch
 PATCHFILES += 0508-arm64-dts-sun50i-h6-dtsi-add-sound-node.patch
-# https://github.com/jernejsk/linux-1/commits/hevc-10
 PATCHFILES += 0523-drm-sun4i-dw-hdmi-revert-Fix-ddc-en-GPIO-consumer.patch
 PATCHFILES += 0524-arm64-dts-allwinner-h6-Fix-Cedrus-IOMMU-again.patch
 PATCHFILES += 0531-iommu-sun50i-Allow-page-sizes-multiple-of-4096.patch
@@ -176,10 +170,8 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 356x patches -----------------------------------------
-# Enable rk356x PCIe controller
-# https://patchwork.kernel.org/project/linux-rockchip/list/?series=634925
 PATCHFILES += 0800-Enable-rk356x-PCIe-controller.patch
-# various boards enablement
+# various rk356x boards enablement
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
 PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
@@ -201,6 +193,25 @@ PATCHFILES += 0901-rpi-vc04_services-bcm2835-codec-remove-isp-formats.patch
 # add H265 rpivid driver
 PATCHFILES += 0904-media-add-rpivid-driver.patch
 PATCHFILES += 0905-arm64-dts-brcm-set-userled-to-mmc.patch
+endif
+#------------------------------------------------------------
+
+ifeq (1,1)
+#-- Rockchip 3588 patches -----------------------------------------
+PATCHFILES += 1010-fix-clk-divisions.patch
+PATCHFILES += 1011-irqchip-fix-its-timeout-issue.patch
+PATCHFILES += 1020-Add-RK3588-SATA-Support.patch
+PATCHFILES += 1021-Add-RK3588-USB2-Support.patch
+PATCHFILES += 1022-Add-RK3588-PCIe-support.patch
+PATCHFILES += 1023-Add-RK3588-CPUfreq-Support.patch
+PATCHFILES += 1024-Add-RK3588-USB3-Support.patch
+# add rk3588 boards
+PATCHFILES += 1050-arm64-dtsi-rockchip-rk3588s-add-sfc-node.patch
+PATCHFILES += 1060-arm64-dts-rockchip-rk3588-add-nanopc-t6.patch
+PATCHFILES += 1061-arm64-dts-rockchip-rk3588-add-orangepi-5-plus.patch
+PATCHFILES += 1062-arm64-dts-rockchip-rk3588s-add-orangepi-5.dts.patch
+PATCHFILES += 1063-arm64-dts-rockchip-rk3588s-rock-5a-enable-dvfs-usb-pci.dts.patch
+PATCHFILES += 1064-arm64-dts-rockchip-rk3588-rock-5b-enable-dvfs-usb-pci.dts.patch
 endif
 #------------------------------------------------------------
 
