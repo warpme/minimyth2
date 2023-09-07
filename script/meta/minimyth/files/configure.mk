@@ -48,6 +48,7 @@ MM_INIT_START_PHASE_5 := \
     swap         \
     telnet       \
     ssh_server   \
+    kmsvnc       \
     mail         \
     voip         \
     standby      \
