@@ -201,6 +201,7 @@ mm-all:
 		   [ ! "$${software}" = "bootloader"     ] && \
 		   [ ! "$${software}" = "glmark2"        ] && \
 		   [ ! "$${software}" = "kmscube"        ] && \
+		   [ ! "$${software}" = "kmsvnc"         ] && \
 		   [ ! "$${software}" = "mesa-demos"     ] && \
 		   [ ! "$${software}" = "ffmpeg-drm"     ] && \
 		   [ ! "$${software}" = "ffmpeg"         ] && \

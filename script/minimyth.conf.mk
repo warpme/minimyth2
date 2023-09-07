@@ -58,6 +58,7 @@ mm_SOFTWARE               ?= \
 #                             xscreensaver \
 #                             kodi \
 #                             termbin \
+#                             kmsvnc \
 
 # Indicates bootloader board type. Valid values are:
 # 'board-rpi2'
