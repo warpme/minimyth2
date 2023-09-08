@@ -43,6 +43,9 @@ PATCHFILES += 0109-drm-panfrost-add-support-for-custom-soft-reset-on-GXM.patch
 PATCHFILES += 0110-drivers-net-wireless-brcmfmac-add-ap6330-firmware.patch
 endif
 
+# fix for wrong audio channels allocation
+PATCHFILES += 0111-ASoC-hdmi-codec-Fix-broken-channel-map-reporting.patch
+
 ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
 PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
