@@ -5,23 +5,29 @@ literal 'dri_set_mode_indexN' - where N is requested mode_index.
 As (for me) qeglfskmsintegration provides only capability to read Qt internal properties -
 to change Qt internal property i implemented set-by-query model.
 
-With this code : calling qeglfskmsintegration with 'dri_set_mode_indexN' will set mode_index to N.
+With this code : calling qeglfskmsintegration with 'dri_set_mode_indexNN' will set mode_index to NN where
+NN must be 2 chars forming 00..99 range i.e. 'dri_set_mode_index00', 'dri_set_mode_index05', 'dri_set_mode_index25' etc.
 
-diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms_support/qeglfskmsintegration.cpp qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms_support/qeglfskmsintegration.cpp
---- qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms_support/qeglfskmsintegration.cpp	2020-10-27 09:02:11.000000000 +0100
-+++ qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms_support/qeglfskmsintegration.cpp	2021-12-30 12:22:50.763145011 +0100
-@@ -153,6 +153,16 @@
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.9/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms_support/qeglfskmsintegration.cpp qt-everywhere-src-5.15.9/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms_support/qeglfskmsintegration.cpp
+--- qt-everywhere-src-5.15.9/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms_support/qeglfskmsintegration.cpp	2023-03-23 20:06:47.000000000 +0100
++++ qt-everywhere-src-5.15.9/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms_support/qeglfskmsintegration.cpp	2023-09-10 17:10:41.370019817 +0200
+@@ -153,6 +153,21 @@
              return (void *) (qintptr) s->output().crtc_id;
          if (resource == QByteArrayLiteral("dri_connectorid"))
              return (void *) (qintptr) s->output().connector_id;
 +        if (resource == QByteArrayLiteral("dri_mode"))
 +            return (void *) (qintptr) s->output().mode;
 +        if (resource.indexOf(QByteArrayLiteral("dri_set_mode_index")) != -1) {
-+            QByteArray idx = resource.right(1);
++            QByteArray idx = resource.right(2);
++            qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsIntegration::nativeResourceForScreen: received query:" << resource;
 +            bool ok;
-+            int mode = idx.toInt(&ok, 16);
-+            qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsIntegration::nativeResourceForScreen: dri_set_mode_index called with mode_index=" << mode;
-+            s->output().mode = mode;
++            int mode = idx.toInt(&ok, 10);
++            if (ok) {
++                qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsIntegration::nativeResourceForScreen: seting mode_index =" << mode;
++                s->output().mode = mode;
++            }
++            else
++                qCDebug(qLcEglfsKmsDebug) << "QEglFSKmsIntegration::nativeResourceForScreen: failed to convert query string to mode_index for" << idx;
 +            return (void *) (qintptr) s->output().mode;
 +        }
      }
