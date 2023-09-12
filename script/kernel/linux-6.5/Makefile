@@ -204,11 +204,11 @@ ifeq (1,1)
 #-- Rockchip 3588 patches -----------------------------------------
 PATCHFILES += 1010-fix-clk-divisions.patch
 PATCHFILES += 1011-irqchip-fix-its-timeout-issue.patch
-PATCHFILES += 1020-Add-RK3588-SATA-Support.patch
-PATCHFILES += 1021-Add-RK3588-USB2-Support.patch
-PATCHFILES += 1022-Add-RK3588-PCIe-support.patch
-PATCHFILES += 1023-Add-RK3588-CPUfreq-Support.patch
-PATCHFILES += 1024-Add-RK3588-USB3-Support.patch
+PATCHFILES += 1020-add-rk3588-sata-support.patch
+PATCHFILES += 1021-add-rk3588-usb2-support.patch
+PATCHFILES += 1022-add-rk3588-pcie-support.patch
+PATCHFILES += 1023-add-rk3588-cpufreq-support.patch
+PATCHFILES += 1024-add-rk3588-usb3-support.patch
 # add rk3588 boards
 PATCHFILES += 1050-arm64-dtsi-rockchip-rk3588s-add-sfc-node.patch
 PATCHFILES += 1060-arm64-dts-rockchip-rk3588-add-nanopc-t6.patch
