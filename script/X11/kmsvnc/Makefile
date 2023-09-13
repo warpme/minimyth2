@@ -1,7 +1,7 @@
 
 GARNAME      = kmsvnc
-# master @11.08.2023
-GARVERSION   = 035ae36dad44bbd0b6a06159b30393b6c309d072
+# master @13.09.2023
+GARVERSION   = 843d79cb643234b9ea3c4f758edd355d76c9d3d8
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/isjerryxiao/kmsvnc/archive/
 DISTFILES    = $(GARVERSION).zip
