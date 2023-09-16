@@ -7,6 +7,8 @@
 
 command=$1
 
+MM_MASTER_SERVER_IP="@MM_MASTER_SERVER@"
+
 pids=`/bin/pidof mm_manage`
 instances=`/bin/echo ${pids} | /usr/bin/wc -w`
 if [ ${instances} -ne 1 ] ; then
@@ -29,6 +31,8 @@ if [ "x${command}" = "x_restart_mythfrontend" ] ; then
   if [ -z "`/bin/pidof mm_watchdog`" ] ; then
     sleep 1
     /etc/rc.d/init.d/frontend start
+    sleep 10
+    /etc/rc.d/init.d/kmsvnc start
   fi
   exit 0
 fi
@@ -107,7 +111,7 @@ fi
 if [ "x${command}" = "x_restart_mythbackend" ] ; then
   mm_show_mythnotify "${restart_mythbackend_str}" '' ''
   /bin/sleep 5
-  ssh -c aes128-ctr root@192.168.1.254 /usr/bin/systemctl restart mythbackend.service
+  ssh -c aes128-ctr root@${MM_MASTER_SERVER_IP} /usr/bin/systemctl restart mythbackend.service
   exit 0
 fi
 
@@ -121,7 +125,7 @@ fi
 if [ "x${command}" = "x_restart_server" ] ; then
   mm_show_mythnotify "${restart_server_str}" '' ''
   /bin/sleep 5
-  ssh -c aes128-ctr root@192.168.1.254 reboot
+  ssh -c aes128-ctr root@${MM_MASTER_SERVER_IP} reboot
   exit 0
 fi
 
@@ -250,8 +254,8 @@ if [ "x${command}" = "x_check_updates" ] ; then
   if [ "x${MM_MINIMYTH_ONLINE_UPDATES_URL}" = "xlocal" ] ; then
     # Do update check for PXE booted diskless case
     mm_show_mythnotify "${checking_for_system_updates_str}" '' '' '12' "${system_updates_str}"
-    ssh -c aes128-ctr root@192.168.1.254 pacman -Sy > /dev/null 2>&1
-    updates=`ssh -c aes128-ctr root@192.168.1.254 pacman -Qqu | /usr/bin/wc -w 2> /dev/null`
+    ssh -c aes128-ctr root@${MM_MASTER_SERVER_IP} pacman -Sy > /dev/null 2>&1
+    updates=`ssh -c aes128-ctr root@${MM_MASTER_SERVER_IP} pacman -Qqu | /usr/bin/wc -w 2> /dev/null`
     if [ -n ${updates} ] ; then
       if [ ! ${updates} = 0 ] ; then
         mm_show_mythnotify "${updates_detected_str}" ${updates}"${packages_were_updated_str}" 'warning' '12'
@@ -285,12 +289,12 @@ if [ "x${command}" = "x_install_updates" ] ; then
     # Do update update for PXE booted diskless case
     if [ "x${MM_MYTHTV_DRAW_ON}" = "xeglfs" ] ; then
       mm_show_mythnotify "${installing_updates_in_background_str}" '' '' '900' "${system_updates_str}"
-      ssh -c aes128-ctr root@192.168.1.254 pacman -Syu --noconfirm
-      ssh -c aes128-ctr root@192.168.1.254 pacman -Scq --noconfirm
-      ssh -c aes128-ctr root@192.168.1.254 /usr/bin/systemctl daemon-reload
+      ssh -c aes128-ctr root@${MM_MASTER_SERVER_IP} pacman -Syu --noconfirm
+      ssh -c aes128-ctr root@${MM_MASTER_SERVER_IP} pacman -Scq --noconfirm
+      ssh -c aes128-ctr root@${MM_MASTER_SERVER_IP} /usr/bin/systemctl daemon-reload
     else
       mm_show_mythnotify "${installing_system_updates_str}" '' '' '12' "${system_updates_str}"
-      mm_term_start /bin/su root -c 'ssh -c aes128-ctr root@192.168.1.254 pacman -Syu --noconfirm; ssh -c aes128-ctr root@192.168.1.254 pacman -Scq --noconfirm; ssh -c aes128-ctr root@192.168.1.254 /usr/bin/systemctl daemon-reload; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;'
+      mm_term_start /bin/su root -c "ssh -c aes128-ctr root@${MM_MASTER_SERVER_IP} pacman -Syu --noconfirm; ssh -c aes128-ctr root@${MM_MASTER_SERVER_IP} pacman -Scq --noconfirm; ssh -c aes128-ctr root@${MM_MASTER_SERVER_IP} /usr/bin/systemctl daemon-reload; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;"
       # If new PXE image was installed - then force reboot to load this ne image
       if [ -e /usr/local/share/myth-at-home/version ] ; then
         rc=`/usr/bin/cmp /etc/version /usr/local/share/myth-at-home/version`
@@ -317,7 +321,7 @@ fi
 #-------------------------------------------------------------------------------
 
 if [ "x${command}" = "xcheck_mythtv_db" ] ; then
-  mm_term_start /bin/su root -c 'ssh -c aes128-ctr root@192.168.1.254 /usr/local/bin/maintenance/check-optimize-db.sh; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;'
+  mm_term_start /bin/su root -c "ssh -c aes128-ctr root@${MM_MASTER_SERVER_IP} /usr/local/bin/maintenance/check-optimize-db.sh; echo \"\"; echo \"Press BACK or Esc for exit...\"; read;"
   exit 0
 fi
 
