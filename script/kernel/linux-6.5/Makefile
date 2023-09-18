@@ -232,7 +232,6 @@ PATCHFILES += 1108-thermal-rockchip-add-support-for-rk3528.patch
 PATCHFILES += 1109-phy-rockchip-naneng-combphy-add-support-for-rk3528.patch
 PATCHFILES += 1110-phy-rockchip-inno-hdmi-add-support-for-rk3528.patch
 PATCHFILES += 1111-drm-rockchip-dw_hdmi-add-support-for-rk3528.patch
-PATCHFILES += 1112-hack-hack-clk-rockchip-make-hdmi-clocks-critical.patch
 PATCHFILES += 1113-nvmem-rockchip-otp-add-support-for-rk3528.patch
 PATCHFILES += 1114-sound-soc-codecs-add-rk3528-support.patch
 PATCHFILES += 1115-hack-hack-gpu-drm-rockchip-rockchip_vop2_reg-add-rk3528.patch
