@@ -2108,3 +2108,47 @@ mm_minimize_theme_req_memory() {
         done
     fi
 }
+
+mm_move_to_zram_ramdisk() {
+# 1st para: mount point
+# 2nd para: size
+#
+    local mount_point=$1
+    local size=$2
+    failed=1
+
+    zram_device=$(zramctl -f | sed 's/\/dev\///' | grep -e '^zram')
+    if [ "x${zram_device}" = "x" ] ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_move_to_zram_ramdisk] No more available zram devices to create ${mount_point} ... Exiting !"
+        return ${failed}
+    fi
+
+    if [ "x${mount_point}" = "x" ] ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_move_to_zram_ramdisk] No mountpoint provided ... Exiting !"
+        /bin/false
+        return ${failed}
+    fi
+
+    /bin/mkdir -p "${mount_point}" || return
+    mv -f ${mount_point} ${mount_point}.$$ || return
+    /bin/mkdir -p "${mount_point}" || return
+
+    disksize=`echo ${size} | sed -e 's/M$/*1048576/' -e 's/K$/*1024/' | bc`
+    echo -n ${disksize} > /sys/block/${zram_device}/disksize
+    label=${mount_point}
+
+    mke2fs -q -m 0 -b 4096 -O sparse_super -L ${label} /dev/${zram_device}
+
+    mount -o relatime,noexec,nosuid /dev/${zram_device} ${mount_point}
+    if [ "$?" -eq 0 ] ; then
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_move_to_zram_ramdisk] Mounted [${zram_device}] as [${mount_point}] labeled as ${label} with size ${size} ..."
+        failed=0
+    else
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_move_to_zram_ramdisk] Failed to mount [${zram_device}] as [${mount_point}] labeled as ${label} with size ${size} ..."
+    fi
+
+    cp -af ${mount_point}.$$/. ${mount_point}/
+    rm -rf ${mount_point}.$$
+
+    return ${failed}
+}
