@@ -114,7 +114,6 @@ PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.pa
 PATCHFILES += 0408-ticket791-MythMusic-when-switching-streams-dont-reset-last-track-to-0000.patch
 PATCHFILES += 0407-ticket791-MythMusic-handle-streams-repeat-same-metadata-in-changing-strings.patch
 PATCHFILES += 0409-ticket774-MythMusic-add-PlayNow-any-tracks-from-the-music-browsers.patch
-PATCHFILES += 0410-ticket795-MythMusic-fix-switching-from-Gallery-to-Tree-broke-repaints.patch
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
