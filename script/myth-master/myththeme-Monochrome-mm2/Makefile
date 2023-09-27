@@ -1,7 +1,7 @@
 
 GARNAME      = Monochrome-mm2
-# Git master from 26.04.2022
-GARVERSION   = 8569391fd35dc01aaec19f8085b3002ede8148b2
+# Git master from 14.05.2023
+GARVERSION   = e0b737087fefe426660f34d51d4a015a7a7936c4
 CATEGORIES   = mythtv
 MASTER_SITES = https://github.com/hambre/Monochrome/archive/
 DISTFILES    = $(GARVERSION).zip
@@ -19,6 +19,7 @@ PATCHFILES  += add-right-arrow-to-list-episodes.patch
 PATCHFILES  += add-virtual-keyboard.patch
 PATCHFILES  += add-osd_subtitle-xml.patch
 PATCHFILES  += video-ui-remove-cond-disp-tile-on-presence-00x00.patch
+PATCHFILES  += music-ui.xml-applay-mythtv-pull774.patch
 # PATCHFILES  += add-snow-animations.patch
 
 LICENSE      = GPL2
