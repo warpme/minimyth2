@@ -111,9 +111,6 @@ PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 # Various mythmusic patches
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
-PATCHFILES += 0408-ticket791-MythMusic-when-switching-streams-dont-reset-last-track-to-0000.patch
-PATCHFILES += 0407-ticket791-MythMusic-handle-streams-repeat-same-metadata-in-changing-strings.patch
-PATCHFILES += 0409-ticket774-MythMusic-add-PlayNow-any-tracks-from-the-music-browsers.patch
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
