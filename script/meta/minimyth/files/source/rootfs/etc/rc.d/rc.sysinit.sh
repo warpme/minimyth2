@@ -20,6 +20,7 @@
 # Create /var.
 /bin/mkdir -p /var
 /bin/mkdir -p /var/cache
+/bin/chmod 1777 /var/cache
 /bin/mkdir -p /var/lib
 /bin/mkdir -p /var/lock
 /bin/mkdir -p /var/log
