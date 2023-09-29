@@ -80,7 +80,7 @@ set_myth_user_env() {
 date
 
 export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
-export MESA_SHADER_CACHE_DISABLE=1
+# export MESA_SHADER_CACHE_DISABLE=1
 
 if [ x${MM_MYTHTV_DRAW_ON} = "xterm" ] ; then
     echo " "
