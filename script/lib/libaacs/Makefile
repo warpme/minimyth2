@@ -2,10 +2,9 @@
 GARNAME      = libaacs
 GARVERSION   = 0.11.1
 CATEGORIES   = lib
-MASTER_SITES = https://code.videolan.org/videolan/libaacs/-/archive/0.11.0/
+MASTER_SITES = https://code.videolan.org/videolan/libaacs/-/archive/0.11.1/
 DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      = LGPL2_1
-WORKSRC       = $(WORKDIR)/libaacs-0.11.0-9bceea3f0a022010aa15e898bbb1d47f2af45052
 
 DESCRIPTION = 
 define BLURB
