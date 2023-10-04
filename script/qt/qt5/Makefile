@@ -8,6 +8,7 @@ PATCHFILES   = $(DISTNAME).patch.gar
 PATCHFILES  += $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-fix-egl-x11-detection-mesa-22.3.patch
+PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
