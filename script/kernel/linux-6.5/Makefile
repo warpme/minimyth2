@@ -87,6 +87,7 @@ PATCHFILES += 0523-drm-sun4i-dw-hdmi-revert-Fix-ddc-en-GPIO-consumer.patch
 PATCHFILES += 0524-arm64-dts-allwinner-h6-Fix-Cedrus-IOMMU-again.patch
 PATCHFILES += 0531-iommu-sun50i-Allow-page-sizes-multiple-of-4096.patch
 PATCHFILES += 0534-media-cedrus-Don-t-CPU-map-source-buffers.patch
+# PATCHFILES += 0548-media-cedrus-add-vc1-decoding-support.patch disabled as it is WiP
 # various patches for H6
 PATCHFILES += 0559-mfd-add-AC200.patch
 PATCHFILES += 0560-net-phy-Add-support-for-AC200-EPHY.patch
