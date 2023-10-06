@@ -86,7 +86,6 @@ PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
 PATCHFILES += 0205-mediamonitor-exclude-standard-tvbox-disks.patch
 
 # Misc frontend patches
-PATCHFILES += 0211-decrease-minQt-ver-to-4.8.patch
 PATCHFILES += 0212-external-udfread-fix-arm5te-compilation.patch
 PATCHFILES += 0213-make-dvd-images-autoplay-at-media-insert.patch
 PATCHFILES += 0214-themes-recordings-ui-all-episode-listing.patch
@@ -106,7 +105,10 @@ PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 # Patches for scripts
 PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 
-# --------Patches 400+ are plugins patches---------------------
+# --------Patches 350+ are plugins patches---------------------
+
+# Various mythvideo patches
+PATCHFILES += 0350-mythvideo-pull742-add-watched-progress-in-videomanger.patch
 
 # Various mythmusic patches
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
