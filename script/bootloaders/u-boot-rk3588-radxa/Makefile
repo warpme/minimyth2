@@ -1,15 +1,15 @@
 
 GARNAME      = u-boot-rk3588-rockchip-13042023
-# git@13.04.2023 https://github.com/radxa/u-boot/commits/next-dev
-GARVERSION   = a2a9f1df8fa56c38c776dec94915cc80fa66f9c8
-# git@19.10.2022 https://github.com/radxa/rkbin/commits/master
-RKBINVERSION = 9840e87723eef7c41235b89af8c049c1bcd3d133
+# git@ 07.10.2023 https://github.com/radxa/u-boot/commits/next-dev
+GARVERSION   = 2a0fc326204da252a921750b9888f5f25b79ce09
+# git@ 16.06.2023 https://github.com/radxa/rkbin/commits/master
+RKBINVERSION = 38ab40ee2b3cc3d5a4a4f9aee56cba37392ccc9e
 CATEGORIES   = kernel
 MASTER_SITES = \
 		https://github.com/radxa/u-boot/archive/ \
 		https://github.com/radxa/rkbin/archive/
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip
-PATCHFILES   = fix-gcc13-compile.patch
+PATCHFILES   = fix-gcc13-compile.patch dts-rk3588s-rock-5a-add-ethernet0-alias.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
@@ -52,10 +52,10 @@ configure-custom:
 build-custom:
 	@echo "Building u-boot rk3588 with $(CONFIGURE_ARGS) ..."
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
-	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) BL31=../rkbin/bin/rk35/rk3588_bl31_v1.28.elf spl/u-boot-spl.bin u-boot.dtb u-boot.itb
+	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) BL31=../rkbin/bin/rk35/rk3588_bl31_v1.38.elf spl/u-boot-spl.bin u-boot.dtb u-boot.itb
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@echo "Creating idbloader.img ..."
-	@cd ./$(WORKSRC) && ./tools/mkimage -n rk3588 -T rksd -d ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.08.bin:spl/u-boot-spl.bin idbloader.img
+	@cd ./$(WORKSRC) && ./tools/mkimage -n rk3588 -T rksd -d ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.11.bin:spl/u-boot-spl.bin idbloader.img
 	@$(MAKECOOKIE)
 
 install-custom:
