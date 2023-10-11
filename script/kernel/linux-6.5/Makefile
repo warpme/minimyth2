@@ -187,6 +187,7 @@ PATCHFILES += 0843-arm64-dts-rockchip-rock3a-fix-mdio-reset-disable-uart-bt.patc
 PATCHFILES += 0845-arm64-dts-rockchip-add-dts-for-rock3c.patch
 PATCHFILES += 0846-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
 PATCHFILES += 0847-arm64-dts-rockchip-add-dts-for-urve-pi.patch
+PATCHFILES += 0848-arm64-dts-rockchip-add-dts-for-opi-3b.patch
 endif
 #------------------------------------------------------------
 
