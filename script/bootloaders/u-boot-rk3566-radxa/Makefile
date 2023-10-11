@@ -1,18 +1,17 @@
 
-GARNAME      = u-boot-rk3566-rockchip-28102022
-# git@28.10.2022 https://github.com/radxa/u-boot/commits/stable-4.19-rock3
-GARVERSION   = 26d3b6963ed2d2215348f1baba8b9646ed3dc6ea
-# git@19.10.2022 https://github.com/radxa/rkbin/commits/master
-RKBINVERSION = 9840e87723eef7c41235b89af8c049c1bcd3d133
+GARNAME      = u-boot-rk3568-rockchip-07102023
+# git@ 07.10.2023 https://github.com/radxa/u-boot/commits/next-dev
+GARVERSION   = 2a0fc326204da252a921750b9888f5f25b79ce09
+# git@ 16.06.2023 https://github.com/radxa/rkbin/commits/master
+RKBINVERSION = 38ab40ee2b3cc3d5a4a4f9aee56cba37392ccc9e
 CATEGORIES   = kernel
 MASTER_SITES = \
 		https://github.com/radxa/u-boot/archive/ \
 		https://github.com/radxa/rkbin/archive/
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
-PATCHFILES   = 05-fix-building-gcc12.patch
 PATCHFILES  += 06-arch-arm-dts-add-rk3566-quartz64.patch
-PATCHFILES  += 07-net.h-make-random-mac-constant.patch
 PATCHFILES  += 08-fix-building-gcc13.patch
+PATCHFILES  += 09-add-rk3566-orangepi-3b_defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
@@ -33,6 +32,7 @@ include ../../python3/python/package-api.mk
 
 # mm_U-BOOT_BOARD_TYPE = rock-3c-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = rk3566-quartz64_defconfig
+# mm_U-BOOT_BOARD_TYPE = rk3566-orangepi-3b_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
@@ -55,10 +55,10 @@ configure-custom:
 build-custom:
 	@echo "Building u-boot rk3566 with $(CONFIGURE_ARGS) ..."
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
-	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) BL31=../rkbin/bin/rk35/rk3568_bl31_v1.32.elf spl/u-boot-spl.bin u-boot.dtb u-boot.itb
+	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) BL31=../rkbin/bin/rk35/rk3568_bl31_v1.42.elf spl/u-boot-spl.bin u-boot.dtb u-boot.itb
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@echo "Creating idbloader.img ..."
-	@cd ./$(WORKSRC) && ./tools/mkimage -n rk3568 -T rksd -d ../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.10.bin:spl/u-boot-spl.bin idbloader.img
+	@cd ./$(WORKSRC) && ./tools/mkimage -n rk3568 -T rksd -d ../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.16.bin:spl/u-boot-spl.bin idbloader.img
 	@$(MAKECOOKIE)
 
 install-custom:
