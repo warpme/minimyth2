@@ -1,15 +1,15 @@
 
 GARNAME      = aw859a-firmware
-GARVERSION   = 12.06.2022
+GARVERSION   = 612bc7cc0e3539ea89c659049b7d8432e2de8ed7
 CATEGORIES   = firmware
-MASTER_SITES = https://github.com/armbian/firmware/raw/master/uwe5622/
-DISTFILES    = wcnmodem-38222.bin wifi_2355b001_1ant.ini
+MASTER_SITES = https://github.com/armbian/firmware/archive/
+DISTFILES    = $(GARVERSION).zip
 LICENSE      =
 DESCRIPTION  =
 define BLURB
 endef
 
-WORKSRC = $(WORKDIR)
+WORKSRC = $(WORKDIR)/firmware-$(GARVERSION)
 
 DEPENDS = lang/c
 
@@ -19,8 +19,8 @@ include ../../gar.mk
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/uwe5622
-	@cp -Rdf $(WORKSRC)/wcnmodem-38222.bin     $(DESTDIR)$(elibdir)/firmware/uwe5622/wcnmodem.bin
-	@cp -Rdf $(WORKSRC)/wifi_2355b001_1ant.ini $(DESTDIR)$(elibdir)/firmware/uwe5622/wifi_2355b001_1ant.ini
+	@cp -Rdf $(WORKSRC)/uwe5622/wcnmodem.bin           $(DESTDIR)$(elibdir)/firmware/uwe5622/wcnmodem.bin
+	@cp -Rdf $(WORKSRC)/uwe5622/wifi_2355b001_1ant.ini $(DESTDIR)$(elibdir)/firmware/uwe5622/wifi_2355b001_1ant.ini
 	@$(MAKECOOKIE)
 
 clean-all: clean
