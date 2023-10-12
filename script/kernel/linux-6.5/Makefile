@@ -135,7 +135,7 @@ PATCHFILES += 0609-sound-soc-add-sunxi_v2-for-h616-ahub.patch
 PATCHFILES += 0612-gpu-drm-panfrost-panfrost-devfreq-revert-set-opp-to-the-recommended.patch
 PATCHFILES += 0614-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0615-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
-PATCHFILES += 0616-net-wireless-add-uwe5622-support-08042023.patch
+PATCHFILES += 0616-net-wireless-add-uwe5622-support-armbian-20231012.patch
 PATCHFILES += 0617-0608-sound-soc-sunxi-fix-no-Rch-and-slow-24bit.patch
 # enable some h616 boards
 PATCHFILES += 0630-arm64-dts-allwinner-h616.dtsi-add-ths-audio-hdmi.patch
