@@ -184,6 +184,10 @@ ifneq (,$(findstring board-h618.orangepi_zero3,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h618.orangepi_zero3
 endif
 
+ifneq (,$(findstring board-h618.orangepi_zero2w,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-h618.orangepi_zero2w
+endif
+
 ifneq (,$(findstring board-h618.vontar_h618,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h618.vontar_h618
 endif
