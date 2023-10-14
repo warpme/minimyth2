@@ -399,6 +399,7 @@ mm-all:
 		   [ ! "$${board}" = "board-h616.orangepi_zero2"  ] && \
 		   [ ! "$${board}" = "board-h618.orangepi_zero3"  ] && \
 		   [ ! "$${board}" = "board-h618.vontar_h618"     ] && \
+		   [ ! "$${board}" = "board-h618.orangepi_zero2w" ] && \
 		   [ ! "$${board}" = "board-h313.x96_q"           ] && \
 		   [ ! "$${board}" = "board-h313.x96_q_lpddr3"    ] && \
 		   [ ! "$${board}" = "board-rk3328.beelink_a1"    ] && \
