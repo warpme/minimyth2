@@ -20,7 +20,7 @@ selection_a="my testbed boards"
 selection_b="board-x86pc.bios_efi64"
 selection_c="board-h616.tanix_tx6s"
 selection_d="board-rpi3.mainline32"
-selection_e="board-rk3399.orangepi_4"
+selection_e="board-rk3399.orangepi_4_lts"
 selection_f="board-h616.t95"
 selection_g="board-h616.x96_mate"
 selection_h="board-g12.radxa_zero"
@@ -214,6 +214,7 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_8}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_9}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_c}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_e}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_h}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_j}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_l}" ${extra_params}
