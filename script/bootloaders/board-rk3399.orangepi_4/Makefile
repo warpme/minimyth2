@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-rk3399.orangepi_4
-GARVERSION   = 2021-05-15
+GARVERSION   = 2023-10-14
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
@@ -11,7 +11,7 @@ DISTFILES    = \
                rk3399-boot.txt \
                minimyth.conf   \
 
-export mm_U-BOOT_BOARD_TYPE = orangepi-rk3399_defconfig
+export mm_U-BOOT_BOARD_TYPE = rockpi4b
 
 WORKSRC      = $(WORKDIR)
 
@@ -28,8 +28,8 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-rk3399
-	@$(MAKE) install -C ../u-boot-rk3399
+	@$(MAKE) clean   -C ../u-boot-rk3399-radxa
+	@$(MAKE) install -C ../u-boot-rk3399-radxa
 	@$(MAKECOOKIE)
 
 install-custom:
@@ -38,7 +38,8 @@ install-custom:
 	@cp -f    $(WORKSRC)/rk3399-boot.scr                         $(DESTDIR)/boot/boot.scr
 	@mkdir -p $(DESTDIR)/boot/rk3399loaderfiles
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img $(DESTDIR)/boot/rk3399loaderfiles/idbloader.img
-	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb    $(DESTDIR)/boot/rk3399loaderfiles/u-boot.itb
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/uboot.img     $(DESTDIR)/boot/rk3399loaderfiles/uboot.img
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3399/$(mm_U-BOOT_BOARD_TYPE)/trust.img     $(DESTDIR)/boot/rk3399loaderfiles/trust.img
 	@cp -f    $(WORKSRC)/minimyth.conf                           $(DESTDIR)/boot/minimyth.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
