@@ -97,23 +97,28 @@ Allwinner H6  | EachLink H6 Mini | works  (rtl8723bs@SDIO)                | work
 Allwinner H6  | TanixTX6         | works  (ap6330@SDIO)                   | works       | works       | works                          | well supported                |
 Allwinner H6  | TanixTX6-Mini    | works  (xr819@SDIO)                    | works       | n/a         | not works                      | well supported                |
 Allwinner H6  | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Allwinner H6  | OrangePI-3 LTS   | not works (aw859a)                     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H6  | OrangePi-3 LTS   | not works (aw859a)                     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H313| X96-Q (DDR3)     | works  (xr819@SDIO)                    | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H313| X96-Q (LPDDR3)   | works  (xr819@SDIO)                    | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s-axp313 | works  (ap6330@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | works       | not works (firmware issue)     | some things are still missing |
-Allwinner H616| OrangePI-Zero2   | works  (aw859a@SDIO)                   | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Allwinner H618| OrangePI-Zero3   | works  (aw859a@SDIO)                   | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H616| OrangePi-Zero2   | works  (aw859a@SDIO)                   | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H618| OrangePi-Zero3   | works  (uwe5622a@SDIO)                 | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H618| Vontar H618      | works  (ap6334@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H618| OrangePi-Zero2w  | works  (uwe5622a@SDIO)                 | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | works       | works       | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-se      | works  (ap6255@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
+Rockchip 3399 | OrangePi-4 LTS   | works  (uwe5622@SDIO)                  | works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3528 | Vontar-R3        | not works                              | not works   | not works   | not works                      | missing VOP3 so no HDMI       |
 Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                   | works       | works       | not works                      | good prospects                |
 Rockchip 3566 | Quartz64 Model B | works  (cm256sm@SDIO)                  | works       | n/a         | not works                      | good prospects                |
 Rockchip 3566 | URVE Pi          | works  (rtl8821@SDIO)                  | not works   | n/a         | not works                      | good prospects                |
+Rockchip 3566 | OrangePi-3B      | works  (uwe5622@SDIO)                  | works       | LED Diode,OK| not works                      | good prospects                |
 Rockchip 3566 | Rock3-C          | works  (ap6256@SDIO)                   | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-B          | works  (iwl7265@PCI-e)                 | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588 | Rock5A/5B        | not works                              | not works   | not works   | not works                      | missing VOP2 so no HDMI       |
 Amlogic s905  | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | works       | WiP         | not works (firmware issue)     | support stalled               |
 Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | works       | n/a         | not works (firmware issue)     | support stalled               |
 Amlogic sm1   | X96-Air          | works  (rtl8189@SDIO)                  | works       | WiP         | not works (firmware issue)     | support stalled               |
@@ -136,19 +141,13 @@ On platforms with statefull v4l2_m2m video codecs: RPI3/RPI4 H.264 playback seek
 SoC              | Tested on                                    | Supported Decoder/ Hw.decode API      | Currently supported video decode HW.accel  | Supported drawing     | Supported video render    | Remarks                                              |
 -----------------|----------------------------------------------|---------------------------------------|--------------------------------------------|-----------------------|---------------------------|------------------------------------------------------|
 Allwinner H6     | EachLink H6 Mini, TanixTX6, Beelink GS1, OPi3| cedrus/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
-Allwinner H313   | X96-Q (DDR3)                                 | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
-Allwinner H313   | X96-Q (LPDDR3)                               | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
+Allwinner H313   | X96-Q (DDR3), X96-Q (LPDDR3)                 | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
 Allwinner H616   | TanixTX6s, OrangePI-Zero2                    | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
-Allwinner H618   | Vontar H618, OrangePI-Zero3                  | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
+Allwinner H618   | Vontar H618, OrangePI-Zero3, OrangePI-Zero2W | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
 Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
-Rockchip 3399    | RockPI 4-b                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF    | Good playback, wyaland gives black.screen
-Rockchip 3399    | RockPI 4-se                                  | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF    | Good playback, wyaland gives black.screen
-Rockchip 3566    | X96-X6                                       | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3566    | Quartz64 Model B                             | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3566    | URVE Pi                                      | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3566    | Rock3-C                                      | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3568    | Rock3-A                                      | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3568    | Rock3-B                                      | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
+Rockchip 3399    | RockPi4, RockPi4SE, OrangePi4-LTS            | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF    | Good playback, wyaland gives black.screen
+Rockchip 3566    | X96-x6, Quartz64B, UrvePi, OrangePi3B, Rock3C| hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
+Rockchip 3568    | Rock3-A, Rock3-B                             | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
 Amlogic s905     | TanixTX3-Mini                                | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, Wayland (2)      | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, limited HEVC on s905w
 Amlogic s912     | Beelink GT1                                  | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
 Amlogic sm1      | X96-Air                                      | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, artefacts on H.264
