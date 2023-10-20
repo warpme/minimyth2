@@ -20,7 +20,7 @@ selection_a="my testbed boards"
 selection_b="board-x86pc.bios_efi64"
 selection_c="board-h616.tanix_tx6s"
 selection_d="board-rpi3.mainline32"
-selection_e="board-rk3399.orangepi_4"
+selection_e="board-rk3399.orangepi_4_lts"
 selection_f="board-h616.t95"
 selection_g="board-h616.x96_mate"
 selection_h="board-g12.radxa_zero"
@@ -43,6 +43,8 @@ selection_z="board-h6.orangepi_3_lts"
 selection_a1="board-h618.orangepi_zero3"
 selection_a2="board-h618.vontar_h618"
 selection_a3="board-rk3528.vontar_r3"
+selection_a4="board-rk3566.orangepi_3b"
+selection_a5="board-h618.orangepi_zero2w"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -134,6 +136,8 @@ if [ x${selection} = "x" ] ; then
     echo "  (a1)for "${selection_a1}
     echo "  (a2)for "${selection_a2}
     echo "  (a3)for "${selection_a3}
+    echo "  (a4)for "${selection_a4}
+    echo "  (a5)for "${selection_a5}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -214,6 +218,8 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_a1}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_a2}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_a3}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a4}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a5}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     b)  cache_board_list "${selection_b}"
@@ -318,6 +324,14 @@ case "${selection}" in
 
     a3)  cache_board_list "${selection_a3}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_a3}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    a4)  cache_board_list "${selection_a4}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a4}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    a5)  cache_board_list "${selection_a5}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a5}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
