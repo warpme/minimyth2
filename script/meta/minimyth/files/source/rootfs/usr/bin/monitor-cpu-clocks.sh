@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# if called with para "temp" - script will monitror cpu temp. Output will be triggered when
+# any chanage in cpu clock will happen
+
 . /etc/rc.d/functions
 
 freq_sysfs_entry=`find /sys/devices/system/cpu/cpufreq/policy*/scaling_cur_freq -type f 2>/dev/null`
@@ -12,7 +15,7 @@ if [ x${freq_sysfs_entry} = "x" ] ; then
     exit 1
 else
     echo " "
-    echo "CPU Freg monitor v1.1"
+    echo "CPU Freg monitor v1.2"
     echo " "
     echo "Using:"
     echo "  cpufreq sysfs entry : "${freq_sysfs_entry}
@@ -20,7 +23,9 @@ else
     echo " "
 fi
 
-prev_speed=0
+mode=$1
+
+prev_val=0
 
 while true ; do
 
@@ -46,11 +51,19 @@ while true ; do
     done
     temp=`echo ${temp} | sed -e "s%/$%%"`
 
+    if [ x${mode} = "xtemp" ] ; then
+        val=${temp}
+    else
+        val=${speed}
+    fi
 
-    if [ ${speed} != ${prev_speed} ] ; then
+    if [ ${val} != ${prev_val} ] ; then
 
         timestamp=`date +%T`
-        location=`mm_mythfrontend_networkcontrol "query location"`
+
+        if [ ! x${mode} = "xtemp" ] ; then
+            location=`mm_mythfrontend_networkcontrol "query location"`
+        fi
 
         if [ -n ${temp} ] ; then
 
@@ -62,7 +75,8 @@ while true ; do
 
         fi
 
-        prev_speed=${speed}
+        prev_val=${val}
+
     fi
 
     sleep 1
