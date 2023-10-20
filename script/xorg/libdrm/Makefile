@@ -1,7 +1,7 @@
 
 CATEGORIES = $(CATEGORY)
 GARNAME      = libdrm
-GARVERSION   = 2.4.116
+GARVERSION   = 2.4.117
 MASTER_SITES = http://dri.freedesktop.org/libdrm/
 DISTFILES    = $(DISTNAME).tar.xz
 
