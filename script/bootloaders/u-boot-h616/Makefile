@@ -31,9 +31,7 @@ PATCHFILES  += 53-add-tanix_tx6s_axp313_defconfig.patch
 PATCHFILES  += 54-opi-zero2-add-mising-dram-para.patch
 PATCHFILES  += 55-add-opi-zero3-defconfig.patch
 # PATCHFILES  += 99-enable-debug.patch
-# PATCHFILES  += 99-dump-dram-controller-regs.patch
-
-
+PATCHFILES  += 99-dump-dram-controller-regs.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
