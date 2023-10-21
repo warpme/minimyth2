@@ -132,6 +132,10 @@ ifneq (,$(findstring board-rk3588.rock5-b,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3588.rock5-b
 endif
 
+ifneq (,$(findstring board-rk3588s.orangepi_5,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3588s.orangepi_5
+endif
+
 ifneq (,$(findstring board-rk3588s.rock5-a,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3588s.rock5-a
 endif

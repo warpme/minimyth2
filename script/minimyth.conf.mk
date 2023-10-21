@@ -89,6 +89,7 @@ mm_SOFTWARE               ?= \
 # 'board-rk3566.orangepi_3b'
 # 'board-rk3588.rock5-b
 # 'board-rk3588s.rock5-a
+# 'board-rk3588s.orangepi_5'
 # 'board-h6.beelink_gs1'
 # 'board-h6.eachlink_mini'
 # 'board-h6.tanix_tx6'

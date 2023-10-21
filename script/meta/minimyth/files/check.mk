@@ -417,6 +417,7 @@ mm-all:
 		   [ ! "$${board}" = "board-rk3566.orangepi_3b"   ] && \
 		   [ ! "$${board}" = "board-rk3588.rock5-b"       ] && \
 		   [ ! "$${board}" = "board-rk3588s.rock5-a"      ] && \
+		   [ ! "$${board}" = "board-rk3588s.orangepi_5"   ] && \
 		   [ ! "$${board}" = "board-rpi2"                 ] && \
 		   [ ! "$${board}" = "board-rpi3.mainline32"      ] && \
 		   [ ! "$${board}" = "board-rpi3.mainline64"      ] && \

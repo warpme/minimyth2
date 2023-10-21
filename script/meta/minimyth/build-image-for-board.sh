@@ -45,6 +45,7 @@ selection_a2="board-h618.vontar_h618"
 selection_a3="board-rk3528.vontar_r3"
 selection_a4="board-rk3566.orangepi_3b"
 selection_a5="board-h618.orangepi_zero2w"
+selection_a6="board-rk3588s.orangepi_5"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -138,6 +139,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (a3)for "${selection_a3}
     echo "  (a4)for "${selection_a4}
     echo "  (a5)for "${selection_a5}
+    echo "  (a6)for "${selection_a6}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -230,6 +232,7 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_a3}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_a4}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_a5}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a6}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     b)  cache_board_list "${selection_b}"
@@ -342,6 +345,10 @@ case "${selection}" in
 
     a5)  cache_board_list "${selection_a5}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_a5}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    a6)  cache_board_list "${selection_a6}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a6}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
