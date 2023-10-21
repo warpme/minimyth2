@@ -140,6 +140,10 @@ ifneq (,$(findstring board-rk3588s.rock5-a,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3588s.rock5-a
 endif
 
+ifneq (,$(findstring board-rk3588.orangepi_5_plus,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3588.orangepi_5_plus
+endif
+
 ifneq (,$(findstring board-h6.beelink_gs1,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h6.beelink_gs1
 endif
