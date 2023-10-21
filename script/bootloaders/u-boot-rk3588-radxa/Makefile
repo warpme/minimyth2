@@ -1,7 +1,7 @@
 
-GARNAME      = u-boot-rk3588-rockchip-13042023
-# git@ 07.10.2023 https://github.com/radxa/u-boot/commits/next-dev
-GARVERSION   = 2a0fc326204da252a921750b9888f5f25b79ce09
+GARNAME      = u-boot-rk3588-rockchip-20231010
+# git@ 10.10.2023 https://github.com/radxa/u-boot/commits/next-dev
+GARVERSION   = b54d452d46459bc6e4cfc1a2795c9aad143aa174
 # git@ 16.06.2023 https://github.com/radxa/rkbin/commits/master
 RKBINVERSION = 38ab40ee2b3cc3d5a4a4f9aee56cba37392ccc9e
 CATEGORIES   = kernel
@@ -9,7 +9,8 @@ MASTER_SITES = \
 		https://github.com/radxa/u-boot/archive/ \
 		https://github.com/radxa/rkbin/archive/
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip
-PATCHFILES   = fix-gcc13-compile.patch dts-rk3588s-rock-5a-add-ethernet0-alias.patch
+PATCHFILES   = fix-gcc13-compile.patch dts-rk3588s-rock-5a-add-ethernet0-alias.patch 
+PATCHFILES  += add-orangepi_5_plus_defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
@@ -30,6 +31,7 @@ include ../../python3/python/package-api.mk
 
 # mm_U-BOOT_BOARD_TYPE = rock-5b-rk3588_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock-5a-rk3588s_defconfig
+mm_U-BOOT_BOARD_TYPE = orangepi_5_plus_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
