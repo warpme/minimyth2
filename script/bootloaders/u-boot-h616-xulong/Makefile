@@ -3,7 +3,8 @@ GARNAME      = u-boot-h616-6fe17fac388-xulong
 GARVERSION   = 6fe17fac388aad17490cf386578b7532975e567f
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/orangepi-xunlong/u-boot-orangepi/archive/
-# PATCHFILES   = 99-dump-dram-controller-regs.patch
+PATCHFILES   = 01-fix-incorrect-ram-size-detection.patch
+# PATCHFILES   += 99-dump-dram-controller-regs.patch
 DISTFILES    = $(GARVERSION).zip
 
 WORKSRC      = $(WORKDIR)/u-boot-orangepi-$(GARVERSION)
@@ -30,7 +31,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
-# mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
+mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
