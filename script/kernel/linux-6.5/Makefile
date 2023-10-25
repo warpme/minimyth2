@@ -92,7 +92,6 @@ PATCHFILES += 0542-media-cedrus-Increase-H6-clock-rate.patch
 PATCHFILES += 0544-clk-sunxi-ng-h6-Reparent-CPUX-during-PLL-CPUX-rate-c.patch
 PATCHFILES += 0547-HACK-clk-sunxi-ng-unify-parent-for-HDMI-clocks.patch
 PATCHFILES += 0548-wip-media-sunxi-sun8i-di-fix-race-condition.patch
-PATCHFILES += 0549-hack-to-make-rk3328-corrcect-colorf-after-adding-10bit-afbc.patch
 # PATCHFILES += 0548-media-cedrus-add-vc1-decoding-support.patch disabled as it is WiP
 # various patches for H6
 PATCHFILES += 0559-mfd-add-AC200.patch
@@ -134,6 +133,7 @@ PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
 PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
 # add HDMI, audio support
 PATCHFILES += 0606-dma-sun6i-dma-add-h616-support.patch
+PATCHFILES += 0607-drivers-drm-wip-add-h616-hdmi-jernejsk-24102023.patch
 PATCHFILES += 0608-sound-soc-sunxi-add-codec-driver-for-h616.patch
 PATCHFILES += 0609-sound-soc-add-sunxi_v2-for-h616-ahub.patch
 PATCHFILES += 0612-gpu-drm-panfrost-panfrost-devfreq-revert-set-opp-to-the-recommended.patch
@@ -159,10 +159,8 @@ ifeq (1,1)
 PATCHFILES += 0705-rockchip-from-list.patch
 PATCHFILES += 0711-v4l2-from-list.patch
 PATCHFILES += 0720-drm-from-list.patch
-PATCHFILES += 0730-drm-rockchip.patch
 PATCHFILES += 0731-v4l2-rockchip.patch
 PATCHFILES += 0732-for-libreelec.patch
-PATCHFILES += 0733-temp-dw_hdmi-rockchip.patch
 PATCHFILES += 0741-v4l2-wip-rkvdec-hevc.patch
 PATCHFILES += 0742-v4l2-wip-iep-driver.patch
 PATCHFILES += 0743-arm64-dts-rockchip-beelink-a1-enable-openvfd.patch
