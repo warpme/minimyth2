@@ -1,6 +1,6 @@
 
 GARNAME      = xorg-server
-GARVERSION   = 21.1.8
+GARVERSION   = 21.1.9
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://xorg.freedesktop.org/releases/individual/xserver/
 DISTFILES    = $(DISTNAME).tar.xz
