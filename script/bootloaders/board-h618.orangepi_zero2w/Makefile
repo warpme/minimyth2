@@ -10,7 +10,7 @@ DISTFILES    = \
                h618-boot.txt       \
                minimyth.conf       \
 
-export mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
+export mm_U-BOOT_BOARD_TYPE = orangepi_zero2w_defconfig
 
 WORKSRC      = $(WORKDIR)
 
