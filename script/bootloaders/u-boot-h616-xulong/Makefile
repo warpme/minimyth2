@@ -4,7 +4,14 @@ GARVERSION   = 6fe17fac388aad17490cf386578b7532975e567f
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/orangepi-xunlong/u-boot-orangepi/archive/
 PATCHFILES   = 01-fix-incorrect-ram-size-detection.patch
-# PATCHFILES   += 99-dump-dram-controller-regs.patch
+PATCHFILES  += 01-hack-add-h313-int.emac.phy-support.patch
+PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
+PATCHFILES  += 50-add-x96-q-lpddr3-defconfig.patch
+PATCHFILES  += 51-add-x96-q-ddr3-defconfig.patch
+PATCHFILES  += 52-add-tanix-tx6s-defconfig.patch
+PATCHFILES  += 53-add-tanix_tx6s_axp313_defconfig.patch
+PATCHFILES  += 56-opi-zero2w-enable-eth.patch
+# PATCHFILES  += 99-dump-dram-controller-regs.patch
 DISTFILES    = $(GARVERSION).zip
 
 WORKSRC      = $(WORKDIR)/u-boot-orangepi-$(GARVERSION)
@@ -26,12 +33,16 @@ include ../../gar.mk
 include ../../python3/python/package-api.mk
 
 # For forcing given board (usually for testing)
+# working ok
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_axp313_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_defconfig
-# mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
+# mm_U-BOOT_BOARD_TYPE = orangepi_zero2w_defconfig
+
+# not working: x96-q ddr3, pendoo
+# mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
