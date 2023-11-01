@@ -1,0 +1,276 @@
+
+This adds very initial DT for rk3528 based Vontar R3 TVbox,
+
+Copyright (C) 2023 Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/arch/arm64/boot/dts/rockchip/Makefile linux-6.4.11/arch/arm64/boot/dts/rockchip/Makefile
+--- linux-6.4.11/arch/arm64/boot/dts/rockchip/Makefile	2023-08-24 15:58:41.986699671 +0200
++++ linux-6.4.11/arch/arm64/boot/dts/rockchip/Makefile	2023-08-24 16:00:51.500033447 +0200
+@@ -69,6 +69,7 @@
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-sapphire.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399-sapphire-excavator.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3399pro-rock-pi-n10.dtb
++dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3528-vontar-r3.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-anbernic-rg353p.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-anbernic-rg353v.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-anbernic-rg353vs.dtb
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.4.11/arch/arm64/boot/dts/rockchip/rk3528-vontar-r3.dts linux-6.4.11/arch/arm64/boot/dts/rockchip/rk3528-vontar-r3.dts
+--- linux-6.4.11/arch/arm64/boot/dts/rockchip/rk3528-vontar-r3.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.4.11/arch/arm64/boot/dts/rockchip/rk3528-vontar-r3.dts	2023-08-24 15:14:49.233400865 +0200
+@@ -0,0 +1,256 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Copyright (C) 2023 Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++ *
++ */
++
++/dts-v1/;
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/pinctrl/rockchip.h>
++#include <dt-bindings/soc/rockchip,vop2.h>
++#include "rk3528.dtsi"
++
++/ {
++	model = "Vontar R3";
++	compatible = "rockchip,vontar_r3", "rockchip,rk3528";
++
++	hdmi-con {
++		compatible = "hdmi-connector";
++		type = "a";
++
++		port {
++			hdmi_con_in: endpoint {
++				remote-endpoint = <&hdmi_out_con>;
++			};
++		};
++	};
++
++	dc_12v: dc-12v {
++		compatible = "regulator-fixed";
++		regulator-name = "dc_12v";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <12000000>;
++		regulator-max-microvolt = <12000000>;
++	};
++
++	vcc5v0_sys: vcc5v0-sys {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc5v0_sys";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&dc_12v>;
++	};
++
++	vcc5v0_host: vcc5v0-host-regulator {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc5v0_host";
++		regulator-boot-on;
++		regulator-always-on;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		enable-active-high;
++		gpio = <&gpio4 RK_PB4 GPIO_ACTIVE_HIGH>;
++		vin-supply = <&vcc5v0_sys>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&vcc5v0_host_en>;
++	};
++
++	vdd_logic: vdd-logic {
++		compatible = "pwm-regulator";
++		pwms = <&pwm2 0 5000 1>;
++		regulator-name = "vdd_logic";
++		regulator-min-microvolt = <703000>;
++		regulator-max-microvolt = <1006000>;
++		regulator-init-microvolt = <900000>;
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-settling-time-up-us = <250>;
++		pwm-supply = <&vcc5v0_sys>;
++		status = "okay";
++	};
++
++	vdd_cpu: vdd-cpu {
++		compatible = "pwm-regulator";
++		pwms = <&pwm1 0 5000 1>;
++		regulator-name = "vdd_cpu";
++		regulator-min-microvolt = <746000>;
++		regulator-max-microvolt = <1201000>;
++		regulator-init-microvolt = <953000>;
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-settling-time-up-us = <250>;
++		pwm-supply = <&vcc5v0_sys>;
++		status = "okay";
++	};
++
++	vdd_0v9_s3: vdd-0v9-s3 {
++		compatible = "regulator-fixed";
++		regulator-name = "vdd_0v9_s3";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <900000>;
++		regulator-max-microvolt = <900000>;
++		vin-supply = <&vcc5v0_sys>;
++	};
++
++	vdd_1v8_s3: vdd-1v8-s3 {
++		compatible = "regulator-fixed";
++		regulator-name = "vdd_1v8_s3";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		vin-supply = <&vcc5v0_sys>;
++	};
++
++	vcc_3v3_s3: vcc-3v3-s3 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc_3v3_s3";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&vcc5v0_sys>;
++	};
++
++	vcc_ddr_s3: vcc-ddr-s3 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc_ddr_s3";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <1200000>;
++		regulator-max-microvolt = <1200000>;
++		vin-supply = <&vcc5v0_sys>;
++	};
++
++	vcc_sd: vcc-sd {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc_sd";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&vcc5v0_sys>;
++	};
++
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&cpu0 {
++	cpu-supply = <&vdd_cpu>;
++};
++
++&tsadc {
++	status = "okay";
++};
++
++&pwm1 {
++	status = "okay";
++};
++
++&pwm2 {
++	status = "okay";
++};
++
++&gmac0 {
++	status = "okay";
++};
++
++&sdmmc {
++	status = "okay";
++};
++
++&pinctrl {
++	usb {
++		vcc5v0_host_en: vcc5v0-host-en {
++			rockchip,pins = <4 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++};
++
++&usb_host0_ehci {
++	status = "okay";
++};
++
++&usb_host0_ohci {
++	status = "okay";
++};
++
++&u2phy_host {
++	phy-supply = <&vcc5v0_host>;
++	status = "okay";
++};
++
++&u2phy_otg {
++	phy-supply = <&vcc5v0_host>;
++	status = "okay";
++};
++
++&usb2phy {
++	status = "okay";
++};
++
++&usbdrd30 {
++	status = "okay";
++};
++
++&usbdrd_dwc3 {
++	dr_mode = "host";
++	extcon = <&usb2phy>;
++	phys = <&u2phy_otg>;
++	phy-names = "usb2-phy";
++	status = "okay";
++};
++
++&tsadc {
++	status = "okay";
++};
++
++&hdmi {
++	avdd-0v9-supply = <&vdd_0v9_s3>;
++	avdd-1v8-supply = <&vdd_1v8_s3>;
++	pinctrl-names = "default";
++	status = "okay";
++};
++
++&hdmiphy {
++	status = "okay";
++};
++
++&hdmi_in {
++	hdmi_in_vp0: endpoint {
++		remote-endpoint = <&vp0_out_hdmi>;
++	};
++};
++
++&hdmi_out {
++	hdmi_out_con: endpoint {
++		remote-endpoint = <&hdmi_con_in>;
++	};
++};
++
++&vop {
++    status = "okay";
++};
++
++//&vop_mmu {
++//	status = "okay";
++//};
++
++&vp0 {
++	vp0_out_hdmi: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
++		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
++		remote-endpoint = <&hdmi_in_vp0>;
++	};
++};
++
++&display_subsystem {
++	status = "okay";
++};
