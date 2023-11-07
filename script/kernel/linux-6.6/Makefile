@@ -154,6 +154,7 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
+# https://github.com/Kwiboo/linux-rockchip/commits/linuxtv-rkvdec-hevc-v1 6.11.2023
 PATCHFILES += 0701-drm-fourcc-Add-NV20-and-NV30-YUV-formats.patch
 PATCHFILES += 0702-drm-rockchip-vop-Add-NV15-NV20-and-NV30-support.patch
 PATCHFILES += 0703-media-v4l2-common-Add-helpers-to-calculate-bytesperl.patch
@@ -161,18 +162,17 @@ PATCHFILES += 0704-media-v4l2-Add-NV15-and-NV20-pixel-formats.patch
 PATCHFILES += 0705-media-rkvdec-h264-Use-bytesperline-and-buffer-height.patch
 PATCHFILES += 0706-media-rkvdec-h264-Don-t-hardcode-SPS-PPS-parameters.patch
 PATCHFILES += 0707-media-rkvdec-h264-Remove-SPS-validation-at-streaming.patch
-PATCHFILES += 0708-media-rkvdec-Extract-rkvdec_fill_decoded_pixfmt-help.patch
+PATCHFILES += 0708-media-rkvdec-Extract-rkvdec_fill_decoded_pixfmt-into.patch
 PATCHFILES += 0709-media-rkvdec-Move-rkvdec_reset_decoded_fmt-helper.patch
 PATCHFILES += 0710-media-rkvdec-Extract-decoded-format-enumeration-into.patch
-PATCHFILES += 0711-media-rkvdec-Add-rkvdec_image_fmt.patch
+PATCHFILES += 0711-media-rkvdec-Add-image-format-concept.patch
 PATCHFILES += 0712-media-rkvdec-Add-get_image_fmt-ops.patch
 PATCHFILES += 0713-media-rkvdec-h264-Support-High-10-and-4-2-2-profiles.patch
-PATCHFILES += 0714-WIP-media-rkvdec-add-hevc-backend.patch
+PATCHFILES += 0714-media-rkvdec-Add-HEVC-backend.patch
 PATCHFILES += 0715-media-rkvdec-Add-variants-support.patch
-PATCHFILES += 0716-media-rkvdec-Implement-capability-filter.patch
+PATCHFILES += 0716-media-rkvdec-Implement-capability-filtering.patch
 PATCHFILES += 0717-media-rkvdec-Add-RK3288-variant.patch
 PATCHFILES += 0718-media-rkvdec-Disable-QoS-for-HEVC-and-VP9-on-RK3328.patch
-PATCHFILES += 0719-media-dt-bindings-rockchip-vdec-Add-rockchip-rk3288-.patch
 PATCHFILES += 0722-v4l2-wip-iep-driver.patch
 PATCHFILES += 0723-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
 PATCHFILES += 0724-media-rkvdec-add-soft-reset-on-errors.patch

@@ -1,18 +1,22 @@
-From 0402cffae110d5033f659a5e9f9b51f0a4d6235c Mon Sep 17 00:00:00 2001
+From f585c44abe3ebb4c2119bfc7eb89dca352ae849b Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
-Date: Mon, 30 Oct 2023 12:57:34 +0000
-Subject: [PATCH 16/22] media: rkvdec: Implement capability filter
+Date: Sun, 5 Nov 2023 23:36:10 +0000
+Subject: [PATCH 16/22] media: rkvdec: Implement capability filtering
 
+Add filtering of coded formats and controls depending on a variant
+capabilities.
+
+Signed-off-by: Alex Bee <knaerzche@gmail.com>
 Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
 ---
- drivers/staging/media/rkvdec/rkvdec.c | 52 ++++++++++++++++++++-------
- 1 file changed, 39 insertions(+), 13 deletions(-)
+ drivers/staging/media/rkvdec/rkvdec.c | 63 +++++++++++++++++++--------
+ 1 file changed, 46 insertions(+), 17 deletions(-)
 
 diff --git a/drivers/staging/media/rkvdec/rkvdec.c b/drivers/staging/media/rkvdec/rkvdec.c
-index 6fd40d27f..6cb08c7a4 100644
+index dc1f75dd1..9cf7b63c1 100644
 --- a/drivers/staging/media/rkvdec/rkvdec.c
 +++ b/drivers/staging/media/rkvdec/rkvdec.c
-@@ -371,13 +371,34 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
+@@ -370,13 +370,34 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
  	}
  };
  
@@ -49,7 +53,7 @@ index 6fd40d27f..6cb08c7a4 100644
  			return &rkvdec_coded_fmts[i];
  	}
  
-@@ -388,7 +409,7 @@ static void rkvdec_reset_coded_fmt(struct rkvdec_ctx *ctx)
+@@ -387,7 +408,7 @@ static void rkvdec_reset_coded_fmt(struct rkvdec_ctx *ctx)
  {
  	struct v4l2_format *f = &ctx->coded_fmt;
  
@@ -58,7 +62,7 @@ index 6fd40d27f..6cb08c7a4 100644
  	rkvdec_reset_fmt(ctx, f, ctx->coded_fmt_desc->fourcc);
  
  	f->type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-@@ -402,17 +423,18 @@ static void rkvdec_reset_coded_fmt(struct rkvdec_ctx *ctx)
+@@ -401,17 +422,18 @@ static void rkvdec_reset_coded_fmt(struct rkvdec_ctx *ctx)
  static int rkvdec_enum_framesizes(struct file *file, void *priv,
  				  struct v4l2_frmsizeenum *fsize)
  {
@@ -81,7 +85,7 @@ index 6fd40d27f..6cb08c7a4 100644
  	return 0;
  }
  
-@@ -470,10 +492,10 @@ static int rkvdec_try_output_fmt(struct file *file, void *priv,
+@@ -469,10 +491,10 @@ static int rkvdec_try_output_fmt(struct file *file, void *priv,
  	struct rkvdec_ctx *ctx = fh_to_rkvdec_ctx(priv);
  	const struct rkvdec_coded_fmt_desc *desc;
  
@@ -95,7 +99,7 @@ index 6fd40d27f..6cb08c7a4 100644
  	}
  
  	v4l2_apply_frmsize_constraints(&pix_mp->width,
-@@ -550,7 +572,7 @@ static int rkvdec_s_output_fmt(struct file *file, void *priv,
+@@ -549,7 +571,7 @@ static int rkvdec_s_output_fmt(struct file *file, void *priv,
  	if (ret)
  		return ret;
  
@@ -104,7 +108,7 @@ index 6fd40d27f..6cb08c7a4 100644
  	if (!desc)
  		return -EINVAL;
  	ctx->coded_fmt_desc = desc;
-@@ -602,10 +624,14 @@ static int rkvdec_g_capture_fmt(struct file *file, void *priv,
+@@ -601,10 +623,14 @@ static int rkvdec_g_capture_fmt(struct file *file, void *priv,
  static int rkvdec_enum_output_fmt(struct file *file, void *priv,
  				  struct v4l2_fmtdesc *f)
  {
@@ -121,6 +125,28 @@ index 6fd40d27f..6cb08c7a4 100644
  	return 0;
  }
  
+@@ -968,14 +994,17 @@ static int rkvdec_init_ctrls(struct rkvdec_ctx *ctx)
+ 	int ret;
+ 
+ 	for (i = 0; i < ARRAY_SIZE(rkvdec_coded_fmts); i++)
+-		nctrls += rkvdec_coded_fmts[i].ctrls->num_ctrls;
++		if (rkvdec_is_capable(ctx, rkvdec_coded_fmts[i].capability))
++			nctrls += rkvdec_coded_fmts[i].ctrls->num_ctrls;
+ 
+ 	v4l2_ctrl_handler_init(&ctx->ctrl_hdl, nctrls);
+ 
+ 	for (i = 0; i < ARRAY_SIZE(rkvdec_coded_fmts); i++) {
+-		ret = rkvdec_add_ctrls(ctx, rkvdec_coded_fmts[i].ctrls);
+-		if (ret)
+-			goto err_free_handler;
++		if (rkvdec_is_capable(ctx, rkvdec_coded_fmts[i].capability)) {
++			ret = rkvdec_add_ctrls(ctx, rkvdec_coded_fmts[i].ctrls);
++			if (ret)
++				goto err_free_handler;
++		}
+ 	}
+ 
+ 	ret = v4l2_ctrl_handler_setup(&ctx->ctrl_hdl);
 -- 
 2.36.1
 

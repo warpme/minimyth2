@@ -1,16 +1,26 @@
-From bcb5b3ec84fbec55190dccd54a3050c7b256ea78 Mon Sep 17 00:00:00 2001
+From 2faf461874fd116d8fece4d93c838681faa90ca3 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
-Date: Sun, 29 Oct 2023 22:40:42 +0000
-Subject: [PATCH 14/22] WIP: media: rkvdec: add hevc backend
+Date: Sun, 5 Nov 2023 23:36:08 +0000
+Subject: [PATCH 14/22] media: rkvdec: Add HEVC backend
 
+The Rockchip VDEC supports the HEVC codec with the Main and Main10
+Profile up to Level 5.1 High tier: 4096x2304@60 fps.
+
+Add the backend for HEVC format to the decoder.
+
+Signed-off-by: Alex Bee <knaerzche@gmail.com>
+Signed-off-by: Nicolas Dufresne <nicolas.dufresne@collabora.com>
+Signed-off-by: Sebastian Fricke <sebastian.fricke@collabora.com>
+Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
 ---
  drivers/staging/media/rkvdec/Makefile         |    2 +-
- .../staging/media/rkvdec/rkvdec-hevc-data.c   | 1845 +++++++++++++++++
- drivers/staging/media/rkvdec/rkvdec-hevc.c    |  822 ++++++++
+ drivers/staging/media/rkvdec/TODO             |    7 -
+ .../staging/media/rkvdec/rkvdec-hevc-data.c   | 1848 +++++++++++++++++
+ drivers/staging/media/rkvdec/rkvdec-hevc.c    |  814 ++++++++
  drivers/staging/media/rkvdec/rkvdec-regs.h    |    1 +
- drivers/staging/media/rkvdec/rkvdec.c         |   77 +
+ drivers/staging/media/rkvdec/rkvdec.c         |   76 +
  drivers/staging/media/rkvdec/rkvdec.h         |    1 +
- 6 files changed, 2747 insertions(+), 1 deletion(-)
+ 7 files changed, 2741 insertions(+), 8 deletions(-)
  create mode 100644 drivers/staging/media/rkvdec/rkvdec-hevc-data.c
  create mode 100644 drivers/staging/media/rkvdec/rkvdec-hevc.c
 
@@ -23,12 +33,27 @@ index cb86b429c..a77122641 100644
  
 -rockchip-vdec-y += rkvdec.o rkvdec-h264.o rkvdec-vp9.o
 +rockchip-vdec-y += rkvdec.o rkvdec-h264.o rkvdec-hevc.o rkvdec-vp9.o
+diff --git a/drivers/staging/media/rkvdec/TODO b/drivers/staging/media/rkvdec/TODO
+index 2c0779383..f089ef859 100644
+--- a/drivers/staging/media/rkvdec/TODO
++++ b/drivers/staging/media/rkvdec/TODO
+@@ -1,10 +1,3 @@
+-* Support for HEVC is planned for this driver.
+-
+-  Given the V4L controls for that CODEC will be part of
+-  the uABI, it will be required to have the driver in staging.
+-
+-  For this reason, we are keeping this driver in staging for now.
+-
+ * Evaluate introducing a helper to consolidate duplicated
+   code in rkvdec_request_validate and cedrus_request_validate.
+   The helper needs to the driver private data associated with
 diff --git a/drivers/staging/media/rkvdec/rkvdec-hevc-data.c b/drivers/staging/media/rkvdec/rkvdec-hevc-data.c
 new file mode 100644
-index 000000000..d3b776006
+index 000000000..eac4ea604
 --- /dev/null
 +++ b/drivers/staging/media/rkvdec/rkvdec-hevc-data.c
-@@ -0,0 +1,1845 @@
+@@ -0,0 +1,1848 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip Video Decoder driver
@@ -36,10 +61,14 @@ index 000000000..d3b776006
 + * Copyright (C) 2023 Collabora, Ltd.
 + *	Sebastian Fricke <sebastian.fricke@collabora.com>
 + */
++
 +#include <linux/types.h>
 +
 +#define RKV_CABAC_TABLE_SIZE		27456
 +
++/*
++ * This file is #include from rkvdec-hevc.c and not compiled.
++ */
 +static const u8 rkvdec_hevc_cabac_table[RKV_CABAC_TABLE_SIZE] = {
 +	0x07, 0x0f, 0x48, 0x58, 0x58, 0x40, 0x40, 0x40, 0x40, 0x40, 0x0f, 0x40, 0x40, 0x40, 0x0f,
 +	0x68, 0x48, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x07, 0x40,
@@ -1873,13 +1902,12 @@ index 000000000..d3b776006
 +	0x27, 0x27, 0x08, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
 +	0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 +};
-+
 diff --git a/drivers/staging/media/rkvdec/rkvdec-hevc.c b/drivers/staging/media/rkvdec/rkvdec-hevc.c
 new file mode 100644
-index 000000000..2513eddbe
+index 000000000..0c4ddc073
 --- /dev/null
 +++ b/drivers/staging/media/rkvdec/rkvdec-hevc.c
-@@ -0,0 +1,822 @@
+@@ -0,0 +1,814 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip Video Decoder HEVC backend
@@ -1952,8 +1980,6 @@ index 000000000..2513eddbe
 +#define NUM_LONG_TERM_REF_PICS_SPS			PS_FIELD(92, 6)
 +#define SPS_TEMPORAL_MVP_ENABLED_FLAG			PS_FIELD(98, 1)
 +#define STRONG_INTRA_SMOOTHING_ENABLED_FLAG		PS_FIELD(99, 1)
-+#define PPS_MBZ_1					PS_FIELD(100, 7)
-+#define PPS_MBO_1					PS_FIELD(107, 21)
 +/* PPS */
 +#define PIC_PARAMETER_SET_ID				PS_FIELD(128, 6)
 +#define PPS_SEQ_PARAMETER_SET_ID			PS_FIELD(134, 4)
@@ -1986,15 +2012,11 @@ index 000000000..2513eddbe
 +#define LISTS_MODIFICATION_PRESENT_FLAG			PS_FIELD(204, 1)
 +#define LOG2_PARALLEL_MERGE_LEVEL			PS_FIELD(205, 3)
 +#define SLICE_SEGMENT_HEADER_EXTENSION_PRESENT_FLAG	PS_FIELD(208, 1)
-+#define PPS_MBZ_2					PS_FIELD(209, 3)
 +#define NUM_TILE_COLUMNS				PS_FIELD(212, 5)
 +#define NUM_TILE_ROWS					PS_FIELD(217, 5)
-+#define PPS_M_MODE					PS_FIELD(222, 2)
-+#define PPS_MBO_2					PS_FIELD(224, 30)
 +#define COLUMN_WIDTH(i)					PS_FIELD(256 + ((i) * 8), 8)
 +#define ROW_HEIGHT(i)					PS_FIELD(416 + ((i) * 8), 8)
 +#define SCALING_LIST_ADDRESS				PS_FIELD(592, 32)
-+#define PPS_MBO_3					PS_FIELD(624, 16)
 +
 +/* Data structure describing auxiliary buffer format. */
 +struct rkvdec_hevc_priv_tbl {
@@ -2112,8 +2134,6 @@ index 000000000..2513eddbe
 +		  SPS_TEMPORAL_MVP_ENABLED_FLAG);
 +	WRITE_PPS(!!(sps->flags & V4L2_HEVC_SPS_FLAG_STRONG_INTRA_SMOOTHING_ENABLED),
 +		  STRONG_INTRA_SMOOTHING_ENABLED_FLAG);
-+	//WRITE_PPS(0, PPS_MBZ_1);
-+	//WRITE_PPS(0x1fffff, PPS_MBO_1);
 +
 +	/* write pps */
 +	WRITE_PPS(pps->pic_parameter_set_id, PIC_PARAMETER_SET_ID);
@@ -2174,13 +2194,11 @@ index 000000000..2513eddbe
 +	WRITE_PPS(pps->log2_parallel_merge_level_minus2 + 2, LOG2_PARALLEL_MERGE_LEVEL);
 +	WRITE_PPS(!!(pps->flags & V4L2_HEVC_PPS_FLAG_SLICE_SEGMENT_HEADER_EXTENSION_PRESENT),
 +		  SLICE_SEGMENT_HEADER_EXTENSION_PRESENT_FLAG);
-+	//WRITE_PPS(0, PPS_MBZ_2);
 +	WRITE_PPS(pps->num_tile_columns_minus1 + 1, NUM_TILE_COLUMNS);
 +	WRITE_PPS(pps->num_tile_rows_minus1 + 1, NUM_TILE_ROWS);
-+	//WRITE_PPS(3, PPS_M_MODE);
-+	//WRITE_PPS(0x3fffffff, PPS_MBO_2);
 +
 +	if (pps->flags & V4L2_HEVC_PPS_FLAG_TILES_ENABLED) {
++		/* Userspace also provide column width and row height for uniform spacing */
 +		for (i = 0; i <= pps->num_tile_columns_minus1; i++)
 +			WRITE_PPS(pps->column_width_minus1[i], COLUMN_WIDTH(i));
 +		for (i = 0; i <= pps->num_tile_rows_minus1; i++)
@@ -2195,7 +2213,6 @@ index 000000000..2513eddbe
 +	scaling_distance = offsetof(struct rkvdec_hevc_priv_tbl, scaling_list);
 +	scaling_list_address = hevc_ctx->priv_tbl.dma + scaling_distance;
 +	WRITE_PPS(scaling_list_address, SCALING_LIST_ADDRESS);
-+	//WRITE_PPS(0xffff, PPS_MBO_3);
 +}
 +
 +/*
@@ -2316,7 +2333,8 @@ index 000000000..2513eddbe
 + * IJKL         CGKO
 + * MNOP         DHLP
 + */
-+static void rotate_and_flatten_matrices(u8 *output, const u8 *input, int matrices, int row_length)
++static void transpose_and_flatten_matrices(u8 *output, const u8 *input,
++					   int matrices, int row_length)
 +{
 +	int i, j, row, x_offset, matrix_offset, rot_index, y_offset, matrix_size, new_value;
 +
@@ -2342,20 +2360,22 @@ index 000000000..2513eddbe
 +{
 +	int offset = 0;
 +
-+	rotate_and_flatten_matrices(output, (const u8 *)input->scaling_list_4x4, 6, 4);
++	transpose_and_flatten_matrices(output, (const u8 *)input->scaling_list_4x4, 6, 4);
 +	offset = 6 * 16 * sizeof(u8);
-+	rotate_and_flatten_matrices(output + offset, (const u8 *)input->scaling_list_8x8, 6, 8);
++	transpose_and_flatten_matrices(output + offset, (const u8 *)input->scaling_list_8x8, 6, 8);
 +	offset += 6 * 64 * sizeof(u8);
-+	rotate_and_flatten_matrices(output + offset, (const u8 *)input->scaling_list_16x16, 6, 8);
++	transpose_and_flatten_matrices(output + offset,
++				       (const u8 *)input->scaling_list_16x16, 6, 8);
 +	offset += 6 * 64 * sizeof(u8);
 +	/* Add a 128 byte padding with 0s between the two 32x32 matrices */
-+	rotate_and_flatten_matrices(output + offset, (const u8 *)input->scaling_list_32x32, 1, 8);
++	transpose_and_flatten_matrices(output + offset,
++				       (const u8 *)input->scaling_list_32x32, 1, 8);
 +	offset += 64 * sizeof(u8);
 +	memset(output + offset, 0, 128);
 +	offset += 128 * sizeof(u8);
-+	rotate_and_flatten_matrices(output + offset,
-+				    (const u8 *)input->scaling_list_32x32 + (64 * sizeof(u8)),
-+				    1, 8);
++	transpose_and_flatten_matrices(output + offset,
++				       (const u8 *)input->scaling_list_32x32 + (64 * sizeof(u8)),
++				       1, 8);
 +	offset += 64 * sizeof(u8);
 +	memset(output + offset, 0, 128);
 +}
@@ -2715,17 +2735,16 @@ index 15b9bee92..83bf790ed 100644
  #define RKVDEC_MODE_VP9					2
  #define RKVDEC_RPS_MODE					BIT(24)
 diff --git a/drivers/staging/media/rkvdec/rkvdec.c b/drivers/staging/media/rkvdec/rkvdec.c
-index eb59605cc..8cc38c62f 100644
+index eb59605cc..eec68a7a1 100644
 --- a/drivers/staging/media/rkvdec/rkvdec.c
 +++ b/drivers/staging/media/rkvdec/rkvdec.c
-@@ -164,6 +164,68 @@ static const struct v4l2_ctrl_ops rkvdec_ctrl_ops = {
+@@ -164,6 +164,67 @@ static const struct v4l2_ctrl_ops rkvdec_ctrl_ops = {
  	.s_ctrl = rkvdec_s_ctrl,
  };
  
 +static const struct rkvdec_ctrl_desc rkvdec_hevc_ctrl_descs[] = {
 +	{
 +		.cfg.id = V4L2_CID_STATELESS_HEVC_SLICE_PARAMS,
-+		.cfg.name = "Slice parameters",
 +		.cfg.flags = V4L2_CTRL_FLAG_DYNAMIC_ARRAY,
 +		.cfg.type = V4L2_CTRL_TYPE_HEVC_SLICE_PARAMS,
 +		.cfg.dims = { 600 },
@@ -2787,7 +2806,7 @@ index eb59605cc..8cc38c62f 100644
  static const struct rkvdec_ctrl_desc rkvdec_h264_ctrl_descs[] = {
  	{
  		.cfg.id = V4L2_CID_STATELESS_H264_DECODE_PARAMS,
-@@ -257,6 +319,21 @@ static const struct rkvdec_decoded_fmt_desc rkvdec_vp9_decoded_fmts[] = {
+@@ -257,6 +318,21 @@ static const struct rkvdec_decoded_fmt_desc rkvdec_vp9_decoded_fmts[] = {
  };
  
  static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
