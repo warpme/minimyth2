@@ -1,5 +1,5 @@
 #--Use this for mainline x.y.z kernel-------
-ifeq (0,1)
+ifeq (1,1)
 LINUX_MAJOR_VERSION = 6
 LINUX_MINOR_VERSION = 6
 LINUX_TEENY_VERSION = 1
@@ -8,7 +8,7 @@ endif
 #-------------------------------------------
 
 #--Use this for first release of mainline kernel
-ifeq (1,1)
+ifeq (0,1)
 LINUX_MAJOR_VERSION = 6
 LINUX_MINOR_VERSION = 6
 LINUX_TEENY_VERSION = 
