@@ -31,7 +31,7 @@ include ../../python3/python/package-api.mk
 
 # mm_U-BOOT_BOARD_TYPE = rock-5b-rk3588_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock-5a-rk3588s_defconfig
-mm_U-BOOT_BOARD_TYPE = orangepi_5_plus_defconfig
+# mm_U-BOOT_BOARD_TYPE = orangepi_5_plus_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
