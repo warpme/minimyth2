@@ -31,6 +31,7 @@ PATCHFILES  += 53-add-tanix_tx6s_axp313_defconfig.patch
 PATCHFILES  += 54-opi-zero2-add-mising-dram-para.patch
 PATCHFILES  += 55-add-opi-zero3-defconfig.patch
 PATCHFILES  += 56-add-opi-zero2w-defconfig.patch
+PATCHFILES  += 57-add-tanix_tx6s_kingston_lpddr3_defconfig.patch
 # PATCHFILES  += 99-enable-debug.patch
 # PATCHFILES  += 99-dump-dram-controller-regs.patch
 
@@ -60,6 +61,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2w_defconfig
+# mm_U-BOOT_BOARD_TYPE = tanix_tx6s_kingston_lpddr3_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
