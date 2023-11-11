@@ -27,9 +27,7 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@# swith to u-boot-h618-orangepi-zero3 as u-boot-h616 not works ok (yet)
-	@# $(MAKE) clean-all install -C ../u-boot-h616
-	@$(MAKE) clean-all install -C ../u-boot-h616-xulong
+	@$(MAKE) clean-all install -C ../u-boot-h616
 	@$(MAKECOOKIE)
 
 install-custom:
