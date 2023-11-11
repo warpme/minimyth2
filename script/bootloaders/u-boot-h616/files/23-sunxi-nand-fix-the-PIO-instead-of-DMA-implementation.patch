@@ -1,0 +1,42 @@
+From 5fd30ed78539e11c2c155001a88f483441a96ebd Mon Sep 17 00:00:00 2001
+From: Markus Hoffrogge <mhoffrogge@gmail.com>
+Date: Thu, 30 Jun 2022 01:26:39 +0200
+Subject: [PATCH] sunxi-nand: fix the PIO instead of DMA implementation
+
+The sunxi nand SPL loader was broken at least for SUN4I,
+SUN5I and SUN7I SOCs since the implementation change
+from DMA to PIO usage - commit 6ddbb1e.
+
+Root cause for this issue is the NFC control flag NFC_CTL_RAM_METHOD
+being set by method nand_apply_config.
+
+This flag controls the bus being used for the NFCs internal RAM access.
+It must be set for the DMA use case only.
+See A33_Nand_Flash_Controller_Specification.pdf page 12.
+
+This fix is tested by myself on a Cubietruck A20 board.
+Others should test it on new generation SOCs as well.
+
+Signed-off-by: Markus Hoffrogge <mhoffrogge@gmail.com>
+Reviewed-by: Andre Przywara <andre.przywara@arm.com>
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+---
+ drivers/mtd/nand/raw/sunxi_nand_spl.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/mtd/nand/raw/sunxi_nand_spl.c b/drivers/mtd/nand/raw/sunxi_nand_spl.c
+index a29a76c58d3..6de0b0a3554 100644
+--- a/drivers/mtd/nand/raw/sunxi_nand_spl.c
++++ b/drivers/mtd/nand/raw/sunxi_nand_spl.c
+@@ -208,7 +208,7 @@ static void nand_apply_config(const struct nfc_config *conf)
+ 
+ 	val = readl(SUNXI_NFC_BASE + NFC_CTL);
+ 	val &= ~NFC_CTL_PAGE_SIZE_MASK;
+-	writel(val | NFC_CTL_RAM_METHOD | NFC_CTL_PAGE_SIZE(conf->page_size),
++	writel(val | NFC_CTL_PAGE_SIZE(conf->page_size),
+ 	       SUNXI_NFC_BASE + NFC_CTL);
+ 	writel(conf->ecc_size, SUNXI_NFC_BASE + NFC_CNT);
+ 	writel(conf->page_size, SUNXI_NFC_BASE + NFC_SPARE_AREA);
+-- 
+GitLab
+
