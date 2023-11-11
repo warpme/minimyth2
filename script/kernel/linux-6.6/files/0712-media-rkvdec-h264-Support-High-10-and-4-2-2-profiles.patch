@@ -1,7 +1,7 @@
-From 740ae6faa54b01d811bea7329f6b4fda7a3be533 Mon Sep 17 00:00:00 2001
+From b2532bd69406531fec0ebd919e7f943ef28a931c Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Sun, 5 Nov 2023 16:55:10 +0000
-Subject: [PATCH 13/22] media: rkvdec: h264: Support High 10 and 4:2:2 profiles
+Subject: [PATCH 12/12] media: rkvdec: h264: Support High 10 and 4:2:2 profiles
 
 Add support and enable decoding of H264 High 10 and 4:2:2 profiles.
 
@@ -22,13 +22,13 @@ required for the provided SPS control.
 
 Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
 ---
- drivers/staging/media/rkvdec/rkvdec-h264.c | 37 ++++++++++++++++------
- drivers/staging/media/rkvdec/rkvdec.c      | 33 +++++++++++++++----
+ drivers/staging/media/rkvdec/rkvdec-h264.c | 37 +++++++++++++++-----
+ drivers/staging/media/rkvdec/rkvdec.c      | 40 ++++++++++++++++------
  drivers/staging/media/rkvdec/rkvdec.h      |  3 ++
- 3 files changed, 57 insertions(+), 16 deletions(-)
+ 3 files changed, 61 insertions(+), 19 deletions(-)
 
 diff --git a/drivers/staging/media/rkvdec/rkvdec-h264.c b/drivers/staging/media/rkvdec/rkvdec-h264.c
-index 815d5359d..baac6d012 100644
+index 8bce8902b..d14b4d173 100644
 --- a/drivers/staging/media/rkvdec/rkvdec-h264.c
 +++ b/drivers/staging/media/rkvdec/rkvdec-h264.c
 @@ -1027,24 +1027,42 @@ static int rkvdec_h264_adjust_fmt(struct rkvdec_ctx *ctx,
@@ -83,35 +83,32 @@ index 815d5359d..baac6d012 100644
  		return -EINVAL;
  
  	width = (sps->pic_width_in_mbs_minus1 + 1) * 16;
-@@ -1175,4 +1193,5 @@ const struct rkvdec_coded_fmt_ops rkvdec_h264_fmt_ops = {
+@@ -1190,4 +1208,5 @@ const struct rkvdec_coded_fmt_ops rkvdec_h264_fmt_ops = {
  	.stop = rkvdec_h264_stop,
  	.run = rkvdec_h264_run,
  	.try_ctrl = rkvdec_h264_try_ctrl,
 +	.get_image_fmt = rkvdec_h264_get_image_fmt,
  };
 diff --git a/drivers/staging/media/rkvdec/rkvdec.c b/drivers/staging/media/rkvdec/rkvdec.c
-index 225aa1f0a..eb59605cc 100644
+index 225aa1f0a..b7fc9c5df 100644
 --- a/drivers/staging/media/rkvdec/rkvdec.c
 +++ b/drivers/staging/media/rkvdec/rkvdec.c
-@@ -73,7 +73,7 @@ static void rkvdec_fill_decoded_pixfmt(struct rkvdec_ctx *ctx,
- 				       struct v4l2_pix_format_mplane *pix_mp)
- {
- 	v4l2_fill_pixfmt_mp(pix_mp, pix_mp->pixelformat,
--			    pix_mp->width, pix_mp->height);
-+			    ALIGN(pix_mp->width, 64), pix_mp->height);
- 	pix_mp->plane_fmt[0].sizeimage += 128 *
- 		DIV_ROUND_UP(pix_mp->width, 16) *
- 		DIV_ROUND_UP(pix_mp->height, 16);
-@@ -193,7 +193,7 @@ static const struct rkvdec_ctrl_desc rkvdec_h264_ctrl_descs[] = {
+@@ -192,10 +192,11 @@ static const struct rkvdec_ctrl_desc rkvdec_h264_ctrl_descs[] = {
+ 	},
  	{
  		.cfg.id = V4L2_CID_MPEG_VIDEO_H264_PROFILE,
- 		.cfg.min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+-		.cfg.min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
 -		.cfg.max = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
-+		.cfg.max = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_422,
++		.cfg.min = V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
++		.cfg.max = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_422_INTRA,
  		.cfg.menu_skip_mask =
- 			BIT(V4L2_MPEG_VIDEO_H264_PROFILE_EXTENDED),
+-			BIT(V4L2_MPEG_VIDEO_H264_PROFILE_EXTENDED),
++			BIT(V4L2_MPEG_VIDEO_H264_PROFILE_EXTENDED) |
++			BIT(V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_444_PREDICTIVE),
  		.cfg.def = V4L2_MPEG_VIDEO_H264_PROFILE_MAIN,
-@@ -210,11 +210,23 @@ static const struct rkvdec_ctrls rkvdec_h264_ctrls = {
+ 	},
+ 	{
+@@ -210,11 +211,23 @@ static const struct rkvdec_ctrls rkvdec_h264_ctrls = {
  	.num_ctrls = ARRAY_SIZE(rkvdec_h264_ctrl_descs),
  };
  
@@ -136,7 +133,7 @@ index 225aa1f0a..eb59605cc 100644
  };
  
  static const struct rkvdec_ctrl_desc rkvdec_vp9_ctrl_descs[] = {
-@@ -237,6 +249,13 @@ static const struct rkvdec_ctrls rkvdec_vp9_ctrls = {
+@@ -237,21 +250,28 @@ static const struct rkvdec_ctrls rkvdec_vp9_ctrls = {
  	.num_ctrls = ARRAY_SIZE(rkvdec_vp9_ctrl_descs),
  };
  
@@ -150,7 +147,15 @@ index 225aa1f0a..eb59605cc 100644
  static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
  	{
  		.fourcc = V4L2_PIX_FMT_H264_SLICE,
-@@ -250,8 +269,8 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
+ 		.frmsize = {
+-			.min_width = 48,
++			.min_width = 64,
+ 			.max_width = 4096,
+-			.step_width = 16,
++			.step_width = 64,
+ 			.min_height = 48,
+ 			.max_height = 2560,
+ 			.step_height = 16,
  		},
  		.ctrls = &rkvdec_h264_ctrls,
  		.ops = &rkvdec_h264_fmt_ops,
@@ -161,7 +166,7 @@ index 225aa1f0a..eb59605cc 100644
  		.subsystem_flags = VB2_V4L2_FL_SUPPORTS_M2M_HOLD_CAPTURE_BUF,
  	},
  	{
-@@ -266,8 +285,8 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
+@@ -266,8 +286,8 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
  		},
  		.ctrls = &rkvdec_vp9_ctrls,
  		.ops = &rkvdec_vp9_fmt_ops,
