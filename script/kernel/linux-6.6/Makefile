@@ -228,12 +228,18 @@ PATCHFILES += 1010-fix-clk-divisions.patch
 PATCHFILES += 1011-irqchip-fix-its-timeout-issue.patch
 PATCHFILES += 1023-add-rk3588-cpufreq-support.patch
 PATCHFILES += 1024-add-rk3588-usb3-support.patch
+# disabled as it breaks rk3566/rk3568 hdmi
+# PATCHFILES += 1025-drm-rockchip-dw-hdmi-add-support-for-rk3588.patch
+# PATCHFILES += 1026-drm-rockchip-dw-hdmi-hack-hack-stop-oops-after-patch1025.patch
 # add rk3588 boards
 PATCHFILES += 1050-arm64-dtsi-rockchip-rk3588s-add-sfc-node.patch
 PATCHFILES += 1061-arm64-dts-rockchip-rk3588-add-orangepi-5-plus.patch
 PATCHFILES += 1062-arm64-dts-rockchip-rk3588s-add-orangepi-5.dts.patch
 PATCHFILES += 1063-arm64-dts-rockchip-rk3588s-rock-5a-enable-dvfs-usb-pci.dts.patch
 PATCHFILES += 1064-arm64-dts-rockchip-rk3588-rock-5b-enable-dvfs-usb-pci.dts.patch
+# disabled as it breaks rk3566/rk3568 hdmi
+# PATCHFILES += 1065-arm64-dtsi-rockchip-add-hdmi-nodes-for-rk3588.patch
+# PATCHFILES += 1066-arm64-dts-rockchip-rk3588-rock-5x-oranage-5x-enable-display.patch
 endif
 #------------------------------------------------------------
 
