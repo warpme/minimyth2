@@ -22,7 +22,7 @@ PATCHFILES  += 03-fix-h616-4gb-ram-detection.patch
 PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
 PATCHFILES  += 05-sunxi-H616-Further-parameterize-DDR3-timings.patch
 PATCHFILES  += 06-sunxi-Add-TPR2-parameter-for-H616-DRAM-driver.patch
-PATCHFILES  += 07-sunxi-dram-add-H616-LPDDR4-DRAM-support-v2.patch
+PATCHFILES  += 07-sunxi-dram-add-H616-LPDDR4-DRAM-support-v4.patch
 # PATCHFILES  += 08-sunxi-dram-add-lpddr3-6gbit-support.patch - to do after patch 07
 PATCHFILES  += 50-add-x96-q-lpddr3-defconfig.patch
 PATCHFILES  += 51-add-x96-q-ddr3-defconfig.patch
@@ -58,7 +58,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
-# mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
+mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2w_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
