@@ -206,6 +206,7 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_8}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_9}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_c}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_e}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_h}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_j}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_l}" ${extra_params}
@@ -339,6 +340,7 @@ case "${selection}" in
     a5)  cache_board_list "${selection_a5}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_a5}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
+
     a6)  cache_board_list "${selection_a6}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_a6}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
