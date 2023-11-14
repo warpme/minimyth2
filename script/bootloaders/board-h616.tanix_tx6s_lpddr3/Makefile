@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-h616.tanix_tx6s_lpddr3
-GARVERSION   = 2020-12-08
+GARVERSION   = 2023-11-14
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \

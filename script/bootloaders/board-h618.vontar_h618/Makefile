@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-h618.vontar_h618
-GARVERSION   = 2023-07-21
+GARVERSION   = 2023-11-14
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \

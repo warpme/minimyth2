@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-h313-x96-q
-GARVERSION   = 2023-03-13
+GARVERSION   = 2023-11-14
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \

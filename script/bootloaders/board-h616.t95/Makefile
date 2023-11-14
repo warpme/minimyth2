@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-h616.t95
-GARVERSION   = 2021-05-25
+GARVERSION   = 2023-11-14
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \

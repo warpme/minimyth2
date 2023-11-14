@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-h618.orangepi_zero2w
-GARVERSION   = 2023-10-13
+GARVERSION   = 2023-11-14
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
