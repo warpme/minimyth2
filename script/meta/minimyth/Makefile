@@ -129,6 +129,7 @@ DEPENDS = \
 	$(if $(filter dvdcss,$(mm_SOFTWARE)),lib/libdvdcss) \
 	lib/nss-mdns \
 	lib/libinput \
+	lib/bluez-alsa \
 	net/iputils \
 	net/ntp \
 	net/cifs-utils \
