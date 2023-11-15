@@ -20,3 +20,8 @@ include ../../gar.mk
 pre-configure:
 	@cd $(WORKSRC) ; autoreconf -fvi
 	@$(MAKECOOKIE)
+
+post-install:
+	@rm -f $(DESTDIR)$(libdir)/libsbc.la
+	@$(MAKECOOKIE)
+
