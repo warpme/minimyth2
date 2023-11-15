@@ -17,7 +17,7 @@ endif
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+INSTALL_SCRIPTS   = $(WORKSRC)/Makefile pkgconfig
 
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-silent-rules \
@@ -34,6 +34,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-hog \
 	--disable-health \
 	--enable-tools \
+	--enable-library \
 	--enable-monitor \
 	--disable-udev \
 	--disable-cups \
@@ -69,6 +70,12 @@ pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
+
+install-pkgconfig:
+	@mkdir -p $(DESTDIR)$(libdir)/pkgconfig/
+	@cp $(WORKSRC)/lib/bluez.pc $(DESTDIR)$(libdir)/pkgconfig/bluez.pc
+	@mkdir -p $(DESTDIR)$(includedir)/bluetooth
+	@cp $(WORKSRC)/lib/*.h $(DESTDIR)$(includedir)/bluetooth/
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/alsa-lib/libasound_module_ctl_bluetooth.la
