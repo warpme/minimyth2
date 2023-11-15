@@ -140,6 +140,7 @@ PATCHFILES += 0612-gpu-drm-panfrost-panfrost-devfreq-revert-set-opp-to-the-recom
 PATCHFILES += 0614-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0615-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 PATCHFILES += 0616-net-wireless-add-uwe5622-support-v20231020.patch
+PATCHFILES += 0617-sound-soc-sunxi-add-spdif-spdif.patch
 # enable some h616 boards
 PATCHFILES += 0630-arm64-dts-allwinner-h616.dtsi-add-ths-audio-hdmi.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-OrangePI-Zero23-enable-ths-hdmi-audio.patch
@@ -149,6 +150,8 @@ PATCHFILES += 0634-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
 PATCHFILES += 0635-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
 PATCHFILES += 0637-arm64-dts-allwinner-h618-add-vontar-h618-TVbox.patch
 PATCHFILES += 0638-arm64-dts-allwinner-h618-add-opi-2w.patch
+PATCHFILES += 0639-arm64-dts-allwinner-h616.dtsi-add-spdif.patch
+PATCHFILES += 0640-arm64-dts-allwinner-h618-enable-spdif-opi23-tanix-tx6s.patch
 endif
 #------------------------------------------------------------
 
