@@ -58,6 +58,7 @@ PATCHFILES += 0329-media-meson-vdec-esparser-check-parsing-.patch
 PATCHFILES += 0330-media-meson-vdec-implement-10bit-bitstre.patch
 PATCHFILES += 0331-media-meson-vdec-add-HEVC-decode-codec.patch
 PATCHFILES += 0332-media-meson-vdec-disable-MPEG1-MPEG2-hardware-de.patch
+# device-tree patches
 PATCHFILES += 0341-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 0342-arm64-dts-meson-add-support-for-GX-PM-and-Virtu.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
@@ -141,7 +142,8 @@ PATCHFILES += 0614-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0615-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 PATCHFILES += 0616-net-wireless-add-uwe5622-support-v20231020.patch
 PATCHFILES += 0617-sound-soc-sunxi-add-spdif-spdif.patch
-# enable some h616 boards
+PATCHFILES += 0618-sound-soc-sunxi-hack-to-fix-oops-on-cards-caps-query.patch
+# device-tree patches
 PATCHFILES += 0630-arm64-dts-allwinner-h616.dtsi-add-ths-audio-hdmi.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616-OrangePI-Zero23-enable-ths-hdmi-audio.patch
 PATCHFILES += 0632-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
@@ -181,6 +183,7 @@ PATCHFILES += 0723-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
 PATCHFILES += 0724-media-rkvdec-add-soft-reset-on-errors.patch
 PATCHFILES += 0725-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
 PATCHFILES += 0726-drm-rockchip-vop-move-least-capable-wins-to-end-to-fix-osd-in-drm_planes.patch
+# device-tree patches
 PATCHFILES += 0739-arm64-dtsi-rockchip-rk3328-rk3399-add-soft-reset.patch
 PATCHFILES += 0740-arm64-dts-rockchip-var-fixes-from-libreelec.patch
 PATCHFILES += 0741-arm64-dts-rockchip-Include-cache-performance-registe.patch
@@ -201,7 +204,7 @@ endif
 ifeq (1,1)
 #-- Rockchip 356x patches -----------------------------------------
 PATCHFILES += 0800-Enable-rk356x-PCIe-controller.patch
-# various rk356x boards enablement
+# device-tree patches
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
 PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
@@ -221,8 +224,8 @@ ifeq (1,1)
 # Hack for adding H264 v4l2 decoding on RPI
 PATCHFILES += 0900-rpi-vc04_services-add_h~l2-m2m_decode-04092022.patch
 PATCHFILES += 0901-rpi-vc04_services-bcm2835-codec-remove-isp-formats.patch
-# add H265 rpivid driver
 PATCHFILES += 0904-media-add-rpivid-driver.patch
+# device-tree patches
 PATCHFILES += 0905-arm64-dts-brcm-set-userled-to-mmc.patch
 endif
 #------------------------------------------------------------
@@ -236,7 +239,7 @@ PATCHFILES += 1024-add-rk3588-usb3-support.patch
 # disabled as it breaks rk3566/rk3568 hdmi
 # PATCHFILES += 1025-drm-rockchip-dw-hdmi-add-support-for-rk3588.patch
 # PATCHFILES += 1026-drm-rockchip-dw-hdmi-hack-hack-stop-oops-after-patch1025.patch
-# add rk3588 boards
+# device-tree patches
 PATCHFILES += 1050-arm64-dtsi-rockchip-rk3588s-add-sfc-node.patch
 PATCHFILES += 1061-arm64-dts-rockchip-rk3588-add-orangepi-5-plus.patch
 PATCHFILES += 1062-arm64-dts-rockchip-rk3588s-add-orangepi-5.dts.patch
@@ -264,7 +267,7 @@ PATCHFILES += 1111-drm-rockchip-dw_hdmi-add-support-for-rk3528.patch
 PATCHFILES += 1113-nvmem-rockchip-otp-add-support-for-rk3528.patch
 PATCHFILES += 1114-sound-soc-codecs-add-rk3528-support.patch
 PATCHFILES += 1115-hack-hack-gpu-drm-rockchip-rockchip_vop2_reg-add-rk3528.patch
-# add rk3528 boards
+# device-tree patches
 PATCHFILES += 1150-arm64-dtsi-rockchip-add-3528.dtsi.patch
 PATCHFILES += 1151-arm64-dts-rockchip-add-dts-for-vontar_r3.patch
 endif
