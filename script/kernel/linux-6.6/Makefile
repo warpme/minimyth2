@@ -36,6 +36,7 @@ PATCHFILES += linux-6.6-defaults.patch
 ifeq (1,1)
 
 PATCHFILES += 0105-drivers-led-add-openvfd-1.4.2.patch
+PATCHFILES += 0106-drivers-net-wireless-realtek-rtw88-upstream-wireless.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 6.6 kernel
