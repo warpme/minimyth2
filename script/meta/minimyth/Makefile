@@ -130,6 +130,7 @@ DEPENDS = \
 	lib/nss-mdns \
 	lib/libinput \
 	lib/bluez-alsa \
+	utils/bluez-tools \
 	net/iputils \
 	net/ntp \
 	net/cifs-utils \
