@@ -33,6 +33,7 @@ MM_INIT_START_PHASE_3 := \
 MM_INIT_START_PHASE_4 := \
     lirc         \
     audio        \
+    bluetooth    \
     conf_phase_5 \
 
 MM_INIT_START_PHASE_5 := \
@@ -60,6 +61,7 @@ MM_INIT_START_PHASE_5 := \
     mythdb_buffer_delete \
 
 MM_INIT_KILL := \
+    bluetooth   \
     standby     \
     frontend    \
     avahi       \
