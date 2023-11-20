@@ -76,6 +76,9 @@ install-pkgconfig:
 	@cp $(WORKSRC)/lib/bluez.pc $(DESTDIR)$(libdir)/pkgconfig/bluez.pc
 	@mkdir -p $(DESTDIR)$(includedir)/bluetooth
 	@cp $(WORKSRC)/lib/*.h $(DESTDIR)$(includedir)/bluetooth/
+	@mkdir -p $(DESTDIR)$(sysconfdir)/dbus-1/system.d
+	@cp $(WORKSRC)/src/bluetooth.conf $(DESTDIR)$(sysconfdir)/dbus-1/system.d/
+	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/alsa-lib/libasound_module_ctl_bluetooth.la
