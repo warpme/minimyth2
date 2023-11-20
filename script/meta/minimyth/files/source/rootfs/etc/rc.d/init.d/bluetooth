@@ -1,0 +1,55 @@
+#!/bin/sh
+################################################################################
+# dbus
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    if [ -e "/sys/class/bluetooth" ] ; then
+
+        mm_bt_state_restore
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] Starting bluetooth daemon ..."
+        /usr/libexec/bluetooth/bluetoothd -n &
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] Starting bluealsa daemon ..."
+        /usr/bin/bluealsa -p a2dp-source &
+
+        sleep 3
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] Power-on bluetooth ..."
+        echo "power on" | bluetoothctl
+
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] No bluetooth detected. Exiting ..."
+    fi
+
+    this_script_done
+}
+
+stop() {
+
+    if [ -e "/sys/class/bluetooth" ] ; then
+
+        mm_bt_state_save
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] Power-off bluetooth ..."
+        echo "power off" | bluetoothctl
+
+        sleep 3
+
+        killall bluealsa
+        killall bluetoothd
+
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] No bluetooth detected. Exiting ..."
+    fi
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac

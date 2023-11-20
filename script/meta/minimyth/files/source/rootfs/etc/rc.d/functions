@@ -973,8 +973,63 @@ mm_cookiejar_save() {
         fi
     fi
 
-    /usr/bin/logger -s -t minimyth -p "local0.error" \
+    /usr/bin/logger -s -t minimyth -p "local0.info" \
         "[functions/mm_cookiejar_save] MythBrowser cookiejar.txt file and Chrome/Mozilla configs uploaded sucessfuly..."
+    /bin/true
+    return
+}
+
+mm_bt_state_save() {
+
+    if [ -d /var/lib/bluetooth ] ; then
+        cd /var/lib
+        tar -jcvvf /tmp/bt-state.tar.bz2 ./blue*
+        mm_confrw_put "bt-state.tar.bz2" "/tmp/bt-state.tar.bz2"
+        if [ $? -ne 0 ] ; then
+            /usr/bin/logger -s -t minimyth -p "local0.error" \
+                "[functions/mm_bt_state_save] failed to upload the bt-state.tar.bz2 file. Will try on local SD card /boot dir ..."
+            if [ -d /media/boot ] ; then
+                mkdir -p /media/boot/.state
+                cp /tmp/bt-state.tar.bz2 /media/boot/.state/
+                /usr/bin/logger -s -t minimyth -p "local0.info" \
+                    "[functions/mm_bt_state_save] Bluetooth state saved to SD card sucessfuly..."
+                /bin/true
+                return
+            else
+                /bin/false
+                return
+            fi
+        fi
+        rm -f /tmp/bt-state.tar.bz2
+    fi
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" \
+        "[functions/mm_bt_state_save] Bluetooth state uploaded sucessfuly..."
+    /bin/true
+    return
+}
+
+mm_bt_state_restore() {
+
+    mm_confrw_get "bt-state.tar.bz2" "/tmp/bt-state.tar.bz2"
+    if [ $? -ne 0 ] ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_bt_state_restore] failed to download the bt-state.tar.bz2 file. Will try from local SD card /boot dir ..."
+        if [ -e /media/boot/.state/bt-state.tar.bz2 ] ; then
+            cp /media/boot/.state/bt-state.tar.bz2 /tmp/
+        else
+            /usr/bin/logger -s -t minimyth -p "local0.error" \
+                "[functions/mm_bt_state_restore] failed to find the bt-state.tar.bz2 file on local SD card /boot dir ..."
+            /bin/false
+            return
+        fi
+    fi
+    rm -rf /var/lib/blue*
+    bunzip2 -dc /tmp/bt-state.tar.bz2 | tar -xf - -C /var/lib
+    rm -f /tmp/bt-state.tar.bz2
+
+    /usr/bin/logger -s -t minimyth -p "local0.info" \
+        "[functions/mm_bt_state_restore] Bluetooth state restored sucessfuly..."
     /bin/true
     return
 }
