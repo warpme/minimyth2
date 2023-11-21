@@ -106,6 +106,7 @@ PATCHFILES += 0565-arm64-dts-allwinner-tanix-tx6-mini-enable-wifi-cpu-dvfs.patch
 PATCHFILES += 0567-arm64-dts-enable-audio-gs1.patch
 PATCHFILES += 0568-arm64-dts-allwinner-tanix-tx6-enable-wifi-cpu-dvfs.patch
 PATCHFILES += 0569-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
+PATCHFILES += 0570-arm64-dts-sun50i-h6-normalize-spdif-card-name.patch
 PATCHFILES += 0573-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 PATCHFILES += 0575-H6-add-sun50i-di-deinterlace-WiP.patch
 PATCHFILES += 0576-arm64-dts-h6-add-deinterlace-node.patch
