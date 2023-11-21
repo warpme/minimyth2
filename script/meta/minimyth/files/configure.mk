@@ -20,6 +20,7 @@ MM_INIT_START_PHASE_1 := \
     hotplug \
     master  \
     video   \
+    audio   \
     mythtv  \
     lcdproc \
     font    \
@@ -32,7 +33,6 @@ MM_INIT_START_PHASE_3 := \
 
 MM_INIT_START_PHASE_4 := \
     lirc         \
-    audio        \
     bluetooth    \
     conf_phase_5 \
 
