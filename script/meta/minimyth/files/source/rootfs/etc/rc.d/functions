@@ -136,6 +136,7 @@ mm_url_confro_get() {
     local HOST_NAME
     local REMOTE_FILE_0
     local REMOTE_FILE_1
+    local REMOTE_FILE_2
 
     HOST_NAME=`/bin/hostname`
 
@@ -151,15 +152,27 @@ mm_url_confro_get() {
     /bin/rm -f "${LOCAL_FILE}"
     ( /usr/bin/test "${LOCAL_FILE}" = "/etc/minimyth.d/minimyth.conf" \
           && mm_url_get "${MM_TFTP_BOOT_URL}${REMOTE_FILE_0}" "${LOCAL_FILE}" \
+          && ( /usr/bin/logger -s -t minimyth -p "local0.info" "'${LOCAL_FILE} file downloaded from ${MM_TFTP_BOOT_URL}${REMOTE_FILE_0}'" \
+                   || /bin/true \
+             ) \
     ) || \
     ( /usr/bin/test -n "${REMOTE_FILE_0}" \
           && mm_url_get "${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}" "${LOCAL_FILE}" \
+          && ( /usr/bin/logger -s -t minimyth -p "local0.info" "'${LOCAL_FILE} file downloaded from ${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}'" \
+                   || /bin/true \
+             ) \
     ) || \
     ( /usr/bin/test -n "${REMOTE_FILE_1}" \
           && mm_url_get "${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_1}" "${LOCAL_FILE}" \
+          && ( /usr/bin/logger -s -t minimyth -p "local0.info" "'${LOCAL_FILE} file downloaded from ${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_1}'" \
+                   || /bin/true \
+             ) \
     ) || \
     ( /usr/bin/test -n "${REMOTE_FILE_2}" \
           && cp "${REMOTE_FILE_2}" "${LOCAL_FILE}" \
+          && ( /usr/bin/logger -s -t minimyth -p "local0.info" "'${LOCAL_FILE} file copied from ${REMOTE_FILE_2}'" \
+                   || /bin/true \
+             ) \
     ) || \
     return
 
@@ -172,6 +185,7 @@ mm_url_confrw_get() {
 
     local HOST_NAME
     local REMOTE_FILE_0
+    local REMOTE_FILE_1
 
     HOST_NAME=`/bin/hostname`
 
@@ -182,10 +196,20 @@ mm_url_confrw_get() {
         REMOTE_FILE_0=`/bin/echo ${REMOTE_FILE}`
         REMOTE_FILE_0="conf-rw/${HOST_NAME}/${REMOTE_FILE_0}"
     fi
+    /usr/bin/test -e "/media/boot" && REMOTE_FILE_1="/media/boot/${REMOTE_FILE}"
 
     /bin/rm -f "${LOCAL_FILE}"
     ( /usr/bin/test -n "${REMOTE_FILE_0}" \
           && mm_url_get "${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}" "${LOCAL_FILE}" \
+          && ( /usr/bin/logger -s -t minimyth -p "local0.info" "'${LOCAL_FILE} file downloaded from ${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}'" \
+                   || /bin/true \
+             ) \
+    ) || \
+    ( /usr/bin/test -n "${REMOTE_FILE_1}" \
+          && cp "${REMOTE_FILE_1}" "${LOCAL_FILE}" \
+          && ( /usr/bin/logger -s -t minimyth -p "local0.info" "'${LOCAL_FILE} file copied from ${REMOTE_FILE_1}'" \
+                   || /bin/true \
+             ) \
     ) || \
     return
 
@@ -414,6 +438,7 @@ mm_url_confrw_put() {
 
     local HOST_NAME
     local REMOTE_FILE_0
+    local REMOTE_FILE_1
 
     HOST_NAME=`/bin/hostname`
 
@@ -437,10 +462,17 @@ mm_url_confrw_put() {
         REMOTE_FILE_0=`/bin/echo ${REMOTE_FILE}`
         REMOTE_FILE_0="conf-rw/${HOST_NAME}/${REMOTE_FILE_0}"
     fi
+    /usr/bin/test -e "/media/boot" && REMOTE_FILE_1="/media/boot/${REMOTE_FILE}"
 
     ( /usr/bin/test -n "${REMOTE_FILE_0}" \
           && mm_url_put "${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}" "${LOCAL_FILE}" \
-          && ( /usr/bin/logger -s -t minimyth -p "local0.info" "'${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}' uploaded." \
+          && ( /usr/bin/logger -s -t minimyth -p "local0.info" "'${LOCAL_FILE} file uploaded as ${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}'" \
+                   || /bin/true \
+             ) \
+    ) || \
+    ( /usr/bin/test -n "${REMOTE_FILE_0}" \
+          && cp "${LOCAL_FILE}" "${REMOTE_FILE_1}" \
+          && ( /usr/bin/logger -s -t minimyth -p "local0.info" "'${LOCAL_FILE} file saved as ${REMOTE_FILE_1}'" \
                    || /bin/true \
              ) \
     ) || \
@@ -987,21 +1019,12 @@ mm_bt_state_save() {
         mm_confrw_put "bt-state.tar.bz2" "/tmp/bt-state.tar.bz2"
         if [ $? -ne 0 ] ; then
             /usr/bin/logger -s -t minimyth -p "local0.error" \
-                "[functions/mm_bt_state_save] failed to upload the bt-state.tar.bz2 file. Will try on local SD card /boot dir ..."
-            if [ -d /media/boot ] ; then
-                mkdir -p /media/boot/.state
-                cp /tmp/bt-state.tar.bz2 /media/boot/.state/
-                /usr/bin/logger -s -t minimyth -p "local0.info" \
-                    "[functions/mm_bt_state_save] Bluetooth state saved to SD card sucessfuly..."
-                /bin/true
-                return
-            else
-                /bin/false
-                return
-            fi
+                "[functions/mm_bt_state_save] failed to save the bt-state.tar.bz2 file ..."
+            /bin/false
+            return
         fi
-        rm -f /tmp/bt-state.tar.bz2
     fi
+    rm -f /tmp/bt-state.tar.bz2
 
     /usr/bin/logger -s -t minimyth -p "local0.info" \
         "[functions/mm_bt_state_save] Bluetooth state uploaded sucessfuly..."
@@ -1014,15 +1037,9 @@ mm_bt_state_restore() {
     mm_confrw_get "bt-state.tar.bz2" "/tmp/bt-state.tar.bz2"
     if [ $? -ne 0 ] ; then
         /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "[functions/mm_bt_state_restore] failed to download the bt-state.tar.bz2 file. Will try from local SD card /boot dir ..."
-        if [ -e /media/boot/.state/bt-state.tar.bz2 ] ; then
-            cp /media/boot/.state/bt-state.tar.bz2 /tmp/
-        else
-            /usr/bin/logger -s -t minimyth -p "local0.error" \
-                "[functions/mm_bt_state_restore] failed to find the bt-state.tar.bz2 file on local SD card /boot dir ..."
-            /bin/false
-            return
-        fi
+            "[functions/mm_bt_state_restore] failed to restore the bt-state.tar.bz2 file ..."
+        /bin/false
+        return
     fi
     rm -rf /var/lib/blue*
     bunzip2 -dc /tmp/bt-state.tar.bz2 | tar -xf - -C /var/lib
