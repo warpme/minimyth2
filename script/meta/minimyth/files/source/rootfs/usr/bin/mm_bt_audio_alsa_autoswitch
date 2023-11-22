@@ -1,0 +1,67 @@
+#!/bin/sh
+
+. /etc/rc.d/functions
+. /etc/mm_ui_localizations_sh
+
+# v2023.11.22
+
+osd_timeout=5
+bt_config_file="/etc/asound-bt.conf"
+hdmi_config_file="/etc/asound-hdmi.conf"
+alsa_config_file="/etc/asound.conf"
+
+
+
+
+
+
+echo "Bluetooth audio alsa autoswitcher v1.0; (c)Piotr Oniszczuk"
+
+mac_addr=$1
+
+if [ x${mac_addr} = "x" ] ; then
+    echo "Error: no MAC addr provided. Exiting ..."
+    exit 1
+fi
+
+mac=`echo ${mac_addr} | sed -e "s| ||g" -e "s|:|_|g"`
+
+echo "Will monitor on BT $mac addr ..."
+
+if [ ! -e ${hdmi_config_file} ] ; then
+    mv -f ${alsa_config_file} ${hdmi_config_file}
+    ln -sf ${hdmi_config_file} ${alsa_config_file}
+fi
+
+FIFO_PATH=$(mktemp -u)
+mkfifo $FIFO_PATH
+
+exec 9<>$FIFO_PATH
+
+rm $FIFO_PATH
+
+trap "kill %1; exec 9>&-; ln -sf ${hdmi_config_file} ${alsa_config_file}; exit 0" INT TERM
+
+bluealsa-cli --quiet monitor >&9 &
+
+until false; do
+
+    var=""
+
+    if [[ $(bluealsa-cli --quiet list-pcms | grep -c "${mac}/a2dp") -gt 0 ]] ; then
+        if [ $(readlink ${alsa_config_file}) = "${hdmi_config_file}" ] ; then
+            echo "Switchibg to bluetooth ..."
+            ln -sf ${bt_config_file} ${alsa_config_file}
+            mm_show_mythnotify "${bt_connected_str}" '' 'ok' ${osd_timeout} "${bt_audio_notify_title_str}"
+        fi
+    else
+        if [ $(readlink ${alsa_config_file}) = "${bt_config_file}" ] ; then
+            echo "Switchibg to HDMI ..."
+            ln -sf ${hdmi_config_file} ${alsa_config_file}
+            mm_show_mythnotify "${bt_disconnected_str}" '' 'ok' ${osd_timeout} "${bt_audio_notify_title_str}"
+        fi
+    fi
+
+    read var
+
+done <&9
