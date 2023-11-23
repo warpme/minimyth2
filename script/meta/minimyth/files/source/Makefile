@@ -701,6 +701,8 @@ $(top_build)/stage/image/rootfs: $(top_build)/image/rootfs
 	@chmod 0600 $@~/rootfs-ro/root/.ssh/id_rsa
 	@chmod 0700 $@~/rootfs-ro/home/minimyth/.ssh
 	@chmod 0600 $@~/rootfs-ro/home/minimyth/.ssh/id_rsa
+	@# set /etc world wrtiable as some scripts are running under minimyth user and want to write to /etc
+	@chmod 0777 $@~/rootfs-ro/etc
 	@touch $@~
 	@mv $@~ $@
 
