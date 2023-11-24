@@ -83,6 +83,7 @@ export XDG_RUNTIME_DIR=/var/run/xdg/minimyth
 mkdir -p /var/cache/mesa
 chown minimyth:minimyth /var/cache/mesa
 export MESA_SHADER_CACHE_DIR=/var/cache/mesa
+export ALSA_CONFIG_PATH=/usr/share/alsa/alsa.conf:/etc/asound.conf
 
 if [ x${MM_MYTHTV_DRAW_ON} = "xterm" ] ; then
     echo " "

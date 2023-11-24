@@ -1,0 +1,67 @@
+#!/bin/sh
+################################################################################
+# dbus
+################################################################################
+. /etc/rc.d/functions
+
+start() {
+
+    if [ ! "x${MM_BLUETOOTH_CFG}" = "x" ] ; then
+
+        if [ -e "/sys/class/bluetooth" ] ; then
+
+            mm_bt_state_restore
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] Starting bluetooth daemon ..."
+            /usr/libexec/bluetooth/bluetoothd -n &
+
+            sleep 3
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] Power-on bluetooth ..."
+            echo "power on" | bluetoothctl
+
+            if [ ! -z ${MM_BLUETOOTH_AUDIO_MAC} ] ; then
+
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] Starting bluealsa daemon ..."
+                /usr/bin/bluealsa -p a2dp-sink -p a2dp-source &
+
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] Starting bluetooth alsa autoswitcher for ${MM_BLUETOOTH_AUDIO_MAC} ..."
+                /bin/sed -i "s%@MM_BLUETOOTH_AUDIO_MAC@%${MM_BLUETOOTH_AUDIO_MAC}%" /etc/asound-bt.conf
+                /usr/bin/mm_bt_audio_alsa_autoswitch ${MM_BLUETOOTH_AUDIO_MAC} &
+            fi
+        else
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] No bluetooth detected. Exiting ..."
+        fi
+    fi
+
+    this_script_done
+}
+
+stop() {
+
+    if [ ! "x${MM_BLUETOOTH_CFG}" = "x" ] ; then
+
+        if [ -e "/sys/class/bluetooth" ] ; then
+
+            mm_bt_state_save
+
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] Power-off bluetooth ..."
+            echo "power off" | bluetoothctl
+
+            sleep 3
+
+            killall bluealsa
+            killall bluetoothd
+
+        else
+            /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/bluetooth] No bluetooth detected. Exiting ..."
+        fi
+    fi
+
+    return 0
+}
+
+case $1 in
+    start) start ;;
+    stop)  stop  ;;
+esac

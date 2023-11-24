@@ -1,10 +1,9 @@
 
 GARNAME      = bluez
-GARVERSION   = 5.60
+GARVERSION   = 5.70
 CATEGORIES   = lib
 MASTER_SITES = https://www.kernel.org/pub/linux/bluetooth/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = $(DISTNAME)-hack-to-compile-with-glib2.59.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
@@ -18,7 +17,7 @@ endif
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+INSTALL_SCRIPTS   = $(WORKSRC)/Makefile pkgconfig
 
 CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-silent-rules \
@@ -35,6 +34,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-hog \
 	--disable-health \
 	--enable-tools \
+	--enable-library \
 	--enable-monitor \
 	--disable-udev \
 	--disable-cups \
@@ -69,6 +69,15 @@ include ../../gar.mk
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	@$(MAKECOOKIE)
+
+install-pkgconfig:
+	@mkdir -p $(DESTDIR)$(libdir)/pkgconfig/
+	@cp $(WORKSRC)/lib/bluez.pc $(DESTDIR)$(libdir)/pkgconfig/bluez.pc
+	@mkdir -p $(DESTDIR)$(includedir)/bluetooth
+	@cp $(WORKSRC)/lib/*.h $(DESTDIR)$(includedir)/bluetooth/
+	@mkdir -p $(DESTDIR)$(sysconfdir)/dbus-1/system.d
+	@cp $(WORKSRC)/src/bluetooth.conf $(DESTDIR)$(sysconfdir)/dbus-1/system.d/
 	@$(MAKECOOKIE)
 
 post-install:

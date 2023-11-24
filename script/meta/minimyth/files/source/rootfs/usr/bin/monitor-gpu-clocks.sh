@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# if called with para "temp" - script will monitror cpu temp. Output will be triggered when
+# any chanage in cpu clock will happen
+
 . /etc/rc.d/functions
 
 # s905 GPU /sys/bus/platform/drivers/lima/d00c0000.gpu/devfreq/d00c0000.gpu/cur_freq"
@@ -16,7 +19,7 @@ if [ x${freq_sysfs_entry} = "x" ] ; then
     exit 1
 else
     echo " "
-    echo "GPU Freg monitor v1.1"
+    echo "GPU Freg monitor v1.2"
     echo " "
     echo "Using:"
     echo "  GPUfreq sysfs entry : "${freq_sysfs_entry}
@@ -24,7 +27,9 @@ else
     echo " "
 fi
 
-prev_speed=0
+mode=$1
+
+prev_val=0
 
 while true ; do
 
@@ -42,10 +47,18 @@ while true ; do
     done
     temp=`echo ${temp} | sed -e "s%/$%%"`
 
-    if [ ${speed} != ${prev_speed} ] ; then
+    if [ x${mode} = "xtemp" ] ; then
+        val=${temp}
+    else
+        val=${speed}
+    fi
+
+    if [ ${val} != ${prev_val} ] ; then
 
         timestamp=`date +%T`
-        location=`mm_mythfrontend_networkcontrol "query location"`
+        if [ ! x${mode} = "xtemp" ] ; then
+            location=`mm_mythfrontend_networkcontrol "query location"`
+        fi
 
         if [ -n ${temp} ] ; then
 
@@ -57,7 +70,7 @@ while true ; do
 
         fi
 
-        prev_speed=${speed}
+        prev_val=${val}
     fi
 
     sleep 1
