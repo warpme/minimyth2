@@ -25,6 +25,7 @@ PATCHFILES  += 20-sunxi-Add-TPR2-parameter-for-H616-DRAM-driver.patch
 PATCHFILES  += 21-sunxi-dram-add-H616-LPDDR4-DRAM-support-v4.patch
 # PATCHFILES  += 22-sunxi-dram-add-lpddr3-6gbit-support.patch - to do after patch 07
 PATCHFILES  += 23-sunxi-nand-fix-the-PIO-instead-of-DMA-implementation.patch
+PATCHFILES  += 24-sunxi-add-led-on-at-poweron.patch
 # boards aditions 
 PATCHFILES  += 50-add-x96-q-lpddr3-defconfig.patch
 PATCHFILES  += 51-add-x96-q-ddr3-defconfig.patch

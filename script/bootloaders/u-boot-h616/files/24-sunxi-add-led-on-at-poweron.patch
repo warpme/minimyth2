@@ -1,0 +1,44 @@
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2021.07/arch/arm/mach-sunxi/Kconfig u-boot-2021.07/arch/arm/mach-sunxi/Kconfig
+--- u-boot-2021.07/arch/arm/mach-sunxi/Kconfig	2023-11-27 11:35:10.353342519 +0100
++++ u-boot-2021.07/arch/arm/mach-sunxi/Kconfig	2023-11-27 11:31:06.870008406 +0100
+@@ -722,6 +722,13 @@
+ 	  Set the pin used to power the MAC. This takes a string in the format
+ 	  understood by sunxi_name_to_gpio, e.g. PH1 for pin 1 of port H.
+ 
++config PWRLED
++        string "Power led pin"
++        default ""
++        help
++          Set the pin used to power the led. This takes a string in the format
++          understood by sunxi_name_to_gpio, e.g. PC12 for pin 1 of port H.
++
+ config MMC0_CD_PIN
+ 	string "Card detect pin for mmc0"
+ 	default "PF6" if MACH_SUN8I_A83T || MACH_SUNXI_H3_H5 || MACH_SUN50I
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2021.07/board/sunxi/board.c u-boot-2021.07/board/sunxi/board.c
+--- u-boot-2021.07/board/sunxi/board.c	2023-11-27 11:35:10.126675852 +0100
++++ u-boot-2021.07/board/sunxi/board.c	2023-11-27 11:34:28.966675717 +0100
+@@ -241,7 +241,7 @@
+ /* add board specific code here */
+ int board_init(void)
+ {
+-	__maybe_unused int id_pfr1, ret, satapwr_pin, macpwr_pin;
++	__maybe_unused int id_pfr1, ret, satapwr_pin, macpwr_pin, pwrled_pin;
+ 
+ 	gd->bd->bi_boot_params = (PHYS_SDRAM_0 + 0x100);
+ 
+@@ -301,6 +301,14 @@
+ 		}
+ 	}
+ 
++        if (CONFIG_PWRLED[0]) {
++		pwrled_pin = sunxi_name_to_gpio(CONFIG_PWRLED);
++		if (pwrled_pin >= 0) {
++			gpio_request(pwrled_pin, "pwrled");
++			gpio_direction_output(pwrled_pin, 1);
++		}
++	}
++
+ #if CONFIG_IS_ENABLED(DM_I2C)
+ 	/*
+ 	 * Temporary workaround for enabling I2C clocks until proper sunxi DM
