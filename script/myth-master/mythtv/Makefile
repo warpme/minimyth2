@@ -29,8 +29,11 @@ PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 # speedup a bit portcheck
 PATCHFILES += 0059-portchecker-speedup.patch
+
+# ticket 773 fixes subtitles handling
+PATCHFILES += 0060-libmythtv-captions-ticket773-fix-subtitle-handling.patch
 # ticket 821 improve subtitles handling
-PATCHFILES += 0060-libmythtv-captions-ticket821-improve-forced-subtitle-handling.patch
+# PATCHFILES += 0060-libmythtv-captions-ticket821-improve-forced-subtitle-handling.patch
 
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
