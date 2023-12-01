@@ -1,0 +1,56 @@
+
+dram: add lpddr3 6gbit support config option
+
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01-rc3/arch/arm/mach-sunxi/dram_sun50i_h616.c u-boot-2024.01-rc3/arch/arm/mach-sunxi/dram_sun50i_h616.c
+--- u-boot-2024.01-rc3/arch/arm/mach-sunxi/dram_sun50i_h616.c	2023-11-20 14:43:46.000000000 +0100
++++ u-boot-2024.01-rc3/arch/arm/mach-sunxi/dram_sun50i_h616.c	2023-12-01 11:27:18.450018057 +0100
+@@ -154,7 +154,11 @@
+ 
+ 	/* Ranks */
+ 	if (ranks == 2)
++#ifdef CONFIG_DRAM_LPDDR3_6GBIT_QUIRK
++		mctl_ctl->addrmap[0] = rows + cols - 5;
++#else
+ 		mctl_ctl->addrmap[0] = rows + cols - 3;
++#endif
+ 	else
+ 		mctl_ctl->addrmap[0] = 0x1F;
+ 
+@@ -204,7 +208,11 @@
+ 		mctl_ctl->addrmap[7] = 0x0F0F;
+ 		break;
+ 	case 15:
++#ifdef CONFIG_DRAM_LPDDR3_6GBIT_QUIRK
++		mctl_ctl->addrmap[6] = (cols - 3) | ((cols - 2) << 8) | ((cols - 2) << 16) | 0x0F000000;
++#else
+ 		mctl_ctl->addrmap[6] = (cols - 3) | ((cols - 3) << 8) | ((cols - 3) << 16) | 0x0F000000;
++#endif
+ 		mctl_ctl->addrmap[7] = 0x0F0F;
+ 		break;
+ 	case 16:
+@@ -1352,7 +1360,11 @@
+ 	u8 width = config->bus_full_width ? 4 : 2;
+ 
+ 	/* 8 banks */
++#ifdef CONFIG_DRAM_LPDDR3_6GBIT_QUIRK
++	return (1ULL << (config->cols + config->rows + 3)) * width * config->ranks * 3 / 4;
++#else
+ 	return (1ULL << (config->cols + config->rows + 3)) * width * config->ranks;
++#endif
+ }
+ 
+ static const struct dram_para para = {
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01-rc3/arch/arm/mach-sunxi/Kconfig u-boot-2024.01-rc3/arch/arm/mach-sunxi/Kconfig
+--- u-boot-2024.01-rc3/arch/arm/mach-sunxi/Kconfig	2023-12-01 11:27:41.093351466 +0100
++++ u-boot-2024.01-rc3/arch/arm/mach-sunxi/Kconfig	2023-12-01 11:23:51.170017369 +0100
+@@ -108,6 +108,10 @@
+ 	default 0x0
+ 	help
+ 	  TPR12 value from vendor DRAM settings.
++
++config DRAM_LPDDR3_6GBIT_QUIRK
++	bool "H616 6Gbit LPDDR3 DRAM quirks"
++
+ endif
+ 
+ config SUN6I_PRCM

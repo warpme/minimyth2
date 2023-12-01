@@ -1,0 +1,338 @@
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01-rc3/arch/arm/dts/Makefile u-boot-2024.01-rc3/arch/arm/dts/Makefile
+--- u-boot-2024.01-rc3/arch/arm/dts/Makefile	2023-11-29 18:56:43.200021218 +0100
++++ u-boot-2024.01-rc3/arch/arm/dts/Makefile	2023-11-29 18:55:36.136687655 +0100
+@@ -839,7 +839,8 @@
+ 	sun50i-h313-x96q-lpddr3.dtb \
+ 	sun50i-h313-x96q-ddr3.dtb \
+ 	sun50i-h616-tanix-tx6s.dtb \
+-	sun50i-h616-tanix-tx6s-axp313.dtb
++	sun50i-h616-tanix-tx6s-axp313.dtb \
++	sun50i-h618-orangepi-zero3.dtb
+ dtb-$(CONFIG_MACH_SUN50I) += \
+ 	sun50i-a64-amarula-relic.dtb \
+ 	sun50i-a64-bananapi-m64.dtb \
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01-rc3/arch/arm/dts/sun50i-h618-orangepi-zero3.dts u-boot-2024.01-rc3/arch/arm/dts/sun50i-h618-orangepi-zero3.dts
+--- u-boot-2024.01-rc3/arch/arm/dts/sun50i-h618-orangepi-zero3.dts	2023-11-20 14:43:46.000000000 +0100
++++ u-boot-2024.01-rc3/arch/arm/dts/sun50i-h618-orangepi-zero3.dts	2023-11-27 17:03:31.080000271 +0100
+@@ -1,94 +1,230 @@
+-// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++// SPDX-License-Identifier: (GPL-2.0+ or MIT)
+ /*
+- * Copyright (C) 2023 Arm Ltd.
++ * Copyright (C) 2020 Arm Ltd.
+  */
+ 
+ /dts-v1/;
+ 
+-#include "sun50i-h616-orangepi-zero.dtsi"
++#include "sun50i-h616.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/interrupt-controller/arm-gic.h>
++#include <dt-bindings/leds/common.h>
+ 
+ / {
+ 	model = "OrangePi Zero3";
+-	compatible = "xunlong,orangepi-zero3", "allwinner,sun50i-h618";
++	compatible = "xunlong,orangepi-zero3", "allwinner,sun50i-h616";
++
++	aliases {
++		ethernet0 = &emac0;
++		serial0 = &uart0;
++		mmc0 = &mmc0;  /* mmc0/mmcblk0 for SD */
++		mmc1 = &mmc1;  /* mmc1/mmcblk1 for SDIO */
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	leds: leds {
++		compatible = "gpio-leds";
++
++		led-red {
++			function = LED_FUNCTION_DISK_ACTIVITY;
++			label = "red_led";
++			gpios = <&pio 2 12 GPIO_ACTIVE_HIGH>; /* PC12 */
++			linux,default-trigger = "mmc0";
++		};
++
++		led-green {
++			function = LED_FUNCTION_STATUS;
++			label = "green_led";
++			gpios = <&pio 2 13 GPIO_ACTIVE_HIGH>; /* PC13 */
++			linux,default-trigger = "heartbeat";
++		};
++	};
++
++	reg_vcc5v: vcc5v {
++		/* board wide 5V supply directly from the USB-C socket */
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-5v";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++
++	reg_usb1_vbus: usb1-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb1-vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&reg_vcc5v>;
++		enable-active-high;
++		gpio = <&pio 2 16 GPIO_ACTIVE_HIGH>; /* PC16 */
++		status = "okay";
++	};
++};
++
++&cpu0 {
++	cpu-supply = <&reg_dcdc2>;
++	status = "okay";
+ };
+ 
+ &emac0 {
+-	phy-supply = <&reg_dldo1>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&ext_rgmii_pins>;
++	phy-mode = "rgmii";
++	phy-handle = <&ext_rgmii_phy>;
++	allwinner,rx-delay-ps = <1800>;
++	allwinner,tx-delay-ps = <700>;
++	status = "okay";
+ };
+ 
+-&ext_rgmii_phy {
+-	motorcomm,clk-out-frequency-hz = <125000000>;
++&mdio0 {
++	ext_rgmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++		motorcomm,clk-out-frequency-hz = <125000000>;
++		motorcomm,keep-pll-enabled;
++		motorcomm,auto-sleep-disabled;
++	};
+ };
+ 
+ &mmc0 {
+-	/*
+-	 * The schematic shows the card detect pin wired up to PF6, via an
+-	 * inverter, but it just doesn't work.
+-	 */
+-	broken-cd;
+ 	vmmc-supply = <&reg_dldo1>;
++	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>;	/* PF6 */
++	bus-width = <4>;
++	max-frequency = <50000000>;
++	status = "okay";
+ };
+ 
+ &r_i2c {
+ 	status = "okay";
+ 
+-	axp313: pmic@36 {
++	axp313a: pmic@36 {
+ 		compatible = "x-powers,axp313a";
+ 		reg = <0x36>;
+-		#interrupt-cells = <1>;
+-		interrupt-controller;
+-		interrupt-parent = <&pio>;
+-		interrupts = <2 9 IRQ_TYPE_LEVEL_LOW>;	/* PC9 */
+-
+-		vin1-supply = <&reg_vcc5v>;
+-		vin2-supply = <&reg_vcc5v>;
+-		vin3-supply = <&reg_vcc5v>;
++		wakeup-source;
+ 
+-		regulators {
+-			/* Supplies VCC-PLL, so needs to be always on. */
+-			reg_aldo1: aldo1 {
++		regulators{
++			reg_dcdc1: dcdc1 {
++				regulator-name = "axp313a-dcdc1";
++				regulator-min-microvolt = <500000>;
++				regulator-max-microvolt = <1100000>;
++				regulator-step-delay-us = <25>;
++				regulator-final-delay-us = <50>;
+ 				regulator-always-on;
+-				regulator-min-microvolt = <1800000>;
+-				regulator-max-microvolt = <1800000>;
+-				regulator-name = "vcc1v8";
+ 			};
+ 
+-			/* Supplies VCC-IO, so needs to be always on. */
+-			reg_dldo1: dldo1 {
++			reg_dcdc2: dcdc2 {
++				regulator-name = "axp313a-dcdc2";
++				regulator-min-microvolt = <500000>;
++				regulator-max-microvolt = <1200000>;
++				regulator-step-delay-us = <25>;
++				regulator-final-delay-us = <50>;
++				regulator-ramp-delay = <200>;
+ 				regulator-always-on;
+-				regulator-min-microvolt = <3300000>;
+-				regulator-max-microvolt = <3300000>;
+-				regulator-name = "vcc3v3";
+ 			};
+ 
+-			reg_dcdc1: dcdc1 {
++			reg_dcdc3: dcdc3 {
++				regulator-name = "axp313a-dcdc3";
++				regulator-min-microvolt = <1150000>;
++				regulator-max-microvolt = <1150000>;
++				regulator-step-delay-us = <25>;
++				regulator-final-delay-us = <50>;
+ 				regulator-always-on;
+-				regulator-min-microvolt = <810000>;
+-				regulator-max-microvolt = <990000>;
+-				regulator-name = "vdd-gpu-sys";
+ 			};
+ 
+-			reg_dcdc2: dcdc2 {
++			reg_aldo1: ldo1 {
++				regulator-name = "axp313a-aldo1";
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-step-delay-us = <25>;
++				regulator-final-delay-us = <50>;
+ 				regulator-always-on;
+-				regulator-min-microvolt = <810000>;
+-				regulator-max-microvolt = <1100000>;
+-				regulator-name = "vdd-cpu";
+ 			};
+ 
+-			reg_dcdc3: dcdc3 {
++			reg_dldo1: ldo2 {
++				regulator-name = "axp313a-dldo1";
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-step-delay-us = <25>;
++				regulator-final-delay-us = <50>;
+ 				regulator-always-on;
+-				regulator-min-microvolt = <1100000>;
+-				regulator-max-microvolt = <1100000>;
+-				regulator-name = "vdd-dram";
+ 			};
+ 		};
+ 	};
+ };
+ 
+-&pio {
+-	vcc-pc-supply = <&reg_dldo1>;
+-	vcc-pf-supply = <&reg_dldo1>;
+-	vcc-pg-supply = <&reg_aldo1>;
+-	vcc-ph-supply = <&reg_dldo1>;
+-	vcc-pi-supply = <&reg_dldo1>;
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_ph_pins>;
++	status = "okay";
++};
++
++&spi0  {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi0_pins>, <&spi0_cs0_pin>;
++
++	flash@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <40000000>;
++	};
++};
++
++&usbotg {
++	/*
++	 * PHY0 pins are connected to a USB-C socket, but a role switch
++	 * is not implemented: both CC pins are pulled to GND.
++	 * The VBUS pins power the device, so a fixed peripheral mode
++	 * is the best choice.
++	 * The board can be powered via GPIOs, in this case port0 *can*
++	 * act as a host (with a cable/adapter ignoring CC), as VBUS is
++	 * then provided by the GPIOs. Any user of this setup would
++	 * need to adjust the DT accordingly: dr_mode set to "host",
++	 * enabling OHCI0 and EHCI0.
++	 */
++	dr_mode = "peripheral";
++	status = "okay";
++};
++
++&usbphy {
++	usb1_vbus-supply = <&reg_usb1_vbus>;
++	status = "okay";
++};
++
++&ehci0 {
++	status = "disabled";
++};
++
++&ehci1 {
++	status = "okay";
++};
++
++&ehci2 {
++	status = "okay";
++};
++
++&ehci3 {
++	status = "okay";
++};
++
++&ohci0 {
++	status = "disabled";
++};
++
++&ohci1 {
++	status = "okay";
++};
++
++&ohci2 {
++	status = "okay";
++};
++
++&ohci3 {
++	status = "okay";
+ };
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01-rc3/configs/orangepi_zero3_defconfig u-boot-2024.01-rc3/configs/orangepi_zero3_defconfig
+--- u-boot-2024.01-rc3/configs/orangepi_zero3_defconfig	1970-01-01 01:00:00.000000000 +0100
++++ u-boot-2024.01-rc3/configs/orangepi_zero3_defconfig	2023-11-29 18:55:43.723354344 +0100
+@@ -0,0 +1,37 @@
++CONFIG_ARM=y
++CONFIG_ARCH_SUNXI=y
++CONFIG_DEFAULT_DEVICE_TREE="sun50i-h618-orangepi-zero3"
++CONFIG_SPL=y
++CONFIG_DRAM_SUN50I_H616_DX_ODT=0x07070707
++CONFIG_DRAM_SUN50I_H616_DX_DRI=0x0e0e0e0e
++CONFIG_DRAM_SUN50I_H616_CA_DRI=0x0e0e
++CONFIG_DRAM_SUN50I_H616_ODT_EN=0xaaaaeeee
++CONFIG_DRAM_SUN50I_H616_TPR0=0x0
++CONFIG_DRAM_SUN50I_H616_TPR6=0x44000000
++CONFIG_DRAM_SUN50I_H616_TPR10=0x402f0663
++CONFIG_DRAM_SUN50I_H616_TPR11=0x24242323
++CONFIG_DRAM_SUN50I_H616_TPR12=0x0e0e0e0e
++CONFIG_MACH_SUN50I_H616=y
++CONFIG_SUNXI_DRAM_H616_LPDDR4=y
++CONFIG_DRAM_CLK=792
++CONFIG_R_I2C_ENABLE=y
++CONFIG_SPL_SPI_SUNXI=y
++CONFIG_SYS_MONITOR_LEN=786432
++CONFIG_SPL_I2C=y
++CONFIG_SPL_I2C_SUPPORT=y
++CONFIG_SPL_SYS_I2C_LEGACY=y
++CONFIG_SYS_I2C_MVTWSI=y
++CONFIG_SYS_I2C_SLAVE=0x7f
++CONFIG_SYS_I2C_SPEED=400000
++CONFIG_SPI_FLASH_ZBIT=y
++CONFIG_PHY_MOTORCOMM=y
++CONFIG_SUN8I_EMAC=y
++CONFIG_SPI=y
++CONFIG_AXP313_POWER=y
++CONFIG_I2C3_ENABLE=y
++CONFIG_AXP_DCDC3_VOLT=1150
++CONFIG_USB1_VBUS_PIN="PC16"
++CONFIG_PWRLED="PC13"
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_OHCI_HCD=y
++CONFIG_USB_MUSB_GADGET=y
