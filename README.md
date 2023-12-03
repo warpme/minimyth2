@@ -102,6 +102,7 @@ Allwinner H313| X96-Q (DDR3)     | works  (xr819@SDIO)                    | work
 Allwinner H313| X96-Q (LPDDR3)   | works  (xr819@SDIO)                    | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s-axp313 | works  (ap6330@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H616| Pendoo-X12Pro    | works  (sp6330@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| OrangePi-Zero2   | works  (aw859a@SDIO)                   | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H618| OrangePi-Zero3   | works  (uwe5622a@SDIO)                 | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H618| Vontar H618      | works  (ap6334@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
