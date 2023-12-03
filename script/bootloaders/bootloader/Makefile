@@ -192,6 +192,10 @@ ifneq (,$(findstring board-h616.orangepi_zero2,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h616.orangepi_zero2
 endif
 
+ifneq (,$(findstring board-h616.pendoo_x12pro,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-h616.pendoo_x12pro
+endif
+
 ifneq (,$(findstring board-h618.orangepi_zero3,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h618.orangepi_zero3
 endif

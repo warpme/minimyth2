@@ -397,6 +397,7 @@ mm-all:
 		   [ ! "$${board}" = "board-h616.t95"             ] && \
 		   [ ! "$${board}" = "board-h616.x96_mate"        ] && \
 		   [ ! "$${board}" = "board-h616.orangepi_zero2"  ] && \
+		   [ ! "$${board}" = "board-h616.pendoo_x12pro"   ] && \
 		   [ ! "$${board}" = "board-h618.orangepi_zero3"  ] && \
 		   [ ! "$${board}" = "board-h618.vontar_h618"     ] && \
 		   [ ! "$${board}" = "board-h618.orangepi_zero2w" ] && \
