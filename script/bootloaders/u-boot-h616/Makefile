@@ -23,6 +23,7 @@ PATCHFILES  += 154-opi-zero2-add-mising-dram-para.patch
 PATCHFILES  += 155-add-opi-zero3-defconfig.patch
 PATCHFILES  += 156-add-opi-zero2w-defconfig.patch
 PATCHFILES  += 157-add-tanix_tx6s_kingston_lpddr3_defconfig.patch
+PATCHFILES  += 158-add-pendoo-x12pro-defconfig.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
@@ -98,6 +99,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2w_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_kingston_lpddr3_defconfig
+# mm_U-BOOT_BOARD_TYPE = pendoo-x12_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
