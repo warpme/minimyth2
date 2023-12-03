@@ -89,6 +89,8 @@ DISTFILES    = \
 	board-h616.t95.wks          \
 	board-h616.x96_mate.conf    \
 	board-h616.x96_mate.wks     \
+	board-h616.pendoo_x12pro.conf \
+	board-h616.pendoo_x12pro.wks \
 	board-h313.x96_q.conf       \
 	board-h313.x96_q.wks        \
 	board-h313.x96_q_lpddr3.conf \
