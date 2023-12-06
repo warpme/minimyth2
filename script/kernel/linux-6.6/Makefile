@@ -140,7 +140,6 @@ PATCHFILES += 0606-dma-sun6i-dma-add-h616-support.patch
 PATCHFILES += 0607-drivers-drm-wip-add-h616-hdmi-jernejsk-24102023.patch
 PATCHFILES += 0608-sound-soc-sunxi-add-codec-driver-for-h616.patch
 PATCHFILES += 0609-sound-soc-add-sunxi_v2-for-h616-ahub.patch
-PATCHFILES += 0612-gpu-drm-panfrost-panfrost-devfreq-revert-set-opp-to-the-recommended.patch
 PATCHFILES += 0614-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0615-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 PATCHFILES += 0616-net-wireless-add-uwe5622-support-v20231020.patch
