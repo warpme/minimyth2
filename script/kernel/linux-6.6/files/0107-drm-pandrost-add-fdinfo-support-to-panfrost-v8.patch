@@ -1,0 +1,610 @@
+
+This patch series adds fdinfo support to the Panfrost DRM driver. It will
+display a series of key:value pairs under /proc/pid/fdinfo/fd for render
+processes that open the Panfrost DRM file.
+
+The pairs contain basic drm gpu engine and memory region information that
+can either be cat by a privileged user or accessed with IGT's gputop
+utility.
+
+https://lore.kernel.org/lkml/20231004130601.60239c7f@collabora.com/T/#m6067526ebf2067a53663107fd3ef6fee0d754126
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/Documentation/gpu/drm-usage-stats.rst linux-6.6.4/Documentation/gpu/drm-usage-stats.rst
+--- linux-6.6.4/Documentation/gpu/drm-usage-stats.rst	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/Documentation/gpu/drm-usage-stats.rst	2023-12-06 12:17:29.053118657 +0100
+@@ -169,3 +169,4 @@
+ -------------------------------
+ 
+ :ref:`i915-usage-stats`
++:ref:`panfrost-usage-stats`
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/Documentation/gpu/panfrost.rst linux-6.6.4/Documentation/gpu/panfrost.rst
+--- linux-6.6.4/Documentation/gpu/panfrost.rst	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.6.4/Documentation/gpu/panfrost.rst	2023-12-06 12:17:29.053118657 +0100
+@@ -0,0 +1,38 @@
++===========================
++ drm/Panfrost Mali Driver
++===========================
++
++.. _panfrost-usage-stats:
++
++Panfrost DRM client usage stats implementation
++==========================================
++
++The drm/Panfrost driver implements the DRM client usage stats specification as
++documented in :ref:`drm-client-usage-stats`.
++
++Example of the output showing the implemented key value pairs and entirety of
++the currently possible format options:
++
++::
++      pos:    0
++      flags:  02400002
++      mnt_id: 27
++      ino:    531
++      drm-driver:     panfrost
++      drm-client-id:  14
++      drm-engine-fragment:    1846584880 ns
++      drm-cycles-fragment:    1424359409
++      drm-maxfreq-fragment:   799999987 Hz
++      drm-curfreq-fragment:   799999987 Hz
++      drm-engine-vertex-tiler:        71932239 ns
++      drm-cycles-vertex-tiler:        52617357
++      drm-maxfreq-vertex-tiler:       799999987 Hz
++      drm-curfreq-vertex-tiler:       799999987 Hz
++      drm-total-memory:       290 MiB
++      drm-shared-memory:      0 MiB
++      drm-active-memory:      226 MiB
++      drm-resident-memory:    36496 KiB
++      drm-purgeable-memory:   128 KiB
++
++Possible `drm-engine-` key names are: `fragment`, and  `vertex-tiler`.
++`drm-curfreq-` values convey the current operating frequency for that engine.
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/drm_file.c linux-6.6.4/drivers/gpu/drm/drm_file.c
+--- linux-6.6.4/drivers/gpu/drm/drm_file.c	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/drm_file.c	2023-12-06 12:17:29.053118657 +0100
+@@ -930,6 +930,8 @@
+ 	spin_lock(&file->table_lock);
+ 	idr_for_each_entry (&file->object_idr, obj, id) {
+ 		enum drm_gem_object_status s = 0;
++		size_t add_size = (obj->funcs && obj->funcs->rss) ?
++			obj->funcs->rss(obj) : obj->size;
+ 
+ 		if (obj->funcs && obj->funcs->status) {
+ 			s = obj->funcs->status(obj);
+@@ -944,7 +946,7 @@
+ 		}
+ 
+ 		if (s & DRM_GEM_OBJECT_RESIDENT) {
+-			status.resident += obj->size;
++			status.resident += add_size;
+ 		} else {
+ 			/* If already purged or not yet backed by pages, don't
+ 			 * count it as purgeable:
+@@ -953,14 +955,14 @@
+ 		}
+ 
+ 		if (!dma_resv_test_signaled(obj->resv, dma_resv_usage_rw(true))) {
+-			status.active += obj->size;
++			status.active += add_size;
+ 
+ 			/* If still active, don't count as purgeable: */
+ 			s &= ~DRM_GEM_OBJECT_PURGEABLE;
+ 		}
+ 
+ 		if (s & DRM_GEM_OBJECT_PURGEABLE)
+-			status.purgeable += obj->size;
++			status.purgeable += add_size;
+ 	}
+ 	spin_unlock(&file->table_lock);
+ 
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/Makefile linux-6.6.4/drivers/gpu/drm/panfrost/Makefile
+--- linux-6.6.4/drivers/gpu/drm/panfrost/Makefile	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/Makefile	2023-12-06 12:17:29.053118657 +0100
+@@ -12,4 +12,6 @@
+ 	panfrost_perfcnt.o \
+ 	panfrost_dump.o
+ 
++panfrost-$(CONFIG_DEBUG_FS) += panfrost_debugfs.o
++
+ obj-$(CONFIG_DRM_PANFROST) += panfrost.o
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_debugfs.c linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_debugfs.c
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_debugfs.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_debugfs.c	2023-12-06 12:17:29.053118657 +0100
+@@ -0,0 +1,21 @@
++// SPDX-License-Identifier: GPL-2.0
++/* Copyright 2023 Collabora ltd. */
++/* Copyright 2023 Amazon.com, Inc. or its affiliates. */
++
++#include <linux/debugfs.h>
++#include <linux/platform_device.h>
++#include <drm/drm_debugfs.h>
++#include <drm/drm_file.h>
++#include <drm/panfrost_drm.h>
++
++#include "panfrost_device.h"
++#include "panfrost_gpu.h"
++#include "panfrost_debugfs.h"
++
++void panfrost_debugfs_init(struct drm_minor *minor)
++{
++	struct drm_device *dev = minor->dev;
++	struct panfrost_device *pfdev = platform_get_drvdata(to_platform_device(dev->dev));
++
++	debugfs_create_atomic_t("profile", 0600, minor->debugfs_root, &pfdev->profile_mode);
++}
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_debugfs.h linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_debugfs.h
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_debugfs.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_debugfs.h	2023-12-06 12:17:29.053118657 +0100
+@@ -0,0 +1,14 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright 2023 Collabora ltd.
++ * Copyright 2023 Amazon.com, Inc. or its affiliates.
++ */
++
++#ifndef PANFROST_DEBUGFS_H
++#define PANFROST_DEBUGFS_H
++
++#ifdef CONFIG_DEBUG_FS
++void panfrost_debugfs_init(struct drm_minor *minor);
++#endif
++
++#endif  /* PANFROST_DEBUGFS_H */
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_devfreq.c linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_devfreq.c
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_devfreq.c	2023-12-06 12:22:02.459779448 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_devfreq.c	2023-12-06 12:11:07.589793539 +0100
+@@ -58,6 +58,7 @@
+ 	spin_lock_irqsave(&pfdevfreq->lock, irqflags);
+ 
+ 	panfrost_devfreq_update_utilization(pfdevfreq);
++	pfdevfreq->current_frequency = status->current_frequency;
+ 
+ 	status->total_time = ktime_to_ns(ktime_add(pfdevfreq->busy_time,
+ 						   pfdevfreq->idle_time));
+@@ -117,6 +118,7 @@
+ 	struct devfreq *devfreq;
+ 	struct thermal_cooling_device *cooling;
+ 	struct panfrost_devfreq *pfdevfreq = &pfdev->pfdevfreq;
++	unsigned long freq = ULONG_MAX;
+ 
+ 	if (pfdev->comp->num_supplies > 1) {
+ 		/*
+@@ -161,6 +163,13 @@
+ 		return PTR_ERR(opp);
+ 
+ 	panfrost_devfreq_profile.initial_freq = cur_freq;
++
++	/* Find the fastest defined rate  */
++	opp = dev_pm_opp_find_freq_floor(dev, &freq);
++	if (IS_ERR(opp))
++		return PTR_ERR(opp);
++	pfdevfreq->fast_rate = freq;
++
+ 	dev_pm_opp_put(opp);
+ 
+ 	/*
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_devfreq.h linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_devfreq.h
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_devfreq.h	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_devfreq.h	2023-12-06 12:17:29.053118657 +0100
+@@ -19,6 +19,9 @@
+ 	struct devfreq_simple_ondemand_data gov_data;
+ 	bool opp_of_table_added;
+ 
++	unsigned long current_frequency;
++	unsigned long fast_rate;
++
+ 	ktime_t busy_time;
+ 	ktime_t idle_time;
+ 	ktime_t time_last_update;
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_device.c linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_device.c
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_device.c	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_device.c	2023-12-06 12:17:29.053118657 +0100
+@@ -207,6 +207,8 @@
+ 
+ 	spin_lock_init(&pfdev->as_lock);
+ 
++	spin_lock_init(&pfdev->cycle_counter.lock);
++
+ 	err = panfrost_clk_init(pfdev);
+ 	if (err) {
+ 		dev_err(pfdev->dev, "clk init failed %d\n", err);
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_device.h linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_device.h
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_device.h	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_device.h	2023-12-06 12:17:29.053118657 +0100
+@@ -107,6 +107,7 @@
+ 	struct list_head scheduled_jobs;
+ 
+ 	struct panfrost_perfcnt *perfcnt;
++	atomic_t profile_mode;
+ 
+ 	struct mutex sched_lock;
+ 
+@@ -121,6 +122,11 @@
+ 	struct shrinker shrinker;
+ 
+ 	struct panfrost_devfreq pfdevfreq;
++
++	struct {
++		atomic_t use_count;
++		spinlock_t lock;
++	} cycle_counter;
+ };
+ 
+ struct panfrost_mmu {
+@@ -135,12 +141,19 @@
+ 	struct list_head list;
+ };
+ 
++struct panfrost_engine_usage {
++	unsigned long long elapsed_ns[NUM_JOB_SLOTS];
++	unsigned long long cycles[NUM_JOB_SLOTS];
++};
++
+ struct panfrost_file_priv {
+ 	struct panfrost_device *pfdev;
+ 
+ 	struct drm_sched_entity sched_entity[NUM_JOB_SLOTS];
+ 
+ 	struct panfrost_mmu *mmu;
++
++	struct panfrost_engine_usage engine_usage;
+ };
+ 
+ static inline struct panfrost_device *to_panfrost_device(struct drm_device *ddev)
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_drv.c linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_drv.c
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_drv.c	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_drv.c	2023-12-06 12:19:40.063115841 +0100
+@@ -20,6 +20,7 @@
+ #include "panfrost_job.h"
+ #include "panfrost_gpu.h"
+ #include "panfrost_perfcnt.h"
++#include "panfrost_debugfs.h"
+ 
+ static bool unstable_ioctls;
+ module_param_unsafe(unstable_ioctls, bool, 0600);
+@@ -267,6 +268,7 @@
+ 	job->requirements = args->requirements;
+ 	job->flush_id = panfrost_gpu_get_latest_flush_id(pfdev);
+ 	job->mmu = file_priv->mmu;
++	job->engine_usage = &file_priv->engine_usage;
+ 
+ 	slot = panfrost_job_get_slot(job);
+ 
+@@ -523,7 +525,57 @@
+ 	PANFROST_IOCTL(MADVISE,		madvise,	DRM_RENDER_ALLOW),
+ };
+ 
+-DEFINE_DRM_GEM_FOPS(panfrost_drm_driver_fops);
++static void panfrost_gpu_show_fdinfo(struct panfrost_device *pfdev,
++				     struct panfrost_file_priv *panfrost_priv,
++				     struct drm_printer *p)
++{
++	int i;
++
++	/*
++	 * IMPORTANT NOTE: drm-cycles and drm-engine measurements are not
++	 * accurate, as they only provide a rough estimation of the number of
++	 * GPU cycles and CPU time spent in a given context. This is due to two
++	 * different factors:
++	 * - Firstly, we must consider the time the CPU and then the kernel
++	 *   takes to process the GPU interrupt, which means additional time and
++	 *   GPU cycles will be added in excess to the real figure.
++	 * - Secondly, the pipelining done by the Job Manager (2 job slots per
++	 *   engine) implies there is no way to know exactly how much time each
++	 *   job spent on the GPU.
++	 */
++
++	static const char * const engine_names[] = {
++		"fragment", "vertex-tiler", "compute-only"
++	};
++
++	BUILD_BUG_ON(ARRAY_SIZE(engine_names) != NUM_JOB_SLOTS);
++
++	for (i = 0; i < NUM_JOB_SLOTS - 1; i++) {
++		drm_printf(p, "drm-engine-%s:\t%llu ns\n",
++			   engine_names[i], panfrost_priv->engine_usage.elapsed_ns[i]);
++		drm_printf(p, "drm-cycles-%s:\t%llu\n",
++			   engine_names[i], panfrost_priv->engine_usage.cycles[i]);
++		drm_printf(p, "drm-maxfreq-%s:\t%lu Hz\n",
++			   engine_names[i], pfdev->pfdevfreq.fast_rate);
++		drm_printf(p, "drm-curfreq-%s:\t%lu Hz\n",
++			   engine_names[i], pfdev->pfdevfreq.current_frequency);
++	}
++}
++
++static void panfrost_show_fdinfo(struct drm_printer *p, struct drm_file *file)
++{
++	struct drm_device *dev = file->minor->dev;
++	struct panfrost_device *pfdev = dev->dev_private;
++
++	panfrost_gpu_show_fdinfo(pfdev, file->driver_priv, p);
++	drm_show_memory_stats(p, file);
++}
++
++static const struct file_operations panfrost_drm_driver_fops = {
++	.owner = THIS_MODULE,
++	DRM_GEM_FOPS,
++	.show_fdinfo = drm_show_fdinfo,
++};
+ 
+ /*
+  * Panfrost driver version:
+@@ -535,6 +587,7 @@
+ 	.driver_features	= DRIVER_RENDER | DRIVER_GEM | DRIVER_SYNCOBJ,
+ 	.open			= panfrost_open,
+ 	.postclose		= panfrost_postclose,
++	.show_fdinfo		= panfrost_show_fdinfo,
+ 	.ioctls			= panfrost_drm_driver_ioctls,
+ 	.num_ioctls		= ARRAY_SIZE(panfrost_drm_driver_ioctls),
+ 	.fops			= &panfrost_drm_driver_fops,
+@@ -546,6 +599,10 @@
+ 
+ 	.gem_create_object	= panfrost_gem_create_object,
+ 	.gem_prime_import_sg_table = panfrost_gem_prime_import_sg_table,
++
++#ifdef CONFIG_DEBUG_FS
++	.debugfs_init		= panfrost_debugfs_init,
++#endif
+ };
+ 
+ static int panfrost_probe(struct platform_device *pdev)
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gem.c linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gem.c
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gem.c	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gem.c	2023-12-06 12:17:29.053118657 +0100
+@@ -195,6 +195,34 @@
+ 	return drm_gem_shmem_pin(&bo->base);
+ }
+ 
++static enum drm_gem_object_status panfrost_gem_status(struct drm_gem_object *obj)
++{
++	struct panfrost_gem_object *bo = to_panfrost_bo(obj);
++	enum drm_gem_object_status res = 0;
++
++	if (bo->base.pages)
++		res |= DRM_GEM_OBJECT_RESIDENT;
++
++	if (bo->base.madv == PANFROST_MADV_DONTNEED)
++		res |= DRM_GEM_OBJECT_PURGEABLE;
++
++	return res;
++}
++
++static size_t panfrost_gem_rss(struct drm_gem_object *obj)
++{
++	struct panfrost_gem_object *bo = to_panfrost_bo(obj);
++
++	if (bo->is_heap) {
++		return bo->heap_rss_size;
++	} else if (bo->base.pages) {
++		WARN_ON(bo->heap_rss_size);
++		return bo->base.base.size;
++	}
++
++	return 0;
++}
++
+ static const struct drm_gem_object_funcs panfrost_gem_funcs = {
+ 	.free = panfrost_gem_free_object,
+ 	.open = panfrost_gem_open,
+@@ -206,6 +234,8 @@
+ 	.vmap = drm_gem_shmem_object_vmap,
+ 	.vunmap = drm_gem_shmem_object_vunmap,
+ 	.mmap = drm_gem_shmem_object_mmap,
++	.status = panfrost_gem_status,
++	.rss = panfrost_gem_rss,
+ 	.vm_ops = &drm_gem_shmem_vm_ops,
+ };
+ 
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gem.h linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gem.h
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gem.h	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gem.h	2023-12-06 12:17:29.053118657 +0100
+@@ -36,6 +36,11 @@
+ 	 */
+ 	atomic_t gpu_usecount;
+ 
++	/*
++	 * Object chunk size currently mapped onto physical memory
++	 */
++	size_t heap_rss_size;
++
+ 	bool noexec		:1;
+ 	bool is_heap		:1;
+ };
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gpu.c linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gpu.c
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gpu.c	2023-12-06 12:21:59.776446173 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gpu.c	2023-12-06 12:17:29.053118657 +0100
+@@ -85,6 +85,13 @@
+ 	gpu_write(pfdev, GPU_INT_CLEAR, GPU_IRQ_MASK_ALL);
+ 	gpu_write(pfdev, GPU_INT_MASK, GPU_IRQ_MASK_ALL);
+ 
++	/*
++	 * All in-flight jobs should have released their cycle
++	 * counter references upon reset, but let us make sure
++	 */
++	if (drm_WARN_ON(pfdev->ddev, atomic_read(&pfdev->cycle_counter.use_count) != 0))
++		atomic_set(&pfdev->cycle_counter.use_count, 0);
++
+ 	return 0;
+ }
+ 
+@@ -333,6 +340,40 @@
+ 		 pfdev->features.shader_present, pfdev->features.l2_present);
+ }
+ 
++void panfrost_cycle_counter_get(struct panfrost_device *pfdev)
++{
++	if (atomic_inc_not_zero(&pfdev->cycle_counter.use_count))
++		return;
++
++	spin_lock(&pfdev->cycle_counter.lock);
++	if (atomic_inc_return(&pfdev->cycle_counter.use_count) == 1)
++		gpu_write(pfdev, GPU_CMD, GPU_CMD_CYCLE_COUNT_START);
++	spin_unlock(&pfdev->cycle_counter.lock);
++}
++
++void panfrost_cycle_counter_put(struct panfrost_device *pfdev)
++{
++	if (atomic_add_unless(&pfdev->cycle_counter.use_count, -1, 1))
++		return;
++
++	spin_lock(&pfdev->cycle_counter.lock);
++	if (atomic_dec_return(&pfdev->cycle_counter.use_count) == 0)
++		gpu_write(pfdev, GPU_CMD, GPU_CMD_CYCLE_COUNT_STOP);
++	spin_unlock(&pfdev->cycle_counter.lock);
++}
++
++unsigned long long panfrost_cycle_counter_read(struct panfrost_device *pfdev)
++{
++	u32 hi, lo;
++
++	do {
++		hi = gpu_read(pfdev, GPU_CYCLE_COUNT_HI);
++		lo = gpu_read(pfdev, GPU_CYCLE_COUNT_LO);
++	} while (hi != gpu_read(pfdev, GPU_CYCLE_COUNT_HI));
++
++	return ((u64)hi << 32) | lo;
++}
++
+ void panfrost_gpu_power_on(struct panfrost_device *pfdev)
+ {
+ 	int ret;
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gpu.h linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gpu.h
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gpu.h	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_gpu.h	2023-12-06 12:17:29.053118657 +0100
+@@ -16,6 +16,10 @@
+ void panfrost_gpu_power_on(struct panfrost_device *pfdev);
+ void panfrost_gpu_power_off(struct panfrost_device *pfdev);
+ 
++void panfrost_cycle_counter_get(struct panfrost_device *pfdev);
++void panfrost_cycle_counter_put(struct panfrost_device *pfdev);
++unsigned long long panfrost_cycle_counter_read(struct panfrost_device *pfdev);
++
+ void panfrost_gpu_amlogic_quirk(struct panfrost_device *pfdev);
+ 
+ #endif
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_job.c linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_job.c
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_job.c	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_job.c	2023-12-06 12:17:29.053118657 +0100
+@@ -159,6 +159,16 @@
+ 	struct panfrost_job *job = pfdev->jobs[slot][0];
+ 
+ 	WARN_ON(!job);
++	if (job->is_profiled) {
++		if (job->engine_usage) {
++			job->engine_usage->elapsed_ns[slot] +=
++				ktime_to_ns(ktime_sub(ktime_get(), job->start_time));
++			job->engine_usage->cycles[slot] +=
++				panfrost_cycle_counter_read(pfdev) - job->start_cycles;
++		}
++		panfrost_cycle_counter_put(job->pfdev);
++	}
++
+ 	pfdev->jobs[slot][0] = pfdev->jobs[slot][1];
+ 	pfdev->jobs[slot][1] = NULL;
+ 
+@@ -233,6 +243,13 @@
+ 	subslot = panfrost_enqueue_job(pfdev, js, job);
+ 	/* Don't queue the job if a reset is in progress */
+ 	if (!atomic_read(&pfdev->reset.pending)) {
++		if (atomic_read(&pfdev->profile_mode)) {
++			panfrost_cycle_counter_get(pfdev);
++			job->is_profiled = true;
++			job->start_time = ktime_get();
++			job->start_cycles = panfrost_cycle_counter_read(pfdev);
++		}
++
+ 		job_write(pfdev, JS_COMMAND_NEXT(js), JS_COMMAND_START);
+ 		dev_dbg(pfdev->dev,
+ 			"JS: Submitting atom %p to js[%d][%d] with head=0x%llx AS %d",
+@@ -660,10 +677,14 @@
+ 	 * stuck jobs. Let's make sure the PM counters stay balanced by
+ 	 * manually calling pm_runtime_put_noidle() and
+ 	 * panfrost_devfreq_record_idle() for each stuck job.
++	 * Let's also make sure the cycle counting register's refcnt is
++	 * kept balanced to prevent it from running forever
+ 	 */
+ 	spin_lock(&pfdev->js->job_lock);
+ 	for (i = 0; i < NUM_JOB_SLOTS; i++) {
+ 		for (j = 0; j < ARRAY_SIZE(pfdev->jobs[0]) && pfdev->jobs[i][j]; j++) {
++			if (pfdev->jobs[i][j]->is_profiled)
++				panfrost_cycle_counter_put(pfdev->jobs[i][j]->pfdev);
+ 			pm_runtime_put_noidle(pfdev->dev);
+ 			panfrost_devfreq_record_idle(&pfdev->pfdevfreq);
+ 		}
+@@ -926,6 +947,9 @@
+ 			}
+ 
+ 			job_write(pfdev, JS_COMMAND(i), cmd);
++
++			/* Jobs can outlive their file context */
++			job->engine_usage = NULL;
+ 		}
+ 	}
+ 	spin_unlock(&pfdev->js->job_lock);
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_job.h linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_job.h
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_job.h	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_job.h	2023-12-06 12:17:29.053118657 +0100
+@@ -32,6 +32,11 @@
+ 
+ 	/* Fence to be signaled by drm-sched once its done with the job */
+ 	struct dma_fence *render_done_fence;
++
++	struct panfrost_engine_usage *engine_usage;
++	bool is_profiled;
++	ktime_t start_time;
++	u64 start_cycles;
+ };
+ 
+ int panfrost_job_init(struct panfrost_device *pfdev);
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_mmu.c linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_mmu.c
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_mmu.c	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_mmu.c	2023-12-06 12:17:29.053118657 +0100
+@@ -522,6 +522,7 @@
+ 		   IOMMU_WRITE | IOMMU_READ | IOMMU_NOEXEC, sgt);
+ 
+ 	bomapping->active = true;
++	bo->heap_rss_size += SZ_2M;
+ 
+ 	dev_dbg(pfdev->dev, "mapped page fault @ AS%d %llx", as, addr);
+ 
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_regs.h linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_regs.h
+--- linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_regs.h	2023-12-06 12:21:59.776446173 +0100
++++ linux-6.6.4/drivers/gpu/drm/panfrost/panfrost_regs.h	2023-12-06 12:17:29.053118657 +0100
+@@ -46,6 +46,8 @@
+ #define   GPU_CMD_SOFT_RESET		0x01
+ #define   GPU_CMD_PERFCNT_CLEAR		0x03
+ #define   GPU_CMD_PERFCNT_SAMPLE	0x04
++#define   GPU_CMD_CYCLE_COUNT_START	0x05
++#define   GPU_CMD_CYCLE_COUNT_STOP	0x06
+ #define   GPU_CMD_CLEAN_CACHES		0x07
+ #define   GPU_CMD_CLEAN_INV_CACHES	0x08
+ #define GPU_STATUS			0x34
+@@ -77,6 +79,9 @@
+ #define GPU_PWR_OVERRIDE0		0x054	/* (RW) Power manager override settings */
+ #define GPU_PWR_OVERRIDE1		0x058	/* (RW) Power manager override settings */
+ 
++#define GPU_CYCLE_COUNT_LO		0x90
++#define GPU_CYCLE_COUNT_HI		0x94
++
+ #define GPU_THREAD_MAX_THREADS		0x0A0	/* (RO) Maximum number of threads per core */
+ #define GPU_THREAD_MAX_WORKGROUP_SIZE	0x0A4	/* (RO) Maximum workgroup size */
+ #define GPU_THREAD_MAX_BARRIER_SIZE	0x0A8	/* (RO) Maximum threads waiting at a barrier */
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.4/include/drm/drm_gem.h linux-6.6.4/include/drm/drm_gem.h
+--- linux-6.6.4/include/drm/drm_gem.h	2023-12-03 07:33:10.000000000 +0100
++++ linux-6.6.4/include/drm/drm_gem.h	2023-12-06 12:17:29.053118657 +0100
+@@ -209,6 +209,15 @@
+ 	enum drm_gem_object_status (*status)(struct drm_gem_object *obj);
+ 
+ 	/**
++	 * @rss:
++	 *
++	 * Return resident size of the object in physical memory.
++	 *
++	 * Called by drm_show_memory_stats().
++	 */
++	size_t (*rss)(struct drm_gem_object *obj);
++
++	/**
+ 	 * @vm_ops:
+ 	 *
+ 	 * Virtual memory operations used with mmap.
