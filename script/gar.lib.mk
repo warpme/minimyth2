@@ -311,11 +311,14 @@ NINJA = $(build_DESTDIR)$(build_bindir)/ninja
 configure-meson:
 ifneq ($(DESTIMG),build)
 	@cd $(WORKSRC); $(MESON) build $(DIRPATHS_MESON) $(MESON_CONFIGURE_ARGS) --cross-file=$(MESON_CROSS_CONF)
+	$(warning MESON configure will be invoked with: $(MESON_CONFIGURE_ARGS))
 else
 ifneq ($(MESON_CONFIGURE_ARGS_BUILD),)
 	@cd $(WORKSRC); $(MESON) build $(DIRPATHS_MESON) $(MESON_CONFIGURE_ARGS_BUILD) --native-file=$(MESON_NATIVE_CONF)
+	$(warning MESON configure will be invoked with: $(MESON_CONFIGURE_ARGS_BUILD))
 else
 	@cd $(WORKSRC); $(MESON) build $(DIRPATHS_MESON) $(MESON_CONFIGURE_ARGS) --native-file=$(MESON_NATIVE_CONF)
+	$(warning MESON configure will be invoked with: $(MESON_CONFIGURE_ARGS))
 endif
 endif
 	@$(MAKECOOKIE)
@@ -354,11 +357,14 @@ configure-%/cmake:
 	@mkdir -p $*
 ifneq ($(DESTIMG),build)
 	@cd $* && $(CONFIGURE_ENV) $(CMAKE) -DCMAKE_SYSTEM_NAME="Linux" -DCMAKE_CROSSCOMPILING="ON" $(DIRPATHS_CMAKE) $(CMAKE_CONFIGURE_ARGS) ../$(DISTNAME)
+	$(warning CMAKE configure will be invoked with: $(CMAKE_CONFIGURE_ARGS))
 else
 ifneq ($(CMAKE_CONFIGURE_ARGS_BUILD),)
 	@cd $* && $(CONFIGURE_ENV) $(CMAKE) $(DIRPATHS_CMAKE) $(CMAKE_CONFIGURE_ARGS_BUILD) ../$(DISTNAME)
+	$(warning CMAKE configure will be invoked with: $(CMAKE_CONFIGURE_ARGS_BUILD))
 else
 	@cd $* && $(CONFIGURE_ENV) $(CMAKE) $(DIRPATHS_CMAKE) $(CMAKE_CONFIGURE_ARGS) ../$(DISTNAME)
+	$(warning CMAKE configure will be invoked with: $(CMAKE_CONFIGURE_ARGS))
 endif
 endif
 	@$(MAKECOOKIE)
@@ -370,6 +376,7 @@ endif
 configure-%/configure: 
 	@echo " ==> Running configure in $*"
 	@cd $* && $(CONFIGURE_ENV) ./configure $(CONFIGURE_ARGS)
+	$(warning MAKE configure will be invoked with: $(CONFIGURE_ARGS))
 	@$(MAKECOOKIE)
 
 # configure a package that uses imake
