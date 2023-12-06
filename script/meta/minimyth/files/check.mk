@@ -219,6 +219,7 @@ mm-all:
 		   [ ! "$${software}" = "openvfd"        ] && \
 		   [ ! "$${software}" = "monitorix"      ] && \
 		   [ ! "$${software}" = "termbin"        ] && \
+		   [ ! "$${software}" = "nvtop"          ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \

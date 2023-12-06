@@ -59,6 +59,7 @@ mm_SOFTWARE               ?= \
 #                             kodi \
 #                             termbin \
 #                             kmsvnc \
+#                             nvtop \
 
 # Indicates bootloader board type. Valid values are:
 # 'board-rpi2'
