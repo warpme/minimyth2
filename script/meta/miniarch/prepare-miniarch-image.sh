@@ -47,6 +47,7 @@ selection_a4="board-rk3566.orangepi_3b"
 selection_a5="board-h618.orangepi_zero2w"
 selection_a6="board-rk3588s.orangepi_5"
 selection_a7="board-rk3588.orangepi_5_plus"
+selection_a8="board-h616.pendoo_x12pro"
 
 # Config area end
 #--------------------------------------------------------------------------------------
@@ -142,6 +143,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (a5)for "${selection_a5}
     echo "  (a6)for "${selection_a6}
     echo "  (a7)for "${selection_a7}
+    echo "  (a8)for "${selection_a8}
     echo " "
     echo "or press Eneter to exit..."
     echo " "
@@ -227,6 +229,7 @@ case "${selection}" in
         make reinstall-new-board mm_BOARD_TYPE="${selection_a5}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_a6}" ${extra_params}
         make reinstall-new-board mm_BOARD_TYPE="${selection_a7}" ${extra_params}
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a8}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     b)  cache_board_list "${selection_b}"
@@ -347,6 +350,10 @@ case "${selection}" in
 
     a7)  cache_board_list "${selection_a7}"
         make reinstall-new-board mm_BOARD_TYPE="${selection_a7}" ${extra_params}
+        make -C ../../bootloaders/bootloader clean-bootloader ;;
+
+    a8)  cache_board_list "${selection_a8}"
+        make reinstall-new-board mm_BOARD_TYPE="${selection_a8}" ${extra_params}
         make -C ../../bootloaders/bootloader clean-bootloader ;;
 
     *)
