@@ -124,6 +124,7 @@ PATCHFILES += 0587-arm64-dts-allwinner-add-Tanix-TX6-A.patch
 PATCHFILES += 0588-arm64-dts-allwinner-enable-gpu-opp-multiple-boards.patch
 PATCHFILES += 0590-arm64-dts-allwinner-add-orangepi-3-lts.patch
 PATCHFILES += 0591-drm-sun4i-call-drm-atomic-helper-shutdown-at-shutdown.patch
+PATCHFILES += 0592-arm64-dtsi-allwinner-rework-cpu-gpu-opp.patch
 endif
 #------------------------------------------------------------
 
