@@ -33,5 +33,6 @@ CMAKE_CONFIGURE_ARGS = \
 	  -DPANTHOR_SUPPORT=OFF) \
 	-DMSM_SUPPORT=OFF \
 	-DAPPLE_SUPPORT=OFF \
+	-DLibdrm_INCLUDE_DIRS="$(DESTDIR)$(includedir)/drm" \
 
 include ../../gar.mk
