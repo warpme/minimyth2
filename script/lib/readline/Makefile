@@ -1,6 +1,6 @@
 
 GARNAME       = readline
-GARVERSION    = 8.1
+GARVERSION    = 8.2
 CATEGORIES    = lib
 MASTER_SITES  = https://ftp.gnu.org/gnu/$(GARNAME)/
 MASTER_SITES += https://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)-patches/
@@ -8,6 +8,11 @@ DISTFILES     = $(DISTNAME).tar.gz
 PATCHFILES    = \
 	$(GARNAME)$(subst .,,$(GARVERSION))-001 \
 	$(GARNAME)$(subst .,,$(GARVERSION))-002 \
+	$(GARNAME)$(subst .,,$(GARVERSION))-003 \
+	$(GARNAME)$(subst .,,$(GARVERSION))-004 \
+	$(GARNAME)$(subst .,,$(GARVERSION))-005 \
+	$(GARNAME)$(subst .,,$(GARVERSION))-006 \
+	$(GARNAME)$(subst .,,$(GARVERSION))-007 \
 	$(DISTNAME)-add-ncurses-linking.patch
 
 DESCRIPTION = 
@@ -26,7 +31,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
 	--with-curses \
-	--without-purify
 
 include ../../gar.mk
 
