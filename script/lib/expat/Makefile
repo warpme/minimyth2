@@ -1,8 +1,8 @@
 
 GARNAME      = expat
-GARVERSION   = 2.4.1
+GARVERSION   = 2.5.0
 CATEGORIES   = lib
-MASTER_SITES = https://github.com/libexpat/libexpat/releases/download/R_2_4_1/
+MASTER_SITES = https://github.com/libexpat/libexpat/releases/download/R_2_5_0/
 DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      = MIT
 
