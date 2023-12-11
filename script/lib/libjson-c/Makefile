@@ -1,9 +1,10 @@
 
 GARNAME      = json-c-json-c
-GARVERSION   = 0.15-20200726
+GARVERSION   = 0.17
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/json-c/json-c/archive/
 DISTFILES    = json-c-$(GARVERSION).tar.gz
+PATCHFILES   = dont-check-use-doxygen.patch
 LICENSE      = LGPL2
 
 DESCRIPTION = 
