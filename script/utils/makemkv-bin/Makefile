@@ -29,6 +29,6 @@ ifeq ($(GARCH),i386)
 export ARCH=i686
 endif
 
-ifeq ($(GARCH),x86_64)
+ifeq ($(GARCH),x86-64)
 export ARCH=x86_64
 endif
