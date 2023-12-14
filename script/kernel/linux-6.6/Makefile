@@ -187,8 +187,6 @@ PATCHFILES += 0726-drm-rockchip-vop-move-least-capable-wins-to-end-to-fix-osd-in
 # device-tree patches
 PATCHFILES += 0739-arm64-dtsi-rockchip-rk3328-rk3399-add-soft-reset.patch
 PATCHFILES += 0740-arm64-dts-rockchip-var-fixes-from-libreelec.patch
-PATCHFILES += 0741-arm64-dts-rockchip-Include-cache-performance-registe.patch
-PATCHFILES += 0742-arm64-dts-rockchip-Include-cache-performance-registe.patch
 PATCHFILES += 0743-arm64-dts-rockchip-beelink-a1-enable-openvfd.patch
 PATCHFILES += 0745-arm64-dts-rockchip-beelink-a1-enable-androind-dram-timmings.patch
 PATCHFILES += 0746-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
