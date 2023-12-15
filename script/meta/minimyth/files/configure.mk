@@ -16,15 +16,16 @@ include ../../myth-$(mm_MYTH_VERSION)/mythtv/package-api.mk
 # is executed when all scripts defined in MM_INIT_START_PHASE_X-1
 # end successfuly
 MM_INIT_START_PHASE_1 := \
-    time    \
-    hotplug \
-    master  \
-    video   \
-    audio   \
-    mythtv  \
-    lcdproc \
-    font    \
-    avahi   \
+    time     \
+    hotplug  \
+    master   \
+    defaults \
+    video    \
+    audio    \
+    mythtv   \
+    lcdproc  \
+    font     \
+    avahi    \
 
 MM_INIT_START_PHASE_2 := 
 
