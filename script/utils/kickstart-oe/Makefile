@@ -95,6 +95,8 @@ DISTFILES    = \
 	board-h313.x96_q.wks        \
 	board-h313.x96_q_lpddr3.conf \
 	board-h313.x96_q_lpddr3.wks \
+	board-h313.x96_q_lpddr3_v1.3.conf \
+	board-h313.x96_q_lpddr3_v1.3.wks \
 	board-h618.orangepi_zero3.conf \
 	board-h618.orangepi_zero3.wks  \
 	board-h618.vontar_h618.conf \

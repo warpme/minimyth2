@@ -110,6 +110,7 @@ mm_SOFTWARE               ?= \
 # 'board-h618.orangepi_zero2w'
 # 'board-h313.x96_q'
 # 'board-h313.x96_q_lpddr3'
+# 'board-h313.x96_q_lpddr3_v1.3'
 # 'board-x86pc.bios'
 # 'board-x86pc.efi64'
 # 'board-x86pc.bios_efi64'

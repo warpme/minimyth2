@@ -216,6 +216,10 @@ ifneq (,$(findstring board-h313.x96_q_lpddr3,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h313.x96_q_lpddr3
 endif
 
+ifneq (,$(findstring board-h313.x96_q_lpddr3_v1.3,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-h313.x96_q_lpddr3_v1.3
+endif
+
 ifneq (,$(findstring board-x86pc.bios,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-x86pc.bios
 endif

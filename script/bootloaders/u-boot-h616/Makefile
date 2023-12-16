@@ -24,6 +24,7 @@ PATCHFILES  += 155-add-opi-zero3-defconfig.patch
 PATCHFILES  += 156-add-opi-zero2w-defconfig.patch
 PATCHFILES  += 157-add-tanix_tx6s_kingston_lpddr3_defconfig.patch
 PATCHFILES  += 158-add-pendoo-x12pro-defconfig.patch
+PATCHFILES  += 159-add-x96-q-lpddr3-v1.3-defconfig.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
@@ -94,12 +95,14 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_axp313_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_defconfig
+# mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_v1.3_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2w_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_kingston_lpddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = pendoo-x12_defconfig
+
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 

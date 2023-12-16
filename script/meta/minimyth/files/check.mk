@@ -404,6 +404,7 @@ mm-all:
 		   [ ! "$${board}" = "board-h618.orangepi_zero2w" ] && \
 		   [ ! "$${board}" = "board-h313.x96_q"           ] && \
 		   [ ! "$${board}" = "board-h313.x96_q_lpddr3"    ] && \
+		   [ ! "$${board}" = "board-h313.x96_q_lpddr3_v1.3" ] && \
 		   [ ! "$${board}" = "board-rk3328.beelink_a1"    ] && \
 		   [ ! "$${board}" = "board-rk3399.rockpi4-b"     ] && \
 		   [ ! "$${board}" = "board-rk3399.rockpi4-se"    ] && \
