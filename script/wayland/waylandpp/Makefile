@@ -4,7 +4,7 @@ GARVERSION   = 1.0.0
 CATEGORIES   = wayland
 MASTER_SITES = https://github.com/NilsBrause/waylandpp/archive/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = fix-building-under-gcc13.patch
+PATCHFILES   = fix-building-under-gcc13.patch stop-looking-for-doxygen.patch
 LICENSE      = MIT
 
 DEPENDS = wayland/wayland-core lib/pugixml
