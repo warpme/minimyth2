@@ -23,3 +23,9 @@ MESON_CONFIGURE_ARGS = \
 	-D tests="false" \
 
 include ../../gar.mk
+
+post-install:
+	@sed \
+	 -e 's%bindir=.*%bindir=$(DESTDIR)$(bindir)%g' \
+	 -i $(DESTDIR)$(libdir)/pkgconfig/glib-2.0.pc
+	@$(MAKECOOKIE)
