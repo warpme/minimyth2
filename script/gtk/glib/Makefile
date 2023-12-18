@@ -28,4 +28,7 @@ post-install:
 	@sed \
 	 -e 's%bindir=.*%bindir=$(DESTDIR)$(bindir)%g' \
 	 -i $(DESTDIR)$(libdir)/pkgconfig/glib-2.0.pc
+	@sed \
+	 -e 's%bindir=.*%bindir=$(DESTDIR)$(bindir)%g' \
+	 -i $(DESTDIR)$(libdir)/pkgconfig/gio-2.0.pc
 	@$(MAKECOOKIE)
