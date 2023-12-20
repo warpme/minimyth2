@@ -149,6 +149,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DUDFREAD_URL=../../../download/libudfread-1.1.2.tar.gz \
 	$(if $(filter i386 x86_64, $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=x11 -DAPP_RENDER_SYSTEM=gl) \
 	$(if $(filter arm arm64,   $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=gbm -DAPP_RENDER_SYSTEM=gles) \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 
 BUILD_ARGS   = \
 	DESTDIR="" \
