@@ -350,6 +350,7 @@ DIRPATHS_CMAKE = \
 	-DCMAKE_OBJDUMP="$(build_DESTDIR)$(build_bindir)/$(OBJDUMP)" \
 	-DCMAKE_RANLIB="$(build_DESTDIR)$(build_bindir)/$(RANLIB)" \
 	-DCMAKE_STRIP="$(build_DESTDIR)$(build_bindir)/$(STRIP)" \
+	-DCMAKE_INSTALL_LIBDIR="$(libdir)" \
 
 configure-%/cmake:
 	@echo " ==> Running configure in $*"
