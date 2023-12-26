@@ -199,8 +199,8 @@ PATCHFILES += 0722-v4l2-wip-iep-driver.patch
 PATCHFILES += 0723-devfreq-rockchip-add-devfreq-driver-for-rk3328-dmc.patch
 PATCHFILES += 0724-media-rkvdec-add-soft-reset-on-errors.patch
 PATCHFILES += 0725-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
-PATCHFILES += 0726-drm-rockchip-vop2-rk3568-reorder-wins-fix-osd-in-drm-planes.patch
-PATCHFILES += 0727-drm-rockchip-vop2-rk3566-reorder-wins-fix-gui-in-drm-planes.patch
+PATCHFILES += 0726-drm-rockchip-vop2-remove-unsupported-format-of-cluster-windows.patch
+PATCHFILES += 0727-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
 # device-tree patches
 PATCHFILES += 0739-arm64-dtsi-rockchip-rk3328-rk3399-add-soft-reset.patch
 PATCHFILES += 0740-arm64-dts-rockchip-var-fixes-from-libreelec.patch
