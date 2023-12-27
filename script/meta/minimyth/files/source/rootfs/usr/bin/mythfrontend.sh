@@ -50,14 +50,14 @@
 
 . /etc/rc.d/functions
 
-stop_kodi() {
-    list_to_stop="kodi-gbm kodi-wayland kodi-x11"
+stop_current_player() {
+    list_to_stop="mythfrontend kodi-gbm kodi-wayland kodi-x11 "
     for prog in ${list_to_stop} ; do
         if [ -n "`/bin/pidof ${prog}`" ] ; then
             /usr/bin/killall ${prog} 2> /dev/null
             while [ -n "`/bin/pidof ${prog}`" ] ; do
                 /usr/bin/killall ${prog} 2> /dev/null
-                /bin/sleep 1
+                /bin/sleep 3
                 echo "Waiting ${prog} to exit ..."
             done
             echo "${prog} successfuly stopped ..."
@@ -65,7 +65,6 @@ stop_kodi() {
             echo "${prog} is not running ..."
         fi
     done
-    sleep 1
 }
 
 set_myth_user_env() {
@@ -92,7 +91,7 @@ if [ x${MM_MYTHTV_DRAW_ON} = "xterm" ] ; then
     echo " "
 fi
 
-stop_kodi
+stop_current_player
 
 date
 
