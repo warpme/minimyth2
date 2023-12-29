@@ -12,6 +12,7 @@ DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip
 PATCHFILES  += 06-arch-arm-dts-add-rk3566-quartz64.patch
 PATCHFILES  += 08-fix-building-gcc13.patch
 PATCHFILES  += 09-add-rk3566-orangepi-3b_defconfig.patch
+PATCHFILES  += 10-add-radxa-zero3-rk3566_defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
@@ -33,6 +34,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = rock-3c-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = rk3566-quartz64_defconfig
 # mm_U-BOOT_BOARD_TYPE = rk3566-orangepi-3b_defconfig
+# mm_U-BOOT_BOARD_TYPE = radxa-zero3-rk3566_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
