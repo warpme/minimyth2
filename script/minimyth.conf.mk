@@ -88,6 +88,7 @@ mm_SOFTWARE               ?= \
 # 'board-rk3568.rock3-b'
 # 'board-rk3566.rock3-c'
 # 'board-rk3566.orangepi_3b'
+# 'board-rk3566.zero3w'
 # 'board-rk3588.rock5-b
 # 'board-rk3588.orangepi_5_plus'
 # 'board-rk3588s.rock5-a

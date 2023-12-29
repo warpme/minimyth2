@@ -412,6 +412,7 @@ mm-all:
 		   [ ! "$${board}" = "board-rk3399.orangepi_4_lts" ] && \
 		   [ ! "$${board}" = "board-rk3528.vontar_r3"     ] && \
 		   [ ! "$${board}" = "board-rk3566.x96_x6"        ] && \
+		   [ ! "$${board}" = "board-rk3566.zero3w"        ] && \
 		   [ ! "$${board}" = "board-rk3566.quartz64-b"    ] && \
 		   [ ! "$${board}" = "board-rk3566.urve-pi"       ] && \
 		   [ ! "$${board}" = "board-rk3568.rock3-a"       ] && \
