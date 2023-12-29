@@ -1,6 +1,6 @@
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.7-rc7/arch/arm64/boot/dts/rockchip/Makefile linux-6.7-rc7/arch/arm64/boot/dts/rockchip/Makefile
---- linux-6.7-rc7/arch/arm64/boot/dts/rockchip/Makefile	2023-12-29 14:05:58.346726699 +0100
-+++ linux-6.7-rc7/arch/arm64/boot/dts/rockchip/Makefile	2023-12-29 14:04:16.346726365 +0100
+--- linux-6.7-rc7/arch/arm64/boot/dts/rockchip/Makefile	2023-12-29 17:23:09.006766329 +0100
++++ linux-6.7-rc7/arch/arm64/boot/dts/rockchip/Makefile	2023-12-29 17:21:14.906765946 +0100
 @@ -95,6 +95,8 @@
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-box-demo.dtb
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-orangepi-3b.dtb
@@ -12,12 +12,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.7-rc7/arch/arm
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3568-fastrhino-r66s.dtb
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero3.dtsi linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero3.dtsi
 --- linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero3.dtsi	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero3.dtsi	2023-12-29 13:43:16.030055501 +0100
-@@ -0,0 +1,723 @@
++++ linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero3.dtsi	2023-12-29 16:14:59.677720159 +0100
+@@ -0,0 +1,605 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
-+ * Copyright (c) 2022 Rockchip Electronics Co., Ltd.
-+ * Copyright (c) 2023 Radxa Limited.
++ * Copyright (c) 2023 Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 + *
 + */
 +
@@ -42,6 +41,13 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.7-rc7/arch/arm
 +
 +	chosen: chosen {
 +		stdout-path = "serial2:1500000n8";
++	};
++
++	gmac1_clkin: external-gmac1-clock {
++		compatible = "fixed-clock";
++		clock-frequency = <125000000>;
++		clock-output-names = "gmac1_clkin";
++		#clock-cells = <0>;
 +	};
 +
 +	hdmi-con {
@@ -414,28 +420,24 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.7-rc7/arch/arm
 +};
 +
 +&gmac1 {
++	assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1_RGMII_SPEED>, <&cru SCLK_GMAC1>;
++	assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>, <&cru SCLK_GMAC1>, <&gmac1_clkin>;
++	clock_in_out = "input";
 +	phy-mode = "rgmii";
-+	clock_in_out = "output";
-+
-+	snps,reset-gpio = <&gpio3 RK_PC0 GPIO_ACTIVE_LOW>;
-+	snps,reset-active-low;
-+	/* Reset time is 20ms, 100ms for rtl8211f */
-+	snps,reset-delays-us = <0 20000 100000>;
-+
-+	assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1>;
-+	assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>;
-+	assigned-clock-rates = <0>, <125000000>;
-+
++	phy-supply = <&vcc_3v3>;
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&gmac1m1_miim
 +		     &gmac1m1_tx_bus2
 +		     &gmac1m1_rx_bus2
 +		     &gmac1m1_rgmii_clk
++		     &gmac1m1_clkinout
 +		     &gmac1m1_rgmii_bus>;
-+
++	snps,reset-gpio = <&gpio3 RK_PC0 GPIO_ACTIVE_LOW>;
++	snps,reset-active-low;
++	/* Reset time is 20ms, 100ms for rtl8211f, also works well here */
++	snps,reset-delays-us = <0 20000 100000>;
 +	tx_delay = <0x47>;
 +	rx_delay = <0x27>;
-+
 +	phy-handle = <&rgmii_phy1>;
 +	status = "disabled";
 +};
@@ -530,121 +532,6 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.7-rc7/arch/arm
 +		pinctrl-names = "default";
 +		pinctrl-0 = <&usbc0_int>;
 +	};
-+ };
-+
-+&gpio0 {
-+	gpio-line-names =
-+		/* GPIO0_A0-A3 */
-+		"", "", "", "",
-+		/* GPIO0_A4-A7 */
-+		"", "", "", "",
-+
-+		/* GPIO0_B0-B3 */
-+		"", "", "", "",
-+		/* GPIO0_B4-B7 */
-+		"", "", "", "",
-+
-+		/* GPIO0_C0-C3 */
-+		"", "", "", "",
-+		/* GPIO0_C4-C7 */
-+		"", "", "", "",
-+
-+		/* GPIO0_D0-D3 */
-+		"PIN_10", "PIN_8", "", "",
-+		/* GPIO0_D4-D7 */
-+		"", "", "", "";
-+};
-+
-+&gpio1 {
-+	gpio-line-names =
-+		/* GPIO1_A0-A3 */
-+		"PIN_3", "PIN_5", "", "",
-+		/* GPIO1_A4-A7 */
-+		"PIN_37", "", "", "",
-+
-+		/* GPIO1_B0-B3 */
-+		"", "", "", "",
-+		/* GPIO1_B4-B7 */
-+		"", "", "", "",
-+
-+		/* GPIO1_C0-C3 */
-+		"", "", "", "",
-+		/* GPIO1_C4-C7 */
-+		"", "", "", "",
-+
-+		/* GPIO1_D0-D3 */
-+		"", "", "", "",
-+		/* GPIO1_D4-D7 */
-+		"", "", "", "";
-+};
-+
-+&gpio2 {
-+	gpio-line-names =
-+		/* GPIO2_A0-A3 */
-+		"", "", "", "",
-+		/* GPIO2_A4-A7 */
-+		"", "", "", "",
-+
-+		/* GPIO2_B0-B3 */
-+		"", "", "", "",
-+		/* GPIO2_B4-B7 */
-+		"", "", "", "",
-+
-+		/* GPIO2_C0-C3 */
-+		"", "", "", "",
-+		/* GPIO2_C4-C7 */
-+		"", "", "", "",
-+
-+		/* GPIO2_D0-D3 */
-+		"", "", "", "",
-+		/* GPIO2_D4-D7 */
-+		"", "", "", "";
-+};
-+
-+&gpio3 {
-+	gpio-line-names =
-+		/* GPIO3_A0-A3 */
-+		"", "PIN_11", "PIN_13", "PIN_12",
-+		/* GPIO3_A4-A7 */
-+		"PIN_35", "PIN_40", "PIN_38", "PIN_36",
-+
-+		/* GPIO3_B0-B3 */
-+		"PIN_15", "PIN_16", "PIN_18", "PIN_29",
-+		/* GPIO3_B4-B7 */
-+		"PIN_31", "", "", "",
-+
-+		/* GPIO3_C0-C3 */
-+		"", "PIN_22", "PIN_32", "PIN_33",
-+		/* GPIO3_C4-C7 */
-+		"PIN_7", "", "", "",
-+
-+		/* GPIO3_D0-D3 */
-+		"", "", "", "",
-+		/* GPIO3_D4-D7 */
-+		"", "", "", "";
-+};
-+
-+&gpio4 {
-+	gpio-line-names =
-+		/* GPIO4_A0-A3 */
-+		"", "", "", "",
-+		/* GPIO4_A4-A7 */
-+		"", "", "", "",
-+
-+		/* GPIO4_B0-B3 */
-+		"", "", "PIN_27", "PIN_28",
-+		/* GPIO4_B4-B7 */
-+		"", "", "", "",
-+
-+		/* GPIO4_C0-C3 */
-+		"", "", "PIN_23", "PIN_19",
-+		/* GPIO4_C4-C7 */
-+		"", "PIN_21", "PIN_24", "",
-+
-+		/* GPIO4_D0-D3 */
-+		"", "PIN_26", "", "",
-+		/* GPIO4_D4-D7 */
-+		"", "", "", "";
 +};
 +
 +&i2s1_8ch {
@@ -700,20 +587,15 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.7-rc7/arch/arm
 +};
 +
 +&sdmmc0 {
-+	max-frequency = <150000000>;
-+	supports-sd;
-+	no-sdio;
-+	no-mmc;
 +	bus-width = <4>;
-+	cap-mmc-highspeed;
 +	cap-sd-highspeed;
++	cd-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_LOW>;
 +	disable-wp;
-+	num-slots = <1>;
-+	sd-uhs-sdr104;
-+	vmmc-supply = <&vcc3v3_sys>;
-+	vqmmc-supply = <&vccio_sd>;
 +	pinctrl-names = "default";
 +	pinctrl-0 = <&sdmmc0_bus4 &sdmmc0_clk &sdmmc0_cmd &sdmmc0_det>;
++	sd-uhs-sdr50;
++	vmmc-supply = <&vcc3v3_sys>;
++	vqmmc-supply = <&vccio_sd>;
 +	status = "okay";
 +};
 +
@@ -739,7 +621,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.7-rc7/arch/arm
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero-3e.dts linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero-3e.dts
 --- linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero-3e.dts	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero-3e.dts	2023-12-29 14:04:16.346726365 +0100
++++ linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero-3e.dts	2023-12-29 17:21:14.906765946 +0100
 @@ -0,0 +1,23 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
@@ -766,7 +648,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.7-rc7/arch/arm
 +};
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero-3w.dts linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero-3w.dts
 --- linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero-3w.dts	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero-3w.dts	2023-12-29 14:04:16.346726365 +0100
++++ linux-6.7-rc7/arch/arm64/boot/dts/rockchip/rk3566-radxa-zero-3w.dts	2023-12-29 17:21:14.906765946 +0100
 @@ -0,0 +1,142 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
