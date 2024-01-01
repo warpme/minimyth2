@@ -220,6 +220,7 @@ endif
 ifeq (1,1)
 #-- Rockchip 356x patches -----------------------------------------
 PATCHFILES += 0800-Enable-rk356x-PCIe-controller.patch
+PATCHFILES += 0801-new-wireless-add-aic8800-support.patch
 # device-tree patches
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
@@ -232,6 +233,7 @@ PATCHFILES += 0845-arm64-dts-rockchip-add-dts-for-rock3c.patch
 PATCHFILES += 0846-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
 PATCHFILES += 0847-arm64-dts-rockchip-add-dts-for-urve-pi.patch
 PATCHFILES += 0848-arm64-dts-rockchip-add-dts-for-opi-3b.patch
+PATCHFILES += 0849-arm64-dts-rockchip-add-dts-for-zero3.patch
 endif
 #------------------------------------------------------------
 
