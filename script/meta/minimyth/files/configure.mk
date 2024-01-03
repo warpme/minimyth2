@@ -66,6 +66,7 @@ MM_INIT_KILL := \
     bluetooth   \
     standby     \
     frontend    \
+    mythtv      \
     avahi       \
     lcdproc     \
     dbus        \
