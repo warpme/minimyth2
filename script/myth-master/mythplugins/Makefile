@@ -24,6 +24,8 @@ DEPENDS = \
 	lib/libcdio \
 	lib/libcdio-paranoia \
 	lib/libogg \
+	lib/libmusicbrainz5 \
+	lib/libcoverart \
 	lib/libvorbis \
 	lib/SDL \
 	lib/taglib \
@@ -66,6 +68,7 @@ CONFIGURE_ARGS = \
 	--enable-mythgame \
 	--enable-mythmusic \
 		--enable-cdio \
+		--enable-musicbrainz \
 	--enable-mythnetvision \
 	--enable-mythnews \
 	--enable-mythweather \

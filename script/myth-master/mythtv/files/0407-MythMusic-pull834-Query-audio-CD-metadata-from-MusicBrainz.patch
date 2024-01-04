@@ -1,0 +1,755 @@
+From e040555ac853d52fc66d47e3013b18c54ed184ec Mon Sep 17 00:00:00 2001
+From: Jan Hambrecht <jaham@gmx.net>
+Date: Wed, 3 Jan 2024 17:42:37 +0100
+Subject: [PATCH] Query CD metadata from MusicBrainz
+
+Use libdiscid, libmusicbrainz5, libcoverart to get
+metadata and coverart for audio CDs. The albumart
+front image is saved to the local temp directory.
+---
+ mythplugins/configure                         |  28 +-
+ mythplugins/mythmusic/mythmusic/cddecoder.cpp |  29 +-
+ mythplugins/mythmusic/mythmusic/cddecoder.h   |   9 +
+ .../mythmusic/mythmusic/musicbrainz.cpp       | 354 ++++++++++++++++++
+ mythplugins/mythmusic/mythmusic/musicbrainz.h |  61 +++
+ mythplugins/mythmusic/mythmusic/mythmusic.pro |   5 +
+ 6 files changed, 483 insertions(+), 3 deletions(-)
+ create mode 100644 mythplugins/mythmusic/mythmusic/musicbrainz.cpp
+ create mode 100644 mythplugins/mythmusic/mythmusic/musicbrainz.h
+
+diff --git a/mythplugins/configure b/mythplugins/configure
+index c43400daab2..bd3b949da5f 100755
+--- a/mythplugins/configure
++++ b/mythplugins/configure
+@@ -302,6 +302,7 @@ exif
+ dcraw
+ cdio
+ cross_compile
++musicbrainz
+ "
+ 
+ DEPEND_LIST="
+@@ -356,6 +357,7 @@ MythGame related options:
+ MythMusic related options:
+   --enable-mythmusic       build the mythmusic plugin [$music]
+   --enable-cdio            enable cd playback [$cdio]
++  --enable-musicbrainz     enable fetching cd metadata from musicbrainz [$musicbrainz]
+ 
+ MythNetvision related options:
+   --enable-mythnetvision   build the mythnetvision plugin [$netvision]
+@@ -715,7 +717,21 @@ if enabled music ; then
+             enable cdio; # nop
+         else
+             disable cdio
+-	fi
++        fi
++    fi
++    if enabled musicbrainz ; then
++        if ! check_lib discid/discid.h discid_new -ldiscid ; then
++            disable musicbrainz
++            echo "MusicBrainz support requires libdiscid."
++        elif ! check_lib musicbrainz5/mb5_c.h mb5_query_new -lmusicbrainz5 -lm -lstdc++; then
++            disable musicbrainz
++            echo "MusicBrainz support requires libmusicbrainz5."
++        elif ! check_lib coverart/caa_c.h caa_coverart_new -lcoverart -lm -lstdc++; then
++            disable musicbrainz
++            echo "MusicBrainz support requires libcoverart."
++        else
++            enable musicbrainz; # nop
++        fi
+     fi
+ 
+     if ! check_lib lame/lame.h lame_init -lmp3lame ; then
+@@ -852,6 +868,16 @@ if enabled music ; then
+       echo "#define HAVE_CDIO 1" >> ./mythmusic/mythmusic/config.h
+       echo "CONFIG += cdio" >> ./mythmusic/mythmusic/config.pro
+       echo "        libcdio        support will be included in MythMusic"
++      if enabled musicbrainz ; then
++        echo "#define HAVE_MUSICBRAINZ 1" >> ./mythmusic/mythmusic/config.h
++        echo "CONFIG += link_pkgconfig" >> ./mythmusic/mythmusic/config.pro
++        echo "CONFIG += musicbrainz" >> ./mythmusic/mythmusic/config.pro
++        echo "PKGCONFIG += libdiscid libmusicbrainz5 libcoverart" >> ./mythmusic/mythmusic/config.pro
++        echo "        musicbrainz    support will be included in MythMusic"
++      else
++        echo "#undef  HAVE_MUSICBRAINZ" >> ./mythmusic/mythmusic/config.h
++        echo "        musicbrainz    support will not be included in MythMusic"
++      fi
+     else
+       echo "#undef  HAVE_CDIO" >> ./mythmusic/mythmusic/config.h
+       echo "        libcdio        support will not be included in MythMusic"
+diff --git a/mythplugins/mythmusic/mythmusic/cddecoder.cpp b/mythplugins/mythmusic/mythmusic/cddecoder.cpp
+index b54b53daa74..9dac106bd0f 100644
+--- a/mythplugins/mythmusic/mythmusic/cddecoder.cpp
++++ b/mythplugins/mythmusic/mythmusic/cddecoder.cpp
+@@ -27,7 +27,6 @@ extern "C" {
+ 
+ // MythMusic
+ #include "constants.h"
+-
+ static constexpr const char* CDEXT { ".cda" };
+ static constexpr long kSamplesPerSec { 44100 };
+ 
+@@ -661,7 +660,22 @@ MusicMetadata *CdDecoder::getMetadata()
+     if (title.isEmpty() || artist.isEmpty() || album.isEmpty())
+ #endif // CDTEXT
+     {
+-        //TODO: add MusicBrainz lookup
++#ifdef HAVE_MUSICBRAINZ
++        if (isDiscChanged && !getMusicBrainz().hasMetadata(m_setTrackNum))
++        {
++            // lazy load whole CD metadata
++            getMusicBrainz().queryForDevice(m_deviceName);
++        }
++        if (getMusicBrainz().hasMetadata(m_setTrackNum))
++        {
++            auto *metadata = getMusicBrainz().getMetadata(m_setTrackNum);
++            if (metadata)
++            {
++                metadata->setFilename(getURL());
++                return metadata;
++            }
++        }
++#endif // HAVE_MUSICBRAINZ
+     }
+ 
+     if (compilation_artist.toLower().left(7) == "various")
+@@ -684,6 +698,17 @@ MusicMetadata *CdDecoder::getMetadata()
+     return m;
+ }
+ 
++#ifdef HAVE_MUSICBRAINZ
++
++MusicBrainz & CdDecoder::getMusicBrainz()
++{
++    static MusicBrainz s_musicBrainz;
++    return s_musicBrainz;
++}
++
++#endif // HAVE_MUSICBRAINZ
++
++
+ // pure virtual
+ bool CdDecoderFactory::supports(const QString &source) const
+ {
+diff --git a/mythplugins/mythmusic/mythmusic/cddecoder.h b/mythplugins/mythmusic/mythmusic/cddecoder.h
+index b110ff319e9..9ece7bbb997 100644
+--- a/mythplugins/mythmusic/mythmusic/cddecoder.h
++++ b/mythplugins/mythmusic/mythmusic/cddecoder.h
+@@ -15,6 +15,10 @@
+ # endif
+ #endif
+ 
++#ifdef HAVE_MUSICBRAINZ
++    #include "musicbrainz.h"
++#endif // HAVE_MUSICBRAINZ
++
+ class MusicMetadata;
+ 
+ class CdDecoder : public Decoder
+@@ -84,6 +88,11 @@ class CdDecoder : public Decoder
+     lsn_t              m_end         {CDIO_INVALID_LSN};
+     lsn_t              m_curPos      {CDIO_INVALID_LSN};
+ #endif
++
++#ifdef HAVE_MUSICBRAINZ
++    static MusicBrainz & getMusicBrainz();
++#endif // HAVE_MUSICBRAINZ
++
+ };
+ 
+ #endif
+diff --git a/mythplugins/mythmusic/mythmusic/musicbrainz.cpp b/mythplugins/mythmusic/mythmusic/musicbrainz.cpp
+new file mode 100644
+index 00000000000..3389ea1245b
+--- /dev/null
++++ b/mythplugins/mythmusic/mythmusic/musicbrainz.cpp
+@@ -0,0 +1,354 @@
++#include "musicbrainz.h"
++#include "config.h"
++
++// Qt
++#include <QObject>
++#include <QFile>
++
++// MythTV
++#include "libmythbase/mythmiscutil.h"
++
++#ifdef HAVE_MUSICBRAINZ
++
++#include <string>
++#include <fstream>
++
++// libdiscid
++#include <discid/discid.h>
++
++// libmusicbrainz5
++#include "musicbrainz5/Artist.h"
++#include "musicbrainz5/ArtistCredit.h"
++#include "musicbrainz5/NameCredit.h"
++#include "musicbrainz5/Query.h"
++#include "musicbrainz5/Disc.h"
++#include "musicbrainz5/Medium.h"
++#include "musicbrainz5/Release.h"
++#include "musicbrainz5/Track.h"
++#include "musicbrainz5/TrackList.h"
++#include "musicbrainz5/Recording.h"
++#include "musicbrainz5/HTTPFetch.h"
++
++// libcoverart
++#include "coverart/CoverArt.h"
++#include "coverart/HTTPFetch.h"
++
++constexpr auto user_agent = "mythtv";
++
++std::string MusicBrainz::queryDiscId(const std::string &device)
++{
++    LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Query disc id for device %1").arg(QString::fromStdString(device)));
++    DiscId *disc = discid_new();
++    std::string disc_id;
++    if ( discid_read_sparse(disc, device.c_str(), 0) == 0 )
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: %1").arg(discid_get_error_msg(disc)));
++    }
++    else
++    {
++        disc_id = discid_get_id(disc);
++        LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Got disc id %1").arg(QString::fromStdString(disc_id)));
++    }
++    discid_free(disc);
++
++    return disc_id;
++}
++
++/// Compile artist names from artist credits
++static std::vector<std::string> queryArtists(const MusicBrainz5::CArtistCredit *artist_credit)
++{
++    std::vector<std::string> artist_names;
++    if (!artist_credit)
++    {
++        return artist_names;
++    }
++
++    for (int a = 0; a < artist_credit->NameCreditList()->NumItems(); ++a)
++    {
++        auto *artist = artist_credit->NameCreditList()->Item(a)->Artist();
++        artist_names.emplace_back(artist->Name());
++    }
++    return artist_names;
++}
++
++/// Creates single artist string from artist list
++static QString artistsToString(const std::vector<std::string> &artists)
++{
++    QString res;
++    for (const auto &artist : artists)
++    {
++        res += QString(res.isEmpty() ? "%1" : "; %1").arg(artist.c_str());
++    }
++    return res;
++}
++
++/// Log MusicBrainz query errors
++static void logError(MusicBrainz5::CQuery &query)
++{
++    LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: LastResult: %1").arg(query.LastResult()));
++    LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: LastHTTPCode: %1").arg(query.LastHTTPCode()));
++    LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: LastErrorMessage: '%1'").arg(QString::fromStdString(query.LastErrorMessage())));
++}
++
++std::string MusicBrainz::queryRelease(const std::string &discId)
++{
++    // clear old metadata
++    m_tracks.clear();
++
++    LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Query metadata for disc id '%1'").arg(QString::fromStdString(discId)));
++    MusicBrainz5::CQuery query(user_agent);
++    try
++    {
++        auto discMetadata = query.Query("discid", discId);
++        if (discMetadata.Disc() && discMetadata.Disc()->ReleaseList())
++        {
++            auto *releases = discMetadata.Disc()->ReleaseList();
++            LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Found %1 release(s)").arg(releases->NumItems()));
++            for (int count = 0; count < releases->NumItems(); ++count)
++            {
++                auto *basicRelease = releases->Item(count);
++                // The releases returned from LookupDiscID don't contain full information
++                MusicBrainz5::CQuery::tParamMap params;
++                params["inc"]="artists recordings artist-credits discids";
++                auto releaseMetadata = query.Query("release", basicRelease->ID(), "", params);
++                if (releaseMetadata.Release())
++                {
++                    auto *fullRelease = releaseMetadata.Release();
++                    if (!fullRelease)
++                    {
++                        continue;
++                    }
++                    auto media = fullRelease->MediaMatchingDiscID(discId);
++                    LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Found %1 matching media").arg(media.NumItems()));
++                    for (int m = 0; m < media.NumItems(); ++m)
++                    {
++                        auto *medium = media.Item(m);
++                        if (!medium || !medium->ContainsDiscID(discId))
++                        {
++                            continue;
++                        }
++                        std::string albumTitle;
++                        if (!medium->Title().empty())
++                        {
++                            albumTitle = medium->Title();
++                        }
++                        else if(!fullRelease->Title().empty())
++                        {
++                            albumTitle = fullRelease->Title();
++                        }
++                        const auto albumArtists = queryArtists(fullRelease->ArtistCredit());
++                        LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Release: %1").arg(QString::fromStdString(fullRelease->ID())));
++                        LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Title: %1").arg(QString::fromStdString(albumTitle)));
++                        LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Artist: %1").arg(artistsToString(albumArtists)));
++                        LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Date: %1").arg(QString::fromStdString(fullRelease->Date())));
++                        auto *tracks = medium->TrackList();
++                        if (tracks)
++                        {
++                            LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Found %1 track(s)").arg(tracks->NumItems()));
++                            for (int t = 0; t < tracks->NumItems(); ++t)
++                            {
++                                auto *track = tracks->Item(t);
++                                if (track && track->Recording())
++                                {
++                                    auto *recording = track->Recording();
++                                    const auto length = std::div(recording->Length() / 1000, 60);
++                                    const int minutes = length.quot;
++                                    const int seconds = length.rem;
++                                    const auto artists = queryArtists(recording->ArtistCredit());
++                                    LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: %1: %2:%3 - %4 (%5)")
++                                        .arg(track->Position())
++                                        .arg(minutes, 2).arg(seconds, 2, 10, QChar('0'))
++                                        .arg(QString::fromStdString(recording->Title()))
++                                        .arg(artistsToString(artists)));
++
++                                    // fill metadata
++                                    MusicMetadata &metadata = m_tracks[track->Position()];
++                                    metadata.setAlbum(QString::fromStdString(albumTitle));
++                                    metadata.setTitle(QString::fromStdString(recording->Title()));
++                                    metadata.setTrack(track->Position());
++                                    metadata.setLength(std::chrono::milliseconds(recording->Length()));
++                                    if (albumArtists.size() == 1)
++                                    {
++                                        metadata.setArtist(QString::fromStdString(albumArtists[0]));
++                                    }
++                                    else if(albumArtists.size() > 1)
++                                    {
++                                        metadata.setArtist(QObject::tr("Various Artists"));
++                                    }
++                                    metadata.setYear(QDate::fromString(QString::fromStdString(fullRelease->Date()), Qt::ISODate).year());
++                                }
++                            }
++                        }
++                    }
++                    return fullRelease->ID();
++                }
++            }
++        }
++    }
++    catch (MusicBrainz5::CConnectionError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: Connection Exception: '%1'").arg(error.what()));
++        logError(query);
++    }
++    catch (MusicBrainz5::CTimeoutError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: Timeout Exception: '%1'").arg(error.what()));
++        logError(query);
++    }
++    catch (MusicBrainz5::CAuthenticationError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: Authentication Exception: '%1'").arg(error.what()));
++        logError(query);
++    }
++    catch (MusicBrainz5::CFetchError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: Fetch Exception: '%1'").arg(error.what()));
++        logError(query);
++    }
++    catch (MusicBrainz5::CRequestError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: Request Exception: '%1'").arg(error.what()));
++        logError(query);
++    }
++    catch (MusicBrainz5::CResourceNotFoundError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: ResourceNotFound Exception: '%1'").arg(error.what()));
++        logError(query);
++    }
++
++    return {};
++}
++
++static void logError(CoverArtArchive::CCoverArt &coverArt)
++{
++    LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: LastResult: %1").arg(coverArt.LastResult()));
++    LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: LastHTTPCode: %1").arg(coverArt.LastHTTPCode()));
++    LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: LastErrorMessage: '%1'").arg(QString::fromStdString(coverArt.LastErrorMessage())));
++}
++
++QString MusicBrainz::queryCoverart(const std::string &releaseId)
++{
++    const QString fileName = QString("musicbrainz-%1-front.jpg").arg(releaseId.c_str());
++    const QString filePath = QDir::temp().absoluteFilePath(fileName);
++    LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Check if coverart file exists for release '%1'").arg(QString::fromStdString(releaseId)));
++    if (QDir::temp().exists(fileName))
++    {
++        LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Cover art file '%1' exist already").arg(filePath));
++        return filePath;
++    }
++
++    LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Query cover art for release '%1'").arg(QString::fromStdString(releaseId)));
++    CoverArtArchive::CCoverArt coverArt(user_agent);
++    try
++    {
++        std::vector<unsigned char> imageData = coverArt.FetchFront(releaseId);
++        if (imageData.size())
++        {
++            LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Saving front coverart to '%1'").arg(filePath));
++
++            QFile coverArtFile(filePath);
++            if (!coverArtFile.open(QIODevice::WriteOnly))
++            {
++                LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: Unable to open temporary file '%1'").arg(filePath));
++                return {};
++            }
++
++            const auto coverArtBytes = static_cast<qint64>(imageData.size());
++            const auto writtenBytes = coverArtFile.write(reinterpret_cast<const char*>(imageData.data()), coverArtBytes);
++            coverArtFile.close();
++            if (writtenBytes != coverArtBytes)
++            {
++                LOG(VB_MEDIA, LOG_ERR, QString("ERROR musicbrainz: Could not write coverart data to file '%1'").arg(filePath));
++                return {};
++            }
++
++            return filePath;
++        }
++    }
++    catch (CoverArtArchive::CConnectionError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: Connection Exception: '%1'").arg(error.what()));
++        logError(coverArt);
++    }
++    catch (CoverArtArchive::CTimeoutError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: Timeout Exception: '%1'").arg(error.what()));
++        logError(coverArt);
++    }
++    catch (CoverArtArchive::CAuthenticationError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: Authentication Exception: '%1'").arg(error.what()));
++        logError(coverArt);
++    }
++    catch (CoverArtArchive::CFetchError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: Fetch Exception: '%1'").arg(error.what()));
++        logError(coverArt);
++    }
++    catch (CoverArtArchive::CRequestError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: Request Exception: '%1'").arg(error.what()));
++        logError(coverArt);
++    }
++    catch (CoverArtArchive::CResourceNotFoundError& error)
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: ResourceNotFound Exception: '%1'").arg(error.what()));
++        logError(coverArt);
++    }
++
++    return {};
++}
++
++#endif // HAVE_MUSICBRAINZ
++
++bool MusicBrainz::queryForDevice(const QString &deviceName)
++{
++#ifdef HAVE_MUSICBRAINZ
++    const auto discId = queryDiscId(deviceName.toStdString());
++    if (discId.empty())
++    {
++        return false;
++    }
++    if (discId == m_discId)
++    {
++        // already queried
++        LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Metadata for disc %1 already present").arg(QString::fromStdString(m_discId)));
++        return true;
++    }
++    const auto releaseId = queryRelease(discId);
++    if (releaseId.empty())
++    {
++        return false;
++    }
++    const auto covertArtFileName = queryCoverart(releaseId);
++    if (!covertArtFileName.isEmpty())
++    {
++        m_albumArt.m_filename = covertArtFileName;
++        m_albumArt.m_imageType = IT_FRONTCOVER;
++    }
++    m_discId = discId;
++
++    return true;
++#else
++    return false;
++#endif
++}
++
++bool MusicBrainz::hasMetadata(int track) const
++{
++    return m_tracks.find(track) != m_tracks.end();
++}
++
++MusicMetadata *MusicBrainz::getMetadata(int track) const
++{
++    auto it = m_tracks.find(track);
++    if (it == m_tracks.end())
++    {
++        LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: No metadata for track %1").arg(track));
++        return nullptr;
++    }
++    auto *metadata = new MusicMetadata(it.value());
++    metadata->getAlbumArtImages()->addImage(&m_albumArt);
++    return metadata;
++}
++
+diff --git a/mythplugins/mythmusic/mythmusic/musicbrainz.h b/mythplugins/mythmusic/mythmusic/musicbrainz.h
+new file mode 100644
+index 00000000000..1eac944eb5b
+--- /dev/null
++++ b/mythplugins/mythmusic/mythmusic/musicbrainz.h
+@@ -0,0 +1,61 @@
++#ifndef MUSICBRAINZ_H
++#define MUSICBRAINZ_H
++
++#include "config.h"
++
++// Qt
++#include <QString>
++#include <QMap>
++
++// MythTV
++#include <libmythmetadata/musicmetadata.h>
++
++class MusicBrainz
++{
++public:
++    /**
++     * Query music metadata using disc id of specified device
++     *
++     * @param [in] deviceName name of the CD device to query metadata for
++     * @return true if query was successful, false otherwise
++     */
++    bool queryForDevice(const QString &deviceName);
++
++    /**
++     * Checks if metadata for given track exists
++     *
++     * @param track [in] track number to check metadata for
++     * @return true if metadata was found, false otherwise
++     */
++    bool hasMetadata(int track) const;
++
++    /**
++     * Creates and return metadata for specified track
++     *
++     * @param [in] track the track number for which to return the metadata
++     * @return pointer to newly created metadata object, nullptr if no metadata for this track exists
++     */
++    MusicMetadata *getMetadata(int track) const;
++
++private:
++
++#ifdef HAVE_MUSICBRAINZ
++
++    /// Query disc id for specified device
++    std::string queryDiscId(const std::string &device);
++
++    /// Query release id and release metadata
++    std::string queryRelease(const std::string &disc_id);
++
++    /// Query coverart for given release id
++    QString queryCoverart(const std::string &releaseId);
++
++    std::string m_discId; ///< disc id corresponding to current metadata
++
++#endif // HAVE_MUSICBRAINZ
++
++    QMap<int, MusicMetadata> m_tracks;
++    AlbumArtImage m_albumArt;
++};
++
++#endif // MUSICBRAINZ_H
+diff --git a/mythplugins/mythmusic/mythmusic/mythmusic.pro b/mythplugins/mythmusic/mythmusic/mythmusic.pro
+index 072f448b18b..dc737788895 100644
+--- a/mythplugins/mythmusic/mythmusic/mythmusic.pro
++++ b/mythplugins/mythmusic/mythmusic/mythmusic.pro
+@@ -70,6 +70,11 @@ cdio {
+     LIBS += -lcdio -lcdio_cdda -lcdio_paranoia
+ }
+ 
++musicbrainz {
++    HEADERS += musicbrainz.h
++    SOURCES += musicbrainz.cpp
++}
++
+ mingw {
+     LIBS += -logg
+ 
+From 6abb8acf21150519c9a5cf3c33a36f3244ee35b6 Mon Sep 17 00:00:00 2001
+From: Jan Hambrecht <jaham@gmx.net>
+Date: Wed, 3 Jan 2024 17:44:46 +0100
+Subject: [PATCH] Support album art from audio CD tracks
+
+When copying metdata objects, copy existing albumart too.
+Also handle retrieving the albumart file for repo == RT_CD.
+---
+ mythtv/libs/libmythmetadata/musicmetadata.cpp | 19 ++++++++++++++++++-
+ mythtv/libs/libmythmetadata/musicmetadata.h   |  1 +
+ 2 files changed, 19 insertions(+), 1 deletion(-)
+
+diff --git a/mythtv/libs/libmythmetadata/musicmetadata.cpp b/mythtv/libs/libmythmetadata/musicmetadata.cpp
+index 10444455088..3421988bbc4 100644
+--- a/mythtv/libs/libmythmetadata/musicmetadata.cpp
++++ b/mythtv/libs/libmythmetadata/musicmetadata.cpp
+@@ -122,7 +122,10 @@ MusicMetadata& MusicMetadata::operator=(const MusicMetadata &rhs)
+     m_compartistId = rhs.m_compartistId;
+     m_albumId = rhs.m_albumId;
+     m_genreId = rhs.m_genreId;
+-    m_albumArt = nullptr;
++    if (rhs.m_albumArt)
++    {
++        m_albumArt = new AlbumArtImages(this, *rhs.m_albumArt);
++    }
+     m_lyricsData = nullptr;
+     m_format = rhs.m_format;
+     m_changed = rhs.m_changed;
+@@ -1296,6 +1299,11 @@ QString MusicMetadata::getAlbumArtFile(void)
+ 
+             res = albumart_image->m_filename;
+         }
++        else if (repo == RT_CD)
++        {
++            // CD tracks can only be played locally, so coverart is local too
++            return res;
++        }
+         else
+         {
+             // check for the image in the storage group
+@@ -1890,6 +1898,15 @@ AlbumArtImages::AlbumArtImages(MusicMetadata *metadata, bool loadFromDB)
+         findImages();
+ }
+ 
++AlbumArtImages::AlbumArtImages(MusicMetadata *metadata, const AlbumArtImages &other)
++    : m_parent(metadata)
++{
++    for (auto &srcImage : qAsConst(other.m_imageList))
++    {
++        m_imageList.append(new AlbumArtImage(srcImage));
++    }
++}
++
+ AlbumArtImages::~AlbumArtImages()
+ {
+     while (!m_imageList.empty())
+diff --git a/mythtv/libs/libmythmetadata/musicmetadata.h b/mythtv/libs/libmythmetadata/musicmetadata.h
+index 57dbf25befe..43fe149e2b8 100644
+--- a/mythtv/libs/libmythmetadata/musicmetadata.h
++++ b/mythtv/libs/libmythmetadata/musicmetadata.h
+@@ -523,6 +523,7 @@ class META_PUBLIC AlbumArtImages
+ 
+   public:
+     explicit AlbumArtImages(MusicMetadata *metadata, bool loadFromDB = true);
++    explicit AlbumArtImages(MusicMetadata *metadata, const AlbumArtImages &other);
+     ~AlbumArtImages();
+ 
+     void           scanForImages(void);
+From e49e65f63ccffb889beb32fc05eea4aa1172fd93 Mon Sep 17 00:00:00 2001
+From: Jan Hambrecht <jaham@gmx.net>
+Date: Thu, 4 Jan 2024 00:54:24 +0100
+Subject: [PATCH] Properly handle disc changes
+
+Always query metadata when disc change was detected.
+Also reset last queried metadata before querying data
+or in case of an error.
+---
+ mythplugins/mythmusic/mythmusic/cddecoder.cpp   |  2 +-
+ mythplugins/mythmusic/mythmusic/musicbrainz.cpp | 17 ++++++++++++++++-
+ mythplugins/mythmusic/mythmusic/musicbrainz.h   |  4 ++++
+ 3 files changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/mythplugins/mythmusic/mythmusic/cddecoder.cpp b/mythplugins/mythmusic/mythmusic/cddecoder.cpp
+index 9dac106bd0f..8b195ec86a2 100644
+--- a/mythplugins/mythmusic/mythmusic/cddecoder.cpp
++++ b/mythplugins/mythmusic/mythmusic/cddecoder.cpp
+@@ -661,7 +661,7 @@ MusicMetadata *CdDecoder::getMetadata()
+ #endif // CDTEXT
+     {
+ #ifdef HAVE_MUSICBRAINZ
+-        if (isDiscChanged && !getMusicBrainz().hasMetadata(m_setTrackNum))
++        if (isDiscChanged)
+         {
+             // lazy load whole CD metadata
+             getMusicBrainz().queryForDevice(m_deviceName);
+diff --git a/mythplugins/mythmusic/mythmusic/musicbrainz.cpp b/mythplugins/mythmusic/mythmusic/musicbrainz.cpp
+index 3389ea1245b..0b811dcce09 100644
+--- a/mythplugins/mythmusic/mythmusic/musicbrainz.cpp
++++ b/mythplugins/mythmusic/mythmusic/musicbrainz.cpp
+@@ -307,6 +307,7 @@ bool MusicBrainz::queryForDevice(const QString &deviceName)
+     const auto discId = queryDiscId(deviceName.toStdString());
+     if (discId.empty())
+     {
++        reset();
+         return false;
+     }
+     if (discId == m_discId)
+@@ -315,6 +316,10 @@ bool MusicBrainz::queryForDevice(const QString &deviceName)
+         LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Metadata for disc %1 already present").arg(QString::fromStdString(m_discId)));
+         return true;
+     }
++
++    // new disc id, reset existing data
++    reset();
++
+     const auto releaseId = queryRelease(discId);
+     if (releaseId.empty())
+     {
+@@ -348,7 +353,17 @@ MusicMetadata *MusicBrainz::getMetadata(int track) const
+         return nullptr;
+     }
+     auto *metadata = new MusicMetadata(it.value());
+-    metadata->getAlbumArtImages()->addImage(&m_albumArt);
++    if (!m_albumArt.m_filename.isEmpty())
++    {
++        metadata->getAlbumArtImages()->addImage(&m_albumArt);
++    }
+     return metadata;
+ }
+ 
++void MusicBrainz::reset()
++{
++    LOG(VB_MEDIA, LOG_DEBUG, "musicbrainz: Reset metadata");
++    m_tracks.clear();
++    m_albumArt = AlbumArtImage();
++}
++
+diff --git a/mythplugins/mythmusic/mythmusic/musicbrainz.h b/mythplugins/mythmusic/mythmusic/musicbrainz.h
+index 1eac944eb5b..946a93a48d8 100644
+--- a/mythplugins/mythmusic/mythmusic/musicbrainz.h
++++ b/mythplugins/mythmusic/mythmusic/musicbrainz.h
+@@ -37,6 +37,10 @@ class MusicBrainz
+      */
+     MusicMetadata *getMetadata(int track) const;
+ 
++    /**
++     * Reset last queried metadata
++     */
++    void reset();
+ private:
+ 
+ #ifdef HAVE_MUSICBRAINZ
