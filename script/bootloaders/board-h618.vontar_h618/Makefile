@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-h618.vontar_h618
-GARVERSION   = 2023-11-14
+GARVERSION   = 2024-01-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
@@ -10,7 +10,7 @@ DISTFILES    = \
                h618-boot.txt       \
                minimyth.conf       \
 
-export mm_U-BOOT_BOARD_TYPE = tanix_tx6s_axp313_defconfig
+export mm_U-BOOT_BOARD_TYPE = vontar_h618_defconfig
 
 WORKSRC      = $(WORKDIR)
 
