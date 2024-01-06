@@ -753,3 +753,218 @@ index 1eac944eb5b..946a93a48d8 100644
  private:
  
  #ifdef HAVE_MUSICBRAINZ
+From 60da512ecf41a74540c691148c841fa942005829 Mon Sep 17 00:00:00 2001
+From: Jan Hambrecht <jaham@gmx.net>
+Date: Fri, 5 Jan 2024 23:29:04 +0100
+Subject: [PATCH] Improve artist handling
+
+Improve handling of artists for compilations, i.e. properly
+set track artist as artist and album artist as compilation
+artist. Also handle track artists featuring other artists.
+Set compilation flag if most track artist differ from album artist.
+---
+ .../mythmusic/mythmusic/musicbrainz.cpp       | 47 +++++++++++++++++--
+ mythplugins/mythmusic/mythmusic/musicbrainz.h |  5 ++
+ 2 files changed, 49 insertions(+), 3 deletions(-)
+
+diff --git a/mythplugins/mythmusic/mythmusic/musicbrainz.cpp b/mythplugins/mythmusic/mythmusic/musicbrainz.cpp
+index 0b811dcce09..21c5a3dc9cd 100644
+--- a/mythplugins/mythmusic/mythmusic/musicbrainz.cpp
++++ b/mythplugins/mythmusic/mythmusic/musicbrainz.cpp
+@@ -63,10 +63,24 @@ static std::vector<std::string> queryArtists(const MusicBrainz5::CArtistCredit *
+         return artist_names;
+     }
+ 
++    std::string joinPhrase;
+     for (int a = 0; a < artist_credit->NameCreditList()->NumItems(); ++a)
+     {
+-        auto *artist = artist_credit->NameCreditList()->Item(a)->Artist();
+-        artist_names.emplace_back(artist->Name());
++        auto *nameCredit = artist_credit->NameCreditList()->Item(a);
++        auto *artist = nameCredit->Artist();
++        if (a == 0)
++        {
++            joinPhrase = nameCredit->JoinPhrase();
++            artist_names.emplace_back(artist->Name());
++        }
++        else if (!joinPhrase.empty())
++        {
++            artist_names.back() += joinPhrase + artist->Name();
++        }
++        else
++        {
++            artist_names.emplace_back(artist->Name());
++        }
+     }
+     return artist_names;
+ }
+@@ -120,6 +134,7 @@ std::string MusicBrainz::queryRelease(const std::string &discId)
+                     }
+                     auto media = fullRelease->MediaMatchingDiscID(discId);
+                     LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Found %1 matching media").arg(media.NumItems()));
++                    int artistDiff = 0;
+                     for (int m = 0; m < media.NumItems(); ++m)
+                     {
+                         auto *medium = media.Item(m);
+@@ -169,17 +184,34 @@ std::string MusicBrainz::queryRelease(const std::string &discId)
+                                     metadata.setLength(std::chrono::milliseconds(recording->Length()));
+                                     if (albumArtists.size() == 1)
+                                     {
+-                                        metadata.setArtist(QString::fromStdString(albumArtists[0]));
++                                        metadata.setCompilationArtist(QString::fromStdString(albumArtists[0]));
+                                     }
+                                     else if(albumArtists.size() > 1)
++                                    {
++                                        metadata.setCompilationArtist(QObject::tr("Various Artists"));
++                                    }
++                                    if (artists.size() == 1)
++                                    {
++                                        metadata.setArtist(QString::fromStdString(artists[0]));
++                                    }
++                                    else if(artists.size() > 1)
+                                     {
+                                         metadata.setArtist(QObject::tr("Various Artists"));
+                                     }
++                                    if (metadata.CompilationArtist() != metadata.Artist())
++                                    {
++                                        artistDiff++;
++                                    }
+                                     metadata.setYear(QDate::fromString(QString::fromStdString(fullRelease->Date()), Qt::ISODate).year());
+                                 }
+                             }
+                         }
+                     }
++                    // Set compilation flag if album artist differs from track artists
++                    // as there might be some tracks featuring guest artists we only set
++                    // the compilation flag if at least half of the track artists differ
++                    setCompilationFlag(artistDiff > m_tracks.count() / 2);
++
+                     return fullRelease->ID();
+                 }
+             }
+@@ -219,6 +251,15 @@ std::string MusicBrainz::queryRelease(const std::string &discId)
+     return {};
+ }
+ 
++void MusicBrainz::setCompilationFlag(bool isCompilation)
++{
++    LOG(VB_MEDIA, LOG_DEBUG, QString("musicbrainz: Setting compilation flag: %1").arg(isCompilation));
++    for (auto &metadata : m_tracks)
++    {
++        metadata.setCompilation(isCompilation);
++    }
++}
++
+ static void logError(CoverArtArchive::CCoverArt &coverArt)
+ {
+     LOG(VB_MEDIA, LOG_ERR, QString("musicbrainz: LastResult: %1").arg(coverArt.LastResult()));
+diff --git a/mythplugins/mythmusic/mythmusic/musicbrainz.h b/mythplugins/mythmusic/mythmusic/musicbrainz.h
+index 946a93a48d8..6c4b52b82cb 100644
+--- a/mythplugins/mythmusic/mythmusic/musicbrainz.h
++++ b/mythplugins/mythmusic/mythmusic/musicbrainz.h
+@@ -43,6 +43,11 @@ class MusicBrainz
+     void reset();
+ private:
+ 
++    /**
++     * Sets compilation flag for all metadata
++     */
++    void setCompilationFlag(bool isCompilation);
++
+ #ifdef HAVE_MUSICBRAINZ
+ 
+     /// Query disc id for specified device
+From cfc75dfc1cab2ae04b821ce525a8bbe11b233888 Mon Sep 17 00:00:00 2001
+From: Jan Hambrecht <jaham@gmx.net>
+Date: Sat, 6 Jan 2024 01:46:00 +0100
+Subject: [PATCH] Handle split C/C++ musicbrainz ans coverart libs
+
+After the last official release both libs were split into
+a C and a C++ lib. Use these libs if they are present over
+the combined libs from the official releases.
+---
+ mythplugins/configure | 41 ++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 38 insertions(+), 3 deletions(-)
+
+diff --git a/mythplugins/configure b/mythplugins/configure
+index bd3b949da5f..b041981fd5d 100755
+--- a/mythplugins/configure
++++ b/mythplugins/configure
+@@ -261,6 +261,17 @@ int main(void){ $func(); }
+ EOF
+ }
+ 
++check_class_cxx(){
++    log check_class_cxx "$@"
++    class=$1
++    header=$2
++    shift 2
++    check_ld_cxx "$@" <<EOF
++#include <$header>
++int main(void){ $class; }
++EOF
++}
++
+ check_lib_cxx(){
+     log check_lib_cxx "$@"
+     header="$1"
+@@ -269,6 +280,14 @@ check_lib_cxx(){
+     check_header_cxx $header && check_func_cxx $func $header "$@"
+ }
+ 
++check_lib_cxx2(){
++    log check_lib_cxx2 "$@"
++    header="$1"
++    func="$2"
++    shift 2
++    check_header_cxx $header && check_class_cxx $func $header "$@"
++}
++
+ cp_if_changed(){
+     cmp -s "$1" "$2" && { test "$quiet" != "yes" && echo "$2 is unchanged"; } && return
+     mkdir -p "$(dirname $2)"
+@@ -693,6 +712,22 @@ if test x"$icc" != x ; then
+     fi
+ fi
+ 
++libmusicbrainz_pc(){
++    if $(pkg-config libmusicbrainz5cc --exists) ; then
++        echo "libmusicbrainz5cc"
++    else
++        echo "libmusicbrainz5"
++    fi
++}
++
++libcoverart_pc(){
++    if $(pkg-config libcoverartcc --exists) ; then
++        echo "libcoverartcc"
++    else
++        echo "libcoverart"
++    fi
++}
++
+ if enabled music ; then
+ 
+     if ! check_lib vorbis/codec.h vorbis_info_init -lvorbis || ! check_lib vorbis/vorbisenc.h vorbis_encode_setup_vbr -lvorbisenc -lvorbis -logg ; then
+@@ -723,10 +758,10 @@ if enabled music ; then
+         if ! check_lib discid/discid.h discid_new -ldiscid ; then
+             disable musicbrainz
+             echo "MusicBrainz support requires libdiscid."
+-        elif ! check_lib musicbrainz5/mb5_c.h mb5_query_new -lmusicbrainz5 -lm -lstdc++; then
++        elif ! check_lib_cxx2 musicbrainz5/Query.h MusicBrainz5::CQuery\(\"test\"\) $(pkg-config $(libmusicbrainz_pc) --cflags --libs); then
+             disable musicbrainz
+             echo "MusicBrainz support requires libmusicbrainz5."
+-        elif ! check_lib coverart/caa_c.h caa_coverart_new -lcoverart -lm -lstdc++; then
++        elif ! check_lib_cxx2 coverart/CoverArt.h CoverArtArchive::CCoverArt\(\"test\"\) $(pkg-config $(libcoverart_pc) --cflags --libs); then
+             disable musicbrainz
+             echo "MusicBrainz support requires libcoverart."
+         else
+@@ -872,7 +907,7 @@ if enabled music ; then
+         echo "#define HAVE_MUSICBRAINZ 1" >> ./mythmusic/mythmusic/config.h
+         echo "CONFIG += link_pkgconfig" >> ./mythmusic/mythmusic/config.pro
+         echo "CONFIG += musicbrainz" >> ./mythmusic/mythmusic/config.pro
+-        echo "PKGCONFIG += libdiscid libmusicbrainz5 libcoverart" >> ./mythmusic/mythmusic/config.pro
++        echo "PKGCONFIG += libdiscid $(libmusicbrainz_pc) $(libcoverart_pc)" >> ./mythmusic/mythmusic/config.pro
+         echo "        musicbrainz    support will be included in MythMusic"
+       else
+         echo "#undef  HAVE_MUSICBRAINZ" >> ./mythmusic/mythmusic/config.h
