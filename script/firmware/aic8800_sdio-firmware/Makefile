@@ -1,6 +1,6 @@
 
 GARNAME      = aic8800_sdio-firmware
-GARVERSION   = 20231128
+GARVERSION   = 20231212
 CATEGORIES   = firmware
 MASTER_SITES = 
 DISTFILES    = aic_userconfig_8800d80.txt \
@@ -17,7 +17,7 @@ endef
 
 WORKSRC = $(WORKDIR)
 
-DEPENDS = lang/c
+DEPENDS = 
 
 INSTALL_SCRIPTS = custom
 
