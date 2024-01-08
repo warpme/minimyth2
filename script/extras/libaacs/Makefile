@@ -1,8 +1,8 @@
 
 GARNAME      = libaacs
-GARVERSION   = 0.11.0
+GARVERSION   = 0.11.1
 CATEGORIES   = extras
-MASTER_SITES = ftp://ftp.videolan.org/pub/videolan/libaacs/0.11.0/
+MASTER_SITES = ftp://ftp.videolan.org/pub/videolan/libaacs/0.11.1/
 DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      = LGPL2_1
 
