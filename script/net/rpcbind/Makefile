@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c devel/glibc-rpcsvc net/libtirpc
+DEPENDS = lang/c devel/glibc-rpcsvc devel/libtirpc
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile

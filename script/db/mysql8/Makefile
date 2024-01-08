@@ -7,7 +7,7 @@ DISTFILES    = $(GARNAME)-boost-$(GARVERSION).tar.gz
 PATCHFILES   = $(DISTNAME)-hack-libevent-detection-in-crosscompile.patch
 LICENSE      = GPL
 
-DEPENDS = lib/openssl devel/zlib lib/libaio net/libtirpc lib/icu lib/libevent devel/boost lib/libzstd lib/libedit lib/liblz4
+DEPENDS = lib/openssl devel/zlib lib/libaio devel/libtirpc lib/icu lib/libevent devel/boost lib/libzstd lib/libedit lib/liblz4
 
 WORKBLD = $(WORKSRC)_build
 

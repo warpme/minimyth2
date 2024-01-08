@@ -11,7 +11,7 @@ define BLURB
 endef
 
 BUILDDEPS = devel/rpcsvc-proto
-DEPENDS = lang/c net/libtirpc utils/util-linux
+DEPENDS = lang/c devel/libtirpc utils/util-linux
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
