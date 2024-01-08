@@ -213,7 +213,7 @@ ifeq (1,1)
 #-- Rockchip 356x patches -----------------------------------------
 PATCHFILES += 0800-Enable-rk356x-PCIe-controller.patch
 PATCHFILES += 0801-net-wireless-add-aic8800-support.patch
-PATCHFILES += 0802-net-wireless-add-aic8800-disable-sdio-pwrctl.patch
+# PATCHFILES += 0802-net-wireless-add-aic8800-disable-sdio-pwrctl.patch
 # device-tree patches
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
@@ -252,7 +252,7 @@ PATCHFILES += 1025-char-hw_random-add-rk3588s-support.patch
 PATCHFILES += 1026-media-hantro-g1-add-video-decoder-support-v1.patch
 # disabled as it breaks rk3566/rk3568 hdmi
 #PATCHFILES += 1040-drm-rockchip-dw-hdmi-add-support-for-rk3588.patch
-#PATCHFILES += 1041-drm-rockchip-vop2-add-rk3588-support.patch
+PATCHFILES += 1041-drm-rockchip-vop2-add-rk3588-support.patch
 #PATCHFILES += 1042-drm-rockchip-dw-hdmi-hack-hack-stop-oops-after-patch1026.patch
 # device-tree patches
 PATCHFILES += 1050-arm64-dtsi-rockchip-3588-3588s-add-usb3-drd-support.patch
