@@ -1,6 +1,6 @@
 
-GARNAME      = u-boot-h616-v2024.01-rc6
-GARVERSION   = 2024.01-rc6
+GARNAME      = u-boot-h616-v2024.01
+GARVERSION   = 2024.01
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/refs/tags/
 DISTFILES    = v$(GARVERSION).tar.gz
@@ -54,7 +54,6 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_kingston_lpddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = pendoo-x12_defconfig
 # mm_U-BOOT_BOARD_TYPE = vontar_h618_defconfig
-
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
