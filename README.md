@@ -116,6 +116,7 @@ Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                   | work
 Rockchip 3566 | Quartz64 Model B | works  (cm256sm@SDIO)                  | works       | n/a         | not works                      | good prospects                |
 Rockchip 3566 | URVE Pi          | works  (rtl8821@SDIO)                  | not works   | n/a         | not works                      | good prospects                |
 Rockchip 3566 | OrangePi-3B      | works  (uwe5622@SDIO)                  | works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3566 | Zero-3w (wifi6)  | works  (aic8800@SDIO)                  | works       | LED Diode,OK| not works                      | good prospects                |
 Rockchip 3566 | Rock3-C          | works  (ap6256@SDIO)                   | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-B          | works  (iwl7265@PCI-e)                 | works       | n/a         | not works                      | good prospects                |
