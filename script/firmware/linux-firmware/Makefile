@@ -26,8 +26,10 @@ install-custom:
 	@# Broadcom 43430 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.bin      $(BRCM_DEST)/brcmfmac43430-sdio.AP6212.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.bin      $(BRCM_DEST)/brcmfmac43430-sdio.raspberrypi,3-model-b.bin
+	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.bin      $(BRCM_DEST)/brcmfmac43430-sdio.radxa,zero3w.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.clm_blob $(BRCM_DEST)/brcmfmac43430-sdio.AP6212.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.clm_blob $(BRCM_DEST)/brcmfmac43430-sdio.raspberrypi,3-model-b.clm_blob
+	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.clm_blob $(BRCM_DEST)/brcmfmac43430-sdio.radxa,zero3w.clm_blob
 
 	@# Broadcom 43455 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,3-model-b-plus.bin
