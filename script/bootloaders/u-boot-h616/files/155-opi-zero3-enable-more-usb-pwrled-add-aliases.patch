@@ -1,0 +1,121 @@
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01/arch/arm/dts/sun50i-h618-orangepi-zero3.dts u-boot-2024.01/arch/arm/dts/sun50i-h618-orangepi-zero3.dts
+--- u-boot-2024.01/arch/arm/dts/sun50i-h618-orangepi-zero3.dts	2024-01-08 16:37:48.000000000 +0100
++++ u-boot-2024.01/arch/arm/dts/sun50i-h618-orangepi-zero3.dts	2024-01-12 11:04:13.496525419 +0100
+@@ -5,11 +5,37 @@
+ 
+ /dts-v1/;
+ 
++#include <dt-bindings/leds/common.h>
+ #include "sun50i-h616-orangepi-zero.dtsi"
+ 
+ / {
+ 	model = "OrangePi Zero3";
+-	compatible = "xunlong,orangepi-zero3", "allwinner,sun50i-h618";
++	compatible = "xunlong,orangepi-zero3", "allwinner,sun50i-h616";
++
++	aliases {
++		ethernet0 = &emac0;
++		serial0 = &uart0;
++		mmc0 = &mmc0;  /* mmc0/mmcblk0 for SD */
++		mmc1 = &mmc1;  /* mmc1/mmcblk1 for SDIO */
++	};
++
++	leds: leds {
++		compatible = "gpio-leds";
++
++		led-red {
++			function = LED_FUNCTION_DISK_ACTIVITY;
++			label = "red_led";
++			gpios = <&pio 2 12 GPIO_ACTIVE_HIGH>; /* PC12 */
++			linux,default-trigger = "mmc0";
++		};
++
++		led-green {
++			function = LED_FUNCTION_STATUS;
++			label = "green_led";
++			gpios = <&pio 2 13 GPIO_ACTIVE_HIGH>; /* PC13 */
++			linux,default-trigger = "heartbeat";
++		};
++	};
+ };
+ 
+ &emac0 {
+@@ -94,3 +120,70 @@
+ 	vcc-ph-supply = <&reg_dldo1>;
+ 	vcc-pi-supply = <&reg_dldo1>;
+ };
++
++&spi0  {
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi0_pins>, <&spi0_cs0_pin>;
++
++	flash@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "jedec,spi-nor";
++		reg = <0>;
++		spi-max-frequency = <40000000>;
++	};
++};
++
++&usbotg {
++	/*
++	 * PHY0 pins are connected to a USB-C socket, but a role switch
++	 * is not implemented: both CC pins are pulled to GND.
++	 * The VBUS pins power the device, so a fixed peripheral mode
++	 * is the best choice.
++	 * The board can be powered via GPIOs, in this case port0 *can*
++	 * act as a host (with a cable/adapter ignoring CC), as VBUS is
++	 * then provided by the GPIOs. Any user of this setup would
++	 * need to adjust the DT accordingly: dr_mode set to "host",
++	 * enabling OHCI0 and EHCI0.
++	 */
++	dr_mode = "peripheral";
++	status = "okay";
++};
++
++&usbphy {
++	usb1_vbus-supply = <&reg_usb1_vbus>;
++	status = "okay";
++};
++
++&ehci0 {
++	status = "disabled";
++};
++
++&ehci1 {
++	status = "okay";
++};
++
++&ehci2 {
++	status = "okay";
++};
++
++&ehci3 {
++	status = "okay";
++};
++
++&ohci0 {
++	status = "disabled";
++};
++
++&ohci1 {
++	status = "okay";
++};
++
++&ohci2 {
++	status = "okay";
++};
++
++&ohci3 {
++	status = "okay";
++};
+diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01/configs/orangepi_zero3_defconfig u-boot-2024.01/configs/orangepi_zero3_defconfig
+--- u-boot-2024.01/configs/orangepi_zero3_defconfig	2024-01-08 16:37:48.000000000 +0100
++++ u-boot-2024.01/configs/orangepi_zero3_defconfig	2024-01-12 11:12:33.053181332 +0100
+@@ -30,3 +30,4 @@
+ CONFIG_USB_EHCI_HCD=y
+ CONFIG_USB_OHCI_HCD=y
+ CONFIG_USB_MUSB_GADGET=y
++CONFIG_PWRLED="PC13"
