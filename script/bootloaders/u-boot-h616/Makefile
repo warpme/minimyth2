@@ -50,7 +50,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
-# mm_U-BOOT_BOARD_TYPE = orangepi_zero2w_defconfig
+mm_U-BOOT_BOARD_TYPE = orangepi_zero2w_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_kingston_lpddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = pendoo-x12_defconfig
 # mm_U-BOOT_BOARD_TYPE = vontar_h618_defconfig
