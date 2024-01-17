@@ -35,6 +35,13 @@ include ../../python3/python/package-api.mk
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
+TPL_BL31 = \
+	ROCKCHIP_TPL=../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.18.bin \
+	BL31=../rkbin/bin/rk35/rk3568_bl31_v1.44.elf \
+
+DDR_BIN = \
+	../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.18.bin
+
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
 
@@ -51,10 +58,10 @@ configure-custom:
 build-custom:
 	@echo "Building u-boot rk3566 with $(CONFIGURE_ARGS) ..."
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
-	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) ROCKCHIP_TPL=../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.18.bin BL31=../rkbin/bin/rk35/rk3568_bl31_v1.44.elf
+	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) $(TPL_BL31)
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@echo "Creating idbloader.img ..."
-	@cd ./$(WORKSRC) && ./tools/mkimage -n rk3568 -T rksd -d ../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.18.bin:spl/u-boot-spl.bin idbloader.img
+	@cd ./$(WORKSRC) && ./tools/mkimage -n rk3568 -T rksd -d $(DDR_BIN):spl/u-boot-spl.bin idbloader.img
 	@$(MAKECOOKIE)
 
 install-custom:
