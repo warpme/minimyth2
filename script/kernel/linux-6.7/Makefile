@@ -216,7 +216,7 @@ PATCHFILES += 0801-net-wireless-add-aic8800-v2023_1212_15dcf017.patch
 PATCHFILES += 0802-net-wireless-aic8800-kernel6.7-fixes.patch
 # device-tree patches
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
-PATCHFILES += 0832-arm64-dts-rockchip-defaults-disable-vepu-rga-in-rk35xx.dtsi.patch
+PATCHFILES += 0832-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
 PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
 PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
 PATCHFILES += 0840-arm64-dts-rockchip-add-dts-for-rock3b.patch
