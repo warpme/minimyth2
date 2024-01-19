@@ -56,9 +56,9 @@ MKIMAGE_TYPE = rk3328
 INSTALL_PREF = rk3328
 endif
 ifneq (,$(findstring rk3399,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk33/rk3399_ddr_666MHz_v1.30.bin
+TPL          = ../rkbin/bin/rk33/rk3399_ddr_800MHz_v1.30.bin
 BL31         = ../rkbin/bin/rk33/rk3399_bl31_v1.36.elf
-DDR_BIN      = ../rkbin/bin/rk33/rk3399_ddr_666MHz_v1.30.bin
+DDR_BIN      = ../rkbin/bin/rk33/rk3399_ddr_800MHz_v1.30.bin
 MKIMAGE_TYPE = rk3399
 INSTALL_PREF = rk3399
 endif
@@ -97,6 +97,7 @@ BUILD_ARGS = \
 pre-configure:
 	@mkdir -p $(WORKDIR)/rkbin
 	@mv -f $(WORKDIR)/rkbin-$(RKBINVERSION)/* $(WORKDIR)/rkbin/
+	@cd $(WORKDIR)/rkbin; patch -p1 < ../../../files/04-disable-trust-rk3328-rk3399-rk3528.patch
 	@$(MAKECOOKIE)
 
 configure-custom:
