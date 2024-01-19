@@ -24,8 +24,8 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-radxa.2023.10
-	@$(MAKE) install -C ../u-boot-radxa.2023.10
+	@$(MAKE) clean   -C ../u-boot-rk35xx-radxa
+	@$(MAKE) install -C ../u-boot-rk35xx-radxa
 	@$(MAKECOOKIE)
 
 install-custom:

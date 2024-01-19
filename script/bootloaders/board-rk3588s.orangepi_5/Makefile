@@ -7,7 +7,7 @@ DISTFILES    = \
                minimyth.conf \
                extlinux.conf
 
-export mm_U-BOOT_BOARD_TYPE = rock-5a-rk3588s_defconfig
+export mm_U-BOOT_BOARD_TYPE = orangepi-5-rk3588s_defconfig
 
 WORKSRC      = $(WORKDIR)
 
@@ -24,8 +24,8 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-rk3588-radxa
-	@$(MAKE) install -C ../u-boot-rk3588-radxa
+	@$(MAKE) clean   -C ../u-boot-rk35xx-radxa
+	@$(MAKE) install -C ../u-boot-rk35xx-radxa
 	@$(MAKECOOKIE)
 
 install-custom:
