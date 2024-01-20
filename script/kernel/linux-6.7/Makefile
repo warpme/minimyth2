@@ -254,7 +254,8 @@ PATCHFILES += 1026-media-hantro-g1-add-video-decoder-support-v1.patch
 # disabled as it breaks rk3566/rk3568 hdmi
 #PATCHFILES += 1040-drm-rockchip-dw-hdmi-add-support-for-rk3588.patch
 PATCHFILES += 1041-drm-rockchip-vop2-add-rk3588-support.patch
-#PATCHFILES += 1042-drm-rockchip-dw-hdmi-hack-hack-stop-oops-after-patch1026.patch
+PATCHFILES += 1042-phy-rockchip-add-support-for-rk3588-hdmi-dp-combo-phy.patch
+#PATCHFILES += 1043-drm-rockchip-dw-hdmi-hack-hack-stop-oops-after-patch1026.patch
 # device-tree patches
 PATCHFILES += 1050-arm64-dtsi-rockchip-3588-3588s-add-usb3-drd-support.patch
 PATCHFILES += 1051-arm64-dts-rockchip-rk3588-rock5x-add-usb3-host-support.patch
