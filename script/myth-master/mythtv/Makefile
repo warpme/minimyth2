@@ -116,7 +116,6 @@ PATCHFILES += 0350-mythvideo-pull742-add-watched-progress-in-videomanger.patch
 # Various mythmusic patches
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
-PATCHFILES += 0407-mythmusic-pull845-upgrade-to-latest-CU-LRC-lyrics-grabbers.patch
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
