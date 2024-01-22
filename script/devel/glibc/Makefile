@@ -2,8 +2,8 @@
 GARNAME       = glibc
 GARVERSION    = $(GLIBC_VERSION)
 CATEGORIES    = devel
-MASTER_SITES  = http://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES     = $(DISTNAME).tar.xz
+MASTER_SITES  = git://sourceware.org/git/glibc.git/
+DISTFILES     = $(DISTNAME).tar.bz2
 PATCHFILES    = $(DISTNAME)-fix-building-arm-thumb.patch
 LICENSE       = GPL2/LGPL2_1
 
@@ -66,6 +66,10 @@ INSTALL_ENV   = \
 
 GAR_EXTRA_CONF += devel/glibc/package-api.mk
 include ../../gar.mk
+
+git//%$(DISTNAME).tar.bz2:
+	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
+	@$(MAKECOOKIE)
 
 # glibc fails to compile with gcc link time optimization enabled.
 CFLAGS  := $(filter-out -flto, $(CFLAGS))
