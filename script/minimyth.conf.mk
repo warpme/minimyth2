@@ -9,7 +9,7 @@
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of MiniMyth2.
-mm_VERSION_MINIMYTH ?=       12.23.1.r643
+mm_VERSION_MINIMYTH ?=       12.24.0.r651
 
 # The version of Myth to use.
 # Valid values are '32', '33', 'master' and 'test'
@@ -60,6 +60,9 @@ mm_SOFTWARE               ?= \
 #                             termbin \
 #                             kmsvnc \
 #                             nvtop \
+#                             htop \
+#                             btop \
+#                             bashtop \
 
 # Indicates bootloader board type. Valid values are:
 # 'board-rpi2'
