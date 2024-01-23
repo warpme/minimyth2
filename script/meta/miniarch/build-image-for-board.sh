@@ -9,13 +9,6 @@ mm_conf_file="${HOME}/.minimyth2/minimyth.conf.mk"
 # new SD card image
 extra_params=' \
         mm_STRIP_IMAGE="yes" \
-        mm_DISTRIBUTION_SHARE="no" \
-        mm_INSTALL_ONLINE_UPDATES="no" \
-        mm_DISTRIBUTION_RAM="no" \
-        mm_INSTALL_RAM_BOOT="no" \
-        mm_DISTRIBUTION_NFS="no" \
-        mm_INSTALL_NFS_BOOT="no" \
-        mm_DISTRIBUTION_SDCARD="yes" \
 '
 # To add new board, add it in this file
 boards_list_file="../convinience-script-boards.list"
@@ -104,11 +97,11 @@ if [ x${input} = "x" ] ; then
 
 fi
 
-cd ${mm_home}/script/meta/minimyth
+cd ${mm_home}/script/meta/miniarch
 
 cache_board_list() {
-    rm -rf /tmp/mm2-sd-card-boardlist.tmp
-    echo "$1" > /tmp/mm2-sd-card-boardlist.tmp
+    rm -rf /tmp/miniarch-sd-card-boardlist.tmp
+    echo "$1" > /tmp/miniarch-sd-card-boardlist.tmp
 }
 
 dbg() {
