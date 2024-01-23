@@ -97,6 +97,7 @@ DEPENDS = \
 	X11/xdotool \
 	X11/x11vnc \
 	system/zoneinfo \
+	utils/btop \
 	utils/htop \
 	utils/bashtop \
 	utils/findutils \

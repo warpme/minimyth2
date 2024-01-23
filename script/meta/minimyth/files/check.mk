@@ -219,6 +219,9 @@ mm-all:
 		   [ ! "$${software}" = "openvfd"        ] && \
 		   [ ! "$${software}" = "monitorix"      ] && \
 		   [ ! "$${software}" = "termbin"        ] && \
+		   [ ! "$${software}" = "btop"           ] && \
+		   [ ! "$${software}" = "htop"           ] && \
+		   [ ! "$${software}" = "bashtop"        ] && \
 		   [ ! "$${software}" = "nvtop"          ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
