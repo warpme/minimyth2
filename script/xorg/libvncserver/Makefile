@@ -1,6 +1,6 @@
 
 GARNAME      = libvncserver-LibVNCServer
-GARVERSION   = 0.9.13
+GARVERSION   = 0.9.14
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://github.com/LibVNC/libvncserver/archive/
 DISTFILES    = LibVNCServer-$(GARVERSION).tar.gz
