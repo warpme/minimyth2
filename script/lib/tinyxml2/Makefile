@@ -1,6 +1,6 @@
 
 GARNAME      = tinyxml2
-GARVERSION   = 9.0.0
+GARVERSION   = 10.0.0
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/leethomason/tinyxml2/archive/refs/tags/
 DISTFILES    = $(GARVERSION).tar.gz
@@ -17,5 +17,10 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DBUILD_SHARED_LIBS=ON \
 
 include ../../gar.mk
+
+post-install:
+	@patch -d $(DESTDIR)$(libdir)/cmake/tinyxml2 -p1 < $(WORKDIR)/../../files/tinyxml2-fix-installed-cmake-lists.patch
+	$(MAKECOOKIE)
