@@ -151,6 +151,7 @@ post-install:
 	@#ln -srf $(DESTDIR)$(bindir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR) $(DESTDIR)$(bindir)/python
 	@rm -rf $(WORKSRC)/../../../build*
 	@rm -f $(WORKSRC)/../../../pybuilddir.txt
+	@rm -f $(WORKSRC)/../../../Makefile.build
 	@$(MAKECOOKIE)
 
 clean-all:
