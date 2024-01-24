@@ -66,6 +66,7 @@ if [ ! -f ${mm_conf_file} ] ; then
     echo " "
     exit 1
 fi
+
 mm_home=`grep "^mm_HOME " ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
 if [ ! -f ${mm_home}/script/meta/minimyth/Makefile ] ; then
     echo " "
@@ -75,36 +76,7 @@ if [ ! -f ${mm_home}/script/meta/minimyth/Makefile ] ; then
     exit 1
 fi
 
-input=$1
-
-board_list=`cat $boards_list_file | sed -e '/#/d' -e '/^$/d'`
-
-if [ x${input} = "x" ] ; then
-
-    echo " "
-    echo "Script version:${ver}"
-    echo " "
-
-    while IFS= read -r entry; do
-
-        id=`echo "${entry}" | sed 's/\s*//g' | cut -d":" -f1 | sed 's/\s*selection\s*//g'`
-        boards=`echo "${entry}" | cut -d":" -f2 | sed 's/\t\r\n//g'`
-        echo "[${id}] -> ${boards}"
-
-    done <<< "$board_list"
-
-    echo " "
-    echo "Please choose board by typing NN<Enter>"
-    echo "or press just Enter to exit..."
-    echo " "
-
-    read input
-
-    echo " "
-
-fi
-
-cd ${mm_home}/script/meta/minimyth
+work_dir="${mm_home}/script/meta/minimyth"
 
 cache_board_list() {
     rm -rf /tmp/mm2-sd-card-boardlist.tmp
@@ -124,24 +96,68 @@ build_for_board() {
     make -C ../../bootloaders/bootloader clean-bootloader
 }
 
-while IFS= read -r entry; do
+board_list=`cat $boards_list_file | sed -e '/#/d' -e '/^$/d'`
 
-    id=`echo "${entry}" | sed 's/\s*//g' | cut -d":" -f1 | sed 's/\s*selection\s*//g'`
-    boards=`echo "${entry}" | cut -d":" -f2 | sed 's/\t\r\n//g'`
+list_build_boards() {
 
-    if [ x${input} = x${id} ] ; then
+    selection=$1
 
-        echo "==> User selected ${id} to build ${boards} ..."
+    while IFS= read -r entry; do
 
-        for board in ${boards} ; do
+        id=`echo "${entry}" | sed 's/\s*//g' | cut -d":" -f1 | sed 's/\s*selection\s*//g'`
+        boards=`echo "${entry}" | cut -d":" -f2 | sed 's/\t\r\n//g'`
 
-            dbg "calling build for board:[${board}]"
-            build_for_board ${board}
+        if [ "x${selection}" = "x" ] ; then
 
-        done
+            echo "[${id}] -> ${boards}"
 
-    fi
+        else
 
-done <<< "$board_list"
+            if [ x${selection} = x${id} ] ; then
+
+                echo "==> User selected ${id} to build ${boards} ..."
+
+                for board in ${boards} ; do
+
+                    dbg "calling build for board:[${board}]"
+                    build_for_board ${board}
+
+                done
+
+            fi
+
+        fi
+
+    done <<< "$board_list"
+}
+
+cd ${work_dir}
+
+input=$1
+
+if [ x${input} = "x" ] ; then
+
+    echo " "
+    echo "Script version:${ver}"
+    echo " "
+
+    list_build_boards
+
+    echo " "
+    echo "Please choose board by typing NN<Enter>"
+    echo "or press just Enter to exit..."
+    echo " "
+
+    read input
+
+    echo " "
+
+fi
+
+if [ ! x${input} = "x" ] ; then
+
+    list_build_boards ${input}
+
+fi
 
 exit 0
