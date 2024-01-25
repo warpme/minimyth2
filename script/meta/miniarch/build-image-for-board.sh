@@ -68,9 +68,9 @@ if [ ! -f ${mm_conf_file} ] ; then
 fi
 
 mm_home=`grep "^mm_HOME " ${mm_conf_file} | sed -e 's/.*\?=*\s//'`
-if [ ! -f ${mm_home}/script/meta/minimyth/Makefile ] ; then
+if [ ! -f ${mm_home}/script/meta/miniarch/Makefile ] ; then
     echo " "
-    echo "Error: MiniMyth2 home [${mm_home}] seems to be wrong directory !"
+    echo "Error: MiniArch home [${mm_home}] seems to be wrong directory !"
     echo "Exiting..."
     echo " "
     exit 1
@@ -80,7 +80,7 @@ work_dir="${mm_home}/script/meta/miniarch"
 
 cache_board_list() {
     rm -rf /tmp/miniarch-sd-card-boardlist.tmp
-    echo "$1" > /tmp/miniarch-sd-card-boardlist.tmp
+    echo "$1" > /tmp/miniatch-sd-card-boardlist.tmp
 }
 
 dbg() {
@@ -90,9 +90,9 @@ dbg() {
 }
 
 build_for_board() {
-    echo "==> Now building image for board: ${1}"
-    cache_board_list ${1}
-    make reinstall-new-board mm_BOARD_TYPE=${1} ${extra_params}
+    echo "==> Now building image for board(s): ${1}"
+    cache_board_list "${1}"
+    make reinstall-new-board mm_BOARD_TYPE="${1}" ${extra_params}
     make -C ../../bootloaders/bootloader clean-bootloader
 }
 
@@ -117,10 +117,12 @@ list_build_boards() {
 
                 echo "==> User selected ${id} to build ${boards} ..."
 
-                for board in ${boards} ; do
+                for token in ${boards} ; do
 
-                    dbg "calling build for board:[${board}]"
-                    build_for_board ${board}
+                    board=$(echo "${token}" | sed 's/&/ /g')
+
+                    dbg "calling build for board:["${board}"]"
+                    build_for_board "${board}"
 
                 done
 
