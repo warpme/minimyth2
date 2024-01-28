@@ -42,9 +42,10 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = orangepi-5-rk3588s_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi-5-plus-rk3588_defconfig
 
-# nok mm_U-BOOT_BOARD_TYPE = rk3566-x96_x6_defconfig
-# todo mm_U-BOOT_BOARD_TYPE = rock-4se-rk3399_defconfig
-# todo mm_U-BOOT_BOARD_TYPE = rock-pi-4b-rk3399_defconfig
+# not working yet
+# mm_U-BOOT_BOARD_TYPE = rk3566-x96_x6_defconfig
+# mm_U-BOOT_BOARD_TYPE = rock-4se-rk3399_defconfig
+# mm_U-BOOT_BOARD_TYPE = rock-pi-4b-rk3399_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
@@ -118,10 +119,14 @@ configure-custom:
 build-custom:
 	@echo "Building u-boot $(MKIMAGE_TYPE) with $(CONFIGURE_ARGS) ..."
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
-	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) ROCKCHIP_TPL=$(TPL) BL31=$(BL31)
+	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) ROCKCHIP_TPL=$(TPL) BL31=$(BL31) all
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
 	@echo "Creating idbloader.img ..."
 	@cd ./$(WORKSRC) && ./tools/mkimage -n $(MKIMAGE_TYPE) -T rksd -d $(DDR_BIN):spl/u-boot-spl.bin idbloader.img
+ifneq (,$(findstring rk3399,$(mm_U-BOOT_BOARD_TYPE)))
+	@echo "Creating trust.img ..."
+	@cd ./$(WORKSRC) && ../rkbin/tools/trust_merger --size 1024 1 ../../../files/rk3399-trust.ini
+endif
 	@$(MAKECOOKIE)
 
 install-custom:
@@ -132,6 +137,14 @@ install-custom:
 	@echo "Instaling u-boot.itb ..."
 	@cp -f  $(WORKSRC)/u-boot.itb \
 		$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb
+	@echo "Instaling u-boot.img ..."
+	@cp -f  $(WORKSRC)/u-boot.img \
+		$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/uboot.img
+	@if [ -e $(WORKSRC)/trust.img ] ; then \
+		echo "Installing trust.img ..." ; \
+		cp -f  $(WORKSRC)/trust.img \
+		$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/trust.img ; \
+	 fi
 	@$(MAKECOOKIE)
 
 clean-all:
