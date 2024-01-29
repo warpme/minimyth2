@@ -1,6 +1,6 @@
 
 GARNAME      = htop
-GARVERSION   = 3.2.2
+GARVERSION   = 3.3.0
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/htop-dev/htop/archive/
 DISTFILES    = $(GARVERSION).tar.gz
