@@ -172,6 +172,7 @@ DEPENDS = \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
 		utils/estimate-arm-cpu-frequency \
 		utils/tinymembench \
+		utils/mmc-utils \
 		utils/peekpoke) \
 	utils/kbd \
 	utils/dash \
