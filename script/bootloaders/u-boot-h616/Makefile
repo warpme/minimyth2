@@ -12,6 +12,7 @@ PATCHFILES  += 103-sunxi-dram-add-lpddr3-6gbit-support.patch
 PATCHFILES  += 104-sunxi-add-led-on-at-poweron.patch
 PATCHFILES  += 105-mtd-spi-nor-add-zbit-zb25vq128.patch
 PATCHFILES  += 106-Add-int-phy-eth-H313-h616-with-AC300.patch
+PATCHFILES  += 107-sunxi_mmc-dec-f_max-to-12MHz-to-get-emmc-reliable.patch
 # boards aditions.
 PATCHFILES  += 150-add-x96-q-lpddr3-defconfig.patch
 PATCHFILES  += 151-add-x96-q-ddr3-defconfig.patch
