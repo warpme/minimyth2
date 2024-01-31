@@ -12,11 +12,11 @@ endif
 
 ifeq (1,1)
 # Mainline u-boot
-GARNAME      = u-boot-rk3399-2020.07
-GARVERSION   = 2020.07
+GARNAME      = u-boot-rk3399-2024.01
+GARVERSION   = 866ca972d6c3cabeaf6dbac431e8e08bb30b3c8e
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
-DISTFILES    = v$(GARVERSION).zip
+DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 endif
 
@@ -35,6 +35,10 @@ INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
 include ../../python3/python/package-api.mk
+
+# mm_U-BOOT_BOARD_TYPE = rock-4se-rk3399_defconfig
+# mm_U-BOOT_BOARD_TYPE = rock-pi-4-rk3399_defconfig
+# mm_U-BOOT_BOARD_TYPE = orangepi-rk3399_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
