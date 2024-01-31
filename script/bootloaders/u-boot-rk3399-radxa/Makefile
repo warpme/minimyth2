@@ -1,11 +1,14 @@
 
-GARNAME      = u-boot-rk3399-rockchip-21052021
+# master page with radxa uboot for rk3399 boards:
+# https://github.com/radxa/rockchip-bsp
+
+GARNAME      = u-boot-rk3399-rockchip-20221107
 # https://github.com/radxa/u-boot/archive/
-GARVERSION   = f18abd08ab7b374d3c9e3865cfa193d6113463b5
+GARVERSION   = 8e67d581610eb7abd97885e1069b94dcf15b592c
 # https://github.com/radxa/rkbin/commits/master
-RKBINVERSION = e8e5d791093d7d229d29a54e23c7d541ff076d17
+RKBINVERSION = 9840e87723eef7c41235b89af8c049c1bcd3d133
 # https://github.com/radxa/build/commits/debian
-BUILDSCRVERSION = 763eec0c7c29af9f60cca5e98eb1db6031b11976
+BUILDSCRVERSION = 1ba389f4468a93dca5906d0ea50e28d042a85c00
 CATEGORIES   = kernel
 MASTER_SITES = \
 		https://github.com/radxa/u-boot/archive/ \
@@ -15,7 +18,6 @@ DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip $(BUILDSCRVERSION).zip
 PATCHFILES   = 01-scripts-dtc-Remove-redundant-YYLOC-global-declaration.patch
 PATCHFILES  += 02-fix-building-gcc9.patch
 PATCHFILES  += 03-arm-dts-remove-unused-rk-boards.patch
-PATCHFILES  += 04-fix-building-gcc13.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 LICENSE = GPL2
@@ -34,7 +36,12 @@ INSTALL_SCRIPTS     = custom
 include ../../gar.mk
 include ../../python2/python/package-api.mk
 
-mm_U-BOOT_BOARD_TYPE = rockpi4b
+# mm_U-BOOT_BOARD_TYPE = rk3399-rock-pi-4a
+# mm_U-BOOT_BOARD_TYPE = rk3399-rock-pi-4b
+# mm_U-BOOT_BOARD_TYPE = rk3399-rock-pi-4c
+# mm_U-BOOT_BOARD_TYPE = rk3399-rock-4c-plus
+
+CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
 pre-configure:
 	@mkdir -p $(WORKDIR)/u-boot
@@ -43,10 +50,8 @@ pre-configure:
 	@mv -f $(WORKDIR)/u-boot-$(GARVERSION)/* $(WORKDIR)/u-boot/
 	@mv -f $(WORKDIR)/rkbin-$(RKBINVERSION)/* $(WORKDIR)/rkbin/
 	@mv -f $(WORKDIR)/build-$(BUILDSCRVERSION)/* $(WORKDIR)/build/
-	@# dealing with hardcoded toolchain paths in Rockchip's mk-uboot.sh
-	@sed -i "s|CROSS_COMPILE=.*|CROSS_COMPILE=$(compiler_prefix)|" $(WORKDIR)/build/mk-uboot.sh
-	@sed -i "s|ARCH=.*|ARCH=aarch64|" $(WORKDIR)/build/mk-uboot.sh
-	@sed -i "s|^make |CROSS_COMPILE=$(compiler_prefix) make |" $(WORKDIR)/build/mk-uboot.sh
+	@# dealing with hardcoded toolchain paths in Rockchip's boards-config.sh
+	@sed -i "s|CROSS_COMPILE=.*|CROSS_COMPILE=$(compiler_prefix)|" $(WORKDIR)/build/board_configs.sh
 	@$(MAKECOOKIE)
 
 build-custom:
