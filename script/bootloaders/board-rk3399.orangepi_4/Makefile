@@ -11,7 +11,7 @@ DISTFILES    = \
                rk3399-boot.txt \
                minimyth.conf   \
 
-export mm_U-BOOT_BOARD_TYPE = rockpi4b
+export mm_U-BOOT_BOARD_TYPE = rk3399-rock-pi-4b
 
 WORKSRC      = $(WORKDIR)
 
