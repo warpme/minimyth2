@@ -1,884 +1,4 @@
-From 64c2184e3b498aa5c279b8dd0a024bac3842dc89 Mon Sep 17 00:00:00 2001
-From: Jan Hambrecht <jaham@gmx.net>
-Date: Sun, 9 Apr 2023 13:10:43 +0200
-Subject: [PATCH] Introduce MythMediaHandler to replace MediaPlayCallback
-
-Introduce MythMediaHandler interface replacing MediaPlayCallback
-function to provide a richer interface for media playback as well
-as bookmark and later playing position support.
-Bookmark support is optional and derived plugins only need to
-support the media handling part as before.
-Further development might add support for media handlers to
-advertise which kind of media they support (i.e. type of urls)
-so users of the API can query a plugin by mediatype instead of
-by handler name.
----
- .../mythbrowser/libmythbrowser.cpp            |  93 +++----
- mythtv/libs/libmythui/libmythui.pro           |   3 +
- mythtv/libs/libmythui/mythmainwindow.cpp      |  50 ++--
- mythtv/libs/libmythui/mythmainwindow.h        |  11 +-
- mythtv/libs/libmythui/mythmainwindowprivate.h |   4 +-
- mythtv/libs/libmythui/mythmediahandler.cpp    |  31 +++
- mythtv/libs/libmythui/mythmediahandler.h      |  58 +++++
- mythtv/programs/mythfrontend/mythfrontend.cpp | 233 +++++++++++-------
- 8 files changed, 325 insertions(+), 158 deletions(-)
- create mode 100644 mythtv/libs/libmythui/mythmediahandler.cpp
- create mode 100644 mythtv/libs/libmythui/mythmediahandler.h
-
-diff --git a/mythplugins/mythbrowser/mythbrowser/libmythbrowser.cpp b/mythplugins/mythbrowser/mythbrowser/libmythbrowser.cpp
-index 51868dde1de..699d584f5f7 100644
---- a/mythplugins/mythbrowser/mythbrowser/libmythbrowser.cpp
-+++ b/mythplugins/mythbrowser/mythbrowser/libmythbrowser.cpp
-@@ -10,6 +10,7 @@
- #include <libmythbase/mythversion.h>
- #include <libmythui/mythmainwindow.h>
- #include <libmythui/mythscreenstack.h>
-+#include <libmythui/mythmediahandler.h>
- 
- // mythbrowser
- #include "bookmarkmanager.h"
-@@ -17,52 +18,60 @@
- #include "mythbrowser.h"
- #include "mythflashplayer.h"
- 
--// Based on MediaPlayCallback.  Parameters only seem to have local significance.
--static int handleMedia(const QString &url, const QString &directory, const QString &filename,
--                       const QString & /*unused*/, const QString & /*unused*/, int /*unused*/,
--                       int /*unused*/, const QString & /*unused*/, std::chrono::minutes /*unused*/,
--                       const QString & /*unused*/, const QString & /*unused*/, bool /*unused*/)
--{
--    if (url.isEmpty())
--    {
--        LOG(VB_GENERAL, LOG_ERR, "MythBrowser: handleMedia got empty url!");
--        return 1;
--    }
--
--#if QT_VERSION < QT_VERSION_CHECK(5,14,0)
--    QStringList urls = url.split(" ", QString::SkipEmptyParts);
--#else
--    QStringList urls = url.split(" ", Qt::SkipEmptyParts);
--#endif
- 
--    MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
--
--    if (urls[0].startsWith("mythflash://"))
-+class InternalWebBrowser : public MythMediaHandler
-+{
-+protected:
-+    // Adapted parameters names, could later be converted
-+    // to a separate interface function in MythMediaHandler
-+    int HandleMediaImpl(const QString &url,
-+                        const QString &directory, const QString &filename,
-+                        const QString & /*unused*/, const QString & /*unused*/,
-+                        int /*unused*/, int /*unused*/, const QString & /*unused*/,
-+                        std::chrono::minutes /*unused*/, const QString & /*unused*/,
-+                        const QString & /*unused*/, bool /*unused*/) override
-     {
--        auto *flashplayer = new MythFlashPlayer(mainStack, urls);
--        if (flashplayer->Create())
--            mainStack->AddScreen(flashplayer);
-+        if (url.isEmpty())
-+        {
-+            LOG(VB_GENERAL, LOG_ERR, "MythBrowser: handleMedia got empty url!");
-+            return 1;
-+        }
-+
-+    #if QT_VERSION < QT_VERSION_CHECK(5,14,0)
-+        QStringList urls = url.split(" ", QString::SkipEmptyParts);
-+    #else
-+        QStringList urls = url.split(" ", Qt::SkipEmptyParts);
-+    #endif
-+
-+        MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
-+
-+        if (urls[0].startsWith("mythflash://"))
-+        {
-+            auto *flashplayer = new MythFlashPlayer(mainStack, urls);
-+            if (flashplayer->Create())
-+                mainStack->AddScreen(flashplayer);
-+            else
-+                delete flashplayer;
-+        }
-         else
--            delete flashplayer;
--    }
--    else
--    {
--        auto *mythbrowser = new MythBrowser(mainStack, urls);
-+        {
-+            auto *mythbrowser = new MythBrowser(mainStack, urls);
- 
--        if (!directory.isEmpty())
--            mythbrowser->setDefaultSaveDirectory(directory);
-+            if (!directory.isEmpty())
-+                mythbrowser->setDefaultSaveDirectory(directory);
- 
--        if (!filename.isEmpty())
--            mythbrowser->setDefaultSaveFilename(filename);
-+            if (!filename.isEmpty())
-+                mythbrowser->setDefaultSaveFilename(filename);
- 
--        if (mythbrowser->Create())
--            mainStack->AddScreen(mythbrowser);
--        else
--            delete mythbrowser;
--    }
-+            if (mythbrowser->Create())
-+                mainStack->AddScreen(mythbrowser);
-+            else
-+                delete mythbrowser;
-+        }
- 
--    return 0;
--}
-+        return 0;
-+    }
-+};
- 
- static void runBookmarkManager()
- {
-@@ -86,7 +95,8 @@ static void runHomepage()
-     if (query.size() > 0)
-     {
-         query.next();
--        handleMedia( query.value(0).toString(), "", "", "", "", 0, 0, "", 0min, "", "", false);
-+        static InternalWebBrowser browser;
-+        browser.HandleMedia(query.value(0).toString(), "", "", "", "", 0, 0, "", 0min, "", "", false);
-     }
-     else
-     {
-@@ -116,8 +126,7 @@ static void setupKeys(void)
-     REG_JUMP("Homepage", QT_TRANSLATE_NOOP("MythControls",
-         "Show the webbrowser homepage"), "", runHomepage);
- 
--    REG_MEDIAPLAYER("WebBrowser", QT_TRANSLATE_NOOP("MythControls",
--        "Internal Web Browser"), handleMedia);
-+    REG_MEDIAPLAYER("WebBrowser", MythMediaHandlerPtr(new InternalWebBrowser));
- }
- 
- int mythplugin_init(const char *libversion)
-diff --git a/mythtv/libs/libmythui/libmythui.pro b/mythtv/libs/libmythui/libmythui.pro
-index 03751c99905..7eaad724de1 100644
---- a/mythtv/libs/libmythui/libmythui.pro
-+++ b/mythtv/libs/libmythui/libmythui.pro
-@@ -52,6 +52,7 @@ HEADERS += mythvrr.h
- HEADERS += mythcolourspace.h
- HEADERS += devices/mythinputdevicehandler.h
- HEADERS += mythuiprocedural.h
-+HEADERS += mythmediahandler.h
- 
- SOURCES  = mythmainwindowprivate.cpp mythmainwindow.cpp mythpainter.cpp mythimage.cpp mythrect.cpp
- SOURCES += mythpainterwindow.cpp mythpainterwindowqt.cpp
-@@ -87,6 +88,7 @@ SOURCES += mythvrr.cpp
- SOURCES += mythcolourspace.cpp
- SOURCES += devices/mythinputdevicehandler.cpp
- SOURCES += mythuiprocedural.cpp
-+SOURCES += mythmediahandler.cpp
- 
- using_qtwebkit {
- HEADERS += mythuiwebbrowser.h
-@@ -113,6 +115,7 @@ inc.files += mythuiexp.h mythuisimpletext.h mythuiactions.h
- inc.files += mythuistatetracker.h mythuianimation.h mythuiscrollbar.h
- inc.files += mythnotificationcenter.h mythnotification.h mythuicomposite.h
- inc.files += mythhdr.h mythcolourspace.h
-+inc.files += mythmediahandler.h
- 
- INSTALLS += inc
- 
-diff --git a/mythtv/libs/libmythui/mythmainwindow.cpp b/mythtv/libs/libmythui/mythmainwindow.cpp
-index 19890fbba72..ddd46da4415 100644
---- a/mythtv/libs/libmythui/mythmainwindow.cpp
-+++ b/mythtv/libs/libmythui/mythmainwindow.cpp
-@@ -1470,22 +1470,39 @@ QStringList MythMainWindow::EnumerateDestinations() const
-     return m_priv->m_destinationMap.keys();
- }
- 
--void MythMainWindow::RegisterMediaPlugin(const QString& Name, const QString& Desc,
--                                         MediaPlayCallback Func)
-+void MythMainWindow::RegisterMediaHandler(const QString &Name, MythMediaHandlerPtr Handler)
- {
--    if (m_priv->m_mediaPluginMap.count(Name) == 0)
-+    if (!Handler)
-     {
--        LOG(VB_GENERAL, LOG_NOTICE, QString("Registering %1 as a media playback plugin.")
-+        LOG(VB_GENERAL, LOG_WARNING, QString("Trying to register null media playback handler."));
-+        return;
-+    }
-+    if (m_priv->m_mediaHandlerMap.count(Name) == 0)
-+    {
-+        LOG(VB_GENERAL, LOG_NOTICE, QString("Registering %1 as a media playback handler.")
-             .arg(Name));
--        m_priv->m_mediaPluginMap[Name] = { Desc, Func };
-+        m_priv->m_mediaHandlerMap[Name] = Handler;
-     }
-     else
-     {
--        LOG(VB_GENERAL, LOG_NOTICE, QString("%1 is already registered as a media playback plugin.")
-+        LOG(VB_GENERAL, LOG_NOTICE, QString("%1 is already registered as a media playback handler.")
-                 .arg(Name));
-     }
- }
- 
-+MythMediaHandlerPtr MythMainWindow::GetMediaHandler(const QString &Name) const
-+{
-+    QString handlerName(Name);
-+    if (handlerName.isEmpty())
-+        handlerName = "Internal";
-+
-+    if (m_priv->m_mediaHandlerMap.contains(handlerName))
-+    {
-+        return m_priv->m_mediaHandlerMap[handlerName];
-+    }
-+    return MythMediaHandlerPtr();
-+}
-+
- bool MythMainWindow::HandleMedia(const QString& Handler, const QString& Mrl,
-                                  const QString& Plot, const QString& Title,
-                                  const QString& Subtitle,
-@@ -1494,21 +1511,16 @@ bool MythMainWindow::HandleMedia(const QString& Handler, const QString& Mrl,
-                                  std::chrono::minutes LenMins, const QString& Year,
-                                  const QString& Id, bool UseBookmarks)
- {
--    QString lhandler(Handler);
--    if (lhandler.isEmpty())
--        lhandler = "Internal";
--
--    // Let's see if we have a plugin that matches the handler name...
--    if (m_priv->m_mediaPluginMap.contains(lhandler))
-+    auto mediaHandler = GetMediaHandler(Handler);
-+    if (mediaHandler.isNull())
-     {
--        m_priv->m_mediaPluginMap[lhandler].second(Mrl, Plot, Title, Subtitle,
--                                                  Director, Season, Episode,
--                                                  Inetref, LenMins, Year, Id,
--                                                  UseBookmarks);
--        return true;
-+        return false;
-     }
--
--    return false;
-+    mediaHandler->HandleMedia(Mrl, Plot, Title, Subtitle,
-+                      Director, Season, Episode,
-+                      Inetref, LenMins, Year, Id,
-+                      UseBookmarks);
-+    return true;
- }
- 
- void MythMainWindow::HandleTVAction(const QString& Action)
-diff --git a/mythtv/libs/libmythui/mythmainwindow.h b/mythtv/libs/libmythui/mythmainwindow.h
-index 66e7953926f..9f3ba53b89a 100644
---- a/mythtv/libs/libmythui/mythmainwindow.h
-+++ b/mythtv/libs/libmythui/mythmainwindow.h
-@@ -11,13 +11,12 @@
- #include "libmythui/mythscreenstack.h"
- #include "libmythui/mythuiactions.h"
- #include "libmythui/mythuiscreenbounds.h"
-+#include "libmythui/mythmediahandler.h"
- 
- class QEvent;
- class MythThemeBase;
- class MythMediaDevice;
- 
--using MediaPlayCallback = int (*)(const QString& , const QString& , const QString& , const QString& , const QString& , int, int, const QString& , std::chrono::minutes, const QString& , const QString& , bool);
--
- class MythScreenSaverControl;
- class MythDisplay;
- class MythInputDeviceHandler;
-@@ -65,8 +64,8 @@ class MUI_PUBLIC MythMainWindow : public MythUIScreenBounds
-                       const QString& Key, void (*Callback)(void),
-                       bool Exittomain = true, QString LocalAction = "");
-     void ClearAllJumps();
--    void RegisterMediaPlugin(const QString& Name, const QString& Desc,
--                             MediaPlayCallback Func);
-+    void RegisterMediaHandler(const QString &Name, MythMediaHandlerPtr Handler);
-+    MythMediaHandlerPtr GetMediaHandler(const QString &Name) const;
-     bool HandleMedia(const QString& Handler, const QString& Mrl,
-                      const QString& Plot="", const QString& Title="",
-                      const QString& Subtitle="", const QString& Director="",
-@@ -206,9 +205,9 @@ REG_JUMPEX(const QString& Destination, const QString& Description,
- }
- 
- static inline void
--REG_MEDIAPLAYER(const QString& Name, const QString& Desc, MediaPlayCallback Func)
-+REG_MEDIAPLAYER(const QString &Name, MythMediaHandlerPtr MediaHandler)
- {
--    GetMythMainWindow()->RegisterMediaPlugin(Name, Desc, Func);
-+    GetMythMainWindow()->RegisterMediaHandler(Name, MediaHandler);
- }
- 
- #endif
-diff --git a/mythtv/libs/libmythui/mythmainwindowprivate.h b/mythtv/libs/libmythui/mythmainwindowprivate.h
-index 541b7d1efcd..231f8ceaf08 100644
---- a/mythtv/libs/libmythui/mythmainwindowprivate.h
-+++ b/mythtv/libs/libmythui/mythmainwindowprivate.h
-@@ -42,8 +42,6 @@ struct JumpData
-     QString m_localAction;
- };
- 
--using MythMediaCallback = QPair<QString, MediaPlayCallback>;
--
- class MythMainWindowPrivate
- {
-     friend class MythMainWindow;
-@@ -61,7 +59,7 @@ class MythMainWindowPrivate
-     QHash<QString, KeyContext *> m_keyContexts;
-     QMap<int, JumpData*> m_jumpMap;
-     QMap<QString, JumpData> m_destinationMap;
--    QMap<QString, MythMediaCallback> m_mediaPluginMap;
-+    QMap<QString, MythMediaHandlerPtr> m_mediaHandlerMap;
-     QHash<QString, QHash<QString, QString> > m_actionText;
- 
-     void (*m_exitMenuCallback)(void) { nullptr };
-diff --git a/mythtv/libs/libmythui/mythmediahandler.cpp b/mythtv/libs/libmythui/mythmediahandler.cpp
-new file mode 100644
-index 00000000000..34b835a18d5
---- /dev/null
-+++ b/mythtv/libs/libmythui/mythmediahandler.cpp
-@@ -0,0 +1,31 @@
-+#include "mythmediahandler.h"
-+
-+int MythMediaHandler::HandleMedia(const QString& Mrl,
-+        const QString& Plot, const QString& Title,
-+        const QString& Subtitle, const QString& Director,
-+        int Season, int Episode, const QString& Inetref,
-+        std::chrono::minutes LenMins, const QString& Year,
-+        const QString& Id, bool UseBookmark)
-+{
-+    return HandleMediaImpl(Mrl, Plot, Title, Subtitle, Director, Season, Episode, Inetref, LenMins, Year, Id, UseBookmark);
-+}
-+
-+bool MythMediaHandler::QueryBookmark(const QString& Mrl,
-+        const QString& Plot, const QString& Title,
-+        const QString& Subtitle, const QString& Director,
-+        int Season, int Episode, const QString& Inetref,
-+        std::chrono::minutes LenMins, const QString& Year,
-+        const QString& Id)
-+{
-+    return QueryBookmarkImpl(Mrl, Plot, Title, Subtitle, Director, Season, Episode, Inetref, LenMins, Year, Id);
-+}
-+
-+bool MythMediaHandler::QueryBookmarkImpl(const QString& /*Mrl*/,
-+        const QString& /*Plot*/, const QString& /*Title*/,
-+        const QString& /*Subtitle*/, const QString& /*Director*/,
-+        int /*Season*/, int /*Episode*/, const QString& /*Inetref*/,
-+        std::chrono::minutes /*LenMins*/, const QString& /*Year*/,
-+        const QString& /*Id*/)
-+{
-+    return false;
-+}
-diff --git a/mythtv/libs/libmythui/mythmediahandler.h b/mythtv/libs/libmythui/mythmediahandler.h
-new file mode 100644
-index 00000000000..c3bf4c2b231
---- /dev/null
-+++ b/mythtv/libs/libmythui/mythmediahandler.h
-@@ -0,0 +1,58 @@
-+#ifndef MYTHMEDIAHANDLER_H_
-+#define MYTHMEDIAHANDLER_H_
-+
-+#include "libmythui/mythuiexp.h"
-+#include "libmythbase/mythchrono.h"
-+
-+#include <QString>
-+#include <QSharedPointer>
-+
-+// Interface to support handling of different kind of media
-+// Derived classes can be registered with MythMainWindow
-+// to be requested for handling media in a transparent manner.
-+// Uses non-virtual interface pattern to support consistent
-+// default parameter values.
-+class MUI_PUBLIC MythMediaHandler
-+{
-+public:
-+    MythMediaHandler() = default;
-+    virtual ~MythMediaHandler() = default;
-+
-+    /// Handle/play media with the specified metadata
-+    int HandleMedia(const QString& Mrl,
-+            const QString& Plot="", const QString& Title="",
-+            const QString& Subtitle="", const QString& Director="",
-+            int Season=0, int Episode=0, const QString& Inetref="",
-+            std::chrono::minutes LenMins=2h, const QString& Year="1895",
-+            const QString& Id="", bool UseBookmarks = false);
-+
-+    /// Query bookmark of media with the specified metadata
-+    bool QueryBookmark(const QString& Mrl,
-+            const QString& Plot="", const QString& Title="",
-+            const QString& Subtitle="", const QString& Director="",
-+            int Season=0, int Episode=0, const QString& Inetref="",
-+            std::chrono::minutes LenMins=2h, const QString& Year="1895",
-+            const QString& Id="");
-+protected:
-+    /// Implementation of HandleMedia function
-+    /// Support for this is mandatory in derived classes
-+    virtual int HandleMediaImpl(const QString& Mrl,
-+            const QString& Plot, const QString& Title,
-+            const QString& Subtitle, const QString& Director,
-+            int Season, int Episode, const QString& Inetref,
-+            std::chrono::minutes LenMins, const QString& Year,
-+            const QString& Id, bool UseBookmarks) = 0;
-+
-+    /// Default implementation of QueryBookmark function
-+    /// Support for this is optional in derived classes
-+    virtual bool QueryBookmarkImpl(const QString& Mrl,
-+            const QString& Plot, const QString& Title,
-+            const QString& Subtitle, const QString& Director,
-+            int Season, int Episode, const QString& Inetref,
-+            std::chrono::minutes LenMins, const QString& Year,
-+            const QString& Id);
-+};
-+
-+using MythMediaHandlerPtr = QSharedPointer<MythMediaHandler>;
-+
-+#endif // MYTHMEDIAHANDLER_H_
-diff --git a/mythtv/programs/mythfrontend/mythfrontend.cpp b/mythtv/programs/mythfrontend/mythfrontend.cpp
-index 221fe507236..854ac39b9d5 100644
---- a/mythtv/programs/mythfrontend/mythfrontend.cpp
-+++ b/mythtv/programs/mythfrontend/mythfrontend.cpp
-@@ -61,6 +61,7 @@
- #include "libmythui/mythmainwindow.h"
- #include "libmythui/myththemedmenu.h"
- #include "libmythui/mythuihelper.h"
-+#include "libmythui/mythmediahandler.h"
- #include "libmythupnp/taskqueue.h"
- 
- // MythFrontend
-@@ -1281,122 +1282,179 @@ static void WriteDefaults()
-     //TODo Channel group not loaded?
- }
- 
--static int internal_play_media(const QString &mrl, const QString &plot,
--                        const QString &title, const QString &subtitle,
--                        const QString &director, int season, int episode,
--                        const QString &inetref, std::chrono::minutes lenMins,
--                        const QString &year,
--                        const QString &id, const bool useBookmark)
-+class InternalPlayer : public MythMediaHandler
- {
--    int res = -1;
--
--    QFile checkFile(mrl);
--    if ((!checkFile.exists() && !mrl.startsWith("dvd:")
--         && !mrl.startsWith("bd:")
--         && !mrl.startsWith("myth:")
--         && !mrl.startsWith("http://")
--         && !mrl.startsWith("https://")))
--    {
--        QString errorText = QCoreApplication::translate("(MythFrontendMain)",
--            "Failed to open \n '%1' in %2 \n"
--            "Check if the video exists")
--            .arg(mrl.section('/', -1),
--                 mrl.section('/', 0, -2));
--
--        ShowOkPopup(errorText);
--        return res;
--    }
-+protected:
-+    int HandleMediaImpl(const QString &mrl, const QString &plot,
-+                 const QString &title, const QString &subtitle,
-+                 const QString &director, int season, int episode,
-+                 const QString &inetref, std::chrono::minutes lenMins,
-+                 const QString &year,
-+                 const QString &id, const bool useBookmark) override
-+    {
-+        int res = -1;
- 
--    auto *pginfo = new ProgramInfo(
--        mrl, plot, title, QString(), subtitle, QString(),
--        director, season, episode, inetref, lenMins,
--        (year.toUInt()) ? year.toUInt() : 1900, id);
-+        if (!CheckMediaUrl(mrl))
-+        {
-+            QString errorText = QCoreApplication::translate("(MythFrontendMain)",
-+                "Failed to open \n '%1' in %2 \n"
-+                "Check if the video exists")
-+                .arg(mrl.section('/', -1),
-+                    mrl.section('/', 0, -2));
- 
--    pginfo->SetProgramInfoType(pginfo->DiscoverProgramInfoType());
-+            ShowOkPopup(errorText);
-+            return res;
-+        }
- 
--    bool bookmarkPresent = false;
--    bool lastPlayPresent = false;
-+        auto *pginfo = new ProgramInfo(
-+            mrl, plot, title, QString(), subtitle, QString(),
-+            director, season, episode, inetref, lenMins,
-+            (year.toUInt()) ? year.toUInt() : 1900, id);
- 
--    if (pginfo->IsVideoDVD())
--    {
--        auto *dvd = new MythDVDInfo(pginfo->GetPlaybackURL());
--        if (dvd->IsValid())
-+        pginfo->SetProgramInfoType(pginfo->DiscoverProgramInfoType());
-+
-+        bool bookmarkPresent = false;
-+        uint64_t lastPlayPos = 0;
-+
-+        if (useBookmark && !CheckBookmark(pginfo, bookmarkPresent, lastPlayPos, true))
-+        {
-+            delete pginfo;
-+            return res;
-+        }
-+
-+        if (useBookmark && (bookmarkPresent || lastPlayPos > 0))
-         {
--            QString name;
--            QString serialid;
--            if (dvd->GetNameAndSerialNum(name, serialid))
-+            MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
-+            auto *bookmarkdialog = new BookmarkDialog(pginfo, mainStack,
-+                                                    bookmarkPresent,
-+                                                    lastPlayPos > 0);
-+            if (!bookmarkdialog->Create())
-             {
--                QStringList fields = pginfo->QueryDVDBookmark(serialid);
--                bookmarkPresent = (fields.count() > 0);
-+                delete bookmarkdialog;
-+                delete pginfo;
-+                return res;
-             }
-         }
-         else
-         {
--            ShowNotificationError(QCoreApplication::translate("(MythFrontendMain)",
--                                                  "DVD Failure"),
--                                                  sLocation,
--                                                  dvd->GetLastError());
--            delete dvd;
-+            TV::StartTV(pginfo, kStartTVNoFlags | kStartTVIgnoreBookmark);
-+
-+            res = 0;
-+
-             delete pginfo;
--            return res;
-         }
--        delete dvd;
-+
-+        return res;
-     }
--    else if (pginfo->IsVideoBD())
-+    
-+    bool QueryBookmarkImpl(const QString& mrl,
-+                         const QString& plot, const QString& title,
-+                         const QString& subtitle, const QString& director,
-+                         int season, int episode, const QString& inetref,
-+                         std::chrono::minutes lenMins, const QString& year,
-+                         const QString& id) override
-     {
--        MythBDInfo bd(pginfo->GetPlaybackURL());
--        if (bd.IsValid())
-+        if (!CheckMediaUrl(mrl))
-         {
--            QString name;
--            QString serialid;
--            if (bd.GetNameAndSerialNum(name, serialid))
--            {
--                QStringList fields = pginfo->QueryBDBookmark(serialid);
--                bookmarkPresent = (fields.count() > 0);
--            }
-+            return false;
-         }
--        else
-+        auto *pginfo = new ProgramInfo(
-+            mrl, plot, title, QString(), subtitle, QString(),
-+            director, season, episode, inetref, lenMins,
-+            (year.toUInt()) ? year.toUInt() : 1900, id);
-+
-+        pginfo->SetProgramInfoType(pginfo->DiscoverProgramInfoType());
-+
-+        bool bookmarkPresent = false;
-+        uint64_t lastPlayPos = 0;
-+
-+        if (!CheckBookmark(pginfo, bookmarkPresent, lastPlayPos, false))
-         {
--            ShowNotificationError(QCoreApplication::translate("(MythFrontendMain)",
--                                                  "BD Failure"),
--                                                  sLocation,
--                                                  bd.GetLastError());
-             delete pginfo;
--            return res;
-+            return false;
-         }
--    }
--    else if (useBookmark && pginfo->IsVideo())
--    {
--        pginfo->SetIgnoreLastPlayPos(false);
--        pginfo->SetIgnoreBookmark(false);
--        bookmarkPresent = pginfo->QueryBookmark() > 0;
--        lastPlayPresent = pginfo->QueryLastPlayPos() > 0;
-+        
-+        delete pginfo;
-+        return bookmarkPresent;
-     }
- 
--    if (useBookmark && (bookmarkPresent || lastPlayPresent))
-+private:
-+    bool CheckMediaUrl(const QString &mrl)
-     {
--        MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
--        auto *bookmarkdialog = new BookmarkDialog(pginfo, mainStack,
--                                                  bookmarkPresent,
--                                                  lastPlayPresent);
--        if (!bookmarkdialog->Create())
-+        QFile checkFile(mrl);
-+        if ((!checkFile.exists() && !mrl.startsWith("dvd:")
-+            && !mrl.startsWith("bd:")
-+            && !mrl.startsWith("myth:")
-+            && !mrl.startsWith("http://")
-+            && !mrl.startsWith("https://")))
-         {
--            delete bookmarkdialog;
--            delete pginfo;
--            return res;
-+            return false;
-         }
-+        return true;
-     }
--    else
-+    
-+    bool CheckBookmark(ProgramInfo *pginfo, bool &hasBookmark, uint64_t &lastPlayPos, bool showError = false)
-     {
--        TV::StartTV(pginfo, kStartTVNoFlags | kStartTVIgnoreBookmark);
--
--        res = 0;
-+        hasBookmark = false;
-+        lastPlayPos = 0;
- 
--        delete pginfo;
-+        if (pginfo->IsVideoDVD())
-+        {
-+            MythDVDInfo dvd(pginfo->GetPlaybackURL());
-+            if (dvd.IsValid())
-+            {
-+                QString name;
-+                QString serialid;
-+                if (dvd.GetNameAndSerialNum(name, serialid))
-+                {
-+                    QStringList fields = pginfo->QueryDVDBookmark(serialid);
-+                    hasBookmark = (fields.count() > 0);
-+                }
-+                return true;
-+            }
-+            else if (showError)
-+            {
-+                ShowNotificationError(QCoreApplication::translate("(MythFrontendMain)",
-+                                                    "DVD Failure"),
-+                                                    sLocation,
-+                                                    dvd.GetLastError());
-+            }
-+        }
-+        else if (pginfo->IsVideoBD())
-+        {
-+            MythBDInfo bd(pginfo->GetPlaybackURL());
-+            if (bd.IsValid())
-+            {
-+                QString name;
-+                QString serialid;
-+                if (bd.GetNameAndSerialNum(name, serialid))
-+                {
-+                    QStringList fields = pginfo->QueryBDBookmark(serialid);
-+                    hasBookmark = (fields.count() > 0);
-+                }
-+                return true;
-+            }
-+            else if (showError)
-+            {
-+                ShowNotificationError(QCoreApplication::translate("(MythFrontendMain)",
-+                                                    "BD Failure"),
-+                                                    sLocation,
-+                                                    bd.GetLastError());
-+            }
-+        }
-+        else if (pginfo->IsVideo())
-+        {
-+            pginfo->SetIgnoreLastPlayPos(false);
-+            pginfo->SetIgnoreBookmark(false);
-+            hasBookmark = pginfo->QueryBookmark() > 0;
-+            lastPlayPos = pginfo->QueryLastPlayPos();
-+            return true;
-+        }
-+        
-+        return false;
-     }
-+};
- 
--    return res;
--}
- 
- static void gotoMainMenu(void)
- {
-@@ -1707,8 +1765,7 @@ static void resetAllKeys(void)
- 
- static int internal_media_init()
- {
--    REG_MEDIAPLAYER("Internal", QT_TRANSLATE_NOOP("MythControls",
--        "MythTV's native media player."), internal_play_media);
-+    REG_MEDIAPLAYER("Internal", MythMediaHandlerPtr(new InternalPlayer));
-     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
-         "MythDVD DVD Media Handler"), "", handleDVDMedia,
-         MEDIATYPE_DVD, QString());
-From 14a08438e4bb87f2214c76493dd557afef805e07 Mon Sep 17 00:00:00 2001
-From: Jan Hambrecht <jaham@gmx.net>
-Date: Sun, 9 Apr 2023 14:30:54 +0200
-Subject: [PATCH] Add bookmark state support to videos
-
-Add support for displaying a bookmark state within
-the video manager. As querying the bookmark state
-is too expensive to do for each video, for now it
-is only queried and displayed for the currently
-selected video.
----
- mythtv/programs/mythfrontend/videodlg.cpp     | 23 ++++++++++++++++
- mythtv/programs/mythfrontend/videodlg.h       |  1 +
- .../mythfrontend/videoplayercommand.cpp       | 26 +++++++++++++++++++
- .../mythfrontend/videoplayercommand.h         |  3 ++-
- 4 files changed, 52 insertions(+), 1 deletion(-)
-
-diff --git a/mythtv/programs/mythfrontend/videodlg.cpp b/mythtv/programs/mythfrontend/videodlg.cpp
-index b470d256cc7..c63cb4639e3 100644
---- a/mythtv/programs/mythfrontend/videodlg.cpp
-+++ b/mythtv/programs/mythfrontend/videodlg.cpp
-@@ -563,6 +563,25 @@ namespace
-     }
- }
- 
-+void CopyBookmarkStateToUI(const VideoMetadata *metadata,
-+            MythUIButtonListItem *item = nullptr,
-+            MythScreenType *screen = nullptr)
-+{
-+    if (!metadata || (!item && !screen))
-+    {
-+        return;
-+    }
-+    auto bookmarkState = VideoPlayerCommand::PlayerFor(metadata).QueryBookmark() ? "yes" : "no";
-+    if (item)
-+    {
-+        item->DisplayState(bookmarkState, "bookmarkstate");
-+    }
-+    if (screen)
-+    {
-+        CheckedSet(screen, "bookmarkstate", bookmarkState);
-+    }
-+}
-+
- class ItemDetailPopup : public MythScreenType
- {
-     Q_OBJECT
-@@ -607,6 +626,7 @@ class ItemDetailPopup : public MythScreenType
- 
-         ScreenCopyDest dest(this);
-         CopyMetadataToUI(m_metadata, dest);
-+        CopyBookmarkStateToUI(m_metadata, nullptr, this);
- 
-         return true;
-     }
-@@ -1001,6 +1021,7 @@ bool VideoDialog::Create()
-     UIUtilW::Assign(this, m_parentalLevelState, "parentallevel");
-     UIUtilW::Assign(this, m_watchedState, "watchedstate");
-     UIUtilW::Assign(this, m_studioState, "studiostate");
-+    UIUtilW::Assign(this, m_bookmarkState, "bookmarkstate");
- 
-     if (err)
-     {
-@@ -1012,6 +1033,7 @@ bool VideoDialog::Create()
-     CheckedSet(m_parentalLevelState, "None");
-     CheckedSet(m_watchedState, "None");
-     CheckedSet(m_studioState, "None");
-+    CheckedSet(m_bookmarkState, "None");
- 
-     BuildFocusList();
- 
-@@ -2241,6 +2263,7 @@ void VideoDialog::UpdateText(MythUIButtonListItem *item)
- 
-     if (m_d->m_currentNode)
-     {
-+        CopyBookmarkStateToUI(metadata, item, this);
-         CheckedSet(m_crumbText, m_d->m_currentNode->getRouteByString().join(" > "));
-         CheckedSet(this, "foldername", m_d->m_currentNode->GetText());
-     }
-diff --git a/mythtv/programs/mythfrontend/videodlg.h b/mythtv/programs/mythfrontend/videodlg.h
-index d4000536244..474ec0bd181 100644
---- a/mythtv/programs/mythfrontend/videodlg.h
-+++ b/mythtv/programs/mythfrontend/videodlg.h
-@@ -211,6 +211,7 @@ class VideoDialog : public MythScreenType
-     MythUIStateType  *m_userRatingState    {nullptr};
-     MythUIStateType  *m_watchedState       {nullptr};
-     MythUIStateType  *m_studioState        {nullptr};
-+    MythUIStateType  *m_bookmarkState      {nullptr};
- 
-     MetadataFactory *m_metadataFactory     {nullptr};
- 
-diff --git a/mythtv/programs/mythfrontend/videoplayercommand.cpp b/mythtv/programs/mythfrontend/videoplayercommand.cpp
-index 30eeb096631..ad0c8759449 100644
---- a/mythtv/programs/mythfrontend/videoplayercommand.cpp
-+++ b/mythtv/programs/mythfrontend/videoplayercommand.cpp
-@@ -73,6 +73,9 @@ struct VideoPlayProc
-     virtual QString GetCommandDisplayName() const = 0;
- 
-     virtual VideoPlayProc *Clone() const = 0;
-+    
-+    // Returns true if bookmark is set
-+    virtual bool QueryBookmark() const { return false; };
- };
- 
- ////////////////////////////////////////////////////////////////////////
-@@ -122,6 +125,17 @@ class VideoPlayHandleMedia : public VideoPlayProc
-         return new VideoPlayHandleMedia(*this);
-     }
- 
-+    bool QueryBookmark() const override
-+    {
-+        auto mediaHandler = GetMythMainWindow()->GetMediaHandler(m_handler);
-+        if (mediaHandler.isNull()) {
-+            return false;
-+        }
-+        return mediaHandler->QueryBookmark(m_mrl,
-+                m_plot, m_title, m_subtitle, m_director, m_season,
-+                m_episode, m_inetref, m_length, m_year, m_id);
-+    }
-+    
-   private:
-     QString m_handler;
-     QString m_mrl;
-@@ -340,6 +354,13 @@ class VideoPlayerCommandPrivate
-         return {};
-     }
- 
-+    bool QueryBookmark() const
-+    {
-+        // Do this until one of the players returns true
-+        return std::any_of(m_playerProcs.cbegin(), m_playerProcs.cend(),
-+                          [](auto *player){ return player->QueryBookmark(); } );
-+    }
-+
-   private:
-     void AddPlayer(const QString &player, const QString &filename,
-             const QString &plot, const QString &title, const QString &subtitle,
-@@ -429,3 +450,8 @@ QString VideoPlayerCommand::GetCommandDisplayName() const
- {
-     return m_d->GetCommandDisplayName();
- }
-+
-+bool VideoPlayerCommand::QueryBookmark() const
-+{
-+    return m_d->QueryBookmark();
-+}
-diff --git a/mythtv/programs/mythfrontend/videoplayercommand.h b/mythtv/programs/mythfrontend/videoplayercommand.h
-index ba496cd521c..8e8a16c726a 100644
---- a/mythtv/programs/mythfrontend/videoplayercommand.h
-+++ b/mythtv/programs/mythfrontend/videoplayercommand.h
-@@ -17,7 +17,8 @@ class VideoPlayerCommand
-     VideoPlayerCommand &operator=(const VideoPlayerCommand &rhs);
- 
-     void Play() const;
--
-+    bool QueryBookmark() const;
-+    
-     /// Returns the player command suitable for display to the user.
-     QString GetCommandDisplayName() const;
- 
-From 0938c6db37ccfdd7a41b247d3a75ff78ddbfebd8 Mon Sep 17 00:00:00 2001
+From 4b2abb7d5c6783e0f012097af87bc68e23e2d1d6 Mon Sep 17 00:00:00 2001
 From: Jan Hambrecht <jaham@gmx.net>
 Date: Tue, 4 Apr 2023 16:20:05 +0200
 Subject: [PATCH] Add support for MARK_TOTAL_FRAMES for videos
@@ -1169,670 +289,7 @@ index 4d46b9d9f64..2fddcbe9ff5 100644
          m_watchedPercent = 0;
          return;
      }
-From 4c1953122ac5bebe40e7264ad5d50223aceb884e Mon Sep 17 00:00:00 2001
-From: Jan Hambrecht <jaham@gmx.net>
-Date: Sun, 9 Apr 2023 14:34:53 +0200
-Subject: [PATCH] Add displaying watched progress state to videos
-
-Add support for displaying watched progress state to
-video manager. The previously introduced MythMediaPlugin
-interface was extended to query for watched progress.
-This needs the last playing position (already supported)
-as well as a total frames markup datum within the
-filemarkup table. The latter can be created by rebuilding
-the seektable via mythcommflag.
-The watched progress is then calculated and can be
-displayed via a progress in the currently selected list
-item.
----
- mythtv/libs/libmythui/mythmediahandler.cpp    | 20 ++++++
- mythtv/libs/libmythui/mythmediahandler.h      | 17 +++++
- mythtv/programs/mythfrontend/mythfrontend.cpp | 69 ++++++++++++++++---
- mythtv/programs/mythfrontend/videodlg.cpp     | 45 +++++++-----
- mythtv/programs/mythfrontend/videodlg.h       |  1 +
- .../mythfrontend/videoplayercommand.cpp       | 36 +++++++++-
- .../mythfrontend/videoplayercommand.h         |  3 +-
- 7 files changed, 161 insertions(+), 30 deletions(-)
-
-diff --git a/mythtv/libs/libmythui/mythmediahandler.cpp b/mythtv/libs/libmythui/mythmediahandler.cpp
-index 34b835a18d5..1418ed3ee41 100644
---- a/mythtv/libs/libmythui/mythmediahandler.cpp
-+++ b/mythtv/libs/libmythui/mythmediahandler.cpp
-@@ -29,3 +29,23 @@ bool MythMediaHandler::QueryBookmarkImpl(const QString& /*Mrl*/,
- {
-     return false;
- }
-+
-+uint MythMediaHandler::QueryWatchedPercent(const QString& Mrl,
-+        const QString& Plot, const QString& Title,
-+        const QString& Subtitle, const QString& Director,
-+        int Season, int Episode, const QString& Inetref,
-+        std::chrono::minutes LenMins, const QString& Year,
-+        const QString& Id)
-+{
-+    return QueryWatchedPercentImpl(Mrl, Plot, Title, Subtitle, Director, Season, Episode, Inetref, LenMins, Year, Id);
-+}
-+
-+uint MythMediaHandler::QueryWatchedPercentImpl(const QString& /*Mrl*/,
-+        const QString& /*Plot*/, const QString& /*Title*/,
-+        const QString& /*Subtitle*/, const QString& /*Director*/,
-+        int /*Season*/, int /*Episode*/, const QString& /*Inetref*/,
-+        std::chrono::minutes /*LenMins*/, const QString& /*Year*/,
-+        const QString& /*Id*/)
-+{
-+    return 0;
-+}
-diff --git a/mythtv/libs/libmythui/mythmediahandler.h b/mythtv/libs/libmythui/mythmediahandler.h
-index c3bf4c2b231..b46c702d0e6 100644
---- a/mythtv/libs/libmythui/mythmediahandler.h
-+++ b/mythtv/libs/libmythui/mythmediahandler.h
-@@ -33,6 +33,14 @@ class MUI_PUBLIC MythMediaHandler
-             int Season=0, int Episode=0, const QString& Inetref="",
-             std::chrono::minutes LenMins=2h, const QString& Year="1895",
-             const QString& Id="");
-+
-+    /// Query last watched percent of media with the specified metadata
-+    uint QueryWatchedPercent(const QString& Mrl,
-+            const QString& Plot="", const QString& Title="",
-+            const QString& Subtitle="", const QString& Director="",
-+            int Season=0, int Episode=0, const QString& Inetref="",
-+            std::chrono::minutes LenMins=2h, const QString& Year="1895",
-+            const QString& Id="");
- protected:
-     /// Implementation of HandleMedia function
-     /// Support for this is mandatory in derived classes
-@@ -51,6 +59,15 @@ class MUI_PUBLIC MythMediaHandler
-             int Season, int Episode, const QString& Inetref,
-             std::chrono::minutes LenMins, const QString& Year,
-             const QString& Id);
-+
-+    /// Default implementation of QueryWatchedPercent function
-+    /// Support for this is optional in derived classes
-+    virtual uint QueryWatchedPercentImpl(const QString& Mrl,
-+            const QString& Plot, const QString& Title,
-+            const QString& Subtitle, const QString& Director,
-+            int Season, int Episode, const QString& Inetref,
-+            std::chrono::minutes LenMins, const QString& Year,
-+            const QString& Id);
- };
- 
- using MythMediaHandlerPtr = QSharedPointer<MythMediaHandler>;
-diff --git a/mythtv/programs/mythfrontend/mythfrontend.cpp b/mythtv/programs/mythfrontend/mythfrontend.cpp
-index 854ac39b9d5..a108e23aa30 100644
---- a/mythtv/programs/mythfrontend/mythfrontend.cpp
-+++ b/mythtv/programs/mythfrontend/mythfrontend.cpp
-@@ -1316,10 +1316,14 @@ class InternalPlayer : public MythMediaHandler
-         bool bookmarkPresent = false;
-         uint64_t lastPlayPos = 0;
- 
--        if (useBookmark && !CheckBookmark(pginfo, bookmarkPresent, lastPlayPos, true))
--        {
--            delete pginfo;
--            return res;
-+        if (useBookmark)
-+        { 
-+            if(!CheckBookmark(pginfo, bookmarkPresent, true))
-+            {
-+                delete pginfo;
-+                return res;
-+            }
-+            lastPlayPos = GetLastPlayPos(pginfo);
-         }
- 
-         if (useBookmark && (bookmarkPresent || lastPlayPos > 0))
-@@ -1366,9 +1370,8 @@ class InternalPlayer : public MythMediaHandler
-         pginfo->SetProgramInfoType(pginfo->DiscoverProgramInfoType());
- 
-         bool bookmarkPresent = false;
--        uint64_t lastPlayPos = 0;
- 
--        if (!CheckBookmark(pginfo, bookmarkPresent, lastPlayPos, false))
-+        if (!CheckBookmark(pginfo, bookmarkPresent, false))
-         {
-             delete pginfo;
-             return false;
-@@ -1378,6 +1381,29 @@ class InternalPlayer : public MythMediaHandler
-         return bookmarkPresent;
-     }
- 
-+    uint QueryWatchedPercentImpl(const QString& mrl,
-+                         const QString& plot, const QString& title,
-+                         const QString& subtitle, const QString& director,
-+                         int season, int episode, const QString& inetref,
-+                         std::chrono::minutes lenMins, const QString& year,
-+                         const QString& id) override
-+    {
-+        if (!CheckMediaUrl(mrl))
-+        {
-+            return false;
-+        }
-+        auto *pginfo = new ProgramInfo(
-+            mrl, plot, title, QString(), subtitle, QString(),
-+            director, season, episode, inetref, lenMins,
-+            (year.toUInt()) ? year.toUInt() : 1900, id);
-+
-+        pginfo->SetProgramInfoType(pginfo->DiscoverProgramInfoType());
-+
-+        const uint watchedPercent = GetWatchedPercent(pginfo);
-+        delete pginfo;
-+        return watchedPercent;
-+    }
-+
- private:
-     bool CheckMediaUrl(const QString &mrl)
-     {
-@@ -1393,10 +1419,9 @@ class InternalPlayer : public MythMediaHandler
-         return true;
-     }
-     
--    bool CheckBookmark(ProgramInfo *pginfo, bool &hasBookmark, uint64_t &lastPlayPos, bool showError = false)
-+    bool CheckBookmark(ProgramInfo *pginfo, bool &hasBookmark, bool showError = false)
-     {
-         hasBookmark = false;
--        lastPlayPos = 0;
- 
-         if (pginfo->IsVideoDVD())
-         {
-@@ -1444,15 +1469,37 @@ class InternalPlayer : public MythMediaHandler
-         }
-         else if (pginfo->IsVideo())
-         {
--            pginfo->SetIgnoreLastPlayPos(false);
-             pginfo->SetIgnoreBookmark(false);
-             hasBookmark = pginfo->QueryBookmark() > 0;
--            lastPlayPos = pginfo->QueryLastPlayPos();
-             return true;
-         }
--        
-+
-         return false;
-     }
-+    uint64_t GetLastPlayPos(ProgramInfo *pginfo)
-+    {
-+        uint64_t lastPlayPos = 0;
-+        if (pginfo->IsVideo())
-+        {
-+            pginfo->SetIgnoreLastPlayPos(false);
-+            lastPlayPos = pginfo->QueryLastPlayPos();
-+        }
-+
-+        return lastPlayPos;
-+    }
-+
-+    uint GetWatchedPercent(ProgramInfo *pginfo)
-+    {
-+        uint watchedPercent = -1;
-+        if (pginfo->IsVideo())
-+        {
-+            const uint64_t lastPlayPos = GetLastPlayPos(pginfo);
-+            pginfo->CalculateWatchedProgress(lastPlayPos);
-+            watchedPercent = pginfo->GetWatchedPercent();
-+        }
-+
-+        return watchedPercent;
-+    }
- };
- 
- 
-diff --git a/mythtv/programs/mythfrontend/videodlg.cpp b/mythtv/programs/mythfrontend/videodlg.cpp
-index c63cb4639e3..dcde788fbb1 100644
---- a/mythtv/programs/mythfrontend/videodlg.cpp
-+++ b/mythtv/programs/mythfrontend/videodlg.cpp
-@@ -561,27 +561,31 @@ namespace
-         h.handleState("watchedstate");
-         h.handleState("videolevel");
-     }
--}
- 
--void CopyBookmarkStateToUI(const VideoMetadata *metadata,
-+    void CopyPlaybackStateToUI(const VideoMetadata *metadata,
-             MythUIButtonListItem *item = nullptr,
-             MythScreenType *screen = nullptr)
--{
--    if (!metadata || (!item && !screen))
--    {
--        return;
--    }
--    auto bookmarkState = VideoPlayerCommand::PlayerFor(metadata).QueryBookmark() ? "yes" : "no";
--    if (item)
-     {
--        item->DisplayState(bookmarkState, "bookmarkstate");
--    }
--    if (screen)
--    {
--        CheckedSet(screen, "bookmarkstate", bookmarkState);
-+        if (!metadata || (!item && !screen))
-+        {
-+            return;
-+        }
-+        auto player = VideoPlayerCommand::PlayerFor(metadata);
-+        const auto bookmarkState = player.QueryBookmark() ? "yes" : "no";
-+        if (item)
-+        {
-+            item->DisplayState(bookmarkState, "bookmarkstate");
-+            const auto watchedPercent = player.QueryWatchedPercent();
-+            item->SetProgress1(0, watchedPercent ? 100 : 0, watchedPercent);
-+        }
-+        if (screen)
-+        {
-+            CheckedSet(screen, "bookmarkstate", bookmarkState);
-+        }
-     }
- }
- 
-+
- class ItemDetailPopup : public MythScreenType
- {
-     Q_OBJECT
-@@ -626,7 +630,7 @@ class ItemDetailPopup : public MythScreenType
- 
-         ScreenCopyDest dest(this);
-         CopyMetadataToUI(m_metadata, dest);
--        CopyBookmarkStateToUI(m_metadata, nullptr, this);
-+        CopyPlaybackStateToUI(m_metadata, nullptr, this);
- 
-         return true;
-     }
-@@ -882,6 +886,15 @@ VideoDialog::VideoDialog(MythScreenStack *lparent, const QString& lname,
- 
-     StorageGroup::ClearGroupToUseCache();
-     MythCoreContext::ClearBackendServerPortCache();
-+    // Get notified when playback stopped, so we can update watched progress
-+    connect(gCoreContext, &MythCoreContext::TVPlaybackStopped, this, &VideoDialog::OnPlaybackStopped);
-+    connect(gCoreContext, &MythCoreContext::TVPlaybackAborted, this, &VideoDialog::OnPlaybackStopped);
-+
-+}
-+
-+void VideoDialog::OnPlaybackStopped()
-+{
-+    UpdateText(GetItemCurrent());
- }
- 
- VideoDialog::~VideoDialog()
-@@ -2263,7 +2276,7 @@ void VideoDialog::UpdateText(MythUIButtonListItem *item)
- 
-     if (m_d->m_currentNode)
-     {
--        CopyBookmarkStateToUI(metadata, item, this);
-+        CopyPlaybackStateToUI(metadata, item, this);
-         CheckedSet(m_crumbText, m_d->m_currentNode->getRouteByString().join(" > "));
-         CheckedSet(this, "foldername", m_d->m_currentNode->GetText());
-     }
-diff --git a/mythtv/programs/mythfrontend/videodlg.h b/mythtv/programs/mythfrontend/videodlg.h
-index 474ec0bd181..ae106d87822 100644
---- a/mythtv/programs/mythfrontend/videodlg.h
-+++ b/mythtv/programs/mythfrontend/videodlg.h
-@@ -184,6 +184,7 @@ class VideoDialog : public MythScreenType
- 
-     void OnVideoImageSetDone(VideoMetadata *metadata);
-     void OnVideoSearchDone(MetadataLookup *lookup);
-+    void OnPlaybackStopped();
- 
-   private:
-     MythDialogBox    *m_menuPopup          {nullptr};
-diff --git a/mythtv/programs/mythfrontend/videoplayercommand.cpp b/mythtv/programs/mythfrontend/videoplayercommand.cpp
-index ad0c8759449..74e4fed314c 100644
---- a/mythtv/programs/mythfrontend/videoplayercommand.cpp
-+++ b/mythtv/programs/mythfrontend/videoplayercommand.cpp
-@@ -76,6 +76,9 @@ struct VideoPlayProc
-     
-     // Returns true if bookmark is set
-     virtual bool QueryBookmark() const { return false; };
-+
-+    // Returns last wacthed percent or zero if not supported
-+    virtual uint QueryWatchedPercent() const { return 0; };
- };
- 
- ////////////////////////////////////////////////////////////////////////
-@@ -135,8 +138,19 @@ class VideoPlayHandleMedia : public VideoPlayProc
-                 m_plot, m_title, m_subtitle, m_director, m_season,
-                 m_episode, m_inetref, m_length, m_year, m_id);
-     }
--    
--  private:
-+
-+    uint QueryWatchedPercent() const override
-+    {
-+        auto mediaHandler = GetMythMainWindow()->GetMediaHandler(m_handler);
-+        if (mediaHandler.isNull()) {
-+            return 0;
-+        }
-+        return mediaHandler->QueryWatchedPercent(m_mrl,
-+                m_plot, m_title, m_subtitle, m_director, m_season,
-+                m_episode, m_inetref, m_length, m_year, m_id);
-+    }
-+
-+private:
-     QString m_handler;
-     QString m_mrl;
-     QString m_plot;
-@@ -361,6 +375,19 @@ class VideoPlayerCommandPrivate
-                           [](auto *player){ return player->QueryBookmark(); } );
-     }
- 
-+    uint QueryWatchedPercent() const
-+    {
-+        for (const auto &player : m_playerProcs)
-+        {
-+            auto watchedPercent = player->QueryWatchedPercent();
-+            if (watchedPercent > 0)
-+            {
-+                return watchedPercent;
-+            }
-+        }
-+        return 0;
-+    }
-+
-   private:
-     void AddPlayer(const QString &player, const QString &filename,
-             const QString &plot, const QString &title, const QString &subtitle,
-@@ -455,3 +482,8 @@ bool VideoPlayerCommand::QueryBookmark() const
- {
-     return m_d->QueryBookmark();
- }
-+
-+uint VideoPlayerCommand::QueryWatchedPercent() const
-+{
-+    return m_d->QueryWatchedPercent();
-+}
-diff --git a/mythtv/programs/mythfrontend/videoplayercommand.h b/mythtv/programs/mythfrontend/videoplayercommand.h
-index 8e8a16c726a..3bf844a8c86 100644
---- a/mythtv/programs/mythfrontend/videoplayercommand.h
-+++ b/mythtv/programs/mythfrontend/videoplayercommand.h
-@@ -18,7 +18,8 @@ class VideoPlayerCommand
- 
-     void Play() const;
-     bool QueryBookmark() const;
--    
-+    uint QueryWatchedPercent() const;
-+
-     /// Returns the player command suitable for display to the user.
-     QString GetCommandDisplayName() const;
- 
-From 0298e76a31aa68e7eca7d5460decb3f1deb18eaf Mon Sep 17 00:00:00 2001
-From: Jan Hambrecht <jaham@gmx.net>
-Date: Mon, 10 Apr 2023 12:00:52 +0200
-Subject: [PATCH] Prefer shared pointer and references over raw pointers
-
----
- mythtv/programs/mythfrontend/mythfrontend.cpp | 76 +++++++++----------
- 1 file changed, 35 insertions(+), 41 deletions(-)
-
-diff --git a/mythtv/programs/mythfrontend/mythfrontend.cpp b/mythtv/programs/mythfrontend/mythfrontend.cpp
-index a108e23aa30..12962a9efe0 100644
---- a/mythtv/programs/mythfrontend/mythfrontend.cpp
-+++ b/mythtv/programs/mythfrontend/mythfrontend.cpp
-@@ -212,6 +212,8 @@ namespace
-         ParentalLevelChangeChecker m_plcc;
-     };
- 
-+    using ProgramInfoPtr = QSharedPointer<ProgramInfo>;
-+
-     /// This dialog is used when playing something from the "Watch
-     /// Videos" page. Playing from the "Watch Recordings" page uses
-     /// the code in PlaybackBox::createPlayFromMenu.
-@@ -220,7 +222,7 @@ namespace
-         Q_DECLARE_TR_FUNCTIONS(BookmarkDialog)
- 
-       public:
--        BookmarkDialog(ProgramInfo *pginfo, MythScreenStack *parent,
-+        BookmarkDialog(ProgramInfoPtr pginfo, MythScreenStack *parent,
-                        bool bookmarkPresent, bool lastPlayPresent) :
-                 MythScreenType(parent, "bookmarkdialog"),
-                 m_pgi(pginfo),
-@@ -271,20 +273,19 @@ namespace
-                 return;
- 
-             if (buttonText == m_btnPlayLast)
--                TV::StartTV(m_pgi, kStartTVNoFlags);
-+                TV::StartTV(m_pgi.get(), kStartTVNoFlags);
-             else if (buttonText == m_btnPlayBookmark)
--                TV::StartTV(m_pgi, kStartTVIgnoreLastPlayPos );
-+                TV::StartTV(m_pgi.get(), kStartTVIgnoreLastPlayPos );
-             else if (buttonText == m_btnPlayBegin)
--                TV::StartTV(m_pgi, kStartTVIgnoreLastPlayPos | kStartTVIgnoreBookmark);
-+                TV::StartTV(m_pgi.get(), kStartTVIgnoreLastPlayPos | kStartTVIgnoreBookmark);
-             else if (buttonText == m_btnClearBookmark)
-                 m_pgi->SaveBookmark(0);
-             else if (buttonText == m_btnClearLast)
-                 m_pgi->SaveLastPlayPos(0);
--            delete m_pgi;
-         }
- 
-       private:
--        ProgramInfo* m_pgi              {nullptr};
-+        ProgramInfoPtr m_pgi;
-         bool         m_bookmarked       {false};
-         bool         m_lastPlayed       {false};
-         QString      m_btnPlayBookmark;
-@@ -1306,7 +1307,7 @@ class InternalPlayer : public MythMediaHandler
-             return res;
-         }
- 
--        auto *pginfo = new ProgramInfo(
-+        auto pginfo = ProgramInfoPtr::create(
-             mrl, plot, title, QString(), subtitle, QString(),
-             director, season, episode, inetref, lenMins,
-             (year.toUInt()) ? year.toUInt() : 1900, id);
-@@ -1318,12 +1319,11 @@ class InternalPlayer : public MythMediaHandler
- 
-         if (useBookmark)
-         { 
--            if(!CheckBookmark(pginfo, bookmarkPresent, true))
-+            if(!CheckBookmark(*pginfo, bookmarkPresent, true))
-             {
--                delete pginfo;
-                 return res;
-             }
--            lastPlayPos = GetLastPlayPos(pginfo);
-+            lastPlayPos = GetLastPlayPos(*pginfo);
-         }
- 
-         if (useBookmark && (bookmarkPresent || lastPlayPos > 0))
-@@ -1335,17 +1335,14 @@ class InternalPlayer : public MythMediaHandler
-             if (!bookmarkdialog->Create())
-             {
-                 delete bookmarkdialog;
--                delete pginfo;
-                 return res;
-             }
-         }
-         else
-         {
--            TV::StartTV(pginfo, kStartTVNoFlags | kStartTVIgnoreBookmark);
-+            TV::StartTV(pginfo.get(), kStartTVNoFlags | kStartTVIgnoreBookmark);
- 
-             res = 0;
--
--            delete pginfo;
-         }
- 
-         return res;
-@@ -1362,22 +1359,20 @@ class InternalPlayer : public MythMediaHandler
-         {
-             return false;
-         }
--        auto *pginfo = new ProgramInfo(
-+        ProgramInfo pginfo(
-             mrl, plot, title, QString(), subtitle, QString(),
-             director, season, episode, inetref, lenMins,
-             (year.toUInt()) ? year.toUInt() : 1900, id);
- 
--        pginfo->SetProgramInfoType(pginfo->DiscoverProgramInfoType());
-+        pginfo.SetProgramInfoType(pginfo.DiscoverProgramInfoType());
- 
-         bool bookmarkPresent = false;
- 
-         if (!CheckBookmark(pginfo, bookmarkPresent, false))
-         {
--            delete pginfo;
-             return false;
-         }
-         
--        delete pginfo;
-         return bookmarkPresent;
-     }
- 
-@@ -1392,16 +1387,14 @@ class InternalPlayer : public MythMediaHandler
-         {
-             return false;
-         }
--        auto *pginfo = new ProgramInfo(
-+        ProgramInfo pginfo(
-             mrl, plot, title, QString(), subtitle, QString(),
-             director, season, episode, inetref, lenMins,
-             (year.toUInt()) ? year.toUInt() : 1900, id);
- 
--        pginfo->SetProgramInfoType(pginfo->DiscoverProgramInfoType());
-+        pginfo.SetProgramInfoType(pginfo.DiscoverProgramInfoType());
- 
--        const uint watchedPercent = GetWatchedPercent(pginfo);
--        delete pginfo;
--        return watchedPercent;
-+        return GetWatchedPercent(pginfo);
-     }
- 
- private:
-@@ -1419,20 +1412,20 @@ class InternalPlayer : public MythMediaHandler
-         return true;
-     }
-     
--    bool CheckBookmark(ProgramInfo *pginfo, bool &hasBookmark, bool showError = false)
-+    bool CheckBookmark(ProgramInfo &pginfo, bool &hasBookmark, bool showError = false)
-     {
-         hasBookmark = false;
- 
--        if (pginfo->IsVideoDVD())
-+        if (pginfo.IsVideoDVD())
-         {
--            MythDVDInfo dvd(pginfo->GetPlaybackURL());
-+            MythDVDInfo dvd(pginfo.GetPlaybackURL());
-             if (dvd.IsValid())
-             {
-                 QString name;
-                 QString serialid;
-                 if (dvd.GetNameAndSerialNum(name, serialid))
-                 {
--                    QStringList fields = pginfo->QueryDVDBookmark(serialid);
-+                    QStringList fields = pginfo.QueryDVDBookmark(serialid);
-                     hasBookmark = (fields.count() > 0);
-                 }
-                 return true;
-@@ -1445,16 +1438,16 @@ class InternalPlayer : public MythMediaHandler
-                                                     dvd.GetLastError());
-             }
-         }
--        else if (pginfo->IsVideoBD())
-+        else if (pginfo.IsVideoBD())
-         {
--            MythBDInfo bd(pginfo->GetPlaybackURL());
-+            MythBDInfo bd(pginfo.GetPlaybackURL());
-             if (bd.IsValid())
-             {
-                 QString name;
-                 QString serialid;
-                 if (bd.GetNameAndSerialNum(name, serialid))
-                 {
--                    QStringList fields = pginfo->QueryBDBookmark(serialid);
-+                    QStringList fields = pginfo.QueryBDBookmark(serialid);
-                     hasBookmark = (fields.count() > 0);
-                 }
-                 return true;
-@@ -1467,35 +1460,36 @@ class InternalPlayer : public MythMediaHandler
-                                                     bd.GetLastError());
-             }
-         }
--        else if (pginfo->IsVideo())
-+        else if (pginfo.IsVideo())
-         {
--            pginfo->SetIgnoreBookmark(false);
--            hasBookmark = pginfo->QueryBookmark() > 0;
-+            pginfo.SetIgnoreBookmark(false);
-+            hasBookmark = pginfo.QueryBookmark() > 0;
-             return true;
-         }
- 
-         return false;
-     }
--    uint64_t GetLastPlayPos(ProgramInfo *pginfo)
-+
-+    uint64_t GetLastPlayPos(ProgramInfo &pginfo)
-     {
-         uint64_t lastPlayPos = 0;
--        if (pginfo->IsVideo())
-+        if (pginfo.IsVideo())
-         {
--            pginfo->SetIgnoreLastPlayPos(false);
--            lastPlayPos = pginfo->QueryLastPlayPos();
-+            pginfo.SetIgnoreLastPlayPos(false);
-+            lastPlayPos = pginfo.QueryLastPlayPos();
-         }
- 
-         return lastPlayPos;
-     }
- 
--    uint GetWatchedPercent(ProgramInfo *pginfo)
-+    uint GetWatchedPercent(ProgramInfo &pginfo)
-     {
-         uint watchedPercent = -1;
--        if (pginfo->IsVideo())
-+        if (pginfo.IsVideo())
-         {
-             const uint64_t lastPlayPos = GetLastPlayPos(pginfo);
--            pginfo->CalculateWatchedProgress(lastPlayPos);
--            watchedPercent = pginfo->GetWatchedPercent();
-+            pginfo.CalculateWatchedProgress(lastPlayPos);
-+            watchedPercent = pginfo.GetWatchedPercent();
-         }
- 
-         return watchedPercent;
-From dbdbc674ff23936bbed943da451e723a97380772 Mon Sep 17 00:00:00 2001
-From: Jan Hambrecht <jaham@gmx.net>
-Date: Thu, 13 Apr 2023 21:48:56 +0200
-Subject: [PATCH] Support watched progress bar in screen
-
-Additionally to display the watched progress inside
-the video manager list item, it can now also added
-to the video manager screen itself.
----
- mythtv/programs/mythfrontend/videodlg.cpp | 8 +++++++-
- 1 file changed, 7 insertions(+), 1 deletion(-)
-
-diff --git a/mythtv/programs/mythfrontend/videodlg.cpp b/mythtv/programs/mythfrontend/videodlg.cpp
-index dcde788fbb1..4e8cebc9096 100644
---- a/mythtv/programs/mythfrontend/videodlg.cpp
-+++ b/mythtv/programs/mythfrontend/videodlg.cpp
-@@ -40,6 +40,7 @@
- #include "libmythui/mythuibuttontree.h"
- #include "libmythui/mythuihelper.h"
- #include "libmythui/mythuiimage.h"
-+#include "libmythui/mythuiprogressbar.h"
- #include "libmythui/mythuistatetype.h"
- #include "libmythui/mythuitext.h"
- 
-@@ -572,15 +573,20 @@ namespace
-         }
-         auto player = VideoPlayerCommand::PlayerFor(metadata);
-         const auto bookmarkState = player.QueryBookmark() ? "yes" : "no";
-+        const auto watchedPercent = player.QueryWatchedPercent();
-         if (item)
-         {
-             item->DisplayState(bookmarkState, "bookmarkstate");
--            const auto watchedPercent = player.QueryWatchedPercent();
-             item->SetProgress1(0, watchedPercent ? 100 : 0, watchedPercent);
-         }
-         if (screen)
-         {
-             CheckedSet(screen, "bookmarkstate", bookmarkState);
-+            auto watchedProgress = dynamic_cast<MythUIProgressBar *>(screen->GetChild("watchedprogressbar"));
-+            if (watchedProgress)
-+            {
-+                watchedProgress->Set(0, 100, watchedPercent);
-+            }
-         }
-     }
- }
-From 2f86ddbf2ea70c6f4b723cc66a497cd1b7d3d58d Mon Sep 17 00:00:00 2001
+From fa5a52d5920ce1dbaa41469954ad98f0072f742c Mon Sep 17 00:00:00 2001
 From: Jan Hambrecht <jaham@gmx.net>
 Date: Sun, 8 Oct 2023 13:57:23 +0200
 Subject: [PATCH] Save total frame count for video files
@@ -1848,7 +305,7 @@ tooling to provide the total frame count of a video file.
  1 file changed, 11 insertions(+)
 
 diff --git a/mythtv/libs/libmythtv/tv_play.cpp b/mythtv/libs/libmythtv/tv_play.cpp
-index 4e03cca56a3..ff353ad762b 100644
+index 0e3e2a8ae73..28ab9292024 100644
 --- a/mythtv/libs/libmythtv/tv_play.cpp
 +++ b/mythtv/libs/libmythtv/tv_play.cpp
 @@ -2724,6 +2724,17 @@ void TV::PrepareToExitPlayer(int Line)
@@ -1869,3 +326,815 @@ index 4e03cca56a3..ff353ad762b 100644
          // Clear/Save play position without notification
          // The change must be broadcast when file is no longer in use
          // to update previews, ie. with the MarkNotInUse notification
+From 905777f0fb9873f17b23d1d7a6f8b9fdb4887d58 Mon Sep 17 00:00:00 2001
+From: Jan Hambrecht <jaham@gmx.net>
+Date: Tue, 23 Jan 2024 23:05:41 +0100
+Subject: [PATCH] Pull playback state for all videos from database
+
+Query and cache playback state related data from
+database so the watched progress can be shown for
+multiple video list items.
+---
+ mythtv/programs/mythfrontend/mythfrontend.pro |   3 +
+ .../programs/mythfrontend/playbackstate.cpp   | 118 ++++++++++++++++++
+ mythtv/programs/mythfrontend/playbackstate.h  |  45 +++++++
+ 3 files changed, 166 insertions(+)
+ create mode 100644 mythtv/programs/mythfrontend/playbackstate.cpp
+ create mode 100644 mythtv/programs/mythfrontend/playbackstate.h
+
+diff --git a/mythtv/programs/mythfrontend/mythfrontend.pro b/mythtv/programs/mythfrontend/mythfrontend.pro
+index 4b9913f9d93..af86498d614 100644
+--- a/mythtv/programs/mythfrontend/mythfrontend.pro
++++ b/mythtv/programs/mythfrontend/mythfrontend.pro
+@@ -90,6 +90,9 @@ SOURCES += services/mythfrontendservice.cpp
+ HEADERS += progdetails.h proginfolist.h
+ SOURCES += progdetails.cpp proginfolist.cpp
+ 
++HEADERS += playbackstate.h
++SOURCES += playbackstate.cpp
++
+ macx {
+     mac_bundle {
+         CONFIG -= console  # Force behaviour of producing .app bundle
+diff --git a/mythtv/programs/mythfrontend/playbackstate.cpp b/mythtv/programs/mythfrontend/playbackstate.cpp
+new file mode 100644
+index 00000000000..40a20a5e312
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/playbackstate.cpp
+@@ -0,0 +1,118 @@
++#include "playbackstate.h"
++#include "libmythbase/mythdb.h"
++#include "libmythbase/mythdbcon.h"
++#include "libmythbase/mythlogging.h"
++#include "libmythbase/programtypes.h"
++#include "libmythmetadata/videometadata.h"
++
++void PlaybackState::Initialize()
++{
++    LOG(VB_GENERAL, LOG_INFO, "Query playback state for all videos from database");
++
++    m_fileMarkup.clear();
++
++    QueryData();
++
++    LOG(VB_GENERAL, LOG_INFO, QString("Collected playbackstate for %1 videos").arg(m_fileMarkup.count()));
++}
++
++void PlaybackState::Update(const QString &filename)
++{
++    if (!filename.isEmpty())
++    {
++        QueryData(filename);
++    }
++}
++
++void PlaybackState::QueryData(const QString &filterFilename)
++{
++    MSqlQuery query(MSqlQuery::InitCon());
++
++    if (filterFilename.isEmpty())
++    {
++        query.prepare("SELECT filename, type, mark, `offset` "
++                    "FROM filemarkup "
++                    "WHERE type IN (:BOOKMARK, :FRAMES, :PLAYPOS) "
++                    "ORDER BY filename");
++    }
++    else
++    {
++        query.prepare("SELECT filename, type, mark, `offset` "
++                    "FROM filemarkup "
++                    "WHERE type IN (:BOOKMARK, :FRAMES, :PLAYPOS) "
++                    "AND filename = :FILENAME "
++                    "ORDER BY filename");
++        query.bindValue(":FILENAME", filterFilename);
++    }
++    query.bindValue(":BOOKMARK", MARK_BOOKMARK);
++    query.bindValue(":FRAMES", MARK_TOTAL_FRAMES);
++    query.bindValue(":PLAYPOS", MARK_UTIL_LASTPLAYPOS);
++
++    if (!query.exec())
++    {
++        MythDB::DBError("PlaybackState", query);
++        return;
++    }
++
++    QString lastFilename;
++    Markup currMarks;
++    while (query.next())
++    {
++        const QString filename = query.value(0).toString();
++        if (!lastFilename.isEmpty() && filename != lastFilename)
++        {
++            m_fileMarkup[lastFilename] = currMarks;
++            currMarks = Markup();
++        }
++        switch(query.value(1).toInt())
++        {
++            case MARK_BOOKMARK:
++                currMarks.bookmarkPos = query.value(2).toLongLong();
++                break;
++            case MARK_TOTAL_FRAMES:
++                currMarks.totalFrames = query.value(3).toLongLong();
++                break;
++            case MARK_UTIL_LASTPLAYPOS:
++                currMarks.lastPlayPos = query.value(2).toLongLong();
++                break;
++        }
++        lastFilename = filename;
++    }
++    m_fileMarkup[lastFilename] = currMarks;
++}
++
++bool PlaybackState::HasBookmark(const QString &filename) const
++{
++    auto it = m_fileMarkup.constFind(filename);
++    if (it == m_fileMarkup.constEnd())
++    {
++        return false;
++    }
++    return (it.value().bookmarkPos > 0) ? true : false;
++}
++
++uint64_t PlaybackState::GetLastPlayPos(const QString &filename) const
++{
++    auto it = m_fileMarkup.constFind(filename);
++    if (it == m_fileMarkup.constEnd())
++    {
++        return 0;
++    }
++    return it.value().lastPlayPos;
++}
++
++uint PlaybackState::GetWatchedPercent(const QString &filename) const
++{
++    auto it = m_fileMarkup.constFind(filename);
++    if (it == m_fileMarkup.constEnd())
++    {
++        return 0;
++    }
++    const auto pos = it.value().lastPlayPos;
++    const auto total = it.value().totalFrames;
++    if (0 == total)
++    {
++        return 0;
++    }
++    return std::clamp(100 * pos / total, (uint64_t)0, (uint64_t)100);
++}
+diff --git a/mythtv/programs/mythfrontend/playbackstate.h b/mythtv/programs/mythfrontend/playbackstate.h
+new file mode 100644
+index 00000000000..9613111cbf1
+--- /dev/null
++++ b/mythtv/programs/mythfrontend/playbackstate.h
+@@ -0,0 +1,45 @@
++#ifndef PLAYBACKSTATE_H_
++#define PLAYBACKSTATE_H_
++
++// POSIX headers
++#include <cstdint> // for [u]int[32,64]_t
++
++#include <QMap>
++#include <QString>
++
++/// Utility class to query playback state from database
++class PlaybackState
++{
++public:
++    PlaybackState() = default;
++
++    /// Initializes playback state from database
++    void Initialize();
++
++    /// Updates playback state of video with specified filename
++    void Update(const QString &filename);
++
++    /// Query bookmark of video with the specified filename
++    bool HasBookmark(const QString &filename) const;
++
++    /// Query last playback position of video with the specified filename
++    uint64_t GetLastPlayPos(const QString &filename) const;
++
++    /// Query watched percent of video with the specified filename
++    uint GetWatchedPercent(const QString &filename) const;
++
++private:
++    /// Query playback state from database, only for single video if a filename is specified
++    void QueryData(const QString &filterFilename = QString());
++
++    /// Markup for a video file
++    struct Markup {
++        uint64_t totalFrames = 0;   ///< total frames
++        uint64_t lastPlayPos = 0;   ///< last playing position
++        uint64_t bookmarkPos = 0;   ///< bookmark position
++    };
++
++    QMap<QString, Markup> m_fileMarkup; ///< maps filename to markup
++};
++
++#endif // PLAYBACKSTATE_H_
+From 395d1bd2301add93fcff274af2c2e31e7454516a Mon Sep 17 00:00:00 2001
+From: Jan Hambrecht <jaham@gmx.net>
+Date: Sun, 9 Apr 2023 13:10:43 +0200
+Subject: [PATCH] Add bookmark and watched percent support to videos
+
+Add support for displaying a bookmark state within
+the video manager. This uses the playback state class
+for caching the playback state for all videos.
+Also adds support for displaying watched progress
+state to video manager. This needs the last playing
+position (already supported) as well as a total
+frames markup datum within the filemarkup table.
+The watched progress is then calculated and can be
+displayed via a progress in the currently selected list
+item.
+---
+ mythtv/programs/mythfrontend/videodlg.cpp | 82 +++++++++++++++++++++--
+ mythtv/programs/mythfrontend/videodlg.h   |  3 +
+ 2 files changed, 81 insertions(+), 4 deletions(-)
+
+diff --git a/mythtv/programs/mythfrontend/videodlg.cpp b/mythtv/programs/mythfrontend/videodlg.cpp
+index 044cb250e62..d086e5b3918 100644
+--- a/mythtv/programs/mythfrontend/videodlg.cpp
++++ b/mythtv/programs/mythfrontend/videodlg.cpp
+@@ -40,11 +40,13 @@
+ #include "libmythui/mythuibuttontree.h"
+ #include "libmythui/mythuihelper.h"
+ #include "libmythui/mythuiimage.h"
++#include "libmythui/mythuiprogressbar.h"
+ #include "libmythui/mythuistatetype.h"
+ #include "libmythui/mythuitext.h"
+ 
+ // MythFrontend
+ #include "editvideometadata.h"
++#include "playbackstate.h"
+ #include "videodlg.h"
+ #include "videofileassoc.h"
+ #include "videofilter.h"
+@@ -560,8 +562,37 @@ namespace
+         h.handleState("watchedstate");
+         h.handleState("videolevel");
+     }
++
++    void CopyPlaybackStateToUI(const PlaybackState &playbackState,
++            const VideoMetadata *metadata,
++            MythUIButtonListItem *item = nullptr,
++            MythScreenType *screen = nullptr)
++    {
++        if (!metadata || (!item && !screen))
++        {
++            return;
++        }
++
++        const auto bookmarkState = playbackState.HasBookmark(metadata->GetFilename()) ? "yes" : "no";
++        const auto watchedPercent = playbackState.GetWatchedPercent(metadata->GetFilename());
++        if (item)
++        {
++            item->DisplayState(bookmarkState, "bookmarkstate");
++            item->SetProgress1(0, watchedPercent ? 100 : 0, watchedPercent);
++        }
++        if (screen)
++        {
++            CheckedSet(screen, "bookmarkstate", bookmarkState);
++            auto watchedProgress = dynamic_cast<MythUIProgressBar *>(screen->GetChild("watchedprogressbar"));
++            if (watchedProgress)
++            {
++                watchedProgress->Set(0, 100, watchedPercent);
++            }
++        }
++    }
+ }
+ 
++
+ class ItemDetailPopup : public MythScreenType
+ {
+     Q_OBJECT
+@@ -575,9 +606,9 @@ class ItemDetailPopup : public MythScreenType
+ 
+   public:
+     ItemDetailPopup(MythScreenStack *lparent, VideoMetadata *metadata,
+-            const VideoMetadataListManager &listManager) :
++            const VideoMetadataListManager &listManager, PlaybackState &playbackState) :
+         MythScreenType(lparent, kWindowName), m_metadata(metadata),
+-        m_listManager(listManager)
++        m_listManager(listManager), m_playbackState(playbackState)
+     {
+     }
+ 
+@@ -606,6 +637,7 @@ class ItemDetailPopup : public MythScreenType
+ 
+         ScreenCopyDest dest(this);
+         CopyMetadataToUI(m_metadata, dest);
++        CopyPlaybackStateToUI(m_playbackState, m_metadata, nullptr, this);
+ 
+         return true;
+     }
+@@ -661,6 +693,7 @@ class ItemDetailPopup : public MythScreenType
+     static const char * const kWindowName;
+     VideoMetadata *m_metadata   {nullptr};
+     const VideoMetadataListManager &m_listManager;
++    PlaybackState &m_playbackState;
+ 
+     MythUIButton  *m_playButton {nullptr};
+     MythUIButton  *m_doneButton {nullptr};
+@@ -794,6 +827,8 @@ class VideoDialogPrivate
+     QString m_lastTreeNodePath;
+     QMap<QString, int> m_notifications;
+ 
++    PlaybackState m_playbackState;
++
+   private:
+     parental_level_map m_ratingToPl;
+ };
+@@ -861,6 +896,20 @@ VideoDialog::VideoDialog(MythScreenStack *lparent, const QString& lname,
+ 
+     StorageGroup::ClearGroupToUseCache();
+     MythCoreContext::ClearBackendServerPortCache();
++    // Get notified when playback stopped, so we can update watched progress
++    connect(gCoreContext, &MythCoreContext::TVPlaybackStopped, this, &VideoDialog::OnPlaybackStopped);
++    connect(gCoreContext, &MythCoreContext::TVPlaybackAborted, this, &VideoDialog::OnPlaybackStopped);
++}
++
++void VideoDialog::OnPlaybackStopped()
++{
++    auto *item = GetItemCurrent();
++    const auto *metadata = GetMetadata(item);
++    if (metadata)
++    {
++        m_d->m_playbackState.Update(metadata->GetFilename());
++    }
++    UpdateText(item);
+ }
+ 
+ VideoDialog::~VideoDialog()
+@@ -1000,6 +1049,7 @@ bool VideoDialog::Create()
+     UIUtilW::Assign(this, m_parentalLevelState, "parentallevel");
+     UIUtilW::Assign(this, m_watchedState, "watchedstate");
+     UIUtilW::Assign(this, m_studioState, "studiostate");
++    UIUtilW::Assign(this, m_bookmarkState, "bookmarkstate");
+ 
+     if (err)
+     {
+@@ -1011,6 +1061,7 @@ bool VideoDialog::Create()
+     CheckedSet(m_parentalLevelState, "None");
+     CheckedSet(m_watchedState, "None");
+     CheckedSet(m_studioState, "None");
++    CheckedSet(m_bookmarkState, "None");
+ 
+     BuildFocusList();
+ 
+@@ -1024,6 +1075,8 @@ bool VideoDialog::Create()
+                 this, &VideoDialog::UpdateText);
+         connect(m_videoButtonTree, &MythUIButtonTree::nodeChanged,
+                 this, &VideoDialog::SetCurrentNode);
++        connect(m_videoButtonTree, &MythUIButtonTree::itemVisible,
++                this, &VideoDialog::UpdateVisible);
+     }
+     else
+     {
+@@ -1033,6 +1086,8 @@ bool VideoDialog::Create()
+                 this, &VideoDialog::handleSelect);
+         connect(m_videoButtonList, &MythUIButtonList::itemSelected,
+                 this, &VideoDialog::UpdateText);
++        connect(m_videoButtonList, &MythUIButtonList::itemVisible,
++                this, &VideoDialog::UpdateVisible);
+     }
+ 
+     return true;
+@@ -1234,6 +1289,7 @@ void VideoDialog::UpdateItem(MythUIButtonListItem *item)
+ 
+     MythUIButtonListItemCopyDest dest(item);
+     CopyMetadataToUI(metadata, dest);
++    CopyPlaybackStateToUI(m_d->m_playbackState, metadata, item, nullptr);
+ 
+     MythGenericTree *parent = node->getParent();
+ 
+@@ -1311,6 +1367,7 @@ void VideoDialog::UpdateItem(MythUIButtonListItem *item)
+  */
+ void VideoDialog::fetchVideos()
+ {
++    m_d->m_playbackState.Initialize();
+     MythGenericTree *oldroot = m_d->m_rootNode;
+     if (!m_d->m_treeLoaded)
+     {
+@@ -2185,13 +2242,29 @@ void VideoDialog::UpdatePosition()
+                                     .arg(currentList->GetCount()));
+ }
+ 
++/** \fn VideoDialog::UpdateVisible(MythUIButtonListItem *item)
++ *  \brief Update playback state for for a given visible ButtonListItem
++ *  \return void.
++ */
++void VideoDialog::UpdateVisible(MythUIButtonListItem *item)
++{
++    if (!item)
++        return;
++
++    VideoMetadata *metadata = GetMetadata(item);
++    if (!metadata)
++        return;
++
++    CopyPlaybackStateToUI(m_d->m_playbackState, metadata, item, nullptr);
++}
++
+ /** \fn VideoDialog::UpdateText(MythUIButtonListItem *item)
+  *  \brief Update the visible text values for a given ButtonListItem.
+  *  \return void.
+  */
+ void VideoDialog::UpdateText(MythUIButtonListItem *item)
+ {
+-    if (!item)
++    if (!item || !item->isVisible())
+         return;
+ 
+     MythUIButtonList *currentList = item->parent();
+@@ -2221,6 +2294,7 @@ void VideoDialog::UpdateText(MythUIButtonListItem *item)
+ 
+     ScreenCopyDest dest(this);
+     CopyMetadataToUI(metadata, dest);
++    CopyPlaybackStateToUI(m_d->m_playbackState, metadata, item, m_d->m_currentNode ? this : nullptr);
+ 
+     if (node->getInt() == kSubFolder && !metadata)
+     {
+@@ -2862,7 +2936,7 @@ bool VideoDialog::DoItemDetailShow()
+     {
+         MythScreenStack *mainStack = GetMythMainWindow()->GetMainStack();
+         auto *idp = new ItemDetailPopup(mainStack, metadata,
+-                m_d->m_videoList->getListCache());
++                m_d->m_videoList->getListCache(), m_d->m_playbackState);
+ 
+         if (idp->Create())
+         {
+diff --git a/mythtv/programs/mythfrontend/videodlg.h b/mythtv/programs/mythfrontend/videodlg.h
+index d4000536244..050811bbad8 100644
+--- a/mythtv/programs/mythfrontend/videodlg.h
++++ b/mythtv/programs/mythfrontend/videodlg.h
+@@ -68,6 +68,7 @@ class VideoDialog : public MythScreenType
+ 
+   private slots:
+     void UpdatePosition();
++    void UpdateVisible(MythUIButtonListItem *item);
+     void UpdateText(MythUIButtonListItem *item);
+     void handleSelect(MythUIButtonListItem *item);
+     void SetCurrentNode(MythGenericTree *node);
+@@ -184,6 +185,7 @@ class VideoDialog : public MythScreenType
+ 
+     void OnVideoImageSetDone(VideoMetadata *metadata);
+     void OnVideoSearchDone(MetadataLookup *lookup);
++    void OnPlaybackStopped();
+ 
+   private:
+     MythDialogBox    *m_menuPopup          {nullptr};
+@@ -211,6 +213,7 @@ class VideoDialog : public MythScreenType
+     MythUIStateType  *m_userRatingState    {nullptr};
+     MythUIStateType  *m_watchedState       {nullptr};
+     MythUIStateType  *m_studioState        {nullptr};
++    MythUIStateType  *m_bookmarkState      {nullptr};
+ 
+     MetadataFactory *m_metadataFactory     {nullptr};
+ 
+From 9faa88cbcd571049f45577856a0e6c3f7221be42 Mon Sep 17 00:00:00 2001
+From: Jan Hambrecht <jaham@gmx.net>
+Date: Wed, 31 Jan 2024 23:05:15 +0100
+Subject: [PATCH] Signal changed playback state
+
+Signal removal of last played position and bookmark
+to video dialog, so it can update the respective
+button list item.
+---
+ mythtv/programs/mythfrontend/mythfrontend.cpp | 14 ++++++++++++++
+ mythtv/programs/mythfrontend/videodlg.cpp     | 11 +++++++++++
+ mythtv/programs/mythfrontend/videodlg.h       |  1 +
+ 3 files changed, 26 insertions(+)
+
+diff --git a/mythtv/programs/mythfrontend/mythfrontend.cpp b/mythtv/programs/mythfrontend/mythfrontend.cpp
+index 3cb38f5aed1..c3c59523ab1 100644
+--- a/mythtv/programs/mythfrontend/mythfrontend.cpp
++++ b/mythtv/programs/mythfrontend/mythfrontend.cpp
+@@ -243,6 +243,7 @@ namespace
+         {
+             QString msg = tr("DVD/Video contains a bookmark");
+ 
++            m_videoDlg = dynamic_cast<VideoDialog*>(GetScreenStack()->GetTopScreen());
+             auto *popup = new MythDialogBox(msg, GetScreenStack(), "bookmarkdialog");
+             if (!popup->Create())
+             {
+@@ -283,9 +284,21 @@ namespace
+             else if (buttonText == m_btnPlayBegin)
+                 TV::StartTV(m_pgi, kStartTVIgnoreLastPlayPos | kStartTVIgnoreBookmark);
+             else if (buttonText == m_btnClearBookmark)
++            {
+                 m_pgi->SaveBookmark(0);
++                if (m_videoDlg)
++                {
++                    m_videoDlg->playbackStateChanged(m_pgi->GetBasename());
++                }
++            }
+             else if (buttonText == m_btnClearLast)
++            {
+                 m_pgi->SaveLastPlayPos(0);
++                if (m_videoDlg)
++                {
++                    m_videoDlg->playbackStateChanged(m_pgi->GetBasename());
++                }
++            }
+             delete m_pgi;
+         }
+ 
+@@ -298,6 +311,7 @@ namespace
+         QString      m_btnPlayBegin;
+         QString      m_btnPlayLast;
+         QString      m_btnClearLast;
++        VideoDialog  *m_videoDlg        {nullptr};
+     };
+ 
+     void cleanup()
+diff --git a/mythtv/programs/mythfrontend/videodlg.cpp b/mythtv/programs/mythfrontend/videodlg.cpp
+index d086e5b3918..7146307c943 100644
+--- a/mythtv/programs/mythfrontend/videodlg.cpp
++++ b/mythtv/programs/mythfrontend/videodlg.cpp
+@@ -901,6 +901,17 @@ VideoDialog::VideoDialog(MythScreenStack *lparent, const QString& lname,
+     connect(gCoreContext, &MythCoreContext::TVPlaybackAborted, this, &VideoDialog::OnPlaybackStopped);
+ }
+ 
++void VideoDialog::playbackStateChanged(const QString &filename)
++{
++    m_d->m_playbackState.Update(filename);
++    auto *item = GetItemCurrent();
++    const auto *metadata = GetMetadata(item);
++    if (metadata && metadata->GetFilename() == filename)
++    {
++        UpdateText(item);
++    }
++}
++
+ void VideoDialog::OnPlaybackStopped()
+ {
+     auto *item = GetItemCurrent();
+diff --git a/mythtv/programs/mythfrontend/videodlg.h b/mythtv/programs/mythfrontend/videodlg.h
+index 050811bbad8..49122bd5874 100644
+--- a/mythtv/programs/mythfrontend/videodlg.h
++++ b/mythtv/programs/mythfrontend/videodlg.h
+@@ -61,6 +61,7 @@ class VideoDialog : public MythScreenType
+ 
+   public slots:
+     void searchComplete(const QString& string);
++    void playbackStateChanged(const QString &filename);
+ 
+   protected slots:
+     void Init() override; /// Called after the screen is created by MythScreenStack
+From 95235af1d5f6385978bebec6883fdb689c55a3a6 Mon Sep 17 00:00:00 2001
+From: Jan Hambrecht <jaham@gmx.net>
+Date: Tue, 30 Jan 2024 22:47:30 +0100
+Subject: [PATCH] Fix displaying watched state after playback
+
+When watching a video to the end, the player can mark
+(if enabled by a setting) the video as watched. This
+was not reflected in the GUI state until now.
+So after receiving the playback stopped event, we load
+the video metadata of the current video and sync it with
+the metadata from the cache.
+---
+ mythtv/programs/mythfrontend/videodlg.cpp | 30 +++++++++++++++++++++++
+ mythtv/programs/mythfrontend/videodlg.h   |  1 +
+ 2 files changed, 31 insertions(+)
+
+diff --git a/mythtv/programs/mythfrontend/videodlg.cpp b/mythtv/programs/mythfrontend/videodlg.cpp
+index 7146307c943..8236425b23f 100644
+--- a/mythtv/programs/mythfrontend/videodlg.cpp
++++ b/mythtv/programs/mythfrontend/videodlg.cpp
+@@ -921,8 +921,10 @@ void VideoDialog::OnPlaybackStopped()
+         m_d->m_playbackState.Update(metadata->GetFilename());
+     }
+     UpdateText(item);
++    UpdateWatchedState(item);
+ }
+ 
++
+ VideoDialog::~VideoDialog()
+ {
+     if (!m_d->m_switchingLayout)
+@@ -2337,6 +2339,34 @@ void VideoDialog::UpdateText(MythUIButtonListItem *item)
+         node->becomeSelectedChild();
+ }
+ 
++/** \fn VideoDialog::UpdateWatchedState(MythUIButtonListItem *item)
++ *  \brief Update the watched state for a given ButtonListItem from the database.
++ *  \return void.
++ * 
++ *  The player could have updated the watched state of a video after watching.
++ *  We load the metadata of the current item from the database and sync the
++ *  watched state of the current item if it was changed by the player.
++ */
++void VideoDialog::UpdateWatchedState(MythUIButtonListItem *item)
++{
++    if (!gCoreContext->GetBoolSetting("AutomaticSetWatched", false))
++        return;
++
++    if (!item)
++        return;
++
++    VideoMetadata *metadata = GetMetadata(item);
++    if (!metadata)
++        return;
++
++    auto metadataNew = m_d->m_videoList->getListCache().loadOneFromDatabase(metadata->GetID());
++    if (metadata->GetWatched() != metadataNew->GetWatched())
++    {
++        metadata->SetWatched(metadataNew->GetWatched());
++        item->DisplayState(WatchedToState(metadata->GetWatched()), "watchedstate");
++    }
++}
++
+ /** \fn VideoDialog::VideoMenu()
+  *  \brief Pop up a MythUI "Playback Menu" for MythVideo.  Bound to INFO.
+  *  \return void.
+diff --git a/mythtv/programs/mythfrontend/videodlg.h b/mythtv/programs/mythfrontend/videodlg.h
+index 49122bd5874..493c27ee4c0 100644
+--- a/mythtv/programs/mythfrontend/videodlg.h
++++ b/mythtv/programs/mythfrontend/videodlg.h
+@@ -70,6 +70,7 @@ class VideoDialog : public MythScreenType
+   private slots:
+     void UpdatePosition();
+     void UpdateVisible(MythUIButtonListItem *item);
++    void UpdateWatchedState(MythUIButtonListItem *item);
+     void UpdateText(MythUIButtonListItem *item);
+     void handleSelect(MythUIButtonListItem *item);
+     void SetCurrentNode(MythGenericTree *node);
+From 21dd2aa896b03d7433f7da8d22efbcdb5745dc99 Mon Sep 17 00:00:00 2001
+From: Jan Hambrecht <jaham@gmx.net>
+Date: Wed, 31 Jan 2024 00:04:27 +0100
+Subject: [PATCH] Add setting to always show watched progress
+
+Adds a setting to always show watched progress even
+if the recording or video is marked as watched.
+Make behaviour of displaying the watched progress
+the same in recordings and video lists.
+---
+ mythtv/programs/mythfrontend/globalsettings.cpp | 17 +++++++++++++++++
+ mythtv/programs/mythfrontend/playbackbox.cpp    |  7 +++++--
+ mythtv/programs/mythfrontend/playbackbox.h      |  1 +
+ mythtv/programs/mythfrontend/playbackstate.cpp  | 13 +++++++++++++
+ mythtv/programs/mythfrontend/playbackstate.h    |  6 +++++-
+ mythtv/programs/mythfrontend/videodlg.cpp       |  5 +++--
+ 6 files changed, 44 insertions(+), 5 deletions(-)
+
+diff --git a/mythtv/programs/mythfrontend/globalsettings.cpp b/mythtv/programs/mythfrontend/globalsettings.cpp
+index 531bdfb8a3e..67f5a2ad793 100644
+--- a/mythtv/programs/mythfrontend/globalsettings.cpp
++++ b/mythtv/programs/mythfrontend/globalsettings.cpp
+@@ -1881,6 +1881,22 @@ static HostCheckBoxSetting *AutomaticSetWatched()
+     return gc;
+ }
+ 
++static HostCheckBoxSetting *AlwaysShowWatchedProgress()
++{
++    auto *gc = new HostCheckBoxSetting("AlwaysShowWatchedProgress");
++
++    gc->setLabel(PlaybackSettings::tr("Always show watched percent progress bar"));
++
++    gc->setValue(false);
++
++    gc->setHelpText(PlaybackSettings::tr("If enabled, shows the watched percent "
++                                         "progress bar even if the recording or "
++                                         "video is marked as watched. "
++                                         "Having a watched percent progress bar at "
++                                         "all depends on the currently used theme."));
++    return gc;
++}
++
+ static HostSpinBoxSetting *LiveTVIdleTimeout()
+ {
+     auto *gs = new HostSpinBoxSetting("LiveTVIdleTimeout", 0, 3600, 1);
+@@ -4407,6 +4423,7 @@ void PlaybackSettings::Load(void)
+     general->addChild(JumpToProgramOSD());
+     general->addChild(UseProgStartMark());
+     general->addChild(AutomaticSetWatched());
++    general->addChild(AlwaysShowWatchedProgress());
+     general->addChild(ContinueEmbeddedTVPlay());
+     general->addChild(LiveTVIdleTimeout());
+ 
+diff --git a/mythtv/programs/mythfrontend/playbackbox.cpp b/mythtv/programs/mythfrontend/playbackbox.cpp
+index d588602f02f..7ca0e8d1edf 100644
+--- a/mythtv/programs/mythfrontend/playbackbox.cpp
++++ b/mythtv/programs/mythfrontend/playbackbox.cpp
+@@ -465,6 +465,8 @@ PlaybackBox::PlaybackBox(MythScreenStack *parent, const QString& name,
+ 
+     fillRecGroupPasswordCache();
+ 
++    m_alwaysShowWatchedProgress = gCoreContext->GetBoolSetting("AlwaysShowWatchedProgress", false);
++
+     // misc setup
+     gCoreContext->addListener(this);
+ 
+@@ -1039,8 +1041,9 @@ void PlaybackBox::ItemVisible(MythUIButtonListItem *item)
+     // Flagging status (queued, running, no, yes)
+     item->DisplayState(extract_commflag_state(*pginfo), "commflagged");
+ 
+-    item->SetProgress1(0, pginfo->IsWatched() ? 0 : 100,
+-                       pginfo->GetWatchedPercent());
++    const auto watchedPercent = pginfo->GetWatchedPercent();
++    const bool showProgress = watchedPercent && (m_alwaysShowWatchedProgress || !pginfo->IsWatched());
++    item->SetProgress1(0, showProgress ? 100 : 0, watchedPercent);
+     item->SetProgress2(0, 100, pginfo->GetRecordedPercent());
+ 
+     MythUIButtonListItem *sel_item = item->parent()->GetItemCurrent();
+diff --git a/mythtv/programs/mythfrontend/playbackbox.h b/mythtv/programs/mythfrontend/playbackbox.h
+index 5cf146c46f5..053fd620da3 100644
+--- a/mythtv/programs/mythfrontend/playbackbox.h
++++ b/mythtv/programs/mythfrontend/playbackbox.h
+@@ -466,6 +466,7 @@ class PlaybackBox : public ScheduleCommon
+     bool                m_groupSelected       {false};
+     bool                m_passwordEntered     {false};
+ 
++    bool                m_alwaysShowWatchedProgress {false};
+     // This class caches the contents of the jobqueue table to avoid excessive
+     // DB queries each time the PBB selection changes (currently 4 queries per
+     // displayed item).  The cache remains valid for 15 seconds
+diff --git a/mythtv/programs/mythfrontend/playbackstate.cpp b/mythtv/programs/mythfrontend/playbackstate.cpp
+index 40a20a5e312..b22fb154651 100644
+--- a/mythtv/programs/mythfrontend/playbackstate.cpp
++++ b/mythtv/programs/mythfrontend/playbackstate.cpp
+@@ -1,10 +1,18 @@
+ #include "playbackstate.h"
++
++// MythTV
++#include "libmyth/mythcontext.h"
+ #include "libmythbase/mythdb.h"
+ #include "libmythbase/mythdbcon.h"
+ #include "libmythbase/mythlogging.h"
+ #include "libmythbase/programtypes.h"
+ #include "libmythmetadata/videometadata.h"
+ 
++PlaybackState::PlaybackState()
++{
++    m_alwaysShowWatchedProgress = gCoreContext->GetBoolSetting("AlwaysShowWatchedProgress", false);
++}
++
+ void PlaybackState::Initialize()
+ {
+     LOG(VB_GENERAL, LOG_INFO, "Query playback state for all videos from database");
+@@ -116,3 +124,8 @@ uint PlaybackState::GetWatchedPercent(const QString &filename) const
+     }
+     return std::clamp(100 * pos / total, (uint64_t)0, (uint64_t)100);
+ }
++
++bool PlaybackState::AlwaysShowWatchedProgress() const
++{
++    return m_alwaysShowWatchedProgress;
++}
+diff --git a/mythtv/programs/mythfrontend/playbackstate.h b/mythtv/programs/mythfrontend/playbackstate.h
+index 9613111cbf1..d06ee6942b8 100644
+--- a/mythtv/programs/mythfrontend/playbackstate.h
++++ b/mythtv/programs/mythfrontend/playbackstate.h
+@@ -11,7 +11,7 @@
+ class PlaybackState
+ {
+ public:
+-    PlaybackState() = default;
++    PlaybackState();
+ 
+     /// Initializes playback state from database
+     void Initialize();
+@@ -28,6 +28,9 @@ class PlaybackState
+     /// Query watched percent of video with the specified filename
+     uint GetWatchedPercent(const QString &filename) const;
+ 
++    /// Returns cached setting "AlwaysShowWatchedProgress"
++    bool AlwaysShowWatchedProgress() const;
++
+ private:
+     /// Query playback state from database, only for single video if a filename is specified
+     void QueryData(const QString &filterFilename = QString());
+@@ -40,6 +43,7 @@ class PlaybackState
+     };
+ 
+     QMap<QString, Markup> m_fileMarkup; ///< maps filename to markup
++    bool m_alwaysShowWatchedProgress {false};
+ };
+ 
+ #endif // PLAYBACKSTATE_H_
+diff --git a/mythtv/programs/mythfrontend/videodlg.cpp b/mythtv/programs/mythfrontend/videodlg.cpp
+index 8236425b23f..2a60099104b 100644
+--- a/mythtv/programs/mythfrontend/videodlg.cpp
++++ b/mythtv/programs/mythfrontend/videodlg.cpp
+@@ -575,10 +575,11 @@ namespace
+ 
+         const auto bookmarkState = playbackState.HasBookmark(metadata->GetFilename()) ? "yes" : "no";
+         const auto watchedPercent = playbackState.GetWatchedPercent(metadata->GetFilename());
++        const bool showProgress = watchedPercent && (playbackState.AlwaysShowWatchedProgress() || !metadata->GetWatched());
+         if (item)
+         {
+             item->DisplayState(bookmarkState, "bookmarkstate");
+-            item->SetProgress1(0, watchedPercent ? 100 : 0, watchedPercent);
++            item->SetProgress1(0, showProgress ? 100 : 0, watchedPercent);
+         }
+         if (screen)
+         {
+@@ -586,7 +587,7 @@ namespace
+             auto watchedProgress = dynamic_cast<MythUIProgressBar *>(screen->GetChild("watchedprogressbar"));
+             if (watchedProgress)
+             {
+-                watchedProgress->Set(0, 100, watchedPercent);
++                watchedProgress->Set(0, showProgress ? 100 : 0, watchedPercent);
+             }
+         }
+     }
