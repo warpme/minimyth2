@@ -12,7 +12,7 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01-rc3/arc
 diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01-rc3/arch/arm/dts/sun50i-h313-x96q-lpddr3-v1.3.dts u-boot-2024.01-rc3/arch/arm/dts/sun50i-h313-x96q-lpddr3-v1.3.dts
 --- u-boot-2024.01-rc3/arch/arm/dts/sun50i-h313-x96q-lpddr3-v1.3.dts	1970-01-01 01:00:00.000000000 +0100
 +++ u-boot-2024.01-rc3/arch/arm/dts/sun50i-h313-x96q-lpddr3-v1.3.dts	2023-12-16 13:11:40.509947940 +0100
-@@ -0,0 +1,162 @@
+@@ -0,0 +1,189 @@
 +// SPDX-License-Identifier: (GPL-2.0+ or MIT)
 +/*
 + * Author: piotr.oniszczuk@gmail.com
@@ -31,9 +31,8 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01-rc3/arc
 +	compatible = "hechuang,x96-q", "allwinner,sun50i-h616";
 +
 +	aliases {
-+		//mmc0 = &mmc0; stop aliasing mmcX; this allows boot from SD and eMMC from single uboot bin
-+		//mmc2 = &mmc2;
 +		ethernet0 = &emac1;
++		ethernet1 = &wlan;
 +		serial0 = &uart0;
 +	};
 +
@@ -59,6 +58,25 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01-rc3/arc
 +		regulator-min-microvolt = <5000000>;
 +		regulator-max-microvolt = <5000000>;
 +		regulator-always-on;
++	};
++
++	reg_vcc_wifi: reg_vcc_wifi {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-wifi";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		gpio = <&pio 6 18 GPIO_ACTIVE_HIGH>; /* PG18 WL_REG_ON */
++		regulator-always-on;
++		enable-active-high;
++		status = "okay";
++	};
++
++	wifi_pwrseq: wifi_pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		clocks = <&rtc CLK_OSC32K_FANOUT>;
++		clock-names = "ext_clock";
++		pinctrl-names = "default";
++		//pinctrl-0 = <&clk_losc>; /* PG10 with MUX3 set */ - not implemented yet in uboot
 +	};
 +};
 +
@@ -108,10 +126,19 @@ diff --speed-large-files --no-dereference --minimal -Naur u-boot-2024.01-rc3/arc
 +};
 +
 +&mmc1 {
-+	vmmc-supply = <&reg_vcc5v>;
-+	broken-cd;
++	vmmc-supply = <&reg_dldo2>;
++	vqmmc-supply = <&reg_vcc_wifi>;
++	mmc-pwrseq = <&wifi_pwrseq>;
 +	bus-width = <4>;
++	non-removable;
 +	status = "okay";
++
++	wlan: wifi@1 {
++		reg = <1>;
++		interrupt-parent = <&pio>;
++		interrupts = <6 15 IRQ_TYPE_EDGE_RISING>; /* PG15 WL_HOSTWAKE*/
++		interrupt-names = "host-wake";
++	};
 +};
 +
 +&mmc2 {
