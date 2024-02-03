@@ -47,7 +47,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_axp313_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_defconfig
-mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_v1.3_defconfig
+# mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_v1.3_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
