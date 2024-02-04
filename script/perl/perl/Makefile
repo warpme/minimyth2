@@ -1,11 +1,10 @@
 GARNAME      = perl
 GARVERSION   = $(PERL_VERSION)
 CATEGORIES   = perl
-MASTER_SITES = http://www.cpan.org/src/
+MASTER_SITES = https://www.cpan.org/src/5.0/
 DISTFILES    = $(DISTNAME).tar.gz
 
 PATCHFILES  += $(DISTNAME)-dash.patch
-PATCHFILES  += $(DISTNAME)-perl.patch.gar
 PATCHFILES  += $(DISTNAME)-path.patch
 PATCHFILES  += $(DISTNAME)-perl5lib.patch
 ifneq ($(DESTIMG),build)
@@ -107,6 +106,8 @@ PERL_libpth := `$(CC) -print-search-dirs \
 	| sed -e 's%[^ ]*/lib/gcc/$(GARHOST)[^ ]*%%g'`
 
 pre-configure:
+	@echo "fixing perl bin patch in shebang ..."
+	@find ./ -type f -exec sed -i 's|#!\/usr\/bin\/perl|#!@GAR_bindir@\/perl|g' {} \;
 	@ln -sf Configure $(WORKSRC)/configure
 	@$(MAKECOOKIE)
 
