@@ -12,6 +12,8 @@ endef
 BUILDDEPS = \
 	python3/python \
 	python3/python-setuptools \
+	lib/libmusicbrainz5 \
+	lib/libcoverart \
 
 DEPENDS = \
 	lang/cxx \
