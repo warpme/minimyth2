@@ -124,6 +124,7 @@ PATCHFILES += backport-002-wic-Fix--extra-space-argument-handling.patch
 PATCHFILES += backport-003-wic-Fix-error-message-when-reporting-invalid-offset.patch
 PATCHFILES += backport-004-wic-Add-512-Byte-alignment-to--offset.patch
 PATCHFILES += poky-yocto-2.7.3-allow-arbitral-part-start-sector.patch
+PATCHFILES += poky-yocto-2.7.3-fix-running-on-python3.11.patch
 
 WORKSRC = $(WORKDIR)/poky-yocto-$(GARVERSION)
 LICENSE = GPL2
