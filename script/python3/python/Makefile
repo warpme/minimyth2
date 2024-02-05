@@ -46,6 +46,7 @@ BUILD_ARGS     = \
 	BLDSHARED="$(CC) -shared -I$(DESTDIR)$(includedir) -L$(DESTDIR)$(libdir) -Wno-all" \
 	CROSS_COMPILE=$(compiler_prefix) \
 	CROSS_COMPILE_TARGET=yes
+CONFIGURE_ARGS += --with-build-python
 INSTALL_ARGS   = \
 	HOSTPYTHON=$(build_DESTDIR)$(build_bindir)/python3 \
 	HOSTPGEN=$(build_DESTDIR)$(build_bindir)/python-pgen \
@@ -53,7 +54,7 @@ INSTALL_ARGS   = \
 	CROSS_COMPILE=$(compiler_prefix) \
 	CROSS_COMPILE_TARGET=yes
 endif
-	
+
 ifneq ($(DESTIMG),build)
 CONFIGURE_ENV = \
 	ac_cv_file__dev_ptc=no \
