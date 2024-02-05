@@ -110,9 +110,6 @@ PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 
 # --------Patches 350+ are plugins patches---------------------
 
-# Various mythvideo patches
-PATCHFILES += 0350-mythvideo-pull742-add-watched-progress-in-videomanger.patch
-
 # Various mythmusic patches
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
