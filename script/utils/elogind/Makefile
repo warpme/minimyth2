@@ -1,6 +1,6 @@
 
 GARNAME      = elogind
-GARVERSION   = 246.9.2
+GARVERSION   = 252.9
 CATEGORIES   = wayland
 MASTER_SITES = https://github.com/elogind/elogind/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
@@ -14,6 +14,8 @@ endef
 DEPENDS = lang/c \
 	lib/libcap \
 	lib/pam \
+
+BUILDDEPS = python3/python-Jinja2
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
