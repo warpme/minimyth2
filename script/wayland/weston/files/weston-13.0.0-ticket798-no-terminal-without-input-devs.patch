@@ -1,24 +1,7 @@
-
-Starting with commit 'backend-drm: Use the seat name over cmd line' we
-would be able to create a fake-seat, by just specifying an invalid
-seat name.
-
-In the same time, in a system where there are actually no input devices
-and no one specifies an explicit seat (as in to create a fake one) we
-would end with no seat available in the system.
-
-This makes things a bit easier for situations where users would just
-specify a DRM node, with input devices being accessed directly, or
-rather with no input devices whatsoever.
-Signed-off-by: Marius Vlad's avatarMarius Vlad <marius.vlad@collabora.com>
-
-from https://gitlab.freedesktop.org/wayland/weston/-/merge_requests/798/diffs?commit_id=1639b9c6995185383f13d0e2e26fee06b7de5dde
-
-
-diff --speed-large-files --no-dereference --minimal -Naur weston-10.0.1/libweston/backend-drm/drm.c weston-10.0.1/libweston/backend-drm/drm.c
---- weston-10.0.1/libweston/backend-drm/drm.c	2022-07-22 12:26:58.963329289 +0200
-+++ weston-10.0.1/libweston/backend-drm/drm.c	2022-07-22 12:26:43.869996049 +0200
-@@ -1230,22 +1230,25 @@
+diff --speed-large-files --no-dereference --minimal -Naur weston-13.0.0/libweston/backend-drm/drm.c weston-13.0.0/libweston/backend-drm/drm.c
+--- weston-13.0.0/libweston/backend-drm/drm.c	2023-11-27 19:01:53.000000000 +0100
++++ weston-13.0.0/libweston/backend-drm/drm.c	2024-02-07 10:32:40.815233737 +0100
+@@ -1590,21 +1590,24 @@
  			     struct weston_output *output,
  			     const char *s)
  {
@@ -43,23 +26,21 @@ diff --speed-large-files --no-dereference --minimal -Naur weston-10.0.1/libwesto
  
 -		pointer = weston_seat_get_pointer(&seat->base);
 -		if (pointer)
--			weston_pointer_clamp(pointer,
--					     &pointer->x,
--					     &pointer->y);
+-			pointer->pos = weston_pointer_clamp(pointer,
+-							    pointer->pos);
 -	}
 +	seat->base.output = output;
 +
 +	pointer = weston_seat_get_pointer(&seat->base);
 +	if (pointer)
-+		weston_pointer_clamp(pointer,
-+				&pointer->x,
-+				&pointer->y);
++		pointer->pos = weston_pointer_clamp(pointer,
++						    pointer->pos);
  }
  
  static int
-@@ -1362,6 +1365,9 @@
+@@ -1726,6 +1729,9 @@
  	struct drm_output *output = to_drm_output(base);
- 	struct drm_backend *b = to_drm_backend(base->compositor);
+ 	struct drm_backend *b = output->backend;
  
 +	if (b->seat_id)
 +		seat = b->seat_id;
@@ -67,16 +48,16 @@ diff --speed-large-files --no-dereference --minimal -Naur weston-10.0.1/libwesto
  	setup_output_seat_constraint(b, &output->base,
  				     seat ? seat : "");
  }
-@@ -2592,6 +2598,7 @@
- 	weston_launcher_destroy(ec->launcher);
+@@ -3366,6 +3372,7 @@
  
- 	free(b->drm.filename);
+ 	free(device->drm.filename);
+ 	free(device);
 +	free(b->seat_id);
  	free(b);
  }
  
-@@ -3009,6 +3016,8 @@
- 	b->use_pixman = config->use_pixman;
+@@ -3875,6 +3882,8 @@
+ 	b->compositor = compositor;
  	b->pageflip_timeout = config->pageflip_timeout;
  	b->use_pixman_shadow = config->use_pixman_shadow;
 +	if (config->seat_id)
@@ -84,7 +65,7 @@ diff --speed-large-files --no-dereference --minimal -Naur weston-10.0.1/libwesto
  
  	b->debug = weston_compositor_add_log_scope(compositor, "drm-backend",
  						   "Debug messages from DRM/KMS backend\n",
-@@ -3222,6 +3231,7 @@
+@@ -4105,6 +4114,7 @@
  	if (b->gbm)
  		gbm_device_destroy(b->gbm);
  #endif
@@ -92,12 +73,12 @@ diff --speed-large-files --no-dereference --minimal -Naur weston-10.0.1/libwesto
  	free(b);
  	return NULL;
  }
-diff --speed-large-files --no-dereference --minimal -Naur weston-10.0.1/libweston/backend-drm/drm-internal.h weston-10.0.1/libweston/backend-drm/drm-internal.h
---- weston-10.0.1/libweston/backend-drm/drm-internal.h	2022-06-23 15:52:38.000000000 +0200
-+++ weston-10.0.1/libweston/backend-drm/drm-internal.h	2022-07-22 12:24:32.363330158 +0200
-@@ -296,6 +296,7 @@
+diff --speed-large-files --no-dereference --minimal -Naur weston-13.0.0/libweston/backend-drm/drm-internal.h weston-13.0.0/libweston/backend-drm/drm-internal.h
+--- weston-13.0.0/libweston/backend-drm/drm-internal.h	2023-11-27 19:01:53.000000000 +0100
++++ weston-13.0.0/libweston/backend-drm/drm-internal.h	2024-02-07 10:21:12.521915122 +0100
+@@ -369,6 +369,7 @@
+ 	const struct pixel_format_info *format;
  
- 	bool use_pixman;
  	bool use_pixman_shadow;
 +	char *seat_id;
  
