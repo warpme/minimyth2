@@ -73,28 +73,32 @@ MESON_CONFIGURE_ARGS = \
 	-D b_ndebug=true \
 	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 	-D platforms=x11,wayland \
-	-D llvm=enabled \
 	-D cpp_rtti=false \
+	-D vulkan-drivers=amd,intel
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
-	-D c_args="-mfpu=neon -mfloat-abi=softfp"
+	-D c_args="-mfpu=neon -mfloat-abi=softfp" \
+	-D llvm=disabled
 else
 ifeq ($(GARCH),armv8)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D gallium-vdpau=disabled \
-	-D gallium-va=disabled
+	-D gallium-va=disabled \
+	-D vulkan-drivers=amd,intel \
+	-D llvm=disabled
 else
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,nouveau,svga,swrast \
 	-D gallium-vdpau=enabled \
 	-D gallium-va=enabled \
-	-D video-codecs=vc1dec,h264dec,h265dec
-
+	-D video-codecs=vc1dec,h264dec,h265dec \
+	-D llvm=enabled
+DEPENDS += devel/llvm
 endif
 endif
 
