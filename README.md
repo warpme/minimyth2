@@ -2,6 +2,14 @@
 
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate/?hosted_button_id=XWV5VJH6L3DF6)
 
+Note: Last years I funded my semi-lab with 15+ various TVboxes by my private money and decided to stop investing my
+private money - effectively just (and seems only) - to increase sells of tv box vendors.
+
+If you want me to work on various issues or add new hardware support - pls consider donation to help me get required 
+hardware to work on. Please note that this will also increase my satisfaction from - currently free of charge - work on minimyth2/miniarch.
+
+Thank You in advance !
+
 [Quick Start](https://github.com/warpme/minimyth2/wiki/Deploying-MiniMyth2#overview)
 
 ## What it is
@@ -102,6 +110,7 @@ Allwinner H313| X96-Q (DDR3)     | works  (xr819@SDIO)                    | work
 Allwinner H313| X96-Q (LPDDR3)   | works  (xr819@SDIO)                    | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s-axp313 | works  (ap6330@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H616| Pendoo-X12Pro    | works  (sp6330@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H616| OrangePi-Zero2   | works  (aw859a@SDIO)                   | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H618| OrangePi-Zero3   | works  (uwe5622a@SDIO)                 | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H618| Vontar H618      | works  (ap6334@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
@@ -115,6 +124,9 @@ Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                   | work
 Rockchip 3566 | Quartz64 Model B | works  (cm256sm@SDIO)                  | works       | n/a         | not works                      | good prospects                |
 Rockchip 3566 | URVE Pi          | works  (rtl8821@SDIO)                  | not works   | n/a         | not works                      | good prospects                |
 Rockchip 3566 | OrangePi-3B      | works  (uwe5622@SDIO)                  | works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3566 | Zero-3w (wifi6)  | works  (aic8800@SDIO)                  | works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3566 | Zero-3w (wifi5)  | works  (ap6212@SDIO)                   | works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3566 | Zero-3e          | n/a                                    | works       | LED Diode,OK| not works                      | good prospects                |
 Rockchip 3566 | Rock3-C          | works  (ap6256@SDIO)                   | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-B          | works  (iwl7265@PCI-e)                 | works       | n/a         | not works                      | good prospects                |
