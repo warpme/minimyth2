@@ -242,6 +242,7 @@ mm-all:
 	@echo "    mm_MYTH_VERSION"
 	@if [ ! "$(mm_MYTH_VERSION)" = "32"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "33"         ] && \
+	    [ ! "$(mm_MYTH_VERSION)" = "34"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "master"     ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "test"       ] ; then \
 		echo " " ; \
