@@ -38,6 +38,10 @@ MESON_CONFIGURE_ARGS = \
 	-D introspection=disabled \
 	-D gobject-cast-checks=disabled \
 	-D glib-asserts=disabled \
+	-D kms=enabled \
+	-D fbdev=enabled \
+	-D gl=enabled \
+	-D drm=enabled \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
