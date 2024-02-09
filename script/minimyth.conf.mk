@@ -26,7 +26,6 @@ mm_SOFTWARE               ?= \
                             avahi \
                             udisks2 \
                             dvdcss \
-                            gstreamer \
                             mc \
                             lcdproc \
                             voip \
@@ -39,6 +38,7 @@ mm_SOFTWARE               ?= \
                             monitorix \
                             $(if $(filter $(mm_DEBUG),yes),debug)
 
+#                             gstreamer \
 #                             mythnetvision \
 #                             mythwebbrowser \
 #                             udisks1 \
