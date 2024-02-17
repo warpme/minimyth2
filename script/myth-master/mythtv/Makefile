@@ -108,9 +108,7 @@ PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 # Patches for scripts
 PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 
-PATCHFILES += 0349-mythfrontend-pl_translations-update-20240214.patch
 # --------Patches 350+ are plugins patches---------------------
-
 # Various mythmusic patches
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
