@@ -44,8 +44,16 @@ ifneq (,$(filter board-rpi4.mainline64,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rpi4.mainline64
 endif
 
+ifneq (,$(filter board-rpi5.mainline64,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rpi5.mainline64
+endif
+
 ifneq (,$(filter board-rpi34.mainline64,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rpi34.mainline64
+endif
+
+ifneq (,$(filter board-rpi345.mainline64,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rpi345.mainline64
 endif
 
 ifneq (,$(filter board-rpi4.rpi32,$(mm_BOARD_TYPE)))
@@ -54,6 +62,10 @@ endif
 
 ifneq (,$(filter board-rpi4.rpi64,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rpi4.rpi64
+endif
+
+ifneq (,$(filter board-rpi5.rpi64,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rpi5.rpi64
 endif
 
 ifneq (,$(filter board-s905,$(mm_BOARD_TYPE)))
