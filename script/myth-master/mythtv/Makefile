@@ -108,10 +108,13 @@ PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 # Patches for scripts
 PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 
+PATCHFILES += 0359-mythfrontend-translations-.pl-community-updates.patch
+
 # --------Patches 350+ are plugins patches---------------------
 # Various mythmusic patches
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
+PATCHFILES += 0407-mythmusic-pull835-support-playing-AudioCD-from-optical-disc-menu.patch
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
