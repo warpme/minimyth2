@@ -1,0 +1,198 @@
+#!/bin/sh
+
+# Script:
+#  1.duplicates first rootfs_sise MBytes from SD card to eMMC
+#  2.duplicates bootloader from SD card to eMMC
+#
+# safety_margina is mount of extra size beyond 1st + 2nd + 3rd partitions to be
+# duplicated from SD card to eMMC. In MBytes
+safety_margin=100
+
+#-----------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ver=1.0
+
+confirm() {
+
+    echo " "
+    echo "    Please confirm $1 by pressing 'y'"
+    echo "    or press Enter (or any other key) to exit ..."
+    echo " "
+
+    read sel
+
+    if [ x$sel = "xy" ] || [ x$sel = "xY" ] ; then
+        return
+    else
+        echo "Exiting stript (by user no-confirm)"
+        exit 0
+    fi
+}
+
+what_platform() {
+
+    platform=$(cat /sys/firmware/devicetree/base/compatible)
+    echo "Platform:${platform}"
+
+    if [[ ${platform} =~ "allwinner" ]] ; then
+        echo "Allwinner detected!"
+        platform_type=1
+    elif [[ "${platform}" =~ "rockchip" ]] ; then
+        echo "Rockchip detected!"
+        platform_type=2
+    elif [[ "${platform}" =~ "amlogic" ]] ; then
+        echo "Amlogic detected!"
+        platform_type=3
+    elif [[ "${platform}" =~ "raspberrypi" ]] ; then
+        echo "Rpi detected!"
+        platform_type=4
+    else
+        echo "Unknown platform!"
+        platform_type=10
+    fi
+}
+
+get_size_to_copy() {
+
+    start=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p3/start)
+    size=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p3/size)
+    end=$((${start} + $size))
+    storage_usage=$((${end} / 2000))
+}
+
+duplicate_sdcard_to_emmc() {
+
+    echo "  ==> copying from: SDcard[${sdcard_dev}] to: eMMC[${emmc_dev}] ..."
+    dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} bs=1M count=$1 conv=fsync
+}
+
+
+write_to_emmc_bootloader() {
+
+    echo "  ==> writing bootloader from $1 to ${emmc_dev} ..."
+
+    echo 0 > /sys/block/${emmc_dev}boot0/force_ro
+
+    if [ $platform_type = 1 ] ; then
+        # this is for allwinner
+        echo "  ==> erasing existing bootloader ..."
+        dd if=/dev/zero of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
+        dd if=/dev/zero of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
+        echo "  ==> copying bootloader ..."
+        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
+        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
+    elif [ $platform_type = 2 ] ; then
+        # this is for rockchip
+        echo "  ==> erasing existing bootloader ..."
+        echo "  ==> copying bootloader ..."
+    elif [ $platform_type = 3 ] ; then
+        # this is for amlogic
+        echo "  ==> erasing existing bootloader ..."
+        echo "  ==> copying bootloader ..."
+    elif [ $platform_type = 4 ] ; then
+        # this is for rpi
+        echo "  ==> erasing existing bootloader ..."
+        echo "  ==> copying bootloader ..."
+    else
+        # this is for usupported
+        echo "  ==> write_to_emmc_bootloader: unknown platform ..."
+    fi
+}
+
+sdcard_dev=$(grep /media/boot /proc/mounts | awk '{print $1}' | sed 's/p[012]//g' | sed 's/\/dev\///g')
+emmc_dev=""
+
+for TYPE in /sys/class/block/mmcblk*/device/type; do
+  if grep -q "MMC" "${TYPE}"; then
+    emmc_dev="$(echo "${TYPE}" | awk -F/ '{print $5}')"
+    break
+  fi
+done
+
+
+echo " "
+echo "--- MiniMyth2 to eMMC installer v$ver (c)Piotr Oniszczuk ---"
+echo " "
+
+what_platform
+if [ $platform_type -gt 1 ] ; then
+  echo "Unsupported (yet) platform! Exiting ..."
+  exit 1
+fi
+
+if [ -z "${emmc_dev}" ]; then
+  echo "Can't determine eMMC device! Exiting ..."
+  exit 1
+fi
+
+if [ "${sdcard_dev}" = "${emmc_dev}" ]; then
+  echo "Your device is booted from the eMMC! Exiting ..."
+  exit 1
+fi
+
+get_size_to_copy
+
+echo " "
+echo "System booted from : ${sdcard_dev}"
+echo "eMMC device        : ${emmc_dev}"
+echo "SDcard usage       : ${storage_usage}MB"
+
+confirm "to copy ${storage_usage}MB from SD card to eMMC"
+
+confirm "You ARE SURE to OVERWRITE eMMC content"
+
+echo "copying of ${storage_usage}MB from SD card to eMMC ..."
+duplicate_sdcard_to_emmc $((${storage_usage} + $safety_margin))
+echo "copying to eMMC done ..."
+
+echo "copying bootloader to eMMC ..."
+confirm "to install bootloader on eMMC"
+write_to_emmc_bootloader
+echo "bootloader copied to eMMC ..."
+
+echo " "
+echo "Now you can remove SD card and reboot ..."
+echo " "
+
+exit 0
