@@ -240,11 +240,13 @@ PATCHFILES += 0902-media-add-rpivid-driver.patch
 PATCHFILES += 0903-mmc-sdhci-brcmstb-add-new-sdhci-reset-sequence-for-brcm74165b0.patch
 PATCHFILES += 0904-pci-brcmstb-configure-HW-CLKREQ-mode-appropriate-for-downstream.patch
 PATCHFILES += 0905-drivers-add-rpi5-clk-pinctrl-mmc-pwm-net-usb-pci-rp1.patch
-# PATCHFILES += 0906-gpu-drm-vc4-add-rpi5-support.patch
+PATCHFILES += 0906-gpu-drm-vc4-add-rpi5-support.patch
 PATCHFILES += 0907-drivers-gpu-v3d-add-rpi5-support.patch
 # device-tree patches
 PATCHFILES += 0950-arm64-dts-brcm-set-userled-to-mmc.patch
 PATCHFILES += 0951-arm64-dts-brcm-add-rpi5-dt.patch
+PATCHFILES += 0952-arm64-dts-broadcom-Add-in-DRM-pipeline-to-2712.patch
+PATCHFILES += 0953-arm64-dts-disable-hdmi-audio-on-2712.patch
 endif
 #------------------------------------------------------------
 
