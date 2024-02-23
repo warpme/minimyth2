@@ -54,7 +54,6 @@ GAR_EXTRA_CONF += bootloaders/board-rpi34.mainline64/package-api.mk
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean-all install -C ../u-boot-rpi
 	@$(MAKECOOKIE)
 
 install-custom:
@@ -64,13 +63,14 @@ install-custom:
 	@cp -f $(WORKSRC)/*.bin               $(DESTDIR)/boot/
 	@cp -f $(WORKSRC)/*.dat               $(DESTDIR)/boot/
 	@cp -f $(WORKSRC)/*.elf               $(DESTDIR)/boot/
+	@cp -f $(WORKSRC)/boot-debug.scr      $(DESTDIR)/boot/boot.scr
 	@mkdir -p $(DESTDIR)/boot/upstream
 	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2712-rpi-5-b.dtb                    $(DESTDIR)/boot/upstream/bcm2712-rpi-5-b.dtb
 	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2711-rpi-4-b.dtb                    $(DESTDIR)/boot/upstream/bcm2711-rpi-4-b.dtb
 	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2837-rpi-3-a-plus.dtb               $(DESTDIR)/boot/upstream/bcm2837-rpi-3-a-plus.dtb
 	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2837-rpi-3-b-plus.dtb               $(DESTDIR)/boot/upstream/bcm2837-rpi-3-b-plus.dtb
 	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2837-rpi-3-b.dtb                    $(DESTDIR)/boot/upstream/bcm2837-rpi-3-b.dtb
-	@cp -f $(DESTDIR)$(libdir)/u-boot/rpi345/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img $(DESTDIR)/boot/upstream/kernel8.img
+	@cp -f $(DESTDIR)/boot/Image                                                $(DESTDIR)/boot/upstream/kernel8.img
 	@cp -f $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
