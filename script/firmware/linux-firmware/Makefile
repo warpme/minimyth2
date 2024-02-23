@@ -1,6 +1,7 @@
 
 GARNAME      = linux-firmware
-GARVERSION   = 5179d3558a336a270b38555579252ec81073ee5c
+# 2024.02.20
+GARVERSION   = 97b693d243f0bb464819fa3f8326edd4091032e4
 CATEGORIES   = firmware
 MASTER_SITES = https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/snapshot/
 DISTFILES    = linux-firmware-$(GARVERSION).tar.gz
