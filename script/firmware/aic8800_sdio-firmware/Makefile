@@ -1,6 +1,7 @@
 
 GARNAME      = aic8800_sdio-firmware
-GARVERSION   = e56e16995ac2e4c973aa2898d42357811b2f428d
+#v0.2.19 with aic8800 v2024_0116
+GARVERSION   = 624200cd90e78b253d79c51f0189ddb20efbe315
 CATEGORIES   = firmware
 MASTER_SITES = https://github.com/radxa-pkg/radxa-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
