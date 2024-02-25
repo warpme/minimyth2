@@ -231,7 +231,7 @@ endif
 ifeq (1,1)
 #-- RaspberryPI patches -----------------------------------------
 # Hack for adding H264 v4l2 decoding on RPI
-PATCHFILES += 0900-rpi-vc04_services-add_h~l2-m2m_decode-04092022.patch
+PATCHFILES += 0900-rpi-vc04_services-add_h~l2-m2m_decode-25022024.patch
 PATCHFILES += 0901-rpi-vc04_services-bcm2835-codec-remove-isp-formats.patch
 PATCHFILES += 0902-media-add-rpivid-driver.patch
 PATCHFILES += 0905-drivers-add-rpi5-clk-pinctrl-mmc-pwm-net-usb-pci-rp1.patch
