@@ -73,20 +73,29 @@ confirm() {
 what_platform() {
 
     platform=$(cat /sys/firmware/devicetree/base/compatible)
-    echo "Platform:${platform}"
+    echo "Ooo...You are running ${platform}"
 
     if [[ ${platform} =~ "allwinner" ]] ; then
-        echo "Allwinner detected!"
+        echo "Allwinner detected...Good!"
         platform_type=1
-    elif [[ "${platform}" =~ "rockchip" ]] ; then
-        echo "Rockchip detected!"
+    elif [[ "${platform}" =~ "rk3328" ]] ; then
+        echo "Rockchip 3328 detected..Good!"
         platform_type=2
-    elif [[ "${platform}" =~ "amlogic" ]] ; then
-        echo "Amlogic detected!"
+    elif [[ "${platform}" =~ "rk3399" ]] ; then
+        echo "Rockchip 3399 detected...Good!"
         platform_type=3
-    elif [[ "${platform}" =~ "raspberrypi" ]] ; then
-        echo "Rpi detected!"
+    elif [[ "${platform}" =~ "rk356" ]] ; then
+        echo "Rockchip 3566/3568 detected...Good!"
         platform_type=4
+    elif [[ "${platform}" =~ "rk3588" ]] ; then
+        echo "Rockchip 3588 detected...Good!"
+        platform_type=5
+    elif [[ "${platform}" =~ "amlogic" ]] ; then
+        echo "Amlogic detected...Good!"
+        platform_type=6
+    elif [[ "${platform}" =~ "raspberrypi" ]] ; then
+        echo "Rpi detected...Good!"
+        platform_type=7
     else
         echo "Unknown platform!"
         platform_type=10
@@ -122,18 +131,55 @@ write_to_emmc_bootloader() {
         echo "  ==> copying bootloader ..."
         dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
         dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
+
     elif [ $platform_type = 2 ] ; then
-        # this is for rockchip
+        # this is for rockchip 3328
+        # dd if=idbloader.img of=sdb seek=64 filesize=
+        # dd if=uboot.img     of=sdb seek=16384 filesize=
+        # dd if=trust.img     of=sdb seek=24576 filesize=
         echo "  ==> erasing existing bootloader ..."
         echo "  ==> copying bootloader ..."
+
     elif [ $platform_type = 3 ] ; then
+        # this is for rockchip 3399
+        # sudo dd if=idbloader.img of=/dev/mmcblk1 seek=64 filesize=221kB
+        # sudo dd if=uboot.img of=/dev/mmcblk1 seek=16384 filesize=1048kB
+        # sudo dd if=trust.img of=/dev/mmcblk1 seek=24576 filesize=1048kB
+        echo "  ==> erasing existing bootloader ..."
+        echo "  ==> copying bootloader ..."
+
+    elif [ $platform_type = 4 ] ; then
+        # this is for rockchip 356x
+        # sudo dd if=idbloader.img of=/dev/mmcblk1 seek=64 filesize=192,5kB
+        # sudo dd if=u-boot.itb of=/dev/mmcblk1 seek=16384 filesize=1221kB
+        echo "  ==> erasing existing bootloader ..."
+        dd if=/dev/zero of=/dev/${emmc_dev} seek=64 count=2048 conv=fsync
+        dd if=/dev/zero of=/dev/${emmc_dev} seek=16384 count=4096 conv=fsync
+        echo "  ==> copying bootloader ..."
+        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} seek=64 count=2048 conv=fsync
+        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} seek=16384 count=4096 conv=fsync
+
+    elif [ $platform_type = 5 ] ; then
+        # this is for rockchip 3588
+        # sudo dd if=idbloader.img of=/dev/mmcblk1 seek=64 filesize=204kB
+        # sudo dd if=u-boot.itb of=/dev/mmcblk1 seek=16384 filesize=1225kB
+        echo "  ==> erasing existing bootloader ..."
+        dd if=/dev/zero of=/dev/${emmc_dev} seek=64 count=2048 conv=fsync
+        dd if=/dev/zero of=/dev/${emmc_dev} seek=16384 count=4096 conv=fsync
+        echo "  ==> copying bootloader ..."
+        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} seek=64 count=2048 conv=fsync
+        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} seek=16384 count=4096 conv=fsync
+
+    elif [ $platform_type = 6 ] ; then
         # this is for amlogic
         echo "  ==> erasing existing bootloader ..."
         echo "  ==> copying bootloader ..."
-    elif [ $platform_type = 4 ] ; then
+
+    elif [ $platform_type = 7 ] ; then
         # this is for rpi
         echo "  ==> erasing existing bootloader ..."
         echo "  ==> copying bootloader ..."
+
     else
         # this is for usupported
         echo "  ==> write_to_emmc_bootloader: unknown platform ..."
@@ -156,7 +202,8 @@ echo "--- MiniMyth2 to eMMC installer v$ver (c)Piotr Oniszczuk ---"
 echo " "
 
 what_platform
-if [ $platform_type -gt 1 ] ; then
+# mark anything above 5 (amlogic, rpi) as unsupported (yet)
+if [ $platform_type -gt 5 ] ; then
   echo "Unsupported (yet) platform! Exiting ..."
   exit 1
 fi
