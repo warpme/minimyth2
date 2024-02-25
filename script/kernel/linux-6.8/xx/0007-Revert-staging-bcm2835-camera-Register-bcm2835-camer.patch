@@ -1,0 +1,136 @@
+From f33ae1dec63335dfc65f11274bb0bb5aaf05aebe Mon Sep 17 00:00:00 2001
+From: Dom Cobley <popcornmix@gmail.com>
+Date: Tue, 21 Nov 2023 19:28:53 +0000
+Subject: [PATCH 007/748] Revert "staging: bcm2835-camera: Register
+ bcm2835-camera with vchiq_bus_type"
+
+This reverts commit 899038ae82bd65191c6a2f19bf693bf6f24e5b3c.
+---
+ .../bcm2835-camera/bcm2835-camera.c           | 21 +++++++++----------
+ .../interface/vchiq_arm/vchiq_arm.c           | 11 +++-------
+ 2 files changed, 13 insertions(+), 19 deletions(-)
+
+diff --git a/drivers/staging/vc04_services/bcm2835-camera/bcm2835-camera.c b/drivers/staging/vc04_services/bcm2835-camera/bcm2835-camera.c
+index 863d8ae46a69..f3787e46f68a 100644
+--- a/drivers/staging/vc04_services/bcm2835-camera/bcm2835-camera.c
++++ b/drivers/staging/vc04_services/bcm2835-camera/bcm2835-camera.c
+@@ -11,7 +11,6 @@
+  *          Luke Diamand @ Broadcom
+  */
+ 
+-#include <linux/dma-mapping.h>
+ #include <linux/errno.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
+@@ -25,8 +24,8 @@
+ #include <media/v4l2-event.h>
+ #include <media/v4l2-common.h>
+ #include <linux/delay.h>
++#include <linux/platform_device.h>
+ 
+-#include "../interface/vchiq_arm/vchiq_bus.h"
+ #include "../vchiq-mmal/mmal-common.h"
+ #include "../vchiq-mmal/mmal-encodings.h"
+ #include "../vchiq-mmal/mmal-vchiq.h"
+@@ -1842,7 +1841,7 @@ static struct v4l2_format default_v4l2_format = {
+ 	.fmt.pix.sizeimage = 1024 * 768,
+ };
+ 
+-static int bcm2835_mmal_probe(struct vchiq_device *device)
++static int bcm2835_mmal_probe(struct platform_device *pdev)
+ {
+ 	int ret;
+ 	struct bcm2835_mmal_dev *dev;
+@@ -1853,9 +1852,9 @@ static int bcm2835_mmal_probe(struct vchiq_device *device)
+ 	unsigned int resolutions[MAX_BCM2835_CAMERAS][2];
+ 	int i;
+ 
+-	ret = dma_set_mask_and_coherent(&device->dev, DMA_BIT_MASK(32));
++	ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32));
+ 	if (ret) {
+-		dev_err(&device->dev, "dma_set_mask_and_coherent failed: %d\n", ret);
++		dev_err(&pdev->dev, "dma_set_mask_and_coherent failed: %d\n", ret);
+ 		return ret;
+ 	}
+ 
+@@ -1903,7 +1902,7 @@ static int bcm2835_mmal_probe(struct vchiq_device *device)
+ 						       &camera_instance);
+ 		ret = v4l2_device_register(NULL, &dev->v4l2_dev);
+ 		if (ret) {
+-			dev_err(&device->dev, "%s: could not register V4L2 device: %d\n",
++			dev_err(&pdev->dev, "%s: could not register V4L2 device: %d\n",
+ 				__func__, ret);
+ 			goto free_dev;
+ 		}
+@@ -1983,7 +1982,7 @@ static int bcm2835_mmal_probe(struct vchiq_device *device)
+ 	return ret;
+ }
+ 
+-static void bcm2835_mmal_remove(struct vchiq_device *device)
++static void bcm2835_mmal_remove(struct platform_device *pdev)
+ {
+ 	int camera;
+ 	struct vchiq_mmal_instance *instance = gdev[0]->instance;
+@@ -1995,17 +1994,17 @@ static void bcm2835_mmal_remove(struct vchiq_device *device)
+ 	vchiq_mmal_finalise(instance);
+ }
+ 
+-static struct vchiq_driver bcm2835_camera_driver = {
++static struct platform_driver bcm2835_camera_driver = {
+ 	.probe		= bcm2835_mmal_probe,
+-	.remove		= bcm2835_mmal_remove,
++	.remove_new	= bcm2835_mmal_remove,
+ 	.driver		= {
+ 		.name	= "bcm2835-camera",
+ 	},
+ };
+ 
+-module_vchiq_driver(bcm2835_camera_driver)
++module_platform_driver(bcm2835_camera_driver)
+ 
+ MODULE_DESCRIPTION("Broadcom 2835 MMAL video capture");
+ MODULE_AUTHOR("Vincent Sanders");
+ MODULE_LICENSE("GPL");
+-MODULE_ALIAS("bcm2835-camera");
++MODULE_ALIAS("platform:bcm2835-camera");
+diff --git a/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_arm.c b/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_arm.c
+index 94370081c8f1..b82b61ea37cc 100644
+--- a/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_arm.c
++++ b/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_arm.c
+@@ -63,13 +63,8 @@
+ DEFINE_SPINLOCK(msg_queue_spinlock);
+ struct vchiq_state g_state;
+ 
++static struct platform_device *bcm2835_camera;
+ static struct platform_device *bcm2835_audio;
+-/*
+- * The devices implemented in the VCHIQ firmware are not discoverable,
+- * so we need to maintain a list of them in order to register them with
+- * the interface.
+- */
+-static struct vchiq_device *bcm2835_camera;
+ 
+ struct vchiq_drvdata {
+ 	const unsigned int cache_line_size;
+@@ -1779,8 +1774,8 @@ static int vchiq_probe(struct platform_device *pdev)
+ 		goto error_exit;
+ 	}
+ 
++	bcm2835_camera = vchiq_register_child(pdev, "bcm2835-camera");
+ 	bcm2835_audio = vchiq_register_child(pdev, "bcm2835_audio");
+-	bcm2835_camera = vchiq_device_register(&pdev->dev, "bcm2835-camera");
+ 
+ 	return 0;
+ 
+@@ -1793,7 +1788,7 @@ static int vchiq_probe(struct platform_device *pdev)
+ static void vchiq_remove(struct platform_device *pdev)
+ {
+ 	platform_device_unregister(bcm2835_audio);
+-	vchiq_device_unregister(bcm2835_camera);
++	platform_device_unregister(bcm2835_camera);
+ 	vchiq_debugfs_deinit();
+ 	vchiq_deregister_chrdev();
+ }
+-- 
+2.43.0
+
