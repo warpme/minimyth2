@@ -368,6 +368,9 @@ ifeq ($(GARCH),armv7)
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/zImage > $(DESTDIR)$(LINUX_DIR)/zImage
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)$(LINUX_DIR)/Image
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/bcmbca*
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/northstar2*
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/stingray*
 	@$(MAKECOOKIE)
 else
 ifeq ($(GARCH),armv8)
@@ -375,6 +378,9 @@ ifeq ($(GARCH),armv8)
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)$(LINUX_DIR)/Image
 	@$(build_DESTDIR)$(build_bindir)/mkimage -A arm64 -O linux -T kernel -C none -a 0x1080000 -e 0x1080000 -n linux-next -d $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image $(DESTDIR)$(LINUX_DIR)/uImage
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/bcmbca*
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/northstar2*
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/stingray*
 	@$(MAKECOOKIE)
 else
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/bzImage > $(DESTDIR)$(LINUX_DIR)/vmlinuz
