@@ -241,7 +241,6 @@ PATCHFILES += 0903-mmc-sdhci-brcmstb-add-new-sdhci-reset-sequence-for-brcm74165b
 PATCHFILES += 0904-pci-brcmstb-configure-HW-CLKREQ-mode-appropriate-for-downstream.patch
 PATCHFILES += 0905-drivers-add-rpi5-clk-pinctrl-mmc-pwm-net-usb-pci-rp1.patch
 PATCHFILES += 0906-gpu-drm-vc4-add-rpi5-support.patch
-PATCHFILES += 0907-drivers-gpu-v3d-add-rpi5-support.patch
 # device-tree patches
 PATCHFILES += 0950-arm64-dts-brcm-set-userled-to-mmc.patch
 PATCHFILES += 0951-arm64-dts-brcm-add-rpi5-dt.patch
@@ -376,6 +375,9 @@ ifeq ($(GARCH),armv7)
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/zImage > $(DESTDIR)$(LINUX_DIR)/zImage
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)$(LINUX_DIR)/Image
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/bcmbca*
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/northstar2*
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/stingray*
 	@$(MAKECOOKIE)
 else
 ifeq ($(GARCH),armv8)
@@ -383,6 +385,9 @@ ifeq ($(GARCH),armv8)
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image    > $(DESTDIR)$(LINUX_DIR)/Image
 	@$(build_DESTDIR)$(build_bindir)/mkimage -A arm64 -O linux -T kernel -C none -a 0x1080000 -e 0x1080000 -n linux-next -d $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/Image $(DESTDIR)$(LINUX_DIR)/uImage
 	@$(INSTALL_ENV) $(MAKE) $(INSTALL_ARGS) -C $(WORKSRC) dtbs_install
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/bcmbca*
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/northstar2*
+	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs/broadcom/stingray*
 	@$(MAKECOOKIE)
 else
 	@cat $(WORKSRC)/arch/$(GARCH_FAMILY)/boot/bzImage > $(DESTDIR)$(LINUX_DIR)/vmlinuz
