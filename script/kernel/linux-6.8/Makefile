@@ -240,6 +240,7 @@ PATCHFILES += 0906-gpu-drm-vc4-add-rpi5-support.patch
 PATCHFILES += 0950-arm64-dts-brcm-set-userled-to-mmc.patch
 PATCHFILES += 0951-arm64-dts-brcm-add-rpi5-dt.patch
 PATCHFILES += 0952-arm64-dts-broadcom-Add-in-DRM-pipeline-to-2712.patch
+PATCHFILES += 0953-arm64-dts-add-rpivid-rpi4-rpi5.patch
 PATCHFILES += 0953-arm64-dts-disable-hdmi-audio-on-2712.patch
 endif
 #------------------------------------------------------------
