@@ -112,63 +112,56 @@ get_size_to_copy() {
 
 duplicate_sdcard_to_emmc() {
 
-    echo "  ==> copying from: SDcard[${sdcard_dev}] to: eMMC[${emmc_dev}] ..."
+    echo "  ==> copying from: SDcard(${sdcard_dev}) to: eMMC(${emmc_dev}) ..."
     dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} bs=1M count=$1 conv=fsync
 }
 
+update_emmc_bootloader_config() {
+
+    echo "  ==> updating extlinux.conf on eMMC ..."
+    partprobe /dev/${emmc_dev}
+    mkdir -p /media/boot.emmc
+    mount /dev/${emmc_dev}p1 /media/boot.emmc
+    if [ -e /media/boot.emmc/extlinux/extlinux.conf ] ; then
+        sed -e "s|${sdcard_dev}|${emmc_dev}|g" -i /media/boot.emmc/extlinux/extlinux.conf
+        sync
+        echo "extlinux.conf on eMMC updated successfuly ..."
+    else
+        echo "ERROR: can't update extlinux.conf on eMMC as extlinux.conf is not found."
+        echo "You can update extlinux.conf namually by mounting eMMC /BOOT part and"
+        echo "updating root=... to root=/dev/${emmc_dev}p2 in extlinux.conf file ..."
+    fi
+}
 
 write_to_emmc_bootloader() {
 
-    echo "  ==> writing bootloader from $1 to ${emmc_dev} ..."
-
-    echo 0 > /sys/block/${emmc_dev}boot0/force_ro
-
     if [ $platform_type = 1 ] ; then
         # this is for allwinner
+        echo "  ==> copying bootloader from ${sdcard_dev} to ${emmc_dev} ..."
+        echo 0 > /sys/block/${emmc_dev}boot0/force_ro
         echo "  ==> erasing existing bootloader ..."
         dd if=/dev/zero of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
         dd if=/dev/zero of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
         echo "  ==> copying bootloader ..."
         dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
         dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
+        echo "bootloader copied to eMMC ..."
 
     elif [ $platform_type = 2 ] ; then
         # this is for rockchip 3328
-        # dd if=idbloader.img of=sdb seek=64 filesize=
-        # dd if=uboot.img     of=sdb seek=16384 filesize=
-        # dd if=trust.img     of=sdb seek=24576 filesize=
-        echo "  ==> erasing existing bootloader ..."
-        echo "  ==> copying bootloader ..."
+        update_emmc_bootloader_config
 
     elif [ $platform_type = 3 ] ; then
         # this is for rockchip 3399
-        # sudo dd if=idbloader.img of=/dev/mmcblk1 seek=64 filesize=221kB
-        # sudo dd if=uboot.img of=/dev/mmcblk1 seek=16384 filesize=1048kB
-        # sudo dd if=trust.img of=/dev/mmcblk1 seek=24576 filesize=1048kB
-        echo "  ==> erasing existing bootloader ..."
-        echo "  ==> copying bootloader ..."
+        update_emmc_bootloader_config
 
     elif [ $platform_type = 4 ] ; then
         # this is for rockchip 356x
-        # sudo dd if=idbloader.img of=/dev/mmcblk1 seek=64 filesize=192,5kB
-        # sudo dd if=u-boot.itb of=/dev/mmcblk1 seek=16384 filesize=1221kB
-        echo "  ==> erasing existing bootloader ..."
-        dd if=/dev/zero of=/dev/${emmc_dev} seek=64 count=2048 conv=fsync
-        dd if=/dev/zero of=/dev/${emmc_dev} seek=16384 count=4096 conv=fsync
-        echo "  ==> copying bootloader ..."
-        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} seek=64 count=2048 conv=fsync
-        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} seek=16384 count=4096 conv=fsync
+        update_emmc_bootloader_config
 
     elif [ $platform_type = 5 ] ; then
         # this is for rockchip 3588
-        # sudo dd if=idbloader.img of=/dev/mmcblk1 seek=64 filesize=204kB
-        # sudo dd if=u-boot.itb of=/dev/mmcblk1 seek=16384 filesize=1225kB
-        echo "  ==> erasing existing bootloader ..."
-        dd if=/dev/zero of=/dev/${emmc_dev} seek=64 count=2048 conv=fsync
-        dd if=/dev/zero of=/dev/${emmc_dev} seek=16384 count=4096 conv=fsync
-        echo "  ==> copying bootloader ..."
-        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} seek=64 count=2048 conv=fsync
-        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} seek=16384 count=4096 conv=fsync
+        update_emmc_bootloader_config
 
     elif [ $platform_type = 6 ] ; then
         # this is for amlogic
@@ -236,7 +229,6 @@ echo "copying to eMMC done ..."
 echo "copying bootloader to eMMC ..."
 confirm "to install bootloader on eMMC"
 write_to_emmc_bootloader
-echo "bootloader copied to eMMC ..."
 
 echo " "
 echo "Now you can remove SD card and reboot ..."
