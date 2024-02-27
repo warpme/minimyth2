@@ -4,6 +4,7 @@ GARVERSION   = v6.338.2
 CATEGORIES   = lib
 MASTER_SITES = https://code.videolan.org/videolan/libplacebo/-/archive/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = add-missing-vulkan-headers.patch
 LICENSE      = GPL
 
 DEPENDS = lang/c
@@ -22,3 +23,6 @@ MESON_CONFIGURE_ARGS = \
 	-D demos="false" \
 
 include ../../gar.mk
+
+pre-configure:
+	@cd $(WORKSRC); git submodule update --init
