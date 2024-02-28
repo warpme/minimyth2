@@ -1,4 +1,4 @@
 
-# v21.0b2, 10.12.2023
-KODI_VERSION      = 979dbf5fe5d0b42daf633434afc3986651c8646a
+# v21.0b3, 15.2.2024
+KODI_VERSION      = e88b3190218daaaa8aaa8ac3a69f3cd895260d12
 KODI_MASTER_SITES = https://github.com/xbmc/xbmc/archive/
