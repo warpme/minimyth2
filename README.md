@@ -137,6 +137,7 @@ Amlogic sm1   | X96-Air          | works  (rtl8189@SDIO)                  | work
 Amlogic g12a  | Radxa-Zero       | works  (ap6256@SDIO)                   | works       | n/a         | not works (firmware issue)     | support stalled               |
 Broadcom 2837 | Rpi3-b           | works  (brcm43430@SDIO)                | works       | n/a         | no plans                       | all basics works nicelly      |
 Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                 | works       | n/a         | no plans                       | all basics works nicelly      |
+Broadcom 2712 | Rpi5-b           | works  (brcm4345@SDIO)                 | works       | n/a         | no plans                       | all basics works nicelly      |
 Intel i5      | i5 NUC           | n/a                                    | n/a         | n/a         | works (s3ram)                  | perfect support               |
 Intel Z8500   | Beelink MII-V    | works  (ac3165@PCI-e)                  | n/a         | n/a         | works (s1idle)                 | perfect support               |
 Intel N3450   | Beelink BT4      | works  (ac3165@PCI-e)                  | n/a         | n/a         | not works (bios issue)         | perfect support, bootsplah nok|
@@ -166,6 +167,7 @@ Amlogic sm1      | X96-Air                                      | vdec/v4l2_m2m 
 Amlogic g12a     | Radxa-Zero                                   | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
 Broadcom 2837    | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | H.264                                      | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
 Broadcom 2711    | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
+Broadcom 2712    | Rpi5-b                                       | rpivid/v4l2_request                   | HEVC                                       | X11, EGLFS(12),Wayland| EGL_DMABUF, DRM_DMABUF    | Good playback
 Intel i5         | i5 NUC                                       | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland   | EGL_DMABUF (3)            | Perfect playback
 Intel Z8500      | Beelink BT4                                  | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8               | X11, EGLFS (4)        | EGL_DMABUF (3)            | Perfect playback
 Intel N3450      | Beelink MII-V                                | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8, VP9          | X11, EGLFS, Wayland   | EGL_DMABUF (3)            | Perfect playback
@@ -184,6 +186,7 @@ Intel D2550      | ION2                                         | VDPAU,VAPPI(11
 - (9) - hw.video decode with rendering to DRM planes has no OSD (probably Z-order issue)
 - (10) - rendering to DRM Planes gives not visible OSD on this HW
 - (11) - mesa nouveau as of 22.2.0 has issue with VAAPI decode on Nvidia ION1/ION2
+- (12) - as of 6.8-rc6 kernel EGLFS in DMABuf mode not works correctly
 
 ### Video Decoding Test results
 
