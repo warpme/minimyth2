@@ -30,6 +30,7 @@ build-custom:
 	@echo "symlinking sources ..."
 	@ln -srf ../../kernel/linux-$(mm_KERNEL_VERSION)/work/main.d/linux-$(LINUX_VERSION) $(WORKSRC)/src/linux-$(LINUX_VERSION)
 	@echo "update kernel ver in PKGBUILD ..."
+	@sed -e 's|@@pkg_ver@@|$(LINUX_VERSION)|g' -e 's|-rc|.rc|g' -i $(WORKSRC)/PKGBUILD
 	@sed -e 's|@@kern_ver@@|$(LINUX_VERSION)|g' -i $(WORKSRC)/PKGBUILD
 	@sed -e 's|@@make@@|$(build_DESTDIR)$(build_bindir)/make|g' -i $(WORKSRC)/PKGBUILD
 	@echo "starting packaging with MAKEPKG ..."
