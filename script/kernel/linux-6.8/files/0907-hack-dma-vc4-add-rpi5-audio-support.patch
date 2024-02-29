@@ -1,6 +1,6 @@
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.8-rc6/drivers/dma/bcm2835-dma.c linux-6.8-rc6/drivers/dma/bcm2835-dma.c
---- linux-6.8-rc6/drivers/dma/bcm2835-dma.c	2024-02-29 09:18:33.567316604 +0100
-+++ linux-6.8-rc6/drivers/dma/bcm2835-dma.c	2024-02-29 09:15:00.220654542 +0100
+--- linux-6.8-rc6/drivers/dma/bcm2835-dma.c	2024-02-29 12:44:26.683717237 +0100
++++ linux-6.8-rc6/drivers/dma/bcm2835-dma.c	2024-02-29 12:43:02.010385726 +0100
 @@ -18,6 +18,7 @@
   *	Copyright 2012 Marvell International Ltd.
   */
@@ -26,7 +26,16 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.8-rc6/drivers/
  struct bcm2835_cb_entry {
  	struct bcm_dma_cb *cb;
  	dma_addr_t paddr;
-@@ -672,6 +683,65 @@
+@@ -134,6 +145,8 @@
+ 				enum dma_transfer_direction);
+ 
+ 	u64 dma_mask;
++
++	bool bcm2712_hack;
+ };
+ 
+ struct bcm2835_desc {
+@@ -672,6 +685,65 @@
  	       chan_base + BCM2711_DMA40_DEBUG);
  }
  
@@ -92,10 +101,76 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.8-rc6/drivers/
  static void bcm2835_dma_free_cb_chain(struct bcm2835_desc *desc)
  {
  	size_t i;
-@@ -1360,9 +1430,39 @@
- 	.dma_mask = DMA_BIT_MASK(36),
+@@ -1128,14 +1200,23 @@
+ 		return NULL;
+ 	}
+ 
++	if (cfg->bcm2712_hack)
++		dev_warn(chan->device->dev,"bcm2712 hack for HDMI audio enabled\n");
++
+ 	if (direction == DMA_DEV_TO_MEM) {
+ 		if (c->cfg.src_addr_width != DMA_SLAVE_BUSWIDTH_4_BYTES)
+ 			return NULL;
+-		src = cfg->addr_offset + c->cfg.src_addr;
++		if (cfg->bcm2712_hack)
++			src = phys_to_dma(chan->device->dev, c->cfg.src_addr);
++		else
++			src = cfg->addr_offset + c->cfg.src_addr;
+ 	} else {
+ 		if (c->cfg.dst_addr_width != DMA_SLAVE_BUSWIDTH_4_BYTES)
+ 			return NULL;
+-		dst = cfg->addr_offset + c->cfg.dst_addr;
++		if (cfg->bcm2712_hack)
++			dst = phys_to_dma(chan->device->dev, c->cfg.dst_addr);
++		else
++			dst = cfg->addr_offset + c->cfg.dst_addr;
+ 	}
+ 
+ 	/* count frames in sg list */
+@@ -1190,15 +1271,24 @@
+ 			      "%s: buffer_length (%zd) is not a multiple of period_len (%zd)\n",
+ 			      __func__, buf_len, period_len);
+ 
++	if (cfg->bcm2712_hack)
++		dev_warn(chan->device->dev,"bcm2712 hack for HDMI audio enabled\n");
++
+ 	if (direction == DMA_DEV_TO_MEM) {
+ 		if (c->cfg.src_addr_width != DMA_SLAVE_BUSWIDTH_4_BYTES)
+ 			return NULL;
+-		src = cfg->addr_offset + c->cfg.src_addr;
++		if (cfg->bcm2712_hack)
++			src = phys_to_dma(chan->device->dev, c->cfg.src_addr);
++		else
++			src = cfg->addr_offset + c->cfg.src_addr;
+ 		dst = buf_addr;
+ 	} else {
+ 		if (c->cfg.dst_addr_width != DMA_SLAVE_BUSWIDTH_4_BYTES)
+ 			return NULL;
+-		dst = cfg->addr_offset + c->cfg.dst_addr;
++		if (cfg->bcm2712_hack)
++			dst = phys_to_dma(chan->device->dev, c->cfg.dst_addr);
++		else
++			dst = cfg->addr_offset + c->cfg.dst_addr;
+ 		src = buf_addr;
+ 	}
+ 
+@@ -1329,6 +1419,8 @@
+ 	.read_addr = bcm2835_dma_read_addr,
+ 
+ 	.dma_mask = DMA_BIT_MASK(32),
++
++	.bcm2712_hack = false,
  };
  
+ static const struct bcm2835_dma_cfg bcm2711_data = {
+@@ -1358,11 +1450,45 @@
+ 	.read_addr = bcm2711_dma_read_addr,
+ 
+ 	.dma_mask = DMA_BIT_MASK(36),
++
++	.bcm2712_hack = false,
++};
++
 +static const struct bcm2835_dma_cfg bcm2712_data = {
 +	.addr_offset = BCM2711_DMA40_PHYS_ADDR,
 +
@@ -123,8 +198,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.8-rc6/drivers/
 +	.read_addr = bcm2711_dma_read_addr,
 +
 +	.dma_mask = DMA_BIT_MASK(40),
-+};
 +
++	.bcm2712_hack = true,
+ };
+ 
  static const struct of_device_id bcm2835_dma_of_match[] = {
  	{ .compatible = "brcm,bcm2835-dma", .data = &bcm2835_data },
  	{ .compatible = "brcm,bcm2711-dma", .data = &bcm2711_data },
@@ -133,8 +210,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.8-rc6/drivers/
  };
  MODULE_DEVICE_TABLE(of, bcm2835_dma_of_match);
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.8-rc6/drivers/gpu/drm/vc4/vc4_hdmi.c linux-6.8-rc6/drivers/gpu/drm/vc4/vc4_hdmi.c
---- linux-6.8-rc6/drivers/gpu/drm/vc4/vc4_hdmi.c	2024-02-29 09:18:33.577316605 +0100
-+++ linux-6.8-rc6/drivers/gpu/drm/vc4/vc4_hdmi.c	2024-02-29 09:15:57.800653300 +0100
+--- linux-6.8-rc6/drivers/gpu/drm/vc4/vc4_hdmi.c	2024-02-29 12:44:26.697050570 +0100
++++ linux-6.8-rc6/drivers/gpu/drm/vc4/vc4_hdmi.c	2024-02-29 12:38:14.823725235 +0100
 @@ -2717,6 +2717,7 @@
  	struct device *dev = &vc4_hdmi->pdev->dev;
  	struct platform_device *codec_pdev;
@@ -142,4 +219,23 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.8-rc6/drivers/
 +	struct resource *iomem;
  	int index, len;
  	int ret;
+ 
+@@ -2763,9 +2764,16 @@
+ 	if (index < 0)
+ 		index = 1;
+ 
+-	addr = of_get_address(dev->of_node, index, NULL, NULL);
++	if (of_device_is_compatible(dev->of_node, "brcm,bcm2712-hdmi0") ||
++	    of_device_is_compatible(dev->of_node, "brcm,bcm2712-hdmi1")) {
++		dev_warn(dev,"using bcm2712 hack for HDMI audio\n");
++		iomem = platform_get_resource(vc4_hdmi->pdev, IORESOURCE_MEM, index);
++		vc4_hdmi->audio.dma_data.addr = iomem->start + mai_data->offset;
++	} else {
++		addr = of_get_address(dev->of_node, index, NULL, NULL);
++		vc4_hdmi->audio.dma_data.addr = be32_to_cpup(addr) + mai_data->offset;
++	}
+ 
+-	vc4_hdmi->audio.dma_data.addr = be32_to_cpup(addr) + mai_data->offset;
+ 	vc4_hdmi->audio.dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+ 	vc4_hdmi->audio.dma_data.maxburst = 2;
  

@@ -236,9 +236,7 @@ PATCHFILES += 0901-rpi-vc04_services-bcm2835-codec-remove-isp-formats.patch
 PATCHFILES += 0902-media-add-rpivid-driver.patch
 PATCHFILES += 0905-drivers-add-rpi5-clk-pinctrl-mmc-pwm-net-usb-pci-rp1.patch
 PATCHFILES += 0906-gpu-drm-vc4-add-rpi5-support.patch
-PATCHFILES += 0907-dma-prepare-for-rpi5-audio-support.patch
-# 0908 is for rpi5 audio. Unformtunatelly 0908 breaks playback on rpi3/4
-# PATCHFILES += 0908-dma-vc4-add-rpi5-audio-support.patch
+PATCHFILES += 0907-hack-dma-vc4-add-rpi5-audio-support.patch
 # device-tree patches
 PATCHFILES += 0950-arm64-dts-brcm-set-userled-to-mmc.patch
 PATCHFILES += 0951-arm64-dts-brcm-add-rpi5-dt.patch
