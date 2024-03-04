@@ -12,6 +12,7 @@ DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip
 PATCHFILES  +=	01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
 		50-add-rk3566-x96-x6-defconfig.patch \
 		51-add-rk3566-zero3-defconfig.patch \
+		52-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
 
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
 
@@ -49,7 +50,6 @@ include ../../python3/python/package-api.mk
 
 # to do
 # mm_U-BOOT_BOARD_TYPE = rock-3b-rk3568_defconfig
-# mm_U-BOOT_BOARD_TYPE = rock-pi-4b-rk3399_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
