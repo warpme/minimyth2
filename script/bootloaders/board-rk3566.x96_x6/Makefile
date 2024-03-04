@@ -1,13 +1,13 @@
 
 GARNAME      = bootfiles-rk3566.x96_x6
-GARVERSION   = 2022-01-03
+GARVERSION   = 2024-03-03
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                extlinux.conf \
                minimyth.conf   \
 
-export mm_U-BOOT_BOARD_TYPE = rk3566-x96_x6_defconfig
+export mm_U-BOOT_BOARD_TYPE = x96-x6-rk3566_defconfig
 
 WORKSRC      = $(WORKDIR)
 
@@ -24,8 +24,8 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-rk3566
-	@$(MAKE) install -C ../u-boot-rk3566
+	@$(MAKE) clean   -C ../u-boot-rk3xxx
+	@$(MAKE) install -C ../u-boot-rk3xxx
 	@$(MAKECOOKIE)
 
 install-custom:
