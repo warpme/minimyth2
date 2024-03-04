@@ -78,34 +78,54 @@ what_platform() {
     if [[ ${platform} =~ "allwinner" ]] ; then
         echo "Allwinner detected...Good!"
         platform_type=1
+
     elif [[ "${platform}" =~ "rk3328" ]] ; then
         echo "Rockchip 3328 detected..Good!"
         platform_type=2
+
     elif [[ "${platform}" =~ "rk3399" ]] ; then
         echo "Rockchip 3399 detected...Good!"
         platform_type=3
+
+    elif [[ "${platform}" =~ "rk3528" ]] ; then
+        echo "Rockchip 3528 detected..Good!"
+        platform_type=4
+
+    elif [[ "${platform}" =~ "sbc-with-5-partitions-layout" ]] ; then
+        echo "Rockchip 3566/3568 (alt part.scheme) detected...Good!"
+        platform_type=5
+
     elif [[ "${platform}" =~ "rk356" ]] ; then
         echo "Rockchip 3566/3568 detected...Good!"
-        platform_type=4
+        platform_type=6
+
     elif [[ "${platform}" =~ "rk3588" ]] ; then
         echo "Rockchip 3588 detected...Good!"
-        platform_type=5
+        platform_type=7
+
     elif [[ "${platform}" =~ "amlogic" ]] ; then
         echo "Amlogic detected...Good!"
-        platform_type=6
+        platform_type=8
+
     elif [[ "${platform}" =~ "raspberrypi" ]] ; then
         echo "Rpi detected...Good!"
-        platform_type=7
+        platform_type=9
+
     else
         echo "Unknown platform!"
-        platform_type=10
+        platform_type=99
     fi
 }
 
 get_size_to_copy() {
+    #if called without any param - p3 is assumed as last partition
 
-    start=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p3/start)
-    size=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p3/size)
+    part_no=$1
+    if [ x$1 = "x" ] ; then
+        part_no=3
+    fi
+    start=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p${part_no}/start)
+    size=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p${part_no}/size)
     end=$((${start} + $size))
     storage_usage=$((${end} / 2000))
 }
@@ -117,11 +137,16 @@ duplicate_sdcard_to_emmc() {
 }
 
 update_emmc_bootloader_config() {
+    #if called without any param - p1 is assumed as boot partition
 
+    part_no=$1
+    if [ x$1 = "x" ] ; then
+        part_no=1
+    fi
     echo "  ==> updating extlinux.conf on eMMC ..."
     partprobe /dev/${emmc_dev}
     mkdir -p /media/boot.emmc
-    mount /dev/${emmc_dev}p1 /media/boot.emmc
+    mount /dev/${emmc_dev}p${part_no} /media/boot.emmc
     if [ -e /media/boot.emmc/extlinux/extlinux.conf ] ; then
         sed -e "s|${sdcard_dev}|${emmc_dev}|g" -i /media/boot.emmc/extlinux/extlinux.conf
         sync
@@ -158,19 +183,27 @@ write_to_emmc_bootloader() {
         echo "bootloader already copied in previous step ..."
 
     elif [ $platform_type = 4 ] ; then
-        # this is for rockchip 356x
+        # this is for rockchip 3528
         update_emmc_bootloader_config
 
     elif [ $platform_type = 5 ] ; then
+        # this is for rockchip 356x alr.part.scheme
+        update_emmc_bootloader_config 4
+
+    elif [ $platform_type = 6 ] ; then
+        # this is for rockchip 356x
+        update_emmc_bootloader_config
+
+    elif [ $platform_type = 7 ] ; then
         # this is for rockchip 3588
         update_emmc_bootloader_config
 
-    elif [ $platform_type = 6 ] ; then
+    elif [ $platform_type = 8 ] ; then
         # this is for amlogic
         echo "  ==> erasing existing bootloader ..."
         echo "  ==> copying bootloader ..."
 
-    elif [ $platform_type = 7 ] ; then
+    elif [ $platform_type = 9 ] ; then
         # this is for rpi
         echo "  ==> erasing existing bootloader ..."
         echo "  ==> copying bootloader ..."
@@ -181,7 +214,7 @@ write_to_emmc_bootloader() {
     fi
 }
 
-sdcard_dev=$(grep /media/boot /proc/mounts | awk '{print $1}' | sed 's/p[012]//g' | sed 's/\/dev\///g')
+sdcard_dev=$(grep /media/boot /proc/mounts | awk '{print $1}' | sed 's/p[0123456789]//g' | sed 's/\/dev\///g')
 emmc_dev=""
 
 for TYPE in /sys/class/block/mmcblk*/device/type; do
@@ -197,8 +230,8 @@ echo "--- MiniMyth2 to eMMC installer v$ver (c)Piotr Oniszczuk ---"
 echo " "
 
 what_platform
-# mark anything above 5 (amlogic, rpi) as unsupported (yet)
-if [ $platform_type -gt 5 ] ; then
+# mark anything above 8 (amlogic, rpi) as unsupported (yet)
+if [ $platform_type -gt 8 ] ; then
   echo "Unsupported (yet) platform! Exiting ..."
   exit 1
 fi
@@ -213,7 +246,11 @@ if [ "${sdcard_dev}" = "${emmc_dev}" ]; then
   exit 1
 fi
 
-get_size_to_copy
+if [ $platform_type = 5 ] ; then
+    get_size_to_copy 6
+else
+    get_size_to_copy
+fi
 
 echo " "
 echo "System booted from : ${sdcard_dev}"
