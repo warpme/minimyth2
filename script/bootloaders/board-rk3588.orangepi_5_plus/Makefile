@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-rk3588.orange5-plus
-GARVERSION   = 2023-10-21
+GARVERSION   = 2024-03-04
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
@@ -24,8 +24,8 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-rk35xx-radxa
-	@$(MAKE) install -C ../u-boot-rk35xx-radxa
+	@$(MAKE) clean   -C ../u-boot-rk3xxx
+	@$(MAKE) install -C ../u-boot-rk3xxx
 	@$(MAKECOOKIE)
 
 install-custom:

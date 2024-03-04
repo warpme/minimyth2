@@ -1,13 +1,13 @@
 
 GARNAME      = bootfiles-rk3588.rock5-b
-GARVERSION   = 2023-01-23
+GARVERSION   = 2024-03-04
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = rock-5b-rk3588_defconfig
+export mm_U-BOOT_BOARD_TYPE = rock5b-rk3588_defconfig
 
 WORKSRC      = $(WORKDIR)
 
@@ -24,8 +24,8 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-rk35xx-radxa
-	@$(MAKE) install -C ../u-boot-rk35xx-radxa
+	@$(MAKE) clean   -C ../u-boot-rk3xxx
+	@$(MAKE) install -C ../u-boot-rk3xxx
 	@$(MAKECOOKIE)
 
 install-custom:

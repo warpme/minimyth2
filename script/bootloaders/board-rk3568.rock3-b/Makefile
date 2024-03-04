@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-rk3568.rock3-b
-GARVERSION   = 2022-05-10
+GARVERSION   = 2024-03-04
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
@@ -10,7 +10,7 @@ DISTFILES    = \
                rk3568-boot-debug.scr \
                rk3568-boot-debug.txt \
 
-export mm_U-BOOT_BOARD_TYPE = rock-3b-rk3568_defconfig
+export mm_U-BOOT_BOARD_TYPE = rock-3a-rk3568_defconfig
 
 WORKSRC      = $(WORKDIR)
 
@@ -27,8 +27,8 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-rk35xx-radxa
-	@$(MAKE) install -C ../u-boot-rk35xx-radxa
+	@$(MAKE) clean   -C ../u-boot-rk3xxx
+	@$(MAKE) install -C ../u-boot-rk3xxx
 	@$(MAKECOOKIE)
 
 install-custom:
@@ -37,13 +37,12 @@ install-custom:
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3568/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img $(DESTDIR)/boot/rk3568loaderfiles/idbloader.img
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3568/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb    $(DESTDIR)/boot/rk3568loaderfiles/u-boot.itb
 	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
-	@cp -f    $(WORKSRC)/rk3568-boot-debug.scr $(DESTDIR)/boot/boot-debug.scr
-	@cp -f    $(WORKSRC)/rk3568-boot.scr       $(DESTDIR)/boot/boot.scr
+	@cp -f    $(WORKSRC)/extlinux.conf $(DESTDIR)/boot/extlinux/extlinux.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-custom:
 	@rm -rf $(DESTDIR)/boot/rk3568loaderfiles*
 	@rm -f  $(DESTDIR)/boot/minimyth.conf
-	@rm -rf $(DESTDIR)/boot/*.scr
+	@rm -rf $(DESTDIR)/boot/extlinux*
 
 clean-all: clean-custom cookieclean
