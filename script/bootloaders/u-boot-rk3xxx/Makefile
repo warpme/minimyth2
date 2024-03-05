@@ -1,7 +1,7 @@
 
 GARNAME      = u-boot-radxa-rk3xxx-2024.04
-# git@ 29.02.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.04/
-GARVERSION   = ced42f309e8408d0e471e9b98b467942226667c7
+# git@ 04.03.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.04/
+GARVERSION   = ccef7dfc453bc03c5b5c61fa67d2745b96fa7da6
 # git@ 26.12.2023 https://github.com/radxa/rkbin/commits/master
 RKBINVERSION = fc44f9401c127affb2a879c1e90fa89ddab505f6
 CATEGORIES   = kernel
@@ -13,6 +13,8 @@ PATCHFILES  +=	01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
 		50-add-rk3566-x96-x6-defconfig.patch \
 		51-add-rk3566-zero3-defconfig.patch \
 		52-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
+
+#		53-rk3566-rock-3c-use-dedicated-dts.patch \
 
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
 
