@@ -99,52 +99,53 @@ MiniMyth2 [Wiki](https://github.com/warpme/minimyth2/wiki)
 ### General Functionality
 This is general functionality avaliable on current code (Mainline Linux kernel)
 
-SoC           | Tested on        | WiFi Chip & Support                    | CEC Support | LED display | Sleep/Resume                   | Remarks                       |
-------------- |------------------|----------------------------------------|-------------|-------------|--------------------------------|-------------------------------|
-Allwinner H6  | EachLink H6 Mini | works  (rtl8723bs@SDIO)                | works       | works       | works                          | well supported                |
-Allwinner H6  | TanixTX6         | works  (ap6330@SDIO)                   | works       | works       | works                          | well supported                |
-Allwinner H6  | TanixTX6-Mini    | works  (xr819@SDIO)                    | works       | n/a         | not works                      | well supported                |
-Allwinner H6  | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works       | n/a         | not works (firmware issue)     | some things are still missing |
-Allwinner H6  | OrangePi-3 LTS   | not works (aw859a)                     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Allwinner H313| X96-Q (DDR3)     | works  (xr819@SDIO)                    | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Allwinner H313| X96-Q (LPDDR3)   | works  (xr819@SDIO)                    | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Allwinner H616| TanixTX6s-axp313 | works  (ap6330@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
-Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works       | works       | not works (firmware issue)     | some things are still missing |
-Allwinner H616| Pendoo-X12Pro    | works  (sp6330@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
-Allwinner H616| OrangePi-Zero2   | works  (aw859a@SDIO)                   | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Allwinner H618| OrangePi-Zero3   | works  (uwe5622a@SDIO)                 | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Allwinner H618| Vontar H618      | works  (ap6334@SDIO)                   | works       | works       | not works (firmware issue)     | some things are still missing |
-Allwinner H618| OrangePi-Zero2w  | works  (uwe5622a@SDIO)                 | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
-Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | works       | works       | currently power off/on         | well supported                |
-Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
-Rockchip 3399 | RockPI 4-se      | works  (ap6255@SDIO)                   | works       | n/a         | currently power off/on         | well supported                |
-Rockchip 3399 | OrangePi-4 LTS   | works  (uwe5622@SDIO)                  | works       | LED Diode,OK| not works                      | good prospects                |
-Rockchip 3528 | Vontar-R3        | not works                              | not works   | not works   | not works                      | missing VOP3 so no HDMI       |
-Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                   | works       | works       | not works                      | good prospects                |
-Rockchip 3566 | Quartz64 Model B | works  (cm256sm@SDIO)                  | works       | n/a         | not works                      | good prospects                |
-Rockchip 3566 | URVE Pi          | works  (rtl8821@SDIO)                  | not works   | n/a         | not works                      | good prospects                |
-Rockchip 3566 | OrangePi-3B      | works  (uwe5622@SDIO)                  | works       | LED Diode,OK| not works                      | good prospects                |
-Rockchip 3566 | Zero-3w (wifi6)  | works  (aic8800@SDIO)                  | works       | LED Diode,OK| not works                      | good prospects                |
-Rockchip 3566 | Zero-3w (wifi5)  | works  (ap6212@SDIO)                   | works       | LED Diode,OK| not works                      | good prospects                |
-Rockchip 3566 | Zero-3e          | n/a                                    | works       | LED Diode,OK| not works                      | good prospects                |
-Rockchip 3566 | Rock3-C          | works  (ap6256@SDIO)                   | works       | n/a         | not works                      | good prospects                |
-Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | works       | n/a         | not works                      | good prospects                |
-Rockchip 3568 | Rock3-B          | works  (iwl7265@PCI-e)                 | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588 | Rock5A/5B        | not works                              | not works   | not works   | not works                      | missing VOP2 so no HDMI       |
-Amlogic s905  | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | works       | WiP         | not works (firmware issue)     | support stalled               |
-Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | works       | n/a         | not works (firmware issue)     | support stalled               |
-Amlogic sm1   | X96-Air          | works  (rtl8189@SDIO)                  | works       | WiP         | not works (firmware issue)     | support stalled               |
-Amlogic g12a  | Radxa-Zero       | works  (ap6256@SDIO)                   | works       | n/a         | not works (firmware issue)     | support stalled               |
-Broadcom 2837 | Rpi3-b           | works  (brcm43430@SDIO)                | works       | n/a         | no plans                       | all basics works nicelly      |
-Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                 | works       | n/a         | no plans                       | all basics works nicelly      |
-Broadcom 2712 | Rpi5-b           | works  (brcm4345@SDIO)                 | works       | n/a         | no plans                       | all basics works nicelly      |
-Intel i5      | i5 NUC           | n/a                                    | n/a         | n/a         | works (s3ram)                  | perfect support               |
-Intel Z8500   | Beelink MII-V    | works  (ac3165@PCI-e)                  | n/a         | n/a         | works (s1idle)                 | perfect support               |
-Intel N3450   | Beelink BT4      | works  (ac3165@PCI-e)                  | n/a         | n/a         | not works (bios issue)         | perfect support, bootsplah nok|
-Intel N3450   | Beelink T34      | works  (ac3165@PCI-e)                  | n/a         | n/a         | works (s3ram)                  | perfect support, bootsplah nok|
-AMD E1-2100   | AMD Kabini       | n/a                                    | n/a         | n/a         | works (s3ram)                  | perfect support               |
-Intel D525    | ION1             | n/a                                    | n/a         | n/a         | works (s3ram)                  | perfect support               |
-Intel D2550   | ION2             | n/a                                    | n/a         | n/a         | works (s3ram)                  | perfect support               |
+SoC           | Tested on        | WiFi Chip & Support                    | eMMC boot | CEC Support | LED display | Sleep/Resume                   | Remarks                       |
+------------- |------------------|----------------------------------------|-----------|-------------|-------------|--------------------------------|-------------------------------|
+Allwinner H6  | EachLink H6 Mini | works  (rtl8723bs@SDIO)                | works     | works       | works                          | well supported                |
+Allwinner H6  | TanixTX6         | works  (ap6330@SDIO)                   | works     | works       | works       | works                          | well supported                |
+Allwinner H6  | TanixTX6-Mini    | works  (xr819@SDIO)                    | not tested| works       | n/a         | not works                      | well supported                |
+Allwinner H6  | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
+Allwinner H6  | OrangePi-3 LTS   | not works (aw859a)                     | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H313| X96-Q(DDR3)      | works  (xr819@SDIO)                    | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H313| X96-Q(LPDDR3)    | works  (xr819@SDIO)                    | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H313| X96-Q(LPDDR3v1.3)| works  (xr819@SDIO)                    | works     | works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H616| TanixTX6s-axp313 | works  (ap6330@SDIO)                   | not tested| works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H616| TanixTX6s        | works  (xr819@SDIO)                    | works     | works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H616| Pendoo-X12Pro    | works  (sp6330@SDIO)                   | works     | works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H616| OrangePi-Zero2   | works  (aw859a@SDIO)                   | not tested| works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H618| OrangePi-Zero3   | works  (uwe5622a@SDIO)                 | not tested| works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H618| Vontar H618      | works  (ap6334@SDIO)                   | works     | works       | works       | not works (firmware issue)     | some things are still missing |
+Allwinner H618| OrangePi-Zero2w  | works  (uwe5622a@SDIO)                 | not tested| works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | not works | works       | works       | currently power off/on         | well supported                |
+Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                   | works     | works       | n/a         | currently power off/on         | well supported                |
+Rockchip 3399 | RockPI 4-se      | works  (ap6255@SDIO)                   | works     | works       | n/a         | currently power off/on         | well supported                |
+Rockchip 3399 | OrangePi-4 LTS   | works  (uwe5622@SDIO)                  | works     | works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3528 | Vontar-R3        | not works                              | not tested| not works   | not works   | not works                      | missing VOP3 so no HDMI       |
+Rockchip 3566 | X96-X6           | works  (am7256@SDIO)                   | works     | works       | works       | not works                      | good prospects                |
+Rockchip 3566 | Quartz64 Model B | works  (cm256sm@SDIO)                  | not tested| works       | n/a         | not works                      | good prospects                |
+Rockchip 3566 | URVE Pi          | works  (rtl8821@SDIO)                  | works     | not works   | n/a         | not works                      | good prospects                |
+Rockchip 3566 | OrangePi-3B      | works  (uwe5622@SDIO)                  | not tested| works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3566 | Zero-3w (wifi6)  | works  (aic8800@SDIO)                  | works     | works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3566 | Zero-3w (wifi5)  | works  (ap6212@SDIO)                   | works     | works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3566 | Zero-3e          | n/a                                    | n/a       | works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3566 | Rock3-C          | works  (ap6256@SDIO)                   | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3568 | Rock3-B          | works  (iwl7265@PCI-e)                 | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588 | Rock5A/5B        | not works                              | not tested| not works   | not works   | not works                      | missing VOP2 so no HDMI       |
+Amlogic s905  | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | not tested| works       | WiP         | not works (firmware issue)     | support stalled               |
+Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | not tested| works       | n/a         | not works (firmware issue)     | support stalled               |
+Amlogic sm1   | X96-Air          | works  (rtl8189@SDIO)                  | not tested| works       | WiP         | not works (firmware issue)     | support stalled               |
+Amlogic g12a  | Radxa-Zero       | works  (ap6256@SDIO)                   | not tested| works       | n/a         | not works (firmware issue)     | support stalled               |
+Broadcom 2837 | Rpi3-b           | works  (brcm43430@SDIO)                | n/a       | works       | n/a         | no plans                       | all basics works nicelly      |
+Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                 | n/a       | works       | n/a         | no plans                       | all basics works nicelly      |
+Broadcom 2712 | Rpi5-b           | works  (brcm4345@SDIO)                 | n/a       | works       | n/a         | no plans                       | all basics works nicelly      |
+Intel i5      | i5 NUC           | n/a                                    | n/a       | n/a         | n/a         | works (s3ram)                  | perfect support               |
+Intel Z8500   | Beelink MII-V    | works  (ac3165@PCI-e)                  | not tested| n/a         | n/a         | works (s1idle)                 | perfect support               |
+Intel N3450   | Beelink BT4      | works  (ac3165@PCI-e)                  | not tested| n/a         | n/a         | not works (bios issue)         | perfect support, bootsplah nok|
+Intel N3450   | Beelink T34      | works  (ac3165@PCI-e)                  | not tested| n/a         | n/a         | works (s3ram)                  | perfect support, bootsplah nok|
+AMD E1-2100   | AMD Kabini       | n/a                                    | n/a       | n/a         | n/a         | works (s3ram)                  | perfect support               |
+Intel D525    | ION1             | n/a                                    | n/a       | n/a         | n/a         | works (s3ram)                  | perfect support               |
+Intel D2550   | ION2             | n/a                                    | n/a       | n/a         | n/a         | works (s3ram)                  | perfect support               |
 
 ### Hardware Video Decode support
 This is video related functionality avaliable on current code (Linux kernel + Mesa + MythTV)
