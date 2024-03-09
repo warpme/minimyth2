@@ -1,6 +1,6 @@
 
 GARNAME      = kmod
-GARVERSION   = 30
+GARVERSION   = 32
 CATEGORIES   = utils
 MASTER_SITES = https://www.kernel.org/pub/linux/utils/kernel/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.xz
