@@ -5,10 +5,7 @@ CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
-               rk3568-boot.scr \
-               rk3568-boot.txt \
-               rk3568-boot-debug.scr \
-               rk3568-boot-debug.txt \
+               extlinux.conf \
 
 export mm_U-BOOT_BOARD_TYPE = rock-3a-rk3568_defconfig
 
@@ -33,6 +30,7 @@ build-custom:
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
+	@mkdir -p $(DESTDIR)/boot/extlinux
 	@mkdir -p $(DESTDIR)/boot/rk3568loaderfiles
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3568/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img $(DESTDIR)/boot/rk3568loaderfiles/idbloader.img
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3568/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb    $(DESTDIR)/boot/rk3568loaderfiles/u-boot.itb
