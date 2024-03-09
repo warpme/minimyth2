@@ -1,6 +1,6 @@
 
 GARNAME      = bluez
-GARVERSION   = 5.72
+GARVERSION   = 5.73
 CATEGORIES   = lib
 MASTER_SITES = https://www.kernel.org/pub/linux/bluetooth/
 DISTFILES    = $(DISTNAME).tar.gz
@@ -37,7 +37,6 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-library \
 	--enable-monitor \
 	--disable-udev \
-	--disable-cups \
 	--disable-mesh \
 	--disable-midi \
 	--disable-obex \
@@ -53,16 +52,7 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-logger \
 	--disable-android \
 	--disable-debug \
-	--disable-attrib \
 	--with-gnu-ld
-
-ifeq ($(DESTIMG),build)
-CONFIGURE_ARGS += \
-	--disable-usb
-else
-CONFIGURE_ARGS += \
-	--enable-usb
-endif
 
 include ../../gar.mk
 
