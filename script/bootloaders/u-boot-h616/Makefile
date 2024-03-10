@@ -1,6 +1,6 @@
 
-GARNAME      = u-boot-h616-v2024.01
-GARVERSION   = 2024.01
+GARNAME      = u-boot-h616-v2024.04-rc3
+GARVERSION   = 2024.04-rc3
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/refs/tags/
 DISTFILES    = v$(GARVERSION).tar.gz
@@ -20,11 +20,11 @@ PATCHFILES  += 152-add-tanix-tx6s-defconfig.patch
 PATCHFILES  += 153-add-tanix_tx6s_axp313_defconfig.patch
 PATCHFILES  += 154-opi-zero2-add-mising-dram-para.patch
 PATCHFILES  += 155-opi-zero3-enable-more-usb-pwrled-add-aliases.patch
-PATCHFILES  += 156-add-opi-zero2w-defconfig.patch
 PATCHFILES  += 157-add-tanix_tx6s_kingston_lpddr3_defconfig.patch
 PATCHFILES  += 158-add-pendoo-x12pro-defconfig.patch
 PATCHFILES  += 159-add-x96-q-lpddr3-v1.3-defconfig.patch
 PATCHFILES  += 160-add-vontar-h618-defconfig.patch
+PATCHFILES  += 161-dts-zero2w-improvements.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE = GPL2
