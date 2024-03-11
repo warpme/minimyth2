@@ -8,7 +8,7 @@ endif
 #-------------------------------------------
 
 #--Use this for first release of mainline kernel
-ifeq (0,1)
+ifeq (1,1)
 LINUX_MAJOR_VERSION = 6
 LINUX_MINOR_VERSION = 8
 LINUX_TEENY_VERSION = 
@@ -17,7 +17,7 @@ endif
 #-------------------------------------------
 
 #--Use this for RC mainline kernel----------
-ifeq (1,1)
+ifeq (0,1)
 LINUX_MAJOR_VERSION = 6
 LINUX_MINOR_VERSION = 8
 LINUX_TEENY_VERSION = 
