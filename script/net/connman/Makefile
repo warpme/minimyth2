@@ -1,6 +1,6 @@
 
 GARNAME      = connman
-GARVERSION   = 1.40
+GARVERSION   = 1.41
 CATEGORIES   = new
 MASTER_SITES = https://www.kernel.org/pub/linux/network/connman/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.xz
