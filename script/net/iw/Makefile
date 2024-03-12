@@ -1,6 +1,6 @@
 
 GARNAME      = iw
-GARVERSION   = 5.9
+GARVERSION   = 6.7
 CATEGORIES   = net
 MASTER_SITES = https://www.kernel.org/pub/software/network/iw/
 DISTFILES    = $(DISTNAME).tar.xz
@@ -30,8 +30,6 @@ INSTALL_ARGS = \
 	LIBDIR="$(libdir)"
 
 include ../../gar.mk
-
-LDFLAGS := $(LDFLAGS) -fwhole-program
 
 install-custom:
 	@#mkdir -p $(DESTDIR)$(ebindir)
