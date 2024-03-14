@@ -10,6 +10,7 @@ endef
 
 DEPENDS = \
 	kernel/linux-$(mm_KERNEL_VERSION) \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/xr819)    \
 
 #	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8821cu)    \
 #	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8189es)    \
@@ -30,6 +31,7 @@ clean-all:
 	@$(MAKE) clean     -C ../../kernel-headers/linux-headers
 	@$(MAKE) clean     -C ../../kernel/rtl8189es
 	@$(MAKE) clean     -C ../../kernel/rtl8821cu
+	@$(MAKE) clean     -C ../../kernel/xr819
 	@$(MAKE) clean     -C ../../nvidia
 	@$(MAKE) clean     -C ../../system/bbswitch
 	@$(MAKE) clean     -C ../../kernel/openvfd
@@ -37,4 +39,4 @@ clean-all:
 reinstall: clean
 	@$(MAKE) install-headers -C ../../kernel/linux-$(mm_KERNEL_VERSION)
 	@$(MAKE) reinstall       -C ../../kernel/linux-$(mm_KERNEL_VERSION)
-	@$(MAKE) reinstall       -C ../../kernel/rtl8821cu
+	@$(MAKE) reinstall       -C ../../kernel/xr819
