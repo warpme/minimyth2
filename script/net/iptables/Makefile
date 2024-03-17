@@ -25,10 +25,6 @@ CONFIGURE_ARGS = $(DIRPATHS) \
 include ../../gar.mk
 
 post-install:
-	@mkdir -p $(DESTDIR)$(sysconfdir)/ethertypes
-	@cp -rf $(WORKSRC)/etc/ethertypes $(DESTDIR)$(sysconfdir)/ethertypes/
-	@mkdir -p $(DESTDIR)$(sysconfdir)/iptables
-	@# cp -rf $(WORKSRC)/etc/xtables.conf $(DESTDIR)$(sysconfdir)/iptables/
 	@rm -f $(DESTDIR)$(libdir)/libip4tc.la
 	@rm -f $(DESTDIR)$(libdir)/libip6tc.la
 	@rm -f $(DESTDIR)$(libdir)/libxtables.la
