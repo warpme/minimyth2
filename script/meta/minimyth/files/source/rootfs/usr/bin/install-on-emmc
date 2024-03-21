@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Script works in 3 commands:
+# Script works with 3 commands:
 #  Mode1: when called with 'install' command:
 #    1.duplicates first rootfs_sise MBytes from SD card to eMMC
 #    2.duplicates bootloader from SD card to eMMC (Allwinner) or updates extlinux.conf (other platforms)
@@ -60,7 +60,7 @@ erase_areas_size=1024
 
 
 
-ver=1.1
+ver=1.2
 
 command=$1
 
@@ -94,7 +94,7 @@ is_booted_from_emmc() {
 
 what_platform() {
 
-    platform=$(cat /sys/firmware/devicetree/base/compatible)
+    platform=$(cat /sys/firmware/devicetree/base/compatible 2>/dev/null)
     echo "Ooo...You are running ${platform}"
 
     if [[ ${platform} =~ "allwinner" ]] ; then
@@ -140,16 +140,26 @@ what_platform() {
 }
 
 get_size_to_copy() {
-    #if called without any param - p3 is assumed as last partition
+    #finds highest part with 'start' in sysfs then uses it last sector to compute
+    #device occupation. Result is in MBytes
 
-    part_no=$1
-    if [ x$1 = "x" ] ; then
-        part_no=3
+    #for (( part_no=6; ${start}=0; part_no-- ))
+    for part_no in 6 5 4 3 2 1 0
+    do
+        # echo "trying with part${part_no} as last part ..."
+        start=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p${part_no}/start 2>/dev/null)
+        size=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p${part_no}/size 2>/dev/null)
+        if [ ! x${start} = "x" ] ; then
+            end=$((${start} + $size))
+            storage_usage=$((${end} / 2000))
+            break
+        fi
+    done
+
+    if [ x${start} = "x" ] ; then
+        echo "ERROR: can't determine usage on ${sdcard_dev}! Exiting ..."
+        exit 1
     fi
-    start=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p${part_no}/start)
-    size=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p${part_no}/size)
-    end=$((${start} + $size))
-    storage_usage=$((${end} / 2000))
 }
 
 duplicate_sdcard_to_emmc() {
@@ -159,7 +169,6 @@ duplicate_sdcard_to_emmc() {
 }
 
 update_emmc_bootloader_config() {
-    #if called without any param - p1 is assumed as boot partition
 
     part_no=$1
     if [ x$1 = "x" ] ; then
@@ -167,10 +176,10 @@ update_emmc_bootloader_config() {
     fi
     echo "  ==> updating extlinux.conf on eMMC ..."
     partprobe /dev/${emmc_dev}
-    mkdir -p /media/boot.emmc
-    mount /dev/${emmc_dev}p${part_no} /media/boot.emmc
-    if [ -e /media/boot.emmc/extlinux/extlinux.conf ] ; then
-        sed -e "s|${sdcard_dev}|${emmc_dev}|g" -i /media/boot.emmc/extlinux/extlinux.conf
+    mkdir -p /boot.emmc
+    mount /dev/${emmc_dev}p${part_no} /boot.emmc
+    if [ -e /boot.emmc/extlinux/extlinux.conf ] ; then
+        sed -e "s|${sdcard_dev}|${emmc_dev}|g" -i /boot.emmc/extlinux/extlinux.conf
         sync
         echo "extlinux.conf on eMMC updated successfuly ..."
     else
@@ -237,7 +246,7 @@ write_to_emmc_bootloader() {
     fi
 }
 
-sdcard_dev=$(grep /media/boot /proc/mounts | awk '{print $1}' | sed 's/p[0123456789]//g' | sed 's/\/dev\///g')
+sdcard_dev=$(grep /boot /proc/mounts | awk '{print $1}' | sed 's/p[0123456789]//g' | sed 's/\/dev\///g')
 emmc_dev=""
 
 for TYPE in /sys/class/block/mmcblk*/device/type; do
@@ -264,15 +273,18 @@ if [ -z "${emmc_dev}" ]; then
   exit 1
 fi
 
-if [ $platform_type = 5 ] ; then
-    get_size_to_copy 6
-else
-    get_size_to_copy
+if [ -z "${sdcard_dev}" ]; then
+  echo "Can't determine SDcard  device! Exiting ..."
+  exit 1
 fi
 
+get_size_to_copy
+
 echo " "
-echo "System booted from : ${sdcard_dev}"
-echo "eMMC device        : ${emmc_dev}"
+echo "System booted from   : ${sdcard_dev}"
+echo "eMMC device          : ${emmc_dev}"
+echo "Detected SDcard with : ${part_no} partitions"
+echo "SDcard usage         : ${storage_usage}MB"
 
 if [[ "${command}" =~ "erase" ]] ; then
     echo " "
@@ -305,8 +317,6 @@ elif [[ "${command}" =~ "bootloader" ]] ; then
 
 elif [[ "${command}" =~ "install" ]] ; then
     is_booted_from_emmc
-
-    echo "SDcard usage       : ${storage_usage}MB"
 
     confirm "to copy ${storage_usage}MB from SD card to eMMC"
 

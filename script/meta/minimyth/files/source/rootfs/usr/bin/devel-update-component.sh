@@ -110,11 +110,11 @@ epilog_cmd2="mm_manage restart_xserver"
 component_3="Linux kernel"
 # directory_list format: <src_path>/<dest_dir>/:<dest_path>/<dest_dir>
 directory_list3="
-/boot/dtbs/:/media/boot/dtbs \
+/boot/dtbs/:/boot/dtbs \
 /lib/modules/:/initrd/rootfs-ro/lib/modules \
 "
 # file_list format: <src_path>/<files>:<dest_path>/
-file_list3="/boot/*Image:/media/boot/"
+file_list3="/boot/*Image:/boot/"
 epilog_cmd3="sync"
 #--------------------------
 
