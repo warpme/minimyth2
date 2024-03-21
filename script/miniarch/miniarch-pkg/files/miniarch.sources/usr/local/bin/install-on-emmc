@@ -1,0 +1,343 @@
+#!/bin/sh
+
+# Script works with 3 commands:
+#  Mode1: when called with 'install' command:
+#    1.duplicates first rootfs_sise MBytes from SD card to eMMC
+#    2.duplicates bootloader from SD card to eMMC (Allwinner) or updates extlinux.conf (other platforms)
+#  Mode2: when called with 'erase' command:
+#    1. Erase eMMC by writing zero to first 'erase_areas_size' MBytes of eMMC
+#  Mode3: when called with 'bootloader' command:
+#    1. Duplicates bootloader from SD card to eMMC (Allwinner) or updates extlinux.conf (other platforms)
+#
+#
+# safety_margina is mount of extra size beyond 1st + 2nd + 3rd partitions to be
+# duplicated from SD card to eMMC. In MBytes
+safety_margin=100
+#
+# area at emmc begininng filled with zero to make emmc erased. In MBytes.
+erase_areas_size=1024
+
+#-----------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ver=1.2
+
+command=$1
+
+confirm() {
+
+    echo " "
+    echo "    Please confirm $1 by pressing 'y'"
+    echo "    or press Enter (or any other key) to exit ..."
+    echo " "
+
+    read sel
+
+    if [ x$sel = "xy" ] || [ x$sel = "xY" ] ; then
+        return
+    else
+        echo "Exiting stript (by user no-confirm)"
+        exit 0
+    fi
+}
+
+is_booted_from_emmc() {
+    if [ "${sdcard_dev}" = "${emmc_dev}" ]; then
+        echo " "
+        echo " "
+        echo "Your device is currently booted from the eMMC so can't install from eMMC to eMMC ;-p. Exiting ..."
+        echo " "
+        echo " "
+        exit 1
+    fi
+}
+
+what_platform() {
+
+    platform=$(cat /sys/firmware/devicetree/base/compatible 2>/dev/null)
+    echo "Ooo...You are running ${platform}"
+
+    if [[ ${platform} =~ "allwinner" ]] ; then
+        echo "Allwinner detected...Good!"
+        platform_type=1
+
+    elif [[ "${platform}" =~ "rk3328" ]] ; then
+        echo "Rockchip 3328 detected..Good!"
+        platform_type=2
+
+    elif [[ "${platform}" =~ "rk3399" ]] ; then
+        echo "Rockchip 3399 detected...Good!"
+        platform_type=3
+
+    elif [[ "${platform}" =~ "rk3528" ]] ; then
+        echo "Rockchip 3528 detected..Good!"
+        platform_type=4
+
+    elif [[ "${platform}" =~ "sbc-with-5-partitions-layout" ]] ; then
+        echo "Rockchip 3566/3568 (alt part.scheme) detected...Good!"
+        platform_type=5
+
+    elif [[ "${platform}" =~ "rk356" ]] ; then
+        echo "Rockchip 3566/3568 detected...Good!"
+        platform_type=6
+
+    elif [[ "${platform}" =~ "rk3588" ]] ; then
+        echo "Rockchip 3588 detected...Good!"
+        platform_type=7
+
+    elif [[ "${platform}" =~ "amlogic" ]] ; then
+        echo "Amlogic detected...Good!"
+        platform_type=8
+
+    elif [[ "${platform}" =~ "raspberrypi" ]] ; then
+        echo "Rpi detected...Good!"
+        platform_type=9
+
+    else
+        echo "Unknown platform!"
+        platform_type=99
+    fi
+}
+
+get_size_to_copy() {
+    #finds highest part with 'start' in sysfs then uses it last sector to compute
+    #device occupation. Result is in MBytes
+
+    #for (( part_no=6; ${start}=0; part_no-- ))
+    for part_no in 6 5 4 3 2 1 0
+    do
+        # echo "trying with part${part_no} as last part ..."
+        start=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p${part_no}/start 2>/dev/null)
+        size=$(cat /sys/block/${sdcard_dev}/${sdcard_dev}p${part_no}/size 2>/dev/null)
+        if [ ! x${start} = "x" ] ; then
+            end=$((${start} + $size))
+            storage_usage=$((${end} / 2000))
+            break
+        fi
+    done
+
+    if [ x${start} = "x" ] ; then
+        echo "ERROR: can't determine usage on ${sdcard_dev}! Exiting ..."
+        exit 1
+    fi
+}
+
+duplicate_sdcard_to_emmc() {
+
+    echo "  ==> copying from: SDcard(${sdcard_dev}) to: eMMC(${emmc_dev}) ..."
+    dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} bs=1M count=$1 conv=fsync
+}
+
+update_emmc_bootloader_config() {
+
+    part_no=$1
+    if [ x$1 = "x" ] ; then
+        part_no=1
+    fi
+    echo "  ==> updating extlinux.conf on eMMC ..."
+    partprobe /dev/${emmc_dev}
+    mkdir -p /boot.emmc
+    mount /dev/${emmc_dev}p${part_no} /boot.emmc
+    if [ -e /boot.emmc/extlinux/extlinux.conf ] ; then
+        sed -e "s|${sdcard_dev}|${emmc_dev}|g" -i /boot.emmc/extlinux/extlinux.conf
+        sync
+        echo "extlinux.conf on eMMC updated successfuly ..."
+    else
+        echo "ERROR: can't update extlinux.conf on eMMC as extlinux.conf is not found."
+        echo "You can update extlinux.conf namually by mounting eMMC /BOOT part and"
+        echo "updating root=... to root=/dev/${emmc_dev}p2 in extlinux.conf file ..."
+    fi
+}
+
+erase_emmc() {
+    dd if=/dev/zero of=/dev/${emmc_dev} bs=1M count=${erase_areas_size} conv=fsync
+}
+
+write_to_emmc_bootloader() {
+
+    if [ $platform_type = 1 ] ; then
+        # this is for allwinner
+        echo "  ==> erasing old bootloader ..."
+        echo 0 > /sys/block/${emmc_dev}boot0/force_ro
+        dd if=/dev/zero of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
+        dd if=/dev/zero of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
+        echo "  ==> copying bootloader from ${sdcard_dev} to ${emmc_dev} ..."
+        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
+        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
+        echo "bootloader copied to eMMC ..."
+
+    elif [ $platform_type = 2 ] ; then
+        # this is for rockchip 3328
+        update_emmc_bootloader_config
+
+    elif [ $platform_type = 3 ] ; then
+        # this is for rockchip 3399
+        update_emmc_bootloader_config
+
+    elif [ $platform_type = 4 ] ; then
+        # this is for rockchip 3528
+        update_emmc_bootloader_config
+
+    elif [ $platform_type = 5 ] ; then
+        # this is for rockchip 356x alr.part.scheme
+        update_emmc_bootloader_config 4
+
+    elif [ $platform_type = 6 ] ; then
+        # this is for rockchip 356x
+        update_emmc_bootloader_config
+
+    elif [ $platform_type = 7 ] ; then
+        # this is for rockchip 3588
+        update_emmc_bootloader_config
+
+    elif [ $platform_type = 8 ] ; then
+        # this is for amlogic
+        echo "  ==> erasing existing bootloader ..."
+        echo "  ==> copying bootloader ..."
+
+    elif [ $platform_type = 9 ] ; then
+        # this is for rpi
+        echo "  ==> erasing existing bootloader ..."
+        echo "  ==> copying bootloader ..."
+
+    else
+        # this is for usupported
+        echo "  ==> write_to_emmc_bootloader: unknown platform ..."
+    fi
+}
+
+sdcard_dev=$(grep /boot /proc/mounts | awk '{print $1}' | sed 's/p[0123456789]//g' | sed 's/\/dev\///g')
+emmc_dev=""
+
+for TYPE in /sys/class/block/mmcblk*/device/type; do
+  if grep -q "MMC" "${TYPE}"; then
+    emmc_dev="$(echo "${TYPE}" | awk -F/ '{print $5}')"
+    break
+  fi
+done
+
+
+echo " "
+echo "--- MiniMyth2 to eMMC installer v$ver (c)Piotr Oniszczuk ---"
+echo " "
+
+what_platform
+# mark anything above 8 (amlogic, rpi) as unsupported (yet)
+if [ $platform_type -gt 8 ] ; then
+  echo "Unsupported (yet) platform! Exiting ..."
+  exit 1
+fi
+
+if [ -z "${emmc_dev}" ]; then
+  echo "Can't determine eMMC device! Exiting ..."
+  exit 1
+fi
+
+if [ -z "${sdcard_dev}" ]; then
+  echo "Can't determine SDcard  device! Exiting ..."
+  exit 1
+fi
+
+get_size_to_copy
+
+echo " "
+echo "System booted from   : ${sdcard_dev}"
+echo "eMMC device          : ${emmc_dev}"
+echo "Detected SDcard with : ${part_no} partitions"
+echo "SDcard usage         : ${storage_usage}MB"
+
+if [[ "${command}" =~ "erase" ]] ; then
+    echo " "
+    echo "erasing eMMC ..."
+
+    confirm "to erase eMMC"
+    confirm "You ARE SURE to erase eMMC content"
+
+    erase_emmc
+
+    echo " "
+    echo "Done ..."
+    echo " "
+    exit 0
+
+elif [[ "${command}" =~ "bootloader" ]] ; then
+    is_booted_from_emmc
+
+    echo " "
+    echo "copying bootloader to eMMC ..."
+
+    confirm "to install bootloader on eMMC"
+
+    write_to_emmc_bootloader
+
+    echo " "
+    echo "Done ..."
+    echo " "
+    exit 0
+
+elif [[ "${command}" =~ "install" ]] ; then
+    is_booted_from_emmc
+
+    confirm "to copy ${storage_usage}MB from SD card to eMMC"
+
+    confirm "You ARE SURE to OVERWRITE eMMC content"
+
+    echo "copying of ${storage_usage}MB from SD card to eMMC ..."
+    duplicate_sdcard_to_emmc $((${storage_usage} + $safety_margin))
+    echo "copying to eMMC done ..."
+
+    echo "copying bootloader to eMMC ..."
+    confirm "to install bootloader on eMMC"
+    write_to_emmc_bootloader
+
+    echo " "
+    echo "Now you can remove SD card and reboot ..."
+    echo " "
+else
+    echo " "
+    echo "Run script with command: erase|bootloader|install"
+    echo " "
+    exit 0
+fi
+
+exit 0
