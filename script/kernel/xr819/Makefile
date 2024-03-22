@@ -6,6 +6,7 @@ GARVERSION   = 3a1f77fb2db248b7d18d93b67b16e0d6c91db184
 CATEGORIES   = system
 MASTER_SITES = https://github.com/fifteenhex/xradio/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = hack-stop-logging-missed-interrupts.patch
 WORKSRC      = $(WORKDIR)/xradio-$(GARVERSION)
 
 LICENSE      = GPL2
