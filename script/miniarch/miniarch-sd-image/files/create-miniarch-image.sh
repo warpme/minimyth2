@@ -121,6 +121,8 @@ if [ -e ${boot_files_loc}/boot.scr ] ; then
     dd bs=72 skip=1 if=${boot_files_loc}/boot.scr of=${boot_files_loc}/boot.src
     # enabling vt cursor; increasing kernel verbosity
     sed -e 's/logo.nologo/loglevel=6/g' -e 's/vt.cur_default=1/consoleblank=0/g' -i ${boot_files_loc}/boot.src
+    # setting fsck repair to yes
+    sed -e 's/consoleblank=0/consoleblank=0 fsck.mode=auto fsck.repair=yes/g' -i ${boot_files_loc}/boot.src
     # compiling back to boot.scr
     mkimage -A arm64 -T script -O linux -d ${boot_files_loc}/boot.src ${boot_files_loc}/boot.scr
 fi
@@ -128,6 +130,8 @@ if [ -e ${boot_files_loc}/extlinux/extlinux.conf ] ; then
     echo "Doing MiniAch fixups in ${boot_files_loc}/extlinux/extlinux.conf ..."
     # enabling vt cursor; increasing kernel verbosity
     sed -e 's/logo.nologo/loglevel=6/g' -e 's/vt.cur_default=1/consoleblank=0/g' -i ${boot_files_loc}/extlinux/extlinux.conf
+    # setting fsck repair to yes
+    sed -e 's/consoleblank=0/consoleblank=0 fsck.mode=auto fsck.repair=yes/g' -i ${boot_files_loc}/extlinux/extlinux.conf
 fi
 
 image_filename="MiniArch-${image_version}-${boards_list}SD-Image"
@@ -160,6 +164,7 @@ ${PYTHON} -B ${base_dir}/scripts/wic create ${base_dir}/MiniArch.wks \
 --no-fstab-update \
 ${debug_flag}
 "
+
 echo '  removing working files...'
 rm -rf ${root_files_loc}/../pseudo*
 rm -f ${base_dir}/MiniArch.wks
