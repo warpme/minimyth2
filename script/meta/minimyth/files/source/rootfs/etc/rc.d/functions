@@ -1142,7 +1142,7 @@ mm_uniq() {
 #             confrw:themecaches/G.A.N.T..1024.768.sfs<br/>
 #         The valid protocol values are: 'nfs', 'cifs', 'http', 'tftp',
 #         'confro', 'confrw', 'dist', 'hunt' and 'file'. For 'nfs' 'cifs' and
-#         'partlbl'.
+#         'partlbl', 'bootdevpart'.
 #         The URL points to a remote directory. For 'http', 'tftp', 'confro',
 #         'confrw', 'dist' and 'hunt', the URL points to a remote file. For
 #         'file', the URL point to a local directory or file. For 'partlbl' URL
@@ -1265,6 +1265,17 @@ mm_url_mount() {
     elif [ "x${URL_PROTOCOL}" = "xpartlbl" ] ; then
         LABEL=`/bin/echo ${URL_PATH} | /bin/sed 's%/*%%g'`
         /bin/mount --label "${LABEL}" "${MOUNT_DIR}"
+    elif [ "x${URL_PROTOCOL}" = "xbootdevpart" ] ; then
+        PART_NO=`/bin/echo ${URL_PATH} | /bin/sed 's%/*%%g'`
+        BOOT_DEV=$(mount | grep -e "/initrd\s"| awk '{print $1}' | sed 's/p[0123456789]//g' | sed 's/\/dev\///g')
+        if [ ! x${PART_NO} = "x" ] && [ ! x${BOOT_DEV} = "x" ] ; then
+            /bin/mount /dev/${BOOT_DEV}p${PART_NO} "${MOUNT_DIR}"
+        else
+            /usr/bin/logger -s -t minimyth -p "local0.error" \
+                "mm_url_mount: mountng ${URL_PATH} failed (PART_NO=${PART_NO};BOOT_DEV=${BOOT_DEV})"
+            /bin/false
+            return
+        fi
     else
         /usr/bin/logger -s -t minimyth -p "local0.error" \
             "mm_url_mount: protocol '${URL_PROTOCOL}' is not supported."
