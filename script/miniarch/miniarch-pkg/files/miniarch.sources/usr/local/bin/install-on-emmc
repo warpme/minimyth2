@@ -166,6 +166,7 @@ duplicate_sdcard_to_emmc() {
 
     echo "  ==> copying from: SDcard(${sdcard_dev}) to: eMMC(${emmc_dev}) ..."
     dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} bs=1M count=$1 conv=fsync
+    sync
 }
 
 update_emmc_bootloader_config() {
@@ -187,10 +188,12 @@ update_emmc_bootloader_config() {
         echo "You can update extlinux.conf namually by mounting eMMC /BOOT part and"
         echo "updating root=... to root=/dev/${emmc_dev}p2 in extlinux.conf file ..."
     fi
+    sync
 }
 
 erase_emmc() {
     dd if=/dev/zero of=/dev/${emmc_dev} bs=1M count=${erase_areas_size} conv=fsync
+    sync
 }
 
 write_to_emmc_bootloader() {
@@ -248,6 +251,7 @@ write_to_emmc_bootloader() {
 
 sdcard_dev=$(grep /boot /proc/mounts | awk '{print $1}' | sed 's/p[0123456789]//g' | sed 's/\/dev\///g')
 emmc_dev=""
+boot_dev=$(mount | grep -e "/initrd\s"| awk '{print $1}' | sed 's/p[0123456789]//g' | sed 's/\/dev\///g')
 
 for TYPE in /sys/class/block/mmcblk*/device/type; do
   if grep -q "MMC" "${TYPE}"; then
@@ -281,10 +285,11 @@ fi
 get_size_to_copy
 
 echo " "
-echo "System booted from   : ${sdcard_dev}"
+echo "System booted from   : ${boot_dev}"
+echo "SD card device       : ${sdcard_dev}"
 echo "eMMC device          : ${emmc_dev}"
-echo "Detected SDcard with : ${part_no} partitions"
-echo "SDcard usage         : ${storage_usage}MB"
+echo "Boot device has      : ${part_no} partitions"
+echo "Boot device usage    : ${storage_usage}MB"
 
 if [[ "${command}" =~ "erase" ]] ; then
     echo " "
