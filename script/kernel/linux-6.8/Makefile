@@ -122,8 +122,7 @@ PATCHFILES += 0570-arm64-dts-sun50i-h6-normalize-spdif-card-name.patch
 PATCHFILES += 0573-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 PATCHFILES += 0575-H6-add-sun50i-di-deinterlace-WiP.patch
 PATCHFILES += 0576-arm64-dts-h6-add-deinterlace-node.patch
-# xr819 in-tree is disabld due issues with AP - so we are using out-of-tree driver
-# PATCHFILES += 0577-net-wireless-add-xr819-support-07072021.patch
+PATCHFILES += 0577-net-wireless-add-xr819-support-07072021.patch
 PATCHFILES += 0579-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
 PATCHFILES += 0580-net-stmmac-sun8i-Use-devm_regulator_get-for-PHY-regu.patch
 PATCHFILES += 0581-net-stmmac-sun8i-Rename-PHY-regulator-variable-to-re.patch

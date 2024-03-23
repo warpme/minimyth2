@@ -10,7 +10,8 @@ endef
 
 DEPENDS = \
 	kernel/linux-$(mm_KERNEL_VERSION) \
-	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/xr819)    \
+
+#	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/xr819)    \
 
 #	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8821cu)    \
 #	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8189es)    \
