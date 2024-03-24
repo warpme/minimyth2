@@ -223,6 +223,10 @@ mm-all:
 		   [ ! "$${software}" = "htop"           ] && \
 		   [ ! "$${software}" = "bashtop"        ] && \
 		   [ ! "$${software}" = "nvtop"          ] && \
+		   [ ! "$${software}" = "wifi_xr819"     ] && \
+		   [ ! "$${software}" = "wifi_rtl8821cu" ] && \
+		   [ ! "$${software}" = "wifi_rtl8189es" ] && \
+		   [ ! "$${software}" = "wifi_"          ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \

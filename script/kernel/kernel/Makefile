@@ -10,11 +10,9 @@ endef
 
 DEPENDS = \
 	kernel/linux-$(mm_KERNEL_VERSION) \
-
-#	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/xr819)    \
-
-#	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8821cu)    \
-#	$(if $(filter arm arm64,$(GARCH_FAMILY)),kernel/rtl8189es)    \
+	$(if $(filter wifi_xr819,    $(mm_SOFTWARE)),kernel/xr819)     \
+	$(if $(filter wifi_rtl8821cu,$(mm_SOFTWARE)),kernel/rtl8821cu) \
+	$(if $(filter wifi_rtl8189es,$(mm_SOFTWARE)),kernel/rtl8189es) \
 
 include ../../gar.mk
 
@@ -40,4 +38,6 @@ clean-all:
 reinstall: clean
 	@$(MAKE) install-headers -C ../../kernel/linux-$(mm_KERNEL_VERSION)
 	@$(MAKE) reinstall       -C ../../kernel/linux-$(mm_KERNEL_VERSION)
-	@$(MAKE) reinstall       -C ../../kernel/xr819
+	$(if $(filter wifi_xr819,    $(mm_SOFTWARE)),$(MAKE) reinstall -C ../../kernel/xr819)
+	$(if $(filter wifi_rtl8821cu,$(mm_SOFTWARE)),$(MAKE) reinstall -C ../../kernel/rtl8821cu)
+	$(if $(filter wifi_rtl8189es,$(mm_SOFTWARE)),$(MAKE) reinstall -C ../../kernel/rtl8189es)
