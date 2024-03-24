@@ -38,7 +38,7 @@ install-custom:
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-custom:
-	@rm -f  $(DESTDIR)/boot/extlinux*
+	@rm -rf $(DESTDIR)/boot/extlinux*
 	@rm -rf $(DESTDIR)/boot/h616loaderfiles*
 	@rm -f  $(DESTDIR)/boot/minimyth.conf
 
