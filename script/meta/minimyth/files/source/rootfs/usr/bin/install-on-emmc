@@ -60,7 +60,7 @@ erase_areas_size=1024
 
 
 
-ver=1.2
+ver=1.3
 
 command=$1
 
@@ -95,7 +95,7 @@ is_booted_from_emmc() {
 what_platform() {
 
     platform=$(cat /sys/firmware/devicetree/base/compatible 2>/dev/null)
-    echo "Ooo...You are running ${platform}"
+    echo "Ooo...you are running ${platform}"
 
     if [[ ${platform} =~ "allwinner" ]] ; then
         echo "Allwinner detected...Good!"
@@ -208,6 +208,7 @@ write_to_emmc_bootloader() {
         dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
         dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
         echo "bootloader copied to eMMC ..."
+        update_emmc_bootloader_config
 
     elif [ $platform_type = 2 ] ; then
         # this is for rockchip 3328
@@ -249,8 +250,8 @@ write_to_emmc_bootloader() {
     fi
 }
 
-sdcard_dev=$(grep /boot /proc/mounts | awk '{print $1}' | sed 's/p[0123456789]//g' | sed 's/\/dev\///g')
 emmc_dev=""
+sdcard_dev=""
 boot_dev=$(mount | grep -e "/initrd\s"| awk '{print $1}' | sed 's/p[0123456789]//g' | sed 's/\/dev\///g')
 
 for TYPE in /sys/class/block/mmcblk*/device/type; do
@@ -260,6 +261,12 @@ for TYPE in /sys/class/block/mmcblk*/device/type; do
   fi
 done
 
+for TYPE in /sys/class/block/mmcblk*/device/type; do
+  if grep -q "SD" "${TYPE}"; then
+    sdcard_dev="$(echo "${TYPE}" | awk -F/ '{print $5}')"
+    break
+  fi
+done
 
 echo " "
 echo "--- MiniMyth2 to eMMC installer v$ver (c)Piotr Oniszczuk ---"
