@@ -31,8 +31,11 @@ build-custom:
 	@$(MAKECOOKIE)
 
 install-custom:
+	@echo "Installing xradio kernel module ..."
 	@mkdir -p $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/xradio
 	@cp -f $(WORKSRC)/xradio_wlan.ko $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/xradio/
+	@echo "Removing cw1200 kernel modules as xradio provides equivalent support ..."
+	@rm -rf $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/st/cw1200*
 	@depmod -b $(DESTDIR) -v $(LINUX_FULL_VERSION)
 	@$(MAKECOOKIE)
 
