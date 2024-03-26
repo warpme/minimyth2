@@ -1,8 +1,8 @@
 
 # URL GIT: https://github.com/morrownr/8821cu-20210916
 GARNAME      = rtl8821cu
-# v2023.12.22
-GARVERSION   = a41ef7cabd1aa36fa2b4eb63a71cf719bff11b72
+# v26.03.2024
+GARVERSION   = 0b505f382ea67bd8bdc9288ba5dbe7f4c9de33c0
 CATEGORIES   = system
 MASTER_SITES = https://github.com/morrownr/8821cu-20210916/archive/
 DISTFILES    = $(GARVERSION).zip
