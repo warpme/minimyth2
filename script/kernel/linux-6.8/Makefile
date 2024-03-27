@@ -1,7 +1,7 @@
 ifeq (1,1)
 #--Use this for mainline official x.y.z kernel from SCM----
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
-DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
+DISTFILES           = $(DISTNAME).tar.xz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 #----------------------------------------------------------
 endif
@@ -82,7 +82,6 @@ PATCHFILES += 0508-arm64-dts-sun50i-h6-dtsi-add-sound-node.patch
 PATCHFILES += 0524-arm64-dts-allwinner-h6-Fix-Cedrus-IOMMU-again.patch
 PATCHFILES += 0531-iommu-sun50i-Allow-page-sizes-multiple-of-4096.patch
 PATCHFILES += 0534-media-cedrus-Don-t-CPU-map-source-buffers.patch
-
 PATCHFILES += 0535-drm-sun4i-mixer-Add-caching-support.patch
 PATCHFILES += 0536-drm-sun4i-dw-hdmi-Deinit-PHY-in-fail-path.patch
 PATCHFILES += 0537-drm-sun4i-dw-hdmi-Remove-double-encoder-cleanup.patch
@@ -96,7 +95,6 @@ PATCHFILES += 0544-drm-sun4i-de2-de3-call-csc-setup-also-for-UI-layer.patch
 PATCHFILES += 0545-drm-bridge-dw-hdmi-add-mtmdsclock-parameter-to-phy-c.patch
 PATCHFILES += 0546-drm-bridge-dw-hdmi-support-configuring-phy-for-deep-.patch
 PATCHFILES += 0547-WIP-drm-sun4i-de3-Add-support-for-YUV420-output.patch
-PATCHFILES += 0548-media-cedrus-h265-Fix-configuring-bitstream-size.patch
 PATCHFILES += 0549-media-Add-NV12-and-P010-AFBC-compressed-formats.patch
 PATCHFILES += 0550-media-cedrus-add-format-filtering-based-on-depth-and.patch
 PATCHFILES += 0551-media-cedrus-Implement-AFBC-YUV420-formats-for-H265.patch
@@ -105,8 +103,6 @@ PATCHFILES += 0553-drm-sun4i-de3-Implement-AFBC-support.patch
 PATCHFILES += 0554-media-cedrus-Increase-H6-clock-rate.patch
 PATCHFILES += 0555-clk-sunxi-ng-h6-Reparent-CPUX-during-PLL-CPUX-rate-c.patch
 PATCHFILES += 0556-HACK-clk-sunxi-ng-unify-parent-for-HDMI-clocks.patch
-PATCHFILES += 0557-wip-media-sunxi-sun8i-di-fix-race-condition.patch
-
 # various patches for H6
 PATCHFILES += 0559-mfd-add-AC200.patch
 PATCHFILES += 0560-net-phy-Add-support-for-AC200-EPHY.patch
