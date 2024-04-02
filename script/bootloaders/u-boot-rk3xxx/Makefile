@@ -1,7 +1,7 @@
 
-GARNAME      = u-boot-radxa-rk3xxx-2024.04
-# git@ 04.03.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.04/
-GARVERSION   = ccef7dfc453bc03c5b5c61fa67d2745b96fa7da6
+GARNAME      = u-boot-radxa-rk3xxx-2024.04-rc5
+# git@ 01.04.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.04/
+GARVERSION   = 31522fe7b3c7733313e1c5eb4e340487f6000196
 # git@ 26.12.2023 https://github.com/radxa/rkbin/commits/master
 RKBINVERSION = fc44f9401c127affb2a879c1e90fa89ddab505f6
 CATEGORIES   = kernel
@@ -46,6 +46,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = rock5a-rk3588s_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock5b-rk3588_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock64-rk3328_defconfig
+# mm_U-BOOT_BOARD_TYPE = generic-rk3328_defconfig
 # mm_U-BOOT_BOARD_TYPE = quartz64-b-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96-x6-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = radxa-zero3-rk3566_defconfig
