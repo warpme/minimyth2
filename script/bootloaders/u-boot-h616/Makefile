@@ -1,6 +1,6 @@
 
-GARNAME      = u-boot-h616-v2024.04-rc3
-GARVERSION   = 2024.04-rc3
+GARNAME      = u-boot-h616-v2024.04
+GARVERSION   = 2024.04
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/refs/tags/
 DISTFILES    = v$(GARVERSION).tar.gz
