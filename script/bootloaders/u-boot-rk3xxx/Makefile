@@ -1,7 +1,7 @@
 
-GARNAME      = u-boot-radxa-rk3xxx-2024.04-rc5
+GARNAME      = u-boot-radxa-rk3xxx-2024.04
 # git@ 01.04.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.04/
-GARVERSION   = 31522fe7b3c7733313e1c5eb4e340487f6000196
+GARVERSION   = e353ac61883647dc4c61b0135ce8e27e74104e7e
 # git@ 26.12.2023 https://github.com/radxa/rkbin/commits/master
 RKBINVERSION = fc44f9401c127affb2a879c1e90fa89ddab505f6
 CATEGORIES   = kernel
@@ -57,9 +57,9 @@ include ../../python3/python/package-api.mk
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
 ifneq (,$(findstring rk3328,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk33/rk3328_ddr_400MHz_v1.19.bin
-BL31         = ../rkbin/bin/rk33/rk3326_bl31_v1.33.elf
-DDR_BIN      = ../rkbin/bin/rk33/rk3328_ddr_400MHz_v1.19.bin
+TPL          = ../rkbin/bin/rk33/rk322xh_ddr_333MHz_v1.19.bin
+BL31         = ../rkbin/bin/rk33/rk322xh_bl31_v1.49.elf
+DDR_BIN      = ../rkbin/bin/rk33/rk322xh_ddr_333MHz_v1.19.bin
 MKIMAGE_TYPE = rk3328
 INSTALL_PREF = rk3328
 endif
