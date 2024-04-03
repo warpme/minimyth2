@@ -29,7 +29,7 @@ DEPENDS   = lang/c
 BUILDDEPS = devel/swig utils/dtc python3/python-pyelftools
 
 CONFIGURE_SCRIPTS   = custom
-BUILD_SCRIPTS       = custom
+BUILD_SCRIPTS       = uboot idbloader
 INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
@@ -124,17 +124,21 @@ configure-custom:
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
-build-custom:
+build-uboot:
 	@echo "Building u-boot $(MKIMAGE_TYPE) with $(CONFIGURE_ARGS) ..."
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
 	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) ROCKCHIP_TPL=$(TPL) BL31=$(BL31) all
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
+	@$(MAKECOOKIE)
+
+build-idbloader:
 	@echo "Creating idbloader.img ..."
-	@cd ./$(WORKSRC) && ./tools/mkimage -n $(MKIMAGE_TYPE) -T rksd -d $(DDR_BIN):spl/u-boot-spl.bin idbloader.img
-ifneq (,$(findstring rk3399,$(mm_U-BOOT_BOARD_TYPE)))
-	@echo "Creating trust.img ..."
-	@cd ./$(WORKSRC) && ../rkbin/tools/trust_merger --size 1024 1 ../../../files/rk3399-trust.ini
+ifneq (,$(findstring rk3328,$(mm_U-BOOT_BOARD_TYPE)))
+	@echo "Override rk3328 RKBIN v.conservative frequency ..."
+	@cd $(WORKSRC); sed -s 's/\x4d\x1\x4d\x1\x4d\x1\x4d\x1\x4d\x1\x4d\x1/\x20\x3\x20\x3\x20\x3\x20\x3\x20\x3\x20\x3/g' -i "$(DDR_BIN)"
+	@cd $(WORKSRC); sed -s 's/\x90\x1\x90\x1\x90\x1\x90\x1\x90\x1\x90\x1/\x20\x3\x20\x3\x20\x3\x20\x3\x20\x3\x20\x3/g' -i "$(DDR_BIN)"
 endif
+	@cd ./$(WORKSRC) && ./tools/mkimage -n $(MKIMAGE_TYPE) -T rksd -d $(DDR_BIN):spl/u-boot-spl.bin idbloader.img
 	@$(MAKECOOKIE)
 
 install-custom:
@@ -145,14 +149,6 @@ install-custom:
 	@echo "Instaling u-boot.itb ..."
 	@cp -f  $(WORKSRC)/u-boot.itb \
 		$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb
-	@echo "Instaling u-boot.img ..."
-	@cp -f  $(WORKSRC)/u-boot.img \
-		$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/uboot.img
-	@if [ -e $(WORKSRC)/trust.img ] ; then \
-		echo "Installing trust.img ..." ; \
-		cp -f  $(WORKSRC)/trust.img \
-		$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/trust.img ; \
-	 fi
 	@$(MAKECOOKIE)
 
 clean-all:
