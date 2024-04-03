@@ -11,7 +11,7 @@ DISTFILES    = \
                rk3328-boot.txt \
                minimyth.conf   \
 
-export mm_U-BOOT_BOARD_TYPE = generic-rk3328_defconfig
+export mm_U-BOOT_BOARD_TYPE = beelink-a1-rk3328_defconfig
 
 WORKSRC      = $(WORKDIR)
 
