@@ -89,7 +89,7 @@ sub page
     push(@page,  q(              alt="Valid CSS!"      height="31" width="88" /></a>));
     push(@page,  q(        </div>));
     push(@page,  q(        <div class="version">));
-    push(@page,  q(          Last Updated on 2020-01-06));
+    push(@page,  q(          Last Updated on 2024-04-04));
     push(@page,  q(          <br />));
     push(@page,  q(          &lt;&nbsp;mailto&nbsp;:&nbsp;piotr.oniszczuk&nbsp;at&nbsp;gmail&nbsp;dot&nbsp;com&nbsp;&gt;));
     push(@page,  q(        </div>));
