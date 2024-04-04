@@ -6,16 +6,17 @@ GARVERSION   = e353ac61883647dc4c61b0135ce8e27e74104e7e
 RKBINVERSION = fc44f9401c127affb2a879c1e90fa89ddab505f6
 CATEGORIES   = kernel
 MASTER_SITES = \
-		https://github.com/Kwiboo/u-boot-rockchip/archive/ \
-		https://github.com/radxa/rkbin/archive/
+               https://github.com/Kwiboo/u-boot-rockchip/archive/ \
+               https://github.com/radxa/rkbin/archive/
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
-PATCHFILES  +=	01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
-		50-add-rk3566-x96-x6-defconfig.patch \
-		51-add-rk3566-zero3-defconfig.patch \
-		52-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
-		54-add-rk3328-beelink-a1-defconfig.patch \
+PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
+               02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
+               50-add-rk3566-x96-x6-defconfig.patch \
+               51-add-rk3566-zero3-defconfig.patch \
+               52-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
+               54-add-rk3328-beelink-a1-defconfig.patch \
 
-#		53-rk3566-rock-3c-use-dedicated-dts.patch \
+#               53-rk3566-rock-3c-use-dedicated-dts.patch \
 
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
 
@@ -46,7 +47,6 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = rock-pi-4c-rk3399_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock5a-rk3588s_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock5b-rk3588_defconfig
-# mm_U-BOOT_BOARD_TYPE = rock64-rk3328_defconfig
 # mm_U-BOOT_BOARD_TYPE = beelink-a1-rk3328_defconfig
 # mm_U-BOOT_BOARD_TYPE = quartz64-b-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96-x6-rk3566_defconfig
@@ -106,7 +106,6 @@ BUILD_ARGS = \
 pre-configure:
 	@mkdir -p $(WORKDIR)/rkbin
 	@mv -f $(WORKDIR)/rkbin-$(RKBINVERSION)/* $(WORKDIR)/rkbin/
-	@cd $(WORKDIR)/rkbin; patch -p1 < ../../../files/04-disable-trust-rk3328-rk3399-rk3528.patch
 	@$(MAKECOOKIE)
 
 configure-custom:
