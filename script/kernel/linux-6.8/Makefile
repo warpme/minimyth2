@@ -162,6 +162,7 @@ PATCHFILES += 0635-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
 PATCHFILES += 0637-arm64-dts-allwinner-h618-add-vontar-h618-TVbox.patch
 PATCHFILES += 0638-arm64-dts-allwinner-h618-add-opi-2w.patch
 PATCHFILES += 0639-arm64-dts-allwinner-h616.dtsi-hack-block-ctitical-cpu-gpu-ths-trips.patch
+PATCHFILES += 0640-arm64-dts-allwinner-h313-Tanix-TX1-TVbox.patch
 endif
 #------------------------------------------------------------
 
