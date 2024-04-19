@@ -2,12 +2,12 @@
 
 # Script works with 3 commands:
 #  Mode1: when called with 'install' command:
-#    1.duplicates first rootfs_sise MBytes from SD card to eMMC
-#    2.duplicates bootloader from SD card to eMMC (Allwinner) or updates extlinux.conf (other platforms)
+#    1.duplicates first rootfs_sise MBytes from boot device to eMMC
+#    2.duplicates bootloader from boot device to eMMC (Allwinner) or updates extlinux.conf (other platforms)
 #  Mode2: when called with 'erase' command:
 #    1. Erase eMMC by writing zero to first 'erase_areas_size' MBytes of eMMC
 #  Mode3: when called with 'bootloader' command:
-#    1. Duplicates bootloader from SD card to eMMC (Allwinner) or updates extlinux.conf (other platforms)
+#    1. Duplicates bootloader from boot device to eMMC (Allwinner) or updates extlinux.conf (other platforms)
 #
 #
 # safety_margina is mount of extra size beyond 1st + 2nd + 3rd partitions to be
@@ -60,7 +60,7 @@ erase_areas_size=1024
 
 
 
-ver=1.4
+ver=2.0
 
 command=$1
 
@@ -144,10 +144,16 @@ get_size_to_copy() {
 
     for part_no in 6 5 4 3 2 1 0
     do
-        # echo "trying with part${part_no} as last part ..."
         start=$(cat /sys/block/${boot_dev}/${boot_dev}p${part_no}/start 2>/dev/null)
-        size=$(cat /sys/block/${boot_dev}/${boot_dev}p${part_no}/size 2>/dev/null)
         if [ ! x${start} = "x" ] ; then
+            size=$(cat /sys/block/${boot_dev}/${boot_dev}p${part_no}/size 2>/dev/null)
+            end=$((${start} + $size))
+            storage_usage=$((${end} / 2000))
+            break
+        fi
+        start=$(cat /sys/block/${boot_dev}/${boot_dev}${part_no}/start 2>/dev/null)
+        if [ ! x${start} = "x" ] ; then
+            size=$(cat /sys/block/${boot_dev}/${boot_dev}${part_no}/size 2>/dev/null)
             end=$((${start} + $size))
             storage_usage=$((${end} / 2000))
             break
@@ -162,8 +168,8 @@ get_size_to_copy() {
 
 duplicate_sdcard_to_emmc() {
 
-    echo "  ==> copying from: SDcard(${sdcard_dev}) to: eMMC(${emmc_dev}) ..."
-    dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} bs=1M count=$1 conv=fsync
+    echo "start copying from: ${boot_dev} to: eMMC(${emmc_dev}) ..."
+    dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1M count=$1 conv=fsync
     sync
 }
 
@@ -178,7 +184,7 @@ update_emmc_bootloader_config() {
     mkdir -p /boot.emmc
     mount /dev/${emmc_dev}p${part_no} /boot.emmc
     if [ -e /boot.emmc/extlinux/extlinux.conf ] ; then
-        sed -e "s|${sdcard_dev}|${emmc_dev}|g" -i /boot.emmc/extlinux/extlinux.conf
+        sed -e "s|${boot_dev}|${emmc_dev}|g" -i /boot.emmc/extlinux/extlinux.conf
         sync
         echo "extlinux.conf on eMMC updated successfuly ..."
     else
@@ -202,9 +208,9 @@ write_to_emmc_bootloader() {
         echo 0 > /sys/block/${emmc_dev}boot0/force_ro
         dd if=/dev/zero of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
         dd if=/dev/zero of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
-        echo "  ==> copying bootloader from ${sdcard_dev} to ${emmc_dev} ..."
-        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
-        dd if=/dev/${sdcard_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
+        echo "  ==> copying bootloader from ${boot_dev} to ${emmc_dev} ..."
+        dd if=/dev/${boot_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
+        dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
         echo "bootloader copied to eMMC ..."
         update_emmc_bootloader_config
 
@@ -248,8 +254,7 @@ write_to_emmc_bootloader() {
     fi
 }
 
-boot_dev=="N/A"
-boot_dev=$(mount | grep -e "/initrd\s"| awk '{print $1}' | sed 's/p[0123456789]//g' | sed 's/\/dev\///g')
+boot_dev=$(mount | grep -e '/initrd\s' | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0123456789]$//g' | sed 's/p//g')
 
 emmc_dev="N/A"
 for TYPE in /sys/class/block/mmcblk*/device/type; do
@@ -280,18 +285,26 @@ if [ $platform_type -gt 8 ] ; then
   exit 1
 fi
 
+echo " "
+echo "SDcard device        : ${sdcard_dev}"
+echo "eMMC device          : ${emmc_dev}"
+echo "System booted from   : ${boot_dev}"
+
 get_size_to_copy
 
-echo " "
-echo "System booted from   : ${boot_dev}"
-echo "SD card device       : ${sdcard_dev}"
-echo "eMMC device          : ${emmc_dev}"
 echo "Boot device has      : ${part_no} partitions"
 echo "Boot device usage    : ${storage_usage}MB"
 
 if [ x"${emmc_dev}" = "xN/A" ]; then
   echo " "
   echo "Can't determine eMMC device! Exiting ..."
+  echo " "
+  exit 1
+fi
+
+if [ x"${boot_dev}" = "x" ]; then
+  echo " "
+  echo "Can't determine boot device! Exiting ..."
   echo " "
   exit 1
 fi
@@ -313,17 +326,11 @@ if [[ "${command}" =~ "erase" ]] ; then
 elif [[ "${command}" =~ "bootloader" ]] ; then
     is_booted_from_emmc
 
-    if [ x"${sdcard_dev}" = "xN/A" ]; then
-        echo "Can't determine SDcard  device! Exiting ..."
-        exit 1
-    fi
-
-    echo " "
-    echo "copying bootloader to eMMC ..."
-
     confirm "to install bootloader on eMMC"
 
     write_to_emmc_bootloader
+
+    sync
 
     echo " "
     echo "Done ..."
@@ -333,22 +340,19 @@ elif [[ "${command}" =~ "bootloader" ]] ; then
 elif [[ "${command}" =~ "install" ]] ; then
     is_booted_from_emmc
 
-    if [ -z "${sdcard_dev}" ]; then
-        echo "Can't determine SDcard  device! Exiting ..."
-        exit 1
-    fi
-
     confirm "to copy ${storage_usage}MB from SD card to eMMC"
 
     confirm "You ARE SURE to OVERWRITE eMMC content"
 
-    echo "copying of ${storage_usage}MB from SD card to eMMC ..."
+    echo "copying of ${storage_usage}MB to eMMC ..."
     duplicate_sdcard_to_emmc $((${storage_usage} + $safety_margin))
     echo "copying to eMMC done ..."
 
     echo "copying bootloader to eMMC ..."
     confirm "to install bootloader on eMMC"
     write_to_emmc_bootloader
+
+    sync
 
     echo " "
     echo "System was successfuly installed on eMMC ..."
