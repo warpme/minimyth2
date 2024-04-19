@@ -168,7 +168,7 @@ get_size_to_copy() {
 
 duplicate_sdcard_to_emmc() {
 
-    echo "start copying from: ${boot_dev} to: eMMC(${emmc_dev}) ..."
+    echo "  ==> copying from: ${boot_dev} to: eMMC(${emmc_dev}) ..."
     dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1M count=$1 conv=fsync
     sync
 }
@@ -255,6 +255,9 @@ write_to_emmc_bootloader() {
 }
 
 boot_dev=$(mount | grep -e '/initrd\s' | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0123456789]$//g' | sed 's/p//g')
+if [ x"${boot_dev}" = "x" ]; then
+    boot_dev=$(mount | grep -e 'on\s/\s' | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0123456789]$//g')
+fi
 
 emmc_dev="N/A"
 for TYPE in /sys/class/block/mmcblk*/device/type; do
@@ -330,8 +333,6 @@ elif [[ "${command}" =~ "bootloader" ]] ; then
 
     write_to_emmc_bootloader
 
-    sync
-
     echo " "
     echo "Done ..."
     echo " "
@@ -344,15 +345,13 @@ elif [[ "${command}" =~ "install" ]] ; then
 
     confirm "You ARE SURE to OVERWRITE eMMC content"
 
-    echo "copying of ${storage_usage}MB to eMMC ..."
+    echo "copying ${storage_usage}MB to eMMC ..."
     duplicate_sdcard_to_emmc $((${storage_usage} + $safety_margin))
     echo "copying to eMMC done ..."
 
     echo "copying bootloader to eMMC ..."
     confirm "to install bootloader on eMMC"
     write_to_emmc_bootloader
-
-    sync
 
     echo " "
     echo "System was successfuly installed on eMMC ..."
