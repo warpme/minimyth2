@@ -1,5 +1,5 @@
 
-GARNAME      = u-boot-radxa-rk3xxx-2024.04
+GARNAME      = u-boot-rk3xxx
 # git@ 03.04.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.04/
 GARVERSION   = e353ac61883647dc4c61b0135ce8e27e74104e7e
 # git@ 26.12.2023 https://github.com/radxa/rkbin/commits/master
