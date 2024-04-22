@@ -1,10 +1,9 @@
 
-GARNAME      = u-boot-h616-v2024.04
+GARNAME      = u-boot-h616
 GARVERSION   = 2024.04
 CATEGORIES   = kernel
-MASTER_SITES = https://github.com/u-boot/u-boot/archive/refs/tags/
+MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
-
 PATCHFILES   = 100-sunsi-add-h616-internal-eth-phy-support.patch
 PATCHFILES  += 101-unreliable-dram.patch
 PATCHFILES  += 102-sunxi-H616-GPU-enable-hack.patch
@@ -26,9 +25,8 @@ PATCHFILES  += 159-add-x96-q-lpddr3-v1.3-defconfig.patch
 PATCHFILES  += 160-add-vontar-h618-defconfig.patch
 PATCHFILES  += 161-dts-zero2w-improvements.patch
 PATCHFILES  += 162-add-tx1-defconfig.patch
-
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
-LICENSE = GPL2
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
