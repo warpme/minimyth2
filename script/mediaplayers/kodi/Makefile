@@ -3,8 +3,6 @@
 # (note: jre21 is NOT compatible)
 
 GARNAME       = xbmc
-
-# mainline Omega 21.0b2
 GARVERSION    = $(KODI_VERSION)
 CATEGORIES    = mediaplayers
 MASTER_SITES  = \
