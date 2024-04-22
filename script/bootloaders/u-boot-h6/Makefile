@@ -1,10 +1,10 @@
 
 # Mainline U-boot v2024.04
-GARNAME      = u-boot-2024.04
+GARNAME      = u-boot-h6
 GARVERSION   = 2024.04
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
-DISTFILES    = v$(GARVERSION).zip
+DISTFILES    = v$(GARVERSION).tar.gz
 PATCHFILES  += 0005-sunxi-psci-Avoid-hanging-when-CPU-0-is-hot-unplugged.patch
 PATCHFILES  += 0007-remoteproc-Add-a-driver-for-the-Allwinner-AR100.patch
 PATCHFILES  += 0008-arm-dts-sunxi-h3-Add-nodes-for-AR100-remoteproc.patch
