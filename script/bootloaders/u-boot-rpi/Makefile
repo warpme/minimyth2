@@ -1,5 +1,5 @@
 # Mainline U-boot v2024.01
-GARNAME      = u-boot-2024.01
+GARNAME      = u-boot-rpi
 GARVERSION   = 2024.01
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
