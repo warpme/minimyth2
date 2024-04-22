@@ -1,5 +1,5 @@
 
-GARNAME      = u-boot-rk3528-rockchip-25072023
+GARNAME      = u-boot-rk3528
 # git@25.07.2023 https://github.com/rockchip-linux/u-boot/commits/next-dev
 GARVERSION   = 32640b0ada9344f91e7a407576568782907161cd
 # git@26.06.2023 https://github.com/rockchip-linux/rkbin/commits/master
