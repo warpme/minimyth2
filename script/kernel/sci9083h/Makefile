@@ -33,7 +33,7 @@ build-custom:
 install-custom:
 	@echo "Installing xradio kernel module ..."
 	@mkdir -p $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/smartchip
-	@cp -f $(WORKSRC)/trunk_driver/s9083.ko $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/smartchip/
+	@cp -f $(WORKSRC)/trunk_driver/s9083s.ko $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/smartchip/
 	@depmod -b $(DESTDIR) -v $(LINUX_FULL_VERSION)
 	@$(MAKECOOKIE)
 
