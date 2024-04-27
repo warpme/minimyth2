@@ -156,6 +156,7 @@ PATCHFILES += 0618-sound-soc-sunxi-hack-to-fix-oops-on-cards-caps-query.patch
 PATCHFILES += 0630-arm64-dts-allwinner-h616.dtsi-add-audio-hdmi-vdec.patch
 PATCHFILES += 0631-arm64-dts-allwinner-h616.dtsi-add-ths-cpu-gpu-opp-and-dvfs.patch
 PATCHFILES += 0632-arm64-dts-allwinner-h616.dtsi-add-emac1.patch
+PATCHFILES += 0633-arm64-dts-allwinner-h616.dtsi-fix-x96q-failing-mmc3.patch
 PATCHFILES += 0641-arm64-dts-allwinner-h616-OrangePI-Zero23-enable-ths-hdmi-audio.patch
 PATCHFILES += 0642-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0643-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
@@ -163,7 +164,6 @@ PATCHFILES += 0644-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
 PATCHFILES += 0645-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
 PATCHFILES += 0647-arm64-dts-allwinner-h618-add-vontar-h618-TVbox.patch
 PATCHFILES += 0648-arm64-dts-allwinner-h618-add-opi-2w.patch
-PATCHFILES += 0649-arm64-dts-allwinner-h616.dtsi-hack-block-ctitical-cpu-gpu-ths-trips.patch
 PATCHFILES += 0650-arm64-dts-allwinner-h313-Tanix-TX1-TVbox.patch
 endif
 #------------------------------------------------------------
