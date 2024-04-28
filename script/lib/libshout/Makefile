@@ -1,6 +1,6 @@
 
 GARNAME      = libshout
-GARVERSION   = 2.4.5
+GARVERSION   = 2.4.6
 CATEGORIES   = lib
 MASTER_SITES = https://downloads.xiph.org/releases/libshout/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.gz
@@ -19,7 +19,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
-	$(if $(filter x86_64,$(GARCH_FAMILY)),LIBS=$(DESTDIR)$(elibdir64)/libmvec.so.1) \
+	LIBS=$(DESTDIR)$(elibdir64)/libmvec.so.1 \
 
 include ../../gar.mk
 
