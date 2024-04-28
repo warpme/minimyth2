@@ -1,5 +1,6 @@
-# release/2.38/master at 22.10.2024
-GLIBC_VERSION = 20240122-cfe12191
+
+# release 2.39/master at 25.04.2024
+GLIBC_VERSION = 20240425-fd658f026
 
 GLIBC_ADD_LIB_PATH = \
 	mkdir -p $(DESTDIR)$(sysconfdir) ; \

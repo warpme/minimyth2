@@ -4,7 +4,6 @@ GARVERSION    = $(GLIBC_VERSION)
 CATEGORIES    = devel
 MASTER_SITES  = git://sourceware.org/git/glibc.git/
 DISTFILES     = $(DISTNAME).tar.bz2
-PATCHFILES    = $(DISTNAME)-fix-building-arm-thumb.patch
 LICENSE       = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -41,7 +40,6 @@ CONFIGURE_ARGS  = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-headers=$(DESTDIR)$(includedir) \
 	--disable-werror \
 	--disable-multi-arch \
-	$(if $(filter arm arm64,$(GARCH_FAMILY)),--disable-mathvec) \
 
 INSTALL_ARGS    = \
 	install_root=$(DESTDIR)
