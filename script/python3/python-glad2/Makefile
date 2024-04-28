@@ -6,7 +6,7 @@ MASTER_SITES = https://files.pythonhosted.org/packages/21/95/228380a07a2d4a50a82
 DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE      = GPL
 
-DEPENDS = python3/python python3/python-lxml python3/python-setuptools
+DEPENDS = python3/python python3/python-lxml python3/python-setuptools python3/python-Jinja2
 
 WORKSRC = $(WORKDIR)/$(patsubst python-%,%,$(GARNAME))-$(GARVERSION)
 
