@@ -24,7 +24,10 @@ GARTARGET = $($(CROSSIMG)_GARHOST)
 IMGDEPS += $(CROSSIMG)
 $(CROSSIMG)_DEPENDS = devel/glibc
 DEPENDS   = lang/c devel/gmp devel/isl devel/libelf devel/mpc devel/mpfr
-BUILDDEPS = devel/make devel/binutils lib/libxcrypt
+BUILDDEPS = devel/make devel/binutils
+ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
+DEPENDS  +=  lib/libxcrypt
+endif
 
 WORKDIR   = $(WORKROOTDIR)/$(DESTIMG)_$(CROSSIMG).d
 COOKIEDIR = $(COOKIEROOTDIR)/$(DESTIMG)_$(CROSSIMG).d
