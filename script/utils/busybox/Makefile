@@ -9,6 +9,7 @@ DISTFILES     = $(DISTNAME).tar.bz2 $(CONFIGFILE)
 PATCHFILES    = \
 	$(DISTNAME)-dhcp_log_server.patch \
 	$(DISTNAME)-tftp_timeout.patch \
+	$(DISTNAME)-downgrade-awk-to-1.33.1.patch \
 
 LICENSE = GPL2
 
