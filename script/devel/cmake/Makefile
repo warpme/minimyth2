@@ -1,8 +1,8 @@
 
 GARNAME      = cmake
-GARVERSION   = 3.28.1
+GARVERSION   = 3.29.2
 CATEGORIES   = devel
-MASTER_SITES = http://www.cmake.org/files/v3.28/
+MASTER_SITES = http://www.cmake.org/files/v3.29/
 DISTFILES    = $(DISTNAME).tar.gz
 LICENSE      = BSD_3_Clause
 
