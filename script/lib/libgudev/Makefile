@@ -1,9 +1,10 @@
-GARNAME = libgudev
-GARVERSION = 231
-CATEGORIES = lib
+
+GARNAME      = libgudev
+GARVERSION   = 231
+CATEGORIES   = lib
 MASTER_SITES = https://download.gnome.org/sources/$(GARNAME)/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = $(GARNAME)
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT=$(WORKSRC)/COPYING
 
 DESCRIPTION =
@@ -24,11 +25,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-umockdev
 
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -rf $(DESTDIR)$(libdir)/libgudev-1.0.la
