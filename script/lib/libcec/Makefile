@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/cxx lib/lockdev lib/platform lib/p8-platform system/eudev xorg/xorg
+DEPENDS = lang/cxx lib/lockdev lib/p8-platform system/eudev xorg/xorg
 
 WORKBLD = $(WORKSRC)_build
 
