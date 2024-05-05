@@ -4,6 +4,7 @@ GARVERSION   = 21.1.13
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://xorg.freedesktop.org/releases/individual/xserver/
 DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = $(DISTNAME)-stop-werror-array-bounds.patch
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING
 
@@ -74,16 +75,13 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-xkb-output="$(datadir)/X11/xkb/compiled" \
 	--with-serverconfig-path="$(libdir)/xserver" \
 	--enable-xorg \
+	--disable-strict-compilation \
 
 CONFIGURE_ENV = \
 	XORG_SGML_PATH="$(DESTDIR)$(includedir)/xorg"
 
 GAR_EXTRA_CONF += $(CATEGORY)/xorg/package-api.mk
 include ../../gar.mk
-
-CFLAGS   += -Wno-array-bounds
-CPPFLAGS += -Wno-array-bounds
-LDFLAGS  += -Wno-array-bounds
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/xorg/modules/drivers/modesetting_drv.la
