@@ -93,7 +93,7 @@ MESON_CONFIGURE_ARGS += \
 	-D llvm=disabled
 else
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,nouveau,svga,swrast \
+	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,nouveau,swrast \
 	-D gallium-vdpau=enabled \
 	-D gallium-va=enabled \
 	-D video-codecs=vc1dec,h264dec,h265dec \
