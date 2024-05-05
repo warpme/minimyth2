@@ -1,8 +1,8 @@
 
 GARNAME      = util-linux
-GARVERSION   = 2.38
+GARVERSION   = 2.40
 CATEGORIES   = utils
-MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.38/
+MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.40/
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = GPL2
 
@@ -103,7 +103,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-systemd \
 	--without-systemdsystemunitdir \
 	--without-smack \
-	--without-python
+	--without-python \
+	--disable-liblastlog2 \
 
 BUILD_ARGS     = \
 	usrbin_execdir=$(bindir) \
@@ -119,10 +120,10 @@ INSTALL_ARGS   = \
 include ../../gar.mk
 
 pre-configure:
-	@$(call RUN_GETTEXTIZE)
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
+	@#$(call RUN_GETTEXTIZE)
+	@#$(call RUN_AUTOTOOLS)
+	@#$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	@#$(MAKECOOKIE)
 
 post-install:
 	@ln -srf $(DESTDIR)$(elibdir)/libuuid.so $(DESTDIR)$(libdir)/libuuid.so
