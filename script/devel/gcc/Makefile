@@ -129,8 +129,8 @@ post-install:
 		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-ar    ),ln -sf $(GARTARGET)-gcc-ar     $(DESTDIR)$(bindir)/$(GARTARGET)-ar    ) ; \
 		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-nm    ),ln -sf $(GARTARGET)-gcc-nm     $(DESTDIR)$(bindir)/$(GARTARGET)-nm    ) ; \
 		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-ranlib),ln -sf $(GARTARGET)-gcc-ranlib $(DESTDIR)$(bindir)/$(GARTARGET)-ranlib) ; \
-		cp -af $(CROSS_GCC_LIBDIR)/libgomp.so* $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)/ ; \
-		cp -af $(CROSS_GCC_LIBDIR)/libatomic.so* $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)/ ; \
+		if [ -e $(CROSS_GCC_LIBDIR)/libgomp.so ]   ; then cp -af $(CROSS_GCC_LIBDIR)/libgomp.so* $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)/   ; fi ; \
+		if [ -e $(CROSS_GCC_LIBDIR)/libatomic.so ] ; then cp -af $(CROSS_GCC_LIBDIR)/libatomic.so* $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)/ ; fi ; \
 	)
 	@mkdir -p $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)
 	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libgcc.a         ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
