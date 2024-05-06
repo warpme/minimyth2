@@ -31,6 +31,7 @@ CONFIGURE_ARGS = \
 	--prefix="$(prefix)" \
 	--datadir="$(subst $(prefix),,$(datadir)/CMake)" \
 	--docdir="$(subst $(prefix),,$(docdir)/CMake)" \
-	--mandir="$(subst $(prefix),,$(mandir))"
+	--mandir="$(subst $(prefix),,$(mandir))" \
+	--parallel=$(PARALLELMFLAGS) \
 
 include ../../gar.mk
