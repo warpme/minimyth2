@@ -28,4 +28,4 @@ INSTALL_ARGS = \
 
 include ../../gar.mk
 
-CFLAGS += -DUSE_IOCTL -DPOSIX_SIG -DHAVE_INET_ATON
+CFLAGS += -DUSE_IOCTL -DPOSIX_SIG -DHAVE_INET_ATON -Wno-implicit-function-declaration
