@@ -1,10 +1,11 @@
-GARNAME = unclutter
-GARVERSION = 8
-CATEGORIES = X11
+
+GARNAME      = unclutter
+GARVERSION   = 8
+CATEGORIES   = X11
 MASTER_SITES = http://www.ibiblio.org/pub/X11/contrib/utilities/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES= $(DISTNAME)-gcc_4.3.patch
-LICENSE = Public_Domain
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = $(DISTNAME)-gcc_4.3.patch
+LICENSE      = Public_Domain
 
 DESCRIPTION = 
 define BLURB
@@ -19,6 +20,7 @@ INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
+CFLAGS  += -Wno-implicit-int
 LDFLAGS := $(LDFLAGS) -fwhole-program
 
 build-custom:
