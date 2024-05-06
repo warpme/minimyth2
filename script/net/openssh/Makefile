@@ -1,6 +1,6 @@
 
 GARNAME       = openssh
-GARVERSION    = 8.6p1
+GARVERSION    = 9.7p1
 CATEGORIES    = net
 MASTER_SITES  = https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/
 DISTFILES     = $(DISTNAME).tar.gz
