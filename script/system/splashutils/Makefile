@@ -46,6 +46,8 @@ BUILD_ENV = \
 
 include ../../gar.mk
 
+CFLAGS += -Wno-implicit-function-declaration
+
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
 	@$(call FIX_LIBTOOL,$(WORKSRC),configure)
