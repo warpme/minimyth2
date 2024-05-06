@@ -1,6 +1,6 @@
 
 GARNAME      = iproute2
-GARVERSION   = 5.13.0
+GARVERSION   = 6.8.0
 CATEGORIES   = net
 MASTER_SITES = https://mirrors.edge.kernel.org/pub/linux/utils/net/iproute2/
 DISTFILES    = $(DISTNAME).tar.xz
