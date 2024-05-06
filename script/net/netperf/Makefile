@@ -1,10 +1,11 @@
-GARNAME = netperf
-GARVERSION = 2.7.0
-CATEGORIES = utils
+
+GARNAME      = netperf
+GARVERSION   = 2.7.0
+CATEGORIES   = utils
 MASTER_SITES = https://github.com/HewlettPackard/netperf/archive/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = add_aarch64_detection.patch
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = add_aarch64_detection.patch
+LICENSE      = GPL3
 
 WORKSRC = $(WORKDIR)/$(GARNAME)-$(DISTNAME)
 
@@ -25,5 +26,4 @@ CONFIGURE_ENV = \
 
 include ../../gar.mk
 
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon
+CFLAGS += -Wno-implicit-function-declaration -fcommon
