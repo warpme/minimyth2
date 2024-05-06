@@ -1,6 +1,6 @@
 
 GARNAME      = mtools
-GARVERSION   = 4.0.34
+GARVERSION   = 4.0.43
 CATEGORIES   = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/mtools/
 DISTFILES    = $(DISTNAME).tar.bz2
