@@ -294,7 +294,7 @@ CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(inclu
 CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
 
 CPPFLAGS += -fPIC -fuse-linker-plugin
-CFLAGS   += -fPIC -fuse-linker-plugin
+CFLAGS   += -fPIC -fuse-linker-plugin -Wno-incompatible-pointer-types -Wno-implicit-function-declaration
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
