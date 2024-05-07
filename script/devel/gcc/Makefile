@@ -110,8 +110,13 @@ post-install:
 	@rm -f $(CROSS_GCC_LIBDIR)/libvtv.la
 	@rm -f $(CROSS_GCC_LIBDIR)/plugin/libcc1plugin.la
 	@rm -f $(CROSS_GCC_LIBEXECDIR)/liblto_plugin.la
-	@# Native compile.
+	@# Build gcc.
+	@# Test install with: make install DESTIMG=build CROSSIMG=build
 	@$(if $(filter     $(DESTIMG),$(CROSSIMG)), \
+		echo "build-gcc libs install dirs:" ; \
+		echo "                CROSS_GCC_LIBDIR=[$(CROSS_GCC_LIBDIR)]" ; \
+		echo "                   CROSS_GCC_DIR=[$(CROSS_GCC_DIR)]" ; \
+		echo "CROSSIMG_DESTDIR CROSSIMG_libdir=[$($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)]" ; \
 		ln -sf gcc $(DESTDIR)$(bindir)/cc ; \
 		$(if $(wildcard $(DESTDIR)$(bindir)/gcc-ar    ),ln -sf gcc-ar     $(DESTDIR)$(bindir)/ar    ) ; \
 		$(if $(wildcard $(DESTDIR)$(bindir)/gcc-nm    ),ln -sf gcc-nm     $(DESTDIR)$(bindir)/nm    ) ; \
@@ -120,9 +125,13 @@ post-install:
 		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-nm    ),ln -sf $(GARTARGET)-gcc-nm     $(DESTDIR)$(bindir)/$(GARTARGET)-nm    ) ; \
 		$(if $(wildcard $(DESTDIR)$(bindir)/$(GARTARGET)-gcc-ranlib),ln -sf $(GARTARGET)-gcc-ranlib $(DESTDIR)$(bindir)/$(GARTARGET)-ranlib) ; \
 	)
-	@# Cross compile.
+	@# Cross gcc.
 	@# Test install with: make install DESTIMG=build CROSSIMG=main
 	@$(if $(filter-out $(DESTIMG),$(CROSSIMG)), \
+		echo "cross-gcc libs install dirs:" ; \
+		echo "                CROSS_GCC_LIBDIR=[$(CROSS_GCC_LIBDIR)]" ; \
+		echo "                   CROSS_GCC_DIR=[$(CROSS_GCC_DIR)]" ; \
+		echo "CROSSIMG_DESTDIR CROSSIMG_libdir=[$($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)]" ; \
 		mkdir -p $(DESTDIR)$(prefix)/$(GARHOST)/bin ; \
 		cp $(DESTDIR)$(bindir)/$(GARTARGET)-cpp $(DESTDIR)$(prefix)/$(GARTARGET)/bin/cpp ; \
 		cp $(DESTDIR)$(bindir)/$(GARTARGET)-gcc $(DESTDIR)$(prefix)/$(GARTARGET)/bin/cc ; \
@@ -133,22 +142,22 @@ post-install:
 		if [ -e $(CROSS_GCC_LIBDIR)/libatomic.so ] ; then cp -af $(CROSS_GCC_LIBDIR)/libatomic.so* $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)/ ; fi ; \
 	)
 	@mkdir -p $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir)
-	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libgcc.a         ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libgcc_s.so      ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libgcc_s.so.*    ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libgcc.a      ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libgcc_s.so   ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libgcc_s.so.* ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libgcc.a      ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libgcc_s.so   ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libgcc_s.so.* ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libstdc++.a      ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libstdc++.so     ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libstdc++.so.*   ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libstdc++.a   ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libstdc++.so  ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libstdc++.so.*),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libstdc++.a   ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libstdc++.so  ),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
-	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libstdc++.so.*),cp -af $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libgcc.a         ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libgcc_s.so      ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libgcc_s.so.*    ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libgcc.a      ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libgcc_s.so   ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libgcc_s.so.* ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libgcc.a      ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libgcc_s.so   ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libgcc_s.so.* ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libstdc++.a      ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libstdc++.so     ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_LIBDIR)/libstdc++.so.*   ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libstdc++.a   ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libstdc++.so  ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib32/libstdc++.so.*),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libstdc++.a   ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libstdc++.so  ),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
+	@$(foreach file,$(wildcard $(CROSS_GCC_DIR)/lib64/libstdc++.so.*),cp -afv $(file) $($(CROSSIMG)_DESTDIR)$($(CROSSIMG)_libdir) ; )
 	@$(MAKECOOKIE)
