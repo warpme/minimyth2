@@ -101,7 +101,6 @@ PATCHFILES += 0551-media-cedrus-Implement-AFBC-YUV420-formats-for-H265.patch
 PATCHFILES += 0552-drm-sun4i-de2-Initialize-layer-fields-earlier.patch
 PATCHFILES += 0553-drm-sun4i-de3-Implement-AFBC-support.patch
 PATCHFILES += 0554-media-cedrus-Increase-H6-clock-rate.patch
-PATCHFILES += 0555-clk-sunxi-ng-h6-Reparent-CPUX-during-PLL-CPUX-rate-c.patch
 PATCHFILES += 0556-HACK-clk-sunxi-ng-unify-parent-for-HDMI-clocks.patch
 # various patches for H6
 PATCHFILES += 0559-mfd-add-AC200.patch
