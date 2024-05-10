@@ -4,6 +4,7 @@ GARVERSION    = $(GLIBC_VERSION)
 CATEGORIES    = devel
 MASTER_SITES  = git://sourceware.org/git/glibc.git/
 DISTFILES     = $(DISTNAME).tar.bz2
+PATCHFILES    = $(DISTNAME)-fix-building-arm-thumb.patch
 LICENSE       = GPL2/LGPL2_1
 
 DESCRIPTION = 
