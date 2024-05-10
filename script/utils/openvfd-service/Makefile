@@ -25,7 +25,7 @@ INSTALL_SCRIPTS   = OpenVFDService vfdconfigurations
 include ../../gar.mk
 
 build-OpenVFDService:
-	@$(CC) $(LDFLAGS) -o $(WORKSRC)/OpenVFDService $(WORKSRC)/OpenVFDService.c -lm -lpthread
+	@$(CC) $(LDFLAGS) -o $(WORKSRC)/OpenVFDService $(WORKSRC)/OpenVFDService.c -lm -lpthread -Wno-implicit-function-declaration
 	@$(MAKECOOKIE)
 
 install-OpenVFDService:
