@@ -1,9 +1,9 @@
 
 GARNAME      = btop
-GARVERSION   = 1.3.0
+GARVERSION   = 1.3.2
 CATEGORIES   = utils
-MASTER_SITES = https://github.com/aristocratos/btop/
-DISTFILES    = $(DISTNAME).tar.gz
+MASTER_SITES = https://github.com/aristocratos/btop/archive/refs/tags/
+DISTFILES    = v$(GARVERSION).tar.gz
 LICENSE      = GPL
 
 CONFIGURE_SCRIPTS = 
