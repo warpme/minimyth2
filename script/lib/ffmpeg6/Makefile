@@ -22,6 +22,8 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
+CFLAGS += -Wno-incompatible-pointer-types
+
 CONFIGURE_ARGS = \
 	--enable-logging \
 	--fatal-warnings \
