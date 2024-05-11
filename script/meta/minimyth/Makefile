@@ -17,7 +17,6 @@ DESTIMG = $(MINIMYTHIMG)
 DEPENDS = \
 	system/acpid \
 	system/acpitool \
-	utils/alsa-utils \
 	utils/busybox \
 	data/ca-bundle.crt \
 	net/curl \
@@ -29,49 +28,42 @@ DEPENDS = \
 	net/ifplugd \
 	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),system/irclient) \
 	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),system/irserver) \
-	system/irxkeys \
 	net/lighttpd \
-	system/kbdd \
 	kernel/kernel \
 	fonts/dejavu-fonts \
 	fonts/liberation-fonts \
-	system/lirc \
-	system/eventlircd \
 	utils/lm_sensors \
 	utils/lsdvd \
 	utils/lsof \
-	$(if $(filter intel, $(mm_GRAPHICS)), \
-		X11/intel-media-driver \
-		X11/intel-vaapi-driver) \
 	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),utils/intel-microcode2ucode) \
 	utils/kmod \
 	$(if $(filter nvidia,$(mm_GRAPHICS)), \
 		nvidia/nvidia-$(mm_NVIDIA_VERSION)) \
 	$(if $(filter nvidia-legacy,$(mm_GRAPHICS)), \
 		nvidia/nvidia-$(mm_NVIDIA_LEGACY_VERSION)) \
-	X11/libva \
-	myth-$(mm_MYTH_VERSION)/mythtv \
 	lib/ncursesw \
-	net/nfs-utils \
 	net/openssh \
 	net/rpcbind \
 	utils/pciutils \
 	$(if $(filter perl,$(mm_SOFTWARE)), \
 		perl/perl \
 		perl/perl-MiniMyth) \
-	utils/pmount \
 	utils/procps \
-	$(if $(filter python2,$(mm_SOFTWARE)), \
-		python2/python \
-		python2/python-argparse \
-		python2/python-tzupdate \
-		python2/python-pylirc) \
-	$(if $(filter python3,$(mm_SOFTWARE)), \
-		python3/python \
-		python3/python-argparse \
-		python3/python-tzupdate \
-		python3/python-pylirc) \
+	$(if $(filter python2,$(mm_SOFTWARE)), python2/python) \
+	$(if $(filter python3,$(mm_SOFTWARE)), python3/python) \
+	utils/alsa-utils \
+	system/irxkeys \
+	system/lirc \
+	system/kbdd \
+	system/eventlircd \
+	X11/libva \
+	$(if $(filter intel, $(mm_GRAPHICS)), \
+		X11/intel-media-driver \
+		X11/intel-vaapi-driver) \
 	X11/blackbox \
+	myth-$(mm_MYTH_VERSION)/mythtv \
+	utils/pmount \
+	net/nfs-utils \
 	utils/regionset \
 	X11/rxvt \
 	utils/SDL-Test \
@@ -97,9 +89,9 @@ DEPENDS = \
 	X11/xdotool \
 	X11/x11vnc \
 	system/zoneinfo \
-	utils/btop \
-	utils/htop \
-	utils/bashtop \
+	$(if $(filter btop,$(mm_SOFTWARE)),utils/btop) \
+	$(if $(filter htop,$(mm_SOFTWARE)),utils/htop) \
+	$(if $(filter bashtop,$(mm_SOFTWARE)),utils/bashtop) \
 	utils/findutils \
 	$(if $(filter mesa mesa-git lima,$(mm_OPENGL_PROVIDER)),opengl/mesa-demos) \
 	$(if $(filter mythplugins,$(mm_SOFTWARE)), \
@@ -116,6 +108,14 @@ DEPENDS = \
 		lib/libdiscid \
 	lib/dbus \
 	lib/avahi \
+	$(if $(filter python2,$(mm_SOFTWARE)), \
+		python2/python-argparse \
+		python2/python-tzupdate \
+		python2/python-pylirc) \
+	$(if $(filter python3,$(mm_SOFTWARE)), \
+		python3/python-argparse \
+		python3/python-tzupdate \
+		python3/python-pylirc) \
 	$(if $(filter fceu,$(mm_SOFTWARE)),emulators/fceu) \
 	$(if $(filter jzintv,$(mm_SOFTWARE)),emulators/jzintv) \
 	$(if $(filter mednafen,$(mm_SOFTWARE)),emulators/mednafen) \
@@ -226,9 +226,9 @@ BUILDDEPS = \
 	utils/module-init-tools \
 	utils/squashfs \
 	utils/tar \
-	utils/util-linux \
 	perl/perlstrip \
 	devel/meson \
+	utils/util-linux \
 	net/inetutils \
 	xorg/mkfontscale \
 
