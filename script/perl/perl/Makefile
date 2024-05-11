@@ -23,7 +23,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS    = lang/c lib/gdbm
+DEPENDS    = lang/c lib/gdbm lib/libnsl db/berkeley-db
 BUILDDEPS  = utils/bash
 ifneq ($(DESTIMG),build)
 BUILDDEPS += perl/perl
