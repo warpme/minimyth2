@@ -21,6 +21,10 @@ include ../../gar.mk
 BUILD_SCRIPTS   = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS = $(WORKSRC)/Makefile
 
+CFLAGS   := $(filter-out -flto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+
 BUILD_ARGS   = \
     CC="$(CC)" \
     DESTDIR="$(DESTDIR)" \
