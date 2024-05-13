@@ -122,4 +122,9 @@ include ../../gar.mk
 
 post-install:
 	@mv -f $(DESTDIR)$(bindir)/eject $(DESTDIR)$(bindir)/eject-cdrom
+	@ln -srf $(DESTDIR)$(bindir)/findmnt $(DESTDIR)$(ebindir)/findmnt
+	@ln -srf $(DESTDIR)$(bindir)/lsblk   $(DESTDIR)$(ebindir)/lsblk
+	@ln -srf $(DESTDIR)$(bindir)/lsfd    $(DESTDIR)$(ebindir)/lsfd
+	@ln -srf $(DESTDIR)$(bindir)/mount   $(DESTDIR)$(ebindir)/mount
+	@ln -srf $(DESTDIR)$(bindir)/umount  $(DESTDIR)$(ebindir)/umount
 	@$(MAKECOOKIE)
