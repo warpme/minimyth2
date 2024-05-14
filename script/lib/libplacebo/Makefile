@@ -23,6 +23,3 @@ MESON_CONFIGURE_ARGS = \
 	-D demos="false" \
 
 include ../../gar.mk
-
-pre-configure:
-	@cd $(WORKSRC); git submodule update --init
