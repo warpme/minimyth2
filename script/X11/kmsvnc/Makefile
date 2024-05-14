@@ -17,7 +17,6 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
-
-export CFLAGS=-Wno-incompatible-pointer-types
+	-DCMAKE_C_FLAGS='-I$(DESTDIR)$(includedir)/libdrm -Wno-incompatible-pointer-types'
 
 include ../../gar.mk
