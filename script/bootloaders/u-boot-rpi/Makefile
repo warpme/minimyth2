@@ -21,7 +21,8 @@ INSTALL_SCRIPTS     = custom
 include ../../gar.mk
 include ../../python3/python/package-api.mk
 
-mm_U-BOOT_BOARD_TYPE=rpi_arm64_defconfig
+# mm_U-BOOT_BOARD_TYPE=rpi_arm64_defconfig
+# mm_U-BOOT_BOARD_TYPE=rpi_3_32b_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
@@ -44,6 +45,10 @@ install-custom:
 ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_2_defconfig)
 	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rpi2/$(mm_U-BOOT_BOARD_TYPE)"
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)$(libdir)/u-boot/rpi2/$(mm_U-BOOT_BOARD_TYPE)/kernel7.img
+endif
+ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_3_32b_defconfig)
+	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)"
+	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)/kernel7.img
 endif
 ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_3_defconfig)
 	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)"
