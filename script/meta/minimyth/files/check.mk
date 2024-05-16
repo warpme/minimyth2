@@ -411,6 +411,7 @@ mm-all:
 		   [ ! "$${board}" = "board-h618.vontar_h618"     ] && \
 		   [ ! "$${board}" = "board-h618.orangepi_zero2w" ] && \
 		   [ ! "$${board}" = "board-h313.x96_q"           ] && \
+		   [ ! "$${board}" = "board-h313.x96_q_v5.1"      ] && \
 		   [ ! "$${board}" = "board-h313.x96_q_lpddr3"    ] && \
 		   [ ! "$${board}" = "board-h313.x96_q_lpddr3_v1.3" ] && \
 		   [ ! "$${board}" = "board-h313.tanix_tx1"       ] && \
