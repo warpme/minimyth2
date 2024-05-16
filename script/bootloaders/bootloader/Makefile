@@ -228,6 +228,10 @@ ifneq (,$(filter board-h313.x96_q,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h313.x96_q
 endif
 
+ifneq (,$(filter board-h313.x96_q_v5.1,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-h313.x96_q_v5.1
+endif
+
 ifneq (,$(filter board-h313.x96_q_lpddr3,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h313.x96_q_lpddr3
 endif
