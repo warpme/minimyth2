@@ -123,9 +123,28 @@ include ../../gar.mk
 
 post-install:
 	@mv -f $(DESTDIR)$(bindir)/eject $(DESTDIR)$(bindir)/eject-cdrom
-	@ln -srf $(DESTDIR)$(bindir)/findmnt $(DESTDIR)$(ebindir)/findmnt
-	@ln -srf $(DESTDIR)$(bindir)/lsblk   $(DESTDIR)$(ebindir)/lsblk
-	@ln -srf $(DESTDIR)$(bindir)/lsfd    $(DESTDIR)$(ebindir)/lsfd
-	@ln -srf $(DESTDIR)$(bindir)/mount   $(DESTDIR)$(ebindir)/mount
-	@ln -srf $(DESTDIR)$(bindir)/umount  $(DESTDIR)$(ebindir)/umount
+
+	@ln -srf $(DESTDIR)$(bindir)/findmnt $(DESTDIR)$(ebindir)/
+	@ln -srf $(DESTDIR)$(bindir)/lsblk   $(DESTDIR)$(ebindir)/
+	@ln -srf $(DESTDIR)$(bindir)/lsfd    $(DESTDIR)$(ebindir)/
+	@ln -srf $(DESTDIR)$(bindir)/mount   $(DESTDIR)$(ebindir)/
+	@ln -srf $(DESTDIR)$(bindir)/umount  $(DESTDIR)$(ebindir)/
+
+	@ln -srf $(DESTDIR)$(sbindir)/agetty       $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/blkdiscard   $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/blkid        $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/blkzone      $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/blockdev     $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/chcpu        $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/ctrlaltdel   $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/findfs       $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/fsck.cramfs  $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/fsfreeze     $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/fstrim       $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/mkfs         $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/mkfs.cramfs  $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/swaplabel    $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/switch_root  $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/wipefs       $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/zramctl      $(DESTDIR)$(esbindir)/
 	@$(MAKECOOKIE)
