@@ -164,6 +164,8 @@ PATCHFILES += 0645-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
 PATCHFILES += 0647-arm64-dts-allwinner-h618-add-vontar-h618-TVbox.patch
 PATCHFILES += 0648-arm64-dts-allwinner-h618-add-opi-2w.patch
 PATCHFILES += 0650-arm64-dts-allwinner-h313-Tanix-TX1-TVbox.patch
+PATCHFILES += 0651-arm64-dts-allwinner-h313-add-x96q-v5.1-TVbox.patch
+#sun50i-h313-x96-q-v5.1
 endif
 #------------------------------------------------------------
 
