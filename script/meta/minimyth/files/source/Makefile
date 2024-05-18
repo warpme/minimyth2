@@ -279,6 +279,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 	@sed -i 's%@EXTRAS_ROOTDIR@%$(extras_rootdir)%'             $@~$(sysconfdir)/rc.d/init.d/media
 	@sed -i 's%@ARCH@%$(mm_GARCH_FAMILY)%'                      $@~$(sysconfdir)/rc.d/init.d/conf.d/S_MINIMYTH
 	@sed -i 's%@BRANCH@%$(mm_MYTH_VERSION)%'                    $@~$(sysconfdir)/rc.d/init.d/conf.d/S_MINIMYTH
+	@sed -i 's%@MINIMYTH_ONLINE_UPDATES_URL@%$(mm_MINIMYTH_ONLINE_UPDATES_URL)%' $@~$(sysconfdir)/rc.d/init.d/conf.d/S_MINIMYTH
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g'  $@~$(sysconfdir)/splash/minimyth/*.cfg
 	@sed -i 's%@MM_VERSION_MINIMYTH@%$(mm_VERSION_MINIMYTH)%g'  $@~/etc/os_myth_release
 	@sed -i 's%@MYTHTV_SVN_VERSION@%$(MYTHTV_GIT_VERSION)%g'    $@~/etc/os_myth_release
