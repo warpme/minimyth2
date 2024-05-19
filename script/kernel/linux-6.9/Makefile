@@ -266,7 +266,7 @@ PATCHFILES += 1055-arm64-dts-rockchip-rk3588-rock5x-add-cpufreq-support.patch
 PATCHFILES += 1056-arm64-dtsi-rockchip-3588s-add-crypto-support.patch
 PATCHFILES += 1057-arm64-dtsi-rockchip-3588s-add-hw_rng-support.patch
 PATCHFILES += 1058-arm64-dts-rockchip-rk3588-opi5x-add-missing-nodes.patch
-# todo PATCHFILES += 1060-arm64-dts-rockchip-rk3588-opi5x-rock5x-make-led-mmc0-act.patch
+PATCHFILES += 1060-arm64-dts-rockchip-rk3588-opi5x-rock5x-make-led-mmc0-act.patch
 # disabled as it breaks rk3566/rk3568 hdmi
 #PATCHFILES += 1065-arm64-dtsi-rockchip-add-hdmi-nodes-for-rk3588.patch
 #PATCHFILES += 1066-arm64-dts-rockchip-rk3588-opi5x-rock5x-enable-hdmi-and-vop2.patch
