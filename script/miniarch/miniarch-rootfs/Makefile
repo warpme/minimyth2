@@ -1,6 +1,6 @@
 
 GARNAME       = miniarch-rootfs
-GARVERSION    = 20240320
+GARVERSION    = 20240522
 CATEGORIES    = miniarch
 MASTER_SITES  = http://os.archlinuxarm.org/os/
 DISTFILES     = ArchLinuxARM-aarch64-latest.tar.gz
