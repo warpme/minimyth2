@@ -5,10 +5,6 @@ CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                extlinux.conf \
-               rk3328-boot-debug.scr \
-               rk3328-boot-debug.txt \
-               rk3328-boot.scr \
-               rk3328-boot.txt \
                minimyth.conf   \
 
 export mm_U-BOOT_BOARD_TYPE = beelink-a1-rk3328_defconfig
