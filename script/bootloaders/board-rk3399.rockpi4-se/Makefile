@@ -5,13 +5,9 @@ CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                extlinux.conf \
-               rk3399-boot-debug.scr \
-               rk3399-boot-debug.txt \
-               rk3399-boot.scr \
-               rk3399-boot.txt \
                minimyth.conf   \
 
-export mm_U-BOOT_BOARD_TYPE = rock-4se-rk3399_defconfig
+export mm_U-BOOT_BOARD_TYPE = rock-pi-4-rk3399_defconfig
 
 WORKSRC      = $(WORKDIR)
 
