@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 24.0.8
+GARVERSION   = 24.1.0
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.gz
@@ -66,7 +66,8 @@ MESON_CONFIGURE_ARGS = \
 	-D gles2=enabled \
 	-D dri3=enabled \
 	-D gallium-opencl=disabled \
-	-D glvnd=false \
+	-D gallium-rusticl=false \
+	-D glvnd=disabled \
 	-D gallium-xa=disabled \
 	-D gallium-nine=false \
 	-D b_lto=true \
@@ -74,22 +75,26 @@ MESON_CONFIGURE_ARGS = \
 	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 	-D platforms=x11,wayland \
 	-D cpp_rtti=false \
-	-D vulkan-drivers=amd,intel
+	-D vulkan-drivers=amd,intel \
+	-D opencl-spirv=false \
+	-D microsoft-clc=disabled \
+	-D install-intel-clc=false \
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
-	-D c_args="-mfpu=neon -mfloat-abi=softfp" \
-	-D llvm=disabled
+	-D vulkan-drivers= \
+	-D llvm=disabled \
+	-D c_args="-mfpu=neon -mfloat-abi=softfp"
 else
 ifeq ($(GARCH),armv8)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
-	-D vulkan-drivers=amd,intel \
+	-D vulkan-drivers= \
 	-D llvm=disabled
 else
 MESON_CONFIGURE_ARGS += \
