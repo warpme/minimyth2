@@ -1,6 +1,6 @@
 
 GARNAME      = glslang
-GARVERSION   = 14.1.0
+GARVERSION   = 14.2.0
 CATEGORIES   = opengl
 MASTER_SITES = https://github.com/KhronosGroup/glslang/archive/
 DISTFILES    = $(GARVERSION).tar.gz
