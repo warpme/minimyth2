@@ -65,8 +65,6 @@ MESON_CONFIGURE_ARGS = \
 	-D gles1=enabled \
 	-D gles2=enabled \
 	-D dri3=enabled \
-	-D gallium-opencl=disabled \
-	-D gallium-rusticl=false \
 	-D glvnd=disabled \
 	-D gallium-xa=disabled \
 	-D gallium-nine=false \
@@ -76,9 +74,6 @@ MESON_CONFIGURE_ARGS = \
 	-D platforms=x11,wayland \
 	-D cpp_rtti=false \
 	-D vulkan-drivers=amd,intel \
-	-D opencl-spirv=false \
-	-D microsoft-clc=disabled \
-	-D install-intel-clc=false \
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
@@ -87,6 +82,11 @@ MESON_CONFIGURE_ARGS += \
 	-D gallium-va=disabled \
 	-D vulkan-drivers= \
 	-D llvm=disabled \
+	-D gallium-opencl=disabled \
+	-D gallium-rusticl=false \
+	-D opencl-spirv=false \
+	-D microsoft-clc=disabled \
+	-D install-intel-clc=false \
 	-D c_args="-mfpu=neon -mfloat-abi=softfp"
 else
 ifeq ($(GARCH),armv8)
@@ -96,6 +96,11 @@ MESON_CONFIGURE_ARGS += \
 	-D gallium-va=disabled \
 	-D vulkan-drivers= \
 	-D llvm=disabled
+	-D gallium-opencl=disabled \
+	-D gallium-rusticl=false \
+	-D opencl-spirv=false \
+	-D microsoft-clc=disabled \
+	-D install-intel-clc=false
 else
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,nouveau,swrast \
@@ -103,7 +108,7 @@ MESON_CONFIGURE_ARGS += \
 	-D gallium-va=enabled \
 	-D video-codecs=vc1dec,h264dec,h265dec \
 	-D llvm=enabled
-DEPENDS += devel/llvm
+DEPENDS += devel/llvm lib/libclc
 endif
 endif
 
