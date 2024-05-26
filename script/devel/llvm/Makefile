@@ -1,9 +1,9 @@
 
 GARNAME      = llvm
-GARVERSION   = 16.0.6
+GARVERSION   = $(LLVM_VERSION)
 CATEGORIES   = devel
 MASTER_SITES = https://github.com/llvm/llvm-project/releases/download/llvmorg-$(GARVERSION)/
-DISTFILES    = $(DISTNAME).src.tar.xz cmake-$(GARVERSION).src.tar.xz
+DISTFILES    = $(DISTNAME).src.tar.xz clang-$(GARVERSION).src.tar.xz libclc-$(GARVERSION).src.tar.xz cmake-$(GARVERSION).src.tar.xz
 PATCHFILES   = fix-compile.patch
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKDIR)/$(DISTNAME)/LICENSE.TXT
@@ -30,7 +30,7 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 	-DLLVM_BUILD_LLVM_DYLIB="ON" \
 	-DLLVM_LINK_LLVM_DYLIB="ON" \
-	-DLLVM_BUILD_TOOLS="OFF" \
+	-DLLVM_BUILD_TOOLS="ON" \
 	-DLLVM_INCLUDE_TOOLS="ON" \
 	-DLLVM_BUILD_EXAMPLES="OFF" \
 	-DLLVM_INCLUDE_EXAMPLES="OFF" \
@@ -42,6 +42,7 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DLLVM_BUILD_BENCHMARKS="OFF" \
 	-DLLVM_INCLUDE_BENCHMARKS="OFF" \
+	-DLLVM_ENABLE_PROJECTS="clang;libclc" \
 	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
 	 -DLLVM_TARGET_ARCH="X86" \
 	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" ) \
@@ -52,6 +53,7 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	 -DLLVM_TARGET_ARCH="AArch64" \
 	 -DLLVM_TARGETS_TO_BUILD="AArch64" )
 
+GAR_EXTRA_CONF += devel/llvm/package-api.mk
 include ../../gar.mk
 
 ifneq ($(DESTIMG),build)
@@ -70,6 +72,12 @@ LDFLAGS  :=
 pre-configure: 
 	@mv $(WORKDIR)/$(DISTNAME).src $(WORKDIR)/$(DISTNAME)
 	@cp $(WORKDIR)/cmake-$(GARVERSION).src/Modules/* $(WORKDIR)/$(DISTNAME)/cmake/modules/
+	@mkdir -p $(WORKDIR)/cmake
+	@mv $(WORKDIR)/cmake-$(GARVERSION).src/* $(WORKDIR)/cmake/
+	@mkdir -p $(WORKDIR)/clang
+	@mv $(WORKDIR)/clang-$(GARVERSION).src/* $(WORKDIR)/clang/
+	@mkdir -p $(WORKDIR)/libclc
+	@mv $(WORKDIR)/libclc-$(GARVERSION).src/* $(WORKDIR)/libclc/
 	@$(MAKECOOKIE)
 
 configure-llvm:
@@ -89,7 +97,6 @@ build-llvm_config:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/libLLVM*.a
 	@mkdir -p $(DESTDIR)$(bindir)-config
 	@$(if $(filter build, $(DESTIMG)), \
 	 cp $(WORKBLD)/bin/llvm-config $(DESTDIR)$(bindir)-config/llvm-config, \
@@ -104,7 +111,10 @@ post-install:
 clean-all:
 	@rm -f $(DESTDIR)$(bindir)-config/llvm-config
 	@rm -f $(DESTDIR)$(bindir)/llvm*
+	@rm -f $(DESTDIR)$(bindir)/clang*
 	@rm -f $(DESTDIR)$(libdir)/libLLVM*
+	@rm -f $(DESTDIR)$(libdir)/libclang*
+	@rm -rf $(DESTDIR)$(libdir)/clang*
 	@rm -f $(DESTDIR)$(libdir)/LLVMHello.so
 	@rm -f $(DESTDIR)$(libdir)/libLTO*
 	@rm -rf $(DESTDIR)$(includedir)/llvm*
