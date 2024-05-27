@@ -1,7 +1,7 @@
 
 GARNAME      = SPIRV-LLVM-Translator
-# v18.1.0
-GARVERSION   = ad99707fd80189dca0ca76ed89946ae383e9a030
+# llvm_release_180 head@30.04.2024
+GARVERSION   = 04175873d750583878f789f5d2c5e0dc355dc6dc
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/KhronosGroup/SPIRV-LLVM-Translator/archive/
 DISTFILES    = $(GARVERSION).zip
@@ -18,6 +18,7 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 CMAKE_CONFIGURE_ARGS = \
 	-DLLVM_SPIRV_INCLUDE_TESTS=OFF \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DLLVM_EXTERNAL_SPIRV_HEADERS_SOURCE_DIR="$(DESTDIR)$(includedir)/spirv"
 
 include ../../gar.mk
 
