@@ -1,8 +1,9 @@
-GARNAME = ninja
-GARVERSION = 1.11.0
-CATEGORIES = devel
+
+GARNAME      = ninja
+GARVERSION   = 1.12.1
+CATEGORIES   = devel
 MASTER_SITES = https://github.com/martine/ninja/archive/
-DISTFILES = v$(GARVERSION).zip
+DISTFILES    = v$(GARVERSION).zip
 
 LICENSE = GPL2
 
@@ -11,7 +12,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c
-BUILDDEPS = python2/python
+BUILDDEPS = python3/python
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = custom
@@ -20,7 +21,7 @@ INSTALL_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python ./configure.py --bootstrap
+	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/python3 ./configure.py --bootstrap
 	@$(MAKECOOKIE)
 
 install-custom:
