@@ -35,7 +35,7 @@ PATCHFILES += linux-6.9-defaults.patch
 
 ifeq (1,1)
 
-PATCHFILES += 0105-drivers-led-add-openvfd-1.4.2.patch
+PATCHFILES += 0108-drivers-led-add-openvfd-1.4.2.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 6.9 kernel
@@ -248,32 +248,59 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 3588 patches -----------------------------------------
-PATCHFILES += 1010-fix-clk-divisions.patch
-PATCHFILES += 1011-irqchip-fix-its-timeout-issue.patch
-PATCHFILES += 1012-phy-rockchip-usbdp-add-usb3-drd-support.patch
-PATCHFILES += 1023-add-rk3588-cpufreq-support.patch
-PATCHFILES += 1024-crypto-rockchip-rk3688-add-crypto-support.patch
-PATCHFILES += 1025-char-hw_random-add-rk3588s-support.patch
-PATCHFILES += 1026-media-hantro-g1-add-video-decoder-support-v1.patch
-# disabled as it breaks rk3566/rk3568 hdmi
-#PATCHFILES += 1040-drm-rockchip-dw-hdmi-add-support-for-rk3588.patch
-#PATCHFILES += 1043-drm-rockchip-dw-hdmi-hack-hack-stop-oops-after-patch1026.patch
-# device-tree patches
-PATCHFILES += 1050-arm64-dtsi-rockchip-3588-3588s-add-usb3-drd-support.patch
-PATCHFILES += 1052-arm64-dts-rockchip-rk3588-rock5x-add-usb3-drd-support.patch
-PATCHFILES += 1054-arm64-dtsi-rockchip-3588-3588s-add-cpufreq-support.patch
-PATCHFILES += 1055-arm64-dts-rockchip-rk3588-rock5x-add-cpufreq-support.patch
-PATCHFILES += 1056-arm64-dtsi-rockchip-3588s-add-crypto-support.patch
-PATCHFILES += 1057-arm64-dtsi-rockchip-3588s-add-hw_rng-support.patch
-PATCHFILES += 1058-arm64-dts-rockchip-rk3588-opi5x-add-missing-nodes.patch
-PATCHFILES += 1060-arm64-dts-rockchip-rk3588-opi5x-rock5x-make-led-mmc0-act.patch
-# disabled as it breaks rk3566/rk3568 hdmi
-#PATCHFILES += 1065-arm64-dtsi-rockchip-add-hdmi-nodes-for-rk3588.patch
-#PATCHFILES += 1066-arm64-dts-rockchip-rk3588-opi5x-rock5x-enable-hdmi-and-vop2.patch
+PATCHFILES += 1002-irqchip-fix-its-timeout-issue.patch
+PATCHFILES += 1003-phy-rockchip-usbdp-add-usb3-drd-support.patch
+PATCHFILES += 1005-crypto-rockchip-rk3688-add-crypto-support.patch
+PATCHFILES += 1006-char-hw_random-add-rk3588s-support.patch
+PATCHFILES += 1007-media-hantro-g1-add-video-decoder-support-v1.patch
+PATCHFILES += 1008-gpu-drm-add-panthor-v6.patch
+PATCHFILES += 1011-math.h-add-DIV_ROUND_UP_NO_OVERFLOW.patch
+PATCHFILES += 1012-clk-divider-Fix-divisor-masking-on-64-bit-platforms.patch
+PATCHFILES += 1013-clk-composite-replace-open-coded-abs_diff.patch
+PATCHFILES += 1014-clk-rockchip-rk3588-drop-unused-code.patch
+PATCHFILES += 1015-clk-rockchip-handle-missing-clocks-with-EPROBE_DEFER.patch
+PATCHFILES += 1016-clk-rockchip-rk3588-register-GATE_LINK-later.patch
+PATCHFILES += 1017-clk-rockchip-expose-rockchip_clk_set_lookup.patch
+PATCHFILES += 1018-clk-rockchip-fix-error-for-unknown-clocks.patch
+PATCHFILES += 1019-clk-rockchip-implement-linked-gate-clock-support.patch
+PATCHFILES += 1020-clk-rockchip-rk3588-drop-RK3588_LINKED_CLK.patch
+PATCHFILES += 1021-phy-rockchip-samsung-hdptx-Add-FRL-EARC-supp.patch
+PATCHFILES += 1022-phy-rockchip-samsung-hdptx-Add-clock-provide.patch
+PATCHFILES += 1023-phy-rockchip-samsung-hdptx-Add-verbose-l.patch
+PATCHFILES += 1024-drm-rockchip-vop2-Improve-display-modes-handling.patch
+PATCHFILES += 1025-drm-bridge-dw-hdmi-Simplify-clock-handling.patch
+PATCHFILES += 1026-drm-bridge-dw-hdmi-Move-common-data-to-separate-head.patch
+PATCHFILES += 1027-drm-bridge-dw-hdmi-Commonize-dw_hdmi_i2c_adapter.patch
+PATCHFILES += 1028-drm-bridge-dw-hdmi-Commonize-AVI-infoframe-setup.patch
+PATCHFILES += 1029-drm-bridge-dw-hdmi-Commonize-vmode-setup.patch
+PATCHFILES += 1030-drm-bridge-dw-hdmi-Commonize-hdmi_data_info-setup.patch
+PATCHFILES += 1031-drm-bridge-dw-hdmi-Commonize-dw_hdmi_connector_creat.patch
+PATCHFILES += 1032-drm-rockchip-dw_hdmi-Use-modern-drm_device-based-log.patch
+PATCHFILES += 1033-drm-rockchip-dw_hdmi-Simplify-clock-handling.patch
+PATCHFILES += 1034-drm-rockchip-dw_hdmi-Use-devm_regulator_get_enable.patch
+PATCHFILES += 1035-drm-bridge-synopsys-Add-DW-HDMI-QP-TX-controller-dri.patch
+PATCHFILES += 1036-drm-rockchip-dw_hdmi-Add-basic-RK3588-support.patch
+PATCHFILES += 1037-drm-rockchip-dw_hdmi-rockchip-Simplify-hack-to-pass-pixel-clock-r.patch
+PATCHFILES += 1038-drm-rochchip-dw_hdmi-rockchip-HPD-cleanup.patch
+PATCHFILES += 1039-drm-vop2-add-clock-resets-support.patch
+# dt patches
+PATCHFILES += 1080-arm64-dtsi-rockchip-3588-3588s-add-usb3-drd-support.patch
+PATCHFILES += 1081-arm64-dts-rockchip-rk3588-rock5x-add-usb3-drd-support.patch
+PATCHFILES += 1082-arm64-dtsi-rockchip-3588s-add-cpufreq-support.patch
+PATCHFILES += 1083-arm64-dtsi-rockchip-3588s-add-crypto-support.patch
+PATCHFILES += 1084-arm64-dts-rockchip-rk3588-rock5x-add-cpufreq-support.patch
+PATCHFILES += 1085-arm64-dtsi-rockchip-3588s-add-hw_rng-support.patch
+PATCHFILES += 1086-arm64-dts-rockchip-rk3588-opi5x-add-missing-nodes.patch
+PATCHFILES += 1087-arm64-dts-rockchip-rk3588-opi5x-rock5x-make-led-mmc0-act.patch
+PATCHFILES += 1088-arm64-dtsi-rockchip-3588s-add-gpu-nodes.patch
+PATCHFILES += 1089-arm64-dts-rockchip-rk3588-rock5x-enable-gpu-nodes.patch
+PATCHFILES += 1090-arm64-dtsi-rockchip-Add-HDMI0-bridge-to-rk3588.patch
+PATCHFILES += 1091-arm64-dts-add-hdmi0-nodes-rock5x-orange5x.patch
+PATCHFILES += 1092-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 endif
 #------------------------------------------------------------
 
-ifeq (1,1)
+ifeq (0,1)
 #-- Rockchip 3528 patches -----------------------------------------
 PATCHFILES += 1100-dt-bindings-clock-add-rk3528-clock-definitions.patch
 PATCHFILES += 1101-clk-rockchip-add-clock-controller-for-the-RK3528.patch
@@ -294,6 +321,7 @@ PATCHFILES += 1150-arm64-dtsi-rockchip-add-3528.dtsi.patch
 PATCHFILES += 1151-arm64-dts-rockchip-add-dts-for-vontar_r3.patch
 endif
 #------------------------------------------------------------
+
 
 endif
 
