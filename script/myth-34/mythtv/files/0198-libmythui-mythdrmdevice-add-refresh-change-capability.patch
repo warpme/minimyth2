@@ -1,0 +1,180 @@
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/mythdisplay.cpp mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/mythdisplay.cpp
+--- mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/mythdisplay.cpp	2023-09-02 02:26:19.000000000 +0200
++++ mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/mythdisplay.cpp	2023-09-10 21:54:14.393343321 +0200
+@@ -739,14 +739,17 @@
+     }
+ 
+     // No need for change
+-    if ((next == current) && (MythDisplayMode::CompareRates(current.RefreshRate(), targetrate)))
++    LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("current:new refresh rates: %1:%2 Hz")
++                                            .arg(currentRate).arg(targetrate));
++
++    if ((next == current) && (MythDisplayMode::CompareRates(currentRate, targetrate, 0.01)))
+     {
+         LOG(VB_GENERAL, LOG_INFO, LOC + QString("Using current mode %1x%2@%3Hz")
+-            .arg(m_resolution.width()).arg(m_resolution.height()).arg(m_refreshRate));
++            .arg(m_resolution.width()).arg(m_resolution.height()).arg(current.RefreshRate()));
+         return true;
+     }
+ 
+-    LOG(VB_GENERAL, LOG_ERR, LOC + QString("Trying mode %1x%2@%3Hz")
++    LOG(VB_GENERAL, LOG_INFO, LOC + QString("Trying mode %1x%2@%3Hz")
+         .arg(next.Width()).arg(next.Height()).arg(next.RefreshRate(), 0, 'f', 3));
+ 
+     if (!SwitchToVideoMode(next.Resolution(), targetrate))
+@@ -755,6 +758,12 @@
+             .arg(next.Width()).arg(next.Height()).arg(next.RefreshRate(), 0, 'f', 3));
+         return false;
+     }
++    else
++    {
++        currentRate = targetrate;
++        LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("Updating current mode to %1x%2@%3Hz")
++            .arg(m_resolution.width()).arg(m_resolution.height()).arg(currentRate));
++    }
+ 
+     if (next.Resolution() != m_resolution)
+         WaitForScreenChange();
+@@ -762,9 +771,9 @@
+     // N.B. We used a computed aspect ratio unless overridden
+     m_aspectRatioOverride = aspectoverride > 0.0 ? aspectoverride : 0.0;
+     UpdateCurrentMode();
+-    LOG(VB_GENERAL, LOG_INFO, LOC + QString("Switched to %1x%2@%3Hz for video %4x%5")
++    LOG(VB_GENERAL, LOG_INFO, LOC + QString("Succesfuly switched to %1x%2@%3Hz for video %4x%5")
+         .arg(m_resolution.width()).arg(m_resolution.height())
+-        .arg(m_refreshRate, 0, 'f', 3).arg(Size.width()).arg(Size.height()));
++        .arg(currentRate, 0, 'f', 3).arg(Size.width()).arg(Size.height()));
+     PauseForModeSwitch();
+     return true;
+ }
+@@ -1140,8 +1149,9 @@
+         {
+             auto rates = (*it).RefreshRates();
+             QStringList rateslist;
+-            for (auto it2 = rates.crbegin(); it2 != rates.crend(); ++it2)
+-                rateslist.append(QString("%1").arg(*it2, 2, 'f', 2, '0'));
++            for (auto it2 = rates.crbegin(); it2 != rates.crend(); ++it2) {
++                rateslist.append(QString("%2").arg(*it2, 2, 'f', 2, '0'));
++            }
+             if (rateslist.empty())
+                 rateslist.append("Variable rate?");
+             LOG(VB_PLAYBACK, LOG_INFO, QString("%1x%2\t%3")
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/mythdisplay.h mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/mythdisplay.h
+--- mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/mythdisplay.h	2023-09-02 02:26:19.000000000 +0200
++++ mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/mythdisplay.h	2023-09-10 21:37:50.183340035 +0200
+@@ -110,6 +110,7 @@
+     MythDisplayMode m_guiMode          { };
+     MythDisplayMode m_videoMode        { };
+     DisplayModeMap  m_overrideVideoModes { };
++    double          currentRate        { 0.0 };
+ };
+ 
+ #endif
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp
+--- mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp	2023-09-02 02:26:19.000000000 +0200
++++ mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp	2023-09-10 16:33:03.346678874 +0200
+@@ -130,12 +130,13 @@
+         auto width = mode->m_width;
+         auto height = mode->m_height;
+         auto rate = mode->m_rate;
++        auto index = mode->m_index;
+ 
+         // Filter out interlaced modes
+         if ((mode->m_flags & DRM_MODE_FLAG_INTERLACE) != 0U)
+         {
+             LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("Ignoring interlaced mode %1x%2 %3i")
+-                .arg(width).arg(height).arg(rate, 2, 'f', 2, '0'));
++                .arg(width).arg(height).arg(rate, 2, 'f', 3, '0'));
+             continue;
+         }
+ 
+@@ -144,7 +145,7 @@
+         if (auto size = QSize(width, height); size != mainresolution)
+         {
+             LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("Ignoring mode %1x%2 %3")
+-                .arg(width).arg(height).arg(rate, 2, 'f', 2, '0'));
++                .arg(width).arg(height).arg(rate, 2, 'f', 3, '0'));
+             continue;
+         }
+ 
+@@ -154,6 +155,9 @@
+             screenmap[key] = MythDisplayMode(resolution, physicalsize, -1.0, rate);
+         else
+             screenmap[key].AddRefreshRate(rate);
++
++        LOG(VB_GENERAL, LOG_INFO, LOC + QString("Modes pool: adding %1x%2@%3 with mode_index=%4")
++                .arg(width).arg(height).arg(rate, 2, 'f', 3, '0').arg(index));
+         m_modeMap.insert(MythDisplayMode::CalcKey(resolution, rate), mode->m_index);
+     }
+ 
+@@ -187,5 +191,5 @@
+         return false;
+     }
+ 
+-    return m_device->SwitchMode(m_modeMap.value(mode));
++    return m_device->SwitchMode(m_modeMap.value(mode), m_screen);
+ }
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp
+--- mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp	2023-09-02 02:26:19.000000000 +0200
++++ mythtv-6b2c86e26b92365148f5b577eb7c8c27bdcea5d2/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp	2023-09-10 18:21:12.833367583 +0200
+@@ -647,7 +647,7 @@
+  * using the atomic API. The old/non-atomic API *may* work but is untested and
+  * realistically not much else is going to work without atomic.
+ */
+-bool MythDRMDevice::SwitchMode(int ModeIndex)
++bool MythDRMDevice::SwitchMode(int ModeIndex, QScreen *qScreen)
+ {
+     if (!(m_authenticated && m_atomic && m_connector.get() && m_crtc.get()))
+         return false;
+@@ -661,21 +661,27 @@
+ #ifdef USING_QTPRIVATEHEADERS
+     auto crtcid = MythDRMProperty::GetProperty("crtc_id", m_connector->m_properties);
+     auto modeid = MythDRMProperty::GetProperty("mode_id", m_crtc->m_properties);
++
+     if (crtcid.get() && modeid.get())
+     {
+-        uint32_t blobid = 0;
+-        // Presumably blobid does not need to be released? Can't find any documentation but
+-        // there is the matching drmModeDestroyPropertyBlob...
+-        if (drmModeCreatePropertyBlob(m_fd, &m_connector->m_modes[index], sizeof(drmModeModeInfo), &blobid) == 0)
+-        {
+-            QueueAtomics( {{ m_connector->m_id, crtcid->m_id, m_crtc->m_id },
+-                           { m_crtc->m_id, modeid->m_id, blobid }} );
+-            m_adjustedRefreshRate = m_connector->m_modes[index]->m_rate;
+-            result = true;
++        if (ModeIndex < 0 || ModeIndex > 99) {
++            LOG(VB_GENERAL, LOG_DEBUG, LOC + QString("MythDRMDevice::SwitchMode ModeIndex=%1 is out of 0..99 range!")
++                                                     .arg(ModeIndex));
++            return false;
+         }
+-        else
+-        {
+-            LOG(VB_GENERAL, LOG_ERR, LOC + "Failed to create mode blob");
++
++        QByteArray idx_str;
++        idx_str.setNum(ModeIndex);
++        QByteArray idx_str_fixed = idx_str.rightJustified(2, '0');
++        QByteArray property = "dri_set_mode_index";
++        property.append(idx_str_fixed);
++        LOG(VB_PLAYBACK, LOG_DEBUG, LOC + QString("SwitchMode: calling QT nativeResourceForScreen intf with:")
++                                                  + property);
++        if (auto * modeindex = qGuiApp->platformNativeInterface()->nativeResourceForScreen(property, qScreen); modeindex) {
++            uint32_t current_modeindex = static_cast<uint32_t>(reinterpret_cast<qintptr>(modeindex));
++            LOG(VB_GENERAL, LOG_DEBUG, LOC + QString("calling QT nativeResourceForScreen ModeIndex=%1 returns mode_index=%2")
++                                                     .arg(ModeIndex).arg(current_modeindex));
++            result = true;
+         }
+     }
+ #endif
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-0f4b8e886ec7d2674deac22066e1aa8ccf32832c/mythtv/libs/libmythui/platforms/mythdrmdevice.h mythtv-0f4b8e886ec7d2674deac22066e1aa8ccf32832c/mythtv/libs/libmythui/platforms/mythdrmdevice.h
+--- mythtv-0f4b8e886ec7d2674deac22066e1aa8ccf32832c/mythtv/libs/libmythui/platforms/mythdrmdevice.h	2021-12-20 20:08:22.000000000 +0100
++++ mythtv-0f4b8e886ec7d2674deac22066e1aa8ccf32832c/mythtv/libs/libmythui/platforms/mythdrmdevice.h	2021-12-30 11:43:58.713187042 +0100
+@@ -41,7 +41,7 @@
+     DRMConn  GetConnector   () const;
+     const DRMModes& GetModes() const;
+     bool     CanSwitchModes () const;
+-    bool     SwitchMode     (int ModeIndex);
++    bool     SwitchMode     (int ModeIndex, QScreen *qScreen);
+
+ #if defined (USING_QTPRIVATEHEADERS)
+     static inline bool    s_mythDRMVideo     = qEnvironmentVariableIsSet("MYTHTV_DRM_VIDEO");

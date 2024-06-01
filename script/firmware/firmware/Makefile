@@ -22,6 +22,7 @@ DEPENDS = \
 	firmware/brcmfmac6334-firmware  \
 	firmware/rpi-bluez-firmware     \
 	firmware/aw859a-firmware        \
+	firmware/aic8800_sdio-firmware  \
 	$(if $(filter meson, $(mm_GRAPHICS)),firmware/amlogic-meson-firmware) \
 	$(if $(filter nouveau, $(mm_GRAPHICS)),firmware/nouveau-firmware) \
 
@@ -31,4 +32,3 @@ clean-all:
 	@$(foreach dir, $(wildcard ../*-firmware*), $(MAKE) clean clean-all -C $(dir) ; )
 	@$(MAKE) clean
 	@$(MAKE) clean-all -C ../wireless-regdb
-

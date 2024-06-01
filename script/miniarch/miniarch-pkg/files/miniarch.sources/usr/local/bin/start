@@ -5,7 +5,7 @@
 
 clear
 
-ver="1.0"
+ver="1.2"
 
 selection=$1
 
@@ -67,6 +67,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (3) Resize footfs partition"
     echo "  (4) Update MiniArch artefacts"
     echo "  (5) Install EndeavourOS"
+    echo "  (0) Install on eMMC"
     echo " "
     echo "or press Enter to exit..."
     echo
@@ -78,6 +79,10 @@ fi
 
 case "${selection}" in
 
+    0)  su root -c "pacman --needed -S parted ; /usr/local/bin/install-on-emmc install"
+        echo "You can now poweroff, remove SD card and boot again. System should boot from eMMC ..."
+        msg_done ;;
+
     1)  confirm "full update (pacman -Syu) to ArchLinuxArm codebase"
         su root -c "pacman -Syu ; pacman -Sc"
         msg_done_reboot ;;
@@ -87,7 +92,7 @@ case "${selection}" in
         msg_done ;;
 
     3)  confirm "to resize rootfs"
-        su root -c "pacman -S parted ; /usr/local/bin/resize-rootfs start"
+        su root -c "pacman --needed -S parted ; /usr/local/bin/resize-rootfs start"
         msg_done ;;
 
     4)  confirm "updating MiniArch speciffic components"
@@ -96,11 +101,13 @@ case "${selection}" in
 
     5)  confirm "start installing EndevourOS"
         su root -c " \
-        pacman --needed -S git ; \
+        pacman --needed -S git openssl libnewt ; \
         cd /root ; \
         git clone https://github.com/endeavouros-arm/install-script.git ; \
         cd /root/install-script ; \
         chmod 774 endeavour-ARM-install-V*.sh ; \
+        sed 's|MACHINEMODEL=|#MACHINEMODEL=|g' -i endeavour-ARM-install-V*.sh ; \
+        sed 's|--needed - < base-addons|--needed --overwrite \\\* - < base-addons|g' -i endeavour-ARM-install-V*.sh ; \
         ./endeavour-ARM-install-V*.sh ; \
         "
         msg_done ;;

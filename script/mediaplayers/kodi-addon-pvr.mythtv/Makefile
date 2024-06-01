@@ -1,7 +1,7 @@
 
 GARNAME      = pvr.mythtv
-# branch nexus v20.3.2 @18.02.2023
-GARVERSION   = b5f68a384e893f23056902b5c42d2272e08fbfe8
+# branch Omega v21.1.8 @28.02.2024
+GARVERSION   = 2ccdd92dfe856feead100a69012da73476442915
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://github.com/janbar/pvr.mythtv/archive/
 DISTFILES    = $(GARVERSION).zip

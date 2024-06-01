@@ -1,9 +1,9 @@
 
 GARNAME      = v4l-utils
-GARVERSION   = 20230423-d42567298311
+GARVERSION   = 1.26.1
 CATEGORIES   = utils
-MASTER_SITES = git://linuxtv.org/v4l-utils.git/
-DISTFILES    = $(DISTNAME).tar.bz2
+MASTER_SITES = https://linuxtv.org/downloads/v4l-utils/
+DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = v4l-utils-perl.patch.gar
 LICENSE      = GPL2/LGPL2_1
 
@@ -31,10 +31,6 @@ MESON_CONFIGURE_ARGS = \
 	-D doxygen-doc="disabled" \
 	-D doxygen-html="false" \
 	-D doxygen-man="false" \
-
-git//%$(DISTNAME).tar.bz2:
-	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libdvbv5.la

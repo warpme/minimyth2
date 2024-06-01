@@ -1,12 +1,9 @@
 
 GARNAME      = fakeroot
-GARVERSION   = 1.25.3
+GARVERSION   = 1.34
 CATEGORIES   = devel
 MASTER_SITES = https://deb.debian.org/debian/pool/main/f/fakeroot/
 DISTFILES    = $(GARNAME)_$(GARVERSION).orig.tar.gz
-PATCHFILES   = $(DISTNAME)-glibc-2.33-fix-1.patch
-PATCHFILES  += $(DISTNAME)-glibc-2.33-fix-2.patch
-PATCHFILES  += $(DISTNAME)-glibc-2.33-fix-3.patch
 LICENSE      = GPL3
 
 DESCRIPTION = 

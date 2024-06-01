@@ -6,16 +6,16 @@
 
 start() {
 
-    local connection_attempts=6
-    local first_attempt_connection_timeout=7
-    local connection_timeout=5
+    local connection_attempts=60
+    local first_attempt_connection_timeout=2
+    local connection_timeout=1
     local interface_timeout=120
 
-    if mm_url_mount partlbl://BOOT /media/boot ; then
+    if mm_url_mount bootdevpart://1 /boot ; then
 
-        if [ -e /media/boot/minimyth.conf ] ; then
+        if [ -e /boot/minimyth.conf ] ; then
 
-            /bin/cp -f /media/boot/minimyth.conf /etc/minimyth.d/minimyth.conf
+            /bin/cp -f /boot/minimyth.conf /etc/minimyth.d/minimyth.conf
             . /etc/minimyth.d/minimyth.conf
 
             if [ x${MM_WLAN_SSID} = "x" ] ; then
@@ -24,6 +24,18 @@ start() {
 
                 this_script_done
                 exit 0
+            fi
+
+
+            iwd_state_dir="/boot/iwd.state/${MM_WLAN_SSID}"
+
+            if [ -d ${iwd_state_dir} ] ; then
+
+                /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Found SD card stored IWD state for [${MM_WLAN_SSID}] SSID. Restoring ..."
+
+                mkdir -p /var/lib/iwd/
+                cp -r ${iwd_state_dir}/. /var/lib/iwd/
+
             fi
 
             WLAN_INTERFACE_LIST=
@@ -43,7 +55,7 @@ start() {
 
                     else
 
-                        mm_message_output info "info: waiting ${i}sec. for WLAN interface ..."
+                        mm_message_output info "WiFi: waiting ${i}sec. for WiFi card readiness ..."
                         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Wating ${i}sec. for WLAN intf. Avaliable:[`/bin/ls -1 /sys/class/net`]"
 
                     fi
@@ -79,12 +91,12 @@ start() {
 
             done
 
-            mm_message_output info "connecting to ${MM_WLAN_SSID} WiFi network ..."
+            mm_message_output info "WiFi: connecting to ${MM_WLAN_SSID} WiFi network ..."
 
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Starting IWD daemon ..."
             mkdir -p -m 700 /var/lib/iwd
             mkdir -p -m 700 /var/lib/ead
-            iwd -d &
+            iwd -d > /var/log/iwd-${WLAN_INTERFACE_ITEM}.log 2>&1 &
 
             /bin/sleep ${first_attempt_connection_timeout}
 
@@ -94,7 +106,7 @@ start() {
 
                 echo "command:" > /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
                 echo "iwctl --passphrase ${MM_WLAN_PASS} station ${WLAN_INTERFACE_ITEM} connect ${MM_WLAN_SSID}" >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
-                iwctl --passphrase ${MM_WLAN_PASS} station ${WLAN_INTERFACE_ITEM} connect ${MM_WLAN_SSID} >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
+                iwctl --passphrase ${MM_WLAN_PASS} station ${WLAN_INTERFACE_ITEM} connect ${MM_WLAN_SSID} >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log 2>&1 &
 
                 i=0
                 while [ $i -lt ${connection_attempts} ] ; do
@@ -104,7 +116,7 @@ start() {
                     /usr/sbin/ifplugstatus -q ${WLAN_INTERFACE_ITEM}
                     if [ $? -eq 2 ] ; then
 
-                        mm_message_output info "connected to ${MM_WLAN_SSID} WiFi network ..."
+                        mm_message_output info "WiFi: successfuly connected to ${MM_WLAN_SSID} WiFi network ..."
                         /usr/bin/logger -t minimyth -p "local0.info" "[init.d/wlan] ${WLAN_INTERFACE_ITEM} connected to ${MM_WLAN_SSID} ..."
 
                         i=${connection_attempts}
@@ -117,7 +129,7 @@ start() {
 
                     else
 
-                        mm_message_output info "info: retry ${i} to connect to ${MM_WLAN_SSID} WiFi ..."
+                        mm_message_output info "WiFi: waiting ${i}sec for connection with ${MM_WLAN_SSID} WiFi ..."
                         /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] retry ${i} to connect to ${MM_WLAN_SSID} WiFi ..."
 
                         /bin/sleep ${connection_timeout}
@@ -132,7 +144,7 @@ start() {
                 echo "status:" >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
                 iwctl station ${WLAN_INTERFACE_ITEM} show >> /var/log/iwctl-${WLAN_INTERFACE_ITEM}.log
 
-                mm_message_output info "info: failed connect to ${MM_WLAN_SSID} WiFi. Trying LAN ..."
+                mm_message_output info "WiFi: failed connect to ${MM_WLAN_SSID} WiFi network. Switching to LAN connection ..."
                 /bin/sleep 3
 
             done
@@ -161,14 +173,24 @@ start() {
 
 stop() {
 
-    if [ -e /media/boot/minimyth.conf ] ; then
+    if [ -e /boot/minimyth.conf ] ; then
 
-        . /media/boot/minimyth.conf
+        . /boot/minimyth.conf
 
         if [ x${MM_WLAN_SSID} = "x" ] ; then
             /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Stopped with return code=0..."
             exit 0
         fi
+
+    fi
+
+    if [ -d /var/lib/iwd ] && [ -d /boot ] ; then
+
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[init.d/wlan] Found IWD state. Storing on SD card ..."
+
+        iwd_state_dir="/boot/iwd.state/${MM_WLAN_SSID}"
+        mkdir -p ${iwd_state_dir}
+        cp -r /var/lib/iwd/. ${iwd_state_dir}/
 
     fi
 
@@ -193,7 +215,7 @@ stop() {
         /usr/sbin/ifplugstatus -q ${WLAN_INTERFACE_ITEM}
         if [ $? -eq 2 ] ; then
 
-            mm_message_output info "disconnecting ${WLAN_INTERFACE_ITEM} from ${MM_WLAN_SSID} WiFi network ..."
+            mm_message_output info "WiFi: disconnecting ${WLAN_INTERFACE_ITEM} from ${MM_WLAN_SSID} WiFi network ..."
 
             iwctl station ${MM_WLAN_SSID} disconnect
 

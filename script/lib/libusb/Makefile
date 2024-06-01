@@ -1,11 +1,9 @@
-GARNAME = libusb
-GARVERSION = 1.0.22
-CATEGORIES = lib
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)-1.0/$(DISTNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
-#PATCHFILES = \
-#	$(DISTNAME)-automake_1.13.patch
-LICENSE = LGPL2_1
+GARNAME      = libusb
+GARVERSION   = 1.0.27
+CATEGORIES   = lib
+MASTER_SITES = https://github.com/libusb/libusb/archive/refs/tags/
+DISTFILES    = v$(GARVERSION).tar.gz
+LICENSE      = LGPL2_1
 
 DESCRIPTION = 
 define BLURB

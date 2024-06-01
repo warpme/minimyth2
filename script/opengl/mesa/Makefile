@@ -1,9 +1,10 @@
 
 GARNAME      = mesa
-GARVERSION   = 23.2.1
+GARVERSION   = 24.1.0
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
-DISTFILES    = mesa-$(DISTNAME).tar.bz2
+DISTFILES    = mesa-$(DISTNAME).tar.gz
+PATCHFILES   = hack-hack-allow-build-with-broken-libclc.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 
 DESCRIPTION = 
@@ -65,36 +66,45 @@ MESON_CONFIGURE_ARGS = \
 	-D gles1=enabled \
 	-D gles2=enabled \
 	-D dri3=enabled \
-	-D gallium-opencl=disabled \
-	-D glvnd=false \
+	-D glvnd=disabled \
 	-D gallium-xa=disabled \
 	-D gallium-nine=false \
 	-D b_lto=true \
 	-D b_ndebug=true \
 	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 	-D platforms=x11,wayland \
-	-D llvm=enabled \
 	-D cpp_rtti=false \
+	-D vulkan-drivers=amd,intel \
+	-D gallium-opencl=disabled \
+	-D gallium-rusticl=false \
+	-D opencl-spirv=false \
+	-D microsoft-clc=disabled \
+	-D install-intel-clc=false
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
+	-D vulkan-drivers= \
+	-D llvm=disabled \
 	-D c_args="-mfpu=neon -mfloat-abi=softfp"
 else
 ifeq ($(GARCH),armv8)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
 	-D gallium-vdpau=disabled \
-	-D gallium-va=disabled
+	-D gallium-va=disabled \
+	-D vulkan-drivers= \
+	-D llvm=disabled
 else
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,nouveau,svga,swrast \
+	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,nouveau,swrast \
 	-D gallium-vdpau=enabled \
 	-D gallium-va=enabled \
-	-D video-codecs=vc1dec,h264dec,h265dec
-
+	-D video-codecs=vc1dec,h264dec,h265dec \
+	-D llvm=enabled
+DEPENDS += devel/llvm lib/libclc
 endif
 endif
 

@@ -34,6 +34,7 @@ MESON_CONFIGURE_ARGS = \
 	-D introspection=disabled \
 	-D gobject-cast-checks=disabled \
 	-D glib-asserts=disabled \
+	-D videoconvertscale=enabled \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk

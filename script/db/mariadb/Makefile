@@ -1,10 +1,10 @@
 
 GARNAME      = mariadb
-GARVERSION   = 10.9.5
+GARVERSION   = 11.2.2
 CATEGORIES   = db
 MASTER_SITES = https://rsync.osuosl.org/pub/mariadb/mariadb-$(GARVERSION)/source/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = fix_fompile_without_server_feature.patch fix-compile-with-gcc-13.patch
+PATCHFILES   = fix_fompile_without_server_feature.patch
 LICENSE      = GPL
 
 DEPENDS = \

@@ -1,9 +1,10 @@
-# Mainline U-boot v2023.01
-GARNAME      = u-boot-2023.01
-GARVERSION   = 2023.01
+# Mainline U-boot v2024.01
+GARNAME      = u-boot-rpi
+GARVERSION   = 2024.01
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).zip
+PATCHFILES   = rpi5-initial-support.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
 
@@ -19,6 +20,9 @@ INSTALL_SCRIPTS     = custom
 
 include ../../gar.mk
 include ../../python3/python/package-api.mk
+
+# mm_U-BOOT_BOARD_TYPE=rpi_arm64_defconfig
+# mm_U-BOOT_BOARD_TYPE=rpi_3_32b_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
@@ -42,6 +46,10 @@ ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_2_defconfig)
 	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rpi2/$(mm_U-BOOT_BOARD_TYPE)"
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)$(libdir)/u-boot/rpi2/$(mm_U-BOOT_BOARD_TYPE)/kernel7.img
 endif
+ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_3_32b_defconfig)
+	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)"
+	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)/kernel7.img
+endif
 ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_3_defconfig)
 	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)"
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)$(libdir)/u-boot/rpi3/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img
@@ -57,6 +65,8 @@ endif
 ifeq ($(mm_U-BOOT_BOARD_TYPE),rpi_arm64_defconfig)
 	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rpi34/$(mm_U-BOOT_BOARD_TYPE)"
 	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)$(libdir)/u-boot/rpi34/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img
+	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/rpi345/$(mm_U-BOOT_BOARD_TYPE)"
+	@cp -f $(WORKSRC)/u-boot.bin $(DESTDIR)$(libdir)/u-boot/rpi345/$(mm_U-BOOT_BOARD_TYPE)/kernel8.img
 endif
 	@$(MAKECOOKIE)
 

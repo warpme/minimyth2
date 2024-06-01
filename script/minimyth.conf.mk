@@ -9,10 +9,10 @@
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of MiniMyth2.
-mm_VERSION_MINIMYTH ?=       12.21.0.r544
+mm_VERSION_MINIMYTH ?=       13.2.0.r130
 
 # The version of Myth to use.
-# Valid values are '32', '33', 'master' and 'test'
+# Valid values are '32', '33', '34', 'master' and 'test'
 mm_MYTH_VERSION           ?= master
 
 # Lists the software to be included in image.
@@ -26,7 +26,6 @@ mm_SOFTWARE               ?= \
                             avahi \
                             udisks2 \
                             dvdcss \
-                            gstreamer \
                             mc \
                             lcdproc \
                             voip \
@@ -39,6 +38,7 @@ mm_SOFTWARE               ?= \
                             monitorix \
                             $(if $(filter $(mm_DEBUG),yes),debug)
 
+#                             gstreamer \
 #                             mythnetvision \
 #                             mythwebbrowser \
 #                             udisks1 \
@@ -59,6 +59,10 @@ mm_SOFTWARE               ?= \
 #                             kodi \
 #                             termbin \
 #                             kmsvnc \
+#                             nvtop \
+#                             htop \
+#                             btop \
+#                             bashtop \
 
 # Indicates bootloader board type. Valid values are:
 # 'board-rpi2'
@@ -87,6 +91,7 @@ mm_SOFTWARE               ?= \
 # 'board-rk3568.rock3-b'
 # 'board-rk3566.rock3-c'
 # 'board-rk3566.orangepi_3b'
+# 'board-rk3566.zero3w'
 # 'board-rk3588.rock5-b
 # 'board-rk3588.orangepi_5_plus'
 # 'board-rk3588s.rock5-a
@@ -103,11 +108,15 @@ mm_SOFTWARE               ?= \
 # 'board-h616.t95'
 # 'board-h616.x96_mate'
 # 'board-h616.orangepi_zero2'
+# 'board-h616.pendoo_x12pro'
 # 'board-h618.orangepi_zero3'
 # 'board-h618.vontar_h618'
 # 'board-h618.orangepi_zero2w'
 # 'board-h313.x96_q'
+# 'board-h313.x96_q_v5.1'
 # 'board-h313.x96_q_lpddr3'
+# 'board-h313.x96_q_lpddr3_v1.3'
+# 'board-h313.tanix_tx1'
 # 'board-x86pc.bios'
 # 'board-x86pc.efi64'
 # 'board-x86pc.bios_efi64'
@@ -134,6 +143,9 @@ mm_INSTALL_ONLINE_UPDATES ?= no
 
 # Indicates where to put mm_ONLINE_UPDATES files
 mm_ONLINE_UPDATES         ?= ${HOME}/build/online-updates/$(mm_GARCH_FAMILY)/$(mm_MYTH_VERSION)
+
+# Hostname or IP for Internet online updates
+mm_MINIMYTH_ONLINE_UPDATES_URL ?= minimyth2.mooo.com
 
 # Indicates whether or not to create the RAM based part of the share distribution.
 mm_DISTRIBUTION_RAM       ?= yes
@@ -231,8 +243,8 @@ mm_PYTHON_VERSION         ?= py3
 mm_SHELL                  ?= busybox
 
 # The version of kernel to use.
-# Valid values are: '6.5' '6.6'
-mm_KERNEL_VERSION         ?= 6.6
+# Valid values are: '6.9'
+mm_KERNEL_VERSION         ?= 6.9
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.
@@ -281,6 +293,7 @@ mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSI
 mm_VERSION_MYTH           ?= $(strip \
                                 $(if $(filter 32     ,      $(mm_MYTH_VERSION)),32                            ) \
                                 $(if $(filter 33     ,      $(mm_MYTH_VERSION)),33                            ) \
+                                $(if $(filter 34     ,      $(mm_MYTH_VERSION)),34                            ) \
                                 $(if $(filter master ,      $(mm_MYTH_VERSION)),master                        ) \
                                 $(if $(filter test   ,      $(mm_MYTH_VERSION)),test                          ) \
                               )

@@ -1,6 +1,7 @@
 
 GARNAME      = linux-firmware
-GARVERSION   = d3f66064cf43bd7338a79174bd0ff60c4ecbdf6d
+# 2024.02.20
+GARVERSION   = 20240513
 CATEGORIES   = firmware
 MASTER_SITES = https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/snapshot/
 DISTFILES    = linux-firmware-$(GARVERSION).tar.gz
@@ -26,8 +27,10 @@ install-custom:
 	@# Broadcom 43430 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.bin      $(BRCM_DEST)/brcmfmac43430-sdio.AP6212.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.bin      $(BRCM_DEST)/brcmfmac43430-sdio.raspberrypi,3-model-b.bin
+	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.bin      $(BRCM_DEST)/brcmfmac43430-sdio.radxa,zero3w.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.clm_blob $(BRCM_DEST)/brcmfmac43430-sdio.AP6212.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.clm_blob $(BRCM_DEST)/brcmfmac43430-sdio.raspberrypi,3-model-b.clm_blob
+	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.clm_blob $(BRCM_DEST)/brcmfmac43430-sdio.radxa,zero3w.clm_blob
 
 	@# Broadcom 43455 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,3-model-b-plus.bin
@@ -37,6 +40,7 @@ install-custom:
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.radxa,rock3c.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.eachlink,h6mini.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.radxa,rockpi4se.bin
+	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,5-model-b.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,3-model-b-plus.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,4-model-b.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.pine64,quartz64-a.clm_blob
@@ -44,6 +48,7 @@ install-custom:
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.radxa,rock3c.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.eachlink,h6mini.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.radxa,rockpi4se.clm_blob
+	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,5-model-b.clm_blob
 ifeq (0,1)
 	@# Broadcom 43456 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43456-sdio.bin       $(BRCM_DEST)/brcmfmac43456-sdio.radxa,rockpi4b.bin

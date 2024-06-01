@@ -1,6 +1,6 @@
 
 GARNAME      = libvdpau
-GARVERSION   = 1.4
+GARVERSION   = 1.5
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/vdpau/libvdpau/-/archive/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.bz2

@@ -1,9 +1,10 @@
-GARNAME = bc
-GARVERSION = 1.06
-CATEGORIES = utils
+
+GARNAME      = bc
+GARVERSION   = 1.07.1
+CATEGORIES   = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB

@@ -1,6 +1,6 @@
 
 GARNAME      = seatd
-GARVERSION   = 0.6.3
+GARVERSION   = 0.8.0
 CATEGORIES   = utils
 MASTER_SITES = https://git.sr.ht/~kennylevinsen/seatd/archive/
 DISTFILES    = $(GARVERSION).tar.gz

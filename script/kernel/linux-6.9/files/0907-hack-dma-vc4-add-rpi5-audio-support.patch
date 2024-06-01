@@ -1,0 +1,241 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.8-rc6/drivers/dma/bcm2835-dma.c linux-6.8-rc6/drivers/dma/bcm2835-dma.c
+--- linux-6.8-rc6/drivers/dma/bcm2835-dma.c	2024-02-29 12:44:26.683717237 +0100
++++ linux-6.8-rc6/drivers/dma/bcm2835-dma.c	2024-02-29 12:43:02.010385726 +0100
+@@ -18,6 +18,7 @@
+  *	Copyright 2012 Marvell International Ltd.
+  */
+ #include <linux/dmaengine.h>
++#include <linux/dma-direct.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/dmapool.h>
+ #include <linux/err.h>
+@@ -77,6 +78,16 @@
+ 	u32 pad;
+ };
+ 
++struct bcm2712_lite_scb {
++	u32 info;
++	u32 src;
++	u32 dst;
++	u32 length;
++	u32 addr_high;
++	u32 next;
++	u32 pad[2];
++};
++
+ struct bcm2835_cb_entry {
+ 	struct bcm_dma_cb *cb;
+ 	dma_addr_t paddr;
+@@ -134,6 +145,8 @@
+ 				enum dma_transfer_direction);
+ 
+ 	u64 dma_mask;
++
++	bool bcm2712_hack;
+ };
+ 
+ struct bcm2835_desc {
+@@ -672,6 +685,65 @@
+ 	       chan_base + BCM2711_DMA40_DEBUG);
+ }
+ 
++/* BCM2712 Lite channels */
++
++static dma_addr_t
++bcm2712_lite_dma_cb_get_addr(void *data, enum dma_transfer_direction direction)
++{
++	struct bcm2712_lite_scb *cb = data;
++
++	if (direction == DMA_DEV_TO_MEM)
++		return (((dma_addr_t)cb->addr_high & 0xff00) << 24ULL) + cb->dst;
++
++	return (((dma_addr_t)cb->addr_high & 0xff) << 32ULL) + cb->src;
++}
++
++static void
++bcm2712_lite_dma_cb_init(void *data, struct bcm2835_chan *c,
++			 enum dma_transfer_direction direction, dma_addr_t src,
++			 dma_addr_t dst, bool zero_page)
++{
++	struct bcm2712_lite_scb *cb = data;
++
++	cb->info = bcm2835_dma_prepare_cb_info(c, direction, zero_page);
++	cb->src = lower_32_bits(src);
++	cb->dst = lower_32_bits(dst);
++	cb->addr_high = (upper_32_bits(src) & 0xff) |
++			((upper_32_bits(dst) & 0xff) << 8);
++	cb->next = 0;
++}
++
++static void
++bcm2712_lite_dma_cb_set_src(void *data, enum dma_transfer_direction direction,
++			    dma_addr_t src)
++{
++	struct bcm2712_lite_scb *cb = data;
++
++	cb->src = src;
++	cb->addr_high &= 0xff;
++	cb->addr_high |= upper_32_bits(src);
++}
++
++static void
++bcm2712_lite_dma_cb_set_dst(void *data, enum dma_transfer_direction direction,
++			    dma_addr_t dst)
++{
++	struct bcm2712_lite_scb *cb = data;
++
++	cb->dst = dst;
++	cb->addr_high &= 0xff00;
++	cb->addr_high |= (upper_32_bits(dst) << 8);
++}
++
++static void bcm2712_lite_dma_cb_set_next(void *data, dma_addr_t next)
++{
++	struct bcm2712_lite_scb *cb = data;
++
++	cb->next = next;
++}
++
++/* Common functions */
++
+ static void bcm2835_dma_free_cb_chain(struct bcm2835_desc *desc)
+ {
+ 	size_t i;
+@@ -1128,14 +1200,23 @@
+ 		return NULL;
+ 	}
+ 
++	if (cfg->bcm2712_hack)
++		dev_warn(chan->device->dev,"bcm2712 hack for HDMI audio enabled\n");
++
+ 	if (direction == DMA_DEV_TO_MEM) {
+ 		if (c->cfg.src_addr_width != DMA_SLAVE_BUSWIDTH_4_BYTES)
+ 			return NULL;
+-		src = cfg->addr_offset + c->cfg.src_addr;
++		if (cfg->bcm2712_hack)
++			src = phys_to_dma(chan->device->dev, c->cfg.src_addr);
++		else
++			src = cfg->addr_offset + c->cfg.src_addr;
+ 	} else {
+ 		if (c->cfg.dst_addr_width != DMA_SLAVE_BUSWIDTH_4_BYTES)
+ 			return NULL;
+-		dst = cfg->addr_offset + c->cfg.dst_addr;
++		if (cfg->bcm2712_hack)
++			dst = phys_to_dma(chan->device->dev, c->cfg.dst_addr);
++		else
++			dst = cfg->addr_offset + c->cfg.dst_addr;
+ 	}
+ 
+ 	/* count frames in sg list */
+@@ -1190,15 +1271,24 @@
+ 			      "%s: buffer_length (%zd) is not a multiple of period_len (%zd)\n",
+ 			      __func__, buf_len, period_len);
+ 
++	if (cfg->bcm2712_hack)
++		dev_warn(chan->device->dev,"bcm2712 hack for HDMI audio enabled\n");
++
+ 	if (direction == DMA_DEV_TO_MEM) {
+ 		if (c->cfg.src_addr_width != DMA_SLAVE_BUSWIDTH_4_BYTES)
+ 			return NULL;
+-		src = cfg->addr_offset + c->cfg.src_addr;
++		if (cfg->bcm2712_hack)
++			src = phys_to_dma(chan->device->dev, c->cfg.src_addr);
++		else
++			src = cfg->addr_offset + c->cfg.src_addr;
+ 		dst = buf_addr;
+ 	} else {
+ 		if (c->cfg.dst_addr_width != DMA_SLAVE_BUSWIDTH_4_BYTES)
+ 			return NULL;
+-		dst = cfg->addr_offset + c->cfg.dst_addr;
++		if (cfg->bcm2712_hack)
++			dst = phys_to_dma(chan->device->dev, c->cfg.dst_addr);
++		else
++			dst = cfg->addr_offset + c->cfg.dst_addr;
+ 		src = buf_addr;
+ 	}
+ 
+@@ -1329,6 +1419,8 @@
+ 	.read_addr = bcm2835_dma_read_addr,
+ 
+ 	.dma_mask = DMA_BIT_MASK(32),
++
++	.bcm2712_hack = false,
+ };
+ 
+ static const struct bcm2835_dma_cfg bcm2711_data = {
+@@ -1358,11 +1450,45 @@
+ 	.read_addr = bcm2711_dma_read_addr,
+ 
+ 	.dma_mask = DMA_BIT_MASK(36),
++
++	.bcm2712_hack = false,
++};
++
++static const struct bcm2835_dma_cfg bcm2712_data = {
++	.addr_offset = BCM2711_DMA40_PHYS_ADDR,
++
++	.cs_reg = BCM2711_DMA40_CS,
++	.cb_reg = BCM2711_DMA40_CB,
++
++	.wait_mask = BCM2711_DMA40_WAITING_FOR_WRITES,
++	.reset_mask = BCM2711_DMA40_HALT,
++	.int_mask = BCM2711_DMA40_INTEN,
++	.active_mask = BCM2711_DMA40_ACTIVE | BCM2711_DMA40_PROT,
++
++	.cb_get_length = bcm2711_dma_cb_get_length,
++	.cb_get_addr = bcm2711_dma_cb_get_addr,
++	.cb_init = bcm2711_dma_cb_init,
++	.cb_set_src = bcm2711_dma_cb_set_src,
++	.cb_set_dst = bcm2711_dma_cb_set_dst,
++	.cb_set_next = bcm2711_dma_cb_set_next,
++	.cb_set_length = bcm2711_dma_cb_set_length,
++	.cb_append_extra = bcm2711_dma_cb_append_extra,
++	.cb_dma_abort = bcm2711_dma_cb_abort,
++
++	.to_cb_addr = bcm2711_dma_to_cb_addr,
++
++	.chan_plat_init = bcm2711_dma_chan_plat_init,
++	.read_addr = bcm2711_dma_read_addr,
++
++	.dma_mask = DMA_BIT_MASK(40),
++
++	.bcm2712_hack = true,
+ };
+ 
+ static const struct of_device_id bcm2835_dma_of_match[] = {
+ 	{ .compatible = "brcm,bcm2835-dma", .data = &bcm2835_data },
+ 	{ .compatible = "brcm,bcm2711-dma", .data = &bcm2711_data },
++	{ .compatible = "brcm,bcm2712-dma", .data = &bcm2712_data },
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, bcm2835_dma_of_match);
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.8-rc6/drivers/gpu/drm/vc4/vc4_hdmi.c linux-6.8-rc6/drivers/gpu/drm/vc4/vc4_hdmi.c
+--- linux-6.8-rc6/drivers/gpu/drm/vc4/vc4_hdmi.c	2024-02-29 12:44:26.697050570 +0100
++++ linux-6.8-rc6/drivers/gpu/drm/vc4/vc4_hdmi.c	2024-02-29 12:38:14.823725235 +0100
+@@ -2717,6 +2717,7 @@
+ 	struct device *dev = &vc4_hdmi->pdev->dev;
+ 	struct platform_device *codec_pdev;
+ 	const __be32 *addr;
++	struct resource *iomem;
+ 	int index, len;
+ 	int ret;
+ 
+@@ -2763,9 +2764,16 @@
+ 	if (index < 0)
+ 		index = 1;
+ 
+-	addr = of_get_address(dev->of_node, index, NULL, NULL);
++	if (of_device_is_compatible(dev->of_node, "brcm,bcm2712-hdmi0") ||
++	    of_device_is_compatible(dev->of_node, "brcm,bcm2712-hdmi1")) {
++		dev_warn(dev,"using bcm2712 hack for HDMI audio\n");
++		iomem = platform_get_resource(vc4_hdmi->pdev, IORESOURCE_MEM, index);
++		vc4_hdmi->audio.dma_data.addr = iomem->start + mai_data->offset;
++	} else {
++		addr = of_get_address(dev->of_node, index, NULL, NULL);
++		vc4_hdmi->audio.dma_data.addr = be32_to_cpup(addr) + mai_data->offset;
++	}
+ 
+-	vc4_hdmi->audio.dma_data.addr = be32_to_cpup(addr) + mai_data->offset;
+ 	vc4_hdmi->audio.dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+ 	vc4_hdmi->audio.dma_data.maxburst = 2;
+ 

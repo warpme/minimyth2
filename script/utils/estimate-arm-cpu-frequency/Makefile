@@ -32,5 +32,5 @@ install-custom:
 	@mkdir -p $(DESTDIR)$(bindir)
 	@echo "Installing..."
 	@cp -rf $(WORKSRC)/estimate-arm-cpu-frequency $(DESTDIR)$(bindir)/estimate-arm-cpu-frequency
-	@chmod +x $(DESTDIR)$(bindir)/peekpoke
+	@chmod +x $(DESTDIR)$(bindir)/estimate-arm-cpu-frequency
 	@$(MAKECOOKIE)

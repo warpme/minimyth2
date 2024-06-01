@@ -1,8 +1,9 @@
-GARNAME = dbus-python
-GARVERSION = 1.2.16
-CATEGORIES = lib
+
+GARNAME      = dbus-python
+GARVERSION   = 1.3.2
+CATEGORIES   = lib
 MASTER_SITES = https://dbus.freedesktop.org/releases/dbus-python/
-DISTFILES = $(GARNAME)-$(GARVERSION).tar.gz
+DISTFILES    = $(GARNAME)-$(GARVERSION).tar.gz
 
 LICENSE = LGPL2
 
@@ -19,6 +20,3 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST)
 
 include ../../gar.mk
-
-CPPFLAGS += -fcommon
-CFLAGS   += -fcommon

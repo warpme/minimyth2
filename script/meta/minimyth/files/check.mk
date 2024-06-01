@@ -219,6 +219,14 @@ mm-all:
 		   [ ! "$${software}" = "openvfd"        ] && \
 		   [ ! "$${software}" = "monitorix"      ] && \
 		   [ ! "$${software}" = "termbin"        ] && \
+		   [ ! "$${software}" = "btop"           ] && \
+		   [ ! "$${software}" = "htop"           ] && \
+		   [ ! "$${software}" = "bashtop"        ] && \
+		   [ ! "$${software}" = "nvtop"          ] && \
+		   [ ! "$${software}" = "wifi_xr819"     ] && \
+		   [ ! "$${software}" = "wifi_rtl8821cu" ] && \
+		   [ ! "$${software}" = "wifi_rtl8189es" ] && \
+		   [ ! "$${software}" = "wifi_"          ] && \
 		   [ ! "$${software}" = "debug"          ] ; then \
 			echo " " ; \
 			echo "error: mm_SOFTWARE=\"$${software}\" is an invalid value." ; \
@@ -227,8 +235,8 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "6.5"           ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "6.6"           ] && \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "6.8"           ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "6.9"           ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.12"      ] ; then \
 		echo " " ; \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
@@ -238,6 +246,7 @@ mm-all:
 	@echo "    mm_MYTH_VERSION"
 	@if [ ! "$(mm_MYTH_VERSION)" = "32"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "33"         ] && \
+	    [ ! "$(mm_MYTH_VERSION)" = "34"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "master"     ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "test"       ] ; then \
 		echo " " ; \
@@ -397,11 +406,15 @@ mm-all:
 		   [ ! "$${board}" = "board-h616.t95"             ] && \
 		   [ ! "$${board}" = "board-h616.x96_mate"        ] && \
 		   [ ! "$${board}" = "board-h616.orangepi_zero2"  ] && \
+		   [ ! "$${board}" = "board-h616.pendoo_x12pro"   ] && \
 		   [ ! "$${board}" = "board-h618.orangepi_zero3"  ] && \
 		   [ ! "$${board}" = "board-h618.vontar_h618"     ] && \
 		   [ ! "$${board}" = "board-h618.orangepi_zero2w" ] && \
 		   [ ! "$${board}" = "board-h313.x96_q"           ] && \
+		   [ ! "$${board}" = "board-h313.x96_q_v5.1"      ] && \
 		   [ ! "$${board}" = "board-h313.x96_q_lpddr3"    ] && \
+		   [ ! "$${board}" = "board-h313.x96_q_lpddr3_v1.3" ] && \
+		   [ ! "$${board}" = "board-h313.tanix_tx1"       ] && \
 		   [ ! "$${board}" = "board-rk3328.beelink_a1"    ] && \
 		   [ ! "$${board}" = "board-rk3399.rockpi4-b"     ] && \
 		   [ ! "$${board}" = "board-rk3399.rockpi4-se"    ] && \
@@ -409,6 +422,7 @@ mm-all:
 		   [ ! "$${board}" = "board-rk3399.orangepi_4_lts" ] && \
 		   [ ! "$${board}" = "board-rk3528.vontar_r3"     ] && \
 		   [ ! "$${board}" = "board-rk3566.x96_x6"        ] && \
+		   [ ! "$${board}" = "board-rk3566.zero3w"        ] && \
 		   [ ! "$${board}" = "board-rk3566.quartz64-b"    ] && \
 		   [ ! "$${board}" = "board-rk3566.urve-pi"       ] && \
 		   [ ! "$${board}" = "board-rk3568.rock3-a"       ] && \
@@ -424,9 +438,12 @@ mm-all:
 		   [ ! "$${board}" = "board-rpi3.mainline64"      ] && \
 		   [ ! "$${board}" = "board-rpi3.rpi32"           ] && \
 		   [ ! "$${board}" = "board-rpi4.mainline64"      ] && \
+		   [ ! "$${board}" = "board-rpi5.mainline64"      ] && \
 		   [ ! "$${board}" = "board-rpi34.mainline64"     ] && \
+		   [ ! "$${board}" = "board-rpi345.mainline64"    ] && \
 		   [ ! "$${board}" = "board-rpi4.rpi32"           ] && \
 		   [ ! "$${board}" = "board-rpi4.rpi64"           ] && \
+		   [ ! "$${board}" = "board-rpi5.rpi64"           ] && \
 		   [ ! "$${board}" = "board-s905"                 ] && \
 		   [ ! "$${board}" = "board-s912"                 ] && \
 		   [ ! "$${board}" = "board-sm1.x96_air2g"        ] && \

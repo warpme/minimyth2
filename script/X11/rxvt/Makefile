@@ -1,10 +1,11 @@
-GARNAME = rxvt
-GARVERSION = 2.6.4
-CATEGORIES = X11
+
+GARNAME      = rxvt
+GARVERSION   = 2.6.4
+CATEGORIES   = X11
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARVERSION)/
-DISTFILES = $(DISTNAME).tar.gz config.cache.$(GARCH_FAMILY)-
-PATCHFILES = $(DISTNAME).patch
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.gz config.cache.$(GARCH_FAMILY)-
+PATCHFILES   = $(DISTNAME).patch $(DISTNAME)-fix-configure-on-gcc14.patch
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
@@ -24,6 +25,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 
 include ../../gar.mk
 
+CFLAGS  += -Wno-implicit-function-declaration
 LDFLAGS := $(LDFLAGS) -fwhole-program
 
 extract-config.cache.$(GARCH_FAMILY)-:

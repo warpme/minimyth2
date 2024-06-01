@@ -1,11 +1,12 @@
-GARNAME = irserver
-GARVERSION = 20120627
-CATEGORIES = system
+
+GARNAME      = irserver
+GARVERSION   = 20120627
+CATEGORIES   = system
 # This site lacks a version number so we will download it from www.minimyth.org.
 #MASTER_SITES = http://www.irtrans.de/download/Server/Linux/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-lirc_0.8.6.patch
-LICENSE = BSD_3_Clause
+DISTFILES    = $(DISTNAME).tar.bz2
+PATCHFILES   = $(DISTNAME)-lirc_0.8.6.patch
+LICENSE      = BSD_3_Clause
 
 DESCRIPTION =
 define BLURB
@@ -27,6 +28,7 @@ BUILD_ARGS = \
 
 include ../../gar.mk
 
+CFLAGS  += -Wno-implicit-function-declaration -Wno-return-mismatch -Wno-int-conversion -Wno-implicit-int
 LDFLAGS := $(LDFLAGS) -fwhole-program
 
 install-custom:

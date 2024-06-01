@@ -1,8 +1,8 @@
 
 GARNAME      = weston
-GARVERSION   = 10.0.3
+GARVERSION   = 13.0.0
 CATEGORIES   = wayland
-MASTER_SITES = https://gitlab.freedesktop.org/wayland/weston/uploads/4b1cde58d7853553d0371ad7093924aa/
+MASTER_SITES = https://gitlab.freedesktop.org/wayland/weston/-/releases/$(GARVERSION)/downloads/
 PATCHFILES  += $(DISTNAME)-terminal-add-cwd-and-command.patch
 PATCHFILES  += $(DISTNAME)-ticket798-no-terminal-without-input-devs.patch
 DISTFILES    = $(DISTNAME).tar.xz
@@ -29,6 +29,7 @@ DEPENDS = lang/c \
 	xorg/libxcb \
 	lib/dbus \
 	xorg/libXcursor \
+	utils/seatd \
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
@@ -36,28 +37,35 @@ INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
+	-D backend-drm="true" \
 	-D backend-drm-screencast-vaapi="false" \
+	-D backend-headless="false" \
 	-D backend-rdp="false" \
-	-D backend-x11="true" \
-	-D xwayland="true" \
+	-D backend-vnc="false" \
+	-D backend-x11="false" \
+	-D backend-pipewire="false" \
+	-D backend-default="drm" \
+	-D xwayland="false" \
 	-D systemd="false" \
 	-D remoting="false" \
 	-D pipewire="false" \
+	-D shell-desktop="true" \
+	-D shell-fullscreen="true" \
 	-D shell-ivi="false" \
+	-D shell-kiosk="false" \
 	-D color-management-lcms="false" \
-	-D color-management-colord="false" \
 	-D image-webp="false" \
 	-D tools="debug,info,terminal" \
 	-D demo-clients="false" \
 	-D simple-clients="egl,dmabuf-egl" \
-	-D launcher-logind="false" \
-	-D deprecated-weston-launch="true" \
-	-D deprecated-wl-shell="true" \
+	-D wcap-decode="false" \
+	-D test-junit-xml="false" \
+	-D doc="false" \
 
 include ../../gar.mk
 
 post-install:
-	@mv $(DESTDIR)$(datadir)/pkgconfig/libweston-10-protocols.pc $(DESTDIR)$(libdir)/pkgconfig/libweston-10-protocols.pc
+	@mv $(DESTDIR)$(datadir)/pkgconfig/libweston-13-protocols.pc $(DESTDIR)$(libdir)/pkgconfig/libweston-13-protocols.pc
 	@$(MAKECOOKIE)
 
 clean-all:

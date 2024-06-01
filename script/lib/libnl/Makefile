@@ -1,8 +1,8 @@
 
 GARNAME      = libnl
-GARVERSION   = 3.5.0
+GARVERSION   = 3.9.0
 CATEGORIES   = lib
-MASTER_SITES = https://github.com/thom311/libnl/releases/download/libnl3_5_0/
+MASTER_SITES = https://github.com/thom311/libnl/releases/download/libnl3_9_0/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.gz
 LICENSE      = GPL2
 

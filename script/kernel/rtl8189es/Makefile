@@ -2,8 +2,8 @@
 # URL GIT: https://github.com/jwrdegoede/rtl8189ES_linux
 
 GARNAME      = rtl8189es
-# 1.11.2021
-GARVERSION   = be378f47055da1bae42ff6ec1d62f1a5052ef097
+# 21.01.2024
+GARVERSION   = eb51e021b0e1b6f94a4b49da3f4ee5c5fb20b715
 CATEGORIES   = system
 MASTER_SITES = https://github.com/jwrdegoede/rtl8189ES_linux/archive/
 DISTFILES    = $(GARVERSION).zip

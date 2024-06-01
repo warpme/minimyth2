@@ -1,37 +1,38 @@
 
-GARNAME       = xbmc
+# this package requires pacman -S jre17-openjdk on host
+# (note: jre21 is NOT compatible)
 
-# mainline nexus-20
-ifeq (0,1)
+GARNAME       = xbmc
 GARVERSION    = $(KODI_VERSION)
 CATEGORIES    = mediaplayers
 MASTER_SITES  = \
 		$(KODI_MASTER_SITES) \
-		http://mirrors.kodi.tv/build-deps/sources/
-DISTFILES     = $(GARVERSION).zip
-PATCHFILES   += 2001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
-PATCHFILES   += 2002-WIP-DRMPRIME-deinterlace-filter.patch
-PATCHFILES   += 2003-DVDVideoCodecDRMPRIME-Avoid-exception-with-AV_PIX_FM.patch
-PATCHFILES   += 2004-DVDVideoCodecDRMPRIME-Leave-deinterlace-filter-activ.patch
-PATCHFILES   += 2005-SetVideoInterlaced-Set-and-unset-deinterlace-method-.patch
-PATCHFILES   += 2006-DVDVideoCodecDRMPRIME-Close-deinterlace-filter-on-er.patch
-WORKSRC       = $(WORKDIR)/xbmc-$(GARVERSION)
-endif
+		https://download.videolan.org/pub/libdvdcss/1.4.3/ \
+		https://download.videolan.org/pub/videolan/libdvdnav/6.1.1/ \
+		https://download.videolan.org/pub/videolan/libdvdread/6.1.3/ \
+		https://download.videolan.org/pub/videolan/libudfread/1.1.2/ \
+		http://mirrors.kodi.tv/build-deps/sources/ \
 
-# ffmpeg5 nexus-20 branch
-ifeq (1,1)
-GARVERSION    = ffmpeg5.0-Nexus
-CATEGORIES    = mediaplayers
-MASTER_SITES  = https://github.com/xbmc/xbmc/archive/refs/heads/
-DISTFILES     = $(GARVERSION).zip
-PATCHFILES   += 2001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
-PATCHFILES   += 2002-WIP-DRMPRIME-deinterlace-filter.patch
-PATCHFILES   += 2003-DVDVideoCodecDRMPRIME-Avoid-exception-with-AV_PIX_FM.patch
-PATCHFILES   += 2004-DVDVideoCodecDRMPRIME-Leave-deinterlace-filter-activ.patch
-PATCHFILES   += 2005-SetVideoInterlaced-Set-and-unset-deinterlace-method-.patch
-PATCHFILES   += 2006-DVDVideoCodecDRMPRIME-Close-deinterlace-filter-on-er.patch
+DISTFILES     = \
+		$(GARVERSION).zip \
+		libdvdcss-1.4.3.tar.bz2 \
+		libdvdnav-6.1.1.tar.bz2 \
+		libdvdread-6.1.3.tar.bz2 \
+		libudfread-1.1.2.tar.gz \
+
+PATCHFILES   += 0001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
+PATCHFILES   += 0002-WIP-DRMPRIME-deinterlace-filter.patch
+PATCHFILES   += 0003-DVDVideoCodecDRMPRIME-Avoid-exception-with-AV_PIX_FM.patch
+PATCHFILES   += 0004-DVDVideoCodecDRMPRIME-Leave-deinterlace-filter-activ.patch
+PATCHFILES   += 0005-SetVideoInterlaced-Set-and-unset-deinterlace-method-.patch
+PATCHFILES   += 0006-DVDVideoCodecDRMPRIME-Close-deinterlace-filter-on-er.patch
+PATCHFILES   += 0007-DVDVideoCodecDRMPRIME-Fix-missing-flush-after-eof.patch
+PATCHFILES   += 0050-configure-stop-finding-doxygen.patch
+PATCHFILES   += 0051-update-libdvdread-sha.patch
+PATCHFILES   += 0052-update-libdvdnav-sha.patch
+PATCHFILES   += 0053-stop-uncoditionally-building-udfread.patch
+PATCHFILES   += 0054-stop-detecting-clang.patch
 WORKSRC       = $(WORKDIR)/xbmc-$(GARVERSION)
-endif
 
 LICENSE       = GPL
 
@@ -43,7 +44,7 @@ DEPENDS = \
 	utils/gperf \
 	lib/bluez \
 	lib/flatbuffers \
-	lib/ffmpeg5 \
+	lib/ffmpeg6 \
 	lib/libfmt \
 	lib/fontconfig \
 	lib/freetype \
@@ -54,6 +55,7 @@ DEPENDS = \
 	lib/libbluray \
 	lib/libcdio \
 	lib/libcec \
+	lib/libdisplay-info \
 	lib/fribidi \
 	lib/libinput \
 	lib/libmicrohttpd \
@@ -65,6 +67,7 @@ DEPENDS = \
 	lib/spdlog \
 	lib/taglib \
 	lib/tinyxml \
+	lib/tinyxml2 \
 	net/curl \
 	net/libnfs \
 	python3/python \
@@ -113,16 +116,16 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_AIRTUNES=OFF \
 	-DENABLE_ALSA=ON \
 	-DENABLE_AVAHI=ON \
-	-DENABLE_BLURAY=ON \
+	-DENABLE_BLURAY=OFF \
 	-DENABLE_CEC=ON \
 	-DENABLE_DBUS=OFF \
-	-DENABLE_DVDCSS=ON \
+	-DENABLE_DVDCSS=OFF \
 	-DENABLE_EGL=ON \
 	-DENABLE_EVENTCLIENTS=OFF \
 	-DENABLE_MICROHTTPD=ON \
 	-DENABLE_MYSQLCLIENT=ON \
 	-DENABLE_NFS=OFF \
-	-DENABLE_OPTICAL=ON \
+	-DENABLE_OPTICAL=OFF \
 	-DENABLE_PULSEAUDIO=OFF \
 	-DENABLE_SMBCLIENT=OFF \
 	-DENABLE_TESTING=OFF \
@@ -138,22 +141,13 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_INTERNAL_FSTRCMP=OFF \
 	-DENABLE_INTERNAL_FLATBUFFERS=OFF \
 	-DENABLE_INTERNAL_UDFREAD=OFF \
+	-DLIBDVDCSS_URL=../../../download/libdvdcss-1.4.3.tar.bz2 \
+	-DLIBDVDNAV_URL=../../../download/libdvdnav-6.1.1.tar.bz2 \
+	-DLIBDVDREAD_URL=../../../download/libdvdread-6.1.3.tar.bz2 \
+	-DUDFREAD_URL=../../../download/libudfread-1.1.2.tar.gz \
 	$(if $(filter i386 x86_64, $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=x11 -DAPP_RENDER_SYSTEM=gl) \
 	$(if $(filter arm arm64,   $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=gbm -DAPP_RENDER_SYSTEM=gles) \
-
-ifeq (0,1)
-# enable to use mythtv ffmpeg (i.e. for testing API of mythtv ffmpeg)
-CMAKE_CONFIGURE_ARGS += \
-	-DFFMPEG_INCLUDE_DIRS=$(DESTDIR)$(includedir)/mythtv \
-	-DFFMPEG_LDFLAGS="-lmythavcodec;-lmythavfilter;-lmythavformat;-lmythavutil;-lmythswscale;-lmythswresample;-lmythpostproc" \
-	-DFFMPEG_LIBAVCODEC=$(DESTDIR)$(libdir)/libmythavcodec.so \
-	-DFFMPEG_LIBAVFILTER=$(DESTDIR)$(libdir)/libmythavfilter.so \
-	-DFFMPEG_LIBAVFORMAT=$(DESTDIR)$(libdir)/libmythavformat.so \
-	-DFFMPEG_LIBAVUTIL=$(DESTDIR)$(libdir)/libmythavutil.so \
-	-DFFMPEG_LIBPOSTPROC=$(DESTDIR)$(libdir)/libmythpostproc.so \
-	-DFFMPEG_LIBSWRESAMPLE=$(DESTDIR)$(libdir)/libmythswresample.so \
-	-DFFMPEG_LIBSWSCALE=$(DESTDIR)$(libdir)/libmythswscale.so
-endif
+	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 
 BUILD_ARGS   = \
 	DESTDIR="" \

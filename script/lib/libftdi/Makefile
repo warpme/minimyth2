@@ -1,44 +1,26 @@
-GARNAME = libftdi
-GARVERSION = 0.20
-CATEGORIES = lib
+
+GARNAME      = libftdi1
+GARVERSION   = 1.5
+CATEGORIES   = lib
 MASTER_SITES = https://www.intra2net.com/en/developer/libftdi/download/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME).patch.gar
-PATCHFILES += $(DISTNAME)-automake_1.13.patch
-LICENSE = LGPL2
+DISTFILES    = $(GARNAME)-$(GARVERSION).tar.bz2
+LICENSE      = LGPL2
 
 DESCRIPTION = 
 define BLURB
 endef
 
-DEPENDS = lang/c lib/libusb-compat
+DEPENDS = lang/c lib/libusb-compat lib/libconfuse
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+WORKBLD = $(WORKSRC)_build
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--enable-shared \
-	--disable-static \
-	--disable-libftdipp \
-	--disable-python-binding \
-	--with-gnu-ld \
-	--without-examples \
-	--without-boost \
-	--without-docs
+CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
+BUILD_SCRIPTS     = $(WORKBLD)/Makefile
+INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
+
+CMAKE_CONFIGURE_ARGS = \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DCMAKE_STATICLIBS="OFF" \
+	-DCMAKE_EXAMPLES="OFF" \
 
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
-
-post-install:
-	@rm -f $(DESTDIR)$(libdir)/libftdi.la
-	@rm -f $(DESTDIR)$(bindir)-config/libftdi-config
-	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)libftdi-config
-	@mkdir -p $(DESTDIR)$(bindir)-config
-	@mv $(DESTDIR)$(bindir)/libftdi-config $(DESTDIR)$(bindir)-config/libftdi-config
-	@$(if $(compiler_prefix), ln -s libftdi-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)libftdi-config)
-	@$(MAKECOOKIE)

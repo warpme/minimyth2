@@ -1,10 +1,11 @@
-GARNAME = autoconf
-GARVERSION = 2.69
-CATEGORIES = devel
+
+GARNAME      = autoconf
+GARVERSION   = 2.72
+CATEGORIES   = devel
 MASTER_SITES = http://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.gz
-PATCHFILES = $(DISTNAME)-bash.patch.gar
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = $(DISTNAME)-bash.patch.gar
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB

@@ -1,10 +1,9 @@
 
 GARNAME      = ntp
-GARVERSION   = 4.2.8p15
+GARVERSION   = 4.2.8p17
 CATEGORIES   = net
 MASTER_SITES = http://www.eecis.udel.edu/~$(GARNAME)/$(GARNAME)_spool/$(GARNAME)4/$(GARNAME)-4.2/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = $(DISTNAME)-hack-compile-on-glibc2.34.patch
 LICENSE      = ntp
 ntp_LICENSE_TEXT = $(WORKSRC)/COPYRIGHT
 
@@ -30,7 +29,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-rpath \
 	--with-gnu-ld \
 	--without-crypto \
-	--with-yielding-select=yes
+	--disable-thread-support \
+	--enable-linuxcaps \
+	--without-sntp \
 
 include ../../gar.mk
 

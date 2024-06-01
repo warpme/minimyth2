@@ -1,10 +1,11 @@
-GARNAME = db
-GARVERSION = 6.1.26
-CATEGORIES = db
+
+GARNAME      = db
+GARVERSION   = 6.2.32
+CATEGORIES   = db
 MASTER_SITES = https://download.oracle.com/berkeley-db/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE =
-WORKSRC = $(WORKDIR)/$(DISTNAME)/build_unix
+DISTFILES    = $(DISTNAME).tar.gz
+LICENSE      =
+WORKSRC      = $(WORKDIR)/$(DISTNAME)/build_unix
 
 DESCRIPTION = 
 define BLURB
@@ -29,8 +30,6 @@ configure-custom:
 	@$(MAKECOOKIE)
 
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/libdb-6.1.lai
-	@rm -f $(DESTDIR)$(libdir)/libdb-6.1.la
-	@# Hack required by python2.7 to successfuly build _bsddb module
-	@ln -srf $(DESTDIR)$(libdir)/libdb-6.1.so $(DESTDIR)$(libdir)/libdb-5.3.so
+	@rm -f $(DESTDIR)$(libdir)/libdb-6.2.lai
+	@rm -f $(DESTDIR)$(libdir)/libdb-6.2.la
 	@$(MAKECOOKIE)

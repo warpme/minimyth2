@@ -25,6 +25,7 @@ install-custom:
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.radxa,rock3c.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.eachlink,h6mini.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.AW-CM256SM.txt $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.radxa,rockpi4se.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.txt            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43455-sdio.raspberrypi,5-model-b.txt
 	@$(MAKECOOKIE)
 
 clean-all: clean

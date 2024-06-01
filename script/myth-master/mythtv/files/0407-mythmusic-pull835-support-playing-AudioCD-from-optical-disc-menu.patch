@@ -1,0 +1,256 @@
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythplugins/mythmusic/mythmusic/mythmusic.cpp mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythplugins/mythmusic/mythmusic/mythmusic.cpp
+--- mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythplugins/mythmusic/mythmusic/mythmusic.cpp	2024-02-20 11:23:31.652841160 +0100
++++ mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythplugins/mythmusic/mythmusic/mythmusic.cpp	2024-02-20 11:14:01.859520099 +0100
+@@ -481,7 +481,7 @@
+     return ret;
+ }
+ 
+-static void handleMedia(MythMediaDevice *cd)
++static void handleMedia(MythMediaDevice *cd, bool forcePlayback)
+ {
+     static QString s_mountPath;
+ 
+@@ -522,7 +522,7 @@
+     s_mountPath.clear();
+ 
+     // don't show the music screen if AutoPlayCD is off
+-    if (!gCoreContext->GetBoolSetting("AutoPlayCD", false))
++    if (!forcePlayback && !gCoreContext->GetBoolSetting("AutoPlayCD", false))
+         return;
+ 
+     if (!gMusicData->m_initialized)
+@@ -627,7 +627,7 @@
+ }
+ 
+ #ifdef HAVE_CDIO
+-static void handleCDMedia(MythMediaDevice *cd)
++static void handleCDMedia(MythMediaDevice *cd, bool forcePlayback)
+ {
+ 
+     if (!cd)
+@@ -739,7 +739,7 @@
+ 
+     // if the AutoPlayCD setting is set we remove all the existing tracks
+     // from the playlist and replace them with the new CD tracks found
+-    if (gCoreContext->GetBoolSetting("AutoPlayCD", false))
++    if (forcePlayback || gCoreContext->GetBoolSetting("AutoPlayCD", false))
+     {
+         gMusicData->m_all_playlists->getActive()->removeAllTracks();
+ 
+@@ -776,7 +776,7 @@
+     }
+ }
+ #else
+-static void handleCDMedia([[maybe_unused]] MythMediaDevice *cd)
++static void handleCDMedia([[maybe_unused]] MythMediaDevice *cd, [[maybe_unused]] bool forcePlayback)
+ {
+     LOG(VB_GENERAL, LOG_NOTICE, "MythMusic got a media changed event"
+                                 "but cdio support is not compiled in");
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/libs/libmyth/mythmediamonitor.cpp mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/libs/libmyth/mythmediamonitor.cpp
+--- mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/libs/libmyth/mythmediamonitor.cpp	2024-02-20 11:23:31.689507825 +0100
++++ mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/libs/libmyth/mythmediamonitor.cpp	2024-02-20 11:18:18.592847898 +0100
+@@ -667,14 +667,13 @@
+  *  \param description Unused.
+  *  \param callback    The function to call when an event occurs.
+  *  \param mediaType   The type of media supported by this callback. The
+- *                     value must be an enum of type MythMediaType.
++ *                     value must be a bitmask of enums of type MythMediaType.
+  *  \param extensions A list of file name extensions supported by this
+  *  callback.
+  */
+ void MediaMonitor::RegisterMediaHandler(const QString  &destination,
+                                         const QString  &description,
+-                                        void          (*callback)
+-                                              (MythMediaDevice*),
++                                        MediaCallback  callback,
+                                         int             mediaType,
+                                         const QString  &extensions)
+ {
+@@ -709,7 +708,7 @@
+  * to allow the user to select which one to use,
+  * but for now, we're going to just use the first one.
+  */
+-void MediaMonitor::JumpToMediaHandler(MythMediaDevice* pMedia)
++void MediaMonitor::JumpToMediaHandler(MythMediaDevice* pMedia, bool forcePlayback)
+ {
+     QVector<MHData>                  handlers;
+     QMap<QString, MHData>::Iterator  itr = m_handlerMap.begin();
+@@ -785,7 +784,7 @@
+ 
+     }
+ 
+-    handlers.at(selected).callback(pMedia);
++    handlers.at(selected).callback(pMedia, forcePlayback);
+ 
+ }
+ 
+@@ -906,7 +905,7 @@
+             {
+                 if ((*itr).MythMediaType & (int)pDev->getMediaType() ||
+                     pDev->getStatus() == MEDIASTAT_OPEN)
+-                    (*itr).callback(pDev);
++                    (*itr).callback(pDev, false);
+                 itr++;
+             }
+         }
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/libs/libmyth/mythmediamonitor.h mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/libs/libmyth/mythmediamonitor.h
+--- mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/libs/libmyth/mythmediamonitor.h	2024-02-16 19:17:13.000000000 +0100
++++ mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/libs/libmyth/mythmediamonitor.h	2024-02-20 11:14:01.859520099 +0100
+@@ -12,6 +12,8 @@
+ #include "libmythbase/mthread.h"
+ #include "libmythbase/mythmedia.h"
+ 
++typedef void (*MediaCallback)(MythMediaDevice *mediadevice, bool forcePlayback);
++
+ /// Stores details of media handlers
+ 
+ // Adding member initializers caused compilation to fail with an error
+@@ -19,7 +21,7 @@
+ // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+ struct MHData
+ {
+-    void   (*callback)(MythMediaDevice *mediadevice);
++    MediaCallback callback;
+     int      MythMediaType;
+     QString  destination;
+     QString  description;
+@@ -74,10 +76,10 @@
+ 
+     void RegisterMediaHandler(const QString  &destination,
+                               const QString  &description,
+-                              void          (*callback) (MythMediaDevice*),
++                              MediaCallback  callback,
+                               int             mediaType,
+                               const QString  &extensions);
+-    void JumpToMediaHandler(MythMediaDevice*  pMedia);
++    void JumpToMediaHandler(MythMediaDevice*  pMedia, bool forcePlayback = false);
+ 
+     // Plugins should use these if they need to access optical disks:
+     static QString defaultCDdevice();
+@@ -137,7 +139,7 @@
+ static inline void
+ REG_MEDIA_HANDLER (const QString&  destination,
+                    const QString&  description,
+-                   void          (*callback)(MythMediaDevice*),
++                   MediaCallback   callback,
+                    int             mediaType,
+                    const QString&  extensions)
+ {
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/programs/mythfrontend/mythfrontend.cpp mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/programs/mythfrontend/mythfrontend.cpp
+--- mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/programs/mythfrontend/mythfrontend.cpp	2024-02-20 11:23:31.762841157 +0100
++++ mythtv-b54a0d86ee382e43284368a9b03344205186c732/mythtv/programs/mythfrontend/mythfrontend.cpp	2024-02-20 11:22:37.459508963 +0100
+@@ -780,21 +780,12 @@
+ 
+ static void playDisc()
+ {
+-    //
+-    //  Get the command string to play a DVD
+-    //
+-
+-    bool isBD = false;
+-
+-    QString command_string =
+-            gCoreContext->GetSetting("mythdvd.DVDPlayerCommand");
++    // Check for Bluray
++    LOG(VB_MEDIA, LOG_DEBUG, "Checking for BluRay medium");
+     QString bluray_mountpoint =
+             gCoreContext->GetSetting("BluRayMountpoint", "/media/cdrom");
+     QDir bdtest(bluray_mountpoint + "/BDMV");
+-
+-    if (bdtest.exists() || MythCDROM::inspectImage(bluray_mountpoint) == MythCDROM::kBluray)
+-        isBD = true;
+-
++    const bool isBD = (bdtest.exists() || MythCDROM::inspectImage(bluray_mountpoint) == MythCDROM::kBluray);
+     if (isBD)
+     {
+         GetMythUI()->AddCurrentLocation("playdisc");
+@@ -805,8 +796,19 @@
+                                          0, 0, "", 0min, "", "", true);
+ 
+         GetMythUI()->RemoveCurrentLocation();
++        return;
+     }
+-    else
++
++    MediaMonitor *mediaMonitor = MediaMonitor::GetMediaMonitor();
++    if (!mediaMonitor)
++    {
++        LOG(VB_MEDIA, LOG_ERR, "Could not access media monitor");
++        return;
++    }
++
++    // Check for DVD
++    LOG(VB_MEDIA, LOG_DEBUG, "Checking for DVD medium");
++    if (!mediaMonitor->GetMedias(MEDIATYPE_DVD).isEmpty())
+     {
+         QString dvd_device = MediaMonitor::defaultDVDdevice();
+ 
+@@ -815,6 +817,9 @@
+ 
+         GetMythUI()->AddCurrentLocation("playdisc");
+ 
++        //  Get the command string to play a DVD
++        QString command_string =
++                gCoreContext->GetSetting("mythdvd.DVDPlayerCommand");
+         if ((command_string.indexOf("internal", 0, Qt::CaseInsensitive) > -1) ||
+             (command_string.length() < 1))
+         {
+@@ -830,7 +835,7 @@
+ 
+             command_string = "Internal";
+             GetMythMainWindow()->HandleMedia(command_string, filename, "", "",
+-                                             "", "", 0, 0, "", 0min, "", "", true);
++                                                "", "", 0, 0, "", 0min, "", "", true);
+             GetMythUI()->RemoveCurrentLocation();
+ 
+             return;
+@@ -854,13 +859,30 @@
+             GetMythMainWindow()->activateWindow();
+         }
+         GetMythUI()->RemoveCurrentLocation();
++        return;
++    }
++
++    // Check for Audio CD
++    LOG(VB_MEDIA, LOG_DEBUG, "Checking for audio CD medium");
++    auto audioMedia = mediaMonitor->GetMedias(MEDIATYPE_AUDIO | MEDIATYPE_MIXED);
++    if (!audioMedia.isEmpty())
++    {
++        for (auto *medium : qAsConst(audioMedia))
++        {
++            if (medium->isUsable()) {
++                LOG(VB_MEDIA, LOG_DEBUG, QString("Found usable audio/mixed device %1").arg(medium->getDevicePath()));
++                mediaMonitor->JumpToMediaHandler(medium, true);
++                return;
++            }
++        }
+     }
++
+ }
+ 
+ /////////////////////////////////////////////////
+ //// Media handlers
+ /////////////////////////////////////////////////
+-static void handleDVDMedia(MythMediaDevice *dvd)
++static void handleDVDMedia(MythMediaDevice *dvd, bool /*forcePlayback*/)
+ {
+     if (!dvd)
+         return;
+@@ -883,7 +905,7 @@
+     }
+ }
+ 
+-static void handleGalleryMedia(MythMediaDevice *dev)
++static void handleGalleryMedia(MythMediaDevice *dev, bool forcePlayback)
+ {
+     // Only handle events for media that are newly mounted
+     if (!dev || (dev->getStatus() != MEDIASTAT_MOUNTED
+@@ -905,7 +927,7 @@
+         }
+     }
+ 
+-    if (gCoreContext->GetBoolSetting("GalleryAutoLoad", true))
++    if (forcePlayback || gCoreContext->GetBoolSetting("GalleryAutoLoad", true))
+     {
+         LOG(VB_GUI, LOG_INFO, "Main: Autostarting Gallery for new media");
+         GetMythMainWindow()->JumpTo(JUMP_GALLERY_DEFAULT);

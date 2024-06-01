@@ -1,6 +1,6 @@
 
 GARNAME      = glslang
-GARVERSION   = 11.11.0
+GARVERSION   = 14.2.0
 CATEGORIES   = opengl
 MASTER_SITES = https://github.com/KhronosGroup/glslang/archive/
 DISTFILES    = $(GARVERSION).tar.gz
@@ -18,6 +18,7 @@ CMAKE_CONFIGURE_ARGS_BUILD =
 
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
-	-DBUILD_SHARED_LIBS=ON
+	-DBUILD_SHARED_LIBS=ON \
+	-DENABLE_OPT="OFF" \
 
 include ../../gar.mk

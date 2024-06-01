@@ -1,13 +1,13 @@
 
 GARNAME      = bootfiles-rk3566.orangepi-3b
-GARVERSION   = 2023-10-10
+GARVERSION   = 2024-03-04
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = rk3566-orangepi-3b_defconfig
+export mm_U-BOOT_BOARD_TYPE = orangepi-3b-rk3566_defconfig
 
 WORKSRC      = $(WORKDIR)
 
@@ -24,8 +24,8 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-rk3566-radxa
-	@$(MAKE) install -C ../u-boot-rk3566-radxa
+	@$(MAKE) clean   -C ../u-boot-rk3xxx
+	@$(MAKE) install -C ../u-boot-rk3xxx
 	@$(MAKECOOKIE)
 
 install-custom:

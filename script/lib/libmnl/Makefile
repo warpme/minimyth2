@@ -1,11 +1,10 @@
+
 GARNAME      = libmnl
-GARVERSION   = 1.0.4
+GARVERSION   = 1.0.5
 CATEGORIES   = lib
 MASTER_SITES = https://www.netfilter.org/projects/libmnl/files/
 DISTFILES    = $(DISTNAME).tar.bz2
-#PATCHFILES   = $(DISTNAME)-automake_1.12.patch
 LICENSE      = GPL2
-#libmng_LICENSE_TEXT = $(WORKSRC)/LICENSE
 
 DESCRIPTION = 
 define BLURB

@@ -56,22 +56,21 @@ if (@cpu_temp)
 
     foreach my $cpu_temp (@cpu_temp) {
 
-    if (open(FILE, "cat $cpu_temp |"))
-    {
-        while (<FILE>)
+        if (open(FILE, "cat $cpu_temp |"))
         {
-            chomp;
-            $cpu_temp =~ s/\/sys\/class\/thermal\///g;
-            $cpu_temp =~ s/\/temp//g;
-            chomp $cpu_temp;
-            if ($_ > 0) {
-                my $temp = $_/1000;
-                push(@status_cpu_temp_body, "$cpu_temp: ".$temp." C");
+            while (<FILE>)
+            {
+                chomp;
+                $cpu_temp =~ s/\/sys\/class\/thermal\///g;
+                $cpu_temp =~ s/\/temp//g;
+                chomp $cpu_temp;
+                if ($_ > 0) {
+                    my $temp = $_/1000;
+                    push(@status_cpu_temp_body, "$cpu_temp: ".$temp." C");
+                }
             }
+            close(FILE);
         }
-        close(FILE);
-    }
-
     }
     while (($#status_cpu_temp_body >= 0) && ($status_cpu_temp_body[0] eq ''))
     {
@@ -93,21 +92,20 @@ if (@cpu_curr_freq)
 
     foreach my $cpu_curr_freq (@cpu_curr_freq) {
 
-    if (open(FILE, "cat $cpu_curr_freq |"))
-    {
-        while (<FILE>)
+        if (open(FILE, "cat $cpu_curr_freq |"))
         {
-            chomp;
-            $cpu_curr_freq =~ s/\/sys\/devices\/system\/cpu\/cpufreq\/policy(.*)\/scaling_cur_freq/CPU$1/g;
-            chomp $cpu_curr_freq;
-            if ($_ > 0) {
-                my $freq = $_/1000;
-                push(@status_cpu_curr_freq_body, $cpu_curr_freq.": ".$freq." MHz");
+            while (<FILE>)
+            {
+                chomp;
+                $cpu_curr_freq =~ s/\/sys\/devices\/system\/cpu\/cpufreq\/policy(.*)\/scaling_cur_freq/CPU$1/g;
+                chomp $cpu_curr_freq;
+                if ($_ > 0) {
+                    my $freq = $_/1000;
+                    push(@status_cpu_curr_freq_body, $cpu_curr_freq.": ".$freq." MHz");
+                }
             }
+            close(FILE);
         }
-        close(FILE);
-    }
-
     }
     while (($#status_cpu_curr_freq_body >= 0) && ($status_cpu_curr_freq_body[0] eq ''))
     {
@@ -129,21 +127,20 @@ if (@gpu_curr_freq)
 
     foreach my $gpu_curr_freq (@gpu_curr_freq) {
 
-    if (open(FILE, "cat $gpu_curr_freq |"))
-    {
-        while (<FILE>)
+        if (open(FILE, "cat $gpu_curr_freq |"))
         {
-            chomp;
-            $gpu_curr_freq =~ s/\/sys\/bus\/platform\/drivers\/.*\/.*\/cur_freq/GPU Curr.Freq.: /g;
-            chomp $gpu_curr_freq;
-            if ($_ > 0) {
-                my $freq = $_/1000000;
-                push(@status_gpu_curr_freq_body, $gpu_curr_freq.$freq." MHz");
+            while (<FILE>)
+            {
+                chomp;
+                $gpu_curr_freq =~ s/\/sys\/bus\/platform\/drivers\/.*\/.*\/cur_freq/GPU: /g;
+                chomp $gpu_curr_freq;
+                if ($_ > 0) {
+                    my $freq = $_/1000000;
+                    push(@status_gpu_curr_freq_body, $gpu_curr_freq.$freq." MHz");
+                }
             }
+            close(FILE);
         }
-        close(FILE);
-    }
-
     }
     while (($#status_gpu_curr_freq_body >= 0) && ($status_gpu_curr_freq_body[0] eq ''))
     {
@@ -157,20 +154,27 @@ if (@gpu_curr_freq)
 
 my $status_cpu_freq_head = "";
 my @status_cpu_freq_body = ();
-my $cpu_freq = `find /sys/devices/system/cpu/cpufreq/policy*/stats -name trans_table`;
-if ($cpu_freq)
+my @cpus_stats = `find /sys/devices/system/cpu/cpufreq/policy*/stats -name trans_table`;
+if (@cpus_stats)
 {
     $status_cpu_freq_head = "CPU DVFS Frequency List";
     @status_cpu_freq_body = ();
 
-    if (open(FILE, "cat $cpu_freq |"))
-    {
-        while (<FILE>)
+    foreach my $cpu_stats (@cpus_stats) {
+
+        if (open(FILE, "cat $cpu_stats |"))
         {
-            chomp;
-            push(@status_cpu_freq_body, $_);
-        }
-        close(FILE);
+            my $cpu_num = "unknown";
+            ($cpu_num) = $cpu_stats =~ /(\d+)/;
+            push(@status_cpu_freq_body, "CPU".$cpu_num.":");
+                while (<FILE>)
+                {
+                    chomp;
+                    push(@status_cpu_freq_body, $_);
+                }
+                close(FILE);
+            }
+        push(@status_cpu_freq_body, " ");
     }
 
     while (($#status_cpu_freq_body >= 0) && ($status_cpu_freq_body[0] eq ''))
@@ -181,6 +185,7 @@ if ($cpu_freq)
     {
         pop(@status_cpu_freq_body);
     }
+
 }
 
 my $status_gpu_freq_head = "";
@@ -210,7 +215,6 @@ if ($gpu_freq)
         pop(@status_gpu_freq_body);
     }
 }
-
 
 my @middle = ();
 

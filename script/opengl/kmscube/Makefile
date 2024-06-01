@@ -1,6 +1,7 @@
 
 GARNAME       = kmscube
-GARVERSION    = 4660a7dca6512b6e658759d00cff7d4ad2a2059d
+# v26.09.2023
+GARVERSION    = 96d63eb59e34c647cda1cbb489265f8c536ae055
 CATEGORIES    = $(CATEGORY)
 MASTER_SITES  = https://gitlab.freedesktop.org/mesa/kmscube/-/archive/$(GARVERSION)/
 DISTFILES     = kmscube-$(GARVERSION).tar.bz2

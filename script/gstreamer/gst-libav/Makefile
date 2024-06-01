@@ -1,17 +1,21 @@
 
-# this package is build with old Automake way as I can't find
-# way to build it on Meson with build-in FFmpeg.
-# Building with build-in FFmpeg and exact 1.16.2 version of gst-libav
-# is only solution to get HTML video playback working ok in QtWebKIT.
-# This package build against external FFmpeg gives still picture in HTML5
-# video playback in QtWebKIT
-
 GARNAME      = gst-libav
-GARVERSION   = 1.16.2
 CATEGORIES   = gst
+LICENSE      = GPL2
+
+# Mainline gst-libav
+ifeq (1,1)
+GARVERSION   = $(GST_VERSION)
 MASTER_SITES = $(GST_MASTER_SITES)
 DISTFILES    = $(DISTNAME).tar.xz
-LICENSE      = GPL2
+endif
+
+# GIT master gst-libav
+ifeq (1,0)
+GARVERSION   = 39e6f846e0e867185437925bf766a6ba10e6404f
+MASTER_SITES = https://github.com/GStreamer/gst-libav/archive/
+DISTFILES    = $(GARVERSION).zip
+endif
 
 DESCRIPTION =
 define BLURB
@@ -21,22 +25,17 @@ DEPENDS = \
 	lang/c \
 	gstreamer/gst-plugins-base \
 	utils/bzip2 \
+	lib/ffmpeg6
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--prefix=/usr \
-	--disable-static \
-	--with-libav-extra-configure="--enable-runtime-cpudetect --as=$(CC)" \
-	--with-pic \
+MESON_CONFIGURE_ARGS = \
+	--buildtype=release \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
-
-CFLAGS  := $(filter-out -flto, $(CFLAGS))
-LDFLAGS := $(filter-out -flto, $(LDFLAGS))
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstlibav.la

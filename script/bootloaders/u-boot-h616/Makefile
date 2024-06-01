@@ -1,40 +1,33 @@
 
-GARNAME      = u-boot-h616-v2021.07
-GARVERSION   = 2021.07
+GARNAME      = u-boot-h616
+GARVERSION   = 2024.04
 CATEGORIES   = kernel
-MASTER_SITES = https://github.com/u-boot/u-boot/archive/refs/tags/
+MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
-PATCHFILES   = 0000-sync-h616-dram-to-8f1704087.patch
-PATCHFILES  += 0001-sunxi-Fix-write-to-H616-DRAM-CR-register.patch
-PATCHFILES  += 0002-sunxi-cosmetic-Fix-H616-DRAM-driver-code-style.patch
-PATCHFILES  += 0003-sunxi-parameterize-H616-DRAM-ODT-values.patch
-PATCHFILES  += 0004-sunxi-Convert-H616-DRAM-options-to-single-setting.patch
-PATCHFILES  += 0005-sunxi-Always-configure-ODT-on-H616-DRAM.patch
-PATCHFILES  += 0006-sunxi-Make-bit-delay-function-in-H616-DRAM-code-void.patch
-PATCHFILES  += 0007-sunxi-Parameterize-bit-delay-code-in-H616-DRAM-drive.patch
-PATCHFILES  += 0008-sunxi-Parameterize-H616-DRAM-code-some-more.patch
-PATCHFILES  += 0009-sunxi-add-H616-LPDDR3-DRAM-support.patch
-PATCHFILES  += 0010-sunxi-add-support-for-AXP313-PMIC.patch
-PATCHFILES  += 0011-sunxi-dram-add-lpddr3-6gbit-support.patch
-PATCHFILES  += 0012-sunxi-dram-add-H616-LPDDR4-DRAM-support.patch
-PATCHFILES  += 0014-unreliable-dram.patch
-PATCHFILES  += 01-hack-add-h313-int.emac.phy-support.patch
-PATCHFILES  += 02-sunxi-arm64-boot0.h-add-support-muliple-h313-variants.patch
-PATCHFILES  += 03-fix-h616-4gb-ram-detection.patch
-PATCHFILES  += 04-sunxi-H616-GPU-enable-hack.patch
-PATCHFILES  += 05-sunxi-H616-Further-parameterize-DDR3-timings.patch
-PATCHFILES  += 06-sunxi-Add-TPR2-parameter-for-H616-DRAM-driver.patch
-PATCHFILES  += 50-add-x96-q-lpddr3-defconfig.patch
-PATCHFILES  += 51-add-x96-q-ddr3-defconfig.patch
-PATCHFILES  += 52-add-tanix-tx6s-defconfig.patch
-PATCHFILES  += 53-add-tanix_tx6s_axp313_defconfig.patch
-PATCHFILES  += 54-opi-zero2-add-mising-dram-para.patch
-PATCHFILES  += 55-add-opi-zero3-defconfig.patch
-# PATCHFILES  += 99-enable-debug.patch
-# PATCHFILES  += 99-dump-dram-controller-regs.patch
+PATCHFILES   = 100-sunsi-add-h616-internal-eth-phy-support.patch
+PATCHFILES  += 101-unreliable-dram.patch
+PATCHFILES  += 102-sunxi-H616-GPU-enable-hack.patch
+PATCHFILES  += 103-sunxi-dram-add-lpddr3-6gbit-support.patch
+PATCHFILES  += 104-sunxi-add-led-on-at-poweron.patch
+PATCHFILES  += 105-mtd-spi-nor-add-zbit-zb25vq128.patch
+PATCHFILES  += 106-Add-int-phy-eth-H313-h616-with-AC300.patch
+PATCHFILES  += 107-sunxi_mmc-dec-f_max-to-12MHz-to-get-emmc-reliable.patch
+# boards aditions.
+PATCHFILES  += 150-add-x96-q-lpddr3-defconfig.patch
+PATCHFILES  += 151-add-x96-q-ddr3-defconfig.patch
+PATCHFILES  += 152-add-tanix-tx6s-defconfig.patch
+PATCHFILES  += 153-add-tanix_tx6s_axp313_defconfig.patch
+PATCHFILES  += 154-opi-zero2-add-mising-dram-para.patch
+PATCHFILES  += 155-opi-zero3-enable-more-usb-pwrled-add-aliases.patch
+PATCHFILES  += 157-add-tanix_tx6s_kingston_lpddr3_defconfig.patch
+PATCHFILES  += 158-add-pendoo-x12pro-defconfig.patch
+PATCHFILES  += 159-add-x96-q-lpddr3-v1.3-defconfig.patch
+PATCHFILES  += 160-add-vontar-h618-defconfig.patch
+PATCHFILES  += 161-dts-zero2w-improvements.patch
+PATCHFILES  += 162-add-tx1-defconfig.patch
+PATCHFILES  += 163-add-x96-q-ddr3-v5.1-defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
-
-LICENSE = GPL2
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
@@ -54,9 +47,16 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_axp313_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx6s_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_defconfig
+# mm_U-BOOT_BOARD_TYPE = x96_q_lpddr3_v1.3_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
+# mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_v5.1_defconfig
+# mm_U-BOOT_BOARD_TYPE = tanix_tx1_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
+# mm_U-BOOT_BOARD_TYPE = orangepi_zero2w_defconfig
+# mm_U-BOOT_BOARD_TYPE = tanix_tx6s_kingston_lpddr3_defconfig
+# mm_U-BOOT_BOARD_TYPE = pendoo-x12_defconfig
+# mm_U-BOOT_BOARD_TYPE = vontar_h618_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 

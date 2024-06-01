@@ -3,7 +3,6 @@ GARNAME      = gst-plugins-ugly
 GARVERSION   = $(GST_VERSION)
 CATEGORIES   = gst
 MASTER_SITES = $(GST_MASTER_SITES)
-PATCHFILES   = $(DISTNAME)-make43.patch
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = GPL2
 
@@ -17,25 +16,22 @@ DEPENDS = \
 	opengl/glu \
 	gstreamer/gst-plugins-base \
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--prefix=/usr \
-	--disable-qt
+MESON_CONFIGURE_ARGS = \
+	--buildtype=release \
+	-D tests=disabled \
+	-D gobject-cast-checks=disabled \
+	-D glib-asserts=disabled \
 
 GAR_EXTRA_CONF += gstreamer/meta/package-api.mk
 include ../../gar.mk
 
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
-
 post-install:
-	@rm -f $(DESTDIR)$(libdir)/libgstadaptivedemux-1.0.la
-	@rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstyadif.la
+	@#rm -f $(DESTDIR)$(libdir)/libgstadaptivedemux-1.0.la
+	@#rm -f $(DESTDIR)$(libdir)/gstreamer-1.0/libgstyadif.la
 	@$(MAKECOOKIE)
 
 clean-all:

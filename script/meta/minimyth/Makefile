@@ -97,8 +97,9 @@ DEPENDS = \
 	X11/xdotool \
 	X11/x11vnc \
 	system/zoneinfo \
-	utils/htop \
-	utils/bashtop \
+	$(if $(filter btop,$(mm_SOFTWARE)),utils/btop) \
+	$(if $(filter htop,$(mm_SOFTWARE)),utils/htop) \
+	$(if $(filter bashtop,$(mm_SOFTWARE)),utils/bashtop) \
 	utils/findutils \
 	$(if $(filter mesa mesa-git lima,$(mm_OPENGL_PROVIDER)),opengl/mesa-demos) \
 	$(if $(filter mythplugins,$(mm_SOFTWARE)), \
@@ -129,6 +130,8 @@ DEPENDS = \
 	$(if $(filter dvdcss,$(mm_SOFTWARE)),lib/libdvdcss) \
 	lib/nss-mdns \
 	lib/libinput \
+	lib/bluez-alsa \
+	utils/bluez-tools \
 	net/iputils \
 	net/ntp \
 	net/cifs-utils \
@@ -169,6 +172,8 @@ DEPENDS = \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
 		utils/estimate-arm-cpu-frequency \
 		utils/tinymembench \
+		utils/mmc-utils \
+		utils/sunxi-fw \
 		utils/peekpoke) \
 	utils/kbd \
 	utils/dash \
@@ -209,6 +214,7 @@ DEPENDS = \
 	$(if $(filter termbin,$(mm_SOFTWARE)),utils/termbin) \
 	$(if $(filter openvfd,$(mm_SOFTWARE)),utils/openvfd-service) \
 	$(if $(filter kmsvnc,$(mm_SOFTWARE)),X11/kmsvnc) \
+	$(if $(filter nvtop,$(mm_SOFTWARE)),utils/nvtop) \
 	$(filter-out %/Makefile extras/extras-% extras/extras.%,$(subst ../../,,$(wildcard ../../extras/*))) \
 	$(mm_USER_PACKAGES)
 

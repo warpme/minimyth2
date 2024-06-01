@@ -16,15 +16,16 @@ include ../../myth-$(mm_MYTH_VERSION)/mythtv/package-api.mk
 # is executed when all scripts defined in MM_INIT_START_PHASE_X-1
 # end successfuly
 MM_INIT_START_PHASE_1 := \
-    time    \
-    hotplug \
-    master  \
-    video   \
-    audio   \
-    mythtv  \
-    lcdproc \
-    font    \
-    avahi   \
+    time     \
+    hotplug  \
+    master   \
+    defaults \
+    video    \
+    audio    \
+    mythtv   \
+    lcdproc  \
+    font     \
+    avahi    \
 
 MM_INIT_START_PHASE_2 := 
 
@@ -65,6 +66,7 @@ MM_INIT_KILL := \
     bluetooth   \
     standby     \
     frontend    \
+    mythtv      \
     avahi       \
     lcdproc     \
     dbus        \
@@ -182,6 +184,7 @@ MM_CONFIG_VARS := $(sort \
 	mm_INSTALL_RAM_BOOT \
 	mm_INSTALL_ONLINE_UPDATES \
 	mm_ONLINE_UPDATES \
+	mm_MINIMYTH_ONLINE_UPDATES_URL \
 	mm_MYTH_VERSION \
 	mm_NFS_ROOT \
 	mm_SOFTWARE \

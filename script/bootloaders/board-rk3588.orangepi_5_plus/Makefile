@@ -1,13 +1,13 @@
 
 GARNAME      = bootfiles-rk3588.orange5-plus
-GARVERSION   = 2023-10-21
+GARVERSION   = 2024-03-04
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = orangepi_5_plus_defconfig
+export mm_U-BOOT_BOARD_TYPE = orangepi-5-plus-rk3588_defconfig
 
 WORKSRC      = $(WORKDIR)
 
@@ -24,8 +24,8 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-rk3588-radxa
-	@$(MAKE) install -C ../u-boot-rk3588-radxa
+	@$(MAKE) clean   -C ../u-boot-rk3xxx
+	@$(MAKE) install -C ../u-boot-rk3xxx
 	@$(MAKECOOKIE)
 
 install-custom:

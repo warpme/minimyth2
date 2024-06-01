@@ -1,13 +1,13 @@
 
 GARNAME      = bootfiles-rk3566.urve-pi
-GARVERSION   = 2023-03-10
+GARVERSION   = 2024-03-03
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
+               minimyth.conf \
                extlinux.conf \
-               minimyth.conf   \
 
-export mm_U-BOOT_BOARD_TYPE = rk3566-x96_x6_defconfig
+export mm_U-BOOT_BOARD_TYPE = rock-3c-rk3566_defconfig
 
 WORKSRC      = $(WORKDIR)
 
@@ -24,22 +24,21 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-rk3566
-	@$(MAKE) install -C ../u-boot-rk3566
+	@$(MAKE) clean   -C ../u-boot-rk3xxx
+	@$(MAKE) install -C ../u-boot-rk3xxx
 	@$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@mkdir -p $(DESTDIR)/boot/extlinux
 	@mkdir -p $(DESTDIR)/boot/rk3566loaderfiles
-	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3566/$(mm_U-BOOT_BOARD_TYPE)/idblock.bin $(DESTDIR)/boot/rk3566loaderfiles/idblock.bin
-	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3566/$(mm_U-BOOT_BOARD_TYPE)/uboot.img   $(DESTDIR)/boot/rk3566loaderfiles/uboot.img
-	@cp -f    $(WORKSRC)/minimyth.conf                           $(DESTDIR)/boot/minimyth.conf
-	@cp -f    $(WORKSRC)/extlinux.conf                           $(DESTDIR)/boot/extlinux/extlinux.conf
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3566/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img $(DESTDIR)/boot/rk3566loaderfiles/idbloader.img
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3566/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb    $(DESTDIR)/boot/rk3566loaderfiles/u-boot.itb
+	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
+	@cp -f    $(WORKSRC)/extlinux.conf $(DESTDIR)/boot/extlinux/extlinux.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-custom:
-	@rm -f  $(DESTDIR)/boot/rk3566_u-boot
 	@rm -rf $(DESTDIR)/boot/rk3566loaderfiles*
 	@rm -f  $(DESTDIR)/boot/minimyth.conf
 	@rm -rf $(DESTDIR)/boot/extlinux*

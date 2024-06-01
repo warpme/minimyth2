@@ -15,12 +15,18 @@ DISTFILES    = \
 	board-rpi3.rpi32.wks        \
 	board-rpi4.mainline64.conf  \
 	board-rpi4.mainline64.wks   \
+	board-rpi5.mainline64.conf  \
+	board-rpi5.mainline64.wks   \
 	board-rpi34.mainline64.conf \
 	board-rpi34.mainline64.wks  \
+	board-rpi345.mainline64.conf \
+	board-rpi345.mainline64.wks \
 	board-rpi4.rpi32.conf       \
 	board-rpi4.rpi32.wks        \
 	board-rpi4.rpi64.conf       \
 	board-rpi4.rpi64.wks        \
+	board-rpi5.rpi64.conf       \
+	board-rpi5.rpi64.wks        \
 	board-s905.conf             \
 	board-s905.wks              \
 	board-s912.conf             \
@@ -49,6 +55,8 @@ DISTFILES    = \
 	board-rk3566.urve-pi.wks     \
 	board-rk3566.quartz64-b.conf \
 	board-rk3566.quartz64-b.wks \
+	board-rk3566.zero3w.conf    \
+	board-rk3566.zero3w.wks     \
 	board-rk3568.rock3-a.conf   \
 	board-rk3568.rock3-a.wks    \
 	board-rk3568.rock3-b.conf   \
@@ -89,10 +97,18 @@ DISTFILES    = \
 	board-h616.t95.wks          \
 	board-h616.x96_mate.conf    \
 	board-h616.x96_mate.wks     \
-	board-h313.x96_q.conf       \
-	board-h313.x96_q.wks        \
-	board-h313.x96_q_lpddr3.conf \
-	board-h313.x96_q_lpddr3.wks \
+	board-h616.pendoo_x12pro.conf \
+	board-h616.pendoo_x12pro.wks  \
+	board-h313.x96_q.conf         \
+	board-h313.x96_q.wks          \
+	board-h313.x96_q_v5.1.conf    \
+	board-h313.x96_q_v5.1.wks     \
+	board-h313.x96_q_lpddr3.conf  \
+	board-h313.x96_q_lpddr3.wks   \
+	board-h313.x96_q_lpddr3_v1.3.conf \
+	board-h313.x96_q_lpddr3_v1.3.wks  \
+	board-h313.tanix_tx1.conf   \
+	board-h313.tanix_tx1.wks    \
 	board-h618.orangepi_zero3.conf \
 	board-h618.orangepi_zero3.wks  \
 	board-h618.vontar_h618.conf \
@@ -118,6 +134,7 @@ PATCHFILES += backport-002-wic-Fix--extra-space-argument-handling.patch
 PATCHFILES += backport-003-wic-Fix-error-message-when-reporting-invalid-offset.patch
 PATCHFILES += backport-004-wic-Add-512-Byte-alignment-to--offset.patch
 PATCHFILES += poky-yocto-2.7.3-allow-arbitral-part-start-sector.patch
+PATCHFILES += poky-yocto-2.7.3-fix-running-on-python3.11.patch
 
 WORKSRC = $(WORKDIR)/poky-yocto-$(GARVERSION)
 LICENSE = GPL2

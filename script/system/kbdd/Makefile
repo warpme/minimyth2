@@ -1,10 +1,11 @@
-GARNAME = kbdd
-GARVERSION = 20060719Z
-CATEGORIES = system
-MASTER_SITES = cvs://anoncvs:anoncvs@anoncvs.handhelds.org:/cvs/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = $(DISTNAME)-lirc.patch $(DISTNAME)-cflags.patch
-LICENSE = GPL2
+
+GARNAME      = kbdd
+# v24.04.2021
+GARVERSION   = 3145099e1fbbe65b27678be72465aaa5b5872874
+CATEGORIES   = system
+MASTER_SITES = https://github.com/qnikst/kbdd/archive/
+DISTFILES    = $(GARVERSION).zip
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
@@ -12,30 +13,16 @@ endef
 
 DEPENDS = lang/c system/lirc
 
-BUILD_SCRIPTS    = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS  = custom
-
-#BUILD_ARGS = \
-	CFLAGS="$(CFLAGS)" \
-	LDFLAGS="$(LDFLAGS)"
+CONFIGURE_SCRIPTS = $(WORKSRC)/configure
+BUILD_SCRIPTS     = $(WORKSRC)/Makefile
+INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
 include ../../gar.mk
 
-CFLAGS  := $(CFLAGS) -DUSELIRC -I$(DESTDIR)$(includedir)/lirc
-LDFLAGS := $(LDFLAGS) -llirc_client
+CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --prefix="$(prefix)" \
+	--disable-dbus \
 
-LDFLAGS := $(LDFLAGS) -fwhole-program
-
-LDFLAGS := $(CFLAGS) $(LDFLAGS)
-
-cvs//%/$(DISTNAME).tar.bz2:
-	@$(call FETCH_CVS, $*, apps/$(GARNAME), $(GARVERSION), $(DISTNAME))
-	@$(MAKECOOKIE)
-
-checksum-$(DISTNAME).tar.bz2:
-	@$(MAKECOOKIE)
-
-install-custom:
-	@mkdir -p $(DESTDIR)$(bindir)
-	@cp -f $(WORKSRC)/kbdd $(DESTDIR)$(bindir)/kbdd
+pre-configure:
+	@$(call RUN_AUTOTOOLS)
+	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)

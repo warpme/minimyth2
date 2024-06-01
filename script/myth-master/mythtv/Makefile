@@ -30,6 +30,9 @@ PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 # speedup a bit portcheck
 PATCHFILES += 0059-portchecker-speedup.patch
 
+# ticket 821 improve subtitles handling
+# PATCHFILES += 0060-libmythtv-captions-ticket821-improve-forced-subtitle-handling.patch
+
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
 PATCHFILES += 0101-Minimyth-Add-disable-optical-disc-in-menu.patch
@@ -45,6 +48,7 @@ PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
 PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
 PATCHFILES += 0113-Minimyth-reverse-profiles-in-v4l2-videoprofile.patch
+PATCHFILES += 0114-mythfrontend-settings-set-gui-playback-mode-to-1920x1080-at-first-run.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
 PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-6.0kernel.patch
@@ -106,13 +110,10 @@ PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 
 # --------Patches 350+ are plugins patches---------------------
-
-# Various mythvideo patches
-PATCHFILES += 0350-mythvideo-pull742-add-watched-progress-in-videomanger.patch
-
 # Various mythmusic patches
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
+PATCHFILES += 0407-mythmusic-pull835-support-playing-AudioCD-from-optical-disc-menu.patch
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
@@ -294,7 +295,7 @@ CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(inclu
 CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
 
 CPPFLAGS += -fPIC -fuse-linker-plugin
-CFLAGS   += -fPIC -fuse-linker-plugin
+CFLAGS   += -fPIC -fuse-linker-plugin -Wno-incompatible-pointer-types -Wno-implicit-function-declaration
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0

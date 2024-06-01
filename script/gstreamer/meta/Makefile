@@ -9,11 +9,12 @@ define BLURB
 endef
 
 DEPENDS = \
-	$(CATEGORY)/gstreamer \
+	$(CATEGORY)/gstreamer        \
 	$(CATEGORY)/gst-plugins-base \
-	$(CATEGORY)/gst-libav \
+	$(CATEGORY)/gst-libav        \
 	$(CATEGORY)/gst-plugins-good \
-	$(CATEGORY)/gst-plugins-bad \
+	$(CATEGORY)/gst-plugins-bad  \
+	$(CATEGORY)/gst-plugins-ugly \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 

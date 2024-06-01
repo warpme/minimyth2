@@ -1,9 +1,10 @@
-GARNAME = dtc
-GARVERSION = 1.6.1
-CATEGORIES = utils
+
+GARNAME      = dtc
+GARVERSION   = 1.7.0
+CATEGORIES   = utils
 MASTER_SITES = https://www.kernel.org/pub/software/utils/dtc/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
@@ -18,20 +19,16 @@ INSTALL_SCRIPTS   = custom
 BUILD_ARGS   = \
 	NO_PYTHON=1 \
 	CC="$(CC)" \
+	HOME=$(DESTDIR)$(prefix) \
 
 build-custom:
 	@echo "Building..."
-	$(MAKE) -C $(WORKSRC) $(BUILD_ARGS)
+	@$(MAKE) -C $(WORKSRC) $(BUILD_ARGS)
 	@$(MAKECOOKIE)
 
 install-custom:
 	@echo "Installing..."
-	@cp $(WORKSRC)/convert-dtsv0 $(DESTDIR)$(bindir)/convert-dtsv0
-	@cp $(WORKSRC)/dtc           $(DESTDIR)$(bindir)/dtc
-	@cp $(WORKSRC)/fdtdump       $(DESTDIR)$(bindir)/fdtdump
-	@cp $(WORKSRC)/fdtget        $(DESTDIR)$(bindir)/fdtget
-	@cp $(WORKSRC)/fdtput        $(DESTDIR)$(bindir)/fdtput
-	@cp $(WORKSRC)/fdtoverlay    $(DESTDIR)$(bindir)/fdtoverlay
+	@$(MAKE) -C $(WORKSRC) $(BUILD_ARGS) install-bin install-lib install-includes
 	@$(MAKECOOKIE)
 
 include ../../gar.mk

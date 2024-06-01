@@ -1,7 +1,7 @@
 
 GARNAME      = kmsvnc
-# master @13.09.2023
-GARVERSION   = 843d79cb643234b9ea3c4f758edd355d76c9d3d8
+# master @29.02.2024
+GARVERSION   = 516ecb4121a2379ae962e409f799dcf2a2e5bf52
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/isjerryxiao/kmsvnc/archive/
 DISTFILES    = $(GARVERSION).zip
@@ -17,5 +17,6 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DCMAKE_C_FLAGS='-I$(DESTDIR)$(includedir)/libdrm -Wno-incompatible-pointer-types'
 
 include ../../gar.mk

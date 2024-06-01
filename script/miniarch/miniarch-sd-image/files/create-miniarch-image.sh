@@ -91,22 +91,18 @@ echo "#----Entries to create boot & rootfs partitions" >> ${base_dir}/MiniArch.w
 # Selecting appropriate common.wks file
 if [ ! -z `echo ${boards} | grep -o "board-x86pc"` ] ; then
     echo "  board-x86pc detected. skipping default-mbr[gpt].wks"
-elif [ ! -z `echo ${boards} | grep -o "board-rk3566.x96_x6"` ] ; then
-    echo "  board-rk3566.x96_x6 detected: using all in one board-rk3566.x96_x6.wks"
-    # cat board-rk3566.x96_x6.wks to MiniArch.wks is comented-out as x96_x6
-    # box is single exception where board-rk3566.x96_x6.wks
-    # creates all paritions (boot related and rootfs). This is because this
-    # box speciffics.
-    #cat ${base_dir}/board-rk3566.x96_x6.wks >> ${base_dir}/MiniArch.wks
-elif [ ! -z `echo ${boards} | grep -o "board-rk3566.urve-pi"` ] ; then
-    echo "  board-rk3566.urve-pi detected: using all in one board-rk3566.urve-pi.wks"
-    # cat board-rk3566.urve-pi.wks to MiniArch.wks is comented-out as urve-pi
-    # board is exception where board-rk3566.urve-pi.wks
-    # creates all paritions (boot related and rootfs). This is because this
-    # board speciffics.
-    #cat ${base_dir}/board-rk3566.urve-pi.wks >> ${base_dir}/MiniArch.wks
 elif [ ! -z `echo ${boards} | grep -o "board-rk3566.*"` ] ; then
     echo "  board-rk3566 detected: using default-gpt.wks"
+    cat ${base_dir}/default-gpt.wks >> ${base_dir}/MiniArch.wks
+elif [ ! -z `echo ${boards} | grep -o "board-rk3528.vontar_r3"` ] ; then
+    echo "  board-rk3528.vontar_r3.wks detected: using all in one board-rk3528.vontar_r3.wks"
+    # cat board-*.wks to MiniArch.wks is comented-out as this
+    # box is single exception where board-*.wks
+    # creates all paritions (boot related and rootfs). This is because this
+    # box speciffics.
+    #cat ${base_dir}/board-rk3528.vontar_r3.wks >> ${base_dir}/MiniArch.wks
+elif [ ! -z `echo ${boards} | grep -o "board-rk3588*"` ] ; then
+    echo "  board-rk3588 detected: using default-gpt.wks"
     cat ${base_dir}/default-gpt.wks >> ${base_dir}/MiniArch.wks
 else
     echo "  Using default-mbr.wks"
@@ -125,6 +121,8 @@ if [ -e ${boot_files_loc}/boot.scr ] ; then
     dd bs=72 skip=1 if=${boot_files_loc}/boot.scr of=${boot_files_loc}/boot.src
     # enabling vt cursor; increasing kernel verbosity
     sed -e 's/logo.nologo/loglevel=6/g' -e 's/vt.cur_default=1/consoleblank=0/g' -i ${boot_files_loc}/boot.src
+    # setting fsck repair to yes
+    sed -e 's/consoleblank=0/consoleblank=0 fsck.mode=auto fsck.repair=yes/g' -i ${boot_files_loc}/boot.src
     # compiling back to boot.scr
     mkimage -A arm64 -T script -O linux -d ${boot_files_loc}/boot.src ${boot_files_loc}/boot.scr
 fi
@@ -132,6 +130,8 @@ if [ -e ${boot_files_loc}/extlinux/extlinux.conf ] ; then
     echo "Doing MiniAch fixups in ${boot_files_loc}/extlinux/extlinux.conf ..."
     # enabling vt cursor; increasing kernel verbosity
     sed -e 's/logo.nologo/loglevel=6/g' -e 's/vt.cur_default=1/consoleblank=0/g' -i ${boot_files_loc}/extlinux/extlinux.conf
+    # setting fsck repair to yes
+    sed -e 's/consoleblank=0/consoleblank=0 fsck.mode=auto fsck.repair=yes/g' -i ${boot_files_loc}/extlinux/extlinux.conf
 fi
 
 image_filename="MiniArch-${image_version}-${boards_list}SD-Image"
@@ -164,6 +164,7 @@ ${PYTHON} -B ${base_dir}/scripts/wic create ${base_dir}/MiniArch.wks \
 --no-fstab-update \
 ${debug_flag}
 "
+
 echo '  removing working files...'
 rm -rf ${root_files_loc}/../pseudo*
 rm -f ${base_dir}/MiniArch.wks

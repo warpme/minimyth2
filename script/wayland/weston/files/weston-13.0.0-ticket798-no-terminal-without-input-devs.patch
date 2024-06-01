@@ -1,0 +1,86 @@
+diff --speed-large-files --no-dereference --minimal -Naur weston-13.0.0/libweston/backend-drm/drm.c weston-13.0.0/libweston/backend-drm/drm.c
+--- weston-13.0.0/libweston/backend-drm/drm.c	2023-11-27 19:01:53.000000000 +0100
++++ weston-13.0.0/libweston/backend-drm/drm.c	2024-02-07 10:32:40.815233737 +0100
+@@ -1590,21 +1590,24 @@
+ 			     struct weston_output *output,
+ 			     const char *s)
+ {
+-	if (strcmp(s, "") != 0) {
+-		struct weston_pointer *pointer;
+-		struct udev_seat *seat;
++	struct weston_pointer *pointer;
++	struct udev_seat *seat;
++	const char *seat_name = NULL;
+ 
+-		seat = udev_seat_get_named(&b->input, s);
+-		if (!seat)
+-			return;
++	seat_name = s;
++	if (strcmp(seat_name, "") == 0)
++		seat_name = "fake-seat";
+ 
+-		seat->base.output = output;
++	seat = udev_seat_get_named(&b->input, seat_name);
++	if (!seat)
++		return;
+ 
+-		pointer = weston_seat_get_pointer(&seat->base);
+-		if (pointer)
+-			pointer->pos = weston_pointer_clamp(pointer,
+-							    pointer->pos);
+-	}
++	seat->base.output = output;
++
++	pointer = weston_seat_get_pointer(&seat->base);
++	if (pointer)
++		pointer->pos = weston_pointer_clamp(pointer,
++						    pointer->pos);
+ }
+ 
+ static int
+@@ -1726,6 +1729,9 @@
+ 	struct drm_output *output = to_drm_output(base);
+ 	struct drm_backend *b = output->backend;
+ 
++	if (b->seat_id)
++		seat = b->seat_id;
++
+ 	setup_output_seat_constraint(b, &output->base,
+ 				     seat ? seat : "");
+ }
+@@ -3366,6 +3372,7 @@
+ 
+ 	free(device->drm.filename);
+ 	free(device);
++	free(b->seat_id);
+ 	free(b);
+ }
+ 
+@@ -3875,6 +3882,8 @@
+ 	b->compositor = compositor;
+ 	b->pageflip_timeout = config->pageflip_timeout;
+ 	b->use_pixman_shadow = config->use_pixman_shadow;
++	if (config->seat_id)
++		b->seat_id = strdup(config->seat_id);
+ 
+ 	b->debug = weston_compositor_add_log_scope(compositor, "drm-backend",
+ 						   "Debug messages from DRM/KMS backend\n",
+@@ -4105,6 +4114,7 @@
+ 	if (b->gbm)
+ 		gbm_device_destroy(b->gbm);
+ #endif
++	free(b->seat_id);
+ 	free(b);
+ 	return NULL;
+ }
+diff --speed-large-files --no-dereference --minimal -Naur weston-13.0.0/libweston/backend-drm/drm-internal.h weston-13.0.0/libweston/backend-drm/drm-internal.h
+--- weston-13.0.0/libweston/backend-drm/drm-internal.h	2023-11-27 19:01:53.000000000 +0100
++++ weston-13.0.0/libweston/backend-drm/drm-internal.h	2024-02-07 10:21:12.521915122 +0100
+@@ -369,6 +369,7 @@
+ 	const struct pixel_format_info *format;
+ 
+ 	bool use_pixman_shadow;
++	char *seat_id;
+ 
+ 	struct udev_input input;
+ 

@@ -1,16 +1,13 @@
 
 GARNAME      = bootfiles-h618.vontar_h618
-GARVERSION   = 2023-07-21
+GARVERSION   = 2024-03-24
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
-               h618-boot-debug.scr \
-               h618-boot-debug.txt \
-               h618-boot.scr       \
-               h618-boot.txt       \
                minimyth.conf       \
+               extlinux.conf       \
 
-export mm_U-BOOT_BOARD_TYPE = tanix_tx6s_axp313_defconfig
+export mm_U-BOOT_BOARD_TYPE = vontar_h618_defconfig
 
 WORKSRC      = $(WORKDIR)
 
@@ -32,18 +29,17 @@ build-custom:
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
-	@cp -f    $(WORKSRC)/h618-boot-debug.scr                                 $(DESTDIR)/boot/boot-debug.scr
-	@cp -f    $(WORKSRC)/h618-boot.scr                                       $(DESTDIR)/boot/boot.scr
-	@mkdir -p $(DESTDIR)/boot/h616loaderfiles
-	@cp -f    $(DESTDIR)$(libdir)/u-boot/h616/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
-		  $(DESTDIR)/boot/h616loaderfiles/u-boot-sunxi-with-spl.bin
+	@mkdir -p $(DESTDIR)/boot/extlinux
 	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
+	@cp -f    $(WORKSRC)/extlinux.conf $(DESTDIR)/boot/extlinux/extlinux.conf
+	@mkdir -p $(DESTDIR)/boot/h618loaderfiles
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/h616/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
+		  $(DESTDIR)/boot/h618loaderfiles/u-boot-sunxi-with-spl.bin
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-custom:
-	@rm -f  $(DESTDIR)/boot/boot-debug.scr
-	@rm -f  $(DESTDIR)/boot/boot.scr
-	@rm -rf $(DESTDIR)/boot/h616loaderfiles*
+	@rm -rf $(DESTDIR)/boot/extlinux*
+	@rm -rf $(DESTDIR)/boot/h618loaderfiles*
 	@rm -f  $(DESTDIR)/boot/minimyth.conf
 
 clean-all: clean-custom cookieclean

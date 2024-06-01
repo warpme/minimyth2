@@ -1,6 +1,6 @@
 
 GARNAME      = makemkv-oss
-GARVERSION   = 1.17.5
+GARVERSION   = 1.17.7
 CATEGORIES   = utils
 MASTER_SITES = http://www.makemkv.com/download/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.gz
@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/ffmpeg4
+DEPENDS = lang/c lib/ffmpeg6
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile

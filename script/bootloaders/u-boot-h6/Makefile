@@ -1,21 +1,18 @@
 
-# Mainline U-boot v2023.01
-GARNAME      = u-boot-2023.01
-GARVERSION   = 2023.01
+# Mainline U-boot v2024.04
+GARNAME      = u-boot-h6
+GARVERSION   = 2024.04
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
-DISTFILES    = v$(GARVERSION).zip
-PATCHFILES   = 0001-Kconfig-Remove-an-impossible-condition.patch
-PATCHFILES  += 0002-binman-Prevent-entries-in-a-section-from-overlapping.patch
-#PATCHFILES  += 0003-sunxi-binman-Enable-SPL-FIT-loading-for-32-bit-SoCs.patch
+DISTFILES    = v$(GARVERSION).tar.gz
 PATCHFILES  += 0005-sunxi-psci-Avoid-hanging-when-CPU-0-is-hot-unplugged.patch
-PATCHFILES  += 0008-remoteproc-Add-a-driver-for-the-Allwinner-AR100.patch
-PATCHFILES  += 0009-arm-dts-sunxi-h3-Add-nodes-for-AR100-remoteproc.patch
-PATCHFILES  += 0010-sunxi-Add-OrangePi-3-LTS-board.patch
-PATCHFILES  += 0011-arm-psci-Add-definitions-for-PSCI-v1.1.patch
-PATCHFILES  += 0012-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
-PATCHFILES  += 0013-sunxi-mmc-increase-stabilization-delay-from-1ms-to-20ms.patch
-PATCHFILES  += 0014-unreliable-dram.patch
+PATCHFILES  += 0007-remoteproc-Add-a-driver-for-the-Allwinner-AR100.patch
+PATCHFILES  += 0008-arm-dts-sunxi-h3-Add-nodes-for-AR100-remoteproc.patch
+PATCHFILES  += 0010-arm-psci-Add-definitions-for-PSCI-v1.1.patch
+PATCHFILES  += 0011-DO-NOT-MERGE-sunxi-Enable-remoteproc-on-some-H3-boar.patch
+PATCHFILES  += 0014-sunxi-Add-OrangePi-3-LTS-board.patch
+PATCHFILES  += 0015-sunxi-mmc-increase-stabilization-delay-from-1ms-to-20ms.patch
+PATCHFILES  += 0016-sunxi-dram-Fix-incorrect-ram-size-detection-for-some-H6-boards.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
 

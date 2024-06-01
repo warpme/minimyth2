@@ -20,7 +20,7 @@ BUILD_ARGS = \
 
 include ../../gar.mk
 
-LDFLAGS := -lX11 -lXtst -llirc_client $(LDFLAGS)
+LDFLAGS := -lX11 -lXtst -llirc_client $(LDFLAGS) -Wno-implicit-function-declaration
 
 LDFLAGS := $(LDFLAGS) -fwhole-program
 

@@ -1,134 +1,150 @@
 
 GARNAME      = util-linux
-GARVERSION   = 2.38
+GARVERSION   = 2.40.1
 CATEGORIES   = utils
-MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.38/
+MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.40/
 DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = $(DISTNAME)-stop-building-disabled-pymount.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/ncursesw devel/zlib
+DEPENDS = lang/c lib/ncursesw devel/zlib python3/python
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/configure
-BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+CONFIGURE_SCRIPTS  = meson
+BUILD_SCRIPTS      = meson
+INSTALL_SCRIPTS    = meson
 
-CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
-	--bindir=$(ebindir) \
-	--sbindir=$(esbindir) \
-	--libdir=$(elibdir) \
-	--enable-silent-rules \
-	--enable-shared \
-	--disable-static \
-	--disable-gtk-doc \
-	--disable-asciidoc \
-	--disable-poman \
-	--enable-nls \
-	--disable-rpath \
-	--enable-tls \
-	--enable-libuuid \
-	--enable-libblkid \
-	--enable-libmount \
-	--disable-libmount-force-mountinfo \
-	--enable-libsmartcols \
-	--disable-libfdisk \
-	--enable-mount \
-	--disable-losetup \
-	--enable-zramctl \
-	--disable-fsck \
-	--disable-partx \
-	--enable-uuidd \
-	--disable-mountpoint \
-	--disable-fallocate \
-	--disable-unshare \
-	--disable-nsenter \
-	--disable-setpriv \
-	--enable-eject \
-	--enable-agetty \
-	--enable-cramfs \
-	--disable-bfs \
-	--disable-minix \
-	--disable-fdformat \
-	--disable-hwclock \
-	--disable-wdctl \
-	--enable-switch_root \
-	--disable-pivot_root \
-	--disable-tunelp \
-	--disable-kill \
-	--disable-deprecated-last \
-	--disable-last \
-	--disable-utmpdump \
-	--disable-line \
-	--disable-mesg \
-	--disable-raw \
-	--enable-rename \
-	--disable-reset \
-	--disable-vipw \
-	--disable-newgrp \
-	--disable-chfn-chsh-password \
-	--disable-chfn-chsh \
-	--enable-chsh-only-listed \
-	--disable-login \
-	--disable-login-chown-vcs \
-	--disable-login-stat-mail \
-	--disable-nologin \
-	--disable-sulogin \
-	--disable-su \
-	--disable-runuser \
-	--disable-ul \
-	--disable-more \
-	--disable-pg \
-	--disable-setterm \
-	--disable-schedutils \
-	--disable-wall \
-	--disable-write \
-	--disable-bash-completion \
-	--disable-pylibmount \
-	--enable-pg-bell \
-	--disable-use-tty-group \
-	--disable-sulogin-emergency-mount \
-	--disable-makeinstall-chown \
-	--disable-makeinstall-setuid \
-	--disable-colors-default \
-	--with-gnu-ld \
-	--without-selinux \
-	--without-audit \
-	--without-udev \
-	--without-slang \
-	--without-utempter \
-	--without-user \
-	--without-systemd \
-	--without-systemdsystemunitdir \
-	--without-smack \
-	--without-python
-
-BUILD_ARGS     = \
-	usrbin_execdir=$(bindir) \
-	usrsbin_execdir=$(sbindir) \
-	usrlib_execdir=$(elibdir) \
-	pkgconfigdir=$(libdir)/pkgconfig
-INSTALL_ARGS   = \
-	usrbin_execdir=$(bindir) \
-	usrsbin_execdir=$(sbindir) \
-	usrlib_execdir=$(elibdir) \
-	pkgconfigdir=$(libdir)/pkgconfig
+MESON_CONFIGURE_ARGS = \
+	--buildtype=release \
+	-D tinfo=disabled \
+	-D ncursesw=disabled \
+	-D ncurses=disabled \
+	-D slang=disabled \
+	-D cryptsetup=disabled \
+	-D cryptsetup-dlopen=disabled \
+	-D zlib=enabled \
+	-D readline=disabled \
+	-D nls=enabled \
+	-D libutil=disabled \
+	-D libutempter=disabled \
+	-D libpcre2-posix=disabled \
+	-D libuser=disabled \
+	-D selinux=disabled \
+	-D audit=disabled \
+	-D smack=disabled \
+	-D magic=disabled \
+	-D econf=disabled \
+	-D systemd=disabled \
+	-D sysvinit=disabled \
+	-D btrfs=disabled \
+	-D widechar=disabled \
+	-D python=python3 \
+	-D build-python=disabled \
+	-D build-libblkid=enabled \
+	-D build-libuuid=enabled \
+	-D build-liblastlog2=disabled \
+	-D build-pam-lastlog2=disabled \
+	-D build-libmount=enabled \
+	-D build-libsmartcols=enabled \
+	-D build-libfdisk=disabled \
+	-D build-fdisks=disabled \
+	-D build-mount=enabled \
+	-D build-losetup=disabled \
+	-D build-zramctl=enabled \
+	-D build-fsck=disabled \
+	-D build-partx=disabled \
+	-D build-uuidd=enabled \
+	-D build-wipefs=disabled \
+	-D build-mountpoint=disabled \
+	-D build-fallocate=disabled \
+	-D build-unshare=disabled \
+	-D build-nsenter=disabled \
+	-D build-setpriv=disabled \
+	-D build-hardlink=disabled \
+	-D build-eject=enabled \
+	-D build-agetty=enabled \
+	-D build-cramfs=enabled \
+	-D build-bfs=disabled \
+	-D build-minix=disabled \
+	-D build-fdformat=disabled \
+	-D build-hwclock=disabled \
+	-D build-lslogins=disabled \
+	-D build-wdctl=disabled \
+	-D build-cal=disabled \
+	-D build-logger=disabled \
+	-D build-switch_root=enabled \
+	-D build-pivot_root=disabled \
+	-D build-lsmem=enabled \
+	-D build-lsirq=enabled \
+	-D build-irqtop=disabled \
+	-D build-chmem=disabled \
+	-D build-ipcrm=disabled \
+	-D build-ipcs=disabled \
+	-D build-rfkill=disabled \
+	-D build-tunelp=disabled \
+	-D build-kill=disabled \
+	-D build-last=disabled \
+	-D build-utmpdump=disabled \
+	-D build-line=disabled \
+	-D build-mesg=disabled \
+	-D build-raw=disabled \
+	-D build-rename=enabled \
+	-D build-vipw=disabled \
+	-D build-newgrp=disabled \
+	-D build-chfn-chsh=disabled \
+	-D build-login=disabled \
+	-D build-nologin=disabled \
+	-D build-sulogin=disabled \
+	-D build-su=disabled \
+	-D build-runuser=disabled \
+	-D build-ul=disabled \
+	-D build-more=disabled \
+	-D build-pg=disabled \
+	-D build-pipesz=disabled \
+	-D build-setterm=disabled \
+	-D build-schedutils=disabled \
+	-D build-wall=disabled \
+	-D build-write=disabled \
+	-D build-bash-completion=disabled \
+	-D build-pylibmount=disabled \
+	-D program-tests=false \
+	-D chfn-chsh-password=false \
+	-D chsh-only-listed=true \
+	-D use-tty-group=false \
+	-D build-plymouth-support=disabled \
+	-D use-tls=true \
+	-D pg-bell=true \
+	-D colors-default=false \
 
 include ../../gar.mk
 
-pre-configure:
-	@$(call RUN_GETTEXTIZE)
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
-
 post-install:
-	@ln -srf $(DESTDIR)$(elibdir)/libuuid.so $(DESTDIR)$(libdir)/libuuid.so
-	@rm -f $(DESTDIR)$(elibdir)/libblkid.la
-	@rm -f $(DESTDIR)$(elibdir)/libmount.la
-	@rm -f $(DESTDIR)$(elibdir)/libuuid.la
-	@rm -f $(DESTDIR)$(elibdir)/libsmartcols.la
 	@mv -f $(DESTDIR)$(bindir)/eject $(DESTDIR)$(bindir)/eject-cdrom
+
+	@ln -srf $(DESTDIR)$(bindir)/findmnt $(DESTDIR)$(ebindir)/
+	@ln -srf $(DESTDIR)$(bindir)/lsblk   $(DESTDIR)$(ebindir)/
+	@ln -srf $(DESTDIR)$(bindir)/lsfd    $(DESTDIR)$(ebindir)/
+	@ln -srf $(DESTDIR)$(bindir)/mount   $(DESTDIR)$(ebindir)/
+	@ln -srf $(DESTDIR)$(bindir)/umount  $(DESTDIR)$(ebindir)/
+
+	@ln -srf $(DESTDIR)$(sbindir)/agetty       $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/blkdiscard   $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/blkid        $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/blkzone      $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/blockdev     $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/chcpu        $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/ctrlaltdel   $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/findfs       $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/fsck.cramfs  $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/fsfreeze     $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/fstrim       $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/mkfs         $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/mkfs.cramfs  $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/swaplabel    $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/switch_root  $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/wipefs       $(DESTDIR)$(esbindir)/
+	@ln -srf $(DESTDIR)$(sbindir)/zramctl      $(DESTDIR)$(esbindir)/
 	@$(MAKECOOKIE)

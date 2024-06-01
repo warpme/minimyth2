@@ -147,7 +147,7 @@ mm_url_confro_get() {
         REMOTE_FILE_0="conf/${HOST_NAME}/${REMOTE_FILE}"
     fi
     REMOTE_FILE_1="conf/default/${REMOTE_FILE}"
-    REMOTE_FILE_2="/media/boot/${REMOTE_FILE}"
+    REMOTE_FILE_2="/boot/${REMOTE_FILE}"
 
     /bin/rm -f "${LOCAL_FILE}"
     ( /usr/bin/test "${LOCAL_FILE}" = "/etc/minimyth.d/minimyth.conf" \
@@ -196,7 +196,7 @@ mm_url_confrw_get() {
         REMOTE_FILE_0=`/bin/echo ${REMOTE_FILE}`
         REMOTE_FILE_0="conf-rw/${HOST_NAME}/${REMOTE_FILE_0}"
     fi
-    /usr/bin/test -e "/media/boot" && REMOTE_FILE_1="/media/boot/${REMOTE_FILE}"
+    /usr/bin/test -e "/boot" && REMOTE_FILE_1="/boot/${REMOTE_FILE}"
 
     /bin/rm -f "${LOCAL_FILE}"
     ( /usr/bin/test -n "${REMOTE_FILE_0}" \
@@ -462,7 +462,7 @@ mm_url_confrw_put() {
         REMOTE_FILE_0=`/bin/echo ${REMOTE_FILE}`
         REMOTE_FILE_0="conf-rw/${HOST_NAME}/${REMOTE_FILE_0}"
     fi
-    /usr/bin/test -e "/media/boot" && REMOTE_FILE_1="/media/boot/${REMOTE_FILE}"
+    /usr/bin/test -e "/boot" && REMOTE_FILE_1="/boot/${REMOTE_FILE}"
 
     ( /usr/bin/test -n "${REMOTE_FILE_0}" \
           && mm_url_put "${MM_MINIMYTH_BOOT_URL}${REMOTE_FILE_0}" "${LOCAL_FILE}" \
@@ -967,17 +967,22 @@ mm_themecache_save() {
     /bin/true
 }
 
-mm_cookiejar_save() {
+mm_mythbrowser_cookies_save() {
 
     if [ -e /home/minimyth/.mythtv/MythBrowser/cookiejar.txt ] ; then
         mm_confrw_put "mythbrowser_cookiejar.txt" "/home/minimyth/.mythtv/MythBrowser/cookiejar.txt"
         if [ $? -ne 0 ] ; then
             /usr/bin/logger -s -t minimyth -p "local0.error" \
-                "[functions/mm_cookiejar_save] failed to upload the MythBrowser cookiejar.txt file!"
+                "[functions/mm_mythbrowser_cookies_save] failed to save MythBrowser cookiejar.txt !"
             /bin/false
             return
         fi
     fi
+}
+
+mm_cookiejar_save() {
+
+    mm_mythbrowser_cookies_save
 
     if [ -d /home/minimyth/.config ] ; then
         cd /home/minimyth
@@ -1009,6 +1014,17 @@ mm_cookiejar_save() {
         "[functions/mm_cookiejar_save] MythBrowser cookiejar.txt file and Chrome/Mozilla configs uploaded sucessfuly..."
     /bin/true
     return
+}
+
+mm_mythbrowser_cookies_restore() {
+
+    /bin/rm -f /home/minimyth/.mythtv/MythBrowser/cookiejar.txt
+
+    mm_confrw_get mythbrowser_cookiejar.txt /home/minimyth/.mythtv/MythBrowser/cookiejar.txt
+    if [ -e /home/minimyth/.mythtv/MythBrowser/cookiejar.txt ] ; then
+        "[functions/mm_mythbrowser_cookies_restore] MythBrowser cookiejar.txt restored sucessfuly..."
+        /bin/chmod 0600 /home/minimyth/.mythtv/MythBrowser/cookiejar.txt
+    fi
 }
 
 mm_bt_state_save() {
@@ -1126,7 +1142,7 @@ mm_uniq() {
 #             confrw:themecaches/G.A.N.T..1024.768.sfs<br/>
 #         The valid protocol values are: 'nfs', 'cifs', 'http', 'tftp',
 #         'confro', 'confrw', 'dist', 'hunt' and 'file'. For 'nfs' 'cifs' and
-#         'partlbl'.
+#         'partlbl', 'bootdevpart'.
 #         The URL points to a remote directory. For 'http', 'tftp', 'confro',
 #         'confrw', 'dist' and 'hunt', the URL points to a remote file. For
 #         'file', the URL point to a local directory or file. For 'partlbl' URL
@@ -1249,6 +1265,17 @@ mm_url_mount() {
     elif [ "x${URL_PROTOCOL}" = "xpartlbl" ] ; then
         LABEL=`/bin/echo ${URL_PATH} | /bin/sed 's%/*%%g'`
         /bin/mount --label "${LABEL}" "${MOUNT_DIR}"
+    elif [ "x${URL_PROTOCOL}" = "xbootdevpart" ] ; then
+        PART_NO=`/bin/echo ${URL_PATH} | /bin/sed 's%/*%%g'`
+        BOOT_DEV=$(mount | grep -e "/initrd\s"| awk '{print $1}' | sed 's/p[0123456789]//g' | sed 's/\/dev\///g')
+        if [ ! x${PART_NO} = "x" ] && [ ! x${BOOT_DEV} = "x" ] ; then
+            /bin/mount /dev/${BOOT_DEV}p${PART_NO} "${MOUNT_DIR}"
+        else
+            /usr/bin/logger -s -t minimyth -p "local0.error" \
+                "mm_url_mount: mountng ${URL_PATH} failed (PART_NO=${PART_NO};BOOT_DEV=${BOOT_DEV})"
+            /bin/false
+            return
+        fi
     else
         /usr/bin/logger -s -t minimyth -p "local0.error" \
             "mm_url_mount: protocol '${URL_PROTOCOL}' is not supported."
@@ -1431,9 +1458,9 @@ mm_splash_init() {
 
     if [ "x${SPLASH_ENABLE}" = "xyes" ] ; then
         case "${type}" in
-            bootup)   message="starting system ..."      ;;
-            shutdown) message="shutting down system ..." ;;
-            reboot)   message="restarting system ..."    ;;
+            bootup)   message="starting ..."      ;;
+            shutdown) message="shutting down ..." ;;
+            reboot)   message="restarting ..."    ;;
             *)        message="${type}"                  ;;
         esac
         /usr/bin/logger -t minimyth -p "local0.info" "starting splash screen. geometry:${XRES}x${YRES},Vres:${VXRES}x${VYRES},${DEPTH}bpp"

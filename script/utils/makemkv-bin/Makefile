@@ -1,6 +1,6 @@
 
 GARNAME      = makemkv-bin
-GARVERSION   = 1.17.5
+GARVERSION   = 1.17.7
 CATEGORIES   = utils
 MASTER_SITES = http://www.makemkv.com/download/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.gz
@@ -29,6 +29,6 @@ ifeq ($(GARCH),i386)
 export ARCH=i686
 endif
 
-ifeq ($(GARCH),x86_64)
+ifeq ($(GARCH),x86-64)
 export ARCH=x86_64
 endif

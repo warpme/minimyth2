@@ -1,8 +1,8 @@
 
 GARNAME      = python-lxml
-GARVERSION   = 4.9.2
+GARVERSION   = 5.2.1
 CATEGORIES   = python
-MASTER_SITES = https://files.pythonhosted.org/packages/06/5a/e11cad7b79f2cf3dd2ff8f81fa8ca667e7591d3d8451768589996b65dec1/
+MASTER_SITES = https://files.pythonhosted.org/packages/ea/e2/3834472e7f18801e67a3cd6f3c203a5456d6f7f903cfb9a990e62098a2f3/
 DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE      = BSD_3_Clause
 
@@ -23,3 +23,5 @@ INSTALL_ENV    = \
 
 include ../../python3/python/python3-module.mk
 include ../python/package-api.mk
+
+CFLAGS  += -Wno-incompatible-pointer-types

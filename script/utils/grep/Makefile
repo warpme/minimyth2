@@ -1,9 +1,10 @@
-GARNAME = grep
-GARVERSION = 2.21
-CATEGORIES = utils
+
+GARNAME      = grep
+GARVERSION   = 3.11
+CATEGORIES   = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB

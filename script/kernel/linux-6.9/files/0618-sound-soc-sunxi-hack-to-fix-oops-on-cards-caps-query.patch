@@ -1,0 +1,153 @@
+
+This hack stops kernel oops at alsa cards caps query.
+By https://github.com/torvalds/linux/commit/446b31e894935ebbcf84302061a4e0e2efb2368f
+h616 audio patches were updated. After this - h616 audio works ok but we started to see 
+kernel oops at alsa cards caps query.
+
+This is workarround patch:
+-reverts 446b31e894935ebbcf84302061a4e0e2efb2368f (hunks 1,2)
+-reverts h616 audio patches chnages required by 446b31e894935ebbcf84302061a4e0e2efb2368f (hunks 3,4)
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.1/include/sound/soc-dai.h linux-6.6.1/include/sound/soc-dai.h
+--- linux-6.6.1/include/sound/soc-dai.h	2023-11-08 11:56:25.000000000 +0100
++++ linux-6.6.1/include/sound/soc-dai.h	2023-11-17 11:08:55.260022281 +0100
+@@ -414,6 +414,15 @@
+ 	struct snd_soc_dobj dobj;
+ 	struct of_phandle_args *dai_args;
+ 
++	/* DAI driver callbacks */
++	int (*probe)(struct snd_soc_dai *dai);
++	int (*remove)(struct snd_soc_dai *dai);
++	/* compress dai */
++	int (*compress_new)(struct snd_soc_pcm_runtime *rtd, int num);
++	/* Optional Callback used at pcm creation*/
++	int (*pcm_new)(struct snd_soc_pcm_runtime *rtd,
++		       struct snd_soc_dai *dai);
++
+ 	/* ops */
+ 	const struct snd_soc_dai_ops *ops;
+ 	const struct snd_soc_cdai_ops *cops;
+@@ -424,6 +433,10 @@
+ 	unsigned int symmetric_rate:1;
+ 	unsigned int symmetric_channels:1;
+ 	unsigned int symmetric_sample_bits:1;
++
++	/* probe ordering - for components with runtime dependencies */
++	int probe_order;
++	int remove_order;
+ };
+ 
+ /* for Playback/Capture */
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.1/sound/soc/soc-core.c linux-6.6.1/sound/soc/soc-core.c
+--- linux-6.6.1/sound/soc/soc-core.c	2023-11-08 11:56:25.000000000 +0100
++++ linux-6.6.1/sound/soc/soc-core.c	2023-11-17 11:08:55.260022281 +0100
+@@ -2520,6 +2520,7 @@
+ {
+ 	struct device *dev = component->dev;
+ 	struct snd_soc_dai *dai;
++	struct snd_soc_dai_ops *ops; /* REMOVE ME */
+ 
+ 	lockdep_assert_held(&client_mutex);
+ 
+@@ -2548,6 +2549,30 @@
+ 	if (!dai->name)
+ 		return NULL;
+ 
++	/* REMOVE ME */
++	if (dai_drv->probe		||
++	    dai_drv->remove		||
++	    dai_drv->compress_new	||
++	    dai_drv->pcm_new		||
++	    dai_drv->probe_order	||
++	    dai_drv->remove_order) {
++
++		ops = devm_kzalloc(dev, sizeof(struct snd_soc_dai_ops), GFP_KERNEL);
++		if (!ops)
++			return NULL;
++		if (dai_drv->ops)
++			memcpy(ops, dai_drv->ops, sizeof(struct snd_soc_dai_ops));
++
++		ops->probe		= dai_drv->probe;
++		ops->remove		= dai_drv->remove;
++		ops->compress_new	= dai_drv->compress_new;
++		ops->pcm_new		= dai_drv->pcm_new;
++		ops->probe_order	= dai_drv->probe_order;
++		ops->remove_order	= dai_drv->remove_order;
++
++		dai_drv->ops = ops;
++	}
++
+ 	dai->component = component;
+ 	dai->dev = dev;
+ 	dai->driver = dai_drv;
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.1/sound/soc/sunxi/sun50iw9-codec.c linux-6.6.1/sound/soc/sunxi/sun50iw9-codec.c
+--- linux-6.6.1/sound/soc/sunxi/sun50iw9-codec.c	2023-11-17 11:11:40.303356174 +0100
++++ linux-6.6.1/sound/soc/sunxi/sun50iw9-codec.c	2023-11-17 10:52:02.243352201 +0100
+@@ -652,12 +652,9 @@
+     return 0;
+ }
+ 
+-static const struct snd_soc_dai_ops dummy_dai_ops = {
+-	.probe = sun50i_h616_codec_dai_probe,
+-};
+-
+ static struct snd_soc_dai_driver dummy_cpu_dai = {
+     .name = "sun50i_h616-codec-cpu-dai",
++    .probe = sun50i_h616_codec_dai_probe,
+     .playback = {
+         .stream_name = "Playback",
+         .channels_min = 1,
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.6.1/sound/soc/sunxi_v2/snd_sunxi_ahub.c linux-6.6.1/sound/soc/sunxi_v2/snd_sunxi_ahub.c
+--- linux-6.6.1/sound/soc/sunxi_v2/snd_sunxi_ahub.c	2023-11-17 11:11:40.340022841 +0100
++++ linux-6.6.1/sound/soc/sunxi_v2/snd_sunxi_ahub.c	2023-11-17 10:52:02.553352202 +0100
+@@ -849,6 +849,21 @@
+ 	}
+ }
+ 
++static const struct snd_soc_dai_ops sunxi_ahub_dai_ops = {
++	/* call by machine */
++	.set_pll	= sunxi_ahub_dai_set_pll,	// set pllclk
++	.set_sysclk	= sunxi_ahub_dai_set_sysclk,	// set mclk
++	.set_bclk_ratio	= sunxi_ahub_dai_set_bclk_ratio,// set bclk freq
++	.set_tdm_slot	= sunxi_ahub_dai_set_tdm_slot,	// set slot num and width
++	.set_fmt	= sunxi_ahub_dai_set_fmt,	// set tdm fmt
++	/* call by asoc */
++	.startup	= sunxi_ahub_dai_startup,
++	.hw_params	= sunxi_ahub_dai_hw_params,	// set hardware params
++	.prepare	= sunxi_ahub_dai_prepare,	// clean irq and fifo
++	.trigger	= sunxi_ahub_dai_trigger,	// set drq
++	.shutdown	= sunxi_ahub_dai_shutdown,
++};
++
+ static void snd_soc_sunxi_ahub_init(struct sunxi_ahub_info *ahub_info)
+ {
+ 	struct regmap *regmap = NULL;
+@@ -990,25 +1005,10 @@
+ 	return 0;
+ }
+ 
+-static const struct snd_soc_dai_ops sunxi_ahub_dai_ops = {
+-	/* call by machine */
+-	.set_pll	= sunxi_ahub_dai_set_pll,	// set pllclk
+-	.set_sysclk	= sunxi_ahub_dai_set_sysclk,	// set mclk
+-	.set_bclk_ratio	= sunxi_ahub_dai_set_bclk_ratio,// set bclk freq
+-	.set_tdm_slot	= sunxi_ahub_dai_set_tdm_slot,	// set slot num and width
+-	.set_fmt	= sunxi_ahub_dai_set_fmt,	// set tdm fmt
+-	/* call by asoc */
+-	.probe		= sunxi_ahub_dai_probe,
+-	.startup	= sunxi_ahub_dai_startup,
+-	.hw_params	= sunxi_ahub_dai_hw_params,	// set hardware params
+-	.prepare	= sunxi_ahub_dai_prepare,	// clean irq and fifo
+-	.trigger	= sunxi_ahub_dai_trigger,	// set drq
+-	.remove		= sunxi_ahub_dai_remove,
+-	.shutdown	= sunxi_ahub_dai_shutdown,
+-};
+-
+ static struct snd_soc_dai_driver sunxi_ahub_dai = {
+ 	.name		= "ahub_plat",
++	.probe		= sunxi_ahub_dai_probe,
++	.remove		= sunxi_ahub_dai_remove,
+ 	.playback = {
+ 		.stream_name	= "Playback",
+ 		.channels_min	= 1,
