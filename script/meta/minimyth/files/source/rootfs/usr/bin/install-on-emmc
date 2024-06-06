@@ -17,6 +17,9 @@ safety_margin=100
 # area at emmc begininng filled with zero to make emmc erased. In MBytes.
 erase_areas_size=1024
 
+# script log file
+log_file="/var/log/install-on-emmc.log"
+
 #-----------------------------
 
 
@@ -60,35 +63,60 @@ erase_areas_size=1024
 
 
 
-ver=2.0
+ver=2.1
 
 command=$1
 
+log() {
+    echo >&2 "`date '+%H:%M:%S'`: $*" >> ${log_file}
+}
+
+msg() {
+    log "$*"
+    echo "$*"
+}
+
+error() {
+    log "$*"
+    echo "$*"
+    echo "Please provide content of ${log_file} to developer ..."
+    echo "Now exiting ..."
+    exit 1
+}
+
+do_cmd() {
+    log "Executing $*"
+    $* 2>>${log_file}
+    if [ $? -ne 0 ] ; then
+        error "Executing $* failed ..."
+    fi
+}
+
 confirm() {
 
-    echo " "
-    echo "    Please confirm $1 by pressing 'y'"
-    echo "    or press Enter (or any other key) to exit ..."
-    echo " "
+    msg " "
+    msg "    Please confirm $1 by pressing 'y'"
+    msg "    or press Enter (or any other key) to exit ..."
+    msg " "
 
     read sel
 
     if [ x$sel = "xy" ] || [ x$sel = "xY" ] ; then
         return
     else
-        echo "Exiting stript (by user no-confirm)"
+        msg "Exiting stript (by user no-confirm)"
         exit 0
     fi
 }
 
 is_booted_from_emmc() {
     if [ "${boot_dev}" = "${emmc_dev}" ]; then
-        echo " "
-        echo " "
-        echo "Your device is currently booted from the eMMC."
-        echo "Install from eMMC to eMMC not make much sense... Exiting ..."
-        echo " "
-        echo " "
+        msg " "
+        msg " "
+        msg "Your device is currently booted from the eMMC."
+        msg "Install from eMMC to eMMC not make much sense... Exiting ..."
+        msg " "
+        msg " "
         exit 1
     fi
 }
@@ -96,80 +124,77 @@ is_booted_from_emmc() {
 what_platform() {
 
     platform=$(cat /sys/firmware/devicetree/base/compatible 2>/dev/null)
-    echo "Ooo...you are running ${platform}"
+    log "platform string: ${platform}"
+    msg "Ooo...you are running ${platform}"
 
     if [[ ${platform} =~ "allwinner" ]] ; then
-        echo "Allwinner detected...Good!"
+        msg "Allwinner detected...Good!"
         platform_type=1
 
     elif [[ "${platform}" =~ "rk3328" ]] ; then
-        echo "Rockchip 3328 detected..Good!"
+        msg "Rockchip 3328 detected..Good!"
         platform_type=2
 
     elif [[ "${platform}" =~ "rk3399" ]] ; then
-        echo "Rockchip 3399 detected...Good!"
+        msg "Rockchip 3399 detected...Good!"
         platform_type=3
 
     elif [[ "${platform}" =~ "rk3528" ]] ; then
-        echo "Rockchip 3528 detected..Good!"
+        msg "Rockchip 3528 detected..Good!"
         platform_type=4
 
     elif [[ "${platform}" =~ "sbc-with-5-partitions-layout" ]] ; then
-        echo "Rockchip 3566/3568 (alt part.scheme) detected...Good!"
+        msg "Rockchip 3566/3568 (alt part.scheme) detected...Good!"
         platform_type=5
 
     elif [[ "${platform}" =~ "rk356" ]] ; then
-        echo "Rockchip 3566/3568 detected...Good!"
+        msg "Rockchip 3566/3568 detected...Good!"
         platform_type=6
 
     elif [[ "${platform}" =~ "rk3588" ]] ; then
-        echo "Rockchip 3588 detected...Good!"
+        msg "Rockchip 3588 detected...Good!"
         platform_type=7
 
     elif [[ "${platform}" =~ "amlogic" ]] ; then
-        echo "Amlogic detected...Good!"
+        msg "Amlogic detected...Good!"
         platform_type=8
 
     elif [[ "${platform}" =~ "raspberrypi" ]] ; then
-        echo "Rpi detected...Good!"
+        msg "Rpi detected...Good!"
         platform_type=9
 
     else
-        echo "Unknown platform!"
+        msg "Unknown platform!"
         platform_type=99
     fi
 }
 
 get_size_to_copy() {
 
-    for part_no in 6 5 4 3 2 1 0
+    for part_no in p6 p5 p4 p3 p2 p1 p0 6 5 4 3 2 1 0
     do
-        start=$(cat /sys/block/${boot_dev}/${boot_dev}p${part_no}/start 2>/dev/null)
+        sysfs_part="/sys/block/${boot_dev}/${boot_dev}${part_no}"
+        start=$(cat ${sysfs_part}/start 2>/dev/null)
+        log "reading ${sysfs_part} for start returns: ${start}"
         if [ ! x${start} = "x" ] ; then
-            size=$(cat /sys/block/${boot_dev}/${boot_dev}p${part_no}/size 2>/dev/null)
-            end=$((${start} + $size))
-            storage_usage=$((${end} / 2000))
-            break
-        fi
-        start=$(cat /sys/block/${boot_dev}/${boot_dev}${part_no}/start 2>/dev/null)
-        if [ ! x${start} = "x" ] ; then
-            size=$(cat /sys/block/${boot_dev}/${boot_dev}${part_no}/size 2>/dev/null)
+            size=$(cat ${sysfs_part}/size 2>/dev/null)
+            log "reading ${sysfs_part} for size returns: ${size}"
             end=$((${start} + $size))
             storage_usage=$((${end} / 2000))
             break
         fi
     done
 
-    if [ x${start} = "x" ] ; then
-        echo "ERROR: can't determine usage on ${boot_dev}! Exiting ..."
+    if [ x${storage_usage} = "x" ] ; then
+        msg "ERROR: can't determine usage on ${boot_dev}! Exiting ..."
         exit 1
     fi
 }
 
 duplicate_sdcard_to_emmc() {
 
-    echo "  ==> copying from: ${boot_dev} to: eMMC(${emmc_dev}) ..."
-    dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1M count=$1 conv=fsync
+    msg "  ==> copying from: ${boot_dev} to: eMMC(${emmc_dev}) ..."
+    do_cmd "dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1M count=$1 conv=fsync"
     sync
 }
 
@@ -179,24 +204,27 @@ update_emmc_bootloader_config() {
     if [ x$1 = "x" ] ; then
         part_no=1
     fi
-    echo "  ==> updating extlinux.conf on eMMC ..."
-    partprobe /dev/${emmc_dev}
-    mkdir -p /boot.emmc
-    mount /dev/${emmc_dev}p${part_no} /boot.emmc
+    msg "  ==> updating extlinux.conf on eMMC ..."
+    do_cmd "partprobe /dev/${emmc_dev}"
+    do_cmd "mkdir -p /boot.emmc"
+    do_cmd "mount /dev/${emmc_dev}p${part_no} /boot.emmc"
     if [ -e /boot.emmc/extlinux/extlinux.conf ] ; then
         sed -e "s|${boot_dev}|${emmc_dev}|g" -i /boot.emmc/extlinux/extlinux.conf
         sync
-        echo "extlinux.conf on eMMC updated successfuly ..."
+        msg "extlinux.conf on eMMC updated successfuly ..."
+        do_cmd "umount /boot.emmc"
     else
-        echo "ERROR: can't update extlinux.conf on eMMC as extlinux.conf is not found."
-        echo "You can update extlinux.conf namually by mounting eMMC /BOOT part and"
-        echo "updating root=... to root=/dev/${emmc_dev}p2 in extlinux.conf file ..."
+        msg "ERROR: can't update extlinux.conf on eMMC as extlinux.conf is not found."
+        msg "You can update extlinux.conf namually by mounting eMMC /BOOT part and"
+        msg "updating root=... to root=/dev/${emmc_dev}p2 in extlinux.conf file ..."
+        do_cmd "umount /boot.emmc"
+        exit 1
     fi
-    sync
 }
 
 erase_emmc() {
-    dd if=/dev/zero of=/dev/${emmc_dev} bs=1M count=${erase_areas_size} conv=fsync
+    msg "  ==> erasing eMMC ..."
+    do_cmd "dd if=/dev/zero of=/dev/${emmc_dev} bs=1M count=${erase_areas_size} conv=fsync"
     sync
 }
 
@@ -204,14 +232,15 @@ write_to_emmc_bootloader() {
 
     if [ $platform_type = 1 ] ; then
         # this is for allwinner
-        echo "  ==> erasing old bootloader ..."
+        msg "  ==> erasing old bootloader ..."
+        log "Executing echo 0 > /sys/block/${emmc_dev}boot0/force_ro"
         echo 0 > /sys/block/${emmc_dev}boot0/force_ro
-        dd if=/dev/zero of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
-        dd if=/dev/zero of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
-        echo "  ==> copying bootloader from ${boot_dev} to ${emmc_dev} ..."
-        dd if=/dev/${boot_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync
-        dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync
-        echo "bootloader copied to eMMC ..."
+        do_cmd "dd if=/dev/zero of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync"
+        do_cmd "dd if=/dev/zero of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync"
+        msg "  ==> copying bootloader from ${boot_dev} to ${emmc_dev} ..."
+        do_cmd "dd if=/dev/${boot_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync"
+        do_cmd "dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync"
+        msg "bootloader copied to eMMC ..."
         update_emmc_bootloader_config
 
     elif [ $platform_type = 2 ] ; then
@@ -240,28 +269,28 @@ write_to_emmc_bootloader() {
 
     elif [ $platform_type = 8 ] ; then
         # this is for amlogic
-        echo "  ==> erasing existing bootloader ..."
-        echo "  ==> copying bootloader ..."
+        msg "  ==> erasing existing bootloader ..."
+        msg "  ==> copying bootloader ..."
 
     elif [ $platform_type = 9 ] ; then
         # this is for rpi
-        echo "  ==> erasing existing bootloader ..."
-        echo "  ==> copying bootloader ..."
+        msg "  ==> erasing existing bootloader ..."
+        msg "  ==> copying bootloader ..."
 
     else
         # this is for usupported
-        echo "  ==> write_to_emmc_bootloader: unknown platform ..."
+        msg "  ==> write_to_emmc_bootloader: unknown platform ..."
     fi
 }
 
-boot_dev=$(mount | grep -e '/initrd\s' | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0123456789]$//g' | sed 's/p//g')
+boot_dev=$(mount | grep -e '/initrd\s' | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0123456789]$//g' | sed 's/p//g' )
 if [ x"${boot_dev}" = "x" ]; then
     boot_dev=$(mount | grep -e 'on\s/\s' | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0123456789]$//g')
 fi
 
 emmc_dev="N/A"
 for TYPE in /sys/class/block/mmcblk*/device/type; do
-  if grep -q "MMC" "${TYPE}"; then
+  if grep -q "MMC" "${TYPE}" 2>/dev/null ; then
     emmc_dev="$(echo "${TYPE}" | awk -F/ '{print $5}')"
     break
   fi
@@ -269,73 +298,74 @@ done
 
 sdcard_dev="N/A"
 for TYPE in /sys/class/block/mmcblk*/device/type; do
-  if grep -q "SD" "${TYPE}"; then
+  if grep -q "SD" "${TYPE}" 2>/dev/null ; then
     sdcard_dev="$(echo "${TYPE}" | awk -F/ '{print $5}')"
     break
   fi
 done
 
-echo " "
-echo "--- MiniMyth2 to eMMC installer v$ver (c)Piotr Oniszczuk ---"
-echo " "
+msg " "
+msg "--- MiniMyth2 to eMMC installer v$ver (c)Piotr Oniszczuk ---"
+msg " "
 
 what_platform
 # mark anything above 8 (amlogic, rpi) as unsupported (yet)
 if [ $platform_type -gt 8 ] ; then
-  echo " "
-  echo "Unsupported (yet) platform! Exiting ..."
-  echo " "
+  msg " "
+  msg "Unsupported (yet) platform! Exiting ..."
+  msg " "
   exit 1
 fi
 
-echo " "
-echo "SDcard device        : ${sdcard_dev}"
-echo "eMMC device          : ${emmc_dev}"
-echo "System booted from   : ${boot_dev}"
+msg " "
+msg "SDcard device        : ${sdcard_dev}"
+msg "eMMC device          : ${emmc_dev}"
+msg "System booted from   : ${boot_dev}"
 
 get_size_to_copy
 
-echo "Boot device has      : ${part_no} partitions"
-echo "Boot device usage    : ${storage_usage}MB"
+msg "Boot device has      : ${part_no} partitions"
+msg "Boot device usage    : ${storage_usage}MB"
 
 if [ x"${emmc_dev}" = "xN/A" ]; then
-  echo " "
-  echo "Can't determine eMMC device! Exiting ..."
-  echo " "
+  msg " "
+  msg "Can't determine eMMC device! Exiting ..."
+  msg " "
   exit 1
 fi
 
 if [ x"${boot_dev}" = "x" ]; then
-  echo " "
-  echo "Can't determine boot device! Exiting ..."
-  echo " "
+  msg " "
+  msg "Can't determine boot device! Exiting ..."
+  msg " "
   exit 1
 fi
 
 if [[ "${command}" =~ "erase" ]] ; then
-    echo " "
-    echo "erasing eMMC ..."
+    msg " "
+    msg "erasing eMMC ..."
 
     confirm "to erase eMMC"
     confirm "You ARE SURE to erase eMMC content"
 
     erase_emmc
 
-    echo " "
-    echo "Done ..."
-    echo " "
+    msg " "
+    msg "Done ..."
+    msg " "
     exit 0
 
 elif [[ "${command}" =~ "bootloader" ]] ; then
     is_booted_from_emmc
 
+    confirm "you first installed MiniMyth2/MiniMarch on eMMC"
     confirm "to install bootloader on eMMC"
 
     write_to_emmc_bootloader
 
-    echo " "
-    echo "Done ..."
-    echo " "
+    msg " "
+    msg "Done ..."
+    msg " "
     exit 0
 
 elif [[ "${command}" =~ "install" ]] ; then
@@ -345,21 +375,21 @@ elif [[ "${command}" =~ "install" ]] ; then
 
     confirm "You ARE SURE to OVERWRITE eMMC content"
 
-    echo "copying ${storage_usage}MB to eMMC ..."
+    msg "copying ${storage_usage}MB to eMMC ..."
     duplicate_sdcard_to_emmc $((${storage_usage} + $safety_margin))
-    echo "copying to eMMC done ..."
+    msg "copying to eMMC done ..."
 
-    echo "copying bootloader to eMMC ..."
+    msg "copying bootloader to eMMC ..."
     confirm "to install bootloader on eMMC"
     write_to_emmc_bootloader
 
-    echo " "
-    echo "System was successfuly installed on eMMC ..."
-    echo " "
+    msg " "
+    msg "System was successfuly installed on eMMC ..."
+    msg " "
 else
-    echo " "
-    echo "Run script with command: erase|bootloader|install"
-    echo " "
+    msg " "
+    msg "Run script with command: erase|bootloader|install"
+    msg " "
     exit 0
 fi
 
