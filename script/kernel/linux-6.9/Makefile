@@ -148,7 +148,7 @@ PATCHFILES += 0608-sound-soc-sunxi-add-codec-driver-for-h616.patch
 PATCHFILES += 0609-sound-soc-add-sunxi_v2-for-h616-ahub.patch
 PATCHFILES += 0614-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0615-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
-# todo PATCHFILES += 0616-net-wireless-add-uwe5622-support-v20231020.patch
+PATCHFILES += 0616-net-wireless-add-uwe5622-support-v20231020.patch
 PATCHFILES += 0617-sound-soc-sunxi-add-spdif-spdif.patch
 PATCHFILES += 0618-sound-soc-sunxi-hack-to-fix-oops-on-cards-caps-query.patch
 # device-tree patches
