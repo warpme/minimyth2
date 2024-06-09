@@ -35,7 +35,7 @@ PATCHFILES += linux-6.9-defaults.patch
 
 ifeq (1,1)
 
-PATCHFILES += 0108-drivers-led-add-openvfd-1.4.2.patch
+PATCHFILES += 0108-drivers-led-add-openvfd-g3118dda3.patch
 
 ifeq (1,1)
 # Misc panfrost patches for 6.9 kernel
