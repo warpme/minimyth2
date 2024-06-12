@@ -9,7 +9,7 @@
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of MiniMyth2.
-mm_VERSION_MINIMYTH ?=       13.2.0.r130
+mm_VERSION_MINIMYTH ?=       13.3.0.r130
 
 # The version of Myth to use.
 # Valid values are '32', '33', '34', 'master' and 'test'
@@ -95,6 +95,7 @@ mm_SOFTWARE               ?= \
 # 'board-rk3588.rock5-b
 # 'board-rk3588.orangepi_5_plus'
 # 'board-rk3588s.rock5-a
+# 'board-rk3588s.rock5-c
 # 'board-rk3588s.orangepi_5'
 # 'board-h6.beelink_gs1'
 # 'board-h6.eachlink_mini'
