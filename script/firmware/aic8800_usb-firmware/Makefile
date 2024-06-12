@@ -1,26 +1,29 @@
 
-GARNAME      = aic8800-firmware
-GARVERSION   = feaad69c35e0e95b15c0be79c3dfbeedb6075505
+GARNAME      = aic8800_usb-firmware
+# v24.05.2024 aic8800 v2024_0116
+GARVERSION   = 4396dd6cc6db566b638272d875ae2a98f43836e0
 CATEGORIES   = firmware
-MASTER_SITES = https://github.com/sipeed/LonganPi-3H-SDK/archive/
+MASTER_SITES = https://github.com/radxa-pkg/aic8800/archive/
 DISTFILES    = $(GARVERSION).zip
+
 LICENSE      =
 DESCRIPTION  =
 define BLURB
 endef
 
-WORKSRC = $(WORKDIR)/LonganPi-3H-SDK-$(GARVERSION)
 
-DEPENDS = lang/c
+WORKSRC = $(WORKDIR)/aic8800-$(GARVERSION)/src/USB/driver_fw/fw/aic8800D80
+
+DEPENDS = 
 
 INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
 
 install-custom:
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/aic8800*
-	@cp -Rdf $(WORKSRC)/overlay/usr/lib/firmware/aic8800* $(DESTDIR)$(elibdir)/firmware/
+	@mkdir -p $(DESTDIR)$(elibdir)/firmware/aic8800_usb
+	@cp -Rdf $(WORKSRC)/* $(DESTDIR)$(elibdir)/firmware/aic8800_usb/
 	@$(MAKECOOKIE)
 
 clean-all: clean
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/aic8800*
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/aic8800_usb
