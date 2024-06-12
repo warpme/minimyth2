@@ -1,9 +1,9 @@
 
 GARNAME      = aic8800_sdio-firmware
-#v0.2.19 with aic8800 v2024_0116
-GARVERSION   = 624200cd90e78b253d79c51f0189ddb20efbe315
+# v24.05.2024 aic8800 v2024_0116
+GARVERSION   = 4396dd6cc6db566b638272d875ae2a98f43836e0
 CATEGORIES   = firmware
-MASTER_SITES = https://github.com/radxa-pkg/radxa-firmware/archive/
+MASTER_SITES = https://github.com/radxa-pkg/aic8800/archive/
 DISTFILES    = $(GARVERSION).zip
 
 LICENSE      =
@@ -11,7 +11,8 @@ DESCRIPTION  =
 define BLURB
 endef
 
-WORKSRC = $(WORKDIR)/radxa-firmware-$(GARVERSION)/firmware/aic8800D80
+
+WORKSRC = $(WORKDIR)/aic8800-$(GARVERSION)/src/SDIO/driver_fw/fw/aic8800D80
 
 DEPENDS = 
 
