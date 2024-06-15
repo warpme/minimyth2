@@ -289,11 +289,11 @@ PATCHFILES += 1084-arm64-dts-rockchip-rk3588-rock5x-add-cpufreq-support.patch
 PATCHFILES += 1085-arm64-dtsi-rockchip-3588s-add-hw_rng-support.patch
 #todo PATCHFILES += 1086-arm64-dts-rockchip-rk3588-opi5x-add-missing-nodes.patch
 PATCHFILES += 1087-arm64-dts-rockchip-rk3588-opi5x-rock5x-make-led-mmc0-act.patch
-#todo PATCHFILES += 1088-arm64-dtsi-rockchip-3588s-add-gpu-nodes.patch
-#todo PATCHFILES += 1089-arm64-dts-rockchip-rk3588-opi5x-rock5x-enable-gpu-nodes.patch
+PATCHFILES += 1089-arm64-dts-rockchip-rk3588-opi5x-rock5x-enable-gpu-nodes.patch
 PATCHFILES += 1090-arm64-dtsi-rockchip-Add-HDMI0-bridge-to-rk3588.patch
- PATCHFILES += 1091-arm64-dts-add-hdmi0-nodes-rock5x-orange5x.patch
+PATCHFILES += 1091-arm64-dts-add-hdmi0-nodes-rock5x-orange5x.patch
 PATCHFILES += 1092-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
+PATCHFILES += 1093-arm64-dts-add-rock5c-dt.patch
 endif
 #------------------------------------------------------------
 
