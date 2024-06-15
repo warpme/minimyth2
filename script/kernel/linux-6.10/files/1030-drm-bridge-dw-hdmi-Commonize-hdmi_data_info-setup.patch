@@ -1,0 +1,72 @@
+From 89740716bd9f04d8e532fdc0600689c49b1e23f9 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Tue, 30 Apr 2024 23:51:06 +0300
+Subject: [PATCH 20/29] drm/bridge: dw-hdmi: Commonize hdmi_data_info setup
+
+In preparation to support DW HDMI QP variant and minimize code
+duplication, split dw_hdmi_setup() into a common dw_hdmi_prep_data()
+function to be shared by the two drivers.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../gpu/drm/bridge/synopsys/dw-hdmi-common.h  |  2 ++
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi.c     | 22 +++++++++++++------
+ 2 files changed, 17 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-common.h b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-common.h
+index b594be2c6337..b4ad71639ffa 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-common.h
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-common.h
+@@ -156,6 +156,8 @@ void dw_hdmi_prep_avi_infoframe(struct hdmi_avi_infoframe *frame,
+ 				const struct drm_display_mode *mode);
+ struct hdmi_vmode *dw_hdmi_prep_vmode(struct dw_hdmi *hdmi,
+ 				      const struct drm_display_mode *mode);
++void dw_hdmi_prep_data(struct dw_hdmi *hdmi,
++		       const struct drm_display_mode *mode);
+ 
+ enum drm_connector_status dw_hdmi_connector_detect(struct drm_connector *connector,
+ 						   bool force);
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c
+index 5cf929f68ae9..a9053b0d5f54 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi.c
+@@ -2133,14 +2133,9 @@ static void hdmi_disable_overflow_interrupts(struct dw_hdmi *hdmi)
+ 		    HDMI_IH_MUTE_FC_STAT2);
+ }
+ 
+-static int dw_hdmi_setup(struct dw_hdmi *hdmi,
+-			 const struct drm_connector *connector,
+-			 const struct drm_display_mode *mode)
++void dw_hdmi_prep_data(struct dw_hdmi *hdmi,
++		       const struct drm_display_mode *mode)
+ {
+-	int ret;
+-
+-	hdmi_disable_overflow_interrupts(hdmi);
+-
+ 	hdmi->vic = drm_match_cea_mode(mode);
+ 
+ 	if (!hdmi->vic) {
+@@ -2180,6 +2175,19 @@ static int dw_hdmi_setup(struct dw_hdmi *hdmi,
+ 	hdmi->hdmi_data.pix_repet_factor = 0;
+ 	hdmi->hdmi_data.hdcp_enable = 0;
+ 	hdmi->hdmi_data.video_mode.mdataenablepolarity = true;
++}
++EXPORT_SYMBOL_GPL(dw_hdmi_prep_data);
++
++
++static int dw_hdmi_setup(struct dw_hdmi *hdmi,
++			 const struct drm_connector *connector,
++			 const struct drm_display_mode *mode)
++{
++	int ret;
++
++	hdmi_disable_overflow_interrupts(hdmi);
++
++	dw_hdmi_prep_data(hdmi, mode);
+ 
+ 	/* HDMI Initialization Step B.1 */
+ 	hdmi_av_composer(hdmi, &connector->display_info, mode);
+-- 
+2.43.0
+

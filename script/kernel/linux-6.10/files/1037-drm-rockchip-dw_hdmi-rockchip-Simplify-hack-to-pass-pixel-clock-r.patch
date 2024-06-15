@@ -1,0 +1,111 @@
+From 3f95586d323b20f799b957ef9f883d6c410c8a14 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Mon, 27 May 2024 04:34:00 +0300
+Subject: [PATCH 28/29] dw_hdmi-rockchip: Simplify hack to pass pixel clock
+ rate
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c | 49 +++++++++------------
+ 1 file changed, 20 insertions(+), 29 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+index f65a4f2c41e6..52784b7a4001 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c
+@@ -96,7 +96,6 @@ struct rockchip_hdmi {
+ 	struct phy *phy;
+ 
+ 	bool is_hdmi_qp;
+-	unsigned int qp_phy_bus_width;
+ 	struct gpio_desc *qp_enable_gpio;
+ 	struct delayed_work qp_hpd_work;
+ };
+@@ -334,13 +333,6 @@ dw_hdmi_rockchip_mode_valid(struct dw_hdmi *dw_hdmi, void *data,
+ 
+ static void dw_hdmi_rockchip_encoder_disable(struct drm_encoder *encoder)
+ {
+-	struct rockchip_hdmi *hdmi = to_rockchip_hdmi(encoder);
+-	/*
+-	 * when plug out hdmi it will be switch cvbs and then phy bus width
+-	 * must be set as 8
+-	 */
+-	if (hdmi->is_hdmi_qp && hdmi->phy)
+-		phy_set_bus_width(hdmi->phy, 8);
+ }
+ 
+ static bool
+@@ -357,10 +349,6 @@ static void dw_hdmi_rockchip_encoder_mode_set(struct drm_encoder *encoder,
+ {
+ 	struct rockchip_hdmi *hdmi = to_rockchip_hdmi(encoder);
+ 
+-	//CC: needed?
+-	if (hdmi->is_hdmi_qp)
+-		phy_set_bus_width(hdmi->phy, hdmi->qp_phy_bus_width);
+-
+ 	clk_set_rate(hdmi->ref_clk, adj_mode->clock * 1000);
+ }
+ 
+@@ -369,14 +357,28 @@ static void dw_hdmi_rockchip_encoder_enable(struct drm_encoder *encoder)
+ 	struct rockchip_hdmi *hdmi = to_rockchip_hdmi(encoder);
+ 	struct drm_crtc *crtc = encoder->crtc;
+ 	u32 val;
+-	int ret;
++	int ret, rate;
+ 
+-	if (hdmi->is_hdmi_qp && crtc && crtc->state) {
+-		if (hdmi->phy)
+-			phy_set_bus_width(hdmi->phy, hdmi->qp_phy_bus_width);
++	if (hdmi->is_hdmi_qp) {
++		/* Unconditionally switch to TMDS as FRL is not yet supported */
++		gpiod_set_value(hdmi->qp_enable_gpio, 1);
+ 
+-		clk_set_rate(hdmi->ref_clk,
+-			     crtc->state->adjusted_mode.crtc_clock * 1000);
++		if (crtc && crtc->state) {
++			clk_set_rate(hdmi->ref_clk,
++				     crtc->state->adjusted_mode.crtc_clock * 1000);
++			/*
++			 * FIXME: Temporary workaround to pass pixel clock rate
++			 * to the PHY driver until phy_configure_opts_hdmi
++			 * becomes available in the PHY API. See also the related
++			 * comment in rk_hdptx_phy_power_on() from
++			 * drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
++			 */
++			if (hdmi->phy) {
++				rate = crtc->state->mode.clock * 10;
++				phy_set_bus_width(hdmi->phy, rate);
++				drm_dbg(hdmi, "%s set bus_width=%u\n", __func__, rate);
++			}
++		}
+ 	}
+ 
+ 	if (hdmi->chip_data->lcdsel_grf_reg < 0)
+@@ -408,16 +410,6 @@ dw_hdmi_rockchip_encoder_atomic_check(struct drm_encoder *encoder,
+ 				      struct drm_connector_state *conn_state)
+ {
+ 	struct rockchip_crtc_state *s = to_rockchip_crtc_state(crtc_state);
+-	struct rockchip_hdmi *hdmi = to_rockchip_hdmi(encoder);
+-
+-	if (hdmi->is_hdmi_qp) {
+-		/* Unconditionally switch to TMDS as FRL is not yet supported */
+-		gpiod_set_value(hdmi->qp_enable_gpio, 1);
+-		//CC: document temporary hack
+-		hdmi->qp_phy_bus_width = crtc_state->mode.clock * 10;
+-		if (hdmi->phy)
+-			phy_set_bus_width(hdmi->phy, hdmi->qp_phy_bus_width);
+-	}
+ 
+ 	s->output_mode = ROCKCHIP_OUT_MODE_AAAA;
+ 	s->output_type = DRM_MODE_CONNECTOR_HDMIA;
+@@ -439,7 +431,6 @@ static int dw_hdmi_rockchip_genphy_init(struct dw_hdmi *dw_hdmi, void *data,
+ {
+ 	struct rockchip_hdmi *hdmi = (struct rockchip_hdmi *)data;
+ 
+-	//CC: may move to a qp dedicated callback
+ 	if (hdmi->is_hdmi_qp)
+ 		dw_hdmi_set_high_tmds_clock_ratio(dw_hdmi, display);
+ 
+-- 
+2.43.0
+
