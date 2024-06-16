@@ -283,21 +283,23 @@ PATCHFILES += 1037-drm-rockchip-dw_hdmi-rockchip-Simplify-hack-to-pass-pixel-clo
 PATCHFILES += 1038-drm-rochchip-dw_hdmi-rockchip-HPD-cleanup.patch
 PATCHFILES += 1039-drm-vop2-add-clock-resets-support.patch
 # dt patches
-PATCHFILES += 1082-arm64-dtsi-rockchip-3588s-add-cpufreq-support.patch
-PATCHFILES += 1083-arm64-dtsi-rockchip-3588s-add-crypto-support.patch
-PATCHFILES += 1084-arm64-dts-rockchip-rk3588-rock5x-add-cpufreq-support.patch
-PATCHFILES += 1085-arm64-dtsi-rockchip-3588s-add-hw_rng-support.patch
-#todo PATCHFILES += 1086-arm64-dts-rockchip-rk3588-opi5x-add-missing-nodes.patch
-PATCHFILES += 1087-arm64-dts-rockchip-rk3588-opi5x-rock5x-make-led-mmc0-act.patch
-PATCHFILES += 1089-arm64-dts-rockchip-rk3588-opi5x-rock5x-enable-gpu-nodes.patch
-PATCHFILES += 1090-arm64-dtsi-rockchip-Add-HDMI0-bridge-to-rk3588.patch
-PATCHFILES += 1091-arm64-dts-add-hdmi0-nodes-rock5x-orange5x.patch
-PATCHFILES += 1092-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
-PATCHFILES += 1093-arm64-dts-add-rock5c-dt.patch
+PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
+PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-cpufreq-support.patch
+PATCHFILES += 1072-arm64-dtsi-rockchip-3588s-add-crypto-support.patch
+PATCHFILES += 1073-arm64-dtsi-rockchip-3588s-add-hw_rng-support.patch
+PATCHFILES += 1074-arm64-dtsi-rockchip-add-hdmi0-bridge-to-rk3588.patch
+
+PATCHFILES += 1080-arm64-dts-rockchip-rk3588-rock5x-add-cpufreq-support.patch
+PATCHFILES += 1081-arm64-dts-rockchip-rk3588-opi5x-rock5x-enable-gpu-nodes.patch
+PATCHFILES += 1082-arm64-dts-rockchip-rk3588-opi5x-rock5x-make-led-mmc0-act.patch
+PATCHFILES += 1083-arm64-dts-add-hdmi0-nodes-rock5x-orange5x.patch
+PATCHFILES += 1084-arm64-dts-add-rock5c-dt.patch
+PATCHFILES += 1085-arm64-dts-rockchip-rk3588-opi5x-add-missing-nodes.patch
+PATCHFILES += 1086-arm64-dts-rockchip-rk3588-rock5ab-add-missing-nodes.patch
 endif
 #------------------------------------------------------------
 
-ifeq (0,1)
+ifeq (1,1)
 #-- Rockchip 3528 patches -----------------------------------------
 PATCHFILES += 1100-dt-bindings-clock-add-rk3528-clock-definitions.patch
 PATCHFILES += 1101-clk-rockchip-add-clock-controller-for-the-RK3528.patch
@@ -308,11 +310,11 @@ PATCHFILES += 1105-soc-rockchip-power-domain-add-rk3528-support.patch
 PATCHFILES += 1106-phy-rockchip-inno-usb2-add-phy-support-for-rk3528.patch
 PATCHFILES += 1108-thermal-rockchip-add-support-for-rk3528.patch
 PATCHFILES += 1109-phy-rockchip-naneng-combphy-add-support-for-rk3528.patch
-PATCHFILES += 1110-phy-rockchip-inno-hdmi-add-support-for-rk3528.patch
-PATCHFILES += 1111-drm-rockchip-dw_hdmi-add-support-for-rk3528.patch
+#PATCHFILES += 1110-phy-rockchip-inno-hdmi-add-support-for-rk3528.patch
+#PATCHFILES += 1111-drm-rockchip-dw_hdmi-add-support-for-rk3528.patch
 PATCHFILES += 1113-nvmem-rockchip-otp-add-support-for-rk3528.patch
 PATCHFILES += 1114-sound-soc-codecs-add-rk3528-support.patch
-PATCHFILES += 1115-hack-hack-gpu-drm-rockchip-rockchip_vop2_reg-add-rk3528.patch
+#PATCHFILES += 1115-hack-hack-gpu-drm-rockchip-rockchip_vop2_reg-add-rk3528.patch
 # device-tree patches
 PATCHFILES += 1150-arm64-dtsi-rockchip-add-3528.dtsi.patch
 PATCHFILES += 1151-arm64-dts-rockchip-add-dts-for-vontar_r3.patch
