@@ -212,6 +212,8 @@ PATCHFILES += 0801-net-wireless-backport-aic8800-sdio-v2024_0327_3561b08f.patch
 PATCHFILES += 0802-net-wireless-mm2-fixes-aic8800-sdio-v2024_0327_3561b08f.patch
 PATCHFILES += 0803-net-wireless-backport-aic8800-usb-v2024_0327_3561b08f.patch
 PATCHFILES += 0804-net-wireless-mm2-fixes-aic8800-usb-v2024_0327_3561b08f.patch
+PATCHFILES += 0805-media-rockchip-introduce-rkvdec2-driver.patch
+PATCHFILES += 0806-media-rockchip-rkvdec2-add-hevc-support.patch
 # device-tree patches
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 0832-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
@@ -288,6 +290,7 @@ PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-cpufreq-support.patch
 PATCHFILES += 1072-arm64-dtsi-rockchip-3588s-add-crypto-support.patch
 PATCHFILES += 1073-arm64-dtsi-rockchip-3588s-add-hw_rng-support.patch
 PATCHFILES += 1074-arm64-dtsi-rockchip-add-hdmi0-bridge-to-rk3588.patch
+PATCHFILES += 1075-arm64-dtsi-rockchip-3588s-add-rkvdec2.patch
 
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588-rock5x-add-cpufreq-support.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-opi5x-rock5x-enable-gpu-nodes.patch
@@ -296,6 +299,7 @@ PATCHFILES += 1083-arm64-dts-add-hdmi0-nodes-rock5x-orange5x.patch
 PATCHFILES += 1084-arm64-dts-add-rock5c-dt.patch
 PATCHFILES += 1085-arm64-dts-rockchip-rk3588-opi5x-add-missing-nodes.patch
 PATCHFILES += 1086-arm64-dts-rockchip-rk3588-rock5ab-add-missing-nodes.patch
+PATCHFILES += 1087-arm64-dts-rockchip-rock5x-opi5x-add-rkvdec2.patch
 endif
 #------------------------------------------------------------
 
