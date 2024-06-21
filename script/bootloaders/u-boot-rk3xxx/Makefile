@@ -2,12 +2,12 @@
 GARNAME      = u-boot-rk3xxx
 # git@ 03.04.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.04/
 GARVERSION   = e353ac61883647dc4c61b0135ce8e27e74104e7e
-# git@ 26.12.2023 https://github.com/radxa/rkbin/commits/master
-RKBINVERSION = fc44f9401c127affb2a879c1e90fa89ddab505f6
+# git@ 22.02.2024 https://github.com/rockchip-linux/rkbin/commits/master/
+RKBINVERSION = a2a0b89b6c8c612dca5ed9ed8a68db8a07f68bc0
 CATEGORIES   = kernel
 MASTER_SITES = \
                https://github.com/Kwiboo/u-boot-rockchip/archive/ \
-               https://github.com/radxa/rkbin/archive/
+               https://github.com/rockchip-linux/rkbin/archive/
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
 PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
@@ -72,29 +72,29 @@ INSTALL_PREF = rk3399
 DDR_BIN      = ${TPL}
 endif
 ifneq (,$(findstring rk3528,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk35/rk3528_ddr_1056MHz_4BIT_PCB_v1.06.bin
-BL31         = ../rkbin/bin/rk35/rk3528_bl31_v1.16.elf
+TPL          = ../rkbin/bin/rk35/rk3528_ddr_1056MHz_4BIT_PCB_v1.09.bin
+BL31         = ../rkbin/bin/rk35/rk3528_bl31_v1.17.elf
 MKIMAGE_TYPE = rk3528
 INSTALL_PREF = rk3528
 DDR_BIN      = ${TPL}
 endif
 ifneq (,$(findstring rk3566,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.18.bin
+TPL          = ../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.21.bin
 BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.44.elf
 MKIMAGE_TYPE = rk3568
 INSTALL_PREF = rk3566
 DDR_BIN      = ${TPL}
 endif
 ifneq (,$(findstring rk3568,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk35/rk3568_ddr_1056MHz_v1.19.bin
+TPL          = ../rkbin/bin/rk35/rk3568_ddr_1056MHz_v1.21.bin
 BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.44.elf
 MKIMAGE_TYPE = rk3568
 INSTALL_PREF = rk3568
 DDR_BIN      = ${TPL}
 endif
 ifneq (,$(findstring rk3588,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.14.bin
-BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.43.elf
+TPL          = ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.16.bin
+BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.45.elf
 MKIMAGE_TYPE = rk3588
 INSTALL_PREF = rk3588
 DDR_BIN      = ${TPL}
