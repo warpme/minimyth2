@@ -214,7 +214,6 @@ PATCHFILES += 0803-net-wireless-backport-aic8800-usb-v2024_0327_3561b08f.patch
 PATCHFILES += 0804-net-wireless-mm2-fixes-aic8800-usb-v2024_0327_3561b08f.patch
 PATCHFILES += 0805-media-rockchip-introduce-rkvdec2-driver.patch
 PATCHFILES += 0806-media-rockchip-rkvdec2-add-hevc-support.patch
-PATCHFILES += 0807-net-wireless-aic8800-usb-enable-prealloc_rx_skb.patch
 # device-tree patches
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 0832-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
