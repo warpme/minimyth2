@@ -7,7 +7,7 @@ DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = radxa-zero3-rk3566_defconfig
+export mm_U-BOOT_BOARD_TYPE = radxa-zero-3-rk3566_defconfig
 
 WORKSRC      = $(WORKDIR)
 
