@@ -1,7 +1,7 @@
 
 GARNAME      = u-boot-rk3xxx
-# git@ 03.04.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.04/
-GARVERSION   = e353ac61883647dc4c61b0135ce8e27e74104e7e
+# git@ 31.05.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.07/
+GARVERSION   = 8cdf606e616baa36751f3b4adcfaefc781126c8c
 # git@ 22.02.2024 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = a2a0b89b6c8c612dca5ed9ed8a68db8a07f68bc0
 CATEGORIES   = kernel
@@ -11,12 +11,9 @@ MASTER_SITES = \
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
 PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
-               50-add-rk3566-x96-x6-defconfig.patch \
-               51-add-rk3566-zero3-defconfig.patch \
                52-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
                54-add-rk3328-beelink-a1-defconfig.patch \
-
-#               53-rk3566-rock-3c-use-dedicated-dts.patch \
+               50-add-rk3566-x96-x6-defconfig.patch \
 
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
 
@@ -41,6 +38,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = orangepi-5-rk3588s_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi-rk3399_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock-3a-rk3568_defconfig
+# mm_U-BOOT_BOARD_TYPE = rock-3b-rk3568_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock-3c-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock-4se-rk3399_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock-pi-4-rk3399_defconfig
@@ -50,10 +48,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = beelink-a1-rk3328_defconfig
 # mm_U-BOOT_BOARD_TYPE = quartz64-b-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96-x6-rk3566_defconfig
-# mm_U-BOOT_BOARD_TYPE = radxa-zero3-rk3566_defconfig
-
-# to do
-# mm_U-BOOT_BOARD_TYPE = rock-3b-rk3568_defconfig
+# mm_U-BOOT_BOARD_TYPE = radxa-zero-3-rk3566_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
