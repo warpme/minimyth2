@@ -202,6 +202,7 @@ PATCHFILES += 0750-arm64-dts-rockchip-enable-inno-usb3-beelinkA1-roc-cc.patch
 PATCHFILES += 0753-arm64-dts-rockchip-rk3399-radxa-rockpi-bc-remove-wifi-compatible.patch
 PATCHFILES += 0754-arm64-dts-rockchip-rk33xx-set-userled-to-mmc.patch
 PATCHFILES += 0755-arm64-dts-rockchip-rk3399-add-orangepi-4-and-4-lts.patch
+PATCHFILES += 0756-arm64-dts-rockchip-rk33xx-add-eth-wifi-aliases.patch
 endif
 #------------------------------------------------------------
 
@@ -210,8 +211,8 @@ ifeq (1,1)
 PATCHFILES += 0800-Enable-rk356x-PCIe-controller.patch
 PATCHFILES += 0801-net-wireless-backport-aic8800-sdio-v2024_0327_3561b08f.patch
 PATCHFILES += 0802-net-wireless-mm2-fixes-aic8800-sdio-v2024_0327_3561b08f.patch
-PATCHFILES += 0803-net-wireless-backport-aic8800-usb-v2024_0327_3561b08f.patch
-PATCHFILES += 0804-net-wireless-mm2-fixes-aic8800-usb-v2024_0327_3561b08f.patch
+PATCHFILES += 0803-net-wireless-backport-aic8800-usb-v2024_0116_ec460377.patch
+PATCHFILES += 0804-net-wireless-mm2-fixes-aic8800-usb-v2024_0116_ec460377.patch
 PATCHFILES += 0805-media-rockchip-introduce-rkvdec2-driver.patch
 PATCHFILES += 0806-media-rockchip-rkvdec2-add-hevc-support.patch
 # device-tree patches
@@ -228,6 +229,7 @@ PATCHFILES += 0846-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
 PATCHFILES += 0847-arm64-dts-rockchip-add-dts-for-urve-pi.patch
 PATCHFILES += 0848-arm64-dts-rockchip-add-dts-for-opi-3b.patch
 PATCHFILES += 0849-arm64-dts-rockchip-add-dts-for-zero3.patch
+PATCHFILES += 0850-arm64-dts-rockchip-rk356x-add-eth-wifi-aliases.patch
 endif
 #------------------------------------------------------------
 
