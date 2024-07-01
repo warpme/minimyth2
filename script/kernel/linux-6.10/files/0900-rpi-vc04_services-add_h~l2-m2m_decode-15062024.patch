@@ -26,7 +26,6 @@ Commits are from rpi 6.10.y branch
 0306-staging-vchiq-mmal-Add-parameters-for-interlaced-vid.patch
 0307-staging-vchiq-mmal-Add-the-deinterlace-image-effects.patch
 0358-vc04_services-vchiq-mmal-Add-defines-for-mmal_es_for.patch
-0649-staging-vc04_services-vchiq_arm-Fix-initialisation-c.patch
 0650-staging-vc04_services-Add-helpers-for-vchiq-driver-d.patch
 0651-staging-vc04_services-vc-sm-cma-Remove-deprecated-he.patch
 0655-staging-vc04_services-vc-sm-cma-Register-with-vchiq_.patch
@@ -9741,99 +9740,6 @@ index 5569876d8c7d..e8f5ca85a7c4 100644
  /* Definition of an elementary stream format (MMAL_ES_FORMAT_T) */
  struct mmal_es_format_local {
  	u32 type;	/* enum mmal_es_type */
--- 
-2.43.0
-
-From 28fb02b21c7b3cb59023736e872b947737923ae7 Mon Sep 17 00:00:00 2001
-From: Kieran Bingham <kieran.bingham@ideasonboard.com>
-Date: Wed, 5 Jun 2024 23:19:16 +0100
-Subject: [PATCH 649/686] staging: vc04_services: vchiq_arm: Fix initialisation
- check
-
-The vchiq_state used to be obtained through an accessor
-which would validate that the VCHIQ had been initialised
-correctly with the remote.
-
-In commit 42a2f6664e18 ("staging: vc04_services: Move global g_state to
-vchiq_state") the global state was moved to the vchiq_mgnt structures
-stored as a vchiq instance specific context. This conversion removed the
-helpers and instead replaced users of this helper with the assumption
-that the state is always available and the remote connected.
-
-Fix this broken assumption by re-introducing the logic that was lost
-during the conversion.
-
-Fixes: 42a2f6664e18 ("staging: vc04_services: Move global g_state to vchiq_state")
-Signed-off-by: Kieran Bingham <kieran.bingham@ideasonboard.com>
----
- .../staging/vc04_services/interface/vchiq_arm/vchiq_arm.c  | 4 ++--
- .../staging/vc04_services/interface/vchiq_arm/vchiq_core.h | 5 +++++
- .../staging/vc04_services/interface/vchiq_arm/vchiq_dev.c  | 7 ++++++-
- 3 files changed, 13 insertions(+), 3 deletions(-)
-
-diff --git a/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_arm.c b/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_arm.c
-index 54467be8c371..67d853f5f2a0 100644
---- a/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_arm.c
-+++ b/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_arm.c
-@@ -804,7 +804,7 @@ int vchiq_initialise(struct vchiq_state *state, struct vchiq_instance **instance
- 	 * block forever.
- 	 */
- 	for (i = 0; i < VCHIQ_INIT_RETRIES; i++) {
--		if (state)
-+		if (vchiq_remote_initialised(state))
- 			break;
- 		usleep_range(500, 600);
- 	}
-@@ -1299,7 +1299,7 @@ void vchiq_dump_platform_instances(struct vchiq_state *state, struct seq_file *f
- {
- 	int i;
- 
--	if (!state)
-+	if (!vchiq_remote_initialised(state))
- 		return;
- 
- 	/*
-diff --git a/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_core.h b/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_core.h
-index 8af209e34fb2..382ec08f6a14 100644
---- a/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_core.h
-+++ b/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_core.h
-@@ -413,6 +413,11 @@ struct vchiq_state {
- 	struct opaque_platform_state *platform_state;
- };
- 
-+static inline bool vchiq_remote_initialised(const struct vchiq_state *state)
-+{
-+	return state->remote && state->remote->initialised;
-+}
-+
- struct bulk_waiter {
- 	struct vchiq_bulk *bulk;
- 	struct completion event;
-diff --git a/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_dev.c b/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_dev.c
-index 3c63347d2d08..8c4830df1070 100644
---- a/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_dev.c
-+++ b/drivers/staging/vc04_services/interface/vchiq_arm/vchiq_dev.c
-@@ -1170,6 +1170,11 @@ static int vchiq_open(struct inode *inode, struct file *file)
- 
- 	dev_dbg(state->dev, "arm: vchiq open\n");
- 
-+	if (!vchiq_remote_initialised(state)) {
-+		dev_err(state->dev, "arm: vchiq has no connection to VideoCore\n");
-+		return -ENOTCONN;
-+	}
-+
- 	instance = kzalloc(sizeof(*instance), GFP_KERNEL);
- 	if (!instance)
- 		return -ENOMEM;
-@@ -1200,7 +1205,7 @@ static int vchiq_release(struct inode *inode, struct file *file)
- 
- 	dev_dbg(state->dev, "arm: instance=%p\n", instance);
- 
--	if (!state) {
-+	if (!vchiq_remote_initialised(state)) {
- 		ret = -EPERM;
- 		goto out;
- 	}
 -- 
 2.43.0
 
