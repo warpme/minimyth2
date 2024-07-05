@@ -286,6 +286,14 @@ PATCHFILES += 1036-drm-rockchip-dw_hdmi-Add-basic-RK3588-support.patch
 PATCHFILES += 1037-drm-rockchip-dw_hdmi-rockchip-Simplify-hack-to-pass-pixel-clock-r.patch
 PATCHFILES += 1038-drm-rochchip-dw_hdmi-rockchip-HPD-cleanup.patch
 PATCHFILES += 1039-drm-vop2-add-clock-resets-support.patch
+# hdmi audio support
+PATCHFILES += 1040-ASoC-rockchip-add-machine-driver-for-hdmi-audio.patch
+PATCHFILES += 1041-ASoC-rockchip-hdmi-support-dts-specified-daifmt.patch
+PATCHFILES += 1042-ASoC-rockchip-hdmi-Fix-potential-NULL-point-referenc.patch
+PATCHFILES += 1043-ASoC-rockchip-i2s-tdm-Add-support-for-Digital-Loopba.patch
+PATCHFILES += 1044-ASoC-rockchip-i2s-tdm-Add-support-for-PATHx-controls.patch
+PATCHFILES += 1045-drm-bridge-synopsys-add-audio-support-in-dw-hdmi-qp.patch
+PATCHFILES += 1046-drm-bridge-synopsys-dw-hdmi-qp-workaround-for-hisense-tv.patch
 # dt patches
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-cpufreq-support.patch
@@ -293,6 +301,7 @@ PATCHFILES += 1072-arm64-dtsi-rockchip-3588s-add-crypto-support.patch
 PATCHFILES += 1073-arm64-dtsi-rockchip-3588s-add-hw_rng-support.patch
 PATCHFILES += 1074-arm64-dtsi-rockchip-add-hdmi0-bridge-to-rk3588.patch
 PATCHFILES += 1075-arm64-dtsi-rockchip-3588s-add-rkvdec2.patch
+PATCHFILES += 1076-arm64-dtsi-rockchip-3588s-add-hdmi-audio.patch
 
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588-rock5x-add-cpufreq-support.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-opi5x-rock5x-enable-gpu-nodes.patch
@@ -302,10 +311,11 @@ PATCHFILES += 1084-arm64-dts-add-rock5c-dt.patch
 PATCHFILES += 1085-arm64-dts-rockchip-rk3588-opi5x-add-missing-nodes.patch
 PATCHFILES += 1086-arm64-dts-rockchip-rk3588-rock5ab-add-missing-nodes.patch
 PATCHFILES += 1087-arm64-dts-rockchip-rock5x-opi5x-add-rkvdec2.patch
+PATCHFILES += 1088-arm64-dts-add-hdmi-audio-nodes-rock5x-orange5x.patch
 endif
 #------------------------------------------------------------
 
-ifeq (1,1)
+ifeq (0,1)
 #-- Rockchip 3528 patches -----------------------------------------
 PATCHFILES += 1100-dt-bindings-clock-add-rk3528-clock-definitions.patch
 PATCHFILES += 1101-clk-rockchip-add-clock-controller-for-the-RK3528.patch

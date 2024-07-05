@@ -1,0 +1,172 @@
+From e60e53bff601a84b719ed3332692a400db65698f Mon Sep 17 00:00:00 2001
+From: Sugar Zhang <sugar.zhang@rock-chips.com>
+Date: Sat, 19 Mar 2022 18:37:28 +0800
+Subject: [PATCH 73/86] ASoC: rockchip: i2s-tdm: Add support for Digital
+ Loopback
+
+This patch adds support for digital loopback mode select.
+
+lp mode2 swap:
+i2s sdi0_l <- i2s sdo0_l
+i2s sdi0_r <- codec sdo_r
+
+lp mode2:
+i2s sdi0_l <- codec sdo_l
+i2s sdi0_r <- i2s sdo0_r
+
+lp mode1:
+i2s sdi0_l <- codec sdo_l
+i2s sdi0_r <- codec sdo_r
+i2s sdi1_l <- i2s sdo0_l
+i2s sdi1_r <- i2s sdo0_r
+
+Signed-off-by: Sugar Zhang <sugar.zhang@rock-chips.com>
+Change-Id: I14eb16667aca7c7c7e5f797b217adbcac2395f5a
+Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
+---
+ sound/soc/rockchip/rockchip_i2s_tdm.c | 89 +++++++++++++++++++++++++++
+ sound/soc/rockchip/rockchip_i2s_tdm.h | 21 +++++++
+ 2 files changed, 110 insertions(+)
+
+diff --git a/sound/soc/rockchip/rockchip_i2s_tdm.c b/sound/soc/rockchip/rockchip_i2s_tdm.c
+index 9fa020ef7ea..07b9412762f 100644
+--- a/sound/soc/rockchip/rockchip_i2s_tdm.c
++++ b/sound/soc/rockchip/rockchip_i2s_tdm.c
+@@ -768,6 +768,93 @@ static int rockchip_i2s_tdm_trigger(struct snd_pcm_substream *substream,
+ 	return 0;
+ }
+ 
++/* loopback mode select */
++enum {
++	LOOPBACK_MODE_DIS = 0,
++	LOOPBACK_MODE_1,
++	LOOPBACK_MODE_2,
++	LOOPBACK_MODE_2_SWAP,
++};
++
++static const char *const loopback_text[] = {
++	"Disabled",
++	"Mode1",
++	"Mode2",
++	"Mode2 Swap",
++};
++
++static SOC_ENUM_SINGLE_EXT_DECL(loopback_mode, loopback_text);
++
++static int rockchip_i2s_tdm_loopback_get(struct snd_kcontrol *kcontrol,
++					 struct snd_ctl_elem_value *ucontrol)
++{
++	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
++	struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_component_get_drvdata(component);
++	unsigned int reg = 0, mode = 0;
++
++	pm_runtime_get_sync(component->dev);
++	regmap_read(i2s_tdm->regmap, I2S_XFER, &reg);
++	pm_runtime_put(component->dev);
++
++	switch (reg & I2S_XFER_LP_MODE_MASK) {
++	case I2S_XFER_LP_MODE_2_SWAP:
++		mode = LOOPBACK_MODE_2_SWAP;
++		break;
++	case I2S_XFER_LP_MODE_2:
++		mode = LOOPBACK_MODE_2;
++		break;
++	case I2S_XFER_LP_MODE_1:
++		mode = LOOPBACK_MODE_1;
++		break;
++	default:
++		mode = LOOPBACK_MODE_DIS;
++		break;
++	}
++
++	ucontrol->value.enumerated.item[0] = mode;
++
++	return 0;
++}
++
++static int rockchip_i2s_tdm_loopback_put(struct snd_kcontrol *kcontrol,
++					 struct snd_ctl_elem_value *ucontrol)
++{
++	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
++	struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_component_get_drvdata(component);
++	unsigned int val = 0, mode = ucontrol->value.enumerated.item[0];
++
++	if (mode < LOOPBACK_MODE_DIS ||
++	    mode > LOOPBACK_MODE_2_SWAP)
++		return -EINVAL;
++
++	switch (mode) {
++	case LOOPBACK_MODE_2_SWAP:
++		val = I2S_XFER_LP_MODE_2_SWAP;
++		break;
++	case LOOPBACK_MODE_2:
++		val = I2S_XFER_LP_MODE_2;
++		break;
++	case LOOPBACK_MODE_1:
++		val = I2S_XFER_LP_MODE_1;
++		break;
++	default:
++		val = I2S_XFER_LP_MODE_DIS;
++		break;
++	}
++
++	pm_runtime_get_sync(component->dev);
++	regmap_update_bits(i2s_tdm->regmap, I2S_XFER, I2S_XFER_LP_MODE_MASK, val);
++	pm_runtime_put(component->dev);
++
++	return 0;
++}
++
++static const struct snd_kcontrol_new rockchip_i2s_tdm_snd_controls[] = {
++	SOC_ENUM_EXT("I2STDM Digital Loopback Mode", loopback_mode,
++		     rockchip_i2s_tdm_loopback_get,
++		     rockchip_i2s_tdm_loopback_put),
++};
++
+ static int rockchip_i2s_tdm_dai_probe(struct snd_soc_dai *dai)
+ {
+ 	struct rk_i2s_tdm_dev *i2s_tdm = snd_soc_dai_get_drvdata(dai);
+@@ -825,6 +912,8 @@ static const struct snd_soc_dai_ops rockchip_i2s_tdm_dai_ops = {
+ static const struct snd_soc_component_driver rockchip_i2s_tdm_component = {
+ 	.name = DRV_NAME,
+ 	.legacy_dai_naming = 1,
++	.controls = rockchip_i2s_tdm_snd_controls,
++	.num_controls = ARRAY_SIZE(rockchip_i2s_tdm_snd_controls),
+ };
+ 
+ static bool rockchip_i2s_tdm_wr_reg(struct device *dev, unsigned int reg)
+diff --git a/sound/soc/rockchip/rockchip_i2s_tdm.h b/sound/soc/rockchip/rockchip_i2s_tdm.h
+index 0aa1c6da1e2..76641aa8fa7 100644
+--- a/sound/soc/rockchip/rockchip_i2s_tdm.h
++++ b/sound/soc/rockchip/rockchip_i2s_tdm.h
+@@ -195,6 +195,27 @@
+  * XFER
+  * Transfer start register
+  */
++/*
++ * lp mode2 swap:
++ * i2s sdi0_l <- i2s sdo0_l
++ * i2s sdi0_r <- codec sdo_r
++ *
++ * lp mode2:
++ * i2s sdi0_l <- codec sdo_l
++ * i2s sdi0_r <- i2s sdo0_r
++ *
++ * lp mode1:
++ * i2s sdi0_l <- codec sdo_l
++ * i2s sdi0_r <- codec sdo_r
++ * i2s sdi1_l <- i2s sdo0_l
++ * i2s sdi1_r <- i2s sdo0_r
++ *
++ */
++#define I2S_XFER_LP_MODE_MASK	GENMASK(4, 2)
++#define I2S_XFER_LP_MODE_2_SWAP	(BIT(4) | BIT(3))
++#define I2S_XFER_LP_MODE_2	BIT(3)
++#define I2S_XFER_LP_MODE_1	BIT(2)
++#define I2S_XFER_LP_MODE_DIS	0
+ #define I2S_XFER_RXS_SHIFT	1
+ #define I2S_XFER_RXS_STOP	(0 << I2S_XFER_RXS_SHIFT)
+ #define I2S_XFER_RXS_START	(1 << I2S_XFER_RXS_SHIFT)
+-- 
+2.43.0
+

@@ -1,0 +1,67 @@
+
+This patch workaround for no sound issue on Hisense TV which
+seems to need AUDI ACR packet when initial stage.
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.10-rc6/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c linux-6.10-rc6/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+--- linux-6.10-rc6/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2024-07-05 16:30:22.664330582 +0200
++++ linux-6.10-rc6/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2024-07-05 15:58:19.780497125 +0200
+@@ -1348,6 +1348,37 @@
+ }
+ EXPORT_SYMBOL_GPL(dw_hdmi_qp_set_channel_allocation);
+ 
++int dw_hdmi_qp_init_audio_infoframe(struct dw_hdmi *hdmi)
++{
++	struct hdmi_audio_infoframe frame;
++	u8 infoframe_buf[HDMI_INFOFRAME_SIZE(AUDIO)];
++	int ret = 0;
++
++	hdmi_audio_infoframe_init(&frame);
++
++	frame.coding_type = HDMI_AUDIO_CODING_TYPE_STREAM;
++	frame.sample_frequency = HDMI_AUDIO_SAMPLE_FREQUENCY_STREAM;
++	frame.sample_size = HDMI_AUDIO_SAMPLE_SIZE_STREAM;
++	frame.channels = 2;
++
++	ret = hdmi_audio_infoframe_pack(&frame, infoframe_buf,
++					sizeof(infoframe_buf));
++	if (ret < 0) {
++		dev_err(hdmi->dev, "%s: Failed to pack audio infoframe: %d\n",
++			__func__, ret);
++		return ret;
++	}
++
++	regmap_bulk_write(hdmi->regm, PKT_AUDI_CONTENTS1, &infoframe_buf[3], 2);
++	hdmi_modb(hdmi,
++		  PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN,
++		  PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN,
++		  PKTSCHED_PKT_EN);
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(dw_hdmi_qp_init_audio_infoframe);
++
+ void dw_hdmi_qp_set_audio_infoframe(struct dw_hdmi *hdmi,
+ 									struct hdmi_codec_params *hparms)
+ {
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.10-rc6/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c linux-6.10-rc6/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
+--- linux-6.10-rc6/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c	2024-07-05 16:30:22.664330582 +0200
++++ linux-6.10-rc6/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c	2024-07-05 16:03:45.131708115 +0200
+@@ -73,6 +73,7 @@
+ 	struct dw_hdmi_qp_i2s_audio_data *audio = data;
+ 	struct dw_hdmi *hdmi = audio->hdmi;
+ 
++	dw_hdmi_qp_init_audio_infoframe(hdmi);
+ 	dw_hdmi_qp_audio_enable(hdmi);
+ 
+ 	return 0;
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.10-rc6/include/drm/bridge/dw_hdmi.h linux-6.10-rc6/include/drm/bridge/dw_hdmi.h
+--- linux-6.10-rc6/include/drm/bridge/dw_hdmi.h	2024-07-05 16:30:22.664330582 +0200
++++ linux-6.10-rc6/include/drm/bridge/dw_hdmi.h	2024-07-05 15:57:29.887706466 +0200
+@@ -260,6 +260,7 @@
+                                     struct hdmi_codec_params *hparms);
+ void dw_hdmi_qp_set_audio_infoframe(struct dw_hdmi *hdmi,
+                                     struct hdmi_codec_params *hparms);
++int dw_hdmi_qp_init_audio_infoframe(struct dw_hdmi *hdmi);
+ void dw_hdmi_qp_audio_enable(struct dw_hdmi *hdmi);
+ void dw_hdmi_qp_audio_disable(struct dw_hdmi *hdmi);
+ bool dw_hdmi_qp_connected(struct dw_hdmi *hdmi);
