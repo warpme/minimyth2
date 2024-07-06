@@ -312,10 +312,11 @@ PATCHFILES += 1085-arm64-dts-rockchip-rk3588-opi5x-add-missing-nodes.patch
 PATCHFILES += 1086-arm64-dts-rockchip-rk3588-rock5ab-add-missing-nodes.patch
 PATCHFILES += 1087-arm64-dts-rockchip-rock5x-opi5x-add-rkvdec2.patch
 PATCHFILES += 1088-arm64-dts-add-hdmi-audio-nodes-rock5x-orange5x.patch
+PATCHFILES += 1089-arm64-dts-enable-pwm-fan-rock5x-orange5x.patch
 endif
 #------------------------------------------------------------
 
-ifeq (0,1)
+ifeq (1,1)
 #-- Rockchip 3528 patches -----------------------------------------
 PATCHFILES += 1100-dt-bindings-clock-add-rk3528-clock-definitions.patch
 PATCHFILES += 1101-clk-rockchip-add-clock-controller-for-the-RK3528.patch
