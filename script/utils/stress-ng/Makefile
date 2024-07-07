@@ -1,10 +1,10 @@
 
 GARNAME      = stress-ng
-GARVERSION   = 0.16.02
+GARVERSION   = 0.18.01
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/ColinIanKing/stress-ng/archive/
 DISTFILES    = V$(GARVERSION).tar.gz
-PATCHFILES   = stress-ng-01-compile-with-glibc-2.36.patch stress-ng-0001-workaround-cross-compilation-issue.patch
+PATCHFILES   = stress-ng-01-compile-with-glibc-2.36.patch 
 LICENSE      = GPL2
 
 DESCRIPTION = 
