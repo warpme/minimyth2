@@ -67,6 +67,8 @@ DISTFILES    = \
 	board-rk3566.orangepi_3b.wks  \
 	board-rk3588.rock5-b.conf   \
 	board-rk3588.rock5-b.wks    \
+	board-rk3588.rock5-itx.conf \
+	board-rk3588.rock5-itx.wks  \
 	board-rk3588s.rock5-a.conf  \
 	board-rk3588s.rock5-a.wks   \
 	board-rk3588s.rock5-c.conf  \
