@@ -299,9 +299,10 @@ PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-cpufreq-support.patch
 PATCHFILES += 1072-arm64-dtsi-rockchip-3588s-add-crypto-support.patch
 PATCHFILES += 1073-arm64-dtsi-rockchip-3588s-add-hw_rng-support.patch
-PATCHFILES += 1074-arm64-dtsi-rockchip-add-hdmi0-bridge-to-rk3588.patch
+PATCHFILES += 1074-arm64-dtsi-rockchip-3588s-add-hdmi0-bridge.patch
 PATCHFILES += 1075-arm64-dtsi-rockchip-3588s-add-rkvdec2.patch
 PATCHFILES += 1076-arm64-dtsi-rockchip-3588s-add-hdmi-audio.patch
+PATCHFILES += 1077-arm64-dtsi-rockchip-3588-add-hdmi1-bridge.patch
 
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588-rock5x-add-cpufreq-support.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-opi5x-rock5x-enable-gpu-nodes.patch
