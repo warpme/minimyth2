@@ -294,6 +294,7 @@ PATCHFILES += 1043-ASoC-rockchip-i2s-tdm-Add-support-for-Digital-Loopba.patch
 PATCHFILES += 1044-ASoC-rockchip-i2s-tdm-Add-support-for-PATHx-controls.patch
 PATCHFILES += 1045-drm-bridge-synopsys-add-audio-support-in-dw-hdmi-qp.patch
 PATCHFILES += 1046-drm-bridge-synopsys-dw-hdmi-qp-workaround-for-hisense-tv.patch
+# PATCHFILES += 1047-drm-bridge-synopsys-dw-hdmi-qp-add-cec-wip.patch
 # dt patches
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-cpufreq-support.patch
@@ -303,7 +304,7 @@ PATCHFILES += 1074-arm64-dtsi-rockchip-3588s-add-hdmi0-bridge.patch
 PATCHFILES += 1075-arm64-dtsi-rockchip-3588s-add-rkvdec2.patch
 PATCHFILES += 1076-arm64-dtsi-rockchip-3588s-add-hdmi-audio.patch
 PATCHFILES += 1077-arm64-dtsi-rockchip-3588-add-hdmi1-bridge.patch
-
+# PATCHFILES += 1078-arm64-dtsi-rockchip-3588s-enable-cec-on-hdmi0.patch
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588-rock5x-add-cpufreq-support.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-opi5x-rock5x-enable-gpu-nodes.patch
 PATCHFILES += 1082-arm64-dts-rockchip-rk3588-opi5x-rock5x-make-led-mmc0-act.patch
