@@ -65,6 +65,7 @@ PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 # this makes v4l2_request seeking on h264 content working
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
+PATCHFILES += 0173-pull929-Prepare-for-planned-V4L2-Request-API-hwaccel-changes.patch
 endif
 # fix deinterlacing when EGL DMAbuf is used
 PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
