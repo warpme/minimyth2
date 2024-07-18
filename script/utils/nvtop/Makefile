@@ -1,10 +1,12 @@
 
 GARNAME      = nvtop
-GARVERSION   = eb56ee86ae0836872ee182fa2a15b1f1434d8efe
+# 26.02.2024
+GARVERSION   = 0316ce19581c3d8543cf6aa312d1569c56ca754f
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/Syllo/nvtop/archive/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = fix-compile-with-mm2-drm-.h-files.patch
+PATCHFILES   = 01-fix-compile-with-mm2-drm-.h-files.patch 
+PATCHFILES  += 02-panfrost-replace-debugfs-profiling-knob-with-sysfs.patch
 LICENSE      = GPL
 
 DEPENDS = lib/ncurses
