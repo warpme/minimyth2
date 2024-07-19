@@ -1,6 +1,6 @@
 
 GARNAME      = weston
-GARVERSION   = 13.0.0
+GARVERSION   = 13.0.3
 CATEGORIES   = wayland
 MASTER_SITES = https://gitlab.freedesktop.org/wayland/weston/-/releases/$(GARVERSION)/downloads/
 PATCHFILES  += $(DISTNAME)-terminal-add-cwd-and-command.patch
