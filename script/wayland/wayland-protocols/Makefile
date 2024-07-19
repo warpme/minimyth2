@@ -1,6 +1,6 @@
 
 GARNAME      = wayland-protocols
-GARVERSION   = 1.34
+GARVERSION   = 1.36
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/wayland/wayland-protocols/-/releases/$(GARVERSION)/downloads/
 DISTFILES    = $(DISTNAME).tar.xz
