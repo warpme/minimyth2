@@ -1,11 +1,13 @@
 
 GARNAME      = wlroots
-GARVERSION   = 0.14.1
+GARVERSION   = 0.18.0
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://github.com/swaywm/wlroots/archive/
+MASTER_SITES = https://gitlab.freedesktop.org/wlroots/wlroots/-/archive/$(GARVERSION)/
 DISTFILES    = $(GARVERSION).tar.gz
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
+
+WORKSRC = $(WORKDIR)/$(DISTNAME)-4666996b2a34b53899aedafcd3586fb1c7a16af6
 
 DESCRIPTION = 
 define BLURB
@@ -24,11 +26,7 @@ INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
-	-D man-pages="false" \
-	-D valgrind="false" \
 	-D examples="false" \
 	-D xwayland="disabled" \
-	-D x11-backend="disabled" \
-	-D logind-provider=elogind \
 
 include ../../gar.mk
