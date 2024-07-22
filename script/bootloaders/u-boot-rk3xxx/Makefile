@@ -1,7 +1,7 @@
 
 GARNAME      = u-boot-rk3xxx
-# git@ 31.05.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.07/
-GARVERSION   = 8cdf606e616baa36751f3b4adcfaefc781126c8c
+# git@ 21.07.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.07/
+GARVERSION   = 2e2ae1fb69a25217640bfe2fb9abaf9f4fbacead
 # git@ 22.02.2024 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = a2a0b89b6c8c612dca5ed9ed8a68db8a07f68bc0
 CATEGORIES   = kernel
@@ -14,6 +14,8 @@ PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                52-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
                54-add-rk3328-beelink-a1-defconfig.patch \
                50-add-rk3566-x96-x6-defconfig.patch \
+
+#               03-add-rk3528-support.patch \
 
 WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
 
@@ -49,6 +51,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = quartz64-b-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96-x6-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = radxa-zero-3-rk3566_defconfig
+# mm_U-BOOT_BOARD_TYPE = rk3528_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
