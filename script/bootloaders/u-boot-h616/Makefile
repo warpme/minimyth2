@@ -1,6 +1,6 @@
 
 GARNAME      = u-boot-h616
-GARVERSION   = 2024.04
+GARVERSION   = 2024.07
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
@@ -12,6 +12,7 @@ PATCHFILES  += 104-sunxi-add-led-on-at-poweron.patch
 PATCHFILES  += 105-mtd-spi-nor-add-zbit-zb25vq128.patch
 PATCHFILES  += 106-Add-int-phy-eth-H313-h616-with-AC300.patch
 PATCHFILES  += 107-sunxi_mmc-dec-f_max-to-12MHz-to-get-emmc-reliable.patch
+PATCHFILES  += 109-hack-hack-fix-h618-boot-on-uboot2024.07.patch
 # boards aditions.
 PATCHFILES  += 150-add-x96-q-lpddr3-defconfig.patch
 PATCHFILES  += 151-add-x96-q-ddr3-defconfig.patch
