@@ -133,6 +133,7 @@ PATCHFILES += 0592-arm64-dtsi-allwinner-rework-cpu-gpu-opp.patch
 endif
 #------------------------------------------------------------
 
+ifeq (1,1)
 #-- Allwinner H616 patches -----------------------------------------
 PATCHFILES += 0600-drivers-h616-wip-add-usb-emac2-support.patch
 # add THS support
@@ -156,7 +157,6 @@ PATCHFILES += 0631-arm64-dts-allwinner-h616.dtsi-add-ths-cpu-gpu-opp-and-dvfs.pa
 PATCHFILES += 0632-arm64-dts-allwinner-h616.dtsi-add-emac1.patch
 PATCHFILES += 0633-arm64-dts-allwinner-h616.dtsi-fix-x96q-failing-mmc3.patch
 PATCHFILES += 0641-arm64-dts-allwinner-h616-OrangePI-Zero23-enable-ths-hdmi-audio.patch
-ifeq (1,1)
 PATCHFILES += 0642-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0643-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
 PATCHFILES += 0644-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
