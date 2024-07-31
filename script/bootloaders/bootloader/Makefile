@@ -156,6 +156,14 @@ ifneq (,$(filter board-rk3588s.orangepi_5,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3588s.orangepi_5
 endif
 
+ifneq (,$(filter board-rk3588s.orangepi_5_pro,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3588s.orangepi_5_pro
+endif
+
+ifneq (,$(filter board-rk3588s.orangepi_5,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3588s.orangepi_5
+endif
+
 ifneq (,$(filter board-rk3588s.rock5-a,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3588s.rock5-a
 endif
