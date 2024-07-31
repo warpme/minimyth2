@@ -75,6 +75,8 @@ DISTFILES    = \
 	board-rk3588s.rock5-c.wks   \
 	board-rk3588s.orangepi_5.conf \
 	board-rk3588s.orangepi_5.wks  \
+	board-rk3588s.orangepi_5_pro.conf \
+	board-rk3588s.orangepi_5_pro.wks  \
 	board-rk3588.orangepi_5_plus.conf \
 	board-rk3588.orangepi_5_plus.wks  \
 	board-h6.beelink_gs1.conf   \
