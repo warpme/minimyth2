@@ -34,6 +34,7 @@ install-custom:
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.txt       $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.rockchip,rk3399-orangepi.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.txt       $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-3.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.txt       $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-4.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.txt       $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-5-pro.txt
 
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.bin       $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.radxa,rockpi4b.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.bin       $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.radxa,rockpi4c.bin
@@ -46,6 +47,7 @@ install-custom:
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.bin       $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.rockchip,rk3399-orangepi.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.bin       $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-3.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.bin       $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-4.bin
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.bin       $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-5-pro.bin
 
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.clm_blob  $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.radxa,rockpi4b.clm_blob
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.clm_blob  $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.radxa,rockpi4c.clm_blob
@@ -58,6 +60,7 @@ install-custom:
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.clm_blob  $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.rockchip,rk3399-orangepi.clm_blob
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.clm_blob  $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-3.clm_blob
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.clm_blob  $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-4.clm_blob
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.clm_blob  $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43456-sdio.xunlong,orangepi-5-pro.clm_blob
 
 	@$(MAKECOOKIE)
 
