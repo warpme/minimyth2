@@ -7,7 +7,7 @@ DISTFILES    = \
                minimyth.conf \
                extlinux.conf
 
-export mm_U-BOOT_BOARD_TYPE = orangepi-5-rk3588s_defconfig
+export mm_U-BOOT_BOARD_TYPE = orangepi-5-plus-rk3588_defconfig
 
 WORKSRC      = $(WORKDIR)
 
