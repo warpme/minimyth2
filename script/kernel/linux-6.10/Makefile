@@ -318,6 +318,7 @@ PATCHFILES += 1087-arm64-dts-rockchip-rock5x-opi5x-add-rkvdec2.patch
 PATCHFILES += 1088-arm64-dts-add-hdmi-audio-nodes-rock5x-orange5x.patch
 PATCHFILES += 1089-arm64-dts-enable-pwm-fan-rock5x-orange5x.patch
 PATCHFILES += 1090-arm64-dts-rockchip-add-rock5itx-board.patch
+PATCHFILES += 1091-arm64-dts-rockchip-add-opi5pro-board.patch
 endif
 #------------------------------------------------------------
 
