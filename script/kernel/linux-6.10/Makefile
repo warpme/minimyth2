@@ -295,6 +295,8 @@ PATCHFILES += 1044-ASoC-rockchip-i2s-tdm-Add-support-for-PATHx-controls.patch
 PATCHFILES += 1045-drm-bridge-synopsys-add-audio-support-in-dw-hdmi-qp.patch
 PATCHFILES += 1046-drm-bridge-synopsys-dw-hdmi-qp-workaround-for-hisense-tv.patch
 # PATCHFILES += 1047-drm-bridge-synopsys-dw-hdmi-qp-add-cec-wip.patch
+PATCHFILES += 1048-net-ethernet-add-yt6801-gige-pcie-controller.patch
+PATCHFILES += 1049-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 # dt patches
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-cpufreq-support.patch
