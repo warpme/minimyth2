@@ -4,7 +4,6 @@ GARVERSION   = $(LLVM_VERSION)
 CATEGORIES   = devel
 MASTER_SITES = https://github.com/llvm/llvm-project/releases/download/llvmorg-$(GARVERSION)/
 DISTFILES    = $(DISTNAME).src.tar.xz clang-$(GARVERSION).src.tar.xz libclc-$(GARVERSION).src.tar.xz cmake-$(GARVERSION).src.tar.xz
-#PATCHFILES   = fix-compile.patch
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKDIR)/$(DISTNAME)/LICENSE.TXT
 
