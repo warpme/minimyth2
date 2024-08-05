@@ -4,7 +4,7 @@ GARVERSION   = $(LLVM_VERSION)
 CATEGORIES   = devel
 MASTER_SITES = https://github.com/llvm/llvm-project/releases/download/llvmorg-$(GARVERSION)/
 DISTFILES    = $(DISTNAME).src.tar.xz clang-$(GARVERSION).src.tar.xz libclc-$(GARVERSION).src.tar.xz cmake-$(GARVERSION).src.tar.xz
-PATCHFILES   = fix-compile.patch
+#PATCHFILES   = fix-compile.patch
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKDIR)/$(DISTNAME)/LICENSE.TXT
 
@@ -61,6 +61,7 @@ CONFIGURE_ARGS += \
 	-DCMAKE_CROSSCOMPILING="True" \
 	-DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
 	-DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
+	-DLLVM_NATIVE_TOOL_DIR="$(build_DESTDIR)$(build_bindir)" \
 	-DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
 endif
 
@@ -85,6 +86,13 @@ configure-llvm:
 	@rm -rf $(WORKBLD)
 	@mkdir -p $(WORKBLD)
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) $(CMAKE) $(DIRPATHS_CMAKE) $(CONFIGURE_ARGS) ../$(DISTNAME)
+	@$(MAKECOOKIE)
+
+post-configure:
+	#hack to get clang cross-compiling.....
+	@sed \
+	 -e 's%.*<TARGET_FILE:clang-ast-dump>%        $(build_DESTDIR)$(build_bindir)/clang-ast-dump%g' \
+	 -i $(WORKDIR)/clang/lib/Tooling/CMakeLists.txt
 	@$(MAKECOOKIE)
 
 build-llvm:

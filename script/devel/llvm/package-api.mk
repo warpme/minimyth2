@@ -1,2 +1,2 @@
 
-LLVM_VERSION      = 18.1.6
+LLVM_VERSION      = 18.1.8
