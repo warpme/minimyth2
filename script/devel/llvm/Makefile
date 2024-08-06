@@ -14,10 +14,6 @@ endef
 DEPENDS   = lang/c lang/cxx lib/libedit
 BUILDDEPS = python2/python
 
-ifneq ($(DESTIMG),build)
-BUILDDEPS += devel/llvm
-endif
-
 WORKSRC = $(WORKDIR)/$(DISTNAME).src
 WORKBLD = $(WORKDIR)/$(DISTNAME)_build
 
@@ -26,6 +22,9 @@ BUILD_SCRIPTS     = llvm llvm_config
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
+	-DCMAKE_SYSTEM_NAME="Linux" \
+	-DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
+	-DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 	-DLLVM_BUILD_LLVM_DYLIB="ON" \
 	-DLLVM_LINK_LLVM_DYLIB="ON" \
@@ -50,19 +49,10 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 	 -DLLVM_TARGETS_TO_BUILD="ARM" ) \
 	$(if $(filter arm64, $(mm_GARCH_FAMILY)), \
 	 -DLLVM_TARGET_ARCH="AArch64" \
-	 -DLLVM_TARGETS_TO_BUILD="AArch64" )
+	 -DLLVM_TARGETS_TO_BUILD="AArch64" ) \
 
 GAR_EXTRA_CONF += devel/llvm/package-api.mk
 include ../../gar.mk
-
-ifneq ($(DESTIMG),build)
-CONFIGURE_ARGS += \
-	-DCMAKE_CROSSCOMPILING="True" \
-	-DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
-	-DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
-	-DLLVM_NATIVE_TOOL_DIR="$(build_DESTDIR)$(build_bindir)" \
-	-DLLVM_TABLEGEN="$(build_DESTDIR)$(build_bindir)/llvm-tblgen"
-endif
 
 # the configure script applies the host compiler flags when checking the build compiler.
 CFLAGS   :=
@@ -85,13 +75,6 @@ configure-llvm:
 	@rm -rf $(WORKBLD)
 	@mkdir -p $(WORKBLD)
 	@cd $(WORKBLD) && $(CONFIGURE_ENV) $(CMAKE) $(DIRPATHS_CMAKE) $(CONFIGURE_ARGS) ../$(DISTNAME)
-	@$(MAKECOOKIE)
-
-post-configure:
-	#hack to get clang cross-compiling.....
-	@sed \
-	 -e 's%.*<TARGET_FILE:clang-ast-dump>%        $(build_DESTDIR)$(build_bindir)/clang-ast-dump%g' \
-	 -i $(WORKDIR)/clang/lib/Tooling/CMakeLists.txt
 	@$(MAKECOOKIE)
 
 build-llvm:
@@ -125,3 +108,5 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/LLVMHello.so
 	@rm -f $(DESTDIR)$(libdir)/libLTO*
 	@rm -rf $(DESTDIR)$(includedir)/llvm*
+	@rm -rf $(DESTDIR)$(libdir)/cmake/clang*
+	@rm -rf $(DESTDIR)$(libdir)/cmake/llvm*
