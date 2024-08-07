@@ -1,10 +1,10 @@
 
 GARNAME      = mesa
-GARVERSION   = 24.1.4
+GARVERSION   = 24.1.5
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.gz
-PATCHFILES   = hack-hack-allow-build-with-broken-libclc.patch
+PATCHFILES   = hack-hack-allow-build-with-broken-libclc.patch fix-for-ticket30517.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 
 DESCRIPTION = 
@@ -36,6 +36,7 @@ DEPENDS =                      \
 BUILDDEPS  = \
 	lib/libxml2          \
 	python3/python       \
+	python3/python-ply   \
 	python3/python-mako  \
 	devel/meson          \
 	xorg/xorgproto       \
@@ -79,7 +80,7 @@ MESON_CONFIGURE_ARGS = \
 	-D gallium-rusticl=false \
 	-D opencl-spirv=false \
 	-D microsoft-clc=disabled \
-	-D install-intel-clc=false
+	-D install-intel-clc=false \
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
@@ -88,7 +89,8 @@ MESON_CONFIGURE_ARGS += \
 	-D gallium-va=disabled \
 	-D vulkan-drivers= \
 	-D llvm=disabled \
-	-D c_args="-mfpu=neon -mfloat-abi=softfp"
+	-D c_args="-mfpu=neon -mfloat-abi=softfp" \
+
 else
 ifeq ($(GARCH),armv8)
 MESON_CONFIGURE_ARGS += \
@@ -96,15 +98,18 @@ MESON_CONFIGURE_ARGS += \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
 	-D vulkan-drivers= \
-	-D llvm=disabled
+	-D llvm=disabled \
+
 else
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,nouveau,swrast \
+	-D gallium-drivers=radeonsi,iris,crocus,nouveau,swrast \
 	-D gallium-vdpau=enabled \
 	-D gallium-va=enabled \
 	-D video-codecs=vc1dec,h264dec,h265dec \
-	-D llvm=enabled
+	-D llvm=enabled \
+
 DEPENDS += devel/llvm lib/libclc
+BUILDDEPS += devel/llvm
 endif
 endif
 
