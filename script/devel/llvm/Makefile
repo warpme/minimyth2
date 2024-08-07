@@ -21,35 +21,58 @@ CONFIGURE_SCRIPTS = llvm
 BUILD_SCRIPTS     = llvm llvm_config
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
-CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
-	-DCMAKE_SYSTEM_NAME="Linux" \
+ifneq ($(DESTIMG),build)
+CONFIGURE_ARGS = $(DIRPATHS_CMAKE)         \
+	-DCMAKE_SYSTEM_NAME="Linux"        \
 	-DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
 	-DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
-	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
-	-DLLVM_BUILD_LLVM_DYLIB="ON" \
-	-DLLVM_LINK_LLVM_DYLIB="ON" \
-	-DLLVM_BUILD_TOOLS="ON" \
-	-DLLVM_INCLUDE_TOOLS="ON" \
-	-DLLVM_BUILD_EXAMPLES="OFF" \
-	-DLLVM_INCLUDE_EXAMPLES="OFF" \
-	-DLLVM_BUILD_TESTS="OFF" \
-	-DLLVM_INCLUDE_TESTS="OFF" \
-	-DLLVM_ENABLE_LTO="OFF" \
-	-DLLVM_BUILD_DOCS="OFF" \
-	-DLLVM_ENABLE_DOXYGEN="OFF" \
-	-DCMAKE_BUILD_TYPE=Release \
-	-DLLVM_BUILD_BENCHMARKS="OFF" \
-	-DLLVM_INCLUDE_BENCHMARKS="OFF" \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF"     \
+	-DLLVM_BUILD_LLVM_DYLIB="ON"       \
+	-DLLVM_LINK_LLVM_DYLIB="ON"        \
+	-DLLVM_BUILD_TOOLS="ON"            \
+	-DLLVM_INCLUDE_TOOLS="ON"          \
+	-DLLVM_BUILD_EXAMPLES="OFF"        \
+	-DLLVM_INCLUDE_EXAMPLES="OFF"      \
+	-DLLVM_BUILD_TESTS="OFF"           \
+	-DLLVM_INCLUDE_TESTS="OFF"         \
+	-DLLVM_ENABLE_LTO="OFF"            \
+	-DLLVM_BUILD_DOCS="OFF"            \
+	-DLLVM_ENABLE_DOXYGEN="OFF"        \
+	-DCMAKE_BUILD_TYPE=Release         \
+	-DLLVM_BUILD_BENCHMARKS="OFF"      \
+	-DLLVM_INCLUDE_BENCHMARKS="OFF"    \
 	-DLLVM_ENABLE_PROJECTS="clang;libclc" \
 	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="X86" \
-	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" ) \
+	 -DLLVM_TARGET_ARCH="X86"                 \
+	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" )   \
 	$(if $(filter arm,   $(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="ARM" \
-	 -DLLVM_TARGETS_TO_BUILD="ARM" ) \
+	 -DLLVM_TARGET_ARCH="ARM"                 \
+	 -DLLVM_TARGETS_TO_BUILD="ARM" )          \
 	$(if $(filter arm64, $(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="AArch64" \
-	 -DLLVM_TARGETS_TO_BUILD="AArch64" ) \
+	 -DLLVM_TARGET_ARCH="AArch64"             \
+	 -DLLVM_TARGETS_TO_BUILD="AArch64" )      \
+
+else
+CONFIGURE_ARGS = $(DIRPATHS_CMAKE)      \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF"  \
+	-DLLVM_BUILD_LLVM_DYLIB="ON"    \
+	-DLLVM_LINK_LLVM_DYLIB="ON"     \
+	-DLLVM_BUILD_TOOLS="ON"         \
+	-DLLVM_INCLUDE_TOOLS="ON"       \
+	-DLLVM_BUILD_EXAMPLES="OFF"     \
+	-DLLVM_INCLUDE_EXAMPLES="OFF"   \
+	-DLLVM_BUILD_TESTS="OFF"        \
+	-DLLVM_INCLUDE_TESTS="OFF"      \
+	-DLLVM_ENABLE_LTO="OFF"         \
+	-DLLVM_BUILD_DOCS="OFF"         \
+	-DLLVM_ENABLE_DOXYGEN="OFF"     \
+	-DCMAKE_BUILD_TYPE=Release      \
+	-DLLVM_BUILD_BENCHMARKS="OFF"   \
+	-DLLVM_INCLUDE_BENCHMARKS="OFF" \
+	-DLLVM_ENABLE_PROJECTS="clang"  \
+	-DLLVM_TARGETS_TO_BUILD="X86"   \
+
+endif
 
 GAR_EXTRA_CONF += devel/llvm/package-api.mk
 include ../../gar.mk
@@ -60,6 +83,7 @@ CXXFLAGS :=
 LDFLAGS  :=
 
 pre-configure: 
+	$(warning CMAKE configure will be invoked with: $(CONFIGURE_ARGS))
 	@mv $(WORKDIR)/$(DISTNAME).src $(WORKDIR)/$(DISTNAME)
 	@cp $(WORKDIR)/cmake-$(GARVERSION).src/Modules/* $(WORKDIR)/$(DISTNAME)/cmake/modules/
 	@mkdir -p $(WORKDIR)/cmake
@@ -88,25 +112,19 @@ build-llvm_config:
 
 post-install:
 	@mkdir -p $(DESTDIR)$(bindir)-config
-	@$(if $(filter build, $(DESTIMG)), \
-	 cp $(WORKBLD)/bin/llvm-config $(DESTDIR)$(bindir)-config/llvm-config, \
-	 echo '#!/bin/sh'                      > $(DESTDIR)$(bindir)-config/llvm-config ; \
-	 echo 'echo "$$@" >> llvm-config.log' >> $(DESTDIR)$(bindir)-config/llvm-config ; \
-	 echo '$(build_DESTDIR)$(build_bindir)-config/llvm-config "$$@" | sed -e "s/build/main/g" >> llvm-config.log 2>&1' >> $(DESTDIR)$(bindir)-config/llvm-config ; \
-	 echo '$(build_DESTDIR)$(build_bindir)-config/llvm-config "$$@" | sed -e "s/build/main/g"'                         >> $(DESTDIR)$(bindir)-config/llvm-config ; \
-	 chmod +x $(DESTDIR)$(bindir)-config/llvm-config )
+	@ln -sf $(DESTDIR)$(bindir)/llvm-config $(DESTDIR)$(bindir)-config/llvm-config
 	@$(if $(compiler_prefix), ln -sf llvm-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config)
-	@$(MAKECOOKIE)
+	@#$(MAKECOOKIE)
 
 clean-all:
-	@rm -f $(DESTDIR)$(bindir)-config/llvm-config
-	@rm -f $(DESTDIR)$(bindir)/llvm*
-	@rm -f $(DESTDIR)$(bindir)/clang*
-	@rm -f $(DESTDIR)$(libdir)/libLLVM*
-	@rm -f $(DESTDIR)$(libdir)/libclang*
+	@rm -f  $(DESTDIR)$(bindir)-config/llvm-config
+	@rm -f  $(DESTDIR)$(bindir)/llvm*
+	@rm -f  $(DESTDIR)$(bindir)/clang*
+	@rm -f  $(DESTDIR)$(libdir)/libLLVM*
+	@rm -f  $(DESTDIR)$(libdir)/libclang*
 	@rm -rf $(DESTDIR)$(libdir)/clang*
-	@rm -f $(DESTDIR)$(libdir)/LLVMHello.so
-	@rm -f $(DESTDIR)$(libdir)/libLTO*
+	@rm -f  $(DESTDIR)$(libdir)/LLVMHello.so
+	@rm -f  $(DESTDIR)$(libdir)/libLTO*
 	@rm -rf $(DESTDIR)$(includedir)/llvm*
 	@rm -rf $(DESTDIR)$(libdir)/cmake/clang*
 	@rm -rf $(DESTDIR)$(libdir)/cmake/llvm*
