@@ -112,6 +112,10 @@ ifneq (,$(filter board-rk3528.vontar_r3,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3528.vontar_r3
 endif
 
+ifneq (,$(filter board-rk3528.rock2-a,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3528.rock2-a
+endif
+
 ifneq (,$(filter board-rk3566.x96_x6,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3566.x96_x6
 endif
