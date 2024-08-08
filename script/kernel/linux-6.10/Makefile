@@ -341,6 +341,7 @@ PATCHFILES += 1115-hack-hack-gpu-drm-rockchip-rockchip_vop2_reg-add-rk3528.patch
 # device-tree patches
 PATCHFILES += 1150-arm64-dtsi-rockchip-add-3528.dtsi.patch
 PATCHFILES += 1151-arm64-dts-rockchip-add-dts-for-vontar_r3.patch
+PATCHFILES += 1152-arm64-dts-rockchip-rk3528-add-dts-for-rock2a.patch
 endif
 #------------------------------------------------------------
 
