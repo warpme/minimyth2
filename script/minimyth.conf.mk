@@ -84,6 +84,7 @@ mm_SOFTWARE               ?= \
 # 'board-rk3399.orangepi_4'
 # 'board-rk3399.orangepi_4_lts'
 # 'board-rk3528.vontar_r3'
+# 'board-rk3528.rock2-a'
 # 'board-rk3566.x96_x6'
 # 'board-rk3566.quartz64-b'
 # 'board-rk3566.urve-pi'
