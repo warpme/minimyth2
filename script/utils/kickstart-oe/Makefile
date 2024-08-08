@@ -49,6 +49,8 @@ DISTFILES    = \
 	board-rk3399.orangepi_4_lts.wks  \
 	board-rk3528.vontar_r3.conf  \
 	board-rk3528.vontar_r3.wks   \
+	board-rk3528.rock2-a.conf    \
+	board-rk3528.rock2-a.wks     \
 	board-rk3566.x96_x6.conf     \
 	board-rk3566.x96_x6.wks      \
 	board-rk3566.urve-pi.conf    \
