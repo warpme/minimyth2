@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 24.1.5
+GARVERSION   = 24.2.0
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.gz
@@ -38,6 +38,7 @@ BUILDDEPS  = \
 	python3/python       \
 	python3/python-ply   \
 	python3/python-mako  \
+	python3/python-pyyaml \
 	devel/meson          \
 	xorg/xorgproto       \
 	xorg/libxshmfence    \
@@ -84,7 +85,7 @@ MESON_CONFIGURE_ARGS = \
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
+	-D gallium-drivers=swrast,lima,panfrost,vc4,v3d \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
 	-D vulkan-drivers= \
@@ -94,7 +95,7 @@ MESON_CONFIGURE_ARGS += \
 else
 ifeq ($(GARCH),armv8)
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
+	-D gallium-drivers=lima,panfrost,vc4,v3d \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
 	-D vulkan-drivers= \
