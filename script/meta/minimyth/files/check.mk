@@ -109,6 +109,7 @@ mm-all:
 		   [ ! "$${graphic}" = "nvidia"        ] && \
 		   [ ! "$${graphic}" = "nvidia-legacy" ] && \
 		   [ ! "$${graphic}" = "radeon"        ] && \
+		   [ ! "$${graphic}" = "radeon-legacy" ] && \
 		   [ ! "$${graphic}" = "radeonhd"      ] && \
 		   [ ! "$${graphic}" = "nouveau"       ] && \
 		   [ ! "$${graphic}" = "armsoc"        ] && \
