@@ -12,16 +12,9 @@
 # Comment this out to make much verbosity
 #.SILENT:
 
-#ifeq ($(origin GARDIR), undefined)
-#GARDIR := $(CURDIR)/../..
-#endif
-
 ####### Invariants #######
 GARDIR ?= ../..
 
-# GARBUILD is the platform on which you're running GAR.  If you want to
-# override it with a value other than what GCC thinks it's running on that's
-# ok, but the results will be very... VERY ...strange.
 GARBUILD ?= $(shell gcc -dumpmachine)
 
 # include the configuration file to override any of these variables
