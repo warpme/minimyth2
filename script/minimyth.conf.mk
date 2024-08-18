@@ -337,6 +337,9 @@ mm_CFLAGS                 ?= $(strip \
 mm_CXXFLAGS               ?= $(mm_CFLAGS)
 mm_DESTDIR                ?= $(mm_HOME)/images/mm
 
+# build compiler prefix
+mm_GARBUILD               ?= x86_64-build-linux-gnu
+
 # For ARM target MiniMyth2 GCC9.3 multi-lib capabilities allows to compile for
 # following ARM target variants:
 # -marm   -march=armv5te+fp   -mfloat-abi=softfp
