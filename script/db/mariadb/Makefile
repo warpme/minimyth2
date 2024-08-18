@@ -1,6 +1,6 @@
 
 GARNAME      = mariadb
-GARVERSION   = 11.2.2
+GARVERSION   = 11.4.3
 CATEGORIES   = db
 MASTER_SITES = https://rsync.osuosl.org/pub/mariadb/mariadb-$(GARVERSION)/source/
 DISTFILES    = $(DISTNAME).tar.gz
@@ -66,6 +66,11 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 include ../../gar.mk
 
 pre-configure:
+	@#hack to build host tools on Fedora40
+	@mkdir -p $(WORKSRC)/sql/bits
+	@$(if $(wildcard /usr/include/bits/math-vector.h), ln -sf /usr/include/bits/math-vector.h $(WORKSRC)/sql/bits/ )
+	@$(if $(wildcard $(DESTDIR)$(includedir)/math-x.h), ln -sf $(DESTDIR)$(includedir)/math-x.h $(DESTDIR)$(includedir)/math.h )
+
 	@mkdir -p $(WORKSRC)/host && cd $(WORKSRC)/host && $(CMAKE) .. && $(MAKE) import_executables
 	@$(MAKECOOKIE)
 
