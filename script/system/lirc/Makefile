@@ -11,7 +11,15 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c kernel/kernel lib/alsa-lib lib/libftdi lib/libirman lib/libusb-compat xorg/xorg
+DEPENDS = \
+	lang/c \
+	kernel/kernel \
+	lib/alsa-lib \
+	lib/libftdi \
+	lib/libirman \
+	lib/libusb-compat \
+	xorg/xorg \
+	python3/python-setuptools \
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -27,7 +35,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	SH_PATH="/bin/sh" \
 	DEVINPUT_HEADER="$(DESTDIR)$(includedir)/linux/input.h" \
 
-GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk
 include ../../gar.mk
 
 git//%$(DISTNAME).tar.bz2:
