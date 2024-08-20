@@ -20,6 +20,6 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 include ../../gar.mk
 
 # LTO breaks compilation of LVM2
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+CFLAGS   := $(filter-out -flto=auto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
