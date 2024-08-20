@@ -73,6 +73,8 @@ git//%$(DISTNAME).tar.bz2:
 # glibc fails to compile with gcc link time optimization enabled.
 CFLAGS  := $(filter-out -flto, $(CFLAGS))
 LDFLAGS := $(filter-out -flto, $(LDFLAGS))
+CFLAGS  := $(filter-out -flto=auto, $(CFLAGS))
+LDFLAGS := $(filter-out -flto=auto, $(LDFLAGS))
 
 configure-custom:
 	@mkdir -p $(WORKBLD)
