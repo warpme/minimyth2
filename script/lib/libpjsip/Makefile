@@ -51,10 +51,6 @@ PYTHON3_INSTALL_ENV    = \
 GAR_EXTRA_CONF += python3/python/package-api.mk
 include ../../gar.mk
 
-# Turn-off LTO & use -Os to save size
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -Os
 CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -Os
 LDFLAGS  := $(filter-out -O%, $(LDFLAGS)) -Os
