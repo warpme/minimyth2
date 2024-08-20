@@ -10,9 +10,9 @@ GAR_EXTRA_CONF += package-api.mk
 include ../../python3/python/package-api.mk
 
 # Turn-off LTO to save size
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+CFLAGS   := $(filter-out -flto=auto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
 
 # Turn-off -O3 to save size
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -Os -I$(DESTDIR)$(includedir)/python$(PYTHON_VERSION_MAJOR).$(PYTHON_VERSION_MINOR)/

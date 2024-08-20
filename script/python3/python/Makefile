@@ -32,7 +32,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-system-expat \
 	--with-dbmliborder=gdbm:ndbm \
 	--without-ensurepip \
-	--without-lto \
+	--with-lto="yes" \
 	CPPFLAGS="-I$(DESTDIR)$(includedir)" \
 	ac_cv_enable_implicit_function_declaration_error=no \
 	ac_cv_working_tzset=yes \
@@ -66,13 +66,6 @@ LDFLAGS := $(LDFLAGS) -L$(PWD)/$(WORKSRC)
 
 # Needed as configure fails on 'float word ordering is bigendian' detection
 CFLAGS  += -ffat-lto-objects
-
-ifeq ($(GARCH),armv7)
-# disabling LTO on arm target
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
-endif
 
 pre-configure:
 	@cd $(WORKSRC) ; autoreconf --verbose --install --force
@@ -112,7 +105,7 @@ ifneq ($(DESTIMG),build)
 	@$(build_DESTDIR)$(build_bindir)/python3 -S -m sysconfig --generate-posix-vars
 	@echo "  Disabling LTO and -O3 in target arch _sysconfigdata.py..."
 	@sed -i "s|-O3|-Os|g" $(WORKSRC)/../../../build/lib.linux*/_sysconfigdata__linux_*-linux-gnu.py
-	@sed -i "s|-flto||g" $(WORKSRC)/../../../build/lib.linux*/_sysconfigdata__linux_*-linux-gnu.py
+	@sed -i "s|-flto=auto||g" $(WORKSRC)/../../../build/lib.linux*/_sysconfigdata__linux_*-linux-gnu.py
 	@echo "  Fixing LIB dirs in target arch _sysconfigdata.py..."
 	@sed -i "s%'LIBDIR':.*%'LIBDIR': '$(DESTDIR)$(libdir)',%" $(WORKSRC)/../../../build/lib.linux*/_sysconfigdata__linux_*-linux-gnu.py
 	@echo "  Fixing INCLUDE dirs in target arch _sysconfigdata.py..."
