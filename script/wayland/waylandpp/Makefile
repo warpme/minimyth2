@@ -35,4 +35,10 @@ CMAKE_CONFIGURE_ARGS_BUILD =  \
 	-DBUILD_DOCUMENTATION="OFF" \
 	-DBUILD_EXAMPLES="OFF"
 
+pre-configure:
+	@#hack to build on systems without EGL (e.g. vanilla Fedora40)
+	@ln -srf $(main_DESTDIR)/usr/include/EGL $(WORKSRC)/include/
+	@ln -srf $(main_DESTDIR)/usr/include/KHR $(WORKSRC)/include/
+	@$(MAKECOOKIE)
+
 include ../../gar.mk
