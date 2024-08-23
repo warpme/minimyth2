@@ -4,6 +4,7 @@ GARVERSION   = $(PYTHON_VERSION)
 CATEGORIES   = python
 MASTER_SITES = http://www.python.org/ftp/python/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = Python-3.9-hack-compilation-on-Ubuntu.patch
 LICENSE      = $(GARNAME)
 
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
