@@ -33,7 +33,7 @@ while true ; do
   instances=`ps --no-headers -o command -C python | grep -c "sip-daemon.py"`
   if [ ${instances} -ne 1 ] ; then
     /usr/bin/logger -t minimyth -p "local0.info" "[sip-daemon.sh] watchdog detected killed/trapped sip-daemon.py process. Restarting it..."
-    /usr/bin/python -u /usr/bin/sip-daemon.py >> /var/log/sip-daemon &
+    /usr/bin/python -u /usr/bin/sip-daemon.py >> /var/log/sip-daemon.log &
     /bin/sleep 10
   else
     /bin/sleep 3

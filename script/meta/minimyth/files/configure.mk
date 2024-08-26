@@ -58,6 +58,7 @@ MM_INIT_START_PHASE_5 := \
     updates      \
     cache_pruner \
     monitorix    \
+    logrotate    \
     housekeep    \
     mythdb_buffer_delete \
 
