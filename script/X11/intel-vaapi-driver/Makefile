@@ -1,7 +1,7 @@
 
-# git master @ 28.09.2021
+# git master @ 07.05.2024
 GARNAME      = intel-vaapi-driver
-GARVERSION   = 3ed3f6a783fdfff3fa1b567888518dcbda7eb2a3
+GARVERSION   = 06c9a893581c975c365c2281a1e597197b558085
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/intel-vaapi-driver/archive/
 DISTFILES    = $(GARVERSION).zip
