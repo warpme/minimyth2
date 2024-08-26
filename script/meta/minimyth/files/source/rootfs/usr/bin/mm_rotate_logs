@@ -1,0 +1,45 @@
+#!/bin/sh
+
+pids=`/bin/pidof mm_rotate_logs`
+instances=`/bin/echo ${pids} | /usr/bin/wc -w`
+if [ ${instances} -ne 1 ] ; then
+    /usr/bin/logger -t minimyth -p "local0.info" "[mm_rotate_logs] another instance is running ..."
+    exit 1
+fi
+
+. /etc/rc.d/functions
+
+check_period=$1
+
+if [ x${check_period} = "x0" ] || [ x${check_period} = "xno" ] || [ x${check_period} = "x" ]; then
+    echo "Rotate period not speciffied or = 0 or set to \'no\'. Exiting with rc=0"
+    exit 0
+fi
+
+trap "_exit_" 0 1 2 3 15
+
+_exit_()
+{
+    ps -o ppid,pid,args \
+    | sed -e 's%  *% %g' -e 's%^ %%' -e 's% $%%' \
+    | grep "^$$ " \
+    | grep '/bin/sleep [^ ]*$' \
+    | cut -d ' ' -f 2 \
+    | while read pid ; do
+        kill $pid
+    done
+}
+
+/usr/bin/logger -t minimyth -p "local0.info" "[mm_rotate_logs] start rotating logs daemon ..."
+
+check_period=$((${check_period} * 60))
+
+while true ; do
+
+    /bin/sleep ${check_period}
+
+    /bin/logrotate /etc/logrotate.conf
+
+done
+
+exit 0
