@@ -1,6 +1,6 @@
 
 GARNAME      = gmmlib-intel-gmmlib
-GARVERSION   = 22.3.10
+GARVERSION   = 22.3.20
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/gmmlib/archive/refs/tags/
 DISTFILES    = $(DISTNAME).tar.gz
