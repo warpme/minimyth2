@@ -180,6 +180,10 @@ ifneq (,$(filter board-rk3588.orangepi_5_plus,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3588.orangepi_5_plus
 endif
 
+ifneq (,$(filter board-rk3588s.nanopi_m6,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3588s.nanopi_m6
+endif
+
 ifneq (,$(filter board-h6.beelink_gs1,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h6.beelink_gs1
 endif
