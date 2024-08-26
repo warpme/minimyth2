@@ -178,6 +178,7 @@ DEPENDS = \
 	utils/kbd \
 	utils/dash \
 	utils/read-edid \
+	utils/logrotate \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
 		gtk/gconf \
 		gtk/gtk3 \
