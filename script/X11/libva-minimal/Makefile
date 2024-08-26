@@ -3,8 +3,6 @@ GARNAME      = libva
 GARVERSION   = $(LIBVA_VERSION)
 CATEGORIES   = X11
 SOURCEPKG    = X11/libva
-#MASTER_SITES = https://github.com/intel/libva/archive/
-#DISTFILES    = $(GARVERSION).tar.gz
 LICENSE      = MIT
 
 DESCRIPTION = 
