@@ -6,9 +6,6 @@
 # Reworked by Piotr Oniszczuk <piotr.oniszczuk@gmail.com> for MiniArch purpouses
 #
 
-
-
-
 ver="1.0"
 
 . /etc/install-endeavouros.conf
@@ -201,21 +198,6 @@ create_alias() {
     printf "alias lb='lsblk -o NAME,FSTYPE,FSSIZE,LABEL,MOUNTPOINT'\n\n" >> /etc/bash.bashrc
 }
 
-add_user() {
-    local tmpfile
-
-    useradd -c "$FULLNAME" -m -G users -s /bin/bash -u 1000 "$USERNAME"
-    msg "adding user $USERNAME to sudo wheel"
-    printf "$USERNAME  ALL=(ALL:ALL) ALL" >> /etc/sudoers
-    gpasswd -a $USERNAME wheel
-    msg "updating user password"
-    echo "${USERNAME}:${USERPASSWD}" | chpasswd
-    tmpfile=/etc/lightdm/lightdm.conf
-    if [ -f $tmpfile ]; then
-        gpasswd -a $USERNAME lightdm
-    fi
-}
-
 clean_up() {
     # rebranding to EndeavourOS
     sed -i 's/Arch/EndeavourOS/' /etc/issue
@@ -287,7 +269,9 @@ user_input() {
 
     userinputdone=1
     while [ $userinputdone -ne 0 ] ; do
+
         if [ ! -e $INITIAL_SETUP_DONE_FLAG ] ; then
+
             generate_timezone_list $ZONE_DIR
             TIMEZONE=$(whiptail --nocancel --title "EndeavourOS ARM Setup - Timezone Selection" --menu \
             "Please choose your timezone.\n\nNote: You can navigate to different sections with Page Up/Down or the A-Z keys." 18 90 8 --cancel-button 'Back' "${TIMEZONE_LIST[@]}" 3>&2 2>&1 1>&3)
@@ -300,50 +284,6 @@ user_input() {
                 if [ "$HOSTNAME" == "" ] ; then
                     description="Host name cannot be blank. Enter your desired hostname"
                 else
-                    finished=0
-                fi
-            done
-
-            finished=1
-            description="Enter your full name, i.e. John Doe"
-            while [ $finished -ne 0 ] ; do
-                FULLNAME=$(whiptail --nocancel --title "EndeavourOS ARM Setup - User Setup" --inputbox "$description" 8 60 3>&2 2>&1 1>&3)
-
-                if [ "$FULLNAME" == "" ] ; then
-                    description="Entry is blank. Enter your full name"
-                else
-                    finished=0
-                fi
-            done
-
-            finished=1
-            description="Enter your desired user name"
-            while [ $finished -ne 0 ] ; do
-                USERNAME=$(whiptail --nocancel --title "EndeavourOS ARM Setup - User Setup" --inputbox "$description" 8 60 3>&2 2>&1 1>&3)
-
-                if [ "$USERNAME" == "" ] ; then
-                    description="Entry is blank. Enter your desired username"
-                else
-                    finished=0
-                fi
-            done
-
-            finished=1
-            initial_user_password=""
-            description="Enter your desired password for ${USERNAME}:"
-            while [ $finished -ne 0 ] ; do
-                USERPASSWD=$(whiptail --nocancel --title "EndeavourOS ARM Setup - User Setup" --passwordbox "$description" 8 60 3>&2 2>&1 1>&3)
-
-                if [ "$USERPASSWD" == "" ]; then
-                    description="Entry is blank. Enter your desired password"
-                    initial_user_password=""
-                elif [[ "$initial_user_password" == "" ]]; then
-                    initial_user_password="$USERPASSWD"
-                    description="Confirm password:"
-                elif [[ "$initial_user_password" != "$USERPASSWD" ]]; then
-                    description="Passwords do not match.\nEnter your desired password for ${USERNAME}:"
-                    initial_user_password=""
-                elif [[ "$initial_user_password" == "$USERPASSWD" ]]; then
                     finished=0
                 fi
             done
@@ -380,8 +320,6 @@ user_input() {
             whiptail --title "EndeavourOS ARM Setup - Review Settings" --yesno "             To review, you entered the following information:\n\n \
                 Time Zone: $TIMEZONE \n \
                 Host Name: $HOSTNAME \n \
-                Full Name: $FULLNAME \n \
-                User Name: $USERNAME \n \
                 Desktop Environment: $DENAME \n\n \
                 Is this information correct?" 16 80
             userinputdone="$?"
@@ -484,9 +422,7 @@ desktop_setup() {
         $DENAME
     fi
 
-    if [ ! -e $INITIAL_SETUP_DONE_FLAG ] ; then
-        add_user
-    fi
+    printf "alarm  ALL=(ALL:ALL) ALL" >> /etc/sudoers
 
     FILENAME="/etc/lightdm/lightdm.conf"
     if [ -f $FILENAME ] ; then
