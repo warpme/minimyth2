@@ -1,8 +1,42 @@
 #!/bin/bash
 
+#
+# Code based on excellent work of https://github.com/endeavouros-arm/install-script
+#
+# Reworked by Piotr Oniszczuk <piotr.oniszczuk@gmail.com> for MiniArch purpouses
+#
+
+
+
+
+ver="1.0"
+
 . /etc/install-endeavouros.conf
 
+log_file="/var/log/install-endeavouros.log"
+
+wget_cmd="wget --no-verbose "
+
+ARCH=$(uname -m)
+
 declare -a TIMEZONE_LIST
+
+log() {
+    echo >&2 "`date '+%H:%M:%S'`: $*" >> ${log_file}
+    }
+
+msg() {
+    log "$*"
+    echo "==> $*"
+}
+
+error() {
+    log "$*"
+    echo "$*"
+    echo "Please provide content of ${log_file} to developer ..."
+    echo "Now exiting ..."
+    exit 1
+}
 
 disable_all_de() {
     systemctl disable lightdm.service sddm.service gdm.service eos-lxdm-gtk3.service sddm.service 2>/dev/null
@@ -10,6 +44,7 @@ disable_all_de() {
 
 switch_pacman_trust_all() {
     if [ ! -e /etc/pacman.conf.before-eos-install ] ; then
+        msg "changing pacman.conf to TrustAll"
         cp -f /etc/pacman.conf /etc/pacman.conf.before-eos-install
         sed -e 's/^\s*SigLevel.*/SigLevel = TrustAll/g' -i /etc/pacman.conf
     fi
@@ -17,6 +52,7 @@ switch_pacman_trust_all() {
 
 restore_pacman_trust() {
     if [ -e /etc/pacman.conf.before-eos-install ] ; then
+        msg "restoring pacman.conf to original trust"
         cp -f /etc/pacman.conf.before-eos-install /etc/pacman.conf
         rm -f /etc/pacman.conf.before-eos-install
     fi
@@ -30,227 +66,173 @@ run_unattended_pacman_on_filelist() {
     echo yes | pacman -S --noconfirm --needed --overwrite \* - < $1
 }
 
-_i3wm() {
-    printf "\n${CYAN}Installing i3-wm ...${NC}\n"
-    MESSAGE="\nInstalling i3-wm  "
-    eos-packagelist "i3-Window-Manager" > i3
-    _fixup_pkg_list i3 "${i3_REMOVE_LIST}" "${i3_ADD_LIST}"
-    eval "$PACMAN_UNATTENDED_CMD < i3"
-    _ok_nok  # function call
-    systemctl enable lightdm.service
-}   # end of function _i3wm
-
-
-
 generate_timezone_list() {
-
-	input=$1
-	if [[ -d $input ]]; then
-		for i in "$input"/*; do
-			generate_timezone_list $i
-		done
-	else
-		TIMEZONE=${input/#"$ZONE_DIR/"}
-		TIMEZONE_LIST+=($TIMEZONE)
-		TIMEZONE_LIST+=("")
-	fi
-}
-
-
-_status_checker() {
-    local status_code
-
-    status_code="$1"
-    if [[ "$status_code" -eq 1 ]]; then
-       printf "${CYAN}Exiting setup..${NC}\n"
-       exit
-    fi
-}
-
-
-_ok_nok() {
-    # Requires that variable "MESSAGE" be set
-    local status
-
-    status=$?
-    if [[ $status -eq 0 ]]
-    then
-       printf "${GREEN}$MESSAGE OK${NC}\n"
-       printf "$MESSAGE OK\n" >> /root/enosARM.log
+    input=$1
+    msg "setting timezone to $input"
+    if [[ -d $input ]]; then
+        for i in "$input"/*; do
+            generate_timezone_list $i
+        done
     else
-       printf "${RED}$MESSAGE   FAILED${NC}\n"
-       printf "$MESAGE FAILED\n" >> /root/enosARM.log
-       printf "\n\nLogs are stored in: /root/enosARM.log\n"
-      exit 1
+        TIMEZONE=${input/#"$ZONE_DIR/"}
+        TIMEZONE_LIST+=($TIMEZONE)
+        TIMEZONE_LIST+=("")
     fi
-    sleep 1
-} # end of function _ok_nok
+}
 
-
-_find_mirrorlist() {
-    # find and install current endevouros-arm-mirrorlist
-
+find_mirrorlist() {
     if [ ! -e ./endeavouros-mirrorlist ] ; then
-        printf "\n${CYAN}Downloading endeavouros-mirrorlist...${NC}"
-        wget https://raw.githubusercontent.com/endeavouros-team/PKGBUILDS/master/endeavouros-mirrorlist/endeavouros-mirrorlist
+        msg "downloading endeavouros-mirrorlist"
+        ${wget_cmd} https://raw.githubusercontent.com/endeavouros-team/PKGBUILDS/master/endeavouros-mirrorlist/endeavouros-mirrorlist
         if [ ! -e ./endeavouros-mirrorlist ] ; then
-            printf "ERROR: can't download endeavouros-mirrorlist file ... Exiting!"
+            msg "ERROR: can't download endeavouros-mirrorlist file ... Exiting!"
             exit 1
         fi
     else
-        printf "\n${CYAN}Reuse already downloaded endeavouros-mirrorlist...${NC}"
+        msg "reuse already downloaded endeavouros-mirrorlist"
     fi
 
-    printf "\n${CYAN}Installing endeavouros-mirrorlist...${NC}\n"
+    msg "installing endeavouros-mirrorlist"
     cp -f endeavouros-mirrorlist /etc/pacman.d/
 
     if [ x$(grep -c "^\[endeavouros\]" /etc/pacman.conf) = "x0" ] ; then
-        printf "\n${CYAN}Adding endeavouros-mirrorlist to pacman repos ${NC}"
+        msg "dding endeavouros-mirrorlist to pacman repos"
         printf "\n[endeavouros]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/endeavouros-mirrorlist\n\n" >> /etc/pacman.conf
     else
-        printf "\n${CYAN}endeavouros-mirrorlist already in pacman repos ${NC}"
+        msg "endeavouros-mirrorlist already in pacman repos"
+    fi
+}
+
+find_keyring() {
+    local tmpfile
+    local currentkeyring
+
+    rm -f keys
+
+    msg "find current endeavouros-keyring"
+    curl https://github.com/endeavouros-team/repo/tree/master/endeavouros/$ARCH 2>${log_file} | grep endeavouros-keyring | sed s'/^.*endeavouros-keyring/endeavouros-keyring/'g | sed s'/pkg.tar.zst.*/pkg.tar.zst/'g | tail -1 > keys
+    if [ x$(grep -c "pkg.tar" keys) = "x0" ] ; then
+        msg "ERROR: can't determine current endeavouros-keyring package from https://github.com/endeavouros-team/repo/tree/master/endeavouros/$ARCH URL ... Exiting!"
+        exit 1
+    fi
+
+    read -d $'\04' currentkeyring < "keys"
+
+    if [ -e $currentkeyring ] ; then
+        msg "reusing existing $currentkeyring"
+        msg "installing endeavouros-keyring"
+        pacman -U --noconfirm --needed $currentkeyring
+    else
+        msg "downloading endeavouros-keyring"
+        ${wget_cmd} https://github.com/endeavouros-team/repo/raw/master/endeavouros/$ARCH/$currentkeyring 2>&1 >${log_file}
+
+        if [ -e endeavouros-keyring-*-any.pkg.* ] ; then
+            msg "installing endeavouros-keyring"
+            pacman -U --noconfirm --needed $currentkeyring
+        else
+            msg "ERROR: can't download $currentkeyring from https://github.com/endeavouros-team/repo/raw/master/endeavouros URL ... Exiting!"
+            exit 1
+        fi
     fi
 
 }
 
-
-_find_keyring() {
-    local tmpfile
-    local currentkeyring
-
-    printf "\n${CYAN}Find current endeavouros-keyring...${NC}\n\n"
-    MESSAGE="\nFind current endeavouros-keyring "
-    sleep 1
-    curl https://github.com/endeavouros-team/repo/tree/master/endeavouros/$ARMARCH |grep endeavouros-keyring | sed s'/^.*endeavouros-keyring/endeavouros-keyring/'g | sed s'/pkg.tar.zst.*/pkg.tar.zst/'g | tail -1 > keys
-
-    tmpfile="keys"
-    read -d $'\04' currentkeyring < "$tmpfile"
-
-    printf "\n${CYAN}Downloading endeavouros-keyring...${NC}"
-    MESSAGE="\nDownloading endeavouros-keyring "
-    wget https://github.com/endeavouros-team/repo/raw/master/endeavouros/$ARMARCH/$currentkeyring 2>> /root/enosARM.log
-    _ok_nok		# function call
-
-    printf "\n${CYAN}Installing endeavouros-keyring...${NC}\n"
-    MESSAGE="Installing endeavouros-keyring "
-    pacman -U --noconfirm $currentkeyring &>> /root/enosARM.log
-    _ok_nok		# function call
-
-    rm keys
-}   # End of function _find_keyring
-
-_fixup_pkg_list() {
+fixup_pkg_list() {
     file=$1
     remove_list="${2}"
     add_list="${3}"
     cp -f $1 $1.eos
     for item in ${remove_list} ; do
-        #echo "  _fixup of $1: removing $item ..."
+        log "  _fixup of $1: removing $item ..."
         sed "/$item/d" -i $file
     done
     for item in ${add_list} ; do
-        #echo "  _fixup of $1: adding $item ..."
+        log "  _fixup of $1: adding $item ..."
         echo "$item" >> $file
     done
 }
 
-_base_addons() {
-    ### the following installs all packages needed to match the EndeavourOS base install
-    printf "\n${CYAN}Installing EndeavourOS Base Addons...${NC}\n"
-    MESSAGE="\nInstalling EndeavourOS Base Addons  "
-    sleep 2
+base_addons() {
+    msg "installing EndeavourOS Base Addons"
     eos-packagelist "Desktop-Base + Common packages" "Firefox and language package" > base-addons
-    _fixup_pkg_list base-addons "${BASE_ADDONS_REMOVE_LIST}" "${BASE_ADDONS_ADD_LIST}"
+    fixup_pkg_list base-addons "${BASE_ADDONS_REMOVE_LIST}" "${BASE_ADDONS_ADD_LIST}"
     run_unattended_pacman_on_filelist base-addons
-    #echo yes | pacman -S --noconfirm --needed --overwrite \* - < base-addons
     systemctl disable dhcpcd.service
     systemctl enable NetworkManager.service
     systemctl start NetworkManager.service
     sleep 5
 }
 
-_set_time_zone() {
-    printf "\n${CYAN}Setting Time Zone...${NC}"
-    MESSAGE="\nSetting Time Zone  "
-    ln -sf $TIMEZONEPATH /etc/localtime 2>> /root/enosARM.log
-    _ok_nok  # function call
+set_time_zone() {
+    msg "setting Time Zone"
+    ln -sf $TIMEZONEPATH /etc/localtime
 }
 
-_enable_ntp() {
-    printf "\n${CYAN}Enabling NTP...${NC}"
-    MESSAGE="\nEnabling NTP   "
-    timedatectl set-ntp true &>> /root/enosARM.log
-    timedatectl timesync-status &>> /root/enosARM.log
-    _ok_nok
+enable_ntp() {
+    msg "enabling NTP"
+    timedatectl set-ntp true
+    timedatectl timesync-status
     sleep 1
 }
 
-_set_locale() {
-    printf "\n${CYAN}Setting Locale...${NC}\n"
-    MESSAGE="\nSetting locale "
+set_locale() {
+    msg "etting Locale"
     sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
-    locale-gen 2>> /root/enosARM.log
+    locale-gen
     printf "\nLANG=en_US.UTF-8\n\n" > /etc/locale.conf
-    _ok_nok   # function call
 }
 
-_set_hostname() {
-    printf "\n${CYAN}Setting hostname...${NC}"
-    MESSAGE="\nSetting hostname "
+set_hostname() {
+    msg "setting hostname"
     printf "\n$HOSTNAME\n\n" > /etc/hostname
-    _ok_nok   # function call
 }
 
-_config_etc_hosts() {
-    printf "\n${CYAN}Configuring /etc/hosts...${NC}"
-    MESSAGE="\nConfiguring /etc/hosts "
+config_etc_hosts() {
+    msg "configuring /etc/hosts"
     printf "\n127.0.0.1\tlocalhost\n" > /etc/hosts
     printf "::1\t\tlocalhost\n" >> /etc/hosts
     printf "127.0.1.1\t$HOSTNAME.localdomain\t$HOSTNAME\n\n" >> /etc/hosts
-    _ok_nok  # function call
 }
 
-_create_alias() {
-    printf "\n${CYAN}Creating ll alias...${NC}"
-    MESSAGE="\nCreating ll alias "
+create_alias() {
+    msg "creating ll alias"
     printf "\nalias ll='ls -l --color=auto'\n" >> /etc/bash.bashrc
     printf "alias la='ls -al --color=auto'\n" >> /etc/bash.bashrc
     printf "alias lb='lsblk -o NAME,FSTYPE,FSSIZE,LABEL,MOUNTPOINT'\n\n" >> /etc/bash.bashrc
-    _ok_nok  # function call
 }
 
-_add_user() {
+add_user() {
     local tmpfile
 
-    useradd -c "$FULLNAME" -m -G users -s /bin/bash -u 1000 "$USERNAME" 2>> /root/enosARM.log
-    printf "\n${CYAN}Adding user $USERNAME to sudo wheel...${NC}"
-    MESSAGE="Adding user $USERNAME to sudo wheel "
+    useradd -c "$FULLNAME" -m -G users -s /bin/bash -u 1000 "$USERNAME"
+    msg "adding user $USERNAME to sudo wheel"
     printf "$USERNAME  ALL=(ALL:ALL) ALL" >> /etc/sudoers
-    gpasswd -a $USERNAME wheel   # add user to group wheel
-    printf "\n${CYAN}Updating user password...\n"
+    gpasswd -a $USERNAME wheel
+    msg "updating user password"
     echo "${USERNAME}:${USERPASSWD}" | chpasswd
     tmpfile=/etc/lightdm/lightdm.conf
     if [ -f $tmpfile ]; then
         gpasswd -a $USERNAME lightdm
     fi
-}   # End of function _add_user
+}
 
-_clean_up() {
-
+clean_up() {
     # rebranding to EndeavourOS
     sed -i 's/Arch/EndeavourOS/' /etc/issue
     sed -i 's/Arch/EndeavourOS/' /etc/arch-release
 }
 
-_completed_notification() {
-    printf "\n${CYAN}Installation is complete!${NC}\n\n"
-    printf "Remember to use your new root password when logging in as root\n"
-    printf "Remember to use your new user name and password when logging into Lightdm\n"
-    printf "No firewall was installed. Consider installing a firewall with eos-Welcome\n\n\n"
-    printf "Ah, I forgot about most important.....enjoy EndeavourOS ARM on MiniArch!\n\n" 
+completed_notification() {
+    msg "Installation is complete!"
+    msg "Remember to use your new root password when logging in as root"
+    msg "Remember to use your new user name and password when logging into Lightdm"
+    msg "No firewall was installed. Consider installing a firewall with eos-Welcome"
+    msg " "
+    msg "Ah, I forgot about most important.....enjoy EndeavourOS ARM on MiniArch :-)"
+    msg " "
 }
 
-_precheck_setup() {
+precheck_setup() {
     local script_directory
     local whiptail_installed
 
@@ -261,10 +243,10 @@ _precheck_setup() {
        if [[ "$whiptail_installed" != "" ]]; then
           whiptail --title "Error - Cannot Continue" --msgbox "This script is in the alarm user's home folder which will be removed.  \
           \n\nPlease move it to the root user's home directory and rerun the script." 10 80
-          exit
+          exit 1
        else
-          printf "${RED}Error - Cannot Continue. This script is in the alarm user's home folder which will be removed. Please move it to the root user's home directory and rerun the script.${NC}\n"
-          exit
+          msg "ERROR: Cannot Continue. This script is in the alarm user's home folder which will be removed. Please move it to the root user's home directory and rerun the script."
+          exit 1
        fi
     fi
 
@@ -274,28 +256,27 @@ _precheck_setup() {
        whiptail_installed=$(pacman -Qs libnewt)
        if [[ "$whiptail_installed" != "" ]]; then
           whiptail --title "Error - Cannot Continue" --msgbox "Please run this script with sudo or as root" 8 47
-          exit
+          exit 1
        else
-          printf "${RED}Error - Cannot Continue. Please run this script with sudo or as root.${NC}\n"
-          exit
+          msg "ERROR:  Cannot Continue. Please run this script with sudo or as root."
+          exit 1
        fi
     fi
 
-    printf "\n${CYAN}Checking Internet Connection...${NC}\n\n"
+    msg "---- checking Internet connection ----"
     ping -c 3 endeavouros.com -W 5
-    if [ "$?" != "0" ]
-    then
-       printf "\n\n${RED}No Internet Connection was detected\nFix your Internet Connectin and try again${NC}\n\n"
-       exit
+    if [ "$?" != "0" ] ; then
+       msg "ERROR: No Internet Connection was detected\nFix your Internet Connectin and try again"
+       exit 1
     fi
+    echo "------------------------------------------"
 
-    dmesg -n 1    # prevent low level kernel messages from appearing during the script
+    dmesg -n 1
 
-    run_unattended_pacman git libnewt wget python3 python-yaml
+    run_unattended_pacman git libnewt wget python3 python-yaml sudo
 }
 
-
-_user_input() {
+user_input() {
     local userinputdone
     local finished
     local description
@@ -395,124 +376,120 @@ _user_input() {
              9) DENAME="lxde" ;;
         esac
 
-        whiptail --title "EndeavourOS ARM Setup - Review Settings" --yesno "             To review, you entered the following information:\n\n \
-            Time Zone: $TIMEZONE \n \
-            Host Name: $HOSTNAME \n \
-            Full Name: $FULLNAME \n \
-            User Name: $USERNAME \n \
-            Desktop Environment: $DENAME \n\n \
-            Is this information correct?" 16 80
-        userinputdone="$?"
+        if [ ! -e $INITIAL_SETUP_DONE_FLAG ] ; then
+            whiptail --title "EndeavourOS ARM Setup - Review Settings" --yesno "             To review, you entered the following information:\n\n \
+                Time Zone: $TIMEZONE \n \
+                Host Name: $HOSTNAME \n \
+                Full Name: $FULLNAME \n \
+                User Name: $USERNAME \n \
+                Desktop Environment: $DENAME \n\n \
+                Is this information correct?" 16 80
+            userinputdone="$?"
+        else
+            whiptail --title "EndeavourOS ARM change DE - Review selection" --yesno "             To review, you entered the following information:\n\n \
+                Desktop Environment: $DENAME \n\n \
+                Is this information correct?" 16 80
+            userinputdone="$?"
+        fi
 
     done
 
-    DENAME=_$DENAME
-}   # end of function _user_input
+    DENAME=install_$DENAME
+}
 
-
-_xfce4() {
-    printf "\n${CYAN}Installing XFCE4 ...${NC}\n"
-    MESSAGE="\nInstalling XFCE4  "
+install_xfce4() {
+    msg "installing XFCE4"
     eos-packagelist "XFCE4-Desktop" > xfce4
-    _fixup_pkg_list xfce4 "${XFCE4_REMOVE_LIST}" "${XFCE4_ADD_LIST}"
+    fixup_pkg_list xfce4 "${XFCE4_REMOVE_LIST}" "${XFCE4_ADD_LIST}"
     run_unattended_pacman_on_filelist xfce4
     disable_all_de
     systemctl enable lightdm.service
-}   # end of function _xfce4
+}
 
-_mate() {
-    printf "\n${CYAN}Installing Mate...${NC}\n"
-    MESSAGE="\nInstalling Mate  "
+install_mate() {
+    msg "installing Mate"
     eos-packagelist "MATE-Desktop" > mate
-    _fixup_pkg_list mate "${MATE_REMOVE_LIST}" "${MATE_ADD_LIST}"
+    fixup_pkg_list mate "${MATE_REMOVE_LIST}" "${MATE_ADD_LIST}"
     run_unattended_pacman_on_filelist mate
     disable_all_de
     systemctl enable lightdm.service
-}   # end of function _mate
+}
 
-_kde() {
-    printf "\n${CYAN}Installing KDE Plasma...${NC}\n"
-    MESSAGE="\nInstalling KDE Plasma  "
+install_kde() {
+    msg "installing KDE Plasma"
     eos-packagelist "KDE-Desktop" > plasma
-    _fixup_pkg_list plasma "${PLASMA_REMOVE_LIST}" "${PLASMA_ADD_LIST}"
+    fixup_pkg_list plasma "${PLASMA_REMOVE_LIST}" "${PLASMA_ADD_LIST}"
     run_unattended_pacman_on_filelist plasma
     disable_all_de
     systemctl enable sddm.service
-}   # end of function _kde
+}
 
-_gnome() {
-    printf "\n${CYAN}Installing Gnome...${NC}\n"
-    MESSAGE="\nInstalling Gnome  "
+install_gnome() {
+    msg "installing Gnome"
     eos-packagelist "GNOME-Desktop" > gnome
-    _fixup_pkg_list gnome "${GNOME_REMOVE_LIST}" "${GNOME_ADD_LIST}"
+    fixup_pkg_list gnome "${GNOME_REMOVE_LIST}" "${GNOME_ADD_LIST}"
     run_unattended_pacman_on_filelist gnome
     disable_all_de
     systemctl enable gdm.service
-}   # end of function _gnome
+}
 
-_cinnamon() {
-    printf "\n${CYAN}Installing Cinnamon...${NC}\n"
-    MESSAGE="\nInstalling Cinnamon  "
+install_cinnamon() {
+    msg "installing Cinnamon"
     eos-packagelist "Cinnamon-Desktop" > cinnamon
-    _fixup_pkg_list cinnamon "${CINNAMON_REMOVE_LIST}" "${CINNAMON_ADD_LIST}"
+    fixup_pkg_list cinnamon "${CINNAMON_REMOVE_LIST}" "${CINNAMON_ADD_LIST}"
     run_unattended_pacman_on_filelist cinnamon
     disable_all_de
     systemctl enable lightdm.service
-}   # end of function _cinnamon
+}
 
-_budgie() {
-    printf "\n${CYAN}Installing Budgie-Desktop...${NC}\n"
-    MESSAGE="\nInstalling Budgie-Desktop"
+install_budgie() {
+    msg "nstalling Budgie-Desktop"
     eos-packagelist "Budgie-Desktop" > budgie
-    _fixup_pkg_list budgie "${BUDGIE_REMOVE_LIST}" "${BUDGIE_ADD_LIST}"
+    fixup_pkg_list budgie "${BUDGIE_REMOVE_LIST}" "${BUDGIE_ADD_LIST}"
     run_unattended_pacman_on_filelist budgie
     disable_all_de
     systemctl enable lightdm.service
-}  # end of function _budgie
+}
 
-_lxde() {
-    printf "\n${CYAN}Installing LXDE...${NC}\n"
-    MESSAGE="\nInstalling LXDE  "
+install_lxde() {
+    msg "nstalling LXDE"
     eos-packagelist "LXDE-Desktop" > lxde
-    _fixup_pkg_list lxde "${LXDE_REMOVE_LIST}" "${LXDE_ADD_LIST}"
+    fixup_pkg_list lxde "${LXDE_REMOVE_LIST}" "${LXDE_ADD_LIST}"
     run_unattended_pacman_on_filelist lxde
     # systemctl enable lightdm.service
     disable_all_de
     systemctl enable eos-lxdm-gtk3.service
-}  # end of function _lxde
+}
 
-_lxqt() {
-    printf "\n${CYAN}Installing LXQT...${NC}\n"
-    MESSAGE="\nInstalling LXQT  "
+install_lxqt() {
+    msg "installing LXQT"
     eos-packagelist "LXQT-Desktop" > lxqt
-    _fixup_pkg_list lxqt "${LXQT_REMOVE_LIST}" "${LXQT_ADD_LIST}"
+    fixup_pkg_list lxqt "${LXQT_REMOVE_LIST}" "${LXQT_ADD_LIST}"
     run_unattended_pacman_on_filelist lxqt
     disable_all_de
     systemctl enable sddm.service
-}   # end of function _lxqt
+}
 
-_i3wm() {
-    printf "\n${CYAN}Installing i3-wm ...${NC}\n"
-    MESSAGE="\nInstalling i3-wm  "
+install_i3wm() {
+    msg "Installing i3-wm"
     eos-packagelist "i3-Window-Manager" > i3
-    _fixup_pkg_list i3 "${i3_REMOVE_LIST}" "${i3_ADD_LIST}"
+    fixup_pkg_list i3 "${i3_REMOVE_LIST}" "${i3_ADD_LIST}"
     run_unattended_pacman_on_filelist i3
-    _ok_nok  # function call
     disable_all_de
     systemctl enable lightdm.service
-}   # end of function _i3wm
+}
 
-_desktop_setup() {
-    if [ $DENAME != "_none" ]
-    then
-       $DENAME
+desktop_setup() {
+    if [ $DENAME != "_none" ] ; then
+        $DENAME
     fi
+
     if [ ! -e $INITIAL_SETUP_DONE_FLAG ] ; then
-        _add_user
+        add_user
     fi
+
     FILENAME="/etc/lightdm/lightdm.conf"
-    if [ -f $FILENAME ]
-    then
+    if [ -f $FILENAME ] ; then
         sed -i 's/#logind-check-graphical=false/logind-check-graphical=true/g' $FILENAME
     fi
 }
@@ -530,43 +507,36 @@ Main() {
     HOSTNAME=""
     FULLNAME=""
     DENAME=""
-    SSHPORT=""
-    THREETRIADS=""
-    STATICIP=""
-    ROUTERIP=""
-    ETHERNETDEVICE=""
-    ARMARCH=""
-    UFWADDR=""
 
-    # Declare color variables
-    GREEN='\033[0;32m'
-    RED='\033[0;31m'
-    CYAN='\033[0;36m'
-    NC='\033[0m' # No Color
+    msg " "
+    msg "--- Endeavour OS on MiniArch installer v$ver (c)Piotr Oniszczuk ---"
+    msg " "
 
-    _precheck_setup    # check various conditions before continuing the script
-    _user_input
-    _find_mirrorlist   # find and install EndeavourOS mirrorlist
-    _find_keyring      # find and install EndeavourOS keyring
+    precheck_setup
+    user_input
+    find_mirrorlist
+    find_keyring
     switch_pacman_trust_all
     yes|pacman -Syy
     run_unattended_pacman eos-rankmirrors
     eos-rankmirrors --show-orig-list="no"
-    _base_addons
-    _set_time_zone
-    _enable_ntp
-    _set_locale
-    _set_hostname
-    _config_etc_hosts
-    _create_alias
+    base_addons
+    if [ ! -e $INITIAL_SETUP_DONE_FLAG ] ; then
+        set_time_zone
+        enable_ntp
+        set_locale
+        set_hostname
+        config_etc_hosts
+        create_alias
+    fi
     yes|pacman -Syy
     touch $INITIAL_SETUP_DONE_FLAG
-    _desktop_setup
+    desktop_setup
     restore_pacman_trust
     sync
-    _completed_notification
+    completed_notification
     read -n1 x
     exit
-}  # end of Main
+}
 
 Main "$@"
