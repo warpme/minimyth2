@@ -5,16 +5,29 @@
 #
 # Reworked by Piotr Oniszczuk <piotr.oniszczuk@gmail.com> for MiniArch purpouses
 #
+# History:
+# v1.0: initial ver.
+# v1.1: 
+#   -new: added multiarch support;
+#   -fix: delete old keyring when new is avaliable
+#   -change: rename script to install-minieos; change working dir to .minieos-install
 
-ver="1.0"
 
-. /etc/install-endeavouros.conf
+ver="1.1"
 
-log_file="/var/log/install-endeavouros.log"
+. /etc/minieos.conf
+
+log_file="/var/log/install-minieos.log"
 
 wget_cmd="wget --no-verbose "
 
 ARCH=$(uname -m)
+
+if [ ! -e /root/.minieos-install ] ; then
+    mkdir -p /root/.minieos-install
+fi
+
+cd /root/.minieos-install
 
 declare -a TIMEZONE_LIST
 
@@ -121,6 +134,7 @@ find_keyring() {
         pacman -U --noconfirm --needed $currentkeyring
     else
         msg "downloading endeavouros-keyring"
+        rm -f endeavouros-keyring-*-any.pkg.*
         ${wget_cmd} https://github.com/endeavouros-team/repo/raw/master/endeavouros/$ARCH/$currentkeyring 2>&1 >${log_file}
 
         if [ -e endeavouros-keyring-*-any.pkg.* ] ; then
@@ -136,14 +150,16 @@ find_keyring() {
 
 fixup_pkg_list() {
     file=$1
-    remove_list="${2}"
-    add_list="${3}"
-    cp -f $1 $1.eos
-    for item in ${remove_list} ; do
+    remove_list="${2}_${ARCH}"
+    add_list="${3}_${ARCH}"
+    log "remove list:"${!remove_list}
+    log "add list:"${!add_list}
+    cp -f $1 $1.upstream
+    for item in ${!remove_list} ; do
         log "  _fixup of $1: removing $item ..."
         sed "/$item/d" -i $file
     done
-    for item in ${add_list} ; do
+    for item in ${!add_list} ; do
         log "  _fixup of $1: adding $item ..."
         echo "$item" >> $file
     done
@@ -152,7 +168,7 @@ fixup_pkg_list() {
 base_addons() {
     msg "installing EndeavourOS Base Addons"
     eos-packagelist "Desktop-Base + Common packages" "Firefox and language package" > base-addons
-    fixup_pkg_list base-addons "${BASE_ADDONS_REMOVE_LIST}" "${BASE_ADDONS_ADD_LIST}"
+    fixup_pkg_list base-addons BASE_ADDONS_REMOVE_LIST BASE_ADDONS_ADD_LIST
     run_unattended_pacman_on_filelist base-addons
     systemctl disable dhcpcd.service
     systemctl enable NetworkManager.service
@@ -206,11 +222,8 @@ clean_up() {
 
 completed_notification() {
     msg "Installation is complete!"
-    msg "Remember to use your new root password when logging in as root"
-    msg "Remember to use your new user name and password when logging into Lightdm"
-    msg "No firewall was installed. Consider installing a firewall with eos-Welcome"
     msg " "
-    msg "Ah, I forgot about most important.....enjoy EndeavourOS ARM on MiniArch :-)"
+    msg "Enjoy EndeavourOS ARM based MiniEOS on MiniArch :-)"
     msg " "
 }
 
@@ -273,7 +286,7 @@ user_input() {
         if [ ! -e $INITIAL_SETUP_DONE_FLAG ] ; then
 
             generate_timezone_list $ZONE_DIR
-            TIMEZONE=$(whiptail --nocancel --title "EndeavourOS ARM Setup - Timezone Selection" --menu \
+            TIMEZONE=$(whiptail --nocancel --title "MiniEOS Setup - Timezone Selection" --menu \
             "Please choose your timezone.\n\nNote: You can navigate to different sections with Page Up/Down or the A-Z keys." 18 90 8 --cancel-button 'Back' "${TIMEZONE_LIST[@]}" 3>&2 2>&1 1>&3)
             TIMEZONEPATH="${ZONE_DIR}${TIMEZONE}"
 
@@ -290,41 +303,41 @@ user_input() {
 
         fi
 
-        DENAME=$(whiptail --nocancel --title "EndeavourOS ARM Setup - Desktop Selection" --menu --notags "\n                          Choose which Desktop Environment to install\n\n" 22 100 15 \
-               "0" "No Desktop Environment" \
-               "1" "XFCE4" \
-               "2" "KDE Plasma" \
-               "3" "Gnome" \
-               "4" "i3 wm    for x11" \
-               "5" "Mate" \
-               "6" "Cinnamon" \
-               "7" "Budgie" \
-               "8" "LXQT" \
-               "9" "LXDE" \
+        DENAME=$(whiptail --nocancel --title "MiniEOS Setup - Desktop Selection" --menu --notags "\n                          Choose which Desktop Environment to install\n\n" 22 100 15 \
+            "0" "No Desktop Environment" \
+            "1" "XFCE4" \
+            "2" "KDE Plasma" \
+            "3" "Gnome" \
+            "4" "Mate" \
+            "5" "Cinnamon" \
+            "6" "Budgie" \
+            "7" "LXQT" \
+            "8" "LXDE" \
+            "9" "i3 wm for x11" \
         3>&2 2>&1 1>&3)
 
         case $DENAME in
-             0) DENAME="none" ;;
-             1) DENAME="xfce4" ;;
-             2) DENAME="kde" ;;
-             3) DENAME="gnome" ;;
-             4) DENAME="i3wm" ;;
-             5) DENAME="mate" ;;
-             6) DENAME="cinnamon" ;;
-             7) DENAME="budgie" ;;
-             8) DENAME="lxqt" ;;
-             9) DENAME="lxde" ;;
+            0) DENAME="none" ;;
+            1) DENAME="xfce4" ;;
+            2) DENAME="kde" ;;
+            3) DENAME="gnome" ;;
+            4) DENAME="mate" ;;
+            5) DENAME="cinnamon" ;;
+            6) DENAME="budgie" ;;
+            7) DENAME="lxqt" ;;
+            8) DENAME="lxde" ;;
+            9) DENAME="i3wm" ;;
         esac
 
         if [ ! -e $INITIAL_SETUP_DONE_FLAG ] ; then
-            whiptail --title "EndeavourOS ARM Setup - Review Settings" --yesno "             To review, you entered the following information:\n\n \
+            whiptail --title "MiniEOS Setup - Review Settings" --yesno "             To review, you entered the following information:\n\n \
                 Time Zone: $TIMEZONE \n \
                 Host Name: $HOSTNAME \n \
                 Desktop Environment: $DENAME \n\n \
                 Is this information correct?" 16 80
             userinputdone="$?"
         else
-            whiptail --title "EndeavourOS ARM change DE - Review selection" --yesno "             To review, you entered the following information:\n\n \
+            whiptail --title "MiniEOS change DE - Review selection" --yesno "             To review, you entered the following information:\n\n \
                 Desktop Environment: $DENAME \n\n \
                 Is this information correct?" 16 80
             userinputdone="$?"
@@ -338,7 +351,7 @@ user_input() {
 install_xfce4() {
     msg "installing XFCE4"
     eos-packagelist "XFCE4-Desktop" > xfce4
-    fixup_pkg_list xfce4 "${XFCE4_REMOVE_LIST}" "${XFCE4_ADD_LIST}"
+    fixup_pkg_list xfce4 XFCE4_REMOVE_LISTXFCE4_ADD_LIST
     run_unattended_pacman_on_filelist xfce4
     disable_all_de
     systemctl enable lightdm.service
@@ -347,7 +360,7 @@ install_xfce4() {
 install_mate() {
     msg "installing Mate"
     eos-packagelist "MATE-Desktop" > mate
-    fixup_pkg_list mate "${MATE_REMOVE_LIST}" "${MATE_ADD_LIST}"
+    fixup_pkg_list mate MATE_REMOVE_LIST MATE_ADD_LIST
     run_unattended_pacman_on_filelist mate
     disable_all_de
     systemctl enable lightdm.service
@@ -356,7 +369,7 @@ install_mate() {
 install_kde() {
     msg "installing KDE Plasma"
     eos-packagelist "KDE-Desktop" > plasma
-    fixup_pkg_list plasma "${PLASMA_REMOVE_LIST}" "${PLASMA_ADD_LIST}"
+    fixup_pkg_list plasma PLASMA_REMOVE_LIST PLASMA_ADD_LIST
     run_unattended_pacman_on_filelist plasma
     disable_all_de
     systemctl enable sddm.service
@@ -365,7 +378,7 @@ install_kde() {
 install_gnome() {
     msg "installing Gnome"
     eos-packagelist "GNOME-Desktop" > gnome
-    fixup_pkg_list gnome "${GNOME_REMOVE_LIST}" "${GNOME_ADD_LIST}"
+    fixup_pkg_list gnome GNOME_REMOVE_LIST GNOME_ADD_LIST
     run_unattended_pacman_on_filelist gnome
     disable_all_de
     systemctl enable gdm.service
@@ -374,7 +387,7 @@ install_gnome() {
 install_cinnamon() {
     msg "installing Cinnamon"
     eos-packagelist "Cinnamon-Desktop" > cinnamon
-    fixup_pkg_list cinnamon "${CINNAMON_REMOVE_LIST}" "${CINNAMON_ADD_LIST}"
+    fixup_pkg_list cinnamon CINNAMON_REMOVE_LIST CINNAMON_ADD_LIST
     run_unattended_pacman_on_filelist cinnamon
     disable_all_de
     systemctl enable lightdm.service
@@ -383,7 +396,7 @@ install_cinnamon() {
 install_budgie() {
     msg "nstalling Budgie-Desktop"
     eos-packagelist "Budgie-Desktop" > budgie
-    fixup_pkg_list budgie "${BUDGIE_REMOVE_LIST}" "${BUDGIE_ADD_LIST}"
+    fixup_pkg_list budgie BUDGIE_REMOVE_LIST BUDGIE_ADD_LIST
     run_unattended_pacman_on_filelist budgie
     disable_all_de
     systemctl enable lightdm.service
@@ -392,7 +405,7 @@ install_budgie() {
 install_lxde() {
     msg "nstalling LXDE"
     eos-packagelist "LXDE-Desktop" > lxde
-    fixup_pkg_list lxde "${LXDE_REMOVE_LIST}" "${LXDE_ADD_LIST}"
+    fixup_pkg_list lxde LXDE_REMOVE_LIST LXDE_ADD_LIST
     run_unattended_pacman_on_filelist lxde
     # systemctl enable lightdm.service
     disable_all_de
@@ -402,7 +415,7 @@ install_lxde() {
 install_lxqt() {
     msg "installing LXQT"
     eos-packagelist "LXQT-Desktop" > lxqt
-    fixup_pkg_list lxqt "${LXQT_REMOVE_LIST}" "${LXQT_ADD_LIST}"
+    fixup_pkg_list lxqt LXQT_REMOVE_LIST LXQT_ADD_LIST
     run_unattended_pacman_on_filelist lxqt
     disable_all_de
     systemctl enable sddm.service
@@ -411,7 +424,7 @@ install_lxqt() {
 install_i3wm() {
     msg "Installing i3-wm"
     eos-packagelist "i3-Window-Manager" > i3
-    fixup_pkg_list i3 "${i3_REMOVE_LIST}" "${i3_ADD_LIST}"
+    fixup_pkg_list i3 i3_REMOVE_LIST i3_ADD_LIST
     run_unattended_pacman_on_filelist i3
     disable_all_de
     systemctl enable lightdm.service
@@ -445,7 +458,7 @@ Main() {
     DENAME=""
 
     msg " "
-    msg "--- Endeavour OS on MiniArch installer v$ver (c)Piotr Oniszczuk ---"
+    msg "--- MiniEOS on MiniArch installer v$ver (c)Piotr Oniszczuk ---"
     msg " "
 
     precheck_setup
