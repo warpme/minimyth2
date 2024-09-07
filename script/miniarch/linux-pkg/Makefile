@@ -1,6 +1,6 @@
 
 GARNAME       = miniarch-linux.pkg
-GARVERSION    = 1.0
+GARVERSION    = 1.1
 CATEGORIES    = miniarch
 MASTER_SITES  = 
 DISTFILES     = \
