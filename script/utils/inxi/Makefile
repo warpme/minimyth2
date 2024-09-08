@@ -1,8 +1,8 @@
 
 GARNAME      = inxi
-GARVERSION   = 3.3.31-2
+GARVERSION   = 3.3.36-1
 CATEGORIES   = utils
-MASTER_SITES = https://github.com/smxi/inxi/archive/
+MASTER_SITES = https://codeberg.org/smxi/inxi/archive/
 DISTFILES    = $(GARVERSION).tar.gz
 LICENSE      = GPL3
 
