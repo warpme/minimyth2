@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c system/zoneinfo
+DEPENDS = lang/c
 
 WORKSRC = $(WORKDIR)/$(GARNAME)$(GARVERSION)/unix
 
