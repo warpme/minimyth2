@@ -1,6 +1,6 @@
 
 GARNAME      = wpa_supplicant
-GARVERSION   = 2.10
+GARVERSION   = 2.11
 CATEGORIES   = net
 MASTER_SITES = https://w1.fi/releases/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.gz config
