@@ -1,10 +1,11 @@
-GARNAME = zoneinfo
-GARVERSION = 2012j
-CATEGORIES = system
+
+GARNAME      = zoneinfo
+GARVERSION   = 2024b
+CATEGORIES   = system
 MASTER_SITES = http://www.iana.org/time-zones/repository/releases/
-DISTFILES = tzcode2012j.tar.gz tzdata$(GARVERSION).tar.gz
-PATCHFILES = $(DISTNAME).patch
-LICENSE = Public_Domain
+DISTFILES    = tzcode$(GARVERSION).tar.gz tzdata$(GARVERSION).tar.gz
+# PATCHFILES   = $(DISTNAME).patch
+LICENSE      = Public_Domain
 
 DESCRIPTION =
 define BLURB
