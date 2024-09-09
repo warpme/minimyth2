@@ -112,8 +112,7 @@ main_CPPFLAGS +=
 main_CFLAGS += -pipe 
 main_CFLAGS += $(mm_CFLAGS)
 main_CXXFLAGS += $(main_CFLAGS)
-
-main_LDFLAGS += -Wl,--as-needed $(main_CFLAGS)
+main_LDFLAGS += -Wl,--as-needed  $(main_CFLAGS)
 
 # allow us to link to libraries we installed
 build_CPPFLAGS += 
