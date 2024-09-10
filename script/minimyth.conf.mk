@@ -9,7 +9,7 @@
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of MiniMyth2.
-mm_VERSION_MINIMYTH ?=       13.4.1.r260
+mm_VERSION_MINIMYTH ?=       13.6.0.r260
 
 # The version of Myth to use.
 # Valid values are '32', '33', '34', 'master' and 'test'
@@ -330,7 +330,7 @@ mm_CFLAGS                 ?= $(strip \
                                  $(if $(filter x86-64      ,$(mm_GARCH)),-march=x86-64 -mtune=generic -mfpmath=sse      -O3 ) \
                                  $(if $(filter armv7       ,$(mm_GARCH)),-mthumb -march=armv7-a+simd -mfloat-abi=softfp -O3 ) \
                                  $(if $(filter armv8       ,$(mm_GARCH)),-march=armv8-a+fp+simd                         -O3 ) \
-                                 -flto=auto                                                                                   \
+                                 -flto=auto -Wl,-O1 -Wl,--sort-common -Wl,-z,relro -Wl,-z,now -Wl,-z,pack-relative-relocs \
                                  $(if $(filter i386  ,$(mm_GARCH_FAMILY)),-m32)                                           \
                                  $(if $(filter x86_64,$(mm_GARCH_FAMILY)),-m64)                                           \
                                  $(if $(filter yes,$(mm_DEBUG)),-g)                                                       \
