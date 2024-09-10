@@ -33,6 +33,9 @@ CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKBLD)/Makefile
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
+TTT = -Wl,-z,pack-relative-relocs
+LDEXEFLAGS = $(subst $(TTT),, $(LDFLAGS))
+
 CONFIGURE_ARGS = \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	$(if $(filter i386,  $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="i386") \
@@ -79,6 +82,7 @@ CONFIGURE_ARGS = \
 	-DENABLE_SPELLCHECK="OFF" \
 	-DENABLE_TOUCH_EVENTS="OFF" \
 	-DCMAKE_CXX_FLAGS="-fPIC" \
+	-DCMAKE_EXE_LINKER_FLAGS="$(LDEXEFLAGS)" \
 	$(if $(filter arm,$(GARCH_FAMILY)),-DENABLE_JIT="OFF") \
 
 include ../../gar.mk
