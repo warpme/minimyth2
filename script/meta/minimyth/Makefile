@@ -96,6 +96,7 @@ DEPENDS = \
 	X11/xvattr \
 	X11/xdotool \
 	X11/x11vnc \
+	system/zoneinfo \
 	$(if $(filter btop,$(mm_SOFTWARE)),utils/btop) \
 	$(if $(filter htop,$(mm_SOFTWARE)),utils/htop) \
 	$(if $(filter bashtop,$(mm_SOFTWARE)),utils/bashtop) \
