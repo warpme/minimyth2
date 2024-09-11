@@ -1,8 +1,8 @@
 
 GARNAME      = sqlite
-GARVERSION   = 3360000
+GARVERSION   = 3460100
 CATEGORIES   = db
-MASTER_SITES = https://www.sqlite.org/2021/
+MASTER_SITES = https://www.sqlite.org/2024/
 DISTFILES    = sqlite-src-$(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/sqlite-src-$(GARVERSION)
 LICENSE      =
@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c lib/readline lib/ncurses
+DEPENDS   = lang/c lib/readline lib/ncurses utils/tcl
 BUILDDEPS = utils/tcl
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
@@ -24,7 +24,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-readline \
 	--enable-threadsafe \
 	--enable-dynamic-extensions \
-	--with-gnu-ld
+	--with-gnu-ld \
 
 include ../../gar.mk
 
