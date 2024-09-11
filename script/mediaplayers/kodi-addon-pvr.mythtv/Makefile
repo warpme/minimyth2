@@ -1,7 +1,7 @@
 
 GARNAME      = pvr.mythtv
-# branch Omega v21.1.8 @28.02.2024
-GARVERSION   = 2ccdd92dfe856feead100a69012da73476442915
+# branch Omega v21.1.9 @06.07.2024
+GARVERSION   = ecf5153b4c180b645e0e3f632b1d8f7e660c0018
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://github.com/janbar/pvr.mythtv/archive/
 DISTFILES    = $(GARVERSION).zip
@@ -17,7 +17,7 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
-	-DCMAKE_BUILD_TYPE=Debug \
+	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_INSTALL_PREFIX=$(datadir)/kodi/addons \
 	-DCMAKE_MODULE_PATH=$(DESTDIR)$(datadir)/kodi/cmake \
 	-DPACKAGE_ZIP=ON \
