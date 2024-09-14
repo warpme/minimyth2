@@ -81,6 +81,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-xorg \
 	--disable-strict-compilation \
 	CFLAGS="$(BUILDFLAGS)" \
+	CXXLAGS="$(BUILDFLAGS)" \
+	LDFLAGS="$(BUILDFLAGS)" \
 
 CONFIGURE_ENV = \
 	XORG_SGML_PATH="$(DESTDIR)$(includedir)/xorg"
