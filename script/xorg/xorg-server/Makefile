@@ -42,6 +42,10 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
+# stop using -z,now as this breaks glamour on xserver
+TTT = -Wl,-z,now
+BUILDFLAGS = $(subst $(TTT),, $(LDFLAGS))
+
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-strict-compilation \
 	--enable-silent-rules \
@@ -76,6 +80,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-serverconfig-path="$(libdir)/xserver" \
 	--enable-xorg \
 	--disable-strict-compilation \
+	CFLAGS="$(BUILDFLAGS)" \
 
 CONFIGURE_ENV = \
 	XORG_SGML_PATH="$(DESTDIR)$(includedir)/xorg"
