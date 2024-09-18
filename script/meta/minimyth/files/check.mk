@@ -225,6 +225,7 @@ mm-all:
 		   [ ! "$${software}" = "htop"           ] && \
 		   [ ! "$${software}" = "bashtop"        ] && \
 		   [ ! "$${software}" = "nvtop"          ] && \
+		   [ ! "$${software}" = "iotop"          ] && \
 		   [ ! "$${software}" = "wifi_xr819"     ] && \
 		   [ ! "$${software}" = "wifi_rtl8821cu" ] && \
 		   [ ! "$${software}" = "wifi_rtl8189es" ] && \

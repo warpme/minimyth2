@@ -216,6 +216,7 @@ DEPENDS = \
 	$(if $(filter openvfd,$(mm_SOFTWARE)),utils/openvfd-service) \
 	$(if $(filter kmsvnc,$(mm_SOFTWARE)),X11/kmsvnc) \
 	$(if $(filter nvtop,$(mm_SOFTWARE)),utils/nvtop) \
+	$(if $(filter iotop,$(mm_SOFTWARE)),utils/iotop) \
 	$(filter-out %/Makefile extras/extras-% extras/extras.%,$(subst ../../,,$(wildcard ../../extras/*))) \
 	$(mm_USER_PACKAGES)
 
