@@ -2279,3 +2279,67 @@ mm_move_to_zram_ramdisk() {
 
     return ${failed}
 }
+
+bt_get_connection_status() {
+
+    local mac=${1}
+
+    if [ ! -e "/sys/class/bluetooth" ] ; then
+
+        bt_status="no_bt_device"
+        echo "No BT controller found... Exiting!"
+        return
+    fi
+
+    if [ x${mac} = "x" ] ; then
+
+        bt_status="BT_Device_Not_Configured"
+        echo "No BT device MAC addr. configured... Exiting!"
+        return
+    fi
+
+    connection_status=$(bluetoothctl info ${mac} | grep "Connected:" | awk '{print $2}')
+
+    if [ -z "$connection_status" ]; then
+
+        bt_status="cant_get_bt_status"
+        echo "Can't determine status for ${mac} device... Exiting!"
+        return
+    fi
+
+    if [ "$connection_status" = "yes" ]; then
+        bt_status="connected"
+    else
+        bt_status="disconnected"
+    fi
+
+    echo "bluetoothct reports device ${mac} as: $bt_status"
+}
+
+bt_connect() {
+
+    local mac=${1}
+
+    echo "Connecting to ${mac}..."
+
+    bt_status="connected"
+
+    bluetoothctl << EOF
+    connect ${mac}
+EOF
+
+}
+
+bt_disconnect() {
+
+    local mac=${1}
+
+    echo "Disconnecting from ${mac}..."
+
+    bt_status="disconnected"
+
+    bluetoothctl << EOF
+    disconnect ${mac}
+EOF
+
+}
