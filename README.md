@@ -13,7 +13,12 @@ Thank You in advance !
 [Quick Start](https://github.com/warpme/minimyth2/wiki/Deploying-MiniMyth2#overview)
 
 ## What it is
-MiniMyth2 is dedicated firmware designed to turnaround small-factor ARMv7, ARMv8, i386 and x86_64 small-factor
+
+MiniMyth2 is baseline for following artefacts:
+![alt text](https://github.com/warpme/minimyth2/blob/master/miniX_projects_overview.jpg?raw=true)
+
+## MiniMyth2 Appliance
+MiniMyth2 artefact is dedicated firmware designed to turnaround small-factor ARMv7, ARMv8, i386 and x86_64 small-factor
 computers into MythTV appliance offering fully functional MythTV frontend.
 
 For platforms supporting PXE boot - MiniMyth2 offers disk-less, zero-effort provisioned, network booted MythTV frontend appliance.
@@ -33,7 +38,11 @@ In this context - MiniMyth2 is exactly like live USB / SD card distro with capab
 customizations at every boot time. Boot customization data is stored in single config file and MiniMyth2 can automatically
 download it at boot from central location (or read it from SD card / USB stick when central server not offers config file).
 
-From development perspective - comparing MiniMyth2 with other distributions - MiniMyth2 is closest to buildroot - with
+From distro perspective - when compared to other media-player-like distributions (i.e. CoreELEC, LibreELEC, etc) - MiniMyth2
+is single universal rootfs image prepared for all supported boards.
+
+## MiniMyth2 GAR build system
+From development perspective - comparing MiniMyth2 GAR with other rootfs build systems - MiniMyth2 is closest to buildroot - with
 difference MiniMyth2 uses canadian cross cross-compilation. In MiniMyth2 issuing make build command automates:
 - downloading sources
 - building build environment for building cross-toolchain
@@ -42,19 +51,16 @@ difference MiniMyth2 uses canadian cross cross-compilation. In MiniMyth2 issuing
 - preparing bootable image
 - uploading created bootable image to i.e. PXE server or NFS server or starts flashing SD card
 
-In this context - MiniMyth2 is closest to LFS build in fully automated way.
+In this context - MiniMyth2 GAR is closest to LFS build working in fully automated way.
 
-From distro perspective - when compared to other media-player-like distributions (i.e. CoreELEC, LibreELEC, etc) - MiniMyth2
-is single universal rootfs image prepared for all supported boards.
-Difference between SD card image / USB key for each supported board lays only in bootloader (SD card BOOT partition).
-It offers multi-board capability - so theoretically - it can build in one build session an single SD card
-image for all SoC. Practically - due some SoC boot procedure conflicts/bootloader SoC specific overlaps -
-only subset of SoC are working well with universal card SD image currently.
+MiniMyth2 GAR build system offers multi-board capability - so theoretically - it can build in one build session an single SD card
+image for all SoC - if u-boot allow that. Practically - due some SoC boot procedure conflicts/bootloader SoC specific overlaps -
+only subset of SoC are working well with such universal card SD image currently.
 
 
 
-## Project Goals
-Major goals of project are:
+## MiniMyth2 Appliance Project Goals
+Major goals of MiniMyth2 artefact are:
 
 - Make MythTV frontend zero-effort setup/deployment.
 Setup of MythTV frontend might be as simple as burning SD card or enabling PXE boot in frontend’s BIOS/EFI.
@@ -70,14 +76,6 @@ Project is exploiting developments in GNU/Linux area like:
   - stateless/stateful V4L2 Video decode (Amlogic VDEC, Rockchip HANTRO/RKVDEC, Allwinner CEDRUS and Bradcom RPIVID)
   - in-kernel IR remote decode for covering wide variety of supported IR remotes
 
-
-
-## What it is not
-MiniMyth2 is not just another Linux distro which is
-designed to install on PC hardware and to use as computer
-running various software.
-Target scenario with MiniMyth2 is small, disk-less dedicated appliance
-running MythTV Frontend (and practically only MythTV Frontend).
 
 
 
