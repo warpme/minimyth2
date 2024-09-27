@@ -4,6 +4,7 @@ GARVERSION   = 3.3.0
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/htop-dev/htop/archive/
 DISTFILES    = $(GARVERSION).tar.gz
+PATCHFILES   = 01-show-core-temperatures-rk3588.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
