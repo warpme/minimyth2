@@ -268,6 +268,10 @@ ifneq (,$(filter board-h313.tanix_tx1,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h313.tanix_tx1
 endif
 
+ifneq (,$(filter board-h313.tanix_tx1_v1.2,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-h313.tanix_tx1_v1.2
+endif
+
 ifneq (,$(filter board-x86pc.bios,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-x86pc.bios
 endif
