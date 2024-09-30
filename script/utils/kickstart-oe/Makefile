@@ -119,6 +119,8 @@ DISTFILES    = \
 	board-h313.x96_q_lpddr3_v1.3.wks  \
 	board-h313.tanix_tx1.conf   \
 	board-h313.tanix_tx1.wks    \
+	board-h313.tanix_tx1_v1.2.conf \
+	board-h313.tanix_tx1_v1.2.wks \
 	board-h618.orangepi_zero3.conf \
 	board-h618.orangepi_zero3.wks  \
 	board-h618.vontar_h618.conf \
