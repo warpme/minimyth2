@@ -27,6 +27,7 @@ PATCHFILES  += 160-add-vontar-h618-defconfig.patch
 PATCHFILES  += 161-dts-zero2w-improvements.patch
 PATCHFILES  += 162-add-tx1-defconfig.patch
 PATCHFILES  += 163-add-x96-q-ddr3-v5.1-defconfig.patch
+PATCHFILES  += 164-add-tx1-v1.2-defconfig.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
 
@@ -52,6 +53,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96_q_ddr3_v5.1_defconfig
 # mm_U-BOOT_BOARD_TYPE = tanix_tx1_defconfig
+# mm_U-BOOT_BOARD_TYPE = tanix_tx1_v1.2_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero3_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi_zero2w_defconfig
