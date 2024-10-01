@@ -1,6 +1,6 @@
 
 GARNAME      = u-boot-h616
-GARVERSION   = 2024.10-rc5
+GARVERSION   = 2024.10-rc6
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
