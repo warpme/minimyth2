@@ -6,7 +6,10 @@ GARVERSION   = 5d41ac040ecd2072498da88100305c1b444c12c7
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/CoreELEC/smartchip/archive/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = fix-compile.patch
+PATCHFILES   = \
+		01-fix-compiling-on-6.10-kernel.patch \
+		02-change-fw-cfg-paths-to-lib-firmware-s9083s.patch \
+
 WORKSRC      = $(WORKDIR)/smartchip-$(GARVERSION)
 
 LICENSE      = GPL2
@@ -31,7 +34,7 @@ build-custom:
 	@$(MAKECOOKIE)
 
 install-custom:
-	@echo "Installing xradio kernel module ..."
+	@echo "Installing s9083s kernel module ..."
 	@mkdir -p $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/smartchip
 	@cp -f $(WORKSRC)/trunk_driver/s9083s.ko $(DESTDIR)$(LINUX_MODULESDIR)/kernel/drivers/net/wireless/smartchip/
 	@depmod -b $(DESTDIR) -v $(LINUX_FULL_VERSION)
