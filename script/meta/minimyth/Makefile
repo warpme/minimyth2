@@ -179,6 +179,7 @@ DEPENDS = \
 	utils/dash \
 	utils/read-edid \
 	utils/logrotate \
+	$(if $(filter wireless_tools,$(mm_SOFTWARE)),net/wireless_tools) \
 	$(if $(filter chrome,$(mm_SOFTWARE)), \
 		gtk/gconf \
 		gtk/gtk3 \

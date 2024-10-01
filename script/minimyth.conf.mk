@@ -64,6 +64,7 @@ mm_SOFTWARE               ?= \
 #                             btop \
 #                             bashtop \
 #                             iotop \
+#                             wireless_tools \
 
 # Indicates bootloader board type. Valid values are:
 # 'board-rpi2'
