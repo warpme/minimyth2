@@ -1,7 +1,7 @@
 
 GARNAME      = u-boot-rk3xxx
-# git@ 25.09.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.10/
-GARVERSION   = 5a84c153dcb4712d0ff9d0d40275de113def88de
+# git@ 01.10.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.10/
+GARVERSION   = af53363ba761abd110f5e80c8a7fcb1170e6f35e
 # git@ 22.02.2024 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = a2a0b89b6c8c612dca5ed9ed8a68db8a07f68bc0
 CATEGORIES   = kernel
