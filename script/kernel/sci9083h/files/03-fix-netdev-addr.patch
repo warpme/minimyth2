@@ -1,0 +1,45 @@
+diff --speed-large-files --no-dereference --minimal -Naur smartchip-5d41ac040ecd2072498da88100305c1b444c12c7/trunk_driver/os/linux/netdev/ndev_linux.c smartchip-5d41ac040ecd2072498da88100305c1b444c12c7/trunk_driver/os/linux/netdev/ndev_linux.c
+--- smartchip-5d41ac040ecd2072498da88100305c1b444c12c7/trunk_driver/os/linux/netdev/ndev_linux.c	2022-03-21 09:42:51.000000000 +0100
++++ smartchip-5d41ac040ecd2072498da88100305c1b444c12c7/trunk_driver/os/linux/netdev/ndev_linux.c	2024-10-01 15:45:26.353796691 +0200
+@@ -65,7 +65,11 @@
+         }
+ 
+         NDEV_INFO("efuse_macaddr:"WF_MAC_FMT, WF_MAC_ARG(hw_info->macAddr));
+-        memcpy(ndev->dev_addr, hw_info->macAddr, WF_ETH_ALEN);
++        #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,16,0))
++        	eth_hw_addr_set(ndev, hw_info->macAddr);
++        #else
++        	memcpy(ndev->dev_addr, hw_info->macAddr, WF_ETH_ALEN);
++        #endif
+ 
+         NDEV_INFO("[%d] macaddr:"WF_MAC_FMT, ndev_priv->nic->ndev_id, WF_MAC_ARG(hw_info->macAddr));
+     }
+@@ -562,7 +566,11 @@
+         return -1;
+     }
+     wf_memcpy(nic_to_local_addr(pnic_info), sock_addr->sa_data, MAC_ADDR_LEN);
+-    wf_memcpy(pnetdev->dev_addr, sock_addr->sa_data, WF_ETH_ALEN);
++    #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,16,0))
++    	eth_hw_addr_set(pnetdev, sock_addr->sa_data);
++    #else
++    	wf_memcpy(pnetdev->dev_addr, sock_addr->sa_data, WF_ETH_ALEN);
++    #endif
+ 
+     wf_mcu_set_macaddr(pnic_info, pnetdev->dev_addr);
+     return 0;
+diff --speed-large-files --no-dereference --minimal -Naur smartchip-5d41ac040ecd2072498da88100305c1b444c12c7/trunk_driver/nic/p2p/p2p_frame_mgt.c smartchip-5d41ac040ecd2072498da88100305c1b444c12c7/trunk_driver/nic/p2p/p2p_frame_mgt.c
+--- smartchip-5d41ac040ecd2072498da88100305c1b444c12c7/trunk_driver/nic/p2p/p2p_frame_mgt.c	2022-03-21 09:42:51.000000000 +0100
++++ smartchip-5d41ac040ecd2072498da88100305c1b444c12c7/trunk_driver/nic/p2p/p2p_frame_mgt.c	2024-10-01 15:46:51.600465637 +0200
+@@ -1631,7 +1631,11 @@
+                                         P2P_ATTR_DEVICE_INFO, pattr_content,
+                                         (wf_u32 *) & attr_contentlen);
+ 
+-                wf_memcpy(pwdn_info->dev_addr, pattr_content, WF_ETH_ALEN);
++                #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,16,0))
++                	ether_addr_copy(pwdn_info->dev_addr, pattr_content);
++                #else
++                	wf_memcpy(pwdn_info->dev_addr, pattr_content, WF_ETH_ALEN);
++                #endif
+ 
+                 pattr_content += WF_ETH_ALEN;
+ 

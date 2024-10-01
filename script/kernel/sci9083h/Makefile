@@ -9,6 +9,7 @@ DISTFILES    = $(GARVERSION).zip
 PATCHFILES   = \
 		01-fix-compiling-on-6.10-kernel.patch \
 		02-change-fw-cfg-paths-to-lib-firmware-s9083s.patch \
+		03-fix-netdev-addr.patch \
 
 WORKSRC      = $(WORKDIR)/smartchip-$(GARVERSION)
 
