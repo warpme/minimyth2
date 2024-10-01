@@ -13,6 +13,7 @@ DEPENDS = \
 	$(if $(filter wifi_xr819,    $(mm_SOFTWARE)),kernel/xr819)     \
 	$(if $(filter wifi_rtl8821cu,$(mm_SOFTWARE)),kernel/rtl8821cu) \
 	$(if $(filter wifi_rtl8189es,$(mm_SOFTWARE)),kernel/rtl8189es) \
+	$(if $(filter wifi_sci9083h, $(mm_SOFTWARE)),kernel/sci9083h)  \
 
 include ../../gar.mk
 
