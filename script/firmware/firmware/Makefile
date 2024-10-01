@@ -27,6 +27,7 @@ DEPENDS = \
 	$(if $(filter meson, $(mm_GRAPHICS)),firmware/amlogic-meson-firmware) \
 	$(if $(filter nouveau, $(mm_GRAPHICS)),firmware/nouveau-firmware) \
 	firmware/edid-firmware \
+	firmware/s9083s-firmware \
 
 include ../../gar.mk
 
