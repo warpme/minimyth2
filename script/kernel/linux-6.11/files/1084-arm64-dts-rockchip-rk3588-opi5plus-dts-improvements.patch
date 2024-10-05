@@ -1,0 +1,229 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.11.2/arch/arm64/boot/dts/rockchip/rk3588-orangepi-5-plus.dts linux-6.11.2/arch/arm64/boot/dts/rockchip/rk3588-orangepi-5-plus.dts
+--- linux-6.11.2/arch/arm64/boot/dts/rockchip/rk3588-orangepi-5-plus.dts	2024-10-04 16:38:57.000000000 +0200
++++ linux-6.11.2/arch/arm64/boot/dts/rockchip/rk3588-orangepi-5-plus.dts	2024-10-05 14:23:07.193928207 +0200
+@@ -7,6 +7,7 @@
+ 
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/leds/common.h>
++#include <dt-bindings/soc/rockchip,vop2.h>
+ #include <dt-bindings/input/input.h>
+ #include <dt-bindings/pinctrl/rockchip.h>
+ #include <dt-bindings/usb/pd.h>
+@@ -17,8 +18,8 @@
+ 	compatible = "xunlong,orangepi-5-plus", "rockchip,rk3588";
+ 
+ 	aliases {
+-		mmc0 = &sdhci;
+-		mmc1 = &sdmmc;
++		mmc0 = &sdmmc;
++		mmc1 = &sdhci;
+ 	};
+ 
+ 	chosen {
+@@ -70,6 +71,7 @@
+ 		gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_LOW>;
+ 		pinctrl-names = "default";
+ 		pinctrl-0 = <&ir_receiver_pin>;
++		linux,rc-map-name = "rc-beelink-gs1";
+ 	};
+ 
+ 	gpio-leds {
+@@ -80,14 +82,14 @@
+ 		led {
+ 			color = <LED_COLOR_ID_BLUE>;
+ 			function = LED_FUNCTION_INDICATOR;
+-			function-enumerator = <1>;
+ 			gpios = <&gpio3 RK_PA6 GPIO_ACTIVE_HIGH>;
++			linux,default-trigger = "disk-activity";
+ 		};
+ 	};
+ 
+ 	fan: pwm-fan {
+ 		compatible = "pwm-fan";
+-		cooling-levels = <0 70 75 80 100>;
++		cooling-levels = <0 96 128 164 196 224 255>;
+ 		fan-supply = <&vcc5v0_sys>;
+ 		pwms = <&pwm3 0 50000 0>;
+ 		#cooling-cells = <2>;
+@@ -158,6 +160,16 @@
+ 		};
+ 	};
+ 
++	hdmi0_sound: hdmi0-sound {
++		status = "okay";
++		compatible = "rockchip,hdmi";
++		rockchip,mclk-fs = <128>;
++		rockchip,card-name = "rockchip-hdmi0";
++		rockchip,cpu = <&i2s5_8ch>;
++		rockchip,codec = <&hdmi0>;
++		rockchip,jack-det;
++	};
++
+ 	vcc3v3_pcie30: vcc3v3-pcie30-regulator {
+ 		compatible = "regulator-fixed";
+ 		enable-active-high;
+@@ -226,34 +238,47 @@
+ 
+ &cpu_b0 {
+ 	cpu-supply = <&vdd_cpu_big0_s0>;
++	mem-supply = <&vdd_cpu_big0_s0>;
+ };
+ 
+ &cpu_b1 {
+ 	cpu-supply = <&vdd_cpu_big0_s0>;
++	mem-supply = <&vdd_cpu_big0_s0>;
+ };
+ 
+ &cpu_b2 {
+ 	cpu-supply = <&vdd_cpu_big1_s0>;
++	mem-supply = <&vdd_cpu_big1_s0>;
+ };
+ 
+ &cpu_b3 {
+ 	cpu-supply = <&vdd_cpu_big1_s0>;
++	mem-supply = <&vdd_cpu_big1_s0>;
+ };
+ 
+ &cpu_l0 {
+ 	cpu-supply = <&vdd_cpu_lit_s0>;
++	mem-supply = <&vdd_cpu_lit_mem_s0>;
+ };
+ 
+ &cpu_l1 {
+ 	cpu-supply = <&vdd_cpu_lit_s0>;
++	mem-supply = <&vdd_cpu_lit_mem_s0>;
+ };
+ 
+ &cpu_l2 {
+ 	cpu-supply = <&vdd_cpu_lit_s0>;
++	mem-supply = <&vdd_cpu_lit_mem_s0>;
+ };
+ 
+ &cpu_l3 {
+ 	cpu-supply = <&vdd_cpu_lit_s0>;
++	mem-supply = <&vdd_cpu_lit_mem_s0>;
++};
++
++&gpu {
++	mali-supply = <&vdd_gpu_s0>;
++	status = "okay";
+ };
+ 
+ &i2c0 {
+@@ -351,6 +376,10 @@
+ 	status = "okay";
+ };
+ 
++&i2s5_8ch {
++	status = "okay";
++};
++
+ /* phy1 - M.KEY socket */
+ &pcie2x1l0 {
+ 	reset-gpios = <&gpio4 RK_PA5 GPIO_ACTIVE_HIGH>;
+@@ -425,6 +454,34 @@
+ 	status = "okay";
+ };
+ 
++&package_thermal {
++	polling-delay = <1000>;
++
++	trips {
++		package_fan0: package-fan0 {
++			temperature = <55000>;
++			hysteresis = <2000>;
++			type = "active";
++		};
++		package_fan1: package-fan1 {
++			temperature = <65000>;
++			hysteresis = <2000>;
++			type = "active";
++		};
++	};
++
++	cooling-maps {
++		map1 {
++			trip = <&package_fan0>;
++			cooling-device = <&fan THERMAL_NO_LIMIT 1>;
++		};
++		map2 {
++			trip = <&package_fan1>;
++			cooling-device = <&fan 2 THERMAL_NO_LIMIT>;
++		};
++	};
++};
++
+ &saradc {
+ 	vref-supply = <&vcc_1v8_s0>;
+ 	status = "okay";
+@@ -523,8 +580,9 @@
+ 		};
+ 
+ 		regulators {
+-			vdd_gpu_s0: dcdc-reg1 {
++			vdd_gpu_s0: vdd_gpu_mem_s0: dcdc-reg1 {
+ 				regulator-name = "vdd_gpu_s0";
++				regulator-always-on;
+ 				regulator-boot-on;
+ 				regulator-enable-ramp-delay = <400>;
+ 				regulator-min-microvolt = <550000>;
+@@ -536,7 +594,7 @@
+ 				};
+ 			};
+ 
+-			vdd_cpu_lit_s0: dcdc-reg2 {
++			vdd_cpu_lit_s0: vdd_cpu_lit_mem_s0: dcdc-reg2 {
+ 				regulator-name = "vdd_cpu_lit_s0";
+ 				regulator-always-on;
+ 				regulator-boot-on;
+@@ -563,7 +621,7 @@
+ 				};
+ 			};
+ 
+-			vdd_vdenc_s0: dcdc-reg4 {
++			vdd_vdenc_s0: dd_vdenc_mem_s0: dcdc-reg4 {
+ 				regulator-name = "vdd_vdenc_s0";
+ 				regulator-always-on;
+ 				regulator-boot-on;
+@@ -846,3 +904,41 @@
+ &usb_host1_ohci {
+ 	status = "okay";
+ };
++
++&hdmi0 {
++	status = "okay";
++};
++
++&display_subsystem {
++	clocks = <&hdptxphy_hdmi0>;
++	clock-names = "hdmi0_phy_pll";
++};
++
++&hdmi0 {
++	status = "okay";
++};
++
++&hdmi0_in {
++	hdmi0_in_vp0: endpoint {
++		remote-endpoint = <&vp0_out_hdmi0>;
++	};
++};
++
++&hdptxphy_hdmi0 {
++	status = "okay";
++};
++
++&vop_mmu {
++	status = "okay";
++};
++
++&vop {
++	status = "okay";
++};
++
++&vp0 {
++	vp0_out_hdmi0: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
++		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
++		remote-endpoint = <&hdmi0_in_vp0>;
++	};
++};

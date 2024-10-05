@@ -1,0 +1,169 @@
+From 044528a660309c75311d2c5983fb56c95d31a911 Mon Sep 17 00:00:00 2001
+From: Derek Foreman <derek.foreman@collabora.com>
+Date: Wed, 4 Sep 2024 06:49:56 -0500
+Subject: [PATCH 61/94] [PATCH 03/18] drm/rockchip_vop2: add plane color
+ encoding and range properties
+
+Add missing plane color properties.
+
+Signed-off-by: Derek Foreman <derek.foreman@collabora.com>
+
+Gbp-Pq: Topic hdmi
+Gbp-Pq: Name 0003-drm-rockchip_vop2-add-plane-color-encoding-and-range.patch
+---
+ drivers/gpu/drm/rockchip/rockchip_drm_vop2.c |  6 +++
+ drivers/gpu/drm/rockchip/rockchip_drm_vop2.h |  4 ++
+ drivers/gpu/drm/rockchip/rockchip_vop2_reg.c | 56 ++++++++++++++++++++
+ 3 files changed, 66 insertions(+)
+
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+index c68d76b25..0440f1dcd 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+@@ -2895,6 +2895,12 @@ static int vop2_plane_init(struct vop2 *vop2, struct vop2_win *win,
+ 		drm_plane_create_rotation_property(&win->base, DRM_MODE_ROTATE_0,
+ 						   DRM_MODE_ROTATE_0 |
+ 						   win->data->supported_rotations);
++	if (win->data->supported_color_encodings)
++		drm_plane_create_color_properties(&win->base,
++						  win->data->supported_color_encodings,
++						  win->data->supported_color_ranges,
++						  win->data->default_color_encoding,
++						  win->data->default_color_range);
+ 	drm_plane_create_alpha_property(&win->base);
+ 	drm_plane_create_blend_mode_property(&win->base, blend_caps);
+ 	drm_plane_create_zpos_property(&win->base, win->win_id, 0,
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
+index 615a16196..576db66e6 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
+@@ -133,6 +133,10 @@ struct vop2_win_data {
+ 	const u32 *formats;
+ 	const uint64_t *format_modifiers;
+ 	const unsigned int supported_rotations;
++	u32 supported_color_encodings;
++	enum drm_color_encoding default_color_encoding;
++	u32 supported_color_ranges;
++	enum drm_color_range default_color_range;
+ 
+ 	/**
+ 	 * @layer_sel_id: defined by register OVERLAY_LAYER_SEL of VOP2
+diff --git a/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c b/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
+index 18efb3fe1..e004326af 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
++++ b/drivers/gpu/drm/rockchip/rockchip_vop2_reg.c
+@@ -336,6 +336,13 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.max_upscale_factor = 4,
+ 		.max_downscale_factor = 4,
+ 		.dly = { 4, 26, 29 },
++		.supported_color_encodings = BIT(DRM_COLOR_YCBCR_BT601) |
++					     BIT(DRM_COLOR_YCBCR_BT709) |
++					     BIT(DRM_COLOR_YCBCR_BT2020),
++		.default_color_encoding = DRM_COLOR_YCBCR_BT709,
++		.supported_color_ranges = BIT(DRM_COLOR_YCBCR_LIMITED_RANGE) |
++					  BIT(DRM_COLOR_YCBCR_FULL_RANGE),
++		.default_color_range = DRM_COLOR_YCBCR_LIMITED_RANGE,
+ 		.type = DRM_PLANE_TYPE_PRIMARY,
+ 		.feature = WIN_FEATURE_AFBDC | WIN_FEATURE_CLUSTER,
+ 	}, {
+@@ -348,6 +355,13 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.layer_sel_id = 1,
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+ 				       DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y,
++		.supported_color_encodings = BIT(DRM_COLOR_YCBCR_BT601) |
++					     BIT(DRM_COLOR_YCBCR_BT709) |
++					     BIT(DRM_COLOR_YCBCR_BT2020),
++		.default_color_encoding = DRM_COLOR_YCBCR_BT709,
++		.supported_color_ranges = BIT(DRM_COLOR_YCBCR_LIMITED_RANGE) |
++					  BIT(DRM_COLOR_YCBCR_FULL_RANGE),
++		.default_color_range = DRM_COLOR_YCBCR_LIMITED_RANGE,
+ 		.type = DRM_PLANE_TYPE_PRIMARY,
+ 		.max_upscale_factor = 4,
+ 		.max_downscale_factor = 4,
+@@ -363,6 +377,13 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.layer_sel_id = 4,
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+ 				       DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y,
++		.supported_color_encodings = BIT(DRM_COLOR_YCBCR_BT601) |
++					     BIT(DRM_COLOR_YCBCR_BT709) |
++					     BIT(DRM_COLOR_YCBCR_BT2020),
++		.default_color_encoding = DRM_COLOR_YCBCR_BT709,
++		.supported_color_ranges = BIT(DRM_COLOR_YCBCR_LIMITED_RANGE) |
++					  BIT(DRM_COLOR_YCBCR_FULL_RANGE),
++		.default_color_range = DRM_COLOR_YCBCR_LIMITED_RANGE,
+ 		.type = DRM_PLANE_TYPE_PRIMARY,
+ 		.max_upscale_factor = 4,
+ 		.max_downscale_factor = 4,
+@@ -378,6 +399,13 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.layer_sel_id = 5,
+ 		.supported_rotations = DRM_MODE_ROTATE_90 | DRM_MODE_ROTATE_270 |
+ 				       DRM_MODE_REFLECT_X | DRM_MODE_REFLECT_Y,
++		.supported_color_encodings = BIT(DRM_COLOR_YCBCR_BT601) |
++					     BIT(DRM_COLOR_YCBCR_BT709) |
++					     BIT(DRM_COLOR_YCBCR_BT2020),
++		.default_color_encoding = DRM_COLOR_YCBCR_BT709,
++		.supported_color_ranges = BIT(DRM_COLOR_YCBCR_LIMITED_RANGE) |
++					  BIT(DRM_COLOR_YCBCR_FULL_RANGE),
++		.default_color_range = DRM_COLOR_YCBCR_LIMITED_RANGE,
+ 		.type = DRM_PLANE_TYPE_PRIMARY,
+ 		.max_upscale_factor = 4,
+ 		.max_downscale_factor = 4,
+@@ -392,6 +420,13 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.base = 0x1800,
+ 		.layer_sel_id = 2,
+ 		.supported_rotations = DRM_MODE_REFLECT_Y,
++		.supported_color_encodings = BIT(DRM_COLOR_YCBCR_BT601) |
++					     BIT(DRM_COLOR_YCBCR_BT709) |
++					     BIT(DRM_COLOR_YCBCR_BT2020),
++		.default_color_encoding = DRM_COLOR_YCBCR_BT709,
++		.supported_color_ranges = BIT(DRM_COLOR_YCBCR_LIMITED_RANGE) |
++					  BIT(DRM_COLOR_YCBCR_FULL_RANGE),
++		.default_color_range = DRM_COLOR_YCBCR_LIMITED_RANGE,
+ 		.type = DRM_PLANE_TYPE_OVERLAY,
+ 		.max_upscale_factor = 8,
+ 		.max_downscale_factor = 8,
+@@ -405,6 +440,13 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.base = 0x1a00,
+ 		.layer_sel_id = 3,
+ 		.supported_rotations = DRM_MODE_REFLECT_Y,
++		.supported_color_encodings = BIT(DRM_COLOR_YCBCR_BT601) |
++					     BIT(DRM_COLOR_YCBCR_BT709) |
++					     BIT(DRM_COLOR_YCBCR_BT2020),
++		.default_color_encoding = DRM_COLOR_YCBCR_BT709,
++		.supported_color_ranges = BIT(DRM_COLOR_YCBCR_LIMITED_RANGE) |
++					  BIT(DRM_COLOR_YCBCR_FULL_RANGE),
++		.default_color_range = DRM_COLOR_YCBCR_LIMITED_RANGE,
+ 		.type = DRM_PLANE_TYPE_OVERLAY,
+ 		.max_upscale_factor = 8,
+ 		.max_downscale_factor = 8,
+@@ -418,6 +460,13 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.format_modifiers = format_modifiers,
+ 		.layer_sel_id = 6,
+ 		.supported_rotations = DRM_MODE_REFLECT_Y,
++		.supported_color_encodings = BIT(DRM_COLOR_YCBCR_BT601) |
++					     BIT(DRM_COLOR_YCBCR_BT709) |
++					     BIT(DRM_COLOR_YCBCR_BT2020),
++		.default_color_encoding = DRM_COLOR_YCBCR_BT709,
++		.supported_color_ranges = BIT(DRM_COLOR_YCBCR_LIMITED_RANGE) |
++					  BIT(DRM_COLOR_YCBCR_FULL_RANGE),
++		.default_color_range = DRM_COLOR_YCBCR_LIMITED_RANGE,
+ 		.type = DRM_PLANE_TYPE_OVERLAY,
+ 		.max_upscale_factor = 8,
+ 		.max_downscale_factor = 8,
+@@ -431,6 +480,13 @@ static const struct vop2_win_data rk3588_vop_win_data[] = {
+ 		.base = 0x1e00,
+ 		.layer_sel_id = 7,
+ 		.supported_rotations = DRM_MODE_REFLECT_Y,
++		.supported_color_encodings = BIT(DRM_COLOR_YCBCR_BT601) |
++					     BIT(DRM_COLOR_YCBCR_BT709) |
++					     BIT(DRM_COLOR_YCBCR_BT2020),
++		.default_color_encoding = DRM_COLOR_YCBCR_BT709,
++		.supported_color_ranges = BIT(DRM_COLOR_YCBCR_LIMITED_RANGE) |
++					  BIT(DRM_COLOR_YCBCR_FULL_RANGE),
++		.default_color_range = DRM_COLOR_YCBCR_LIMITED_RANGE,
+ 		.type = DRM_PLANE_TYPE_OVERLAY,
+ 		.max_upscale_factor = 8,
+ 		.max_downscale_factor = 8,
+-- 
+2.46.0
+

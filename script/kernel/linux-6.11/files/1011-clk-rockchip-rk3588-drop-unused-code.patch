@@ -1,0 +1,71 @@
+From 0c53f0a41653889bafae1e1b3bcfc61add0a2c1e Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Mon, 11 Mar 2024 18:05:34 +0100
+Subject: [PATCH 05/94] clk: rockchip: rk3588: drop unused code
+
+All clocks are registered early using CLK_OF_DECLARE(), which marks
+the DT node as processed. For the processed DT node the probe routine
+is never called. Thus this whole code is never executed. This could
+be "fixed" by using CLK_OF_DECLARE_DRIVER, which avoids marking the
+DT node as processed. But then the probe routine would re-register
+all the clocks by calling rk3588_clk_init() again.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+
+Gbp-Pq: Topic rk3588
+Gbp-Pq: Name 0081-clk-rockchip-rk3588-drop-unused-code.patch
+---
+ drivers/clk/rockchip/clk-rk3588.c | 40 -------------------------------
+ 1 file changed, 40 deletions(-)
+
+diff --git a/drivers/clk/rockchip/clk-rk3588.c b/drivers/clk/rockchip/clk-rk3588.c
+index b30279a96..74051277e 100644
+--- a/drivers/clk/rockchip/clk-rk3588.c
++++ b/drivers/clk/rockchip/clk-rk3588.c
+@@ -2502,43 +2502,3 @@ static void __init rk3588_clk_init(struct device_node *np)
+ }
+ 
+ CLK_OF_DECLARE(rk3588_cru, "rockchip,rk3588-cru", rk3588_clk_init);
+-
+-struct clk_rk3588_inits {
+-	void (*inits)(struct device_node *np);
+-};
+-
+-static const struct clk_rk3588_inits clk_3588_cru_init = {
+-	.inits = rk3588_clk_init,
+-};
+-
+-static const struct of_device_id clk_rk3588_match_table[] = {
+-	{
+-		.compatible = "rockchip,rk3588-cru",
+-		.data = &clk_3588_cru_init,
+-	},
+-	{ }
+-};
+-
+-static int __init clk_rk3588_probe(struct platform_device *pdev)
+-{
+-	const struct clk_rk3588_inits *init_data;
+-	struct device *dev = &pdev->dev;
+-
+-	init_data = device_get_match_data(dev);
+-	if (!init_data)
+-		return -EINVAL;
+-
+-	if (init_data->inits)
+-		init_data->inits(dev->of_node);
+-
+-	return 0;
+-}
+-
+-static struct platform_driver clk_rk3588_driver = {
+-	.driver		= {
+-		.name	= "clk-rk3588",
+-		.of_match_table = clk_rk3588_match_table,
+-		.suppress_bind_attrs = true,
+-	},
+-};
+-builtin_platform_driver_probe(clk_rk3588_driver, clk_rk3588_probe);
+-- 
+2.46.0
+

@@ -1,0 +1,113 @@
+From 43ffb1b182af393f6abe9b592c45ecb99c8b4da0 Mon Sep 17 00:00:00 2001
+From: Sugar Zhang <sugar.zhang@rock-chips.com>
+Date: Fri, 11 Mar 2022 19:58:51 +0800
+Subject: [PATCH 87/94] drm/bridge: synopsys: dw-hdmi-qp: Fix audio infoframe
+
+AUDI_CONTENTS0: { RSV, HB2, HB1, RSV }
+AUDI_CONTENTS1: { PB3, PB2, PB1, PB0 }
+AUDI_CONTENTS2: { PB7, PB6, PB5, PB4 }
+
+PB0: CheckSum
+PB1: | CT3    | CT2  | CT1  | CT0  | F13  | CC2 | CC1 | CC0 |
+PB2: | F27    | F26  | F25  | SF2  | SF1  | SF0 | SS1 | SS0 |
+PB3: | F37    | F36  | F35  | F34  | F33  | F32 | F31 | F30 |
+PB4: | CA7    | CA6  | CA5  | CA4  | CA3  | CA2 | CA1 | CA0 |
+PB5: | DM_INH | LSV3 | LSV2 | LSV1 | LSV0 | F52 | F51 | F50 |
+PB6~PB10: Reserved
+
+AUDI_CONTENTS0 default value defined by HDMI specification,
+and shall only be changed for debug purposes.
+So, we only configure payload byte from PB0~PB7(2 word total).
+
+Signed-off-by: Sugar Zhang <sugar.zhang@rock-chips.com>
+Change-Id: Idfbb34ff7f7069af4e73c6995f32eefa798a9450
+Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
+
+Gbp-Pq: Name 0168-drm-bridge-synopsys-dw-hdmi-qp-Fix-audio-infoframe.patch
+---
+ .../bridge/synopsys/dw-hdmi-qp-i2s-audio.c    |  2 +-
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c  | 33 ++++++++++++++++++-
+ include/drm/bridge/dw_hdmi.h                  |  3 +-
+ 3 files changed, 35 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
+index e262bdca5..dbf24e1d0 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
+@@ -120,7 +120,7 @@ static int dw_hdmi_qp_i2s_hw_params(struct device *dev, void *data,
+ 	dw_hdmi_qp_set_channel_status(hdmi, hparms->iec.status, ref2stream);
+ 	dw_hdmi_qp_set_channel_count(hdmi, hparms->channels);
+ 	dw_hdmi_qp_set_channel_allocation(hdmi, hparms->cea.channel_allocation);
+-	dw_hdmi_qp_set_audio_infoframe(hdmi);
++	dw_hdmi_qp_set_audio_infoframe(hdmi, hparms);
+ 
+ 	return 0;
+ }
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index 72f43fb3d..5c44451b5 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -353,14 +353,45 @@ void dw_hdmi_qp_set_channel_allocation(struct dw_hdmi_qp *hdmi, unsigned int ca)
+ }
+ EXPORT_SYMBOL_GPL(dw_hdmi_qp_set_channel_allocation);
+ 
+-void dw_hdmi_qp_set_audio_infoframe(struct dw_hdmi_qp *hdmi)
++void dw_hdmi_qp_set_audio_infoframe(struct dw_hdmi_qp *hdmi,
++				    struct hdmi_codec_params *hparms)
+ {
++	u8 infoframe_buf[HDMI_INFOFRAME_SIZE(AUDIO)];
++	int ret = 0;
++
++	ret = hdmi_audio_infoframe_pack(&hparms->cea, infoframe_buf,
++					sizeof(infoframe_buf));
++	if (!ret) {
++		dev_err(hdmi->dev, "%s: Failed to pack audio infoframe: %d\n",
++			__func__, ret);
++		return;
++	}
++
+ 	mutex_lock(&hdmi->audio_mutex);
+ 	if (!hdmi->dclk_en) {
+ 		mutex_unlock(&hdmi->audio_mutex);
+ 		return;
+ 	}
+ 
++	/*
++	 * AUDI_CONTENTS0: { RSV, HB2, HB1, RSV }
++	 * AUDI_CONTENTS1: { PB3, PB2, PB1, PB0 }
++	 * AUDI_CONTENTS2: { PB7, PB6, PB5, PB4 }
++	 *
++	 * PB0: CheckSum
++	 * PB1: | CT3    | CT2  | CT1  | CT0  | F13  | CC2 | CC1 | CC0 |
++	 * PB2: | F27    | F26  | F25  | SF2  | SF1  | SF0 | SS1 | SS0 |
++	 * PB3: | F37    | F36  | F35  | F34  | F33  | F32 | F31 | F30 |
++	 * PB4: | CA7    | CA6  | CA5  | CA4  | CA3  | CA2 | CA1 | CA0 |
++	 * PB5: | DM_INH | LSV3 | LSV2 | LSV1 | LSV0 | F52 | F51 | F50 |
++	 * PB6~PB10: Reserved
++	 *
++	 * AUDI_CONTENTS0 default value defined by HDMI specification,
++	 * and shall only be changed for debug purposes.
++	 * So, we only configure payload byte from PB0~PB7(2 word total).
++	 */
++	regmap_bulk_write(hdmi->regm, PKT_AUDI_CONTENTS1, &infoframe_buf[3], 2);
++
+ 	/* Enable ACR, AUDI, AMD */
+ 	hdmi_modb(hdmi,
+ 		  PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN | PKTSCHED_AMD_TX_EN,
+diff --git a/include/drm/bridge/dw_hdmi.h b/include/drm/bridge/dw_hdmi.h
+index 2b98878d0..7704fd4ac 100644
+--- a/include/drm/bridge/dw_hdmi.h
++++ b/include/drm/bridge/dw_hdmi.h
+@@ -226,7 +226,8 @@ void dw_hdmi_qp_set_channel_count(struct dw_hdmi_qp *hdmi, unsigned int cnt);
+ void dw_hdmi_qp_set_channel_status(struct dw_hdmi_qp *hdmi, u8 *channel_status,
+ 				   bool ref2stream);
+ void dw_hdmi_qp_set_channel_allocation(struct dw_hdmi_qp *hdmi, unsigned int ca);
+-void dw_hdmi_qp_set_audio_infoframe(struct dw_hdmi_qp *hdmi);
++void dw_hdmi_qp_set_audio_infoframe(struct dw_hdmi_qp *hdmi,
++				    struct hdmi_codec_params *hparms);
+ void dw_hdmi_qp_audio_enable(struct dw_hdmi_qp *hdmi);
+ void dw_hdmi_qp_audio_disable(struct dw_hdmi_qp *hdmi);
+ 
+-- 
+2.46.0
+

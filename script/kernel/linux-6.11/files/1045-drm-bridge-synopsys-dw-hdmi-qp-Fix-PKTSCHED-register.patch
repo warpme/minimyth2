@@ -1,0 +1,82 @@
+From a6313357fdc67647977fe2eb19ae52da6607e85c Mon Sep 17 00:00:00 2001
+From: Sugar Zhang <sugar.zhang@rock-chips.com>
+Date: Thu, 2 Dec 2021 16:29:38 +0800
+Subject: [PATCH 84/94] drm/bridge: synopsys: dw-hdmi-qp: Fix PKTSCHED register
+ access error
+
+ACR located at Packet Scheduler which belongs to VIDQPCLK domain.
+So, the related clk should be enabled before register access.
+
+Actually, There are three CLK domain (AUDCLK, VIDQPCLK, LINKQPCLK)
+related to Audio. So, do check clk status before config audio.
+
+Maybe the better way should be spliting hdmi regmap into several parts
+which managed by related clk domain in future.
+
+e.g.
+
+  devm_regmap_init_mmio_clk(dev, "aud", regs, AUD_REGBANK);
+  devm_regmap_init_mmio_clk(dev, "vidqp", regs, VIDQP_REGBANK);
+  devm_regmap_init_mmio_clk(dev, "linkqp", regs, LINKQP_REGBANK);
+  ...
+
+Signed-off-by: Sugar Zhang <sugar.zhang@rock-chips.com>
+Change-Id: Ib497d92a73d99d9f38c4617f615f02c705b82ae7
+Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
+
+Gbp-Pq: Name 0165-drm-bridge-synopsys-dw-hdmi-qp-Fix-PKTSCHED-register.patch
+---
+ .../drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c   | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
+index 464e35cc4..1166b1c16 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
+@@ -42,6 +42,13 @@ static inline void hdmi_mod(struct dw_hdmi_qp_i2s_audio_data *audio,
+ 	return audio->mod(hdmi, data, mask, reg);
+ }
+ 
++static inline bool is_dw_hdmi_qp_clk_off(struct dw_hdmi_qp_i2s_audio_data *audio)
++{
++	u32 sta = hdmi_read(audio, CMU_STATUS);
++
++	return (sta & (AUDCLK_OFF | LINKQPCLK_OFF | VIDQPCLK_OFF));
++}
++
+ static int dw_hdmi_qp_i2s_hw_params(struct device *dev, void *data,
+ 				    struct hdmi_codec_daifmt *fmt,
+ 				    struct hdmi_codec_params *hparms)
+@@ -50,6 +57,9 @@ static int dw_hdmi_qp_i2s_hw_params(struct device *dev, void *data,
+ 	struct dw_hdmi_qp *hdmi = audio->hdmi;
+ 	u32 conf0 = 0;
+ 
++	if (is_dw_hdmi_qp_clk_off(audio))
++		return 0;
++
+ 	if (fmt->bit_clk_provider | fmt->frame_clk_provider) {
+ 		dev_err(dev, "unsupported clock settings\n");
+ 		return -EINVAL;
+@@ -131,6 +141,9 @@ static int dw_hdmi_qp_i2s_audio_startup(struct device *dev, void *data)
+ 	struct dw_hdmi_qp_i2s_audio_data *audio = data;
+ 	struct dw_hdmi_qp *hdmi = audio->hdmi;
+ 
++	if (is_dw_hdmi_qp_clk_off(audio))
++		return 0;
++
+ 	dw_hdmi_qp_audio_enable(hdmi);
+ 
+ 	return 0;
+@@ -141,6 +154,9 @@ static void dw_hdmi_qp_i2s_audio_shutdown(struct device *dev, void *data)
+ 	struct dw_hdmi_qp_i2s_audio_data *audio = data;
+ 	struct dw_hdmi_qp *hdmi = audio->hdmi;
+ 
++	if (is_dw_hdmi_qp_clk_off(audio))
++		return;
++
+ 	dw_hdmi_qp_audio_disable(hdmi);
+ }
+ 
+-- 
+2.46.0
+

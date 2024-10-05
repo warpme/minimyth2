@@ -1,0 +1,112 @@
+From 6b8acfefe606b93e3c41574dcbd6313d88d0eb7e Mon Sep 17 00:00:00 2001
+From: Sugar Zhang <sugar.zhang@rock-chips.com>
+Date: Fri, 29 Jul 2022 17:36:45 +0800
+Subject: [PATCH 88/94] drm/bridge: synopsys: dw-hdmi-qp: Make audio path
+ always on
+
+Keep ACR, AUDI, AUDS packet always on to make SINK device
+active for better compatibility and user experience.
+
+This also fix POP sound on some SINK devices which wakeup
+from suspend to active.
+
+Signed-off-by: Sugar Zhang <sugar.zhang@rock-chips.com>
+Change-Id: I6bb80a85a7ce0ba7046b4ac7bb7d75c38fcd95f3
+Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
+
+Gbp-Pq: Name 0169-drm-bridge-synopsys-dw-hdmi-qp-Make-audio-path-alway.patch
+---
+ .../bridge/synopsys/dw-hdmi-qp-i2s-audio.c    | 19 ++++++++--
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c  | 35 +++++++++++++++++--
+ 2 files changed, 49 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
+index dbf24e1d0..6690e3b3a 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
+@@ -69,6 +69,11 @@ static int dw_hdmi_qp_i2s_hw_params(struct device *dev, void *data,
+ 	/* Reset the audio data path of the AVP */
+ 	hdmi_write(audio, AVP_DATAPATH_PACKET_AUDIO_SWINIT_P, GLOBAL_SWRESET_REQUEST);
+ 
++	/* Disable AUDS, ACR, AUDI */
++	hdmi_mod(audio, 0,
++		 PKTSCHED_ACR_TX_EN | PKTSCHED_AUDS_TX_EN | PKTSCHED_AUDI_TX_EN,
++		 PKTSCHED_PKT_EN);
++
+ 	/* Clear the audio FIFO */
+ 	hdmi_write(audio, AUDIO_FIFO_CLR_P, AUDIO_INTERFACE_CONTROL0);
+ 
+@@ -141,12 +146,22 @@ static int dw_hdmi_qp_i2s_audio_startup(struct device *dev, void *data)
+ static void dw_hdmi_qp_i2s_audio_shutdown(struct device *dev, void *data)
+ {
+ 	struct dw_hdmi_qp_i2s_audio_data *audio = data;
+-	struct dw_hdmi_qp *hdmi = audio->hdmi;
+ 
+ 	if (is_dw_hdmi_qp_clk_off(audio))
+ 		return;
+ 
+-	dw_hdmi_qp_audio_disable(hdmi);
++	/*
++	 * Keep ACR, AUDI, AUDS packet always on to make SINK device
++	 * active for better compatibility and user experience.
++	 *
++	 * This also fix POP sound on some SINK devices which wakeup
++	 * from suspend to active.
++	 */
++	hdmi_mod(audio, I2S_BPCUV_RCV_DIS, I2S_BPCUV_RCV_MSK,
++		 AUDIO_INTERFACE_CONFIG0);
++	hdmi_mod(audio, AUDPKT_PBIT_FORCE_EN | AUDPKT_CHSTATUS_OVR_EN,
++		 AUDPKT_PBIT_FORCE_EN_MASK | AUDPKT_CHSTATUS_OVR_EN_MASK,
++		 AUDPKT_CONTROL0);
+ }
+ 
+ static int dw_hdmi_qp_i2s_get_eld(struct device *dev, void *data, uint8_t *buf,
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index 5c44451b5..02afe0a35 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -285,9 +285,38 @@ void dw_hdmi_qp_set_channel_status(struct dw_hdmi_qp *hdmi,
+ 		return;
+ 	}
+ 
+-	/* Set channel status */
+-	hdmi_writel(hdmi, channel_status[3] | (channel_status[4] << 8),
+-		    AUDPKT_CHSTATUS_OVR1);
++	/*
++	 * AUDPKT_CHSTATUS_OVR0: { RSV, RSV, CS1, CS0 }
++	 * AUDPKT_CHSTATUS_OVR1: { CS6, CS5, CS4, CS3 }
++	 *
++	 *      |  7  |  6  |  5  |  4  |  3  |  2  |  1  |  0  |
++	 * CS0: |   Mode    |        d        |  c  |  b  |  a  |
++	 * CS1: |               Category Code                   |
++	 * CS2: |    Channel Number     |     Source Number     |
++	 * CS3: |    Clock Accuracy     |     Sample Freq       |
++	 * CS4: |    Ori Sample Freq    |     Word Length       |
++	 * CS5: |                                   |   CGMS-A  |
++	 * CS6~CS23: Reserved
++	 *
++	 * a: use of channel status block
++	 * b: linear PCM identification: 0 for lpcm, 1 for nlpcm
++	 * c: copyright information
++	 * d: additional format information
++	 */
++
++	if (ref2stream)
++		channel_status[0] |= IEC958_AES0_NONAUDIO;
++
++	if ((hdmi_readl(hdmi, AUDIO_INTERFACE_CONFIG0) & GENMASK(25, 24)) == AUD_HBR) {
++		/* fixup cs for HBR */
++		channel_status[3] = (channel_status[3] & 0xf0) | IEC958_AES3_CON_FS_768000;
++		channel_status[4] = (channel_status[4] & 0x0f) | IEC958_AES4_CON_ORIGFS_NOTID;
++	}
++
++	hdmi_writel(hdmi, channel_status[0] | (channel_status[1] << 8),
++		    AUDPKT_CHSTATUS_OVR0);
++
++	regmap_bulk_write(hdmi->regm, AUDPKT_CHSTATUS_OVR1, &channel_status[3], 1);
+ 
+ 	if (ref2stream)
+ 		hdmi_modb(hdmi, 0,
+-- 
+2.46.0
+
