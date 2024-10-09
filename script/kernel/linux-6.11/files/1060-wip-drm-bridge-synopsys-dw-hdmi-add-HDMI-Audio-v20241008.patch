@@ -1,18 +1,18 @@
-From 06578817a2bd32d7c3c8cf686ad21792eb3f53ff Mon Sep 17 00:00:00 2001
+From 3d03d24c010e0bb160f04a8064b67188a014c25f Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Thu, 3 Oct 2024 17:16:09 -0400
 Subject: [PATCH 94/94] wip: Fix HDMI Audio
 
 ---
- .../bridge/synopsys/dw-hdmi-qp-i2s-audio.c    |   6 +-
- drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c  | 143 ++++++++++--------
+ .../bridge/synopsys/dw-hdmi-qp-i2s-audio.c    |  13 +-
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c  | 263 +++++-------------
  drivers/gpu/drm/rockchip/dw_hdmi-rockchip.c   |   4 +-
- include/drm/bridge/dw_hdmi.h                  |  27 +---
- include/drm/bridge/dw_hdmi_qp.h               |  39 +++++
- 5 files changed, 124 insertions(+), 95 deletions(-)
+ include/drm/bridge/dw_hdmi.h                  |  27 +-
+ include/drm/bridge/dw_hdmi_qp.h               |  32 +++
+ 5 files changed, 114 insertions(+), 225 deletions(-)
 
 diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
-index e07c2b423..84a3f71a7 100644
+index e07c2b423..75acb5cc7 100644
 --- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
 +++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp-i2s-audio.c
 @@ -9,7 +9,7 @@
@@ -24,7 +24,28 @@ index e07c2b423..84a3f71a7 100644
  #include <drm/drm_crtc.h>
  
  #include <sound/hdmi-codec.h>
-@@ -164,13 +164,11 @@ static int snd_dw_hdmi_qp_probe(struct platform_device *pdev)
+@@ -59,7 +59,7 @@ static int dw_hdmi_qp_i2s_hw_params(struct device *dev, void *data,
+ 		ref2stream = true;
+ 
+ 	dw_hdmi_qp_set_audio_interface(hdmi, fmt, hparms);
+-	dw_hdmi_qp_set_sample_rate(hdmi, hparms->sample_rate);
++	//dw_hdmi_qp_set_sample_rate(hdmi, hparms->sample_rate);
+ 	dw_hdmi_qp_set_channel_status(hdmi, hparms->iec.status, ref2stream);
+ 	dw_hdmi_qp_set_channel_count(hdmi, hparms->channels);
+ 	dw_hdmi_qp_set_channel_allocation(hdmi, hparms->cea.channel_allocation);
+@@ -120,10 +120,7 @@ static int dw_hdmi_qp_i2s_hook_plugged_cb(struct device *dev, void *data,
+ 					  hdmi_codec_plugged_cb fn,
+ 					  struct device *codec_dev)
+ {
+-	struct dw_hdmi_qp_i2s_audio_data *audio = data;
+-	struct dw_hdmi_qp *hdmi = audio->hdmi;
+-
+-	return dw_hdmi_qp_set_plugged_cb(hdmi, fn, codec_dev);
++	return 0;
+ }
+ 
+ static struct hdmi_codec_ops dw_hdmi_qp_i2s_ops = {
+@@ -164,13 +161,11 @@ static int snd_dw_hdmi_qp_probe(struct platform_device *pdev)
  	return 0;
  }
  
@@ -40,10 +61,29 @@ index e07c2b423..84a3f71a7 100644
  
  static struct platform_driver snd_dw_hdmi_qp_driver = {
 diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
-index fcc785e2f..c7eba9689 100644
+index fcc785e2f..7f886706a 100644
 --- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
 +++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
-@@ -134,6 +134,7 @@ struct dw_hdmi_qp_i2c {
+@@ -53,18 +53,6 @@ struct dw_hdmi_qp_cec {
+ };
+ #endif
+ 
+-/*
+- * Recommended N and Expected CTS Values in FRL Mode in chapter 9.2.2
+- * of HDMI Specification 2.1.
+- */
+-static const struct dw_hdmi_audio_frl_n common_frl_n_table[] = {
+-	{ .r_bit = 3,  .n_32k = 4224, .n_44k1 = 5292, .n_48k = 5760, },
+-	{ .r_bit = 6,  .n_32k = 4032, .n_44k1 = 5292, .n_48k = 6048, },
+-	{ .r_bit = 8,  .n_32k = 4032, .n_44k1 = 3969, .n_48k = 6048, },
+-	{ .r_bit = 10, .n_32k = 3456, .n_44k1 = 3969, .n_48k = 5184, },
+-	{ .r_bit = 12, .n_32k = 3072, .n_44k1 = 3969, .n_48k = 4752, },
+-};
+-
+ /*
+  * Unless otherwise noted, entries in this table are 100% optimization.
+  * Values can be obtained from hdmi_compute_n() but that function is
+@@ -134,6 +122,7 @@ struct dw_hdmi_qp_i2c {
  
  struct dw_hdmi_qp {
  	struct drm_bridge bridge;
@@ -51,43 +91,42 @@ index fcc785e2f..c7eba9689 100644
  
  	struct device *dev;
  	struct dw_hdmi_qp_i2c *i2c;
-@@ -150,6 +151,17 @@ struct dw_hdmi_qp {
+@@ -150,6 +139,11 @@ struct dw_hdmi_qp {
  	struct drm_connector *curr_conn;
  	unsigned long long pix_clock;
  
-+	// from dw_hdmi
 +	spinlock_t audio_lock;
-+	//struct mutex audio_mutex;
 +	unsigned int sample_non_pcm;
 +	unsigned int sample_width;
-+	//unsigned int sample_rate;
 +	unsigned int channels;
-+	//unsigned int audio_cts;
-+	//unsigned int audio_n;
-+	//bool audio_enable;
 +
  	struct mutex audio_mutex;
  	unsigned int sample_rate;
  	unsigned int audio_cts;
-@@ -157,14 +169,37 @@ struct dw_hdmi_qp {
- 	bool audio_enable;
- 	void (*enable_audio)(struct dw_hdmi_qp *hdmi);
- 	void (*disable_audio)(struct dw_hdmi_qp *hdmi);
-+	bool dclk_en;
- 
+@@ -161,84 +155,45 @@ struct dw_hdmi_qp {
  	struct regmap *regm;
  };
  
+-int dw_hdmi_qp_set_plugged_cb(struct dw_hdmi_qp *hdmi, hdmi_codec_plugged_cb fn,
+-			      struct device *codec_dev)
 +static void dw_hdmi_qp_write(struct dw_hdmi_qp *hdmi, unsigned int val,
 +			     int offset)
-+{
+ {
+-	bool plugged;
 +	regmap_write(hdmi->regm, offset, val);
 +}
-+
+ 
+-	mutex_lock(&hdmi->mutex);
+-	hdmi->plugged_cb = fn;
+-	hdmi->codec_dev = codec_dev;
+-	plugged = hdmi->last_connector_result == connector_status_connected;
+-	handle_plugged_change(hdmi, plugged);
+-	mutex_unlock(&hdmi->mutex);
 +static unsigned int dw_hdmi_qp_read(struct dw_hdmi_qp *hdmi, int offset)
 +{
 +	unsigned int val = 0;
-+
+ 
+-	return 0;
 +	regmap_read(hdmi->regm, offset, &val);
 +
 +	return val;
@@ -97,27 +136,10 @@ index fcc785e2f..c7eba9689 100644
 +			   unsigned int mask, unsigned int reg)
 +{
 +	regmap_update_bits(hdmi->regm, reg, mask, data);
-+}
-+
-+// FIXME: IS THIS NEEDED for audio ?
- int dw_hdmi_qp_set_plugged_cb(struct dw_hdmi_qp *hdmi, hdmi_codec_plugged_cb fn,
- 			      struct device *codec_dev)
- {
--	bool plugged;
-+	/*bool plugged;
- 
- 	mutex_lock(&hdmi->mutex);
- 	hdmi->plugged_cb = fn;
-@@ -172,7 +207,7 @@ int dw_hdmi_qp_set_plugged_cb(struct dw_hdmi_qp *hdmi, hdmi_codec_plugged_cb fn,
- 	plugged = hdmi->last_connector_result == connector_status_connected;
- 	handle_plugged_change(hdmi, plugged);
- 	mutex_unlock(&hdmi->mutex);
--
-+*/
- 	return 0;
  }
- EXPORT_SYMBOL_GPL(dw_hdmi_qp_set_plugged_cb);
-@@ -181,17 +216,17 @@ static void hdmi_set_cts_n(struct dw_hdmi_qp *hdmi, unsigned int cts,
+-EXPORT_SYMBOL_GPL(dw_hdmi_qp_set_plugged_cb);
+ 
+ static void hdmi_set_cts_n(struct dw_hdmi_qp *hdmi, unsigned int cts,
  			   unsigned int n)
  {
  	/* Set N */
@@ -139,36 +161,82 @@ index fcc785e2f..c7eba9689 100644
  		  AUDPKT_ACR_CONTROL1);
  }
  
-@@ -329,14 +364,14 @@ static unsigned int hdmi_find_n(struct dw_hdmi_qp *hdmi, unsigned long pixel_clk
+-static int hdmi_match_frl_n_table(struct dw_hdmi_qp *hdmi,
+-				  unsigned long r_bit,
+-				  unsigned long freq)
+-{
+-	const struct dw_hdmi_audio_frl_n *frl_n = NULL;
+-	int i = 0, n = 0;
+-
+-	for (i = 0; ARRAY_SIZE(common_frl_n_table); i++) {
+-		if (r_bit == common_frl_n_table[i].r_bit) {
+-			frl_n = &common_frl_n_table[i];
+-			break;
+-		}
+-	}
+-
+-	if (!frl_n)
+-		goto err;
+-
+-	switch (freq) {
+-	case 32000:
+-	case 64000:
+-	case 128000:
+-		n = (freq / 32000) * frl_n->n_32k;
+-		break;
+-	case 44100:
+-	case 88200:
+-	case 176400:
+-		n = (freq / 44100) * frl_n->n_44k1;
+-		break;
+-	case 48000:
+-	case 96000:
+-	case 192000:
+-		n = (freq / 48000) * frl_n->n_48k;
+-		break;
+-	default:
+-		goto err;
+-	}
+-
+-	return n;
+-err:
+-	dev_err(hdmi->dev, "FRL; unexpected Rbit: %lu Gbps\n", r_bit);
+-
+-	return 0;
+-}
+-
+ static int hdmi_match_tmds_n_table(struct dw_hdmi_qp *hdmi,
+ 				   unsigned long pixel_clk,
+ 				   unsigned long freq)
+@@ -328,17 +283,7 @@ static unsigned int hdmi_compute_n(struct dw_hdmi_qp *hdmi,
+ static unsigned int hdmi_find_n(struct dw_hdmi_qp *hdmi, unsigned long pixel_clk,
  				unsigned long sample_rate)
  {
- 	struct dw_hdmi_link_config *link_cfg = NULL;
+-	struct dw_hdmi_link_config *link_cfg = NULL;
 -	void *data = hdmi->plat_data->phy_data;
-+	//void *data = hdmi->plat_data->phy_data;
- 	int n;
- 
+-	int n;
+-
 -	if (hdmi->plat_data->get_link_cfg) {
-+	/*if (hdmi->plat_data->get_link_cfg) {
- 		link_cfg = hdmi->plat_data->get_link_cfg(data);
- 		if (link_cfg && link_cfg->frl_mode)
- 			return hdmi_match_frl_n_table(hdmi, link_cfg->rate_per_lane, sample_rate);
+-		link_cfg = hdmi->plat_data->get_link_cfg(data);
+-		if (link_cfg && link_cfg->frl_mode)
+-			return hdmi_match_frl_n_table(hdmi, link_cfg->rate_per_lane, sample_rate);
 -	}
-+	}*/
- 
- 	n = hdmi_match_tmds_n_table(hdmi, pixel_clk, sample_rate);
+-
+-	n = hdmi_match_tmds_n_table(hdmi, pixel_clk, sample_rate);
++	int n = hdmi_match_tmds_n_table(hdmi, pixel_clk, sample_rate);
  	if (n > 0)
-@@ -354,25 +389,26 @@ void dw_hdmi_qp_set_audio_interface(struct dw_hdmi_qp *hdmi,
- {
+ 		return n;
+ 
+@@ -355,24 +300,22 @@ void dw_hdmi_qp_set_audio_interface(struct dw_hdmi_qp *hdmi,
  	u32 conf0 = 0;
  
-+	// FIXME: dclk_en seems needed to activate audio...
  	mutex_lock(&hdmi->audio_mutex);
 -	if (!hdmi->dclk_en) {
-+	/*if (!hdmi->dclk_en) {
- 		mutex_unlock(&hdmi->audio_mutex);
- 		return;
+-		mutex_unlock(&hdmi->audio_mutex);
+-		return;
 -	}
-+	}*/
++	// TODO: VOP's DCLK_VP[0-3] clocks must be activated before this can be done.
++	//       Check how to make sure they are activated.
  
  	/* Reset the audio data path of the AVP */
 -	hdmi_writel(hdmi, AVP_DATAPATH_PACKET_AUDIO_SWINIT_P, GLOBAL_SWRESET_REQUEST);
@@ -190,7 +258,7 @@ index fcc785e2f..c7eba9689 100644
  
  	/* Enable the active i2s lanes */
  	switch (hparms->channels) {
-@@ -390,7 +426,7 @@ void dw_hdmi_qp_set_audio_interface(struct dw_hdmi_qp *hdmi,
+@@ -390,7 +333,7 @@ void dw_hdmi_qp_set_audio_interface(struct dw_hdmi_qp *hdmi,
  		break;
  	}
  
@@ -199,7 +267,7 @@ index fcc785e2f..c7eba9689 100644
  
  	/*
  	 * Enable bpcuv generated internally for L-PCM, or received
-@@ -406,11 +442,11 @@ void dw_hdmi_qp_set_audio_interface(struct dw_hdmi_qp *hdmi,
+@@ -406,11 +349,11 @@ void dw_hdmi_qp_set_audio_interface(struct dw_hdmi_qp *hdmi,
  		break;
  	}
  
@@ -213,7 +281,21 @@ index fcc785e2f..c7eba9689 100644
  		  AUDIO_INTERFACE_CONFIG0);
  
  	mutex_unlock(&hdmi->audio_mutex);
-@@ -456,23 +492,23 @@ void dw_hdmi_qp_set_channel_status(struct dw_hdmi_qp *hdmi,
+@@ -429,10 +372,9 @@ void dw_hdmi_qp_set_channel_status(struct dw_hdmi_qp *hdmi,
+ 				   u8 *channel_status, bool ref2stream)
+ {
+ 	mutex_lock(&hdmi->audio_mutex);
+-	if (!hdmi->dclk_en) {
+-		mutex_unlock(&hdmi->audio_mutex);
+-		return;
+-	}
++
++	// TODO: VOP's DCLK_VP[0-3] clocks must be activated before this can be done.
++	//       Check how to make sure they are activated.
+ 
+ 	/*
+ 	 * AUDPKT_CHSTATUS_OVR0: { RSV, RSV, CS1, CS0 }
+@@ -456,23 +398,23 @@ void dw_hdmi_qp_set_channel_status(struct dw_hdmi_qp *hdmi,
  	if (ref2stream)
  		channel_status[0] |= IEC958_AES0_NONAUDIO;
  
@@ -241,32 +323,46 @@ index fcc785e2f..c7eba9689 100644
  			  AUDPKT_PBIT_FORCE_EN_MASK | AUDPKT_CHSTATUS_OVR_EN_MASK,
  			  AUDPKT_CONTROL0);
  
-@@ -503,20 +539,20 @@ static void hdmi_init_clk_regenerator(struct dw_hdmi_qp *hdmi)
- static void hdmi_clk_regenerator_update_pixel_clock(struct dw_hdmi_qp *hdmi)
+@@ -495,31 +437,22 @@ static void hdmi_set_clk_regenerator(struct dw_hdmi_qp *hdmi,
+ static void hdmi_init_clk_regenerator(struct dw_hdmi_qp *hdmi)
  {
  	mutex_lock(&hdmi->audio_mutex);
 -	if (hdmi->dclk_en)
-+	/*if (hdmi->dclk_en)
- 		hdmi_set_clk_regenerator(hdmi, hdmi->hdmi_data.video_mode.mtmdsclock,
+-		hdmi_set_clk_regenerator(hdmi, 74250000, hdmi->sample_rate);
+-	mutex_unlock(&hdmi->audio_mutex);
+-}
+-
+-static void hdmi_clk_regenerator_update_pixel_clock(struct dw_hdmi_qp *hdmi)
+-{
+-	mutex_lock(&hdmi->audio_mutex);
+-	if (hdmi->dclk_en)
+-		hdmi_set_clk_regenerator(hdmi, hdmi->hdmi_data.video_mode.mtmdsclock,
 -					 hdmi->sample_rate);
-+					 hdmi->sample_rate);*/
++	// FIXME: Where does the 74250000 value come from ?
++	hdmi_set_clk_regenerator(hdmi, 74250000, hdmi->sample_rate);
  	mutex_unlock(&hdmi->audio_mutex);
  }
  
++/*
  void dw_hdmi_qp_set_sample_rate(struct dw_hdmi_qp *hdmi, unsigned int rate)
  {
  	mutex_lock(&hdmi->audio_mutex);
 -	if (hdmi->dclk_en) {
-+	/*if (hdmi->dclk_en) {
- 		hdmi->sample_rate = rate;
- 		hdmi_set_clk_regenerator(hdmi, hdmi->hdmi_data.video_mode.mtmdsclock,
- 					 hdmi->sample_rate);
+-		hdmi->sample_rate = rate;
+-		hdmi_set_clk_regenerator(hdmi, hdmi->hdmi_data.video_mode.mtmdsclock,
+-					 hdmi->sample_rate);
 -	}
-+	}*/
++	hdmi->sample_rate = rate;
++	hdmi_set_clk_regenerator(hdmi, hdmi->hdmi_data.video_mode.mtmdsclock,
++				 hdmi->sample_rate);
  	mutex_unlock(&hdmi->audio_mutex);
  }
  EXPORT_SYMBOL_GPL(dw_hdmi_qp_set_sample_rate);
-@@ -553,7 +589,7 @@ static int dw_hdmi_qp_init_audio_infoframe(struct dw_hdmi_qp *hdmi)
++*/
+ 
+ void dw_hdmi_qp_set_channel_count(struct dw_hdmi_qp *hdmi, unsigned int cnt)
+ {
+@@ -553,7 +486,7 @@ static int dw_hdmi_qp_init_audio_infoframe(struct dw_hdmi_qp *hdmi)
  	}
  
  	regmap_bulk_write(hdmi->regm, PKT_AUDI_CONTENTS1, &infoframe_buf[3], 2);
@@ -275,7 +371,20 @@ index fcc785e2f..c7eba9689 100644
  		  PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN,
  		  PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN,
  		  PKTSCHED_PKT_EN);
-@@ -601,13 +637,13 @@ void dw_hdmi_qp_set_audio_infoframe(struct dw_hdmi_qp *hdmi,
+@@ -576,10 +509,8 @@ void dw_hdmi_qp_set_audio_infoframe(struct dw_hdmi_qp *hdmi,
+ 	}
+ 
+ 	mutex_lock(&hdmi->audio_mutex);
+-	if (!hdmi->dclk_en) {
+-		mutex_unlock(&hdmi->audio_mutex);
+-		return;
+-	}
++	// TODO: VOP's DCLK_VP[0-3] clocks must be activated before this can be done.
++	//       Check how to make sure they are activated.
+ 
+ 	/*
+ 	 * AUDI_CONTENTS0: { RSV, HB2, HB1, RSV }
+@@ -601,13 +532,13 @@ void dw_hdmi_qp_set_audio_infoframe(struct dw_hdmi_qp *hdmi,
  	regmap_bulk_write(hdmi->regm, PKT_AUDI_CONTENTS1, &infoframe_buf[3], 2);
  
  	/* Enable ACR, AUDI, AMD */
@@ -291,7 +400,7 @@ index fcc785e2f..c7eba9689 100644
  	mutex_unlock(&hdmi->audio_mutex);
  }
  EXPORT_SYMBOL_GPL(dw_hdmi_qp_set_audio_infoframe);
-@@ -615,10 +651,10 @@ EXPORT_SYMBOL_GPL(dw_hdmi_qp_set_audio_infoframe);
+@@ -615,10 +546,10 @@ EXPORT_SYMBOL_GPL(dw_hdmi_qp_set_audio_infoframe);
  static void hdmi_enable_audio_clk(struct dw_hdmi_qp *hdmi, bool enable)
  {
  	if (enable)
@@ -304,7 +413,7 @@ index fcc785e2f..c7eba9689 100644
  			  AVP_DATAPATH_PACKET_AUDIO_SWDISABLE, GLOBAL_SWDISABLE);
  }
  
-@@ -637,9 +673,9 @@ static void dw_hdmi_i2s_audio_disable(struct dw_hdmi_qp *hdmi)
+@@ -637,9 +568,9 @@ static void dw_hdmi_i2s_audio_disable(struct dw_hdmi_qp *hdmi)
  	 * This also fix POP sound on some SINK devices which wakeup
  	 * from suspend to active.
  	 */
@@ -316,7 +425,41 @@ index fcc785e2f..c7eba9689 100644
  		  AUDPKT_PBIT_FORCE_EN_MASK | AUDPKT_CHSTATUS_OVR_EN_MASK,
  		  AUDPKT_CONTROL0);
  }
-@@ -719,27 +755,6 @@ void dw_hdmi_qp_set_high_tmds_clock_ratio(struct dw_hdmi_qp *hdmi,
+@@ -647,11 +578,11 @@ static void dw_hdmi_i2s_audio_disable(struct dw_hdmi_qp *hdmi)
+ void dw_hdmi_qp_audio_enable(struct dw_hdmi_qp *hdmi)
+ {
+ 	mutex_lock(&hdmi->audio_mutex);
+-	if (hdmi->dclk_en) {
+-		hdmi->audio_enable = true;
+-		if (hdmi->enable_audio)
+-			hdmi->enable_audio(hdmi);
+-	}
++
++	hdmi->audio_enable = true;
++	if (hdmi->enable_audio)
++		hdmi->enable_audio(hdmi);
++
+ 	mutex_unlock(&hdmi->audio_mutex);
+ }
+ EXPORT_SYMBOL_GPL(dw_hdmi_qp_audio_enable);
+@@ -659,11 +590,11 @@ EXPORT_SYMBOL_GPL(dw_hdmi_qp_audio_enable);
+ void dw_hdmi_qp_audio_disable(struct dw_hdmi_qp *hdmi)
+ {
+ 	mutex_lock(&hdmi->audio_mutex);
+-	if (hdmi->dclk_en) {
+-		hdmi->audio_enable = false;
+-		if (hdmi->disable_audio)
+-			hdmi->disable_audio(hdmi);
+-	}
++
++	hdmi->audio_enable = false;
++	if (hdmi->disable_audio)
++		hdmi->disable_audio(hdmi);
++
+ 	mutex_unlock(&hdmi->audio_mutex);
+ }
+ EXPORT_SYMBOL_GPL(dw_hdmi_qp_audio_disable);
+@@ -719,27 +650,6 @@ void dw_hdmi_qp_set_high_tmds_clock_ratio(struct dw_hdmi_qp *hdmi,
  }
  EXPORT_SYMBOL_GPL(dw_hdmi_qp_set_high_tmds_clock_ratio);
  
@@ -344,55 +487,57 @@ index fcc785e2f..c7eba9689 100644
  static int dw_hdmi_qp_i2c_read(struct dw_hdmi_qp *hdmi,
  			       unsigned char *buf, unsigned int length)
  {
-@@ -1281,6 +1296,7 @@ static void dw_hdmi_qp_setup(struct dw_hdmi_qp *hdmi,
+@@ -1281,7 +1191,7 @@ static void dw_hdmi_qp_setup(struct dw_hdmi_qp *hdmi,
  	}
  
  	/* HDMI Initialization Step E - Configure audio */
+-	hdmi_clk_regenerator_update_pixel_clock(hdmi);
 +	((struct dw_hdmi_qp_i2s_audio_data*)hdmi->audio->dev.platform_data)->eld = connector->eld;
- 	hdmi_clk_regenerator_update_pixel_clock(hdmi);
  	hdmi_enable_audio_clk(hdmi, hdmi->audio_enable);
  
-@@ -1352,13 +1368,13 @@ static void dw_hdmi_qp_bridge_atomic_enable(struct drm_bridge *bridge,
+ 	dev_dbg(hdmi->dev, "%s HDMI mode\n", __func__);
+@@ -1351,39 +1261,15 @@ static void dw_hdmi_qp_bridge_atomic_enable(struct drm_bridge *bridge,
+ 	dw_hdmi_qp_setup(hdmi, connector);
  
  	drm_atomic_helper_connector_hdmi_update_infoframes(connector, state);
- 	
+-	
 -	if (!hdmi->dclk_en) {
-+	/*if (!hdmi->dclk_en) {
- 		mutex_lock(&hdmi->audio_mutex);
- 		if (hdmi->plat_data->dclk_set)
- 			hdmi->plat_data->dclk_set(data, true);
- 		hdmi->dclk_en = true;
- 		mutex_unlock(&hdmi->audio_mutex);
+-		mutex_lock(&hdmi->audio_mutex);
+-		if (hdmi->plat_data->dclk_set)
+-			hdmi->plat_data->dclk_set(data, true);
+-		hdmi->dclk_en = true;
+-		mutex_unlock(&hdmi->audio_mutex);
 -	}
-+	}*/
++
  	dw_hdmi_qp_init_audio_infoframe(hdmi);
  	dw_hdmi_qp_audio_enable(hdmi);
- 	hdmi_clk_regenerator_update_pixel_clock(hdmi);
-@@ -1371,19 +1387,19 @@ static void dw_hdmi_qp_bridge_atomic_disable(struct drm_bridge *bridge,
+-	hdmi_clk_regenerator_update_pixel_clock(hdmi);
+-
+-	//extcon_set_state_sync(hdmi->extcon, EXTCON_DISP_HDMI, true);
+-	//handle_plugged_change(hdmi, true);
+ }
+ 
+ static void dw_hdmi_qp_bridge_atomic_disable(struct drm_bridge *bridge,
  					     struct drm_bridge_state *old_state)
  {
  	struct dw_hdmi_qp *hdmi = bridge->driver_private;
 -	void *data = hdmi->plat_data->phy_data;
-+	//void *data = hdmi->plat_data->phy_data;
- 
- 	//extcon_set_state_sync(hdmi->extcon, EXTCON_DISP_HDMI, false);
- 	//handle_plugged_change(hdmi, false);
+-
+-	//extcon_set_state_sync(hdmi->extcon, EXTCON_DISP_HDMI, false);
+-	//handle_plugged_change(hdmi, false);
 -	mutex_lock(&hdmi->mutex);
-+	//mutex_lock(&hdmi->mutex);
- 
+-
 -	if (hdmi->dclk_en) {
-+	/*if (hdmi->dclk_en) {
- 		mutex_lock(&hdmi->audio_mutex);
- 		if (hdmi->plat_data->dclk_set)
- 			hdmi->plat_data->dclk_set(data, false);
- 		hdmi->dclk_en = false;
- 		mutex_unlock(&hdmi->audio_mutex);
+-		mutex_lock(&hdmi->audio_mutex);
+-		if (hdmi->plat_data->dclk_set)
+-			hdmi->plat_data->dclk_set(data, false);
+-		hdmi->dclk_en = false;
+-		mutex_unlock(&hdmi->audio_mutex);
 -	};
-+	};*/
  
  	hdmi->curr_conn = NULL;
  	hdmi->phy.ops->disable(hdmi, hdmi->phy.data);
-@@ -1616,10 +1632,9 @@ struct dw_hdmi_qp *dw_hdmi_qp_bind(struct platform_device *pdev,
+@@ -1616,10 +1502,9 @@ struct dw_hdmi_qp *dw_hdmi_qp_bind(struct platform_device *pdev,
  		hdmi->bridge.ddc = NULL;
  
  	audio.hdmi      = hdmi;
@@ -486,10 +631,10 @@ index c66054087..287a59af0 100644
 -
  #endif /* __IMX_HDMI_H__ */
 diff --git a/include/drm/bridge/dw_hdmi_qp.h b/include/drm/bridge/dw_hdmi_qp.h
-index 0b9c7a88a..1c7e6001b 100644
+index 0b9c7a88a..033f95e57 100644
 --- a/include/drm/bridge/dw_hdmi_qp.h
 +++ b/include/drm/bridge/dw_hdmi_qp.h
-@@ -7,12 +7,17 @@
+@@ -7,6 +7,8 @@
  #ifndef __DW_HDMI_QP__
  #define __DW_HDMI_QP__
  
@@ -498,16 +643,7 @@ index 0b9c7a88a..1c7e6001b 100644
  struct device;
  struct drm_display_info;
  struct drm_encoder;
- struct dw_hdmi_qp;
- struct platform_device;
- 
-+//struct hdmi_codec_params;
-+//struct hdmi_codec_daifmt;
-+
- struct dw_hdmi_qp_phy_ops {
- 	int (*init)(struct dw_hdmi_qp *hdmi, void *data,
- 		    const struct drm_display_info *display);
-@@ -26,6 +31,20 @@ struct dw_hdmi_qp_plat_data {
+@@ -26,6 +28,20 @@ struct dw_hdmi_qp_plat_data {
  	void *phy_data;
  };
  
@@ -528,16 +664,13 @@ index 0b9c7a88a..1c7e6001b 100644
  void dw_hdmi_qp_set_high_tmds_clock_ratio(struct dw_hdmi_qp *hdmi,
  					  const struct drm_display_info *display);
  
-@@ -34,4 +53,24 @@ struct dw_hdmi_qp *dw_hdmi_qp_bind(struct platform_device *pdev,
+@@ -34,4 +50,20 @@ struct dw_hdmi_qp *dw_hdmi_qp_bind(struct platform_device *pdev,
  				   struct drm_encoder *encoder,
  				   const struct dw_hdmi_qp_plat_data *plat_data);
  void dw_hdmi_qp_resume(struct device *dev, struct dw_hdmi_qp *hdmi);
 +
 +
-+//void dw_hdmi_qp_cec_set_hpd(struct dw_hdmi_qp *hdmi, bool plug_in, bool change);
-+//void dw_hdmi_qp_set_cec_adap(struct dw_hdmi_qp *hdmi, struct cec_adapter *adap);
-+//int dw_hdmi_qp_set_earc(struct dw_hdmi_qp *hdmi);
-+void dw_hdmi_qp_set_sample_rate(struct dw_hdmi_qp *hdmi, unsigned int rate);
++//void dw_hdmi_qp_set_sample_rate(struct dw_hdmi_qp *hdmi, unsigned int rate);
 +void dw_hdmi_qp_set_channel_count(struct dw_hdmi_qp *hdmi, unsigned int cnt);
 +void dw_hdmi_qp_set_channel_status(struct dw_hdmi_qp *hdmi, u8 *channel_status,
 +				   bool ref2stream);
@@ -550,8 +683,7 @@ index 0b9c7a88a..1c7e6001b 100644
 +void dw_hdmi_qp_audio_enable(struct dw_hdmi_qp *hdmi);
 +void dw_hdmi_qp_audio_disable(struct dw_hdmi_qp *hdmi);
 +bool dw_hdmi_qp_connected(struct dw_hdmi_qp *hdmi);
-+int dw_hdmi_qp_set_plugged_cb(struct dw_hdmi_qp *hdmi, hdmi_codec_plugged_cb fn,
-+			      struct device *codec_dev);
++
  #endif /* __DW_HDMI_QP__ */
 -- 
 2.46.0

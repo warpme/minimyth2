@@ -304,7 +304,7 @@ PATCHFILES += 1056-ASoC-rockchip-hdmi-support-dts-specified-daifmt.patch
 PATCHFILES += 1057-ASoC-rockchip-hdmi-Fix-potential-NULL-point-referenc.patch
 PATCHFILES += 1058-ASoC-rockchip-i2s-tdm-Add-support-for-Digital-Loopba.patch
 PATCHFILES += 1059-ASoC-rockchip-i2s-tdm-Add-support-for-PATHx-controls.patch
-PATCHFILES += 1060-wip-Fix-HDMI-Audio.patch
+PATCHFILES += 1060-wip-drm-bridge-synopsys-dw-hdmi-add-HDMI-Audio-v20241008.patch
 
 PATCHFILES += 1064-media-hantro-g1-add-video-decoder-support-v1.patch
 PATCHFILES += 1065-net-ethernet-add-yt6801-gige-pcie-controller.patch
