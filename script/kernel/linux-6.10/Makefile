@@ -267,7 +267,6 @@ PATCHFILES += 1014-clk-rockchip-rk3588-drop-unused-code.patch
 PATCHFILES += 1015-clk-rockchip-handle-missing-clocks-with-EPROBE_DEFER.patch
 PATCHFILES += 1016-clk-rockchip-rk3588-register-GATE_LINK-later.patch
 PATCHFILES += 1017-clk-rockchip-expose-rockchip_clk_set_lookup.patch
-PATCHFILES += 1018-clk-rockchip-fix-error-for-unknown-clocks.patch
 PATCHFILES += 1019-clk-rockchip-implement-linked-gate-clock-support.patch
 PATCHFILES += 1020-clk-rockchip-rk3588-drop-RK3588_LINKED_CLK.patch
 PATCHFILES += 1021-phy-rockchip-samsung-hdptx-Add-FRL-EARC-supp.patch
