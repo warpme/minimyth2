@@ -63,7 +63,7 @@ log_file="/var/log/install-on-emmc.log"
 
 
 
-ver=2.1
+ver=3.0
 
 command=$1
 
@@ -232,43 +232,77 @@ erase_emmc() {
     sync
 }
 
-write_to_emmc_bootloader() {
+write_to_emmc_bootloader_rockchip() {
+    #reasing not works ok so...stopped for now
+    #msg "  ==> erasing old bootloader ..."
+    #do_cmd "dd if=/dev/zero of=/dev/${emmc_dev} seek=64 bs=1048576 count=15"
+    if [ -e /boot/bootloader/idbloader.img ] && [ -e /boot/bootloader/u-boot.itb ] ; then
+        msg "  ==> installing idbloader.img from [/boot/bootloader/] to ${emmc_dev} ..."
+        do_cmd "dd if=/boot/bootloader/idbloader.img of=/dev/${emmc_dev} seek=64"
+        msg "idbloader.img installed to eMMC ..."
+        msg "  ==> installing u-boot.itb from [/boot/bootloader/] to ${emmc_dev} ..."
+        do_cmd "dd if=/boot/bootloader/u-boot.itb of=/dev/${emmc_dev} seek=16384"
+        msg "u-boot.itb installed to eMMC ..."
+    else
+        msg "  ==> no bootloader in [/boot/bootloader] found so copying bootloader from ${boot_dev} to ${emmc_dev} ..."
+        do_cmd "dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1024 count=32760 seek=8 conv=fsync"
+    fi
+}
 
-    if [ $platform_type = 1 ] ; then
-        # this is for allwinner
+write_to_emmc_bootloader_allwinner() {
         msg "  ==> erasing old bootloader ..."
         log "Executing echo 0 > /sys/block/${emmc_dev}boot0/force_ro"
         echo 0 > /sys/block/${emmc_dev}boot0/force_ro
-        do_cmd "dd if=/dev/zero of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync"
-        do_cmd "dd if=/dev/zero of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync"
-        msg "  ==> copying bootloader from ${boot_dev} to ${emmc_dev} ..."
-        do_cmd "dd if=/dev/${boot_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync"
-        do_cmd "dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync"
-        msg "bootloader copied to eMMC ..."
+        do_cmd "dd if=/dev/zero of=/dev/${emmc_dev}boot0 bs=1024 count=2048 conv=fsync"
+        do_cmd "dd if=/dev/zero of=/dev/${emmc_dev} bs=1024 count=2040 seek=8 conv=fsync"
+
+        if [ -e /boot/bootloader/u-boot-sunxi-with-spl.bin ] ; then
+            msg "  ==> installing bootloader from [/boot/bootloader/u-boot-sunxi-with-spl.bin] to ${emmc_dev} ..."
+            do_cmd "dd if=/boot/bootloader/u-boot-sunxi-with-spl.bin of=/dev/${emmc_dev}boot0 conv=fsync"
+            do_cmd "dd if=/boot/bootloader/u-boot-sunxi-with-spl.bin of=/dev/${emmc_dev} bs=1024 seek=8"
+            msg "bootloader installed to eMMC ..."
+        else
+            msg "  ==> no bootloader in [/boot/bootloader] found so copying bootloader from ${boot_dev} to ${emmc_dev} ..."
+            do_cmd "dd if=/dev/${boot_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync"
+            do_cmd "dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync"
+            msg "bootloader copied to eMMC ..."
+        fi
+}
+
+write_to_emmc_bootloader() {
+
+    if [ $platform_type = 1 ] ; then
+        write_to_emmc_bootloader_allwinner
         update_emmc_bootloader_config
 
     elif [ $platform_type = 2 ] ; then
         # this is for rockchip 3328
+        write_to_emmc_bootloader_rockchip
         update_emmc_bootloader_config
 
     elif [ $platform_type = 3 ] ; then
         # this is for rockchip 3399
+        write_to_emmc_bootloader_rockchip
         update_emmc_bootloader_config
 
     elif [ $platform_type = 4 ] ; then
         # this is for rockchip 3528
+        write_to_emmc_bootloader_rockchip
         update_emmc_bootloader_config
 
     elif [ $platform_type = 5 ] ; then
         # this is for rockchip 356x alr.part.scheme
+        write_to_emmc_bootloader_rockchip
         update_emmc_bootloader_config 4
 
     elif [ $platform_type = 6 ] ; then
         # this is for rockchip 356x
+        write_to_emmc_bootloader_rockchip
         update_emmc_bootloader_config
 
     elif [ $platform_type = 7 ] ; then
         # this is for rockchip 3588
+        write_to_emmc_bootloader_rockchip
         update_emmc_bootloader_config
 
     elif [ $platform_type = 8 ] ; then
