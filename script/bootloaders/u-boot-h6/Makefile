@@ -1,7 +1,7 @@
 
 # Mainline U-boot v2024.07
 GARNAME      = u-boot-h6
-GARVERSION   = 2024.07
+GARVERSION   = 2024.10
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
