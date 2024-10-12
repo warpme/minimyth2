@@ -19,11 +19,23 @@ Signed-off-by: Gunjan Gupta <viraniac@gmail.com>
  arch/arm/mach-sunxi/dram_sun50i_h6.c | 2 ++
  2 files changed, 3 insertions(+)
 
+diff --git a/arch/arm/mach-sunxi/dram_helpers.c b/arch/arm/mach-sunxi/dram_helpers.c
+index cdf2750f1c..5758c58e07 100644
+--- a/arch/arm/mach-sunxi/dram_helpers.c
++++ b/arch/arm/mach-sunxi/dram_helpers.c
+@@ -41,6 +41,7 @@ void mctl_await_completion(u32 *reg, u32 mask, u32 val)
+ 	val_base = readl(base);
+ 	val_offset = readl(base + offset);
+ 
++	dsb();
+ 	/* Try to write different values to RAM at two addresses */
+ 	writel(0, base);
+ 	writel(0xaa55aa55, base + offset);
 diff --git a/arch/arm/mach-sunxi/dram_sun50i_h6.c b/arch/arm/mach-sunxi/dram_sun50i_h6.c
 index bff2e42513..a031a845f5 100644
 --- a/arch/arm/mach-sunxi/dram_sun50i_h6.c
 +++ b/arch/arm/mach-sunxi/dram_sun50i_h6.c
-@@ -623,6 +623,8 @@ static void mctl_auto_detect_dram_size(struct dram_para *para)
+@@ -621,6 +621,8 @@ static void mctl_auto_detect_dram_size(struct dram_para *para)
  	para->cols = 11;
  	mctl_core_init(para);
  
@@ -32,42 +44,3 @@ index bff2e42513..a031a845f5 100644
  	for (para->cols = 8; para->cols < 11; para->cols++) {
  		/* 8 bits per byte and 16/32 bit width */
  		if (mctl_mem_matches(1 << (para->cols + 1 +
-From: megous@megous.com
-Subject: [U-Boot] [PATCH] Fix unreliable detection of DRAM size on Orange Pi 3
-
-From: Ondrej Jirman <megous@megous.com>
-
-Orange Pi 3 has 2 GiB of DRAM, that sometime get misdetected
-as 4 GiB, due to false negative result from mctl_mem_matches()
-when detecting number of column address bits. This leads to
-u-boot detecting more address bits than there are and the
-boot process hangs shortly after.
-
-In mctl_mem_matches() we need to wait for each write to finish,
-separately. Without this, the check is not reliable for some
-unknown reason, probably having to do with unpredictable memory
-access ordering.
-
-Patch was made with help from André Przywara, who noticed that
-my original idea about detection failing due to read-back from
-cache without involving DRAM was false, because data cache is
-still of at the time of the DRAM size autodetection.
-
-Signed-off-by: Ondrej Jirman <megous@megous.com>
-Cc: André Przywara <andre.przywara@arm.com>
----
- arch/arm/mach-sunxi/dram_helpers.c | 1 +
- 1 file changed, 1 insertion(+)
-
-diff --git a/arch/arm/mach-sunxi/dram_helpers.c b/arch/arm/mach-sunxi/dram_helpers.c
-index 239ab421a8..6dba448638 100644
---- a/arch/arm/mach-sunxi/dram_helpers.c
-+++ b/arch/arm/mach-sunxi/dram_helpers.c
-@@ -30,6 +30,7 @@ bool mctl_mem_matches(u32 offset)
- {
- 	/* Try to write different values to RAM at two addresses */
- 	writel(0, base);
-+	dsb();
- 	writel(0xaa55aa55, base + offset);
- 	dsb();
- 	/* Check if the same value is actually observed when reading back */
