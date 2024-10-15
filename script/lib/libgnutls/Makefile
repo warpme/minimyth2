@@ -1,8 +1,8 @@
 
 GARNAME      = gnutls
-GARVERSION   = 3.6.13
+GARVERSION   = 3.8.7
 CATEGORIES   = lib
-MASTER_SITES = https://www.gnupg.org/ftp/gcrypt/gnutls/v3.6/
+MASTER_SITES = https://www.gnupg.org/ftp/gcrypt/gnutls/v3.8/
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = LGPL2_1
 
@@ -23,13 +23,12 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-included-libtasn1 \
 	--with-included-unistring \
 	--without-p11-kit \
+	--disable-gtk-doc \
+	--disable-gtk-doc-html \
+	--disable-gtk-doc-pdf \
+	--disable-doc \
 
 include ../../gar.mk
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
