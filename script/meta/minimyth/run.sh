@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Convienience script to daily tasks...
 # Pressing key will do most frequent tasks.
