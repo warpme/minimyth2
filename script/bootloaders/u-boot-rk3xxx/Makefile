@@ -26,7 +26,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c
-BUILDDEPS = devel/swig utils/dtc python3/python-pyelftools
+BUILDDEPS = devel/swig utils/dtc python3/python-pyelftools lib/libgnutls
 
 CONFIGURE_SCRIPTS   = custom
 BUILD_SCRIPTS       = uboot idbloader

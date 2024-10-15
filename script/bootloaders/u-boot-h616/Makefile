@@ -36,7 +36,7 @@ define BLURB
 endef
 
 DEPENDS   = lang/c bootloaders/arm-trusted-firmware-h616
-BUILDDEPS = devel/swig utils/dtc
+BUILDDEPS = devel/swig utils/dtc lib/libgnutls
 
 CONFIGURE_SCRIPTS   = custom
 BUILD_SCRIPTS       = custom
