@@ -1,6 +1,6 @@
 
 GARNAME      = nettle
-GARVERSION   = 3.6
+GARVERSION   = 3.10
 CATEGORIES   = lib
 MASTER_SITES = https://ftp.gnu.org/gnu/nettle/
 DISTFILES    = $(DISTNAME).tar.gz
