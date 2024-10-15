@@ -1,6 +1,6 @@
 
 GARNAME      = eudev
-GARVERSION   = 3.2.10
+GARVERSION   = 3.2.14
 CATEGORIES   = system
 MASTER_SITES = https://github.com/gentoo/eudev/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
