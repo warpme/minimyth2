@@ -19,7 +19,6 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--enable-shared \
 	--disable-static \
-	--with-gnu-ld \
 	--with-included-libtasn1 \
 	--with-included-unistring \
 	--without-p11-kit \
@@ -29,6 +28,10 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-doc \
 
 include ../../gar.mk
+
+CFLAGS   := $(filter-out -flto=auto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/$(GARNAME).la
