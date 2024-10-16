@@ -144,6 +144,7 @@ PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
 PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
 PATCHFILES += 0604-dma-sun6i-dma-add-h616-support.patch
 PATCHFILES += 0610-drivers-drm-wip-add-h616-hdmi.patch
+PATCHFILES += 0615-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 PATCHFILES += 0620-sound-soc-sunxi-add-codec-driver-for-h616.patch
 PATCHFILES += 0621-sound-soc-add-sunxi_v2-for-h616-ahub.patch
 PATCHFILES += 0622-sound-soc-sunxi-add-spdif-spdif.patch
