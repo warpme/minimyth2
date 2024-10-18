@@ -4,7 +4,7 @@
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://github.com/MythTV/mythtv/archive/
+MASTER_SITES = https://github.com/ulmus-scott/mythtv/archive/
 DISTFILES    = $(MYTHTV_GIT_HASH).zip
 
 include ../../minimyth.conf.mk
@@ -13,12 +13,9 @@ PATCHFILES  =
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
-# hack to fix building on fedora35. Absolutelely dont know why it fails without this change
-PATCHFILES += 0003-libmythbase-include-version.h-in-mythversion.h.patch
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
-
 # Fixes issue with only 3 menu entries in MythMediaStream theme.
 PATCHFILES += 0013-MythMainWindow-not-use-qRound-in-MythUIScreenBounds.patch
 # UPnP patches
@@ -27,10 +24,14 @@ PATCHFILES += 0031-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-th
 PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music.patch
 
 # Some patches for better logging
+PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
 PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 # speedup a bit portcheck
 PATCHFILES += 0059-portchecker-speedup.patch
+
+# ticket 821 improve subtitles handling
+# PATCHFILES += 0060-libmythtv-captions-ticket821-improve-forced-subtitle-handling.patch
 
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
@@ -46,33 +47,50 @@ PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
 PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
+PATCHFILES += 0113-Minimyth-reverse-profiles-in-v4l2-videoprofile.patch
+PATCHFILES += 0114-mythfrontend-settings-set-gui-playback-mode-to-1920x1080-at-first-run.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
-ifneq (,$(filter %5.19,$(mm_KERNEL_VERSION)))
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-5.19kernel-ffmpeg4.4.patch
-else
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-6.0kernel-ffmpeg4.4.patch
-endif
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-6.0kernel.patch
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
+
 # Add HW deinterlacer support on Allwinner/Rockchip
-PATCHFILES += 0153-ffmpeg-libavfilter-add-v4l2deinterlace-filter.patch
+#PATCHFILES += 0153-ffmpeg-libavfilter-add-v4l2deinterlace-filter.patch
+
 # Improve v4l2_request resiliency on so DVB stream errors (http://jernej.libreelec.tv/videos/cedrus_broken.ts)
-PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
+#PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
+
+# https://github.com/jernejsk/FFmpeg/tree/vc1-v2
+# PATCHFILES += 0155-ffmpeg-v4l2_request-add-vc1-support.patch
+
+PATCHFILES += 0156-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
+
+PATCHFILES += 0157-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
+
 # buffers bump-up required for AML HD playbck
-PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
+#PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
+
 # this makes v4l2_request seeking on h264 content working
-ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
-PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
-endif
+#ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
+#PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
+PATCHFILES += 0173-pull929-Prepare-for-planned-V4L2-Request-API-hwaccel-changes.patch
+#endif
+
 # fix deinterlacing when EGL DMAbuf is used
 PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
+
+# fix for h264 pixelization on v4l2_m2m decoders (issue is after 6m40s playback of 25fps content)
+#PATCHFILES += 0175-ffmpeg-libavutil-inc-max-fifo-to-64MB.patch
+
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
+
 # hack to get refresh rate changing on drm
 PATCHFILES += 0198-libmythui-mythdrmdevice-add-refresh-change-capability.patch
+
 # improvements for statefull v4l2_m2m seeking on rpi
-PATCHFILES += 0199-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
+#PATCHFILES += 0199-hack-hack-hack-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
 endif
 
 # Mediamonitor patches
@@ -87,9 +105,8 @@ PATCHFILES += 0204-Mediamonitor-add-UI-to-select-preferred-media-handler.patch
 PATCHFILES += 0205-mediamonitor-exclude-standard-tvbox-disks.patch
 
 # Misc frontend patches
-PATCHFILES += 0211-decrease-minQt-ver-to-4.8.patch
 PATCHFILES += 0212-external-udfread-fix-arm5te-compilation.patch
-PATCHFILES += 0213-MythDVD-Fix-broken-DVDmenu.patch
+PATCHFILES += 0213-make-dvd-images-autoplay-at-media-insert.patch
 PATCHFILES += 0214-themes-recordings-ui-all-episode-listing.patch
 PATCHFILES += 0215-libmythtv-mythvideooutgpu-fix-tearing.patch
 
@@ -104,12 +121,14 @@ PATCHFILES += 0227-OSD-Add-interlaced-status-to-OSD-debug-screen.patch
 PATCHFILES += 0283-NetworkControl-Add-set-query-loglevel-commands.patch
 PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 
-# --------Patches 400+ are plugins patches---------------------
+# Patches for scripts
+PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 
+# --------Patches 350+ are plugins patches---------------------
 # Various mythmusic patches
-PATCHFILES += 0400-Mythmusic-ticket10710-play-tracks-from-edit.patch
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
+PATCHFILES += 0407-mythmusic-pull835-support-playing-AudioCD-from-optical-disc-menu.patch
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
@@ -235,7 +254,6 @@ CONFIGURE_ARGS = \
 	--enable-ssse3 \
 	--enable-yasm \
 	--enable-asm \
-	--enable-fast-unaligned \
 	--enable-optimizations \
 	$(if $(filter yes,$(DISABLE_LTO)),"--disable-lto","--enable-lto") \
 	--disable-proc-opt \
@@ -249,8 +267,6 @@ CONFIGURE_ARGS = \
 	--enable-firewire \
 	--disable-hdhomerun \
 	--disable-ceton \
-	--enable-v4l2 \
-	--enable-v4l2request \
 	--enable-vaapi \
 	--enable-dvb \
 	--dvb-path="$(DESTDIR)$(includedir)" \
@@ -276,6 +292,8 @@ CONFIGURE_ARGS = \
 	--python="python3" \
 	--enable-silent-cc \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
+	--enable-v4l2 \
+	--enable-v4l2request \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
@@ -292,7 +310,7 @@ CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(inclu
 CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
 
 CPPFLAGS += -fPIC -fuse-linker-plugin
-CFLAGS   += -fPIC -fuse-linker-plugin
+CFLAGS   += -fPIC -fuse-linker-plugin -Wno-incompatible-pointer-types -Wno-implicit-function-declaration
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
@@ -329,8 +347,6 @@ post-configure:
 pre-install: post-configure
 
 post-install:
-	@rm -f $(DESTDIR)$(bindir)/mythtv
-	@mv $(DESTDIR)$(bindir)/mythavtest $(DESTDIR)$(bindir)/mythtv
 	@$(MAKE) -C ../myththeme-Monochrome-mm2 install
 	@$(MAKECOOKIE)
 
