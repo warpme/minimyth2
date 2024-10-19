@@ -1,5 +1,22 @@
 #!/bin/sh
 
+if [ x$(whoami) != "xroot" ] ; then
+  echo " "
+  echo "Script requires to run as root. Exiting ..."
+  echo " "
+  exit 1
+fi
+
+missing_libs=$(ldd ./sunxi-fel | grep "not found" | sed -e "s|sunxi-fel\:||g")
+
+if [ ! -z "${missing_libs}" ] ; then
+  echo " "
+  echo "Script has issue with:${missing_libs}"
+  echo "Install missing compnent(s) then run again. Now exiting ..."
+  echo " "
+  exit 1
+fi
+
 welcome_string="H616"
 
 echo "Awaiting for device ..."
