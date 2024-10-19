@@ -1,8 +1,15 @@
-#!/bin/sh
+#!/bin/bash
 
 if [ x$(whoami) != "xroot" ] ; then
   echo " "
   echo "Script requires to run as root. Exiting ..."
+  echo " "
+  exit 1
+fi
+
+if [ ! -e "./sunxi-fel" ] ; then
+  echo " "
+  echo "Dir with script not contains sunxi-fel tool. Exiting ..."
   echo " "
   exit 1
 fi
@@ -23,7 +30,7 @@ echo "Awaiting for device ..."
 
 while true
 do
-    device=$(sunxi-fel -l | sed -e 's/\s*//g')
+    device=$(./sunxi-fel -l | sed -e 's/\s*//g')
     if [[ "${device}" =~ "${welcome_string}" ]] ; then
         echo "Device discovered. Good!!!"
         break
@@ -35,7 +42,7 @@ done
 
 echo "Starting upload U-Boot, Linux Kernel, DTB to device ..."
 
-sunxi-fel -v -p uboot bootloader/u-boot-sunxi-with-spl.bin \
+./sunxi-fel -v -p uboot bootloader/u-boot-sunxi-with-spl.bin \
 write 0x40200000 Image \
 write 0x4fa00000 dtbs/allwinner/sun50i-h313-tanix-tx1.dtb \
 write 0x4fc00000 load-kernel.scr \
