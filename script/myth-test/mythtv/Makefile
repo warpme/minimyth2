@@ -58,24 +58,17 @@ PATCHFILES += 0152-configure-add-v4l2request-support.patch
 # Add HW deinterlacer support on Allwinner/Rockchip
 #PATCHFILES += 0153-ffmpeg-libavfilter-add-v4l2deinterlace-filter.patch
 
-# Improve v4l2_request resiliency on so DVB stream errors (http://jernej.libreelec.tv/videos/cedrus_broken.ts)
-#PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
-
-# https://github.com/jernejsk/FFmpeg/tree/vc1-v2
-# PATCHFILES += 0155-ffmpeg-v4l2_request-add-vc1-support.patch
-
 PATCHFILES += 0156-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
-
 PATCHFILES += 0157-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
 
 # buffers bump-up required for AML HD playbck
 #PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
 
 # this makes v4l2_request seeking on h264 content working
-#ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
-#PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
+ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
+PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
 PATCHFILES += 0173-pull929-Prepare-for-planned-V4L2-Request-API-hwaccel-changes.patch
-#endif
+endif
 
 # fix deinterlacing when EGL DMAbuf is used
 PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
