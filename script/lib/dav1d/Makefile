@@ -1,6 +1,6 @@
 
 GARNAME      = dav1d
-GARVERSION   = 1.0.0
+GARVERSION   = 1.4.3
 CATEGORIES   = lib
 MASTER_SITES = https://code.videolan.org/videolan/dav1d/-/archive/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.bz2
