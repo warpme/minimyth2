@@ -51,7 +51,7 @@ PATCHFILES += 0113-Minimyth-reverse-profiles-in-v4l2-videoprofile.patch
 PATCHFILES += 0114-mythfrontend-settings-set-gui-playback-mode-to-1920x1080-at-first-run.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-6.0kernel.patch
+PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-ffmpeg7.0-20240805-g5dfc0cc8.patch
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
 
@@ -61,14 +61,15 @@ PATCHFILES += 0152-configure-add-v4l2request-support.patch
 PATCHFILES += 0156-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
 PATCHFILES += 0157-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
 
-# buffers bump-up required for AML HD playbck
-#PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
-
 # this makes v4l2_request seeking on h264 content working
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
 PATCHFILES += 0173-pull929-Prepare-for-planned-V4L2-Request-API-hwaccel-changes.patch
 endif
+
+PATCHFILES += 0174-ffmpeg-libavcodec-hevcdec.h-fix-compile.patch
+
+PATCHFILES += 0175-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 
 # fix deinterlacing when EGL DMAbuf is used
 PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
@@ -287,6 +288,7 @@ CONFIGURE_ARGS = \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
 	--enable-v4l2 \
 	--enable-v4l2request \
+	--enable-libdav1d \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)

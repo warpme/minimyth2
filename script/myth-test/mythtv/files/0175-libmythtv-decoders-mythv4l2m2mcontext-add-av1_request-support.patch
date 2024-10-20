@@ -1,0 +1,78 @@
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/configure mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/configure
+--- mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/configure	2024-10-20 11:02:02.476687885 +0200
++++ mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/configure	2024-10-20 11:14:21.696690108 +0200
+@@ -188,6 +188,7 @@
+   --enable-libvpx          enable VP8 encoding via libvpx [no]
+   --enable-libxvid         enable Xvid encoding via xvidcore,
+                            native MPEG-4/Xvid encoder exists [no]
++  --enable-libdav1d        enable AV1 decoding via libdav1d [no]
+ EOF
+ 
+   exit 0
+@@ -1410,6 +1411,7 @@
+     libx264
+     libx265
+     libxvid
++    libdav1d
+ "
+ 
+ EXTERNAL_LIBRARY_NONFREE_LIST="
+@@ -6787,7 +6789,7 @@
+ ffmpeg_optset pkg_config prefix libdir as objcc dep_cc host_cc
+ ffmpeg_optset host_ld
+ ffmpeg_optset ar nm ranlib
+-ffmpeg_optenable cross_compile libmp3lame libx264 libx265 libvpx libxvid
++ffmpeg_optenable cross_compile libmp3lame libx264 libx265 libvpx libxvid libdav1d
+ ffmpeg_optenable vdpau libxml2 libass dxva2
+ ffmpeg_optenable libbluray libfontconfig libfreetype libiec61883
+ ffmpeg_optenable sdl2 ffplay
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/external/FFmpeg/configure mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/external/FFmpeg/configure
+--- mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/external/FFmpeg/configure	2024-10-20 11:02:02.350021217 +0200
++++ mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/external/FFmpeg/configure	2024-10-20 10:32:44.883348981 +0200
+@@ -7225,6 +7225,7 @@
+     check_cc v4l2_m2m_hold_capture_buf linux/videodev2.h "int i = V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF"
+     check_cc vp8_v4l2_request linux/videodev2.h "int i = V4L2_CID_STATELESS_VP8_FRAME"
+     check_cc vp9_v4l2_request linux/videodev2.h "int i = V4L2_CID_STATELESS_VP9_FRAME"
++    check_cc av1_v4l2_request linux/videodev2.h "int i = V4L2_CID_STATELESS_AV1_FRAME"
+     check_func_headers "linux/media.h linux/videodev2.h" v4l2_timeval_to_ns
+     check_pkg_config libudev libudev libudev.h udev_new
+     check_struct linux/videodev2.h "struct v4l2_ctrl_hevc_decode_params" num_delta_pocs_of_ref_rps_idx
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp
+--- mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp	2024-10-20 11:02:02.430021218 +0200
++++ mythtv-6705a26e463a07f866ff93bcac955aa7166906cb/mythtv/libs/libmythtv/decoders/mythv4l2m2mcontext.cpp	2024-10-20 10:51:15.080019103 +0200
+@@ -77,6 +77,7 @@
+         case AV_CODEC_ID_VP8:        mythprofile = MythCodecContext::VP8;   break;
+         case AV_CODEC_ID_VP9:        mythprofile = MythCodecContext::VP9;   break;
+         case AV_CODEC_ID_HEVC:       mythprofile = MythCodecContext::HEVC;  break;
++        case AV_CODEC_ID_AV1:        mythprofile = MythCodecContext::AV1;   break;
+         default: break;
+     }
+ 
+@@ -145,6 +146,7 @@
+         case kCodec_VP8_V4L2:   profile = VP8;   break;
+         case kCodec_VP9_V4L2:   profile = VP9;   break;
+         case kCodec_HEVC_V4L2:  profile = HEVC;  break;
++        case kCodec_AV1_V4L2:   profile = AV1;   break;
+         default: break;
+     }
+ 
+@@ -267,7 +269,8 @@
+         { V4L2_PIX_FMT_VC1_ANNEX_G, MythCodecContext::VC1   },
+         { V4L2_PIX_FMT_VP8,         MythCodecContext::VP8   },
+         { V4L2_PIX_FMT_VP9,         MythCodecContext::VP9   },
+-        { V4L2_PIX_FMT_HEVC,        MythCodecContext::HEVC  }
++        { V4L2_PIX_FMT_HEVC,        MythCodecContext::HEVC  },
++        { V4L2_PIX_FMT_AV1_FRAME,   MythCodecContext::AV1   }
+     }};
+ 
+     static QRecursiveMutex lock;
+@@ -465,7 +472,8 @@
+         { V4L2_PIX_FMT_H264_SLICE,  MythCodecContext::H264  },
+         { V4L2_PIX_FMT_VP8_FRAME,   MythCodecContext::VP8   },
+         { V4L2_PIX_FMT_VP9_FRAME,   MythCodecContext::VP9   },
+-        { V4L2_PIX_FMT_HEVC_SLICE,  MythCodecContext::HEVC  }
++        { V4L2_PIX_FMT_HEVC_SLICE,  MythCodecContext::HEVC  },
++        { V4L2_PIX_FMT_AV1_FRAME,   MythCodecContext::AV1   }
+     }};
+ 
+     static QRecursiveMutex lock;
