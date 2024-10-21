@@ -51,12 +51,9 @@ PATCHFILES += 0113-Minimyth-reverse-profiles-in-v4l2-videoprofile.patch
 PATCHFILES += 0114-mythfrontend-settings-set-gui-playback-mode-to-1920x1080-at-first-run.patch
 ifeq (1,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-ffmpeg7.0-20240805-g5dfc0cc8.patch
+PATCHFILES += 0151-ffmpeg-add-v4l2-request-kwiboo-20240805-g5dfc0cc8-hevc-jernej-v3.patch
 # Enable v4l2_request in myth configure
 PATCHFILES += 0152-configure-add-v4l2request-support.patch
-
-# Add HW deinterlacer support on Allwinner/Rockchip
-#PATCHFILES += 0153-ffmpeg-libavfilter-add-v4l2deinterlace-filter.patch
 
 PATCHFILES += 0156-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
 PATCHFILES += 0157-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
@@ -67,15 +64,10 @@ PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
 PATCHFILES += 0173-pull929-Prepare-for-planned-V4L2-Request-API-hwaccel-changes.patch
 endif
 
-PATCHFILES += 0174-ffmpeg-libavcodec-hevcdec.h-fix-compile.patch
-
-PATCHFILES += 0175-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
-
 # fix deinterlacing when EGL DMAbuf is used
 PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 
-# fix for h264 pixelization on v4l2_m2m decoders (issue is after 6m40s playback of 25fps content)
-#PATCHFILES += 0175-ffmpeg-libavutil-inc-max-fifo-to-64MB.patch
+PATCHFILES += 0175-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 
 # enable LTO; patches from issue #224
 PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch

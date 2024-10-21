@@ -3526,10 +3526,10 @@ index 0000000..5765128
 -- 
 2.46.0
 
-From 2af4006b7a3506d439eaf725b3d45579740b1026 Mon Sep 17 00:00:00 2001
+From d939a035fd2a6e4dc8210de8956060c6ca8fbeae Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Tue, 6 Aug 2024 09:06:07 +0000
-Subject: [PATCH 08/15] avcodec: Add V4L2 Request API hevc hwaccel
+Subject: [PATCH 08/12] avcodec: Add V4L2 Request API hevc hwaccel
 
 Add a V4L2 Request API hwaccel for HEVC, supporting both slice and
 frame decoding modes.
@@ -3549,15 +3549,15 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  libavcodec/Makefile            |   1 +
  libavcodec/hevc/hevcdec.c      |  10 +
  libavcodec/hwaccels.h          |   1 +
- libavcodec/v4l2_request_hevc.c | 790 +++++++++++++++++++++++++++++++++
- 5 files changed, 807 insertions(+)
+ libavcodec/v4l2_request_hevc.c | 745 +++++++++++++++++++++++++++++++++
+ 5 files changed, 762 insertions(+)
  create mode 100644 libavcodec/v4l2_request_hevc.c
 
 diff --git mythtv-master-20241015-old/mythtv/external/FFmpeg/configure mythtv-master-20241015-new/mythtv/external/FFmpeg/configure
-index 0dcd834..87e0301 100755
+index e69d044..fb8091f 100755
 --- mythtv-master-20241015-old/mythtv/external/FFmpeg/configure
 +++ mythtv-master-20241015-new/mythtv/external/FFmpeg/configure
-@@ -2493,6 +2493,7 @@ TYPES_LIST="
+@@ -2496,6 +2496,7 @@ TYPES_LIST="
      struct_sockaddr_sa_len
      struct_sockaddr_storage
      struct_stat_st_mtim_tv_nsec
@@ -3565,7 +3565,7 @@ index 0dcd834..87e0301 100755
      struct_v4l2_frmivalenum_discrete
      struct_mfxConfigInterface
  "
-@@ -3208,6 +3209,8 @@ hevc_dxva2_hwaccel_deps="dxva2 DXVA_PicParams_HEVC"
+@@ -3213,6 +3214,8 @@ hevc_dxva2_hwaccel_deps="dxva2 DXVA_PicParams_HEVC"
  hevc_dxva2_hwaccel_select="hevc_decoder"
  hevc_nvdec_hwaccel_deps="nvdec"
  hevc_nvdec_hwaccel_select="hevc_decoder"
@@ -3574,7 +3574,7 @@ index 0dcd834..87e0301 100755
  hevc_vaapi_hwaccel_deps="vaapi VAPictureParameterBufferHEVC"
  hevc_vaapi_hwaccel_select="hevc_decoder"
  hevc_vdpau_hwaccel_deps="vdpau VdpPictureInfoHEVC"
-@@ -7182,10 +7185,12 @@ fi
+@@ -7217,10 +7220,12 @@ fi
  
  if enabled v4l2_request; then
      check_cc h264_v4l2_request linux/videodev2.h "int i = V4L2_CID_STATELESS_H264_DECODE_MODE"
@@ -3588,10 +3588,10 @@ index 0dcd834..87e0301 100755
  
  check_headers sys/videoio.h
 diff --git mythtv-master-20241015-old/mythtv/external/FFmpeg/libavcodec/Makefile mythtv-master-20241015-new/mythtv/external/FFmpeg/libavcodec/Makefile
-index dadddb5..5298103 100644
+index 05f453e..cbddc22 100644
 --- mythtv-master-20241015-old/mythtv/external/FFmpeg/libavcodec/Makefile
 +++ mythtv-master-20241015-new/mythtv/external/FFmpeg/libavcodec/Makefile
-@@ -1019,6 +1019,7 @@ OBJS-$(CONFIG_HEVC_DXVA2_HWACCEL)         += dxva2_hevc.o
+@@ -1026,6 +1026,7 @@ OBJS-$(CONFIG_HEVC_DXVA2_HWACCEL)         += dxva2_hevc.o
  OBJS-$(CONFIG_HEVC_D3D12VA_HWACCEL)       += dxva2_hevc.o d3d12va_hevc.o
  OBJS-$(CONFIG_HEVC_NVDEC_HWACCEL)         += nvdec_hevc.o
  OBJS-$(CONFIG_HEVC_QSV_HWACCEL)           += qsvdec.o
@@ -3600,10 +3600,10 @@ index dadddb5..5298103 100644
  OBJS-$(CONFIG_HEVC_VDPAU_HWACCEL)         += vdpau_hevc.o h265_profile_level.o
  OBJS-$(CONFIG_HEVC_VULKAN_HWACCEL)        += vulkan_decode.o vulkan_hevc.o
 diff --git mythtv-master-20241015-old/mythtv/external/FFmpeg/libavcodec/hevc/hevcdec.c mythtv-master-20241015-new/mythtv/external/FFmpeg/libavcodec/hevc/hevcdec.c
-index 193d624..af5b213 100644
+index d915d74..a27ca82 100644
 --- mythtv-master-20241015-old/mythtv/external/FFmpeg/libavcodec/hevc/hevcdec.c
 +++ mythtv-master-20241015-new/mythtv/external/FFmpeg/libavcodec/hevc/hevcdec.c
-@@ -399,6 +399,7 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
+@@ -423,6 +423,7 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
                       CONFIG_HEVC_D3D11VA_HWACCEL * 2 + \
                       CONFIG_HEVC_D3D12VA_HWACCEL + \
                       CONFIG_HEVC_NVDEC_HWACCEL + \
@@ -3611,7 +3611,7 @@ index 193d624..af5b213 100644
                       CONFIG_HEVC_VAAPI_HWACCEL + \
                       CONFIG_HEVC_VIDEOTOOLBOX_HWACCEL + \
                       CONFIG_HEVC_VDPAU_HWACCEL + \
-@@ -432,6 +433,9 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
+@@ -456,6 +457,9 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
  #endif
  #if CONFIG_HEVC_VULKAN_HWACCEL
          *fmt++ = AV_PIX_FMT_VULKAN;
@@ -3621,7 +3621,7 @@ index 193d624..af5b213 100644
  #endif
          break;
      case AV_PIX_FMT_YUV420P10:
-@@ -459,6 +463,9 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
+@@ -483,6 +487,9 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
  #endif
  #if CONFIG_HEVC_NVDEC_HWACCEL
          *fmt++ = AV_PIX_FMT_CUDA;
@@ -3631,7 +3631,7 @@ index 193d624..af5b213 100644
  #endif
          break;
      case AV_PIX_FMT_YUV444P:
-@@ -3761,6 +3768,9 @@ const FFCodec ff_hevc_decoder = {
+@@ -3809,6 +3816,9 @@ const FFCodec ff_hevc_decoder = {
  #endif
  #if CONFIG_HEVC_VULKAN_HWACCEL
                                 HWACCEL_VULKAN(hevc),
@@ -3655,10 +3655,10 @@ index 024e021..ad145fc 100644
  extern const struct FFHWAccel ff_hevc_videotoolbox_hwaccel;
 diff --git mythtv-master-20241015-old/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c mythtv-master-20241015-new/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c
 new file mode 100644
-index 0000000..92c8150
+index 0000000..761e448
 --- /dev/null
 +++ mythtv-master-20241015-new/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c
-@@ -0,0 +1,790 @@
+@@ -0,0 +1,745 @@
 +/*
 + * This file is part of FFmpeg.
 + *
@@ -3779,6 +3779,7 @@ index 0000000..92c8150
 +static void fill_decode_params(struct v4l2_ctrl_hevc_decode_params *decode_params,
 +                               const HEVCContext *h)
 +{
++    const HEVCLayerContext *l = &h->layers[h->cur_layer];
 +    const HEVCFrame *pic = h->cur_frame;
 +    const SliceHeader *sh = &h->sh;
 +    int i, entries = 0;
@@ -3798,8 +3799,8 @@ index 0000000..92c8150
 +                                h->sh.short_term_rps->rps_idx_num_delta_pocs;
 +#endif
 +
-+    for (i = 0; i < FF_ARRAY_ELEMS(h->DPB); i++) {
-+        const HEVCFrame *frame = &h->DPB[i];
++    for (i = 0; i < FF_ARRAY_ELEMS(l->DPB); i++) {
++        const HEVCFrame *frame = &l->DPB[i];
 +        if (frame != pic &&
 +            (frame->flags & (HEVC_FRAME_FLAG_LONG_REF | HEVC_FRAME_FLAG_SHORT_REF))) {
 +            struct v4l2_hevc_dpb_entry *entry = &decode_params->dpb[entries++];
@@ -3846,7 +3847,7 @@ index 0000000..92c8150
 +
 +    *slice_params = (struct v4l2_ctrl_hevc_slice_params) {
 +        .bit_size = 0,
-+        .data_byte_offset = sh->data_offset,
++        .data_byte_offset = controls->pic.output->used + sh->data_offset,
 +        .num_entry_point_offsets = sh->num_entry_point_offsets,
 +
 +        /* ISO/IEC 23008-2, ITU-T Rec. H.265: NAL unit header */
@@ -4244,6 +4245,14 @@ index 0000000..92c8150
 +        controls->first_slice = false;
 +    }
 +
++    if (ctx->start_code == V4L2_STATELESS_HEVC_START_CODE_ANNEX_B) {
++        ret = ff_v4l2_request_append_output(avctx, &controls->pic,
++                                            nalu_slice_start_code, 3);
++        if (ret)
++            return ret;
++        extra_size = 3;
++    }
++
 +    if (ctx->max_slice_params) {
 +        if (slice && controls->allocated_slice_params < slice + 1) {
 +            void *slice_params = controls->allocated_slice_params == 0 ? NULL : controls->frame_slice_params;
@@ -4260,14 +4269,6 @@ index 0000000..92c8150
 +        ret = fill_slice_params(controls, slice, !!ctx->max_entry_point_offsets, h);
 +        if (ret)
 +            return ret;
-+    }
-+
-+    if (ctx->start_code == V4L2_STATELESS_HEVC_START_CODE_ANNEX_B) {
-+        ret = ff_v4l2_request_append_output(avctx, &controls->pic,
-+                                            nalu_slice_start_code, 3);
-+        if (ret)
-+            return ret;
-+        extra_size = 3;
 +    }
 +
 +    ret = ff_v4l2_request_append_output(avctx, &controls->pic, buffer, size);
@@ -4349,55 +4350,10 @@ index 0000000..92c8150
 +        ctx->max_entry_point_offsets = 0;
 +
 +    ret = ff_v4l2_request_query_control(avctx, &slice_params);
-+    if (!ret) {
++    if (!ret)
 +        ctx->max_slice_params = FFMAX(slice_params.dims[0], 1);
-+
-+        /*
-+         * There is some uncertainty on what value to use for data_byte_offset
-+         * when a driver support multiple slice params. Documentation state:
-+         *
-+         *   Offset (in bytes) to the video data in the current slice data.
-+         *
-+         * This hwaccel implementation uses the value of sh->data_offset for
-+         * each slice, e.g. the offset in the specific slice data.
-+         *
-+         * However, downstream rpivid driver, first driver to use multiple
-+         * slice params for a slice-based decoder, instead expects that the
-+         * value matches the accumulated offset in the output buffer.
-+         *
-+         * Limit to only support a single slice when using slice-based decoding
-+         * until this uncertainty has settled.
-+         */
-+        if (ctx->max_slice_params > 1 &&
-+            ctx->decode_mode == V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED)
-+            ctx->max_slice_params = 1;
-+    } else {
++    else
 +        ctx->max_slice_params = 0;
-+
-+        /*
-+         * NOTE: Is next two checks something we need or should care about?
-+         *
-+         * The code here adapts and only sets slice params control based on
-+         * value of max_slice_params, regardless of what decode mode is used.
-+         *
-+         * For a slice-based decoder having support for the slice params
-+         * control is more than likely a requirement, however not something we
-+         * need to enforce here.
-+         */
-+        if (ctx->decode_mode == V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED) {
-+            av_log(ctx, AV_LOG_ERROR,
-+                   "Slice-based decoder, "
-+                   "required SLICE_PARAMS control is missing\n");
-+            return AVERROR(EINVAL);
-+        }
-+
-+        if (ctx->max_entry_point_offsets) {
-+            av_log(ctx, AV_LOG_ERROR,
-+                   "Decoder with ENTRY_POINT_OFFSETS control, "
-+                   "required SLICE_PARAMS control is missing\n");
-+            return AVERROR(EINVAL);
-+        }
-+    }
 +
 +    av_log(ctx, AV_LOG_VERBOSE, "%s-based decoder with SLICE_PARAMS=%u, "
 +           "ENTRY_POINT_OFFSETS=%u and SCALING_MATRIX=%d controls\n",
@@ -4415,7 +4371,6 @@ index 0000000..92c8150
 +    V4L2RequestContextHEVC *ctx = avctx->internal->hwaccel_priv_data;
 +    const HEVCContext *h = avctx->priv_data;
 +    struct v4l2_ctrl_hevc_sps sps;
-+    int ret;
 +
 +    struct v4l2_ext_control control[] = {
 +        {
