@@ -218,8 +218,8 @@ DEPENDS = \
 	$(if $(filter kmsvnc,$(mm_SOFTWARE)),X11/kmsvnc) \
 	$(if $(filter nvtop,$(mm_SOFTWARE)),utils/nvtop) \
 	$(if $(filter iotop,$(mm_SOFTWARE)),utils/iotop) \
-	$(if $(filter ffmpeg70,$(mm_SOFTWARE)),lib/ffmpeg70) \
-	$(if $(filter ffmpeg71,$(mm_SOFTWARE)),lib/ffmpeg71) \
+	$(if $(filter ffmpeg70,$(mm_SOFTWARE)),lib/ffmpeg7.0) \
+	$(if $(filter ffmpeg71,$(mm_SOFTWARE)),lib/ffmpeg7.1) \
 	$(filter-out %/Makefile extras/extras-% extras/extras.%,$(subst ../../,,$(wildcard ../../extras/*))) \
 	$(mm_USER_PACKAGES)
 
