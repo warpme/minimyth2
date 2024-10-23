@@ -206,7 +206,8 @@ mm-all:
 		   [ ! "$${software}" = "kmsvnc"         ] && \
 		   [ ! "$${software}" = "mesa-demos"     ] && \
 		   [ ! "$${software}" = "ffmpeg-drm"     ] && \
-		   [ ! "$${software}" = "ffmpeg"         ] && \
+		   [ ! "$${software}" = "ffmpeg70"       ] && \
+		   [ ! "$${software}" = "ffmpeg71"       ] && \
 		   [ ! "$${software}" = "iwd"            ] && \
 		   [ ! "$${software}" = "connman"        ] && \
 		   [ ! "$${software}" = "sway"           ] && \

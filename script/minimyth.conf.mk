@@ -65,6 +65,8 @@ mm_SOFTWARE               ?= \
 #                             bashtop \
 #                             iotop \
 #                             wireless_tools \
+#                             ffmpeg70 \
+#                             ffmpeg71 \
 
 # Indicates bootloader board type. Valid values are:
 # 'board-rpi2'
