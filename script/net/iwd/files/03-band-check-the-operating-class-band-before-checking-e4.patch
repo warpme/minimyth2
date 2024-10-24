@@ -1,0 +1,46 @@
+
+From: James Prestwood <prestwoj@gmail.com>
+To: iwd@lists.linux.dev
+Cc: James Prestwood <prestwoj@gmail.com>
+Subject: [PATCH 3/5] band: check the operating class band before checking e4
+Date: Thu, 24 Oct 2024 09:46:33 -0700
+Message-Id: <20241024164635.176631-3-prestwoj@gmail.com>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20241024164635.176631-1-prestwoj@gmail.com>
+References: <20241024164635.176631-1-prestwoj@gmail.com>
+Precedence: bulk
+X-Mailing-List: iwd@lists.linux.dev
+List-Id: <iwd.lists.linux.dev>
+List-Subscribe: <mailto:iwd+subscribe@lists.linux.dev>
+List-Unsubscribe: <mailto:iwd+unsubscribe@lists.linux.dev>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+
+After the band is established we check the e4 table for the channel
+that matches. The problem here is we will end up checking all the
+operating classes, even those that are not within the band that was
+determined. This could result in false positives and return a
+channel that doesn't make sense.
+---
+ src/band.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/band.c b/src/band.c
+index 4e8eb9b0..09b2d932 100644
+--- a/src/band.c
++++ b/src/band.c
+@@ -1352,6 +1352,10 @@ check_e4:
+ 		const struct operating_class_info *info =
+ 						&e4_operating_classes[i];
+ 
++		if (band != band_oper_class_to_band(NULL,
++							info->operating_class))
++			continue;
++
+ 		if (e4_has_frequency(info, freq) == 0 ||
+ 					e4_has_ccfi(info, freq) == 0) {
+ 			if (out_band)
+-- 
+2.34.1
+
+

@@ -1,0 +1,124 @@
+
+From: James Prestwood <prestwoj@gmail.com>
+To: iwd@lists.linux.dev
+Cc: James Prestwood <prestwoj@gmail.com>
+Subject: [PATCH 2/5] nl80211util: check band when parsing supported frequencies
+Date: Thu, 24 Oct 2024 09:46:32 -0700
+Message-Id: <20241024164635.176631-2-prestwoj@gmail.com>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <20241024164635.176631-1-prestwoj@gmail.com>
+References: <20241024164635.176631-1-prestwoj@gmail.com>
+Precedence: bulk
+X-Mailing-List: iwd@lists.linux.dev
+List-Id: <iwd.lists.linux.dev>
+List-Subscribe: <mailto:iwd+subscribe@lists.linux.dev>
+List-Unsubscribe: <mailto:iwd+unsubscribe@lists.linux.dev>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
+
+When the frequencies/channels were parsed there was no check that the
+resulting band matched what was expected. Now, pass the band object
+itself in which has the band set to what is expected.
+---
+ src/nl80211util.c | 13 ++++++++-----
+ src/nl80211util.h |  4 ++--
+ src/wiphy.c       |  7 ++-----
+ 3 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/src/nl80211util.c b/src/nl80211util.c
+index 7590f90c..0fdefddf 100644
+--- a/src/nl80211util.c
++++ b/src/nl80211util.c
+@@ -697,8 +697,7 @@ int nl80211_parse_chandef(struct l_genl_msg *msg, struct band_chandef *out)
+ 
+ int nl80211_parse_supported_frequencies(struct l_genl_attr *band_freqs,
+ 					struct scan_freq_set *supported_list,
+-					struct band_freq_attrs *list,
+-					size_t num_channels)
++					struct band *band)
+ {
+ 	uint16_t type, len;
+ 	const void *data;
+@@ -712,6 +711,7 @@ int nl80211_parse_supported_frequencies(struct l_genl_attr *band_freqs,
+ 	while (l_genl_attr_next(&nested, NULL, NULL, NULL)) {
+ 		uint32_t freq = 0;
+ 		struct band_freq_attrs freq_attr = { 0 };
++		enum band_freq out_band;
+ 
+ 		if (!l_genl_attr_recurse(&nested, &attr))
+ 			continue;
+@@ -752,17 +752,20 @@ int nl80211_parse_supported_frequencies(struct l_genl_attr *band_freqs,
+ 		if (!freq)
+ 			continue;
+ 
+-		channel = band_freq_to_channel(freq, NULL);
++		channel = band_freq_to_channel(freq, &out_band);
+ 		if (!channel)
+ 			continue;
+ 
+-		if (L_WARN_ON(channel > num_channels))
++		if (L_WARN_ON(out_band != band->freq))
++			continue;
++
++		if (L_WARN_ON(channel > band->freqs_len))
+ 			continue;
+ 
+ 		if (supported_list)
+ 			scan_freq_set_add(supported_list, freq);
+ 
+-		list[channel] = freq_attr;
++		band->freq_attrs[channel] = freq_attr;
+ 	}
+ 
+ 	return 0;
+diff --git a/src/nl80211util.h b/src/nl80211util.h
+index 67fd7d7b..9f28b089 100644
+--- a/src/nl80211util.h
++++ b/src/nl80211util.h
+@@ -26,6 +26,7 @@ struct band_chandef;
+ struct scan_freq_set;
+ struct band_freq_attrs;
+ struct handshake_state;
++struct band;
+ 
+ int nl80211_parse_attrs(struct l_genl_msg *msg, int tag, ...);
+ int nl80211_parse_nested(struct l_genl_attr *attr, int type, int tag, ...);
+@@ -95,8 +96,7 @@ struct l_genl_msg *nl80211_build_external_auth(uint32_t ifindex,
+ int nl80211_parse_chandef(struct l_genl_msg *msg, struct band_chandef *out);
+ int nl80211_parse_supported_frequencies(struct l_genl_attr *band_freqs,
+ 					struct scan_freq_set *supported_list,
+-					struct band_freq_attrs *list,
+-					size_t num_channels);
++					struct band *band);
+ 
+ void nl80211_append_rsn_attributes(struct l_genl_msg *msg,
+ 						struct handshake_state *hs);
+diff --git a/src/wiphy.c b/src/wiphy.c
+index d57d657a..d2793491 100644
+--- a/src/wiphy.c
++++ b/src/wiphy.c
+@@ -1706,8 +1706,7 @@ static void parse_supported_bands(struct wiphy *wiphy,
+ 			case NL80211_BAND_ATTR_FREQS:
+ 				nl80211_parse_supported_frequencies(&attr,
+ 							wiphy->supported_freqs,
+-							band->freq_attrs,
+-							band->freqs_len);
++							band);
+ 				break;
+ 
+ 			case NL80211_BAND_ATTR_RATES:
+@@ -2288,9 +2287,7 @@ static void wiphy_dump_callback(struct l_genl_msg *msg,
+ 			 * theory no new frequencies should be added so there
+ 			 * should never be any stale values.
+ 			 */
+-			nl80211_parse_supported_frequencies(&attr, NULL,
+-							band->freq_attrs,
+-							band->freqs_len);
++			nl80211_parse_supported_frequencies(&attr, NULL, band);
+ 		}
+ 	}
+ }
+-- 
+2.34.1
+
+
