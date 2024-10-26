@@ -106,7 +106,8 @@ PATCHFILES += 0552-asoc-sun4i-i2s-WiP-multi-channel.patch
 PATCHFILES += 0553-media-cedrus-Don-t-CPU-map-source-buffers.patch
 PATCHFILES += 0554-media-Add-NV12-and-P010-AFBC-compressed-formats.patch
 PATCHFILES += 0555-media-cedrus-add-format-filtering-based-on-depth-and.patch
-PATCHFILES += 0556-media-cedrus-Implement-AFBC-YUV420-formats-for-H265.patch
+# commented as commpressed out format not works with ffmpeg7.1 v4l2_request
+# PATCHFILES += 0556-media-cedrus-Implement-AFBC-YUV420-formats-for-H265.patch
 PATCHFILES += 0557-media-cedrus-Increase-H6-clock-rate.patch
 PATCHFILES += 0558-media-verisilicon-g2-fix-chroma-offset-calculation.patch
 PATCHFILES += 0560-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
