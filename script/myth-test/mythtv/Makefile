@@ -257,10 +257,11 @@ CONFIGURE_ARGS = \
 	--enable-x11 \
 	--x11-path="$(DESTDIR)$(includedir)" \
 	--disable-dxva2 \
-	$(if $(filter arm arm64,$(GARCH_FAMILY)) \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
 		--enable-v4l2 \
-		--enable-v4l2request, \
-		--disable-vdpau) \
+		--enable-v4l2request \
+		--disable-vdpau, \
+		--enable-vdpau) \
 	--disable-mac-bundle \
 	--enable-libxml2 \
 	--enable-libdns_sd \
