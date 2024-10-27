@@ -277,7 +277,7 @@ CONFIGURE_ARGS = \
 	--python="python3" \
 	--enable-silent-cc \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
-	--enable-libdav1d \
+	--disable-libdav1d \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
