@@ -299,10 +299,13 @@ PATCHFILES += 1061-drm-rockchip-dw_hdmi-Make-sure-dclk-is-enabled-when-set-audio
 PATCHFILES += 1064-media-hantro-g1-add-video-decoder-support-v1.patch
 PATCHFILES += 1065-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1066-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
+PATCHFILES += 1067-media-rockchip-add-rkvdec2-driver.patch
+PATCHFILES += 1068-media-rockchip-add-rkvdec2-hevc-support.patch
 # dt patches
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-hdmi0-bridge.patch
 PATCHFILES += 1072-arm64-dtsi-rockchip-3588-hdmi-audio-fixup.patch
+PATCHFILES += 1074-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
 PATCHFILES += 1082-arm64-dts-rockchip-rk3588-rock5itx-dts-improvements.patch
