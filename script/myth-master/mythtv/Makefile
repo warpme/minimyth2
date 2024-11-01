@@ -4,12 +4,15 @@
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://github.com/MythTV/mythtv/archive/
+MASTER_SITES = https://github.com/ulmus-scott/mythtv/archive/
 DISTFILES    = $(MYTHTV_GIT_HASH).zip
 
 include ../../minimyth.conf.mk
 
 PATCHFILES  =
+
+PATCHFILES += 0000-pull950-external-ffmpeg-update-to-ffmpeg7.1.patch
+
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
@@ -30,9 +33,6 @@ PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 # speedup a bit portcheck
 PATCHFILES += 0059-portchecker-speedup.patch
 
-# ticket 821 improve subtitles handling
-# PATCHFILES += 0060-libmythtv-captions-ticket821-improve-forced-subtitle-handling.patch
-
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
 PATCHFILES += 0101-Minimyth-Add-disable-optical-disc-in-menu.patch
@@ -49,35 +49,32 @@ PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.pa
 PATCHFILES += 0112-libs-libmythui-switch-default-theme-to-Monochrome.patch
 PATCHFILES += 0113-Minimyth-reverse-profiles-in-v4l2-videoprofile.patch
 PATCHFILES += 0114-mythfrontend-settings-set-gui-playback-mode-to-1920x1080-at-first-run.patch
-ifeq (1,1)
-# v4l2-request support in ffmpeg (requires also kernel patching)
-PATCHFILES += 0151-ffmpeg-add-V4l2_request-support-6.0kernel.patch
-# Enable v4l2_request in myth configure
-PATCHFILES += 0152-configure-add-v4l2request-support.patch
-# Add HW deinterlacer support on Allwinner/Rockchip
-PATCHFILES += 0153-ffmpeg-libavfilter-add-v4l2deinterlace-filter.patch
-# Improve v4l2_request resiliency on so DVB stream errors (http://jernej.libreelec.tv/videos/cedrus_broken.ts)
-PATCHFILES += 0154-ffmpeg-v4l2_request-improve-resilience-on-h264-stream-errors.patch
-# https://github.com/jernejsk/FFmpeg/tree/vc1-v2
-# PATCHFILES += 0155-ffmpeg-v4l2_request-add-vc1-support.patch
-PATCHFILES += 0156-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
-# buffers bump-up required for AML HD playbck
-PATCHFILES += 0171-v4l2decoder-increase-cap-buffers-to-16.patch
-# this makes v4l2_request seeking on h264 content working
-ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
-PATCHFILES += 0172-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
-PATCHFILES += 0173-pull929-Prepare-for-planned-V4L2-Request-API-hwaccel-changes.patch
-endif
-# fix deinterlacing when EGL DMAbuf is used
-PATCHFILES += 0174-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
-# fix for h264 pixelization on v4l2_m2m decoders (issue is after 6m40s playback of 25fps content)
-PATCHFILES += 0175-ffmpeg-libavutil-inc-max-fifo-to-64MB.patch
-# enable LTO; patches from issue #224
-PATCHFILES += 0197-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # hack to get refresh rate changing on drm
-PATCHFILES += 0198-libmythui-mythdrmdevice-add-refresh-change-capability.patch
-# improvements for statefull v4l2_m2m seeking on rpi
-PATCHFILES += 0199-hack-hack-hack-ffmpeg-libavcodec-v4l2_m2m-backport-rpi-seek-improvements.patch
+PATCHFILES += 0115-libmythui-mythdrmdevice-add-refresh-change-capability.patch
+# fix deinterlacing when EGL DMAbuf is used
+PATCHFILES += 0116-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
+# Add v4l2_request support in configure
+PATCHFILES += 0117-configure-add-v4l2request-support.patch
+# enable LTO; patches from issue #224
+PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
+
+ifeq (1,1)
+# v4l2_m2m and v4l2_request patches
+ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
+# prepre mythtv's v4l2 infra for ffmpeg7
+PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
+PATCHFILES += 0151-pull929-Prepare-for-planned-V4L2-Request-API-hwaccel-changes.patch
+# v4l2-request support in ffmpeg (requires also kernel patching)
+PATCHFILES += 0155-ffmpeg-add-v4l2-request-kwiboo-20240805-g5dfc0cc8-hevc-jernej-v3.patch
+# Fix for opposite fields usec in opengl di
+PATCHFILES += 0156-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
+# make v4l2_request seeking on h264 content working
+PATCHFILES += 0157-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
+# add initial v4l2_requet av1 support
+PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
+# hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
+PATCHFILES += 0161-hack-hack-hack-ffmpeg-libavcodec-v4l~m2m-backport-rpi-seek-improvements-v2.patch
+endif
 endif
 
 # Mediamonitor patches
@@ -254,8 +251,6 @@ CONFIGURE_ARGS = \
 	--enable-firewire \
 	--disable-hdhomerun \
 	--disable-ceton \
-	--enable-v4l2 \
-	--enable-v4l2request \
 	--enable-vaapi \
 	--enable-dvb \
 	--dvb-path="$(DESTDIR)$(includedir)" \
@@ -265,7 +260,10 @@ CONFIGURE_ARGS = \
 	--x11-path="$(DESTDIR)$(includedir)" \
 	--disable-dxva2 \
 	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
-		--disable-vdpau) \
+		--enable-v4l2 \
+		--enable-v4l2request \
+		--disable-vdpau, \
+		--enable-vdpau) \
 	--disable-mac-bundle \
 	--enable-libxml2 \
 	--enable-libdns_sd \
@@ -281,6 +279,7 @@ CONFIGURE_ARGS = \
 	--python="python3" \
 	--enable-silent-cc \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
+	--enable-libdav1d \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
@@ -305,9 +304,9 @@ CXXFLAGS := $(filter-out -O%, $(CXXFLAGS)) -O0
 endif
 
 ifeq ($(DISABLE_LTO),yes)
-CFLAGS   := $(filter-out -flto, $(CFLAGS))
-CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+CFLAGS   := $(filter-out -flto=auto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
 endif
 
 svn//%/$(DISTNAME).tar.bz2:
