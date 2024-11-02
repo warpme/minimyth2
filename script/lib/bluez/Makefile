@@ -1,6 +1,6 @@
 
 GARNAME      = bluez
-GARVERSION   = 5.77
+GARVERSION   = 5.79
 CATEGORIES   = lib
 MASTER_SITES = https://www.kernel.org/pub/linux/bluetooth/
 DISTFILES    = $(DISTNAME).tar.gz
