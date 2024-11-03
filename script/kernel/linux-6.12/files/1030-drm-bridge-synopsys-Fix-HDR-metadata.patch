@@ -1,0 +1,49 @@
+From 9e8679e4d684f8515dee1d79209d0ef338a69d2b Mon Sep 17 00:00:00 2001
+From: Derek Foreman <derek.foreman@collabora.com>
+Date: Wed, 4 Sep 2024 09:11:54 -0500
+Subject: [PATCH 65/94] [PATCH 07/18] drm/bridge: synopsys: Fix HDR metadata
+
+We need to set connectors_changed to provoke a mode set when the hdr
+output metadata changes, otherwise we won't update the DRM infoframe.
+
+Signed-off-by: Derek Foreman <derek.foreman@collabora.com>
+
+Gbp-Pq: Topic hdmi
+Gbp-Pq: Name 0007-drm-bridge-synopsys-Fix-HDR-metadata.patch
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index ca292cba4..226c892b1 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -460,14 +460,23 @@ static int dw_hdmi_qp_bridge_atomic_check(struct drm_bridge *bridge,
+ 					  struct drm_crtc_state *crtc_state,
+ 					  struct drm_connector_state *conn_state)
+ {
++	struct drm_connector *connector = conn_state->connector;
++	struct drm_atomic_state *state = conn_state->state;
++	struct drm_connector_state *old_conn_state =
++		drm_atomic_get_old_connector_state(state, connector);
++	struct drm_connector_state *new_conn_state =
++		drm_atomic_get_new_connector_state(state, connector);
+ 	struct dw_hdmi_qp *hdmi = bridge->driver_private;
+ 	int ret;
+ 
+-	ret = drm_atomic_helper_connector_hdmi_check(conn_state->connector,
+-						     conn_state->state);
++	ret = drm_atomic_helper_connector_hdmi_check(connector,
++						     state);
+ 	if (ret)
+ 		dev_dbg(hdmi->dev, "%s failed: %d\n", __func__, ret);
+ 
++	if (old_conn_state->hdr_output_metadata != new_conn_state->hdr_output_metadata)
++		crtc_state->connectors_changed = true;
++
+ 	return ret;
+ }
+ 
+-- 
+2.46.0
+
