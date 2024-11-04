@@ -51,8 +51,8 @@ PATCHFILES += 0113-Minimyth-reverse-profiles-in-v4l2-videoprofile.patch
 PATCHFILES += 0114-mythfrontend-settings-set-gui-playback-mode-to-1920x1080-at-first-run.patch
 # hack to get refresh rate changing on drm
 PATCHFILES += 0115-libmythui-mythdrmdevice-add-refresh-change-capability.patch
-# fix deinterlacing when EGL DMAbuf is used
-PATCHFILES += 0116-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
+# fix sometimes non-working 2x di
+PATCHFILES += 0116-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
 # Add v4l2_request support in configure
 PATCHFILES += 0117-configure-add-v4l2request-support.patch
 # enable LTO; patches from issue #224
@@ -67,7 +67,7 @@ PATCHFILES += 0151-pull929-Prepare-for-planned-V4L2-Request-API-hwaccel-changes.
 # v4l2-request support in ffmpeg (requires also kernel patching)
 PATCHFILES += 0155-ffmpeg-add-v4l2-request-kwiboo-20240805-g5dfc0cc8-hevc-jernej-v3.patch
 # Fix for opposite fields usec in opengl di
-PATCHFILES += 0156-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
+PATCHFILES += 0156-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # make v4l2_request seeking on h264 content working
 PATCHFILES += 0157-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
 # add initial v4l2_requet av1 support
@@ -321,6 +321,11 @@ install-source:
 	@mkdir -p $(DESTDIR)$(MYTHTV_SOURCEDIR)
 	@rm -rf $(DESTDIR)$(MYTHTV_SOURCEDIR)
 	@ln -sf $(PWD)/$(WORKSRC)/mythtv $(DESTDIR)$(MYTHTV_SOURCEDIR)
+	@$(MAKECOOKIE)
+
+pre-configure:
+	@echo 'BRANCH="$(MYTHTV_GARVERSION_SHORT)"' > $(WORKSRC)/mythtv/DESCRIBE
+	@echo 'SOURCE_VERSION="$(MYTHTV_GIT_VERSION)"' >> $(WORKSRC)/mythtv/DESCRIBE
 	@$(MAKECOOKIE)
 
 post-configure:
