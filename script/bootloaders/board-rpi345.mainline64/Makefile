@@ -38,8 +38,6 @@ DISTFILES    = \
 
 WORKSRC      = $(WORKDIR)
 
-export mm_U-BOOT_BOARD_TYPE = rpi_arm64_defconfig
-
 LICENSE = GPL2
 
 DESCRIPTION =
@@ -63,7 +61,6 @@ install-custom:
 	@cp -f $(WORKSRC)/*.bin               $(DESTDIR)/boot/
 	@cp -f $(WORKSRC)/*.dat               $(DESTDIR)/boot/
 	@cp -f $(WORKSRC)/*.elf               $(DESTDIR)/boot/
-	@cp -f $(WORKSRC)/boot-debug.scr      $(DESTDIR)/boot/boot.scr
 	@mkdir -p $(DESTDIR)/boot/upstream
 	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2712-rpi-5-b.dtb                    $(DESTDIR)/boot/upstream/bcm2712-rpi-5-b.dtb
 	@cp -f $(DESTDIR)/boot/dtbs/broadcom/bcm2711-rpi-4-b.dtb                    $(DESTDIR)/boot/upstream/bcm2711-rpi-4-b.dtb
