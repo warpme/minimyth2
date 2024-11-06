@@ -524,6 +524,20 @@ if [ ${is_error} -eq 0 ] ; then
         echo "            "${files_total}" files were updated ..."
         echo " -------------------------------------------------"
 
+        if [ x${selection} = "x3" ] ; then
+            if [ -e /boot/upstream/kernel8.img ] ; then
+                echo " "
+                echo 'Updating rpi kernel image and dtb in upstream dir...'
+                cp -f /boot/dtbs/broadcom/bcm2712-rpi-5-b.dtb      /boot/upstream/bcm2712-rpi-5-b.dtb
+                cp -f /boot/dtbs/broadcom/bcm2711-rpi-4-b.dtb      /boot/upstream/bcm2711-rpi-4-b.dtb
+                cp -f /boot/dtbs/broadcom/bcm2837-rpi-3-a-plus.dtb /boot/upstream/bcm2837-rpi-3-a-plus.dtb
+                cp -f /boot/dtbs/broadcom/bcm2837-rpi-3-b-plus.dtb /boot/upstream/bcm2837-rpi-3-b-plus.dtb
+                cp -f /boot/dtbs/broadcom/bcm2837-rpi-3-b.dtb      /boot/upstream/bcm2837-rpi-3-b.dtb
+                cp -f /boot/Image /boot/upstream/kernel8.img
+                echo " "
+            fi
+        fi
+
         if [ x${persistent} = "xpersist" ] ; then
 
             sleep 3
