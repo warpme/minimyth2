@@ -1,7 +1,7 @@
 
 GARNAME       = exiv2
-# commit is for exiv2 v0.27.2
-GARVERSION    = 70f9405fafbe19c7bab94b36a1267c4332dc8a8a
+# commit is for exiv2 v0.28.3 @ 8.07.2024
+GARVERSION    = a6a79ef064f131ffd03c110acce2d3edb84ffa2e
 CATEGORIES    = lib
 MASTER_SITES  = https://github.com/Exiv2/exiv2/archive/
 DISTFILES     = $(GARVERSION).zip
@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lang/cxx lib/expat devel/zlib
+DEPENDS = lang/c lang/cxx lib/expat devel/zlib lib/libinih
 
 WORKBLD = $(WORKSRC)_build
 
