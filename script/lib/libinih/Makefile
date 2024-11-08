@@ -1,6 +1,6 @@
 
 GARNAME      = libinih
-GARVERSION   = 56
+GARVERSION   = 58
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/benhoyt/inih/archive/refs/tags/
 DISTFILES    = r$(GARVERSION).tar.gz
