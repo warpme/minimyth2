@@ -1,7 +1,7 @@
 
 GARNAME      = sunxi-fw
-# 26.12.2023
-GARVERSION   = a768b73128053762c5e4b27b4a1e5d82b2d09aed
+# 21.10.2024
+GARVERSION   = 60712ec2da5c56693bd1d557bb9879e9f3abcf45
 MASTER_SITES = https://github.com/apritzel/sunxi-fw/archive/
 DISTFILES    = $(GARVERSION).zip
 CATEGORIES   = util
