@@ -20,6 +20,7 @@ DISTFILES     = \
 		libdvdread-6.1.3.tar.bz2 \
 		libudfread-1.1.2.tar.gz \
 
+PATCHFILES   += 0000-update-to-ffmpeg7.1.patch
 PATCHFILES   += 0001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
 PATCHFILES   += 0002-WIP-DRMPRIME-deinterlace-filter.patch
 PATCHFILES   += 0003-DVDVideoCodecDRMPRIME-Avoid-exception-with-AV_PIX_FM.patch
@@ -43,8 +44,9 @@ DEPENDS = \
 	opengl/opengl \
 	utils/gperf \
 	lib/bluez \
+	lib/exiv2 \
 	lib/flatbuffers \
-	lib/ffmpeg6 \
+	lib/ffmpeg7.1 \
 	lib/libfmt \
 	lib/fontconfig \
 	lib/freetype \
@@ -144,6 +146,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_INTERNAL_FSTRCMP=OFF \
 	-DENABLE_INTERNAL_FLATBUFFERS=OFF \
 	-DENABLE_INTERNAL_UDFREAD=OFF \
+	-DENABLE_INTERNAL_EXIV2=ON \
 	-DLIBDVDCSS_URL=../../../download/libdvdcss-1.4.3.tar.bz2 \
 	-DLIBDVDNAV_URL=../../../download/libdvdnav-6.1.1.tar.bz2 \
 	-DLIBDVDREAD_URL=../../../download/libdvdread-6.1.3.tar.bz2 \
@@ -157,6 +160,20 @@ CMAKE_CONFIGURE_ARGS = \
 
 BUILD_ARGS   = \
 	DESTDIR="" \
+
+ifeq (0,1)
+# enable to use mythtv ffmpeg (i.e. for testing API of mythtv ffmpeg)
+CMAKE_CONFIGURE_ARGS += \
+	-DFFMPEG_INCLUDE_DIRS=$(DESTDIR)$(includedir)/mythtv \
+	-DFFMPEG_LDFLAGS="-lmythavcodec;-lmythavfilter;-lmythavformat;-lmythavutil;-lmythswscale;-lmythswresample;-lmythpostproc" \
+	-DFFMPEG_LIBAVCODEC=$(DESTDIR)$(libdir)/libmythavcodec.so \
+	-DFFMPEG_LIBAVFILTER=$(DESTDIR)$(libdir)/libmythavfilter.so \
+	-DFFMPEG_LIBAVFORMAT=$(DESTDIR)$(libdir)/libmythavformat.so \
+	-DFFMPEG_LIBAVUTIL=$(DESTDIR)$(libdir)/libmythavutil.so \
+	-DFFMPEG_LIBPOSTPROC=$(DESTDIR)$(libdir)/libmythpostproc.so \
+	-DFFMPEG_LIBSWRESAMPLE=$(DESTDIR)$(libdir)/libmythswresample.so \
+	-DFFMPEG_LIBSWSCALE=$(DESTDIR)$(libdir)/libmythswscale.so
+endif
 
 include ../../gar.mk
 GAR_EXTRA_CONF += mediaplayers/kodi/package-api.mk
