@@ -1,10 +1,11 @@
 
 GARNAME      = pvr.mythtv
-# branch Omega v21.1.9 @06.07.2024
-GARVERSION   = ecf5153b4c180b645e0e3f632b1d8f7e660c0018
+# branch master @4.08.2024
+GARVERSION   = c525168fb2980512f831e41b9a3774e7fb4eeae9
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://github.com/janbar/pvr.mythtv/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = fix-compile.patch
 LICENSE      = GPL2
 
 DEPENDS = lang/c
