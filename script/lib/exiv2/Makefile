@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lang/cxx lib/expat devel/zlib lib/libinih
+DEPENDS = lang/c lang/cxx lib/expat devel/zlib lib/libinih lib/libbrotlidec
 
 WORKBLD = $(WORKSRC)_build
 
