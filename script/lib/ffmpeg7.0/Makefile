@@ -6,6 +6,7 @@ MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES  += ffmpeg-001-v4l2-drmprime.patch
 PATCHFILES  += ffmpeg-001-v4l2-request.patch
+PATCHFILES  += ffmpeg-001-vf-deinterlace-v4l2m2m.patch
 
 LICENSE      = GPL2/LGPL2_1
 
