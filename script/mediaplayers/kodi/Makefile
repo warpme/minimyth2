@@ -20,14 +20,15 @@ DISTFILES     = \
 		libdvdread-6.1.3.tar.bz2 \
 		libudfread-1.1.2.tar.gz \
 
-PATCHFILES   += 0000-update-to-ffmpeg7.1.patch
-PATCHFILES   += 0001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
-PATCHFILES   += 0002-WIP-DRMPRIME-deinterlace-filter.patch
+PATCHFILES   += 0000-PR24972-update-to-ffmpeg-7-0.patch
+PATCHFILES   += 0000-PR25467-Fix-use-of-v4l2request-hwdevice.patch
+#PATCHFILES   += 0001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
+#PATCHFILES   += 0002-WIP-DRMPRIME-deinterlace-filter.patch
 PATCHFILES   += 0003-DVDVideoCodecDRMPRIME-Avoid-exception-with-AV_PIX_FM.patch
-PATCHFILES   += 0004-DVDVideoCodecDRMPRIME-Leave-deinterlace-filter-activ.patch
-PATCHFILES   += 0005-SetVideoInterlaced-Set-and-unset-deinterlace-method-.patch
-PATCHFILES   += 0006-DVDVideoCodecDRMPRIME-Close-deinterlace-filter-on-er.patch
-PATCHFILES   += 0007-DVDVideoCodecDRMPRIME-Fix-missing-flush-after-eof.patch
+#PATCHFILES   += 0004-DVDVideoCodecDRMPRIME-Leave-deinterlace-filter-activ.patch
+#PATCHFILES   += 0005-SetVideoInterlaced-Set-and-unset-deinterlace-method-.patch
+#PATCHFILES   += 0006-DVDVideoCodecDRMPRIME-Close-deinterlace-filter-on-er.patch
+#PATCHFILES   += 0007-DVDVideoCodecDRMPRIME-Fix-missing-flush-after-eof.patch
 PATCHFILES   += 0050-configure-stop-finding-doxygen.patch
 PATCHFILES   += 0051-update-libdvdread-sha.patch
 PATCHFILES   += 0052-update-libdvdnav-sha.patch
@@ -46,7 +47,7 @@ DEPENDS = \
 	lib/bluez \
 	lib/exiv2 \
 	lib/flatbuffers \
-	lib/ffmpeg7.1 \
+	lib/ffmpeg7.1-mythtv \
 	lib/libfmt \
 	lib/fontconfig \
 	lib/freetype \
@@ -162,7 +163,7 @@ BUILD_ARGS   = \
 	DESTDIR="" \
 
 ifeq (0,1)
-# enable to use mythtv ffmpeg (i.e. for testing API of mythtv ffmpeg)
+# enable to direct use of mythtv ffmpeg (i.e. for testing API of mythtv ffmpeg)
 CMAKE_CONFIGURE_ARGS += \
 	-DFFMPEG_INCLUDE_DIRS=$(DESTDIR)$(includedir)/mythtv \
 	-DFFMPEG_LDFLAGS="-lmythavcodec;-lmythavfilter;-lmythavformat;-lmythavutil;-lmythswscale;-lmythswresample;-lmythpostproc" \
