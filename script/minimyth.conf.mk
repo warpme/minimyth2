@@ -121,6 +121,7 @@ mm_SOFTWARE               ?= \
 # 'board-h618.orangepi_zero3'
 # 'board-h618.vontar_h618'
 # 'board-h618.orangepi_zero2w'
+# 'board-h728.x96q_pro_plus'
 # 'board-h313.x96_q'
 # 'board-h313.x96_q_v5.1'
 # 'board-h313.x96_q_lpddr3'

@@ -127,6 +127,8 @@ DISTFILES    = \
 	board-h618.vontar_h618.wks  \
 	board-h618.orangepi_zero2w.conf \
 	board-h618.orangepi_zero2w.wks  \
+	board-h728.x96q_pro_plus.conf \
+	board-h728.x96q_pro_plus.wks \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \
