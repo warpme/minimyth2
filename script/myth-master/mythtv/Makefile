@@ -11,7 +11,8 @@ include ../../minimyth.conf.mk
 
 PATCHFILES  =
 
-PATCHFILES += 0000-pull950-external-ffmpeg-update-to-ffmpeg7.1-20241109.patch
+PATCHFILES += 0000-pull950-external-ffmpeg-update-to-ffmpeg7.1-20241114.patch
+#PATCHFILES += 0000-pull950-external-ffmpeg-update-to-ffmpeg7.1-20241109.patch
 
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
