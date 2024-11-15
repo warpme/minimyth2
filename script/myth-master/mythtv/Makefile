@@ -11,8 +11,7 @@ include ../../minimyth.conf.mk
 
 PATCHFILES  =
 
-PATCHFILES += 0000-pull950-external-ffmpeg-update-to-ffmpeg7.1-20241114.patch
-#PATCHFILES += 0000-pull950-external-ffmpeg-update-to-ffmpeg7.1-20241109.patch
+PATCHFILES += 0000-pull950-external-ffmpeg-update-to-ffmpeg7.1-20241115.patch
 
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
@@ -71,6 +70,8 @@ PATCHFILES += 0155-ffmpeg-add-v4l2-request-kwiboo-20240805-g5dfc0cc8-hevc-jernej
 PATCHFILES += 0156-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # make v4l2_request seeking on h264 content working
 PATCHFILES += 0157-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
+# add hw deinterlace filter
+PATCHFILES += 0158-ffmpeg-libavfilter-add-v4l2m2m-deinterlace-filter.patch
 # add initial v4l2_requet av1 support
 PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
