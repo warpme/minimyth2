@@ -1,9 +1,9 @@
 
 GARNAME      = u-boot-rk3xxx
-# git@ 01.10.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2024.10/
-GARVERSION   = af53363ba761abd110f5e80c8a7fcb1170e6f35e
-# git@ 22.02.2024 https://github.com/rockchip-linux/rkbin/commits/master/
-RKBINVERSION = a2a0b89b6c8c612dca5ed9ed8a68db8a07f68bc0
+# git@ 11.11.2024 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2025.01/
+GARVERSION   = 3c8638bf101b43dc18afd461efb19ee3c87feae2
+# git@ 23.10.2024 https://github.com/rockchip-linux/rkbin/commits/master/
+RKBINVERSION = 7c35e21a8529b3758d1f051d1a5dc62aae934b2b
 CATEGORIES   = kernel
 MASTER_SITES = \
                https://github.com/Kwiboo/u-boot-rockchip/archive/ \
@@ -56,7 +56,7 @@ include ../../python3/python/package-api.mk
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
 ifneq (,$(findstring rk3328,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk33/rk3328_ddr_333MHz_v1.19.bin
+TPL          = ../rkbin/bin/rk33/rk3328_ddr_333MHz_v1.20.bin
 BL31         = ../rkbin/bin/rk33/rk322xh_bl31_v1.49.elf
 MKIMAGE_TYPE = rk3328
 INSTALL_PREF = rk3328
@@ -70,29 +70,29 @@ INSTALL_PREF = rk3399
 DDR_BIN      = ${TPL}
 endif
 ifneq (,$(findstring rk3528,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk35/rk3528_ddr_1056MHz_4BIT_PCB_v1.09.bin
+TPL          = ../rkbin/bin/rk35/rk3528_ddr_1056MHz_4BIT_PCB_v1.10.bin
 BL31         = ../rkbin/bin/rk35/rk3528_bl31_v1.17.elf
 MKIMAGE_TYPE = rk3528
 INSTALL_PREF = rk3528
 DDR_BIN      = ${TPL}
 endif
 ifneq (,$(findstring rk3566,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.21.bin
+TPL          = ../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.23.bin
 BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.44.elf
 MKIMAGE_TYPE = rk3568
 INSTALL_PREF = rk3566
 DDR_BIN      = ${TPL}
 endif
 ifneq (,$(findstring rk3568,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk35/rk3568_ddr_1056MHz_v1.21.bin
+TPL          = ../rkbin/bin/rk35/rk3568_ddr_1056MHz_v1.23.bin
 BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.44.elf
 MKIMAGE_TYPE = rk3568
 INSTALL_PREF = rk3568
 DDR_BIN      = ${TPL}
 endif
 ifneq (,$(findstring rk3588,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.16.bin
-BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.45.elf
+TPL          = ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.18.bin
+BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.47.elf
 MKIMAGE_TYPE = rk3588
 INSTALL_PREF = rk3588
 DDR_BIN      = ${TPL}
