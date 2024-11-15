@@ -4,8 +4,6 @@ CATEGORIES   = lib
 GARVERSION   = 7.1
 MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES    = $(DISTNAME).tar.xz
-#PATCHFILES  += ffmpeg-001-v4l2-drmprime.patch
-#PATCHFILES  += ffmpeg-001-v4l2-request.patch
 
 PATCHFILES  += 0001-avutil-hwcontext-Add-hwdevice-type-for-V4L2-Request-.patch
 PATCHFILES  += 0002-avcodec-Add-common-V4L2-Request-API-code.patch
@@ -19,6 +17,7 @@ PATCHFILES  += 0009-avcodec-Add-V4L2-Request-API-vp8-hwaccel.patch
 PATCHFILES  += 0010-avcodec-vp9-Store-update_data-field.patch
 PATCHFILES  += 0011-avcodec-vp9-split-out-delta-probabilities.patch
 PATCHFILES  += 0012-avcodec-Add-V4L2-Request-API-vp9-hwaccel.patch
+PATCHFILES  += 0013-vfilters-deinterlace-v4l2m2m.patch
 
 LICENSE      = GPL2/LGPL2_1
 
