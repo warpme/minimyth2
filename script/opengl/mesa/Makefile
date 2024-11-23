@@ -1,6 +1,6 @@
 
 GARNAME      = mesa
-GARVERSION   = 24.2.7
+GARVERSION   = 24.3.0
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.gz
@@ -56,7 +56,7 @@ include ../../gar.mk
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
-	-D dri-search-path="/usr/lib/dri" \
+	-D dri-drivers-path="/usr/lib/dri" \
 	-D va-libs-path="$(libdir)" \
 	-D vdpau-libs-path="$(libdir)" \
 	-D shared-glapi=true \
@@ -67,7 +67,6 @@ MESON_CONFIGURE_ARGS = \
 	-D egl=enabled \
 	-D gles1=enabled \
 	-D gles2=enabled \
-	-D dri3=enabled \
 	-D glvnd=disabled \
 	-D gallium-xa=disabled \
 	-D gallium-nine=false \
