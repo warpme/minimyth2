@@ -17,8 +17,8 @@ DESCRIPTION =
 define BLURB
 endef
 
-BUILD_SCRIPTS   = custom
-INSTALL_SCRIPTS = custom
+BUILD_SCRIPTS   = 
+INSTALL_SCRIPTS = syterkit
 CLEAN_SCRIPTS   = custom
 
 include ../../gar.mk
@@ -37,9 +37,19 @@ install-custom:
 		  $(DESTDIR)/boot/h616loaderfiles/u-boot-sunxi-with-spl.bin
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
+install-syterkit:
+	@mkdir -p $(DESTDIR)/boot
+	@mkdir -p $(DESTDIR)/boot/extlinux
+	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
+	@cp -f    $(WORKSRC)/extlinux.conf $(DESTDIR)/boot/extlinux/extlinux.conf
+	@mkdir -p $(DESTDIR)/boot/h728loaderfiles
+	@cd $(WORKSRC); cp -f ../../files/{bl31.bin,extlinux_boot_bin_card.bin,scp.bin,splash.bin} \
+		  $(DESTDIR)/boot/h728loaderfiles/
+	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
+
 clean-custom:
 	@rm -rf $(DESTDIR)/boot/extlinux*
-	@rm -rf $(DESTDIR)/boot/h616loaderfiles*
+	@rm -rf $(DESTDIR)/boot/h728loaderfiles*
 	@rm -f  $(DESTDIR)/boot/minimyth.conf
 
 clean-all: clean-custom cookieclean
