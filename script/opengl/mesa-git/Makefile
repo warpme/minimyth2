@@ -1,7 +1,7 @@
 
 GARNAME      = mesa
-# 23.0.0-devel 19.12.2022
-GARVERSION   = 9bb1d8ab19cf99f6549c4ae243399e1c6aea10bc
+# 24.3.0 21.11.2024
+GARVERSION   = f1f246cfda65eff82fba3be1caf2d23bdeda60cc
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
@@ -36,7 +36,9 @@ DEPENDS =                      \
 BUILDDEPS  = \
 	lib/libxml2          \
 	python3/python       \
+	python3/python-ply   \
 	python3/python-mako  \
+	python3/python-pyyaml \
 	devel/meson          \
 	xorg/xorgproto       \
 	xorg/libxshmfence    \
@@ -54,7 +56,7 @@ include ../../gar.mk
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
-	-D dri-search-path="/usr/lib/dri" \
+	-D dri-drivers-path="/usr/lib/dri" \
 	-D va-libs-path="$(libdir)" \
 	-D vdpau-libs-path="$(libdir)" \
 	-D shared-glapi=true \
@@ -65,9 +67,7 @@ MESON_CONFIGURE_ARGS = \
 	-D egl=enabled \
 	-D gles1=enabled \
 	-D gles2=enabled \
-	-D dri3=enabled \
-	-D gallium-opencl=disabled \
-	-D glvnd=false \
+	-D glvnd=disabled \
 	-D gallium-xa=disabled \
 	-D gallium-nine=false \
 	-D b_lto=true \
@@ -75,31 +75,41 @@ MESON_CONFIGURE_ARGS = \
 	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 	-D platforms=x11,wayland \
 	-D cpp_rtti=false \
-	-D vulkan-drivers=amd,intel
+	-D vulkan-drivers=amd,intel \
+	-D gallium-opencl=disabled \
+	-D gallium-rusticl=false \
+	-D opencl-spirv=false \
+	-D microsoft-clc=disabled \
+	-D install-intel-clc=false \
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
+	-D gallium-drivers=swrast,lima,panfrost,vc4,v3d \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
+	-D vulkan-drivers= \
+	-D llvm=disabled \
 	-D c_args="-mfpu=neon -mfloat-abi=softfp" \
-	-D llvm=disabled
+
 else
 ifeq ($(GARCH),armv8)
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=swrast,kmsro,lima,panfrost,vc4,v3d \
+	-D gallium-drivers=lima,panfrost,vc4,v3d \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
-	-D vulkan-drivers=amd,intel \
-	-D llvm=disabled
+	-D vulkan-drivers= \
+	-D llvm=disabled \
+
 else
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=r300,r600,radeonsi,iris,crocus,nouveau,svga,swrast \
+	-D gallium-drivers=radeonsi,iris,crocus,nouveau,swrast \
 	-D gallium-vdpau=enabled \
 	-D gallium-va=enabled \
 	-D video-codecs=vc1dec,h264dec,h265dec \
-	-D llvm=enabled
-DEPENDS += devel/llvm
+	-D llvm=enabled \
+
+DEPENDS += devel/llvm lib/libclc
+BUILDDEPS += devel/llvm
 endif
 endif
 
