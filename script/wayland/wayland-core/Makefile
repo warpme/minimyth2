@@ -1,6 +1,6 @@
 
 GARNAME      = wayland
-GARVERSION   = 1.23.0
+GARVERSION   = 1.23.1
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/wayland/wayland/-/releases/$(GARVERSION)/downloads/
 DISTFILES    = $(DISTNAME).tar.xz
