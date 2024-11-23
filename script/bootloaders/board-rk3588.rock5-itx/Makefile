@@ -1,13 +1,13 @@
 
 GARNAME      = bootfiles-rk3588.rock5-itx
-GARVERSION   = 2024-07-08
+GARVERSION   = 2024-11-21
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = rock5b-rk3588_defconfig
+export mm_U-BOOT_BOARD_TYPE = rock-5-itx-rk3588_defconfig
 
 WORKSRC      = $(WORKDIR)
 
