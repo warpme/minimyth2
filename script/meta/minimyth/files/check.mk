@@ -439,12 +439,14 @@ mm-all:
 		   [ ! "$${board}" = "board-rk3566.orangepi_3b"   ] && \
 		   [ ! "$${board}" = "board-rk3588.rock5-b"       ] && \
 		   [ ! "$${board}" = "board-rk3588.rock5-itx"     ] && \
+		   [ ! "$${board}" = "board-rk3588.nanopc_t6"     ] && \
 		   [ ! "$${board}" = "board-rk3588.orangepi_5_plus" ] && \
 		   [ ! "$${board}" = "board-rk3588s.rock5-a"      ] && \
 		   [ ! "$${board}" = "board-rk3588s.rock5-c"      ] && \
 		   [ ! "$${board}" = "board-rk3588s.orangepi_5"   ] && \
 		   [ ! "$${board}" = "board-rk3588s.orangepi_5_pro" ] && \
 		   [ ! "$${board}" = "board-rk3588s.nanopi_m6"    ] && \
+		   [ ! "$${board}" = "board-rk3588s.nanopi_r6s"   ] && \
 		   [ ! "$${board}" = "board-rpi2"                 ] && \
 		   [ ! "$${board}" = "board-rpi3.mainline32"      ] && \
 		   [ ! "$${board}" = "board-rpi3.mainline64"      ] && \
