@@ -316,6 +316,47 @@ PATCHFILES += 1089-arm64-dts-add-opi5max-dts.patch
 endif
 #------------------------------------------------------------
 
+ifeq (1,1)
+#-- Allwinner A523 ------------------------------------------
+PATCHFILES += 1101-dt-bindings-mfd-x-powers-axp152-Document-AXP323.patch
+PATCHFILES += 1102-mfd-axp20x-ensure-relationship-between-IDs-and-model.patch
+PATCHFILES += 1103-mfd-axp20x-Allow-multiple-regulators.patch
+PATCHFILES += 1104-mfd-axp20x-Add-support-for-AXP323.patch
+PATCHFILES += 1105-regulator-axp20x-add-support-for-the-AXP323.patch
+PATCHFILES += 1106-clk-sunxi-ng-d1-Fix-PLL_AUDIO0-preset.patch
+PATCHFILES += 1107-disable-unused-cores-debug.patch
+PATCHFILES += 1110-pinctrl-sunxi-refactor-pinctrl-variants-into-flags.patch
+PATCHFILES += 1111-pinctrl-sunxi-move-bank-K-register-offset.patch
+PATCHFILES += 1112-pinctrl-sunxi-support-moved-power-configuration-regi.patch
+PATCHFILES += 1113-pinctrl-sunxi-allow-reading-mux-values-from-DT.patch
+PATCHFILES += 1114-dt-bindings-pinctrl-add-compatible-for-Allwinner-A52.patch
+PATCHFILES += 1115-pinctrl-sunxi-Add-support-for-the-Allwinner-A523.patch
+PATCHFILES += 1116-pinctrl-sunxi-Add-support-for-the-secondary-A523-GPI.patch
+PATCHFILES += 1117-clk-sunxi-ng-mp-Add-SUNXI_CCU_P_DATA_WITH_MUX_GATE-w.patch
+PATCHFILES += 1118-clk-sunxi-ng-mp-introduce-dual-divider-clock.patch
+PATCHFILES += 1119-clk-sunxi-ng-mp-provide-wrapper-for-setting-feature-.patch
+PATCHFILES += 1120-dt-bindings-clk-sunxi-ng-add-compatible-for-the-A523.patch
+PATCHFILES += 1121-dt-bindings-clk-sunxi-ng-add-compatible-for-the-A523.patch
+PATCHFILES += 1122-clk-sunxi-ng-Add-support-for-the-A523-T527-CCU.patch
+PATCHFILES += 1123-clk-sunxi-ng-add-support-for-the-A523-T527-PRCM-CCU.patch
+PATCHFILES += 1124-dt-bindings-mmc-sunxi-Simplify-compatible-string-lis.patch
+PATCHFILES += 1125-dt-bindings-mmc-sunxi-add-compatible-strings-for-All.patch
+PATCHFILES += 1126-dt-bindings-watchdog-sunxi-add-Allwinner-A523-compat.patch
+PATCHFILES += 1127-watchdog-sunxi_wdt-Add-support-for-Allwinner-A523.patch
+PATCHFILES += 1128-dt-bindings-i2c-mv64xxx-Add-Allwinner-A523-compatibl.patch
+PATCHFILES += 1129-dt-bindings-irq-sun7i-nmi-document-the-Allwinner-A52.patch
+PATCHFILES += 1130-dt-bindings-phy-document-Allwinner-A523-USB-2.0-PHY.patch
+PATCHFILES += 1131-dt-bindings-usb-sunxi-musb-add-Allwinner-A523-compat.patch
+PATCHFILES += 1132-dt-bindings-usb-add-A523-compatible-string-for-EHCI-.patch
+PATCHFILES += 1133-dt-bindings-rtc-sun6i-Add-Allwinner-A523-support.patch
+PATCHFILES += 1135-dt-bindings-vendor-prefixes-Add-YuzukiHD-name.patch
+PATCHFILES += 1136-dt-bindings-arm-sunxi-Add-Avaota-A1-board.patch
+PATCHFILES += 1137-net-phy-add-Maxio-MAE0621A-phy-driver.patch
+PATCHFILES += 1150-arm64-dts-allwinner-Add-Allwinner-A523-.dtsi-file.patch
+PATCHFILES += 1151-arm64-dts-allwinner-h728-add-x96q-pro-tvbox-plus.patch
+endif
+#------------------------------------------------------------
+
 endif
 
 LICENSE = GPL2
