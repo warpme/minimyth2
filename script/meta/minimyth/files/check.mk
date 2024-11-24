@@ -112,7 +112,6 @@ mm-all:
 		   [ ! "$${graphic}" = "radeon-legacy" ] && \
 		   [ ! "$${graphic}" = "radeonhd"      ] && \
 		   [ ! "$${graphic}" = "nouveau"       ] && \
-		   [ ! "$${graphic}" = "armsoc"        ] && \
 		   [ ! "$${graphic}" = "meson"         ] && \
 		   [ ! "$${graphic}" = "rockchip"      ] && \
 		   [ ! "$${graphic}" = "sun4i"         ] && \
