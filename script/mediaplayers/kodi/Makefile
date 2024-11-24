@@ -34,6 +34,7 @@ PATCHFILES   += 0051-update-libdvdread-sha.patch
 PATCHFILES   += 0052-update-libdvdnav-sha.patch
 PATCHFILES   += 0053-stop-uncoditionally-building-udfread.patch
 PATCHFILES   += 0054-stop-detecting-clang.patch
+PATCHFILES   += 0055-stop-using-10bitRGB-for-gui-plane.patch
 WORKSRC       = $(WORKDIR)/xbmc-$(GARVERSION)
 
 LICENSE       = GPL
