@@ -2,6 +2,17 @@
 
 . /etc/rc.d/functions
 
+trap "_exit_" 2 3 9 15
+
+_exit_()
+{
+    echo "Script/KODI aborted: saving settings ..."
+    #mm_kodi_settings_save
+    if [ $? -ne 0 ] ; then
+        echo "Saving Kodi settings failed See /var/log/messages for details!"
+    fi
+}
+
 stop_mythfrontend() {
     /usr/bin/killall mythfrontend 2> /dev/null
     while [ -n "`/bin/pidof mythfrontend`" ] ; do
@@ -81,6 +92,9 @@ if [ -n "${MM_KODI_CMDLINE}" ] ; then
     kodi_cmdline="${MM_KODI_CMDLINE}"
 fi
 
+echo "Restoring Kodi settings ..."
+mm_kodi_settings_restore
+
 echo "Kodi cmd.line:"${kodi_cmdline}
 
 if [ x$1 = "xgdb" ] ; then
@@ -107,3 +121,12 @@ else
     su minimyth -c "${kodi_cmdline}"
 
 fi
+
+echo "Saving Kodi settings ..."
+mm_kodi_settings_save
+if [ $? -ne 0 ] ; then
+    echo "Saving Kodi settings failed See /var/log/messages for details!"
+    exit 1
+fi
+
+exit 0
