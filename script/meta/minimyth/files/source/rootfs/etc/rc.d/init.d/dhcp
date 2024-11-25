@@ -60,20 +60,42 @@ start() {
                         break
                     fi
                 elif [[ ${INTERFACE_ITEM} =~ "eth" ]] ; then
-                    /usr/sbin/ifplugstatus -q ${INTERFACE_ITEM}
-                    if [ $? -eq 2 ] ; then
-                        INTERFACE=${INTERFACE_ITEM}
-                        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Will use ${INTERFACE} interface ..."
+                    /sbin/ip link set ${INTERFACE_ITEM} up
+                    i=0
+                    while [ $i -lt 5 ] ; do
+                        i=$((${i} + 1))
+                        /usr/sbin/ifplugstatus -q ${INTERFACE_ITEM}
+                        if [ $? -eq 2 ] ; then
+                            INTERFACE=${INTERFACE_ITEM}
+                            if [ ! -z "${MM_NETWORK_ETH_MAC_ADDRESS}" ] ; then
+                                /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Will use ${INTERFACE} interface with changed MAC to ${MM_NETWORK_ETH_MAC_ADDRESS} ..."
+                                mm_message_output info "${INTERFACE} connected. Setting MAC to ${MM_NETWORK_ETH_MAC_ADDRESS} ..."
+                                /sbin/ip link set ${INTERFACE} down
+                                /sbin/ip link set ${INTERFACE} address ${MM_NETWORK_ETH_MAC_ADDRESS}
+                                /sbin/ip link set ${INTERFACE} up
+                                /bin/sleep 5
+                            else
+                                /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Will use ${INTERFACE} interface ..."
+                                mm_message_output info "${INTERFACE} connected ..."
+                            fi
+                            break
+                        else
+                            /bin/sleep 1
+                            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] ${i} try for ${INTERFACE_ITEM} interface ..."
+                            mm_message_output info "waiting ${i}sec for connection on ${INTERFACE_ITEM} ..."
+                        fi
+                    done
+                    if [ -z "${INTERFACE}" ] ; then
+                        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] giving-up on ${INTERFACE_ITEM} interface ..."
+                    else
                         break
                     fi
-                else
-                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] ${INTERFACE_ITEM} not reports LINK BEAT. Skipping ..."
                 fi
             done
         fi
         if [ -z "${INTERFACE}" ] ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] No any network interface with linkbeat or status connected. Blind fallback to ${INTERFACE} ..."
             INTERFACE='eth0'
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] No device in /sys/class/net. Defaulting to ${INTERFACE} ..."
         fi
 
         # Waiting 15sec for Eth interface. On some platforms apperaing Eth needs some time...
