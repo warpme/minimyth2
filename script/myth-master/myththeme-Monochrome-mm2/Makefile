@@ -21,6 +21,7 @@ PATCHFILES  += add-osd_subtitle-xml.patch
 PATCHFILES  += video-ui-remove-cond-disp-tile-on-presence-00x00.patch
 PATCHFILES  += music-ui.xml-applay-mythtv-pull774.patch
 PATCHFILES  += video-add-bookmark-state-and-watched-progress-bar.patch
+PATCHFILES  += osd-add-displayinfo-in-osddebug.patch
 # PATCHFILES  += add-snow-animations.patch
 
 LICENSE      = GPL2
