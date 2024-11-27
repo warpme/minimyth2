@@ -1,16 +1,16 @@
-From ba56a64d069f1e0ab172fdd1f2fa0d7b4a25d5b5 Mon Sep 17 00:00:00 2001
+From c2417f82c5098ae137c6b49aa39f8cba5de463db Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Tue, 11 Jun 2024 17:24:46 -0400
 Subject: [PATCH 6/7] wip: Add hevc support
 
 ---
  .../media/platform/rockchip/rkvdec2/Makefile  |    2 +-
- .../platform/rockchip/rkvdec2/rkvdec2-hevc.c  |  908 +++++++++
+ .../platform/rockchip/rkvdec2/rkvdec2-hevc.c  |  870 +++++++++
  .../platform/rockchip/rkvdec2/rkvdec2-regs.h  |  101 +-
  .../media/platform/rockchip/rkvdec2/rkvdec2.c |   89 +-
  .../media/platform/rockchip/rkvdec2/rkvdec2.h |    1 +
  include/media/v4l2-cabac/rkvdec-cabac.h       | 1721 +++++++++++++++++
- 6 files changed, 2806 insertions(+), 16 deletions(-)
+ 6 files changed, 2768 insertions(+), 16 deletions(-)
  create mode 100644 drivers/media/platform/rockchip/rkvdec2/rkvdec2-hevc.c
 
 diff --git a/drivers/media/platform/rockchip/rkvdec2/Makefile b/drivers/media/platform/rockchip/rkvdec2/Makefile
@@ -24,10 +24,10 @@ index b5a6ac7019..09feb3d8b6 100644
 +rockchip-vdec2-y += rkvdec2.o rkvdec2-h264.o rkvdec2-hevc.o
 diff --git a/drivers/media/platform/rockchip/rkvdec2/rkvdec2-hevc.c b/drivers/media/platform/rockchip/rkvdec2/rkvdec2-hevc.c
 new file mode 100644
-index 0000000000..d2e550a47b
+index 0000000000..89d9ed9f28
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec2/rkvdec2-hevc.c
-@@ -0,0 +1,908 @@
+@@ -0,0 +1,870 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip Video Decoder 2 HEVC backend
@@ -205,7 +205,7 @@ index 0000000000..d2e550a47b
 +	struct rkvdec2_hevc_scaling_list scaling_list;
 +
 +	u8 cabac_table[27456];
-+	
++
 +	///u8 err_info[RKV_ERROR_INFO_SIZE];
 +};
 +/*
@@ -566,15 +566,8 @@ index 0000000000..d2e550a47b
 +	u32 pixels;
 +	dma_addr_t dst_addr;
 +	u32 i;
-+	
-+	memset(regs, 0, sizeof(*regs));
 +
-+	writel(0x13, rkvdec->regs + 0x051c);
-+	writel(0x13, rkvdec->regs + 0x055c);
-+	writel(0x13, rkvdec->regs + 0x059c);
-+	writel(0x1, rkvdec->regs + 0x0510);
-+	writel(0x1, rkvdec->regs + 0x0550);
-+	writel(0x1, rkvdec->regs + 0x0590);
++	memset(regs, 0, sizeof(*regs));
 +
 +	/* Set HEVC mode */
 +	regs->common.reg009.dec_mode = RKVDEC2_MODE_HEVC;
@@ -590,23 +583,7 @@ index 0000000000..d2e550a47b
 +		!!(dec_params->flags & V4L2_HEVC_DECODE_PARAM_FLAG_IDR_PIC);
 +
 +	/* Set input stream length */
-+	uint32_t size = vb2_get_plane_payload(&src_buf->vb2_buf, 0);
-+        uint8_t *input = vb2_plane_vaddr(&src_buf->vb2_buf, 0);;
-+	
-+	dev_warn(rkvdec->dev, "Buffer size is %u bytes\n", size);
-+        for (int i = 0; i < 16; i++)
-+                dev_warn(rkvdec->dev, "%d: %02x\n", i, input[i]);
-+
-+        dev_warn(rkvdec->dev, "...\n");
-+
-+        for (int i = size - 16; i < size; i++)
-+                dev_warn(rkvdec->dev, "%d: %02x\n", i, input[i]);
-+
-+        dev_warn(rkvdec->dev, "Extra 64:\n");
-+	for (int i = size; i < size+64; i++)
-+                dev_warn(rkvdec->dev, "%d: %02x\n", i, input[i]);
-+
-+	regs->common.stream_len = ((vb2_get_plane_payload(&src_buf->vb2_buf, 0) + 15) & (~15)) + 64;
++	regs->common.stream_len = vb2_get_plane_payload(&src_buf->vb2_buf, 0);
 +
 +	/* Set max slice number */
 +	regs->common.reg017.slice_num = 1;
@@ -615,8 +592,8 @@ index 0000000000..d2e550a47b
 +	/* Set strides */
 +	f = &ctx->decoded_fmt;
 +	dst_fmt = &f->fmt.pix_mp;
++	// FIXME: This should be retrived from bytesperline
 +	hor_virstride = (sps->bit_depth_luma_minus8 + 8) * dst_fmt->width / 8;
-+	hor_virstride = round_up(hor_virstride, 256) | 256;
 +	ver_virstride = round_up(dst_fmt->height, 16);
 +	y_virstride = hor_virstride * ver_virstride;
 +	pixels = dst_fmt->height * dst_fmt->width;
@@ -710,25 +687,10 @@ index 0000000000..d2e550a47b
 +	/* Set cabac table */
 +	offset = offsetof(struct rkvdec2_hevc_priv_tbl, cabac_table);
 +	regs->hevc_addr.cabactbl_base = priv_start_addr + offset;
-+	
++
 +	/* Set scaling matrix */
 +	offset = offsetof(struct rkvdec2_hevc_priv_tbl, scaling_list);
 +	//regs->hevc_addr.scanlist_addr = priv_start_addr + offset;
-+
-+	u32 *tmp = (u32*)&regs->common;
-+
-+	tmp[12-OFFSET_COMMON_REGS/4] = 0x00000083;
-+	tmp[13-OFFSET_COMMON_REGS/4] = 0x01048203;
-+	tmp[21-OFFSET_COMMON_REGS/4] = 6;
-+	tmp[28-OFFSET_COMMON_REGS/4] = 0x00010000;
-+
-+	tmp = (u32*)&regs->hevc_addr;
-+	tmp[179-OFFSET_CODEC_ADDR_REGS/4] = 0;
-+	tmp[196-OFFSET_CODEC_ADDR_REGS/4] = 0;
-+
-+	tmp = (u32*)&regs->hevc_highpoc;
-+	tmp[200-OFFSET_POC_HIGHBIT_REGS/4] = 0x33333333;
-+	tmp[201-OFFSET_POC_HIGHBIT_REGS/4] = 0x33333333;
 +
 +	rkvdec2_write_regs(ctx);
 +}
@@ -895,7 +857,7 @@ index 0000000000..d2e550a47b
 +	struct rkvdec2_hevc_run run;
 +
 +	rkvdec2_hevc_run_preamble(ctx, &run);
-+	
++
 +	/* Build the P/B{0,1} ref lists. */
 +	/*v4l2_hevc_init_reflist_builder(&reflist_builder, run.decode_params,
 +				       run.sps, run.decode_params->dpb);
@@ -2967,163 +2929,6 @@ index 3324c4cb61..b0b3eb0555 100644
 +
 +
  #endif /* RKVDEC_H264_CABAC_H_ */
--- 
-2.46.0
-
-From 0e2389253c98ca9286fa53f253fecc5dd78deb5d Mon Sep 17 00:00:00 2001
-From: Detlev Casanova <detlev.casanova@collabora.com>
-Date: Fri, 12 Jul 2024 14:39:43 -0400
-Subject: [PATCH 7/7] wip: Heavy hacks to mimc downstreams
-
----
- .../platform/rockchip/rkvdec2/rkvdec2-hevc.c  | 32 ++++++++++++-------
- .../media/platform/rockchip/rkvdec2/rkvdec2.c |  8 ++---
- 2 files changed, 24 insertions(+), 16 deletions(-)
-
-diff --git a/drivers/media/platform/rockchip/rkvdec2/rkvdec2-hevc.c b/drivers/media/platform/rockchip/rkvdec2/rkvdec2-hevc.c
-index d2e550a47b..a56c53cf36 100644
---- a/drivers/media/platform/rockchip/rkvdec2/rkvdec2-hevc.c
-+++ b/drivers/media/platform/rockchip/rkvdec2/rkvdec2-hevc.c
-@@ -167,17 +167,23 @@ struct rkvdec2_hevc_scaling_list {
- 	u8 scaling_list_4x4[6][16];
- 	u8 scaling_list_8x8[6][64];
- 	u8 padding[128];
--};
-+}  __attribute((__packed__));
-+
-+int a = sizeof(struct rkvdec2_hevc_scaling_list);
- 
- struct rkvdec2_hevc_priv_tbl {
- 	struct rkvdec2_sps_pps_packet param_set[64];
-+	u8 padding1[1024];
- 	struct rkvdec2_rps rps;
--	struct rkvdec2_hevc_scaling_list scaling_list;
-+	u8 padding2[896];
-+	u8 scalist[ALIGN(81*1360, 4096)];
-+	//struct rkvdec2_hevc_scaling_list scaling_list;
- 
--	u8 cabac_table[27456];
-+	u8 cabac_table[ALIGN(27456, 4096)];
- 	
- 	///u8 err_info[RKV_ERROR_INFO_SIZE];
- };
-+
- /*
- struct rkvdec2_hevc_reflists {
- 	struct v4l2_hevc_reference p[V4L2_HEVC_];
-@@ -301,7 +307,7 @@ static void assemble_hw_pps(struct rkvdec2_ctx *ctx,
- 	hw_ps->pps.entropy_coding_sync_enabled_flag = !!(pps->flags & V4L2_HEVC_PPS_FLAG_ENTROPY_CODING_SYNC_ENABLED);
- 	hw_ps->pps.pps_loop_filter_across_slices_enabled_flag = !!(pps->flags & V4L2_HEVC_PPS_FLAG_PPS_LOOP_FILTER_ACROSS_SLICES_ENABLED);
- 	// FIXME: mpp sets loop_filter_across_tiles_enabled_flag to 1
--	hw_ps->pps.loop_filter_across_tiles_enabled_flag = !!(pps->flags & V4L2_HEVC_PPS_FLAG_LOOP_FILTER_ACROSS_TILES_ENABLED);
-+	hw_ps->pps.loop_filter_across_tiles_enabled_flag = 1;//!!(pps->flags & V4L2_HEVC_PPS_FLAG_LOOP_FILTER_ACROSS_TILES_ENABLED);
- 	hw_ps->pps.deblocking_filter_override_enabled_flag = !!(pps->flags & V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_OVERRIDE_ENABLED);
- 	hw_ps->pps.pps_deblocking_filter_disabled_flag = !!(pps->flags & V4L2_HEVC_PPS_FLAG_PPS_DISABLE_DEBLOCKING_FILTER);
- 	hw_ps->pps.pps_beta_offset_div2 = pps->pps_beta_offset_div2;
-@@ -315,8 +321,6 @@ static void assemble_hw_pps(struct rkvdec2_ctx *ctx,
- 	hw_ps->pps.reserved_bits = 0x3fff;
- 	hw_ps->pps.reserved = 0xffff;
- 
--	//TODO: Should fill gap here with 0xff to match MPP
--
- 	// Setup tiles information (Move computation to another function)
- 	u16 column_width[20];
- 	u16 row_height[22];
-@@ -561,7 +565,7 @@ static void config_registers(struct rkvdec2_ctx *ctx,
- 
- 	/* Set input stream length */
- 	uint32_t size = vb2_get_plane_payload(&src_buf->vb2_buf, 0);
--        uint8_t *input = vb2_plane_vaddr(&src_buf->vb2_buf, 0);;
-+        uint8_t *input = vb2_plane_vaddr(&src_buf->vb2_buf, 0);
- 	
- 	dev_warn(rkvdec->dev, "Buffer size is %u bytes\n", size);
-         for (int i = 0; i < 16; i++)
-@@ -628,7 +632,7 @@ static void config_registers(struct rkvdec2_ctx *ctx,
- 		regs->hevc_addr.ref_base[i] = buf_dma;
- 
- 		/* Set COLMV addresses */
--		regs->hevc_addr.colmv_base[i] = buf_dma + ctx->colmv_offset;
-+		regs->hevc_addr.colmv_base[i] = ALIGN(ALIGN(buf_dma, 4096) + ctx->colmv_offset, 4096);
- 
- 
- 		// TODO
-@@ -659,11 +663,11 @@ static void config_registers(struct rkvdec2_ctx *ctx,
- 
- 	/* Set output base address */
- 	dst_addr = vb2_dma_contig_plane_dma_addr(&dst_buf->vb2_buf, 0);
--	regs->common_addr.decout_base = dst_addr;
--	regs->common_addr.error_ref_base = dst_addr;
-+	regs->common_addr.decout_base = ALIGN(dst_addr, 4096);
-+	regs->common_addr.error_ref_base = ALIGN(dst_addr, 4096);
- 
- 	/* Set colmv address */
--	regs->common_addr.colmv_cur_base = dst_addr + ctx->colmv_offset;
-+	regs->common_addr.colmv_cur_base = ALIGN(ALIGN(dst_addr, 4096) + ctx->colmv_offset, 4096);
- 
- 	/* Set RCB addresses */
- 	for (i = 0; i < RKVDEC2_RCB_COUNT; i++)
-@@ -682,7 +686,7 @@ static void config_registers(struct rkvdec2_ctx *ctx,
- 	regs->hevc_addr.cabactbl_base = priv_start_addr + offset;
- 	
- 	/* Set scaling matrix */
--	offset = offsetof(struct rkvdec2_hevc_priv_tbl, scaling_list);
-+	//offset = offsetof(struct rkvdec2_hevc_priv_tbl, scaling_list);
- 	//regs->hevc_addr.scanlist_addr = priv_start_addr + offset;
- 
- 	u32 *tmp = (u32*)&regs->common;
-@@ -834,6 +838,9 @@ static void assemble_hw_scaling_matrix(struct rkvdec2_ctx *ctx,
- 	struct rkvdec2_hevc_ctx *hevc_ctx = ctx->priv;
- 	struct rkvdec2_hevc_priv_tbl *tbl = hevc_ctx->priv_tbl.cpu;
- 
-+	//memset(&tbl->scaling_list, 0, sizeof(tbl->scaling_list));
-+	memset(tbl->scalist, 0, sizeof(tbl->scalist));
-+#if 0
- 	if (!(pps->flags & V4L2_HEVC_SPS_FLAG_SCALING_LIST_ENABLED))
- 		return;
- 
-@@ -855,6 +862,7 @@ static void assemble_hw_scaling_matrix(struct rkvdec2_ctx *ctx,
- 	//for (int i = 0; i < sizeof(tbl->scaling_list)/4; i++) {
- 	//	dev_warn(ctx->dev->dev, "scaling[%d] = 0x%08x\n", ((u32*)tbl->scaling_list)[i]);
- 	//}
-+#endif
- }
- 
- static int rkvdec2_hevc_run(struct rkvdec2_ctx *ctx)
-diff --git a/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c b/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c
-index c348fee110..6bd5db1b91 100644
---- a/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c
-+++ b/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c
-@@ -170,10 +170,10 @@ static const struct rkvdec2_coded_fmt_desc rkvdec2_coded_fmts[] = {
- 	{
- 		.fourcc = V4L2_PIX_FMT_HEVC_SLICE,
- 		.frmsize = {
--			.min_width = 16,
-+			.min_width = 64,
- 			.max_width = 65472,
- 			.step_width = 16,
--			.min_height = 16,
-+			.min_height = 64,
- 			.max_height = 65472,
- 			.step_height = 16,
- 		},
-@@ -900,7 +900,7 @@ static int rkvdec2_queue_init(void *priv,
- 	/*
- 	 * No CPU access on the queues, so no kernel mapping needed.
- 	 */
--	src_vq->dma_attrs = DMA_ATTR_NO_KERNEL_MAPPING;
-+	//src_vq->dma_attrs = DMA_ATTR_NO_KERNEL_MAPPING;
- 	src_vq->buf_struct_size = sizeof(struct v4l2_m2m_buffer);
- 	src_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
- 	src_vq->lock = &rkvdec->vdev_lock;
-@@ -914,7 +914,7 @@ static int rkvdec2_queue_init(void *priv,
- 
- 	dst_vq->bidirectional = true;
- 	dst_vq->mem_ops = &vb2_dma_contig_memops;
--	dst_vq->dma_attrs = DMA_ATTR_NO_KERNEL_MAPPING;
-+	//dst_vq->dma_attrs = DMA_ATTR_NO_KERNEL_MAPPING;
- 	dst_vq->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
- 	dst_vq->io_modes = VB2_MMAP | VB2_DMABUF;
- 	dst_vq->drv_priv = ctx;
 -- 
 2.46.0
 

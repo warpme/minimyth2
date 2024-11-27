@@ -296,7 +296,8 @@ PATCHFILES += 1064-drm-rockchip-add-driver-for-the-new-dsi2-controller.patch
 PATCHFILES += 1065-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1066-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 PATCHFILES += 1067-media-rockchip-add-rkvdec2-driver.patch
-PATCHFILES += 1068-media-rockchip-add-rkvdec2-hevc-support.patch
+PATCHFILES += 1068-wip-add-hevc-support.patch
+PATCHFILES += 1069-wip-hevc-add-ref-frames-support.patch
 # dt patches
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-hdmi0-bridge.patch
