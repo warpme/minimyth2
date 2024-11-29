@@ -1,0 +1,260 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.1/arch/arm64/boot/dts/rockchip/rk3588-nanopc-t6.dtsi linux-6.12.1/arch/arm64/boot/dts/rockchip/rk3588-nanopc-t6.dtsi
+--- linux-6.12.1/arch/arm64/boot/dts/rockchip/rk3588-nanopc-t6.dtsi	2024-11-22 15:30:26.000000000 +0100
++++ linux-6.12.1/arch/arm64/boot/dts/rockchip/rk3588-nanopc-t6.dtsi	2024-11-29 10:36:13.288350133 +0100
+@@ -11,6 +11,7 @@
+ #include <dt-bindings/input/input.h>
+ #include <dt-bindings/pinctrl/rockchip.h>
+ #include <dt-bindings/usb/pd.h>
++#include <dt-bindings/soc/rockchip,vop2.h>
+ #include "rk3588.dtsi"
+ 
+ / {
+@@ -18,8 +19,10 @@
+ 	compatible = "friendlyarm,nanopc-t6", "rockchip,rk3588";
+ 
+ 	aliases {
+-		mmc0 = &sdhci;
+-		mmc1 = &sdmmc;
++		mmc0 = &sdmmc;
++		mmc1 = &sdhci;
++		ethernet0 = &r8125_u10;
++		ethernet1 = &r8125_u12;
+ 	};
+ 
+ 	adc-keys-0 {
+@@ -53,7 +56,7 @@
+ 		sys_led: led-0 {
+ 			gpios = <&gpio2 RK_PB7 GPIO_ACTIVE_HIGH>;
+ 			label = "system-led";
+-			linux,default-trigger = "heartbeat";
++			linux,default-trigger = "disk-activity";
+ 			pinctrl-names = "default";
+ 			pinctrl-0 = <&sys_led_pin>;
+ 		};
+@@ -61,17 +64,28 @@
+ 		usr_led: led-1 {
+ 			gpios = <&gpio2 RK_PC0 GPIO_ACTIVE_HIGH>;
+ 			label = "user-led";
++			linux,default-trigger = "heartbeat";
+ 			pinctrl-names = "default";
+ 			pinctrl-0 = <&usr_led_pin>;
+ 		};
+ 	};
+ 
+-	sound {
++	hdmi0_sound: hdmi0-sound {
++		status = "okay";
++		compatible = "rockchip,hdmi";
++		rockchip,mclk-fs = <128>;
++		rockchip,card-name = "rockchip-hdmi0";
++		rockchip,cpu = <&i2s5_8ch>;
++		rockchip,codec = <&hdmi0>;
++		rockchip,jack-det;
++	};
++
++	analog_sound {
+ 		compatible = "simple-audio-card";
+ 		pinctrl-names = "default";
+ 		pinctrl-0 = <&hp_det>;
+ 
+-		simple-audio-card,name = "realtek,rt5616-codec";
++		simple-audio-card,name = "analog-audio";
+ 		simple-audio-card,format = "i2s";
+ 		simple-audio-card,mclk-fs = <256>;
+ 
+@@ -159,6 +173,20 @@
+ 		vin-supply = <&vcc5v0_sys>;
+ 	};
+ 
++	vbus5v0_usb: vbus5v0-usb-regulator {
++		compatible = "regulator-fixed";
++		enable-active-high;
++		gpio = <&gpio4 RK_PB0 GPIO_ACTIVE_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&usb5v_pwren>;
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-name = "vbus5v0_usb";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&vcc5v0_sys>;
++	};
++
+ 	vcc3v3_pcie2x1l0: vcc3v3-pcie2x1l0-regulator {
+ 		compatible = "regulator-fixed";
+ 		enable-active-high;
+@@ -192,6 +220,14 @@
+ 		regulator-name = "vcc3v3_sd_s0";
+ 		vin-supply = <&vcc_3v3_s3>;
+ 	};
++
++	ir-receiver {
++		compatible = "gpio-ir-receiver";
++		gpios = <&gpio0 RK_PD4 GPIO_ACTIVE_LOW>;
++		pinctrl-0 = <&ir_int>;
++		linux,rc-map-name = "rc-beelink-gs1";
++		status = "okay";
++	};
+ };
+ 
+ &combphy0_ps {
+@@ -485,12 +521,27 @@
+ 	};
+ };
+ 
++&i2s5_8ch {
++	status = "okay";
++};
++
+ &pcie2x1l0 {
+ 	reset-gpios = <&gpio4 RK_PB3 GPIO_ACTIVE_HIGH>;
+ 	vpcie3v3-supply = <&vcc_3v3_pcie20>;
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pcie2_0_rst>;
+ 	status = "okay";
++
++	pcie@0,0 {
++		reg = <0x00200000 0 0 0 0>;
++		#address-cells = <3>;
++		#size-cells = <2>;
++
++		r8125_u12: pcie@20,0 {
++			reg = <0x000000 0 0 0 0>;
++			local-mac-address = [ 00 00 00 00 00 00 ];
++		};
++	};
+ };
+ 
+ &pcie2x1l1 {
+@@ -507,6 +558,17 @@
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&pcie2_2_rst>;
+ 	status = "okay";
++
++	pcie@0,0 {
++		reg = <0x00400000 0 0 0 0>;
++		#address-cells = <3>;
++		#size-cells = <2>;
++
++		r8125_u10: pcie@40,0 {
++			reg = <0x000000 0 0 0 0>;
++			local-mac-address = [ 00 00 00 00 00 00 ];
++		};
++	};
+ };
+ 
+ &pcie30phy {
+@@ -575,10 +637,20 @@
+ 			rockchip,pins = <1 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
+ 		};
+ 
++		usb5v_pwren: usb5v_pwren {
++			rockchip,pins = <4 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
+ 		usbc0_int: usbc0-int {
+ 			rockchip,pins = <0 RK_PD3 RK_FUNC_GPIO &pcfg_pull_up>;
+ 		};
+ 	};
++
++	ir {
++		ir_int: ir-int {
++			rockchip,pins = <0 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
+ };
+ 
+ &pwm1 {
+@@ -970,14 +1042,16 @@
+ };
+ 
+ &u2phy0_otg {
++	rockchip,typec-vbus-det;
+ 	status = "okay";
+ };
+ 
+-&u2phy2_host {
++&u2phy1 {
+ 	status = "okay";
+ };
+ 
+-&u2phy3_host {
++&u2phy1_otg {
++	phy-supply = <&vbus5v0_usb>;
+ 	status = "okay";
+ };
+ 
+@@ -985,10 +1059,18 @@
+ 	status = "okay";
+ };
+ 
++&u2phy2_host {
++	status = "okay";
++};
++
+ &u2phy3 {
+ 	status = "okay";
+ };
+ 
++&u2phy3_host {
++	status = "okay";
++};
++
+ &usbdp_phy0 {
+ 	mode-switch;
+ 	orientation-switch;
+@@ -1012,6 +1094,11 @@
+ 	};
+ };
+ 
++&usbdp_phy1 {
++	phy-supply = <&vbus5v0_usb>;
++	status = "okay";
++};
++
+ &usb_host0_ehci {
+ 	status = "okay";
+ };
+@@ -1039,3 +1126,42 @@
+ &usb_host1_ohci {
+ 	status = "okay";
+ };
++
++&usb_host1_xhci {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&display_subsystem {
++	clocks = <&hdptxphy_hdmi0>;
++	clock-names = "hdmi0_phy_pll";
++};
++
++&hdmi0 {
++	status = "okay";
++};
++
++&hdmi0_in {
++	hdmi0_in_vp0: endpoint {
++		remote-endpoint = <&vp0_out_hdmi0>;
++	};
++};
++
++&hdptxphy_hdmi0 {
++	status = "okay";
++};
++
++&vop_mmu {
++	status = "okay";
++};
++
++&vop {
++	status = "okay";
++};
++
++&vp0 {
++	vp0_out_hdmi0: endpoint@ROCKCHIP_VOP2_EP_HDMI0 {
++		reg = <ROCKCHIP_VOP2_EP_HDMI0>;
++		remote-endpoint = <&hdmi0_in_vp0>;
++	};
++};
