@@ -20,7 +20,7 @@ BUILDDEPS = devel/yasm
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
+INSTALL_SCRIPTS   = clean-other-versions $(WORKSRC)/Makefile
 
 CFLAGS += -Wno-incompatible-pointer-types
 
@@ -116,8 +116,8 @@ INSTALL_ARGS   = \
 GAR_EXTRA_CONF += mediaplayers/mplayer-svn/package-api.mk
 include ../../gar.mk
 
-clean-all:
-	@$(MAKE) clean
+install-clean-other-versions:
+	@echo "Purging other versions of ffmpeg libs/bins ..."
 	@rm -rf $(DESTDIR)$(includedir)/libavcodec
 	@rm -rf $(DESTDIR)$(includedir)/libavdevice
 	@rm -rf $(DESTDIR)$(includedir)/libavfilter
@@ -146,3 +146,6 @@ clean-all:
 	@rm -rf $(DESTDIR)$(bin)/ffmpeg
 	@rm -rf $(DESTDIR)$(bin)/ffprobe
 	@rm -rf $(DESTDIR)$(bin)/ffplay
+
+clean-all: install-clean-other-versions
+	@$(MAKE) clean
