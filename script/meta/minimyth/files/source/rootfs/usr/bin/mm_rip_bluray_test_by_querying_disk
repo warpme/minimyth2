@@ -25,15 +25,12 @@ if [ -n "${MM_OPTICAL_RIP_URL}" ] ; then
         exit 1
     fi
 
-    /bin/touch /var/tmp/mm_backup_in_progress
-    /bin/rm -f /var/log/makemkv.progress
-    /bin/rm -f /var/log/makemkv.done
-
-
     mm_show_mythnotify 'Skanuję płytkę...' '' 'images/mythnotify/bluray-drive.png' '10' 'DVD/BluRay'
 
     ${makemkvcon_bin} --robot --minlength=3600 info disc:${MM_OPTICAL_DRIVE_ID} > /var/log/bluray-disc.info 2>&1
-    cp /var/log/bluray-disc.info /var/log/makemkv.log
+    echo "-------------makemkv discinfo returns begin:---------------"
+    cat /var/log/bluray-disc.info
+    echo "-------------makemkv discinfo returns end:-----------------"
 
     title=`cat /var/log/bluray-disc.info | grep "TINFO:0,2,0," | sed -e "s/TINFO:0,2,0,//" -e "s/\"*//g"`
     title_string=`echo ${title} | sed -e "s/\s*//g"`
@@ -44,30 +41,28 @@ if [ -n "${MM_OPTICAL_RIP_URL}" ] ; then
     fi
 
     if [ x${title_string} = "x" ] ; then
-        mm_show_mythnotify "DVD/BluRay: Nie mogę odczytać tytułu!" "Czy płyta jest w napędzie?" 'error' '10'
-        /bin/rm -f /var/tmp/mm_backup_in_progress
-        /bin/rm -f /var/log/makemkv.progress
+        echo " "
+        echo "ERROR: finding title by parsing disc-info for 'TINFO:0,2,0,' or 'CINFO:2,0,' stringgs returns nothing. No disc title can be idetified"
+        echo " "
+        /bin/rm -f /var/tmp/mm_backup_in_progress 2>/dev/null
+        /bin/rm -f /var/log/makemkv.progress 2>/dev/null
         exit 0
     fi
 
     duration=`cat /var/log/bluray-disc.info | grep "TINFO:0,9,0," | sed -e "s/TINFO:0,9,0,//" -e "s/\"*//g"`
     size=`cat /var/log/bluray-disc.info | grep "TINFO:0,10,0," | sed -e "s/TINFO:0,10,0,//" -e "s/\"*//g"`
 
-    mm_show_mythnotify "'${title}'" "[${duration}] [${size}] Rozpoczynam zgrywanie..." 'images/mythnotify/bluray-drive.png' '10' 'DVD/BluRay'
-
-    ${makemkvcon_bin} --robot --cache=128 --progress=/var/log/makemkv.progress mkv disc:${MM_OPTICAL_DRIVE_ID} all /mnt/optical-rip/ > /var/log/makemkv.log
-
-    mm_show_mythnotify "'${title}'" "Zgrywanie zakończono z sukcesem..." 'images/mythnotify/bluray-drive.png' '10' 'DVD/BluRay'
-
-    su minimyth -c "/usr/bin/xscreensaver-command --deactivate" & > /dev/null 2>&1
-
-    /bin/rm -f /var/tmp/mm_backup_in_progress
-    /bin/rm -f /var/log/makemkv.progress
-    /bin/touch /var/log/makemkv.done
+    echo " "
+    echo "Identified disc:"
+    echo " "
+    echo "     title: ${title}"
+    echo "  duration: ${duration}"
+    echo "      size: ${size}"
+    echo " "
 
     exit 0
 
 else
-    mm_show_mythnotify "Zgrywanie DVD/BluRay" "Błąd: W pliku minimyth.conf nie ustawiono katalogu dla kopiowania BluRay/DVD!" 'error' '10'
+    echo "ERROR: minimyth.conf has not set path to storing bluray ripping content ..."
     exit 1
 fi
