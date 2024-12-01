@@ -1,8 +1,8 @@
 
 GARNAME      = makemkv-oss
-GARVERSION   = 1.17.8
+GARVERSION   = $(MAKEMKV_VERSION)
 CATEGORIES   = utils
-MASTER_SITES = http://www.makemkv.com/download/
+MASTER_SITES = $(MAKEMKV_MASTER_SITES)
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.gz
 LICENSE      = GPL2
 
@@ -25,6 +25,7 @@ CONFIGURE_ARGS = $(DIRPATHS) \
         --disable-gui \
         --disable-allcodecs \
 
+GAR_EXTRA_CONF += utils/makemkv-bin/package-api.mk
 include ../../gar.mk
 
 CFLAGS   += -D__STDC_FORMAT_MACROS
