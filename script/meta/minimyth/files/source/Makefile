@@ -653,7 +653,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		chmod +s $@~$(bindir)/sway ; \
 	 fi
 	@echo "final permission fixups on some execs" ; \
-	 files="ssh sshd scp mplayer ntpd ntpdate mysql getconf" ; \
+	 files="ssh sshd scp mplayer ntpd ntpdate mysql getconf makemkvcon" ; \
 	 for file in $${files} ; do \
 			if [ -e $@~$(bindir)/$${file} ] ; then \
 				chmod +x $@~$(bindir)/$${file} ; \
