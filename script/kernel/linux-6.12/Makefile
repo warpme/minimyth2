@@ -315,7 +315,7 @@ PATCHFILES += 1087-arm64-dts-add-nanopi-m6-dts.patch
 PATCHFILES += 1088-arm64-dts-rockchip-orangepi-5-plus-Enable-USB-3.0-ports.patch
 PATCHFILES += 1089-arm64-dts-add-opi5max-dts.patch
 PATCHFILES += 1090-arm64-dts-rockchip-rk3588s-nanopc-r6s-dts-improvements.patch
-PATCHFILES += 1091-arm64-dts-rockchip-rk3588-nanopc-t6-dts-improvements.patch
+PATCHFILES += 1091-arm64-dts-rockchip-rk3588-nanopc-t6-dtsi-improvements.patch
 endif
 #------------------------------------------------------------
 
