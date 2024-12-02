@@ -192,6 +192,10 @@ ifneq (,$(filter board-rk3588.nanopc_t6,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3588.nanopc_t6
 endif
 
+ifneq (,$(filter board-rk3588.nanopc_t6_lts,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3588.nanopc_t6_lts
+endif
+
 ifneq (,$(filter board-h6.beelink_gs1,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h6.beelink_gs1
 endif

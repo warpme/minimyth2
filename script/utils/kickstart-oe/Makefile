@@ -85,6 +85,8 @@ DISTFILES    = \
 	board-rk3588.orangepi_5_plus.wks  \
 	board-rk3588.nanopc_t6.conf \
 	board-rk3588.nanopc_t6.wks  \
+	board-rk3588.nanopc_t6_lts.conf \
+	board-rk3588.nanopc_t6_lts.wks  \
 	board-rk3588s.nanopi_r6s.conf \
 	board-rk3588s.nanopi_r6s.wks  \
 	board-h6.beelink_gs1.conf   \

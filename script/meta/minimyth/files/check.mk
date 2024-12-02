@@ -439,6 +439,7 @@ mm-all:
 		   [ ! "$${board}" = "board-rk3588.rock5-b"       ] && \
 		   [ ! "$${board}" = "board-rk3588.rock5-itx"     ] && \
 		   [ ! "$${board}" = "board-rk3588.nanopc_t6"     ] && \
+		   [ ! "$${board}" = "board-rk3588.nanopc_t6_lts" ] && \
 		   [ ! "$${board}" = "board-rk3588.orangepi_5_plus" ] && \
 		   [ ! "$${board}" = "board-rk3588s.rock5-a"      ] && \
 		   [ ! "$${board}" = "board-rk3588s.rock5-c"      ] && \
