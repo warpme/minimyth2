@@ -1,6 +1,6 @@
 
 GARNAME      = double-conversion
-GARVERSION   = 3.1.5
+GARVERSION   = 3.3.0
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/google/double-conversion/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
