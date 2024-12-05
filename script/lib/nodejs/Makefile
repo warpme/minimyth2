@@ -1,10 +1,10 @@
 
 GARNAME      = nodejs
-GARVERSION   = 20.2.0
+GARVERSION   = 23.1.0
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/nodejs/node/archive/v$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = ticket45756-fix-arm64-cross-compilation.patch
+# todo: PATCHFILES   = ticket45756-fix-arm64-cross-compilation.patch
 WORKSRC      = $(WORKDIR)/node-$(GARVERSION)
 LICENSE      = MIT
 
