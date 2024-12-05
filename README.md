@@ -131,16 +131,16 @@ Rockchip 3566 | Zero-3e          | n/a                                    | n/a 
 Rockchip 3566 | Rock3-C          | works  (ap6256@SDIO)                   | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-B          | works  (iwl7265@PCI-e)                 | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588s| Rock5A           | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588s| Rock5C           | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588s| NanoPi-M6        | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588s| NanoPi-R6S       | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588s| OrangePi 5       | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588s| OrangePi 5 Pro   | works  (ap6256@SDIO)                   | works     | works       | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588 | Rock5B           | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588 | Orange5 Plus     | n.a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588 | NanoPC-T6        | n.a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588 | NanoPC-T6-LTS    | n.a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
+Rockchip 3588s| Rock5A           | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s| Rock5C           | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s| NanoPi-M6        | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s| NanoPi-R6S       | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s| OrangePi 5       | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s| OrangePi 5 Pro   | works  (ap6256@SDIO)                   | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588 | Rock5B           | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588 | Orange5 Plus     | n.a                                    | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588 | NanoPC-T6        | n.a                                    | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588 | NanoPC-T6-LTS    | n.a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588 | Rock5 ITX        | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI                  |
 Amlogic s905  | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | not tested| works       | WiP         | not works (firmware issue)     | support stalled               |
 Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | not tested| works       | n/a         | not works (firmware issue)     | support stalled               |
