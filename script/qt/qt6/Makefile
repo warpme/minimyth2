@@ -2,13 +2,13 @@
 BUILD_QTWEBENGINE = no
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 6.5.2
+GARVERSION   = 6.8.1
 CATEGORIES   = qt
-MASTER_SITES = http://download.qt.io/official_releases/qt/6.5/$(GARVERSION)/single/
+MASTER_SITES = http://download.qt.io/official_releases/qt/6.8/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
-PATCHFILES  += $(DISTNAME)-qtwebengine-hack-to-crosscompile.patch
+# todo: PATCHFILES  += $(DISTNAME)-qtwebengine-hack-to-crosscompile.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
@@ -38,11 +38,14 @@ DEPENDS   =            \
 	devel/zlib     \
 	devel/ruby     \
 	opengl/opengl  \
-	xorg/xorg
+	xorg/xorg      \
+	python3/python-html5lib \
+
 else
 DEPENDS   =            \
 	lang/c         \
-	lang/cxx
+	lang/cxx       \
+
 endif
 
 BUILDDEPS = \
@@ -75,59 +78,86 @@ CONFIGURE_ARGS = \
 	-c++std c++1z \
 	-nomake examples \
 	-nomake tests \
+	-shared \
+	-make tools \
+
+ifeq ($(DESTIMG),build)
+CONFIGURE_ARGS += \
+	-platform $(PLATFORM_GARBUILD_NAME) \
+	-no-{glib,icu,openssl,opengl,pcre} \
+	-no-sql-{db2,ibase,mysql,oci,odbc,psql} \
+	-qt-{zlib,libjpeg,libpng,freetype,pcre,harfbuzz} \
+	-no-ltcg \
+	-optimize-size \
+	-skip qt3d \
+	-skip qt5compat \
+	-skip qtcharts \
+	-skip qtcoap \
+	-skip qtconnectivity \
+	-skip qtdatavis3d \
+	-skip qtdoc \
+	-skip qtgraphs \
+	-skip qtimageformats \
+	-skip qtlocation \
+	-skip qtlottie \
+	-skip qtmqtt \
+	-skip qtmultimedia \
+	-skip qtnetworkauth \
+	-skip qtopcua \
+	-skip qtquick3d \
+	-skip qtpositioning \
+	-skip qtquick3dphysics \
+	-skip qtquicktimeline \
+	-skip qtremoteobjects \
+	-skip qtscxml \
+	-skip qtsensors \
+	-skip qtserialbus \
+	-skip qtserialport \
+	-skip qtspeech \
+	-skip qttranslations \
+	-skip qtvirtualkeyboard \
+	-skip qtwebchannel \
+	-skip qtwebengine \
+	-skip qtwebsockets \
+	-skip qtwebview \
+
+else
+CONFIGURE_ARGS += \
+	-xplatform $(PLATFORM_GARHOST_NAME) \
+	-qt-host-path $(build_qt6prefix) \
+	-no-sql-{db2,ibase,oci,odbc,psql,sqlite} \
+	-qt-doubleconversion \
+	-sql-mysql \
+	-qt-pcre \
+	-ltcg \
+	-feature-optimize_full \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	-skip qt3d \
 	-skip qtcharts \
 	-skip qtcoap \
 	-skip qtdatavis3d \
 	-skip qtdoc \
+	-skip qtgraphs \
 	-skip qtimageformats \
 	-skip qtlocation \
 	-skip qtlottie \
 	-skip qtmqtt \
 	-skip qtnetworkauth \
 	-skip qtopcua \
+	-skip qtpositioning \
 	-skip qtquick3d \
 	-skip qtquicktimeline \
-	-skip qtpositioning \
 	-skip qtremoteobjects \
 	-skip qtscxml \
 	-skip qtsensors \
 	-skip qtserialbus \
 	-skip qtserialport \
-	-skip qttools \
+	-skip qtspeech \
 	-skip qttranslations \
+	-skip qttools \
 	-skip qtquick3dphysics \
 	-skip qtvirtualkeyboard \
-	-skip qtwebchannel \
-	-skip qtwebsockets \
-	-skip qtwebview \
-
-ifeq ($(DESTIMG),build)
-CONFIGURE_ARGS += \
-	-platform $(PLATFORM_GARBUILD_NAME) \
-	-no-{eventfd,glib,icu,openssl,opengl,dbus,pcre} \
-	-no-sql-{db2,ibase,mysql,oci,odbc,psql,sqlite} \
-	-qt-{zlib,libjpeg,libpng,freetype,pcre,harfbuzz} \
-	-static \
-	-no-ltcg \
-	-optimize-size \
-	-make tools \
-	-skip qt5compat \
-	-skip qtmultimedia \
-	-skip qtwebengine
-else
-CONFIGURE_ARGS += \
-	-xplatform $(PLATFORM_GARHOST_NAME) \
-	-qt-host-path $(build_qt6prefix) \
-	-no-sql-{db2,ibase,oci,odbc,psql,sqlite} \
-	-plugin-sql-mysql \
-	-qt-pcre \
-	-shared \
-	-ltcg \
-	-feature-optimize_full \
-	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
-	-make tools \
-	$(if $(filter yes,$(BUILD_QTWEBENGINE)),,-skip qtwebengine) \
+	$(if $(filter yes,$(BUILD_QTWEBENGINE)),,-skip qtwebchannel -skip qtwebengine -skip qtwebsockets -skip qtwebview) \
 	-- $(DIRPATHS_CMAKE) \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	$(if $(filter i386,  $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="i386") \
@@ -138,8 +168,13 @@ CONFIGURE_ARGS += \
 	-DQT_WILL_BUILD_TOOLS="ON" \
 	-DQT_FORCE_BUILD_TOOLS="ON" \
 	-DMySQL_INCLUDE_DIR="$(DESTDIR)$(includedir)/mysql" \
-	-DQT_HOST_GN_PATH="/home/piotro/minimyth2-aarch64-next/images/build/usr/bin/gn"
+	-DQT_HOST_GN_PATH="/home/piotro/minimyth2-aarch64-next/images/build/usr/bin/gn" \
+
 endif
+
+#	-skip qtwebchannel \
+#	-skip qtwebsockets \
+#	-skip qtwebview \
 
 configure-custom:
 	@echo " ==> Running configure in $(WORKBLD)"

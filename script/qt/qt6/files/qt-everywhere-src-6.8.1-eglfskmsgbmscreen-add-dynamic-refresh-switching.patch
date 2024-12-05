@@ -35,7 +35,7 @@ AtomicCommit directly to CRTC. Unfortunatelly this fails with error:
 
 Qt: Failed to commit atomic request (code=-22)
 
-Above error seems to me as result of wrong DRM commit properties setup when [7] is issued. This is confirmed 
+Above error seems to me as result of wrong DRM commit properties setup when [7] is issued. This is confirmed.
 in kernel DRM logging:
 
 [ 3439.154434] [drm:drm_atomic_set_mode_prop_for_crtc] [CRTC:41:crtc-0] invalid mode (ret=-22, status=H_ILLEGAL):
@@ -45,17 +45,18 @@ At this moment i don't see more elegant way to achieve on-demand refresh rate sw
 Any ideas welcommed!
 
 [1] https://github.com/qt/qtbase/blob/40143c189b7c1bf3c2058b77d00ea5c4e3be8b28/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp#L286
-[2] https://github.com/qt/qtbase/blob/40143c189b7c1bf3c2058b77d00ea5c4e3be8b28/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp#L310 
+[2] https://github.com/qt/qtbase/blob/40143c189b7c1bf3c2058b77d00ea5c4e3be8b28/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp#L310.
 [3] https://github.com/qt/qtbase/blob/40143c189b7c1bf3c2058b77d00ea5c4e3be8b28/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp#L241
 [4] https://github.com/qt/qtbase/blob/40143c189b7c1bf3c2058b77d00ea5c4e3be8b28/src/platformsupport/kmsconvenience/qkmsdevice.cpp#L188
 [5] https://github.com/qt/qtbase/blob/40143c189b7c1bf3c2058b77d00ea5c4e3be8b28/src/platformsupport/kmsconvenience/qkmsdevice.cpp#L451
 [6] https://github.com/MythTV/mythtv/blob/991d0f473226d68693b40bf2ae3a5b3c5b6cd461/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp#L677
 [7] https://github.com/MythTV/mythtv/blob/991d0f473226d68693b40bf2ae3a5b3c5b6cd461/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp#L679
 
-diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp
---- qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp	2020-10-27 09:02:11.000000000 +0100
-+++ qt-everywhere-src-5.15.2/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp	2021-12-29 12:51:32.239790489 +0100
-@@ -217,29 +217,48 @@
+
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-6.8.1/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp qt-everywhere-src-6.8.1/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp
+--- qt-everywhere-src-6.8.1/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp	2024-11-12 11:55:11.000000000 +0100
++++ qt-everywhere-src-6.8.1/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmscreen.cpp	2024-12-04 12:35:01.838355141 +0100
+@@ -214,13 +214,15 @@
      }
  }
  
@@ -65,13 +66,14 @@ diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15
      QKmsOutput &op(output());
      const int fd = device()->fd();
  
--    if (!op.mode_set) {
-+    if (!op.mode_set || actual_mode != op.mode) {
+-    if (!op.mode_set || needsNewModeSetForNextFb) {
++    if (!op.mode_set || needsNewModeSetForNextFb || actual_mode != op.mode) {
          op.mode_set = true;
 +        actual_mode = op.mode;
+         needsNewModeSetForNextFb = false;
  
          bool doModeSet = true;
-         drmModeCrtcPtr currentMode = drmModeGetCrtc(fd, op.crtc_id);
+@@ -228,16 +230,33 @@
          const bool alreadySet = currentMode && currentMode->buffer_id == fb && !memcmp(&currentMode->mode, &op.modes[op.mode], sizeof(drmModeModeInfo));
          if (currentMode)
              drmModeFreeCrtc(currentMode);
