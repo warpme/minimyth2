@@ -326,7 +326,6 @@ PATCHFILES += 1102-mfd-axp20x-ensure-relationship-between-IDs-and-model.patch
 PATCHFILES += 1103-mfd-axp20x-Allow-multiple-regulators.patch
 PATCHFILES += 1104-mfd-axp20x-Add-support-for-AXP323.patch
 PATCHFILES += 1105-regulator-axp20x-add-support-for-the-AXP323.patch
-PATCHFILES += 1106-clk-sunxi-ng-d1-Fix-PLL_AUDIO0-preset.patch
 PATCHFILES += 1107-disable-unused-cores-debug.patch
 PATCHFILES += 1110-pinctrl-sunxi-refactor-pinctrl-variants-into-flags.patch
 PATCHFILES += 1111-pinctrl-sunxi-move-bank-K-register-offset.patch
