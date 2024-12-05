@@ -131,17 +131,17 @@ Rockchip 3566 | Zero-3e          | n/a                                    | n/a 
 Rockchip 3566 | Rock3-C          | works  (ap6256@SDIO)                   | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-B          | works  (iwl7265@PCI-e)                 | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588s| Rock5A           | n/a                                    | works     | not works   | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588s| Rock5C           | n/a                                    | works     | not works   | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588s| NanoPi-M6        | n/a                                    | works     | not works   | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588s| NanoPi-R6S       | n/a                                    | works     | not works   | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588s| OrangePi 5       | n/a                                    | works     | not works   | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588s| OrangePi 5 Pro   | works  (ap6256@SDIO)                   | works     | not works   | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588 | Rock5B           | n/a                                    | works     | not works   | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588 | Orange5 Plus     | n.a                                    | works     | not works   | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588 | NanoPC-T6        | n.a                                    | works     | not works   | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588 | NanoPC-T6-LTS    | n.a                                    | works     | not works   | n/a         | not works                      | missing HDMI CEC              |
-Rockchip 3588 | Rock5 ITX        | n/a                                    | works     | not works   | n/a         | not works                      | missing HDMI                  |
+Rockchip 3588s| Rock5A           | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
+Rockchip 3588s| Rock5C           | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
+Rockchip 3588s| NanoPi-M6        | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
+Rockchip 3588s| NanoPi-R6S       | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
+Rockchip 3588s| OrangePi 5       | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
+Rockchip 3588s| OrangePi 5 Pro   | works  (ap6256@SDIO)                   | works     | works       | n/a         | not works                      | missing HDMI CEC              |
+Rockchip 3588 | Rock5B           | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
+Rockchip 3588 | Orange5 Plus     | n.a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
+Rockchip 3588 | NanoPC-T6        | n.a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
+Rockchip 3588 | NanoPC-T6-LTS    | n.a                                    | works     | works       | n/a         | not works                      | missing HDMI CEC              |
+Rockchip 3588 | Rock5 ITX        | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI                  |
 Amlogic s905  | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | not tested| works       | WiP         | not works (firmware issue)     | support stalled               |
 Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | not tested| works       | n/a         | not works (firmware issue)     | support stalled               |
 Amlogic sm1   | X96-Air          | works  (rtl8189@SDIO)                  | not tested| works       | WiP         | not works (firmware issue)     | support stalled               |
@@ -170,9 +170,9 @@ Allwinner H616   | TanixTX6s, OrangePI-Zero2                    | cedrus(6)/v4l2
 Allwinner H618   | Vontar H618, OrangePI-Zero3, OrangePI-Zero2W | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
 Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
 Rockchip 3399    | RockPi4, RockPi4SE, OrangePi4-LTS            | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF    | Good playback, wyaland gives black.screen
-Rockchip 3566    | X96-x6, Quartz64B, UrvePi, OrangePi3B, Rock3C| hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3568    | Rock3-A, Rock3-B                             | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3588    | Rock5A, Rock5B, OrangePi5, OrangePi5Plus     | hantro(7,10)/v4l2_request             | MPEG2, H.264, VP8 (8)                      | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
+Rockchip 3566    | X96-x6, Quartz64B, UrvePi, OrangePi3B, Rock3C| hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8 (8)                | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
+Rockchip 3568    | Rock3-A, Rock3-B                             | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8 (8)                | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
+Rockchip 3588    | Rock5A, Rock5B, OrangePi5, OrangePi5Plus     | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8 (8)                | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
 Amlogic s905     | TanixTX3-Mini                                | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, Wayland (2)      | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, limited HEVC on s905w
 Amlogic s912     | Beelink GT1                                  | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
 Amlogic sm1      | X96-Air                                      | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, artefacts on H.264
@@ -193,8 +193,8 @@ Intel D2550      | ION2                                         | VDPAU,VAPPI(11
 - (4) - mythfrontend segfaults in Wayland on this HW
 - (5) - EGLFS and Wayland not working on this HW as legacy Nvidia drivers are not providing EGL nor DRM
 - (6) - hw.video decode with rendering to DRM planes has very dark picture on this HW
-- (7) - rkvdec2 is not yet supported on this SoC
-- (8) - hevc/vp9 is not yet supported on this SoC (due no rkvdec support)
+- (7) - rkvdec2 is currently only partially supported on this SoC so some HEVC content is not decoded properly
+- (8) - vp9 is not yet supported on this SoC (no rkvdec2 vp9 support yet)
 - (9) - hw.video decode with rendering to DRM planes has no OSD (probably Z-order issue)
 - (10) - rendering to DRM Planes gives not visible OSD on this HW
 - (11) - mesa nouveau as of 22.2.0 has issue with VAAPI decode on Nvidia ION1/ION2
