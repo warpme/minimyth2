@@ -281,6 +281,7 @@ PATCHFILES += 1039-drm-rockchip-vop2-Fix-cluster-windows-al.patch
 PATCHFILES += 1040-drm-rockchip-vop2-Fix-the-mixer-alpha-se.patch
 PATCHFILES += 1041-drm-rockchip-vop2-Fix-the-windows-switch.patch
 PATCHFILES += 1042-WIP-Support-subsampled-YUV-color-formats.patch
+PATCHFILES += 1043-phy-rockchip-samsung-hdptx-dont-use-dt-aliases-to-determine-phy-id.patch.patch
 
 PATCHFILES += 1055-ASoC-rockchip-add-machine-driver-for-hdmi-audio.patch
 PATCHFILES += 1056-ASoC-rockchip-hdmi-support-dts-specified-daifmt.patch
@@ -289,10 +290,11 @@ PATCHFILES += 1058-ASoC-rockchip-i2s-tdm-Add-support-for-Digital-Loopba.patch
 PATCHFILES += 1059-ASoC-rockchip-i2s-tdm-Add-support-for-PATHx-controls.patch
 PATCHFILES += 1060-drm-bridge-synopsys-Add-audio-support-for-dw-hdmi-qp.patch
 PATCHFILES += 1061-drm-rockchip-dw_hdmi-Make-sure-dclk-is-enabled-when-set-audio-regs.patch
-#PATCHFILES += 1062-drm-bridge-synopsys-dw-hdmi-qp-fix-wrong-cec-clock.patch
+PATCHFILES += 1062-drm-bridge-synopsys-dw-hdmi-qp-fix-wrong-cec-clock.patch
 PATCHFILES += 1062-phy-rockchip-add-samsung-mipi-dcphy-driver.patch
 PATCHFILES += 1063-drm-rockchip-vop2-two-fixes-for-dsi-enablement.patch
 PATCHFILES += 1064-drm-rockchip-add-driver-for-the-new-dsi2-controller.patch
+PATCHFILES += 1065-phy-rockchip-samsung-hdptx-add-hdmi1-support.patch
 
 PATCHFILES += 1065-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1066-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
@@ -305,6 +307,7 @@ PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-hdmi0-bridge.patch
 PATCHFILES += 1072-arm64-dtsi-rockchip-3588-hdmi-audio-fixup.patch
 PATCHFILES += 1074-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
 PATCHFILES += 1075-arm64-dtsi-rockchip-add-dsi2.patch
+PATCHFILES += 1076-arm64-dtsi-rk3588-add-phy-node-for-hdmi1-tx-port.patch
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
 PATCHFILES += 1082-arm64-dts-rockchip-rk3588-rock5itx-dts-improvements.patch
@@ -317,6 +320,7 @@ PATCHFILES += 1088-arm64-dts-rockchip-orangepi-5-plus-Enable-USB-3.0-ports.patch
 PATCHFILES += 1089-arm64-dts-add-opi5max-dts.patch
 PATCHFILES += 1090-arm64-dts-rockchip-rk3588s-nanopc-r6s-dts-improvements.patch
 PATCHFILES += 1091-arm64-dts-rockchip-rk3588-nanopc-t6-dtsi-improvements.patch
+PATCHFILES += 1092-arm64-dts-rockchip-rk3588-boards-enable-hdmi1.patch
 endif
 #------------------------------------------------------------
 
