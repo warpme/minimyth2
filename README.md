@@ -141,7 +141,7 @@ Rockchip 3588 | Rock5B           | n/a                                    | work
 Rockchip 3588 | Orange5 Plus     | n.a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588 | NanoPC-T6        | n.a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588 | NanoPC-T6-LTS    | n.a                                    | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588 | Rock5 ITX        | n/a                                    | works     | works       | n/a         | not works                      | missing HDMI                  |
+Rockchip 3588 | Rock5 ITX        | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Amlogic s905  | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | not tested| works       | WiP         | not works (firmware issue)     | support stalled               |
 Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | not tested| works       | n/a         | not works (firmware issue)     | support stalled               |
 Amlogic sm1   | X96-Air          | works  (rtl8189@SDIO)                  | not tested| works       | WiP         | not works (firmware issue)     | support stalled               |
