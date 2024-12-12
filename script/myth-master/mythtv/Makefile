@@ -42,7 +42,7 @@ PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
 PATCHFILES += 0105-Minimyth-defaults.patch
 PATCHFILES += 0106-hack-for-correct-perl-bindings-install.patch
 PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
-PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
+# PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
@@ -57,6 +57,8 @@ PATCHFILES += 0116-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
 PATCHFILES += 0117-configure-add-v4l2request-support.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
+# qt6 segfault fix...
+PATCHFILES += 0119-pul984-fix-qt-segfault-by-always-setting-surface-type-to-gl.patch
 
 ifeq (1,1)
 # v4l2_m2m and v4l2_request patches
