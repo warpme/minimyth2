@@ -101,7 +101,6 @@ PATCHFILES += 0536-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
 PATCHFILES += 0537-drm-bridge-synopsys-Fix-CEC-not-working-after-power.patch
 PATCHFILES += 0538-HACK-SW-CEC-implementation-for-H3.patch
 PATCHFILES += 0550-HACK-clk-sunxi-ng-unify-parent-for-HDMI-clocks.patch
-PATCHFILES += 0551-asoc-hdmi-codec-fix-channel-allocation.patch
 PATCHFILES += 0552-asoc-sun4i-i2s-WiP-multi-channel.patch
 PATCHFILES += 0553-media-cedrus-Don-t-CPU-map-source-buffers.patch
 PATCHFILES += 0554-media-Add-NV12-and-P010-AFBC-compressed-formats.patch
