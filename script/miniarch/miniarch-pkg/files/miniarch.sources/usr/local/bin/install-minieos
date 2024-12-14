@@ -13,7 +13,7 @@
 #   -change: rename script to install-minieos; change working dir to .minieos-install
 
 
-ver="1.1"
+ver="1.2"
 
 . /etc/minieos.conf
 
@@ -48,6 +48,24 @@ error() {
     exit 1
 }
 
+show_pacman_run_error() {
+       echo " "
+       echo " "
+       echo "ERROR: Pacman failed with installing requested package(s)"
+       echo " "
+       echo "This might be because of:"
+       echo "  -Your Internet Connection has issues or"
+       echo "  -Requested package(s) are unavaliable"
+       echo "  -There is conflict between old and new package(s) requiring to resolve"
+       echo " "
+       echo "Script will now exit ..."
+       echo " "
+       echo "Please try to fix problem, then test fix with manual install of failing package(s)."
+       echo "If all becomes ok - You may try run this script again ..."
+       echo " "
+       echo " "
+}
+
 disable_all_de() {
     systemctl disable lightdm.service sddm.service gdm.service eos-lxdm-gtk3.service sddm.service 2>/dev/null
 }
@@ -69,11 +87,27 @@ restore_pacman_trust() {
 }
 
 run_unattended_pacman() {
-    echo yes | pacman --noconfirm --needed -S "$@"
+    echo yes | pacman -Sy
+    echo yes | pacman --noconfirm --needed --disable-download-timeout -S "$@"
+    if [ "$?" != "0" ] ; then
+        echo "------------------------------------------"
+        restore_pacman_trust
+        show_pacman_run_error
+        exit 1
+    fi
+    echo "------------------------------------------"
 }
 
 run_unattended_pacman_on_filelist() {
-    echo yes | pacman -S --noconfirm --needed --overwrite \* - < $1
+    #echo yes | pacman -Sy
+    echo yes | pacman -S --noconfirm --needed --disable-download-timeout --overwrite \* - < $1
+    if [ "$?" != "0" ] ; then
+        echo "------------------------------------------"
+        restore_pacman_trust
+        show_pacman_run_error
+        exit 1
+    fi
+    echo "------------------------------------------"
 }
 
 generate_timezone_list() {
@@ -131,7 +165,7 @@ find_keyring() {
     if [ -e $currentkeyring ] ; then
         msg "reusing existing $currentkeyring"
         msg "installing endeavouros-keyring"
-        pacman -U --noconfirm --needed $currentkeyring
+        pacman --noconfirm --needed -U $currentkeyring
     else
         msg "downloading endeavouros-keyring"
         rm -f endeavouros-keyring-*-any.pkg.*
@@ -139,7 +173,7 @@ find_keyring() {
 
         if [ -e endeavouros-keyring-*-any.pkg.* ] ; then
             msg "installing endeavouros-keyring"
-            pacman -U --noconfirm --needed $currentkeyring
+            pacman --noconfirm --needed -U $currentkeyring
         else
             msg "ERROR: can't download $currentkeyring from https://github.com/endeavouros-team/repo/raw/master/endeavouros URL ... Exiting!"
             exit 1
@@ -231,6 +265,7 @@ precheck_setup() {
     local script_directory
     local whiptail_installed
 
+    msg "Starting precheck_setup ...."
     # check where script is installed
     script_directory="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" #for mc syntax highligtning"
     if [[ "$script_directory" == "/home/alarm/"* ]]; then
@@ -269,6 +304,8 @@ precheck_setup() {
     dmesg -n 1
 
     run_unattended_pacman git libnewt wget python3 python-yaml sudo
+
+    msg "precheck_setup ended ok ...."
 }
 
 user_input() {
@@ -466,7 +503,6 @@ Main() {
     find_mirrorlist
     find_keyring
     switch_pacman_trust_all
-    yes|pacman -Syy
     run_unattended_pacman eos-rankmirrors
     eos-rankmirrors --show-orig-list="no"
     base_addons
@@ -478,7 +514,6 @@ Main() {
         config_etc_hosts
         create_alias
     fi
-    yes|pacman -Syy
     touch $INITIAL_SETUP_DONE_FLAG
     desktop_setup
     restore_pacman_trust
