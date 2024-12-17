@@ -55,6 +55,14 @@ msg_done_reboot() {
 
 }
 
+msg_error() {
+    echo " "
+    echo "    Requested command ended with error!"
+    echo "    Please fill GitHub ticket with details of this failed action. Thx in advance!"
+    echo " "
+
+}
+
 if [ x${selection} = "x" ] ; then
 
     echo " "
@@ -82,33 +90,63 @@ case "${selection}" in
 
     1)  echo "initiating pacman keyring & and populateing packages signing keys"
         su root -c "pacman-key --init ; pacman-key --populate archlinuxarm"
-        msg_done ;;
+        if [ "$?" != "0" ] ; then
+            msg_error
+            exit 1
+        else
+            msg_done
+        fi ;;
 
     2)  confirm "full update (pacman -Syu) to ArchLinuxArm codebase"
         su root -c "pacman -Syu ; pacman -Sc"
-        msg_done_reboot ;;
+        if [ "$?" != "0" ] ; then
+            msg_error
+            exit 1
+        else
+            msg_done_reboot
+        fi ;;
 
-    3)  su root -c "pacman --needed -S parted ; /usr/local/bin/install-on-emmc install"
-        echo "You can now poweroff, remove SD card and boot again. System should boot from eMMC ..."
-        msg_done_reboot ;;
+    3)  su root -c "pacman --needed -S parted"
+        if [ "$?" != "0" ] ; then
+            msg_error
+            exit 1
+        else
+            su root -c "/usr/local/bin/install-on-emmc install"
+            if [ "$?" != "0" ] ; then
+                msg_error
+                exit 1
+            fi
+        fi ;;
 
     4)  confirm "to resize rootfs"
         su root -c "pacman --needed -S parted ; /usr/local/bin/resize-rootfs start"
-        msg_done ;;
+        if [ "$?" != "0" ] ; then
+            exit 1
+        else
+            msg_done
+        fi ;;
 
     5)  confirm "updating MiniArch speciffic components"
         su root -c "pacman --needed --overwrite \* --config /etc/pacman-miniarch.conf -Syu"
-        msg_done_reboot ;;
+        if [ "$?" != "0" ] ; then
+            msg_error
+            exit 1
+        else
+            msg_done_reboot
+        fi ;;
 
     6)  confirm "start installing EndevourOS based MiniEOS. This is HIGHLY experimental function and quite FREQUENTLY FAILS. Please not expect too much..."
         su root -c " \
-        pacman --needed -S git openssl libnewt ; \
         mkdir -p /root/.minieos-install ; \
         cp -f /usr/local/bin/install-minieos /root/.minieos-install/ ; \
         cd /root/.minieos-install ; \
         ./install-minieos ; \
         "
-        msg_done_reboot ;;
+        if [ "$?" != "0" ] ; then
+            exit 1
+        else
+            msg_done_reboot
+        fi ;;
 
     *)
         echo "Unknown selction !"
