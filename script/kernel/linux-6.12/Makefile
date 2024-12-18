@@ -324,7 +324,7 @@ endif
 #------------------------------------------------------------
 
 ifeq (1,1)
-#-- Allwinner A523 ------------------------------------------
+#-- Allwinner A523/T527/H728 --------------------------------
 PATCHFILES += 1101-dt-bindings-mfd-x-powers-axp152-Document-AXP323.patch
 PATCHFILES += 1102-mfd-axp20x-ensure-relationship-between-IDs-and-model.patch
 PATCHFILES += 1103-mfd-axp20x-Allow-multiple-regulators.patch
@@ -358,8 +358,13 @@ PATCHFILES += 1133-dt-bindings-rtc-sun6i-Add-Allwinner-A523-support.patch
 PATCHFILES += 1135-dt-bindings-vendor-prefixes-Add-YuzukiHD-name.patch
 PATCHFILES += 1136-dt-bindings-arm-sunxi-Add-Avaota-A1-board.patch
 PATCHFILES += 1137-net-phy-add-Maxio-MAE0621A-phy-driver.patch
-PATCHFILES += 1150-arm64-dts-allwinner-Add-Allwinner-A523-.dtsi-file.patch
-PATCHFILES += 1151-arm64-dts-allwinner-h728-add-x96q-pro-tvbox-plus.patch
+PATCHFILES += 1138-clk-sunxi-ng-add-support-for-A523-T527-gmac1-clocks.patch
+PATCHFILES += 1139-net-ethernet-allwinner-add-gmac200-support.patch
+# dt patches
+PATCHFILES += 1150-arm64-dtsi-allwinner-add-initial-A523-support.patch
+PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-in-A523-dtsi.patch
+PATCHFILES += 1170-arm64-dts-allwinner-h728-add-x96q-pro-tvbox-plus.patch
+PATCHFILES += 1171-arm64-dts-allwinner-h728-x96q-pro-plus-add-gmac1.patch
 endif
 #------------------------------------------------------------
 
