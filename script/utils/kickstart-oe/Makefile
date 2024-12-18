@@ -134,7 +134,9 @@ DISTFILES    = \
 	board-h618.orangepi_zero2w.conf \
 	board-h618.orangepi_zero2w.wks  \
 	board-h728.x96q_pro_plus.conf \
-	board-h728.x96q_pro_plus.wks \
+	board-h728.x96q_pro_plus.wks  \
+	board-t527.orangepi_4a.conf \
+	board-t527.orangepi_4a.wks  \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \
