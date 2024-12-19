@@ -282,24 +282,28 @@ PATCHFILES += 1041-drm-rockchip-vop2-Fix-the-windows-switch.patch
 PATCHFILES += 1042-WIP-Support-subsampled-YUV-color-formats.patch
 PATCHFILES += 1043-phy-rockchip-samsung-hdptx-dont-use-dt-aliases-to-determine-phy-id.patch.patch
 
-PATCHFILES += 1055-ASoC-rockchip-add-machine-driver-for-hdmi-audio.patch
-PATCHFILES += 1056-ASoC-rockchip-hdmi-support-dts-specified-daifmt.patch
-PATCHFILES += 1057-ASoC-rockchip-hdmi-Fix-potential-NULL-point-referenc.patch
-PATCHFILES += 1058-ASoC-rockchip-i2s-tdm-Add-support-for-Digital-Loopba.patch
-PATCHFILES += 1059-ASoC-rockchip-i2s-tdm-Add-support-for-PATHx-controls.patch
-PATCHFILES += 1060-drm-bridge-synopsys-Add-audio-support-for-dw-hdmi-qp.patch
-PATCHFILES += 1061-drm-rockchip-dw_hdmi-Make-sure-dclk-is-enabled-when-set-audio-regs.patch
-PATCHFILES += 1062-drm-bridge-synopsys-dw-hdmi-qp-fix-wrong-cec-clock.patch
-PATCHFILES += 1062-phy-rockchip-add-samsung-mipi-dcphy-driver.patch
-PATCHFILES += 1063-drm-rockchip-vop2-two-fixes-for-dsi-enablement.patch
-PATCHFILES += 1064-drm-rockchip-add-driver-for-the-new-dsi2-controller.patch
-PATCHFILES += 1065-phy-rockchip-samsung-hdptx-add-hdmi1-support.patch
+PATCHFILES += 1044-ASoC-rockchip-add-machine-driver-for-hdmi-audio.patch
+PATCHFILES += 1045-ASoC-rockchip-hdmi-support-dts-specified-daifmt.patch
+PATCHFILES += 1046-ASoC-rockchip-hdmi-Fix-potential-NULL-point-referenc.patch
+PATCHFILES += 1047-ASoC-rockchip-i2s-tdm-Add-support-for-Digital-Loopba.patch
+PATCHFILES += 1048-ASoC-rockchip-i2s-tdm-Add-support-for-PATHx-controls.patch
+PATCHFILES += 1049-drm-bridge-synopsys-Add-audio-support-for-dw-hdmi-qp.patch
+PATCHFILES += 1050-drm-rockchip-dw_hdmi-Make-sure-dclk-is-enabled-when-set-audio-regs.patch
 
-PATCHFILES += 1065-net-ethernet-add-yt6801-gige-pcie-controller.patch
-PATCHFILES += 1066-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
-PATCHFILES += 1067-media-rockchip-add-rkvdec2-driver.patch
-PATCHFILES += 1068-wip-add-hevc-support.patch
-PATCHFILES += 1069-wip-hevc-add-ref-frames-support.patch
+PATCHFILES += 1051-phy-rockchip-add-samsung-mipi-dcphy-driver.patch
+PATCHFILES += 1052-drm-rockchip-vop2-two-fixes-for-dsi-enablement.patch
+PATCHFILES += 1053-drm-rockchip-add-driver-for-the-new-dsi2-controller.patch
+
+PATCHFILES += 1054-phy-rockchip-samsung-hdptx-add-hdmi1-support.patch
+PATCHFILES += 1055-drm-bridge-synopsys-dw-hdmi-qp-fix-wrong-cec-clock-v2.patch
+
+PATCHFILES += 1060-net-ethernet-add-yt6801-gige-pcie-controller.patch
+PATCHFILES += 1061-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
+PATCHFILES += 1062-WIP-iommu-rockchip-add-flush_iotlb_all-ops.patch
+PATCHFILES += 1063-media-rockchip-add-rkvdec2-driver.patch
+PATCHFILES += 1064-media-rkvdec2-add-iommu-support.patch
+PATCHFILES += 1065-wip-add-hevc-support.patch
+PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
 # dt patches
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-hdmi0-bridge.patch
@@ -307,6 +311,7 @@ PATCHFILES += 1072-arm64-dtsi-rockchip-3588-hdmi-audio-fixup.patch
 PATCHFILES += 1074-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
 PATCHFILES += 1075-arm64-dtsi-rockchip-add-dsi2.patch
 PATCHFILES += 1076-arm64-dtsi-rk3588-add-phy-node-for-hdmi1-tx-port.patch
+PATCHFILES += 1077-arm64-dtsi-rkvdec2-add-iommu-support.patch
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
 PATCHFILES += 1082-arm64-dts-rockchip-rk3588-rock5itx-dts-improvements.patch
