@@ -1,11 +1,11 @@
 
 GARNAME      = ipxe
-# v 13092022
-GARVERSION   = 8f5fc161436a020ba65d07f91f62d34f4c22db61
+# v 1.21.1
+GARVERSION   = 988d2c13cdf0f0b4140685af35ced70ac5b3283c
 CATEGORIES   = net
 MASTER_SITES = https://github.com/ipxe/ipxe/archive/
 DISTFILES    = $(GARVERSION).zip
-PATCHFILES   = fix-gcc12-compiling.patch
+PATCHFILES   = fix-gcc12-compiling.patch fix-compile-with-binutils-2.41.patch
 LICENSE      = GPL2
 WORKSRC      = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
 
