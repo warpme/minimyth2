@@ -10,6 +10,7 @@ DISTFILES    = $(MYTHTV_GIT_HASH).zip
 include ../../minimyth.conf.mk
 
 PATCHFILES  =
+
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
@@ -48,12 +49,14 @@ PATCHFILES += 0113-Minimyth-reverse-profiles-in-v4l2-videoprofile.patch
 PATCHFILES += 0114-mythfrontend-settings-set-gui-playback-mode-to-1920x1080-at-first-run.patch
 # hack to get refresh rate changing on drm
 PATCHFILES += 0115-libmythui-mythdrmdevice-add-refresh-change-capability.patch
-# fix deinterlacing when EGL DMAbuf is used
-PATCHFILES += 0116-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
+# fix sometimes non-working 2x di
+PATCHFILES += 0116-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
 # Add v4l2_request support in configure
 PATCHFILES += 0117-configure-add-v4l2request-support.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
+# qt6 segfault fix...
+PATCHFILES += 0119-pul984-fix-qt-segfault-by-always-setting-surface-type-to-gl.patch
 
 ifeq (1,1)
 # v4l2_m2m and v4l2_request patches
@@ -64,13 +67,15 @@ PATCHFILES += 0151-pull929-Prepare-for-planned-V4L2-Request-API-hwaccel-changes.
 # v4l2-request support in ffmpeg (requires also kernel patching)
 PATCHFILES += 0155-ffmpeg-add-v4l2-request-kwiboo-20240805-g5dfc0cc8-hevc-jernej-v3.patch
 # Fix for opposite fields usec in opengl di
-PATCHFILES += 0156-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
+PATCHFILES += 0156-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # make v4l2_request seeking on h264 content working
 PATCHFILES += 0157-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
+# add hw deinterlace filter
+PATCHFILES += 0158-ffmpeg-libavfilter-add-v4l2m2m-deinterlace-filter.patch
 # add initial v4l2_requet av1 support
 PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
-PATCHFILES += 0161-hack-hack-hack-ffmpeg-libavcodec-v4l~m2m-backport-rpi-seek-improvements-v2.patch
+PATCHFILES += 0161-hack-hack-hack-ffmpeg-libavcodec-v4l~m2m-backport-rpi-seek-improvements-v4.patch
 endif
 endif
 
@@ -276,7 +281,7 @@ CONFIGURE_ARGS = \
 	--python="python3" \
 	--enable-silent-cc \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
-	--disable-libdav1d \
+	--enable-libdav1d \
 
 CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
 BUILD_ENV      = $(MYTHTV_BUILD_ENV)
@@ -318,6 +323,11 @@ install-source:
 	@mkdir -p $(DESTDIR)$(MYTHTV_SOURCEDIR)
 	@rm -rf $(DESTDIR)$(MYTHTV_SOURCEDIR)
 	@ln -sf $(PWD)/$(WORKSRC)/mythtv $(DESTDIR)$(MYTHTV_SOURCEDIR)
+	@$(MAKECOOKIE)
+
+pre-configure:
+	@echo 'BRANCH="$(MYTHTV_GARVERSION_SHORT)"' > $(WORKSRC)/mythtv/DESCRIBE
+	@echo 'SOURCE_VERSION="$(MYTHTV_GIT_VERSION)"' >> $(WORKSRC)/mythtv/DESCRIBE
 	@$(MAKECOOKIE)
 
 post-configure:

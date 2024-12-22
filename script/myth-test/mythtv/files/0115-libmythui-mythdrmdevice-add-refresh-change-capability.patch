@@ -1,15 +1,15 @@
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/mythdisplay.cpp mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/mythdisplay.cpp
---- mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/mythdisplay.cpp	2024-03-25 19:32:42.000000000 +0100
-+++ mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/mythdisplay.cpp	2024-03-26 11:01:27.151645246 +0100
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/mythdisplay.cpp mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/mythdisplay.cpp
+--- mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/mythdisplay.cpp	2024-11-25 20:31:24.000000000 +0100
++++ mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/mythdisplay.cpp	2024-11-26 22:12:54.988342672 +0100
 @@ -739,14 +739,17 @@
      }
  
      // No need for change
 -    if ((next == current) && (MythDisplayMode::CompareRates(current.RefreshRate(), targetrate)))
 +    LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("current:new refresh rates: %1:%2 Hz")
-+                                            .arg(currentRate).arg(targetrate));
++                                            .arg(m_currentRate).arg(targetrate));
 +
-+    if ((next == current) && (MythDisplayMode::CompareRates(currentRate, targetrate, 0.01)))
++    if ((next == current) && (MythDisplayMode::CompareRates(m_currentRate, targetrate, 0.01)))
      {
          LOG(VB_GENERAL, LOG_INFO, LOC + QString("Using current mode %1x%2@%3Hz")
 -            .arg(m_resolution.width()).arg(m_resolution.height()).arg(m_refreshRate));
@@ -28,9 +28,9 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-0ad35e97cd65036
      }
 +    else
 +    {
-+        currentRate = targetrate;
++        m_currentRate = targetrate;
 +        LOG(VB_PLAYBACK, LOG_INFO, LOC + QString("Updating current mode to %1x%2@%3Hz")
-+            .arg(m_resolution.width()).arg(m_resolution.height()).arg(currentRate));
++            .arg(m_resolution.width()).arg(m_resolution.height()).arg(m_currentRate));
 +    }
  
      if (next.Resolution() != m_resolution)
@@ -43,10 +43,19 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-0ad35e97cd65036
 +    LOG(VB_GENERAL, LOG_INFO, LOC + QString("Succesfuly switched to %1x%2@%3Hz for video %4x%5")
          .arg(m_resolution.width()).arg(m_resolution.height())
 -        .arg(m_refreshRate, 0, 'f', 3).arg(Size.width()).arg(Size.height()));
-+        .arg(currentRate, 0, 'f', 3).arg(Size.width()).arg(Size.height()));
++        .arg(m_currentRate, 0, 'f', 3).arg(Size.width()).arg(Size.height()));
      PauseForModeSwitch();
      return true;
  }
+@@ -804,7 +813,7 @@
+ 
+ double MythDisplay::GetRefreshRate() const
+ {
+-    return m_refreshRate;
++    return m_currentRate;
+ }
+ 
+ std::chrono::microseconds MythDisplay::GetRefreshInterval(std::chrono::microseconds Fallback) const
 @@ -1140,8 +1149,9 @@
          {
              auto rates = (*it).RefreshRates();
@@ -59,20 +68,20 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-0ad35e97cd65036
              if (rateslist.empty())
                  rateslist.append("Variable rate?");
              LOG(VB_PLAYBACK, LOG_INFO, QString("%1x%2\t%3")
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/mythdisplay.h mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/mythdisplay.h
---- mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/mythdisplay.h	2024-03-25 19:32:42.000000000 +0100
-+++ mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/mythdisplay.h	2024-03-26 11:02:22.444977402 +0100
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/mythdisplay.h mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/mythdisplay.h
+--- mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/mythdisplay.h	2024-11-25 20:31:24.000000000 +0100
++++ mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/mythdisplay.h	2024-11-26 22:16:21.238343381 +0100
 @@ -110,6 +110,7 @@
      MythDisplayMode m_guiMode;
      MythDisplayMode m_videoMode;
      DisplayModeMap  m_overrideVideoModes;
-+    double          currentRate        { 0.0 };
++    double          m_currentRate        { 0.0 };
  };
  
  #endif
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp
---- mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp	2024-03-25 19:32:42.000000000 +0100
-+++ mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp	2024-03-26 11:01:27.151645246 +0100
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp
+--- mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp	2024-11-25 20:31:24.000000000 +0100
++++ mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdisplaydrm.cpp	2024-11-26 22:16:21.238343381 +0100
 @@ -130,12 +130,13 @@
          auto width = mode->m_width;
          auto height = mode->m_height;
@@ -114,9 +123,9 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-0ad35e97cd65036
 -    return m_device->SwitchMode(m_modeMap.value(mode));
 +    return m_device->SwitchMode(m_modeMap.value(mode), m_screen);
  }
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp
---- mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp	2024-03-25 19:32:42.000000000 +0100
-+++ mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp	2024-03-26 11:01:27.151645246 +0100
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp
+--- mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp	2024-11-25 20:31:24.000000000 +0100
++++ mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdrmdevice.cpp	2024-11-26 22:16:21.238343381 +0100
 @@ -648,7 +648,7 @@
   * using the atomic API. The old/non-atomic API *may* work but is untested and
   * realistically not much else is going to work without atomic.
@@ -166,9 +175,9 @@ diff --speed-large-files --no-dereference --minimal -Naur mythtv-0ad35e97cd65036
          }
      }
  #endif
-diff --speed-large-files --no-dereference --minimal -Naur mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdrmdevice.h mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdrmdevice.h
---- mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdrmdevice.h	2024-03-25 19:32:42.000000000 +0100
-+++ mythtv-0ad35e97cd650362aa007bb3ba196f122fee29dc/mythtv/libs/libmythui/platforms/mythdrmdevice.h	2024-03-26 11:01:27.151645246 +0100
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdrmdevice.h mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdrmdevice.h
+--- mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdrmdevice.h	2024-11-25 20:31:24.000000000 +0100
++++ mythtv-3f6def56be5013cdc482f698942e153482e53639/mythtv/libs/libmythui/platforms/mythdrmdevice.h	2024-11-26 22:16:21.238343381 +0100
 @@ -41,7 +41,7 @@
      DRMConn  GetConnector   () const;
      const DRMModes& GetModes() const;
