@@ -63,7 +63,6 @@ ifeq (1,1)
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
 PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
-PATCHFILES += 0151-pull929-Prepare-for-planned-V4L2-Request-API-hwaccel-changes.patch
 # v4l2-request support in ffmpeg (requires also kernel patching)
 PATCHFILES += 0155-ffmpeg-add-v4l2-request-kwiboo-20240805-g5dfc0cc8-hevc-jernej-v3.patch
 # Fix for opposite fields usec in opengl di
