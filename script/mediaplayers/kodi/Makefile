@@ -20,8 +20,6 @@ DISTFILES     = \
 		libdvdread-6.1.3.tar.bz2 \
 		libudfread-1.1.2.tar.gz \
 
-PATCHFILES   += 0000-PR24972-update-to-ffmpeg-7-0.patch
-PATCHFILES   += 0000-PR25467-Fix-use-of-v4l2request-hwdevice.patch
 PATCHFILES   += 0001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
 PATCHFILES   += 0002-WIP-DRMPRIME-deinterlace-filter.patch
 PATCHFILES   += 0003-DVDVideoCodecDRMPRIME-Avoid-exception-with-AV_PIX_FM.patch
@@ -80,8 +78,6 @@ DEPENDS = \
 	X11/libva \
 	xorg/libdrm \
 	xorg/xrandr \
-	wayland/wayland-protocols \
-	wayland/waylandpp \
 	xorg/libxkbcommon \
 
 BUILDDEPS = \
@@ -127,7 +123,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_CEC=ON \
 	-DENABLE_DBUS=OFF \
 	-DENABLE_DVDCSS=OFF \
-	-DENABLE_EGL=ON \
+	-DENABLE_EGL=OFF \
 	-DENABLE_EVENTCLIENTS=OFF \
 	-DENABLE_MICROHTTPD=ON \
 	-DENABLE_MYSQLCLIENT=ON \
