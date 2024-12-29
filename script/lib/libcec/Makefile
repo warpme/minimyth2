@@ -4,6 +4,7 @@ GARVERSION   = 6.0.2
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/Pulse-Eight/libcec/archive/
 DISTFILES    = libcec-$(GARVERSION).tar.gz
+PATCHFILES   = add-support-multiple-dev-cecX-devices.patch
 LICENSE      = GPL2
 
 DESCRIPTION = 
