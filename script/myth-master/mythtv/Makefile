@@ -10,9 +10,6 @@ DISTFILES    = $(MYTHTV_GIT_HASH).zip
 include ../../minimyth.conf.mk
 
 PATCHFILES  =
-
-PATCHFILES += 0000-pull950-external-ffmpeg-update-to-ffmpeg7.1-20241230.patch
-
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
