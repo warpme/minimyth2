@@ -369,7 +369,6 @@ PATCHFILES += 1139-net-ethernet-allwinner-add-gmac200-support.patch
 PATCHFILES += 1150-arm64-dtsi-allwinner-add-initial-A523-support.patch
 PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-in-A523-dtsi.patch
 PATCHFILES += 1170-arm64-dts-allwinner-h728-add-x96q-pro-tvbox-plus.patch
-PATCHFILES += 1171-arm64-dts-allwinner-h728-x96q-pro-plus-add-gmac1.patch
 PATCHFILES += 1172-arm64-dts-allwinner-t527-add-orangepi-4a-dts.patch
 endif
 #------------------------------------------------------------
