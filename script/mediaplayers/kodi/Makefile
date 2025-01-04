@@ -79,6 +79,8 @@ DEPENDS = \
 	xorg/libdrm \
 	xorg/xrandr \
 	xorg/libxkbcommon \
+	wayland/wayland-protocols \
+	wayland/waylandpp \
 
 BUILDDEPS = \
 	lib/flatbuffers \
@@ -123,7 +125,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_CEC=ON \
 	-DENABLE_DBUS=OFF \
 	-DENABLE_DVDCSS=OFF \
-	-DENABLE_EGL=OFF \
+	-DENABLE_EGL=ON \
 	-DENABLE_EVENTCLIENTS=OFF \
 	-DENABLE_MICROHTTPD=ON \
 	-DENABLE_MYSQLCLIENT=ON \
