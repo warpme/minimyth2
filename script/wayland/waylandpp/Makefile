@@ -9,7 +9,7 @@ LICENSE      = MIT
 
 DEPENDS = wayland/wayland-core lib/pugixml
 ifneq ($(DESTIMG),build)
-BUILDDEPS += lib/pugixml wayland/waylandpp
+BUILDDEPS += wayland/wayland-core lib/pugixml wayland/waylandpp
 endif
 
 WORKBLD = $(WORKSRC)_build
