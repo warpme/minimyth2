@@ -67,6 +67,7 @@ DEPENDS = \
 	lib/lzo \
 	lib/rapidjson \
 	lib/spdlog \
+	lib/pcre2 \
 	lib/taglib \
 	lib/tinyxml \
 	lib/tinyxml2 \
