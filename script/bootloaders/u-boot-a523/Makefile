@@ -1,8 +1,9 @@
 
 GARNAME      = u-boot-a523
-GARVERSION   = ac0e972774168fd4541607d8f4877c0ac53ecda8
+GARVERSION   = b66702b9b73894b2ea11da626a2a0c4f6e830097
 CATEGORIES   = kernel
-MASTER_SITES = https://github.com/jernejsk/u-boot/archive/
+# MASTER_SITES = https://github.com/jernejsk/u-boot/archive/
+MASTER_SITES = https://github.com/apritzel/u-boot/archive/
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
@@ -22,8 +23,8 @@ include ../../gar.mk
 include ../../python3/python/package-api.mk
 
 # For forcing given board (usually for testing)
-mm_U-BOOT_BOARD_TYPE = avaota_a1_defconfig
-
+# mm_U-BOOT_BOARD_TYPE = avaota_a1_defconfig
+mm_U-BOOT_BOARD_TYPE = x96q_pro_plus_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
