@@ -11,9 +11,6 @@ include ../../minimyth.conf.mk
 
 PATCHFILES  =
 
-PATCHFILES += 0000-revert-f780bb83-Offset-is-a-reserved-keyword-in-MariaDB10.6.patch
-# PATCHFILES += 0000-revert-f81d273-fix-segfault-at-video-playback-exit.patch
-
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
