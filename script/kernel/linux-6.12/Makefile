@@ -301,7 +301,7 @@ PATCHFILES += 1060-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1061-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 PATCHFILES += 1062-WIP-iommu-rockchip-add-flush_iotlb_all-ops.patch
 PATCHFILES += 1063-media-rockchip-add-rkvdec2-driver.patch
-PATCHFILES += 1064-media-rkvdec2-add-iommu-support.patch
+PATCHFILES += 1064-media-rkvdec2-add-iommu-support-v2.patch
 PATCHFILES += 1065-wip-add-hevc-support.patch
 PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
 # dt patches
