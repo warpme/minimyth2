@@ -1,10 +1,11 @@
 
 GARNAME      = mpv
-# v0.38 17.04.2024
-GARVERSION   = 02254b92dd237f03aa0a151c2a68778c4ea848f9
+# v0.39 23.09.2024
+GARVERSION   = a0fba7be57f3822d967b04f0f6b6d6341e7516e7
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://github.com/mpv-player/mpv/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = stop-building-mpv-desktop.patch
 WORKSRC      = $(WORKDIR)/mpv-$(GARVERSION)
 LICENSE      = GPL2
 
