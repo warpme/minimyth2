@@ -1,4 +1,4 @@
 
-# master, 27.12.2024
-KODI_VERSION      = ceefd7e1e1762a9b0fb4ba627f66a23235567cc0
+# master, 09.01.2025
+KODI_VERSION      = b0bd4a595eede208fbdd403f0676343e54b5124d
 KODI_MASTER_SITES = https://github.com/xbmc/xbmc/archive/
