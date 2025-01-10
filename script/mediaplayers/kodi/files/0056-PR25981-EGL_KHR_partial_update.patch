@@ -1,0 +1,64 @@
+From 67415370fd17eea05e5d93c3e4562c13145d9cee Mon Sep 17 00:00:00 2001
+From: sarbes <sarbes@kodi.tv>
+Date: Sun, 17 Nov 2024 22:47:32 +0100
+Subject: [PATCH] Fix rendering for EGL_KHR_partial_update enabled platforms
+
+---
+ xbmc/guilib/GUIWindowManager.cpp | 5 ++++-
+ xbmc/utils/EGLUtils.cpp          | 9 ++++++---
+ 2 files changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/xbmc/guilib/GUIWindowManager.cpp b/xbmc/guilib/GUIWindowManager.cpp
+index 8d7802e4b672e..4f893c4dd3577 100644
+--- a/xbmc/guilib/GUIWindowManager.cpp
++++ b/xbmc/guilib/GUIWindowManager.cpp
+@@ -43,6 +43,7 @@
+ #include "settings/windows/GUIWindowSettingsCategory.h"
+ #include "settings/windows/GUIWindowSettingsScreenCalibration.h"
+ #include "threads/SingleLock.h"
++#include "utils/Geometry.h"
+ #include "utils/StringUtils.h"
+ #include "utils/URIUtils.h"
+ #include "utils/Variant.h"
+@@ -1367,7 +1368,6 @@ bool CGUIWindowManager::Render()
+     m_tracker.CleanMarkedRegions(10);
+ 
+   CDirtyRegionList dirtyRegions = m_tracker.GetDirtyRegions();
+-  CServiceBroker::GetWinSystem()->SetDirtyRegions(dirtyRegions);
+ 
+   bool hasRendered = false;
+   // If we visualize the regions we will always render the entire viewport
+@@ -1394,6 +1394,9 @@ bool CGUIWindowManager::Render()
+       if (i.IsEmpty())
+         continue;
+ 
++      if (!hasRendered)
++        CServiceBroker::GetWinSystem()->SetDirtyRegions(dirtyRegions);
++
+       CServiceBroker::GetWinSystem()->GetGfxContext().SetScissors(i);
+       RenderPass();
+       hasRendered = true;
+diff --git a/xbmc/utils/EGLUtils.cpp b/xbmc/utils/EGLUtils.cpp
+index 01867354cf363..a7cf808043694 100644
+--- a/xbmc/utils/EGLUtils.cpp
++++ b/xbmc/utils/EGLUtils.cpp
+@@ -667,13 +667,16 @@ void CEGLContextUtils::SetDamagedRegions(const CDirtyRegionList& dirtyRegions)
+   }
+   else
+   {
+-    EGLint height = eglQuerySurface(m_eglDisplay, m_eglSurface, EGL_HEIGHT, &height);
++    EGLint height;
++    eglQuerySurface(m_eglDisplay, m_eglSurface, EGL_HEIGHT, &height);
+     std::vector<Rect> rects;
+     rects.reserve(dirtyRegions.size());
+     for (const auto& region : dirtyRegions)
+     {
+-      rects.push_back({static_cast<EGLint>(region.x1), static_cast<EGLint>(height - region.y2),
+-                       static_cast<EGLint>(region.Width()), static_cast<EGLint>(region.Height())});
++      rects.push_back({static_cast<EGLint>(std::round(region.x1)),
++                       static_cast<EGLint>(std::round(height - region.y2)),
++                       static_cast<EGLint>(std::round(region.Width())),
++                       static_cast<EGLint>(std::round(region.Height()))});
+     }
+     m_eglSetDamageRegionKHR(m_eglDisplay, m_eglSurface, reinterpret_cast<EGLint*>(rects.data()),
+                             rects.size());
