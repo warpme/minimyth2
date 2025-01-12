@@ -1,18 +1,19 @@
 
 GARNAME      = u-boot-h616
-GARVERSION   = 2025.01-rc2
+GARVERSION   = 2025.01
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
 PATCHFILES   = 100-sunsi-add-h616-internal-eth-phy-support.patch
 PATCHFILES  += 101-unreliable-dram.patch
 PATCHFILES  += 102-sunxi-H616-GPU-enable-hack.patch
-PATCHFILES  += 103-sunxi-dram-add-lpddr3-6gbit-support.patch
+# PATCHFILES  += 103-sunxi-dram-add-lpddr3-6gbit-support.patch
 PATCHFILES  += 104-sunxi-add-led-on-at-poweron.patch
 PATCHFILES  += 105-mtd-spi-nor-add-zbit-zb25vq128.patch
 PATCHFILES  += 106-Add-int-phy-eth-H313-h616-with-AC300.patch
 PATCHFILES  += 107-sunxi_mmc-dec-f_max-to-12MHz-to-get-emmc-reliable.patch
 PATCHFILES  += 109-hack-hack-fix-h618-boot-on-uboot2024.07.patch
+PATCHFILES  += 110-h616-fix-ocassionally-dram-size-misdetection.patch
 # boards aditions.
 PATCHFILES  += 150-add-x96-q-lpddr3-defconfig.patch
 PATCHFILES  += 151-add-x96-q-ddr3-defconfig.patch
