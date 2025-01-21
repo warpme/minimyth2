@@ -365,12 +365,14 @@ PATCHFILES += 1136-dt-bindings-arm-sunxi-Add-Avaota-A1-board.patch
 PATCHFILES += 1137-net-phy-add-Maxio-MAE0621A-phy-driver.patch
 PATCHFILES += 1138-clk-sunxi-ng-add-support-for-A523-T527-gmac1-clocks.patch
 PATCHFILES += 1139-net-ethernet-allwinner-add-gmac200-support.patch
+PATCHFILES += 1140-irqchip-sunxi-nmi-Support-Allwinner-A523-NMI-control.patch
 # dt patches
 PATCHFILES += 1150-arm64-dtsi-allwinner-add-initial-A523-support.patch
 PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-in-A523-dtsi.patch
-PATCHFILES += 1152-arm64-dtsi-allwinner-add-mmc1-in-A523-dtsi.patch
+#PATCHFILES += 1152-arm64-dtsi-allwinner-add-mmc1-in-A523-dtsi.patch
 PATCHFILES += 1170-arm64-dts-allwinner-h728-add-x96q-pro-tvbox-plus.patch
 PATCHFILES += 1172-arm64-dts-allwinner-t527-add-orangepi-4a-dts.patch
+PATCHFILES += 1173-arm64-dts-allwinner-a527-add-Radxa-A5E-support.patch
 endif
 #------------------------------------------------------------
 
