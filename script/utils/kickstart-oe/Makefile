@@ -137,6 +137,8 @@ DISTFILES    = \
 	board-h728.x96q_pro_plus.wks  \
 	board-t527.orangepi_4a.conf \
 	board-t527.orangepi_4a.wks  \
+	board-a527.cubie_a5e.conf   \
+	board-a527.cubie_a5e.wks    \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \
