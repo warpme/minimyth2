@@ -369,7 +369,7 @@ PATCHFILES += 1140-irqchip-sunxi-nmi-Support-Allwinner-A523-NMI-control.patch
 # dt patches
 PATCHFILES += 1150-arm64-dtsi-allwinner-add-initial-A523-support.patch
 PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-in-A523-dtsi.patch
-#PATCHFILES += 1152-arm64-dtsi-allwinner-add-mmc1-in-A523-dtsi.patch
+PATCHFILES += 1152-arm64-dtsi-allwinner-add-gmac0-in-A523-dtsi.patch
 PATCHFILES += 1170-arm64-dts-allwinner-h728-add-x96q-pro-tvbox-plus.patch
 PATCHFILES += 1172-arm64-dts-allwinner-t527-add-orangepi-4a-dts.patch
 PATCHFILES += 1173-arm64-dts-allwinner-a527-add-Radxa-A5E-support.patch

@@ -1,58 +1,17 @@
-From 5a8a8dbd857f8c670c15ea482095becfaf622458 Mon Sep 17 00:00:00 2001
-From: Andre Przywara <andre.przywara@arm.com>
-Date: Mon, 20 Jan 2025 01:26:56 +0000
-Subject: [PATCH 29/29] arm64: dts: allwinner: a523: add Radxa A5E support
-
-The Radxa A5E is a development board using the Allwinner A527 SoC, which
-is using the same die as the A523 SoC, just exposing the pins of more
-peripherals (like HDMI or the 2nd MAC). The board features:
-
-  - Allwinner A527/T527 SoC: 8 ARM Cortex-A55 cores, Mali-G57 MC1 GPU
-  - 1GiB/2GiB/4GiB LPDDR4 DRAM
-  - AXP717 + AXP323 PMICs
-  - Raspberry-Pi-2 compatible 40pin GPIO header
-  - 1 USB 2.0 type C port (OTG), also power supply
-  - 1 USB 3.0 type A host port (multiplexed with M.2 slot)
-  - 1 M.2 M-key 2230 slot, with 1 PCIe2.1 lane connected (multiplexed
-    with USB 3.0 port)
-  - MicroSD slot
-  - optional eMMC, 8, 16 or 32GB available
-  - optional on-board 16MiB bootable SPI NOR flash
-  - two 1Gbps Ethernet ports (via MAXIO MAE0621A PHYs)
-  - PoE header for optional supply circuit on one Ethernet port
-  - WiFi 802.11 a/b/g/n/ac/ax (LB-Link BL-M8800DS2 module using AIC8800)
-  - HDMI port
-  - camera and LCD connectors
-  - power supply via USB-C connector (but no PD) or GPIO header pins
-
-This .dts describes the devices as far as we support them at the moment.
-The PMIC rails have been assigned as per the schematics.
-
-Signed-off-by: Andre Przywara <andre.przywara@arm.com>
----
- arch/arm64/boot/dts/allwinner/Makefile        |   1 +
- .../dts/allwinner/sun55i-a527-radxa-a5e.dts   | 292 ++++++++++++++++++
- 2 files changed, 293 insertions(+)
- create mode 100644 arch/arm64/boot/dts/allwinner/sun55i-a527-radxa-a5e.dts
-
-diff --git a/arch/arm64/boot/dts/allwinner/Makefile b/arch/arm64/boot/dts/allwinner/Makefile
-index 983be49ea6e..9d5e14695af 100644
---- a/arch/arm64/boot/dts/allwinner/Makefile
-+++ b/arch/arm64/boot/dts/allwinner/Makefile
-@@ -52,5 +52,6 @@ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h700-anbernic-rg35xx-2024.dtb
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.10/arch/arm64/boot/dts/allwinner/Makefile linux-6.12.10/arch/arm64/boot/dts/allwinner/Makefile
+--- linux-6.12.10/arch/arm64/boot/dts/allwinner/Makefile	2025-01-22 15:45:11.991240492 +0100
++++ linux-6.12.10/arch/arm64/boot/dts/allwinner/Makefile	2025-01-22 15:47:11.944577011 +0100
+@@ -61,5 +61,6 @@
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h700-anbernic-rg35xx-h.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h700-anbernic-rg35xx-plus.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h700-anbernic-rg35xx-sp.dtb
 +dtb-$(CONFIG_ARCH_SUNXI) += sun55i-a527-radxa-a5e.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun55i-h728-x96q-pro-plus.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun55i-t527-orangepi-4a.dtb
- dtb-$(CONFIG_ARCH_SUNXI) += sun55i-t527-avaota-a1.dtb
-diff --git a/arch/arm64/boot/dts/allwinner/sun55i-a527-radxa-a5e.dts b/arch/arm64/boot/dts/allwinner/sun55i-a527-radxa-a5e.dts
-new file mode 100644
-index 00000000000..ae92905378b
---- /dev/null
-+++ b/arch/arm64/boot/dts/allwinner/sun55i-a527-radxa-a5e.dts
-@@ -0,0 +1,292 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.10/arch/arm64/boot/dts/allwinner/sun55i-a527-radxa-a5e.dts linux-6.12.10/arch/arm64/boot/dts/allwinner/sun55i-a527-radxa-a5e.dts
+--- linux-6.12.10/arch/arm64/boot/dts/allwinner/sun55i-a527-radxa-a5e.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.12.10/arch/arm64/boot/dts/allwinner/sun55i-a527-radxa-a5e.dts	2025-01-22 15:15:40.704526515 +0100
+@@ -0,0 +1,365 @@
 +// SPDX-License-Identifier: (GPL-2.0-only OR MIT)
 +// Copyright (C) 2025 Arm Ltd.
 +
@@ -68,10 +27,32 @@ index 00000000000..ae92905378b
 +
 +	aliases {
 +		serial0 = &uart0;
++		mmc0 = &mmc0;
++		mmc1 = &mmc1;
++		mmc2 = &mmc2;
++		ethernet0 = &gmac0;
++		ethernet1 = &gmac1;
++		//ethernet2 = &wlan;
 +	};
 +
 +	chosen {
 +		stdout-path = "serial0:115200n8";
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led-0 {
++			label = "radxa:green:power";
++			gpios = <&r_pio 0 4 GPIO_ACTIVE_LOW>; /* PL4 */
++			linux,default-trigger = "heartbeat";
++		};
++
++		led-1 {
++			label = "radxa:blue:user";
++			gpios = <&r_pio 0 5 GPIO_ACTIVE_LOW>; /* PL5 */
++			linux,default-trigger = "disk-activity";
++		};
 +	};
 +
 +	reg_vcc5v: vcc5v {
@@ -345,6 +326,54 @@ index 00000000000..ae92905378b
 +	usb1_vbus-supply = <&reg_usb_vbus>;
 +	status = "okay";
 +};
--- 
-2.46.0
-
++
++&gmac0 {
++	phy-mode = "rgmii";
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&gmac0_pins_default>;
++	pinctrl-1 = <&gmac0_pins_sleep>;
++	sunxi,phy-clk-type = <0>;
++	tx-delay = <2>;
++	rx-delay = <4>;
++	gmac3v3-supply = <&reg_cldo3>;
++	status = "okay";
++};
++
++&mdio0 {
++	compatible = "allwinner,sunxi-mdio";
++	#address-cells = <1>;
++	#size-cells = <0>;
++	reg = <0x04500048 0x8>;
++	status = "okay";
++
++	gmac0_phy0: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		motorcomm,clk-out-frequency-hz = <125000000>; //not sure here
++		reg = <0x1>;
++		reset-gpios = <&pio 7 8 GPIO_ACTIVE_LOW>; /* PH8 */
++		reset-assert-us = <10000>;
++		reset-deassert-us = <150000>;
++	};
++};
++
++&gmac1 {
++	phy-mode = "rgmii";
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&gmac1_pins_default>;
++	pinctrl-1 = <&gmac1_pins_sleep>;
++	aw,soc-phy25m;
++	tx-delay = <3>;
++	rx-delay = <4>;
++	dwmac3v3-supply = <&reg_cldo3>;
++	status = "okay";
++
++	mdio1: mdio1@1 {
++		gmac1_phy0: ethernet-phy@1 {
++			compatible = "ethernet-phy-ieee802.3-c22";
++			reg = <0x1>;
++			reset-gpios = <&pio 9 16 GPIO_ACTIVE_LOW>; /* PJ16 */
++			reset-assert-us = <10000>;
++			reset-deassert-us = <150000>;
++		};
++	};
++};
