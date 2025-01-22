@@ -264,6 +264,10 @@ ifneq (,$(filter board-t527.orangepi_4a,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-t527.orangepi_4a
 endif
 
+ifneq (,$(filter board-a527.cubie_a5e,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-a527.cubie_a5e
+endif
+
 ifneq (,$(filter board-h618.vontar_h618,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h618.vontar_h618
 endif
