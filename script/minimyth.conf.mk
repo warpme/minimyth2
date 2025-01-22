@@ -131,6 +131,8 @@ mm_SOFTWARE               ?= \
 # 'board-h313.x96_q_lpddr3_v1.3'
 # 'board-h313.tanix_tx1'
 # 'board-h313.tanix_tx1_v1.2'
+# 'board-a527.cubie_a5e'
+# 'board-t527.orangepi_4a'
 # 'board-x86pc.bios'
 # 'board-x86pc.efi64'
 # 'board-x86pc.bios_efi64'
