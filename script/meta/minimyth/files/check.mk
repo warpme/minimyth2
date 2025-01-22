@@ -414,6 +414,7 @@ mm-all:
 		   [ ! "$${board}" = "board-h618.orangepi_zero3"  ] && \
 		   [ ! "$${board}" = "board-h618.vontar_h618"     ] && \
 		   [ ! "$${board}" = "board-t527.orangepi_4a"     ] && \
+		   [ ! "$${board}" = "board-a527.cubie_a5e"       ] && \
 		   [ ! "$${board}" = "board-h728.x96q_pro_plus"   ] && \
 		   [ ! "$${board}" = "board-h618.orangepi_zero2w" ] && \
 		   [ ! "$${board}" = "board-h313.x96_q"           ] && \
