@@ -55,8 +55,6 @@ PATCHFILES += 0116-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
 PATCHFILES += 0117-configure-add-v4l2request-support.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
-# qt6 segfault fix...
-PATCHFILES += 0119-pul984-fix-qt-segfault-by-always-setting-surface-type-to-gl.patch
 
 ifeq (1,1)
 # v4l2_m2m and v4l2_request patches
