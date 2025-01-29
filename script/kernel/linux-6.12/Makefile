@@ -312,6 +312,7 @@ PATCHFILES += 1074-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
 PATCHFILES += 1075-arm64-dtsi-rockchip-add-dsi2.patch
 PATCHFILES += 1076-arm64-dtsi-rk3588-add-phy-node-for-hdmi1-tx-port.patch
 PATCHFILES += 1077-arm64-dtsi-rkvdec2-add-iommu-support.patch
+PATCHFILES += 1078-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
 PATCHFILES += 1082-arm64-dts-rockchip-rk3588-rock5itx-dts-improvements.patch
