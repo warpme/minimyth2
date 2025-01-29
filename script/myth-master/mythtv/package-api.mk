@@ -20,7 +20,6 @@ MYTHTV_PLUGINS_CONFIGURE_ARGS = \
 	--qmake="$(qtqmake)" \
 	--libdir-name="$(patsubst $(prefix)/%,%,$(libdir))" \
 	--disable-all \
-	--enable-opengl \
 	--enable-cross-compile \
 
 post-install-mythtv-version:
