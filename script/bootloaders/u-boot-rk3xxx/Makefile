@@ -1,9 +1,9 @@
 
 GARNAME      = u-boot-rk3xxx
-# git@ 01.01.2025 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2025.01/
-GARVERSION   = 2f39815bcf9e7a3f8ce14c32b89b548ce29c7349
-# git@ 23.10.2024 https://github.com/rockchip-linux/rkbin/commits/master/
-RKBINVERSION = 7c35e21a8529b3758d1f051d1a5dc62aae934b2b
+# git@ 24.01.2025 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2025.04/
+GARVERSION   = 1defca19499ad772ccdd5869ee0fdd8eb349d54f
+# git@ 19.12.2024 https://github.com/rockchip-linux/rkbin/commits/master/
+RKBINVERSION = 0f8ac860f0479da56a1decae207ddc99e289f2e2
 CATEGORIES   = kernel
 MASTER_SITES = \
                https://github.com/Kwiboo/u-boot-rockchip/archive/ \
@@ -39,7 +39,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = orangepi-5-plus-rk3588_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi-5-rk3588s_defconfig
 # mm_U-BOOT_BOARD_TYPE = orangepi-rk3399_defconfig
-# mm_U-BOOT_BOARD_TYPE = rock-3a-rk3568_defconfig
+mm_U-BOOT_BOARD_TYPE = rock-3a-rk3568_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock-3b-rk3568_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock-3c-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock-4se-rk3399_defconfig
@@ -56,7 +56,7 @@ include ../../python3/python/package-api.mk
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
 ifneq (,$(findstring rk3328,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk33/rk3328_ddr_333MHz_v1.20.bin
+TPL          = ../rkbin/bin/rk33/rk3328_ddr_333MHz_v1.21.bin
 BL31         = ../rkbin/bin/rk33/rk322xh_bl31_v1.49.elf
 MKIMAGE_TYPE = rk3328
 INSTALL_PREF = rk3328
@@ -71,7 +71,7 @@ DDR_BIN      = ${TPL}
 endif
 ifneq (,$(findstring rk3528,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3528_ddr_1056MHz_4BIT_PCB_v1.10.bin
-BL31         = ../rkbin/bin/rk35/rk3528_bl31_v1.17.elf
+BL31         = ../rkbin/bin/rk35/rk3528_bl31_v1.18.elf
 MKIMAGE_TYPE = rk3528
 INSTALL_PREF = rk3528
 DDR_BIN      = ${TPL}
@@ -92,7 +92,7 @@ DDR_BIN      = ${TPL}
 endif
 ifneq (,$(findstring rk3588,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.18.bin
-BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.47.elf
+BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.48.elf
 MKIMAGE_TYPE = rk3588
 INSTALL_PREF = rk3588
 DDR_BIN      = ${TPL}
