@@ -1,7 +1,7 @@
 
 GARNAME      = arm-trusted-firmware-a523
-# 16.01.2025
-GARVERSION   = a0955a9d51c3cff16c93869251682ad020539f04
+# 28.01.2025
+GARVERSION   = b5de74a685fb73b784e45bbbd18dd9a0c528d8b2
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/jernejsk/arm-trusted-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
