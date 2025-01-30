@@ -17,7 +17,6 @@ DEPENDS   = lang/c
 
 CONFIGURE_SCRIPTS   = 
 BUILD_SCRIPTS       = custom
-# INSTALL_SCRIPTS     = syterkit-blob
 
 include ../../gar.mk
 
@@ -32,11 +31,6 @@ build-custom:
 	@cp $(WORKSRC)/build/sun55i_a523/debug/bl31.bin $(DESTDIR)$(libdir)/u-boot/a523/
 	@cd $(WORKDIR); cp -f ../../files/scp.bin $(DESTDIR)$(libdir)/u-boot/a523/
 	@$(MAKECOOKIE)
-
-install-syterkit-blob:
-	@mkdir -p "$(DESTDIR)$(libdir)/u-boot/a523"
-	@cd $(WORKDIR); cp -f ../../files/{bl31.bin,scp.bin} \
-			$(DESTDIR)$(libdir)/u-boot/a523/
 
 clean-all: clean
 	@rm -f $(DESTDIR)$(libdir)/u-boot/a523/{bl31.bin,scp.bin}
