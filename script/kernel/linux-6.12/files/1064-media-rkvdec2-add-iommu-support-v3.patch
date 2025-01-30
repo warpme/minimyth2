@@ -1,10 +1,34 @@
 
-based on https://gitlab.collabora.com/hardware-enablement/rockchip-3588/linux/-/commit/bc47c445bfd9586115e9bcf5f231c5a5c5f0f828
-and https://gitlab.collabora.com/hardware-enablement/rockchip-3588/linux/-/commit/9a9fd791513bc0d02c2242c88f23b41bd47de30a
+code from https://gitlab.collabora.com/detlev/linux/-/commits/add-rkvdec2-driver-iommu
 
+From 96e077ca9e488c96f4cdfa6c23747a4785b49e50 Mon Sep 17 00:00:00 2001
+From: Detlev Casanova <detlev.casanova@collabora.com>
+Date: Thu, 27 Jun 2024 12:39:28 -0400
+Subject: [PATCH] media: rkvdec2: Add iommu support
+
+This allows using all available memory.
+
+The IOMMU is part of the decoder core but can be driven by the rockchip
+iommu driver as a separate device.
+
+The only issue with this is that the IOMMU hardware is reset when the
+decoder is reset because of an error.
+In this case, the IOMMU hardware looses all mappings but the mapped buffer
+still retain their mapped address, cached in the IOMMU and decoder drivers.
+
+To avoid that, when a decoding error occurs, the iommu_flush_iotlb_all
+callback is used on the IOMMU to reconfigure the HW before continuing.
+
+Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
+---
+ .../platform/rockchip/rkvdec2/rkvdec2-h264.c  | 10 ++-
+ .../platform/rockchip/rkvdec2/rkvdec2-regs.h  |  1 +
+ .../media/platform/rockchip/rkvdec2/rkvdec2.c | 90 +++++++++++++++----
+ .../media/platform/rockchip/rkvdec2/rkvdec2.h |  2 +
+ 5 files changed, 105 insertions(+), 20 deletions(-)
 
 diff --git a/drivers/media/platform/rockchip/rkvdec2/rkvdec2-h264.c b/drivers/media/platform/rockchip/rkvdec2/rkvdec2-h264.c
-index 2e991c85d90eb7b6851f60b1bb80b4a25e969007..9f022a16e03edbf61c1601f54a8dfd38c55e9110 100644
+index 2e991c85d90eb..9f022a16e03ed 100644
 --- a/drivers/media/platform/rockchip/rkvdec2/rkvdec2-h264.c
 +++ b/drivers/media/platform/rockchip/rkvdec2/rkvdec2-h264.c
 @@ -718,8 +718,14 @@ static int rkvdec2_h264_run(struct rkvdec2_ctx *ctx)
@@ -24,8 +48,20 @@ index 2e991c85d90eb7b6851f60b1bb80b4a25e969007..9f022a16e03edbf61c1601f54a8dfd38
  
  	/* Start decoding! */
  	writel(RKVDEC2_REG_DEC_E_BIT, rkvdec->regs + RKVDEC2_REG_DEC_E);
+diff --git a/drivers/media/platform/rockchip/rkvdec2/rkvdec2-regs.h b/drivers/media/platform/rockchip/rkvdec2/rkvdec2-regs.h
+index 2a432fc0bf527..7e4a54b5fe948 100644
+--- a/drivers/media/platform/rockchip/rkvdec2/rkvdec2-regs.h
++++ b/drivers/media/platform/rockchip/rkvdec2/rkvdec2-regs.h
+@@ -38,6 +38,7 @@
+ 
+ #define RKVDEC2_REG_STA_INT		0x380
+ #define STA_INT_DEC_RDY_STA		BIT(2)
++#define STA_INT_SOFTRESET_RDY		BIT(9)
+ 
+ /* base: OFFSET_COMMON_REGS */
+ struct rkvdec2_regs_common {
 diff --git a/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c b/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c
-index 852e88fc0ea178effdfe29d6130a2053e25a702f..8b605e2baa2734af3d47bf291206c50ca234cb0a 100644
+index 852e88fc0ea17..85d91e6253b09 100644
 --- a/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c
 +++ b/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c
 @@ -14,6 +14,7 @@
@@ -119,7 +155,46 @@ index 852e88fc0ea178effdfe29d6130a2053e25a702f..8b605e2baa2734af3d47bf291206c50c
  			cpu = dma_alloc_coherent(ctx->dev->dev,
  						 rcb_size,
  						 &dma,
-@@ -1161,17 +1194,12 @@ static int rkvdec2_probe(struct platform_device *pdev)
+@@ -755,6 +788,20 @@ static void rkvdec2_job_finish(struct rkvdec2_ctx *ctx,
+ 
+ 	pm_runtime_mark_last_busy(rkvdec->dev);
+ 	pm_runtime_put_autosuspend(rkvdec->dev);
++
++	/*
++	 * The hw decoder block may reset IOMMU when there is an error,
++	 * flush entire iotlb to reconfigure the IOMMU.
++	 */
++	if (rkvdec->need_reset) {
++		struct iommu_domain *domain;
++
++		domain = iommu_get_domain_for_dev(rkvdec->dev);
++		if (domain)
++			iommu_flush_iotlb_all(domain);
++		rkvdec->need_reset = false;
++	}
++
+ 	rkvdec2_job_finish_no_pm(ctx, result);
+ }
+ 
+@@ -1050,6 +1097,9 @@ static irqreturn_t rkvdec2_irq_handler(int irq, void *priv)
+ 	state = (status & STA_INT_DEC_RDY_STA) ?
+ 		VB2_BUF_STATE_DONE : VB2_BUF_STATE_ERROR;
+ 
++	rkvdec->need_reset = state != VB2_BUF_STATE_DONE ||
++			     (status & STA_INT_SOFTRESET_RDY);
++
+ 	/* Clear interrupt status */
+ 	writel(0, rkvdec->regs + RKVDEC2_REG_STA_INT);
+ 	if (cancel_delayed_work(&rkvdec->watchdog_work)) {
+@@ -1127,6 +1177,7 @@ static int rkvdec2_disable_multicore(struct rkvdec2_dev *rkvdec)
+ static int rkvdec2_probe(struct platform_device *pdev)
+ {
+ 	struct rkvdec2_dev *rkvdec;
++	unsigned int dma_bit_mask = 40;
+ 	unsigned int i;
+ 	int ret, irq;
+ 
+@@ -1161,17 +1212,6 @@ static int rkvdec2_probe(struct platform_device *pdev)
  	if (IS_ERR(rkvdec->regs))
  		return PTR_ERR(rkvdec->regs);
  
@@ -127,95 +202,50 @@ index 852e88fc0ea178effdfe29d6130a2053e25a702f..8b605e2baa2734af3d47bf291206c50c
 -	 * Without IOMMU support, keep DMA in the lower 32 bits.
 -	 */
 -	ret = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
-+	ret = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(40));
- 	if (ret) {
- 		dev_err(&pdev->dev, "Could not set DMA coherent mask.\n");
- 		return ret;
- 	}
- 
+-	if (ret) {
+-		dev_err(&pdev->dev, "Could not set DMA coherent mask.\n");
+-		return ret;
+-	}
+-
 -	vb2_dma_contig_set_max_seg_size(&pdev->dev, DMA_BIT_MASK(32));
 -
  	irq = platform_get_irq(pdev, 0);
  	if (irq <= 0)
  		return -ENXIO;
-@@ -1184,6 +1212,10 @@ static int rkvdec2_probe(struct platform_device *pdev)
+@@ -1184,6 +1224,20 @@ static int rkvdec2_probe(struct platform_device *pdev)
  		return ret;
  	}
  
 +	rkvdec->iommu_domain = iommu_get_domain_for_dev(&pdev->dev);
-+	if (!rkvdec->iommu_domain)
++	if (!rkvdec->iommu_domain) {
++		/* Without iommu, only the lower 32 bits of ram can be used */
++		dma_bit_mask = 32;
++		vb2_dma_contig_set_max_seg_size(&pdev->dev, DMA_BIT_MASK(dma_bit_mask));
 +		dev_info(&pdev->dev, "No IOMMU domain found\n");
++	}
++
++	ret = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(dma_bit_mask));
++	if (ret) {
++		dev_err(&pdev->dev, "Could not set DMA coherent mask.\n");
++		return ret;
++	}
 +
  	rkvdec->sram_pool = of_gen_pool_get(pdev->dev.of_node, "sram", 0);
  	if (!rkvdec->sram_pool)
  		dev_info(&pdev->dev, "No sram node, RCB will be stored in RAM\n");
 diff --git a/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h b/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h
-index 8613051775e9499868680432fdc63fbb831a7601..d1af41290068ff4a551472a59b1d5ac30e2e3b8e 100644
+index 8613051775e94..f46088d1d775e 100644
 --- a/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h
 +++ b/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h
-@@ -101,6 +101,7 @@ struct rkvdec2_dev {
+@@ -101,6 +101,8 @@ struct rkvdec2_dev {
  	struct gen_pool *sram_pool;
  	struct mutex vdev_lock; /* serializes ioctls */
  	struct delayed_work watchdog_work;
 +	struct iommu_domain *iommu_domain;
++	bool need_reset;
  };
  
  struct rkvdec2_ctx {
-diff --git a/drivers/media/platform/rockchip/rkvdec2/rkvdec2-regs.h b/drivers/media/platform/rockchip/rkvdec2/rkvdec2-regs.h
-index 2a432fc0bf52713d29e0a0dccf071ef6094a9628..7e4a54b5fe948c9047894a3503fca4ab470adc97 100644
---- a/drivers/media/platform/rockchip/rkvdec2/rkvdec2-regs.h
-+++ b/drivers/media/platform/rockchip/rkvdec2/rkvdec2-regs.h
-@@ -38,6 +38,7 @@
- 
- #define RKVDEC2_REG_STA_INT		0x380
- #define STA_INT_DEC_RDY_STA		BIT(2)
-+#define STA_INT_SOFTRESET_RDY		BIT(9)
- 
- /* base: OFFSET_COMMON_REGS */
- struct rkvdec2_regs_common {
-diff --git a/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c b/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c
-index 8b605e2baa2734af3d47bf291206c50ca234cb0a..7adc9374f98c98570a3aacde59083f4384476f97 100644
---- a/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c
-+++ b/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c
-@@ -826,6 +826,19 @@ static void rkvdec2_device_run(void *priv)
- 	if (WARN_ON(!desc))
- 		return;
- 
-+	/*
-+	 * The hw decoder block may reset IOMMU when there is an error,
-+	 * flush entire iotlb to reconfigure the IOMMU.
-+	 */
-+	if (rkvdec->flush_iommu) {
-+		struct iommu_domain *domain;
-+
-+		domain = iommu_get_domain_for_dev(rkvdec->dev);
-+		if (domain)
-+			iommu_flush_iotlb_all(domain);
-+		rkvdec->flush_iommu = false;
-+	}
-+
- 	ret = pm_runtime_resume_and_get(rkvdec->dev);
- 	if (ret < 0) {
- 		rkvdec2_job_finish_no_pm(ctx, VB2_BUF_STATE_ERROR);
-@@ -1083,6 +1096,9 @@ static irqreturn_t rkvdec2_irq_handler(int irq, void *priv)
- 	state = (status & STA_INT_DEC_RDY_STA) ?
- 		VB2_BUF_STATE_DONE : VB2_BUF_STATE_ERROR;
- 
-+	if (state == VB2_BUF_STATE_ERROR || (status & STA_INT_SOFTRESET_RDY))
-+		rkvdec->flush_iommu = true;
-+
- 	/* Clear interrupt status */
- 	writel(0, rkvdec->regs + RKVDEC2_REG_STA_INT);
- 	if (cancel_delayed_work(&rkvdec->watchdog_work)) {
-diff --git a/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h b/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h
-index d1af41290068ff4a551472a59b1d5ac30e2e3b8e..77fa62e3124266b6f902b5adc99658f8e56cf5b4 100644
---- a/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h
-+++ b/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h
-@@ -102,6 +102,7 @@ struct rkvdec2_dev {
- 	struct mutex vdev_lock; /* serializes ioctls */
- 	struct delayed_work watchdog_work;
- 	struct iommu_domain *iommu_domain;
-+	bool flush_iommu;
- };
- 
- struct rkvdec2_ctx {
+-- 
+GitLab
+

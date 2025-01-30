@@ -302,7 +302,7 @@ PATCHFILES += 1060-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1061-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 PATCHFILES += 1062-WIP-iommu-rockchip-add-flush_iotlb_all-ops.patch
 PATCHFILES += 1063-media-rockchip-add-rkvdec2-driver.patch
-PATCHFILES += 1064-media-rkvdec2-add-iommu-support-v2.patch
+PATCHFILES += 1064-media-rkvdec2-add-iommu-support-v3.patch
 PATCHFILES += 1065-wip-add-hevc-support.patch
 PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
 # dt patches
@@ -312,7 +312,7 @@ PATCHFILES += 1072-arm64-dtsi-rockchip-3588-hdmi-audio-fixup.patch
 PATCHFILES += 1074-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
 PATCHFILES += 1075-arm64-dtsi-rockchip-add-dsi2.patch
 PATCHFILES += 1076-arm64-dtsi-rk3588-add-phy-node-for-hdmi1-tx-port.patch
-PATCHFILES += 1077-arm64-dtsi-rkvdec2-add-iommu-support.patch
+PATCHFILES += 1077-arm64-dtsi-rkvdec2-add-iommu-support-v3.patch
 PATCHFILES += 1078-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
