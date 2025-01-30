@@ -219,6 +219,7 @@ PATCHFILES += 0804-net-wireless-mm2-fixes-aic8800-usb-v2024_0116_ec460377.patch
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 0832-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
 PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
+PATCHFILES += 0834-arm64-dtsi-rockchip-add-missing-reset-names-for-combphy.patch
 PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
 PATCHFILES += 0840-arm64-dts-rockchip-improve-dts-for-rock3b.patch
 PATCHFILES += 0841-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
