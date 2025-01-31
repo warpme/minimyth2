@@ -1,7 +1,7 @@
 
 GARNAME      = u-boot-a523
-# v30.01.2025
-GARVERSION   = b99f4a9e0778f4f402619d70976537d4833d7eab
+# v31.01.2025
+GARVERSION   = b33d4cd84218482b1715f15400ffb960fd3e7a46
 CATEGORIES   = kernel
 MASTER_SITES = https://github.com/apritzel/u-boot/archive/
 DISTFILES    = $(GARVERSION).zip
