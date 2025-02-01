@@ -1,13 +1,20 @@
 #!/bin/sh
 
-# Script works with 3 commands:
+# Script works in 3 modes:
+#
 #  Mode1: when called with 'install' command:
-#    1.duplicates first rootfs_sise MBytes from boot device to eMMC
-#    2.duplicates bootloader from boot device to eMMC (Allwinner) or updates extlinux.conf (other platforms)
+#    1.duplicates SD card sectors (occupied by partitions) to eMMC
+#    2.installs bootloader to eMMC (for details see Mode3 description)
+#
 #  Mode2: when called with 'erase' command:
 #    1. Erase eMMC by writing zero to first 'erase_areas_size' MBytes of eMMC
+#    2. Erase bootloader by writing zeros to boor0 and boot1 eMMC partitions
+#
 #  Mode3: when called with 'bootloader' command:
-#    1. Duplicates bootloader from boot device to eMMC (Allwinner) or updates extlinux.conf (other platforms)
+#    1. Installs bootloader from SD card </bootloader> dir to eMMC
+#       If SD card hsd no </bootloader> dir, script creates such dir, dumps bootloader
+#       from SD card to this dir then installs bootloader to eMMC boot0 and boot1 partitions.
+#       Next script updates rootfs device number in extlinux.conf to eMMC device
 #
 #
 # safety_margina is mount of extra size beyond 1st + 2nd + 3rd partitions to be
@@ -63,7 +70,7 @@ log_file="/var/log/install-on-emmc.log"
 
 
 
-ver=3.0.1
+ver=4.0
 
 command=$1
 
@@ -208,16 +215,20 @@ update_emmc_bootloader_config() {
     if [ x$1 = "x" ] ; then
         part_no=1
     fi
+ 
     msg "  ==> updating extlinux.conf on eMMC ..."
     do_cmd "partprobe /dev/${emmc_dev}"
     do_cmd "mkdir -p /boot.emmc"
     do_cmd "mount /dev/${emmc_dev}p${part_no} /boot.emmc"
+ 
     if [ -e /boot.emmc/extlinux/extlinux.conf ] ; then
+ 
         sed -e "s|${boot_dev}|${emmc_dev}|g" -i /boot.emmc/extlinux/extlinux.conf
         sync
-        msg "extlinux.conf on eMMC updated successfuly ..."
         do_cmd "umount /boot.emmc"
+ 
     else
+ 
         msg "ERROR: can't update extlinux.conf on eMMC as extlinux.conf is not found."
         msg "You can update extlinux.conf namually by mounting eMMC /BOOT part and"
         msg "updating root=... to root=/dev/${emmc_dev}p2 in extlinux.conf file."
@@ -227,47 +238,92 @@ update_emmc_bootloader_config() {
 }
 
 erase_emmc() {
+
     msg "  ==> erasing eMMC ..."
     do_cmd "dd if=/dev/zero of=/dev/${emmc_dev} bs=1M count=${erase_areas_size} conv=fsync"
+
+    msg "  ==> erasing eMMC bootloader ..."
+    do_cmd "dd if=/dev/zero of=/tmp/file_with_zeros count=2048 conv=fsync"
+
+    write_emmc_bootX 0 "/tmp/file_with_zeros"
+    write_emmc_bootX 1 "/tmp/file_with_zeros"
+
+    do_cmd "rm -f /tmp/file_with_zeros"
+
     sync
 }
 
-write_to_emmc_bootloader_rockchip() {
-    #reasing not works ok so...stopped for now
-    #msg "  ==> erasing old bootloader ..."
-    #do_cmd "dd if=/dev/zero of=/dev/${emmc_dev} seek=64 bs=1048576 count=15"
-    if [ -e /boot/bootloader/idbloader.img ] && [ -e /boot/bootloader/u-boot.itb ] ; then
-        msg "  ==> installing idbloader.img from [/boot/bootloader/] to ${emmc_dev} ..."
-        do_cmd "dd if=/boot/bootloader/idbloader.img of=/dev/${emmc_dev} seek=64"
-        msg "idbloader.img installed to eMMC ..."
-        msg "  ==> installing u-boot.itb from [/boot/bootloader/] to ${emmc_dev} ..."
-        do_cmd "dd if=/boot/bootloader/u-boot.itb of=/dev/${emmc_dev} seek=16384"
-        msg "u-boot.itb installed to eMMC ..."
+write_emmc_bootX() {
+
+    # 1 param: bootX id
+    # 2 param: blob to write
+
+    if [ -e /sys/block/${emmc_dev}boot$1 ] ; then
+
+        log "Executing echo 0 > /sys/block/${emmc_dev}boot$1/force_ro"
+        echo 0 > /sys/block/${emmc_dev}boot$1/force_ro
+        do_cmd "dd if=/dev/zero of=/dev/${emmc_dev}boot$1 count=2048 conv=fsync"
+
+        log "Writing $2 to /sys/block/${emmc_dev}boot$1"
+        do_cmd "dd if=$2 of=/dev/${emmc_dev}boot0 conv=fsync"
     else
-        msg "  ==> no bootloader in [/boot/bootloader] found so copying bootloader from ${boot_dev} to ${emmc_dev} ..."
-        do_cmd "dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1024 count=32760 seek=8 conv=fsync"
+        msg "  ==> no ${emmc_dev}boot$1 part found. Skip writing to it ..."
     fi
 }
 
-write_to_emmc_bootloader_allwinner() {
-        msg "  ==> erasing old bootloader ..."
-        log "Executing echo 0 > /sys/block/${emmc_dev}boot0/force_ro"
-        echo 0 > /sys/block/${emmc_dev}boot0/force_ro
-        do_cmd "dd if=/dev/zero of=/dev/${emmc_dev}boot0 bs=1024 count=2048 conv=fsync"
-        do_cmd "dd if=/dev/zero of=/dev/${emmc_dev} bs=1024 count=2040 seek=8 conv=fsync"
+write_to_emmc_bootloader_rockchip() {
 
-        if [ -e /boot/bootloader/u-boot-sunxi-with-spl.bin ] ; then
-            msg "  ==> installing bootloader from [/boot/bootloader/u-boot-sunxi-with-spl.bin] to ${emmc_dev} ..."
-            do_cmd "dd if=/boot/bootloader/u-boot-sunxi-with-spl.bin of=/dev/${emmc_dev}boot0 conv=fsync"
-            do_cmd "dd if=/boot/bootloader/u-boot-sunxi-with-spl.bin of=/dev/${emmc_dev} bs=1024 seek=8"
-            msg "bootloader installed to eMMC ..."
-        else
-            msg "  ==> no bootloader in [/boot/bootloader] found so copying bootloader from ${boot_dev} to ${emmc_dev} ..."
-            do_cmd "dd if=/dev/${boot_dev} of=/dev/${emmc_dev}boot0 bs=1k count=2048 conv=fsync"
-            do_cmd "dd if=/dev/${boot_dev} of=/dev/${emmc_dev} bs=1k count=2048 conv=fsync"
-            msg "bootloader copied to eMMC ..."
-        fi
+    idbloader_blob="/boot/bootloader/idbloader.img"
+    uboot_blob="/boot/bootloader/u-boot.itb"
+
+    if [ -e ${idbloader_blob} ] ; then
+        msg "  ==> will use idbloader from [/boot/bootloader/] ..."
+    else
+        msg "  ==> no idbloader in [/boot/bootloader]. Will copy from ${boot_dev} ..."
+        do_cmd "mkdir -p /boot/bootloader/"
+        do_cmd "dd if=/dev/${boot_dev} of=${idbloader_blob} count=4031 skip=64 conv=fsync"
+    fi
+
+    if [ -e ${uboot_blob} ] ; then
+        msg "  ==> will use u-boot from [/boot/bootloader/] ..."
+    else
+        msg "  ==> no u-boot in [/boot/bootloader]. Will copy from ${boot_dev} ..."
+        do_cmd "mkdir -p /boot/bootloader/"
+        do_cmd "dd if=/dev/${boot_dev} of=${uboot_blob} count=8191 skip=16384 conv=fsync"
+    fi
+
+    write_emmc_bootX 0 ${idbloader_blob}
+    write_emmc_bootX 1 ${idbloader_blob}
+
+    msg "  ==> installing idbloader ..."
+    do_cmd "dd if=${idbloader_blob} of=/dev/${emmc_dev} seek=64 conv=fsync"
+
+    msg "  ==> installing u-boot ..."
+    do_cmd "dd if=${uboot_blob} of=/dev/${emmc_dev} seek=16384 conv=fsync"
+
+    sync
 }
+
+write_to_emmc_bootloader_allwinner() {
+ 
+    uboot_blob="/boot/bootloader/u-boot-sunxi-with-spl.bin"
+
+    if [ -e ${uboot_blob} ] ; then
+        msg "  ==> will use u-boot from [/boot/bootloader/] ..."
+    else
+        msg "  ==> no u-boot in [/boot/bootloader]. Will copy from ${boot_dev} ..."
+        do_cmd "mkdir -p /boot/bootloader/"
+        do_cmd "dd if=/dev/${boot_dev} of=${uboot_blob} count=4080 skip=16 conv=fsync"
+    fi
+
+    write_emmc_bootX 0 ${uboot_blob}
+    write_emmc_bootX 1 ${uboot_blob}
+
+    msg "  ==> installing u-boot ..."
+    do_cmd "dd if=${uboot_blob} of=/dev/${emmc_dev} bs=1024 seek=8 conv=fsync"
+
+    sync
+ }
 
 write_to_emmc_bootloader() {
 
@@ -398,8 +454,7 @@ if [[ "${command}" =~ "erase" ]] ; then
 elif [[ "${command}" =~ "bootloader" ]] ; then
     is_booted_from_emmc
 
-    confirm "you first installed MiniMyth2/MiniMarch on eMMC"
-    confirm "to install bootloader on eMMC"
+    confirm "to install/update eMMC bootloader"
 
     write_to_emmc_bootloader
 
