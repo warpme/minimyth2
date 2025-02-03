@@ -95,4 +95,5 @@ post-install:
 	@if [ -e $(DESTDIR)$(elibdir64)/libpthread.so.0      ] ; then rm -f $(DESTDIR)$(libdir)/libpthread.so.0      ; ln -sr $(DESTDIR)$(elibdir64)/libpthread.so.0      $(DESTDIR)$(libdir)/libpthread.so.0      ; fi
 	@if [ -e $(DESTDIR)$(elibdir64)/libresolv.so.2       ] ; then rm -f $(DESTDIR)$(libdir)/libresolv.so.2       ; ln -sr $(DESTDIR)$(elibdir64)/libresolv.so.2       $(DESTDIR)$(libdir)/libresolv.so.2       ; fi
 	@if [ -e $(DESTDIR)$(elibdir64)/librt.so.1           ] ; then rm -f $(DESTDIR)$(libdir)/librt.so.1           ; ln -sr $(DESTDIR)$(elibdir64)/librt.so.1           $(DESTDIR)$(libdir)/librt.so.1           ; fi
+	@if [ -e $(DESTDIR)$(elibdir64)/libmvec.so.1         ] ; then rm -f $(DESTDIR)$(libdir)/libmvec.so.1         ; ln -sr $(DESTDIR)$(elibdir64)/libmvec.so.1         $(DESTDIR)$(libdir)/libmvec.so.1         ; fi
 	@$(MAKECOOKIE)
