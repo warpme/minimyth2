@@ -1,26 +1,7 @@
-
-Subject: irqchip/sunxi-nmi: Support Allwinner A523 NMI
- controller
-
-The NMI controller in the Allwinner A523 is almost compatible to the
-previous versions of this IP, but requires the extra bit 31 to be set in
-the enable register to actually report the NMI.
-
-Add a mask to allow such an enable bit to be specified, and add this to
-the per-SoC data structure. As this struct was just for different register
-offsets so far, it was consequently named "reg_offs", which is now no
-longer applicable, so rename this to the more generic "data" on the way.
-
-Also add the respective Allwinner A523 compatible string, and set bit 31
-in its enable mask, to add support for this SoC.
-
-Signed-off-by: Andre Przywara <andre.przywara@arm.com>
-
-
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.10/drivers/irqchip/irq-sunxi-nmi.c linux-6.12.10/drivers/irqchip/irq-sunxi-nmi.c
---- linux-6.12.10/drivers/irqchip/irq-sunxi-nmi.c	2025-01-17 13:41:00.000000000 +0100
-+++ linux-6.12.10/drivers/irqchip/irq-sunxi-nmi.c	2025-01-21 15:48:10.134144886 +0100
-@@ -48,28 +48,36 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.12/drivers/irqchip/irq-sunxi-nmi.c linux-6.12.12/drivers/irqchip/irq-sunxi-nmi.c
+--- linux-6.12.12/drivers/irqchip/irq-sunxi-nmi.c	2025-02-01 18:39:40.000000000 +0100
++++ linux-6.12.12/drivers/irqchip/irq-sunxi-nmi.c	2025-01-23 21:57:08.610725889 +0100
+@@ -48,30 +48,38 @@
  	SUNXI_SRC_TYPE_EDGE_RISING,
  };
  
@@ -48,19 +29,21 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.10/drivers/
  
 -static const struct sunxi_sc_nmi_reg_offs sun9i_reg_offs __initconst = {
 +static const struct sunxi_sc_nmi_data sun9i_data __initconst = {
-+	.ctrl	= SUN9I_NMI_CTRL,
-+	.pend	= SUN9I_NMI_PENDING,
-+	.enable	= SUN9I_NMI_ENABLE,
-+};
-+
-+static const struct sunxi_sc_nmi_data sun55i_a523_data __initconst = {
  	.ctrl	= SUN9I_NMI_CTRL,
  	.pend	= SUN9I_NMI_PENDING,
  	.enable	= SUN9I_NMI_ENABLE,
-+	.enable_val = BIT(31),
  };
  
++static const struct sunxi_sc_nmi_data sun55i_a523_data __initconst = {
++	.ctrl	= SUN9I_NMI_CTRL,
++	.pend	= SUN9I_NMI_PENDING,
++	.enable	= SUN9I_NMI_ENABLE,
++	.enable_val = BIT(31),
++};
++
  static inline void sunxi_sc_nmi_write(struct irq_chip_generic *gc, u32 off,
+ 				      u32 val)
+ {
 @@ -143,7 +151,7 @@
  }
  
@@ -70,17 +53,17 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.10/drivers/
  {
  	struct irq_domain *domain;
  	struct irq_chip_generic *gc;
-@@ -186,26 +194,28 @@
+@@ -186,27 +194,28 @@
  	gc->chip_types[0].chip.irq_unmask	= irq_gc_mask_set_bit;
  	gc->chip_types[0].chip.irq_eoi		= irq_gc_ack_set_bit;
  	gc->chip_types[0].chip.irq_set_type	= sunxi_sc_nmi_set_type;
--	gc->chip_types[0].chip.flags		= IRQCHIP_EOI_THREADED | IRQCHIP_EOI_IF_HANDLED;
+-	gc->chip_types[0].chip.flags		= IRQCHIP_EOI_THREADED | IRQCHIP_EOI_IF_HANDLED |
++	gc->chip_types[0].chip.flags		= IRQCHIP_EOI_THREADED |
++						  IRQCHIP_EOI_IF_HANDLED |
+ 						  IRQCHIP_SKIP_SET_WAKE;
 -	gc->chip_types[0].regs.ack		= reg_offs->pend;
 -	gc->chip_types[0].regs.mask		= reg_offs->enable;
 -	gc->chip_types[0].regs.type		= reg_offs->ctrl;
-+	gc->chip_types[0].chip.flags		= IRQCHIP_EOI_THREADED |
-+						  IRQCHIP_EOI_IF_HANDLED |
-+						  IRQCHIP_SKIP_SET_WAKE;
 +	gc->chip_types[0].regs.ack		= data->pend;
 +	gc->chip_types[0].regs.mask		= data->enable;
 +	gc->chip_types[0].regs.type		= data->ctrl;
@@ -108,7 +91,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.10/drivers/
  
  	irq_set_chained_handler_and_data(irq, sunxi_sc_nmi_handle_irq, domain);
  
-@@ -220,20 +230,27 @@
+@@ -221,20 +230,27 @@
  static int __init sun6i_sc_nmi_irq_init(struct device_node *node,
  					struct device_node *parent)
  {
