@@ -305,6 +305,7 @@ PATCHFILES += 1063-media-rockchip-add-rkvdec2-driver.patch
 PATCHFILES += 1064-media-rkvdec2-add-iommu-support-v3.patch
 PATCHFILES += 1065-wip-add-hevc-support.patch
 PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
+PATCHFILES += 1067-hack-drm-connector-revert-0485a718f-to-fix-oops-at-boot.patch
 # dt patches
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-hdmi0-bridge.patch
