@@ -1,10 +1,11 @@
 
 GARNAME      = u-boot-a523
 # v03.02.2025
-GARVERSION   = a8dcee6cd171517ff9e46e4f7518824952ad600e
-CATEGORIES   = kernel
+GARVERSION   = 2ebdba9bbc547b1b0c84069a6487ece01eb4fdce
 MASTER_SITES = https://github.com/jernejsk/u-boot/archive/
+CATEGORIES   = kernel
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = 01-hack-fix-ddr3l-detection.patch
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
 
