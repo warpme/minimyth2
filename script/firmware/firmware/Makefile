@@ -28,6 +28,7 @@ DEPENDS = \
 	$(if $(filter nouveau, $(mm_GRAPHICS)),firmware/nouveau-firmware) \
 	firmware/edid-firmware \
 	firmware/s9083s-firmware \
+	firmware/rtl8852-firmware \
 
 include ../../gar.mk
 
