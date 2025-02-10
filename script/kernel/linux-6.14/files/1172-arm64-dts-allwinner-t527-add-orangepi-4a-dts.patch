@@ -1,0 +1,387 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.6/arch/arm64/boot/dts/allwinner/Makefile linux-6.12.6/arch/arm64/boot/dts/allwinner/Makefile
+--- linux-6.12.6/arch/arm64/boot/dts/allwinner/Makefile	2024-12-21 14:36:56.636796360 +0100
++++ linux-6.12.6/arch/arm64/boot/dts/allwinner/Makefile	2024-12-20 21:14:46.060046110 +0100
+@@ -62,3 +62,4 @@
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h700-anbernic-rg35xx-plus.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h700-anbernic-rg35xx-sp.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun55i-h728-x96q-pro-plus.dtb
++dtb-$(CONFIG_ARCH_SUNXI) += sun55i-t527-orangepi-4a.dtb
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.6/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts linux-6.12.6/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts
+--- linux-6.12.6/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.12.6/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts	2024-12-21 14:23:11.870107613 +0100
+@@ -0,0 +1,375 @@
++// SPDX-License-Identifier: (GPL-2.0-only OR MIT)
++// Copyright (C) 2024 Arm Ltd.
++
++/dts-v1/;
++
++#include "sun55i-a523.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++
++/ {
++	model = "OrangePi 4A";
++	compatible = "xunlong,orangepi-4a", "allwinner,sun55i-t527";
++
++	aliases {
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	/* For now, until we have mainline components living in SRAM */
++	reserved-memory {
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++
++		/* 128 KiB reserved for Trusted Firmware-A (BL31). */
++		secmon@48000000 {
++			reg = <0x0 0x48000000 0x0 0x20000>;
++			no-map;
++		};
++
++		/* 256 KiB reserved for the SCP. */
++		secmon@48100000 {
++			reg = <0x0 0x48100000 0x0 0x40000>;
++			no-map;
++		};
++	};
++
++	leds: gpio-leds {
++		compatible = "gpio-leds";
++		pinctrl-names = "default";
++		status = "okay";
++
++		status_led@0 {
++			gpios = <&pio 3 20 GPIO_ACTIVE_HIGH>; /* PD20 */
++			label = "status_led";
++			linux,default-trigger = "heartbeat";
++			linux,default-trigger-delay-ms = <0>;
++		};
++	};
++
++	reg_vcc5v: vcc5v {
++		/* board wide 5V supply from the 12V->5V regulator */
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-5v";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++
++	reg_exxt_vbus: exxt-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "exxxxt-vbus";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-enable-ramp-delay = <1000>;
++		gpio = <&r_pio 0 8 GPIO_ACTIVE_HIGH>;
++		regulator-always-on;
++		regulator-boot-on;
++		enable-active-high;
++	};
++
++	reg_usb0_vbus: usb0-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb0-vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-enable-ramp-delay = <1000>;
++		gpio = <&r_pio 0 4 GPIO_ACTIVE_HIGH>;
++		regulator-always-on;
++		regulator-boot-on;
++		enable-active-high;
++	};
++
++	reg_usb1_vbus: usb1-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb1-vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-enable-ramp-delay = <1000>;
++		gpio = <&r_pio 0 12 GPIO_ACTIVE_HIGH>;
++		regulator-always-on;
++		regulator-boot-on;
++		enable-active-high;
++	};
++};
++
++&mmc0 {
++	vmmc-supply = <&reg_cldo3>;
++	vqmmc-supply = <&reg_cldo1>;
++	cd-gpios = <&pio 5 6 (GPIO_ACTIVE_LOW | GPIO_PULL_DOWN)>; /* PF6 */
++	bus-width = <4>;
++	max-frequency = <20000000>;
++	status = "okay";
++};
++
++&pio {
++	vcc-pb-supply = <&reg_cldo3>;
++	vcc-pc-supply = <&reg_cldo1>;
++	vcc-pd-supply = <&reg_dcdc4>;
++	vcc-pe-supply = <&reg_dcdc4>;
++	vcc-pf-supply = <&reg_cldo3>;
++	vcc-pg-supply = <&reg_bldo1>;
++	vcc-ph-supply = <&reg_cldo3>;
++	vcc-pi-supply = <&reg_dcdc4>;
++	vcc-pj-supply = <&reg_dcdc4>;
++	vcc-pk-supply = <&reg_bldo3>;
++};
++
++&r_i2c0 {
++	status = "okay";
++
++	axp717: pmic@35 {
++		compatible = "x-powers,axp717";
++		reg = <0x35>;
++		interrupt-controller;
++		#interrupt-cells = <1>;
++		interrupt-parent = <&nmi_intc>;
++		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
++
++		vin1-supply = <&reg_vcc5v>;
++		vin2-supply = <&reg_vcc5v>;
++		vin3-supply = <&reg_vcc5v>;
++		vin4-supply = <&reg_vcc5v>;
++		aldoin-supply = <&reg_vcc5v>;
++		bldoin-supply = <&reg_vcc5v>;
++		cldoin-supply = <&reg_vcc5v>;
++
++		regulators {
++			/* Supplies the "little" cluster (1.4 GHz cores) */
++			reg_dcdc1: dcdc1 {
++				regulator-always-on;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <1160000>;
++				regulator-name = "vdd-cpu0-3";
++			};
++
++			reg_dcdc2: dcdc2 {
++				regulator-always-on;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <1160000>;
++				regulator-name = "vdd-gpu-sys";
++			};
++
++			reg_dcdc3: dcdc3 {
++				regulator-always-on;
++				regulator-min-microvolt = <1160000>;
++				regulator-max-microvolt = <1160000>;
++				regulator-name = "vdd-dram";
++			};
++
++			reg_dcdc4: dcdc4 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vdd-io";
++			};
++
++			reg_aldo1: aldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "axp2202-aldo1";
++			};
++
++			reg_aldo2: aldo2 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "axp2202-aldo2";
++			};
++
++			reg_aldo3: aldo3 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-pl-pm";
++			};
++
++			reg_aldo4: aldo4 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc-pll-dxco-avcc";
++			};
++
++			reg_bldo1: bldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc-pg-wifi-lvds";
++			};
++
++			reg_bldo2: bldo2 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc-dram-1v8";
++			};
++
++			reg_bldo3: bldo3 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc-cvp-pk-vid1v8";
++			};
++
++			reg_bldo4: bldo4 {
++				regulator-always-on;
++				regulator-min-microvolt = <1200000>;
++				regulator-max-microvolt = <1200000>;
++				regulator-name = "axp2202-bldo4";
++			};
++
++			reg_cldo1: cldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc-pc";
++			};
++
++			reg_cldo2: cldo2 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc-efuse";
++			};
++
++			reg_cldo3: cldo3 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-mmc-eth-codec";
++			};
++
++			reg_cldo4: cldo4 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "axp2202-cldo4";
++			};
++
++			reg_cpusldo: cpusldo {
++				/* supplies the management core */
++				regulator-always-on;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <900000>;
++				regulator-name = "vdd-cpus";
++			};
++		};
++	};
++
++	axp323: pmic@36 {
++		compatible = "x-powers,axp323";
++		reg = <0x36>;
++		#interrupt-cells = <1>;
++		interrupt-controller;
++		interrupt-parent = <&nmi_intc>;
++		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
++		status = "okay";
++
++		vin1-supply = <&reg_vcc5v>;
++		vin2-supply = <&reg_vcc5v>;
++		vin3-supply = <&reg_vcc5v>;
++
++		regulators {
++			/* Supplies the "big" cluster (1.8 GHz cores) */
++			reg_dcdc1_323: dcdc1 {
++				regulator-always-on;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <1160000>;
++				regulator-name = "vdd-cpu4-7";
++			};
++
++			reg_dcdc2_323: dcdc2 {
++				regulator-min-microvolt = <1100000>;
++				regulator-max-microvolt = <1100000>;
++				regulator-name = "axp323-dcdc2";
++			};
++
++			reg_dcdc3_323: dcdc3 {
++				regulator-always-on;
++				regulator-min-microvolt = <1000000>;
++				regulator-max-microvolt = <1000000>;
++				regulator-name = "vdd-npu";
++			};
++	
++			reg_aldo1_323: aldo1 {
++				regulator-name = "axp323-aldo1";
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-always-on;
++			};
++
++			reg_dldo1_323: dldo1 {
++				regulator-name = "axp323-dldo1";
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-always-on;
++			};
++		};
++	};
++};
++
++&r_pio {
++/*
++ * Specifying the supply would create a circular dependency.
++ *
++ *	vcc-pl-supply = <&reg_aldo3>;
++ */
++	vcc-pm-supply = <&reg_aldo3>;
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_pb_pins>;
++	status = "okay";
++};
++
++&ehci0 {
++	drvvbus-supply = <&reg_usb0_vbus>;
++	status = "okay";
++};
++
++&ohci0 {
++	drvvbus-supply = <&reg_usb0_vbus>;
++	status = "okay";
++};
++
++&ehci1 {
++	drvvbus-supply = <&reg_usb1_vbus>;
++	status = "okay";
++};
++
++&ohci1 {
++	drvvbus-supply = <&reg_usb1_vbus>;
++	status = "okay";
++};
++
++&usbphy {
++	status = "okay";
++};
++
++&gmac1 {
++	phy-mode = "rgmii";
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&gmac1_pins_default>;
++	pinctrl-1 = <&gmac1_pins_sleep>;
++	aw,soc-phy25m;
++	tx-delay = <1>;
++	rx-delay = <3>;
++	dwmac3v3-supply = <&reg_cldo3>;
++	phy3v3-supply = <&reg_cldo3>;
++	status = "okay";
++};
++
++&gmac1_phy0 {
++	compatible = "ethernet-phy-ieee802.3-c22";
++	reg = <1>;
++	reset-gpios = <&pio 8 15 GPIO_ACTIVE_LOW>;
++	reset-assert-us = <15000>;
++	reset-deassert-us = <100000>;
++};

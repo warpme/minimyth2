@@ -1,0 +1,39 @@
+From 0f6ca0a85a9b432b5f450ff54390d725dca9383b Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Tue, 24 Dec 2024 01:16:45 +0200
+Subject: [PATCH 16/37] drm/bridge-connector: Sync supported_formats with
+ computed ycbcr_420_allowed
+
+The case of having an HDMI bridge in the pipeline which advertises
+YUV420 capability via its ->supported_formats and a non-HDMI one that
+didn't enable ->ycbcr_420_allowed, is incorrectly handled because
+supported_formats is passed as is to the helper initializing the HDMI
+connector.
+
+Ensure HDMI_COLORSPACE_YUV420 is removed from the bitmask passed to
+drmm_connector_hdmi_init() when connector's ->ycbcr_420_allowed flag
+ends up not being set.
+
+Fixes: 3ced1c687512 ("drm/display: bridge_connector: handle ycbcr_420_allowed")
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/display/drm_bridge_connector.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/gpu/drm/display/drm_bridge_connector.c b/drivers/gpu/drm/display/drm_bridge_connector.c
+index 56f977bbe62d..51a2217b9211 100644
+--- a/drivers/gpu/drm/display/drm_bridge_connector.c
++++ b/drivers/gpu/drm/display/drm_bridge_connector.c
+@@ -601,6 +601,9 @@ struct drm_connector *drm_bridge_connector_init(struct drm_device *drm,
+ 
+ 		bridge = bridge_connector->bridge_hdmi;
+ 
++		if (!connector->ycbcr_420_allowed)
++			supported_formats &= ~BIT(HDMI_COLORSPACE_YUV420);
++
+ 		ret = drmm_connector_hdmi_init(drm, connector,
+ 					       bridge_connector->bridge_hdmi->vendor,
+ 					       bridge_connector->bridge_hdmi->product,
+-- 
+2.46.0
+

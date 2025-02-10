@@ -1,0 +1,52 @@
+From 80b28de8f6b519072a2ac5fd45e3b2e0f6577364 Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Fri, 13 Sep 2024 08:58:26 +0100
+Subject: [PATCH 27/37] watchdog: sunxi_wdt: Add support for Allwinner A523
+
+The Allwinner A523 SoC comes with a watchdog very similar to the ones in
+the previous Allwinner SoCs, but oddly enough moves the first half of its
+registers up by one word. Since we have different offsets for these
+registers across the other SoCs as well, this can simply be modelled by
+just stating the new offsets in our per-SoC struct.
+The rest of the IP is the same as in the D1, although the A523 moves its
+watchdog to a separate MMIO frame, so it's not embedded in the timer
+anymore. The driver can be ignorant of this, because the DT will take
+care of this.
+
+Add a new struct for the A523, specifying the SoC-specific details, and
+tie the new DT compatible string to it.
+
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+---
+ drivers/watchdog/sunxi_wdt.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/drivers/watchdog/sunxi_wdt.c b/drivers/watchdog/sunxi_wdt.c
+index b85354a9958..b6c761acc3d 100644
+--- a/drivers/watchdog/sunxi_wdt.c
++++ b/drivers/watchdog/sunxi_wdt.c
+@@ -236,10 +236,21 @@ static const struct sunxi_wdt_reg sun20i_wdt_reg = {
+ 	.wdt_key_val = 0x16aa0000,
+ };
+ 
++static const struct sunxi_wdt_reg sun55i_wdt_reg = {
++	.wdt_ctrl = 0x0c,
++	.wdt_cfg = 0x10,
++	.wdt_mode = 0x14,
++	.wdt_timeout_shift = 4,
++	.wdt_reset_mask = 0x03,
++	.wdt_reset_val = 0x01,
++	.wdt_key_val = 0x16aa0000,
++};
++
+ static const struct of_device_id sunxi_wdt_dt_ids[] = {
+ 	{ .compatible = "allwinner,sun4i-a10-wdt", .data = &sun4i_wdt_reg },
+ 	{ .compatible = "allwinner,sun6i-a31-wdt", .data = &sun6i_wdt_reg },
+ 	{ .compatible = "allwinner,sun20i-d1-wdt", .data = &sun20i_wdt_reg },
++	{ .compatible = "allwinner,sun55i-a523-wdt", .data = &sun55i_wdt_reg },
+ 	{ /* sentinel */ }
+ };
+ MODULE_DEVICE_TABLE(of, sunxi_wdt_dt_ids);
+-- 
+2.46.0
+

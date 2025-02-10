@@ -1,0 +1,78 @@
+From c4b4ccec69e5a85d088ad070c7e813374d47a847 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Wed, 4 Dec 2024 14:02:57 +0200
+Subject: [PATCH 35/37] [WIP] drm/rockchip: dw_hdmi_qp: Make use of
+ phy_configure()
+
+Stop relying on phy_set_bus_width() workaround to setup the TMDS
+character rate and, instead, use the proper HDMI PHY configuration API
+for this purpose.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../gpu/drm/rockchip/dw_hdmi_qp-rockchip.c    | 27 ++++++++-----------
+ 1 file changed, 11 insertions(+), 16 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+index cebd72bf1ef2..67161922f090 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+@@ -13,6 +13,7 @@
+ #include <linux/module.h>
+ #include <linux/platform_device.h>
+ #include <linux/phy/phy.h>
++#include <linux/phy/phy-hdmi.h>
+ #include <linux/regmap.h>
+ #include <linux/workqueue.h>
+ 
+@@ -71,24 +72,9 @@ static struct rockchip_hdmi_qp *to_rockchip_hdmi_qp(struct drm_encoder *encoder)
+ static void dw_hdmi_qp_rockchip_encoder_enable(struct drm_encoder *encoder)
+ {
+ 	struct rockchip_hdmi_qp *hdmi = to_rockchip_hdmi_qp(encoder);
+-	struct drm_crtc *crtc = encoder->crtc;
+-	unsigned long long rate;
+ 
+ 	/* Unconditionally switch to TMDS as FRL is not yet supported */
+ 	gpiod_set_value(hdmi->enable_gpio, 1);
+-
+-	if (crtc && crtc->state) {
+-		rate = drm_hdmi_compute_mode_clock(&crtc->state->adjusted_mode,
+-						   8, HDMI_COLORSPACE_RGB);
+-		/*
+-		 * FIXME: Temporary workaround to pass pixel clock rate
+-		 * to the PHY driver until phy_configure_opts_hdmi
+-		 * becomes available in the PHY API. See also the related
+-		 * comment in rk_hdptx_phy_power_on() from
+-		 * drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+-		 */
+-		phy_set_bus_width(hdmi->phy, div_u64(rate, 100));
+-	}
+ }
+ 
+ static int
+@@ -96,12 +82,21 @@ dw_hdmi_qp_rockchip_encoder_atomic_check(struct drm_encoder *encoder,
+ 					 struct drm_crtc_state *crtc_state,
+ 					 struct drm_connector_state *conn_state)
+ {
++	struct rockchip_hdmi_qp *hdmi = to_rockchip_hdmi_qp(encoder);
+ 	struct rockchip_crtc_state *s = to_rockchip_crtc_state(crtc_state);
++	union phy_configure_opts phy_cfg = { };
++	int ret;
+ 
+ 	s->output_mode = ROCKCHIP_OUT_MODE_AAAA;
+ 	s->output_type = DRM_MODE_CONNECTOR_HDMIA;
+ 
+-	return 0;
++	phy_cfg.hdmi.tmds_char_rate = conn_state->hdmi.tmds_char_rate;
++
++	ret = phy_configure(hdmi->phy, &phy_cfg);
++	if (ret)
++		drm_err(hdmi, "Failed to configure phy: %d\n", ret);
++
++	return ret;
+ }
+ 
+ static const struct
+-- 
+2.46.0
+

@@ -1,0 +1,106 @@
+From bbbcf41bc6bc70ebb1e1ce0846c17e9a2a20b416 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Thu, 12 Dec 2024 03:35:48 +0200
+Subject: [PATCH 27/37] phy: rockchip: samsung-hdptx: Cleanup internal rate
+ handling
+
+Drop the rate parameter from a bunch of internal helpers and, instead,
+make better use of the newly introduced ->tmds_char_rate driver data.
+
+No functional changes intended.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../phy/rockchip/phy-rockchip-samsung-hdptx.c | 27 ++++++++++---------
+ 1 file changed, 14 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+index c3ec3c3edf33..167fa2acdd3a 100644
+--- a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
++++ b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+@@ -807,14 +807,13 @@ static int rk_hdptx_ropll_tmds_cmn_config(struct rk_hdptx_phy *hdptx,
+ 	return rk_hdptx_post_enable_pll(hdptx);
+ }
+ 
+-static int rk_hdptx_ropll_tmds_mode_config(struct rk_hdptx_phy *hdptx,
+-					   unsigned int rate)
++static int rk_hdptx_ropll_tmds_mode_config(struct rk_hdptx_phy *hdptx)
+ {
+ 	rk_hdptx_multi_reg_write(hdptx, rk_hdtpx_common_sb_init_seq);
+ 
+ 	regmap_write(hdptx->regmap, LNTOP_REG(0200), 0x06);
+ 
+-	if (rate > HDMI14_MAX_RATE / 100) {
++	if (hdptx->tmds_char_rate > HDMI14_MAX_RATE) {
+ 		/* For 1/40 bitrate clk */
+ 		rk_hdptx_multi_reg_write(hdptx, rk_hdtpx_tmds_lntop_highbr_seq);
+ 	} else {
+@@ -831,9 +830,9 @@ static int rk_hdptx_ropll_tmds_mode_config(struct rk_hdptx_phy *hdptx,
+ 	return rk_hdptx_post_enable_lane(hdptx);
+ }
+ 
+-static int rk_hdptx_phy_consumer_get(struct rk_hdptx_phy *hdptx,
+-				     unsigned int rate)
++static int rk_hdptx_phy_consumer_get(struct rk_hdptx_phy *hdptx)
+ {
++	unsigned long rate;
+ 	u32 status;
+ 	int ret;
+ 
+@@ -847,8 +846,9 @@ static int rk_hdptx_phy_consumer_get(struct rk_hdptx_phy *hdptx,
+ 	if (status & HDPTX_O_PLL_LOCK_DONE)
+ 		dev_warn(hdptx->dev, "PLL locked by unknown consumer!\n");
+ 
++	rate = hdptx->tmds_char_rate ?: hdptx->rate;
+ 	if (rate) {
+-		ret = rk_hdptx_ropll_tmds_cmn_config(hdptx, rate);
++		ret = rk_hdptx_ropll_tmds_cmn_config(hdptx, rate / 100);
+ 		if (ret)
+ 			goto dec_usage;
+ 	}
+@@ -890,26 +890,27 @@ static int rk_hdptx_phy_consumer_put(struct rk_hdptx_phy *hdptx, bool force)
+ static int rk_hdptx_phy_power_on(struct phy *phy)
+ {
+ 	struct rk_hdptx_phy *hdptx = phy_get_drvdata(phy);
+-	unsigned int rate = hdptx->tmds_char_rate / 100;
+ 	int ret;
+ 
+-	if (rate == 0) {
++	if (!hdptx->tmds_char_rate) {
+ 		/*
+ 		 * FIXME: Temporary workaround to setup TMDS char rate
+ 		 * from the RK HDMI bridge driver.
+ 		 * Will be removed as soon the switch to the HDMI PHY
+ 		 * configuration API has been completed on both ends.
+ 		 */
+-		rate = phy_get_bus_width(hdptx->phy) & 0xfffffff;
++		hdptx->tmds_char_rate = phy_get_bus_width(hdptx->phy) & 0xfffffff;
++		hdptx->tmds_char_rate *= 100;
+ 	}
+ 
+-	dev_dbg(hdptx->dev, "%s rate=%u bpc=%u\n", __func__, rate, hdptx->bpc);
++	dev_dbg(hdptx->dev, "%s tmds_rate=%lu bpc=%u\n", __func__,
++		hdptx->tmds_char_rate, hdptx->bpc);
+ 
+-	ret = rk_hdptx_phy_consumer_get(hdptx, rate);
++	ret = rk_hdptx_phy_consumer_get(hdptx);
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = rk_hdptx_ropll_tmds_mode_config(hdptx, rate);
++	ret = rk_hdptx_ropll_tmds_mode_config(hdptx);
+ 	if (ret)
+ 		rk_hdptx_phy_consumer_put(hdptx, true);
+ 
+@@ -961,7 +962,7 @@ static int rk_hdptx_phy_clk_prepare(struct clk_hw *hw)
+ {
+ 	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
+ 
+-	return rk_hdptx_phy_consumer_get(hdptx, hdptx->rate / 100);
++	return rk_hdptx_phy_consumer_get(hdptx);
+ }
+ 
+ static void rk_hdptx_phy_clk_unprepare(struct clk_hw *hw)
+-- 
+2.46.0
+

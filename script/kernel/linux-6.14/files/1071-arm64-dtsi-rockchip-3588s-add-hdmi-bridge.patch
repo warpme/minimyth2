@@ -1,0 +1,294 @@
+From 25389a6022b3b4d2e863e5502e49f9175e866089 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Tue, 4 Feb 2025 14:40:07 +0200
+Subject: [PATCH 06/37] [FROM-UPSTREAM] arm64: dts: rockchip: Enable HDMI0 PHY
+ clk provider on RK3588
+
+Since commit c4b09c562086 ("phy: phy-rockchip-samsung-hdptx: Add clock
+provider support"), the HDMI PHY PLL can be used as an alternative and
+more accurate pixel clock source for VOP2 to improve display modes
+handling on RK3588 SoC.
+
+Add the missing #clock-cells property to allow using the clock provider
+functionality of HDMI0 PHY.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Tested-by: FUKAUMI Naoki <naoki@radxa.com>
+Link: https://lore.kernel.org/r/20250204-vop2-hdmi0-disp-modes-v3-4-d71c6a196e58@collabora.com
+Signed-off-by: Heiko Stuebner <heiko@sntech.de>
+(cherry picked from commit d0f17738778c12be629ba77ff00c43c3e9eb8428)
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3588-base.dtsi | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-base.dtsi b/arch/arm64/boot/dts/rockchip/rk3588-base.dtsi
+index 8cfa30837ce7..c2d1f08e55d4 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-base.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588-base.dtsi
+@@ -2812,6 +2812,7 @@ hdptxphy_hdmi0: phy@fed60000 {
+ 		reg = <0x0 0xfed60000 0x0 0x2000>;
+ 		clocks = <&cru CLK_USB2PHY_HDPTXRXPHY_REF>, <&cru PCLK_HDPTX0>;
+ 		clock-names = "ref", "apb";
++		#clock-cells = <0>;
+ 		#phy-cells = <0>;
+ 		resets = <&cru SRST_HDPTX0>, <&cru SRST_P_HDPTX0>,
+ 			 <&cru SRST_HDPTX0_INIT>, <&cru SRST_HDPTX0_CMN>,
+-- 
+2.46.0
+
+From 3044d6fe4581a33fcce20dd7c331e467f74f9791 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Tue, 4 Feb 2025 14:40:08 +0200
+Subject: [PATCH 07/37] [FROM-UPSTREAM] arm64: dts: rockchip: Add HDMI0 PHY PLL
+ clock source to VOP2 on RK3588
+
+VOP2 on RK3588 is able to use the HDMI PHY PLL as an alternative and
+more accurate pixel clock source to improve handling of display modes up
+to 4K@60Hz on video ports 0, 1 and 2.
+
+For now only HDMI0 output is supported, hence add the related PLL clock.
+
+Tested-by: FUKAUMI Naoki <naoki@radxa.com>
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Link: https://lore.kernel.org/r/20250204-vop2-hdmi0-disp-modes-v3-5-d71c6a196e58@collabora.com
+Signed-off-by: Heiko Stuebner <heiko@sntech.de>
+(cherry picked from commit eb4262203d7d85eb7b6f2696816db272e41f5464)
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3588-base.dtsi | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-base.dtsi b/arch/arm64/boot/dts/rockchip/rk3588-base.dtsi
+index c2d1f08e55d4..13146793188c 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-base.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588-base.dtsi
+@@ -1261,14 +1261,16 @@ vop: vop@fdd90000 {
+ 			 <&cru DCLK_VOP1>,
+ 			 <&cru DCLK_VOP2>,
+ 			 <&cru DCLK_VOP3>,
+-			 <&cru PCLK_VOP_ROOT>;
++			 <&cru PCLK_VOP_ROOT>,
++			 <&hdptxphy_hdmi0>;
+ 		clock-names = "aclk",
+ 			      "hclk",
+ 			      "dclk_vp0",
+ 			      "dclk_vp1",
+ 			      "dclk_vp2",
+ 			      "dclk_vp3",
+-			      "pclk_vop";
++			      "pclk_vop",
++			      "pll_hdmiphy0";
+ 		iommus = <&vop_mmu>;
+ 		power-domains = <&power RK3588_PD_VOP>;
+ 		rockchip,grf = <&sys_grf>;
+-- 
+2.46.0
+
+From 8b0b03d5a24adb748bcce13a890fa1fb85509cb0 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Sat, 7 Dec 2024 21:45:12 +0200
+Subject: [PATCH 08/37] arm64: dts: rockchip: Add PHY node for HDMI1 TX port on
+ RK3588
+
+In preparation to enable the second HDMI output port found on RK3588
+SoC, add the related PHY node.  This requires a GRF, hence add the
+dependent node as well.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../arm64/boot/dts/rockchip/rk3588-extra.dtsi | 21 +++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi b/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
+index 4a950907ea6f..8fb5a57a34db 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
+@@ -67,6 +67,11 @@ u2phy1_otg: otg-port {
+ 		};
+ 	};
+ 
++	hdptxphy1_grf: syscon@fd5e4000 {
++		compatible = "rockchip,rk3588-hdptxphy-grf", "syscon";
++		reg = <0x0 0xfd5e4000 0x0 0x100>;
++	};
++
+ 	i2s8_8ch: i2s@fddc8000 {
+ 		compatible = "rockchip,rk3588-i2s-tdm";
+ 		reg = <0x0 0xfddc8000 0x0 0x1000>;
+@@ -399,6 +404,22 @@ sata-port@0 {
+ 		};
+ 	};
+ 
++	hdptxphy1: phy@fed70000 {
++		compatible = "rockchip,rk3588-hdptx-phy";
++		reg = <0x0 0xfed70000 0x0 0x2000>;
++		clocks = <&cru CLK_USB2PHY_HDPTXRXPHY_REF>, <&cru PCLK_HDPTX1>;
++		clock-names = "ref", "apb";
++		#phy-cells = <0>;
++		resets = <&cru SRST_HDPTX1>, <&cru SRST_P_HDPTX1>,
++			 <&cru SRST_HDPTX1_INIT>, <&cru SRST_HDPTX1_CMN>,
++			 <&cru SRST_HDPTX1_LANE>, <&cru SRST_HDPTX1_ROPLL>,
++			 <&cru SRST_HDPTX1_LCPLL>;
++		reset-names = "phy", "apb", "init", "cmn", "lane", "ropll",
++			      "lcpll";
++		rockchip,grf = <&hdptxphy1_grf>;
++		status = "disabled";
++	};
++
+ 	usbdp_phy1: phy@fed90000 {
+ 		compatible = "rockchip,rk3588-usbdp-phy";
+ 		reg = <0x0 0xfed90000 0x0 0x10000>;
+-- 
+2.46.0
+
+From 86b1da660fac80114a8c64cd822dc28baa41de01 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Sat, 7 Dec 2024 21:53:07 +0200
+Subject: [PATCH 09/37] arm64: dts: rockchip: Add HDMI1 node on RK3588
+
+Add support for the second HDMI TX port found on RK3588 SoC.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../arm64/boot/dts/rockchip/rk3588-extra.dtsi | 41 +++++++++++++++++++
+ 1 file changed, 41 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi b/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
+index 8fb5a57a34db..567f8f74c7b3 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
+@@ -140,6 +140,47 @@ i2s10_8ch: i2s@fde00000 {
+ 		status = "disabled";
+ 	};
+ 
++	hdmi1: hdmi@fdea0000 {
++		compatible = "rockchip,rk3588-dw-hdmi-qp";
++		reg = <0x0 0xfdea0000 0x0 0x20000>;
++		clocks = <&cru PCLK_HDMITX1>,
++			 <&cru CLK_HDMITX1_EARC>,
++			 <&cru CLK_HDMITX1_REF>,
++			 <&cru MCLK_I2S6_8CH_TX>,
++			 <&cru CLK_HDMIHDP1>,
++			 <&cru HCLK_VO1>;
++		clock-names = "pclk", "earc", "ref", "aud", "hdp", "hclk_vo1";
++		interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 174 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 175 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 176 IRQ_TYPE_LEVEL_HIGH 0>,
++			     <GIC_SPI 361 IRQ_TYPE_LEVEL_HIGH 0>;
++		interrupt-names = "avp", "cec", "earc", "main", "hpd";
++		phys = <&hdptxphy1>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&hdmim2_tx1_cec &hdmim0_tx1_hpd
++			     &hdmim1_tx1_scl &hdmim1_tx1_sda>;
++		power-domains = <&power RK3588_PD_VO1>;
++		resets = <&cru SRST_HDMITX1_REF>, <&cru SRST_HDMIHDP1>;
++		reset-names = "ref", "hdp";
++		rockchip,grf = <&sys_grf>;
++		rockchip,vo-grf = <&vo1_grf>;
++		status = "disabled";
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			hdmi1_in: port@0 {
++				reg = <0>;
++			};
++
++			hdmi1_out: port@1 {
++				reg = <1>;
++			};
++		};
++	};
++
+ 	pcie3x4: pcie@fe150000 {
+ 		compatible = "rockchip,rk3588-pcie", "rockchip,rk3568-pcie";
+ 		#address-cells = <3>;
+-- 
+2.46.0
+
+From c9545e173e6782a4ea3169e68c709c8373f70ce1 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Sat, 14 Dec 2024 16:39:26 +0200
+Subject: [PATCH 13/37] [WIP] arm64: dts: rockchip: Enable HDMI1 PHY clk
+ provider on RK3588
+
+Since commit c4b09c562086 ("phy: phy-rockchip-samsung-hdptx: Add clock
+provider support"), the HDMI PHY PLL can be used as an alternative and
+more accurate pixel clock source for VOP2 to improve display modes
+handling on RK3588 SoC.
+
+Add the missing #clock-cells property to allow using the clock provider
+functionality of HDMI1 PHY.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi b/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
+index 567f8f74c7b3..ac2d8535141a 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
+@@ -450,6 +450,7 @@ hdptxphy1: phy@fed70000 {
+ 		reg = <0x0 0xfed70000 0x0 0x2000>;
+ 		clocks = <&cru CLK_USB2PHY_HDPTXRXPHY_REF>, <&cru PCLK_HDPTX1>;
+ 		clock-names = "ref", "apb";
++		#clock-cells = <0>;
+ 		#phy-cells = <0>;
+ 		resets = <&cru SRST_HDPTX1>, <&cru SRST_P_HDPTX1>,
+ 			 <&cru SRST_HDPTX1_INIT>, <&cru SRST_HDPTX1_CMN>,
+-- 
+2.46.0
+
+From 8fb00bc6286080c75fe702c3773c73842a560c62 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Sat, 14 Dec 2024 16:41:15 +0200
+Subject: [PATCH 14/37] [WIP] arm64: dts: rockchip: Add HDMI1 PHY PLL clock
+ source to VOP2 on RK3588
+
+VOP2 on RK3588 is able to use the HDMI PHY PLL as an alternative and
+more accurate pixel clock source to improve handling of display modes up
+to 4K@60Hz on video ports 0, 1 and 2.
+
+Add the missing PLL clock source to HDMI1 output port.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../arm64/boot/dts/rockchip/rk3588-extra.dtsi | 21 +++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi b/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
+index ac2d8535141a..7cb9a905d6d5 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588-extra.dtsi
+@@ -513,3 +513,24 @@ pcie30phy: phy@fee80000 {
+ 		status = "disabled";
+ 	};
+ };
++
++&vop {
++	clocks = <&cru ACLK_VOP>,
++		 <&cru HCLK_VOP>,
++		 <&cru DCLK_VOP0>,
++		 <&cru DCLK_VOP1>,
++		 <&cru DCLK_VOP2>,
++		 <&cru DCLK_VOP3>,
++		 <&cru PCLK_VOP_ROOT>,
++		 <&hdptxphy_hdmi0>,
++		 <&hdptxphy1>;
++	clock-names = "aclk",
++		      "hclk",
++		      "dclk_vp0",
++		      "dclk_vp1",
++		      "dclk_vp2",
++		      "dclk_vp3",
++		      "pclk_vop",
++		      "pll_hdmiphy0",
++		      "pll_hdmiphy1";
++};
+-- 
+2.46.0
+

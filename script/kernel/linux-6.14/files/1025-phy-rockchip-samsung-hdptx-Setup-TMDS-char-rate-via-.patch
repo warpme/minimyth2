@@ -1,0 +1,103 @@
+From 6fbb5766633a624d8a1535b2174480cff59b331f Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Wed, 4 Dec 2024 01:53:44 +0200
+Subject: [PATCH 25/37] phy: rockchip: samsung-hdptx: Setup TMDS char rate via
+ phy_configure_opts_hdmi
+
+The current workaround to setup the TMDS character rate relies on the
+unconventional usage of phy_set_bus_width().
+
+Make use of the recently introduced HDMI PHY configuration API for this
+purpose.  The workaround will be dropped as soon as the switch has been
+completed on both ends.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../phy/rockchip/phy-rockchip-samsung-hdptx.c | 44 +++++++++++++++----
+ 1 file changed, 35 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+index f2c815ce5a57..add38e84aa2f 100644
+--- a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
++++ b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+@@ -255,6 +255,9 @@ struct rk_hdptx_phy {
+ 	int nr_clks;
+ 	struct reset_control_bulk_data rsts[RST_MAX];
+ 
++	/* PHY config opts */
++	unsigned long tmds_char_rate;
++
+ 	/* clk provider */
+ 	struct clk_hw hw;
+ 	unsigned long rate;
+@@ -883,18 +886,20 @@ static int rk_hdptx_phy_consumer_put(struct rk_hdptx_phy *hdptx, bool force)
+ static int rk_hdptx_phy_power_on(struct phy *phy)
+ {
+ 	struct rk_hdptx_phy *hdptx = phy_get_drvdata(phy);
+-	int bus_width = phy_get_bus_width(hdptx->phy);
++	unsigned int rate = hdptx->tmds_char_rate / 100;
+ 	int ret;
+ 
+-	/*
+-	 * FIXME: Temporary workaround to pass pixel_clk_rate
+-	 * from the HDMI bridge driver until phy_configure_opts_hdmi
+-	 * becomes available in the PHY API.
+-	 */
+-	unsigned int rate = bus_width & 0xfffffff;
++	if (rate == 0) {
++		/*
++		 * FIXME: Temporary workaround to setup TMDS char rate
++		 * from the RK HDMI bridge driver.
++		 * Will be removed as soon the switch to the HDMI PHY
++		 * configuration API has been completed on both ends.
++		 */
++		rate = phy_get_bus_width(hdptx->phy) & 0xfffffff;
++	}
+ 
+-	dev_dbg(hdptx->dev, "%s bus_width=%x rate=%u\n",
+-		__func__, bus_width, rate);
++	dev_dbg(hdptx->dev, "%s rate=%u\n", __func__, rate);
+ 
+ 	ret = rk_hdptx_phy_consumer_get(hdptx, rate);
+ 	if (ret)
+@@ -914,9 +919,20 @@ static int rk_hdptx_phy_power_off(struct phy *phy)
+ 	return rk_hdptx_phy_consumer_put(hdptx, false);
+ }
+ 
++static int rk_hdptx_phy_configure(struct phy *phy,
++				  union phy_configure_opts *opts)
++{
++	struct rk_hdptx_phy *hdptx = phy_get_drvdata(phy);
++
++	hdptx->tmds_char_rate = opts->hdmi.tmds_char_rate;
++
++	return 0;
++}
++
+ static const struct phy_ops rk_hdptx_phy_ops = {
+ 	.power_on  = rk_hdptx_phy_power_on,
+ 	.power_off = rk_hdptx_phy_power_off,
++	.configure = rk_hdptx_phy_configure,
+ 	.owner	   = THIS_MODULE,
+ };
+ 
+@@ -972,6 +988,16 @@ static int rk_hdptx_phy_clk_set_rate(struct clk_hw *hw, unsigned long rate,
+ {
+ 	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
+ 
++	/*
++	 * The TMDS char rate set via phy_configure(), if any, has
++	 * precedence over the rate provided via clk_set_rate().
++	 */
++	if (hdptx->tmds_char_rate && hdptx->tmds_char_rate != rate) {
++		dev_dbg(hdptx->dev, "Replaced clk_set_rate=%lu with tmds_char_rate=%lu\n",
++			rate, hdptx->tmds_char_rate);
++		rate = hdptx->tmds_char_rate;
++	}
++
+ 	return rk_hdptx_ropll_tmds_cmn_config(hdptx, rate / 100);
+ }
+ 
+-- 
+2.46.0
+

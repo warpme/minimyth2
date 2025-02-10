@@ -1,0 +1,42 @@
+From 165529f44ed655c3ed0ccf8d7c84edef503406c7 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Tue, 17 Dec 2024 16:55:05 +0200
+Subject: [PATCH 20/37] drm/connector: hdmi: Use YUV420 output format as an RGB
+ fallback
+
+Introduce the switch to YUV420 when computing the best output format and
+RGB cannot be supported for a given color depth.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/display/drm_hdmi_state_helper.c | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/gpu/drm/display/drm_hdmi_state_helper.c b/drivers/gpu/drm/display/drm_hdmi_state_helper.c
+index d7a6c0c9ab5a..34f64730e9c5 100644
+--- a/drivers/gpu/drm/display/drm_hdmi_state_helper.c
++++ b/drivers/gpu/drm/display/drm_hdmi_state_helper.c
+@@ -320,15 +320,16 @@ hdmi_compute_format(const struct drm_connector *connector,
+ {
+ 	struct drm_device *dev = connector->dev;
+ 
+-	/*
+-	 * TODO: Add support for YCbCr420 output for HDMI 2.0 capable
+-	 * devices, for modes that only support YCbCr420.
+-	 */
+ 	if (hdmi_try_format_bpc(connector, conn_state, mode, bpc, HDMI_COLORSPACE_RGB)) {
+ 		conn_state->hdmi.output_format = HDMI_COLORSPACE_RGB;
+ 		return 0;
+ 	}
+ 
++	if (hdmi_try_format_bpc(connector, conn_state, mode, bpc, HDMI_COLORSPACE_YUV420)) {
++		conn_state->hdmi.output_format = HDMI_COLORSPACE_YUV420;
++		return 0;
++	}
++
+ 	drm_dbg_kms(dev, "Failed. No Format Supported for that bpc count.\n");
+ 
+ 	return -EINVAL;
+-- 
+2.46.0
+
