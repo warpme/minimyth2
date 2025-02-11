@@ -12,7 +12,7 @@ mm_HOME                   ?= /home/minimyth/minimyth2
 mm_VERSION_MINIMYTH ?=       14.0.0.r789
 
 # The version of Myth to use.
-# Valid values are '32', '33', '34', '35', 'master' and 'test'
+# Valid values are '33', '34', '35', 'master' and 'test'
 mm_MYTH_VERSION           ?= 35
 
 # Lists the software to be included in image.
@@ -307,7 +307,6 @@ mm_USER_SHARE_LIST        ?=
 
 mm_VERSION                ?= $(mm_VERSION_MYTH)-$(mm_VERSION_MINIMYTH)$(mm_VERSION_EXTRA)
 mm_VERSION_MYTH           ?= $(strip \
-                                $(if $(filter 32     ,      $(mm_MYTH_VERSION)),32                            ) \
                                 $(if $(filter 33     ,      $(mm_MYTH_VERSION)),33                            ) \
                                 $(if $(filter 34     ,      $(mm_MYTH_VERSION)),34                            ) \
                                 $(if $(filter 35     ,      $(mm_MYTH_VERSION)),35                            ) \

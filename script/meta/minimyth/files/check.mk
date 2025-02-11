@@ -248,8 +248,7 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_MYTH_VERSION"
-	@if [ ! "$(mm_MYTH_VERSION)" = "32"         ] && \
-	    [ ! "$(mm_MYTH_VERSION)" = "33"         ] && \
+	@if [ ! "$(mm_MYTH_VERSION)" = "33"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "34"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "35"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "master"     ] && \
