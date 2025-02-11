@@ -1,0 +1,114 @@
+diff -Naur mythtv-master-20210518-gc8c226c9b4-old/mythplugins/mythmusic/mythmusic/mythmusic.cpp mythtv-master-20210518-gc8c226c9b4-new/mythplugins/mythmusic/mythmusic/mythmusic.cpp
+--- mythtv-master-20210518-gc8c226c9b4-old/mythplugins/mythmusic/mythmusic/mythmusic.cpp	2021-05-18 16:12:47.289999937 +0200
++++ mythtv-master-20210518-gc8c226c9b4-new/mythplugins/mythmusic/mythmusic/mythmusic.cpp	2021-05-18 16:12:49.576666604 +0200
+@@ -860,13 +860,15 @@
+         "Switch to the radio stream view"), "");
+ 
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+-        "MythMusic Media Handler 1/2"), "", handleCDMedia,
++        "MythMusic Media Handler 1/2"), QT_TRANSLATE_NOOP("MythControls",
++        "MythMusic audio CD"), handleCDMedia,
+         MEDIATYPE_AUDIO | MEDIATYPE_MIXED, QString());
+     QString filt = MetaIO::kValidFileExtensions;
+     filt.replace('|',',');
+     filt.remove('.');
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+-        "MythMusic Media Handler 2/2"), "", handleMedia,
++        "MythMusic Media Handler 2/2"), QT_TRANSLATE_NOOP("MythControls",
++        "MythMusic audio files"), handleMedia,
+         MEDIATYPE_MMUSIC, filt);
+ }
+ 
+diff -Naur mythtv-master-20210518-gc8c226c9b4-old/mythtv/libs/libmythui/mediamonitor.cpp mythtv-master-20210518-gc8c226c9b4-new/mythtv/libs/libmythui/mediamonitor.cpp
+--- mythtv-master-20210518-gc8c226c9b4-old/mythtv/libs/libmythui/mediamonitor.cpp	2021-05-18 16:12:47.373333270 +0200
++++ mythtv-master-20210518-gc8c226c9b4-new/mythtv/libs/libmythui/mediamonitor.cpp	2021-05-18 16:12:49.586666603 +0200
+@@ -706,12 +706,61 @@
+         return;
+     }
+ 
+-
+-    // TODO - Generate a dialog, add buttons for each description,
+-    // if user didn't cancel, selected = handlers.at(choice);
+     int selected = 0;
++    if (handlers.size() > 1)
++    {
++
++        MythMainWindow *win = GetMythMainWindow();
++        if (!win)
++            return;
++
++        MythScreenStack *stack = win->GetMainStack();
++        if (!stack)
++            return;
++
++        // Ignore MENU dialog actions
++        int btnIndex = -2;
++        while (btnIndex < -1)
++        {
++            auto dlg = new MythDialogBox("What to play?", stack, "select handler");
++            if (!dlg->Create())
++            {
++                delete dlg;
++                return;
++            }
++
++            for (QVector<MHData>::const_iterator it = handlers.begin(); it != handlers.end(); ++it)
++                dlg->AddButton(((!it->description.isEmpty()) ? it->description : it->destination));
++
++            dlg->AddButton(tr("Cancel"));
++
++            stack->AddScreen(dlg);
++
++            // Wait in local event loop so events are processed
++            QEventLoop block;
++            connect(dlg,    &MythDialogBox::Closed,
++                    &block, [&](QString, int result) { block.exit(result); });
++
++            // Block until dialog closes
++            btnIndex = block.exec();
++        }
++
++        if (btnIndex < 0)
++        {
++            LOG(VB_MEDIA, LOG_INFO, "User cancelled media handler selection");
++            return;
++        }
++        else
++        {
++            selected = btnIndex;
++            LOG(VB_MEDIA, LOG_NOTICE, QString("User selected '%1'")
++                .arg(handlers.at(selected).destination) );
++        }
++
++    }
+ 
+     handlers.at(selected).callback(pMedia, forcePlayback);
++
+ }
+ 
+ /**
+diff -Naur mythtv-master-20210518-gc8c226c9b4-old/mythtv/libs/libmythbase/mythmedia.cpp mythtv-master-20210518-gc8c226c9b4-new/mythtv/libs/libmythbase/mythmedia.cpp
+--- mythtv-master-20210518-gc8c226c9b4-old/mythtv/libs/libmythbase/mythmedia.cpp	2021-05-18 16:12:46.509999937 +0200
++++ mythtv-master-20210518-gc8c226c9b4-new/mythtv/libs/libmythbase/mythmedia.cpp	2021-05-18 16:12:49.586666603 +0200
+@@ -245,7 +245,7 @@
+         else
+         {
+             LOG(VB_MEDIA, LOG_NOTICE, QString(
+-                    "DetectMediaType(this=0x%1) unknown file type %1")
++                    "DetectMediaType(this=0x%1) unknown file type %2")
+                 .arg(quintptr(this),0,16).arg(it.key()));
+         }
+     }
+diff -Naur mythtv-master-20210518-gc8c226c9b4-old/mythtv/programs/mythfrontend/mythfrontend.cpp mythtv-master-20210518-gc8c226c9b4-new/mythtv/programs/mythfrontend/mythfrontend.cpp
+--- mythtv-master-20210518-gc8c226c9b4-old/mythtv/programs/mythfrontend/mythfrontend.cpp	2021-05-18 16:12:46.346666604 +0200
++++ mythtv-master-20210518-gc8c226c9b4-new/mythtv/programs/mythfrontend/mythfrontend.cpp	2021-05-18 16:12:49.586666603 +0200
+@@ -1682,7 +1682,8 @@
+     REG_MEDIAPLAYER("Internal", QT_TRANSLATE_NOOP("MythControls",
+         "MythTV's native media player."), internal_play_media);
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+-        "MythDVD DVD Media Handler"), "", handleDVDMedia,
++        "MythDVD DVD Media Handler"), QT_TRANSLATE_NOOP("MythControls",
++        "MythDVD media"), handleDVDMedia,
+         MEDIATYPE_DVD, QString());
+     REG_MEDIA_HANDLER(QT_TRANSLATE_NOOP("MythControls",
+         "MythImage Media Handler 1/2"), "", handleGalleryMedia,
