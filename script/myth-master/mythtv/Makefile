@@ -4,7 +4,7 @@
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://github.com/ulmus-scott/mythtv/archive/
+MASTER_SITES = https://github.com/MythTV/mythtv/archive/
 DISTFILES    = $(MYTHTV_GIT_HASH).zip
 
 include ../../minimyth.conf.mk
@@ -111,7 +111,6 @@ PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 # Various mythmusic patches
 PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
 PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
-PATCHFILES += 0407-mythmusic-pull835-support-playing-AudioCD-from-optical-disc-menu.patch
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
