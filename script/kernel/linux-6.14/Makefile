@@ -309,6 +309,7 @@ PATCHFILES += 1086-arm64-dts-rockchip-rk3588s-add-opi5pro-dts.patch
 PATCHFILES += 1087-arm64-dts-rockchip-rk3588s-add-nanopi-m6-dts.patch
 PATCHFILES += 1088-arm64-dts-rockchip-rk3588s-nanopc-r6s-dts-improvements.patch
 PATCHFILES += 1089-arm64-dts-rockchip-rk3588-nanopc-t6-dtsi-improvements.patch
+PATCHFILES += 1090-arm64-dts-rockchip-rk3588-add-rock5t-dt.patch
 #------------------------------------------------------------
 endif
 
