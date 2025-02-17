@@ -138,6 +138,7 @@ Rockchip 3588s| NanoPi-R6S       | n/a                                    | work
 Rockchip 3588s| OrangePi 5       | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| OrangePi 5 Pro   | works  (ap6256@SDIO)                   | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588 | Rock5B           | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588 | Rock5T           | works  (rtl8852@PCI-e)                 | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588 | Orange5 Plus     | n.a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588 | NanoPC-T6        | n.a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588 | NanoPC-T6-LTS    | n.a                                    | works     | works       | n/a         | not works                      | good prospects                |
