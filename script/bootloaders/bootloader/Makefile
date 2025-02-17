@@ -152,6 +152,10 @@ ifneq (,$(filter board-rk3588.rock5-b,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3588.rock5-b
 endif
 
+ifneq (,$(filter board-rk3588.rock5-t,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3588.rock5-t
+endif
+
 ifneq (,$(filter board-rk3588.rock5-itx,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3588.rock5-itx
 endif
