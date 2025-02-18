@@ -1,8 +1,8 @@
 
 GARNAME      = libiconv
-GARVERSION   = 1.16
+GARVERSION   = 1.18
 CATEGORIES   = lib
-MASTER_SITES = https://ftp.gnu.org/pub/gnu/
+MASTER_SITES = https://ftp.gnu.org/pub/gnu/libiconv/
 DISTFILES    = $(DISTNAME).tar.gz
 LICENSE      = GPL
 
