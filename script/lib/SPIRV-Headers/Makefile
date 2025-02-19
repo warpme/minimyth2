@@ -1,9 +1,9 @@
 
-GARNAME      = SPIRV-Headers-vulkan-sdk
-GARVERSION   = 1.3.283.0
+GARNAME      = SPIRV-Headers
+GARVERSION   = 54a521dd130ae1b2f38fef79b09515702d135bdd
 CATEGORIES   = lib
-MASTER_SITES = https://github.com/KhronosGroup/SPIRV-Headers/archive/refs/tags/
-DISTFILES    = vulkan-sdk-$(GARVERSION).tar.gz
+MASTER_SITES = https://github.com/KhronosGroup/SPIRV-Headers/archive/
+DISTFILES    = $(GARVERSION).zip
 LICENSE      = GPL2
 
 DEPENDS = lang/c
