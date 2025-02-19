@@ -1,10 +1,9 @@
 
 GARNAME      = mesa
-GARVERSION   = 24.3.4
+GARVERSION   = 25.0.0
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.gz
-PATCHFILES   = hack-hack-allow-build-with-broken-libclc.patch fix-for-ticket30517.patch
 WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 
 DESCRIPTION = 
@@ -78,7 +77,6 @@ MESON_CONFIGURE_ARGS = \
 	-D vulkan-drivers=amd,intel \
 	-D gallium-opencl=disabled \
 	-D gallium-rusticl=false \
-	-D opencl-spirv=false \
 	-D microsoft-clc=disabled \
 	-D install-intel-clc=false \
 
