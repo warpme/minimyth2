@@ -1,9 +1,9 @@
 
 GARNAME      = SPIRV-Tools
-GARVERSION   = 2024.1
+GARVERSION   = 9fa14b91414994e2bf4d9509b8efc8071f154991
 CATEGORIES   = lib
-MASTER_SITES = https://github.com/KhronosGroup/SPIRV-Tools/archive/refs/tags/
-DISTFILES    = v$(GARVERSION).tar.gz
+MASTER_SITES = https://github.com/KhronosGroup/SPIRV-Tools/archive/
+DISTFILES    = $(GARVERSION).zip
 LICENSE      = GPL2
 
 DEPENDS = lang/c lib/SPIRV-Headers
