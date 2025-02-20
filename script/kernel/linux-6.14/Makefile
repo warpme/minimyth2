@@ -280,7 +280,7 @@ PATCHFILES += 1035-WIP-drm-rockchip-dw_hdmi_qp-Make-use-of-phy_configur.patch
 PATCHFILES += 1036-WIP-drm-rockchip-dw_hdmi_qp-Add-10bpc-and-YUV420-out.patch
 PATCHFILES += 1037-WIP-drm-bridge-dw-hdmi-qp-Enable-10bpc-and-YUV420.patch
 # hdmi audio support
-PATCHFILES += 1040-drm-bridge-synopsys-add-audio-support-for-dw-hdmi-qp.patch
+PATCHFILES += 1040-drm-bridge-synopsys-add-audio-support-for-dw-hdmi-qp-v7.patch
 # cec support
 PATCHFILES += 1045-drm-bridge-synopsys-add-cec-support.patch
 # var additions

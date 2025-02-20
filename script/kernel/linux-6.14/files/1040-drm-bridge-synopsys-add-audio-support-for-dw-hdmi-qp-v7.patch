@@ -1,6 +1,26 @@
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
---- linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2025-02-08 10:38:36.950023005 +0100
-+++ linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2025-02-08 10:37:50.323356178 +0100
+
+From: Sugar Zhang <sugar.zhang@rock-chips.com>
+
+Register the dw-hdmi-qp bridge driver as an HDMI audio codec.
+
+The register values computation functions (for n) are based on the
+downstream driver, as well as the register writing functions.
+
+The driver uses the generic HDMI Codec framework in order to implement
+the HDMI audio support.
+
+Signed-off-by: Sugar Zhang <sugar.zhang@rock-chips.com>
+Reviewed-by: Dmitry Baryshkov <dmitry.baryshkov@linaro.org>
+Tested-by: Quentin Schulz <quentin.schulz@cherry.de>
+Reviewed-by: Robert Foss <rfoss@kernel.org>
+Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c | 489 +++++++++++++++++++
+ 1 file changed, 489 insertions(+)
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc3/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c linux-6.14-rc3/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+--- linux-6.14-rc3/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2025-02-20 11:33:07.481617764 +0100
++++ linux-6.14-rc3/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2025-02-20 11:32:28.448284293 +0100
 @@ -40,6 +40,88 @@
  
  #define SCRAMB_POLL_DELAY_MS	3000
@@ -99,7 +119,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
  };
  
  static void dw_hdmi_qp_write(struct dw_hdmi_qp *hdmi, unsigned int val,
-@@ -91,6 +175,354 @@
+@@ -91,6 +175,346 @@
  	regmap_update_bits(hdmi->regm, reg, mask, data);
  }
  
@@ -109,7 +129,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +}
 +
 +static void dw_hdmi_qp_set_cts_n(struct dw_hdmi_qp *hdmi, unsigned int cts,
-+			   unsigned int n)
++				 unsigned int n)
 +{
 +	/* Set N */
 +	dw_hdmi_qp_mod(hdmi, n, AUDPKT_ACR_N_VALUE, AUDPKT_ACR_CONTROL0);
@@ -117,18 +137,18 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +	/* Set CTS */
 +	if (cts)
 +		dw_hdmi_qp_mod(hdmi, AUDPKT_ACR_CTS_OVR_EN, AUDPKT_ACR_CTS_OVR_EN_MSK,
-+			  AUDPKT_ACR_CONTROL1);
++			       AUDPKT_ACR_CONTROL1);
 +	else
 +		dw_hdmi_qp_mod(hdmi, 0, AUDPKT_ACR_CTS_OVR_EN_MSK,
-+			  AUDPKT_ACR_CONTROL1);
++			       AUDPKT_ACR_CONTROL1);
 +
 +	dw_hdmi_qp_mod(hdmi, AUDPKT_ACR_CTS_OVR_VAL(cts), AUDPKT_ACR_CTS_OVR_VAL_MSK,
-+		  AUDPKT_ACR_CONTROL1);
++		       AUDPKT_ACR_CONTROL1);
 +}
 +
 +static int dw_hdmi_qp_match_tmds_n_table(struct dw_hdmi_qp *hdmi,
-+				   unsigned long pixel_clk,
-+				   unsigned long freq)
++					 unsigned long pixel_clk,
++					 unsigned long freq)
 +{
 +	const struct dw_hdmi_audio_tmds_n *tmds_n = NULL;
 +	int i;
@@ -140,7 +160,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +		}
 +	}
 +
-+	if (tmds_n == NULL)
++	if (!tmds_n)
 +		return -ENOENT;
 +
 +	switch (freq) {
@@ -159,25 +179,17 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +	}
 +}
 +
-+static u64 dw_hdmi_qp_audio_math_diff(unsigned int freq, unsigned int n,
-+				unsigned int pixel_clk)
++static u32 dw_hdmi_qp_audio_math_diff(unsigned int freq, unsigned int n,
++				      unsigned int pixel_clk)
 +{
-+	u64 final, diff;
-+	u64 cts;
++	u64 cts = mul_u32_u32(pixel_clk, n);
 +
-+	final = (u64)pixel_clk * n;
-+
-+	cts = final;
-+	do_div(cts, 128 * freq);
-+
-+	diff = final - (u64)cts * (128 * freq);
-+
-+	return diff;
++	return do_div(cts, 128 * freq);
 +}
 +
 +static unsigned int dw_hdmi_qp_compute_n(struct dw_hdmi_qp *hdmi,
-+				   unsigned long pixel_clk,
-+				   unsigned long freq)
++					 unsigned long pixel_clk,
++					 unsigned long freq)
 +{
 +	unsigned int min_n = DIV_ROUND_UP((128 * freq), 1500);
 +	unsigned int max_n = (128 * freq) / 300;
@@ -194,8 +206,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +	for (n = min_n; n <= max_n; n++) {
 +		u64 diff = dw_hdmi_qp_audio_math_diff(freq, n, pixel_clk);
 +
-+		if (diff < best_diff || (diff == best_diff &&
-+		    abs(n - ideal_n) < best_n_distance)) {
++		if (diff < best_diff ||
++		    (diff == best_diff && abs(n - ideal_n) < best_n_distance)) {
 +			best_n = n;
 +			best_diff = diff;
 +			best_n_distance = abs(best_n - ideal_n);
@@ -205,7 +217,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +		 * The best N already satisfy the audio math, and also be
 +		 * the closest value to ideal N, so just cut the loop.
 +		 */
-+		if ((best_diff == 0) && (abs(n - ideal_n) > best_n_distance))
++		if (best_diff == 0 && (abs(n - ideal_n) > best_n_distance))
 +			break;
 +	}
 +
@@ -213,7 +225,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +}
 +
 +static unsigned int dw_hdmi_qp_find_n(struct dw_hdmi_qp *hdmi, unsigned long pixel_clk,
-+				unsigned long sample_rate)
++				      unsigned long sample_rate)
 +{
 +	int n = dw_hdmi_qp_match_tmds_n_table(hdmi, pixel_clk, sample_rate);
 +
@@ -227,7 +239,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +}
 +
 +static unsigned int dw_hdmi_qp_find_cts(struct dw_hdmi_qp *hdmi, unsigned long pixel_clk,
-+				  unsigned long sample_rate)
++					unsigned long sample_rate)
 +{
 +	const struct dw_hdmi_audio_tmds_cts *tmds_cts = NULL;
 +	int i;
@@ -239,7 +251,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +		}
 +	}
 +
-+	if (tmds_cts == NULL)
++	if (!tmds_cts)
 +		return 0;
 +
 +	switch (sample_rate) {
@@ -269,8 +281,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +
 +	/* Disable AUDS, ACR, AUDI */
 +	dw_hdmi_qp_mod(hdmi, 0,
-+		  PKTSCHED_ACR_TX_EN | PKTSCHED_AUDS_TX_EN | PKTSCHED_AUDI_TX_EN,
-+		  PKTSCHED_PKT_EN);
++		       PKTSCHED_ACR_TX_EN | PKTSCHED_AUDS_TX_EN | PKTSCHED_AUDI_TX_EN,
++		       PKTSCHED_PKT_EN);
 +
 +	/* Clear the audio FIFO */
 +	dw_hdmi_qp_write(hdmi, AUDIO_FIFO_CLR_P, AUDIO_INTERFACE_CONTROL0);
@@ -311,11 +323,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +	}
 +
 +	dw_hdmi_qp_mod(hdmi, conf0, I2S_BPCUV_RCV_MSK | AUD_FORMAT_MSK,
-+		  AUDIO_INTERFACE_CONFIG0);
++		       AUDIO_INTERFACE_CONFIG0);
 +
 +	/* Enable audio FIFO auto clear when overflow */
 +	dw_hdmi_qp_mod(hdmi, AUD_FIFO_INIT_ON_OVF_EN, AUD_FIFO_INIT_ON_OVF_MSK,
-+		  AUDIO_INTERFACE_CONFIG0);
++		       AUDIO_INTERFACE_CONFIG0);
 +}
 +
 +/*
@@ -358,18 +370,18 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +	}
 +
 +	dw_hdmi_qp_write(hdmi, channel_status[0] | (channel_status[1] << 8),
-+		    AUDPKT_CHSTATUS_OVR0);
++			 AUDPKT_CHSTATUS_OVR0);
 +
 +	regmap_bulk_write(hdmi->regm, AUDPKT_CHSTATUS_OVR1, &channel_status[3], 1);
 +
 +	if (ref2stream)
 +		dw_hdmi_qp_mod(hdmi, 0,
-+			  AUDPKT_PBIT_FORCE_EN_MASK | AUDPKT_CHSTATUS_OVR_EN_MASK,
-+			  AUDPKT_CONTROL0);
++			       AUDPKT_PBIT_FORCE_EN_MASK | AUDPKT_CHSTATUS_OVR_EN_MASK,
++			       AUDPKT_CONTROL0);
 +	else
 +		dw_hdmi_qp_mod(hdmi, AUDPKT_PBIT_FORCE_EN | AUDPKT_CHSTATUS_OVR_EN,
-+			  AUDPKT_PBIT_FORCE_EN_MASK | AUDPKT_CHSTATUS_OVR_EN_MASK,
-+			  AUDPKT_CONTROL0);
++			       AUDPKT_PBIT_FORCE_EN_MASK | AUDPKT_CHSTATUS_OVR_EN_MASK,
++			       AUDPKT_CONTROL0);
 +}
 +
 +static void dw_hdmi_qp_set_sample_rate(struct dw_hdmi_qp *hdmi, unsigned long long tmds_char_rate,
@@ -434,7 +446,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +		       AUDIO_INTERFACE_CONFIG0);
 +	dw_hdmi_qp_mod(hdmi, AUDPKT_PBIT_FORCE_EN | AUDPKT_CHSTATUS_OVR_EN,
 +		       AUDPKT_PBIT_FORCE_EN_MASK | AUDPKT_CHSTATUS_OVR_EN_MASK,
-+		AUDPKT_CONTROL0);
++		       AUDPKT_CONTROL0);
 +
 +	dw_hdmi_qp_mod(hdmi, AVP_DATAPATH_PACKET_AUDIO_SWDISABLE,
 +		       AVP_DATAPATH_PACKET_AUDIO_SWDISABLE, GLOBAL_SWDISABLE);
@@ -454,7 +466,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
  static int dw_hdmi_qp_i2c_read(struct dw_hdmi_qp *hdmi,
  			       unsigned char *buf, unsigned int length)
  {
-@@ -438,6 +870,51 @@
+@@ -438,6 +862,51 @@
  	}
  }
  
@@ -493,9 +505,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
 +
 +	/* Enable ACR, AUDI, AMD */
 +	dw_hdmi_qp_mod(hdmi,
-+		  PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN | PKTSCHED_AMD_TX_EN,
-+		  PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN | PKTSCHED_AMD_TX_EN,
-+		  PKTSCHED_PKT_EN);
++		       PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN | PKTSCHED_AMD_TX_EN,
++		       PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN | PKTSCHED_AMD_TX_EN,
++		       PKTSCHED_PKT_EN);
 +
 +	/* Enable AUDS */
 +	dw_hdmi_qp_mod(hdmi, PKTSCHED_AUDS_TX_EN, PKTSCHED_AUDS_TX_EN, PKTSCHED_PKT_EN);
@@ -506,25 +518,24 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
  static void dw_hdmi_qp_bridge_atomic_enable(struct drm_bridge *bridge,
  					    struct drm_bridge_state *old_state)
  {
-@@ -463,6 +940,8 @@
+@@ -460,6 +929,7 @@
+ 			drm_hdmi_connector_get_output_format_name(conn_state->hdmi.output_format),
+ 			conn_state->hdmi.tmds_char_rate, conn_state->hdmi.output_bpc);
+ 		op_mode = 0;
++		hdmi->tmds_char_rate = conn_state->hdmi.tmds_char_rate;
  
  		if (conn_state->hdmi.tmds_char_rate > HDMI14_MAX_TMDSCLK)
  			dw_hdmi_qp_enable_scramb(hdmi);
-+
-+		hdmi->tmds_char_rate = conn_state->hdmi.tmds_char_rate;
- 	} else {
- 		dev_dbg(hdmi->dev, "%s mode=DVI\n", __func__);
- 		op_mode = OPMODE_DVI;
-@@ -481,6 +960,8 @@
- {
- 	struct dw_hdmi_qp *hdmi = bridge->driver_private;
+@@ -483,6 +953,8 @@
+ 
+ 	dw_hdmi_qp_disable_scramb(hdmi);
  
 +	hdmi->tmds_char_rate = 0;
 +
- 	dw_hdmi_qp_disable_scramb(hdmi);
- 
  	hdmi->connector = NULL;
-@@ -640,6 +1121,13 @@
+ 	hdmi->phy.ops->disable(hdmi, hdmi->phy.data);
+ }
+@@ -640,6 +1112,13 @@
  		dw_hdmi_qp_mod(hdmi, 0, PKTSCHED_DRMI_TX_EN, PKTSCHED_PKT_EN);
  		break;
  
@@ -538,7 +549,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
  	default:
  		dev_dbg(hdmi->dev, "Unsupported infoframe type %x\n", type);
  	}
-@@ -662,6 +1150,9 @@
+@@ -662,6 +1141,9 @@
  	case HDMI_INFOFRAME_TYPE_DRM:
  		return dw_hdmi_qp_config_drm_infoframe(hdmi, buffer, len);
  
@@ -548,7 +559,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
  	default:
  		dev_dbg(hdmi->dev, "Unsupported infoframe type %x\n", type);
  		return 0;
-@@ -679,6 +1170,9 @@
+@@ -679,6 +1161,9 @@
  	.hdmi_tmds_char_rate_valid = dw_hdmi_qp_bridge_tmds_char_rate_valid,
  	.hdmi_clear_infoframe = dw_hdmi_qp_bridge_clear_infoframe,
  	.hdmi_write_infoframe = dw_hdmi_qp_bridge_write_infoframe,
@@ -558,7 +569,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers
  };
  
  static irqreturn_t dw_hdmi_qp_main_hardirq(int irq, void *dev_id)
-@@ -793,6 +1287,10 @@
+@@ -793,6 +1278,10 @@
  	if (IS_ERR(hdmi->bridge.ddc))
  		return ERR_CAST(hdmi->bridge.ddc);
  
