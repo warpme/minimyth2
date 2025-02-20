@@ -1,7 +1,7 @@
 
 GARNAME      = u-boot-rk3xxx
-# git@ 24.01.2025 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2025.04/
-GARVERSION   = 1defca19499ad772ccdd5869ee0fdd8eb349d54f
+# git@ 12.02.2025 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2025.04/
+GARVERSION   = 228e9e5b3502ec0e3aac3fae38d9d99f77e9ede1
 # git@ 19.12.2024 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = 0f8ac860f0479da56a1decae207ddc99e289f2e2
 CATEGORIES   = kernel
@@ -11,9 +11,11 @@ MASTER_SITES = \
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
 PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
-               52-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
-               54-add-rk3328-beelink-a1-defconfig.patch \
-               50-add-rk3566-x96-x6-defconfig.patch \
+               50-dts-upstream-arm64-rockchip-rk3588-dtsi-sync-with-6.14-kernel.patch \
+               51-add-rk3328-beelink-a1-defconfig.patch \
+               52-add-rk3566-x96-x6-defconfig.patch \
+               53-add-rk3588-rock-5t-defconfig.patch \
+               54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
 
 #               03-add-rk3528-support.patch \
 
@@ -47,6 +49,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = rock-pi-4c-rk3399_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock5a-rk3588s_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock5b-rk3588_defconfig
+# mm_U-BOOT_BOARD_TYPE = rock5t-rk3588_defconfig
 # mm_U-BOOT_BOARD_TYPE = beelink-a1-rk3328_defconfig
 # mm_U-BOOT_BOARD_TYPE = quartz64-b-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96-x6-rk3566_defconfig
