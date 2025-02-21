@@ -173,6 +173,7 @@ DEPENDS = \
 		utils/estimate-arm-cpu-frequency \
 		utils/tinymembench \
 		utils/mmc-utils \
+		utils/mtd-utils \
 		utils/sunxi-fw \
 		utils/peekpoke) \
 	utils/kbd \
