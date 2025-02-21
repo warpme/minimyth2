@@ -1,7 +1,7 @@
 GARNAME = diffstat
 GARVERSION = 1.61
 CATEGORIES = utils
-MASTER_SITES = ftp://ftp.invisible-island.net/diffstat/
+MASTER_SITES = https://invisible-island.net/archives/diffstat/
 DISTFILES = $(GARNAME)-$(GARVERSION).tgz
 LICENSE = GPL2
 

@@ -2,7 +2,7 @@
 GARNAME      = pcre2
 GARVERSION   = 10.37
 CATEGORIES   = lib
-MASTER_SITES = https://ftp.pcre.org/pub/pcre/
+MASTER_SITES = https://github.com/PCRE2Project/pcre2/releases/download/$(DISTNAME)/
 DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      = BSD
 
