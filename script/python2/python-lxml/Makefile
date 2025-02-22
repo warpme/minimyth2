@@ -1,9 +1,10 @@
-GARNAME = python-lxml
-GARVERSION = 4.4.2
-CATEGORIES = python
-MASTER_SITES = https://lxml.de/files/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tgz
-LICENSE = BSD_3_Clause
+
+GARNAME      = python-lxml
+GARVERSION   = 5.2.1
+CATEGORIES   = python
+MASTER_SITES = https://files.pythonhosted.org/packages/ea/e2/3834472e7f18801e67a3cd6f3c203a5456d6f7f903cfb9a990e62098a2f3/
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+LICENSE      = BSD_3_Clause
 
 DESCRIPTION = 
 define BLURB
