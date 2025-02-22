@@ -1,10 +1,11 @@
-GARNAME = python-musicbrainzngs
-GARVERSION = 0.6
-CATEGORIES = python
-MASTER_SITES = https://github.com/alastair/python-musicbrainzngs/archive/
-DISTFILES = $(patsubst python-%,%,v$(GARVERSION)).tar.gz
-LICENSE =
-DESCRIPTION = 
+
+GARNAME      = python-musicbrainzngs
+GARVERSION   = 0.7.1
+CATEGORIES   = python
+MASTER_SITES = https://files.pythonhosted.org/packages/0a/67/3e74ae93d90ceeba72ed1a266dd3ca9abd625f315f0afd35f9b034acedd1/
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+LICENSE      =
+DESCRIPTION  = 
 define BLURB
 endef
 
