@@ -1,8 +1,9 @@
-GARNAME = python-tzupdate
-GARVERSION = 1.3.1
-CATEGORIES = python
-MASTER_SITES = https://files.pythonhosted.org/packages/21/b2/cc56ed3d7f47d64046a066fc0aa3355fac1e7d8edf0975b0bfcce2f6dffa/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+
+GARNAME      = python-tzupdate
+GARVERSION   = 2.1.0
+CATEGORIES   = python
+MASTER_SITES = https://files.pythonhosted.org/packages/b7/5c/7d53fcd9b7b6bb51b7193203395cb35a250024f89d16f57d1bddecf28679/
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE =
 DESCRIPTION = 
 define BLURB
