@@ -1,10 +1,10 @@
-GARNAME = python-soupsieve
-GARVERSION = 1.9.5
-CATEGORIES = python
-MASTER_SITES = https://github.com/facelessuser/soupsieve/archive/
-DISTFILES = $(patsubst python-%,%,$(GARVERSION)).tar.gz
-PATCHFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION)-setuptools.patch
-LICENSE = BSD
+
+GARNAME      = python-soupsieve
+GARVERSION   = 2.3.1
+CATEGORIES   = python
+MASTER_SITES = https://files.pythonhosted.org/packages/e1/25/a3005eedafb34e1258458e8a4b94900a60a41a2b4e459e0e19631648a2a0/
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+LICENSE      = BSD
 
 DESCRIPTION = 
 define BLURB
