@@ -1,10 +1,11 @@
-GARNAME = python-requests
-GARVERSION = 2.18.4
-CATEGORIES = python
-MASTER_SITES = https://github.com/kennethreitz/requests/archive/
-DISTFILES = v$(GARVERSION).tar.gz
-LICENSE =
-DESCRIPTION = 
+
+GARNAME      = python-requests
+GARVERSION   = 2.26.0
+CATEGORIES   = python
+MASTER_SITES = https://files.pythonhosted.org/packages/e7/01/3569e0b535fb2e4a6c384bdbed00c55b9d78b5084e0fb7f4d0bf523d7670/
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+LICENSE      =
+DESCRIPTION  = 
 define BLURB
 endef
 
