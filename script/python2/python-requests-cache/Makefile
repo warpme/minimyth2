@@ -1,10 +1,10 @@
-GARNAME = python-requests-cache
-GARVERSION = 0.4.13
-CATEGORIES = python
-MASTER_SITES = https://files.pythonhosted.org/packages/1a/cf/12349c7113b252d9a0b26d497d3349baeb6c8f293b440e55a00e7fa6e4a4/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
-LICENSE =
-DESCRIPTION = 
+
+GARNAME      = python-requests_cache
+GARVERSION   = 0.9.8
+CATEGORIES   = python
+MASTER_SITES = https://files.pythonhosted.org/packages/c6/63/76613d73fb4ec23cc2451c1be30974a373c7258274db2e4f79530bda505d/
+LICENSE      =
+DESCRIPTION  = 
 define BLURB
 endef
 
