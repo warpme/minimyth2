@@ -2,7 +2,7 @@
 GARNAME      = pigz
 GARVERSION   = 2.7
 CATEGORIES   = utils
-MASTER_SITES = https://www.zlib.net/$(GARNAME)/
+MASTER_SITES = https://www.zlib.net/$(GARNAME)/fossils/
 DISTFILES    = $(DISTNAME).tar.gz
 PATCHFILES   = use-gar-cc-cflags.patch
 LICENSE      = $(GARNAME)

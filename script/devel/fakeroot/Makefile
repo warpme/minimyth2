@@ -2,7 +2,7 @@
 GARNAME      = fakeroot
 GARVERSION   = 1.34
 CATEGORIES   = devel
-MASTER_SITES = https://deb.debian.org/debian/pool/main/f/fakeroot/
+MASTER_SITES = https://sources.buildroot.net/fakeroot/
 DISTFILES    = $(GARNAME)_$(GARVERSION).orig.tar.gz
 LICENSE      = GPL3
 

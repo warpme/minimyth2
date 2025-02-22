@@ -4,7 +4,7 @@ GARVERSION   = 2.7.3
 CATEGORIES   = utils
 MASTER_SITES = http://git.yoctoproject.org/cgit/cgit.cgi/poky/snapshot/
 DISTFILES    = \
-	poky-yocto-$(GARVERSION).tar.bz2 \
+	poky-yocto-$(GARVERSION).tar.gz \
 	board-rpi2.conf             \
 	board-rpi2.wks              \
 	board-rpi3.mainline32.conf  \
