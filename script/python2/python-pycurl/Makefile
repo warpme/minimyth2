@@ -1,12 +1,11 @@
-GARNAME = python-pycurl
-GARVERSION = 7.19.0
-CATEGORIES = python
-MASTER_SITES = http://pycurl.sourceforge.net/download/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
-PATCHFILES  = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION)-setuptools.patch
-PATCHFILES += $(patsubst python-%,%,$(GARNAME))-$(GARVERSION)-no_static_libcurl.patch
-LICENSE = LGPL2_1/$(GARNAME)
-LICENSE = $(GARNAME)
+
+GARNAME      = python-pycurl
+GARVERSION   = 7.44.1
+CATEGORIES   = python
+MASTER_SITES = https://files.pythonhosted.org/packages/47/f9/c41d6830f7bd4e70d5726d26f8564538d08ca3a7ac3db98b325f94cdcb7f/
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+LICENSE      = LGPL2_1/$(GARNAME)
+LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/COPYING2
 
 DESCRIPTION = 
