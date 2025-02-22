@@ -1,9 +1,10 @@
-GARNAME = python-simplejson
-GARVERSION = 3.17.0
-CATEGORIES = python
-MASTER_SITES = https://github.com/simplejson/simplejson/archive/
-DISTFILES = $(patsubst python-%,%,v$(GARVERSION)).tar.gz
-LICENSE =
+
+GARNAME      = python-simplejson
+GARVERSION   = 3.17.5
+CATEGORIES   = python
+MASTER_SITES = https://files.pythonhosted.org/packages/01/52/41c71718f941c9a5abebfaa24e3c14e3c0229327b7ebd21348989845ed8f/
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+LICENSE      =
 DESCRIPTION = 
 define BLURB
 endef
