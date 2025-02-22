@@ -1,8 +1,9 @@
-GARNAME = python-urllib3
-GARVERSION = 1.22
-CATEGORIES = python
-MASTER_SITES = https://pypi.python.org/packages/ee/11/7c59620aceedcc1ef65e156cc5ce5a24ef87be4107c2b74458464e437a5d/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+
+GARNAME      = python-urllib3
+GARVERSION   = 1.26.7
+CATEGORIES   = python
+MASTER_SITES = https://files.pythonhosted.org/packages/80/be/3ee43b6c5757cabea19e75b8f46eaf05a2f5144107d7db48c7cf3a864f73/
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
 LICENSE =
 DESCRIPTION = 
 define BLURB
