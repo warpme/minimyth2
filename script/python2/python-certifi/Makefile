@@ -1,10 +1,11 @@
-GARNAME = python-certifi
-GARVERSION = 2018.1.18
-CATEGORIES = python
+
+GARNAME      = python-certifi
+GARVERSION   = 2021.10.8
+CATEGORIES   = python
 MASTER_SITES = https://pypi.python.org/packages/15/d4/2f888fc463d516ff7bf2379a4e9a552fef7f22a94147655d9b1097108248/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
-LICENSE =
-DESCRIPTION = 
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+LICENSE      =
+DESCRIPTION  = 
 define BLURB
 endef
 
