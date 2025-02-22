@@ -1,10 +1,12 @@
-GARNAME = python-future
-GARVERSION = 0.16.0
-CATEGORIES = python
+
+
+GARNAME      = python-future
+GARVERSION   = 0.18.2
+CATEGORIES   = python
 MASTER_SITES = https://pypi.io/packages/source/f/future/
-DISTFILES = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
-LICENSE =
-DESCRIPTION = 
+DISTFILES    = $(patsubst python-%,%,$(GARNAME))-$(GARVERSION).tar.gz
+LICENSE      =
+DESCRIPTION  = 
 define BLURB
 endef
 
