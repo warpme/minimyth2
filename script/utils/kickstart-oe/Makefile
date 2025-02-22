@@ -56,7 +56,9 @@ DISTFILES    = \
 	board-rk3566.urve-pi.conf    \
 	board-rk3566.urve-pi.wks     \
 	board-rk3566.quartz64-b.conf \
-	board-rk3566.quartz64-b.wks \
+	board-rk3566.quartz64-b.wks  \
+	board-rk3566.zero3e.conf    \
+	board-rk3566.zero3e.wks     \
 	board-rk3566.zero3w.conf    \
 	board-rk3566.zero3w.wks     \
 	board-rk3568.rock3-a.conf   \
