@@ -124,6 +124,10 @@ ifneq (,$(filter board-rk3566.zero3w,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3566.zero3w
 endif
 
+ifneq (,$(filter board-rk3566.zero3e,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3566.zero3e
+endif
+
 ifneq (,$(filter board-rk3566.quartz64-b,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3566.quartz64-b
 endif
