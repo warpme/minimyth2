@@ -97,7 +97,9 @@ mm_SOFTWARE               ?= \
 # 'board-rk3566.rock3-c'
 # 'board-rk3566.orangepi_3b'
 # 'board-rk3566.zero3w'
+# 'board-rk3566.zero3e'
 # 'board-rk3588.rock5-b
+# 'board-rk3588.rock5-t
 # 'board-rk3588.rock5-itx'
 # 'board-rk3588.orangepi_5_plus'
 # 'board-rk3588.nanopc_t6'
