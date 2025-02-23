@@ -284,6 +284,11 @@ PATCHFILES += 1038-FROM-ML-clk-check-for-disabled-clock-provider.patch
 PATCHFILES += 1040-drm-bridge-synopsys-add-audio-support-for-dw-hdmi-qp-v7.patch
 # cec support
 PATCHFILES += 1045-drm-bridge-synopsys-add-cec-support.patch
+# samsung eDP support
+PATCHFILES += 1047-drm-rockchip-rk3588-add-edp-support-v6.patch
+PATCHFILES += 1048-phy-rockchip-samsung-hdptx-add-edp-mode-support-v7.patch
+# designware dp support
+PATCHFILES += 1049-drm-bridge-synopsys-add-dw-dptx-controller-support-library.patch
 # var additions
 PATCHFILES += 1060-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1061-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
@@ -296,9 +301,11 @@ PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-hdmi-bridge.patch
 PATCHFILES += 1072-arm64-dtsi-rockchip-3588-hdmi-add-audio-support.patch
-PATCHFILES += 1074-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
-PATCHFILES += 1077-arm64-dtsi-rkvdec2-add-iommu-support-v3.patch
-PATCHFILES += 1078-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
+PATCHFILES += 1073-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
+PATCHFILES += 1074-arm64-dtsi-rkvdec2-add-iommu-support-v3.patch
+PATCHFILES += 1075-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
+PATCHFILES += 1076-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
+PATCHFILES += 1077-arm64-dtsi-rockchip-add-samsung-edp-nodes.patch
 # dts patches
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch

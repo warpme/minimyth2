@@ -1,0 +1,1212 @@
+
+According to the comments in include/drm/drm_print.h, the DRM_...()
+functions are deprecated in favor of drm_...() or dev_...() functions.
+
+Use drm_err()/drm_dbg_core()/drm_dbg_kms() instead of
+DRM_DEV_ERROR()/DRM_ERROR()/DRM_DEV_DEBUG()/DRM_DEBUG_KMS().
+
+Signed-off-by: Damon Ding <damon.ding@rock-chips.com>
+---
+
+Changes in v6:
+- Use drm_...() uniformly rather than mixing drm_...() and dev_..()
+- Pass 'dp' in drm_...() rather than 'dp->drm_dev'
+---
+ .../gpu/drm/rockchip/analogix_dp-rockchip.c   | 29 ++++++++++---------
+ 1 file changed, 15 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+index 0844175c37c5..dd33d7540e4b 100644
+--- a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+@@ -100,13 +100,13 @@ static int rockchip_dp_poweron(struct analogix_dp_plat_data *plat_data)
+ 
+ 	ret = clk_prepare_enable(dp->pclk);
+ 	if (ret < 0) {
+-		DRM_DEV_ERROR(dp->dev, "failed to enable pclk %d\n", ret);
++		drm_err(dp, "failed to enable pclk %d\n", ret);
+ 		return ret;
+ 	}
+ 
+ 	ret = rockchip_dp_pre_init(dp);
+ 	if (ret < 0) {
+-		DRM_DEV_ERROR(dp->dev, "failed to dp pre init %d\n", ret);
++		drm_err(dp, "failed to dp pre init %d\n", ret);
+ 		clk_disable_unprepare(dp->pclk);
+ 		return ret;
+ 	}
+@@ -126,12 +126,13 @@ static int rockchip_dp_powerdown(struct analogix_dp_plat_data *plat_data)
+ static int rockchip_dp_get_modes(struct analogix_dp_plat_data *plat_data,
+ 				 struct drm_connector *connector)
+ {
++	struct rockchip_dp_device *dp = pdata_encoder_to_dp(plat_data);
+ 	struct drm_display_info *di = &connector->display_info;
+ 	/* VOP couldn't output YUV video format for eDP rightly */
+ 	u32 mask = DRM_COLOR_FORMAT_YCBCR444 | DRM_COLOR_FORMAT_YCBCR422;
+ 
+ 	if ((di->color_formats & mask)) {
+-		DRM_DEBUG_KMS("Swapping display color format from YUV to RGB\n");
++		drm_dbg_kms(dp, "Swapping display color format from YUV to RGB\n");
+ 		di->color_formats &= ~mask;
+ 		di->color_formats |= DRM_COLOR_FORMAT_RGB444;
+ 		di->bpc = 8;
+@@ -201,17 +202,17 @@ static void rockchip_dp_drm_encoder_enable(struct drm_encoder *encoder,
+ 	else
+ 		val = dp->data->lcdsel_big;
+ 
+-	DRM_DEV_DEBUG(dp->dev, "vop %s output to dp\n", (ret) ? "LIT" : "BIG");
++	drm_dbg_core(dp, "vop %s output to dp\n", (ret) ? "LIT" : "BIG");
+ 
+ 	ret = clk_prepare_enable(dp->grfclk);
+ 	if (ret < 0) {
+-		DRM_DEV_ERROR(dp->dev, "failed to enable grfclk %d\n", ret);
++		drm_err(dp, "failed to enable grfclk %d\n", ret);
+ 		return;
+ 	}
+ 
+ 	ret = regmap_write(dp->grf, dp->data->lcdsel_grf_reg, val);
+ 	if (ret != 0)
+-		DRM_DEV_ERROR(dp->dev, "Could not write to GRF: %d\n", ret);
++		drm_err(dp, "Could not write to GRF: %d\n", ret);
+ 
+ 	clk_disable_unprepare(dp->grfclk);
+ }
+@@ -236,7 +237,7 @@ static void rockchip_dp_drm_encoder_disable(struct drm_encoder *encoder,
+ 
+ 	ret = rockchip_drm_wait_vact_end(crtc, PSR_WAIT_LINE_FLAG_TIMEOUT_MS);
+ 	if (ret)
+-		DRM_DEV_ERROR(dp->dev, "line flag irq timed out\n");
++		drm_err(dp, "line flag irq timed out\n");
+ }
+ 
+ static int
+@@ -277,7 +278,7 @@ static int rockchip_dp_of_probe(struct rockchip_dp_device *dp)
+ 
+ 	dp->grf = syscon_regmap_lookup_by_phandle(np, "rockchip,grf");
+ 	if (IS_ERR(dp->grf)) {
+-		DRM_DEV_ERROR(dev, "failed to get rockchip,grf property\n");
++		drm_err(dp, "failed to get rockchip,grf property\n");
+ 		return PTR_ERR(dp->grf);
+ 	}
+ 
+@@ -287,19 +288,19 @@ static int rockchip_dp_of_probe(struct rockchip_dp_device *dp)
+ 	} else if (PTR_ERR(dp->grfclk) == -EPROBE_DEFER) {
+ 		return -EPROBE_DEFER;
+ 	} else if (IS_ERR(dp->grfclk)) {
+-		DRM_DEV_ERROR(dev, "failed to get grf clock\n");
++		drm_err(dp, "failed to get grf clock\n");
+ 		return PTR_ERR(dp->grfclk);
+ 	}
+ 
+ 	dp->pclk = devm_clk_get(dev, "pclk");
+ 	if (IS_ERR(dp->pclk)) {
+-		DRM_DEV_ERROR(dev, "failed to get pclk property\n");
++		drm_err(dp, "failed to get pclk property\n");
+ 		return PTR_ERR(dp->pclk);
+ 	}
+ 
+ 	dp->rst = devm_reset_control_get(dev, "dp");
+ 	if (IS_ERR(dp->rst)) {
+-		DRM_DEV_ERROR(dev, "failed to get dp reset control\n");
++		drm_err(dp, "failed to get dp reset control\n");
+ 		return PTR_ERR(dp->rst);
+ 	}
+ 
+@@ -315,12 +316,12 @@ static int rockchip_dp_drm_create_encoder(struct rockchip_dp_device *dp)
+ 
+ 	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm_dev,
+ 							     dev->of_node);
+-	DRM_DEBUG_KMS("possible_crtcs = 0x%x\n", encoder->possible_crtcs);
++	drm_dbg_kms(dp, "possible_crtcs = 0x%x\n", encoder->possible_crtcs);
+ 
+ 	ret = drm_simple_encoder_init(drm_dev, encoder,
+ 				      DRM_MODE_ENCODER_TMDS);
+ 	if (ret) {
+-		DRM_ERROR("failed to initialize encoder with drm\n");
++		drm_err(dp, "failed to initialize encoder with drm\n");
+ 		return ret;
+ 	}
+ 
+@@ -340,7 +341,7 @@ static int rockchip_dp_bind(struct device *dev, struct device *master,
+ 
+ 	ret = rockchip_dp_drm_create_encoder(dp);
+ 	if (ret) {
+-		DRM_ERROR("failed to create drm encoder\n");
++		drm_err(dp, "failed to create drm encoder\n");
+ 		return ret;
+ 	}
+ 
+
+
+The formalized struct definition will makes grf field operations more
+concise and easier to extend.
+
+Signed-off-by: Damon Ding <damon.ding@rock-chips.com>
+---
+
+Changes in v2:
+- Initialize struct rockchip_dp_chip_data rk3399_edp/rk3288_dp in order
+  of its members
+
+Changes in v6:
+- Pass 'dp' in drm_...() rather than 'dp->drm_dev'
+---
+ .../gpu/drm/rockchip/analogix_dp-rockchip.c   | 77 +++++++++++--------
+ 1 file changed, 45 insertions(+), 32 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+index dd33d7540e4b..648ea608cdf3 100644
+--- a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+@@ -32,26 +32,29 @@
+ 
+ #include "rockchip_drm_drv.h"
+ 
+-#define RK3288_GRF_SOC_CON6		0x25c
+-#define RK3288_EDP_LCDC_SEL		BIT(5)
+-#define RK3399_GRF_SOC_CON20		0x6250
+-#define RK3399_EDP_LCDC_SEL		BIT(5)
+-
+-#define HIWORD_UPDATE(val, mask)	(val | (mask) << 16)
+-
+ #define PSR_WAIT_LINE_FLAG_TIMEOUT_MS	100
+ 
++#define GRF_REG_FIELD(_reg, _lsb, _msb) {	\
++				.reg = _reg,	\
++				.lsb = _lsb,	\
++				.msb = _msb,	\
++				.valid = true,	\
++				}
++
++struct rockchip_grf_reg_field {
++	u32 reg;
++	u32 lsb;
++	u32 msb;
++	bool valid;
++};
++
+ /**
+  * struct rockchip_dp_chip_data - splite the grf setting of kind of chips
+- * @lcdsel_grf_reg: grf register offset of lcdc select
+- * @lcdsel_big: reg value of selecting vop big for eDP
+- * @lcdsel_lit: reg value of selecting vop little for eDP
++ * @lcdc_sel: grf register field of lcdc_sel
+  * @chip_type: specific chip type
+  */
+ struct rockchip_dp_chip_data {
+-	u32	lcdsel_grf_reg;
+-	u32	lcdsel_big;
+-	u32	lcdsel_lit;
++	const struct rockchip_grf_reg_field lcdc_sel;
+ 	u32	chip_type;
+ };
+ 
+@@ -84,6 +87,26 @@ static struct rockchip_dp_device *pdata_encoder_to_dp(struct analogix_dp_plat_da
+ 	return container_of(plat_data, struct rockchip_dp_device, plat_data);
+ }
+ 
++static int rockchip_grf_write(struct regmap *grf, u32 reg, u32 mask, u32 val)
++{
++	return regmap_write(grf, reg, (mask << 16) | (val & mask));
++}
++
++static int rockchip_grf_field_write(struct regmap *grf,
++				    const struct rockchip_grf_reg_field *field,
++				    u32 val)
++{
++	u32 mask;
++
++	if (!field->valid)
++		return 0;
++
++	mask = GENMASK(field->msb, field->lsb);
++	val <<= field->lsb;
++
++	return rockchip_grf_write(grf, field->reg, mask, val);
++}
++
+ static int rockchip_dp_pre_init(struct rockchip_dp_device *dp)
+ {
+ 	reset_control_assert(dp->rst);
+@@ -182,7 +205,6 @@ static void rockchip_dp_drm_encoder_enable(struct drm_encoder *encoder,
+ 	struct drm_crtc *crtc;
+ 	struct drm_crtc_state *old_crtc_state;
+ 	int ret;
+-	u32 val;
+ 
+ 	crtc = rockchip_dp_drm_get_new_crtc(encoder, state);
+ 	if (!crtc)
+@@ -193,24 +215,19 @@ static void rockchip_dp_drm_encoder_enable(struct drm_encoder *encoder,
+ 	if (old_crtc_state && old_crtc_state->self_refresh_active)
+ 		return;
+ 
+-	ret = drm_of_encoder_active_endpoint_id(dp->dev->of_node, encoder);
+-	if (ret < 0)
+-		return;
+-
+-	if (ret)
+-		val = dp->data->lcdsel_lit;
+-	else
+-		val = dp->data->lcdsel_big;
+-
+-	drm_dbg_core(dp, "vop %s output to dp\n", (ret) ? "LIT" : "BIG");
+-
+ 	ret = clk_prepare_enable(dp->grfclk);
+ 	if (ret < 0) {
+ 		drm_err(dp, "failed to enable grfclk %d\n", ret);
+ 		return;
+ 	}
+ 
+-	ret = regmap_write(dp->grf, dp->data->lcdsel_grf_reg, val);
++	ret = drm_of_encoder_active_endpoint_id(dp->dev->of_node, encoder);
++	if (ret < 0)
++		return;
++
++	drm_dbg_core(dp, "vop %s output to dp\n", (ret) ? "LIT" : "BIG");
++
++	ret = rockchip_grf_field_write(dp->grf, &dp->data->lcdc_sel, ret);
+ 	if (ret != 0)
+ 		drm_err(dp, "Could not write to GRF: %d\n", ret);
+ 
+@@ -449,16 +466,12 @@ static DEFINE_RUNTIME_DEV_PM_OPS(rockchip_dp_pm_ops, rockchip_dp_suspend,
+ 		rockchip_dp_resume, NULL);
+ 
+ static const struct rockchip_dp_chip_data rk3399_edp = {
+-	.lcdsel_grf_reg = RK3399_GRF_SOC_CON20,
+-	.lcdsel_big = HIWORD_UPDATE(0, RK3399_EDP_LCDC_SEL),
+-	.lcdsel_lit = HIWORD_UPDATE(RK3399_EDP_LCDC_SEL, RK3399_EDP_LCDC_SEL),
++	.lcdc_sel = GRF_REG_FIELD(0x6250, 5, 5),
+ 	.chip_type = RK3399_EDP,
+ };
+ 
+ static const struct rockchip_dp_chip_data rk3288_dp = {
+-	.lcdsel_grf_reg = RK3288_GRF_SOC_CON6,
+-	.lcdsel_big = HIWORD_UPDATE(0, RK3288_EDP_LCDC_SEL),
+-	.lcdsel_lit = HIWORD_UPDATE(RK3288_EDP_LCDC_SEL, RK3288_EDP_LCDC_SEL),
++	.lcdc_sel = GRF_REG_FIELD(0x025c, 5, 5),
+ 	.chip_type = RK3288_DP,
+ };
+ 
+
+
+There are two main modifications: one is expanding struct
+rockchip_dp_chip_data to an array, and the other is adding
+&rockchip_dp_chip_data.reg to separate different edp devices.
+
+Signed-off-by: Damon Ding <damon.ding@rock-chips.com>
+---
+
+Changes in v6:
+- Add the description of &rockchip_dp_chip_data.reg
+- Use drm_...() uniformly rather than mixing drm_...() and dev_..()
+---
+ .../gpu/drm/rockchip/analogix_dp-rockchip.c   | 42 +++++++++++++++----
+ 1 file changed, 35 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+index 648ea608cdf3..a63c2c867059 100644
+--- a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+@@ -52,10 +52,12 @@ struct rockchip_grf_reg_field {
+  * struct rockchip_dp_chip_data - splite the grf setting of kind of chips
+  * @lcdc_sel: grf register field of lcdc_sel
+  * @chip_type: specific chip type
++ * @reg: register base address
+  */
+ struct rockchip_dp_chip_data {
+ 	const struct rockchip_grf_reg_field lcdc_sel;
+ 	u32	chip_type;
++	u32	reg;
+ };
+ 
+ struct rockchip_dp_device {
+@@ -397,6 +399,8 @@ static int rockchip_dp_probe(struct platform_device *pdev)
+ 	const struct rockchip_dp_chip_data *dp_data;
+ 	struct drm_panel *panel = NULL;
+ 	struct rockchip_dp_device *dp;
++	struct resource *res;
++	int i;
+ 	int ret;
+ 
+ 	dp_data = of_device_get_match_data(dev);
+@@ -411,9 +415,25 @@ static int rockchip_dp_probe(struct platform_device *pdev)
+ 	if (!dp)
+ 		return -ENOMEM;
+ 
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++
++	i = 0;
++	while (dp_data[i].reg) {
++		if (dp_data[i].reg == res->start) {
++			dp->data = &dp_data[i];
++			break;
++		}
++
++		i++;
++	}
++
++	if (!dp->data) {
++		drm_err(dp, "no chip-data for %s node\n", dev->of_node->name);
++		return -ENODEV;
++	}
++
+ 	dp->dev = dev;
+ 	dp->adp = ERR_PTR(-ENODEV);
+-	dp->data = dp_data;
+ 	dp->plat_data.panel = panel;
+ 	dp->plat_data.dev_type = dp->data->chip_type;
+ 	dp->plat_data.power_on = rockchip_dp_poweron;
+@@ -465,14 +485,22 @@ static int rockchip_dp_resume(struct device *dev)
+ static DEFINE_RUNTIME_DEV_PM_OPS(rockchip_dp_pm_ops, rockchip_dp_suspend,
+ 		rockchip_dp_resume, NULL);
+ 
+-static const struct rockchip_dp_chip_data rk3399_edp = {
+-	.lcdc_sel = GRF_REG_FIELD(0x6250, 5, 5),
+-	.chip_type = RK3399_EDP,
++static const struct rockchip_dp_chip_data rk3399_edp[] = {
++	{
++		.lcdc_sel = GRF_REG_FIELD(0x6250, 5, 5),
++		.chip_type = RK3399_EDP,
++		.reg = 0xff970000,
++	},
++	{ /* sentinel */ }
+ };
+ 
+-static const struct rockchip_dp_chip_data rk3288_dp = {
+-	.lcdc_sel = GRF_REG_FIELD(0x025c, 5, 5),
+-	.chip_type = RK3288_DP,
++static const struct rockchip_dp_chip_data rk3288_dp[] = {
++	{
++		.lcdc_sel = GRF_REG_FIELD(0x025c, 5, 5),
++		.chip_type = RK3288_DP,
++		.reg = 0xff970000,
++	},
++	{ /* sentinel */ }
+ };
+ 
+ static const struct of_device_id rockchip_dp_dt_ids[] = {
+
+
+Add support to configurate link rate, lane count, voltage swing and
+pre-emphasis with phy_configure(). It is helpful in application scenarios
+where analogix controller is mixed with the phy of other vendors.
+
+Signed-off-by: Damon Ding <damon.ding@rock-chips.com>
+Reviewed-by: Dmitry Baryshkov <dmitry.baryshkov@linaro.org>
+---
+
+Changes in v2:
+- remove needless assignments for phy_configure()
+- remove unnecessary changes for phy_power_on()/phy_power_off()
+
+Changes in v4:
+- remove unnecessary &phy_configure_opts_dp.lanes assignments in
+  analogix_dp_set_link_bandwidth()
+- remove needless &phy_configure_opts_dp.lanes and
+  &phy_configure_opts_dp.link_rate assignments in
+  analogix_dp_set_lane_link_training()
+
+Changes in v5:
+- include <drm/drm_print.h> for dev_err()
+- use drm_err() instead of dev_err()
+
+Changes in v6:
+- Pass 'dp' in drm_...() rather than 'dp->drm_dev'
+---
+ .../drm/bridge/analogix/analogix_dp_core.c    |  1 +
+ .../drm/bridge/analogix/analogix_dp_core.h    |  1 +
+ .../gpu/drm/bridge/analogix/analogix_dp_reg.c | 52 +++++++++++++++++++
+ 3 files changed, 54 insertions(+)
+
+diff --git a/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c b/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
+index bfa88409a7ff..b05f5b9f5258 100644
+--- a/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
++++ b/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
+@@ -1692,6 +1692,7 @@ int analogix_dp_resume(struct analogix_dp_device *dp)
+ 	if (dp->plat_data->power_on)
+ 		dp->plat_data->power_on(dp->plat_data);
+ 
++	phy_set_mode(dp->phy, PHY_MODE_DP);
+ 	phy_power_on(dp->phy);
+ 
+ 	analogix_dp_init_dp(dp);
+diff --git a/drivers/gpu/drm/bridge/analogix/analogix_dp_core.h b/drivers/gpu/drm/bridge/analogix/analogix_dp_core.h
+index 774d11574b09..4d36907aa371 100644
+--- a/drivers/gpu/drm/bridge/analogix/analogix_dp_core.h
++++ b/drivers/gpu/drm/bridge/analogix/analogix_dp_core.h
+@@ -11,6 +11,7 @@
+ 
+ #include <drm/display/drm_dp_helper.h>
+ #include <drm/drm_crtc.h>
++#include <drm/drm_print.h>
+ 
+ #define DP_TIMEOUT_LOOP_COUNT 100
+ #define MAX_CR_LOOP 5
+diff --git a/drivers/gpu/drm/bridge/analogix/analogix_dp_reg.c b/drivers/gpu/drm/bridge/analogix/analogix_dp_reg.c
+index 3afc73c858c4..041733131b35 100644
+--- a/drivers/gpu/drm/bridge/analogix/analogix_dp_reg.c
++++ b/drivers/gpu/drm/bridge/analogix/analogix_dp_reg.c
+@@ -11,6 +11,7 @@
+ #include <linux/gpio/consumer.h>
+ #include <linux/io.h>
+ #include <linux/iopoll.h>
++#include <linux/phy/phy.h>
+ 
+ #include <drm/bridge/analogix_dp.h>
+ 
+@@ -513,10 +514,24 @@ void analogix_dp_enable_sw_function(struct analogix_dp_device *dp)
+ void analogix_dp_set_link_bandwidth(struct analogix_dp_device *dp, u32 bwtype)
+ {
+ 	u32 reg;
++	int ret;
+ 
+ 	reg = bwtype;
+ 	if ((bwtype == DP_LINK_BW_2_7) || (bwtype == DP_LINK_BW_1_62))
+ 		writel(reg, dp->reg_base + ANALOGIX_DP_LINK_BW_SET);
++
++	if (dp->phy) {
++		union phy_configure_opts phy_cfg = {0};
++
++		phy_cfg.dp.link_rate =
++			drm_dp_bw_code_to_link_rate(dp->link_train.link_rate) / 100;
++		phy_cfg.dp.set_rate = true;
++		ret = phy_configure(dp->phy, &phy_cfg);
++		if (ret && ret != -EOPNOTSUPP) {
++			drm_err(dp, "%s: phy_configure() failed: %d\n", __func__, ret);
++			return;
++		}
++	}
+ }
+ 
+ void analogix_dp_get_link_bandwidth(struct analogix_dp_device *dp, u32 *bwtype)
+@@ -530,9 +545,22 @@ void analogix_dp_get_link_bandwidth(struct analogix_dp_device *dp, u32 *bwtype)
+ void analogix_dp_set_lane_count(struct analogix_dp_device *dp, u32 count)
+ {
+ 	u32 reg;
++	int ret;
+ 
+ 	reg = count;
+ 	writel(reg, dp->reg_base + ANALOGIX_DP_LANE_COUNT_SET);
++
++	if (dp->phy) {
++		union phy_configure_opts phy_cfg = {0};
++
++		phy_cfg.dp.lanes = dp->link_train.lane_count;
++		phy_cfg.dp.set_lanes = true;
++		ret = phy_configure(dp->phy, &phy_cfg);
++		if (ret && ret != -EOPNOTSUPP) {
++			drm_err(dp, "%s: phy_configure() failed: %d\n", __func__, ret);
++			return;
++		}
++	}
+ }
+ 
+ void analogix_dp_get_lane_count(struct analogix_dp_device *dp, u32 *count)
+@@ -546,10 +574,34 @@ void analogix_dp_get_lane_count(struct analogix_dp_device *dp, u32 *count)
+ void analogix_dp_set_lane_link_training(struct analogix_dp_device *dp)
+ {
+ 	u8 lane;
++	int ret;
+ 
+ 	for (lane = 0; lane < dp->link_train.lane_count; lane++)
+ 		writel(dp->link_train.training_lane[lane],
+ 		       dp->reg_base + ANALOGIX_DP_LN0_LINK_TRAINING_CTL + 4 * lane);
++
++	if (dp->phy) {
++		union phy_configure_opts phy_cfg = {0};
++
++		for (lane = 0; lane < dp->link_train.lane_count; lane++) {
++			u8 training_lane = dp->link_train.training_lane[lane];
++			u8 vs, pe;
++
++			vs = (training_lane & DP_TRAIN_VOLTAGE_SWING_MASK) >>
++			     DP_TRAIN_VOLTAGE_SWING_SHIFT;
++			pe = (training_lane & DP_TRAIN_PRE_EMPHASIS_MASK) >>
++			     DP_TRAIN_PRE_EMPHASIS_SHIFT;
++			phy_cfg.dp.voltage[lane] = vs;
++			phy_cfg.dp.pre[lane] = pe;
++		}
++
++		phy_cfg.dp.set_voltages = true;
++		ret = phy_configure(dp->phy, &phy_cfg);
++		if (ret && ret != -EOPNOTSUPP) {
++			drm_err(dp, "%s: phy_configure() failed: %d\n", __func__, ret);
++			return;
++		}
++	}
+ }
+ 
+ u32 analogix_dp_get_lane_link_training(struct analogix_dp_device *dp, u8 lane)
+
+
+According to Documentation/devicetree/bindings/display/dp-aux-bus.yaml,
+it is a good way to get panel through the DP AUX bus.
+
+Acked-by: Krzysztof Kozlowski <krzysztof.kozlowski@linaro.org>
+Signed-off-by: Damon Ding <damon.ding@rock-chips.com>
+---
+
+Changes in v4:
+- Move the dt-bindings commit before related driver commits
+
+Changes in v5:
+- Remove the unexpected change logs in commit message
+---
+ .../bindings/display/rockchip/rockchip,analogix-dp.yaml        | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/display/rockchip/rockchip,analogix-dp.yaml b/Documentation/devicetree/bindings/display/rockchip/rockchip,analogix-dp.yaml
+index 60dedf9b2be7..eaf4e67e232e 100644
+--- a/Documentation/devicetree/bindings/display/rockchip/rockchip,analogix-dp.yaml
++++ b/Documentation/devicetree/bindings/display/rockchip/rockchip,analogix-dp.yaml
+@@ -41,6 +41,9 @@ properties:
+     description:
+       This SoC makes use of GRF regs.
+ 
++  aux-bus:
++    $ref: /schemas/display/dp-aux-bus.yaml#
++
+ required:
+   - compatible
+   - clocks
+
+
+Add two new functions: one to find &analogix_dp_device.plat_data via
+&drm_dp_aux, and the other to get &analogix_dp_device.aux. Both of them
+serve for the function of getting panel from DP AUX bus, which is why
+they are included in a single commit.
+
+Signed-off-by: Damon Ding <damon.ding@rock-chips.com>
+Reviewed-by: Dmitry Baryshkov <dmitry.baryshkov@linaro.org>
+---
+ drivers/gpu/drm/bridge/analogix/analogix_dp_core.c | 14 ++++++++++++++
+ include/drm/bridge/analogix_dp.h                   |  4 ++++
+ 2 files changed, 18 insertions(+)
+
+diff --git a/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c b/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
+index b05f5b9f5258..8251adfce2f9 100644
+--- a/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
++++ b/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
+@@ -1794,6 +1794,20 @@ int analogix_dp_stop_crc(struct drm_connector *connector)
+ }
+ EXPORT_SYMBOL_GPL(analogix_dp_stop_crc);
+ 
++struct analogix_dp_plat_data *analogix_dp_aux_to_plat_data(struct drm_dp_aux *aux)
++{
++	struct analogix_dp_device *dp = to_dp(aux);
++
++	return dp->plat_data;
++}
++EXPORT_SYMBOL_GPL(analogix_dp_aux_to_plat_data);
++
++struct drm_dp_aux *analogix_dp_get_aux(struct analogix_dp_device *dp)
++{
++	return &dp->aux;
++}
++EXPORT_SYMBOL_GPL(analogix_dp_get_aux);
++
+ MODULE_AUTHOR("Jingoo Han <jg1.han@samsung.com>");
+ MODULE_DESCRIPTION("Analogix DP Core Driver");
+ MODULE_LICENSE("GPL v2");
+diff --git a/include/drm/bridge/analogix_dp.h b/include/drm/bridge/analogix_dp.h
+index 6002c5666031..1b119b547988 100644
+--- a/include/drm/bridge/analogix_dp.h
++++ b/include/drm/bridge/analogix_dp.h
+@@ -7,6 +7,7 @@
+ #ifndef _ANALOGIX_DP_H_
+ #define _ANALOGIX_DP_H_
+ 
++#include <drm/display/drm_dp_aux_bus.h>
+ #include <drm/drm_crtc.h>
+ 
+ struct analogix_dp_device;
+@@ -48,4 +49,7 @@ void analogix_dp_unbind(struct analogix_dp_device *dp);
+ int analogix_dp_start_crc(struct drm_connector *connector);
+ int analogix_dp_stop_crc(struct drm_connector *connector);
+ 
++struct analogix_dp_plat_data *analogix_dp_aux_to_plat_data(struct drm_dp_aux *aux);
++struct drm_dp_aux *analogix_dp_get_aux(struct analogix_dp_device *dp);
++
+ #endif /* _ANALOGIX_DP_H_ */
+
+
+The main modification is moving the DP AUX initialization from function
+analogix_dp_bind() to analogix_dp_probe(). In order to get the EDID of
+eDP panel during probing, it is also needed to advance PM operaions to
+ensure that eDP controller and phy are prepared for AUX transmission.
+
+In addtion, add a new function analogix_dp_remove() to ensure symmetry
+for PM operations.
+
+Signed-off-by: Damon Ding <damon.ding@rock-chips.com>
+---
+
+Changes in v4:
+- Use done_probing() to call drm_of_find_panel_or_bridge() and
+  component_add() when getting panel from the DP AUX bus
+
+Changes in v5:
+- Advance PM operations to make eDP AUX work well
+
+Changes in v6:
+- Use devm_pm_runtime_enable() instead of devm_add_action_or_reset()
+- Add a new function analogix_dp_remove() to ensure symmetry for PM
+  operations
+---
+ .../drm/bridge/analogix/analogix_dp_core.c    | 57 ++++++++++---------
+ .../gpu/drm/rockchip/analogix_dp-rockchip.c   |  4 ++
+ include/drm/bridge/analogix_dp.h              |  1 +
+ 3 files changed, 34 insertions(+), 28 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c b/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
+index 8251adfce2f9..30da8a14361e 100644
+--- a/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
++++ b/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
+@@ -1658,14 +1658,42 @@ analogix_dp_probe(struct device *dev, struct analogix_dp_plat_data *plat_data)
+ 	}
+ 	disable_irq(dp->irq);
+ 
++	dp->aux.name = "DP-AUX";
++	dp->aux.transfer = analogix_dpaux_transfer;
++	dp->aux.dev = dp->dev;
++	drm_dp_aux_init(&dp->aux);
++
++	if (IS_ENABLED(CONFIG_PM)) {
++		pm_runtime_use_autosuspend(dp->dev);
++		pm_runtime_set_autosuspend_delay(dp->dev, 100);
++		ret = devm_pm_runtime_enable(dp->dev);
++		if (ret)
++			goto err_disable_pm_runtime;
++	} else {
++		ret = analogix_dp_resume(dp);
++		if (ret)
++			goto err_disable_clk;
++	}
++
+ 	return dp;
+ 
++err_disable_pm_runtime:
++	pm_runtime_dont_use_autosuspend(dp->dev);
+ err_disable_clk:
+ 	clk_disable_unprepare(dp->clock);
+ 	return ERR_PTR(ret);
+ }
+ EXPORT_SYMBOL_GPL(analogix_dp_probe);
+ 
++void analogix_dp_remove(struct analogix_dp_device *dp)
++{
++	if (IS_ENABLED(CONFIG_PM))
++		pm_runtime_dont_use_autosuspend(dp->dev);
++	else
++		analogix_dp_suspend(dp);
++}
++EXPORT_SYMBOL_GPL(analogix_dp_remove);
++
+ int analogix_dp_suspend(struct analogix_dp_device *dp)
+ {
+ 	phy_power_off(dp->phy);
+@@ -1708,25 +1736,12 @@ int analogix_dp_bind(struct analogix_dp_device *dp, struct drm_device *drm_dev)
+ 	dp->drm_dev = drm_dev;
+ 	dp->encoder = dp->plat_data->encoder;
+ 
+-	if (IS_ENABLED(CONFIG_PM)) {
+-		pm_runtime_use_autosuspend(dp->dev);
+-		pm_runtime_set_autosuspend_delay(dp->dev, 100);
+-		pm_runtime_enable(dp->dev);
+-	} else {
+-		ret = analogix_dp_resume(dp);
+-		if (ret)
+-			return ret;
+-	}
+-
+-	dp->aux.name = "DP-AUX";
+-	dp->aux.transfer = analogix_dpaux_transfer;
+-	dp->aux.dev = dp->dev;
+ 	dp->aux.drm_dev = drm_dev;
+ 
+ 	ret = drm_dp_aux_register(&dp->aux);
+ 	if (ret) {
+ 		DRM_ERROR("failed to register AUX (%d)\n", ret);
+-		goto err_disable_pm_runtime;
++		return ret;
+ 	}
+ 
+ 	ret = analogix_dp_create_bridge(drm_dev, dp);
+@@ -1739,13 +1754,6 @@ int analogix_dp_bind(struct analogix_dp_device *dp, struct drm_device *drm_dev)
+ 
+ err_unregister_aux:
+ 	drm_dp_aux_unregister(&dp->aux);
+-err_disable_pm_runtime:
+-	if (IS_ENABLED(CONFIG_PM)) {
+-		pm_runtime_dont_use_autosuspend(dp->dev);
+-		pm_runtime_disable(dp->dev);
+-	} else {
+-		analogix_dp_suspend(dp);
+-	}
+ 
+ 	return ret;
+ }
+@@ -1762,13 +1770,6 @@ void analogix_dp_unbind(struct analogix_dp_device *dp)
+ 	}
+ 
+ 	drm_dp_aux_unregister(&dp->aux);
+-
+-	if (IS_ENABLED(CONFIG_PM)) {
+-		pm_runtime_dont_use_autosuspend(dp->dev);
+-		pm_runtime_disable(dp->dev);
+-	} else {
+-		analogix_dp_suspend(dp);
+-	}
+ }
+ EXPORT_SYMBOL_GPL(analogix_dp_unbind);
+ 
+diff --git a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+index a63c2c867059..13f32aeea7ca 100644
+--- a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+@@ -459,6 +459,10 @@ static int rockchip_dp_probe(struct platform_device *pdev)
+ 
+ static void rockchip_dp_remove(struct platform_device *pdev)
+ {
++	struct rockchip_dp_device *dp = dev_get_drvdata(&pdev->dev);
++
++	analogix_dp_remove(dp->adp);
++
+ 	component_del(&pdev->dev, &rockchip_dp_component_ops);
+ }
+ 
+diff --git a/include/drm/bridge/analogix_dp.h b/include/drm/bridge/analogix_dp.h
+index 1b119b547988..d9b721fd7201 100644
+--- a/include/drm/bridge/analogix_dp.h
++++ b/include/drm/bridge/analogix_dp.h
+@@ -43,6 +43,7 @@ int analogix_dp_suspend(struct analogix_dp_device *dp);
+ 
+ struct analogix_dp_device *
+ analogix_dp_probe(struct device *dev, struct analogix_dp_plat_data *plat_data);
++void analogix_dp_remove(struct analogix_dp_device *dp);
+ int analogix_dp_bind(struct analogix_dp_device *dp, struct drm_device *drm_dev);
+ void analogix_dp_unbind(struct analogix_dp_device *dp);
+ 
+
+
+Move drm_of_find_panel_or_bridge() a little later and combine it with
+component_add() into a new function rockchip_dp_link_panel(). The function
+will serve as done_probing() callback of devm_of_dp_aux_populate_bus(),
+aiding to support for obtaining the eDP panel via the DP AUX bus.
+
+If failed to get the panel from the DP AUX bus, it will then try the other
+way to get panel information through the platform bus.
+
+Signed-off-by: Damon Ding <damon.ding@rock-chips.com>
+Reviewed-by: Dmitry Baryshkov <dmitry.baryshkov@linaro.org>
+---
+
+Changes in v4:
+- Use done_probing() to call drm_of_find_panel_or_bridge() and
+  component_add() when getting panel from the DP AUX bus
+
+Changes in v5:
+- Use the functions exported by the Analogix side to get the pointers of
+  struct analogix_dp_plat_data and struct drm_dp_aux.
+- Use dev_err() instead of drm_err() in rockchip_dp_poweron().
+
+Changes in v6:
+- Keep drm_err() in rockchip_dp_poweron()
+- Pass 'dp' in drm_...() rather than 'dp->drm_dev'
+---
+ .../gpu/drm/rockchip/analogix_dp-rockchip.c   | 37 ++++++++++++++-----
+ 1 file changed, 28 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+index 13f32aeea7ca..004b1b68d1cf 100644
+--- a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+@@ -393,11 +393,27 @@ static const struct component_ops rockchip_dp_component_ops = {
+ 	.unbind = rockchip_dp_unbind,
+ };
+ 
++static int rockchip_dp_link_panel(struct drm_dp_aux *aux)
++{
++	struct analogix_dp_plat_data *plat_data = analogix_dp_aux_to_plat_data(aux);
++	struct rockchip_dp_device *dp = pdata_encoder_to_dp(plat_data);
++	int ret;
++
++	ret = drm_of_find_panel_or_bridge(dp->dev->of_node, 1, 0, &plat_data->panel, NULL);
++	if (ret)
++		return ret;
++
++	ret = component_add(dp->dev, &rockchip_dp_component_ops);
++	if (ret)
++		return ret;
++
++	return ret;
++}
++
+ static int rockchip_dp_probe(struct platform_device *pdev)
+ {
+ 	struct device *dev = &pdev->dev;
+ 	const struct rockchip_dp_chip_data *dp_data;
+-	struct drm_panel *panel = NULL;
+ 	struct rockchip_dp_device *dp;
+ 	struct resource *res;
+ 	int i;
+@@ -407,10 +423,6 @@ static int rockchip_dp_probe(struct platform_device *pdev)
+ 	if (!dp_data)
+ 		return -ENODEV;
+ 
+-	ret = drm_of_find_panel_or_bridge(dev->of_node, 1, 0, &panel, NULL);
+-	if (ret < 0 && ret != -ENODEV)
+-		return ret;
+-
+ 	dp = devm_kzalloc(dev, sizeof(*dp), GFP_KERNEL);
+ 	if (!dp)
+ 		return -ENOMEM;
+@@ -434,7 +446,6 @@ static int rockchip_dp_probe(struct platform_device *pdev)
+ 
+ 	dp->dev = dev;
+ 	dp->adp = ERR_PTR(-ENODEV);
+-	dp->plat_data.panel = panel;
+ 	dp->plat_data.dev_type = dp->data->chip_type;
+ 	dp->plat_data.power_on = rockchip_dp_poweron;
+ 	dp->plat_data.power_off = rockchip_dp_powerdown;
+@@ -450,9 +461,17 @@ static int rockchip_dp_probe(struct platform_device *pdev)
+ 	if (IS_ERR(dp->adp))
+ 		return PTR_ERR(dp->adp);
+ 
+-	ret = component_add(dev, &rockchip_dp_component_ops);
+-	if (ret)
+-		return ret;
++	ret = devm_of_dp_aux_populate_bus(analogix_dp_get_aux(dp->adp), rockchip_dp_link_panel);
++	if (ret) {
++		if (ret != -ENODEV) {
++			drm_err(dp, "failed to populate aux bus : %d\n", ret);
++			return ret;
++		}
++
++		ret = rockchip_dp_link_panel(analogix_dp_get_aux(dp->adp));
++		if (ret)
++			return ret;
++	}
+ 
+ 	return 0;
+ }
+
+
+Compared with RK3288/RK3399, the HBR2 link rate support is the main
+improvement of RK3588 eDP TX controller, and there are also two
+independent eDP display interfaces on RK3588 Soc.
+
+The newly added 'apb' reset is to ensure the APB bus of eDP controller
+works well on the RK3588 SoC.
+
+Signed-off-by: Damon Ding <damon.ding@rock-chips.com>
+---
+
+Changes in v2:
+- Add the main defferences of the RK3588 eDP and the previous versions
+  in commit message
+
+Changes in v3:
+- Expand the property clock-names, resets and reset-names
+
+Changes in v4:
+- Remove 'spdif' clock which added in v3
+- Add the comment of newly added 'apb' reset in commit message
+
+Changes in v5:
+- Put the differences between RK3288/RK3399 and RK3588 into 'allOf'
+
+Changes in v6:
+- Keep the widest constraints and add only RK3588 related constraints
+  into 'allOf'
+---
+ .../rockchip/rockchip,analogix-dp.yaml        | 22 ++++++++++++++++++-
+ 1 file changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/display/rockchip/rockchip,analogix-dp.yaml b/Documentation/devicetree/bindings/display/rockchip/rockchip,analogix-dp.yaml
+index eaf4e67e232e..baee021314e7 100644
+--- a/Documentation/devicetree/bindings/display/rockchip/rockchip,analogix-dp.yaml
++++ b/Documentation/devicetree/bindings/display/rockchip/rockchip,analogix-dp.yaml
+@@ -15,6 +15,7 @@ properties:
+     enum:
+       - rockchip,rk3288-dp
+       - rockchip,rk3399-edp
++      - rockchip,rk3588-edp
+ 
+   clocks:
+     minItems: 2
+@@ -31,9 +32,12 @@ properties:
+     maxItems: 1
+ 
+   resets:
+-    maxItems: 1
++    minItems: 1
++    maxItems: 2
+ 
+   reset-names:
++    minItems: 1
++    maxItems: 2
+     const: dp
+ 
+   rockchip,grf:
+@@ -55,6 +59,22 @@ required:
+ allOf:
+   - $ref: /schemas/display/bridge/analogix,dp.yaml#
+ 
++  - if:
++      properties:
++        compatible:
++          contains:
++            enum:
++              - rockchip,rk3588-edp
++    then:
++      properties:
++        resets:
++          minItems: 2
++          maxItems: 2
++        reset-names:
++          items:
++            - const: dp
++            - const: apb
++
+ unevaluatedProperties: false
+ 
+ examples:
+
+
+Expand enum analogix_dp_devtype with RK3588_EDP, and add max_link_rate
+and max_lane_count configs for it.
+
+Signed-off-by: Damon Ding <damon.ding@rock-chips.com>
+Reviewed-by: Dmitry Baryshkov <dmitry.baryshkov@linaro.org>
+---
+
+Changes in v5:
+- Add the RK3588_EDP related modification in analogix_dp.h
+- Move this commit above related commit on the Rockchip side
+---
+ drivers/gpu/drm/bridge/analogix/analogix_dp_core.c | 4 ++++
+ include/drm/bridge/analogix_dp.h                   | 3 ++-
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c b/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
+index 30da8a14361e..5d095d085fcb 100644
+--- a/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
++++ b/drivers/gpu/drm/bridge/analogix/analogix_dp_core.c
+@@ -1513,6 +1513,10 @@ static int analogix_dp_dt_parse_pdata(struct analogix_dp_device *dp)
+ 		video_info->max_link_rate = 0x0A;
+ 		video_info->max_lane_count = 0x04;
+ 		break;
++	case RK3588_EDP:
++		video_info->max_link_rate = 0x14;
++		video_info->max_lane_count = 0x04;
++		break;
+ 	case EXYNOS_DP:
+ 		/*
+ 		 * NOTE: those property parseing code is used for
+diff --git a/include/drm/bridge/analogix_dp.h b/include/drm/bridge/analogix_dp.h
+index d9b721fd7201..eb48ee2bb08d 100644
+--- a/include/drm/bridge/analogix_dp.h
++++ b/include/drm/bridge/analogix_dp.h
+@@ -16,11 +16,12 @@ enum analogix_dp_devtype {
+ 	EXYNOS_DP,
+ 	RK3288_DP,
+ 	RK3399_EDP,
++	RK3588_EDP,
+ };
+ 
+ static inline bool is_rockchip(enum analogix_dp_devtype type)
+ {
+-	return type == RK3288_DP || type == RK3399_EDP;
++	return type == RK3288_DP || type == RK3399_EDP || type == RK3588_EDP;
+ }
+ 
+ struct analogix_dp_plat_data {
+
+
+RK3588 integrates the Analogix eDP 1.3 TX controller IP and the HDMI/eDP
+TX Combo PHY based on a Samsung IP block. There are also two independent
+eDP display interface with different address on RK3588 Soc.
+
+The patch currently adds only the basic support, specifically RGB output
+up to 4K@60Hz, without the tests for audio, PSR and other eDP 1.3 specific
+features.
+
+In additon, the above Analogix IP has always been utilized as eDP on
+Rockchip platform, despite its capability to also support the DP v1.2.
+Therefore, the newly added logs will contain the term 'edp' rather than
+'dp'. And the newly added 'apb' reset control is to ensure the APB bus
+of eDP controller works well on the RK3588 SoC.
+
+Signed-off-by: Damon Ding <damon.ding@rock-chips.com>
+Acked-by: Dmitry Baryshkov <dmitry.baryshkov@linaro.org>
+---
+
+Changes in v2:
+- Add support for the other eDP output edp1
+
+Changes in v3:
+- Fix the unexpected use of alias
+- Add more details in commit message
+
+Changes in v4:
+- Add the 'apb' reset control
+
+Changes in v5:
+- Use drm_...()/dev_...() instead of DRM_...()
+- Clean &rockchip_dp_chip_data.reg related comments in commit message
+- Move the modifications in anlogix_dp.h to the Analogix side in order
+  to avoid the warning:
+
+  drivers/gpu/drm/bridge/analogix/analogix_dp_core.c:1506:10: warning:
+  enumeration value 'RK3588_EDP' not handled in switch [-Wswitch]
+          switch (dp->plat_data->dev_type) {
+
+Changes in v6:
+- Pass 'dp' in drm_...() rather than 'dp->drm_dev'
+- Use drm_...() uniformly rather than mixing drm_...() and dev_..()
+---
+ .../gpu/drm/rockchip/analogix_dp-rockchip.c   | 61 ++++++++++++++++++-
+ 1 file changed, 58 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+index 004b1b68d1cf..a86d655b021e 100644
+--- a/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/analogix_dp-rockchip.c
+@@ -51,11 +51,13 @@ struct rockchip_grf_reg_field {
+ /**
+  * struct rockchip_dp_chip_data - splite the grf setting of kind of chips
+  * @lcdc_sel: grf register field of lcdc_sel
++ * @edp_mode: grf register field of edp_mode
+  * @chip_type: specific chip type
+  * @reg: register base address
+  */
+ struct rockchip_dp_chip_data {
+ 	const struct rockchip_grf_reg_field lcdc_sel;
++	const struct rockchip_grf_reg_field edp_mode;
+ 	u32	chip_type;
+ 	u32	reg;
+ };
+@@ -70,6 +72,7 @@ struct rockchip_dp_device {
+ 	struct clk               *grfclk;
+ 	struct regmap            *grf;
+ 	struct reset_control     *rst;
++	struct reset_control     *apbrst;
+ 
+ 	const struct rockchip_dp_chip_data *data;
+ 
+@@ -115,6 +118,10 @@ static int rockchip_dp_pre_init(struct rockchip_dp_device *dp)
+ 	usleep_range(10, 20);
+ 	reset_control_deassert(dp->rst);
+ 
++	reset_control_assert(dp->apbrst);
++	usleep_range(10, 20);
++	reset_control_deassert(dp->apbrst);
++
+ 	return 0;
+ }
+ 
+@@ -136,12 +143,21 @@ static int rockchip_dp_poweron(struct analogix_dp_plat_data *plat_data)
+ 		return ret;
+ 	}
+ 
++	ret = rockchip_grf_field_write(dp->grf, &dp->data->edp_mode, 1);
++	if (ret != 0)
++		drm_err(dp, "failed to set edp mode %d\n", ret);
++
+ 	return ret;
+ }
+ 
+ static int rockchip_dp_powerdown(struct analogix_dp_plat_data *plat_data)
+ {
+ 	struct rockchip_dp_device *dp = pdata_encoder_to_dp(plat_data);
++	int ret;
++
++	ret = rockchip_grf_field_write(dp->grf, &dp->data->edp_mode, 0);
++	if (ret != 0)
++		drm_err(dp, "failed to set edp mode %d\n", ret);
+ 
+ 	clk_disable_unprepare(dp->pclk);
+ 
+@@ -206,6 +222,10 @@ static void rockchip_dp_drm_encoder_enable(struct drm_encoder *encoder,
+ 	struct rockchip_dp_device *dp = encoder_to_dp(encoder);
+ 	struct drm_crtc *crtc;
+ 	struct drm_crtc_state *old_crtc_state;
++	struct of_endpoint endpoint;
++	struct device_node *remote_port, *remote_port_parent;
++	char name[32];
++	u32 port_id;
+ 	int ret;
+ 
+ 	crtc = rockchip_dp_drm_get_new_crtc(encoder, state);
+@@ -223,13 +243,27 @@ static void rockchip_dp_drm_encoder_enable(struct drm_encoder *encoder,
+ 		return;
+ 	}
+ 
+-	ret = drm_of_encoder_active_endpoint_id(dp->dev->of_node, encoder);
++	ret = drm_of_encoder_active_endpoint(dp->dev->of_node, encoder, &endpoint);
+ 	if (ret < 0)
+ 		return;
+ 
+-	drm_dbg_core(dp, "vop %s output to dp\n", (ret) ? "LIT" : "BIG");
++	remote_port_parent = of_graph_get_remote_port_parent(endpoint.local_node);
++	if (remote_port_parent) {
++		if (of_get_child_by_name(remote_port_parent, "ports")) {
++			remote_port = of_graph_get_remote_port(endpoint.local_node);
++			of_property_read_u32(remote_port, "reg", &port_id);
++			of_node_put(remote_port);
++			sprintf(name, "%s vp%d", remote_port_parent->full_name, port_id);
++		} else {
++			sprintf(name, "%s %s",
++				remote_port_parent->full_name, endpoint.id ? "vopl" : "vopb");
++		}
++		of_node_put(remote_port_parent);
++
++		drm_dbg_core(dp, "%s output to edp\n", name);
++	}
+ 
+-	ret = rockchip_grf_field_write(dp->grf, &dp->data->lcdc_sel, ret);
++	ret = rockchip_grf_field_write(dp->grf, &dp->data->lcdc_sel, endpoint.id);
+ 	if (ret != 0)
+ 		drm_err(dp, "Could not write to GRF: %d\n", ret);
+ 
+@@ -323,6 +357,12 @@ static int rockchip_dp_of_probe(struct rockchip_dp_device *dp)
+ 		return PTR_ERR(dp->rst);
+ 	}
+ 
++	dp->apbrst = devm_reset_control_get_optional(dev, "apb");
++	if (IS_ERR(dp->apbrst)) {
++		drm_err(dp, "failed to get apb reset control\n");
++		return PTR_ERR(dp->apbrst);
++	}
++
+ 	return 0;
+ }
+ 
+@@ -526,9 +566,24 @@ static const struct rockchip_dp_chip_data rk3288_dp[] = {
+ 	{ /* sentinel */ }
+ };
+ 
++static const struct rockchip_dp_chip_data rk3588_edp[] = {
++	{
++		.edp_mode = GRF_REG_FIELD(0x0000, 0, 0),
++		.chip_type = RK3588_EDP,
++		.reg = 0xfdec0000,
++	},
++	{
++		.edp_mode = GRF_REG_FIELD(0x0004, 0, 0),
++		.chip_type = RK3588_EDP,
++		.reg = 0xfded0000,
++	},
++	{ /* sentinel */ }
++};
++
+ static const struct of_device_id rockchip_dp_dt_ids[] = {
+ 	{.compatible = "rockchip,rk3288-dp", .data = &rk3288_dp },
+ 	{.compatible = "rockchip,rk3399-edp", .data = &rk3399_edp },
++	{.compatible = "rockchip,rk3588-edp", .data = &rk3588_edp },
+ 	{}
+ };
+ MODULE_DEVICE_TABLE(of, rockchip_dp_dt_ids);
+
+
