@@ -9,11 +9,11 @@
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of MiniMyth2.
-mm_VERSION_MINIMYTH ?=       14.0.0.r789
+mm_VERSION_MINIMYTH ?=       14.0.0.r91
 
 # The version of Myth to use.
 # Valid values are '33', '34', '35', 'master' and 'test'
-mm_MYTH_VERSION           ?= 35
+mm_MYTH_VERSION           ?= master
 
 # Lists the software to be included in image.
 # Valid values for MM_SOFTWARE are zero or more of list below:
