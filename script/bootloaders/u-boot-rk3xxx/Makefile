@@ -11,7 +11,6 @@ MASTER_SITES = \
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
 PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
-               50-dts-upstream-arm64-rockchip-rk3588-dtsi-sync-with-6.14-kernel.patch \
                51-add-rk3328-beelink-a1-defconfig.patch \
                52-add-rk3566-x96-x6-defconfig.patch \
                53-add-rk3588-rock-5t-defconfig.patch \
@@ -49,6 +48,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = rock-pi-4c-rk3399_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock5a-rk3588s_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock5b-rk3588_defconfig
+# mm_U-BOOT_BOARD_TYPE = rock-5-itx-rk3588_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock5t-rk3588_defconfig
 # mm_U-BOOT_BOARD_TYPE = beelink-a1-rk3328_defconfig
 # mm_U-BOOT_BOARD_TYPE = quartz64-b-rk3566_defconfig
