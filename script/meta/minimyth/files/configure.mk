@@ -16,6 +16,7 @@ include ../../myth-$(mm_MYTH_VERSION)/mythtv/package-api.mk
 # is executed when all scripts defined in MM_INIT_START_PHASE_X-1
 # end successfuly
 MM_INIT_START_PHASE_1 := \
+    telnet   \
     time     \
     hotplug  \
     master   \
@@ -48,7 +49,6 @@ MM_INIT_START_PHASE_5 := \
     game         \
     cpu          \
     swap         \
-    telnet       \
     ssh_server   \
     kmsvnc       \
     mail         \
