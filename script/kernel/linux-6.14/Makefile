@@ -35,6 +35,8 @@ PATCHFILES += linux-6.14-defaults.patch
 
 ifeq (1,1)
 
+PATCHFILES += 0000-sound-soc-dont-use-__free_device_node-in-graph_util_parse_dai.patch
+
 PATCHFILES += 0108-drivers-led-add-openvfd-g3118dda3.patch
 PATCHFILES += 0109-drivers-mmc-add-disk-activity-support.patch
 
