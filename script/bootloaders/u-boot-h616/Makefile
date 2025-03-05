@@ -14,7 +14,8 @@ PATCHFILES  += 107-drivers-mmc-sunxi_mmc-fix-failing-rw-ops.patch
 PATCHFILES  += 109-hack-hack-fix-h618-boot-on-uboot2024.07.patch
 PATCHFILES  += 110-sunxi-H616-dram-Lower-max-row-count.patch
 PATCHFILES  += 111-sunxi-H616-dram-Improve-size-scan-procedure.patch
-PATCHFILES  += 113-add-dram-sizing-debug-verbosity.patch
+PATCHFILES  += 112-sunxi-H616-dram-fix-pendoo-x12-size-detection.patch
+# PATCHFILES  += 113-add-dram-sizing-debug-verbosity.patch
 # boards aditions.
 PATCHFILES  += 150-add-x96-q-lpddr3-defconfig.patch
 PATCHFILES  += 151-add-x96-q-ddr3-defconfig.patch
