@@ -166,6 +166,7 @@ PATCHFILES += 0649-arm64-dts-allwinner-h618-add-vontar-h618-TVbox.patch
 PATCHFILES += 0650-arm64-dts-allwinner-h618-add-opi-2w.patch
 PATCHFILES += 0651-arm64-dts-allwinner-h313-Tanix-TX1-TVbox.patch
 PATCHFILES += 0652-arm64-dts-allwinner-h313-add-x96q-v5.1-TVbox.patch
+PATCHFILES += 0653-arm64-dts-allwinner-h616-add-pendoo-x12pro-tvbox.patch
 #------------------------------------------------------------
 endif
 
@@ -291,6 +292,7 @@ PATCHFILES += 1047-drm-rockchip-rk3588-add-edp-support-v6.patch
 PATCHFILES += 1048-phy-rockchip-samsung-hdptx-add-edp-mode-support-v7.patch
 # designware dp support
 PATCHFILES += 1049-drm-bridge-synopsys-add-dw-dptx-controller-support-library.patch
+PATCHFILES += 1050-drm-rockchip-add-rk3588-dptx-output-support.patch
 # var additions
 PATCHFILES += 1060-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1061-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
