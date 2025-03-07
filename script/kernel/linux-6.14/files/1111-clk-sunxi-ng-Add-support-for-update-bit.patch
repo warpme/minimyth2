@@ -1,0 +1,91 @@
+From 998b271bc693ca92d5a04efb2e9e5cc8323d4ec7 Mon Sep 17 00:00:00 2001
+From: Andre Przywara <andre.przywara@arm.com>
+Date: Thu, 27 Feb 2025 01:22:17 +0000
+Subject: [PATCH 11/37] clk: sunxi-ng: Add support for update bit
+
+Some clocks in the Allwinner A523 SoC contain an "update bit" (bit 27),
+which must be set to apply any register changes, namely the mux
+selector, the divider and the gate bit.
+
+Add a new CCU feature bit to mark those clocks, and set bit 27 whenever
+we are applying any changes.
+
+Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+Reviewed-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+---
+ drivers/clk/sunxi-ng/ccu_common.h | 4 ++++
+ drivers/clk/sunxi-ng/ccu_div.c    | 2 ++
+ drivers/clk/sunxi-ng/ccu_gate.c   | 4 ++++
+ drivers/clk/sunxi-ng/ccu_mux.c    | 2 ++
+ 4 files changed, 12 insertions(+)
+
+diff --git a/drivers/clk/sunxi-ng/ccu_common.h b/drivers/clk/sunxi-ng/ccu_common.h
+index 50fd2683296..bbec283b9d9 100644
+--- a/drivers/clk/sunxi-ng/ccu_common.h
++++ b/drivers/clk/sunxi-ng/ccu_common.h
+@@ -20,10 +20,14 @@
+ #define CCU_FEATURE_KEY_FIELD		BIT(8)
+ #define CCU_FEATURE_CLOSEST_RATE	BIT(9)
+ #define CCU_FEATURE_DUAL_DIV		BIT(10)
++#define CCU_FEATURE_UPDATE_BIT		BIT(11)
+ 
+ /* MMC timing mode switch bit */
+ #define CCU_MMC_NEW_TIMING_MODE		BIT(30)
+ 
++/* Some clocks need this bit to actually apply register changes */
++#define CCU_SUNXI_UPDATE_BIT		BIT(27)
++
+ struct device_node;
+ 
+ struct ccu_common {
+diff --git a/drivers/clk/sunxi-ng/ccu_div.c b/drivers/clk/sunxi-ng/ccu_div.c
+index 7f4691f09e0..916d6da6d8a 100644
+--- a/drivers/clk/sunxi-ng/ccu_div.c
++++ b/drivers/clk/sunxi-ng/ccu_div.c
+@@ -106,6 +106,8 @@ static int ccu_div_set_rate(struct clk_hw *hw, unsigned long rate,
+ 
+ 	reg = readl(cd->common.base + cd->common.reg);
+ 	reg &= ~GENMASK(cd->div.width + cd->div.shift - 1, cd->div.shift);
++	if (cd->common.features & CCU_FEATURE_UPDATE_BIT)
++		reg |= CCU_SUNXI_UPDATE_BIT;
+ 
+ 	writel(reg | (val << cd->div.shift),
+ 	       cd->common.base + cd->common.reg);
+diff --git a/drivers/clk/sunxi-ng/ccu_gate.c b/drivers/clk/sunxi-ng/ccu_gate.c
+index ac52fd6bff6..474a9e8831f 100644
+--- a/drivers/clk/sunxi-ng/ccu_gate.c
++++ b/drivers/clk/sunxi-ng/ccu_gate.c
+@@ -20,6 +20,8 @@ void ccu_gate_helper_disable(struct ccu_common *common, u32 gate)
+ 	spin_lock_irqsave(common->lock, flags);
+ 
+ 	reg = readl(common->base + common->reg);
++	if (common->features & CCU_FEATURE_UPDATE_BIT)
++		reg |= CCU_SUNXI_UPDATE_BIT;
+ 	writel(reg & ~gate, common->base + common->reg);
+ 
+ 	spin_unlock_irqrestore(common->lock, flags);
+@@ -44,6 +46,8 @@ int ccu_gate_helper_enable(struct ccu_common *common, u32 gate)
+ 	spin_lock_irqsave(common->lock, flags);
+ 
+ 	reg = readl(common->base + common->reg);
++	if (common->features & CCU_FEATURE_UPDATE_BIT)
++		reg |= CCU_SUNXI_UPDATE_BIT;
+ 	writel(reg | gate, common->base + common->reg);
+ 
+ 	spin_unlock_irqrestore(common->lock, flags);
+diff --git a/drivers/clk/sunxi-ng/ccu_mux.c b/drivers/clk/sunxi-ng/ccu_mux.c
+index d7ffbdeee9e..74f9e98a5d3 100644
+--- a/drivers/clk/sunxi-ng/ccu_mux.c
++++ b/drivers/clk/sunxi-ng/ccu_mux.c
+@@ -197,6 +197,8 @@ int ccu_mux_helper_set_parent(struct ccu_common *common,
+ 	/* The key field always reads as zero. */
+ 	if (common->features & CCU_FEATURE_KEY_FIELD)
+ 		reg |= CCU_MUX_KEY_VALUE;
++	if (common->features & CCU_FEATURE_UPDATE_BIT)
++		reg |= CCU_SUNXI_UPDATE_BIT;
+ 
+ 	reg &= ~GENMASK(cm->width + cm->shift - 1, cm->shift);
+ 	writel(reg | (index << cm->shift), common->base + common->reg);
+-- 
+2.46.0
+

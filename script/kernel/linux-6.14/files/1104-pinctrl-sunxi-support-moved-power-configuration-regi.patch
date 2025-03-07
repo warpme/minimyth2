@@ -1,7 +1,7 @@
-From cbcf9136c6605ff1c15563c63c8d6a8931283b14 Mon Sep 17 00:00:00 2001
+From bc3845249873680b0c65e25b7f630e952fb7adc3 Mon Sep 17 00:00:00 2001
 From: Andre Przywara <andre.przywara@arm.com>
 Date: Wed, 6 Nov 2024 01:39:22 +0000
-Subject: [PATCH 12/37] pinctrl: sunxi: support moved power configuration
+Subject: [PATCH 04/37] pinctrl: sunxi: support moved power configuration
  registers
 
 The Allwinner pincontroller IP features some registers to control the
@@ -20,33 +20,33 @@ Signed-off-by: Andre Przywara <andre.przywara@arm.com>
  2 files changed, 16 insertions(+), 6 deletions(-)
 
 diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.c b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
-index 83a031ceb29..a1057122272 100644
+index 83a031ceb29..f1c5a991cf7 100644
 --- a/drivers/pinctrl/sunxi/pinctrl-sunxi.c
 +++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
-@@ -736,9 +736,9 @@ static int sunxi_pinctrl_set_io_bias_cfg(struct sunxi_pinctrl *pctl,
+@@ -736,9 +736,11 @@ static int sunxi_pinctrl_set_io_bias_cfg(struct sunxi_pinctrl *pctl,
  		val = uV > 1800000 && uV <= 2500000 ? BIT(bank) : 0;
  
  		raw_spin_lock_irqsave(&pctl->lock, flags);
 -		reg = readl(pctl->membase + PIO_POW_MOD_CTL_REG);
-+		reg = readl(pctl->membase + pctl->pow_mod_sel_offset);
++		reg = readl(pctl->membase + pctl->pow_mod_sel_offset +
++			    PIO_POW_MOD_CTL_OFS);
  		reg &= ~BIT(bank);
 -		writel(reg | val, pctl->membase + PIO_POW_MOD_CTL_REG);
-+		writel(reg | val, pctl->membase + pctl->pow_mod_sel_offset);
++		writel(reg | val, pctl->membase + pctl->pow_mod_sel_offset +
++		       PIO_POW_MOD_CTL_OFS);
  		raw_spin_unlock_irqrestore(&pctl->lock, flags);
  
  		fallthrough;
-@@ -746,9 +746,12 @@ static int sunxi_pinctrl_set_io_bias_cfg(struct sunxi_pinctrl *pctl,
+@@ -746,9 +748,10 @@ static int sunxi_pinctrl_set_io_bias_cfg(struct sunxi_pinctrl *pctl,
  		val = uV <= 1800000 ? 1 : 0;
  
  		raw_spin_lock_irqsave(&pctl->lock, flags);
 -		reg = readl(pctl->membase + PIO_POW_MOD_SEL_REG);
-+		reg = readl(pctl->membase + pctl->pow_mod_sel_offset +
-+			    PIO_POW_MOD_SEL_OFS);
++		reg = readl(pctl->membase + pctl->pow_mod_sel_offset);
  		reg &= ~(1 << bank);
 -		writel(reg | val << bank, pctl->membase + PIO_POW_MOD_SEL_REG);
 +		writel(reg | val << bank,
-+		       pctl->membase + pctl->pow_mod_sel_offset +
-+		       PIO_POW_MOD_SEL_OFS);
++		       pctl->membase + pctl->pow_mod_sel_offset);
  		raw_spin_unlock_irqrestore(&pctl->lock, flags);
  		return 0;
  	default:
@@ -62,7 +62,7 @@ index 83a031ceb29..a1057122272 100644
  	pctl->irq_array = devm_kcalloc(&pdev->dev,
  				       IRQ_PER_BANK * pctl->desc->irq_banks,
 diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.h b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
-index 37a64624142..5b4b01fca32 100644
+index 6cf721876d8..742fc795c76 100644
 --- a/drivers/pinctrl/sunxi/pinctrl-sunxi.h
 +++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
 @@ -87,9 +87,11 @@
@@ -75,7 +75,7 @@ index 37a64624142..5b4b01fca32 100644
 -#define PIO_POW_MOD_CTL_REG	0x344
 +#define PIO_POW_MOD_SEL_REG		0x340
 +#define PIO_11B_POW_MOD_SEL_REG		0x380
-+#define PIO_POW_MOD_SEL_OFS		0x004
++#define PIO_POW_MOD_CTL_OFS		0x004
  
  #define PIO_BANK_K_OFFSET		0x500
  

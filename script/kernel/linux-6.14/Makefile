@@ -35,8 +35,6 @@ PATCHFILES += linux-6.14-defaults.patch
 
 ifeq (1,1)
 
-PATCHFILES += 0000-sound-soc-dont-use-__free_device_node-in-graph_util_parse_dai.patch
-
 PATCHFILES += 0108-drivers-led-add-openvfd-g3118dda3.patch
 PATCHFILES += 0109-drivers-mmc-add-disk-activity-support.patch
 
@@ -327,25 +325,40 @@ endif
 
 ifeq (1,1)
 #-- Allwinner A523/T527/H728 --------------------------------
-PATCHFILES += 1107-disable-unused-cores-debug.patch
-PATCHFILES += 1110-pinctrl-sunxi-refactor-pinctrl-variants-into-flags.patch
-PATCHFILES += 1111-pinctrl-sunxi-move-bank-K-register-offset.patch
-PATCHFILES += 1112-pinctrl-sunxi-support-moved-power-configuration-regi.patch
-PATCHFILES += 1113-pinctrl-sunxi-allow-reading-mux-values-from-DT.patch
-PATCHFILES += 1115-pinctrl-sunxi-Add-support-for-the-Allwinner-A523.patch
-PATCHFILES += 1116-pinctrl-sunxi-Add-support-for-the-secondary-A523-GPI.patch
-PATCHFILES += 1117-clk-sunxi-ng-mp-Add-SUNXI_CCU_P_DATA_WITH_MUX_GATE-w.patch
-PATCHFILES += 1118-clk-sunxi-ng-mp-introduce-dual-divider-clock.patch
-PATCHFILES += 1119-clk-sunxi-ng-mp-provide-wrapper-for-setting-feature-.patch
-PATCHFILES += 1120-dt-bindings-clk-sunxi-ng-add-compatible-for-the-A523.patch
-PATCHFILES += 1121-dt-bindings-clk-sunxi-ng-add-compatible-for-the-A523.patch
-PATCHFILES += 1122-clk-sunxi-ng-Add-support-for-the-A523-T527-CCU.patch
-PATCHFILES += 1123-clk-sunxi-ng-add-support-for-the-A523-T527-PRCM-CCU.patch
-PATCHFILES += 1127-watchdog-sunxi_wdt-Add-support-for-Allwinner-A523.patch
-PATCHFILES += 1138-clk-sunxi-ng-add-support-for-A523-T527-gmac1-clocks.patch
+PATCHFILES += 1101-pinctrl-sunxi-refactor-pinctrl-variants-into-flags.patch
+PATCHFILES += 1102-pinctrl-sunxi-increase-number-of-GPIO-bank-regulator.patch
+PATCHFILES += 1103-pinctrl-sunxi-move-bank-K-register-offset.patch
+PATCHFILES += 1104-pinctrl-sunxi-support-moved-power-configuration-regi.patch
+PATCHFILES += 1105-pinctrl-sunxi-allow-reading-mux-values-from-DT.patch
+PATCHFILES += 1106-dt-bindings-pinctrl-add-compatible-for-Allwinner-A52.patch
+PATCHFILES += 1107-pinctrl-sunxi-Add-support-for-the-Allwinner-A523.patch
+PATCHFILES += 1108-pinctrl-sunxi-Add-support-for-the-secondary-A523-GPI.patch
+PATCHFILES += 1109-clk-sunxi-ng-mp-introduce-dual-divider-clock.patch
+PATCHFILES += 1110-clk-sunxi-ng-mp-provide-wrappers-for-setting-feature.patch
+PATCHFILES += 1111-clk-sunxi-ng-Add-support-for-update-bit.patch
+PATCHFILES += 1112-dt-bindings-clk-sunxi-ng-document-two-Allwinner-A523.patch
+PATCHFILES += 1113-clk-sunxi-ng-Add-support-for-the-A523-T527-CCU-PLLs.patch
+PATCHFILES += 1114-clk-sunxi-ng-a523-Add-support-for-bus-clocks.patch
+PATCHFILES += 1115-clk-sunxi-ng-a523-add-video-mod-clocks.patch
+PATCHFILES += 1116-clk-sunxi-ng-a523-add-system-mod-clocks.patch
+PATCHFILES += 1117-clk-sunxi-ng-a523-add-interface-mod-clocks.patch
+PATCHFILES += 1118-clk-sunxi-ng-a523-add-USB-mod-clocks.patch
+PATCHFILES += 1119-clk-sunxi-ng-a523-remaining-mod-clocks.patch
+PATCHFILES += 1120-clk-sunxi-ng-a523-add-bus-clock-gates.patch
+PATCHFILES += 1121-clk-sunxi-ng-a523-add-reset-lines.patch
+PATCHFILES += 1122-clk-sunxi-ng-add-support-for-the-A523-T527-PRCM-CCU.patch
+PATCHFILES += 1123-dt-bindings-mmc-sunxi-Simplify-compatible-string-lis.patch
+PATCHFILES += 1124-dt-bindings-mmc-sunxi-add-compatible-strings-for-All.patch
+PATCHFILES += 1125-dt-bindings-watchdog-sunxi-add-Allwinner-A523-compat.patch
+PATCHFILES += 1126-watchdog-sunxi_wdt-Add-support-for-Allwinner-A523.patch
+PATCHFILES += 1127-dt-bindings-irq-sun7i-nmi-document-the-Allwinner-A52.patch
+PATCHFILES += 1128-irqchip-sunxi-nmi-Support-Allwinner-A523-NMI-control.patch
+PATCHFILES += 1129-dt-bindings-phy-document-Allwinner-A523-USB-2.0-PHY.patch
+PATCHFILES += 1131-dt-bindings-vendor-prefixes-Add-YuzukiHD-name.patch
+PATCHFILES += 1132-dt-bindings-arm-sunxi-Add-new-board-names-for-A523-g.patch
+PATCHFILES += 1136-dt-bindings-arm-sunxi-Add-YuzukiHD-Chameleon-board-n.patch
 PATCHFILES += 1139-net-ethernet-allwinner-add-gmac200-support.patch
 PATCHFILES += 1140-net-ethernet-allwinner-add-gmac-support.patch
-PATCHFILES += 1141-irqchip-sunxi-nmi-Support-Allwinner-A523-NMI-control.patch
 # dt patches
 PATCHFILES += 1150-arm64-dtsi-allwinner-add-initial-A523-support.patch
 PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-in-A523-dtsi.patch

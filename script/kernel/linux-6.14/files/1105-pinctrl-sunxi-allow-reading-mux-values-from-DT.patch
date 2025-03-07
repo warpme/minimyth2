@@ -1,7 +1,7 @@
-From 506aeb0d3f2fd2e44755b95dc2bdf0a3c2615f5c Mon Sep 17 00:00:00 2001
+From b767cf8909efcd86c8069df5ebdd97ef66d550f4 Mon Sep 17 00:00:00 2001
 From: Andre Przywara <andre.przywara@arm.com>
 Date: Thu, 10 Nov 2022 01:42:54 +0000
-Subject: [PATCH 13/37] pinctrl: sunxi: allow reading mux values from DT
+Subject: [PATCH 05/37] pinctrl: sunxi: allow reading mux values from DT
 
 So far every Allwinner SoC needs a large table in the kernel code, to
 describe the mapping between the pinctrl function names ("uart") and
@@ -28,11 +28,12 @@ All a new SoC driver would need to do is to provide two arrays, and then
 call the sunxi_pinctrl_dt_table_init() function.
 
 Signed-off-by: Andre Przywara <andre.przywara@arm.com>
+Reviewed-by: Jernej Skrabec <jernej.skrabec@gmail.com>
 ---
  drivers/pinctrl/sunxi/Makefile           |   1 +
- drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c | 357 +++++++++++++++++++++++
+ drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c | 374 +++++++++++++++++++++++
  drivers/pinctrl/sunxi/pinctrl-sunxi.h    |   9 +
- 3 files changed, 367 insertions(+)
+ 3 files changed, 384 insertions(+)
  create mode 100644 drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c
 
 diff --git a/drivers/pinctrl/sunxi/Makefile b/drivers/pinctrl/sunxi/Makefile
@@ -49,18 +50,35 @@ index 2ff5a55927a..f5bad7a5295 100644
  obj-$(CONFIG_PINCTRL_SUNIV_F1C100S)	+= pinctrl-suniv-f1c100s.o
 diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c b/drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c
 new file mode 100644
-index 00000000000..939c191f5b6
+index 00000000000..1833078f687
 --- /dev/null
 +++ b/drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c
-@@ -0,0 +1,357 @@
+@@ -0,0 +1,374 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
-+ * Copyright (C) 2017-2024 Arm Ltd.
++ * Copyright (C) 2017-2025 Arm Ltd.
 + *
 + * Generic DT driven Allwinner pinctrl driver routines.
 + * Builds the pin tables from minimal driver information and pin groups
 + * described in the DT. Then hands those tables of to the traditional
 + * sunxi pinctrl driver.
++ * sunxi_pinctrl_init() expects a table like shown below, previously spelled
++ * out in a per-SoC .c file. This code generates this table, like so:
++ *
++ *  SUNXI_PIN(SUNXI_PINCTRL_PIN(F, 1),	// code iterates over every implemented
++ *				// pin, based on pins_per_bank[] array passed in
++ *
++ *    SUNXI_FUNCTION(0x0, "gpio_in"),	// always added, for every pin
++ *    SUNXI_FUNCTION(0x1, "gpio_out"),	// always added, for every pin
++ *
++ *    SUNXI_FUNCTION(0x2, "mmc0"),	// based on pingroup found in DT:
++ *				//   mmc0-pins {
++ *				//       pins = "PF0", "PF1", ...
++ *				//       function = "mmc0";
++ *				//       allwinner,pinmux = <2>;
++ *
++ *    SUNXI_FUNCTION_IRQ_BANK(0x6, 4, 1)),	// derived by irq_bank_muxes[]
++ *						// array passed in
 + */
 +
 +#include <linux/export.h>
@@ -411,7 +429,7 @@ index 00000000000..939c191f5b6
 +	return sunxi_pinctrl_init_with_flags(pdev, desc, flags);
 +}
 diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.h b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
-index 5b4b01fca32..89bed627c9c 100644
+index 742fc795c76..ad26e4de16a 100644
 --- a/drivers/pinctrl/sunxi/pinctrl-sunxi.h
 +++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
 @@ -31,6 +31,9 @@
