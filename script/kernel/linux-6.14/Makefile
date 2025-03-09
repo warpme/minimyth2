@@ -369,6 +369,28 @@ PATCHFILES += 1173-arm64-dts-allwinner-a527-add-Radxa-A5E-support.patch
 endif
 #------------------------------------------------------------
 
+ifeq (1,1)
+#-- Rockchip rk3528 -----------------------------------------
+PATCHFILES += 1200-dt-bindings-add-rk3528-clock-reset-definitions.patch
+PATCHFILES += 1201-clk-rockchip-add-clock-controller-for-the-RK3528.patch
+PATCHFILES += 1202-pinctrl-rockchip-add-rk3528-support.patch
+PATCHFILES += 1203-dt-bindings-power-add-RK3528-SoCs-header-for-idle.patch
+PATCHFILES += 1204-ethernet-stmmac-dwmac-rk3528-add-GMAC-support.patch
+PATCHFILES += 1205-soc-rockchip-power-domain-add-rk3528-support.patch
+PATCHFILES += 1206-phy-rockchip-inno-usb2-add-phy-support-for-rk3528.patch
+PATCHFILES += 1208-thermal-rockchip-add-support-for-rk3528.patch
+PATCHFILES += 1209-phy-rockchip-naneng-combphy-add-support-for-rk3528.patch
+PATCHFILES += 1210-phy-rockchip-inno-hdmi-add-support-for-rk3528.patch
+PATCHFILES += 1211-drm-rockchip-dw_hdmi-add-support-for-rk3528.patch
+PATCHFILES += 1213-nvmem-rockchip-otp-add-support-for-rk3528.patch
+PATCHFILES += 1214-sound-soc-codecs-add-rk3528-support.patch
+PATCHFILES += 1215-hack-hack-gpu-drm-rockchip-rockchip_vop2_reg-add-rk3528.patch
+PATCHFILES += 1250-arm64-dtsi-rockchip-add-3528.dtsi.patch
+PATCHFILES += 1251-arm64-dts-rockchip-add-dts-for-vontar_r3.patch
+PATCHFILES += 1252-arm64-dts-rockchip-rk3528-add-dts-for-rock2a-rock2f.patch
+endif
+#------------------------------------------------------------
+
 endif
 
 LICENSE = GPL2
