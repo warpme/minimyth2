@@ -7,7 +7,7 @@ DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = rk3528_defconfig
+export mm_U-BOOT_BOARD_TYPE = generic-rk3528_defconfig
 
 WORKSRC      = $(WORKDIR)
 
@@ -24,8 +24,8 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-rk3528
-	@$(MAKE) install -C ../u-boot-rk3528
+	@$(MAKE) clean   -C ../u-boot-rk3xxx
+	@$(MAKE) install -C ../u-boot-rk3xxx
 	@$(MAKECOOKIE)
 
 install-custom:
