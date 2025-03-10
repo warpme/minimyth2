@@ -54,7 +54,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = quartz64-b-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = x96-x6-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = radxa-zero-3-rk3566_defconfig
-# mm_U-BOOT_BOARD_TYPE = rk3528_defconfig
+# mm_U-BOOT_BOARD_TYPE = generic-rk3528_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
