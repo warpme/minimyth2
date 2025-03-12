@@ -7,7 +7,7 @@
 
 
 #---- OSD messaging in Maintenance
-# /usr/bin/mm_manage v2021.02.24
+# /usr/bin/mm_manage v2025.03.12
 
 restart_mythfrontend_str			="Restartuję proces Mythfrontend..."
 restart_xserver_str				="Restartuję X-Serwer..."
@@ -41,7 +41,8 @@ new_input_device_added_str			="Dołączono/odłączono myszkę/klawiaturę ..."
 new_storage_device_connected_str		="Dołączono dysk ..."
 storage_device_removed_str			="OdłączonoStorage dysk ..."
 error_str					="Wystąpił błąd: "
-
+restore_webbrowsers_state_str			="Odtwarzam stan przeglądarek WEB ..."
+restore_webbrowsers_state_ok_str		="Stan przeglądarek WEB odtworzony pomyślnie !"
 
 #---- OSD notifications about new. on-line version is avaliable
 # /usr/bin/mm_notify_updates v2021.02.24
