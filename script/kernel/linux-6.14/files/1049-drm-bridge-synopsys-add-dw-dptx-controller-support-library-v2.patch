@@ -10,7 +10,7 @@ Version 1.4 with the following features:
 * AUX channel 1Mbps
 * Single Stream Transport(SST)
 * Multistream Transport (MST)
-*Type-C support (alternate mode)
+* Type-C support (alternate mode)
 * HDCP 2.2, HDCP 1.3
 * Supports up to 8/10 bits per color component
 * Supports RBG, YCbCr4:4:4, YCbCr4:2:2, YCbCr4:2:0
@@ -21,15 +21,24 @@ Add library with common helpers to make it can be shared with
 other SoC.
 
 Signed-off-by: Andy Yan <andy.yan@rock-chips.com>
-
-drm/bridge: cleanup
 ---
+
+Changes in v2:
+- Fix compile error when build as module
+- Add phy init
+- Only use one dw_dp_link_train_set
+- inline dw_dp_phy_update_vs_emph
+- Use dp_sdp
+- Check return value of drm_modeset_lock
+- Merge code in atomic_pre_enable/mode_fixup to atomic_check
+- Return NULL if can't find a supported output format
+- Fix max_link_rate from plat_data
 
  drivers/gpu/drm/bridge/synopsys/Kconfig  |    7 +
  drivers/gpu/drm/bridge/synopsys/Makefile |    1 +
- drivers/gpu/drm/bridge/synopsys/dw-dp.c  | 2155 ++++++++++++++++++++++
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c  | 2106 ++++++++++++++++++++++
  include/drm/bridge/dw_dp.h               |   19 +
- 4 files changed, 2182 insertions(+)
+ 4 files changed, 2133 insertions(+)
  create mode 100644 drivers/gpu/drm/bridge/synopsys/dw-dp.c
  create mode 100644 include/drm/bridge/dw_dp.h
 
@@ -40,7 +49,7 @@ index f3ab2f985f8c..2c5e532410de 100644
 @@ -1,4 +1,11 @@
  # SPDX-License-Identifier: GPL-2.0-only
 +config DRM_DW_DP
-+	tristate "Synopsys Designware DP driver"
++	tristate
 +	select DRM_DISPLAY_HELPER
 +	select DRM_DISPLAY_DP_HELPER
 +	select DRM_KMS_HELPER
@@ -61,10 +70,10 @@ index 9dc376d220ad..4dada44029ac 100644
  obj-$(CONFIG_DRM_DW_HDMI_GP_AUDIO) += dw-hdmi-gp-audio.o
 diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
 new file mode 100644
-index 000000000000..6ecbe9851369
+index 000000000000..70ae8f7adc3a
 --- /dev/null
 +++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
-@@ -0,0 +1,2155 @@
+@@ -0,0 +1,2106 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Synopsys DesignWare Cores DisplayPort Transmitter Controller
@@ -78,6 +87,7 @@ index 000000000000..6ecbe9851369
 +#include <linux/component.h>
 +#include <linux/iopoll.h>
 +#include <linux/irq.h>
++#include <linux/media-bus-format.h>
 +#include <linux/of_device.h>
 +#include <linux/of_graph.h>
 +#include <linux/platform_device.h>
@@ -97,8 +107,6 @@ index 000000000000..6ecbe9851369
 +#include <drm/drm_print.h>
 +#include <drm/drm_probe_helper.h>
 +#include <drm/drm_simple_kms_helper.h>
-+
-+#include <uapi/linux/media-bus-format.h>
 +
 +#define DW_DP_VERSION_NUMBER			0x0000
 +#define DW_DP_VERSION_TYPE			0x0004
@@ -341,7 +349,6 @@ index 000000000000..6ecbe9851369
 +};
 +
 +struct dw_dp_link_train {
-+	struct dw_dp_link_train_set request;
 +	struct dw_dp_link_train_set adjust;
 +	bool clock_recovered;
 +	bool channel_equalized;
@@ -369,8 +376,7 @@ index 000000000000..6ecbe9851369
 +};
 +
 +struct dw_dp_sdp {
-+	struct dp_sdp_header header;
-+	u8 db[32];
++	struct dp_sdp base;
 +	unsigned long flags;
 +};
 +
@@ -399,7 +405,7 @@ index 000000000000..6ecbe9851369
 +
 +	struct dw_dp_link link;
 +	struct dw_dp_video video;
-+	const struct dw_dp_plat_data *plat_data;
++	struct dw_dp_plat_data plat_data;
 +
 +	DECLARE_BITMAP(sdp_reg_bank, SDP_REG_BANK_SIZE);
 +};
@@ -483,7 +489,7 @@ index 000000000000..6ecbe9851369
 +		if (dw_dp_output_formats[i].bus_format == bus_format)
 +			return &dw_dp_output_formats[i];
 +
-+	return &dw_dp_output_formats[1];
++	return NULL;
 +}
 +
 +static inline struct dw_dp *bridge_to_dp(struct drm_bridge *b)
@@ -549,6 +555,7 @@ index 000000000000..6ecbe9851369
 +	caps->channel_coding = false;
 +}
 +
++/* TODO: pull these two functions to DRM DP helpers */
 +static void dw_dp_link_reset(struct dw_dp_link *link)
 +{
 +	link->vsc_sdp_supported = 0;
@@ -609,6 +616,7 @@ index 000000000000..6ecbe9851369
 +	return 0;
 +}
 +
++/* TODO: switch to drm_dp_read_sink_count_cap once we can get connector*/
 +static bool dw_dp_has_sink_count(const u8 dpcd[DP_RECEIVER_CAP_SIZE],
 +				 const struct drm_dp_desc *desc)
 +{
@@ -650,7 +658,7 @@ index 000000000000..6ecbe9851369
 +	link->vsc_sdp_supported = !!(dpcd & DP_VSC_SDP_EXT_FOR_COLORIMETRY_SUPPORTED);
 +
 +	link->revision = link->dpcd[DP_DPCD_REV];
-+	link->rate = min_t(u32, min(dp->plat_data->max_link_rate,
++	link->rate = min_t(u32, min(dp->plat_data.max_link_rate,
 +				    dp->phy->attrs.max_link_rate * 100),
 +			   drm_dp_max_link_rate(link->dpcd));
 +	link->lanes = min_t(u8, phy_get_bus_width(dp->phy),
@@ -666,13 +674,16 @@ index 000000000000..6ecbe9851369
 +	return 0;
 +}
 +
-+static int dw_dp_phy_update_vs_emph(struct dw_dp *dp, unsigned int rate, unsigned int lanes,
-+				    struct dw_dp_link_train_set *train_set)
++static int dw_dp_link_train_update_vs_emph(struct dw_dp *dp)
 +{
++	struct dw_dp_link *link = &dp->link;
++	struct dw_dp_link_train_set *train_set = &link->train.adjust;
++	unsigned int rate = dp->link.rate;
++	unsigned int lanes = dp->link.lanes;
 +	union phy_configure_opts phy_cfg;
 +	unsigned int *vs, *pe;
-+	u8 buf[4];
 +	int i, ret;
++	u8 buf[4];
 +
 +	vs = train_set->voltage_swing;
 +	pe = train_set->pre_emphasis;
@@ -682,6 +693,7 @@ index 000000000000..6ecbe9851369
 +		phy_cfg.dp.pre[i] = pe[i];
 +	}
 +
++	/* TODO: drop lanes and link_rate when phy side patch merged*/
 +	phy_cfg.dp.lanes = lanes;
 +	phy_cfg.dp.link_rate = rate / 100;
 +	phy_cfg.dp.set_lanes = false;
@@ -706,14 +718,6 @@ index 000000000000..6ecbe9851369
 +		return ret;
 +
 +	return 0;
-+}
-+
-+static int dw_dp_link_train_update_vs_emph(struct dw_dp *dp)
-+{
-+	struct dw_dp_link *link = &dp->link;
-+	struct dw_dp_link_train_set *request = &link->train.request;
-+
-+	return dw_dp_phy_update_vs_emph(dp, dp->link.rate, dp->link.lanes, request);
 +}
 +
 +static int dw_dp_phy_configure(struct dw_dp *dp, unsigned int rate,
@@ -786,22 +790,14 @@ index 000000000000..6ecbe9851369
 +
 +static void dw_dp_link_train_init(struct dw_dp_link_train *train)
 +{
-+	struct dw_dp_link_train_set *request = &train->request;
-+	struct dw_dp_link_train_set *adjust = &train->adjust;
++	struct dw_dp_link_train_set *adj = &train->adjust;
 +	unsigned int i;
 +
 +	for (i = 0; i < 4; i++) {
-+		request->voltage_swing[i] = 0;
-+		adjust->voltage_swing[i] = 0;
-+
-+		request->pre_emphasis[i] = 0;
-+		adjust->pre_emphasis[i] = 0;
-+
-+		request->voltage_max_reached[i] = false;
-+		adjust->voltage_max_reached[i] = false;
-+
-+		request->pre_max_reached[i] = false;
-+		adjust->pre_max_reached[i] = false;
++		adj->voltage_swing[i] = 0;
++		adj->pre_emphasis[i] = 0;
++		adj->voltage_max_reached[i] = false;
++		adj->pre_max_reached[i] = false;
 +	}
 +
 +	train->clock_recovered = false;
@@ -871,56 +867,45 @@ index 000000000000..6ecbe9851369
 +	}
 +}
 +
-+static void dw_dp_link_get_adjustments(struct dw_dp_link *link,
++static bool dw_dp_link_get_adjustments(struct dw_dp_link *link,
 +				       u8 status[DP_LINK_STATUS_SIZE])
 +{
-+	struct dw_dp_link_train_set *adjust = &link->train.adjust;
++	struct dw_dp_link_train_set *adj = &link->train.adjust;
++	unsigned int i;
++	bool changed = false;
 +	u8 v = 0;
 +	u8 p = 0;
-+	unsigned int i;
 +
 +	for (i = 0; i < link->lanes; i++) {
 +		v = drm_dp_get_adjust_request_voltage(status, i);
++		v >>= DP_TRAIN_VOLTAGE_SWING_SHIFT;
 +		p = drm_dp_get_adjust_request_pre_emphasis(status, i);
-+		if (p >=  DP_TRAIN_PRE_EMPH_LEVEL_3) {
-+			adjust->pre_emphasis[i] = DP_TRAIN_PRE_EMPH_LEVEL_3 >>
-+						  DP_TRAIN_PRE_EMPHASIS_SHIFT;
-+			adjust->pre_max_reached[i] = true;
++		p >>= DP_TRAIN_PRE_EMPHASIS_SHIFT;
++
++		if ((v != adj->voltage_swing[i]) || (p != adj->pre_emphasis[i]))
++			changed = true;
++
++		if (p >=  (DP_TRAIN_PRE_EMPH_LEVEL_3 >> DP_TRAIN_PRE_EMPHASIS_SHIFT)) {
++			adj->pre_emphasis[i] = DP_TRAIN_PRE_EMPH_LEVEL_3 >>
++					       DP_TRAIN_PRE_EMPHASIS_SHIFT;
++			adj->pre_max_reached[i] = true;
 +		} else {
-+			adjust->pre_emphasis[i] = p >> DP_TRAIN_PRE_EMPHASIS_SHIFT;
-+			adjust->pre_max_reached[i] = false;
++			adj->pre_emphasis[i] = p;
++			adj->pre_max_reached[i] = false;
 +		}
++
 +		v = min(v, dw_dp_voltage_max(p));
-+		if (v >= DP_TRAIN_VOLTAGE_SWING_LEVEL_3) {
-+			adjust->voltage_swing[i] = DP_TRAIN_VOLTAGE_SWING_LEVEL_3 >>
-+						   DP_TRAIN_VOLTAGE_SWING_SHIFT;
-+			adjust->voltage_max_reached[i] = true;
++		if (v >= (DP_TRAIN_VOLTAGE_SWING_LEVEL_3 >> DP_TRAIN_VOLTAGE_SWING_SHIFT)) {
++			adj->voltage_swing[i] = DP_TRAIN_VOLTAGE_SWING_LEVEL_3 >>
++						DP_TRAIN_VOLTAGE_SWING_SHIFT;
++			adj->voltage_max_reached[i] = true;
 +		} else {
-+			adjust->voltage_swing[i] = v >> DP_TRAIN_VOLTAGE_SWING_SHIFT;
-+			adjust->voltage_max_reached[i] = false;
++			adj->voltage_swing[i] = v;
++			adj->voltage_max_reached[i] = false;
 +		}
 +	}
-+}
 +
-+static void dw_dp_link_train_adjust(struct dw_dp_link_train *train)
-+{
-+	struct dw_dp_link_train_set *request = &train->request;
-+	struct dw_dp_link_train_set *adjust = &train->adjust;
-+	unsigned int i;
-+
-+	for (i = 0; i < 4; i++) {
-+		if (request->voltage_swing[i] != adjust->voltage_swing[i])
-+			request->voltage_swing[i] = adjust->voltage_swing[i];
-+		if (request->voltage_max_reached[i] != adjust->voltage_max_reached[i])
-+			request->voltage_max_reached[i] = adjust->voltage_max_reached[i];
-+	}
-+
-+	for (i = 0; i < 4; i++) {
-+		if (request->pre_emphasis[i] != adjust->pre_emphasis[i])
-+			request->pre_emphasis[i] = adjust->pre_emphasis[i];
-+		if (request->pre_max_reached[i] != adjust->pre_max_reached[i])
-+			request->pre_max_reached[i] = adjust->pre_max_reached[i];
-+	}
++	return changed;
 +}
 +
 +static int dw_dp_link_clock_recovery(struct dw_dp *dp)
@@ -929,6 +914,7 @@ index 000000000000..6ecbe9851369
 +	u8 status[DP_LINK_STATUS_SIZE];
 +	unsigned int tries = 0;
 +	int ret;
++	bool adj_changed;
 +
 +	ret = dw_dp_link_train_set_pattern(dp, DP_TRAINING_PATTERN_1);
 +	if (ret)
@@ -952,18 +938,18 @@ index 000000000000..6ecbe9851369
 +			break;
 +		}
 +
-+		dw_dp_link_get_adjustments(link, status);
-+
-+		if (link->train.request.voltage_swing[0] ==
-+		    link->train.adjust.voltage_swing[0])
++		/*
++		 * According to DP spec 1.4, if current ADJ is the same
++		 * with previous REQ, we need to retry 5 times.
++		 */
++		adj_changed = dw_dp_link_get_adjustments(link, status);
++		if (!adj_changed)
 +			tries++;
 +		else
 +			tries = 0;
 +
 +		if (tries == 5)
 +			break;
-+
-+		dw_dp_link_train_adjust(&link->train);
 +	}
 +
 +	return 0;
@@ -1009,7 +995,6 @@ index 000000000000..6ecbe9851369
 +		}
 +
 +		dw_dp_link_get_adjustments(link, status);
-+		dw_dp_link_train_adjust(&link->train);
 +	}
 +
 +	return 0;
@@ -1184,7 +1169,7 @@ index 000000000000..6ecbe9851369
 +
 +static int dw_dp_send_sdp(struct dw_dp *dp, struct dw_dp_sdp *sdp)
 +{
-+	const u8 *payload = sdp->db;
++	const u8 *payload = sdp->base.db;
 +	u32 reg;
 +	int i, nr;
 +
@@ -1197,7 +1182,7 @@ index 000000000000..6ecbe9851369
 +	reg = DW_DP_SDP_REGISTER_BANK + nr * 9 * 4;
 +
 +	/* SDP header */
-+	regmap_write(dp->regmap, reg, get_unaligned_le32(&sdp->header));
++	regmap_write(dp->regmap, reg, get_unaligned_le32(&sdp->base.sdp_header));
 +
 +	/* SDP data payload */
 +	for (i = 1; i < 9; i++, payload += 4)
@@ -1217,51 +1202,19 @@ index 000000000000..6ecbe9851369
 +	return 0;
 +}
 +
-+static void dw_dp_vsc_sdp_pack(const struct drm_dp_vsc_sdp *vsc,
-+			       struct dw_dp_sdp *sdp)
-+{
-+	sdp->header.HB0 = 0;
-+	sdp->header.HB1 = DP_SDP_VSC;
-+	sdp->header.HB2 = vsc->revision;
-+	sdp->header.HB3 = vsc->length;
-+
-+	sdp->db[16] = (vsc->pixelformat & 0xf) << 4;
-+	sdp->db[16] |= vsc->colorimetry & 0xf;
-+
-+	switch (vsc->bpc) {
-+	case 8:
-+		sdp->db[17] = 0x1;
-+		break;
-+	case 10:
-+		sdp->db[17] = 0x2;
-+		break;
-+	case 12:
-+		sdp->db[17] = 0x3;
-+		break;
-+	case 16:
-+		sdp->db[17] = 0x4;
-+		break;
-+	case 6:
-+	default:
-+		break;
-+	}
-+
-+	if (vsc->dynamic_range == DP_DYNAMIC_RANGE_CTA)
-+		sdp->db[17] |= 0x80;
-+
-+	sdp->db[18] = vsc->content_type & 0x7;
-+
-+	sdp->flags |= DW_DP_SDP_VERTICAL_INTERVAL;
-+}
-+
 +static int dw_dp_send_vsc_sdp(struct dw_dp *dp)
 +{
 +	struct dw_dp_video *video = &dp->video;
-+	struct drm_dp_vsc_sdp vsc = {};
 +	struct dw_dp_sdp sdp = {};
++	struct drm_dp_vsc_sdp vsc = {};
 +
++	sdp.flags = DW_DP_SDP_VERTICAL_INTERVAL;
++
++	vsc.sdp_type = DP_SDP_VSC;
 +	vsc.revision = 0x5;
 +	vsc.length = 0x13;
++	vsc.bpc = video->bpc;
++	vsc.content_type = DP_CONTENT_TYPE_NOT_DEFINED;
 +
 +	switch (video->color_format) {
 +	case DRM_COLOR_FORMAT_YCBCR444:
@@ -1287,10 +1240,7 @@ index 000000000000..6ecbe9851369
 +		vsc.dynamic_range = DP_DYNAMIC_RANGE_CTA;
 +	}
 +
-+	vsc.bpc = video->bpc;
-+	vsc.content_type = DP_CONTENT_TYPE_NOT_DEFINED;
-+
-+	dw_dp_vsc_sdp_pack(&vsc, &sdp);
++	drm_dp_vsc_sdp_pack(&vsc, &sdp.base);
 +
 +	return dw_dp_send_sdp(dp, &sdp);
 +}
@@ -1680,18 +1630,32 @@ index 000000000000..6ecbe9851369
 +}
 +
 +/*
-+ * Limits for the video timing output by DP:
++ * Limits for the video timing for DP:
 + * 1. the hfp should be 2 pixels aligned;
 + * 2. the minimum hsync should be 9 pixel;
 + * 3. the minimum hbp should be 16 pixel;
 + */
-+static bool dw_dp_bridge_mode_fixup(struct drm_bridge *bridge,
-+				    const struct drm_display_mode *mode,
-+				    struct drm_display_mode *adjusted_mode)
++static int dw_dp_bridge_atomic_check(struct drm_bridge *bridge,
++				     struct drm_bridge_state *bridge_state,
++				     struct drm_crtc_state *crtc_state,
++				     struct drm_connector_state *conn_state)
 +{
 +	struct dw_dp *dp = bridge_to_dp(bridge);
++	struct dw_dp_video *video = &dp->video;
++	struct drm_display_mode *m = &video->mode;
++	struct drm_display_mode *adjusted_mode = &crtc_state->adjusted_mode;
++	const struct dw_dp_output_format *fmt;
 +	int min_hbp = 16;
 +	int min_hsync = 9;
++
++	fmt = dw_dp_get_output_format(bridge_state->output_bus_cfg.format);
++	if (!fmt)
++		return -EINVAL;
++
++	video->video_mapping = fmt->video_mapping;
++	video->color_format = fmt->color_format;
++	video->bpc = fmt->bpc;
++	video->bpp = fmt->bpp;
 +
 +	if ((adjusted_mode->hsync_start - adjusted_mode->hdisplay) & 0x1) {
 +		adjusted_mode->hsync_start += 1;
@@ -1706,7 +1670,9 @@ index 000000000000..6ecbe9851369
 +		dev_warn(dp->dev, "hbp is too narrow, fixup to min hbp:%d\n", min_hbp);
 +	}
 +
-+	return true;
++	drm_mode_copy(m, adjusted_mode);
++
++	return 0;
 +}
 +
 +static enum drm_mode_status dw_dp_bridge_mode_valid(struct drm_bridge *bridge,
@@ -1736,28 +1702,6 @@ index 000000000000..6ecbe9851369
 +		return MODE_CLOCK_HIGH;
 +
 +	return MODE_OK;
-+}
-+
-+static void dw_dp_bridge_atomic_pre_enable(struct drm_bridge *bridge,
-+					   struct drm_bridge_state *old_bridge_state)
-+{
-+	struct drm_atomic_state *state = old_bridge_state->base.state;
-+	struct drm_crtc_state *crtc_state = bridge->encoder->crtc->state;
-+	struct dw_dp *dp = bridge_to_dp(bridge);
-+	struct dw_dp_video *video = &dp->video;
-+	struct drm_display_mode *m = &video->mode;
-+	struct drm_bridge_state *bridge_state;
-+	const struct dw_dp_output_format *fmt;
-+
-+	drm_mode_copy(m, &crtc_state->adjusted_mode);
-+
-+	bridge_state = drm_atomic_get_new_bridge_state(state, bridge);
-+	fmt = dw_dp_get_output_format(bridge_state->output_bus_cfg.format);
-+
-+	video->video_mapping = fmt->video_mapping;
-+	video->color_format = fmt->color_format;
-+	video->bpc = fmt->bpc;
-+	video->bpp = fmt->bpp;
 +}
 +
 +static bool dw_dp_needs_link_retrain(struct dw_dp *dp)
@@ -1970,9 +1914,8 @@ index 000000000000..6ecbe9851369
 +	.atomic_reset = drm_atomic_helper_bridge_reset,
 +	.atomic_get_input_bus_fmts = drm_atomic_helper_bridge_propagate_bus_fmt,
 +	.atomic_get_output_bus_fmts = dw_dp_bridge_atomic_get_output_bus_fmts,
-+	.mode_fixup = dw_dp_bridge_mode_fixup,
++	.atomic_check = dw_dp_bridge_atomic_check,
 +	.mode_valid = dw_dp_bridge_mode_valid,
-+	.atomic_pre_enable = dw_dp_bridge_atomic_pre_enable,
 +	.atomic_enable = dw_dp_bridge_atomic_enable,
 +	.atomic_disable = dw_dp_bridge_atomic_disable,
 +	.detect = dw_dp_bridge_detect,
@@ -1999,7 +1942,9 @@ index 000000000000..6ecbe9851369
 +		drm_modeset_backoff(&ctx);
 +	}
 +
-+	ret = dw_dp_link_train(dp);
++	if (!ret)
++		ret = dw_dp_link_train(dp);
++
 +	drm_modeset_drop_locks(&ctx);
 +	drm_modeset_acquire_fini(&ctx);
 +
@@ -2104,6 +2049,13 @@ index 000000000000..6ecbe9851369
 +	.rd_table = &dw_dp_readable_table,
 +};
 +
++static void dw_dp_phy_exit(void *data)
++{
++	struct dw_dp *dp = data;
++
++	phy_exit(dp->phy);
++}
++
 +struct dw_dp *dw_dp_bind(struct device *dev, struct drm_encoder *encoder,
 +			 const struct dw_dp_plat_data *plat_data)
 +{
@@ -2120,7 +2072,7 @@ index 000000000000..6ecbe9851369
 +	dp->dev = dev;
 +	dp->video.pixel_mode = DW_DP_MP_QUAD_PIXEL;
 +
-+	dp->plat_data = plat_data;
++	dp->plat_data.max_link_rate = plat_data->max_link_rate;
 +	bridge = &dp->bridge;
 +	mutex_init(&dp->irq_lock);
 +	INIT_WORK(&dp->hpd_work, dw_dp_hpd_work);
@@ -2178,26 +2130,11 @@ index 000000000000..6ecbe9851369
 +		return ERR_CAST(dp->rstc);
 +	}
 +
-+	dp->irq = platform_get_irq(pdev, 0);
-+	if (dp->irq < 0)
-+		return ERR_PTR(ret);
-+
-+	ret = devm_request_threaded_irq(dev, dp->irq, NULL, dw_dp_irq,
-+					IRQF_ONESHOT, dev_name(dev), dp);
-+	if (ret) {
-+		dev_err_probe(dev, ret, "failed to request irq\n");
-+		return ERR_PTR(ret);
-+	}
-+
 +	bridge->of_node = dev->of_node;
 +	bridge->funcs = &dw_dp_bridge_funcs;
 +	bridge->ops = DRM_BRIDGE_OP_DETECT | DRM_BRIDGE_OP_EDID | DRM_BRIDGE_OP_HPD;
 +	bridge->type = DRM_MODE_CONNECTOR_DisplayPort;
 +	bridge->ycbcr_420_allowed = true;
-+	bridge->vendor = "Synopsys";
-+	bridge->product = "DW DP TX";
-+
-+	platform_set_drvdata(pdev, dp);
 +
 +	dp->aux.dev = dev;
 +	dp->aux.drm_dev = encoder->dev;
@@ -2215,8 +2152,31 @@ index 000000000000..6ecbe9851369
 +
 +	dw_dp_init_hw(dp);
 +
++	ret = phy_init(dp->phy);
++	if (ret) {
++		dev_err_probe(dev, ret, "phy init failed\n");
++		return ERR_PTR(ret);
++	}
++
++	ret = devm_add_action_or_reset(dev, dw_dp_phy_exit, dp);
++	if (ret)
++		return ERR_PTR(ret);
++
++	dp->irq = platform_get_irq(pdev, 0);
++	if (dp->irq < 0)
++		return ERR_PTR(ret);
++
++	ret = devm_request_threaded_irq(dev, dp->irq, NULL, dw_dp_irq,
++					IRQF_ONESHOT, dev_name(dev), dp);
++	if (ret) {
++		dev_err_probe(dev, ret, "failed to request irq\n");
++		return ERR_PTR(ret);
++	}
++
 +	return dp;
 +}
++EXPORT_SYMBOL_GPL(dw_dp_bind);
++
 +MODULE_AUTHOR("Andy Yan <andyshrk@163.com>");
 +MODULE_DESCRIPTION("DW DP Core Library");
 +MODULE_LICENSE("GPL");
@@ -2245,3 +2205,178 @@ index 000000000000..07845f609eca
 +struct dw_dp *dw_dp_bind(struct device *dev, struct drm_encoder *encoder,
 +			 const struct dw_dp_plat_data *plat_data);
 +#endif /* __DW_DP__ */
+
+From: Andy Yan <andy.yan@rock-chips.com>
+
+The Rockchip RK3588 SoC integrates the Synopsys DesignWare DPTX
+controller. And this DPTX controller need share a USBDP PHY with
+the USB 3.0 OTG controller during operation.
+
+Signed-off-by: Andy Yan <andy.yan@rock-chips.com>
+Reviewed-by: Rob Herring (Arm) <robh@kernel.org>
+---
+
+Changes in v2:
+- Link to V1: https://lore.kernel.org/linux-rockchip/20250223113036.74252-1-andyshrk@163.com/
+- Fix a character encoding issue
+
+ .../display/rockchip/rockchip,dw-dp.yaml      | 150 ++++++++++++++++++
+ 1 file changed, 150 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/display/rockchip/rockchip,dw-dp.yaml
+
+diff --git a/Documentation/devicetree/bindings/display/rockchip/rockchip,dw-dp.yaml b/Documentation/devicetree/bindings/display/rockchip/rockchip,dw-dp.yaml
+new file mode 100644
+index 000000000000..a8a008717997
+--- /dev/null
++++ b/Documentation/devicetree/bindings/display/rockchip/rockchip,dw-dp.yaml
+@@ -0,0 +1,150 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/display/rockchip/rockchip,dw-dp.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: Rockchip DW DisplayPort Transmitter
++
++maintainers:
++  - Andy Yan <andy.yan@rock-chips.com>
++
++description: |
++  The Rockchip RK3588 SoC integrates the Synopsys DesignWare DPTX controller
++  which is compliant with the DisplayPort Specification Version 1.4 with the
++  following features:
++
++  * DisplayPort 1.4a
++  * Main Link: 1/2/4 lanes
++  * Main Link Support 1.62Gbps, 2.7Gbps, 5.4Gbps and 8.1Gbps
++  * AUX channel 1Mbps
++  * Single Stream Transport(SST)
++  * Multistream Transport (MST)
++  * Type-C support (alternate mode)
++  * HDCP 2.2, HDCP 1.3
++  * Supports up to 8/10 bits per color component
++  * Supports RBG, YCbCr4:4:4, YCbCr4:2:2, YCbCr4:2:0
++  * Pixel clock up to 594MHz
++  * I2S, SPDIF audio interface
++
++allOf:
++  - $ref: /schemas/sound/dai-common.yaml#
++
++properties:
++  compatible:
++    enum:
++      - rockchip,rk3588-dp
++
++  reg:
++    maxItems: 1
++
++  interrupts:
++    maxItems: 1
++
++  clocks:
++    items:
++      - description: Peripheral/APB bus clock
++      - description: DisplayPort AUX clock
++      - description: HDCP clock
++      - description: I2S interface clock
++      - description: SPDIF interfce clock
++
++  clock-names:
++    items:
++      - const: apb
++      - const: aux
++      - const: hdcp
++      - const: i2s
++      - const: spdif
++
++  phys:
++    maxItems: 1
++
++  ports:
++    $ref: /schemas/graph.yaml#/properties/ports
++
++    properties:
++      port@0:
++        $ref: /schemas/graph.yaml#/properties/port
++        description: Video port for RGB/YUV input.
++
++      port@1:
++        $ref: /schemas/graph.yaml#/properties/port
++        description: Video port for DP output.
++
++    required:
++      - port@0
++      - port@1
++
++  power-domains:
++    maxItems: 1
++
++  resets:
++    maxItems: 1
++
++  "#sound-dai-cells":
++    const: 0
++
++required:
++  - compatible
++  - reg
++  - clocks
++  - clock-names
++  - interrupts
++  - phys
++  - ports
++  - resets
++
++unevaluatedProperties: false
++
++examples:
++  - |
++    #include <dt-bindings/clock/rockchip,rk3588-cru.h>
++    #include <dt-bindings/phy/phy.h>
++    #include <dt-bindings/interrupt-controller/arm-gic.h>
++    #include <dt-bindings/interrupt-controller/irq.h>
++    #include <dt-bindings/power/rk3588-power.h>
++    #include <dt-bindings/reset/rockchip,rk3588-cru.h>
++
++    soc {
++      #address-cells = <2>;
++      #size-cells = <2>;
++
++      dp@fde50000 {
++        compatible = "rockchip,rk3588-dp";
++        reg = <0x0 0xfde50000 0x0 0x4000>;
++        interrupts = <GIC_SPI 161 IRQ_TYPE_LEVEL_HIGH 0>;
++        clocks = <&cru PCLK_DP0>, <&cru CLK_AUX16M_0>,
++        <&cru CLK_DP0>, <&cru MCLK_I2S4_8CH_TX>,
++        <&cru MCLK_SPDIF2_DP0>;
++        clock-names = "apb", "aux", "hdcp", "i2s", "spdif";
++        assigned-clocks = <&cru CLK_AUX16M_0>;
++        assigned-clock-rates = <16000000>;
++        resets = <&cru SRST_DP0>;
++        phys = <&usbdp_phy0 PHY_TYPE_DP>;
++        power-domains = <&power RK3588_PD_VO0>;
++        #sound-dai-cells = <0>;
++
++
++        ports {
++          #address-cells = <1>;
++          #size-cells = <0>;
++
++          port@0 {
++            reg = <0>;
++
++            dp0_in_vp2: endpoint {
++              remote-endpoint = <&vp2_out_dp0>;
++            };
++          };
++
++          port@1 {
++            reg = <1>;
++
++            dp0_out_con0: endpoint {
++              remote-endpoint = <&dp_con0_in>;
++            };
++          };
++        };
++      };
++    };

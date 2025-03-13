@@ -7,12 +7,16 @@ on Rockchip RK3588 SoC.
 Signed-off-by: Andy Yan <andy.yan@rock-chips.com>
 ---
 
+Changes in v2:
+- no include uapi path
+- switch to drmm_encoder_init
+
  drivers/gpu/drm/rockchip/Kconfig            |   7 +
  drivers/gpu/drm/rockchip/Makefile           |   1 +
- drivers/gpu/drm/rockchip/dw_dp-rockchip.c   | 162 ++++++++++++++++++++
+ drivers/gpu/drm/rockchip/dw_dp-rockchip.c   | 154 ++++++++++++++++++++
  drivers/gpu/drm/rockchip/rockchip_drm_drv.c |   1 +
  drivers/gpu/drm/rockchip/rockchip_drm_drv.h |   1 +
- 5 files changed, 172 insertions(+)
+ 5 files changed, 164 insertions(+)
  create mode 100644 drivers/gpu/drm/rockchip/dw_dp-rockchip.c
 
 diff --git a/drivers/gpu/drm/rockchip/Kconfig b/drivers/gpu/drm/rockchip/Kconfig
@@ -54,10 +58,10 @@ index 2b867cebbc12..097f062399c7 100644
  rockchipdrm-$(CONFIG_ROCKCHIP_RGB) += rockchip_rgb.o
 diff --git a/drivers/gpu/drm/rockchip/dw_dp-rockchip.c b/drivers/gpu/drm/rockchip/dw_dp-rockchip.c
 new file mode 100644
-index 000000000000..b41a41eb74d7
+index 000000000000..5ff8a6a54997
 --- /dev/null
 +++ b/drivers/gpu/drm/rockchip/dw_dp-rockchip.c
-@@ -0,0 +1,162 @@
+@@ -0,0 +1,154 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (c) 2020 Rockchip Electronics Co., Ltd.
@@ -78,8 +82,8 @@ index 000000000000..b41a41eb74d7
 +#include <drm/drm_probe_helper.h>
 +#include <drm/drm_simple_kms_helper.h>
 +
-+#include <uapi/linux/media-bus-format.h>
-+#include <uapi/linux/videodev2.h>
++#include <linux/media-bus-format.h>
++#include <linux/videodev2.h>
 +
 +#include "rockchip_drm_drv.h"
 +#include "rockchip_drm_vop.h"
@@ -158,21 +162,21 @@ index 000000000000..b41a41eb74d7
 +	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm_dev, dev->of_node);
 +	rockchip_drm_encoder_set_crtc_endpoint_id(&dp->encoder, dev->of_node, 0, 0);
 +
-+	drm_simple_encoder_init(drm_dev, encoder, DRM_MODE_ENCODER_TMDS);
++	ret = drmm_encoder_init(drm_dev, encoder, NULL, DRM_MODE_ENCODER_TMDS, NULL);
++	if (ret)
++		return ret;
 +	drm_encoder_helper_add(encoder, &dw_dp_encoder_helper_funcs);
 +
 +	dp->base = dw_dp_bind(dev, encoder, &plat_data);
 +	if (IS_ERR(dp->base)) {
 +		ret = PTR_ERR(dp->base);
-+		drm_encoder_cleanup(encoder);
 +		return ret;
 +	}
 +
 +	connector = drm_bridge_connector_init(drm_dev, encoder);
 +	if (IS_ERR(connector)) {
 +		ret = PTR_ERR(connector);
-+		dev_err(dev, "Failed to init bridge connector: %d\n", ret);
-+		return ret;
++		return dev_err_probe(dev, ret, "Failed to init bridge connector");
 +	}
 +
 +	drm_connector_attach_encoder(connector, encoder);
@@ -180,16 +184,8 @@ index 000000000000..b41a41eb74d7
 +	return 0;
 +}
 +
-+static void dw_dp_rockchip_unbind(struct device *dev, struct device *master, void *data)
-+{
-+	struct rockchip_dw_dp *dp = dev_get_drvdata(dev);
-+
-+	drm_encoder_cleanup(&dp->encoder.encoder);
-+}
-+
 +static const struct component_ops dw_dp_rockchip_component_ops = {
 +	.bind = dw_dp_rockchip_bind,
-+	.unbind = dw_dp_rockchip_unbind,
 +};
 +
 +static int dw_dp_probe(struct platform_device *pdev)

@@ -289,10 +289,11 @@ PATCHFILES += 1045-drm-bridge-synopsys-add-cec-support.patch
 PATCHFILES += 1047-drm-rockchip-rk3588-add-edp-support-v6.patch
 PATCHFILES += 1048-phy-rockchip-samsung-hdptx-add-edp-mode-support-v7.patch
 # designware dp support
-PATCHFILES += 1049-drm-bridge-synopsys-add-dw-dptx-controller-support-library.patch
-PATCHFILES += 1050-drm-rockchip-add-rk3588-dptx-output-support.patch
+PATCHFILES += 1049-drm-bridge-synopsys-add-dw-dptx-controller-support-library-v2.patch
+PATCHFILES += 1050-drm-rockchip-add-rk3588-dptx-output-support-v2.patch
 PATCHFILES += 1051-drm-rockchip-vop2-fix-copy-erro-affecting-dp1-usage.patch
 PATCHFILES += 1052-phy-rockchip-usbdp-only-verify-link-voltage-when-flags-are-set.patch
+PATCHFILES += 1053-phy-rockchip-usbdp-avoid-call-hpd_event_trigger-in-dp_phy_init.patch
 # var additions
 PATCHFILES += 1060-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1061-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
