@@ -1,7 +1,7 @@
 
 GARNAME      = pvr.mythtv
-# branch master @11.11.2024
-GARVERSION   = 3e9e710aa0d4841831b08746d7999fac8a205052
+# branch master @22.02.2025
+GARVERSION   = 8dc113c472a985b932ee077915bf5411d683c786
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://github.com/janbar/pvr.mythtv/archive/
 DISTFILES    = $(GARVERSION).zip
