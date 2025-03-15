@@ -132,7 +132,7 @@ Rockchip 3566 | Rock3-C          | works  (ap6256@SDIO)                   | work
 Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3568 | Rock3-B          | works  (iwl7265@PCI-e)                 | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| Rock5A           | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3588s| Rock5C           | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3588s| Rock5C           | works  (aic8800@USB)                   | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| NanoPi-M6        | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| NanoPi-R6S       | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| OrangePi 5       | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
