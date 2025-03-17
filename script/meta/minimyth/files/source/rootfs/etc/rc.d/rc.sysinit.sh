@@ -97,7 +97,7 @@ MM_ROOTFS_IMAGE="${initrd}"
 # Create shared library cache.
 # This is needed so the MySQL perl modules will load correctly.
 # /bin/echo "real init: kick ldconfig ..."
-/sbin/ldconfig
+/sbin/ldconfig > /dev/null 2>&1
 
 # Loading kernel tuned parameters from sysctl.conf
 # /bin/echo "real init: load kernel tunings from sysctl.conf ..."
