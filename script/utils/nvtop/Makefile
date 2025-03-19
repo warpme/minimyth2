@@ -1,10 +1,11 @@
 
 GARNAME      = nvtop
-# 09.12.2024
-GARVERSION   = 42ad9c2831a46bb8f7019c5c70a131873f75aeb3
+# 20.02.2025
+GARVERSION   = 33cf46840f58975d593c743b091eb1e37e323378
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/Syllo/nvtop/archive/
 DISTFILES    = $(GARVERSION).zip
+PATCHFILES   = display-profiling-sysfs-patch.patch
 LICENSE      = GPL
 
 DEPENDS = lib/ncurses
