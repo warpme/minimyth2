@@ -303,6 +303,7 @@ PATCHFILES += 1063-media-rockchip-add-rkvdec2-driver.patch
 PATCHFILES += 1064-media-rkvdec2-add-iommu-support-v3.patch
 PATCHFILES += 1065-wip-add-hevc-support.patch
 PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
+PATCHFILES += 1067-wip-rkvdec2-fix-iommu.patch
 # dtsi additions
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-3588s-add-hdmi-bridge.patch

@@ -1,0 +1,91 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c
+--- linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c	2025-03-20 16:35:49.266703911 +0100
++++ linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c	2025-03-20 16:30:46.633369544 +0100
+@@ -666,6 +666,10 @@
+ 	u32 width, height;
+ 	struct rkvdec2_dev *rkvdec = ctx->dev;
+ 
++	if (WARN_ON(rkvdec->need_reset)) {
++		return -EBUSY;
++	}	
++
+ 	memset(ctx->rcb_bufs, 0, sizeof(*ctx->rcb_bufs));
+ 
+ 	width = ctx->decoded_fmt.fmt.pix_mp.width;
+@@ -746,6 +750,11 @@
+ 	const struct rkvdec2_coded_fmt_desc *desc;
+ 	int ret;
+ 
++	/*
++	 * The hw decoder block may reset IOMMU when there is an error,
++	 * force suspend, then resume to reconfigure the IOMMU.
++	 */
++	
+ 	if (V4L2_TYPE_IS_CAPTURE(q->type))
+ 		return 0;
+ 
+@@ -912,9 +921,23 @@
+ 	const struct rkvdec2_coded_fmt_desc *desc = ctx->coded_fmt_desc;
+ 	int ret;
+ 
++	//dev_warn(rkvdec->dev, "start\n");
++
+ 	if (WARN_ON(!desc))
+ 		return;
+ 
++	/*
++	 * The hw decoder block may reset IOMMU when there is an error,
++	 * force suspend, then resume to reconfigure the IOMMU.
++	 */
++	if (rkvdec->need_reset) {
++		pm_runtime_force_suspend(rkvdec->dev);
++		pm_runtime_force_resume(rkvdec->dev);
++
++		dev_warn(rkvdec->dev, "reset done\n");
++		rkvdec->need_reset = false;
++	}
++
+ 	ret = pm_runtime_resume_and_get(rkvdec->dev);
+ 	if (ret < 0) {
+ 		rkvdec2_job_finish_no_pm(ctx, VB2_BUF_STATE_ERROR);
+@@ -922,8 +945,21 @@
+ 	}
+ 
+ 	ret = desc->ops->run(ctx);
++	//TODO: Right before the decoder is started (writing the RUN bit), all allocation through the IOMMU must be locked
++	// -> No rcb allocation for new streams
++	// -> No RPS/cabac/scanlist... allocation
++	// -> No output buffers allocation
++	// -> No input buffer allocation
++	// Basically, no new stream should be started and no new frame should be decoded until the mutext is unlocked
++	// (Note that in normal operation, new frames won't start until the previous one has gone through rkvdec2_job_finish(), so maybe rkvdec2_job_finish() should be called form the work job (TBC))
++	// This must be blocked until the decoding of the frame is done.
++	// Once the frame has been decoded, from the interrupt, it should either
++	//  -> unlock the mutex for the buffer allocation functions if the decoding was successful
++	//  -> Schedule a work job that will execute the IOMMU driver suspend/resume, then unlock the buffer allocation functions if the decoding resetted the HW
+ 	if (ret)
+ 		rkvdec2_job_finish(ctx, VB2_BUF_STATE_ERROR);
++	
++	//dev_warn(rkvdec->dev, "started job\n");
+ }
+ 
+ static const struct v4l2_m2m_ops rkvdec2_m2m_ops = {
+@@ -1175,6 +1211,9 @@
+ 	rkvdec->need_reset = state != VB2_BUF_STATE_DONE ||
+ 			     (status & STA_INT_SOFTRESET_RDY);
+ 
++	if (rkvdec->need_reset)	
++		dev_warn(rkvdec->dev, "NEED RESET\n");
++
+ 	/* Clear interrupt status */
+ 	writel(0, rkvdec->regs + RKVDEC2_REG_STA_INT);
+ 	if (cancel_delayed_work(&rkvdec->watchdog_work)) {
+@@ -1365,6 +1403,8 @@
+ {
+ 	struct rkvdec2_dev *rkvdec = dev_get_drvdata(dev);
+ 
++	dev_warn(rkvdec->dev, "reset to false (rkvdec2_runtime_suspend)\n");
++	rkvdec->need_reset = false;
+ 	clk_bulk_disable_unprepare(ARRAY_SIZE(rkvdec2_clk_names),
+ 				   rkvdec->clocks);
+ 	return 0;
