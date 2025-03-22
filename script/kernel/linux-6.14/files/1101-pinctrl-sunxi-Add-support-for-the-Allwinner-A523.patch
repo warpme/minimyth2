@@ -1,0 +1,1075 @@
+v4 from https://lore.kernel.org/linux-sunxi/CACRpkdaVH8GAx_K0a01FbRKe8CQ=jh7jwfVrs_PgS9og4vnWmQ@mail.gmail.com/T/#t
+
+diff --git a/Documentation/devicetree/bindings/pinctrl/allwinner,sun55i-a523-pinctrl.yaml b/Documentation/devicetree/bindings/pinctrl/allwinner,sun55i-a523-pinctrl.yaml
+new file mode 100644
+index 000000000..154e03da8
+--- /dev/null
++++ b/Documentation/devicetree/bindings/pinctrl/allwinner,sun55i-a523-pinctrl.yaml
+@@ -0,0 +1,175 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/pinctrl/allwinner,sun55i-a523-pinctrl.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: Allwinner A523 Pin Controller
++
++maintainers:
++  - Andre Przywara <andre.przywara@arm.com>
++
++properties:
++  "#gpio-cells":
++    const: 3
++    description:
++      GPIO consumers must use three arguments, first the number of the
++      bank, then the pin number inside that bank, and finally the GPIO
++      flags.
++
++  "#interrupt-cells":
++    const: 3
++    description:
++      Interrupts consumers must use three arguments, first the number
++      of the bank, then the pin number inside that bank, and finally
++      the interrupts flags.
++
++  compatible:
++    enum:
++      - allwinner,sun55i-a523-pinctrl
++      - allwinner,sun55i-a523-r-pinctrl
++
++  reg:
++    maxItems: 1
++
++  interrupts:
++    minItems: 2
++    maxItems: 10
++    description:
++      One interrupt per external interrupt bank supported on the
++      controller, sorted by bank number ascending order.
++
++  clocks:
++    items:
++      - description: Bus Clock
++      - description: High Frequency Oscillator
++      - description: Low Frequency Oscillator
++
++  clock-names:
++    items:
++      - const: apb
++      - const: hosc
++      - const: losc
++
++  gpio-controller: true
++  interrupt-controller: true
++  gpio-line-names: true
++
++  input-debounce:
++    description:
++      Debouncing periods in microseconds, one period per interrupt
++      bank found in the controller
++    $ref: /schemas/types.yaml#/definitions/uint32-array
++    minItems: 2
++    maxItems: 10
++
++patternProperties:
++  # It's pretty scary, but the basic idea is that:
++  #   - One node name can start with either s- or r- for PRCM nodes,
++  #   - Then, the name itself can be any repetition of <string>- (to
++  #     accommodate with nodes like uart4-rts-cts-pins), where each
++  #     string can be either starting with 'p' but in a string longer
++  #     than 3, or something that doesn't start with 'p',
++  #   - Then, the bank name is optional and will be between pa and pm.
++  #     Some pins groups that have several options will have the pin
++  #     numbers then,
++  #   - Finally, the name will end with either -pin or pins.
++
++  "^([rs]-)?(([a-z0-9]{3,}|[a-oq-z][a-z0-9]*?)?-)+?(p[a-m][0-9]*?-)??pins?$":
++    type: object
++
++    properties:
++      pins: true
++      function: true
++      bias-disable: true
++      bias-pull-up: true
++      bias-pull-down: true
++
++      drive-strength:
++        $ref: /schemas/types.yaml#/definitions/uint32
++        enum: [10, 20, 30, 40]
++
++      allwinner,pinmux:
++        $ref: /schemas/types.yaml#/definitions/uint32-array
++        description:
++          Pinmux selector value, for each pin. Almost every time this value
++          is the same for all pins, so any array shorter than the number of
++          pins will repeat the last value, to allow just specifying a single
++          cell, for all cells.
++
++    required:
++      - pins
++      - allwinner,pinmux
++      - function
++
++    additionalProperties: false
++
++  "^vcc-p[a-m]-supply$":
++    description:
++      Power supplies for pin banks.
++
++required:
++  - "#gpio-cells"
++  - compatible
++  - reg
++  - clocks
++  - clock-names
++  - gpio-controller
++  - "#interrupt-cells"
++  - interrupts
++  - interrupt-controller
++
++allOf:
++  - $ref: pinctrl.yaml#
++  - if:
++      properties:
++        compatible:
++          enum:
++            - allwinner,sun55i-a523-pinctrl
++
++    then:
++      properties:
++        interrupts:
++          minItems: 10
++          maxItems: 10
++
++  - if:
++      properties:
++        compatible:
++          enum:
++            - allwinner,sun55i-a523-r-pinctrl
++
++    then:
++      properties:
++        interrupts:
++          minItems: 2
++          maxItems: 2
++
++additionalProperties: false
++
++examples:
++  - |
++    r_pio: pinctrl@7022000 {
++        compatible = "allwinner,sun55i-a523-r-pinctrl";
++        reg = <0x7022000 0x800>;
++        interrupts = <0 159 4>, <0 161 4>;
++        clocks = <&r_ccu 1>, <&osc24M>, <&osc32k>;
++        clock-names = "apb", "hosc", "losc";
++        gpio-controller;
++        #gpio-cells = <3>;
++        interrupt-controller;
++        #interrupt-cells = <3>;
++
++        r_i2c_pins: r-i2c-pins {
++            pins = "PL0", "PL1";
++            allwinner,pinmux = <2>;
++            function = "r_i2c0";
++            bias-pull-up;
++        };
++
++        r_spi_pins: r-spi-pins {
++            pins = "PL11" ,"PL12", "PL13";
++            allwinner,pinmux = <6>;
++            function = "r_spi";
++        };
++    };
+diff --git a/drivers/pinctrl/sunxi/Kconfig b/drivers/pinctrl/sunxi/Kconfig
+index a78fdbbdf..dc62eba96 100644
+--- a/drivers/pinctrl/sunxi/Kconfig
++++ b/drivers/pinctrl/sunxi/Kconfig
+@@ -131,4 +131,14 @@ config PINCTRL_SUN50I_H616_R
+ 	default ARM64 && ARCH_SUNXI
+ 	select PINCTRL_SUNXI
+ 
++config PINCTRL_SUN55I_A523
++	bool "Support for the Allwinner A523 PIO"
++	default ARM64 && ARCH_SUNXI
++	select PINCTRL_SUNXI
++
++config PINCTRL_SUN55I_A523_R
++	bool "Support for the Allwinner A523 R-PIO"
++	default ARM64 && ARCH_SUNXI
++	select PINCTRL_SUNXI
++
+ endif
+diff --git a/drivers/pinctrl/sunxi/Makefile b/drivers/pinctrl/sunxi/Makefile
+index 2ff5a5592..951b3f1e4 100644
+--- a/drivers/pinctrl/sunxi/Makefile
++++ b/drivers/pinctrl/sunxi/Makefile
+@@ -1,6 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0
+ # Core
+ obj-y					+= pinctrl-sunxi.o
++obj-y					+= pinctrl-sunxi-dt.o
+ 
+ # SoC Drivers
+ obj-$(CONFIG_PINCTRL_SUNIV_F1C100S)	+= pinctrl-suniv-f1c100s.o
+@@ -26,5 +27,7 @@ obj-$(CONFIG_PINCTRL_SUN50I_H6)		+= pinctrl-sun50i-h6.o
+ obj-$(CONFIG_PINCTRL_SUN50I_H6_R)	+= pinctrl-sun50i-h6-r.o
+ obj-$(CONFIG_PINCTRL_SUN50I_H616)	+= pinctrl-sun50i-h616.o
+ obj-$(CONFIG_PINCTRL_SUN50I_H616_R)	+= pinctrl-sun50i-h616-r.o
++obj-$(CONFIG_PINCTRL_SUN55I_A523)	+= pinctrl-sun55i-a523.o
++obj-$(CONFIG_PINCTRL_SUN55I_A523_R)	+= pinctrl-sun55i-a523-r.o
+ obj-$(CONFIG_PINCTRL_SUN9I_A80)		+= pinctrl-sun9i-a80.o
+ obj-$(CONFIG_PINCTRL_SUN9I_A80_R)	+= pinctrl-sun9i-a80-r.o
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sun20i-d1.c b/drivers/pinctrl/sunxi/pinctrl-sun20i-d1.c
+index 8e2aab542..8efe35b77 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sun20i-d1.c
++++ b/drivers/pinctrl/sunxi/pinctrl-sun20i-d1.c
+@@ -820,15 +820,13 @@ static const struct sunxi_pinctrl_desc d1_pinctrl_data = {
+ 
+ static int d1_pinctrl_probe(struct platform_device *pdev)
+ {
+-	unsigned long variant = (unsigned long)of_device_get_match_data(&pdev->dev);
+-
+-	return sunxi_pinctrl_init_with_variant(pdev, &d1_pinctrl_data, variant);
++	return sunxi_pinctrl_init_with_flags(pdev, &d1_pinctrl_data,
++					     SUNXI_PINCTRL_NEW_REG_LAYOUT);
+ }
+ 
+ static const struct of_device_id d1_pinctrl_match[] = {
+ 	{
+ 		.compatible = "allwinner,sun20i-d1-pinctrl",
+-		.data = (void *)PINCTRL_SUN20I_D1
+ 	},
+ 	{}
+ };
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sun4i-a10.c b/drivers/pinctrl/sunxi/pinctrl-sun4i-a10.c
+index fa47fe36e..b2e82bf92 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sun4i-a10.c
++++ b/drivers/pinctrl/sunxi/pinctrl-sun4i-a10.c
+@@ -17,6 +17,10 @@
+ 
+ #include "pinctrl-sunxi.h"
+ 
++#define PINCTRL_SUN4I_A10	BIT(0)
++#define PINCTRL_SUN7I_A20	BIT(1)
++#define PINCTRL_SUN8I_R40	BIT(2)
++
+ static const struct sunxi_desc_pin sun4i_a10_pins[] = {
+ 	SUNXI_PIN(SUNXI_PINCTRL_PIN(A, 0),
+ 		  SUNXI_FUNCTION(0x0, "gpio_in"),
+@@ -1295,8 +1299,8 @@ static int sun4i_a10_pinctrl_probe(struct platform_device *pdev)
+ {
+ 	unsigned long variant = (unsigned long)of_device_get_match_data(&pdev->dev);
+ 
+-	return sunxi_pinctrl_init_with_variant(pdev, &sun4i_a10_pinctrl_data,
+-					       variant);
++	return sunxi_pinctrl_init_with_flags(pdev, &sun4i_a10_pinctrl_data,
++					     variant);
+ }
+ 
+ static const struct of_device_id sun4i_a10_pinctrl_match[] = {
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sun55i-a523-r.c b/drivers/pinctrl/sunxi/pinctrl-sun55i-a523-r.c
+new file mode 100644
+index 000000000..69cd2b4eb
+--- /dev/null
++++ b/drivers/pinctrl/sunxi/pinctrl-sun55i-a523-r.c
+@@ -0,0 +1,54 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Allwinner A523 SoC r-pinctrl driver.
++ *
++ * Copyright (C) 2024 Arm Ltd.
++ */
++
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/of.h>
++#include <linux/of_device.h>
++#include <linux/pinctrl/pinctrl.h>
++
++#include "pinctrl-sunxi.h"
++
++static const u8 a523_r_nr_bank_pins[SUNXI_PINCTRL_MAX_BANKS] =
++/*	  PL  PM */
++	{ 14,  6 };
++
++static const unsigned int a523_r_irq_bank_map[] = { 0, 1 };
++
++static const u8 a523_r_irq_bank_muxes[SUNXI_PINCTRL_MAX_BANKS] =
++/*	  PL  PM */
++	{ 14, 14 };
++
++static struct sunxi_pinctrl_desc a523_r_pinctrl_data = {
++	.irq_banks = ARRAY_SIZE(a523_r_irq_bank_map),
++	.irq_bank_map = a523_r_irq_bank_map,
++	.irq_read_needs_mux = true,
++	.io_bias_cfg_variant = BIAS_VOLTAGE_PIO_POW_MODE_SEL,
++	.pin_base = PL_BASE,
++};
++
++static int a523_r_pinctrl_probe(struct platform_device *pdev)
++{
++	return sunxi_pinctrl_dt_table_init(pdev, a523_r_nr_bank_pins,
++					   a523_r_irq_bank_muxes,
++					   &a523_r_pinctrl_data,
++					   SUNXI_PINCTRL_NEW_REG_LAYOUT);
++}
++
++static const struct of_device_id a523_r_pinctrl_match[] = {
++	{ .compatible = "allwinner,sun55i-a523-r-pinctrl", },
++	{}
++};
++
++static struct platform_driver a523_r_pinctrl_driver = {
++	.probe	= a523_r_pinctrl_probe,
++	.driver	= {
++		.name		= "sun55i-a523-r-pinctrl",
++		.of_match_table	= a523_r_pinctrl_match,
++	},
++};
++builtin_platform_driver(a523_r_pinctrl_driver);
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sun55i-a523.c b/drivers/pinctrl/sunxi/pinctrl-sun55i-a523.c
+new file mode 100644
+index 000000000..7d2308c37
+--- /dev/null
++++ b/drivers/pinctrl/sunxi/pinctrl-sun55i-a523.c
+@@ -0,0 +1,54 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Allwinner A523 SoC pinctrl driver.
++ *
++ * Copyright (C) 2023 Arm Ltd.
++ */
++
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/of.h>
++#include <linux/of_device.h>
++#include <linux/pinctrl/pinctrl.h>
++
++#include "pinctrl-sunxi.h"
++
++static const u8 a523_nr_bank_pins[SUNXI_PINCTRL_MAX_BANKS] =
++/*	  PA  PB  PC  PD  PE  PF  PG  PH  PI  PJ  PK */
++	{  0, 15, 17, 24, 16,  7, 15, 20, 17, 28, 24 };
++
++static const unsigned int a523_irq_bank_map[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
++
++static const u8 a523_irq_bank_muxes[SUNXI_PINCTRL_MAX_BANKS] =
++/*	  PA  PB  PC  PD  PE  PF  PG  PH  PI  PJ  PK */
++	{  0, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14};
++
++static struct sunxi_pinctrl_desc a523_pinctrl_data = {
++	.irq_banks = ARRAY_SIZE(a523_irq_bank_map),
++	.irq_bank_map = a523_irq_bank_map,
++	.irq_read_needs_mux = true,
++	.io_bias_cfg_variant = BIAS_VOLTAGE_PIO_POW_MODE_SEL,
++};
++
++static int a523_pinctrl_probe(struct platform_device *pdev)
++{
++	return sunxi_pinctrl_dt_table_init(pdev, a523_nr_bank_pins,
++					   a523_irq_bank_muxes,
++					   &a523_pinctrl_data,
++					   SUNXI_PINCTRL_NEW_REG_LAYOUT |
++					   SUNXI_PINCTRL_ELEVEN_BANKS);
++}
++
++static const struct of_device_id a523_pinctrl_match[] = {
++	{ .compatible = "allwinner,sun55i-a523-pinctrl", },
++	{}
++};
++
++static struct platform_driver a523_pinctrl_driver = {
++	.probe	= a523_pinctrl_probe,
++	.driver	= {
++		.name		= "sun55i-a523-pinctrl",
++		.of_match_table	= a523_pinctrl_match,
++	},
++};
++builtin_platform_driver(a523_pinctrl_driver);
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sun5i.c b/drivers/pinctrl/sunxi/pinctrl-sun5i.c
+index 06ecb121c..6eef314c9 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sun5i.c
++++ b/drivers/pinctrl/sunxi/pinctrl-sun5i.c
+@@ -16,6 +16,10 @@
+ 
+ #include "pinctrl-sunxi.h"
+ 
++#define PINCTRL_SUN5I_A10S	BIT(0)
++#define PINCTRL_SUN5I_A13	BIT(1)
++#define PINCTRL_SUN5I_GR8	BIT(2)
++
+ static const struct sunxi_desc_pin sun5i_pins[] = {
+ 	SUNXI_PIN_VARIANT(SUNXI_PINCTRL_PIN(A, 0),
+ 		  PINCTRL_SUN5I_A10S,
+@@ -719,8 +723,8 @@ static int sun5i_pinctrl_probe(struct platform_device *pdev)
+ {
+ 	unsigned long variant = (unsigned long)of_device_get_match_data(&pdev->dev);
+ 
+-	return sunxi_pinctrl_init_with_variant(pdev, &sun5i_pinctrl_data,
+-					       variant);
++	return sunxi_pinctrl_init_with_flags(pdev, &sun5i_pinctrl_data,
++					     variant);
+ }
+ 
+ static const struct of_device_id sun5i_pinctrl_match[] = {
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sun6i-a31.c b/drivers/pinctrl/sunxi/pinctrl-sun6i-a31.c
+index 82ac06493..8d8c92ce4 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sun6i-a31.c
++++ b/drivers/pinctrl/sunxi/pinctrl-sun6i-a31.c
+@@ -17,6 +17,9 @@
+ 
+ #include "pinctrl-sunxi.h"
+ 
++#define PINCTRL_SUN6I_A31	BIT(0)
++#define PINCTRL_SUN6I_A31S	BIT(1)
++
+ static const struct sunxi_desc_pin sun6i_a31_pins[] = {
+ 	SUNXI_PIN(SUNXI_PINCTRL_PIN(A, 0),
+ 		  SUNXI_FUNCTION(0x0, "gpio_in"),
+@@ -972,9 +975,8 @@ static int sun6i_a31_pinctrl_probe(struct platform_device *pdev)
+ 	unsigned long variant =
+ 		(unsigned long)of_device_get_match_data(&pdev->dev);
+ 
+-	return sunxi_pinctrl_init_with_variant(pdev,
+-					       &sun6i_a31_pinctrl_data,
+-					       variant);
++	return sunxi_pinctrl_init_with_flags(pdev, &sun6i_a31_pinctrl_data,
++					     variant);
+ }
+ 
+ static const struct of_device_id sun6i_a31_pinctrl_match[] = {
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sun8i-v3s.c b/drivers/pinctrl/sunxi/pinctrl-sun8i-v3s.c
+index 49c9a0b6a..696d7dd8d 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sun8i-v3s.c
++++ b/drivers/pinctrl/sunxi/pinctrl-sun8i-v3s.c
+@@ -22,6 +22,9 @@
+ 
+ #include "pinctrl-sunxi.h"
+ 
++#define PINCTRL_SUN8I_V3	BIT(0)
++#define PINCTRL_SUN8I_V3S	BIT(1)
++
+ static const struct sunxi_desc_pin sun8i_v3s_pins[] = {
+ 	/* Hole */
+ 	SUNXI_PIN(SUNXI_PINCTRL_PIN(B, 0),
+@@ -552,8 +555,8 @@ static int sun8i_v3s_pinctrl_probe(struct platform_device *pdev)
+ {
+ 	unsigned long variant = (unsigned long)of_device_get_match_data(&pdev->dev);
+ 
+-	return sunxi_pinctrl_init_with_variant(pdev, &sun8i_v3s_pinctrl_data,
+-					       variant);
++	return sunxi_pinctrl_init_with_flags(pdev, &sun8i_v3s_pinctrl_data,
++					     variant);
+ }
+ 
+ static const struct of_device_id sun8i_v3s_pinctrl_match[] = {
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c b/drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c
+new file mode 100644
+index 000000000..1833078f6
+--- /dev/null
++++ b/drivers/pinctrl/sunxi/pinctrl-sunxi-dt.c
+@@ -0,0 +1,374 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (C) 2017-2025 Arm Ltd.
++ *
++ * Generic DT driven Allwinner pinctrl driver routines.
++ * Builds the pin tables from minimal driver information and pin groups
++ * described in the DT. Then hands those tables of to the traditional
++ * sunxi pinctrl driver.
++ * sunxi_pinctrl_init() expects a table like shown below, previously spelled
++ * out in a per-SoC .c file. This code generates this table, like so:
++ *
++ *  SUNXI_PIN(SUNXI_PINCTRL_PIN(F, 1),	// code iterates over every implemented
++ *				// pin, based on pins_per_bank[] array passed in
++ *
++ *    SUNXI_FUNCTION(0x0, "gpio_in"),	// always added, for every pin
++ *    SUNXI_FUNCTION(0x1, "gpio_out"),	// always added, for every pin
++ *
++ *    SUNXI_FUNCTION(0x2, "mmc0"),	// based on pingroup found in DT:
++ *				//   mmc0-pins {
++ *				//       pins = "PF0", "PF1", ...
++ *				//       function = "mmc0";
++ *				//       allwinner,pinmux = <2>;
++ *
++ *    SUNXI_FUNCTION_IRQ_BANK(0x6, 4, 1)),	// derived by irq_bank_muxes[]
++ *						// array passed in
++ */
++
++#include <linux/export.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_device.h>
++#include <linux/pinctrl/pinctrl.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++
++#include "pinctrl-sunxi.h"
++
++#define INVALID_MUX	0xff
++
++/*
++ * Return the "index"th element from the "allwinner,pinmux" property. If the
++ * property does not hold enough entries, return the last one instead.
++ * For almost every group the pinmux value is actually the same, so this
++ * allows to just list one value in the property.
++ */
++static u8 sunxi_pinctrl_dt_read_pinmux(const struct device_node *node,
++				       int index)
++{
++	int ret, num_elems;
++	u32 value;
++
++	num_elems = of_property_count_u32_elems(node, "allwinner,pinmux");
++	if (num_elems <= 0)
++		return INVALID_MUX;
++
++	if (index >= num_elems)
++		index = num_elems - 1;
++
++	ret = of_property_read_u32_index(node, "allwinner,pinmux", index,
++					 &value);
++	if (ret)
++		return INVALID_MUX;
++
++	return value;
++}
++
++/*
++ * Allocate a table with a sunxi_desc_pin structure for every pin needed.
++ * Fills in the respective pin names ("PA0") and their pin numbers.
++ * Returns the pins array. We cannot use the member in *desc yet, as this
++ * is marked as const, and we will need to change the array still.
++ */
++static struct sunxi_desc_pin *init_pins_table(struct device *dev,
++					      const u8 *pins_per_bank,
++					      struct sunxi_pinctrl_desc *desc)
++{
++	struct sunxi_desc_pin *pins, *cur_pin;
++	int name_size = 0;
++	int port_base = desc->pin_base / PINS_PER_BANK;
++	char *pin_names, *cur_name;
++	int i, j;
++
++	/*
++	 * Find the total number of pins.
++	 * Also work out how much memory we need to store all the pin names.
++	 */
++	for (i = 0; i < SUNXI_PINCTRL_MAX_BANKS; i++) {
++		desc->npins += pins_per_bank[i];
++		if (pins_per_bank[i] < 10) {
++			/* 4 bytes for "PXy\0" */
++			name_size += pins_per_bank[i] * 4;
++		} else {
++			/* 4 bytes for each "PXy\0" */
++			name_size += 10 * 4;
++
++			/* 5 bytes for each "PXyy\0" */
++			name_size += (pins_per_bank[i] - 10) * 5;
++		}
++	}
++
++	if (desc->npins == 0) {
++		dev_err(dev, "no ports defined\n");
++		return ERR_PTR(-EINVAL);
++	}
++
++	pins = devm_kzalloc(dev, desc->npins * sizeof(*pins), GFP_KERNEL);
++	if (!pins)
++		return ERR_PTR(-ENOMEM);
++
++	/* Allocate memory to store the name for every pin. */
++	pin_names = devm_kmalloc(dev, name_size, GFP_KERNEL);
++	if (!pin_names)
++		return ERR_PTR(-ENOMEM);
++
++	/* Fill the pins array with the name and the number for each pin. */
++	cur_name = pin_names;
++	cur_pin = pins;
++	for (i = 0; i < SUNXI_PINCTRL_MAX_BANKS; i++) {
++		for (j = 0; j < pins_per_bank[i]; j++, cur_pin++) {
++			int nchars = sprintf(cur_name, "P%c%d",
++					     port_base + 'A' + i, j);
++
++			cur_pin->pin.number = (port_base + i) * PINS_PER_BANK + j;
++			cur_pin->pin.name = cur_name;
++			cur_name += nchars + 1;
++		}
++	}
++
++	return pins;
++}
++
++/*
++ * Work out the number of functions for each pin. This will visit every
++ * child node of the pinctrl DT node to find all advertised functions.
++ * Provide memory to hold the per-function information and assign it to
++ * the pin table.
++ * Fill in the GPIO in/out functions already (that every pin has), also add
++ * an "irq" function at the end, for those pins in IRQ-capable ports.
++ * We do not fill in the extra functions (those describe in DT nodes) yet.
++ * We (ab)use the "variant" member in each pin to keep track of the number of
++ * extra functions needed. At the end this will get reset to 2, so that we
++ * can add extra function later, after the two GPIO functions.
++ */
++static int prepare_function_table(struct device *dev, struct device_node *pnode,
++				  struct sunxi_desc_pin *pins, int npins,
++				  const u8 *irq_bank_muxes)
++{
++	struct device_node *node;
++	struct property *prop;
++	struct sunxi_desc_function *func;
++	int num_funcs, irq_bank, last_bank, i;
++
++	/*
++	 * We need at least three functions per pin:
++	 * - one for GPIO in
++	 * - one for GPIO out
++	 * - one for the sentinel signalling the end of the list
++	 */
++	num_funcs = 3 * npins;
++
++	/*
++	 * Add a function for each pin in a bank supporting interrupts.
++	 * We temporarily (ab)use the variant field to store the number of
++	 * functions per pin. This will be cleaned back to 0 before we hand
++	 * over the whole structure to the generic sunxi pinctrl setup code.
++	 */
++	for (i = 0; i < npins; i++) {
++		struct sunxi_desc_pin *pin = &pins[i];
++		int bank = pin->pin.number / PINS_PER_BANK;
++
++		if (irq_bank_muxes[bank]) {
++			pin->variant++;
++			num_funcs++;
++		}
++	}
++
++	/*
++	 * Go over each pin group (every child of the pinctrl DT node) and
++	 * add the number of special functions each pins has. Also update the
++	 * total number of functions required.
++	 * We might slightly overshoot here in case of double definitions.
++	 */
++	for_each_child_of_node(pnode, node) {
++		const char *name;
++
++		of_property_for_each_string(node, "pins", prop, name) {
++			for (i = 0; i < npins; i++) {
++				if (strcmp(pins[i].pin.name, name))
++					continue;
++
++				pins[i].variant++;
++				num_funcs++;
++				break;
++			}
++		}
++	}
++
++	/*
++	 * Allocate the memory needed for the functions in one table.
++	 * We later use pointers into this table to mark each pin.
++	 */
++	func = devm_kzalloc(dev, num_funcs * sizeof(*func), GFP_KERNEL);
++	if (!func)
++		return -ENOMEM;
++
++	/*
++	 * Assign the function's memory and fill in GPIOs, IRQ and a sentinel.
++	 * The extra functions will be filled in later.
++	 */
++	irq_bank = 0;
++	last_bank = 0;
++	for (i = 0; i < npins; i++) {
++		struct sunxi_desc_pin *pin = &pins[i];
++		int bank = pin->pin.number / PINS_PER_BANK;
++		int lastfunc = pin->variant + 1;
++		int irq_mux = irq_bank_muxes[bank];
++
++		func[0].name = "gpio_in";
++		func[0].muxval = 0;
++		func[1].name = "gpio_out";
++		func[1].muxval = 1;
++
++		if (irq_mux) {
++			if (bank > last_bank)
++				irq_bank++;
++			func[lastfunc].muxval = irq_mux;
++			func[lastfunc].irqbank = irq_bank;
++			func[lastfunc].irqnum = pin->pin.number % PINS_PER_BANK;
++			func[lastfunc].name = "irq";
++		}
++
++		if (bank > last_bank)
++			last_bank = bank;
++
++		pin->functions = func;
++
++		/* Skip over the other needed functions and the sentinel. */
++		func += pin->variant + 3;
++
++		/*
++		 * Reset the value for filling in the remaining functions
++		 * behind the GPIOs later.
++		 */
++		pin->variant = 2;
++	}
++
++	return 0;
++}
++
++/*
++ * Iterate over all pins in a single group and add the function name and its
++ * mux value to the respective pin.
++ * The "variant" member is again used to temporarily track the number of
++ * already added functions.
++ */
++static void fill_pin_function(struct device *dev, struct device_node *node,
++			      struct sunxi_desc_pin *pins, int npins)
++{
++	const char *name, *funcname;
++	struct sunxi_desc_function *func;
++	struct property *prop;
++	int pin, i, index;
++	u8 muxval;
++
++	if (of_property_read_string(node, "function", &funcname)) {
++		dev_warn(dev, "missing \"function\" property\n");
++		return;
++	}
++
++	index = 0;
++	of_property_for_each_string(node, "pins", prop, name) {
++		/* Find the index of this pin in our table. */
++		for (pin = 0; pin < npins; pin++)
++			if (!strcmp(pins[pin].pin.name, name))
++				break;
++		if (pin == npins) {
++			dev_warn(dev, "%s: cannot find pin %s\n",
++				 of_node_full_name(node), name);
++			index++;
++			continue;
++		}
++
++		/* Read the associated mux value. */
++		muxval = sunxi_pinctrl_dt_read_pinmux(node, index);
++		if (muxval == INVALID_MUX) {
++			dev_warn(dev, "%s: invalid mux value for pin %s\n",
++				 of_node_full_name(node), name);
++			index++;
++			continue;
++		}
++
++		/*
++		 * Check for double definitions by comparing the to-be-added
++		 * function with already assigned ones.
++		 * Ignore identical pairs (function name and mux value the
++		 * same), but warn about conflicting assignments.
++		 */
++		for (i = 2; i < pins[pin].variant; i++) {
++			func = &pins[pin].functions[i];
++
++			/* Skip over totally unrelated functions. */
++			if (strcmp(func->name, funcname) &&
++			    func->muxval != muxval)
++				continue;
++
++			/* Ignore (but skip below) any identical functions. */
++			if (!strcmp(func->name, funcname) &&
++			    muxval == func->muxval)
++				break;
++
++			dev_warn(dev,
++				 "pin %s: function %s redefined to mux %d\n",
++				 name, funcname, muxval);
++			break;
++		}
++
++		/* Skip any pins with that function already assigned. */
++		if (i < pins[pin].variant) {
++			index++;
++			continue;
++		}
++
++		/* Assign function and muxval to the next free slot. */
++		func = &pins[pin].functions[pins[pin].variant];
++		func->muxval = muxval;
++		func->name = funcname;
++
++		pins[pin].variant++;
++		index++;
++	}
++}
++
++/*
++ * Initialise the pinctrl table, by building it from driver provided
++ * information: the number of pins per bank, the IRQ capable banks and their
++ * IRQ mux value.
++ * Then iterate over all pinctrl DT node children to enter the function name
++ * and mux values for each mentioned pin.
++ * At the end hand over this structure to the actual sunxi pinctrl driver.
++ */
++int sunxi_pinctrl_dt_table_init(struct platform_device *pdev,
++				const u8 *pins_per_bank,
++				const u8 *irq_bank_muxes,
++				struct sunxi_pinctrl_desc *desc,
++				unsigned long flags)
++{
++	struct device_node *pnode = pdev->dev.of_node, *node;
++	struct sunxi_desc_pin *pins;
++	int ret, i;
++
++	pins = init_pins_table(&pdev->dev, pins_per_bank, desc);
++	if (IS_ERR(pins))
++		return PTR_ERR(pins);
++
++	ret = prepare_function_table(&pdev->dev, pnode, pins, desc->npins,
++				     irq_bank_muxes);
++	if (ret)
++		return ret;
++
++	/*
++	 * Now iterate over all groups and add the respective function name
++	 * and mux values to each pin listed within.
++	 */
++	for_each_child_of_node(pnode, node)
++		fill_pin_function(&pdev->dev, node, pins, desc->npins);
++
++	/* Clear the temporary storage. */
++	for (i = 0; i < desc->npins; i++)
++		pins[i].variant = 0;
++
++	desc->pins = pins;
++
++	return sunxi_pinctrl_init_with_flags(pdev, desc, flags);
++}
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.c b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+index bde67ee31..f1c5a991c 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sunxi.c
++++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.c
+@@ -58,13 +58,29 @@ static struct irq_chip sunxi_pinctrl_level_irq_chip;
+  * The following functions calculate the register and the bit offset to access.
+  * They take a pin number which is relative to the start of the current device.
+  */
++
++/*
++ * When using the extended register layout, Bank K does not fit into the
++ * space used for the other banks. Instead it lives at offset 0x500.
++ */
++static u32 sunxi_bank_offset(const struct sunxi_pinctrl *pctl, u32 pin)
++{
++	u32 offset = 0;
++
++	if (pin >= PK_BASE) {
++		pin -= PK_BASE;
++		offset = PIO_BANK_K_OFFSET;
++	}
++
++	return offset + (pin / PINS_PER_BANK) * pctl->bank_mem_size;
++}
++
+ static void sunxi_mux_reg(const struct sunxi_pinctrl *pctl,
+ 			  u32 pin, u32 *reg, u32 *shift, u32 *mask)
+ {
+-	u32 bank   = pin / PINS_PER_BANK;
+ 	u32 offset = pin % PINS_PER_BANK * MUX_FIELD_WIDTH;
+ 
+-	*reg   = bank * pctl->bank_mem_size + MUX_REGS_OFFSET +
++	*reg   = sunxi_bank_offset(pctl, pin) + MUX_REGS_OFFSET +
+ 		 offset / BITS_PER_TYPE(u32) * sizeof(u32);
+ 	*shift = offset % BITS_PER_TYPE(u32);
+ 	*mask  = (BIT(MUX_FIELD_WIDTH) - 1) << *shift;
+@@ -73,10 +89,9 @@ static void sunxi_mux_reg(const struct sunxi_pinctrl *pctl,
+ static void sunxi_data_reg(const struct sunxi_pinctrl *pctl,
+ 			   u32 pin, u32 *reg, u32 *shift, u32 *mask)
+ {
+-	u32 bank   = pin / PINS_PER_BANK;
+ 	u32 offset = pin % PINS_PER_BANK * DATA_FIELD_WIDTH;
+ 
+-	*reg   = bank * pctl->bank_mem_size + DATA_REGS_OFFSET +
++	*reg   = sunxi_bank_offset(pctl, pin) + DATA_REGS_OFFSET +
+ 		 offset / BITS_PER_TYPE(u32) * sizeof(u32);
+ 	*shift = offset % BITS_PER_TYPE(u32);
+ 	*mask  = (BIT(DATA_FIELD_WIDTH) - 1) << *shift;
+@@ -85,10 +100,9 @@ static void sunxi_data_reg(const struct sunxi_pinctrl *pctl,
+ static void sunxi_dlevel_reg(const struct sunxi_pinctrl *pctl,
+ 			     u32 pin, u32 *reg, u32 *shift, u32 *mask)
+ {
+-	u32 bank   = pin / PINS_PER_BANK;
+ 	u32 offset = pin % PINS_PER_BANK * pctl->dlevel_field_width;
+ 
+-	*reg   = bank * pctl->bank_mem_size + DLEVEL_REGS_OFFSET +
++	*reg   = sunxi_bank_offset(pctl, pin) + DLEVEL_REGS_OFFSET +
+ 		 offset / BITS_PER_TYPE(u32) * sizeof(u32);
+ 	*shift = offset % BITS_PER_TYPE(u32);
+ 	*mask  = (BIT(pctl->dlevel_field_width) - 1) << *shift;
+@@ -97,10 +111,9 @@ static void sunxi_dlevel_reg(const struct sunxi_pinctrl *pctl,
+ static void sunxi_pull_reg(const struct sunxi_pinctrl *pctl,
+ 			   u32 pin, u32 *reg, u32 *shift, u32 *mask)
+ {
+-	u32 bank   = pin / PINS_PER_BANK;
+ 	u32 offset = pin % PINS_PER_BANK * PULL_FIELD_WIDTH;
+ 
+-	*reg   = bank * pctl->bank_mem_size + pctl->pull_regs_offset +
++	*reg   = sunxi_bank_offset(pctl, pin) + pctl->pull_regs_offset +
+ 		 offset / BITS_PER_TYPE(u32) * sizeof(u32);
+ 	*shift = offset % BITS_PER_TYPE(u32);
+ 	*mask  = (BIT(PULL_FIELD_WIDTH) - 1) << *shift;
+@@ -723,9 +736,11 @@ static int sunxi_pinctrl_set_io_bias_cfg(struct sunxi_pinctrl *pctl,
+ 		val = uV > 1800000 && uV <= 2500000 ? BIT(bank) : 0;
+ 
+ 		raw_spin_lock_irqsave(&pctl->lock, flags);
+-		reg = readl(pctl->membase + PIO_POW_MOD_CTL_REG);
++		reg = readl(pctl->membase + pctl->pow_mod_sel_offset +
++			    PIO_POW_MOD_CTL_OFS);
+ 		reg &= ~BIT(bank);
+-		writel(reg | val, pctl->membase + PIO_POW_MOD_CTL_REG);
++		writel(reg | val, pctl->membase + pctl->pow_mod_sel_offset +
++		       PIO_POW_MOD_CTL_OFS);
+ 		raw_spin_unlock_irqrestore(&pctl->lock, flags);
+ 
+ 		fallthrough;
+@@ -733,9 +748,10 @@ static int sunxi_pinctrl_set_io_bias_cfg(struct sunxi_pinctrl *pctl,
+ 		val = uV <= 1800000 ? 1 : 0;
+ 
+ 		raw_spin_lock_irqsave(&pctl->lock, flags);
+-		reg = readl(pctl->membase + PIO_POW_MOD_SEL_REG);
++		reg = readl(pctl->membase + pctl->pow_mod_sel_offset);
+ 		reg &= ~(1 << bank);
+-		writel(reg | val << bank, pctl->membase + PIO_POW_MOD_SEL_REG);
++		writel(reg | val << bank,
++		       pctl->membase + pctl->pow_mod_sel_offset);
+ 		raw_spin_unlock_irqrestore(&pctl->lock, flags);
+ 		return 0;
+ 	default:
+@@ -1472,9 +1488,9 @@ static int sunxi_pinctrl_setup_debounce(struct sunxi_pinctrl *pctl,
+ 	return 0;
+ }
+ 
+-int sunxi_pinctrl_init_with_variant(struct platform_device *pdev,
+-				    const struct sunxi_pinctrl_desc *desc,
+-				    unsigned long variant)
++int sunxi_pinctrl_init_with_flags(struct platform_device *pdev,
++				  const struct sunxi_pinctrl_desc *desc,
++				  unsigned long flags)
+ {
+ 	struct device_node *node = pdev->dev.of_node;
+ 	struct pinctrl_desc *pctrl_desc;
+@@ -1497,8 +1513,8 @@ int sunxi_pinctrl_init_with_variant(struct platform_device *pdev,
+ 
+ 	pctl->dev = &pdev->dev;
+ 	pctl->desc = desc;
+-	pctl->variant = variant;
+-	if (pctl->variant >= PINCTRL_SUN20I_D1) {
++	pctl->variant = flags & SUNXI_PINCTRL_VARIANT_MASK;
++	if (flags & SUNXI_PINCTRL_NEW_REG_LAYOUT) {
+ 		pctl->bank_mem_size = D1_BANK_MEM_SIZE;
+ 		pctl->pull_regs_offset = D1_PULL_REGS_OFFSET;
+ 		pctl->dlevel_field_width = D1_DLEVEL_FIELD_WIDTH;
+@@ -1507,6 +1523,10 @@ int sunxi_pinctrl_init_with_variant(struct platform_device *pdev,
+ 		pctl->pull_regs_offset = PULL_REGS_OFFSET;
+ 		pctl->dlevel_field_width = DLEVEL_FIELD_WIDTH;
+ 	}
++	if (flags & SUNXI_PINCTRL_ELEVEN_BANKS)
++		pctl->pow_mod_sel_offset = PIO_11B_POW_MOD_SEL_REG;
++	else
++		pctl->pow_mod_sel_offset = PIO_POW_MOD_SEL_REG;
+ 
+ 	pctl->irq_array = devm_kcalloc(&pdev->dev,
+ 				       IRQ_PER_BANK * pctl->desc->irq_banks,
+diff --git a/drivers/pinctrl/sunxi/pinctrl-sunxi.h b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
+index a87a2f944..ad26e4de1 100644
+--- a/drivers/pinctrl/sunxi/pinctrl-sunxi.h
++++ b/drivers/pinctrl/sunxi/pinctrl-sunxi.h
+@@ -25,10 +25,15 @@
+ #define PG_BASE	192
+ #define PH_BASE	224
+ #define PI_BASE	256
++#define PJ_BASE	288
++#define PK_BASE	320
+ #define PL_BASE	352
+ #define PM_BASE	384
+ #define PN_BASE	416
+ 
++/* maximum number of banks per controller (PA -> PK) */
++#define SUNXI_PINCTRL_MAX_BANKS	11
++
+ #define SUNXI_PINCTRL_PIN(bank, pin)		\
+ 	PINCTRL_PIN(P ## bank ## _BASE + (pin), "P" #bank #pin)
+ 
+@@ -82,21 +87,16 @@
+ #define SUN4I_FUNC_INPUT	0
+ #define SUN4I_FUNC_IRQ		6
+ 
+-#define PINCTRL_SUN5I_A10S	BIT(1)
+-#define PINCTRL_SUN5I_A13	BIT(2)
+-#define PINCTRL_SUN5I_GR8	BIT(3)
+-#define PINCTRL_SUN6I_A31	BIT(4)
+-#define PINCTRL_SUN6I_A31S	BIT(5)
+-#define PINCTRL_SUN4I_A10	BIT(6)
+-#define PINCTRL_SUN7I_A20	BIT(7)
+-#define PINCTRL_SUN8I_R40	BIT(8)
+-#define PINCTRL_SUN8I_V3	BIT(9)
+-#define PINCTRL_SUN8I_V3S	BIT(10)
+-/* Variants below here have an updated register layout. */
+-#define PINCTRL_SUN20I_D1	BIT(11)
+-
+-#define PIO_POW_MOD_SEL_REG	0x340
+-#define PIO_POW_MOD_CTL_REG	0x344
++#define SUNXI_PINCTRL_VARIANT_MASK	GENMASK(7, 0)
++#define SUNXI_PINCTRL_NEW_REG_LAYOUT	BIT(8)
++#define SUNXI_PINCTRL_PORTF_SWITCH	BIT(9)
++#define SUNXI_PINCTRL_ELEVEN_BANKS	BIT(10)
++
++#define PIO_POW_MOD_SEL_REG		0x340
++#define PIO_11B_POW_MOD_SEL_REG		0x380
++#define PIO_POW_MOD_CTL_OFS		0x004
++
++#define PIO_BANK_K_OFFSET		0x500
+ 
+ enum sunxi_desc_bias_voltage {
+ 	BIAS_VOLTAGE_NONE,
+@@ -164,7 +164,7 @@ struct sunxi_pinctrl {
+ 	struct gpio_chip		*chip;
+ 	const struct sunxi_pinctrl_desc	*desc;
+ 	struct device			*dev;
+-	struct sunxi_pinctrl_regulator	regulators[9];
++	struct sunxi_pinctrl_regulator	regulators[11];
+ 	struct irq_domain		*domain;
+ 	struct sunxi_pinctrl_function	*functions;
+ 	unsigned			nfunctions;
+@@ -178,6 +178,7 @@ struct sunxi_pinctrl {
+ 	u32				bank_mem_size;
+ 	u32				pull_regs_offset;
+ 	u32				dlevel_field_width;
++	u32				pow_mod_sel_offset;
+ };
+ 
+ #define SUNXI_PIN(_pin, ...)					\
+@@ -299,11 +300,17 @@ static inline u32 sunxi_grp_config_reg(u16 pin)
+ 	return GRP_CFG_REG + bank * 0x4;
+ }
+ 
+-int sunxi_pinctrl_init_with_variant(struct platform_device *pdev,
+-				    const struct sunxi_pinctrl_desc *desc,
+-				    unsigned long variant);
++int sunxi_pinctrl_init_with_flags(struct platform_device *pdev,
++				  const struct sunxi_pinctrl_desc *desc,
++				  unsigned long flags);
+ 
+ #define sunxi_pinctrl_init(_dev, _desc) \
+-	sunxi_pinctrl_init_with_variant(_dev, _desc, 0)
++	sunxi_pinctrl_init_with_flags(_dev, _desc, 0)
++
++int sunxi_pinctrl_dt_table_init(struct platform_device *pdev,
++				const u8 *pins_per_bank,
++				const u8 *irq_bank_muxes,
++				struct sunxi_pinctrl_desc *desc,
++				unsigned long flags);
+ 
+ #endif /* __PINCTRL_SUNXI_H */
+-- 
+2.49.0
+

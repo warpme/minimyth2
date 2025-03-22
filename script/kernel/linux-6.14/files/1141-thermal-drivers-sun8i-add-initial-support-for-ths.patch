@@ -1,0 +1,100 @@
+diff --git a/drivers/thermal/sun8i_thermal.c b/drivers/thermal/sun8i_thermal.c
+index 226747906..bd4f7d781 100644
+--- a/drivers/thermal/sun8i_thermal.c
++++ b/drivers/thermal/sun8i_thermal.c
+@@ -66,8 +66,9 @@ struct tsensor {
+ };
+ 
+ struct ths_thermal_chip {
+-	bool            has_mod_clk;
+-	bool            has_bus_clk_reset;
++	bool		has_gpadc_clk;
++	bool		has_mod_clk;
++	bool		has_bus_clk_reset;
+ 	bool		needs_sram;
+ 	int		sensor_num;
+ 	int		offset;
+@@ -89,7 +90,8 @@ struct ths_device {
+ 	struct regmap_field			*sram_regmap_field;
+ 	struct reset_control			*reset;
+ 	struct clk				*bus_clk;
+-	struct clk                              *mod_clk;
++	struct clk				*mod_clk;
++	struct clk				*gpadc_clk;
+ 	struct tsensor				sensor[MAX_SENSOR_NUM];
+ };
+ 
+@@ -114,6 +116,15 @@ static int sun50i_h5_calc_temp(struct ths_device *tmdev,
+ 		return -1590 * reg / 10 + 276000;
+ }
+ 
++static int sun55i_a523_calc_temp(struct ths_device *tmdev,
++					int id, int reg)
++{
++	if (reg >= 0x7c8)
++		return 74 * (2736 - reg);
++	else
++		return 65 * (2825 - reg);
++}
++
+ static int sun8i_ths_get_temp(struct thermal_zone_device *tz, int *temp)
+ {
+ 	struct tsensor *s = thermal_zone_device_priv(tz);
+@@ -417,6 +428,16 @@ static int sun8i_ths_resource_init(struct ths_device *tmdev)
+ 	if (ret)
+ 		return ret;
+ 
++	if (tmdev->chip->has_gpadc_clk) {
++		tmdev->gpadc_clk = devm_clk_get_enabled(&pdev->dev, "gpadc");
++		if (IS_ERR(tmdev->gpadc_clk))
++			return PTR_ERR(tmdev->gpadc_clk);
++	}
++
++	ret = clk_prepare_enable(tmdev->gpadc_clk);
++	if (ret)
++		return ret;
++
+ 	if (tmdev->chip->needs_sram) {
+ 		struct regmap *regmap;
+ 
+@@ -709,6 +730,28 @@ static const struct ths_thermal_chip sun50i_h616_ths = {
+ 	.calc_temp = sun8i_ths_calc_temp,
+ };
+ 
++static const struct ths_thermal_chip sun55i_a523_ths0 = {
++	.sensor_num = 1,
++	.has_bus_clk_reset = false, /* TODO: same reset with sun55i_a523_ths1, gives an error */
++	.has_gpadc_clk = true,
++	.temp_data_base = SUN50I_H6_THS_TEMP_DATA,
++	.calibrate = sun50i_h6_ths_calibrate, /* TODO: calibration function has not yet been added */
++	.init = sun50i_h6_thermal_init,
++	.irq_ack = sun50i_h6_irq_ack,
++	.calc_temp = sun55i_a523_calc_temp,
++};
++
++static const struct ths_thermal_chip sun55i_a523_ths1 = {
++	.sensor_num = 3,
++	.has_bus_clk_reset = true,
++	.has_gpadc_clk = true,
++	.temp_data_base = SUN50I_H6_THS_TEMP_DATA,
++	.calibrate = sun50i_h6_ths_calibrate, /* TODO: calibration function has not yet been added */
++	.init = sun50i_h6_thermal_init,
++	.irq_ack = sun50i_h6_irq_ack,
++	.calc_temp = sun55i_a523_calc_temp,
++};
++
+ static const struct of_device_id of_ths_match[] = {
+ 	{ .compatible = "allwinner,sun8i-a83t-ths", .data = &sun8i_a83t_ths },
+ 	{ .compatible = "allwinner,sun8i-h3-ths", .data = &sun8i_h3_ths },
+@@ -719,6 +762,8 @@ static const struct of_device_id of_ths_match[] = {
+ 	{ .compatible = "allwinner,sun50i-h6-ths", .data = &sun50i_h6_ths },
+ 	{ .compatible = "allwinner,sun20i-d1-ths", .data = &sun20i_d1_ths },
+ 	{ .compatible = "allwinner,sun50i-h616-ths", .data = &sun50i_h616_ths },
++	{ .compatible = "allwinner,sun55i-a523-ths0", .data = &sun55i_a523_ths0 },
++	{ .compatible = "allwinner,sun55i-a523-ths1", .data = &sun55i_a523_ths1 },
+ 	{ /* sentinel */ },
+ };
+ MODULE_DEVICE_TABLE(of, of_ths_match);
+-- 
+2.49.0
+
