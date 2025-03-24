@@ -91,11 +91,9 @@ list_release_assets() {
     -H "Authorization: Bearer ${github_token}" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
     ${github_url}/releases/${release_id}/assets > $$
-    echo "  Assets in release:"
     cat $$ >> ${log}
     cat $$ | grep 'browser_download_url' | sed -e 's/"browser_download_url":/  /g'
     rm $$
-    echo " "
 }
 
 upload_file() {
@@ -117,14 +115,42 @@ upload_file() {
 
 echo " "
 echo "Script version:${ver} (c)Potr Oniszczuk"
-echo " "
 
 rm ${log} 2>/dev/null
+
+files_to_upload=$(ls -1 ${images_dir} | grep ${images_name_wildchar})
+
+echo " "
+echo "---- following files will be upladed ----"
+for file in ${files_to_upload} ; do
+  echo "  ${file}"
+done
+echo "-----------------------------------------"
+echo " "
+
+echo "Press u key to start upload or any key to exit ..."
+echo " "
+read selection
+
+if [ ! x$selection = "xu" ] ; then
+  exit 1
+fi
 
 get_release_id
 
 if [ x${release_id} = "x" ] ; then
-  echo "No any release discovered. Creating new one ..."
+  echo " "
+  echo "No any release discovered. Press c to creating new one:"
+  echo "  -tag: ${tag_name}"
+  echo "  -name: ${release_name}"
+  echo "  -description: \"${release_description}\""
+  echo " "
+  echo "or any key to exit ..."
+  echo " "
+  read selection
+  if [ ! x$selection = "xc" ] ; then
+    exit 1
+  fi
   echo "==> Creating release with:"
   echo "  -tag: ${tag_name}"
   echo "  -name: ${release_name}"
@@ -132,15 +158,17 @@ if [ x${release_id} = "x" ] ; then
   echo " "
   create_release
   get_release_id
-else
-  list_release_assets
 fi
-
-files_to_upload=$(ls -1 ${images_dir} | grep ${images_name_wildchar})
 
 for file in ${files_to_upload} ; do
   echo "==> uploading ${file}"
   upload_file ${images_dir} ${file}
 done
+
+echo " "
+echo "------ following files were uploaded ------"
+list_release_assets
+echo "-----------------------------------------"
+echo " "
 
 exit 0
