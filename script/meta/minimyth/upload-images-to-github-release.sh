@@ -128,7 +128,7 @@ done
 echo "-----------------------------------------"
 echo " "
 
-echo "Press u key to start upload or any key to exit ..."
+echo "Press (u) key to start upload or any key to exit ..."
 echo " "
 read selection
 
@@ -140,7 +140,7 @@ get_release_id
 
 if [ x${release_id} = "x" ] ; then
   echo " "
-  echo "No any release discovered. Press c to creating new one:"
+  echo "No any release discovered. Press (c) to creating new one:"
   echo "  -tag: ${tag_name}"
   echo "  -name: ${release_name}"
   echo "  -description: \"${release_description}\""
