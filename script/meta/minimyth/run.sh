@@ -77,6 +77,7 @@ if [ x${selection} = "x" ] ; then
     echo "  (r) Install pxeboot RAMfs files"
     echo "  (o) Install On-Line update files"
     echo "  (s) Install SDcard/USBkey files"
+    echo "  (g) Upload SD card images to GitHub release"
     echo " "
     echo "or press Enter to exit..."
     echo
@@ -166,6 +167,18 @@ case "${selection}" in
         mm_INSTALL_NFS_BOOT="no" \
         mm_DISTRIBUTION_SDCARD="yes" \
         reinstall
+        ;;
+
+    g)  echo " "
+        echo "Select GitHub repo: (1) MiniMyth or (2) Miniarch"
+        echo " "
+        read sel
+        case ${sel} in
+            1) cp ${HOME}/.minimyth2/github-minimyth2-creditentials.conf ${HOME}/.minimyth2/github-upload-settings.conf
+                ./upload-images-to-github-release.sh ;;
+            2) cp ${HOME}/.minimyth2/github-miniarch-creditentials.conf ${HOME}/.minimyth2/github-upload-settings.conf
+                ./upload-images-to-github-release.sh ;;
+        esac
         ;;
 
     *)
