@@ -170,14 +170,18 @@ case "${selection}" in
         ;;
 
     g)  echo " "
-        echo "Select GitHub repo: (1) MiniMyth or (2) Miniarch"
+        echo "Select GitHub repo:"
+        echo "  Press (1) for MiniMyth2"
+        echo "  Press (2) for Miniarch"
+        echo "any other kay to exit ..."
         echo " "
         read sel
         case ${sel} in
-            1) cp ${HOME}/.minimyth2/github-minimyth2-creditentials.conf ${HOME}/.minimyth2/github-upload-settings.conf
+            1)  cp ${HOME}/.minimyth2/github-minimyth2-creditentials.conf ${HOME}/.minimyth2/github-upload-settings.conf
                 ./upload-images-to-github-release.sh ;;
-            2) cp ${HOME}/.minimyth2/github-miniarch-creditentials.conf ${HOME}/.minimyth2/github-upload-settings.conf
+            2)  cp ${HOME}/.minimyth2/github-miniarch-creditentials.conf ${HOME}/.minimyth2/github-upload-settings.conf
                 ./upload-images-to-github-release.sh ;;
+            *)  exit 1 ;;
         esac
         ;;
 

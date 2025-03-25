@@ -113,6 +113,16 @@ upload_file() {
     rm $$
 }
 
+create_new_release() {
+  echo "==> Creating release with:"
+  echo "  -tag: ${tag_name}"
+  echo "  -name: ${release_name}"
+  echo "  -description: \"${release_description}\""
+  echo " "
+  create_release
+  get_release_id
+}
+
 echo " "
 echo "Script version:${ver} (c)Potr Oniszczuk"
 
@@ -148,16 +158,22 @@ if [ x${release_id} = "x" ] ; then
   echo "or any key to exit ..."
   echo " "
   read selection
-  if [ ! x$selection = "xc" ] ; then
-    exit 1
-  fi
-  echo "==> Creating release with:"
-  echo "  -tag: ${tag_name}"
-  echo "  -name: ${release_name}"
-  echo "  -description: \"${release_description}\""
+  case ${selection} in
+    c) create_new_release ;;
+    *) exit 1 ;;
+  esac
+else
+  echo "Existing release detected ..."
+  echo "  Press (1) to use existing"
+  echo "  Press (2) to create new release"
+  echo "or any key to exit ..."
   echo " "
-  create_release
-  get_release_id
+  read selection
+  case ${selection} in
+    1) ;;
+    2) create_new_release ;;
+    *) exit 1 ;;
+  esac
 fi
 
 for file in ${files_to_upload} ; do
