@@ -150,6 +150,7 @@ PATCHFILES += 0623-sound-soc-sunxi-hack-to-fix-oops-on-cards-caps-query.patch
 PATCHFILES += 0630-net-wireless-add-uwe5622-support-v20231020.patch
 PATCHFILES += 0631-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0632-clk-sunxi-ng-ccu-hack-fix-too-slow-hdmi-audio.patch
+PATCHFILES += 0633-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
 # device-tree patches
 PATCHFILES += 0640-arm64-dts-allwinner-h616.dtsi-add-audio-hdmi-vdec.patch
 PATCHFILES += 0641-arm64-dts-allwinner-h616.dtsi-add-ths-cpu-gpu-opp-and-dvfs.patch
@@ -347,11 +348,14 @@ PATCHFILES += 1136-dt-bindings-arm-sunxi-Add-YuzukiHD-Chameleon-board-n.patch
 PATCHFILES += 1139-net-ethernet-allwinner-add-gmac200-support.patch
 PATCHFILES += 1140-net-ethernet-allwinner-add-gmac-support.patch
 PATCHFILES += 1141-thermal-drivers-sun8i-add-initial-support-for-ths.patch
+PATCHFILES += 1142-add-initial-cpufreq-support.patch
 # dt patches
 PATCHFILES += 1150-arm64-dtsi-allwinner-add-initial-A523-support.patch
 PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-in-A523-dtsi.patch
 PATCHFILES += 1152-arm64-dtsi-allwinner-add-gmac0-in-A523-dtsi.patch
 PATCHFILES += 1153-arm64-dtsi-allwinner-add-ths-support.patch
+PATCHFILES += 1154-arm64-dtsi-allwinner-add-cpufreq-support.patch
+
 PATCHFILES += 1170-arm64-dts-allwinner-h728-add-x96q-pro-tvbox-plus.patch
 PATCHFILES += 1172-arm64-dts-allwinner-t527-add-orangepi-4a-dts.patch
 PATCHFILES += 1173-arm64-dts-allwinner-a527-add-Radxa-A5E-support.patch
