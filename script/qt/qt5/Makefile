@@ -102,7 +102,6 @@ CONFIGURE_ARGS = \
 	-skip qtwinextras \
 	-silent \
 	-skip qtwebglplugin \
-	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
