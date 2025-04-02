@@ -101,7 +101,7 @@ post-install:
 	 -i $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKit.pc
 	@sed \
 	 -e 's%^Libs:.*%Libs: -L$(qt5libdir) -lQt5WebKitWidgets %g' \
-	 -e 's%^Cflags:.*%Cflags: -I$(qt5includedir)/QtWebKit %g'   \
+	 -e 's%^Cflags:.*%Cflags: -I$(qt5includedir)/QtWebKitWidgets %g'   \
 	 -i $(DESTDIR)$(qt5libdir)/pkgconfig/Qt5WebKitWidgets.pc
 	@#
 	@sed \
