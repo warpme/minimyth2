@@ -502,3 +502,54 @@ index cff56deba..d7c700127 100644
 -- 
 2.49.0
 
+From 38225acf481a71465bc265461b444715d06459a6 Mon Sep 17 00:00:00 2001
+From: iuncuim <iuncuim@gmail.com>
+Date: Fri, 4 Apr 2025 10:19:13 +0800
+Subject: [PATCH] regulator: axp20x: force polyphase setup for axp323
+
+Signed-off-by: Mikhail Kalashnikov <iuncuim@gmail.com>
+---
+ drivers/regulator/axp20x-regulator.c          | 20 +++++++++++++++++++
+ 5 files changed, 36 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/regulator/axp20x-regulator.c b/drivers/regulator/axp20x-regulator.c
+index dca99cfb7..670c3e46d 100644
+--- a/drivers/regulator/axp20x-regulator.c
++++ b/drivers/regulator/axp20x-regulator.c
+@@ -1487,6 +1487,20 @@ static int axp20x_set_dcdc_workmode(struct regulator_dev *rdev, int id, u32 work
+ 	return regmap_update_bits(rdev->regmap, reg, mask, workmode);
+ }
+ 
++static void axp20x_set_polyphased(struct axp20x_dev *axp20x, int id)
++{
++	switch (axp20x->variant) {
++	case AXP323_ID:
++		switch (id) {
++		case AXP313A_DCDC2:
++			regmap_write(axp20x->regmap, AXP323_DCDC_MODE_CTRL2, BIT(1));
++		}
++		break;
++
++	default:
++	}
++}
++
+ /*
+  * This function checks whether a regulator is part of a poly-phase
+  * output setup based on the registers settings. Returns true if it is.
+@@ -1710,6 +1724,12 @@ static int axp20x_regulator_probe(struct platform_device *pdev)
+ 					rdev->desc->name);
+ 		}
+ 
++		/*
++		 * Currently only the AXP323 needs to force dual phase setup.
++		 */
++		if (of_property_read_bool(rdev->dev.of_node,"x-powers,polyphased"))
++			axp20x_set_polyphased(axp20x, i);
++
+ 		/*
+ 		 * Save AXP22X DCDC1 / DCDC5 / AXP15060 ALDO1 regulator names for later.
+ 		 */
+-- 
+2.49.0
+
