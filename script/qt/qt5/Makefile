@@ -27,6 +27,7 @@ DEPENDS   =            \
 	lib/libmng     \
 	lib/libpng     \
 	lib/libtiff    \
+	lib/nss        \
 	lib/openssl    \
 	gstreamer/meta \
 	gtk/glib       \
@@ -36,7 +37,7 @@ DEPENDS   =            \
 	opengl/opengl  \
 	xorg/xorg      \
 
-BUILDDEPS = devel/bison devel/flex
+BUILDDEPS = devel/bison devel/flex lib/nodejs
 
 PWD := $(shell pwd)
 
@@ -77,9 +78,11 @@ CONFIGURE_ARGS = \
 	-no-sql-tds \
 	-no-compile-examples \
 	-no-openvg \
+	-no-harfbuzz \
 	-nomake tools \
 	-nomake examples \
 	-nomake tests \
+	-silent \
 	-skip qtactiveqt \
 	-skip qt3d \
 	-skip qtandroidextras \
@@ -97,11 +100,10 @@ CONFIGURE_ARGS = \
 	-skip qtspeech \
 	-skip qttranslations \
 	-skip qttools \
-	-skip qtwebengine \
 	-skip qtvirtualkeyboard \
 	-skip qtwinextras \
-	-silent \
 	-skip qtwebglplugin \
+	-no-webengine-geolocation \
 
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
