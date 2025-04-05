@@ -103,7 +103,6 @@ DEPENDS = \
 	utils/findutils \
 	$(if $(filter mesa mesa-git lima,$(mm_OPENGL_PROVIDER)),opengl/mesa-demos) \
 	$(if $(filter mythplugins,$(mm_SOFTWARE)), \
-		$(if $(wildcard ../../myth-$(mm_MYTH_VERSION)/mythplugins),myth-$(mm_MYTH_VERSION)/mythplugins) \
 		$(if $(filter python2,$(mm_SOFTWARE)), \
 			python2/python-IMAPClient \
 			python2/python-pycurl) \
@@ -113,7 +112,7 @@ DEPENDS = \
 		perl/perl-Net-HTTP \
 		perl/perl-Shell \
 		perl/perl-Switch) \
-		lib/libdiscid \
+	lib/libdiscid \
 	lib/dbus \
 	lib/avahi \
 	$(if $(filter fceu,$(mm_SOFTWARE)),emulators/fceu) \
