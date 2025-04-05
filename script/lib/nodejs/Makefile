@@ -1,6 +1,6 @@
 
 GARNAME      = nodejs
-GARVERSION   = 23.1.0
+GARVERSION   = 23.11.0
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/nodejs/node/archive/v$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
@@ -14,6 +14,8 @@ CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
+PARALLELMFLAGS = -j18
+export PARALLELMFLAGS
 
 ifeq ($(DESTIMG),build)
 CONFIGURE_ENV = $(DIRPATHS)
