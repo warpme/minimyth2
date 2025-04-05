@@ -11,6 +11,12 @@ include ../../minimyth.conf.mk
 
 PATCHFILES  =
 
+PATCHFILES += 0000-cmake-stop-checking-libx264.patch
+PATCHFILES += 0000-cmake-fix-building-dvdnav.patch
+PATCHFILES += 0000-cmake-enable-x11-on-crosscompile.patch
+PATCHFILES += 0000-cmake-stop-checking-python-perl-deps-in-plugins-on-crosscompile.patch
+PATCHFILES += 0000-cmake-enable-dbus-webengine-on-crosscompile.patch
+
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
 PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
@@ -185,116 +191,119 @@ CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
 PWD := $(shell pwd)
 
-CONFIGURE_SCRIPTS = $(WORKSRC)/mythtv/configure
-BUILD_SCRIPTS     = $(WORKSRC)/mythtv/Makefile
-INSTALL_SCRIPTS   = $(WORKSRC)/mythtv/Makefile source
+export PLATFORM_CONFIGURE_ENV=$(CPPFLAGS)
+
+WORKBLD = $(WORKSRC)_build
+
+CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
+BUILD_SCRIPTS     = custom
+INSTALL_SCRIPTS   = 
 
 comma:= ,
 
-CONFIGURE_ARGS = \
-	--compile-type=$(if $(filter yes,$(mm_DEBUG)),"debug","release") \
-	--prefix="$(DESTDIR)$(prefix)" \
-	--runprefix="$(prefix)" \
-	--libdir-name="$(patsubst $(prefix)/%,%,$(libdir))" \
-	--disable-ccache \
-	--disable-distcc \
-	--bindir="$(DESTDIR)$(bindir)" \
-	--datadir="$(DESTDIR)$(datadir)/mythtv" \
-	--libdir="$(DESTDIR)$(libdir)" \
-	--incdir="$(DESTDIR)$(includedir)/mythtv" \
-	--shlibdir="$(DESTDIR)$(libdir)" \
-	--mandir="$(DESTDIR)$(mandir)" \
-	$(if $(filter -Os,$(CFLAGS)),--enable-small) \
-	--cross-prefix="$(compiler_prefix)" \
-	--enable-cross-compile \
-	--sysroot="$(DESTDIR)$(rootdir)" \
-	--sysinclude="$(DESTDIR)$(includedir)" \
-	--target-os="linux" \
-	--ar="$(AR)" \
-	--nm="$(NM)" \
-	--ranlib="$(RANLIB)" \
-	--as="$(CC)" \
-	--cc="$(CC)" \
-	--cxx="$(CXX)" \
-	--ld="$(CC)" \
-	--qmake="$(qtqmake)" \
-	--host-cc="$(build_CC)" \
-	--host-cflags="$(build_CFLAGS)" \
-	--host-ldflags="$(build_LDFLAGS)" \
-	--extra-cflags="$(CFLAGS)" \
-	--extra-cxxflags="$(CXXFLAGS)" \
+CMAKE_CONFIGURE_ARGS = \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	$(if $(filter qt6,$(mm_QT_VERSION)),--preset qt6,--preset qt5) \
+	-DCMAKE_INSTALL_PREFIX=$(DESTDIR)$(prefix) \
+	-DCMAKE_INSTALL_LIBDIR='lib' \
+	-DCMAKE_BUILD_TYPE=$(if $(filter yes,$(mm_DEBUG)),Debug,Release) \
+	-DPLATFORM_CONFIGURE_ENV="$(CPPFLAGS)" \
+	-DQt5_DIR=$(DESTDIR)$(qt5prefix)/lib/cmake/Qt5 \
+	-DCMAKE_SYSTEM_PROCESSOR=$(GARCH_FAMILY) \
+	-DFF_USER_OPTS=' \
+		--arch=$(GARCH_FAMILY) \
+		--cross_prefix=$(compiler_prefix) \
+		--sysroot=$(DESTDIR)$(rootdir) \
+		--sysinclude=$(DESTDIR)$(includedir) \
+		--cc=$(compiler_prefix)gcc \
+		--cxx=$(compiler_prefix)g++ \
+		--ld=$(compiler_prefix)gcc \
+		--as=$(compiler_prefix)gcc \
+		--objcc=$(compiler_prefix)gcc \
+		--dep_cc=$(compiler_prefix)gcc \
+		--ar=$(compiler_prefix)ar \
+		--nm=$(compiler_prefix)nm \
+		--ranlib=$(compiler_prefix)ranlib \
+		--host_cc=$(build_compiler_prefix)gcc  \
+		--host_ld=$(build_compiler_prefix)gcc \
+		--cpu=generic \
+		--target_os=linux \
+		--pkg_config=$(build_DESTDIR)$(build_bindir)/pkg-config \
+		--prefix=$(DESTDIR)$(prefix) \
+		--libdir=$(DESTDIR)$(libdir) \
+		--enable-cross-compile \
+		--disable-libmp3lame \
+		--disable-libx264 \
+		--disable-libx265 \
+		--disable-libvpx \
+		--disable-libxvid \
+		--enable-libdav1d \
+		--enable-libxml2 \
+		--enable-libass \
+		--disable-dxva2 \
+		--enable-libbluray \
+		--disable-libfontconfig \
+		--disable-libfreetype \
+		--disable-libiec61883 \
+		--enable-sdl2 \
+		--enable-ffplay \
+		--enable-vaapi \
+		--enable-libdav1d \
+		$(if $(filter yes,$(DISABLE_LTO)), \
+			--disable-lto, \
+			--enable-lto \
+			--extra-cflags=-flto=auto \
+			--extra-ldflags=-flto=auto) \
+		$(if $(filter arm arm64,$(GARCH_FAMILY)),--enable-v4l2_request) \
+		--enable-vdpau \
+		--enable-libdrm \
+		--enable-libudev \
+		--disable-stripping \
+		--disable-manpages \
+		--disable-podpages \
+		--disable-doc \
+		--disable-nvenc \
+		--enable-shared \
+		--disable-static \
+		--enable-gpl \
+		--enable-pic \
+		--disable-demuxer=mpegtsraw \
+		--disable-indev=dshow' \
+	-DPERL_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/perl \
+	-DPython3_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/python3 \
+	-DCMAKE_C_FLAGS='$(CFLAGS) -Wno-incompatible-pointer-types -Wno-implicit-function-declaration -Wno-null-dereference -Wno-switch-outside-range' \
+	-DCMAKE_CXX_FLAGS='$(CXXFLAGS) -Wno-null-dereference -Wno-switch-outside-range' \
+	-DOPENGL_opengl_LIBRARY=$(DESTDIR)$(libdir)/libGL.so \
+	-DENABLE_AUDIO_JACK="OFF" \
+	-DENABLE_AUDIO_PULSE="OFF" \
+	-DENABLE_ASI="OFF" \
+	-DENABLE_MMAL="OFF" \
+	-DENABLE_FIREWIRE="OFF" \
+	-DENABLE_SYSTEMD_NOTIFY="OFF" \
+	-DENABLE_SYSTEMD_JOURNAL="OFF" \
+	-DUSING_BINDINGS_PHP="OFF" \
+	-DMYTH_RUN_PREFIX=$(prefix) \
+	-DMYTH_BINDINGS_INSTALL_ROOT=/ \
+	-DFF_PLATFORM_ARGS='--disable-ffplay' \
+	-DMYTHTV_SOURCE_BRANCH="master" \
+	-DMAKE_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/make \
+	-DPATCH_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/patch \
+	-DMESON_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/meson \
+	-DNINJA_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/ninja \
 	$(if $(filter qt6,$(mm_QT_VERSION)), \
-		--extra-ldflags="$(LDFLAGS) -Wl$(comma)-rpath-link$(comma)$(DESTDIR)$(qt6libdir)", \
-		--extra-ldflags="$(LDFLAGS)") \
-	--enable-symbol-visibility \
-	--arch=$(GARCH_FAMILY) \
-	--disable-altivec \
-	--enable-amd3dnow \
-	--enable-amd3dnowext \
-	--enable-mmx \
-	--enable-sse \
-	--enable-ssse3 \
-	--enable-yasm \
-	--enable-asm \
-	--enable-optimizations \
-	$(if $(filter yes,$(DISABLE_LTO)),"--disable-lto","--enable-lto") \
-	--disable-proc-opt \
-	--enable-audio-oss \
-	--enable-audio-alsa \
-	--disable-audio-jack \
-	--disable-audio-pulseoutput \
-	--disable-valgrind \
-	--enable-lirc \
-	--disable-joystick-menu \
-	--enable-firewire \
-	--disable-hdhomerun \
-	--disable-ceton \
-	--enable-vaapi \
-	--enable-dvb \
-	--dvb-path="$(DESTDIR)$(includedir)" \
-	--libcec-path="$(DESTDIR)$(includedir)/libcec" \
-	--disable-asi \
-	--enable-x11 \
-	--x11-path="$(DESTDIR)$(includedir)" \
-	--disable-dxva2 \
-	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
-		--enable-v4l2 \
-		--enable-v4l2request \
-		--disable-vdpau, \
-		--enable-vdpau) \
-	--disable-mac-bundle \
-	--enable-libxml2 \
-	--enable-libdns_sd \
-	--enable-libcrypto \
-	--without-bindings="php" \
-	--with-bindings="perl" \
-	--with-bindings="python" \
-	--enable-pic \
-	--enable-libcec \
-	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
-	--enable-ffplay \
-	--enable-sdl2 \
-	--python="python3" \
-	--enable-silent-cc \
-	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
-	--enable-libdav1d \
+		-D_QTGUI_CONFIG=$(DESTDIR)$(qt6prefix)/include/QtGui/qtgui-config.h, \
+		-D_QTGUI_CONFIG=$(DESTDIR)$(qt5prefix)/include/QtGui/qtgui-config.h) \
+	-DENABLE_QTWEBENGINE="ON" \
 
-CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
-BUILD_ENV      = $(MYTHTV_BUILD_ENV)
-INSTALL_ENV    = $(MYTHTV_INSTALL_ENV)
+#	-DPLATFORM_ARGS='--debug-find' \
 
-BUILD_ENV     += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
-INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
+build-custom:
+	@cd $(WORKSRC); CMAKE_BUILD_PARALLEL_LEVEL=$(CPUS) $(CMAKE) --build $(if $(filter qt6,$(mm_QT_VERSION)),build-qt6,build-qt5)
 
 GAR_EXTRA_CONF += python3/python/package-api.mk
 include ../../gar.mk
 
-CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
-CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
-CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
-
 CPPFLAGS += -fPIC -fuse-linker-plugin
-CFLAGS   += -fPIC -fuse-linker-plugin -Wno-incompatible-pointer-types -Wno-implicit-function-declaration
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
@@ -307,10 +316,6 @@ CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
 endif
 
-svn//%/$(DISTNAME).tar.bz2:
-	@$(call FETCH_SVN, http://$*, $(MYTHTV_SVN_VERSION), $(DISTNAME))
-	@$(MAKECOOKIE)
-
 checksum-$(DISTNAME).tar.bz2:
 	@$(MAKECOOKIE)
 
@@ -322,8 +327,16 @@ install-source:
 	@$(MAKECOOKIE)
 
 pre-configure:
+	@rm -rf $(DESTDIR)$(includedir)/myth*
+	@rm -rf $(DESTDIR)$(libdir)/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/ffnvcodec.pc
+	@rm -rf $(DESTDIR)$(libdir)/myth*
+	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV
+	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV-*
 	@echo 'BRANCH="$(MYTHTV_GARVERSION_SHORT)"' > $(WORKSRC)/mythtv/DESCRIBE
 	@echo 'SOURCE_VERSION="$(MYTHTV_GIT_VERSION)"' >> $(WORKSRC)/mythtv/DESCRIBE
+	@cd $(WORKSRC)/mythtv; ./version.sh ./
 	@$(MAKECOOKIE)
 
 post-configure:
@@ -345,6 +358,8 @@ clean-all:
 	@rm -rf $(DESTDIR)$(datadir)/myth*
 	@rm -rf $(DESTDIR)$(includedir)/myth*
 	@rm -rf $(DESTDIR)$(libdir)/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/ffnvcodec.pc
 	@rm -rf $(DESTDIR)$(libdir)/myth*
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV-*
