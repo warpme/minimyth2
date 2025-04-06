@@ -9,6 +9,7 @@ PATCHFILES  += $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-fix-egl-x11-detection-mesa-22.3.patch
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
+PATCHFILES  += $(DISTNAME)-qtcore-stop-erroring-with-pie-and-pic-enabled.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
@@ -78,7 +79,9 @@ CONFIGURE_ARGS = \
 	-no-sql-tds \
 	-no-compile-examples \
 	-no-openvg \
-	-no-harfbuzz \
+	-qt-harfbuzz \
+	-qt-libpng \
+	-no-webengine-ffmpeg \
 	-nomake tools \
 	-nomake examples \
 	-nomake tests \
