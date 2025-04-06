@@ -4,11 +4,9 @@ GARVERSION   = $(NSS_VERSION)
 CATEGORIES   = lib
 MASTER_SITES = https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/$(shell echo $(DISTNAME) | sed -e 's/-/_/g' -e 's/\./_/g' -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')_RTM/src/
 PATCHFILES   = fix-used-chaintools.patch
-PATCHFILES  += nss-11-D174822-allow-build-with-gcc-13.patch
 DISTFILES    = $(DISTNAME).tar.gz
 ifneq ($(DESTIMG),build)
 PATCHFILES  += nss-cross.patch
-PATCHFILES  += freebl-add-a-configure-option-to-disable-ARM-HW-cryp.patch
 endif
 LICENSE      = MPL1_1/GPL2/LGPL2_1
 
@@ -52,6 +50,8 @@ include ../../gar.mk
 install-custom:
 	@mkdir -p $(DESTDIR)$(libdir)
 	@$(foreach lib, $(wildcard $(WORKSRC)/dist/Linux*/lib/*.so), cp -f $(lib) $(DESTDIR)$(libdir) ; )
+	@mkdir -p $(DESTDIR)$(bindir)
+	@$(foreach bin, $(wildcard $(WORKSRC)/dist/Linux*/bin/*), cp -fL $(bin) $(DESTDIR)$(bindir) ; )
 	@mkdir -p $(DESTDIR)$(libdir)/pkgconfig
 	@cp $(WORKSRC)/nss/pkg/pkg-config/nss.pc.in $(DESTDIR)$(libdir)/pkgconfig/nss.pc
 	@sed \
@@ -59,7 +59,7 @@ install-custom:
 	 -e "s,%prefix%,/usr,g" \
 	 -e "s,%exec_prefix%,/usr/bin,g" \
 	 -e "s,%includedir%,/usr/include/nss,g" \
-	 -e "s,%NSPR_VERSION%,4.33,g" \
+	 -e "s,%NSPR_VERSION%,4.36,g" \
 	 -e "s,%NSS_VERSION%,$(NSS_VERSION),g" \
 	 -i $(DESTDIR)$(libdir)/pkgconfig/nss.pc
 	@cp $(WORKSRC)/nss/pkg/pkg-config/nss-config.in $(DESTDIR)$(bindir)-config/nss-config
@@ -69,7 +69,7 @@ install-custom:
 	 -e "s,@exec_prefix@,/usr/bin,g" \
 	 -e "s,@includedir@,/usr/include/nss,g" \
 	 -e "s,@MOD_MAJOR_VERSION@,3,g" \
-	 -e "s,@MOD_MINOR_VERSION@,89,g" \
+	 -e "s,@MOD_MINOR_VERSION@,110,g" \
 	 -e "s,@MOD_PATCH_VERSION@,1,g" \
 	 -i $(DESTDIR)$(bindir)-config/nss-config
 	@chmod +x $(DESTDIR)$(bindir)-config/nss-config
