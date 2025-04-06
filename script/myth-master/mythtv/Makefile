@@ -241,6 +241,7 @@ CMAKE_CONFIGURE_ARGS = \
 		--enable-libxml2 \
 		--enable-libass \
 		--disable-dxva2 \
+		--disable-nvenc \
 		--enable-libbluray \
 		--disable-libfontconfig \
 		--disable-libfreetype \
@@ -254,15 +255,15 @@ CMAKE_CONFIGURE_ARGS = \
 			--enable-lto \
 			--extra-cflags=-flto=auto \
 			--extra-ldflags=-flto=auto) \
-		$(if $(filter arm arm64,$(GARCH_FAMILY)),--enable-v4l2_request) \
+		$(if $(filter arm arm64,$(GARCH_FAMILY)), \
+			--enable-libudev \
+			--enable-v4l2_request) \
 		--enable-vdpau \
 		--enable-libdrm \
-		--enable-libudev \
 		--disable-stripping \
 		--disable-manpages \
 		--disable-podpages \
 		--disable-doc \
-		--disable-nvenc \
 		--enable-shared \
 		--disable-static \
 		--enable-gpl \
@@ -282,6 +283,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_SYSTEMD_NOTIFY="OFF" \
 	-DENABLE_SYSTEMD_JOURNAL="OFF" \
 	-DUSING_BINDINGS_PHP="OFF" \
+	-DENABLE_NVDEC="OFF" \
 	-DMYTH_RUN_PREFIX=$(prefix) \
 	-DMYTH_BINDINGS_INSTALL_ROOT=/ \
 	-DFF_PLATFORM_ARGS='--disable-ffplay' \
