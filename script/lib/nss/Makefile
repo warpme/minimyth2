@@ -7,6 +7,7 @@ PATCHFILES   = fix-used-chaintools.patch
 DISTFILES    = $(DISTNAME).tar.gz
 ifneq ($(DESTIMG),build)
 PATCHFILES  += nss-cross.patch
+PATCHFILES  += freebl-add-a-configure-option-to-disable-ARM-HW-cryp.patch
 endif
 LICENSE      = MPL1_1/GPL2/LGPL2_1
 
