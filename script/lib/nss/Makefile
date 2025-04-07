@@ -42,7 +42,7 @@ BUILD_ARGS = \
 	USE_SYSTEM_ZLIB="1" \
 	ZLIB_LIBS="-lz" \
 	NSS_ENABLE_WERROR=0 \
-	NSS_DISABLE_CHACHAPOLY=1 \
+	NSS_DISABLE_CHACHAPOLY="1" \
 	NS_USE_GCC="1" \
 	all
 
@@ -71,7 +71,7 @@ install-custom:
 	 -e "s,@includedir@,/usr/include/nss,g" \
 	 -e "s,@MOD_MAJOR_VERSION@,3,g" \
 	 -e "s,@MOD_MINOR_VERSION@,110,g" \
-	 -e "s,@MOD_PATCH_VERSION@,1,g" \
+	 -e "s,@MOD_PATCH_VERSION@,0,g" \
 	 -i $(DESTDIR)$(bindir)-config/nss-config
 	@chmod +x $(DESTDIR)$(bindir)-config/nss-config
 	@mkdir -p $(DESTDIR)$(includedir)/nss
