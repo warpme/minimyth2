@@ -1,9 +1,10 @@
-GARNAME = ca-bundle.crt
+
+GARNAME    = ca-bundle.crt
 GARVERSION = $(NSS_VERSION)
 CATEGORIES = data
-SOURCEPKG = lib/nss
+SOURCEPKG  = lib/nss
 DISTFILES += ca-bundle.pl
-LICENSE = MPL1_1/GPL2/LGPL2_1
+LICENSE    = MPL1_1/GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB
