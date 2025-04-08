@@ -4,7 +4,7 @@ GARVERSION   = $(NSS_VERSION)
 CATEGORIES   = lib
 MASTER_SITES = https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/$(shell echo $(DISTNAME) | sed -e 's/-/_/g' -e 's/\./_/g' -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')_RTM/src/
 PATCHFILES   = fix-used-chaintools.patch
-DISTFILES    = $(DISTNAME).tar.gz
+DISTFILES    = $(DISTNAME).tar.gz bundle.sh certdata2pem.py
 ifneq ($(DESTIMG),build)
 PATCHFILES  += nss-cross.patch
 PATCHFILES  += freebl-add-a-configure-option-to-disable-ARM-HW-cryp.patch
@@ -76,6 +76,10 @@ install-custom:
 	@chmod +x $(DESTDIR)$(bindir)-config/nss-config
 	@mkdir -p $(DESTDIR)$(includedir)/nss
 	@cp -fL $(WORKSRC)/dist/public/nss/*.h $(DESTDIR)$(includedir)/nss/
+	#echo "creating ca-bundle.trust.p11-kit"
+	@cd $(WORKSRC); mkdir -p certs; ln -srft certs nss/lib/ckfw/builtins/{certdata.txt,nssckbi.h}; cd certs; ../../certdata2pem.py; cd ..; ../bundle.sh
+	@mkdir -p $(DESTDIR)$(datadir)/ca-certificates/trust-source
+	@cd $(WORKSRC); cp -f ca-bundle.trust.p11-kit $(DESTDIR)$(datadir)/ca-certificates/trust-source/
 	@$(MAKECOOKIE)
 
 install-shlibsign:
