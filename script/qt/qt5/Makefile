@@ -36,6 +36,7 @@ DEPENDS   =            \
 	devel/zlib     \
 	devel/ruby     \
 	opengl/opengl  \
+	security/p11-kit \
 	xorg/xorg      \
 
 BUILDDEPS = devel/bison devel/flex lib/nodejs
