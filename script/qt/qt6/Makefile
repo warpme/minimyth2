@@ -38,6 +38,7 @@ DEPENDS   =            \
 	devel/zlib     \
 	devel/ruby     \
 	opengl/opengl  \
+	security/p11-kit \
 	xorg/xorg      \
 	python3/python-html5lib \
 
