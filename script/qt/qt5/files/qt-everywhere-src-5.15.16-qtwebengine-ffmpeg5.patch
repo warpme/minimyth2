@@ -1,0 +1,142 @@
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/ffmpeg/ffmpeg_common.h qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/ffmpeg/ffmpeg_common.h
+--- qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/ffmpeg/ffmpeg_common.h	2023-11-09 13:02:51.000000000 +0100
++++ qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/ffmpeg/ffmpeg_common.h	2025-04-08 21:04:39.066641418 +0200
+@@ -29,6 +29,7 @@
+ #include <libavformat/avformat.h>
+ #include <libavformat/avio.h>
+ #include <libavutil/avutil.h>
++#include <libavutil/channel_layout.h>
+ #include <libavutil/imgutils.h>
+ #include <libavutil/log.h>
+ #include <libavutil/mastering_display_metadata.h>
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/audio_file_reader.cc qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/audio_file_reader.cc
+--- qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/audio_file_reader.cc	2023-11-09 13:02:51.000000000 +0100
++++ qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/audio_file_reader.cc	2025-04-08 21:04:39.066641418 +0200
+@@ -85,7 +85,7 @@
+ }
+ 
+ bool AudioFileReader::OpenDecoder() {
+-  AVCodec* codec = avcodec_find_decoder(codec_context_->codec_id);
++  const AVCodec* codec = avcodec_find_decoder(codec_context_->codec_id);
+   if (codec) {
+     // MP3 decodes to S16P which we don't support, tell it to use S16 instead.
+     if (codec_context_->sample_fmt == AV_SAMPLE_FMT_S16P)
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_audio_decoder.cc qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_audio_decoder.cc
+--- qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_audio_decoder.cc	2023-11-09 13:02:51.000000000 +0100
++++ qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_audio_decoder.cc	2025-04-08 21:04:39.066641418 +0200
+@@ -329,7 +329,7 @@
+     }
+   }
+ 
+-  AVCodec* codec = avcodec_find_decoder(codec_context_->codec_id);
++  const AVCodec* codec = avcodec_find_decoder(codec_context_->codec_id);
+   if (!codec ||
+       avcodec_open2(codec_context_.get(), codec, &codec_options) < 0) {
+     DLOG(ERROR) << "Could not initialize audio decoder: "
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_demuxer.cc qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_demuxer.cc
+--- qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_demuxer.cc	2023-11-09 13:02:51.000000000 +0100
++++ qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_demuxer.cc	2025-04-08 21:04:39.066641418 +0200
+@@ -98,12 +98,12 @@
+ 
+   // Next try to use the first DTS value, for codecs where we know PTS == DTS
+   // (excludes all H26x codecs). The start time must be returned in PTS.
+-  if (stream->first_dts != kNoFFmpegTimestamp &&
++  if (av_stream_get_first_dts(stream) != kNoFFmpegTimestamp &&
+       stream->codecpar->codec_id != AV_CODEC_ID_HEVC &&
+       stream->codecpar->codec_id != AV_CODEC_ID_H264 &&
+       stream->codecpar->codec_id != AV_CODEC_ID_MPEG4) {
+     const base::TimeDelta first_pts =
+-        ConvertFromTimeBase(stream->time_base, stream->first_dts);
++        ConvertFromTimeBase(stream->time_base, av_stream_get_first_dts(stream));
+     if (first_pts < start_time)
+       start_time = first_pts;
+   }
+@@ -408,11 +408,11 @@
+   scoped_refptr<DecoderBuffer> buffer;
+ 
+   if (type() == DemuxerStream::TEXT) {
+-    int id_size = 0;
++    size_t id_size = 0;
+     uint8_t* id_data = av_packet_get_side_data(
+         packet.get(), AV_PKT_DATA_WEBVTT_IDENTIFIER, &id_size);
+ 
+-    int settings_size = 0;
++    size_t settings_size = 0;
+     uint8_t* settings_data = av_packet_get_side_data(
+         packet.get(), AV_PKT_DATA_WEBVTT_SETTINGS, &settings_size);
+ 
+@@ -424,7 +424,7 @@
+     buffer = DecoderBuffer::CopyFrom(packet->data, packet->size,
+                                      side_data.data(), side_data.size());
+   } else {
+-    int side_data_size = 0;
++    size_t side_data_size = 0;
+     uint8_t* side_data = av_packet_get_side_data(
+         packet.get(), AV_PKT_DATA_MATROSKA_BLOCKADDITIONAL, &side_data_size);
+ 
+@@ -485,7 +485,7 @@
+                                        packet->size - data_offset);
+     }
+ 
+-    int skip_samples_size = 0;
++    size_t skip_samples_size = 0;
+     const uint32_t* skip_samples_ptr =
+         reinterpret_cast<const uint32_t*>(av_packet_get_side_data(
+             packet.get(), AV_PKT_DATA_SKIP_SAMPLES, &skip_samples_size));
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_glue.cc qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_glue.cc
+--- qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_glue.cc	2023-11-09 13:02:51.000000000 +0100
++++ qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_glue.cc	2025-04-08 21:04:39.066641418 +0200
+@@ -59,7 +59,6 @@
+ }
+ 
+ void FFmpegGlue::InitializeFFmpeg() {
+-  av_register_all();
+ }
+ 
+ static void LogContainer(bool is_local_file,
+@@ -95,9 +94,6 @@
+   // Enable fast, but inaccurate seeks for MP3.
+   format_context_->flags |= AVFMT_FLAG_FAST_SEEK;
+ 
+-  // Ensures we can read out various metadata bits like vp8 alpha.
+-  format_context_->flags |= AVFMT_FLAG_KEEP_SIDE_DATA;
+-
+   // Ensures format parsing errors will bail out. From an audit on 11/2017, all
+   // instances were real failures. Solves bugs like http://crbug.com/710791.
+   format_context_->error_recognition |= AV_EF_EXPLODE;
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_video_decoder.cc qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_video_decoder.cc
+--- qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_video_decoder.cc	2023-11-09 13:02:51.000000000 +0100
++++ qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/ffmpeg_video_decoder.cc	2025-04-08 21:04:39.066641418 +0200
+@@ -391,7 +391,7 @@
+   if (decode_nalus_)
+     codec_context_->flags2 |= AV_CODEC_FLAG2_CHUNKS;
+ 
+-  AVCodec* codec = avcodec_find_decoder(codec_context_->codec_id);
++  const AVCodec* codec = avcodec_find_decoder(codec_context_->codec_id);
+   if (!codec || avcodec_open2(codec_context_.get(), codec, NULL) < 0) {
+     ReleaseFFmpegResources();
+     return false;
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/media_file_checker.cc qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/media_file_checker.cc
+--- qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/media_file_checker.cc	2023-11-09 13:02:51.000000000 +0100
++++ qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/media/filters/media_file_checker.cc	2025-04-08 21:04:39.066641418 +0200
+@@ -68,7 +68,7 @@
+       auto context = AVStreamToAVCodecContext(format_context->streams[i]);
+       if (!context)
+         continue;
+-      AVCodec* codec = avcodec_find_decoder(cp->codec_id);
++      const AVCodec* codec = avcodec_find_decoder(cp->codec_id);
+       if (codec && avcodec_open2(context.get(), codec, nullptr) >= 0) {
+         auto loop = std::make_unique<FFmpegDecodingLoop>(context.get());
+         stream_contexts[i] = {std::move(context), std::move(loop)};
+diff --speed-large-files --no-dereference --minimal -Naur qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/third_party/webrtc/modules/video_coding/codecs/h264/h264_decoder_impl.cc qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/third_party/webrtc/modules/video_coding/codecs/h264/h264_decoder_impl.cc
+--- qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/third_party/webrtc/modules/video_coding/codecs/h264/h264_decoder_impl.cc	2023-11-09 13:02:51.000000000 +0100
++++ qt-everywhere-src-5.15.16/qtwebengine/src/3rdparty/chromium/third_party/webrtc/modules/video_coding/codecs/h264/h264_decoder_impl.cc	2025-04-08 21:04:39.066641418 +0200
+@@ -203,7 +203,7 @@
+   // a pointer |this|.
+   av_context_->opaque = this;
+ 
+-  AVCodec* codec = avcodec_find_decoder(av_context_->codec_id);
++  const AVCodec* codec = avcodec_find_decoder(av_context_->codec_id);
+   if (!codec) {
+     // This is an indication that FFmpeg has not been initialized or it has not
+     // been compiled/initialized with the correct set of codecs.

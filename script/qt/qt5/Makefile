@@ -10,6 +10,10 @@ PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.pat
 PATCHFILES  += $(DISTNAME)-fix-egl-x11-detection-mesa-22.3.patch
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
 PATCHFILES  += $(DISTNAME)-qtcore-stop-erroring-with-pie-and-pic-enabled.patch
+PATCHFILES  += $(DISTNAME)-qtwebengine-chromium-ffmpeg-fix-compile.patch
+# PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compile-with-icu75.patch
+# PATCHFILES  += $(DISTNAME)-qtwebengine-ffmpeg5.patch
+# PATCHFILES  += $(DISTNAME)-qtwebengine-ffmpeg7.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
@@ -108,6 +112,14 @@ CONFIGURE_ARGS = \
 	-skip qtwinextras \
 	-skip qtwebglplugin \
 	-no-webengine-geolocation \
+	-no-webengine-printing-and-pdf \
+	-no-webengine-webrtc \
+	-no-webengine-pepper-plugins \
+# building webengine with qt icu as using system icu fails and linking stage
+# (tested with icu 72, 75 and 76)
+#	-system-webengine-icu \
+# building with qt ffmpeg as using system ffmeg fails at building
+#	-system-ffmpeg \
 
 GAR_EXTRA_CONF += devel/gcc/package-api.mk devel/glibc/package-api.mk
 include ../../gar.mk
@@ -190,8 +202,7 @@ configure-%/configure:
 	@$(MAKECOOKIE)
 
 reconfig:
-	@cd $* && $(CONFIGURE_ENV) echo "yes" | ./configure $(CONFIGURE_ARGS) -recheck-all
-	@$(MAKECOOKIE)
+	@cd $(WORKSRC) && $(CONFIGURE_ENV) echo "yes" | ./configure $(CONFIGURE_ARGS) -recheck-all
 
 pre-install:
 	@rm -rf $(DESTDIR)$(qt5prefix)
