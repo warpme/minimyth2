@@ -6,7 +6,8 @@ MASTER_SITES = https://github.com/p11-glue/p11-kit/releases/download/0.25.5/
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = BSD
 
-DEPENDS = lang/c lib/libffi lib/libtasn1 utils/coreutils lib/nss
+BUILDDEPS = lang/c lib/libtasn1
+DEPENDS = lang/c lib/libffi utils/coreutils lib/nss
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
