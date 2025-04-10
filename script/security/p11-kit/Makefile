@@ -7,7 +7,7 @@ DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = BSD
 
 BUILDDEPS = lang/c lib/libtasn1
-DEPENDS = lang/c lib/libffi utils/coreutils lib/nss
+DEPENDS = lang/c lib/libffi utils/coreutils lib/nss lib/libtasn1
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
