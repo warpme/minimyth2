@@ -143,48 +143,77 @@ DEPENDS = \
 	db/sqlite \
 	lib/alsa-lib \
 	lib/avahi \
+	lib/libbluray \
 	lib/dav1d \
 	lib/exiv2 \
+	lib/flac \
 	lib/freetype \
 	lib/lame \
 	lib/libass \
 	lib/libavc1394 \
+	lib/libcdaudio \
 	lib/libcdio \
 	lib/libcdio-paranoia \
+	lib/libcoverart \
 	lib/libcec \
+	lib/libdiscid \
+	lib/libexif \
 	lib/libiconv \
 	lib/libiec61883 \
+	lib/libmusicbrainz5 \
+	lib/libogg \
+	lib/libtiff \
+	lib/libsamplerate \
+	lib/libsoundtouch \
+	lib/libvorbis \
 	lib/libxml2 \
 	lib/libzip \
 	lib/lzo \
 	lib/openssl \
-	lib/libsamplerate \
-	lib/libbluray \
 	lib/SDL2 \
-	lib/libsoundtouch \
 	lib/taglib \
 	devel/zlib \
 	devel/yasm \
 	python3/python \
+	python3/python-aniso8601 \
+	python3/python-beautifulsoup4 \
+	python3/python-discid \
 	python3/python-future \
 	python3/python-lxml \
+	python3/python-musicbrainzngs \
 	python3/python-mysqlclient \
 	python3/python-requests-cache \
+	python3/python-oauth \
+	python3/python-pycurl \
 	python3/python-simplejson \
 	python3/python-urlgrabber \
+	perl/perl-Date-Calc \
+	perl/perl-Date-Manip \
+	perl/perl-DateTime-Format-ISO8601 \
 	perl/perl-DBD-mysql \
 	perl/perl-DBI \
 	perl/perl-HTTP-Message \
+	perl/perl-Image-Size \
 	perl/perl-IO-Socket-INET6 \
+	perl/perl-JSON \
 	perl/perl-libwww-perl \
 	perl/perl-Net-UPnP \
 	perl/perl-XML-Simple \
+	perl/perl-PerlMagick \
+	perl/perl-SOAP-Lite \
+	perl/perl-TimeDate \
+	perl/perl-XML-Simple \
+	perl/perl-XML-TreeBuilder \
+	perl/perl-XML-XPath \
 	system/lirc \
 	system/eudev \
+	utils/v4l-utils \
 	X11/libvdpau \
 	X11/libva \
 	xorg/xorg \
 	qt/qt \
+
+#lib/SDL \
 
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 
