@@ -115,6 +115,7 @@ CONFIGURE_ARGS = \
 	-no-webengine-printing-and-pdf \
 	-no-webengine-webrtc \
 	-no-webengine-pepper-plugins \
+
 # building webengine with qt icu as using system icu fails and linking stage
 # (tested with icu 72, 75 and 76)
 #	-system-webengine-icu \
