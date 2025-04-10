@@ -1,9 +1,10 @@
 
 GARNAME      = mc
-GARVERSION   = 4.8.32
+GARVERSION   = 4.8.33
 CATEGORIES   = utils
-MASTER_SITES = http://www.midnight-commander.org/downloads/
-DISTFILES    = $(GARNAME)-$(GARVERSION).tar.bz2
+MASTER_SITES = https://github.com/MidnightCommander/mc/archive/refs/tags/
+DISTFILES    = $(GARVERSION).tar.gz
+PATCHFILES   = stop-building-po.patch
 LICENSE      = GPL2
 
 DESCRIPTION = 
@@ -16,26 +17,27 @@ CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-CONFIGURE_ARGS = $(DIRPATHS) \
-        --build=$(GARBUILD) \
-        --host=$(GARHOST) \
-        --prefix="$(prefix)" \
-        --sysconfdir="$(sysconfdir)" \
-        --libexecdir="$(libexecdir)" \
-        --enable-background \
-        --disable-network \
-        --disable-netcode \
-        --disable-charset \
-        --disable-nls \
-        --without-vfs \
-        --with-edit \
-        --with-screen=slang \
-        --without-x \
-        --without-samba \
-        --without-gpm-mouse \
-        --without-gnome \
-        --without-debug \
-        --without-included-gettext \
-        --disable-dependency-tracking
+CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --prefix="$(prefix)" \
+	--enable-background \
+	--disable-charset \
+	--disable-nls \
+	--with-screen=slang \
+	--without-x \
+	--without-gpm-mouse \
+	--disable-dependency-tracking \
+	--disable-doxygen-doc \
+	--disable-doxygen-dot \
+	--disable-doxygen-man \
+	--disable-doxygen-rtf \
+	--disable-doxygen-xml \
+	--disable-doxygen-chm \
+	--disable-doxygen-html \
+	--disable-doxygen-ps \
+	--disable-doxygen-pdf \
 
 include ../../gar.mk
+
+pre-configure:
+	@$(call RUN_AUTOTOOLS)
+	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
+	@$(MAKECOOKIE)
