@@ -152,6 +152,7 @@ DEPENDS = \
 	lib/libcdio \
 	lib/libcdio-paranoia \
 	lib/libcec \
+	lib/libiconv \
 	lib/libiec61883 \
 	lib/libxml2 \
 	lib/libzip \
