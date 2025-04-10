@@ -1,10 +1,10 @@
 
 GARNAME      = blackboxwm
-GARVERSION   = 0.76
+GARVERSION   = 0.77
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/bbidulock/blackboxwm/archive/
 DISTFILES    = $(GARVERSION).tar.gz
-PATCHFILES   = fix-buildng-under-gcc12.2.0.patch
+PATCHFILES   = 120_include-ctime-header.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
@@ -21,9 +21,15 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--x-includes=$(DESTDIR)$(includedir) \
 	--x-libraries=$(DESTDIR)$(libdir) \
 	--disable-debug \
-	--with-x
+	--with-x \
+	--disable-silent-rules \
+	LDFLAGS="-liconv" \
 
 include ../../gar.mk
+
+CFLAGS   := $(filter-out -flto=auto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
 
 pre-configure:
 	@$(call RUN_AUTOTOOLS)
