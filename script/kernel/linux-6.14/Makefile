@@ -254,7 +254,6 @@ PATCHFILES += 1001-math.h-add-DIV_ROUND_UP_NO_OVERFLOW.patch
 PATCHFILES += 1002-clk-divider-Fix-divisor-masking-on-64-bit-platforms.patch
 PATCHFILES += 1003-clk-composite-replace-open-coded-abs_diff.patch
 # hdmi video support
-PATCHFILES += 1010-FROM-ML-phy-phy-rockchip-samsung-hdptx-Don-t-use-dt-.patch
 PATCHFILES += 1011-FROM-UPSTREAM-drm-rockchip-Don-t-change-hdmi-referen.patch
 PATCHFILES += 1012-FROM-UPSTREAM-drm-rockchip-vop2-Drop-unnecessary-if_.patch
 PATCHFILES += 1013-FROM-UPSTREAM-drm-rockchip-vop2-Improve-display-mode.patch
@@ -330,7 +329,7 @@ PATCHFILES += 1090-arm64-dts-rockchip-rk3588-add-rock5t-dt.patch
 #------------------------------------------------------------
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 #-- Allwinner A523/T527/H728 --------------------------------
 PATCHFILES += 1100-clk-sunxi-ng-add-A523-clock-support.patch
 PATCHFILES += 1101-pinctrl-sunxi-Add-support-for-the-Allwinner-A523.patch
@@ -362,7 +361,7 @@ PATCHFILES += 1173-arm64-dts-allwinner-a527-add-Radxa-A5E-support.patch
 endif
 #------------------------------------------------------------
 
-ifeq (1,1)
+ifeq (0,1)
 #-- Rockchip rk3528 -----------------------------------------
 PATCHFILES += 1200-dt-bindings-add-rk3528-clock-reset-definitions.patch
 PATCHFILES += 1201-clk-rockchip-add-clock-controller-for-the-RK3528.patch
