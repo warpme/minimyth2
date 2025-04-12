@@ -7,16 +7,6 @@ MASTER_SITES = $(RPI_MASTER_SITES)
 DISTFILES    = \
 		config.txt     \
 		cmdline.txt    \
-		boot.txt       \
-		boot-debug.scr \
-		boot-debug.txt \
-		boot.scr       \
-		boot.scr       \
-		boot.txt       \
-		boot-debug.scr \
-		boot-debug.txt \
-		config.txt     \
-		cmdline.txt    \
 		bootcode.bin   \
 		fixup.dat      \
 		fixup4.dat     \
@@ -56,7 +46,6 @@ build-custom:
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
-	@cp -f $(WORKSRC)/*.scr               $(DESTDIR)/boot/
 	@cp -f $(WORKSRC)/*.txt               $(DESTDIR)/boot/
 	@cp -f $(WORKSRC)/*.bin               $(DESTDIR)/boot/
 	@cp -f $(WORKSRC)/*.dat               $(DESTDIR)/boot/
