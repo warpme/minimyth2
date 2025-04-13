@@ -329,11 +329,10 @@ PATCHFILES += 1090-arm64-dts-rockchip-rk3588-add-rock5t-dt.patch
 #------------------------------------------------------------
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 #-- Allwinner A523/T527/H728 --------------------------------
 PATCHFILES += 1100-clk-sunxi-ng-add-A523-clock-support.patch
 PATCHFILES += 1101-pinctrl-sunxi-Add-support-for-the-Allwinner-A523.patch
-
 PATCHFILES += 1123-dt-bindings-mmc-sunxi-Simplify-compatible-string-lis.patch
 PATCHFILES += 1124-dt-bindings-mmc-sunxi-add-compatible-strings-for-All.patch
 PATCHFILES += 1125-dt-bindings-watchdog-sunxi-add-Allwinner-A523-compat.patch
@@ -346,22 +345,21 @@ PATCHFILES += 1132-dt-bindings-arm-sunxi-Add-new-board-names-for-A523-g.patch
 PATCHFILES += 1136-dt-bindings-arm-sunxi-Add-YuzukiHD-Chameleon-board-n.patch
 PATCHFILES += 1139-net-ethernet-allwinner-add-gmac200-support.patch
 PATCHFILES += 1140-net-ethernet-allwinner-add-gmac-support.patch
-PATCHFILES += 1141-thermal-drivers-sun8i-add-initial-support-for-ths.patch
+PATCHFILES += 1141-thermal-drivers-sun8i-add-initial-support-for-ths-v2.patch
 PATCHFILES += 1142-add-initial-cpufreq-support.patch
 # dt patches
 PATCHFILES += 1150-arm64-dtsi-allwinner-add-initial-A523-support.patch
 PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-in-A523-dtsi.patch
 PATCHFILES += 1152-arm64-dtsi-allwinner-add-gmac0-in-A523-dtsi.patch
-PATCHFILES += 1153-arm64-dtsi-allwinner-add-ths-support.patch
+PATCHFILES += 1153-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 1154-arm64-dtsi-allwinner-add-cpufreq-support.patch
-
 PATCHFILES += 1170-arm64-dts-allwinner-h728-add-x96q-pro-tvbox-plus.patch
 PATCHFILES += 1172-arm64-dts-allwinner-t527-add-orangepi-4a-dts.patch
 PATCHFILES += 1173-arm64-dts-allwinner-a527-add-Radxa-A5E-support.patch
 endif
 #------------------------------------------------------------
 
-ifeq (0,1)
+ifeq (1,1)
 #-- Rockchip rk3528 -----------------------------------------
 PATCHFILES += 1200-dt-bindings-add-rk3528-clock-reset-definitions.patch
 PATCHFILES += 1201-clk-rockchip-add-clock-controller-for-the-RK3528.patch
