@@ -72,7 +72,7 @@ CONFIGURE_ARGS = \
 	-c++std c++1z \
 	-ltcg \
 	-plugin-sql-mysql \
-	-I $(DESTDIR)$(includedir)/mysql -I $(DESTDIR)$(includedir)/nss \
+	-I $(DESTDIR)$(includedir)/mysql \
 	-no-sql-db2 \
 	-no-sql-ibase \
 	-no-sql-oci \
