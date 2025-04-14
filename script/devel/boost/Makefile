@@ -2,8 +2,8 @@
 GARNAME      = boost
 GARVERSION   = 1.73.0
 CATEGORIES   = devel
-MASTER_SITES = https://boostorg.jfrog.io/artifactory/main/release/$(GARVERSION)/source/
-DISTFILES    = boost_1_73_0.tar.gz
+MASTER_SITES = https://archives.boost.io/release/$(GARVERSION)/source/
+DISTFILES    = boost_1_73_0.tar.bz2
 WORKSRC      = $(WORKDIR)/boost_1_73_0
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE_1_0.txt
