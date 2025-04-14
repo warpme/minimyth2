@@ -10,6 +10,7 @@ PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.pat
 PATCHFILES  += $(DISTNAME)-fix-egl-x11-detection-mesa-22.3.patch
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
 PATCHFILES  += $(DISTNAME)-qtwebengine-chromium-ffmpeg-fix-compile.patch
+PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compile-with-system-nss.patch
 # PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compile-with-icu75.patch
 # PATCHFILES  += $(DISTNAME)-qtwebengine-ffmpeg5.patch
 # PATCHFILES  += $(DISTNAME)-qtwebengine-ffmpeg7.patch
@@ -33,7 +34,6 @@ DEPENDS   =            \
 	lib/libtiff    \
 	lib/nss        \
 	lib/openssl    \
-	gstreamer/meta \
 	gtk/glib       \
 	gtk/harfbuzz   \
 	devel/zlib     \
@@ -72,7 +72,7 @@ CONFIGURE_ARGS = \
 	-c++std c++1z \
 	-ltcg \
 	-plugin-sql-mysql \
-	-I $(DESTDIR)$(includedir)/mysql \
+	-I $(DESTDIR)$(includedir)/mysql -I $(DESTDIR)$(includedir)/nss \
 	-no-sql-db2 \
 	-no-sql-ibase \
 	-no-sql-oci \
