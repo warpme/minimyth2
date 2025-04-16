@@ -1,15 +1,13 @@
 
 GARNAME      = hwids
-GARVERSION   = 20210613
+GARVERSION   = 20250416
 CATEGORIES   = data
-MASTER_SITES = https://github.com/gentoo/hwids/archive/
-DISTFILES    = $(DISTNAME).tar.gz
+MASTER_SITES = http://www.linux-usb.org/ https://pci-ids.ucw.cz/v2.2/
+DISTFILES    = usb.ids pci.ids
 
 DESCRIPTION = 
 define BLURB
 endef
-
-WORKSRC = $(WORKDIR)/$(GARNAME)-$(GARNAME)-$(GARVERSION)
 
 INSTALL_SCRIPTS = custom
 
@@ -19,6 +17,6 @@ install-custom:
 	@mkdir -p $(DESTDIR)$(datadir)/
 	@rm -f $(DESTDIR)$(datadir)/hwdata/usb.ids
 	@rm -f $(DESTDIR)$(datadir)/hwdata/pci.ids
-	@cp $(WORKSRC)/usb.ids $(DESTDIR)$(datadir)/usb.ids
-	@cp $(WORKSRC)/pci.ids $(DESTDIR)$(datadir)/pci.ids
+	@cp $(WORKDIR)/usb.ids $(DESTDIR)$(datadir)/usb.ids
+	@cp $(WORKDIR)/pci.ids $(DESTDIR)$(datadir)/pci.ids
 	@$(MAKECOOKIE)
