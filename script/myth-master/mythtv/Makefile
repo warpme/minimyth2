@@ -1,5 +1,6 @@
 
 # DISABLE_LTO  = yes
+# USE_CMAKE = yes
 
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
@@ -213,24 +214,118 @@ DEPENDS = \
 	xorg/xorg \
 	qt/qt \
 
-#lib/SDL \
-
 DISTNAME_SHORT = $(GARNAME)-$(MYTHTV_GARVERSION_SHORT)
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
 PWD := $(shell pwd)
 
-export PLATFORM_CONFIGURE_ENV=$(CPPFLAGS)
-
 WORKBLD = $(WORKSRC)_build
 
+ifeq ($(USE_CMAKE),yes)
+# cmake variant
 CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
 BUILD_SCRIPTS     = custom
 INSTALL_SCRIPTS   = 
+else
+# automake variant
+CONFIGURE_SCRIPTS = $(WORKSRC)/mythtv/configure
+BUILD_SCRIPTS     = $(WORKSRC)/mythtv/Makefile
+INSTALL_SCRIPTS   = $(WORKSRC)/mythtv/Makefile source
+endif
 
 comma:= ,
 
+# automake config para
+CONFIGURE_ARGS = \
+	--compile-type=$(if $(filter yes,$(mm_DEBUG)),"debug","release") \
+	--prefix="$(DESTDIR)$(prefix)" \
+	--runprefix="$(prefix)" \
+	--libdir-name="$(patsubst $(prefix)/%,%,$(libdir))" \
+	--disable-ccache \
+	--disable-distcc \
+	--bindir="$(DESTDIR)$(bindir)" \
+	--datadir="$(DESTDIR)$(datadir)/mythtv" \
+	--libdir="$(DESTDIR)$(libdir)" \
+	--incdir="$(DESTDIR)$(includedir)/mythtv" \
+	--shlibdir="$(DESTDIR)$(libdir)" \
+	--mandir="$(DESTDIR)$(mandir)" \
+	$(if $(filter -Os,$(CFLAGS)),--enable-small) \
+	--cross-prefix="$(compiler_prefix)" \
+	--enable-cross-compile \
+	--sysroot="$(DESTDIR)$(rootdir)" \
+	--sysinclude="$(DESTDIR)$(includedir)" \
+	--target-os="linux" \
+	--ar="$(AR)" \
+	--nm="$(NM)" \
+	--ranlib="$(RANLIB)" \
+	--as="$(CC)" \
+	--cc="$(CC)" \
+	--cxx="$(CXX)" \
+	--ld="$(CC)" \
+	--qmake="$(qtqmake)" \
+	--host-cc="$(build_CC)" \
+	--host-cflags="$(build_CFLAGS)" \
+	--host-ldflags="$(build_LDFLAGS)" \
+	--extra-cflags="$(CFLAGS)" \
+	--extra-cxxflags="$(CXXFLAGS)" \
+	$(if $(filter qt6,$(mm_QT_VERSION)), \
+		--extra-ldflags="$(LDFLAGS) -Wl$(comma)-rpath-link$(comma)$(DESTDIR)$(qt6libdir)", \
+		--extra-ldflags="$(LDFLAGS)") \
+	--enable-symbol-visibility \
+	--arch=$(GARCH_FAMILY) \
+	--disable-altivec \
+	--enable-amd3dnow \
+	--enable-amd3dnowext \
+	--enable-mmx \
+	--enable-sse \
+	--enable-ssse3 \
+	--enable-yasm \
+	--enable-asm \
+	--enable-optimizations \
+	$(if $(filter yes,$(DISABLE_LTO)),"--disable-lto","--enable-lto") \
+	--disable-proc-opt \
+	--enable-audio-oss \
+	--enable-audio-alsa \
+	--disable-audio-jack \
+	--disable-audio-pulseoutput \
+	--disable-valgrind \
+	--enable-lirc \
+	--disable-joystick-menu \
+	--enable-firewire \
+	--disable-hdhomerun \
+	--disable-ceton \
+	--enable-vaapi \
+	--enable-dvb \
+	--dvb-path="$(DESTDIR)$(includedir)" \
+	--libcec-path="$(DESTDIR)$(includedir)/libcec" \
+	--disable-asi \
+	--enable-x11 \
+	--x11-path="$(DESTDIR)$(includedir)" \
+	--disable-dxva2 \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)), \
+		--enable-v4l2 \
+		--enable-v4l2request \
+		--disable-vdpau, \
+		--enable-vdpau) \
+	--disable-mac-bundle \
+	--enable-libxml2 \
+	--enable-libdns_sd \
+	--enable-libcrypto \
+	--without-bindings="php" \
+	--with-bindings="perl" \
+	--with-bindings="python" \
+	--enable-pic \
+	--enable-libcec \
+	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
+	--enable-ffplay \
+	--enable-sdl2 \
+	--python="python3" \
+	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
+	--enable-libdav1d \
+	--enable-silent-cc \
+
+# cmake config para
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 	$(if $(filter qt6,$(mm_QT_VERSION)),--preset qt6,--preset qt5) \
@@ -326,8 +421,7 @@ CMAKE_CONFIGURE_ARGS = \
 		-D_QTGUI_CONFIG=$(DESTDIR)$(qt6prefix)/include/QtGui/qtgui-config.h, \
 		-D_QTGUI_CONFIG=$(DESTDIR)$(qt5prefix)/include/QtGui/qtgui-config.h) \
 	-DENABLE_QTWEBENGINE="ON" \
-
-#	-DPLATFORM_ARGS='--debug-find' \
+	-DPLATFORM_ARGS='--debug-find' \
 
 build-custom:
 	@cd $(WORKSRC); CMAKE_BUILD_PARALLEL_LEVEL=$(CPUS) $(CMAKE) --build $(if $(filter qt6,$(mm_QT_VERSION)),build-qt6,build-qt5)
@@ -335,7 +429,8 @@ build-custom:
 GAR_EXTRA_CONF += python3/python/package-api.mk
 include ../../gar.mk
 
-CPPFLAGS += -fPIC -fuse-linker-plugin
+CXXFLAGS += -I$(DESTDIR)$(includedir)/taglib
+CPPFLAGS += -fPIC -fuse-linker-plugin -I$(DESTDIR)$(includedir)/taglib
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
@@ -381,6 +476,9 @@ post-configure:
 pre-install: post-configure
 
 post-install:
+ifneq ($(USE_CMAKE),yes)
+	@$(MAKE) -C ../mythplugins install
+endif
 	@$(MAKE) -C ../myththeme-Monochrome-mm2 install
 	@$(MAKECOOKIE)
 
