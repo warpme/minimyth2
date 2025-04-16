@@ -658,12 +658,12 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 			if [ -e $@~$(bindir)/$${file} ] ; then \
 				chmod +x $@~$(bindir)/$${file} ; \
 			fi ; \
-	 done
+	 done ; \
 	 for file in $${files} ; do \
 			if [ -e $@~$(sbindir)/$${file} ] ; then \
 				chmod +x $@~$(sbindir)/$${file} ; \
 			fi ; \
-	 done
+	 done ;
 	@touch $@~
 	@mv $@~ $@
 	@echo $(mm_VERSION_MINIMYTH) > $(DESTDIR)$(rootdir)/version
