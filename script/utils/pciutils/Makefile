@@ -1,16 +1,17 @@
-GARNAME = pciutils
-GARVERSION = 3.3.1
-CATEGORIES = utils
+
+GARNAME      = pciutils
+GARVERSION   = 3.3.0
+CATEGORIES   = utils
 MASTER_SITES = https://www.kernel.org/pub/software/utils/pciutils/
-DISTFILES  = $(DISTNAME).tar.xz
-DISTFILES += pci.ids
-LICENSE = GPL2
+DISTFILES    = $(DISTNAME).tar.xz
+DISTFILES   += pci.ids
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c
+DEPENDS = lang/c data/hwdata
 
 BUILD_SCRIPTS   = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS = $(WORKSRC)/Makefile
@@ -25,17 +26,15 @@ BUILD_ARGS   = \
 	SHARED="yes" \
 	DESTDIR="$(DESTDIR)" \
 	PREFIX="$(prefix)" \
+	BINDIR="$(bindir)" \
 	SBINDIR="$(sbindir)" \
-	SHAREDIR="$(datadir)" \
-	IDSDIR="$(datadir)" \
+	SHAREDIR="$(datadir)/hwdata" \
+	IDSDIR="$(datadir)/hwdata" \
 	MANDIR="$(mandir)" \
 	INCDIR="$(includedir)" \
-	LIBDIR="$(libdir)" \
 	PKGCFDIR="$(libdir)/pkgconfig" \
-	STRIP="" \
-	CC="$(CC)" \
-	AR="$(AR)" \
-	RANLIB="$(RANLIB)"
+	all
+
 INSTALL_ARGS = \
 	OPT="$(CFLAGS)" \
 	HOST="$(GARCH_FAMILY)-dummy-linux" \
@@ -46,17 +45,13 @@ INSTALL_ARGS = \
 	SHARED="yes" \
 	DESTDIR="$(DESTDIR)" \
 	PREFIX="$(prefix)" \
+	BINDIR="$(bindir)" \
 	SBINDIR="$(sbindir)" \
-	SHAREDIR="$(datadir)" \
-	IDSDIR="$(datadir)" \
+	SHAREDIR="$(datadir)/hwdata" \
+	IDSDIR="$(datadir)/hwdata" \
 	MANDIR="$(mandir)" \
 	INCDIR="$(includedir)" \
-	LIBDIR="$(libdir)" \
 	PKGCFDIR="$(libdir)/pkgconfig" \
-	STRIP="" \
-	CC="$(CC)" \
-	AR="$(AR)" \
-	RANLIB="$(RANLIB)" \
 	install-lib
 
 GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk
@@ -64,7 +59,3 @@ include ../../gar.mk
 
 CFLAGS  := $(CFLAGS)  -fPIC
 LDFLAGS := $(LDFLAGS) -fPIC
-
-extract-pci.ids:
-	@cp -f $(DOWNLOADDIR)/pci.ids $(WORKSRC)/pci.ids
-	@$(MAKECOOKIE)
