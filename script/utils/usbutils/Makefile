@@ -6,7 +6,7 @@ MASTER_SITES = https://www.kernel.org/pub/linux/utils/usb/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.xz
 LICENSE      = GPL2
 
-DEPENDS = lang/c
+DEPENDS = lang/c data/hwdata
 
 
 CONFIGURE_SCRIPTS  = meson
