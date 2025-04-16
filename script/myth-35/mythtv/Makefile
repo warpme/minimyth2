@@ -336,6 +336,7 @@ post-configure:
 pre-install: post-configure
 
 post-install:
+	@$(MAKE) -C ../mythplugins install
 	@$(MAKE) -C ../myththeme-Monochrome-mm2 install
 	@$(MAKECOOKIE)
 
