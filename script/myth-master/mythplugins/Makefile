@@ -15,7 +15,6 @@ BUILDDEPS = \
 
 DEPENDS = \
 	lang/cxx \
-	$(CATEGORY)/mythtv \
 	lib/libexif \
 	lib/libtiff \
 	lib/flac \
