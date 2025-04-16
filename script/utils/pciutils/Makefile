@@ -32,8 +32,9 @@ BUILD_ARGS   = \
 	IDSDIR="$(datadir)/hwdata" \
 	MANDIR="$(mandir)" \
 	INCDIR="$(includedir)" \
+	LIBDIR="$(libdir)" \
 	PKGCFDIR="$(libdir)/pkgconfig" \
-	all
+	STRIP="" \
 
 INSTALL_ARGS = \
 	OPT="$(CFLAGS)" \
@@ -51,7 +52,9 @@ INSTALL_ARGS = \
 	IDSDIR="$(datadir)/hwdata" \
 	MANDIR="$(mandir)" \
 	INCDIR="$(includedir)" \
+	LIBDIR="$(libdir)" \
 	PKGCFDIR="$(libdir)/pkgconfig" \
+	STRIP="" \
 	install-lib
 
 GAR_EXTRA_CONF += kernel/linux-$(mm_KERNEL_VERSION)/package-api.mk
