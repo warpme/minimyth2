@@ -1,8 +1,9 @@
-GARNAME = gmp
+
+GARNAME    = gmp
 GARVERSION = $(GMP_VERSION)
 CATEGORIES = devel-tainted
-SOURCEPKG = devel/gmp
-LICENSE = GPL3/LGPL3
+SOURCEPKG  = devel/gmp
+LICENSE    = GPL3/LGPL3
 
 DESCRIPTION = 
 define BLURB
@@ -27,15 +28,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 GAR_EXTRA_CONF += devel/gmp/package-api.mk
 include ../../gar.mk
 
-CPPFLAGS :=
-CFLAGS   :=
-CXXFLAGS :=
-LDFLAGS  :=
-
-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
+CFLAGS += -std=c17
 
 build-check:
 	@echo " ==> Running make check in $(WORKSRC)"

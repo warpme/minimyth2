@@ -1,9 +1,10 @@
-GARNAME = gmp
-GARVERSION = $(GMP_VERSION)
-CATEGORIES = devel
+
+GARNAME      = gmp
+GARVERSION   = $(GMP_VERSION)
+CATEGORIES   = devel
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL3/LGPL3
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL3/LGPL3
 
 DESCRIPTION = 
 define BLURB
@@ -28,12 +29,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--without-readline \
 	--with-gnu-ld
 
-include ../../gar.mk
+CFLAGS += -std=c17
 
-x-pre-configure:
-	@$(call RUN_AUTOTOOLS)
-	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
-	@$(MAKECOOKIE)
+include ../../gar.mk
 
 build-check:
 	@echo " ==> Running make check in $(WORKSRC)"
