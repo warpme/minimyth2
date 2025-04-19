@@ -24,9 +24,11 @@ endif
 WORKSRC = $(WORKDIR)/$(shell echo $(DISTNAME) | sed -e 's/\.with\.ckbi\..*$$//')
 
 BUILD_SCRIPTS    = $(WORKSRC)/nss/Makefile
-INSTALL_SCRIPTS  = custom
+INSTALL_SCRIPTS  = nss
 ifeq ($(DESTIMG),build)
 INSTALL_SCRIPTS += shlibsign
+else
+INSTALL_SCRIPTS += cabundle
 endif
 
 BUILD_ARGS = \
@@ -48,7 +50,7 @@ BUILD_ARGS = \
 
 include ../../gar.mk
 
-install-custom:
+install-nss:
 	@mkdir -p $(DESTDIR)$(libdir)
 	@$(foreach lib, $(wildcard $(WORKSRC)/dist/Linux*/lib/*.so), cp -f $(lib) $(DESTDIR)$(libdir) ; )
 	@mkdir -p $(DESTDIR)$(bindir)
@@ -76,8 +78,10 @@ install-custom:
 	@chmod +x $(DESTDIR)$(bindir)-config/nss-config
 	@mkdir -p $(DESTDIR)$(includedir)/nss
 	@cp -fL $(WORKSRC)/dist/public/nss/*.h $(DESTDIR)$(includedir)/nss/
-	#echo "creating ca-bundle.trust.p11-kit"
-	@cd $(WORKSRC); mkdir -p certs; ln -srft certs nss/lib/ckfw/builtins/{certdata.txt,nssckbi.h}; cd certs; ../../certdata2pem.py; cd ..; ../bundle.sh
+	@$(MAKECOOKIE)
+
+install-cabundle:
+	@cd $(WORKSRC); mkdir -p certs; ln -srft certs nss/lib/ckfw/builtins/{certdata.txt,nssckbi.h}; cd certs; $(DESTDIR)$(bindir)/python3 ../../certdata2pem.py; cd ..; ../bundle.sh
 	@mkdir -p $(DESTDIR)$(datadir)/ca-certificates/trust-source
 	@cd $(WORKSRC); cp -f ca-bundle.trust.p11-kit $(DESTDIR)$(datadir)/ca-certificates/trust-source/
 	@$(MAKECOOKIE)
