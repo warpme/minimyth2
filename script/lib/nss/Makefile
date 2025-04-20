@@ -81,7 +81,7 @@ install-nss:
 	@$(MAKECOOKIE)
 
 install-cabundle:
-	@cd $(WORKSRC); mkdir -p certs; ln -srft certs nss/lib/ckfw/builtins/{certdata.txt,nssckbi.h}; cd certs; $(DESTDIR)$(bindir)/python3 ../../certdata2pem.py; cd ..; ../bundle.sh
+	@cd $(WORKSRC); mkdir -p certs; ln -srft certs nss/lib/ckfw/builtins/{certdata.txt,nssckbi.h}; cd certs; $(build_bindir)/python3 ../../certdata2pem.py; cd ..; ../bundle.sh
 	@mkdir -p $(DESTDIR)$(datadir)/ca-certificates/trust-source
 	@cd $(WORKSRC); cp -f ca-bundle.trust.p11-kit $(DESTDIR)$(datadir)/ca-certificates/trust-source/
 	@$(MAKECOOKIE)
