@@ -254,7 +254,6 @@ PATCHFILES += 1001-math.h-add-DIV_ROUND_UP_NO_OVERFLOW.patch
 PATCHFILES += 1002-clk-divider-Fix-divisor-masking-on-64-bit-platforms.patch
 PATCHFILES += 1003-clk-composite-replace-open-coded-abs_diff.patch
 # hdmi video support
-PATCHFILES += 1011-FROM-UPSTREAM-drm-rockchip-Don-t-change-hdmi-referen.patch
 PATCHFILES += 1012-FROM-UPSTREAM-drm-rockchip-vop2-Drop-unnecessary-if_.patch
 PATCHFILES += 1013-FROM-UPSTREAM-drm-rockchip-vop2-Improve-display-mode.patch
 PATCHFILES += 1014-WIP-drm-rockchip-vop2-Improve-display-modes-handling.patch
