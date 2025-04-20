@@ -19,6 +19,8 @@ DEPENDS    = lang/c db/sqlite lib/nspr devel/zlib
 BUILDDEPS  =
 ifneq ($(DESTIMG),build)
 BUILDDEPS += lib/nss
+else
+DEPENDS += python/python3
 endif
 
 WORKSRC = $(WORKDIR)/$(shell echo $(DISTNAME) | sed -e 's/\.with\.ckbi\..*$$//')
