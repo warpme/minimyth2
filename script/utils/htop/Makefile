@@ -1,10 +1,10 @@
 
 GARNAME      = htop
-GARVERSION   = 3.3.0
+GARVERSION   = 3.4.1
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/htop-dev/htop/archive/
 DISTFILES    = $(GARVERSION).tar.gz
-PATCHFILES   = 01-show-core-temperatures-rk3588.patch
+PATCHFILES   = 01-show-core-temperatures-a523.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
