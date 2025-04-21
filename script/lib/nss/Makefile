@@ -20,7 +20,7 @@ BUILDDEPS  =
 ifneq ($(DESTIMG),build)
 BUILDDEPS += lib/nss
 else
-DEPENDS += python/python3
+DEPENDS += python3/python
 endif
 
 WORKSRC = $(WORKDIR)/$(shell echo $(DISTNAME) | sed -e 's/\.with\.ckbi\..*$$//')
