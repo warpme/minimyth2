@@ -280,6 +280,10 @@ ifneq (,$(filter board-h618.vontar_h618,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h618.vontar_h618
 endif
 
+ifneq (,$(filter board-h618.transpeed-8k618-t,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-h618.transpeed-8k618-t
+endif
+
 ifneq (,$(filter board-h313.x96_q,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-h313.x96_q
 endif
