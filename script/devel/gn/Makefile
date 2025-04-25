@@ -1,10 +1,10 @@
 
 GARNAME      = gn
-GARVERSION   = 5a004f9427a050c6c393c07ddb85cba8ff3849fa
+# 0.2223.6e8e0d6d 5.04.2025
+GARVERSION   = 6e8e0d6d4a151ab2ed9b4a35366e630c55888444
 CATEGORIES   = devel
 MASTER_SITES = https://gn.googlesource.com/gn/+archive/
 DISTFILES    = $(GARVERSION).tar.gz last_commit_position.h
-PATCHFILES   = fix-gcc13-compile.patch
 LICENSE      = BSD_3_Clause
 
 DESCRIPTION = 
