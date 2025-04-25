@@ -9,7 +9,7 @@
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of MiniMyth2.
-mm_VERSION_MINIMYTH ?=       14.1.1.r231
+mm_VERSION_MINIMYTH ?=       14.1.1.r254
 
 # The version of Myth to use.
 # Valid values are '33', '34', '35', 'master' and 'test'
@@ -126,6 +126,7 @@ mm_SOFTWARE               ?= \
 # 'board-h618.orangepi_zero3'
 # 'board-h618.vontar_h618'
 # 'board-h618.orangepi_zero2w'
+# 'board-h618.transpeed-8k618-t'
 # 'board-h728.x96q_pro_plus'
 # 'board-h313.x96_q'
 # 'board-h313.x96_q_v5.1'
