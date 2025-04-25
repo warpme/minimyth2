@@ -17,6 +17,7 @@ DEPENDS = \
 	firmware/brcmfmac43430-firmware-txt \
 	firmware/brcmfmac43455-firmware-txt \
 	firmware/brcmfmac4354-firmware-txt  \
+	firmware/brcmfmac4335-firmware  \
 	firmware/brcmfmac4359-firmware  \
 	firmware/brcmfmac6330-firmware  \
 	firmware/brcmfmac6334-firmware  \
