@@ -2,9 +2,9 @@
 BUILD_QTWEBENGINE = no
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 6.8.1
+GARVERSION   = 6.9.0
 CATEGORIES   = qt
-MASTER_SITES = http://download.qt.io/official_releases/qt/6.8/$(GARVERSION)/single/
+MASTER_SITES = http://download.qt.io/official_releases/qt/6.9/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
@@ -29,10 +29,9 @@ DEPENDS   =            \
 	lib/libmng     \
 	lib/libpng     \
 	lib/libtiff    \
-	$(if $(filter yes,$(BUILD_QTWEBENGINE)),lib/nodejs lib/nss) \
+	$(if $(filter yes,$(BUILD_QTWEBENGINE)),lib/nss) \
 	lib/openssl    \
 	lib/pcre2      \
-	gstreamer/meta \
 	gtk/glib       \
 	gtk/harfbuzz   \
 	devel/zlib     \
@@ -51,7 +50,7 @@ endif
 
 BUILDDEPS = \
 	devel/bison \
-	devel/flex \
+	devel/flex  \
 
 ifneq ($(DESTIMG),build)
 BUILDDEPS += qt/qt6
@@ -83,6 +82,7 @@ CONFIGURE_ARGS = \
 	-make tools \
 
 ifeq ($(DESTIMG),build)
+# build
 CONFIGURE_ARGS += \
 	-platform $(PLATFORM_GARBUILD_NAME) \
 	-no-{glib,icu,openssl,opengl,pcre} \
@@ -123,6 +123,7 @@ CONFIGURE_ARGS += \
 	-skip qtwebview \
 
 else
+# target
 CONFIGURE_ARGS += \
 	-xplatform $(PLATFORM_GARHOST_NAME) \
 	-qt-host-path $(build_qt6prefix) \
@@ -158,7 +159,7 @@ CONFIGURE_ARGS += \
 	-skip qttools \
 	-skip qtquick3dphysics \
 	-skip qtvirtualkeyboard \
-	$(if $(filter yes,$(BUILD_QTWEBENGINE)),,-skip qtwebchannel -skip qtwebengine -skip qtwebsockets -skip qtwebview) \
+	$(if $(filter yes,$(BUILD_QTWEBENGINE)),WebEngineCore,-skip qtwebchannel -skip qtwebengine -skip qtwebsockets -skip qtwebview) \
 	-- $(DIRPATHS_CMAKE) \
 	-DCMAKE_SYSTEM_NAME="Linux" \
 	$(if $(filter i386,  $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="i386") \
@@ -169,13 +170,11 @@ CONFIGURE_ARGS += \
 	-DQT_WILL_BUILD_TOOLS="ON" \
 	-DQT_FORCE_BUILD_TOOLS="ON" \
 	-DMySQL_INCLUDE_DIR="$(DESTDIR)$(includedir)/mysql" \
-	-DQT_HOST_GN_PATH="/home/piotro/minimyth2-aarch64-next/images/build/usr/bin/gn" \
+	-DBUILD_ONLY_GN="ON" \
+
+#	-DQT_HOST_GN_PATH="/home/piotro/minimyth2-aarch64-next/images/build/usr/bin/gn" \
 
 endif
-
-#	-skip qtwebchannel \
-#	-skip qtwebsockets \
-#	-skip qtwebview \
 
 configure-custom:
 	@echo " ==> Running configure in $(WORKBLD)"
