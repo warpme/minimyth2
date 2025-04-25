@@ -116,6 +116,7 @@ Allwinner H616| OrangePi-Zero2   | works  (aw859a@SDIO)                   | not 
 Allwinner H618| OrangePi-Zero3   | works  (uwe5622a@SDIO)                 | not tested| works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
 Allwinner H618| Vontar H618      | works  (ap6334@SDIO)                   | works     | works       | works       | not works (firmware issue)     | some things are still missing |
 Allwinner H618| OrangePi-Zero2w  | works  (uwe5622a@SDIO)                 | not tested| works       | LED Diode,OK| not works (firmware issue)     | some things are still missing |
+Allwinner H618| Transpeed-8k618t | works  (hk2735@SDIO)                   | works     | works       | works       | not works (firmware issue)     | some things are still missing |
 Rockchip 3328 | Beelink A1       | works  (rtl8821@USB)                   | not works | works       | works       | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-b       | works  (ap6256@SDIO)                   | works     | works       | n/a         | currently power off/on         | well supported                |
 Rockchip 3399 | RockPI 4-se      | works  (ap6255@SDIO)                   | works     | works       | n/a         | currently power off/on         | well supported                |
