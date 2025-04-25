@@ -166,6 +166,7 @@ PATCHFILES += 0650-arm64-dts-allwinner-h618-add-opi-2w.patch
 PATCHFILES += 0651-arm64-dts-allwinner-h313-Tanix-TX1-TVbox.patch
 PATCHFILES += 0652-arm64-dts-allwinner-h313-add-x96q-v5.1-TVbox.patch
 PATCHFILES += 0653-arm64-dts-allwinner-h616-add-pendoo-x12pro-tvbox.patch
+PATCHFILES += 0654-arm64-dts-allwinner-h618-improve-transpeed-8k618-tvbox.patch
 #------------------------------------------------------------
 endif
 
