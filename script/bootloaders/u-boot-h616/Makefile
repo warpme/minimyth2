@@ -31,6 +31,7 @@ PATCHFILES  += 161-dts-zero2w-improvements.patch
 PATCHFILES  += 162-add-tx1-defconfig.patch
 PATCHFILES  += 163-add-x96-q-ddr3-v5.1-defconfig.patch
 PATCHFILES  += 164-add-tx1-v1.2-defconfig.patch
+PATCHFILES  += 165-transpeed-8k618-t-improvements.patch
 
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 LICENSE      = GPL2
