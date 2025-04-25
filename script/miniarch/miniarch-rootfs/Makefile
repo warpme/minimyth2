@@ -37,11 +37,13 @@ extract-$(DISTFILES):
 	  echo 'unpacking ArchLinuxARM-aarch64-latest ...' ; \
 	  rm -rf $(MINIARCH_ROOTFS) ; \
 	  mkdir -p $(MINIARCH_ROOTFS) ; \
-	  bsdtar -xpf $(DOWNLOADDIR)/$(DISTFILES) -C $(MINIARCH_ROOTFS) ; \
-	  echo \"adding some fixups in archlinuxarm image to make mkinitcpio happy ...\" ; \
+	  fakeroot bsdtar -xpf $(DOWNLOADDIR)/$(DISTFILES) -C $(MINIARCH_ROOTFS) ; \
+	  echo 'adding some fixups in archlinuxarm image [$(MINIARCH_ROOTFS)] to make mkinitcpio happy ...' ; \
 	  cp -f $(WORKSRC)/../../files/{base,fsck} \
 	    $(MINIARCH_ROOTFS)/usr/lib/initcpio/install/ ; \
-	  cp -f $(WORKSRC)/../../files/bluetooth-usb.conf $(MINIARCH_ROOTFS)/usr/lib/modprobe.d/bluetooth-usb.conf
+	  echo 'doing some general fixups in archlinuxarm image [$(MINIARCH_ROOTFS)] ...' ; \
+	  cp -f $(WORKSRC)/../../files/bluetooth-usb.conf $(MINIARCH_ROOTFS)/usr/lib/modprobe.d/bluetooth-usb.conf ; \
+	  sed "/Architecture\s*=.*/a DisableDownloadTimeout" -i $(MINIARCH_ROOTFS)/etc/pacman.conf
 	@$(MAKECOOKIE)
 
 install-miniarch:
