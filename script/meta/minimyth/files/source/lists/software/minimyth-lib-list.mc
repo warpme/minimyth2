@@ -1,1 +1,2 @@
-# libslang.so
+
+mc/
