@@ -85,6 +85,7 @@ CONFIGURE_ARGS = \
 	-no-openvg \
 	-qt-harfbuzz \
 	-qt-libpng \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	-no-webengine-ffmpeg \
 	-nomake tools \
 	-nomake examples \
