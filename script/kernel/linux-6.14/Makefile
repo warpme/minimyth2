@@ -151,6 +151,7 @@ PATCHFILES += 0630-net-wireless-add-uwe5622-support-v20231020.patch
 PATCHFILES += 0631-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0632-clk-sunxi-ng-ccu-hack-fix-too-slow-hdmi-audio.patch
 PATCHFILES += 0633-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
+PATCHFILES += 0635-drvers-of-add-dt-overlay-configfs-interface.patch
 # device-tree patches
 PATCHFILES += 0640-arm64-dts-allwinner-h616.dtsi-add-audio-hdmi-vdec.patch
 PATCHFILES += 0641-arm64-dts-allwinner-h616.dtsi-add-ths-cpu-gpu-opp-and-dvfs.patch
@@ -167,7 +168,7 @@ PATCHFILES += 0651-arm64-dts-allwinner-h313-Tanix-TX1-TVbox.patch
 PATCHFILES += 0652-arm64-dts-allwinner-h313-add-x96q-v5.1-TVbox.patch
 PATCHFILES += 0653-arm64-dts-allwinner-h616-add-pendoo-x12pro-tvbox.patch
 PATCHFILES += 0654-arm64-dts-allwinner-h618-improve-transpeed-8k618-tvbox.patch
-PATCHFILES += 0655-arm64-dts-allwinner-h313-h616-h618-prep-for-cpu-overclock.patch
+PATCHFILES += 0655-arm64-dts-allwinner-h313-h616-h618-add-cpu-overclock-via-overlays.patch
 #------------------------------------------------------------
 endif
 
