@@ -120,5 +120,8 @@ ln -sf /dev/rtc0 /dev/rtc > /dev/null
 # Mount debugfs
 mount -t debugfs debugfs /sys/kernel/debug
 
+# Mount configfs (usefull for i.e. overlayfs)
+mount -t configfs none /sys/kernel/config
+
 # /bin/echo "real init: done! (exit code 0) ..."
 exit 0
