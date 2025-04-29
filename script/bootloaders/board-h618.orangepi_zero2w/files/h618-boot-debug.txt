@@ -1,0 +1,72 @@
+#
+# To prepare u-boot script, run:
+# mkimage -A arm64 -T script -O linux -d h618-boot-debug.txt h618-boot-debug.scr
+#
+
+part uuid ${devtype} ${devnum}:2 uuid
+
+setenv bootargs root=PARTUUID=${uuid} rw rootwait earlycon console=ttyS0,115200n8 logo.nologo vt.cur_default=1 debug
+
+setenv fdt_file /dtbs/allwinner/sun50i-h618-orangepi-zero2w.dtb
+setenv overlay_file /dtbs/allwinner/overlay/sun50i-h616-enable-1.608ghz-cpu-opp.dtbo
+setenv user_fdt_file /h618_dtb
+
+setenv fdtoverlay_addr_r "0x45000000"
+
+if load ${devtype} ${devnum}:${bootpart} ${kernel_addr_r} /Image; then
+
+  # trying to user fdt
+  echo "trying to load user dt [${user_fdt_file}] file at ${fdt_addr_r} ..."
+  if load ${devtype} ${devnum}:${bootpart} ${fdt_addr_r} ${user_fdt_file}; then
+
+    fdt addr ${fdt_addr_r}
+    echo "resizing fdt ..."
+    fdt resize 65535
+
+    echo "trying to load DT overlay [${overlay_file}] file at ${fdtoverlay_addr_r} ..."
+    if load ${devtype} ${devnum}:${bootpart} ${fdtoverlay_addr_r} ${overlay_file}; then
+      echo "trying to apply DT overlay at ${fdtoverlay_addr_r} ..."
+      fdt apply ${fdtoverlay_addr_r}
+    fi;
+
+    echo "trying to load initramfs [/initramfs-linux.img] file at ${ramdisk_addr_r} ..."
+    if load ${devtype} ${devnum}:${bootpart} ${ramdisk_addr_r} /initramfs-linux.img; then
+      booti ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+    else
+      booti ${kernel_addr_r} - ${fdt_addr_r}
+    fi;
+
+  else
+    # default fdt
+    echo "trying to load kernel dt [${fdt_file}] file at ${fdt_addr_r} ..."
+    if load ${devtype} ${devnum}:${bootpart} ${fdt_addr_r} ${fdt_file}; then
+
+      fdt addr ${fdt_addr_r}
+      echo "resizing fdt ..."
+      fdt resize 65536
+
+      echo "trying to load DT overlay [${overlay_file}] file at ${fdtoverlay_addr_r} ..."
+      if load ${devtype} ${devnum}:${bootpart} ${fdtoverlay_addr_r} ${overlay_file}; then
+        echo "trying to apply DT overlay at ${fdtoverlay_addr_r} ..."
+        fdt apply ${fdtoverlay_addr_r}
+      fi;
+
+      echo "trying to load initramfs [/initramfs-linux.img] file at ${ramdisk_addr_r} ..."
+      if load ${devtype} ${devnum}:${bootpart} ${ramdisk_addr_r} /initramfs-linux.img; then
+        booti ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
+      else
+        booti ${kernel_addr_r} - ${fdt_addr_r}
+      fi;
+
+    else
+
+      echo "trying to load initramfs [/initramfs-linux.img] file at ${ramdisk_addr_r} ..."
+      if load ${devtype} ${devnum}:${bootpart} ${ramdisk_addr_r} /initramfs-linux.img; then
+        booti ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdtcontroladdr}
+      else
+        booti ${kernel_addr_r} - ${fdtcontroladdr}
+      fi;
+
+    fi;
+  fi;
+fi
