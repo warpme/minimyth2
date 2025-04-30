@@ -152,9 +152,13 @@ PATCHFILES += 0631-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0632-clk-sunxi-ng-ccu-hack-fix-too-slow-hdmi-audio.patch
 PATCHFILES += 0633-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
 PATCHFILES += 0635-drvers-of-add-dt-overlay-configfs-interface.patch
+PATCHFILES += 0636-clk-sunxi-ng-h616-Reparent-GPU-clock-during-frequency-changes-v3.patch
+PATCHFILES += 0637-drm-panfrost-enable-G31-on-H616.patch
+PATCHFILES += 0638-pmdomain-sunxi-add-H6-PRCM-PPU-driver-v2.patch
 # device-tree patches
 PATCHFILES += 0640-arm64-dts-allwinner-h616.dtsi-add-audio-hdmi-vdec.patch
-PATCHFILES += 0641-arm64-dts-allwinner-h616.dtsi-add-ths-cpu-gpu-opp-and-dvfs.patch
+PATCHFILES += 0641-arm64-dts-allwinner-h616.dtsi-add-gpu-nodes.patch
+PATCHFILES += 0641-arm64-dts-allwinner-h616.dtsi-add-dvfs-and-h313-cpu-opp.patch
 PATCHFILES += 0642-arm64-dts-allwinner-h616.dtsi-add-emac1.patch
 PATCHFILES += 0643-arm64-dts-allwinner-h616.dtsi-fix-x96q-failing-mmc3.patch
 PATCHFILES += 0644-arm64-dts-allwinner-h616-OrangePI-Zero23-enable-ths-hdmi-audio.patch
