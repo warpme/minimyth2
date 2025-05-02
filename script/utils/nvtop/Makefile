@@ -1,7 +1,7 @@
 
 GARNAME      = nvtop
-# 20.02.2025
-GARVERSION   = 33cf46840f58975d593c743b091eb1e37e323378
+# v3.2 4.04.2025
+GARVERSION   = 73291884d926445e499d6b9b71cb7a9bdbc7c393
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/Syllo/nvtop/archive/
 DISTFILES    = $(GARVERSION).zip
