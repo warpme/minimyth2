@@ -287,7 +287,6 @@ PATCHFILES += 1034-WIP-drm-rockchip-vop2-Add-YUV420-support.patch
 PATCHFILES += 1035-WIP-drm-rockchip-dw_hdmi_qp-Make-use-of-phy_configur.patch
 PATCHFILES += 1036-WIP-drm-rockchip-dw_hdmi_qp-Add-10bpc-and-YUV420-out.patch
 PATCHFILES += 1037-WIP-drm-bridge-dw-hdmi-qp-Enable-10bpc-and-YUV420.patch
-PATCHFILES += 1038-FROM-ML-clk-check-for-disabled-clock-provider.patch
 # hdmi audio support
 PATCHFILES += 1040-drm-bridge-synopsys-add-audio-support-for-dw-hdmi-qp-v7.patch
 # cec support
@@ -300,7 +299,6 @@ PATCHFILES += 1049-drm-bridge-synopsys-add-dw-dptx-controller-support-library-v2
 PATCHFILES += 1050-drm-rockchip-add-rk3588-dptx-output-support-v2.patch
 PATCHFILES += 1051-drm-rockchip-vop2-fix-copy-erro-affecting-dp1-usage.patch
 PATCHFILES += 1052-phy-rockchip-usbdp-only-verify-link-voltage-when-flags-are-set.patch
-PATCHFILES += 1053-phy-rockchip-usbdp-avoid-call-hpd_event_trigger-in-dp_phy_init.patch
 # var additions
 PATCHFILES += 1060-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1061-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
