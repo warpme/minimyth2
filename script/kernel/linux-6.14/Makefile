@@ -112,26 +112,23 @@ PATCHFILES += 0560-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 PATCHFILES += 0561-bluetooth-btrtl-add-hci-ver-rtl8822cs.patch
 PATCHFILES += 0562-h6-add-sun50i-di-deinterlace-WiP.patch
 # todo PATCHFILES += 0563-hantro-Add-quirk-for-NV12-NV12_4L4-capture-format.patch
+PATCHFILES += 0564-pmdomain-sunxi-add-H6-PRCM-PPU-driver-v2.patch
 # device-tree patches
 PATCHFILES += 0570-arm64-dts-allwinner-h6-Protect-SCP-clock.patch
 PATCHFILES += 0571-arm64-dts-allwinner-h6-Add-SCPI-protocol.patch
 PATCHFILES += 0572-arm64-dts-allwinner-h6-dtsi-add-sound-node.patch
 PATCHFILES += 0573-arm64-dts-allwinner-h6-Fix-Cedrus-IOMMU-again.patch
 PATCHFILES += 0574-arm64-dts-allwinner-h6.dtsi-add-ac200-nodes.patch
-PATCHFILES += 0575-arm64-dts-allwinner-gs1-fix-eMMC-and-incr-vcpu-limit.patch
-PATCHFILES += 0576-arm64-dts-allwinner-tanix-tx6-mini-enable-eth.patch
+
+PATCHFILES += 0575-arm64-dts-allwinner-gs1-fixes.patch
+PATCHFILES += 0576-arm64-dts-allwinner-tanix-tx6-dtsi-fixes.patch
 PATCHFILES += 0577-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
-PATCHFILES += 0578-arm64-dts-allwinner-tanix-tx6-mini-enable-wifi-cpu-dvfs.patch
-PATCHFILES += 0579-arm64-dts-allwinner-enable-audio-gs1.patch
-PATCHFILES += 0580-arm64-dts-allwinner-tanix-tx6-enable-wifi-cpu-dvfs.patch
-PATCHFILES += 0581-arm64-dts-allwinner-h6-normalize-spdif-card-name.patch
+PATCHFILES += 0578-arm64-dts-allwinner-tanix-tx6-mini-add-eth-wifi.patch
+PATCHFILES += 0579-arm64-dts-allwinner-tanix-tx6-add-eth-wifi-vfd.patch
+PATCHFILES += 0580-arm64-dts-allwinner-opi3-fixes.patch
+PATCHFILES += 0581-arm64-dts-allwinner-add-tanix-tx6-a.patch
 PATCHFILES += 0582-arm64-dts-allwinner-h6-add-deinterlace-node.patch
-PATCHFILES += 0583-arm64-dts-allwinner-opi3-enable-ethernet.patch
-PATCHFILES += 0584-arm64-dts-allwinner-opi3-fixes.patch
-PATCHFILES += 0585-arm64-dts-allwinner-add-Tanix-TX6-A.patch
-PATCHFILES += 0586-arm64-dts-allwinner-enable-gpu-opp-multiple-boards.patch
-PATCHFILES += 0587-arm64-dts-allwinner-add-orangepi-3-lts.patch
-PATCHFILES += 0588-arm64-dtsi-allwinner-rework-cpu-gpu-opp.patch
+PATCHFILES += 0583-arm64-dts-allwinner-add-orangepi-3-lts.patch
 endif
 #------------------------------------------------------------
 
@@ -154,7 +151,6 @@ PATCHFILES += 0633-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
 PATCHFILES += 0635-drvers-of-add-dt-overlay-configfs-interface.patch
 PATCHFILES += 0636-clk-sunxi-ng-h616-Reparent-GPU-clock-during-frequency-changes-v3.patch
 PATCHFILES += 0637-drm-panfrost-enable-G31-on-H616.patch
-PATCHFILES += 0638-pmdomain-sunxi-add-H6-PRCM-PPU-driver-v2.patch
 # device-tree patches
 PATCHFILES += 0640-arm64-dts-allwinner-h616.dtsi-add-audio-hdmi-vdec.patch
 PATCHFILES += 0641-arm64-dts-allwinner-h616.dtsi-add-gpu-nodes.patch
