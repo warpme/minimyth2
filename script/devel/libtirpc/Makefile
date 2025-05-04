@@ -1,7 +1,6 @@
 
 GARNAME      = libtirpc
-# v1.3.4
-GARVERSION   = 20231107-e86eef35f36
+GARVERSION   = 20250201-240ee6c7
 CATEGORIES   = devel
 MASTER_SITES = git://git.linux-nfs.org/projects/steved/libtirpc.git/
 DISTFILES    = $(DISTNAME).tar.bz2
