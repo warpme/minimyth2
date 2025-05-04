@@ -1,9 +1,10 @@
-GARNAME = ed
-GARVERSION = 1.12
-CATEGORIES = utils
+
+GARNAME      = ed
+GARVERSION   = 1.21.1
+CATEGORIES   = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.lz
-LICENSE = GPL3/FDL1_3
+DISTFILES    = $(DISTNAME).tar.lz
+LICENSE      = GPL3/FDL1_3
 
 DESCRIPTION = 
 define BLURB
