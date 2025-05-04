@@ -1,9 +1,10 @@
-GARNAME = gawk
-GARVERSION = 4.1.3
-CATEGORIES = utils
+
+GARNAME      = gawk
+GARVERSION   = 5.3.2
+CATEGORIES   = utils
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
