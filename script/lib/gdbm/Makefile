@@ -1,10 +1,9 @@
 
 GARNAME      = gdbm
-GARVERSION   = 1.18.1
+GARVERSION   = 1.25
 CATEGORIES   = lib
 MASTER_SITES = ftp://ftp.gnu.org/gnu/gdbm/
 DISTFILES    = $(DISTNAME).tar.gz
-PATCHFILES   = $(DISTNAME)-fix-gcc10-build.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION =
