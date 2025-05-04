@@ -1,6 +1,6 @@
 
 GARNAME      = rsync
-GARVERSION   = 3.2.7
+GARVERSION   = 3.4.1
 CATEGORIES   = utils
 MASTER_SITES = https://download.samba.org/pub/rsync/src/
 DISTFILES    = $(DISTNAME).tar.gz
