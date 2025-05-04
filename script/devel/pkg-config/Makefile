@@ -3,7 +3,8 @@ GARNAME      = pkg-config
 GARVERSION   = 0.29.2
 CATEGORIES   = devel
 MASTER_SITES = http://pkgconfig.freedesktop.org/releases/
-DISTFILES    = $(DISTNAME).tar.gz 
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = fix-builtin-glib-int-conversion.patch fix-gcc15-boolean.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
