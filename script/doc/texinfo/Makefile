@@ -1,9 +1,10 @@
-GARNAME = texinfo
-GARVERSION = 6.7
-CATEGORIES = doc
+
+GARNAME      = texinfo
+GARVERSION   = 7.2
+CATEGORIES   = doc
 MASTER_SITES = https://ftp.gnu.org/gnu/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.xz
-LICENSE = GPL3
+DISTFILES    = $(DISTNAME).tar.xz
+LICENSE      = GPL3
 
 DESCRIPTION = 
 define BLURB
