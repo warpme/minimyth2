@@ -1,11 +1,9 @@
 
-GARNAME      = squashfs
-GARVERSION   = 4.4
+GARNAME      = squashfs-tools
+GARVERSION   = 4.6.1
 CATEGORIES   = lib
-MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/$(GARNAME)/$(GARNAME)$(GARVERSION)/
-DISTFILES    = $(GARNAME)$(GARVERSION).tar.gz
-PATCHFILES   = $(DISTNAME).patch.gar
-PATCHFILES  += $(DISTNAME)-fix-gcc10-compilation.patch
+MASTER_SITES = https://github.com/plougher/squashfs-tools/archive/refs/tags/
+DISTFILES    = $(GARVERSION).tar.gz
 LICENSE      = GPL2
 
 DESCRIPTION = 
@@ -14,11 +12,11 @@ endef
 
 DEPENDS = lang/c devel/zlib utils/xz
 
-WORKSRC = $(WORKDIR)/$(GARNAME)$(GARVERSION)
+WORKSRC = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
 
 BUILD_SCRIPTS   = $(WORKSRC)/squashfs-tools/Makefile
 INSTALL_SCRIPTS = $(WORKSRC)/squashfs-tools/Makefile
 
 include ../../gar.mk
 
-LDFLAGS := $(LDFLAGS) -fwhole-program
+INSTALL_ARGS="INSTALL_PREFIX=$(DESTDIR)$(prefix)"
