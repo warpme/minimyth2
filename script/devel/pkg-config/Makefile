@@ -11,8 +11,6 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c
-
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
