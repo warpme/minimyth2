@@ -12,7 +12,7 @@ endef
 
 DEPENDS  = lang/c devel/zlib
 ifeq ($(DESTIMG),build)
-DEPENDS += devel/libtool devel/autoconf devel/automake devel/pkg-config
+DEPENDS += python2/python devel/libtool devel/autoconf devel/automake devel/pkg-config
 endif
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
