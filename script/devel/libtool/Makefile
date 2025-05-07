@@ -11,13 +11,12 @@ PATCHFILES  += $(DISTNAME)-armv7h-nopic.patch
 PATCHFILES  += $(DISTNAME)-trailingslash.patch
 PATCHFILES  += $(DISTNAME)-fixinstall.patch
 PATCHFILES  += $(DISTNAME)-fix-building-with-automake1.16.patch
+PATCHFILES  += $(DISTNAME)-stop-building-doc.patch
 LICENSE      = GPL2
 
 DESCRIPTION = 
 define BLURB
 endef
-
-DEPENDS = lang/c doc/help2man
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
