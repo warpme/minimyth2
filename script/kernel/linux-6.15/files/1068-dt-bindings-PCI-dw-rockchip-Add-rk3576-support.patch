@@ -1,0 +1,127 @@
+From 3bab7f16873df6d6021a03e22cc7205bdf088dbc Mon Sep 17 00:00:00 2001
+From: Kever Yang <kever.yang@rock-chips.com>
+Date: Fri, 21 Feb 2025 18:43:56 +0800
+Subject: [PATCH 23/59] dt-bindings: PCI: dw: rockchip: Add rk3576 support
+
+RK3576 is using DWC PCIe controller, with a msi interrupt line going
+directly to GIC instead of using GIC ITS.
+
+Signed-off-by: Kever Yang <kever.yang@rock-chips.com>
+Link: https://lore.kernel.org/r/20250221104357.1514128-2-kever.yang@rock-chips.com
+[Fix binding and cleanup commit message]
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ .../bindings/pci/rockchip-dw-pcie-common.yaml | 41 ++++++++++++++++++-
+ .../bindings/pci/rockchip-dw-pcie.yaml        | 19 ++++++---
+ 2 files changed, 52 insertions(+), 8 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/pci/rockchip-dw-pcie-common.yaml b/Documentation/devicetree/bindings/pci/rockchip-dw-pcie-common.yaml
+index cc9adfc76..e1ca8e2f3 100644
+--- a/Documentation/devicetree/bindings/pci/rockchip-dw-pcie-common.yaml
++++ b/Documentation/devicetree/bindings/pci/rockchip-dw-pcie-common.yaml
+@@ -65,7 +65,11 @@ properties:
+           tx_cpl_timeout, cor_err_sent, nf_err_sent, f_err_sent, cor_err_rx,
+           nf_err_rx, f_err_rx, radm_qoverflow
+       - description:
+-          eDMA write channel 0 interrupt
++          If the matching interrupt name is "msi", then this is the combinded
++          MSI line interrupt, which is to support MSI interrupts output to GIC
++          controller via GIC SPI interrupt instead of GIC its interrupt.
++          If the matching interrupt name is "dma0", then this is the eDMA write
++          channel 0 interrupt.
+       - description:
+           eDMA write channel 1 interrupt
+       - description:
+@@ -81,7 +85,9 @@ properties:
+       - const: msg
+       - const: legacy
+       - const: err
+-      - const: dma0
++      - enum:
++          - msi
++          - dma0
+       - const: dma1
+       - const: dma2
+       - const: dma3
+@@ -123,4 +129,35 @@ required:
+ 
+ additionalProperties: true
+ 
++anyOf:
++  - if:
++      properties:
++        compatible:
++          contains:
++            const: rockchip,rk3576-pcie
++    then:
++      properties:
++        interrupt-names:
++          items:
++            - const: sys
++            - const: pmc
++            - const: msg
++            - const: legacy
++            - const: err
++            - const: msi
++    else:
++      properties:
++        interrupt-names:
++          minItems: 5
++          items:
++            - const: sys
++            - const: pmc
++            - const: msg
++            - const: legacy
++            - const: err
++            - const: dma0
++            - const: dma1
++            - const: dma2
++            - const: dma3
++
+ ...
+diff --git a/Documentation/devicetree/bindings/pci/rockchip-dw-pcie.yaml b/Documentation/devicetree/bindings/pci/rockchip-dw-pcie.yaml
+index 550d8a684..d727502ed 100644
+--- a/Documentation/devicetree/bindings/pci/rockchip-dw-pcie.yaml
++++ b/Documentation/devicetree/bindings/pci/rockchip-dw-pcie.yaml
+@@ -16,16 +16,13 @@ description: |+
+   PCIe IP and thus inherits all the common properties defined in
+   snps,dw-pcie.yaml.
+ 
+-allOf:
+-  - $ref: /schemas/pci/snps,dw-pcie.yaml#
+-  - $ref: /schemas/pci/rockchip-dw-pcie-common.yaml#
+-
+ properties:
+   compatible:
+     oneOf:
+       - const: rockchip,rk3568-pcie
+       - items:
+           - enum:
++              - rockchip,rk3576-pcie
+               - rockchip,rk3588-pcie
+           - const: rockchip,rk3568-pcie
+ 
+@@ -71,8 +68,18 @@ properties:
+ 
+   vpcie3v3-supply: true
+ 
+-required:
+-  - msi-map
++allOf:
++  - $ref: /schemas/pci/snps,dw-pcie.yaml#
++  - $ref: /schemas/pci/rockchip-dw-pcie-common.yaml#
++  - if:
++      not:
++        properties:
++          compatible:
++            contains:
++              const: rockchip,rk3576-pcie
++    then:
++      required:
++        - msi-map
+ 
+ unevaluatedProperties: false
+ 
+-- 
+2.46.0
+

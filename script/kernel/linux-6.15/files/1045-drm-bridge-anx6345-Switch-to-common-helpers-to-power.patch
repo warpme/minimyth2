@@ -1,0 +1,60 @@
+From 5768c0851fc8991f1e97ccd9e8deaa04cf0da5cd Mon Sep 17 00:00:00 2001
+From: Andy Yan <andy.yan@rock-chips.com>
+Date: Tue, 18 Mar 2025 14:34:37 +0800
+Subject: [PATCH 45/59] drm/bridge: anx6345: Switch to common helpers to power
+ up/down dp link
+
+Use the common dp link power up/down helpers to avoid duplicating code.
+
+Signed-off-by: Andy Yan <andy.yan@rock-chips.com>
+Reviewed-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Link: https://lore.kernel.org/r/20250318063452.4983-3-andyshrk@163.com
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ .../drm/bridge/analogix/analogix-anx6345.c    | 30 +------------------
+ 1 file changed, 1 insertion(+), 29 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/analogix/analogix-anx6345.c b/drivers/gpu/drm/bridge/analogix/analogix-anx6345.c
+index 83d711ee3..f4fffe4bb 100644
+--- a/drivers/gpu/drm/bridge/analogix/analogix-anx6345.c
++++ b/drivers/gpu/drm/bridge/analogix/analogix-anx6345.c
+@@ -143,35 +143,7 @@ static int anx6345_dp_link_training(struct anx6345 *anx6345)
+ 	if (err)
+ 		return err;
+ 
+-	/*
+-	 * Power up the sink (DP_SET_POWER register is only available on DPCD
+-	 * v1.1 and later).
+-	 */
+-	if (anx6345->dpcd[DP_DPCD_REV] >= 0x11) {
+-		err = drm_dp_dpcd_readb(&anx6345->aux, DP_SET_POWER, &dpcd[0]);
+-		if (err < 0) {
+-			DRM_ERROR("Failed to read DP_SET_POWER register: %d\n",
+-				  err);
+-			return err;
+-		}
+-
+-		dpcd[0] &= ~DP_SET_POWER_MASK;
+-		dpcd[0] |= DP_SET_POWER_D0;
+-
+-		err = drm_dp_dpcd_writeb(&anx6345->aux, DP_SET_POWER, dpcd[0]);
+-		if (err < 0) {
+-			DRM_ERROR("Failed to power up DisplayPort link: %d\n",
+-				  err);
+-			return err;
+-		}
+-
+-		/*
+-		 * According to the DP 1.1 specification, a "Sink Device must
+-		 * exit the power saving state within 1 ms" (Section 2.5.3.1,
+-		 * Table 5-52, "Sink Control Field" (register 0x600).
+-		 */
+-		usleep_range(1000, 2000);
+-	}
++	drm_dp_link_power_up(&anx6345->aux, anx6345->dpcd[DP_DPCD_REV]);
+ 
+ 	/* Possibly enable downspread on the sink */
+ 	err = regmap_write(anx6345->map[I2C_IDX_DPTX],
+-- 
+2.46.0
+

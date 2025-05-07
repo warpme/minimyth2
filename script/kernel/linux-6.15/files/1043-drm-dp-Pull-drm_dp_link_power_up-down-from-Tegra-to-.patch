@@ -1,0 +1,233 @@
+From 4d72cfdc643ae0531b6bb4fb1c6a3b97da8b1179 Mon Sep 17 00:00:00 2001
+From: Andy Yan <andy.yan@rock-chips.com>
+Date: Tue, 18 Mar 2025 14:34:35 +0800
+Subject: [PATCH 43/59] drm/dp: Pull drm_dp_link_power_up/down from Tegra to
+ common drm_dp_helper
+
+The helper functions drm_dp_link_power_up/down were moved to Tegra
+DRM in commit 9a42c7c647a9 ("drm/tegra: Move drm_dp_link helpers to Tegra DRM")".
+
+Now since more and more users are duplicating the same code in their
+own drivers, it's time to make them as DRM DP common helpers again.
+
+Signed-off-by: Andy Yan <andy.yan@rock-chips.com>
+Acked-by: Dmitry Baryshkov <dmitry.baryshkov@oss.qualcomm.com>
+Link: https://lore.kernel.org/r/20250318063452.4983-1-andyshrk@163.com
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/display/drm_dp_helper.c | 69 +++++++++++++++++++++++++
+ drivers/gpu/drm/tegra/dp.c              | 67 ------------------------
+ drivers/gpu/drm/tegra/dp.h              |  2 -
+ drivers/gpu/drm/tegra/sor.c             |  4 +-
+ include/drm/display/drm_dp_helper.h     |  2 +
+ 5 files changed, 73 insertions(+), 71 deletions(-)
+
+diff --git a/drivers/gpu/drm/display/drm_dp_helper.c b/drivers/gpu/drm/display/drm_dp_helper.c
+index dbce1c3f4..e5dec67e5 100644
+--- a/drivers/gpu/drm/display/drm_dp_helper.c
++++ b/drivers/gpu/drm/display/drm_dp_helper.c
+@@ -838,6 +838,75 @@ int drm_dp_dpcd_read_phy_link_status(struct drm_dp_aux *aux,
+ }
+ EXPORT_SYMBOL(drm_dp_dpcd_read_phy_link_status);
+ 
++/**
++ * drm_dp_link_power_up() - power up a DisplayPort link
++ * @aux: DisplayPort AUX channel
++ * @revision: DPCD revision supported on the link
++ *
++ * Returns 0 on success or a negative error code on failure.
++ */
++int drm_dp_link_power_up(struct drm_dp_aux *aux, unsigned char revision)
++{
++	u8 value;
++	int err;
++
++	/* DP_SET_POWER register is only available on DPCD v1.1 and later */
++	if (revision < DP_DPCD_REV_11)
++		return 0;
++
++	err = drm_dp_dpcd_readb(aux, DP_SET_POWER, &value);
++	if (err < 0)
++		return err;
++
++	value &= ~DP_SET_POWER_MASK;
++	value |= DP_SET_POWER_D0;
++
++	err = drm_dp_dpcd_writeb(aux, DP_SET_POWER, value);
++	if (err < 0)
++		return err;
++
++	/*
++	 * According to the DP 1.1 specification, a "Sink Device must exit the
++	 * power saving state within 1 ms" (Section 2.5.3.1, Table 5-52, "Sink
++	 * Control Field" (register 0x600).
++	 */
++	usleep_range(1000, 2000);
++
++	return 0;
++}
++EXPORT_SYMBOL(drm_dp_link_power_up);
++
++/**
++ * drm_dp_link_power_down() - power down a DisplayPort link
++ * @aux: DisplayPort AUX channel
++ * @revision: DPCD revision supported on the link
++ *
++ * Returns 0 on success or a negative error code on failure.
++ */
++int drm_dp_link_power_down(struct drm_dp_aux *aux, unsigned char revision)
++{
++	u8 value;
++	int err;
++
++	/* DP_SET_POWER register is only available on DPCD v1.1 and later */
++	if (revision < DP_DPCD_REV_11)
++		return 0;
++
++	err = drm_dp_dpcd_readb(aux, DP_SET_POWER, &value);
++	if (err < 0)
++		return err;
++
++	value &= ~DP_SET_POWER_MASK;
++	value |= DP_SET_POWER_D3;
++
++	err = drm_dp_dpcd_writeb(aux, DP_SET_POWER, value);
++	if (err < 0)
++		return err;
++
++	return 0;
++}
++EXPORT_SYMBOL(drm_dp_link_power_down);
++
+ static int read_payload_update_status(struct drm_dp_aux *aux)
+ {
+ 	int ret;
+diff --git a/drivers/gpu/drm/tegra/dp.c b/drivers/gpu/drm/tegra/dp.c
+index 08fbd8f15..990e744b0 100644
+--- a/drivers/gpu/drm/tegra/dp.c
++++ b/drivers/gpu/drm/tegra/dp.c
+@@ -255,73 +255,6 @@ int drm_dp_link_probe(struct drm_dp_aux *aux, struct drm_dp_link *link)
+ 	return 0;
+ }
+ 
+-/**
+- * drm_dp_link_power_up() - power up a DisplayPort link
+- * @aux: DisplayPort AUX channel
+- * @link: pointer to a structure containing the link configuration
+- *
+- * Returns 0 on success or a negative error code on failure.
+- */
+-int drm_dp_link_power_up(struct drm_dp_aux *aux, struct drm_dp_link *link)
+-{
+-	u8 value;
+-	int err;
+-
+-	/* DP_SET_POWER register is only available on DPCD v1.1 and later */
+-	if (link->revision < 0x11)
+-		return 0;
+-
+-	err = drm_dp_dpcd_readb(aux, DP_SET_POWER, &value);
+-	if (err < 0)
+-		return err;
+-
+-	value &= ~DP_SET_POWER_MASK;
+-	value |= DP_SET_POWER_D0;
+-
+-	err = drm_dp_dpcd_writeb(aux, DP_SET_POWER, value);
+-	if (err < 0)
+-		return err;
+-
+-	/*
+-	 * According to the DP 1.1 specification, a "Sink Device must exit the
+-	 * power saving state within 1 ms" (Section 2.5.3.1, Table 5-52, "Sink
+-	 * Control Field" (register 0x600).
+-	 */
+-	usleep_range(1000, 2000);
+-
+-	return 0;
+-}
+-
+-/**
+- * drm_dp_link_power_down() - power down a DisplayPort link
+- * @aux: DisplayPort AUX channel
+- * @link: pointer to a structure containing the link configuration
+- *
+- * Returns 0 on success or a negative error code on failure.
+- */
+-int drm_dp_link_power_down(struct drm_dp_aux *aux, struct drm_dp_link *link)
+-{
+-	u8 value;
+-	int err;
+-
+-	/* DP_SET_POWER register is only available on DPCD v1.1 and later */
+-	if (link->revision < 0x11)
+-		return 0;
+-
+-	err = drm_dp_dpcd_readb(aux, DP_SET_POWER, &value);
+-	if (err < 0)
+-		return err;
+-
+-	value &= ~DP_SET_POWER_MASK;
+-	value |= DP_SET_POWER_D3;
+-
+-	err = drm_dp_dpcd_writeb(aux, DP_SET_POWER, value);
+-	if (err < 0)
+-		return err;
+-
+-	return 0;
+-}
+-
+ /**
+  * drm_dp_link_configure() - configure a DisplayPort link
+  * @aux: DisplayPort AUX channel
+diff --git a/drivers/gpu/drm/tegra/dp.h b/drivers/gpu/drm/tegra/dp.h
+index cb12ed0c5..695060caf 100644
+--- a/drivers/gpu/drm/tegra/dp.h
++++ b/drivers/gpu/drm/tegra/dp.h
+@@ -164,8 +164,6 @@ int drm_dp_link_remove_rate(struct drm_dp_link *link, unsigned long rate);
+ void drm_dp_link_update_rates(struct drm_dp_link *link);
+ 
+ int drm_dp_link_probe(struct drm_dp_aux *aux, struct drm_dp_link *link);
+-int drm_dp_link_power_up(struct drm_dp_aux *aux, struct drm_dp_link *link);
+-int drm_dp_link_power_down(struct drm_dp_aux *aux, struct drm_dp_link *link);
+ int drm_dp_link_configure(struct drm_dp_aux *aux, struct drm_dp_link *link);
+ int drm_dp_link_choose(struct drm_dp_link *link,
+ 		       const struct drm_display_mode *mode,
+diff --git a/drivers/gpu/drm/tegra/sor.c b/drivers/gpu/drm/tegra/sor.c
+index f98f70eda..21f3dfdcc 100644
+--- a/drivers/gpu/drm/tegra/sor.c
++++ b/drivers/gpu/drm/tegra/sor.c
+@@ -2666,7 +2666,7 @@ static void tegra_sor_dp_disable(struct drm_encoder *encoder)
+ 	 * the AUX transactions would just be timing out.
+ 	 */
+ 	if (output->connector.status != connector_status_disconnected) {
+-		err = drm_dp_link_power_down(sor->aux, &sor->link);
++		err = drm_dp_link_power_down(sor->aux, sor->link.revision);
+ 		if (err < 0)
+ 			dev_err(sor->dev, "failed to power down link: %d\n",
+ 				err);
+@@ -2882,7 +2882,7 @@ static void tegra_sor_dp_enable(struct drm_encoder *encoder)
+ 	else
+ 		dev_dbg(sor->dev, "link training succeeded\n");
+ 
+-	err = drm_dp_link_power_up(sor->aux, &sor->link);
++	err = drm_dp_link_power_up(sor->aux, sor->link.revision);
+ 	if (err < 0)
+ 		dev_err(sor->dev, "failed to power up DP link: %d\n", err);
+ 
+diff --git a/include/drm/display/drm_dp_helper.h b/include/drm/display/drm_dp_helper.h
+index 5ae424195..f9dabce48 100644
+--- a/include/drm/display/drm_dp_helper.h
++++ b/include/drm/display/drm_dp_helper.h
+@@ -566,6 +566,8 @@ int drm_dp_dpcd_read_link_status(struct drm_dp_aux *aux,
+ int drm_dp_dpcd_read_phy_link_status(struct drm_dp_aux *aux,
+ 				     enum drm_dp_phy dp_phy,
+ 				     u8 link_status[DP_LINK_STATUS_SIZE]);
++int drm_dp_link_power_up(struct drm_dp_aux *aux, unsigned char revision);
++int drm_dp_link_power_down(struct drm_dp_aux *aux, unsigned char revision);
+ 
+ int drm_dp_dpcd_write_payload(struct drm_dp_aux *aux,
+ 			      int vcpid, u8 start_time_slot, u8 time_slot_count);
+-- 
+2.46.0
+

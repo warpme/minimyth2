@@ -1,0 +1,80 @@
+From 1e2480b5dc99183b1969195e798c02da363af61b Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Thu, 14 Nov 2024 17:36:18 +0100
+Subject: [PATCH 22/59] drm/rockchip: vop2: Add core reset support
+
+A previous from Detlev Casanova adds reset handling for the
+video ports. This also resets the AHB and AXI interface when
+the system binds the VOP2 controller.
+
+This fixes issues when the bootloader (or a previously running
+kernel when using kexec) left the VOP2 initialized to some degree.
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/rockchip/rockchip_drm_vop2.c | 15 +++++++++++++++
+ drivers/gpu/drm/rockchip/rockchip_drm_vop2.h |  8 ++++++++
+ 2 files changed, 23 insertions(+)
+
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+index 94da5a494..b8c77d7fa 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+@@ -2669,6 +2669,21 @@ static int vop2_bind(struct device *dev, struct device *master, void *data)
+ 
+ 	dev_set_drvdata(dev, vop2);
+ 
++	vop2->resets[RST_ACLK].id = "aclk";
++	vop2->resets[RST_HCLK].id = "hclk";
++	ret = devm_reset_control_bulk_get_optional_exclusive(vop2->dev,
++						RST_VOP2_MAX, vop2->resets);
++	if (ret)
++		return dev_err_probe(drm->dev, ret, "failed to get resets\n");
++
++	ret = reset_control_bulk_assert(RST_VOP2_MAX, vop2->resets);
++	if (ret < 0)
++		drm_warn(vop2->drm, "failed to assert resets\n");
++	udelay(10);
++	ret = reset_control_bulk_deassert(RST_VOP2_MAX, vop2->resets);
++	if (ret < 0)
++		drm_warn(vop2->drm, "failed to deassert resets\n");
++
+ 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "vop");
+ 	if (!res)
+ 		return dev_err_probe(drm->dev, -EINVAL,
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
+index e26a5d089..d28f853f8 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.h
+@@ -8,6 +8,7 @@
+ #define _ROCKCHIP_DRM_VOP2_H
+ 
+ #include <linux/regmap.h>
++#include <linux/reset.h>
+ #include <drm/drm_modes.h>
+ #include <dt-bindings/soc/rockchip,vop2.h>
+ #include "rockchip_drm_drv.h"
+@@ -166,6 +167,12 @@ enum vop2_win_regs {
+ 	VOP2_WIN_MAX_REG,
+ };
+ 
++enum {
++	RST_ACLK,
++	RST_HCLK,
++	RST_VOP2_MAX
++};
++
+ struct vop2_regs_dump {
+ 	const char *name;
+ 	u32 base;
+@@ -331,6 +338,7 @@ struct vop2 {
+ 	struct clk *pclk;
+ 	struct clk *pll_hdmiphy0;
+ 	struct clk *pll_hdmiphy1;
++	struct reset_control_bulk_data resets[RST_VOP2_MAX];
+ 
+ 	/* optional internal rgb encoder */
+ 	struct rockchip_rgb *rgb;
+-- 
+2.46.0
+

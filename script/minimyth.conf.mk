@@ -262,8 +262,8 @@ mm_PYTHON_VERSION         ?= py3
 mm_SHELL                  ?= busybox
 
 # The version of kernel to use.
-# Valid values are: '6.12' '6'14'
-mm_KERNEL_VERSION         ?= 6.12
+# Valid values are: '6.14' '6'15'
+mm_KERNEL_VERSION         ?= 6.14
 
 # The kernel configuration file to use.
 # When set, the kernel configuration file $(HOME)/.minimyth/$(mm_KERNEL_CONFIG) will be used.

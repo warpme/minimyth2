@@ -1,0 +1,98 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.14.5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts linux-6.14.5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts
+--- linux-6.14.5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts	2025-05-02 08:02:16.000000000 +0200
++++ linux-6.14.5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts	2025-05-03 07:52:27.164457257 +0200
+@@ -1,5 +1,5 @@
+ // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+-// Copyright (c) 2019 Jernej Skrabec <jernej.skrabec@siol.net>
++// Copyright (c) 2019 Jernej Skrabec <jernej.skrabec@siol.net> Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+ 
+ /dts-v1/;
+ 
+@@ -8,10 +8,37 @@
+ / {
+ 	model = "Tanix TX6";
+ 	compatible = "oranth,tanix-tx6", "allwinner,sun50i-h6";
++
++	aliases {
++		ethernet0 = &emac;
++		ethernet1 = &wifi;
++	};
++
++	reg_vcc33_wifi: vcc33-wifi {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc33-wifi";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		gpio = <&pio 7 4 GPIO_ACTIVE_HIGH>; /* PH4 */
++		regulator-always-on;
++		enable-active-high;
++	};
++
++	openvfd {
++		compatible = "open,vfd";
++		dev_name = "openvfd";
++		openvfd_gpio_clk = <&pio 3 25 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PD25 */
++		openvfd_gpio_dat = <&pio 3 26 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PD26 */
++		vfd_gpio_chip_name = "300b000.pinctrl";
++		openvfd_chars = [02 04 03 02 01];
++		openvfd_dot_bits = [00 01 03 02 04 05 06];
++		openvfd_display_type = <0x03000001>;
++		status = "okay";
++	};
+ };
+ 
+ &r_ir {
+-	linux,rc-map-name = "rc-tanix-tx5max";
++	linux,rc-map-name = "rc-tanix-tx3mini";
+ };
+ 
+ &uart1 {
+@@ -27,3 +54,48 @@
+ 		enable-gpios = <&r_pio 1 4 GPIO_ACTIVE_HIGH>; /* PM4 */
+ 	};
+ };
++
++&ac200_pwm_clk {
++	status = "okay";
++};
++
++&emac {
++	pinctrl-names = "default";
++	pinctrl-0 = <&ext_rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&ext_rmii_phy>;
++	status = "okay";
++};
++
++&i2c3 {
++	status = "okay";
++};
++
++&mdio {
++	ext_rmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
++};
++
++&pwm {
++	status = "okay";
++};
++
++&mmc1 {
++	vmmc-supply = <&reg_vcc3v3>;
++	vqmmc-supply = <&reg_vcc33_wifi>;
++	mmc-pwrseq = <&wifi_pwrseq>;
++	bus-width = <4>;
++	non-removable;
++	status = "okay";
++
++	wifi: sdio_wifi@1 {
++		reg = <1>;
++		interrupt-parent = <&r_pio>;
++		interrupts = <1 0 IRQ_TYPE_EDGE_RISING>; /* PM0 */
++		interrupt-names = "host-wake";
++		local-mac-address = [dc 44 6d c0 ff 01];
++		keep-power-in-suspend;
++	};
++};

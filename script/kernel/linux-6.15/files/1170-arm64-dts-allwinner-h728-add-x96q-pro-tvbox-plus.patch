@@ -1,0 +1,396 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.8/arch/arm64/boot/dts/allwinner/Makefile linux-6.12.8/arch/arm64/boot/dts/allwinner/Makefile
+--- linux-6.12.8/arch/arm64/boot/dts/allwinner/Makefile	2025-01-08 11:36:19.037906587 +0100
++++ linux-6.12.8/arch/arm64/boot/dts/allwinner/Makefile	2025-01-08 11:39:14.764577963 +0100
+@@ -61,3 +61,4 @@
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h700-anbernic-rg35xx-h.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h700-anbernic-rg35xx-plus.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h700-anbernic-rg35xx-sp.dtb
++dtb-$(CONFIG_ARCH_SUNXI) += sun55i-h728-x96q-pro-plus.dtb
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.12.8/arch/arm64/boot/dts/allwinner/sun55i-h728-x96q-pro-plus.dts linux-6.12.8/arch/arm64/boot/dts/allwinner/sun55i-h728-x96q-pro-plus.dts
+--- linux-6.12.8/arch/arm64/boot/dts/allwinner/sun55i-h728-x96q-pro-plus.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.12.8/arch/arm64/boot/dts/allwinner/sun55i-h728-x96q-pro-plus.dts	2025-01-08 11:27:38.264559302 +0100
+@@ -0,0 +1,384 @@
++// SPDX-License-Identifier: (GPL-2.0-only OR MIT)
++
++/*
++ * Author: piotr.oniszczuk@gmail.com
++ */
++ 
++/dts-v1/;
++
++#include "sun55i-a523.dtsi"
++#include "sun55i-a523-cpu-opp.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++
++/ {
++	model = "hechuang,x96-pro-plus";
++	compatible = "hechuang,x96-pro-plus", "allwinner,sun55i-t527";
++
++	aliases {
++		serial0 = &uart0;
++		mmc0 = &mmc0;
++		mmc1 = &mmc1;
++		mmc2 = &mmc2;
++		ethernet0 = &gmac1;
++		ethernet1 = &wlan;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	reserved-memory {
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++
++		/* 128 KiB reserved for Trusted Firmware-A (BL31). */
++		secmon@48000000 {
++			reg = <0x0 0x48000000 0x0 0x20000>;
++			no-map;
++		};
++
++		/* 256 KiB reserved for the SCP. */
++		secmon@48100000 {
++			reg = <0x0 0x48100000 0x0 0x40000>;
++			no-map;
++		};
++	};
++
++	ext_osc32k: ext-osc32k-clk {
++		#clock-cells = <0>;
++		compatible = "fixed-clock";
++		clock-frequency = <32768>;
++		clock-output-names = "ext_osc32k";
++	};
++
++	reg_vcc5v: vcc5v {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-5v";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++
++	reg_vcc3v3: vcc3v3-wifi {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-3v3-wifi";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++	};
++
++	wifi_pwrseq: pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		reset-gpios = <&r_pio 1 1 GPIO_ACTIVE_LOW>; /* PM1 */
++		post-power-on-delay-ms = <200>;
++	};
++
++	openvfd {
++		compatible = "open,vfd";
++		dev_name = "openvfd";
++		openvfd_gpio_clk = <&pio 1 2 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
++		openvfd_gpio_dat = <&pio 1 1 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
++		openvfd_gpio_stb = <&pio 1 3 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
++		vfd_gpio_chip_name = "2000000.pinctrl";
++		openvfd_chars = [04 00 01 02 03];
++		openvfd_dot_bits = [00 01 02 03 04 05 06];
++		openvfd_display_type = <0x02010005>; 
++		status = "okay";
++	};
++};
++
++&cpu0 {
++	cpu-supply = <&reg_dcdc1>;
++};
++
++&cpu4 {
++	cpu-supply = <&reg_dcdc1_323>;
++};
++
++&ehci0 {
++	status = "okay";
++};
++
++&ehci1 {
++	status = "okay";
++};
++
++&mmc1_pins {
++	drive-strength = <40>;
++};
++
++&mmc0 {
++	vmmc-supply = <&reg_cldo3>;
++	cd-gpios = <&pio 5 6 (GPIO_ACTIVE_LOW | GPIO_PULL_DOWN)>; /* PF6 */
++	bus-width = <4>;
++	max-frequency = <35000000>;
++	status = "okay";
++};
++
++&mmc1 {
++	vmmc-supply = <&reg_vcc3v3>;
++	mmc-pwrseq = <&wifi_pwrseq>;
++	bus-width = <4>;
++	non-removable;
++	max-frequency = <25000000>;
++	status = "okay";
++
++	wlan: wifi@1 {
++		reg = <1>;
++	};
++};
++
++&mmc2 {
++	vmmc-supply = <&reg_cldo3>;
++	vqmmc-supply = <&reg_cldo1>;
++	bus-width = <8>;
++	non-removable;
++	cap-mmc-hw-reset;
++	mmc-ddr-1_8v;
++	mmc-hs200-1_8v;
++	max-frequency = <25000000>;
++	status = "okay";
++};
++
++&ohci0 {
++	status = "okay";
++};
++
++&ohci1 {
++	status = "okay";
++};
++
++&pio {
++	vcc-pb-supply = <&reg_cldo3>;
++	vcc-pc-supply = <&reg_cldo1>;
++	vcc-pd-supply = <&reg_dcdc4>;
++	vcc-pe-supply = <&reg_dcdc4>;
++	vcc-pf-supply = <&reg_cldo3>;
++	vcc-pg-supply = <&reg_cldo3>;
++	vcc-ph-supply = <&reg_cldo3>;
++	vcc-pi-supply = <&reg_dcdc4>;
++	vcc-pj-supply = <&reg_dcdc4>;
++	vcc-pk-supply = <&reg_bldo3>;
++};
++
++&r_i2c0 {
++	status = "okay";
++
++	axp717: pmic@34 {
++		compatible = "x-powers,axp717";
++		reg = <0x34>;
++		interrupt-controller;
++		#interrupt-cells = <1>;
++		interrupt-parent = <&nmi_intc>;
++		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
++
++		vin1-supply = <&reg_vcc5v>;
++		vin2-supply = <&reg_vcc5v>;
++		vin3-supply = <&reg_vcc5v>;
++		vin4-supply = <&reg_vcc5v>;
++		aldoin-supply = <&reg_vcc5v>;
++		bldoin-supply = <&reg_vcc5v>;
++		cldoin-supply = <&reg_vcc5v>;
++
++		regulators {
++			/* Supplies the "little" cluster (1.4 GHz cores) */
++			reg_dcdc1: dcdc1 { /* reset: 900mV */
++				regulator-always-on;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <1160000>;
++				regulator-name = "vdd-cpul";
++			};
++
++			reg_dcdc2: dcdc2 { /* reset: 900mV */
++				regulator-always-on;
++				regulator-min-microvolt = <920000>;
++				regulator-max-microvolt = <920000>;
++				regulator-name = "vdd-gpu-sys";
++			};
++
++			reg_dcdc3: dcdc3 { /* reset: 1100mV */
++				regulator-always-on;
++				regulator-min-microvolt = <1360000>;
++				regulator-max-microvolt = <1360000>;
++				regulator-name = "vdd-dram";
++			};
++
++			reg_dcdc4: dcdc4 { /* reset: 1000mV, seems unused */
++				regulator-min-microvolt = <1000000>;
++				regulator-max-microvolt = <1000000>;
++				regulator-name = "vdd-dcdc4";
++			};
++
++			reg_aldo1: aldo1 {
++				/* not connected */
++			};
++
++			reg_aldo2: aldo2 {
++				/* not connected */
++			};
++
++			reg_aldo3: aldo3 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-enable-ramp-delay = <1000>;
++				regulator-name = "vcc-aldo3";
++			};
++
++			reg_aldo4: aldo4 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-enable-ramp-delay = <1000>;
++				regulator-name = "vcc-pll-dxco-avcc";
++			};
++
++			reg_bldo1: bldo1 { /* reset: disabled */
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-enable-ramp-delay = <1000>;
++				regulator-name = "vcc-pg-wifi-lvds";
++			};
++
++			reg_bldo2: bldo2 { /* reset: 1800mV */
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-enable-ramp-delay = <1000>;
++				regulator-name = "vcc-dram-1v8";
++			};
++
++			reg_bldo3: bldo3 { /* reset: 2800mV, disabled */
++				regulator-min-microvolt = <2800000>;
++				regulator-max-microvolt = <2800000>;
++				regulator-enable-ramp-delay = <1000>;
++				regulator-name = "vcc-bldo3";
++			};
++
++			reg_bldo4: bldo4 { /* 1200mV disabled */
++				/* not connected */
++			};
++
++			reg_cldo1: cldo1 { /* reset: 1800mV */
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-enable-ramp-delay = <1000>;
++				regulator-name = "vcc-codec-sd";
++			};
++
++			reg_cldo2: cldo2 { /* reset: 3300mV, disabled */
++			};
++
++			reg_cldo3: cldo3 { /* reset: 3300mV */
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-enable-ramp-delay = <1000>;
++				regulator-name = "vcc-codec-eth-sd";
++			};
++
++			reg_cldo4: cldo4 {
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc-eth-phy";
++			};
++
++			reg_cpusldo: cpusldo {
++				/* supplies the management core */
++				regulator-always-on;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <900000>;
++				regulator-name = "vdd-cpus";
++			};
++		};
++	};
++
++	axp323: pmic@36 {
++		compatible = "x-powers,axp323";
++		reg = <0x36>;
++		#interrupt-cells = <1>;
++		interrupt-controller;
++		interrupt-parent = <&nmi_intc>;
++		interrupts = <0 IRQ_TYPE_LEVEL_LOW>;
++		status = "okay";
++
++		vin1-supply = <&reg_vcc5v>;
++		vin2-supply = <&reg_vcc5v>;
++		vin3-supply = <&reg_vcc5v>;
++
++		regulators {
++			aldo1 {
++				/* not connected */
++			};
++
++			dldo1 {
++				/* not connected */
++			};
++
++			/* Supplies the "big" cluster (1.8 GHz cores) */
++			reg_dcdc1_323: dcdc1 { /* reset: 900mV */
++				regulator-always-on;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <1160000>;
++				regulator-name = "vdd-cpub";
++			};
++
++			/* DCDC2 is polyphased with DCDC1 */
++			reg_dcdc2_323: dcdc2 {
++				x-powers,polyphased;
++			};
++
++			/* Some RISC-V management core related voltage */
++			reg_dcdc3_323: dcdc3 { /* reset: 900mV, BSP: 1050mV */
++				regulator-always-on;
++				regulator-min-microvolt = <1050000>;
++				regulator-max-microvolt = <1050000>;
++				regulator-name = "vdd-dcdc3";
++			};
++		};
++	};
++};
++
++&r_pio {
++/*
++ * Specifying the supply would create a circular dependency.
++ *
++ *	vcc-pl-supply = <&reg_aldo3>;
++ */
++	vcc-pm-supply = <&reg_aldo3>;
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_pb_pins>;
++	status = "okay";
++};
++
++&usb_otg {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&usbphy {
++	status = "okay";
++};
++
++&gmac1 {
++	phy-mode = "rgmii";
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&gmac1_pins_default>;
++	pinctrl-1 = <&gmac1_pins_sleep>;
++	aw,soc-phy25m;
++	tx-delay = <2>;
++	rx-delay = <5>;
++	dwmac3v3-supply = <&reg_cldo3>;
++	status = "okay";
++
++	mdio1: mdio1@1 {
++		gmac1_phy0: ethernet-phy@1 {
++			reset-gpios = <&pio 9 16 GPIO_ACTIVE_LOW>; /* PJ16 */
++		};
++	};
++};

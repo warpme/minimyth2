@@ -1,0 +1,215 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.15-rc5/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts linux-6.15-rc5/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts
+--- linux-6.15-rc5/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts	2025-05-04 22:55:04.000000000 +0200
++++ linux-6.15-rc5/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts	2025-05-06 16:16:55.377808183 +0200
+@@ -5,6 +5,7 @@
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/leds/common.h>
+ #include <dt-bindings/soc/rockchip,vop2.h>
++#include <dt-bindings/usb/pd.h>
+ #include "rk3588.dtsi"
+ 
+ / {
+@@ -12,8 +13,8 @@
+ 	compatible = "radxa,rock-5b", "rockchip,rk3588";
+ 
+ 	aliases {
+-		mmc0 = &sdhci;
+-		mmc1 = &sdmmc;
++		mmc0 = &sdmmc;
++		mmc1 = &sdhci;
+ 		mmc2 = &sdio;
+ 	};
+ 
+@@ -66,10 +67,10 @@
+ 		pinctrl-0 = <&led_rgb_b>;
+ 
+ 		led_rgb_b {
+-			function = LED_FUNCTION_STATUS;
++			function = LED_FUNCTION_DISK_ACTIVITY;
+ 			color = <LED_COLOR_ID_BLUE>;
+ 			gpios = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;
+-			linux,default-trigger = "heartbeat";
++			linux,default-trigger = "disk-activity";
+ 		};
+ 	};
+ 
+@@ -95,6 +96,15 @@
+ 		shutdown-gpios = <&gpio3 RK_PD5 GPIO_ACTIVE_HIGH>;
+ 	};
+ 
++	vcc12v_dcin: regulator-vcc12v-dcin {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc12v_dcin";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <12000000>;
++		regulator-max-microvolt = <12000000>;
++	};
++
+ 	vcc3v3_pcie2x1l0: regulator-vcc3v3-pcie2x1l0 {
+ 		compatible = "regulator-fixed";
+ 		enable-active-high;
+@@ -153,6 +163,7 @@
+ 		regulator-boot-on;
+ 		regulator-min-microvolt = <5000000>;
+ 		regulator-max-microvolt = <5000000>;
++		vin-supply = <&vcc12v_dcin>;
+ 	};
+ 
+ 	vcc_1v1_nldo_s3: regulator-vcc-1v1-nldo-s3 {
+@@ -316,6 +327,67 @@
+ 	};
+ };
+ 
++&i2c4 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c4m1_xfer>;
++	status = "okay";
++
++	usbc0: usb-typec@22 {
++		compatible = "fcs,fusb302";
++		reg = <0x22>;
++		interrupt-parent = <&gpio3>;
++		interrupts = <RK_PB4 IRQ_TYPE_LEVEL_LOW>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&usbc0_int>;
++		vbus-supply = <&vcc12v_dcin>;
++		/*
++		 * When the board is starting to send power-delivery messages
++		 * too late (5 seconds according to the specification), the
++		 * power-supply reacts with a hard-reset. That removes the
++		 * power from VBUS for some time, which resets te whole board.
++		 */
++		status = "fail";
++
++		usb_con: connector {
++			compatible = "usb-c-connector";
++			label = "USB-C";
++			data-role = "dual";
++			power-role = "sink";
++			try-power-role = "sink";
++			op-sink-microwatt = <1000000>;
++			sink-pdos =
++				<PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>,
++				<PDO_VAR(5000, 20000, 5000)>;
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				port@0 {
++					reg = <0>;
++					usbc0_role_sw: endpoint {
++						remote-endpoint = <&dwc3_0_role_switch>;
++					};
++				};
++
++				port@1 {
++					reg = <1>;
++					usbc0_orien_sw: endpoint {
++						remote-endpoint = <&usbdp_phy0_orientation_switch>;
++					};
++				};
++
++				port@2 {
++					reg = <2>;
++					dp_altmode_mux: endpoint {
++						remote-endpoint = <&usbdp_phy0_dp_altmode_mux>;
++					};
++				};
++			};
++		};
++	};
++};
++
+ &i2c6 {
+ 	status = "okay";
+ 
+@@ -493,6 +565,10 @@
+ 		vcc5v0_host_en: vcc5v0-host-en {
+ 			rockchip,pins = <4 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
+ 		};
++
++		usbc0_int: usbc0-int {
++			rockchip,pins = <3 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
+ 	};
+ };
+ 
+@@ -510,8 +586,8 @@
+ 	no-sdio;
+ 	no-sd;
+ 	non-removable;
+-	mmc-hs400-1_8v;
+-	mmc-hs400-enhanced-strobe;
++	max-frequency = <150000000>;
++	mmc-hs200-1_8v;
+ 	status = "okay";
+ };
+ 
+@@ -905,6 +981,14 @@
+ 	status = "okay";
+ };
+ 
++&u2phy0 {
++	status = "okay";
++};
++
++&u2phy0_otg {
++	status = "okay";
++};
++
+ &u2phy1 {
+ 	status = "okay";
+ };
+@@ -936,6 +1020,29 @@
+ 	status = "okay";
+ };
+ 
++&usbdp_phy0 {
++	mode-switch;
++	orientation-switch;
++	sbu1-dc-gpios = <&gpio4 RK_PA6 GPIO_ACTIVE_HIGH>;
++	sbu2-dc-gpios = <&gpio4 RK_PA7 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++
++	port {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		usbdp_phy0_orientation_switch: endpoint@0 {
++			reg = <0>;
++			remote-endpoint = <&usbc0_orien_sw>;
++		};
++
++		usbdp_phy0_dp_altmode_mux: endpoint@1 {
++			reg = <1>;
++			remote-endpoint = <&dp_altmode_mux>;
++		};
++	};
++};
++
+ &usb_host0_ehci {
+ 	status = "okay";
+ };
+@@ -944,6 +1051,20 @@
+ 	status = "okay";
+ };
+ 
++&usb_host0_xhci {
++	usb-role-switch;
++	status = "okay";
++
++	port {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		dwc3_0_role_switch: endpoint {
++			remote-endpoint = <&usbc0_role_sw>;
++		};
++	};
++};
++
+ &usb_host1_ehci {
+ 	status = "okay";
+ };
