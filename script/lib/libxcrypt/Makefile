@@ -1,6 +1,6 @@
 
 GARNAME      = libxcrypt
-GARVERSION   = 4.4.36
+GARVERSION   = 4.4.38
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/besser82/libxcrypt/archive/refs/tags/
 DISTFILES    = v$(GARVERSION).tar.gz
