@@ -1,9 +1,10 @@
-GARNAME = libxslt
-GARVERSION = 1.1.28
-CATEGORIES = lib
-MASTER_SITES = ftp://xmlsoft.org/libxml2/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = MIT_Modified
+
+GARNAME      = libxslt
+GARVERSION   = v1.1.43
+CATEGORIES   = lib
+MASTER_SITES = https://gitlab.gnome.org/GNOME/libxslt/-/archive/v1.1.43/
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = MIT_Modified
 
 DESCRIPTION = 
 define BLURB
