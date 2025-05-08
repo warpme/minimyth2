@@ -1,6 +1,6 @@
 
 GARNAME      = e2fsprogs
-GARVERSION   = 1.46.2
+GARVERSION   = 1.47.2
 CATEGORIES   = utils
 MASTER_SITES = https://www.kernel.org/pub/linux/kernel/people/tytso/$(GARNAME)/v$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.xz
