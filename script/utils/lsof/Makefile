@@ -1,6 +1,6 @@
 
 GARNAME      = lsof
-GARVERSION   = 4.94.0
+GARVERSION   = 4.99.4
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/lsof-org/lsof/archive/$(GARVERSION)/
 DISTFILES    = $(GARNAME).tar.gz
