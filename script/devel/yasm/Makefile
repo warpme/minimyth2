@@ -1,9 +1,11 @@
-GARNAME = yasm
-GARVERSION = 1.3.0
-CATEGORIES = devel
+
+GARNAME      = yasm
+GARVERSION   = 1.3.0
+CATEGORIES   = devel
 MASTER_SITES = http://www.tortall.net/projects/yasm/releases/
-DISTFILES = $(DISTNAME).tar.gz
-LICENSE = Artistic/BSD_2_Clause/BSD_3_Clause/LGPL2/GPL2
+DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = 01-fix-gcc15-building.patch
+LICENSE      = Artistic/BSD_2_Clause/BSD_3_Clause/LGPL2/GPL2
 
 DESCRIPTION = 
 define BLURB
