@@ -21,11 +21,12 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--prefix=/usr \
 	--enable-shared \
 	--disable-static \
-	--with-gnu-ld
+	--with-gnu-ld \
 
 include ../../gar.mk
 
 configure-custom:
+	@cd $(WORKSRC)/..; patch -p1 < ../../../files/01-fix-gcc15-building.patch
 	@cd $(WORKSRC); ../dist/configure $(CONFIGURE_ARGS)
 	@$(MAKECOOKIE)
 
