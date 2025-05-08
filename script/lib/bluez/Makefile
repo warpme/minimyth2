@@ -4,6 +4,7 @@ GARVERSION   = 5.82
 CATEGORIES   = lib
 MASTER_SITES = https://www.kernel.org/pub/linux/bluetooth/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = 01-fix-gcc15-compile.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
