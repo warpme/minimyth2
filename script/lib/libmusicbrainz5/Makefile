@@ -21,9 +21,12 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CMAKE_CONFIGURE_ARGS_BUILD =
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DCMAKE_CXX_FLAGS='-fpermissive' \
 
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
-	-DIMPORT_EXECUTABLES=../../build.d/libmusicbrainz-$(GARVERSION)_build/ImportExecutables.cmake
+	-DIMPORT_EXECUTABLES=../../build.d/libmusicbrainz-$(GARVERSION)_build/ImportExecutables.cmake \
+	-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+	-DCMAKE_CXX_FLAGS='-fpermissive' \
 
 include ../../gar.mk
