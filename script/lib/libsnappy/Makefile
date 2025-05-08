@@ -1,6 +1,6 @@
 
 GARNAME      = snappy
-GARVERSION   = 1.1.10
+GARVERSION   = 1.2.2
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/google/snappy/archive/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
