@@ -1,6 +1,6 @@
 
 GARNAME      = libedit
-GARVERSION   = 20210910-3.1
+GARVERSION   = 20250104-3.1
 CATEGORIES   = lib
 MASTER_SITES = https://thrysoee.dk/editline/
 DISTFILES    = $(DISTNAME).tar.gz
