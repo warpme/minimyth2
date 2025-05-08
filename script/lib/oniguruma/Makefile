@@ -1,6 +1,6 @@
 
 GARNAME      = oniguruma
-GARVERSION   = 6.9.6
+GARVERSION   = 6.9.10
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/kkos/oniguruma/releases/download/v$(GARVERSION)/
 DISTFILES    = onig-$(GARVERSION).tar.gz
