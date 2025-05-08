@@ -1,3 +1,4 @@
+
 GARNAME      = libusb
 GARVERSION   = 1.0.27
 CATEGORIES   = lib
@@ -23,7 +24,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-log \
 	--disable-debug-log \
 	--disable-examples-build \
-	--with-gnu-ld
+	--disable-udev \
+	--with-gnu-ld \
 
 include ../../gar.mk
 
