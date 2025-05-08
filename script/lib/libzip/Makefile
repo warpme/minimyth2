@@ -1,6 +1,6 @@
 
 GARNAME      = libzip
-GARVERSION   = 1.7.3
+GARVERSION   = 1.11.3
 CATEGORIES   = lib
 MASTER_SITES = https://libzip.org/download/
 DISTFILES    = $(DISTNAME).tar.xz
