@@ -11,6 +11,7 @@ PATCHFILES  += $(DISTNAME)-fix-egl-x11-detection-mesa-22.3.patch
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
 PATCHFILES  += $(DISTNAME)-qtwebengine-chromium-ffmpeg-fix-compile.patch
 PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compile-with-system-nss.patch
+PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compile-with-gcc15.patch
 # PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compile-with-icu75.patch
 # PATCHFILES  += $(DISTNAME)-qtwebengine-ffmpeg5.patch
 # PATCHFILES  += $(DISTNAME)-qtwebengine-ffmpeg7.patch
