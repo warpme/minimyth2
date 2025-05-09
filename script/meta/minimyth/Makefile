@@ -31,7 +31,6 @@ DEPENDS = \
 	$(if $(filter i386 x86_64,$(GARCH_FAMILY)),system/irserver) \
 	system/irxkeys \
 	net/lighttpd \
-	system/kbdd \
 	kernel/kernel \
 	fonts/dejavu-fonts \
 	fonts/liberation-fonts \
@@ -74,7 +73,6 @@ DEPENDS = \
 	X11/blackbox \
 	utils/regionset \
 	X11/rxvt \
-	utils/SDL-Test \
 	system/splashutils \
 	utils/squashfs \
 	system/sysvinit \

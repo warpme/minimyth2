@@ -27,7 +27,6 @@ DEPENDS = \
 	lib/libcoverart \
 	lib/libdiscid \
 	lib/libvorbis \
-	lib/SDL \
 	lib/taglib \
 	lib/libzip \
 	python3/python \
