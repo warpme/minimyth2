@@ -1,6 +1,6 @@
 
 GARNAME      = grub
-GARVERSION   = 2.04
+GARVERSION   = 2.12
 CATEGORIES   = bootloaders
 MASTER_SITES = https://git.savannah.gnu.org/cgit/grub.git/snapshot/
 DISTFILES    = $(DISTNAME).tar.gz
