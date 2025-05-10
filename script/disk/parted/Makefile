@@ -1,6 +1,6 @@
 
 GARNAME      = parted
-GARVERSION   = 3.5
+GARVERSION   = 3.6
 CATEGORIES   = lib
 MASTER_SITES = http://ftp.gnu.org/gnu/parted/
 DISTFILES    = $(DISTNAME).tar.xz
@@ -25,6 +25,8 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--with-libiconv-prefix=$(DESTDIR)$(libdir) \
 
 include ../../gar.mk
+
+CFLAGS += -Wno-incompatible-pointer-types
 
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libparted.la
