@@ -62,8 +62,13 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --exec-prefix=$(prefix) --prefix=$(prefix) \
 	--with-gnu-ld
 
-CFLAGS += -Wno-implicit-function-declaration 
-CFLAGS += -std=c17
+CFLAGS += -Wno-implicit-function-declaration -Wincompatible-pointer-types
+CFLAGS += -std=gnu17
+
+ifneq ($(DESTIMG),build)
+BUILD_ARGS= \
+	CFLAGS_FOR_BUILD=' -g -DCROSS_COMPILING -std=gnu17'
+endif
 
 include ../../gar.mk
 
