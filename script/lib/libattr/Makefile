@@ -1,9 +1,10 @@
 
 GARNAME      = attr
-GARVERSION   = 2.4.48
+GARVERSION   = 2.5.2
 CATEGORIES   = lib
 MASTER_SITES = https://download.savannah.gnu.org/releases/$(GARNAME)/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = stop-building-po.patch
 LICENSE      = GPL2/LGPL2_1
 
 DESCRIPTION = 
@@ -45,11 +46,7 @@ PKG_DOC_DIR     := $(docdir)/$(GARNAME)
 PKG_LOCALE_DIR  := $(datadir)/locale
 
 pre-configure:
-	@cd $(WORKSRC) ; rm -f include/config.h.in~
-	@cd $(WORKSRC) ; mv include/config.h.in include/config.h.in~
 	@$(call RUN_AUTOTOOLS, cd $(WORKSRC) ; autoreconf --verbose --install --force -I $(DESTDIR)$(datadir)/aclocal -I m4)
-	@cd $(WORKSRC) ; rm -f include/config.h.in
-	@cd $(WORKSRC) ; mv include/config.h.in~ include/config.h.in
 	@$(call FIX_LIBTOOL,$(WORKSRC)/configure)
 	@$(MAKECOOKIE)
 
