@@ -5,6 +5,7 @@ CATEGORIES   = lib
 MASTER_SITES = https://github.com/westes/flex/releases/download/v2.6.4/
 DISTFILES    = $(DISTNAME).tar.gz
 PATCHFILES   = $(DISTNAME)-perl.patch.gar
+PATCHFILES  += $(DISTNAME)-match-malloc-signature-to-its-use.patch
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT=$(WORKSRC)/COPYING
 
