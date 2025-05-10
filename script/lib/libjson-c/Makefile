@@ -1,6 +1,6 @@
 
 GARNAME      = json-c-json-c
-GARVERSION   = 0.17
+GARVERSION   = 0.18
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/json-c/json-c/archive/
 DISTFILES    = json-c-$(GARVERSION).tar.gz
@@ -21,5 +21,6 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 
 include ../../gar.mk
