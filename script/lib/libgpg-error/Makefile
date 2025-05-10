@@ -1,13 +1,10 @@
-GARNAME = libgpg-error
-# versions 1.13, 1.14, 1.15, 1.16, 1.17, 1.18 and 1.19 do not cross compile.
-GARVERSION = 1.12
-CATEGORIES = lib
-MASTER_SITES = ftp://ftp.gnupg.org/gcrypt/$(GARNAME)/
-DISTFILES = $(DISTNAME).tar.bz2
-PATCHFILES = \
-	$(DISTNAME)-gcc_5.0-fix.patch \
-	$(DISTNAME).patch.gar
-LICENSE = GPL2/LGPL2_1
+
+GARNAME      = libgpg-error
+GARVERSION   = 1.55
+CATEGORIES   = lib
+MASTER_SITES = https://www.gnupg.org/ftp/gcrypt/libgpg-error/
+DISTFILES    = $(DISTNAME).tar.bz2
+LICENSE      = GPL2/LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -41,7 +38,7 @@ post-install:
 	@rm -f $(DESTDIR)$(bindir)-config/gpg-error-config
 	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)gpg-error-config
 	@mkdir -p $(DESTDIR)$(bindir)-config
-	@mv $(DESTDIR)$(bindir)/gpg-error-config $(DESTDIR)$(bindir)-config/gpg-error-config
+	@mv $(WORKSRC)/src/gpg-error-config $(DESTDIR)$(bindir)-config/gpg-error-config
 	@$(if $(compiler_prefix), ln -sf gpg-error-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)gpg-error-config)
 	@$(MAKECOOKIE)
-	@$(MAKECOOKIE)
+
