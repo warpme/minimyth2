@@ -1,6 +1,6 @@
 
 GARNAME      = libvncserver-LibVNCServer
-GARVERSION   = 0.9.14
+GARVERSION   = 0.9.15
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://github.com/LibVNC/libvncserver/archive/
 DISTFILES    = LibVNCServer-$(GARVERSION).tar.gz
@@ -20,5 +20,6 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 
 include ../../gar.mk
