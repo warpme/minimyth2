@@ -19,5 +19,9 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --prefix="$(p
 	--with-libxslt-prefix=$(DESTDIR)$(prefix) \
 	--with-libxml-prefix=$(DESTDIR)$(prefix) \
 	--disable-build-docs \
+	ac_cv_func_realloc_0_nonnull=yes \
+	ac_cv_func_malloc_0_nonnull=yes \
+
+CFLAGS += -Wno-incompatible-pointer-types
 
 include ../../gar.mk
