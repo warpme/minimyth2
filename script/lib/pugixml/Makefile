@@ -1,6 +1,6 @@
 
 GARNAME      = pugixml
-GARVERSION   = 1.11.4
+GARVERSION   = 1.15
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/zeux/pugixml/releases/download/v$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.gz
