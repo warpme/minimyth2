@@ -1,8 +1,8 @@
 
 GARNAME      = cmake
-GARVERSION   = 3.31.6
+GARVERSION   = 4.0.2
 CATEGORIES   = devel
-MASTER_SITES = http://www.cmake.org/files/v3.31/
+MASTER_SITES = http://www.cmake.org/files/v4.0/
 DISTFILES    = $(DISTNAME).tar.gz
 LICENSE      = BSD_3_Clause
 
@@ -10,15 +10,11 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c
-
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 
-
 CONFIGURE_ARGS = \
-	--verbose \
 	--parallel=1 \
 	--no-system-libs \
 	--no-system-curl \
