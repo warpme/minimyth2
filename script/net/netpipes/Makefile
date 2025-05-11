@@ -15,17 +15,16 @@ DEPENDS = lang/c
 WORKSRC = $(WORKDIR)
 
 BUILD_SCRIPTS   = $(WORKSRC)/Makefile
-INSTALL_SCRIPTS = $(WORKSRC)/Makefile
+INSTALL_SCRIPTS = custom
 
 BUILD_ARGS = \
 	CC="$(CC)" \
-	CFLAGS="$(CFLAGS)"
-
-INSTALL_ARGS = \
-	INSTROOT=$(DESTDIR)$(prefix) \
-	INSTBIN=$(DESTDIR)$(bindir) \
-	INSTMAN=$(DESTDIR)$(mandir)
+	CFLAGS="$(CFLAGS) -std=c17 -Dlinux -DUSE_IOCTL -UPOSIX_SIG -DHAVE_INET_ATON -Wno-implicit-function-declaration" \
+	hose \
 
 include ../../gar.mk
 
-CFLAGS += -DUSE_IOCTL -DPOSIX_SIG -DHAVE_INET_ATON -Wno-implicit-function-declaration
+install-custom:
+	@cp -f $(WORKSRC)/hose $(DESTDIR)$(bindir)/
+	@$(MAKECOOKIE)
+
