@@ -2,9 +2,10 @@
 GARNAME      = ncurses
 GARVERSION   = $(NCURSES_VERSION)
 CATEGORIES   = lib
-MASTER_SITES = https://ftp.gnu.org/pub/gnu/ncurses/
-DISTFILES    = $(DISTNAME).tar.gz
+MASTER_SITES = https://github.com/ThomasDickey/ncurses-snapshots/archive/refs/tags/
+DISTFILES    = v$(GARVERSION).tar.gz
 LICENSE      = MIT_Modified
+WORKSRC      = $(WORKDIR)/ncurses-snapshots-$(GARVERSION)
 
 DESCRIPTION =
 define BLURB

@@ -11,7 +11,7 @@ endef
 
 DEPENDS = lang/c
 
-WORKSRC = $(WORKDIR)/ncurses-$(GARVERSION)
+WORKSRC = $(WORKDIR)/ncurses-snapshots-$(GARVERSION)
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
