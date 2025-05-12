@@ -1,0 +1,377 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+--- linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2025-02-08 21:09:13.666676819 +0100
++++ linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2025-02-08 20:24:22.413334619 +0100
+@@ -26,6 +26,9 @@
+ #include <drm/drm_edid.h>
+ #include <drm/drm_modes.h>
+ 
++#include <media/cec.h>
++#include <media/cec-notifier.h>
++
+ #include <sound/hdmi-codec.h>
+ 
+ #include "dw-hdmi-qp.h"
+@@ -40,6 +43,19 @@
+ 
+ #define SCRAMB_POLL_DELAY_MS	3000
+ 
++#ifdef CONFIG_DRM_DW_HDMI_QP_CEC
++struct dw_hdmi_qp_cec {
++	u32 addresses;
++	struct cec_adapter *adap;
++	struct cec_msg rx_msg;
++	unsigned int tx_status;
++	bool tx_done;
++	bool rx_done;
++	struct cec_notifier *notify;
++	int irq;
++};
++#endif
++
+ /*
+  * Unless otherwise noted, entries in this table are 100% optimization.
+  * Values can be obtained from dw_hdmi_qp_compute_n() but that function is
+@@ -139,6 +155,9 @@
+ 
+ 	struct device *dev;
+ 	struct dw_hdmi_qp_i2c *i2c;
++#ifdef CONFIG_DRM_DW_HDMI_QP_CEC
++	struct dw_hdmi_qp_cec *cec;
++#endif
+ 
+ 	struct {
+ 		const struct dw_hdmi_qp_phy_ops *ops;
+@@ -732,6 +751,250 @@
+ 	return adap;
+ }
+ 
++#ifdef CONFIG_DRM_DW_HDMI_QP_CEC
++static int dw_hdmi_qp_cec_log_addr(struct cec_adapter *adap, u8 logical_addr)
++{
++	struct dw_hdmi_qp *hdmi = cec_get_drvdata(adap);
++	struct dw_hdmi_qp_cec *cec = hdmi->cec;
++
++	if (logical_addr == CEC_LOG_ADDR_INVALID)
++		cec->addresses = 0;
++	else
++		cec->addresses |= BIT(logical_addr) | BIT(15);
++
++	dw_hdmi_qp_write(hdmi, cec->addresses, CEC_ADDR);
++
++	return 0;
++}
++
++static int dw_hdmi_qp_cec_transmit(struct cec_adapter *adap, u8 attempts,
++				   u32 signal_free_time, struct cec_msg *msg)
++{
++	struct dw_hdmi_qp *hdmi = cec_get_drvdata(adap);
++	unsigned int i;
++	u32 val;
++
++	for (i = 0; i < msg->len; i++) {
++		if (!(i % 4))
++			val = msg->msg[i];
++		if ((i % 4) == 1)
++			val |= msg->msg[i] << 8;
++		if ((i % 4) == 2)
++			val |= msg->msg[i] << 16;
++		if ((i % 4) == 3)
++			val |= msg->msg[i] << 24;
++
++		if (i == (msg->len - 1) || (i % 4) == 3)
++			dw_hdmi_qp_write(hdmi, val, CEC_TX_DATA3_0 + (i / 4) * 4);
++	}
++
++	dw_hdmi_qp_write(hdmi, msg->len - 1, CEC_TX_COUNT);
++	dw_hdmi_qp_write(hdmi, CEC_CTRL_START, CEC_TX_CONTROL);
++
++	return 0;
++}
++
++static irqreturn_t dw_hdmi_qp_cec_hardirq(int irq, void *data)
++{
++	struct cec_adapter *adap = data;
++	struct dw_hdmi_qp *hdmi = cec_get_drvdata(adap);
++	struct dw_hdmi_qp_cec *cec = hdmi->cec;
++	u32 stat = dw_hdmi_qp_read(hdmi, CEC_INT_STATUS);
++	irqreturn_t ret = IRQ_HANDLED;
++
++	if (stat == 0)
++		return IRQ_NONE;
++
++	dw_hdmi_qp_write(hdmi, stat, CEC_INT_CLEAR);
++
++	if (stat & CEC_STAT_LINE_ERR) {
++		cec->tx_status = CEC_TX_STATUS_ERROR;
++		cec->tx_done = true;
++		ret = IRQ_WAKE_THREAD;
++	} else if (stat & CEC_STAT_DONE) {
++		cec->tx_status = CEC_TX_STATUS_OK;
++		cec->tx_done = true;
++		ret = IRQ_WAKE_THREAD;
++	} else if (stat & CEC_STAT_NACK) {
++		cec->tx_status = CEC_TX_STATUS_NACK;
++		cec->tx_done = true;
++		ret = IRQ_WAKE_THREAD;
++	}
++
++	if (stat & CEC_STAT_EOM) {
++		unsigned int len, i, val;
++
++		val = dw_hdmi_qp_read(hdmi, CEC_RX_COUNT_STATUS);
++		len = (val & 0xf) + 1;
++
++		if (len > sizeof(cec->rx_msg.msg))
++			len = sizeof(cec->rx_msg.msg);
++
++		for (i = 0; i < 4; i++) {
++			val = dw_hdmi_qp_read(hdmi, CEC_RX_DATA3_0 + i * 4);
++			cec->rx_msg.msg[i * 4] = val & 0xff;
++			cec->rx_msg.msg[i * 4 + 1] = (val >> 8) & 0xff;
++			cec->rx_msg.msg[i * 4 + 2] = (val >> 16) & 0xff;
++			cec->rx_msg.msg[i * 4 + 3] = (val >> 24) & 0xff;
++		}
++
++		dw_hdmi_qp_write(hdmi, 1, CEC_LOCK_CONTROL);
++
++		cec->rx_msg.len = len;
++		cec->rx_done = true;
++
++		ret = IRQ_WAKE_THREAD;
++	}
++
++	return ret;
++}
++
++static irqreturn_t dw_hdmi_qp_cec_thread(int irq, void *data)
++{
++	struct cec_adapter *adap = data;
++	struct dw_hdmi_qp *hdmi = cec_get_drvdata(adap);
++	struct dw_hdmi_qp_cec *cec = hdmi->cec;
++
++	if (cec->tx_done) {
++		cec->tx_done = false;
++		cec_transmit_attempt_done(adap, cec->tx_status);
++	}
++	if (cec->rx_done) {
++		cec->rx_done = false;
++		cec_received_msg(adap, &cec->rx_msg);
++	}
++	return IRQ_HANDLED;
++}
++
++static int dw_hdmi_qp_cec_enable(struct cec_adapter *adap, bool enable)
++{
++	struct dw_hdmi_qp *hdmi = cec_get_drvdata(adap);
++	struct dw_hdmi_qp_cec *cec = hdmi->cec;
++	u32 swdisable;
++
++	if (!enable) {
++		dw_hdmi_qp_write(hdmi, 0, CEC_INT_MASK_N);
++		dw_hdmi_qp_write(hdmi, ~0, CEC_INT_CLEAR);
++
++		swdisable = dw_hdmi_qp_read(hdmi, GLOBAL_SWDISABLE);
++		dw_hdmi_qp_write(hdmi, swdisable, GLOBAL_SWDISABLE);
++		swdisable = swdisable | CEC_SWDISABLE;
++	} else {
++		unsigned int irqs;
++
++		swdisable = dw_hdmi_qp_read(hdmi, GLOBAL_SWDISABLE);
++		swdisable = swdisable & ~CEC_SWDISABLE;
++		dw_hdmi_qp_write(hdmi, swdisable, GLOBAL_SWDISABLE);
++
++		dw_hdmi_qp_write(hdmi, ~0, CEC_INT_CLEAR);
++		dw_hdmi_qp_write(hdmi, 1, CEC_LOCK_CONTROL);
++
++		dw_hdmi_qp_cec_log_addr(cec->adap, CEC_LOG_ADDR_INVALID);
++
++		irqs = CEC_STAT_LINE_ERR | CEC_STAT_NACK | CEC_STAT_EOM |
++		       CEC_STAT_DONE;
++		dw_hdmi_qp_write(hdmi, ~0, CEC_INT_CLEAR);
++		dw_hdmi_qp_write(hdmi, irqs, CEC_INT_MASK_N);
++	}
++	return 0;
++}
++
++static const struct cec_adap_ops dw_hdmi_qp_cec_ops = {
++	.adap_enable = dw_hdmi_qp_cec_enable,
++	.adap_log_addr = dw_hdmi_qp_cec_log_addr,
++	.adap_transmit = dw_hdmi_qp_cec_transmit,
++};
++
++static void dw_hdmi_qp_cec_del(void *data)
++{
++	struct dw_hdmi_qp_cec *cec = data;
++
++	cec_delete_adapter(cec->adap);
++}
++
++static int dw_hdmi_qp_cec_init(struct platform_device *pdev, struct dw_hdmi_qp *hdmi)
++{
++	struct dw_hdmi_qp_cec *cec;
++	int ret;
++	int irq;
++
++	irq = platform_get_irq(pdev, 1);
++	if (irq < 0)
++		return irq;
++
++	cec = devm_kzalloc(hdmi->dev, sizeof(*cec), GFP_KERNEL);
++	if (!cec)
++		return -ENOMEM;
++
++	cec->irq = irq;
++
++	dw_hdmi_qp_write(hdmi, 0, CEC_TX_COUNT);
++	dw_hdmi_qp_write(hdmi, ~0, CEC_INT_CLEAR);
++	dw_hdmi_qp_write(hdmi, 0, CEC_INT_MASK_N);
++
++	cec->adap = cec_allocate_adapter(&dw_hdmi_qp_cec_ops, hdmi, "dw_hdmi_qp",
++					 CEC_CAP_LOG_ADDRS | CEC_CAP_TRANSMIT |
++					 CEC_CAP_RC | CEC_CAP_PASSTHROUGH,
++					 CEC_MAX_LOG_ADDRS);
++	if (IS_ERR(cec->adap)) {
++		dev_err(hdmi->dev, "cec allocate adapter failed\n");
++		return PTR_ERR(cec->adap);
++	}
++
++	ret = devm_add_action(hdmi->dev, dw_hdmi_qp_cec_del, cec);
++	if (ret) {
++		dev_err(hdmi->dev, "cec add action failed\n");
++		cec_delete_adapter(cec->adap);
++		return ret;
++	}
++
++	if (cec->irq < 0) {
++		ret = cec->irq;
++		dev_err(hdmi->dev, "cec get irq failed\n");
++		return ret;
++	}
++
++	ret = devm_request_threaded_irq(hdmi->dev, cec->irq,
++					dw_hdmi_qp_cec_hardirq,
++					dw_hdmi_qp_cec_thread, IRQF_SHARED,
++					"dw-hdmi-qp-cec", cec->adap);
++	if (ret < 0) {
++		dev_err(hdmi->dev, "cec request irq thread failed\n");
++		return ret;
++	}
++
++	cec->notify = cec_notifier_cec_adap_register(hdmi->dev,
++						     NULL, cec->adap);
++	if (!cec->notify) {
++		dev_err(hdmi->dev, "cec notifier adap register failed\n");
++		return -ENOMEM;
++	}
++
++	ret = cec_register_adapter(cec->adap, hdmi->dev);
++	if (ret < 0) {
++		dev_err(hdmi->dev, "cec adap register failed\n");
++		cec_notifier_cec_adap_unregister(cec->notify, cec->adap);
++		return ret;
++	}
++
++	/*
++	 * CEC documentation says we must not call cec_delete_adapter
++	 * after a successful call to cec_register_adapter().
++	 */
++	devm_remove_action(&pdev->dev, dw_hdmi_qp_cec_del, cec);
++	hdmi->cec = cec;
++	return 0;
++}
++
++#else
++
++static int dw_hdmi_qp_cec_init(struct platform_device *pdev, struct dw_hdmi_qp *hdmi)
++{
++	return 0;
++}
++
++#endif /* CONFIG_DRM_DW_HDMI_QP_CEC */
++
+ static int dw_hdmi_qp_config_avi_infoframe(struct dw_hdmi_qp *hdmi,
+ 					   const u8 *buffer, size_t len)
+ {
+@@ -1074,6 +1337,11 @@
+ 	dw_hdmi_qp_reset_link(hdmi->connector, ctx);
+ 	/* dw_hdmi_qp_set_scramb(hdmi); */
+ 
++#ifdef CONFIG_DRM_DW_HDMI_QP_CEC
++	if (status != connector_status_connected)
++		cec_notifier_set_phys_addr(hdmi->cec->notify, CEC_PHYS_ADDR_INVALID);
++#endif
++
+ 	return status;
+ }
+ 
+@@ -1088,6 +1356,15 @@
+ 	if (!drm_edid)
+ 		dev_dbg(hdmi->dev, "failed to get edid\n");
+ 
++#ifdef CONFIG_DRM_DW_HDMI_QP_CEC
++	if (hdmi->cec->notify) {
++		const struct edid *edid;
++
++		edid = drm_edid_raw(drm_edid);
++		cec_notifier_set_phys_addr_from_edid(hdmi->cec->notify, edid);
++	}
++#endif
++
+ 	return drm_edid;
+ }
+ 
+@@ -1269,6 +1546,10 @@
+ 	if (ret)
+ 		return ERR_PTR(ret);
+ 
++	ret = dw_hdmi_qp_cec_init(pdev, hdmi);
++	if (ret)
++		return ERR_PTR(ret);
++
+ 	hdmi->bridge.driver_private = hdmi;
+ 	hdmi->bridge.funcs = &dw_hdmi_qp_bridge_funcs;
+ 	hdmi->bridge.ops = DRM_BRIDGE_OP_DETECT |
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h
+--- linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h	2025-02-03 00:39:26.000000000 +0100
++++ linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h	2025-02-08 20:31:36.690002679 +0100
+@@ -488,7 +488,21 @@
+ #define AUDPKT_VBIT_OVR0				0xf24
+ /* CEC Registers */
+ #define CEC_TX_CONTROL					0x1000
++#define CEC_CTRL_CLEAR					BIT(0)
++#define CEC_CTRL_START					BIT(0)
+ #define CEC_STATUS					0x1004
++#define CEC_STAT_DONE					BIT(0)
++#define CEC_STAT_NACK					BIT(1)
++#define CEC_STAT_ARBLOST				BIT(2)
++#define CEC_STAT_LINE_ERR				BIT(3)
++#define CEC_STAT_RETRANS_FAIL				BIT(4)
++#define CEC_STAT_DISCARD				BIT(5)
++#define CEC_STAT_TX_BUSY				BIT(8)
++#define CEC_STAT_RX_BUSY				BIT(9)
++#define CEC_STAT_DRIVE_ERR				BIT(10)
++#define CEC_STAT_EOM					BIT(11)
++#define CEC_STAT_NOTIFY_ERR				BIT(12)
++
+ #define CEC_CONFIG					0x1008
+ #define CEC_ADDR					0x100c
+ #define CEC_TX_COUNT					0x1020
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/Kconfig linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/Kconfig
+--- linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/Kconfig	2025-02-03 00:39:26.000000000 +0100
++++ linux-6.14-rc1/drivers/gpu/drm/bridge/synopsys/Kconfig	2025-02-08 21:04:40.836675916 +0100
+@@ -54,6 +54,15 @@
+ 	select DRM_KMS_HELPER
+ 	select REGMAP_MMIO
+ 
++config DRM_DW_HDMI_QP_CEC
++	bool "Synopsis Designware CEC interface for Quad Pixel TX"
++	depends on DRM_DW_HDMI_QP
++	select CEC_CORE
++	select CEC_NOTIFIER
++	help
++	  Support the CE interface which is part of the Synopsys
++	  Designware HDMI block.
++
+ config DRM_DW_MIPI_DSI
+ 	tristate
+ 	select DRM_KMS_HELPER

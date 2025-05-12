@@ -292,6 +292,7 @@ PATCHFILES += 1055-media-rockchip-Move-H264-CABAC-table-to-header-file.patch
 PATCHFILES += 1056-media-rockchip-Introduce-the-rkvdec2-driver.patch
 PATCHFILES += 1057-media-dt-bindings-rockchip-Document-RK3588-Video-Dec.patch
 # var additions
+PATCHFILES += 1058-drm-bridge-synopsys-add-cec-support.patch
 PATCHFILES += 1060-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1061-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 PATCHFILES += 1062-WIP-iommu-rockchip-add-flush_iotlb_all-ops.patch
