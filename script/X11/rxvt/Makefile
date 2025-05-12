@@ -24,3 +24,7 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) \
 	--disable-perl \
 
 include ../../gar.mk
+
+post-install:
+	@ln -srf $(DESTDIR)$(bindir)/urxvt $(DESTDIR)$(bindir)/rxvt
+	$(MAKECOOKIE)
