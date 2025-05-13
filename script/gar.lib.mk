@@ -358,13 +358,16 @@ configure-%/cmake:
 	@rm -rf $*
 	@mkdir -p $*
 ifneq ($(DESTIMG),build)
-	@cd $* && $(CONFIGURE_ENV) $(CMAKE) -DCMAKE_SYSTEM_NAME="Linux" -DCMAKE_CROSSCOMPILING="ON" $(DIRPATHS_CMAKE) $(CMAKE_CONFIGURE_ARGS) ../$(DISTNAME)
+	@#cross build
+	@cd $* && $(CONFIGURE_ENV) $(CMAKE) -DCMAKE_SYSTEM_NAME="Linux" -DCMAKE_CROSSCOMPILING="ON" $(if $(filter i386,$(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="i386") $(if $(filter x86_64,$(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="x86_64") $(if $(filter arm, $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="arm") $(if $(filter arm64, $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="aarch64") $(DIRPATHS_CMAKE) $(CMAKE_CONFIGURE_ARGS) ../$(DISTNAME)
 	$(warning CMAKE configure will be invoked with: $(CMAKE_CONFIGURE_ARGS))
 else
 ifneq ($(CMAKE_CONFIGURE_ARGS_BUILD),)
+	@#native build with dedicated CMAKE_CONFIGURE_ARGS_BUILD args
 	@cd $* && $(CONFIGURE_ENV) $(CMAKE) $(DIRPATHS_CMAKE) $(CMAKE_CONFIGURE_ARGS_BUILD) ../$(DISTNAME)
 	$(warning CMAKE configure will be invoked with: $(CMAKE_CONFIGURE_ARGS_BUILD))
 else
+	@#native build with the same like cross build args
 	@cd $* && $(CONFIGURE_ENV) $(CMAKE) $(DIRPATHS_CMAKE) $(CMAKE_CONFIGURE_ARGS) ../$(DISTNAME)
 	$(warning CMAKE configure will be invoked with: $(CMAKE_CONFIGURE_ARGS))
 endif
