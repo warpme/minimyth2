@@ -13,8 +13,9 @@ mm-all:
 		if [ ! "$$?" = "0" ] ; then \
 			echo " " ; \
 			echo "error: your system does not contain the program 'which' and/or 'bash'" ; \
+			echo "       building of MiniMyth2 probably will fail but...lets try ..." ; \
 			echo " " ; \
-			exit 1 ; \
+			sleep 5 ; \
 		fi
 	@# Check build environment.
 	@echo "  build system binaries ..."
@@ -25,8 +26,9 @@ mm-all:
 			if [ ! "$$?" = "0" ] ; then \
 				echo " " ; \
 				echo "error: your system does not contain the program '$(bin)' (from package '$(pkg)')." ; \
+				echo "       building of MiniMyth2 probably will fail but...lets try ..." ; \
 				echo " " ; \
-				exit 1 ; \
+				sleep 5 ; \
 			fi ; \
 		) \
 	)
