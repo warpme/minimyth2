@@ -1,7 +1,7 @@
 
 GARNAME      = SPIRV-LLVM-Translator
-# llvm_release_180 head@30.04.2024
-GARVERSION   = 04175873d750583878f789f5d2c5e0dc355dc6dc
+# v20.1.2 @10.04.2025
+GARVERSION   = 6dd8f2a1681a27f16c53d932d2765920f312aeb2
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/KhronosGroup/SPIRV-LLVM-Translator/archive/
 DISTFILES    = $(GARVERSION).zip
