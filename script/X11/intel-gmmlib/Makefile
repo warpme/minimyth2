@@ -1,6 +1,6 @@
 
 GARNAME      = gmmlib-intel-gmmlib
-GARVERSION   = 22.3.20
+GARVERSION   = 22.7.2
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/gmmlib/archive/refs/tags/
 DISTFILES    = $(DISTNAME).tar.gz
@@ -18,5 +18,6 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 	-DRUN_TEST_SUITE="OFF" \
+	-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 
 include ../../gar.mk
