@@ -1,6 +1,6 @@
 
 GARNAME      = media-driver-intel-media
-GARVERSION   = 24.2.5
+GARVERSION   = 25.1.4
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/media-driver/archive/refs/tags/
 DISTFILES    = intel-media-$(GARVERSION).tar.gz
@@ -21,5 +21,6 @@ CMAKE_CONFIGURE_ARGS = \
 	-DBUILD_CMRTLIB="OFF" \
 	-DENABLE_NONFREE_KERNELS="ON" \
 	-DRUN_TEST_SUITE="OFF" \
+	-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 
 include ../../gar.mk
