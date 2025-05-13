@@ -106,7 +106,7 @@ MESON_CONFIGURE_ARGS += \
 	-D video-codecs=vc1dec,h264dec,h265dec \
 	-D llvm=enabled \
 
-DEPENDS += devel/llvm lib/libclc
+DEPENDS += devel/llvm
 BUILDDEPS += devel/llvm
 endif
 endif
