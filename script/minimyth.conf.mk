@@ -341,7 +341,7 @@ mm_GARHOST                ?= $(strip \
 mm_CFLAGS                 ?= $(strip \
                                  -pipe                                                                                        \
                                  $(if $(filter pentium-mmx ,$(mm_GARCH)),-march=pentium-mmx -mtune=generic              -O3 ) \
-                                 $(if $(filter x86-64      ,$(mm_GARCH)),-march=x86-64 -mtune=generic -mfpmath=sse      -O3 ) \
+                                 $(if $(filter x86-64      ,$(mm_GARCH)),-march=x86-64 -mtune=generic                   -O3 ) \
                                  $(if $(filter armv7       ,$(mm_GARCH)),-mthumb -march=armv7-a+simd -mfloat-abi=softfp -O3 ) \
                                  $(if $(filter armv8       ,$(mm_GARCH)),-march=armv8-a+fp+simd                         -O3 ) \
                                  -flto=auto -Wl,-O1 -Wl,--sort-common -Wl,-z,relro -Wl,-z,now -Wl,-z,pack-relative-relocs \
