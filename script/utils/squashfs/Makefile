@@ -20,3 +20,7 @@ INSTALL_SCRIPTS = $(WORKSRC)/squashfs-tools/Makefile
 include ../../gar.mk
 
 INSTALL_ARGS="INSTALL_PREFIX=$(DESTDIR)$(prefix)"
+
+pre-build:
+	@sed -e 's|#XZ_SUPPORT.*|XZ_SUPPORT = 1|g' -i $(WORKSRC)/squashfs-tools/Makefile
+	$(MAKECOOKIE)
