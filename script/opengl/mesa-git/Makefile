@@ -1,16 +1,29 @@
 
+ifeq (0,1)
 GARNAME      = mesa
-# 24.3.0 21.11.2024
-GARVERSION   = f1f246cfda65eff82fba3be1caf2d23bdeda60cc
+# 25.1.0
+GARVERSION   = 5c142e46f3f6e752ed745fd48912ebb8fad67145
 CATEGORIES   = $(CATEGORY)
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 WORKSRC      = $(WORKDIR)/$(DISTNAME)
+endif
+
+ifeq (1,1)
+GARNAME      = mesa
+GARVERSION   = 25.1.0
+CATEGORIES   = $(CATEGORY)
+MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
+DISTFILES    = mesa-$(DISTNAME).tar.gz
+WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
+endif
 
 DESCRIPTION = 
 define BLURB
 endef
 
+ifneq ($(DESTIMG),build)
+# deps for target
 DEPENDS =                      \
 	lang/c                 \
 	lang/cxx               \
@@ -32,6 +45,8 @@ DEPENDS =                      \
 	wayland/wayland-protocols \
 	wayland/wayland-core   \
 	system/eudev           \
+	devel/llvm             \
+	lib/SPIRV-LLVM-Translator \
 
 BUILDDEPS  = \
 	lib/libxml2          \
@@ -44,6 +59,24 @@ BUILDDEPS  = \
 	xorg/libxshmfence    \
 	wayland/wayland-core \
 	opengl/glslang       \
+	devel/llvm           \
+	opengl/mesa-git      \
+
+else
+# deps for build
+DEPENDS =                    \
+	lib/libxml2          \
+	python3/python       \
+	python3/python-ply   \
+	python3/python-mako  \
+	python3/python-pyyaml \
+	devel/meson          \
+	opengl/glslang       \
+	devel/llvm           \
+	lib/SPIRV-LLVM-Translator \
+	xorg/libdrm            \
+
+endif
 
 PWD := $(shell pwd)
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
@@ -52,35 +85,45 @@ CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
 INSTALL_SCRIPTS    = meson
 
-include ../../gar.mk
+MESON_CONFIGURE_ARGS_BUILD = \
+	-D glvnd=disabled \
+	-D gallium-drivers=iris \
+	-D gallium-vdpau=disabled \
+	-D platforms= \
+	-D glx=disabled \
+	-D vulkan-drivers= \
+	-D cpp_rtti=false \
+	-D install-mesa-clc=true \
+	-D tools=panfrost \
+	-D precomp-compiler=enabled \
+	-D install-precomp-compiler=true \
+	-D shared-llvm=disabled \
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
 	-D dri-drivers-path="/usr/lib/dri" \
 	-D va-libs-path="$(libdir)" \
 	-D vdpau-libs-path="$(libdir)" \
-	-D shared-glapi=true \
 	-D shared-llvm=enabled \
 	-D gbm=enabled \
-	-D shared-glapi=enabled \
 	-D glx=dri \
 	-D egl=enabled \
 	-D gles1=enabled \
 	-D gles2=enabled \
 	-D glvnd=disabled \
-	-D gallium-xa=disabled \
-	-D gallium-nine=false \
 	-D b_lto=true \
 	-D b_ndebug=true \
 	-D cpp_link_args="-L$(build_DESTDIR)$(build_libdir)/glibc-nptl/" \
 	-D platforms=x11,wayland \
 	-D cpp_rtti=false \
 	-D vulkan-drivers=amd,intel \
-	-D gallium-opencl=disabled \
 	-D gallium-rusticl=false \
-	-D opencl-spirv=false \
 	-D microsoft-clc=disabled \
 	-D install-intel-clc=false \
+	-D llvm=enabled \
+	-D mesa-clc=system \
+
+include ../../gar.mk
 
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
@@ -88,7 +131,7 @@ MESON_CONFIGURE_ARGS += \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
 	-D vulkan-drivers= \
-	-D llvm=disabled \
+	-D precomp-compiler=system \
 	-D c_args="-mfpu=neon -mfloat-abi=softfp" \
 
 else
@@ -98,18 +141,15 @@ MESON_CONFIGURE_ARGS += \
 	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
 	-D vulkan-drivers= \
-	-D llvm=disabled \
+	-D precomp-compiler=system \
 
 else
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=radeonsi,iris,crocus,nouveau,swrast \
+	-D gallium-drivers=radeonsi,iris,crocus,nouveau \
 	-D gallium-vdpau=enabled \
 	-D gallium-va=enabled \
 	-D video-codecs=vc1dec,h264dec,h265dec \
-	-D llvm=enabled \
 
-DEPENDS += devel/llvm lib/libclc
-BUILDDEPS += devel/llvm
 endif
 endif
 
@@ -217,7 +257,6 @@ ifneq (,$(findstring sun4i,$(mm_GRAPHICS)))
 	@echo "    -Mali G31"                                                                       >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
 	@echo " "                                                                                   >> $(DESTDIR)/usr/share/supported-sun4i-gfx-hardware.txt
 endif
-endif
 	@rm -f "$(DESTDIR)/usr/share/supported-intel-gfx-hardware.txt"
 	@# Generate udev rules for Intel i915
 	@cd files/udev-generator; ./generate-x-udev-rules.sh \
@@ -317,6 +356,7 @@ endif
 		"./vmwgfx_names_with_HW_accell.lst" \
 		"vmwgfx"
 	@$(MAKECOOKIE)
+endif
 
 clean-all:
 	@rm -f $(DESTDIR)$(libdir)/libGL.*
