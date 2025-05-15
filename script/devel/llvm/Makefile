@@ -22,31 +22,51 @@ WORKSRC = $(WORKDIR)/$(DISTNAME).src
 WORKBLD = $(WORKDIR)/$(DISTNAME)_build
 
 CONFIGURE_SCRIPTS = llvm
-BUILD_SCRIPTS     = llvm
+BUILD_SCRIPTS     = llvm llvm_config
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
+
+CONFIGURE_ARGS_COMMON = \
+	-DCMAKE_BUILD_TYPE=MinSizeRel \
+	-DCMAKE_SYSTEM_NAME="Linux" \
+	-DCMAKE_VERBOSE_MAKEFILE=OFF \
+	-DLLVM_INCLUDE_TOOLS=ON \
+	-DLLVM_BUILD_TOOLS=OFF \
+	-DLLVM_BUILD_UTILS=OFF \
+	-DLLVM_BUILD_EXAMPLES=OFF \
+	-DLLVM_INCLUDE_EXAMPLES=OFF \
+	-DLLVM_BUILD_TESTS=OFF \
+	-DLLVM_INCLUDE_TESTS=OFF \
+	-DLLVM_BUILD_BENCHMARKS=OFF \
+	-DLLVM_INCLUDE_BENCHMARKS=OFF \
+	-DLLVM_BUILD_DOCS=OFF \
+	-DLLVM_INCLUDE_DOCS=OFF \
+	-DLLVM_ENABLE_DOXYGEN=OFF \
+	-DLLVM_ENABLE_SPHINX=OFF \
+	-DLLVM_ENABLE_OCAMLDOC=OFF \
+	-DLLVM_ENABLE_BINDINGS=OFF \
+	-DLLVM_ENABLE_ASSERTIONS=OFF \
+	-DLLVM_ENABLE_WERROR=OFF \
+	-DLLVM_ENABLE_ZLIB=OFF \
+	-DLLVM_ENABLE_ZSTD=OFF \
+	-DLLVM_ENABLE_LIBXML2=OFF \
+	-DLLVM_BUILD_LLVM_DYLIB=ON \
+	-DLLVM_LINK_LLVM_DYLIB=ON \
+	-DLLVM_OPTIMIZED_TABLEGEN=ON \
+	-DLLVM_APPEND_VC_REV=OFF \
+	-DLLVM_ENABLE_RTTI=ON \
+	-DLLVM_ENABLE_UNWIND_TABLES=OFF \
+	-DLLVM_ENABLE_Z3_SOLVER=OFF \
+	-DCMAKE_SKIP_RPATH=ON \
 
 ifneq ($(DESTIMG),build)
 # config for target
-CONFIGURE_ARGS = $(DIRPATHS_CMAKE)         \
-	-DCMAKE_SYSTEM_NAME="Linux"        \
+CONFIGURE_ARGS = \
+	$(DIRPATHS_CMAKE) \
+	$(CONFIGURE_ARGS_COMMON) \
+	-DCMAKE_CROSSCOMPILING=ON \
 	-DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
 	-DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
-	-DCMAKE_VERBOSE_MAKEFILE="OFF"     \
-	-DLLVM_BUILD_LLVM_DYLIB="ON"       \
-	-DLLVM_LINK_LLVM_DYLIB="ON"        \
-	-DLLVM_BUILD_TOOLS="ON"            \
-	-DLLVM_INCLUDE_TOOLS="ON"          \
-	-DLLVM_BUILD_EXAMPLES="OFF"        \
-	-DLLVM_INCLUDE_EXAMPLES="OFF"      \
-	-DLLVM_BUILD_TESTS="OFF"           \
-	-DLLVM_INCLUDE_TESTS="OFF"         \
-	-DLLVM_ENABLE_LTO="OFF"            \
-	-DLLVM_BUILD_DOCS="OFF"            \
-	-DLLVM_ENABLE_DOXYGEN="OFF"        \
-	-DCMAKE_BUILD_TYPE=Release         \
-	-DLLVM_BUILD_BENCHMARKS="OFF"      \
-	-DLLVM_INCLUDE_BENCHMARKS="OFF"    \
-	-DLLVM_ENABLE_PROJECTS="clang;libclc" \
+	-DLLVM_ENABLE_PROJECTS="" \
 	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
 	 -DLLVM_TARGET_ARCH="X86"                 \
 	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" )   \
@@ -59,26 +79,13 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE)         \
 
 else
 # config for build
-CONFIGURE_ARGS = $(DIRPATHS_CMAKE)      \
-	-DCMAKE_VERBOSE_MAKEFILE="OFF"  \
-	-DLLVM_BUILD_LLVM_DYLIB="ON"    \
-	-DLLVM_LINK_LLVM_DYLIB="ON"     \
-	-DLLVM_BUILD_TOOLS="ON"         \
-	-DLLVM_INCLUDE_TOOLS="ON"       \
-	-DLLVM_BUILD_EXAMPLES="OFF"     \
-	-DLLVM_INCLUDE_EXAMPLES="OFF"   \
-	-DLLVM_BUILD_TESTS="OFF"        \
-	-DLLVM_INCLUDE_TESTS="OFF"      \
-	-DLLVM_ENABLE_LTO="OFF"         \
-	-DLLVM_BUILD_DOCS="OFF"         \
-	-DLLVM_ENABLE_DOXYGEN="OFF"     \
-	-DCMAKE_BUILD_TYPE=Release      \
-	-DLLVM_BUILD_BENCHMARKS="OFF"   \
-	-DLLVM_INCLUDE_BENCHMARKS="OFF" \
-	-DLLVM_ENABLE_PROJECTS="clang;libclc"  \
+CONFIGURE_ARGS = \
+	$(DIRPATHS_CMAKE) \
+	$(CONFIGURE_ARGS_COMMON) \
+	-DLLVM_ENABLE_PROJECTS="clang;libclc" \
 	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
 	 -DLLVM_TARGET_ARCH="X86"                 \
-	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" )   \
+	 -DLLVM_TARGETS_TO_BUILD="X86" )          \
 	$(if $(filter arm,   $(mm_GARCH_FAMILY)), \
 	 -DLLVM_TARGET_ARCH="ARM"                 \
 	 -DLLVM_TARGETS_TO_BUILD="ARM" )          \
@@ -120,12 +127,17 @@ build-llvm:
 	@cd $(WORKBLD) && $(CMAKE) --build . --parallel $(PARALLELMFLAGS)
 	@$(MAKECOOKIE)
 
+build-llvm_config:
+	@$(MAKE) -C $(WORKBLD) llvm-config
+	@$(MAKECOOKIE)
+
 post-install:
+	@rm -f $(DESTDIR)$(bindir)-config/llvm-config
+	@rm -f $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config
 	@mkdir -p $(DESTDIR)$(bindir)-config
 	@$(if $(filter build, $(DESTIMG)), \
-	 ln -srf $(DESTDIR)$(bindir)/llvm-config $(DESTDIR)$(bindir)-config/llvm-config, \
-	 cp $(build_DESTDIR)$(build_bindir)-config/llvm-config $(DESTDIR)$(bindir)-config/llvm-config)
-	@ln -srf $(DESTDIR)$(bindir)/llvm-config $(DESTDIR)$(bindir)-config/llvm-config
+	 cp $(WORKBLD)/bin/llvm-config                         $(DESTDIR)$(bindir)-config/llvm-config, \
+	 cp $(build_DESTDIR)$(build_bindir)-config/llvm-config $(DESTDIR)$(bindir)-config/llvm-config  )
 	@$(if $(compiler_prefix), ln -sf llvm-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config)
 	@$(MAKECOOKIE)
 
