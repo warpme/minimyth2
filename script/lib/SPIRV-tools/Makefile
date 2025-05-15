@@ -20,3 +20,10 @@ CMAKE_CONFIGURE_ARGS = \
 	-DSPIRV-Headers_SOURCE_DIR="$(DESTDIR)$(prefix)" \
 
 include ../../gar.mk
+
+clean-all:
+	@rm -rf $(DESTDIR)$(bindir)/spirv-*
+	@rm -rf $(DESTDIR)$(includedir)/spirv-tools*
+	@rm -rf $(DESTDIR)$(libdir)/libSPIRV-Tools*
+	@rm -rf $(DESTDIR)$(libdir)/cmake/SPIRV-Tools*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/SPIRV-Tools*
