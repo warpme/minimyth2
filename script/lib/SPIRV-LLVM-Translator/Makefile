@@ -25,3 +25,10 @@ include ../../gar.mk
 post-install:
 	@cp -f $(WORKBLD)/tools/llvm-spirv/llvm-spirv $(DESTDIR)$(bindir)/
 	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -rf $(DESTDIR)$(bindir)/llvm-spirv
+	@rm -rf $(DESTDIR)$(includedir)/LLVMSPIRVLib*
+	@rm -rf $(DESTDIR)$(libdir)/libLLVMSPIRVLib*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libLLVMSPIRVLib*
+
