@@ -48,7 +48,7 @@ BUILDDEPS  = \
 	wayland/wayland-core \
 	opengl/glslang       \
 	devel/llvm           \
-	opengl/mesa-git      \
+	opengl/mesa          \
 
 else
 # deps for build
