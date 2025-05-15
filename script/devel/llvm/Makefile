@@ -85,7 +85,7 @@ CONFIGURE_ARGS = \
 	-DLLVM_ENABLE_PROJECTS="clang;libclc" \
 	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
 	 -DLLVM_TARGET_ARCH="X86"                 \
-	 -DLLVM_TARGETS_TO_BUILD="X86" )          \
+	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" )   \
 	$(if $(filter arm,   $(mm_GARCH_FAMILY)), \
 	 -DLLVM_TARGET_ARCH="ARM"                 \
 	 -DLLVM_TARGETS_TO_BUILD="ARM" )          \
