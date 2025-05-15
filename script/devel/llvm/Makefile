@@ -14,14 +14,19 @@ endef
 DEPENDS   = lang/c lang/cxx lib/libedit
 BUILDDEPS = python2/python
 
+ifneq ($(DESTIMG),build)
+BUILDDEPS += devel/llvm
+endif
+
 WORKSRC = $(WORKDIR)/$(DISTNAME).src
 WORKBLD = $(WORKDIR)/$(DISTNAME)_build
 
 CONFIGURE_SCRIPTS = llvm
-BUILD_SCRIPTS     = llvm llvm_config
+BUILD_SCRIPTS     = llvm
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 ifneq ($(DESTIMG),build)
+# config for target
 CONFIGURE_ARGS = $(DIRPATHS_CMAKE)         \
 	-DCMAKE_SYSTEM_NAME="Linux"        \
 	-DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
@@ -53,6 +58,7 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE)         \
 	 -DLLVM_TARGETS_TO_BUILD="AArch64" )      \
 
 else
+# config for build
 CONFIGURE_ARGS = $(DIRPATHS_CMAKE)      \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF"  \
 	-DLLVM_BUILD_LLVM_DYLIB="ON"    \
@@ -69,8 +75,16 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE)      \
 	-DCMAKE_BUILD_TYPE=Release      \
 	-DLLVM_BUILD_BENCHMARKS="OFF"   \
 	-DLLVM_INCLUDE_BENCHMARKS="OFF" \
-	-DLLVM_ENABLE_PROJECTS="clang"  \
-	-DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" \
+	-DLLVM_ENABLE_PROJECTS="clang;libclc"  \
+	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
+	 -DLLVM_TARGET_ARCH="X86"                 \
+	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" )   \
+	$(if $(filter arm,   $(mm_GARCH_FAMILY)), \
+	 -DLLVM_TARGET_ARCH="ARM"                 \
+	 -DLLVM_TARGETS_TO_BUILD="ARM" )          \
+	$(if $(filter arm64, $(mm_GARCH_FAMILY)), \
+	 -DLLVM_TARGET_ARCH="AArch64"             \
+	 -DLLVM_TARGETS_TO_BUILD="AArch64" )      \
 
 endif
 
@@ -106,15 +120,14 @@ build-llvm:
 	@cd $(WORKBLD) && $(CMAKE) --build . --parallel $(PARALLELMFLAGS)
 	@$(MAKECOOKIE)
 
-build-llvm_config:
-	@$(MAKE) -C $(WORKBLD) llvm-config
-	@$(MAKECOOKIE)
-
 post-install:
 	@mkdir -p $(DESTDIR)$(bindir)-config
-	@ln -sf $(DESTDIR)$(bindir)/llvm-config $(DESTDIR)$(bindir)-config/llvm-config
+	@$(if $(filter build, $(DESTIMG)), \
+	 ln -srf $(DESTDIR)$(bindir)/llvm-config $(DESTDIR)$(bindir)-config/llvm-config, \
+	 cp $(build_DESTDIR)$(build_bindir)-config/llvm-config $(DESTDIR)$(bindir)-config/llvm-config)
+	@ln -srf $(DESTDIR)$(bindir)/llvm-config $(DESTDIR)$(bindir)-config/llvm-config
 	@$(if $(compiler_prefix), ln -sf llvm-config $(DESTDIR)$(bindir)-config/$(compiler_prefix)llvm-config)
-	@#$(MAKECOOKIE)
+	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -f  $(DESTDIR)$(bindir)-config/llvm-config
