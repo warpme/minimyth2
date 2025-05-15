@@ -18,3 +18,6 @@ CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 
 include ../../gar.mk
+
+clean-all:
+	@rm -rf $(DESTDIR)$(includedir)/spirv/*
