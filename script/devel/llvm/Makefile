@@ -57,6 +57,15 @@ CONFIGURE_ARGS_COMMON = \
 	-DLLVM_ENABLE_UNWIND_TABLES=OFF \
 	-DLLVM_ENABLE_Z3_SOLVER=OFF \
 	-DCMAKE_SKIP_RPATH=ON \
+	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
+	 -DLLVM_TARGET_ARCH="X86"                 \
+	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" )   \
+	$(if $(filter arm,   $(mm_GARCH_FAMILY)), \
+	 -DLLVM_TARGET_ARCH="ARM"                 \
+	 -DLLVM_TARGETS_TO_BUILD="ARM" )          \
+	$(if $(filter arm64, $(mm_GARCH_FAMILY)), \
+	 -DLLVM_TARGET_ARCH="AArch64"             \
+	 -DLLVM_TARGETS_TO_BUILD="AArch64" )      \
 
 ifneq ($(DESTIMG),build)
 # config for target
@@ -67,15 +76,6 @@ CONFIGURE_ARGS = \
 	-DLLVM_DEFAULT_TARGET_TRIPLE="$(mm_GARHOST)" \
 	-DLLVM_HOST_TRIPLE="$(mm_GARHOST)" \
 	-DLLVM_ENABLE_PROJECTS="" \
-	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="X86"                 \
-	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" )   \
-	$(if $(filter arm,   $(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="ARM"                 \
-	 -DLLVM_TARGETS_TO_BUILD="ARM" )          \
-	$(if $(filter arm64, $(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="AArch64"             \
-	 -DLLVM_TARGETS_TO_BUILD="AArch64" )      \
 
 else
 # config for build
@@ -83,15 +83,6 @@ CONFIGURE_ARGS = \
 	$(DIRPATHS_CMAKE) \
 	$(CONFIGURE_ARGS_COMMON) \
 	-DLLVM_ENABLE_PROJECTS="clang;libclc" \
-	$(if $(filter i386 x86_64,$(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="X86"                 \
-	 -DLLVM_TARGETS_TO_BUILD="X86;AMDGPU" )   \
-	$(if $(filter arm,   $(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="ARM"                 \
-	 -DLLVM_TARGETS_TO_BUILD="ARM" )          \
-	$(if $(filter arm64, $(mm_GARCH_FAMILY)), \
-	 -DLLVM_TARGET_ARCH="AArch64"             \
-	 -DLLVM_TARGETS_TO_BUILD="AArch64" )      \
 
 endif
 
