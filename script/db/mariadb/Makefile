@@ -73,10 +73,10 @@ CONFIGURE_ARGS = $(DIRPATHS_CMAKE) \
 include ../../gar.mk
 
 pre-configure:
-	@#hack to build host tools on Fedora40
-	@#mkdir -p $(WORKSRC)/sql/bits
-	@#$(if $(wildcard /usr/include/bits/math-vector.h), ln -srf /usr/include/bits/math-vector.h $(WORKSRC)/sql/bits/ )
-	@#$(if $(wildcard $(DESTDIR)$(includedir)/math-x.h), ln -srf $(DESTDIR)$(includedir)/math-x.h $(DESTDIR)$(includedir)/math.h )
+	@#hack to build host tools on Fedora systems
+	@mkdir -p $(WORKSRC)/sql/bits
+	@$(if $(wildcard /usr/include/bits/math-vector.h), ln -srf /usr/include/bits/math-vector.h $(WORKSRC)/sql/bits/ )
+	@$(if $(wildcard $(DESTDIR)$(includedir)/math-x.h), ln -srf $(DESTDIR)$(includedir)/math-x.h $(DESTDIR)$(includedir)/math.h )
 	@mkdir -p $(WORKSRC)/host && cd $(WORKSRC)/host && $(CMAKE) .. && $(MAKE) import_executables
 	@$(MAKECOOKIE)
 
