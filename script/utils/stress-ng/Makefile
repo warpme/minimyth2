@@ -1,6 +1,6 @@
 
 GARNAME      = stress-ng
-GARVERSION   = 0.18.12
+GARVERSION   = 0.19.00
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/ColinIanKing/stress-ng/archive/
 DISTFILES    = V$(GARVERSION).tar.gz
