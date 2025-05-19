@@ -15,6 +15,7 @@ PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                52-add-rk3566-x96-x6-defconfig.patch \
                53-add-rk3588-rock-5t-defconfig.patch \
                54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
+               55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
 
 #               03-add-rk3528-support.patch \
 
@@ -48,7 +49,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = rock-pi-4c-rk3399_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock5a-rk3588s_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock5b-rk3588_defconfig
-# mm_U-BOOT_BOARD_TYPE = rock-5-itx-rk3588_defconfig
+mm_U-BOOT_BOARD_TYPE = rock-5-itx-rk3588_defconfig
 # mm_U-BOOT_BOARD_TYPE = rock5t-rk3588_defconfig
 # mm_U-BOOT_BOARD_TYPE = beelink-a1-rk3328_defconfig
 # mm_U-BOOT_BOARD_TYPE = quartz64-b-rk3566_defconfig
