@@ -1,6 +1,6 @@
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 5.15.16
+GARVERSION   = 5.15.17
 CATEGORIES   = qt
 MASTER_SITES = https://download.qt.io/archive/qt/5.15/$(GARVERSION)/single/
 DISTFILES    = qt-everywhere-opensource-src-$(GARVERSION).tar.xz
@@ -10,12 +10,9 @@ PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.pat
 PATCHFILES  += $(DISTNAME)-fix-egl-x11-detection-mesa-22.3.patch
 PATCHFILES  += $(DISTNAME)-qtscript-fix-cti_vm_throw-whth-lto.patch
 PATCHFILES  += $(DISTNAME)-qtdeclarative-qml-compiler-fix-gcc15-building.patch
-PATCHFILES  += $(DISTNAME)-qtwebengine-chromium-ffmpeg-fix-compile.patch
 PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compile-with-system-nss.patch
 PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compile-with-gcc15.patch
-# PATCHFILES  += $(DISTNAME)-qtwebengine-fix-compile-with-icu75.patch
-# PATCHFILES  += $(DISTNAME)-qtwebengine-ffmpeg5.patch
-# PATCHFILES  += $(DISTNAME)-qtwebengine-ffmpeg7.patch
+PATCHFILES  += $(DISTNAME)-qtwebengine-add-option-to-select-libevent.patch
 LICENSE      = LGPL2_1
 
 DESCRIPTION = 
@@ -117,6 +114,7 @@ CONFIGURE_ARGS = \
 	-no-webengine-printing-and-pdf \
 	-no-webengine-webrtc \
 	-no-webengine-pepper-plugins \
+	-qt-webengine-libevent \
 
 # building webengine with qt icu as using system icu fails and linking stage
 # (tested with icu 72, 75 and 76)
