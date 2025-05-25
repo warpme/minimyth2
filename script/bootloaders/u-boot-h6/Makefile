@@ -10,6 +10,7 @@ PATCHFILES  += 0007-remoteproc-Add-a-driver-for-the-Allwinner-AR100.patch
 PATCHFILES  += 0008-arm-dts-sunxi-h3-Add-nodes-for-AR100-remoteproc.patch
 PATCHFILES  += 0010-arm-psci-Add-definitions-for-PSCI-v1.1.patch
 PATCHFILES  += 0011-DO-NOT-MERGE-sunxi-Enable-remoteproc-on-some-H3-boar.patch
+PATCHFILES  += 0012-sunxi-H6-Add-basic-Eachlink-H6-Mini-support.patch
 PATCHFILES  += 0014-sunxi-Add-OrangePi-3-LTS-board.patch
 PATCHFILES  += 0015-sunxi-mmc-increase-stabilization-delay-from-1ms-to-20ms.patch
 PATCHFILES  += 0016-sunxi-dram-Fix-incorrect-ram-size-detection-for-some-H6-boards.patch
