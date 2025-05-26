@@ -302,7 +302,6 @@ PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
 PATCHFILES += 1067-wip-rkvdec2-fix-iommu-v2.patch
 # rk3576
 PATCHFILES += 1068-dt-bindings-PCI-dw-rockchip-Add-rk3576-support.patch
-PATCHFILES += 1069-mmc-sdhci-of-dwcmshc-add-PD-workaround-on-RK3576.patch
 # dtsi additions
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1073-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
