@@ -11,6 +11,7 @@ MASTER_SITES = \
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
 PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
+               50-my-boards-rk3566-defconfigs-enable-overlays.patch \
                51-add-rk3328-beelink-a1-defconfig.patch \
                52-add-rk3566-x96-x6-defconfig.patch \
                53-add-rk3588-rock-5t-defconfig.patch \
@@ -98,7 +99,11 @@ ifneq (,$(findstring rk3588,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.18.bin
 BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.48.elf
 MKIMAGE_TYPE = rk3588
+ifneq (,$(findstring rk3588s,$(mm_U-BOOT_BOARD_TYPE)))
+INSTALL_PREF = rk3588s
+else
 INSTALL_PREF = rk3588
+endif
 DDR_BIN      = ${TPL}
 endif
 
