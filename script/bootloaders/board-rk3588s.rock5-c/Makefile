@@ -30,15 +30,15 @@ build-custom:
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot/extlinux
-	@mkdir -p $(DESTDIR)/boot/rk3588loaderfiles
-	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3588/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img $(DESTDIR)/boot/rk3588loaderfiles/idbloader.img
-	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3588/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb    $(DESTDIR)/boot/rk3588loaderfiles/u-boot.itb
+	@mkdir -p $(DESTDIR)/boot/rk3588sloaderfiles
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3588s/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img $(DESTDIR)/boot/rk3588sloaderfiles/idbloader.img
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/rk3588s/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb    $(DESTDIR)/boot/rk3588sloaderfiles/u-boot.itb
 	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
 	@cp -f    $(WORKSRC)/extlinux.conf $(DESTDIR)/boot/extlinux/extlinux.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-custom:
-	@rm -rf $(DESTDIR)/boot/rk3588loaderfiles*
+	@rm -rf $(DESTDIR)/boot/rk3588sloaderfiles*
 	@rm -f  $(DESTDIR)/boot/minimyth.conf
 	@rm -rf $(DESTDIR)/boot/extlinux*
 
