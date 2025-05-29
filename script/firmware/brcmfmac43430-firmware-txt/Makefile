@@ -25,8 +25,7 @@ install-custom:
 	@cp -f $(WORKSRC)/brcmfmac43430-sdio.txt $(DESTDIR)$(elibdir)/firmware/brcm/
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.txt $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.AP6212.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.txt $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.raspberrypi,3-model-b.txt
-	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.txt $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.radxa,zero-3w.txt
-	@cp -f $(WORKSRC_RADXA)/brcmfmac43430-sdio.txt  $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.radxa,zero3w.txt
+	@cp -f $(WORKSRC_RADXA)/nvram_ap6212a.txt $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac43430-sdio.radxa,zero-3w.txt
 	@$(MAKECOOKIE)
 
 clean-all: clean
