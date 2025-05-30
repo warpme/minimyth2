@@ -1,15 +1,16 @@
-From 9a4784752427c56839353f09446c5344a3b84641 Mon Sep 17 00:00:00 2001
-From: Jernej Skrabec <jernej.skrabec@siol.net>
-Date: Tue, 18 Feb 2020 23:19:48 +0100
-Subject: [PATCH 08/23] drm/sun4i: de2/de3: Merge CSC functions into one
+From 09744193cdcf400e5a4c54d9309acf5aea3a591c Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 29 Sep 2024 22:04:34 +1300
+Subject: drm: sun4i: de2/de3: Merge CSC functions into one
 
-Merging both function into one lets this one decide on it's own if CSC
-should be enabled or not. Currently heuristics for that is pretty simple
-- enable it for YUV formats and disable for RGB. However, DE3 can have
-whole pipeline in RGB or YUV format. YUV pipeline will be supported in
-later commits.
+At the moment the colour space conversion is handled by two functions:
+one to setup the conversion parameters, and another one to enable the
+conversion. Merging both into one gives more flexibility for upcoming
+extensions to support whole YUV pipelines, in the DE33.
 
 Signed-off-by: Jernej Skrabec <jernej.skrabec@gmail.com>
+Signed-off-by: Ryan Walklin <ryan@testtoast.com>
+Reviewed-by: Andre Przywara <andre.przywara@arm.com>
 ---
  drivers/gpu/drm/sun4i/sun8i_csc.c      | 89 ++++++++++----------------
  drivers/gpu/drm/sun4i/sun8i_csc.h      |  9 ++-
@@ -138,6 +139,22 @@ index 6ebd1c3aa3ab..0dcbc0866ae8 100644
 -				     enum format_type fmt_type,
 -				     enum drm_color_encoding encoding,
 -				     enum drm_color_range range)
+-{
+-	u32 base;
+-
+-	if (mixer->cfg->is_de3) {
+-		sun8i_de3_ccsc_set_coefficients(mixer->engine.regs, layer,
+-						fmt_type, encoding, range);
+-		return;
+-	}
+-
+-	base = ccsc_base[mixer->cfg->ccsc][layer];
+-
+-	sun8i_csc_set_coefficients(mixer->engine.regs, base,
+-				   fmt_type, encoding, range);
+-}
+-
+-void sun8i_csc_enable_ccsc(struct sun8i_mixer *mixer, int layer, bool enable)
 +void sun8i_csc_set_ccsc(struct sun8i_mixer *mixer, int layer,
 +			enum format_type fmt_type,
 +			enum drm_color_encoding encoding,
@@ -146,8 +163,7 @@ index 6ebd1c3aa3ab..0dcbc0866ae8 100644
  	u32 base;
  
  	if (mixer->cfg->is_de3) {
--		sun8i_de3_ccsc_set_coefficients(mixer->engine.regs, layer,
--						fmt_type, encoding, range);
+-		sun8i_de3_ccsc_enable(mixer->engine.regs, layer, enable);
 +		sun8i_de3_ccsc_setup(mixer->engine.regs, layer,
 +				     fmt_type, encoding, range);
  		return;
@@ -155,21 +171,6 @@ index 6ebd1c3aa3ab..0dcbc0866ae8 100644
  
  	base = ccsc_base[mixer->cfg->ccsc][layer];
  
--	sun8i_csc_set_coefficients(mixer->engine.regs, base,
--				   fmt_type, encoding, range);
--}
--
--void sun8i_csc_enable_ccsc(struct sun8i_mixer *mixer, int layer, bool enable)
--{
--	u32 base;
--
--	if (mixer->cfg->is_de3) {
--		sun8i_de3_ccsc_enable(mixer->engine.regs, layer, enable);
--		return;
--	}
--
--	base = ccsc_base[mixer->cfg->ccsc][layer];
--
 -	sun8i_csc_enable(mixer->engine.regs, base, enable);
 +	sun8i_csc_setup(mixer->engine.regs, base,
 +			fmt_type, encoding, range);
@@ -194,10 +195,10 @@ index 7322770f39f0..b7546e06e315 100644
  
  #endif
 diff --git a/drivers/gpu/drm/sun4i/sun8i_vi_layer.c b/drivers/gpu/drm/sun4i/sun8i_vi_layer.c
-index 76e2d3ec0a78..6ee3790a2a81 100644
+index 8a80934e928f..f3a5329351ca 100644
 --- a/drivers/gpu/drm/sun4i/sun8i_vi_layer.c
 +++ b/drivers/gpu/drm/sun4i/sun8i_vi_layer.c
-@@ -281,14 +281,9 @@ static int sun8i_vi_layer_update_formats(struct sun8i_mixer *mixer, int channel,
+@@ -232,14 +232,9 @@ static int sun8i_vi_layer_update_formats(struct sun8i_mixer *mixer, int channel,
  			   SUN8I_MIXER_CHAN_VI_LAYER_ATTR_FBFMT_MASK, val);
  
  	fmt_type = sun8i_vi_layer_get_format_type(fmt);
@@ -216,5 +217,5 @@ index 76e2d3ec0a78..6ee3790a2a81 100644
  	if (!fmt->is_yuv)
  		val = SUN8I_MIXER_CHAN_VI_LAYER_ATTR_RGB_MODE;
 -- 
-2.42.0
+2.35.3
 
