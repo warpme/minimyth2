@@ -319,7 +319,6 @@ PATCHFILES += 1065-wip-add-hevc-support.patch
 PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
 PATCHFILES += 1067-wip-rkvdec2-fix-iommu-v2.patch
 # rk3576
-PATCHFILES += 1068-dt-bindings-PCI-dw-rockchip-Add-rk3576-support.patch
 # dtsi additions
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1073-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
@@ -358,6 +357,27 @@ PATCHFILES += 1172-arm64-dts-allwinner-t527-add-orangepi-4a-dts.patch
 PATCHFILES += 1173-arm64-dts-allwinner-a527-add-Radxa-A5E-support.patch
 endif
 #------------------------------------------------------------
+
+
+ifeq (1,1)
+#-- Rockchip 3576 patches -----------------------------------------
+PATCHFILES += 1200-dt-bindings-PCI-dw-rockchip-Add-rk3576-support.patch
+# hdmi audio support
+PATCHFILES += 1201-dt-bindings-clock-rk3576-add-IOC-gated-clocks.patch
+PATCHFILES += 1202-clk-rockchip-add-support-for-GRF-gated-clocks.patch
+PATCHFILES += 1203-ASoC-dt-bindings-add-schema-for-rockchip-SAI-controllers.patch
+PATCHFILES += 1204-ASoC-rockchip-add-Serial-Audio-Interface-SAI-driver.patch
+# dtsi additions
+PATCHFILES += 1260-arm64-dtsi-rk3576-add-missing-hdmiphy-clk-cells.patch
+PATCHFILES += 1261-arm64-dts-rockchip-Add-RK3576-SAI-nodes.patch
+PATCHFILES += 1262-arm64-dts-rockchip-Add-RK3576-HDMI-audio.patch
+# bards dt additions/patches
+PATCHFILES += 1280-arm64-dts-add-rk3576-nanopi-m5-dt.patch
+
+endif
+#------------------------------------------------------------
+
+
 
 endif
 
