@@ -98,6 +98,8 @@ mm_SOFTWARE               ?= \
 # 'board-rk3566.orangepi_3b'
 # 'board-rk3566.zero3w'
 # 'board-rk3566.zero3e'
+# 'board-rk3576.rock_4d'
+# 'board-rk3576.namopi_m5'
 # 'board-rk3588.rock5-b
 # 'board-rk3588.rock5-t
 # 'board-rk3588.rock5-itx'
