@@ -25,6 +25,8 @@ DISTFILES    = \
 	rk3566-generic.wks \
 	rk3568-generic.conf \
 	rk3568-generic.wks \
+	rk3576-generic.conf \
+	rk3576-generic.wks \
 	rk3588-generic.conf \
 	rk3588-generic.wks \
 	rk3588s-generic.conf \
@@ -145,6 +147,11 @@ RK3568_BOARDS_LIST = \
 	board-rk3568.rock3-a   \
 	board-rk3568.rock3-b   \
 
+# Rockchip RK3576 boards
+RK3576_BOARDS_LIST = \
+	board-rk3576.nanopi_m5 \
+	board-rk3576.rock_4d \
+
 # Rockchip RK3588 boards
 RK3588_BOARDS_LIST = \
 	board-rk3588.rock5-b   \
@@ -199,7 +206,7 @@ DEPENDS = \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
-INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3588s_boards rk3588_boards
+INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards
 
 include ../../gar.mk
 
@@ -239,6 +246,9 @@ install-rk3566_boards:
 
 install-rk3568_boards:
 	@$(call COPY_FILES, $(RK3568_BOARDS_LIST), rk3568-generic)
+
+install-rk3576_boards:
+	@$(call COPY_FILES, $(RK3576_BOARDS_LIST), rk3576-generic)
 
 install-rk3588s_boards:
 	@$(call COPY_FILES, $(RK3588S_BOARDS_LIST), rk3588s-generic)
