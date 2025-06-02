@@ -2,8 +2,8 @@
 GARNAME      = u-boot-rk3xxx
 # git@ 12.02.2025 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2025.04/
 GARVERSION   = 228e9e5b3502ec0e3aac3fae38d9d99f77e9ede1
-# git@ 19.12.2024 https://github.com/rockchip-linux/rkbin/commits/master/
-RKBINVERSION = 0f8ac860f0479da56a1decae207ddc99e289f2e2
+# git@ 24.01.2025 https://github.com/rockchip-linux/rkbin/commits/master/
+RKBINVERSION = f43a462e7a1429a9d407ae52b4745033034a6cf9
 CATEGORIES   = kernel
 MASTER_SITES = \
                https://github.com/Kwiboo/u-boot-rockchip/archive/ \
@@ -57,6 +57,7 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_TYPE = x96-x6-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = radxa-zero-3-rk3566_defconfig
 # mm_U-BOOT_BOARD_TYPE = generic-rk3528_defconfig
+# mm_U-BOOT_BOARD_TYPE = generic-rk3576_defconfig
 
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_TYPE)
 
@@ -93,6 +94,13 @@ TPL          = ../rkbin/bin/rk35/rk3568_ddr_1056MHz_v1.23.bin
 BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.44.elf
 MKIMAGE_TYPE = rk3568
 INSTALL_PREF = rk3568
+DDR_BIN      = ${TPL}
+endif
+ifneq (,$(findstring rk3576,$(mm_U-BOOT_BOARD_TYPE)))
+TPL          = ../rkbin/bin/rk35/rk3576_ddr_lp4_2112MHz_lp5_2736MHz_v1.09.bin
+BL31         = ../rkbin/bin/rk35/rk3576_bl31_v1.15.elf
+MKIMAGE_TYPE = rk3576
+INSTALL_PREF = rk3576
 DDR_BIN      = ${TPL}
 endif
 ifneq (,$(findstring rk3588,$(mm_U-BOOT_BOARD_TYPE)))
