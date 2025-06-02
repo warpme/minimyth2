@@ -148,6 +148,14 @@ ifneq (,$(filter board-rk3566.rock3-c,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3566.rock3-c
 endif
 
+ifneq (,$(filter board-rk3576.nanopi_m5,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3576.nanopi_m5
+endif
+
+ifneq (,$(filter board-rk3576.rock_4d,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3576.rock_4d
+endif
+
 ifneq (,$(filter board-rk3566.orangepi_3b,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3566.orangepi_3b
 endif
