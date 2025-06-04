@@ -304,27 +304,31 @@ PATCHFILES += 1050-drm-bridge-synopsys-Add-DW-DPTX-Controller-support-l.patch
 PATCHFILES += 1051-drm-rockchip-Add-RK3588-DPTX-output-support.patch
 PATCHFILES += 1052-dt-bindings-display-simple-bridge-Add-ra620-compatib.patch
 PATCHFILES += 1053-drm-birdge-simple-bridge-Add-support-for-radxa-ra620.patch
-# rkvdec2 reset and hevc support
-PATCHFILES += 1054-media-v4l2-ctrls-core-Set-frame_mbs_only_flag-by-def.patch
-PATCHFILES += 1055-media-rockchip-Move-H264-CABAC-table-to-header-file.patch
-PATCHFILES += 1056-media-rockchip-Introduce-the-rkvdec2-driver.patch
-PATCHFILES += 1057-media-dt-bindings-rockchip-Document-RK3588-Video-Dec.patch
+
 # var additions
-PATCHFILES += 1058-drm-bridge-synopsys-add-cec-support.patch
-PATCHFILES += 1060-net-ethernet-add-yt6801-gige-pcie-controller.patch
-PATCHFILES += 1061-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
-PATCHFILES += 1062-WIP-iommu-rockchip-add-flush_iotlb_all-ops.patch
+PATCHFILES += 1054-drm-bridge-synopsys-add-cec-support.patch
+PATCHFILES += 1055-net-ethernet-add-yt6801-gige-pcie-controller.patch
+PATCHFILES += 1056-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
+
+# rkvdec2 reset and hevc support
+PATCHFILES += 1059-media-v4l2-ctrls-core-Set-frame_mbs_only_flag-by-def.patch
+PATCHFILES += 1060-media-rockchip-Move-H264-CABAC-table-to-header-file.patch
+PATCHFILES += 1061-media-rockchip-Introduce-the-rkvdec2-driver.patch
+PATCHFILES += 1062-media-dt-bindings-rockchip-Document-RK3588-Video-Dec.patch
+PATCHFILES += 1063-WIP-iommu-rockchip-add-flush_iotlb_all-ops.patch
 PATCHFILES += 1064-media-rkvdec2-add-iommu-support-v3.patch
 PATCHFILES += 1065-wip-add-hevc-support.patch
 PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
 PATCHFILES += 1067-wip-rkvdec2-fix-iommu-v2.patch
+
 # rk3576
 # dtsi additions
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
+PATCHFILES += 1071-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
+# rkvdec2 dtsi
 PATCHFILES += 1073-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
 PATCHFILES += 1074-arm64-dtsi-rkvdec2-add-iommu-support-v3.patch
 PATCHFILES += 1075-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
-PATCHFILES += 1076-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
 # dts patches
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
@@ -367,13 +371,23 @@ PATCHFILES += 1201-dt-bindings-clock-rk3576-add-IOC-gated-clocks.patch
 PATCHFILES += 1202-clk-rockchip-add-support-for-GRF-gated-clocks.patch
 PATCHFILES += 1203-ASoC-dt-bindings-add-schema-for-rockchip-SAI-controllers.patch
 PATCHFILES += 1204-ASoC-rockchip-add-Serial-Audio-Interface-SAI-driver.patch
+# thermal support
+PATCHFILES += 1205-thermal-rockchip-rename-rk_tsadcv3_tshut_mode.patch
+PATCHFILES += 1206-thermal-rockchip-Support-RK3576-SoC-in-the-thermal-driver.patch
+PATCHFILES += 1207-thermal-rockchip-support-reading-trim-values-from-OTP.patch
+
 # dtsi additions
 PATCHFILES += 1260-arm64-dtsi-rk3576-add-missing-hdmiphy-clk-cells.patch
-PATCHFILES += 1261-arm64-dts-rockchip-Add-RK3576-SAI-nodes.patch
-PATCHFILES += 1262-arm64-dts-rockchip-Add-RK3576-HDMI-audio.patch
+PATCHFILES += 1261-arm64-dtsi-rk3576-add-sai-nodes.patch
+PATCHFILES += 1262-arm64-dtsi-rk3576-add-hdmi-audio-nodes.patch
+PATCHFILES += 1263-arm64-dtsi-rk3576-add-pcie-nodes.patch
+PATCHFILES += 1264-arm64-dtsi-rk3576-add-missing-sfc-power-domains.patch
+PATCHFILES += 1265-arm64-dtsi-rk3576-add-sdio-node.patch
+PATCHFILES += 1266-arm64-dtsi-rockchip-Add-thermal-nodes-to-RK3576.patch
+PATCHFILES += 1267-arm64-dtsi-rockchip-Add-thermal-trim-OTP-and-tsadc-nodes.patch
+
 # bards dt additions/patches
 PATCHFILES += 1280-arm64-dts-add-rk3576-nanopi-m5-dt.patch
-
 endif
 #------------------------------------------------------------
 
