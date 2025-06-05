@@ -101,7 +101,7 @@ if (@cpu_req_freq)
                 chomp $cpu_req_freq;
                 if ($_ > 0) {
                     my $freq = $_/1000;
-                    push(@status_cpu_req_freq_body, "Requested: ".$cpu_req_freq.": ".$freq." MHz");
+                    push(@status_cpu_req_freq_body, "Requested ".$cpu_req_freq.": ".$freq." MHz");
                 }
             }
             close(FILE);
@@ -136,12 +136,26 @@ if (@cpu_curr_freq)
                 chomp $cpu_curr_freq;
                 if ($_ > 0) {
                     my $freq = $_/1000;
-                    push(@status_cpu_curr_freq_body, "  Running: ".$cpu_curr_freq.": ".$freq." MHz");
+                    push(@status_cpu_curr_freq_body, "  Running ".$cpu_curr_freq.": ".$freq." MHz");
                 }
             }
             close(FILE);
         }
     }
+
+    if (open(FILE, "estimate-arm-cpu-frequency | grep 'Estimated' | sed 's/.*= *//' |"))
+    {
+        while (<FILE>)
+        {
+            chomp;
+            if ($_ > 0) {
+                push(@status_cpu_curr_freq_body, " ");
+                push(@status_cpu_curr_freq_body, "Measured on HW: ".$_);
+            }
+        }
+        close(FILE);
+    }
+
     while (($#status_cpu_curr_freq_body >= 0) && ($status_cpu_curr_freq_body[0] eq ''))
     {
         shift(@status_cpu_curr_freq_body);
@@ -171,7 +185,7 @@ if (@gpu_req_freq)
                 chomp $gpu_req_freq;
                 if ($_ > 0) {
                     my $freq = $_/1000000;
-                    push(@status_gpu_req_freq_body, "Requested: ".$gpu_req_freq.$freq." MHz");
+                    push(@status_gpu_req_freq_body, "Requested ".$gpu_req_freq.$freq." MHz");
                 }
             }
             close(FILE);
@@ -206,7 +220,7 @@ if (@gpu_curr_freq)
                 chomp $gpu_curr_freq;
                 if ($_ > 0) {
                     my $freq = $_/1000000;
-                    push(@status_gpu_curr_freq_body, "  Running: ".$gpu_curr_freq.$freq." MHz");
+                    push(@status_gpu_curr_freq_body, "  Running ".$gpu_curr_freq.$freq." MHz");
                 }
             }
             close(FILE);
