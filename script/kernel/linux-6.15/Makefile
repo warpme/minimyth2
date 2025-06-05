@@ -321,7 +321,6 @@ PATCHFILES += 1065-wip-add-hevc-support.patch
 PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
 PATCHFILES += 1067-wip-rkvdec2-fix-iommu-v2.patch
 
-# rk3576
 # dtsi additions
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
@@ -381,7 +380,6 @@ PATCHFILES += 1260-arm64-dtsi-rk3576-add-missing-hdmiphy-clk-cells.patch
 PATCHFILES += 1261-arm64-dtsi-rk3576-add-sai-nodes.patch
 PATCHFILES += 1262-arm64-dtsi-rk3576-add-hdmi-audio-nodes.patch
 PATCHFILES += 1263-arm64-dtsi-rk3576-add-pcie-nodes.patch
-PATCHFILES += 1264-arm64-dtsi-rk3576-add-missing-sfc-power-domains.patch
 PATCHFILES += 1265-arm64-dtsi-rk3576-add-sdio-node.patch
 PATCHFILES += 1266-arm64-dtsi-rockchip-Add-thermal-nodes-to-RK3576.patch
 PATCHFILES += 1267-arm64-dtsi-rockchip-Add-thermal-trim-OTP-and-tsadc-nodes.patch
