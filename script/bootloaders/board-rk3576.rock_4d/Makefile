@@ -24,8 +24,8 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean   -C ../u-boot-rk3576
-	@$(MAKE) install -C ../u-boot-rk3576
+	@$(MAKE) clean   -C ../u-boot-rk
+	@$(MAKE) install -C ../u-boot-rk
 	@$(MAKECOOKIE)
 
 install-custom:
