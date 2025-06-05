@@ -411,8 +411,8 @@ DEPENDS = \
 	firmware/firmware \
 
 CONFIGURE_SCRIPTS = custom
-BUILD_SCRIPTS     = custom
-INSTALL_SCRIPTS   = custom
+BUILD_SCRIPTS     = custom cpupower tmon
+INSTALL_SCRIPTS   = custom cpupower tmon
 
 CONFIGURE_ARGS    = $(LINUX_MAKE_ARGS)
 BUILD_ARGS        = $(LINUX_MAKE_ARGS)
@@ -442,6 +442,22 @@ else
 	@$(CONFIGURE_ENV) $(MAKE) $(BUILD_ARGS) -C $(WORKSRC) bzImage modules
 endif
 endif
+	@$(MAKECOOKIE)
+
+build-cpupower:
+	@$(CONFIGURE_ENV) $(MAKE) $(BUILD_ARGS) -C $(WORKSRC)/tools/power/cpupower
+	@$(MAKECOOKIE)
+
+install-cpupower: build-cpupower
+	@$(CONFIGURE_ENV) $(MAKE) $(BUILD_ARGS) -C $(WORKSRC)/tools/power/cpupower install
+	@$(MAKECOOKIE)
+
+build-tmon:
+	@$(CONFIGURE_ENV) $(MAKE) $(BUILD_ARGS) -C $(WORKSRC)/tools/thermal/tmon
+	@$(MAKECOOKIE)
+
+install-tmon: build-tmon
+	@$(CONFIGURE_ENV) $(MAKE) $(BUILD_ARGS) -C $(WORKSRC)/tools/thermal/tmon install INSTALL_ROOT=$(DESTDIR)
 	@$(MAKECOOKIE)
 
 pre-install:
