@@ -4,7 +4,7 @@ GARVERSION   = 3.4.1
 CATEGORIES   = utils
 MASTER_SITES = https://github.com/htop-dev/htop/archive/
 DISTFILES    = $(GARVERSION).tar.gz
-PATCHFILES   = 01-show-core-temperatures-a523.patch
+PATCHFILES   = 01-show-core-temperatures-a523.patch 02-read-current-cpu-freq-from-cpuinfo-sysfs.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
