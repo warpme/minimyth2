@@ -15,7 +15,7 @@ my $devnull    = File::Spec->devnull;
 
 
 my @status_sensors_body = ();
-my $status_sensors_head = q(Sensors (output of command "sensors"));
+my $status_sensors_head = q(Temperature Sensors);
 if (system(qq(/usr/bin/sensors > $devnull 2>&1)) == 0)
 {
     if (open(FILE, '-|', '/usr/bin/sensors'))
@@ -51,7 +51,7 @@ my @status_cpu_temp_body = ();
 my @cpu_temp = `find /sys/class/thermal/thermal_zone*/temp -type f`;
 if (@cpu_temp)
 {
-    $status_cpu_temp_head = "CPU Current Temperature";
+    $status_cpu_temp_head = "System Current Temperatures";
     @status_cpu_temp_body = ();
 
     foreach my $cpu_temp (@cpu_temp) {
@@ -82,9 +82,44 @@ if (@cpu_temp)
     }
 }
 
+my $status_cpu_req_freq_head = "";
+my @status_cpu_req_freq_body = ();
+my @cpu_req_freq = `find /sys/devices/system/cpu/cpu* -name scaling_cur_freq`;
+if (@cpu_req_freq)
+{
+    $status_cpu_req_freq_head = "CPU Requested/Running Frequency";
+    @status_cpu_req_freq_body = ();
+
+    foreach my $cpu_req_freq (@cpu_req_freq) {
+
+        if (open(FILE, "cat $cpu_req_freq |"))
+        {
+            while (<FILE>)
+            {
+                chomp;
+                $cpu_req_freq =~ s/\/sys\/devices\/system\/cpu\/cpufreq\/policy(.*)\/scaling_cur_freq/CPU$1/g;
+                chomp $cpu_req_freq;
+                if ($_ > 0) {
+                    my $freq = $_/1000;
+                    push(@status_cpu_req_freq_body, "Requested: ".$cpu_req_freq.": ".$freq." MHz");
+                }
+            }
+            close(FILE);
+        }
+    }
+    while (($#status_cpu_req_freq_body >= 0) && ($status_cpu_req_freq_body[0] eq ''))
+    {
+        shift(@status_cpu_req_freq_body);
+    }
+    while (($#status_cpu_req_freq_body >= 0) && ($status_cpu_req_freq_body[$#status_cpu_req_freq_body] eq ''))
+    {
+        pop(@status_cpu_req_freq_body);
+    }
+}
+
 my $status_cpu_curr_freq_head = "";
 my @status_cpu_curr_freq_body = ();
-my @cpu_curr_freq = `find /sys/devices/system/cpu/cpu* -name scaling_cur_freq`;
+my @cpu_curr_freq = `find /sys/devices/system/cpu/cpu* -name cpuinfo_cur_freq`;
 if (@cpu_curr_freq)
 {
     $status_cpu_curr_freq_head = "CPU Current Frequency";
@@ -97,11 +132,11 @@ if (@cpu_curr_freq)
             while (<FILE>)
             {
                 chomp;
-                $cpu_curr_freq =~ s/\/sys\/devices\/system\/cpu\/cpufreq\/policy(.*)\/scaling_cur_freq/CPU$1/g;
+                $cpu_curr_freq =~ s/\/sys\/devices\/system\/cpu\/cpufreq\/policy(.*)\/cpuinfo_cur_freq/CPU$1/g;
                 chomp $cpu_curr_freq;
                 if ($_ > 0) {
                     my $freq = $_/1000;
-                    push(@status_cpu_curr_freq_body, $cpu_curr_freq.": ".$freq." MHz");
+                    push(@status_cpu_curr_freq_body, "  Running: ".$cpu_curr_freq.": ".$freq." MHz");
                 }
             }
             close(FILE);
@@ -114,6 +149,41 @@ if (@cpu_curr_freq)
     while (($#status_cpu_curr_freq_body >= 0) && ($status_cpu_curr_freq_body[$#status_cpu_curr_freq_body] eq ''))
     {
         pop(@status_cpu_curr_freq_body);
+    }
+}
+
+my $status_gpu_req_freq_head = "";
+my @status_gpu_req_freq_body = ();
+my @gpu_req_freq = `find /sys/bus/platform/drivers/*/*.gpu/devfreq -name target_freq`;
+if (@gpu_req_freq)
+{
+    $status_gpu_req_freq_head = "GPU Requested/Running Frequency";
+    @status_gpu_req_freq_body = ();
+
+    foreach my $gpu_req_freq (@gpu_req_freq) {
+
+        if (open(FILE, "cat $gpu_req_freq |"))
+        {
+            while (<FILE>)
+            {
+                chomp;
+                $gpu_req_freq =~ s/\/sys\/bus\/platform\/drivers\/.*\/.*\/target_freq/GPU: /g;
+                chomp $gpu_req_freq;
+                if ($_ > 0) {
+                    my $freq = $_/1000000;
+                    push(@status_gpu_req_freq_body, "Requested: ".$gpu_req_freq.$freq." MHz");
+                }
+            }
+            close(FILE);
+        }
+    }
+    while (($#status_gpu_req_freq_body >= 0) && ($status_gpu_req_freq_body[0] eq ''))
+    {
+        shift(@status_gpu_req_freq_body);
+    }
+    while (($#status_gpu_req_freq_body >= 0) && ($status_gpu_req_freq_body[$#status_gpu_req_freq_body] eq ''))
+    {
+        pop(@status_gpu_req_freq_body);
     }
 }
 
@@ -136,7 +206,7 @@ if (@gpu_curr_freq)
                 chomp $gpu_curr_freq;
                 if ($_ > 0) {
                     my $freq = $_/1000000;
-                    push(@status_gpu_curr_freq_body, $gpu_curr_freq.$freq." MHz");
+                    push(@status_gpu_curr_freq_body, "  Running: ".$gpu_curr_freq.$freq." MHz");
                 }
             }
             close(FILE);
@@ -157,7 +227,7 @@ my @status_cpu_freq_body = ();
 my @cpus_stats = `find /sys/devices/system/cpu/cpufreq/policy*/stats -name trans_table`;
 if (@cpus_stats)
 {
-    $status_cpu_freq_head = "CPU DVFS Frequency List";
+    $status_cpu_freq_head = "CPU DVFS Frequency Statistics";
     @status_cpu_freq_body = ();
 
     foreach my $cpu_stats (@cpus_stats) {
@@ -193,7 +263,7 @@ my @status_gpu_freq_body = ();
 my $gpu_freq = `find /sys/bus/platform/drivers/*/*.gpu/devfreq -name trans_stat`;
 if ($gpu_freq)
 {
-    $status_gpu_freq_head = "GPU DVFS Freqency List";
+    $status_gpu_freq_head = "GPU DVFS Freqency Statistics";
     @status_gpu_freq_body = ();
 
     if (open(FILE, "cat $gpu_freq |"))
@@ -234,19 +304,25 @@ if (@status_cpu_temp_body) {
     push(@middle,  q(  </div>));
     push(@middle,  q(</div>));
 }
-if (@status_cpu_curr_freq_body) {
+if (@status_cpu_req_freq_body) {
     push(@middle,  q(<div class="section">));
-    push(@middle, qq(  <div class="heading">$status_cpu_curr_freq_head</div>));
+    push(@middle, qq(  <div class="heading">$status_cpu_req_freq_head</div>));
     push(@middle,  q(  <div class="status">));
-    push(@middle, @status_cpu_curr_freq_body);
+    push(@middle, @status_cpu_req_freq_body);
+    if (@status_cpu_curr_freq_body) {
+        push(@middle, @status_cpu_curr_freq_body);
+    }
     push(@middle,  q(  </div>));
     push(@middle,  q(</div>));
 }
-if (@status_gpu_curr_freq_body) {
+if (@status_gpu_req_freq_body) {
     push(@middle,  q(<div class="section">));
-    push(@middle, qq(  <div class="heading">$status_gpu_curr_freq_head</div>));
+    push(@middle, qq(  <div class="heading">$status_gpu_req_freq_head</div>));
     push(@middle,  q(  <div class="status">));
-    push(@middle, @status_gpu_curr_freq_body);
+    push(@middle, @status_gpu_req_freq_body);
+    if (@status_gpu_curr_freq_body) {
+        push(@middle, @status_gpu_curr_freq_body);
+    }
     push(@middle,  q(  </div>));
     push(@middle,  q(</div>));
 }
