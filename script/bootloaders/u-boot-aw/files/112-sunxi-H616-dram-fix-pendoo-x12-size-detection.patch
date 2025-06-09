@@ -1,0 +1,55 @@
+diff --git a/arch/arm/mach-sunxi/dram_sun50i_h616.c b/arch/arm/mach-sunxi/dram_sun50i_h616.c
+index 1a2fefc509c3..1e21f5dd451f 100644
+--- a/arch/arm/mach-sunxi/dram_sun50i_h616.c
++++ b/arch/arm/mach-sunxi/dram_sun50i_h616.c
+@@ -1396,7 +1396,7 @@ static bool mctl_check_pattern(ulong offset)
+ static void mctl_auto_detect_dram_size(const struct dram_para *para,
+ 				       struct dram_config *config)
+ {
+-	unsigned int shift;
++	unsigned int shift, cols, rows;
+ 	u32 buffer[16];
+ 
+ 	/* max. config for columns, but not rows */
+@@ -1416,16 +1416,17 @@ static void mctl_auto_detect_dram_size(const struct dram_para *para,
+ 	shift = config->bus_full_width + 1;
+ 
+ 	/* detect column address bits */
+-	for (config->cols = 8; config->cols < 11; config->cols++) {
+-		if (mctl_check_pattern(1ULL << (config->cols + shift)))
++	for (cols = 8; cols < 11; cols++) {
++		if (mctl_check_pattern(1ULL << (cols + shift)))
+ 			break;
+ 	}
+-	debug("detected %u columns\n", config->cols);
++	debug("detected %u columns\n", cols);
+ 
+ 	/* restore data */
+ 	memcpy((u32*)CFG_SYS_SDRAM_BASE, buffer, sizeof(buffer));
+ 
+ 	/* reconfigure to make sure that all active rows are accessible */
++	config->cols = 8;
+ 	config->rows = 17;
+ 	mctl_core_init(para, config);
+ 
+@@ -1436,14 +1437,17 @@ static void mctl_auto_detect_dram_size(const struct dram_para *para,
+ 
+ 	/* detect row address bits */
+ 	shift = config->bus_full_width + 4 + config->cols;
+-	for (config->rows = 13; config->rows < 17; config->rows++) {
+-		if (mctl_check_pattern(1ULL << (config->rows + shift)))
++	for (rows = 13; rows < 17; rows++) {
++		if (mctl_check_pattern(1ULL << (rows + shift)))
+ 			break;
+ 	}
+-	debug("detected %u rows\n", config->rows);
++	debug("detected %u rows\n", rows);
+ 
+ 	/* restore data again */
+ 	memcpy((u32*)CFG_SYS_SDRAM_BASE, buffer, sizeof(buffer));
++
++	config->cols = cols;
++	config->rows = rows;
+ }
+ 
+ static unsigned long mctl_calc_size(const struct dram_config *config)
