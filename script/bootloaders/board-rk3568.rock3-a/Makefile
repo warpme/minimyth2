@@ -1,19 +1,18 @@
 
 GARNAME      = bootfiles-rk3568.rock3-a
-GARVERSION   = 2024-03-04
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = rock-3a-rk3568_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-rk3568.rock3-a
+export mm_U-BOOT_BOARD_DEFCONFIG = rock-3a-rk3568_defconfig
 
 WORKSRC      = $(WORKDIR)
-
-LICENSE = GPL2
-
-DESCRIPTION =
+LICENSE      = GPL2
+DESCRIPTION  =
 define BLURB
 endef
 

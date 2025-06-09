@@ -1,19 +1,18 @@
 
 GARNAME      = bootfiles-rk3566.zero3w
-GARVERSION   = 2024-03-04
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = radxa-zero-3-rk3566_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-rk3566.zero3w
+export mm_U-BOOT_BOARD_DEFCONFIG = radxa-zero-3-rk3566_defconfig
 
 WORKSRC      = $(WORKDIR)
-
-LICENSE = GPL2
-
-DESCRIPTION =
+LICENSE      = GPL2
+DESCRIPTION  =
 define BLURB
 endef
 

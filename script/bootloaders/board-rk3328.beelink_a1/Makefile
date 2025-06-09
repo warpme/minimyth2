@@ -1,18 +1,17 @@
 
 GARNAME      = bootfiles-rk3328.beelink_a1
-GARVERSION   = 2024-03-04
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                extlinux.conf \
                minimyth.conf   \
 
-export mm_U-BOOT_BOARD_TYPE = beelink-a1-rk3328_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-rk3328.beelink_a1
+export mm_U-BOOT_BOARD_DEFCONFIG = beelink-a1-rk3328_defconfig
 
 WORKSRC      = $(WORKDIR)
-
 LICENSE = GPL2
-
 DESCRIPTION =
 define BLURB
 endef

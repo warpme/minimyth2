@@ -1,19 +1,21 @@
 
 GARNAME      = bootfiles-rk3528.rock2-a
-GARVERSION   = 2024-08-08
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = generic-rk3528_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-rk3528.rock2-a
+
+# uncomment this for dedicated defconfig.
+# if commented out, generic defconfig will be used...
+# export mm_U-BOOT_BOARD_DEFCONFIG =
 
 WORKSRC      = $(WORKDIR)
-
-LICENSE = GPL2
-
-DESCRIPTION =
+LICENSE      = GPL2
+DESCRIPTION  =
 define BLURB
 endef
 

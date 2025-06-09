@@ -1,19 +1,19 @@
 
 GARNAME      = bootfiles-rk3588s.rock5-a
-GARVERSION   = 2024-03-04
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
                extlinux.conf
 
-export mm_U-BOOT_BOARD_TYPE = rock5a-rk3588s_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-rk3588s.rock5-a
+# commented out to use defconfig as dedicated defconfig fails with building
+# export mm_U-BOOT_BOARD_DEFCONFIG = rock5a-rk3588s_defconfig
 
 WORKSRC      = $(WORKDIR)
-
-LICENSE = GPL2
-
-DESCRIPTION =
+LICENSE      = GPL2
+DESCRIPTION  =
 define BLURB
 endef
 

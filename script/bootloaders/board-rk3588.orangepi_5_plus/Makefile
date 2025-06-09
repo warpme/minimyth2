@@ -1,19 +1,19 @@
 
 GARNAME      = bootfiles-rk3588.orange5-plus
-GARVERSION   = 2024-03-04
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = orangepi-5-plus-rk3588_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-rk3588.orangepi_5_plus
+# commented out to use defconfig as dedicated defconfig fails with building
+# export mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
 
 WORKSRC      = $(WORKDIR)
-
-LICENSE = GPL2
-
-DESCRIPTION =
+LICENSE      = GPL2
+DESCRIPTION  =
 define BLURB
 endef
 

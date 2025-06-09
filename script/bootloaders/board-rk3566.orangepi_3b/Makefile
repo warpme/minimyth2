@@ -1,19 +1,18 @@
 
 GARNAME      = bootfiles-rk3566.orangepi-3b
-GARVERSION   = 2024-03-04
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = orangepi-3b-rk3566_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-rk3566.orangepi_3b
+export mm_U-BOOT_BOARD_DEFCONFIG = orangepi-3b-rk3566_defconfig
 
 WORKSRC      = $(WORKDIR)
-
-LICENSE = GPL2
-
-DESCRIPTION =
+LICENSE      = GPL2
+DESCRIPTION  =
 define BLURB
 endef
 

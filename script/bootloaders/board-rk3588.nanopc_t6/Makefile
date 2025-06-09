@@ -1,19 +1,21 @@
 
 GARNAME      = bootfiles-rk3588.nanopc_t6
-GARVERSION   = 2024-11-21
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf \
                extlinux.conf \
 
-export mm_U-BOOT_BOARD_TYPE = nanopc-t6-rk3588_defconfig
+export mm_U-BOOT_BOARD_TYPE = board-rk3588.nanopc_t6
+
+# uncomment this for dedicated defconfig.
+# if commented out, generic defconfig will be used...
+# export mm_U-BOOT_BOARD_DEFCONFIG =
 
 WORKSRC      = $(WORKDIR)
-
-LICENSE = GPL2
-
-DESCRIPTION =
+LICENSE      = GPL2
+DESCRIPTION  =
 define BLURB
 endef
 
