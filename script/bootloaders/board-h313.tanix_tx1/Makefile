@@ -1,6 +1,6 @@
 
 GARNAME      = bootfiles-h313-tanix-tx1
-GARVERSION   = 2024-04-18
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
@@ -11,10 +11,10 @@ DISTFILES    = \
                load-kernel.scr \
                install-howto.txt \
 
-export mm_U-BOOT_BOARD_TYPE = tanix_tx1_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-h313.tanix_tx1
+export mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_defconfig
 
 WORKSRC      = $(WORKDIR)
-
 LICENSE = GPL2
 
 BUILDDEPS = utils/sunxi-tools
@@ -30,7 +30,7 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean-all install -C ../u-boot-h616
+	@$(MAKE) clean-all install -C ../u-boot-aw
 	@$(MAKECOOKIE)
 
 install-custom:
@@ -44,7 +44,7 @@ install-custom:
 	@cp -f    $(WORKSRC)/load-kernel.scr $(DESTDIR)/boot/load-kernel.scr
 	@cp -f    $(build_DESTDIR)$(build_bindir)/sunxi-fel $(DESTDIR)/boot/
 	@mkdir -p $(DESTDIR)/boot/h313loaderfiles
-	@cp -f    $(DESTDIR)$(libdir)/u-boot/h616/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/h313/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
 		  $(DESTDIR)/boot/h313loaderfiles/u-boot-sunxi-with-spl.bin
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 

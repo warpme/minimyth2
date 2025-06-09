@@ -1,18 +1,17 @@
 
 GARNAME      = bootfiles-h616.pendoo_x12pro
-GARVERSION   = 2024-03-24
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf       \
                extlinux.conf       \
 
-export mm_U-BOOT_BOARD_TYPE = pendoo-x12_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-h616.pendoo_x12pro
+export mm_U-BOOT_BOARD_DEFCONFIG = pendoo-x12_defconfig
 
 WORKSRC      = $(WORKDIR)
-
 LICENSE = GPL2
-
 DESCRIPTION =
 define BLURB
 endef
@@ -24,7 +23,7 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean-all install -C ../u-boot-h616
+	@$(MAKE) clean-all install -C ../u-boot-aw
 	@$(MAKECOOKIE)
 
 install-custom:

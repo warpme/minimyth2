@@ -1,18 +1,17 @@
 
 GARNAME      = bootfiles-h618.orangepi_zero2w
-GARVERSION   = 2024-03-24
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf       \
                extlinux.conf       \
 
-export mm_U-BOOT_BOARD_TYPE = orangepi_zero2w_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-h618.orangepi_zero2w
+export mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero2w_defconfig
 
 WORKSRC      = $(WORKDIR)
-
 LICENSE = GPL2
-
 DESCRIPTION =
 define BLURB
 endef
@@ -24,7 +23,7 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean-all install -C ../u-boot-h616
+	@$(MAKE) clean-all install -C ../u-boot-aw
 	@$(MAKECOOKIE)
 
 install-custom:
@@ -33,7 +32,7 @@ install-custom:
 	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
 	@cp -f    $(WORKSRC)/extlinux.conf $(DESTDIR)/boot/extlinux/extlinux.conf
 	@mkdir -p $(DESTDIR)/boot/h618loaderfiles
-	@cp -f    $(DESTDIR)$(libdir)/u-boot/h616/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
+	@cp -f    $(DESTDIR)$(libdir)/u-boot/h618/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
 		  $(DESTDIR)/boot/h618loaderfiles/u-boot-sunxi-with-spl.bin
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 

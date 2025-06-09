@@ -1,18 +1,17 @@
 
 GARNAME      = bootfiles-h616.x96_mate
-GARVERSION   = 2024-03-24
+GARVERSION   = 2024-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf       \
                extlinux.conf       \
 
-export mm_U-BOOT_BOARD_TYPE = x96_mate_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-h616.x96_mate
+export mm_U-BOOT_BOARD_DEFCONFIG = x96_mate_defconfig
 
 WORKSRC      = $(WORKDIR)
-
 LICENSE = GPL2
-
 DESCRIPTION =
 define BLURB
 endef
@@ -24,7 +23,7 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean-all install -C ../u-boot-h616
+	@$(MAKE) clean-all install -C ../u-boot-aw
 	@$(MAKECOOKIE)
 
 install-custom:

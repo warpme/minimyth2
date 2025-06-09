@@ -1,18 +1,17 @@
 
 GARNAME      = bootfiles-h616.orangepi_zero2
-GARVERSION   = 2024-03-24
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf       \
                extlinux.conf       \
 
-export mm_U-BOOT_BOARD_TYPE = orangepi_zero2_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-h616.orangepi_zero2
+export mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero2_defconfig
 
 WORKSRC      = $(WORKDIR)
-
 LICENSE = GPL2
-
 DESCRIPTION =
 define BLURB
 endef
@@ -24,7 +23,7 @@ CLEAN_SCRIPTS   = custom
 include ../../gar.mk
 
 build-custom:
-	@$(MAKE) clean-all install -C ../u-boot-h616
+	@$(MAKE) clean-all install -C ../u-boot-aw
 	@$(MAKECOOKIE)
 
 install-custom:

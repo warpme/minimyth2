@@ -1,19 +1,18 @@
 
 GARNAME      = bootfiles-h6.beelink_gs1
-GARVERSION   = 2024-03-24
+GARVERSION   = 2025-06-06
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
                minimyth.conf       \
                extlinux.conf       \
 
-export mm_U-BOOT_BOARD_TYPE = beelink_gs1_defconfig
-export CRUST_CONFIG = beelink_gs1_defconfig
+export mm_U-BOOT_BOARD_TYPE      = board-h6.beelink_gs1
+export mm_U-BOOT_BOARD_DEFCONFIG = beelink_gs1_defconfig
+export CRUST_CONFIG              = beelink_gs1_defconfig
 
 WORKSRC      = $(WORKDIR)
-
 LICENSE = GPL2
-
 DESCRIPTION =
 define BLURB
 endef
@@ -26,7 +25,7 @@ include ../../gar.mk
 
 build-custom:
 	@$(MAKE) clean-all install -C ../crust
-	@$(MAKE) clean-all install -C ../u-boot-h6
+	@$(MAKE) clean-all install -C ../u-boot-aw
 	@$(MAKECOOKIE)
 
 install-custom:
