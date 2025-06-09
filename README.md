@@ -134,6 +134,7 @@ Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | work
 Rockchip 3568 | Rock3-B          | works  (iwl7265@PCI-e)                 | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| Rock5A           | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| Rock5C           | works  (aic8800@USB)                   | works     | works       | n/a         | not works                      | good prospects                |
+Rockchip 3576 | NanoPi-M5        | not tested                             | not tested| not works   | LED Diode,OK| not works                      | good prospects                |
 Rockchip 3588s| NanoPi-M6        | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| NanoPi-R6S       | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| OrangePi 5       | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
@@ -156,7 +157,6 @@ Intel Z8500   | Beelink MII-V    | works  (ac3165@PCI-e)                  | not 
 Intel N3450   | Beelink BT4      | works  (ac3165@PCI-e)                  | not tested| n/a         | n/a         | not works (bios issue)         | perfect support, bootsplah nok|
 Intel N3450   | Beelink T34      | works  (ac3165@PCI-e)                  | not tested| n/a         | n/a         | works (s3ram)                  | perfect support, bootsplah nok|
 AMD E1-2100   | AMD Kabini       | n/a                                    | n/a       | n/a         | n/a         | works (s3ram)                  | perfect support               |
-Intel D525    | ION1             | n/a                                    | n/a       | n/a         | n/a         | works (s3ram)                  | perfect support               |
 Intel D2550   | ION2             | n/a                                    | n/a       | n/a         | n/a         | works (s3ram)                  | perfect support               |
 
 ### Hardware Video Decode support
@@ -174,6 +174,7 @@ Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_re
 Rockchip 3399    | RockPi4, RockPi4SE, OrangePi4-LTS            | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF    | Good playback, wyaland gives black.screen
 Rockchip 3566    | X96-x6, Quartz64B, UrvePi, OrangePi3B, Rock3C| hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8 (8)                | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
 Rockchip 3568    | Rock3-A, Rock3-B                             | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8 (8)                | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
+Rockchip 3576    | Nanopi-M5                                    | rkvdec2(13)/v4l2_request              | (13)                                       | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
 Rockchip 3588    | Rock5A, Rock5B, OrangePi5, OrangePi5Plus     | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8 (8)                | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
 Amlogic s905     | TanixTX3-Mini                                | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, Wayland (2)      | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, limited HEVC on s905w
 Amlogic s912     | Beelink GT1                                  | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
@@ -186,7 +187,6 @@ Intel i5         | i5 NUC                                       | VAAPI         
 Intel Z8500      | Beelink BT4                                  | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8               | X11, EGLFS (4)        | EGL_DMABUF (3)            | Perfect playback
 Intel N3450      | Beelink MII-V                                | VAAPI                                 | MPEG2, H.264, VC1, HVEC, VP8, VP9          | X11, EGLFS, Wayland   | EGL_DMABUF (3)            | Perfect playback
 AMD E1-2100      | AMD Kabini                                   | VAAPI                                 | MPEG2, H.264, VC1                          | X11, EGLFS, Wayland   | EGL_DMABUF (3)            | Perfect playback
-Intel D525       | ION1                                         | VDPAU,VAAPI(11)                       | MPEG2, MPEG4, H.264                        | X11, (5)              | By GFx internally         | Perfect playback
 Intel D2550      | ION2                                         | VDPAU,VAPPI(11)                       | MPEG2, MPEG4, H.264, VC1                   | X11, (5)              | By GFx internally         | Perfect playback
 
 - (1) - Wayland gives black screen on this HW
@@ -201,6 +201,7 @@ Intel D2550      | ION2                                         | VDPAU,VAPPI(11
 - (10) - rendering to DRM Planes gives not visible OSD on this HW
 - (11) - mesa nouveau as of 22.2.0 has issue with VAAPI decode on Nvidia ION1/ION2
 - (12) - as of 6.8-rc6 kernel EGLFS in DMABuf mode not works correctly
+- (13) - rkvdec2 is currently in development for this soc
 
 ### Video Decoding Test results
 
