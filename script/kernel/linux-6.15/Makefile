@@ -376,7 +376,7 @@ PATCHFILES += 1206-thermal-rockchip-Support-RK3576-SoC-in-the-thermal-driver.pat
 PATCHFILES += 1207-thermal-rockchip-support-reading-trim-values-from-OTP.patch
 
 # dtsi additions
-PATCHFILES += 1260-arm64-dtsi-rk3576-add-missing-hdmiphy-clk-cells.patch
+PATCHFILES += 1260-arm64-dtsi-rockchip-fix-hdmi-output-on-rk3576.patch
 PATCHFILES += 1261-arm64-dtsi-rk3576-add-sai-nodes.patch
 PATCHFILES += 1262-arm64-dtsi-rk3576-add-hdmi-audio-nodes.patch
 PATCHFILES += 1263-arm64-dtsi-rk3576-add-pcie-nodes.patch
