@@ -1,0 +1,126 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts linux-6.16-rc1/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts
+--- linux-6.16-rc1/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts	2025-06-08 22:44:43.000000000 +0200
++++ linux-6.16-rc1/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts	2025-06-11 17:09:53.001493310 +0200
+@@ -4,6 +4,7 @@
+ /dts-v1/;
+ 
+ #include "sun55i-a523.dtsi"
++#include "sun55i-a523-cpu-opp.dtsi"
+ 
+ #include <dt-bindings/gpio/gpio.h>
+ 
+@@ -12,14 +13,35 @@
+ 	compatible = "radxa,cubie-a5e", "allwinner,sun55i-a527";
+ 
+ 	aliases {
+-		ethernet0 = &emac0;
+ 		serial0 = &uart0;
++		mmc0 = &mmc0;
++		mmc1 = &mmc1;
++		mmc2 = &mmc2;
++		ethernet0 = &emac0;
++		ethernet1 = &gmac1;
++		ethernet2 = &wlan;
+ 	};
+ 
+ 	chosen {
+ 		stdout-path = "serial0:115200n8";
+ 	};
+ 
++	leds {
++		compatible = "gpio-leds";
++
++		led-0 {
++			label = "radxa:green:power";
++			gpios = <&r_pio 0 4 GPIO_ACTIVE_LOW>; /* PL4 */
++			linux,default-trigger = "heartbeat";
++		};
++
++		led-1 {
++			label = "radxa:blue:user";
++			gpios = <&r_pio 0 5 GPIO_ACTIVE_LOW>; /* PL5 */
++			linux,default-trigger = "disk-activity";
++		};
++	};
++
+ 	ext_osc32k: ext-osc32k-clk {
+ 		#clock-cells = <0>;
+ 		compatible = "fixed-clock";
+@@ -45,6 +67,24 @@
+ 		gpio = <&r_pio 0 8 GPIO_ACTIVE_HIGH>;	/* PL8 */
+ 		enable-active-high;
+ 	};
++
++	reg_3v3_wifi: 3v3-wifi {
++		compatible = "regulator-fixed";
++		regulator-name = "3v3-wifi";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&reg_vcc5v>;
++		gpio = <&r_pio 0 7 GPIO_ACTIVE_HIGH>; /* PL7 */
++		enable-active-high;
++	};
++};
++
++&cpu0 {
++	cpu-supply = <&reg_dcdc1>;
++};
++
++&cpu4 {
++	cpu-supply = <&reg_dcdc1_323>;
+ };
+ 
+ &ehci0 {
+@@ -73,6 +113,28 @@
+ 	};
+ };
+ 
++&gmac1 {
++	phy-mode = "rgmii";
++	pinctrl-names = "default", "sleep";
++	pinctrl-0 = <&gmac1_pins_default>;
++	pinctrl-1 = <&gmac1_pins_sleep>;
++	aw,soc-phy25m;
++	tx-delay = <3>;
++	rx-delay = <4>;
++	dwmac3v3-supply = <&reg_cldo3>;
++	status = "okay";
++
++	mdio1: mdio1@1 {
++		gmac1_phy0: ethernet-phy@1 {
++			compatible = "ethernet-phy-ieee802.3-c22";
++			reg = <0x1>;
++			reset-gpios = <&pio 9 16 GPIO_ACTIVE_LOW>; /* PJ16 */
++			reset-assert-us = <10000>;
++			reset-deassert-us = <150000>;
++		};
++	};
++};
++
+ &mmc0 {
+ 	vmmc-supply = <&reg_cldo3>;
+ 	cd-gpios = <&pio 5 6 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>; /* PF6 */
+@@ -80,6 +142,23 @@
+ 	status = "okay";
+ };
+ 
++&mmc1_pins {
++	drive-strength = <40>;
++};
++
++&mmc1 {
++	vmmc-supply = <&reg_3v3_wifi>;
++	bus-width = <4>;
++	non-removable;
++	// todo: investigate why clock above 40MHz makes data errors
++	max-frequency = <25000000>;
++	status = "okay";
++
++	wlan: wifi@1 {
++		reg = <1>;
++	};
++};
++
+ &ohci0 {
+ 	status = "okay";
+ };

@@ -1,0 +1,157 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c
+--- linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c	2025-03-22 14:03:49.370041483 +0100
++++ linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.c	2025-03-22 13:37:26.220036247 +0100
+@@ -32,12 +32,16 @@
+ {
+ 	struct rkvdec2_ctx *ctx = container_of(ctrl->handler, struct rkvdec2_ctx, ctrl_hdl);
+ 	const struct rkvdec2_coded_fmt_desc *desc = ctx->coded_fmt_desc;
++	int ret;
+ 
+-	if (desc->ops->try_ctrl)
+-		return desc->ops->try_ctrl(ctx, ctrl);
++	if (desc->ops->try_ctrl) {
++		ret = desc->ops->try_ctrl(ctx, ctrl);
++		if (ret)
++			return ret;
++	}
+ 
+ 	return 0;
+-}
++};
+ 
+ static const struct v4l2_ctrl_ops rkvdec2_ctrl_ops = {
+ 	.try_ctrl = rkvdec2_try_ctrl,
+@@ -864,19 +868,6 @@
+ 	pm_runtime_mark_last_busy(rkvdec->dev);
+ 	pm_runtime_put_autosuspend(rkvdec->dev);
+ 
+-	/*
+-	 * The hw decoder block may reset IOMMU when there is an error,
+-	 * flush entire iotlb to reconfigure the IOMMU.
+-	 */
+-	if (rkvdec->need_reset) {
+-		struct iommu_domain *domain;
+-
+-		domain = iommu_get_domain_for_dev(rkvdec->dev);
+-		if (domain)
+-			iommu_flush_iotlb_all(domain);
+-		rkvdec->need_reset = false;
+-	}
+-
+ 	rkvdec2_job_finish_no_pm(ctx, result);
+ }
+ 
+@@ -922,8 +913,10 @@
+ 	}
+ 
+ 	ret = desc->ops->run(ctx);
+-	if (ret)
++	if (ret) {
++		cancel_delayed_work(&rkvdec->watchdog_work);
+ 		rkvdec2_job_finish(ctx, VB2_BUF_STATE_ERROR);
++	}
+ }
+ 
+ static const struct v4l2_m2m_ops rkvdec2_m2m_ops = {
+@@ -1165,25 +1158,36 @@
+ static irqreturn_t rkvdec2_irq_handler(int irq, void *priv)
+ {
+ 	struct rkvdec2_dev *rkvdec = priv;
++	struct rkvdec2_ctx *ctx = v4l2_m2m_get_curr_priv(rkvdec->m2m_dev);
+ 	enum vb2_buffer_state state;
++	bool need_reset;
+ 	u32 status;
+ 
+ 	status = readl(rkvdec->regs + RKVDEC2_REG_STA_INT);
+ 	state = (status & STA_INT_DEC_RDY_STA) ?
+ 		VB2_BUF_STATE_DONE : VB2_BUF_STATE_ERROR;
+ 
+-	rkvdec->need_reset = state != VB2_BUF_STATE_DONE ||
+-			     (status & STA_INT_SOFTRESET_RDY);
++	need_reset = state != VB2_BUF_STATE_DONE ||
++			      (status & STA_INT_SOFTRESET_RDY);
+ 
+ 	/* Clear interrupt status */
+ 	writel(0, rkvdec->regs + RKVDEC2_REG_STA_INT);
+-	if (cancel_delayed_work(&rkvdec->watchdog_work)) {
+-		struct rkvdec2_ctx *ctx;
+ 
+-		ctx = v4l2_m2m_get_curr_priv(rkvdec->m2m_dev);
+-		rkvdec2_job_finish(ctx, state);
++	if (need_reset && rkvdec->iommu_domain && rkvdec->empty_domain) {
++		/* To rewrite mapping into the attached IOMMU core, attach a new empty domain that
++		 * will program an empty table, then attach the default domain again to reprogram
++		 * all cached mappings.
++		 * This is safely done in this interrupt handler to make sure no memory get mapped
++		 * through the IOMMU while the empty domain is attached.
++		 */
++		iommu_attach_device(rkvdec->empty_domain, rkvdec->dev);
++		iommu_detach_device(rkvdec->empty_domain, rkvdec->dev);
++		iommu_attach_device(rkvdec->iommu_domain, rkvdec->dev);
+ 	}
+ 
++	if (cancel_delayed_work(&rkvdec->watchdog_work))
++		rkvdec2_job_finish(ctx, state);
++
+ 	return IRQ_HANDLED;
+ }
+ 
+@@ -1191,9 +1195,8 @@
+ {
+ 	struct rkvdec2_dev *rkvdec = container_of(to_delayed_work(work), struct rkvdec2_dev,
+ 			      watchdog_work);
+-	struct rkvdec2_ctx *ctx;
++	struct rkvdec2_ctx *ctx = v4l2_m2m_get_curr_priv(rkvdec->m2m_dev);
+ 
+-	ctx = v4l2_m2m_get_curr_priv(rkvdec->m2m_dev);
+ 	if (ctx) {
+ 		dev_err(rkvdec->dev, "Frame processing timed out!\n");
+ 		writel(RKVDEC2_REG_DEC_IRQ_DISABLE, rkvdec->regs + RKVDEC2_REG_IMPORTANT_EN);
+@@ -1254,8 +1257,7 @@
+ {
+ 	struct rkvdec2_dev *rkvdec;
+ 	unsigned int dma_bit_mask = 40;
+-	unsigned int i;
+-	int ret, irq;
++	int i, ret, irq;
+ 
+ 	rkvdec = devm_kzalloc(&pdev->dev, sizeof(*rkvdec), GFP_KERNEL);
+ 	if (!rkvdec)
+@@ -1303,9 +1305,13 @@
+ 	rkvdec->iommu_domain = iommu_get_domain_for_dev(&pdev->dev);
+ 	if (!rkvdec->iommu_domain) {
+ 		/* Without iommu, only the lower 32 bits of ram can be used */
+-		dma_bit_mask = 32;
+-		vb2_dma_contig_set_max_seg_size(&pdev->dev, DMA_BIT_MASK(dma_bit_mask));
++		vb2_dma_contig_set_max_seg_size(&pdev->dev, U32_MAX);
+ 		dev_info(&pdev->dev, "No IOMMU domain found\n");
++	} else {
++		rkvdec->empty_domain = iommu_paging_domain_alloc(rkvdec->dev);
++
++		if (!rkvdec->empty_domain)
++			dev_warn(rkvdec->dev, "cannot alloc new empty domain\n");
+ 	}
+ 
+ 	ret = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(dma_bit_mask));
+@@ -1350,6 +1356,9 @@
+ 
+ 	if (rkvdec->sram_pool)
+ 		gen_pool_destroy(rkvdec->sram_pool);
++
++	if (rkvdec->empty_domain)
++		iommu_domain_free(rkvdec->empty_domain);
+ }
+ 
+ #ifdef CONFIG_PM
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h
+--- linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h	2025-03-22 14:03:49.370041483 +0100
++++ linux-6.14-rc7/drivers/media/platform/rockchip/rkvdec2/rkvdec2.h	2025-03-22 14:01:43.383374411 +0100
+@@ -102,7 +102,7 @@
+ 	struct mutex vdev_lock; /* serializes ioctls */
+ 	struct delayed_work watchdog_work;
+ 	struct iommu_domain *iommu_domain;
+-	bool need_reset;
++	struct iommu_domain *empty_domain;
+ };
+ 
+ struct rkvdec2_ctx {
