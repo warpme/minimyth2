@@ -1,7 +1,7 @@
-From 138bfe782a704366bc4e8bd2373e2d9fd59adf29 Mon Sep 17 00:00:00 2001
+From 774837ed8749fb58a5a4079d0750e151b1ed01a6 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
-Date: Sun, 5 Nov 2023 16:55:08 +0000
-Subject: [PATCH 10/12] media: rkvdec: Add image format concept
+Date: Tue, 25 Feb 2025 10:40:29 +0100
+Subject: [PATCH] media: rkvdec: Add image format concept
 
 Add an enum rkvdec_image_fmt used to signal an image format, e.g.
 4:2:0 8-bit, 4:2:0 10-bit or any.
@@ -10,22 +10,27 @@ Tag each supported CAPUTRE format with an image format and use this tag
 to filter out unsupported CAPTURE formats.
 
 Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+Reviewed-by: Nicolas Dufresne <nicolas.dufresne@collabora.com>
+Tested-by: Nicolas Dufresne <nicolas.dufresne@collabora.com>
+Tested-by: Christopher Obbard <chris.obbard@collabora.com>
+Signed-off-by: Nicolas Dufresne <nicolas.dufresne@collabora.com>
+Signed-off-by: Hans Verkuil <hverkuil@xs4all.nl>
 ---
- drivers/staging/media/rkvdec/rkvdec.c | 45 ++++++++++++++++++++-------
+ drivers/staging/media/rkvdec/rkvdec.c | 48 ++++++++++++++++++++-------
  drivers/staging/media/rkvdec/rkvdec.h | 13 +++++++-
- 2 files changed, 45 insertions(+), 13 deletions(-)
+ 2 files changed, 48 insertions(+), 13 deletions(-)
 
 diff --git a/drivers/staging/media/rkvdec/rkvdec.c b/drivers/staging/media/rkvdec/rkvdec.c
-index c3aede94c..5949d59d4 100644
+index 52e64b399dcc4a..70154948b4e32e 100644
 --- a/drivers/staging/media/rkvdec/rkvdec.c
 +++ b/drivers/staging/media/rkvdec/rkvdec.c
-@@ -27,26 +27,42 @@
+@@ -27,26 +27,45 @@
  #include "rkvdec.h"
  #include "rkvdec-regs.h"
  
 -static u32 rkvdec_enum_decoded_fmt(struct rkvdec_ctx *ctx, int index)
-+static inline bool rkvdec_image_fmt_match(enum rkvdec_image_fmt fmt1,
-+					  enum rkvdec_image_fmt fmt2)
++static bool rkvdec_image_fmt_match(enum rkvdec_image_fmt fmt1,
++				   enum rkvdec_image_fmt fmt2)
 +{
 +	return fmt1 == fmt2 || fmt2 == RKVDEC_IMG_FMT_ANY ||
 +	       fmt1 == RKVDEC_IMG_FMT_ANY;
@@ -35,17 +40,20 @@ index c3aede94c..5949d59d4 100644
 +				   enum rkvdec_image_fmt image_fmt)
  {
  	const struct rkvdec_coded_fmt_desc *desc = ctx->coded_fmt_desc;
-+	unsigned int i, j;
++	int fmt_idx = -1;
++	unsigned int i;
  
  	if (WARN_ON(!desc))
  		return 0;
  
 -	if (index >= desc->num_decoded_fmts)
 -		return 0;
-+	for (i = 0, j = 0; i < desc->num_decoded_fmts; i++) {
-+		if (rkvdec_image_fmt_match(desc->decoded_fmts[i].image_fmt,
-+					   image_fmt) &&
-+		    index == j++)
++	for (i = 0; i < desc->num_decoded_fmts; i++) {
++		if (!rkvdec_image_fmt_match(desc->decoded_fmts[i].image_fmt,
++					    image_fmt))
++			continue;
++		fmt_idx++;
++		if (index == fmt_idx)
 +			return desc->decoded_fmts[i].fourcc;
 +	}
  
@@ -68,7 +76,7 @@ index c3aede94c..5949d59d4 100644
  			return true;
  	}
  
-@@ -80,7 +96,7 @@ static void rkvdec_reset_decoded_fmt(struct rkvdec_ctx *ctx)
+@@ -80,7 +99,7 @@ static void rkvdec_reset_decoded_fmt(struct rkvdec_ctx *ctx)
  	struct v4l2_format *f = &ctx->decoded_fmt;
  	u32 fourcc;
  
@@ -77,7 +85,7 @@ index c3aede94c..5949d59d4 100644
  	rkvdec_reset_fmt(ctx, f, fourcc);
  	f->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
  	f->fmt.pix_mp.width = ctx->coded_fmt.fmt.pix_mp.width;
-@@ -149,8 +165,11 @@ static const struct rkvdec_ctrls rkvdec_h264_ctrls = {
+@@ -149,8 +168,11 @@ static const struct rkvdec_ctrls rkvdec_h264_ctrls = {
  	.num_ctrls = ARRAY_SIZE(rkvdec_h264_ctrl_descs),
  };
  
@@ -91,7 +99,7 @@ index c3aede94c..5949d59d4 100644
  };
  
  static const struct rkvdec_ctrl_desc rkvdec_vp9_ctrl_descs[] = {
-@@ -282,8 +301,9 @@ static int rkvdec_try_capture_fmt(struct file *file, void *priv,
+@@ -282,8 +304,9 @@ static int rkvdec_try_capture_fmt(struct file *file, void *priv,
  	if (WARN_ON(!coded_desc))
  		return -EINVAL;
  
@@ -103,7 +111,7 @@ index c3aede94c..5949d59d4 100644
  
  	/* Always apply the frmsize constraint of the coded end. */
  	pix_mp->width = max(pix_mp->width, ctx->coded_fmt.fmt.pix_mp.width);
-@@ -400,6 +420,7 @@ static int rkvdec_s_output_fmt(struct file *file, void *priv,
+@@ -400,6 +423,7 @@ static int rkvdec_s_output_fmt(struct file *file, void *priv,
  	 *
  	 * Note that this will propagates any size changes to the decoded format.
  	 */
@@ -111,7 +119,7 @@ index c3aede94c..5949d59d4 100644
  	rkvdec_reset_decoded_fmt(ctx);
  
  	/* Propagate colorspace information to capture. */
-@@ -449,7 +470,7 @@ static int rkvdec_enum_capture_fmt(struct file *file, void *priv,
+@@ -449,7 +473,7 @@ static int rkvdec_enum_capture_fmt(struct file *file, void *priv,
  	struct rkvdec_ctx *ctx = fh_to_rkvdec_ctx(priv);
  	u32 fourcc;
  
@@ -121,7 +129,7 @@ index c3aede94c..5949d59d4 100644
  		return -EINVAL;
  
 diff --git a/drivers/staging/media/rkvdec/rkvdec.h b/drivers/staging/media/rkvdec/rkvdec.h
-index 633335ebb..6f8cf50c5 100644
+index 633335ebb9c498..6f8cf50c5d99aa 100644
 --- a/drivers/staging/media/rkvdec/rkvdec.h
 +++ b/drivers/staging/media/rkvdec/rkvdec.h
 @@ -75,13 +75,23 @@ struct rkvdec_coded_fmt_ops {
@@ -157,6 +165,3 @@ index 633335ebb..6f8cf50c5 100644
  	void *priv;
  };
  
--- 
-2.36.1
-

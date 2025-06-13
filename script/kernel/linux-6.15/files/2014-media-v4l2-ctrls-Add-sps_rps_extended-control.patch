@@ -1,0 +1,151 @@
+From 2d9afaed075c93f7e971c50ec5c8bba691b0e9ed Mon Sep 17 00:00:00 2001
+From: Detlev Casanova <detlev.casanova@collabora.com>
+Date: Tue, 20 May 2025 09:46:36 -0400
+Subject: [PATCH 14/16] media: v4l2-ctrls: Add sps_rps_extended control
+
+The vdpu381 decoder found on newer Rockchip SoC need the information
+from the long term and short term ref pic sets from the SPS.
+
+So far, it wasn't included in the v4l2 API, so add it with a new dynamic
+sized control.
+
+Each element of the array contains the long term and short term ref pic
+set at that index.
+
+Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
+---
+ drivers/media/v4l2-core/v4l2-ctrls-core.c |  9 ++++++
+ drivers/media/v4l2-core/v4l2-ctrls-defs.c |  5 +++
+ include/uapi/linux/v4l2-controls.h        | 39 +++++++++++++++++++++++
+ include/uapi/linux/videodev2.h            |  1 +
+ 4 files changed, 54 insertions(+)
+
+diff --git a/drivers/media/v4l2-core/v4l2-ctrls-core.c b/drivers/media/v4l2-core/v4l2-ctrls-core.c
+index 90d2532966..a4975ae7e0 100644
+--- a/drivers/media/v4l2-core/v4l2-ctrls-core.c
++++ b/drivers/media/v4l2-core/v4l2-ctrls-core.c
+@@ -418,6 +418,9 @@ void v4l2_ctrl_type_op_log(const struct v4l2_ctrl *ctrl)
+ 	case V4L2_CTRL_TYPE_HEVC_SLICE_PARAMS:
+ 		pr_cont("HEVC_SLICE_PARAMS");
+ 		break;
++	case V4L2_CTRL_TYPE_HEVC_SPS_RPS_EXTENDED:
++		pr_cont("HEVC_SPS_RPS_EXTENDED");
++		break;
+ 	case V4L2_CTRL_TYPE_HEVC_SCALING_MATRIX:
+ 		pr_cont("HEVC_SCALING_MATRIX");
+ 		break;
+@@ -1173,6 +1176,9 @@ static int std_validate_compound(const struct v4l2_ctrl *ctrl, u32 idx,
+ 	case V4L2_CTRL_TYPE_HEVC_SLICE_PARAMS:
+ 		break;
+ 
++	case V4L2_CTRL_TYPE_HEVC_SPS_RPS_EXTENDED:
++		break;
++
+ 	case V4L2_CTRL_TYPE_HDR10_CLL_INFO:
+ 		break;
+ 
+@@ -1921,6 +1927,9 @@ static struct v4l2_ctrl *v4l2_ctrl_new(struct v4l2_ctrl_handler *hdl,
+ 	case V4L2_CTRL_TYPE_HEVC_SLICE_PARAMS:
+ 		elem_size = sizeof(struct v4l2_ctrl_hevc_slice_params);
+ 		break;
++	case V4L2_CTRL_TYPE_HEVC_SPS_RPS_EXTENDED:
++		elem_size = sizeof(struct v4l2_ctrl_hevc_sps_rps_extended);
++		break;
+ 	case V4L2_CTRL_TYPE_HEVC_SCALING_MATRIX:
+ 		elem_size = sizeof(struct v4l2_ctrl_hevc_scaling_matrix);
+ 		break;
+diff --git a/drivers/media/v4l2-core/v4l2-ctrls-defs.c b/drivers/media/v4l2-core/v4l2-ctrls-defs.c
+index 1ea5201124..6c176c9820 100644
+--- a/drivers/media/v4l2-core/v4l2-ctrls-defs.c
++++ b/drivers/media/v4l2-core/v4l2-ctrls-defs.c
+@@ -1233,6 +1233,7 @@ const char *v4l2_ctrl_get_name(u32 id)
+ 	case V4L2_CID_STATELESS_HEVC_DECODE_MODE:		return "HEVC Decode Mode";
+ 	case V4L2_CID_STATELESS_HEVC_START_CODE:		return "HEVC Start Code";
+ 	case V4L2_CID_STATELESS_HEVC_ENTRY_POINT_OFFSETS:	return "HEVC Entry Point Offsets";
++	case V4L2_CID_STATELESS_HEVC_SPS_RPS_EXTENDED:		return "HEVC Extended RPS data";
+ 	case V4L2_CID_STATELESS_AV1_SEQUENCE:			return "AV1 Sequence Parameters";
+ 	case V4L2_CID_STATELESS_AV1_TILE_GROUP_ENTRY:		return "AV1 Tile Group Entry";
+ 	case V4L2_CID_STATELESS_AV1_FRAME:			return "AV1 Frame Parameters";
+@@ -1578,6 +1579,10 @@ void v4l2_ctrl_fill(u32 id, const char **name, enum v4l2_ctrl_type *type,
+ 		*type = V4L2_CTRL_TYPE_U32;
+ 		*flags |= V4L2_CTRL_FLAG_DYNAMIC_ARRAY;
+ 		break;
++	case V4L2_CID_STATELESS_HEVC_SPS_RPS_EXTENDED:
++		*type = V4L2_CTRL_TYPE_HEVC_SPS_RPS_EXTENDED;
++		*flags |= V4L2_CTRL_FLAG_DYNAMIC_ARRAY;
++		break;
+ 	case V4L2_CID_STATELESS_VP9_COMPRESSED_HDR:
+ 		*type = V4L2_CTRL_TYPE_VP9_COMPRESSED_HDR;
+ 		break;
+diff --git a/include/uapi/linux/v4l2-controls.h b/include/uapi/linux/v4l2-controls.h
+index 72e32814ea..b2b5343ce5 100644
+--- a/include/uapi/linux/v4l2-controls.h
++++ b/include/uapi/linux/v4l2-controls.h
+@@ -2088,6 +2088,7 @@ struct v4l2_ctrl_mpeg2_quantisation {
+ #define V4L2_CID_STATELESS_HEVC_DECODE_MODE	(V4L2_CID_CODEC_STATELESS_BASE + 405)
+ #define V4L2_CID_STATELESS_HEVC_START_CODE	(V4L2_CID_CODEC_STATELESS_BASE + 406)
+ #define V4L2_CID_STATELESS_HEVC_ENTRY_POINT_OFFSETS (V4L2_CID_CODEC_STATELESS_BASE + 407)
++#define V4L2_CID_STATELESS_HEVC_SPS_RPS_EXTENDED    (V4L2_CID_CODEC_STATELESS_BASE + 408)
+ 
+ enum v4l2_stateless_hevc_decode_mode {
+ 	V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED,
+@@ -2543,6 +2544,44 @@ struct v4l2_ctrl_hevc_scaling_matrix {
+ 	__u8	scaling_list_dc_coef_32x32[2];
+ };
+ 
++/*
++ * struct v4l2_ctrl_hevc_st_ref_pic_set - HEVC short term reference pic set
++ */
++struct v4l2_ctrl_hevc_st_ref_pic_set {
++	__u8	inter_ref_pic_set_prediction_flag;
++	__u8	delta_idx_minus1;
++	__u8	delta_rps_sign;
++	__u16	abs_delta_rps_minus1;
++	__u8	num_delta_pocs;
++	__u8	num_negative_pics;
++	__u8	num_positive_pics;
++	__u8	used_by_curr_pic_s0[16];
++	__u8	used_by_curr_pic_s1[16];
++	__s32	delta_poc_s0[16];
++	__s32	delta_poc_s1[16];
++	__u8	num_delta_pocs_of_ref_rps_idx;
++};
++
++/*
++ * struct v4l2_ctrl_hevc_sps_rps_extension - HEVC SPS RPS Extended parameters
++ *
++ * Dynamic size 1-dimension array for long and short term RPS. The number of elements
++ * should be max(num_long_term_ref_pics_sps, num_short_term_ref_pic_sets)
++ * 
++ * @lt_ref_pic_poc_lsb_sps: picture order count modulo MaxPicOrderCntLsb
++ *			    of the i-th candidate long-term reference picture.
++ * @used_by_curr_pic_lt_sps_flag: specifies that the i-th candidate long-term
++ *				  reference picture specified in the SPS is used for
++ *				  reference by a picture that includes in its long-term
++ *				  reference picture set (RPS) the i-th candidate long-
++ *				  term reference picture.
++ */
++struct v4l2_ctrl_hevc_sps_rps_extended {
++	__u16	lt_ref_pic_poc_lsb_sps;
++	__u8	used_by_curr_pic_lt_sps_flag;
++	struct	v4l2_ctrl_hevc_st_ref_pic_set	st_ref_pic_set;
++};
++
+ #define V4L2_CID_COLORIMETRY_CLASS_BASE	(V4L2_CTRL_CLASS_COLORIMETRY | 0x900)
+ #define V4L2_CID_COLORIMETRY_CLASS	(V4L2_CTRL_CLASS_COLORIMETRY | 1)
+ 
+diff --git a/include/uapi/linux/videodev2.h b/include/uapi/linux/videodev2.h
+index 9e3b366d5f..e8714f9d10 100644
+--- a/include/uapi/linux/videodev2.h
++++ b/include/uapi/linux/videodev2.h
+@@ -1974,6 +1974,7 @@ enum v4l2_ctrl_type {
+ 	V4L2_CTRL_TYPE_HEVC_SLICE_PARAMS	= 0x0272,
+ 	V4L2_CTRL_TYPE_HEVC_SCALING_MATRIX	= 0x0273,
+ 	V4L2_CTRL_TYPE_HEVC_DECODE_PARAMS	= 0x0274,
++	V4L2_CTRL_TYPE_HEVC_SPS_RPS_EXTENDED	= 0x0275,
+ 
+ 	V4L2_CTRL_TYPE_AV1_SEQUENCE	    = 0x280,
+ 	V4L2_CTRL_TYPE_AV1_TILE_GROUP_ENTRY = 0x281,
+-- 
+2.46.0
+

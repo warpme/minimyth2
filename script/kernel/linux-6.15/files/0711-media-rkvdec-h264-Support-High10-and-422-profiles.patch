@@ -1,34 +1,36 @@
-From b2532bd69406531fec0ebd919e7f943ef28a931c Mon Sep 17 00:00:00 2001
+From 5e1ff2314797bf53636468a97719a8222deca9ae Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
-Date: Sun, 5 Nov 2023 16:55:10 +0000
-Subject: [PATCH 12/12] media: rkvdec: h264: Support High 10 and 4:2:2 profiles
+Date: Thu, 1 May 2025 15:55:50 -0400
+Subject: [PATCH] media: rkvdec: h264: Support High 10 and 4:2:2 profiles
 
 Add support and enable decoding of H264 High 10 and 4:2:2 profiles.
 
 Decoded CAPTURE buffer width is aligned to 64 pixels to accommodate HW
-requirement of 10-bit format buffers, fixes decoding of:
+requirement of 10-bit format buffers, fixes decoding of all the 4:2:2
+and 10bit 4:2:2 flusters tests except two stream that present some
+visual artifacts.
 
-- Hi422FR13_SONY_A
-- Hi422FR14_SONY_A
-- Hi422FR15_SONY_A
-- Hi422FR6_SONY_A
-- Hi422FR7_SONY_A
-- Hi422FR8_SONY_A
-- Hi422FR9_SONY_A
-- Hi422FREXT18_SONY_A
+- Hi422FREXT17_SONY_A
+- Hi422FREXT19_SONY_A
 
 The get_image_fmt() ops is implemented to select an image format
-required for the provided SPS control.
+required for the provided SPS control, and returns RKVDEC_IMG_FMT_ANY
+for other controls.
 
 Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
+Reviewed-by: Nicolas Dufresne <nicolas.dufresne@collabora.com>
+Tested-by: Nicolas Dufresne <nicolas.dufresne@collabora.com>
+Tested-by: Christopher Obbard <chris.obbard@collabora.com>
+Signed-off-by: Nicolas Dufresne <nicolas.dufresne@collabora.com>
+Signed-off-by: Hans Verkuil <hverkuil@xs4all.nl>
 ---
- drivers/staging/media/rkvdec/rkvdec-h264.c | 37 +++++++++++++++-----
- drivers/staging/media/rkvdec/rkvdec.c      | 40 ++++++++++++++++------
+ drivers/staging/media/rkvdec/rkvdec-h264.c | 37 ++++++++++++++++-----
+ drivers/staging/media/rkvdec/rkvdec.c      | 38 +++++++++++++++++-----
  drivers/staging/media/rkvdec/rkvdec.h      |  3 ++
- 3 files changed, 61 insertions(+), 19 deletions(-)
+ 3 files changed, 60 insertions(+), 18 deletions(-)
 
 diff --git a/drivers/staging/media/rkvdec/rkvdec-h264.c b/drivers/staging/media/rkvdec/rkvdec-h264.c
-index 8bce8902b..d14b4d173 100644
+index 8bce8902b8dda3..d14b4d173448db 100644
 --- a/drivers/staging/media/rkvdec/rkvdec-h264.c
 +++ b/drivers/staging/media/rkvdec/rkvdec-h264.c
 @@ -1027,24 +1027,42 @@ static int rkvdec_h264_adjust_fmt(struct rkvdec_ctx *ctx,
@@ -90,16 +92,14 @@ index 8bce8902b..d14b4d173 100644
 +	.get_image_fmt = rkvdec_h264_get_image_fmt,
  };
 diff --git a/drivers/staging/media/rkvdec/rkvdec.c b/drivers/staging/media/rkvdec/rkvdec.c
-index 225aa1f0a..b7fc9c5df 100644
+index f7eb67520ab0ed..3367902f22de34 100644
 --- a/drivers/staging/media/rkvdec/rkvdec.c
 +++ b/drivers/staging/media/rkvdec/rkvdec.c
-@@ -192,10 +192,11 @@ static const struct rkvdec_ctrl_desc rkvdec_h264_ctrl_descs[] = {
- 	},
+@@ -186,9 +186,10 @@ static const struct rkvdec_ctrl_desc rkvdec_h264_ctrl_descs[] = {
  	{
  		.cfg.id = V4L2_CID_MPEG_VIDEO_H264_PROFILE,
--		.cfg.min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+ 		.cfg.min = V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
 -		.cfg.max = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
-+		.cfg.min = V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE,
 +		.cfg.max = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH_422_INTRA,
  		.cfg.menu_skip_mask =
 -			BIT(V4L2_MPEG_VIDEO_H264_PROFILE_EXTENDED),
@@ -108,7 +108,7 @@ index 225aa1f0a..b7fc9c5df 100644
  		.cfg.def = V4L2_MPEG_VIDEO_H264_PROFILE_MAIN,
  	},
  	{
-@@ -210,11 +211,23 @@ static const struct rkvdec_ctrls rkvdec_h264_ctrls = {
+@@ -203,11 +204,23 @@ static const struct rkvdec_ctrls rkvdec_h264_ctrls = {
  	.num_ctrls = ARRAY_SIZE(rkvdec_h264_ctrl_descs),
  };
  
@@ -133,7 +133,7 @@ index 225aa1f0a..b7fc9c5df 100644
  };
  
  static const struct rkvdec_ctrl_desc rkvdec_vp9_ctrl_descs[] = {
-@@ -237,21 +250,28 @@ static const struct rkvdec_ctrls rkvdec_vp9_ctrls = {
+@@ -230,21 +243,28 @@ static const struct rkvdec_ctrls rkvdec_vp9_ctrls = {
  	.num_ctrls = ARRAY_SIZE(rkvdec_vp9_ctrl_descs),
  };
  
@@ -166,7 +166,7 @@ index 225aa1f0a..b7fc9c5df 100644
  		.subsystem_flags = VB2_V4L2_FL_SUPPORTS_M2M_HOLD_CAPTURE_BUF,
  	},
  	{
-@@ -266,8 +286,8 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
+@@ -259,8 +279,8 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
  		},
  		.ctrls = &rkvdec_vp9_ctrls,
  		.ops = &rkvdec_vp9_fmt_ops,
@@ -178,7 +178,7 @@ index 225aa1f0a..b7fc9c5df 100644
  };
  
 diff --git a/drivers/staging/media/rkvdec/rkvdec.h b/drivers/staging/media/rkvdec/rkvdec.h
-index e466a2753..9a9f4fced 100644
+index e466a2753ccfc1..9a9f4fced7a184 100644
 --- a/drivers/staging/media/rkvdec/rkvdec.h
 +++ b/drivers/staging/media/rkvdec/rkvdec.h
 @@ -80,6 +80,9 @@ struct rkvdec_coded_fmt_ops {
@@ -191,6 +191,3 @@ index e466a2753..9a9f4fced 100644
  };
  
  struct rkvdec_decoded_fmt_desc {
--- 
-2.36.1
-

@@ -191,24 +191,19 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
-# https://github.com/Kwiboo/linux-rockchip/commits/linuxtv-rkvdec-high-10-v5
-PATCHFILES += 0703-media-v4l2-common-Add-helpers-to-calculate-bytesperl.patch
-PATCHFILES += 0704-media-v4l2-Add-NV15-and-NV20-pixel-formats.patch
-PATCHFILES += 0705-media-rkvdec-h264-Use-bytesperline-and-buffer-height.patch
-PATCHFILES += 0706-media-rkvdec-h264-Don-t-hardcode-SPS-PPS-parameters.patch
-PATCHFILES += 0707-media-rkvdec-Extract-rkvdec_fill_decoded_pixfmt-into.patch
-PATCHFILES += 0708-media-rkvdec-Move-rkvdec_reset_decoded_fmt-helper.patch
-PATCHFILES += 0709-media-rkvdec-Extract-decoded-format-enumeration-into.patch
-PATCHFILES += 0710-media-rkvdec-Add-image-format-concept.patch
-PATCHFILES += 0711-media-rkvdec-Add-get_image_fmt-ops.patch
-PATCHFILES += 0712-media-rkvdec-h264-Support-High-10-and-4-2-2-profiles.patch
-PATCHFILES += 0714-media-rkvdec-Add-HEVC-backend.patch
-PATCHFILES += 0715-media-rkvdec-Add-variants-support.patch
-PATCHFILES += 0716-media-rkvdec-Implement-capability-filtering.patch
-PATCHFILES += 0717-media-rkvdec-Add-RK3288-variant.patch
-PATCHFILES += 0718-media-rkvdec-Disable-QoS-for-HEVC-and-VP9-on-RK3328.patch
+PATCHFILES += 0700-media-rkvdec-h264-Use-bytesperline-and-buffer-height-as-virstride.patch
+PATCHFILES += 0701-media-rkvdec-h264-Dont-hardcode-SPS-PPS-parameters.patch
+PATCHFILES += 0702-media-rkvdec-Extract-rkvdec_fill_decoded_pixfmt-into-helper.patch
+PATCHFILES += 0704-media-rkvdec-Move-rkvdec_reset_decoded_fmt-helper.patch
+PATCHFILES += 0705-media-rkvdec-Extract-decoded-format-enumeration-into-helper.patch
+PATCHFILES += 0706-media-rkvdec-Add-image-format-concept.patch
+PATCHFILES += 0707-media-rkvdec-Fix-frame-size-enumeration.patch
+PATCHFILES += 0708-media-rkvdec-h264-Limit-minimum-profile-to-constrained.patch
+PATCHFILES += 0709-media-rkvdec-Initialize-the-m2m-context-before-the-controls.patch
+PATCHFILES += 0710-media-rkvdec-Add-get_image_fmt-ops.patch
+PATCHFILES += 0711-media-rkvdec-h264-Support-High10-and-422-profiles.patch
+PATCHFILES += 0712-media-v4l2-Add-NV15-and-NV20-pixel-formats.patch
 PATCHFILES += 0722-v4l2-wip-iep-driver.patch
-PATCHFILES += 0724-media-rkvdec-add-soft-reset-on-errors.patch
 PATCHFILES += 0725-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
 PATCHFILES += 0727-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
 # device-tree patches
@@ -311,22 +306,30 @@ PATCHFILES += 1055-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1056-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 
 # rkvdec2 reset and hevc support
-PATCHFILES += 1059-media-v4l2-ctrls-core-Set-frame_mbs_only_flag-by-def.patch
-PATCHFILES += 1060-media-rockchip-Move-H264-CABAC-table-to-header-file.patch
-PATCHFILES += 1061-media-rockchip-Introduce-the-rkvdec2-driver.patch
-PATCHFILES += 1062-media-dt-bindings-rockchip-Document-RK3588-Video-Dec.patch
-PATCHFILES += 1063-WIP-iommu-rockchip-add-flush_iotlb_all-ops.patch
-PATCHFILES += 1064-media-rkvdec2-add-iommu-support-v3.patch
-PATCHFILES += 1065-wip-add-hevc-support.patch
-PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
-PATCHFILES += 1067-wip-rkvdec2-fix-iommu-v2.patch
+PATCHFILES += 2001-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
+PATCHFILES += 2002-media-rkvdec-Restore-iommu-addresses-on-errors.patch
+PATCHFILES += 2003-rkvdec-Move-cabac-table-to-its-own-source-file.patch
+PATCHFILES += 2004-rkvdec-Use-structs-to-represent-the-HW-RPS.patch
+PATCHFILES += 2005-rkvdec-Move-h264-functions-to-common-file.patch
+PATCHFILES += 2006-rkvdec-Add-per-variant-configuration.patch
+PATCHFILES += 2007-rkvdec-Add-RCB-and-SRAM-support.patch
+PATCHFILES += 2008-rkvdec-Support-per-variant-interrupt-handler.patch
+PATCHFILES += 2009-rkvdec-Enable-all-clocks-without-naming-them.patch
+PATCHFILES += 2010-rkvdec-Add-support-for-the-VDPU381-variant.patch
+PATCHFILES += 2011-arm64-dts-rockchip-Add-rkvdec2-Video-Decoder-on-rk35.patch
+PATCHFILES += 2012-rkvdec-Add-vdpu383-h264-support.patch
+PATCHFILES += 2013-arm64-dts-rockchip-Add-the-vdpu383-Video-Decoder-on-.patch
+PATCHFILES += 2014-media-v4l2-ctrls-Add-sps_rps_extended-control.patch
+PATCHFILES += 2015-wip-rkvdec-Add-vdpu381-hevc-support.patch
+PATCHFILES += 2016-wip-rkvdec-Add-hevc-support-for-vdpu383.patch
 
 # dtsi additions
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
+# for rkvdec h264 tests
+#PATCHFILES += 1072-arm64-dtsi-rockchip-disable-vpu121.patch
+
 # rkvdec2 dtsi
-PATCHFILES += 1073-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
-PATCHFILES += 1074-arm64-dtsi-rkvdec2-add-iommu-support-v3.patch
 PATCHFILES += 1075-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
 # dts patches
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
@@ -383,6 +386,7 @@ PATCHFILES += 1263-arm64-dtsi-rk3576-add-pcie-nodes.patch
 PATCHFILES += 1265-arm64-dtsi-rk3576-add-sdio-node.patch
 PATCHFILES += 1266-arm64-dtsi-rockchip-Add-thermal-nodes-to-RK3576.patch
 PATCHFILES += 1267-arm64-dtsi-rockchip-Add-thermal-trim-OTP-and-tsadc-nodes.patch
+PATCHFILES += 1268-arm64-dtsi-rockchip-disable-rkvdec-iommu.patch
 
 # bards dt additions/patches
 PATCHFILES += 1280-arm64-dts-add-rk3576-nanopi-m5-dt.patch
