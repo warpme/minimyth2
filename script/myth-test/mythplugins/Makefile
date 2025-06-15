@@ -25,7 +25,7 @@ DEPENDS = \
 	lib/libcdio-paranoia \
 	lib/libogg \
 	lib/libvorbis \
-	lib/SDL \
+	lib/SDL2 \
 	lib/taglib \
 	lib/libzip \
 	python3/python \
