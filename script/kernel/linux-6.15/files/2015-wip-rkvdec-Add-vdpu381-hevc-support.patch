@@ -1,17 +1,16 @@
-From d09af1f08946d3309105a0191eaff14908a2def8 Mon Sep 17 00:00:00 2001
+From 1bb27b9571c61c05374bade7166c8489eddb451f Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Wed, 11 Jun 2025 14:14:49 -0400
-Subject: [PATCH 15/16] wip: rkvdec: Add vdpu381 hevc support
+Subject: [PATCH 15/17] wip: rkvdec: Add vdpu381 hevc support
 
 Add HEVC support for the VDPU381 variant.
 
 The rkvdec_memcpy_toio() function is moved away from rkvdec-h264-common.c
 to rkvdec.c to be accessible by all variant/formats.
+(WIP: This move should have been done when switching to structs as both h264 and vp9 are using it)
 
 The fluster score is 139/147 for JCT-VC-HEVC_V1, tested on ROCK 5B.
 None of the other test suites works.
-
-(WIP: This move should have been done when switching to structs as both h264 and vp9 are using it)
 
 Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
 ---
@@ -19,10 +18,10 @@ Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
  drivers/staging/media/rkvdec/rkvdec-cabac.c   | 1718 +++++++++++++++++
  .../staging/media/rkvdec/rkvdec-h264-common.c |    9 -
  .../staging/media/rkvdec/rkvdec-h264-common.h |    1 -
- .../media/rkvdec/rkvdec-vdpu381-hevc.c        | 1002 ++++++++++
+ .../media/rkvdec/rkvdec-vdpu381-hevc.c        |  999 ++++++++++
  drivers/staging/media/rkvdec/rkvdec.c         |   86 +
  drivers/staging/media/rkvdec/rkvdec.h         |    2 +
- 7 files changed, 2809 insertions(+), 11 deletions(-)
+ 7 files changed, 2806 insertions(+), 11 deletions(-)
  create mode 100644 drivers/staging/media/rkvdec/rkvdec-vdpu381-hevc.c
 
 diff --git a/drivers/staging/media/rkvdec/Makefile b/drivers/staging/media/rkvdec/Makefile
@@ -1795,10 +1794,10 @@ index 7b36e1fb0e..601c466d08 100644
  		     struct rkvdec_h264_run *run,
 diff --git a/drivers/staging/media/rkvdec/rkvdec-vdpu381-hevc.c b/drivers/staging/media/rkvdec/rkvdec-vdpu381-hevc.c
 new file mode 100644
-index 0000000000..c08e5158d7
+index 0000000000..3975482864
 --- /dev/null
 +++ b/drivers/staging/media/rkvdec/rkvdec-vdpu381-hevc.c
-@@ -0,0 +1,1002 @@
+@@ -0,0 +1,999 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip VDPU381 HEVC backend
@@ -1983,8 +1982,9 @@ index 0000000000..c08e5158d7
 +};
 +
 +struct rkvdec_hevc_ctx {
-+	struct rkvdec_aux_buf		priv_tbl;
-+	struct rkvdec_vdpu381_regs_hevc	regs;
++	struct rkvdec_aux_buf			priv_tbl;
++	struct v4l2_ctrl_hevc_scaling_matrix 	scaling_matrix_cache;
++	struct rkvdec_vdpu381_regs_hevc		regs;
 +};
 +
 +struct scaling_factor {
@@ -2460,19 +2460,15 @@ index 0000000000..c08e5158d7
 +	struct rkvdec_hevc_priv_tbl *tbl = hevc_ctx->priv_tbl.cpu;
 +	u8 *dst;
 +
-+//	if (!memcmp((void *)&hevc_ctx->scaling_matrix_cache, scaling,
-+//		    sizeof(struct v4l2_ctrl_hevc_scaling_matrix)))
-+//		return;
++	if (!memcmp((void *)&hevc_ctx->scaling_matrix_cache, scaling,
++		    sizeof(struct v4l2_ctrl_hevc_scaling_matrix)))
++		return;
 +
 +	dst = tbl->scaling_list;
 +	translate_scaling_list((struct scaling_factor *)dst, scaling);
 +
-+	//u32 *tmp = (u32 *)dst;
-+	//for (int i = 0; i < RKV_SCALING_LIST_SIZE/4; i++) {
-+	//	dev_warn(ctx->dev->dev, "scanlist[%4d] = 0x%08x\n", i, tmp[i]);
-+	//}
-+//	memcpy((void *)&hevc_ctx->scaling_matrix_cache, scaling,
-+//	       sizeof(struct v4l2_ctrl_hevc_scaling_matrix));
++	memcpy((void *)&hevc_ctx->scaling_matrix_cache, scaling,
++	       sizeof(struct v4l2_ctrl_hevc_scaling_matrix));
 +}
 +
 +static void rkvdec_write_regs(struct rkvdec_ctx *ctx)

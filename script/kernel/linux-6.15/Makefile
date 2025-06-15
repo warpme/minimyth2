@@ -305,7 +305,8 @@ PATCHFILES += 1054-drm-bridge-synopsys-add-cec-support.patch
 PATCHFILES += 1055-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1056-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 
-# rkvdec2 reset and hevc support
+# rkvdec2 support
+# series from https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec @14.06.2025
 PATCHFILES += 2001-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
 PATCHFILES += 2002-media-rkvdec-Restore-iommu-addresses-on-errors.patch
 PATCHFILES += 2003-rkvdec-Move-cabac-table-to-its-own-source-file.patch
@@ -321,7 +322,8 @@ PATCHFILES += 2012-rkvdec-Add-vdpu383-h264-support.patch
 PATCHFILES += 2013-arm64-dts-rockchip-Add-the-vdpu383-Video-Decoder-on-.patch
 PATCHFILES += 2014-media-v4l2-ctrls-Add-sps_rps_extended-control.patch
 PATCHFILES += 2015-wip-rkvdec-Add-vdpu381-hevc-support.patch
-PATCHFILES += 2016-wip-rkvdec-Add-hevc-support-for-vdpu383.patch
+PATCHFILES += 2016-rkvdec-Add-hevc-support-for-vdpu383.patch
+PATCHFILES += 2017-wip-Add-missing-iommu-clocks.patch
 
 # dtsi additions
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
@@ -386,7 +388,7 @@ PATCHFILES += 1263-arm64-dtsi-rk3576-add-pcie-nodes.patch
 PATCHFILES += 1265-arm64-dtsi-rk3576-add-sdio-node.patch
 PATCHFILES += 1266-arm64-dtsi-rockchip-Add-thermal-nodes-to-RK3576.patch
 PATCHFILES += 1267-arm64-dtsi-rockchip-Add-thermal-trim-OTP-and-tsadc-nodes.patch
-PATCHFILES += 1268-arm64-dtsi-rockchip-disable-rkvdec-iommu.patch
+#PATCHFILES += 1268-arm64-dtsi-rockchip-disable-rkvdec-iommu.patch
 
 # bards dt additions/patches
 PATCHFILES += 1280-arm64-dts-add-rk3576-nanopi-m5-dt.patch
