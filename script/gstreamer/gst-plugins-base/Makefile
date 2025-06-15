@@ -20,7 +20,7 @@ DEPENDS = lang/c \
 	lib/libtheora \
 	lib/libvorbis \
 	gtk/pango \
-	lib/SDL \
+	lib/SDL2 \
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
