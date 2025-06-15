@@ -16,7 +16,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS   = lang/c lib/fontconfig lib/libbluray lib/SDL devel/zlib utils/bzip2 X11/libva X11/libvdpau
+DEPENDS   = lang/c lib/fontconfig lib/libbluray devel/zlib utils/bzip2 X11/libva X11/libvdpau
 BUILDDEPS = devel/yasm
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
@@ -40,11 +40,11 @@ CONFIGURE_ARGS = \
 	--enable-runtime-cpudetect \
 	--enable-ffmpeg \
 	--enable-ffplay \
-	--enable-doc \
-	--enable-htmlpages \
-	--enable-manpages \
-	--enable-podpages \
-	--enable-txtpages \
+	--disable-doc \
+	--disable-htmlpages \
+	--disable-manpages \
+	--disable-podpages \
+	--disable-txtpages \
 	--enable-avdevice \
 	--enable-avcodec \
 	--enable-avformat \
@@ -106,6 +106,8 @@ CONFIGURE_ARGS = \
 	--enable-libudev \
 	--enable-v4l2-m2m \
 	--enable-v4l2_request \
+	--disable-nvdec \
+	--disable-nvenc \
 
 BUILD_ARGS     = \
 	V='0'
