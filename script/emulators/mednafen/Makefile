@@ -9,7 +9,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lang/cxx lib/alsa-lib lib/libsndfile lib/SDL lib/SDL_net
+DEPENDS = lang/c lang/cxx lib/alsa-lib lib/libsndfile lib/SDL2
 
 WORKSRC = $(WORKDIR)/$(GARNAME)
 
