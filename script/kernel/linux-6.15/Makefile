@@ -307,33 +307,35 @@ PATCHFILES += 1056-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 
 # rkvdec2 support
 # series from https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec @14.06.2025
-PATCHFILES += 2001-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
-PATCHFILES += 2002-media-rkvdec-Restore-iommu-addresses-on-errors.patch
-PATCHFILES += 2003-rkvdec-Move-cabac-table-to-its-own-source-file.patch
-PATCHFILES += 2004-rkvdec-Use-structs-to-represent-the-HW-RPS.patch
-PATCHFILES += 2005-rkvdec-Move-h264-functions-to-common-file.patch
-PATCHFILES += 2006-rkvdec-Add-per-variant-configuration.patch
-PATCHFILES += 2007-rkvdec-Add-RCB-and-SRAM-support.patch
-PATCHFILES += 2008-rkvdec-Support-per-variant-interrupt-handler.patch
-PATCHFILES += 2009-rkvdec-Enable-all-clocks-without-naming-them.patch
-PATCHFILES += 2010-rkvdec-Add-support-for-the-VDPU381-variant.patch
-PATCHFILES += 2011-arm64-dts-rockchip-Add-rkvdec2-Video-Decoder-on-rk35.patch
-PATCHFILES += 2012-rkvdec-Add-vdpu383-h264-support.patch
-PATCHFILES += 2013-arm64-dts-rockchip-Add-the-vdpu383-Video-Decoder-on-.patch
-PATCHFILES += 2014-media-v4l2-ctrls-Add-sps_rps_extended-control.patch
-PATCHFILES += 2015-wip-rkvdec-Add-vdpu381-hevc-support.patch
-PATCHFILES += 2016-rkvdec-Add-hevc-support-for-vdpu383.patch
-PATCHFILES += 2017-wip-Add-missing-iommu-clocks.patch
+PATCHFILES += 1057-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
+PATCHFILES += 1058-media-rkvdec-Restore-iommu-addresses-on-errors.patch
+PATCHFILES += 1059-rkvdec-Move-cabac-table-to-its-own-source-file.patch
+PATCHFILES += 1060-rkvdec-Use-structs-to-represent-the-HW-RPS.patch
+PATCHFILES += 1061-rkvdec-Move-h264-functions-to-common-file.patch
+PATCHFILES += 1062-rkvdec-Add-per-variant-configuration.patch
+PATCHFILES += 1063-rkvdec-Add-RCB-and-SRAM-support.patch
+PATCHFILES += 1064-rkvdec-Support-per-variant-interrupt-handler.patch
+PATCHFILES += 1065-rkvdec-Enable-all-clocks-without-naming-them.patch
+PATCHFILES += 1066-rkvdec-Add-support-for-the-VDPU381-variant.patch
+PATCHFILES += 1067-rkvdec-Add-vdpu383-h264-support.patch
+PATCHFILES += 1068-media-v4l2-ctrls-Add-sps_rps_extended-control.patch
+PATCHFILES += 1069-wip-rkvdec-Add-vdpu381-hevc-support.patch
+PATCHFILES += 1070-rkvdec-Add-hevc-support-for-vdpu383.patch
 
 # dtsi additions
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
-# for rkvdec h264 tests
-#PATCHFILES += 1072-arm64-dtsi-rockchip-disable-vpu121.patch
 
 # rkvdec2 dtsi
+PATCHFILES += 1072-arm64-dtsi-rockchip-Add-rkvdec2-Video-Decoder-on-rk35.patch
+PATCHFILES += 1073-arm64-dtsi-rockchip-Add-the-vdpu383-Video-Decoder-on-.patch
+PATCHFILES += 1074-arm64-dtsi-wip-Add-missing-iommu-clocks.patch
 PATCHFILES += 1075-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
-# dts patches
+
+# for rkvdec h264 tests
+#PATCHFILES += 1079-arm64-dtsi-rockchip-disable-vpu121.patch
+
+# 3588 dts patches
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
 PATCHFILES += 1082-arm64-dts-rockchip-rk3588s-rock5c-dts-improvements.patch
@@ -380,7 +382,7 @@ PATCHFILES += 1205-thermal-rockchip-rename-rk_tsadcv3_tshut_mode.patch
 PATCHFILES += 1206-thermal-rockchip-Support-RK3576-SoC-in-the-thermal-driver.patch
 PATCHFILES += 1207-thermal-rockchip-support-reading-trim-values-from-OTP.patch
 
-# dtsi additions
+# 3576 dtsi additions
 PATCHFILES += 1260-arm64-dtsi-rockchip-fix-hdmi-output-on-rk3576.patch
 PATCHFILES += 1261-arm64-dtsi-rk3576-add-sai-nodes.patch
 PATCHFILES += 1262-arm64-dtsi-rk3576-add-hdmi-audio-nodes.patch
@@ -388,9 +390,8 @@ PATCHFILES += 1263-arm64-dtsi-rk3576-add-pcie-nodes.patch
 PATCHFILES += 1265-arm64-dtsi-rk3576-add-sdio-node.patch
 PATCHFILES += 1266-arm64-dtsi-rockchip-Add-thermal-nodes-to-RK3576.patch
 PATCHFILES += 1267-arm64-dtsi-rockchip-Add-thermal-trim-OTP-and-tsadc-nodes.patch
-#PATCHFILES += 1268-arm64-dtsi-rockchip-disable-rkvdec-iommu.patch
 
-# bards dt additions/patches
+# 3576 bards dt additions/patches
 PATCHFILES += 1280-arm64-dts-add-rk3576-nanopi-m5-dt.patch
 endif
 #------------------------------------------------------------
