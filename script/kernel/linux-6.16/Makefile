@@ -187,13 +187,14 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
-PATCHFILES += 0714-media-rkvdec-Add-HEVC-backend.patch
-PATCHFILES += 0715-media-rkvdec-Add-variants-support.patch
+#PATCHFILES += 0714-media-rkvdec-Add-HEVC-backend.patch
+#PATCHFILES += 0715-media-rkvdec-Add-variants-support.patch
 # to do PATCHFILES += 0716-media-rkvdec-Implement-capability-filtering.patch
-PATCHFILES += 0717-media-rkvdec-Add-RK3288-variant.patch
-PATCHFILES += 0718-media-rkvdec-Disable-QoS-for-HEVC-and-VP9-on-RK3328.patch
+#PATCHFILES += 0717-media-rkvdec-Add-RK3288-variant.patch
+#PATCHFILES += 0718-media-rkvdec-Disable-QoS-for-HEVC-and-VP9-on-RK3328.patch
+# PATCHFILES += 0724-media-rkvdec-add-soft-reset-on-errors.patch
+
 PATCHFILES += 0722-v4l2-wip-iep-driver.patch
-PATCHFILES += 0724-media-rkvdec-add-soft-reset-on-errors.patch
 PATCHFILES += 0725-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
 PATCHFILES += 0727-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
 # device-tree patches
@@ -242,11 +243,11 @@ ifeq (1,1)
 # Hack for adding H264 v4l2 decoding on RPI
 PATCHFILES += 0900-rpi-vc04_services-add_h~l2-m2m_decode-15062024.patch
 PATCHFILES += 0902-media-add-rpivid-driver.patch
-# to do PATCHFILES += 0905-drivers-add-rpi5-clk-pinctrl-mmc-pwm-net-usb-pci-rp1.patch
-# to do PATCHFILES += 0906-gpu-drm-vc4-add-rpi5-support.patch
+PATCHFILES += 0905-drivers-add-rpi5-clk-pinctrl-mmc-pwm-net-usb-pci-rp1.patch
+#PATCHFILES += 0906-gpu-drm-vc4-add-rpi5-support.patch
 # device-tree patches
 PATCHFILES += 0950-arm64-dts-brcm-set-userled-to-mmc.patch
-# to do PATCHFILES += 0951-arm64-dts-brcm-add-rpi5-dt.patch
+#PATCHFILES += 0951-arm64-dts-brcm-add-rpi5-dt.patch
 PATCHFILES += 0953-arm64-dts-add-rpivid-rpi4.patch
 endif
 #------------------------------------------------------------
@@ -277,23 +278,32 @@ PATCHFILES += 1055-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1056-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 
 # rkvdec2 reset and hevc support
-PATCHFILES += 1059-media-v4l2-ctrls-core-Set-frame_mbs_only_flag-by-def.patch
-PATCHFILES += 1060-media-rockchip-Move-H264-CABAC-table-to-header-file.patch
-PATCHFILES += 1061-media-rockchip-Introduce-the-rkvdec2-driver.patch
-PATCHFILES += 1062-media-dt-bindings-rockchip-Document-RK3588-Video-Dec.patch
-PATCHFILES += 1063-WIP-iommu-rockchip-add-flush_iotlb_all-ops.patch
-PATCHFILES += 1064-media-rkvdec2-add-iommu-support-v3.patch
-PATCHFILES += 1065-wip-add-hevc-support.patch
-PATCHFILES += 1066-wip-hevc-add-ref-frames-support.patch
-PATCHFILES += 1067-wip-rkvdec2-fix-iommu-v2.patch
+PATCHFILES += 1057-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
+PATCHFILES += 1058-media-rkvdec-Restore-iommu-addresses-on-errors.patch
+PATCHFILES += 1059-rkvdec-Move-cabac-table-to-its-own-source-file.patch
+PATCHFILES += 1060-rkvdec-Use-structs-to-represent-the-HW-RPS.patch
+PATCHFILES += 1061-rkvdec-Move-h264-functions-to-common-file.patch
+PATCHFILES += 1062-rkvdec-Add-per-variant-configuration.patch
+PATCHFILES += 1063-rkvdec-Add-RCB-and-SRAM-support.patch
+PATCHFILES += 1064-rkvdec-Support-per-variant-interrupt-handler.patch
+PATCHFILES += 1065-rkvdec-Enable-all-clocks-without-naming-them.patch
+PATCHFILES += 1066-rkvdec-Add-support-for-the-VDPU381-variant.patch
+PATCHFILES += 1067-rkvdec-Add-vdpu383-h264-support.patch
+PATCHFILES += 1068-media-v4l2-ctrls-Add-sps_rps_extended-control.patch
+PATCHFILES += 1069-wip-rkvdec-Add-vdpu381-hevc-support.patch
+PATCHFILES += 1070-rkvdec-Add-hevc-support-for-vdpu383.patch
 
 # dtsi additions
 PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1071-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
+
 # rkvdec2 dtsi
-PATCHFILES += 1073-arm64-dtsi-rockchip-add-rkvdec2-video-vecoder-on-rk3588.patch
-PATCHFILES += 1074-arm64-dtsi-rkvdec2-add-iommu-support-v3.patch
+PATCHFILES += 1072-arm64-dtsi-rockchip-Add-rkvdec2-Video-Decoder-on-rk35.patch
+PATCHFILES += 1073-arm64-dtsi-rockchip-Add-the-vdpu383-Video-Decoder-on-.patch
+PATCHFILES += 1074-arm64-dtsi-wip-Add-missing-iommu-clocks.patch
 PATCHFILES += 1075-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
+PATCHFILES += 1079-arm64-dtsi-rockchip-disable-vpu121.patch
+
 # dts patches
 PATCHFILES += 1080-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
 PATCHFILES += 1081-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
