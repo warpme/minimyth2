@@ -368,7 +368,6 @@ PATCHFILES += 1173-arm64-dts-allwinner-a527-add-Radxa-A5E-support.patch
 endif
 #------------------------------------------------------------
 
-
 ifeq (1,1)
 #-- Rockchip 3576 patches -----------------------------------------
 PATCHFILES += 1200-dt-bindings-PCI-dw-rockchip-Add-rk3576-support.patch
@@ -381,7 +380,8 @@ PATCHFILES += 1204-ASoC-rockchip-add-Serial-Audio-Interface-SAI-driver.patch
 PATCHFILES += 1205-thermal-rockchip-rename-rk_tsadcv3_tshut_mode.patch
 PATCHFILES += 1206-thermal-rockchip-Support-RK3576-SoC-in-the-thermal-driver.patch
 PATCHFILES += 1207-thermal-rockchip-support-reading-trim-values-from-OTP.patch
-
+# var fixes
+PATCHFILES += 1208-WIP-drm-rockchip-dw_hdmi_qp-adjust-timer0-to-refclk.patch
 # 3576 dtsi additions
 PATCHFILES += 1260-arm64-dtsi-rockchip-fix-hdmi-output-on-rk3576.patch
 PATCHFILES += 1261-arm64-dtsi-rk3576-add-sai-nodes.patch
@@ -395,8 +395,6 @@ PATCHFILES += 1267-arm64-dtsi-rockchip-Add-thermal-trim-OTP-and-tsadc-nodes.patc
 PATCHFILES += 1280-arm64-dts-add-rk3576-nanopi-m5-dt.patch
 endif
 #------------------------------------------------------------
-
-
 
 endif
 
