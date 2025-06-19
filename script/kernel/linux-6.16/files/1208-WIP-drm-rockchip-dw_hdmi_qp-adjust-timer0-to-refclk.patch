@@ -1,0 +1,138 @@
+
+This fixes non-working cec on 3576.
+
+The value we write to TIMER_BASE_CONFIG0 must be consistent with the clock frequency of CLK_HDMITX0_REF.
+If the two value are inconsistent, cec/ddc/hdcp will all be affected.
+Current mainline dw-hdmi-qp.c hardcodes timer to 428571429
+
+This patch reads current platform specific CLK_HDMITX0_REF and sets timer accordingly.
+
+todo: properly handle resume.
+
+I'm not working on resume as Cristian promissed to handle this clock-related issue as part of his larger series
+he is currently working on, which is also meant to perform some cleanup stuff :-)
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.15.2/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c linux-6.15.2/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+--- linux-6.15.2/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2025-06-19 12:49:45.051419190 +0200
++++ linux-6.15.2/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2025-06-19 12:37:06.701435470 +0200
+@@ -171,6 +171,8 @@
+ 	struct regmap *regm;
+ 
+ 	unsigned long tmds_char_rate;
++
++	u32 refclk_rate;
+ };
+ 
+ static void dw_hdmi_qp_write(struct dw_hdmi_qp *hdmi, unsigned int val,
+@@ -1471,11 +1473,14 @@
+ 	.max_register	= EARCRX_1_INT_FORCE,
+ };
+ 
+-static void dw_hdmi_qp_init_hw(struct dw_hdmi_qp *hdmi)
++static void dw_hdmi_qp_init_hw(struct dw_hdmi_qp *hdmi, struct dw_hdmi_qp_plat_data *plat_data)
+ {
++	hdmi->refclk_rate = plat_data->get_refclk_rate(plat_data->phy_data);
++
+ 	dw_hdmi_qp_write(hdmi, 0, MAINUNIT_0_INT_MASK_N);
+ 	dw_hdmi_qp_write(hdmi, 0, MAINUNIT_1_INT_MASK_N);
+-	dw_hdmi_qp_write(hdmi, 428571429, TIMER_BASE_CONFIG0);
++	dw_hdmi_qp_write(hdmi, hdmi->refclk_rate, TIMER_BASE_CONFIG0);
++	printk("dwhdmiqp-rockchip: debug: seting TIMER_BASE_CONFIG0 to:%u\n", hdmi->refclk_rate);
+ 
+ 	/* Software reset */
+ 	dw_hdmi_qp_write(hdmi, 0x01, I2CM_CONTROL0);
+@@ -1494,7 +1499,7 @@
+ 
+ struct dw_hdmi_qp *dw_hdmi_qp_bind(struct platform_device *pdev,
+ 				   struct drm_encoder *encoder,
+-				   const struct dw_hdmi_qp_plat_data *plat_data)
++				   struct dw_hdmi_qp_plat_data *plat_data)
+ {
+ 	struct device *dev = &pdev->dev;
+ 	struct dw_hdmi_qp *hdmi;
+@@ -1528,7 +1533,7 @@
+ 	hdmi->phy.ops = plat_data->phy_ops;
+ 	hdmi->phy.data = plat_data->phy_data;
+ 
+-	dw_hdmi_qp_init_hw(hdmi);
++	dw_hdmi_qp_init_hw(hdmi, plat_data);
+ 
+ 	ret = devm_request_threaded_irq(dev, plat_data->main_irq,
+ 					dw_hdmi_qp_main_hardirq, NULL,
+@@ -1574,7 +1579,8 @@
+ 
+ void dw_hdmi_qp_resume(struct device *dev, struct dw_hdmi_qp *hdmi)
+ {
+-	dw_hdmi_qp_init_hw(hdmi);
++	//to do...
++	//dw_hdmi_qp_init_hw(hdmi, plat_data);
+ }
+ EXPORT_SYMBOL_GPL(dw_hdmi_qp_resume);
+ 
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.15.2/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c linux-6.15.2/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+--- linux-6.15.2/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c	2025-06-19 12:49:44.834752529 +0200
++++ linux-6.15.2/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c	2025-06-19 12:40:30.848097752 +0200
+@@ -96,6 +96,7 @@
+ 	struct delayed_work hpd_work;
+ 	int port_id;
+ 	const struct rockchip_hdmi_qp_ctrl_ops *ctrl_ops;
++	struct clk *hdmitx_ref;
+ };
+ 
+ struct rockchip_hdmi_qp_ctrl_ops {
+@@ -422,6 +423,16 @@
+ };
+ MODULE_DEVICE_TABLE(of, dw_hdmi_qp_rockchip_dt_ids);
+ 
++static u32 dw_hdmi_rockchip_get_refclk_rate(void *data)
++{
++	struct rockchip_hdmi_qp *hdmi = (struct rockchip_hdmi_qp *)data;
++    u32 refclk_rate;
++
++	refclk_rate = clk_get_rate(hdmi->hdmitx_ref);
++	printk("dwhdmiqp-rockchip: debug: refclk_rate:%u\n", refclk_rate);
++	return refclk_rate;
++}
++
+ static int dw_hdmi_qp_rockchip_bind(struct device *dev, struct device *master,
+ 				    void *data)
+ {
+@@ -476,6 +487,8 @@
+ 	plat_data.phy_ops = cfg->phy_ops;
+ 	plat_data.phy_data = hdmi;
+ 
++	plat_data.get_refclk_rate = dw_hdmi_rockchip_get_refclk_rate;
++	
+ 	encoder = &hdmi->encoder.encoder;
+ 	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm, dev->of_node);
+ 
+@@ -551,6 +564,13 @@
+ 
+ 	platform_set_drvdata(pdev, hdmi);
+ 
++	hdmi->hdmitx_ref = devm_clk_get_optional(hdmi->dev, "ref");
++	if (IS_ERR(hdmi->hdmitx_ref)) {
++		dev_err_probe(hdmi->dev, PTR_ERR(hdmi->hdmitx_ref),
++			      "failed to get ref clock\n");
++		return PTR_ERR(hdmi->hdmitx_ref);
++	}
++
+ 	hdmi->hdmi = dw_hdmi_qp_bind(pdev, encoder, &plat_data);
+ 	if (IS_ERR(hdmi->hdmi)) {
+ 		ret = PTR_ERR(hdmi->hdmi);
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.15.2/include/drm/bridge/dw_hdmi_qp.h linux-6.15.2/include/drm/bridge/dw_hdmi_qp.h
+--- linux-6.15.2/include/drm/bridge/dw_hdmi_qp.h	2025-06-10 13:17:11.000000000 +0200
++++ linux-6.15.2/include/drm/bridge/dw_hdmi_qp.h	2025-06-19 10:15:09.414951956 +0200
+@@ -23,10 +23,11 @@
+ 	const struct dw_hdmi_qp_phy_ops *phy_ops;
+ 	void *phy_data;
+ 	int main_irq;
++	u32 (*get_refclk_rate)(void *data);
+ };
+ 
+ struct dw_hdmi_qp *dw_hdmi_qp_bind(struct platform_device *pdev,
+ 				   struct drm_encoder *encoder,
+-				   const struct dw_hdmi_qp_plat_data *plat_data);
++				   struct dw_hdmi_qp_plat_data *plat_data);
+ void dw_hdmi_qp_resume(struct device *dev, struct dw_hdmi_qp *hdmi);
+ #endif /* __DW_HDMI_QP__ */
