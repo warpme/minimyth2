@@ -303,47 +303,47 @@ PATCHFILES += 1055-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1056-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 
 # rkvdec2 support
-# series from https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec @14.06.2025
-PATCHFILES += 1057-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
+# series from https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec @19.06.2025
+PATCHFILES += 1057-bitfield-introduce-HWORD_UPDATE-bitfield-macros.patch
 PATCHFILES += 1058-media-rkvdec-Restore-iommu-addresses-on-errors.patch
-PATCHFILES += 1059-rkvdec-Move-cabac-table-to-its-own-source-file.patch
-PATCHFILES += 1060-rkvdec-Use-structs-to-represent-the-HW-RPS.patch
-PATCHFILES += 1061-rkvdec-Move-h264-functions-to-common-file.patch
-PATCHFILES += 1062-rkvdec-Add-per-variant-configuration.patch
-PATCHFILES += 1063-rkvdec-Add-RCB-and-SRAM-support.patch
-PATCHFILES += 1064-rkvdec-Support-per-variant-interrupt-handler.patch
-PATCHFILES += 1065-rkvdec-Enable-all-clocks-without-naming-them.patch
-PATCHFILES += 1066-rkvdec-Add-support-for-the-VDPU381-variant.patch
-PATCHFILES += 1067-rkvdec-Add-vdpu383-h264-support.patch
-PATCHFILES += 1068-media-v4l2-ctrls-Add-sps_rps_extended-control.patch
-PATCHFILES += 1069-wip-rkvdec-Add-vdpu381-hevc-support.patch
-PATCHFILES += 1070-rkvdec-Add-hevc-support-for-vdpu383.patch
-
+PATCHFILES += 1059-media-dt-bindings-rockchip-Document-RK3588-Video-Dec.patch
+PATCHFILES += 1060-media-dt-bindings-rockchip-Add-RK3576-Video-Decoder-.patch
+PATCHFILES += 1061-media-v4l2-ctrls-Add-sps_rps_extended-control.patch
+PATCHFILES += 1062-media-uapi-HEVC-Add-v4l2_ctrl_hevc_sps_rps_extended-.patch
+PATCHFILES += 1063-media-rkvdec-Unstage-the-driver.patch
+PATCHFILES += 1064-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
+PATCHFILES += 1065-media-rkvdec-Move-cabac-table-to-its-own-source-file.patch
+PATCHFILES += 1066-media-rkvdec-Use-structs-to-represent-the-HW-RPS.patch
+PATCHFILES += 1067-media-rkvdec-Move-h264-functions-to-common-file.patch
+PATCHFILES += 1068-media-rkvdec-Add-per-variant-configuration.patch
+PATCHFILES += 1069-media-rkvdec-Add-RCB-and-SRAM-support.patch
+PATCHFILES += 1070-media-rkvdec-Support-per-variant-interrupt-handler.patch
+PATCHFILES += 1071-media-rkvdec-Enable-all-clocks-without-naming-them.patch
+PATCHFILES += 1072-media-rkvdec-Add-H264-support-for-the-VDPU381-varian.patch
+PATCHFILES += 1073-media-rkvdec-Add-H264-support-for-the-VDPU383-varian.patch
+PATCHFILES += 1074-media-rkvdec-Add-HEVC-support-for-the-VDPU381-varian.patch
+PATCHFILES += 1075-media-rkvdec-Add-HEVC-support-for-the-VDPU383-varian.patch
 # dtsi additions
-PATCHFILES += 1070-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
-PATCHFILES += 1071-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
-
+PATCHFILES += 1080-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
+PATCHFILES += 1081-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
 # rkvdec2 dtsi
-PATCHFILES += 1072-arm64-dtsi-rockchip-Add-rkvdec2-Video-Decoder-on-rk35.patch
-PATCHFILES += 1073-arm64-dtsi-rockchip-Add-the-vdpu383-Video-Decoder-on-.patch
-PATCHFILES += 1074-arm64-dtsi-wip-Add-missing-iommu-clocks.patch
-PATCHFILES += 1075-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
-
-# for rkvdec h264 tests
-#PATCHFILES += 1079-arm64-dtsi-rockchip-disable-vpu121.patch
-
+PATCHFILES += 1082-arm64-dts-rockchip-Add-the-vdpu381-Video-Decoders-on.patch
+PATCHFILES += 1083-arm64-dts-rockchip-Add-the-vdpu383-Video-Decoder-on-.patch
 # 3588 dts patches
-PATCHFILES += 1080-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
-PATCHFILES += 1081-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
-PATCHFILES += 1082-arm64-dts-rockchip-rk3588s-rock5c-dts-improvements.patch
-PATCHFILES += 1083-arm64-dts-rockchip-rk3588-rock5itx-dts-improvements.patch
-PATCHFILES += 1084-arm64-dts-rockchip-rk3588s-opi5-dts-improvements.patch
-PATCHFILES += 1085-arm64-dts-rockchip-rk3588-opi5plus-dts-improvements.patch
-PATCHFILES += 1086-arm64-dts-rockchip-rk3588s-add-opi5pro-dts.patch
-PATCHFILES += 1087-arm64-dts-rockchip-rk3588s-add-nanopi-m6-dts.patch
-PATCHFILES += 1088-arm64-dts-rockchip-rk3588s-nanopc-r6s-dts-improvements.patch
-PATCHFILES += 1089-arm64-dts-rockchip-rk3588-nanopc-t6-dtsi-improvements.patch
-PATCHFILES += 1090-arm64-dts-rockchip-rk3588-add-rock5t-dt.patch
+PATCHFILES += 1087-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
+PATCHFILES += 1088-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
+PATCHFILES += 1089-arm64-dts-rockchip-rk3588s-rock5c-dts-improvements.patch
+PATCHFILES += 1090-arm64-dts-rockchip-rk3588-rock5itx-dts-improvements.patch
+PATCHFILES += 1091-arm64-dts-rockchip-rk3588s-opi5-dts-improvements.patch
+PATCHFILES += 1092-arm64-dts-rockchip-rk3588-opi5plus-dts-improvements.patch
+PATCHFILES += 1093-arm64-dts-rockchip-rk3588s-add-opi5pro-dts.patch
+PATCHFILES += 1094-arm64-dts-rockchip-rk3588s-add-nanopi-m6-dts.patch
+PATCHFILES += 1095-arm64-dts-rockchip-rk3588s-nanopc-r6s-dts-improvements.patch
+PATCHFILES += 1096-arm64-dts-rockchip-rk3588-nanopc-t6-dtsi-improvements.patch
+PATCHFILES += 1097-arm64-dts-rockchip-rk3588-add-rock5t-dt.patch
+# for rkvdec h264 tests
+#PATCHFILES += 1099-arm64-dtsi-rockchip-disable-vpu121.patch
+
 #------------------------------------------------------------
 endif
 
