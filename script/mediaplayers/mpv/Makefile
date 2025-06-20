@@ -1,7 +1,7 @@
 
 GARNAME      = mpv
-# v0.39 23.09.2024
-GARVERSION   = a0fba7be57f3822d967b04f0f6b6d6341e7516e7
+# v0.40 25.03.2025
+GARVERSION   = e48ac7ce08462f5e33af6ef9deeac6fa87eef01e
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://github.com/mpv-player/mpv/archive/
 DISTFILES    = $(GARVERSION).zip
@@ -21,6 +21,7 @@ INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
+	-D cdda="disabled" \
 
 include ../../gar.mk
 
