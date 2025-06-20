@@ -187,13 +187,6 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
-#PATCHFILES += 0714-media-rkvdec-Add-HEVC-backend.patch
-#PATCHFILES += 0715-media-rkvdec-Add-variants-support.patch
-# to do PATCHFILES += 0716-media-rkvdec-Implement-capability-filtering.patch
-#PATCHFILES += 0717-media-rkvdec-Add-RK3288-variant.patch
-#PATCHFILES += 0718-media-rkvdec-Disable-QoS-for-HEVC-and-VP9-on-RK3328.patch
-# PATCHFILES += 0724-media-rkvdec-add-soft-reset-on-errors.patch
-
 PATCHFILES += 0722-v4l2-wip-iep-driver.patch
 PATCHFILES += 0725-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
 PATCHFILES += 0727-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
@@ -247,7 +240,7 @@ PATCHFILES += 0905-drivers-add-rpi5-clk-pinctrl-mmc-pwm-net-usb-pci-rp1.patch
 #PATCHFILES += 0906-gpu-drm-vc4-add-rpi5-support.patch
 # device-tree patches
 PATCHFILES += 0950-arm64-dts-brcm-set-userled-to-mmc.patch
-#PATCHFILES += 0951-arm64-dts-brcm-add-rpi5-dt.patch
+PATCHFILES += 0951-arm64-dts-brcm-add-rpi5-dt.patch
 PATCHFILES += 0953-arm64-dts-add-rpivid-rpi4.patch
 endif
 #------------------------------------------------------------
