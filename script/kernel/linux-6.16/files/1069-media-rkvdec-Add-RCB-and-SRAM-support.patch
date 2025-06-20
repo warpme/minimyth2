@@ -1,7 +1,7 @@
-From b165eccd7e2b1a775e765eab27c42e6d45b57f99 Mon Sep 17 00:00:00 2001
+From 80eb65c26d855eb63f73a44eb6ad121f30b453d2 Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Tue, 10 Jun 2025 14:53:27 -0400
-Subject: [PATCH 07/17] rkvdec: Add RCB and SRAM support
+Subject: [PATCH 19/25] media: rkvdec: Add RCB and SRAM support
 
 The RCB (Rows and Cols Buffers) are a set of buffers used by other
 variations of the decoder to store temporary data.
@@ -15,34 +15,46 @@ in SRAM or RAM.
 A fallback to RAM is provided if the SRAM is full (e.g.: multiple
 streams are being decoded at the same time).
 
-This commit is in preparation of other variatiants support.
+To manage the different kind of allocation, an enum is added to the
+rkvdec_aux_buf struct to specify how the buffer was allocated, and
+so, how to free it.
+
+This commit is in preparation of other variants support.
 
 Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
 ---
- drivers/staging/media/rkvdec/Makefile     |   2 +-
- drivers/staging/media/rkvdec/rkvdec-rcb.c | 164 ++++++++++++++++++++++
- drivers/staging/media/rkvdec/rkvdec-rcb.h |  19 +++
- drivers/staging/media/rkvdec/rkvdec.c     |  43 ++++--
- drivers/staging/media/rkvdec/rkvdec.h     |  13 ++
- 5 files changed, 231 insertions(+), 10 deletions(-)
- create mode 100644 drivers/staging/media/rkvdec/rkvdec-rcb.c
- create mode 100644 drivers/staging/media/rkvdec/rkvdec-rcb.h
+ .../media/platform/rockchip/rkvdec/Makefile   |   1 +
+ .../platform/rockchip/rkvdec/rkvdec-rcb.c     | 175 ++++++++++++++++++
+ .../platform/rockchip/rkvdec/rkvdec-rcb.h     |  29 +++
+ .../media/platform/rockchip/rkvdec/rkvdec.c   |  43 ++++-
+ .../media/platform/rockchip/rkvdec/rkvdec.h   |  13 ++
+ 5 files changed, 252 insertions(+), 9 deletions(-)
+ create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c
+ create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h
 
-diff --git a/drivers/staging/media/rkvdec/Makefile b/drivers/staging/media/rkvdec/Makefile
-index 765ab6fcd8..00c3a808c8 100644
---- a/drivers/staging/media/rkvdec/Makefile
-+++ b/drivers/staging/media/rkvdec/Makefile
-@@ -1,3 +1,3 @@
- obj-$(CONFIG_VIDEO_ROCKCHIP_VDEC) += rockchip-vdec.o
- 
--rockchip-vdec-y += rkvdec.o rkvdec-h264.o rkvdec-vp9.o rkvdec-cabac.o rkvdec-h264-common.o
-+rockchip-vdec-y += rkvdec.o rkvdec-h264.o rkvdec-vp9.o rkvdec-cabac.o rkvdec-h264-common.o rkvdec-rcb.o
-diff --git a/drivers/staging/media/rkvdec/rkvdec-rcb.c b/drivers/staging/media/rkvdec/rkvdec-rcb.c
+diff --git a/drivers/media/platform/rockchip/rkvdec/Makefile b/drivers/media/platform/rockchip/rkvdec/Makefile
+index 94c067084a..2b7ba9f7de 100644
+--- a/drivers/media/platform/rockchip/rkvdec/Makefile
++++ b/drivers/media/platform/rockchip/rkvdec/Makefile
+@@ -5,4 +5,5 @@ rockchip-vdec-y += \
+ 		   rkvdec-cabac.o \
+ 		   rkvdec-h264.o \
+ 		   rkvdec-h264-common.o \
++		   rkvdec-rcb.o \
+ 		   rkvdec-vp9.o
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c
 new file mode 100644
-index 0000000000..72350ae688
+index 0000000000..7585c25349
 --- /dev/null
-+++ b/drivers/staging/media/rkvdec/rkvdec-rcb.c
-@@ -0,0 +1,164 @@
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c
+@@ -0,0 +1,175 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Rockchip video decoder Rows and Cols Buffers manager
++ *
++ * Copyright (C) 2025 Collabora, Ltd.
++ *  Detlev Casanova <detlev.casanova@collabora.com>
++ */
 +
 +#include "rkvdec.h"
 +#include "rkvdec-rcb.h"
@@ -56,7 +68,8 @@ index 0000000000..72350ae688
 +	size_t rcb_count;
 +};
 +
-+static size_t rkvdec_rcb_size(const struct rcb_size_info *size_info, unsigned int width, unsigned int height)
++static size_t rkvdec_rcb_size(const struct rcb_size_info *size_info,
++			      unsigned int width, unsigned int height)
 +{
 +	return size_info->multiplier * (size_info->axis == PIC_HEIGHT ? height : width);
 +}
@@ -96,7 +109,8 @@ index 0000000000..72350ae688
 +		case RKVDEC2_ALLOC_SRAM:
 +			virt_addr = (unsigned long)cfg->rcb_bufs[i].cpu;
 +
-+			iommu_unmap(dev->iommu_domain, virt_addr, rcb_size);
++			if (dev->iommu_domain)
++				iommu_unmap(dev->iommu_domain, virt_addr, rcb_size);
 +			gen_pool_free(dev->sram_pool, virt_addr, rcb_size);
 +			break;
 +		case RKVDEC2_ALLOC_DMA:
@@ -114,7 +128,9 @@ index 0000000000..72350ae688
 +	devm_kfree(dev->dev, cfg);
 +}
 +
-+int rkvdec_allocate_rcb(struct rkvdec_ctx *ctx, const struct rcb_size_info *size_info, size_t rcb_count)
++int rkvdec_allocate_rcb(struct rkvdec_ctx *ctx,
++			const struct rcb_size_info *size_info,
++			size_t rcb_count)
 +{
 +	int ret, i;
 +	u32 width, height;
@@ -207,12 +223,20 @@ index 0000000000..72350ae688
 +}
 +
 +
-diff --git a/drivers/staging/media/rkvdec/rkvdec-rcb.h b/drivers/staging/media/rkvdec/rkvdec-rcb.h
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h b/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h
 new file mode 100644
-index 0000000000..a5456c3b59
+index 0000000000..30e8002555
 --- /dev/null
-+++ b/drivers/staging/media/rkvdec/rkvdec-rcb.h
-@@ -0,0 +1,19 @@
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h
+@@ -0,0 +1,29 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Rockchip video decoder Rows and Cols Buffers manager
++ *
++ * Copyright (C) 2025 Collabora, Ltd.
++ *  Detlev Casanova <detlev.casanova@collabora.com>
++ */
++
 +#include <linux/types.h>
 +
 +struct rkvdec_ctx;
@@ -227,15 +251,17 @@ index 0000000000..a5456c3b59
 +	enum rcb_axis axis;
 +};
 +
-+int rkvdec_allocate_rcb(struct rkvdec_ctx *ctx, const struct rcb_size_info *size_info, size_t rcb_count);
++int rkvdec_allocate_rcb(struct rkvdec_ctx *ctx,
++			const struct rcb_size_info *size_info,
++			size_t rcb_count);
 +dma_addr_t rkvdec_rcb_buf_dma_addr(struct rkvdec_ctx *ctx, int id);
 +size_t rkvdec_rcb_buf_size(struct rkvdec_ctx *ctx, int id);
 +int rkvdec_rcb_buf_count(struct rkvdec_ctx *ctx);
 +void rkvdec_free_rcb(struct rkvdec_ctx *ctx);
-diff --git a/drivers/staging/media/rkvdec/rkvdec.c b/drivers/staging/media/rkvdec/rkvdec.c
-index f8cbb3b8e6..f2ed890bd0 100644
---- a/drivers/staging/media/rkvdec/rkvdec.c
-+++ b/drivers/staging/media/rkvdec/rkvdec.c
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
+index 3496216d99..7362b8c2fe 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 @@ -10,6 +10,7 @@
   */
  
@@ -293,7 +319,7 @@ index f8cbb3b8e6..f2ed890bd0 100644
  	}
  
  	rkvdec_queue_cleanup(q, VB2_BUF_STATE_ERROR);
-@@ -1168,21 +1182,24 @@ static int rkvdec_probe(struct platform_device *pdev)
+@@ -1177,21 +1191,24 @@ static int rkvdec_probe(struct platform_device *pdev)
  	if (IS_ERR(rkvdec->regs))
  		return PTR_ERR(rkvdec->regs);
  
@@ -326,7 +352,7 @@ index f8cbb3b8e6..f2ed890bd0 100644
  	irq = platform_get_irq(pdev, 0);
  	if (irq <= 0)
  		return -ENXIO;
-@@ -1195,6 +1212,10 @@ static int rkvdec_probe(struct platform_device *pdev)
+@@ -1204,6 +1221,10 @@ static int rkvdec_probe(struct platform_device *pdev)
  		return ret;
  	}
  
@@ -337,7 +363,7 @@ index f8cbb3b8e6..f2ed890bd0 100644
  	pm_runtime_set_autosuspend_delay(&pdev->dev, 100);
  	pm_runtime_use_autosuspend(&pdev->dev);
  	pm_runtime_enable(&pdev->dev);
-@@ -1208,6 +1229,10 @@ static int rkvdec_probe(struct platform_device *pdev)
+@@ -1217,6 +1238,10 @@ static int rkvdec_probe(struct platform_device *pdev)
  err_disable_runtime_pm:
  	pm_runtime_dont_use_autosuspend(&pdev->dev);
  	pm_runtime_disable(&pdev->dev);
@@ -348,10 +374,10 @@ index f8cbb3b8e6..f2ed890bd0 100644
  	return ret;
  }
  
-diff --git a/drivers/staging/media/rkvdec/rkvdec.h b/drivers/staging/media/rkvdec/rkvdec.h
-index d88b6bc739..0d49eac28e 100644
---- a/drivers/staging/media/rkvdec/rkvdec.h
-+++ b/drivers/staging/media/rkvdec/rkvdec.h
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.h b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
+index 14717c646c..3a073883d2 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec.h
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
 @@ -19,10 +19,12 @@
  #include <media/v4l2-ctrls.h>
  #include <media/v4l2-device.h>

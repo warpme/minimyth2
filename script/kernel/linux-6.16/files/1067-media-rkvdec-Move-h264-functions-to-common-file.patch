@@ -1,7 +1,7 @@
-From 5d73c589de53ced909f0c71655326e74d49adaee Mon Sep 17 00:00:00 2001
+From 9f6211233fac04f9b9c37fd89adc39d0e102224e Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Tue, 10 Jun 2025 13:16:24 -0400
-Subject: [PATCH 05/17] rkvdec: Move h264 functions to common file
+Subject: [PATCH 17/25] media: rkvdec: Move h264 functions to common file
 
 This is a preparation commit to add support for new variants of the
 decoder.
@@ -11,29 +11,37 @@ The functions will later be shared with vdpu381 (rk3588) and vdpu383
 
 Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
 ---
- drivers/staging/media/rkvdec/Makefile         |   2 +-
- .../staging/media/rkvdec/rkvdec-h264-common.c | 249 ++++++++++++++++
- .../staging/media/rkvdec/rkvdec-h264-common.h |  71 +++++
- drivers/staging/media/rkvdec/rkvdec-h264.c    | 273 +-----------------
- 4 files changed, 325 insertions(+), 270 deletions(-)
- create mode 100644 drivers/staging/media/rkvdec/rkvdec-h264-common.c
- create mode 100644 drivers/staging/media/rkvdec/rkvdec-h264-common.h
+ .../media/platform/rockchip/rkvdec/Makefile   |   1 +
+ .../rockchip/rkvdec/rkvdec-h264-common.c      | 253 ++++++++++++++++
+ .../rockchip/rkvdec/rkvdec-h264-common.h      |  79 +++++
+ .../platform/rockchip/rkvdec/rkvdec-h264.c    | 274 +-----------------
+ 4 files changed, 337 insertions(+), 270 deletions(-)
+ create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c
+ create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
 
-diff --git a/drivers/staging/media/rkvdec/Makefile b/drivers/staging/media/rkvdec/Makefile
-index ba5b04ff11..765ab6fcd8 100644
---- a/drivers/staging/media/rkvdec/Makefile
-+++ b/drivers/staging/media/rkvdec/Makefile
-@@ -1,3 +1,3 @@
- obj-$(CONFIG_VIDEO_ROCKCHIP_VDEC) += rockchip-vdec.o
- 
--rockchip-vdec-y += rkvdec.o rkvdec-h264.o rkvdec-vp9.o rkvdec-cabac.o
-+rockchip-vdec-y += rkvdec.o rkvdec-h264.o rkvdec-vp9.o rkvdec-cabac.o rkvdec-h264-common.o
-diff --git a/drivers/staging/media/rkvdec/rkvdec-h264-common.c b/drivers/staging/media/rkvdec/rkvdec-h264-common.c
+diff --git a/drivers/media/platform/rockchip/rkvdec/Makefile b/drivers/media/platform/rockchip/rkvdec/Makefile
+index 164ea06c26..94c067084a 100644
+--- a/drivers/media/platform/rockchip/rkvdec/Makefile
++++ b/drivers/media/platform/rockchip/rkvdec/Makefile
+@@ -4,4 +4,5 @@ rockchip-vdec-y += \
+ 		   rkvdec.o \
+ 		   rkvdec-cabac.o \
+ 		   rkvdec-h264.o \
++		   rkvdec-h264-common.o \
+ 		   rkvdec-vp9.o
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c
 new file mode 100644
-index 0000000000..1ba4440c07
+index 0000000000..b23f153d7f
 --- /dev/null
-+++ b/drivers/staging/media/rkvdec/rkvdec-h264-common.c
-@@ -0,0 +1,249 @@
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c
+@@ -0,0 +1,253 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Rockchip video decoder h264 common functions
++ *
++ * Copyright (C) 2025 Collabora, Ltd.
++ *  Detlev Casanova <detlev.casanova@collabora.com>
++ */
 +
 +#include <linux/v4l2-common.h>
 +#include <media/v4l2-h264.h>
@@ -161,9 +169,6 @@ index 0000000000..1ba4440c07
 +			dpb_valid = run->ref_buf[ref->index] != NULL;
 +			bottom = ref->fields == V4L2_H264_BOTTOM_FIELD_REF;
 +
-+			dpb_valid = !!(run->ref_buf[ref->index]);
-+			bottom = ref->fields == V4L2_H264_BOTTOM_FIELD_REF;
-+
 +			set_dpb_info(hw_rps->entries, j, i, ref->index | (dpb_valid << 4), bottom);
 +		}
 +	}
@@ -207,7 +212,7 @@ index 0000000000..1ba4440c07
 +}
 +
 +enum rkvdec_image_fmt rkvdec_h264_get_image_fmt(struct rkvdec_ctx *ctx,
-+					        struct v4l2_ctrl *ctrl)
++						struct v4l2_ctrl *ctrl)
 +{
 +	const struct v4l2_ctrl_h264_sps *sps = ctrl->p_new.p_h264_sps;
 +
@@ -283,15 +288,23 @@ index 0000000000..1ba4440c07
 +	rkvdec_run_preamble(ctx, &run->base);
 +}
 +
-diff --git a/drivers/staging/media/rkvdec/rkvdec-h264-common.h b/drivers/staging/media/rkvdec/rkvdec-h264-common.h
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
 new file mode 100644
-index 0000000000..601c466d08
+index 0000000000..df95a16787
 --- /dev/null
-+++ b/drivers/staging/media/rkvdec/rkvdec-h264-common.h
-@@ -0,0 +1,71 @@
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
+@@ -0,0 +1,79 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Rockchip video decoder h264 common functions
++ *
++ * Copyright (C) 2025 Collabora, Ltd.
++ *  Detlev Casanova <detlev.casanova@collabora.com>
++ */
 +
 +#include <media/v4l2-h264.h>
 +#include <media/v4l2-mem2mem.h>
++
 +#include "rkvdec.h"
 +
 +struct rkvdec_h264_scaling_list {
@@ -316,37 +329,37 @@ index 0000000000..601c466d08
 +};
 +
 +struct rkvdec_rps_entry {
-+        u32 dpb_info0:          5;
-+        u32 bottom_flag0:       1;
-+        u32 view_index_off0:    1;
-+        u32 dpb_info1:          5;
-+        u32 bottom_flag1:       1;
-+        u32 view_index_off1:    1;
-+        u32 dpb_info2:          5;
-+        u32 bottom_flag2:       1;
-+        u32 view_index_off2:    1;
-+        u32 dpb_info3:          5;
-+        u32 bottom_flag3:       1;
-+        u32 view_index_off3:    1;
-+        u32 dpb_info4:          5;
-+        u32 bottom_flag4:       1;
-+        u32 view_index_off4:    1;
-+        u32 dpb_info5:          5;
-+        u32 bottom_flag5:       1;
-+        u32 view_index_off5:    1;
-+        u32 dpb_info6:          5;
-+        u32 bottom_flag6:       1;
-+        u32 view_index_off6:    1;
-+        u32 dpb_info7:          5;
-+        u32 bottom_flag7:       1;
-+        u32 view_index_off7:    1;
++	u32 dpb_info0:          5;
++	u32 bottom_flag0:       1;
++	u32 view_index_off0:    1;
++	u32 dpb_info1:          5;
++	u32 bottom_flag1:       1;
++	u32 view_index_off1:    1;
++	u32 dpb_info2:          5;
++	u32 bottom_flag2:       1;
++	u32 view_index_off2:    1;
++	u32 dpb_info3:          5;
++	u32 bottom_flag3:       1;
++	u32 view_index_off3:    1;
++	u32 dpb_info4:          5;
++	u32 bottom_flag4:       1;
++	u32 view_index_off4:    1;
++	u32 dpb_info5:          5;
++	u32 bottom_flag5:       1;
++	u32 view_index_off5:    1;
++	u32 dpb_info6:          5;
++	u32 bottom_flag6:       1;
++	u32 view_index_off6:    1;
++	u32 dpb_info7:          5;
++	u32 bottom_flag7:       1;
++	u32 view_index_off7:    1;
 +} __packed;
 +
 +struct rkvdec_rps {
-+        u16 frame_num[16];
-+        u32 reserved0;
-+        struct rkvdec_rps_entry entries[12];
-+        u32 reserved1[66];
++	u16 frame_num[16];
++	u32 reserved0;
++	struct rkvdec_rps_entry entries[12];
++	u32 reserved1[66];
 +} __packed;
 +
 +void lookup_ref_buf_idx(struct rkvdec_ctx *ctx, struct rkvdec_h264_run *run);
@@ -360,10 +373,10 @@ index 0000000000..601c466d08
 +enum rkvdec_image_fmt rkvdec_h264_get_image_fmt(struct rkvdec_ctx *ctx, struct v4l2_ctrl *ctrl);
 +int rkvdec_h264_validate_sps(struct rkvdec_ctx *ctx, const struct v4l2_ctrl_h264_sps *sps);
 +void rkvdec_h264_run_preamble(struct rkvdec_ctx *ctx, struct rkvdec_h264_run *run);
-diff --git a/drivers/staging/media/rkvdec/rkvdec-h264.c b/drivers/staging/media/rkvdec/rkvdec-h264.c
-index 19818d4c61..3636bb261b 100644
---- a/drivers/staging/media/rkvdec/rkvdec-h264.c
-+++ b/drivers/staging/media/rkvdec/rkvdec-h264.c
+diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
+index 63db28328b..b8d80392df 100644
+--- a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
++++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
 @@ -14,6 +14,7 @@
  
  #include "rkvdec.h"
@@ -421,7 +434,7 @@ index 19818d4c61..3636bb261b 100644
  struct rkvdec_h264_ctx {
  	struct rkvdec_aux_buf priv_tbl;
  	struct rkvdec_h264_reflists reflists;
-@@ -270,154 +243,6 @@ static void assemble_hw_pps(struct rkvdec_ctx *ctx,
+@@ -270,155 +243,6 @@ static void assemble_hw_pps(struct rkvdec_ctx *ctx,
  	}
  }
  
@@ -456,6 +469,7 @@ index 19818d4c61..3636bb261b 100644
 -{
 -	struct rkvdec_rps_entry *entry = &entries[(reflist * 4) + refnum / 8];
 -	u8 idx = refnum % 8;
+-
 -	switch (idx) {
 -	case 0:
 -		entry->dpb_info0 = info;
@@ -576,7 +590,7 @@ index 19818d4c61..3636bb261b 100644
  static void set_poc_reg(struct rkvdec_regs *regs, uint32_t poc, int id, bool bottom)
  {
  	if (!bottom) {
-@@ -568,76 +393,6 @@ static void config_registers(struct rkvdec_ctx *ctx,
+@@ -560,76 +384,6 @@ static void config_registers(struct rkvdec_ctx *ctx,
  	rkvdec_memcpy_toio(rkvdec->regs, regs, sizeof(*regs));
  }
  
@@ -653,7 +667,7 @@ index 19818d4c61..3636bb261b 100644
  static int rkvdec_h264_start(struct rkvdec_ctx *ctx)
  {
  	struct rkvdec_dev *rkvdec = ctx->dev;
-@@ -689,33 +444,13 @@ static void rkvdec_h264_stop(struct rkvdec_ctx *ctx)
+@@ -681,33 +435,13 @@ static void rkvdec_h264_stop(struct rkvdec_ctx *ctx)
  	kfree(h264_ctx);
  }
  
@@ -688,7 +702,7 @@ index 19818d4c61..3636bb261b 100644
  
  	rkvdec_h264_run_preamble(ctx, &run);
  
-@@ -726,10 +461,10 @@ static int rkvdec_h264_run(struct rkvdec_ctx *ctx)
+@@ -718,10 +452,10 @@ static int rkvdec_h264_run(struct rkvdec_ctx *ctx)
  	v4l2_h264_build_b_ref_lists(&reflist_builder, h264_ctx->reflists.b0,
  				    h264_ctx->reflists.b1);
  
