@@ -7,8 +7,8 @@
 # it replaces old files on target with new files from devel. machine.
 #
 # Example:
-# devel. machine at @MM_HOME@ has mirror of target root file system
-# at <@MM_HOME@>/main
+# devel. machine at /home/piotro/minimyth2-aarch64-next has mirror of target root file system
+# at </home/piotro/minimyth2-aarch64-next>/main
 #
 # To configure:
 #
@@ -17,7 +17,7 @@
 #---rsync snippet start----
 #
 #[devel-updates]
-#    path = @MM_HOME@
+#    path = /home/piotro/minimyth2-aarch64-next
 #    use chroot = true
 #    read only = true
 #
@@ -27,7 +27,7 @@
 #
 # 3.make sure on target machine in this script variable 'src_rsync_module' has
 # correct IP address on devel.machine. Current autosetup IP for your env. is:
-# src_rsync_module="@MM_HOME@::devel-updates"
+# src_rsync_module="/home/piotro/minimyth2-aarch64-next::devel-updates"
 #
 # 4. Run script on target and select component to update...
 #
@@ -59,7 +59,7 @@
 # dry_run="yes"
 
 # Default host IP::Module where new files reside
-src_rsync_module="@MM_DEVEL_IP@::devel-updates"
+src_rsync_module="192.168.1.190::devel-updates"
 
 # Log file with output from rsync
 log_file="/var/log/online-update.log"
@@ -287,7 +287,7 @@ echo " "
 echo "---rsync snippet start----"
 echo " "
 echo "[devel-updates]"
-echo "    path = @MM_HOME@/main/"
+echo "    path = /home/piotro/minimyth2-aarch64-next/main/"
 echo "    use chroot = true"
 echo "    read only = true"
 echo " "
@@ -414,7 +414,7 @@ rsync \
 --specials \
 --checksum \
 --compress \
---log-file=${log_file} \
+--log-file=${log_file}.$$ \
 --out-format=' => %f' \
 --log-file-format='%f [%b bytes]' \
 --stats \
@@ -434,6 +434,8 @@ $2 \
 
     echo " "
 
+    cat ${log_file}.$$ >> ${log_file}
+    rm -rf ${log_file}.$$
 }
 
 
