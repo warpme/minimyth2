@@ -238,6 +238,8 @@ PATCHFILES += 0900-rpi-vc04_services-add_h~l2-m2m_decode-15062024.patch
 PATCHFILES += 0902-media-add-rpivid-driver.patch
 PATCHFILES += 0905-drivers-add-rpi5-clk-pinctrl-mmc-pwm-net-usb-pci-rp1.patch
 PATCHFILES += 0906-gpu-drm-vc4-add-rpi5-support.patch
+#PATCHFILES += 0906-gpu-drm-vc4-sync-to-rpi-downstream.patch
+PATCHFILES += 0907-gpu-drm-v3d-sync-to-rpi-downstream.patch
 # device-tree patches
 PATCHFILES += 0950-arm64-dts-brcm-set-userled-to-mmc.patch
 PATCHFILES += 0951-arm64-dts-brcm-rpi5-add-rp1-usb-eth-pwm.patch
