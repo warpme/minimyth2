@@ -1,6 +1,6 @@
 
 GARNAME      = spdlog
-GARVERSION   = 1.12.0
+GARVERSION   = 1.15.3
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/gabime/spdlog/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
@@ -24,3 +24,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_BUILD_TYPE=Release \
 
 include ../../gar.mk
+
+post-install:
+	@patch -d $(DESTDIR)$(libdir)/cmake/spdlog -p1 < $(WORKDIR)/../../files/spdlog-fix-installed-cmake-lists.patch
+	$(MAKECOOKIE)
