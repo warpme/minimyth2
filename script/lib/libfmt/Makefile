@@ -1,6 +1,6 @@
 
 GARNAME      = fmt
-GARVERSION   = 10.2.0
+GARVERSION   = 11.2.0
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/fmtlib/fmt/archive/refs/tags/
 DISTFILES    = $(GARVERSION).tar.gz
