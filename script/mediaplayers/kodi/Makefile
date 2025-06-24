@@ -27,7 +27,7 @@ PATCHFILES   += 0004-DVDVideoCodecDRMPRIME-Leave-deinterlace-filter-activ.patch
 PATCHFILES   += 0005-SetVideoInterlaced-Set-and-unset-deinterlace-method-.patch
 PATCHFILES   += 0006-DVDVideoCodecDRMPRIME-Close-deinterlace-filter-on-er.patch
 PATCHFILES   += 0007-DVDVideoCodecDRMPRIME-Fix-missing-flush-after-eof.patch
-PATCHFILES   += 0050-configure-stop-finding-doxygen.patch
+#PATCHFILES   += 0050-configure-stop-finding-doxygen.patch
 PATCHFILES   += 0051-update-libdvdread-sha.patch
 PATCHFILES   += 0052-update-libdvdnav-sha.patch
 PATCHFILES   += 0053-stop-uncoditionally-building-udfread.patch
@@ -63,10 +63,10 @@ DEPENDS = \
 	lib/fribidi \
 	lib/libinput \
 	lib/libmicrohttpd \
-	lib/libcrossguid \
 	lib/libfstrcmp \
 	lib/libxslt \
 	lib/lzo \
+	lib/nlohmann-json \
 	lib/rapidjson \
 	lib/spdlog \
 	lib/pcre2 \
@@ -145,7 +145,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_LIRCCLIENT=ON \
 	-DENABLE_INTERNAL_FMT=OFF \
 	-DENABLE_INTERNAL_SPDLOG=OFF \
-	-DENABLE_INTERNAL_CROSSGUID=OFF \
+	-DENABLE_INTERNAL_CROSSGUID=ON \
 	-DENABLE_INTERNAL_FSTRCMP=OFF \
 	-DENABLE_INTERNAL_FLATBUFFERS=OFF \
 	-DENABLE_INTERNAL_UDFREAD=OFF \
@@ -163,20 +163,6 @@ CMAKE_CONFIGURE_ARGS = \
 
 BUILD_ARGS   = \
 	DESTDIR="" \
-
-ifeq (0,1)
-# enable to direct use of mythtv ffmpeg (i.e. for testing API of mythtv ffmpeg)
-CMAKE_CONFIGURE_ARGS += \
-	-DFFMPEG_INCLUDE_DIRS=$(DESTDIR)$(includedir)/mythtv \
-	-DFFMPEG_LDFLAGS="-lmythavcodec;-lmythavfilter;-lmythavformat;-lmythavutil;-lmythswscale;-lmythswresample;-lmythpostproc" \
-	-DFFMPEG_LIBAVCODEC=$(DESTDIR)$(libdir)/libmythavcodec.so \
-	-DFFMPEG_LIBAVFILTER=$(DESTDIR)$(libdir)/libmythavfilter.so \
-	-DFFMPEG_LIBAVFORMAT=$(DESTDIR)$(libdir)/libmythavformat.so \
-	-DFFMPEG_LIBAVUTIL=$(DESTDIR)$(libdir)/libmythavutil.so \
-	-DFFMPEG_LIBPOSTPROC=$(DESTDIR)$(libdir)/libmythpostproc.so \
-	-DFFMPEG_LIBSWRESAMPLE=$(DESTDIR)$(libdir)/libmythswresample.so \
-	-DFFMPEG_LIBSWSCALE=$(DESTDIR)$(libdir)/libmythswscale.so
-endif
 
 include ../../gar.mk
 GAR_EXTRA_CONF += mediaplayers/kodi/package-api.mk
