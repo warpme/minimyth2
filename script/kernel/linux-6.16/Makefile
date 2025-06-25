@@ -261,6 +261,7 @@ PATCHFILES += 0971-arm64-dts-brcm-rpi5-add-rp1-usb-eth-pwm.patch
 PATCHFILES += 0972-arm64-dts-brcm-rpi5-fix-hdmi-audio.patch
 PATCHFILES += 0973-arm64-dts-brcm-rpi5-add-v3d.patch
 PATCHFILES += 0974-arm64-dts-brcm-rpi4-add-rpivid.patch
+PATCHFILES += 0975-arm64-dts-brcm-rpi5-add-rpivid.patch
 endif
 #------------------------------------------------------------
 
