@@ -1,7 +1,7 @@
 
 GARNAME       = exiv2
-# commit is for exiv2 v0.28.3 @ 8.07.2024
-GARVERSION    = a6a79ef064f131ffd03c110acce2d3edb84ffa2e
+# commit is for exiv2 v0.28.5 @ 21.02.2025
+GARVERSION    = 907169fa643c2c74c14fd4106e55eaeee3634d9f
 CATEGORIES    = lib
 MASTER_SITES  = https://github.com/Exiv2/exiv2/archive/
 DISTFILES     = $(GARVERSION).zip
@@ -25,5 +25,6 @@ CMAKE_CONFIGURE_ARGS = \
 include ../../gar.mk
 
 post-install:
+	@patch -d $(DESTDIR)$(libdir)/cmake/exiv2 -p1 < $(WORKDIR)/../../files/exiv2-fix-installed-cmake-lists.patch
 	@rm -f $(DESTDIR)$(libdir)/lib$(GARNAME).la
 	@$(MAKECOOKIE)
