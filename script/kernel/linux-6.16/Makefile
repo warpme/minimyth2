@@ -255,6 +255,8 @@ PATCHFILES += 0946-drivers-hwmon-add-rp1-support.patch
 PATCHFILES += 0947-drivers-thermal-add-rp1-support.patch
 # unify rpi3 rpi4 rpi5 vc4 support
 PATCHFILES += 0948-gpu-drm-vc4-add-rpi5-support.patch
+# add iommu - not works correctly
+#PATCHFILES += 0949-drivers-iommu-add-bcm2712-iommu.patch
 # device-tree patches
 PATCHFILES += 0970-arm64-dts-brcm-set-userled-to-mmc.patch
 PATCHFILES += 0971-arm64-dts-brcm-rpi5-add-rp1-usb-eth-pwm.patch
@@ -262,6 +264,8 @@ PATCHFILES += 0972-arm64-dts-brcm-rpi5-fix-hdmi-audio.patch
 PATCHFILES += 0973-arm64-dts-brcm-rpi5-add-v3d.patch
 PATCHFILES += 0974-arm64-dts-brcm-rpi4-add-rpivid.patch
 PATCHFILES += 0975-arm64-dts-brcm-rpi5-add-rpivid.patch
+# PATCHFILES += 0976-arm64-dts-brcm-rpi5-add-iommu.patch
+PATCHFILES += 0977-arm64-dts-brcm-rpi5-incr-cma-to-384M.patch
 endif
 #------------------------------------------------------------
 
