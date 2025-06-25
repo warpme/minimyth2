@@ -235,16 +235,32 @@ ifeq (1,1)
 #-- RaspberryPI patches -----------------------------------------
 # Hack for adding H264 v4l2 decoding on RPI
 PATCHFILES += 0900-rpi-vc04_services-add_h~l2-m2m_decode-15062024.patch
-
 PATCHFILES += 0902-media-add-rpivid-driver.patch
-PATCHFILES += 0905-drivers-add-rpi5-clk-pinctrl-mmc-pwm-net-usb-pci-rp1.patch
-PATCHFILES += 0906-gpu-drm-vc4-add-rpi5-support.patch
+# add rpi5 rp1 support
+PATCHFILES += 0932-drivers-pci-add-rp1-support.patch
+PATCHFILES += 0933-drivers-clk-add-rp1-support.patch
+PATCHFILES += 0934-drivers-pinctrl-add-rp1-support.patch
+PATCHFILES += 0935-drivers-dma-add-rp1-support.patch
+PATCHFILES += 0936-drivers-irqchip-add-rp1-support.patch
+PATCHFILES += 0937-drivers-phy-add-rp1-support.patch
+PATCHFILES += 0938-drivers-mfd-add-rp1-support.patch
+PATCHFILES += 0939-drivers-pmdomain-add-rp1-support.patch
+PATCHFILES += 0940-drivers-mmc-add-rp1-support.patch
+PATCHFILES += 0941-drivers-i2c-add-rp1-support.patch
+PATCHFILES += 0942-drivers-usb-add-rp1-support.patch
+PATCHFILES += 0943-drivers-net-add-rp1-support.patch
+PATCHFILES += 0944-drivers-spi-add-rp1-support.patch
+PATCHFILES += 0945-drivers-pwm-add-rp1-support.patch
+PATCHFILES += 0946-drivers-hwmon-add-rp1-support.patch
+PATCHFILES += 0947-drivers-thermal-add-rp1-support.patch
+# unify rpi3 rpi4 rpi5 vc4 support
+PATCHFILES += 0948-gpu-drm-vc4-add-rpi5-support.patch
 # device-tree patches
-PATCHFILES += 0950-arm64-dts-brcm-set-userled-to-mmc.patch
-PATCHFILES += 0951-arm64-dts-brcm-rpi5-add-rp1-usb-eth-pwm.patch
-PATCHFILES += 0952-arm64-dts-brcm-rpi5-fix-hdmi-audio.patch
-PATCHFILES += 0953-arm64-dts-brcm-rpi5-add-v3d.patch
-PATCHFILES += 0954-arm64-dts-brcm-rpi4-add-rpivid.patch
+PATCHFILES += 0970-arm64-dts-brcm-set-userled-to-mmc.patch
+PATCHFILES += 0971-arm64-dts-brcm-rpi5-add-rp1-usb-eth-pwm.patch
+PATCHFILES += 0972-arm64-dts-brcm-rpi5-fix-hdmi-audio.patch
+PATCHFILES += 0973-arm64-dts-brcm-rpi5-add-v3d.patch
+PATCHFILES += 0974-arm64-dts-brcm-rpi4-add-rpivid.patch
 endif
 #------------------------------------------------------------
 
