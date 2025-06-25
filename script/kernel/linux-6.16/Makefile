@@ -266,6 +266,7 @@ PATCHFILES += 0974-arm64-dts-brcm-rpi4-add-rpivid.patch
 PATCHFILES += 0975-arm64-dts-brcm-rpi5-add-rpivid.patch
 # PATCHFILES += 0976-arm64-dts-brcm-rpi5-add-iommu.patch
 PATCHFILES += 0977-arm64-dts-brcm-rpi5-incr-cma-to-384M.patch
+PATCHFILES += 0978-arm64-dts-brcm-rpi5-add-fan-support.patch
 endif
 #------------------------------------------------------------
 

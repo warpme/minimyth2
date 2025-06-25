@@ -1,0 +1,143 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712.dtsi linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712.dtsi
+--- linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712.dtsi	2025-06-25 17:49:48.764974084 +0200
++++ linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712.dtsi	2025-06-25 19:42:17.671494855 +0200
+@@ -39,6 +39,27 @@
+ 			clock-frequency = <200000000>;
+ 			clock-output-names = "emmc2-clock";
+ 		};
++
++	};
++
++	thermal-zones {
++		cpu_thermal: cpu-thermal {
++			polling-delay-passive = <1000>;
++			polling-delay = <1000>;
++			coefficients = <(-550) 450000>;
++			thermal-sensors = <&thermal>;
++
++			thermal_trips: trips {
++				cpu_crit: cpu-crit {
++					temperature	= <110000>;
++					hysteresis	= <0>;
++					type		= "critical";
++				};
++			};
++
++			cooling_maps: cooling-maps {
++			};
++		};
+ 	};
+ 
+ 	cpus: cpus {
+@@ -282,6 +303,18 @@
+ 			#interrupt-cells = <1>;
+ 		};
+ 
++		avs_monitor: avs-monitor@7d542000 {
++			compatible = "brcm,bcm2711-avs-monitor",
++						 "syscon", "simple-mfd";
++			reg = <0x7d542000 0xf00>;
++			status = "okay";
++
++			thermal: thermal {
++				compatible = "brcm,bcm2711-thermal";
++				#thermal-sensor-cells = <0>;
++			};
++		};
++	
+ 		pixelvalve0: pixelvalve@7c410000 {
+ 			compatible = "brcm,bcm2712-pixelvalve0";
+ 			reg = <0x7c410000 0x100>;
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts
+--- linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts	2025-06-25 17:49:48.701640753 +0200
++++ linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts	2025-06-25 19:39:21.294832004 +0200
+@@ -4,6 +4,7 @@
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/clock/rp1.h>
+ #include <dt-bindings/mfd/rp1.h>
++#include <dt-bindings/pwm/pwm.h>
+ #include "bcm2712.dtsi"
+ 
+ / {
+@@ -37,6 +38,18 @@
+ 		};
+ 	};
+ 
++	fan: cooling_fan {
++		status = "disabled";
++		compatible = "pwm-fan";
++		#cooling-cells = <2>;
++		cooling-min-state = <0>;
++		cooling-max-state = <3>;
++		cooling-levels = <0 75 125 175 250>;
++		pwms = <&rp1_pwm1 3 41566 PWM_POLARITY_INVERTED>;
++		rpm-regmap = <&rp1_pwm1>;
++		rpm-offset = <0x3c>;
++	};
++
+ 	cam1_clk: cam1_clk {
+ 		compatible = "fixed-clock";
+ 		#clock-cells = <0>;
+@@ -289,3 +302,62 @@
+ 		pins = "gpio42", "gpio43";
+ 	};
+ };
++
++&rp1_pwm1 {
++	status = "disabled";
++	pinctrl-0 = <&rp1_pwm1_gpio45>;
++	pinctrl-names = "default";
++};
++
++&thermal_trips {
++	cpu_tepid: cpu-tepid {
++		temperature = <50000>;
++		hysteresis = <5000>;
++		type = "active";
++	};
++
++	cpu_warm: cpu-warm {
++		temperature = <60000>;
++		hysteresis = <5000>;
++		type = "active";
++	};
++
++	cpu_hot: cpu-hot {
++		temperature = <67500>;
++		hysteresis = <5000>;
++		type = "active";
++	};
++
++	cpu_vhot: cpu-vhot {
++		temperature = <75000>;
++		hysteresis = <5000>;
++		type = "active";
++	};
++};
++
++&cooling_maps {
++	tepid {
++		trip = <&cpu_tepid>;
++		cooling-device = <&fan 1 1>;
++	};
++
++	warm {
++		trip = <&cpu_warm>;
++		cooling-device = <&fan 2 2>;
++	};
++
++	hot {
++		trip = <&cpu_hot>;
++		cooling-device = <&fan 3 3>;
++	};
++
++	vhot {
++		trip = <&cpu_vhot>;
++		cooling-device = <&fan 4 4>;
++	};
++
++	melt {
++		trip = <&cpu_crit>;
++		cooling-device = <&fan 4 4>;
++	};
++};
