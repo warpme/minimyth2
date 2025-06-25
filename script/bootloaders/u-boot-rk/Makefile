@@ -1,14 +1,16 @@
 
 GARNAME      = u-boot-rk
-# git@ 16.05.2025 https://gitlab.collabora.com/hardware-enablement/rockchip-3588/u-boot
-GARVERSION   = cf6b761a8782206686c3d7c4df356096589c8449
+# git@ 24.06.2025 https://gitlab.collabora.com/hardware-enablement/rockchip-3588/u-boot
+GARVERSION   = 60501605e3f48b155af83193dfd9ad73362b8e25
 # git@ 24.01.2025 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = f43a462e7a1429a9d407ae52b4745033034a6cf9
 CATEGORIES   = kernel
 MASTER_SITES = \
+               https://github.com/rockchip-linux/rkbin/raw/3cb8a4e35c99d06563b3707f7e4df1fad68dc301/bin/rk35/ \
+               https://github.com/rockchip-linux/rkbin/archive/ \
                https://gitlab.collabora.com/hardware-enablement/rockchip-3588/u-boot/-/archive/$(GARVERSION)/ \
-               https://github.com/rockchip-linux/rkbin/archive/
-DISTFILES    = u-boot-$(GARVERSION).tar.bz2 $(RKBINVERSION).zip 
+
+DISTFILES    = u-boot-$(GARVERSION).tar.bz2 $(RKBINVERSION).zip rk3576_bl31_v1.08.elf
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 
 PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
@@ -127,8 +129,10 @@ endif
 
 ifneq (,$(findstring rk3576,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3576_ddr_lp4_2112MHz_lp5_2736MHz_v1.09.bin
-BL31         = ../rkbin/bin/rk35/rk3576_bl31_v1.15.elf
+# due bug in bl31 newer than 1.08 we use v1.08
+# BL31         = ../rkbin/bin/rk35/rk3576_bl31_v1.15.elf
 # BL31         = $(DESTDIR)$(libdir)/u-boot/rk3576/bl31.bin
+BL31         = ../rk3576_bl31_v1.08.elf
 MKIMAGE_TYPE = rk3576
 INSTALL_PREF = rk3576
 DDR_BIN      = ${TPL}
