@@ -87,6 +87,16 @@ include ../../python3/python/package-api.mk
 # export mm_U-BOOT_BOARD_DEFCONFIG = transpeed-8k618-t_defconfig
 
 
+
+
+
+
+
+
+
+# set this for inform ATF about plat to build
+export mm_U-BOOT_BOARD_TYPE
+
 ifneq (,$(findstring h6,$(mm_U-BOOT_BOARD_TYPE)))
 INSTALL_PREF = h6
 BL31         = $(DESTDIR)$(libdir)/u-boot/h6/bl31.bin
@@ -113,23 +123,34 @@ BL31         = $(DESTDIR)$(libdir)/u-boot/a523/bl31.bin
 DEFCONFIG    = generic-a523_defconfig
 endif
 
-mm_U-BOOT_BOARD_DEFCONFIG ?= $(DEFCONFIG)
+ifeq ($(mm_U-BOOT_BOARD_DEFCONFIG),)
+mm_U-BOOT_BOARD_DEFCONFIG = $(DEFCONFIG)
+endif
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_DEFCONFIG)
 
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
 
-pre-configure:
+$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin:
 	@echo "Building ATF as dependency ..."
 	@$(MAKE) clean install -C ../arm-trusted-firmware
+	@#clean current uboot as it depends on just built ATF
+	@$(MAKE) clean
+	@#for h6 boards also build and install crust scp.bin
+	@$(MAKECOOKIE)
+
+pre-everything: $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin
+
+pre-configure:
 ifneq (,$(findstring h6,$(mm_U-BOOT_BOARD_TYPE)))
+	@echo "Building crust with $(CRUST_CONFIG) config ..."
+	@$(MAKE) clean install -C ../crust
 	@if [ -e $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/scp.bin ] ; then \
 		echo "Copying [$(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/scp.bin] to u-boot tree ..." ; \
 		cp -pd $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/scp.bin \
 		       $(WORKSRC)/scp.bin ; \
 	fi
 endif
-	@$(MAKECOOKIE)
 
 configure-custom:
 	@echo " "
@@ -147,7 +168,7 @@ configure-custom:
 	@$(MAKECOOKIE)
 
 build-custom:
-	@echo "Building u-boot $(MKIMAGE_TYPE) with $(CONFIGURE_ARGS) ..."
+	@echo "Building u-boot with $(CONFIGURE_ARGS) ..."
 	@$(call PYTHON3_SET_BUILD_SYSCONF)
 	@$(BUILD_ARGS) $(MAKE) $(PARALLELMFLAGS) -C $(WORKSRC) $(PARALLELMFLAGS) BL31=$(BL31) all
 	@$(call PYTHON3_SET_MAIN_SYSCONF)
@@ -159,5 +180,6 @@ install-custom:
 	       $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin
 	@$(MAKECOOKIE)
 
-clean-all:
-	@$(MAKE) clean
+clean-all: clean
+	@rm -f $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin
+	@rm -f $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin

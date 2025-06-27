@@ -82,6 +82,16 @@ include ../../python3/python/package-api.mk
 # mm_U-BOOT_BOARD_DEFCONFIG = rock5a-rk3588s_defconfig
 
 
+
+
+
+
+
+
+
+# set this for inform ATF about plat to build
+export mm_U-BOOT_BOARD_TYPE
+
 ifneq (,$(findstring rk3328,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk33/rk3328_ddr_333MHz_v1.21.bin
 BL31         = ../rkbin/bin/rk33/rk322xh_bl31_v1.49.elf
@@ -152,23 +162,32 @@ DDR_BIN      = ${TPL}
 DEFCONFIG    = generic-rk3588_defconfig
 endif
 
-mm_U-BOOT_BOARD_DEFCONFIG ?= $(DEFCONFIG)
+ifeq ($(mm_U-BOOT_BOARD_DEFCONFIG),)
+mm_U-BOOT_BOARD_DEFCONFIG = $(DEFCONFIG)
+endif
 CONFIGURE_ARGS = $(mm_U-BOOT_BOARD_DEFCONFIG)
 
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
 
-pre-configure:
-	@mkdir -p $(WORKDIR)/rkbin
-	@mv -f $(WORKDIR)/rkbin-$(RKBINVERSION)/* $(WORKDIR)/rkbin/
-	@# build atf only for supported socs. For other socs we are using rkbin bl31 blobs
+$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin:
+	@# build mainline atf only for supported socs. For other socs we are using rkbin bl31 blobs
 ifeq (,$(findstring rk3528,$(mm_U-BOOT_BOARD_TYPE)))
-ifeq (,$(findstring rk3599,$(mm_U-BOOT_BOARD_TYPE)))
+ifeq (,$(findstring rk3399,$(mm_U-BOOT_BOARD_TYPE)))
 	@echo "Building ATF as dependency ..."
 	@$(MAKE) clean install -C ../arm-trusted-firmware
+	@# clean current uboot build as it depends on just built ATF
+	@$(MAKE) clean
 endif
 endif
 	@$(MAKECOOKIE)
+
+post-extract:
+	@mkdir -p $(WORKDIR)/rkbin
+	@cp -rf $(WORKDIR)/rkbin-$(RKBINVERSION)/* $(WORKDIR)/rkbin/
+	@$(MAKECOOKIE)
+
+pre-everything: $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin
 
 configure-custom:
 	@echo " "
@@ -215,5 +234,7 @@ install-custom:
 		$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb
 	@$(MAKECOOKIE)
 
-clean-all:
-	@$(MAKE) clean
+clean-all: clean
+	rm -f $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img
+	rm -f $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb
+	rm -f $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin

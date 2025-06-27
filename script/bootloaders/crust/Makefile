@@ -26,7 +26,13 @@ export CROSS_COMPILE=$(build_libdir)/gcc-or1k-linux/bin/or1k-linux-
 
 # CRUST_CONFIG is defined in board-x package as config is per board specific!
 configure-custom:
-	@echo "Configuring crust with $(CRUST_CONFIG) ..."
+	@echo " "
+	@echo "---------------------------------------------------------------"
+	@echo "Building crust ..."
+	@echo " "
+	@echo "  -CRUST_CONFIG : $(CRUST_CONFIG)"
+	@echo "---------------------------------------------------------------"
+	@echo " "
 	@echo "CONFIG_DEBUG_LOG=y" >> $(WORKSRC)/configs/$(CRUST_CONFIG)
 	@$(BUILD_ARGS) $(MAKE) -C $(WORKSRC) $(CRUST_CONFIG)
 	@$(MAKECOOKIE)

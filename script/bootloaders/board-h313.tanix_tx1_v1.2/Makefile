@@ -1,6 +1,6 @@
 
-GARNAME      = bootfiles-h313-tanix-tx1
-GARVERSION   = 2025-06-06
+GARNAME      = bootfiles-h313-tanix-tx1_v1.2
+GARVERSION   = 2025-06-26
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = \
@@ -11,52 +11,26 @@ DISTFILES    = \
                load-kernel.scr \
                install-howto.txt \
 
-export mm_U-BOOT_BOARD_TYPE      = board-h313.tanix_tx1_v1.2
-export mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_v1.2_defconfig
+SOC_TYPE                  = h313
+mm_U-BOOT_BOARD_TYPE      = board-h313.tanix_tx1_v1.2
+mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_v1.2_defconfig
 
-WORKSRC      = $(WORKDIR)
+INSTALL_SCRIPTS = extra
+CLEAN_SCRIPTS   = extra
 
-LICENSE = GPL2
+include ../bootloader/install-board-bootloader-aw.mk
 
-BUILDDEPS = utils/sunxi-tools
-
-DESCRIPTION =
-define BLURB
-endef
-
-BUILD_SCRIPTS   = custom
-INSTALL_SCRIPTS = custom
-CLEAN_SCRIPTS   = custom
-
-include ../../gar.mk
-
-build-custom:
-	@$(MAKE) clean-all install -C ../u-boot-aw
-	@$(MAKECOOKIE)
-
-install-custom:
-	@mkdir -p $(DESTDIR)/boot
-	@mkdir -p $(DESTDIR)/boot/extlinux
-	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
-	@cp -f    $(WORKSRC)/extlinux.conf $(DESTDIR)/boot/extlinux/extlinux.conf
+install-extra:
 	@cp -f    $(WORKSRC)/boot-kernel-via-usb.sh $(DESTDIR)/boot/
 	@cp -f    $(WORKSRC)/install-howto.txt $(DESTDIR)/boot/
 	@cp -f    $(WORKSRC)/load-kernel.txt $(DESTDIR)/boot/load-kernel.txt
 	@cp -f    $(WORKSRC)/load-kernel.scr $(DESTDIR)/boot/load-kernel.scr
 	@cp -f    $(build_DESTDIR)$(build_bindir)/sunxi-fel $(DESTDIR)/boot/
-	@mkdir -p $(DESTDIR)/boot/h313loaderfiles
-	@cp -f    $(DESTDIR)$(libdir)/u-boot/h313/$(mm_U-BOOT_BOARD_TYPE)/u-boot-sunxi-with-spl.bin \
-		  $(DESTDIR)/boot/h313loaderfiles/u-boot-sunxi-with-spl.bin
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-custom:
-	@rm -rf $(DESTDIR)/boot/extlinux*
-	@rm -rf $(DESTDIR)/boot/h313loaderfiles*
-	@rm -f  $(DESTDIR)/boot/minimyth.conf
+clean-extra:
 	@rm -f  $(DESTDIR)/boot/boot-kernel-via-usb.sh
 	@rm -f  $(DESTDIR)/boot/load-kernel.txt
 	@rm -f  $(DESTDIR)/boot/load-kernel.scr
 	@rm -f  $(DESTDIR)/boot/sunxi-fel
 	@rm -f  $(DESTDIR)/boot/install-howto.txt
-
-clean-all: clean-custom cookieclean
