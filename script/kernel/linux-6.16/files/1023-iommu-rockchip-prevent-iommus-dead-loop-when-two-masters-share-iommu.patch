@@ -1,0 +1,57 @@
+From d5804079cb7d74eddc46bfdd29ef1562714960a6 Mon Sep 17 00:00:00 2001
+From: Simon Xue <xxm@rock-chips.com>
+Date: Mon, 23 Jun 2025 10:00:18 +0800
+Subject: [PATCH] iommu/rockchip: prevent iommus dead loop when two masters
+ share one IOMMU
+
+When two masters share an IOMMU, calling ops->of_xlate during
+the second master's driver init may overwrite iommu->domain set
+by the first. This causes the check if (iommu->domain == domain)
+in rk_iommu_attach_device() to fail, resulting in the same
+iommu->node being added twice to &rk_domain->iommus, which can
+lead to an infinite loop in subsequent &rk_domain->iommus operations.
+
+Cc: <stable@vger.kernel.org>
+Fixes: 25c2325575cc ("iommu/rockchip: Add missing set_platform_dma_ops callback")
+Signed-off-by: Simon Xue <xxm@rock-chips.com>
+Reviewed-by: Robin Murphy <robin.murphy@arm.com>
+
+v3:
+   Add missing `Cc: stable@vger.kernel.org` in commit message.
+   No functional changes.
+v2:
+   No functional changes.
+
+Link: https://lore.kernel.org/stable/20250623010532.584409-1-xxm%40rock-chips.com
+Reviewed-by: Robin Murphy <robin.murphy@arm.com>
+Fixes: 25c2325575cc ("iommu/rockchip: Add missing set_platform_dma_ops  callback")
+Link: https://lore.kernel.org/r/20250623020018.584802-1-xxm@rock-chips.com
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/iommu/rockchip-iommu.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/iommu/rockchip-iommu.c b/drivers/iommu/rockchip-iommu.c
+index 22f74ba33a0e3..e6bb3c784017c 100644
+--- a/drivers/iommu/rockchip-iommu.c
++++ b/drivers/iommu/rockchip-iommu.c
+@@ -1157,7 +1157,6 @@ static int rk_iommu_of_xlate(struct device *dev,
+ 		return -ENOMEM;
+ 
+ 	data->iommu = platform_get_drvdata(iommu_dev);
+-	data->iommu->domain = &rk_identity_domain;
+ 	dev_iommu_priv_set(dev, data);
+ 
+ 	platform_device_put(iommu_dev);
+@@ -1195,6 +1194,8 @@ static int rk_iommu_probe(struct platform_device *pdev)
+ 	if (!iommu)
+ 		return -ENOMEM;
+ 
++	iommu->domain = &rk_identity_domain;
++
+ 	platform_set_drvdata(pdev, iommu);
+ 	iommu->dev = dev;
+ 	iommu->num_mmu = 0;
+-- 
+GitLab
+

@@ -278,11 +278,14 @@ ifeq (1,1)
 PATCHFILES += 1003-math.h-add-DIV_ROUND_UP_NO_OVERFLOW.patch
 PATCHFILES += 1004-clk-divider-Fix-divisor-masking-on-64-bit-platforms.patch
 PATCHFILES += 1005-clk-composite-replace-open-coded-abs_diff.patch
+PATCHFILES += 1006-watchdog-dw_wdt-fix-default-timeout.patch
+PATCHFILES += 1007-PM-devfreq-rockchip-dfi-double-count-on-RK3588.patch
 PATCHFILES += 1015-mfd-rk8xx-Fix-shutdown-handler.patch
 # drm improvements
 PATCHFILES += 1016-dt-bindings-display-vop2-Add-VP-clock-resets.patch
 PATCHFILES += 1017-drm-rockchip-vop2-Add-clock-resets-support.patch
 PATCHFILES += 1022-drm-rockchip-vop2-Add-core-reset-support.patch
+PATCHFILES += 1023-iommu-rockchip-prevent-iommus-dead-loop-when-two-masters-share-iommu.patch
 PATCHFILES += 1039-WIP-drm-rockchip-dw_hdmi_qp-Make-use-of-phy_configur.patch
 PATCHFILES += 1040-WIP-drm-bridge-Add-detect_ctx-hook.patch
 PATCHFILES += 1041-WIP-drm-bridge-connector-Switch-from-detect-to-detec.patch
@@ -369,18 +372,18 @@ PATCHFILES += 1206-thermal-rockchip-Support-RK3576-SoC-in-the-thermal-driver.pat
 PATCHFILES += 1207-thermal-rockchip-support-reading-trim-values-from-OTP.patch
 # misc fixes
 PATCHFILES += 1208-WIP-drm-rockchip-dw_hdmi_qp-adjust-timer0-to-refclk.patch
+PATCHFILES += 1209-PM-devfreq-rockchip-dfi-add-support-for-LPDDR5.patch
 # dtsi additions
 PATCHFILES += 1260-arm64-dtsi-rockchip-fix-hdmi-output-on-rk3576.patch
 PATCHFILES += 1265-arm64-dtsi-rk3576-add-sdio-node.patch
 PATCHFILES += 1266-arm64-dtsi-rockchip-Add-thermal-nodes-to-RK3576.patch
 PATCHFILES += 1267-arm64-dtsi-rockchip-Add-thermal-trim-OTP-and-tsadc-nodes.patch
-
+PATCHFILES += 1268-arm64-dtsi-rockchip-enable-RK3576-watchdog.patch
 # bards dt additions/patches
 PATCHFILES += 1280-arm64-dts-add-rk3576-nanopi-m5-dt.patch
+PATCHFILES += 1281-arm64-dts-rock4d-improvements.patch
 endif
 #------------------------------------------------------------
-
-
 
 endif
 
