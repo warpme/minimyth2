@@ -198,7 +198,6 @@ PATCHFILES += 0704-media-rkvdec-Move-rkvdec_reset_decoded_fmt-helper.patch
 PATCHFILES += 0705-media-rkvdec-Extract-decoded-format-enumeration-into-helper.patch
 PATCHFILES += 0706-media-rkvdec-Add-image-format-concept.patch
 PATCHFILES += 0708-media-rkvdec-h264-Limit-minimum-profile-to-constrained.patch
-PATCHFILES += 0709-media-rkvdec-Initialize-the-m2m-context-before-the-controls.patch
 PATCHFILES += 0710-media-rkvdec-Add-get_image_fmt-ops.patch
 PATCHFILES += 0711-media-rkvdec-h264-Support-High10-and-422-profiles.patch
 PATCHFILES += 0712-media-v4l2-Add-NV15-and-NV20-pixel-formats.patch
