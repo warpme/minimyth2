@@ -1,10 +1,12 @@
 
 GARNAME      = u-boot-rk
+
+ifeq (1,1)
+# collabora rk3588 enablement repo
 # git@ 24.06.2025 https://gitlab.collabora.com/hardware-enablement/rockchip-3588/u-boot
 GARVERSION   = 60501605e3f48b155af83193dfd9ad73362b8e25
 # git@ 24.01.2025 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = f43a462e7a1429a9d407ae52b4745033034a6cf9
-CATEGORIES   = kernel
 MASTER_SITES = \
                https://github.com/rockchip-linux/rkbin/raw/3cb8a4e35c99d06563b3707f7e4df1fad68dc301/bin/rk35/ \
                https://github.com/rockchip-linux/rkbin/archive/ \
@@ -12,7 +14,6 @@ MASTER_SITES = \
 
 DISTFILES    = u-boot-$(GARVERSION).tar.bz2 $(RKBINVERSION).zip rk3576_bl31_v1.08.elf
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
-
 PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
                50-my-boards-rk3566-defconfigs-enable-overlays.patch \
@@ -22,6 +23,53 @@ PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
                55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
 
+endif
+
+ifeq (0,1)
+# kwiboo rk3xx repo
+# git@ 12.02.2025 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3xxx-2025.04/
+GARVERSION   = 228e9e5b3502ec0e3aac3fae38d9d99f77e9ede1
+# git@ 24.01.2025 https://github.com/rockchip-linux/rkbin/commits/master/
+RKBINVERSION = f43a462e7a1429a9d407ae52b4745033034a6cf9
+MASTER_SITES = \
+               https://github.com/Kwiboo/u-boot-rockchip/archive/ \
+               https://github.com/rockchip-linux/rkbin/archive/
+DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
+WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
+PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
+               02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
+               50-my-boards-rk3566-defconfigs-enable-overlays-kwiboo.patch \
+               51-add-rk3328-beelink-a1-defconfig.patch \
+               52-add-rk3566-x96-x6-defconfig.patch \
+               53-add-rk3588-rock-5t-defconfig.patch \
+               54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
+               55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
+
+endif
+
+ifeq (0,1)
+# kwiboo rk3576-wip repo
+# git@ 11.02.2025 https://github.com/Kwiboo/u-boot-rockchip/commits/rk3576-2025.04-wip/
+GARVERSION   = d9abdc3fc104a8852e819f97356f088a163cf0d6
+# git@ 24.01.2025 https://github.com/rockchip-linux/rkbin/commits/master/
+RKBINVERSION = f43a462e7a1429a9d407ae52b4745033034a6cf9
+MASTER_SITES = \
+               https://github.com/Kwiboo/u-boot-rockchip/archive/ \
+               https://github.com/rockchip-linux/rkbin/archive/
+DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip 
+WORKSRC      = $(WORKDIR)/u-boot-rockchip-$(GARVERSION)
+PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
+               02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
+               50-my-boards-rk3566-defconfigs-enable-overlays-kwiboo.patch \
+               51-add-rk3328-beelink-a1-defconfig.patch \
+               52-add-rk3566-x96-x6-defconfig.patch \
+               53-add-rk3588-rock-5t-defconfig.patch \
+               54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
+               55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
+
+endif
+
+CATEGORIES   = bootloaders
 LICENSE = GPL2
 
 DESCRIPTION =
@@ -104,6 +152,7 @@ endif
 ifneq (,$(findstring rk3399,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk33/rk3399_ddr_800MHz_v1.30.bin
 BL31         = ../rkbin/bin/rk33/rk3399_bl31_v1.36.elf
+# BL31         = $(DESTDIR)$(libdir)/u-boot/rk3399/bl31.bin
 MKIMAGE_TYPE = rk3399
 INSTALL_PREF = rk3399
 DDR_BIN      = ${TPL}
@@ -173,12 +222,10 @@ BUILD_ARGS = \
 $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin:
 	@# build mainline atf only for supported socs. For other socs we are using rkbin bl31 blobs
 ifeq (,$(findstring rk3528,$(mm_U-BOOT_BOARD_TYPE)))
-ifeq (,$(findstring rk3399,$(mm_U-BOOT_BOARD_TYPE)))
 	@echo "Building ATF as dependency ..."
 	@$(MAKE) clean install -C ../arm-trusted-firmware
 	@# clean current uboot build as it depends on just built ATF
 	@$(MAKE) clean
-endif
 endif
 	@$(MAKECOOKIE)
 
