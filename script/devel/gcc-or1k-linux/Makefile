@@ -20,7 +20,7 @@ INSTALL_SCRIPTS   = custom
 install-custom:
 	@mkdir -p $(DESTDIR)$(libdir)/gcc-or1k-linux
 	@cp -rf $(WORKSRC)/* $(DESTDIR)$(libdir)/gcc-or1k-linux
-	@#$(MAKECOOKIE)
+	@$(MAKECOOKIE)
 
 clean-all:
 	@rm -rf $(DESTDIR)$(libdir)/gcc-or1k-linux*
