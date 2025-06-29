@@ -1,7 +1,7 @@
 
 GARNAME      = crust-20230301
 GARVERSION   = c308a504853e7fdb47169796c9a832796410ece8
-CATEGORIES   = kernel
+CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/crust-firmware/crust/archive/
 PATCHFILES   = 0002-switch-TanixTX6-proto-to-NEC.patch
 DISTFILES    = $(GARVERSION).tar.gz

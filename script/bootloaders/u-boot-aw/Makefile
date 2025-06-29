@@ -1,7 +1,7 @@
 
 GARNAME      = u-boot-aw
 GARVERSION   = 2025.04
-CATEGORIES   = kernel
+CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
 

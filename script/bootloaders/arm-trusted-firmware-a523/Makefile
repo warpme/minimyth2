@@ -2,7 +2,7 @@
 GARNAME      = arm-trusted-firmware-a523
 # 28.01.2025
 GARVERSION   = b5de74a685fb73b784e45bbbd18dd9a0c528d8b2
-CATEGORIES   = kernel
+CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/jernejsk/arm-trusted-firmware/archive/
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/arm-trusted-firmware-$(GARVERSION)

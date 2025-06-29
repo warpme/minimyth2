@@ -1,7 +1,7 @@
 
 GARNAME      = pyamlboot
 GARVERSION   = c5a6d04c0d9e8f8077c0c50d37502782dac59cb3
-CATEGORIES   = kernel
+CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/superna9999/pyamlboot/archive/
 DISTFILES    = $(GARVERSION).zip
 WORKSRC      = $(WORKDIR)/pyamlboot-$(GARVERSION)

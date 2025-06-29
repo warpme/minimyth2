@@ -1,7 +1,7 @@
 # Mainline U-boot v2024.01
 GARNAME      = u-boot-rpi
 GARVERSION   = 2024.01
-CATEGORIES   = kernel
+CATEGORIES   = bootloaders
 MASTER_SITES = https://github.com/u-boot/u-boot/archive/
 DISTFILES    = v$(GARVERSION).zip
 PATCHFILES   = rpi5-initial-support.patch
