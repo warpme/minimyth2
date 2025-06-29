@@ -1,7 +1,7 @@
-From 80eb65c26d855eb63f73a44eb6ad121f30b453d2 Mon Sep 17 00:00:00 2001
+From 086ced75f08ef8b4a85e8899618496c2b073f353 Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Tue, 10 Jun 2025 14:53:27 -0400
-Subject: [PATCH 19/25] media: rkvdec: Add RCB and SRAM support
+Subject: [PATCH 22/28] media: rkvdec: Add RCB and SRAM support
 
 The RCB (Rows and Cols Buffers) are a set of buffers used by other
 variations of the decoder to store temporary data.
@@ -26,9 +26,9 @@ Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
  .../media/platform/rockchip/rkvdec/Makefile   |   1 +
  .../platform/rockchip/rkvdec/rkvdec-rcb.c     | 175 ++++++++++++++++++
  .../platform/rockchip/rkvdec/rkvdec-rcb.h     |  29 +++
- .../media/platform/rockchip/rkvdec/rkvdec.c   |  43 ++++-
+ .../media/platform/rockchip/rkvdec/rkvdec.c   |  29 ++-
  .../media/platform/rockchip/rkvdec/rkvdec.h   |  13 ++
- 5 files changed, 252 insertions(+), 9 deletions(-)
+ 5 files changed, 243 insertions(+), 4 deletions(-)
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h
 
@@ -259,7 +259,7 @@ index 0000000000..30e8002555
 +int rkvdec_rcb_buf_count(struct rkvdec_ctx *ctx);
 +void rkvdec_free_rcb(struct rkvdec_ctx *ctx);
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-index 3496216d99..7362b8c2fe 100644
+index 3496216d99..3285dd910c 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 @@ -10,6 +10,7 @@
@@ -319,28 +319,13 @@ index 3496216d99..7362b8c2fe 100644
  	}
  
  	rkvdec_queue_cleanup(q, VB2_BUF_STATE_ERROR);
-@@ -1177,21 +1191,24 @@ static int rkvdec_probe(struct platform_device *pdev)
- 	if (IS_ERR(rkvdec->regs))
- 		return PTR_ERR(rkvdec->regs);
- 
--	ret = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
--	if (ret) {
--		dev_err(&pdev->dev, "Could not set DMA coherent mask.\n");
--		return ret;
--	}
-+	rkvdec->iommu_domain = iommu_get_domain_for_dev(&pdev->dev);
-+	if (!rkvdec->iommu_domain) {
-+		/* Without iommu, only the lower 32 bits of ram can be used */
-+		vb2_dma_contig_set_max_seg_size(&pdev->dev, U32_MAX);
-+		dev_info(&pdev->dev, "No IOMMU domain found\n");
-+	} else {
-+		ret = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(40));
-+		if (ret) {
-+			dev_err(&pdev->dev, "Could not set DMA coherent mask.\n");
-+			return ret;
-+		}
+@@ -1183,15 +1197,14 @@ static int rkvdec_probe(struct platform_device *pdev)
+ 		return ret;
+ 	}
  
 -	if (iommu_get_domain_for_dev(&pdev->dev)) {
++	rkvdec->iommu_domain = iommu_get_domain_for_dev(&pdev->dev);
++	if (rkvdec->iommu_domain) {
  		rkvdec->empty_domain = iommu_paging_domain_alloc(rkvdec->dev);
  
  		if (!rkvdec->empty_domain)
@@ -352,7 +337,7 @@ index 3496216d99..7362b8c2fe 100644
  	irq = platform_get_irq(pdev, 0);
  	if (irq <= 0)
  		return -ENXIO;
-@@ -1204,6 +1221,10 @@ static int rkvdec_probe(struct platform_device *pdev)
+@@ -1204,6 +1217,10 @@ static int rkvdec_probe(struct platform_device *pdev)
  		return ret;
  	}
  
@@ -363,7 +348,7 @@ index 3496216d99..7362b8c2fe 100644
  	pm_runtime_set_autosuspend_delay(&pdev->dev, 100);
  	pm_runtime_use_autosuspend(&pdev->dev);
  	pm_runtime_enable(&pdev->dev);
-@@ -1217,6 +1238,10 @@ static int rkvdec_probe(struct platform_device *pdev)
+@@ -1217,6 +1234,10 @@ static int rkvdec_probe(struct platform_device *pdev)
  err_disable_runtime_pm:
  	pm_runtime_dont_use_autosuspend(&pdev->dev);
  	pm_runtime_disable(&pdev->dev);

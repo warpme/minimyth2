@@ -1,7 +1,7 @@
-From ca9fec4ae61b4ac21f2ccd7ab3d4c28cb5c7c753 Mon Sep 17 00:00:00 2001
+From 8b627d3db766326567e7d5bf7c1b741ac66b1bb2 Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Tue, 27 May 2025 11:00:22 -0400
-Subject: [PATCH 14/25] media: rkvdec: Switch to using structs instead of
+Subject: [PATCH 17/28] media: rkvdec: Switch to using structs instead of
  writel
 
 In an effort to merge the rkvdec2 driver [1] with this one, switch from
@@ -40,15 +40,15 @@ This also shows that the fluster score hasn't changed.
 
 Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
 ---
- .../platform/rockchip/rkvdec/rkvdec-h264.c    | 161 ++---
+ .../platform/rockchip/rkvdec/rkvdec-h264.c    | 165 +++--
  .../platform/rockchip/rkvdec/rkvdec-regs.h    | 567 ++++++++++++------
  .../platform/rockchip/rkvdec/rkvdec-vp9.c     | 230 +++----
  .../media/platform/rockchip/rkvdec/rkvdec.c   |  10 +-
  .../media/platform/rockchip/rkvdec/rkvdec.h   |   1 +
- 5 files changed, 552 insertions(+), 417 deletions(-)
+ 5 files changed, 558 insertions(+), 415 deletions(-)
 
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
-index d14b4d1734..c615e4e085 100644
+index d14b4d1734..c17428eb2c 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
 @@ -115,6 +115,7 @@ struct rkvdec_h264_run {
@@ -59,13 +59,18 @@ index d14b4d1734..c615e4e085 100644
  };
  
  #define CABAC_ENTRY(ctxidx, idc0_m, idc0_n, idc1_m, idc1_n,		\
-@@ -840,46 +841,34 @@ static void assemble_hw_scaling_list(struct rkvdec_ctx *ctx,
- 	       sizeof(scaling->scaling_list_8x8));
+@@ -841,45 +842,41 @@ static void assemble_hw_scaling_list(struct rkvdec_ctx *ctx,
  }
  
--/*
+ /*
 - * dpb poc related registers table
-- */
++ * Set the ref POC in the correct register.
++ *
++ * The 32 registers are spread across 3 regions, each alternating top and bottom ref POCs:
++ *  - 1: ref 0 to 14 contain top 0 to 7 and bottoms 0 to 6 
++ *  - 2: ref 15 to 29 contain top 8 to 14 and bottoms 7 to 14
++ *  - 3: ref 30 and 31 which correspond to top 15 and bottom 15 respectively.
+  */
 -static const u32 poc_reg_tbl_top_field[16] = {
 -	RKVDEC_REG_H264_POC_REFER0(0),
 -	RKVDEC_REG_H264_POC_REFER0(2),
@@ -134,7 +139,7 @@ index d14b4d1734..c615e4e085 100644
  
  static void config_registers(struct rkvdec_ctx *ctx,
  			     struct rkvdec_h264_run *run)
-@@ -894,6 +883,7 @@ static void config_registers(struct rkvdec_ctx *ctx,
+@@ -894,6 +891,7 @@ static void config_registers(struct rkvdec_ctx *ctx,
  	struct vb2_v4l2_buffer *src_buf = run->base.bufs.src;
  	struct vb2_v4l2_buffer *dst_buf = run->base.bufs.dst;
  	const struct v4l2_format *f;
@@ -142,7 +147,7 @@ index d14b4d1734..c615e4e085 100644
  	dma_addr_t rlc_addr;
  	dma_addr_t refer_addr;
  	u32 rlc_len;
-@@ -903,10 +893,11 @@ static void config_registers(struct rkvdec_ctx *ctx,
+@@ -903,10 +901,11 @@ static void config_registers(struct rkvdec_ctx *ctx,
  	u32 yuv_virstride = 0;
  	u32 offset;
  	dma_addr_t dst_addr;
@@ -157,7 +162,7 @@ index d14b4d1734..c615e4e085 100644
  
  	f = &ctx->decoded_fmt;
  	dst_fmt = &f->fmt.pix_mp;
-@@ -921,39 +912,35 @@ static void config_registers(struct rkvdec_ctx *ctx,
+@@ -921,39 +920,35 @@ static void config_registers(struct rkvdec_ctx *ctx,
  	else if (sps->chroma_format_idc == 2)
  		yuv_virstride = 2 * y_virstride;
  
@@ -209,7 +214,7 @@ index d14b4d1734..c615e4e085 100644
  
  		/*
  		 * If a DPB entry is unused or invalid, address of current destination
-@@ -963,54 +950,36 @@ static void config_registers(struct rkvdec_ctx *ctx,
+@@ -963,54 +958,36 @@ static void config_registers(struct rkvdec_ctx *ctx,
  			vb_buf = &dst_buf->vb2_buf;
  		refer_addr = vb2_dma_contig_plane_dma_addr(vb_buf, 0);
  
@@ -282,7 +287,7 @@ index d14b4d1734..c615e4e085 100644
  }
  
  #define RKVDEC_H264_MAX_DEPTH_IN_BYTES		2
-@@ -1181,8 +1150,6 @@ static int rkvdec_h264_run(struct rkvdec_ctx *ctx)
+@@ -1181,8 +1158,6 @@ static int rkvdec_h264_run(struct rkvdec_ctx *ctx)
  
  	schedule_delayed_work(&rkvdec->watchdog_work, msecs_to_jiffies(2000));
  

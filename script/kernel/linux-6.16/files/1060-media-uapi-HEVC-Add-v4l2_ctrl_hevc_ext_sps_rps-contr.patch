@@ -1,42 +1,39 @@
-From 08900dba94f5061b75b86767cae9ad564f195be6 Mon Sep 17 00:00:00 2001
+From c6190048a61017435d96e084a7fbb57761d197ed Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Thu, 19 Jun 2025 16:53:45 -0400
-Subject: [PATCH 11/25] media: uapi: HEVC: Add v4l2_ctrl_hevc_sps_rps_extended
+Subject: [PATCH 10/28] media: uapi: HEVC: Add v4l2_ctrl_hevc_ext_sps_rps
  control
 
 Some hardware (e.g.: Rockchip's rk3588 hevc decoder) need the parsed
-long and short term reference information.
-
-The control was added in a previous commit, so also add UAPI
-documentation.
+long and short term reference information for HEVC decoding.
 
 Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
 ---
- .../media/v4l/ext-ctrls-codec-stateless.rst   | 71 +++++++++++++++++++
+ .../media/v4l/ext-ctrls-codec-stateless.rst   | 73 +++++++++++++++++++
  .../media/v4l/vidioc-queryctrl.rst            |  6 ++
- 2 files changed, 77 insertions(+)
+ 2 files changed, 79 insertions(+)
 
 diff --git a/Documentation/userspace-api/media/v4l/ext-ctrls-codec-stateless.rst b/Documentation/userspace-api/media/v4l/ext-ctrls-codec-stateless.rst
-index 0da635691f..8fb53a021c 100644
+index 0da635691f..745f38a8fe 100644
 --- a/Documentation/userspace-api/media/v4l/ext-ctrls-codec-stateless.rst
 +++ b/Documentation/userspace-api/media/v4l/ext-ctrls-codec-stateless.rst
-@@ -2937,6 +2937,77 @@ This structure contains all loop filter related parameters. See sections
-       - ``flags``
-       - See :ref:`Decode Parameters Flags <hevc_decode_params_flags>`
+@@ -2958,6 +2958,79 @@ This structure contains all loop filter related parameters. See sections
+       - 0x00000004
+       -
  
-+.. c:type:: v4l2_ctrl_hevc_st_ref_pic_set
++.. c:type:: v4l2_ctrl_hevc_ext_sps_rps
 +
 +.. cssclass:: longtable
 +
-+.. flat-table:: struct v4l2_ctrl_hevc_st_ref_pic_set
++.. flat-table:: struct v4l2_ctrl_hevc_ext_sps_rps
 +    :header-rows:  0
 +    :stub-columns: 0
 +    :widths:       1 1 2
 +
-+    * - __u8
-+      - ``inter_ref_pic_set_prediction_flag``
-+      - Specifies if the short term RPS is predicted from another short term RPS. See details in
-+        section 7.4.8 "Short-term reference picture set semantics" of the specification.
++    * - __u16
++      - ``lt_ref_pic_poc_lsb_sps``
++      - Long term reference picture order count as described in section 7.4.3.2.1
++        "General sequence parameter set RBSP semantics" of the specification.
 +    * - __u8
 +      - ``delta_idx_minus1``
 +      - Specifies the delta compare to the index. See details in section 7.4.8 "Short-term
@@ -73,44 +70,46 @@ index 0da635691f..8fb53a021c 100644
 +      - Specifies the positive picture order count delta for the i-th entry in the short-term RPS.
 +        See details in section 7.4.8 "Short-term reference picture set semantics" of the
 +        specification.
++    * - __u8
++      - ``flags``
++      - See :ref:`Extended RPS Flags <hevc_ext_sps_rps_flags>`
 +
-+.. c:type:: v4l2_ctrl_hevc_sps_rps_extended
++.. _hevc_ext_sps_rps_flags:
++
++``Extended SPS RPS Flags``
 +
 +.. cssclass:: longtable
 +
-+.. flat-table:: struct v4l2_ctrl_hevc_sps_rps_extended
++.. flat-table::
 +    :header-rows:  0
 +    :stub-columns: 0
 +    :widths:       1 1 2
 +
-+    * - __u16
-+      - ``lt_ref_pic_poc_lsb_sps``
-+      - Long term reference picture order count as described in section 7.4.3.2.1
-+        "General sequence parameter set RBSP semantics" of the specification.
-+    * - __u8
-+      - ``used_by_curr_pic_lt_sps_flag``
-+      - Long term reference picture usage information as described in section 7.4.3.2.1
-+        "General sequence parameter set RBSP semantics" of the specification.
-+    * - struct :c:type:`v4l2_ctrl_hevc_st_ref_pic_set`
-+      - ``st_ref_pic_set``
-+      - The short term reference picture set information.
++    * - ``V4L2_HEVC_EXT_SPS_RPS_FLAG_USED_LT``
++      - 0x00000001
++      - Specifies if the long-term reference picture is used 7.4.3.2.1 "General sequence parameter
++        set RBSP semantics" of the specification.
++    * - ``V4L2_HEVC_EXT_SPS_RPS_FLAG_INTER_REF_PIC_SET_PRED``
++      - 0x00000002
++      - Specifies if the short-term RPS is predicted from another short term RPS. See details in
++        section 7.4.8 "Short-term reference picture set semantics" of the specification.
 +
- .. _hevc_decode_params_flags:
+ .. _v4l2-codec-stateless-av1:
  
- ``Decode Parameters Flags``
+ ``V4L2_CID_STATELESS_AV1_SEQUENCE (struct)``
 diff --git a/Documentation/userspace-api/media/v4l/vidioc-queryctrl.rst b/Documentation/userspace-api/media/v4l/vidioc-queryctrl.rst
-index 3549417c7f..1d67fd562a 100644
+index 3549417c7f..dc7caf4bf6 100644
 --- a/Documentation/userspace-api/media/v4l/vidioc-queryctrl.rst
 +++ b/Documentation/userspace-api/media/v4l/vidioc-queryctrl.rst
 @@ -523,6 +523,12 @@ See also the examples in :ref:`control`.
        - n/a
        - A struct :c:type:`v4l2_ctrl_hevc_decode_params`, containing HEVC
  	decoding parameters for stateless video decoders.
-+    * - ``V4L2_CTRL_TYPE_HEVC_SPS_RPS_EXTENDED``
++    * - ``V4L2_CTRL_TYPE_HEVC_EXT_SPS_RPS``
 +      - n/a
 +      - n/a
 +      - n/a
-+      - A struct :c:type:`v4l2_ctrl_hevc_sps_rps_extended`, containing HEVC
++      - A struct :c:type:`v4l2_ctrl_hevc_ext_sps_rps`, containing HEVC
 +	extended RPS for stateless video decoders.
      * - ``V4L2_CTRL_TYPE_VP9_COMPRESSED_HDR``
        - n/a

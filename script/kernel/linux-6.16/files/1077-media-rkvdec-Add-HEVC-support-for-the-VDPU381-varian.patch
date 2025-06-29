@@ -1,7 +1,7 @@
-From 557b8be6357c531333bf4f99a7ddc2e236bb6032 Mon Sep 17 00:00:00 2001
+From 58f9e42c12e8020b46a9a5d2ae44d0f4d7acf091 Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Wed, 11 Jun 2025 14:14:49 -0400
-Subject: [PATCH 24/25] media: rkvdec: Add HEVC support for the VDPU381 variant
+Subject: [PATCH 27/28] media: rkvdec: Add HEVC support for the VDPU381 variant
 
 The VDPU381 supports HEVC decoding up to 7680x4320@30fps.
 It could double that when using both decoder cores.
@@ -9,7 +9,7 @@ It could double that when using both decoder cores.
 It support YUV420 (8 and 10 bits) as well as AFBC (not implemented
 here)
 
-The fluster score is 139/147 for JCT-VC-HEVC_V1, tested on ROCK 5B.
+The fluster score is 145/147 for JCT-VC-HEVC_V1, tested on ROCK 5B.
 None of the other test suites works.
 
 Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
@@ -3491,7 +3491,7 @@ index 745f4705ae..fb0cd393b6 100644
  
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c
 new file mode 100644
-index 0000000000..3d57546b7b
+index 0000000000..ff00e47eef
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c
 @@ -0,0 +1,1028 @@
@@ -3674,7 +3674,7 @@ index 0000000000..3d57546b7b
 +	const struct v4l2_ctrl_hevc_sps			*sps;
 +	const struct v4l2_ctrl_hevc_pps			*pps;
 +	const struct v4l2_ctrl_hevc_scaling_matrix	*scaling_matrix;
-+	const struct v4l2_ctrl_hevc_sps_rps_extended	*sps_rps_extended;
++	const struct v4l2_ctrl_hevc_ext_sps_rps		*sps_rps_extended;
 +	int						num_slices;
 +};
 +
@@ -4073,14 +4073,14 @@ index 0000000000..3d57546b7b
 +		rps->refs[i].lt_ref_pic_poc_lsb =
 +			run->sps_rps_extended[i].lt_ref_pic_poc_lsb_sps;
 +		rps->refs[i].used_by_curr_pic_lt_flag =
-+			run->sps_rps_extended[i].used_by_curr_pic_lt_sps_flag;
++			!!(run->sps_rps_extended[i].flags & V4L2_HEVC_EXT_SPS_RPS_FLAG_USED_LT);
 +	}
 +
 +	for (int i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
 +		int poc = 0;
 +		int j = 0;
-+		const struct v4l2_ctrl_hevc_st_ref_pic_set *set =
-+			&run->sps_rps_extended[i].st_ref_pic_set;
++		const struct v4l2_ctrl_hevc_ext_sps_rps *set =
++			&run->sps_rps_extended[i];
 +
 +		rps->short_term_ref_sets[i].num_negative = set->num_negative_pics;
 +		rps->short_term_ref_sets[i].num_positive = set->num_positive_pics;
@@ -4478,7 +4478,7 @@ index 0000000000..3d57546b7b
 +			      V4L2_CID_STATELESS_HEVC_SCALING_MATRIX);
 +	run->scaling_matrix = ctrl ? ctrl->p_cur.p : NULL;
 +	ctrl = v4l2_ctrl_find(&ctx->ctrl_hdl,
-+			      V4L2_CID_STATELESS_HEVC_SPS_RPS_EXTENDED);
++			      V4L2_CID_STATELESS_HEVC_EXT_SPS_RPS);
 +	run->sps_rps_extended = ctrl ? ctrl->p_cur.p : NULL;
 +
 +	rkvdec_run_preamble(ctx, &run->base);
@@ -4524,10 +4524,10 @@ index 0000000000..3d57546b7b
 +	.get_image_fmt = rkvdec_hevc_get_image_fmt,
 +};
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-index 1e6fd7e247..e0e4843924 100644
+index 0c526a42e6..0f5d76cab4 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-@@ -222,6 +222,56 @@ static const struct rkvdec_ctrls rkvdec_h264_ctrls = {
+@@ -257,6 +257,56 @@ static const struct rkvdec_ctrls rkvdec_h264_ctrls = {
  	.num_ctrls = ARRAY_SIZE(rkvdec_h264_ctrl_descs),
  };
  
@@ -4571,7 +4571,7 @@ index 1e6fd7e247..e0e4843924 100644
 +		.cfg.max = V4L2_MPEG_VIDEO_HEVC_LEVEL_6_1,
 +	},
 +	{
-+		.cfg.id = V4L2_CID_STATELESS_HEVC_SPS_RPS_EXTENDED,
++		.cfg.id = V4L2_CID_STATELESS_HEVC_EXT_SPS_RPS,
 +		.cfg.dims = { 65 },
 +	},
 +};
@@ -4584,7 +4584,7 @@ index 1e6fd7e247..e0e4843924 100644
  static const struct rkvdec_decoded_fmt_desc rkvdec_h264_decoded_fmts[] = {
  	{
  		.fourcc = V4L2_PIX_FMT_NV12,
-@@ -241,6 +291,17 @@ static const struct rkvdec_decoded_fmt_desc rkvdec_h264_decoded_fmts[] = {
+@@ -276,6 +326,17 @@ static const struct rkvdec_decoded_fmt_desc rkvdec_h264_decoded_fmts[] = {
  	},
  };
  
@@ -4602,7 +4602,7 @@ index 1e6fd7e247..e0e4843924 100644
  static const struct rkvdec_ctrl_desc rkvdec_vp9_ctrl_descs[] = {
  	{
  		.cfg.id = V4L2_CID_STATELESS_VP9_FRAME,
-@@ -319,6 +380,22 @@ static const struct rkvdec_coded_fmt_desc vdpu381_coded_fmts[] = {
+@@ -354,6 +415,22 @@ static const struct rkvdec_coded_fmt_desc vdpu381_coded_fmts[] = {
  		.decoded_fmts = rkvdec_h264_decoded_fmts,
  		.subsystem_flags = VB2_V4L2_FL_SUPPORTS_M2M_HOLD_CAPTURE_BUF,
  	},
@@ -4626,10 +4626,10 @@ index 1e6fd7e247..e0e4843924 100644
  
  static const struct rkvdec_coded_fmt_desc vdpu383_coded_fmts[] = {
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.h b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
-index cd6980f87b..a43aaa6933 100644
+index acb9d72b13..df56bc0516 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.h
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
-@@ -171,6 +171,7 @@ extern const struct rkvdec_coded_fmt_ops rkvdec_vp9_fmt_ops;
+@@ -173,6 +173,7 @@ extern const struct rkvdec_coded_fmt_ops rkvdec_vp9_fmt_ops;
  
  /* VDPU381 ops */
  extern const struct rkvdec_coded_fmt_ops rkvdec_vdpu381_h264_fmt_ops;
