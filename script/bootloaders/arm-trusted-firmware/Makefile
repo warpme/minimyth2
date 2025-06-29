@@ -4,7 +4,6 @@ ifeq (0,1)
 # git@28.02.2025
 GARNAME      = arm-trusted-firmware-collabora
 GARVERSION   = ed0a82a67572db4ad2e0d8fa6651944d501e941f
-CATEGORIES   = kernel
 MASTER_SITES = https://gitlab.collabora.com/hardware-enablement/rockchip-3588/trusted-firmware-a/-/archive/$(GARVERSION)/
 DISTFILES    = trusted-firmware-a-$(GARVERSION).tar.bz2
 PATCHFILES   = 01-fix-building-under-gcc15.patch
@@ -15,26 +14,31 @@ ifeq (1,1)
 # mainline atf
 GARNAME      = arm-trusted-firmware
 GARVERSION   = 2.13.0
-CATEGORIES   = kernel
 MASTER_SITES = https://github.com/ARM-software/arm-trusted-firmware/archive/refs/tags/
 DISTFILES    = v$(GARVERSION).tar.gz
 PATCHFILES   = 01-fix-building-under-gcc15.patch
 WORKSRC      = $(WORKDIR)/arm-trusted-firmware-$(GARVERSION)
 endif
 
-LICENSE = GPL2
+CATEGORIES   = bootloaders
+LICENSE      = GPL2
 
 DESCRIPTION =
 define BLURB
 endef
 
 DEPENDS   = lang/c
+BUILDDEPS = devel/gcc-arm-linux
 
 CONFIGURE_SCRIPTS   = 
 BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = 
 
 include ../../gar.mk
+
+# for testing purpouses
+# mm_U-BOOT_BOARD_TYPE = test-rk3399
+# mm_U-BOOT_BOARD_TYPE = test-rk3588
 
 ifneq (,$(findstring h6,$(mm_U-BOOT_BOARD_TYPE)))
 PLATFORM     = sun50i_h6
@@ -118,6 +122,7 @@ endif
 
 BUILD_ARGS = \
 	CROSS_COMPILE=$(compiler_prefix) \
+	CROSS_COMPILE_M0=arm-none-eabi- \
 
 build-custom:
 	@echo " "
