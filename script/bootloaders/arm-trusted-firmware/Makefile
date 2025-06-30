@@ -1,4 +1,17 @@
 
+# for testing purpouses
+# mm_U-BOOT_BOARD_TYPE = test-h6
+# mm_U-BOOT_BOARD_TYPE = test-h313
+# mm_U-BOOT_BOARD_TYPE = test-h616
+# mm_U-BOOT_BOARD_TYPE = test-a523
+# mm_U-BOOT_BOARD_TYPE = test-rk3328
+# mm_U-BOOT_BOARD_TYPE = test-rk3399
+# mm_U-BOOT_BOARD_TYPE = test-rk3528
+# mm_U-BOOT_BOARD_TYPE = test-rk3566
+# mm_U-BOOT_BOARD_TYPE = test-rk3568
+# mm_U-BOOT_BOARD_TYPE = test-rk3576
+# mm_U-BOOT_BOARD_TYPE = test-rk3588
+
 ifeq (0,1)
 # collabora https://gitlab.collabora.com/hardware-enablement/rockchip-3588/trusted-firmware-a/
 # git@28.02.2025
@@ -36,9 +49,8 @@ INSTALL_SCRIPTS     =
 
 include ../../gar.mk
 
-# for testing purpouses
-# mm_U-BOOT_BOARD_TYPE = test-rk3399
-# mm_U-BOOT_BOARD_TYPE = test-rk3588
+# set to default value when packahe is build without any defined board....
+mm_U-BOOT_BOARD_TYPE ?= test-rk3588
 
 ifneq (,$(findstring h6,$(mm_U-BOOT_BOARD_TYPE)))
 PLATFORM     = sun50i_h6
