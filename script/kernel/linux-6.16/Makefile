@@ -191,7 +191,9 @@ PATCHFILES += 0722-v4l2-wip-iep-driver.patch
 PATCHFILES += 0725-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
 PATCHFILES += 0727-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
 # device-tree patches
+PATCHFILES += 0738-arm64-dtsi-rockchip-rk3399-rise-alert-crit-cpu-temps.patch
 PATCHFILES += 0739-arm64-dtsi-rockchip-rk3328-rk3399-add-soft-reset.patch
+
 PATCHFILES += 0740-arm64-dts-rockchip-var-fixes-from-libreelec.patch
 PATCHFILES += 0743-arm64-dts-rockchip-beelink-a1-enable-openvfd.patch
 PATCHFILES += 0746-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
