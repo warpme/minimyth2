@@ -1,4 +1,38 @@
 
+# For forcing given board (usually for testing)
+# test bootloader will be in usr/lib/u-boot/test-<soc>
+
+# for h6 - rememnber also to rebuild crust...
+# mm_U-BOOT_BOARD_TYPE = test-h6
+# mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6_defconfig
+# CRUST_CONFIG              = tanix_tx6_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = beelink_gs1_defconfig
+# CRUST_CONFIG              = beelink_gs1_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi_3_lts_defconfig
+# CRUST_CONFIG              = orangepi_3_defconfig
+
+# mm_U-BOOT_BOARD_TYPE = test-h616
+# mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_axp313_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero2_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_kingston_lpddr3_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = pendoo-x12_defconfig
+
+# mm_U-BOOT_BOARD_TYPE = test-h313
+# mm_U-BOOT_BOARD_DEFCONFIG = x96_q_lpddr3_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = x96_q_lpddr3_v1.3_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = x96_q_ddr3_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = x96_q_ddr3_v5.1_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_v1.2_defconfig
+
+# mm_U-BOOT_BOARD_TYPE = test-h618
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero3_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero2w_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = vontar_h618_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = transpeed-8k618-t_defconfig
+
+
 GARNAME      = u-boot-aw
 GARVERSION   = 2025.04
 CATEGORIES   = bootloaders
@@ -56,46 +90,14 @@ INSTALL_SCRIPTS     = custom
 include ../../gar.mk
 include ../../python3/python/package-api.mk
 
-# For forcing given board (usually for testing)
-# test bootloader will be in usr/lib/u-boot/test-<soc>
+# set to default value when package build is called without any defined board....
+mm_U-BOOT_BOARD_TYPE      ?= test-h6
+mm_U-BOOT_BOARD_DEFCONFIG ?= tanix_tx6_defconfig
+CRUST_CONFIG              ?= tanix_tx6_defconfig
 
-# for h6 - rememnber also to rebuild crust...
-# export mm_U-BOOT_BOARD_TYPE = test-h6
-# export mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = eachlink_h6_mini_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = beelink_gs1_defconfig
-
-# export mm_U-BOOT_BOARD_TYPE = test-h616
-# export mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_axp313_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero2_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_kingston_lpddr3_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = pendoo-x12_defconfig
-
-# export mm_U-BOOT_BOARD_TYPE = test-h313
-# export mm_U-BOOT_BOARD_DEFCONFIG = x96_q_lpddr3_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = x96_q_lpddr3_v1.3_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = x96_q_ddr3_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = x96_q_ddr3_v5.1_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_v1.2_defconfig
-
-# export mm_U-BOOT_BOARD_TYPE = test-h618
-# export mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero3_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero2w_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = vontar_h618_defconfig
-# export mm_U-BOOT_BOARD_DEFCONFIG = transpeed-8k618-t_defconfig
-
-
-
-
-
-
-
-
-
-# set this for inform ATF about plat to build
+# set this for inform ATF anc crust (for h6) about plat to build
 export mm_U-BOOT_BOARD_TYPE
+export CRUST_CONFIG
 
 ifneq (,$(findstring h6,$(mm_U-BOOT_BOARD_TYPE)))
 INSTALL_PREF = h6
