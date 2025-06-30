@@ -20,6 +20,9 @@ CONFIGURE_SCRIPTS   = custom
 BUILD_SCRIPTS       = custom
 INSTALL_SCRIPTS     = custom
 
+# set to default value when package build is called without any defined board....
+CRUST_CONFIG ?= tanix_tx6_defconfig
+
 include ../../gar.mk
 
 export CROSS_COMPILE=$(build_libdir)/gcc-or1k-linux/bin/or1k-linux-
