@@ -1,4 +1,48 @@
 
+# For forcing given board (usually for testing)
+# test bootloader will be in usr/lib/u-boot/test-<soc>
+
+# mm_U-BOOT_BOARD_TYPE = test-rk3328
+# mm_U-BOOT_BOARD_DEFCONFIG = beelink-a1-rk3328_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3328_defconfig
+
+# mm_U-BOOT_BOARD_TYPE = test-rk3399
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-rk3399_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-4se-rk3399_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4-rk3399_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4c-rk3399_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3399_defconfig
+
+# mm_U-BOOT_BOARD_TYPE = test-rk3528
+# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3528_defconfig
+
+# mm_U-BOOT_BOARD_TYPE = test-rk3566
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-3b-rk3566_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = quartz64-b-rk3566_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = radxa-zero-3-rk3566_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = x96-x6-rk3566_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-3c-rk3566_defconfig
+
+# mm_U-BOOT_BOARD_TYPE = test-rk3568
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-3a-rk3568_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-3b-rk3568_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3568_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3588_defconfig
+
+# mm_U-BOOT_BOARD_TYPE = test-rk3576
+# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3576_defconfig
+
+# mm_U-BOOT_BOARD_TYPE = test-rk3588
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock5b-rk3588_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-5-itx-rk3588_defconfig ?
+# mm_U-BOOT_BOARD_DEFCONFIG = rock5t-rk3588_defconfig
+
+# mm_U-BOOT_BOARD_TYPE = test-rk3588s
+# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-rk3588s_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = rock5a-rk3588s_defconfig
+
+
 GARNAME      = u-boot-rk
 
 ifeq (1,1)
@@ -86,56 +130,8 @@ INSTALL_SCRIPTS     = custom
 include ../../gar.mk
 include ../../python3/python/package-api.mk
 
-# For forcing given board (usually for testing)
-# test bootloader will be in usr/lib/u-boot/test-<soc>
-
-# mm_U-BOOT_BOARD_TYPE = test-rk3328
-# mm_U-BOOT_BOARD_DEFCONFIG = beelink-a1-rk3328_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3328_defconfig
-
-# mm_U-BOOT_BOARD_TYPE = test-rk3399
-# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-rk3399_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-4se-rk3399_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4-rk3399_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4c-rk3399_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3399_defconfig
-
-# mm_U-BOOT_BOARD_TYPE = test-rk3528
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3528_defconfig
-
-# mm_U-BOOT_BOARD_TYPE = test-rk3566
-# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-3b-rk3566_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = quartz64-b-rk3566_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = radxa-zero-3-rk3566_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = x96-x6-rk3566_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-3c-rk3566_defconfig
-
-# mm_U-BOOT_BOARD_TYPE = test-rk3568
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-3a-rk3568_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-3b-rk3568_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3568_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3588_defconfig
-
-# mm_U-BOOT_BOARD_TYPE = test-rk3576
-# mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3576_defconfig
-
-# mm_U-BOOT_BOARD_TYPE = test-rk3588
-# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock5b-rk3588_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-5-itx-rk3588_defconfig ?
-# mm_U-BOOT_BOARD_DEFCONFIG = rock5t-rk3588_defconfig
-
-# mm_U-BOOT_BOARD_TYPE = test-rk3588s
-# mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-rk3588s_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock5a-rk3588s_defconfig
-
-
-
-
-
-
-
-
+# set to default value when package build is called without any defined board....
+mm_U-BOOT_BOARD_TYPE ?= test-rk3588
 
 # set this for inform ATF about plat to build
 export mm_U-BOOT_BOARD_TYPE
