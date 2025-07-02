@@ -260,7 +260,7 @@ PATCHFILES += 0948-gpu-drm-vc4-add-rpi5-support.patch
 # add iommu - not works correctly
 #PATCHFILES += 0949-drivers-iommu-add-bcm2712-iommu.patch
 # device-tree patches
-PATCHFILES += 0970-arm64-dts-brcm-rpi4-set-led-to-disk-activity.patch
+PATCHFILES += 0970-arm64-dts-brcm-rpi4-set-led-to-disk-activity-mmc0-alias.patch
 PATCHFILES += 0971-arm64-dts-brcm-rpi5-add-rp1-usb-eth-pwm.patch
 PATCHFILES += 0972-arm64-dts-brcm-rpi5-fix-hdmi-audio.patch
 PATCHFILES += 0973-arm64-dts-brcm-rpi5-add-v3d.patch
