@@ -1,9 +1,9 @@
 
 GARNAME      = linux-firmware
-GARVERSION   = 20250109
+GARVERSION   = 20250630-f40eafe216
 CATEGORIES   = firmware
-MASTER_SITES = https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/snapshot/
-DISTFILES    = linux-firmware-$(GARVERSION).tar.gz
+MASTER_SITES = git://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/
+DISTFILES    = $(DISTNAME).tar.bz2
 LICENSE      =
 
 DESCRIPTION =
@@ -15,6 +15,10 @@ DEPENDS = lang/c
 INSTALL_SCRIPTS = custom
 
 include ../../gar.mk
+
+git//%$(DISTNAME).tar.bz2:
+	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
+	@$(MAKECOOKIE)
 
 BRCM_SOURCE=$(DESTDIR)$(elibdir)/firmware/cypress
 BRCM_DEST=$(DESTDIR)$(elibdir)/firmware/brcm
@@ -81,6 +85,12 @@ ifeq (0,1)
 	@touch                                                    $(BRCM_DEST)/brcmfmac4334-sdio.tanix,tx6s.clm_blob
 	@ln -srf $(BRCM_DEST)/brcmfmac4330-sdio.Prowise-PT301.txt $(BRCM_DEST)/brcmfmac4334-sdio.tanix,tx6s.txt
 endif
+
+	@# Broadcom 4330 bin, clm_blob and txt
+	@ln -srf $(BRCM_DEST)/brcmfmac4330-sdio.bin               $(BRCM_DEST)/brcmfmac4330-sdio.tanix,tx6s.bin
+	@# fake clm_blob file as i can't find correct file....
+	@touch                                                    $(BRCM_DEST)/brcmfmac4330-sdio.tanix,tx6s.clm_blob
+	@ln -srf $(BRCM_DEST)/brcmfmac4330-sdio.Prowise-PT301.txt $(BRCM_DEST)/brcmfmac4330-sdio.tanix,tx6s.txt
 
 	@# Broadcom 4354 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac4354-sdio.bin      $(BRCM_DEST)/brcmfmac4354-sdio.amediatech,x96-x6.bin
