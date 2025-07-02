@@ -1,0 +1,65 @@
+
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Mon, 30 Jun 2025 22:58:06 +0300
+Subject: [PATCH] drm/bridge: dw-hdmi-qp: Fixup timer base setup
+
+Currently the TIMER_BASE_CONFIG0 register gets initialized to a fixed
+value as initially found in vendor driver code supporting the RK3588
+SoC.  However, this seems to cause issues with the upcoming CEC support
+on RK3576 SoC.
+
+Set the timer base according to the actual reference clock rate.
+
+While at it, drop the superfluous empty lines in the software reset
+block of dw_hdmi_qp_init_hw().
+
+Co-developed-by: Algea Cao <algea.cao@rock-chips.com>
+Signed-off-by: Algea Cao <algea.cao@rock-chips.com>
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc4/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c linux-6.16-rc4/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+--- linux-6.16-rc4/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2025-07-02 21:03:37.751679759 +0200
++++ linux-6.16-rc4/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c	2025-07-02 21:03:16.268346897 +0200
+@@ -168,6 +168,7 @@
+ 	struct delayed_work scramb_work;
+ 	bool scramb_enabled;
+ 
++	unsigned long ref_clk_rate;
+ 	struct regmap *regm;
+ 
+ 	unsigned long tmds_char_rate;
+@@ -1475,13 +1476,11 @@
+ {
+ 	dw_hdmi_qp_write(hdmi, 0, MAINUNIT_0_INT_MASK_N);
+ 	dw_hdmi_qp_write(hdmi, 0, MAINUNIT_1_INT_MASK_N);
+-	dw_hdmi_qp_write(hdmi, 428571429, TIMER_BASE_CONFIG0);
++	dw_hdmi_qp_write(hdmi, hdmi->ref_clk_rate, TIMER_BASE_CONFIG0);
+ 
+ 	/* Software reset */
+ 	dw_hdmi_qp_write(hdmi, 0x01, I2CM_CONTROL0);
+-
+ 	dw_hdmi_qp_write(hdmi, 0x085c085c, I2CM_FM_SCL_CONFIG0);
+-
+ 	dw_hdmi_qp_mod(hdmi, 0, I2CM_FM_EN, I2CM_INTERFACE_CONTROL0);
+ 
+ 	/* Clear DONE and ERROR interrupts */
+@@ -1507,6 +1506,11 @@
+ 		return ERR_PTR(-ENODEV);
+ 	}
+ 
++	if (!plat_data->ref_clk_rate) {
++		dev_err(dev, "Missing ref_clk rate\n");
++		return ERR_PTR(-ENODEV);
++	}
++
+ 	hdmi = devm_kzalloc(dev, sizeof(*hdmi), GFP_KERNEL);
+ 	if (!hdmi)
+ 		return ERR_PTR(-ENOMEM);
+@@ -1527,6 +1531,7 @@
+ 
+ 	hdmi->phy.ops = plat_data->phy_ops;
+ 	hdmi->phy.data = plat_data->phy_data;
++	hdmi->ref_clk_rate = plat_data->ref_clk_rate;
+ 
+ 	dw_hdmi_qp_init_hw(hdmi);
+ 

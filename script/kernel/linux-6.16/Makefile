@@ -374,8 +374,9 @@ PATCHFILES += 1205-thermal-rockchip-rename-rk_tsadcv3_tshut_mode.patch
 PATCHFILES += 1206-thermal-rockchip-Support-RK3576-SoC-in-the-thermal-driver.patch
 PATCHFILES += 1207-thermal-rockchip-support-reading-trim-values-from-OTP.patch
 # misc fixes
-PATCHFILES += 1208-WIP-drm-rockchip-dw_hdmi_qp-adjust-timer0-to-refclk.patch
 PATCHFILES += 1209-PM-devfreq-rockchip-dfi-add-support-for-LPDDR5.patch
+PATCHFILES += 1211-drm-rockchip-dw_hdmi_qp-provide-ref-clock-rate-in-dw_hdmi_qp_plat_data.patch
+PATCHFILES += 1212-drm-bridge-dw-hdmi-qp-fixup-timer-base-setup.patch
 # dtsi additions
 PATCHFILES += 1260-arm64-dtsi-rockchip-fix-hdmi-output-on-rk3576.patch
 PATCHFILES += 1265-arm64-dtsi-rk3576-add-sdio-node.patch
