@@ -287,7 +287,6 @@ PATCHFILES += 1008-mfd-rk8xx-Fix-shutdown-handler.patch
 PATCHFILES += 1016-dt-bindings-display-vop2-Add-VP-clock-resets.patch
 PATCHFILES += 1017-drm-rockchip-vop2-Add-clock-resets-support.patch
 PATCHFILES += 1018-drm-rockchip-vop2-Add-core-reset-support.patch
-PATCHFILES += 1019-iommu-rockchip-prevent-iommus-dead-loop-when-two-masters-share-iommu.patch
 PATCHFILES += 1020-WIP-drm-rockchip-dw_hdmi_qp-Make-use-of-phy_configur.patch
 PATCHFILES += 1030-WIP-drm-bridge-Add-detect_ctx-hook.patch
 PATCHFILES += 1031-WIP-drm-bridge-connector-Switch-from-detect-to-detec.patch
@@ -354,13 +353,18 @@ endif
 
 ifeq (1,1)
 #-- Allwinner A523/T527/H728 --------------------------------
-PATCHFILES += 1140-net-ethernet-allwinner-add-gmac-support.patch
+PATCHFILES += 1100-clk-sunxi-ng-a523-Mark-MBUS-clock-as-critical.patch
+PATCHFILES += 1101-axp20x-HACK-mfd-and-multiple-axp-on-the-bus.patch
+PATCHFILES += 1103-allwinner-a523-Add-power-controllers.patch
+PATCHFILES += 1104-regulator-axp20x-force-polyphase-setup-for-axp323.patch
+PATCHFILES += 1140-net-drivers-stmmac-add-initial-support-for-a523-gmac1.patch
 PATCHFILES += 1141-thermal-drivers-sun8i-add-initial-support-for-ths-v2.patch
 PATCHFILES += 1142-add-initial-cpufreq-support.patch
-# dt patches
-PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-in-A523-dtsi.patch
+
+PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 1153-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 1154-arm64-dtsi-allwinner-add-cpufreq-support.patch
+
 PATCHFILES += 1170-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 1172-arm64-dts-allwinner-t527-add-orangepi-4a-dts.patch
 PATCHFILES += 1173-arm64-dts-allwinner-a527-Radxa-A5E-improvements.patch

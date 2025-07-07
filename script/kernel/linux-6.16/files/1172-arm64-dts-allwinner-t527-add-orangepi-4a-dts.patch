@@ -1,6 +1,6 @@
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/arm64/boot/dts/allwinner/Makefile linux-6.16-rc1/arch/arm64/boot/dts/allwinner/Makefile
---- linux-6.16-rc1/arch/arm64/boot/dts/allwinner/Makefile	2025-06-11 17:00:02.918172673 +0200
-+++ linux-6.16-rc1/arch/arm64/boot/dts/allwinner/Makefile	2025-06-11 16:59:42.458173115 +0200
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc4/arch/arm64/boot/dts/allwinner/Makefile linux-6.16-rc4/arch/arm64/boot/dts/allwinner/Makefile
+--- linux-6.16-rc4/arch/arm64/boot/dts/allwinner/Makefile	2025-07-07 12:42:15.234813320 +0200
++++ linux-6.16-rc4/arch/arm64/boot/dts/allwinner/Makefile	2025-07-06 19:26:51.448094789 +0200
 @@ -68,5 +68,6 @@
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h700-anbernic-rg35xx-plus.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h700-anbernic-rg35xx-sp.dtb
@@ -8,10 +8,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +dtb-$(CONFIG_ARCH_SUNXI) += sun55i-t527-orangepi-4a.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun55i-h728-x96qpro+.dtb
  dtb-$(CONFIG_ARCH_SUNXI) += sun55i-t527-avaota-a1.dtb
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts linux-6.16-rc1/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts
---- linux-6.16-rc1/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.16-rc1/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts	2025-06-11 16:58:49.618174258 +0200
-@@ -0,0 +1,385 @@
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc4/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts linux-6.16-rc4/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts
+--- linux-6.16-rc4/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.16-rc4/arch/arm64/boot/dts/allwinner/sun55i-t527-orangepi-4a.dts	2025-07-07 12:37:56.428152220 +0200
+@@ -0,0 +1,432 @@
 +// SPDX-License-Identifier: (GPL-2.0-only OR MIT)
 +// Copyright (C) 2024 Arm Ltd.
 +
@@ -28,11 +29,22 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +
 +	aliases {
 +		mmc0 = &mmc0;
++		mmc1 = &mmc1;
++		mmc2 = &mmc2;
 +		serial0 = &uart0;
++		ethernet0 = &gmac1;
++		ethernet1 = &wlan;
 +	};
 +
 +	chosen {
 +		stdout-path = "serial0:115200n8";
++	};
++
++	ext_osc32k: ext-osc32k-clk {
++		#clock-cells = <0>;
++		compatible = "fixed-clock";
++		clock-frequency = <32768>;
++		clock-output-names = "ext_osc32k";
 +	};
 +
 +	/* For now, until we have mainline components living in SRAM */
@@ -62,54 +74,82 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +		status_led@0 {
 +			gpios = <&pio 3 20 GPIO_ACTIVE_HIGH>; /* PD20 */
 +			label = "status_led";
-+			linux,default-trigger = "heartbeat";
-+			linux,default-trigger-delay-ms = <0>;
++			linux,default-trigger = "disk-activity";
 +		};
 +	};
 +
-+	reg_vcc5v: vcc5v {
-+		/* board wide 5V supply from the 12V->5V regulator */
++	wifi_pwrseq: pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		reset-gpios = <&r_pio 1 1 GPIO_ACTIVE_LOW>; /* PM1 */
++		clocks = <&rtc CLK_OSC32K_FANOUT>;
++		clock-names = "ext_clock";
++	};
++
++	reg_otg_vbus: regulator-otg-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "otg-vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&reg_vcc5v>;
++		gpio = <&r_pio 0 4 GPIO_ACTIVE_HIGH>;	/* PL4 */
++		regulator-always-on;
++		regulator-boot-on;
++		enable-active-high;
++	};
++
++	reg_pcie_vcc3v3: regulator-pcie-vcc3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-pcie-3v3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&reg_vcc5v>;
++		gpio = <&r_pio 0 8 GPIO_ACTIVE_HIGH>;	/* PL8 */
++		regulator-always-on;
++		regulator-boot-on;
++		enable-active-high;
++	};
++
++	reg_usb_vbus: regulator-usb-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb-vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&reg_vcc5v>;
++		gpio = <&r_pio 0 12 GPIO_ACTIVE_HIGH>;	/* PL12 */
++		regulator-always-on;
++		regulator-boot-on;
++		enable-active-high;
++	};
++
++	reg_vcc5v: regulator-vcc5v {
++		/* board wide 5V supply from USB type-C port */
 +		compatible = "regulator-fixed";
 +		regulator-name = "vcc-5v";
 +		regulator-min-microvolt = <5000000>;
 +		regulator-max-microvolt = <5000000>;
 +		regulator-always-on;
 +	};
++};
 +
-+	reg_exxt_vbus: exxt-vbus {
-+		compatible = "regulator-fixed";
-+		regulator-name = "exxxxt-vbus";
-+		regulator-min-microvolt = <3300000>;
-+		regulator-max-microvolt = <3300000>;
-+		regulator-enable-ramp-delay = <1000>;
-+		gpio = <&r_pio 0 8 GPIO_ACTIVE_HIGH>;
-+		regulator-always-on;
-+		regulator-boot-on;
-+		enable-active-high;
-+	};
++&gmac1 {
++	phy-mode = "rgmii-id";
++	phy-handle = <&ext_rgmii_phy>;
++	phy-supply = <&reg_cldo4>;
 +
-+	reg_usb0_vbus: usb0-vbus {
-+		compatible = "regulator-fixed";
-+		regulator-name = "usb0-vbus";
-+		regulator-min-microvolt = <5000000>;
-+		regulator-max-microvolt = <5000000>;
-+		regulator-enable-ramp-delay = <1000>;
-+		gpio = <&r_pio 0 4 GPIO_ACTIVE_HIGH>;
-+		regulator-always-on;
-+		regulator-boot-on;
-+		enable-active-high;
-+	};
++	allwinner,tx-delay-ps = <0>;
++	allwinner,rx-delay-ps = <300>;
 +
-+	reg_usb1_vbus: usb1-vbus {
-+		compatible = "regulator-fixed";
-+		regulator-name = "usb1-vbus";
-+		regulator-min-microvolt = <5000000>;
-+		regulator-max-microvolt = <5000000>;
-+		regulator-enable-ramp-delay = <1000>;
-+		gpio = <&r_pio 0 12 GPIO_ACTIVE_HIGH>;
-+		regulator-always-on;
-+		regulator-boot-on;
-+		enable-active-high;
++	status = "okay";
++};
++
++&mdio1 {
++	ext_rgmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++		interrupts-extended = <&pio 8 16 IRQ_TYPE_LEVEL_LOW>; /* PI16 */
++		reset-gpios = <&pio 8 15 GPIO_ACTIVE_LOW>; /* PI15 */
++		reset-assert-us = <10000>;
++		reset-deassert-us = <150000>;
 +	};
 +};
 +
@@ -119,6 +159,34 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +	cd-gpios = <&pio 5 6 (GPIO_ACTIVE_LOW | GPIO_PULL_DOWN)>; /* PF6 */
 +	bus-width = <4>;
 +	max-frequency = <20000000>;
++	status = "okay";
++};
++
++&mmc1 {
++	bus-width = <4>;
++	mmc-pwrseq = <&wifi_pwrseq>;
++	non-removable;
++	vmmc-supply = <&reg_dldo1_323>;
++	vqmmc-supply = <&reg_bldo1>;
++	status = "okay";
++
++	wlan: wifi@1 {
++		compatible = "brcm,bcm4329-fmac";
++		reg = <1>;
++		interrupt-parent = <&r_pio>;
++		interrupts = <1 0 IRQ_TYPE_LEVEL_LOW>; /* PM0 */
++		interrupt-names = "host-wake";
++	};
++};
++
++&mmc2 {
++	bus-width = <8>;
++	cap-mmc-hw-reset;
++	mmc-ddr-1_8v;
++	mmc-hs200-1_8v;
++	non-removable;
++	vmmc-supply = <&reg_cldo3>;
++	vqmmc-supply = <&reg_cldo1>;
 +	status = "okay";
 +};
 +
@@ -303,7 +371,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +			};
 +			/* Supplies the "big" cluster (1.8 GHz cores) */
 +			reg_dcdc2_323: dcdc2 {
-+				x-powers,polyphased;
++				x-powers,force-polyfase-mode;
 +			};
 +
 +			reg_dcdc3_323: dcdc3 {
@@ -354,22 +422,22 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +};
 +
 +&ehci0 {
-+	drvvbus-supply = <&reg_usb0_vbus>;
++	drvvbus-supply = <&reg_otg_vbus>;
 +	status = "okay";
 +};
 +
 +&ohci0 {
-+	drvvbus-supply = <&reg_usb0_vbus>;
++	drvvbus-supply = <&reg_otg_vbus>;
 +	status = "okay";
 +};
 +
 +&ehci1 {
-+	drvvbus-supply = <&reg_usb1_vbus>;
++	drvvbus-supply = <&reg_usb_vbus>;
 +	status = "okay";
 +};
 +
 +&ohci1 {
-+	drvvbus-supply = <&reg_usb1_vbus>;
++	drvvbus-supply = <&reg_usb_vbus>;
 +	status = "okay";
 +};
 +
@@ -377,23 +445,3 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +	status = "okay";
 +};
 +
-+&gmac1 {
-+	phy-mode = "rgmii";
-+	pinctrl-names = "default", "sleep";
-+	pinctrl-0 = <&gmac1_pins_default>;
-+	pinctrl-1 = <&gmac1_pins_sleep>;
-+	aw,soc-phy25m;
-+	tx-delay = <1>;
-+	rx-delay = <3>;
-+	dwmac3v3-supply = <&reg_cldo3>;
-+	phy3v3-supply = <&reg_cldo3>;
-+	status = "okay";
-+};
-+
-+&gmac1_phy0 {
-+	compatible = "ethernet-phy-ieee802.3-c22";
-+	reg = <1>;
-+	reset-gpios = <&pio 8 15 GPIO_ACTIVE_LOW>;
-+	reset-assert-us = <15000>;
-+	reset-deassert-us = <100000>;
-+};
