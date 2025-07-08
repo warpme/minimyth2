@@ -284,6 +284,20 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc4/arch/ar
 +&ufshc {
 +	status = "okay";
 +};
+
+
+
+With the production Rock 4D boards in our LAVA setup, we are
+seeing connection issues. After the recent fixes for the PHY
+setup itself the link is established properly, but it seems
+no data gets through as DHCP does not work. As things are
+working in U-Boot, this is obviously a software issue.
+
+Downstream uses different timing setup; try importing that.
+
+Signed-off-by: default avatarSebastian Reichel <sebastian.reichel@collabora.com>
+
+
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc5/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts linux-6.16-rc5/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
 --- linux-6.16-rc5/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts	2025-07-08 20:57:14.741693831 +0200
 +++ linux-6.16-rc5/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts	2025-07-08 20:56:48.508361066 +0200
@@ -305,3 +319,48 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc5/arch/ar
  	status = "okay";
  };
  
+From c76ccd2ba91590f0eea72cb60bef4b8d072e712d Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Wed, 2 Jul 2025 22:28:32 +0200
+Subject: [PATCH] arm64: dts: rockchip: improve PHY handling for ROCK 4D
+
+Add information, that the PHY is RTL8211F based. This helps the
+system to probe the right driver, so that the clock is enabled.
+
+Also assign 25 MHz as clock rate for REFCLKO25M_GMAC0_OUT, which
+is used by some board variants (early prototype boards have a
+dedicated crystal instead, but those may also enable this clock).
+
+While at it switch from non-standard "enable-gpio" to "enable-gpios".
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts b/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
+index 76e0f856da375..3f3001c9b061e 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
+@@ -725,14 +725,16 @@ es8388: audio-codec@10 {
+ 
+ &mdio0 {
+ 	rgmii_phy0: ethernet-phy@1 {
+-		compatible = "ethernet-phy-ieee802.3-c22";
++		compatible = "ethernet-phy-id001c.c916";
+ 		reg = <0x1>;
+ 		clocks = <&cru REFCLKO25M_GMAC0_OUT>;
++		assigned-clocks = <&cru REFCLKO25M_GMAC0_OUT>;
++		assigned-clock-rates = <25000000>;
+ 		pinctrl-names = "default";
+ 		pinctrl-0 = <&rtl8211f_rst>;
+ 		reset-assert-us = <20000>;
+ 		reset-deassert-us = <100000>;
+-		reset-gpio = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
++		reset-gpios = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
+ 	};
+ };
+ 
+-- 
+GitLab
+
