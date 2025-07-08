@@ -365,6 +365,7 @@ PATCHFILES += 1142-add-initial-cpufreq-support.patch
 PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 1153-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 1154-arm64-dtsi-allwinner-add-cpufreq-support.patch
+PATCHFILES += 1155-arm64-dtsi-allwinner-add-gpu-support.patch
 
 PATCHFILES += 1170-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 1172-arm64-dts-allwinner-t527-add-orangepi-4a-dts.patch
