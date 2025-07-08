@@ -165,10 +165,11 @@ PATCHFILES += 0633-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
 PATCHFILES += 0635-drvers-of-add-dt-overlay-configfs-interface.patch
 # device-tree patches
 PATCHFILES += 0640-arm64-dts-allwinner-h616.dtsi-add-audio-hdmi-vdec.patch
-PATCHFILES += 0641-arm64-dts-allwinner-h616.dtsi-add-gpu-nodes.patch
-PATCHFILES += 0641-arm64-dts-allwinner-h616.dtsi-add-dvfs-and-h313-cpu-opp.patch
+PATCHFILES += 0641-arm64-dts-allwinner-h616.dtsi-add-cpu-gpu-dvfs-opp.patch
 PATCHFILES += 0642-arm64-dts-allwinner-h616.dtsi-add-emac1.patch
 PATCHFILES += 0643-arm64-dts-allwinner-h616.dtsi-fix-x96q-failing-mmc3.patch
+PATCHFILES += 0644-arm64-dts-allwinner-h616.dtsi-enable-highspeedx-on-mmc0.patch
+
 PATCHFILES += 0644-arm64-dts-allwinner-h616-OrangePI-Zero23-enable-ths-hdmi-audio.patch
 PATCHFILES += 0645-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
 PATCHFILES += 0646-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
