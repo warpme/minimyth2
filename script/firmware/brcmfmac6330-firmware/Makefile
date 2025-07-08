@@ -26,14 +26,17 @@ install-custom:
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.bin   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6-mini.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.bin   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.bin   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.tanix,tx6s.bin
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.bin   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.pendoo,x12pro.bin
 
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.clm_blob   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6-mini.clm_blob
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.clm_blob   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6.clm_blob
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.clm_blob   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.tanix,tx6s.clm_blob
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.clm_blob   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.pendoo,x12pro.clm_blob
 
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.txt   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6-mini.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.txt   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.txt   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.tanix,tx6s.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.txt   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.pendoo,x12pro.txt
 
 	@$(MAKECOOKIE)
 
