@@ -303,14 +303,15 @@ PATCHFILES += 1038-drm-bridge-synopsys-add-cec-support.patch
 PATCHFILES += 1039-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1040-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 
-# rkvdec2 reset and hevc support
-# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec 27.06.2025
-PATCHFILES += 1054-bitfield-introduce-HWORD_UPDATE-bitfield-macros.patch
+# rkvdec2 h264 hevc support
+# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec 08.07.2025
+PATCHFILES += 1054-bitmap-introduce-hardware-specific-bitfield-operatio.patch
 PATCHFILES += 1055-media-rkvdec-Restore-iommu-addresses-on-errors.patch
 PATCHFILES += 1056-media-dt-bindings-rockchip-Document-RK3588-Video-Dec.patch
 PATCHFILES += 1057-media-dt-bindings-rockchip-Add-RK3576-Video-Decoder-.patch
 PATCHFILES += 1060-media-uapi-HEVC-Add-v4l2_ctrl_hevc_ext_sps_rps-contr.patch
 PATCHFILES += 1061-media-v4l2-ctrls-Add-hevc_ext_sps_rps-control.patch
+PATCHFILES += 1062-media-rkvdec-Remove-TODO-file.patch
 PATCHFILES += 1063-media-rkvdec-Unstage-the-driver.patch
 PATCHFILES += 1067-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
 PATCHFILES += 1068-media-rkvdec-Move-cabac-table-to-its-own-source-file.patch

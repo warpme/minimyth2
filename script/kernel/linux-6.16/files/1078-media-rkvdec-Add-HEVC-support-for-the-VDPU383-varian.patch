@@ -1,24 +1,25 @@
-From 96b6c849697a00a78e69a718af52bf844162c7ab Mon Sep 17 00:00:00 2001
+From 6b1089c014a9228d3de9400bb9e22b893fb945c8 Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Wed, 11 Jun 2025 17:04:28 -0400
 Subject: [PATCH 28/28] media: rkvdec: Add HEVC support for the VDPU383 variant
 
 The VDPU383 decoder is used on the RK3576 SoC and has support for HEVC.
 
-This patch also moves some functions to a common rkvdec-hevc-common.c file.
+This patch also moves some functions to a common rkvdec-hevc-common.c
+file and adds a specific scaling matrix flatten function.
 
-The fluster score for JCT-VC-HEVC_V1 is 145/147.
+The fluster score for JCT-VC-HEVC_V1 is 146/147.
 
 Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
 ---
  .../media/platform/rockchip/rkvdec/Makefile   |   2 +
- .../rockchip/rkvdec/rkvdec-hevc-common.c      | 368 ++++++++++
+ .../rockchip/rkvdec/rkvdec-hevc-common.c      | 331 +++++++++
  .../rockchip/rkvdec/rkvdec-hevc-common.h      |  99 +++
  .../rockchip/rkvdec/rkvdec-vdpu381-hevc.c     | 452 +-----------
  .../rockchip/rkvdec/rkvdec-vdpu383-hevc.c     | 687 ++++++++++++++++++
- .../media/platform/rockchip/rkvdec/rkvdec.c   |  77 ++
+ .../media/platform/rockchip/rkvdec/rkvdec.c   |  91 +++
  .../media/platform/rockchip/rkvdec/rkvdec.h   |   2 +
- 7 files changed, 1245 insertions(+), 442 deletions(-)
+ 7 files changed, 1222 insertions(+), 442 deletions(-)
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.h
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c
@@ -40,10 +41,10 @@ index 895d345c88..3e07209989 100644
  		   rkvdec-vp9.o
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c
 new file mode 100644
-index 0000000000..16df2cc9df
+index 0000000000..0cefec53fc
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c
-@@ -0,0 +1,368 @@
+@@ -0,0 +1,331 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip video decoder hevc common functions
@@ -53,6 +54,7 @@ index 0000000000..16df2cc9df
 + */
 +
 +#include "rkvdec-hevc-common.h"
++#include "rkvdec.h"
 +
 +#define RKVDEC_HEVC_MAX_DEPTH_IN_BYTES		2
 +
@@ -182,65 +184,27 @@ index 0000000000..16df2cc9df
 +	}
 +}
 +
-+/*
-+ * Flip one or more matrices along their main diagonal and flatten them
-+ * before writing it to the memory.
-+ * Convert:
-+ * ABCD         AEIM
-+ * EFGH     =>  BFJN     =>     AEIMBFJNCGKODHLP
-+ * IJKL         CGKO
-+ * MNOP         DHLP
-+ */
-+static void transpose_and_flatten_matrices(struct rkvdec_dev *rkvdec, u8 *output, const u8 *input,
-+					   int matrices, int row_length)
-+{
-+	struct rkvdec_config *cfg = rkvdec->config;
-+	int i, j, row, x_offset, matrix_offset, rot_index, y_offset, matrix_size, new_value;
-+
-+	matrix_size = row_length * row_length;
-+	for (i = 0; i < matrices; i++) {
-+		row = 0;
-+		x_offset = 0;
-+		matrix_offset = i * matrix_size;
-+		for (j = 0; j < matrix_size; j++) {
-+			y_offset = j - (row * row_length);
-+			rot_index = y_offset * row_length + x_offset;
-+			new_value = *(input + i * matrix_size + j);
-+			output[matrix_offset + rot_index] = new_value;
-+			if ((j + 1) % row_length == 0) {
-+				row += 1;
-+				x_offset += 1;
-+			}
-+		}
-+
-+		if (cfg->reorder_scaling_list)
-+			cfg->reorder_scaling_list(output + i * matrix_size, row_length);
-+	}
-+}
-+
 +static void assemble_scalingfactor0(struct rkvdec_dev *rkvdec,
 +				    u8 *output,
 +				    const struct v4l2_ctrl_hevc_scaling_matrix *input)
 +{
++	struct rkvdec_config *cfg = rkvdec->config;
 +	int offset = 0;
 +
-+	transpose_and_flatten_matrices(rkvdec, output, (const u8 *)input->scaling_list_4x4, 6, 4);
++	cfg->flatten_matrices(output, (const u8 *)input->scaling_list_4x4, 6, 4);
 +	offset = 6 * 16 * sizeof(u8);
-+	transpose_and_flatten_matrices(rkvdec, output + offset,
-+				       (const u8 *)input->scaling_list_8x8, 6, 8);
++	cfg->flatten_matrices(output + offset, (const u8 *)input->scaling_list_8x8, 6, 8);
 +	offset += 6 * 64 * sizeof(u8);
-+	transpose_and_flatten_matrices(rkvdec, output + offset,
-+				       (const u8 *)input->scaling_list_16x16, 6, 8);
++	cfg->flatten_matrices(output + offset, (const u8 *)input->scaling_list_16x16, 6, 8);
 +	offset += 6 * 64 * sizeof(u8);
++
 +	/* Add a 128 byte padding with 0s between the two 32x32 matrices */
-+	transpose_and_flatten_matrices(rkvdec, output + offset,
-+				       (const u8 *)input->scaling_list_32x32, 1, 8);
++	cfg->flatten_matrices(output + offset, (const u8 *)input->scaling_list_32x32, 1, 8);
 +	offset += 64 * sizeof(u8);
 +	memset(output + offset, 0, 128);
 +	offset += 128 * sizeof(u8);
-+	transpose_and_flatten_matrices(rkvdec, output + offset,
-+				       (const u8 *)input->scaling_list_32x32 + (64 * sizeof(u8)),
-+				       1, 8);
++	cfg->flatten_matrices(output + offset,
++			      (const u8 *)input->scaling_list_32x32 + (64 * sizeof(u8)), 1, 8);
 +	offset += 64 * sizeof(u8);
 +	memset(output + offset, 0, 128);
 +}
@@ -270,6 +234,23 @@ index 0000000000..16df2cc9df
 +	memcpy(output->scalingfactor1, (const u8 *)input->scaling_list_4x4, 96);
 +	assemble_scalingdc(output->scalingdc, input);
 +	memset(output->reserved, 0, 4 * sizeof(u8));
++}
++
++void rkvdec_hevc_assemble_hw_scaling_list(struct rkvdec_dev *rkvdec,
++					  struct rkvdec_hevc_run *run,
++					  struct scaling_factor *scaling_list,
++					  struct v4l2_ctrl_hevc_scaling_matrix *cache)
++{
++	const struct v4l2_ctrl_hevc_scaling_matrix *scaling = run->scaling_matrix;
++
++	if (!memcmp(cache, scaling,
++		    sizeof(struct v4l2_ctrl_hevc_scaling_matrix)))
++		return;
++
++	translate_scaling_list(rkvdec, scaling_list, scaling);
++
++	memcpy(cache, scaling,
++	       sizeof(struct v4l2_ctrl_hevc_scaling_matrix));
 +}
 +
 +void rkvdec_hevc_assemble_hw_rps(struct rkvdec_hevc_run *run, struct rkvdec_rps *rps)
@@ -308,23 +289,6 @@ index 0000000000..16df2cc9df
 +				    set->delta_poc_s1[j], set->used_by_curr_pic_s1[j]);
 +		}
 +	}
-+}
-+
-+void rkvdec_hevc_assemble_hw_scaling_list(struct rkvdec_dev *rkvdec,
-+					  struct rkvdec_hevc_run *run,
-+					  struct scaling_factor *scaling_list,
-+					  struct v4l2_ctrl_hevc_scaling_matrix *cache)
-+{
-+	const struct v4l2_ctrl_hevc_scaling_matrix *scaling = run->scaling_matrix;
-+
-+	if (!memcmp(cache, scaling,
-+		    sizeof(struct v4l2_ctrl_hevc_scaling_matrix)))
-+		return;
-+
-+	translate_scaling_list(rkvdec, scaling_list, scaling);
-+
-+	memcpy(cache, scaling,
-+	       sizeof(struct v4l2_ctrl_hevc_scaling_matrix));
 +}
 +
 +struct vb2_buffer *get_ref_buf(struct rkvdec_ctx *ctx,
@@ -1738,7 +1702,7 @@ index 0000000000..fa33a10f15
 +	.get_image_fmt = rkvdec_hevc_get_image_fmt,
 +};
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-index 0f5d76cab4..cfc3a3609a 100644
+index 761e044975..5d86fb7cdd 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 @@ -450,6 +450,22 @@ static const struct rkvdec_coded_fmt_desc vdpu383_coded_fmts[] = {
@@ -1764,90 +1728,118 @@ index 0f5d76cab4..cfc3a3609a 100644
  };
  
  static const struct rkvdec_coded_fmt_desc *
-@@ -1357,6 +1373,66 @@ static irqreturn_t rkvdec_irq_handler(int irq, void *priv)
+@@ -1357,6 +1373,78 @@ static irqreturn_t rkvdec_irq_handler(int irq, void *priv)
  	return cfg->irq_handler(ctx);
  }
  
 +/*
++ * Flip one or more matrices along their main diagonal and flatten them
++ * before writing it to the memory.
++ * Convert:
++ * ABCD         AEIM
++ * EFGH     =>  BFJN     =>     AEIMBFJNCGKODHLP
++ * IJKL         CGKO
++ * MNOP         DHLP
++ */
++static void transpose_and_flatten_matrices(u8 *output, const u8 *input,
++					   int matrices, int row_length)
++{
++	int i, j, row, x_offset, matrix_offset, rot_index, y_offset, matrix_size, new_value;
++
++	matrix_size = row_length * row_length;
++	for (i = 0; i < matrices; i++) {
++		row = 0;
++		x_offset = 0;
++		matrix_offset = i * matrix_size;
++		for (j = 0; j < matrix_size; j++) {
++			y_offset = j - (row * row_length);
++			rot_index = y_offset * row_length + x_offset;
++			new_value = *(input + i * matrix_size + j);
++			output[matrix_offset + rot_index] = new_value;
++			if ((j + 1) % row_length == 0) {
++				row += 1;
++				x_offset += 1;
++			}
++		}
++	}
++}
++
++/*
 + * VDPU383 needs a specific order:
-+ * Reorder the 8x8 flatten transposed matrix based on 4x4 blocks.
++ * The 8x8 flatten matrix is based on 4x4 blocks.
 + * Each 4x4 block is written separately in order.
 + *
-+ * Base data    =>  Transposed => Reordered
++ * Base data    =>  Transposed    VDPU383 transposed
 + *
 + * ABCDEFGH         AIQYaiqy      AIQYBJRZ
 + * IJKLMNOP         BJRZbjrz      CKS0DLT1
 + * QRSTUVWX         CKS0cks6      aiqybjrz
-+ * YZ012345     =>  DLT1dlt7   => cks6dlt7
++ * YZ012345     =>  DLT1dlt7      cks6dlt7
 + * abcdefgh         EMU2emu8      EMU2FNV3
 + * ijklmnop         FNV3fnv9      GOW4HPX5
 + * qrstuvwx         GOW4gow#      emu8fnv9
 + * yz6789#$         HPX5hpx$      gow#hpx$
 + *
++ * As the function reads block of 4x4 it can be used for both 4x4 and 8x8 matrices.
++ *
 + */
-+static void vdpu383_reorder_8x8_to_4x4(u8 *transposed, int row_length)
++static void vdpu383_flatten_matrices(u8 *output, const u8 *input, int matrices, int row_length)
 +{
-+	u8 tmp[64];
-+	int idx = 0;
++	u8 block;
++	int i, j, matrix_offset, matrix_size, new_value, input_idx, line_offset, block_offset;
 +
-+	if (row_length != 8)
-+		return;
++	matrix_size = row_length * row_length;
++	for (i = 0; i < matrices; i++) {
++		matrix_offset = i * matrix_size;
++		for (j = 0; j < matrix_size; j++) {
++			block = j / 16;
++			line_offset = (j % 16) / 4;
++			block_offset = (block & 1) * 32 + (block & 2) * 2;
++			input_idx = ((j % 4) * row_length) + line_offset + block_offset;
 +
-+	// Write top-left block
-+	for (int i = 0; i < 4; i++) {
-+		tmp[idx++] = transposed[i * 8 + 0];
-+		tmp[idx++] = transposed[i * 8 + 1];
-+		tmp[idx++] = transposed[i * 8 + 2];
-+		tmp[idx++] = transposed[i * 8 + 3];
++			new_value = *(input + i * matrix_size + input_idx);
++
++			output[matrix_offset + j] = new_value;
++		}
 +	}
-+
-+	// Write top-right block
-+	for (int i = 0; i < 4; i++) {
-+		tmp[idx++] = transposed[i * 8 + 4];
-+		tmp[idx++] = transposed[i * 8 + 5];
-+		tmp[idx++] = transposed[i * 8 + 6];
-+		tmp[idx++] = transposed[i * 8 + 7];
-+	}
-+
-+	// Write bottom-left block
-+	for (int i = 4; i < 8; i++) {
-+		tmp[idx++] = transposed[i * 8 + 0];
-+		tmp[idx++] = transposed[i * 8 + 1];
-+		tmp[idx++] = transposed[i * 8 + 2];
-+		tmp[idx++] = transposed[i * 8 + 3];
-+	}
-+
-+	// Write bottom-right block
-+	for (int i = 4; i < 8; i++) {
-+		tmp[idx++] = transposed[i * 8 + 4];
-+		tmp[idx++] = transposed[i * 8 + 5];
-+		tmp[idx++] = transposed[i * 8 + 6];
-+		tmp[idx++] = transposed[i * 8 + 7];
-+	}
-+
-+	memcpy(transposed, tmp, row_length * row_length);
 +}
 +
  static void rkvdec_watchdog_func(struct work_struct *work)
  {
  	struct rkvdec_dev *rkvdec;
-@@ -1469,6 +1545,7 @@ const struct rkvdec_config config_vdpu383 = {
+@@ -1420,6 +1508,7 @@ const struct rkvdec_config config_rkvdec = {
+ 	.coded_fmts_num = ARRAY_SIZE(rkvdec_coded_fmts),
+ 	.irq_handler = rk3399_irq_handler,
+ 	.fill_pixfmt_mp = v4l2_fill_pixfmt_mp,
++	.flatten_matrices = transpose_and_flatten_matrices,
+ 	.colmv_size = rkvdec_colmv_size,
+ };
+ 
+@@ -1444,6 +1533,7 @@ const struct rkvdec_config config_vdpu381 = {
+ 	.irq_handler = vdpu381_irq_handler,
+ 	.fill_pixfmt_mp = vdpu38x_fill_pixfmt_mp,
+ 	.colmv_size = rkvdec_colmv_size,
++	.flatten_matrices = transpose_and_flatten_matrices,
+ 	.named_regs = true,
+ };
+ 
+@@ -1469,6 +1559,7 @@ const struct rkvdec_config config_vdpu383 = {
  	.fill_pixfmt_mp = vdpu38x_fill_pixfmt_mp,
  	.colmv_size = rkvdec_vdpu383_colmv_size,
  	.fill_pixfmt_mp = vdpu38x_fill_pixfmt_mp,
-+	.reorder_scaling_list = vdpu383_reorder_8x8_to_4x4,
++	.flatten_matrices = vdpu383_flatten_matrices,
  	.named_regs = true,
  };
  
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.h b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
-index df56bc0516..2c87837691 100644
+index df56bc0516..2434f92804 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.h
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
 @@ -111,6 +111,7 @@ struct rkvdec_config {
  	int (*fill_pixfmt_mp)(struct v4l2_pix_format_mplane *pix_mp, u32 pixelformat,
  			      u32 width, u32 height);
  	u32 (*colmv_size)(u16 width, u16 height);
-+	void (*reorder_scaling_list)(u8 *transposed, int row_length);
++	void (*flatten_matrices)(u8 *output, const u8 *input, int matrices, int row_length);
  	bool named_regs;
  };
  
