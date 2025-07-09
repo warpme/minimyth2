@@ -31,6 +31,7 @@
 
 # mm_U-BOOT_BOARD_TYPE = test-rk3576
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3576_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = roc-pc-rk3576_defconfig
 
 # mm_U-BOOT_BOARD_TYPE = test-rk3588
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
@@ -47,8 +48,8 @@ GARNAME      = u-boot-rk
 
 ifeq (1,1)
 # collabora rk3588 enablement repo
-# git@ 24.06.2025 https://gitlab.collabora.com/hardware-enablement/rockchip-3588/u-boot
-GARVERSION   = 60501605e3f48b155af83193dfd9ad73362b8e25
+# git@ 08.07.2025 https://gitlab.collabora.com/hardware-enablement/rockchip-3588/u-boot
+GARVERSION   = eaadfde0c6a8975c85d9da9e19a5af70795cd1c6
 # git@ 24.01.2025 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = f43a462e7a1429a9d407ae52b4745033034a6cf9
 MASTER_SITES = \
@@ -66,6 +67,32 @@ PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                53-add-rk3588-rock-5t-defconfig.patch \
                54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
                55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
+
+endif
+
+ifeq (0,1)
+# mainline u-boot
+# git@ 07.07.2025 mainline 2025.07 ga
+GARVERSION   = e37de002fac3895e8d0b60ae2015e17bb33e2b5b
+# git@ 24.01.2025 https://github.com/rockchip-linux/rkbin/commits/master/
+RKBINVERSION = f43a462e7a1429a9d407ae52b4745033034a6cf9
+MASTER_SITES = \
+               https://github.com/rockchip-linux/rkbin/raw/3cb8a4e35c99d06563b3707f7e4df1fad68dc301/bin/rk35/ \
+               https://github.com/rockchip-linux/rkbin/archive/ \
+               https://github.com/u-boot/u-boot/archive/ \
+
+DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip rk3576_bl31_v1.08.elf
+WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
+PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
+               02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
+               03-add-generic-rk3576_defconfig.patch \
+               50-my-boards-rk3566-defconfigs-enable-overlays-mainline.patch \
+               51-add-rk3328-beelink-a1-defconfig.patch \
+               52-add-rk3566-x96-x6-defconfig.patch \
+               53-add-rk3588-rock-5t-defconfig.patch \
+               54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
+               55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
+
 
 endif
 
