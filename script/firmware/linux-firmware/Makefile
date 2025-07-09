@@ -40,7 +40,7 @@ install-custom:
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,4-model-b.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.pine64,quartz64-a.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.pine64,quartz64-b.bin
-	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.radxa,rock3c.bin
+	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.radxa,rock-3c.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.eachlink,h6mini.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.radxa,rockpi4se.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.bin      $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,5-model-b.bin
@@ -48,7 +48,7 @@ install-custom:
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,4-model-b.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.pine64,quartz64-a.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.pine64,quartz64-b.clm_blob
-	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.radxa,rock3c.clm_blob
+	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.radxa,rock-3c.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.eachlink,h6mini.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.radxa,rockpi4se.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43455-sdio.clm_blob $(BRCM_DEST)/brcmfmac43455-sdio.raspberrypi,5-model-b.clm_blob
