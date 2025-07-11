@@ -136,12 +136,9 @@ PATCHFILES += 0573-arm64-dts-allwinner-h6-Fix-Cedrus-IOMMU-again.patch
 PATCHFILES += 0574-arm64-dts-allwinner-h6.dtsi-add-ac200-nodes.patch
 
 PATCHFILES += 0575-arm64-dts-allwinner-gs1-fixes.patch
-PATCHFILES += 0576-arm64-dts-allwinner-tanix-tx6-dtsi-fixes.patch
+PATCHFILES += 0576-arm64-dts-allwinner-tanix-tx6-additions.patch
 PATCHFILES += 0577-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
-PATCHFILES += 0578-arm64-dts-allwinner-tanix-tx6-mini-add-eth-wifi.patch
-PATCHFILES += 0579-arm64-dts-allwinner-tanix-tx6-add-eth-wifi-vfd.patch
 PATCHFILES += 0580-arm64-dts-allwinner-opi3-fixes.patch
-PATCHFILES += 0581-arm64-dts-allwinner-add-tanix-tx6-a.patch
 PATCHFILES += 0582-arm64-dts-allwinner-h6-add-deinterlace-node.patch
 PATCHFILES += 0583-arm64-dts-allwinner-add-orangepi-3-lts.patch
 endif
