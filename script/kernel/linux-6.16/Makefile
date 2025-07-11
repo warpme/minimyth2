@@ -110,6 +110,7 @@ PATCHFILES += 0538-add-TCON-global-control-reg-for-pad-selection.patch
 
 PATCHFILES += 0540-drm-bridge-dw-hdmi-add-mtmdsclock-parameter-to-phy-c.patch
 PATCHFILES += 0541-drm-bridge-dw-hdmi-support-configuring-phy-for-deep-.patch
+PATCHFILES += 0542-drm-sun4i-dw-hdmi-Switch-to-bridge-functions.patch
 
 PATCHFILES += 0547-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 PATCHFILES += 0548-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
