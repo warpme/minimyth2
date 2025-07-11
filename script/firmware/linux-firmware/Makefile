@@ -87,9 +87,13 @@ ifeq (0,1)
 endif
 
 	@# Broadcom 4330 bin, clm_blob and txt
+	@ln -srf $(BRCM_DEST)/brcmfmac4330-sdio.bin               $(BRCM_DEST)/brcmfmac4330-sdio.oranth,tanix-tx6.bin
 	@ln -srf $(BRCM_DEST)/brcmfmac4330-sdio.bin               $(BRCM_DEST)/brcmfmac4330-sdio.tanix,tx6s.bin
 	@# fake clm_blob file as i can't find correct file....
-	@touch                                                    $(BRCM_DEST)/brcmfmac4330-sdio.tanix,tx6s.clm_blob
+	@touch $(BRCM_DEST)/brcmfmac4330-sdio.clm_blob
+	@ln -srf $(BRCM_DEST)/brcmfmac4330-sdio.clm_blob $(BRCM_DEST)/brcmfmac4330-sdio.oranth,tanix-tx6.clm_blob
+	@ln -srf $(BRCM_DEST)/brcmfmac4330-sdio.clm_blob $(BRCM_DEST)/brcmfmac4330-sdio.tanix,tx6s.clm_blob
+	@ln -srf $(BRCM_DEST)/brcmfmac4330-sdio.Prowise-PT301.txt $(BRCM_DEST)/brcmfmac4330-sdio.oranth,tanix-tx6.txt
 	@ln -srf $(BRCM_DEST)/brcmfmac4330-sdio.Prowise-PT301.txt $(BRCM_DEST)/brcmfmac4330-sdio.tanix,tx6s.txt
 
 	@# Broadcom 4354 bin and clm_blob
