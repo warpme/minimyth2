@@ -67,6 +67,7 @@ PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                53-add-rk3588-rock-5t-defconfig.patch \
                54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
                55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
+               56-rk3566-zero3-sync-dts-to-kernel-to-make-eth-working.patch \
 
 endif
 
@@ -92,7 +93,7 @@ PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                53-add-rk3588-rock-5t-defconfig.patch \
                54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
                55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
-
+               56-rk3566-zero3-sync-dts-to-kernel-to-make-eth-working.patch \
 
 endif
 
