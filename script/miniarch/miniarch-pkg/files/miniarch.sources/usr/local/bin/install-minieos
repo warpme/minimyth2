@@ -13,7 +13,7 @@
 #   -change: rename script to install-minieos; change working dir to .minieos-install
 
 
-ver="1.2"
+ver="1.3"
 
 . /etc/minieos.conf
 
@@ -216,14 +216,20 @@ fixup_pkg_list() {
 }
 
 base_addons() {
-    msg "installing EndeavourOS Base Addons"
-    eos-packagelist "Desktop-Base + Common packages" "Firefox and language package" > base-addons
-    fixup_pkg_list base-addons BASE_ADDONS_REMOVE_LIST BASE_ADDONS_ADD_LIST
-    run_unattended_pacman_on_filelist base-addons
-    systemctl disable dhcpcd.service
-    systemctl enable NetworkManager.service
-    systemctl start NetworkManager.service
-    sleep 5
+    if [ ! -e $BASE_ADDONS_DONE_FLAG ] ; then
+        msg "installing EndeavourOS Base Addons"
+        eos-packagelist "Desktop-Base + Common packages" "Firefox and language package" > base-addons
+        fixup_pkg_list base-addons BASE_ADDONS_REMOVE_LIST BASE_ADDONS_ADD_LIST
+        run_unattended_pacman_on_filelist base-addons
+        systemctl disable dhcpcd.service
+        systemctl enable NetworkManager.service
+        systemctl start NetworkManager.service
+        sleep 5
+        touch $BASE_ADDONS_DONE_FLAG
+    else
+        echo "using previosly installed EndeavourOS Base Addons."
+        echo "if you want to reinstall Base Addons, do rf -f $BASE_ADDONS_DONE_FLAG and rerun"
+    fi
 }
 
 set_time_zone() {
@@ -278,50 +284,58 @@ completed_notification() {
 }
 
 precheck_setup() {
-    local script_directory
-    local whiptail_installed
+    if [ ! -e $PRECHECK_SETUP_DONE_FLAG ] ; then
 
-    msg "Starting precheck_setup ...."
-    # check where script is installed
-    script_directory="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" #for mc syntax highligtning"
-    if [[ "$script_directory" == "/home/alarm/"* ]]; then
-       whiptail_installed=$(pacman -Qs libnewt)
-       if [[ "$whiptail_installed" != "" ]]; then
-          whiptail --title "Error - Cannot Continue" --msgbox "This script is in the alarm user's home folder which will be removed.  \
-          \n\nPlease move it to the root user's home directory and rerun the script." 10 80
-          exit 1
-       else
-          msg "ERROR: Cannot Continue. This script is in the alarm user's home folder which will be removed. Please move it to the root user's home directory and rerun the script."
-          exit 1
-       fi
+        local script_directory
+        local whiptail_installed
+
+        msg "Starting precheck_setup ...."
+        # check where script is installed
+        script_directory="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )" #for mc syntax highligtning"
+        if [[ "$script_directory" == "/home/alarm/"* ]]; then
+           whiptail_installed=$(pacman -Qs libnewt)
+           if [[ "$whiptail_installed" != "" ]]; then
+              whiptail --title "Error - Cannot Continue" --msgbox "This script is in the alarm user's home folder which will be removed.  \
+              \n\nPlease move it to the root user's home directory and rerun the script." 10 80
+              exit 1
+           else
+              msg "ERROR: Cannot Continue. This script is in the alarm user's home folder which will be removed. Please move it to the root user's home directory and rerun the script."
+              exit 1
+           fi
+        fi
+
+        # check to see if script was run as root #####
+        if [ $(id -u) -ne 0 ]
+        then
+           whiptail_installed=$(pacman -Qs libnewt)
+           if [[ "$whiptail_installed" != "" ]]; then
+              whiptail --title "Error - Cannot Continue" --msgbox "Please run this script with sudo or as root" 8 47
+              exit 1
+           else
+              msg "ERROR:  Cannot Continue. Please run this script with sudo or as root."
+              exit 1
+           fi
+        fi
+
+        msg "---- checking Internet connection ----"
+        ping -c 3 endeavouros.com -W 5
+        if [ "$?" != "0" ] ; then
+           msg "ERROR: No Internet Connection was detected\nFix your Internet Connectin and try again"
+           exit 1
+        fi
+        echo "------------------------------------------"
+
+        dmesg -n 1
+
+        run_unattended_pacman git libnewt wget python3 python-yaml sudo
+
+        msg "precheck_setup ended ok ...."
+        touch $PRECHECK_SETUP_DONE_FLAG
+
+    else
+        echo "using previosly done precheck setup"
+        echo "if you want to redo pre-check setup, do rf -f $PRECHECK_SETUP_DONE_FLAG and rerun"
     fi
-
-    # check to see if script was run as root #####
-    if [ $(id -u) -ne 0 ]
-    then
-       whiptail_installed=$(pacman -Qs libnewt)
-       if [[ "$whiptail_installed" != "" ]]; then
-          whiptail --title "Error - Cannot Continue" --msgbox "Please run this script with sudo or as root" 8 47
-          exit 1
-       else
-          msg "ERROR:  Cannot Continue. Please run this script with sudo or as root."
-          exit 1
-       fi
-    fi
-
-    msg "---- checking Internet connection ----"
-    ping -c 3 endeavouros.com -W 5
-    if [ "$?" != "0" ] ; then
-       msg "ERROR: No Internet Connection was detected\nFix your Internet Connectin and try again"
-       exit 1
-    fi
-    echo "------------------------------------------"
-
-    dmesg -n 1
-
-    run_unattended_pacman git libnewt wget python3 python-yaml sudo
-
-    msg "precheck_setup ended ok ...."
 }
 
 user_input() {
@@ -353,7 +367,9 @@ user_input() {
                     finished=0
                 fi
             done
-
+        else
+            echo "using previosly done initial user inputs"
+            echo "if you want to redo initial user inputs, do rf -f $INITIAL_SETUP_DONE_FLAG and rerun"
         fi
 
         DENAME=$(whiptail --nocancel --title "MiniEOS Setup - Desktop Selection" --menu --notags "\n                          Choose which Desktop Environment to install\n\n" 22 100 15 \
