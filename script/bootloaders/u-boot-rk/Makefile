@@ -197,7 +197,8 @@ BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.44.elf
 MKIMAGE_TYPE = rk3568
 INSTALL_PREF = rk3566
 DDR_BIN      = ${TPL}
-DEFCONFIG    = generic-rk3566_defconfig
+#DEFCONFIG    = generic-rk3566_defconfig
+DEFCONFIG    = generic-rk3568_defconfig
 endif
 
 ifneq (,$(findstring rk3568,$(mm_U-BOOT_BOARD_TYPE)))
