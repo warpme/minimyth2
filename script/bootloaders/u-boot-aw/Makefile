@@ -144,7 +144,7 @@ $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin:
 pre-everything: $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin
 
 pre-configure:
-ifneq (,$(findstring h6,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring h6.,$(mm_U-BOOT_BOARD_TYPE)))
 	@echo "Building crust with $(CRUST_CONFIG) config ..."
 	@$(MAKE) clean install -C ../crust
 	@if [ -e $(DESTDIR)$(libdir)/u-boot/h6/$(mm_U-BOOT_BOARD_TYPE)/scp.bin ] ; then \
