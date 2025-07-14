@@ -52,7 +52,7 @@ include ../../gar.mk
 # set to default value when packahe is build without any defined board....
 mm_U-BOOT_BOARD_TYPE ?= test-rk3588
 
-ifneq (,$(findstring h6,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring h6.,$(mm_U-BOOT_BOARD_TYPE)))
 PLATFORM     = sun50i_h6
 BUILD_BIN    = sun50i_h6/debug/bl31.bin
 INSTALL_PREF = h6
@@ -64,13 +64,13 @@ BUILD_BIN    = sun50i_h616/debug/bl31.bin
 INSTALL_PREF = h313
 endif
 
-ifneq (,$(findstring h616,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring h616.,$(mm_U-BOOT_BOARD_TYPE)))
 PLATFORM     = sun50i_h616
 BUILD_BIN    = sun50i_h616/debug/bl31.bin
 INSTALL_PREF = h616
 endif
 
-ifneq (,$(findstring h618,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring h618.,$(mm_U-BOOT_BOARD_TYPE)))
 PLATFORM     = sun50i_h616
 BUILD_BIN    = sun50i_h616/debug/bl31.bin
 INSTALL_PREF = h618

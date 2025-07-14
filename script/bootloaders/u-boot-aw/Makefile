@@ -99,7 +99,7 @@ CRUST_CONFIG              ?= tanix_tx6_defconfig
 export mm_U-BOOT_BOARD_TYPE
 export CRUST_CONFIG
 
-ifneq (,$(findstring h6,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring h6.,$(mm_U-BOOT_BOARD_TYPE)))
 INSTALL_PREF = h6
 BL31         = $(DESTDIR)$(libdir)/u-boot/h6/bl31.bin
 DEFCONFIG    = generic-h6_defconfig
@@ -109,12 +109,12 @@ INSTALL_PREF = h313
 BL31         = $(DESTDIR)$(libdir)/u-boot/h313/bl31.bin
 DEFCONFIG    = generic-h313_defconfig
 endif
-ifneq (,$(findstring h616,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring h616.,$(mm_U-BOOT_BOARD_TYPE)))
 INSTALL_PREF = h616
 BL31         = $(DESTDIR)$(libdir)/u-boot/h616/bl31.bin
 DEFCONFIG    = generic-h616_defconfig
 endif
-ifneq (,$(findstring h618,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring h618.,$(mm_U-BOOT_BOARD_TYPE)))
 INSTALL_PREF = h618
 BL31         = $(DESTDIR)$(libdir)/u-boot/h618/bl31.bin
 DEFCONFIG    = generic-h618_defconfig
