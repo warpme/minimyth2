@@ -15,7 +15,6 @@ BUILDDEPS = \
 
 DEPENDS = \
 	lang/cxx \
-	$(CATEGORY)/mythtv \
 	lib/libexif \
 	lib/libtiff \
 	lib/flac \
@@ -28,7 +27,6 @@ DEPENDS = \
 	lib/libcoverart \
 	lib/libdiscid \
 	lib/libvorbis \
-	lib/SDL2 \
 	lib/taglib \
 	lib/libzip \
 	python3/python \
