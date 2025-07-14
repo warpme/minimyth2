@@ -137,43 +137,71 @@ DEPENDS = \
 	db/sqlite \
 	lib/alsa-lib \
 	lib/avahi \
+	lib/libbluray \
 	lib/dav1d \
 	lib/exiv2 \
+	lib/flac \
 	lib/freetype \
 	lib/lame \
 	lib/libass \
 	lib/libavc1394 \
+	lib/libcdaudio \
 	lib/libcdio \
 	lib/libcdio-paranoia \
+	lib/libcoverart \
 	lib/libcec \
+	lib/libdiscid \
+	lib/libexif \
+	lib/libiconv \
 	lib/libiec61883 \
+	lib/libmusicbrainz5 \
+	lib/libogg \
+	lib/libtiff \
+	lib/libsamplerate \
+	lib/libsoundtouch \
+	lib/libvorbis \
 	lib/libxml2 \
 	lib/libzip \
 	lib/lzo \
 	lib/openssl \
-	lib/libsamplerate \
-	lib/libbluray \
 	lib/SDL2 \
-	lib/libsoundtouch \
 	lib/taglib \
 	devel/zlib \
 	devel/yasm \
 	python3/python \
+	python3/python-aniso8601 \
+	python3/python-beautifulsoup4 \
+	python3/python-discid \
 	python3/python-future \
 	python3/python-lxml \
+	python3/python-musicbrainzngs \
 	python3/python-mysqlclient \
 	python3/python-requests-cache \
+	python3/python-oauth \
+	python3/python-pycurl \
 	python3/python-simplejson \
 	python3/python-urlgrabber \
+	perl/perl-Date-Calc \
+	perl/perl-Date-Manip \
+	perl/perl-DateTime-Format-ISO8601 \
 	perl/perl-DBD-mysql \
 	perl/perl-DBI \
 	perl/perl-HTTP-Message \
+	perl/perl-Image-Size \
 	perl/perl-IO-Socket-INET6 \
+	perl/perl-JSON \
 	perl/perl-libwww-perl \
 	perl/perl-Net-UPnP \
 	perl/perl-XML-Simple \
+	perl/perl-PerlMagick \
+	perl/perl-SOAP-Lite \
+	perl/perl-TimeDate \
+	perl/perl-XML-Simple \
+	perl/perl-XML-TreeBuilder \
+	perl/perl-XML-XPath \
 	system/lirc \
 	system/eudev \
+	utils/v4l-utils \
 	X11/libvdpau \
 	X11/libva \
 	xorg/xorg \
@@ -279,22 +307,11 @@ CONFIGURE_ARGS = \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
 	--enable-libdav1d \
 
-CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
-BUILD_ENV      = $(MYTHTV_BUILD_ENV)
-INSTALL_ENV    = $(MYTHTV_INSTALL_ENV)
-
-BUILD_ENV     += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
-INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
-
 GAR_EXTRA_CONF += python3/python/package-api.mk
 include ../../gar.mk
 
-CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
-CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
-CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
-
-CPPFLAGS += -fPIC -fuse-linker-plugin
-CFLAGS   += -fPIC -fuse-linker-plugin -Wno-incompatible-pointer-types -Wno-implicit-function-declaration
+CXXFLAGS += -I$(DESTDIR)$(includedir)/taglib
+CPPFLAGS += -fPIC -fuse-linker-plugin -I$(DESTDIR)$(includedir)/taglib
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
@@ -307,10 +324,6 @@ CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
 endif
 
-svn//%/$(DISTNAME).tar.bz2:
-	@$(call FETCH_SVN, http://$*, $(MYTHTV_SVN_VERSION), $(DISTNAME))
-	@$(MAKECOOKIE)
-
 checksum-$(DISTNAME).tar.bz2:
 	@$(MAKECOOKIE)
 
@@ -322,8 +335,16 @@ install-source:
 	@$(MAKECOOKIE)
 
 pre-configure:
+	@rm -rf $(DESTDIR)$(includedir)/myth*
+	@rm -rf $(DESTDIR)$(libdir)/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/ffnvcodec.pc
+	@rm -rf $(DESTDIR)$(libdir)/myth*
+	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV
+	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV-*
 	@echo 'BRANCH="$(MYTHTV_GARVERSION_SHORT)"' > $(WORKSRC)/mythtv/DESCRIBE
 	@echo 'SOURCE_VERSION="$(MYTHTV_GIT_VERSION)"' >> $(WORKSRC)/mythtv/DESCRIBE
+	@cd $(WORKSRC)/mythtv; ./version.sh ./
 	@$(MAKECOOKIE)
 
 post-configure:
@@ -336,7 +357,9 @@ post-configure:
 pre-install: post-configure
 
 post-install:
+ifneq ($(USE_CMAKE),yes)
 	@$(MAKE) -C ../mythplugins install
+endif
 	@$(MAKE) -C ../myththeme-Monochrome-mm2 install
 	@$(MAKECOOKIE)
 
@@ -346,6 +369,8 @@ clean-all:
 	@rm -rf $(DESTDIR)$(datadir)/myth*
 	@rm -rf $(DESTDIR)$(includedir)/myth*
 	@rm -rf $(DESTDIR)$(libdir)/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/ffnvcodec.pc
 	@rm -rf $(DESTDIR)$(libdir)/myth*
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV-*
