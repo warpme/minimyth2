@@ -1,0 +1,111 @@
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-b83b45e5195e62d0894c491c4b10f97323e52df9/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c mythtv-b83b45e5195e62d0894c491c4b10f97323e52df9/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c
+--- mythtv-b83b45e5195e62d0894c491c4b10f97323e52df9/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c	2025-07-10 16:26:03.428174413 +0200
++++ mythtv-b83b45e5195e62d0894c491c4b10f97323e52df9/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c	2025-07-10 16:02:29.998204829 +0200
+@@ -25,7 +25,8 @@
+ #include "internal.h"
+ #include "v4l2_request.h"
+ 
+-#define V4L2_HEVC_CONTROLS_MAX 6
++#define V4L2_HEVC_CONTROLS_MAX 7
++#define MAX_EXT_SPS_RPS 65
+ 
+ typedef struct V4L2RequestContextHEVC {
+     V4L2RequestContext base;
+@@ -43,6 +44,7 @@
+     struct v4l2_ctrl_hevc_decode_params decode_params;
+     struct v4l2_ctrl_hevc_scaling_matrix scaling_matrix;
+     struct v4l2_ctrl_hevc_slice_params slice_params;
++    struct v4l2_ctrl_hevc_ext_sps_rps ext_sps_rps[MAX_EXT_SPS_RPS];
+     struct v4l2_ctrl_hevc_slice_params *frame_slice_params;
+     unsigned int allocated_slice_params;
+     unsigned int num_slice_params;
+@@ -360,6 +362,65 @@
+         ctrl->flags |= V4L2_HEVC_SPS_FLAG_STRONG_INTRA_SMOOTHING_ENABLED;
+ }
+ 
++static void fill_ext_sps_rps (struct v4l2_ctrl_hevc_ext_sps_rps *ctrl, const HEVCContext *h)
++{
++    const HEVCPPS *pps = h->pps;
++    const HEVCSPS *sps = pps->sps;
++    int i;
++/*
++    unsigned int nb_st_rps;
++    ShortTermRPS st_rps[HEVC_MAX_SHORT_TERM_REF_PIC_SETS];
++typedef struct ShortTermRPS {
++    uint8_t rps_predict;
++    unsigned int delta_idx;
++    uint8_t use_delta_flag;
++    uint8_t delta_rps_sign;
++    unsigned int abs_delta_rps;
++    unsigned int num_negative_pics;
++    int num_delta_pocs;
++    int rps_idx_num_delta_pocs;
++    int32_t delta_poc_s0[32];
++    int32_t delta_poc_s1[32];
++    int32_t delta_poc[32];
++    uint8_t used[32];
++} ShortTermRPS;
++
++
++*/
++  for (i = 0; i < sps->nb_st_rps; i++) {
++    ctrl[i].flags |=
++      sps->st_rps[i].rps_predict ?
++      V4L2_HEVC_EXT_SPS_RPS_FLAG_INTER_REF_PIC_SET_PRED : 0,
++    ctrl[i].delta_idx_minus1 =
++      sps->st_rps[i].delta_idx; //FIXME: Need -1 ?
++    ctrl[i].delta_rps_sign =
++      sps->st_rps[i].delta_rps_sign;
++    ctrl[i].abs_delta_rps_minus1 =
++      sps->st_rps[i].abs_delta_rps; //FIXME: Need -1 ?
++    ctrl[i].num_negative_pics =
++      sps->st_rps[i].num_negative_pics;
++    ctrl[i].num_positive_pics =
++      sps->st_rps[i].num_delta_pocs - sps->st_rps[i].num_negative_pics;
++
++    for (int j = 0; j < 16; j++) {
++        ctrl[i].used_by_curr_pic_s0[j] = !!(sps->st_rps[i].used & (1 << j));
++        ctrl[i].used_by_curr_pic_s1[j] = !!(sps->st_rps[i].used & (1 << (j + 16)));
++        ctrl[i].delta_poc_s0[j] = sps->st_rps[i].delta_poc[j];
++        ctrl[i].delta_poc_s1[j] = sps->st_rps[i].delta_poc[j + 16];
++    }
++  }
++/*
++  for (i = 0; i < sps->num_long_term_ref_pics_sps; i++) {
++    ext_sps_rps_set = &g_array_index (self->ext_sps_rps,
++      struct v4l2_ctrl_hevc_ext_sps_rps, i);
++
++    ctrl[i]->lt_ref_pic_poc_lsb_sps = sps->lt_ref_pic_poc_lsb_sps[i];
++    ctrl[i]->flags |= sps->used_by_curr_pic_lt_sps_flag[i] ?
++                              V4L2_HEVC_EXT_SPS_RPS_FLAG_USED_LT : 0;
++  }
++*/
++}
++
+ static int v4l2_request_hevc_start_frame(AVCodecContext *avctx,
+                                          av_unused const uint8_t *buffer,
+                                          av_unused uint32_t size)
+@@ -377,6 +438,8 @@
+         return ret;
+ 
+     fill_sps(&controls->sps, h);
++    if (controls->sps.num_short_term_ref_pic_sets)
++        fill_ext_sps_rps(controls->ext_sps_rps, h);
+     fill_decode_params(&controls->decode_params, h);
+ 
+     if (ctx->has_scaling_matrix) {
+@@ -527,6 +590,14 @@
+         .size = sizeof(controls->decode_params),
+     };
+ 
++    if (controls->sps.num_short_term_ref_pic_sets) {
++        control[count++] = (struct v4l2_ext_control) {
++            .id = V4L2_CID_STATELESS_HEVC_EXT_SPS_RPS,
++            .ptr = &controls->ext_sps_rps,
++            .size = sizeof(controls->ext_sps_rps[0]) * controls->sps.num_short_term_ref_pic_sets, // TODO: Add long term, may need to use a pointer instead. See frame_slice_params
++        };
++    }
++
+     if (ctx->has_scaling_matrix) {
+         control[count++] = (struct v4l2_ext_control) {
+             .id = V4L2_CID_STATELESS_HEVC_SCALING_MATRIX,
