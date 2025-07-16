@@ -282,6 +282,7 @@ PATCHFILES += 1005-clk-composite-replace-open-coded-abs_diff.patch
 PATCHFILES += 1006-watchdog-dw_wdt-fix-default-timeout.patch
 PATCHFILES += 1007-PM-devfreq-rockchip-dfi-double-count-on-RK3588.patch
 PATCHFILES += 1008-mfd-rk8xx-Fix-shutdown-handler.patch
+PATCHFILES += 1009-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
 # drm improvements
 PATCHFILES += 1016-dt-bindings-display-vop2-Add-VP-clock-resets.patch
 PATCHFILES += 1017-drm-rockchip-vop2-Add-clock-resets-support.patch
