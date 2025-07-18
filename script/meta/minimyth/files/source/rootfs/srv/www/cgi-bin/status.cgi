@@ -15,7 +15,7 @@ my $devnull    = File::Spec->devnull;
 
 
 my @status_sensors_body = ();
-my $status_sensors_head = q(Temperature Sensors);
+my $status_sensors_head = q(Hardware Sensors);
 if (system(qq(/usr/bin/sensors > $devnull 2>&1)) == 0)
 {
     if (open(FILE, '-|', '/usr/bin/sensors'))
@@ -32,7 +32,10 @@ if (system(qq(/usr/bin/sensors > $devnull 2>&1)) == 0)
 
                 s/(: *)([-+][0-9]+\.[0-9]+)( C)/$1<span class="$class">$2$3<\/span>/;
             }
-            push(@status_sensors_body, $_);
+            if (! (/virtual|Virtual|usbc_vin|Adapter|rpi_volt|^\s*$/))
+            {
+                push(@status_sensors_body, $_);
+            }
         }
         close(FILE);
     }
