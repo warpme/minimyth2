@@ -152,6 +152,10 @@ ifneq (,$(filter board-rk3576.nanopi_m5,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3576.nanopi_m5
 endif
 
+ifneq (,$(filter board-rk3576.nanopi_r76s,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-rk3576.nanopi_r76s
+endif
+
 ifneq (,$(filter board-rk3576.rock_4d,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3576.rock_4d
 endif
