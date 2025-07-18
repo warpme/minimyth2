@@ -394,7 +394,7 @@ PATCHFILES += 1267-arm64-dtsi-rockchip-Add-thermal-trim-OTP-and-tsadc-nodes.patc
 PATCHFILES += 1268-arm64-dtsi-rockchip-enable-RK3576-watchdog.patch
 # bards dt additions/patches
 PATCHFILES += 1280-arm64-dts-add-rk3576-nanopi-m5-dt.patch
-PATCHFILES += 1281-arm64-dts-rock4d-improvements.patch
+#PATCHFILES += 1281-arm64-dts-rock4d-improvements.patch
 endif
 #------------------------------------------------------------
 
