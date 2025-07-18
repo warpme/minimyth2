@@ -134,7 +134,8 @@ Rockchip 3568 | Rock3-A          | works  (iwl7265@PCI-e)                 | work
 Rockchip 3568 | Rock3-B          | works  (iwl7265@PCI-e)                 | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| Rock5A           | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| Rock5C           | works  (aic8800@USB)                   | works     | works       | n/a         | not works                      | good prospects                |
-Rockchip 3576 | NanoPi-M5        | not tested                             | not tested| not works   | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3576 | NanoPi-M5        | works  (rtl8822cs@SDIO)                | not tested| works       | LED Diode,OK| not works                      | good prospects                |
+Rockchip 3576 | NanoPi-R76S      | works  (rtl8822cs@SDIO)                | works     | works       | LED Diode,OK| not works                      | good prospects                |
 Rockchip 3588s| NanoPi-M6        | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| NanoPi-R6S       | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
 Rockchip 3588s| OrangePi 5       | n/a                                    | works     | works       | n/a         | not works                      | good prospects                |
