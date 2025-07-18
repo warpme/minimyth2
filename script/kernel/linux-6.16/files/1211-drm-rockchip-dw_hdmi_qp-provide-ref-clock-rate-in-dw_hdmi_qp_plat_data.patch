@@ -1,0 +1,66 @@
+From 0b75eb5397f2ce0cf7e785705d7dd9477e42e6ff Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Mon, 30 Jun 2025 22:18:14 +0300
+Subject: [PATCH] drm/rockchip: dw_hdmi_qp: Provide ref clock rate in
+ dw_hdmi_qp_plat_data
+
+In order to support correct initialization of the timer base in the HDMI
+QP IP block, extend the platform data to provide the necessary reference
+clock rate.
+
+While at it, ensure plat_data gets zero-initialized in
+dw_hdmi_qp_rockchip_bind().
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c | 13 ++++++++++++-
+ include/drm/bridge/dw_hdmi_qp.h                |  1 +
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+index a22019619a190..6c9355f9305e6 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+@@ -439,8 +439,8 @@ static int dw_hdmi_qp_rockchip_bind(struct device *dev, struct device *master,
+ 				    void *data)
+ {
+ 	struct platform_device *pdev = to_platform_device(dev);
++	struct dw_hdmi_qp_plat_data plat_data = {};
+ 	const struct rockchip_hdmi_qp_cfg *cfg;
+-	struct dw_hdmi_qp_plat_data plat_data;
+ 	struct drm_device *drm = data;
+ 	struct drm_connector *connector;
+ 	struct drm_encoder *encoder;
+@@ -523,6 +523,17 @@ static int dw_hdmi_qp_rockchip_bind(struct device *dev, struct device *master,
+ 		return ret;
+ 	}
+ 
++	for (i = 0; i < ret; i++) {
++		if (!strcmp(clks[i].id, "ref")) {
++			plat_data.ref_clk_rate = clk_get_rate(clks[i].clk);
++			break;
++		}
++	}
++	if (!plat_data.ref_clk_rate) {
++		dev_err(hdmi->dev, "Missing ref clock\n");
++		return -EINVAL;
++	}
++
+ 	hdmi->enable_gpio = devm_gpiod_get_optional(hdmi->dev, "enable",
+ 						    GPIOD_OUT_HIGH);
+ 	if (IS_ERR(hdmi->enable_gpio)) {
+diff --git a/include/drm/bridge/dw_hdmi_qp.h b/include/drm/bridge/dw_hdmi_qp.h
+index b4a9b739734ec..e000180685b1d 100644
+--- a/include/drm/bridge/dw_hdmi_qp.h
++++ b/include/drm/bridge/dw_hdmi_qp.h
+@@ -23,6 +23,7 @@ struct dw_hdmi_qp_plat_data {
+ 	const struct dw_hdmi_qp_phy_ops *phy_ops;
+ 	void *phy_data;
+ 	int main_irq;
++	unsigned long ref_clk_rate;
+ };
+ 
+ struct dw_hdmi_qp *dw_hdmi_qp_bind(struct platform_device *pdev,
+-- 
+GitLab
+

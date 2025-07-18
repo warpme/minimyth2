@@ -1,0 +1,188 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc5/arch/arm64/boot/dts/allwinner/Makefile linux-6.16-rc5/arch/arm64/boot/dts/allwinner/Makefile
+--- linux-6.16-rc5/arch/arm64/boot/dts/allwinner/Makefile	2025-07-11 12:58:42.074722248 +0200
++++ linux-6.16-rc5/arch/arm64/boot/dts/allwinner/Makefile	2025-07-11 11:57:27.154801390 +0200
+@@ -44,6 +44,7 @@
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-pine-h64.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-pine-h64-model-b.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-tanix-tx6.dtb
++dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-tanix-tx6-a.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h6-tanix-tx6-mini.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h313-tanix-tx1.dtb
+ dtb-$(CONFIG_ARCH_SUNXI) += sun50i-h313-x96-q-v5.1.dtb
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix.dtsi linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix.dtsi
+--- linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix.dtsi	2025-07-06 23:10:26.000000000 +0200
++++ linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix.dtsi	2025-07-11 12:50:50.651399066 +0200
+@@ -5,11 +5,17 @@
+ 
+ #include "sun50i-h6.dtsi"
+ #include "sun50i-h6-cpu-opp.dtsi"
++#include "sun50i-h6-gpu-opp.dtsi"
+ 
+ #include <dt-bindings/gpio/gpio.h>
+ 
+ / {
+ 	aliases {
++		mmc0 = &mmc0;
++		mmc1 = &mmc1;
++		mmc2 = &mmc2;
++		ethernet0 = &emac;
++		ethernet1 = &wifi;
+ 		serial0 = &uart0;
+ 	};
+ 
+@@ -29,14 +35,6 @@
+ 		};
+ 	};
+ 
+-	/* used for FD650 LED display driver */
+-	i2c {
+-		compatible = "i2c-gpio";
+-		sda-gpios = <&pio 7 6 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PH6 */
+-		scl-gpios = <&pio 7 5 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PH5 */
+-		i2c-gpio,delay-us = <5>;
+-	};
+-
+ 	reg_vcc1v8: regulator-vcc1v8 {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "vcc1v8";
+@@ -84,6 +82,10 @@
+ 	};
+ };
+ 
++&ac200_pwm_clk {
++	status = "okay";
++};
++
+ &cpu0 {
+ 	cpu-supply = <&reg_vdd_cpu_gpu>;
+ };
+@@ -104,6 +106,14 @@
+ 	status = "okay";
+ };
+ 
++&emac {
++	pinctrl-names = "default";
++	pinctrl-0 = <&ext_rmii_pins>;
++	phy-mode = "rmii";
++	phy-handle = <&ext_rmii_phy>;
++	status = "okay";
++};
++
+ &gpu {
+ 	mali-supply = <&reg_vdd_cpu_gpu>;
+ 	status = "okay";
+@@ -119,6 +129,17 @@
+ 	};
+ };
+ 
++&i2c3 {
++	status = "okay";
++};
++
++&mdio {
++	ext_rmii_phy: ethernet-phy@1 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <1>;
++	};
++};
++
+ &mmc0 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&mmc0_pins>;
+@@ -135,7 +156,13 @@
+ 	mmc-pwrseq = <&wifi_pwrseq>;
+ 	bus-width = <4>;
+ 	non-removable;
++	keep-power-in-suspend;
+ 	status = "okay";
++
++	wifi: sdio_wifi@1 {
++		reg = <1>;
++		keep-power-in-suspend;
++	};
+ };
+ 
+ &mmc2 {
+@@ -162,6 +189,10 @@
+ 	vcc-pg-supply = <&reg_vcc1v8>;
+ };
+ 
++&pwm {
++	status = "okay";
++};
++
+ &r_ir {
+ 	status = "okay";
+ };
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6-a.dts linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6-a.dts
+--- linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6-a.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6-a.dts	2025-07-11 12:50:04.744733399 +0200
+@@ -0,0 +1,41 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++// Copyright (c) 2019 Jernej Skrabec <jernej.skrabec@siol.net>
++
++/dts-v1/;
++
++#include "sun50i-h6-tanix.dtsi"
++
++/ {
++	model = "Tanix TX6 A";
++	compatible = "oranth,tanix-tx6-a", "allwinner,sun50i-h6";
++
++	openvfd {
++		compatible = "open,vfd";
++		dev_name = "openvfd";
++		openvfd_gpio_clk = <&pio 7 5 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PH5 */
++		openvfd_gpio_dat = <&pio 7 6 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PH6 */
++		vfd_gpio_chip_name = "300b000.pinctrl";
++		openvfd_chars = [02 04 03 02 01];
++		openvfd_dot_bits = [00 01 03 02 04 05 06];
++		openvfd_display_type = <0x03000001>;
++		status = "okay";
++	};
++};
++
++&r_ir {
++	linux,rc-map-name = "rc-tanix-tx3mini";
++};
++
++&uart1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart1_pins>, <&uart1_rts_cts_pins>;
++	uart-has-rtscts;
++	status = "okay";
++
++	bluetooth {
++		compatible = "realtek,rtl8822cs-bt";
++		device-wake-gpios = <&r_pio 1 2 GPIO_ACTIVE_HIGH>; /* PM2 */
++		host-wake-gpios = <&r_pio 1 1 GPIO_ACTIVE_HIGH>; /* PM1 */
++		enable-gpios = <&r_pio 1 4 GPIO_ACTIVE_HIGH>; /* PM4 */
++	};
++};
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts
+--- linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts	2025-07-06 23:10:26.000000000 +0200
++++ linux-6.16-rc5/arch/arm64/boot/dts/allwinner/sun50i-h6-tanix-tx6.dts	2025-07-11 12:50:12.058066580 +0200
+@@ -8,10 +8,22 @@
+ / {
+ 	model = "Tanix TX6";
+ 	compatible = "oranth,tanix-tx6", "allwinner,sun50i-h6";
++
++	openvfd {
++		compatible = "open,vfd";
++		dev_name = "openvfd";
++		openvfd_gpio_clk = <&pio 3 25 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PD25 */
++		openvfd_gpio_dat = <&pio 3 26 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>; /* PD26 */
++		vfd_gpio_chip_name = "300b000.pinctrl";
++		openvfd_chars = [02 04 03 02 01];
++		openvfd_dot_bits = [00 01 03 02 04 05 06];
++		openvfd_display_type = <0x03000001>;
++		status = "okay";
++	};
+ };
+ 
+ &r_ir {
+-	linux,rc-map-name = "rc-tanix-tx5max";
++	llinux,rc-map-name = "rc-tanix-tx3mini";
+ };
+ 
+ &uart1 {

@@ -1,0 +1,366 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc4/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts linux-6.16-rc4/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
+--- linux-6.16-rc4/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts	2025-06-29 22:09:04.000000000 +0200
++++ linux-6.16-rc4/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts	2025-06-30 18:11:38.054832676 +0200
+@@ -37,6 +37,14 @@
+ 		};
+ 	};
+ 
++	rfkill {
++		compatible = "rfkill-gpio";
++		pinctrl-names = "default";
++		pinctrl-0 = <&wifi_en_h>;
++		radio-type = "wlan";
++		shutdown-gpios = <&gpio2 RK_PD1 GPIO_ACTIVE_HIGH>;
++	};
++
+ 	leds: leds {
+ 		compatible = "gpio-leds";
+ 		pinctrl-names = "default";
+@@ -46,14 +54,42 @@
+ 			color = <LED_COLOR_ID_GREEN>;
+ 			function = LED_FUNCTION_STATUS;
+ 			gpios = <&gpio0 RK_PB4 GPIO_ACTIVE_HIGH>;
+-			linux,default-trigger = "default-on";
++			linux,default-trigger = "heartbeat";
+ 		};
+ 
+ 		user-led {
+ 			color = <LED_COLOR_ID_BLUE>;
+ 			function = LED_FUNCTION_HEARTBEAT;
+ 			gpios = <&gpio0 RK_PC4 GPIO_ACTIVE_LOW>;
+-			linux,default-trigger = "heartbeat";
++			linux,default-trigger = "disk-activity";
++		};
++	};
++
++	es8388_sound: es8388-sound {
++		compatible = "simple-audio-card";
++		simple-audio-card,format = "i2s";
++		simple-audio-card,mclk-fs = <256>;
++		simple-audio-card,name = "On-board Analog ES8388";
++		simple-audio-card,widgets = "Microphone", "Headphone Mic",
++					    "Microphone", "Mic Pads",
++					    "Headphone", "Headphone",
++					    "Line Out", "Line Out";
++		simple-audio-card,routing = "Headphone", "LOUT1",
++					    "Headphone", "ROUT1",
++					    "Line Out", "LOUT2",
++					    "Line Out", "ROUT2",
++					    "RINPUT1", "Headphone Mic",
++					    "LINPUT2", "Mic Pads",
++					    "RINPUT2", "Mic Pads";
++		simple-audio-card,pin-switches = "Headphone", "Line Out";
++
++		simple-audio-card,cpu {
++			sound-dai = <&sai1>;
++		};
++
++		simple-audio-card,codec {
++			sound-dai = <&es8388>;
++			system-clock-frequency = <12288000>;
+ 		};
+ 	};
+ 
+@@ -116,6 +152,28 @@
+ 		vin-supply = <&vcc_5v0_sys>;
+ 	};
+ 
++	vcc_3v3_wifi: regulator-vcc-3v3-wifi {
++		compatible = "regulator-fixed";
++		enable-active-high;
++		gpios = <&gpio2 RK_PC7 GPIO_ACTIVE_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&usb_wifi_pwr>;
++		regulator-always-on;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-name = "vcc_3v3_wifi";
++		vin-supply = <&vcc_3v3_s3>;
++	};
++
++	spk_ctl_h: spk-ctl-h {
++		compatible = "regulator-fixed";
++		regulator-name = "spk_ctl_h";
++		regulator-boot-on;
++		enable-active-high;
++		gpio = <&gpio2 RK_PC6 GPIO_ACTIVE_HIGH>;
++		vin-supply = <&vcc_3v3_s3>;
++	};
++
+ 	vcc_3v3_pcie: regulator-vcc-3v3-pcie {
+ 		compatible = "regulator-fixed";
+ 		enable-active-high;
+@@ -183,6 +241,19 @@
+ 		vin-supply = <&vcc_5v0_device>;
+ 	};
+ 
++	vcc_5v0_otg: regulator-vcc-5v0-otg {
++		compatible = "regulator-fixed";
++		enable-active-high;
++		gpios = <&gpio2 RK_PD2 GPIO_ACTIVE_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&usb_otg_pwren>;
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-name = "vcc5v0_otg";
++	};
++
+ 	vcc_5v0_sys: regulator-vcc-5v0-sys {
+ 		compatible = "regulator-fixed";
+ 		regulator-always-on;
+@@ -230,6 +301,10 @@
+ 	cpu-supply = <&vdd_cpu_lit_s0>;
+ };
+ 
++&tsadc {
++	status = "okay";
++};
++
+ &gmac0 {
+ 	clock_in_out = "output";
+ 	phy-handle = <&rgmii_phy0>;
+@@ -269,6 +344,10 @@
+ 	status = "okay";
+ };
+ 
++&hdmi_sound {
++	status = "okay";
++};
++
+ &i2c1 {
+ 	status = "okay";
+ 
+@@ -639,6 +718,25 @@
+ 	};
+ };
+ 
++&i2c3 {
++	status = "okay";
++
++	es8388: audio-codec@10 {
++		compatible = "everest,es8388", "everest,es8328";
++		reg = <0x10>;
++		clocks = <&cru CLK_SAI1_MCLKOUT_TO_IO>;
++		AVDD-supply = <&vcca_3v3_s0>;
++		DVDD-supply = <&vcc_3v3_s0>;
++		HPVDD-supply = <&vcca_3v3_s0>;
++		PVDD-supply = <&vcc_3v3_s0>;
++		assigned-clocks = <&cru CLK_SAI1_MCLKOUT_TO_IO>;
++		assigned-clock-rates = <12288000>;
++		#sound-dai-cells = <0>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&sai1m0_mclk>;
++	};
++};
++
+ &mdio0 {
+ 	rgmii_phy0: ethernet-phy@1 {
+ 		compatible = "ethernet-phy-ieee802.3-c22";
+@@ -652,6 +750,14 @@
+ 	};
+ };
+ 
++&pcie0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&pcie_reset>;
++	reset-gpios = <&gpio2 RK_PB4 GPIO_ACTIVE_HIGH>;
++	vpcie3v3-supply = <&vcc_3v3_pcie>;
++	status = "okay";
++};
++
+ &pinctrl {
+ 	hym8563 {
+ 		hym8563_int: hym8563-int {
+@@ -659,6 +765,12 @@
+ 		};
+ 	};
+ 
++	speakers {
++		speaker_ctl: spk-ctl-h {
++			rockchip,pins = <2 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++	};
++
+ 	leds {
+ 		led_rgb_g: led-green-en {
+ 			rockchip,pins = <0 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
+@@ -678,13 +790,41 @@
+ 		pcie_pwren: pcie-pwren {
+ 			rockchip,pins = <2 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
+ 		};
++		pcie_reset: pcie-reset {
++			rockchip,pins = <2 RK_PB4 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
+ 	};
+ 
+ 	usb {
+ 		usb_host_pwren: usb-host-pwren {
+ 			rockchip,pins = <0 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
+ 		};
++		usb_otg_pwren: usb-otg-pwren {
++			rockchip,pins = <2 RK_PD2 RK_FUNC_GPIO &pcfg_pull_down>;
++		};
+ 	};
++
++	wifi {
++		usb_wifi_pwr: usb-wifi-pwr {
++			rockchip,pins = <2 RK_PC7 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++		wifi_en_h: wifi-en-h {
++			rockchip,pins = <2 RK_PD1 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++};
++
++&sai1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&sai1m0_lrck
++		     &sai1m0_sclk
++		     &sai1m0_sdi0
++		     &sai1m0_sdo0>;
++	status = "okay";
++};
++
++&sai6 {
++	status = "okay";
+ };
+ 
+ &sdmmc {
+@@ -717,19 +857,43 @@
+ 	};
+ };
+ 
++&saradc {
++	vref-supply = <&vcca_1v8_s0>;
++	status = "okay";
++};
++
+ &u2phy0 {
+ 	status = "okay";
+ };
+ 
++&u2phy0_otg {
++	phy-supply = <&vcc_5v0_otg>;
++	status = "okay";
++};
++
+ &u2phy1 {
+ 	status = "okay";
+ };
+ 
++&u2phy1_otg {
++	phy-supply = <&vcc_5v0_host>;
++	status = "okay";
++};
++
+ &uart0 {
+ 	pinctrl-0 = <&uart0m0_xfer>;
+ 	status = "okay";
+ };
+ 
++&usbdp_phy {
++	status = "okay";
++};
++
++&usb_drd0_dwc3 {
++	dr_mode = "host";
++	status = "okay";
++};
++
+ &usb_drd1_dwc3 {
+ 	dr_mode = "host";
+ 	status = "okay";
+@@ -749,3 +913,11 @@
+ 		remote-endpoint = <&hdmi_in_vp0>;
+ 	};
+ };
++
++&wdt {
++	status= "okay";
++};
++
++&ufshc {
++	status = "okay";
++};
+
+
+
+With the production Rock 4D boards in our LAVA setup, we are
+seeing connection issues. After the recent fixes for the PHY
+setup itself the link is established properly, but it seems
+no data gets through as DHCP does not work. As things are
+working in U-Boot, this is obviously a software issue.
+
+Downstream uses different timing setup; try importing that.
+
+Signed-off-by: default avatarSebastian Reichel <sebastian.reichel@collabora.com>
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc5/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts linux-6.16-rc5/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
+--- linux-6.16-rc5/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts	2025-07-08 20:57:14.741693831 +0200
++++ linux-6.16-rc5/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts	2025-07-08 20:56:48.508361066 +0200
+@@ -308,7 +308,7 @@
+ &gmac0 {
+ 	clock_in_out = "output";
+ 	phy-handle = <&rgmii_phy0>;
+-	phy-mode = "rgmii-id";
++	phy-mode = "rgmii-rxid";
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&eth0m0_miim
+ 		     &eth0m0_tx_bus2
+@@ -316,6 +316,8 @@
+ 		     &eth0m0_rgmii_clk
+ 		     &eth0m0_rgmii_bus
+ 		     &ethm0_clk0_25m_out>;
++	tx_delay = <0x20>;
++	rx_delay = <0x00>;
+ 	status = "okay";
+ };
+ 
+From c76ccd2ba91590f0eea72cb60bef4b8d072e712d Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Wed, 2 Jul 2025 22:28:32 +0200
+Subject: [PATCH] arm64: dts: rockchip: improve PHY handling for ROCK 4D
+
+Add information, that the PHY is RTL8211F based. This helps the
+system to probe the right driver, so that the clock is enabled.
+
+Also assign 25 MHz as clock rate for REFCLKO25M_GMAC0_OUT, which
+is used by some board variants (early prototype boards have a
+dedicated crystal instead, but those may also enable this clock).
+
+While at it switch from non-standard "enable-gpio" to "enable-gpios".
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts b/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
+index 76e0f856da375..3f3001c9b061e 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
+@@ -725,14 +725,16 @@ es8388: audio-codec@10 {
+ 
+ &mdio0 {
+ 	rgmii_phy0: ethernet-phy@1 {
+-		compatible = "ethernet-phy-ieee802.3-c22";
++		compatible = "ethernet-phy-id001c.c916";
+ 		reg = <0x1>;
+ 		clocks = <&cru REFCLKO25M_GMAC0_OUT>;
++		assigned-clocks = <&cru REFCLKO25M_GMAC0_OUT>;
++		assigned-clock-rates = <25000000>;
+ 		pinctrl-names = "default";
+ 		pinctrl-0 = <&rtl8211f_rst>;
+ 		reset-assert-us = <20000>;
+ 		reset-deassert-us = <100000>;
+-		reset-gpio = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
++		reset-gpios = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
+ 	};
+ };
+ 
+-- 
+GitLab
+

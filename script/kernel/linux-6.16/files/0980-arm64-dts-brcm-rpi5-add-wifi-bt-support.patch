@@ -1,0 +1,187 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712.dtsi linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712.dtsi
+--- linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712.dtsi	2025-06-26 09:46:54.604953079 +0200
++++ linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712.dtsi	2025-06-26 09:41:45.494959710 +0200
+@@ -255,6 +255,76 @@
+ 			#mbox-cells = <0>;
+ 		};
+ 
++		pinctrl: pinctrl@7d504100 {
++			compatible = "brcm,bcm2712-pinctrl";
++			reg = <0x7d504100 0x30>;
++
++			uarta_24_pins: uarta_24_pins {
++				pin_rts {
++					function = "uart0";
++					pins = "gpio24";
++					bias-disable;
++				};
++				pin_cts {
++					function = "uart0";
++					pins = "gpio25";
++					bias-pull-up;
++				};
++				pin_txd {
++					function = "uart0";
++					pins = "gpio26";
++					bias-disable;
++				};
++				pin_rxd {
++					function = "uart0";
++					pins = "gpio27";
++					bias-pull-up;
++				};
++			};
++
++			sdio2_30_pins: sdio2_30_pins {
++				pin_clk {
++					function = "sd2";
++					pins = "gpio30";
++					bias-disable;
++				};
++				pin_cmd {
++					function = "sd2";
++					pins = "gpio31";
++					bias-pull-up;
++				};
++				pins_dat {
++					function = "sd2";
++					pins = "gpio32", "gpio33", "gpio34", "gpio35";
++					bias-pull-up;
++				};
++			};
++		};
++
++		gio: gpio@7d508500 {
++			compatible = "brcm,brcmstb-gpio";
++			reg = <0x7d508500 0x40>;
++			interrupt-parent = <&main_irq>;
++			interrupts = <0>;
++			gpio-controller;
++			#gpio-cells = <2>;
++			interrupt-controller;
++			#interrupt-cells = <2>;
++			brcm,gpio-bank-widths = <32 22>;
++			brcm,gpio-direct;
++		};
++
++		uarta: serial@7d50c000 {
++			compatible = "brcm,bcm7271-uart";
++			reg = <0x7d50c000 0x20>;
++			reg-names = "uart";
++			reg-shift = <2>;
++			reg-io-width = <4>;
++			interrupts = <GIC_SPI 276 IRQ_TYPE_LEVEL_HIGH>;
++			skip-init;
++			status = "disabled";
++		};
++
+ 		uart10: serial@7d001000 {
+ 			compatible = "arm,pl011", "arm,primecell";
+ 			reg = <0x7d001000 0x200>;
+@@ -697,6 +767,20 @@
+ 			//iommus = <&iommu2>;
+ 			status = "okay";
+ 		};
++
++		sdio2: mmc@1100000 {
++			compatible = "brcm,bcm2712-sdhci";
++			reg = <0x10 0x01100000  0x0 0x260>,
++			      <0x10 0x01100400  0x0 0x200>;
++			reg-names = "host", "cfg";
++			interrupts = <GIC_SPI 274 IRQ_TYPE_LEVEL_HIGH>;
++			clocks = <&clk_emmc2>;
++			sdhci-caps-mask = <0x0000C000 0x0>;
++			sdhci-caps = <0x0 0x0>;
++			supports-cqe;
++			mmc-ddr-3_3v;
++			status = "disabled";
++		};
+ 	};
+ 
+ 	timer {
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts
+--- linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts	2025-06-26 09:46:54.604953079 +0200
++++ linux-6.16-rc3/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts	2025-06-26 09:32:30.658304960 +0200
+@@ -50,6 +50,20 @@
+ 		rpm-offset = <0x3c>;
+ 	};
+ 
++	wl_on_reg: wl-on-reg {
++		compatible = "regulator-fixed";
++		regulator-name = "wl-on-regulator";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		pinctrl-0 = <&wl_on_pins>;
++		pinctrl-names = "default";
++
++		gpio = <&gio 28 GPIO_ACTIVE_HIGH>;
++
++		startup-delay-us = <150000>;
++		enable-active-high;
++	};
++
+ 	cam1_clk: cam1_clk {
+ 		compatible = "fixed-clock";
+ 		#clock-cells = <0>;
+@@ -132,6 +146,25 @@
+ 	sd-uhs-sdr104;
+ };
+ 
++/* SDIO2 drives the WLAN interface */
++&sdio2 {
++	pinctrl-0 = <&sdio2_30_pins>;
++	pinctrl-names = "default";
++	bus-width = <4>;
++	vmmc-supply = <&wl_on_reg>;
++	sd-uhs-ddr50;
++	non-removable;
++	status = "okay";
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	wifi: wifi@1 {
++		reg = <1>;
++		compatible = "brcm,bcm4329-fmac";
++		local-mac-address = [00 00 00 00 00 00];
++	};
++};
++
+ &soc {
+ 	firmware: firmware {
+ 		compatible = "raspberrypi,bcm2835-firmware", "simple-mfd";
+@@ -182,6 +215,35 @@
+ 	status = "okay";
+ };
+ 
++&pinctrl {
++	wl_on_pins: wl_on_pins {
++		function = "gpio";
++		pins = "gpio28";
++	};
++
++	bt_shutdown_pins: bt_shutdown_pins {
++		function = "gpio";
++		pins = "gpio29";
++	};
++};
++
++/* uarta communicates with the BT module */
++&uarta {
++	uart-has-rtscts;
++	auto-flow-control;
++	status = "okay";
++	clock-frequency = <96000000>;
++	pinctrl-0 = <&uarta_24_pins &bt_shutdown_pins>;
++	pinctrl-names = "default";
++
++	bluetooth: bluetooth {
++		compatible = "brcm,bcm43438-bt";
++		max-speed = <3000000>;
++		shutdown-gpios = <&gio 29 GPIO_ACTIVE_HIGH>;
++		local-bd-address = [ 00 00 00 00 00 00 ];
++	};
++};
++
+ #include "rp1.dtsi"
+ 
+ &rp1 {
