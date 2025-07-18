@@ -444,6 +444,7 @@ mm-all:
 		   [ ! "$${board}" = "board-rk3566.rock3-c"       ] && \
 		   [ ! "$${board}" = "board-rk3566.orangepi_3b"   ] && \
 		   [ ! "$${board}" = "board-rk3576.nanopi_m5"     ] && \
+		   [ ! "$${board}" = "board-rk3576.nanopi_r76s"   ] && \
 		   [ ! "$${board}" = "board-rk3576.rock_4d"       ] && \
 		   [ ! "$${board}" = "board-rk3588.rock5-b"       ] && \
 		   [ ! "$${board}" = "board-rk3588.rock5-t"       ] && \
