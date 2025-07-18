@@ -150,6 +150,7 @@ RK3568_BOARDS_LIST = \
 # Rockchip RK3576 boards
 RK3576_BOARDS_LIST = \
 	board-rk3576.nanopi_m5 \
+	board-rk3576.nanopi_r76s \
 	board-rk3576.rock_4d \
 
 # Rockchip RK3588 boards
