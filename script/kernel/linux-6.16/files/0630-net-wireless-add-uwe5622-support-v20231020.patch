@@ -108,21 +108,6 @@ this add uwe5622 driver code
 
 
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.9.3/drivers/bluetooth/hci_ldisc.c linux-6.9.3/drivers/bluetooth/hci_ldisc.c
---- linux-6.9.3/drivers/bluetooth/hci_ldisc.c	2024-05-30 09:45:04.000000000 +0200
-+++ linux-6.9.3/drivers/bluetooth/hci_ldisc.c	2024-06-08 20:52:00.224744017 +0200
-@@ -658,6 +658,12 @@
- 	hdev->setup = hci_uart_setup;
- 	SET_HCIDEV_DEV(hdev, hu->tty->dev);
- 
-+	// Set the broken Park link status quirk, specific for spreadtrum (sprd)
-+	// bluetooth devices
-+	if (hdev->manufacturer == 0xffff && hu->tty->driver &&
-+		strncmp(hu->tty->driver->name, "ttyBT", 5) == 0)
-+		set_bit(HCI_QUIRK_BROKEN_PARK_LINK_STATUS, &hdev->quirks);
-+
- 	if (test_bit(HCI_UART_RAW_DEVICE, &hu->hdev_flags))
- 		set_bit(HCI_QUIRK_RAW_DEVICE, &hdev->quirks);
- 
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.9.3/drivers/net/wireless/Kconfig linux-6.9.3/drivers/net/wireless/Kconfig
 --- linux-6.9.3/drivers/net/wireless/Kconfig	2024-06-08 20:56:19.444738614 +0200
 +++ linux-6.9.3/drivers/net/wireless/Kconfig	2024-06-08 20:54:02.871408177 +0200
@@ -78092,30 +78077,4 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.9.3/drivers/ne
 +
 +#endif
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.9.3/include/net/bluetooth/hci.h linux-6.9.3/include/net/bluetooth/hci.h
---- linux-6.9.3/include/net/bluetooth/hci.h	2024-05-30 09:45:04.000000000 +0200
-+++ linux-6.9.3/include/net/bluetooth/hci.h	2024-06-08 20:52:00.244744018 +0200
-@@ -70,6 +70,12 @@
- 
- /* HCI device quirks */
- enum {
-+	/*
-+	 * Device declares that support Park link status, but it really
-+	 * does not support it and fails to initialize
-+	 */
-+	HCI_QUIRK_BROKEN_PARK_LINK_STATUS,
-+
- 	/* When this quirk is set, the HCI Reset command is send when
- 	 * closing the transport instead of when opening it.
- 	 *
 diff --speed-large-files --no-dereference --minimal -Naur linux-6.9.3/net/bluetooth/hci_sync.c linux-6.9.3/net/bluetooth/hci_sync.c
---- linux-6.9.3/net/bluetooth/hci_sync.c	2024-05-30 09:45:04.000000000 +0200
-+++ linux-6.9.3/net/bluetooth/hci_sync.c	2024-06-08 20:52:00.244744018 +0200
-@@ -3982,7 +3982,7 @@
- 		link_policy |= HCI_LP_HOLD;
- 	if (lmp_sniff_capable(hdev))
- 		link_policy |= HCI_LP_SNIFF;
--	if (lmp_park_capable(hdev))
-+	if (lmp_park_capable(hdev) && !test_bit(HCI_QUIRK_BROKEN_PARK_LINK_STATUS, &hdev->quirks))
- 		link_policy |= HCI_LP_PARK;
- 
- 	cp.policy = cpu_to_le16(link_policy);
