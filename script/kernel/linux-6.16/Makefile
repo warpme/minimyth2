@@ -271,6 +271,7 @@ PATCHFILES += 0978-arm64-dts-brcm-rpi5-add-fan-support.patch
 PATCHFILES += 0979-arm64-dts-brcm-rpi4-incr-cma-to-384M.patch
 PATCHFILES += 0980-arm64-dts-brcm-rpi5-add-wifi-bt-support.patch
 PATCHFILES += 0981-arm64-dts-brcm-rpi5-add-leds-aupport.patch
+PATCHFILES += 0982-arm64-dts-brcm-rpi5-add-hwmon-aupport.patch
 endif
 #------------------------------------------------------------
 
