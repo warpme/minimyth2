@@ -8,3 +8,4 @@ mc/syntax/php.syntax
 mc/syntax/perl.syntax
 mc/syntax/python.syntax
 mc/syntax/sh.syntax
+mc/syntax/unknown.syntax
