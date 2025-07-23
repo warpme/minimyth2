@@ -34,6 +34,7 @@ sub page
 
     my $page_host  = $minimyth->hostname();
     my $page_date  = Date::Manip::UnixDate('now', '%Y-%m-%d %H:%M:%S %Z');
+    my $page_device_model = $minimyth->var_get('MM_HW_DEVICE_NAME');
 
     my @page = ();
 
@@ -69,7 +70,8 @@ sub page
     push(@page,  q(        </div>));
     push(@page,  q(        <div class="note">));
     push(@page, qq(          $page_date<br />));
-    push(@page, qq(          $page_host));
+    push(@page, qq(          Model: $page_device_model<br />));
+    push(@page, qq(          Hostname: $page_host));
     push(@page,  q(        </div>));
     push(@page,  q(      </div>));
     push(@page,  q(      <div class="middle">));
