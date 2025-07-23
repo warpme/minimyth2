@@ -303,6 +303,7 @@ PATCHFILES += 1037-drm-birdge-simple-bridge-Add-support-for-radxa-ra620.patch
 PATCHFILES += 1038-drm-bridge-synopsys-add-cec-support.patch
 PATCHFILES += 1039-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1040-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
+PATCHFILES += 1041-net-stmmac-dwmac-rk-fix-disabling-set_clock_selection.patch
 
 # rkvdec2 h264 hevc support
 # https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec 08.07.2025
