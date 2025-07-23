@@ -35,6 +35,7 @@ PATCHFILES += linux-6.16-defaults.patch
 
 ifeq (1,1)
 
+PATCHFILES += 0001-net-wireless-rtw88-fix-wrong-hw.ver.patch
 PATCHFILES += 0108-drivers-led-add-openvfd-g3118dda3.patch
 PATCHFILES += 0109-drivers-mmc-add-disk-activity-support.patch
 
