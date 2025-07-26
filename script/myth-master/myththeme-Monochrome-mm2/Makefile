@@ -6,7 +6,7 @@ CATEGORIES   = mythtv
 MASTER_SITES = https://github.com/hambre/Monochrome/archive/
 DISTFILES    = $(GARVERSION).zip
 
-PATCHFILES   = add-mm2-ui-notifications.patch
+PATCHFILES  += add-mm2-ui-notifications.patch
 PATCHFILES  += change-running-color-to-amber.patch
 PATCHFILES  += improve-osd-playback-stats.patch
 PATCHFILES  += osd--add-osdnavigation.patch
