@@ -68,6 +68,14 @@ test_network_speed_str			="Test prędkości LAN/WiFi"
 measured_network_speed_str		="Aktualna Prędkość: "
 error_testing_network_speed_str>	="Błąd połączenia z demonem netperf!"
 
+#---- OSD messaging in test storage speed
+# /usr/bin/mm_test_storage_speed 25.07.2025
+
+measured_storage_speed_str		="Dyski: "
+measured_storage_read_speed_str		="Odczyt: "
+measured_storage_write_speed_str	="\nZapis: "
+test_storage_speed_str			="Test prędkości Zapis/Odczyt dla dysku"
+
 #---- OSD messaging in mythtv_cache_prunner
 # /usr/bin/mm_mythtv_cache_prunner 15.09.2021
 
