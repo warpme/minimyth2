@@ -1,0 +1,63 @@
+
+From: sbwml <admin@cooluc.com>
+Date: Sun, 27 Jul 2025 14:11:45 +0800
+Subject: [PATCH] mmc: Add quirk MMC_QUIRK_FORCE_18V for Realtek RTL8822CS
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc7/drivers/mmc/core/card.h linux-6.16-rc7/drivers/mmc/core/card.h
+--- linux-6.16-rc7/drivers/mmc/core/card.h	2025-07-21 00:18:33.000000000 +0200
++++ linux-6.16-rc7/drivers/mmc/core/card.h	2025-07-27 21:30:29.773336994 +0200
+@@ -300,4 +300,9 @@
+ 	return c->quirks & MMC_QUIRK_NO_UHS_DDR50_TUNING;
+ }
+ 
++static inline int mmc_card_force_18v(const struct mmc_card *c)
++{
++	return c->quirks & MMC_QUIRK_FORCE_18V;
++}
++
+ #endif
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc7/drivers/mmc/core/quirks.h linux-6.16-rc7/drivers/mmc/core/quirks.h
+--- linux-6.16-rc7/drivers/mmc/core/quirks.h	2025-07-21 00:18:33.000000000 +0200
++++ linux-6.16-rc7/drivers/mmc/core/quirks.h	2025-07-27 21:28:10.773336474 +0200
+@@ -207,6 +207,9 @@
+ 			      MMC_QUIRK_LENIENT_FN0 |
+ 			      MMC_QUIRK_BLKSZ_FOR_BYTE_MODE),
+ 
++	SDIO_FIXUP_COMPATIBLE("friendlyelec,rtl8822cs", add_quirk,
++			      MMC_QUIRK_FORCE_18V),
++
+ 	END_FIXUP
+ };
+ 
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc7/drivers/mmc/core/sdio.c linux-6.16-rc7/drivers/mmc/core/sdio.c
+--- linux-6.16-rc7/drivers/mmc/core/sdio.c	2025-07-21 00:18:33.000000000 +0200
++++ linux-6.16-rc7/drivers/mmc/core/sdio.c	2025-07-27 21:32:26.996670754 +0200
+@@ -739,7 +739,15 @@
+ 	 * try to init uhs card. sdio_read_cccr will take over this task
+ 	 * to make sure which speed mode should work.
+ 	 */
+-	if (rocr & ocr & R4_18V_PRESENT) {
++	if (mmc_card_force_18v(card)) {
++		pr_info("sdio: force 1.8V UHS-I mode\n");
++		err = mmc_set_uhs_voltage(host, ocr_card);
++		if (err == -EAGAIN) {
++			err = sdio_read_cccr(card, ocr_card);
++			dev_err(mmc_dev(host),
++				"sdio: forcing 1.8V UHS-I failed (CCCR read failed with err=%d)\n", err);
++		}
++	} else if (rocr & ocr & R4_18V_PRESENT) {
+ 		err = mmc_set_uhs_voltage(host, ocr_card);
+ 		if (err == -EAGAIN) {
+ 			mmc_sdio_pre_init(host, ocr_card, card);
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc7/include/linux/mmc/card.h linux-6.16-rc7/include/linux/mmc/card.h
+--- linux-6.16-rc7/include/linux/mmc/card.h	2025-07-21 00:18:33.000000000 +0200
++++ linux-6.16-rc7/include/linux/mmc/card.h	2025-07-27 21:35:52.303338243 +0200
+@@ -330,6 +330,7 @@
+ #define MMC_QUIRK_BROKEN_CACHE_FLUSH	(1<<16)	/* Don't flush cache until the write has occurred */
+ #define MMC_QUIRK_BROKEN_SD_POWEROFF_NOTIFY	(1<<17) /* Disable broken SD poweroff notify support */
+ #define MMC_QUIRK_NO_UHS_DDR50_TUNING	(1<<18) /* Disable DDR50 tuning */
++#define MMC_QUIRK_FORCE_18V		(1<<19)	/* Skip voltage detection and force always 1.8V */
+ 
+ 	bool			written_flag;	/* Indicates eMMC has been written since power on */
+ 	bool			reenable_cmdq;	/* Re-enable Command Queue */

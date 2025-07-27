@@ -388,6 +388,7 @@ PATCHFILES += 1209-PM-devfreq-rockchip-dfi-add-support-for-LPDDR5.patch
 PATCHFILES += 1211-drm-rockchip-dw_hdmi_qp-provide-ref-clock-rate-in-dw_hdmi_qp_plat_data.patch
 PATCHFILES += 1212-drm-bridge-dw-hdmi-qp-fixup-timer-base-setup.patch
 PATCHFILES += 1213-net-phy-realtek-reset-after-clock-enable.patch
+PATCHFILES += 1214-mmc-core-add-force-io-to-1.8v-quirk.patch
 # dtsi additions
 PATCHFILES += 1260-arm64-dtsi-rockchip-fix-hdmi-output-on-rk3576.patch
 PATCHFILES += 1265-arm64-dtsi-rk3576-add-sdio-node.patch
