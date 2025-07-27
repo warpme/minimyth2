@@ -64,6 +64,7 @@ mm_SOFTWARE               ?= \
 #                             btop \
 #                             bashtop \
 #                             iotop \
+#                             iperf \
 #                             wireless_tools \
 #                             ffmpeg70 \
 #                             ffmpeg71 \

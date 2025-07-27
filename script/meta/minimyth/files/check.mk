@@ -228,6 +228,7 @@ mm-all:
 		   [ ! "$${software}" = "bashtop"        ] && \
 		   [ ! "$${software}" = "nvtop"          ] && \
 		   [ ! "$${software}" = "iotop"          ] && \
+		   [ ! "$${software}" = "iperf"          ] && \
 		   [ ! "$${software}" = "wireless_tools" ] && \
 		   [ ! "$${software}" = "wifi_xr819"     ] && \
 		   [ ! "$${software}" = "wifi_rtl8821cu" ] && \
