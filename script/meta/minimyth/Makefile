@@ -216,6 +216,7 @@ DEPENDS = \
 	$(if $(filter kmsvnc,$(mm_SOFTWARE)),X11/kmsvnc) \
 	$(if $(filter nvtop,$(mm_SOFTWARE)),utils/nvtop) \
 	$(if $(filter iotop,$(mm_SOFTWARE)),utils/iotop) \
+	$(if $(filter iperf,$(mm_SOFTWARE)),net/iperf) \
 	$(if $(filter ffmpeg70,$(mm_SOFTWARE)),lib/ffmpeg7.0) \
 	$(if $(filter ffmpeg71,$(mm_SOFTWARE)),lib/ffmpeg7.1) \
 	$(filter-out %/Makefile extras/extras-% extras/extras.%,$(subst ../../,,$(wildcard ../../extras/*))) \
