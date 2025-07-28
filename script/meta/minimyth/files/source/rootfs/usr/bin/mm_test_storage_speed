@@ -1,0 +1,60 @@
+#!/bin/sh
+
+. /etc/rc.d/functions
+. /etc/mm_ui_localizations_sh
+
+DISK1="/boot"
+DISK2="/initrd/rootfs-ro"
+DISK3="/"
+TEST_SIZE="32" #MBytes
+ITERATIONS=2
+
+dd_test() {
+    DISK_PATH="$1"
+    echo " "
+    echo "---- Testing [$DISK_PATH] with $TEST_SIZE MBytes file $ITERATIONS times ... ----"
+
+    i=1
+
+    while [ $i -lt $(($ITERATIONS + 1)) ]; do
+
+        echo "test $i :"
+
+        if [ -w $DISK_PATH ]; then
+
+            DISK_WRITE_TEST=$(dd if=/dev/zero of="$DISK_PATH/.test.test" bs=1024k count=$TEST_SIZE oflag=direct 2>&1 | grep copied | cut -d " " -f7 )
+
+            DISK_READ_TEST=$(dd if="$DISK_PATH/.test.test" of=/dev/null bs=1024k 2>&1 | grep copied | cut -d " " -f7 )
+
+            rm -rf "$DISK_PATH/.test.test"
+
+        else
+
+            DISK_WRITE_TEST='N/A'
+            DISK_READ_TEST='N/A'
+
+        fi
+
+        echo "  write : $DISK_WRITE_TEST"
+        echo "  read  : $DISK_READ_TEST"
+
+        if [ $i -eq 1 ]; then
+            OSD_READ_SPEEDS=${OSD_READ_SPEEDS}"   "${DISK_READ_TEST}
+            OSD_WRITE_SPEEDS=${OSD_WRITE_SPEEDS}"   "${DISK_WRITE_TEST}
+        fi
+
+        i=$(( i + 1 ))
+        echo " "
+
+    done
+}
+
+OSD_DISK_LIST=${OSD_DISK_LIST}"["$DISK1"]  ["$DISK2"]  ["$DISK3"]"
+
+dd_test $DISK1
+dd_test $DISK2
+dd_test $DISK3
+
+mm_show_mythnotify "${measured_storage_speed_str}${OSD_DISK_LIST}" "${measured_storage_read_speed_str}${OSD_READ_SPEEDS}${measured_storage_write_speed_str}${OSD_WRITE_SPEEDS}" '' '25' "${test_storage_speed_str}"
+
+exit 0
