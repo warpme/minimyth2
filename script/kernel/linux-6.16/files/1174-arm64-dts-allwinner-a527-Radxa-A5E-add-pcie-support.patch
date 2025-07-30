@@ -1,0 +1,139 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts linux-6.16/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts
+--- linux-6.16/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts	2025-07-30 16:45:54.746668378 +0200
++++ linux-6.16/arch/arm64/boot/dts/allwinner/sun55i-a527-cubie-a5e.dts	2025-07-30 12:06:45.457518479 +0200
+@@ -8,6 +8,8 @@
+ 
+ #include <dt-bindings/gpio/gpio.h>
+ 
++#define USE_PCIE 1
++
+ / {
+ 	model = "Radxa Cubie A5E";
+ 	compatible = "radxa,cubie-a5e", "allwinner,sun55i-a527";
+@@ -19,6 +21,12 @@
+ 		ethernet0 = &gmac0;
+ 		ethernet1 = &gmac1;
+ 		serial0 = &uart0;
++		pcie = &pcie;
++		combophy = &combophy;
++		gma340_oe = &gma340_oe;
++		gma340_pcie = &gma340_pcie;
++		reg_pcie_3v3 = &reg_pcie_3v3;
++		reg_pcie_1v8 = &reg_pcie_1v8;
+ 	};
+ 
+ 	chosen {
+@@ -76,6 +84,60 @@
+ 		gpio = <&r_pio 0 7 GPIO_ACTIVE_HIGH>; /* PL7 */
+ 		enable-active-high;
+ 	};
++	reg_pcie_3v3: pcie-3v3 {
++		compatible = "regulator-fixed";
++		regulator-name = "pcie-3v3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-enable-ramp-delay = <1000>;
++		regulator-always-on;
++		regulator-boot-on;
++		gpio = <&r_pio 0 11 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++	};
++
++	reg_pcie_1v8: pcie-1v8 {
++		compatible = "regulator-fixed";
++		regulator-name = "pcie-1v8";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		regulator-enable-ramp-delay = <1000>;
++		regulator-always-on;
++		regulator-boot-on;
++	};
++
++	gma340_oe: gma340-oe {
++		compatible = "regulator-fixed";
++		regulator-name = "gma340-oe";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++		regulator-boot-on;
++		gpio = <&pio 1 7 GPIO_ACTIVE_LOW>;
++	};
++
++#ifdef USE_PCIE
++	gma340_pcie: gma340-pcie {
++		compatible = "regulator-fixed";
++		regulator-name = "gma340-pcie";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++		regulator-boot-on;
++		gpio = <&pio 1 6 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++	};
++#else
++	gma340_usb3: gma340-usb3 {
++		compatible = "regulator-fixed";
++		regulator-name = "gma340-usb3";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		regulator-always-on;
++		regulator-boot-on;
++		gpio = <&pio 1 6 GPIO_ACTIVE_LOW>;
++	};
++#endif
+ };
+ 
+ &cpu0 {
+@@ -402,3 +467,52 @@
+ 	mali-supply = <&reg_dcdc2>;
+ 	status = "okay";
+ };
++
++/* PCIE and USB Switch */
++&combophy {
++	resets = <&ccu RST_BUS_PCIE_USB3>;
++#ifdef  USE_PCIE
++	phy_use_sel = <0>; /* 0:PCIE; 1:USB3 */
++#else
++	phy_use_sel = <1>; /* 0:PCIE; 1:USB3 */
++#endif
++	status = "okay";
++};
++
++#ifdef  USE_PCIE
++&pcie {
++	reset-gpios = <&pio 7 11 GPIO_ACTIVE_HIGH>;
++	wake-gpios = <&pio 7 12 GPIO_ACTIVE_HIGH>;
++	num-lanes  = <1>;
++	clk-freq-100M;
++	pcie3v3-supply = <&reg_pcie_3v3>;
++	pcie1v8-supply = <&reg_pcie_1v8>;
++	status = "okay";
++};
++#else
++&usbc2 {
++	drvvbus-supply = <&reg_usb_vbus>;
++	wakeup-source;
++	usb_detect_mode = <0x0>;
++	aw,vbus-shared-quirk;
++	status = "okay";
++};
++
++&xhci2 {
++	drvvbus-supply = <&reg_usb_vbus>;
++	dr_mode = "host";
++	status = "okay";
++};
++
++&u2phy {
++	status = "okay";
++};
++#endif
++
++&usbc1 {
++	device_type = "usbc1";
++	usb_regulator_io = "nocare";
++	usb_wakeup_suspend = <1>;
++	wakeup-source;
++	status = "okay";
++};

@@ -365,15 +365,20 @@ PATCHFILES += 1104-regulator-axp20x-force-polyphase-setup-for-axp323.patch
 PATCHFILES += 1140-net-drivers-stmmac-add-initial-support-for-a523-gmac1.patch
 PATCHFILES += 1141-thermal-drivers-sun8i-add-initial-support-for-ths-v2.patch
 PATCHFILES += 1142-add-initial-cpufreq-support.patch
+PATCHFILES += 1143-pci-add-sunxi-pcie-support.patch
+PATCHFILES += 1144-phy-allwinner-add-sunxi-inno-combophy.patch
+PATCHFILES += 1145-clk-sunxi-ng-add-enable-pcie-ccu-clocks.patch
 
 PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 1153-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 1154-arm64-dtsi-allwinner-add-cpufreq-support.patch
 PATCHFILES += 1155-arm64-dtsi-allwinner-add-gpu-support.patch
+PATCHFILES += 1157-arm64-dtsi-allwinner-add-pcie-nodes.patch
 
 PATCHFILES += 1170-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 1172-arm64-dts-allwinner-t527-add-orangepi-4a-dts.patch
 PATCHFILES += 1173-arm64-dts-allwinner-a527-Radxa-A5E-improvements.patch
+PATCHFILES += 1174-arm64-dts-allwinner-a527-Radxa-A5E-add-pcie-support.patch
 endif
 #------------------------------------------------------------
 
