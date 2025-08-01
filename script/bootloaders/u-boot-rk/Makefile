@@ -36,8 +36,9 @@
 # mm_U-BOOT_BOARD_TYPE = test-rk3588
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock5b-rk3588_defconfig
-# mm_U-BOOT_BOARD_DEFCONFIG = rock-5-itx-rk3588_defconfig ?
+# mm_U-BOOT_BOARD_DEFCONFIG = rock-5-itx-rk3588_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock5t-rk3588_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = nanopc-t6-rk3588_defconfig
 
 # mm_U-BOOT_BOARD_TYPE = test-rk3588s
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-rk3588s_defconfig
@@ -46,7 +47,7 @@
 
 GARNAME      = u-boot-rk
 
-ifeq (1,1)
+ifeq (0,1)
 # collabora rk3588 enablement repo
 # git@ 08.07.2025 https://gitlab.collabora.com/hardware-enablement/rockchip-3588/u-boot
 GARVERSION   = eaadfde0c6a8975c85d9da9e19a5af70795cd1c6
@@ -71,10 +72,10 @@ PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
 
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 # mainline u-boot
-# git@ 07.07.2025 mainline 2025.07 ga
-GARVERSION   = e37de002fac3895e8d0b60ae2015e17bb33e2b5b
+# git@ 01.08.2025 mainline 2025.10-rc1
+GARVERSION   = 182cb30084516c3085d2ca5dde3f105f7625d774
 # git@ 24.01.2025 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = f43a462e7a1429a9d407ae52b4745033034a6cf9
 MASTER_SITES = \
@@ -225,7 +226,9 @@ endif
 
 ifneq (,$(findstring rk3588,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.18.bin
-BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.48.elf
+# use mainline BL31 for rk3588
+# BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.48.elf
+BL31         = $(DESTDIR)$(libdir)/u-boot/rk3588/bl31.bin
 MKIMAGE_TYPE = rk3588
 ifneq (,$(findstring rk3588s,$(mm_U-BOOT_BOARD_TYPE)))
 INSTALL_PREF = rk3588s
