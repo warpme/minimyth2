@@ -32,7 +32,7 @@ if (system(qq(/usr/bin/sensors > $devnull 2>&1)) == 0)
 
                 s/(: *)([-+][0-9]+\.[0-9]+)( C)/$1<span class="$class">$2$3<\/span>/;
             }
-            if (! (/virtual|isa|Virtual|usbc_vin|Adapter|rpi|rp1|in[0-9]|temp[0-9]|coretemp|mdio|^\s*$/))
+            if (! (/virtual|isa|Virtual|usbc_vin|Adapter|rpi|rp1|in[0-9]|temp[0-9]|coretemp|mdio|tcpm|curr|^\s*$/))
             {
                 push(@status_sensors_body, $_);
             }
