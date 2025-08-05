@@ -227,7 +227,7 @@ PATCHFILES += 0843-arm64-dts-rockchip-rock3a-fix-mdio-reset-disable-uart-bt.patc
 PATCHFILES += 0845-arm64-dts-rockchip-improve-dts-for-rock3c.patch
 PATCHFILES += 0846-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
 PATCHFILES += 0847-arm64-dts-rockchip-add-dts-for-urve-pi.patch
-PATCHFILES += 0848-arm64-dts-rockchip-add-dts-for-opi-3b.patch
+PATCHFILES += 0848-arm64-dts-rockchip-improve-dts-for-opi-3b-v1.1.patch
 PATCHFILES += 0849-arm64-dts-rockchip-improve-dts-for-zero3.patch
 PATCHFILES += 0850-arm64-dts-rockchip-rk356x-add-eth-wifi-aliases.patch
 endif
