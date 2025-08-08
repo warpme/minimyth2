@@ -24,18 +24,22 @@ install-custom:
 	@cp -Rdf $(WORKSRC)/brcm/brcmfmac4334-sdio.bin                      $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.bin
 	@#cp -Rdf $(WORKSRC)/brcm/brcmfmac4334-sdio.txt                     $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.txt
 	@cp -Rdf $(WORKSRC)/brcm/brcmfmac4334-sdio.rockchip,rk3318-box.txt  $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.txt
+	@cp -Rdf $(WORKSRC)/brcm/BCM4334B0.hcd                              $(DESTDIR)$(elibdir)/firmware/brcm/BCM4334B0.hcd
 	@# there is no brcmfmac4334-sdio.clm_blob so create fake 0 bytes clm_blob file. this seems to allow to boot ok ap6334 wifi....
 	@touch $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.clm_blob
 
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.bin      $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.tanix,tx6s.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.clm_blob $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.tanix,tx6s.clm_blob
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.txt      $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.tanix,tx6s.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4334B0.hcd              $(DESTDIR)$(elibdir)/firmware/brcm/BCM4334B0.tanix,tx6s.hcd
 
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.bin      $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.vontar,h618.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.clm_blob $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.vontar,h618.clm_blob
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.txt      $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334-sdio.vontar,h618.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4334B0.hcd              $(DESTDIR)$(elibdir)/firmware/brcm/BCM4334B0.vontar,h618.hcd
 
 	@$(MAKECOOKIE)
 
 clean-all: clean
 	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4334*
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4334*.hcd
