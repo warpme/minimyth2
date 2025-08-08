@@ -162,6 +162,7 @@ PATCHFILES += 0631-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
 PATCHFILES += 0632-clk-sunxi-ng-ccu-hack-fix-too-slow-hdmi-audio.patch
 PATCHFILES += 0633-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
 PATCHFILES += 0635-drvers-of-add-dt-overlay-configfs-interface.patch
+PATCHFILES += 0636-drv-rtc-sun6i-add-support-rtc-without-external-losc.patch
 # device-tree patches
 PATCHFILES += 0640-arm64-dts-allwinner-h616.dtsi-add-audio-hdmi-vdec.patch
 PATCHFILES += 0641-arm64-dts-allwinner-h616.dtsi-add-cpu-gpu-dvfs-opp.patch
