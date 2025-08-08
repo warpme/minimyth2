@@ -18,7 +18,8 @@ include ../../gar.mk
 
 install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/
-	@cp -Rdf $(WORKSRC)/brcm/brcmfmac-ap6330*           $(DESTDIR)$(elibdir)/firmware/brcm/
+	@cp -Rdf $(WORKSRC)/brcm/brcmfmac-ap6330* $(DESTDIR)$(elibdir)/firmware/brcm/
+	@cp -Rdf $(WORKSRC)/brcm/BCM4330B1.hcd    $(DESTDIR)$(elibdir)/firmware/brcm/BCM4330B1.hcd
 	@# there is no brcmfmac-ap6330-sdio.clm_blob so create fake 0 bytes clm_blob file. this seems to allow to boot ok ap6330 wifi....
 	@#cp -Rdf $(WORKSRC)/brcm/brcmfmac4330-sdio.clm_blob $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.clm_blob
 	@touch $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.clm_blob
@@ -37,6 +38,11 @@ install-custom:
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.txt   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.oranth,tanix-tx6.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.txt   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.tanix,tx6s.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.txt   $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac-ap6330-sdio.pendoo,x12pro.txt
+
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4330B1.hcd   $(DESTDIR)$(elibdir)/firmware/brcm/BCM4330B1.oranth,tanix-tx6-mini.hcd
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4330B1.hcd   $(DESTDIR)$(elibdir)/firmware/brcm/BCM4330B1.oranth,tanix-tx6.hcd
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4330B1.hcd   $(DESTDIR)$(elibdir)/firmware/brcm/BCM4330B1.tanix,tx6s.hcd
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4330B1.hcd   $(DESTDIR)$(elibdir)/firmware/brcm/BCM4330B1.pendoo,x12pro.hcd
 
 	@$(MAKECOOKIE)
 
