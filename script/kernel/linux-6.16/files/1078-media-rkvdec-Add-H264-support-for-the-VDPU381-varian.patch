@@ -1,7 +1,7 @@
-From 48f2595be01c7dc98c5a2ed09b1ac87e6be3fd2c Mon Sep 17 00:00:00 2001
+From ddba580527e6c590f90dbbd57d6ab2d948cb835d Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Tue, 10 Jun 2025 15:53:52 -0400
-Subject: [PATCH 25/28] media: rkvdec: Add H264 support for the VDPU381 variant
+Subject: [PATCH 28/31] media: rkvdec: Add H264 support for the VDPU381 variant
 
 This decoder variant is found in Rockchip RK3588 SoC family.
 
@@ -22,15 +22,15 @@ Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
  .../rockchip/rkvdec/rkvdec-h264-common.h      |   2 +
  .../platform/rockchip/rkvdec/rkvdec-h264.c    |  36 --
  .../rockchip/rkvdec/rkvdec-vdpu381-h264.c     | 469 ++++++++++++++++++
- .../rockchip/rkvdec/rkvdec-vdpu381-regs.h     | 425 ++++++++++++++++
- .../media/platform/rockchip/rkvdec/rkvdec.c   | 162 +++++-
+ .../rockchip/rkvdec/rkvdec-vdpu381-regs.h     | 427 ++++++++++++++++
+ .../media/platform/rockchip/rkvdec/rkvdec.c   | 164 +++++-
  .../media/platform/rockchip/rkvdec/rkvdec.h   |   6 +
- 7 files changed, 1063 insertions(+), 38 deletions(-)
+ 7 files changed, 1067 insertions(+), 38 deletions(-)
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h
 
 diff --git a/drivers/media/platform/rockchip/rkvdec/Makefile b/drivers/media/platform/rockchip/rkvdec/Makefile
-index 2b7ba9f7de..20128bb6e3 100644
+index 2b7ba9f7d..20128bb6e 100644
 --- a/drivers/media/platform/rockchip/rkvdec/Makefile
 +++ b/drivers/media/platform/rockchip/rkvdec/Makefile
 @@ -6,4 +6,5 @@ rockchip-vdec-y += \
@@ -40,7 +40,7 @@ index 2b7ba9f7de..20128bb6e3 100644
 +		   rkvdec-vdpu381-h264.o \
  		   rkvdec-vp9.o
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
-index df95a16787..38446e2886 100644
+index df95a1678..38446e288 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
 @@ -66,6 +66,8 @@ struct rkvdec_rps {
@@ -53,7 +53,7 @@ index df95a16787..38446e2886 100644
  void assemble_hw_rps(struct v4l2_h264_reflist_builder *builder,
  		     struct rkvdec_h264_run *run,
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
-index 610f5e6686..76e5a14c0c 100644
+index 610f5e668..76e5a14c0 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
 @@ -16,8 +16,6 @@
@@ -108,7 +108,7 @@ index 610f5e6686..76e5a14c0c 100644
  	u8 len;
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c
 new file mode 100644
-index 0000000000..cc2c345488
+index 000000000..cc2c34548
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c
 @@ -0,0 +1,469 @@
@@ -583,10 +583,10 @@ index 0000000000..cc2c345488
 +};
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h
 new file mode 100644
-index 0000000000..66cda16697
+index 000000000..11b545e9e
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h
-@@ -0,0 +1,425 @@
+@@ -0,0 +1,427 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
 + * Rockchip VDPU381 Video Decoder driver registers description
@@ -629,6 +629,8 @@ index 0000000000..66cda16697
 +
 +#define VDPU381_REG_STA_INT		0x380
 +#define VDPU381_STA_INT_DEC_RDY_STA	BIT(2)
++#define VDPU381_STA_INT_ERROR		BIT(4)
++#define VDPU381_STA_INT_TIMEOUT		BIT(5)
 +#define VDPU381_STA_INT_SOFTRESET_RDY	BIT(9)
 +
 +/* base: OFFSET_COMMON_REGS */
@@ -1013,7 +1015,7 @@ index 0000000000..66cda16697
 +
 +#endif /* __RKVDEC_REGS_H__ */
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-index aee26a9a9d..5e6b193f38 100644
+index aee26a9a9..ee150af68 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 @@ -28,6 +28,7 @@
@@ -1103,7 +1105,7 @@ index aee26a9a9d..5e6b193f38 100644
  static const struct rkvdec_coded_fmt_desc *
  rkvdec_find_coded_fmt_desc(struct rkvdec_ctx *ctx, u32 fourcc)
  {
-@@ -1125,6 +1184,33 @@ static irqreturn_t rk3399_irq_handler(struct rkvdec_ctx *ctx)
+@@ -1125,6 +1184,35 @@ static irqreturn_t rk3399_irq_handler(struct rkvdec_ctx *ctx)
  	return IRQ_HANDLED;
  }
  
@@ -1121,7 +1123,9 @@ index aee26a9a9d..5e6b193f38 100644
 +		state = VB2_BUF_STATE_DONE;
 +	} else {
 +		state = VB2_BUF_STATE_ERROR;
-+		if (status & VDPU381_STA_INT_SOFTRESET_RDY)
++		if (status & (VDPU381_STA_INT_SOFTRESET_RDY |
++			      VDPU381_STA_INT_TIMEOUT |
++			      VDPU381_STA_INT_ERROR))
 +			rkvdec_iommu_restore(rkvdec);
 +	}
 +
@@ -1137,7 +1141,7 @@ index aee26a9a9d..5e6b193f38 100644
  static irqreturn_t rkvdec_irq_handler(int irq, void *priv)
  {
  	struct rkvdec_dev *rkvdec = priv;
-@@ -1149,14 +1235,81 @@ static void rkvdec_watchdog_func(struct work_struct *work)
+@@ -1149,14 +1237,81 @@ static void rkvdec_watchdog_func(struct work_struct *work)
  	}
  }
  
@@ -1219,7 +1223,7 @@ index aee26a9a9d..5e6b193f38 100644
  	{ /* sentinel */ }
  };
  MODULE_DEVICE_TABLE(of, of_rkvdec_match);
-@@ -1175,6 +1328,10 @@ static int rkvdec_probe(struct platform_device *pdev)
+@@ -1175,6 +1330,10 @@ static int rkvdec_probe(struct platform_device *pdev)
  	mutex_init(&rkvdec->vdev_lock);
  	INIT_DELAYED_WORK(&rkvdec->watchdog_work, rkvdec_watchdog_func);
  
@@ -1230,7 +1234,7 @@ index aee26a9a9d..5e6b193f38 100644
  	rkvdec->config =
  		(struct rkvdec_config *)of_device_get_match_data(rkvdec->dev);
  
-@@ -1183,6 +1340,7 @@ static int rkvdec_probe(struct platform_device *pdev)
+@@ -1183,6 +1342,7 @@ static int rkvdec_probe(struct platform_device *pdev)
  		return ret;
  
  	rkvdec->clk_count = ret;
@@ -1239,7 +1243,7 @@ index aee26a9a9d..5e6b193f38 100644
  	rkvdec->regs = devm_platform_ioremap_resource(pdev, 0);
  	if (IS_ERR(rkvdec->regs))
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.h b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
-index af47f16cb4..9e0fef2445 100644
+index af47f16cb..9e0fef244 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.h
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
 @@ -108,6 +108,8 @@ struct rkvdec_config {

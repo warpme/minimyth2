@@ -1,7 +1,7 @@
-From 10af09e330b35284d8b0b6ebb2b4f0d92814ffb8 Mon Sep 17 00:00:00 2001
+From 2db6a20fd05d27428941609eeba3802a5214eeca Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Tue, 10 Jun 2025 17:45:17 -0400
-Subject: [PATCH 26/28] media: rkvdec: Add H264 support for the VDPU383 variant
+Subject: [PATCH 29/31] media: rkvdec: Add H264 support for the VDPU383 variant
 
 This variant is used on the RK3576 SoC.
 
@@ -19,14 +19,14 @@ Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
  .../media/platform/rockchip/rkvdec/Makefile   |   1 +
  .../rockchip/rkvdec/rkvdec-vdpu383-h264.c     | 583 ++++++++++++++++++
  .../rockchip/rkvdec/rkvdec-vdpu383-regs.h     | 284 +++++++++
- .../media/platform/rockchip/rkvdec/rkvdec.c   | 111 +++-
+ .../media/platform/rockchip/rkvdec/rkvdec.c   | 110 +++-
  .../media/platform/rockchip/rkvdec/rkvdec.h   |   8 +
- 5 files changed, 981 insertions(+), 6 deletions(-)
+ 5 files changed, 980 insertions(+), 6 deletions(-)
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h
 
 diff --git a/drivers/media/platform/rockchip/rkvdec/Makefile b/drivers/media/platform/rockchip/rkvdec/Makefile
-index 20128bb6e3..c38ce1e8d3 100644
+index 20128bb6e..c38ce1e8d 100644
 --- a/drivers/media/platform/rockchip/rkvdec/Makefile
 +++ b/drivers/media/platform/rockchip/rkvdec/Makefile
 @@ -7,4 +7,5 @@ rockchip-vdec-y += \
@@ -37,7 +37,7 @@ index 20128bb6e3..c38ce1e8d3 100644
  		   rkvdec-vp9.o
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c
 new file mode 100644
-index 0000000000..366ac0c646
+index 000000000..366ac0c64
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c
 @@ -0,0 +1,583 @@
@@ -626,7 +626,7 @@ index 0000000000..366ac0c646
 +};
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h
 new file mode 100644
-index 0000000000..2b614393a3
+index 000000000..2b614393a
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h
 @@ -0,0 +1,284 @@
@@ -915,7 +915,7 @@ index 0000000000..2b614393a3
 +
 +#endif /* __RKVDEC_VDPU838_REGS_H__ */
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-index 5e6b193f38..fcb4d1795c 100644
+index ee150af68..4c225aecd 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 @@ -9,6 +9,7 @@
@@ -988,7 +988,7 @@ index 5e6b193f38..fcb4d1795c 100644
  static const struct rkvdec_coded_fmt_desc *
  rkvdec_find_coded_fmt_desc(struct rkvdec_ctx *ctx, u32 fourcc)
  {
-@@ -1211,6 +1240,37 @@ static irqreturn_t vdpu381_irq_handler(struct rkvdec_ctx *ctx)
+@@ -1213,6 +1242,36 @@ static irqreturn_t vdpu381_irq_handler(struct rkvdec_ctx *ctx)
  	return IRQ_HANDLED;
  }
  
@@ -1010,8 +1010,7 @@ index 5e6b193f38..fcb4d1795c 100644
 +		state = VB2_BUF_STATE_DONE;
 +	} else {
 +		state = VB2_BUF_STATE_ERROR;
-+		if (status & VDPU383_STA_INT_SOFTRESET_RDY)
-+			rkvdec_iommu_restore(rkvdec);
++		rkvdec_iommu_restore(rkvdec);
 +	}
 +
 +	if (need_reset)
@@ -1026,7 +1025,7 @@ index 5e6b193f38..fcb4d1795c 100644
  static irqreturn_t rkvdec_irq_handler(int irq, void *priv)
  {
  	struct rkvdec_dev *rkvdec = priv;
-@@ -1283,6 +1343,7 @@ const struct rkvdec_config config_rkvdec = {
+@@ -1285,6 +1344,7 @@ const struct rkvdec_config config_rkvdec = {
  	.coded_fmts_num = ARRAY_SIZE(rkvdec_coded_fmts),
  	.irq_handler = rk3399_irq_handler,
  	.fill_pixfmt_mp = v4l2_fill_pixfmt_mp,
@@ -1034,7 +1033,7 @@ index 5e6b193f38..fcb4d1795c 100644
  };
  
  static struct rcb_size_info vdpu381_rcb_sizes[] = {
-@@ -1305,11 +1366,39 @@ const struct rkvdec_config config_vdpu381 = {
+@@ -1307,11 +1367,39 @@ const struct rkvdec_config config_vdpu381 = {
  	.rcb_num = ARRAY_SIZE(vdpu381_rcb_sizes),
  	.irq_handler = vdpu381_irq_handler,
  	.fill_pixfmt_mp = vdpu38x_fill_pixfmt_mp,
@@ -1074,7 +1073,7 @@ index 5e6b193f38..fcb4d1795c 100644
  	{ /* sentinel */ }
  };
  MODULE_DEVICE_TABLE(of, of_rkvdec_match);
-@@ -1342,9 +1431,19 @@ static int rkvdec_probe(struct platform_device *pdev)
+@@ -1344,9 +1432,19 @@ static int rkvdec_probe(struct platform_device *pdev)
  	rkvdec->clk_count = ret;
  	rkvdec->axi_clk = devm_clk_get(&pdev->dev, "axi");
  
@@ -1098,7 +1097,7 @@ index 5e6b193f38..fcb4d1795c 100644
  	ret = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
  	if (ret) {
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.h b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
-index 9e0fef2445..acb9d72b13 100644
+index 9e0fef244..acb9d72b1 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.h
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
 @@ -110,6 +110,8 @@ struct rkvdec_config {

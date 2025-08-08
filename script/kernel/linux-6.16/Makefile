@@ -307,36 +307,33 @@ PATCHFILES += 1040-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 PATCHFILES += 1041-net-stmmac-dwmac-rk-fix-disabling-set_clock_selection.patch
 
 # rkvdec2 h264 hevc support
-# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec 08.07.2025
-PATCHFILES += 1054-bitmap-introduce-hardware-specific-bitfield-operatio.patch
-PATCHFILES += 1055-media-rkvdec-Restore-iommu-addresses-on-errors.patch
-PATCHFILES += 1056-media-dt-bindings-rockchip-Document-RK3588-Video-Dec.patch
-PATCHFILES += 1057-media-dt-bindings-rockchip-Add-RK3576-Video-Decoder-.patch
-PATCHFILES += 1060-media-uapi-HEVC-Add-v4l2_ctrl_hevc_ext_sps_rps-contr.patch
-PATCHFILES += 1061-media-v4l2-ctrls-Add-hevc_ext_sps_rps-control.patch
-PATCHFILES += 1062-media-rkvdec-Remove-TODO-file.patch
-PATCHFILES += 1063-media-rkvdec-Unstage-the-driver.patch
-PATCHFILES += 1067-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
-PATCHFILES += 1068-media-rkvdec-Move-cabac-table-to-its-own-source-file.patch
-PATCHFILES += 1069-media-rkvdec-Use-structs-to-represent-the-HW-RPS.patch
-PATCHFILES += 1070-media-rkvdec-Move-h264-functions-to-common-file.patch
-PATCHFILES += 1071-media-rkvdec-Add-per-variant-configuration.patch
-PATCHFILES += 1072-media-rkvdec-Add-RCB-and-SRAM-support.patch
-PATCHFILES += 1073-media-rkvdec-Support-per-variant-interrupt-handler.patch
-PATCHFILES += 1074-media-rkvdec-Enable-all-clocks-without-naming-them.patch
-PATCHFILES += 1075-media-rkvdec-Add-H264-support-for-the-VDPU381-varian.patch
-PATCHFILES += 1076-media-rkvdec-Add-H264-support-for-the-VDPU383-varian.patch
-PATCHFILES += 1077-media-rkvdec-Add-HEVC-support-for-the-VDPU381-varian.patch
-PATCHFILES += 1078-media-rkvdec-Add-HEVC-support-for-the-VDPU383-varian.patch
-PATCHFILES += 1079-media-rkvdec-fix-10bit-playback.patch
+PATCHFILES += 1050-media-rkvdec-restore-iommu-addresses-on-errors.patch
+# https://gitlab.collabora.com/detlev/linux/-/commits/add-v4l2-st-lt-ref-set-support-v3 7.08.2025
+PATCHFILES += 1051-media-uapi-HEVC-Add-v4l2_ctrl_hevc_ext_sps_-ls-t_rps.patch
+PATCHFILES += 1052-media-v4l2-ctrls-Add-hevc_ext_sps_-ls-t_rps-controls.patch
+# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v2 05.08.2025
+PATCHFILES += 1054-media-dt-bindings-rockchip-Document-RK3588-Video-Dec.patch
+PATCHFILES += 1055-media-dt-bindings-rockchip-Add-RK3576-Video-Decoder-.patch
+PATCHFILES += 1057-media-rkvdec-Unstage-the-driver.patch
+PATCHFILES += 1063-bitfield-introduce-HWORD_UPDATE-bitfield-macros.patch
+PATCHFILES += 1066-bitmap-introduce-hardware-specific-bitfield-operatio.patch
+PATCHFILES += 1070-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
+PATCHFILES += 1071-media-rkvdec-Move-cabac-table-to-its-own-source-file.patch
+PATCHFILES += 1072-media-rkvdec-Use-structs-to-represent-the-HW-RPS.patch
+PATCHFILES += 1073-media-rkvdec-Move-h264-functions-to-common-file.patch
+PATCHFILES += 1074-media-rkvdec-Add-per-variant-configuration.patch
+PATCHFILES += 1075-media-rkvdec-Add-RCB-and-SRAM-support.patch
+PATCHFILES += 1076-media-rkvdec-Support-per-variant-interrupt-handler.patch
+PATCHFILES += 1077-media-rkvdec-Enable-all-clocks-without-naming-them.patch
+PATCHFILES += 1078-media-rkvdec-Add-H264-support-for-the-VDPU381-varian.patch
+PATCHFILES += 1079-media-rkvdec-Add-H264-support-for-the-VDPU383-varian.patch
+PATCHFILES += 1080-media-rkvdec-Add-HEVC-support-for-the-VDPU381-varian.patch
+PATCHFILES += 1081-media-rkvdec-Add-HEVC-support-for-the-VDPU383-varian.patch
 
 # dtsi additions
 PATCHFILES += 1080-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1081-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
-
-# rkvdec2 dtsi
-PATCHFILES += 1082-arm64-dts-rockchip-Add-the-vdpu381-Video-Decoders-on.patch
-PATCHFILES += 1083-arm64-dts-rockchip-Add-the-vdpu383-Video-Decoder-on-.patch
+PATCHFILES += 1082-arm64-dtsi-rockchip-add-the-vdpu381-video-decoders.patch
 PATCHFILES += 1084-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
 
 # dts patches
@@ -397,6 +394,7 @@ PATCHFILES += 1213-net-phy-realtek-reset-after-clock-enable.patch
 PATCHFILES += 1214-mmc-core-add-force-io-to-1.8v-quirk.patch
 # dtsi additions
 PATCHFILES += 1260-arm64-dtsi-rockchip-fix-hdmi-output-on-rk3576.patch
+PATCHFILES += 1261-arm64-dtsi-rockchip-add-the-vdpu383-video-decoder.patch
 PATCHFILES += 1265-arm64-dtsi-rk3576-add-sdio-node.patch
 PATCHFILES += 1266-arm64-dtsi-rockchip-Add-thermal-nodes-to-RK3576.patch
 PATCHFILES += 1267-arm64-dtsi-rockchip-Add-thermal-trim-OTP-and-tsadc-nodes.patch
