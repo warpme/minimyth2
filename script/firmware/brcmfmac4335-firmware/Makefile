@@ -18,10 +18,12 @@ INSTALL_SCRIPTS = custom
 include ../../gar.mk
 
 install-custom:
-	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4335-sdio.*
+	@rm -rf $(DESTDIR)$(elibdir)/firmware/brcm/{brcmfmac4335-sdio.*,BCM4335*}
 	@cp -Rdf $(WORKSRC)/brcmfmac4335-sdio.* $(DESTDIR)$(elibdir)/firmware/brcm/
+	@cp -Rdf $(WORKSRC)/BCM4335* $(DESTDIR)$(elibdir)/firmware/brcm/
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4335-sdio.bin $(DESTDIR)$(elibdir)/firmware/brcm//brcmfmac4335-sdio.transpeed,8k618-t.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4335-sdio.txt $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4335-sdio.transpeed,8k618-t.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4335A0.hcd $(DESTDIR)$(elibdir)/firmware/brcm/BCM4335A0.transpeed,8k618-t.hcd
 	@# creating fake .clm_blob as i can't find real one. this allows to get wifi working...
 	@touch $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4335-sdio.clm_blob
 	@touch $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4335-sdio.transpeed,8k618-t.clm_blob
