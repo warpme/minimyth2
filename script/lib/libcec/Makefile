@@ -1,6 +1,6 @@
 
 GARNAME      = libcec-libcec
-GARVERSION   = 6.0.2
+GARVERSION   = 7.1.1
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/Pulse-Eight/libcec/archive/
 DISTFILES    = libcec-$(GARVERSION).tar.gz
