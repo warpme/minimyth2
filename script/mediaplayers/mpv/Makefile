@@ -41,6 +41,10 @@ MESON_CONFIGURE_ARGS = \
 
 include ../../gar.mk
 
+CFLAGS   := $(filter-out -flto=auto, $(CFLAGS))
+CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
+LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
+
 post-install:
 	@echo '# echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/mpv-drm.sh
 	@echo 'mpv --drm-connector=HDMI-A-1 --vo=gpu --gpu-context=drm --hwdec=v4l2request --msg-level=vd=v,vo=v $$1' >> $(DESTDIR)$(bindir)/mpv-drm.sh
