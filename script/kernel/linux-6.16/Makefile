@@ -376,7 +376,6 @@ PATCHFILES += 1157-arm64-dtsi-allwinner-add-pcie-nodes.patch
 PATCHFILES += 1170-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 1172-arm64-dts-allwinner-t527-add-orangepi-4a-dts.patch
 PATCHFILES += 1173-arm64-dts-allwinner-a527-Radxa-A5E-improvements.patch
-PATCHFILES += 1174-arm64-dts-allwinner-a527-Radxa-A5E-add-pcie-support.patch
 endif
 #------------------------------------------------------------
 
