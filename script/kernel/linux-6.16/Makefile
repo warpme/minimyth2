@@ -360,17 +360,19 @@ PATCHFILES += 1100-clk-sunxi-ng-a523-Mark-MBUS-clock-as-critical.patch
 PATCHFILES += 1101-axp20x-HACK-mfd-and-multiple-axp-on-the-bus.patch
 PATCHFILES += 1103-allwinner-a523-Add-power-controllers.patch
 PATCHFILES += 1104-regulator-axp20x-force-polyphase-setup-for-axp323.patch
-PATCHFILES += 1140-net-drivers-stmmac-add-initial-support-for-a523-gmac1.patch
+PATCHFILES += 1140-net-drivers-stmmac-add-initial-support-for-a523-gmac1-v2.patch
 PATCHFILES += 1141-thermal-drivers-sun8i-add-initial-support-for-ths-v2.patch
 PATCHFILES += 1142-add-initial-cpufreq-support.patch
 PATCHFILES += 1143-pci-add-sunxi-pcie-support.patch
 PATCHFILES += 1144-phy-allwinner-add-sunxi-inno-combophy.patch
 PATCHFILES += 1145-clk-sunxi-ng-add-enable-pcie-ccu-clocks.patch
+PATCHFILES += 1146-net-drivers-stmmac-add-25M-phy-clock-support.patch
 
 PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 1153-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 1154-arm64-dtsi-allwinner-add-cpufreq-support.patch
 PATCHFILES += 1155-arm64-dtsi-allwinner-add-gpu-support.patch
+PATCHFILES += 1156-arm64-dtsi-allwinner-add-uart1-pins.patch
 PATCHFILES += 1157-arm64-dtsi-allwinner-add-pcie-nodes.patch
 
 PATCHFILES += 1170-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
