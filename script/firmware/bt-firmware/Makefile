@@ -1,5 +1,5 @@
 
-GARNAME      = bluez-firmware-rpi
+GARNAME      = bt-firmware
 # Git master from 5.05.2022
 GARVERSION   = 31ad68831357d2019624004f1f0846475671088f
 CATEGORIES   = firmware
@@ -31,6 +31,7 @@ install-custom:
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.hcd  $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.radxa,rockpi4b.hcd
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.hcd  $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.radxa,rockpi4c.hcd
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.hcd  $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.radxa,zero.hcd
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.hcd  $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.xunlong,orangepi-4a.hcd
 	@$(MAKECOOKIE)
 
 clean-all: clean

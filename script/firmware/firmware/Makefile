@@ -21,7 +21,7 @@ DEPENDS = \
 	firmware/brcmfmac4359-firmware  \
 	firmware/brcmfmac6330-firmware  \
 	firmware/brcmfmac6334-firmware  \
-	firmware/rpi-bluez-firmware     \
+	firmware/bt-firmware            \
 	firmware/aw859a-firmware        \
 	firmware/aic8800_sdio-firmware  \
 	firmware/aic8800_usb-firmware   \
