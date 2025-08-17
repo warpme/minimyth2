@@ -307,33 +307,39 @@ PATCHFILES += 1040-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 PATCHFILES += 1041-net-stmmac-dwmac-rk-fix-disabling-set_clock_selection.patch
 
 # rkvdec2 h264 hevc support
-PATCHFILES += 1050-media-rkvdec-restore-iommu-addresses-on-errors.patch
+PATCHFILES += 1045-media-rkvdec-restore-iommu-addresses-on-errors.patch
 # https://gitlab.collabora.com/detlev/linux/-/commits/add-v4l2-st-lt-ref-set-support-v3 7.08.2025
-PATCHFILES += 1051-media-uapi-HEVC-Add-v4l2_ctrl_hevc_ext_sps_-ls-t_rps.patch
-PATCHFILES += 1052-media-v4l2-ctrls-Add-hevc_ext_sps_-ls-t_rps-controls.patch
-# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v2 05.08.2025
-PATCHFILES += 1054-media-dt-bindings-rockchip-Document-RK3588-Video-Dec.patch
-PATCHFILES += 1055-media-dt-bindings-rockchip-Add-RK3576-Video-Decoder-.patch
-PATCHFILES += 1057-media-rkvdec-Unstage-the-driver.patch
-PATCHFILES += 1063-bitfield-introduce-HWORD_UPDATE-bitfield-macros.patch
-PATCHFILES += 1066-bitmap-introduce-hardware-specific-bitfield-operatio.patch
-PATCHFILES += 1070-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
-PATCHFILES += 1071-media-rkvdec-Move-cabac-table-to-its-own-source-file.patch
-PATCHFILES += 1072-media-rkvdec-Use-structs-to-represent-the-HW-RPS.patch
-PATCHFILES += 1073-media-rkvdec-Move-h264-functions-to-common-file.patch
-PATCHFILES += 1074-media-rkvdec-Add-per-variant-configuration.patch
-PATCHFILES += 1075-media-rkvdec-Add-RCB-and-SRAM-support.patch
-PATCHFILES += 1076-media-rkvdec-Support-per-variant-interrupt-handler.patch
-PATCHFILES += 1077-media-rkvdec-Enable-all-clocks-without-naming-them.patch
-PATCHFILES += 1078-media-rkvdec-Add-H264-support-for-the-VDPU381-varian.patch
-PATCHFILES += 1079-media-rkvdec-Add-H264-support-for-the-VDPU383-varian.patch
-PATCHFILES += 1080-media-rkvdec-Add-HEVC-support-for-the-VDPU381-varian.patch
-PATCHFILES += 1081-media-rkvdec-Add-HEVC-support-for-the-VDPU383-varian.patch
+PATCHFILES += 1046-media-uapi-HEVC-Add-v4l2_ctrl_hevc_ext_sps_-ls-t_rps.patch
+PATCHFILES += 1047-media-v4l2-ctrls-Add-hevc_ext_sps_-ls-t_rps-controls.patch
+# backport from 6.17-rc1
+PATCHFILES += 1048-media-rkvdec-Unstage-the-driver.patch
+# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v3 16.08.2025
+PATCHFILES += 1051-media-rkvdec-Add-HEVC-backend.patch
+PATCHFILES += 1052-media-rkvdec-Add-variants-support.patch
+PATCHFILES += 1053-media-rkvdec-Implement-capability-filtering.patch
+PATCHFILES += 1054-media-rkvdec-Add-RK3288-variant.patch
+PATCHFILES += 1055-media-rkvdec-Disable-QoS-for-HEVC-and-VP9-on-RK3328.patch
+PATCHFILES += 1056-media-dt-bindings-rockchip-vdec-Add-RK3288-compatibl.patch
+PATCHFILES += 1062-bitmap-introduce-hardware-specific-bitfield-operatio.patch
+PATCHFILES += 1064-media-rkvdec-Switch-to-using-structs-instead-of-writ.patch
+PATCHFILES += 1065-media-rkvdec-Move-cabac-tables-to-their-own-source-f.patch
+PATCHFILES += 1066-media-rkvdec-Use-structs-to-represent-the-HW-RPS.patch
+PATCHFILES += 1067-media-rkvdec-Move-h264-functions-to-common-file.patch
+PATCHFILES += 1068-media-rkvdec-Move-hevc-functions-to-common-file.patch
+PATCHFILES += 1069-media-rkvdec-Add-per-variant-configuration.patch
+PATCHFILES += 1070-media-rkvdec-Add-RCB-and-SRAM-support.patch
+PATCHFILES += 1071-media-rkvdec-Support-per-variant-interrupt-handler.patch
+PATCHFILES += 1072-media-rkvdec-Enable-all-clocks-without-naming-them.patch
+PATCHFILES += 1073-media-rkvdec-Add-H264-support-for-the-VDPU381-varian.patch
+PATCHFILES += 1074-media-rkvdec-Add-H264-support-for-the-VDPU383-varian.patch
+PATCHFILES += 1075-media-rkvdec-Add-HEVC-support-for-the-VDPU383-varian.patch
 
 # dtsi additions
 PATCHFILES += 1080-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1081-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
 PATCHFILES += 1082-arm64-dtsi-rockchip-add-the-vdpu381-video-decoders.patch
+PATCHFILES += 1083-arm64-dtsi-rockchip-rk3288-add-vdec-node.patch
+
 PATCHFILES += 1084-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
 
 # dts patches

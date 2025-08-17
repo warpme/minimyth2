@@ -1,7 +1,7 @@
-From f6c5cac74ea140c0e0e23c847b19944d2a70f061 Mon Sep 17 00:00:00 2001
+From dcac1d679827f4b790eacac9450ca43999bdf228 Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Tue, 10 Jun 2025 13:16:24 -0400
-Subject: [PATCH 23/31] media: rkvdec: Move h264 functions to common file
+Subject: [PATCH 17/25] media: rkvdec: Move h264 functions to common file
 
 This is a preparation commit to add support for new variants of the
 decoder.
@@ -12,26 +12,27 @@ The functions will later be shared with vdpu381 (rk3588) and vdpu383
 Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
 ---
  .../media/platform/rockchip/rkvdec/Makefile   |   1 +
- .../rockchip/rkvdec/rkvdec-h264-common.c      | 253 ++++++++++++++++
+ .../rockchip/rkvdec/rkvdec-h264-common.c      | 253 ++++++++++++++
  .../rockchip/rkvdec/rkvdec-h264-common.h      |  79 +++++
- .../platform/rockchip/rkvdec/rkvdec-h264.c    | 274 +-----------------
- 4 files changed, 337 insertions(+), 270 deletions(-)
+ .../platform/rockchip/rkvdec/rkvdec-h264.c    | 308 +-----------------
+ 4 files changed, 337 insertions(+), 304 deletions(-)
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
 
 diff --git a/drivers/media/platform/rockchip/rkvdec/Makefile b/drivers/media/platform/rockchip/rkvdec/Makefile
-index 164ea06c2..94c067084 100644
+index a8ff5e3d7b..d2ba7a7c15 100644
 --- a/drivers/media/platform/rockchip/rkvdec/Makefile
 +++ b/drivers/media/platform/rockchip/rkvdec/Makefile
-@@ -4,4 +4,5 @@ rockchip-vdec-y += \
+@@ -4,5 +4,6 @@ rockchip-vdec-y += \
  		   rkvdec.o \
  		   rkvdec-cabac.o \
  		   rkvdec-h264.o \
 +		   rkvdec-h264-common.o \
+ 		   rkvdec-hevc.o \
  		   rkvdec-vp9.o
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c
 new file mode 100644
-index 000000000..b23f153d7
+index 0000000000..e7557c3a5c
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c
 @@ -0,0 +1,253 @@
@@ -98,7 +99,7 @@ index 000000000..b23f153d7
 +}
 +
 +void lookup_ref_buf_idx(struct rkvdec_ctx *ctx,
-+			       struct rkvdec_h264_run *run)
++			struct rkvdec_h264_run *run)
 +{
 +	const struct v4l2_ctrl_h264_decode_params *dec_params = run->decode_params;
 +	u32 i;
@@ -166,7 +167,7 @@ index 000000000..b23f153d7
 +			if (WARN_ON(ref->index >= ARRAY_SIZE(dec_params->dpb)))
 +				continue;
 +
-+			dpb_valid = run->ref_buf[ref->index] != NULL;
++			dpb_valid = !!(run->ref_buf[ref->index]);
 +			bottom = ref->fields == V4L2_H264_BOTTOM_FIELD_REF;
 +
 +			set_dpb_info(hw_rps->entries, j, i, ref->index | (dpb_valid << 4), bottom);
@@ -290,7 +291,7 @@ index 000000000..b23f153d7
 +
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
 new file mode 100644
-index 000000000..df95a1678
+index 0000000000..df95a16787
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
 @@ -0,0 +1,79 @@
@@ -374,7 +375,7 @@ index 000000000..df95a1678
 +int rkvdec_h264_validate_sps(struct rkvdec_ctx *ctx, const struct v4l2_ctrl_h264_sps *sps);
 +void rkvdec_h264_run_preamble(struct rkvdec_ctx *ctx, struct rkvdec_h264_run *run);
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
-index 355d63aef..610f5e668 100644
+index 3527919aa8..a80b5b44a5 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
 @@ -14,6 +14,7 @@
@@ -385,7 +386,7 @@ index 355d63aef..610f5e668 100644
  
  extern const s8 rkvdec_h264_cabac_table[4][464][2];
  
-@@ -21,14 +22,6 @@ extern const s8 rkvdec_h264_cabac_table[4][464][2];
+@@ -21,52 +22,10 @@ extern const s8 rkvdec_h264_cabac_table[4][464][2];
  #define RKV_CABAC_INIT_BUFFER_SIZE	(3680 + 128)
  #define RKV_ERROR_INFO_SIZE		(256 * 144 * 4)
  
@@ -400,7 +401,45 @@ index 355d63aef..610f5e668 100644
  struct rkvdec_sps_pps_packet {
  	u32 info[8];
  };
-@@ -118,11 +111,6 @@ struct rkvdec_ps_field {
+ 
+-struct rkvdec_rps_entry {
+-	u32 dpb_info0:          5;
+-	u32 bottom_flag0:       1;
+-	u32 view_index_off0:    1;
+-	u32 dpb_info1:          5;
+-	u32 bottom_flag1:       1;
+-	u32 view_index_off1:    1;
+-	u32 dpb_info2:          5;
+-	u32 bottom_flag2:       1;
+-	u32 view_index_off2:    1;
+-	u32 dpb_info3:          5;
+-	u32 bottom_flag3:       1;
+-	u32 view_index_off3:    1;
+-	u32 dpb_info4:          5;
+-	u32 bottom_flag4:       1;
+-	u32 view_index_off4:    1;
+-	u32 dpb_info5:          5;
+-	u32 bottom_flag5:       1;
+-	u32 view_index_off5:    1;
+-	u32 dpb_info6:          5;
+-	u32 bottom_flag6:       1;
+-	u32 view_index_off6:    1;
+-	u32 dpb_info7:          5;
+-	u32 bottom_flag7:       1;
+-	u32 view_index_off7:    1;
+-} __packed;
+-
+-struct rkvdec_rps {
+-	u16 frame_num[16];
+-	u32 reserved0;
+-	struct rkvdec_rps_entry entries[12];
+-	u32 reserved1[66];
+-} __packed;
+-
+ struct rkvdec_ps_field {
+ 	u16 offset;
+ 	u8 len;
+@@ -118,11 +77,6 @@ struct rkvdec_ps_field {
  #define SCALING_LIST_ADDRESS				PS_FIELD(184, 32)
  #define IS_LONG_TERM(i)				PS_FIELD(216 + (i), 1)
  
@@ -412,7 +451,7 @@ index 355d63aef..610f5e668 100644
  /* Data structure describing auxiliary buffer format. */
  struct rkvdec_h264_priv_tbl {
  	s8 cabac_table[4][464][2];
-@@ -132,21 +120,6 @@ struct rkvdec_h264_priv_tbl {
+@@ -132,21 +86,6 @@ struct rkvdec_h264_priv_tbl {
  	u8 err_info[RKV_ERROR_INFO_SIZE];
  };
  
@@ -434,7 +473,7 @@ index 355d63aef..610f5e668 100644
  struct rkvdec_h264_ctx {
  	struct rkvdec_aux_buf priv_tbl;
  	struct rkvdec_h264_reflists reflists;
-@@ -270,155 +243,6 @@ static void assemble_hw_pps(struct rkvdec_ctx *ctx,
+@@ -270,155 +209,6 @@ static void assemble_hw_pps(struct rkvdec_ctx *ctx,
  	}
  }
  
@@ -590,7 +629,7 @@ index 355d63aef..610f5e668 100644
  /*
   * Set the ref POC in the correct register.
   *
-@@ -568,76 +392,6 @@ static void config_registers(struct rkvdec_ctx *ctx,
+@@ -568,76 +358,6 @@ static void config_registers(struct rkvdec_ctx *ctx,
  	rkvdec_memcpy_toio(rkvdec->regs, regs, sizeof(*regs));
  }
  
@@ -667,7 +706,7 @@ index 355d63aef..610f5e668 100644
  static int rkvdec_h264_start(struct rkvdec_ctx *ctx)
  {
  	struct rkvdec_dev *rkvdec = ctx->dev;
-@@ -689,33 +443,13 @@ static void rkvdec_h264_stop(struct rkvdec_ctx *ctx)
+@@ -689,33 +409,13 @@ static void rkvdec_h264_stop(struct rkvdec_ctx *ctx)
  	kfree(h264_ctx);
  }
  
@@ -702,7 +741,7 @@ index 355d63aef..610f5e668 100644
  
  	rkvdec_h264_run_preamble(ctx, &run);
  
-@@ -726,10 +460,10 @@ static int rkvdec_h264_run(struct rkvdec_ctx *ctx)
+@@ -726,10 +426,10 @@ static int rkvdec_h264_run(struct rkvdec_ctx *ctx)
  	v4l2_h264_build_b_ref_lists(&reflist_builder, h264_ctx->reflists.b0,
  				    h264_ctx->reflists.b1);
  

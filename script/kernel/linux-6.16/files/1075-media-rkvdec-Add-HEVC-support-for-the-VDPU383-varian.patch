@@ -1,7 +1,7 @@
-From 8ea41bb50c8d134d6b61c99ab7cb35d24219aee7 Mon Sep 17 00:00:00 2001
+From f64b3bbc8d15836cdace17875ec26cb8581635b7 Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Wed, 11 Jun 2025 17:04:28 -0400
-Subject: [PATCH 31/31] media: rkvdec: Add HEVC support for the VDPU383 variant
+Subject: [PATCH 25/25] media: rkvdec: Add HEVC support for the VDPU383 variant
 
 The VDPU383 decoder is used on the RK3576 SoC and has support for HEVC.
 
@@ -13,28 +13,28 @@ The fluster score for JCT-VC-HEVC_V1 is 146/147.
 Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
 ---
  .../media/platform/rockchip/rkvdec/Makefile   |   1 +
- .../rockchip/rkvdec/rkvdec-hevc-common.c      |  52 +-
- .../rockchip/rkvdec/rkvdec-vdpu383-hevc.c     | 688 ++++++++++++++++++
- .../media/platform/rockchip/rkvdec/rkvdec.c   |  91 +++
+ .../rockchip/rkvdec/rkvdec-hevc-common.c      |  49 +-
+ .../rockchip/rkvdec/rkvdec-vdpu383-hevc.c     | 680 ++++++++++++++++++
+ .../media/platform/rockchip/rkvdec/rkvdec.c   |  94 ++-
  .../media/platform/rockchip/rkvdec/rkvdec.h   |   2 +
- 5 files changed, 791 insertions(+), 43 deletions(-)
+ 5 files changed, 783 insertions(+), 43 deletions(-)
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c
 
 diff --git a/drivers/media/platform/rockchip/rkvdec/Makefile b/drivers/media/platform/rockchip/rkvdec/Makefile
-index fbc8d0d63..3e0720998 100644
+index e30fdd7d51..e629d571e4 100644
 --- a/drivers/media/platform/rockchip/rkvdec/Makefile
 +++ b/drivers/media/platform/rockchip/rkvdec/Makefile
-@@ -10,4 +10,5 @@ rockchip-vdec-y += \
+@@ -11,4 +11,5 @@ rockchip-vdec-y += \
  		   rkvdec-vdpu381-h264.o \
  		   rkvdec-vdpu381-hevc.o \
  		   rkvdec-vdpu383-h264.o \
 +		   rkvdec-vdpu383-hevc.o \
  		   rkvdec-vp9.o
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c
-index 1838ee3e4..6bdd21432 100644
+index 3646b3ce4e..e5d240d977 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c
-@@ -146,61 +146,27 @@ static void set_ref_poc(struct rkvdec_rps_short_term_ref_set *set, int poc, int
+@@ -155,60 +155,25 @@ static void set_ref_poc(struct rkvdec_rps_short_term_ref_set *set, int poc, int
  	}
  }
  
@@ -48,7 +48,7 @@ index 1838ee3e4..6bdd21432 100644
 - * MNOP         DHLP
 - */
 -static void transpose_and_flatten_matrices(u8 *output, const u8 *input,
--                                          int matrices, int row_length)
+-					   int matrices, int row_length)
 -{
 -	int i, j, row, x_offset, matrix_offset, rot_index, y_offset, matrix_size, new_value;
 -
@@ -70,12 +70,10 @@ index 1838ee3e4..6bdd21432 100644
 -	}
 -}
 -
--static void assemble_scalingfactor0(struct rkvdec_dev *rkvdec, u8 *output,
-+static void assemble_scalingfactor0(struct rkvdec_dev *rkvdec,
-+				    u8 *output,
+ static void assemble_scalingfactor0(struct rkvdec_dev *rkvdec, u8 *output,
  				    const struct v4l2_ctrl_hevc_scaling_matrix *input)
  {
-+	struct rkvdec_config *cfg = rkvdec->config;
++	const struct rkvdec_config *cfg = rkvdec->config;
  	int offset = 0;
  
 -	transpose_and_flatten_matrices(output, (const u8 *)input->scaling_list_4x4, 6, 4);
@@ -89,7 +87,6 @@ index 1838ee3e4..6bdd21432 100644
 -				       (const u8 *)input->scaling_list_16x16, 6, 8);
 +	cfg->flatten_matrices(output + offset, (const u8 *)input->scaling_list_16x16, 6, 8);
  	offset += 6 * 64 * sizeof(u8);
- 
  	/* Add a 128 byte padding with 0s between the two 32x32 matrices */
 -	transpose_and_flatten_matrices(output + offset,
 -				       (const u8 *)input->scaling_list_32x32, 1, 8);
@@ -107,10 +104,10 @@ index 1838ee3e4..6bdd21432 100644
  }
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c
 new file mode 100644
-index 000000000..eab09ec07
+index 0000000000..7d53c28e95
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c
-@@ -0,0 +1,688 @@
+@@ -0,0 +1,680 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip VDPU383 HEVC backend
@@ -287,7 +284,7 @@ index 000000000..eab09ec07
 +{
 +	int shift = (i & 1) ? 12 : 0;
 +
-+	switch (i/2) {
++	switch (i / 2) {
 +	case 0:
 +		hw_ps->column_width0 |= column << shift;
 +		hw_ps->row_height0 |= row << shift;
@@ -556,17 +553,17 @@ index 000000000..eab09ec07
 +	struct rkvdec_hevc_ctx *h265_ctx = ctx->priv;
 +
 +	rkvdec_memcpy_toio(rkvdec->regs + VDPU383_OFFSET_COMMON_REGS,
-+			    &h265_ctx->regs.common,
-+			    sizeof(h265_ctx->regs.common));
++			   &h265_ctx->regs.common,
++			   sizeof(h265_ctx->regs.common));
 +	rkvdec_memcpy_toio(rkvdec->regs + VDPU383_OFFSET_COMMON_ADDR_REGS,
-+			    &h265_ctx->regs.common_addr,
-+			    sizeof(h265_ctx->regs.common_addr));
++			   &h265_ctx->regs.common_addr,
++			   sizeof(h265_ctx->regs.common_addr));
 +	rkvdec_memcpy_toio(rkvdec->regs + VDPU383_OFFSET_CODEC_PARAMS_REGS,
-+			    &h265_ctx->regs.h26x_params,
-+			    sizeof(h265_ctx->regs.h26x_params));
++			   &h265_ctx->regs.h26x_params,
++			   sizeof(h265_ctx->regs.h26x_params));
 +	rkvdec_memcpy_toio(rkvdec->regs + VDPU383_OFFSET_CODEC_ADDR_REGS,
-+			    &h265_ctx->regs.h26x_addr,
-+			    sizeof(h265_ctx->regs.h26x_addr));
++			   &h265_ctx->regs.h26x_addr,
++			   sizeof(h265_ctx->regs.h26x_addr));
 +}
 +
 +static void config_registers(struct rkvdec_ctx *ctx,
@@ -748,15 +745,15 @@ index 000000000..eab09ec07
 +	struct rkvdec_hevc_run run;
 +	struct rkvdec_hevc_ctx *hevc_ctx = ctx->priv;
 +	struct rkvdec_hevc_priv_tbl *tbl = hevc_ctx->priv_tbl.cpu;
-+	uint32_t watchdog_time;
++	u32 watchdog_time;
 +	u64 timeout_threshold;
 +	unsigned long axi_rate;
 +
 +	rkvdec_hevc_run_preamble(ctx, &run);
 +
 +	rkvdec_hevc_assemble_hw_scaling_list(rkvdec, &run,
-+			&tbl->scaling_list,
-+			&hevc_ctx->scaling_matrix_cache);
++					     &tbl->scaling_list,
++					     &hevc_ctx->scaling_matrix_cache);
 +	assemble_hw_pps(ctx, &run);
 +	rkvdec_hevc_assemble_hw_rps(&run, &tbl->rps, &hevc_ctx->st_cache);
 +
@@ -783,14 +780,6 @@ index 000000000..eab09ec07
 +	return 0;
 +}
 +
-+static int rkvdec_hevc_try_ctrl(struct rkvdec_ctx *ctx, struct v4l2_ctrl *ctrl)
-+{
-+	if (ctrl->id == V4L2_CID_STATELESS_HEVC_SPS)
-+		return rkvdec_hevc_validate_sps(ctx, ctrl->p_new.p_hevc_sps);
-+
-+	return 0;
-+}
-+
 +const struct rkvdec_coded_fmt_ops rkvdec_vdpu383_hevc_fmt_ops = {
 +	.adjust_fmt = rkvdec_hevc_adjust_fmt,
 +	.start = rkvdec_hevc_start,
@@ -800,12 +789,12 @@ index 000000000..eab09ec07
 +	.get_image_fmt = rkvdec_hevc_get_image_fmt,
 +};
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-index bc13e1caf..0ef6eeb89 100644
+index ab15a008fc..6427ad127b 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-@@ -454,6 +454,22 @@ static const struct rkvdec_coded_fmt_desc vdpu383_coded_fmts[] = {
- 		.decoded_fmts = rkvdec_h264_decoded_fmts,
+@@ -526,6 +526,22 @@ static const struct rkvdec_coded_fmt_desc vdpu383_coded_fmts[] = {
  		.subsystem_flags = VB2_V4L2_FL_SUPPORTS_M2M_HOLD_CAPTURE_BUF,
+ 		.capability = RKVDEC_CAPABILITY_H264,
  	},
 +	{
 +		.fourcc = V4L2_PIX_FMT_HEVC_SLICE,
@@ -817,7 +806,7 @@ index bc13e1caf..0ef6eeb89 100644
 +			.max_height = 65472,
 +			.step_height = 16,
 +		},
-+		.ctrls = &rkvdec_hevc_ctrls,
++		.ctrls = &vdpu38x_hevc_ctrls,
 +		.ops = &rkvdec_vdpu383_hevc_fmt_ops,
 +		.num_decoded_fmts = ARRAY_SIZE(rkvdec_hevc_decoded_fmts),
 +		.decoded_fmts = rkvdec_hevc_decoded_fmts,
@@ -825,8 +814,8 @@ index bc13e1caf..0ef6eeb89 100644
 +	},
  };
  
- static const struct rkvdec_coded_fmt_desc *
-@@ -1362,6 +1378,78 @@ static irqreturn_t rkvdec_irq_handler(int irq, void *priv)
+ static bool rkvdec_is_capable(struct rkvdec_ctx *ctx, unsigned int capability)
+@@ -1458,6 +1474,78 @@ static irqreturn_t rkvdec_irq_handler(int irq, void *priv)
  	return cfg->irq_handler(ctx);
  }
  
@@ -905,7 +894,7 @@ index bc13e1caf..0ef6eeb89 100644
  static void rkvdec_watchdog_func(struct work_struct *work)
  {
  	struct rkvdec_dev *rkvdec;
-@@ -1425,6 +1513,7 @@ const struct rkvdec_config config_rkvdec = {
+@@ -1521,6 +1609,7 @@ static const struct rkvdec_config config_rkvdec = {
  	.coded_fmts_num = ARRAY_SIZE(rkvdec_coded_fmts),
  	.irq_handler = rk3399_irq_handler,
  	.fill_pixfmt_mp = v4l2_fill_pixfmt_mp,
@@ -913,7 +902,7 @@ index bc13e1caf..0ef6eeb89 100644
  	.colmv_size = rkvdec_colmv_size,
  };
  
-@@ -1449,6 +1538,7 @@ const struct rkvdec_config config_vdpu381 = {
+@@ -1545,6 +1634,7 @@ static const struct rkvdec_config config_vdpu381 = {
  	.irq_handler = vdpu381_irq_handler,
  	.fill_pixfmt_mp = vdpu38x_fill_pixfmt_mp,
  	.colmv_size = rkvdec_colmv_size,
@@ -921,7 +910,7 @@ index bc13e1caf..0ef6eeb89 100644
  	.named_regs = true,
  };
  
-@@ -1474,6 +1564,7 @@ const struct rkvdec_config config_vdpu383 = {
+@@ -1570,6 +1660,7 @@ const struct rkvdec_config config_vdpu383 = {
  	.fill_pixfmt_mp = vdpu38x_fill_pixfmt_mp,
  	.colmv_size = rkvdec_vdpu383_colmv_size,
  	.fill_pixfmt_mp = vdpu38x_fill_pixfmt_mp,
@@ -929,11 +918,21 @@ index bc13e1caf..0ef6eeb89 100644
  	.named_regs = true,
  };
  
+@@ -1601,7 +1692,8 @@ static const struct rkvdec_variant rk3588_vdpu381_variant = {
+ 
+ static const struct rkvdec_variant rk3576_vdpu383_variant = {
+ 	.config = &config_vdpu383,
+-	.capabilities = RKVDEC_CAPABILITY_H264,
++	.capabilities = RKVDEC_CAPABILITY_H264 |
++			RKVDEC_CAPABILITY_HEVC,
+ };
+ 
+ static const struct of_device_id of_rkvdec_match[] = {
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.h b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
-index df56bc051..2434f9280 100644
+index 0819a66459..fc27ba1f60 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.h
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
-@@ -111,6 +111,7 @@ struct rkvdec_config {
+@@ -124,6 +124,7 @@ struct rkvdec_config {
  	int (*fill_pixfmt_mp)(struct v4l2_pix_format_mplane *pix_mp, u32 pixelformat,
  			      u32 width, u32 height);
  	u32 (*colmv_size)(u16 width, u16 height);
@@ -941,7 +940,7 @@ index df56bc051..2434f9280 100644
  	bool named_regs;
  };
  
-@@ -177,5 +178,6 @@ extern const struct rkvdec_coded_fmt_ops rkvdec_vdpu381_hevc_fmt_ops;
+@@ -193,5 +194,6 @@ extern const struct rkvdec_coded_fmt_ops rkvdec_vdpu381_hevc_fmt_ops;
  
  /* VDPU383 ops */
  extern const struct rkvdec_coded_fmt_ops rkvdec_vdpu383_h264_fmt_ops;

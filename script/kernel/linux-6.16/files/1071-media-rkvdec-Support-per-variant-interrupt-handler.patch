@@ -1,7 +1,7 @@
-From 2b29936e756ec2e20f4410e7b2bdb577ae9a2d4e Mon Sep 17 00:00:00 2001
+From a13ada1e43cacc4856b1d9dacecc628d6efcf59f Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Tue, 10 Jun 2025 15:13:46 -0400
-Subject: [PATCH 26/31] media: rkvdec: Support per-variant interrupt handler
+Subject: [PATCH 21/25] media: rkvdec: Support per-variant interrupt handler
 
 Preparation commit for supporting different variants with different
 interrupt management.
@@ -13,10 +13,10 @@ Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
  2 files changed, 13 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-index 3285dd910..d5d69ee56 100644
+index ac18faf8f2..bc7f5d0d0c 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-@@ -1102,10 +1102,9 @@ static void rkvdec_iommu_restore(struct rkvdec_dev *rkvdec)
+@@ -1207,10 +1207,9 @@ static void rkvdec_iommu_restore(struct rkvdec_dev *rkvdec)
  	}
  }
  
@@ -29,7 +29,7 @@ index 3285dd910..d5d69ee56 100644
  	enum vb2_buffer_state state;
  	u32 status;
  
-@@ -1126,6 +1125,15 @@ static irqreturn_t rkvdec_irq_handler(int irq, void *priv)
+@@ -1231,6 +1230,15 @@ static irqreturn_t rkvdec_irq_handler(int irq, void *priv)
  	return IRQ_HANDLED;
  }
  
@@ -37,7 +37,7 @@ index 3285dd910..d5d69ee56 100644
 +{
 +	struct rkvdec_dev *rkvdec = priv;
 +	struct rkvdec_ctx *ctx = v4l2_m2m_get_curr_priv(rkvdec->m2m_dev);
-+	struct rkvdec_config *cfg = rkvdec->config;
++	const struct rkvdec_config *cfg = rkvdec->config;
 +
 +	return cfg->irq_handler(ctx);
 +}
@@ -45,19 +45,19 @@ index 3285dd910..d5d69ee56 100644
  static void rkvdec_watchdog_func(struct work_struct *work)
  {
  	struct rkvdec_dev *rkvdec;
-@@ -1144,6 +1152,7 @@ static void rkvdec_watchdog_func(struct work_struct *work)
- const struct rkvdec_config config_rkvdec = {
+@@ -1249,6 +1257,7 @@ static void rkvdec_watchdog_func(struct work_struct *work)
+ static const struct rkvdec_config config_rkvdec = {
  	.coded_fmts = (struct rkvdec_coded_fmt_desc *)rkvdec_coded_fmts,
  	.coded_fmts_num = ARRAY_SIZE(rkvdec_coded_fmts),
 +	.irq_handler = rk3399_irq_handler,
  };
  
- static const struct of_device_id of_rkvdec_match[] = {
+ static const struct rkvdec_variant rk3288_rkvdec_variant = {
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.h b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
-index 3a073883d..679de66df 100644
+index 175143432d..ed8c80a5cc 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.h
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
-@@ -107,6 +107,7 @@ struct rkvdec_config {
+@@ -120,6 +120,7 @@ struct rkvdec_config {
  	size_t coded_fmts_num;
  	struct rcb_size_info *rcb_size_info;
  	size_t rcb_num;

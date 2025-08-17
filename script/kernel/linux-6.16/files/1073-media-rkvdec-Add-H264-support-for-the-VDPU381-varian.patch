@@ -1,7 +1,7 @@
-From ddba580527e6c590f90dbbd57d6ab2d948cb835d Mon Sep 17 00:00:00 2001
+From 01ebd3185ed2217bb0e8f498901ee0c1477b5448 Mon Sep 17 00:00:00 2001
 From: Detlev Casanova <detlev.casanova@collabora.com>
 Date: Tue, 10 Jun 2025 15:53:52 -0400
-Subject: [PATCH 28/31] media: rkvdec: Add H264 support for the VDPU381 variant
+Subject: [PATCH 23/25] media: rkvdec: Add H264 support for the VDPU381 variant
 
 This decoder variant is found in Rockchip RK3588 SoC family.
 
@@ -20,27 +20,27 @@ Signed-off-by: Detlev Casanova <detlev.casanova@collabora.com>
 ---
  .../media/platform/rockchip/rkvdec/Makefile   |   1 +
  .../rockchip/rkvdec/rkvdec-h264-common.h      |   2 +
- .../platform/rockchip/rkvdec/rkvdec-h264.c    |  36 --
+ .../platform/rockchip/rkvdec/rkvdec-h264.c    |   2 -
  .../rockchip/rkvdec/rkvdec-vdpu381-h264.c     | 469 ++++++++++++++++++
  .../rockchip/rkvdec/rkvdec-vdpu381-regs.h     | 427 ++++++++++++++++
- .../media/platform/rockchip/rkvdec/rkvdec.c   | 164 +++++-
+ .../media/platform/rockchip/rkvdec/rkvdec.c   | 173 ++++++-
  .../media/platform/rockchip/rkvdec/rkvdec.h   |   6 +
- 7 files changed, 1067 insertions(+), 38 deletions(-)
+ 7 files changed, 1076 insertions(+), 4 deletions(-)
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c
  create mode 100644 drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h
 
 diff --git a/drivers/media/platform/rockchip/rkvdec/Makefile b/drivers/media/platform/rockchip/rkvdec/Makefile
-index 2b7ba9f7d..20128bb6e 100644
+index 3b34f39b17..c4167eb6fc 100644
 --- a/drivers/media/platform/rockchip/rkvdec/Makefile
 +++ b/drivers/media/platform/rockchip/rkvdec/Makefile
-@@ -6,4 +6,5 @@ rockchip-vdec-y += \
- 		   rkvdec-h264.o \
+@@ -7,4 +7,5 @@ rockchip-vdec-y += \
  		   rkvdec-h264-common.o \
+ 		   rkvdec-hevc.o \
  		   rkvdec-rcb.o \
 +		   rkvdec-vdpu381-h264.o \
  		   rkvdec-vp9.o
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
-index df95a1678..38446e288 100644
+index df95a16787..38446e2886 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
 @@ -66,6 +66,8 @@ struct rkvdec_rps {
@@ -53,7 +53,7 @@ index df95a1678..38446e288 100644
  void assemble_hw_rps(struct v4l2_h264_reflist_builder *builder,
  		     struct rkvdec_h264_run *run,
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
-index 610f5e668..76e5a14c0 100644
+index a80b5b44a5..d50e985cff 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
 @@ -16,8 +16,6 @@
@@ -65,50 +65,9 @@ index 610f5e668..76e5a14c0 100644
  /* Size with u32 units. */
  #define RKV_CABAC_INIT_BUFFER_SIZE	(3680 + 128)
  #define RKV_ERROR_INFO_SIZE		(256 * 144 * 4)
-@@ -26,40 +24,6 @@ struct rkvdec_sps_pps_packet {
- 	u32 info[8];
- };
- 
--struct rkvdec_rps_entry {
--	u32 dpb_info0:          5;
--	u32 bottom_flag0:       1;
--	u32 view_index_off0:    1;
--	u32 dpb_info1:          5;
--	u32 bottom_flag1:       1;
--	u32 view_index_off1:    1;
--	u32 dpb_info2:          5;
--	u32 bottom_flag2:       1;
--	u32 view_index_off2:    1;
--	u32 dpb_info3:          5;
--	u32 bottom_flag3:       1;
--	u32 view_index_off3:    1;
--	u32 dpb_info4:          5;
--	u32 bottom_flag4:       1;
--	u32 view_index_off4:    1;
--	u32 dpb_info5:          5;
--	u32 bottom_flag5:       1;
--	u32 view_index_off5:    1;
--	u32 dpb_info6:          5;
--	u32 bottom_flag6:       1;
--	u32 view_index_off6:    1;
--	u32 dpb_info7:          5;
--	u32 bottom_flag7:       1;
--	u32 view_index_off7:    1;
--} __packed;
--
--struct rkvdec_rps {
--	u16 frame_num[16];
--	u32 reserved0;
--	struct rkvdec_rps_entry entries[12];
--	u32 reserved1[66];
--} __packed;
--
- struct rkvdec_ps_field {
- 	u16 offset;
- 	u8 len;
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c
 new file mode 100644
-index 000000000..cc2c34548
+index 0000000000..e65a56bc9c
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c
 @@ -0,0 +1,469 @@
@@ -302,20 +261,20 @@ index 000000000..cc2c34548
 +	struct rkvdec_h264_ctx *h264_ctx = ctx->priv;
 +
 +	rkvdec_memcpy_toio(rkvdec->regs + OFFSET_COMMON_REGS,
-+			    &h264_ctx->regs.common,
-+			    sizeof(h264_ctx->regs.common));
++			   &h264_ctx->regs.common,
++			   sizeof(h264_ctx->regs.common));
 +	rkvdec_memcpy_toio(rkvdec->regs + OFFSET_CODEC_PARAMS_REGS,
-+			    &h264_ctx->regs.h264_param,
-+			    sizeof(h264_ctx->regs.h264_param));
++			   &h264_ctx->regs.h264_param,
++			   sizeof(h264_ctx->regs.h264_param));
 +	rkvdec_memcpy_toio(rkvdec->regs + OFFSET_COMMON_ADDR_REGS,
-+			    &h264_ctx->regs.common_addr,
-+			    sizeof(h264_ctx->regs.common_addr));
++			   &h264_ctx->regs.common_addr,
++			   sizeof(h264_ctx->regs.common_addr));
 +	rkvdec_memcpy_toio(rkvdec->regs + OFFSET_CODEC_ADDR_REGS,
-+			    &h264_ctx->regs.h264_addr,
-+			    sizeof(h264_ctx->regs.h264_addr));
++			   &h264_ctx->regs.h264_addr,
++			   sizeof(h264_ctx->regs.h264_addr));
 +	rkvdec_memcpy_toio(rkvdec->regs + OFFSET_POC_HIGHBIT_REGS,
-+			    &h264_ctx->regs.h264_highpoc,
-+			    sizeof(h264_ctx->regs.h264_highpoc));
++			   &h264_ctx->regs.h264_highpoc,
++			   sizeof(h264_ctx->regs.h264_highpoc));
 +}
 +
 +static void config_registers(struct rkvdec_ctx *ctx,
@@ -528,7 +487,7 @@ index 000000000..cc2c34548
 +	struct rkvdec_h264_ctx *h264_ctx = ctx->priv;
 +	struct rkvdec_h264_priv_tbl *tbl = h264_ctx->priv_tbl.cpu;
 +	struct rkvdec_h264_run run;
-+	uint32_t watchdog_time;
++	u32 watchdog_time;
 +
 +	rkvdec_h264_run_preamble(ctx, &run);
 +
@@ -583,7 +542,7 @@ index 000000000..cc2c34548
 +};
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h
 new file mode 100644
-index 000000000..11b545e9e
+index 0000000000..11b545e9ee
 --- /dev/null
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h
 @@ -0,0 +1,427 @@
@@ -1015,10 +974,10 @@ index 000000000..11b545e9e
 +
 +#endif /* __RKVDEC_REGS_H__ */
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.c b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-index aee26a9a9..ee150af68 100644
+index 938fa011ba..e2c0127b21 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.c
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.c
-@@ -28,6 +28,7 @@
+@@ -29,6 +29,7 @@
  
  #include "rkvdec.h"
  #include "rkvdec-regs.h"
@@ -1026,18 +985,18 @@ index aee26a9a9..ee150af68 100644
  #include "rkvdec-rcb.h"
  
  static bool rkvdec_image_fmt_match(enum rkvdec_image_fmt fmt1,
-@@ -84,11 +85,50 @@ static bool rkvdec_is_valid_fmt(struct rkvdec_ctx *ctx, u32 fourcc,
+@@ -85,11 +86,50 @@ static bool rkvdec_is_valid_fmt(struct rkvdec_ctx *ctx, u32 fourcc,
  	return false;
  }
  
 +#define VDPU38X_STRIDE_ALIGN	16
 +
 +/**
-+ * The default v4l2_fill_pixfmt_mp() function doesn't allow for specific alignement values.
++ * The default v4l2_fill_pixfmt_mp() function doesn't allow for specific alignment values.
 + * As the VDPU381 and VDPU383 need lines to be aligned on 16, use our own implementation here.
 + */
 +static int vdpu38x_fill_pixfmt_mp(struct v4l2_pix_format_mplane *pix_mp, u32 pixelformat,
-+				   u32 width, u32 height)
++				  u32 width, u32 height)
 +{
 +	const struct v4l2_format_info *info = v4l2_format_info(pix_mp->pixelformat);
 +	struct v4l2_plane_pix_format *plane = &pix_mp->plane_fmt[0];
@@ -1070,7 +1029,7 @@ index aee26a9a9..ee150af68 100644
  {
 -	v4l2_fill_pixfmt_mp(pix_mp, pix_mp->pixelformat,
 -			    pix_mp->width, pix_mp->height);
-+	struct rkvdec_config *cfg = ctx->dev->config;
++	const struct rkvdec_config *cfg = ctx->dev->config;
 +
 +	cfg->fill_pixfmt_mp(pix_mp, pix_mp->pixelformat, pix_mp->width, pix_mp->height);
 +
@@ -1079,7 +1038,7 @@ index aee26a9a9..ee150af68 100644
  	pix_mp->plane_fmt[0].sizeimage += 128 *
  		DIV_ROUND_UP(pix_mp->width, 16) *
  		DIV_ROUND_UP(pix_mp->height, 16);
-@@ -287,6 +327,25 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
+@@ -367,6 +407,26 @@ static const struct rkvdec_coded_fmt_desc rkvdec_coded_fmts[] = {
  	}
  };
  
@@ -1099,13 +1058,14 @@ index aee26a9a9..ee150af68 100644
 +		.num_decoded_fmts = ARRAY_SIZE(rkvdec_h264_decoded_fmts),
 +		.decoded_fmts = rkvdec_h264_decoded_fmts,
 +		.subsystem_flags = VB2_V4L2_FL_SUPPORTS_M2M_HOLD_CAPTURE_BUF,
++		.capability = RKVDEC_CAPABILITY_H264,
 +	},
 +};
 +
- static const struct rkvdec_coded_fmt_desc *
- rkvdec_find_coded_fmt_desc(struct rkvdec_ctx *ctx, u32 fourcc)
+ static bool rkvdec_is_capable(struct rkvdec_ctx *ctx, unsigned int capability)
  {
-@@ -1125,6 +1184,35 @@ static irqreturn_t rk3399_irq_handler(struct rkvdec_ctx *ctx)
+ 	return (ctx->dev->capabilities & capability) == capability;
+@@ -1230,6 +1290,35 @@ static irqreturn_t rk3399_irq_handler(struct rkvdec_ctx *ctx)
  	return IRQ_HANDLED;
  }
  
@@ -1141,7 +1101,7 @@ index aee26a9a9..ee150af68 100644
  static irqreturn_t rkvdec_irq_handler(int irq, void *priv)
  {
  	struct rkvdec_dev *rkvdec = priv;
-@@ -1149,14 +1237,81 @@ static void rkvdec_watchdog_func(struct work_struct *work)
+@@ -1254,10 +1343,76 @@ static void rkvdec_watchdog_func(struct work_struct *work)
  	}
  }
  
@@ -1188,7 +1148,7 @@ index aee26a9a9..ee150af68 100644
 +	return 0;
 +}
 +
- const struct rkvdec_config config_rkvdec = {
+ static const struct rkvdec_config config_rkvdec = {
  	.coded_fmts = (struct rkvdec_coded_fmt_desc *)rkvdec_coded_fmts,
  	.coded_fmts_num = ARRAY_SIZE(rkvdec_coded_fmts),
  	.irq_handler = rk3399_irq_handler,
@@ -1208,7 +1168,7 @@ index aee26a9a9..ee150af68 100644
 +	{67,	PIC_HEIGHT},	// filtc col
 +};
 +
-+const struct rkvdec_config config_vdpu381 = {
++static const struct rkvdec_config config_vdpu381 = {
 +	.coded_fmts = (struct rkvdec_coded_fmt_desc *)vdpu381_coded_fmts,
 +	.coded_fmts_num = ARRAY_SIZE(vdpu381_coded_fmts),
 +	.rcb_size_info = vdpu381_rcb_sizes,
@@ -1217,13 +1177,31 @@ index aee26a9a9..ee150af68 100644
 +	.fill_pixfmt_mp = vdpu38x_fill_pixfmt_mp,
  };
  
+ static const struct rkvdec_variant rk3288_rkvdec_variant = {
+@@ -1280,6 +1435,11 @@ static const struct rkvdec_variant rk3399_rkvdec_variant = {
+ 			RKVDEC_CAPABILITY_VP9,
+ };
+ 
++static const struct rkvdec_variant rk3588_vdpu381_variant = {
++	.config = &config_vdpu381,
++	.capabilities = RKVDEC_CAPABILITY_H264,
++};
++
  static const struct of_device_id of_rkvdec_match[] = {
- 	{ .compatible = "rockchip,rk3399-vdec", .data = &config_rkvdec },
-+	{ .compatible = "rockchip,rk3588-vdec", .data = &config_vdpu381 },
+ 	{
+ 		.compatible = "rockchip,rk3288-vdec",
+@@ -1293,6 +1453,10 @@ static const struct of_device_id of_rkvdec_match[] = {
+ 		.compatible = "rockchip,rk3399-vdec",
+ 		.data = &rk3399_rkvdec_variant,
+ 	},
++	{
++		.compatible = "rockchip,rk3588-vdec",
++		.data = &rk3588_vdpu381_variant,
++	},
  	{ /* sentinel */ }
  };
  MODULE_DEVICE_TABLE(of, of_rkvdec_match);
-@@ -1175,6 +1330,10 @@ static int rkvdec_probe(struct platform_device *pdev)
+@@ -1319,11 +1483,16 @@ static int rkvdec_probe(struct platform_device *pdev)
  	mutex_init(&rkvdec->vdev_lock);
  	INIT_DELAYED_WORK(&rkvdec->watchdog_work, rkvdec_watchdog_func);
  
@@ -1231,10 +1209,8 @@ index aee26a9a9..ee150af68 100644
 +	if (ret)
 +		return ret;
 +
- 	rkvdec->config =
- 		(struct rkvdec_config *)of_device_get_match_data(rkvdec->dev);
- 
-@@ -1183,6 +1342,7 @@ static int rkvdec_probe(struct platform_device *pdev)
+ 	ret = devm_clk_bulk_get_all_enabled(&pdev->dev, &rkvdec->clocks);
+ 	if (ret < 0)
  		return ret;
  
  	rkvdec->clk_count = ret;
@@ -1243,10 +1219,10 @@ index aee26a9a9..ee150af68 100644
  	rkvdec->regs = devm_platform_ioremap_resource(pdev, 0);
  	if (IS_ERR(rkvdec->regs))
 diff --git a/drivers/media/platform/rockchip/rkvdec/rkvdec.h b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
-index af47f16cb..9e0fef244 100644
+index 4e4a3c7839..dac3fbdfd0 100644
 --- a/drivers/media/platform/rockchip/rkvdec/rkvdec.h
 +++ b/drivers/media/platform/rockchip/rkvdec/rkvdec.h
-@@ -108,6 +108,8 @@ struct rkvdec_config {
+@@ -121,6 +121,8 @@ struct rkvdec_config {
  	struct rcb_size_info *rcb_size_info;
  	size_t rcb_num;
  	irqreturn_t (*irq_handler)(struct rkvdec_ctx *ctx);
@@ -1255,7 +1231,7 @@ index af47f16cb..9e0fef244 100644
  };
  
  struct rkvdec_dev {
-@@ -118,6 +120,7 @@ struct rkvdec_dev {
+@@ -131,6 +133,7 @@ struct rkvdec_dev {
  	struct device *dev;
  	struct clk_bulk_data *clocks;
  	unsigned int clk_count;
@@ -1263,7 +1239,7 @@ index af47f16cb..9e0fef244 100644
  	void __iomem *regs;
  	struct mutex vdev_lock; /* serializes ioctls */
  	struct delayed_work watchdog_work;
-@@ -136,6 +139,7 @@ struct rkvdec_ctx {
+@@ -151,6 +154,7 @@ struct rkvdec_ctx {
  	struct rkvdec_dev *dev;
  	enum rkvdec_image_fmt image_fmt;
  	struct rkvdec_rcb_config *rcb_config;
@@ -1271,8 +1247,8 @@ index af47f16cb..9e0fef244 100644
  	void *priv;
  };
  
-@@ -163,4 +167,6 @@ void rkvdec_memcpy_toio(void __iomem *dst, void *src, size_t len);
- extern const struct rkvdec_coded_fmt_ops rkvdec_h264_fmt_ops;
+@@ -179,4 +183,6 @@ extern const struct rkvdec_coded_fmt_ops rkvdec_h264_fmt_ops;
+ extern const struct rkvdec_coded_fmt_ops rkvdec_hevc_fmt_ops;
  extern const struct rkvdec_coded_fmt_ops rkvdec_vp9_fmt_ops;
  
 +extern const struct rkvdec_coded_fmt_ops rkvdec_vdpu381_h264_fmt_ops;
