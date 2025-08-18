@@ -1,19 +1,14 @@
 
 GARNAME       = readline
-GARVERSION    = 8.2
+GARVERSION    = 8.3
 CATEGORIES    = lib
 MASTER_SITES  = https://ftp.gnu.org/gnu/$(GARNAME)/
 MASTER_SITES += https://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)-patches/
 DISTFILES     = $(DISTNAME).tar.gz
 PATCHFILES    = \
 	$(GARNAME)$(subst .,,$(GARVERSION))-001 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-002 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-003 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-004 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-005 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-006 \
-	$(GARNAME)$(subst .,,$(GARVERSION))-007 \
-	$(DISTNAME)-add-ncurses-linking.patch
+	$(DISTNAME)-display-null-prompt.patch   \
+	$(DISTNAME)-add-ncurses-linking.patch   \
 
 DESCRIPTION = 
 define BLURB
