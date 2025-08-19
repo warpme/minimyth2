@@ -1,6 +1,6 @@
 
 GARNAME      = ruby
-GARVERSION   = 3.4.3
+GARVERSION   = 3.4.5
 CATEGORIES   = utils
 MASTER_SITES = https://cache.ruby-lang.org/pub/ruby/3.4/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.xz
@@ -23,12 +23,15 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CPPFLAGS += -fPIC
 CFLAGS   += -fPIC
 
+export CC="/home/piotro/Desktop/minimyth2/images/build/usr/bin/x86_64-build-linux-gnu-gcc"
+
+
 CONFIGURE_ARGS = $(DIRPATHS) \
         --build=$(GARBUILD) \
         --host=$(GARHOST) \
         --disable-install-doc \
         --disable-install-rdoc \
-        --with-baseruby=$(build_DESTDIR)$(build_bindir)/ruby
+        --with-baseruby=$(build_DESTDIR)$(build_bindir)/ruby \
 
 ifeq ($(DESTIMG),build)
 CONFIGURE_ARGS += \
