@@ -305,6 +305,7 @@ PATCHFILES += 1038-drm-bridge-synopsys-add-cec-support.patch
 PATCHFILES += 1039-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1040-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 PATCHFILES += 1041-net-stmmac-dwmac-rk-fix-disabling-set_clock_selection.patch
+PATCHFILES += 1042-usb-typec-fusb302-cache-pd-rx-state.patch
 
 # rkvdec2 h264 hevc support
 PATCHFILES += 1045-media-rkvdec-restore-iommu-addresses-on-errors.patch

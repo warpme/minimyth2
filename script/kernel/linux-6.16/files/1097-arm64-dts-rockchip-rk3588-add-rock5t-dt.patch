@@ -1,7 +1,7 @@
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/arm64/boot/dts/rockchip/Makefile linux-6.16-rc1/arch/arm64/boot/dts/rockchip/Makefile
---- linux-6.16-rc1/arch/arm64/boot/dts/rockchip/Makefile	2025-06-11 15:54:23.801590671 +0200
-+++ linux-6.16-rc1/arch/arm64/boot/dts/rockchip/Makefile	2025-06-11 15:54:00.614924503 +0200
-@@ -183,6 +183,7 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.1/arch/arm64/boot/dts/rockchip/Makefile linux-6.16.1/arch/arm64/boot/dts/rockchip/Makefile
+--- linux-6.16.1/arch/arm64/boot/dts/rockchip/Makefile	2025-08-19 11:27:23.413753040 +0200
++++ linux-6.16.1/arch/arm64/boot/dts/rockchip/Makefile	2025-08-19 11:49:56.863757534 +0200
+@@ -184,6 +184,7 @@
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5b-pcie-ep.dtbo
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5b-pcie-srns.dtbo
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-rock-5b-plus.dtb
@@ -9,10 +9,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-tiger-haikou.dtb
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-tiger-haikou-video-demo.dtbo
  dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3588-toybrick-x0.dtb
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/arm64/boot/dts/rockchip/rk3588-rock-5t.dts linux-6.16-rc1/arch/arm64/boot/dts/rockchip/rk3588-rock-5t.dts
---- linux-6.16-rc1/arch/arm64/boot/dts/rockchip/rk3588-rock-5t.dts	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.16-rc1/arch/arm64/boot/dts/rockchip/rk3588-rock-5t.dts	2025-06-11 15:53:11.928258880 +0200
-@@ -0,0 +1,1004 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.1/arch/arm64/boot/dts/rockchip/rk3588-rock-5t.dts linux-6.16.1/arch/arm64/boot/dts/rockchip/rk3588-rock-5t.dts
+--- linux-6.16.1/arch/arm64/boot/dts/rockchip/rk3588-rock-5t.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.16.1/arch/arm64/boot/dts/rockchip/rk3588-rock-5t.dts	2025-08-19 15:07:47.455497356 +0200
+@@ -0,0 +1,1138 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +
 +/*
@@ -25,6 +25,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +#include <dt-bindings/gpio/gpio.h>
 +#include <dt-bindings/leds/common.h>
 +#include <dt-bindings/soc/rockchip,vop2.h>
++#include <dt-bindings/usb/pd.h>
 +#include "rk3588.dtsi"
 +
 +/ {
@@ -115,6 +116,18 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +		compatible = "iio-hwmon";
 +		io-channels = <&saradc 0 &saradc 1 &saradc 2 &saradc 3 &saradc 4 &saradc 5 &saradc 6 &saradc 7>;
 +		status = "okay";
++	};
++
++	vbus5v0_typec: vbus5v0-typec {
++		compatible = "regulator-fixed";
++		enable-active-high;
++		gpio = <&gpio2 RK_PB6 GPIO_ACTIVE_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&vbus5v0_typec_en>;
++		regulator-name = "vbus5v0_typec";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&vcc5v0_sys>;
 +	};
 +
 +	vcc3v3_pcie2x1l0: regulator-vcc3v3-pcie2x1l0 {
@@ -351,6 +364,76 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +	};
 +};
 +
++&i2c4 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c4m1_xfer>;
++	status = "okay";
++
++	usbc0: usb-typec@22 {
++		compatible = "fcs,fusb302";
++		reg = <0x22>;
++		interrupt-parent = <&gpio3>;
++		interrupts = <RK_PB4 IRQ_TYPE_LEVEL_LOW>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&usbc0_int>;
++		vbus-supply = <&vbus5v0_typec>;
++		/*
++		 * When the board is starting to send power-delivery messages
++		 * too late (5 seconds according to the specification), the
++		 * power-supply reacts with a hard-reset. That removes the
++		 * power from VBUS for some time, which resets te whole board.
++		 */
++		status = "fail";
++
++		usb_con: connector {
++			compatible = "usb-c-connector";
++			label = "USB-C";
++			data-role = "dual";
++			/* fusb302 supports PD Rev 2.0 Ver 1.2 */
++			pd-revision = /bits/ 8 <0x2 0x0 0x1 0x2>;
++			power-role = "sink";
++			try-power-role = "sink";
++			op-sink-microwatt = <1000000>;
++			sink-pdos =
++				<PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>,
++				<PDO_VAR(5000, 20000, 5000)>;
++
++			altmodes {
++				displayport {
++					svid = /bits/ 16 <0xff01>;
++					vdo = <0xffffffff>;
++				};
++			};
++
++			ports {
++				#address-cells = <1>;
++				#size-cells = <0>;
++
++				port@0 {
++					reg = <0>;
++					usbc0_hs: endpoint {
++						remote-endpoint = <&usb_host0_xhci_to_usbc0>;
++					};
++				};
++
++				port@1 {
++					reg = <1>;
++					usbc0_ss: endpoint {
++						remote-endpoint = <&usbdp_phy0_ss>;
++					};
++				};
++
++				port@2 {
++					reg = <2>;
++					usbc0_sbu: endpoint {
++						remote-endpoint = <&usbdp_phy0_sbu>;
++					};
++				};
++			};
++		};
++	};
++};
++
 +&i2c6 {
 +	status = "okay";
 +
@@ -546,6 +629,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +	usb {
 +		vcc5v0_host_en: vcc5v0-host-en {
 +			rockchip,pins = <1 RK_PA1 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++
++		usbc_sbu_dc: usbc-sbu-dc {
++			rockchip,pins = <0 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
 +		};
 +	};
 +
@@ -944,6 +1031,14 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +	status = "okay";
 +};
 +
++&u2phy0 {
++	status = "okay";
++};
++
++&u2phy0_otg {
++	status = "okay";
++};
++
 +&u2phy2 {
 +	status = "okay";
 +};
@@ -970,6 +1065,20 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +	status = "okay";
 +};
 +
++&usb_host0_xhci {
++	usb-role-switch;
++	status = "okay";
++
++	port {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		usb_host0_xhci_to_usbc0: endpoint {
++			remote-endpoint = <&usbc0_hs>;
++		};
++	};
++};
++
 +&usb_host1_ehci {
 +	status = "okay";
 +};
@@ -989,6 +1098,31 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16-rc1/arch/ar
 +&usb_host1_xhci {
 +	dr_mode = "host";
 +	status = "okay";
++};
++
++&usbdp_phy0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&usbc_sbu_dc>;
++	sbu1-dc-gpios = <&gpio0 RK_PC4 GPIO_ACTIVE_HIGH>;
++	sbu2-dc-gpios = <&gpio0 RK_PC5 GPIO_ACTIVE_HIGH>;
++	mode-switch;
++	orientation-switch;
++	status = "okay";
++
++	port {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		usbdp_phy0_ss: endpoint@0 {
++			reg = <0>;
++			remote-endpoint = <&usbc0_ss>;
++		};
++
++		usbdp_phy0_sbu: endpoint@1 {
++			reg = <1>;
++			remote-endpoint = <&usbc0_sbu>;
++		};
++	};
 +};
 +
 +&usbdp_phy1 {
