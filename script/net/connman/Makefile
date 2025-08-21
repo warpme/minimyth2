@@ -1,10 +1,9 @@
 
 GARNAME      = connman
-GARVERSION   = 1.44
+GARVERSION   = 1.45
 CATEGORIES   = new
 MASTER_SITES = https://www.kernel.org/pub/linux/network/connman/
 DISTFILES    = $(GARNAME)-$(GARVERSION).tar.xz
-PATCHFILES   = fix-gcc15-building.patch
 LICENSE      = GPL2
 
 DESCRIPTION = 
