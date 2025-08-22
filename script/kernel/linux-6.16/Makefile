@@ -190,7 +190,8 @@ ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
 PATCHFILES += 0722-v4l2-wip-iep-driver.patch
 PATCHFILES += 0725-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
-PATCHFILES += 0727-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
+# commented as it breaks KDE plasma HW cursor
+# PATCHFILES += 0727-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
 # device-tree patches
 PATCHFILES += 0738-arm64-dtsi-rockchip-rk3399-rise-alert-crit-cpu-temps.patch
 PATCHFILES += 0739-arm64-dtsi-rockchip-rk3328-rk3399-add-soft-reset.patch
@@ -282,10 +283,10 @@ ifeq (1,1)
 PATCHFILES += 1003-math.h-add-DIV_ROUND_UP_NO_OVERFLOW.patch
 PATCHFILES += 1004-clk-divider-Fix-divisor-masking-on-64-bit-platforms.patch
 PATCHFILES += 1005-clk-composite-replace-open-coded-abs_diff.patch
-PATCHFILES += 1006-watchdog-dw_wdt-fix-default-timeout.patch
 PATCHFILES += 1007-PM-devfreq-rockchip-dfi-double-count-on-RK3588.patch
 PATCHFILES += 1008-mfd-rk8xx-Fix-shutdown-handler.patch
-PATCHFILES += 1009-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
+# commented as it breaks KDE plasma HW cursor
+# PATCHFILES += 1009-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
 # drm improvements
 PATCHFILES += 1016-dt-bindings-display-vop2-Add-VP-clock-resets.patch
 PATCHFILES += 1017-drm-rockchip-vop2-Add-clock-resets-support.patch
@@ -305,7 +306,6 @@ PATCHFILES += 1038-drm-bridge-synopsys-add-cec-support.patch
 PATCHFILES += 1039-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1040-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 PATCHFILES += 1041-net-stmmac-dwmac-rk-fix-disabling-set_clock_selection.patch
-PATCHFILES += 1042-usb-typec-fusb302-cache-pd-rx-state.patch
 
 # rkvdec2 h264 hevc support
 PATCHFILES += 1045-media-rkvdec-restore-iommu-addresses-on-errors.patch
