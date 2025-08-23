@@ -33,6 +33,9 @@ PATCHFILES   += 0053-stop-uncoditionally-building-udfread.patch
 PATCHFILES   += 0054-stop-detecting-clang.patch
 PATCHFILES   += 0055-stop-using-10bitRGB-for-gui-plane.patch
 PATCHFILES   += 0056-EGL_KHR_fix_partial_update.patch
+# to do
+#PATCHFILES   += 0100-fix-planes-detection.patch
+#PATCHFILES   += 0101-fix-gui-plane-in-egl.patch
 
 WORKSRC       = $(WORKDIR)/xbmc-$(GARVERSION)
 

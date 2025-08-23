@@ -1,0 +1,418 @@
+diff --speed-large-files --no-dereference --minimal -Naur xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.cpp xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.cpp
+--- xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.cpp	2025-08-22 13:36:02.000000000 +0200
++++ xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/cores/VideoPlayer/VideoRenderers/HwDecRender/RendererDRMPRIME.cpp	2025-08-22 21:33:08.594467875 +0200
+@@ -70,14 +70,7 @@
+     if (!gui)
+       return nullptr;
+ 
+-    if (!gui->SupportsFormat(CDRMUtils::FourCCWithAlpha(gui->GetFormat())))
+-      return nullptr;
+-
+-    auto plane = drm->GetVideoPlane();
+-    if (!plane)
+-      return nullptr;
+-
+-    if (!plane->SupportsFormatAndModifier(format, modifier))
++    if (!drm->FindPlanes(format, modifier))
+       return nullptr;
+ 
+     return new CRendererDRMPRIME();
+@@ -89,7 +82,7 @@
+ void CRendererDRMPRIME::Register()
+ {
+   CWinSystemGbm* winSystem = dynamic_cast<CWinSystemGbm*>(CServiceBroker::GetWinSystem());
+-  if (winSystem && winSystem->GetDrm()->GetVideoPlane() &&
++  if (winSystem && winSystem->GetDrm()->GetGuiPlane() &&
+       std::dynamic_pointer_cast<CDRMAtomic>(winSystem->GetDrm()))
+   {
+     CServiceBroker::GetSettingsComponent()
+diff --speed-large-files --no-dereference --minimal -Naur xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMAtomic.cpp xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMAtomic.cpp
+--- xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMAtomic.cpp	2025-08-22 13:36:02.000000000 +0200
++++ xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMAtomic.cpp	2025-08-22 21:33:08.594467875 +0200
+@@ -133,11 +133,6 @@
+ 
+   if (rendered)
+   {
+-    if (videoLayer)
+-      m_gui_plane->SetFormat(CDRMUtils::FourCCWithAlpha(m_gui_plane->GetFormat()));
+-    else
+-      m_gui_plane->SetFormat(CDRMUtils::FourCCWithoutAlpha(m_gui_plane->GetFormat()));
+-
+     drm_fb = CDRMUtils::DrmFbGetFromBo(bo);
+     if (!drm_fb)
+     {
+diff --speed-large-files --no-dereference --minimal -Naur xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMObject.cpp xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMObject.cpp
+--- xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMObject.cpp	2025-08-22 13:36:02.000000000 +0200
++++ xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMObject.cpp	2025-08-22 21:33:08.594467875 +0200
+@@ -105,6 +105,22 @@
+   return {};
+ }
+ 
++uint64_t CDRMObject::GetRangePropertyValue(std::string_view name)
++{
++  auto property = std::find_if(m_propsInfo.begin(), m_propsInfo.end(),
++                               [&name](const auto& prop) { return prop->name == name; });
++
++  if (property == m_propsInfo.end())
++    return {};
++
++  auto prop = property->get();
++
++  if (!static_cast<bool>(drm_property_type_is(prop, DRM_MODE_PROP_RANGE)))
++    return {};
++
++  return m_props->prop_values[std::distance(m_propsInfo.begin(), property)];
++}
++
+ bool CDRMObject::SetProperty(const std::string& name, uint64_t value)
+ {
+   auto property = std::find_if(m_propsInfo.begin(), m_propsInfo.end(),
+@@ -120,6 +136,17 @@
+   return false;
+ }
+ 
++std::optional<bool> CDRMObject::IsPropertyImmutable(std::string_view name)
++{
++  auto property = std::find_if(m_propsInfo.begin(), m_propsInfo.end(),
++                               [&name](const auto& prop) { return prop->name == name; });
++
++  if (property == m_propsInfo.end())
++    return {};
++
++  return static_cast<bool>(drm_property_type_is(property->get(), DRM_MODE_PROP_IMMUTABLE));
++}
++
+ bool CDRMObject::SupportsProperty(const std::string& name)
+ {
+   auto property = std::find_if(m_propsInfo.begin(), m_propsInfo.end(),
+diff --speed-large-files --no-dereference --minimal -Naur xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMObject.h xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMObject.h
+--- xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMObject.h	2025-08-22 13:36:02.000000000 +0200
++++ xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMObject.h	2025-08-22 21:33:08.594467875 +0200
+@@ -40,6 +40,8 @@
+ 
+   bool SetProperty(const std::string& name, uint64_t value);
+   bool SupportsProperty(const std::string& name);
++  std::optional<bool> IsPropertyImmutable(std::string_view name);
++  uint64_t GetRangePropertyValue(std::string_view name);
+ 
+ protected:
+   explicit CDRMObject(int fd);
+diff --speed-large-files --no-dereference --minimal -Naur xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMPlane.h xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMPlane.h
+--- xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMPlane.h	2025-08-22 13:36:02.000000000 +0200
++++ xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMPlane.h	2025-08-22 21:33:08.594467875 +0200
+@@ -50,7 +50,7 @@
+   std::unique_ptr<drmModePlane, DrmModePlaneDeleter> m_plane;
+ 
+   std::map<uint32_t, std::vector<uint64_t>> m_modifiers_map;
+-  uint32_t m_format{DRM_FORMAT_XRGB8888};
++  uint32_t m_format{DRM_FORMAT_INVALID};
+ };
+ 
+ } // namespace GBM
+diff --speed-large-files --no-dereference --minimal -Naur xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMUtils.cpp xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMUtils.cpp
+--- xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMUtils.cpp	2025-08-22 21:54:49.224472189 +0200
++++ xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMUtils.cpp	2025-08-22 21:54:21.535789794 +0200
+@@ -22,6 +22,7 @@
+ namespace
+ {
+ const std::string SETTING_VIDEOSCREEN_LIMITGUISIZE = "videoscreen.limitguisize";
++const std::string SETTING_VIDEOPLAYER_DRM10BITMODE = "videoplayer.drm10bitmode";
+ 
+ void DrmFbDestroyCallback(gbm_bo* bo, void* data)
+ {
+@@ -63,12 +64,7 @@
+   {
+     struct drm_fb* fb = static_cast<drm_fb*>(gbm_bo_get_user_data(bo));
+     if (fb)
+-    {
+-      if (m_gui_plane->GetFormat() == fb->format)
+         return fb;
+-      else
+-        DrmFbDestroyCallback(bo, gbm_bo_get_user_data(bo));
+-    }
+   }
+ 
+   struct drm_fb* fb = new drm_fb;
+@@ -160,70 +156,134 @@
+   return true;
+ }
+ 
+-bool CDRMUtils::FindPlanes()
+-{
+-  for (size_t i = 0; i < m_crtcs.size(); i++)
+-  {
+-    if (!(m_encoder->GetPossibleCrtcs() & (1 << i)))
+-      continue;
++// finds a video plane with given format + modifier, and a gui plane with inited format + modifier for any available crtcs
++bool CDRMUtils::FindPlanes(uint32_t format, uint64_t modifier) {
++    // current config already satisfies
++    if (m_gui_plane != nullptr && m_video_plane != nullptr
++            && m_video_plane->SupportsFormatAndModifier(format, modifier))
++        return true;
++ 
++    uint32_t guiformat = m_gui_plane->GetFormat();
++    // loop over current crtc which is capable of rendering on the connected encoder (port)
++    for (size_t crtc_offset = 0; crtc_offset < m_crtcs.size(); crtc_offset++) {
++        if (!(m_encoder->GetPossibleCrtcs() & (1 << crtc_offset)))
++            continue;
++        // loop for each gui plane candidate which satisfies the current EGL rendered format
++        // gui format is decided in FindGuiPlane
++        for (auto &gui_plane : m_planes) {
++            auto gplane = gui_plane.get();
++            if (!(gplane->GetPossibleCrtcs() & (1 << crtc_offset))
++                    || !gplane->SupportsFormatAndModifier(guiformat, DRM_FORMAT_MOD_LINEAR))
++                continue;
++            // loop for each format satisfying video plane candidate which is different than gui plane candidate
++            for (auto &vid_plane : m_planes) {
++                auto vplane = vid_plane.get();
++                if (!(vplane->GetPossibleCrtcs() & (1 << crtc_offset))
++                        || !vplane->SupportsFormatAndModifier(format, modifier)
++                        || vplane->GetId() == gplane->GetId())
++                    continue;
++                bool zpos_available = vplane->SupportsProperty("zpos") && gplane->SupportsProperty("zpos");
++                bool zpos_mutable = zpos_available && !vplane->IsPropertyImmutable("zpos").value() && !gplane->IsPropertyImmutable("zpos").value();
++                // if zpos is supported, select the planes, and put video on top and set as current crtc
++                if (zpos_available) {
++                    uint64_t zpos_gui = gplane->GetRangePropertyValue("zpos");
++                    uint64_t zpos_vid = vplane->GetRangePropertyValue("zpos");
++                    // zpos is immutable, make sure gui is on top by selecting correct zpos
++                    if (!zpos_mutable && zpos_gui <= zpos_vid)
++                        continue;
++                    // zpos is mutable, make sure gui is on top by setting correct zpos
++                    if(zpos_mutable && zpos_gui <= zpos_vid) {
++                        gplane->SetProperty("zpos", 1);
++                        vplane->SetProperty("zpos", 0);
++                    }
++                    m_crtc = m_crtcs[crtc_offset].get();
++                    m_gui_plane = gplane;
++                    m_video_plane = vplane;
++                    goto success;
++                // if zpos is not supported, make sure video plane id > gui plane id
++                // this is how drm sorts when zpos is not available. Set crtc as the current crtc
++                } else if (vplane->GetId() < gplane->GetId()) {
++                    m_crtc = m_crtcs[crtc_offset].get();
++                    m_gui_plane = gplane;
++                    m_video_plane = vplane;
++                    goto success;
++                }
++            }
++        }
++    }
+ 
+-    auto videoPlane = std::ranges::find_if(m_planes,
+-                                           [&i](auto& plane)
+-                                           {
+-                                             if (plane->GetPossibleCrtcs() & (1 << i))
+-                                             {
+-                                               return plane->SupportsFormat(DRM_FORMAT_NV12);
+-                                             }
+-                                             return false;
+-                                           });
++    CLog::Log(LOGERROR, "CDRMUtils::{} - Can not find a Video Plane plane with format {}, modifier {}. Re-initing",
++            __FUNCTION__, DRMHELPERS::FourCCToString(format), DRMHELPERS::ModifierToString(modifier));
++    return InitGuiPlane(nullptr, 0);
+ 
+-    uint32_t videoPlaneId{0};
++success:
++    m_gui_plane->SetFormat(guiformat);
++    CLog::Log(LOGINFO, "CDRMUtils::{} - Switched GUI Plane to id:{}, video plane to id:{} on crtc id:{} video for format:{}, modifier:{}",
++            __FUNCTION__, m_gui_plane->GetId(), m_video_plane->GetId(), m_crtc->GetId(),
++            DRMHELPERS::FourCCToString(format), DRMHELPERS::ModifierToString(modifier));
++    return true;
++}
+ 
+-    if (videoPlane != m_planes.end())
+-      videoPlaneId = videoPlane->get()->GetPlaneId();
++// determines the GUI rendering format and selects a plane+crtc for it without considering the future video plane
++bool CDRMUtils::InitGuiPlane(CEGLContextUtils* eglContext, EGLint renderableType) {
++    int mode = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(SETTING_VIDEOPLAYER_DRM10BITMODE);
++    std::vector<std::unique_ptr<CDRMPlane>> gui_candidates;
+ 
+-    auto guiPlane = std::ranges::find_if(
+-        m_planes,
+-        [&i, &videoPlaneId](auto& plane)
+-        {
+-          if (plane->GetPossibleCrtcs() & (1 << i))
+-          {
+-            return (plane->GetPlaneId() != videoPlaneId &&
+-                    (videoPlaneId == 0 || plane->SupportsFormat(DRM_FORMAT_ARGB8888)) &&
+-                     plane->SupportsFormat(DRM_FORMAT_XRGB8888));
+-          }
+-          return false;
+-        });
++    m_gui_plane = nullptr;
++    m_video_plane = nullptr;
++    m_crtc = nullptr;
++    std::map<std::uint32_t, std::vector<uint32_t>> formats{{DRM_FORMAT_ARGB2101010, {DRM_FORMAT_XRGB2101010, DRM_FORMAT_ARGB2101010}},
++                                                           {DRM_FORMAT_ARGB8888, {DRM_FORMAT_XRGB8888, DRM_FORMAT_ARGB8888}},};
+ 
+-    if (videoPlane != m_planes.end() && guiPlane != m_planes.end())
+-    {
+-      m_crtc = m_crtcs[i].get();
+-      m_video_plane = videoPlane->get();
+-      m_gui_plane = guiPlane->get();
+-      break;
+-    }
++    for (auto const& format : formats) {
++        // check if 8bit is forced
++        if (mode && format.first == DRM_FORMAT_ARGB2101010)
++            continue;
+ 
+-    if (guiPlane != m_planes.end())
+-    {
+-      if (!m_crtc && m_encoder->GetCrtcId() == m_crtcs[i]->GetCrtcId())
+-      {
+-        m_crtc = m_crtcs[i].get();
+-        m_gui_plane = guiPlane->get();
+-        m_video_plane = nullptr;
+-      }
+-    }
+-  }
++        // log if 8bit mode fallback
++        if (!mode && format.first != DRM_FORMAT_ARGB2101010)
++            CLog::Log(LOGWARNING, "CDRMUtils::{} - Requested 10bit GUI or EGL format support is not found, falling back to 8 bit",
++                    __FUNCTION__);
+ 
+-  CLog::Log(LOGINFO, "CDRMUtils: using crtc: {}", m_crtc->GetCrtcId());
++        // check if EGL supports a format compatible with the DRM format
++        uint32_t eglformat = DRM_FORMAT_INVALID;
++        if(eglContext){
++            for (uint32_t eformat : format.second){
++                if (!eglContext->ChooseConfig(renderableType, eformat))
++                    continue;
++                eglformat = eformat;
++            }
++            if(eglformat == DRM_FORMAT_INVALID){
++                CLog::Log(LOGWARNING, "CDRMUtils::{} - No egl format found for plane format {}",
++                                    __FUNCTION__, DRMHELPERS::FourCCToString(format.first));
++                continue;
++            }
++        }
++        // loop through crtcs connected to encoder (port)
++        for (size_t crtc_offset = 0; crtc_offset < m_crtcs.size(); crtc_offset++) {
++            if (!(m_encoder->GetPossibleCrtcs() & (1 << crtc_offset)))
++                continue;
+ 
+-  // video plane may not be available
+-  if (m_video_plane)
+-    CLog::LogF(LOGDEBUG, "Using video plane {}", m_video_plane->GetPlaneId());
++            // find a plane satisfies the format and crtc
++            auto guiPlane = std::find_if(m_planes.begin(), m_planes.end(), [&crtc_offset, &format](auto &plane) {
++                if (plane->GetPossibleCrtcs() & (1 << crtc_offset))
++                    return (plane->SupportsFormatAndModifier(format.first, DRM_FORMAT_MOD_LINEAR));
++                return false;
++            });
++            if (guiPlane == m_planes.end())
++                continue;
+ 
+-  m_gui_plane->SetFormat(DRM_FORMAT_XRGB8888);
+-  CLog::Log(LOGDEBUG, "CDRMUtils::{} - using gui plane {}", __FUNCTION__,
+-            m_gui_plane->GetPlaneId());
+-  return true;
++            m_crtc = m_crtcs[crtc_offset].get();
++            m_gui_plane = guiPlane->get();
++            CLog::Log(LOGINFO, "CDRMUtils::{} - Requested GUI plane is found with id: {} and plane format {}, egl format over crtc id: {}",
++                    __FUNCTION__, m_gui_plane->GetId(), DRMHELPERS::FourCCToString(format.first), DRMHELPERS::FourCCToString(eglformat),
++                    m_crtc->GetId());
++            m_gui_plane->SetFormat(format.first);
++            return true;
++        }
++    }
++    CLog::Log(LOGERROR, "CDRMUtils::{} - No 10bit nor 8bit capable GUI plane found", __FUNCTION__);
++    return false;
+ }
+ 
+ void CDRMUtils::PrintDrmDeviceInfo(drmDevicePtr device)
+@@ -432,9 +492,6 @@
+   if (!FindCrtc())
+     return false;
+ 
+-  if (!FindPlanes())
+-    return false;
+-
+   if (!FindPreferredMode())
+     return false;
+ 
+@@ -685,13 +742,3 @@
+ 
+   return connectorNames;
+ }
+-
+-uint32_t CDRMUtils::FourCCWithAlpha(uint32_t fourcc)
+-{
+-  return (fourcc & 0xFFFFFF00) | static_cast<uint32_t>('A');
+-}
+-
+-uint32_t CDRMUtils::FourCCWithoutAlpha(uint32_t fourcc)
+-{
+-  return (fourcc & 0xFFFFFF00) | static_cast<uint32_t>('X');
+-}
+diff --speed-large-files --no-dereference --minimal -Naur xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMUtils.h xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMUtils.h
+--- xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMUtils.h	2025-08-22 13:36:02.000000000 +0200
++++ xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/drm/DRMUtils.h	2025-08-22 21:33:08.594467875 +0200
+@@ -14,6 +14,7 @@
+ #include "DRMPlane.h"
+ #include "windowing/Resolution.h"
+ #include "windowing/gbm/GBMUtils.h"
++#include "utils/EGLUtils.h"
+ 
+ #include <utility>
+ #include <vector>
+@@ -53,6 +54,8 @@
+   CDRMPlane* GetGuiPlane() const { return m_gui_plane; }
+   CDRMCrtc* GetCrtc() const { return m_crtc; }
+   CDRMConnector* GetConnector() const { return m_connector; }
++  bool FindPlanes(uint32_t format, uint64_t modifier);
++  bool InitGuiPlane(CEGLContextUtils* eglContext, EGLint renderableType);
+ 
+   std::vector<std::string> GetConnectedConnectorNames();
+ 
+@@ -60,9 +63,6 @@
+   virtual std::vector<RESOLUTION_INFO> GetModes();
+   virtual bool SetMode(const RESOLUTION_INFO& res);
+ 
+-  static uint32_t FourCCWithAlpha(uint32_t fourcc);
+-  static uint32_t FourCCWithoutAlpha(uint32_t fourcc);
+-
+   void SetInFenceFd(int fd) { m_inFenceFd = fd; }
+   int TakeOutFenceFd()
+   {
+@@ -95,7 +95,6 @@
+   bool FindConnector();
+   bool FindEncoder();
+   bool FindCrtc();
+-  bool FindPlanes();
+   bool FindPreferredMode();
+   bool RestoreOriginalMode();
+   RESOLUTION_INFO GetResolutionInfo(drmModeModeInfoPtr mode);
+diff --speed-large-files --no-dereference --minimal -Naur xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/WinSystemGbmEGLContext.cpp xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/WinSystemGbmEGLContext.cpp
+--- xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/WinSystemGbmEGLContext.cpp	2025-08-22 13:36:02.000000000 +0200
++++ xbmc-2dc676eb7519299ea005ad55a8d4888af0b45860/xbmc/windowing/gbm/WinSystemGbmEGLContext.cpp	2025-08-22 21:33:08.594467875 +0200
+@@ -33,25 +33,8 @@
+     return false;
+   }
+ 
+-  auto plane = m_DRM->GetGuiPlane();
+-  uint32_t visualId = plane != nullptr ? plane->GetFormat() : DRM_FORMAT_XRGB2101010;
+-
+-  // prefer alpha visual id, fallback to non-alpha visual id
+-  if (!m_eglContext.ChooseConfig(renderableType, CDRMUtils::FourCCWithAlpha(visualId)) &&
+-      !m_eglContext.ChooseConfig(renderableType, CDRMUtils::FourCCWithoutAlpha(visualId)))
+-  {
+-    // fallback to 8bit format if no EGL config was found for 10bit
+-    if (plane)
+-      plane->SetFormat(DRM_FORMAT_XRGB8888);
+-
+-    visualId = plane != nullptr ? plane->GetFormat() : DRM_FORMAT_XRGB8888;
+-
+-    if (!m_eglContext.ChooseConfig(renderableType, CDRMUtils::FourCCWithAlpha(visualId)) &&
+-        !m_eglContext.ChooseConfig(renderableType, CDRMUtils::FourCCWithoutAlpha(visualId)))
+-    {
+-      return false;
+-    }
+-  }
++  if (!m_DRM->InitGuiPlane(&m_eglContext, renderableType))
++    return false;
+ 
+   if (!CreateContext())
+   {
