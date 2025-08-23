@@ -1,10 +1,11 @@
 
 GARNAME      = mesa
-GARVERSION   = 25.1.6
+# master @22.08.2025
+GARVERSION   = 25b1591df54af35c2522d49e9680a53f7ee71f6e
+MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
+DISTFILES    = mesa-$(DISTNAME).tar.bz2
+WORKSRC      = $(WORKDIR)/$(DISTNAME)
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/mesa-$(GARVERSION)/
-DISTFILES    = mesa-$(DISTNAME).tar.gz
-WORKSRC      = $(WORKDIR)/mesa-$(DISTNAME)
 
 DESCRIPTION = 
 define BLURB
@@ -104,7 +105,6 @@ MESON_CONFIGURE_ARGS = \
 	-D vulkan-drivers=amd,intel \
 	-D gallium-rusticl=false \
 	-D microsoft-clc=disabled \
-	-D install-intel-clc=false \
 	-D llvm=enabled \
 	-D mesa-clc=system \
 
