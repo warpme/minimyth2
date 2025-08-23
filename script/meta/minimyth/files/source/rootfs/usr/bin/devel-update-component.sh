@@ -7,8 +7,8 @@
 # it replaces old files on target with new files from devel. machine.
 #
 # Example:
-# devel. machine at /home/piotro/minimyth2-aarch64-next has mirror of target root file system
-# at </home/piotro/minimyth2-aarch64-next>/main
+# devel. machine at @MM_HOME@ has mirror of target root file system
+# at <@MM_HOME@>/main
 #
 # To configure:
 #
@@ -17,7 +17,7 @@
 #---rsync snippet start----
 #
 #[devel-updates]
-#    path = /home/piotro/minimyth2-aarch64-next
+#    path = @MM_HOME@
 #    use chroot = true
 #    read only = true
 #
@@ -27,7 +27,7 @@
 #
 # 3.make sure on target machine in this script variable 'src_rsync_module' has
 # correct IP address on devel.machine. Current autosetup IP for your env. is:
-# src_rsync_module="/home/piotro/minimyth2-aarch64-next::devel-updates"
+# src_rsync_module="@MM_DEVEL_IP@::devel-updates"
 #
 # 4. Run script on target and select component to update...
 #
@@ -59,7 +59,7 @@
 # dry_run="yes"
 
 # Default host IP::Module where new files reside
-src_rsync_module="192.168.1.190::devel-updates"
+src_rsync_module="@MM_DEVEL_IP@::devel-updates"
 
 # Log file with output from rsync
 log_file="/var/log/online-update.log"
@@ -89,21 +89,17 @@ directory_list2="/usr/lib/dri/:/usr/lib/dri"
 file_list2=" \
 /usr/lib/libEGL.so*:/usr/lib/ \
 /usr/lib/libGL.so*:/usr/lib/ \
-/usr/lib/libglapi.so*:/usr/lib/ \
 /usr/lib/libgbm.so*:/usr/lib/ \
 /usr/lib/libGLESv2.so*:/usr/lib/ \
 /usr/lib/libGLESv1_CM.so*:/usr/lib/ \
+/usr/lib/gbm/dri_gbm*:/usr/lib/gbm/ \
+/usr/lib/libglapi.so*:/usr/lib/ \
+/usr/lib/libgallium*:/usr/lib/ \
+/usr/lib/libvdpau_r*:/usr/lib/ \
+/usr/lib/radeonsi_drv_video.so*:/usr/lib/ \
+/usr/lib/r600_drv_video.so*:/usr/lib/ \
 "
-if [ -e /usr/lib/libvdpau_r* ] ; then
-    file_list2="${file_list2} /usr/lib/libvdpau_r*:/usr/lib/"
-fi
-if [ -e /usr/lib/radeonsi_drv_video.so* ] ; then
-    file_list2="${file_list2} /usr/lib/radeonsi_drv_video.so*:/usr/lib/"
-fi
-if [ -e /usr/lib/r600_drv_video.so* ] ; then
-    file_list2="${file_list2} /usr/lib/r600_drv_video.so*:/usr/lib/"
-fi
-epilog_cmd2="mm_manage restart_xserver"
+epilog_cmd2="sync"
 #--------------------------
 
 # ---- Kernel dir/files ---
@@ -270,7 +266,7 @@ epilog_cmdz="sync"
 
 
 
-ver="v1.3 by (c)Piotr Oniszczuk"
+ver="v1.4 by (c)Piotr Oniszczuk"
 
 clear
 
@@ -460,7 +456,12 @@ if [ "x${directory_list}" != "x" ] ; then
         src_dir=`echo ${tuple} | cut -d":" -f1`
         dst_dir=`echo ${tuple} | cut -d":" -f2`
 
-        run_rsync "${src_rsync_module}${src_dir}" "${dest_prefix}${dst_dir}" "${dry_run}"
+        # use ls to check dir(s) existance as src_dir may contain wildcards...
+        if ls ${src_dir} > /dev/null 2>&1 ; then
+            run_rsync "${src_rsync_module}${src_dir}" "${dest_prefix}${dst_dir}" "${dry_run}"
+        else
+            echo "no [$src_dir] dir on destination!. Skipping ..."
+        fi
 
     done
 
@@ -477,7 +478,12 @@ if [ "x${file_list}" != "x" ] ; then
         src_file=`echo ${tuple} | cut -d":" -f1`
         dst_file=`echo ${tuple} | cut -d":" -f2`
 
-        run_rsync "${src_rsync_module}${src_file}" "${dest_prefix}${dst_file}" "${dry_run}"
+        # use ls to check file(s) existance as src_file may contain wildcards...
+        if ls ${src_file} > /dev/null 2>&1 ; then
+            run_rsync "${src_rsync_module}${src_file}" "${dest_prefix}${dst_file}" "${dry_run}"
+        else
+            echo "no [${src_file}] file on destination!. Skipping ..."
+        fi
 
     done
 
