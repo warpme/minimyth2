@@ -293,17 +293,19 @@ PATCHFILES += 1020-WIP-drm-rockchip-dw_hdmi_qp-Make-use-of-phy_configur.patch
 PATCHFILES += 1030-WIP-drm-bridge-Add-detect_ctx-hook.patch
 PATCHFILES += 1031-WIP-drm-bridge-connector-Switch-from-detect-to-detec.patch
 PATCHFILES += 1032-WIP-drm-bridge-dw-hdmi-qp-Add-high-TMDS-clock-ratio-.patch
-PATCHFILES += 1033-dt-bindings-display-rockchip-Add-schema-for-RK3588-D.patch
-PATCHFILES += 1034-drm-bridge-synopsys-Add-DW-DPTX-Controller-support-l.patch
-PATCHFILES += 1035-drm-rockchip-Add-RK3588-DPTX-output-support.patch
-PATCHFILES += 1036-dt-bindings-display-simple-bridge-Add-ra620-compatib.patch
-PATCHFILES += 1037-drm-birdge-simple-bridge-Add-support-for-radxa-ra620.patch
-
+# DP v4 support https://patchwork.kernel.org/project/linux-rockchip/list/?series=973680
+PATCHFILES += 1033-dt-bindings-display-rockchip-Add-schema-for-RK3588-DPTX-Controller-v4.patch
+PATCHFILES += 1034-drm-bridge-synopsys-Add-DW-DPTX-Controller-support-library-v4.patch
+PATCHFILES += 1035-drm-rockchip-Add-RK3588-DPTX-output-support-v4.patch
+PATCHFILES += 1036-dt-bindings-display-simple-bridge-Add-ra620-compatible.patch
+PATCHFILES += 1037-drm-bridge-simple-bridge-Add-support-for-radxa-ra620.patch
 # var additions
 PATCHFILES += 1038-drm-bridge-synopsys-add-cec-support.patch
 PATCHFILES += 1039-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1040-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 PATCHFILES += 1041-net-stmmac-dwmac-rk-fix-disabling-set_clock_selection.patch
+PATCHFILES += 1042-phy-rockchip-usbdp-move-orientation-handling-further-down.patch
+PATCHFILES += 1043-phy-rockchip-usbdp-reset-USB3-and-reinit-on-orientation-switch.patch
 
 # rkvdec2 h264 hevc support
 PATCHFILES += 1045-media-rkvdec-restore-iommu-addresses-on-errors.patch

@@ -1,7 +1,7 @@
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-5bp-5t.dtsi linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-5bp-5t.dtsi
---- linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-5bp-5t.dtsi	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-5bp-5t.dtsi	2025-08-22 12:59:17.566209260 +0200
-@@ -0,0 +1,1022 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-5bp-5t.dtsi linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-5bp-5t.dtsi
+--- linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-5bp-5t.dtsi	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-5bp-5t.dtsi	2025-08-24 17:24:25.697898064 +0200
+@@ -0,0 +1,1080 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +
 +/dts-v1/;
@@ -187,6 +187,22 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 +	cpu-supply = <&vdd_cpu_lit_s0>;
 +};
 +
++&dp0 {
++	status = "disabled"; //when enabled - kernel ooops at boot...
++};
++
++&dp0_in {
++	dp0_in_vp2: endpoint {
++		remote-endpoint = <&vp2_out_dp0>;
++	};
++};
++
++&dp0_out {
++	dp0_out_con: endpoint {
++		remote-endpoint = <&usbdp_phy0_dp_in>;
++	};
++};
++
 +&gpu {
 +	mali-supply = <&vdd_gpu_s0>;
 +	status = "okay";
@@ -233,11 +249,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 +&hdmi1_sound {
 +	status = "okay";
 +};
-+
++/*
 +&hdmi_receiver_cma {
 +	status = "okay";
 +};
-+/*
++
 +&hdmi_receiver {
 +	pinctrl-0 = <&hdmim1_rx_cec &hdmim1_rx_hpdin &hdmim1_rx_scl &hdmim1_rx_sda &hdmirx_hpd>;
 +	pinctrl-names = "default";
@@ -339,21 +355,21 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 +				port@0 {
 +					reg = <0>;
 +					usbc0_hs: endpoint {
-+						remote-endpoint = <&usb_host0_xhci_to_usbc0>;
++						remote-endpoint = <&usb_host0_xhci_hs>;
 +					};
 +				};
 +
 +				port@1 {
 +					reg = <1>;
 +					usbc0_ss: endpoint {
-+						remote-endpoint = <&usbdp_phy0_ss>;
++						remote-endpoint = <&usbdp_phy0_ss_out>;
 +					};
 +				};
 +
 +				port@2 {
 +					reg = <2>;
 +					usbc0_sbu: endpoint {
-+						remote-endpoint = <&usbdp_phy0_sbu>;
++						remote-endpoint = <&usbdp_phy0_dp_out>;
 +					};
 +				};
 +			};
@@ -948,18 +964,41 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 +	orientation-switch;
 +	status = "okay";
 +
-+	port {
++	ports {
 +		#address-cells = <1>;
 +		#size-cells = <0>;
 +
-+		usbdp_phy0_ss: endpoint@0 {
++
++		port@0 {
 +			reg = <0>;
-+			remote-endpoint = <&usbc0_ss>;
++
++			usbdp_phy0_ss_out: endpoint {
++				remote-endpoint = <&usbc0_ss>;
++			};
 +		};
 +
-+		usbdp_phy0_sbu: endpoint@1 {
++		port@1 {
 +			reg = <1>;
-+			remote-endpoint = <&usbc0_sbu>;
++
++			usbdp_phy0_ss_in: endpoint {
++				remote-endpoint = <&usb_host0_xhci_ss>;
++			};
++		};
++
++		port@2 {
++			reg = <2>;
++
++			usbdp_phy0_dp_in: endpoint {
++				remote-endpoint = <&dp0_out_con>;
++			};
++		};
++
++		port@3 {
++			reg = <3>;
++
++			usbdp_phy0_dp_out: endpoint {
++				remote-endpoint = <&usbc0_sbu>;
++			};
 +		};
 +	};
 +};
@@ -980,12 +1019,24 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 +	usb-role-switch;
 +	status = "okay";
 +
-+	port {
++	ports {
 +		#address-cells = <1>;
 +		#size-cells = <0>;
 +
-+		usb_host0_xhci_to_usbc0: endpoint {
-+			remote-endpoint = <&usbc0_hs>;
++		port@0 {
++			reg = <0>;
++
++			usb_host0_xhci_hs: endpoint {
++				remote-endpoint = <&usbc0_hs>;
++			};
++		};
++
++		port@1 {
++			reg = <1>;
++
++			usb_host0_xhci_ss: endpoint {
++				remote-endpoint = <&usbdp_phy0_ss_in>;
++			};
 +		};
 +	};
 +};
@@ -1024,9 +1075,16 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 +		remote-endpoint = <&hdmi1_in_vp1>;
 +	};
 +};
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts
---- linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts	2025-08-20 18:41:44.000000000 +0200
-+++ linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts	2025-08-22 12:59:22.431683532 +0200
++
++&vp2 {
++	vp2_out_dp0: endpoint@a {
++		reg = <ROCKCHIP_VOP2_EP_DP0>;
++		remote-endpoint = <&dp0_in_vp2>;
++	};
++};
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts
+--- linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts	2025-08-23 16:49:42.000000000 +0200
++++ linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dts	2025-08-24 17:24:25.697898064 +0200
 @@ -38,12 +38,24 @@
  
  &pinctrl {
@@ -1052,9 +1110,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
  &vcc5v0_host {
  	enable-active-high;
  	gpio = <&gpio4 RK_PB0 GPIO_ACTIVE_HIGH>;
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dtsi linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dtsi
---- linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dtsi	2025-08-20 18:41:44.000000000 +0200
-+++ linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dtsi	2025-08-22 12:59:20.255703620 +0200
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dtsi linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dtsi
+--- linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dtsi	2025-08-23 16:49:42.000000000 +0200
++++ linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b.dtsi	2025-08-24 17:47:56.331235989 +0200
 @@ -2,22 +2,9 @@
  
  /dts-v1/;
@@ -1079,7 +1137,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
  	analog-sound {
  		compatible = "audio-graph-card";
  		label = "rk3588-es8316";
-@@ -35,28 +22,6 @@
+@@ -35,911 +22,65 @@
  		pinctrl-0 = <&hp_detect>;
  	};
  
@@ -1108,7 +1166,15 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
  	leds {
  		compatible = "gpio-leds";
  		pinctrl-names = "default";
-@@ -70,876 +35,52 @@
+ 		pinctrl-0 = <&led_rgb_b>;
+ 
+ 		led_rgb_b {
+-			function = LED_FUNCTION_STATUS;
++			function = LED_FUNCTION_DISK_ACTIVITY;
+ 			color = <LED_COLOR_ID_BLUE>;
+ 			gpios = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;
+-			linux,default-trigger = "heartbeat";
++			linux,default-trigger = "disk-activity";
  		};
  	};
  
@@ -1239,7 +1305,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 -
 -&cpu_l2 {
 -	cpu-supply = <&vdd_cpu_lit_s0>;
--};
+ };
 -
 -&cpu_l3 {
 -	cpu-supply = <&vdd_cpu_lit_s0>;
@@ -1268,7 +1334,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 -
 -&hdmi0_sound {
 -	status = "okay";
- };
+-};
 -
 -&hdmi1 {
 -	pinctrl-0 = <&hdmim0_tx1_cec &hdmim0_tx1_hpd
@@ -1305,8 +1371,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 -};
 -
 -&hdptxphy0 {
- 	status = "okay";
- };
+-	status = "okay";
+-};
 -
 -&hdptxphy1 {
 -	status = "okay";
@@ -1469,8 +1535,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 -	pinctrl-0 = <&pcie3_rst>;
 -	reset-gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
 -	vpcie3v3-supply = <&vcc3v3_pcie30>;
--	status = "okay";
--};
+ 	status = "okay";
+ };
 -
 -&pd_gpu {
 -	domain-supply = <&vdd_gpu_s0>;
@@ -1516,8 +1582,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 -		pcie2_2_rst: pcie2-2-rst {
 -			rockchip,pins = <3 RK_PB0 RK_FUNC_GPIO &pcfg_pull_none>;
 -		};
- 	};
- 
+-	};
+-
 -	pcie3 {
 -		pcie3_rst: pcie3-rst {
 -			rockchip,pins = <4 RK_PB6 RK_FUNC_GPIO &pcfg_pull_none>;
@@ -1526,9 +1592,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 -		pcie3_vcc3v3_en: pcie3-vcc3v3-en {
 -			rockchip,pins = <1 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
 -		};
--	};
+ 	};
 -};
--
+ 
 -&pwm1 {
 -	status = "okay";
 -};
@@ -1996,9 +2062,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm6
 -		remote-endpoint = <&hdmi1_in_vp1>;
 -	};
 -};
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-plus.dts linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-plus.dts
---- linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-plus.dts	2025-08-20 18:41:44.000000000 +0200
-+++ linux-6.16.2/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-plus.dts	2025-08-22 12:59:24.925822967 +0200
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-plus.dts linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-plus.dts
+--- linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-plus.dts	2025-08-23 16:49:42.000000000 +0200
++++ linux-6.16.3/arch/arm64/boot/dts/rockchip/rk3588-rock-5b-plus.dts	2025-08-24 17:24:25.697898064 +0200
 @@ -99,12 +99,24 @@
  	};
  
