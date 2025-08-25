@@ -306,6 +306,8 @@ PATCHFILES += 1040-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 PATCHFILES += 1041-net-stmmac-dwmac-rk-fix-disabling-set_clock_selection.patch
 PATCHFILES += 1042-phy-rockchip-usbdp-move-orientation-handling-further-down.patch
 PATCHFILES += 1043-phy-rockchip-usbdp-reset-USB3-and-reinit-on-orientation-switch.patch
+PATCHFILES += 1044-phy-rockchip-inno-usb2-add-soft-vbusvalid-control.patch
+PATCHFILES += 1045-usb-typec-tcpm-fusb302-log-to-dmesg.patch
 
 # rkvdec2 h264 hevc support
 PATCHFILES += 1045-media-rkvdec-restore-iommu-addresses-on-errors.patch
