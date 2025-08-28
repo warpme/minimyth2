@@ -304,6 +304,7 @@ PATCHFILES += 1038-drm-bridge-synopsys-add-cec-support.patch
 PATCHFILES += 1039-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1040-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
 PATCHFILES += 1041-net-stmmac-dwmac-rk-fix-disabling-set_clock_selection.patch
+# usbc support
 PATCHFILES += 1042-phy-rockchip-usbdp-move-orientation-handling-further-down.patch
 PATCHFILES += 1043-phy-rockchip-usbdp-reset-USB3-and-reinit-on-orientation-switch.patch
 PATCHFILES += 1044-phy-rockchip-inno-usb2-add-soft-vbusvalid-control.patch
@@ -336,6 +337,10 @@ PATCHFILES += 1072-media-rkvdec-Enable-all-clocks-without-naming-them.patch
 PATCHFILES += 1073-media-rkvdec-Add-H264-support-for-the-VDPU381-varian.patch
 PATCHFILES += 1074-media-rkvdec-Add-H264-support-for-the-VDPU383-varian.patch
 PATCHFILES += 1075-media-rkvdec-Add-HEVC-support-for-the-VDPU383-varian.patch
+# rkvdec fixes from 6.17
+PATCHFILES += 1076-media-rkvdec-fix-null-vs-IS_ERR-bug-in-probe.patch
+PATCHFILES += 1077-media-rkvdec-fix-an-error-handling-path-in-rkvdec_probe.patch
+PATCHFILES += 1078-media-rkvdec-remove-redundant-pm_runtime_mark_last_busy-calls.patch
 
 # dtsi additions
 PATCHFILES += 1080-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
@@ -376,6 +381,7 @@ PATCHFILES += 1143-pci-add-sunxi-pcie-support.patch
 PATCHFILES += 1144-phy-allwinner-add-sunxi-inno-combophy.patch
 PATCHFILES += 1145-clk-sunxi-ng-add-enable-pcie-ccu-clocks.patch
 PATCHFILES += 1146-net-drivers-stmmac-add-25M-phy-clock-support.patch
+PATCHFILES += 1148-hack-to-make-emmc-working.patch
 
 PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 1153-arm64-dtsi-allwinner-add-ths-support-v2.patch
