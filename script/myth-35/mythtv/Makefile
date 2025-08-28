@@ -62,7 +62,7 @@ ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
 PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
 # v4l2-request support in ffmpeg (requires also kernel patching)
-PATCHFILES += 0155-ffmpeg-add-v4l2-request-kwiboo-20240805-g5dfc0cc8-hevc-jernej-v3.patch
+PATCHFILES += 0155-ffmpeg-add-V4l2_request-support-ffmpeg7.1.1-kwiboo-20250812-ge8587043.patch
 # Fix for opposite fields usec in opengl di
 PATCHFILES += 0156-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # make v4l2_request seeking on h264 content working
