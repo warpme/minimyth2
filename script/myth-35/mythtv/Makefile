@@ -357,9 +357,7 @@ post-configure:
 pre-install: post-configure
 
 post-install:
-ifneq ($(USE_CMAKE),yes)
 	@$(MAKE) -C ../mythplugins install
-endif
 	@$(MAKE) -C ../myththeme-Monochrome-mm2 install
 	@$(MAKECOOKIE)
 
