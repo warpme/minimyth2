@@ -32,6 +32,7 @@
 # mm_U-BOOT_BOARD_TYPE = test-rk3576
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3576_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = roc-pc-rk3576_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = board-rk3576.rock_4d
 
 # mm_U-BOOT_BOARD_TYPE = test-rk3588
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
@@ -46,7 +47,7 @@
 
 
 GARNAME      = u-boot-rk
-
+ifeq (0,1)
 # mainline u-boot
 # git@ 01.08.2025 mainline 2025.10-rc1
 GARVERSION   = 182cb30084516c3085d2ca5dde3f105f7625d774
@@ -70,6 +71,35 @@ PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
                55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
                56-rk3566-zero3-sync-dts-to-kernel-to-make-eth-working.patch \
                57-rk3399-orangepi-fix-nonworking-ddc.patch \
+
+endif
+
+ifeq (1,1)
+# collabora u-boot
+# git@ 27.08.2025
+GARVERSION   = e3e2d61232de7e7915b45b3d87a729e27d472bc9
+# git@ 24.01.2025 https://github.com/rockchip-linux/rkbin/commits/master/
+RKBINVERSION = f43a462e7a1429a9d407ae52b4745033034a6cf9
+MASTER_SITES = \
+               https://github.com/rockchip-linux/rkbin/raw/3cb8a4e35c99d06563b3707f7e4df1fad68dc301/bin/rk35/ \
+               https://github.com/rockchip-linux/rkbin/archive/ \
+               https://gitlab.collabora.com/hardware-enablement/rockchip-3588/u-boot/-/archive/$(GARVERSION)/ \
+
+DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip rk3576_bl31_v1.08.elf
+WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
+PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
+               02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
+               03-hack-fix-compile--rk3576_defconfig-collabora.patch \
+               50-my-boards-rk3566-defconfigs-enable-overlays-collabora.patch \
+               51-add-rk3328-beelink-a1-defconfig.patch \
+               52-add-rk3566-x96-x6-defconfig.patch \
+               53-add-rk3588-rock-5t-defconfig.patch \
+               54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
+               55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
+               56-rk3566-zero3-sync-dts-to-kernel-to-make-eth-working.patch \
+               57-rk3399-orangepi-fix-nonworking-ddc.patch \
+
+endif
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2
