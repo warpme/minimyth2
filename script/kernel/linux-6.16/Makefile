@@ -409,7 +409,6 @@ PATCHFILES += 1212-drm-bridge-dw-hdmi-qp-fixup-timer-base-setup.patch
 PATCHFILES += 1213-net-phy-realtek-reset-after-clock-enable.patch
 PATCHFILES += 1214-mmc-core-add-force-io-to-1.8v-quirk.patch
 # dtsi additions
-PATCHFILES += 1260-arm64-dtsi-rockchip-fix-hdmi-output-on-rk3576.patch
 PATCHFILES += 1261-arm64-dtsi-rockchip-add-the-vdpu383-video-decoder.patch
 PATCHFILES += 1265-arm64-dtsi-rk3576-add-sdio-node.patch
 PATCHFILES += 1266-arm64-dtsi-rockchip-Add-thermal-nodes-to-RK3576.patch
