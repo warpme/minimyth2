@@ -408,6 +408,7 @@ PATCHFILES += 1211-drm-rockchip-dw_hdmi_qp-provide-ref-clock-rate-in-dw_hdmi_qp_
 PATCHFILES += 1212-drm-bridge-dw-hdmi-qp-fixup-timer-base-setup.patch
 PATCHFILES += 1213-net-phy-realtek-reset-after-clock-enable.patch
 PATCHFILES += 1214-mmc-core-add-force-io-to-1.8v-quirk.patch
+PATCHFILES += 1215-drm-bridge-synopsys-do-not-warn-about-audio-params.patch
 # dtsi additions
 PATCHFILES += 1261-arm64-dtsi-rockchip-add-the-vdpu383-video-decoder.patch
 PATCHFILES += 1265-arm64-dtsi-rk3576-add-sdio-node.patch
