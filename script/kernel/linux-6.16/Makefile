@@ -285,6 +285,7 @@ PATCHFILES += 1005-clk-composite-replace-open-coded-abs_diff.patch
 PATCHFILES += 1007-PM-devfreq-rockchip-dfi-double-count-on-RK3588.patch
 PATCHFILES += 1008-mfd-rk8xx-Fix-shutdown-handler.patch
 PATCHFILES += 1009-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
+PATCHFILES += 1011-PM-devfreq-rockchip-dfi-add-support-for-LPDDR5.patch
 # drm improvements
 PATCHFILES += 1016-dt-bindings-display-vop2-Add-VP-clock-resets.patch
 PATCHFILES += 1017-drm-rockchip-vop2-Add-clock-resets-support.patch
@@ -403,7 +404,6 @@ PATCHFILES += 1205-thermal-rockchip-rename-rk_tsadcv3_tshut_mode.patch
 PATCHFILES += 1206-thermal-rockchip-Support-RK3576-SoC-in-the-thermal-driver.patch
 PATCHFILES += 1207-thermal-rockchip-support-reading-trim-values-from-OTP.patch
 # misc fixes
-PATCHFILES += 1209-PM-devfreq-rockchip-dfi-add-support-for-LPDDR5.patch
 PATCHFILES += 1211-drm-rockchip-dw_hdmi_qp-provide-ref-clock-rate-in-dw_hdmi_qp_plat_data.patch
 PATCHFILES += 1212-drm-bridge-dw-hdmi-qp-fixup-timer-base-setup.patch
 PATCHFILES += 1213-net-phy-realtek-reset-after-clock-enable.patch
