@@ -1,0 +1,67 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16/drivers/net/ethernet/stmicro/stmmac/dwmac-sun55i.c linux-6.16/drivers/net/ethernet/stmicro/stmmac/dwmac-sun55i.c
+--- linux-6.16/drivers/net/ethernet/stmicro/stmmac/dwmac-sun55i.c	2025-08-14 12:23:27.223487682 +0200
++++ linux-6.16/drivers/net/ethernet/stmicro/stmmac/dwmac-sun55i.c	2025-08-14 12:18:25.097788835 +0200
+@@ -110,6 +110,7 @@
+ 	struct stmmac_resources stmmac_res;
+ 	struct device *dev = &pdev->dev;
+ 	struct clk *clk;
++	struct clk *emac_25m_clk;
+ 	int ret;
+ 
+ 	ret = stmmac_get_platform_resources(pdev, &stmmac_res);
+@@ -133,6 +134,13 @@
+ 		return dev_err_probe(dev, PTR_ERR(clk),
+ 				     "Failed to get or enable MBUS clock\n");
+ 
++	if (of_property_read_bool(pdev->dev.of_node,"use-25m-clk")) {
++		emac_25m_clk = devm_clk_get_enabled(dev, "emac25m");
++		if (IS_ERR(emac_25m_clk))
++			return dev_err_probe(dev, PTR_ERR(emac_25m_clk),
++					     "Failed to get or enable 25M PHY clock\n");
++	}
++
+ 	ret = devm_regulator_get_enable_optional(dev, "phy");
+ 	if (ret)
+ 		return dev_err_probe(dev, ret, "Failed to get or enable PHY supply\n");
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c linux-6.16/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c
+--- linux-6.16/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c	2025-08-14 12:23:24.636821006 +0200
++++ linux-6.16/drivers/net/ethernet/stmicro/stmmac/dwmac-sun8i.c	2025-08-14 12:22:56.643389082 +0200
+@@ -74,6 +74,7 @@
+  */
+ struct sunxi_priv_data {
+ 	struct clk *ephy_clk;
++	struct clk *emac_25m_clk;
+ 	struct regulator *regulator_phy;
+ 	struct regulator *regulator_phy_io;
+ 	struct reset_control *rst_ephy;
+@@ -81,6 +82,7 @@
+ 	struct regmap_field *regmap_field;
+ 	bool internal_phy_powered;
+ 	bool use_internal_phy;
++	bool use_25m_clk;
+ 	void *mux_handle;
+ };
+ 
+@@ -593,6 +595,12 @@
+ 	struct sunxi_priv_data *gmac = priv;
+ 	int ret;
+ 
++	if (gmac->use_25m_clk) {
++		gmac->emac_25m_clk = devm_clk_get_enabled(&pdev->dev, "emac25m");
++		if (IS_ERR(gmac->emac_25m_clk))
++			return PTR_ERR(gmac->emac_25m_clk);
++	}
++
+ 	ret = regulator_enable(gmac->regulator_phy_io);
+ 	if (ret) {
+ 		dev_err(&pdev->dev, "Fail to enable PHY I/O regulator\n");
+@@ -1186,6 +1194,9 @@
+ 		return -EINVAL;
+ 	}
+ 
++	if (of_property_read_bool(pdev->dev.of_node,"use-25m-clk"))
++		gmac->use_25m_clk = true;
++
+ 	/* Optional regulator for PHY */
+ 	gmac->regulator_phy = devm_regulator_get(dev, "phy");
+ 	if (IS_ERR(gmac->regulator_phy)) {

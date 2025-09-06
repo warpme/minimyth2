@@ -1,0 +1,753 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-common.c linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-common.c
+--- linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-common.c	2024-08-02 14:05:14.750042727 +0200
++++ linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-common.c	2024-08-02 12:38:23.940025543 +0200
+@@ -30,8 +30,6 @@
+ {
+     struct net_device *netdev = pdata->netdev;
+     struct fxgmac_hw_ops *hw_ops = &pdata->hw_ops;
+-    DPRINTK("read mac from eFuse\n");
+-
+     // if efuse have mac addr,use it.if not,use static mac address.
+     hw_ops->read_mac_subsys_from_efuse(pdata, pdata->mac_addr, NULL, NULL);
+     if (ETH_IS_ZEROADDRESS(pdata->mac_addr)) {
+@@ -79,15 +77,13 @@
+     strncpy(pdata->drv_name, FXGMAC_DRV_NAME, sizeof(pdata->drv_name));
+     strncpy(pdata->drv_ver, FXGMAC_DRV_VERSION, sizeof(pdata->drv_ver));
+ 
+-    printk("FXGMAC_DRV_NAME:%s, FXGMAC_DRV_VERSION:%s\n", FXGMAC_DRV_NAME, FXGMAC_DRV_VERSION);
++    printk("fxgmc driver:%s, v%s\n", FXGMAC_DRV_NAME, FXGMAC_DRV_VERSION);
+ }
+ 
+ static void fxgmac_init_all_ops(struct fxgmac_pdata *pdata)
+ {
+     fxgmac_init_desc_ops(&pdata->desc_ops);
+     fxgmac_init_hw_ops(&pdata->hw_ops);
+-
+-    DPRINTK("register desc_ops and hw ops\n");
+ }
+ 
+ int fxgmac_init(struct fxgmac_pdata *pdata, bool save_private_reg)
+@@ -175,20 +171,10 @@
+     ret = netif_set_real_num_tx_queues(netdev, FXGMAC_NUM_OF_TX_Q_USED /*pdata->tx_q_count*/);
+ #endif
+ 
+-    DPRINTK("num_online_cpus:%u, tx_ch_cnt:%u, tx_q_cnt:%u, tx_ring_count:%u\n",
+-        num_online_cpus(), pdata->hw_feat.tx_ch_cnt, pdata->hw_feat.tx_q_cnt,
+-        pdata->tx_ring_count);
+-
+     if (ret) {
+         dev_err(pdata->dev, "error setting real tx queue count\n");
+         return ret;
+     }
+-#if 0
+-    DPRINTK("num_online_cpus:%u, tx_ch_cnt:%u, tx_q_cnt:%u, tx_ring_count:%u\n",
+-        num_online_cpus(), pdata->hw_feat.tx_ch_cnt, pdata->hw_feat.tx_q_cnt,
+-        pdata->tx_ring_count);
+-#endif
+-
+     pdata->rx_ring_count = min_t(unsigned int,
+         netif_get_num_default_rss_queues(),
+         pdata->hw_feat.rx_ch_cnt);
+@@ -208,12 +194,6 @@
+ 
+     pdata->channel_count =
+         max_t(unsigned int, pdata->tx_ring_count, pdata->rx_ring_count);
+-
+-    DPRINTK("default rss queues:%u, rx_ch_cnt:%u, rx_q_cnt:%u, rx_ring_count:%u\n",
+-        netif_get_num_default_rss_queues(), pdata->hw_feat.rx_ch_cnt, pdata->hw_feat.rx_q_cnt,
+-        pdata->rx_ring_count);
+-    DPRINTK("channel_count:%u, netdev tx channel_num=%u\n", pdata->channel_count, netdev->num_tx_queues);
+-
+     /* Initialize RSS hash key and lookup table */
+ #if FXGMAC_RSS_HASH_KEY_LINUX
+     netdev_rss_key_fill(pdata->rss_key, sizeof(pdata->rss_key));
+@@ -263,8 +243,6 @@
+     netdev->extended->max_mtu = netdev->max_mtu;
+     */
+ 
+-    DPRINTK("rss_options:0x%x\n", pdata->rss_options);
+-
+     /* Set device operations */
+     netdev->netdev_ops = fxgmac_get_netdev_ops();
+     netdev->ethtool_ops = fxgmac_get_ethtool_ops();
+@@ -328,7 +306,7 @@
+     pdata->rx_usecs = FXGMAC_INIT_DMA_RX_USECS;
+     pdata->rx_frames = FXGMAC_INIT_DMA_RX_FRAMES;
+ 
+-    DPRINTK("fxgmac_init callout,ok.\n");
++    DPRINTK("fxgmac init ok ...");
+ 
+     return 0;
+ }
+@@ -342,7 +320,7 @@
+      * otherwise, just roll back to legacy
+      */
+     vectors = num_online_cpus();
+-    DPRINTK("num of cpu=%d\n", vectors);
++
+     if(vectors >= FXGMAC_MAX_DMA_CHANNELS) {
+         // 0-3 for rx, 4 for tx, 5 for phy
+         req_vectors = FXGMAC_MSIX_INT_NUMS;
+@@ -350,7 +328,7 @@
+                                             sizeof(struct msix_entry),
+                                             GFP_KERNEL);
+         if (!pdata->expansion.msix_entries) {
+-            DPRINTK("MSIx, kcalloc err for msix entries, rollback to MSI..\n");
++            DPRINTK("fxgmac MSIx, kcalloc err for msix entries, rollback to MSI..\n");
+             goto enable_msi_interrupt;
+         }else {
+             for (i = 0; i < req_vectors; i++)
+@@ -361,14 +339,14 @@
+                                         req_vectors,
+                                         req_vectors);
+             if (rc < 0) {
+-                    DPRINTK("enable MSIx failed,%d.\n", rc);
++                    DPRINTK("fxgmac enable MSIx failed,%d.\n", rc);
+                     req_vectors = 0; //indicate failure
+             } else {
+                     req_vectors = rc;
+             }
+ 
+             if(req_vectors >= FXGMAC_MAX_DMA_CHANNELS_PLUS_1TX) {
+-                DPRINTK("enable MSIx ok, cpu=%d,vectors=%d.\n",
++                DPRINTK("fxgmac enable MSIx ok, cpu=%d,vectors=%d.\n",
+                         vectors, req_vectors);
+                 pdata->expansion.int_flags = FXGMAC_SET_REG_BITS(pdata->expansion.int_flags,
+                                                         FXGMAC_FLAG_INTERRUPT_POS,
+@@ -379,14 +357,14 @@
+                     pdata->expansion.msix_entries[MSI_ID_PHY_OTHER].vector;
+                 return;
+             }else if (req_vectors){
+-                DPRINTK("enable MSIx with only %d vector, while we need %d, rollback to MSI.\n", req_vectors, vectors);
++                DPRINTK("fxgmac enable MSIx with only %d vector, while we need %d, rollback to MSI.\n", req_vectors, vectors);
+                 //roll back to msi
+                 pci_disable_msix(pdata->pdev);
+                 kfree(pdata->expansion.msix_entries);
+                 pdata->expansion.msix_entries = NULL;
+                 req_vectors = 0;
+             }else {
+-                DPRINTK("enable MSIx failure and clear msix entries.\n");
++                DPRINTK("fxgmac enable MSIx failure and clear msix entries.\n");
+                 //roll back to msi
+                 kfree(pdata->expansion.msix_entries);
+                 pdata->expansion.msix_entries = NULL;
+@@ -402,14 +380,14 @@
+                                                     FXGMAC_FLAG_INTERRUPT_POS,
+                                                     FXGMAC_FLAG_INTERRUPT_LEN,
+                                                     FXGMAC_FLAG_LEGACY_ENABLED);
+-        DPRINTK("enable MSI failure, rollback to LEGACY.\n");
++        DPRINTK("fxgmac enable MSI failure, rollback to LEGACY.\n");
+     } else {
+         pdata->expansion.int_flags = FXGMAC_SET_REG_BITS(pdata->expansion.int_flags,
+                                                     FXGMAC_FLAG_INTERRUPT_POS,
+                                                     FXGMAC_FLAG_INTERRUPT_LEN,
+                                                     FXGMAC_FLAG_MSI_ENABLED);
+         pdata->dev_irq = pdata->pdev->irq;
+-        DPRINTK("enable MSI ok, irq=%d.\n", pdata->pdev->irq);
++        DPRINTK("fxgmac enable MSI ok, irq=%d.\n", pdata->pdev->irq);
+     }
+ #else
+     pdata = pdata;
+@@ -426,7 +404,7 @@
+         FXGMAC_MAX_DMA_CHANNELS);
+ 
+     if (!netdev) {
+-        dev_err(dev, "alloc_etherdev failed\n");
++        dev_err(dev, "fxgmac alloc_etherdev failed\n");
+         return -ENOMEM;
+     }
+ 
+@@ -451,7 +429,7 @@
+     pdata->expansion.current_state = CURRENT_STATE_INIT;
+ 
+     pdata->msg_enable = NETIF_MSG_DRV;
+-    DPRINTK("netif msg_enable init to %08x\n", pdata->msg_enable);
++    DPRINTK("fxgmac netif msg_enable init to %08x\n", pdata->msg_enable);
+ 
+     pdata->mac_regs = res->addr;
+     pdata->base_mem = res->addr;
+@@ -468,10 +446,9 @@
+     netif_carrier_off(netdev);
+     ret = register_netdev(netdev);
+     if (ret) {
+-        dev_err(dev, "net device registration failed\n");
++        dev_err(dev, "fxgmac net device registration failed\n");
+         goto err_free_netdev;
+     }
+-    if(netif_msg_drv(pdata)) DPRINTK("fxgamc_drv_prob callout, netdev num_tx_q=%u\n", netdev->num_tx_queues);
+ 
+ #ifdef HAVE_FXGMAC_DEBUG_FS
+     fxgmac_dbg_init(pdata);
+@@ -621,7 +598,6 @@
+     memset(hw_feat, 0, sizeof(*hw_feat));
+ 
+     hw_feat->version = readl(pdata->mac_regs + MAC_VR);
+-    if(netif_msg_drv(pdata)) DPRINTK ("get offset 0x110,ver=%#x\n", readl(pdata->mac_regs + 0x110));
+ 
+     /* Hardware feature register 0 */
+     hw_feat->phyifsel    = FXGMAC_GET_REG_BITS(mac_hfr0,
+@@ -791,7 +767,6 @@
+     hw_feat->tc_cnt++;
+ 
+     hw_feat->hwfr3 = mac_hfr3;
+-    DPRINTK("HWFR3: %u\n", mac_hfr3);
+ }
+ 
+ void fxgmac_print_all_hw_features(struct fxgmac_pdata *pdata)
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-desc.c linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-desc.c
+--- linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-desc.c	2024-08-02 14:05:14.750042727 +0200
++++ linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-desc.c	2024-08-02 12:23:32.063355938 +0200
+@@ -231,16 +231,13 @@
+     			"error initializing Rx ring\n");
+     		goto err_init_ring;
+     	}
+-    	if(netif_msg_drv(pdata)) DPRINTK("fxgmac_alloc_ring..ch=%u,tx_desc_cnt=%u,rx_desc_cnt=%u\n",i,pdata->tx_desc_count,pdata->rx_desc_count);
+     }
+-    if(netif_msg_drv(pdata)) DPRINTK("alloc_rings callout ok\n");
+-
+     return 0;
+ 
+ err_init_ring:
+     fxgmac_free_rings(pdata);
+ 
+-    DPRINTK("alloc_rings callout err,%d\n",ret);
++    DPRINTK("fxgmac_alloc_rings callout err,%d\n",ret);
+     return ret;
+ }
+ 
+@@ -249,15 +246,13 @@
+ {
+     if (!pdata->channel_head)
+     	return;
+-    if(netif_msg_drv(pdata)) DPRINTK("free_channels,tx_ring=%p\n", pdata->channel_head->tx_ring);
++
+     kfree(pdata->channel_head->tx_ring);
+     pdata->channel_head->tx_ring = NULL;
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("free_channels,rx_ring=%p\n", pdata->channel_head->rx_ring);
+     kfree(pdata->channel_head->rx_ring);
+     pdata->channel_head->rx_ring = NULL;
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("free_channels,channel=%p\n", pdata->channel_head);
+     kfree(pdata->channel_head);
+ 
+     pdata->channel_head = NULL;
+@@ -401,7 +396,6 @@
+ 
+     channel_head = kcalloc(pdata->channel_count,
+     		       sizeof(struct fxgmac_channel), GFP_KERNEL);
+-    if(netif_msg_drv(pdata)) DPRINTK("alloc_channels,channel_head=%p,size=%d*%ld\n", channel_head, pdata->channel_count,sizeof(struct fxgmac_channel));
+ 
+     if (!channel_head)
+     	return ret;
+@@ -414,15 +408,11 @@
+     if (!tx_ring)
+     	goto err_tx_ring;
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("alloc_channels,tx_ring=%p,size=%d*%ld\n", tx_ring, pdata->tx_ring_count,sizeof(struct fxgmac_ring));
+     rx_ring = kcalloc(pdata->rx_ring_count, sizeof(struct fxgmac_ring),
+     		  GFP_KERNEL);
+     if (!rx_ring)
+     	goto err_rx_ring;
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("alloc_channels,rx_ring=%p,size=%d*%ld\n", rx_ring, pdata->rx_ring_count,sizeof(struct fxgmac_ring));
+-    //DPRINTK("fxgmac_alloc_channels ch_num=%d,rxring=%d,txring=%d\n",pdata->channel_count, pdata->rx_ring_count,pdata->tx_ring_count);
+-
+     for (i = 0, channel = channel_head; i < pdata->channel_count;
+     	i++, channel++) {
+     	snprintf(channel->name, sizeof(channel->name), "channel-%u", i);
+@@ -448,7 +438,6 @@
+     				}
+ 
+     				channel->expansion.dma_irq_tx = pdata->channel_irq[FXGMAC_MAX_DMA_CHANNELS];
+-    				DPRINTK("fxgmac_alloc_channels, for MSIx, channel %d dma_irq_tx=%u\n", i, channel->expansion.dma_irq_tx);
+     			}
+     		}
+ #endif
+@@ -460,7 +449,6 @@
+     			goto err_irq;
+     		}
+     		channel->dma_irq = ret;
+-    		DPRINTK("fxgmac_alloc_channels, for MSIx, channel %d dma_irq=%u\n", i, channel->dma_irq);
+     	}
+ 
+     	if (i < pdata->tx_ring_count)
+@@ -477,7 +465,6 @@
+ 
+     pdata->channel_head = channel_head;
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("alloc_channels callout ok\n");
+     return 0;
+ 
+ err_irq:
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-ethtool.c linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-ethtool.c
+--- linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-ethtool.c	2024-08-02 14:05:14.750042727 +0200
++++ linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-ethtool.c	2024-08-02 12:29:47.450023846 +0200
+@@ -125,7 +125,6 @@
+     		    MAC_VR_DEVID_LEN);
+     userver = FXGMAC_GET_REG_BITS(ver, MAC_VR_USERVER_POS,
+     		      MAC_VR_USERVER_LEN);
+-    /*DPRINTK("xlgma: No userver (%x) here, sver (%x) should be 0x51\n", userver, sver);*/
+     snprintf(drvinfo->fw_version, sizeof(drvinfo->fw_version),
+      "S.D.U: %x.%x.%x", sver, devid, userver);
+ }
+@@ -720,7 +719,6 @@
+ #else
+     wol->wolopts = pdata->expansion.wol;
+ #endif
+-    DPRINTK("fxmac, get_wol, 0x%x, 0x%x\n", wol->wolopts, pdata->expansion.wol); 
+ }
+ 
+ static int fxgmac_set_wol(struct net_device *netdev, struct ethtool_wolinfo *wol)
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-hw.c linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-hw.c
+--- linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-hw.c	2024-08-02 14:05:14.750042727 +0200
++++ linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-hw.c	2024-08-02 12:42:13.960026310 +0200
+@@ -319,7 +319,6 @@
+                      MAC_VLANHTR_VLHT_LEN, vlan_hash_table);
+     writereg(pdata->pAdapter, regval, pdata->mac_regs + MAC_VLANHTR);
+ 
+-    DPRINTK("fxgmac_update_vlan_hash_tabl done,hash tbl=%08x.\n",vlan_hash_table); 
+     return 0;
+ }
+ 
+@@ -414,7 +413,6 @@
+     mac_reg = MAC_MACA1HR;
+     addn_macs = pdata->hw_feat.addn_mac;
+ #if FXGMAC_FILTER_MULTIPLE_MAC_ADDR_ENABLED
+-    DPRINTK("xlgamc add mac addr callin\n");
+     if (netdev_uc_count(netdev) > addn_macs) {
+         fxgmac_set_promiscuous_mode(pdata, 1);
+     } else {
+@@ -563,8 +561,6 @@
+         hash_reg += MAC_HTR_INC;
+     }
+ 
+-    //if(hash_table[i])
+-    //	DPRINTK("fxgmac_set_mac_hash_tabl[%d]=%08x.\n", i, hash_table[i]);
+ #else
+     pdata = pdata;
+ #endif
+@@ -1085,7 +1081,6 @@
+      * of next immediate free descriptor
+      */
+     desc_data = FXGMAC_GET_DESC_DATA(ring, ring->cur);
+-    //DPRINTK("tx_start_xmit: dump before wr reg,descs-%08x,%08x,%08x,%08x\n",desc_data->dma_desc->desc0,desc_data->dma_desc->desc1,desc_data->dma_desc->desc2,desc_data->dma_desc->desc3);
+ #if !(FXGMAC_DUMMY_TX_DEBUG)
+     writereg(pdata->pAdapter, lower_32_bits(desc_data->dma_desc_addr),
+            FXGMAC_DMA_REG(channel, DMA_CH_TDTR_LO));
+@@ -1113,8 +1108,6 @@
+     int cur_index = ring->cur;
+     int i;
+ 
+-    if(netif_msg_tx_done(pdata)) DPRINTK("dev_xmit callin, desc cur=%d\n", cur_index);
+-
+     pkt_info = &ring->pkt_info;
+     csum = FXGMAC_GET_REG_BITS(pkt_info->attributes,
+                    TX_PACKET_ATTRIBUTES_CSUM_ENABLE_POS,
+@@ -2103,7 +2096,6 @@
+     }
+ #else
+     queue = 0;
+-    DPRINTK("need to map TXq(%u) to TC\n", queue);
+ #endif
+     /* Map the 8 VLAN priority values to available MTL Rx queues */
+     prio_queues = min_t(unsigned int, IEEE_8021QAZ_MAX_TCS,
+@@ -3200,7 +3192,6 @@
+                      MGMT_RSS_CTRL_OPT_LEN, pdata->rss_options);
+ 
+     writereg(pdata->pAdapter, regval, (pdata->base_mem + MGMT_RSS_CTRL));
+-    DPRINTK("enable_rss callout, rss ctrl reg=0x%08x\n", regval); 
+ 
+     return 0;
+ }
+@@ -4125,8 +4116,6 @@
+         }
+     }
+     device_set_wakeup_enable(/*pci_dev_to_dev*/(pdata->dev), en);
+-
+-    DPRINTK("config_wol callout\n");
+ }
+ #endif
+ 
+@@ -4385,8 +4374,6 @@
+ #if defined(LINUX) || defined(DPDK)
+     u16 link_reg = 0;
+ 
+-    //DPRINTK("fxgmac_check_phy_link callin\n");
+-
+ #ifndef DPDK
+     struct net_device *netdev = pdata->netdev;
+     if (netdev->base_addr) {
+@@ -4420,7 +4407,6 @@
+         DPRINTK("fxgmac_check_phy_link null base addr err\n");
+         return -1;
+     }
+-    //DPRINTK("fxgmac_check_phy_link callout, reg=%#x\n", link_reg);
+ #else
+     pdata = pdata;
+     speed = speed;
+@@ -4462,9 +4448,6 @@
+         regval = readreg(pdata->pAdapter, pdata->mac_regs + MAC_MDIO_ADDRESS);
+         busy--;
+     }while((regval & MAC_MDIO_ADDRESS_BUSY) && (busy));
+-
+-    DPRINTK("fxgmac_write_ephy_reg id %d %s, ctrl=0x%08x, data=0x%08x\n", reg_id, (regval & 0x1)?"err" : "ok", regval, data);
+-    
+     return (regval & MAC_MDIO_ADDRESS_BUSY) ? -1 : 0; //-1 indicates err
+ }
+ 
+@@ -4478,17 +4461,14 @@
+     do {
+         regval = readreg(pdata->pAdapter, pdata->mac_regs + MAC_MDIO_ADDRESS);
+         busy--;
+-        //DPRINTK("fxgmac_read_ephy_reg, check busy %d, ctrl=0x%08x\n", busy, regval);
+     }while((regval & MAC_MDIO_ADDRESS_BUSY) && (busy));
+ 
+     if (0 == (regval & MAC_MDIO_ADDRESS_BUSY)) {
+         regret = readreg(pdata->pAdapter, pdata->mac_regs + MAC_MDIO_DATA);
+         if(data) *data = regret;
+-        //DPRINTK("fxgmac_read_ephy_reg ok, reg=0x%02x, ctrl=0x%08x, data=0x%08x\n", reg_id, regval, *data);
+         return regret;
+     }
+ 
+-    DPRINTK("fxgmac_read_ephy_reg id=0x%02x err, busy=%d, ctrl=0x%08x.\n", reg_id, busy, regval);
+     return -1;
+ }
+ 
+@@ -4507,9 +4487,6 @@
+         busy--;
+     } while ((regval & MAC_MDIO_ADDRESS_BUSY) && (busy));
+ 
+-    DPRINTK("fxgmac_write_ephy_mmd_reg id %d mmd %d %s, ctrl=0x%08x, data=0x%08x\n", reg_id, mmd, (regval & 0x1) ? "err" : "ok", regval, data);
+-    //DbgPrintF(MP_TRACE, "fxgmac_write_ephy_mmd_reg id %d %s, ctrl=0x%08x, data=0x%08x busy %d", reg_id, (regval & 0x1) ? "err" : "ok", regval, data, busy);
+-
+     return (regval & MAC_MDIO_ADDRESS_BUSY) ? -1 : 0; //-1 indicates err
+ }
+ 
+@@ -4536,8 +4513,6 @@
+         return regret;
+     }
+ 
+-    DPRINTK("fxgmac_read_ephy_mmd_reg id=0x%02x mmd %d err, busy=%d, ctrl=0x%08x\n", reg_id, mmd, busy, regval);
+-    //DbgPrintF(MP_TRACE, "fxgmac_read_ephy_mmd_reg id=0x%02x err, busy=%d, ctrl=0x%08x\n", reg_id, busy, regval);
+     return -1;
+ }
+ #endif
+@@ -5132,7 +5107,6 @@
+     desc_data->rx.len = FXGMAC_GET_REG_BITS_LE(dma_desc->desc3,
+                     RX_NORMAL_DESC3_PL_POS,
+                     RX_NORMAL_DESC3_PL_LEN);
+-    //DPRINTK("dev_read upon FD=1, pkt_len=%u\n",desc_data->rx.len);
+ 
+     if (!FXGMAC_GET_REG_BITS_LE(dma_desc->desc3,
+                     RX_NORMAL_DESC3_LD_POS,
+@@ -5449,8 +5423,6 @@
+     unsigned int i, regval;
+     struct net_device *netdev = pdata->netdev;
+ 
+-    if (netif_msg_drv(pdata)) { DPRINTK("fxgmac_dismiss_all_int callin\n"); }
+-
+     channel = pdata->channel_head;
+     for (i = 0; i < pdata->channel_count; i++, channel++) {
+         fxgmac_dismiss_DMA_int(channel, 0);
+@@ -5563,7 +5535,6 @@
+         regval = FXGMAC_SET_REG_BITS(regval, MTL_Q_TQOMR_FTQ_POS,
+                          MTL_Q_TQOMR_FTQ_LEN, 1);
+         writereg(pdata->pAdapter, regval, FXGMAC_MTL_REG(pdata, i, MTL_Q_TQOMR));
+-        DPRINTK("fxgmac_flush_tx_queues, reg=0x%p, val=0x%08x\n", FXGMAC_MTL_REG(pdata, i, MTL_Q_TQOMR), regval);
+     }
+ 
+     //2022-04-20 xiaojiang comment
+@@ -5594,7 +5565,6 @@
+                              MTL_Q_TQOMR_FTQ_LEN);
+ 
+         } while (--count && regval);
+-        DPRINTK("fxgmac_flush_tx_queues wait... reg=0x%p, val=0x%08x\n", FXGMAC_MTL_REG(pdata, i, MTL_Q_TQOMR), regval);
+         if (regval) {/*(!count)*/
+             return -EBUSY;
+         }
+@@ -5936,7 +5906,6 @@
+     regval = FXGMAC_SET_REG_BITS(regval, MGMT_SIGDET_POS, MGMT_SIGDET_LEN, MGMT_SIGDET_40MV);
+     writereg(pdata->pAdapter, regval, pdata->base_mem + MGMT_SIGDET);
+ #endif
+-    DPRINTK("fxgmac_config_powerdown callout, reg=0x%08x\n", regval);
+ }
+ 
+ static void fxgmac_config_powerup(struct fxgmac_pdata* pdata)
+@@ -6205,8 +6174,6 @@
+     int ret;
+     u32 regval = 0;
+ 
+-    if (netif_msg_drv(pdata)) { DPRINTK("fxgmac hw init call in\n"); }
+-
+     /* Flush Tx queues */
+     ret = fxgmac_flush_tx_queues(pdata);
+     if (ret) {
+@@ -6269,7 +6236,6 @@
+     regval = FXGMAC_SET_REG_BITS(regval, PHY_INT_MASK_LINK_DOWN_POS, PHY_INT_MASK_LINK_DOWN_LEN, 1);
+     fxgmac_write_ephy_reg(pdata, REG_MII_INT_MASK, regval);//enable phy interrupt 
+ 
+-    if (netif_msg_drv(pdata)) { DPRINTK("fxgmac hw init callout\n"); }
+     return 0;
+ }
+ 
+@@ -6361,7 +6327,6 @@
+ 
+     /* Issue a CHIP reset */
+     regval = readreg(pdata->pAdapter, pdata->base_mem + SYS_RESET_REG);
+-    DPRINTK("CHIP_RESET 0x%x\n", regval);
+ 	/* reg152c  bit31 1->reset, self-clear, if read it again, it still set 1. */
+     regval = FXGMAC_SET_REG_BITS(regval, SYS_RESET_POS, SYS_RESET_LEN, 1);
+     writereg(pdata->pAdapter, regval, pdata->base_mem + SYS_RESET_REG);
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-net.c linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-net.c
+--- linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-net.c	2024-08-02 14:05:14.753376060 +0200
++++ linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-net.c	2024-08-02 16:40:07.890073667 +0200
+@@ -36,8 +36,6 @@
+     if(ifa) {
+         /* binary ipv4 addr with __be */
+         ipval = (unsigned int)ifa->ifa_address;
+-
+-        DPRINTK("%s, netdev %s IPv4 address %pI4, mask: %pI4\n",__FUNCTION__, ifa->ifa_label, &ifa->ifa_address, &ifa->ifa_mask);
+     }
+     //	ifa = rcu_dereference(ifa->ifa_next); // more ipv4 addr
+     rcu_read_unlock();
+@@ -87,8 +85,6 @@
+                 addrconf_addr_solict_mult(addr_ip6, addr_ip6_solicited);
+                 err = 0;
+ 
+-                //DPRINTK("%s, netdev %s IPv6 local-link address %pI6\n",__FUNCTION__, netdev->name, addr_ip6);
+-                //DPRINTK("%s, netdev %s IPv6 solicited-node add %pI6\n",__FUNCTION__, netdev->name, addr_ip6_solicited);
+                 break;
+             }
+         }
+@@ -98,9 +94,6 @@
+ 
+     if(err) DPRINTK("%s get ipv6 addr failed, use default.\n", __FUNCTION__);
+ 
+-    //DPRINTK("%s, netdev %s IPv6 local-link address %pI6\n",__FUNCTION__, netdev->name, addr_ip6);
+-    //DPRINTK("%s, netdev %s IPv6 solicited-node adr %pI6\n",__FUNCTION__, netdev->name, addr_ip6_solicited);
+-
+     return (err ? NULL : ipval);
+ }
+ 
+@@ -759,7 +752,6 @@
+ #endif
+                 napi_enable(&channel->expansion.napi_tx);
+             }
+-            if(netif_msg_drv(pdata)) DPRINTK("napi_enable, msix ch%d napi enabled done,add=%d\n", i, add);
+         }
+ 
+         // for phy
+@@ -1099,8 +1091,6 @@
+     unsigned int pcie_low_power = 0;
+     u32 regval;
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("fxgmac start callin here.\n");
+-
+     /* must reset software again here, to avoid flushing tx queue error caused by the system only run probe
+     * when installing driver on the arm platform.
+     */
+@@ -1273,8 +1263,6 @@
+     int ret;
+     struct fxgmac_hw_ops *hw_ops = &pdata->hw_ops;
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("fxgmac_net_powerup callin\n");
+-
+     /* signal that we are up now */
+     pdata->expansion.powerstate = 0; //clear all bits as normal now
+     if (__test_and_set_bit(FXGMAC_POWER_STATE_UP, &pdata->expansion.powerstate)) {
+@@ -1289,10 +1277,6 @@
+ 
+     // must call it after fxgmac_start,because it will be enable in fxgmac_start
+     hw_ops->disable_arp_offload(pdata);
+-
+-    if(netif_msg_drv(pdata)) {
+-        DPRINTK("fxgmac_net_powerup callout, powerstate=%ld.\n", pdata->expansion.powerstate);
+-    }
+ }
+ 
+ void fxgmac_net_powerdown(struct fxgmac_pdata *pdata, unsigned int wol)
+@@ -1300,15 +1284,10 @@
+     struct net_device *netdev = pdata->netdev;
+     struct fxgmac_hw_ops *hw_ops = &pdata->hw_ops;
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("fxgmac_net_powerdown callin here.\n");
+-
+     /* signal that we are down to the interrupt handler */
+     if (__test_and_set_bit(FXGMAC_POWER_STATE_DOWN, &pdata->expansion.powerstate))
+         return; /* do nothing if already down */
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("fxgmac_net_powerdown continue with down process.\n");
+-    /* phy polling timer should detect the state of fxgmac and stop link status polling accordingly */
+-
+     __clear_bit(FXGMAC_POWER_STATE_UP, &pdata->expansion.powerstate);
+ 
+ #if 1
+@@ -1341,7 +1320,6 @@
+     fxgmac_free_tx_data(pdata);
+     fxgmac_free_rx_data(pdata);
+ #endif
+-    if(netif_msg_drv(pdata)) DPRINTK("fxgmac_net_powerdown callout, powerstate=%ld.\n", pdata->expansion.powerstate);
+ }
+ 
+ static int fxgmac_open(struct net_device *netdev)
+@@ -1350,8 +1328,6 @@
+     struct fxgmac_desc_ops *desc_ops;
+     int ret;
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("fxgmac_open callin\n");
+-
+     desc_ops = &pdata->desc_ops;
+ 
+     /* TODO: Initialize the phy */
+@@ -1376,8 +1352,6 @@
+     if (ret)
+         goto err_channels_and_rings;
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("fxgmac_open callout\n");
+-
+     return 0;
+ 
+ err_channels_and_rings:	
+@@ -1391,8 +1365,6 @@
+     struct fxgmac_pdata *pdata = netdev_priv(netdev);
+     struct fxgmac_desc_ops *desc_ops;
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("fxgmac_close callin\n");
+-
+     desc_ops = &pdata->desc_ops;
+ 
+     pdata->expansion.current_state = (pdata->expansion.current_state == CURRENT_STATE_SHUTDOWN) ? 
+@@ -1406,8 +1378,6 @@
+ 
+     pdata->hw_ops.reset_phy(pdata);
+ 
+-    if(netif_msg_drv(pdata)) DPRINTK("fxgmac_close callout\n");
+-
+     return 0;
+ }
+ 
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-pci.c linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-pci.c
+--- linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-pci.c	2024-08-02 14:05:14.753376060 +0200
++++ linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-pci.c	2024-08-02 12:45:34.656693618 +0200
+@@ -198,7 +198,6 @@
+     int retval = 0;
+ #endif
+ 
+-    DPRINTK("fxpm,_fxgmac_shutdown, callin\n");
+     fxgmac_dbg_log("fxpm,_fxgmac_shutdown, callin.\n");
+ 
+     rtnl_lock();
+@@ -218,7 +217,6 @@
+     }
+ #endif
+ 
+-    DPRINTK("fxpm,_fxgmac_shutdown, save pci state done.\n");
+     fxgmac_dbg_log("fxpm,_fxgmac_shutdown, save pci state done.\n");
+ 
+     pci_wake_from_d3(pdev, !!wufc);
+@@ -226,7 +224,6 @@
+ 
+     pci_disable_device(pdev);
+ 
+-    DPRINTK("fxpm,_fxgmac_shutdown callout, enable wake=%d.\n", *enable_wake);
+     fxgmac_dbg_log("fxpm,_fxgmac_shutdown callout, enable wake=%d.\n", *enable_wake);
+ 
+     return 0;
+@@ -238,7 +235,6 @@
+     struct net_device *netdev = dev_get_drvdata(&pdev->dev);
+     struct fxgmac_pdata *pdata = netdev_priv(netdev);
+ 
+-    DPRINTK("fxpm, fxgmac_shutdown callin\n");
+     fxgmac_dbg_log("fxpm, fxgmac_shutdown callin\n");
+ 
+     pdata->expansion.current_state = CURRENT_STATE_SHUTDOWN;
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-phy.c linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-phy.c
+--- linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-phy.c	2024-08-02 14:05:14.753376060 +0200
++++ linux-6.10.2/drivers/net/ethernet/motorcomm/yt6801/fuxi-gmac-phy.c	2024-08-02 12:02:08.666685008 +0200
+@@ -85,8 +85,6 @@
+     if(hw_ops->read_ephy_reg(pdata, reg, &val) < 0)
+     	goto busy_exit;
+ 
+-    //DPRINTK("fxgmac_ephy_autoneg_ability_get, reg %d=0x%04x\n", reg, val);
+-
+     if(FXGMAC_ADVERTISE_10HALF & val)
+     {
+         *cap_mask |= FXGMAC_ADVERTISE_10HALF;
+@@ -145,7 +143,6 @@
+     if(hw_ops->read_ephy_reg(pdata, reg, &val) < 0)
+     	goto busy_exit;
+ 
+-    //DPRINTK("fxgmac_ephy_autoneg_ability_get, reg %d=0x%04x\n", reg, val);
+     if(REG_BIT_ADVERTISE_1000HALF & val )
+     {
+         *cap_mask |= FXGMAC_ADVERTISE_1000HALF;
+@@ -164,8 +161,6 @@
+         *cap_mask &= ~FXGMAC_ADVERTISE_1000FULL;
+     }
+ 
+-    //DPRINTK("fxgmac_ephy_autoneg_ability_get done, 0x%08x.\n", *cap_mask);
+-
+     return 0;
+ 
+ busy_exit:
+@@ -192,7 +187,6 @@
+     do {
+     	ret = hw_ops->read_ephy_reg(pdata, REG_MII_BMCR, (unsigned int *)&val);
+     	busy--;
+-    	//DPRINTK("fxgmac_ephy_soft_reset, check busy=%d.\n", busy);
+     }while((ret >= 0) && (0 != (val & 0x8000)) && (busy));
+ 
+     if(0 == (val & 0x8000)) return 0; 
+@@ -309,7 +303,7 @@
+ 
+     if(pre_phy_speed != phy_speed)
+     {
+-        DPRINTK("fuxi_phy link phy speed changed,%d->%d\n", pre_phy_speed, phy_speed);
++        DPRINTK("fxgmac link phy speed changed,%d->%d\n", pre_phy_speed, phy_speed);
+         switch(phy_speed){
+     	case 2:
+             	pdata->phy_speed = SPEED_1000;
+@@ -337,7 +331,6 @@
+     	{
+             hw_ops->read_ephy_reg(pdata, 0x1/* ephy latched status */, (unsigned int *)&ephy_val1);
+             hw_ops->read_ephy_reg(pdata, 0x1/* ephy latched status */, (unsigned int *)&ephy_val2);
+-            DPRINTK("%s phy reg1=0x%04x, 0x%04x\n", __FUNCTION__, ephy_val1 & 0xffff, ephy_val2 & 0xffff);
+     	}
+     }
+ }
+@@ -356,7 +349,7 @@
+ 
+     if(NULL == pdata->netdev)
+     {
+-    	DPRINTK("fuxi_phy_timer polling with NULL netdev %lx\n",(unsigned long)(pdata->netdev));
++    	DPRINTK("fxgmac fuxi_phy_timer polling with NULL netdev %lx\n",(unsigned long)(pdata->netdev));
+     	return;
+     }
+     	
+@@ -373,10 +366,8 @@
+     	}
+     	fxgmac_phy_update_link(pdata->netdev);
+     }else {
+-    	DPRINTK("fuxi_phy_timer polling, powerstate changed, %ld, netdev=%lx, tm=%lx\n", pdata->expansion.powerstate, (unsigned long)(pdata->netdev), (unsigned long)&pdata->phy_poll_tm);
++    	DPRINTK("fxgmac fuxi_phy_timer polling, powerstate changed, %ld, netdev=%lx, tm=%lx\n", pdata->expansion.powerstate, (unsigned long)(pdata->netdev), (unsigned long)&pdata->phy_poll_tm);
+     }		
+-
+-    //DPRINTK("fuxi_phy_timer polled,%d\n",cnt_polling);
+ }
+ 
+ /*
+@@ -410,13 +401,11 @@
+ #endif
+     add_timer(&pdata->phy_poll_tm);
+ 
+-    DPRINTK("fuxi_phy_timer started, %lx\n", jiffies);
+     return 0;
+ }
+ 
+ void fxgmac_phy_timer_destroy(struct fxgmac_pdata *pdata)
+ {
+     del_timer_sync(&pdata->phy_poll_tm);
+-    DPRINTK("fuxi_phy_timer removed\n");
+ }
+ #endif
