@@ -86,6 +86,7 @@ PATCHFILES += 0511-drm-sun4i-add-csc-yuv-afbc-support.patch
 PATCHFILES += 0540-drm-bridge-dw-hdmi-add-mtmdsclock-parameter-to-phy-c.patch
 PATCHFILES += 0541-drm-bridge-dw-hdmi-support-configuring-phy-for-deep-.patch
 PATCHFILES += 0542-drm-sun4i-dw-hdmi-Switch-to-bridge-functions.patch
+PATCHFILES += 0543-drm-sun8i-dw-hdmi-switch-to-devm_drm_bridge_alloc.patch
 PATCHFILES += 0547-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 PATCHFILES += 0548-drm-bridge-dw-hdmi-fix-4k60-modes-on-some-tv.patch
 PATCHFILES += 0549-drm-bridge-synopsys-Fix-CEC-not-working-after-power.patch
