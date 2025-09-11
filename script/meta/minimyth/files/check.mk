@@ -242,9 +242,9 @@ mm-all:
 		fi ; \
 	done
 	@echo "    mm_KERNEL_VERSION"
-	@if [ ! "$(mm_KERNEL_VERSION)" = "6.14"           ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "6.15"           ] && \
-	    [ ! "$(mm_KERNEL_VERSION)" = "6.16"           ] && \
+	@if [ ! "$(mm_KERNEL_VERSION)" = "6.16"           ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "6.17"           ] && \
+	    [ ! "$(mm_KERNEL_VERSION)" = "6.18"           ] && \
 	    [ ! "$(mm_KERNEL_VERSION)" = "rpi-5.12"      ] ; then \
 		echo " " ; \
 		echo "error: mm_KERNEL_VERSION=\"$(mm_KERNEL_VERSION)\" is an invalid value." ; \
@@ -252,9 +252,9 @@ mm-all:
 		exit 1 ; \
 	fi
 	@echo "    mm_MYTH_VERSION"
-	@if [ ! "$(mm_MYTH_VERSION)" = "33"         ] && \
-	    [ ! "$(mm_MYTH_VERSION)" = "34"         ] && \
+	@if [ ! "$(mm_MYTH_VERSION)" = "34"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "35"         ] && \
+	    [ ! "$(mm_MYTH_VERSION)" = "36"         ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "master"     ] && \
 	    [ ! "$(mm_MYTH_VERSION)" = "test"       ] ; then \
 		echo " " ; \
