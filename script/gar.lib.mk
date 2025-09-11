@@ -94,7 +94,20 @@ scp//%:
 # check a given file's checksum against $(CHECKSUM_FILE) and
 # error out if it mentions the file without an "OK".
 checksum-%: $(CHECKSUM_FILE) 
-			$(MAKECOOKIE);
+	@echo " ==> Running checksum on $*"
+	@if grep -- '$*' $(CHECKSUM_FILE); then \
+		if LC_ALL="C" LANG="C" md5sum -c $(CHECKSUM_FILE) 2>&1 | grep -- '$*' | grep -v ':[ ]\+OK'; then \
+			echo '*** GAR GAR GAR!  $* failed checksum test!  GAR GAR GAR! ***' 1>&2; \
+			false; \
+		else \
+			echo 'file $* passes checksum test!'; \
+			$(MAKECOOKIE); \
+		fi \
+	else \
+		echo '*** GAR GAR GAR!  $* not in $(CHECKSUM_FILE) file!  GAR GAR GAR! ***' 1>&2; \
+		false; \
+	fi
+		
 
 #################### GARCHIVE RULES ####################
 
