@@ -35,6 +35,7 @@ sub page
     my $page_host  = $minimyth->hostname();
     my $page_date  = Date::Manip::UnixDate('now', '%Y-%m-%d %H:%M:%S %Z');
     my $page_device_model = $minimyth->var_get('MM_HW_DEVICE_NAME');
+    my $page_device_ip = $minimyth->var_get('MM_LOCAL_IP_ADDRESS');
 
     my @page = ();
 
@@ -69,9 +70,10 @@ sub page
     push(@page, qq(          <span class="menuItem"     >$title</span>));
     push(@page,  q(        </div>));
     push(@page,  q(        <div class="note">));
-    push(@page, qq(          $page_date<br />));
+#    push(@page, qq(          $page_date<br />));
     push(@page, qq(          Model: $page_device_model<br />));
-    push(@page, qq(          Hostname: $page_host));
+    push(@page, qq(          Hostname: $page_host<br />));
+    push(@page, qq(          IP Address: $page_device_ip<br />));
     push(@page,  q(        </div>));
     push(@page,  q(      </div>));
     push(@page,  q(      <div class="middle">));
@@ -91,7 +93,7 @@ sub page
     push(@page,  q(              alt="Valid CSS!"      height="31" width="88" /></a>));
     push(@page,  q(        </div>));
     push(@page,  q(        <div class="version">));
-    push(@page,  q(          Last Updated on 2024-04-04));
+    push(@page,  q(          Last Updated on 2025-09-14));
     push(@page,  q(          <br />));
     push(@page,  q(          &lt;&nbsp;mailto&nbsp;:&nbsp;piotr.oniszczuk&nbsp;at&nbsp;gmail&nbsp;dot&nbsp;com&nbsp;&gt;));
     push(@page,  q(        </div>));
