@@ -313,6 +313,8 @@ PATCHFILES += 1054-bitmap-introduce-hardware-specific-bitfield-operatio.patch
 PATCHFILES += 1055-media-v4l2-ctrls-Add-hevc_ext_sps_-ls-t_rps-controls.patch
 # https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v3 16.08.2025
 PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-v3.patch
+# fix for green screen on chrominium
+PATCHFILES += 1079-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
 # dtsi additions
 PATCHFILES += 1080-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1081-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
