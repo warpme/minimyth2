@@ -35,7 +35,8 @@ if ($command eq "show-log") {
     }
 
 } elsif ($command eq "mm_manage") {
-    system("su -c \"/usr/bin/mm_manage $arg 2>&1 > /dev/null\"");
+    system("nohup su -c \"/usr/bin/mm_manage $arg > /dev/null 2>&1 &\"");
+    print "\n[mm_manage $arg] launched in background ...\n\nYou can press browser BACK button to return\n";
 
 } elsif ($command eq "execute") {
         if ($arg) {
@@ -48,6 +49,20 @@ if ($command eq "show-log") {
         } else {
             print "\nERROR: missing binary filename argument!\n";
         }
+
+} elsif ($command eq "launch") {
+        if ($arg) {
+            my @cmd = split(' ', $arg);
+            if (-e "/usr/bin/$cmd[0]") {
+                system("nohup su -c \"/usr/bin/$arg > /dev/null 2>&1 &\"");
+                print "\n[/usr/bin/$arg] launched in background ...\n\nYou can press browser BACK button to return\n";
+            } else {
+                print "\nERROR: requested /usr/bin/$arg binary does not exist!\n";
+            }
+        } else {
+            print "\nERROR: missing binary filename argument!\n";
+        }
+
 } else {
 
     my $my_ip_address = inet_ntoa((gethostbyname(hostname))[4]);
@@ -94,13 +109,10 @@ if ($command eq "show-log") {
                          http://$my_ip_address/cgi-bin/maintenance.cgi?command=mm_manage&arg=shutdown_this_frontend</a>
             </LI>
           </UL>
-          <BR>Examplary URLs for launching binary or script<BR>
+          <BR>Examplary URLs for executing binary or script<BR>
           <UL>
             <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=killall%20mythfrontend">
                          http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=killall%20mythfrontend</a>
-            </LI>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=mm_do_online_update%20doupdate">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=mm_do_online_update%20doupdate</a>
             </LI>
             <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=mm_external%20tv_power_on">
                          http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=mm_external%20tv_power_on</a>
@@ -110,6 +122,15 @@ if ($command eq "show-log") {
             </LI>
             <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=ps%20aux">
                          http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=ps%20aux</a>
+            </LI>
+          </UL>
+          <BR>Examplary URLs for launching in background binary or script<BR>
+          <UL>
+            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=launch&arg=mm_do_online_update">
+                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=launch&arg=mm_do_online_update</a>
+            </LI>
+            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=launch&arg=mm_do_online_update%20doupdate">
+                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=launch&arg=mm_do_online_update%20doupdate</a>
             </LI>
           </UL>
         </html>
