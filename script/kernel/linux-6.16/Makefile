@@ -342,7 +342,8 @@ PATCHFILES += 1075-media-rkvdec-Add-HEVC-support-for-the-VDPU383-varian.patch
 PATCHFILES += 1076-media-rkvdec-fix-null-vs-IS_ERR-bug-in-probe.patch
 PATCHFILES += 1077-media-rkvdec-fix-an-error-handling-path-in-rkvdec_probe.patch
 PATCHFILES += 1078-media-rkvdec-remove-redundant-pm_runtime_mark_last_busy-calls.patch
-
+# fix for green screen on chrominium
+PATCHFILES += 1079-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
 # dtsi additions
 PATCHFILES += 1080-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1081-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
