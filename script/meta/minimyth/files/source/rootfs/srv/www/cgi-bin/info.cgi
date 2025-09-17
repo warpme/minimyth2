@@ -11,15 +11,15 @@ require "/srv/www/cgi-bin/mm_webpage.pm";
 my $minimyth   = new MiniMyth;
 my $mm_version = $minimyth->var_get('MM_VERSION');
 my $devnull    = File::Spec->devnull;
-
+# my $listhw     = "/usr/local/bin/lshw -html";
+my $listhw     = "/usr/bin/inxi.sh";
 
 
 my @status_info_body = ();
-my $status_info_head = q((output of command "inxi --full --audio --cpu --display --bluetooth --usb --network-advanced --color 0"));
-if (system(qq(/usr/bin/inxi.sh > $devnull 2>&1)) == 0)
+my $status_info_head = q(output of command: ).$listhw;
+if (system(qq( $listhw > $devnull 2>&1)) == 0)
 {
-    if (open(FILE, '-|', '/usr/bin/inxi.sh'))
-    {
+    if (open(FILE, '-|', $listhw)) {
         while (<FILE>)
         {
             chomp;

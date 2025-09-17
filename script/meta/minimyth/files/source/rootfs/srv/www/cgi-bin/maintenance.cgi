@@ -10,8 +10,56 @@ use Socket;
 
 no if $] >= 5.018, warnings => "experimental";
 
+my @process_manage_commands = (
+["restart_mythfrontend","Restart mythfrontend Process"],
+["restart_xserver","Restart Xserver"],
+["restart_mythbackend","Restart mythbackend Process"],
+);
+
+my @device_manage_commands = (
+["restart_this_frontend","Reboot this device"],
+["shutdown_this_frontend","Shitdown this device"],
+);
+
+my @misc_manage_commands = (
+["save_themecache","Save theme cache"],
+["save_cookiejar","Save webbrowser cookies"],
+["restore_webbrowsers_state","Save external browser state"],
+["save_game","Save Games State"],
+["restore_game","Restore Games State"],
+["reload_voip_config","Reload VoIP config/data"],
+["redownload_theme","Redownload Theme"],
+["check_updates","Check for Updates"],
+["install_updates","Install Updates"],
+["check_mythtv_db","Check mythtv DB consistency"],
+);
+
+my @hw_related_commands = (
+["test_network_speed","Test Network Speed"],
+["test_storage_speed","Test Storage Speed"],
+["send_sysinfo","Send system info"],
+);
+
+my @optical_disk_manage_commands = (
+["bluray_rip_start","Start BluRay Ripping"],
+["bluray_copy_start","Start BluRay Copying"],
+["bluray_rip_progress","Show BluRay Rip/Copy progress"],
+["bluray_rip_stop","Stop BluRay Rip/Copy "],
+["eject_optical_drive","Eject BluRay Disc"],
+);
+
+my @bt_manage_commands = (
+["save_bt_connections","Remember current BT connections"],
+["connect_all_bt_devices","Reconnect all BT devices"],
+["show_bt_connections","Show all connected BT devices"],
+);
+
+
 my $command = "";
 my $arg     = "";
+# for testing
+#$command = "show-log";
+#$arg     = "mythfrontend.log";
 
 if (param("command")) { $command = param("command"); }
 if (param("arg"))     { $arg = param("arg");         }
@@ -23,13 +71,12 @@ my $last_cmd = '';
 binmode(STDOUT, ":encoding(utf8)");
 
 if ($command eq "show-log") {
-
     if ($arg) {
         if (-e "/var/log/$arg") {
-            system("cat /var/log/$arg");
+            system("su -c \"/bin/cat /var/log/$arg 2>&1\"");
         } else {
             print "\nERROR: requested /var/log/$arg file does not exist!\n";
-    }
+        }
     } else {
         print "\nERROR: missing filename argument!\n";
     }
@@ -69,54 +116,80 @@ if ($command eq "show-log") {
     if ($command) {
         print "\nERROR: unrecognized command!\n";
     } else {
-      print <<EOT_help;
-        <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-        <html>
-          <Title> Examplary REST URLs</Title>
+
+    require "/srv/www/cgi-bin/mm_webpage.pm";
+
+    my $minimyth  = new MiniMyth;
+    my $http_host = $ENV{'HTTP_HOST'};
+
+    my @middle = ();
+
+    push(@middle,  q(<div class="section">));
+    push(@middle,  q(  <p>));
+    if ($minimyth->var_get('MM_SECURITY_ENABLED') eq 'yes')
+    {
+        push(@middle,  q(    Your system has security enabled.));
+        push(@middle,  q(    Therefore, you cannot access your system maintenance functions.));
+    }
+    else
+    {
+        push(@middle, qq(    <LI>Process related commands</LI>));
+        foreach my $element (@process_manage_commands)
+        {
+            push(@middle, qq(    <INPUT TYPE=button WIDTH="150" STYLE="WIDTH: 250px" onClick="parent.location='./maintenance.cgi?command=mm_manage&arg=@$element[0]'" VALUE='@$element[1]'> ));
+        }
+        push(@middle, qq(    <LI></LI>));
+
+        push(@middle, qq(    <LI>Device related commands</LI>));
+        foreach my $element (@device_manage_commands)
+        {
+            push(@middle, qq(    <INPUT TYPE=button WIDTH="150" STYLE="WIDTH: 250px" onClick="parent.location='./maintenance.cgi?command=mm_manage&arg=@$element[0]'" VALUE='@$element[1]'> ));
+        }
+        push(@middle, qq(    <LI></LI>));
+
+        push(@middle, qq(    <LI>Misc commands</LI>));
+        foreach my $element (@misc_manage_commands)
+        {
+            push(@middle, qq(    <INPUT TYPE=button WIDTH="150" STYLE="WIDTH: 250px" onClick="parent.location='./maintenance.cgi?command=mm_manage&arg=@$element[0]'" VALUE='@$element[1]'> ));
+        }
+        push(@middle, qq(    <LI></LI>));
+
+        push(@middle, qq(    <LI>Hardware related commands</LI>));
+        foreach my $element (@hw_related_commands)
+        {
+            push(@middle, qq(    <INPUT TYPE=button WIDTH="150" STYLE="WIDTH: 250px" onClick="parent.location='./maintenance.cgi?command=mm_manage&arg=@$element[0]'" VALUE='@$element[1]'> ));
+        }
+        push(@middle, qq(    <LI></LI>));
+
+        push(@middle, qq(    <LI>Optical Disc related commands</LI>));
+        foreach my $element (@optical_disk_manage_commands)
+        {
+        push(@middle, qq(    <INPUT TYPE=button WIDTH="150" STYLE="WIDTH: 250px" onClick="parent.location='./maintenance.cgi?command=mm_manage&arg=@$element[0]'" VALUE='@$element[1]'> ));
+        }
+        push(@middle, qq(    <LI></LI>));
+
+        push(@middle, qq(    <LI>Bluetooth related commands</LI>));
+        foreach my $element (@bt_manage_commands)
+        {
+            push(@middle, qq(    <INPUT TYPE=button WIDTH="150" STYLE="WIDTH: 250px" onClick="parent.location='./maintenance.cgi?command=mm_manage&arg=@$element[0]'" VALUE='@$element[1]'> ));
+        }
+        push(@middle, qq(    <LI></LI>));
+
+        push(@middle, qq(
           <BR>Examplary URLs for accessing Logs:<BR>
           <UL>
             <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=show-log&arg=mythfrontend.log">
                          http://$my_ip_address/cgi-bin/maintenance.cgi?command=show-log&arg=mythfrontend.log</a>
             </LI>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=show-log&arg=messages">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=show-log&arg=messages</a>
-            </LI>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=show-log&arg=online-update.log">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=show-log&arg=online-update.log</a>
-            </LI>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=show-log&arg=settings">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=show-log&arg=settings</a>
-            </LI>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=show-log&arg=system-info">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=show-log&arg=system-info</a>
-            </LI>
           </UL>
           <BR>Examplary URLs for managing this device<BR>
           <UL>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=mm_manage&arg=restart_mythfrontend">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=mm_manage&arg=restart_mythfrontend</a>
-            </LI>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=mm_manage&arg=restart_xserver">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=mm_manage&arg=restart_xserver</a>
-            </LI>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=mm_manage&arg=restart_this_frontend">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=mm_manage&arg=restart_this_frontend</a>
-            </LI>
             <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=mm_manage&arg=install_updates">
                          http://$my_ip_address/cgi-bin/maintenance.cgi?command=mm_manage&arg=install_updates</a>
-            </LI>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=mm_manage&arg=shutdown_this_frontend">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=mm_manage&arg=shutdown_this_frontend</a>
             </LI>
           </UL>
           <BR>Examplary URLs for executing binary or script<BR>
           <UL>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=killall%20mythfrontend">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=killall%20mythfrontend</a>
-            </LI>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=mm_external%20tv_power_on">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=mm_external%20tv_power_on</a>
-            </LI>
             <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=mm_external%20tv_power_off">
                          http://$my_ip_address/cgi-bin/maintenance.cgi?command=execute&arg=mm_external%20tv_power_off</a>
             </LI>
@@ -126,14 +199,18 @@ if ($command eq "show-log") {
           </UL>
           <BR>Examplary URLs for launching in background binary or script<BR>
           <UL>
-            <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=launch&arg=mm_do_online_update">
-                         http://$my_ip_address/cgi-bin/maintenance.cgi?command=launch&arg=mm_do_online_update</a>
-            </LI>
             <LI><a href="http://$my_ip_address/cgi-bin/maintenance.cgi?command=launch&arg=mm_do_online_update%20doupdate">
                          http://$my_ip_address/cgi-bin/maintenance.cgi?command=launch&arg=mm_do_online_update%20doupdate</a>
             </LI>
           </UL>
-        </html>
-EOT_help
+        ));
+    }
+
+    push(@middle,  q(  </p>));
+    push(@middle,  q(</div>));
+
+    my $page = mm_webpage->page($minimyth, { 'title' => 'Basic Maintenance', 'middle' => \@middle });
+
+    print $_ . "\n" foreach (@{$page});
     }
 }
