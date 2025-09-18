@@ -1,7 +1,7 @@
 
 GARNAME      = mesa
-# master @22.08.2025
-GARVERSION   = 25b1591df54af35c2522d49e9680a53f7ee71f6e
+# master @18.09.2025
+GARVERSION   = 2d8f8f82bd99e73f094090b16945bf56bacddc46
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 WORKSRC      = $(WORKDIR)/$(DISTNAME)
@@ -17,7 +17,6 @@ DEPENDS =                      \
 	lang/c                 \
 	lang/cxx               \
 	lib/expat              \
-	X11/libvdpau           \
 	X11/libva-minimal      \
 	devel/llvm             \
 	devel/libelf           \
@@ -48,7 +47,7 @@ BUILDDEPS  = \
 	wayland/wayland-core \
 	opengl/glslang       \
 	devel/llvm           \
-	opengl/mesa          \
+	opengl/mesa-git      \
 
 else
 # deps for build
@@ -76,7 +75,6 @@ INSTALL_SCRIPTS    = meson
 MESON_CONFIGURE_ARGS_BUILD = \
 	-D glvnd=disabled \
 	-D gallium-drivers=iris \
-	-D gallium-vdpau=disabled \
 	-D platforms= \
 	-D glx=disabled \
 	-D vulkan-drivers= \
@@ -90,7 +88,6 @@ MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
 	-D dri-drivers-path="/usr/lib/dri" \
 	-D va-libs-path="$(libdir)" \
-	-D vdpau-libs-path="$(libdir)" \
 	-D shared-llvm=enabled \
 	-D gbm=enabled \
 	-D glx=dri \
@@ -113,7 +110,6 @@ include ../../gar.mk
 ifeq ($(GARCH),armv7)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=swrast,lima,panfrost,vc4,v3d \
-	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
 	-D vulkan-drivers= \
 	-D precomp-compiler=system \
@@ -123,7 +119,6 @@ else
 ifeq ($(GARCH),armv8)
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=lima,panfrost,vc4,v3d \
-	-D gallium-vdpau=disabled \
 	-D gallium-va=disabled \
 	-D vulkan-drivers= \
 	-D precomp-compiler=system \
@@ -131,7 +126,6 @@ MESON_CONFIGURE_ARGS += \
 else
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=radeonsi,iris,crocus,nouveau \
-	-D gallium-vdpau=enabled \
 	-D gallium-va=enabled \
 	-D video-codecs=vc1dec,h264dec,h265dec \
 
@@ -172,14 +166,6 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_swrast.la
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_radeonsi.la
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_vmwgfx.la
-	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_r300.la
-	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_r600.la
-	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_radeonsi.la
-	@rm -f $(DESTDIR)$(libdir)/vdpau/libvdpau_softpipe.la
-	@rm -f $(DESTDIR)$(libdir)/libvdpau_r300.la
-	@rm -f $(DESTDIR)$(libdir)/libvdpau_r600.la
-	@rm -f $(DESTDIR)$(libdir)/libvdpau_radeonsi.la
-	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe.la
 ifneq ($(DESTIMG),build)
 ifneq (,$(findstring vc4,$(mm_GRAPHICS)))
 	@cat $(WORKSRC)/docs/drivers/vc4.rst | sed -n '1,29 p' >  $(DESTDIR)/usr/share/supported-vc4-gfx-hardware.txt
@@ -333,10 +319,6 @@ clean-all:
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_swrast*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_radeonsi*
 	@rm -f $(DESTDIR)$(libdir)/gallium-pipe/pipe_vmwgfx*
-	@rm -f $(DESTDIR)$(libdir)/libvdpau_r300*
-	@rm -f $(DESTDIR)$(libdir)/libvdpau_r600*
-	@rm -f $(DESTDIR)$(libdir)/libvdpau_radeonsi*
-	@rm -f $(DESTDIR)$(libdir)/libvdpau_softpipe*
 	@rm -f $(DESTDIR)$(libdir)/radeonsi_drv_video.so*
 	@rm -f $(DESTDIR)$(libdir)/r600_drv_video.so*
 	@rm -f $(DESTDIR)$(libdir)/pkgconfig/d3d.pc
