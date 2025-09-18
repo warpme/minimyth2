@@ -22,15 +22,15 @@ my @device_manage_commands = (
 );
 
 my @misc_manage_commands = (
-["save_themecache","Save theme cache"],
+["check_updates","Check for Updates"],
+["install_updates","Install Updates"],
 ["save_cookiejar","Save webbrowser cookies"],
 ["restore_webbrowsers_state","Save external browser state"],
 ["save_game","Save Games State"],
 ["restore_game","Restore Games State"],
 ["reload_voip_config","Reload VoIP config/data"],
 ["redownload_theme","Redownload Theme"],
-["check_updates","Check for Updates"],
-["install_updates","Install Updates"],
+["save_themecache","Save theme cache"],
 ["check_mythtv_db","Check mythtv DB consistency"],
 );
 
@@ -49,9 +49,9 @@ my @optical_disk_manage_commands = (
 );
 
 my @bt_manage_commands = (
-["save_bt_connections","Remember current BT connections"],
-["connect_all_bt_devices","Reconnect all BT devices"],
 ["show_bt_connections","Show all connected BT devices"],
+["connect_all_bt_devices","Reconnect all BT devices"],
+["save_bt_connections","Remember current BT connections"],
 );
 
 
@@ -173,6 +173,9 @@ if ($command eq "show-log") {
         {
             push(@middle, qq(    <INPUT TYPE=button WIDTH="150" STYLE="WIDTH: 250px" onClick="parent.location='./maintenance.cgi?command=mm_manage&arg=@$element[0]'" VALUE='@$element[1]'> ));
         }
+        push(@middle, qq(    <LI></LI>));
+        push(@middle, qq(    <LI></LI>));
+        push(@middle, qq(    <LI></LI>));
         push(@middle, qq(    <LI></LI>));
 
         push(@middle, qq(
