@@ -38,12 +38,8 @@ extract-$(DISTFILES):
 	  rm -rf $(MINIARCH_ROOTFS) ; \
 	  mkdir -p $(MINIARCH_ROOTFS) ; \
 	  fakeroot bsdtar -xpf $(DOWNLOADDIR)/$(DISTFILES) -C $(MINIARCH_ROOTFS) ; \
-	  echo 'adding some fixups in archlinuxarm image [$(MINIARCH_ROOTFS)] to make mkinitcpio happy ...' ; \
-	  cp -f $(WORKSRC)/../../files/{base,fsck} \
-	    $(MINIARCH_ROOTFS)/usr/lib/initcpio/install/ ; \
-	  echo 'doing some general fixups in archlinuxarm image [$(MINIARCH_ROOTFS)] ...' ; \
-	  cp -f $(WORKSRC)/../../files/bluetooth-usb.conf $(MINIARCH_ROOTFS)/usr/lib/modprobe.d/bluetooth-usb.conf ; \
-	  sed "/Architecture\s*=.*/a DisableDownloadTimeout" -i $(MINIARCH_ROOTFS)/etc/pacman.conf
+	  echo 'runing fixup_rootfs_content.sh to fixup/customize archlinuxarm image in [$(MINIARCH_ROOTFS)] to make miniarch image ...' ; \
+	  $(WORKSRC)/../../files/fixup_rootfs_content.sh $(mm_HOME) $(MINIARCH_ROOTFS)
 	@$(MAKECOOKIE)
 
 install-miniarch:
@@ -84,9 +80,7 @@ run-mkinitcpio:
 	  echo \"moving generated initramfs-linux.img to mm2 boot dir ...\" ; \
 	  mv -f $(MINIARCH_ROOTFS)/boot/initramfs-linux.img \
 	    $(DESTDIR)/boot/ ; \
-	  chmod 0666 $(DESTDIR)/boot/initramfs-linux.img ; \
-	  echo 'hack removing /usr/lib/modprobe.d/bluetooth-usb.conf to make pacman happy when user is installing bluez pkg...' ; \
-	    rm -f $(MINIARCH_ROOTFS)/usr/lib/modprobe.d/bluetooth-usb.conf
+	  chmod 0666 $(DESTDIR)/boot/initramfs-linux.img
 	@$(MAKECOOKIE)
 # add if you want debug mkinitpcio add after --ldd $(build_DESTDIR)$(build_bindir)/$(compiler_prefix)ldd
 #	     --verbose \
