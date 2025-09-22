@@ -311,8 +311,9 @@ PATCHFILES += 1052-usb-typec-fusb302-and-tcpm-debug-logs-to-msg.patch
 PATCHFILES += 1054-bitmap-introduce-hardware-specific-bitfield-operatio.patch
 # https://gitlab.collabora.com/detlev/linux/-/commits/add-v4l2-st-lt-ref-set-support-v3 7.08.2025
 PATCHFILES += 1055-media-v4l2-ctrls-Add-hevc_ext_sps_-ls-t_rps-controls.patch
-# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v3 16.08.2025
-PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-v3.patch
+# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v3 21.09.2025
+PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-v3-21092025.patch
+PATCHFILES += 1057-media-rockchip-rkvdec-vdpu381-and-383-v3-fixup-21092025-to-6.17.patch
 # fix for green screen on chrominium
 PATCHFILES += 1079-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
 # dtsi additions
