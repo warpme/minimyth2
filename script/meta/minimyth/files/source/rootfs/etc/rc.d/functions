@@ -639,9 +639,6 @@ mm_url_nfs_put() {
     return
 }
 
-#===============================================================================
-# mm_confro_* and mm_confrw_* functions.
-#===============================================================================
 mm_conf_get() {
     local REMOTE_FILE=$1
     local LOCAL_FILE=$2
@@ -692,440 +689,61 @@ mm_confrw_put() {
 }
 
 #===============================================================================
-#
+# mm_directory_* functions.
 #===============================================================================
-mm_game_restore() {
 
-    local FILE
-    local REMOTE_FILE
-    local LOCAL_DIR
-    local LOCAL_FILE
+mm_directory_save_to_confrw() {
+    # param1: directory to be saved
+    # param2: archive filename (without tar.bz2 extenssion)
 
-    FILE="game.tar"
-    REMOTE_FILE="${FILE}"
-    LOCAL_DIR="${HOME}/tmp"
-    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
+    local directory=$1
+    local archive_filename=$2
 
-    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
-    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
-
-    /bin/rm -f "${LOCAL_FILE}"
-
-    mm_confrw_get "${REMOTE_FILE}" "${LOCAL_FILE}"
-
-    if [ -n "${LOCAL_FILE}" ] ; then
-        cd /home/minimyth
-        /bin/tar -xf "${LOCAL_FILE}"
-        /bin/rm -f "${LOCAL_FILE}"
-    fi
-
-    /bin/rm -f "${LOCAL_FILE}"
-}
-
-mm_game_save() {
-
-    local FILE
-    local REMOTE_FILE
-    local LOCAL_DIR
-    local LOCAL_FILE
-
-    FILE="game.tar"
-    REMOTE_FILE="${FILE}"
-    LOCAL_DIR="${HOME}/tmp"
-    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
-
-    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
-    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
-
-    # Enumerate all the files to be saved.
-    local IFS_SAVE
-    local GAME_SAVE_FULL
-    local GAME_SAVE_LIST
-    local GAME_SAVE_ITEM
-    local GAME_SAVE
-    GAME_SAVE_FULL=`/bin/echo ":${MM_GAME_SAVE_LIST}" \
-        | /bin/sed -e 's%:%:/home/minimyth/%g'        \
-        | /bin/sed -e 's%^:%%'`
-    IFS_SAVE=${IFS}
-    IFS=:
-    for GAME_SAVE_ITEM in ${GAME_SAVE_FULL}; do
-        if [ -e "${GAME_SAVE_ITEM}" ] ; then
-            GAME_SAVE=`/bin/echo "${GAME_SAVE_ITEM}" \
-                | /bin/sed -e 's%^/home/minimyth/%%'`
-            GAME_SAVE_LIST="${GAME_SAVE_LIST}|${GAME_SAVE}"
-        fi
-    done
-    IFS=${IFS_SAVE}
-    GAME_SAVE_LIST=`/bin/echo ${GAME_SAVE_LIST} \
-        | /bin/sed -e 's%^|%%'                  \
-        | /bin/sed -e 's%|%:%g'`
-
-    /bin/rm -f "${LOCAL_FILE}"
-    if [ -n "${GAME_SAVE_LIST}" ] ; then
-        /bin/mkdir -p /home/minimyth
-        cd /home/minimyth
-        local IFS_SAVE
-        IFS_SAVE=${IFS}
-        IFS=:${IFS}
-        /bin/tar -cf "${LOCAL_FILE}" ${GAME_SAVE_LIST} || /bin/rm -f "${LOCAL_FILE}"
-        IFS=${IFS_SAVE}
-        if [ ! -e "${LOCAL_FILE}" ] ; then
-            /usr/bin/logger -s -t minimyth -p "local0.error" \
-                "failed to create game files tarball."
-            /bin/false
-            return
-        fi
-        mm_confrw_put "${REMOTE_FILE}" "${LOCAL_FILE}"
+    if [ -d ${directory} ] ; then
+        cd ${directory}
+        tar -jcvvf /tmp/${archive_filename}.tar.bz2 ./*
+        mm_confrw_put "${archive_filename}.tar.bz2" "/tmp/${archive_filename}.tar.bz2"
         if [ $? -ne 0 ] ; then
-            /bin/rm -f "${LOCAL_FILE}"
-            /bin/false
-            return
-        else
-            /bin/rm -f "${LOCAL_FILE}"
-        fi
-    fi
-}
-
-mm_codecs_fetch_and_save() {
-
-    local FILE
-    local REMOTE_FILE
-    local LOCAL_DIR
-    local LOCAL_FILE
-
-    local CODECS_BASE
-    local CODECS_FILE
-    local CODECS_URL
-
-    FILE="codecs.sfs"
-    REMOTE_FILE="${FILE}"
-    LOCAL_DIR="${HOME}/tmp"
-    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
-
-    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
-    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
-
-    CODECS_BASE="essential-20061022"
-    CODECS_FILE="${CODECS_BASE}.tar.bz2"
-    CODECS_URL="http://www.mplayerhq.hu/MPlayer/releases/codecs/${CODECS_FILE}"
-    /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
-    /bin/rm -f "${LOCAL_DIR}/${CODECS_FILE}"
-    cd "${LOCAL_DIR}"
-    mm_url_get "${CODECS_URL}" "${CODECS_FILE}"
-    if [ $? -ne 0 ] ; then
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "failed to create the codecs file because no codecs were downloaded."
-        cd "${HOME}"
-        /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
-        /bin/rm -f "${LOCAL_DIR}/${CODECS_FILE}"
-        /bin/false
-        return
-    fi
-    /bin/tar -jxf "${CODECS_FILE}"
-    /bin/rm -f "${CODECS_FILE}"
-
-    if [ ! -d "${LOCAL_DIR}/${CODECS_BASE}" ] || [ `/bin/ls -1 "${LOCAL_DIR}/${CODECS_BASE}" | /usr/bin/wc -l` -eq 0 ] ; then
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "failed to create the codecs file because downloaded codecs file was empty."
-        cd "${HOME}"
-        /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
-        /bin/false
-        return
-    fi
-
-    cd "${LOCAL_DIR}"
-    /bin/chown `/usr/bin/id -u`:`/usr/bin/id -g` ${LOCAL_DIR}/${CODECS_BASE}
-    /bin/chmod 0755                              ${LOCAL_DIR}/${CODECS_BASE}
-    /bin/chown `/usr/bin/id -u`:`/usr/bin/id -g` ${LOCAL_DIR}/${CODECS_BASE}/*
-    /bin/chmod 0644                              ${LOCAL_DIR}/${CODECS_BASE}/*
-
-    /bin/rm -f "${LOCAL_FILE}"
-    /usr/bin/fakeroot /usr/bin/mksquashfs "${LOCAL_DIR}/${CODECS_BASE}" ${LOCAL_FILE} > /dev/null 2>&1
-    if [ $? -ne 0 ] ; then
-        cd "${HOME}"
-        /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
-        /bin/rm -f ${LOCAL_FILE}
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "failed to create the codecs file because squashfs failed."
-        /bin/false
-        return
-    fi
-
-    mm_confrw_put "${REMOTE_FILE}" "${LOCAL_FILE}"
-    if [ $? -ne 0 ] ; then
-        cd "${HOME}"
-        /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
-        /bin/rm -f ${LOCAL_FILE}
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "failed to save the codecs file."
-        /bin/false
-        return
-    fi
-
-    cd "${HOME}"
-    /bin/rm -rf "${LOCAL_DIR}/${CODECS_BASE}"
-    /bin/rm -f "${LOCAL_FILE}"
-    /bin/true
-}
-
-mm_extras_save() {
-
-    if [ ! -d /usr/local ] ; then
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "failed to create the extras file because the extras directory does not exist."
-        /bin/false
-        return
-    fi
-    if [ `/bin/ls -1 /usr/local | /usr/bin/wc -l` -eq 0 ] ; then
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "failed to create the extras file because the extras directory is empty."
-        /bin/false
-        return
-    fi
-
-    local FILE
-    local REMOTE_FILE
-    local LOCAL_DIR
-    local LOCAL_FILE
-
-    FILE="extras.sfs"
-    REMOTE_FILE="${FILE}"
-    LOCAL_DIR="${HOME}/tmp"
-    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
-
-    /bin/rm -f "${LOCAL_FILE}"
-    /bin/mkdir -p "${LOCAL_DIR}"
-    /usr/bin/mksquashfs /usr/local ${LOCAL_FILE} > /dev/null 2>&1
-    if [ $? -ne 0 ] ; then
-        /bin/rm -f ${LOCAL_FILE}
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "failed to create the extras file because squashfs failed."
-        /bin/false
-        return
-    fi
-
-    mm_confrw_put "${REMOTE_FILE}" "${LOCAL_FILE}"
-    if [ $? -ne 0 ] ; then
-        /bin/rm -f ${LOCAL_FILE}
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "failed to save the extras file."
-        /bin/false
-        return
-    fi
-
-    /bin/rm -f "${LOCAL_FILE}"
-    /bin/true
-}
-
-mm_themecache_save() {
-
-    if [ ! -d /home/minimyth/.mythtv/cache/themecache ] ; then
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "[functions/mm_themecache_save] failed to create the MythTV themecache file because the MythTV themecache directory does not exist!"
-        /bin/false
-        return
-    fi
-    if [ -z "`cd /home/minimyth/.mythtv/cache/themecache ; /bin/ls -A`" ] ; then
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "[functions/mm_themecache_save] failed to create the MythTV themecache file because the MythTV themecache directory seems to be empty!"
-        /bin/false
-        return
-    fi
-
-    local FILE
-    local REMOTE_FILE
-    local LOCAL_DIR
-    local LOCAL_FILE
-
-    # FILE=`cd /home/minimyth/.mythtv/cache/themecache ; /bin/ls`.sfs
-    FILE="themecache.sfs"
-    REMOTE_FILE="${FILE}"
-    LOCAL_DIR="${HOME}/tmp"
-    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
-
-    /bin/rm -f "${LOCAL_FILE}"
-    /bin/mkdir -p "${LOCAL_DIR}"
-    /usr/bin/mksquashfs /home/minimyth/.mythtv/cache/themecache ${LOCAL_FILE} > /dev/null 2>&1
-    if [ $? -ne 0 ] ; then
-        /bin/rm -f ${LOCAL_FILE}
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "[functions/mm_themecache_save] failed to create the MythTV themecache file because squashfs failed."
-        /bin/false
-        return
-    fi
-
-    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_themecache_save] themecache ${LOCAL_FILE} successfuly prepared..."
-
-    mm_confrw_put "${REMOTE_FILE}" "${LOCAL_FILE}"
-    if [ $? -ne 0 ] ; then
-        /bin/rm -f ${LOCAL_FILE}
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "[functions/mm_themecache_save] failed to upload the MythTV themecache file!"
-        /bin/false
-        return
-    fi
-
-    /bin/rm -f "${LOCAL_FILE}"
-    /bin/true
-}
-
-mm_mythbrowser_cookies_save() {
-
-    if [ -e /home/minimyth/.mythtv/MythBrowser/cookiejar.txt ] ; then
-        mm_confrw_put "mythbrowser_cookiejar.txt" "/home/minimyth/.mythtv/MythBrowser/cookiejar.txt"
-        if [ $? -ne 0 ] ; then
-            /usr/bin/logger -s -t minimyth -p "local0.error" \
-                "[functions/mm_mythbrowser_cookies_save] failed to save MythBrowser cookiejar.txt !"
+            /usr/bin/logger -s -t minimyth -p "local0.error" "[functions/mm_directory_save_to_confrw] failed to save the ${archive_filename}.tar.bz2 file ..."
+            rm -f /tmp/${archive_filename}.tar.bz2
             /bin/false
             return
         fi
+        rm -f /tmp/${archive_filename}.tar.bz2
+        /usr/bin/logger -s -t minimyth -p "local0.info" "[functions/mm_directory_save_to_confrw] [${directory}] state saved & uploaded as ${archive_filename}.tar.bz2 sucessfuly ..."
+        /bin/true
+        return
+    else
+        /usr/bin/logger -s -t minimyth -p "local0.error" "[functions/mm_directory_save_to_confrw] asked to save [${directory}] not exists ..."
+        rm -f /tmp/${archive_filename}.tar.bz2
+        /bin/false
+        return
     fi
 }
 
-mm_cookiejar_save() {
+mm_directory_restore_from_confrw() {
+    # param1: directory to be saved
+    # param2: archive filename (without tar.bz2 extenssion)
 
-    mm_mythbrowser_cookies_save
+    local directory=$1
+    local archive_filename=$2
 
-    if [ -d /home/minimyth/.config ] ; then
-        cd /home/minimyth
-        tar -jcvvf /tmp/google-chrome-config.tar.bz2 ./.config*
-        mm_confrw_put "google-chrome-config.tar.bz2" "/tmp/google-chrome-config.tar.bz2"
-        rm -f /tmp/google-chrome-config.tar.bz2
-        if [ $? -ne 0 ] ; then
-            /usr/bin/logger -s -t minimyth -p "local0.error" \
-                "[functions/mm_cookiejar_save] failed to upload the google-chrome-config.tar.bz2 file!"
-            /bin/false
-            return
-        fi
+    mm_confrw_get ${archive_filename}.tar.bz2 /tmp/${archive_filename}.tar.bz2
+
+    if [ ! -e /tmp/${archive_filename}.tar.bz2 ] ; then
+        /usr/bin/logger -t minimyth -p "local0.err" "[functions/mm_directory_restore_from_confrw] can't download ${archive_filename}.tar.bz2 archive file from conf-rw ..."
+        /bin/false
+        return
+    else
+        /bin/rm -rf ${directory}*
+        /bin/mkdir -p ${directory}
+        bunzip2 -dc /tmp/${archive_filename}.tar.bz2 | tar -xf - -C ${directory}
+        /bin/rm -f /tmp/${archive_filename}.tar.bz2
+        /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_directory_restore_from_confrw] state of [${directory}] sucessfuly restored ..."
     fi
-
-    if [ -d /home/minimyth/.mozilla ] ; then
-        cd /home/minimyth
-        tar -jcvvf /tmp/mozilla-firefox-config.tar.bz2 ./.mozilla*
-        mm_confrw_put "mozilla-firefox-config.tar.bz2" "/tmp/mozilla-firefox-config.tar.bz2"
-        rm -f /tmp/mozilla-firefox-config.tar.bz2
-        if [ $? -ne 0 ] ; then
-            /usr/bin/logger -s -t minimyth -p "local0.error" \
-                "[functions/mm_cookiejar_save] failed to upload the mozilla-firefox-config.tar.bz2 file!"
-            /bin/false
-            return
-        fi
-    fi
-
-    /usr/bin/logger -s -t minimyth -p "local0.info" \
-        "[functions/mm_cookiejar_save] MythBrowser cookiejar.txt file and Chrome/Mozilla configs uploaded sucessfuly..."
     /bin/true
     return
 }
-
-
-mm_mythbrowser_cookies_restore() {
-
-    /bin/rm -f /home/minimyth/.mythtv/MythBrowser/cookiejar.txt
-
-    mm_confrw_get mythbrowser_cookiejar.txt /home/minimyth/.mythtv/MythBrowser/cookiejar.txt
-    if [ -e /home/minimyth/.mythtv/MythBrowser/cookiejar.txt ] ; then
-        "[functions/mm_mythbrowser_cookies_restore] MythBrowser cookiejar.txt restored sucessfuly..."
-        /bin/chmod 0600 /home/minimyth/.mythtv/MythBrowser/cookiejar.txt
-    fi
-}
-
-mm_bt_state_save() {
-
-    if [ -d /var/lib/bluetooth ] ; then
-        cd /var/lib
-        tar -jcvvf /tmp/bt-state.tar.bz2 ./blue*
-        mm_confrw_put "bt-state.tar.bz2" "/tmp/bt-state.tar.bz2"
-        if [ $? -ne 0 ] ; then
-            /usr/bin/logger -s -t minimyth -p "local0.error" \
-                "[functions/mm_bt_state_save] failed to save the bt-state.tar.bz2 file ..."
-            /bin/false
-            return
-        fi
-    fi
-    rm -f /tmp/bt-state.tar.bz2
-
-    /usr/bin/logger -s -t minimyth -p "local0.info" \
-        "[functions/mm_bt_state_save] Bluetooth state uploaded sucessfuly..."
-    /bin/true
-    return
-}
-
-mm_bt_switch_audio_to_default() {
-
-    if [ x$(readlink /etc/asound.conf) = "x/etc/asound-bt.conf" ] ; then
-        if [ -e /etc/asound-hdmi.conf ] ; then
-            ln -sf /etc/asound-hdmi.conf /etc/asound.conf
-        fi
-    fi
-    return 0
-}
-
-mm_bt_state_restore() {
-
-    mm_confrw_get "bt-state.tar.bz2" "/tmp/bt-state.tar.bz2"
-    if [ $? -ne 0 ] ; then
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "[functions/mm_bt_state_restore] failed to restore the bt-state.tar.bz2 file ..."
-        /bin/false
-        return
-    fi
-    rm -rf /var/lib/blue*
-    bunzip2 -dc /tmp/bt-state.tar.bz2 | tar -xf - -C /var/lib
-    rm -f /tmp/bt-state.tar.bz2
-
-    /usr/bin/logger -s -t minimyth -p "local0.info" \
-        "[functions/mm_bt_state_restore] Bluetooth state restored sucessfuly..."
-    /bin/true
-    return
-}
-
-
-mm_kodi_settings_save() {
-
-    local filename="kodi-settings.tar.bz2"
-
-    if [ -d /home/minimyth/.kodi ] ; then
-        cd /home/minimyth
-        tar -jcf /tmp/${filename} ./.kodi*
-        mm_confrw_put "${filename}" "/tmp/${filename}"
-        rm -f /tmp/${filename}
-        if [ $? -ne 0 ] ; then
-            /usr/bin/logger -s -t minimyth -p "local0.error" \
-                "[functions/mm_cookiejar_save] failed to upload the ${filename} file!"
-            /bin/false
-            return
-        fi
-    fi
-
-    /usr/bin/logger -s -t minimyth -p "local0.info" \
-        "[functions/mm_kodi_settings_save] Kodi settings uploaded sucessfuly ..."
-    /bin/true
-    return
-}
-
-
-mm_kodi_settings_restore() {
-
-    local filename="kodi-settings.tar.bz2"
-
-    mm_confrw_get "${filename}" "/tmp/${filename}"
-    if [ $? -ne 0 ] ; then
-        /usr/bin/logger -s -t minimyth -p "local0.error" \
-            "[functions/mm_kodi_settings_restore] failed to get ${filename} file ..."
-        /bin/false
-        return
-    fi
-    /bin/rm -rf /home/minimyth/.kodi*
-    bunzip2 -dc /tmp/${filename} | tar -xf - -C /home/minimyth/
-    rm -f /tmp/${filename}
-
-    /usr/bin/logger -s -t minimyth -p "local0.info" \
-        "[functions/mm_kodi_settings_restore] state restored sucessfuly ..."
-    /bin/true
-    return
-}
-
 
 mm_message_output() {
     local LEVEL=$1
@@ -2390,4 +2008,249 @@ bt_disconnect() {
     disconnect ${mac}
 EOF
 
+}
+
+mm_game_restore() {
+
+    local FILE
+    local REMOTE_FILE
+    local LOCAL_DIR
+    local LOCAL_FILE
+
+    FILE="game.tar"
+    REMOTE_FILE="${FILE}"
+    LOCAL_DIR="${HOME}/tmp"
+    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
+
+    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
+
+    /bin/rm -f "${LOCAL_FILE}"
+
+    mm_confrw_get "${REMOTE_FILE}" "${LOCAL_FILE}"
+
+    if [ -n "${LOCAL_FILE}" ] ; then
+        cd /home/minimyth
+        /bin/tar -xf "${LOCAL_FILE}"
+        /bin/rm -f "${LOCAL_FILE}"
+    fi
+
+    /bin/rm -f "${LOCAL_FILE}"
+}
+
+mm_game_save() {
+
+    local FILE
+    local REMOTE_FILE
+    local LOCAL_DIR
+    local LOCAL_FILE
+
+    FILE="game.tar"
+    REMOTE_FILE="${FILE}"
+    LOCAL_DIR="${HOME}/tmp"
+    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
+
+    /usr/bin/test -n "${LOCAL_DIR}" && /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/test -n "${LOCAL_DIR}" && /usr/bin/test ! -d "${LOCAL_DIR}" && return
+
+    # Enumerate all the files to be saved.
+    local IFS_SAVE
+    local GAME_SAVE_FULL
+    local GAME_SAVE_LIST
+    local GAME_SAVE_ITEM
+    local GAME_SAVE
+    GAME_SAVE_FULL=`/bin/echo ":${MM_GAME_SAVE_LIST}" \
+        | /bin/sed -e 's%:%:/home/minimyth/%g'        \
+        | /bin/sed -e 's%^:%%'`
+    IFS_SAVE=${IFS}
+    IFS=:
+    for GAME_SAVE_ITEM in ${GAME_SAVE_FULL}; do
+        if [ -e "${GAME_SAVE_ITEM}" ] ; then
+            GAME_SAVE=`/bin/echo "${GAME_SAVE_ITEM}" \
+                | /bin/sed -e 's%^/home/minimyth/%%'`
+            GAME_SAVE_LIST="${GAME_SAVE_LIST}|${GAME_SAVE}"
+        fi
+    done
+    IFS=${IFS_SAVE}
+    GAME_SAVE_LIST=`/bin/echo ${GAME_SAVE_LIST} \
+        | /bin/sed -e 's%^|%%'                  \
+        | /bin/sed -e 's%|%:%g'`
+
+    /bin/rm -f "${LOCAL_FILE}"
+    if [ -n "${GAME_SAVE_LIST}" ] ; then
+        /bin/mkdir -p /home/minimyth
+        cd /home/minimyth
+        local IFS_SAVE
+        IFS_SAVE=${IFS}
+        IFS=:${IFS}
+        /bin/tar -cf "${LOCAL_FILE}" ${GAME_SAVE_LIST} || /bin/rm -f "${LOCAL_FILE}"
+        IFS=${IFS_SAVE}
+        if [ ! -e "${LOCAL_FILE}" ] ; then
+            /usr/bin/logger -s -t minimyth -p "local0.error" \
+                "failed to create game files tarball."
+            /bin/false
+            return
+        fi
+        mm_confrw_put "${REMOTE_FILE}" "${LOCAL_FILE}"
+        if [ $? -ne 0 ] ; then
+            /bin/rm -f "${LOCAL_FILE}"
+            /bin/false
+            return
+        else
+            /bin/rm -f "${LOCAL_FILE}"
+        fi
+    fi
+}
+
+mm_extras_save() {
+
+    if [ ! -d /usr/local ] ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to create the extras file because the extras directory does not exist."
+        /bin/false
+        return
+    fi
+    if [ `/bin/ls -1 /usr/local | /usr/bin/wc -l` -eq 0 ] ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to create the extras file because the extras directory is empty."
+        /bin/false
+        return
+    fi
+
+    local FILE
+    local REMOTE_FILE
+    local LOCAL_DIR
+    local LOCAL_FILE
+
+    FILE="extras.sfs"
+    REMOTE_FILE="${FILE}"
+    LOCAL_DIR="${HOME}/tmp"
+    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
+
+    /bin/rm -f "${LOCAL_FILE}"
+    /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/mksquashfs /usr/local ${LOCAL_FILE} > /dev/null 2>&1
+    if [ $? -ne 0 ] ; then
+        /bin/rm -f ${LOCAL_FILE}
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to create the extras file because squashfs failed."
+        /bin/false
+        return
+    fi
+
+    mm_confrw_put "${REMOTE_FILE}" "${LOCAL_FILE}"
+    if [ $? -ne 0 ] ; then
+        /bin/rm -f ${LOCAL_FILE}
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "failed to save the extras file."
+        /bin/false
+        return
+    fi
+
+    /bin/rm -f "${LOCAL_FILE}"
+    /bin/true
+}
+
+mm_themecache_save() {
+
+    if [ ! -d /home/minimyth/.mythtv/cache/themecache ] ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_themecache_save] failed to create the MythTV themecache file because the MythTV themecache directory does not exist!"
+        /bin/false
+        return
+    fi
+    if [ -z "`cd /home/minimyth/.mythtv/cache/themecache ; /bin/ls -A`" ] ; then
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_themecache_save] failed to create the MythTV themecache file because the MythTV themecache directory seems to be empty!"
+        /bin/false
+        return
+    fi
+
+    local FILE
+    local REMOTE_FILE
+    local LOCAL_DIR
+    local LOCAL_FILE
+
+    # FILE=`cd /home/minimyth/.mythtv/cache/themecache ; /bin/ls`.sfs
+    FILE="themecache.sfs"
+    REMOTE_FILE="${FILE}"
+    LOCAL_DIR="${HOME}/tmp"
+    LOCAL_FILE="${LOCAL_DIR}/${FILE}"
+
+    /bin/rm -f "${LOCAL_FILE}"
+    /bin/mkdir -p "${LOCAL_DIR}"
+    /usr/bin/mksquashfs /home/minimyth/.mythtv/cache/themecache ${LOCAL_FILE} > /dev/null 2>&1
+    if [ $? -ne 0 ] ; then
+        /bin/rm -f ${LOCAL_FILE}
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_themecache_save] failed to create the MythTV themecache file because squashfs failed."
+        /bin/false
+        return
+    fi
+
+    /usr/bin/logger -t minimyth -p "local0.info" "[functions/mm_themecache_save] themecache ${LOCAL_FILE} successfuly prepared..."
+
+    mm_confrw_put "${REMOTE_FILE}" "${LOCAL_FILE}"
+    if [ $? -ne 0 ] ; then
+        /bin/rm -f ${LOCAL_FILE}
+        /usr/bin/logger -s -t minimyth -p "local0.error" \
+            "[functions/mm_themecache_save] failed to upload the MythTV themecache file!"
+        /bin/false
+        return
+    fi
+
+    /bin/rm -f "${LOCAL_FILE}"
+    /bin/true
+}
+
+mm_cookiejar_save() {
+
+    if [ -d /home/minimyth/.local/share/mythfrontend/QtWebEngine/MythTV ] ; then
+        mm_directory_save_to_confrw "/home/minimyth/.local/share/mythfrontend/QtWebEngine/MythTV" "mythtv-webengine-config"
+    fi
+
+    if [ -d /home/minimyth/.config/google-chrome ] ; then
+        mm_directory_save_to_confrw "/home/minimyth/.config/google-chrome" "google-chrome-config"
+    fi
+
+    if [ -d /home/minimyth/.mozilla ] ; then
+        mm_directory_save_to_confrw "/home/minimyth/.mozilla" "mozilla-firefox-config"
+    fi
+
+    /bin/true
+    return
+}
+
+mm_bt_state_save() {
+
+    if [ -d /var/lib/bluetooth ] ; then
+        mm_directory_save_to_confrw "/var/lib/bluetooth" "bt-state"
+    fi
+}
+
+mm_bt_switch_audio_to_default() {
+
+    if [ x$(readlink /etc/asound.conf) = "x/etc/asound-bt.conf" ] ; then
+        if [ -e /etc/asound-hdmi.conf ] ; then
+            ln -sf /etc/asound-hdmi.conf /etc/asound.conf
+        fi
+    fi
+    return 0
+}
+
+mm_bt_state_restore() {
+
+    mm_directory_restore_from_confrw "/var/lib/bluetooth" "bt-state"
+}
+
+mm_kodi_settings_save() {
+
+    if [ -d /home/minimyth/.kodi ] ; then
+        mm_directory_save_to_confrw "/home/minimyth/.kodi" "kodi-settings"
+    fi
+}
+
+mm_kodi_settings_restore() {
+
+    mm_directory_restore_from_confrw "/home/minimyth/.kodi" "kodi-settings"
 }
