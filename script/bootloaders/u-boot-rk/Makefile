@@ -76,10 +76,10 @@ endif
 
 ifeq (1,1)
 # collabora u-boot
-# git@ 27.08.2025
-GARVERSION   = e3e2d61232de7e7915b45b3d87a729e27d472bc9
-# git@ 24.01.2025 https://github.com/rockchip-linux/rkbin/commits/master/
-RKBINVERSION = f43a462e7a1429a9d407ae52b4745033034a6cf9
+# git@ 24.09.2025 uboot 2025.10-rc5
+GARVERSION   = 871bc33d42a944f44da26b11f1e9f5c401be1673
+# git@ 13.06.2025 https://github.com/rockchip-linux/rkbin/commits/master/
+RKBINVERSION = 74213af1e952c4683d2e35952507133b61394862
 MASTER_SITES = \
                https://github.com/rockchip-linux/rkbin/raw/3cb8a4e35c99d06563b3707f7e4df1fad68dc301/bin/rk35/ \
                https://github.com/rockchip-linux/rkbin/archive/ \
@@ -146,9 +146,9 @@ DEFCONFIG    = generic-rk3399_defconfig
 endif
 
 ifneq (,$(findstring rk3528,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk35/rk3528_ddr_1056MHz_4BIT_PCB_v1.10.bin
+TPL          = ../rkbin/bin/rk35/rk3528_ddr_1056MHz_4BIT_PCB_v1.11.bin
 # use rkbin bl31 as mainline 2.13 bl31 don't have support for 3528 (yet)
-BL31         = ../rkbin/bin/rk35/rk3528_bl31_v1.18.elf
+BL31         = ../rkbin/bin/rk35/rk3528_bl31_v1.20.elf
 # BL31         = $(DESTDIR)$(libdir)/u-boot/rk3528/bl31.bin
 MKIMAGE_TYPE = rk3528
 INSTALL_PREF = rk3528
@@ -159,7 +159,7 @@ endif
 ifneq (,$(findstring rk3566,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.23.bin
 # use rkbin bl31 as with mainline 2.13 bl31 there is issue with gpu clocking
-BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.44.elf
+BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.45.elf
 # BL31         = $(DESTDIR)$(libdir)/u-boot/rk3566/bl31.bin
 MKIMAGE_TYPE = rk3568
 INSTALL_PREF = rk3566
@@ -170,8 +170,9 @@ endif
 
 ifneq (,$(findstring rk3568,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3568_ddr_1056MHz_v1.23.bin
-# BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.44.elf
-BL31         = $(DESTDIR)$(libdir)/u-boot/rk3568/bl31.bin
+# use rkbin bl31 as with mainline 2.13 bl31 there is issue with gpu clocking
+BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.45.elf
+# BL31         = $(DESTDIR)$(libdir)/u-boot/rk3568/bl31.bin
 MKIMAGE_TYPE = rk3568
 INSTALL_PREF = rk3568
 DDR_BIN      = ${TPL}
@@ -182,7 +183,7 @@ ifneq (,$(findstring rk3576,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3576_ddr_lp4_2112MHz_lp5_2736MHz_v1.09.bin
 # use rkbin bl31 as with mainline 2.13 bl31 there is issue with constantly low cpu clocks
 # use rkbin bl31 v1.08 as newer vers. have issue with constantly low cpu clocks
-# BL31         = ../rkbin/bin/rk35/rk3576_bl31_v1.15.elf
+# BL31         = ../rkbin/bin/rk35/rk3576_bl31_v1.20.elf
 # BL31         = $(DESTDIR)$(libdir)/u-boot/rk3576/bl31.bin
 BL31         = ../rk3576_bl31_v1.08.elf
 MKIMAGE_TYPE = rk3576
@@ -191,16 +192,22 @@ DDR_BIN      = ${TPL}
 DEFCONFIG    = generic-rk3576_defconfig
 endif
 
-ifneq (,$(findstring rk3588,$(mm_U-BOOT_BOARD_TYPE)))
-TPL          = ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.18.bin
-# BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.48.elf
+ifneq (,$(findstring rk3588.,$(mm_U-BOOT_BOARD_TYPE)))
+TPL          = ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.19.bin
+# BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.51.elf
 BL31         = $(DESTDIR)$(libdir)/u-boot/rk3588/bl31.bin
 MKIMAGE_TYPE = rk3588
-ifneq (,$(findstring rk3588s,$(mm_U-BOOT_BOARD_TYPE)))
-INSTALL_PREF = rk3588s
-else
 INSTALL_PREF = rk3588
+DDR_BIN      = ${TPL}
+DEFCONFIG    = generic-rk3588_defconfig
 endif
+
+ifneq (,$(findstring rk3588s.,$(mm_U-BOOT_BOARD_TYPE)))
+TPL          = ../rkbin/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v1.19.bin
+# BL31         = ../rkbin/bin/rk35/rk3588_bl31_v1.51.elf
+BL31         = $(DESTDIR)$(libdir)/u-boot/rk3588s/bl31.bin
+MKIMAGE_TYPE = rk3588
+INSTALL_PREF = rk3588s
 DDR_BIN      = ${TPL}
 DEFCONFIG    = generic-rk3588_defconfig
 endif
