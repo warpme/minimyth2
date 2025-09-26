@@ -322,8 +322,6 @@ PATCHFILES += 1048-media-rkvdec-Unstage-the-driver.patch
 # from 6.17 mm2 kernel
 PATCHFILES += 1054-bitmap-introduce-hardware-specific-bitfield-operatio.patch
 PATCHFILES += 1056-media-rockchip-rkvdec-backport-vdpu381-and-383-to-rkvdec-v3-21092025-from-6.17.mm2.patch
-#PATCHFILES += 1057-media-rockchip-rkvdec-vdpu381-and-383-v3-fixup-21092025-to-6.17.patch
-#PATCHFILES += 1058-media-rkvdec-fix-rkvdec_enum_coded_fmt_desc-rebase-mistake.patch
 # fix for green screen on chrominium
 PATCHFILES += 1079-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
 # dtsi additions
@@ -347,7 +345,7 @@ PATCHFILES += 1095-arm64-dts-rockchip-rk3588s-nanopc-r6s-dts-improvements.patch
 PATCHFILES += 1096-arm64-dts-rockchip-rk3588-nanopc-t6-dtsi-improvements.patch
 PATCHFILES += 1097-arm64-dts-rockchip-rk3588-add-rock5t-dt.patch
 # for testing rkvdec h264
-PATCHFILES += 1099-arm64-dtsi-rockchip-disable-vpu121.patch
+# PATCHFILES += 1099-arm64-dtsi-rockchip-disable-vpu121.patch
 
 #------------------------------------------------------------
 endif
