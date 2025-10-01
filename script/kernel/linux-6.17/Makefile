@@ -315,6 +315,7 @@ PATCHFILES += 1055-media-v4l2-ctrls-Add-hevc_ext_sps_-ls-t_rps-controls.patch
 PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-v3-21092025.patch
 PATCHFILES += 1057-media-rockchip-rkvdec-vdpu381-and-383-v3-fixup-21092025-to-6.17.patch
 PATCHFILES += 1058-media-rkvdec-fix-rkvdec_enum_coded_fmt_desc-rebase-mistake.patch
+PATCHFILES += 1059-media-rkvdec-fix-typos-in-vdpu381-vdpu383-hevc.patch
 # fix for green screen on chrominium
 PATCHFILES += 1079-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
 # dtsi additions
