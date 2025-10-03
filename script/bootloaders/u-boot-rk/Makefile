@@ -34,25 +34,24 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = roc-pc-rk3576_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = board-rk3576.rock_4d
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3588
+# mm_U-BOOT_BOARD_TYPE = test-rk3588.
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-plus-rk3588_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock5b-rk3588_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-5-itx-rk3588_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock5t-rk3588_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = nanopc-t6-rk3588_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3588s
+# mm_U-BOOT_BOARD_TYPE = test-rk3588s.
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-5-rk3588s_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock5a-rk3588s_defconfig
+# mm_U-BOOT_BOARD_DEFCONFIG = nanopi-r6s-rk3588s_defconfig
 
 
 GARNAME      = u-boot-rk
-ifeq (0,1)
-# mainline u-boot
-# git@ 01.08.2025 mainline 2025.10-rc1
-GARVERSION   = 182cb30084516c3085d2ca5dde3f105f7625d774
-# git@ 24.01.2025 https://github.com/rockchip-linux/rkbin/commits/master/
-RKBINVERSION = f43a462e7a1429a9d407ae52b4745033034a6cf9
+# git@ 23.09.2025 mainline 2025.10-rc5
+GARVERSION   = 2f2ab7e13a69367cc9b88a45899e24dba02667c6
+# git@ 13.06.2025 https://github.com/rockchip-linux/rkbin/commits/master/
+RKBINVERSION = 74213af1e952c4683d2e35952507133b61394862
 MASTER_SITES = \
                https://github.com/rockchip-linux/rkbin/raw/3cb8a4e35c99d06563b3707f7e4df1fad68dc301/bin/rk35/ \
                https://github.com/rockchip-linux/rkbin/archive/ \
@@ -60,46 +59,23 @@ MASTER_SITES = \
 
 DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip rk3576_bl31_v1.08.elf
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
-PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
-               02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
-               03-add-generic-rk3576_defconfig.patch \
-               50-my-boards-rk3566-defconfigs-enable-overlays.patch \
-               51-add-rk3328-beelink-a1-defconfig.patch \
-               52-add-rk3566-x96-x6-defconfig.patch \
-               53-add-rk3588-rock-5t-defconfig.patch \
-               54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
-               55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
-               56-rk3566-zero3-sync-dts-to-kernel-to-make-eth-working.patch \
-               57-rk3399-orangepi-fix-nonworking-ddc.patch \
-
-endif
-
-ifeq (1,1)
-# collabora u-boot
-# git@ 24.09.2025 uboot 2025.10-rc5
-GARVERSION   = 871bc33d42a944f44da26b11f1e9f5c401be1673
-# git@ 13.06.2025 https://github.com/rockchip-linux/rkbin/commits/master/
-RKBINVERSION = 74213af1e952c4683d2e35952507133b61394862
-MASTER_SITES = \
-               https://github.com/rockchip-linux/rkbin/raw/3cb8a4e35c99d06563b3707f7e4df1fad68dc301/bin/rk35/ \
-               https://github.com/rockchip-linux/rkbin/archive/ \
-               https://gitlab.collabora.com/hardware-enablement/rockchip-3588/u-boot/-/archive/$(GARVERSION)/ \
-
-DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip rk3576_bl31_v1.08.elf
-WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
-PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch \
-               02-rockchip-rk3328-set-vop-qos-to-high-priority.patch \
-               03-hack-fix-compile--rk3576_defconfig-collabora.patch \
-               50-my-boards-rk3566-defconfigs-enable-overlays-collabora.patch \
-               51-add-rk3328-beelink-a1-defconfig.patch \
-               52-add-rk3566-x96-x6-defconfig.patch \
-               53-add-rk3588-rock-5t-defconfig.patch \
-               54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch \
-               55-rk3588-rock5-itx-disable-spi-in-defconfig.patch \
-               56-rk3566-zero3-sync-dts-to-kernel-to-make-eth-working.patch \
-               57-rk3399-orangepi-fix-nonworking-ddc.patch \
-
-endif
+PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch
+PATCHFILES  += 02-rockchip-rk3328-set-vop-qos-to-high-priority.patch
+PATCHFILES  += 19-rockchip-mkimage-Split-size_and_off-and-size_and_nim.patch
+PATCHFILES  += 20-rockchip-mkimage-Print-image-information-for-all-emb.patch
+PATCHFILES  += 21-rockchip-mkimage-Print-boot0-and-boot1-parameters.patch
+PATCHFILES  += 22-rockchip-mkimage-Add-option-to-change-image-offset-a.patch
+PATCHFILES  += 23-rockchip-mkimage-Add-support-for-up-to-4-input-files.patch
+PATCHFILES  += 24-rockchip-mkimage-Add-option-for-image-load-address-a.patch
+PATCHFILES  += 25-WIP-rockchip-mkimage-Add-rk3576-align-and-sd-card-workarroud.patch
+PATCHFILES  += 50-my-boards-rk3566-defconfigs-enable-overlays.patch
+PATCHFILES  += 51-add-rk3328-beelink-a1-defconfig.patch
+PATCHFILES  += 52-add-rk3566-x96-x6-defconfig.patch
+PATCHFILES  += 53-add-rk3588-rock-5t-defconfig.patch
+PATCHFILES  += 54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch
+PATCHFILES  += 55-rk3588-rock5-itx-disable-spi-in-defconfig.patch
+PATCHFILES  += 56-rk3566-zero3-sync-dts-to-kernel-to-make-eth-working.patch
+PATCHFILES  += 57-rk3399-orangepi-fix-nonworking-ddc.patch
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2
