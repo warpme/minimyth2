@@ -48,8 +48,8 @@
 
 
 GARNAME      = u-boot-rk
-# git@ 23.09.2025 mainline 2025.10-rc5
-GARVERSION   = 2f2ab7e13a69367cc9b88a45899e24dba02667c6
+# git@ 06.10.2025 mainline 2025.10 GA
+GARVERSION   = e50b1e8715011def8aff1588081a2649a2c6cd47
 # git@ 13.06.2025 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = 74213af1e952c4683d2e35952507133b61394862
 MASTER_SITES = \
