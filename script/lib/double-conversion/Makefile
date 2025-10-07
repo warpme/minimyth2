@@ -1,6 +1,6 @@
 
 GARNAME      = double-conversion
-GARVERSION   = 3.3.0
+GARVERSION   = 3.3.1
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/google/double-conversion/archive/
 DISTFILES    = v$(GARVERSION).tar.gz
@@ -17,5 +17,6 @@ INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 	-DBUILD_SHARED_LIBS=ON \
+	-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 
 include ../../gar.mk
