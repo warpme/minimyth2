@@ -2,9 +2,9 @@
 BUILD_QTWEBENGINE = no
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 6.9.0
+GARVERSION   = 6.10.0
 CATEGORIES   = qt
-MASTER_SITES = http://download.qt.io/official_releases/qt/6.9/$(GARVERSION)/single/
+MASTER_SITES = http://download.qt.io/official_releases/qt/6.10/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
@@ -171,6 +171,8 @@ CONFIGURE_ARGS += \
 	-DQT_FORCE_BUILD_TOOLS="ON" \
 	-DMySQL_INCLUDE_DIR="$(DESTDIR)$(includedir)/mysql" \
 	-DBUILD_ONLY_GN="ON" \
+
+#	-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 
 #	-DQT_HOST_GN_PATH="/home/piotro/minimyth2-aarch64-next/images/build/usr/bin/gn" \
 
