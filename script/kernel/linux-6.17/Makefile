@@ -268,6 +268,8 @@ PATCHFILES += 1016-drm-bridge-dw-hdmi-qp-Fixup-timer-base-setup-v4.patch
 PATCHFILES += 1017-drm-rockchip-dw_hdmi_qp-Improve-error-handling-with-dev_err_probe-v4.patch
 PATCHFILES += 1018-drm-rockchip-dw_hdmi_qp-Provide-CEC-IRQ-in-dw_hdmi_qp_plat_data-v4.patch
 PATCHFILES += 1019-drm-rockchip-dw_hdmi_qp-Provide-ref-clock-rate-in-dw_hdmi_qp_plat_data-v4.patch
+# fix for swiotlb buffer is full
+PATCHFILES += 1020-drm-rockchip-set-dma-mask-to-64-bit.patch
 # var fixes for hdptx https://patchwork.kernel.org/project/linux-rockchip/list/?series=998158
 PATCHFILES += 1021-phy-rockchip-samsung-hdptx-Fix-reported-clock-rate-i.patch
 PATCHFILES += 1022-phy-rockchip-samsung-hdptx-Reduce-ROPLL-loop-bandwid.patch
