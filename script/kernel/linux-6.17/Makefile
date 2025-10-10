@@ -318,6 +318,8 @@ PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-v3-210920
 PATCHFILES += 1057-media-rockchip-rkvdec-vdpu381-and-383-v3-fixup-21092025-to-6.17.patch
 PATCHFILES += 1058-media-rkvdec-fix-rkvdec_enum_coded_fmt_desc-rebase-mistake.patch
 PATCHFILES += 1059-media-rkvdec-fix-typos-in-vdpu381-vdpu383-hevc.patch
+# fix from armbian for initialize h264 frame_mbs_only_flag as 1
+PATCHFILES += 1078-media-v4l2-core-Initialize-h264-frame_mbs_only_flag-as-1.patch
 # fix for green screen on chrominium
 PATCHFILES += 1079-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
 # dtsi additions
