@@ -318,6 +318,10 @@ PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-v3-210920
 PATCHFILES += 1057-media-rockchip-rkvdec-vdpu381-and-383-v3-fixup-21092025-to-6.17.patch
 PATCHFILES += 1058-media-rkvdec-fix-rkvdec_enum_coded_fmt_desc-rebase-mistake.patch
 PATCHFILES += 1059-media-rkvdec-fix-typos-in-vdpu381-vdpu383-hevc.patch
+# fix mmc cqe
+PATCHFILES += 1076-mmc-sdhci-of-dwcmshc-add-command-queue-support.patch
+# fix pci susped-resume
+PATCHFILES += 1077-pci-dwc-support-missing-PCIe-device-on-resume.patch
 # fix from armbian for initialize h264 frame_mbs_only_flag as 1
 PATCHFILES += 1078-media-v4l2-core-Initialize-h264-frame_mbs_only_flag-as-1.patch
 # fix for green screen on chrominium
