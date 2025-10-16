@@ -300,7 +300,6 @@ PATCHFILES += 1042-phy-rockchip-samsung-hdptx-Add-HDMI-2.1-FRL-support.patch
 PATCHFILES += 1043-drm-bridge-add-frl-support.patch
 PATCHFILES += 1044-DEBUG-phy-rockchip-samsung-hdptx-Add-verbose-logging.patch
 # misc fixes and additions
-PATCHFILES += 1045-pm-devfreq-rockchip-dfi-double-count-on-rk3588.patch
 PATCHFILES += 1046-pm-devfreq-rockchip-dfi-add-support-for-lpddr5.patch
 # usb-c dp alt mode support
 PATCHFILES += 1047-phy-rockchip-inno-usb2-add-soft-vbusvalid-control.patch
@@ -318,6 +317,8 @@ PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-v3-210920
 PATCHFILES += 1057-media-rockchip-rkvdec-vdpu381-and-383-v3-fixup-21092025-to-6.17.patch
 PATCHFILES += 1058-media-rkvdec-fix-rkvdec_enum_coded_fmt_desc-rebase-mistake.patch
 PATCHFILES += 1059-media-rkvdec-fix-typos-in-vdpu381-vdpu383-hevc.patch
+# fix dw-hdmi spurious irg on resume
+PATCHFILES += 1075-drm-bridge-dw-hdmi-qp-fix-spurious-IRQ-on-resume.patch
 # fix mmc cqe
 PATCHFILES += 1076-mmc-sdhci-of-dwcmshc-add-command-queue-support.patch
 # fix pci susped-resume
@@ -332,6 +333,7 @@ PATCHFILES += 1081-arm64-dtsi-rockchip-add-dw-dp-nodes.patch
 PATCHFILES += 1082-arm64-dtsi-rockchip-add-the-vdpu381-video-decoders.patch
 PATCHFILES += 1083-arm64-dtsi-rockchip-rk3288-add-vdec-node.patch
 PATCHFILES += 1084-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
+PATCHFILES += 1085-arm64-dtsi-rk3588-enable-emmc-cqe.patch
 # dts patches
 PATCHFILES += 1087-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
 PATCHFILES += 1088-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
