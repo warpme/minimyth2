@@ -4,7 +4,7 @@ GARNAME      = mesa
 GARVERSION   = 40f7bef16c44b2a8a2283df20204c41297989ecd
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-PATCHFILES   = 002-v3d-revert-v3d-Always-lower-frag-color.patch
+PATCHFILES   = 001-fix-ticket14141.patch
 WORKSRC      = $(WORKDIR)/$(DISTNAME)
 CATEGORIES   = $(CATEGORY)
 
