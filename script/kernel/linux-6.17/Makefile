@@ -318,6 +318,8 @@ PATCHFILES += 1057-media-rockchip-rkvdec-vdpu381-and-383-v3-fixup-21092025-to-6.
 PATCHFILES += 1058-media-rkvdec-fix-rkvdec_enum_coded_fmt_desc-rebase-mistake.patch
 PATCHFILES += 1059-media-rkvdec-fix-typos-in-vdpu381-vdpu383-hevc.patch
 PATCHFILES += 1060-media-rkvdec-fixup-image-formats.patch
+# fix for Fixes "swiotlb buffer is full" warning
+PATCHFILES += 1074-drm-rockchip-set-VOP-for-the-DRM-DMA-device.patch
 # fix dw-hdmi spurious irg on resume
 PATCHFILES += 1075-drm-bridge-dw-hdmi-qp-fix-spurious-IRQ-on-resume.patch
 # fix mmc cqe
