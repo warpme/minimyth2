@@ -1,10 +1,9 @@
 
 GARNAME      = mesa
-# 25.3.0-rc1
-GARVERSION   = 40f7bef16c44b2a8a2283df20204c41297989ecd
+# 25.3.0-rc2
+GARVERSION   = d9812eaea8dd0c9b173a34bea9b6fda3023c147a
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
-PATCHFILES   = 001-fix-ticket14141.patch
 WORKSRC      = $(WORKDIR)/$(DISTNAME)
 CATEGORIES   = $(CATEGORY)
 
