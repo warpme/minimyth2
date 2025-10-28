@@ -1,0 +1,469 @@
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp
+--- mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp	2025-10-18 19:20:06.000000000 +0200
++++ mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp	2025-10-28 12:57:32.212165942 +0100
+@@ -192,10 +192,11 @@
+     m_eitTransportTimeout = gCoreContext->GetDurSetting<std::chrono::minutes>("EITTransportTimeout", 5min);
+     if (m_eitTransportTimeout < 15s)
+         m_eitTransportTimeout = 15s;
+-    m_eitCrawlIdleStart = gCoreContext->GetDurSetting<std::chrono::seconds>("EITCrawIdleStart", 60s);
++    m_eitCrawlIdleStart = gCoreContext->GetDurSetting<std::chrono::seconds>("EITCrawlIdleStart", 60s);
+     m_eitScanPeriod     = gCoreContext->GetDurSetting<std::chrono::minutes>("EITScanPeriod", 15min);
+     if (m_eitScanPeriod < 5min)
+         m_eitScanPeriod = 5min;
++    m_eitCrawlDuration  = gCoreContext->GetDurSetting<std::chrono::minutes>("EITCrawlDuration", 240min);
+     m_audioSampleRateDB = gCoreContext->GetNumSetting("AudioSampleRate");
+     m_overRecordSecNrml = gCoreContext->GetDurSetting<std::chrono::seconds>("RecordOverTime");
+     m_overRecordSecCat  = gCoreContext->GetDurSetting<std::chrono::minutes>("CategoryOverTime");
+@@ -1035,6 +1036,72 @@
+     m_autoRunJobs.erase(autoJob);
+ }
+ 
++bool TVRec::EITisInSchedulledScans(void)
++{
++    // If eitCrawlIdleStart is above m_eitCrawlTreshToSched sec then we enter schedulled mode.
++    // For values m_eitCrawlTreshToSched and below we idle based scans.
++    if (m_eitCrawlIdleStart <= m_eitCrawlTreshToSched)
++        return false;
++    else
++        return true;
++}
++
++void TVRec::EITsetStartAndStopTimes(bool log_times)
++{
++    auto secs = eit_start_rand(m_inputId, m_eitTransportTimeout);
++    if (EITisInSchedulledScans())
++    // schedulle triggered scans
++    {
++        m_eitScanStartTime = QDateTime::currentDateTime();
++        m_eitScanStartTime.setTime(QTime(0, 0));
++        secs += m_eitCrawlIdleStart;
++        m_eitScanStartTime = m_eitScanStartTime.addSecs(secs.count());
++        m_eitScanEndTime = m_eitScanStartTime.addSecs(m_eitCrawlDuration.count());
++        // Check is current event within active EIT scan window.
++        if ((QDateTime::currentDateTime() > m_eitScanStartTime) &&
++           (QDateTime::currentDateTime() < m_eitScanEndTime))
++        // in scan window
++        {
++            m_eitScanStartTime = m_eitScanStartTime.addSecs(60);
++            if (log_times) 
++                LOG(VB_GENERAL, LOG_INFO, LOC +
++                QString("Schedule based EIT active scans. Scan will: start after %1, take %2min and ends at %3")
++                        .arg(m_eitScanStartTime.toString(Qt::ISODate))
++                        .arg(m_eitCrawlDuration.count()/60)
++                        .arg(m_eitScanEndTime.toString(Qt::ISODate))); 
++        }
++        else
++        // out of scan window
++        {
++            // IF called after window, move start & end
++            // time to next day
++            if (QDateTime::currentDateTime() >= m_eitScanEndTime)
++            {
++                m_eitScanStartTime = m_eitScanStartTime.addDays(1);
++                m_eitScanEndTime = m_eitScanEndTime.addDays(1);
++            }
++            if (log_times) 
++                LOG(VB_GENERAL, LOG_INFO, LOC +
++                QString("Schedule based EIT active scans. Scans will: resume at %1, take %2min and will end at %3")
++                        .arg(m_eitScanStartTime.toString(Qt::ISODate))
++                        .arg(m_eitCrawlDuration.count()/60)
++                        .arg(m_eitScanEndTime.toString(Qt::ISODate)));
++        }
++    }
++    else
++    // idle triggered scans
++    {
++        secs += m_eitCrawlIdleStart;
++        m_eitScanStartTime = QDateTime::currentDateTime().addSecs(secs.count());
++        m_eitScanEndTime   = m_eitScanStartTime.addYears(10);
++        if (log_times)
++            LOG(VB_GENERAL, LOG_INFO, LOC +
++                QString("Idle based EIT active scans. Will (re)start after %1sec idle at %2")
++                        .arg(secs.count())
++                        .arg(m_eitScanStartTime.toString(Qt::ISODate)));
++    }
++}
++
+ // NOLINTBEGIN(cppcoreguidelines-macro-usage)
+ #define TRANSITION(ASTATE,BSTATE) \
+    ((m_internalState == (ASTATE)) && (m_desiredNextState == (BSTATE)))
+@@ -1070,12 +1137,13 @@
+     // to avoid race condition with it's tuning requests.
+     if (m_scanner && HasFlags(kFlagEITScannerRunning))
+     {
+-        LOG(VB_EIT, LOG_INFO, LOC + QString("Stop EIT scan on input %1").arg(GetInputId()));
++        LOG(VB_GENERAL, LOG_INFO, LOC + QString("Stop EIT scan on input %1").arg(GetInputId()));
+ 
+         m_scanner->StopActiveScan();
+         ClearFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
+-        auto secs = m_eitCrawlIdleStart + eit_start_rand(m_inputId, m_eitTransportTimeout);
+-        m_eitScanStartTime = MythDate::current().addSecs(secs.count());
++        /*auto secs = m_eitCrawlIdleStart + eit_start_rand(m_inputId, m_eitTransportTimeout); //xxxx
++        m_eitScanStartTime = QDateTime::currentDateTime().addSecs(secs.count()); */
++        EITsetStartAndStopTimes(false);
+     }
+ 
+     // Stop EIT scanning on all conflicting inputs so that
+@@ -1087,19 +1155,20 @@
+     {
+         s_inputsLock.lockForRead();
+         s_eitLock.lock();
++        EITsetStartAndStopTimes(false);
+         for (auto input : m_eitInputs)
+         {
+             auto *tv_rec = s_inputs.value(input);
+             if (tv_rec && tv_rec->m_scanner && tv_rec->HasFlags(kFlagEITScannerRunning))
+             {
+-                LOG(VB_EIT, LOG_INFO, LOC +
++                LOG(VB_GENERAL, LOG_INFO, LOC +
+                     QString("Stop EIT scan active on conflicting input %1")
+                         .arg(input));
+                 tv_rec->m_scanner->StopActiveScan();
+                 tv_rec->ClearFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
+                 tv_rec->TuningShutdowns(TuningRequest(kFlagNoRec));
+-                auto secs = m_eitCrawlIdleStart + eit_start_rand(m_inputId, m_eitTransportTimeout);
+-                tv_rec->m_eitScanStartTime = MythDate::current().addSecs(secs.count());
++                tv_rec->m_eitScanStartTime = m_eitScanStartTime;
++                tv_rec->m_eitScanEndTime = m_eitScanEndTime;
+             }
+         }
+         s_eitLock.unlock();
+@@ -1146,12 +1215,12 @@
+ 
+     if (m_scanner && (m_internalState == kState_None))
+     {
+-        auto secs = m_eitCrawlIdleStart + eit_start_rand(m_inputId, m_eitTransportTimeout);
+-        m_eitScanStartTime = MythDate::current().addSecs(secs.count());
++        EITsetStartAndStopTimes(true);
+     }
+     else
+     {
+-        m_eitScanStartTime = MythDate::current().addYears(1);
++        m_eitScanStartTime = QDateTime::currentDateTime().addYears(1);
++        m_eitScanEndTime = m_eitScanStartTime;
+     }
+ }
+ #undef TRANSITION
+@@ -1356,13 +1425,31 @@
+         (!GetDTVChannel() || GetDTVChannel()->IsMaster()) &&    // Card is master and not a multirec instance
+         (m_dvbOpt.m_dvbEitScan || get_use_eit(m_inputId)))      // EIT is selected for card OR EIT is selected for video source
+     {
++    // we should use the EITScanner in this TVRec instance
+         m_scanner = new EITScanner(m_inputId);
+-        auto secs = m_eitCrawlIdleStart + eit_start_rand(m_inputId, m_eitTransportTimeout);
+-        m_eitScanStartTime = MythDate::current().addSecs(secs.count());
++        EITsetStartAndStopTimes(true);
++        // if we are starting TVrec at time within EIT scan window, make
++        // start EIT scaner with delay to make sure all tuners are
++        // initiated (capable to make tunings).
++        // Starting scaner before tuners rediness gives TVrec deadlock.
++        // Here we are dealying for 180sec (and randomize per tuner)
++        if ((QDateTime::currentDateTime() > m_eitScanStartTime) &&
++           (QDateTime::currentDateTime() < m_eitScanEndTime))
++        {
++            int start_delay = 180;
++            auto secs = eit_start_rand(m_inputId, m_eitTransportTimeout);
++            m_eitScanStartTime = QDateTime::currentDateTime().addSecs(secs.count());
++            m_eitScanStartTime = m_eitScanStartTime.addSecs(start_delay);
++            LOG(VB_GENERAL, LOG_INFO, LOC +
++                QString("Delaying active EIT scan start by %1sec to make sure tuners are ready for tunings")
++                        .arg(secs.count()+start_delay));
++        }
+     }
+     else
+     {
+-        m_eitScanStartTime = MythDate::current().addYears(10);
++        //we should not use the EITScanner in this TVRec instance
++        m_eitScanStartTime = QDateTime::currentDateTime().addYears(15);
++        m_eitScanEndTime = m_eitScanStartTime; 
+     }
+ 
+     while (HasFlags(kFlagRunMainLoop))
+@@ -1508,103 +1595,127 @@
+         // Start active EIT scan
+         bool conflicting_input = false;
+         if (m_scanner && m_channel &&
+-            MythDate::current() > m_eitScanStartTime)
++           (QDateTime::currentDateTime() > m_eitScanStartTime))
+         {
++        //after EIT idle or after EIT scan window start 
+             if (!m_dvbOpt.m_dvbEitScan)
+             {
+-                LOG(VB_EIT, LOG_INFO, LOC +
++                LOG(VB_GENERAL, LOG_INFO, LOC +
+                     QString("EIT scanning disabled for input %1")
+                         .arg(GetInputId()));
+-                m_eitScanStartTime = MythDate::current().addYears(10);
++                m_eitScanStartTime = QDateTime::currentDateTime().addYears(10);
++                m_eitScanEndTime = m_eitScanEndTime.addYears(10);
+             }
+             else if (!get_use_eit(GetInputId()))
+             {
+-                LOG(VB_EIT, LOG_INFO, LOC +
++                LOG(VB_GENERAL, LOG_INFO, LOC +
+                     QString("EIT scanning disabled for video source %1")
+                         .arg(GetSourceID()));
+-                m_eitScanStartTime = MythDate::current().addYears(10);
++                m_eitScanStartTime = QDateTime::currentDateTime().addYears(10);
++                m_eitScanEndTime = m_eitScanEndTime.addYears(10);
+             }
+             else
+             {
+-                LOG(VB_EIT, LOG_INFO, LOC +
++                LOG(VB_GENERAL, LOG_INFO, LOC +
+                     QString("EIT scanning enabled for input %1 connected to video source %2 '%3'")
+-                        .arg(GetInputId()).arg(GetSourceID()).arg(SourceUtil::GetSourceName(GetSourceID())));
+-
+-                // Check if another card in the same input group is busy recording.
+-                // This could be either a virtual DVB-device or a second tuner on a single card.
+-                s_inputsLock.lockForRead();
+-                s_eitLock.lock();
+-                bool allow_eit = true;
+-                std::vector<uint> inputids = CardUtil::GetConflictingInputs(m_inputId);
+-                InputInfo busy_input;
+-                for (uint i = 0; i < inputids.size() && allow_eit; ++i)
+-                    allow_eit = !RemoteIsBusy(inputids[i], busy_input);
+-
+-                // Check if another card in the same input group is busy with an EIT scan.
+-                // We cannot start an EIT scan on this input if there is already an EIT scan
+-                // running on a conflicting real input.
+-                // Note that EIT scans never run on virtual inputs.
+-                if (allow_eit)
++                            .arg(GetInputId()).arg(GetSourceID()).arg(SourceUtil::GetSourceName(GetSourceID())));
++                if (QDateTime::currentDateTime() > m_eitScanStartTime && QDateTime::currentDateTime() < m_eitScanEndTime)
+                 {
+-                    for (auto input : inputids)
++                // after EIT idle time or in EIT scan window    
++                    // Check if another card in the same input group is busy recording.
++                    // This could be either a virtual DVB-device or a second tuner on a single card.
++                    s_inputsLock.lockForRead();
++                    s_eitLock.lock();
++                    bool allow_eit = true;
++                    std::vector<uint> inputids = CardUtil::GetConflictingInputs(m_inputId);
++                    InputInfo busy_input;
++                    for (uint i = 0; i < inputids.size() && allow_eit; ++i)
++                        allow_eit = !RemoteIsBusy(inputids[i], busy_input);
++
++                    // Check if another card in the same input group is busy with an EIT scan.
++                    // We cannot start an EIT scan on this input if there is already an EIT scan
++                    // running on a conflicting real input.
++                    // Note that EIT scans never run on virtual inputs.
++                    if (allow_eit)
+                     {
+-                        auto *tv_rec = s_inputs.value(input);
+-                        if (tv_rec && tv_rec->m_scanner)
++                        for (auto input : inputids)
+                         {
+-                            conflicting_input = true;
+-                            if (tv_rec->HasFlags(kFlagEITScannerRunning))
++                            auto *tv_rec = s_inputs.value(input);
++                            if (tv_rec && tv_rec->m_scanner)
+                             {
+-                                LOG(VB_EIT, LOG_INFO, LOC +
+-                                    QString("EIT scan on conflicting input %1").arg(input));
+-                                allow_eit = false;
+-                                busy_input.m_inputId = tv_rec->m_inputId;
+-                                break;
++                                conflicting_input = true;
++                                if (tv_rec->HasFlags(kFlagEITScannerRunning))
++                                {
++                                    LOG(VB_GENERAL, LOG_INFO, LOC +
++                                        QString("Skipping start EIT scan on input %1 as there is ongoing scan on conflicting input %2")
++                                                .arg(GetInputId())
++                                                .arg(input));
++                                    allow_eit = false;
++                                    busy_input.m_inputId = tv_rec->m_inputId;
++                                    break;
++                                }
+                             }
+                         }
+                     }
+-                }
+ 
+-                if (allow_eit)
+-                {
+-                    LOG(VB_EIT, LOG_INFO, LOC +
+-                        QString("Start EIT active scan on input %1")
+-                            .arg(m_inputId));
+-                    m_scanner->StartActiveScan(this, m_eitTransportTimeout);
+-                    SetFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
+-                    m_eitScanStartTime = MythDate::current().addYears(1);
+-                    if (conflicting_input)
+-                        m_eitScanStopTime = MythDate::current().addSecs(m_eitScanPeriod.count());
++                    if (allow_eit)
++                    {
++                        LOG(VB_GENERAL, LOG_INFO, LOC +
++                            QString("Start EIT active scan on input %1")
++                                .arg(m_inputId));
++                        m_scanner->StartActiveScan(this, m_eitTransportTimeout);
++                        SetFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
++                        m_eitScanStartTime = QDateTime::currentDateTime().addYears(1);
++                        if (conflicting_input)
++                            m_eitScanStopTime = QDateTime::currentDateTime().addSecs(m_eitScanPeriod.count());
++                        else
++                            m_eitScanStopTime = QDateTime::currentDateTime().addYears(1);
++                    }
+                     else
+-                        m_eitScanStopTime = MythDate::current().addYears(1);
++                    {
++                        const int seconds_postpone = 300;
++                        LOG(VB_GENERAL, LOG_INFO, LOC +
++                            QString("Postponing EIT scan on input %1 for %2 seconds because input %3 is busy")
++                                .arg(m_inputId).arg(seconds_postpone).arg(busy_input.m_inputId));
++                        m_eitScanStartTime = m_eitScanStartTime.addSecs(seconds_postpone);
++
++                    }
+                 }
+-                else
++                else if (QDateTime::currentDateTime() > m_eitScanEndTime && HasFlags(kFlagEITScannerRunning))
+                 {
+-                    const int seconds_postpone = 300;
+-                    LOG(VB_EIT, LOG_INFO, LOC +
+-                        QString("Postponing EIT scan on input %1 for %2 seconds because input %3 is busy")
+-                            .arg(m_inputId).arg(seconds_postpone).arg(busy_input.m_inputId));
+-                    m_eitScanStartTime = m_eitScanStartTime.addSecs(seconds_postpone);
++                    m_scanner->StopActiveScan();
++                    ClearFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
++                    LOG(VB_GENERAL, LOG_INFO, LOC +
++                        "EIT active scan stopped by reaching end of scan time window");
+                 }
+                 s_eitLock.unlock();
+                 s_inputsLock.unlock();
+             }
+         }
+ 
+-
+         // Stop active EIT scan and allow start of the EIT scan on one of the conflicting real inputs.
+-        if (m_scanner && HasFlags(kFlagEITScannerRunning) && MythDate::current() > m_eitScanStopTime)
++        if (m_scanner && 
++            HasFlags(kFlagEITScannerRunning) &&
++            (QDateTime::currentDateTime() > m_eitScanStopTime || QDateTime::currentDateTime() > m_eitScanEndTime))
+         {
+-            LOG(VB_EIT, LOG_INFO, LOC +
+-                QString("Stop EIT scan on input %1 to allow scan on a conflicting input")
+-                    .arg(GetInputId()));
++            //m_eitScanStopTime reached
++            if (QDateTime::currentDateTime() > m_eitScanStopTime)
++                LOG(VB_EIT, LOG_INFO, LOC +
++                    QString("Stop EIT scan on input %1 by exceeding %2sec scan period")
++                    .arg(GetInputId())
++                    .arg(m_eitScanPeriod.count()));
++
++            //m_eitScanEndTime reached
++            if (QDateTime::currentDateTime() > m_eitScanEndTime)
++                LOG(VB_EIT, LOG_INFO, LOC +
++                    QString("Stop EIT scan on input %1 by reaching %2min scan window")
++                            .arg(GetInputId())
++                            .arg(m_eitCrawlDuration.count()/60));
+ 
+             m_scanner->StopActiveScan();
+             ClearFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
+             TuningShutdowns(TuningRequest(kFlagNoRec));
+-
+-            auto secs = m_eitCrawlIdleStart + eit_start_rand(m_inputId, m_eitTransportTimeout);
+-            secs += m_eitScanPeriod;
+-            m_eitScanStartTime = MythDate::current().addSecs(secs.count());
++            EITsetStartAndStopTimes(false);
+         }
+ 
+         // We should be no more than a few thousand milliseconds,
+@@ -3635,8 +3746,7 @@
+     {
+         m_scanner->StopActiveScan();
+         ClearFlags(kFlagEITScannerRunning, __FILE__, __LINE__);
+-        auto secs = m_eitCrawlIdleStart + eit_start_rand(m_inputId, m_eitTransportTimeout);
+-        m_eitScanStartTime = MythDate::current().addSecs(secs.count());
++        EITsetStartAndStopTimes(false);
+     }
+ 
+     if (m_scanner && !request.IsOnSameMultiplex())
+@@ -4919,15 +5029,15 @@
+         if (enable)
+         {
+             if (!HasFlags(kFlagEITScannerRunning)
+-                && m_eitScanStartTime > MythDate::current().addYears(9))
++                && m_eitScanStartTime > QDateTime::currentDateTime().addYears(5))
+             {
+                 auto secs = m_eitCrawlIdleStart + eit_start_rand(m_inputId, m_eitTransportTimeout);
+-                m_eitScanStartTime = MythDate::current().addSecs(secs.count());
++                m_eitScanStartTime = QDateTime::currentDateTime().addSecs(secs.count());
+             }
+         }
+         else
+         {
+-            m_eitScanStartTime = MythDate::current().addYears(10);
++            m_eitScanStartTime = QDateTime::currentDateTime().addYears(20);
+             if (HasFlags(kFlagEITScannerRunning))
+             {
+                 m_scanner->StopActiveScan();
+@@ -4961,4 +5071,4 @@
+ static void apply_broken_dvb_driver_crc_hack(ChannelBase*, MPEGStreamData*) {}
+ #endif // CONFIG_DVB
+ 
+-/* vim: set expandtab tabstop=4 shiftwidth=4: */
++/* vim: set expandtab tabstop=4 shiftwidth=4: */
+\ No newline at end of file
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h
+--- mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h	2025-10-18 19:20:06.000000000 +0200
++++ mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h	2025-10-28 12:57:32.212165942 +0100
+@@ -334,6 +334,9 @@
+     QString LoadProfile(void *tvchain, RecordingInfo *rec,
+                         RecordingProfile &profile) const;
+ 
++    bool EITisInSchedulledScans(void);
++    void EITsetStartAndStopTimes(bool log_times = false);
++
+     // Various components TVRec coordinates
+     RecorderBase      *m_recorder                 {nullptr};
+     ChannelBase       *m_channel                  {nullptr};
+@@ -363,6 +366,8 @@
+     std::chrono::seconds m_eitCrawlIdleStart      {1min};
+     std::chrono::seconds m_eitTransportTimeout    {5min};
+     std::chrono::seconds m_eitScanPeriod          {15min};
++    std::chrono::seconds m_eitCrawlTreshToSched   {3600s};
++    std::chrono::seconds m_eitCrawlDuration       {240min};
+     int                m_audioSampleRateDB        {0};
+     std::chrono::seconds m_overRecordSecNrml      {0s};
+     std::chrono::seconds m_overRecordSecCat       {0s};
+@@ -397,6 +402,7 @@
+     TuningRequest      m_lastTuningRequest        {0};
+     QDateTime          m_eitScanStartTime;
+     QDateTime          m_eitScanStopTime;
++    QDateTime          m_eitScanEndTime;
+     mutable QMutex     m_triggerEventLoopLock;
+     QWaitCondition     m_triggerEventLoopWait;
+     bool               m_triggerEventLoopSignal   {false};
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/programs/mythtv-setup/backendsettings.cpp mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/programs/mythtv-setup/backendsettings.cpp
+--- mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/programs/mythtv-setup/backendsettings.cpp	2025-10-18 19:20:06.000000000 +0200
++++ mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/programs/mythtv-setup/backendsettings.cpp	2025-10-28 12:58:14.888832777 +0100
+@@ -390,14 +390,17 @@
+     return gc;
+ };
+ 
+-static GlobalSpinBoxSetting *EITCrawIdleStart()
++static GlobalSpinBoxSetting *EITCrawlIdleStart()
+ {
+-    auto *gc = new GlobalSpinBoxSetting("EITCrawIdleStart", 30, 7200, 30);
++    auto *gc = new GlobalSpinBoxSetting("EITCrawlIdleStart", 30, 86400, 30);
+     gc->setLabel(QObject::tr("Backend idle before EIT crawl (secs)"));
+     gc->setValue(60);
+     QString help = QObject::tr(
+-        "The minimum number of seconds after a recorder becomes idle "
+-        "to wait before MythTV begins collecting EIT listings data.");
++        "The number of seconds for idle recorders when collecting EIT listings begins. "
++        "If this value is higher than 3600 sec, MythTV will switch to schedulled mode"
++        " where collecting starts this number of seconds after midnight and will go"
++        " for EITCrawlDuration or - if not defined, 4h time window."
++        );
+     gc->setHelpText(help);
+     return gc;
+ }
+@@ -995,7 +998,7 @@
+     auto* group2a1 = new GroupSetting();
+     group2a1->setLabel(QObject::tr("EIT Scanner Options"));
+     group2a1->addChild(EITTransportTimeout());
+-    group2a1->addChild(EITCrawIdleStart());
++    group2a1->addChild(EITCrawlIdleStart());
+     group2a1->addChild(EITScanPeriod());
+     group2a1->addChild(EITEventChunkSize());
+     group2a1->addChild(EITCachePersistent());

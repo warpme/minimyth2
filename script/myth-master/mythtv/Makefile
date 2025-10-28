@@ -18,9 +18,15 @@ PATCHFILES += 0000-cmake-enable-x11-on-crosscompile.patch
 PATCHFILES += 0000-cmake-stop-checking-python-perl-deps-in-plugins-on-crosscompile.patch
 PATCHFILES += 0000-cmake-enable-dbus-webengine-on-crosscompile.patch
 
+# backend related patches
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
-PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
-PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
+PATCHFILES += 0003-SCR-keep-disecq-always-18V.patch
+PATCHFILES += 0004-mythbackend-mainserver-move-some-verbosities-to-debug.patch
+PATCHFILES += 0005-mythlib-eitscanner-increase-info-level-verbosities.patch
+PATCHFILES += 0006-mythlib-eit-add-schedulled-scans.patch
+PATCHFILES += 0007-mythlib-add-concurrent-rec-delay.patch
+PATCHFILES += 0009-EIT-ticket9480-fix-PL-eit-encodings.patch
+PATCHFILES += 0012-revert-Check-start-byte-of-next-table-in-packet.patch
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
@@ -32,6 +38,8 @@ PATCHFILES += 0031-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-th
 PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music.patch
 
 # Some patches for better logging
+PATCHFILES += 0051-Loging-Add-better-TID-verbosity.patch
+PATCHFILES += 0053-Loging-Add-verbose-dvb-lock-loging.patch
 PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
 PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
@@ -62,6 +70,10 @@ PATCHFILES += 0116-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
 PATCHFILES += 0117-configure-add-v4l2request-support.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
+# some fixes to build on minimyth2
+PATCHFILES += 0119-configure-disable-checks-perl-python-in-cross-compile.patch
+PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
+
 
 ifeq (1,1)
 # v4l2_m2m and v4l2_request patches

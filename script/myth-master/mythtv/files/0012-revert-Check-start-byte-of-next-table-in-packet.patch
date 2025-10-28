@@ -1,0 +1,39 @@
+
+This reverts below 58dfe835843 commit as this commit causess isues with TL___ on some channels.
+
+
+
+From 58dfe835843a39065bce73af9dc1f586b48d9de3 Mon Sep 17 00:00:00 2001
+From: Klaas de Waal <kdewaal@mythtv.org>
+Date: Wed, 21 Oct 2020 11:06:22 +0200
+Subject: [PATCH] Check start byte of next table in packet
+
+The table handling determines the presence of the start of a second table in the same
+transport stream packet by checking the value of the next byte after the first table.
+If the next byte is not 0xFF then it is the table ID of the next table.
+This is also done if the the first table ends at the last byte of the packet in which
+case there is no next byte in the packet. When the value read is not 0xFF then
+this is seen as the start of the next table.
+
+This problem triggers the following error messages:
+2020-10-20 22:41:27.980516 I  PESPacket: Failed CRC check 0x430b0111 != 0x5e91ff11 for StreamID = 0x1
+2020-10-20 22:41:27.980535 E  MPEGStream[3](0x7fb258158158): Discarding broken PSIP packet
+which are the result of the table handling getting lost after getting a wrong table start.
+
+The check for the value of the next byte is now only done if there is at least
+one byte in the transport stream packet after the end of the first table.
+
+Tested with satellite Astra-1 19.2E, transport 1002, service 5021,  NHK WORLD-JPN.
+
+diff -Naur mythtv-old/mythtv/libs/libmythtv/mpeg/mpegstreamdata.cpp mythtv-new/mythtv/libs/libmythtv/mpeg/mpegstreamdata.cpp
+--- mythtv-old/mythtv/libs/libmythtv/mpeg/mpegstreamdata.cpp	2020-11-24 11:23:54.716666667 +0100
++++ mythtv-new/mythtv/libs/libmythtv/mpeg/mpegstreamdata.cpp	2020-11-24 11:24:57.570000000 +0100
+@@ -333,7 +333,7 @@
+     // There might be another section after this one in the
+     // current packet. We need room before the end of the
+     // packet, and it must not be packet stuffing.
+-    if ((offset + psip->SectionLength() + 1 < TSPacket::kSize) &&
++    if ((offset + psip->SectionLength() < TSPacket::kSize) &&
+         (pesdata[psip->SectionLength() + 1] != 0xff))
+     {
+         // This isn't stuffing, so we need to put this
