@@ -252,7 +252,6 @@ PATCHFILES += 1002-clk-composite-replace-open-coded-abs_diff.patch
 PATCHFILES += 1004-mfd-rk8xx-Fix-shutdown-handler.patch
 PATCHFILES += 1005-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1006-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
-PATCHFILES += 1007-net-stmmac-dwmac-rk-fix-disabling-set_clock_selection.patch
 PATCHFILES += 1008-net-phy-realtek-reset-after-clock-enable.patch
 PATCHFILES += 1009-pci-dw-rockchip-add-system-pm-support.patch
 # drm improvements
@@ -312,12 +311,12 @@ PATCHFILES += 1052-usb-typec-fusb302-and-tcpm-debug-logs-to-msg.patch
 PATCHFILES += 1054-bitmap-introduce-hardware-specific-bitfield-operatio.patch
 # https://gitlab.collabora.com/detlev/linux/-/commits/add-v4l2-st-lt-ref-set-support-v3 7.08.2025
 PATCHFILES += 1055-media-v4l2-ctrls-Add-hevc_ext_sps_-ls-t_rps-controls.patch
-# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v3 21.09.2025
-PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-v3-21092025.patch
-PATCHFILES += 1057-media-rockchip-rkvdec-vdpu381-and-383-v3-fixup-21092025-to-6.17.patch
-PATCHFILES += 1058-media-rkvdec-fix-rkvdec_enum_coded_fmt_desc-rebase-mistake.patch
+# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v3 25.10.2025
+PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-v3-24102025.patch
+PATCHFILES += 1058-media-rockchip-rkvdec-vdpu381-and-383-v3-fixup-to-6.17.patch
 PATCHFILES += 1059-media-rkvdec-fix-typos-in-vdpu381-vdpu383-hevc.patch
 PATCHFILES += 1060-media-rkvdec-fixup-image-formats.patch
+PATCHFILES += 1061-media-rkvdec-remove-ext_sps_lst_rps-validation-24102025.patch
 # fix for Fixes "swiotlb buffer is full" warning
 PATCHFILES += 1074-drm-rockchip-set-VOP-for-the-DRM-DMA-device.patch
 # fix dw-hdmi spurious irg on resume
