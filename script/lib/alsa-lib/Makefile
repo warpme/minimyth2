@@ -1,12 +1,13 @@
 
 GARNAME       = alsa-lib
-GARVERSION    = 1.2.13
+GARVERSION    = 1.2.14
 CATEGORIES    = lib
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/lib/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
 # amlogic patches https://github.com/chewitt/alsa-lib/commits/amlogic
-PATCHFILES    = $(DISTNAME)-add-Amlogic-cards.patch
+#PATCHFILES    = $(DISTNAME)-add-Amlogic-cards.patch
 PATCHFILES   += $(DISTNAME)-add-simple-card.patch
+PATCHFILES   += $(DISTNAME)-add-support-for-Amlogic-AIU-and-AXG-cards.patch
 DISTFILES     = $(DISTNAME).tar.bz2
 LICENSE       = LGPL2_1
 
