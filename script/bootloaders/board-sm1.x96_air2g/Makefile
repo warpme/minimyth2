@@ -1,10 +1,12 @@
 
 GARNAME      = bootfiles-sm1.x96_air2g
-GARVERSION   = 2021-08-05
+GARVERSION   = 2025-10-31
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = s905_autoscript \
                s905_autoscript.txt \
+               aml_autoscript \
+               aml_autoscript.txt \
                uEnv.ini \
                minimyth.conf \
 
@@ -20,7 +22,6 @@ endef
 
 BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
-CLEAN_SCRIPTS   = custom
 
 include ../../gar.mk
 
@@ -33,13 +34,12 @@ build-custom:
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/s905_autoscript                            $(DESTDIR)/boot/s905_autoscript
+	@cp -f $(WORKSRC)/aml_autoscript                             $(DESTDIR)/boot/aml_autoscript
 	@cp -f $(WORKSRC)/uEnv.ini                                   $(DESTDIR)/boot/uEnv.ini
 	@cp -f $(WORKSRC)/minimyth.conf                              $(DESTDIR)/boot/minimyth.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-custom:
-	@rm -f $(DESTDIR)/boot/s905_autoscript
+clean-all:
+	@rm -f $(DESTDIR)/boot/*_autoscript
 	@rm -f $(DESTDIR)/boot/uEnv.ini
 	@rm -f $(DESTDIR)/boot/minimyth.conf
-
-clean-all: clean-custom cookieclean
