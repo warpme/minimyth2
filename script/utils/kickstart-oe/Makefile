@@ -5,6 +5,10 @@ CATEGORIES   = utils
 MASTER_SITES = http://git.yoctoproject.org/cgit/cgit.cgi/poky/snapshot/
 DISTFILES    = \
 	poky-yocto-$(GARVERSION).tar.gz \
+	g12-generic.conf \
+	g12-generic.wks \
+	sm1-generic.conf \
+	sm1-generic.wks \
 	h313-generic.conf \
 	h313-generic.wks \
 	h6-generic.conf \
@@ -61,12 +65,8 @@ DISTFILES    = \
 	board-s905.wks              \
 	board-s912.conf             \
 	board-s912.wks              \
-	board-sm1.x96_air2g.conf    \
-	board-sm1.x96_air2g.wks     \
 	board-sm1.tanix_tx5_plus.conf \
 	board-sm1.tanix_tx5_plus.wks \
-	board-g12.radxa_zero.conf    \
-	board-g12.radxa_zero.wks     \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \
@@ -76,6 +76,14 @@ DISTFILES    = \
 	default-mbr.wks             \
 	default-gpt.wks             \
 	create-image.sh             \
+
+# Amlogic G12 boards
+G12_BOARDS_LIST= \
+	board-g12.radxa_zero \
+
+# Amlogic SM1 boards
+SM1_BOARDS_LIST= \
+	board-sm1.x96_air2g \
 
 # Allwinner H6 boards
 H6_BOARDS_LIST= \
@@ -207,7 +215,7 @@ DEPENDS = \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
-INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards
+INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards g12_boards sm1_boards
 
 include ../../gar.mk
 
@@ -217,6 +225,12 @@ COPY_FILES = \
 	    cp -f $(WORKDIR)/$(strip $(2)).conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/$${file}.conf ; \
 	    cp -f $(WORKDIR)/$(strip $(2)).wks $(DESTDIR)$(bindir)/kickstart/$${file}.wks ; \
 	done ; \
+
+install-g12_boards:
+	@$(call COPY_FILES, $(G12_BOARDS_LIST), g12-generic)
+
+install-sm1_boards:
+	@$(call COPY_FILES, $(SM1_BOARDS_LIST), sm1-generic)
 
 install-h6_boards:
 	@$(call COPY_FILES, $(H6_BOARDS_LIST), h6-generic)
