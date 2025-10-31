@@ -55,17 +55,15 @@ ifeq (1,1)
 # increas CMA pool for 4k decode
 PATCHFILES += 0311-arm64-dts-meson-set-dma-pool-to-896MB.patch
 PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
-PATCHFILES += 0329-media-meson-vdec-esparser-check-parsing-.patch
-PATCHFILES += 0330-media-meson-vdec-implement-10bit-bitstre.patch
-PATCHFILES += 0331-media-meson-vdec-add-HEVC-decode-codec.patch
-PATCHFILES += 0332-media-meson-vdec-disable-MPEG1-MPEG2-hardware-de.patch
+# Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic
+PATCHFILES += 0313-drm-meson-swap-primary-overlay-zpos.patch
 # device-tree patches
 PATCHFILES += 0341-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 0342-arm64-dts-meson-add-support-for-GX-PM-and-Virtu.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0371-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
-# Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic HW I have
-PATCHFILES += 0377-drm-meson-swap-primary-overlay-zpos.patch
+PATCHFILES += 0372-arm64-dts-meson-sm1-disable-cvbs.patch
+PATCHFILES += 0373-arm64-dts-meson-sm1-disable-cap_highspeed-on-sdcard.patch
 endif
 #------------------------------------------------------------
 
