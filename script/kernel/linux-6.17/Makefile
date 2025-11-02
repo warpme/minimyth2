@@ -64,6 +64,7 @@ PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0371-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
 PATCHFILES += 0372-arm64-dts-meson-sm1-disable-cvbs.patch
 PATCHFILES += 0373-arm64-dts-meson-sm1-disable-cap_highspeed-on-sdcard.patch
+PATCHFILES += 0374-arm64-dts-meson-sm1-x96air-add-vfd.patch
 endif
 #------------------------------------------------------------
 
