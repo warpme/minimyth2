@@ -1,12 +1,10 @@
 
 GARNAME      = bootfiles-sm1.x96_air2g
-GARVERSION   = 2025-10-31
+GARVERSION   = 2025-11-03
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = s905_autoscript \
-               s905_autoscript.txt \
                aml_autoscript \
-               aml_autoscript.txt \
                uEnv.ini \
                minimyth.conf \
 
