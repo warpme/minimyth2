@@ -298,6 +298,7 @@ PATCHFILES += 1042-phy-rockchip-samsung-hdptx-Add-HDMI-2.1-FRL-support.patch
 PATCHFILES += 1043-drm-bridge-add-frl-support.patch
 PATCHFILES += 1044-DEBUG-phy-rockchip-samsung-hdptx-Add-verbose-logging.patch
 # misc fixes and additions
+PATCHFILES += 1045-clk-rk3588-Dont-change-PLL-rates-when-setting-dclk_vop2_src.patch
 PATCHFILES += 1046-pm-devfreq-rockchip-dfi-add-support-for-lpddr5.patch
 # usb-c dp alt mode support
 PATCHFILES += 1047-phy-rockchip-inno-usb2-add-soft-vbusvalid-control.patch
