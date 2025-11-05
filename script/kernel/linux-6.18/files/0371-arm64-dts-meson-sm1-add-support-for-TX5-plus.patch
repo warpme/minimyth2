@@ -1,0 +1,162 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.17.6/arch/arm64/boot/dts/amlogic/Makefile linux-6.17.6/arch/arm64/boot/dts/amlogic/Makefile
+--- linux-6.17.6/arch/arm64/boot/dts/amlogic/Makefile	2025-10-31 22:03:35.005460265 +0100
++++ linux-6.17.6/arch/arm64/boot/dts/amlogic/Makefile	2025-10-31 22:02:45.052126770 +0100
+@@ -87,6 +87,7 @@
+ dtb-$(CONFIG_ARCH_MESON) += meson-s4-s805x2-aq222.dtb
+ dtb-$(CONFIG_ARCH_MESON) += meson-sm1-a95xf3-air-gbit.dtb
+ dtb-$(CONFIG_ARCH_MESON) += meson-sm1-a95xf3-air.dtb
++dtb-$(CONFIG_ARCH_MESON) += meson-sm1-tx5-plus.dtb
+ dtb-$(CONFIG_ARCH_MESON) += meson-sm1-bananapi-m2-pro.dtb
+ dtb-$(CONFIG_ARCH_MESON) += meson-sm1-bananapi-m5.dtb
+ dtb-$(CONFIG_ARCH_MESON) += meson-sm1-h96-max.dtb
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.17.6/arch/arm64/boot/dts/amlogic/meson-sm1-tx5-plus.dts linux-6.17.6/arch/arm64/boot/dts/amlogic/meson-sm1-tx5-plus.dts
+--- linux-6.17.6/arch/arm64/boot/dts/amlogic/meson-sm1-tx5-plus.dts	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.17.6/arch/arm64/boot/dts/amlogic/meson-sm1-tx5-plus.dts	2025-10-31 22:03:13.775460200 +0100
+@@ -0,0 +1,147 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Copyright (c) Author: piotr.oniszczuk@gmail.com
++ */
++
++/dts-v1/;
++
++#include "meson-sm1-ac2xx.dtsi"
++#include <dt-bindings/sound/meson-g12a-tohdmitx.h>
++
++/ {
++	compatible = "tanix,tx5-plus", "amlogic,sm1";
++	model = "Tanix TX5 Plus";
++
++	sound {
++		compatible = "amlogic,axg-sound-card";
++		model = "TX5-PLUS";
++		audio-aux-devs = <&tdmout_b>;
++		audio-routing = "TDMOUT_B IN 0", "FRDDR_A OUT 1",
++				"TDMOUT_B IN 1", "FRDDR_B OUT 1",
++				"TDMOUT_B IN 2", "FRDDR_C OUT 1",
++				"TDM_B Playback", "TDMOUT_B OUT";
++
++		clocks = <&clkc CLKID_MPLL2>,
++			 <&clkc CLKID_MPLL0>,
++			 <&clkc CLKID_MPLL1>;
++
++		assigned-clocks = <&clkc CLKID_MPLL2>,
++				  <&clkc CLKID_MPLL0>,
++				  <&clkc CLKID_MPLL1>;
++		assigned-clock-parents = <0>, <0>, <0>;
++		assigned-clock-rates = <294912000>,
++				       <270950400>,
++				       <393216000>;
++
++		dai-link-0 {
++			sound-dai = <&frddr_a>;
++		};
++
++		dai-link-1 {
++			sound-dai = <&frddr_b>;
++		};
++
++		dai-link-2 {
++			sound-dai = <&frddr_c>;
++		};
++
++		/* 8ch hdmi interface */
++		dai-link-3 {
++			sound-dai = <&tdmif_b>;
++			dai-format = "i2s";
++			dai-tdm-slot-tx-mask-0 = <1 1>;
++			dai-tdm-slot-tx-mask-1 = <1 1>;
++			dai-tdm-slot-tx-mask-2 = <1 1>;
++			dai-tdm-slot-tx-mask-3 = <1 1>;
++			mclk-fs = <256>;
++
++			codec {
++				sound-dai = <&tohdmitx TOHDMITX_I2S_IN_B>;
++			};
++		};
++
++		/* hdmi glue */
++		dai-link-4 {
++			sound-dai = <&tohdmitx TOHDMITX_I2S_OUT>;
++
++			codec {
++				sound-dai = <&hdmi_tx>;
++			};
++		};
++	};
++
++	openvfd {
++		compatible = "open,vfd";
++		dev_name = "openvfd";
++		openvfd_gpio_clk = <&gpio GPIOA_15 GPIO_ACTIVE_HIGH>;
++		openvfd_gpio_dat = <&gpio GPIOA_14 GPIO_ACTIVE_HIGH>;
++		vfd_gpio_chip_name = "300b000.pinctrl";
++		openvfd_chars = [02 04 03 02 01];
++		openvfd_dot_bits = [00 01 03 02 04 05 06];
++		openvfd_display_type = <0x03000001>;
++		status = "okay";
++	};
++};
++
++&arb {
++	status = "okay";
++};
++
++&clkc_audio {
++	status = "okay";
++};
++
++&ethmac {
++	status = "okay";
++
++	pinctrl-0 = <&eth_pins>, <&eth_rgmii_pins>;
++	pinctrl-names = "default";
++	phy-mode = "rgmii-txid";
++	phy-handle = <&external_phy>;
++
++	rx-internal-delay-ps = <800>;
++};
++
++&ext_mdio {
++	external_phy: ethernet-phy@0 {
++		/* Realtek RTL8211F (0x001cc916) */
++		reg = <0>;
++		max-speed = <1000>;
++
++		reset-assert-us = <10000>;
++		reset-deassert-us = <80000>;
++		reset-gpios = <&gpio GPIOZ_15 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
++
++		interrupt-parent = <&gpio_intc>;
++		/* MAC_INTR on GPIOZ_14 */
++		interrupts = <IRQID_GPIOZ_14 IRQ_TYPE_LEVEL_LOW>;
++	};
++};
++
++&frddr_a {
++	status = "okay";
++};
++
++&frddr_b {
++	status = "okay";
++};
++
++&frddr_c {
++	status = "okay";
++};
++
++&ir {
++	linux,rc-map-name = "rc-beelink-gs1";
++};
++
++&tdmif_b {
++	status = "okay";
++};
++
++&tdmout_b {
++	status = "okay";
++};
++
++&tohdmitx {
++	status = "okay";
++};

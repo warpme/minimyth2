@@ -1,0 +1,116 @@
+From 2a469ef4acd416d38ce5f7ffe660db47b0b70f88 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Thu, 25 Jul 2024 18:12:24 +0200
+Subject: [PATCH 15/59] mfd: rk8xx: Fix shutdown handler
+
+When I converted rk808 to device managed resources I converted the rk808
+specific pm_power_off handler to devm_register_sys_off_handler() using
+SYS_OFF_MODE_POWER_OFF_PREPARE, which is allowed to sleep. I did this
+because the driver's poweroff function makes use of regmap and the backend
+of that might sleep.
+
+But the PMIC poweroff function will kill off the board power and the
+kernel does some extra steps after the prepare handler. Thus the prepare
+handler should not be used for the PMIC's poweroff routine. Instead the
+normal SYS_OFF_MODE_POWER_OFF phase should be used. The old pm_power_off
+method is also being called from there, so this would have been a
+cleaner conversion anyways.
+
+But it still makes sense to investigate the sleep handling and check
+if there are any issues. Apparently the Rockchip and Meson I2C drivers
+(the only platforms using the PMICs handled by this driver) both have
+support for atomic transfers and thus may be called from the atomic
+poweroff context.
+
+Things are different on the SPI side. That is so far only used by rk806
+and that one is only used by Rockchip RK3588. Unfortunately the Rockchip
+SPI driver does not support atomic transfers. That means this change will
+introduce an error splash directly before doing the final power off on all
+upstream supported RK3588 boards:
+
+[   13.761353] ------------[ cut here ]------------
+[   13.761764] Voluntary context switch within RCU read-side critical section!
+[   13.761776] WARNING: CPU: 0 PID: 1 at kernel/rcu/tree_plugin.h:330 rcu_note_context_switch+0x3ac/0x404
+[   13.763219] Modules linked in:
+[   13.763498] CPU: 0 UID: 0 PID: 1 Comm: systemd-shutdow Not tainted 6.10.0-12284-g2818a9a19514 #1499
+[   13.764297] Hardware name: Rockchip RK3588 EVB1 V10 Board (DT)
+[   13.764812] pstate: 604000c9 (nZCv daIF +PAN -UAO -TCO -DIT -SSBS BTYPE=--)
+[   13.765427] pc : rcu_note_context_switch+0x3ac/0x404
+[   13.765871] lr : rcu_note_context_switch+0x3ac/0x404
+[   13.766314] sp : ffff800084f4b5b0
+[   13.766609] x29: ffff800084f4b5b0 x28: ffff00040139b800 x27: 00007dfb4439ae80
+[   13.767245] x26: ffff00040139bc80 x25: 0000000000000000 x24: ffff800082118470
+[   13.767880] x23: 0000000000000000 x22: ffff000400300000 x21: ffff000400300000
+[   13.768515] x20: ffff800083a9d600 x19: ffff0004fee48600 x18: fffffffffffed448
+[   13.769151] x17: 000000040044ffff x16: 005000f2b5503510 x15: 0000000000000048
+[   13.769787] x14: fffffffffffed490 x13: ffff80008473b3c0 x12: 0000000000000900
+[   13.770421] x11: 0000000000000300 x10: ffff800084797bc0 x9 : ffff80008473b3c0
+[   13.771057] x8 : 00000000ffffefff x7 : ffff8000847933c0 x6 : 0000000000000300
+[   13.771692] x5 : 0000000000000301 x4 : 40000000fffff300 x3 : 0000000000000000
+[   13.772328] x2 : 0000000000000000 x1 : 0000000000000000 x0 : ffff000400300000
+[   13.772964] Call trace:
+[   13.773184]  rcu_note_context_switch+0x3ac/0x404
+[   13.773598]  __schedule+0x94/0xb0c
+[   13.773907]  schedule+0x34/0x104
+[   13.774198]  schedule_timeout+0x84/0xfc
+[   13.774544]  wait_for_completion_timeout+0x78/0x14c
+[   13.774980]  spi_transfer_one_message+0x588/0x690
+[   13.775403]  __spi_pump_transfer_message+0x19c/0x4ec
+[   13.775846]  __spi_sync+0x2a8/0x3c4
+[   13.776161]  spi_write_then_read+0x120/0x208
+[   13.776543]  rk806_spi_bus_read+0x54/0x88
+[   13.776905]  _regmap_raw_read+0xec/0x16c
+[   13.777257]  _regmap_bus_read+0x44/0x7c
+[   13.777601]  _regmap_read+0x60/0xd8
+[   13.777915]  _regmap_update_bits+0xf4/0x13c
+[   13.778289]  regmap_update_bits_base+0x64/0x98
+[   13.778686]  rk808_power_off+0x70/0xfc
+[   13.779024]  sys_off_notify+0x40/0x6c
+[   13.779356]  atomic_notifier_call_chain+0x60/0x90
+[   13.779776]  do_kernel_power_off+0x54/0x6c
+[   13.780146]  machine_power_off+0x18/0x24
+[   13.780499]  kernel_power_off+0x70/0x7c
+[   13.780845]  __do_sys_reboot+0x210/0x270
+[   13.781198]  __arm64_sys_reboot+0x24/0x30
+[   13.781558]  invoke_syscall+0x48/0x10c
+[   13.781897]  el0_svc_common+0x3c/0xe8
+[   13.782228]  do_el0_svc+0x20/0x2c
+[   13.782528]  el0_svc+0x34/0xd8
+[   13.782806]  el0t_64_sync_handler+0x120/0x12c
+[   13.783197]  el0t_64_sync+0x190/0x194
+[   13.783527] ---[ end trace 0000000000000000 ]---
+
+The board will shutdown nevertheless, since this also re-enables
+interrupts. A proper fix for this requires changes to the core SPI
+subsystem and will be done as a follow-up series.
+
+Note, that this patch also fixes a problem for the Asus C201. Without
+the function being registered as a proper shutdown handler the syscall
+for poweroff exits early and does not even call the shutdown prepare
+handler. This in turn means the system can no longer poweroff properly
+since my original change.
+
+Fixes: 4fec8a5a85c49 ("mfd: rk808: Convert to device managed resources")
+Cc: stable@vger.kernel.org
+Reported-by: Urja <urja@urja.dev>
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/mfd/rk8xx-core.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/mfd/rk8xx-core.c b/drivers/mfd/rk8xx-core.c
+index 71c2b80a4..37a2701cc 100644
+--- a/drivers/mfd/rk8xx-core.c
++++ b/drivers/mfd/rk8xx-core.c
+@@ -788,7 +788,7 @@ int rk8xx_probe(struct device *dev, int variant, unsigned int irq, struct regmap
+ 	if (device_property_read_bool(dev, "system-power-controller") ||
+ 	    device_property_read_bool(dev, "rockchip,system-power-controller")) {
+ 		ret = devm_register_sys_off_handler(dev,
+-				    SYS_OFF_MODE_POWER_OFF_PREPARE, SYS_OFF_PRIO_HIGH,
++				    SYS_OFF_MODE_POWER_OFF, SYS_OFF_PRIO_HIGH,
+ 				    &rk808_power_off, rk808);
+ 		if (ret)
+ 			return dev_err_probe(dev, ret,
+-- 
+2.46.0
+

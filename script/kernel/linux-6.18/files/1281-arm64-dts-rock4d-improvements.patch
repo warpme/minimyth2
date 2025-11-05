@@ -1,0 +1,180 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.17-rc4/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts linux-6.17-rc4/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
+--- linux-6.17-rc4/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts	2025-09-01 00:33:07.000000000 +0200
++++ linux-6.17-rc4/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts	2025-09-03 20:49:11.334524004 +0200
+@@ -54,14 +54,48 @@
+ 			color = <LED_COLOR_ID_GREEN>;
+ 			function = LED_FUNCTION_STATUS;
+ 			gpios = <&gpio0 RK_PB4 GPIO_ACTIVE_HIGH>;
+-			linux,default-trigger = "default-on";
++			linux,default-trigger = "heartbeat";
+ 		};
+ 
+ 		user-led {
+ 			color = <LED_COLOR_ID_BLUE>;
+ 			function = LED_FUNCTION_HEARTBEAT;
+-			gpios = <&gpio0 RK_PC4 GPIO_ACTIVE_LOW>;
+-			linux,default-trigger = "heartbeat";
++			gpios = <&gpio0 RK_PC4 GPIO_ACTIVE_HIGH>;
++			inux,default-trigger = "disk-activity";
++		};
++	};
++
++	usbc_vin7_2 {
++		compatible = "iio-hwmon";
++		io-channels = <&saradc 0 &saradc 1 &saradc 2 &saradc 3 &saradc 4 &saradc 5 &saradc 6 &saradc 7>;
++		status = "okay";
++	};
++
++	es8388_sound: es8388-sound {
++		compatible = "simple-audio-card";
++		simple-audio-card,format = "i2s";
++		simple-audio-card,mclk-fs = <256>;
++		simple-audio-card,name = "On-board Analog ES8388";
++		simple-audio-card,widgets = "Microphone", "Headphone Mic",
++					    "Microphone", "Mic Pads",
++					    "Headphone", "Headphone",
++					    "Line Out", "Line Out";
++		simple-audio-card,routing = "Headphone", "LOUT1",
++					    "Headphone", "ROUT1",
++					    "Line Out", "LOUT2",
++					    "Line Out", "ROUT2",
++					    "RINPUT1", "Headphone Mic",
++					    "LINPUT2", "Mic Pads",
++					    "RINPUT2", "Mic Pads";
++		simple-audio-card,pin-switches = "Headphone", "Line Out";
++
++		simple-audio-card,cpu {
++			sound-dai = <&sai1>;
++		};
++
++		simple-audio-card,codec {
++			sound-dai = <&es8388>;
++			system-clock-frequency = <12288000>;
+ 		};
+ 	};
+ 
+@@ -124,6 +158,15 @@
+ 		vin-supply = <&vcc_5v0_sys>;
+ 	};
+ 
++	spk_ctl_h: spk-ctl-h {
++		compatible = "regulator-fixed";
++		regulator-name = "spk_ctl_h";
++		regulator-boot-on;
++		enable-active-high;
++		gpio = <&gpio2 RK_PC6 GPIO_ACTIVE_HIGH>;
++		vin-supply = <&vcc_3v3_s3>;
++	};
++
+ 	vcc_3v3_pcie: regulator-vcc-3v3-pcie {
+ 		compatible = "regulator-fixed";
+ 		enable-active-high;
+@@ -269,10 +312,14 @@
+ 	cpu-supply = <&vdd_cpu_lit_s0>;
+ };
+ 
++&tsadc {
++	status = "okay";
++};
++
+ &gmac0 {
+ 	clock_in_out = "output";
+ 	phy-handle = <&rgmii_phy0>;
+-	phy-mode = "rgmii-id";
++	phy-mode = "rgmii-rxid";
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&eth0m0_miim
+ 		     &eth0m0_tx_bus2
+@@ -280,6 +327,8 @@
+ 		     &eth0m0_rgmii_clk
+ 		     &eth0m0_rgmii_bus
+ 		     &ethm0_clk0_25m_out>;
++	tx_delay = <0x20>;
++	rx_delay = <0x00>;
+ 	status = "okay";
+ };
+ 
+@@ -682,6 +731,25 @@
+ 	};
+ };
+ 
++&i2c3 {
++	status = "okay";
++
++	es8388: audio-codec@10 {
++		compatible = "everest,es8388", "everest,es8328";
++		reg = <0x10>;
++		clocks = <&cru CLK_SAI1_MCLKOUT_TO_IO>;
++		AVDD-supply = <&vcca_3v3_s0>;
++		DVDD-supply = <&vcc_3v3_s0>;
++		HPVDD-supply = <&vcca_3v3_s0>;
++		PVDD-supply = <&vcc_3v3_s0>;
++		assigned-clocks = <&cru CLK_SAI1_MCLKOUT_TO_IO>;
++		assigned-clock-rates = <12288000>;
++		#sound-dai-cells = <0>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&sai1m0_mclk>;
++	};
++};
++
+ &mdio0 {
+ 	rgmii_phy0: ethernet-phy@1 {
+ 		compatible = "ethernet-phy-id001c.c916";
+@@ -712,6 +780,12 @@
+ 		};
+ 	};
+ 
++	speakers {
++		speaker_ctl: spk-ctl-h {
++			rockchip,pins = <2 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++	};
++
+ 	leds {
+ 		led_rgb_g: led-green-en {
+ 			rockchip,pins = <0 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
+@@ -756,6 +830,15 @@
+ 	};
+ };
+ 
++&sai1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&sai1m0_lrck
++		     &sai1m0_sclk
++		     &sai1m0_sdi0
++		     &sai1m0_sdo0>;
++	status = "okay";
++};
++
+ &sai6 {
+ 	status = "okay";
+ };
+@@ -771,6 +854,8 @@
+ 	sd-uhs-sdr104;
+ 	vmmc-supply = <&vcc_3v3_s3>;
+ 	vqmmc-supply = <&vccio_sd_s0>;
++	pinctrl-names = "default";
++	pinctrl-0 = <&sdmmc0_clk &sdmmc0_cmd &sdmmc0_det &sdmmc0_bus4>;
+ 	status = "okay";
+ };
+ 
+@@ -790,6 +875,11 @@
+ 	};
+ };
+ 
++&saradc {
++	vref-supply = <&vcca_1v8_s0>;
++	status = "okay";
++};
++
+ &u2phy0 {
+ 	status = "okay";
+ };
+@@ -845,3 +935,7 @@
+ 		remote-endpoint = <&hdmi_in_vp0>;
+ 	};
+ };
++
++&wdt {
++	status= "okay";
++};

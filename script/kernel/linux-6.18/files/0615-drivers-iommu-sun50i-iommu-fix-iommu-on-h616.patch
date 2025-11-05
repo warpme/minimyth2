@@ -1,0 +1,66 @@
+jernej's iommu fix
+diff --git a/drivers/iommu/sun50i-iommu.c b/drivers/iommu/sun50i-iommu.c
+index 8d8f11854676..ddef20dd96f9 100644
+--- a/drivers/iommu/sun50i-iommu.c
++++ b/drivers/iommu/sun50i-iommu.c
+@@ -196,7 +196,12 @@ static u32 sun50i_iova_get_page_offset(dma_addr_t iova)
+ 
+ static phys_addr_t sun50i_dte_get_pt_address(u32 dte)
+ {
+-	return (phys_addr_t)dte & SUN50I_DTE_PT_ADDRESS_MASK;
++	phys_addr_t dte_addr = dte & SUN50I_DTE_PT_ADDRESS_MASK;
++
++	if (dte_addr < PHYS_OFFSET)
++		dte_addr |= SZ_4G;
++
++	return dte_addr;
+ }
+ 
+ static bool sun50i_dte_is_pt_valid(u32 dte)
+@@ -256,7 +261,12 @@ enum sun50i_iommu_aci {
+ 
+ static phys_addr_t sun50i_pte_get_page_address(u32 pte)
+ {
+-	return (phys_addr_t)pte & SUN50I_PTE_PAGE_ADDRESS_MASK;
++	phys_addr_t paddr = pte & SUN50I_PTE_PAGE_ADDRESS_MASK;
++
++	if (paddr < PHYS_OFFSET)
++		paddr |= SZ_4G;
++
++	return paddr;
+ }
+ 
+ static enum sun50i_iommu_aci sun50i_get_pte_aci(u32 pte)
+@@ -549,7 +549,7 @@ static void *sun50i_iommu_alloc_page_table(struct sun50i_iommu *iommu,
+ 	}
+ 
+ 	/* We rely on the physical address and DMA address being the same */
+-	WARN_ON(pt_dma != virt_to_phys(page_table));
++	//WARN_ON(pt_dma != virt_to_phys(page_table));
+ 
+ 	return page_table;
+ }
+@@ -602,14 +612,6 @@ static int sun50i_iommu_map(struct iommu_domain *domain, unsigned long iova,
+ 	u32 *page_table, *pte_addr;
+ 	int ret = 0;
+ 
+-	/* the IOMMU can only handle 32-bit addresses, both input and output */
+-	if ((uint64_t)paddr >> 32) {
+-		ret = -EINVAL;
+-		dev_warn_once(iommu->dev,
+-			      "attempt to map address beyond 4GB\n");
+-		goto out;
+-	}
+-
+ 	page_table = sun50i_dte_get_page_table(sun50i_domain, iova, gfp);
+ 	if (IS_ERR(page_table)) {
+ 		ret = PTR_ERR(page_table);
+@@ -1006,7 +1008,7 @@ static int sun50i_iommu_probe(struct platform_device *pdev)
+ 
+ 	iommu->pt_pool = kmem_cache_create(dev_name(&pdev->dev),
+ 					   PT_SIZE, PT_SIZE,
+-					   SLAB_HWCACHE_ALIGN | SLAB_CACHE_DMA32,
++					   SLAB_HWCACHE_ALIGN,
+ 					   NULL);
+ 	if (!iommu->pt_pool)
+ 		return -ENOMEM;

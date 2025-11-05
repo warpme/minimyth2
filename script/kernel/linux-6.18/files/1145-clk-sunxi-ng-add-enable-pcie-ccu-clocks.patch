@@ -1,0 +1,162 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc4/drivers/clk/sunxi-ng/ccu-sun55i-a523.c linux-6.18-rc4/drivers/clk/sunxi-ng/ccu-sun55i-a523.c
+--- linux-6.18-rc4/drivers/clk/sunxi-ng/ccu-sun55i-a523.c	2025-11-02 20:28:02.000000000 +0100
++++ linux-6.18-rc4/drivers/clk/sunxi-ng/ccu-sun55i-a523.c	2025-11-04 20:50:23.945455409 +0100
+@@ -168,6 +168,7 @@
+ 	.n		= _SUNXI_CCU_MULT_MIN(8, 8, 11),
+ 	.m		= _SUNXI_CCU_DIV(1, 1), /* input divider */
+ 	.p		= _SUNXI_CCU_DIV(0, 1), /* output divider */
++	.max_rate	= 2520000000,
+ 	.common		= {
+ 		.reg		= 0x030,
+ 		.hw.init	= CLK_HW_INIT_PARENTS_DATA("pll-gpu", osc24M,
+@@ -249,6 +250,7 @@
+ 	.n		= _SUNXI_CCU_MULT_MIN(8, 8, 11),
+ 	.m		= _SUNXI_CCU_DIV(1, 1), /* input divider */
+ 	.p		= _SUNXI_CCU_DIV(0, 1), /* output divider */
++	.max_rate	= 2520000000,
+ 	.common		= {
+ 		.reg		= 0x058,
+ 		.hw.init	= CLK_HW_INIT_PARENTS_DATA("pll-ve", osc24M,
+@@ -322,6 +324,8 @@
+ 	.lock		= BIT(28),
+ 	.n		= _SUNXI_CCU_MULT_MIN(8, 8, 11),
+ 	.m		= _SUNXI_CCU_DIV(1, 1),	/* input divider */
++	.min_rate = 1200000000,
++	.max_rate = 2520000000,
+ 	.common		= {
+ 		.reg		= 0x0080,
+ 		.hw.init	= CLK_HW_INIT_PARENTS_DATA("pll-npu-4x",
+@@ -440,9 +444,9 @@
+ 
+ static SUNXI_CCU_GATE_HWS(bus_g2d_clk, "bus-g2d", ahb_hws, 0x63c, BIT(0), 0);
+ 
++/* Delete the pll-periph0-800m. If GPU use pll-periph0-800m, gpu will occur job fault */
+ static const struct clk_hw *gpu_parents[] = {
+ 	&pll_gpu_clk.common.hw,
+-	&pll_periph0_800M_clk.common.hw,
+ 	&pll_periph0_600M_clk.hw,
+ 	&pll_periph0_400M_clk.hw,
+ 	&pll_periph0_300M_clk.hw,
+@@ -1186,6 +1190,30 @@
+ 				    BIT(23),	/* gate */
+ 				    0);
+ 
++static SUNXI_CCU_GATE(usb3_mbus_gate_clk, "usb3-mbus-gate",
++		"osc24M",
++		0x0804, BIT(6), 0);
++
++static SUNXI_CCU_GATE(usb2_ref_clk, "usb2_ref",
++		"osc24M",
++		0x0A80, BIT(31), 0);
++
++static const struct clk_parent_data usb3_ref_parents[] = { { .fw_name = "hosc" }, { .hw = &pll_periph0_200M_clk.hw }, { .hw = &pll_periph1_200M_clk.hw } };
++static SUNXI_CCU_M_DATA_WITH_MUX_GATE(usb3_ref_clk, "usb3-ref",
++		usb3_ref_parents, 0x0A84,
++		0, 5,	/* M */
++		24, 3,	/* mux */
++		BIT(31),	/* gate */
++		0);
++
++static const struct clk_parent_data usb3_suspend_parents[] = { { .fw_name = "losc" }, { .fw_name = "hosc" } };
++static SUNXI_CCU_M_DATA_WITH_MUX_GATE(usb3_suspend_clk, "usb3-suspend",
++		usb3_suspend_parents, 0x0A88,
++		0, 5,	/* M */
++		24, 1,	/* mux */
++		BIT(31),	/* gate */
++		0);
++
+ /*
+  * Contains all clocks that are controlled by a hardware register. They
+  * have a (sunxi) .common member, which needs to be initialised by the common
+@@ -1354,6 +1391,10 @@
+ 	&fanout0_clk.common,
+ 	&fanout1_clk.common,
+ 	&fanout2_clk.common,
++	&usb3_mbus_gate_clk.common,
++	&usb3_ref_clk.common,
++	&usb2_ref_clk.common,
++	&usb3_suspend_clk.common,
+ };
+ 
+ static struct clk_hw_onecell_data sun55i_a523_hw_clks = {
+@@ -1538,8 +1580,12 @@
+ 		[CLK_FANOUT1]		= &fanout1_clk.common.hw,
+ 		[CLK_FANOUT2]		= &fanout2_clk.common.hw,
+ 		[CLK_NPU]		= &npu_clk.common.hw,
++		[CLK_USB3_MBUS_GATE]	= &usb3_mbus_gate_clk.common.hw,
++		[CLK_USB3_REF]		= &usb3_ref_clk.common.hw,
++		[CLK_USB2_REF]		= &usb2_ref_clk.common.hw,
++		[CLK_USB3_SUSPEND]	= &usb3_suspend_clk.common.hw,
+ 	},
+-	.num	= CLK_NPU + 1,
++	.num	= CLK_USB3_SUSPEND + 1,
+ };
+ 
+ static struct ccu_reset_map sun55i_a523_ccu_resets[] = {
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc4/include/dt-bindings/clock/sun55i-a523-ccu.h linux-6.18-rc4/include/dt-bindings/clock/sun55i-a523-ccu.h
+--- linux-6.18-rc4/include/dt-bindings/clock/sun55i-a523-ccu.h	2025-11-02 20:28:02.000000000 +0100
++++ linux-6.18-rc4/include/dt-bindings/clock/sun55i-a523-ccu.h	2025-11-04 20:48:30.208788468 +0100
+@@ -186,5 +186,9 @@
+ #define CLK_FANOUT1		177
+ #define CLK_FANOUT2		178
+ #define CLK_NPU			179
++#define CLK_USB3_MBUS_GATE	180
++#define CLK_USB3_REF		181
++#define CLK_USB2_REF		182
++#define CLK_USB3_SUSPEND	183
+ 
+ #endif /* _DT_BINDINGS_CLK_SUN55I_A523_CCU_H_ */
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc4/include/dt-bindings/power/a523-power.h linux-6.18-rc4/include/dt-bindings/power/a523-power.h
+--- linux-6.18-rc4/include/dt-bindings/power/a523-power.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18-rc4/include/dt-bindings/power/a523-power.h	2025-11-04 20:44:10.978787779 +0100
+@@ -0,0 +1,18 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++#ifndef __DT_BINDINGS_POWER_A523_H__
++#define __DT_BINDINGS_POWER_A523_H__
++
++#define A523_PD_DSP			0
++#define A523_PD_NPU			1
++#define A523_PD_AUDIO		2
++#define A523_PD_SRAM		3
++#define A523_PD_RISCV		4
++#define A523_PCK_VE			0
++#define A523_PCK_GPU		1
++#define A523_PCK_VI			2
++#define A523_PCK_VO0		3
++#define A523_PCK_VO1		4
++#define A523_PCK_DE			5
++#define A523_PCK_NAND		6
++#define A523_PCK_PCIE		7
++#endif
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc4/include/dt-bindings/reset/sun55i-a523-ccu.h linux-6.18-rc4/include/dt-bindings/reset/sun55i-a523-ccu.h
+--- linux-6.18-rc4/include/dt-bindings/reset/sun55i-a523-ccu.h	2025-11-02 20:28:02.000000000 +0100
++++ linux-6.18-rc4/include/dt-bindings/reset/sun55i-a523-ccu.h	2025-11-04 20:44:10.978787779 +0100
+@@ -84,5 +84,6 @@
+ #define RST_BUS_LEDC		75
+ #define RST_BUS_CSI		76
+ #define RST_BUS_ISP		77
++#define RST_BUS_USB_3		78
+ 
+ #endif /* _DT_BINDINGS_RST_SUN55I_A523_CCU_H_ */
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc4/include/dt-bindings/spi/sunxi-spi.h linux-6.18-rc4/include/dt-bindings/spi/sunxi-spi.h
+--- linux-6.18-rc4/include/dt-bindings/spi/sunxi-spi.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18-rc4/include/dt-bindings/spi/sunxi-spi.h	2025-11-04 20:44:10.978787779 +0100
+@@ -0,0 +1,18 @@
++/* SPDX-License-Identifier: GPL-2.0-or-later */
++/* Copyright(c) 2020 - 2023 Allwinner Technology Co.,Ltd. All rights reserved. */
++
++#ifndef __DT_SUNXI_SPI_H
++#define __DT_SUNXI_SPI_H
++
++#define SUNXI_SPI_BUS_MASTER	(1 << 0)
++#define SUNXI_SPI_BUS_SLAVE		(1 << 1)
++#define SUNXI_SPI_BUS_DBI		(1 << 2)
++#define SUNXI_SPI_BUS_BIT		(1 << 3)
++#define SUNXI_SPI_BUS_NOR		(1 << 4)
++#define SUNXI_SPI_BUS_NAND		(1 << 5)
++#define SUNXI_SPI_BUS_CAMERA	(1 << 6)
++
++#define SUNXI_SPI_CS_AUTO	0
++#define SUNXI_SPI_CS_SOFT	1
++
++#endif /* __DT_SUNXI_SPI_H */

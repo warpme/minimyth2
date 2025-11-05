@@ -1,0 +1,99 @@
+
+Some newer Allwinner RTCs (for instance the one in the H616 SoC) lack
+a pin for an external 32768 Hz oscillator. As a consequence, this LOSC
+can't be selected as the RTC clock source, and we must rely on the
+internal RC oscillator.
+To allow additions of clocks to the RTC node, add a feature bit to ignore
+any provided clocks for now (the current code would think this is the
+external LOSC). Later DTs and code can then for instance add the PLL
+based clock input, and older kernel won't get confused.
+
+based on excelent work of Andre Przywara <andre.przywara@arm.com> and 
+Jernej Skrabec <jernej.skrabec@gmail.com>
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.16/drivers/rtc/rtc-sun6i.c linux-6.16/drivers/rtc/rtc-sun6i.c
+--- linux-6.16/drivers/rtc/rtc-sun6i.c	2025-08-07 22:12:40.220002505 +0200
++++ linux-6.16/drivers/rtc/rtc-sun6i.c	2025-08-08 09:28:43.183340569 +0200
+@@ -42,6 +42,11 @@
+ 
+ #define SUN6I_LOSC_CLK_PRESCAL			0x0008
+ 
++#define SUN6I_LOSC_CLK_AUTO_CAL			0x000c
++#define SUN6I_LOSC_CLK_AUTO_CAL_16MS		BIT(2)
++#define SUN6I_LOSC_CLK_AUTO_CAL_EANABLE		BIT(1)
++#define SUN6I_LOSC_CLK_AUTO_CAL_SEL_CAL		BIT(0)
++
+ /* RTC */
+ #define SUN6I_RTC_YMD				0x0010
+ #define SUN6I_RTC_HMS				0x0014
+@@ -137,6 +142,7 @@
+ 	unsigned int has_out_clk : 1;
+ 	unsigned int has_losc_en : 1;
+ 	unsigned int has_auto_swt : 1;
++	unsigned int no_ext_losc : 1;
+ };
+ 
+ #define RTC_LINEAR_DAY	BIT(0)
+@@ -260,13 +266,19 @@
+ 	}
+ 
+ 	/* Switch to the external, more precise, oscillator, if present */
+-	if (of_property_present(node, "clocks")) {
++	if (!rtc->data->no_ext_losc && of_get_property(node, "clocks", NULL)) {
+ 		reg |= SUN6I_LOSC_CTRL_EXT_OSC;
+ 		if (rtc->data->has_losc_en)
+ 			reg |= SUN6I_LOSC_CTRL_EXT_LOSC_EN;
+ 	}
+ 	writel(reg, rtc->base + SUN6I_LOSC_CTRL);
+ 
++	/* Assume we can enable internal 32k auto calibration if we have no external losc */
++	if (rtc->data->no_ext_losc) {
++		reg = (SUN6I_LOSC_CLK_AUTO_CAL_16MS | SUN6I_LOSC_CLK_AUTO_CAL_EANABLE | SUN6I_LOSC_CLK_AUTO_CAL_SEL_CAL);
++		writel(reg, rtc->base + SUN6I_LOSC_CLK_AUTO_CAL);
++	}
++
+ 	/* Yes, I know, this is ugly. */
+ 	sun6i_rtc = rtc;
+ 
+@@ -284,8 +296,15 @@
+ 	}
+ 
+ 	parents[0] = clk_hw_get_name(rtc->int_osc);
+-	/* If there is no external oscillator, this will be NULL and ... */
+-	parents[1] = of_clk_get_parent_name(node, 0);
++	if (rtc->data->no_ext_losc) {
++		parents[1] = NULL;
++		init.num_parents = 1;
++	} else {
++		/* If there is no external oscillator, this will be NULL and */
++		parents[1] = of_clk_get_parent_name(node, 0);
++		/* ... number of clock parents will be 1. */
++		init.num_parents = of_clk_get_parent_count(node) + 1;
++	}
+ 
+ 	rtc->hw.init = &init;
+ 
+@@ -383,6 +402,22 @@
+ CLK_OF_DECLARE_DRIVER(sun50i_h6_rtc_clk, "allwinner,sun50i-h6-rtc",
+ 		      sun50i_h6_rtc_clk_init);
+ 
++static const struct sun6i_rtc_clk_data sun50i_h616_rtc_data = {
++	.rc_osc_rate = 16000000,
++	.fixed_prescaler = 32,
++	.has_prescaler = 1,
++	.has_out_clk = 1,
++	.no_ext_losc = 1,
++};
++
++static void __init sun50i_h616_rtc_clk_init(struct device_node *node)
++{
++	sun6i_rtc_clk_init(node, &sun50i_h616_rtc_data);
++}
++CLK_OF_DECLARE_DRIVER(sun50i_h616_rtc_clk, "allwinner,sun50i-h616-rtc",
++		      sun50i_h616_rtc_clk_init);
++
++
+ /*
+  * The R40 user manual is self-conflicting on whether the prescaler is
+  * fixed or configurable. The clock diagram shows it as fixed, but there
