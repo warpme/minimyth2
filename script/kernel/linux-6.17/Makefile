@@ -531,6 +531,29 @@ clean-all:
 menuconfig: configure
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) menuconfig
 
-savedefconfig: configure
+defconfig: configure
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) savedefconfig
-	mv $(WORKSRC)/defconfig $(CONFIGFILE)
+	@mv $(WORKSRC)/defconfig $(CONFIGFILE).defconfig; \
+	 echo "defconfig saved as $(CONFIGFILE).defconfig in package dir ... "; \
+	 echo -n "Done! Press <Enter> to exit ... "; read
+
+diffconfig: configure
+	@cd $(WORKSRC); \
+	 if [ -e .config.old ]; then \
+	   $(PYTHON3) scripts/diffconfig .config.old .config > ../../../config.diff; cat ../../../config.diff; \
+	 else \
+	   echo -n "No old .config found to compare. Run first 'make menuconfig' or 'make mergeconfig' ... "; \
+	 fi; \
+	 echo -n "Done! Press <Enter> to exit ... "; read
+
+mergeconfig: configure
+	@export ARCH=$(GARCH_FAMILY); \
+	 cd $(WORKSRC); \
+	 if [ -e ../../../config.fragment ]; then \
+	   cp .config config.old; scripts/kconfig/merge_config.sh .config ../../../config.fragment; \
+	   cp .config ../../../$(CONFIGFILE).merged; \
+	   echo "merged config saved in: tree root as .config and also as $(CONFIGFILE).merged in package dir ... "; \
+	 else \
+	   echo -n "No config.fragment found to merge. Provide it before running 'make mergeconfig' ... "; \
+	 fi; \
+	 echo -n "Done! Press <Enter> to exit ... "; read

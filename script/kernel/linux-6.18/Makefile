@@ -202,9 +202,10 @@ PATCHFILES += 0850-arm64-dts-rockchip-rk356x-add-eth-wifi-aliases.patch
 endif
 #------------------------------------------------------------
 
+ifeq (1,1)
 #-- RaspberryPI patches -----------------------------------------
 # Hack for adding H264 v4l2 decoding on RPI
-PATCHFILES += 0900-rpi-vc04_services-add_h~l2-m2m_decode-15062024.patch
+PATCHFILES += 0900-rpi-vc04_services-add_h~l2-m2m_decode-05112025.patch
 PATCHFILES += 0902-media-add-rpivid-driver.patch
 # add rpi5 rp1 support
 PATCHFILES += 0932-drivers-pci-add-rp1-support.patch
@@ -229,7 +230,6 @@ PATCHFILES += 0948-gpu-drm-vc4-add-rpi5-support.patch
 #PATCHFILES += 0949-drivers-iommu-add-bcm2712-iommu.patch
 # device-tree patches
 PATCHFILES += 0970-arm64-dts-brcm-rpi4-set-led-to-disk-activity-mmc0-alias.patch
-ifeq (1,1)
 PATCHFILES += 0971-arm64-dts-brcm-rpi5-add-rp1-usb-eth-pwm.patch
 PATCHFILES += 0972-arm64-dts-brcm-rpi5-fix-hdmi-audio.patch
 PATCHFILES += 0973-arm64-dts-brcm-rpi5-add-v3d.patch
@@ -518,6 +518,29 @@ clean-all:
 menuconfig: configure
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) menuconfig
 
-savedefconfig: configure
+defconfig: configure
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) savedefconfig
-	mv $(WORKSRC)/defconfig $(CONFIGFILE)
+	@mv $(WORKSRC)/defconfig $(CONFIGFILE).defconfig; \
+	 echo "defconfig saved as $(CONFIGFILE).defconfig in package dir ... "; \
+	 echo -n "Done! Press <Enter> to exit ... "; read
+
+diffconfig: configure
+	@cd $(WORKSRC); \
+	 if [ -e .config.old ]; then \
+	   $(PYTHON3) scripts/diffconfig .config.old .config > ../../../config.diff; cat ../../../config.diff; \
+	 else \
+	   echo -n "No old .config found to compare. Run first 'make menuconfig' or 'make mergeconfig' ... "; \
+	 fi; \
+	 echo -n "Done! Press <Enter> to exit ... "; read
+
+mergeconfig: configure
+	@export ARCH=$(GARCH_FAMILY); \
+	 cd $(WORKSRC); \
+	 if [ -e ../../../config.fragment ]; then \
+	   cp .config config.old; scripts/kconfig/merge_config.sh .config ../../../config.fragment; \
+	   cp .config ../../../$(CONFIGFILE).merged; \
+	    echo "merged config saved in: tree root as .config and also as $(CONFIGFILE).merged in package dir ... "; \
+	 else \
+	   echo -n "No config.fragment found to merge. Provide it before running 'make mergeconfig' ... "; \
+	 fi; \
+	 echo -n "Done! Press <Enter> to exit ... "; read
