@@ -43,6 +43,8 @@ ifeq (1,1)
 PATCHFILES += 0110-drivers-net-wireless-brcmfmac-add-ap6330-firmware.patch
 endif
 
+PATCHFILES += 0111-fs-ovelays-move-xino-msg-to-debug.patch
+
 ifeq (1,1)
 # Switch GPU DVFS governors default as 'performance'
 PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
@@ -378,6 +380,35 @@ PATCHFILES += 1282-arm64-dts-add-rk3576-nanopi-r76s-dt.patch
 endif
 #------------------------------------------------------------
 
+ifeq (1,1)
+#-- Qualcomm 6490 patches -----------------------------------
+PATCHFILES += 1310-soc-qcom-geni-se-Add-MODULE_FIRMWARE-macro.patch
+PATCHFILES += 1311-soc-qcom-rpmh-Add-support-to-read-back-resource-sett.patch
+PATCHFILES += 1312-remoteproc-core-Allow-auto-retry-of-rproc_start.patch
+PATCHFILES += 1315-phy-qcom-qmp-combo-temporarily-fix-the-orientation-t.patch
+PATCHFILES += 1316-regulator-qcom-rpmh-Add-support-to-read-regulator-se.patch
+PATCHFILES += 1317-firmware-psci-Read-and-use-vendor-reset-types.patch
+
+PATCHFILES += 1318-drm-birdge-simple-bridge-Add-support-for-radxa-ra620.patch
+PATCHFILES += 1319-drm-msm-dpu-Add-missing-caps-and-blocks-to-sc7280-ca.patch
+PATCHFILES += 1320-drm-panel-Add-support-for-Orise-Tech-OTA7290B-DSI-Pa.patch
+PATCHFILES += 1321-drm-display-add-hw_params-callback-function-to-drm_c.patch
+PATCHFILES += 1322-drm-gpu-fix-4K-30-fps.patch
+
+PATCHFILES += 1330-phy-qcom-qmp-ufs-Fix-HS-G4-PHY-init-table-for-sc7280.patch
+PATCHFILES += 1331-scsi-ufs-qcom-temporarily-force-to-rate-A.patch
+PATCHFILES += 1332-scsi-ufs-qcom-Add-support-for-UFS-module-detection.patch
+PATCHFILES += 1333-spi-spi-qcom-qspi-Add-support-for-polling.patch
+
+# dts additions
+PATCHFILES += 1350-arm64-dts-qcom-qcs6490-audioreach-Modify-LPASS-macro.patch
+PATCHFILES += 1351-arm64-dts-qcom-sc7280-add-OPP-table-support-to-PCIe-.patch
+PATCHFILES += 1352-arm64-dts-qcom-sc7280-Add-cci-aliases.patch
+# board dts additions
+PATCHFILES += 1370-arm64-dts-qcom-add-initial-support-for-radxa-dragon-q6a.patch
+endif
+#------------------------------------------------------------
+
 endif
 
 LICENSE = GPL2
@@ -517,6 +548,9 @@ clean-all:
 
 menuconfig: configure
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) menuconfig
+	@cp -f $(WORKSRC)/.config $(CONFIGFILE).edited; \
+	 echo "edited .config saved as $(CONFIGFILE).edited in package dir ... "; \
+	 echo -n "Done! Press <Enter> to exit ... "; read
 
 defconfig: configure
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) savedefconfig
@@ -537,8 +571,8 @@ mergeconfig: configure
 	@export ARCH=$(GARCH_FAMILY); \
 	 cd $(WORKSRC); \
 	 if [ -e ../../../config.fragment ]; then \
-	   cp .config config.old; scripts/kconfig/merge_config.sh .config ../../../config.fragment; \
-	   cp .config ../../../$(CONFIGFILE).merged; \
+	   cp -f .config config.old; scripts/kconfig/merge_config.sh .config ../../../config.fragment; \
+	   cp -f .config ../../../$(CONFIGFILE).merged; \
 	    echo "merged config saved in: tree root as .config and also as $(CONFIGFILE).merged in package dir ... "; \
 	 else \
 	   echo -n "No config.fragment found to merge. Provide it before running 'make mergeconfig' ... "; \
