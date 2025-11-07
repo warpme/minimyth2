@@ -332,6 +332,10 @@ ifneq (,$(filter board-x86pc.bios_efi64,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-x86pc.bios_efi64
 endif
 
+ifneq (,$(filter board-qcs6490.dragon_q6a,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-qcs6490.dragon_q6a
+endif
+
 clean-custom: clean-bootloader cookieclean
 
 clean-bootloader: cookieclean
