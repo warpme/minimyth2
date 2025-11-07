@@ -475,6 +475,7 @@ mm-all:
 		   [ ! "$${board}" = "board-sm1.x96_air2g"        ] && \
 		   [ ! "$${board}" = "board-sm1.tanix_tx5_plus"   ] && \
 		   [ ! "$${board}" = "board-g12.radxa_zero"       ] && \
+		   [ ! "$${board}" = "board-qcs6490.dragon_q6a"   ] && \
 		   [ ! "$${board}" = "board-x86pc.bios"           ] && \
 		   [ ! "$${board}" = "board-x86pc.bios_efi64"     ] && \
 		   [ ! "$${board}" = "board-x86pc.efi64"          ] ; then \
