@@ -551,7 +551,7 @@ $(top_build)/image/rootfs: $(build_DESTDIR)$(build_rootdir) $(DESTDIR)$(rootdir)
 		find $@~ -depth -exec file '{}' \;                                            \
 			| grep -E -i 'ELF ..-bit LSB executable|ELF ..-bit LSB shared object' \
 			| sed -e 's%:.*%%'                                                    \
-			| xargs $(STRIP) --strip-all -R .note -R .comment                   ; \
+			| xargs $(STRIP) --strip-all -R .note -R .comment 2>/dev/null       ; \
 		echo "  size after :"`du -sh $@~ | sed -e "s/\(\.*\)\t.*/\1/"`              ; \
 	 fi
 	@# Strip Perl scripts
