@@ -1,6 +1,6 @@
 
 use_minimyth_python3="yes"
-debug_verbosity="no"
+#debug_verbosity="no"
 
 
 
@@ -96,6 +96,9 @@ elif [ ! -z `echo ${boards} | grep -o "board-rk3566.*"` ] ; then
 elif [ ! -z `echo ${boards} | grep -o "board-rk3588*"` ] ; then
     echo "  board-rk3588 detected: using default-gpt.wks"
     cat ${base_dir}/default-gpt.wks >> ${base_dir}/MiniMyth2.wks
+elif [ ! -z `echo ${boards} | grep -o "board-qcs6490*"` ] ; then
+    echo "  board-qcs6490 detected: using qcs6490-gpt.wks"
+    cat ${base_dir}/qcs6490-gpt.wks >> ${base_dir}/MiniMyth2.wks
 else
     echo " Using default-mbr.wks"
     cat ${base_dir}/default-mbr.wks >> ${base_dir}/MiniMyth2.wks
