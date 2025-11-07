@@ -30,6 +30,7 @@ DEPENDS = \
 	firmware/edid-firmware \
 	firmware/s9083s-firmware \
 	firmware/rtl8852-firmware \
+	firmware/qcs6490-firmware \
 
 include ../../gar.mk
 
