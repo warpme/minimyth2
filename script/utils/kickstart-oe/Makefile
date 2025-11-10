@@ -68,7 +68,6 @@ DISTFILES    = \
 	board-sm1.tanix_tx5_plus.conf \
 	board-sm1.tanix_tx5_plus.wks \
 	board-qcs6490.dragon_q6a.conf \
-	qcs6490-gpt.wks               \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
 	board-x86pc.efi64.conf      \
@@ -311,7 +310,6 @@ install-kickstart:
 	@#
 	@cp -f $(WORKDIR)/default-mbr.wks   $(DESTDIR)$(bindir)/kickstart/default-mbr.wks
 	@cp -f $(WORKDIR)/default-gpt.wks   $(DESTDIR)$(bindir)/kickstart/default-gpt.wks
-	@cp -f $(WORKDIR)/qcs6490-gpt.wks   $(DESTDIR)$(bindir)/kickstart/qcs6490-gpt.wks
 	@#
 	@# Remove all host tools requirements as we are listing them in BUILDEPS
 	@sed -i -e "s/HOSTTOOLS +=/__HOSTTOOLS +=/g" $(DESTDIR)$(bindir)/kickstart/conf/bitbake.conf
