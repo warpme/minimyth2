@@ -71,8 +71,8 @@ endif
 
 ifeq (1,1)
 #-- Allwinner H6 patches -----------------------------------------
-PATCHFILES += 0500-clk-Implement-protected-clocks-for-all-OF-clock-prov.patch
-PATCHFILES += 0501-revert-clk-qcom-Support-protected-clocks-property.patch
+#PATCHFILES += 0500-clk-Implement-protected-clocks-for-all-OF-clock-prov.patch
+#PATCHFILES += 0501-revert-clk-qcom-Support-protected-clocks-property.patch
 PATCHFILES += 0502-rtc-sun6i-Allow-RTC-wakeup-after-shutdown.patch
 PATCHFILES += 0503-firmware-arm_scpi-Support-unidirectional-mailbox-cha.patch
 PATCHFILES += 0504-revert-stop-exporting-phy_driver_register-unregister-for-ac200.patch
@@ -253,7 +253,6 @@ PATCHFILES += 1002-clk-composite-replace-open-coded-abs_diff.patch
 PATCHFILES += 1004-mfd-rk8xx-Fix-shutdown-handler.patch
 PATCHFILES += 1005-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 1006-net-ethernet-yt6801-gige-pcie-silence-debug-msgs.patch
-PATCHFILES += 1007-ufs-core-Reduce-link-startup-failure-logging.patch
 PATCHFILES += 1008-net-phy-realtek-reset-after-clock-enable.patch
 PATCHFILES += 1009-pci-dw-rockchip-add-system-pm-support.patch
 PATCHFILES += 1009-PCI-dw-rockchip-Disable-L1-substates.patch
@@ -548,7 +547,10 @@ clean-all:
 
 menuconfig: configure
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) menuconfig
-	@cp -f $(WORKSRC)/.config $(CONFIGFILE).edited; \
+	@cp -f ./files/$(CONFIGFILE) ./files/$(CONFIGFILE).old; \
+	 cp -f $(WORKSRC)/.config ./files/$(CONFIGFILE); \
+	 echo "edited .config saved as $(CONFIGFILE) in package/files dir ... "; \
+	 cp -f $(WORKSRC)/.config $(CONFIGFILE).edited; \
 	 echo "edited .config saved as $(CONFIGFILE).edited in package dir ... "; \
 	 echo -n "Done! Press <Enter> to exit ... "; read
 
@@ -561,7 +563,7 @@ defconfig: configure
 diffconfig: configure
 	@cd $(WORKSRC); \
 	 if [ -e .config.old ]; then \
-	   $(PYTHON3) scripts/diffconfig .config.old .config > ../../../config.diff; cat ../../../config.diff; \
+	   $(PYTHON3) scripts/diffconfig .config.old .config > ../../../$(CONFIGFILE).diff; cat ../../../$(CONFIGFILE).diff; \
 	 else \
 	   echo -n "No old .config found to compare. Run first 'make menuconfig' or 'make mergeconfig' ... "; \
 	 fi; \
@@ -572,6 +574,8 @@ mergeconfig: configure
 	 cd $(WORKSRC); \
 	 if [ -e ../../../config.fragment ]; then \
 	   cp -f .config config.old; scripts/kconfig/merge_config.sh .config ../../../config.fragment; \
+	   cp -f ./files/$(CONFIGFILE) ./files/$(CONFIGFILE).old; \
+	   echo "merged .config saved as $(CONFIGFILE) in package/files dir ... "; \
 	   cp -f .config ../../../$(CONFIGFILE).merged; \
 	    echo "merged config saved in: tree root as .config and also as $(CONFIGFILE).merged in package dir ... "; \
 	 else \
