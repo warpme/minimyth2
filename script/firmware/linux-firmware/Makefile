@@ -27,6 +27,10 @@ install-custom:
 	@mkdir -p $(DESTDIR)$(elibdir)/firmware/
 	@cp -Rdf $(WORKSRC)/* $(DESTDIR)$(elibdir)/firmware/
 
+	@# qualcomm gcs6490 gpu firmware
+	@mkdir $(DESTDIR)$(elibdir)/firmware/qcom/vpu-2.0
+	@cp -f $(DESTDIR)$(elibdir)/firmware/qcom/vpu/vpu20_p1.mbn $(DESTDIR)$(elibdir)/firmware/qcom/vpu-2.0/venus.mbn
+
 	@# Broadcom 43430 bin and clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.bin      $(BRCM_DEST)/brcmfmac43430-sdio.AP6212.bin
 	@ln -srf $(BRCM_SOURCE)/cyfmac43430-sdio.bin      $(BRCM_DEST)/brcmfmac43430-sdio.raspberrypi,3-model-b.bin
