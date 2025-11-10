@@ -117,6 +117,7 @@ mm-all:
 		   [ ! "$${graphic}" = "meson"         ] && \
 		   [ ! "$${graphic}" = "rockchip"      ] && \
 		   [ ! "$${graphic}" = "sun4i"         ] && \
+		   [ ! "$${graphic}" = "qualcomm"      ] && \
 		   [ ! "$${graphic}" = "vc4"           ] && \
 		   [ ! "$${graphic}" = "swrast"        ] && \
 		   [ ! "$${graphic}" = "vmware"        ] ; then \
