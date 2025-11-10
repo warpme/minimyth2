@@ -1,11 +1,9 @@
 
 GARNAME      = libarchive
-GARVERSION   = 3.6.2
+GARVERSION   = 3.7.2
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/$(GARNAME)/$(GARNAME)/releases/download/v$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.xz
-PATCHFILES   = 630a7237de6717e91c6950c30a80c10d80aa1810.patch
-PATCHFILES  += eb0ec5978b36e6fa4f6d9a0cdf5950056313b0a2.patch
 WORKSRC      = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
 LICENSE      = BSD
 
