@@ -403,6 +403,7 @@ PATCHFILES += 1333-spi-spi-qcom-qspi-Add-support-for-polling.patch
 PATCHFILES += 1350-arm64-dts-qcom-qcs6490-audioreach-Modify-LPASS-macro.patch
 PATCHFILES += 1351-arm64-dts-qcom-sc7280-add-OPP-table-support-to-PCIe-.patch
 PATCHFILES += 1352-arm64-dts-qcom-sc7280-Add-cci-aliases.patch
+PATCHFILES += 1353-arm64-dts-qcom-sc7280-Add-psci-label.patch
 # board dts additions
 PATCHFILES += 1370-arm64-dts-qcom-add-initial-support-for-radxa-dragon-q6a.patch
 endif
@@ -547,11 +548,11 @@ clean-all:
 
 menuconfig: configure
 	@$(CONFIGURE_ENV) $(MAKE) $(CONFIGURE_ARGS) -C $(WORKSRC) menuconfig
-	@cp -f ./files/$(CONFIGFILE) ./files/$(CONFIGFILE).old; \
+	@cp -f ./files/$(CONFIGFILE) $(CONFIGFILE).before.menuconfig; \
 	 cp -f $(WORKSRC)/.config ./files/$(CONFIGFILE); \
 	 echo "edited .config saved as $(CONFIGFILE) in package/files dir ... "; \
-	 cp -f $(WORKSRC)/.config $(CONFIGFILE).edited; \
-	 echo "edited .config saved as $(CONFIGFILE).edited in package dir ... "; \
+	 cp -f $(WORKSRC)/.config $(CONFIGFILE).after.menuconfig; \
+	 echo "edited .config saved as $(CONFIGFILE).after.menuconfig in package dir ... "; \
 	 echo -n "Done! Press <Enter> to exit ... "; read
 
 defconfig: configure
@@ -574,10 +575,10 @@ mergeconfig: configure
 	 cd $(WORKSRC); \
 	 if [ -e ../../../config.fragment ]; then \
 	   cp -f .config config.old; scripts/kconfig/merge_config.sh .config ../../../config.fragment; \
-	   cp -f ./files/$(CONFIGFILE) ./files/$(CONFIGFILE).old; \
+	   cp -f ./files/$(CONFIGFILE) $(CONFIGFILE).before.mergeconfig; \
 	   echo "merged .config saved as $(CONFIGFILE) in package/files dir ... "; \
-	   cp -f .config ../../../$(CONFIGFILE).merged; \
-	    echo "merged config saved in: tree root as .config and also as $(CONFIGFILE).merged in package dir ... "; \
+	   cp -f .config ../../../$(CONFIGFILE).after.mergeconfig; \
+	    echo "merged config saved in: tree root as .config and also as $(CONFIGFILE).after.mergeconfig in package dir ... "; \
 	 else \
 	   echo -n "No config.fragment found to merge. Provide it before running 'make mergeconfig' ... "; \
 	 fi; \
