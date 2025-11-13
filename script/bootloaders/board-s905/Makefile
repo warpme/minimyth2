@@ -1,10 +1,9 @@
 
 GARNAME      = bootfiles-s905
-GARVERSION   = 2020-11-07
+GARVERSION   = 2025-11-13
 CATEGORIES   = bootloaders
 MASTER_SITES = 
 DISTFILES    = s905_autoscript \
-               s905_autoscript.txt \
                uEnv.ini \
                minimyth.conf \
 
