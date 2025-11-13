@@ -72,8 +72,6 @@ endif
 
 ifeq (1,1)
 #-- Allwinner H6 patches -----------------------------------------
-#PATCHFILES += 0500-clk-Implement-protected-clocks-for-all-OF-clock-prov.patch
-#PATCHFILES += 0501-revert-clk-qcom-Support-protected-clocks-property.patch
 PATCHFILES += 0502-rtc-sun6i-Allow-RTC-wakeup-after-shutdown.patch
 PATCHFILES += 0503-firmware-arm_scpi-Support-unidirectional-mailbox-cha.patch
 PATCHFILES += 0504-revert-stop-exporting-phy_driver_register-unregister-for-ac200.patch
