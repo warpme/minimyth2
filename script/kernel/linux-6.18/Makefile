@@ -63,9 +63,10 @@ PATCHFILES += 0341-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 0342-arm64-dts-meson-add-support-for-GX-PM-and-Virtu.patch
 PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0371-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
-PATCHFILES += 0372-arm64-dts-meson-sm1-disable-cvbs.patch
+PATCHFILES += 0372-arm64-dts-meson-sm1-disable-cvbs-on-meson-sm1-ac2xx-boards.patch
 PATCHFILES += 0373-arm64-dts-meson-sm1-disable-cap_highspeed-on-sdcard.patch
 PATCHFILES += 0374-arm64-dts-meson-sm1-x96air-add-vfd.patch
+PATCHFILES += 0375-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards.patch
 endif
 #------------------------------------------------------------
 
