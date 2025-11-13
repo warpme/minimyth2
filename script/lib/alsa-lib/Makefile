@@ -4,10 +4,9 @@ GARVERSION    = 1.2.14
 CATEGORIES    = lib
 MASTER_SITES  = ftp://ftp.alsa-project.org/pub/lib/
 MASTER_SITES += ftp://ftp.alsa-project.org/pub/testing/
-# amlogic patches https://github.com/chewitt/alsa-lib/commits/amlogic
-#PATCHFILES    = $(DISTNAME)-add-Amlogic-cards.patch
-PATCHFILES   += $(DISTNAME)-add-simple-card.patch
+PATCHFILES    = $(DISTNAME)-add-simple-card.patch
 PATCHFILES   += $(DISTNAME)-add-support-for-Amlogic-AIU-and-AXG-cards.patch
+PATCHFILES   += $(DISTNAME)-alsa.conf-enable-namehint.patch
 DISTFILES     = $(DISTNAME).tar.bz2
 LICENSE       = LGPL2_1
 
@@ -40,3 +39,9 @@ post-install:
 	@rm -f $(DESTDIR)$(libdir)/alsa-lib/smixer/smixer-ac97.la
 	@rm -f $(DESTDIR)$(libdir)/alsa-lib/smixer/smixer-hda.la
 	@$(MAKECOOKIE)
+
+clean-all:
+	@rm -rf $(DESTDIR)$(datadir)/{alsa/cards*,alsa/ctl*,alsa/pcm*,alsa/alsa.conf,aclocal/alsa*}
+	@rm -rf $(DESTDIR)$(includedir)/alsa*
+	@rm -rf $(DESTDIR)$(bindir)/aserver
+	@rm -rf $(DESTDIR)$(libdir)/{libasound*,libatopology*,pkgconfig/alsa*}
