@@ -5,6 +5,10 @@ CATEGORIES   = utils
 MASTER_SITES = http://git.yoctoproject.org/cgit/cgit.cgi/poky/snapshot/
 DISTFILES    = \
 	poky-yocto-$(GARVERSION).tar.gz \
+	s905-generic.conf \
+	s905-generic.wks \
+	s912-generic.conf \
+	s912-generic.wks \
 	g12-generic.conf \
 	g12-generic.wks \
 	sm1-generic.conf \
@@ -61,10 +65,6 @@ DISTFILES    = \
 	board-rpi4.rpi64.wks        \
 	board-rpi5.rpi64.conf       \
 	board-rpi5.rpi64.wks        \
-	board-s905.conf             \
-	board-s905.wks              \
-	board-s912.conf             \
-	board-s912.wks              \
 	board-sm1.tanix_tx5_plus.conf \
 	board-sm1.tanix_tx5_plus.wks \
 	board-qcs6490.dragon_q6a.conf \
@@ -77,6 +77,14 @@ DISTFILES    = \
 	default-mbr.wks             \
 	default-gpt.wks             \
 	create-image.sh             \
+
+# Amlogic S905 boards
+S905_BOARDS_LIST= \
+	board-s905w.tx3-mini \
+
+# Amlogic S912 boards
+S912_BOARDS_LIST= \
+	board-s912.beelink_gt1 \
 
 # Amlogic G12 boards
 G12_BOARDS_LIST= \
@@ -216,7 +224,7 @@ DEPENDS = \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
-INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards g12_boards sm1_boards
+INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards s905_boards s912_boards g12_boards sm1_boards
 
 include ../../gar.mk
 
@@ -226,6 +234,12 @@ COPY_FILES = \
 	    cp -f $(WORKDIR)/$(strip $(2)).conf $(DESTDIR)$(bindir)/kickstart/conf/multiconfig/$${file}.conf ; \
 	    cp -f $(WORKDIR)/$(strip $(2)).wks $(DESTDIR)$(bindir)/kickstart/$${file}.wks ; \
 	done ; \
+
+install-s905_boards:
+	@$(call COPY_FILES, $(S905_BOARDS_LIST), s905-generic)
+
+install-s912_boards:
+	@$(call COPY_FILES, $(S912_BOARDS_LIST), s912-generic)
 
 install-g12_boards:
 	@$(call COPY_FILES, $(G12_BOARDS_LIST), g12-generic)
