@@ -471,8 +471,8 @@ mm-all:
 		   [ ! "$${board}" = "board-rpi4.rpi32"           ] && \
 		   [ ! "$${board}" = "board-rpi4.rpi64"           ] && \
 		   [ ! "$${board}" = "board-rpi5.rpi64"           ] && \
-		   [ ! "$${board}" = "board-s905"                 ] && \
-		   [ ! "$${board}" = "board-s912"                 ] && \
+		   [ ! "$${board}" = "board-s905w.tx3-mini"       ] && \
+		   [ ! "$${board}" = "board-s912.beelink_gt1"     ] && \
 		   [ ! "$${board}" = "board-sm1.x96_air2g"        ] && \
 		   [ ! "$${board}" = "board-sm1.tanix_tx5_plus"   ] && \
 		   [ ! "$${board}" = "board-g12.radxa_zero"       ] && \

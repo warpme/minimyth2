@@ -68,12 +68,12 @@ ifneq (,$(filter board-rpi5.rpi64,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rpi5.rpi64
 endif
 
-ifneq (,$(filter board-s905,$(mm_BOARD_TYPE)))
-	$(MAKE) install -C ../board-s905
+ifneq (,$(filter board-s905w.tx3-mini,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-s905w.tx3-mini
 endif
 
-ifneq (,$(filter board-s912,$(mm_BOARD_TYPE)))
-	$(MAKE) install -C ../board-s912
+ifneq (,$(filter board-s912.beelink_gt1,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-s912.beelink_gt1
 endif
 
 ifneq (,$(filter board-g12.radxa_zero,$(mm_BOARD_TYPE)))
