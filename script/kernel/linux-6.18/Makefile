@@ -53,20 +53,47 @@ endif
 
 ifeq (1,1)
 #-- Amlogic patches -----------------------------------------
-# increas CMA pool for 4k decode
-PATCHFILES += 0311-arm64-dts-meson-set-dma-pool-to-896MB.patch
-PATCHFILES += 0312-g12-set-cma-to-896MiB-for-4k.patch
 # Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic
-PATCHFILES += 0313-drm-meson-swap-primary-overlay-zpos.patch
-# device-tree patches
+PATCHFILES += 0301-drm-meson-swap-primary-overlay-zpos.patch
+# s4 support
+PATCHFILES += 0302-ASoC-meson-s4-support-for-the-on-chip-audi.patch
+PATCHFILES += 0306-drm-meson-add-S4-compatible-for-DRM-driver.patch
+PATCHFILES += 0307-drm-meson-add-primary-and-overlay-plane-su.patch
+PATCHFILES += 0308-drm-meson-update-VIU-and-VPP-support-for-S.patch
+PATCHFILES += 0309-drm-meson-add-meson_dw_hdmi-support-for-S4.patch
+PATCHFILES += 0310-drm-meson-change-api-call-parameter.patch
+PATCHFILES += 0311-drm-meson-add-hdmitx-vmode-timing-support-.patch
+PATCHFILES += 0312-drm-meson-add-vpu-clk-setting-for-S4.patch
+PATCHFILES += 0313-drm-meson-add-CVBS-support-for-S4.patch
+PATCHFILES += 0315-drm-meson-Fix-compile-error-fixes-3d2292ecb05.patch
+PATCHFILES += 0318-soc-amlogic-meson-gx-socinfo-add-s905x4w2y4.patch
+PATCHFILES += 0319-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
+PATCHFILES += 0320-drm-meson-remove-unnecessary-error-message.patch
+PATCHFILES += 0322-phy-amlogic-meson-g12a-usb2-add-support-for-M.patch
+PATCHFILES += 0325-mmc-meson-gx-Add-support-for-Meson-S4.patch
+PATCHFILES += 0326-Add-some-debug-code-for-register-overrides-fo.patch
+PATCHFILES += 0327-reset-reset-meson-add-support-for-Amlogic-SC2.patch
+PATCHFILES += 0328-soc-amlogic-meson-clk-measure-Add-support-for.patch
+PATCHFILES += 0329-irqchip-meson-gpio-Add-support-for-meson-SC2-.patch
+PATCHFILES += 0331-net-wireless-broadcom-add-sdio-ID-43342.patch
+PATCHFILES += 0332-drm-meson-fix-component-unbind-in-error-path.patch
 PATCHFILES += 0341-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
-PATCHFILES += 0342-arm64-dts-meson-add-support-for-GX-PM-and-Virtu.patch
-PATCHFILES += 0361-arm64-dts-meson-gxm-add-beelink-gt1.patch
-PATCHFILES += 0371-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
-PATCHFILES += 0372-arm64-dts-meson-sm1-disable-cvbs-on-meson-sm1-ac2xx-boards.patch
-PATCHFILES += 0373-arm64-dts-meson-sm1-disable-cap_highspeed-on-sdcard.patch
-PATCHFILES += 0374-arm64-dts-meson-sm1-x96air-add-vfd.patch
-PATCHFILES += 0375-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards.patch
+# dtsi patches
+PATCHFILES += 0360-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
+PATCHFILES += 0361-arm64-dtsi-meson-s4-Add-USB2-support.patch
+PATCHFILES += 0362-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio.patch
+PATCHFILES += 0363-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
+PATCHFILES += 0364-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
+PATCHFILES += 0365-arm64-dtsi-amlogic-s4-add-drm-support.patch
+# devices dts
+PATCHFILES += 0380-arm64-dts-meson-gxm-add-beelink-gt1.patch
+PATCHFILES += 0381-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
+PATCHFILES += 0382-arm64-dts-meson-sm1-disable-cvbs-on-meson-sm1-ac2xx-boards.patch
+PATCHFILES += 0383-arm64-dts-meson-sm1-disable-cap_highspeed-on-sdcard.patch
+PATCHFILES += 0384-arm64-dts-meson-sm1-x96air-add-vfd.patch
+PATCHFILES += 0385-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards.patch
+PATCHFILES += 0386-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
+PATCHFILES += 0387-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
 endif
 #------------------------------------------------------------
 
