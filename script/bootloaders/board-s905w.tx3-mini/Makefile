@@ -1,5 +1,5 @@
 
-GARNAME      = bootfiles-s905
+GARNAME      = bootfiles-s905w.tx3-mini
 GARVERSION   = 2025-11-13
 CATEGORIES   = bootloaders
 MASTER_SITES = 

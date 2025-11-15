@@ -1,5 +1,5 @@
 
-GARNAME      = bootfiles-s912
+GARNAME      = bootfiles-s912.beelink_gt1
 GARVERSION   = 2025-11-13
 CATEGORIES   = bootloaders
 MASTER_SITES = 
