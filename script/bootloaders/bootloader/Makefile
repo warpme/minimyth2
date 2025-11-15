@@ -72,6 +72,10 @@ ifneq (,$(filter board-s905w.tx3-mini,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s905w.tx3-mini
 endif
 
+ifneq (,$(filter board-s905w2.tv98,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-s905w2.tv98
+endif
+
 ifneq (,$(filter board-s912.beelink_gt1,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s912.beelink_gt1
 endif
