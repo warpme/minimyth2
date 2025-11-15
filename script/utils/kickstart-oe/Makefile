@@ -81,6 +81,7 @@ DISTFILES    = \
 # Amlogic S905 boards
 S905_BOARDS_LIST= \
 	board-s905w.tx3-mini \
+	board-s905w2.tv98 \
 
 # Amlogic S912 boards
 S912_BOARDS_LIST= \
