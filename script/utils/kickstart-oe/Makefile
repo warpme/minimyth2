@@ -67,6 +67,8 @@ DISTFILES    = \
 	board-rpi5.rpi64.wks        \
 	board-sm1.tanix_tx5_plus.conf \
 	board-sm1.tanix_tx5_plus.wks \
+	board-s905w2.tv98.conf      \
+	board-s905w2.tv98.wks       \
 	board-qcs6490.dragon_q6a.conf \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
@@ -81,7 +83,6 @@ DISTFILES    = \
 # Amlogic S905 boards
 S905_BOARDS_LIST= \
 	board-s905w.tx3-mini \
-	board-s905w2.tv98 \
 
 # Amlogic S912 boards
 S912_BOARDS_LIST= \
