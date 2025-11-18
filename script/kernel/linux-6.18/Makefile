@@ -1,4 +1,4 @@
-ifeq (1,1)
+ifeq (0,1)
 #--Use this for mainline official x.y.z kernel from SCM----
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
@@ -15,7 +15,7 @@ WORKSRC             = $(WORKDIR)/$(GITHASH)
 #----------------------------------------------------------
 endif
 
-ifeq (0,1)
+ifeq (1,1)
 #--Use this for mainline official x.y.z kernel from GIT----
 MASTER_SITES       += https://github.com/torvalds/linux/archive/
 DISTFILES           = v$(LINUX_VERSION).tar.gz $(CONFIGFILE)
@@ -77,6 +77,7 @@ PATCHFILES += 0328-soc-amlogic-meson-clk-measure-Add-support-for.patch
 PATCHFILES += 0329-irqchip-meson-gpio-Add-support-for-meson-SC2-.patch
 PATCHFILES += 0331-net-wireless-broadcom-add-sdio-ID-43342.patch
 PATCHFILES += 0332-drm-meson-fix-component-unbind-in-error-path.patch
+PATCHFILES += 0333-clk-amlogic-add-video-related-clocks-for-S4-SoC.patch
 PATCHFILES += 0341-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 # dtsi patches
 PATCHFILES += 0360-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
@@ -94,6 +95,7 @@ PATCHFILES += 0384-arm64-dts-meson-sm1-x96air-add-vfd.patch
 PATCHFILES += 0385-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards.patch
 PATCHFILES += 0386-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 0387-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
+PATCHFILES += 0388-arm64-dts-amlogic-meson-s4-add-AP201-Ref-Board.patch
 endif
 #------------------------------------------------------------
 
