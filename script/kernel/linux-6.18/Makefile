@@ -1,4 +1,4 @@
-ifeq (0,1)
+ifeq (1,1)
 #--Use this for mainline official x.y.z kernel from SCM----
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
@@ -15,7 +15,7 @@ WORKSRC             = $(WORKDIR)/$(GITHASH)
 #----------------------------------------------------------
 endif
 
-ifeq (1,1)
+ifeq (0,1)
 #--Use this for mainline official x.y.z kernel from GIT----
 MASTER_SITES       += https://github.com/torvalds/linux/archive/
 DISTFILES           = v$(LINUX_VERSION).tar.gz $(CONFIGFILE)
@@ -426,6 +426,7 @@ PATCHFILES += 1330-phy-qcom-qmp-ufs-Fix-HS-G4-PHY-init-table-for-sc7280.patch
 PATCHFILES += 1331-scsi-ufs-qcom-temporarily-force-to-rate-A.patch
 PATCHFILES += 1332-scsi-ufs-qcom-Add-support-for-UFS-module-detection.patch
 PATCHFILES += 1333-spi-spi-qcom-qspi-Add-support-for-polling.patch
+PATCHFILES += 1334-media-iris-port-support-for-Qualcomm-SC7280-v6.patch
 
 # dts additions
 PATCHFILES += 1350-arm64-dts-qcom-qcs6490-audioreach-Modify-LPASS-macro.patch
@@ -512,7 +513,7 @@ pre-install:
 	@rm -f  $(DESTDIR)$(LINUX_DIR)/System.map
 	@rm -f  $(DESTDIR)$(LINUX_DIR)/vmlinuz
 	@rm -rf $(DESTDIR)$(LINUX_DIR)/dtbs*
-	@rm -rf $(DESTDIR)$(LINUX_MODULESDIR)
+	@rm -rf $(DESTDIR)$(LINUX_MODULESPREFIX)/*
 	@$(MAKECOOKIE)
 
 install-custom:

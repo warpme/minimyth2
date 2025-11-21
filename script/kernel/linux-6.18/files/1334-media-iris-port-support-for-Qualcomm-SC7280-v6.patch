@@ -1,0 +1,1680 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_ctrls.c linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_ctrls.c
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_ctrls.c	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_ctrls.c	2025-11-18 21:47:39.385459666 +0100
+@@ -301,7 +301,7 @@
+ 
+ void iris_session_init_caps(struct iris_core *core)
+ {
+-	struct platform_inst_fw_cap *caps;
++	const struct platform_inst_fw_cap *caps;
+ 	u32 i, num_cap, cap_id;
+ 
+ 	caps = core->iris_platform_data->inst_fw_caps_dec;
+@@ -313,13 +313,23 @@
+ 			continue;
+ 
+ 		core->inst_fw_caps_dec[cap_id].cap_id = caps[i].cap_id;
+-		core->inst_fw_caps_dec[cap_id].min = caps[i].min;
+-		core->inst_fw_caps_dec[cap_id].max = caps[i].max;
+ 		core->inst_fw_caps_dec[cap_id].step_or_mask = caps[i].step_or_mask;
+-		core->inst_fw_caps_dec[cap_id].value = caps[i].value;
+ 		core->inst_fw_caps_dec[cap_id].flags = caps[i].flags;
+ 		core->inst_fw_caps_dec[cap_id].hfi_id = caps[i].hfi_id;
+ 		core->inst_fw_caps_dec[cap_id].set = caps[i].set;
++
++		if (cap_id == PIPE) {
++			core->inst_fw_caps_dec[cap_id].value =
++				core->iris_platform_data->num_vpp_pipe;
++			core->inst_fw_caps_dec[cap_id].min =
++				core->iris_platform_data->num_vpp_pipe;
++			core->inst_fw_caps_dec[cap_id].max =
++				core->iris_platform_data->num_vpp_pipe;
++		} else {
++			core->inst_fw_caps_dec[cap_id].min = caps[i].min;
++			core->inst_fw_caps_dec[cap_id].max = caps[i].max;
++			core->inst_fw_caps_dec[cap_id].value = caps[i].value;
++		}
+ 	}
+ 
+ 	caps = core->iris_platform_data->inst_fw_caps_enc;
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_common.h linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_common.h
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_common.h	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_common.h	2025-11-18 21:47:47.908793032 +0100
+@@ -41,16 +41,19 @@
+ 	PIPE_4 = 4,
+ };
+ 
+-extern struct iris_platform_data qcs8300_data;
+-extern struct iris_platform_data sm8250_data;
+-extern struct iris_platform_data sm8550_data;
+-extern struct iris_platform_data sm8650_data;
+-extern struct iris_platform_data sm8750_data;
++extern const struct iris_platform_data qcs8300_data;
++extern const struct iris_platform_data sc7280_data;
++extern const struct iris_platform_data sm8250_data;
++extern const struct iris_platform_data sm8550_data;
++extern const struct iris_platform_data sm8650_data;
++extern const struct iris_platform_data sm8750_data;
+ 
+ enum platform_clk_type {
+ 	IRIS_AXI_CLK, /* AXI0 in case of platforms with multiple AXI clocks */
+ 	IRIS_CTRL_CLK,
++	IRIS_AHB_CLK,
+ 	IRIS_HW_CLK,
++	IRIS_HW_AHB_CLK,
+ 	IRIS_AXI1_CLK,
+ 	IRIS_CTRL_FREERUN_CLK,
+ 	IRIS_HW_FREERUN_CLK,
+@@ -215,15 +218,16 @@
+ 	const char *fwname;
+ 	u32 pas_id;
+ 	struct platform_inst_caps *inst_caps;
+-	struct platform_inst_fw_cap *inst_fw_caps_dec;
++	const struct platform_inst_fw_cap *inst_fw_caps_dec;
+ 	u32 inst_fw_caps_dec_size;
+-	struct platform_inst_fw_cap *inst_fw_caps_enc;
++	const struct platform_inst_fw_cap *inst_fw_caps_enc;
+ 	u32 inst_fw_caps_enc_size;
+ 	struct tz_cp_config *tz_cp_config_data;
+ 	u32 core_arch;
+ 	u32 hw_response_timeout;
+ 	struct ubwc_config_data *ubwc_config;
+ 	u32 num_vpp_pipe;
++	bool no_aon;
+ 	u32 max_session_count;
+ 	/* max number of macroblocks per frame supported */
+ 	u32 max_core_mbpf;
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_gen1.c linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_gen1.c
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_gen1.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_gen1.c	2025-11-18 21:47:47.908793032 +0100
+@@ -0,0 +1,417 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
++ */
++
++#include "iris_core.h"
++#include "iris_ctrls.h"
++#include "iris_platform_common.h"
++#include "iris_resources.h"
++#include "iris_hfi_gen1.h"
++#include "iris_hfi_gen1_defines.h"
++#include "iris_vpu_buffer.h"
++#include "iris_vpu_common.h"
++
++#include "iris_platform_sc7280.h"
++
++#define BITRATE_MIN		32000
++#define BITRATE_MAX		160000000
++#define BITRATE_PEAK_DEFAULT	(BITRATE_DEFAULT * 2)
++#define BITRATE_STEP		100
++
++static const struct platform_inst_fw_cap inst_fw_cap_sm8250_dec[] = {
++	{
++		.cap_id = PIPE,
++		/* .max, .min and .value are set via platform data */
++		.step_or_mask = 1,
++		.hfi_id = HFI_PROPERTY_PARAM_WORK_ROUTE,
++		.set = iris_set_pipe,
++	},
++	{
++		.cap_id = STAGE,
++		.min = STAGE_1,
++		.max = STAGE_2,
++		.step_or_mask = 1,
++		.value = STAGE_2,
++		.hfi_id = HFI_PROPERTY_PARAM_WORK_MODE,
++		.set = iris_set_stage,
++	},
++};
++
++static const struct platform_inst_fw_cap inst_fw_cap_sm8250_enc[] = {
++	{
++		.cap_id = STAGE,
++		.min = STAGE_1,
++		.max = STAGE_2,
++		.step_or_mask = 1,
++		.value = STAGE_2,
++		.hfi_id = HFI_PROPERTY_PARAM_WORK_MODE,
++		.set = iris_set_stage,
++	},
++	{
++		.cap_id = PROFILE_H264,
++		.min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
++		.max = V4L2_MPEG_VIDEO_H264_PROFILE_MULTIVIEW_HIGH,
++		.step_or_mask = BIT(V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE) |
++				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE) |
++				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_MAIN) |
++				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_HIGH) |
++				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_STEREO_HIGH) |
++				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_MULTIVIEW_HIGH),
++		.value = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
++		.hfi_id = HFI_PROPERTY_PARAM_PROFILE_LEVEL_CURRENT,
++		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
++		.set = iris_set_profile_level_gen1,
++	},
++	{
++		.cap_id = PROFILE_HEVC,
++		.min = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
++		.max = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_10,
++		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_STILL_PICTURE) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_10),
++		.value = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
++		.hfi_id = HFI_PROPERTY_PARAM_PROFILE_LEVEL_CURRENT,
++		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
++		.set = iris_set_profile_level_gen1,
++	},
++	{
++		.cap_id = LEVEL_H264,
++		.min = V4L2_MPEG_VIDEO_H264_LEVEL_1_0,
++		.max = V4L2_MPEG_VIDEO_H264_LEVEL_5_1,
++		.step_or_mask = BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_0) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1B) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_1) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_2) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_3) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_0) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_1) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_2) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_0) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_1) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_2) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_0) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_1) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_2) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_0) |
++				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_1),
++		.value = V4L2_MPEG_VIDEO_H264_LEVEL_1_0,
++		.hfi_id = HFI_PROPERTY_PARAM_PROFILE_LEVEL_CURRENT,
++		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
++		.set = iris_set_profile_level_gen1,
++	},
++	{
++		.cap_id = LEVEL_HEVC,
++		.min = V4L2_MPEG_VIDEO_HEVC_LEVEL_1,
++		.max = V4L2_MPEG_VIDEO_HEVC_LEVEL_6_2,
++		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_1) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_2) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_2_1) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_3) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_3_1) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_4) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_4_1) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5_1) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5_2) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6_1) |
++				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6_2),
++		.value = V4L2_MPEG_VIDEO_HEVC_LEVEL_1,
++		.hfi_id = HFI_PROPERTY_PARAM_PROFILE_LEVEL_CURRENT,
++		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
++		.set = iris_set_profile_level_gen1,
++	},
++	{
++		.cap_id = HEADER_MODE,
++		.min = V4L2_MPEG_VIDEO_HEADER_MODE_SEPARATE,
++		.max = V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME,
++		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEADER_MODE_SEPARATE) |
++				BIT(V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME),
++		.value = V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME,
++		.hfi_id = HFI_PROPERTY_CONFIG_VENC_SYNC_FRAME_SEQUENCE_HEADER,
++		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
++		.set = iris_set_header_mode_gen1,
++	},
++	{
++		.cap_id = BITRATE,
++		.min = BITRATE_MIN,
++		.max = BITRATE_MAX,
++		.step_or_mask = BITRATE_STEP,
++		.value = BITRATE_DEFAULT,
++		.hfi_id = HFI_PROPERTY_CONFIG_VENC_TARGET_BITRATE,
++		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_INPUT_PORT |
++			CAP_FLAG_DYNAMIC_ALLOWED,
++		.set = iris_set_bitrate,
++	},
++	{
++		.cap_id = BITRATE_MODE,
++		.min = V4L2_MPEG_VIDEO_BITRATE_MODE_VBR,
++		.max = V4L2_MPEG_VIDEO_BITRATE_MODE_CBR,
++		.step_or_mask = BIT(V4L2_MPEG_VIDEO_BITRATE_MODE_VBR) |
++				BIT(V4L2_MPEG_VIDEO_BITRATE_MODE_CBR),
++		.value = V4L2_MPEG_VIDEO_BITRATE_MODE_VBR,
++		.hfi_id = HFI_PROPERTY_PARAM_VENC_RATE_CONTROL,
++		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
++		.set = iris_set_bitrate_mode_gen1,
++	},
++	{
++		.cap_id = FRAME_SKIP_MODE,
++		.min = V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_DISABLED,
++		.max = V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_BUF_LIMIT,
++		.step_or_mask = BIT(V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_DISABLED) |
++				BIT(V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_BUF_LIMIT),
++		.value = V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_DISABLED,
++		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
++	},
++	{
++		.cap_id = FRAME_RC_ENABLE,
++		.min = 0,
++		.max = 1,
++		.step_or_mask = 1,
++		.value = 1,
++	},
++	{
++		.cap_id = GOP_SIZE,
++		.min = 0,
++		.max = (1 << 16) - 1,
++		.step_or_mask = 1,
++		.value = 30,
++		.set = iris_set_u32
++	},
++	{
++		.cap_id = ENTROPY_MODE,
++		.min = V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CAVLC,
++		.max = V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CABAC,
++		.step_or_mask = BIT(V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CAVLC) |
++				BIT(V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CABAC),
++		.value = V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CAVLC,
++		.hfi_id = HFI_PROPERTY_PARAM_VENC_H264_ENTROPY_CONTROL,
++		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
++		.set = iris_set_entropy_mode_gen1,
++	},
++	{
++		.cap_id = MIN_FRAME_QP_H264,
++		.min = MIN_QP_8BIT,
++		.max = MAX_QP,
++		.step_or_mask = 1,
++		.value = MIN_QP_8BIT,
++		.hfi_id = HFI_PROPERTY_PARAM_VENC_SESSION_QP_RANGE_V2,
++		.flags = CAP_FLAG_OUTPUT_PORT,
++		.set = iris_set_qp_range,
++	},
++	{
++		.cap_id = MIN_FRAME_QP_HEVC,
++		.min = MIN_QP_8BIT,
++		.max = MAX_QP_HEVC,
++		.step_or_mask = 1,
++		.value = MIN_QP_8BIT,
++		.hfi_id = HFI_PROPERTY_PARAM_VENC_SESSION_QP_RANGE_V2,
++		.flags = CAP_FLAG_OUTPUT_PORT,
++		.set = iris_set_qp_range,
++	},
++	{
++		.cap_id = MAX_FRAME_QP_H264,
++		.min = MIN_QP_8BIT,
++		.max = MAX_QP,
++		.step_or_mask = 1,
++		.value = MAX_QP,
++		.hfi_id = HFI_PROPERTY_PARAM_VENC_SESSION_QP_RANGE_V2,
++		.flags = CAP_FLAG_OUTPUT_PORT,
++		.set = iris_set_qp_range,
++	},
++	{
++		.cap_id = MAX_FRAME_QP_HEVC,
++		.min = MIN_QP_8BIT,
++		.max = MAX_QP_HEVC,
++		.step_or_mask = 1,
++		.value = MAX_QP_HEVC,
++		.hfi_id = HFI_PROPERTY_PARAM_VENC_SESSION_QP_RANGE_V2,
++		.flags = CAP_FLAG_OUTPUT_PORT,
++		.set = iris_set_qp_range,
++	},
++};
++
++static struct platform_inst_caps platform_inst_cap_sm8250 = {
++	.min_frame_width = 128,
++	.max_frame_width = 8192,
++	.min_frame_height = 128,
++	.max_frame_height = 8192,
++	.max_mbpf = 138240,
++	.mb_cycles_vsp = 25,
++	.mb_cycles_vpp = 200,
++	.max_frame_rate = MAXIMUM_FPS,
++	.max_operating_rate = MAXIMUM_FPS,
++};
++
++static void iris_set_sm8250_preset_registers(struct iris_core *core)
++{
++	writel(0x0, core->reg_base + 0xB0088);
++}
++
++static const struct icc_info sm8250_icc_table[] = {
++	{ "cpu-cfg",    1000, 1000     },
++	{ "video-mem",  1000, 15000000 },
++};
++
++static const char * const sm8250_clk_reset_table[] = { "bus", "core" };
++
++static const struct bw_info sm8250_bw_table_dec[] = {
++	{ ((4096 * 2160) / 256) * 60, 2403000 },
++	{ ((4096 * 2160) / 256) * 30, 1224000 },
++	{ ((1920 * 1080) / 256) * 60,  812000 },
++	{ ((1920 * 1080) / 256) * 30,  416000 },
++};
++
++static const char * const sm8250_pmdomain_table[] = { "venus", "vcodec0" };
++
++static const char * const sm8250_opp_pd_table[] = { "mx" };
++
++static const struct platform_clk_data sm8250_clk_table[] = {
++	{IRIS_AXI_CLK,  "iface"        },
++	{IRIS_CTRL_CLK, "core"         },
++	{IRIS_HW_CLK,   "vcodec0_core" },
++};
++
++static struct tz_cp_config tz_cp_config_sm8250 = {
++	.cp_start = 0,
++	.cp_size = 0x25800000,
++	.cp_nonpixel_start = 0x01000000,
++	.cp_nonpixel_size = 0x24800000,
++};
++
++static const u32 sm8250_vdec_input_config_param_default[] = {
++	HFI_PROPERTY_CONFIG_VIDEOCORES_USAGE,
++	HFI_PROPERTY_PARAM_UNCOMPRESSED_FORMAT_SELECT,
++	HFI_PROPERTY_PARAM_UNCOMPRESSED_PLANE_ACTUAL_CONSTRAINTS_INFO,
++	HFI_PROPERTY_PARAM_BUFFER_COUNT_ACTUAL,
++	HFI_PROPERTY_PARAM_VDEC_MULTI_STREAM,
++	HFI_PROPERTY_PARAM_FRAME_SIZE,
++	HFI_PROPERTY_PARAM_BUFFER_SIZE_ACTUAL,
++	HFI_PROPERTY_PARAM_BUFFER_ALLOC_MODE,
++};
++
++static const u32 sm8250_venc_input_config_param[] = {
++	HFI_PROPERTY_CONFIG_FRAME_RATE,
++	HFI_PROPERTY_PARAM_UNCOMPRESSED_PLANE_ACTUAL_INFO,
++	HFI_PROPERTY_PARAM_FRAME_SIZE,
++	HFI_PROPERTY_PARAM_UNCOMPRESSED_FORMAT_SELECT,
++	HFI_PROPERTY_PARAM_BUFFER_COUNT_ACTUAL,
++};
++
++static const u32 sm8250_dec_ip_int_buf_tbl[] = {
++	BUF_BIN,
++	BUF_SCRATCH_1,
++};
++
++static const u32 sm8250_dec_op_int_buf_tbl[] = {
++	BUF_DPB,
++};
++
++static const u32 sm8250_enc_ip_int_buf_tbl[] = {
++	BUF_BIN,
++	BUF_SCRATCH_1,
++	BUF_SCRATCH_2,
++};
++
++const struct iris_platform_data sm8250_data = {
++	.get_instance = iris_hfi_gen1_get_instance,
++	.init_hfi_command_ops = &iris_hfi_gen1_command_ops_init,
++	.init_hfi_response_ops = iris_hfi_gen1_response_ops_init,
++	.get_vpu_buffer_size = iris_vpu_buf_size,
++	.vpu_ops = &iris_vpu2_ops,
++	.set_preset_registers = iris_set_sm8250_preset_registers,
++	.icc_tbl = sm8250_icc_table,
++	.icc_tbl_size = ARRAY_SIZE(sm8250_icc_table),
++	.clk_rst_tbl = sm8250_clk_reset_table,
++	.clk_rst_tbl_size = ARRAY_SIZE(sm8250_clk_reset_table),
++	.bw_tbl_dec = sm8250_bw_table_dec,
++	.bw_tbl_dec_size = ARRAY_SIZE(sm8250_bw_table_dec),
++	.pmdomain_tbl = sm8250_pmdomain_table,
++	.pmdomain_tbl_size = ARRAY_SIZE(sm8250_pmdomain_table),
++	.opp_pd_tbl = sm8250_opp_pd_table,
++	.opp_pd_tbl_size = ARRAY_SIZE(sm8250_opp_pd_table),
++	.clk_tbl = sm8250_clk_table,
++	.clk_tbl_size = ARRAY_SIZE(sm8250_clk_table),
++	/* Upper bound of DMA address range */
++	.dma_mask = 0xe0000000 - 1,
++	.fwname = "qcom/vpu-1.0/venus.mbn",
++	.pas_id = IRIS_PAS_ID,
++	.inst_caps = &platform_inst_cap_sm8250,
++	.inst_fw_caps_dec = inst_fw_cap_sm8250_dec,
++	.inst_fw_caps_dec_size = ARRAY_SIZE(inst_fw_cap_sm8250_dec),
++	.inst_fw_caps_enc = inst_fw_cap_sm8250_enc,
++	.inst_fw_caps_enc_size = ARRAY_SIZE(inst_fw_cap_sm8250_enc),
++	.tz_cp_config_data = &tz_cp_config_sm8250,
++	.hw_response_timeout = HW_RESPONSE_TIMEOUT_VALUE,
++	.num_vpp_pipe = 4,
++	.max_session_count = 16,
++	.max_core_mbpf = NUM_MBS_8K,
++	.max_core_mbps = ((7680 * 4320) / 256) * 60,
++	.dec_input_config_params_default =
++		sm8250_vdec_input_config_param_default,
++	.dec_input_config_params_default_size =
++		ARRAY_SIZE(sm8250_vdec_input_config_param_default),
++	.enc_input_config_params = sm8250_venc_input_config_param,
++	.enc_input_config_params_size =
++		ARRAY_SIZE(sm8250_venc_input_config_param),
++
++	.dec_ip_int_buf_tbl = sm8250_dec_ip_int_buf_tbl,
++	.dec_ip_int_buf_tbl_size = ARRAY_SIZE(sm8250_dec_ip_int_buf_tbl),
++	.dec_op_int_buf_tbl = sm8250_dec_op_int_buf_tbl,
++	.dec_op_int_buf_tbl_size = ARRAY_SIZE(sm8250_dec_op_int_buf_tbl),
++
++	.enc_ip_int_buf_tbl = sm8250_enc_ip_int_buf_tbl,
++	.enc_ip_int_buf_tbl_size = ARRAY_SIZE(sm8250_enc_ip_int_buf_tbl),
++};
++
++const struct iris_platform_data sc7280_data = {
++	.get_instance = iris_hfi_gen1_get_instance,
++	.init_hfi_command_ops = &iris_hfi_gen1_command_ops_init,
++	.init_hfi_response_ops = iris_hfi_gen1_response_ops_init,
++	.get_vpu_buffer_size = iris_vpu_buf_size,
++	.vpu_ops = &iris_vpu2_ops,
++	.set_preset_registers = iris_set_sm8250_preset_registers,
++	.icc_tbl = sm8250_icc_table,
++	.icc_tbl_size = ARRAY_SIZE(sm8250_icc_table),
++	.bw_tbl_dec = sc7280_bw_table_dec,
++	.bw_tbl_dec_size = ARRAY_SIZE(sc7280_bw_table_dec),
++	.pmdomain_tbl = sm8250_pmdomain_table,
++	.pmdomain_tbl_size = ARRAY_SIZE(sm8250_pmdomain_table),
++	.opp_pd_tbl = sc7280_opp_pd_table,
++	.opp_pd_tbl_size = ARRAY_SIZE(sc7280_opp_pd_table),
++	.clk_tbl = sc7280_clk_table,
++	.clk_tbl_size = ARRAY_SIZE(sc7280_clk_table),
++	/* Upper bound of DMA address range */
++	.dma_mask = 0xe0000000 - 1,
++	.fwname = "qcom/vpu/vpu20_p1.mbn",
++	.pas_id = IRIS_PAS_ID,
++	.inst_caps = &platform_inst_cap_sm8250,
++	.inst_fw_caps_dec = inst_fw_cap_sm8250_dec,
++	.inst_fw_caps_dec_size = ARRAY_SIZE(inst_fw_cap_sm8250_dec),
++	.inst_fw_caps_enc = inst_fw_cap_sm8250_enc,
++	.inst_fw_caps_enc_size = ARRAY_SIZE(inst_fw_cap_sm8250_enc),
++	.tz_cp_config_data = &tz_cp_config_sm8250,
++	.hw_response_timeout = HW_RESPONSE_TIMEOUT_VALUE,
++	.num_vpp_pipe = 1,
++	.no_aon = true,
++	.max_session_count = 16,
++	.max_core_mbpf = 4096 * 2176 / 256 * 2 + 1920 * 1088 / 256,
++	/* max spec for SC7280 is 4096x2176@60fps */
++	.max_core_mbps = 4096 * 2176 / 256 * 60,
++	.dec_input_config_params_default =
++		sm8250_vdec_input_config_param_default,
++	.dec_input_config_params_default_size =
++		ARRAY_SIZE(sm8250_vdec_input_config_param_default),
++	.enc_input_config_params = sm8250_venc_input_config_param,
++	.enc_input_config_params_size =
++		ARRAY_SIZE(sm8250_venc_input_config_param),
++
++	.dec_ip_int_buf_tbl = sm8250_dec_ip_int_buf_tbl,
++	.dec_ip_int_buf_tbl_size = ARRAY_SIZE(sm8250_dec_ip_int_buf_tbl),
++	.dec_op_int_buf_tbl = sm8250_dec_op_int_buf_tbl,
++	.dec_op_int_buf_tbl_size = ARRAY_SIZE(sm8250_dec_op_int_buf_tbl),
++
++	.enc_ip_int_buf_tbl = sm8250_enc_ip_int_buf_tbl,
++	.enc_ip_int_buf_tbl_size = ARRAY_SIZE(sm8250_enc_ip_int_buf_tbl),
++};
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_gen2.c linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_gen2.c
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_gen2.c	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_gen2.c	2025-11-18 21:47:42.242126347 +0100
+@@ -19,7 +19,7 @@
+ #define VIDEO_ARCH_LX 1
+ #define BITRATE_MAX				245000000
+ 
+-static struct platform_inst_fw_cap inst_fw_cap_sm8550_dec[] = {
++static const struct platform_inst_fw_cap inst_fw_cap_sm8550_dec[] = {
+ 	{
+ 		.cap_id = PROFILE_H264,
+ 		.min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+@@ -160,10 +160,8 @@
+ 	},
+ 	{
+ 		.cap_id = PIPE,
+-		.min = PIPE_1,
+-		.max = PIPE_4,
++		/* .max, .min and .value are set via platform data */
+ 		.step_or_mask = 1,
+-		.value = PIPE_4,
+ 		.hfi_id = HFI_PROP_PIPE,
+ 		.set = iris_set_pipe,
+ 	},
+@@ -203,7 +201,7 @@
+ 	},
+ };
+ 
+-static struct platform_inst_fw_cap inst_fw_cap_sm8550_enc[] = {
++static const struct platform_inst_fw_cap inst_fw_cap_sm8550_enc[] = {
+ 	{
+ 		.cap_id = PROFILE_H264,
+ 		.min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+@@ -737,7 +735,7 @@
+ 	BUF_SCRATCH_2,
+ };
+ 
+-struct iris_platform_data sm8550_data = {
++const struct iris_platform_data sm8550_data = {
+ 	.get_instance = iris_hfi_gen2_get_instance,
+ 	.init_hfi_command_ops = iris_hfi_gen2_command_ops_init,
+ 	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
+@@ -827,7 +825,7 @@
+  * - controller_rst_tbl to sm8650_controller_reset_table
+  * - fwname to "qcom/vpu/vpu33_p4.mbn"
+  */
+-struct iris_platform_data sm8650_data = {
++const struct iris_platform_data sm8650_data = {
+ 	.get_instance = iris_hfi_gen2_get_instance,
+ 	.init_hfi_command_ops = iris_hfi_gen2_command_ops_init,
+ 	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
+@@ -912,7 +910,7 @@
+ 	.enc_op_int_buf_tbl_size = ARRAY_SIZE(sm8550_enc_op_int_buf_tbl),
+ };
+ 
+-struct iris_platform_data sm8750_data = {
++const struct iris_platform_data sm8750_data = {
+ 	.get_instance = iris_hfi_gen2_get_instance,
+ 	.init_hfi_command_ops = iris_hfi_gen2_command_ops_init,
+ 	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
+@@ -996,9 +994,8 @@
+ /*
+  * Shares most of SM8550 data except:
+  * - inst_caps to platform_inst_cap_qcs8300
+- * - inst_fw_caps to inst_fw_cap_qcs8300
+  */
+-struct iris_platform_data qcs8300_data = {
++const struct iris_platform_data qcs8300_data = {
+ 	.get_instance = iris_hfi_gen2_get_instance,
+ 	.init_hfi_command_ops = iris_hfi_gen2_command_ops_init,
+ 	.init_hfi_response_ops = iris_hfi_gen2_response_ops_init,
+@@ -1022,10 +1019,10 @@
+ 	.fwname = "qcom/vpu/vpu30_p4_s6.mbn",
+ 	.pas_id = IRIS_PAS_ID,
+ 	.inst_caps = &platform_inst_cap_qcs8300,
+-	.inst_fw_caps_dec = inst_fw_cap_qcs8300_dec,
+-	.inst_fw_caps_dec_size = ARRAY_SIZE(inst_fw_cap_qcs8300_dec),
+-	.inst_fw_caps_enc = inst_fw_cap_qcs8300_enc,
+-	.inst_fw_caps_enc_size = ARRAY_SIZE(inst_fw_cap_qcs8300_enc),
++	.inst_fw_caps_dec = inst_fw_cap_sm8550_dec,
++	.inst_fw_caps_dec_size = ARRAY_SIZE(inst_fw_cap_sm8550_dec),
++	.inst_fw_caps_enc = inst_fw_cap_sm8550_enc,
++	.inst_fw_caps_enc_size = ARRAY_SIZE(inst_fw_cap_sm8550_enc),
+ 	.tz_cp_config_data = &tz_cp_config_sm8550,
+ 	.core_arch = VIDEO_ARCH_LX,
+ 	.hw_response_timeout = HW_RESPONSE_TIMEOUT_VALUE,
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_qcs8300.h linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_qcs8300.h
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_qcs8300.h	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_qcs8300.h	2025-11-18 21:47:42.242126347 +0100
+@@ -3,537 +3,8 @@
+  * Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+  */
+ 
+-#define BITRATE_MAX				245000000
+-
+-static struct platform_inst_fw_cap inst_fw_cap_qcs8300_dec[] = {
+-	{
+-		.cap_id = PROFILE_H264,
+-		.min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+-		.max = V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_HIGH,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_MAIN) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_HIGH) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_HIGH),
+-		.value = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
+-		.hfi_id = HFI_PROP_PROFILE,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_u32_enum,
+-	},
+-	{
+-		.cap_id = PROFILE_HEVC,
+-		.min = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+-		.max = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_STILL_PICTURE,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_STILL_PICTURE),
+-		.value = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+-		.hfi_id = HFI_PROP_PROFILE,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_u32_enum,
+-	},
+-	{
+-		.cap_id = PROFILE_VP9,
+-		.min = V4L2_MPEG_VIDEO_VP9_PROFILE_0,
+-		.max = V4L2_MPEG_VIDEO_VP9_PROFILE_2,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_VP9_PROFILE_0) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_PROFILE_2),
+-		.value = V4L2_MPEG_VIDEO_VP9_PROFILE_0,
+-		.hfi_id = HFI_PROP_PROFILE,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_u32_enum,
+-	},
+-	{
+-		.cap_id = LEVEL_H264,
+-		.min = V4L2_MPEG_VIDEO_H264_LEVEL_1_0,
+-		.max = V4L2_MPEG_VIDEO_H264_LEVEL_6_2,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1B) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_3) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_6_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_6_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_6_2),
+-		.value = V4L2_MPEG_VIDEO_H264_LEVEL_6_1,
+-		.hfi_id = HFI_PROP_LEVEL,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_u32_enum,
+-	},
+-	{
+-		.cap_id = LEVEL_HEVC,
+-		.min = V4L2_MPEG_VIDEO_HEVC_LEVEL_1,
+-		.max = V4L2_MPEG_VIDEO_HEVC_LEVEL_6_2,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_2) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_2_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_3) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_3_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_4) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_4_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5_2) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6_2),
+-		.value = V4L2_MPEG_VIDEO_HEVC_LEVEL_6_1,
+-		.hfi_id = HFI_PROP_LEVEL,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_u32_enum,
+-	},
+-	{
+-		.cap_id = LEVEL_VP9,
+-		.min = V4L2_MPEG_VIDEO_VP9_LEVEL_1_0,
+-		.max = V4L2_MPEG_VIDEO_VP9_LEVEL_6_0,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_1_0) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_1_1) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_2_0) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_2_1) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_3_0) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_3_1) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_4_0) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_4_1) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_5_0) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_5_1) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_5_2) |
+-				BIT(V4L2_MPEG_VIDEO_VP9_LEVEL_6_0),
+-		.value = V4L2_MPEG_VIDEO_VP9_LEVEL_6_0,
+-		.hfi_id = HFI_PROP_LEVEL,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_u32_enum,
+-	},
+-	{
+-		.cap_id = TIER,
+-		.min = V4L2_MPEG_VIDEO_HEVC_TIER_MAIN,
+-		.max = V4L2_MPEG_VIDEO_HEVC_TIER_HIGH,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEVC_TIER_MAIN) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_TIER_HIGH),
+-		.value = V4L2_MPEG_VIDEO_HEVC_TIER_HIGH,
+-		.hfi_id = HFI_PROP_TIER,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_u32_enum,
+-	},
+-	{
+-		.cap_id = INPUT_BUF_HOST_MAX_COUNT,
+-		.min = DEFAULT_MAX_HOST_BUF_COUNT,
+-		.max = DEFAULT_MAX_HOST_BURST_BUF_COUNT,
+-		.step_or_mask = 1,
+-		.value = DEFAULT_MAX_HOST_BUF_COUNT,
+-		.hfi_id = HFI_PROP_BUFFER_HOST_MAX_COUNT,
+-		.flags = CAP_FLAG_INPUT_PORT,
+-		.set = iris_set_u32,
+-	},
+-	{
+-		.cap_id = STAGE,
+-		.min = STAGE_1,
+-		.max = STAGE_2,
+-		.step_or_mask = 1,
+-		.value = STAGE_2,
+-		.hfi_id = HFI_PROP_STAGE,
+-		.set = iris_set_stage,
+-	},
+-	{
+-		.cap_id = PIPE,
+-		.min = PIPE_1,
+-		.max = PIPE_2,
+-		.step_or_mask = 1,
+-		.value = PIPE_2,
+-		.hfi_id = HFI_PROP_PIPE,
+-		.set = iris_set_pipe,
+-	},
+-	{
+-		.cap_id = POC,
+-		.min = 0,
+-		.max = 2,
+-		.step_or_mask = 1,
+-		.value = 1,
+-		.hfi_id = HFI_PROP_PIC_ORDER_CNT_TYPE,
+-	},
+-	{
+-		.cap_id = CODED_FRAMES,
+-		.min = CODED_FRAMES_PROGRESSIVE,
+-		.max = CODED_FRAMES_PROGRESSIVE,
+-		.step_or_mask = 0,
+-		.value = CODED_FRAMES_PROGRESSIVE,
+-		.hfi_id = HFI_PROP_CODED_FRAMES,
+-	},
+-	{
+-		.cap_id = BIT_DEPTH,
+-		.min = BIT_DEPTH_8,
+-		.max = BIT_DEPTH_8,
+-		.step_or_mask = 1,
+-		.value = BIT_DEPTH_8,
+-		.hfi_id = HFI_PROP_LUMA_CHROMA_BIT_DEPTH,
+-	},
+-	{
+-		.cap_id = RAP_FRAME,
+-		.min = 0,
+-		.max = 1,
+-		.step_or_mask = 1,
+-		.value = 1,
+-		.hfi_id = HFI_PROP_DEC_START_FROM_RAP_FRAME,
+-		.flags = CAP_FLAG_INPUT_PORT,
+-		.set = iris_set_u32,
+-	},
+-};
+-
+-static struct platform_inst_fw_cap inst_fw_cap_qcs8300_enc[] = {
+-	{
+-		.cap_id = PROFILE_H264,
+-		.min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+-		.max = V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_HIGH,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_HIGH) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_MAIN) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_HIGH),
+-		.value = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
+-		.hfi_id = HFI_PROP_PROFILE,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-	},
+-	{
+-		.cap_id = PROFILE_HEVC,
+-		.min = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+-		.max = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_10,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_STILL_PICTURE) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_10),
+-		.value = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+-		.hfi_id = HFI_PROP_PROFILE,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-	},
+-	{
+-		.cap_id = LEVEL_H264,
+-		.min = V4L2_MPEG_VIDEO_H264_LEVEL_1_0,
+-		.max = V4L2_MPEG_VIDEO_H264_LEVEL_6_0,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1B) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_3) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_6_0),
+-		.value = V4L2_MPEG_VIDEO_H264_LEVEL_5_0,
+-		.hfi_id = HFI_PROP_LEVEL,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-	},
+-	{
+-		.cap_id = LEVEL_HEVC,
+-		.min = V4L2_MPEG_VIDEO_HEVC_LEVEL_1,
+-		.max = V4L2_MPEG_VIDEO_HEVC_LEVEL_6_2,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_2) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_2_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_3) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_3_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_4) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_4_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5_2) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6_2),
+-		.value = V4L2_MPEG_VIDEO_HEVC_LEVEL_5,
+-		.hfi_id = HFI_PROP_LEVEL,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-	},
+-	{
+-		.cap_id = STAGE,
+-		.min = STAGE_1,
+-		.max = STAGE_2,
+-		.step_or_mask = 1,
+-		.value = STAGE_2,
+-		.hfi_id = HFI_PROP_STAGE,
+-	},
+-	{
+-		.cap_id = HEADER_MODE,
+-		.min = V4L2_MPEG_VIDEO_HEADER_MODE_SEPARATE,
+-		.max = V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEADER_MODE_SEPARATE) |
+-				BIT(V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME),
+-		.value = V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME,
+-		.hfi_id = HFI_PROP_SEQ_HEADER_MODE,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-	},
+-	{
+-		.cap_id = PREPEND_SPSPPS_TO_IDR,
+-		.min = 0,
+-		.max = 1,
+-		.step_or_mask = 1,
+-		.value = 0,
+-	},
+-	{
+-		.cap_id = BITRATE,
+-		.min = 1,
+-		.max = BITRATE_MAX,
+-		.step_or_mask = 1,
+-		.value = BITRATE_DEFAULT,
+-		.hfi_id = HFI_PROP_TOTAL_BITRATE,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_INPUT_PORT |
+-			CAP_FLAG_DYNAMIC_ALLOWED,
+-	},
+-	{
+-		.cap_id = BITRATE_PEAK,
+-		.min = 1,
+-		.max = BITRATE_MAX,
+-		.step_or_mask = 1,
+-		.value = BITRATE_DEFAULT,
+-		.hfi_id = HFI_PROP_TOTAL_PEAK_BITRATE,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_INPUT_PORT |
+-			CAP_FLAG_DYNAMIC_ALLOWED,
+-	},
+-	{
+-		.cap_id = BITRATE_MODE,
+-		.min = V4L2_MPEG_VIDEO_BITRATE_MODE_VBR,
+-		.max = V4L2_MPEG_VIDEO_BITRATE_MODE_CBR,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_BITRATE_MODE_VBR) |
+-				BIT(V4L2_MPEG_VIDEO_BITRATE_MODE_CBR),
+-		.value = V4L2_MPEG_VIDEO_BITRATE_MODE_VBR,
+-		.hfi_id = HFI_PROP_RATE_CONTROL,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-	},
+-	{
+-		.cap_id = FRAME_SKIP_MODE,
+-		.min = V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_DISABLED,
+-		.max = V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_BUF_LIMIT,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_DISABLED) |
+-				BIT(V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_LEVEL_LIMIT) |
+-				BIT(V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_BUF_LIMIT),
+-		.value = V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_DISABLED,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-	},
+-	{
+-		.cap_id = FRAME_RC_ENABLE,
+-		.min = 0,
+-		.max = 1,
+-		.step_or_mask = 1,
+-		.value = 1,
+-	},
+-	{
+-		.cap_id = GOP_SIZE,
+-		.min = 0,
+-		.max = INT_MAX,
+-		.step_or_mask = 1,
+-		.value = 2 * DEFAULT_FPS - 1,
+-		.hfi_id = HFI_PROP_MAX_GOP_FRAMES,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_INPUT_PORT |
+-			CAP_FLAG_DYNAMIC_ALLOWED,
+-	},
+-	{
+-		.cap_id = ENTROPY_MODE,
+-		.min = V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CAVLC,
+-		.max = V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CABAC,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CAVLC) |
+-				BIT(V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CABAC),
+-		.value = V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CABAC,
+-		.hfi_id = HFI_PROP_CABAC_SESSION,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-	},
+-	{
+-		.cap_id = MIN_FRAME_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MIN_QP_8BIT,
+-		.hfi_id = HFI_PROP_MIN_QP_PACKED,
+-		.flags = CAP_FLAG_OUTPUT_PORT,
+-	},
+-	{
+-		.cap_id = MIN_FRAME_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MIN_QP_8BIT,
+-		.hfi_id = HFI_PROP_MIN_QP_PACKED,
+-		.flags = CAP_FLAG_OUTPUT_PORT,
+-	},
+-	{
+-		.cap_id = MAX_FRAME_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MAX_QP,
+-		.hfi_id = HFI_PROP_MAX_QP_PACKED,
+-		.flags = CAP_FLAG_OUTPUT_PORT,
+-	},
+-	{
+-		.cap_id = MAX_FRAME_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MAX_QP,
+-		.hfi_id = HFI_PROP_MAX_QP_PACKED,
+-		.flags = CAP_FLAG_OUTPUT_PORT,
+-	},
+-	{
+-		.cap_id = I_FRAME_MIN_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MIN_QP_8BIT,
+-	},
+-	{
+-		.cap_id = I_FRAME_MIN_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MIN_QP_8BIT,
+-	},
+-	{
+-		.cap_id = P_FRAME_MIN_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MIN_QP_8BIT,
+-	},
+-	{
+-		.cap_id = P_FRAME_MIN_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MIN_QP_8BIT,
+-	},
+-	{
+-		.cap_id = B_FRAME_MIN_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MIN_QP_8BIT,
+-	},
+-	{
+-		.cap_id = B_FRAME_MIN_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MIN_QP_8BIT,
+-	},
+-	{
+-		.cap_id = I_FRAME_MAX_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MAX_QP,
+-	},
+-	{
+-		.cap_id = I_FRAME_MAX_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MAX_QP,
+-	},
+-	{
+-		.cap_id = P_FRAME_MAX_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MAX_QP,
+-	},
+-	{
+-		.cap_id = P_FRAME_MAX_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MAX_QP,
+-	},
+-	{
+-		.cap_id = B_FRAME_MAX_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MAX_QP,
+-	},
+-	{
+-		.cap_id = B_FRAME_MAX_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MAX_QP,
+-	},
+-	{
+-		.cap_id = I_FRAME_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = DEFAULT_QP,
+-		.hfi_id = HFI_PROP_QP_PACKED,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_INPUT_PORT |
+-			CAP_FLAG_DYNAMIC_ALLOWED,
+-	},
+-	{
+-		.cap_id = I_FRAME_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = DEFAULT_QP,
+-		.hfi_id = HFI_PROP_QP_PACKED,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_INPUT_PORT |
+-			CAP_FLAG_DYNAMIC_ALLOWED,
+-	},
+-	{
+-		.cap_id = P_FRAME_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = DEFAULT_QP,
+-		.hfi_id = HFI_PROP_QP_PACKED,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_INPUT_PORT |
+-			CAP_FLAG_DYNAMIC_ALLOWED,
+-	},
+-	{
+-		.cap_id = P_FRAME_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = DEFAULT_QP,
+-		.hfi_id = HFI_PROP_QP_PACKED,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_INPUT_PORT |
+-			CAP_FLAG_DYNAMIC_ALLOWED,
+-	},
+-	{
+-		.cap_id = B_FRAME_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = DEFAULT_QP,
+-		.hfi_id = HFI_PROP_QP_PACKED,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_INPUT_PORT |
+-			CAP_FLAG_DYNAMIC_ALLOWED,
+-	},
+-	{
+-		.cap_id = B_FRAME_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = DEFAULT_QP,
+-		.hfi_id = HFI_PROP_QP_PACKED,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_INPUT_PORT |
+-			CAP_FLAG_DYNAMIC_ALLOWED,
+-	},
+-};
++#ifndef __IRIS_PLATFORM_QCS8300_H__
++#define __IRIS_PLATFORM_QCS8300_H__
+ 
+ static struct platform_inst_caps platform_inst_cap_qcs8300 = {
+ 	.min_frame_width = 96,
+@@ -548,3 +19,5 @@
+ 	.max_frame_rate = MAXIMUM_FPS,
+ 	.max_operating_rate = MAXIMUM_FPS,
+ };
++
++#endif
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_sc7280.h linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_sc7280.h
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_sc7280.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_sc7280.h	2025-11-18 21:47:47.908793032 +0100
+@@ -0,0 +1,26 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
++ */
++
++#ifndef __IRIS_PLATFORM_SC7280_H__
++#define __IRIS_PLATFORM_SC7280_H__
++
++static const struct bw_info sc7280_bw_table_dec[] = {
++	{ ((3840 * 2160) / 256) * 60, 1896000, },
++	{ ((3840 * 2160) / 256) * 30,  968000, },
++	{ ((1920 * 1080) / 256) * 60,  618000, },
++	{ ((1920 * 1080) / 256) * 30,  318000, },
++};
++
++static const char * const sc7280_opp_pd_table[] = { "cx" };
++
++static const struct platform_clk_data sc7280_clk_table[] = {
++	{IRIS_CTRL_CLK,    "core"         },
++	{IRIS_AXI_CLK,     "iface"        },
++	{IRIS_AHB_CLK,     "bus"          },
++	{IRIS_HW_CLK,      "vcodec_core"  },
++	{IRIS_HW_AHB_CLK,  "vcodec_bus"   },
++};
++
++#endif
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_sm8250.c linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_sm8250.c
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_sm8250.c	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_platform_sm8250.c	1970-01-01 01:00:00.000000000 +0100
+@@ -1,366 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0-only
+-/*
+- * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+- */
+-
+-#include "iris_core.h"
+-#include "iris_ctrls.h"
+-#include "iris_platform_common.h"
+-#include "iris_resources.h"
+-#include "iris_hfi_gen1.h"
+-#include "iris_hfi_gen1_defines.h"
+-#include "iris_vpu_buffer.h"
+-#include "iris_vpu_common.h"
+-
+-#define BITRATE_MIN		32000
+-#define BITRATE_MAX		160000000
+-#define BITRATE_PEAK_DEFAULT	(BITRATE_DEFAULT * 2)
+-#define BITRATE_STEP		100
+-
+-static struct platform_inst_fw_cap inst_fw_cap_sm8250_dec[] = {
+-	{
+-		.cap_id = PIPE,
+-		.min = PIPE_1,
+-		.max = PIPE_4,
+-		.step_or_mask = 1,
+-		.value = PIPE_4,
+-		.hfi_id = HFI_PROPERTY_PARAM_WORK_ROUTE,
+-		.set = iris_set_pipe,
+-	},
+-	{
+-		.cap_id = STAGE,
+-		.min = STAGE_1,
+-		.max = STAGE_2,
+-		.step_or_mask = 1,
+-		.value = STAGE_2,
+-		.hfi_id = HFI_PROPERTY_PARAM_WORK_MODE,
+-		.set = iris_set_stage,
+-	},
+-};
+-
+-static struct platform_inst_fw_cap inst_fw_cap_sm8250_enc[] = {
+-	{
+-		.cap_id = STAGE,
+-		.min = STAGE_1,
+-		.max = STAGE_2,
+-		.step_or_mask = 1,
+-		.value = STAGE_2,
+-		.hfi_id = HFI_PROPERTY_PARAM_WORK_MODE,
+-		.set = iris_set_stage,
+-	},
+-	{
+-		.cap_id = PROFILE_H264,
+-		.min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
+-		.max = V4L2_MPEG_VIDEO_H264_PROFILE_MULTIVIEW_HIGH,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_CONSTRAINED_BASELINE) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_MAIN) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_HIGH) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_STEREO_HIGH) |
+-				BIT(V4L2_MPEG_VIDEO_H264_PROFILE_MULTIVIEW_HIGH),
+-		.value = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
+-		.hfi_id = HFI_PROPERTY_PARAM_PROFILE_LEVEL_CURRENT,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_profile_level_gen1,
+-	},
+-	{
+-		.cap_id = PROFILE_HEVC,
+-		.min = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+-		.max = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_10,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_STILL_PICTURE) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_10),
+-		.value = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+-		.hfi_id = HFI_PROPERTY_PARAM_PROFILE_LEVEL_CURRENT,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_profile_level_gen1,
+-	},
+-	{
+-		.cap_id = LEVEL_H264,
+-		.min = V4L2_MPEG_VIDEO_H264_LEVEL_1_0,
+-		.max = V4L2_MPEG_VIDEO_H264_LEVEL_5_1,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1B) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_1_3) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_2_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_3_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_1) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_4_2) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_0) |
+-				BIT(V4L2_MPEG_VIDEO_H264_LEVEL_5_1),
+-		.value = V4L2_MPEG_VIDEO_H264_LEVEL_1_0,
+-		.hfi_id = HFI_PROPERTY_PARAM_PROFILE_LEVEL_CURRENT,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_profile_level_gen1,
+-	},
+-	{
+-		.cap_id = LEVEL_HEVC,
+-		.min = V4L2_MPEG_VIDEO_HEVC_LEVEL_1,
+-		.max = V4L2_MPEG_VIDEO_HEVC_LEVEL_6_2,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_2) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_2_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_3) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_3_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_4) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_4_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_5_2) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6_1) |
+-				BIT(V4L2_MPEG_VIDEO_HEVC_LEVEL_6_2),
+-		.value = V4L2_MPEG_VIDEO_HEVC_LEVEL_1,
+-		.hfi_id = HFI_PROPERTY_PARAM_PROFILE_LEVEL_CURRENT,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_profile_level_gen1,
+-	},
+-	{
+-		.cap_id = HEADER_MODE,
+-		.min = V4L2_MPEG_VIDEO_HEADER_MODE_SEPARATE,
+-		.max = V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_HEADER_MODE_SEPARATE) |
+-				BIT(V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME),
+-		.value = V4L2_MPEG_VIDEO_HEADER_MODE_JOINED_WITH_1ST_FRAME,
+-		.hfi_id = HFI_PROPERTY_CONFIG_VENC_SYNC_FRAME_SEQUENCE_HEADER,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_header_mode_gen1,
+-	},
+-	{
+-		.cap_id = BITRATE,
+-		.min = BITRATE_MIN,
+-		.max = BITRATE_MAX,
+-		.step_or_mask = BITRATE_STEP,
+-		.value = BITRATE_DEFAULT,
+-		.hfi_id = HFI_PROPERTY_CONFIG_VENC_TARGET_BITRATE,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_INPUT_PORT |
+-			CAP_FLAG_DYNAMIC_ALLOWED,
+-		.set = iris_set_bitrate,
+-	},
+-	{
+-		.cap_id = BITRATE_MODE,
+-		.min = V4L2_MPEG_VIDEO_BITRATE_MODE_VBR,
+-		.max = V4L2_MPEG_VIDEO_BITRATE_MODE_CBR,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_BITRATE_MODE_VBR) |
+-				BIT(V4L2_MPEG_VIDEO_BITRATE_MODE_CBR),
+-		.value = V4L2_MPEG_VIDEO_BITRATE_MODE_VBR,
+-		.hfi_id = HFI_PROPERTY_PARAM_VENC_RATE_CONTROL,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_bitrate_mode_gen1,
+-	},
+-	{
+-		.cap_id = FRAME_SKIP_MODE,
+-		.min = V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_DISABLED,
+-		.max = V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_BUF_LIMIT,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_DISABLED) |
+-				BIT(V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_BUF_LIMIT),
+-		.value = V4L2_MPEG_VIDEO_FRAME_SKIP_MODE_DISABLED,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-	},
+-	{
+-		.cap_id = FRAME_RC_ENABLE,
+-		.min = 0,
+-		.max = 1,
+-		.step_or_mask = 1,
+-		.value = 1,
+-	},
+-	{
+-		.cap_id = GOP_SIZE,
+-		.min = 0,
+-		.max = (1 << 16) - 1,
+-		.step_or_mask = 1,
+-		.value = 30,
+-		.set = iris_set_u32
+-	},
+-	{
+-		.cap_id = ENTROPY_MODE,
+-		.min = V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CAVLC,
+-		.max = V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CABAC,
+-		.step_or_mask = BIT(V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CAVLC) |
+-				BIT(V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CABAC),
+-		.value = V4L2_MPEG_VIDEO_H264_ENTROPY_MODE_CAVLC,
+-		.hfi_id = HFI_PROPERTY_PARAM_VENC_H264_ENTROPY_CONTROL,
+-		.flags = CAP_FLAG_OUTPUT_PORT | CAP_FLAG_MENU,
+-		.set = iris_set_entropy_mode_gen1,
+-	},
+-	{
+-		.cap_id = MIN_FRAME_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MIN_QP_8BIT,
+-		.hfi_id = HFI_PROPERTY_PARAM_VENC_SESSION_QP_RANGE_V2,
+-		.flags = CAP_FLAG_OUTPUT_PORT,
+-		.set = iris_set_qp_range,
+-	},
+-	{
+-		.cap_id = MIN_FRAME_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP_HEVC,
+-		.step_or_mask = 1,
+-		.value = MIN_QP_8BIT,
+-		.hfi_id = HFI_PROPERTY_PARAM_VENC_SESSION_QP_RANGE_V2,
+-		.flags = CAP_FLAG_OUTPUT_PORT,
+-		.set = iris_set_qp_range,
+-	},
+-	{
+-		.cap_id = MAX_FRAME_QP_H264,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP,
+-		.step_or_mask = 1,
+-		.value = MAX_QP,
+-		.hfi_id = HFI_PROPERTY_PARAM_VENC_SESSION_QP_RANGE_V2,
+-		.flags = CAP_FLAG_OUTPUT_PORT,
+-		.set = iris_set_qp_range,
+-	},
+-	{
+-		.cap_id = MAX_FRAME_QP_HEVC,
+-		.min = MIN_QP_8BIT,
+-		.max = MAX_QP_HEVC,
+-		.step_or_mask = 1,
+-		.value = MAX_QP_HEVC,
+-		.hfi_id = HFI_PROPERTY_PARAM_VENC_SESSION_QP_RANGE_V2,
+-		.flags = CAP_FLAG_OUTPUT_PORT,
+-		.set = iris_set_qp_range,
+-	},
+-};
+-
+-static struct platform_inst_caps platform_inst_cap_sm8250 = {
+-	.min_frame_width = 128,
+-	.max_frame_width = 8192,
+-	.min_frame_height = 128,
+-	.max_frame_height = 8192,
+-	.max_mbpf = 138240,
+-	.mb_cycles_vsp = 25,
+-	.mb_cycles_vpp = 200,
+-	.max_frame_rate = MAXIMUM_FPS,
+-	.max_operating_rate = MAXIMUM_FPS,
+-};
+-
+-static void iris_set_sm8250_preset_registers(struct iris_core *core)
+-{
+-	writel(0x0, core->reg_base + 0xB0088);
+-}
+-
+-static const struct icc_info sm8250_icc_table[] = {
+-	{ "cpu-cfg",    1000, 1000     },
+-	{ "video-mem",  1000, 15000000 },
+-};
+-
+-static const char * const sm8250_clk_reset_table[] = { "bus", "core" };
+-
+-static const struct bw_info sm8250_bw_table_dec[] = {
+-	{ ((4096 * 2160) / 256) * 60, 2403000 },
+-	{ ((4096 * 2160) / 256) * 30, 1224000 },
+-	{ ((1920 * 1080) / 256) * 60,  812000 },
+-	{ ((1920 * 1080) / 256) * 30,  416000 },
+-};
+-
+-static const char * const sm8250_pmdomain_table[] = { "venus", "vcodec0" };
+-
+-static const char * const sm8250_opp_pd_table[] = { "mx" };
+-
+-static const struct platform_clk_data sm8250_clk_table[] = {
+-	{IRIS_AXI_CLK,  "iface"        },
+-	{IRIS_CTRL_CLK, "core"         },
+-	{IRIS_HW_CLK,   "vcodec0_core" },
+-};
+-
+-static struct tz_cp_config tz_cp_config_sm8250 = {
+-	.cp_start = 0,
+-	.cp_size = 0x25800000,
+-	.cp_nonpixel_start = 0x01000000,
+-	.cp_nonpixel_size = 0x24800000,
+-};
+-
+-static const u32 sm8250_vdec_input_config_param_default[] = {
+-	HFI_PROPERTY_CONFIG_VIDEOCORES_USAGE,
+-	HFI_PROPERTY_PARAM_UNCOMPRESSED_FORMAT_SELECT,
+-	HFI_PROPERTY_PARAM_UNCOMPRESSED_PLANE_ACTUAL_CONSTRAINTS_INFO,
+-	HFI_PROPERTY_PARAM_BUFFER_COUNT_ACTUAL,
+-	HFI_PROPERTY_PARAM_VDEC_MULTI_STREAM,
+-	HFI_PROPERTY_PARAM_FRAME_SIZE,
+-	HFI_PROPERTY_PARAM_BUFFER_SIZE_ACTUAL,
+-	HFI_PROPERTY_PARAM_BUFFER_ALLOC_MODE,
+-};
+-
+-static const u32 sm8250_venc_input_config_param[] = {
+-	HFI_PROPERTY_CONFIG_FRAME_RATE,
+-	HFI_PROPERTY_PARAM_UNCOMPRESSED_PLANE_ACTUAL_INFO,
+-	HFI_PROPERTY_PARAM_FRAME_SIZE,
+-	HFI_PROPERTY_PARAM_UNCOMPRESSED_FORMAT_SELECT,
+-	HFI_PROPERTY_PARAM_BUFFER_COUNT_ACTUAL,
+-};
+-
+-static const u32 sm8250_dec_ip_int_buf_tbl[] = {
+-	BUF_BIN,
+-	BUF_SCRATCH_1,
+-};
+-
+-static const u32 sm8250_dec_op_int_buf_tbl[] = {
+-	BUF_DPB,
+-};
+-
+-static const u32 sm8250_enc_ip_int_buf_tbl[] = {
+-	BUF_BIN,
+-	BUF_SCRATCH_1,
+-	BUF_SCRATCH_2,
+-};
+-
+-struct iris_platform_data sm8250_data = {
+-	.get_instance = iris_hfi_gen1_get_instance,
+-	.init_hfi_command_ops = &iris_hfi_gen1_command_ops_init,
+-	.init_hfi_response_ops = iris_hfi_gen1_response_ops_init,
+-	.get_vpu_buffer_size = iris_vpu_buf_size,
+-	.vpu_ops = &iris_vpu2_ops,
+-	.set_preset_registers = iris_set_sm8250_preset_registers,
+-	.icc_tbl = sm8250_icc_table,
+-	.icc_tbl_size = ARRAY_SIZE(sm8250_icc_table),
+-	.clk_rst_tbl = sm8250_clk_reset_table,
+-	.clk_rst_tbl_size = ARRAY_SIZE(sm8250_clk_reset_table),
+-	.bw_tbl_dec = sm8250_bw_table_dec,
+-	.bw_tbl_dec_size = ARRAY_SIZE(sm8250_bw_table_dec),
+-	.pmdomain_tbl = sm8250_pmdomain_table,
+-	.pmdomain_tbl_size = ARRAY_SIZE(sm8250_pmdomain_table),
+-	.opp_pd_tbl = sm8250_opp_pd_table,
+-	.opp_pd_tbl_size = ARRAY_SIZE(sm8250_opp_pd_table),
+-	.clk_tbl = sm8250_clk_table,
+-	.clk_tbl_size = ARRAY_SIZE(sm8250_clk_table),
+-	/* Upper bound of DMA address range */
+-	.dma_mask = 0xe0000000 - 1,
+-	.fwname = "qcom/vpu-1.0/venus.mbn",
+-	.pas_id = IRIS_PAS_ID,
+-	.inst_caps = &platform_inst_cap_sm8250,
+-	.inst_fw_caps_dec = inst_fw_cap_sm8250_dec,
+-	.inst_fw_caps_dec_size = ARRAY_SIZE(inst_fw_cap_sm8250_dec),
+-	.inst_fw_caps_enc = inst_fw_cap_sm8250_enc,
+-	.inst_fw_caps_enc_size = ARRAY_SIZE(inst_fw_cap_sm8250_enc),
+-	.tz_cp_config_data = &tz_cp_config_sm8250,
+-	.hw_response_timeout = HW_RESPONSE_TIMEOUT_VALUE,
+-	.num_vpp_pipe = 4,
+-	.max_session_count = 16,
+-	.max_core_mbpf = NUM_MBS_8K,
+-	.max_core_mbps = ((7680 * 4320) / 256) * 60,
+-	.dec_input_config_params_default =
+-		sm8250_vdec_input_config_param_default,
+-	.dec_input_config_params_default_size =
+-		ARRAY_SIZE(sm8250_vdec_input_config_param_default),
+-	.enc_input_config_params = sm8250_venc_input_config_param,
+-	.enc_input_config_params_size =
+-		ARRAY_SIZE(sm8250_venc_input_config_param),
+-
+-	.dec_ip_int_buf_tbl = sm8250_dec_ip_int_buf_tbl,
+-	.dec_ip_int_buf_tbl_size = ARRAY_SIZE(sm8250_dec_ip_int_buf_tbl),
+-	.dec_op_int_buf_tbl = sm8250_dec_op_int_buf_tbl,
+-	.dec_op_int_buf_tbl_size = ARRAY_SIZE(sm8250_dec_op_int_buf_tbl),
+-
+-	.enc_ip_int_buf_tbl = sm8250_enc_ip_int_buf_tbl,
+-	.enc_ip_int_buf_tbl_size = ARRAY_SIZE(sm8250_enc_ip_int_buf_tbl),
+-};
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_probe.c linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_probe.c
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_probe.c	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_probe.c	2025-11-18 21:47:47.908793032 +0100
+@@ -358,6 +358,10 @@
+ 	},
+ #if (!IS_ENABLED(CONFIG_VIDEO_QCOM_VENUS))
+ 	{
++		.compatible = "qcom,sc7280-venus",
++		.data = &sc7280_data,
++	},
++	{
+ 		.compatible = "qcom,sm8250-venus",
+ 		.data = &sm8250_data,
+ 	},
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_resources.c linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_resources.c
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_resources.c	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_resources.c	2025-11-18 21:47:47.908793032 +0100
+@@ -112,7 +112,7 @@
+ 
+ 	clock = iris_get_clk_by_type(core, clk_type);
+ 	if (!clock)
+-		return -EINVAL;
++		return -ENOENT;
+ 
+ 	return clk_prepare_enable(clock);
+ }
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_vpu2.c linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_vpu2.c
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_vpu2.c	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_vpu2.c	2025-11-18 21:47:47.908793032 +0100
+@@ -3,9 +3,15 @@
+  * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+  */
+ 
++#include <linux/bits.h>
++#include <linux/iopoll.h>
++#include <linux/reset.h>
++
+ #include "iris_instance.h"
+ #include "iris_vpu_common.h"
+ 
++#include "iris_vpu_register_defines.h"
++
+ static u64 iris_vpu2_calc_freq(struct iris_inst *inst, size_t data_size)
+ {
+ 	struct platform_inst_caps *caps = inst->core->iris_platform_data->inst_caps;
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_vpu_common.c linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_vpu_common.c
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_vpu_common.c	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/iris_vpu_common.c	2025-11-18 21:47:47.908793032 +0100
+@@ -222,12 +222,14 @@
+ 
+ 	writel(MSK_SIGNAL_FROM_TENSILICA | MSK_CORE_POWER_ON, core->reg_base + CPU_CS_X2RPMH);
+ 
+-	writel(REQ_POWER_DOWN_PREP, core->reg_base + AON_WRAPPER_MVP_NOC_LPI_CONTROL);
++	if (!core->iris_platform_data->no_aon) {
++		writel(REQ_POWER_DOWN_PREP, core->reg_base + AON_WRAPPER_MVP_NOC_LPI_CONTROL);
+ 
+-	ret = readl_poll_timeout(core->reg_base + AON_WRAPPER_MVP_NOC_LPI_STATUS,
+-				 val, val & BIT(0), 200, 2000);
+-	if (ret)
+-		goto disable_power;
++		ret = readl_poll_timeout(core->reg_base + AON_WRAPPER_MVP_NOC_LPI_STATUS,
++					 val, val & BIT(0), 200, 2000);
++		if (ret)
++			goto disable_power;
++	}
+ 
+ 	writel(REQ_POWER_DOWN_PREP, core->reg_base + WRAPPER_IRIS_CPU_NOC_LPI_CONTROL);
+ 
+@@ -250,6 +252,7 @@
+ 	writel(0x0, core->reg_base + WRAPPER_TZ_CTL_AXI_CLOCK_CONFIG);
+ 
+ disable_power:
++	iris_disable_unprepare_clock(core, IRIS_AHB_CLK);
+ 	iris_disable_unprepare_clock(core, IRIS_CTRL_CLK);
+ 	iris_disable_unprepare_clock(core, IRIS_AXI_CLK);
+ 	iris_disable_power_domains(core, core->pmdomain_tbl->pd_devs[IRIS_CTRL_POWER_DOMAIN]);
+@@ -261,6 +264,7 @@
+ {
+ 	dev_pm_genpd_set_hwmode(core->pmdomain_tbl->pd_devs[IRIS_HW_POWER_DOMAIN], false);
+ 	iris_disable_power_domains(core, core->pmdomain_tbl->pd_devs[IRIS_HW_POWER_DOMAIN]);
++	iris_disable_unprepare_clock(core, IRIS_HW_AHB_CLK);
+ 	iris_disable_unprepare_clock(core, IRIS_HW_CLK);
+ }
+ 
+@@ -294,11 +298,17 @@
+ 
+ 	ret = iris_prepare_enable_clock(core, IRIS_CTRL_CLK);
+ 	if (ret)
+-		goto err_disable_clock;
++		goto err_disable_axi_clock;
++
++	ret = iris_prepare_enable_clock(core, IRIS_AHB_CLK);
++	if (ret && ret != -ENOENT)
++		goto err_disable_ctrl_clock;
+ 
+ 	return 0;
+ 
+-err_disable_clock:
++err_disable_ctrl_clock:
++	iris_disable_unprepare_clock(core, IRIS_CTRL_CLK);
++err_disable_axi_clock:
+ 	iris_disable_unprepare_clock(core, IRIS_AXI_CLK);
+ err_disable_power:
+ 	iris_disable_power_domains(core, core->pmdomain_tbl->pd_devs[IRIS_CTRL_POWER_DOMAIN]);
+@@ -318,13 +328,19 @@
+ 	if (ret)
+ 		goto err_disable_power;
+ 
++	ret = iris_prepare_enable_clock(core, IRIS_HW_AHB_CLK);
++	if (ret && ret != -ENOENT)
++		goto err_disable_hw_clock;
++
+ 	ret = dev_pm_genpd_set_hwmode(core->pmdomain_tbl->pd_devs[IRIS_HW_POWER_DOMAIN], true);
+ 	if (ret)
+-		goto err_disable_clock;
++		goto err_disable_hw_ahb_clock;
+ 
+ 	return 0;
+ 
+-err_disable_clock:
++err_disable_hw_ahb_clock:
++	iris_disable_unprepare_clock(core, IRIS_HW_AHB_CLK);
++err_disable_hw_clock:
+ 	iris_disable_unprepare_clock(core, IRIS_HW_CLK);
+ err_disable_power:
+ 	iris_disable_power_domains(core, core->pmdomain_tbl->pd_devs[IRIS_HW_POWER_DOMAIN]);
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/drivers/media/platform/qcom/iris/Makefile linux-6.18-rc6/drivers/media/platform/qcom/iris/Makefile
+--- linux-6.18-rc6/drivers/media/platform/qcom/iris/Makefile	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/drivers/media/platform/qcom/iris/Makefile	2025-11-18 21:47:45.245459690 +0100
+@@ -26,7 +26,7 @@
+              iris_vpu_common.o \
+ 
+ ifeq ($(CONFIG_VIDEO_QCOM_VENUS),)
+-qcom-iris-objs += iris_platform_sm8250.o
++qcom-iris-objs += iris_platform_gen1.o
+ endif
+ 
+ obj-$(CONFIG_VIDEO_QCOM_IRIS) += qcom-iris.o

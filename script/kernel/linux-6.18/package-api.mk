@@ -21,7 +21,7 @@ ifeq (1,1)
 LINUX_MAJOR_VERSION = 6
 LINUX_MINOR_VERSION = 18
 LINUX_TEENY_VERSION = 
-LINUX_EXTRA_VERSION = -rc5
+LINUX_EXTRA_VERSION = -rc6
 endif
 #-------------------------------------------
 
@@ -30,8 +30,8 @@ ifeq (0,1)
 LINUX_MAJOR_VERSION = 6
 LINUX_MINOR_VERSION = 18
 LINUX_TEENY_VERSION = 
-GITHASH             = 76dcd734eca23168cb008912c0f69ff408905235
-LINUX_EXTRA_VERSION = -rc1
+GITHASH             = 6a23ae0a96a600d1d12557add110e0bb6e32730c
+LINUX_EXTRA_VERSION = -rc6
 endif
 #-------------------------------------------
 
