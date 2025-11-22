@@ -13,6 +13,10 @@ DISTFILES    = \
 	g12-generic.wks \
 	sm1-generic.conf \
 	sm1-generic.wks \
+	s4-generic.conf \
+	s4-generic.wks \
+	sc2-generic.conf \
+	sc2-generic.wks \
 	h313-generic.conf \
 	h313-generic.wks \
 	h6-generic.conf \
@@ -67,8 +71,6 @@ DISTFILES    = \
 	board-rpi5.rpi64.wks        \
 	board-sm1.tanix_tx5_plus.conf \
 	board-sm1.tanix_tx5_plus.wks \
-	board-s905w2.tv98.conf      \
-	board-s905w2.tv98.wks       \
 	board-qcs6490.dragon_q6a.conf \
 	board-x86pc.bios.conf       \
 	board-x86pc.bios.wks        \
@@ -95,6 +97,14 @@ G12_BOARDS_LIST= \
 # Amlogic SM1 boards
 SM1_BOARDS_LIST= \
 	board-sm1.x96_air2g \
+
+# Amlogic S4 boards
+S4_BOARDS_LIST= \
+	board-s905w2.tv98 \
+
+# Amlogic SC2 boards
+SC2_BOARDS_LIST= \
+	 \
 
 # Allwinner H6 boards
 H6_BOARDS_LIST= \
@@ -226,7 +236,7 @@ DEPENDS = \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = 
-INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards s905_boards s912_boards g12_boards sm1_boards
+INSTALL_SCRIPTS   = kickstart h6_boards h313_boards h616_boards h618_boards a523_boards rk3328_boards rk3399_boards rk3528_boards rk3566_boards rk3568_boards rk3576_boards rk3588s_boards rk3588_boards s905_boards s912_boards g12_boards sm1_boards s4_boards sc2_boards
 
 include ../../gar.mk
 
@@ -248,6 +258,12 @@ install-g12_boards:
 
 install-sm1_boards:
 	@$(call COPY_FILES, $(SM1_BOARDS_LIST), sm1-generic)
+
+install-s4_boards:
+	@$(call COPY_FILES, $(S4_BOARDS_LIST), s4-generic)
+
+install-sc2_boards:
+	@$(call COPY_FILES, $(SC2_BOARDS_LIST), sc2-generic)
 
 install-h6_boards:
 	@$(call COPY_FILES, $(H6_BOARDS_LIST), h6-generic)
