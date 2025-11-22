@@ -33,7 +33,7 @@ PATCHFILES  = linux-6.18.patch.gar
 PATCHFILES += linux-6.18-perl.patch.gar
 PATCHFILES += linux-6.18-defaults.patch
 
-PATCHFILES += 0000-revert-arm64-spectre-Fix-hard-lockup-and-cleanup-mitigation-messages.patch
+PATCHFILES += 0000-arm64-proton-pack-fix-qcom-hard-lockup-by-commit-62e72463ca71.patch
 
 ifeq (1,1)
 
