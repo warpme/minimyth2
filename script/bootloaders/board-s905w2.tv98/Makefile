@@ -31,6 +31,7 @@ install-custom:
 	@cp -f $(WORKSRC)/boot.config $(DESTDIR)/boot/boot.config
 	@mkdir -p $(DESTDIR)/boot/box-config
 	@cp -rf   $(WORKSRC)/box-s905w2-ap201.config $(DESTDIR)/boot/box-config/
+	@cp -f $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
 clean-custom:
