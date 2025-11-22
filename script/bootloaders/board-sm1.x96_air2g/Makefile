@@ -1,14 +1,12 @@
 
 GARNAME      = bootfiles-sm1.x96_air2g
-GARVERSION   = 2025-11-03
+GARVERSION   = 2025-11-22
 CATEGORIES   = bootloaders
 MASTER_SITES = 
-DISTFILES    = s905_autoscript \
-               aml_autoscript \
-               uEnv.ini \
-               minimyth.conf \
-
-export mm_U-BOOT_BOARD_TYPE = p212_defconfig
+DISTFILES    = \
+             boot.config \
+             minimyth.conf \
+             box-sm1-x96_air2g.config \
 
 WORKSRC      = $(WORKDIR)
 
@@ -20,24 +18,25 @@ endef
 
 BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
+CLEAN_SCRIPTS   = custom
 
 include ../../gar.mk
 
-# Skipping U-Boot build as we are using vendor U-Boot
 build-custom:
-#	@$(MAKE) clean -C ../u-boot-amlogic
-#	@$(MAKE) install -C ../u-boot-amlogic
+	@$(MAKE) clean-all install -C ../aml-bootscipts-vendor-uboot
 	@$(MAKECOOKIE)
 
 install-custom:
 	@mkdir -p $(DESTDIR)/boot
-	@cp -f $(WORKSRC)/s905_autoscript                            $(DESTDIR)/boot/s905_autoscript
-	@cp -f $(WORKSRC)/aml_autoscript                             $(DESTDIR)/boot/aml_autoscript
-	@cp -f $(WORKSRC)/uEnv.ini                                   $(DESTDIR)/boot/uEnv.ini
-	@cp -f $(WORKSRC)/minimyth.conf                              $(DESTDIR)/boot/minimyth.conf
+	@cp -f $(WORKSRC)/boot.config $(DESTDIR)/boot/boot.config
+	@mkdir -p $(DESTDIR)/boot/box-config
+	@cp -rf   $(WORKSRC)/box-sm1-x96_air2g.config $(DESTDIR)/boot/box-config/
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-all:
-	@rm -f $(DESTDIR)/boot/*_autoscript
-	@rm -f $(DESTDIR)/boot/uEnv.ini
-	@rm -f $(DESTDIR)/boot/minimyth.conf
+clean-custom:
+	@rm -rf $(DESTDIR)/boot/box-config/box-sm1-x96_air2g.config
+	@rm -f  $(DESTDIR)/boot/boot.config
+	@rm -f  $(DESTDIR)/boot/minimyth.conf
+
+clean-all: clean-custom cookieclean
+	@$(MAKE) clean-all -C ../aml-bootscipts-vendor-uboot
