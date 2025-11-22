@@ -1,0 +1,89 @@
+
+reverts https://patchew.org/linux/20251031091507.1896-1-shechenglong@xfusion.com/
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/arch/arm64/kernel/cpufeature.c linux-6.18-rc6/arch/arm64/kernel/cpufeature.c
+--- linux-6.18-rc6/arch/arm64/kernel/cpufeature.c	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/arch/arm64/kernel/cpufeature.c	2025-11-10 00:10:19.000000000 +0100
+@@ -95,7 +95,6 @@
+ #include <asm/vectors.h>
+ #include <asm/virt.h>
+ 
+-#include <asm/spectre.h>
+ /* Kernel representation of AT_HWCAP and AT_HWCAP2 */
+ static DECLARE_BITMAP(elf_hwcap, MAX_CPU_FEATURES) __read_mostly;
+ 
+@@ -3876,11 +3875,6 @@
+ 	 */
+ 	if (system_uses_ttbr0_pan())
+ 		pr_info("emulated: Privileged Access Never (PAN) using TTBR0_EL1 switching\n");
+-
+-	/*
+-	 * Report Spectre mitigations status.
+-	 */
+-	spectre_print_disabled_mitigations();
+ }
+ 
+ void __init setup_system_features(void)
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18-rc6/arch/arm64/kernel/proton-pack.c linux-6.18-rc6/arch/arm64/kernel/proton-pack.c
+--- linux-6.18-rc6/arch/arm64/kernel/proton-pack.c	2025-11-16 23:25:38.000000000 +0100
++++ linux-6.18-rc6/arch/arm64/kernel/proton-pack.c	2025-11-21 19:20:23.498913232 +0100
+@@ -91,7 +91,12 @@
+ 
+ static bool spectre_v2_mitigations_off(void)
+ {
+-	return __nospectre_v2 || cpu_mitigations_off();
++	bool ret = __nospectre_v2 || cpu_mitigations_off();
++
++	if (ret)
++		pr_info_once("spectre-v2 mitigation disabled by command line option\n");
++
++	return ret;
+ }
+ 
+ static const char *get_bhb_affected_string(enum mitigation_state bhb_state)
+@@ -416,8 +421,13 @@
+  */
+ static bool spectre_v4_mitigations_off(void)
+ {
+-	return cpu_mitigations_off() ||
+-	       __spectre_v4_policy == SPECTRE_V4_POLICY_MITIGATION_DISABLED;
++	bool ret = cpu_mitigations_off() ||
++		   __spectre_v4_policy == SPECTRE_V4_POLICY_MITIGATION_DISABLED;
++
++	if (ret)
++		pr_info_once("spectre-v4 mitigation disabled by command-line option\n");
++
++	return ret;
+ }
+ 
+ /* Do we need to toggle the mitigation state on entry to/exit from the kernel? */
+@@ -1032,6 +1042,10 @@
+ 
+ 	if (arm64_get_spectre_v2_state() == SPECTRE_VULNERABLE) {
+ 		/* No point mitigating Spectre-BHB alone. */
++	} else if (!IS_ENABLED(CONFIG_MITIGATE_SPECTRE_BRANCH_HISTORY)) {
++		pr_info_once("spectre-bhb mitigation disabled by compile time option\n");
++	} else if (cpu_mitigations_off() || __nospectre_bhb) {
++		pr_info_once("spectre-bhb mitigation disabled by command line option\n");
+ 	} else if (supports_ecbhb(SCOPE_LOCAL_CPU)) {
+ 		state = SPECTRE_MITIGATED;
+ 		set_bit(BHB_HW, &system_bhb_mitigations);
+@@ -1185,18 +1199,3 @@
+ 		pr_err("WARNING: %s", EBPF_WARN);
+ }
+ #endif
+-
+-void spectre_print_disabled_mitigations(void)
+-{
+-	/* Keep a single copy of the common message suffix to avoid duplication. */
+-	const char *spectre_disabled_suffix = "mitigation disabled by command-line option\n";
+-
+-	if (spectre_v2_mitigations_off())
+-		pr_info("spectre-v2 %s", spectre_disabled_suffix);
+-
+-	if (spectre_v4_mitigations_off())
+-		pr_info("spectre-v4 %s", spectre_disabled_suffix);
+-
+-	if (__nospectre_bhb || cpu_mitigations_off())
+-		pr_info("spectre-bhb %s", spectre_disabled_suffix);
+-}
