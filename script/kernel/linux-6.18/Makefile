@@ -1,5 +1,6 @@
+
 ifeq (1,1)
-#--Use this for mainline official x.y.z kernel from SCM----
+#--Use this for SCM mainline official x.y.z kernel --------
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 DISTFILES           = $(DISTNAME).tar.gz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
@@ -7,7 +8,7 @@ WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
 endif
 
 ifeq (0,1)
-#--Use this for mainline git-commit kernel from SCM--------
+#--Use this for SCM given commit kernel -------------------
 MASTER_SITES        = https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/snapshot/
 GITHASH             = 
 DISTFILES           = $(GITHASH).tar.gz $(CONFIGFILE)
@@ -16,10 +17,18 @@ WORKSRC             = $(WORKDIR)/$(GITHASH)
 endif
 
 ifeq (0,1)
-#--Use this for mainline official x.y.z kernel from GIT----
+#--Use this for github x.y.z kernel -----------------------
 MASTER_SITES       += https://github.com/torvalds/linux/archive/
 DISTFILES           = v$(LINUX_VERSION).tar.gz $(CONFIGFILE)
 WORKSRC             = $(WORKDIR)/linux-$(LINUX_VERSION)
+#----------------------------------------------------------
+endif
+
+ifeq (0,1)
+#--Use this for github given commit kernel -------------------
+MASTER_SITES       += https://github.com/torvalds/linux/archive/
+DISTFILES           = $(GITHASH).zip $(CONFIGFILE)
+WORKSRC             = $(WORKDIR)/linux-$(GITHASH)
 #----------------------------------------------------------
 endif
 
