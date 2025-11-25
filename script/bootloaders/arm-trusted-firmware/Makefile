@@ -11,6 +11,7 @@
 # mm_U-BOOT_BOARD_TYPE = test-rk3568
 # mm_U-BOOT_BOARD_TYPE = test-rk3576
 # mm_U-BOOT_BOARD_TYPE = test-rk3588
+# mm_U-BOOT_BOARD_TYPE = test-imx93
 
 ifeq (0,1)
 # collabora https://gitlab.collabora.com/hardware-enablement/rockchip-3588/trusted-firmware-a/
@@ -130,6 +131,12 @@ INSTALL_PREF = rk3588s
 else
 INSTALL_PREF = rk3588
 endif
+endif
+
+ifneq (,$(findstring imx93,$(mm_U-BOOT_BOARD_TYPE)))
+PLATFORM     = imx93
+BUILD_BIN    = imx93/debug/bl31/bl31.elf
+INSTALL_PREF = imx93
 endif
 
 BUILD_ARGS = \
