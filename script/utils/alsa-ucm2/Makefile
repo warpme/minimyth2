@@ -1,6 +1,6 @@
 
 GARNAME      = alsa-ucm-conf
-GARVERSION   = 1.2.6.3
+GARVERSION   = 1.2.14
 CATEGORIES   = utils
 MASTER_SITES = https://www.alsa-project.org/files/pub/lib/
 DISTFILES    = $(DISTNAME).tar.bz2
