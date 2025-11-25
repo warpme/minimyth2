@@ -2,34 +2,34 @@
 # For forcing given board (usually for testing)
 # test bootloader will be in usr/lib/u-boot/test-<soc>
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3328
+# mm_U-BOOT_BOARD_TYPE = test-rk3328.
 # mm_U-BOOT_BOARD_DEFCONFIG = beelink-a1-rk3328_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3328_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3399
+# mm_U-BOOT_BOARD_TYPE = test-rk3399.
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-rk3399_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-4se-rk3399_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4-rk3399_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-pi-4c-rk3399_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3399_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3528
+# mm_U-BOOT_BOARD_TYPE = test-rk3528.
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3528_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3566
+# mm_U-BOOT_BOARD_TYPE = test-rk3566.
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi-3b-rk3566_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = quartz64-b-rk3566_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = radxa-zero-3-rk3566_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = x96-x6-rk3566_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-3c-rk3566_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3568
+# mm_U-BOOT_BOARD_TYPE = test-rk3568.
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-3a-rk3568_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = rock-3b-rk3568_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3568_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3588_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-rk3576
+# mm_U-BOOT_BOARD_TYPE = test-rk3576.
 # mm_U-BOOT_BOARD_DEFCONFIG = generic-rk3576_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = roc-pc-rk3576_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = board-rk3576.rock_4d
@@ -97,12 +97,12 @@ include ../../gar.mk
 include ../../python3/python/package-api.mk
 
 # set to default value when package build is called without any defined board....
-mm_U-BOOT_BOARD_TYPE ?= test-rk3588
+mm_U-BOOT_BOARD_TYPE ?= test-rk3588.
 
 # set this for inform ATF about plat to build
 export mm_U-BOOT_BOARD_TYPE
 
-ifneq (,$(findstring rk3328,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring rk3328.,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk33/rk3328_ddr_333MHz_v1.21.bin
 # BL31         = ../rkbin/bin/rk33/rk322xh_bl31_v1.49.elf
 BL31         = $(DESTDIR)$(libdir)/u-boot/rk3328/bl31.bin
@@ -112,7 +112,7 @@ DDR_BIN      = ${TPL}
 DEFCONFIG    = generic-rk3328_defconfig
 endif
 
-ifneq (,$(findstring rk3399,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring rk3399.,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk33/rk3399_ddr_800MHz_v1.30.bin
 # use rkbin bl31 as with mainline 2.13 bl31 there is no hdmi auio
 BL31         = ../rkbin/bin/rk33/rk3399_bl31_v1.36.elf
@@ -123,7 +123,7 @@ DDR_BIN      = ${TPL}
 DEFCONFIG    = generic-rk3399_defconfig
 endif
 
-ifneq (,$(findstring rk3528,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring rk3528.,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3528_ddr_1056MHz_4BIT_PCB_v1.11.bin
 # use rkbin bl31 as mainline 2.13 bl31 don't have support for 3528 (yet)
 BL31         = ../rkbin/bin/rk35/rk3528_bl31_v1.20.elf
@@ -134,7 +134,7 @@ DDR_BIN      = ${TPL}
 DEFCONFIG    = generic-rk3528_defconfig
 endif
 
-ifneq (,$(findstring rk3566,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring rk3566.,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3566_ddr_1056MHz_v1.23.bin
 # use rkbin bl31 as with mainline 2.13 bl31 there is issue with gpu clocking
 BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.45.elf
@@ -146,7 +146,7 @@ DDR_BIN      = ${TPL}
 DEFCONFIG    = generic-rk3568_defconfig
 endif
 
-ifneq (,$(findstring rk3568,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring rk3568.,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3568_ddr_1056MHz_v1.23.bin
 # use rkbin bl31 as with mainline 2.13 bl31 there is issue with gpu clocking
 BL31         = ../rkbin/bin/rk35/rk3568_bl31_v1.45.elf
@@ -157,7 +157,7 @@ DDR_BIN      = ${TPL}
 DEFCONFIG    = generic-rk3568_defconfig
 endif
 
-ifneq (,$(findstring rk3576,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring rk3576.,$(mm_U-BOOT_BOARD_TYPE)))
 TPL          = ../rkbin/bin/rk35/rk3576_ddr_lp4_2112MHz_lp5_2736MHz_v1.09.bin
 # use rkbin bl31 as with mainline 2.13 bl31 there is issue with constantly low cpu clocks
 # use rkbin bl31 v1.08 as newer vers. have issue with constantly low cpu clocks
