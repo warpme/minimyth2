@@ -3,7 +3,7 @@
 # test bootloader will be in usr/lib/u-boot/test-<soc>
 
 # for h6 - rememnber also to rebuild crust...
-# mm_U-BOOT_BOARD_TYPE = test-h6
+# mm_U-BOOT_BOARD_TYPE = test-h6.
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6_defconfig
 # CRUST_CONFIG              = tanix_tx6_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = beelink_gs1_defconfig
@@ -11,14 +11,14 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi_3_lts_defconfig
 # CRUST_CONFIG              = orangepi_3_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-h616
+# mm_U-BOOT_BOARD_TYPE = test-h616.
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_axp313_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero2_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx6s_kingston_lpddr3_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = pendoo-x12_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-h313
+# mm_U-BOOT_BOARD_TYPE = test-h313.
 # mm_U-BOOT_BOARD_DEFCONFIG = x96_q_lpddr3_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = x96_q_lpddr3_v1.3_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = x96_q_ddr3_defconfig
@@ -26,7 +26,7 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_v1.2_defconfig
 
-# mm_U-BOOT_BOARD_TYPE = test-h618
+# mm_U-BOOT_BOARD_TYPE = test-h618.
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero3_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = orangepi_zero2w_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = vontar_h618_defconfig
@@ -91,7 +91,7 @@ include ../../gar.mk
 include ../../python3/python/package-api.mk
 
 # set to default value when package build is called without any defined board....
-mm_U-BOOT_BOARD_TYPE      ?= test-h6
+mm_U-BOOT_BOARD_TYPE      ?= test-h6.
 mm_U-BOOT_BOARD_DEFCONFIG ?= tanix_tx6_defconfig
 CRUST_CONFIG              ?= tanix_tx6_defconfig
 
@@ -104,7 +104,7 @@ INSTALL_PREF = h6
 BL31         = $(DESTDIR)$(libdir)/u-boot/h6/bl31.bin
 DEFCONFIG    = generic-h6_defconfig
 endif
-ifneq (,$(findstring h313,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring h313.,$(mm_U-BOOT_BOARD_TYPE)))
 INSTALL_PREF = h313
 BL31         = $(DESTDIR)$(libdir)/u-boot/h313/bl31.bin
 DEFCONFIG    = generic-h313_defconfig
@@ -119,7 +119,7 @@ INSTALL_PREF = h618
 BL31         = $(DESTDIR)$(libdir)/u-boot/h618/bl31.bin
 DEFCONFIG    = generic-h618_defconfig
 endif
-ifneq (,$(findstring a523,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring a523.,$(mm_U-BOOT_BOARD_TYPE)))
 INSTALL_PREF = a523
 BL31         = $(DESTDIR)$(libdir)/u-boot/a523/bl31.bin
 DEFCONFIG    = generic-a523_defconfig
