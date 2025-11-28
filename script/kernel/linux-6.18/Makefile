@@ -357,6 +357,8 @@ PATCHFILES += 1062-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
 PATCHFILES += 1063-media-rockchip-rkvdec-vdpu381-and-383-v3-fix-vp9.patch
 # fix mmc cqe
 PATCHFILES += 1076-mmc-sdhci-of-dwcmshc-add-command-queue-support.patch
+# fix speaker-test -c 6 resulting silence on FC/RR/LFE
+PATCHFILES += 1077-drm-bridge-dw-hdmi-qp-fix-mulichannel-audio-mappings.patch
 # fix from armbian for initialize h264 frame_mbs_only_flag as 1
 PATCHFILES += 1078-media-v4l2-core-Initialize-h264-frame_mbs_only_flag-as-1.patch
 # dtsi additions
