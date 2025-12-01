@@ -28,7 +28,7 @@ install-custom:
 	@cp -Rdf $(WORKSRC)/* $(DESTDIR)$(elibdir)/firmware/
 
 	@# qualcomm gcs6490 gpu firmware
-	@mkdir $(DESTDIR)$(elibdir)/firmware/qcom/vpu-2.0
+	@mkdir -p $(DESTDIR)$(elibdir)/firmware/qcom/vpu-2.0
 	@cp -f $(DESTDIR)$(elibdir)/firmware/qcom/vpu/vpu20_p1.mbn $(DESTDIR)$(elibdir)/firmware/qcom/vpu-2.0/venus.mbn
 
 	@# Broadcom 43430 bin and clm_blob
@@ -118,6 +118,24 @@ ifeq (0,1)
 	@ln -srf $(BRCM_SOURCE)/cyfmac-ap6330-sdio.clm_blob $(BRCM_DEST)/brcmfmac-ap6330-sdio.oranth,tanix-tx6-mini.clm_blob
 	@ln -srf $(BRCM_SOURCE)/cyfmac-ap6330-sdio.clm_blob $(BRCM_DEST)/brcmfmac-ap6330-sdio.oranth,tanix-tx6.clm_blob
 endif
+
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-7265D-29.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-3160-17.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-3168-29.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-3945-2.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-5000-5.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-5150-2.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-6000-4.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-6000g2b-6.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-6050-5.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-7260-17.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-7265-17.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-7265D-29.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-7265-17.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-8000C-36.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-9000-pu-b0-jf-b0-46.ucode $(DESTDIR)$(elibdir)/firmware/
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/intel/iwlwifi/iwlwifi-9260-th-b0-jf-b0-46.ucode $(DESTDIR)$(elibdir)/firmware/
+
 	@$(MAKECOOKIE)
 
 clean-all: clean
