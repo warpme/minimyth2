@@ -42,8 +42,6 @@ PATCHFILES  = linux-6.18.patch.gar
 PATCHFILES += linux-6.18-perl.patch.gar
 PATCHFILES += linux-6.18-defaults.patch
 
-PATCHFILES += 0000-arm64-proton-pack-fix-qcom-hard-lockup-by-commit-62e72463ca71.patch
-
 ifeq (1,1)
 
 PATCHFILES += 0108-drivers-led-add-openvfd-g3118dda3.patch
