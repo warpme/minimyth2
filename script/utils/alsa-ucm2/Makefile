@@ -4,8 +4,7 @@ GARVERSION   = 1.2.14
 CATEGORIES   = utils
 MASTER_SITES = https://www.alsa-project.org/files/pub/lib/
 DISTFILES    = $(DISTNAME).tar.bz2
-# ucm2 stopped to work correctly on amlogic
-# PATCHFILES   = alsa-ucm-conf-add-amlogic-cards.patch
+PATCHFILES   = ucm2-Qualcomm-add-Radxa-Dragon-Q6A.patch
 WORKSRC      = $(WORKDIR)/$(DISTNAME)/ucm2
 
 DENENDS      = lib/alsa-lib
