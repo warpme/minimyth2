@@ -95,6 +95,10 @@ fi
 echo "Restoring Kodi settings ..."
 mm_kodi_settings_restore
 
+mkdir -p /home/minimyth/.kodi/temp/
+touch /home/minimyth/.kodi/temp/kodi.log
+chown minimyth:minimyth /home/minimyth/.kodi/temp/kodi.log
+
 echo "Kodi cmd.line:"${kodi_cmdline}
 
 if [ x$1 = "xgdb" ] ; then
