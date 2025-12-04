@@ -12,8 +12,9 @@ include ../../minimyth.conf.mk
 
 PATCHFILES  =
 
+PATCHFILES += 0000-hack-to-make-dvdnav-compiling.patch
+
 PATCHFILES += 0000-cmake-stop-checking-libx264.patch
-PATCHFILES += 0000-cmake-fix-building-dvdnav.patch
 PATCHFILES += 0000-cmake-enable-x11-on-crosscompile.patch
 PATCHFILES += 0000-cmake-stop-checking-python-perl-deps-in-plugins-on-crosscompile.patch
 PATCHFILES += 0000-cmake-enable-dbus-webengine-on-crosscompile.patch
@@ -91,7 +92,7 @@ PATCHFILES += 0158-ffmpeg-libavfilter-add-v4l2m2m-deinterlace-filter.patch
 # add initial v4l2_requet av1 support
 PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
-PATCHFILES += 0161-hack-hack-hack-ffmpeg-libavcodec-v4l~m2m-backport-rpi-seek-improvements-v4.patch
+# PATCHFILES += 0161-hack-hack-hack-ffmpeg-libavcodec-v4l~m2m-backport-rpi-seek-improvements-v4.patch
 endif
 endif
 
