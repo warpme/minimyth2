@@ -1,7 +1,7 @@
 
 GARNAME      = mesa
-# 25.3.0
-GARVERSION   = f7aeb0d677e71b68bf2ea04b07c0b7274451deab
+# 25.3.1
+GARVERSION   = 5005a50879b11b953ade113fccd13a208f706ba0
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 WORKSRC      = $(WORKDIR)/$(DISTNAME)
@@ -47,7 +47,7 @@ BUILDDEPS  = \
 	wayland/wayland-core \
 	opengl/glslang       \
 	devel/llvm           \
-	opengl/mesa-git      \
+	opengl/mesa          \
 
 else
 # deps for build
