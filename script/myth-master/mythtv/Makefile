@@ -12,6 +12,8 @@ include ../../minimyth.conf.mk
 
 PATCHFILES  =
 
+PATCHFILES += 0000-hack-mute-non-configured-audio-false-error.patch
+
 PATCHFILES += 0000-hack-to-make-dvdnav-compiling.patch
 
 PATCHFILES += 0000-cmake-stop-checking-libx264.patch
@@ -35,7 +37,7 @@ ifeq (1,1)
 PATCHFILES += 0013-MythMainWindow-not-use-qRound-in-MythUIScreenBounds.patch
 # UPnP patches
 PATCHFILES += 0030-UPnP-Change-reported-ver-to-1.patch
-PATCHFILES += 0031-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-thread.patch
+#PATCHFILES += 0031-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-thread.patch
 PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music.patch
 
 # Some patches for better logging
@@ -45,7 +47,7 @@ PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
 PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 # speedup a bit portcheck
-PATCHFILES += 0059-portchecker-speedup.patch
+#PATCHFILES += 0059-portchecker-speedup.patch
 
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
@@ -56,7 +58,7 @@ PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
 PATCHFILES += 0105-Minimyth-defaults.patch
 PATCHFILES += 0106-hack-for-correct-perl-bindings-install.patch
 PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
-PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
+#PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
