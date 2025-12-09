@@ -12,7 +12,7 @@ include ../../minimyth.conf.mk
 
 PATCHFILES  =
 
-PATCHFILES += 0000-hack-mute-non-configured-audio-false-error.patch
+#PATCHFILES += 0000-hack-mute-non-configured-audio-false-error.patch
 
 PATCHFILES += 0000-hack-to-make-dvdnav-compiling.patch
 
