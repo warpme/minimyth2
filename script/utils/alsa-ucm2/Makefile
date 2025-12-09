@@ -1,10 +1,9 @@
 
 GARNAME      = alsa-ucm-conf
-GARVERSION   = 1.2.14
+GARVERSION   = 1.2.15
 CATEGORIES   = utils
 MASTER_SITES = https://www.alsa-project.org/files/pub/lib/
 DISTFILES    = $(DISTNAME).tar.bz2
-PATCHFILES   = ucm2-Qualcomm-add-Radxa-Dragon-Q6A.patch
 
 DENENDS      = lib/alsa-lib
 
