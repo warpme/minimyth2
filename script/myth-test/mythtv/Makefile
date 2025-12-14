@@ -1,19 +1,35 @@
 
 # DISABLE_LTO  = yes
+# USE_CMAKE = yes
 
 GARNAME      = mythtv
 GARVERSION   = $(MYTHTV_GIT_HASH)
 CATEGORIES   = $(CATEGORY)
-MASTER_SITES = https://github.com/ulmus-scott/mythtv/archive/
+MASTER_SITES = https://github.com/MythTV/mythtv/archive/
 DISTFILES    = $(MYTHTV_GIT_HASH).zip
 
 include ../../minimyth.conf.mk
 
 PATCHFILES  =
 
+#PATCHFILES += 0000-hack-mute-non-configured-audio-false-error.patch
+
+PATCHFILES += 0000-hack-to-make-dvdnav-compiling.patch
+
+PATCHFILES += 0000-cmake-stop-checking-libx264.patch
+PATCHFILES += 0000-cmake-enable-x11-on-crosscompile.patch
+PATCHFILES += 0000-cmake-stop-checking-python-perl-deps-in-plugins-on-crosscompile.patch
+PATCHFILES += 0000-cmake-enable-dbus-webengine-on-crosscompile.patch
+
+# backend related patches
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
-PATCHFILES += 0001-configure-disable-checks-perl-python-in-cross-compile.patch
-PATCHFILES += 0002-configure-set-to-GAR-perl-python.patch.gar
+PATCHFILES += 0003-SCR-keep-disecq-always-18V.patch
+PATCHFILES += 0004-mythbackend-mainserver-move-some-verbosities-to-debug.patch
+PATCHFILES += 0005-mythlib-eitscanner-increase-info-level-verbosities.patch
+PATCHFILES += 0006-mythlib-eit-add-schedulled-scans.patch
+PATCHFILES += 0007-mythlib-add-concurrent-rec-delay.patch
+PATCHFILES += 0009-EIT-ticket9480-fix-PL-eit-encodings.patch
+PATCHFILES += 0012-revert-Check-start-byte-of-next-table-in-packet.patch
 
 # change to ifeq (0,1) if you want to disable all patches
 ifeq (1,1)
@@ -21,15 +37,17 @@ ifeq (1,1)
 PATCHFILES += 0013-MythMainWindow-not-use-qRound-in-MythUIScreenBounds.patch
 # UPnP patches
 PATCHFILES += 0030-UPnP-Change-reported-ver-to-1.patch
-PATCHFILES += 0031-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-thread.patch
+#PATCHFILES += 0031-UPnP-Reduce-startup-latency-by-moving-blocking-code-to-own-thread.patch
 PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music.patch
 
 # Some patches for better logging
+PATCHFILES += 0051-Loging-Add-better-TID-verbosity.patch
+PATCHFILES += 0053-Loging-Add-verbose-dvb-lock-loging.patch
 PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
 PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 # speedup a bit portcheck
-PATCHFILES += 0059-portchecker-speedup.patch
+#PATCHFILES += 0059-portchecker-speedup.patch
 
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
@@ -40,7 +58,7 @@ PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
 PATCHFILES += 0105-Minimyth-defaults.patch
 PATCHFILES += 0106-hack-for-correct-perl-bindings-install.patch
 PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
-PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
+#PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
@@ -55,26 +73,28 @@ PATCHFILES += 0116-mythplayerui-fix-2x-di-sometimes-not-avaliable.patch
 PATCHFILES += 0117-configure-add-v4l2request-support.patch
 # enable LTO; patches from issue #224
 PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
-# qt6 segfault fix...
-PATCHFILES += 0119-pul984-fix-qt-segfault-by-always-setting-surface-type-to-gl.patch
+# some fixes to build on minimyth2
+PATCHFILES += 0119-configure-disable-checks-perl-python-in-cross-compile.patch
+PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
+
 
 ifeq (1,1)
 # v4l2_m2m and v4l2_request patches
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
 PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
+# update ffmpeg to 8.0
+PATCHFILES += 0151-ffmpeg-pull1223-update-ffmpeg-to-8.0.patch
 # v4l2-request support in ffmpeg (requires also kernel patching)
-PATCHFILES += 0155-ffmpeg-add-v4l2-request-kwiboo-20240805-g5dfc0cc8-hevc-jernej-v3.patch
+PATCHFILES += 0155-ffmpeg-add-v4l2_request-support-8.0-kwiboo-v4l2request-v3-av1-14122025.patch
 # Fix for opposite fields usec in opengl di
 PATCHFILES += 0156-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # make v4l2_request seeking on h264 content working
 PATCHFILES += 0157-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
-# add hw deinterlace filter
-PATCHFILES += 0158-ffmpeg-libavfilter-add-v4l2m2m-deinterlace-filter.patch
 # add initial v4l2_requet av1 support
 PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
-PATCHFILES += 0161-hack-hack-hack-ffmpeg-libavcodec-v4l~m2m-backport-rpi-seek-improvements-v4.patch
+PATCHFILES += 0161-hack-hack-hack-ffmpeg8-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_2.patch
 endif
 endif
 
@@ -110,10 +130,6 @@ PATCHFILES += 0284-NetworkControl-reduce-connects-logging.patch
 PATCHFILES += 0300-scripts-hardwareprofile-fix-add-aarch64-smolt.patch
 
 # --------Patches 350+ are plugins patches---------------------
-# Various mythmusic patches
-PATCHFILES += 0405-MythMusic-Wait-for-scanner-and-eject-threads-before-deleting.patch
-PATCHFILES += 0406-MythMusic-Make-initial-scan-by-CD-ripper-run-in-background.patch
-PATCHFILES += 0407-mythmusic-pull835-support-playing-AudioCD-from-optical-disc-menu.patch
 
 # Various mythweather patches
 PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.patch
@@ -140,43 +156,71 @@ DEPENDS = \
 	db/sqlite \
 	lib/alsa-lib \
 	lib/avahi \
+	lib/libbluray \
 	lib/dav1d \
 	lib/exiv2 \
+	lib/flac \
 	lib/freetype \
 	lib/lame \
 	lib/libass \
 	lib/libavc1394 \
+	lib/libcdaudio \
 	lib/libcdio \
 	lib/libcdio-paranoia \
+	lib/libcoverart \
 	lib/libcec \
+	lib/libdiscid \
+	lib/libexif \
+	lib/libiconv \
 	lib/libiec61883 \
+	lib/libmusicbrainz5 \
+	lib/libogg \
+	lib/libtiff \
+	lib/libsamplerate \
+	lib/libsoundtouch \
+	lib/libvorbis \
 	lib/libxml2 \
 	lib/libzip \
 	lib/lzo \
 	lib/openssl \
-	lib/libsamplerate \
-	lib/libbluray \
 	lib/SDL2 \
-	lib/libsoundtouch \
 	lib/taglib \
 	devel/zlib \
 	devel/yasm \
 	python3/python \
+	python3/python-aniso8601 \
+	python3/python-beautifulsoup4 \
+	python3/python-discid \
 	python3/python-future \
 	python3/python-lxml \
+	python3/python-musicbrainzngs \
 	python3/python-mysqlclient \
 	python3/python-requests-cache \
+	python3/python-oauth \
+	python3/python-pycurl \
 	python3/python-simplejson \
 	python3/python-urlgrabber \
+	perl/perl-Date-Calc \
+	perl/perl-Date-Manip \
+	perl/perl-DateTime-Format-ISO8601 \
 	perl/perl-DBD-mysql \
 	perl/perl-DBI \
 	perl/perl-HTTP-Message \
+	perl/perl-Image-Size \
 	perl/perl-IO-Socket-INET6 \
+	perl/perl-JSON \
 	perl/perl-libwww-perl \
 	perl/perl-Net-UPnP \
 	perl/perl-XML-Simple \
+	perl/perl-PerlMagick \
+	perl/perl-SOAP-Lite \
+	perl/perl-TimeDate \
+	perl/perl-XML-Simple \
+	perl/perl-XML-TreeBuilder \
+	perl/perl-XML-XPath \
 	system/lirc \
 	system/eudev \
+	utils/v4l-utils \
 	X11/libvdpau \
 	X11/libva \
 	xorg/xorg \
@@ -188,12 +232,23 @@ CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
 PWD := $(shell pwd)
 
+WORKBLD = $(WORKSRC)_build
+
+ifeq ($(USE_CMAKE),yes)
+# cmake variant
+CONFIGURE_SCRIPTS = $(WORKBLD)/cmake
+BUILD_SCRIPTS     = custom
+INSTALL_SCRIPTS   = 
+else
+# automake variant
 CONFIGURE_SCRIPTS = $(WORKSRC)/mythtv/configure
 BUILD_SCRIPTS     = $(WORKSRC)/mythtv/Makefile
 INSTALL_SCRIPTS   = $(WORKSRC)/mythtv/Makefile source
+endif
 
 comma:= ,
 
+# automake config para
 CONFIGURE_ARGS = \
 	--compile-type=$(if $(filter yes,$(mm_DEBUG)),"debug","release") \
 	--prefix="$(DESTDIR)$(prefix)" \
@@ -278,26 +333,116 @@ CONFIGURE_ARGS = \
 	--enable-ffplay \
 	--enable-sdl2 \
 	--python="python3" \
-	--enable-silent-cc \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
 	--enable-libdav1d \
+	--enable-silent-cc \
 
-CONFIGURE_ENV  = $(MYTHTV_CONFIGURE_ENV)
-BUILD_ENV      = $(MYTHTV_BUILD_ENV)
-INSTALL_ENV    = $(MYTHTV_INSTALL_ENV)
+# cmake config para
+CMAKE_CONFIGURE_ARGS = \
+	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
+	$(if $(filter qt6,$(mm_QT_VERSION)),--preset qt6,--preset qt5) \
+	-DCMAKE_INSTALL_PREFIX=$(DESTDIR)$(prefix) \
+	-DCMAKE_INSTALL_LIBDIR='lib' \
+	-DCMAKE_BUILD_TYPE=$(if $(filter yes,$(mm_DEBUG)),Debug,Release) \
+	-DPLATFORM_CONFIGURE_ENV="$(CPPFLAGS)" \
+	-DQt5_DIR=$(DESTDIR)$(qt5prefix)/lib/cmake/Qt5 \
+	-DCMAKE_SYSTEM_PROCESSOR=$(GARCH_FAMILY) \
+	-DFF_USER_OPTS=' \
+		--arch=$(GARCH_FAMILY) \
+		--cross_prefix=$(compiler_prefix) \
+		--sysroot=$(DESTDIR)$(rootdir) \
+		--sysinclude=$(DESTDIR)$(includedir) \
+		--cc=$(compiler_prefix)gcc \
+		--cxx=$(compiler_prefix)g++ \
+		--ld=$(compiler_prefix)gcc \
+		--as=$(compiler_prefix)gcc \
+		--objcc=$(compiler_prefix)gcc \
+		--dep_cc=$(compiler_prefix)gcc \
+		--ar=$(compiler_prefix)ar \
+		--nm=$(compiler_prefix)nm \
+		--ranlib=$(compiler_prefix)ranlib \
+		--host_cc=$(build_compiler_prefix)gcc  \
+		--host_ld=$(build_compiler_prefix)gcc \
+		--cpu=generic \
+		--target_os=linux \
+		--pkg_config=$(build_DESTDIR)$(build_bindir)/pkg-config \
+		--prefix=$(DESTDIR)$(prefix) \
+		--libdir=$(DESTDIR)$(libdir) \
+		--enable-cross-compile \
+		--disable-libmp3lame \
+		--disable-libx264 \
+		--disable-libx265 \
+		--disable-libvpx \
+		--disable-libxvid \
+		--enable-libdav1d \
+		--enable-libxml2 \
+		--enable-libass \
+		--disable-dxva2 \
+		--disable-nvenc \
+		--enable-libbluray \
+		--disable-libfontconfig \
+		--disable-libfreetype \
+		--disable-libiec61883 \
+		--enable-sdl2 \
+		--enable-ffplay \
+		--enable-vaapi \
+		--enable-libdav1d \
+		$(if $(filter yes,$(DISABLE_LTO)), \
+			--disable-lto, \
+			--enable-lto \
+			--extra-cflags=-flto=auto \
+			--extra-ldflags=-flto=auto) \
+		$(if $(filter arm arm64,$(GARCH_FAMILY)), \
+			--enable-libudev \
+			--enable-v4l2_request) \
+		--enable-vdpau \
+		--enable-libdrm \
+		--disable-stripping \
+		--disable-manpages \
+		--disable-podpages \
+		--disable-doc \
+		--enable-shared \
+		--disable-static \
+		--enable-gpl \
+		--enable-pic \
+		--disable-demuxer=mpegtsraw \
+		--disable-indev=dshow' \
+	-DPERL_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/perl \
+	-DPython3_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/python3 \
+	-DCMAKE_C_FLAGS='$(CFLAGS) -Wno-incompatible-pointer-types -Wno-implicit-function-declaration -Wno-null-dereference -Wno-switch-outside-range' \
+	-DCMAKE_CXX_FLAGS='$(CXXFLAGS) -Wno-null-dereference -Wno-switch-outside-range' \
+	-DOPENGL_opengl_LIBRARY=$(DESTDIR)$(libdir)/libGL.so \
+	-DENABLE_AUDIO_JACK="OFF" \
+	-DENABLE_AUDIO_PULSE="OFF" \
+	-DENABLE_ASI="OFF" \
+	-DENABLE_MMAL="OFF" \
+	-DENABLE_FIREWIRE="OFF" \
+	-DENABLE_SYSTEMD_NOTIFY="OFF" \
+	-DENABLE_SYSTEMD_JOURNAL="OFF" \
+	-DUSING_BINDINGS_PHP="OFF" \
+	-DENABLE_NVDEC="OFF" \
+	-DMYTH_RUN_PREFIX=$(prefix) \
+	-DMYTH_BINDINGS_INSTALL_ROOT=/ \
+	-DFF_PLATFORM_ARGS='--disable-ffplay' \
+	-DMYTHTV_SOURCE_BRANCH="master" \
+	-DMAKE_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/make \
+	-DPATCH_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/patch \
+	-DMESON_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/meson \
+	-DNINJA_EXECUTABLE=$(build_DESTDIR)$(build_bindir)/ninja \
+	$(if $(filter qt6,$(mm_QT_VERSION)), \
+		-D_QTGUI_CONFIG=$(DESTDIR)$(qt6prefix)/include/QtGui/qtgui-config.h, \
+		-D_QTGUI_CONFIG=$(DESTDIR)$(qt5prefix)/include/QtGui/qtgui-config.h) \
+	-DENABLE_QTWEBENGINE="ON" \
+	-DPLATFORM_ARGS='--debug-find' \
 
-BUILD_ENV     += PYTHONXCPREFIX=$(DESTDIR)$(prefix)
-INSTALL_ENV   += PYTHONPATH=$(DESTDIR)$(PYTHON_libdir)/site-packages
+build-custom:
+	@cd $(WORKSRC); CMAKE_BUILD_PARALLEL_LEVEL=$(CPUS) $(CMAKE) --build $(if $(filter qt6,$(mm_QT_VERSION)),build-qt6,build-qt5)
 
 GAR_EXTRA_CONF += python3/python/package-api.mk
 include ../../gar.mk
 
-CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
-CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
-CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
-
-CPPFLAGS += -fPIC -fuse-linker-plugin
-CFLAGS   += -fPIC -fuse-linker-plugin -Wno-incompatible-pointer-types -Wno-implicit-function-declaration
+CXXFLAGS += -I$(DESTDIR)$(includedir)/taglib
+CPPFLAGS += -fPIC -fuse-linker-plugin -I$(DESTDIR)$(includedir)/taglib
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
@@ -310,10 +455,6 @@ CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
 endif
 
-svn//%/$(DISTNAME).tar.bz2:
-	@$(call FETCH_SVN, http://$*, $(MYTHTV_SVN_VERSION), $(DISTNAME))
-	@$(MAKECOOKIE)
-
 checksum-$(DISTNAME).tar.bz2:
 	@$(MAKECOOKIE)
 
@@ -325,8 +466,16 @@ install-source:
 	@$(MAKECOOKIE)
 
 pre-configure:
+	@rm -rf $(DESTDIR)$(includedir)/myth*
+	@rm -rf $(DESTDIR)$(libdir)/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/ffnvcodec.pc
+	@rm -rf $(DESTDIR)$(libdir)/myth*
+	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV
+	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV-*
 	@echo 'BRANCH="$(MYTHTV_GARVERSION_SHORT)"' > $(WORKSRC)/mythtv/DESCRIBE
 	@echo 'SOURCE_VERSION="$(MYTHTV_GIT_VERSION)"' >> $(WORKSRC)/mythtv/DESCRIBE
+	@cd $(WORKSRC)/mythtv; ./version.sh ./
 	@$(MAKECOOKIE)
 
 post-configure:
@@ -339,6 +488,7 @@ post-configure:
 pre-install: post-configure
 
 post-install:
+	@$(MAKE) -C ../mythplugins install
 	@$(MAKE) -C ../myththeme-Monochrome-mm2 install
 	@$(MAKECOOKIE)
 
@@ -348,6 +498,8 @@ clean-all:
 	@rm -rf $(DESTDIR)$(datadir)/myth*
 	@rm -rf $(DESTDIR)$(includedir)/myth*
 	@rm -rf $(DESTDIR)$(libdir)/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/libmyth*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/ffnvcodec.pc
 	@rm -rf $(DESTDIR)$(libdir)/myth*
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV
 	@rm -rf $(DESTDIR)$(libdir)/python*/site-packages/MythTV-*

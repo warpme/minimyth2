@@ -1,0 +1,75 @@
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp
+--- mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp	2025-10-28 12:28:56.312160128 +0100
++++ mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.cpp	2025-10-28 11:21:09.555479679 +0100
+@@ -201,6 +201,7 @@
+     m_overRecordSecNrml = gCoreContext->GetDurSetting<std::chrono::seconds>("RecordOverTime");
+     m_overRecordSecCat  = gCoreContext->GetDurSetting<std::chrono::minutes>("CategoryOverTime");
+     m_overRecordCategory= gCoreContext->GetSetting("OverTimeCategory");
++    rec_delay_per_card  = gCoreContext->GetNumSetting("ConcurrentRecDelay", 0);
+ 
+     m_eventThread->start();
+ 
+@@ -848,6 +849,32 @@
+     SendMythSystemRecEvent("REC_STARTED", curRec);
+ }
+ 
++static int no_capturecards(uint inputid)
++{
++    MSqlQuery query(MSqlQuery::InitCon());
++
++    QString str =
++        "SELECT COUNT(cardid) "
++        "FROM capturecard ";
++
++    if (inputid)
++        str += "WHERE cardid < :INPUTID";
++
++    query.prepare(str);
++
++    if (inputid)
++        query.bindValue(":INPUTID", inputid);
++
++    if (!query.exec() || !query.isActive())
++    {
++        MythDB::DBError("no_capturecards", query);
++        return -1;
++    }
++    else if (query.next())
++        return query.value(0).toInt();
++    return -1;
++}
++
+ /** \brief If not a premature stop, adds program to history of recorded
+  *         programs. If the recording type is kOneRecord this find
+  *         is removed.
+@@ -1194,6 +1221,18 @@
+     }
+     else if (TRANSITION(kState_None, kState_RecordingOnly))
+     {
++        if (rec_delay_per_card > 0)
++        {
++            int card_pos = no_capturecards(m_inputId);
++            int rec_start_delay = rec_delay_per_card * card_pos;
++
++            LOG(VB_GENERAL, LOG_INFO, LOC +
++                QString("Delaying start of recording by %1msec").arg(rec_start_delay));
++            std::this_thread::sleep_for(std::chrono::milliseconds(rec_start_delay));
++            LOG(VB_GENERAL, LOG_INFO, LOC +
++                "Now start recording...");
++        }
++
+         SetPseudoLiveTVRecording(nullptr);
+         m_tuningRequests.enqueue(TuningRequest(kFlagRecording, m_curRecording));
+         SET_NEXT();
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h
+--- mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h	2025-10-28 12:28:56.312160128 +0100
++++ mythtv-7c781b38604e2d4751f427c0527cc73d75bf7ca6/mythtv/libs/libmythtv/tv_rec.h	2025-10-28 12:26:57.675493030 +0100
+@@ -389,6 +389,8 @@
+ 
+     QString            m_recProfileName;
+ 
++    int                rec_delay_per_card         {0};
++
+     // State variables
+     mutable QMutex     m_setChannelLock;
+     mutable QRecursiveMutex  m_stateChangeLock;

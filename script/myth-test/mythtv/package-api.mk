@@ -1,8 +1,8 @@
 
-MYTHTV_GARVERSION_SHORT = test
-MYTHTV_SVN_VERSION      = 20241223-g433e7aff2f
-MYTHTV_GIT_VERSION      = v35-Pre-543-g433e7aff2f
-MYTHTV_GIT_HASH         = 433e7aff2fe00520488f01de71c2344d79e84985
+MYTHTV_GARVERSION_SHORT = master
+MYTHTV_SVN_VERSION      = 20251209-g3a8261344a
+MYTHTV_GIT_VERSION      = v36-Pre-706-g3a8261344a
+MYTHTV_GIT_HASH         = 3a8261344a460ed8dc74de195011d342f52b4c0c
 
 MYTHTV_VERSION = $(MYTHTV_GARVERSION_SHORT)-$(MYTHTV_SVN_VERSION)
 
@@ -20,7 +20,6 @@ MYTHTV_PLUGINS_CONFIGURE_ARGS = \
 	--qmake="$(qtqmake)" \
 	--libdir-name="$(patsubst $(prefix)/%,%,$(libdir))" \
 	--disable-all \
-	--enable-opengl \
 	--enable-cross-compile \
 
 post-install-mythtv-version:
