@@ -353,6 +353,8 @@ PATCHFILES += 1061-media-rkvdec-remove-ext_sps_lst_rps-validation-24102025.patch
 PATCHFILES += 1062-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
 # fix for grey screen on rkvdec1 vp9
 PATCHFILES += 1063-media-rockchip-rkvdec-vdpu381-and-383-v3-fix-vp9.patch
+# fix av1 hw decode seen e.g. on clapper
+PATCHFILES += 1064-media-verisilicon-AV1-fix-enable-cdef-computation.patch
 # fix mmc cqe
 PATCHFILES += 1076-mmc-sdhci-of-dwcmshc-add-command-queue-support.patch
 # fix speaker-test -c 6 resulting silence on FC/RR/LFE
