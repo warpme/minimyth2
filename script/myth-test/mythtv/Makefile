@@ -84,13 +84,14 @@ ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
 # update ffmpeg to 8.0
 PATCHFILES += 0151-ffmpeg-pull1223-update-ffmpeg-to-8.0.patch
-#ifeq (0,1)
 # v4l2-request support in ffmpeg (requires also kernel patching)
 PATCHFILES += 0155-ffmpeg-add-v4l2_request-support-v4l2request-n8.0.1-14122025.patch
 # Fix for opposite fields usec in opengl di
 PATCHFILES += 0156-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # make v4l2_request seeking on h264 content working
 PATCHFILES += 0157-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
+# add some extra fourcc
+PATCHFILES += 0158-ffmpeg8-libavutil-add-extra-fourcc.patch
 # add initial v4l2_requet av1 support
 PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder

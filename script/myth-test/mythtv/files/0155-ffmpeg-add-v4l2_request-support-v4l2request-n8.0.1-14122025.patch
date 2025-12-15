@@ -1,7 +1,7 @@
-From 30af93a2f1f0650d355115f2d17f9e4e963b9b0a Mon Sep 17 00:00:00 2001
+From d3f145859d0c819d5c6cc1615ad476a515e82f8d Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Tue, 6 Aug 2024 09:06:00 +0000
-Subject: [PATCH 01/15] avutil/hwcontext: Add hwdevice type for V4L2 Request
+Subject: [PATCH 01/13] avutil/hwcontext: Add hwdevice type for V4L2 Request
  API
 
 Add a hwdevice type for use with V4L2 Request API stateless decoding.
@@ -21,7 +21,6 @@ to a AVDRMFrameDescriptor and AVFrame.data[1] the CAPTURE buffer index.
 
 Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
 ---
- .forgejo/CODEOWNERS                        |   1 +
  configure                                  |   8 +
  libavutil/Makefile                         |   4 +
  libavutil/hwcontext.c                      |   4 +
@@ -30,16 +29,16 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  libavutil/hwcontext_v4l2request.c          | 588 +++++++++++++++++++++
  libavutil/hwcontext_v4l2request.h          |  70 +++
  libavutil/hwcontext_v4l2request_internal.h |  67 +++
- 9 files changed, 744 insertions(+)
+ 8 files changed, 743 insertions(+)
  create mode 100644 libavutil/hwcontext_v4l2request.c
  create mode 100644 libavutil/hwcontext_v4l2request.h
  create mode 100644 libavutil/hwcontext_v4l2request_internal.h
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/configure mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-index 083a309..aeadd3d 100755
+index a0eed36..1b0301e 100755
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/configure
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-@@ -367,6 +367,7 @@ External library support:
+@@ -361,6 +361,7 @@ External library support:
    --enable-omx-rpi         enable OpenMAX IL code for Raspberry Pi [no]
    --enable-rkmpp           enable Rockchip Media Process Platform code [no]
    --disable-v4l2-m2m       disable V4L2 mem2mem code [autodetect]
@@ -47,7 +46,7 @@ index 083a309..aeadd3d 100755
    --disable-vaapi          disable Video Acceleration API (mainly Unix/Intel) code [autodetect]
    --disable-vdpau          disable Nvidia Video Decode and Presentation API for Unix code [autodetect]
    --disable-videotoolbox   disable VideoToolbox code [autodetect]
-@@ -2087,6 +2088,7 @@ HWACCEL_LIBRARY_LIST="
+@@ -2048,6 +2049,7 @@ HWACCEL_LIBRARY_LIST="
      mmal
      omx
      opencl
@@ -55,7 +54,7 @@ index 083a309..aeadd3d 100755
  "
  
  DOCUMENT_LIST="
-@@ -3246,6 +3248,8 @@ dxva2_deps="dxva2api_h DXVA2_ConfigPictureDecode ole32 user32"
+@@ -3195,6 +3197,8 @@ dxva2_deps="dxva2api_h DXVA2_ConfigPictureDecode ole32 user32"
  ffnvcodec_deps_any="libdl LoadLibrary"
  mediacodec_deps="android mediandk pthreads"
  nvdec_deps="ffnvcodec"
@@ -64,7 +63,7 @@ index 083a309..aeadd3d 100755
  vaapi_x11_deps="xlib_x11"
  videotoolbox_hwaccel_deps="videotoolbox pthreads"
  videotoolbox_hwaccel_extralibs="-framework QuartzCore"
-@@ -7472,6 +7476,10 @@ if enabled v4l2_m2m; then
+@@ -7371,6 +7375,10 @@ if enabled v4l2_m2m; then
      check_cc vp9_v4l2_m2m linux/videodev2.h "int i = V4L2_PIX_FMT_VP9;"
  fi
  
@@ -896,10 +895,10 @@ index 0000000..20436b2
 -- 
 2.46.0
 
-From 68e54ece6fd43b3f4264ae7740e448bee6a5198c Mon Sep 17 00:00:00 2001
+From 02e30bb5dbd7e63cbe38fd60a07d33d7f1363c78 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Tue, 6 Aug 2024 09:06:02 +0000
-Subject: [PATCH 02/15] avutil/hwcontext_v4l2request: Probe for a capable media
+Subject: [PATCH 02/13] avutil/hwcontext_v4l2request: Probe for a capable media
  and video device
 
 Probe all media devices and its linked video devices to locate a video
@@ -920,15 +919,15 @@ Co-developed-by: Alex Bee <knaerzche@gmail.com>
 Signed-off-by: Alex Bee <knaerzche@gmail.com>
 Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
 ---
- configure                         |   6 +-
+ configure                         |   9 +-
  libavutil/hwcontext_v4l2request.c | 506 +++++++++++++++++++++++++++++-
- 2 files changed, 508 insertions(+), 4 deletions(-)
+ 2 files changed, 510 insertions(+), 5 deletions(-)
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/configure mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-index aeadd3d..2c11182 100755
+index 1b0301e..b97a3ba 100755
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/configure
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-@@ -2023,6 +2023,7 @@ EXTERNAL_LIBRARY_LIST="
+@@ -1986,6 +1986,7 @@ EXTERNAL_LIBRARY_LIST="
      libtorch
      libtwolame
      libuavs3d
@@ -936,7 +935,7 @@ index aeadd3d..2c11182 100755
      libv4l2
      libvmaf
      libvorbis
-@@ -3248,8 +3249,8 @@ dxva2_deps="dxva2api_h DXVA2_ConfigPictureDecode ole32 user32"
+@@ -3197,8 +3198,8 @@ dxva2_deps="dxva2api_h DXVA2_ConfigPictureDecode ole32 user32"
  ffnvcodec_deps_any="libdl LoadLibrary"
  mediacodec_deps="android mediandk pthreads"
  nvdec_deps="ffnvcodec"
@@ -947,11 +946,21 @@ index aeadd3d..2c11182 100755
  vaapi_x11_deps="xlib_x11"
  videotoolbox_hwaccel_deps="videotoolbox pthreads"
  videotoolbox_hwaccel_extralibs="-framework QuartzCore"
-@@ -7478,6 +7479,7 @@ fi
+@@ -4140,7 +4141,7 @@ swscale_suggest="libm stdatomic"
+ 
+ avcodec_extralibs="pthreads_extralibs iconv_extralibs dxva2_extralibs liblcevc_dec_extralibs lcms2_extralibs"
+ avfilter_extralibs="pthreads_extralibs"
+-avutil_extralibs="d3d11va_extralibs d3d12va_extralibs mediacodec_extralibs nanosleep_extralibs pthreads_extralibs vaapi_drm_extralibs vaapi_x11_extralibs vaapi_win32_extralibs vdpau_x11_extralibs"
++avutil_extralibs="d3d11va_extralibs d3d12va_extralibs mediacodec_extralibs nanosleep_extralibs pthreads_extralibs v4l2_request_extralibs vaapi_drm_extralibs vaapi_x11_extralibs vaapi_win32_extralibs vdpau_x11_extralibs"
+ 
+ # programs
+ ffmpeg_deps="avcodec avfilter avformat threads"
+@@ -7377,6 +7378,8 @@ fi
  
  if enabled v4l2_request; then
      check_func_headers "linux/media.h linux/videodev2.h" v4l2_timeval_to_ns
 +    check_pkg_config libudev libudev libudev.h udev_new
++    v4l2_request_extralibs="$libudev_extralibs"
  fi
  
  check_headers sys/videoio.h
@@ -1507,10 +1516,10 @@ index b8f55ff..7bb48ef 100644
 -- 
 2.46.0
 
-From e1544c557af550090e4aa2a3961053da745563d5 Mon Sep 17 00:00:00 2001
+From 8e0fc0915a939f2e65a4671c96f58bc1c07546eb Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Tue, 6 Aug 2024 09:06:01 +0000
-Subject: [PATCH 03/15] avcodec: Add common V4L2 Request API code
+Subject: [PATCH 03/13] avcodec: Add common V4L2 Request API code
 
 Add initial helpers for supporting V4L2 Request API hwaccels.
 
@@ -1537,24 +1546,24 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  libavcodec/Makefile       |   2 +
  libavcodec/v4l2_request.c | 249 ++++++++++++++++++++++++++++++++++++++
  libavcodec/v4l2_request.h |  64 ++++++++++
- 5 files changed, 317 insertions(+)
+ 3 files changed, 315 insertions(+)
  create mode 100644 libavcodec/v4l2_request.c
  create mode 100644 libavcodec/v4l2_request.h
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-index 28ad85a..e8fd2db 100644
+index fb22541..ef028d4 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-@@ -184,6 +184,7 @@ OBJS-$(CONFIG_VIDEODSP)                += videodsp.o
- OBJS-$(CONFIG_VP3DSP)                  += vp3dsp.o
+@@ -183,6 +183,7 @@ OBJS-$(CONFIG_VP3DSP)                  += vp3dsp.o
+ OBJS-$(CONFIG_VP56DSP)                 += vp56dsp.o
  OBJS-$(CONFIG_VP8DSP)                  += vp8dsp.o
  OBJS-$(CONFIG_V4L2_M2M)                += v4l2_m2m.o v4l2_context.o v4l2_buffers.o v4l2_fmt.o
 +OBJS-$(CONFIG_V4L2_REQUEST)            += v4l2_request.o
  OBJS-$(CONFIG_WMA_FREQS)               += wma_freqs.o
  OBJS-$(CONFIG_WMV2DSP)                 += wmv2dsp.o
  
-@@ -1361,6 +1362,7 @@ SKIPHEADERS-$(CONFIG_VIDEOTOOLBOX)     += videotoolbox.h vt_internal.h
- SKIPHEADERS-$(CONFIG_VULKAN)           += ffv1_vulkan.h prores_vulkan.h vulkan_video.h \
+@@ -1335,6 +1336,7 @@ SKIPHEADERS-$(CONFIG_VIDEOTOOLBOX)     += videotoolbox.h vt_internal.h
+ SKIPHEADERS-$(CONFIG_VULKAN)           += ffv1_vulkan.h vulkan_video.h \
                                            vulkan_encode.h vulkan_decode.h
  SKIPHEADERS-$(CONFIG_V4L2_M2M)         += v4l2_buffers.h v4l2_context.h v4l2_m2m.h
 +SKIPHEADERS-$(CONFIG_V4L2_REQUEST)     += v4l2_request.h
@@ -1889,10 +1898,10 @@ index 0000000..d09bbf7
 -- 
 2.46.0
 
-From 5bc099f0a203e4a88848d2d2b3f9d636342045cc Mon Sep 17 00:00:00 2001
+From 4c6fc7e6a2cf3536b9e2a5510f5affd59dc28787 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Tue, 6 Aug 2024 09:06:03 +0000
-Subject: [PATCH 04/15] avcodec/v4l2request: Add common decode support for
+Subject: [PATCH 04/13] avcodec/v4l2request: Add common decode support for
  hwaccels
 
 Add common support for decoding using the V4L2 Request API.
@@ -1935,10 +1944,10 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  4 files changed, 579 insertions(+), 2 deletions(-)
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/configure mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-index 2c11182..a21c1b4 100755
+index b97a3ba..b53a57b 100755
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/configure
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-@@ -3249,7 +3249,7 @@ dxva2_deps="dxva2api_h DXVA2_ConfigPictureDecode ole32 user32"
+@@ -3198,7 +3198,7 @@ dxva2_deps="dxva2api_h DXVA2_ConfigPictureDecode ole32 user32"
  ffnvcodec_deps_any="libdl LoadLibrary"
  mediacodec_deps="android mediandk pthreads"
  nvdec_deps="ffnvcodec"
@@ -1947,14 +1956,14 @@ index 2c11182..a21c1b4 100755
  v4l2_request_suggest="libdrm libudev"
  vaapi_x11_deps="xlib_x11"
  videotoolbox_hwaccel_deps="videotoolbox pthreads"
-@@ -7478,6 +7478,7 @@ if enabled v4l2_m2m; then
+@@ -7377,6 +7377,7 @@ if enabled v4l2_m2m; then
  fi
  
  if enabled v4l2_request; then
 +    check_cc v4l2_m2m_hold_capture_buf linux/videodev2.h "int i = V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF"
      check_func_headers "linux/media.h linux/videodev2.h" v4l2_timeval_to_ns
      check_pkg_config libudev libudev libudev.h udev_new
- fi
+     v4l2_request_extralibs="$libudev_extralibs"
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwconfig.h mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwconfig.h
 index ee29ca6..159064a 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwconfig.h
@@ -2587,10 +2596,10 @@ index d09bbf7..53759f2 100644
 -- 
 2.46.0
 
-From 373f90a8ddfe03af5703aec93f8ad4118c868d1a Mon Sep 17 00:00:00 2001
+From c020676b61ab770f0b1c8851d163e4d785a582e5 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Tue, 6 Aug 2024 09:06:04 +0000
-Subject: [PATCH 05/15] avcodec: Add V4L2 Request API mpeg2 hwaccel
+Subject: [PATCH 05/13] avcodec: Add V4L2 Request API mpeg2 hwaccel
 
 Add a V4L2 Request API hwaccel for MPEG2.
 
@@ -2610,10 +2619,10 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  create mode 100644 libavcodec/v4l2_request_mpeg2.c
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/configure mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-index a21c1b4..bf1f5f2 100755
+index b53a57b..23961e6 100755
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/configure
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-@@ -367,7 +367,7 @@ External library support:
+@@ -361,7 +361,7 @@ External library support:
    --enable-omx-rpi         enable OpenMAX IL code for Raspberry Pi [no]
    --enable-rkmpp           enable Rockchip Media Process Platform code [no]
    --disable-v4l2-m2m       disable V4L2 mem2mem code [autodetect]
@@ -2622,7 +2631,7 @@ index a21c1b4..bf1f5f2 100755
    --disable-vaapi          disable Video Acceleration API (mainly Unix/Intel) code [autodetect]
    --disable-vdpau          disable Nvidia Video Decode and Presentation API for Unix code [autodetect]
    --disable-videotoolbox   disable VideoToolbox code [autodetect]
-@@ -2068,6 +2068,7 @@ HWACCEL_AUTODETECT_LIBRARY_LIST="
+@@ -2029,6 +2029,7 @@ HWACCEL_AUTODETECT_LIBRARY_LIST="
      videotoolbox
      vulkan
      v4l2_m2m
@@ -2630,7 +2639,7 @@ index a21c1b4..bf1f5f2 100755
  "
  
  # catchall list of things that require external libs to link
-@@ -2089,7 +2090,6 @@ HWACCEL_LIBRARY_LIST="
+@@ -2050,7 +2051,6 @@ HWACCEL_LIBRARY_LIST="
      mmal
      omx
      opencl
@@ -2638,7 +2647,7 @@ index a21c1b4..bf1f5f2 100755
  "
  
  DOCUMENT_LIST="
-@@ -3339,6 +3339,8 @@ mpeg2_dxva2_hwaccel_deps="dxva2"
+@@ -3286,6 +3286,8 @@ mpeg2_dxva2_hwaccel_deps="dxva2"
  mpeg2_dxva2_hwaccel_select="mpeg2video_decoder"
  mpeg2_nvdec_hwaccel_deps="nvdec"
  mpeg2_nvdec_hwaccel_select="mpeg2video_decoder"
@@ -2647,7 +2656,7 @@ index a21c1b4..bf1f5f2 100755
  mpeg2_vaapi_hwaccel_deps="vaapi"
  mpeg2_vaapi_hwaccel_select="mpeg2video_decoder"
  mpeg2_vdpau_hwaccel_deps="vdpau"
-@@ -7478,6 +7480,7 @@ if enabled v4l2_m2m; then
+@@ -7377,6 +7379,7 @@ if enabled v4l2_m2m; then
  fi
  
  if enabled v4l2_request; then
@@ -2656,10 +2665,10 @@ index a21c1b4..bf1f5f2 100755
      check_func_headers "linux/media.h linux/videodev2.h" v4l2_timeval_to_ns
      check_pkg_config libudev libudev libudev.h udev_new
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-index e8fd2db..2628a38 100644
+index ef028d4..5ee9b5e 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-@@ -1084,6 +1084,7 @@ OBJS-$(CONFIG_MPEG2_DXVA2_HWACCEL)        += dxva2_mpeg2.o
+@@ -1064,6 +1064,7 @@ OBJS-$(CONFIG_MPEG2_DXVA2_HWACCEL)        += dxva2_mpeg2.o
  OBJS-$(CONFIG_MPEG2_D3D12VA_HWACCEL)      += dxva2_mpeg2.o d3d12va_mpeg2.o
  OBJS-$(CONFIG_MPEG2_NVDEC_HWACCEL)        += nvdec_mpeg12.o
  OBJS-$(CONFIG_MPEG2_QSV_HWACCEL)          += qsvdec.o
@@ -2668,10 +2677,10 @@ index e8fd2db..2628a38 100644
  OBJS-$(CONFIG_MPEG2_VDPAU_HWACCEL)        += vdpau_mpeg12.o
  OBJS-$(CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL) += videotoolbox.o
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-index 3de1912..8893064 100644
+index 4b205d3..4aaf858 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-@@ -60,6 +60,7 @@ extern const struct FFHWAccel ff_mpeg2_d3d11va2_hwaccel;
+@@ -59,6 +59,7 @@ extern const struct FFHWAccel ff_mpeg2_d3d11va2_hwaccel;
  extern const struct FFHWAccel ff_mpeg2_d3d12va_hwaccel;
  extern const struct FFHWAccel ff_mpeg2_dxva2_hwaccel;
  extern const struct FFHWAccel ff_mpeg2_nvdec_hwaccel;
@@ -2680,10 +2689,10 @@ index 3de1912..8893064 100644
  extern const struct FFHWAccel ff_mpeg2_vdpau_hwaccel;
  extern const struct FFHWAccel ff_mpeg2_videotoolbox_hwaccel;
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c
-index 4c83bcf..c65e9e3 100644
+index 3ea8d02..606792d 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/mpeg12dec.c
-@@ -821,6 +821,9 @@ static const enum AVPixelFormat mpeg2_hwaccel_pixfmt_list_420[] = {
+@@ -820,6 +820,9 @@ static const enum AVPixelFormat mpeg2_hwaccel_pixfmt_list_420[] = {
  #endif
  #if CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL
      AV_PIX_FMT_VIDEOTOOLBOX,
@@ -2693,7 +2702,7 @@ index 4c83bcf..c65e9e3 100644
  #endif
      AV_PIX_FMT_YUV420P,
      AV_PIX_FMT_NONE
-@@ -2736,6 +2739,9 @@ const FFCodec ff_mpeg2video_decoder = {
+@@ -2731,6 +2734,9 @@ const FFCodec ff_mpeg2video_decoder = {
  #endif
  #if CONFIG_MPEG2_VIDEOTOOLBOX_HWACCEL
                          HWACCEL_VIDEOTOOLBOX(mpeg2),
@@ -2896,10 +2905,10 @@ index 0000000..5d89b71
 -- 
 2.46.0
 
-From 71db00b24efb840f1447eea32e1f35b29d625922 Mon Sep 17 00:00:00 2001
+From d8512177ad229537501837f6f0efdedc2cc3a1a5 Mon Sep 17 00:00:00 2001
 From: Boris Brezillon <boris.brezillon@collabora.com>
 Date: Tue, 6 Aug 2024 09:06:05 +0000
-Subject: [PATCH 06/15] avcodec/h264dec: add ref_pic_marking and pic_order_cnt
+Subject: [PATCH 06/13] avcodec/h264dec: add ref_pic_marking and pic_order_cnt
  bit_size to slice context
 
 The V4L2_CID_STATELESS_H264_DECODE_PARAMS control require following:
@@ -2923,7 +2932,7 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  2 files changed, 7 insertions(+), 1 deletion(-)
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/h264_slice.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/h264_slice.c
-index 69f70c9..25a74c8 100644
+index 7e53e38..14f5355 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/h264_slice.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/h264_slice.c
 @@ -1701,7 +1701,7 @@ static int h264_slice_header_parse(const H264Context *h, H264SliceContext *sl,
@@ -2964,10 +2973,10 @@ index 69f70c9..25a74c8 100644
  
      if (sl->slice_type_nos != AV_PICTURE_TYPE_I && pps->cabac) {
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/h264dec.h mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/h264dec.h
-index 74fd09d..33d7886 100644
+index 1df9901..fb99ce9 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/h264dec.h
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/h264dec.h
-@@ -322,6 +322,7 @@ typedef struct H264SliceContext {
+@@ -324,6 +324,7 @@ typedef struct H264SliceContext {
      MMCO mmco[H264_MAX_MMCO_COUNT];
      int  nb_mmco;
      int explicit_ref_marking;
@@ -2975,7 +2984,7 @@ index 74fd09d..33d7886 100644
  
      int frame_num;
      int idr_pic_id;
-@@ -330,6 +331,7 @@ typedef struct H264SliceContext {
+@@ -332,6 +333,7 @@ typedef struct H264SliceContext {
      int delta_poc[2];
      int curr_pic_num;
      int max_pic_num;
@@ -2986,10 +2995,10 @@ index 74fd09d..33d7886 100644
 -- 
 2.46.0
 
-From b057f0472925e30d1f48933b10d91db4d3ad1338 Mon Sep 17 00:00:00 2001
+From 871bd5867a27321e9d24e916af04e3c400627331 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Tue, 6 Aug 2024 09:06:06 +0000
-Subject: [PATCH 07/15] avcodec: Add V4L2 Request API h264 hwaccel
+Subject: [PATCH 07/13] avcodec: Add V4L2 Request API h264 hwaccel
 
 Add a V4L2 Request API hwaccel for H.264, supporting both slice and
 frame decoding modes.
@@ -3011,10 +3020,10 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  create mode 100644 libavcodec/v4l2_request_h264.c
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/configure mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-index bf1f5f2..84ca04a 100755
+index 23961e6..1d32f35 100755
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/configure
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-@@ -3293,6 +3293,8 @@ h264_dxva2_hwaccel_deps="dxva2"
+@@ -3240,6 +3240,8 @@ h264_dxva2_hwaccel_deps="dxva2"
  h264_dxva2_hwaccel_select="h264_decoder"
  h264_nvdec_hwaccel_deps="nvdec"
  h264_nvdec_hwaccel_select="h264_decoder"
@@ -3023,7 +3032,7 @@ index bf1f5f2..84ca04a 100755
  h264_vaapi_hwaccel_deps="vaapi"
  h264_vaapi_hwaccel_select="h264_decoder"
  h264_vdpau_hwaccel_deps="vdpau"
-@@ -7480,6 +7482,7 @@ if enabled v4l2_m2m; then
+@@ -7379,6 +7381,7 @@ if enabled v4l2_m2m; then
  fi
  
  if enabled v4l2_request; then
@@ -3032,10 +3041,10 @@ index bf1f5f2..84ca04a 100755
      check_cc v4l2_m2m_hold_capture_buf linux/videodev2.h "int i = V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF"
      check_func_headers "linux/media.h linux/videodev2.h" v4l2_timeval_to_ns
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-index 2628a38..6cb1dca 100644
+index 5ee9b5e..e02f530 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-@@ -1062,6 +1062,7 @@ OBJS-$(CONFIG_H264_DXVA2_HWACCEL)         += dxva2_h264.o
+@@ -1042,6 +1042,7 @@ OBJS-$(CONFIG_H264_DXVA2_HWACCEL)         += dxva2_h264.o
  OBJS-$(CONFIG_H264_D3D12VA_HWACCEL)       += dxva2_h264.o d3d12va_h264.o
  OBJS-$(CONFIG_H264_NVDEC_HWACCEL)         += nvdec_h264.o
  OBJS-$(CONFIG_H264_QSV_HWACCEL)           += qsvdec.o
@@ -3044,7 +3053,7 @@ index 2628a38..6cb1dca 100644
  OBJS-$(CONFIG_H264_VDPAU_HWACCEL)         += vdpau_h264.o
  OBJS-$(CONFIG_H264_VIDEOTOOLBOX_HWACCEL)  += videotoolbox.o
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/h264_slice.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/h264_slice.c
-index 25a74c8..db0e3ec 100644
+index 14f5355..db4649b 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/h264_slice.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/h264_slice.c
 @@ -789,6 +789,7 @@ static enum AVPixelFormat get_pixel_format(H264Context *h, int force_callback)
@@ -3076,10 +3085,10 @@ index 25a74c8..db0e3ec 100644
          if (CHROMA444(h)) {
              if (h->avctx->colorspace == AVCOL_SPC_RGB)
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/h264dec.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/h264dec.c
-index ab31832..135994a 100644
+index b1cf0f8..5d77620 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/h264dec.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/h264dec.c
-@@ -1146,6 +1146,9 @@ const FFCodec ff_h264_decoder = {
+@@ -1145,6 +1145,9 @@ const FFCodec ff_h264_decoder = {
  #endif
  #if CONFIG_H264_VULKAN_HWACCEL
                                 HWACCEL_VULKAN(h264),
@@ -3090,10 +3099,10 @@ index ab31832..135994a 100644
                                 NULL
                             },
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-index 8893064..0521534 100644
+index 4aaf858..bcf0189 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-@@ -37,6 +37,7 @@ extern const struct FFHWAccel ff_h264_d3d11va2_hwaccel;
+@@ -36,6 +36,7 @@ extern const struct FFHWAccel ff_h264_d3d11va2_hwaccel;
  extern const struct FFHWAccel ff_h264_d3d12va_hwaccel;
  extern const struct FFHWAccel ff_h264_dxva2_hwaccel;
  extern const struct FFHWAccel ff_h264_nvdec_hwaccel;
@@ -3642,10 +3651,10 @@ index 0000000..5abf631
 -- 
 2.46.0
 
-From 5a7be1a95c983074e7efc86006319179d72bc97d Mon Sep 17 00:00:00 2001
+From 07a7483dca90d8d9ecf9e98b465d8a1ec7cd855c Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Tue, 6 Aug 2024 09:06:07 +0000
-Subject: [PATCH 08/15] avcodec: Add V4L2 Request API hevc hwaccel
+Subject: [PATCH 08/13] avcodec: Add V4L2 Request API hevc hwaccel
 
 Add a V4L2 Request API hwaccel for HEVC, supporting both slice and
 frame decoding modes.
@@ -3670,10 +3679,10 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  create mode 100644 libavcodec/v4l2_request_hevc.c
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/configure mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-index 84ca04a..e89afcf 100755
+index 1d32f35..9df977f 100755
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/configure
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-@@ -2562,6 +2562,7 @@ TYPES_LIST="
+@@ -2519,6 +2519,7 @@ TYPES_LIST="
      struct_sockaddr_sa_len
      struct_sockaddr_storage
      struct_stat_st_mtim_tv_nsec
@@ -3681,7 +3690,7 @@ index 84ca04a..e89afcf 100755
      struct_v4l2_frmivalenum_discrete
      struct_mfxConfigInterface
  "
-@@ -3313,6 +3314,8 @@ hevc_dxva2_hwaccel_deps="dxva2 DXVA_PicParams_HEVC"
+@@ -3260,6 +3261,8 @@ hevc_dxva2_hwaccel_deps="dxva2 DXVA_PicParams_HEVC"
  hevc_dxva2_hwaccel_select="hevc_decoder"
  hevc_nvdec_hwaccel_deps="nvdec"
  hevc_nvdec_hwaccel_select="hevc_decoder"
@@ -3690,7 +3699,7 @@ index 84ca04a..e89afcf 100755
  hevc_vaapi_hwaccel_deps="vaapi VAPictureParameterBufferHEVC"
  hevc_vaapi_hwaccel_select="hevc_decoder"
  hevc_vdpau_hwaccel_deps="vdpau VdpPictureInfoHEVC"
-@@ -7483,10 +7486,12 @@ fi
+@@ -7382,10 +7385,12 @@ fi
  
  if enabled v4l2_request; then
      check_cc h264_v4l2_request linux/videodev2.h "int i = V4L2_CID_STATELESS_H264_DECODE_MODE"
@@ -3700,14 +3709,14 @@ index 84ca04a..e89afcf 100755
      check_func_headers "linux/media.h linux/videodev2.h" v4l2_timeval_to_ns
      check_pkg_config libudev libudev libudev.h udev_new
 +    check_struct linux/videodev2.h "struct v4l2_ctrl_hevc_decode_params" num_delta_pocs_of_ref_rps_idx
+     v4l2_request_extralibs="$libudev_extralibs"
  fi
  
- check_headers sys/videoio.h
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-index 6cb1dca..fea01f6 100644
+index e02f530..eb3e9f4 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-@@ -1072,6 +1072,7 @@ OBJS-$(CONFIG_HEVC_DXVA2_HWACCEL)         += dxva2_hevc.o
+@@ -1052,6 +1052,7 @@ OBJS-$(CONFIG_HEVC_DXVA2_HWACCEL)         += dxva2_hevc.o
  OBJS-$(CONFIG_HEVC_D3D12VA_HWACCEL)       += dxva2_hevc.o d3d12va_hevc.o
  OBJS-$(CONFIG_HEVC_NVDEC_HWACCEL)         += nvdec_hevc.o
  OBJS-$(CONFIG_HEVC_QSV_HWACCEL)           += qsvdec.o
@@ -3716,10 +3725,10 @@ index 6cb1dca..fea01f6 100644
  OBJS-$(CONFIG_HEVC_VDPAU_HWACCEL)         += vdpau_hevc.o h265_profile_level.o
  OBJS-$(CONFIG_HEVC_VULKAN_HWACCEL)        += vulkan_decode.o vulkan_hevc.o
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hevc/hevcdec.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hevc/hevcdec.c
-index 531d1c2..a07a4f1 100644
+index 8a845f5..ba93782 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hevc/hevcdec.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hevc/hevcdec.c
-@@ -580,6 +580,7 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
+@@ -579,6 +579,7 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
                       CONFIG_HEVC_D3D11VA_HWACCEL * 2 + \
                       CONFIG_HEVC_D3D12VA_HWACCEL + \
                       CONFIG_HEVC_NVDEC_HWACCEL + \
@@ -3727,7 +3736,7 @@ index 531d1c2..a07a4f1 100644
                       CONFIG_HEVC_VAAPI_HWACCEL + \
                       CONFIG_HEVC_VIDEOTOOLBOX_HWACCEL + \
                       CONFIG_HEVC_VDPAU_HWACCEL + \
-@@ -618,6 +619,9 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
+@@ -617,6 +618,9 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
  #endif
  #if CONFIG_HEVC_VULKAN_HWACCEL
          *fmt++ = AV_PIX_FMT_VULKAN;
@@ -3737,7 +3746,7 @@ index 531d1c2..a07a4f1 100644
  #endif
          break;
      case AV_PIX_FMT_YUV420P10:
-@@ -645,6 +649,9 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
+@@ -644,6 +648,9 @@ static enum AVPixelFormat get_format(HEVCContext *s, const HEVCSPS *sps)
  #endif
  #if CONFIG_HEVC_NVDEC_HWACCEL
          *fmt++ = AV_PIX_FMT_CUDA;
@@ -3747,7 +3756,7 @@ index 531d1c2..a07a4f1 100644
  #endif
          break;
      case AV_PIX_FMT_YUV444P:
-@@ -4278,6 +4285,9 @@ const FFCodec ff_hevc_decoder = {
+@@ -4276,6 +4283,9 @@ const FFCodec ff_hevc_decoder = {
  #endif
  #if CONFIG_HEVC_VULKAN_HWACCEL
                                 HWACCEL_VULKAN(hevc),
@@ -3758,10 +3767,10 @@ index 531d1c2..a07a4f1 100644
                                 NULL
                             },
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-index 0521534..f4bad68 100644
+index bcf0189..6374e1d 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-@@ -47,6 +47,7 @@ extern const struct FFHWAccel ff_hevc_d3d11va2_hwaccel;
+@@ -46,6 +46,7 @@ extern const struct FFHWAccel ff_hevc_d3d11va2_hwaccel;
  extern const struct FFHWAccel ff_hevc_d3d12va_hwaccel;
  extern const struct FFHWAccel ff_hevc_dxva2_hwaccel;
  extern const struct FFHWAccel ff_hevc_nvdec_hwaccel;
@@ -4533,10 +4542,10 @@ index 0000000..025d86d
 -- 
 2.46.0
 
-From 1b4df911d8fcedb6346085bc5063799fb5aa6464 Mon Sep 17 00:00:00 2001
+From f8bc7a996960ae564f067fb26fb688bb2bd20009 Mon Sep 17 00:00:00 2001
 From: Boris Brezillon <boris.brezillon@collabora.com>
 Date: Wed, 22 May 2019 14:46:58 +0200
-Subject: [PATCH 09/15] avcodec: Add V4L2 Request API vp8 hwaccel
+Subject: [PATCH 09/13] avcodec: Add V4L2 Request API vp8 hwaccel
 
 Add a V4L2 Request API hwaccel for VP8.
 
@@ -4558,10 +4567,10 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  create mode 100644 libavcodec/v4l2_request_vp8.c
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/configure mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-index e89afcf..f699324 100755
+index 9df977f..3e7f9f3 100755
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/configure
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-@@ -3382,6 +3382,8 @@ vc1_vdpau_hwaccel_deps="vdpau"
+@@ -3327,6 +3327,8 @@ vc1_vdpau_hwaccel_deps="vdpau"
  vc1_vdpau_hwaccel_select="vc1_decoder"
  vp8_nvdec_hwaccel_deps="nvdec"
  vp8_nvdec_hwaccel_select="vp8_decoder"
@@ -4570,7 +4579,7 @@ index e89afcf..f699324 100755
  vp8_vaapi_hwaccel_deps="vaapi"
  vp8_vaapi_hwaccel_select="vp8_decoder"
  vp9_d3d11va_hwaccel_deps="d3d11va DXVA_PicParams_VP9"
-@@ -7489,6 +7491,7 @@ if enabled v4l2_request; then
+@@ -7388,6 +7390,7 @@ if enabled v4l2_request; then
      check_cc hevc_v4l2_request linux/videodev2.h "int i = V4L2_CID_STATELESS_HEVC_SPS"
      check_cc mpeg2_v4l2_request linux/videodev2.h "int i = V4L2_CID_STATELESS_MPEG2_SEQUENCE"
      check_cc v4l2_m2m_hold_capture_buf linux/videodev2.h "int i = V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF"
@@ -4579,10 +4588,10 @@ index e89afcf..f699324 100755
      check_pkg_config libudev libudev libudev.h udev_new
      check_struct linux/videodev2.h "struct v4l2_ctrl_hevc_decode_params" num_delta_pocs_of_ref_rps_idx
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-index fea01f6..a1d0a46 100644
+index eb3e9f4..346a3c4 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-@@ -1102,6 +1102,7 @@ OBJS-$(CONFIG_VC1_QSV_HWACCEL)            += qsvdec.o
+@@ -1082,6 +1082,7 @@ OBJS-$(CONFIG_VC1_QSV_HWACCEL)            += qsvdec.o
  OBJS-$(CONFIG_VC1_VAAPI_HWACCEL)          += vaapi_vc1.o
  OBJS-$(CONFIG_VC1_VDPAU_HWACCEL)          += vdpau_vc1.o
  OBJS-$(CONFIG_VP8_NVDEC_HWACCEL)          += nvdec_vp8.o
@@ -4591,10 +4600,10 @@ index fea01f6..a1d0a46 100644
  OBJS-$(CONFIG_VP9_D3D11VA_HWACCEL)        += dxva2_vp9.o
  OBJS-$(CONFIG_VP9_DXVA2_HWACCEL)          += dxva2_vp9.o
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-index f4bad68..e60ec2a 100644
+index 6374e1d..4ef8395 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-@@ -81,6 +81,7 @@ extern const struct FFHWAccel ff_vc1_nvdec_hwaccel;
+@@ -79,6 +79,7 @@ extern const struct FFHWAccel ff_vc1_nvdec_hwaccel;
  extern const struct FFHWAccel ff_vc1_vaapi_hwaccel;
  extern const struct FFHWAccel ff_vc1_vdpau_hwaccel;
  extern const struct FFHWAccel ff_vp8_nvdec_hwaccel;
@@ -4851,7 +4860,7 @@ index 0000000..3fb2395
 +    .caps_internal      = HWACCEL_CAP_ASYNC_SAFE,
 +};
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/vp8.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/vp8.c
-index 9010e19..8a1e342 100644
+index 0ae50b1..0606f78 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/vp8.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/vp8.c
 @@ -184,6 +184,9 @@ static enum AVPixelFormat get_pixel_format(VP8Context *s)
@@ -4864,7 +4873,7 @@ index 9010e19..8a1e342 100644
  #endif
          AV_PIX_FMT_YUV420P,
          AV_PIX_FMT_NONE,
-@@ -2975,6 +2978,9 @@ const FFCodec ff_vp8_decoder = {
+@@ -2981,6 +2984,9 @@ const FFCodec ff_vp8_decoder = {
  #endif
  #if CONFIG_VP8_NVDEC_HWACCEL
                                 HWACCEL_NVDEC(vp8),
@@ -4877,10 +4886,10 @@ index 9010e19..8a1e342 100644
 -- 
 2.46.0
 
-From c0c7b98ef78ac726c76a64dd805032ab19c2f4e7 Mon Sep 17 00:00:00 2001
+From 1a57ff583ae1d0938d6e5a93072edf81968dbf56 Mon Sep 17 00:00:00 2001
 From: Boris Brezillon <boris.brezillon@collabora.com>
 Date: Tue, 9 Dec 2025 20:30:05 +0100
-Subject: [PATCH 10/15] avcodec: Add V4L2 Request API vp9 hwaccel
+Subject: [PATCH 10/13] avcodec: Add V4L2 Request API vp9 hwaccel
 
 Add a V4L2 Request API hwaccel for VP9.
 
@@ -4902,10 +4911,10 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  create mode 100644 libavcodec/v4l2_request_vp9.c
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/configure mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-index f699324..0c45ee2 100755
+index 3e7f9f3..af037cc 100755
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/configure
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-@@ -3396,6 +3396,8 @@ vp9_dxva2_hwaccel_deps="dxva2 DXVA_PicParams_VP9"
+@@ -3341,6 +3341,8 @@ vp9_dxva2_hwaccel_deps="dxva2 DXVA_PicParams_VP9"
  vp9_dxva2_hwaccel_select="vp9_decoder"
  vp9_nvdec_hwaccel_deps="nvdec"
  vp9_nvdec_hwaccel_select="vp9_decoder"
@@ -4914,7 +4923,7 @@ index f699324..0c45ee2 100755
  vp9_vaapi_hwaccel_deps="vaapi VADecPictureParameterBufferVP9_bit_depth"
  vp9_vaapi_hwaccel_select="vp9_decoder"
  vp9_vdpau_hwaccel_deps="vdpau VdpPictureInfoVP9"
-@@ -7492,6 +7494,7 @@ if enabled v4l2_request; then
+@@ -7391,6 +7393,7 @@ if enabled v4l2_request; then
      check_cc mpeg2_v4l2_request linux/videodev2.h "int i = V4L2_CID_STATELESS_MPEG2_SEQUENCE"
      check_cc v4l2_m2m_hold_capture_buf linux/videodev2.h "int i = V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF"
      check_cc vp8_v4l2_request linux/videodev2.h "int i = V4L2_CID_STATELESS_VP8_FRAME"
@@ -4923,10 +4932,10 @@ index f699324..0c45ee2 100755
      check_pkg_config libudev libudev libudev.h udev_new
      check_struct linux/videodev2.h "struct v4l2_ctrl_hevc_decode_params" num_delta_pocs_of_ref_rps_idx
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-index a1d0a46..aee74c1 100644
+index 346a3c4..4af5413 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-@@ -1108,6 +1108,7 @@ OBJS-$(CONFIG_VP9_D3D11VA_HWACCEL)        += dxva2_vp9.o
+@@ -1088,6 +1088,7 @@ OBJS-$(CONFIG_VP9_D3D11VA_HWACCEL)        += dxva2_vp9.o
  OBJS-$(CONFIG_VP9_DXVA2_HWACCEL)          += dxva2_vp9.o
  OBJS-$(CONFIG_VP9_D3D12VA_HWACCEL)        += dxva2_vp9.o d3d12va_vp9.o
  OBJS-$(CONFIG_VP9_NVDEC_HWACCEL)          += nvdec_vp9.o
@@ -4935,10 +4944,10 @@ index a1d0a46..aee74c1 100644
  OBJS-$(CONFIG_VP9_VDPAU_HWACCEL)          += vdpau_vp9.o
  OBJS-$(CONFIG_VP9_VIDEOTOOLBOX_HWACCEL)   += videotoolbox_vp9.o
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-index e60ec2a..ca47a3c 100644
+index 4ef8395..386c5c6 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-@@ -88,6 +88,7 @@ extern const struct FFHWAccel ff_vp9_d3d11va2_hwaccel;
+@@ -86,6 +86,7 @@ extern const struct FFHWAccel ff_vp9_d3d11va2_hwaccel;
  extern const struct FFHWAccel ff_vp9_d3d12va_hwaccel;
  extern const struct FFHWAccel ff_vp9_dxva2_hwaccel;
  extern const struct FFHWAccel ff_vp9_nvdec_hwaccel;
@@ -5483,10 +5492,10 @@ index 0000000..e93937d
 +    .caps_internal      = HWACCEL_CAP_ASYNC_SAFE,
 +};
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/vp9.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/vp9.c
-index 715d3b7..4c081ae 100644
+index d0d0238..47675d2 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/vp9.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/vp9.c
-@@ -168,6 +168,7 @@ static int update_size(AVCodecContext *avctx, int w, int h)
+@@ -167,6 +167,7 @@ static int update_size(AVCodecContext *avctx, int w, int h)
                       CONFIG_VP9_D3D11VA_HWACCEL * 2 + \
                       CONFIG_VP9_D3D12VA_HWACCEL + \
                       CONFIG_VP9_NVDEC_HWACCEL + \
@@ -5494,7 +5503,7 @@ index 715d3b7..4c081ae 100644
                       CONFIG_VP9_VAAPI_HWACCEL + \
                       CONFIG_VP9_VDPAU_HWACCEL + \
                       CONFIG_VP9_VIDEOTOOLBOX_HWACCEL + \
-@@ -211,6 +212,9 @@ static int update_size(AVCodecContext *avctx, int w, int h)
+@@ -210,6 +211,9 @@ static int update_size(AVCodecContext *avctx, int w, int h)
  #endif
  #if CONFIG_VP9_VULKAN_HWACCEL
              *fmtp++ = AV_PIX_FMT_VULKAN;
@@ -5504,7 +5513,7 @@ index 715d3b7..4c081ae 100644
  #endif
              break;
          case AV_PIX_FMT_YUV420P12:
-@@ -1953,6 +1957,9 @@ const FFCodec ff_vp9_decoder = {
+@@ -1952,6 +1956,9 @@ const FFCodec ff_vp9_decoder = {
  #endif
  #if CONFIG_VP9_VULKAN_HWACCEL
                                 HWACCEL_VULKAN(vp9),
@@ -5517,10 +5526,10 @@ index 715d3b7..4c081ae 100644
 -- 
 2.46.0
 
-From ce1db52c00e84e6fc45712ba4cd3db3b44865fc1 Mon Sep 17 00:00:00 2001
+From 94146295860d4afd9c4134e548f634b6f4d58284 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Sat, 6 Jul 2024 08:41:30 +0000
-Subject: [PATCH 11/15] avcodec: Add V4L2 Request API av1 hwaccel
+Subject: [PATCH 11/13] avcodec: Add V4L2 Request API av1 hwaccel
 
 Add a V4L2 Request API hwaccel for AV1.
 
@@ -5538,10 +5547,10 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  create mode 100644 libavcodec/v4l2_request_av1.c
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/configure mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-index 0c45ee2..5a74e6e 100755
+index af037cc..52ab400 100755
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/configure
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/configure
-@@ -3268,6 +3268,8 @@ av1_dxva2_hwaccel_deps="dxva2 DXVA_PicParams_AV1"
+@@ -3217,6 +3217,8 @@ av1_dxva2_hwaccel_deps="dxva2 DXVA_PicParams_AV1"
  av1_dxva2_hwaccel_select="av1_decoder"
  av1_nvdec_hwaccel_deps="nvdec CUVIDAV1PICPARAMS"
  av1_nvdec_hwaccel_select="av1_decoder"
@@ -5550,7 +5559,7 @@ index 0c45ee2..5a74e6e 100755
  av1_vaapi_hwaccel_deps="vaapi VADecPictureParameterBufferAV1_bit_depth_idx"
  av1_vaapi_hwaccel_select="av1_decoder"
  av1_vdpau_hwaccel_deps="vdpau VdpPictureInfoAV1"
-@@ -7489,6 +7491,7 @@ if enabled v4l2_m2m; then
+@@ -7388,6 +7390,7 @@ if enabled v4l2_m2m; then
  fi
  
  if enabled v4l2_request; then
@@ -5559,10 +5568,10 @@ index 0c45ee2..5a74e6e 100755
      check_cc hevc_v4l2_request linux/videodev2.h "int i = V4L2_CID_STATELESS_HEVC_SPS"
      check_cc mpeg2_v4l2_request linux/videodev2.h "int i = V4L2_CID_STATELESS_MPEG2_SEQUENCE"
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-index aee74c1..40f6be3 100644
+index 4af5413..8946adf 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/Makefile
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/Makefile
-@@ -1049,6 +1049,7 @@ OBJS-$(CONFIG_AV1_D3D11VA_HWACCEL)        += dxva2_av1.o
+@@ -1030,6 +1030,7 @@ OBJS-$(CONFIG_AV1_D3D11VA_HWACCEL)        += dxva2_av1.o
  OBJS-$(CONFIG_AV1_DXVA2_HWACCEL)          += dxva2_av1.o
  OBJS-$(CONFIG_AV1_D3D12VA_HWACCEL)        += dxva2_av1.o d3d12va_av1.o
  OBJS-$(CONFIG_AV1_NVDEC_HWACCEL)          += nvdec_av1.o
@@ -5571,10 +5580,10 @@ index aee74c1..40f6be3 100644
  OBJS-$(CONFIG_AV1_VDPAU_HWACCEL)          += vdpau_av1.o
  OBJS-$(CONFIG_AV1_VIDEOTOOLBOX_HWACCEL)   += videotoolbox_av1.o
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/av1dec.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/av1dec.c
-index 1dffc7c..7244e10 100644
+index be59548..9d4e9b2 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/av1dec.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/av1dec.c
-@@ -542,6 +542,7 @@ static int get_pixel_format(AVCodecContext *avctx)
+@@ -541,6 +541,7 @@ static int get_pixel_format(AVCodecContext *avctx)
                       CONFIG_AV1_D3D11VA_HWACCEL * 2 + \
                       CONFIG_AV1_D3D12VA_HWACCEL + \
                       CONFIG_AV1_NVDEC_HWACCEL + \
@@ -5582,7 +5591,7 @@ index 1dffc7c..7244e10 100644
                       CONFIG_AV1_VAAPI_HWACCEL + \
                       CONFIG_AV1_VDPAU_HWACCEL + \
                       CONFIG_AV1_VIDEOTOOLBOX_HWACCEL + \
-@@ -577,6 +578,9 @@ static int get_pixel_format(AVCodecContext *avctx)
+@@ -576,6 +577,9 @@ static int get_pixel_format(AVCodecContext *avctx)
  #endif
  #if CONFIG_AV1_VULKAN_HWACCEL
          *fmtp++ = AV_PIX_FMT_VULKAN;
@@ -5592,7 +5601,7 @@ index 1dffc7c..7244e10 100644
  #endif
          break;
      case AV_PIX_FMT_YUV420P10:
-@@ -604,6 +608,9 @@ static int get_pixel_format(AVCodecContext *avctx)
+@@ -603,6 +607,9 @@ static int get_pixel_format(AVCodecContext *avctx)
  #endif
  #if CONFIG_AV1_VULKAN_HWACCEL
          *fmtp++ = AV_PIX_FMT_VULKAN;
@@ -5602,7 +5611,7 @@ index 1dffc7c..7244e10 100644
  #endif
          break;
      case AV_PIX_FMT_YUV420P12:
-@@ -1623,6 +1630,9 @@ const FFCodec ff_av1_decoder = {
+@@ -1619,6 +1626,9 @@ const FFCodec ff_av1_decoder = {
  #if CONFIG_AV1_VULKAN_HWACCEL
          HWACCEL_VULKAN(av1),
  #endif
@@ -5613,7 +5622,7 @@ index 1dffc7c..7244e10 100644
          NULL
      },
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
-index ca47a3c..7b6f673 100644
+index 386c5c6..2288bf1 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavcodec/hwaccels.h
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavcodec/hwaccels.h
 @@ -24,6 +24,7 @@ extern const struct FFHWAccel ff_av1_d3d11va2_hwaccel;
@@ -6269,389 +6278,149 @@ index 0000000..4eabdbf
 -- 
 2.46.0
 
-From 09229b368d7ab7fb48efdd7a62c102fa0f639ba6 Mon Sep 17 00:00:00 2001
-From: Jonas Karlman <jonas@kwiboo.se>
-Date: Sat, 13 Dec 2025 23:22:37 +0100
-Subject: [PATCH 12/15] HACK: define drm and v4l2 pix fmts
+From 468c747f4daf628bf3d1785ec74c8dfdc49c3d43 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 14 Dec 2025 01:12:06 +0000
+Subject: [PATCH 12/13] avutil/hwcontext_v4l2request: Add support for
+ AFBC_16X16_SPLIT pix fmts
 
 ---
- libavutil/hwcontext_v4l2request.c | 28 ++++++++++++++++++++++++++++
- 1 file changed, 28 insertions(+)
+ libavutil/hwcontext_v4l2request.c | 40 +++++++++++++++++++++++++------
+ 1 file changed, 33 insertions(+), 7 deletions(-)
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
-index 7bb48ef..b41427d 100644
+index 7bb48ef..2aa2f5b 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
-@@ -58,6 +58,34 @@ typedef struct V4L2RequestFrameDescriptor {
-     int fd[AV_DRM_MAX_PLANES];
- } V4L2RequestFrameDescriptor;
- 
-+#ifndef DRM_FORMAT_NV15
-+#define DRM_FORMAT_NV15         fourcc_code('N', 'V', '1', '5')
-+#endif
-+
-+#ifndef DRM_FORMAT_NV20
-+#define DRM_FORMAT_NV20         fourcc_code('N', 'V', '2', '0')
-+#endif
-+
-+#ifndef DRM_FORMAT_P010
-+#define DRM_FORMAT_P010         fourcc_code('P', '0', '1', '0')
-+#endif
-+
-+#ifndef V4L2_PIX_FMT_NV12_32L32
-+#define V4L2_PIX_FMT_NV12_32L32 v4l2_fourcc('S', 'T', '1', '2')
-+#endif
-+
-+#ifndef V4L2_PIX_FMT_NV15
-+#define V4L2_PIX_FMT_NV15       v4l2_fourcc('N', 'V', '1', '5')
-+#endif
-+
-+#ifndef V4L2_PIX_FMT_NV20
-+#define V4L2_PIX_FMT_NV20       v4l2_fourcc('N', 'V', '2', '0')
-+#endif
-+
-+#ifndef V4L2_PIX_FMT_P010
-+#define V4L2_PIX_FMT_P010       v4l2_fourcc('P', '0', '1', '0')
-+#endif
-+
- static const struct {
-     uint32_t pixelformat;
-     enum AVPixelFormat sw_format;
--- 
-2.46.0
-
-From a7d891eb724a43337fe9cd6c83e176cb3062b652 Mon Sep 17 00:00:00 2001
-From: Jonas Karlman <jonas@kwiboo.se>
-Date: Sat, 4 Nov 2023 21:14:21 +0000
-Subject: [PATCH 13/15] avutil/pixfmt: Add NV15, NV20BS and NV30
-
-Add NV15 and NV20 pixel formats used by the Rockchip Video Decoder for
-10-bit buffers.
-
-NV15 and NV20 is 10-bit 4:2:0/4:2:2 semi-planar YUV formats similar to
-NV12 and NV16, using 10-bit components with no padding between each
-component. Instead, a group of 4 luminance/chrominance samples are
-stored over 5 bytes in little endian order:
-
-YYYY = UVUV = 4 * 10 bits = 40 bits = 5 bytes
-
-The '15' and '20' suffix refers to the optimum effective bits per pixel
-which is achieved when the total number of luminance samples is a
-multiple of 8 for NV15 and 4 for NV20.
-
-The existing NV20LE/BE pixdesc indicate that the existing format is not
-packed and instead have more in common with P210, each 10-bit sample is
-LSB aligned instead of MSB aligned.
-
-Instead a new similar name, NV20BS (bitstream), was chosen.
-
-Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
----
- libavutil/pixdesc.c              | 36 ++++++++++++++++++++++++++++++++
- libavutil/pixfmt.h               |  4 ++++
- tests/ref/fate/imgutils          |  6 ++++++
- tests/ref/fate/sws-pixdesc-query | 15 +++++++++++++
- 4 files changed, 61 insertions(+)
-
-diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/pixdesc.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/pixdesc.c
-index 90f9596..40ea6a5 100644
---- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/pixdesc.c
-+++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/pixdesc.c
-@@ -588,6 +588,18 @@ static const AVPixFmtDescriptor av_pix_fmt_descriptors[AV_PIX_FMT_NB] = {
-         },
-         .flags = AV_PIX_FMT_FLAG_PLANAR,
-     },
-+    [AV_PIX_FMT_NV15] = {
-+        .name = "nv15",
-+        .nb_components = 3,
-+        .log2_chroma_w = 1,
-+        .log2_chroma_h = 1,
-+        .comp = {
-+            { 0, 10,  0, 0, 10 },      /* Y */
-+            { 1, 20,  0, 0, 10 },      /* U */
-+            { 1, 20, 10, 0, 10 },      /* V */
-+        },
-+        .flags = AV_PIX_FMT_FLAG_BITSTREAM | AV_PIX_FMT_FLAG_PLANAR,
-+    },
-     [AV_PIX_FMT_ARGB] = {
-         .name = "argb",
-         .nb_components = 4,
-@@ -2238,6 +2250,18 @@ static const AVPixFmtDescriptor av_pix_fmt_descriptors[AV_PIX_FMT_NB] = {
-         },
-         .flags = AV_PIX_FMT_FLAG_PLANAR,
-     },
-+    [AV_PIX_FMT_NV20BS] = {
-+        .name = "nv20",
-+        .nb_components = 3,
-+        .log2_chroma_w = 1,
-+        .log2_chroma_h = 0,
-+        .comp = {
-+            { 0, 10,  0, 0, 10 },      /* Y */
-+            { 1, 20,  0, 0, 10 },      /* U */
-+            { 1, 20, 10, 0, 10 },      /* V */
-+        },
-+        .flags = AV_PIX_FMT_FLAG_BITSTREAM | AV_PIX_FMT_FLAG_PLANAR,
-+    },
-     [AV_PIX_FMT_NV20LE] = {
-         .name = "nv20le",
-         .nb_components = 3,
-@@ -2262,6 +2286,18 @@ static const AVPixFmtDescriptor av_pix_fmt_descriptors[AV_PIX_FMT_NB] = {
-         },
-         .flags = AV_PIX_FMT_FLAG_PLANAR | AV_PIX_FMT_FLAG_BE,
-     },
-+    [AV_PIX_FMT_NV30] = {
-+        .name = "nv30",
-+        .nb_components = 3,
-+        .log2_chroma_w = 0,
-+        .log2_chroma_h = 0,
-+        .comp = {
-+            { 0, 10,  0, 0, 10 },      /* Y */
-+            { 1, 20,  0, 0, 10 },      /* U */
-+            { 1, 20, 10, 0, 10 },      /* V */
-+        },
-+        .flags = AV_PIX_FMT_FLAG_BITSTREAM | AV_PIX_FMT_FLAG_PLANAR,
-+    },
-     [AV_PIX_FMT_QSV] = {
-         .name = "qsv",
-         .flags = AV_PIX_FMT_FLAG_HWACCEL,
-diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/pixfmt.h mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/pixfmt.h
-index 2e7b645..d558fa5 100644
---- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/pixfmt.h
-+++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/pixfmt.h
-@@ -499,6 +499,10 @@ enum AVPixelFormat {
- 
-     AV_PIX_FMT_OHCODEC, /// hardware decoding through openharmony
- 
-+    AV_PIX_FMT_NV15,        ///< packed planar YUV 4:2:0, 15bpp, 1 plane for Y and 1 plane for the UV components, which are interleaved (first component U and the following component V), no padding between components
-+    AV_PIX_FMT_NV20BS,      ///< packed planar YUV 4:2:2, 20bpp, 1 plane for Y and 1 plane for the UV components, which are interleaved (first component U and the following component V), no padding between components
-+    AV_PIX_FMT_NV30,        ///< packed planar YUV 4:4:4, 30bpp, 1 plane for Y and 1 plane for the UV components, which are interleaved (first component U and the following component V), no padding between components
-+
-     AV_PIX_FMT_NB         ///< number of pixel formats, DO NOT USE THIS if you want to link with shared libav* because the number of formats might differ between versions
- };
- 
-diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/tests/ref/fate/imgutils mythtv-master-20251214-new/mythtv/external/FFmpeg/tests/ref/fate/imgutils
-index ccd1522..b2b4929 100644
---- mythtv-master-20251214-old/mythtv/external/FFmpeg/tests/ref/fate/imgutils
-+++ mythtv-master-20251214-new/mythtv/external/FFmpeg/tests/ref/fate/imgutils
-@@ -306,6 +306,9 @@ gbrp10msbbe     planes: 3, linesizes: 128 128 128   0, plane_sizes:  6144  6144
- gbrp10msble     planes: 3, linesizes: 128 128 128   0, plane_sizes:  6144  6144  6144     0, plane_offsets:  6144  6144     0, total_size: 18432
- gbrp12msbbe     planes: 3, linesizes: 128 128 128   0, plane_sizes:  6144  6144  6144     0, plane_offsets:  6144  6144     0, total_size: 18432
- gbrp12msble     planes: 3, linesizes: 128 128 128   0, plane_sizes:  6144  6144  6144     0, plane_offsets:  6144  6144     0, total_size: 18432
-+nv15            planes: 2, linesizes:  80  80   0   0, plane_sizes:  3840  1920     0     0, plane_offsets:  3840     0     0, total_size: 5760
-+nv20            planes: 2, linesizes:  80  80   0   0, plane_sizes:  3840  3840     0     0, plane_offsets:  3840     0     0, total_size: 7680
-+nv30            planes: 2, linesizes:  80 160   0   0, plane_sizes:  3840  7680     0     0, plane_offsets:  3840     0     0, total_size: 11520
- 
- image_fill_black tests
- yuv420p         total_size:   4608,  black_unknown_crc: 0xd00f6cc6,  black_tv_crc: 0xd00f6cc6,  black_pc_crc: 0x234969af
-@@ -559,3 +562,6 @@ gbrp10msbbe     total_size:  18432,  black_unknown_crc: 0x00000000,  black_tv_cr
- gbrp10msble     total_size:  18432,  black_unknown_crc: 0x00000000,  black_tv_crc: 0x00000000,  black_pc_crc: 0x00000000
- gbrp12msbbe     total_size:  18432,  black_unknown_crc: 0x00000000,  black_tv_crc: 0x00000000,  black_pc_crc: 0x00000000
- gbrp12msble     total_size:  18432,  black_unknown_crc: 0x00000000,  black_tv_crc: 0x00000000,  black_pc_crc: 0x00000000
-+nv15            total_size:   5760,  black_unknown_crc: 0x6b5fdb58,  black_tv_crc: 0x6b5fdb58,  black_pc_crc: 0x660a512c
-+nv20            total_size:   7680,  black_unknown_crc: 0x171f53da,  black_tv_crc: 0x171f53da,  black_pc_crc: 0xfcf5cda3
-+nv30            total_size:  11520,  black_unknown_crc: 0x664d0699,  black_tv_crc: 0x664d0699,  black_pc_crc: 0x4ab5d724
-diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/tests/ref/fate/sws-pixdesc-query mythtv-master-20251214-new/mythtv/external/FFmpeg/tests/ref/fate/sws-pixdesc-query
-index a062088..6ff5ad5 100644
---- mythtv-master-20251214-old/mythtv/external/FFmpeg/tests/ref/fate/sws-pixdesc-query
-+++ mythtv-master-20251214-new/mythtv/external/FFmpeg/tests/ref/fate/sws-pixdesc-query
-@@ -79,8 +79,11 @@ isNBPS:
-   gray14le
-   gray9be
-   gray9le
-+  nv15
-+  nv20
-   nv20be
-   nv20le
-+  nv30
-   p010be
-   p010le
-   p012be
-@@ -263,11 +266,14 @@ isYUV:
-   ayuv64be
-   ayuv64le
-   nv12
-+  nv15
-   nv16
-+  nv20
-   nv20be
-   nv20le
-   nv21
-   nv24
-+  nv30
-   nv42
-   p010be
-   p010le
-@@ -395,11 +401,14 @@ isYUV:
- 
- isPlanarYUV:
-   nv12
-+  nv15
-   nv16
-+  nv20
-   nv20be
-   nv20le
-   nv21
-   nv24
-+  nv30
-   nv42
-   p010be
-   p010le
-@@ -496,11 +505,14 @@ isPlanarYUV:
- 
- isSemiPlanarYUV:
-   nv12
-+  nv15
-   nv16
-+  nv20
-   nv20be
-   nv20le
-   nv21
-   nv24
-+  nv30
-   nv42
-   p010be
-   p010le
-@@ -1011,11 +1023,14 @@ Planar:
-   gbrpf32be
-   gbrpf32le
-   nv12
-+  nv15
-   nv16
-+  nv20
-   nv20be
-   nv20le
-   nv21
-   nv24
-+  nv30
-   nv42
-   p010be
-   p010le
--- 
-2.46.0
-
-From 80cc93b62b4959b421a183693bd3fcc1077f1930 Mon Sep 17 00:00:00 2001
-From: Jonas Karlman <jonas@kwiboo.se>
-Date: Sat, 4 Nov 2023 21:14:21 +0000
-Subject: [PATCH 14/15] swscale/input: Add support for NV15, NV20BS and NV30
-
-Add input support for NV15, NV20BS and NV30 pix fmt.
-
-Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
----
- libswscale/format.c |  3 +++
- libswscale/input.c  | 39 +++++++++++++++++++++++++++++++++++++++
- 2 files changed, 42 insertions(+)
-
-diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libswscale/format.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libswscale/format.c
-index 9ef79ed..680fa45 100644
---- mythtv-master-20251214-old/mythtv/external/FFmpeg/libswscale/format.c
-+++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libswscale/format.c
-@@ -223,6 +223,9 @@ static const LegacyFormatEntry legacy_format_entries[] = {
-     [AV_PIX_FMT_XYZ12LE]        = { 1, 1, 1 },
-     [AV_PIX_FMT_AYUV64LE]       = { 1, 1},
-     [AV_PIX_FMT_AYUV64BE]       = { 1, 1 },
-+    [AV_PIX_FMT_NV15]        = { 1, 0 },
-+    [AV_PIX_FMT_NV20BS]      = { 1, 0 },
-+    [AV_PIX_FMT_NV30]        = { 1, 0 },
-     [AV_PIX_FMT_P010LE]         = { 1, 1 },
-     [AV_PIX_FMT_P010BE]         = { 1, 1 },
-     [AV_PIX_FMT_P012LE]         = { 1, 1 },
-diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libswscale/input.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libswscale/input.c
-index eb4eb31..54d8116 100644
---- mythtv-master-20251214-old/mythtv/external/FFmpeg/libswscale/input.c
-+++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libswscale/input.c
-@@ -946,6 +946,35 @@ static void nv21ToUV_c(uint8_t *dstU, uint8_t *dstV,
-     nvXXtoUV_c(dstV, dstU, src1, width);
- }
- 
-+static av_always_inline void nv15ToX_c(uint8_t *dst, const uint8_t *src, int pos)
-+{
-+    int shift = (pos & 3) << 1;
-+    pos = (pos * 5) >> 2;
-+    AV_WN16(dst, ((src[pos + 0] >> shift) |
-+                  (src[pos + 1] << (8 - shift))) & 0x3ff);
-+}
-+
-+static void nv15ToY_c(uint8_t *dst, const uint8_t *src,
-+                      const uint8_t *unused1, const uint8_t *unused2,
-+                      int width, uint32_t *unused, void *opq)
-+{
-+    int i;
-+    for (i = 0; i < width; i++) {
-+        nv15ToX_c(dst + i * 2, src, i);
-+    }
-+}
-+
-+static void nv15ToUV_c(uint8_t *dstU, uint8_t *dstV,
-+                       const uint8_t *unused0, const uint8_t *src1, const uint8_t *src2,
-+                       int width, uint32_t *unused, void *opq)
-+{
-+    int i;
-+    for (i = 0; i < width; i++) {
-+        nv15ToX_c(dstU + i * 2, src1, i * 2 + 0);
-+        nv15ToX_c(dstV + i * 2, src1, i * 2 + 1);
-+    }
-+}
-+
- #define p01x_uv_wrapper(fmt, shift) \
-     static void fmt ## LEToUV ## _c(uint8_t *dstU,                       \
-                                        uint8_t *dstV,                    \
-@@ -2041,6 +2070,11 @@ av_cold void ff_sws_init_input_funcs(SwsInternal *c,
-     case AV_PIX_FMT_NV20LE:
-         *chrToYV12 = nv20LEToUV_c;
-         break;
-+    case AV_PIX_FMT_NV15:
-+    case AV_PIX_FMT_NV20BS:
-+    case AV_PIX_FMT_NV30:
-+        c->chrToYV12 = nv15ToUV_c;
-+        break;
-     case AV_PIX_FMT_P010LE:
-     case AV_PIX_FMT_P210LE:
-     case AV_PIX_FMT_P410LE:
-@@ -2629,6 +2663,11 @@ av_cold void ff_sws_init_input_funcs(SwsInternal *c,
-     case AV_PIX_FMT_NV20LE:
-         *lumToYV12 = nv20LEToY_c;
-         break;
-+    case AV_PIX_FMT_NV15:
-+    case AV_PIX_FMT_NV20BS:
-+    case AV_PIX_FMT_NV30:
-+        c->lumToYV12 = nv15ToY_c;
-+        break;
-     case AV_PIX_FMT_P010LE:
-     case AV_PIX_FMT_P210LE:
-     case AV_PIX_FMT_P410LE:
--- 
-2.46.0
-
-From 85a9aebccf0feee24160d046ec101c9141f8be5c Mon Sep 17 00:00:00 2001
-From: Jonas Karlman <jonas@kwiboo.se>
-Date: Mon, 15 Jul 2024 16:20:46 +0000
-Subject: [PATCH 15/15] avcodec/v4l2request: Add sw_format for NV15 and NV20
- formats
-
-Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
----
- libavutil/hwcontext_v4l2request.c | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
-
-diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
-index b41427d..f433f1e 100644
---- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
-+++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
-@@ -98,11 +98,11 @@ static const struct {
-     { V4L2_PIX_FMT_NV12_32L32, AV_PIX_FMT_NONE, DRM_FORMAT_NV12, DRM_FORMAT_MOD_ALLWINNER_TILED, 8 },
- #endif
- #if defined(V4L2_PIX_FMT_NV15) && defined(DRM_FORMAT_NV15)
--    { V4L2_PIX_FMT_NV15, AV_PIX_FMT_NONE, DRM_FORMAT_NV15, DRM_FORMAT_MOD_LINEAR, 10 },
-+    { V4L2_PIX_FMT_NV15, AV_PIX_FMT_NV15, DRM_FORMAT_NV15, DRM_FORMAT_MOD_LINEAR, 10 },
- #endif
-     { V4L2_PIX_FMT_NV16, AV_PIX_FMT_NV16, DRM_FORMAT_NV16, DRM_FORMAT_MOD_LINEAR, 8 },
- #if defined(V4L2_PIX_FMT_NV20) && defined(DRM_FORMAT_NV20)
--    { V4L2_PIX_FMT_NV20, AV_PIX_FMT_NONE, DRM_FORMAT_NV20, DRM_FORMAT_MOD_LINEAR, 10 },
-+    { V4L2_PIX_FMT_NV20, AV_PIX_FMT_NV20BS, DRM_FORMAT_NV20, DRM_FORMAT_MOD_LINEAR, 10 },
- #endif
+@@ -79,6 +79,28 @@ static const struct {
  #if defined(V4L2_PIX_FMT_P010) && defined(DRM_FORMAT_P010)
      { V4L2_PIX_FMT_P010, AV_PIX_FMT_P010, DRM_FORMAT_P010, DRM_FORMAT_MOD_LINEAR, 10 },
+ #endif
++#if defined(V4L2_PIX_FMT_YUV420_8_AFBC_16X16_SPLIT)
++    {
++        .pixelformat = V4L2_PIX_FMT_YUV420_8_AFBC_16X16_SPLIT,
++        .sw_format = AV_PIX_FMT_NONE,
++        .drm_format = DRM_FORMAT_YUV420_8BIT,
++        .format_modifier = DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++                                                   AFBC_FORMAT_MOD_SPARSE |
++                                                   AFBC_FORMAT_MOD_SPLIT),
++        .bit_depth = 8,
++    },
++#endif
++#if defined(V4L2_PIX_FMT_YUV420_10_AFBC_16X16_SPLIT)
++    {
++        .pixelformat = V4L2_PIX_FMT_YUV420_10_AFBC_16X16_SPLIT,
++        .sw_format = AV_PIX_FMT_NONE,
++        .drm_format = DRM_FORMAT_YUV420_10BIT,
++        .format_modifier = DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++                                                   AFBC_FORMAT_MOD_SPARSE |
++                                                   AFBC_FORMAT_MOD_SPLIT),
++        .bit_depth = 10,
++    },
++#endif
+ };
+ 
+ static int v4l2request_set_drm_descriptor(AVDRMFrameDescriptor *desc,
+@@ -109,7 +131,7 @@ static int v4l2request_set_drm_descriptor(AVDRMFrameDescriptor *desc,
+     }
+ 
+     desc->nb_layers = 1;
+-    layer->nb_planes = 2;
++    layer->nb_planes = 1;
+ 
+     layer->planes[0].object_index = 0;
+     layer->planes[0].offset = 0;
+@@ -117,12 +139,16 @@ static int v4l2request_set_drm_descriptor(AVDRMFrameDescriptor *desc,
+                              format->fmt.pix_mp.plane_fmt[0].bytesperline :
+                              format->fmt.pix.bytesperline;
+ 
+-    layer->planes[1].object_index = 0;
+-    layer->planes[1].offset = layer->planes[0].pitch *
+-                              (V4L2_TYPE_IS_MULTIPLANAR(format->type) ?
+-                               format->fmt.pix_mp.height :
+-                               format->fmt.pix.height);
+-    layer->planes[1].pitch = layer->planes[0].pitch;
++    // AFBC formats only use 1 plane, remaining use 2 planes
++    if ((desc->objects[0].format_modifier >> 56) != DRM_FORMAT_MOD_VENDOR_ARM) {
++        layer->nb_planes = 2;
++        layer->planes[1].object_index = 0;
++        layer->planes[1].offset = layer->planes[0].pitch *
++                                  (V4L2_TYPE_IS_MULTIPLANAR(format->type) ?
++                                   format->fmt.pix_mp.height :
++                                   format->fmt.pix.height);
++        layer->planes[1].pitch = layer->planes[0].pitch;
++    }
+ 
+     return 0;
+ }
+-- 
+2.46.0
+
+From b7a252769ac320818ce889d2fb8e9b30635277a5 Mon Sep 17 00:00:00 2001
+From: Jonas Karlman <jonas@kwiboo.se>
+Date: Sun, 14 Dec 2025 01:14:17 +0000
+Subject: [PATCH 13/13] avutil/hwcontext_v4l2request: Add support for
+ BROADCOM_SAND128 pix fmts
+
+---
+ libavutil/hwcontext_v4l2request.c | 37 +++++++++++++++++++++++++++++++
+ 1 file changed, 37 insertions(+)
+
+diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
+index 2aa2f5b..6366487 100644
+--- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
++++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
+@@ -101,6 +101,24 @@ static const struct {
+         .bit_depth = 10,
+     },
+ #endif
++#if defined(V4L2_PIX_FMT_NV12_COL128) && defined(V4L2_PIX_FMT_NV12_10_COL128)
++    {
++        .pixelformat = V4L2_PIX_FMT_NV12_COL128,
++        .sw_format = AV_PIX_FMT_NONE,
++        .drm_format = DRM_FORMAT_NV12,
++        .format_modifier = DRM_FORMAT_MOD_BROADCOM_SAND128,
++        .bit_depth = 8,
++    },
++#if defined(DRM_FORMAT_P030)
++    {
++        .pixelformat = V4L2_PIX_FMT_NV12_10_COL128,
++        .sw_format = AV_PIX_FMT_NONE,
++        .drm_format = DRM_FORMAT_P030,
++        .format_modifier = DRM_FORMAT_MOD_BROADCOM_SAND128,
++        .bit_depth = 10,
++    },
++#endif
++#endif
+ };
+ 
+ static int v4l2request_set_drm_descriptor(AVDRMFrameDescriptor *desc,
+@@ -150,6 +168,25 @@ static int v4l2request_set_drm_descriptor(AVDRMFrameDescriptor *desc,
+         layer->planes[1].pitch = layer->planes[0].pitch;
+     }
+ 
++#if defined(V4L2_PIX_FMT_NV12_COL128) && defined(V4L2_PIX_FMT_NV12_10_COL128)
++    // Raspberry Pi formats need special handling
++    if (pixelformat == V4L2_PIX_FMT_NV12_COL128 ||
++        pixelformat == V4L2_PIX_FMT_NV12_10_COL128) {
++        desc->objects[0].format_modifier =
++            DRM_FORMAT_MOD_BROADCOM_SAND128_COL_HEIGHT(layer->planes[0].pitch);
++        layer->planes[1].offset = 128 *
++                                  (V4L2_TYPE_IS_MULTIPLANAR(format->type) ?
++                                   format->fmt.pix_mp.height :
++                                   format->fmt.pix.height);
++        layer->planes[0].pitch = (V4L2_TYPE_IS_MULTIPLANAR(format->type) ?
++                                  format->fmt.pix_mp.width :
++                                  format->fmt.pix.width);
++        if (pixelformat == V4L2_PIX_FMT_NV12_10_COL128)
++            layer->planes[0].pitch *= 2;
++        layer->planes[1].pitch = layer->planes[0].pitch;
++    }
++#endif
++
+     return 0;
+ }
+ 
 -- 
 2.46.0
 
