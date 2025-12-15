@@ -13,26 +13,23 @@
 
 
 # Use this if you want to test branch <test_branch_name>
-# as myathtv-master
-use_test_branch_as_amster="no"
-# GIT branch name used when above is set to "yes"
-# or when minimyth.conf.mk var. mm_MYTH_VERSION is
-# set as "test"
+# used as myathtv-master
+use_test_branch_as_master="no"
 
-# testing branch for ffmpeg-resync
+# 'test' branch will be from mythtv official repo myth-master
+test_branch_name="master"
+test_git_src_dir="git-mythtv-master"
+
+# 'test' branch will be 'ffmpeg-resync' from mythtv official repo
 #test_branch_name="devel/ffmpeg-resync"
-# Dir where myth test branch sources will be
 #test_git_src_dir="git-mythtv-ffmpeg-resync"
 
-# testing branch for qt6
+# 'test' branch will be 'qt6' from mythtv official repo
 #test_branch_name="devel/qt6"
-# Dir where myth test branch sources will be
 #test_git_src_dir="git-mythtv-qt6"
 
-# testing branch for ffmpeg-resync
-test_branch_name="devel/ffmpeg-resync"
-# Dir where myth test branch sources will be
-test_git_src_dir="git-mythtv-ffmpeg-resync"
+
+
 
 # Location of MiniMyth2 main build config file
 mm_conf_file="${HOME}/.minimyth2/minimyth.conf.mk"
@@ -115,7 +112,7 @@ elif [ x${branch} = "xmaster" ]; then
   _gitname=mythtv
   _gitroot=https://github.com/MythTV/mythtv.git
 
-  if [ x$use_test_branch_as_amster = "xyes" ]; then
+  if [ x$use_test_branch_as_master = "xyes" ]; then
     _gitbranch="${test_branch_name}"
     srcdir="${git_src_home}/${test_git_src_dir}"
   else
