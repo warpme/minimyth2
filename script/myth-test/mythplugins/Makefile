@@ -15,7 +15,6 @@ BUILDDEPS = \
 
 DEPENDS = \
 	lang/cxx \
-	$(CATEGORY)/mythtv \
 	lib/libexif \
 	lib/libtiff \
 	lib/flac \
@@ -24,8 +23,10 @@ DEPENDS = \
 	lib/libcdio \
 	lib/libcdio-paranoia \
 	lib/libogg \
+	lib/libmusicbrainz5 \
+	lib/libcoverart \
+	lib/libdiscid \
 	lib/libvorbis \
-	lib/SDL2 \
 	lib/taglib \
 	lib/libzip \
 	python3/python \
@@ -66,6 +67,7 @@ CONFIGURE_ARGS = \
 	--enable-mythgame \
 	--enable-mythmusic \
 		--enable-cdio \
+		--enable-musicbrainz \
 	--enable-mythnetvision \
 	--enable-mythnews \
 	--enable-mythweather \
