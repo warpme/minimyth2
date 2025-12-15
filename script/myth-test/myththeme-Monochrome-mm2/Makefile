@@ -6,7 +6,7 @@ CATEGORIES   = mythtv
 MASTER_SITES = https://github.com/hambre/Monochrome/archive/
 DISTFILES    = $(GARVERSION).zip
 
-PATCHFILES   = add-mm2-ui-notifications.patch
+PATCHFILES  += add-mm2-ui-notifications.patch
 PATCHFILES  += change-running-color-to-amber.patch
 PATCHFILES  += improve-osd-playback-stats.patch
 PATCHFILES  += osd--add-osdnavigation.patch
@@ -22,6 +22,7 @@ PATCHFILES  += video-ui-remove-cond-disp-tile-on-presence-00x00.patch
 PATCHFILES  += music-ui.xml-applay-mythtv-pull774.patch
 PATCHFILES  += video-add-bookmark-state-and-watched-progress-bar.patch
 PATCHFILES  += osd-add-displayinfo-in-osddebug.patch
+PATCHFILES  += playbackbox-add-groupAlphabet-for-quick-navigation-within-groups.patch
 # PATCHFILES  += add-snow-animations.patch
 
 LICENSE      = GPL2
