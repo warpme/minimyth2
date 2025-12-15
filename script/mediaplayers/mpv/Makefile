@@ -12,8 +12,8 @@ endif
 
 ifeq (1,1)
 GARNAME      = mpv
-# diederik branch 25.11.2025
-GARVERSION   = fdcbba5dcc0a27c7b7cdbbce11da5f4ebe4a7864
+# diederik branch https://salsa.debian.org/diederik/mpv/-/commits/v4l2request-support @15.12.2025
+GARVERSION   = e53318aa946dd4af79ec7d4850f3d3cc81439a0f
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://salsa.debian.org/diederik/mpv/-/archive/$(GARVERSION)/
 DISTFILES    = mpv-$(GARVERSION).zip mpv-v4l2_m2m.sh mpv-v4l2_request.sh
