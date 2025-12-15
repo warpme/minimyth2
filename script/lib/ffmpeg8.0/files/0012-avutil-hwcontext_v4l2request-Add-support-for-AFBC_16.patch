@@ -1,0 +1,78 @@
+From 468c747f4daf628bf3d1785ec74c8dfdc49c3d43 Mon Sep 17 00:00:00 2001
+From: Jernej Skrabec <jernej.skrabec@gmail.com>
+Date: Sun, 14 Dec 2025 01:12:06 +0000
+Subject: [PATCH 12/13] avutil/hwcontext_v4l2request: Add support for
+ AFBC_16X16_SPLIT pix fmts
+
+---
+ libavutil/hwcontext_v4l2request.c | 40 +++++++++++++++++++++++++------
+ 1 file changed, 33 insertions(+), 7 deletions(-)
+
+diff --git a/libavutil/hwcontext_v4l2request.c b/libavutil/hwcontext_v4l2request.c
+index 7bb48ef..2aa2f5b 100644
+--- a/libavutil/hwcontext_v4l2request.c
++++ b/libavutil/hwcontext_v4l2request.c
+@@ -79,6 +79,28 @@ static const struct {
+ #if defined(V4L2_PIX_FMT_P010) && defined(DRM_FORMAT_P010)
+     { V4L2_PIX_FMT_P010, AV_PIX_FMT_P010, DRM_FORMAT_P010, DRM_FORMAT_MOD_LINEAR, 10 },
+ #endif
++#if defined(V4L2_PIX_FMT_YUV420_8_AFBC_16X16_SPLIT)
++    {
++        .pixelformat = V4L2_PIX_FMT_YUV420_8_AFBC_16X16_SPLIT,
++        .sw_format = AV_PIX_FMT_NONE,
++        .drm_format = DRM_FORMAT_YUV420_8BIT,
++        .format_modifier = DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++                                                   AFBC_FORMAT_MOD_SPARSE |
++                                                   AFBC_FORMAT_MOD_SPLIT),
++        .bit_depth = 8,
++    },
++#endif
++#if defined(V4L2_PIX_FMT_YUV420_10_AFBC_16X16_SPLIT)
++    {
++        .pixelformat = V4L2_PIX_FMT_YUV420_10_AFBC_16X16_SPLIT,
++        .sw_format = AV_PIX_FMT_NONE,
++        .drm_format = DRM_FORMAT_YUV420_10BIT,
++        .format_modifier = DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
++                                                   AFBC_FORMAT_MOD_SPARSE |
++                                                   AFBC_FORMAT_MOD_SPLIT),
++        .bit_depth = 10,
++    },
++#endif
+ };
+ 
+ static int v4l2request_set_drm_descriptor(AVDRMFrameDescriptor *desc,
+@@ -109,7 +131,7 @@ static int v4l2request_set_drm_descriptor(AVDRMFrameDescriptor *desc,
+     }
+ 
+     desc->nb_layers = 1;
+-    layer->nb_planes = 2;
++    layer->nb_planes = 1;
+ 
+     layer->planes[0].object_index = 0;
+     layer->planes[0].offset = 0;
+@@ -117,12 +139,16 @@ static int v4l2request_set_drm_descriptor(AVDRMFrameDescriptor *desc,
+                              format->fmt.pix_mp.plane_fmt[0].bytesperline :
+                              format->fmt.pix.bytesperline;
+ 
+-    layer->planes[1].object_index = 0;
+-    layer->planes[1].offset = layer->planes[0].pitch *
+-                              (V4L2_TYPE_IS_MULTIPLANAR(format->type) ?
+-                               format->fmt.pix_mp.height :
+-                               format->fmt.pix.height);
+-    layer->planes[1].pitch = layer->planes[0].pitch;
++    // AFBC formats only use 1 plane, remaining use 2 planes
++    if ((desc->objects[0].format_modifier >> 56) != DRM_FORMAT_MOD_VENDOR_ARM) {
++        layer->nb_planes = 2;
++        layer->planes[1].object_index = 0;
++        layer->planes[1].offset = layer->planes[0].pitch *
++                                  (V4L2_TYPE_IS_MULTIPLANAR(format->type) ?
++                                   format->fmt.pix_mp.height :
++                                   format->fmt.pix.height);
++        layer->planes[1].pitch = layer->planes[0].pitch;
++    }
+ 
+     return 0;
+ }
+-- 
+2.46.0
+

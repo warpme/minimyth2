@@ -1,0 +1,68 @@
+From b7a252769ac320818ce889d2fb8e9b30635277a5 Mon Sep 17 00:00:00 2001
+From: Jonas Karlman <jonas@kwiboo.se>
+Date: Sun, 14 Dec 2025 01:14:17 +0000
+Subject: [PATCH 13/13] avutil/hwcontext_v4l2request: Add support for
+ BROADCOM_SAND128 pix fmts
+
+---
+ libavutil/hwcontext_v4l2request.c | 37 +++++++++++++++++++++++++++++++
+ 1 file changed, 37 insertions(+)
+
+diff --git a/libavutil/hwcontext_v4l2request.c b/libavutil/hwcontext_v4l2request.c
+index 2aa2f5b..6366487 100644
+--- a/libavutil/hwcontext_v4l2request.c
++++ b/libavutil/hwcontext_v4l2request.c
+@@ -101,6 +101,24 @@ static const struct {
+         .bit_depth = 10,
+     },
+ #endif
++#if defined(V4L2_PIX_FMT_NV12_COL128) && defined(V4L2_PIX_FMT_NV12_10_COL128)
++    {
++        .pixelformat = V4L2_PIX_FMT_NV12_COL128,
++        .sw_format = AV_PIX_FMT_NONE,
++        .drm_format = DRM_FORMAT_NV12,
++        .format_modifier = DRM_FORMAT_MOD_BROADCOM_SAND128,
++        .bit_depth = 8,
++    },
++#if defined(DRM_FORMAT_P030)
++    {
++        .pixelformat = V4L2_PIX_FMT_NV12_10_COL128,
++        .sw_format = AV_PIX_FMT_NONE,
++        .drm_format = DRM_FORMAT_P030,
++        .format_modifier = DRM_FORMAT_MOD_BROADCOM_SAND128,
++        .bit_depth = 10,
++    },
++#endif
++#endif
+ };
+ 
+ static int v4l2request_set_drm_descriptor(AVDRMFrameDescriptor *desc,
+@@ -150,6 +168,25 @@ static int v4l2request_set_drm_descriptor(AVDRMFrameDescriptor *desc,
+         layer->planes[1].pitch = layer->planes[0].pitch;
+     }
+ 
++#if defined(V4L2_PIX_FMT_NV12_COL128) && defined(V4L2_PIX_FMT_NV12_10_COL128)
++    // Raspberry Pi formats need special handling
++    if (pixelformat == V4L2_PIX_FMT_NV12_COL128 ||
++        pixelformat == V4L2_PIX_FMT_NV12_10_COL128) {
++        desc->objects[0].format_modifier =
++            DRM_FORMAT_MOD_BROADCOM_SAND128_COL_HEIGHT(layer->planes[0].pitch);
++        layer->planes[1].offset = 128 *
++                                  (V4L2_TYPE_IS_MULTIPLANAR(format->type) ?
++                                   format->fmt.pix_mp.height :
++                                   format->fmt.pix.height);
++        layer->planes[0].pitch = (V4L2_TYPE_IS_MULTIPLANAR(format->type) ?
++                                  format->fmt.pix_mp.width :
++                                  format->fmt.pix.width);
++        if (pixelformat == V4L2_PIX_FMT_NV12_10_COL128)
++            layer->planes[0].pitch *= 2;
++        layer->planes[1].pitch = layer->planes[0].pitch;
++    }
++#endif
++
+     return 0;
+ }
+ 
+-- 
+2.46.0
+
