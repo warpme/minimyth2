@@ -12,14 +12,12 @@ endif
 
 ifeq (1,1)
 GARNAME      = mpv
-# diederik branch 4.04.2025
-GARVERSION   = 2d46d14d33df4132f119f399cdac1c3453896b1d
+# diederik branch 25.11.2025
+GARVERSION   = fdcbba5dcc0a27c7b7cdbbce11da5f4ebe4a7864
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://salsa.debian.org/diederik/mpv/-/archive/$(GARVERSION)/
-DISTFILES    = mpv-$(GARVERSION).zip
+DISTFILES    = mpv-$(GARVERSION).zip mpv-v4l2_m2m.sh mpv-v4l2_request.sh
 PATCHFILES   = stop-building-mpv-desktop.patch
-PATCHFILES  += 0001-meson-add-detection-logic-for-v4l2request-support.patch
-PATCHFILES  += 0002-vo-hwdec-drmprime-add-separate-hwdecs-for-v4l2reques.patch
 WORKSRC      = $(WORKDIR)/mpv-$(GARVERSION)
 endif
 
@@ -46,7 +44,5 @@ CXXFLAGS := $(filter-out -flto=auto, $(CXXFLAGS))
 LDFLAGS  := $(filter-out -flto=auto, $(LDFLAGS))
 
 post-install:
-	@echo '# echo "0xFF" > /sys/module/drm/parameters/debug' > $(DESTDIR)$(bindir)/mpv-drm.sh
-	@echo 'mpv --drm-connector=HDMI-A-1 --vo=gpu --gpu-context=drm --hwdec=v4l2request --msg-level=vd=v,vo=v $$1' >> $(DESTDIR)$(bindir)/mpv-drm.sh
-	@chmod +x $(DESTDIR)$(bindir)/mpv-drm.sh
+	@cp -f $(WORKDIR)/{mpv-v4l2_m2m.sh,mpv-v4l2_request.sh} $(DESTDIR)$(bindir)/
 	@$(MAKECOOKIE)
