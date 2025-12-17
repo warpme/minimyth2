@@ -1,6 +1,6 @@
 
 GARNAME      = media-driver-intel-media
-GARVERSION   = 25.4.5
+GARVERSION   = 25.2.6
 CATEGORIES   = X11
 MASTER_SITES = https://github.com/intel/media-driver/archive/refs/tags/
 DISTFILES    = intel-media-$(GARVERSION).tar.gz
@@ -24,3 +24,9 @@ CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 
 include ../../gar.mk
+
+clean-all:
+	@rm -rf $(DESTDIR)$(libdir)/iHD_drv_video.so*
+	@rm -rf $(DESTDIR)$(libdir)/libigfxcmrt.so*
+	@rm -rf $(DESTDIR)$(libdir)/pkgconfig/igfxcmrt.pc
+	@rm -rf $(DESTDIR)$(includedir)/igfxcmrt*
