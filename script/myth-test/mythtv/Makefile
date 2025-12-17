@@ -11,11 +11,7 @@ DISTFILES    = $(MYTHTV_GIT_HASH).zip
 include ../../minimyth.conf.mk
 
 PATCHFILES  =
-
-#PATCHFILES += 0000-hack-mute-non-configured-audio-false-error.patch
-
 PATCHFILES += 0000-hack-to-make-dvdnav-compiling.patch
-
 PATCHFILES += 0000-cmake-stop-checking-libx264.patch
 PATCHFILES += 0000-cmake-enable-x11-on-crosscompile.patch
 PATCHFILES += 0000-cmake-stop-checking-python-perl-deps-in-plugins-on-crosscompile.patch
@@ -58,7 +54,7 @@ PATCHFILES += 0104-Minimyth-Add-netflix-to-menus.patch
 PATCHFILES += 0105-Minimyth-defaults.patch
 PATCHFILES += 0106-hack-for-correct-perl-bindings-install.patch
 PATCHFILES += 0107-settings-make-language-setting-per-host-setting.patch
-#PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
+PATCHFILES += 0108-audio-revert-91e5b1b4-fix-audio-noise-on-some-platofrms.patch
 PATCHFILES += 0109-install-fix-nv-codec-headers-loc.patch
 PATCHFILES += 0110-libmythui-devices-first-start-without-CEC.patch
 PATCHFILES += 0111-mythfrontend-settings-create-Theme-DB-setting-at-first-run.patch
