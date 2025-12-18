@@ -50,7 +50,7 @@ DEPENDS = \
 	lib/bluez \
 	lib/exiv2 \
 	lib/flatbuffers \
-	lib/ffmpeg \
+	lib/ffmpeg8.0-mythtv \
 	lib/libfmt \
 	lib/fontconfig \
 	lib/freetype \
