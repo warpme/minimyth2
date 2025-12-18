@@ -1,7 +1,7 @@
 
 GARNAME      = mesa
-# 25.3.1
-GARVERSION   = 5005a50879b11b953ade113fccd13a208f706ba0
+# 25.3.2 GA
+GARVERSION   = 3848a080534a17ca075e9e95dd3a14abb80139aa
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 WORKSRC      = $(WORKDIR)/$(DISTNAME)
