@@ -339,17 +339,12 @@ PATCHFILES += 1049-phy-rockchip-usbdp-reset-USB3-and-reinit-on-orientat.patch
 # make kodi workig ok
 PATCHFILES += 1051-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
 PATCHFILES += 1052-usb-typec-fusb302-and-tcpm-debug-logs-to-msg.patch
-# rkvdec2 h264 hevc support
+# rkvdec2 support
 # https://gitlab.collabora.com/detlev/linux/-/commits/add-v4l2-st-lt-ref-set-support-v3 7.08.2025
 PATCHFILES += 1055-media-v4l2-ctrls-Add-hevc_ext_sps_-ls-t_rps-controls.patch
-
-# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v3 25.10.2025
-PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-v3-24102025.patch
-#PATCHFILES += 1058-media-rockchip-rkvdec-vdpu381-and-383-v3-fixup-to-6.18.patch
-PATCHFILES += 1059-media-rkvdec-fix-typos-in-vdpu381-vdpu383-hevc.patch
-PATCHFILES += 1060-media-rkvdec-fixup-image-formats.patch
-PATCHFILES += 1061-media-rkvdec-remove-ext_sps_lst_rps-validation-24102025.patch
-# fix for green screen on chrominium
+# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v6 17.12.2025
+PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-add-v6-17122025.patch
+# fix h264 playback in chromium
 PATCHFILES += 1062-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
 # fix for grey screen on rkvdec1 vp9
 PATCHFILES += 1063-media-rockchip-rkvdec-vdpu381-and-383-v3-fix-vp9.patch
