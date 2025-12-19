@@ -339,16 +339,14 @@ PATCHFILES += 1052-usb-typec-fusb302-and-tcpm-debug-logs-to-msg.patch
 # rkvdec2 support
 # https://gitlab.collabora.com/detlev/linux/-/commits/add-v4l2-st-lt-ref-set-support-v3 7.08.2025
 PATCHFILES += 1055-media-v4l2-ctrls-Add-hevc_ext_sps_-ls-t_rps-controls.patch
-# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v6 17.12.2025
-PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-add-v6-17122025.patch
+# https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v7 19.12.2025
+PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-add-v7-19122025.patch
 # fix h264 playback in chromium
 PATCHFILES += 1062-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
-# fix for grey screen on rkvdec1 vp9
-PATCHFILES += 1063-media-rockchip-rkvdec-vdpu381-and-383-v3-fix-vp9.patch
 # fix av1 hw decode seen e.g. on clapper
 PATCHFILES += 1064-media-verisilicon-AV1-fix-enable-cdef-computation.patch
 # add vp9 decoding on rk3588
-PATCHFILES += 1066-media-rockchip-rkvdec-vdpu381-add-vp9-support.patch
+PATCHFILES += 1066-media-rockchip-rkvdec-vdpu381-add-vp9-support-v7.patch
 # fix mmc cqe
 PATCHFILES += 1076-mmc-sdhci-of-dwcmshc-add-command-queue-support.patch
 # fix speaker-test -c 6 resulting silence on FC/RR/LFE
