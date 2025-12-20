@@ -74,8 +74,10 @@ PATCHFILES += 0119-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
 # update ffmpeg to 8.0
 PATCHFILES += 0145-ffmpeg8-pull1223-update-ffmpeg-to-8.0.patch
-
-ifeq (1,1)
+# some ffmpeg8 port fixes for vaapi di
+PATCHFILES += 0146-ffmpeg8-Set-hw_frames_ctx-before-init-AVfilter.patch
+PATCHFILES += 0147-ffmpeg8-Enable-VAAPI-deinterlacers-for-AMD-GPUs.patch
+PATCHFILES += 0148-ffmpeg8-VAAPI-deinterlacer-Use-mode-default-for-DEINT_HIGH.patch
 # v4l2_m2m and v4l2_request patches
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
@@ -95,8 +97,6 @@ PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
 PATCHFILES += 0161-hack-hack-hack-ffmpeg8-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_2.patch
 endif
-endif
-
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
 PATCHFILES += 0201-Mediamonitor-reduce-udisks-timeout-to-1500msec.patch
