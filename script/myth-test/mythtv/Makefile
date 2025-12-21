@@ -73,15 +73,41 @@ PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 PATCHFILES += 0119-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
 
+# ffmpeg7
 ifeq (1,1)
 # v4l2_m2m and v4l2_request patches
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
 PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
-# update ffmpeg to 8.0
-PATCHFILES += 0151-ffmpeg8-pull1223-update-ffmpeg-to-8.0.patch
 # v4l2-request support in ffmpeg (requires also kernel patching)
-PATCHFILES += 0155-ffmpeg8-add-v4l2_request-support-v4l2request-n8.0.1-14122025.patch
+PATCHFILES += 0155-ffmpeg7-add-V4l2_request-support-ffmpeg7.1.1-kwiboo-20250812-ge8587043.patch
+# Fix for opposite fields usec in opengl di
+PATCHFILES += 0156-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
+# make v4l2_request seeking on h264 content working
+PATCHFILES += 0157-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
+# add v4l2_m2m deinterlace filter
+PATCHFILES += 0159-ffmpeg7-libavfilter-add-v4l2m2m-deinterlace-filter.patch
+# add initial v4l2_requet av1 support
+PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
+# hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
+PATCHFILES += 0161-hack-hack-hack-ffmpeg7-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_1.patch
+endif
+endif
+
+# ffmpeg8
+ifeq (0,1)
+# update ffmpeg to 8.0
+PATCHFILES += 0145-ffmpeg8-pull1223-update-ffmpeg-to-8.0.patch
+# some ffmpeg8 port fixes for vaapi di
+PATCHFILES += 0146-ffmpeg8-Set-hw_frames_ctx-before-init-AVfilter.patch
+PATCHFILES += 0147-ffmpeg8-Enable-VAAPI-deinterlacers-for-AMD-GPUs.patch
+PATCHFILES += 0148-ffmpeg8-VAAPI-deinterlacer-Use-mode-default-for-DEINT_HIGH.patch
+# v4l2_m2m and v4l2_request patches
+ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
+# prepre mythtv's v4l2 infra for ffmpeg7
+PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
+# v4l2-request support in ffmpeg (requires also kernel patching)
+PATCHFILES += 0155-ffmpeg8-add-v4l2_request-support-v4l2request-n8.0.1-21122025.patch
 # Fix for opposite fields usec in opengl di
 PATCHFILES += 0156-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # make v4l2_request seeking on h264 content working
