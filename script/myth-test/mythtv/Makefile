@@ -81,7 +81,7 @@ ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
 # v4l2-request support in ffmpeg (requires also kernel patching)
 PATCHFILES += 0155-ffmpeg7-add-V4l2_request-support-ffmpeg7.1.1-kwiboo-20250812-ge8587043.patch
-#PATCHFILES += 0155-ffmpeg7-add-v4l2_request-support-v4l2request-n7.1.3-21122025.patch
+# PATCHFILES += 0155-ffmpeg7-add-v4l2_request-support-v4l2request-n7.1.3-21122025.patch
 # Fix for opposite fields usec in opengl di
 PATCHFILES += 0156-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # make v4l2_request seeking on h264 content working
@@ -91,7 +91,7 @@ PATCHFILES += 0159-ffmpeg7-libavfilter-add-v4l2m2m-deinterlace-filter.patch
 # add initial v4l2_requet av1 support
 PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
-#PATCHFILES += 0161-hack-hack-hack-ffmpeg7-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_1.patch
+PATCHFILES += 0161-hack-hack-hack-ffmpeg7-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_1.patch
 endif
 endif
 
@@ -109,6 +109,8 @@ ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
 # v4l2-request support in ffmpeg (requires also kernel patching)
 PATCHFILES += 0155-ffmpeg8-add-v4l2_request-support-v4l2request-n8.0.1-21122025.patch
+# fix for hevc hdr decoding
+PATCHFILES += 0155-ffmpeg8-v4l2request_select_capture_format.patch
 # Fix for opposite fields usec in opengl di
 PATCHFILES += 0156-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # make v4l2_request seeking on h264 content working
