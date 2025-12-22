@@ -1,4 +1,4 @@
-From d3f145859d0c819d5c6cc1615ad476a515e82f8d Mon Sep 17 00:00:00 2001
+From 100fb163242f08d209e8b2598eaff9608a3dd9a4 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Tue, 6 Aug 2024 09:06:00 +0000
 Subject: [PATCH 01/13] avutil/hwcontext: Add hwdevice type for V4L2 Request
@@ -26,10 +26,10 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  libavutil/hwcontext.c                      |   4 +
  libavutil/hwcontext.h                      |   1 +
  libavutil/hwcontext_internal.h             |   1 +
- libavutil/hwcontext_v4l2request.c          | 588 +++++++++++++++++++++
+ libavutil/hwcontext_v4l2request.c          | 596 +++++++++++++++++++++
  libavutil/hwcontext_v4l2request.h          |  70 +++
  libavutil/hwcontext_v4l2request_internal.h |  67 +++
- 8 files changed, 743 insertions(+)
+ 8 files changed, 751 insertions(+)
  create mode 100644 libavutil/hwcontext_v4l2request.c
  create mode 100644 libavutil/hwcontext_v4l2request.h
  create mode 100644 libavutil/hwcontext_v4l2request_internal.h
@@ -151,10 +151,10 @@ index dcfdc20..94e4da1 100644
  extern const HWContextType ff_hwcontext_type_videotoolbox;
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
 new file mode 100644
-index 0000000..b8f55ff
+index 0000000..56d3fef
 --- /dev/null
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
-@@ -0,0 +1,588 @@
+@@ -0,0 +1,596 @@
 +/*
 + * This file is part of FFmpeg.
 + *
@@ -214,14 +214,14 @@ index 0000000..b8f55ff
 +} v4l2request_capture_pixelformats[] = {
 +    { V4L2_PIX_FMT_NV12, AV_PIX_FMT_NV12, DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, 8 },
 +#if defined(V4L2_PIX_FMT_NV12_32L32)
-+    { V4L2_PIX_FMT_NV12_32L32, AV_PIX_FMT_NONE, DRM_FORMAT_NV12, DRM_FORMAT_MOD_ALLWINNER_TILED, 8 },
++    { V4L2_PIX_FMT_NV12_32L32, AV_PIX_FMT_YUV420P, DRM_FORMAT_NV12, DRM_FORMAT_MOD_ALLWINNER_TILED, 8 },
 +#endif
 +#if defined(V4L2_PIX_FMT_NV15) && defined(DRM_FORMAT_NV15)
-+    { V4L2_PIX_FMT_NV15, AV_PIX_FMT_NONE, DRM_FORMAT_NV15, DRM_FORMAT_MOD_LINEAR, 10 },
++    { V4L2_PIX_FMT_NV15, AV_PIX_FMT_YUV420P10, DRM_FORMAT_NV15, DRM_FORMAT_MOD_LINEAR, 10 },
 +#endif
 +    { V4L2_PIX_FMT_NV16, AV_PIX_FMT_NV16, DRM_FORMAT_NV16, DRM_FORMAT_MOD_LINEAR, 8 },
 +#if defined(V4L2_PIX_FMT_NV20) && defined(DRM_FORMAT_NV20)
-+    { V4L2_PIX_FMT_NV20, AV_PIX_FMT_NONE, DRM_FORMAT_NV20, DRM_FORMAT_MOD_LINEAR, 10 },
++    { V4L2_PIX_FMT_NV20, AV_PIX_FMT_YUV422P10, DRM_FORMAT_NV20, DRM_FORMAT_MOD_LINEAR, 10 },
 +#endif
 +#if defined(V4L2_PIX_FMT_P010) && defined(DRM_FORMAT_P010)
 +    { V4L2_PIX_FMT_P010, AV_PIX_FMT_P010, DRM_FORMAT_P010, DRM_FORMAT_MOD_LINEAR, 10 },
@@ -665,6 +665,11 @@ index 0000000..b8f55ff
 +    fmts[0] = hwfc->sw_format;
 +    fmts[1] = AV_PIX_FMT_NONE;
 +
++    if (hwfc->sw_format == AV_PIX_FMT_YUV420P ||
++        hwfc->sw_format == AV_PIX_FMT_YUV420P10 ||
++        hwfc->sw_format == AV_PIX_FMT_YUV422P10)
++        fmts[0] = AV_PIX_FMT_NONE;
++
 +    *formats = fmts;
 +    return 0;
 +}
@@ -708,7 +713,10 @@ index 0000000..b8f55ff
 +    if (!(flags & AV_HWFRAME_MAP_READ))
 +        return AVERROR(ENOSYS);
 +
-+    if (hwfc->sw_format == AV_PIX_FMT_NONE)
++    if (hwfc->sw_format == AV_PIX_FMT_NONE ||
++        hwfc->sw_format == AV_PIX_FMT_YUV420P ||
++        hwfc->sw_format == AV_PIX_FMT_YUV420P10 ||
++        hwfc->sw_format == AV_PIX_FMT_YUV422P10)
 +        return AVERROR(ENOSYS);
 +    else if (dst->format == AV_PIX_FMT_NONE)
 +        dst->format = hwfc->sw_format;
@@ -895,7 +903,7 @@ index 0000000..20436b2
 -- 
 2.46.0
 
-From 02e30bb5dbd7e63cbe38fd60a07d33d7f1363c78 Mon Sep 17 00:00:00 2001
+From 8735f36e0671b61627ec1f4fe2a648c0ce6f5b2d Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Tue, 6 Aug 2024 09:06:02 +0000
 Subject: [PATCH 02/13] avutil/hwcontext_v4l2request: Probe for a capable media
@@ -965,7 +973,7 @@ index 1b0301e..b97a3ba 100755
  
  check_headers sys/videoio.h
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
-index b8f55ff..7bb48ef 100644
+index 56d3fef..f316f57 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
 @@ -26,6 +26,7 @@
@@ -1516,7 +1524,7 @@ index b8f55ff..7bb48ef 100644
 -- 
 2.46.0
 
-From 8e0fc0915a939f2e65a4671c96f58bc1c07546eb Mon Sep 17 00:00:00 2001
+From 1ece0f5b9dd9d68351123dc38cf14c5c8f63a8c1 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Tue, 6 Aug 2024 09:06:01 +0000
 Subject: [PATCH 03/13] avcodec: Add common V4L2 Request API code
@@ -1898,7 +1906,7 @@ index 0000000..d09bbf7
 -- 
 2.46.0
 
-From 4c6fc7e6a2cf3536b9e2a5510f5affd59dc28787 Mon Sep 17 00:00:00 2001
+From 26fd06515fa297783515242345ecb537319e2e6b Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Tue, 6 Aug 2024 09:06:03 +0000
 Subject: [PATCH 04/13] avcodec/v4l2request: Add common decode support for
@@ -2596,7 +2604,7 @@ index d09bbf7..53759f2 100644
 -- 
 2.46.0
 
-From c020676b61ab770f0b1c8851d163e4d785a582e5 Mon Sep 17 00:00:00 2001
+From ffd2ac667eb0020db69b850abfeda41e0dbd29e1 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Tue, 6 Aug 2024 09:06:04 +0000
 Subject: [PATCH 05/13] avcodec: Add V4L2 Request API mpeg2 hwaccel
@@ -2905,7 +2913,7 @@ index 0000000..5d89b71
 -- 
 2.46.0
 
-From d8512177ad229537501837f6f0efdedc2cc3a1a5 Mon Sep 17 00:00:00 2001
+From 90ab2430a90f14b9cd861f05283b4d5bed933f1f Mon Sep 17 00:00:00 2001
 From: Boris Brezillon <boris.brezillon@collabora.com>
 Date: Tue, 6 Aug 2024 09:06:05 +0000
 Subject: [PATCH 06/13] avcodec/h264dec: add ref_pic_marking and pic_order_cnt
@@ -2995,7 +3003,7 @@ index 1df9901..fb99ce9 100644
 -- 
 2.46.0
 
-From 871bd5867a27321e9d24e916af04e3c400627331 Mon Sep 17 00:00:00 2001
+From d38c0ce78bba7b8bf3463747ddc614838fdec974 Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Tue, 6 Aug 2024 09:06:06 +0000
 Subject: [PATCH 07/13] avcodec: Add V4L2 Request API h264 hwaccel
@@ -3651,7 +3659,7 @@ index 0000000..5abf631
 -- 
 2.46.0
 
-From 07a7483dca90d8d9ecf9e98b465d8a1ec7cd855c Mon Sep 17 00:00:00 2001
+From e9def6fb3797d71360c716a8a431928172da157c Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Tue, 6 Aug 2024 09:06:07 +0000
 Subject: [PATCH 08/13] avcodec: Add V4L2 Request API hevc hwaccel
@@ -4542,7 +4550,7 @@ index 0000000..025d86d
 -- 
 2.46.0
 
-From f8bc7a996960ae564f067fb26fb688bb2bd20009 Mon Sep 17 00:00:00 2001
+From f6398b1158a2f4297bc4556ef5247b2663a162a8 Mon Sep 17 00:00:00 2001
 From: Boris Brezillon <boris.brezillon@collabora.com>
 Date: Wed, 22 May 2019 14:46:58 +0200
 Subject: [PATCH 09/13] avcodec: Add V4L2 Request API vp8 hwaccel
@@ -4886,7 +4894,7 @@ index 0ae50b1..0606f78 100644
 -- 
 2.46.0
 
-From 1a57ff583ae1d0938d6e5a93072edf81968dbf56 Mon Sep 17 00:00:00 2001
+From ffca8afd4321eabb5ab2b7a449f857d717f8b3ad Mon Sep 17 00:00:00 2001
 From: Boris Brezillon <boris.brezillon@collabora.com>
 Date: Tue, 9 Dec 2025 20:30:05 +0100
 Subject: [PATCH 10/13] avcodec: Add V4L2 Request API vp9 hwaccel
@@ -5526,7 +5534,7 @@ index d0d0238..47675d2 100644
 -- 
 2.46.0
 
-From 94146295860d4afd9c4134e548f634b6f4d58284 Mon Sep 17 00:00:00 2001
+From 6abcbd6f3e796bbaeb44acf7b903a6d4928600b1 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Sat, 6 Jul 2024 08:41:30 +0000
 Subject: [PATCH 11/13] avcodec: Add V4L2 Request API av1 hwaccel
@@ -6278,7 +6286,7 @@ index 0000000..4eabdbf
 -- 
 2.46.0
 
-From 468c747f4daf628bf3d1785ec74c8dfdc49c3d43 Mon Sep 17 00:00:00 2001
+From 527da9b1c7e2b2184a34d8ae6a631c76e75f4caa Mon Sep 17 00:00:00 2001
 From: Jernej Skrabec <jernej.skrabec@gmail.com>
 Date: Sun, 14 Dec 2025 01:12:06 +0000
 Subject: [PATCH 12/13] avutil/hwcontext_v4l2request: Add support for
@@ -6289,7 +6297,7 @@ Subject: [PATCH 12/13] avutil/hwcontext_v4l2request: Add support for
  1 file changed, 33 insertions(+), 7 deletions(-)
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
-index 7bb48ef..2aa2f5b 100644
+index f316f57..9ca4262 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
 @@ -79,6 +79,28 @@ static const struct {
@@ -6299,7 +6307,7 @@ index 7bb48ef..2aa2f5b 100644
 +#if defined(V4L2_PIX_FMT_YUV420_8_AFBC_16X16_SPLIT)
 +    {
 +        .pixelformat = V4L2_PIX_FMT_YUV420_8_AFBC_16X16_SPLIT,
-+        .sw_format = AV_PIX_FMT_NONE,
++        .sw_format = AV_PIX_FMT_YUV420P,
 +        .drm_format = DRM_FORMAT_YUV420_8BIT,
 +        .format_modifier = DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
 +                                                   AFBC_FORMAT_MOD_SPARSE |
@@ -6310,7 +6318,7 @@ index 7bb48ef..2aa2f5b 100644
 +#if defined(V4L2_PIX_FMT_YUV420_10_AFBC_16X16_SPLIT)
 +    {
 +        .pixelformat = V4L2_PIX_FMT_YUV420_10_AFBC_16X16_SPLIT,
-+        .sw_format = AV_PIX_FMT_NONE,
++        .sw_format = AV_PIX_FMT_YUV420P10,
 +        .drm_format = DRM_FORMAT_YUV420_10BIT,
 +        .format_modifier = DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
 +                                                   AFBC_FORMAT_MOD_SPARSE |
@@ -6356,7 +6364,7 @@ index 7bb48ef..2aa2f5b 100644
 -- 
 2.46.0
 
-From b7a252769ac320818ce889d2fb8e9b30635277a5 Mon Sep 17 00:00:00 2001
+From bc3c932075dd214b3a44016a14a80861b1e13393 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Sun, 14 Dec 2025 01:14:17 +0000
 Subject: [PATCH 13/13] avutil/hwcontext_v4l2request: Add support for
@@ -6367,7 +6375,7 @@ Subject: [PATCH 13/13] avutil/hwcontext_v4l2request: Add support for
  1 file changed, 37 insertions(+)
 
 diff --git mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
-index 2aa2f5b..6366487 100644
+index 9ca4262..3d3f395 100644
 --- mythtv-master-20251214-old/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
 +++ mythtv-master-20251214-new/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
 @@ -101,6 +101,24 @@ static const struct {
@@ -6377,7 +6385,7 @@ index 2aa2f5b..6366487 100644
 +#if defined(V4L2_PIX_FMT_NV12_COL128) && defined(V4L2_PIX_FMT_NV12_10_COL128)
 +    {
 +        .pixelformat = V4L2_PIX_FMT_NV12_COL128,
-+        .sw_format = AV_PIX_FMT_NONE,
++        .sw_format = AV_PIX_FMT_YUV420P,
 +        .drm_format = DRM_FORMAT_NV12,
 +        .format_modifier = DRM_FORMAT_MOD_BROADCOM_SAND128,
 +        .bit_depth = 8,
@@ -6385,7 +6393,7 @@ index 2aa2f5b..6366487 100644
 +#if defined(DRM_FORMAT_P030)
 +    {
 +        .pixelformat = V4L2_PIX_FMT_NV12_10_COL128,
-+        .sw_format = AV_PIX_FMT_NONE,
++        .sw_format = AV_PIX_FMT_YUV420P10,
 +        .drm_format = DRM_FORMAT_P030,
 +        .format_modifier = DRM_FORMAT_MOD_BROADCOM_SAND128,
 +        .bit_depth = 10,
