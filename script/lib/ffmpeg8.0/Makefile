@@ -6,6 +6,7 @@ MASTER_SITES = http://ffmpeg.org/releases/
 DISTFILES    = $(DISTNAME).tar.xz
 
 ifeq (1,1)
+# https://code.ffmpeg.org/Kwiboo/FFmpeg/commits/branch/v4l2-request-n8.0.1 21122025
 PATCHFILES  += 0001-avutil-hwcontext-Add-hwdevice-type-for-V4L2-Request-.patch
 PATCHFILES  += 0002-avutil-hwcontext_v4l2request-Probe-for-a-capable-med.patch
 PATCHFILES  += 0003-avcodec-Add-common-V4L2-Request-API-code.patch
@@ -19,6 +20,7 @@ PATCHFILES  += 0010-avcodec-Add-V4L2-Request-API-vp9-hwaccel.patch
 PATCHFILES  += 0011-avcodec-Add-V4L2-Request-API-av1-hwaccel.patch
 PATCHFILES  += 0012-avutil-hwcontext_v4l2request-Add-support-for-AFBC_16.patch
 PATCHFILES  += 0013-avutil-hwcontext_v4l2request-Add-support-for-BROADCO.patch
+PATCHFILES  += 0014-avutil-FIXUP-v4l2request_select_capture_format.patch
 endif
 
 LICENSE      = GPL2/LGPL2_1

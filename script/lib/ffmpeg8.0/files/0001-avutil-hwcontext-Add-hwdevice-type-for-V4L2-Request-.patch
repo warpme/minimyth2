@@ -1,4 +1,4 @@
-From d3f145859d0c819d5c6cc1615ad476a515e82f8d Mon Sep 17 00:00:00 2001
+From 100fb163242f08d209e8b2598eaff9608a3dd9a4 Mon Sep 17 00:00:00 2001
 From: Jonas Karlman <jonas@kwiboo.se>
 Date: Tue, 6 Aug 2024 09:06:00 +0000
 Subject: [PATCH 01/13] avutil/hwcontext: Add hwdevice type for V4L2 Request
@@ -26,10 +26,10 @@ Signed-off-by: Jonas Karlman <jonas@kwiboo.se>
  libavutil/hwcontext.c                      |   4 +
  libavutil/hwcontext.h                      |   1 +
  libavutil/hwcontext_internal.h             |   1 +
- libavutil/hwcontext_v4l2request.c          | 588 +++++++++++++++++++++
+ libavutil/hwcontext_v4l2request.c          | 596 +++++++++++++++++++++
  libavutil/hwcontext_v4l2request.h          |  70 +++
  libavutil/hwcontext_v4l2request_internal.h |  67 +++
- 8 files changed, 743 insertions(+)
+ 8 files changed, 751 insertions(+)
  create mode 100644 libavutil/hwcontext_v4l2request.c
  create mode 100644 libavutil/hwcontext_v4l2request.h
  create mode 100644 libavutil/hwcontext_v4l2request_internal.h
@@ -151,10 +151,10 @@ index dcfdc20..94e4da1 100644
  extern const HWContextType ff_hwcontext_type_videotoolbox;
 diff --git a/libavutil/hwcontext_v4l2request.c b/libavutil/hwcontext_v4l2request.c
 new file mode 100644
-index 0000000..b8f55ff
+index 0000000..56d3fef
 --- /dev/null
 +++ b/libavutil/hwcontext_v4l2request.c
-@@ -0,0 +1,588 @@
+@@ -0,0 +1,596 @@
 +/*
 + * This file is part of FFmpeg.
 + *
@@ -214,14 +214,14 @@ index 0000000..b8f55ff
 +} v4l2request_capture_pixelformats[] = {
 +    { V4L2_PIX_FMT_NV12, AV_PIX_FMT_NV12, DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, 8 },
 +#if defined(V4L2_PIX_FMT_NV12_32L32)
-+    { V4L2_PIX_FMT_NV12_32L32, AV_PIX_FMT_NONE, DRM_FORMAT_NV12, DRM_FORMAT_MOD_ALLWINNER_TILED, 8 },
++    { V4L2_PIX_FMT_NV12_32L32, AV_PIX_FMT_YUV420P, DRM_FORMAT_NV12, DRM_FORMAT_MOD_ALLWINNER_TILED, 8 },
 +#endif
 +#if defined(V4L2_PIX_FMT_NV15) && defined(DRM_FORMAT_NV15)
-+    { V4L2_PIX_FMT_NV15, AV_PIX_FMT_NONE, DRM_FORMAT_NV15, DRM_FORMAT_MOD_LINEAR, 10 },
++    { V4L2_PIX_FMT_NV15, AV_PIX_FMT_YUV420P10, DRM_FORMAT_NV15, DRM_FORMAT_MOD_LINEAR, 10 },
 +#endif
 +    { V4L2_PIX_FMT_NV16, AV_PIX_FMT_NV16, DRM_FORMAT_NV16, DRM_FORMAT_MOD_LINEAR, 8 },
 +#if defined(V4L2_PIX_FMT_NV20) && defined(DRM_FORMAT_NV20)
-+    { V4L2_PIX_FMT_NV20, AV_PIX_FMT_NONE, DRM_FORMAT_NV20, DRM_FORMAT_MOD_LINEAR, 10 },
++    { V4L2_PIX_FMT_NV20, AV_PIX_FMT_YUV422P10, DRM_FORMAT_NV20, DRM_FORMAT_MOD_LINEAR, 10 },
 +#endif
 +#if defined(V4L2_PIX_FMT_P010) && defined(DRM_FORMAT_P010)
 +    { V4L2_PIX_FMT_P010, AV_PIX_FMT_P010, DRM_FORMAT_P010, DRM_FORMAT_MOD_LINEAR, 10 },
@@ -665,6 +665,11 @@ index 0000000..b8f55ff
 +    fmts[0] = hwfc->sw_format;
 +    fmts[1] = AV_PIX_FMT_NONE;
 +
++    if (hwfc->sw_format == AV_PIX_FMT_YUV420P ||
++        hwfc->sw_format == AV_PIX_FMT_YUV420P10 ||
++        hwfc->sw_format == AV_PIX_FMT_YUV422P10)
++        fmts[0] = AV_PIX_FMT_NONE;
++
 +    *formats = fmts;
 +    return 0;
 +}
@@ -708,7 +713,10 @@ index 0000000..b8f55ff
 +    if (!(flags & AV_HWFRAME_MAP_READ))
 +        return AVERROR(ENOSYS);
 +
-+    if (hwfc->sw_format == AV_PIX_FMT_NONE)
++    if (hwfc->sw_format == AV_PIX_FMT_NONE ||
++        hwfc->sw_format == AV_PIX_FMT_YUV420P ||
++        hwfc->sw_format == AV_PIX_FMT_YUV420P10 ||
++        hwfc->sw_format == AV_PIX_FMT_YUV422P10)
 +        return AVERROR(ENOSYS);
 +    else if (dst->format == AV_PIX_FMT_NONE)
 +        dst->format = hwfc->sw_format;
