@@ -332,8 +332,6 @@ CONFIGURE_ARGS = \
 	--enable-pic \
 	--enable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
-	--enable-ffplay \
-	--enable-sdl2 \
 	--python="python3" \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
 	--enable-libdav1d \
@@ -443,8 +441,13 @@ build-custom:
 GAR_EXTRA_CONF += python3/python/package-api.mk
 include ../../gar.mk
 
-CXXFLAGS += -I$(DESTDIR)$(includedir)/taglib
-CPPFLAGS += -fPIC -fuse-linker-plugin -I$(DESTDIR)$(includedir)/taglib
+CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
+CPPFLAGS += -fPIC -fuse-linker-plugin -I$(DESTDIR)$(includedir)/taglib -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
+
+
+#CPPFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
+#CFLAGS   += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
+#CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
