@@ -1,0 +1,53 @@
+From e44fc753084f8a21f8206bc4e351d59c6ae35f48 Mon Sep 17 00:00:00 2001
+From: Jonas Karlman <jonas@kwiboo.se>
+Date: Sun, 18 Aug 2024 17:42:14 -0700
+Subject: [PATCH] meson: add detection logic for v4l2request support
+
+We will probably adjust this to look for a specific libavutil version after
+v4l2request support is merged upstream, but this check is fine for now.
+---
+ meson.build   | 11 +++++++++++
+ meson.options |  1 +
+ 2 files changed, 12 insertions(+)
+
+diff --git a/meson.build b/meson.build
+index e37564b03455f..68b5c0899dae0 100644
+--- a/meson.build
++++ b/meson.build
+@@ -1430,6 +1430,16 @@ if features['ios-gl']
+     sources += files('video/out/hwdec/hwdec_ios_gl.m')
+ endif
+ 
++v4l2request = get_option('v4l2request').require(
++    cc.has_header_symbol('libavutil/hwcontext.h',
++                         'AV_HWDEVICE_TYPE_V4L2REQUEST',
++                         dependencies: libavutil)
++)
++features += {'v4l2request': v4l2request.allowed()}
++if features['v4l2request']
++    sources += files('video/v4l2request.c')
++endif
++
+ libva = dependency('libva', version: '>= 1.1.0', required: get_option('vaapi'))
+ 
+ vaapi_drm = dependency('libva-drm', version: '>= 1.1.0', required:
+@@ -1901,6 +1911,7 @@ summary({'cocoa': features['cocoa'] and features['swift'],
+          'libmpv': get_option('libmpv'),
+          'lua': features['lua'],
+          'opengl': features['gl'],
++         'v4l2request': features['v4l2request'],
+          'vulkan': features['vulkan'],
+          'wayland': features['wayland'],
+          'x11': features['x11']},
+diff --git a/meson.options b/meson.options
+index 52782f73d61c2..a7931154007a7 100644
+--- a/meson.options
++++ b/meson.options
+@@ -101,6 +101,7 @@ option('d3d-hwaccel', type: 'feature', value: 'auto', description: 'D3D11VA hwac
+ option('d3d9-hwaccel', type: 'feature', value: 'auto', description: 'DXVA2 hwaccel')
+ option('gl-dxinterop-d3d9', type: 'feature', value: 'auto', description: 'OpenGL/DirectX DXVA2 hwaccel')
+ option('ios-gl', type: 'feature', value: 'auto', description: 'iOS OpenGL ES interop support')
++option('v4l2request', type: 'feature', value: 'auto', description: 'V4L2 Request API hwaccel')
+ option('videotoolbox-gl', type: 'feature', value: 'auto', description: 'Videotoolbox with OpenGL')
+ option('videotoolbox-pl', type: 'feature', value: 'auto', description: 'Videotoolbox with libplacebo')
+ 
