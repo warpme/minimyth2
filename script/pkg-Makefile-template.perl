@@ -11,3 +11,6 @@ PERL_NOT_NEEDED     = versions of perl for which this module is not needed, usua
 include ../../perl/perl/perl-module.mk
 
 CONFIGURE_ARGS += <extra args for configure i.e. --libs="-L$(DESTDIR)$(libdir)">
+
+# use this if building is interactive
+CONFIGURE_ENV := echo Y | $(CONFIGURE_ENV)
