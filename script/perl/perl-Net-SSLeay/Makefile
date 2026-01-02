@@ -7,5 +7,6 @@ PERL_MODULE_SO      = true
 
 include ../../perl/perl/perl-module.mk
 
+export OPENSSL_PREFIX=$(build_prefix)
+
 CONFIGURE_ENV := echo N | $(CONFIGURE_ENV)
-CONFIGURE_ARGS += --libs="-L$(DESTDIR)$(libdir)"
