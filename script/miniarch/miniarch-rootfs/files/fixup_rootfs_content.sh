@@ -35,10 +35,6 @@ sed "/Architecture\s*=.*/a DisableDownloadTimeout" -i ${dest}/etc/pacman.conf
 echo 'hack removing /usr/lib/modprobe.d/bluetooth-usb.conf to make pacman happy when user is installing bluez pkg ...'
 rm -f ${dest}/usr/lib/modprobe.d/bluetooth-usb.conf
 
-# switch to sw cursor due broken hw cursor in wayland due kodi/mythtv required drm planes reordering hack
-echo "force software cursor in wayland as workarround for drm planes reordering req. by kodi/mythtv ..."
-echo "# miniarch: force software cursor in wayland as workarround for drm planes reordering req. by kodi/mythtv" >> ${dest}/etc/environment
-echo "export KWIN_FORCE_SW_CURSOR=1" >> ${dest}/etc/environment
 
 
 
