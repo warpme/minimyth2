@@ -43,7 +43,6 @@ PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
 PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 # speedup a bit portcheck
-# PATCHFILES += 0059-revert-6e44cde6f-PortChecker-checkPort-reduce-blocking-time.patch
 PATCHFILES += 0059-portchecker-speedup.patch
 
 # Minimyth related patches
@@ -73,12 +72,6 @@ PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # some fixes to build on minimyth2
 PATCHFILES += 0119-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
-# update ffmpeg to 8.0
-PATCHFILES += 0145-ffmpeg8-pull1223-update-ffmpeg-to-8.0.patch
-# some ffmpeg8 port fixes for vaapi di
-PATCHFILES += 0146-ffmpeg8-Set-hw_frames_ctx-before-init-AVfilter.patch
-PATCHFILES += 0147-ffmpeg8-Enable-VAAPI-deinterlacers-for-AMD-GPUs.patch
-PATCHFILES += 0148-ffmpeg8-VAAPI-deinterlacer-Use-mode-default-for-DEINT_HIGH.patch
 # v4l2_m2m and v4l2_request patches
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
