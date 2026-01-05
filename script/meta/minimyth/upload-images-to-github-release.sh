@@ -115,9 +115,10 @@ upload_file() {
 
 create_new_release() {
   echo "==> Creating release with:"
-  echo "  -tag: ${tag_name}"
-  echo "  -name: ${release_name}"
-  echo "  -description: \"${release_description}\""
+  echo "  -repo        : ${github_repo}"
+  echo "  -tag         : ${tag_name}"
+  echo "  -name        : ${release_name}"
+  echo "  -description : \"${release_description}\""
   echo " "
   create_release
   get_release_id
@@ -151,9 +152,10 @@ get_release_id
 if [ x${release_id} = "x" ] ; then
   echo " "
   echo "No any release discovered. Press (c) to creating new one:"
-  echo "  -tag: ${tag_name}"
-  echo "  -name: ${release_name}"
-  echo "  -description: \"${release_description}\""
+  echo "  -repo        : ${github_repo}"
+  echo "  -tag         : ${tag_name}"
+  echo "  -name        : ${release_name}"
+  echo "  -description : \"${release_description}\""
   echo " "
   echo "or any key to exit ..."
   echo " "
