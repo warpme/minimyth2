@@ -5,4 +5,4 @@
 
 # echo "0xFF" > /sys/module/drm/parameters/debug
 
-mpv --drm-connector=HDMI-A-1 --vo=gpu --gpu-context=drm --hwdec=auto --msg-level=vd=v,vo=v $1
+mpv --hwdec=v4l2m2m --vo=gpu --gpu-context=x11egl --msg-level=vd=v,vo=v $1

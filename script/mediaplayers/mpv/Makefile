@@ -5,7 +5,7 @@ GARNAME      = mpv
 GARVERSION   = d15f34b24eec58034c3c91a197f2b0323e5c86c4
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://github.com/mpv-player/mpv/archive/
-DISTFILES    = $(GARVERSION).zip mpv-v4l2_m2m.sh mpv-v4l2_request-drm.sh mpv-v4l2_request-wayland.sh mpv-v4l2_request-x11.sh
+DISTFILES    = $(GARVERSION).zip mpv-v4l2_m2m-drm.sh mpv-v4l2_m2m-x11.sh mpv-v4l2_request-drm.sh mpv-v4l2_request-wayland.sh mpv-v4l2_request-x11.sh
 PATCHFILES   = 00-stop-building-mpv-desktop.patch
 PATCHFILES  += 01-pull14690-meson-add-detection-logic-for-v4l2request-support.patch
 PATCHFILES  += 02-pull14690-vo-hwdec-drmprime-add-separate-hwdecs-for-v4l2request.patch
@@ -18,7 +18,7 @@ GARNAME      = mpv
 GARVERSION   = e53318aa946dd4af79ec7d4850f3d3cc81439a0f
 CATEGORIES   = mediaplayers
 MASTER_SITES = https://salsa.debian.org/diederik/mpv/-/archive/$(GARVERSION)/
-DISTFILES    = mpv-$(GARVERSION).zip mpv-v4l2_m2m.sh mpv-v4l2_request-drm.sh mpv-v4l2_request-wayland.sh mpv-v4l2_request-x11.sh
+DISTFILES    = $(GARVERSION).zip mpv-v4l2_m2m-drm.sh mpv-v4l2_m2m-x11.sh mpv-v4l2_request-drm.sh mpv-v4l2_request-wayland.sh mpv-v4l2_request-x11.sh
 PATCHFILES   = 00-stop-building-mpv-desktop.patch
 WORKSRC      = $(WORKDIR)/mpv-$(GARVERSION)
 endif
