@@ -1,6 +1,263 @@
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/irqchip/irq-brcmstb-l2.c linux-6.18.2/drivers/irqchip/irq-brcmstb-l2.c
---- linux-6.18.2/drivers/irqchip/irq-brcmstb-l2.c	2025-12-18 14:03:43.000000000 +0100
-+++ linux-6.18.2/drivers/irqchip/irq-brcmstb-l2.c	2025-12-18 13:06:57.237050477 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.3/drivers/irqchip/irq-bcm2835.c linux-6.18.3/drivers/irqchip/irq-bcm2835.c
+--- linux-6.18.3/drivers/irqchip/irq-bcm2835.c	2026-01-02 12:57:31.000000000 +0100
++++ linux-6.18.3/drivers/irqchip/irq-bcm2835.c	2026-01-05 23:51:04.640112946 +0100
+@@ -40,12 +40,16 @@
+ #include <linux/of_address.h>
+ #include <linux/of_irq.h>
+ #include <linux/irqchip.h>
++#include <linux/irqchip/irq-bcm2836.h>
+ #include <linux/irqdomain.h>
+ 
+ #include <asm/exception.h>
++#ifndef CONFIG_ARM64
++#include <asm/mach/irq.h>
++#endif
+ 
+ /* Put the bank and irq (32 bits) into the hwirq */
+-#define MAKE_HWIRQ(b, n)	((b << 5) | (n))
++#define MAKE_HWIRQ(b, n)	(((b) << 5) | (n))
+ #define HWIRQ_BANK(i)		(i >> 5)
+ #define HWIRQ_BIT(i)		BIT(i & 0x1f)
+ 
+@@ -60,11 +64,17 @@
+ #define BANK0_VALID_MASK	(BANK0_HWIRQ_MASK | BANK1_HWIRQ | BANK2_HWIRQ \
+ 					| SHORTCUT1_MASK | SHORTCUT2_MASK)
+ 
++#undef ARM_LOCAL_GPU_INT_ROUTING
++#define ARM_LOCAL_GPU_INT_ROUTING 0x0c
++
+ #define REG_FIQ_CONTROL		0x0c
+ #define FIQ_CONTROL_ENABLE	BIT(7)
++#define REG_FIQ_ENABLE		FIQ_CONTROL_ENABLE
++#define REG_FIQ_DISABLE	0
+ 
+ #define NR_BANKS		3
+ #define IRQS_PER_BANK		32
++#define NUMBER_IRQS		MAKE_HWIRQ(NR_BANKS, 0)
+ 
+ static const int reg_pending[] __initconst = { 0x00, 0x04, 0x08 };
+ static const int reg_enable[] __initconst = { 0x18, 0x10, 0x14 };
+@@ -82,6 +92,7 @@
+ 	void __iomem *enable[NR_BANKS];
+ 	void __iomem *disable[NR_BANKS];
+ 	struct irq_domain *domain;
++	void __iomem *local_base;
+ };
+ 
+ static struct armctrl_ic intc __read_mostly;
+@@ -89,22 +100,78 @@
+ 	struct pt_regs *regs);
+ static void bcm2836_chained_handle_irq(struct irq_desc *desc);
+ 
++static inline unsigned int hwirq_to_fiq(unsigned long hwirq)
++{
++	hwirq -= NUMBER_IRQS;
++	/*
++	 * The hwirq numbering used in this driver is:
++	 *   BASE (0-7) GPU1 (32-63) GPU2 (64-95).
++	 * This differ from the one used in the FIQ register:
++	 *   GPU1 (0-31) GPU2 (32-63) BASE (64-71)
++	 */
++	if (hwirq >= 32)
++		return hwirq - 32;
++
++	return hwirq + 64;
++}
++
+ static void armctrl_mask_irq(struct irq_data *d)
+ {
+-	writel_relaxed(HWIRQ_BIT(d->hwirq), intc.disable[HWIRQ_BANK(d->hwirq)]);
++	if (d->hwirq >= NUMBER_IRQS)
++		writel_relaxed(REG_FIQ_DISABLE, intc.base + REG_FIQ_CONTROL);
++	else
++		writel_relaxed(HWIRQ_BIT(d->hwirq),
++			       intc.disable[HWIRQ_BANK(d->hwirq)]);
+ }
+ 
+ static void armctrl_unmask_irq(struct irq_data *d)
+ {
+-	writel_relaxed(HWIRQ_BIT(d->hwirq), intc.enable[HWIRQ_BANK(d->hwirq)]);
++	if (d->hwirq >= NUMBER_IRQS) {
++		if (num_online_cpus() > 1) {
++			unsigned int data;
++
++			if (!intc.local_base) {
++				pr_err("FIQ is disabled due to missing arm_local_intc\n");
++				return;
++			}
++
++			data = readl_relaxed(intc.local_base +
++					     ARM_LOCAL_GPU_INT_ROUTING);
++
++			data &= ~0xc;
++			data |= (1 << 2);
++			writel_relaxed(data,
++				       intc.local_base +
++				       ARM_LOCAL_GPU_INT_ROUTING);
++		}
++
++		writel_relaxed(REG_FIQ_ENABLE | hwirq_to_fiq(d->hwirq),
++			       intc.base + REG_FIQ_CONTROL);
++	} else {
++		writel_relaxed(HWIRQ_BIT(d->hwirq),
++			       intc.enable[HWIRQ_BANK(d->hwirq)]);
++	}
++}
++
++#if defined(CONFIG_SMP)
++void bcm2836_arm_irqchip_spin_gpu_irq(void);
++
++static void armctrl_ack_irq(struct irq_data *d)
++{
++	bcm2836_arm_irqchip_spin_gpu_irq();
+ }
+ 
++#endif
++
+ static struct irq_chip armctrl_chip = {
+ 	.name = "ARMCTRL-level",
+ 	.irq_mask = armctrl_mask_irq,
+ 	.irq_unmask = armctrl_unmask_irq,
+ 	.flags = IRQCHIP_MASK_ON_SUSPEND |
+ 		 IRQCHIP_SKIP_SET_WAKE,
++#if defined(CONFIG_SMP)
++	.irq_ack    = armctrl_ack_irq
++#endif
+ };
+ 
+ static int armctrl_xlate(struct irq_domain *d, struct device_node *ctrlr,
+@@ -137,14 +204,15 @@
+ 				  bool is_2836)
+ {
+ 	void __iomem *base;
+-	int irq, b, i;
++	int irq = 0, last_irq, b, i;
+ 	u32 reg;
+ 
+ 	base = of_iomap(node, 0);
+ 	if (!base)
+ 		panic("%pOF: unable to map IC registers\n", node);
+ 
+-	intc.domain = irq_domain_create_linear(of_fwnode_handle(node), MAKE_HWIRQ(NR_BANKS, 0),
++	intc.base = base;
++	intc.domain = irq_domain_create_linear(of_fwnode_handle(node), NUMBER_IRQS * 2,
+ 			&armctrl_ops, NULL);
+ 	if (!intc.domain)
+ 		panic("%pOF: unable to create IRQ domain\n", node);
+@@ -176,6 +244,8 @@
+ 		pr_err(FW_BUG "Bootloader left fiq enabled\n");
+ 	}
+ 
++	last_irq = irq;
++
+ 	if (is_2836) {
+ 		int parent_irq = irq_of_parse_and_map(node, 0);
+ 
+@@ -188,6 +258,27 @@
+ 		set_handle_irq(bcm2835_handle_irq);
+ 	}
+ 
++	if (is_2836) {
++		extern void __iomem * __attribute__((weak)) arm_local_intc;
++		intc.local_base = arm_local_intc;
++		if (!intc.local_base)
++			pr_err("Failed to get local intc base. FIQ is disabled for cpus > 1\n");
++	}
++
++	/* Make a duplicate irq range which is used to enable FIQ */
++	for (b = 0; b < NR_BANKS; b++) {
++		for (i = 0; i < bank_irqs[b]; i++) {
++			irq = irq_create_mapping(intc.domain,
++					MAKE_HWIRQ(b, i) + NUMBER_IRQS);
++			BUG_ON(irq <= 0);
++			irq_set_chip(irq, &armctrl_chip);
++			irq_set_probe(irq);
++		}
++	}
++#ifndef CONFIG_ARM64
++	init_FIQ(irq - last_irq);
++#endif
++
+ 	return 0;
+ }
+ 
+@@ -255,7 +346,8 @@
+ {
+ 	u32 hwirq;
+ 
+-	while ((hwirq = get_next_armctrl_hwirq()) != ~0)
++	hwirq = get_next_armctrl_hwirq();
++	if (hwirq != ~0)
+ 		generic_handle_domain_irq(intc.domain, hwirq);
+ }
+ 
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.3/drivers/irqchip/irq-bcm2836.c linux-6.18.3/drivers/irqchip/irq-bcm2836.c
+--- linux-6.18.3/drivers/irqchip/irq-bcm2836.c	2026-01-02 12:57:31.000000000 +0100
++++ linux-6.18.3/drivers/irqchip/irq-bcm2836.c	2026-01-05 23:51:04.640112946 +0100
+@@ -22,6 +22,9 @@
+ 
+ static struct bcm2836_arm_irqchip_intc intc  __read_mostly;
+ 
++void __iomem *arm_local_intc;
++EXPORT_SYMBOL_GPL(arm_local_intc);
++
+ static void bcm2836_arm_irqchip_mask_per_cpu_irq(unsigned int reg_offset,
+ 						 unsigned int bit,
+ 						 int cpu)
+@@ -86,6 +89,32 @@
+ {
+ }
+ 
++#if defined(CONFIG_SMP)
++
++void bcm2836_arm_irqchip_spin_gpu_irq(void)
++{
++	u32 i;
++	void __iomem *gpurouting = (intc.base + LOCAL_GPU_ROUTING);
++	u32 routing_val = readl(gpurouting);
++	u32 irq_route;
++
++	/* Preserve FIQ routing bits */
++	irq_route = routing_val & 0x3;
++	routing_val &= ~0x3;
++
++	for (i = 1; i <= 3; i++) {
++		irq_route = (irq_route + i) & 0x3;
++
++		if (cpu_active(irq_route)) {
++			writel(irq_route | routing_val, gpurouting);
++			return;
++		}
++	}
++}
++EXPORT_SYMBOL(bcm2836_arm_irqchip_spin_gpu_irq);
++
++#endif
++
+ static struct irq_chip bcm2836_arm_irqchip_gpu = {
+ 	.name		= "bcm2836-gpu",
+ 	.irq_mask	= bcm2836_arm_irqchip_mask_gpu_irq,
+@@ -131,7 +160,7 @@
+ 	irq_set_percpu_devid(irq);
+ 	irq_domain_set_info(d, irq, hw, chip, d->host_data,
+ 			    handle_percpu_devid_irq, NULL, NULL);
+-	irq_set_status_flags(irq, IRQ_NOAUTOEN);
++	irq_set_status_flags(irq, IRQ_NOAUTOEN | IRQ_TYPE_LEVEL_LOW);
+ 
+ 	return 0;
+ }
+@@ -323,6 +352,8 @@
+ 		panic("%pOF: unable to map local interrupt registers\n", node);
+ 	}
+ 
++	arm_local_intc = intc.base;
++
+ 	bcm2835_init_local_timer_frequency();
+ 
+ 	intc.domain = irq_domain_create_linear(of_fwnode_handle(node), LAST_IRQ + 1,
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.3/drivers/irqchip/irq-brcmstb-l2.c linux-6.18.3/drivers/irqchip/irq-brcmstb-l2.c
+--- linux-6.18.3/drivers/irqchip/irq-brcmstb-l2.c	2026-01-02 12:57:31.000000000 +0100
++++ linux-6.18.3/drivers/irqchip/irq-brcmstb-l2.c	2026-01-05 23:51:04.640112946 +0100
 @@ -51,6 +51,16 @@
  	.cpu_mask_clear		= 0x0C
  };
@@ -18,59 +275,21 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/i
  /* L2 intc private data structure */
  struct brcmstb_l2_intc_data {
  	struct irq_domain *domain;
-@@ -138,12 +148,13 @@
- 	irq_reg_writel(gc, ~b->saved_mask, ct->regs.enable);
+@@ -266,11 +276,17 @@
+ 	return brcmstb_l2_intc_probe(pdev, parent, &l2_lvl_intc_init);
  }
  
--static int brcmstb_l2_intc_probe(struct platform_device *pdev, struct device_node *parent,
--				 const struct brcmstb_intc_init_params *init_params)
-+static int __init brcmstb_l2_intc_of_init(struct device_node *np,
-+					  struct device_node *parent,
-+					  const struct brcmstb_intc_init_params
-+					  *init_params)
- {
- 	unsigned int clr = IRQ_NOREQUEST | IRQ_NOPROBE | IRQ_NOAUTOEN;
- 	unsigned int set = 0;
--	struct device_node *np = pdev->dev.of_node;
- 	struct brcmstb_l2_intc_data *data;
- 	struct irq_chip_type *ct;
- 	int ret;
-@@ -256,21 +267,30 @@
- 	return ret;
- }
- 
--static int brcmstb_l2_edge_intc_probe(struct platform_device *pdev, struct device_node *parent)
-+static int __init brcmstb_l2_edge_intc_of_init(struct device_node *np,
-+	struct device_node *parent)
- {
--	return brcmstb_l2_intc_probe(pdev, parent, &l2_edge_intc_init);
-+	return brcmstb_l2_intc_of_init(np, parent, &l2_edge_intc_init);
- }
- 
--static int brcmstb_l2_lvl_intc_probe(struct platform_device *pdev, struct device_node *parent)
-+static int __init brcmstb_l2_lvl_intc_of_init(struct device_node *np,
-+	struct device_node *parent)
- {
--	return brcmstb_l2_intc_probe(pdev, parent, &l2_lvl_intc_init);
-+	return brcmstb_l2_intc_of_init(np, parent, &l2_lvl_intc_init);
++static int brcmstb_l2_2711_lvl_intc_probe(struct platform_device *np, struct device_node *parent)
++{
++	return brcmstb_l2_intc_probe(np, parent, &l2_2711_lvl_intc_init);
 +}
 +
-+static int __init brcmstb_l2_2711_lvl_intc_of_init(struct device_node *np,
-+	struct device_node *parent)
-+{
-+	return brcmstb_l2_intc_of_init(np, parent, &l2_2711_lvl_intc_init);
- }
- 
  IRQCHIP_PLATFORM_DRIVER_BEGIN(brcmstb_l2)
--IRQCHIP_MATCH("brcm,l2-intc", brcmstb_l2_edge_intc_probe)
--IRQCHIP_MATCH("brcm,hif-spi-l2-intc", brcmstb_l2_edge_intc_probe)
--IRQCHIP_MATCH("brcm,upg-aux-aon-l2-intc", brcmstb_l2_edge_intc_probe)
--IRQCHIP_MATCH("brcm,bcm7271-l2-intc", brcmstb_l2_lvl_intc_probe)
-+IRQCHIP_MATCH("brcm,l2-intc", brcmstb_l2_edge_intc_of_init)
-+IRQCHIP_MATCH("brcm,hif-spi-l2-intc", brcmstb_l2_edge_intc_of_init)
-+IRQCHIP_MATCH("brcm,upg-aux-aon-l2-intc", brcmstb_l2_edge_intc_of_init)
-+IRQCHIP_MATCH("brcm,bcm7271-l2-intc", brcmstb_l2_lvl_intc_of_init)
-+IRQCHIP_MATCH("brcm,bcm2711-l2-intc", brcmstb_l2_2711_lvl_intc_of_init)
+ IRQCHIP_MATCH("brcm,l2-intc", brcmstb_l2_edge_intc_probe)
+ IRQCHIP_MATCH("brcm,hif-spi-l2-intc", brcmstb_l2_edge_intc_probe)
+ IRQCHIP_MATCH("brcm,upg-aux-aon-l2-intc", brcmstb_l2_edge_intc_probe)
+ IRQCHIP_MATCH("brcm,bcm7271-l2-intc", brcmstb_l2_lvl_intc_probe)
++IRQCHIP_MATCH("brcm,bcm2711-l2-intc", brcmstb_l2_2711_lvl_intc_probe)
  IRQCHIP_PLATFORM_DRIVER_END(brcmstb_l2)
  MODULE_DESCRIPTION("Broadcom STB generic L2 interrupt controller");
  MODULE_LICENSE("GPL v2");
