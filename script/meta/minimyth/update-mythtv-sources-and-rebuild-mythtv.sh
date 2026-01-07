@@ -17,14 +17,24 @@
 use_test_branch_as_master="no"
 
 # 'test' branch will be from mythtv official repo myth-master
-test_branch_name="master"
-test_git_src_dir="git-mythtv-master"
+#test_branch_git_url="https://github.com/MythTV/mythtv.git"
+#test_branch_name="master"
+#test_git_src_dir="git-mythtv-master"
+
+
+# 'test' branch will be from: https://github.com/ulmus-scott/mythtv.git
+# repo branch: portchecker
+test_branch_git_url="https://github.com/ulmus-scott/mythtv.git"
+test_branch_name="portchecker"
+test_git_src_dir="git-mythtv-portchecker"
 
 # 'test' branch will be 'ffmpeg-resync' from mythtv official repo
+#test_branch_git_url="https://github.com/MythTV/mythtv.git"
 #test_branch_name="devel/ffmpeg-resync"
 #test_git_src_dir="git-mythtv-ffmpeg-resync"
 
 # 'test' branch will be 'qt6' from mythtv official repo
+#test_branch_git_url="https://github.com/MythTV/mythtv.git"
 #test_branch_name="devel/qt6"
 #test_git_src_dir="git-mythtv-qt6"
 
@@ -122,8 +132,8 @@ elif [ x${branch} = "xmaster" ]; then
 
 elif [ x${branch} = "xtest" ]; then
 
-  _gitname=mythtv
-  _gitroot=https://github.com/MythTV/mythtv.git
+  _gitname="${test_branch_name}"
+  _gitroot="${test_branch_git_url}"
 
   _gitbranch="${test_branch_name}"
   srcdir="${git_src_home}/${test_git_src_dir}"
