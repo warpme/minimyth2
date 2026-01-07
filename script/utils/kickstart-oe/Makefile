@@ -104,7 +104,7 @@ S4_BOARDS_LIST= \
 
 # Amlogic SC2 boards
 SC2_BOARDS_LIST= \
-	 \
+	board-s905x4.x96_max_ultra \
 
 # Allwinner H6 boards
 H6_BOARDS_LIST= \
