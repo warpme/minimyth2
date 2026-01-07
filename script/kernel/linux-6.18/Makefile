@@ -105,6 +105,7 @@ PATCHFILES += 0385-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards
 PATCHFILES += 0386-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 0387-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
 PATCHFILES += 0388-arm64-dts-amlogic-meson-s4-add-AP201-Ref-Board.patch
+PATCHFILES += 0389-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
 endif
 #------------------------------------------------------------
 
