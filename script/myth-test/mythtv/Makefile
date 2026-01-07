@@ -43,7 +43,7 @@ PATCHFILES += 0055-Loging-Add-AFD-original-channels-to-audio-format-loging.patch
 PATCHFILES += 0057-Loging-Mythmusic-log-the-shoutcast-metadata-and-format.patch
 PATCHFILES += 0058-Loging-add-some-DB-GetSetting-logging.patch
 # speedup a bit portcheck
-#PATCHFILES += 0059-portchecker-speedup.patch
+PATCHFILES += 0059-portchecker-speedup.patch
 
 # Minimyth related patches
 PATCHFILES += 0100-Minimyth-Add-maintain-menu.patch
@@ -74,7 +74,7 @@ PATCHFILES += 0119-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
 
 # ffmpeg7
-ifeq (1,1)
+ifeq (0,1)
 # v4l2_m2m and v4l2_request patches
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
@@ -96,13 +96,7 @@ endif
 endif
 
 # ffmpeg8
-ifeq (0,1)
-# update ffmpeg to 8.0
-PATCHFILES += 0145-ffmpeg8-pull1223-update-ffmpeg-to-8.0.patch
-# some ffmpeg8 port fixes for vaapi di
-PATCHFILES += 0146-ffmpeg8-Set-hw_frames_ctx-before-init-AVfilter.patch
-PATCHFILES += 0147-ffmpeg8-Enable-VAAPI-deinterlacers-for-AMD-GPUs.patch
-PATCHFILES += 0148-ffmpeg8-VAAPI-deinterlacer-Use-mode-default-for-DEINT_HIGH.patch
+ifeq (1,1)
 # v4l2_m2m and v4l2_request patches
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
@@ -122,7 +116,7 @@ PATCHFILES += 0159-ffmpeg8-libavfilter-add-v4l2m2m-deinterlace-filter.patch
 # add initial v4l2_requet av1 support
 PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
-PATCHFILES += 0161-hack-hack-hack-ffmpeg8-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_2.patch
+# PATCHFILES += 0161-hack-hack-hack-ffmpeg8-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_2.patch
 endif
 endif
 
@@ -358,8 +352,6 @@ CONFIGURE_ARGS = \
 	--enable-pic \
 	--enable-libcec \
 	--pkg-config="$(build_DESTDIR)$(build_bindir)/pkg-config" \
-	--enable-ffplay \
-	--enable-sdl2 \
 	--python="python3" \
 	$(if $(filter arm,$(GARCH_FAMILY)), --disable-inlineasm) \
 	--enable-libdav1d \
@@ -469,8 +461,8 @@ build-custom:
 GAR_EXTRA_CONF += python3/python/package-api.mk
 include ../../gar.mk
 
-CXXFLAGS += -I$(DESTDIR)$(includedir)/taglib
-CPPFLAGS += -fPIC -fuse-linker-plugin -I$(DESTDIR)$(includedir)/taglib
+CXXFLAGS += -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd -I$(DESTDIR)$(includedir)/taglib
+CPPFLAGS += -fPIC -fuse-linker-plugin -I$(DESTDIR)$(includedir)/taglib -I$(DESTDIR)$(includedir)/avahi-compat-libdns_sd
 
 ifeq ($(mm_DEBUG),yes)
 CFLAGS   := $(filter-out -O%, $(CFLAGS)) -O0
