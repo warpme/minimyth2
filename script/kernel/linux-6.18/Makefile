@@ -87,6 +87,7 @@ PATCHFILES += 0329-irqchip-meson-gpio-Add-support-for-meson-SC2-.patch
 PATCHFILES += 0331-net-wireless-broadcom-add-sdio-ID-43342.patch
 PATCHFILES += 0332-drm-meson-fix-component-unbind-in-error-path.patch
 PATCHFILES += 0333-clk-amlogic-add-video-related-clocks-for-S4-SoC.patch
+PATCHFILES += 0334-gpu-panfrost-add-meson-s4-support.patch
 PATCHFILES += 0341-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 # dtsi patches
 PATCHFILES += 0360-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
@@ -95,6 +96,7 @@ PATCHFILES += 0362-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio.patch
 PATCHFILES += 0363-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
 PATCHFILES += 0364-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
 PATCHFILES += 0365-arm64-dtsi-amlogic-s4-add-drm-support.patch
+PATCHFILES += 0366-arm64-dtsi-amlogic-s4-add-gpu-support.patch
 # devices dts
 PATCHFILES += 0380-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0381-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
@@ -322,7 +324,6 @@ PATCHFILES += 1035-drm-rockchip-dw_hdmi_qp-Add-high-color-depth-support.patch
 PATCHFILES += 1036-DEBUG-phy-rockchip-samsung-hdptx-Add-verbose-logging.patch
 PATCHFILES += 1037-drm-Add-CRTC-background-color-property.patch
 PATCHFILES += 1038-drm-rockchip-vop2-Support-setting-custom-background-.patch
-PATCHFILES += 1039-drm-rockchip-Set-VOP-for-the-DRM-DMA-device.patch
 PATCHFILES += 1040-drm-bridge-add-scramb-support.patch
 PATCHFILES += 1041-drm-rockchip-vop2-add-YUV420-support.patch
 PATCHFILES += 1042-drm-bridge-add-scramb-support.patch
