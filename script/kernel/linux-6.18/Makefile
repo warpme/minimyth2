@@ -347,6 +347,8 @@ PATCHFILES += 1056-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-add-v8-09
 PATCHFILES += 1062-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
 # fix av1 hw decode seen e.g. on clapper
 PATCHFILES += 1064-media-verisilicon-AV1-fix-enable-cdef-computation.patch
+# add vp9 decoding on rk3588
+PATCHFILES += 1066-media-rockchip-rkvdec-vdpu381-add-vp9-support-v8.patch
 # fix mmc cqe
 PATCHFILES += 1076-mmc-sdhci-of-dwcmshc-add-command-queue-support.patch
 # fix speaker-test -c 6 resulting silence on FC/RR/LFE
