@@ -21,12 +21,12 @@ define BLURB
 endef
 
 BUILD_SCRIPTS   = 
-INSTALL_SCRIPTS = custom
-CLEAN_SCRIPTS   = custom
+INSTALL_SCRIPTS = bootloader
+CLEAN_SCRIPTS   = bootloader
 
 include ../../gar.mk
 
-install-custom:
+install-bootloader:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/s905_autoscript         $(DESTDIR)/boot/s905_autoscript
 	@cp -f $(WORKSRC)/aml_autoscript          $(DESTDIR)/boot/aml_autoscript
@@ -39,11 +39,12 @@ install-custom:
 	@cp -rf   $(WORKSRC)/../../files/box*.config $(DESTDIR)/boot/box-config/
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-custom:
+clean-bootloader:
 	@rm -f  $(DESTDIR)/boot/*_autoscript
 	@rm -f  $(DESTDIR)/boot/boot.*
 	@rm -f  $(DESTDIR)/boot/bootscript
 	@rm -rf $(DESTDIR)/boot/box-config*
 	@rm -f  $(DESTDIR)/boot/cfgload
 
-clean-all: clean-custom cookieclean
+clean-all: clean-bootloader cookieclean downloadclean
+

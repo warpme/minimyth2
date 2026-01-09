@@ -23,13 +23,13 @@ DESCRIPTION =
 define BLURB
 endef
 
-BUILD_SCRIPTS   = custom
-INSTALL_SCRIPTS = custom
-CLEAN_SCRIPTS   = custom
+BUILD_SCRIPTS   = bootloader
+INSTALL_SCRIPTS = bootloader
+CLEAN_SCRIPTS   = bootloader
 
 include ../../gar.mk
 
-build-custom:
+build-bootloader:
 	@$(MAKE) clean install -C ../u-boot-g12a
 	@echo "export SOCFAMILY=g12a" > $(WORKSRC)/soc-var.sh
 	@chmod +x $(WORKSRC)/aml_encrypt_g12a
@@ -40,7 +40,7 @@ build-custom:
 	@rm -rf   uboot-bins*
 	@$(MAKECOOKIE)
 
-install-custom:
+install-bootloader:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f    $(WORKDIR)/g12a-boot-debug.scr $(DESTDIR)/boot/boot-debug.scr
 	@cp -f    $(WORKDIR)/g12a-boot.scr       $(DESTDIR)/boot/boot.scr
@@ -49,10 +49,10 @@ install-custom:
 	@cp -f    $(DESTDIR)$(libdir)/u-boot/g12a/$(mm_U-BOOT_BOARD_TYPE)/radxa-zero-uboot.bin $(DESTDIR)/boot/g12aloaderfiles/radxa-zero-uboot.bin
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-custom:
+clean-bootloader:
 	@rm -f $(DESTDIR)/boot/boot.scr
 	@rm -f $(DESTDIR)/boot/boot-debug.scr
 	@rm -f $(DESTDIR)/boot/minimyth.conf
 	@rm -rf $(DESTDIR)/boot/g12aloaderfiles*
 
-clean-all: clean-custom cookieclean
+clean-all: clean-bootloader cookieclean downloadclean

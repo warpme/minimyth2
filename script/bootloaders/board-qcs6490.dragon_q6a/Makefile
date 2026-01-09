@@ -12,6 +12,8 @@ DISTFILES    = \
                loader.conf \
                random-seed \
 
+BUILD_SCRIPTS   = 
+CLEAN_SCRIPTS   = bootloader
 INSTALL_SCRIPTS = extra
 
 include ../../gar.mk
@@ -32,4 +34,3 @@ clean-bootloader:
 	@rm -rf $(DESTDIR)/boot/loader*
 
 clean-all: clean-bootloader cookieclean downloadclean
-

@@ -16,17 +16,17 @@ DESCRIPTION =
 define BLURB
 endef
 
-BUILD_SCRIPTS   = custom
-INSTALL_SCRIPTS = custom
-CLEAN_SCRIPTS   = custom
+BUILD_SCRIPTS   = bootloader
+INSTALL_SCRIPTS = bootloader
+CLEAN_SCRIPTS   = bootloader
 
 include ../../gar.mk
 
-build-custom:
-	@$(MAKE) clean-all install -C ../aml-bootscipts-vendor-uboot
+build-bootloader:
 	@$(MAKECOOKIE)
 
-install-custom:
+install-bootloader:
+	@$(MAKE) clean-all install -C ../aml-bootscipts-vendor-uboot
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/boot.config $(DESTDIR)/boot/boot.config
 	@mkdir -p $(DESTDIR)/boot/box-config
@@ -34,10 +34,10 @@ install-custom:
 	@cp -f $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-custom:
+clean-bootloader:
 	@rm -rf $(DESTDIR)/boot/box-config/box-s905x4-ah212.config
 	@rm -f  $(DESTDIR)/boot/boot.config
 	@rm -f  $(DESTDIR)/boot/minimyth.conf
 
-clean-all: clean-custom cookieclean 
+clean-all: clean-bootloader cookieclean downloadclean
 	@$(MAKE) clean-all -C ../aml-bootscipts-vendor-uboot

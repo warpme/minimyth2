@@ -18,19 +18,19 @@ DESCRIPTION =
 define BLURB
 endef
 
-BUILD_SCRIPTS   = custom
-INSTALL_SCRIPTS = custom
-CLEAN_SCRIPTS   = custom
+BUILD_SCRIPTS   = bootloader
+INSTALL_SCRIPTS = bootloader
+CLEAN_SCRIPTS   = bootloader
 
 include ../../gar.mk
 
 # Skipping U-Boot build as we are using vendor U-Boot
-build-custom:
+build-bootloader:
 #	@$(MAKE) clean -C ../u-boot-amlogic
 #	@$(MAKE) install -C ../u-boot-amlogic
 	@$(MAKECOOKIE)
 
-install-custom:
+install-bootloader:
 	@mkdir -p $(DESTDIR)/boot
 	@cp -f $(WORKSRC)/s905_autoscript                       $(DESTDIR)/boot/s905_autoscript
 	@cp -f $(WORKSRC)/aml_autoscript                        $(DESTDIR)/boot/aml_autoscript
@@ -38,10 +38,10 @@ install-custom:
 	@cp -f $(WORKSRC)/minimyth.conf                         $(DESTDIR)/boot/minimyth.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
 
-clean-custom:
+clean-bootloader:
 	@rm -f $(DESTDIR)/boot/s905_autoscript
 	@rm -f $(DESTDIR)/boot/aml_autoscript
 	@rm -f $(DESTDIR)/boot/uEnv.ini
 	@rm -f $(DESTDIR)/boot/minimyth.conf
 
-clean-all: clean-custom cookieclean
+clean-all: clean-bootloader cookieclean downloadclean
