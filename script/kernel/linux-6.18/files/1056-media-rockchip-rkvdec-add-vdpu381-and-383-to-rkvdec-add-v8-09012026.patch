@@ -1,9 +1,9 @@
 
-code from https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v7
+https://gitlab.collabora.com/detlev/linux/-/commits/add-vdpu381-and-383-to-rkvdec-v8 @09.01.2026
 
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/Makefile linux-6.18.2/drivers/media/platform/rockchip/rkvdec/Makefile
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/Makefile	2025-12-18 14:03:43.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/Makefile	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/Makefile linux-6.18.4/drivers/media/platform/rockchip/rkvdec/Makefile
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/Makefile	2026-01-08 10:17:22.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/Makefile	2026-01-09 18:00:01.226671668 +0100
 @@ -1,3 +1,15 @@
  obj-$(CONFIG_VIDEO_ROCKCHIP_VDEC) += rockchip-vdec.o
  
@@ -21,9 +21,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		   rkvdec-vdpu383-h264.o \
 +		   rkvdec-vdpu383-hevc.o \
 +		   rkvdec-vp9.o
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec.c	2025-12-18 14:03:43.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec.c	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec.c	2026-01-08 10:17:22.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec.c	2026-01-09 18:00:01.226671668 +0100
 @@ -9,11 +9,14 @@
   * Copyright (C) 2011 Samsung Electronics Co., Ltd.
   */
@@ -486,7 +486,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  	}
  
  	rkvdec_queue_cleanup(q, VB2_BUF_STATE_ERROR);
-@@ -794,6 +1076,27 @@
+@@ -794,6 +1076,41 @@
  		v4l2_ctrl_request_complete(src_req, &ctx->ctrl_hdl);
  }
  
@@ -511,10 +511,24 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +#endif
 +}
 +
++void rkvdec_schedule_watchdog(struct rkvdec_dev *rkvdec, u32 timeout_threshold)
++{
++	/* Set watchdog at 2 times the hardware timeout threshold */
++	u32 watchdog_time;
++	unsigned long axi_rate = clk_get_rate(rkvdec->axi_clk);
++
++	if (axi_rate)
++		watchdog_time = 2 * div_u64(1000 * (u64)timeout_threshold, axi_rate);
++	else
++		watchdog_time = 2000;
++
++	schedule_delayed_work(&rkvdec->watchdog_work, msecs_to_jiffies(watchdog_time));
++}
++
  static void rkvdec_device_run(void *priv)
  {
  	struct rkvdec_ctx *ctx = priv;
-@@ -885,16 +1188,17 @@
+@@ -885,16 +1202,17 @@
  
  static int rkvdec_init_ctrls(struct rkvdec_ctx *ctx)
  {
@@ -536,7 +550,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  		if (ret)
  			goto err_free_handler;
  	}
-@@ -1069,10 +1373,9 @@
+@@ -1069,10 +1387,9 @@
  	}
  }
  
@@ -549,7 +563,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  	enum vb2_buffer_state state;
  	u32 status;
  
-@@ -1093,6 +1396,145 @@
+@@ -1093,6 +1410,145 @@
  	return IRQ_HANDLED;
  }
  
@@ -695,7 +709,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  static void rkvdec_watchdog_func(struct work_struct *work)
  {
  	struct rkvdec_dev *rkvdec;
-@@ -1104,52 +1546,207 @@
+@@ -1104,52 +1560,207 @@
  	if (ctx) {
  		dev_err(rkvdec->dev, "Frame processing timed out!\n");
  		writel(RKVDEC_IRQ_DIS, rkvdec->regs + RKVDEC_REG_INTERRUPT);
@@ -923,7 +937,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  
  	ret = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(32));
  	if (ret) {
-@@ -1171,6 +1768,10 @@
+@@ -1171,6 +1782,10 @@
  		return ret;
  	}
  
@@ -934,7 +948,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  	pm_runtime_set_autosuspend_delay(&pdev->dev, 100);
  	pm_runtime_use_autosuspend(&pdev->dev);
  	pm_runtime_enable(&pdev->dev);
-@@ -1179,7 +1780,8 @@
+@@ -1179,7 +1794,8 @@
  	if (ret)
  		goto err_disable_runtime_pm;
  
@@ -944,7 +958,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  		rkvdec->empty_domain = iommu_paging_domain_alloc(rkvdec->dev);
  
  		if (IS_ERR(rkvdec->empty_domain)) {
-@@ -1193,6 +1795,10 @@
+@@ -1193,6 +1809,10 @@
  err_disable_runtime_pm:
  	pm_runtime_dont_use_autosuspend(&pdev->dev);
  	pm_runtime_disable(&pdev->dev);
@@ -955,7 +969,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  	return ret;
  }
  
-@@ -1215,16 +1821,14 @@
+@@ -1215,16 +1835,14 @@
  {
  	struct rkvdec_dev *rkvdec = dev_get_drvdata(dev);
  
@@ -974,9 +988,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  	return 0;
  }
  #endif
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-cabac.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-cabac.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-cabac.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-cabac.c	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-cabac.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-cabac.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-cabac.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-cabac.c	2026-01-09 18:00:01.226671668 +0100
 @@ -0,0 +1,2346 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
@@ -3324,9 +3338,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	0x27, 0x27, 0x08, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
 +	0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 +};
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec.h linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec.h
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec.h	2025-12-18 14:03:43.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec.h	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec.h linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec.h
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec.h	2026-01-08 10:17:22.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec.h	2026-01-09 18:00:01.226671668 +0100
 @@ -19,10 +19,18 @@
  #include <media/v4l2-ctrls.h>
  #include <media/v4l2-device.h>
@@ -3399,7 +3413,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  };
  
  static inline struct rkvdec_ctx *file_to_rkvdec_ctx(struct file *filp)
-@@ -129,16 +164,35 @@
+@@ -129,16 +164,36 @@
  	return container_of(file_to_v4l2_fh(filp), struct rkvdec_ctx, fh);
  }
  
@@ -3418,6 +3432,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  void rkvdec_run_preamble(struct rkvdec_ctx *ctx, struct rkvdec_run *run);
  void rkvdec_run_postamble(struct rkvdec_ctx *ctx, struct rkvdec_run *run);
 +void rkvdec_memcpy_toio(void __iomem *dst, void *src, size_t len);
++void rkvdec_schedule_watchdog(struct rkvdec_dev *rkvdec, u32 timeout_threshold);
 +
 +void rkvdec_quirks_disable_qos(struct rkvdec_ctx *ctx);
  
@@ -3435,9 +3450,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +extern const struct rkvdec_coded_fmt_ops rkvdec_vdpu383_hevc_fmt_ops;
 +
  #endif /* RKVDEC_H_ */
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c	2025-12-18 14:03:43.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c	2026-01-08 10:17:22.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264.c	2026-01-09 18:00:01.226671668 +0100
 @@ -14,20 +14,12 @@
  
  #include "rkvdec.h"
@@ -4460,9 +4475,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
  	writel(1, rkvdec->regs + RKVDEC_REG_PREF_LUMA_CACHE_COMMAND);
  	writel(1, rkvdec->regs + RKVDEC_REG_PREF_CHR_CACHE_COMMAND);
  
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.c	2026-01-09 18:00:01.226671668 +0100
 @@ -0,0 +1,258 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
@@ -4722,9 +4737,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +	rkvdec_run_preamble(ctx, &run->base);
 +}
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-h264-common.h	2026-01-09 18:00:01.226671668 +0100
 @@ -0,0 +1,89 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
@@ -4815,9 +4830,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +enum rkvdec_image_fmt rkvdec_h264_get_image_fmt(struct rkvdec_ctx *ctx, struct v4l2_ctrl *ctrl);
 +int rkvdec_h264_validate_sps(struct rkvdec_ctx *ctx, const struct v4l2_ctrl_h264_sps *sps);
 +void rkvdec_h264_run_preamble(struct rkvdec_ctx *ctx, struct rkvdec_h264_run *run);
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc.c	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc.c	2026-01-09 18:00:01.226671668 +0100
 @@ -0,0 +1,611 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
@@ -5430,9 +5445,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	.try_ctrl = rkvdec_hevc_try_ctrl,
 +	.get_image_fmt = rkvdec_hevc_get_image_fmt,
 +};
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.c	2026-01-09 18:00:01.226671668 +0100
 @@ -0,0 +1,512 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
@@ -5946,9 +5961,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +	rkvdec_run_preamble(ctx, &run->base);
 +}
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.h linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.h
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.h	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.h linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.h
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-hevc-common.h	2026-01-09 18:00:01.226671668 +0100
 @@ -0,0 +1,109 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
@@ -6059,9 +6074,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +int rkvdec_hevc_adjust_fmt(struct rkvdec_ctx *ctx, struct v4l2_format *f);
 +enum rkvdec_image_fmt rkvdec_hevc_get_image_fmt(struct rkvdec_ctx *ctx, struct v4l2_ctrl *ctrl);
 +void rkvdec_hevc_run_preamble(struct rkvdec_ctx *ctx, struct rkvdec_hevc_run *run);
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.c	2026-01-09 18:00:01.226671668 +0100
 @@ -0,0 +1,179 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
@@ -6242,9 +6257,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +	return ret;
 +}
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-rcb.h	2026-01-09 18:00:01.226671668 +0100
 @@ -0,0 +1,29 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
@@ -6275,9 +6290,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +size_t rkvdec_rcb_buf_size(struct rkvdec_ctx *ctx, int id);
 +int rkvdec_rcb_buf_count(struct rkvdec_ctx *ctx);
 +void rkvdec_free_rcb(struct rkvdec_ctx *ctx);
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-regs.h linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-regs.h
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-regs.h	2025-12-18 14:03:43.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-regs.h	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-regs.h linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-regs.h
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-regs.h	2026-01-08 10:17:22.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-regs.h	2026-01-09 18:00:01.226671668 +0100
 @@ -3,7 +3,12 @@
  #ifndef RKVDEC_REGS_H_
  #define RKVDEC_REGS_H_
@@ -6841,10 +6856,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +} __packed;
  
  #endif /* RKVDEC_REGS_H_ */
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c	2025-12-19 10:18:57.646726691 +0100
-@@ -0,0 +1,465 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-h264.c	2026-01-09 18:00:01.226671668 +0100
+@@ -0,0 +1,468 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip VDPU381 Video Decoder H264 backend
@@ -7075,29 +7090,29 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	memset(regs, 0, sizeof(*regs));
 +
 +	/* Set H264 mode */
-+	regs->common.reg009.dec_mode = VDPU381_MODE_H264;
++	regs->common.reg009_dec_mode.dec_mode = VDPU381_MODE_H264;
 +
 +	/* Set config */
-+	regs->common.reg011.buf_empty_en = 1;
-+	regs->common.reg011.dec_clkgate_e = 1;
-+	regs->common.reg011.dec_timeout_e = 1;
-+	regs->common.reg011.pix_range_detection_e = 1;
++	regs->common.reg011_important_en.buf_empty_en = 1;
++	regs->common.reg011_important_en.dec_clkgate_e = 1;
++	regs->common.reg011_important_en.dec_timeout_e = 1;
++	regs->common.reg011_important_en.pix_range_det_e = 1;
 +
 +	/*
 +	 * Even though the scan list address can be set in RPS,
 +	 * with some frames, it will try to use the address set in the register.
 +	 */
-+	regs->common.reg012.scanlist_addr_valid_en = 1;
++	regs->common.reg012_secondary_en.scanlist_addr_valid_en = 1;
 +
 +	/* Set IDR flag */
-+	regs->common.reg013.cur_pic_is_idr =
++	regs->common.reg013_en_mode_set.cur_pic_is_idr =
 +		!!(dec_params->flags & V4L2_H264_DECODE_PARAM_FLAG_IDR_PIC);
 +
 +	/* Set input stream length */
-+	regs->common.stream_len = vb2_get_plane_payload(&src_buf->vb2_buf, 0);
++	regs->common.reg016_stream_len = vb2_get_plane_payload(&src_buf->vb2_buf, 0);
 +
 +	/* Set max slice number */
-+	regs->common.reg017.slice_num = MAX_SLICE_NUMBER;
++	regs->common.reg017_slice_number.slice_num = MAX_SLICE_NUMBER;
 +
 +	/* Set strides */
 +	f = &ctx->decoded_fmt;
@@ -7106,29 +7121,38 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	ver_virstride = dst_fmt->height;
 +	y_virstride = hor_virstride * ver_virstride;
 +
-+	pixels = dst_fmt->height * dst_fmt->width;
-+
-+	regs->common.reg018.y_hor_virstride = hor_virstride / 16;
-+	regs->common.reg019.uv_hor_virstride = hor_virstride / 16;
-+	regs->common.reg020.y_virstride = y_virstride / 16;
++	regs->common.reg018_y_hor_stride.y_hor_virstride = hor_virstride / 16;
++	regs->common.reg019_uv_hor_stride.uv_hor_virstride = hor_virstride / 16;
++	regs->common.reg020_y_stride.y_virstride = y_virstride / 16;
 +
 +	/* Activate block gating */
-+	regs->common.reg026.swreg_block_gating_e = 0xfffef;
-+	regs->common.reg026.reg_cfg_gating_en = 1;
++	regs->common.reg026_block_gating_en.inter_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.filterd_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.strmd_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.mcp_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.busifd_auto_gating_e = 0;
++	regs->common.reg026_block_gating_en.dec_ctrl_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.intra_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.mc_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.transd_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.sram_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.cru_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.reg_cfg_gating_en = 1;
 +
 +	/* Set timeout threshold */
++	pixels = dst_fmt->height * dst_fmt->width;
 +	if (pixels < RKVDEC_1080P_PIXELS)
-+		regs->common.timeout_threshold = RKVDEC_TIMEOUT_1080p;
++		regs->common.reg032_timeout_threshold = RKVDEC_TIMEOUT_1080p;
 +	else if (pixels < RKVDEC_4K_PIXELS)
-+		regs->common.timeout_threshold = RKVDEC_TIMEOUT_4K;
++		regs->common.reg032_timeout_threshold = RKVDEC_TIMEOUT_4K;
 +	else if (pixels < RKVDEC_8K_PIXELS)
-+		regs->common.timeout_threshold = RKVDEC_TIMEOUT_8K;
++		regs->common.reg032_timeout_threshold = RKVDEC_TIMEOUT_8K;
 +	else
-+		regs->common.timeout_threshold = RKVDEC_TIMEOUT_MAX;
++		regs->common.reg032_timeout_threshold = RKVDEC_TIMEOUT_MAX;
 +
 +	/* Set TOP and BOTTOM POCs */
-+	regs->h264_param.cur_top_poc = dec_params->top_field_order_cnt;
-+	regs->h264_param.cur_bot_poc = dec_params->bottom_field_order_cnt;
++	regs->h264_param.reg065_cur_top_poc = dec_params->top_field_order_cnt;
++	regs->h264_param.reg066_cur_bot_poc = dec_params->bottom_field_order_cnt;
 +
 +	/* Set ref pic address & poc */
 +	for (i = 0; i < ARRAY_SIZE(dec_params->dpb); i++) {
@@ -7145,13 +7169,13 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		buf_dma = vb2_dma_contig_plane_dma_addr(vb_buf, 0);
 +
 +		/* Set reference addresses */
-+		regs->h264_addr.ref_base[i] = buf_dma;
++		regs->h264_addr.reg164_180_ref_base[i] = buf_dma;
 +
 +		/* Set COLMV addresses */
-+		regs->h264_addr.colmv_base[i] = buf_dma + ctx->colmv_offset;
++		regs->h264_addr.reg182_198_colmv_base[i] = buf_dma + ctx->colmv_offset;
 +
 +		struct rkvdec_vdpu381_h264_ref_info *ref_info =
-+			&regs->h264_param.ref_info_regs[i / 4].ref_info[i % 4];
++			&regs->h264_param.reg099_102_ref_info_regs[i / 4].ref_info[i % 4];
 +
 +		ref_info->ref_field =
 +			!!(dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_FIELD);
@@ -7162,9 +7186,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		ref_info->ref_botfield_used =
 +			!!(dpb[i].fields & V4L2_H264_BOTTOM_FIELD_REF);
 +
-+		regs->h264_param.ref_pocs[i * 2] =
++		regs->h264_param.reg067_098_ref_poc[i * 2] =
 +			dpb[i].top_field_order_cnt;
-+		regs->h264_param.ref_pocs[i * 2 + 1] =
++		regs->h264_param.reg067_098_ref_poc[i * 2 + 1] =
 +			dpb[i].bottom_field_order_cnt;
 +	}
 +
@@ -7187,18 +7211,18 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +	/* Set hw pps address */
 +	offset = offsetof(struct rkvdec_h264_priv_tbl, param_set);
-+	regs->h264_addr.pps_base = priv_start_addr + offset;
++	regs->h264_addr.reg161_pps_base = priv_start_addr + offset;
 +
 +	/* Set hw rps address */
 +	offset = offsetof(struct rkvdec_h264_priv_tbl, rps);
-+	regs->h264_addr.rps_base = priv_start_addr + offset;
++	regs->h264_addr.reg163_rps_base = priv_start_addr + offset;
 +
 +	/* Set cabac table */
 +	offset = offsetof(struct rkvdec_h264_priv_tbl, cabac_table);
-+	regs->h264_addr.cabactbl_base = priv_start_addr + offset;
++	regs->h264_addr.reg199_cabactbl_base = priv_start_addr + offset;
 +
 +	offset = offsetof(struct rkvdec_h264_priv_tbl, scaling_list);
-+	regs->h264_addr.scanlist_addr = priv_start_addr + offset;
++	regs->h264_addr.reg181_scanlist_addr = priv_start_addr + offset;
 +
 +	rkvdec_write_regs(ctx);
 +}
@@ -7215,6 +7239,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +			      V4L2_CID_STATELESS_H264_SPS);
 +	if (!ctrl)
 +		return -EINVAL;
++
++	ret = rkvdec_h264_validate_sps(ctx, ctrl->p_new.p_h264_sps);
++	if (ret)
++		return ret;
 +
 +	h264_ctx = kzalloc(sizeof(*h264_ctx), GFP_KERNEL);
 +	if (!h264_ctx)
@@ -7257,7 +7285,6 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	struct rkvdec_h264_ctx *h264_ctx = ctx->priv;
 +	struct rkvdec_h264_priv_tbl *tbl = h264_ctx->priv_tbl.cpu;
 +	struct rkvdec_h264_run run;
-+	u32 watchdog_time;
 +
 +	rkvdec_h264_run_preamble(ctx, &run);
 +
@@ -7277,16 +7304,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +	rkvdec_run_postamble(ctx, &run.base);
 +
-+	/* Set watchdog at 2 times the hardware timeout threshold */
-+	u64 timeout_threshold = h264_ctx->regs.common.timeout_threshold;
-+	unsigned long axi_rate = clk_get_rate(rkvdec->axi_clk);
-+
-+	if (axi_rate)
-+		watchdog_time = 2 * (1000 * timeout_threshold) / axi_rate;
-+	else
-+		watchdog_time = 2000;
-+	schedule_delayed_work(&rkvdec->watchdog_work,
-+			      msecs_to_jiffies(watchdog_time));
++	rkvdec_schedule_watchdog(rkvdec, h264_ctx->regs.common.reg032_timeout_threshold);
 +
 +	/* Start decoding! */
 +	writel(VDPU381_DEC_E_BIT, rkvdec->regs + VDPU381_REG_DEC_E);
@@ -7310,10 +7328,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	.run = rkvdec_h264_run,
 +	.try_ctrl = rkvdec_h264_try_ctrl,
 +};
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c	2025-12-19 10:18:57.646726691 +0100
-@@ -0,0 +1,621 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-hevc.c	2026-01-09 18:00:01.226671668 +0100
+@@ -0,0 +1,638 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip VDPU381 HEVC backend
@@ -7622,49 +7640,49 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +{
 +	switch (id) {
 +	case 0:
-+		regs->hevc_param.reg099.hevc_ref_valid_0 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_0 = valid;
 +		break;
 +	case 1:
-+		regs->hevc_param.reg099.hevc_ref_valid_1 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_1 = valid;
 +		break;
 +	case 2:
-+		regs->hevc_param.reg099.hevc_ref_valid_2 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_2 = valid;
 +		break;
 +	case 3:
-+		regs->hevc_param.reg099.hevc_ref_valid_3 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_3 = valid;
 +		break;
 +	case 4:
-+		regs->hevc_param.reg099.hevc_ref_valid_4 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_4 = valid;
 +		break;
 +	case 5:
-+		regs->hevc_param.reg099.hevc_ref_valid_5 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_5 = valid;
 +		break;
 +	case 6:
-+		regs->hevc_param.reg099.hevc_ref_valid_6 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_6 = valid;
 +		break;
 +	case 7:
-+		regs->hevc_param.reg099.hevc_ref_valid_7 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_7 = valid;
 +		break;
 +	case 8:
-+		regs->hevc_param.reg099.hevc_ref_valid_8 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_8 = valid;
 +		break;
 +	case 9:
-+		regs->hevc_param.reg099.hevc_ref_valid_9 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_9 = valid;
 +		break;
 +	case 10:
-+		regs->hevc_param.reg099.hevc_ref_valid_10 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_10 = valid;
 +		break;
 +	case 11:
-+		regs->hevc_param.reg099.hevc_ref_valid_11 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_11 = valid;
 +		break;
 +	case 12:
-+		regs->hevc_param.reg099.hevc_ref_valid_12 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_12 = valid;
 +		break;
 +	case 13:
-+		regs->hevc_param.reg099.hevc_ref_valid_13 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_13 = valid;
 +		break;
 +	case 14:
-+		regs->hevc_param.reg099.hevc_ref_valid_14 = valid;
++		regs->hevc_param.reg099_hevc_ref_valid.hevc_ref_valid_14 = valid;
 +		break;
 +	}
 +}
@@ -7715,23 +7733,23 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	memset(regs, 0, sizeof(*regs));
 +
 +	/* Set HEVC mode */
-+	regs->common.reg009.dec_mode = VDPU381_MODE_HEVC;
++	regs->common.reg009_dec_mode.dec_mode = VDPU381_MODE_HEVC;
 +
 +	/* Set config */
-+	regs->common.reg011.buf_empty_en = 1;
-+	regs->common.reg011.dec_clkgate_e = 1;
-+	regs->common.reg011.dec_timeout_e = 1;
-+	regs->common.reg011.pix_range_detection_e = 1;
++	regs->common.reg011_important_en.buf_empty_en = 1;
++	regs->common.reg011_important_en.dec_clkgate_e = 1;
++	regs->common.reg011_important_en.dec_timeout_e = 1;
++	regs->common.reg011_important_en.pix_range_det_e = 1;
 +
 +	/* Set IDR flag */
-+	regs->common.reg013.cur_pic_is_idr =
++	regs->common.reg013_en_mode_set.cur_pic_is_idr =
 +		!!(dec_params->flags & V4L2_HEVC_DECODE_PARAM_FLAG_IDR_PIC);
 +
 +	/* Set input stream length */
-+	regs->common.stream_len = vb2_get_plane_payload(&src_buf->vb2_buf, 0);
++	regs->common.reg016_stream_len = vb2_get_plane_payload(&src_buf->vb2_buf, 0);
 +
 +	/* Set max slice number */
-+	regs->common.reg017.slice_num = 1;
++	regs->common.reg017_slice_number.slice_num = 1;
 +
 +	/* Set strides */
 +	f = &ctx->decoded_fmt;
@@ -7739,26 +7757,38 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	hor_virstride = dst_fmt->plane_fmt[0].bytesperline;
 +	ver_virstride = dst_fmt->height;
 +	y_virstride = hor_virstride * ver_virstride;
-+	pixels = dst_fmt->height * dst_fmt->width;
 +
-+	regs->common.reg018.y_hor_virstride = hor_virstride / 16;
-+	regs->common.reg019.uv_hor_virstride = hor_virstride / 16;
-+	regs->common.reg020.y_virstride = y_virstride / 16;
++	regs->common.reg018_y_hor_stride.y_hor_virstride = hor_virstride / 16;
++	regs->common.reg019_uv_hor_stride.uv_hor_virstride = hor_virstride / 16;
++	regs->common.reg020_y_stride.y_virstride = y_virstride / 16;
 +
 +	/* Activate block gating */
-+	regs->common.reg026.swreg_block_gating_e = 0xfffef;
-+	regs->common.reg026.reg_cfg_gating_en = 1;
++	regs->common.reg026_block_gating_en.inter_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.filterd_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.strmd_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.mcp_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.busifd_auto_gating_e = 0;
++	regs->common.reg026_block_gating_en.dec_ctrl_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.intra_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.mc_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.transd_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.sram_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.cru_auto_gating_e = 1;
++	regs->common.reg026_block_gating_en.reg_cfg_gating_en = 1;
 +
 +	/* Set timeout threshold */
++	pixels = dst_fmt->height * dst_fmt->width;
 +	if (pixels < RKVDEC_1080P_PIXELS)
-+		regs->common.timeout_threshold = RKVDEC_TIMEOUT_1080p;
++		regs->common.reg032_timeout_threshold = RKVDEC_TIMEOUT_1080p;
 +	else if (pixels < RKVDEC_4K_PIXELS)
-+		regs->common.timeout_threshold = RKVDEC_TIMEOUT_4K;
++		regs->common.reg032_timeout_threshold = RKVDEC_TIMEOUT_4K;
 +	else if (pixels < RKVDEC_8K_PIXELS)
-+		regs->common.timeout_threshold = RKVDEC_TIMEOUT_8K;
++		regs->common.reg032_timeout_threshold = RKVDEC_TIMEOUT_8K;
++	else
++		regs->common.reg032_timeout_threshold = RKVDEC_TIMEOUT_MAX;
 +
 +	/* Set POC val */
-+	regs->hevc_param.cur_top_poc = dec_params->pic_order_cnt_val;
++	regs->hevc_param.reg065_cur_top_poc = dec_params->pic_order_cnt_val;
 +
 +	/* Set ref pic address & poc */
 +	for (i = 0; i < ARRAY_SIZE(dec_params->dpb); i++) {
@@ -7767,16 +7797,16 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 valid = !!(dec_params->num_active_dpb_entries > i);
 +
 +		/* Set reference addresses */
-+		regs->hevc_addr.ref_base[i] = buf_dma;
++		regs->hevc_addr.reg164_180_ref_base[i] = buf_dma;
 +
 +		/* Set COLMV addresses */
-+		regs->hevc_addr.colmv_base[i] = buf_dma + ctx->colmv_offset;
++		regs->hevc_addr.reg182_198_colmv_base[i] = buf_dma + ctx->colmv_offset;
 +
 +		regs->hevc_param.reg067_082_ref_poc[i] =
 +			dpb[i].pic_order_cnt_val;
 +
 +		set_ref_valid(regs, i, valid);
-+		regs->hevc_param.reg103.ref_pic_layer_same_with_cur |= 1 << i;
++		regs->hevc_param.reg103_hevc_mvc0.ref_pic_layer_same_with_cur |= 1 << i;
 +	}
 +
 +	/* Set rlc base address (input stream) */
@@ -7798,19 +7828,19 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +	/* Set hw pps address */
 +	offset = offsetof(struct rkvdec_hevc_priv_tbl, param_set);
-+	regs->hevc_addr.pps_base = priv_start_addr + offset;
++	regs->hevc_addr.reg161_pps_base = priv_start_addr + offset;
 +
 +	/* Set hw rps address */
 +	offset = offsetof(struct rkvdec_hevc_priv_tbl, rps);
-+	regs->hevc_addr.rps_base = priv_start_addr + offset;
++	regs->hevc_addr.reg163_rps_base = priv_start_addr + offset;
 +
 +	/* Set cabac table */
 +	offset = offsetof(struct rkvdec_hevc_priv_tbl, cabac_table);
-+	regs->hevc_addr.cabactbl_base = priv_start_addr + offset;
++	regs->hevc_addr.reg199_cabactbl_base = priv_start_addr + offset;
 +
 +	/* Set scaling matrix */
 +	offset = offsetof(struct rkvdec_hevc_priv_tbl, scaling_list);
-+	regs->hevc_addr.scanlist_addr = priv_start_addr + offset;
++	regs->hevc_addr.reg181_scanlist_addr = priv_start_addr + offset;
 +
 +	rkvdec_write_regs(ctx);
 +}
@@ -7849,6 +7879,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +			      V4L2_CID_STATELESS_HEVC_SPS);
 +	if (!ctrl)
 +		return -EINVAL;
++
++	ret = rkvdec_hevc_validate_sps(ctx, ctrl->p_new.p_hevc_sps);
++	if (ret)
++		return ret;
 +
 +	hevc_ctx = kzalloc(sizeof(*hevc_ctx), GFP_KERNEL);
 +	if (!hevc_ctx)
@@ -7893,6 +7927,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +	rkvdec_hevc_run_preamble(ctx, &run);
 +
++	rkvdec_hevc_assemble_hw_scaling_list(ctx, &run, &tbl->scaling_list,
++					     &hevc_ctx->scaling_matrix_cache);
++	assemble_hw_pps(ctx, &run);
++
 +	/*
 +	 * On vdpu381, not setting the long and short term ref sets will just output wrong frames.
 +	 * Let's just warn about it and let the decoder run anyway.
@@ -7900,18 +7938,15 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	if ((!ctx->has_sps_lt_rps && run.sps->num_long_term_ref_pics_sps) ||
 +		(!ctx->has_sps_st_rps && run.sps->num_short_term_ref_pic_sets)) {
 +		dev_warn_ratelimited(rkvdec->dev, "Long and short term RPS not set\n");
++	} else {
++		rkvdec_hevc_assemble_hw_rps(&run, &tbl->rps, &hevc_ctx->st_cache);
 +	}
-+
-+	rkvdec_hevc_assemble_hw_scaling_list(ctx, &run, &tbl->scaling_list,
-+					     &hevc_ctx->scaling_matrix_cache);
-+	assemble_hw_pps(ctx, &run);
-+	rkvdec_hevc_assemble_hw_rps(&run, &tbl->rps, &hevc_ctx->st_cache);
 +
 +	config_registers(ctx, &run);
 +
 +	rkvdec_run_postamble(ctx, &run.base);
 +
-+	schedule_delayed_work(&rkvdec->watchdog_work, msecs_to_jiffies(2000));
++	rkvdec_schedule_watchdog(rkvdec, hevc_ctx->regs.common.reg032_timeout_threshold);
 +
 +	/* Start decoding! */
 +	writel(VDPU381_DEC_E_BIT, rkvdec->regs + VDPU381_REG_DEC_E);
@@ -7935,10 +7970,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	.try_ctrl = rkvdec_hevc_try_ctrl,
 +	.get_image_fmt = rkvdec_hevc_get_image_fmt,
 +};
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h	2025-12-19 10:18:57.646726691 +0100
-@@ -0,0 +1,424 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu381-regs.h	2026-01-09 18:00:01.226671668 +0100
+@@ -0,0 +1,430 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
 + * Rockchip VDPU381 Video Decoder driver registers description
@@ -7984,7 +8019,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +/* base: OFFSET_COMMON_REGS */
 +struct rkvdec_vdpu381_regs_common {
-+	struct rkvdec_vdpu381_in_out {
++	struct {
 +		u32 in_endian		: 1;
 +		u32 in_swap32_e		: 1;
 +		u32 in_swap64_e		: 1;
@@ -7996,86 +8031,81 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 out_cbcr_swap	: 1;
 +		u32 out_swap64_e	: 1;
 +		u32 reserved		: 22;
-+	} reg008;
++	} reg008_in_out;
 +
-+	struct rkvdec_vdpu381_dec_mode {
++	struct {
 +		u32 dec_mode	: 10;
 +		u32 reserved	: 22;
-+	} reg009;
++	} reg009_dec_mode;
 +
-+	struct rkvdec_vdpu381_dec_e {
++	struct {
 +		u32 dec_e	: 1;
 +		u32 reserved	: 31;
-+	} reg010;
++	} reg010_dec_e;
 +
-+	struct rkvdec_vdpu381_important_en {
-+		u32 reserved			: 1;
++	struct {
++		u32 reserved0			: 1;
 +		u32 dec_clkgate_e		: 1;
 +		u32 dec_e_strmd_clkgate_dis	: 1;
-+		u32 reserved0			: 1;
++		u32 reserved1			: 1;
 +
 +		u32 dec_irq_dis			: 1;
 +		u32 dec_timeout_e		: 1;
 +		u32 buf_empty_en		: 1;
-+		u32 reserved1			: 3;
++		u32 reserved2			: 3;
 +
 +		u32 dec_e_rewrite_valid		: 1;
-+		u32 reserved2			: 9;
++		u32 reserved3			: 9;
 +		u32 softrst_en_p		: 1;
 +		u32 force_softreset_valid	: 1;
-+		u32 reserved3			: 2;
-+		u32 pix_range_detection_e	: 1;
-+		u32 reserved4			: 7;
-+	} reg011;
++		u32 reserved4			: 2;
++		u32 pix_range_det_e		: 1;
++		u32 reserved5			: 7;
++	} reg011_important_en;
 +
-+	struct rkvdec_vdpu381_secondary_en {
-+		u32 wr_ddr_align_en		: 1;
++	struct {
++		u32 reserved0			: 1;
 +		u32 colmv_compress_en		: 1;
 +		u32 fbc_e			: 1;
-+		u32 reserved0			: 1;
++		u32 reserved1			: 1;
 +
 +		u32 buspr_slot_disable		: 1;
 +		u32 error_info_en		: 1;
-+		u32 info_collect_en		: 1;
-+		u32 wait_reset_en		: 1;
++		u32 collect_info_en		: 1;
++		u32 error_auto_rst_disable	: 1;
 +
 +		u32 scanlist_addr_valid_en	: 1;
 +		u32 scale_down_en		: 1;
 +		u32 error_cfg_wr_disable	: 1;
-+		u32 reserved1			: 21;
-+	} reg012;
++		u32 reserved2			: 21;
++	} reg012_secondary_en;
 +
-+	struct rkvdec_vdpu381_en_mode_set {
-+		u32 timeout_mode		: 1;
-+		u32 req_timeout_rst_sel		: 1;
++	struct {
 +		u32 reserved0			: 1;
++		u32 req_timeout_rst_sel		: 1;
++		u32 reserved1			: 1;
 +		u32 dec_commonirq_mode		: 1;
-+		u32 reserved1			: 2;
-+		u32 stmerror_waitdecfifo_empty	: 1;
 +		u32 reserved2			: 2;
-+		u32 h26x_streamd_error_mode	: 1;
-+		u32 reserved3			: 2;
++		u32 stmerror_waitdecfifo_empty	: 1;
++		u32 reserved3			: 5;
 +		u32 allow_not_wr_unref_bframe	: 1;
 +		u32 fbc_output_wr_disable	: 1;
-+		u32 reserved4			: 1;
-+		u32 colmv_error_mode		: 1;
-+
++		u32 reserved4			: 4;
++		u32 error_mode			: 1;
 +		u32 reserved5			: 2;
-+		u32 h26x_error_mode		: 1;
-+		u32 reserved6			: 2;
 +		u32 ycacherd_prior		: 1;
-+		u32 reserved7			: 2;
++		u32 reserved6			: 2;
 +		u32 cur_pic_is_idr		: 1;
-+		u32 reserved8			: 1;
++		u32 reserved7			: 1;
 +		u32 right_auto_rst_disable	: 1;
 +		u32 frame_end_err_rst_flag	: 1;
 +		u32 rd_prior_mode		: 1;
 +		u32 rd_ctrl_prior_mode		: 1;
-+		u32 reserved9			: 1;
++		u32 reserved8			: 1;
 +		u32 filter_outbuf_mode		: 1;
-+	} reg013;
++	} reg013_en_mode_set;
 +
-+	struct rkvdec_vdpu381_fbc_param_set {
++	struct {
 +		u32 fbc_force_uncompress	: 1;
 +
 +		u32 reserved0			: 2;
@@ -8084,40 +8114,40 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +		u32 fbc_h264_exten_4or8_flag	: 1;
 +		u32 reserved2			: 25;
-+	} reg014;
++	} reg014_fbc_param_set;
 +
-+	struct rkvdec_vdpu381_stream_param_set {
++	struct {
 +		u32 rlc_mode_direct_write	: 1;
 +		u32 rlc_mode			: 1;
 +		u32 reserved0			: 3;
 +
 +		u32 strm_start_bit		: 7;
 +		u32 reserved1			: 20;
-+	} reg015;
++	} reg015_stream_param_set;
 +
-+	u32 stream_len;
++	u32 reg016_stream_len;
 +
-+	struct rkvdec_vdpu381_slice_number {
++	struct {
 +		u32 slice_num	: 25;
 +		u32 reserved	: 7;
-+	} reg017;
++	} reg017_slice_number;
 +
-+	struct rkvdec_vdpu381_y_hor_stride {
++	struct {
 +		u32 y_hor_virstride	: 16;
 +		u32 reserved		: 16;
-+	} reg018;
++	} reg018_y_hor_stride;
 +
-+	struct rkvdec_vdpu381_uv_hor_stride {
++	struct {
 +		u32 uv_hor_virstride	: 16;
 +		u32 reserved		: 16;
-+	} reg019;
++	} reg019_uv_hor_stride;
 +
-+	struct rkvdec_vdpu381_y_stride {
++	struct {
 +		u32 y_virstride		: 28;
 +		u32 reserved		: 4;
-+	} reg020;
++	} reg020_y_stride;
 +
-+	struct rkvdec_vdpu381_error_ctrl_set {
++	struct {
 +		u32 inter_error_prc_mode		: 1;
 +		u32 error_intra_mode			: 1;
 +		u32 error_deb_en			: 1;
@@ -8128,79 +8158,91 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 reserved1				: 11;
 +		u32 roi_error_ctu_cal_en		: 1;
 +		u32 reserved2				: 7;
-+	} reg021;
++	} reg021_error_ctrl_set;
 +
-+	struct rkvdec_vdpu381_err_roi_ctu_offset_start {
++	struct {
 +		u32 roi_x_ctu_offset_st	: 12;
 +		u32 reserved0		: 4;
 +		u32 roi_y_ctu_offset_st	: 12;
 +		u32 reserved1		: 4;
-+	} reg022;
++	} reg022_err_roi_ctu_offset_start;
 +
-+	struct rkvdec_vdpu381_err_roi_ctu_offset_end {
++	struct {
 +		u32 roi_x_ctu_offset_end	: 12;
 +		u32 reserved0			: 4;
 +		u32 roi_y_ctu_offset_end	: 12;
 +		u32 reserved1			: 4;
-+	} reg023;
++	} reg023_err_roi_ctu_offset_end;
 +
-+	struct rkvdec_vdpu381_cabac_error_en_lowbits {
++	struct {
 +		u32 cabac_err_en_lowbits	: 32;
-+	} reg024;
++	} reg024_cabac_error_en_lowbits;
 +
-+	struct rkvdec_vdpu381_cabac_error_en_highbits {
++	struct {
 +		u32 cabac_err_en_highbits	: 30;
 +		u32 reserved			: 2;
-+	} reg025;
++	} reg025_cabac_error_en_highbits;
 +
-+	struct rkvdec_vdpu381_block_gating_en {
-+		u32 swreg_block_gating_e	: 20;
-+		u32 reserved			: 11;
++	struct {
++		u32 inter_auto_gating_e		: 1;
++		u32 filterd_auto_gating_e	: 1;
++		u32 strmd_auto_gating_e		: 1;
++		u32 mcp_auto_gating_e		: 1;
++		u32 busifd_auto_gating_e	: 1;
++		u32 reserved0			: 3;
++		u32 dec_ctrl_auto_gating_e	: 1;
++		u32 intra_auto_gating_e		: 1;
++		u32 mc_auto_gating_e		: 1;
++		u32 transd_auto_gating_e	: 1;
++		u32 reserved1			: 4;
++		u32 sram_auto_gating_e		: 1;
++		u32 cru_auto_gating_e		: 1;
++		u32 reserved2			: 13;
 +		u32 reg_cfg_gating_en		: 1;
-+	} reg026;
++	} reg026_block_gating_en;
 +
-+	struct SW027_CORE_SAFE_PIXELS {
++	struct {
 +		u32 core_safe_x_pixels	: 16;
 +		u32 core_safe_y_pixels	: 16;
-+	} reg027;
++	} reg027_core_safe_pixels;
 +
-+	struct rkvdec_vdpu381_multiply_core_ctrl {
-+		u32 swreg_vp9_wr_prob_idx	: 3;
++	struct {
++		u32 vp9_wr_prob_idx		: 3;
 +		u32 reserved0			: 1;
-+		u32 swreg_vp9_rd_prob_idx	: 3;
++		u32 vp9_rd_prob_idx		: 3;
 +		u32 reserved1			: 1;
 +
-+		u32 swreg_ref_req_advance_flag	: 1;
-+		u32 sw_colmv_req_advance_flag	: 1;
-+		u32 sw_poc_only_highbit_flag	: 1;
-+		u32 sw_poc_arb_flag		: 1;
++		u32 ref_req_advance_flag	: 1;
++		u32 colmv_req_advance_flag	: 1;
++		u32 poc_only_highbit_flag	: 1;
++		u32 poc_arb_flag		: 1;
 +
 +		u32 reserved2			: 4;
-+		u32 sw_film_idx			: 10;
++		u32 film_idx			: 10;
 +		u32 reserved3			: 2;
-+		u32 sw_pu_req_mismatch_dis	: 1;
-+		u32 sw_colmv_req_mismatch_dis	: 1;
++		u32 pu_req_mismatch_dis		: 1;
++		u32 colmv_req_mismatch_dis	: 1;
 +		u32 reserved4			: 2;
-+	} reg028;
++	} reg028_multiply_core_ctrl;
 +
-+	struct SW029_SCALE_DOWN_CTRL {
++	struct {
 +		u32 scale_down_hor_ratio	: 2;
 +		u32 reserved0			: 6;
 +		u32 scale_down_vrz_ratio	: 2;
 +		u32 reserved1			: 22;
-+	} reg029;
++	} reg029_scale_down_ctrl;
 +
-+	struct SW032_Y_SCALE_DOWN_TILE8x8_HOR_STRIDE {
-+		u32 y_scale_down_hor_stride	: 20;
-+		u32 reserved0			: 12;
-+	} reg030;
++	struct {
++		u32 y_scale_down_tile8x8_hor_stride	: 20;
++		u32 reserved0				: 12;
++	} reg030_y_scale_down_tile8x8_hor_stride;
 +
-+	struct SW031_UV_SCALE_DOWN_TILE8x8_HOR_STRIDE {
-+		u32 uv_scale_down_hor_stride	: 20;
-+		u32 reserved0			: 12;
-+	} reg031;
++	struct {
++		u32 uv_scale_down8x8_tile_hor_stride	: 20;
++		u32 reserved0				: 12;
++	} reg031_uv_scale_down_tile8x8_hor_stride;
 +
-+	u32 timeout_threshold;
++	u32 reg032_timeout_threshold;
 +} __packed;
 +
 +/* base: OFFSET_COMMON_ADDR_REGS */
@@ -8224,11 +8266,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +/* base: OFFSET_CODEC_PARAMS_REGS */
 +struct rkvdec_vdpu381_regs_h264_params {
-+	struct rkvdec_vdpu381_h26x_set reg064;
++	struct rkvdec_vdpu381_h26x_set reg064_h26x_set;
 +
-+	u32 cur_top_poc;
-+	u32 cur_bot_poc;
-+	u32 ref_pocs[32];
++	u32 reg065_cur_top_poc;
++	u32 reg066_cur_bot_poc;
++	u32 reg067_098_ref_poc[32];
 +
 +	struct rkvdec_vdpu381_h264_info {
 +		struct rkvdec_vdpu381_h264_ref_info {
@@ -8236,32 +8278,31 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +			u32 ref_topfield_used	: 1;
 +			u32 ref_botfield_used	: 1;
 +			u32 ref_colmv_use_flag	: 1;
-+			u32 ref_reserved	: 4;
++			u32 reserved		: 4;
 +		} __packed ref_info[4];
-+	} __packed ref_info_regs[4];
++	} __packed reg099_102_ref_info_regs[4];
 +
 +	u32 reserved_103_111[9];
 +
-+	struct rkvdec_vdpu381_error_ref_info {
++	struct {
 +		u32 avs2_ref_error_field	: 1;
 +		u32 avs2_ref_error_topfield	: 1;
 +		u32 ref_error_topfield_used	: 1;
 +		u32 ref_error_botfield_used	: 1;
 +		u32 reserved			: 28;
-+	} reg112;
++	} reg112_error_ref_info;
 +} __packed;
 +
 +struct rkvdec_vdpu381_regs_hevc_params {
-+	struct rkvdec_vdpu381_h26x_set reg064;
++	struct rkvdec_vdpu381_h26x_set reg064_h26x_set;
 +
-+	u32 cur_top_poc;
-+	u32 cur_bot_poc;
-+
++	u32 reg065_cur_top_poc;
++	u32 reg066_cur_bot_poc;
 +	u32 reg067_082_ref_poc[16];
 +
 +	u32 reserved_083_098[16];
 +
-+	struct rkvdec_vdpu381_hevc_ref_valid {
++	struct {
 +		u32 hevc_ref_valid_0    : 1;
 +		u32 hevc_ref_valid_1    : 1;
 +		u32 hevc_ref_valid_2    : 1;
@@ -8281,16 +8322,16 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 hevc_ref_valid_13   : 1;
 +		u32 hevc_ref_valid_14   : 1;
 +		u32 reserve3            : 5;
-+	} reg099;
++	} reg099_hevc_ref_valid;
 +
 +	u32 reserved_100_102[3];
 +
-+	struct rkvdec_vdpu381_hevc_mvc0 {
++	struct {
 +		u32 ref_pic_layer_same_with_cur : 16;
 +		u32 reserve                     : 16;
-+	} reg103;
++	} reg103_hevc_mvc0;
 +
-+	struct rkvdec_vdpu381_hevc_mvc1 {
++	struct {
 +		u32 poc_lsb_not_present_flag        : 1;
 +		u32 num_direct_ref_layers           : 6;
 +		u32 reserve0                        : 1;
@@ -8303,34 +8344,34 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 vps_poc_lsb_aligned_flag        : 1;
 +		u32 mvc_poc15_valid_flag            : 1;
 +		u32 reserve1                        : 13;
-+	} reg104;
++	} reg104_hevc_mvc1;
 +
 +	u32 reserved_105_111[7];
 +
-+	struct rkvdec_vdpu381_hevc_ref_info {
++	struct {
 +		u32 avs2_ref_error_field        : 1;
 +		u32 avs2_ref_error_topfield     : 1;
 +		u32 ref_error_topfield_used     : 1;
 +		u32 ref_error_botfield_used     : 1;
 +		u32 reserve                     : 28;
-+	} reg112;
++	} reg112_hevc_ref_info;
 +
 +} __packed;
 +
 +/* base: OFFSET_CODEC_ADDR_REGS */
 +struct rkvdec_vdpu381_regs_h26x_addr {
 +	u32 reserved_160;
-+	u32 pps_base;
++	u32 reg161_pps_base;
 +	u32 reserved_162;
-+	u32 rps_base;
-+	u32 ref_base[16];
-+	u32 scanlist_addr;
-+	u32 colmv_base[16];
-+	u32 cabactbl_base;
++	u32 reg163_rps_base;
++	u32 reg164_180_ref_base[16];
++	u32 reg181_scanlist_addr;
++	u32 reg182_198_colmv_base[16];
++	u32 reg199_cabactbl_base;
 +} __packed;
 +
 +struct rkvdec_vdpu381_regs_h26x_highpoc {
-+	struct rkvdec_vdpu381_ref_poc_highbit {
++	struct {
 +		u32 ref0_poc_highbit	: 4;
 +		u32 ref1_poc_highbit	: 4;
 +		u32 ref2_poc_highbit	: 4;
@@ -8339,11 +8380,11 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 ref5_poc_highbit	: 4;
 +		u32 ref6_poc_highbit	: 4;
 +		u32 ref7_poc_highbit	: 4;
-+	} reg200[4];
-+	struct rkvdec_vdpu381_cur_poc_highbit {
++	} reg200_203_ref_poc_highbit[4];
++	struct {
 +		u32 cur_poc_highbit	: 4;
 +		u32 reserved		: 28;
-+	} reg204;
++	} reg204_cur_poc_highbit;
 +} __packed;
 +
 +struct rkvdec_vdpu381_regs_h264 {
@@ -8363,10 +8404,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +} __packed;
 +
 +#endif /* __RKVDEC_REGS_H__ */
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c	2025-12-19 10:18:57.646726691 +0100
-@@ -0,0 +1,578 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-h264.c	2026-01-09 18:00:01.226671668 +0100
+@@ -0,0 +1,572 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip Video Decoder VDPU383 H264 backend
@@ -8749,16 +8790,16 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	regs->h26x_params.reg070_y_virstride = y_virstride / 16;
 +
 +	/* Activate block gating */
-+	regs->common.reg010.strmd_auto_gating_e      = 1;
-+	regs->common.reg010.inter_auto_gating_e      = 1;
-+	regs->common.reg010.intra_auto_gating_e      = 1;
-+	regs->common.reg010.transd_auto_gating_e     = 1;
-+	regs->common.reg010.recon_auto_gating_e      = 1;
-+	regs->common.reg010.filterd_auto_gating_e    = 1;
-+	regs->common.reg010.bus_auto_gating_e        = 1;
-+	regs->common.reg010.ctrl_auto_gating_e       = 1;
-+	regs->common.reg010.rcb_auto_gating_e        = 1;
-+	regs->common.reg010.err_prc_auto_gating_e    = 1;
++	regs->common.reg010_block_gating_en.strmd_auto_gating_e      = 1;
++	regs->common.reg010_block_gating_en.inter_auto_gating_e      = 1;
++	regs->common.reg010_block_gating_en.intra_auto_gating_e      = 1;
++	regs->common.reg010_block_gating_en.transd_auto_gating_e     = 1;
++	regs->common.reg010_block_gating_en.recon_auto_gating_e      = 1;
++	regs->common.reg010_block_gating_en.filterd_auto_gating_e    = 1;
++	regs->common.reg010_block_gating_en.bus_auto_gating_e        = 1;
++	regs->common.reg010_block_gating_en.ctrl_auto_gating_e       = 1;
++	regs->common.reg010_block_gating_en.rcb_auto_gating_e        = 1;
++	regs->common.reg010_block_gating_en.err_prc_auto_gating_e    = 1;
 +
 +	/* Set timeout threshold */
 +	if (pixels < RKVDEC_1080P_PIXELS)
@@ -8770,7 +8811,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	else
 +		regs->common.reg013_core_timeout_threshold = VDPU383_TIMEOUT_MAX;
 +
-+	regs->common.reg016.error_proc_disable = 1;
++	regs->common.reg016_error_ctrl_set.error_proc_disable = 1;
 +
 +	/* Set ref pic address & poc */
 +	for (i = 0; i < ARRAY_SIZE(dec_params->dpb); i++) {
@@ -8846,6 +8887,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	if (!ctrl)
 +		return -EINVAL;
 +
++	ret = rkvdec_h264_validate_sps(ctx, ctrl->p_new.p_h264_sps);
++	if (ret)
++		return ret;
++
 +	h264_ctx = kzalloc(sizeof(*h264_ctx), GFP_KERNEL);
 +	if (!h264_ctx)
 +		return -ENOMEM;
@@ -8888,9 +8933,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	struct rkvdec_h264_ctx *h264_ctx = ctx->priv;
 +	struct rkvdec_h264_run run;
 +	struct rkvdec_h264_priv_tbl *tbl = h264_ctx->priv_tbl.cpu;
-+	u32 watchdog_time;
-+	u64 timeout_threshold;
-+	unsigned long axi_rate;
++	u32 timeout_threshold;
 +
 +	rkvdec_h264_run_preamble(ctx, &run);
 +
@@ -8910,16 +8953,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +	rkvdec_run_postamble(ctx, &run.base);
 +
-+	/* Set watchdog at 2 times the hardware timeout threshold */
 +	timeout_threshold = h264_ctx->regs.common.reg013_core_timeout_threshold;
-+	axi_rate = clk_get_rate(rkvdec->axi_clk);
-+
-+	if (axi_rate)
-+		watchdog_time = 2 * (1000 * timeout_threshold) / axi_rate;
-+	else
-+		watchdog_time = 2000;
-+	schedule_delayed_work(&rkvdec->watchdog_work,
-+			      msecs_to_jiffies(watchdog_time));
++	rkvdec_schedule_watchdog(rkvdec, timeout_threshold);
 +
 +	/* Start decoding! */
 +	writel(timeout_threshold, rkvdec->link + VDPU383_LINK_TIMEOUT_THRESHOLD);
@@ -8945,10 +8980,10 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	.run = rkvdec_h264_run,
 +	.try_ctrl = rkvdec_h264_try_ctrl,
 +};
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c	2025-12-19 10:18:57.646726691 +0100
-@@ -0,0 +1,720 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-hevc.c	2026-01-09 18:00:01.226671668 +0100
+@@ -0,0 +1,710 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Rockchip VDPU383 HEVC backend
@@ -9450,16 +9485,16 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	regs->h26x_params.reg070_y_virstride = y_virstride / 16;
 +
 +	/* Activate block gating */
-+	regs->common.reg010.strmd_auto_gating_e      = 1;
-+	regs->common.reg010.inter_auto_gating_e      = 1;
-+	regs->common.reg010.intra_auto_gating_e      = 1;
-+	regs->common.reg010.transd_auto_gating_e     = 1;
-+	regs->common.reg010.recon_auto_gating_e      = 1;
-+	regs->common.reg010.filterd_auto_gating_e    = 1;
-+	regs->common.reg010.bus_auto_gating_e	     = 1;
-+	regs->common.reg010.ctrl_auto_gating_e       = 1;
-+	regs->common.reg010.rcb_auto_gating_e	     = 1;
-+	regs->common.reg010.err_prc_auto_gating_e    = 1;
++	regs->common.reg010_block_gating_en.strmd_auto_gating_e      = 1;
++	regs->common.reg010_block_gating_en.inter_auto_gating_e      = 1;
++	regs->common.reg010_block_gating_en.intra_auto_gating_e      = 1;
++	regs->common.reg010_block_gating_en.transd_auto_gating_e     = 1;
++	regs->common.reg010_block_gating_en.recon_auto_gating_e      = 1;
++	regs->common.reg010_block_gating_en.filterd_auto_gating_e    = 1;
++	regs->common.reg010_block_gating_en.bus_auto_gating_e	     = 1;
++	regs->common.reg010_block_gating_en.ctrl_auto_gating_e       = 1;
++	regs->common.reg010_block_gating_en.rcb_auto_gating_e	     = 1;
++	regs->common.reg010_block_gating_en.err_prc_auto_gating_e    = 1;
 +
 +	/* Set timeout threshold */
 +	if (pixels < RKVDEC_1080P_PIXELS)
@@ -9471,7 +9506,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	else
 +		regs->common.reg013_core_timeout_threshold = VDPU383_TIMEOUT_MAX;
 +
-+	regs->common.reg016.error_proc_disable = 1;
++	regs->common.reg016_error_ctrl_set.error_proc_disable = 1;
 +
 +	/* Set ref pic address & poc */
 +	for (i = 0; i < ARRAY_SIZE(dec_params->dpb) - 1; i++) {
@@ -9608,9 +9643,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	struct rkvdec_hevc_run run;
 +	struct rkvdec_hevc_ctx *hevc_ctx = ctx->priv;
 +	struct rkvdec_hevc_priv_tbl *tbl = hevc_ctx->priv_tbl.cpu;
-+	u32 watchdog_time;
-+	u64 timeout_threshold;
-+	unsigned long axi_rate;
++	u32 timeout_threshold;
 +
 +	rkvdec_hevc_run_preamble(ctx, &run);
 +
@@ -9634,16 +9667,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +
 +	rkvdec_run_postamble(ctx, &run.base);
 +
-+	/* Set watchdog at 2 times the hardware timeout threshold */
 +	timeout_threshold = hevc_ctx->regs.common.reg013_core_timeout_threshold;
-+	axi_rate = clk_get_rate(rkvdec->axi_clk);
-+
-+	if (axi_rate)
-+		watchdog_time = 2 * (1000 * timeout_threshold) / axi_rate;
-+	else
-+		watchdog_time = 2000;
-+	schedule_delayed_work(&rkvdec->watchdog_work,
-+			      msecs_to_jiffies(watchdog_time));
++	rkvdec_schedule_watchdog(rkvdec, timeout_threshold);
 +
 +	/* Start decoding! */
 +	writel(timeout_threshold, rkvdec->link + VDPU383_LINK_TIMEOUT_THRESHOLD);
@@ -9669,9 +9694,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	.try_ctrl = rkvdec_hevc_try_ctrl,
 +	.get_image_fmt = rkvdec_hevc_get_image_fmt,
 +};
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h	1970-01-01 01:00:00.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vdpu383-regs.h	2026-01-09 18:00:01.226671668 +0100
 @@ -0,0 +1,281 @@
 +/* SPDX-License-Identifier: GPL-2.0 */
 +/*
@@ -9720,7 +9745,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +struct vdpu383_regs_common {
 +	u32 reg008_dec_mode;
 +
-+	struct swreg9_important_en {
++	struct {
 +		u32 fbc_e			: 1;
 +		u32 tile_e			: 1;
 +		u32 reserve0			: 2;
@@ -9735,9 +9760,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 fbc_force_uncompress	: 1;
 +		u32 fbc_sparse_mode		: 1;
 +		u32 reserve3			: 12;
-+	} reg009;
++	} reg009_important_en;
 +
-+	struct swreg010_block_gating_en {
++	struct {
 +		u32 strmd_auto_gating_e		: 1;
 +		u32 inter_auto_gating_e		: 1;
 +		u32 intra_auto_gating_e		: 1;
@@ -9749,27 +9774,27 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 rcb_auto_gating_e		: 1;
 +		u32 err_prc_auto_gating_e	: 1;
 +		u32 reserve0			: 22;
-+	} reg010;
++	} reg010_block_gating_en;
 +
-+	struct swreg011_cfg_para {
++	struct {
 +		u32 reserve0			: 9;
 +		u32 dec_timeout_dis		: 1;
 +		u32 reserve1			: 22;
-+	} reg011;
++	} reg011_cfg_para;
 +
-+	struct swreg012_cache_hash_mask {
++	struct {
 +		u32 reserve0			: 7;
 +		u32 cache_hash_mask		: 25;
-+	} reg012;
++	} reg012_cache_hash_mask;
 +
 +	u32 reg013_core_timeout_threshold;
 +
-+	struct swreg014_line_irq_ctrl {
++	struct {
 +		u32 dec_line_irq_step		: 16;
 +		u32 dec_line_offset_y_st	: 16;
-+	} reg014;
++	} reg014_line_irq_ctrl;
 +
-+	struct swreg015_irq_sta {
++	struct {
 +		u32 rkvdec_frame_rdy_sta	: 1;
 +		u32 rkvdec_strm_error_sta	: 1;
 +		u32 rkvdec_core_timeout_sta	: 1;
@@ -9788,60 +9813,60 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 unsupport_decmode_error_sta	: 1;
 +		u32 wmask_bits			: 15;
 +		u32 reserve0			: 1;
-+	} reg015;
++	} reg015_irq_sta;
 +
-+	struct swreg016_error_ctrl_set {
++	struct {
 +		u32 error_proc_disable		: 1;
 +		u32 reserve0			: 7;
 +		u32 error_spread_disable	: 1;
 +		u32 reserve1			: 15;
 +		u32 roi_error_ctu_cal_en	: 1;
 +		u32 reserve2			: 7;
-+	} reg016;
++	} reg016_error_ctrl_set;
 +
-+	struct swreg017_err_roi_ctu_offset_start {
++	struct {
 +		u32 roi_x_ctu_offset_st		: 12;
 +		u32 reserve0			: 4;
 +		u32 roi_y_ctu_offset_st		: 12;
 +		u32 reserve1			: 4;
-+	} reg017;
++	} reg017_err_roi_ctu_offset_start;
 +
-+	struct swreg018_err_roi_ctu_offset_end {
++	struct {
 +		u32 roi_x_ctu_offset_end	: 12;
 +		u32 reserve0			: 4;
 +		u32 roi_y_ctu_offset_end	: 12;
 +		u32 reserve1			: 4;
-+	} reg018;
++	} reg018_err_roi_ctu_offset_end;
 +
-+	struct swreg019_error_ref_info {
++	struct {
 +		u32 avs2_ref_error_field	: 1;
 +		u32 avs2_ref_error_topfield	: 1;
 +		u32 ref_error_topfield_used	: 1;
 +		u32 ref_error_botfield_used	: 1;
 +		u32 reserve0			: 28;
-+	} reg019;
++	} reg019_error_ref_info;
 +
 +	u32 reg020_cabac_error_en_lowbits;
 +	u32 reg021_cabac_error_en_highbits;
 +
 +	u32 reg022_reserved;
 +
-+	struct swreg023_invalid_pixel_fill {
++	struct {
 +		u32 fill_y			: 10;
 +		u32 fill_u			: 10;
 +		u32 fill_v			: 10;
 +		u32 reserve0			: 2;
-+	} reg023;
++	} reg023_invalid_pixel_fill;
 +
 +	u32 reg024_026_reserved[3];
 +
-+	struct swreg027_align_en {
++	struct {
 +		u32 reserve0			: 4;
 +		u32 ctu_align_wr_en		: 1;
 +		u32 reserve1			: 27;
-+	} reg027;
++	} reg027_align_en;
 +
-+	struct swreg028_debug_perf_latency_ctrl0 {
++	struct {
 +		u32 axi_perf_work_e		: 1;
 +		u32 reserve0			: 2;
 +		u32 axi_cnt_type		: 1;
@@ -9849,9 +9874,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 reserve1			: 4;
 +		u32 rd_latency_thr		: 12;
 +		u32 reserve2			: 4;
-+	} reg028;
++	} reg028_debug_perf_latency_ctrl0;
 +
-+	struct swreg029_debug_perf_latency_ctrl1 {
++	struct {
 +		u32 addr_align_type		: 2;
 +		u32 ar_cnt_id_type		: 1;
 +		u32 aw_cnt_id_type		: 1;
@@ -9860,9 +9885,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 aw_count_id			: 8;
 +		u32 rd_band_width_mode		: 1;
 +		u32 reserve1			: 7;
-+	} reg029;
++	} reg029_debug_perf_latency_ctrl1;
 +
-+	struct swreg030_qos_ctrl {
++	struct {
 +		u32 axi_wr_qos_level		: 4;
 +		u32 reserve0			: 4;
 +		u32 axi_wr_qos			: 4;
@@ -9871,7 +9896,7 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +		u32 reserve2			: 4;
 +		u32 axi_rd_qos			: 4;
 +		u32 reserve3			: 4;
-+	} reg030;
++	} reg030_qos_ctrl;
 +};
 +
 +struct vdpu383_regs_common_addr {
@@ -9885,8 +9910,8 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +	u32 reg135_139_reserved[5];
 +
 +	struct rcb_info {
-+	u32 offset;
-+	u32 size;
++		u32 offset;
++		u32 size;
 +	} reg140_162_rcb_info[11];
 +};
 +
@@ -9954,9 +9979,9 @@ diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/m
 +} __packed;
 +
 +#endif /* __RKVDEC_VDPU838_REGS_H__ */
-diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vp9.c linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vp9.c
---- linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vp9.c	2025-12-18 14:03:43.000000000 +0100
-+++ linux-6.18.2/drivers/media/platform/rockchip/rkvdec/rkvdec-vp9.c	2025-12-19 10:18:57.646726691 +0100
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vp9.c linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vp9.c
+--- linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vp9.c	2026-01-08 10:17:22.000000000 +0100
++++ linux-6.18.4/drivers/media/platform/rockchip/rkvdec/rkvdec-vp9.c	2026-01-09 18:00:01.226671668 +0100
 @@ -163,6 +163,7 @@
  	struct v4l2_vp9_frame_context frame_context[4];
  	struct rkvdec_vp9_frame_info cur;
