@@ -97,6 +97,7 @@ PATCHFILES += 0363-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
 PATCHFILES += 0364-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
 PATCHFILES += 0365-arm64-dtsi-amlogic-s4-add-drm-support.patch
 PATCHFILES += 0366-arm64-dtsi-amlogic-s4-add-gpu-support.patch
+PATCHFILES += 0367-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
 # devices dts
 PATCHFILES += 0380-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0381-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
