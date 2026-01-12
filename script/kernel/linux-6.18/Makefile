@@ -88,6 +88,7 @@ PATCHFILES += 0331-net-wireless-broadcom-add-sdio-ID-43342.patch
 PATCHFILES += 0332-drm-meson-fix-component-unbind-in-error-path.patch
 PATCHFILES += 0333-clk-amlogic-add-video-related-clocks-for-S4-SoC.patch
 PATCHFILES += 0334-gpu-panfrost-add-meson-s4-support.patch
+PATCHFILES += 0335-thermal-amlogic-add-meson-s4-variant.patch
 PATCHFILES += 0341-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 # dtsi patches
 PATCHFILES += 0360-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
