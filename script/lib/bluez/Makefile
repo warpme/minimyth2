@@ -1,6 +1,6 @@
 
 GARNAME      = bluez
-GARVERSION   = 5.83
+GARVERSION   = 5.85
 CATEGORIES   = lib
 MASTER_SITES = https://www.kernel.org/pub/linux/bluetooth/
 DISTFILES    = $(DISTNAME).tar.gz
@@ -65,8 +65,6 @@ pre-configure:
 install-pkgconfig:
 	@mkdir -p $(DESTDIR)$(libdir)/pkgconfig/
 	@cp $(WORKSRC)/lib/bluez.pc $(DESTDIR)$(libdir)/pkgconfig/bluez.pc
-	@mkdir -p $(DESTDIR)$(includedir)/bluetooth
-	@cp $(WORKSRC)/lib/*.h $(DESTDIR)$(includedir)/bluetooth/
 	@mkdir -p $(DESTDIR)$(sysconfdir)/dbus-1/system.d
 	@cp $(WORKSRC)/src/bluetooth.conf $(DESTDIR)$(sysconfdir)/dbus-1/system.d/
 	@$(MAKECOOKIE)
