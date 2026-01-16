@@ -123,7 +123,7 @@ BUILD_BIN    = rk3576/debug/bl31/bl31.elf
 INSTALL_PREF = rk3576
 endif
 
-ifneq (,$(findstring rk3588.,$(mm_U-BOOT_BOARD_TYPE)))
+ifneq (,$(findstring rk3588s.,$(mm_U-BOOT_BOARD_TYPE)))
 PLATFORM     = rk3588
 BUILD_BIN    = rk3588/debug/bl31/bl31.elf
 INSTALL_PREF = rk3588s
