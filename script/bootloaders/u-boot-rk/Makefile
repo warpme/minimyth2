@@ -48,8 +48,8 @@
 
 
 GARNAME      = u-boot-rk
-# git@ 06.10.2025 mainline 2025.10 GA
-GARVERSION   = e50b1e8715011def8aff1588081a2649a2c6cd47
+# git@ 05.01.2026 mainline 2026.01 GA
+GARVERSION   = 127a42c7257a6ffbbd1575ed1cbaa8f5408a44b3
 # git@ 13.06.2025 https://github.com/rockchip-linux/rkbin/commits/master/
 RKBINVERSION = 74213af1e952c4683d2e35952507133b61394862
 MASTER_SITES = \
@@ -61,23 +61,18 @@ DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip rk3576_bl31_v1.08.elf
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch
 PATCHFILES  += 02-rockchip-rk3328-set-vop-qos-to-high-priority.patch
-PATCHFILES  += 03-ufs-core-Add-ufshcd_dme_enable-and-ufshcd_dme_reset-v3.patch
-PATCHFILES  += 04-ufs-rockchip-Add-initial-support-v3.patch
-PATCHFILES  += 19-rockchip-mkimage-Split-size_and_off-and-size_and_nim.patch
-PATCHFILES  += 20-rockchip-mkimage-Print-image-information-for-all-emb.patch
-PATCHFILES  += 21-rockchip-mkimage-Print-boot0-and-boot1-parameters.patch
-PATCHFILES  += 22-rockchip-mkimage-Add-option-to-change-image-offset-a.patch
-PATCHFILES  += 23-rockchip-mkimage-Add-support-for-up-to-4-input-files.patch
-PATCHFILES  += 24-rockchip-mkimage-Add-option-for-image-load-address-a.patch
-PATCHFILES  += 25-WIP-rockchip-mkimage-Add-rk3576-align-and-sd-card-workarroud.patch
+PATCHFILES  += 05-ufs-spl-Make-UFS-available-for-SPL-builds.patch
+PATCHFILES  += 06-ufs-rockchip-Add-device-reset-support.patch
+PATCHFILES  += 07-rockchip-spl-Add-support-for-booting-from-UFS.patch
 PATCHFILES  += 50-my-boards-rk3566-defconfigs-enable-overlays.patch
 PATCHFILES  += 51-add-rk3328-beelink-a1-defconfig.patch
 PATCHFILES  += 52-add-rk3566-x96-x6-defconfig.patch
-PATCHFILES  += 53-add-rk3588-rock-5t-defconfig.patch
 PATCHFILES  += 54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch
 PATCHFILES  += 55-rk3588-rock5-itx-disable-spi-in-defconfig.patch
 PATCHFILES  += 56-rk3566-zero3-sync-dts-to-kernel-to-make-eth-working.patch
 PATCHFILES  += 57-rk3399-orangepi-fix-nonworking-ddc.patch
+PATCHFILES  += 58-rk3576-generic_defconfig-enable-ufs-boot.patch
+PATCHFILES  += 59-rk3576-add-rock4d-rk3576_defconfig.patch
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2
