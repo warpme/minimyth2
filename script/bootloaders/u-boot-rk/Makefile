@@ -46,7 +46,6 @@
 # mm_U-BOOT_BOARD_DEFCONFIG = rock5a-rk3588s_defconfig
 # mm_U-BOOT_BOARD_DEFCONFIG = nanopi-r6s-rk3588s_defconfig
 
-
 GARNAME      = u-boot-rk
 # git@ 05.01.2026 mainline 2026.01 GA
 GARVERSION   = 127a42c7257a6ffbbd1575ed1cbaa8f5408a44b3
@@ -64,11 +63,16 @@ PATCHFILES  += 02-rockchip-rk3328-set-vop-qos-to-high-priority.patch
 PATCHFILES  += 05-ufs-spl-Make-UFS-available-for-SPL-builds.patch
 PATCHFILES  += 06-ufs-rockchip-Add-device-reset-support.patch
 PATCHFILES  += 07-rockchip-spl-Add-support-for-booting-from-UFS.patch
+PATCHFILES  += 08-rockchip-revert-spl-boot-order-Defer-probe-of-boot-device.patch
+
+# dts/defconfig fixes
 PATCHFILES  += 50-my-boards-rk3566-defconfigs-enable-overlays.patch
-PATCHFILES  += 51-add-rk3328-beelink-a1-defconfig.patch
+PATCHFILES  += 51-my-boards-rk35xx-change-sdcard-alias-to-mmc0.patch
+PATCHFILES  += 52-rk3xxx-generic-defconfigs-change-sdcard-alias-to-mmc0.patch
 PATCHFILES  += 52-add-rk3566-x96-x6-defconfig.patch
+PATCHFILES  += 53-add-rk3328-beelink-a1-defconfig.patch
 PATCHFILES  += 54-rk3399-rock-pi-4.dtsi-remove-hdmi-and-audio.patch
-PATCHFILES  += 55-rk3588-rock5-itx-disable-spi-in-defconfig.patch
+# PATCHFILES  += 55-rk3588-rock5-itx-disable-spi-in-defconfig.patch
 PATCHFILES  += 56-rk3566-zero3-sync-dts-to-kernel-to-make-eth-working.patch
 PATCHFILES  += 57-rk3399-orangepi-fix-nonworking-ddc.patch
 PATCHFILES  += 58-rk3576-generic_defconfig-enable-ufs-boot.patch
