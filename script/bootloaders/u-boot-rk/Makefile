@@ -63,7 +63,7 @@ PATCHFILES  += 02-rockchip-rk3328-set-vop-qos-to-high-priority.patch
 PATCHFILES  += 05-ufs-spl-Make-UFS-available-for-SPL-builds.patch
 PATCHFILES  += 06-ufs-rockchip-Add-device-reset-support.patch
 PATCHFILES  += 07-rockchip-spl-Add-support-for-booting-from-UFS.patch
-PATCHFILES  += 08-rockchip-revert-spl-boot-order-Defer-probe-of-boot-device.patch
+PATCHFILES  += 08-rockchip-change-spl-load-order.patch
 
 # dts/defconfig fixes
 PATCHFILES  += 50-my-boards-rk3566-defconfigs-enable-overlays.patch
