@@ -44,6 +44,8 @@ PATCHFILES += linux-6.18-defaults.patch
 
 ifeq (1,1)
 
+PATCHFILES += 0001-gpio-rockchip-revert-3aa67687d.patch
+
 PATCHFILES += 0108-drivers-led-add-openvfd-g3118dda3.patch
 PATCHFILES += 0109-drivers-mmc-add-disk-activity-support.patch
 
@@ -302,7 +304,6 @@ PATCHFILES += 1009-PCI-dw-rockchip-Disable-L1-substates.patch
 # drm improvements
 PATCHFILES += 1010-drm-rockchip-vop2-Add-clock-resets-support.patch
 PATCHFILES += 1011-drm-rockchip-vop2-Add-core-reset-support.patch
-PATCHFILES += 1012-drm-bridge-dw-hdmi-qp-Fix-spurious-IRQ-on-resume.patch
 PATCHFILES += 1015-phy-hdmi-Add-HDMI-2.1-FRL-configuration-options.patch
 PATCHFILES += 1016-phy-rockchip-samsung-hdptx-Use-usleep_range-instead-.patch
 PATCHFILES += 1017-phy-rockchip-samsung-hdptx-Fix-coding-style-alignmen.patch
