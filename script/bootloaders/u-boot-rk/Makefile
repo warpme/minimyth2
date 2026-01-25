@@ -60,9 +60,12 @@ DISTFILES    = $(GARVERSION).zip $(RKBINVERSION).zip rk3576_bl31_v1.08.elf
 WORKSRC      = $(WORKDIR)/u-boot-$(GARVERSION)
 PATCHFILES  += 01-drivers-fastboot-Kconfig-rk35xx-add-def_fastbuf_addr.patch
 PATCHFILES  += 02-rockchip-rk3328-set-vop-qos-to-high-priority.patch
-PATCHFILES  += 05-ufs-spl-Make-UFS-available-for-SPL-builds.patch
-PATCHFILES  += 06-ufs-rockchip-Add-device-reset-support.patch
-PATCHFILES  += 07-rockchip-spl-Add-support-for-booting-from-UFS.patch
+# rk3576 ufs boot support https://patchwork.ozlabs.org/project/uboot/list/?series=489106
+PATCHFILES  += 03-spl-Make-UFS-available-for-SPL-builds-v5.patch
+PATCHFILES  += 04-reset-rockchip-make-device-resets-available-in-SPL-v5.patch
+PATCHFILES  += 05-ufs-rockchip-Add-device-reset-support-v5.patch
+PATCHFILES  += 06-rockchip-spl-Add-support-for-booting-from-UFS-v5.patch
+
 PATCHFILES  += 08-rockchip-change-spl-load-order.patch
 
 # dts/defconfig fixes
