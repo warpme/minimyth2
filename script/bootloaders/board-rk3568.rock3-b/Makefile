@@ -9,6 +9,6 @@ DISTFILES    = \
 
 SOC_TYPE                  = rk3568
 mm_U-BOOT_BOARD_TYPE      = board-rk3568.rock3-b
-mm_U-BOOT_BOARD_DEFCONFIG = rock-3a-rk3568_defconfig
+mm_U-BOOT_BOARD_DEFCONFIG = rock-3b-rk3568_defconfig
 
 include ../bootloader/install-board-bootloader-rk.mk

@@ -9,9 +9,6 @@ DISTFILES    = \
 
 SOC_TYPE                  = rk3528
 mm_U-BOOT_BOARD_TYPE      = board-rk3528.rock2-a
-
-# uncomment and set this for dedicated defconfig.
-# if commented out, generic defconfig 'generic-<soc>_defconfig' will be used...
-# mm_U-BOOT_BOARD_DEFCONFIG =
+mm_U-BOOT_BOARD_DEFCONFIG = rock-2-rk3528_defconfig
 
 include ../bootloader/install-board-bootloader-rk.mk
