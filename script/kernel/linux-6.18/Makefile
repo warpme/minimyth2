@@ -66,8 +66,12 @@ ifeq (1,1)
 #-- Amlogic patches -----------------------------------------
 # Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic
 PATCHFILES += 0301-drm-meson-swap-primary-overlay-zpos.patch
-# s4 support
-PATCHFILES += 0302-ASoC-meson-s4-support-for-the-on-chip-audi.patch
+# s4 support audio support v6 https://patchwork.kernel.org/project/linux-amlogic/list/?series=1046918
+PATCHFILES += 0302-dt-bindings-clock-meson-Add-audio-power-domain-for-S4-soc-v6.patch
+PATCHFILES += 0303-dt-bindings-Asoc-axg-audio-Add-S4-audio-tocodec-v6.patch
+PATCHFILES += 0304-ASoC-meson-g12a-toacodec-Add-S4-tocodec-driver-v6.patch
+PATCHFILES += 0305-clk-meson-axg_audio-add-S4-support-v6.patch
+# s4 drm support
 PATCHFILES += 0306-drm-meson-add-S4-compatible-for-DRM-driver.patch
 PATCHFILES += 0307-drm-meson-add-primary-and-overlay-plane-su.patch
 PATCHFILES += 0308-drm-meson-update-VIU-and-VPP-support-for-S.patch
@@ -77,6 +81,7 @@ PATCHFILES += 0311-drm-meson-add-hdmitx-vmode-timing-support-.patch
 PATCHFILES += 0312-drm-meson-add-vpu-clk-setting-for-S4.patch
 PATCHFILES += 0313-drm-meson-add-CVBS-support-for-S4.patch
 PATCHFILES += 0315-drm-meson-Fix-compile-error-fixes-3d2292ecb05.patch
+
 PATCHFILES += 0318-soc-amlogic-meson-gx-socinfo-add-s905x4w2y4.patch
 PATCHFILES += 0319-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
 PATCHFILES += 0320-drm-meson-remove-unnecessary-error-message.patch
@@ -95,7 +100,7 @@ PATCHFILES += 0341-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 # dtsi patches
 PATCHFILES += 0360-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
 PATCHFILES += 0361-arm64-dtsi-meson-s4-Add-USB2-support.patch
-PATCHFILES += 0362-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio.patch
+PATCHFILES += 0362-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
 PATCHFILES += 0363-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
 PATCHFILES += 0364-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
 PATCHFILES += 0365-arm64-dtsi-amlogic-s4-add-drm-support.patch
