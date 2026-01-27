@@ -15,7 +15,7 @@ PATCHFILES += 0000-hack-to-make-dvdnav-compiling.patch
 PATCHFILES += 0000-cmake-stop-checking-libx264.patch
 PATCHFILES += 0000-cmake-enable-x11-on-crosscompile.patch
 PATCHFILES += 0000-cmake-stop-checking-python-perl-deps-in-plugins-on-crosscompile.patch
-PATCHFILES += 0000-cmake-enable-dbus-webengine-on-crosscompile.patch
+# PATCHFILES += 0000-cmake-enable-dbus-webengine-on-crosscompile.patch
 
 # backend related patches
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
