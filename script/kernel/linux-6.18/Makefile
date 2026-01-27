@@ -44,8 +44,6 @@ PATCHFILES += linux-6.18-defaults.patch
 
 ifeq (1,1)
 
-PATCHFILES += 0001-gpio-rockchip-revert-3aa67687d.patch
-
 PATCHFILES += 0108-drivers-led-add-openvfd-g3118dda3.patch
 PATCHFILES += 0109-drivers-mmc-add-disk-activity-support.patch
 
@@ -215,6 +213,7 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
+PATCHFILES += 0700-gpio-rockchip-Stop-calling-pinctrl-for-set_direction.patch
 PATCHFILES += 0722-v4l2-wip-iep-driver.patch
 PATCHFILES += 0725-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
 PATCHFILES += 0727-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
