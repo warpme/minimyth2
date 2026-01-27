@@ -15,6 +15,8 @@ SOC_TYPE                  = h313
 mm_U-BOOT_BOARD_TYPE      = board-h313.tanix_tx1
 mm_U-BOOT_BOARD_DEFCONFIG = tanix_tx1_defconfig
 
+BUILDDEPS = utils/sunxi-tools
+
 INSTALL_SCRIPTS = extra
 CLEAN_SCRIPTS   = extra
 
