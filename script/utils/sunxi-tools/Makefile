@@ -1,7 +1,7 @@
 
 GARNAME      = sunxi-tools
-# 13.10.2024
-GARVERSION   = 29d48c3c39d74200fb35b5750f99d06a4886bf2e
+# 29.03.2025
+GARVERSION   = 7540cb235691be94ac5ef0181a73dd929949fc4e
 MASTER_SITES = https://github.com/linux-sunxi/sunxi-tools/archive/
 DISTFILES    = $(GARVERSION).zip
 CATEGORIES   = util
