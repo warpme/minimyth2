@@ -69,27 +69,19 @@ PATCHFILES += 0305-soc-amlogic-meson-gx-socinfo-add-s905x4w2y4.patch
 PATCHFILES += 0306-mmc-meson-gx-Add-support-for-Meson-S4.patch
 PATCHFILES += 0308-reset-reset-meson-add-support-for-Amlogic-SC2.patch
 PATCHFILES += 0309-irqchip-meson-gpio-Add-support-for-meson-SC2-.patch
-# s4 audio v6 https://patchwork.kernel.org/project/linux-amlogic/list/?series=1046918
+# s4 analog audio v6 https://patchwork.kernel.org/project/linux-amlogic/list/?series=1046918
 PATCHFILES += 0310-dt-bindings-clock-meson-Add-audio-power-domain-for-S4-soc-v6.patch
 PATCHFILES += 0311-dt-bindings-Asoc-axg-audio-Add-S4-audio-tocodec-v6.patch
 PATCHFILES += 0312-ASoC-meson-g12a-toacodec-Add-S4-tocodec-driver-v6.patch
 PATCHFILES += 0313-clk-meson-axg_audio-add-S4-support-v6.patch
-# s4 clk for drm
+# s4 hdmi ausio
+PATCHFILES += 0314-ASoC-meson-add-s4-tohdmitx-control.patch
+# s4 clk for hdmi
 PATCHFILES += 0320-clk-amlogic-add-video-related-clocks-for-S4-SoC.patch
 PATCHFILES += 0321-soc-amlogic-meson-clk-measure-Add-support-for.patch
-# s4 drm 
-PATCHFILES += 0325-drm-meson-add-S4-compatible-for-DRM-driver.patch
-PATCHFILES += 0326-drm-meson-add-primary-and-overlay-plane-su.patch
-PATCHFILES += 0327-drm-meson-update-VIU-and-VPP-support-for-S.patch
-PATCHFILES += 0328-drm-meson-add-meson_dw_hdmi-support-for-S4.patch
-PATCHFILES += 0329-drm-meson-change-api-call-parameter.patch
-PATCHFILES += 0330-drm-meson-add-hdmitx-vmode-timing-support-.patch
-PATCHFILES += 0331-drm-meson-add-vpu-clk-setting-for-S4.patch
-PATCHFILES += 0332-drm-meson-add-CVBS-support-for-S4.patch
-PATCHFILES += 0333-drm-meson-Fix-compile-error-fixes-3d2292ecb05.patch
-PATCHFILES += 0334-drm-meson-remove-unnecessary-error-message.patch
-PATCHFILES += 0335-drm-meson-fix-component-unbind-in-error-path.patch
-# misc 
+# s4 hdmi
+PATCHFILES += 0325-drm-meson-add-s4-drm-driver.patch
+# misc
 PATCHFILES += 0340-phy-amlogic-meson-g12a-usb2-add-support-for-M.patch
 PATCHFILES += 0342-net-wireless-broadcom-add-sdio-ID-43342.patch
 PATCHFILES += 0343-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
@@ -100,11 +92,11 @@ PATCHFILES += 0346-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 0350-media-dt-bindings-Add-Amlogic-V4L2-video-decoder-v3.patch
 PATCHFILES += 0351-decoder-Add-V4L2-stateless-H.264-decoder-driver-v3.patch
 PATCHFILES += 0352-media-aml-vdec-6.18-fixups.patch
-
 # dtsi patches
 PATCHFILES += 0360-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
 PATCHFILES += 0361-arm64-dtsi-meson-s4-Add-USB2-support.patch
 PATCHFILES += 0362-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
+PATCHFILES += 0363-arm64-dtsi-amlogic-add-Amlogic-S4-hdmi-audio.patch
 PATCHFILES += 0363-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
 PATCHFILES += 0364-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
 PATCHFILES += 0365-arm64-dtsi-amlogic-s4-add-drm-support.patch
