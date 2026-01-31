@@ -63,6 +63,7 @@
 # v1.1 (06/01/2020)
 # -cleanup
 
+
 # -----Config are BEGIN -------
 my $be_ip                 = "@MM_MASTER_SERVER@";
 my $fe_ip_list            = "127.0.0.1";
@@ -73,12 +74,14 @@ my $backend_proces_list   = "mythbackend,sasc-ng,mariadbd";
 my $osd_temps_timeout     = "12";
 my $osd_recorders_timeout = "10";
 my $osd_nextrec_timeout   = "15";
+my $osd_weather_timeout   = "45";
 
 my $osd_livetv_icon       = "images/mythnotify/livetv.png";
 my $osd_recording_icon    = "images/mythnotify/recording.png";
 my $osd_temperatures_icon = "images/mythnotify/temps.png";
 my $osd_memory_icon       = "images/mythnotify/memory.png";
 my $osd_nextrec_icon      = "images/mythnotify/recording.png";
+my $weather_icon          = "images/mythnotify/temps.png";
 
 our $server_title_str;
 our $frontend_title_str;
@@ -97,19 +100,44 @@ our $tuners_str;
 our $all_tuners_idle_str;
 our $total_str;
 our $till_end_str;
+our $weather_city_str;
+our $weather_temperature_str;
+our $weather_humidity_str;
+our $weather_preasure_str;
+our $weather_wind_str;
+our $weater_reining_str;
+our $weather_temperature_unit;
+our $weather_humidity_unit;
+our $weather_preasure_unit;
+our $weather_wind_unit;
+our $weater_reining_unit;
+
 require '/etc/mm_ui_localizations_perl';
 
 my $temps_style           = "";
 my $recorders_style       = "tuners";
 my $nextrec_style         = "nextrec-small";
 my $nextrec_style_big     = "nextrec";
+my $weather_style         = "nextrec-small";
 
 my $remote_shell_cmd      = "/usr/bin/ssh -c aes128-ctr root\@$be_ip";
 
 my $nvidia_smi_bin        = '/usr/bin/nvidia-smi';
 my $nvidia_read_temp_cmd  = '-q -d TEMPERATURE | grep "GPU Current Temp" | sed -e "s/\s*GPU Current Temp\s*:\s*\(\d*\)/\1/"';
 my $sensors_bin           = '/usr/bin/sensors';
-# -----Config are BEGIN -------
+
+# weather
+
+my $weather_city      = "Warszawa";
+my $weather_lattitude = "52.2297";
+my $weather_longitude = "21.0122";
+my $weather_contact   = "piotr.oniszczuk\@gmail.com";
+
+
+my $url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=$weather_lattitude&lon=$weather_longitude";
+
+
+# -----Config area END -------
 
 
 my $debug  = 0;
@@ -141,6 +169,8 @@ use DateTime;
 use DateTime::Format::ISO8601;
 use File::Fetch;
 use experimental qw( switch );
+use JSON;
+use utf8;
 
 binmode(STDOUT, ":utf8");
 no warnings 'deprecated';
@@ -681,22 +711,102 @@ sub show_processes_stats {
 }
 
 
+sub get_current_weather {
+
+    my $weather_time = "N/A";
+    my $weather_temperature = "N/A";
+    my $weather_humidity = "N/A";
+    my $weather_preasure = "N/A";
+    my $weather_wind =  "N/A";
+    my $weater_reining = "N/A";
+
+    my $ua = LWP::UserAgent->new;
+    $ua->agent("MyWeatherScript/1.0 ($weather_contact)");
+    $ua->timeout(10);
+
+    my $response = $ua->get($url);
+
+    if ($response->is_success) {
+        my $json_text = $response->decoded_content;
+        my $data = decode_json($json_text);
+
+        my $timeseries = $data->{properties}->{timeseries}->[0];
+        my $instant_details = $timeseries->{data}->{instant}->{details};
+
+        my $next_hour = $timeseries->{data}->{next_1_hours}->{details};
+        my $symbol_code = $timeseries->{data}->{next_1_hours}->{summary}->{symbol_code};
+
+        $weather_time = $timeseries->{time};
+        $weather_temperature = $instant_details->{air_temperature};
+        $weather_humidity = $instant_details->{relative_humidity};
+        $weather_preasure = $instant_details->{air_pressure_at_sea_level};
+        $weather_wind =  $instant_details->{wind_speed};
+        if ($next_hour) {
+            $weater_reining = $next_hour->{precipitation_amount};
+        }
+
+        if ($debug) {
+            print "-" x 30 . "\n";
+            print "PROGNOZA DLA: $weather_city\n";
+            print "Czas (UTC): " . $weather_time . "\n";
+            print "-" x 30 . "\n";
+            printf "Temperatura:     %.1f°C\n", $weather_temperature;
+            printf "Wilgotnosc:      %d%%\n",   $weather_humidity;
+            printf "Cisnienie:       %.1f hPa\n", $weather_preasure;
+            printf "Predksc wiatru:  %.1f m/s\n", $weather_wind;
+            printf "Opady (1h):      %.1f mm\n", $weater_reining;
+            print "Warunki:         $symbol_code\n";
+            print "-" x 30 . "\n";
+        }
+
+    } else {
+        $weather_temperature = "ERROR:".$response->status_line;
+    }
+
+    stack_notify(
+                # title
+                # origin
+                # description
+                # extra
+                # image
+                # progress_text
+                # progress
+                # timeout
+                # style
+                # ip_list
+                $weather_temperature_str.$weather_temperature.$weather_temperature_unit,
+                $weather_city_str.$weather_city,
+                $weater_reining_str.$weater_reining.$weater_reining_unit.
+                  $weather_preasure_str.$weather_preasure.$weather_preasure_unit.
+                  $weather_humidity_str.$weather_humidity.$weather_humidity_unit.
+                  $weather_wind_str.$weather_wind.$weather_wind_unit,
+                "",
+                $weather_icon,
+                "",
+                "",
+                $osd_weather_timeout,
+                $weather_style,
+                $fe_ip_list
+    )
+
+}
 
 
+# ------------ main commands --------------------
 
-
-given ($action) {
-
-
-    when (($action eq "server_status") || ($action eq "4")) {
+if (($action eq "server_status") || ($action eq "4")) {
         $shell_cmd = $remote_shell_cmd;
         $proces_list = $backend_proces_list;
         $title = $server_title_str;
         goto show_status;
     }
 
+elsif (($action eq "show_weather") || ($action eq "6")) {
+        &get_current_weather;
+        &sent_notifies_to_all_hosts;
+    }
 
-    when (($action eq "frontend_status") || ($action eq "3")) {
+elsif (($action eq "frontend_status") || ($action eq "3")) {
         $shell_cmd = "sh -c";
         $proces_list = $frontend_proces_list;
         $title = $frontend_title_str;
@@ -772,12 +882,12 @@ given ($action) {
 
         &show_processes_stats($title,$proces_list,@data);
 
-        &sent_notifies_to_all_hosts
+        &sent_notifies_to_all_hosts;
 
     }
 
 
-    when (($action eq "next_recordings") || ($action eq "5")) {
+elsif (($action eq "next_recordings") || ($action eq "5")) {
 
         my $e;
         my $msg ="";
@@ -828,13 +938,13 @@ given ($action) {
 
         }
 
-        &sent_notifies_to_all_hosts
+        &sent_notifies_to_all_hosts;
 
     }
 
 
 
-    when (($action eq "next_recordings_big") || ($action eq "6")) {
+elsif (($action eq "next_recordings_big") || ($action eq "6")) {
 
         my $e;
         my $msg ="";
@@ -883,19 +993,21 @@ given ($action) {
         $fe_ip_list
         );
 
-        &sent_notifies_to_all_hosts
+        &sent_notifies_to_all_hosts;
 
     }
 
 
 
-    when ($action eq "--help") {
-        print "\nAvaliable params. are:\n\t\"frontend_status\"\n\t\"server_status\"\n\t\"tuners_status\"\n\t\"next_recordings\"\n\t\"next_recordings_big\"\n\n";
+elsif ($action eq "--help") {
+        print "\nAvaliable params. are:\n\t\"frontend_status\"\n\t\"server_status\"\n\t\"tuners_status\"\n\t\"next_recordings\"\n\t\"next_recordings_big\"\n\t\"show_weatner\"n\n";
     }
 
 
 
-    default {
+else {
+
+        &get_current_weather;
 
         my $e;
         my $idle;
@@ -1003,7 +1115,6 @@ given ($action) {
                     )
         }
 
-        &sent_notifies_to_all_hosts
+        &sent_notifies_to_all_hosts;
 
-    }
 }
