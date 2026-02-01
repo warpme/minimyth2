@@ -114,7 +114,7 @@ my $nextrec_style         = "nextrec-small";
 my $nextrec_style_big     = "nextrec";
 my $weather_style         = "nextrec-small";
 
-my $remote_shell_cmd      = "/usr/bin/ssh -c aes128-ctr root\@$be_ip";
+my $remote_shell_cmd      = "/usr/bin/ssh -c aes128-ctr root\@";
 
 my $nvidia_smi_bin        = '/usr/bin/nvidia-smi';
 my $nvidia_read_temp_cmd  = '-q -d TEMPERATURE | grep "GPU Current Temp" | sed -e "s/\s*GPU Current Temp\s*:\s*\(\d*\)/\1/"';
@@ -198,7 +198,11 @@ sub read_mimimyth_setting {
     }
     close($fh);
 
-    return $var_value;
+    if ($var_value eq "") {
+        return undef;
+    } else {
+        return $var_value;
+    }
 }
 
 sub stack_notify {
