@@ -107,8 +107,17 @@ tuners_str			= "Tunery";
 all_tuners_idle_str		= "Wszystkie tunery są wolne...";
 total_str			= "Całkowity ";
 till_end_str			= " Do końca ";
-
-
+weather_city_str		= "Pogoda dla: ";
+weather_temperature_str		= "Temperatura: ";
+weather_humidity_str		= "Wilgotność: ";
+weather_preasure_str		= "Ciśnienie: ";
+weather_wind_str		= "Wiatr: ";
+weater_reining_str		= "Opady: ";
+weather_temperature_unit	= "C";
+weather_humidity_unit		= "%, ";
+weather_preasure_unit		= "hpa, ";
+weather_wind_unit		= "m/s, ";
+weater_reining_unit		= "mm/h, ";
 
 
 #--new mail notify--
