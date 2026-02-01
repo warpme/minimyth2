@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# Writen by Piotr Oniszczuk <warpme@o2.pl>
+# Writen by Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
 #
 #
 # Script provides quick method to use new MythUInotification for
@@ -9,6 +9,7 @@
 # -Remote backend CPU/Sys temps,fans and uptime
 # -Current on-going recordings
 # -Next 10 recordings.
+# -Weather for given city (using yrno api)
 # It is designed to run on separated or combined FE/BE.
 #
 # -Calling script without any parameter will notify with current recorders status.
@@ -55,26 +56,19 @@
 # on remote BE is possible via something like this "/usr/bin/ssh root@<BE_IP> command".
 #
 #
-# CHANGE LOG:
-#
-# v1.0 (03/08/2013)
-# -Initial version
-#
-# v1.1 (06/01/2020)
-# -cleanup
 
 
 # -----Config are BEGIN -------
-my $be_ip                 = "@MM_MASTER_SERVER@";
+my $default_be_ip         = "192.168.1.254";
 my $fe_ip_list            = "127.0.0.1";
 
 my $frontend_proces_list  = "mythfrontend";
 my $backend_proces_list   = "mythbackend,sasc-ng,mariadbd";
 
 my $osd_temps_timeout     = "12";
-my $osd_recorders_timeout = "10";
+my $osd_recorders_timeout = "15";
 my $osd_nextrec_timeout   = "15";
-my $osd_weather_timeout   = "45";
+my $osd_weather_timeout   = "15";
 
 my $osd_livetv_icon       = "images/mythnotify/livetv.png";
 my $osd_recording_icon    = "images/mythnotify/recording.png";
@@ -126,14 +120,11 @@ my $nvidia_smi_bin        = '/usr/bin/nvidia-smi';
 my $nvidia_read_temp_cmd  = '-q -d TEMPERATURE | grep "GPU Current Temp" | sed -e "s/\s*GPU Current Temp\s*:\s*\(\d*\)/\1/"';
 my $sensors_bin           = '/usr/bin/sensors';
 
-# weather
-
+# weather defaults
 my $weather_city      = "Warszawa";
 my $weather_lattitude = "52.2297";
 my $weather_longitude = "21.0122";
 my $weather_contact   = "piotr.oniszczuk\@gmail.com";
-
-
 my $url = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=$weather_lattitude&lon=$weather_longitude";
 
 
@@ -183,6 +174,33 @@ my @notify_list;
 
 if ($ARGV[0]) { $action = $ARGV[0]; }
 
+sub read_mimimyth_setting {
+    my ($var_name) = @_;
+    my $filename = "/etc/conf.d/minimyth";
+    my $fh;
+
+    unless (open($fh, '<', $filename)) {
+        print "Cant open '$filename'. Will use script build-in defaults ...";
+        return undef;
+    }
+    if ($debug) { print "Looking for: ".$var_name."\n"};
+    my $var_value = undef;
+
+    while (my $line = <$fh>) {
+        chomp($line);
+        if ($debug2) { print $line."\n"};
+
+        if ($line =~ /^\s*$var_name\s*=\s*['"](.*)["']/) {
+            $var_value = $1;
+            if ($debug) { print "Found $var_name with: $var_value \n" }
+            last;
+        }
+    }
+    close($fh);
+
+    return $var_value;
+}
+
 sub stack_notify {
     my ($title,$origin,$description,$extra,$image,$progress_text,$progress,$timeout,$style,$fe_ip_list) = @_;
     my $msg = "";
@@ -228,6 +246,12 @@ sub sent_notifies_to_all_hosts {
 
 sub load_xml {
 
+    my $be_ip = read_mimimyth_setting('MM_MASTER_SERVER');
+    if (!defined $be_ip) {
+        if ($debug) { print "MM_MASTER_SERVER is not set. Will use default IP=$default_be_ip ...\n"};
+        $be_ip = $default_be_ip;
+    }
+
     my $url = "http://$be_ip:6544/Status/xml";
 
     print ("Load XML URL:". $url . "\n") if $debug;
@@ -266,6 +290,12 @@ sub load_channel_icon {
     if ($filesize < $min_size*1000) {
 
         unlink $icon_file;
+
+        my $be_ip = read_mimimyth_setting('MM_MASTER_SERVER');
+        if (!defined $be_ip) {
+            if ($debug) { print "MM_MASTER_SERVER is not set. Will use default IP=$default_be_ip ...\n"};
+            $be_ip = $default_be_ip;
+        }
 
         my $url = "http://$be_ip:6544/Guide/GetChannelIcon?ChanId=$chan_id";
         print ("Load chann.icon URL:". $url . "\n") if $debug;
@@ -720,6 +750,21 @@ sub get_current_weather {
     my $weather_wind =  "N/A";
     my $weater_reining = "N/A";
 
+    my $weather_config = read_mimimyth_setting('MM_OSD_WEATHER_CONFIG');
+    if (!defined $weather_config) {
+        if ($debug) { print "MM_OSD_WEATHER_CONFIG is not set. Skiping showing weather ...\n"};
+        return
+    } else {
+        ($weather_city, $weather_lattitude, $weather_longitude, $weather_contact) = split(/:/, $weather_config);
+    }
+
+    if ($debug) {
+        print "City      : ".$weather_city."\n";
+        print "Lattitude : ".$weather_lattitude."\n";
+        print "Longitude : ".$weather_longitude."\n";
+        print "Contect   : ".$weather_contact."\n";
+    }
+
     my $ua = LWP::UserAgent->new;
     $ua->agent("MyWeatherScript/1.0 ($weather_contact)");
     $ua->timeout(10);
@@ -747,15 +792,15 @@ sub get_current_weather {
 
         if ($debug) {
             print "-" x 30 . "\n";
-            print "PROGNOZA DLA: $weather_city\n";
-            print "Czas (UTC): " . $weather_time . "\n";
+            print  "PROGNOZA DLA   : $weather_city\n";
+            print  "Czas (UTC)     : " . $weather_time . "\n";
             print "-" x 30 . "\n";
-            printf "Temperatura:     %.1f°C\n", $weather_temperature;
-            printf "Wilgotnosc:      %d%%\n",   $weather_humidity;
-            printf "Cisnienie:       %.1f hPa\n", $weather_preasure;
-            printf "Predksc wiatru:  %.1f m/s\n", $weather_wind;
-            printf "Opady (1h):      %.1f mm\n", $weater_reining;
-            print "Warunki:         $symbol_code\n";
+            printf "Temperatura    : %.1f°C\n", $weather_temperature;
+            printf "Wilgotnosc     : %d%%\n",   $weather_humidity;
+            printf "Cisnienie      : %.1f hPa\n", $weather_preasure;
+            printf "Predksc wiatru : %.1f m/s\n", $weather_wind;
+            printf "Opady (1h)     : %.1f mm\n", $weater_reining;
+            print  "Warunki        : $symbol_code\n";
             print "-" x 30 . "\n";
         }
 
@@ -795,7 +840,12 @@ sub get_current_weather {
 # ------------ main commands --------------------
 
 if (($action eq "server_status") || ($action eq "4")) {
-        $shell_cmd = $remote_shell_cmd;
+        my $be_ip = read_mimimyth_setting('MM_MASTER_SERVER');
+        if (!defined $be_ip) {
+            if ($debug) { print "MM_MASTER_SERVER is not set. Will use default IP=$default_be_ip ...\n"};
+            $be_ip = $default_be_ip;
+        }
+        $shell_cmd = $remote_shell_cmd.$be_ip;
         $proces_list = $backend_proces_list;
         $title = $server_title_str;
         goto show_status;
