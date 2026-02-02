@@ -4,6 +4,7 @@ GARVERSION   = 0.10.2
 CATEGORIES   = system
 MASTER_SITES = http://downloads.sourceforge.net/project/$(GARNAME)/LIRC/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.bz2
+PATCHFILES   = 01-lirc_client-mute-debug-msgs-on-lirc_command_run-calls.patch
 
 LICENSE = GPL2
 
