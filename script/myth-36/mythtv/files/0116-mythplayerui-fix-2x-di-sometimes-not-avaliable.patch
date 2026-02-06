@@ -1,0 +1,20 @@
+
+This corrects issue of non avaliable 2x DI when user watched progressive 23fps then switched to 25fps interlaced on TV wich
+supports double 23,976Hz mode = 60.002Hz. In such case - right after such content switch - m_refreshInterval is shortly set to 60.002Hz.
+Later will be set to correct 50Hz - but at this function call time - it has wrong value (in short period of time).
+By this - in such case - this function wrongly says 2x DI is not avaliable....
+
+
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-6b703aac433065220b451004f35e604a6440750b/mythtv/libs/libmythtv/mythplayerui.cpp mythtv-6b703aac433065220b451004f35e604a6440750b/mythtv/libs/libmythtv/mythplayerui.cpp
+--- mythtv-6b703aac433065220b451004f35e604a6440750b/mythtv/libs/libmythtv/mythplayerui.cpp	2024-08-25 17:40:00.583352175 +0200
++++ mythtv-6b703aac433065220b451004f35e604a6440750b/mythtv/libs/libmythtv/mythplayerui.cpp	2024-08-25 17:38:36.900018570 +0200
+@@ -811,7 +811,8 @@
+     std::chrono::microseconds realfi = m_frameInterval;
+     if (m_frameInterval < 30ms)
+         realfi = m_frameInterval * 2;
+-    return (duration_cast<floatusecs>(realfi) / 2.0) > (duration_cast<floatusecs>(m_refreshInterval) * 0.995);
++    return (((duration_cast<floatusecs>(realfi) / 2.0) > (duration_cast<floatusecs>(m_refreshInterval) * 0.995)) ||
++            ((duration_cast<floatusecs>(realfi) / 2.0) < (duration_cast<floatusecs>(m_refreshInterval) * 1.005)));
+ }
+ 
+ void MythPlayerUI::GetPlaybackData(InfoMap& Map)
