@@ -1,0 +1,42 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.19-rc8/drivers/gpu/drm/vc4/vc4_hdmi.c linux-6.19-rc8/drivers/gpu/drm/vc4/vc4_hdmi.c
+--- linux-6.19-rc8/drivers/gpu/drm/vc4/vc4_hdmi.c	2026-02-04 16:34:29.863820284 +0100
++++ linux-6.19-rc8/drivers/gpu/drm/vc4/vc4_hdmi.c	2026-02-04 16:38:00.587813941 +0100
+@@ -2233,6 +2233,7 @@
+ 	struct resource *iomem;
+ 	int index, len;
+ 	int ret;
++	const __be32 *addr;
+ 
+ 	/*
+ 	 * ASoC makes it a bit hard to retrieve a pointer to the
+@@ -2277,7 +2278,18 @@
+ 	if (!iomem)
+ 		return -EINVAL;
+ 
+-	vc4_hdmi->audio.dma_data.addr = iomem->start + mai_data->offset;
++	if (of_device_is_compatible(dev->of_node, "brcm,bcm2712-hdmi0") ||
++	    of_device_is_compatible(dev->of_node, "brcm,bcm2712-hdmi1")) {
++		dev_warn(dev,"using bcm2712 hack for HDMI audio\n");
++		iomem = platform_get_resource(vc4_hdmi->pdev, IORESOURCE_MEM, index);
++		if (!iomem)
++			return -EINVAL;
++		vc4_hdmi->audio.dma_data.addr = iomem->start + mai_data->offset;
++	} else {
++		addr = of_get_address(dev->of_node, index, NULL, NULL);
++		vc4_hdmi->audio.dma_data.addr = be32_to_cpup(addr) + mai_data->offset;
++	}
++
+ 	vc4_hdmi->audio.dma_data.addr_width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+ 	vc4_hdmi->audio.dma_data.maxburst = 2;
+ 
+--
+
+MiniMyth2
+

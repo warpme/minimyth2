@@ -1,0 +1,58 @@
+From 0078b0f58dd532a95aba5b2ee12cd05df4c2ffe1 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Mon, 24 Nov 2025 20:06:39 +0100
+Subject: [PATCH 079/159] [WIP] PCI: dw-rockchip: port some suspend code from
+ vendor kernel
+
+The vendor kernel does these calls before starting the actual process of
+going into L2 state. I have not yet looked into the details to come up
+with a proper patch description, but this seems to fix up the L2 timeout
+visible with the network card on the RK3588 ROCK 5B(+).
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/pci/controller/dwc/pcie-dw-rockchip.c | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/drivers/pci/controller/dwc/pcie-dw-rockchip.c b/drivers/pci/controller/dwc/pcie-dw-rockchip.c
+index 1db3691c29c..be08908e04f 100644
+--- a/drivers/pci/controller/dwc/pcie-dw-rockchip.c
++++ b/drivers/pci/controller/dwc/pcie-dw-rockchip.c
+@@ -74,6 +74,9 @@
+ #define  PCIE_CLKREQ_NOT_READY		FIELD_PREP_WM16(BIT(0), 0)
+ #define  PCIE_CLKREQ_PULL_DOWN		FIELD_PREP_WM16(GENMASK(13, 12), 1)
+ 
++/* General Debug Register */
++#define PCIE_CLIENT_GENERAL_DEBUG	0x104
++
+ /* Hot Reset Control Register */
+ #define PCIE_CLIENT_HOT_RESET_CTRL	0x180
+ #define  PCIE_LTSSM_APP_DLY2_EN		BIT(1)
+@@ -810,6 +813,12 @@ static int rockchip_pcie_probe(struct platform_device *pdev)
+ 	return ret;
+ }
+ 
++
++static inline void rockchip_pcie_link_status_clear(struct rockchip_pcie *rockchip)
++{
++	rockchip_pcie_writel_apb(rockchip, PCIE_CLIENT_GENERAL_DEBUG, 0x0);
++}
++
+ static int rockchip_pcie_suspend(struct device *dev)
+ {
+ 	struct rockchip_pcie *rockchip = dev_get_drvdata(dev);
+@@ -823,6 +832,11 @@ static int rockchip_pcie_suspend(struct device *dev)
+ 
+ 	rockchip->intx = rockchip_pcie_readl_apb(rockchip, PCIE_CLIENT_INTR_MASK_LEGACY);
+ 
++	/* All sub-devices are in D3hot by PCIe stack */
++	dw_pcie_dbi_ro_wr_dis(pci);
++
++	rockchip_pcie_link_status_clear(rockchip);
++
+ 	ret = dw_pcie_suspend_noirq(pci);
+ 	if (ret)
+ 		return ret;
+-- 
+2.46.0
+

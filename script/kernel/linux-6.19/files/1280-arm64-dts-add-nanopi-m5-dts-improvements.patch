@@ -1,0 +1,304 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.17/arch/arm64/boot/dts/rockchip/rk3576-nanopi-m5.dts linux-6.17/arch/arm64/boot/dts/rockchip/rk3576-nanopi-m5.dts
+--- linux-6.17/arch/arm64/boot/dts/rockchip/rk3576-nanopi-m5.dts	2025-09-28 23:39:22.000000000 +0200
++++ linux-6.17/arch/arm64/boot/dts/rockchip/rk3576-nanopi-m5.dts	2025-10-01 17:02:47.660071406 +0200
+@@ -2,6 +2,7 @@
+ /*
+  * Copyright (c) 2025 FriendlyElec Computer Tech. Co., Ltd.
+  * Copyright (c) 2025 John Clark <inindev@gmail.com>
++ * Copyright (c) 2025 Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+  */
+ 
+ /dts-v1/;
+@@ -23,6 +24,7 @@
+ 		ethernet0 = &gmac0;
+ 		ethernet1 = &gmac1;
+ 		mmc0 = &sdmmc;
++		mmc1 = &sdio;
+ 	};
+ 
+ 	chosen {
+@@ -60,20 +62,20 @@
+ 
+ 		led_sys: led-0 {
+ 			color = <LED_COLOR_ID_RED>;
+-			function = LED_FUNCTION_HEARTBEAT;
++			function = LED_FUNCTION_DISK_ACTIVITY;
+ 			gpios = <&gpio2 RK_PB3 GPIO_ACTIVE_HIGH>;
+ 			label = "sys";
+-			linux,default-trigger = "heartbeat";
++			linux,default-trigger = "disk-activity";
+ 			pinctrl-names = "default";
+ 			pinctrl-0 = <&led_sys_h>;
+ 		};
+ 
+ 		led1: led-1 {
+ 			color = <LED_COLOR_ID_GREEN>;
+-			function = LED_FUNCTION_LAN;
++			function = LED_FUNCTION_HEARTBEAT;
+ 			gpios = <&gpio4 RK_PC5 GPIO_ACTIVE_HIGH>;
+ 			label = "led1";
+-			linux,default-trigger = "netdev";
++			linux,default-trigger = "heartbeat";
+ 			pinctrl-names = "default";
+ 			pinctrl-0 = <&led1_h>;
+ 		};
+@@ -89,6 +91,12 @@
+ 		};
+ 	};
+ 
++	usbc_vin2_0 {
++		compatible = "iio-hwmon";
++		io-channels = <&saradc 0 &saradc 1 &saradc 2 &saradc 3 &saradc 4 &saradc 5 &saradc 6 &saradc 7>;
++		status = "okay";
++	};
++
+ 	usb3_port2_5v: regulator-usb3-port2-5v {
+ 		compatible = "regulator-fixed";
+ 		enable-active-high;
+@@ -196,6 +204,46 @@
+ 		vin-supply = <&vcc_3v3_s3>;
+ 	};
+ 
++	vcc1v2_ufs_vccq_s0: regulator-vcc1v2-ufs-vccq-s0 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc1v2_ufs_vccq_s0";
++		regulator-boot-on;
++		regulator-always-on;
++		regulator-min-microvolt = <1200000>;
++		regulator-max-microvolt = <1200000>;
++		vin-supply = <&vcc5v0_sys_s5>;
++	};
++
++	vcc1v8_ufs_vccq2_s0: regulator-vcc1v8-ufs-vccq2-s0 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc1v8_ufs_vccq2_s0";
++		regulator-boot-on;
++		regulator-always-on;
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		vin-supply = <&vcc_1v8_s3>;
++	};
++
++	sdio_pwrseq: sdio-pwrseq {
++		compatible = "mmc-pwrseq-simple";
++		clocks = <&hym8563>;
++		clock-names = "ext_clock";
++		pinctrl-names = "default";
++		pinctrl-0 = <&wifi_reg_on>;
++		post-power-on-delay-ms = <200>;
++		reset-gpios = <&gpio1 RK_PC2 GPIO_ACTIVE_LOW>;
++	};
++
++	vcc_ufs_s0: regulator-vcc-ufs-s0 {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc_ufs_s0";
++		regulator-boot-on;
++		regulator-always-on;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&vcc5v0_sys_s5>;
++	};
++
+ 	sound {
+ 		compatible = "simple-audio-card";
+ 		pinctrl-names = "default";
+@@ -264,6 +312,10 @@
+ 	cpu-supply = <&vdd_cpu_lit_s0>;
+ };
+ 
++&tsadc {
++	status = "okay";
++};
++
+ &fspi1m1_pins {
+ 	/* gpio1_d5, gpio1_c4-c7 (clk, d0-d4) are for spi nor flash */
+ 	/* gpio1_d0-d4 muxed to sai2 audio functions */
+@@ -286,6 +338,9 @@
+ 		    <&eth0m0_rx_bus2>,
+ 		    <&eth0m0_rgmii_clk>,
+ 		    <&eth0m0_rgmii_bus>;
++	snps,reset-gpio = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
++	snps,reset-active-low;
++	snps,reset-delays-us = <0 20000 100000>;
+ 	status = "okay";
+ };
+ 
+@@ -300,6 +355,9 @@
+ 		    <&eth1m0_rx_bus2>,
+ 		    <&eth1m0_rgmii_clk>,
+ 		    <&eth1m0_rgmii_bus>;
++	snps,reset-gpio = <&gpio3 RK_PA3 GPIO_ACTIVE_LOW>;
++	snps,reset-active-low;
++	snps,reset-delays-us = <0 20000 100000>;
+ 	status = "okay";
+ };
+ 
+@@ -328,6 +386,10 @@
+ 	status = "okay";
+ };
+ 
++&hdmi_sound {
++	status = "okay";
++};
++
+ &i2c1 {
+ 	status = "okay";
+ 
+@@ -743,10 +805,7 @@
+ 		interrupt-parent = <&gpio2>;
+ 		interrupts = <RK_PB1 IRQ_TYPE_LEVEL_LOW>;
+ 		pinctrl-names = "default";
+-		pinctrl-0 = <&gmac0_int>, <&gmac0_rst>;
+-		reset-assert-us = <20000>;
+-		reset-deassert-us = <100000>;
+-		reset-gpios = <&gpio2 RK_PB5 GPIO_ACTIVE_LOW>;
++		pinctrl-0 = <&gmac0_int>;
+ 	};
+ };
+ 
+@@ -758,10 +817,7 @@
+ 		interrupt-parent = <&gpio3>;
+ 		interrupts = <RK_PA2 IRQ_TYPE_LEVEL_LOW>;
+ 		pinctrl-names = "default";
+-		pinctrl-0 = <&gmac1_int>, <&gmac1_rst>;
+-		reset-assert-us = <20000>;
+-		reset-deassert-us = <100000>;
+-		reset-gpios = <&gpio3 RK_PA3 GPIO_ACTIVE_LOW>;
++		pinctrl-0 = <&gmac1_int>;
+ 	};
+ };
+ 
+@@ -774,6 +830,12 @@
+ };
+ 
+ &pinctrl {
++	gpio-key {
++		key1_pin: key1-pin {
++			rockchip,pins = <1 RK_PA0 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++	};
++
+ 	gmac {
+ 		gmac0_int: gmac0-int {
+ 			rockchip,pins = <2 RK_PB1 RK_FUNC_GPIO &pcfg_pull_up>;
+@@ -842,12 +904,40 @@
+ 			rockchip,pins = <0 RK_PD1 RK_FUNC_GPIO &pcfg_pull_none>;
+ 		};
+ 	};
++
++	wireless-wlan {
++		wifi_wake_host: wifi-wake-host {
++			rockchip,pins = <0 RK_PB0 RK_FUNC_GPIO &pcfg_pull_down>;
++		};
++
++		wifi_reg_on: wifi-reg-on {
++			rockchip,pins = <1 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
++	wireless-bluetooth {
++		bt_reg_on: bt-reg-on {
++			rockchip,pins = <3 RK_PC7 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++
++		host_wake_bt: host-wake-bt {
++			rockchip,pins = <3 RK_PD0 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++
++		bt_wake_host: bt-wake-host {
++			rockchip,pins = <0 RK_PB1 RK_FUNC_GPIO &pcfg_pull_down>;
++		};
++	};
+ };
+ 
+ &sai2 {
+ 	status = "okay";
+ };
+ 
++&sai6 {
++	status = "okay";
++};
++
+ &saradc {
+ 	vref-supply = <&vcca_1v8_s0>;
+ 	status = "okay";
+@@ -863,8 +953,26 @@
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&sdmmc0_clk>, <&sdmmc0_cmd>, <&sdmmc0_det>, <&sdmmc0_bus4>;
+ 	sd-uhs-sdr104;
+-	vmmc-supply = <&vcc_3v3_s3>;
+-	vqmmc-supply = <&vcc3v3_sd_s0>;
++	vmmc-supply = <&vcc3v3_sd_s0>;
++	vqmmc-supply = <&vccio_sd_s0>;
++	status = "okay";
++};
++
++&sdio {
++	max-frequency = <200000000>;
++	no-sd;
++	no-mmc;
++	bus-width = <4>;
++	disable-wp;
++	cap-sd-highspeed;
++	cap-sdio-irq;
++	keep-power-in-suspend;
++	mmc-pwrseq = <&sdio_pwrseq>;
++	non-removable;
++	pinctrl-names = "default";
++	pinctrl-0 = <&sdmmc1m0_bus4 &sdmmc1m0_clk &sdmmc1m0_cmd>;
++	sd-uhs-sdr104;
++	wakeup-source;
+ 	status = "okay";
+ };
+ 
+@@ -884,6 +992,11 @@
+ 	};
+ };
+ 
++&sata0 {
++	target-supply = <&vcc3v3_m2_keym>;
++	status = "okay";
++};
++
+ &u2phy0 {
+ 	status = "okay";
+ };
+@@ -906,6 +1019,19 @@
+ 	status = "okay";
+ };
+ 
++&uart5 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart5m0_xfer &uart5m0_ctsn &uart5m0_rtsn>;
++	status = "okay";
++
++	bluetooth {
++		compatible = "realtek,rtl8822cs-bt";
++		enable-gpios = <&gpio3 RK_PC7 GPIO_ACTIVE_HIGH>;
++		host-wake-gpios = <&gpio0 RK_PB1 GPIO_ACTIVE_HIGH>;
++		device-wake-gpios = <&gpio3 RK_PD0 GPIO_ACTIVE_HIGH>;
++	};
++};
++
+ &usbdp_phy {
+ 	status = "okay";
+ };
+@@ -939,3 +1065,7 @@
+ &wdt {
+ 	status = "okay";
+ };
++
++&ufshc {
++	status = "okay";
++};
+--
+
+MiniMyth2
+
