@@ -99,7 +99,7 @@ This is general functionality avaliable on current code (Mainline Linux kernel)
 
 SoC           | Tested on        | WiFi Chip & Support                    | eMMC boot | CEC Support | LED display | Sleep/Resume                   | Remarks                       |
 ------------- |------------------|----------------------------------------|-----------|-------------|-------------|--------------------------------|-------------------------------|
-Allwinner H6  | EachLink H6 Mini | works  (rtl8723bs@SDIO)                | works     | works       | works                          | well supported                |
+Allwinner H6  | EachLink H6 Mini | works  (rtl8723bs@SDIO)                | works     | works       | works       | well supported                 | well supported                |
 Allwinner H6  | TanixTX6         | works  (ap6330@SDIO)                   | works     | works       | works       | works                          | well supported                |
 Allwinner H6  | TanixTX6-Mini    | works  (xr819@SDIO)                    | not tested| works       | n/a         | not works                      | well supported                |
 Allwinner H6  | Beelink GS1      | not works (fn-link6222@PCI-e no PCI-e) | works     | works       | n/a         | not works (firmware issue)     | some things are still missing |
@@ -151,6 +151,8 @@ Amlogic s905  | TanixTX3-Mini    | not works (sv6051@SDIO no driver aval) | not 
 Amlogic s912  | Beelink GT1      | works v.unreliably (qca9377@SDIO)      | not tested| works       | n/a         | not works (firmware issue)     | support stalled               |
 Amlogic sm1   | X96-Air          | works  (rtl8189@SDIO)                  | not tested| works       | WiP         | not works (firmware issue)     | support stalled               |
 Amlogic g12a  | Radxa-Zero       | works  (ap6256@SDIO)                   | not tested| works       | n/a         | not works (firmware issue)     | support stalled               |
+Amlogic s4    | TV98             | not works                              | not tested| not works   | works       | not works (firmware issue)     | support in-progress           |
+Amlogic s4    | Khadas VIN1S     | works  (brcm43456@SDIO)                | not tested| not works   | LED diode,OK| not works (firmware issue)     | support in-progress           |
 Broadcom 2837 | Rpi3-b           | works  (brcm43430@SDIO)                | n/a       | works       | n/a         | no plans                       | all basics works nicelly      |
 Broadcom 2711 | Rpi4-b           | works  (brcm4345@SDIO)                 | n/a       | works       | n/a         | no plans                       | all basics works nicelly      |
 Broadcom 2712 | Rpi5-b           | works  (brcm4345@SDIO)                 | n/a       | works       | n/a         | no plans                       | all basics works nicelly      |
@@ -174,14 +176,15 @@ Allwinner H616   | TanixTX6s, OrangePI-Zero2                    | cedrus(6)/v4l2
 Allwinner H618   | Vontar H618, OrangePI-Zero3, OrangePI-Zero2W | cedrus(6)/v4l2_request                | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABU1(6)| Good playback
 Rockchip 3328    | Beelink A1                                   | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
 Rockchip 3399    | RockPi4, RockPi4SE, OrangePi4-LTS            | rkvdec/v4l2_request                   | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS, (1)       | EGL_DMABUF, DRM_DMABUF    | Good playback, wyaland gives black.screen
-Rockchip 3566    | X96-x6, Quartz64B, UrvePi, OrangePi3B, Rock3C| hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8 (8)                | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3568    | Rock3-A, Rock3-B                             | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8 (8)                | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3576    | Nanopi-M5                                    | rkvdec2(13)/v4l2_request              | (13)                                       | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Rockchip 3588    | Rock5A, Rock5B, OrangePi5, OrangePi5Plus     | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8 (8)                | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
-Amlogic s905     | TanixTX3-Mini                                | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, Wayland (2)      | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, limited HEVC on s905w
-Amlogic s912     | Beelink GT1                                  | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
-Amlogic sm1      | X96-Air                                      | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, artefacts on H.264
-Amlogic g12a     | Radxa-Zero                                   | vdec/v4l2_m2m                         | MPEG2, H.264, HEVC, VP9                    | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
+Rockchip 3566    | X96-x6, Quartz64B, UrvePi, OrangePi3B, Rock3C| hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
+Rockchip 3568    | Rock3-A, Rock3-B                             | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
+Rockchip 3576    | Nanopi-M5                                    | rkvdec2(13)/v4l2_request              | MPEG2, H.264, HEVC, VP8                    | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
+Rockchip 3588    | Rock5A, Rock5B, OrangePi5, OrangePi5Plus     | hantro,rkvdec2(7,10)/v4l2_request     | MPEG2, H.264, HEVC, VP8, VP9               | X11, EGLFS(9), Wayland| EGL_DMABUF, DRM_DMABUF(10)| Good playback, rendering to DRM plane has no OSD
+Amlogic s905     | TanixTX3-Mini                                | (15)                                  |                                            | X11, Wayland (2)      | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, limited HEVC on s905w
+Amlogic s912     | Beelink GT1                                  | (15)                                  |                                            | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
+Amlogic sm1      | X96-Air                                      | (15)                                  |                                            | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback, artefacts on H.264
+Amlogic g12a     | Radxa-Zero                                   | (15)                                  |                                            | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
+Amlogic s4       | VIM1S                                        | vdec/v4l2_request (15)                | H.264 (16)                                 | EGLFS (14)            | EGL_DMABUF, DRM_DMABUF    | Good playback, seek on breaks playback
 Broadcom 2837    | Rpi3-b                                       | rpi_dec/v4l2_m2m                      | H.264                                      | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
 Broadcom 2711    | Rpi4-b                                       | rpi_dec/v4l2_m2m, rpivid/v4l2_request | H.264, HEVC                                | X11, EGLFS, Wayland   | EGL_DMABUF, DRM_DMABUF    | Good playback
 Broadcom 2712    | Rpi5-b                                       | rpivid/v4l2_request                   | HEVC                                       | X11, EGLFS(12),Wayland| EGL_DMABUF, DRM_DMABUF    | Good playback
@@ -204,7 +207,9 @@ Intel D2550      | ION2                                         | VDPAU,VAPPI(11
 - (11) - mesa nouveau as of 22.2.0 has issue with VAAPI decode on Nvidia ION1/ION2
 - (12) - as of 6.8-rc6 kernel EGLFS in DMABuf mode not works correctly
 - (13) - rkvdec2 is currently in development for this soc
-
+- (14) - due bug in messon-drm, currently only EGLFS works ok
+- (15) - there is development of new driver offering v4l2_request support on this soc.
+- (16) - new decoser initially supports H264 decoding. Other formates will be addedd in future
 ### Video Decoding Test results
 
 
