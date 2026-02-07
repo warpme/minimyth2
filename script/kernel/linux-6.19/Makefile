@@ -104,6 +104,8 @@ PATCHFILES += 0366-arm64-dtsi-amlogic-s4-add-gpu-support.patch
 PATCHFILES += 0367-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
 PATCHFILES += 0368-arm64-dtsi-amlogic-s4-add-cpu_temp_sensor-support.patch
 PATCHFILES += 0369-arm64-dtsi-amlogic-Add-video-decoder-driver-support-for-S4-SOCs-v3.patch
+PATCHFILES += 0370-arm64-dtsi-amlogic-s4-add-saradc-vrtc-uarta-mmc-clocks-fix.patch
+PATCHFILES += 0371-arm64-dtsi-amlogic-s4-hack-stop-thermal-shutdowns.patch
 # devices dts
 PATCHFILES += 0380-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0381-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
@@ -115,6 +117,7 @@ PATCHFILES += 0386-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
 PATCHFILES += 0387-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
 PATCHFILES += 0388-arm64-dts-amlogic-meson-s4-add-AP201-Ref-Board.patch
 PATCHFILES += 0389-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
+PATCHFILES += 0390-arm64-dts-amlogic-meson-s4-add-khadas-vim1s-board.patch
 endif
 #------------------------------------------------------------
 
