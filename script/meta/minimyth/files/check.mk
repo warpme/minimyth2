@@ -474,6 +474,7 @@ mm-all:
 		   [ ! "$${board}" = "board-s905w.tx3-mini"       ] && \
 		   [ ! "$${board}" = "board-s905w2.tv98"          ] && \
 		   [ ! "$${board}" = "board-s905x4.x96_max_ultra" ] && \
+		   [ ! "$${board}" = "board-s905y4.vim1s"         ] && \
 		   [ ! "$${board}" = "board-s912.beelink_gt1"     ] && \
 		   [ ! "$${board}" = "board-sm1.x96_air2g"        ] && \
 		   [ ! "$${board}" = "board-sm1.tanix_tx5_plus"   ] && \
