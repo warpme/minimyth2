@@ -101,6 +101,7 @@ SM1_BOARDS_LIST= \
 # Amlogic S4 boards
 S4_BOARDS_LIST= \
 	board-s905w2.tv98 \
+	board-s905y4.vim1s \
 
 # Amlogic SC2 boards
 SC2_BOARDS_LIST= \
