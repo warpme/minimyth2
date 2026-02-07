@@ -9,7 +9,7 @@
 mm_HOME                   ?= /home/minimyth/minimyth2
 
 # The version of MiniMyth2.
-mm_VERSION_MINIMYTH ?=       14.7.1.r8
+mm_VERSION_MINIMYTH ?=       14.8.0.r8
 
 # The version of Myth to use.
 # Valid values are '34', '35', '36', 'master' and 'test'
@@ -79,6 +79,9 @@ mm_SOFTWARE               ?= \
 # 'board-rpi4.rpi32'
 # 'board-rpi4.rpi64'
 # 'board-s905w.tx3-mini'
+# 'board-s905w2.tv98'
+# 'board-s905x4.x96_max_ultra'
+# 'board-s905y4.vim1s'
 # 'board-s912.beelink_gt1'
 # 'board-g12.radxa_zero'
 # 'board-sm1.x96_air2g'
