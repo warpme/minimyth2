@@ -32,6 +32,7 @@ install-custom:
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.hcd  $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.radxa,rockpi4c.hcd
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.hcd  $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.radxa,zero.hcd
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.hcd  $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.xunlong,orangepi-4a.hcd
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.hcd  $(DESTDIR)$(elibdir)/firmware/brcm/BCM4345C5.khadas,vim1s.hcd
 	@$(MAKECOOKIE)
 
 clean-all: clean
