@@ -118,6 +118,7 @@ PATCHFILES += 0387-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
 PATCHFILES += 0388-arm64-dts-amlogic-meson-s4-add-AP201-Ref-Board.patch
 PATCHFILES += 0389-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
 PATCHFILES += 0390-arm64-dts-amlogic-meson-s4-add-khadas-vim1s-board.patch
+PATCHFILES += 0391-arm64-dts-amlogic-meson-sm1-khadas-vim3l-dec-sd-clk-add-improvements.patch
 endif
 #------------------------------------------------------------
 
