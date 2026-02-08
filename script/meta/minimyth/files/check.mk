@@ -478,6 +478,7 @@ mm-all:
 		   [ ! "$${board}" = "board-s912.beelink_gt1"     ] && \
 		   [ ! "$${board}" = "board-sm1.x96_air2g"        ] && \
 		   [ ! "$${board}" = "board-sm1.tanix_tx5_plus"   ] && \
+		   [ ! "$${board}" = "board-s905d3.vim3l"         ] && \
 		   [ ! "$${board}" = "board-g12.radxa_zero"       ] && \
 		   [ ! "$${board}" = "board-qcs6490.dragon_q6a"   ] && \
 		   [ ! "$${board}" = "board-x86pc.bios"           ] && \
