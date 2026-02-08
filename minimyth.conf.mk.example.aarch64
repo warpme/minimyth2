@@ -86,6 +86,7 @@ mm_SOFTWARE               ?= \
 # 'board-g12.radxa_zero'
 # 'board-sm1.x96_air2g'
 # 'board-sm1.tanix_tx5_plus'
+# 'board-s905d3.vim3l'
 # 'board-rk3328.beelink_a1'
 # 'board-rk3399.rockpi4-b'
 # 'board-rk3399.rockpi4-se'
