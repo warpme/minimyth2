@@ -21,14 +21,17 @@ install-custom:
 	@cp -f   $(WORKDIR)/brcmfmac4359-sdio.txt                            $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.txt    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.AP6398S.txt
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.txt    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.rockchip,rk3566-box-demo-v10.txt
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.txt    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.khadas,vim3l.txt
 
 	@cp -f   $(WORKSRC)/cyfmac4359-sdio.bin                              $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.bin    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.AP6398S.bin
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.bin    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.rockchip,rk3566-box-demo-v10.bin
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.bin    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.khadas,vim3l.bin
 
 	@cp -f   $(WORKSRC)/cyfmac4359-sdio.1WZ.clm_blob                          $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.clm_blob
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.clm_blob    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.AP6398S.clm_blob
 	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.clm_blob    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.rockchip,rk3566-box-demo-v10.clm_blob
+	@ln -srf $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.clm_blob    $(DESTDIR)$(elibdir)/firmware/brcm/brcmfmac4359-sdio.khadas,vim3l.clm_blob
 
 	@$(MAKECOOKIE)
 
