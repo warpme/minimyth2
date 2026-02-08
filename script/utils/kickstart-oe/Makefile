@@ -97,6 +97,7 @@ G12_BOARDS_LIST= \
 # Amlogic SM1 boards
 SM1_BOARDS_LIST= \
 	board-sm1.x96_air2g \
+	board-s905d3.vim3l \
 
 # Amlogic S4 boards
 S4_BOARDS_LIST= \
