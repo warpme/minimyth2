@@ -92,6 +92,8 @@ PATCHFILES += 0346-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
 PATCHFILES += 0350-media-dt-bindings-Add-Amlogic-V4L2-video-decoder-v3.patch
 PATCHFILES += 0351-decoder-Add-V4L2-stateless-H.264-decoder-driver-v3.patch
 PATCHFILES += 0352-media-aml-vdec-6.19-fixups.patch
+# only for debugging....
+PATCHFILES += 0353-media-aml-vdec-debug-print-first-16b-of-fw-from-amrisc.patch
 # dtsi patches
 PATCHFILES += 0360-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
 PATCHFILES += 0361-arm64-dtsi-meson-s4-Add-USB2-support.patch
@@ -429,15 +431,11 @@ PATCHFILES += 1101-axp20x-HACK-mfd-and-multiple-axp-on-the-bus.patch
 PATCHFILES += 1104-regulator-axp20x-force-polyphase-setup-for-axp323.patch
 PATCHFILES += 1141-thermal-drivers-sun8i-add-initial-support-for-ths-v2.patch
 PATCHFILES += 1142-add-initial-cpufreq-support.patch
-PATCHFILES += 1143-pci-add-sunxi-pcie-support.patch
-PATCHFILES += 1144-phy-allwinner-add-sunxi-inno-combophy.patch
-PATCHFILES += 1145-clk-sunxi-ng-add-enable-pcie-ccu-clocks.patch
 PATCHFILES += 1146-net-drivers-stmmac-add-25M-phy-clock-support.patch
 # dtsi additions
 PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
 PATCHFILES += 1153-arm64-dtsi-allwinner-add-ths-support-v2.patch
 PATCHFILES += 1154-arm64-dtsi-allwinner-add-cpufreq-support.patch
-PATCHFILES += 1157-arm64-dtsi-allwinner-add-pcie-nodes.patch
 # boards additions
 PATCHFILES += 1170-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
 PATCHFILES += 1172-arm64-dts-allwinner-t527-orangepi-4a-dts-improvements.patch

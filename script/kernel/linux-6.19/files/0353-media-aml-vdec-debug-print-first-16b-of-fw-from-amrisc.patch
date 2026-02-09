@@ -1,0 +1,43 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+diff --git a/drivers/media/platform/amlogic/vdec/h264.c b/drivers/media/platform/amlogic/vdec/h264.c
+index e37781b31b6e..0ea2fab12b37 100644
+--- a/drivers/media/platform/amlogic/vdec/h264.c
++++ b/drivers/media/platform/amlogic/vdec/h264.c
+@@ -2061,6 +2061,12 @@ static void config_decode_mode(struct aml_vdec_ctx *ctx)
+ 	regmap_write(hw->map[DOS_BUS], INIT_FLAG_REG, 1);
+ }
+ 
++static u32 read_amrisc_reg(struct aml_vdec_hw *hw, int reg)
++{
++	regmap_write(hw->map[DOS_BUS], REG_ALIGN(0x31b), reg);
++	return read_dos_reg(hw, REG_ALIGN(0x31c));
++}
++
+ int aml_h264_dec_run(void *priv)
+ {
+ 	struct aml_vdec_ctx *ctx = (struct aml_vdec_ctx *)priv;
+@@ -2110,9 +2116,14 @@ int aml_h264_dec_run(void *priv)
+ 	if (!ret) {
+ 		ret = -1;
+ 		dev_err(&ctx->dev->plat_dev->dev, "dec timeout=%u\n", DECODER_TIMEOUT_MS);
++		regmap_write(dec_hw->map[DOS_BUS], REG_ALIGN(0x301), 0x8000);
++		regmap_write(dec_hw->map[DOS_BUS], REG_ALIGN(0x31d), 0);
+ 		for (i = 0; i < 16; i++) {	/* 16 : show ucode PC 16 times when timeout */
+ 			dev_info(&ctx->dev->plat_dev->dev, "decoder timeout, pc 0x%x\n",
+ 				 read_dos_reg(dec_hw, MPC_E));
++			//print the first 16 instructions in IMEM
++			dev_info(&ctx->dev->plat_dev->dev, "0x%04x: // %08x\n\n",
++				 i, read_amrisc_reg(dec_hw, i));
+ 			usleep_range(10, 20);
+ 		}
+ 		h264_release_decode_spec(dec_hw, ctx);
+--
+
+MiniMyth2
+
