@@ -88,7 +88,7 @@ PATCHFILES += 0159-ffmpeg8-libavfilter-add-v4l2m2m-deinterlace-filter.patch
 # add initial v4l2_requet av1 support
 PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
-# PATCHFILES += 0161-hack-hack-hack-ffmpeg8-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_2.patch
+PATCHFILES += 0161-hack-hack-hack-ffmpeg8-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_2.patch
 # rkvdec2 hevc long sps/rps support https://gitlab.collabora.com/detlev/ffmpeg/-/commits/v4l2-request-ext-sps-rps-n8.0.1
 # PATCHFILES += 0162-ffmpeg8-libavcodec-hevc-wip-add-support-for-sps_st_rps-control.patch
 endif
@@ -108,6 +108,9 @@ PATCHFILES += 0212-external-udfread-fix-arm5te-compilation.patch
 PATCHFILES += 0213-make-dvd-images-autoplay-at-media-insert.patch
 PATCHFILES += 0214-themes-recordings-ui-all-episode-listing.patch
 PATCHFILES += 0215-libmythtv-mythvideooutgpu-fix-tearing.patch
+
+# PL translations update
+PATCHFILES += 0216-i18n-update-pl-translations.patch
 
 # Patches related to OSD
 PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
