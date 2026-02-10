@@ -1,0 +1,131 @@
+
+From: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+Subject: [PATCH] clk: meson: meson8b: move CPU clock rate change logic to
+ cpufreq
+
+Drop the cpu clock notifier as we now have a cpufreq driver that handles
+the intermediate CPU clock reparenting during CPU clock frequency
+changes.
+Let CCF reparent cpu_clk automatically. This is needed because the
+cpufreq framework only allows setting an intermediate clock (xtal in our
+case), the update to the actual clock frequency has to happen using the
+CPU's main CPU clock (which is cpu_clk) as part of clk_set_rate(). This
+means that the clk_set_rate() call (using the new desired CPU frequency)
+will then have CCF change the parent from xtal (intermediate) to the
+full CPU clock tree using the new rate.
+
+Signed-off-by: Martin Blumenstingl <martin.blumenstingl@googlemail.com>
+---
+ drivers/clk/meson/meson8b.c | 71 +++++--------------------------------
+ 1 file changed, 8 insertions(+), 63 deletions(-)
+
+diff --git a/drivers/clk/meson/meson8b.c b/drivers/clk/meson/meson8b.c
+index 95d0b9cbd90404..18b38864fef75c 100644
+--- a/drivers/clk/meson/meson8b.c
++++ b/drivers/clk/meson/meson8b.c
+@@ -829,7 +829,13 @@ static struct clk_regmap meson8b_cpu_scale_out_sel = {
+ 			&meson8b_cpu_scale_div.hw,
+ 		},
+ 		.num_parents = 3,
+-		.flags = CLK_SET_RATE_PARENT,
++		/*
++		 * Don't allow rate changes while the CPU is running from this
++		 * branch in the clock tree. When changing the CPU frequency
++		 * the cpufreq driver will first reparent "cpu_clk" (below) to
++		 * "xtal".
++		 */
++		.flags = CLK_SET_RATE_GATE | CLK_SET_RATE_PARENT,
+ 	},
+ };
+ 
+@@ -847,9 +853,7 @@ static struct clk_regmap meson8b_cpu_clk = {
+ 			{ .hw = &meson8b_cpu_scale_out_sel.hw, },
+ 		},
+ 		.num_parents = 2,
+-		.flags = (CLK_SET_RATE_PARENT |
+-			  CLK_SET_RATE_NO_REPARENT |
+-			  CLK_IS_CRITICAL),
++		.flags = CLK_SET_RATE_PARENT | CLK_IS_CRITICAL,
+ 	},
+ };
+ 
+@@ -3572,47 +3576,6 @@ static const struct reset_control_ops meson8b_clk_reset_ops = {
+ 	.deassert = meson8b_clk_reset_deassert,
+ };
+ 
+-struct meson8b_nb_data {
+-	struct notifier_block nb;
+-	struct clk_hw *cpu_clk;
+-};
+-
+-static int meson8b_cpu_clk_notifier_cb(struct notifier_block *nb,
+-				       unsigned long event, void *data)
+-{
+-	struct meson8b_nb_data *nb_data =
+-		container_of(nb, struct meson8b_nb_data, nb);
+-	struct clk_hw *parent_clk;
+-	int ret;
+-
+-	switch (event) {
+-	case PRE_RATE_CHANGE:
+-		/* xtal */
+-		parent_clk = clk_hw_get_parent_by_index(nb_data->cpu_clk, 0);
+-		break;
+-
+-	case POST_RATE_CHANGE:
+-		/* cpu_scale_out_sel */
+-		parent_clk = clk_hw_get_parent_by_index(nb_data->cpu_clk, 1);
+-		break;
+-
+-	default:
+-		return NOTIFY_DONE;
+-	}
+-
+-	ret = clk_hw_set_parent(nb_data->cpu_clk, parent_clk);
+-	if (ret)
+-		return notifier_from_errno(ret);
+-
+-	udelay(100);
+-
+-	return NOTIFY_OK;
+-}
+-
+-static struct meson8b_nb_data meson8b_cpu_nb_data = {
+-	.nb.notifier_call = meson8b_cpu_clk_notifier_cb,
+-};
+-
+ static struct meson_clk_hw_data meson8_clks = {
+ 	.hws = meson8_hw_clks,
+ 	.num = ARRAY_SIZE(meson8_hw_clks),
+@@ -3633,8 +3596,6 @@ static void __init meson8b_clkc_init_common(struct device_node *np,
+ {
+ 	struct meson8b_clk_reset *rstc;
+ 	struct device_node *parent_np;
+-	const char *notifier_clk_name;
+-	struct clk *notifier_clk;
+ 	struct regmap *map;
+ 	int i, ret;
+ 
+@@ -3676,22 +3637,6 @@ static void __init meson8b_clkc_init_common(struct device_node *np,
+ 			return;
+ 	}
+ 
+-	meson8b_cpu_nb_data.cpu_clk = hw_clks->hws[CLKID_CPUCLK];
+-
+-	/*
+-	 * FIXME we shouldn't program the muxes in notifier handlers. The
+-	 * tricky programming sequence will be handled by the forthcoming
+-	 * coordinated clock rates mechanism once that feature is released.
+-	 */
+-	notifier_clk_name = clk_hw_get_name(&meson8b_cpu_scale_out_sel.hw);
+-	notifier_clk = __clk_lookup(notifier_clk_name);
+-	ret = clk_notifier_register(notifier_clk, &meson8b_cpu_nb_data.nb);
+-	if (ret) {
+-		pr_err("%s: failed to register the CPU clock notifier\n",
+-		       __func__);
+-		return;
+-	}
+-
+ 	ret = of_clk_add_hw_provider(np, meson_clk_hw_get, hw_clks);
+ 	if (ret)
+ 		pr_err("%s: failed to register clock provider\n", __func__);

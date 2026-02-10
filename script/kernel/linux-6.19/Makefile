@@ -81,6 +81,11 @@ PATCHFILES += 0320-clk-amlogic-add-video-related-clocks-for-S4-SoC.patch
 PATCHFILES += 0321-soc-amlogic-meson-clk-measure-Add-support-for.patch
 # s4 hdmi
 PATCHFILES += 0325-drm-meson-add-s4-drm-driver.patch
+# cpu dvfs support
+PATCHFILES += 0330-clk-meson-meson8b-move-CPU-clock-rate-change-logic-to-cpufreq.patch
+PATCHFILES += 0331-cpufreq-Add-driver-for-Meson8-8b-8m2.patch
+PATCHFILES += 0332-firmware-meson_sm-Add-CPU-DVFS-table-index-bin-support.patch
+PATCHFILES += 0333-cpufreq-Add-driver-for-Meson-s4.patch
 # misc
 PATCHFILES += 0340-phy-amlogic-meson-g12a-usb2-add-support-for-M.patch
 PATCHFILES += 0342-net-wireless-broadcom-add-sdio-ID-43342.patch
@@ -108,6 +113,7 @@ PATCHFILES += 0368-arm64-dtsi-amlogic-s4-add-cpu_temp_sensor-support.patch
 PATCHFILES += 0369-arm64-dtsi-amlogic-Add-video-decoder-driver-support-for-S4-SOCs-v3.patch
 PATCHFILES += 0370-arm64-dtsi-amlogic-s4-add-saradc-vrtc-uarta-mmc-clocks-fix.patch
 PATCHFILES += 0371-arm64-dtsi-amlogic-s4-hack-stop-thermal-shutdowns.patch
+PATCHFILES += 0372-arm64-dtsi-amlogic-s4-add-cpu-dvfs.patch
 # devices dts
 PATCHFILES += 0380-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0381-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
@@ -265,8 +271,10 @@ endif
 ifeq (1,1)
 #-- RaspberryPI patches -----------------------------------------
 PATCHFILES += 0900-rpi-vc04_services-sync-to-downstream-04022026.patch
-# not works ok PATCHFILES += 0901-media-add-rpi4-v4l2m2m-decoder.patch
+PATCHFILES += 0901-media-add-rpi4-v4l2m2m-decoder.patch
 PATCHFILES += 0902-media-add-rpivid-driver.patch
+PATCHFILES += 0903-nvmem-raspberrypi-add-nvmem-driver-for-accessing-OTP.patch
+PATCHFILES += 0904-dmaengine-add-support-for-BCM2708.patch
 # add rpi5 rp1 support
 PATCHFILES += 0932-drivers-pci-add-rp1-support.patch
 PATCHFILES += 0933-drivers-clk-add-rp1-support.patch
