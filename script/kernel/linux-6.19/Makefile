@@ -277,6 +277,7 @@ PATCHFILES += 0903-nvmem-raspberrypi-add-nvmem-driver-for-accessing-OTP.patch
 PATCHFILES += 0904-dmaengine-add-support-for-BCM2708.patch
 PATCHFILES += 0905-media-ioctl-add-pixel-formats-NV12MT_COL128-and-NV12.patch
 PATCHFILES += 0906-media-v4l2-add-single-planar-NV12-column-formats.patch
+PATCHFILES += 0907-drm-increase-plane_mask-to-64bit.patch
 # add rpi5 rp1 support
 PATCHFILES += 0932-drivers-pci-add-rp1-support.patch
 PATCHFILES += 0933-drivers-clk-add-rp1-support.patch
