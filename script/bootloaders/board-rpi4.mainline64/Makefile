@@ -34,7 +34,7 @@ BUILD_SCRIPTS   = custom
 INSTALL_SCRIPTS = custom
 CLEAN_SCRIPTS   = custom
 
-GAR_EXTRA_CONF += bootloaders/board-rpi34.mainline64/package-api.mk
+GAR_EXTRA_CONF += bootloaders/board-rpi345.mainline64/package-api.mk
 include ../../gar.mk
 
 build-custom:
