@@ -132,6 +132,7 @@ endif
 
 ifeq (1,1)
 #-- Allwinner H6 patches -----------------------------------------
+PATCHFILES += 0501-pinctrl-sunxi-add-GPIO-get_direction-callback.patch
 PATCHFILES += 0502-rtc-sun6i-Allow-RTC-wakeup-after-shutdown.patch
 PATCHFILES += 0503-firmware-arm_scpi-Support-unidirectional-mailbox-cha.patch
 PATCHFILES += 0504-revert-stop-exporting-phy_driver_register-unregister-for-ac200.patch
@@ -194,7 +195,6 @@ PATCHFILES += 0632-clk-sunxi-ng-ccu-hack-fix-too-slow-hdmi-audio.patch
 PATCHFILES += 0633-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
 PATCHFILES += 0635-drvers-of-add-dt-overlay-configfs-interface.patch
 PATCHFILES += 0636-drv-rtc-sun6i-add-support-rtc-without-external-losc.patch
-PATCHFILES += 0637-gpiolib-revert-471e998c0e-gpiolib-remove-redundant-callback-check.patch
 # dtsi patches
 PATCHFILES += 0640-arm64-dtsi-allwinner-h616-Add-display-pipeline.patch
 PATCHFILES += 0641-arm64-dtsi-allwinner-h616-Add-hdmi-audio.patch
@@ -278,6 +278,7 @@ PATCHFILES += 0904-dmaengine-add-support-for-BCM2708.patch
 PATCHFILES += 0905-media-ioctl-add-pixel-formats-NV12MT_COL128-and-NV12.patch
 PATCHFILES += 0906-media-v4l2-add-single-planar-NV12-column-formats.patch
 PATCHFILES += 0907-drm-increase-plane_mask-to-64bit.patch
+PATCHFILES += 0908-char-add-vc_mem-driver-for-querying-firmware.patch
 # add rpi5 rp1 support
 PATCHFILES += 0932-drivers-pci-add-rp1-support.patch
 PATCHFILES += 0933-drivers-clk-add-rp1-support.patch
