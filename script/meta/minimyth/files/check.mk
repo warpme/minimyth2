@@ -460,6 +460,7 @@ mm-all:
 		   [ ! "$${board}" = "board-rk3588s.orangepi_5_pro" ] && \
 		   [ ! "$${board}" = "board-rk3588s.nanopi_m6"    ] && \
 		   [ ! "$${board}" = "board-rk3588s.nanopi_r6s"   ] && \
+		   [ ! "$${board}" = "board-rk3588s.edge2"        ] && \
 		   [ ! "$${board}" = "board-rpi2"                 ] && \
 		   [ ! "$${board}" = "board-rpi3.mainline32"      ] && \
 		   [ ! "$${board}" = "board-rpi3.mainline64"      ] && \
