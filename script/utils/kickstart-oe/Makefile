@@ -201,6 +201,7 @@ RK3588S_BOARDS_LIST = \
 	board-rk3588s.orangepi_5 \
 	board-rk3588s.orangepi_5_pro \
 	board-rk3588s.nanopi_r6s \
+	board-rk3588s.edge2 \
 
 PATCHFILES  = poky-yocto-2.7.3-bitbake-skip-python2-checks.patch
 PATCHFILES += poky-yocto-2.7.3-add-biosplusefi-image-plugin.patch
