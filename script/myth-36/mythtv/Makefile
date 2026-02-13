@@ -109,9 +109,6 @@ PATCHFILES += 0213-make-dvd-images-autoplay-at-media-insert.patch
 PATCHFILES += 0214-themes-recordings-ui-all-episode-listing.patch
 PATCHFILES += 0215-libmythtv-mythvideooutgpu-fix-tearing.patch
 
-# PL translations update
-PATCHFILES += 0216-i18n-update-pl-translations.patch
-
 # Patches related to OSD
 PATCHFILES += 0222-OSD-ticket9633-progressbar-on-osd.patch
 PATCHFILES += 0223-OSD-Add-mythnotification-custom-styles-support-via-UDP.patch
