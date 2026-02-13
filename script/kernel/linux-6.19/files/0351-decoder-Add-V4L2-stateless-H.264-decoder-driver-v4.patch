@@ -28,7 +28,7 @@ Signed-off-by: Zhentao Guo <zhentao.guo@amlogic.com>
  17 files changed, 4708 insertions(+)
 
 diff --git a/MAINTAINERS b/MAINTAINERS
-index 14a06f856b81..077c628a46e0 100644
+index 900fc00b73e6..f63815f27ac8 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
 @@ -1369,6 +1369,13 @@ S:	Maintained
@@ -1312,7 +1312,7 @@ index 000000000000..fa86233ea5b3
 +#endif
 diff --git a/drivers/media/platform/amlogic/vdec/aml_vdec_hw.c b/drivers/media/platform/amlogic/vdec/aml_vdec_hw.c
 new file mode 100644
-index 000000000000..1729076de76c
+index 000000000000..9100878601e5
 --- /dev/null
 +++ b/drivers/media/platform/amlogic/vdec/aml_vdec_hw.c
 @@ -0,0 +1,596 @@
@@ -1643,7 +1643,7 @@ index 000000000000..1729076de76c
 +{
 +	const struct power_manager_s *pm = hw->pm;
 +	struct device *dev = pm->pd_data[id].dev;
-+	struct clk_bulk_data *gate_node;
++	struct clk_bulk_data *gate_node = NULL;
 +
 +	if (id == VDEC_1)
 +		gate_node = vdec_get_clk_by_name(hw, "clk_vdec_mux");
@@ -1675,7 +1675,7 @@ index 000000000000..1729076de76c
 +{
 +	const struct power_manager_s *pm = hw->pm;
 +	struct device *dev = pm->pd_data[id].dev;
-+	struct clk_bulk_data *gate_node;
++	struct clk_bulk_data *gate_node = NULL;
 +
 +	dos_local_config(hw, 0, id);
 +
@@ -1776,7 +1776,7 @@ index 000000000000..1729076de76c
 +{
 +	struct aml_vdec_dev *dev = (struct aml_vdec_dev *)priv;
 +	struct aml_vdec_hw *hw = dev->dec_hw;
-+	irqreturn_t ret;
++	irqreturn_t ret = IRQ_HANDLED;
 +
 +	if (hw->hw_ops.irq_handler)
 +		ret = hw->hw_ops.irq_handler(irq, priv);
@@ -2225,7 +2225,7 @@ index 000000000000..6bde55891f4b
 +#endif
 diff --git a/drivers/media/platform/amlogic/vdec/h264.c b/drivers/media/platform/amlogic/vdec/h264.c
 new file mode 100644
-index 000000000000..a2bb56f2609d
+index 000000000000..e37781b31b6e
 --- /dev/null
 +++ b/drivers/media/platform/amlogic/vdec/h264.c
 @@ -0,0 +1,2129 @@
@@ -2877,8 +2877,8 @@ index 000000000000..a2bb56f2609d
 +
 +	dev_dbg
 +	    (&ctx->dev->plat_dev->dev,
-+	    "collated_cma_addr = 0x%llx, one_col_buf_size = %x alloc_size = %x\n",
-+	     h264_ctx->collated_cma_addr, h264_ctx->one_col_buf_size,
++	    "collated_cma_addr = %pad, one_col_buf_size = %x alloc_size = %x\n",
++	     &h264_ctx->collated_cma_addr, h264_ctx->one_col_buf_size,
 +	     alloc_size);
 +	h264_ctx->collated_cma_addr_end =
 +	    h264_ctx->collated_cma_addr + alloc_size;
@@ -3498,11 +3498,11 @@ index 000000000000..a2bb56f2609d
 +				    buf_spec_l0->y_dma_addr +
 +				    ctx->pic_info.fb_size[0];
 +			dev_dbg(&ctx->dev->plat_dev->dev,
-+				"config canvas for poc %d canvas %d y_dma_addr 0x%llx c_dma_addr 0x%llx\n",
++				"config canvas for poc %d canvas %d y_dma_addr %pad c_dma_addr %pad\n",
 +				buf_spec_l0->dpb->top_field_order_cnt,
 +				buf_spec_l0->canvas_pos,
-+				buf_spec_l0->y_dma_addr,
-+				buf_spec_l0->c_dma_addr);
++				&buf_spec_l0->y_dma_addr,
++				&buf_spec_l0->c_dma_addr);
 +		}
 +
 +		buf_spec_l1 = find_spec_by_dpb_index(h264_ctx, i, 1);
@@ -3533,20 +3533,20 @@ index 000000000000..a2bb56f2609d
 +				    buf_spec_l1->y_dma_addr +
 +				    ctx->pic_info.fb_size[0];
 +			dev_dbg(&ctx->dev->plat_dev->dev,
-+				"config canvas for poc %d canvas %d y_dma_addr 0x%llx c_dma_addr 0x%llx\n",
++				"config canvas for poc %d canvas %d y_dma_addr %pad c_dma_addr %pad\n",
 +				buf_spec_l1->dpb->top_field_order_cnt,
 +				buf_spec_l1->canvas_pos,
-+				buf_spec_l1->y_dma_addr,
-+				buf_spec_l1->c_dma_addr);
++				&buf_spec_l1->y_dma_addr,
++				&buf_spec_l1->c_dma_addr);
 +		} else if (buf_spec_l0 && buf_spec_l1) {
 +			memcpy(buf_spec_l1, buf_spec_l0,
 +			       sizeof(struct h264_decode_buf_spec));
 +			dev_dbg(&ctx->dev->plat_dev->dev,
-+				"config canvas for poc %d canvas %d y_dma_addr 0x%llx c_dma_addr 0x%llx\n",
++				"config canvas for poc %d canvas %d y_dma_addr %pad c_dma_addr %pad\n",
 +				buf_spec_l1->dpb->top_field_order_cnt,
 +				buf_spec_l1->canvas_pos,
-+				buf_spec_l1->y_dma_addr,
-+				buf_spec_l1->c_dma_addr);
++				&buf_spec_l1->y_dma_addr,
++				&buf_spec_l1->c_dma_addr);
 +		}
 +	}
 +}
@@ -3592,7 +3592,7 @@ index 000000000000..a2bb56f2609d
 +	unsigned int info1;
 +	unsigned int info2;
 +	int i, j;
-+	int h264_buffer_info_data_write_count;
++	int h264_buffer_info_data_write_count = 0;
 +	u8 canvas_pos;
 +	u8 use_mode_8x8_flag;
 +	u32 reg_val;
