@@ -21,6 +21,7 @@ DEPENDS = \
 	firmware/brcmfmac4359-firmware  \
 	firmware/brcmfmac6330-firmware  \
 	firmware/brcmfmac6334-firmware  \
+	firmware/brcmfmac43752-firmware \
 	firmware/bt-firmware            \
 	firmware/aw859a-firmware        \
 	firmware/aic8800_sdio-firmware  \
