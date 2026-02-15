@@ -114,6 +114,7 @@ PATCHFILES += 0369-arm64-dtsi-amlogic-Add-video-decoder-driver-support-for-S4-SO
 PATCHFILES += 0370-arm64-dtsi-amlogic-s4-add-saradc-vrtc-uarta-mmc-clocks-fix.patch
 PATCHFILES += 0371-arm64-dtsi-amlogic-s4-hack-stop-thermal-shutdowns.patch
 PATCHFILES += 0372-arm64-dtsi-amlogic-s4-add-cpu-dvfs.patch
+# cec not works 0373-arm64-dtsi-amlogic-s4-wip-add-cec.patch
 # devices dts
 PATCHFILES += 0380-arm64-dts-meson-gxm-add-beelink-gt1.patch
 PATCHFILES += 0381-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
@@ -433,6 +434,7 @@ PATCHFILES += 1094-arm64-dts-rockchip-rk3588s-add-nanopi-m6-dts.patch
 PATCHFILES += 1095-arm64-dts-rockchip-rk3588s-nanopc-r6s-dts-improvements.patch
 PATCHFILES += 1096-arm64-dts-rockchip-rk3588-nanopc-t6-dtsi-improvements.patch
 PATCHFILES += 1097-arm64-dts-rockchip-rk3588-add-rock5t-dt.patch
+PATCHFILES += 1098-arm64-dts-rockchip-rk3588-khadas-edge2-dts-improvements.patch
 # for testing rkvdec h264
 # PATCHFILES += 1099-arm64-dtsi-rockchip-disable-vpu121.patch
 #------------------------------------------------------------

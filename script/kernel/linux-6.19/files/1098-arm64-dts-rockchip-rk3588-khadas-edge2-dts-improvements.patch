@@ -1,0 +1,165 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.19/arch/arm64/boot/dts/rockchip/rk3588s-khadas-edge2.dts linux-6.19/arch/arm64/boot/dts/rockchip/rk3588s-khadas-edge2.dts
+--- linux-6.19/arch/arm64/boot/dts/rockchip/rk3588s-khadas-edge2.dts	2026-02-08 22:03:27.000000000 +0100
++++ linux-6.19/arch/arm64/boot/dts/rockchip/rk3588s-khadas-edge2.dts	2026-02-15 21:23:19.802766445 +0100
+@@ -1,5 +1,9 @@
+ // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+ 
++/*
++ * Author: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
++ */
++
+ /dts-v1/;
+ 
+ #include <dt-bindings/gpio/gpio.h>
+@@ -61,8 +66,8 @@
+ 			label = "red_led";
+ 			color = <LED_COLOR_ID_RED>;
+ 			default-state = "off";
+-			function = LED_FUNCTION_INDICATOR;
+-			linux,default-trigger = "none";
++			function = LED_FUNCTION_DISK_ACTIVITY;
++			linux,default-trigger = "disk-activity";
+ 			max-brightness = <255>;
+ 			pwms = <&pwm11 0 25000 0>;
+ 		};
+@@ -72,7 +77,7 @@
+ 			color = <LED_COLOR_ID_GREEN>;
+ 			default-state = "on";
+ 			function = LED_FUNCTION_POWER;
+-			linux,default-trigger = "default-on";
++			linux,default-trigger = "heartbeat";
+ 			max-brightness = <255>;
+ 			pwms = <&pwm14 0 25000 0>;
+ 		};
+@@ -98,7 +103,7 @@
+ 		regulator-min-microvolt = <3300000>;
+ 		regulator-max-microvolt = <3300000>;
+ 		startup-delay-us = <5000>;
+-		vin-supply = <&vcc5v0_sys>;
++		vin-supply = <&vcc_5v0>;
+ 	};
+ 
+ 	vcc5v0_host: regulator-vcc5v0-host {
+@@ -109,19 +114,32 @@
+ 		regulator-min-microvolt = <5000000>;
+ 		regulator-max-microvolt = <5000000>;
+ 		enable-active-high;
+-		gpio = <&gpio1 RK_PB1 GPIO_ACTIVE_HIGH>;
++		gpios = <&gpio1 RK_PB1 GPIO_ACTIVE_HIGH>;
+ 		pinctrl-names = "default";
+ 		pinctrl-0 = <&vcc5v0_host_en>;
+-		vin-supply = <&vcc5v0_sys>;
++		vin-supply = <&vcc_5v0>;
+ 	};
+ 
+-	vcc5v0_sys: regulator-vcc5v0-sys {
++	vcc_5v0: regulator-vcc-5v0 {
+ 		compatible = "regulator-fixed";
+-		regulator-name = "vcc5v0_sys";
++		regulator-name = "vcc_5v0";
+ 		regulator-always-on;
+ 		regulator-boot-on;
+ 		regulator-min-microvolt = <5000000>;
+ 		regulator-max-microvolt = <5000000>;
++		enable-active-high;
++		gpios = <&gpio4 RK_PA2 GPIO_ACTIVE_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&vcc_5v0_pwren_h>;
++	};
++
++	vcc_sysin: regulator-vcc-sysin {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc_sysin";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <4000000>;
++		regulator-max-microvolt = <4000000>;
+ 	};
+ 
+ 	vcc_1v1_nldo_s3: regulator-vcc-1v1-nldo-s3 {
+@@ -131,7 +149,7 @@
+ 		regulator-boot-on;
+ 		regulator-min-microvolt = <1100000>;
+ 		regulator-max-microvolt = <1100000>;
+-		vin-supply = <&vcc5v0_sys>;
++		vin-supply = <&vcc_5v0>;
+ 	};
+ 
+ 	vdd_3v3_sd: regulator-vdd-3v3-sd {
+@@ -236,7 +254,7 @@
+ 		regulator-min-microvolt = <550000>;
+ 		regulator-max-microvolt = <1050000>;
+ 		regulator-ramp-delay = <2300>;
+-		vin-supply = <&vcc5v0_sys>;
++		vin-supply = <&vcc_5v0>;
+ 
+ 		regulator-state-mem {
+ 			regulator-off-in-suspend;
+@@ -253,7 +271,7 @@
+ 		regulator-min-microvolt = <550000>;
+ 		regulator-max-microvolt = <1050000>;
+ 		regulator-ramp-delay = <2300>;
+-		vin-supply = <&vcc5v0_sys>;
++		vin-supply = <&vcc_5v0>;
+ 
+ 		regulator-state-mem {
+ 			regulator-off-in-suspend;
+@@ -282,6 +300,12 @@
+ };
+ 
+ &pinctrl {
++	vcc_5v0 {
++		vcc_5v0_pwren_h: vcc-5v0-pwren-h {
++			rockchip,pins = <4 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
+ 	vdd_sd {
+ 		vdd_sd_en: vdd-sd-en {
+ 			rockchip,pins = <1 RK_PB6 RK_FUNC_GPIO &pcfg_pull_up>;
+@@ -427,21 +451,21 @@
+ 		spi-max-frequency = <1000000>;
+ 		system-power-controller;
+ 
+-		vcc1-supply = <&vcc5v0_sys>;
+-		vcc2-supply = <&vcc5v0_sys>;
+-		vcc3-supply = <&vcc5v0_sys>;
+-		vcc4-supply = <&vcc5v0_sys>;
+-		vcc5-supply = <&vcc5v0_sys>;
+-		vcc6-supply = <&vcc5v0_sys>;
+-		vcc7-supply = <&vcc5v0_sys>;
+-		vcc8-supply = <&vcc5v0_sys>;
+-		vcc9-supply = <&vcc5v0_sys>;
+-		vcc10-supply = <&vcc5v0_sys>;
++		vcc1-supply = <&vcc_sysin>;
++		vcc2-supply = <&vcc_sysin>;
++		vcc3-supply = <&vcc_sysin>;
++		vcc4-supply = <&vcc_sysin>;
++		vcc5-supply = <&vcc_sysin>;
++		vcc6-supply = <&vcc_sysin>;
++		vcc7-supply = <&vcc_sysin>;
++		vcc8-supply = <&vcc_sysin>;
++		vcc9-supply = <&vcc_sysin>;
++		vcc10-supply = <&vcc_sysin>;
+ 		vcc11-supply = <&vcc_2v0_pldo_s3>;
+-		vcc12-supply = <&vcc5v0_sys>;
++		vcc12-supply = <&vcc_sysin>;
+ 		vcc13-supply = <&vcc_1v1_nldo_s3>;
+ 		vcc14-supply = <&vcc_1v1_nldo_s3>;
+-		vcca-supply = <&vcc5v0_sys>;
++		vcca-supply = <&vcc_sysin>;
+ 
+ 		gpio-controller;
+ 		#gpio-cells = <2>;
+--
+
+MiniMyth2
+
