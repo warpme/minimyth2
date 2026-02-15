@@ -104,6 +104,10 @@ ifneq (,$(filter board-s905d3.vim3l,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-s905d3.vim3l
 endif
 
+ifneq (,$(filter board-a311d2-vim4,$(mm_BOARD_TYPE)))
+	$(MAKE) install -C ../board-a311d2-vim4
+endif
+
 ifneq (,$(filter board-rk3328.beelink_a1,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-rk3328.beelink_a1
 endif
