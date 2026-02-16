@@ -1,0 +1,91 @@
+
+This reverts brcmfmac: pcie: Load and provide TxCap blobs
+
+These blobs are named .txcap_blob, and exist alongside the existing
+.clm_blob files. 
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.19.1/drivers/net/wireless/broadcom/brcm80211/brcmfmac/common.c linux-6.19.1/drivers/net/wireless/broadcom/brcm80211/brcmfmac/common.c
+--- linux-6.19.1/drivers/net/wireless/broadcom/brcm80211/brcmfmac/common.c	2026-02-16 10:13:34.000000000 +0100
++++ linux-6.19.1/drivers/net/wireless/broadcom/brcm80211/brcmfmac/common.c	2026-02-16 15:49:54.918136809 +0100
+@@ -209,7 +209,7 @@
+ 
+ 	err = brcmf_bus_get_blob(bus, &fw, BRCMF_BLOB_TXCAP);
+ 	if (err || !fw) {
+-		brcmf_info("no txcap_blob available (err=%d)\n", err);
++		brcmf_info("no txcap_blob available\n");
+ 		return 0;
+ 	}
+ 
+diff --speed-large-files --no-dereference --minimal -Naur linux-6.19.1/drivers/net/wireless/broadcom/brcm80211/brcmfmac/pcie.c linux-6.19.1/drivers/net/wireless/broadcom/brcm80211/brcmfmac/pcie.c
+--- linux-6.19.1/drivers/net/wireless/broadcom/brcm80211/brcmfmac/pcie.c	2026-02-16 10:13:34.000000000 +0100
++++ linux-6.19.1/drivers/net/wireless/broadcom/brcm80211/brcmfmac/pcie.c	2026-02-16 16:06:10.507619006 +0100
+@@ -80,7 +80,6 @@
+ /* per-board firmware binaries */
+ MODULE_FIRMWARE(BRCMF_FW_DEFAULT_PATH "brcmfmac*-pcie.*.bin");
+ MODULE_FIRMWARE(BRCMF_FW_DEFAULT_PATH "brcmfmac*-pcie.*.clm_blob");
+-MODULE_FIRMWARE(BRCMF_FW_DEFAULT_PATH "brcmfmac*-pcie.*.txcap_blob");
+ 
+ static const struct brcmf_firmware_mapping brcmf_pcie_fwnames[] = {
+ 	BRCMF_FW_ENTRY(BRCM_CC_43602_CHIP_ID, 0xFFFFFFFF, 43602),
+@@ -333,9 +332,7 @@
+ 	char fw_name[BRCMF_FW_NAME_LEN];
+ 	char nvram_name[BRCMF_FW_NAME_LEN];
+ 	char clm_name[BRCMF_FW_NAME_LEN];
+-	char txcap_name[BRCMF_FW_NAME_LEN];
+ 	const struct firmware *clm_fw;
+-	const struct firmware *txcap_fw;
+ 	const struct brcmf_pcie_reginfo *reginfo;
+ 	void __iomem *regs;
+ 	void __iomem *tcm;
+@@ -1529,10 +1526,6 @@
+ 		*fw = devinfo->clm_fw;
+ 		devinfo->clm_fw = NULL;
+ 		break;
+-	case BRCMF_BLOB_TXCAP:
+-		*fw = devinfo->txcap_fw;
+-		devinfo->txcap_fw = NULL;
+-		break;
+ 	default:
+ 		return -ENOENT;
+ 	}
+@@ -2130,7 +2123,6 @@
+ #define BRCMF_PCIE_FW_CODE	0
+ #define BRCMF_PCIE_FW_NVRAM	1
+ #define BRCMF_PCIE_FW_CLM	2
+-#define BRCMF_PCIE_FW_TXCAP	3
+ 
+ static void brcmf_pcie_setup(struct device *dev, int ret,
+ 			     struct brcmf_fw_request *fwreq)
+@@ -2157,7 +2149,6 @@
+ 	nvram = fwreq->items[BRCMF_PCIE_FW_NVRAM].nv_data.data;
+ 	nvram_len = fwreq->items[BRCMF_PCIE_FW_NVRAM].nv_data.len;
+ 	devinfo->clm_fw = fwreq->items[BRCMF_PCIE_FW_CLM].binary;
+-	devinfo->txcap_fw = fwreq->items[BRCMF_PCIE_FW_TXCAP].binary;
+ 	kfree(fwreq);
+ 
+ 	ret = brcmf_chip_get_raminfo(devinfo->ci);
+@@ -2239,7 +2230,6 @@
+ 		{ ".bin", devinfo->fw_name },
+ 		{ ".txt", devinfo->nvram_name },
+ 		{ ".clm_blob", devinfo->clm_name },
+-		{ ".txcap_blob", devinfo->txcap_name },
+ 	};
+ 
+ 	fwreq = brcmf_fw_alloc_request(devinfo->ci->chip, devinfo->ci->chiprev,
+@@ -2254,8 +2244,6 @@
+ 	fwreq->items[BRCMF_PCIE_FW_NVRAM].flags = BRCMF_FW_REQF_OPTIONAL;
+ 	fwreq->items[BRCMF_PCIE_FW_CLM].type = BRCMF_FW_TYPE_BINARY;
+ 	fwreq->items[BRCMF_PCIE_FW_CLM].flags = BRCMF_FW_REQF_OPTIONAL;
+-	fwreq->items[BRCMF_PCIE_FW_TXCAP].type = BRCMF_FW_TYPE_BINARY;
+-	fwreq->items[BRCMF_PCIE_FW_TXCAP].flags = BRCMF_FW_REQF_OPTIONAL;
+ 	/* NVRAM reserves PCI domain 0 for Broadcom's SDK faked bus */
+ 	fwreq->domain_nr = pci_domain_nr(devinfo->pdev->bus) + 1;
+ 	fwreq->bus_nr = devinfo->pdev->bus->number;
+@@ -2609,7 +2597,6 @@
+ 	brcmf_pcie_reset_device(devinfo);
+ 	brcmf_pcie_release_resource(devinfo);
+ 	release_firmware(devinfo->clm_fw);
+-	release_firmware(devinfo->txcap_fw);
+ 
+ 	if (devinfo->ci)
+ 		brcmf_chip_detach(devinfo->ci);
