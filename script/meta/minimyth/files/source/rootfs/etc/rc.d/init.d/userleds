@@ -6,44 +6,30 @@
 
 start() {
 
+    leds_list=$(find /sys/class/leds/*/trigger -type f 2>/dev/null)
+    for led_trigger in ${leds_list} ; do
+        led=$(echo ${led_trigger} | sed -e 's|\/sys\/class\/leds\/||g' -e 's|\/trigger||g' -e 's|\n||g')
+        leds=${leds}"[${led}] "
+    done
+
+    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/userleds] Avaliable LEDs: ${leds}"
+
+    # example: MM_USER_LED_TRIGGER="blue_led:trigger:netdev,blue_led:device_name:wlan0,blue_led:link:1,red_led:trigger:mmc0"
+
     if [ ! -z ${MM_USER_LED_TRIGGER} ] ; then
 
-        led_trigger_path=`find /sys/devices/platform/leds -type d -name *disk-activity 2>/dev/null`
-        if [ ! x${led_trigger_path} = "x" ] ; then
+        triggers_list=$(echo ${MM_USER_LED_TRIGGER} | sed -e 's|,| |g')
 
-            if [ x${MM_USER_LED_TRIGGER} = "xeth0" ] ; then
+        for trigger in ${triggers_list} ; do
 
-                echo netdev > ${led_trigger_path}/trigger
-                echo eth0   > ${led_trigger_path}/device_name
-                echo 1      > ${led_trigger_path}/rx
-                echo 1      > ${led_trigger_path}/tx
+              led_name=$(echo ${trigger} | cut -d":" -f1)
+              led_attr=$(echo ${trigger} | cut -d":" -f2)
+            attr_value=$(echo ${trigger} | cut -d":" -f3)
 
-            elif [ x${MM_USER_LED_TRIGGER} = "xeth1" ] ; then
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/userleds] setting [${attr_value}>/sys/class/leds/${led_name}/${led_attr}] ..."
 
-                echo netdev > ${led_trigger_path}/trigger
-                echo eth1   > ${led_trigger_path}/device_name
-                echo 1      > ${led_trigger_path}/rx
-                echo 1      > ${led_trigger_path}/tx
-
-            elif [ x${MM_USER_LED_TRIGGER} = "xwlan0" ] ; then
-
-                echo netdev > ${led_trigger_path}/trigger
-                echo wlan0  > ${led_trigger_path}/device_name
-                echo 1      > ${led_trigger_path}/rx
-                echo 1      > ${led_trigger_path}/tx
-
-            elif [ x${MM_USER_LED_TRIGGER} = "xwlan1" ] ; then
-
-                echo netdev > ${led_trigger_path}/trigger
-                echo wlan1  > ${led_trigger_path}/device_name
-                echo 1      > ${led_trigger_path}/rx
-                echo 1      > ${led_trigger_path}/tx
-
-            else
-
-                echo ${MM_USER_LED_TRIGGER} > ${led_trigger_path}/trigger
-            fi
-        fi
+            echo ${attr_value} > /sys/class/leds/${led_name}/${led_attr}
+        done
 
     fi
 
