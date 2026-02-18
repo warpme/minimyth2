@@ -1,0 +1,60 @@
+#!/bin/sh
+
+clear
+
+echo " "
+
+echo "LED outputs tester v0.1"
+echo "(c)Piotr Oniszczuk <piotr.oniszczuk@gmail.com>"
+
+echo " "
+
+platform=$(tr -d '\0' < /sys/firmware/devicetree/base/compatible 2>/dev/null)
+model=$(tr -d '\0' < /sys/firmware/devicetree/base/model 2>/dev/null)
+echo "=> Platform : [${platform}]"
+echo "=> Model    : [${model}]"
+echo " "
+
+leds_list=$(find /sys/class/leds/*/trigger -type f 2>/dev/null)
+
+echo "=> Avaliable LEDs:"
+i=1
+for led_trigger in ${leds_list} ; do
+    led=$(echo ${led_trigger} | sed -e 's|\/sys\/class\/leds\/||g' -e 's|\/trigger||g')
+    echo " ${i}.[${led}]"
+    i=$((${i} + 1))
+done
+echo " "
+
+echo "Press any key to start LED test or Ctrl-C to Exit ..."
+
+read sel
+
+echo "Switching LEDs to 'timer' blinking ..."
+i=100
+for led_trigger in ${leds_list} ; do
+    led=$(echo ${led_trigger} | sed -e 's|\/sys\/class\/leds\/||g' -e 's|\/trigger||g')
+    led_on=$(echo ${led_trigger} | sed -e s/trigger/delay_on/g)
+    led_off=$(echo ${led_trigger} | sed -e s/trigger/delay_off/g)
+    echo " - LED:[${led}] for ${i}ms"
+    echo "timer" > ${led_trigger}
+    echo ${i} > ${led_on}
+    echo ${i} > ${led_off}
+    i=$((${i} + 100))
+done
+echo " "
+
+echo "Press any key to stop LED test ..."
+
+read sel
+
+for led_trigger in ${leds_list} ; do
+    led=$(echo ${led_trigger} | sed -e 's|\/sys\/class\/leds\/||g' -e 's|\/trigger||g')
+    echo "Resetting LED [${led}] trigger to 'none'"
+    echo "none" > ${led_trigger}
+done
+echo " "
+
+echo "Done ..."
+exit 0
+
