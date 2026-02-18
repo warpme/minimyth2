@@ -49,16 +49,13 @@ start() {
             if [ -e /sys/class/net ] ; then
                 INTERFACE_LIST=`/bin/ls -1 /sys/class/net | /bin/grep -v '^lo$' | sort`
             fi
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Avaliable interfaces: ${INTERFACE_LIST}"
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Avaliable interfaces list: ${INTERFACE_LIST}"
             INTERFACE=
             for INTERFACE_ITEM in ${INTERFACE_LIST} ; do
-                if [[ ${INTERFACE_ITEM} =~ "wlan" ]] ; then
-                    iwctl station ${INTERFACE_ITEM} show | grep -q "connect"
-                    if [ $? -eq 0 ] ; then
-                        INTERFACE=${INTERFACE_ITEM}
-                        /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Will use ${INTERFACE} interface ..."
-                        break
-                    fi
+                if [[ ${INTERFACE_ITEM} =~ "wlan" ]] && [ -e /var/run/.connected_with_wlan ] ; then
+                    INTERFACE=${INTERFACE_ITEM}
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Found ${INTERFACE} as connected. Will use it ..."
+                    break
                 elif [[ ${INTERFACE_ITEM} =~ "eth" ]] && [ ! -e /var/run/.connected_with_wlan ] ; then
                     /sbin/ip link set ${INTERFACE_ITEM} up
                     i=0
@@ -94,8 +91,8 @@ start() {
             done
         fi
         if [ -z "${INTERFACE}" ] ; then
-            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] No any network interface with linkbeat or status connected. Blind fallback to ${INTERFACE} ..."
             INTERFACE='eth0'
+            /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] No any network interface with linkbeat or status connected. Blind fallback to ${INTERFACE} ..."
         fi
 
         # Waiting 15sec for Eth interface. On some platforms apperaing Eth needs some time...
@@ -106,15 +103,15 @@ start() {
             if [ "x${no_iface}" = "x" ] ; then
                 if [ $i -eq 15 ] ; then
                     mm_message_output err "error: After 15sec still no '${INTERFACE}' interface in system ..."
-                    /usr/bin/logger -t minimyth -p "local0.err" "[init.d/dhcp] Timeout waiting for ${INTERFACE} interface ..."
+                    /usr/bin/logger -t minimyth -p "local0.err" "[init.d/dhcp] Timeout waiting for ${INTERFACE} presence ..."
                     return 1
                 else
                     /sbin/ifconfig ${INTERFACE} > /var/log/eth-interface
-                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Waiting for ${INTERFACE} interface ..."
+                    /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] Waiting for ${INTERFACE} presence ..."
                     /bin/sleep 1
                 fi
             else
-                /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] ${INTERFACE} present. Starting configuring networking ..."
+                /usr/bin/logger -t minimyth -p "local0.info" "[init.d/dhcp] ${INTERFACE} present. Will use it ..."
                 i=15
             fi
         done
