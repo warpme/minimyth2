@@ -47,7 +47,7 @@ ifeq (1,1)
 PATCHFILES += 0001-net-brcm80211-brcmfmac-pcie-stop-loading-txcap_blob-fw.patch
 
 PATCHFILES += 0108-drivers-led-add-openvfd-g3118dda3.patch
-PATCHFILES += 0109-drivers-mmc-add-disk-activity-support.patch
+PATCHFILES += 0109-block-add-led-showing-block-activity.patch
 
 ifeq (1,1)
 # Misc panfrost patches
