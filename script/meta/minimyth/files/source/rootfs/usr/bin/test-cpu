@@ -1,0 +1,47 @@
+#!/bin/sh
+
+clear
+
+echo " "
+
+echo "CPU stresser v0.1"
+echo "(c)Piotr Oniszczuk <piotr.oniszczuk@gmail.com>"
+
+echo " "
+
+platform=$(tr -d '\0' < /sys/firmware/devicetree/base/compatible 2>/dev/null)
+model=$(tr -d '\0' < /sys/firmware/devicetree/base/model 2>/dev/null)
+echo "=> Platform : [${platform}]"
+echo "=> Model    : [${model}]"
+echo " "
+
+CORES=$(nproc)
+
+echo "Will start stress-test on $CORES cores ..."
+echo " "
+echo "Press Ctrl+C to end."
+echo " "
+
+cleanup() {
+    echo "Killing processes. Please wait ..."
+    pkill -P $$
+    exit
+}
+
+trap "cleanup" 0 1 2 3 15
+
+for i in $(seq 1 $CORES); do
+
+    mask=$(echo "2^($i -1)" | bc)
+
+    echo "Stress core$i (mask: $mask)"
+    taskset 0x$mask sh -c "while :; do :; done" &
+
+    i=$((i + 1))
+
+done
+
+wait
+
+exit 0
+
