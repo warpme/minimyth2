@@ -21,7 +21,7 @@ DEPENDS = \
 	firmware/brcmfmac4359-firmware  \
 	firmware/brcmfmac6330-firmware  \
 	firmware/brcmfmac6334-firmware  \
-	firmware/ap6275p-firmware \
+	firmware/khadas-edge2-firmware  \
 	firmware/bt-firmware            \
 	firmware/aw859a-firmware        \
 	firmware/aic8800_sdio-firmware  \
