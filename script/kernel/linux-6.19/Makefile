@@ -156,6 +156,7 @@ PATCHFILES += 0553-media-cedrus-Don-t-CPU-map-source-buffers.patch
 PATCHFILES += 0554-media-Add-NV12-and-P010-AFBC-compressed-formats.patch
 PATCHFILES += 0555-media-cedrus-add-format-filtering-based-on-depth-and.patch
 PATCHFILES += 0557-media-cedrus-Increase-H6-clock-rate.patch
+PATCHFILES += 0558-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
 PATCHFILES += 0560-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
 PATCHFILES += 0561-bluetooth-btrtl-add-hci-ver-rtl8822cs.patch
 PATCHFILES += 0562-h6-add-sun50i-di-deinterlace-WiP.patch
