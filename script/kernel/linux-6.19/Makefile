@@ -419,6 +419,8 @@ PATCHFILES += 1067-media-v4l2-core-Initialize-h264-frame_mbs_only_flag-as-1.patc
 # some avi fixes
 PATCHFILES += 1068-media-verisilicon-AV1-Restore-IOMMU-context-before-d.patch
 PATCHFILES += 1069-media-verisilicon-AV1-Fix-tile-info-buffer-size.patch
+# add khadas edge2 support in khadas-mcu
+PATCHFILES += 1070-mfd-khadas-mcu-add-edge2-support.patch
 # dtsi additions
 PATCHFILES += 1080-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1082-arm64-dtsi-rockchip-add-the-vdpu381-video-decoders.patch
