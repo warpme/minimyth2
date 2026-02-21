@@ -1,0 +1,42 @@
+From 1ffb62d8fd74bd2d208a502eddc20e4fc475df2a Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Thu, 19 Feb 2026 14:05:43 +0200
+Subject: [PATCH 43/90] drm/rockchip: dw_hdmi_qp: Handle 10-bit YUV422 output
+ format
+
+YUV422 requires two 12-bit components, regardless of the color depth,
+which from the clock rate perspective is equivalent to a transmission of
+three 8-bit RGB components.
+
+Configure HDMI PHY with 8 bpc when YUV422 is being used, to ensure its
+output clock matches the TMDS character rate.  This is necessary because
+for higher color depths, the PHY PLL output rate is further divided by
+the hardware by a factor of bpc/8, which will confuse the clock consumers,
+i.e. VOP2 display controller.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+index 552a415322..5dddb50035 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+@@ -228,7 +228,12 @@ dw_hdmi_qp_rockchip_encoder_atomic_check(struct drm_encoder *encoder,
+ 	}
+ 
+ 	phy_cfg.hdmi.tmds_char_rate = conn_state->hdmi.tmds_char_rate;
+-	phy_cfg.hdmi.bpc = conn_state->hdmi.output_bpc;
++	/*
++	 * YUV422 requires two 12-bit components, which from the clock
++	 * rate perspective is equivalent to three 8-bit RGB components.
++	 */
++	phy_cfg.hdmi.bpc = (s->output_mode == ROCKCHIP_OUT_MODE_YUV422 ?
++				8 : conn_state->hdmi.output_bpc);
+ 
+ 	ret = phy_configure(hdmi->phy, &phy_cfg);
+ 	if (!ret) {
+-- 
+2.46.0
+

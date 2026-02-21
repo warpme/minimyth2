@@ -1,0 +1,113 @@
+From d7a792f72316099b7fb3bf5730a8cc4fc4dc72fe Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Sun, 25 Jan 2026 01:01:13 +0200
+Subject: [PATCH 24/90] drm/bridge: dw-hdmi-qp: Rework Audio InfoFrame handler
+
+Make use of the recently introduced dw_hdmi_qp_write_infoframe() helper
+to simplify the writing of the Audio InfoFrame packet header and body
+registers.
+
+Additionally, discard the redundant static values identifying the frame
+version and length.
+
+Moreover, since now having dedicated callbacks per InfoFrame type, move
+the implementation to dw_hdmi_qp_bridge_write_audio_infoframe() and
+drop dw_hdmi_qp_config_audio_infoframe().
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c | 71 +++++++-------------
+ 1 file changed, 25 insertions(+), 46 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index 613b4ea274..e40f16a364 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -759,51 +759,6 @@ static struct i2c_adapter *dw_hdmi_qp_i2c_adapter(struct dw_hdmi_qp *hdmi)
+ 	return adap;
+ }
+ 
+-/*
+- * Static values documented in the TRM
+- * Different values are only used for debug purposes
+- */
+-#define DW_HDMI_QP_AUDIO_INFOFRAME_HB1	0x1
+-#define DW_HDMI_QP_AUDIO_INFOFRAME_HB2	0xa
+-
+-static int dw_hdmi_qp_config_audio_infoframe(struct dw_hdmi_qp *hdmi,
+-					     const u8 *buffer, size_t len)
+-{
+-	/*
+-	 * AUDI_CONTENTS0: { RSV, HB2, HB1, RSV }
+-	 * AUDI_CONTENTS1: { PB3, PB2, PB1, PB0 }
+-	 * AUDI_CONTENTS2: { PB7, PB6, PB5, PB4 }
+-	 *
+-	 * PB0: CheckSum
+-	 * PB1: | CT3    | CT2  | CT1  | CT0  | F13  | CC2 | CC1 | CC0 |
+-	 * PB2: | F27    | F26  | F25  | SF2  | SF1  | SF0 | SS1 | SS0 |
+-	 * PB3: | F37    | F36  | F35  | F34  | F33  | F32 | F31 | F30 |
+-	 * PB4: | CA7    | CA6  | CA5  | CA4  | CA3  | CA2 | CA1 | CA0 |
+-	 * PB5: | DM_INH | LSV3 | LSV2 | LSV1 | LSV0 | F52 | F51 | F50 |
+-	 * PB6~PB10: Reserved
+-	 *
+-	 * AUDI_CONTENTS0 default value defined by HDMI specification,
+-	 * and shall only be changed for debug purposes.
+-	 */
+-	u32 header_bytes = (DW_HDMI_QP_AUDIO_INFOFRAME_HB1 << 8) |
+-			  (DW_HDMI_QP_AUDIO_INFOFRAME_HB2 << 16);
+-
+-	regmap_bulk_write(hdmi->regm, PKT_AUDI_CONTENTS0, &header_bytes, 1);
+-	regmap_bulk_write(hdmi->regm, PKT_AUDI_CONTENTS1, &buffer[3], 1);
+-	regmap_bulk_write(hdmi->regm, PKT_AUDI_CONTENTS2, &buffer[4], 1);
+-
+-	/* Enable ACR, AUDI, AMD */
+-	dw_hdmi_qp_mod(hdmi,
+-		       PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN | PKTSCHED_AMD_TX_EN,
+-		       PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN | PKTSCHED_AMD_TX_EN,
+-		       PKTSCHED_PKT_EN);
+-
+-	/* Enable AUDS */
+-	dw_hdmi_qp_mod(hdmi, PKTSCHED_AUDS_TX_EN, PKTSCHED_AUDS_TX_EN, PKTSCHED_PKT_EN);
+-
+-	return 0;
+-}
+-
+ static bool dw_hdmi_qp_supports_scrambling(struct drm_display_info *display)
+ {
+ 	if (!display->is_hdmi)
+@@ -1167,7 +1122,31 @@ static int dw_hdmi_qp_bridge_write_audio_infoframe(struct drm_bridge *bridge,
+ 
+ 	dw_hdmi_qp_bridge_clear_audio_infoframe(bridge);
+ 
+-	return dw_hdmi_qp_config_audio_infoframe(hdmi, buffer, len);
++	/*
++	 * AUDI_CONTENTS0: { RSV, HB2, HB1, RSV }
++	 * AUDI_CONTENTS1: { PB3, PB2, PB1, PB0 }
++	 * AUDI_CONTENTS2: { PB7, PB6, PB5, PB4 }
++	 *
++	 * PB0: CheckSum
++	 * PB1: | CT3    | CT2  | CT1  | CT0  | F13  | CC2 | CC1 | CC0 |
++	 * PB2: | F27    | F26  | F25  | SF2  | SF1  | SF0 | SS1 | SS0 |
++	 * PB3: | F37    | F36  | F35  | F34  | F33  | F32 | F31 | F30 |
++	 * PB4: | CA7    | CA6  | CA5  | CA4  | CA3  | CA2 | CA1 | CA0 |
++	 * PB5: | DM_INH | LSV3 | LSV2 | LSV1 | LSV0 | F52 | F51 | F50 |
++	 * PB6~PB10: Reserved
++	 */
++	dw_hdmi_qp_write_infoframe(hdmi, buffer, len, PKT_AUDI_CONTENTS0);
++
++	/* Enable ACR, AUDI, AMD */
++	dw_hdmi_qp_mod(hdmi,
++		       PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN | PKTSCHED_AMD_TX_EN,
++		       PKTSCHED_ACR_TX_EN | PKTSCHED_AUDI_TX_EN | PKTSCHED_AMD_TX_EN,
++		       PKTSCHED_PKT_EN);
++
++	/* Enable AUDS */
++	dw_hdmi_qp_mod(hdmi, PKTSCHED_AUDS_TX_EN, PKTSCHED_AUDS_TX_EN, PKTSCHED_PKT_EN);
++
++	return 0;
+ }
+ 
+ #ifdef CONFIG_DRM_DW_HDMI_QP_CEC
+-- 
+2.46.0
+

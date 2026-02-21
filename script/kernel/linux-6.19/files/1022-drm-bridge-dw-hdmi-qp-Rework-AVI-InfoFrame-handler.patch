@@ -1,0 +1,86 @@
+From f19b1971ffcfc20c8f42a0dc98c58f9ca0a42e94 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Sat, 24 Jan 2026 20:26:09 +0200
+Subject: [PATCH 22/90] drm/bridge: dw-hdmi-qp: Rework AVI InfoFrame handler
+
+Make use of the recently introduced dw_hdmi_qp_write_infoframe() helper
+to simplify the writing of the Auxiliary Video InfoFrame (AVI) packet
+header and body registers.
+
+Moreover, since now having dedicated callbacks per InfoFrame type, move
+the implementation to dw_hdmi_qp_bridge_write_avi_infoframe() and drop
+dw_hdmi_qp_config_avi_infoframe().
+
+While at it, also discard the superfluous infoframe size verification.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c | 45 +++-----------------
+ 1 file changed, 7 insertions(+), 38 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index db6bf46e94..53b5cf1732 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -759,43 +759,6 @@ static struct i2c_adapter *dw_hdmi_qp_i2c_adapter(struct dw_hdmi_qp *hdmi)
+ 	return adap;
+ }
+ 
+-static int dw_hdmi_qp_config_avi_infoframe(struct dw_hdmi_qp *hdmi,
+-					   const u8 *buffer, size_t len)
+-{
+-	u32 val, i, j;
+-
+-	if (len != HDMI_INFOFRAME_SIZE(AVI)) {
+-		dev_err(hdmi->dev, "failed to configure avi infoframe\n");
+-		return -EINVAL;
+-	}
+-
+-	/*
+-	 * DW HDMI QP IP uses a different byte format from standard AVI info
+-	 * frames, though generally the bits are in the correct bytes.
+-	 */
+-	val = buffer[1] << 8 | buffer[2] << 16;
+-	dw_hdmi_qp_write(hdmi, val, PKT_AVI_CONTENTS0);
+-
+-	for (i = 0; i < 4; i++) {
+-		for (j = 0; j < 4; j++) {
+-			if (i * 4 + j >= 14)
+-				break;
+-			if (!j)
+-				val = buffer[i * 4 + j + 3];
+-			val |= buffer[i * 4 + j + 3] << (8 * j);
+-		}
+-
+-		dw_hdmi_qp_write(hdmi, val, PKT_AVI_CONTENTS1 + i * 4);
+-	}
+-
+-	dw_hdmi_qp_mod(hdmi, 0, PKTSCHED_AVI_FIELDRATE, PKTSCHED_PKT_CONFIG1);
+-
+-	dw_hdmi_qp_mod(hdmi, PKTSCHED_AVI_TX_EN | PKTSCHED_GCP_TX_EN,
+-		       PKTSCHED_AVI_TX_EN | PKTSCHED_GCP_TX_EN, PKTSCHED_PKT_EN);
+-
+-	return 0;
+-}
+-
+ static int dw_hdmi_qp_config_drm_infoframe(struct dw_hdmi_qp *hdmi,
+ 					   const u8 *buffer, size_t len)
+ {
+@@ -1173,7 +1136,13 @@ static int dw_hdmi_qp_bridge_write_avi_infoframe(struct drm_bridge *bridge,
+ 
+ 	dw_hdmi_qp_bridge_clear_avi_infoframe(bridge);
+ 
+-	return dw_hdmi_qp_config_avi_infoframe(hdmi, buffer, len);
++	dw_hdmi_qp_write_infoframe(hdmi, buffer, len, PKT_AVI_CONTENTS0);
++
++	dw_hdmi_qp_mod(hdmi, 0, PKTSCHED_AVI_FIELDRATE, PKTSCHED_PKT_CONFIG1);
++	dw_hdmi_qp_mod(hdmi, PKTSCHED_AVI_TX_EN | PKTSCHED_GCP_TX_EN,
++		       PKTSCHED_AVI_TX_EN | PKTSCHED_GCP_TX_EN, PKTSCHED_PKT_EN);
++
++	return 0;
+ }
+ 
+ static int dw_hdmi_qp_bridge_write_hdmi_infoframe(struct drm_bridge *bridge,
+-- 
+2.46.0
+

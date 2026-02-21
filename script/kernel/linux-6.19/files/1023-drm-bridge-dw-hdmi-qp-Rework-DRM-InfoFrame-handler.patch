@@ -1,0 +1,83 @@
+From d247cb6ec909ed85145c5713c2b59b540c12a234 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Sun, 25 Jan 2026 00:27:21 +0200
+Subject: [PATCH 23/90] drm/bridge: dw-hdmi-qp: Rework DRM InfoFrame handler
+
+Make use of the recently introduced dw_hdmi_qp_write_infoframe() helper
+to simplify the writing of the Dynamic Range and Mastering (DRM)
+InfoFrame packet header and body registers.
+
+Moreover, since now having dedicated callbacks per InfoFrame type, move
+the implementation to dw_hdmi_qp_bridge_write_hdr_drm_infoframe() and
+drop dw_hdmi_qp_config_drm_infoframe().
+
+While at it, also discard the unnecessary infoframe size verification,
+as well as the redundant disabling of the packet transmission (already
+done by the explicit call to the clear callback).
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c | 40 ++++----------------
+ 1 file changed, 7 insertions(+), 33 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index 53b5cf1732..613b4ea274 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -759,38 +759,6 @@ static struct i2c_adapter *dw_hdmi_qp_i2c_adapter(struct dw_hdmi_qp *hdmi)
+ 	return adap;
+ }
+ 
+-static int dw_hdmi_qp_config_drm_infoframe(struct dw_hdmi_qp *hdmi,
+-					   const u8 *buffer, size_t len)
+-{
+-	u32 val, i;
+-
+-	if (len != HDMI_INFOFRAME_SIZE(DRM)) {
+-		dev_err(hdmi->dev, "failed to configure drm infoframe\n");
+-		return -EINVAL;
+-	}
+-
+-	dw_hdmi_qp_mod(hdmi, 0, PKTSCHED_DRMI_TX_EN, PKTSCHED_PKT_EN);
+-
+-	val = buffer[1] << 8 | buffer[2] << 16;
+-	dw_hdmi_qp_write(hdmi, val, PKT_DRMI_CONTENTS0);
+-
+-	for (i = 0; i <= buffer[2]; i++) {
+-		if (i % 4 == 0)
+-			val = buffer[3 + i];
+-		val |= buffer[3 + i] << ((i % 4) * 8);
+-
+-		if ((i % 4 == 3) || i == buffer[2])
+-			dw_hdmi_qp_write(hdmi, val,
+-					 PKT_DRMI_CONTENTS1 + ((i / 4) * 4));
+-	}
+-
+-	dw_hdmi_qp_mod(hdmi, 0, PKTSCHED_DRMI_FIELDRATE, PKTSCHED_PKT_CONFIG1);
+-	dw_hdmi_qp_mod(hdmi, PKTSCHED_DRMI_TX_EN, PKTSCHED_DRMI_TX_EN,
+-		       PKTSCHED_PKT_EN);
+-
+-	return 0;
+-}
+-
+ /*
+  * Static values documented in the TRM
+  * Different values are only used for debug purposes
+@@ -1168,7 +1136,13 @@ static int dw_hdmi_qp_bridge_write_hdr_drm_infoframe(struct drm_bridge *bridge,
+ 
+ 	dw_hdmi_qp_bridge_clear_hdr_drm_infoframe(bridge);
+ 
+-	return dw_hdmi_qp_config_drm_infoframe(hdmi, buffer, len);
++	dw_hdmi_qp_write_infoframe(hdmi, buffer, len, PKT_DRMI_CONTENTS0);
++
++	dw_hdmi_qp_mod(hdmi, 0, PKTSCHED_DRMI_FIELDRATE, PKTSCHED_PKT_CONFIG1);
++	dw_hdmi_qp_mod(hdmi, PKTSCHED_DRMI_TX_EN, PKTSCHED_DRMI_TX_EN,
++		       PKTSCHED_PKT_EN);
++
++	return 0;
+ }
+ 
+ static int dw_hdmi_qp_bridge_write_spd_infoframe(struct drm_bridge *bridge,
+-- 
+2.46.0
+
