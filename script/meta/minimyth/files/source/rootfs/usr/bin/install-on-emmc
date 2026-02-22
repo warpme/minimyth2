@@ -27,6 +27,11 @@
 #    2. Erase bootloader by writing zeros to boot0[1] partitions (eMMC) or sdb[c] disks (UFS/USB)
 #
 
+#
+#  erasespi: when called with 'erasespi' command:
+#    1. Erase mtd by calling 'flash_erase /dev/mtd0 0 0' - if mtdinfo reports mtd device is avaliable
+#
+
 #  bootloader: when called with 'bootloader' command:
 #    1. Installs bootloader from SD card </bootloader> dir to boot0[1] partitions (eMMC) or sdb[c] disks (UFS)
 #       If SD card has no </bootloader> dir, script creates such dir, dumps bootloader
@@ -88,7 +93,7 @@ log_file="/var/log/install-on-emmc.log"
 
 
 
-ver=6.0
+ver=6.1
 
 command=$1
 
@@ -679,6 +684,47 @@ write_bootloader_to_target() {
     fi
 }
 
+check_is_emmc_ufs_present() {
+    if [ ! x"${emmc_dev}" = "xN/A" ] && [ ! x"${ufs_dev}" = "xN/A" ] ; then
+
+        echo "Please select target device:"
+        echo "(1): eMMC"
+        echo "(2): USB/UFS"
+
+        read sel
+
+        if [ $sel = "1" ] ; then
+
+            target_dev=${emmc_dev}
+
+        elif [ $sel = "2" ] ; then
+
+            target_dev=${ufs_dev}
+
+        else
+            echo " "
+            echo "Wrong selection! Exiting ..."
+            echo " "
+            exit 1
+      fi
+
+    elif [ ! x"${emmc_dev}" = "xN/A" ] ; then
+
+        target_dev=${emmc_dev}
+
+    elif [ ! x"${ufs_dev}" = "xN/A" ] ; then
+
+        target_dev=${ufs_dev}
+
+    else
+
+        echo " "
+        echo "Can't determine eMMC nor UFS/USB device! Exiting ..."
+        echo " "
+        exit 1
+    fi
+}
+
 boot_dev=$(mount | grep -e '/initrd\s' | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0123456789]$//g' | sed 's/p//g' )
 if [ x"${boot_dev}" = "x" ]; then
     boot_dev=$(mount | grep -e 'on\s/\s' | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0123456789]$//g' | sed 's/p//g' )
@@ -708,6 +754,14 @@ for TYPE in /sys/class/block/mmcblk*/device/type; do
     fi
 done
 
+spi_dev="N/A"
+    spi_devices=$(mtdinfo | grep Count | sed -e 's/[^0-9]//g')
+    if [ x$spi_devices = "x1" ] ; then
+        spi_dev=$(mtdinfo | grep Present | sed -e 's/.*:\s*//g')
+    elif [ $spi_devices gt= "1" ] ; then
+        echo "Your system has more than 1 spi devide. This is unsupported by this script ..."
+    fi
+
 echo " "
 echo "--- MiniMyth2 to eMMC/UFS/USB installer v$ver (c)Piotr Oniszczuk ---"
 echo " "
@@ -736,6 +790,7 @@ echo " "
 echo "SDcard device        : ${sdcard_dev}"
 echo "eMMC device          : ${emmc_dev}"
 echo "UFS/USB device       : ${ufs_dev}"
+echo "SPI device           : ${spi_dev}"
 echo "System booted from   : ${boot_dev_name} (${boot_dev})"
 
 get_size_to_copy
@@ -743,44 +798,6 @@ get_size_to_copy
 echo "Boot device has      : ${part_no} partitions"
 echo "Boot device usage    : ${storage_usage}MB"
 
-if [ ! x"${emmc_dev}" = "xN/A" ] && [ ! x"${ufs_dev}" = "xN/A" ] ; then
-
-    echo "Please select target device:"
-    echo "(1): eMMC"
-    echo "(2): USB/UFS"
-
-    read sel
-
-    if [ $sel = "1" ] ; then
-
-        target_dev=${emmc_dev}
-
-    elif [ $sel = "2" ] ; then
-
-        target_dev=${ufs_dev}
-
-    else
-        echo " "
-        echo "Wrong selection! Exiting ..."
-        echo " "
-        exit 1
-  fi
-
-elif [ ! x"${emmc_dev}" = "xN/A" ] ; then
-
-    target_dev=${emmc_dev}
-
-elif [ ! x"${ufs_dev}" = "xN/A" ] ; then
-
-    target_dev=${ufs_dev}
-
-else
-
-    echo " "
-    echo "Can't determine eMMC nor UFS/USB device! Exiting ..."
-    echo " "
-    exit 1
-fi
 
 if [ x"${boot_dev}" = "x" ]; then
     echo " "
@@ -789,7 +806,10 @@ if [ x"${boot_dev}" = "x" ]; then
     exit 1
 fi
 
-if [[ "${command}" =~ "erase" ]] ; then
+if [[ "${command}" = "erase" ]] ; then
+
+    check_is_emmc_ufs_present
+
     echo " "
     echo "erasing ${target_dev} ..."
 
@@ -805,7 +825,34 @@ if [[ "${command}" =~ "erase" ]] ; then
     echo " "
     exit 0
 
+elif [[ "${command}" = "erasespi" ]] ; then
+
+    if [ x"${spi_dev}" = "xN/A" ] ; then
+        echo "It looks Your system don't have any SPI device ..."
+        echo "Script will exit now!"
+        echo " " 
+        exit 0
+    fi
+
+    echo " "
+    echo "erasing ${spi_dev} ..."
+
+    confirm "to erase SPI"
+    confirm "ARE YOU SURE to erase ${spi_dev} content?"
+
+    flash_erase /dev/${spi_dev} 0 0
+
+    sync
+
+    echo " "
+    echo "Done ..."
+    echo " "
+    exit 0
+
 elif [[ "${command}" =~ "bootloader" ]] ; then
+
+    check_is_emmc_ufs_present
+
     confirm "to install/update eMMC bootloader"
 
     write_bootloader_to_target
@@ -818,6 +865,9 @@ elif [[ "${command}" =~ "bootloader" ]] ; then
     exit 0
 
 elif [[ "${command}" = "install" ]] ; then
+
+    check_is_emmc_ufs_present
+
     is_booted_from_target
 
     confirm "to copy ${storage_usage}MB from SD card to eMMC"
@@ -845,6 +895,9 @@ elif [[ "${command}" = "install" ]] ; then
     exit 0
 
 elif [[ "${command}" = "usbinstall" ]] ; then
+
+    check_is_emmc_ufs_present
+
     is_booted_from_target
 
     confirm "to format USB device"
@@ -873,6 +926,9 @@ elif [[ "${command}" = "usbinstall" ]] ; then
     exit 0
 
 elif [[ "${command}" = "ufsinstall" ]] ; then
+
+    check_is_emmc_ufs_present
+
     is_booted_from_target
 
     confirm "to format UFS device"
@@ -883,7 +939,7 @@ elif [[ "${command}" = "ufsinstall" ]] ; then
     msg "Copying ${storage_usage}MB to UFS ..."
     copy_sdcard_to_3part_gpt_disk
     msg "Copying to UFS done ..."
- 
+
     update_target_extlinux ${root_dst}/boot 3
 
     sed -e "s|Image|boot/Image|g" -i ${root_dst}/boot/extlinux/extlinux.conf
@@ -905,7 +961,7 @@ elif [[ "${command}" = "ufsinstall" ]] ; then
 
 else
     echo " "
-    echo "Run script with command: erase|bootloader|usbinstall|ufsinstall|install"
+    echo "Run script with command: erase|erasespi|bootloader|usbinstall|ufsinstall|install"
     echo " "
 
     exit 0
