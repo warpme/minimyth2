@@ -404,6 +404,8 @@ PATCHFILES += 1080-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1082-arm64-dtsi-rockchip-add-the-vdpu381-video-decoders.patch
 PATCHFILES += 1083-arm64-dtsi-rockchip-rk3288-add-vdec-node.patch
 PATCHFILES += 1084-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
+PATCHFILES += 1085-arm64-dtsi-rk3588s-rk3588-fix-pcie-ranges.patch
+PATCHFILES += 1086-arm64-dtsi-rk3588s-increas-vop-clk-fix-vdec1-iommu-int.patch
 # dts patches
 PATCHFILES += 1087-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
 PATCHFILES += 1088-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
