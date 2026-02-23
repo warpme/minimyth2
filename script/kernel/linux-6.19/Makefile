@@ -319,7 +319,6 @@ endif
 
 ifeq (1,1)
 #-- Rockchip 3588 patches -----------------------------------------
-# based on https://gitlab.collabora.com/hardware-enablement/rockchip-3588/linux/-/commits/rockchip-devel 2.02.2026
 # misc fixes
 PATCHFILES += 1000-math.h-add-DIV_ROUND_UP_NO_OVERFLOW.patch
 PATCHFILES += 1001-clk-divider-Fix-divisor-masking-on-64-bit-platforms.patch
@@ -419,8 +418,9 @@ PATCHFILES += 1095-arm64-dts-rockchip-rk3588s-nanopc-r6s-dts-improvements.patch
 PATCHFILES += 1096-arm64-dts-rockchip-rk3588-nanopc-t6-dtsi-improvements.patch
 PATCHFILES += 1097-arm64-dts-rockchip-rk3588-add-rock5t-dt.patch
 PATCHFILES += 1098-arm64-dts-rockchip-rk3588-khadas-edge2-dts-improvements.patch
-# for testing rkvdec h264
+# for testing 
 # PATCHFILES += 1099-arm64-dtsi-rockchip-disable-vpu121.patch
+# PATCHFILES += 1099-arm64-dts-rockchip-rk3588-rock5b-t-wip-typec-dp-support.patch
 #------------------------------------------------------------
 endif
 
