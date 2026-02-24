@@ -1,7 +1,7 @@
 
 GARNAME      = mesa
-# master @18.09.2025
-GARVERSION   = 2d8f8f82bd99e73f094090b16945bf56bacddc46
+# 26.0.0 GA @20.02.2026
+GARVERSION   = c10cba7efaa003e11c5c832bb2347e55c619ae7a
 MASTER_SITES = https://gitlab.freedesktop.org/mesa/mesa/-/archive/$(GARVERSION)/
 DISTFILES    = mesa-$(DISTNAME).tar.bz2
 WORKSRC      = $(WORKDIR)/$(DISTNAME)
@@ -118,7 +118,7 @@ MESON_CONFIGURE_ARGS += \
 else
 ifeq ($(GARCH),armv8)
 MESON_CONFIGURE_ARGS += \
-	-D gallium-drivers=lima,panfrost,vc4,v3d \
+	-D gallium-drivers=lima,panfrost,vc4,v3d,freedreno \
 	-D gallium-va=disabled \
 	-D vulkan-drivers= \
 	-D precomp-compiler=system \
