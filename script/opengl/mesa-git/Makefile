@@ -127,7 +127,7 @@ else
 MESON_CONFIGURE_ARGS += \
 	-D gallium-drivers=radeonsi,iris,crocus,nouveau \
 	-D gallium-va=enabled \
-	-D video-codecs=vc1dec,h264dec,h265dec \
+	-D video-codecs=all_free \
 
 endif
 endif
