@@ -149,6 +149,8 @@ PATCHFILES += 0521-drm-sun4i-vi_layer-Limit-formats-for-DE33.patch
 PATCHFILES += 0522-clk-sunxi-ng-de2-Export-register-regmap-for-DE33.patch
 PATCHFILES += 0523-drm-sun4i-Add-planes-driver.patch
 PATCHFILES += 0524-drm-sun4i-switch-DE33-to-new-bindings.patch
+PATCHFILES += 0525-drm-sun4i-mixer-fix-layer-init-code.patch
+PATCHFILES += 0526-drm-sun4i-backend-fix-error-pointer-dereference.patch
 # various fixes
 PATCHFILES += 0550-HACK-clk-sunxi-ng-unify-parent-for-HDMI-clocks.patch
 PATCHFILES += 0552-asoc-sun4i-i2s-WiP-multi-channel.patch
