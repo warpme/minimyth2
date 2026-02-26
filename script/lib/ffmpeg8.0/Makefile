@@ -21,6 +21,7 @@ PATCHFILES  += 0011-avcodec-Add-V4L2-Request-API-av1-hwaccel.patch
 PATCHFILES  += 0012-avutil-hwcontext_v4l2request-Add-support-for-AFBC_16.patch
 PATCHFILES  += 0013-avutil-hwcontext_v4l2request-Add-support-for-BROADCO.patch
 PATCHFILES  += 0014-avutil-FIXUP-v4l2request_select_capture_format.patch
+PATCHFILES  += 0015-libavutil-add-extra-fourcc.patch
 endif
 
 LICENSE      = GPL2/LGPL2_1
