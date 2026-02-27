@@ -201,6 +201,7 @@ PATCHFILES += 0632-clk-sunxi-ng-ccu-hack-fix-too-slow-hdmi-audio.patch
 PATCHFILES += 0633-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
 PATCHFILES += 0635-drvers-of-add-dt-overlay-configfs-interface.patch
 PATCHFILES += 0636-drv-rtc-sun6i-add-support-rtc-without-external-losc.patch
+PATCHFILES += 0637-mmc-pwrseq_simple-fix-add-support-for-one-reset-control.patch
 # dtsi patches
 PATCHFILES += 0640-arm64-dtsi-allwinner-h616-Add-display-pipeline.patch
 PATCHFILES += 0641-arm64-dtsi-allwinner-h616-Add-hdmi-audio.patch
