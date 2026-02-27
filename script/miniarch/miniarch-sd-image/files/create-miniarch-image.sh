@@ -100,6 +100,9 @@ elif [ ! -z `echo ${boards} | grep -o "board-rk3566.*"` ] ; then
 elif [ ! -z `echo ${boards} | grep -o "board-rk3588*"` ] ; then
     echo "  board-rk3588 detected: using default-gpt.wks"
     cat ${base_dir}/default-gpt.wks >> ${base_dir}/MiniArch.wks
+elif [ ! -z `echo ${boards} | grep -o "board-qcs6490*"` ] ; then
+    echo "  board-qcs6490 detected: using default-gpt.wks"
+    cat ${base_dir}/default-gpt.wks >> ${base_dir}/MiniArch.wks
 else
     echo "  Using default-mbr.wks"
     cat ${base_dir}/default-mbr.wks >> ${base_dir}/MiniArch.wks
