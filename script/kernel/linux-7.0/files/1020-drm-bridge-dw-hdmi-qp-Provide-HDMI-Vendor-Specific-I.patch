@@ -1,0 +1,120 @@
+From 6229e17e473fc45c76685a2f1e655a7099df7a12 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Sat, 24 Jan 2026 02:33:43 +0200
+Subject: [PATCH 20/90] drm/bridge: dw-hdmi-qp: Provide HDMI Vendor Specific
+ InfoFrame
+
+Since commit b626b1a1c9cc ("drm/bridge: refactor HDMI InfoFrame
+callbacks"), the following warning is generated:
+
+  [   13.654149] rockchip-drm display-subsystem: [drm] HDMI VSI not supported
+
+Add the missing support for sending HDMI Vendor-Specific Infoframes.
+
+Additionally, introduce dw_hdmi_qp_write_{pkt|infoframe}() helpers, as a
+prerequisite to rework all dw_hdmi_qp_bridge_write_*_infoframe()
+callbacks and get rid of some boilerplate code.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c | 39 ++++++++++++++++++--
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h |  2 +
+ 2 files changed, 38 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index 75f5280fff..637bf8ed50 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -12,6 +12,7 @@
+ #include <linux/export.h>
+ #include <linux/i2c.h>
+ #include <linux/irq.h>
++#include <linux/minmax.h>
+ #include <linux/module.h>
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+@@ -1101,9 +1102,9 @@ static int dw_hdmi_qp_bridge_clear_avi_infoframe(struct drm_bridge *bridge)
+ 
+ static int dw_hdmi_qp_bridge_clear_hdmi_infoframe(struct drm_bridge *bridge)
+ {
+-	/* FIXME: add support for this InfoFrame */
++	struct dw_hdmi_qp *hdmi = bridge->driver_private;
+ 
+-	drm_warn_once(bridge->encoder->dev, "HDMI VSI not supported\n");
++	dw_hdmi_qp_mod(hdmi, 0, PKTSCHED_VSI_TX_EN, PKTSCHED_PKT_EN);
+ 
+ 	return 0;
+ }
+@@ -1130,6 +1131,32 @@ static int dw_hdmi_qp_bridge_clear_audio_infoframe(struct drm_bridge *bridge)
+ 	return 0;
+ }
+ 
++static void dw_hdmi_qp_write_pkt(struct dw_hdmi_qp *hdmi, const u8 *buffer,
++				 size_t start, size_t len, unsigned int reg)
++{
++	u32 val = 0;
++	size_t i;
++
++	for (i = start; i < start + len; i++)
++		val |= buffer[i] << ((i % 4) * BITS_PER_BYTE);
++
++	dw_hdmi_qp_write(hdmi, val, reg);
++}
++
++static void dw_hdmi_qp_write_infoframe(struct dw_hdmi_qp *hdmi, const u8 *buffer,
++				       size_t len, unsigned int reg)
++{
++	size_t i;
++
++	/* InfoFrame packet header */
++	dw_hdmi_qp_write_pkt(hdmi, buffer, 1, 2, reg);
++
++	/* InfoFrame packet body */
++	for (i = 0; i < len - 3; i += 4)
++		dw_hdmi_qp_write_pkt(hdmi, buffer + 3, i, min(len - i - 3, 4),
++				     reg + i + 4);
++}
++
+ static int dw_hdmi_qp_bridge_write_avi_infoframe(struct drm_bridge *bridge,
+ 						 const u8 *buffer, size_t len)
+ {
+@@ -1143,9 +1170,15 @@ static int dw_hdmi_qp_bridge_write_avi_infoframe(struct drm_bridge *bridge,
+ static int dw_hdmi_qp_bridge_write_hdmi_infoframe(struct drm_bridge *bridge,
+ 						  const u8 *buffer, size_t len)
+ {
++	struct dw_hdmi_qp *hdmi = bridge->driver_private;
++
+ 	dw_hdmi_qp_bridge_clear_hdmi_infoframe(bridge);
+ 
+-	/* FIXME: add support for the HDMI VSI */
++	dw_hdmi_qp_write_infoframe(hdmi, buffer, len, PKT_VSI_CONTENTS0);
++
++	dw_hdmi_qp_mod(hdmi, 0, PKTSCHED_VSI_FIELDRATE, PKTSCHED_PKT_CONFIG1);
++	dw_hdmi_qp_mod(hdmi, PKTSCHED_VSI_TX_EN, PKTSCHED_VSI_TX_EN,
++		       PKTSCHED_PKT_EN);
+ 
+ 	return 0;
+ }
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h
+index 91a15f82e3..53688eae8d 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h
+@@ -198,6 +198,7 @@
+ #define PKTSCHED_PRQUEUE2_CONFIG2			0xa94
+ #define PKTSCHED_PKT_CONFIG0				0xa98
+ #define PKTSCHED_PKT_CONFIG1				0xa9c
++#define PKTSCHED_VSI_FIELDRATE				BIT(14)
+ #define PKTSCHED_DRMI_FIELDRATE				BIT(13)
+ #define PKTSCHED_AVI_FIELDRATE				BIT(12)
+ #define PKTSCHED_PKT_CONFIG2				0xaa0
+@@ -206,6 +207,7 @@
+ #define PKTSCHED_DRMI_TX_EN				BIT(17)
+ #define PKTSCHED_AUDI_TX_EN				BIT(15)
+ #define PKTSCHED_AVI_TX_EN				BIT(13)
++#define PKTSCHED_VSI_TX_EN				BIT(12)
+ #define PKTSCHED_EMP_CVTEM_TX_EN			BIT(10)
+ #define PKTSCHED_AMD_TX_EN				BIT(8)
+ #define PKTSCHED_GCP_TX_EN				BIT(3)
+-- 
+2.46.0
+

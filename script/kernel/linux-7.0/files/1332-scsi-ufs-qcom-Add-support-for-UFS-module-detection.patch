@@ -1,0 +1,24 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.0-rc1/drivers/ufs/host/ufs-qcom.c linux-7.0-rc1/drivers/ufs/host/ufs-qcom.c
+--- linux-7.0-rc1/drivers/ufs/host/ufs-qcom.c	2026-03-02 11:48:44.218937319 +0100
++++ linux-7.0-rc1/drivers/ufs/host/ufs-qcom.c	2026-03-02 11:48:22.975647009 +0100
+@@ -2385,6 +2385,20 @@
+ 	struct device *dev = &pdev->dev;
+ 	const struct ufs_hba_variant_ops *vops;
+ 	const struct ufs_qcom_drvdata *drvdata = device_get_match_data(dev);
++	struct gpio_desc *cd_gpio;
++
++	cd_gpio = devm_gpiod_get_optional(dev, "cd", GPIOD_IN);
++	if (IS_ERR(cd_gpio)) {
++		return dev_err_probe(dev, PTR_ERR(cd_gpio),
++				     "failed to get card-detect GPIO\n");
++	}
++
++	if (cd_gpio) {
++		if (!gpiod_get_value(cd_gpio)) {
++			dev_info(dev, "UFS module not present, skipping initialization\n");
++			return 0;
++		}
++	}
+ 
+ 	if (drvdata && drvdata->vops)
+ 		vops = drvdata->vops;
