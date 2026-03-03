@@ -1,9 +1,10 @@
 
 GARNAME      = dtc
-GARVERSION   = 1.7.0
+GARVERSION   = 1.7.2
 CATEGORIES   = utils
 MASTER_SITES = https://www.kernel.org/pub/software/utils/dtc/
 DISTFILES    = $(DISTNAME).tar.xz
+PATCHFILES   = fix-gcc15-compile.patch
 LICENSE      = GPL2
 
 DESCRIPTION = 
