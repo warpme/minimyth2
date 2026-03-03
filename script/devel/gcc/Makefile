@@ -1,12 +1,14 @@
 
 GARNAME       = gcc
 GARVERSION    = $(GCC_VERSION)
+GITHASH       = 03032026-283f85bc232
 CATEGORIES    = devel
-MASTER_SITES  = https://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)/
-MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/releases/$(DISTNAME)/
-MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/prerelease-$(GCC_VERSION)/
-MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/snapshots/$(GCC_VERSION)/
-DISTFILES     = $(DISTNAME).tar.xz
+MASTER_SITES  = git://gcc.gnu.org/git/gcc.git/
+# MASTER_SITES += https://ftp.gnu.org/gnu/$(GARNAME)/$(DISTNAME)/
+# MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/releases/$(DISTNAME)/
+# MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/prerelease-$(GCC_VERSION)/
+# MASTER_SITES += ftp://gcc.gnu.org/pub/$(GARNAME)/snapshots/$(GCC_VERSION)/
+DISTFILES     = $(DISTNAME).tar.bz2
 PATCHFILES    = $(DISTNAME)-disable_multilib_i386_linux64.patch
 ifneq ("$(DESTIMG)+$(CROSSIMG)","build+build")
 PATCHFILES   += $(DISTNAME)-perl.patch.gar
@@ -82,6 +84,10 @@ CPPFLAGS :=
 CFLAGS   :=
 CXXFLAGS :=
 LDFLAGS  :=
+
+git//%$(DISTNAME).tar.bz2:
+	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GITHASH))), $(DISTNAME))
+	@$(MAKECOOKIE)
 
 configure-custom:
 	@mkdir -p $(WORKBLD)
