@@ -17,5 +17,6 @@ CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --prefix="$(p
 include ../../gar.mk
 
 post-install:
+	@mkdir -p $(DESTDIR)$(libdir)/pkgconfig
 	@mv $(DESTDIR)$(datadir)/pkgconfig/hwdata.pc $(DESTDIR)$(libdir)/pkgconfig/hwdata.pc
 	@$(MAKECOOKIE)
