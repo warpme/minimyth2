@@ -1,8 +1,8 @@
 
 GARNAME      = util-linux
-GARVERSION   = 2.40.1
+GARVERSION   = 2.41.3
 CATEGORIES   = utils
-MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.40/
+MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.41/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME)-stop-building-disabled-pymount.patch
 LICENSE      = GPL2
