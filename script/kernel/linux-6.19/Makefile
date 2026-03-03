@@ -505,6 +505,8 @@ BUILDDEPS = \
 DEPENDS = \
 	kernel-headers/linux-headers \
 	firmware/firmware \
+	utils/pciutils \
+	lib/ncurses \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom cpupower tmon
