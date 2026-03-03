@@ -7,7 +7,7 @@ DISTFILES    = $(DISTNAME).tar.xz
 WORKSRC      = $(WORKDIR)/$(GARNAME)-$(GARVERSION)
 LICENSE      = BSD
 
-DEPENDS = lib/libacl utils/bzip2 lib/expat lib/openssl utils/xz devel/zlib lib/libzstd lib/libiconv
+DEPENDS = lib/libacl utils/bzip2 lib/expat lib/openssl utils/xz devel/zlib lib/libzstd
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
@@ -16,6 +16,7 @@ INSTALL_SCRIPTS   = $(WORKSRC)/Makefile
 CONFIGURE_ARGS = $(DIRPATHS) --build=$(GARBUILD) --host=$(GARHOST) --prefix="$(prefix)" \
 	--without-xml2 \
 	--without-nettle \
+	--without-iconv \
 	--disable-static
 
 include ../../gar.mk
