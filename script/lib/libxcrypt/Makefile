@@ -1,9 +1,10 @@
 
 GARNAME      = libxcrypt
-GARVERSION   = 4.4.38
+GARVERSION   = 4.5.2
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/besser82/libxcrypt/archive/refs/tags/
 DISTFILES    = v$(GARVERSION).tar.gz
+PATCHFILES   = fix-compile-gcc15.patch
 LICENSE      = GPL2
 
 DEPENDS = 
