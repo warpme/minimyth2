@@ -72,6 +72,7 @@ MESON_CONFIGURE_ARGS = \
 	-D build-fdformat=disabled \
 	-D build-hwclock=disabled \
 	-D build-lslogins=disabled \
+	-D build-lsblk=enabled \
 	-D build-wdctl=disabled \
 	-D build-cal=disabled \
 	-D build-logger=disabled \
