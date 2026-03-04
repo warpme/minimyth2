@@ -12,7 +12,6 @@ DEPENDS = \
 	$(if $(filter brcm-vc4,$(mm_OPENGL_PROVIDER)),opengl/brcm-vc4) \
 	$(if $(filter mesa mesa-git,$(mm_OPENGL_PROVIDER)), \
 		opengl/glslang \
-		opengl/freeglut \
 		opengl/glu) \
 	$(if $(filter glmark2,$(mm_SOFTWARE)),opengl/glmark2) \
 	$(if $(filter kmscube,$(mm_SOFTWARE)),opengl/kmscube) \
