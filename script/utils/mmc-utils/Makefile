@@ -1,6 +1,6 @@
 
 GARNAME      = mmc-utils
-GARVERSION   = 20231010-b5ca1403
+GARVERSION   = 20251230-8f41ccbb
 CATEGORIES   = utils
 MASTER_SITES = git://git.kernel.org/pub/scm/utils/mmc/mmc-utils.git/
 DISTFILES    = $(DISTNAME).tar.bz2
@@ -13,6 +13,8 @@ BUILD_SCRIPTS     = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS   = custom
 
 include ../../gar.mk
+
+BUILD_ARGS = "C=0"
 
 git//%$(DISTNAME).tar.bz2:
 	@$(call FETCH_GIT, $*, $(word 2,$(subst -, ,$(GARVERSION))), $(DISTNAME))
