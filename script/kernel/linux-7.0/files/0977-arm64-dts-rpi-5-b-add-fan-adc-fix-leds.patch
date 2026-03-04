@@ -1,0 +1,114 @@
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.0-rc1/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts linux-7.0-rc1/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts
+--- linux-7.0-rc1/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts	2026-02-22 22:18:59.000000000 +0100
++++ linux-7.0-rc1/arch/arm64/boot/dts/broadcom/bcm2712-rpi-5-b.dts	2026-03-04 12:22:22.981484213 +0100
+@@ -11,11 +11,42 @@
+ /dts-v1/;
+ 
+ #include "bcm2712-rpi-5-b-base.dtsi"
++#include <dt-bindings/pwm/pwm.h>
+ 
+ / {
+ 	aliases {
+ 		ethernet0 = &rp1_eth;
+ 	};
++
++	leds: leds {
++		compatible = "gpio-leds";
++
++		led_pwr: led-pwr {
++			label = "DISK";
++			gpios = <&rp1_gpio 44 GPIO_ACTIVE_LOW>;
++			default-state = "off";
++			linux,default-trigger = "disk-activity";
++		};
++
++		led_act: led-act {
++			label = "ACT";
++			gpios = <&gio_aon 9 GPIO_ACTIVE_HIGH>;
++			default-state = "off";
++			linux,default-trigger = "heartbeat";
++		};
++	};
++
++	fan: cooling_fan {
++		status = "okay";
++		compatible = "pwm-fan";
++		#cooling-cells = <2>;
++		cooling-min-state = <0>;
++		cooling-max-state = <3>;
++		cooling-levels = <0 75 125 175 250>;
++		pwms = <&rp1_pwm1 3 41566 PWM_POLARITY_INVERTED>;
++		rpm-regmap = <&rp1_pwm1>;
++		rpm-offset = <0x3c>;
++	};
+ };
+ 
+ &pcie2 {
+@@ -79,3 +110,67 @@
+ &rp1_usb1 {
+ 	status = "okay";
+ };
++
++&rp1_pwm1 {
++	pinctrl-0 = <&rp1_pwm1_gpio45>;
++	pinctrl-names = "default";
++	status = "okay";
++};
++
++&rp1_adc {
++	status = "okay";
++};
++
++&thermal_trips {
++	cpu_tepid: cpu-tepid {
++		temperature = <50000>;
++		hysteresis = <5000>;
++		type = "active";
++	};
++
++	cpu_warm: cpu-warm {
++		temperature = <60000>;
++		hysteresis = <5000>;
++		type = "active";
++	};
++
++	cpu_hot: cpu-hot {
++		temperature = <67500>;
++		hysteresis = <5000>;
++		type = "active";
++	};
++
++	cpu_vhot: cpu-vhot {
++		temperature = <75000>;
++		hysteresis = <5000>;
++		type = "active";
++	};
++};
++
++&cooling_maps {
++	tepid {
++		trip = <&cpu_tepid>;
++		cooling-device = <&fan 1 1>;
++	};
++
++	warm {
++		trip = <&cpu_warm>;
++		cooling-device = <&fan 2 2>;
++	};
++
++	hot {
++		trip = <&cpu_hot>;
++		cooling-device = <&fan 3 3>;
++	};
++
++	vhot {
++		trip = <&cpu_vhot>;
++		cooling-device = <&fan 4 4>;
++	};
++
++	melt {
++		trip = <&cpu_crit>;
++		cooling-device = <&fan 4 4>;
++	};
++};
++

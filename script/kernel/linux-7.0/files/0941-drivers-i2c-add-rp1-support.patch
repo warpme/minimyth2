@@ -1,0 +1,214 @@
+Patch from MiniMyth2 project
+
+Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
+
+
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.0-rc1/drivers/i2c/busses/i2c-designware-core.h linux-7.0-rc1/drivers/i2c/busses/i2c-designware-core.h
+--- linux-7.0-rc1/drivers/i2c/busses/i2c-designware-core.h	2026-02-22 22:18:59.000000000 +0100
++++ linux-7.0-rc1/drivers/i2c/busses/i2c-designware-core.h	2026-03-01 21:55:02.807064983 +0100
+@@ -93,9 +93,12 @@
+ #define DW_IC_ENABLE_STATUS			0x9c
+ #define DW_IC_CLR_RESTART_DET			0xa8
+ #define DW_IC_SMBUS_INTR_MASK			0xcc
++#define DW_IC_SCL_STUCK_AT_LOW_TIMEOUT		0xac
++#define DW_IC_SDA_STUCK_AT_LOW_TIMEOUT		0xb0
+ #define DW_IC_COMP_PARAM_1			0xf4
+ #define DW_IC_COMP_VERSION			0xf8
+ #define DW_IC_SDA_HOLD_MIN_VERS			0x3131312A /* "111*" == v1.11* */
++#define DW_IC_BUS_CLEAR_MIN_VERS		0x3230302A /* "200*" == v2.00* */
+ #define DW_IC_COMP_TYPE				0xfc
+ #define DW_IC_COMP_TYPE_VALUE			0x44570140 /* "DW" + 0x0140 */
+ 
+@@ -125,6 +128,7 @@
+ 
+ #define DW_IC_ENABLE_ENABLE			BIT(0)
+ #define DW_IC_ENABLE_ABORT			BIT(1)
++#define DW_IC_ENABLE_BUS_RECOVERY		BIT(3)
+ 
+ #define DW_IC_STATUS_ACTIVITY			BIT(0)
+ #define DW_IC_STATUS_TFE			BIT(2)
+@@ -132,13 +136,16 @@
+ #define DW_IC_STATUS_MASTER_ACTIVITY		BIT(5)
+ #define DW_IC_STATUS_SLAVE_ACTIVITY		BIT(6)
+ #define DW_IC_STATUS_MASTER_HOLD_TX_FIFO_EMPTY	BIT(7)
++#define DW_IC_STATUS_SDA_STUCK_NOT_RECOVERED	BIT(11)
+ 
+ #define DW_IC_SDA_HOLD_RX_SHIFT			16
+ #define DW_IC_SDA_HOLD_RX_MASK			GENMASK(23, 16)
+ 
+ #define DW_IC_ERR_TX_ABRT			0x1
+ 
++#define DW_IC_TAR_SPECIAL			BIT(11)
+ #define DW_IC_TAR_10BITADDR_MASTER		BIT(12)
++#define DW_IC_TAR_SMBUS_QUICK_CMD		BIT(16)
+ 
+ #define DW_IC_COMP_PARAM_1_SPEED_MODE_HIGH	(BIT(2) | BIT(3))
+ #define DW_IC_COMP_PARAM_1_SPEED_MODE_MASK	GENMASK(3, 2)
+@@ -177,6 +184,7 @@
+ #define ABRT_SLAVE_FLUSH_TXFIFO			13
+ #define ABRT_SLAVE_ARBLOST			14
+ #define ABRT_SLAVE_RD_INTX			15
++#define ABRT_SLAVE_SDA_STUCK_AT_LOW		17
+ 
+ #define DW_IC_TX_ABRT_7B_ADDR_NOACK		BIT(ABRT_7B_ADDR_NOACK)
+ #define DW_IC_TX_ABRT_10ADDR1_NOACK		BIT(ABRT_10ADDR1_NOACK)
+@@ -192,6 +200,7 @@
+ #define DW_IC_RX_ABRT_SLAVE_RD_INTX		BIT(ABRT_SLAVE_RD_INTX)
+ #define DW_IC_RX_ABRT_SLAVE_ARBLOST		BIT(ABRT_SLAVE_ARBLOST)
+ #define DW_IC_RX_ABRT_SLAVE_FLUSH_TXFIFO	BIT(ABRT_SLAVE_FLUSH_TXFIFO)
++#define DW_IC_TX_ABRT_SLAVE_SDA_STUCK_AT_LOW	BIT(ABRT_SLAVE_SDA_STUCK_AT_LOW)
+ 
+ #define DW_IC_TX_ABRT_NOACK			(DW_IC_TX_ABRT_7B_ADDR_NOACK | \
+ 						 DW_IC_TX_ABRT_10ADDR1_NOACK | \
+@@ -311,6 +320,7 @@
+ 	u16			fp_lcnt;
+ 	u16			hs_hcnt;
+ 	u16			hs_lcnt;
++	u32			wanted_bus_speed;
+ 	int			(*acquire_lock)(void);
+ 	void			(*release_lock)(void);
+ 	int			semaphore_idx;
+diff --speed-large-files --no-dereference --minimal -Naur linux-7.0-rc1/drivers/i2c/busses/i2c-designware-master.c linux-7.0-rc1/drivers/i2c/busses/i2c-designware-master.c
+--- linux-7.0-rc1/drivers/i2c/busses/i2c-designware-master.c	2026-02-22 22:18:59.000000000 +0100
++++ linux-7.0-rc1/drivers/i2c/busses/i2c-designware-master.c	2026-03-01 21:55:02.807064983 +0100
+@@ -31,6 +31,34 @@
+ #define AMD_TIMEOUT_MAX_US	250
+ #define AMD_MASTERCFG_MASK	GENMASK(15, 0)
+ 
++static u32 linear_interpolate(u32 x, u32 x1, u32 x2, u32 y1, u32 y2)
++{
++	return ((x - x1) * y2 + (x2 - x) * y1) / (x2 - x1);
++}
++
++static u16 u16_clamp(u32 v)
++{
++	return (u16)min(v, 0xffff);
++}
++
++static void clock_calc(struct dw_i2c_dev *dev, u32 *hcnt, u32 *lcnt)
++{
++	struct i2c_timings *t = &dev->timings;
++	u32 wanted_khz = (dev->wanted_bus_speed ?: t->bus_freq_hz)/1000;
++	u32 clk_khz = i2c_dw_clk_rate(dev);
++	u32 min_high_ns = (wanted_khz <= 100) ? 4000 :
++			  (wanted_khz <= 400) ?
++				linear_interpolate(wanted_khz, 100, 400, 4000, 600) :
++				linear_interpolate(wanted_khz, 400, 1000, 600, 260);
++	u32 high_cycles = (u32)(((u64)clk_khz * min_high_ns + 999999) / 1000000) + 1;
++	u32 extra_high_cycles = (u32)((u64)clk_khz * t->scl_fall_ns / 1000000);
++	u32 extra_low_cycles = (u32)((u64)clk_khz * t->scl_rise_ns / 1000000);
++	u32 period = ((u64)clk_khz + wanted_khz - 1) / wanted_khz;
++
++	*hcnt = u16_clamp(high_cycles - extra_high_cycles);
++	*lcnt = u16_clamp(period - high_cycles - extra_low_cycles);
++}
++
+ static int i2c_dw_set_timings_master(struct dw_i2c_dev *dev)
+ {
+ 	unsigned int comp_param1;
+@@ -38,6 +66,7 @@
+ 	struct i2c_timings *t = &dev->timings;
+ 	const char *fp_str = "";
+ 	u32 ic_clk;
++	u32 hcnt, lcnt;
+ 	int ret;
+ 
+ 	ret = i2c_dw_acquire_lock(dev);
+@@ -53,6 +82,8 @@
+ 	sda_falling_time = t->sda_fall_ns ?: 300; /* ns */
+ 	scl_falling_time = t->scl_fall_ns ?: 300; /* ns */
+ 
++	clock_calc(dev, &hcnt, &lcnt);
++
+ 	/* Calculate SCL timing parameters for standard mode if not set */
+ 	if (!dev->ss_hcnt || !dev->ss_lcnt) {
+ 		ic_clk = i2c_dw_clk_rate(dev);
+@@ -71,6 +102,8 @@
+ 					scl_falling_time,
+ 					0);	/* No offset */
+ 	}
++	dev->ss_hcnt = hcnt;
++	dev->ss_lcnt = lcnt;
+ 	dev_dbg(dev->dev, "Standard Mode HCNT:LCNT = %d:%d\n",
+ 		dev->ss_hcnt, dev->ss_lcnt);
+ 
+@@ -127,6 +160,8 @@
+ 					scl_falling_time,
+ 					0);	/* No offset */
+ 	}
++	dev->fs_hcnt = hcnt;
++	dev->fs_lcnt = lcnt;
+ 	dev_dbg(dev->dev, "Fast Mode%s HCNT:LCNT = %d:%d\n",
+ 		fp_str, dev->fs_hcnt, dev->fs_lcnt);
+ 
+@@ -177,6 +212,8 @@
+ 						scl_falling_time,
+ 						0);	/* No offset */
+ 		}
++		dev->hs_hcnt = hcnt;
++		dev->hs_lcnt = lcnt;
+ 		dev_dbg(dev->dev, "High Speed Mode HCNT:LCNT = %d:%d\n",
+ 			dev->hs_hcnt, dev->hs_lcnt);
+ 	}
+@@ -208,6 +245,10 @@
+ 		ic_tar = DW_IC_TAR_10BITADDR_MASTER;
+ 	}
+ 
++	/* Convert a zero-length read into an SMBUS quick command */
++	if (!msgs[dev->msg_write_idx].len)
++		ic_tar = DW_IC_TAR_SPECIAL | DW_IC_TAR_SMBUS_QUICK_CMD;
++
+ 	regmap_update_bits(dev->map, DW_IC_CON, DW_IC_CON_10BITADDR_MASTER,
+ 			   ic_con);
+ 
+@@ -408,6 +449,14 @@
+ 		regmap_read(dev->map, DW_IC_RXFLR, &flr);
+ 		rx_limit = dev->rx_fifo_depth - flr;
+ 
++		/* Handle SMBUS quick commands */
++		if (!buf_len) {
++			if (msgs[dev->msg_write_idx].flags & I2C_M_RD)
++				regmap_write(dev->map, DW_IC_DATA_CMD, 0x300);
++			else
++				regmap_write(dev->map, DW_IC_DATA_CMD, 0x200);
++		}
++
+ 		while (buf_len > 0 && tx_limit > 0 && rx_limit > 0) {
+ 			u32 cmd = 0;
+ 
+@@ -925,7 +974,7 @@
+ {
+ 	struct i2c_timings *t = &dev->timings;
+ 
+-	dev->functionality |= I2C_FUNC_10BIT_ADDR | DW_IC_DEFAULT_FUNCTIONALITY;
++	dev->functionality |= I2C_FUNC_10BIT_ADDR | I2C_FUNC_SMBUS_QUICK | DW_IC_DEFAULT_FUNCTIONALITY;
+ 
+ 	/* amd_i2c_dw_xfer_quirk() does not implement protocol mangling */
+ 	if ((dev->flags & MODEL_MASK) != MODEL_AMD_NAVI_GPU)
+@@ -1009,6 +1058,7 @@
+ int i2c_dw_probe_master(struct dw_i2c_dev *dev)
+ {
+ 	unsigned int ic_con;
++	unsigned int id_ver;
+ 	int ret;
+ 
+ 	init_completion(&dev->cmd_complete);
+@@ -1033,7 +1083,11 @@
+ 	if (ret)
+ 		return ret;
+ 
+-	if (ic_con & DW_IC_CON_BUS_CLEAR_CTRL)
++	ret = regmap_read(dev->map, DW_IC_COMP_VERSION, &id_ver);
++	if (ret)
++		return ret;
++
++	if (ic_con & DW_IC_CON_BUS_CLEAR_CTRL || id_ver >= DW_IC_BUS_CLEAR_MIN_VERS)
+ 		dev->master_cfg |= DW_IC_CON_BUS_CLEAR_CTRL;
+ 
+ 	return i2c_dw_init_recovery_info(dev);
+--
+
+MiniMyth2
+

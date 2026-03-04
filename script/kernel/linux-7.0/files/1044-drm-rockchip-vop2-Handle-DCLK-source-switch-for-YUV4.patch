@@ -1,0 +1,61 @@
+From bc698a5fad246a5325a3e7ac5e836315cdaa045e Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Wed, 18 Feb 2026 00:04:44 +0200
+Subject: [PATCH 44/90] drm/rockchip: vop2: Handle DCLK source switch for
+ YUV422 HDMI output
+
+Currently the color depth is unconditionally taken into consideration
+before deciding to switch DCLK sources for HDMI output, which might
+break certain modes when operating with depths greater than 8.
+
+When the required transmission rate exceeds the 600 MHz limit of the
+HDMI PHY PLL, e.g. for 4K@60Hz 10-bit RGB output, VOP2 will normally
+fallback to using the less accurate system CRU as a DCLK source,
+assuming HDMI 2.1 FRL is supported by the pipeline, otherwise the mode
+will be rejected.  For YUV420 output format this never happens, as it
+uses half of the RGB bandwidth, hence the rate remains within the PHY
+PLL limits.
+
+On the other hand, YUV422 requires two 12-bit components, regardless of
+the color depth, which from the clock rate perspective is equivalent to
+a transmission of three 8-bit RGB components.  E.g. sending 4K@60Hz
+10-bit YUV422 requires the same bandwidth as for 4K@60Hz 8-bit RGB,
+which is typically 594 MHz.  However, VOP2 wrongly assumes it requires
+742.5 MHz (594 * 10 / 8), hence it ends up switching DCLK source.
+
+As a consequence, the modes requiring uncommon pixel clocks, such as
+those corresponding to fractional refresh rates, will break.  An example
+is 3840x2160@59.94Hz, which would likely rely on the 593.407 MHz clock
+rate unsupported by the system CRU.
+
+Prevent the incorrect switches of DCLK source to system CRU for YUV422
+output format by forcing 8 bpc when checking the bandwidth.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/rockchip/rockchip_drm_vop2.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+index 686cbb8d46..b745734840 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop2.c
+@@ -1813,8 +1813,13 @@ static void vop2_crtc_atomic_enable(struct drm_crtc *crtc,
+ 	 * to 4K@60Hz, if available, otherwise keep using the system CRU.
+ 	 */
+ 	if (vop2->pll_hdmiphy0 || vop2->pll_hdmiphy1) {
+-		unsigned long max_dclk = DIV_ROUND_CLOSEST_ULL(VOP2_MAX_DCLK_RATE * 8,
+-							       vcstate->output_bpc);
++		/*
++		 * YUV422 requires two 12-bit components, which from the clock
++		 * rate perspective is equivalent to three 8-bit RGB components.
++		 */
++		unsigned int bpc = vcstate->output_mode == ROCKCHIP_OUT_MODE_YUV422 ?
++					8 : vcstate->output_bpc;
++		unsigned long max_dclk = DIV_ROUND_CLOSEST_ULL(VOP2_MAX_DCLK_RATE * 8, bpc);
+ 		if (clock <= max_dclk) {
+ 			drm_for_each_encoder_mask(encoder, crtc->dev, crtc_state->encoder_mask) {
+ 				struct rockchip_encoder *rkencoder = to_rockchip_encoder(encoder);
+-- 
+2.46.0
+

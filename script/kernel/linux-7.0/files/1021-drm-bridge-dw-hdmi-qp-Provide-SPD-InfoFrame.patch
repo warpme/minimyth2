@@ -1,0 +1,90 @@
+From 95cb98944d86c7fd92bade3929dec0961068efbd Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Sat, 24 Jan 2026 02:57:05 +0200
+Subject: [PATCH 21/90] drm/bridge: dw-hdmi-qp: Provide SPD InfoFrame
+
+The hardware is capable of sending Source Product Description (SPD)
+InfoFrames, hence enable the missing support.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c | 29 +++++++++++++++++++-
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h |  1 +
+ 2 files changed, 29 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index 637bf8ed50..db6bf46e94 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -1118,6 +1118,15 @@ static int dw_hdmi_qp_bridge_clear_hdr_drm_infoframe(struct drm_bridge *bridge)
+ 	return 0;
+ }
+ 
++static int dw_hdmi_qp_bridge_clear_spd_infoframe(struct drm_bridge *bridge)
++{
++	struct dw_hdmi_qp *hdmi = bridge->driver_private;
++
++	dw_hdmi_qp_mod(hdmi, 0, PKTSCHED_SPDI_TX_EN, PKTSCHED_PKT_EN);
++
++	return 0;
++}
++
+ static int dw_hdmi_qp_bridge_clear_audio_infoframe(struct drm_bridge *bridge)
+ {
+ 	struct dw_hdmi_qp *hdmi = bridge->driver_private;
+@@ -1193,6 +1202,21 @@ static int dw_hdmi_qp_bridge_write_hdr_drm_infoframe(struct drm_bridge *bridge,
+ 	return dw_hdmi_qp_config_drm_infoframe(hdmi, buffer, len);
+ }
+ 
++static int dw_hdmi_qp_bridge_write_spd_infoframe(struct drm_bridge *bridge,
++						 const u8 *buffer, size_t len)
++{
++	struct dw_hdmi_qp *hdmi = bridge->driver_private;
++
++	dw_hdmi_qp_bridge_clear_spd_infoframe(bridge);
++
++	dw_hdmi_qp_write_infoframe(hdmi, buffer, len, PKT_SPDI_CONTENTS0);
++
++	dw_hdmi_qp_mod(hdmi, PKTSCHED_SPDI_TX_EN, PKTSCHED_SPDI_TX_EN,
++		       PKTSCHED_PKT_EN);
++
++	return 0;
++}
++
+ static int dw_hdmi_qp_bridge_write_audio_infoframe(struct drm_bridge *bridge,
+ 						   const u8 *buffer, size_t len)
+ {
+@@ -1391,6 +1415,8 @@ static const struct drm_bridge_funcs dw_hdmi_qp_bridge_funcs = {
+ 	.hdmi_write_hdmi_infoframe = dw_hdmi_qp_bridge_write_hdmi_infoframe,
+ 	.hdmi_clear_hdr_drm_infoframe = dw_hdmi_qp_bridge_clear_hdr_drm_infoframe,
+ 	.hdmi_write_hdr_drm_infoframe = dw_hdmi_qp_bridge_write_hdr_drm_infoframe,
++	.hdmi_clear_spd_infoframe = dw_hdmi_qp_bridge_clear_spd_infoframe,
++	.hdmi_write_spd_infoframe = dw_hdmi_qp_bridge_write_spd_infoframe,
+ 	.hdmi_clear_audio_infoframe = dw_hdmi_qp_bridge_clear_audio_infoframe,
+ 	.hdmi_write_audio_infoframe = dw_hdmi_qp_bridge_write_audio_infoframe,
+ 	.hdmi_audio_startup = dw_hdmi_qp_audio_enable,
+@@ -1510,7 +1536,8 @@ struct dw_hdmi_qp *dw_hdmi_qp_bind(struct platform_device *pdev,
+ 			   DRM_BRIDGE_OP_EDID |
+ 			   DRM_BRIDGE_OP_HDMI |
+ 			   DRM_BRIDGE_OP_HDMI_AUDIO |
+-			   DRM_BRIDGE_OP_HDMI_HDR_DRM_INFOFRAME;
++			   DRM_BRIDGE_OP_HDMI_HDR_DRM_INFOFRAME |
++			   DRM_BRIDGE_OP_HDMI_SPD_INFOFRAME;
+ 	if (!hdmi->no_hpd)
+ 		hdmi->bridge.ops |= DRM_BRIDGE_OP_HPD;
+ 	hdmi->bridge.of_node = pdev->dev.of_node;
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h
+index 53688eae8d..c07847e8d7 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.h
+@@ -206,6 +206,7 @@
+ #define PKTSCHED_PKT_EN					0xaa8
+ #define PKTSCHED_DRMI_TX_EN				BIT(17)
+ #define PKTSCHED_AUDI_TX_EN				BIT(15)
++#define PKTSCHED_SPDI_TX_EN				BIT(14)
+ #define PKTSCHED_AVI_TX_EN				BIT(13)
+ #define PKTSCHED_VSI_TX_EN				BIT(12)
+ #define PKTSCHED_EMP_CVTEM_TX_EN			BIT(10)
+-- 
+2.46.0
+
