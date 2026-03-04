@@ -11,7 +11,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS    = lang/c lib/libffi lib/pcre devel/zlib gtk/gtk-doc utils/util-linux
+DEPENDS    = lang/c lib/libffi lib/pcre devel/zlib gtk/gtk-doc utils/util-linux lib/libiconv
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
@@ -21,6 +21,7 @@ MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
 	-D gtk_doc="false" \
 	-D tests="false" \
+	-D iconv="external" \
 
 include ../../gar.mk
 
