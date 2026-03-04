@@ -5,14 +5,14 @@ CATEGORIES   = utils
 MASTER_SITES = https://github.com/lm-sensors/lm-sensors/archive/
 DISTFILES    = V3-6-0.tar.gz
 WORKSRC      = $(WORKDIR)/lm-sensors-3-6-0
-PATCHFILES   = $(DISTNAME)-perl.patch.gar
+PATCHFILES   = $(DISTNAME)-perl.patch.gar prog-sensors-add-missing-iconv-at-link.patch
 LICENSE      = GPL2/LGPL2_1
 
 DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c
+DEPENDS = lang/c lib/libiconv
 
 BUILD_SCRIPTS   = $(WORKSRC)/Makefile
 INSTALL_SCRIPTS = $(WORKSRC)/Makefile
@@ -30,8 +30,8 @@ ARGS = \
 	LIBINCLUDEDIR="$(includedir)/sensors" \
 	MANDIR="$(mandir)" \
 	MACHINE="$(GARCH)" \
-	CFLAGS="$(CFLAGS)" \
-	CPPFLAGS="$(CPPFLAGS)" \
+	CFLAGS="$(CFLAGS) -liconv" \
+	CPPFLAGS="$(CPPFLAGS) -liconv" \
 	EXLDFLAGS="$(CFLAGS)" \
 	AR="$(AR)"
 
