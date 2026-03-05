@@ -284,7 +284,7 @@ PATCHFILES += 0909-clk-bcm-changes-to-get-rpi4-v4l2m2m-working.patch
 # add rpi5 rp1 support
 PATCHFILES += 0932-drivers-pci-add-rp1-support.patch
 PATCHFILES += 0933-drivers-clk-add-rp1-support.patch
-PATCHFILES += 0934-drivers-pinctrl-add-rp1-support.patch
+#PATCHFILES += 0934-drivers-pinctrl-add-rp1-support.patch
 PATCHFILES += 0935-drivers-dma-add-rp1-support.patch
 PATCHFILES += 0936-drivers-irqchip-add-rp1-support.patch
 PATCHFILES += 0937-drivers-phy-add-rp1-support.patch
@@ -302,15 +302,16 @@ PATCHFILES += 0948-gpu-drm-vc4-add-rpi5-support.patch
 PATCHFILES += 0949-drm-vc4-hdmi-hack-for-rpi4-rpi5-audio.patch
 # device-tree patches
 PATCHFILES += 0970-arm64-dts-brcm-rpi4-set-led-to-disk-activity-mmc0-alias.patch
-PATCHFILES += 0971-arm64-dts-brcm-rpi5-add-rp1-usb-eth-pwm.patch
-PATCHFILES += 0972-arm64-dts-brcm-rpi5-fix-hdmi-audio.patch
-PATCHFILES += 0973-arm64-dts-brcm-rpi5-add-v3d.patch
-PATCHFILES += 0974-arm64-dts-brcm-rpi4-add-rpivid.patch
-PATCHFILES += 0975-arm64-dts-brcm-rpi5-add-rpivid.patch
-PATCHFILES += 0977-arm64-dts-brcm-rpi5-incr-cma-to-384M.patch
-PATCHFILES += 0978-arm64-dts-brcm-rpi5-add-fan-support.patch
+PATCHFILES += 0971-arm64-2712dtsi-add-uart-mmc2-pins-ths-sensor.patch
+PATCHFILES += 0972-arm64-2712dtsi-add-gpu-rpivid.patch
+PATCHFILES += 0973-arm64-2712dtsi-add-dma32-dma40-for-audio.patch
+PATCHFILES += 0974-arm64-2712dtsi-add-thermal-zones.patch
+PATCHFILES += 0975-arm64-rp1common.dtsi-add-pwm-adc-nodes.patch
+PATCHFILES += 0976-arm64-rpi-5-b-base.dtsi-add-pwm1fan-pins.patch
+PATCHFILES += 0977-arm64-dts-rpi-5-b-add-fan-adc-fix-leds.patch
+PATCHFILES += 0978-arm64-2712dtsi-increase-cam-to-384M.patch
 PATCHFILES += 0979-arm64-dts-brcm-rpi4-incr-cma-to-384M.patch
-PATCHFILES += 0980-arm64-dts-brcm-rpi5-add-wifi-bt-support.patch
+PATCHFILES += 0980-arm64-dts-brcm-rpi4-add-rpivid.patch
 endif
 #------------------------------------------------------------
 
@@ -479,8 +480,6 @@ BUILDDEPS = \
 DEPENDS = \
 	kernel-headers/linux-headers \
 	firmware/firmware \
-	utils/pciutils \
-	lib/ncurses \
 
 CONFIGURE_SCRIPTS = custom
 BUILD_SCRIPTS     = custom cpupower tmon
