@@ -390,15 +390,10 @@ PATCHFILES += 1062-media-rockchip-rkvdec-add-vdpu381-and-383-to-rkvdec-add-v9-20
 PATCHFILES += 1063-media-rockchip-rkvdec-vdpu381-add-vp9-support-v9.patch
 # fix h264 playback in chromium
 PATCHFILES += 1064-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
-# fix av1 hw decode seen e.g. on clapper
-PATCHFILES += 1065-media-verisilicon-AV1-fix-enable-cdef-computation.patch
-# some avi fixes
-PATCHFILES += 1066-media-verisilicon-AV1-Set-IDR-flag-for-intra_only-fr.patch
 # fix from armbian for initialize h264 frame_mbs_only_flag as 1
 PATCHFILES += 1067-media-v4l2-core-Initialize-h264-frame_mbs_only_flag-as-1.patch
 # some avi fixes
 PATCHFILES += 1068-media-verisilicon-AV1-Restore-IOMMU-context-before-d.patch
-PATCHFILES += 1069-media-verisilicon-AV1-Fix-tile-info-buffer-size.patch
 # add khadas edge2 support in khadas-mcu
 PATCHFILES += 1070-mfd-khadas-mcu-add-edge2-support.patch
 # dtsi additions
@@ -406,7 +401,6 @@ PATCHFILES += 1080-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 1082-arm64-dtsi-rockchip-add-the-vdpu381-video-decoders.patch
 PATCHFILES += 1083-arm64-dtsi-rockchip-rk3288-add-vdec-node.patch
 PATCHFILES += 1084-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
-PATCHFILES += 1085-arm64-dtsi-rk3588s-rk3588-fix-pcie-ranges.patch
 PATCHFILES += 1086-arm64-dtsi-rk3588s-increas-vop-clk-fix-vdec1-iommu-int.patch
 # dts patches
 PATCHFILES += 1087-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
@@ -448,8 +442,6 @@ endif
 ifeq (1,1)
 #-- Rockchip 3576 patches -----------------------------------------
 # misc fixes
-PATCHFILES += 1200-MERGED-soc-rockchip-grf-Fix-wrong-RK3576_IOCGRF_MISC.patch
-PATCHFILES += 1201-MERGED-soc-rockchip-grf-Support-multiple-grf-to-be-h.patch
 PATCHFILES += 1214-mmc-core-add-force-io-to-1.8v-quirk.patch
 # dtsi additions
 PATCHFILES += 1261-arm64-dtsi-rockchip-add-the-vdpu383-video-decoder.patch
