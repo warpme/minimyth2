@@ -1,16 +1,18 @@
 
 GARNAME       = miniarch-rootfs
-GARVERSION    = 15.0.1.19012026
+GARVERSION    = 15.0.1-19.01.2026
 CATEGORIES    = miniarch
 MASTER_SITES  = http://os.archlinuxarm.org/os/
 DISTFILES     = ArchLinuxARM-aarch64-latest.tar.gz
 WORKSRC       = $(WORKDIR)
 
-# PACMAN_ARGS  = --upgrade --noconfirm --debug --overwrite \*
+#PACMAN_ARGS  = --upgrade --noconfirm --debug --overwrite \*
 PACMAN_ARGS  = --upgrade --noconfirm --overwrite \*
 PACMAN_DIRS = \
 	--root $(MINIARCH_ROOTFS) \
+	--config $(WORKSRC)/../../files/pacman.conf \
 	--dbpath $(MINIARCH_ROOTFS)/var/lib/pacman/ \
+	--cachedir $(MINIARCH_ROOTFS)/var/cache/pacman/pkg/ \
 
 MINIARCH_VERSION=$(GARVERSION)-$(LINUX_FULL_VERSION)
 
@@ -49,7 +51,7 @@ install-miniarch:
 	    $(WORKDIR)/../../../miniarch-pkg/work/main.d/miniarch-meta-*
 	@$(MAKECOOKIE)
 
-update-kernel:
+update-kernel: extract update-firmware
 	@echo " " ; \
 	  echo 'updating kernel ...' ; \
 	  fakeroot $(build_DESTDIR)$(build_bindir)/pacman $(PACMAN_ARGS) $(PACMAN_DIRS) \
@@ -58,26 +60,55 @@ update-kernel:
 	  echo \"$(MINIARCH_VERSION)\" > $(MINIARCH_ROOTFS)/version
 	@$(MAKECOOKIE)
 
-update-firmware:
-	@echo " " ; \
-	  echo 'updating firmware ...' ; \
+list-packages: extract
+	-@echo "listing currently installed packages in miniarch rootfs ..." ; \
+	 fakeroot $(build_DESTDIR)$(build_bindir)/pacman --noconfirm $(PACMAN_DIRS) -Qs ; \
+
+remove-packages: extract
+	-@echo "removing packages listed in pkg-to-remove.lst ..." ; \
+	 pkgs=`cat $(WORKSRC)/../../files/pkg-to-remove.lst | sed -e "/^#/d" -e "/^$$/d"` ; \
+	 echo "pkg list to remove: $${pkgs}" ; \
+	 for pkg in $${pkgs} ; do \
+		echo "removing: $${pkg}" ; \
+		fakeroot $(build_DESTDIR)$(build_bindir)/pacman --noconfirm $(PACMAN_DIRS) -Rdd $${pkg} ; \
+	 done ;
+	@$(MAKECOOKIE)
+
+install-packages: extract
+	-@echo "adding packages listed in pkg-to-install.lst ..." ; \
+	 pkgs=`cat $(WORKSRC)/../../files/pkg-to-install.lst | sed -e "/^#/d" -e "/^$$/d"` ; \
+	 if [ ! $${pkgs} = "" ] ; then \
+	   echo "updating system ..." ; \
+	   fakeroot $(build_DESTDIR)$(build_bindir)/pacman --noconfirm $(PACMAN_DIRS) -Syu ; \
+	   echo "pkg list to install: $${pkgs}" ; \
+	   for pkg in $${pkgs} ; do \
+		echo "installing: $${pkg}" ; \
+		fakeroot $(build_DESTDIR)$(build_bindir)/pacman --noconfirm $(PACMAN_DIRS) -S $${pkg} ; \
+	   done ; \
+	 else \
+	   echo "Nothing to install ..." ; \
+	 fi
+	@$(MAKECOOKIE)
+
+update-firmware: extract
+	@echo 'updating firmware ...' ; \
 	  fakeroot $(build_DESTDIR)$(build_bindir)/pacman $(PACMAN_ARGS) $(PACMAN_DIRS) \
 	    $(WORKDIR)/../../../linux-firmware-pkg/work/main.d/linux-firmware-*
 	@$(MAKECOOKIE)
 
-run-mkinitcpio:
+run-mkinitcpio: update-kernel
 	@echo " " ; \
 	  echo "running mkinitcpio after kernel update ..." ; \
 	  fakeroot cd $(MINIARCH_ROOTFS) ; $(build_DESTDIR)$(build_bindir)/mkinitcpio \
-	    --config $(MINIARCH_ROOTFS)/etc/mkinitcpio.conf \
+	    --config $(WORKSRC)/../../files/mkinitcpio.conf \
 	    --generate $(MINIARCH_ROOTFS)/boot/initramfs-linux.img \
-	    --hookdir $(MINIARCH_ROOTFS)/usr/lib/initcpio/ \
+	    --hookdir $(WORKSRC)/../../files \
 	    --moduleroot $(MINIARCH_ROOTFS)/ \
 	    --kernel='$(LINUX_FULL_VERSION)' \
 	    --sysroot $(MINIARCH_ROOTFS) \
 	    --ldd $(build_DESTDIR)$(build_bindir)/$(compiler_prefix)ldd \
 	    --compress gzip ; \
-	  echo \"moving generated initramfs-linux.img to mm2 boot dir ...\" ; \
+	  echo "moving generated initramfs-linux.img to mm2 boot dir ..." ; \
 	  mv -f $(MINIARCH_ROOTFS)/boot/initramfs-linux.img \
 	    $(DESTDIR)/boot/ ; \
 	  chmod 0666 $(DESTDIR)/boot/initramfs-linux.img
@@ -85,6 +116,7 @@ run-mkinitcpio:
 # add if you want debug mkinitpcio add after --ldd $(build_DESTDIR)$(build_bindir)/$(compiler_prefix)ldd
 #	     --verbose \
 #	     --save \
+#	    --hookdir $(WORKSRC)/../../files \
 
 pack-rootfs:
 	@echo " " ; \
@@ -127,7 +159,7 @@ $(MINIARCH_ROOTFS).fakeroot: $(MINIARCH_ROOTFS)
 
 gen-fakeroot: $(MINIARCH_ROOTFS).fakeroot
 
-build-custom: $(MINIARCH_ROOTFS) update-kernel update-firmware run-mkinitcpio install-miniarch gen-fakeroot
+build-custom: $(MINIARCH_ROOTFS) remove-packages install-packages update-kernel update-firmware run-mkinitcpio install-miniarch gen-fakeroot
 	@echo 'building MiniArch-aarch64-$(MINIARCH_VERSION) ...'
 	@$(MAKECOOKIE)
 
@@ -137,7 +169,7 @@ install-rootfs: pack-rootfs
 	  mv -f $(MINIARCH_ROOTFS)/../MiniArch-aarch64-$(MINIARCH_VERSION).tar.gz $(mm_SDCARD_FILES)/
 	@$(MAKECOOKIE)
 
-clean-custom: cookieclean clean-all
+clean-custom: cookieclean downloadclean clean-all
 
 clean-all: cookieclean
 	@echo " " ; \

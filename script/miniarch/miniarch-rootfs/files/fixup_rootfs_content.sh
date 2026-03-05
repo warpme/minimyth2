@@ -18,22 +18,29 @@ echo "destination dir : [${dest}]"
 echo " "
 echo "----start----"
 
+# remove /boot dir as we will use our own /boot part
+echo 'remove /boot dir as we will use our own /boot part ...'
+rm -rf ${dest}/boot*
+
+# remove kernel depmod artefacts in /lib/modules as we will generate our own 
+echo 'remove original kernel depmod artefacts from rootfs ...'
+rm -rf ${dest}/lib/modules/*aarch64-ARCH
 
 # make mkinitcpio happy with archlinuxarm mkinitcpio def. config
-echo 'adding some fixups in archlinuxarm image to make mkinitcpio happy ...'
-cp -f ${src}/script/miniarch/miniarch-rootfs/files/{base,fsck} ${dest}/usr/lib/initcpio/install/
+#echo 'adding some fixups in archlinuxarm image to make mkinitcpio happy ...'
+#cp -f ${src}/script/miniarch/miniarch-rootfs/files/{base,fsck} ${dest}/usr/lib/initcpio/install/
 
 # adding somehow missing usb .conf
-echo 'doing some general fixups in archlinuxarm image ...'
-cp -f ${src}/script/miniarch/miniarch-rootfs/files/bluetooth-usb.conf ${dest}/usr/lib/modprobe.d/bluetooth-usb.conf
+#echo 'doing some general fixups in archlinuxarm image ...'
+#cp -f ${src}/script/miniarch/miniarch-rootfs/files/bluetooth-usb.conf ${dest}/usr/lib/modprobe.d/bluetooth-usb.conf
 
 # disabling pacman download timeouts
 echo "disabling pacman downloads timeout ..."
 sed "/Architecture\s*=.*/a DisableDownloadTimeout" -i ${dest}/etc/pacman.conf
 
 # make pacman happy when user is installing bluez pkg
-echo 'hack removing /usr/lib/modprobe.d/bluetooth-usb.conf to make pacman happy when user is installing bluez pkg ...'
-rm -f ${dest}/usr/lib/modprobe.d/bluetooth-usb.conf
+#echo 'hack removing /usr/lib/modprobe.d/bluetooth-usb.conf to make pacman happy when user is installing bluez pkg ...'
+#rm -f ${dest}/usr/lib/modprobe.d/bluetooth-usb.conf
 
 
 
