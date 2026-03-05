@@ -1,6 +1,6 @@
 
 GARNAME      = libarchive
-GARVERSION   = 3.7.2
+GARVERSION   = 3.8.5
 CATEGORIES   = lib
 MASTER_SITES = https://github.com/$(GARNAME)/$(GARNAME)/releases/download/v$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.xz
