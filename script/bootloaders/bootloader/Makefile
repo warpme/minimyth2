@@ -360,11 +360,11 @@ ifneq (,$(filter board-qcs6490.dragon_q6a,$(mm_BOARD_TYPE)))
 	$(MAKE) install -C ../board-qcs6490.dragon_q6a
 endif
 
-clean-custom: clean-bootloader cookieclean
+clean-custom: clean-bootloader cookieclean downloadclean
 
-clean-bootloader: cookieclean
+clean-bootloader: cookieclean downloadclean
 	@$(foreach dir, $(wildcard ../board-* ), $(MAKE) clean -C $(dir) ; )
 	@rm -f $(DESTDIR)/boot/minimyth.conf
 
-clean-all:
-	@$(foreach dir, $(wildcard ../u-boot ../u-boot-* ../board-* ../arm-trusted-firmware* ../crust), $(MAKE) clean clean-all -C $(dir) ; )
+clean-all: cookieclean downloadclean
+	@$(foreach dir, $(wildcard ../u-boot* ../board-* ../arm-trusted-firmware* ../crust), $(MAKE) clean clean-all -C $(dir) ; )
