@@ -21,6 +21,7 @@ LICENSE = GPL2
 BUILDDEPS = \
 	miniarch/pacman \
 	miniarch/mkinitcpio \
+	lib/libarchive \
 	devel/fakeroot \
 
 DEPENDS = \
