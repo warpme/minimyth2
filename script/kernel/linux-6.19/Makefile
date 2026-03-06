@@ -224,6 +224,7 @@ PATCHFILES += 0673-arm64-dts-allwinner-h616-add-pendoo-x12pro-tvbox.patch
 PATCHFILES += 0674-arm64-dts-allwinner-h618-improve-transpeed-8k618-tvbox.patch
 PATCHFILES += 0675-arm64-dts-allwinner-h313-h616-h618-add-cpu-overclock-via-overlays.patch
 PATCHFILES += 0676-arm64-dts-allwinner-h313-h616-h618-add-gpu-overclock-via-overlays.patch
+PATCHFILES += 0677-arm64-dts-allwinner-h616-OrangePI-Zero3-disable-pmic-int.patch
 #------------------------------------------------------------
 endif
 
