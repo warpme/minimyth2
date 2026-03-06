@@ -91,6 +91,8 @@ PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support
 PATCHFILES += 0161-hack-hack-hack-ffmpeg8-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_2.patch
 # rkvdec2 hevc long sps/rps support https://gitlab.collabora.com/detlev/ffmpeg/-/commits/v4l2-request-ext-sps-rps-n8.0.1
 # PATCHFILES += 0162-ffmpeg8-libavcodec-hevc-wip-add-support-for-sps_st_rps-control.patch
+# support for NV15 NV30
+# PATCHFILES += 0163-ffmpeg8-add-handling-AV_PIX_FMT_NV15_NV20BS_NV30.patch
 endif
 # Mediamonitor patches
 PATCHFILES += 0200-Mediamonitor-Exclude-minimyth-from-mediamonitor-paths.patch
