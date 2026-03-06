@@ -42,6 +42,7 @@ MESON_CONFIGURE_ARGS = \
 	-D btrfs=disabled \
 	-D widechar=disabled \
 	-D python=python3 \
+	-D build-getopt=enabled \
 	-D build-python=disabled \
 	-D build-libblkid=enabled \
 	-D build-libuuid=enabled \
