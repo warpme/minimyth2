@@ -20,6 +20,7 @@ DEPENDS = \
 BUILDDEPS = \
 	lib/libarchive \
 	devel/fakeroot \
+	utils/util-linux \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = custom
