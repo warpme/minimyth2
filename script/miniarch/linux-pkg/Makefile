@@ -37,6 +37,6 @@ build-custom:
 	@cd $(WORKSRC); $(build_DESTDIR)$(build_bindir)/makepkg --skipinteg
 	@$(MAKECOOKIE)
 
-install-custom: downloadclean cookieclean
+install-custom:
 	@cp -f $(WORKDIR)/linux-aarch64-* $(mm_SDCARD_FILES)/
 	@$(MAKECOOKIE)
