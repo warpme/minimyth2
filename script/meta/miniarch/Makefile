@@ -19,6 +19,7 @@ DEPENDS = \
 
 BUILDDEPS = \
 	lib/libarchive \
+	devel/fakeroot \
 
 CONFIGURE_SCRIPTS = 
 BUILD_SCRIPTS     = custom
@@ -44,7 +45,7 @@ update-kernel:
 	@$(MAKE) -C ../../miniarch/miniarch-rootfs clean
 	@$(MAKE) reinstall-new-board
 
-clean-custom: cookieclean
+clean-custom: downloadclean cookieclean
 	@echo " ==> Cleaning MiniArch rootfs ..."
 	@$(MAKE) -C ../../miniarch/miniarch-rootfs clean
 	@echo " ==> Cleaning MiniArch SD card image ..."
