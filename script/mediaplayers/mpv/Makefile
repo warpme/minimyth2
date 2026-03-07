@@ -29,7 +29,7 @@ DESCRIPTION =.
 define BLURB
 endef
 
-DEPENDS = lang/c lib/alsa-lib lib/ffmpeg8.0-mythtv lib/libass lib/SDL2 xorg/libdrm lib/libplacebo xorg/libXss xorg/libXpresent
+DEPENDS = lang/c lib/alsa-lib lib/ffmpeg8.0-mythtv lib/libass lib/SDL2 xorg/libdrm lib/libplacebo xorg/libXss xorg/libXpresent lib/libdisplay-info
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
@@ -40,6 +40,10 @@ MESON_CONFIGURE_ARGS = \
 	-D cdda="disabled" \
 	-D x11="enabled" \
 	-D egl-x11="enabled" \
+	-D v4l2request=enabled \
+	-D drm=enabled \
+	-D gbm=enabled \
+	-D egl=enabled \
 
 include ../../gar.mk
 
