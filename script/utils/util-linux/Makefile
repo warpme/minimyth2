@@ -4,7 +4,7 @@ GARVERSION   = 2.41.3
 CATEGORIES   = utils
 MASTER_SITES = https://www.kernel.org/pub/linux/utils/util-linux/v2.41/
 DISTFILES    = $(DISTNAME).tar.xz
-PATCHFILES   = $(DISTNAME)-stop-building-disabled-pymount.patch
+#PATCHFILES   = $(DISTNAME)-stop-building-disabled-pymount.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
@@ -19,6 +19,16 @@ INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
+	-D program-tests=false \
+	-D chfn-chsh-password=false \
+	-D chsh-only-listed=true \
+	-D use-tty-group=false \
+	-D use-tls=true \
+	-D pg-bell=true \
+	-D colors-default=false \
+	-D python=python3 \
+
+MESON_CONFIGURE_ARGS1 = \
 	-D tinfo=disabled \
 	-D ncursesw=disabled \
 	-D ncurses=disabled \
@@ -41,7 +51,6 @@ MESON_CONFIGURE_ARGS = \
 	-D sysvinit=disabled \
 	-D btrfs=disabled \
 	-D widechar=disabled \
-	-D python=python3 \
 	-D build-getopt=enabled \
 	-D build-python=disabled \
 	-D build-libblkid=enabled \
@@ -112,14 +121,7 @@ MESON_CONFIGURE_ARGS = \
 	-D build-write=disabled \
 	-D build-bash-completion=disabled \
 	-D build-pylibmount=disabled \
-	-D program-tests=false \
-	-D chfn-chsh-password=false \
-	-D chsh-only-listed=true \
-	-D use-tty-group=false \
 	-D build-plymouth-support=disabled \
-	-D use-tls=true \
-	-D pg-bell=true \
-	-D colors-default=false \
 
 include ../../gar.mk
 
