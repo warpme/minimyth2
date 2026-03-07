@@ -1,9 +1,9 @@
 
 GARNAME      = elogind
-GARVERSION   = 252.9
+GARVERSION   = 255.22
 CATEGORIES   = wayland
-MASTER_SITES = https://github.com/elogind/elogind/archive/
-DISTFILES    = v$(GARVERSION).tar.gz
+MASTER_SITES = https://github.com/elogind/elogind/archive/refs/tags/
+DISTFILES    = V$(GARVERSION).tar.gz
 LICENSE      = $(GARNAME)
 $(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE.LGPL2.1
 
@@ -23,11 +23,10 @@ INSTALL_SCRIPTS    = meson
 
 MESON_CONFIGURE_ARGS = \
 	--buildtype=release \
-	-D man="false" \
-	-D html="false" \
 	-D tests="false" \
 	-D slow-tests="false" \
-	-D fuzz-tests="false" \
 	-D install-tests="false" \
+	-D cpp_args="-Wno-error=override-init" \
+	-D c_args="-Wno-error=override-init" \
 
 include ../../gar.mk
