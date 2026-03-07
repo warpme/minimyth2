@@ -26,25 +26,13 @@ rm -rf ${dest}/boot*
 echo 'remove original kernel depmod artefacts from rootfs ...'
 rm -rf ${dest}/lib/modules/*aarch64-ARCH
 
-# make mkinitcpio happy with archlinuxarm mkinitcpio def. config
-#echo 'adding some fixups in archlinuxarm image to make mkinitcpio happy ...'
-#cp -f ${src}/script/miniarch/miniarch-rootfs/files/{base,fsck} ${dest}/usr/lib/initcpio/install/
-
-# adding somehow missing usb .conf
-#echo 'doing some general fixups in archlinuxarm image ...'
-#cp -f ${src}/script/miniarch/miniarch-rootfs/files/bluetooth-usb.conf ${dest}/usr/lib/modprobe.d/bluetooth-usb.conf
-
 # disabling pacman download timeouts
 echo "disabling pacman downloads timeout ..."
 sed "/Architecture\s*=.*/a DisableDownloadTimeout" -i ${dest}/etc/pacman.conf
 
-# make pacman happy when user is installing bluez pkg
-#echo 'hack removing /usr/lib/modprobe.d/bluetooth-usb.conf to make pacman happy when user is installing bluez pkg ...'
-#rm -f ${dest}/usr/lib/modprobe.d/bluetooth-usb.conf
-
-
-
-
+# block updates of kernel, kernel headers and firmware
+echo "blocking updates of kernel and firmwares ..."
+sed "s/\#IgnorePkg\s*=.*/IgnorePkg = linux-aarch64 linux-aarch64-headers linux-aarch64-api-headers linux-headers linux-api-headers linux-firmware linux-firmware\-\*/g" -i ${dest}/etc/pacman.conf
 
 echo "----end----"
 exit 0
