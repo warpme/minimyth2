@@ -1,6 +1,6 @@
 
 GARNAME      = libdisplay-info
-GARVERSION   = 0.1.1
+GARVERSION   = 0.3.0
 CATEGORIES   = lib
 MASTER_SITES = https://gitlab.freedesktop.org/emersion/libdisplay-info/-/archive/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.bz2
