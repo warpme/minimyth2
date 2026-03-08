@@ -10,7 +10,7 @@ DESCRIPTION =
 define BLURB
 endef
 
-DEPENDS = lang/c lib/ncursesw devel/zlib python3/python
+DEPENDS = lang/c lib/ncursesw devel/zlib python3/python lib/libxcrypt
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
