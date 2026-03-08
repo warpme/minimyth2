@@ -26,6 +26,7 @@ MESON_CONFIGURE_ARGS = \
 	-D pg-bell=true \
 	-D colors-default=false \
 	-D python=python3 \
+	-D build-minix=disabled \
 
 include ../../gar.mk
 
