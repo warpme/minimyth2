@@ -25,6 +25,7 @@ pre-configure:
 post-install:
 	@rm -f $(DESTDIR)$(libdir)/libcrypt.la
 ifeq ($(DESTIMG),build)
+	@mkdir -p $(main_DESTDIR)$(main_includedir)
 	@cp -f $(build_DESTDIR)$(build_includedir)/crypt.h $(main_DESTDIR)$(main_includedir)/crypt.h
 endif
 	@$(MAKECOOKIE)
