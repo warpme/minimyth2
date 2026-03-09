@@ -129,7 +129,6 @@ endif
 
 ifeq (1,1)
 #-- Allwinner H6 patches -----------------------------------------
-PATCHFILES += 0501-pinctrl-sunxi-add-GPIO-get_direction-callback.patch
 PATCHFILES += 0502-rtc-sun6i-Allow-RTC-wakeup-after-shutdown.patch
 PATCHFILES += 0503-firmware-arm_scpi-Support-unidirectional-mailbox-cha.patch
 PATCHFILES += 0504-revert-stop-exporting-phy_driver_register-unregister-for-ac200.patch
@@ -376,7 +375,6 @@ PATCHFILES += 1046-drm-rockchip-vop2-Add-clock-resets-support.patch
 PATCHFILES += 1047-clk-rockchip-rk3588-Don-t-change-PLL-rates-w.patch
 PATCHFILES += 1048-drm-rockchip-inno-hdmi-Switch-to-drmm_kzalloc.patch
 # mmc fixes
-PATCHFILES += 1050-mmc-dw_mmc-rockchip-Fix-runtime-PM-support-fo.patch
 PATCHFILES += 1051-mmc-sdhci-of-dwcmshc-Reduce-clock-reduction-print-le.patch
 # make kodi workig ok
 PATCHFILES += 1056-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
