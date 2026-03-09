@@ -285,15 +285,13 @@ PATCHFILES += 0909-clk-bcm-changes-to-get-rpi4-v4l2m2m-working.patch
 # add rpi5 rp1 support
 PATCHFILES += 0932-drivers-pci-add-rp1-support.patch
 PATCHFILES += 0933-drivers-clk-add-rp1-support.patch
-#PATCHFILES += 0934-drivers-pinctrl-add-rp1-support.patch
+# dma support required for audio
 PATCHFILES += 0935-drivers-dma-add-rp1-support.patch
-PATCHFILES += 0936-drivers-irqchip-add-rp1-support.patch
-PATCHFILES += 0937-drivers-phy-add-rp1-support.patch
+# mfd required by rp1 mailbox, pwm, pio and adc
 PATCHFILES += 0938-drivers-mfd-add-rp1-support.patch
-PATCHFILES += 0940-drivers-mmc-add-rp1-support.patch
-PATCHFILES += 0941-drivers-i2c-add-rp1-support.patch
-PATCHFILES += 0942-drivers-usb-add-rp1-support.patch
+# net patch seems to be required
 PATCHFILES += 0943-drivers-net-add-rp1-support.patch
+# spi required for mac addr from eeprom
 PATCHFILES += 0944-drivers-spi-add-rp1-support.patch
 PATCHFILES += 0945-drivers-pwm-add-rp1-support.patch
 PATCHFILES += 0946-drivers-hwmon-add-rp1-support.patch
@@ -301,16 +299,28 @@ PATCHFILES += 0947-drivers-thermal-add-rp1-support.patch
 # unify rpi3 rpi4 rpi5 vc4 support
 PATCHFILES += 0948-gpu-drm-vc4-add-rpi5-support.patch
 PATCHFILES += 0949-drm-vc4-hdmi-hack-for-rpi4-rpi5-audio.patch
+# gpio pwm support for cooling fan support
+PATCHFILES += 0950-mailbox-Add-RP1-mailbox-support.patch
+PATCHFILES += 0951-firmware-Add-an-RP1-firmware-interface-over-mbox.patch
+PATCHFILES += 0952-misc-Add-RP1-PIO-driver.patch
+PATCHFILES += 0953-pwm-Add-pwm-pio-rp1-driver.patch
+PATCHFILES += 0954-pinctrl-Reinstate-the-downstream-pinctrl-rp1-driver.patch
+#PATCHFILES += 0955-usb-dwc3-hack-to-stop-kernel-oops.patch
 # device-tree patches
 PATCHFILES += 0970-arm64-dts-brcm-rpi4-set-led-to-disk-activity-mmc0-alias.patch
 PATCHFILES += 0971-arm64-2712dtsi-add-uart-mmc2-pins-ths-sensor.patch
 PATCHFILES += 0972-arm64-2712dtsi-add-gpu-rpivid.patch
 PATCHFILES += 0973-arm64-2712dtsi-add-dma32-dma40-for-audio.patch
 PATCHFILES += 0974-arm64-2712dtsi-add-thermal-zones.patch
-PATCHFILES += 0975-arm64-rp1common.dtsi-add-pwm-adc-nodes.patch
-PATCHFILES += 0976-arm64-rpi-5-b-base.dtsi-add-pwm1fan-pins.patch
-PATCHFILES += 0977-arm64-dts-rpi-5-b-add-fan-adc-fix-leds.patch
-PATCHFILES += 0978-arm64-2712dtsi-increase-cam-to-384M.patch
+
+# switch to downstream dts. need to disable 0975..0978
+PATCHFILES += 0975-arm64-rpi-5-b-switch-to-downstream-dts.patch
+# use upstream dts
+#PATCHFILES += 0975-arm64-rp1common.dtsi-add-pwm-adc-nodes.patch
+#PATCHFILES += 0976-arm64-rpi-5-b-base.dtsi-add-pwm1fan-pins.patch
+#PATCHFILES += 0977-arm64-dts-rpi-5-b-add-fan-adc-fix-leds.patch
+#PATCHFILES += 0978-arm64-2712dtsi-increase-cam-to-384M.patch
+
 PATCHFILES += 0979-arm64-dts-brcm-rpi4-incr-cma-to-384M.patch
 PATCHFILES += 0980-arm64-dts-brcm-rpi4-add-rpivid.patch
 endif
