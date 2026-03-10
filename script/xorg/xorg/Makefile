@@ -51,7 +51,8 @@ DEPENDS = \
 	$(CATEGORY)/xrandr \
 	$(CATEGORY)/xset \
 	$(CATEGORY)/xsetroot \
-	$(CATEGORY)/xauth
+	$(CATEGORY)/xauth \
+	$(CATEGORY)/xrdb \
 
 CATEGORY := $(shell basename $(shell dirname $(shell pwd)))
 
