@@ -281,14 +281,13 @@ PATCHFILES += 0906-media-v4l2-add-single-planar-NV12-column-formats.patch
 PATCHFILES += 0907-drm-increase-plane_mask-to-64bit.patch
 PATCHFILES += 0908-char-add-vc_mem-driver-for-querying-firmware.patch
 PATCHFILES += 0909-clk-bcm-changes-to-get-rpi4-v4l2m2m-working.patch
-# add rpi5 rp1 support
+# require by downstream dts rp1
 PATCHFILES += 0932-drivers-pci-add-rp1-support.patch
-PATCHFILES += 0933-drivers-clk-add-rp1-support.patch
 # dma support required for audio
 PATCHFILES += 0935-drivers-dma-add-rp1-support.patch
 # mfd required by rp1 mailbox, pwm, pio and adc
 PATCHFILES += 0938-drivers-mfd-add-rp1-support.patch
-# net patch seems to be required
+# net patch seems to be required to get eth working with downstream dts
 PATCHFILES += 0943-drivers-net-add-rp1-support.patch
 # spi required for mac addr from eeprom
 PATCHFILES += 0944-drivers-spi-add-rp1-support.patch
