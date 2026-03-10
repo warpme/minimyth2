@@ -4,6 +4,7 @@ GARVERSION   = 9.31
 CATEGORIES   = X11
 MASTER_SITES = https://dist.schmorp.de/rxvt-unicode/
 DISTFILES    = $(DISTNAME).tar.bz2
+PATCHFILES   = fix-error-about-wrong-color-format-from-xresources.patch
 LICENSE      = GPL2
 
 DESCRIPTION =
