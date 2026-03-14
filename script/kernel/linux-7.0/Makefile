@@ -181,6 +181,7 @@ PATCHFILES += 0604-dma-sun6i-dma-add-h616-support.patch
 PATCHFILES += 0610-drm-sun4i-Add-H616-TCON-TV-support.patch
 PATCHFILES += 0611-srm-sun4i-Add-support-for-H616-HDMI-PHY.patch
 PATCHFILES += 0612-drm-sun4i-Add-compatible-for-H616-display-engine.patch
+PATCHFILES += 0613-drm-sun4i-Use-backend-mixer-as-dedicated-DMA-device.patch
 # fix issue on systems with 4G ram
 PATCHFILES += 0615-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
 # add hdmi audio support
