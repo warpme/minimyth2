@@ -227,6 +227,7 @@ PATCHFILES += 0722-v4l2-wip-iep-driver.patch
 PATCHFILES += 0725-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
 PATCHFILES += 0727-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
 # dtsi patches
+PATCHFILES += 0736-arm64-dtsi-rockchip-rk3328-enable-dwc3simple-for-usb-boot.patch
 PATCHFILES += 0738-arm64-dtsi-rockchip-rk3399-rise-alert-crit-cpu-temps.patch
 PATCHFILES += 0739-arm64-dtsi-rockchip-rk3328-rk3399-add-soft-reset.patch
 # dts patches
@@ -254,7 +255,8 @@ PATCHFILES += 0803-net-wireless-backport-aic8800-usb-v2025_0926_91c9dae5-mm2.pat
 # device-tree patches
 PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
 PATCHFILES += 0832-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
-PATCHFILES += 0833-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
+PATCHFILES += 0833-arm64-dtsi-rockchip-rk356x-enable-dwc3simple-for-usb-boot.patch
+PATCHFILES += 0835-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
 PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
 PATCHFILES += 0840-arm64-dts-rockchip-improve-dts-for-rock3b.patch
 PATCHFILES += 0841-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
@@ -282,7 +284,8 @@ PATCHFILES += 0907-drm-increase-plane_mask-to-64bit.patch
 PATCHFILES += 0908-char-add-vc_mem-driver-for-querying-firmware.patch
 PATCHFILES += 0909-clk-bcm-changes-to-get-rpi4-v4l2m2m-working.patch
 # require by downstream dts rp1
-PATCHFILES += 0932-drivers-pci-add-rp1-support.patch
+# PATCHFILES += 0932-drivers-pci-add-rp1-support.patch
+PATCHFILES += 0933-drivers-clk-add-rp1-support.patch
 # dma support required for audio
 PATCHFILES += 0935-drivers-dma-add-rp1-support.patch
 # mfd required by rp1 mailbox, pwm, pio and adc
@@ -393,6 +396,7 @@ PATCHFILES += 1068-media-verisilicon-AV1-Restore-IOMMU-context-before-d.patch
 PATCHFILES += 1070-mfd-khadas-mcu-add-edge2-support.patch
 # dtsi additions
 PATCHFILES += 1080-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
+PATCHFILES += 1083-arm64-dtsi-rockchip-rk3588-enable-dwc3simple-for-usb-boot.patch
 PATCHFILES += 1084-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
 PATCHFILES += 1086-arm64-dtsi-rk3588s-increas-vop-clk.patch
 # dts patches
@@ -436,7 +440,9 @@ ifeq (1,1)
 #-- Rockchip 3576 patches -----------------------------------------
 # misc fixes
 PATCHFILES += 1214-mmc-core-add-force-io-to-1.8v-quirk.patch
-# bards dt additions/patches
+# dtsi additions
+PATCHFILES += 1270-arm64-dtsi-rockchip-rk3576-enable-dwc3simple-for-usb-boot.patch
+# boards dt additions/patches
 PATCHFILES += 1280-arm64-dts-add-nanopi-m5-dts-improvements.patch
 PATCHFILES += 1281-arm64-dts-rock4d-improvements.patch
 PATCHFILES += 1282-arm64-dts-add-rk3576-nanopi-r76s-dt.patch
