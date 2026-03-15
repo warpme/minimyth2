@@ -2,24 +2,26 @@
 
 # Script works following commands:
 #
-#  install: when called with 'install' command:
-#    1.duplicate SD card sectors (occupied by partitions) to eMMC
-#    2.write bootloader to eMMC (SoC speciffic and logical boot0/boot1 devices)
-#    3.update device in 'root=' in extlinux.conf on emmc <boot_part>/extlinux/extlinux.conf
-
-#  ufsinstall: when called with 'ufsinstall' command:
+#  install: when called with 'install' command
+#    If selected target is UFS:
 #    1.partition UFS strorage with 4 GPT partitions layout
 #    2.copy SD card ROOT content to 3rd partition
 #    3.copy SD card BOOT content to subdir /boot on 3rd partition
 #    4.write bootloader to UFS (SoC speciffic to sda and to boot0 sdb/boot1 sdc devices)
 #    5.update device in 'root=' and path in 'LINUX' and 'FDT' in extlinux.conf on UFS /boot/extlinux/extlinux.conf
 
-#  usbinstall: when called with 'usbinstall' command:
-#    1.partition USB strorage with 3 MBR partitions layout
+#    If selected target is eMMC:
+#    1.partition eMMC strorage with 3 MBR partitions layout
 #    2.copy SD card BOOT content to 2nd partition
 #    3.copy SD card ROOT content to 3rd partition
 #    4.write bootloader to USB (SoC speciffic loc)
-#    5.update device in 'root=' in extlinux.conf on USB <boot_part>/extlinux/extlinux.conf
+#    5.update device in 'root=' in extlinux.conf on eMMC <boot_part>/extlinux/extlinux.conf
+
+#    If selected target is USB/NVME:
+#    1.partition USB/NVME strorage with 3 MBR partitions layout
+#    2.copy SD card BOOT content to 2nd partition
+#    3.copy SD card ROOT content to 3rd partition
+#    5.update device in 'root=' in extlinux.conf on SDcard/eMMC <boot_part>/extlinux/extlinux.conf
 
 #
 #  erase: when called with 'erase' command:
@@ -39,12 +41,7 @@
 #       Next script updates rootfs device number in extlinux.conf to eMMC 2nd part (eMMC) or sda2 part (UFS)
 #
 
-#
-# safety_margin is amount of extra space beyond 1st + 2nd + 3rd partitions space to be
-# duplicated from SD card to eMMC/UFS. Unit is MBytes
-safety_margin=100
-#
-# area at emmc/ufs begininng filled with zeros to make it erased. In MBytes.
+# area at target device begininng filled with zeros to make it erased. In MBytes.
 erase_areas_size=1024
 
 # script log file
@@ -93,7 +90,7 @@ log_file="/var/log/install-on-emmc.log"
 
 
 
-ver=6.1
+ver=7.0
 
 command=$1
 
@@ -109,7 +106,7 @@ trap "_exit_" 2 3 9 15
 _exit_() {
     echo "Script exited/aborted !"
     echo "Doing cleanups ..."
-    umount_all_partitions
+    clean_working_env
 }
 
 log() {
@@ -146,8 +143,9 @@ do_cmd() {
 confirm() {
 
     echo " "
-    echo "    Please confirm $1 by pressing 'y'"
-    echo "    or press Enter (or any other key) to exit ..."
+    echo "Please confirm $1 by pressing 'y'"
+    echo " "
+    echo "or press Enter (or any other key) to exit ..."
     echo " "
 
     read sel
@@ -164,188 +162,189 @@ confirm() {
     fi
 }
 
+clean_working_env() {
+    umount_all_partitions
+    rmdir -p ${src-BOOT} ${src-ROOT} ${dst-BOOT} ${dst-ROOT}
+}
+
+part_prefix() {
+    if [[ ${1} =~ "mmcblk" ]] || [[ ${1} =~ "nvme" ]] ; then
+        echo "p"
+    else
+        echo""
+    fi
+}
+
 mount_partition() {
     # first param: dev e.g. mmcblk1
     # second param: part no e.g. 1, 2, 3
     # thirt param: dir to mount
 
     local dev=$1
-    local part=$2
+    local part_num=$2
     local dir=$3
 
     if [ x$(mount -v | grep -c ${dir}) = "x0" ]; then
-        msg "Mounting partition ${part} on ${dir} ..."
+        msg "Mounting ${dev},part${part_num} at [${dir}] ..."
+        local prefix=$(part_prefix ${dev})
         mkdir -p ${dir}
-        if [[ ${dev} =~ "mmcblk" ]] ; then
-            mount ${dev}p${part} ${dir}
-        else
-            mount ${dev}${part} ${dir}
-        fi
+        mount ${dev}${prefix}${part_num} ${dir}
     else
-        msg "Partition ${part} already mounted on ${dir} ..."
+        msg "${dev},part${part_num} already mounted on [${dir}] ..."
     fi
 }
 
 umount_partition() {
     local part=$1
-    if [ x$(mount -v | grep -c ${part}) = "x0" ]; then
+    if [ "$(mount -v | grep -c ${part})" = "0" ]; then
         msg "Partition ${part} is not mounted ..."
+        return 0
     else
-        msg "Unmounting partition ${part} ..."
-        umount -q ${part}
+        while [ "$(mount -v | grep -c ${part})" != "0" ]; do
+            msg "Unmounting [${part}] ..."
+            umount -q ${part}
+            if [ "$(mount -v | grep -c ${part})" = "0" ]; then
+                msg "Partition ${part} unmounted ..."
+                break
+            fi
+            sleep 1
+        done
     fi
 }
 
 partition_2part_mbr_then_format() {
 
-# Device  Boot StartCHS    EndCHS        StartLBA     EndLBA    Sectors  Size Id Type
-# /dev/sda1    0,65,2      65,134,5          4096    1052671    1048576  512M  b Win95 FAT32
-# /dev/sda2    514,0,1     1023,63,32     1052672    9441279    8388608 4096M 83 Linux
-# /dev/sda3    1023,63,32  1023,63,32     9441280   15732735    6291456 3072M 82 Linux swap
-
     local disk=$1
+    local prefix
 
-    umount_partition ${disk}1
-    umount_partition ${disk}2
+    prefix=$(part_prefix $1)
 
-    msg "Partitioning $disk with 3 MBR partitions ..."
+    umount_partition ${disk}${prefix}1
+    umount_partition ${disk}${prefix}2
 
-    fdisk $disk <<EOF
-o
-n
-p
-1
-4096
-+512M
-t
-b
-n
-p
-2
-1052672
-+4G
-n
-p
-3
-9441280
-+3G
-t
-3
-82
-w
+    msg "Partitioning ${disk} with 3 MBR partitions ..."
+
+    sfdisk "${disk}" <<EOF
+label: dos
+unit: sectors
+
+start=32768, size=262144,  type=c, bootable, name="BOOT"
+             size=8388608, type=83,          name="ROOT"
+             size=4194304, type=82,          name="SWAP"
 EOF
 
     msg "Partprobing ${disk} ..."
-    partprobe $disk
+    partprobe ${disk}
 
     msg "Formating partition 1 (FAT32) ..."
-    mkfs.vfat -F 32 -n BOOT ${disk}1
+    mkfs.vfat -F 32 -n BOOT ${disk}${prefix}1
 
     msg "Formating partition 2 (EXT2) ..."
-    mkfs.ext2 -L ROOT ${disk}2
+    mkfs.ext2 -L ROOT ${disk}${prefix}2
 
     msg "Formating partition  3 (SWAP) ..."
-    mkswap -L SWAP ${disk}3
+    mkswap -L SWAP ${disk}${prefix}3
 
     msg "Formated ${disk} layout ..."
-    lsblk $disk
+    lsblk ${disk}
 }
 
 partition_3part_gpt_then_format() {
 
-#   1           32768           65535   128.0 MiB   8300  Linux filesystem
-#   2           65536          196607   512.0 MiB   EF00  EFI system partition
-#   3          196608         1245183   4.0 GiB     8300  Linux filesystem
-#   4         1245184         1769471   2.0 GiB     8200  Linux swap
-
     local disk=$1
+    local prefix
 
-    umount_partition ${disk}1
-    umount_partition ${disk}2
-    umount_partition ${disk}3
+    prefix=$(part_prefix ${disk})
 
-    msg "Partitioning $disk with 4 GPT partitions ..."
+    umount_partition ${disk}${prefix}1
+    umount_partition ${disk}${prefix}2
+    umount_partition ${disk}${prefix}3
 
-    msg "Deleting existing partition table ..."
-    sgdisk --zap-all $disk
+    msg "Partitioning ${disk} with 4 GPT partitions ..."
 
-    msg "Creating partition 1 ..."
-    sgdisk -n 1:32768:65535     -t 1:8300 -c 1:"CONFIG" -u 1:"346D1A6A-0000-0000-0000-000000000001" $disk
+    sfdisk "${disk}" <<EOF
+label: gpt
+label-id: 9b83ec43-54d0-41f2-9ac9-1ae79ef084fc
+unit: sectors
 
-    msg "Creating partition 2 ..."
-    sgdisk -n 2:65536:196607    -t 2:EF00 -c 2:"EFI"    -u 2:"346D1A6A-0000-0000-0000-000000000002" $disk
-
-    msg "Creating partition 3 ..."
-    sgdisk -n 3:196608:1245183  -t 3:EF00 -c 3:"ROOT"   -u 3:"346D1A6A-0000-0000-0000-000000000003" $disk
-
-    msg "Creating partition  4 ..."
-    sgdisk -n 4:1245184:1769471 -t 4:8200 -c 4:"SWAP"   -u 4:"346D1A6A-0000-0000-0000-000000000004" $disk
+start=32768, size=262144,  type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="CONFIG"
+             size=1048576, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, name="EFI"
+             size=8388608, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="ROOTFS"
+             size=4194304, type=0657FD6D-A4AB-43C4-84E5-0933C84B4F4F, name="SWAP"
+EOF
 
     msg "Partprobing ${disk} ..."
-    partprobe $disk
+    partprobe ${disk}
 
     msg "Formating partition 1 (EXT2) ..."
-    mkfs.ext2 -L Config ${disk}1
+    mkfs.ext2 -L Config ${disk}${prefix}1
 
     msg "Formating partition 2 (FAT32) ..."
-    mkfs.vfat -F 32 -n EFI ${disk}2
+    mkfs.vfat -F 32 -n EFI ${disk}${prefix}2
 
     msg "Formating partition 3 (EXT2) ..."
-    mkfs.ext2 -L ROOT ${disk}3
+    mkfs.ext2 -L ROOT ${disk}${prefix}3
 
     msg "Formating partition  4 (SWAP) ..."
-    mkswap -L SWAP ${disk}4
+    mkswap -L SWAP ${disk}${prefix}4
 
     msg "Formated ${disk} layout ..."
-    lsblk $disk
+    lsblk ${disk}
 }
 
 partition_1part_gpt_then_format() {
 
-#   1           32768         1245183   4.6 GiB     8300  Linux filesystem
-#   2         1245184         1769471   2.0 GiB     8200  Linux swap
-
     local disk=$1
+    local prefix
 
-    umount_partition ${disk}1
+    prefix=$(part_prefix ${disk})
 
-    msg "Partitioning $disk with 2 GPT partitions ..."
+    umount_partition ${disk}${prefix}1
 
-    msg "Deleting existing partition table on $disk..."
-    sgdisk --zap-all $disk
+    msg "Partitioning ${disk} with 2 GPT partitions ..."
 
-    msg "Creating partition 1 ..."
-    sgdisk -n 1:32768:1245183   -t 1:EF00 -c 1:"ROOT" -u 1:"346D1A6A-0000-0000-0000-000000000001" $disk
+    fdisk "${disk}" <<EOF
+label: gpt
+label-id: 9b83ec43-54d0-41f2-9ac9-1ae79ef084fc
+unit: sectors
 
-    msg "Creating partition  2 ..."
-    sgdisk -n 2:1245184:1769471 -t 2:8200 -c 2:"SWAP" -u 1:"346D1A6A-0000-0000-0000-000000000002" $disk
+start=32768, size=8388608, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="ROOT"
+             size=4194304, type=0657FD6D-A4AB-43C4-84E5-0933C84B4F4F, name="SWAP"
+EOF
 
     msg "Partprobing ${disk} ..."
-    partprobe $disk
+    partprobe ${disk}
 
     msg "Formating partition 1 (EXT2) ..."
-    mkfs.ext2 -L ROOT ${disk}1
+    mkfs.ext2 -L ROOT ${disk}${prefix}1
 
     msg "Formating partition  2 (SWAP) ..."
-    mkswap -L SWAP ${disk}2
+    mkswap -L SWAP ${disk}${prefix}2
 
     msg "Formated ${disk} layout ..."
-    lsblk $disk
+    lsblk ${disk}
 }
 
-is_booted_from_target() {
-    if [ "${boot_dev}" = "${target_dev}" ]; then
-        msg " "
-        msg " "
-        msg "Your device is currently booted from target (eMMC/UFS/USB)."
-        msg "Install from target to target not make much sense... Exiting ..."
-        msg " "
-        msg " "
-        exit 1
+is_booted_from() {
+    if [ "${boot_dev}" = "${1}" ] ; then
+        if [ "${skip_check_is_booted_from}" = "yes" ] ; then
+           return 1
+        else
+           return 0
+        fi
+    else
+        return 1
     fi
 }
 
 what_platform() {
+
+    if [ ! -e /sys/firmware/devicetree/base/compatible ] ; then
+        echo "No [/sys/firmware/devicetree/base/compatible] sysfs dir to identify Your platfrom ..."
+        echo "Exiting!"
+        echo " "
+        exit 1
+    fi
 
     platform=$(tr -d '\0' < /sys/firmware/devicetree/base/compatible 2>/dev/null)
     log "platform string: ${platform}"
@@ -397,30 +396,9 @@ what_platform() {
     fi
 }
 
-get_size_to_copy() {
-
-    for part_no in p6 p5 p4 p3 p2 p1 p0 6 5 4 3 2 1 0
-    do
-        sysfs_part="/sys/block/${boot_dev}/${boot_dev}${part_no}"
-        start=$(cat ${sysfs_part}/start 2>/dev/null)
-        log "reading ${sysfs_part} for start returns: ${start}"
-        if [ ! x${start} = "x" ] ; then
-            size=$(cat ${sysfs_part}/size 2>/dev/null)
-            log "reading ${sysfs_part} for size returns: ${size}"
-            end=$((${start} + $size))
-            storage_usage=$((${end} / 2000))
-            break
-        fi
-    done
-
-    if [ x${storage_usage} = "x" ] ; then
-        error "ERROR: can't determine usage on ${boot_dev}!"
-    fi
-}
-
 mount_source_partitions() {
-    mount_partition /dev/${boot_dev} 1 ${boot_src}
-    mount_partition /dev/${boot_dev} 2 ${root_src}
+    mount_partition /dev/${source_dev} 1 ${boot_src}
+    mount_partition /dev/${source_dev} 2 ${root_src}
 }
 
 umount_all_partitions() {
@@ -430,19 +408,49 @@ umount_all_partitions() {
     umount_partition ${root_dst}
 }
 
-duplicate_sdcard_to_target() {
+copy_rootfs_use_rsync() {
+    local source_dir="${1}"
+    local target_dir="${2}"
 
-    msg "Copying from: ${boot_dev} to: eMMC (${target_dev}) ..."
-    dd if=/dev/${boot_dev} of=/dev/${target_dev} bs=1M count=$1 conv=fsync
-    sync
+    rsync -a -x -v -A -X \
+    --exclude='/dev/' \
+    --exclude='/proc/' \
+    --exclude='/sys/' \
+    --exclude='/tmp/' \
+    --exclude='/run/' \
+    --exclude='/mnt/' \
+    --exclude='/media/*' \
+    --exclude='/lost+found' \
+    "${source_dir}" "${target_dir}"
+}
 
-    msg "Partprobing ${target_dev} ..."
-    partprobe /dev/${target_dev}
+copy_rootfs_use_cp() {
+    local source_dir="${1}"
+    local target_dir="${2}"
 
-    msg "Duplicated ${target_dev} layout ..."
-    lsblk /dev/${target_dev}
-
-    mount_partition /dev/${target_dev} 1 ${boot_dst}
+    if [ -e ${source_dir}/rootfs-ro ] ; then
+        msg "copying rootfs from [${source_dir}] to [${target_dir}] in MiniMyth2 variant ..."
+        cp -af ${source_dir}/* ${target_dir}/
+    else
+        msg "copying rootfs from [${source_dir}] to [${target_dir}] in MiniArch variant ..."
+        cp -af ${source_dir}/bin* ${target_dir}/
+        #boot
+        #dev
+        cp -af ${source_dir}/etc* ${target_dir}/
+        cp -af ${source_dir}/home* ${target_dir}/
+        cp -af ${source_dir}/lib* ${target_dir}/
+        #mnt
+        cp -af ${source_dir}/opt* ${target_dir}/
+        #proc
+        cp -af ${source_dir}/root* ${target_dir}/
+        #run
+        cp -af ${source_dir}/sbin* ${target_dir}/
+        cp -af ${source_dir}/srv* ${target_dir}/
+        #sys
+        #tmp
+        cp -af ${source_dir}/usr* ${target_dir}/
+        cp -af ${source_dir}/var* ${target_dir}/
+    fi
 }
 
 copy_sdcard_to_1part_gpt_disk() {
@@ -452,7 +460,8 @@ copy_sdcard_to_1part_gpt_disk() {
     mount_partition /dev/${target_dev} 1 ${root_dst}
 
     msg "Copying root data to target disk ..."
-    cp -af ${root_src}/* ${root_dst}/
+    #cp -af ${root_src}/* ${root_dst}/
+    copy_rootfs_use_cp ${root_src} ${root_dst}
 
     msg "Copying boot data to target disk ..."
     mkdir -p ${root_dst}/boot
@@ -467,7 +476,8 @@ copy_sdcard_to_2part_mbr_disk() {
     mount_partition /dev/${target_dev} 2 ${root_dst}
 
     msg "Copying boot data to target disk ..."
-    cp -af ${boot_src}/* ${boot_dst}/
+    #cp -af ${boot_src}/* ${boot_dst}/
+    copy_rootfs_use_cp ${root_src} ${root_dst}
 
     msg "Copying root data to target disk ..."
     cp -af ${root_src}/* ${root_dst}/
@@ -480,37 +490,36 @@ copy_sdcard_to_3part_gpt_disk() {
     mount_partition /dev/${target_dev} 3 ${root_dst}
 
     msg "Copying root data to disk ..."
-    cp -af ${root_src}/* ${root_dst}/
+    #cp -af ${root_src}/* ${root_dst}/
+    copy_rootfs_use_cp ${root_src} ${root_dst}
 
     msg "Copying boot data to target disk ..."
     mkdir -p ${root_dst}/boot
     cp -af ${boot_src}/* ${root_dst}/boot/
 }
 
-update_target_extlinux() {
+update_extlinux_conf() {
 
-    part_no=${2}
-    if [ x${2} = "x" ] ; then
-        part_no=2
-    fi
+    local dev=$2
+    local part_num=$3
+    local prefix=$(part_prefix ${dev})
 
-    if [[ ${target_dev} =~ "mmcblk" ]] ; then
-        # eMMC case
-        msg "Updating root= in extlinux.conf on ${target_dev} to ${target_dev}p${part_no} ..."
-        sed -e "s|mmcblk[0-9]p[0-9]|${target_dev}p${part_no}|g" -i ${1}/extlinux/extlinux.conf
-    else
-        # USB/UFS case
-        msg "Updating root= in extlinux.conf on ${target_dev} to ${target_dev}${part_no} ..."
-        sed -e "s|mmcblk[0-9]p[0-9]|${target_dev}${part_no}|g" -i ${1}/extlinux/extlinux.conf
-    fi
+    msg "Updating root= in extlinux.conf on [${1}] to ${dev}${prefix}${part_num} ..."
+    sed -e "s|mmcblk[0-9]p[0-9]|${dev}${prefix}${part_num}|g" -i ${1}/extlinux/extlinux.conf
+    sed -e "s|sd[a-z][0-9]|${dev}${prefix}${part_num}|g" -i ${1}/extlinux/extlinux.conf
 }
 
 erase_target() {
 
-    msg "Erasing eMMC ..."
-    dd if=/dev/zero of=/dev/${target_dev} bs=1M count=${erase_areas_size} conv=fsync
+    dev=${1}
 
-    msg "Erasing eMMC bootloader ..."
+    msg "Erasing ${dev} ..."
+    dd if=/dev/zero of=/dev/${dev} bs=1M count=${erase_areas_size} conv=fsync
+}
+
+erase_bootloader() {
+
+    msg "Erasing bootloader ..."
     dd if=/dev/zero of=/tmp/file_with_zeros count=2048 conv=fsync
 
     write_target_bootX 0 "/tmp/file_with_zeros"
@@ -545,7 +554,7 @@ write_target_bootX() {
         write_target=/dev/${ufs_boot_part}
 
     else
-        msg "  no eMMC ${target_dev}boot$1 part nor UFS /dev/sdb[c] found. Skip writing to it ..."
+        msg "  no eMMC ${target_dev}boot$1 part nor UFS /dev/sdb[c] found. Skiping ..."
         return 1
     fi
 
@@ -564,17 +573,17 @@ write_bootloader_to_target_rockchip() {
     if [ -e ${idbloader_blob} ] ; then
         msg "Will use idbloader from [/boot/bootloader/] ..."
     else
-        msg "No idbloader in [/boot/bootloader]. Will copy from ${boot_dev} ..."
+        msg "No idbloader in [/boot/bootloader]. Will copy from ${source_dev} ..."
         mkdir -p /boot/bootloader/
-        dd if=/dev/${boot_dev} of=${idbloader_blob} count=4031 skip=64
+        dd if=/dev/${source_dev} of=${idbloader_blob} count=4031 skip=64
     fi
 
     if [ -e ${uboot_blob} ] ; then
         msg "Will use u-boot from [/boot/bootloader/] ..."
     else
-        msg "No u-boot in [/boot/bootloader]. Will copy from ${boot_dev} ..."
+        msg "No u-boot in [/boot/bootloader]. Will copy from ${source_dev} ..."
         mkdir -p /boot/bootloader/
-        dd if=/dev/${boot_dev} of=${uboot_blob} count=8191 skip=16384
+        dd if=/dev/${source_dev} of=${uboot_blob} count=8191 skip=16384
     fi
 
     msg "Writing idbloader.img to boot0 ..."
@@ -599,17 +608,17 @@ write4096_bootloader_to_target() {
     if [ -e ${idbloader_blob} ] ; then
         msg "Will use idbloader from [/boot/bootloader/] ..."
     else
-        msg "No idbloader in [/boot/bootloader]. Will copy from ${boot_dev} ..."
+        msg "No idbloader in [/boot/bootloader]. Will copy from ${source_dev} ..."
         mkdir -p /boot/bootloader/
-        dd if=/dev/${boot_dev} of=${idbloader_blob} bs=4k skip=8 count=256
+        dd if=/dev/${source_dev} of=${idbloader_blob} bs=4k skip=8 count=256
     fi
 
     if [ -e ${uboot_blob} ] ; then
         msg "Will use u-boot from [/boot/bootloader/] ..."
     else
-        msg "No u-boot in [/boot/bootloader]. Will copy from ${boot_dev} ..."
+        msg "No u-boot in [/boot/bootloader]. Will copy from ${source_dev} ..."
         mkdir -p /boot/bootloader/
-        dd if=/dev/${boot_dev} of=${uboot_blob} bs=4k skip=2048 count=512
+        dd if=/dev/${source_dev} of=${uboot_blob} bs=4k skip=2048 count=512
     fi
 
     msg "Writing idbloader.img to boot0 ..."
@@ -633,9 +642,9 @@ write_bootloader_to_target_allwinner() {
     if [ -e ${uboot_blob} ] ; then
         msg "Will use u-boot from [/boot/bootloader/] ..."
     else
-        msg "No u-boot in [/boot/bootloader]. Will copy from ${boot_dev} ..."
+        msg "No u-boot in [/boot/bootloader]. Will copy from ${source_dev} ..."
         mkdir -p /boot/bootloader/
-        dd if=/dev/${boot_dev} of=${uboot_blob} count=4096 skip=16
+        dd if=/dev/${source_dev} of=${uboot_blob} count=4096 skip=16
     fi
 
     msg "Writing u-boot-sunxi-with-spl.bin to boot0 ..."
@@ -684,44 +693,155 @@ write_bootloader_to_target() {
     fi
 }
 
-check_is_emmc_ufs_present() {
-    if [ ! x"${emmc_dev}" = "xN/A" ] && [ ! x"${ufs_dev}" = "xN/A" ] ; then
+is_present() {
+    if [ "${1}" != "N/A" ] ;  then
+        return 0
+    else
+        return 1
+    fi
+}
 
-        echo "Please select target device:"
-        echo "(1): eMMC"
-        echo "(2): USB/UFS"
+is_present_and_not_booted_from() {
+    if is_present ${1} && ! is_booted_from ${1} ; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_presence_and_select_target() {
+    target_dev=""
+    target_dev_name="N/A"
+
+    if [ ${devices_in_system} -lt 2 ] ; then
+        #single device case
+            if is_present_and_not_booted_from ${emmc_dev} ; then
+                target_dev=${emmc_dev}
+                target_dev_name="eMMC"
+            elif is_present_and_not_booted_from ${ufs_dev} ; then
+                target_dev=${ufs_dev}
+                target_dev_name="UFS"
+            elif is_present_and_not_booted_from ${usb_dev} ; then
+                target_dev=${usb_dev}
+                target_dev_name="USB"
+            elif is_present_and_not_booted_from ${nvme_dev} ; then
+                target_dev=${nvme_dev}
+                target_dev_name="NVME"
+            else
+                echo " "
+                echo "No suitable target to install found!"
+                echo "Exiting ..."
+                echo " "
+                exit 1
+            fi
+        echo "==> Found target device: ${target_dev_name} (${target_dev})"
+        echo " "
+    else
+        #more than 1 device. selection needed
+        echo " " 
+        echo "Multiple target candidates identified."
+        echo "Please select target to install:"
+        echo " "
+        if is_present_and_not_booted_from ${emmc_dev} ; then
+            echo "(e): eMMC module"
+        fi
+        if is_present_and_not_booted_from ${ufs_dev} ; then
+            echo "(f): UFS module"
+        fi
+        if is_present_and_not_booted_from ${usb_dev} ; then
+            echo "(u): USB key"
+        fi
+        if is_present_and_not_booted_from ${nvme_dev} ; then
+            echo "(n): NVME disk"
+        fi
 
         read sel
 
-        if [ $sel = "1" ] ; then
-
+        if  [ "${sel}" = "e" ] ; then
             target_dev=${emmc_dev}
-
-        elif [ $sel = "2" ] ; then
-
+            target_dev_name="eMMC"
+        elif [ "${sel}" = "f" ] ; then
             target_dev=${ufs_dev}
-
+            target_dev_name="UFS"
+        elif [ "${sel}" = "u" ] ; then
+            target_dev=${usb_dev}
+            target_dev_name="USB"
+        elif [ "${sel}" = "n" ] ; then
+            target_dev=${nvme_dev}
+            target_dev_name="NVME"
         else
             echo " "
             echo "Wrong selection! Exiting ..."
             echo " "
             exit 1
-      fi
+        fi
+        echo "==> Selectd target device: ${target_dev_name} (${target_dev})"
+        echo " "
+    fi
+}
 
-    elif [ ! x"${emmc_dev}" = "xN/A" ] ; then
+check_presence_and_select_source() {
+    source_dev=""
+    source_dev_name="N/A"
+    if is_present ${sdcard_dev} && is_present ${emmc_dev} ; then
+        #more than 1 device. selection needed
+        echo " " 
+        echo "Multiple source candidates identified."
+        echo "Please select source to install from:"
+        echo " "
 
-        target_dev=${emmc_dev}
+        if is_present ${sdcard_dev} ; then
+            echo "(s): SD card"
+        fi
+        if is_present ${emmc_dev} ; then
+            echo "(e): eMMC module"
+        fi
 
-    elif [ ! x"${ufs_dev}" = "xN/A" ] ; then
+        read sel
 
-        target_dev=${ufs_dev}
+        if  [ "${sel}" = "e" ] ; then
+            source_dev=${emmc_dev}
+            source_dev_name="eMMC"
+        elif [ "${sel}" = "s" ] ; then
+            source_dev=${sdcard_dev}
+            source_dev_name="SDcard"
+        else
+            echo " "
+            echo "Wrong selection! Exiting ..."
+            echo " "
+            exit 1
+        fi
 
+        echo "==> Selectd source device: ${source_dev_name} (${source_dev})"
+        echo " "
     else
+        #single device
+        if is_present ${sdcard_dev} ; then
+            source_dev=${sdcard_dev}
+            if is_booted_from ${sdcard_dev} ; then 
+                source_dev_name="SDcard (booted from)"
+            else
+                source_dev_name="SDcard"
+            fi
+        elif is_present ${emmc_dev} ; then
+            source_dev=${emmc_dev}
+            if is_booted_from ${sdcard_dev} ; then 
+                source_dev_name="eMMC (booted from)"
+            else
+                source_dev_name="eMMC"
+            fi
+        else
+            echo " "
+            echo "No SDcard nor eMMC as source found!"
+            echo "To install to UFS/USB or NVME sctipt requires system on SDcard or eMMC as source."
+            echo "Exiting ..."
+            echo " "
+            exit 1
+        fi
 
+        echo "==> Found source device: ${source_dev_name} (${source_dev})"
         echo " "
-        echo "Can't determine eMMC nor UFS/USB device! Exiting ..."
-        echo " "
-        exit 1
+
     fi
 }
 
@@ -730,40 +850,69 @@ if [ x"${boot_dev}" = "x" ]; then
     boot_dev=$(mount | grep -e 'on\s/\s' | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0123456789]$//g' | sed 's/p//g' )
 fi
 
-emmc_dev="N/A"
-for TYPE in /sys/class/block/mmcblk*/device/type; do
-    if grep -q "MMC" "${TYPE}" 2>/dev/null ; then
-        emmc_dev="$(echo "${TYPE}" | awk -F/ '{print $5}')"
-        break
-    fi
-done
+spi_dev="N/A"
+spi_devices=$(mtdinfo | grep Count | sed -e 's/[^0-9]//g')
+if [ x$spi_devices = "x1" ] ; then
+    spi_dev=$(mtdinfo | grep Present | sed -e 's/.*:\s*//g')
+elif [ $spi_devices gt= "1" ] ; then
+    echo "Your system has more than 1 spi devide. This is unsupported by this script ..."
+fi
 
-ufs_dev="N/A"
-for TYPE in /sys/class/block/sd*/device/type; do
-    if grep -q "0" "${TYPE}" 2>/dev/null ; then
-        ufs_dev="$(echo "${TYPE}" | awk -F/ '{print $5}')"
-        break
-    fi
-done
+devices_in_system=0
 
 sdcard_dev="N/A"
 for TYPE in /sys/class/block/mmcblk*/device/type; do
     if grep -q "SD" "${TYPE}" 2>/dev/null ; then
         sdcard_dev="$(echo "${TYPE}" | awk -F/ '{print $5}')"
+        devices_in_system=$((${devices_in_system} + 1))
         break
     fi
 done
 
-spi_dev="N/A"
-    spi_devices=$(mtdinfo | grep Count | sed -e 's/[^0-9]//g')
-    if [ x$spi_devices = "x1" ] ; then
-        spi_dev=$(mtdinfo | grep Present | sed -e 's/.*:\s*//g')
-    elif [ $spi_devices gt= "1" ] ; then
-        echo "Your system has more than 1 spi devide. This is unsupported by this script ..."
+emmc_dev="N/A"
+for TYPE in /sys/class/block/mmcblk*/device/type; do
+    if grep -q "MMC" "${TYPE}" 2>/dev/null ; then
+        emmc_dev="$(echo "${TYPE}" | awk -F/ '{print $5}')"
+        devices_in_system=$((${devices_in_system} + 1))
+        break
     fi
+done
+
+ufs_dev="N/A"
+usb_dev="N/A"
+for device in /sys/class/block/sd*/device/type; do
+    device_path=$(readlink -f $device)
+    if [[ "$device_path" == *"usb"* ]]; then
+        if [ x${usb_dev} = "xN/A" ] ; then
+            usb_dev=$(echo ${device} | cut -d'/' -f5)
+            devices_in_system=$((${devices_in_system} + 1))
+        fi
+    elif [[ "$device_path" == *"ufs"* ]]; then
+        if [ x${ufs_dev} = "xN/A" ] ; then
+            ufs_dev=$(echo ${device} | cut -d'/' -f5)
+            devices_in_system=$((${devices_in_system} + 1))
+        fi
+    elif [[ "$device_path" == *"nvme"* ]]; then
+        if [ x${nvme_dev} = "xN/A" ] ; then
+            nvme_dev=$(echo ${device} | cut -d'/' -f5)
+            devices_in_system=$((${devices_in_system} + 1))
+        fi
+    fi
+done
+
+nvme_dev="N/A"
+for device in /sys/class/block/nvme*/device/state; do
+    device_path=$(readlink -f $device)
+    if [[ "$device_path" == *"nvme"* ]]; then
+        if [ x${nvme_dev} = "xN/A" ] ; then
+            nvme_dev=$(echo ${device} | cut -d'/' -f5)
+            devices_in_system=$((${devices_in_system} + 1))
+        fi
+    fi
+done
 
 echo " "
-echo "--- MiniMyth2 to eMMC/UFS/USB installer v$ver (c)Piotr Oniszczuk ---"
+echo "--- MiniMyth2 to eMMC/UFS/USB/NVME installer v$ver (c)Piotr Oniszczuk ---"
 echo " "
 
 what_platform
@@ -783,21 +932,27 @@ if [[ ${boot_dev} =~ ${emmc_dev} ]] ; then
     boot_dev_name="eMMC module"
 fi
 if [[ ${boot_dev} =~ ${ufs_dev} ]] ; then
-    boot_dev_name="UFS/USB module"
+    boot_dev_name="UFS module"
+fi
+if [[ ${boot_dev} =~ ${usb_dev} ]] ; then
+    boot_dev_name="USB key"
+fi
+if [[ ${boot_dev} =~ ${nvme_dev} ]] ; then
+    boot_dev_name="NVME disk"
 fi
 
 echo " "
+echo "Platform             : ${platform}"
+echo "Board/device         : ${platform_type}"
+echo " " 
 echo "SDcard device        : ${sdcard_dev}"
 echo "eMMC device          : ${emmc_dev}"
-echo "UFS/USB device       : ${ufs_dev}"
+echo "UFS device           : ${ufs_dev}"
+echo "USB device           : ${usb_dev}"
+echo "NVME device          : ${nvme_dev}"
+echo "Devices in system    : ${devices_in_system}"
 echo "SPI device           : ${spi_dev}"
 echo "System booted from   : ${boot_dev_name} (${boot_dev})"
-
-get_size_to_copy
-
-echo "Boot device has      : ${part_no} partitions"
-echo "Boot device usage    : ${storage_usage}MB"
-
 
 if [ x"${boot_dev}" = "x" ]; then
     echo " "
@@ -806,17 +961,46 @@ if [ x"${boot_dev}" = "x" ]; then
     exit 1
 fi
 
-if [[ "${command}" = "erase" ]] ; then
 
-    check_is_emmc_ufs_present
+if [ "${command}" = "erase" ] ; then
+
+    skip_check_is_booted_from="yes"
+    check_presence_and_select_target
+    skip_check_is_booted_from="no"
+
+    clean_working_env
 
     echo " "
-    echo "erasing ${target_dev} ..."
+    echo "erasing ${target_dev_name} (${target_dev}) ..."
 
     confirm "Please, confirm to erase"
     confirm "ARE YOU SURE to erase ${target_dev} content?"
 
-    erase_target
+    erase_target ${target_dev}
+
+    if is_present ${sdcard_dev} ; then
+
+        erase_bootloader
+
+        # changing back root= to SDcard device
+        echo "Restoring root= in exlinux.conf back to ${sdcard_dev},part2 ..."
+        umount_partition ${boot_src}
+        mount_partition /dev/${sdcard_dev} 1 ${boot_src}
+        update_extlinux_conf ${boot_src} ${sdcard_dev} 2
+        umount_partition ${boot_src}
+    fi
+
+    if is_present ${emmc_dev} ; then
+
+        erase_bootloader
+
+        # changing back root= to eMMC device
+        echo "Restoring root= in exlinux.conf back to ${emmc_dev},part2 ..."
+        umount_partition ${boot_src}
+        mount_partition /dev/${emmc_dev} 1 ${boot_src}
+        update_extlinux_conf ${boot_src} ${emmc_dev} 2
+        umount_partition ${boot_src}
+    fi
 
     sync
 
@@ -825,7 +1009,7 @@ if [[ "${command}" = "erase" ]] ; then
     echo " "
     exit 0
 
-elif [[ "${command}" = "erasespi" ]] ; then
+elif [ "${command}" = "erasespi" ] ; then
 
     if [ x"${spi_dev}" = "xN/A" ] ; then
         echo "It looks Your system don't have any SPI device ..."
@@ -849,11 +1033,22 @@ elif [[ "${command}" = "erasespi" ]] ; then
     echo " "
     exit 0
 
-elif [[ "${command}" =~ "bootloader" ]] ; then
+elif [ "${command}" = "bootloader" ] ; then
 
-    check_is_emmc_ufs_present
+    check_presence_and_select_target
 
-    confirm "to install/update eMMC bootloader"
+    check_presence_and_select_source
+
+    if [ ${target_dev} != ${emmc_dev} ] ; then
+        echo "Writing bootloader is supported only for eMMC target ..."
+        echo "Current target is ${target_dev_name} (${target_dev})"
+        echo " "
+        echo "Exiting!"
+        echo " "
+        exit 1
+    fi
+
+    confirm "to install/update bootloader on ${target_dev_name} (${target_dev})"
 
     write_bootloader_to_target
 
@@ -864,104 +1059,72 @@ elif [[ "${command}" =~ "bootloader" ]] ; then
     echo " "
     exit 0
 
-elif [[ "${command}" = "install" ]] ; then
+elif [ "${command}" = "install" ] ; then
 
-    check_is_emmc_ufs_present
+    check_presence_and_select_target
 
-    is_booted_from_target
+    check_presence_and_select_source
 
-    confirm "to copy ${storage_usage}MB from SD card to eMMC"
+    clean_working_env
 
-    confirm "ARE YOU SURE to OVERWRITE ALL content on ${target_dev} device?"
+    confirm "you have working bootolader on SPI or SDCard or eMMC - if You are installing to UFS, USB or NVME\nThis is required due SoC BootROM limitations\nSo confirm You have working bootloader on device SPI or SDCard or eMMC"
 
-    msg "Copying ${storage_usage}MB to eMMC ..."
-    duplicate_sdcard_to_target $((${storage_usage} + $safety_margin))
-    msg "Copying to eMMC done ..."
+    confirm "ARE YOU SURE to DESTROY ALL content on ${target_dev_name} (${target_dev}) device?"
 
-    update_target_extlinux ${boot_dst}
+    if [ "${target_dev}" = "${usb_dev}" ] || [ "${target_dev}" = "${nvme_dev}" ] || [ "${target_dev}" = "${emmc_dev}" ] ; then
 
-    msg "Write bootloader to eMMC ..."
-    confirm "to write bootloader on eMMC"
-    write_bootloader_to_target
+        partition_2part_mbr_then_format /dev/${target_dev}
 
-    sync
+        msg "Copying ${storage_usage}MB to ${target_dev_name} (${target_dev})..."
+        copy_sdcard_to_2part_mbr_disk
+        msg "Copying to ${target_dev_name} done ..."
 
-    umount_all_partitions
+        if [ "${target_dev}" = "${usb_dev}" ] || [ "${target_dev}" = "${nvme_dev}" ]; then
+            # for USB and NVME modify root=  on boot device (which is SDcard or eMMC)
+            update_extlinux_conf ${boot_src} ${target_dev} 2
+        else
+            # target is eMMC
+            update_extlinux_conf ${boot_dst} ${target_dev} 2
 
-    echo " "
-    echo "It looks system was successfuly installed on eMMC device :-)"
-    echo "You can now poweroff, remove SD card and poweron again. System should boot from eMMC ..."
-    echo " "
-    exit 0
+            msg "Writing bootloader to eMMC ..."
+            write_bootloader_to_target
+        fi
 
-elif [[ "${command}" = "usbinstall" ]] ; then
+    elif [ "${target_dev}" = "${ufs_dev}" ] ; then
 
-    check_is_emmc_ufs_present
+        partition_3part_gpt_then_format /dev/${target_dev}
 
-    is_booted_from_target
+        msg "Copying ${storage_usage}MB to ${target_dev_name} (${target_dev})..."
+        copy_sdcard_to_3part_gpt_disk
+        msg "Copying to ${target_dev_name} done ..."
 
-    confirm "to format USB device"
-    confirm "ARE YOU SURE to DESTROY ALL content on ${target_dev} device?"
+        update_extlinux_conf ${boot_src} ${target_dev} 2
+        update_extlinux_conf ${root_dst}/boot ${target_dev} 3
 
-    partition_2part_mbr_then_format /dev/${target_dev}
+        sed -e "s|Image|boot/Image|g" -i ${root_dst}/boot/extlinux/extlinux.conf
+        sed -e "s|dtbs|boot/dtbs|g" -i ${root_dst}/boot/extlinux/extlinux.conf
 
-    msg "Copying ${storage_usage}MB to USB ..."
-    copy_sdcard_to_2part_mbr_disk
-    msg "Copying to USB done ..."
+    else
 
-    update_target_extlinux ${boot_dst}
-
-    msg "Write bootloader to USB ..."
-    confirm "to write bootloader on USB"
-    write_bootloader_to_target
-
-    sync
-
-    umount_all_partitions
-
-    echo " "
-    echo "It looks system was successfuly installed on eMMC/UFS device :-)"
-    echo "You can now poweroff, remove SD card and poweron again. System should boot from eMMC/UFS ..."
-    echo " "
-    exit 0
-
-elif [[ "${command}" = "ufsinstall" ]] ; then
-
-    check_is_emmc_ufs_present
-
-    is_booted_from_target
-
-    confirm "to format UFS device"
-    confirm "ARE YOU SURE to DESTROY ALL content on ${target_dev} device?"
-
-    partition_3part_gpt_then_format /dev/${target_dev}
-
-    msg "Copying ${storage_usage}MB to UFS ..."
-    copy_sdcard_to_3part_gpt_disk
-    msg "Copying to UFS done ..."
-
-    update_target_extlinux ${root_dst}/boot 3
-
-    sed -e "s|Image|boot/Image|g" -i ${root_dst}/boot/extlinux/extlinux.conf
-    sed -e "s|dtbs|boot/dtbs|g" -i ${root_dst}/boot/extlinux/extlinux.conf
-
-    msg "Write bootloader to UFS ..."
-    confirm "to write bootloader on UFS"
-    write4096_bootloader_to_target
+        msg "Unsupported/unknown target. Script will exit without any action ..."
+        echo " "
+        exit 1
+    fi
 
     sync
 
     umount_all_partitions
 
     echo " "
-    echo "It looks system was successfuly installed on UFS device :-)"
-    echo "You can now poweroff, remove SD card and poweron again. System should boot from UFS ..."
+    echo "It looks system was successfuly installed on ${target_dev_name} (${target_dev}) :-)"
+    echo "You can now poweroff and poweron again. System should boot from ${target_dev_name} ..."
+    echo "So...happy booting :-)"
     echo " "
     exit 0
 
 else
     echo " "
-    echo "Run script with command: erase|erasespi|bootloader|usbinstall|ufsinstall|install"
+    echo "Run script with command: erase|erasespi|bootloader|install"
     echo " "
 
     exit 0
