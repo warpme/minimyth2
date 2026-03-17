@@ -13,8 +13,9 @@ CLEAN_SCRIPTS   += bootloader
 
 include ../../gar.mk
 
-IDBLOADER = $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img
-U-BOOT    = $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb
+IDBLOADER  = $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img
+U-BOOT     = $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb
+U-BOOT-SPI = $(DESTDIR)$(libdir)/u-boot/$(SOC_TYPE)/$(mm_U-BOOT_BOARD_TYPE)/u-boot-rockchip-spi.bin
 
 $(IDBLOADER):
 	@$(MAKE) clean install  -C ../u-boot-rk
@@ -29,6 +30,9 @@ install-bootloader: $(IDBLOADER) $(U-BOOT)
 	@mkdir -p $(DESTDIR)/boot/$(SOC_TYPE)loaderfiles
 	@cp -f    $(IDBLOADER) $(DESTDIR)/boot/$(SOC_TYPE)loaderfiles/idbloader.img
 	@cp -f    $(U-BOOT)    $(DESTDIR)/boot/$(SOC_TYPE)loaderfiles/u-boot.itb
+	@if [ -e $(U-BOOT-SPI) ] ; then \
+	  cp -f  $(U-BOOT-SPI) $(DESTDIR)/boot/$(SOC_TYPE)loaderfiles//u-boot-rockchip-spi.bin ; \
+	 fi
 	@cp -f    $(WORKSRC)/minimyth.conf $(DESTDIR)/boot/minimyth.conf
 	@cp -f    $(WORKSRC)/extlinux.conf $(DESTDIR)/boot/extlinux/extlinux.conf
 	@# do not do $(MAKECOOKIE) as reinstall-board uses this install also to reinstall board files
