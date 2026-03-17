@@ -258,9 +258,15 @@ install-custom:
 	@echo "Instaling u-boot.itb ..."
 	@cp -f  $(WORKSRC)/u-boot.itb \
 		$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb
+	@if [ -e $(WORKSRC)/u-boot-rockchip-spi.bin ] ; then \
+	   echo "Instaling u-boot-rockchip-spi.bin ..." ; \
+	   cp -f  $(WORKSRC)/u-boot-rockchip-spi.bin \
+		$(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/u-boot-rockchip-spi.bin ; \
+	 fi
 	@$(MAKECOOKIE)
 
 clean-all: clean
 	rm -f $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/idbloader.img
 	rm -f $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/u-boot.itb
+	rm -f $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/$(mm_U-BOOT_BOARD_TYPE)/u-boot-rockchip-spi.bin
 	rm -f $(DESTDIR)$(libdir)/u-boot/$(INSTALL_PREF)/bl31.bin
