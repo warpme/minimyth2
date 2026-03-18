@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# Script is part of MiniMyth2/MiniArch project.
+#
+# Developed-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+# Signed-off-by: Piotr Oniszczuk <piotr.oniszczuk@gmail.com>
+
 # Script works following commands:
 #
 #  install: will install from SDcard or eMMC to UFS/USB or NVME
@@ -156,9 +161,10 @@ confirm() {
 clean_working_env() {
     log "clean working enviroment ..."
     umount_all_partitions
-    do_cmd lsblk
     rmdir -p ${src-BOOT} ${src-ROOT} ${dst-BOOT} ${dst-ROOT} 2>/dev/null
-    do_cmd ls -la /mnt
+    do_cmd lsblk
+    do_cmd blkid
+    do_cmd mount
     log "clean working enviroment done!"
 }
 
@@ -232,10 +238,10 @@ EOF
     do_cmd partprobe ${disk}
 
     msg "Formating partition 1 (EXT2) ..."
-    do_cmd mkfs.ext2 -L ROOT ${disk}${prefix}1
+    do_cmd mkfs.ext2 -L ROOT-${target_dev_name} ${disk}${prefix}1
 
     msg "Formating partition 2 (SWAP) ..."
-    do_cmd mkswap -L SWAP ${disk}${prefix}2
+    do_cmd mkswap -L SWAP-${target_dev_name} ${disk}${prefix}2
 
     log "Formated ${disk} layout ..."
     do_cmd lsblk ${disk}
@@ -267,57 +273,18 @@ EOF
     do_cmd partprobe ${disk}
 
     msg "Formating partition 1 (FAT32) ..."
-    do_cmd mkfs.vfat -F 32 -n BOOT ${disk}${prefix}1
+    if [ ${target_dev} = ${emmc_dev} ] ; then
+        #for eMMC label as 'BOOT' as MiniMyth2 mounts this part by label
+        do_cmd mkfs.vfat -F 32 -n BOOT ${disk}${prefix}1
+    else
+        do_cmd mkfs.vfat -F 32 -n BOOT-${target_dev_name} ${disk}${prefix}1
+    fi
 
     msg "Formating partition 2 (EXT2) ..."
-    do_cmd mkfs.ext2 -L ROOT ${disk}${prefix}2
+    do_cmd mkfs.ext2 -L ROOT-${target_dev_name} ${disk}${prefix}2
 
     msg "Formating partition 3 (SWAP) ..."
-    do_cmd mkswap -L SWAP ${disk}${prefix}3
-
-    log "Formated ${disk} layout ..."
-    do_cmd lsblk ${disk}
-}
-
-partition_3part_gpt_then_format() {
-
-    local disk=$1
-    local prefix
-
-    prefix=$(part_prefix ${disk})
-
-    umount_partition ${disk}${prefix}1
-    umount_partition ${disk}${prefix}2
-    umount_partition ${disk}${prefix}3
-
-    msg "Partitioning ${target_dev_name} (${disk}) with 4 GPT partitions ..."
-
-    sfdisk "${disk}" >> ${log_file} 2>&1 <<EOF
-label: gpt
-label-id: 9b83ec43-54d0-41f2-9ac9-1ae79ef084fc
-unit: sectors
-
-start=32768, size=262144,  type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="CONFIG"
-             size=1048576, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, name="EFI"
-             size=8388608, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="ROOTFS"
-             size=4194304, type=0657FD6D-A4AB-43C4-84E5-0933C84B4F4F, name="SWAP"
-EOF
-    check_return_code
-
-    msg "Partprobing ${disk} ..."
-    do_cmd partprobe ${disk}
-
-    msg "Formating partition 1 (EXT2) ..."
-    do_cmd mkfs.ext2 -L Config ${disk}${prefix}1
-
-    msg "Formating partition 2 (FAT32) ..."
-    do_cmd mkfs.vfat -F 32 -n EFI ${disk}${prefix}2
-
-    msg "Formating partition 3 (EXT2) ..."
-    do_cmd mkfs.ext2 -L ROOT ${disk}${prefix}3
-
-    msg "Formating partition 4 (SWAP) ..."
-    do_cmd mkswap -L SWAP ${disk}${prefix}4
+    do_cmd mkswap -L SWAP-${target_dev_name} ${disk}${prefix}3
 
     log "Formated ${disk} layout ..."
     do_cmd lsblk ${disk}
@@ -681,7 +648,8 @@ write_bootloader_to_spi_target_rockchip() {
         msg "Will use u-boot-rockchip-spi.bin from [/boot/bootloader/] ..."
         if [ -e "/dev/mtd0" ]; then
             msg "Writing u-boot-rockchip-spi.bin to /dev/mtd0 ..."
-            do_cmd flashcp -v ${spi_uboot_blob} /dev/mtd0
+            flashcp -v ${spi_uboot_blob} /dev/mtd0
+            check_return_code
         else
             msg "No /dev/mtd0 present. Skipping write spi u-boot ..."
         fi
@@ -1003,8 +971,7 @@ if [ "${command}" = "erase" ] ; then
 
     clean_working_env
 
-    echo " "
-    echo "erasing ${target_dev_name} (${target_dev}) ..."
+    msg "Erasing ${target_dev_name} (${target_dev}) ..."
 
     confirm "Please, confirm to erase"
     confirm "ARE YOU SURE to erase ${target_dev} content?"
@@ -1016,7 +983,7 @@ if [ "${command}" = "erase" ] ; then
         erase_bootloader
 
         # changing back root= to SDcard device
-        echo "Restoring root= in exlinux.conf back to ${sdcard_dev},part2 ..."
+        msg "Restoring root= in exlinux.conf back to ${sdcard_dev},part2 ..."
         umount_partition ${boot_src}
         mount_partition /dev/${sdcard_dev} 1 ${boot_src}
         update_extlinux_conf ${boot_src} ${sdcard_dev} 2
@@ -1028,7 +995,7 @@ if [ "${command}" = "erase" ] ; then
         erase_bootloader
 
         # changing back root= to eMMC device
-        echo "Restoring root= in exlinux.conf back to ${emmc_dev},part2 ..."
+        msg "Restoring root= in exlinux.conf back to ${emmc_dev},part2 ..."
         umount_partition ${boot_src}
         mount_partition /dev/${emmc_dev} 1 ${boot_src}
         update_extlinux_conf ${boot_src} ${emmc_dev} 2
@@ -1051,8 +1018,7 @@ elif [ "${command}" = "erasespi" ] ; then
         exit 0
     fi
 
-    echo " "
-    echo "erasing ${spi_dev} ..."
+    msg "Erasing ${spi_dev} ..."
 
     confirm "to erase SPI"
     confirm "ARE YOU SURE to erase ${spi_dev} content?"
@@ -1082,6 +1048,8 @@ elif [ "${command}" = "bootloader" ] ; then
     fi
 
     confirm "to install/update bootloader on ${target_dev_name} (${target_dev})"
+
+    msg "Writing bootloader to ${target_dev_name} (${target_dev}) ..."
 
     write_bootloader_to_target
 
@@ -1119,49 +1087,24 @@ elif [ "${command}" = "install" ] ; then
 
     confirm "ARE YOU SURE to DESTROY ALL content on ${target_dev_name} (${target_dev}) device?"
 
-    if [ "${target_dev}" = "${usb_dev}" ] || [ "${target_dev}" = "${nvme_dev}" ] || [ "${target_dev}" = "${emmc_dev}" ] ; then
+    msg "Installing from ${source_dev_name} -> ${target_dev_name} (${source_dev}->${target_dev}) ..."
 
-        partition_2part_mbr_then_format /dev/${target_dev}
+    partition_2part_mbr_then_format /dev/${target_dev}
 
-        msg "Installing to ${target_dev_name} (${target_dev})..."
-        copy_sdcard_to_2part_mbr_disk
-        msg "Copying to ${target_dev_name} done ..."
+    copy_sdcard_to_2part_mbr_disk
+    msg "Copying to ${target_dev_name} done ..."
 
-        if [ "${target_dev}" = "${usb_dev}" ] || [ "${target_dev}" = "${nvme_dev}" ]; then
+    if [ "${target_dev}" = "${emmc_dev}" ] ; then
+        # target is eMMC
+        msg "Writing bootloader to eMMC ..."
+        write_bootloader_to_target
 
-            #target is USB or NVME. Modify root=  on boot device (which is SDcard or eMMC)
-            update_extlinux_conf ${boot_src} ${target_dev} 2
-        else
-
-            # target is eMMC
-            msg "Writing bootloader to eMMC ..."
-            write_bootloader_to_target
-
-            update_extlinux_conf ${boot_dst} ${target_dev} 2
-        fi
-
-    elif [ "${target_dev}" = "${ufs_dev}" ] ; then
-
-        # target is UFS
-        partition_3part_gpt_then_format /dev/${target_dev}
-
-        msg "Installing to ${target_dev_name} (${target_dev})..."
-        copy_sdcard_to_3part_gpt_disk
-        msg "Copying to ${target_dev_name} done ..."
-
-
-        sed -e "s|Image|boot/Image|g" -i ${root_dst}/boot/extlinux/extlinux.conf
-        sed -e "s|dtbs|boot/dtbs|g" -i ${root_dst}/boot/extlinux/extlinux.conf
-
-        update_extlinux_conf ${root_dst}/boot ${target_dev} 3
-
-        update_extlinux_conf ${boot_src} ${target_dev} 3
+        update_extlinux_conf ${boot_dst} ${target_dev} 2
 
     else
+        #target is USB or NVME or UFS. Modify root=  on boot device (which is SDcard or eMMC)
+        update_extlinux_conf ${boot_src} ${target_dev} 2
 
-        msg "Unsupported/unknown target. Script will exit without any action ..."
-        echo " "
-        exit 1
     fi
 
     sync
@@ -1185,3 +1128,5 @@ else
 fi
 
 exit 0
+
+# MiniMyth2
