@@ -22,6 +22,8 @@
 # area at target device begininng filled with zeros to make it erased. In MBytes.
 erase_areas_size=1024
 
+swap_size="4096"
+
 # script log file
 log_file="/var/log/install-on-emmc.log"
 
@@ -79,6 +81,26 @@ root_src="${working_dir}/src-ROOT"
 boot_dst="${working_dir}/dst-BOOT"
 root_dst="${working_dir}/dst-ROOT"
 
+req_bin_list="\
+  awk \
+  blkid \
+  cp \
+  dd \
+  echo \
+  lsblk \
+  mkdir \
+  mount \
+  mkfs.ext2 \
+  mkfs.vfat \
+  mkswap \
+  partprobe \
+  touch \
+  tr \
+  sed \
+  sfdisk \
+  sync \
+"
+
 trap "_exit_" 0 1 2 3 9 15
 
 _exit_() {
@@ -135,8 +157,6 @@ check_return_code() {
     fi
 }
 
-
-
 confirm() {
 
     echo " "
@@ -166,6 +186,18 @@ clean_working_env() {
     do_cmd blkid
     do_cmd mount
     log "clean working enviroment done!"
+}
+
+check_prereq() {
+    for bin in ${req_bin_list} ; do
+        which ${bin} >/dev/null 2>&1
+        if [ $? -eq 0 ] ; then
+            log "  found ${bin} Good ..."
+        else
+            error "failed to find '$bin' binary. Pls install '$bin' by appropriate package!"
+        fi
+    done
+    log "all checks done ..."
 }
 
 part_prefix() {
@@ -213,40 +245,6 @@ umount_partition() {
     fi
 }
 
-partition_1part_gpt_then_format() {
-
-    local disk=$1
-    local prefix
-
-    prefix=$(part_prefix ${disk})
-
-    umount_partition ${disk}${prefix}1
-
-    msg "Partitioning ${target_dev_name} (${disk}) with 2 GPT partitions ..."
-
-    fdisk "${disk}" >> ${log_file} 2>&1 <<EOF
-label: gpt
-label-id: 9b83ec43-54d0-41f2-9ac9-1ae79ef084fc
-unit: sectors
-
-start=32768, size=8388608, type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="ROOT"
-             size=4194304, type=0657FD6D-A4AB-43C4-84E5-0933C84B4F4F, name="SWAP"
-EOF
-    check_return_code
-
-    msg "Partprobing ${disk} ..."
-    do_cmd partprobe ${disk}
-
-    msg "Formating partition 1 (EXT2) ..."
-    do_cmd mkfs.ext2 -L ROOT-${target_dev_name} ${disk}${prefix}1
-
-    msg "Formating partition 2 (SWAP) ..."
-    do_cmd mkswap -L SWAP-${target_dev_name} ${disk}${prefix}2
-
-    log "Formated ${disk} layout ..."
-    do_cmd lsblk ${disk}
-}
-
 partition_2part_mbr_then_format() {
 
     local disk=$1
@@ -261,11 +259,9 @@ partition_2part_mbr_then_format() {
 
     sfdisk "${disk}" >> ${log_file} 2>&1 <<EOF
 label: dos
-unit: sectors
-
-start=32768, size=262144,  type=c, bootable, name="BOOT"
-             size=8388608, type=83,          name="ROOT"
-             size=4194304, type=82,          name="SWAP"
+32768,512M,c,-
+,$(( $(blockdev --getsize64 ${disk}) / 1024 - ((${swap_size} + 512) * 1024) ))KiB,83,-
+1081344,,82,-
 EOF
     check_return_code
 
@@ -848,6 +844,8 @@ check_presence_and_select_source() {
 }
 
 rm -f ${log_file}
+
+check_prereq
 
 boot_dev=$(mount | grep -e '/initrd\s' | awk '{print $1}' | sed 's/\/dev\///g' | sed 's/[0123456789]$//g' | sed 's/p//g' )
 if [ "${boot_dev}" = "" ]; then
