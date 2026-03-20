@@ -78,6 +78,7 @@ PATCHFILES  += 56-rk3566-zero3-sync-dts-to-kernel-to-make-eth-working.patch
 PATCHFILES  += 57-rk3399-orangepi-fix-nonworking-ddc.patch
 PATCHFILES  += 58-rk3576-generic_defconfig-enable-ufs-boot.patch
 PATCHFILES  += 59-rk3576-rock4d_defconfig-enable-ufs-support.patch
+PATCHFILES  += 60-rk3588-generic_defconfig-enable-spi-building.patch
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2
