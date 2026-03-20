@@ -1,0 +1,128 @@
+From fe4fdbb540bc4ca56ca06599a52e9ba81cd9d51f Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Mon, 10 Nov 2025 11:08:41 +0200
+Subject: [PATCH 081/114] drm/rockchip: Add generic support for managing CRC
+ sources
+
+Introduce enum rockchip_drm_crc_source and helpers to support
+implementing the CRC debugfs API at VOP level.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/rockchip/rockchip_drm_drv.c | 34 +++++++++++++++++++++
+ drivers/gpu/drm/rockchip/rockchip_drm_drv.h | 30 +++++++++++++++++-
+ 2 files changed, 63 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_drv.c b/drivers/gpu/drm/rockchip/rockchip_drm_drv.c
+index 3099408e9d..176282c4c6 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_drv.c
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_drv.c
+@@ -45,6 +45,40 @@
+ 
+ static const struct drm_driver rockchip_drm_driver;
+ 
++static const char * const rockchip_crc_sources[] = {
++	[ROCKCHIP_DRM_CRC_SOURCE_NONE] = "none",
++	[ROCKCHIP_DRM_CRC_SOURCE_CRTC] = "crtc",
++	[ROCKCHIP_DRM_CRC_SOURCE_DP] = "dp",
++	[ROCKCHIP_DRM_CRC_SOURCE_EDP] = "edp",
++	[ROCKCHIP_DRM_CRC_SOURCE_AUTO] = "auto",
++};
++
++int rockchip_drm_parse_crc_source(const char *name,
++				  enum rockchip_drm_crc_source *source)
++{
++	int i;
++
++	if (!name) {
++		*source = ROCKCHIP_DRM_CRC_SOURCE_NONE;
++		return 0;
++	}
++
++	i = match_string(rockchip_crc_sources, ARRAY_SIZE(rockchip_crc_sources),
++			 name);
++	if (i < 0)
++		return i;
++
++	*source = i;
++	return 0;
++}
++
++const char * const *rockchip_drm_get_crc_sources(struct drm_crtc *crtc,
++						 size_t *count)
++{
++	*count = ARRAY_SIZE(rockchip_crc_sources);
++	return rockchip_crc_sources;
++}
++
+ /*
+  * Attach a (component) device to the shared drm dma mapping from master drm
+  * device.  This is used by the VOPs to map GEM buffers to a common DMA
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_drv.h b/drivers/gpu/drm/rockchip/rockchip_drm_drv.h
+index 4705dc6b8b..3a319f5c19 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_drv.h
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_drv.h
+@@ -42,24 +42,46 @@
+ /* output flags */
+ #define ROCKCHIP_OUTPUT_DSI_DUAL	BIT(0)
+ 
++/**
++ * enum rockchip_drm_crc_source: CRC source
++ * @ROCKCHIP_DRM_CRC_SOURCE_NONE: no source set
++ * @ROCKCHIP_DRM_CRC_SOURCE_CRTC: CRC in vp
++ * @ROCKCHIP_DRM_CRC_SOURCE_DP: CRC in DisplayPort
++ * @ROCKCHIP_DRM_CRC_SOURCE_EDP: CRC in Embedded DisplayPort
++ * @ROCKCHIP_DRM_CRC_SOURCE_AUTO: auto select source
++ */
++enum rockchip_drm_crc_source {
++	ROCKCHIP_DRM_CRC_SOURCE_NONE = 0,
++	ROCKCHIP_DRM_CRC_SOURCE_CRTC,
++	ROCKCHIP_DRM_CRC_SOURCE_DP,
++	ROCKCHIP_DRM_CRC_SOURCE_EDP,
++	ROCKCHIP_DRM_CRC_SOURCE_AUTO,
++};
++
+ struct drm_device;
+ struct drm_connector;
+ struct iommu_domain;
+ 
+ struct rockchip_crtc_state {
+ 	struct drm_crtc_state base;
++
+ 	int output_type;
+ 	int output_mode;
+ 	int output_bpc;
+ 	int output_flags;
++
+ 	bool enable_afbc;
+ 	bool yuv_overlay;
++
+ 	u32 bus_format;
+ 	u32 bus_flags;
+ 	int color_space;
++
++	enum rockchip_drm_crc_source crc_source;
+ };
++
+ #define to_rockchip_crtc_state(s) \
+-		container_of(s, struct rockchip_crtc_state, base)
++	container_of(s, struct rockchip_crtc_state, base)
+ 
+ /*
+  * Rockchip drm private structure.
+@@ -90,6 +112,12 @@ int rockchip_drm_wait_vact_end(struct drm_crtc *crtc, unsigned int mstimeout);
+ int rockchip_drm_encoder_set_crtc_endpoint_id(struct rockchip_encoder *rencoder,
+ 					      struct device_node *np, int port, int reg);
+ int rockchip_drm_endpoint_is_subdriver(struct device_node *ep);
++
++int rockchip_drm_parse_crc_source(const char *name,
++				  enum rockchip_drm_crc_source *source);
++const char * const *rockchip_drm_get_crc_sources(struct drm_crtc *crtc,
++						 size_t *count);
++
+ extern struct platform_driver cdn_dp_driver;
+ extern struct platform_driver dw_dp_driver;
+ extern struct platform_driver dw_hdmi_rockchip_pltfm_driver;
+-- 
+2.53.0
+

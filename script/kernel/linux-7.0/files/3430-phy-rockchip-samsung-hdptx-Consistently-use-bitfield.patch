@@ -1,0 +1,80 @@
+From d8eb6a24820c3d4b4ed1f8a271c1aee2001357ac Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Wed, 18 Feb 2026 00:08:24 +0200
+Subject: [PATCH 021/114] phy: rockchip: samsung-hdptx: Consistently use
+ bitfield macros
+
+Make the code more robust and improve readability by using the available
+bitfield macros (e.g. FIELD_PREP, FIELD_GET) whenever possible, instead
+of open coding the related bit operations.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../phy/rockchip/phy-rockchip-samsung-hdptx.c | 22 ++++++++++++++-----
+ 1 file changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+index baa6916331..3bde7fbb34 100644
+--- a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
++++ b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+@@ -53,6 +53,12 @@
+ /* CMN_REG(001e) */
+ #define LCPLL_PI_EN_MASK		BIT(5)
+ #define LCPLL_100M_CLK_EN_MASK		BIT(0)
++/* CMN_REG(0022) */
++#define ANA_LCPLL_PMS_PDIV_MASK		GENMASK(7, 4)
++#define ANA_LCPLL_PMS_REFDIV_MASK	GENMASK(3, 0)
++/* CMN_REG(0023) */
++#define LCPLL_PMS_SDIV_RBR_MASK		GENMASK(7, 4)
++#define LCPLL_PMS_SDIV_HBR_MASK		GENMASK(3, 0)
+ /* CMN_REG(0025) */
+ #define LCPLL_PMS_IQDIV_RSTN_MASK	BIT(4)
+ /* CMN_REG(0028) */
+@@ -1157,9 +1163,11 @@ static int rk_hdptx_frl_lcpll_cmn_config(struct rk_hdptx_phy *hdptx)
+ 	regmap_write(hdptx->regmap, CMN_REG(0020), cfg->pms_mdiv);
+ 	regmap_write(hdptx->regmap, CMN_REG(0021), cfg->pms_mdiv_afc);
+ 	regmap_write(hdptx->regmap, CMN_REG(0022),
+-		     (cfg->pms_pdiv << 4) | cfg->pms_refdiv);
++		     FIELD_PREP(ANA_LCPLL_PMS_PDIV_MASK, cfg->pms_pdiv) |
++		     FIELD_PREP(ANA_LCPLL_PMS_REFDIV_MASK, cfg->pms_refdiv));
+ 	regmap_write(hdptx->regmap, CMN_REG(0023),
+-		     (cfg->pms_sdiv << 4) | cfg->pms_sdiv);
++		     FIELD_PREP(LCPLL_PMS_SDIV_RBR_MASK, cfg->pms_sdiv) |
++		     FIELD_PREP(LCPLL_PMS_SDIV_HBR_MASK, cfg->pms_sdiv));
+ 	regmap_write(hdptx->regmap, CMN_REG(002a), cfg->sdm_deno);
+ 	regmap_write(hdptx->regmap, CMN_REG(002b), cfg->sdm_num_sign);
+ 	regmap_write(hdptx->regmap, CMN_REG(002c), cfg->sdm_num);
+@@ -1229,8 +1237,10 @@ static int rk_hdptx_tmds_ropll_cmn_config(struct rk_hdptx_phy *hdptx)
+ 	regmap_write(hdptx->regmap, CMN_REG(0051), cfg->pms_mdiv);
+ 	regmap_write(hdptx->regmap, CMN_REG(0055), cfg->pms_mdiv_afc);
+ 	regmap_write(hdptx->regmap, CMN_REG(0059),
+-		     (cfg->pms_pdiv << 4) | cfg->pms_refdiv);
+-	regmap_write(hdptx->regmap, CMN_REG(005a), cfg->pms_sdiv << 4);
++		     FIELD_PREP(ANA_ROPLL_PMS_PDIV_MASK, cfg->pms_pdiv) |
++		     FIELD_PREP(ANA_ROPLL_PMS_REFDIV_MASK, cfg->pms_refdiv));
++	regmap_write(hdptx->regmap, CMN_REG(005a),
++		     FIELD_PREP(ROPLL_PMS_SDIV_RBR_MASK, cfg->pms_sdiv));
+ 
+ 	regmap_update_bits(hdptx->regmap, CMN_REG(005e), ROPLL_SDM_EN_MASK,
+ 			   FIELD_PREP(ROPLL_SDM_EN_MASK, cfg->sdm_en));
+@@ -2192,7 +2202,7 @@ static u64 rk_hdptx_phy_clk_calc_rate_from_pll_cfg(struct rk_hdptx_phy *hdptx)
+ 		ret = regmap_read(hdptx->regmap, CMN_REG(002D), &val);
+ 		if (ret)
+ 			return 0;
+-		lcpll_hw.sdc_n = (val & LCPLL_SDC_N_MASK) >> 1;
++		lcpll_hw.sdc_n = FIELD_GET(LCPLL_SDC_N_MASK, val);
+ 
+ 		for (i = 0; i < ARRAY_SIZE(rk_hdptx_frl_lcpll_cfg); i++) {
+ 			const struct lcpll_config *cfg = &rk_hdptx_frl_lcpll_cfg[i];
+@@ -2253,7 +2263,7 @@ static u64 rk_hdptx_phy_clk_calc_rate_from_pll_cfg(struct rk_hdptx_phy *hdptx)
+ 	ret = regmap_read(hdptx->regmap, CMN_REG(0086), &val);
+ 	if (ret)
+ 		return 0;
+-	ropll_hw.pms_sdiv = ((val & PLL_PCG_POSTDIV_SEL_MASK) >> 4) + 1;
++	ropll_hw.pms_sdiv = FIELD_GET(PLL_PCG_POSTDIV_SEL_MASK, val) + 1;
+ 	bpc = (FIELD_GET(PLL_PCG_CLK_SEL_MASK, val) << 1) + 8;
+ 
+ 	fout = PLL_REF_CLK * ropll_hw.pms_mdiv;
+-- 
+2.53.0
+

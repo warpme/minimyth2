@@ -1,0 +1,64 @@
+From 4bef4485b0df10e82d74d874f348148ed878d8c3 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Fri, 24 Oct 2025 21:10:04 +0300
+Subject: [PATCH 073/114] [WIP] drm/rockchip: vop: Do not restrict usage of
+ DRM_ANALOGIX_DP as built-in
+
+Guarding with #ifdef CONFIG_DRM_ANALOGIX_DP is equivalent to
+IS_BUILTIN(CONFIG_DRM_ANALOGIX_DP) which evaluates to true only when
+DRM_ANALOGIX_DP is compiled as built-in.
+
+Switch to IS_REACHABLE() to allow using it as a module as well, except
+when invoked from built-in code, and drop the unnecessary guard around
+the related #include statement.
+
+TODO: Much less favorable way to express optional dependency is
+IS_REACHABLE() within the module code, useful for example when the
+module BAR does not provide !BAR stubs::  IS_REACHABLE() is generally
+discouraged, because the code will be silently discarded, when
+CONFIG_BAR=m and this code is built-in:
+
+  https://www.kernel.org/doc/Documentation/kbuild/kconfig-language.rst
+
+Fixes: 6cca3869c598 ("drm/rockchip: Fix link error when CONFIG_DRM_ANALOGIX_DP undefined")
+Fixes: 3190e58dafaf ("drm/rockchip: Implement CRC debugfs API")
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/rockchip/rockchip_drm_vop.c | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/gpu/drm/rockchip/rockchip_drm_vop.c b/drivers/gpu/drm/rockchip/rockchip_drm_vop.c
+index 572f4adfd1..5e3dd3bc10 100644
+--- a/drivers/gpu/drm/rockchip/rockchip_drm_vop.c
++++ b/drivers/gpu/drm/rockchip/rockchip_drm_vop.c
+@@ -17,6 +17,7 @@
+ #include <linux/pm_runtime.h>
+ #include <linux/reset.h>
+ 
++#include <drm/bridge/analogix_dp.h>
+ #include <drm/drm.h>
+ #include <drm/drm_atomic.h>
+ #include <drm/drm_atomic_uapi.h>
+@@ -32,10 +33,6 @@
+ #include <drm/drm_self_refresh_helper.h>
+ #include <drm/drm_vblank.h>
+ 
+-#ifdef CONFIG_DRM_ANALOGIX_DP
+-#include <drm/bridge/analogix_dp.h>
+-#endif
+-
+ #include "rockchip_drm_drv.h"
+ #include "rockchip_drm_gem.h"
+ #include "rockchip_drm_fb.h"
+@@ -1669,7 +1666,7 @@ static void vop_crtc_reset(struct drm_crtc *crtc)
+ 		__drm_atomic_helper_crtc_reset(crtc, NULL);
+ }
+ 
+-#ifdef CONFIG_DRM_ANALOGIX_DP
++#if IS_REACHABLE(CONFIG_DRM_ANALOGIX_DP)
+ static struct drm_connector *vop_get_edp_connector(struct vop *vop)
+ {
+ 	struct drm_connector *connector;
+-- 
+2.53.0
+

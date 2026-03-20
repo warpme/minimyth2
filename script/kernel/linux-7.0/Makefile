@@ -62,420 +62,478 @@ PATCHFILES += 0125-drm-lima-dvfs-switch-gov-to-performance.patch
 PATCHFILES += 0126-drm-panfrost-dvfs-switch-gov-to-performance.patch
 endif
 
+# patches numbering:
+# 1000-1999: amlogic
+#   1000-1199: gxl/gxm .c code (drivers, etc)
+#     1200-1299: dtsi
+#     1300-1399: dts
+#   1400-1499: g12/sm1 .c code (drivers, etc)
+#     1500-1599: dtsi
+#     1600-1699: dts
+#   1700-1799: s4/sc2/t7 .c code (drivers, etc)
+#     1800-1899: dtsi
+#     1900-1999: dts
+
+# 2000-2999: alwinner
+#   2000-2199: h6 .c code (drivers, etc)
+#     2200-2299: dtsi
+#     2300-2399: dts
+#   2400-2499: h616 .c code (drivers, etc)
+#     2500-2599: dtsi
+#     2600-2699: dts
+#   2700-2799: a523/h733 .c code (drivers, etc)
+#     2800-2899: dtsi
+#     2900-2999: dts
+
+# 3000-3999: rockchip
+#   3000-3199: rk33xx .c code (drivers, etc)
+#     3200-3299: dtsi
+#     3300-3399: dts
+#   3400-3599: rk35xx .c code (drivers, etc)
+#     3600-3699: dtsi
+#     3700-3799: dts
+
+# 4000-4999: broadcomm
+#   4000-4199: rpi4 .c code (drivers, etc)
+#     4200-4299: dtsi
+#     4300-4399: dts
+#   4400-4499: rpi5 .c code (drivers, etc)
+#     4500-4599: dtsi
+#     4600-4699: dts
+
+# 5000-5999: qualcomm
+#   5000-5199: rpi4 .c code (drivers, etc)
+#     5200-5299: dtsi
+#     5300-5399: dts
+
 ifeq (1,1)
 #-- Amlogic patches -----------------------------------------
-# Fixes non-working EGLFS DRM_PRIME/DRM Planes on all Amlogic
-PATCHFILES += 0301-drm-meson-swap-primary-overlay-zpos.patch
-# preparation for s4/sc2
-PATCHFILES += 0305-soc-amlogic-meson-gx-socinfo-add-s905x4w2y4.patch
-PATCHFILES += 0306-mmc-meson-gx-Add-support-for-Meson-S4.patch
-PATCHFILES += 0308-reset-reset-meson-add-support-for-Amlogic-SC2.patch
-PATCHFILES += 0309-irqchip-meson-gpio-Add-support-for-meson-SC2-.patch
-# s4 analog audio v6 https://patchwork.kernel.org/project/linux-amlogic/list/?series=1046918
-PATCHFILES += 0310-dt-bindings-clock-meson-Add-audio-power-domain-for-S4-soc-v6.patch
-PATCHFILES += 0311-dt-bindings-Asoc-axg-audio-Add-S4-audio-tocodec-v6.patch
-PATCHFILES += 0312-ASoC-meson-g12a-toacodec-Add-S4-tocodec-driver-v6.patch
-PATCHFILES += 0313-clk-meson-axg_audio-add-S4-support-v6.patch
-# s4 hdmi ausio
-PATCHFILES += 0314-ASoC-meson-add-s4-tohdmitx-control.patch
-# s4 clk for hdmi
-PATCHFILES += 0321-soc-amlogic-meson-clk-measure-Add-support-for.patch
-# s4 hdmi
-PATCHFILES += 0325-drm-meson-add-s4-drm-driver.patch
-# misc
-PATCHFILES += 0340-phy-amlogic-meson-g12a-usb2-add-support-for-M.patch
-PATCHFILES += 0342-net-wireless-broadcom-add-sdio-ID-43342.patch
-PATCHFILES += 0343-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
-PATCHFILES += 0344-gpu-panfrost-add-meson-s4-support.patch
-PATCHFILES += 0345-thermal-amlogic-add-meson-s4-variant.patch
-PATCHFILES += 0346-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
-# s4 videodecoder v4 https://patchwork.kernel.org/project/linux-amlogic/list/?series=1053774
-PATCHFILES += 0350-media-dt-bindings-Add-Amlogic-V4L2-video-decoder-v4.patch
-PATCHFILES += 0351-decoder-Add-V4L2-stateless-H.264-decoder-driver-v4.patch
-PATCHFILES += 0352-media-aml-vdec-7.0-fixups.patch
-# only for debugging....
-PATCHFILES += 0353-media-aml-vdec-debug-print-first-16b-of-fw-from-amrisc.patch
-# dtsi patches
-PATCHFILES += 0360-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
-PATCHFILES += 0361-arm64-dtsi-meson-s4-Add-USB2-support.patch
-PATCHFILES += 0362-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
-PATCHFILES += 0363-arm64-dtsi-amlogic-add-Amlogic-S4-hdmi-audio.patch
-PATCHFILES += 0363-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
-PATCHFILES += 0364-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
-PATCHFILES += 0365-arm64-dtsi-amlogic-s4-add-drm-support-v2.patch
-PATCHFILES += 0366-arm64-dtsi-amlogic-s4-add-gpu-support.patch
-PATCHFILES += 0367-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
-PATCHFILES += 0368-arm64-dtsi-amlogic-s4-add-cpu_temp_sensor-support.patch
-PATCHFILES += 0369-arm64-dtsi-amlogic-Add-video-decoder-driver-support-for-S4-SOCs-v4.patch
-PATCHFILES += 0370-arm64-dtsi-amlogic-s4-add-saradc-vrtc-uarta-mmc-clocks-fix.patch
-PATCHFILES += 0371-arm64-dtsi-amlogic-s4-hack-stop-thermal-shutdowns.patch
-PATCHFILES += 0372-arm64-dtsi-amlogic-s4-add-cpu-dvfs.patch
-# cec not works 0373-arm64-dtsi-amlogic-s4-wip-add-cec.patch
-# devices dts
-PATCHFILES += 0380-arm64-dts-meson-gxm-add-beelink-gt1.patch
-PATCHFILES += 0381-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
-PATCHFILES += 0382-arm64-dts-meson-sm1-disable-cvbs-on-meson-sm1-ac2xx-boards.patch
-PATCHFILES += 0383-arm64-dts-meson-sm1-disable-cap_highspeed-on-sdcard.patch
-PATCHFILES += 0384-arm64-dts-meson-sm1-x96air-add-vfd.patch
-PATCHFILES += 0385-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards.patch
-PATCHFILES += 0386-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
-PATCHFILES += 0387-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
-PATCHFILES += 0388-arm64-dts-amlogic-meson-s4-add-AP201-Ref-Board.patch
-PATCHFILES += 0389-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
-PATCHFILES += 0390-arm64-dts-amlogic-meson-s4-add-khadas-vim1s-board.patch
-PATCHFILES += 0391-arm64-dts-amlogic-meson-sm1-khadas-vim3l-dec-sd-clk-add-improvements.patch
+# gxl/gxm drivers additions
+PATCHFILES += 1000-drm-meson-swap-primary-overlay-zpos.patch
+# board dts additions
+PATCHFILES += 1001-arm64-meson-add-Amlogic-Meson-GX-PM-Suspend.patch
+PATCHFILES += 1300-arm64-dts-meson-gxm-add-beelink-gt1.patch
+PATCHFILES += 1301-arm64-dts-meson-gxl-disable-cvbs-on-meson-gx-p23x-q20x-boards.patch
+PATCHFILES += 1302-arm64-dtsi-meson-add-support-for-GX-PM-and-Virtual-rtc.patch
+PATCHFILES += 1303-arm64-dtsi-meson-gx-increase-dma-pool-to-896MB.patch
+PATCHFILES += 1400-media-cec-platform-meson-ao-cec-g12a-fix-debu.patch
+# g12/sm1 dtsi additions
+PATCHFILES += 1500-arm64-dtsi-meson-g12-increase-dma-pool-to-896MB.patch.patch
+# g12/sm1 board dts additions
+PATCHFILES += 1600-arm64-dts-meson-sm1-add-support-for-TX5-plus.patch
+PATCHFILES += 1601-arm64-dts-meson-sm1-disable-cvbs-on-meson-sm1-ac2xx-boards.patch
+PATCHFILES += 1602-arm64-dts-meson-sm1-disable-cap_highspeed-on-sdcard.patch
+PATCHFILES += 1603-arm64-dts-meson-sm1-x96air-add-vfd.patch
+PATCHFILES += 1604-arm64-dts-amlogic-meson-sm1-khadas-vim3l-dec-sd-clk-add-improvements.patch
+# s4/sc2 drivers additions
+PATCHFILES += 1700-soc-amlogic-meson-gx-socinfo-add-s905x4w2y4.patch
+PATCHFILES += 1701-mmc-meson-gx-Add-support-for-Meson-S4.patch
+PATCHFILES += 1702-reset-reset-meson-add-support-for-Amlogic-SC2.patch
+PATCHFILES += 1703-irqchip-meson-gpio-Add-support-for-meson-SC2-.patch
+PATCHFILES += 1704-dt-bindings-clock-meson-Add-audio-power-domain-for-S4-soc-v6.patch
+PATCHFILES += 1705-dt-bindings-Asoc-axg-audio-Add-S4-audio-tocodec-v6.patch
+PATCHFILES += 1706-ASoC-meson-g12a-toacodec-Add-S4-tocodec-driver-v6.patch
+PATCHFILES += 1707-clk-meson-axg_audio-add-S4-support-v6.patch
+PATCHFILES += 1708-ASoC-meson-add-s4-tohdmitx-control.patch
+PATCHFILES += 1709-soc-amlogic-meson-clk-measure-Add-support-for.patch
+PATCHFILES += 1710-drm-meson-add-s4-drm-driver.patch
+PATCHFILES += 1711-phy-amlogic-meson-g12a-usb2-add-support-for-M.patch
+PATCHFILES += 1712-net-wireless-broadcom-add-sdio-ID-43342.patch
+PATCHFILES += 1713-gpu-panfrost-add-meson-s4-support.patch
+PATCHFILES += 1714-thermal-amlogic-add-meson-s4-variant.patch
+PATCHFILES += 1715-media-dt-bindings-Add-Amlogic-V4L2-video-decoder-v4.patch
+PATCHFILES += 1716-decoder-Add-V4L2-stateless-H.264-decoder-driver-v4.patch
+PATCHFILES += 1717-media-aml-vdec-7.0-fixups.patch
+PATCHFILES += 1718-media-aml-vdec-debug-print-first-16b-of-fw-from-amrisc.patch
+# s4/sc2 dtsi additions
+PATCHFILES += 1800-arm64-dtsi-meson-s4-Add-USB2-support.patch
+PATCHFILES += 1801-arm64-dtsi-amlogic-Add-Amlogic-S4-Audio-v6.patch
+PATCHFILES += 1802-arm64-dtsi-amlogic-add-Amlogic-S4-hdmi-audio.patch
+PATCHFILES += 1803-arm64-dtsi-amlogic-s4-add-drm-support-v2.patch
+PATCHFILES += 1804-arm64-dtsi-amlogic-s4-add-gpu-support.patch
+PATCHFILES += 1805-arm64-dtsi-amlogic-sc2-add-initial-dtsi.patch
+PATCHFILES += 1806-arm64-dtsi-amlogic-s4-add-cpu_temp_sensor-support.patch
+PATCHFILES += 1807-arm64-dtsi-amlogic-Add-video-decoder-driver-support-for-S4-SOCs-v4.patch
+PATCHFILES += 1808-arm64-dtsi-amlogic-s4-add-saradc-vrtc-uarta-mmc-clocks-fix.patch
+PATCHFILES += 1809-arm64-dtsi-amlogic-s4-hack-stop-thermal-shutdowns.patch
+PATCHFILES += 1810-arm64-dtsi-amlogic-s4-add-cpu-dvfs.patch
+# PATCHFILES += 1811-arm64-dtsi-amlogic-s4-wip-add-cec.patch
+# s4/sc2 board dts additions
+PATCHFILES += 1900-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-audio.patch
+PATCHFILES += 1901-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-drm.patch
+PATCHFILES += 1902-arm64-dts-amlogic-meson-s4-add-AP201-Ref-Board.patch
+PATCHFILES += 1903-arm64-dts-amlogic-meson-sc2-add-s905x4-ah212-board.patch
+PATCHFILES += 1904-arm64-dts-amlogic-meson-s4-add-khadas-vim1s-board.patch
+PATCHFILES += 1905-arm64-dts-amlogic-meson-s4-s805x2-aq222-add-WIP-cpu-dfvs.patch
 endif
 #------------------------------------------------------------
 
 ifeq (1,1)
 #-- Allwinner H6 patches -----------------------------------------
-PATCHFILES += 0502-rtc-sun6i-Allow-RTC-wakeup-after-shutdown.patch
-PATCHFILES += 0503-firmware-arm_scpi-Support-unidirectional-mailbox-cha.patch
-PATCHFILES += 0504-revert-stop-exporting-phy_driver_register-unregister-for-ac200.patch
-PATCHFILES += 0504-mfd-add-AC200.patch
-PATCHFILES += 0505-net-phy-Add-support-for-AC200-EPHY.patch
-PATCHFILES += 0506-net-wireless-add-xr819-support-07072021.patch
-PATCHFILES += 0510-iommu-sun50i-Allow-page-sizes-multiple-of-4096.patch
-# drm patches
-PATCHFILES += 0520-drm-sun4i-Add-support-for-DE33-CSC.patch
-PATCHFILES += 0521-drm-sun4i-vi_layer-Limit-formats-for-DE33.patch
-PATCHFILES += 0522-clk-sunxi-ng-de2-Export-register-regmap-for-DE33.patch
-PATCHFILES += 0523-drm-sun4i-Add-planes-driver.patch
-PATCHFILES += 0524-drm-sun4i-switch-DE33-to-new-bindings.patch
-PATCHFILES += 0525-drm-sun4i-mixer-fix-layer-init-code.patch
-PATCHFILES += 0526-drm-sun4i-backend-fix-error-pointer-dereference.patch
-# various fixes
-PATCHFILES += 0550-HACK-clk-sunxi-ng-unify-parent-for-HDMI-clocks.patch
-PATCHFILES += 0552-asoc-sun4i-i2s-WiP-multi-channel.patch
-PATCHFILES += 0553-media-cedrus-Don-t-CPU-map-source-buffers.patch
-PATCHFILES += 0554-media-Add-NV12-and-P010-AFBC-compressed-formats.patch
-PATCHFILES += 0555-media-cedrus-add-format-filtering-based-on-depth-and.patch
-PATCHFILES += 0557-media-cedrus-Increase-H6-clock-rate.patch
-PATCHFILES += 0558-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
-PATCHFILES += 0560-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
-PATCHFILES += 0561-bluetooth-btrtl-add-hci-ver-rtl8822cs.patch
-PATCHFILES += 0562-h6-add-sun50i-di-deinterlace-WiP.patch
-# device-tree patches
-PATCHFILES += 0570-arm64-dts-allwinner-h6-Protect-SCP-clock.patch
-PATCHFILES += 0571-arm64-dts-allwinner-h6-Add-SCPI-protocol.patch
-PATCHFILES += 0572-arm64-dts-allwinner-h6-dtsi-add-sound-node.patch
-PATCHFILES += 0573-arm64-dts-allwinner-h6-Fix-Cedrus-IOMMU-again.patch
-PATCHFILES += 0574-arm64-dts-allwinner-h6.dtsi-add-ac200-nodes.patch
-PATCHFILES += 0575-arm64-dts-allwinner-gs1-fixes.patch
-PATCHFILES += 0576-arm64-dts-allwinner-tanix-tx6-additions.patch
-PATCHFILES += 0577-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
-PATCHFILES += 0580-arm64-dts-allwinner-opi3-fixes.patch
-PATCHFILES += 0582-arm64-dts-allwinner-h6-add-deinterlace-node.patch
-PATCHFILES += 0583-arm64-dts-allwinner-add-orangepi-3-lts.patch
-#------------------------------------------------------------
-endif
-
-ifeq (1,1)
-#-- Allwinner H616 patches -----------------------------------------
-PATCHFILES += 0600-drivers-h616-wip-add-usb-emac2-support.patch
-PATCHFILES += 0601-drivers-thermal-allwinner-add-h616-ths-support.patch
-PATCHFILES += 0602-media-cedrus-add-H616-variant.patch
-PATCHFILES += 0603-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
-PATCHFILES += 0604-dma-sun6i-dma-add-h616-support.patch
-# drm patches
-PATCHFILES += 0610-drm-sun4i-Add-H616-TCON-TV-support.patch
-PATCHFILES += 0611-srm-sun4i-Add-support-for-H616-HDMI-PHY.patch
-PATCHFILES += 0612-drm-sun4i-Add-compatible-for-H616-display-engine.patch
-PATCHFILES += 0613-drm-sun4i-Use-backend-mixer-as-dedicated-DMA-device.patch
-# fix issue on systems with 4G ram
-PATCHFILES += 0615-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
-# add hdmi audio support
-PATCHFILES += 0620-sound-soc-sunxi-add-codec-driver-for-h616.patch
-PATCHFILES += 0621-sound-soc-add-sunxi_v2-for-h616-ahub.patch
-PATCHFILES += 0623-sound-soc-sunxi-hack-to-fix-oops-on-cards-caps-query.patch
-# various additions
-PATCHFILES += 0630-net-wireless-add-uwe5622-support-v20231020.patch
-PATCHFILES += 0631-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
-PATCHFILES += 0632-clk-sunxi-ng-ccu-hack-fix-too-slow-hdmi-audio.patch
-PATCHFILES += 0633-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
-PATCHFILES += 0635-drvers-of-add-dt-overlay-configfs-interface.patch
-PATCHFILES += 0636-drv-rtc-sun6i-add-support-rtc-without-external-losc.patch
-PATCHFILES += 0637-mmc-pwrseq_simple-fix-add-support-for-one-reset-control.patch
-# dtsi patches
-PATCHFILES += 0640-arm64-dtsi-allwinner-h616-Add-display-pipeline.patch
-PATCHFILES += 0641-arm64-dtsi-allwinner-h616-Add-hdmi-audio.patch
-PATCHFILES += 0642-arm64-dtsi-allwinner-h616.dtsi-add-emac1.patch
-PATCHFILES += 0643-arm64-dtsi-allwinner-h616.dtsi-add-cpu-gpu-dvfs-opp.patch
-PATCHFILES += 0644-arm64-dtsi-allwinner-h616.dtsi-add-vdec.patch
-PATCHFILES += 0647-arm64-dtsi-allwinner-h616.dtsi-fix-x96q-failing-mmc3.patch
-PATCHFILES += 0648-arm64-dtsi-allwinner-h616.dtsi-enable-highspeedx-on-mmc0.patch
-# dts patches
-PATCHFILES += 0664-arm64-dts-allwinner-h616-OrangePI-Zero23-enable-ths-hdmi-audio.patch
-PATCHFILES += 0665-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
-PATCHFILES += 0666-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
-PATCHFILES += 0667-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
-PATCHFILES += 0668-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
-PATCHFILES += 0669-arm64-dts-allwinner-h618-add-vontar-h618-TVbox.patch
-PATCHFILES += 0670-arm64-dts-allwinner-h618-improve-opi-2w.patch
-PATCHFILES += 0671-arm64-dts-allwinner-h313-improve-tanix-tx1.patch
-PATCHFILES += 0672-arm64-dts-allwinner-h313-add-x96q-v5.1-TVbox.patch
-PATCHFILES += 0673-arm64-dts-allwinner-h616-add-pendoo-x12pro-tvbox.patch
-PATCHFILES += 0674-arm64-dts-allwinner-h618-improve-transpeed-8k618-tvbox.patch
-PATCHFILES += 0675-arm64-dts-allwinner-h313-h616-h618-add-cpu-overclock-via-overlays.patch
-PATCHFILES += 0676-arm64-dts-allwinner-h313-h616-h618-add-gpu-overclock-via-overlays.patch
-PATCHFILES += 0677-arm64-dts-allwinner-h616-OrangePI-Zero3-disable-pmic-int.patch
+# h6 drivers additions
+PATCHFILES += 2000-rtc-sun6i-Allow-RTC-wakeup-after-shutdown.patch
+PATCHFILES += 2001-firmware-arm_scpi-Support-unidirectional-mailbox-cha.patch
+PATCHFILES += 2002-mfd-add-AC200.patch
+PATCHFILES += 2003-revert-stop-exporting-phy_driver_register-unregister-for-ac200.patch
+PATCHFILES += 2004-net-phy-Add-support-for-AC200-EPHY.patch
+PATCHFILES += 2005-net-wireless-add-xr819-support-07072021.patch
+PATCHFILES += 2006-iommu-sun50i-Allow-page-sizes-multiple-of-4096.patch
+PATCHFILES += 2007-drm-sun4i-Add-support-for-DE33-CSC.patch
+PATCHFILES += 2008-drm-sun4i-vi_layer-Limit-formats-for-DE33.patch
+PATCHFILES += 2009-clk-sunxi-ng-de2-Export-register-regmap-for-DE33.patch
+PATCHFILES += 2010-drm-sun4i-Add-planes-driver.patch
+PATCHFILES += 2011-drm-sun4i-switch-DE33-to-new-bindings.patch
+PATCHFILES += 2012-drm-sun4i-mixer-fix-layer-init-code.patch
+PATCHFILES += 2013-drm-sun4i-backend-fix-error-pointer-dereference.patch
+PATCHFILES += 2014-HACK-clk-sunxi-ng-unify-parent-for-HDMI-clocks.patch
+PATCHFILES += 2015-asoc-sun4i-i2s-WiP-multi-channel.patch
+PATCHFILES += 2016-media-cedrus-Don-t-CPU-map-source-buffers.patch
+PATCHFILES += 2017-media-Add-NV12-and-P010-AFBC-compressed-formats.patch
+PATCHFILES += 2018-media-cedrus-add-format-filtering-based-on-depth-and.patch
+PATCHFILES += 2019-media-cedrus-Increase-H6-clock-rate.patch
+PATCHFILES += 2020-drm-dw-hdmi-cec-sleep-100ms-on-error.patch
+PATCHFILES += 2021-mmc-sunxi-fix-unusuable-eMMC-on-some-H6-boards-by-di.patch
+PATCHFILES += 2022-bluetooth-btrtl-add-hci-ver-rtl8822cs.patch
+PATCHFILES += 2023-h6-add-sun50i-di-deinterlace-WiP.patch
+# h6 board dts additions
+PATCHFILES += 2300-arm64-dts-allwinner-h6-Protect-SCP-clock.patch
+PATCHFILES += 2301-arm64-dts-allwinner-h6-Add-SCPI-protocol.patch
+PATCHFILES += 2302-arm64-dts-allwinner-h6-dtsi-add-sound-node.patch
+PATCHFILES += 2303-arm64-dts-allwinner-h6-Fix-Cedrus-IOMMU-again.patch
+PATCHFILES += 2304-arm64-dts-allwinner-h6.dtsi-add-ac200-nodes.patch
+PATCHFILES += 2305-arm64-dts-allwinner-gs1-fixes.patch
+PATCHFILES += 2306-arm64-dts-allwinner-tanix-tx6-additions.patch
+PATCHFILES += 2307-arm64-dts-allwinner-add-Eeachlink-H6-Mini.patch
+PATCHFILES += 2308-arm64-dts-allwinner-opi3-fixes.patch
+PATCHFILES += 2309-arm64-dts-allwinner-h6-add-deinterlace-node.patch
+PATCHFILES += 2310-arm64-dts-allwinner-add-orangepi-3-lts.patch
+# h616 drivers additions
+PATCHFILES += 2400-drivers-h616-wip-add-usb-emac2-support.patch
+PATCHFILES += 2401-drivers-thermal-allwinner-add-h616-ths-support.patch
+PATCHFILES += 2402-media-cedrus-add-H616-variant.patch
+PATCHFILES += 2403-soc-sunxi-sram-Add-SRAM-C1-H616-handling.patch
+PATCHFILES += 2404-dma-sun6i-dma-add-h616-support.patch
+PATCHFILES += 2405-drm-sun4i-Add-H616-TCON-TV-support.patch
+PATCHFILES += 2406-srm-sun4i-Add-support-for-H616-HDMI-PHY.patch
+PATCHFILES += 2407-drm-sun4i-Add-compatible-for-H616-display-engine.patch
+PATCHFILES += 2408-drm-sun4i-Use-backend-mixer-as-dedicated-DMA-device.patch
+PATCHFILES += 2409-drivers-iommu-sun50i-iommu-fix-iommu-on-h616.patch
+PATCHFILES += 2410-sound-soc-sunxi-add-codec-driver-for-h616.patch
+PATCHFILES += 2411-sound-soc-add-sunxi_v2-for-h616-ahub.patch
+PATCHFILES += 2412-sound-soc-sunxi-hack-to-fix-oops-on-cards-caps-query.patch
+PATCHFILES += 2413-net-wireless-add-uwe5622-support-v20231020.patch
+PATCHFILES += 2414-clk-sunxi-ng-ccu-sun6i-rtc-fix-32k-clk.patch
+PATCHFILES += 2415-clk-sunxi-ng-ccu-hack-fix-too-slow-hdmi-audio.patch
+PATCHFILES += 2416-regulator-add-mmc-high-speed-SD-UHS-modes-support.patch
+PATCHFILES += 2417-drvers-of-add-dt-overlay-configfs-interface.patch
+PATCHFILES += 2418-drv-rtc-sun6i-add-support-rtc-without-external-losc.patch
+PATCHFILES += 2419-mmc-pwrseq_simple-fix-add-support-for-one-reset-control.patch
+# h616 dtsi additions
+PATCHFILES += 2500-arm64-dtsi-allwinner-h616-Add-display-pipeline.patch
+PATCHFILES += 2501-arm64-dtsi-allwinner-h616-Add-hdmi-audio.patch
+PATCHFILES += 2502-arm64-dtsi-allwinner-h616.dtsi-add-emac1.patch
+PATCHFILES += 2503-arm64-dtsi-allwinner-h616.dtsi-add-cpu-gpu-dvfs-opp.patch
+PATCHFILES += 2504-arm64-dtsi-allwinner-h616.dtsi-add-vdec.patch
+PATCHFILES += 2505-arm64-dtsi-allwinner-h616.dtsi-fix-x96q-failing-mmc3.patch
+PATCHFILES += 2506-arm64-dtsi-allwinner-h616.dtsi-enable-highspeedx-on-mmc0.patch
+# h616 board dts additions
+PATCHFILES += 2600-arm64-dts-allwinner-h616-OrangePI-Zero23-enable-ths-hdmi-audio.patch
+PATCHFILES += 2601-arm64-dts-allwinner-h616-add-Tanix-TX6s-TVbox.patch
+PATCHFILES += 2602-arm64-dts-allwinner-h616-add-Tanix-TX6s-axp313-TVbox.patch
+PATCHFILES += 2603-arm64-dts-allwinner-h313-add-x96q-TVbox.patch
+PATCHFILES += 2604-arm64-dts-allwinner-h313-add-x96q-lpddr3-TVbox.patch
+PATCHFILES += 2605-arm64-dts-allwinner-h618-add-vontar-h618-TVbox.patch
+PATCHFILES += 2606-arm64-dts-allwinner-h618-improve-opi-2w.patch
+PATCHFILES += 2607-arm64-dts-allwinner-h313-improve-tanix-tx1.patch
+PATCHFILES += 2608-arm64-dts-allwinner-h313-add-x96q-v5.1-TVbox.patch
+PATCHFILES += 2609-arm64-dts-allwinner-h616-add-pendoo-x12pro-tvbox.patch
+PATCHFILES += 2610-arm64-dts-allwinner-h618-improve-transpeed-8k618-tvbox.patch
+PATCHFILES += 2611-arm64-dts-allwinner-h313-h616-h618-add-cpu-overclock-via-overlays.patch
+PATCHFILES += 2612-arm64-dts-allwinner-h313-h616-h618-add-gpu-overclock-via-overlays.patch
+PATCHFILES += 2613-arm64-dts-allwinner-h616-OrangePI-Zero3-disable-pmic-int.patch
+# a523 drivers additions
+PATCHFILES += 2700-axp20x-HACK-mfd-and-multiple-axp-on-the-bus.patch
+PATCHFILES += 2701-regulator-axp20x-force-polyphase-setup-for-axp323.patch
+PATCHFILES += 2702-thermal-drivers-sun8i-add-initial-support-for-ths-v2.patch
+PATCHFILES += 2703-add-initial-cpufreq-support.patch
+PATCHFILES += 2704-net-drivers-stmmac-add-25M-phy-clock-support.patch
+# a523 dtsi additions
+PATCHFILES += 2800-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
+PATCHFILES += 2801-arm64-dtsi-allwinner-add-ths-support-v2.patch
+PATCHFILES += 2802-arm64-dtsi-allwinner-add-cpufreq-support.patch
+# a523 board dts additions
+PATCHFILES += 2900-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
+PATCHFILES += 2901-arm64-dts-allwinner-t527-orangepi-4a-dts-improvements.patch
+PATCHFILES += 2902-arm64-dts-allwinner-a527-Radxa-A5E-improvements.patch
 #------------------------------------------------------------
 endif
 
 ifeq (1,1)
 #-- Rockchip 33x patches -----------------------------------------
-PATCHFILES += 0722-v4l2-wip-iep-driver.patch
-PATCHFILES += 0725-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
-PATCHFILES += 0727-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
-# dtsi patches
-PATCHFILES += 0736-arm64-dtsi-rockchip-rk3328-enable-dwc3simple-for-usb-boot.patch
-PATCHFILES += 0738-arm64-dtsi-rockchip-rk3399-rise-alert-crit-cpu-temps.patch
-PATCHFILES += 0739-arm64-dtsi-rockchip-rk3328-rk3399-add-soft-reset.patch
-# dts patches
-PATCHFILES += 0740-arm64-dts-rockchip-var-fixes-from-libreelec.patch
-PATCHFILES += 0743-arm64-dts-rockchip-beelink-a1-enable-openvfd.patch
-PATCHFILES += 0746-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
-PATCHFILES += 0747-arm64-dts-rockchip-beelink-a1-limit-sdmmc-clk-to-35MHz.patch
-PATCHFILES += 0748-arm64-dts-rockchip-beelink-a1-limit-emmc-speed-to-fix-emmc-booting.patch
-PATCHFILES += 0749-phy-rockchip-phy-add-rockchip-inno-usb3.patch
-PATCHFILES += 0750-arm64-dts-rockchip-rk3328-enable-inno-usb3-on-various-boards.patch
-PATCHFILES += 0753-arm64-dts-rockchip-rk3399-radxa-rockpi-bc-remove-wifi-compatible.patch
-PATCHFILES += 0754-arm64-dts-rockchip-rk33xx-set-userled-to-mmc.patch
-PATCHFILES += 0755-arm64-dts-rockchip-rk3399-add-orangepi-4-and-4-lts.patch
-PATCHFILES += 0756-arm64-dts-rockchip-rk33xx-add-eth-wifi-aliases.patch
-PATCHFILES += 0757-arm64-dts-rockchip-rk3399-orangepi-4-lts-add-fan-support.patch
-PATCHFILES += 0758-arm64-dts-rockchip-rk3328-rk3566-add-cpu-gpu-overclock-overlays.patch
-endif
-#------------------------------------------------------------
-
-ifeq (1,1)
-#-- Rockchip 356x patches -----------------------------------------
-PATCHFILES += 0800-Enable-rk356x-PCIe-controller.patch
-PATCHFILES += 0801-net-wireless-backport-aic8800-sdio-v2025_0926_91c9dae5-mm2.patch
-PATCHFILES += 0803-net-wireless-backport-aic8800-usb-v2025_0926_91c9dae5-mm2.patch
-# device-tree patches
-PATCHFILES += 0831-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
-PATCHFILES += 0832-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
-PATCHFILES += 0833-arm64-dtsi-rockchip-rk356x-enable-dwc3simple-for-usb-boot.patch
-PATCHFILES += 0835-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
-PATCHFILES += 0836-arm64-dts-rockchip-add-dts-for-x96-x6.patch
-PATCHFILES += 0840-arm64-dts-rockchip-improve-dts-for-rock3b.patch
-PATCHFILES += 0841-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
-PATCHFILES += 0842-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
-PATCHFILES += 0843-arm64-dts-rockchip-rock3a-fix-mdio-reset-disable-uart-bt.patch
-PATCHFILES += 0845-arm64-dts-rockchip-improve-dts-for-rock3c.patch
-PATCHFILES += 0846-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
-PATCHFILES += 0847-arm64-dts-rockchip-add-dts-for-urve-pi.patch
-PATCHFILES += 0848-arm64-dts-rockchip-improve-dts-for-opi-3b-v1.1.patch
-PATCHFILES += 0849-arm64-dts-rockchip-improve-dts-for-zero3.patch
-PATCHFILES += 0850-arm64-dts-rockchip-rk356x-add-eth-wifi-aliases.patch
-endif
-#------------------------------------------------------------
-
-ifeq (1,1)
-#-- RaspberryPI patches -----------------------------------------
-PATCHFILES += 0900-rpi-vc04_services-sync-to-downstream-04022026.patch
-PATCHFILES += 0901-media-add-rpi4-v4l2m2m-decoder.patch
-PATCHFILES += 0902-media-add-rpivid-driver.patch
-PATCHFILES += 0903-nvmem-raspberrypi-add-nvmem-driver-for-accessing-OTP.patch
-PATCHFILES += 0904-dmaengine-add-support-for-BCM2708.patch
-PATCHFILES += 0905-media-ioctl-add-pixel-formats-NV12MT_COL128-and-NV12.patch
-PATCHFILES += 0906-media-v4l2-add-single-planar-NV12-column-formats.patch
-PATCHFILES += 0907-drm-increase-plane_mask-to-64bit.patch
-PATCHFILES += 0908-char-add-vc_mem-driver-for-querying-firmware.patch
-PATCHFILES += 0909-clk-bcm-changes-to-get-rpi4-v4l2m2m-working.patch
-# require by downstream dts rp1
-# PATCHFILES += 0932-drivers-pci-add-rp1-support.patch
-PATCHFILES += 0933-drivers-clk-add-rp1-support.patch
-# dma support required for audio
-PATCHFILES += 0935-drivers-dma-add-rp1-support.patch
-# mfd required by rp1 mailbox, pwm, pio and adc
-PATCHFILES += 0938-drivers-mfd-add-rp1-support.patch
-# net patch seems to be required to get eth working with downstream dts
-PATCHFILES += 0943-drivers-net-add-rp1-support.patch
-# spi required for mac addr from eeprom
-PATCHFILES += 0944-drivers-spi-add-rp1-support.patch
-PATCHFILES += 0945-drivers-pwm-add-rp1-support.patch
-PATCHFILES += 0946-drivers-hwmon-add-rp1-support.patch
-PATCHFILES += 0947-drivers-thermal-add-rp1-support.patch
-# unify rpi3 rpi4 rpi5 vc4 support
-PATCHFILES += 0948-gpu-drm-vc4-add-rpi5-support.patch
-PATCHFILES += 0949-drm-vc4-hdmi-hack-for-rpi4-rpi5-audio.patch
-# gpio pwm support for cooling fan support
-PATCHFILES += 0950-mailbox-Add-RP1-mailbox-support.patch
-PATCHFILES += 0951-firmware-Add-an-RP1-firmware-interface-over-mbox.patch
-PATCHFILES += 0952-misc-Add-RP1-PIO-driver.patch
-PATCHFILES += 0953-pwm-Add-pwm-pio-rp1-driver.patch
-PATCHFILES += 0954-pinctrl-Reinstate-the-downstream-pinctrl-rp1-driver.patch
-#PATCHFILES += 0955-usb-dwc3-hack-to-stop-kernel-oops.patch
-# device-tree patches
-PATCHFILES += 0970-arm64-dts-brcm-rpi4-set-led-to-disk-activity-mmc0-alias.patch
-PATCHFILES += 0971-arm64-2712dtsi-add-uart-mmc2-pins-ths-sensor.patch
-PATCHFILES += 0972-arm64-2712dtsi-add-gpu-rpivid.patch
-PATCHFILES += 0973-arm64-2712dtsi-add-dma32-dma40-for-audio.patch
-PATCHFILES += 0974-arm64-2712dtsi-add-thermal-zones.patch
-
-# switch to downstream dts. need to disable 0975..0978
-PATCHFILES += 0975-arm64-rpi-5-b-switch-to-downstream-dts.patch
-# use upstream dts
-#PATCHFILES += 0975-arm64-rp1common.dtsi-add-pwm-adc-nodes.patch
-#PATCHFILES += 0976-arm64-rpi-5-b-base.dtsi-add-pwm1fan-pins.patch
-#PATCHFILES += 0977-arm64-dts-rpi-5-b-add-fan-adc-fix-leds.patch
-#PATCHFILES += 0978-arm64-2712dtsi-increase-cam-to-384M.patch
-
-PATCHFILES += 0979-arm64-dts-brcm-rpi4-incr-cma-to-384M.patch
-PATCHFILES += 0980-arm64-dts-brcm-rpi4-add-rpivid.patch
-endif
-#------------------------------------------------------------
-
-ifeq (1,1)
-#-- Rockchip 3588 patches -----------------------------------------
-# misc fixes
-PATCHFILES += 1000-math.h-add-DIV_ROUND_UP_NO_OVERFLOW.patch
-PATCHFILES += 1001-clk-divider-Fix-divisor-masking-on-64-bit-platforms.patch
-PATCHFILES += 1002-clk-composite-replace-open-coded-abs_diff.patch
-PATCHFILES += 1003-phy-rockchip-inno-usb2-add-soft-vbusvalid-control.patch
-PATCHFILES += 1004-mfd-rk8xx-Fix-shutdown-handler.patch
-PATCHFILES += 1005-net-ethernet-add-yt6801-gige-pcie-controller.patch
-PATCHFILES += 1006-net-phy-realtek-Reset-after-clock-enable.patch
-PATCHFILES += 1007-net-phy-realtek-re-init-after-reset.patch
+# rk33xx drivers additions
+PATCHFILES += 3000-v4l2-wip-iep-driver.patch
+PATCHFILES += 3001-drm-rockchip-vop-add-immutable-zpos-property-fix-z-order.patch
+PATCHFILES += 3002-drm-rockchip-vop2-rk356x-reorder-wins-fix-osd-in-drm-planes.patch
+PATCHFILES += 3003-phy-rockchip-phy-add-rockchip-inno-usb3.patch
+# rk33xx dtsi additions
+PATCHFILES += 3200-arm64-dtsi-rockchip-rk3328-enable-dwc3simple-for-usb-boot.patch
+PATCHFILES += 3201-arm64-dtsi-rockchip-rk3399-enable-dwc3simple-for-usb-boot.patch
+PATCHFILES += 3202-arm64-dtsi-rockchip-rk3399-rise-alert-crit-cpu-temps.patch
+PATCHFILES += 3203-arm64-dtsi-rockchip-rk3328-rk3399-add-soft-reset.patch
+PATCHFILES += 3204-phy-rockchip-phy-add-rockchip-inno-usb3.patch
+# rk33xx board dts additions
+PATCHFILES += 3300-arm64-dts-rockchip-var-fixes-from-libreelec.patch
+PATCHFILES += 3301-arm64-dts-rockchip-beelink-a1-enable-openvfd.patch
+PATCHFILES += 3302-arm64-dts-rockchip-beelink-a1-bump-cpu-gpu-freqs.patch
+PATCHFILES += 3303-arm64-dts-rockchip-beelink-a1-limit-sdmmc-clk-to-35MHz.patch
+PATCHFILES += 3304-arm64-dts-rockchip-beelink-a1-limit-emmc-speed-to-fix-emmc-booting.patch
+PATCHFILES += 3305-arm64-dts-rockchip-rk3328-enable-inno-usb3-on-various-boards.patch
+PATCHFILES += 3306-arm64-dts-rockchip-rk3399-radxa-rockpi-bc-remove-wifi-compatible.patch
+PATCHFILES += 3307-arm64-dts-rockchip-rk33xx-set-userled-to-mmc.patch
+PATCHFILES += 3308-arm64-dts-rockchip-rk3399-add-orangepi-4-and-4-lts.patch
+PATCHFILES += 3309-arm64-dts-rockchip-rk33xx-add-eth-wifi-aliases.patch
+PATCHFILES += 3310-arm64-dts-rockchip-rk3399-orangepi-4-lts-add-fan-support.patch
+PATCHFILES += 3311-arm64-dts-rockchip-rk3328-rk3566-add-cpu-gpu-overclock-overlays.patch
+# rk35xx drivers additions
+PATCHFILES += 3400-Enable-rk356x-PCIe-controller.patch
+PATCHFILES += 3401-net-wireless-backport-aic8800-sdio-v2025_0926_91c9dae5-mm2.patch
+PATCHFILES += 3402-net-wireless-backport-aic8800-usb-v2025_0926_91c9dae5-mm2.patch
+PATCHFILES += 3403-math.h-add-DIV_ROUND_UP_NO_OVERFLOW.patch
+PATCHFILES += 3404-clk-divider-Fix-divisor-masking-on-64-bit-platforms.patch
+PATCHFILES += 3405-clk-composite-replace-open-coded-abs_diff.patch
+PATCHFILES += 3406-mfd-rk8xx-Fix-shutdown-handler.patch
+PATCHFILES += 3407-net-ethernet-add-yt6801-gige-pcie-controller.patch
+PATCHFILES += 3408-net-phy-realtek-Reset-after-clock-enable.patch
+PATCHFILES += 3409-net-phy-realtek-re-init-after-reset.patch
 # drm enhacements
-PATCHFILES += 1011-uapi-Provide-DIV_ROUND_CLOSEST.patch
-PATCHFILES += 1012-drm-Add-CRTC-background-color-property.patch
-PATCHFILES += 1013-drm-vkms-Support-setting-custom-background-color.patch
-PATCHFILES += 1014-drm-rockchip-vop2-Support-setting-custom-background-.patch
-PATCHFILES += 1016-drm-bridge-Add-detect_ctx-hook-and-drm_bridge_detect.patch
-PATCHFILES += 1017-drm-bridge-connector-Switch-to-using-detect_ctx-hook.patch
-PATCHFILES += 1018-drm-bridge-dw-hdmi-qp-Add-high-TMDS-clock-ratio-and-.patch
-PATCHFILES += 1019-drm-rockchip-dw_hdmi_qp-Do-not-send-HPD-events-for-a.patch
-PATCHFILES += 1020-drm-bridge-dw-hdmi-qp-Provide-HDMI-Vendor-Specific-I.patch
-PATCHFILES += 1021-drm-bridge-dw-hdmi-qp-Provide-SPD-InfoFrame.patch
-PATCHFILES += 1022-drm-bridge-dw-hdmi-qp-Rework-AVI-InfoFrame-handler.patch
-PATCHFILES += 1023-drm-bridge-dw-hdmi-qp-Rework-DRM-InfoFrame-handler.patch
-PATCHFILES += 1024-drm-bridge-dw-hdmi-qp-Rework-Audio-InfoFrame-handler.patch
-PATCHFILES += 1025-drm-Add-new-general-DRM-property-color-forma.patch
-PATCHFILES += 1026-drm-Add-enum-conversions-between-DRM_COLOR_F.patch
-PATCHFILES += 1027-drm-bridge-Act-on-the-DRM-color-format-prope.patch
-PATCHFILES += 1028-drm-display-hdmi-state-helper-Act-on-color-f.patch
-PATCHFILES += 1029-drm-display-hdmi-state-helper-Try-subsamplin.patch
-PATCHFILES += 1030-drm-rockchip-Add-YUV422-output-mode-constant.patch
-PATCHFILES += 1031-drm-rockchip-vop2-Fix-YUV444-output.patch
-PATCHFILES += 1032-drm-rockchip-vop2-Add-RK3576-to-the-RG-swap-.patch
-PATCHFILES += 1033-drm-rockchip-vop2-Recognise-10-12-bit-YUV422.patch
-PATCHFILES += 1034-drm-rockchip-vop2-Set-correct-output-format-.patch
-PATCHFILES += 1035-drm-bridge-dw-hdmi-qp-Implement-atomic_get_o.patch
-PATCHFILES += 1036-drm-rockchip-dw_hdmi_qp-Implement-color-form.patch
-PATCHFILES += 1037-drm-rockchip-dw_hdmi_qp-Set-supported_format.patch
-PATCHFILES += 1038-drm-connector-Register-color-format-property.patch
-PATCHFILES += 1039-WIP-YUV420-drm-rockchip-dw_hdmi_qp-Enable-YUV420-out.patch
-PATCHFILES += 1040-WIP-YUV420-drm-rockchip-dw_hdmi_qp-Handle-missing-YU.patch
-PATCHFILES += 1041-WIP-YUV420-drm-bridge-dw-hdmi-qp-Improve-debug-messa.patch
-PATCHFILES += 1042-WIP-YUV420-drm-rockchip-vop2-Switch-to-enum-vop_csc_.patch
-PATCHFILES += 1043-drm-rockchip-dw_hdmi_qp-Handle-10-bit-YUV422-output-.patch
-PATCHFILES += 1044-drm-rockchip-vop2-Handle-DCLK-source-switch-for-YUV4.patch
-PATCHFILES += 1045-dt-bindings-display-vop2-Add-VP-clock-resets.patch
-PATCHFILES += 1046-drm-rockchip-vop2-Add-clock-resets-support.patch
-PATCHFILES += 1047-clk-rockchip-rk3588-Don-t-change-PLL-rates-w.patch
-PATCHFILES += 1048-drm-rockchip-inno-hdmi-Switch-to-drmm_kzalloc.patch
-# mmc fixes
-PATCHFILES += 1051-mmc-sdhci-of-dwcmshc-Reduce-clock-reduction-print-le.patch
-# make kodi workig ok
-PATCHFILES += 1056-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
-# fix for swiotlb buffer is full
-PATCHFILES += 1057-drm-rockchip-set-dma-mask-to-64-bit.patch
-# add iommu for av1 decoser
-PATCHFILES += 1059-iommu-Add-verisilicon-IOMMU-driver.patch
-# add vp9 decoding on rkvdec2
-PATCHFILES += 1063-media-rockchip-rkvdec-vdpu381-add-vp9-support-v9.patch
-# fix h264 playback in chromium
-PATCHFILES += 1064-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
-# fix from armbian for initialize h264 frame_mbs_only_flag as 1
-PATCHFILES += 1067-media-v4l2-core-Initialize-h264-frame_mbs_only_flag-as-1.patch
-# some avi fixes
-PATCHFILES += 1068-media-verisilicon-AV1-Restore-IOMMU-context-before-d.patch
-# add khadas edge2 support in khadas-mcu
-PATCHFILES += 1070-mfd-khadas-mcu-add-edge2-support.patch
-# dtsi additions
-PATCHFILES += 1080-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
-PATCHFILES += 1083-arm64-dtsi-rockchip-rk3588-enable-dwc3simple-for-usb-boot.patch
-PATCHFILES += 1084-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
-PATCHFILES += 1086-arm64-dtsi-rk3588s-increas-vop-clk.patch
-# dts patches
-PATCHFILES += 1087-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
-PATCHFILES += 1088-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
-PATCHFILES += 1089-arm64-dts-rockchip-rk3588s-rock5c-dts-improvements.patch
-PATCHFILES += 1090-arm64-dts-rockchip-rk3588-rock5itx-dts-improvements.patch
-PATCHFILES += 1091-arm64-dts-rockchip-rk3588s-opi5-dts-improvements.patch
-PATCHFILES += 1092-arm64-dts-rockchip-rk3588-opi5plus-dts-improvements.patch
-PATCHFILES += 1093-arm64-dts-rockchip-rk3588s-add-opi5pro-dts.patch
-PATCHFILES += 1094-arm64-dts-rockchip-rk3588s-add-nanopi-m6-dts.patch
-PATCHFILES += 1095-arm64-dts-rockchip-rk3588s-nanopc-r6s-dts-improvements.patch
-PATCHFILES += 1096-arm64-dts-rockchip-rk3588-nanopc-t6-dtsi-improvements.patch
-PATCHFILES += 1097-arm64-dts-rockchip-rk3588-add-rock5t-dt.patch
-PATCHFILES += 1098-arm64-dts-rockchip-rk3588-khadas-edge2-dts-improvements.patch
-# for testing 
-# PATCHFILES += 1099-arm64-dtsi-rockchip-disable-vpu121.patch
-# PATCHFILES += 1099-arm64-dts-rockchip-rk3588-rock5b-t-wip-typec-dp-support.patch
-#------------------------------------------------------------
+# https://gitlab.collabora.com/cristicc/linux-next/-/commits/rk3588-hdmi-bridge
+# 18.03.2026 g4a739e858a90eb351b6d9b03cf20188c378061d5
+PATCHFILES += 3420-uapi-Provide-DIV_ROUND_CLOSEST.patch
+PATCHFILES += 3421-drm-Add-CRTC-background-color-property.patch
+PATCHFILES += 3422-drm-vkms-Support-setting-custom-background-color.patch
+PATCHFILES += 3423-drm-rockchip-vop2-Support-setting-custom-background-.patch
+PATCHFILES += 3424-DEBUG-drm-rockchip-vop2-Log-DCLK-setup.patch
+PATCHFILES += 3425-phy-rockchip-samsung-hdptx-Fix-rate-recalculation-fo.patch
+PATCHFILES += 3426-phy-rockchip-samsung-hdptx-Handle-uncommitted-PHY-co.patch
+PATCHFILES += 3427-phy-rockchip-samsung-hdptx-Drop-TMDS-rate-setup-work.patch
+PATCHFILES += 3428-phy-rockchip-samsung-hdptx-Drop-restrict_rate_change.patch
+PATCHFILES += 3429-phy-rockchip-samsung-hdptx-Simplify-GRF-access-with-.patch
+PATCHFILES += 3430-phy-rockchip-samsung-hdptx-Consistently-use-bitfield.patch
+PATCHFILES += 3431-DEBUG-phy-rockchip-samsung-hdptx-Add-verbose-logging.patch
+PATCHFILES += 3432-drm-bridge-Add-detect_ctx-hook-and-drm_bridge_detect.patch
+PATCHFILES += 3433-drm-bridge-connector-Switch-to-using-detect_ctx-hook.patch
+PATCHFILES += 3434-drm-bridge-dw-hdmi-qp-Add-high-TMDS-clock-ratio-and-.patch
+PATCHFILES += 3435-drm-bridge-dw-hdmi-qp-Provide-HDMI-Vendor-Specific-I.patch
+PATCHFILES += 3436-drm-bridge-dw-hdmi-qp-Provide-SPD-InfoFrame.patch
+PATCHFILES += 3437-drm-bridge-dw-hdmi-qp-Rework-AVI-InfoFrame-handler.patch
+PATCHFILES += 3438-drm-bridge-dw-hdmi-qp-Rework-DRM-InfoFrame-handler.patch
+PATCHFILES += 3439-drm-bridge-dw-hdmi-qp-Rework-Audio-InfoFrame-handler.patch
+PATCHFILES += 3440-drm-rockchip-dw_hdmi_qp-Do-not-send-HPD-events-for-a.patch
+PATCHFILES += 3441-FROM-ML-drm-Add-new-general-DRM-property-color-forma.patch
+PATCHFILES += 3442-FROM-ML-drm-Add-enum-conversions-between-DRM_COLOR_F.patch
+PATCHFILES += 3443-FROM-ML-drm-bridge-Act-on-the-DRM-color-format-prope.patch
+PATCHFILES += 3444-FROM-ML-drm-display-hdmi-state-helper-Act-on-color-f.patch
+PATCHFILES += 3445-FROM-ML-drm-display-hdmi-state-helper-Try-subsamplin.patch
+PATCHFILES += 3446-FROM-ML-drm-rockchip-Add-YUV422-output-mode-constant.patch
+PATCHFILES += 3447-FROM-ML-drm-rockchip-vop2-Fix-YUV444-output.patch
+PATCHFILES += 3448-FROM-ML-drm-rockchip-vop2-Add-RK3576-to-the-RG-swap-.patch
+PATCHFILES += 3449-FROM-ML-drm-rockchip-vop2-Recognise-10-12-bit-YUV422.patch
+PATCHFILES += 3450-FROM-ML-drm-rockchip-vop2-Set-correct-output-format-.patch
+PATCHFILES += 3451-FROM-ML-drm-bridge-dw-hdmi-qp-Implement-atomic_get_o.patch
+PATCHFILES += 3452-FROM-ML-drm-rockchip-dw_hdmi_qp-Implement-color-form.patch
+PATCHFILES += 3453-FROM-ML-drm-rockchip-dw_hdmi_qp-Set-supported_format.patch
+PATCHFILES += 3454-FROM-ML-drm-connector-Register-color-format-property.patch
+PATCHFILES += 3455-WIP-YUV420-FROM-ML-dt-bindings-display-vop2-Add-VP-c.patch
+PATCHFILES += 3456-WIP-YUV420-FROM-ML-drm-rockchip-vop2-Add-clock-reset.patch
+PATCHFILES += 3457-WIP-YUV420-drm-bridge-dw-hdmi-qp-Improve-debug-messa.patch
+PATCHFILES += 3458-WIP-YUV420-drm-rockchip-dw_hdmi_qp-Enable-YUV420-out.patch
+PATCHFILES += 3459-WIP-YUV420-drm-rockchip-dw_hdmi_qp-Handle-missing-YU.patch
+PATCHFILES += 3460-WIP-YUV420-drm-rockchip-dw_hdmi_qp-Handle-10-bit-YUV.patch
+PATCHFILES += 3461-WIP-YUV420-drm-rockchip-vop2-Switch-to-enum-vop_csc_.patch
+PATCHFILES += 3462-WIP-YUV420-drm-rockchip-vop2-Handle-DCLK-source-swit.patch
+PATCHFILES += 3463-WIP-YUV420-drm-rockchip-vop2-Refactor-DCLK-switch.patch
+PATCHFILES += 3464-DEBUG-usb-typec-tcpm-also-log-to-dmesg.patch
+PATCHFILES += 3465-DEBUG-usb-typec-fusb302-also-log-to-dmesg.patch
+PATCHFILES += 3466-USB-DP-phy-rockchip-inno-usb2-add-soft-vbusvalid-con.patch
+PATCHFILES += 3467-USB-DP-dt-bindings-phy-rockchip-usbdp-add-improved-p.patch
+PATCHFILES += 3468-USB-DP-phy-rockchip-usbdp-Do-not-loose-USB3-PHY-stat.patch
+PATCHFILES += 3469-USB-DP-phy-rockchip-usbdp-Keep-clocks-running-on-PHY.patch
+PATCHFILES += 3470-USB-DP-phy-rockchip-usbdp-Amend-SSC-modulation-devia.patch
+PATCHFILES += 3471-USB-DP-phy-rockchip-usbdp-Fix-LFPS-detect-threshold-.patch
+PATCHFILES += 3472-USB-DP-phy-rockchip-usbdp-Add-missing-mode_change-up.patch
+PATCHFILES += 3473-USB-DP-phy-rockchip-usbdp-Support-single-lane-DP.patch
+PATCHFILES += 3474-USB-DP-phy-rockchip-usbdp-Rename-DP-lane-functions.patch
+PATCHFILES += 3475-USB-DP-phy-rockchip-usbdp-Use-FIELD_PREP_WM16_CONST.patch
+PATCHFILES += 3476-USB-DP-phy-rockchip-usbdp-Cleanup-DP-lane-selection-.patch
+PATCHFILES += 3477-USB-DP-phy-rockchip-usbdp-Register-DP-aux-bridge.patch
+PATCHFILES += 3478-USB-DP-phy-rockchip-usbdp-Drop-DP-HPD-handling.patch
+PATCHFILES += 3479-USB-DP-usb-typec-mux-avoid-duplicated-orientation-sw.patch
+PATCHFILES += 3480-USB-DP-usb-typec-mux-avoid-duplicated-mux-switches.patch
+PATCHFILES += 3481-USB-DP-usb-typec-tcpm-improve-handling-of-DISCOVER_M.patch
+PATCHFILES += 3482-USB-DP-usb-typec-tcpm-Also-use-SNK_WAIT_CAPABILITIES.patch
+PATCHFILES += 3483-USB-DP-usb-typec-fusb302-add-DRM-DP-HPD-bridge-suppo.patch
+PATCHFILES += 3484-FROM-ML-clk-rockchip-rk3588-Don-t-change-PLL-rates-w.patch
+PATCHFILES += 3485-WIP-drm-rockchip-vop-Do-not-restrict-usage-of-DRM_AN.patch
+PATCHFILES += 3486-drm-rockchip-vop-Restrict-eDP-search-to-attached-con.patch
+PATCHFILES += 3487-drm-dp-Verify-if-sink-device-supports-CRC.patch
+PATCHFILES += 3488-drm-dp-Handle-broken-hardware-not-updating-the-CRC-c.patch
+PATCHFILES += 3489-HACK-drm-bridge-synopsys-dw-dp-Exclude-144-Hz-modes.patch
+PATCHFILES += 3490-drm-bridge-synopsys-dw-dp-Fixup-link-training-debug-.patch
+PATCHFILES += 3491-drm-bridge-synopsys-dw-dp-Simplify-dw_dp_bandwidth_o.patch
+PATCHFILES += 3492-drm-bridge-synopsys-dw-dp-Provide-start-stop-CRC-hel.patch
+PATCHFILES += 3493-drm-rockchip-Add-generic-support-for-managing-CRC-so.patch
+PATCHFILES += 3494-drm-bridge-synopsys-dw-dp-Set-pixel-mode-by-platform-data.patch
+PATCHFILES += 3495-WIP-CRC-drm-rockchip-vop2-Add-support-for-CRC-genera.patch
+PATCHFILES += 3496-drm-rockchip-dw_dp-Add-DisplayPort-support-for-rk3576.patch
+PATCHFILES += 3497-drm-rockchip-inno-hdmi-Switch-to-drmm_kzalloc.patch
+PATCHFILES += 3498-drm-rockchip-dw_dp-Switch-to-drmm_kzalloc.patch
+PATCHFILES += 3499-drm-rockchip-dw_dp-Fix-null-ptr-deref-in-dw_dp_remov.patch
+PATCHFILES += 3500-drm-rockchip-dw_dp-Simplify-error-handling.patch
+PATCHFILES += 3501-drm-rockchip-dw_dp-Drop-unnecessary-include.patch
+PATCHFILES += 3502-drm-rockchip-dw_hdmi_qp-Switch-to-drmm_encoder_init.patch
+PATCHFILES += 3503-drm-bridge-synopsys-dw-dp-Unregister-AUX-channel-on-.patch
+PATCHFILES += 3504-drm-bridge-synopsys-dw-dp-Drop-useless-memory-alloca.patch
+PATCHFILES += 3505-FROM-ML-drm-edid-Parse-more-info-from-HDMI-Forum-vsd.patch
+# todo PATCHFILES += 3506-WIP-video-hdmi-Add-support-for-ALLM.patch
+PATCHFILES += 3507-USB-DP-drm-bridge-synopsys-dw-dp-Simplify-driver-dat.patch
+PATCHFILES += 3508-USB-DP-drm-bridge-synopsys-dw-dp-support-MEDIA_BUS_F.patch
+PATCHFILES += 3509-USB-DP-drm-bridge-synopsys-dw-dp-Add-follow-up-bridg.patch
+PATCHFILES += 3510-USB-DP-drm-bridge-Add-oob_notify.patch
+PATCHFILES += 3511-USB-DP-drm-bridge-synopsys-dw-dp-Support-software-tr.patch
+PATCHFILES += 3512-USB-DP-drm-rockchip-dw_dp-implement-out-of-band-HPD-.patch
+PATCHFILES += 3513-drm-display-Convert-SCDC-raw-values-to-BIT-macros.patch
+PATCHFILES += 3514-drm-display-Add-HDMI-2.1-specific-SCDC-registers.patch
+PATCHFILES += 3515-phy-hdmi-Add-optional-FRL-TxFFE-configuration.patch
+PATCHFILES += 3516-phy-rockchip-samsung-hdptx-Add-support-for-FRL-TxFFE.patch
+PATCHFILES += 3517-WIP-FRL-drm-connector-hdmi-Handle-FRL-in-hdmi_clock_.patch
+PATCHFILES += 3518-WIP-FRL-drm-bridge-dw-hdmi-qp-Add-HDMI-2.1-FRL-suppo.patch
+PATCHFILES += 3519-WIP-FRL-drm-rockchip-dw_hdmi_qp-Add-HDMI-2.1-FRL-sup.patch
+PATCHFILES += 3520-WIP-FRL-drm-rockchip-vop2-Add-HDMI-2.1-FRL-support.patch
+PATCHFILES += 3521-WIP-dw-hdmi-qp-Code-cleanup.patch
+PATCHFILES += 3522-WIP-FRL-drm-bridge-dw-hdmi-qp-Drop-audio-TMDS-EoT-ma.patch
+PATCHFILES += 3523-WIP-dw-hdmi-qp-Adjust-FFE-level.patch
+PATCHFILES += 3524-fixup-WIP-dw-hdmi-qp-Code-cleanup.patch
+PATCHFILES += 3525-fixup-WIP-dw-hdmi-qp-Adjust-FFE-level.patch
+# misc additions
+PATCHFILES += 3560-mmc-sdhci-of-dwcmshc-Reduce-clock-reduction-print-le.patch
+PATCHFILES += 3561-drm-rockchip-vop2-rk3588-reorder-wins-fix-kodi-playback-in-drm-planes.patch
+PATCHFILES += 3562-drm-rockchip-set-dma-mask-to-64-bit.patch
+PATCHFILES += 3563-iommu-Add-verisilicon-IOMMU-driver.patch
+PATCHFILES += 3564-media-rockchip-rkvdec-vdpu381-add-vp9-support-v9.patch
+PATCHFILES += 3565-media-rkvdec-remove-vb2_is_busy-check-in-rkvdec_s_ct.patch
+PATCHFILES += 3566-media-v4l2-core-Initialize-h264-frame_mbs_only_flag-as-1.patch
+PATCHFILES += 3567-media-verisilicon-AV1-Restore-IOMMU-context-before-d.patch
+PATCHFILES += 3568-mfd-khadas-mcu-add-edge2-support.patch
+# rk35xx dtsi additions
+PATCHFILES += 3600-arm64-dts-rockchip-enable-usb2-usb3-sata-audio-in-rk35xx.dtsi.patch
+PATCHFILES += 3601-arm64-dtsi-rockchip-rk356x-disable-vepu-rga-enable-dfi.patch
+PATCHFILES += 3602-arm64-dtsi-rockchip-rk356x-enable-dwc3simple-for-usb-boot.patch
+PATCHFILES += 3603-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
+PATCHFILES += 3604-arm64-dtsi-rockchip-rk3588-enable-dwc3simple-for-usb-boot.patch
+PATCHFILES += 3605-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
+PATCHFILES += 3607-arm64-dtsi-rk3588s-increas-vop-clk.patch
+# PATCHFILES += 3609-arm64-dtsi-rockchip-disable-vpu121.patch
+PATCHFILES += 3610-arm64-dtsi-rockchip-rk3576-enable-dwc3simple-for-usb-boot.patch
+# rk35xx board dts additions
+PATCHFILES += 3700-arm64-dts-rockchip-enable-Quartz64-A-usb2-usb3-pcie-audio.patch
+PATCHFILES += 3701-arm64-dts-rockchip-add-dts-for-x96-x6.patch
+PATCHFILES += 3702-arm64-dts-rockchip-improve-dts-for-rock3b.patch
+PATCHFILES += 3703-arm64-dts-rockchip-increas-alarm-cpu-temp-to-85.patch
+PATCHFILES += 3704-arm64-dts-rockchip-Quartz64-B-fix-Eth-enable-hdmi-audio.patch
+PATCHFILES += 3705-arm64-dts-rockchip-rock3a-fix-mdio-reset-disable-uart-bt.patch
+PATCHFILES += 3706-arm64-dts-rockchip-improve-dts-for-rock3c.patch
+PATCHFILES += 3707-arm64-dts-rockchip-rk35xx-set-userled-to-mmc.patch
+PATCHFILES += 3708-arm64-dts-rockchip-add-dts-for-urve-pi.patch
+PATCHFILES += 3709-arm64-dts-rockchip-improve-dts-for-opi-3b-v1.1.patch
+PATCHFILES += 3710-arm64-dts-rockchip-improve-dts-for-zero3.patch
+PATCHFILES += 3711-arm64-dts-rockchip-rk356x-add-eth-wifi-aliases.patch
+PATCHFILES += 3712-arm64-dts-rockchip-rk3588s-rock5a-dts-improvements.patch
+PATCHFILES += 3713-arm64-dts-rockchip-rk3588-rock5b-dts-improvements.patch
+PATCHFILES += 3714-arm64-dts-rockchip-rk3588s-rock5c-dts-improvements.patch
+PATCHFILES += 3715-arm64-dts-rockchip-rk3588-rock5itx-dts-improvements.patch
+PATCHFILES += 3716-arm64-dts-rockchip-rk3588s-opi5-dts-improvements.patch
+PATCHFILES += 3717-arm64-dts-rockchip-rk3588-opi5plus-dts-improvements.patch
+PATCHFILES += 3718-arm64-dts-rockchip-rk3588s-add-opi5pro-dts.patch
+PATCHFILES += 3719-arm64-dts-rockchip-rk3588s-add-nanopi-m6-dts.patch
+PATCHFILES += 3720-arm64-dts-rockchip-rk3588s-nanopc-r6s-dts-improvements.patch
+PATCHFILES += 3721-arm64-dts-rockchip-rk3588-nanopc-t6-dtsi-improvements.patch
+PATCHFILES += 3722-arm64-dts-rockchip-rk3588-add-rock5t-dt.patch
+PATCHFILES += 3723-arm64-dts-rockchip-rk3588-khadas-edge2-dts-improvements.patch
+PATCHFILES += 3724-arm64-dts-rockchip-rk3588-rock5b-t-wip-typec-dp-support.patch
+PATCHFILES += 3725-arm64-dts-add-nanopi-m5-dts-improvements.patch
+PATCHFILES += 3726-arm64-dts-rock4d-improvements.patch
+PATCHFILES += 3727-arm64-dts-add-rk3576-nanopi-r76s-dt.patch
 endif
+#------------------------------------------------------------
 
 ifeq (1,1)
-#-- Allwinner A523/T527/H728 --------------------------------
-PATCHFILES += 1101-axp20x-HACK-mfd-and-multiple-axp-on-the-bus.patch
-PATCHFILES += 1104-regulator-axp20x-force-polyphase-setup-for-axp323.patch
-PATCHFILES += 1141-thermal-drivers-sun8i-add-initial-support-for-ths-v2.patch
-PATCHFILES += 1142-add-initial-cpufreq-support.patch
-PATCHFILES += 1146-net-drivers-stmmac-add-25M-phy-clock-support.patch
-# dtsi additions
-PATCHFILES += 1151-arm64-dtsi-allwinner-add-gmac1-fixup-gmac0-in-a523.patch
-PATCHFILES += 1153-arm64-dtsi-allwinner-add-ths-support-v2.patch
-PATCHFILES += 1154-arm64-dtsi-allwinner-add-cpufreq-support.patch
-# boards additions
-PATCHFILES += 1170-arm64-dts-allwinner-h728-x96q-pro-plus-improvements.patch
-PATCHFILES += 1172-arm64-dts-allwinner-t527-orangepi-4a-dts-improvements.patch
-PATCHFILES += 1173-arm64-dts-allwinner-a527-Radxa-A5E-improvements.patch
+#-- Broadcom patches -----------------------------------------
+# bcm2711 drivers additions
+PATCHFILES += 4000-rpi-vc04_services-sync-to-downstream-04022026.patch
+PATCHFILES += 4001-media-add-rpi4-v4l2m2m-decoder.patch
+PATCHFILES += 4002-media-add-rpivid-driver.patch
+PATCHFILES += 4003-nvmem-raspberrypi-add-nvmem-driver-for-accessing-OTP.patch
+PATCHFILES += 4004-dmaengine-add-support-for-BCM2708.patch
+PATCHFILES += 4005-media-ioctl-add-pixel-formats-NV12MT_COL128-and-NV12.patch
+PATCHFILES += 4006-media-v4l2-add-single-planar-NV12-column-formats.patch
+PATCHFILES += 4007-drm-increase-plane_mask-to-64bit.patch
+PATCHFILES += 4008-char-add-vc_mem-driver-for-querying-firmware.patch
+PATCHFILES += 4009-clk-bcm-changes-to-get-rpi4-v4l2m2m-working.patch
+# bcm2711 dtsi additions
+PATCHFILES += 4200-arm64-dts-brcm-rpi4-set-led-to-disk-activity-mmc0-alias.patch
+PATCHFILES += 4201-arm64-dts-brcm-rpi4-incr-cma-to-384M.patch
+PATCHFILES += 4202-arm64-dts-brcm-rpi4-add-rpivid.patch
+# bcm2712 drivers additions
+PATCHFILES += 4401-drivers-clk-add-rp1-support.patch
+PATCHFILES += 4402-drivers-dma-add-rp1-support.patch
+PATCHFILES += 4403-drivers-mfd-add-rp1-support.patch
+PATCHFILES += 4405-drivers-net-add-rp1-support.patch
+PATCHFILES += 4406-drivers-spi-add-rp1-support.patch
+PATCHFILES += 4407-drivers-pwm-add-rp1-support.patch
+PATCHFILES += 4408-drivers-hwmon-add-rp1-support.patch
+PATCHFILES += 4409-drivers-thermal-add-rp1-support.patch
+PATCHFILES += 4410-gpu-drm-vc4-add-rpi5-support.patch
+PATCHFILES += 4411-drm-vc4-hdmi-hack-for-rpi4-rpi5-audio.patch
+PATCHFILES += 4412-mailbox-Add-RP1-mailbox-support.patch
+PATCHFILES += 4413-firmware-Add-an-RP1-firmware-interface-over-mbox.patch
+PATCHFILES += 4414-misc-Add-RP1-PIO-driver.patch
+PATCHFILES += 4415-pwm-Add-pwm-pio-rp1-driver.patch
+PATCHFILES += 4416-pinctrl-Reinstate-the-downstream-pinctrl-rp1-driver.patch
+# bcm2712 dtsi additions
+PATCHFILES += 4500-arm64-2712dtsi-add-uart-mmc2-pins-ths-sensor.patch
+PATCHFILES += 4501-arm64-2712dtsi-add-gpu-rpivid.patch
+PATCHFILES += 4502-arm64-2712dtsi-add-dma32-dma40-for-audio.patch
+PATCHFILES += 4503-arm64-2712dtsi-add-thermal-zones.patch
+# bcm2712 board dts additions
+PATCHFILES += 4505-arm64-rpi-5-b-switch-to-downstream-dts.patch
 endif
 #------------------------------------------------------------
 
 ifeq (1,1)
-#-- Rockchip 3576 patches -----------------------------------------
-# misc fixes
-PATCHFILES += 1214-mmc-core-add-force-io-to-1.8v-quirk.patch
-# dtsi additions
-PATCHFILES += 1270-arm64-dtsi-rockchip-rk3576-enable-dwc3simple-for-usb-boot.patch
-# boards dt additions/patches
-PATCHFILES += 1280-arm64-dts-add-nanopi-m5-dts-improvements.patch
-PATCHFILES += 1281-arm64-dts-rock4d-improvements.patch
-PATCHFILES += 1282-arm64-dts-add-rk3576-nanopi-r76s-dt.patch
-endif
-#------------------------------------------------------------
-
-ifeq (1,1)
-#-- Qualcomm 6490 patches -----------------------------------
-PATCHFILES += 1310-soc-qcom-geni-se-Add-MODULE_FIRMWARE-macro.patch
-PATCHFILES += 1311-soc-qcom-rpmh-Add-support-to-read-back-resource-sett.patch
-PATCHFILES += 1312-remoteproc-core-Allow-auto-retry-of-rproc_start.patch
-PATCHFILES += 1315-phy-qcom-qmp-combo-temporarily-fix-the-orientation-t.patch
-PATCHFILES += 1316-regulator-qcom-rpmh-Add-support-to-read-regulator-se.patch
-PATCHFILES += 1317-firmware-psci-Read-and-use-vendor-reset-types.patch
-PATCHFILES += 1318-drm-birdge-simple-bridge-Add-support-for-radxa-ra620.patch
-PATCHFILES += 1319-drm-msm-dpu-Add-missing-caps-and-blocks-to-sc7280-ca.patch
-PATCHFILES += 1320-drm-panel-Add-support-for-Orise-Tech-OTA7290B-DSI-Pa.patch
-PATCHFILES += 1321-drm-display-add-hw_params-callback-function-to-drm_c.patch
-PATCHFILES += 1322-drm-gpu-fix-4K-30-fps.patch
-PATCHFILES += 1330-phy-qcom-qmp-ufs-Fix-HS-G4-PHY-init-table-for-sc7280.patch
-PATCHFILES += 1331-scsi-ufs-qcom-temporarily-force-to-rate-A.patch
-PATCHFILES += 1332-scsi-ufs-qcom-Add-support-for-UFS-module-detection.patch
-PATCHFILES += 1333-spi-spi-qcom-qspi-Add-support-for-polling.patch
-# PATCHFILES += 1334-media-iris-port-support-for-Qualcomm-SC7280-v6.patch
-PATCHFILES += 1335-media-venus-helpers-handle-correctly-vbuf-field.patch
-# dts additions
-PATCHFILES += 1350-arm64-dts-qcom-qcs6490-audioreach-Modify-LPASS-macro.patch
-PATCHFILES += 1351-arm64-dts-qcom-sc7280-add-OPP-table-support-to-PCIe-.patch
-PATCHFILES += 1352-arm64-dts-qcom-sc7280-Add-cci-aliases.patch
-PATCHFILES += 1353-arm64-dts-qcom-sc7280-Add-psci-label.patch
-# board dts additions
-PATCHFILES += 1370-arm64-dts-qcom-improve-support-for-radxa-dragon-q6a.patch
+#-- Qualcomm patches -----------------------------------
+# qcs6490 drivers additions
+PATCHFILES += 5000-soc-qcom-geni-se-Add-MODULE_FIRMWARE-macro.patch
+PATCHFILES += 5001-soc-qcom-rpmh-Add-support-to-read-back-resource-sett.patch
+PATCHFILES += 5002-remoteproc-core-Allow-auto-retry-of-rproc_start.patch
+PATCHFILES += 5003-phy-qcom-qmp-combo-temporarily-fix-the-orientation-t.patch
+PATCHFILES += 5004-regulator-qcom-rpmh-Add-support-to-read-regulator-se.patch
+PATCHFILES += 5005-firmware-psci-Read-and-use-vendor-reset-types.patch
+PATCHFILES += 5006-drm-birdge-simple-bridge-Add-support-for-radxa-ra620.patch
+PATCHFILES += 5007-drm-msm-dpu-Add-missing-caps-and-blocks-to-sc7280-ca.patch
+PATCHFILES += 5008-drm-panel-Add-support-for-Orise-Tech-OTA7290B-DSI-Pa.patch
+PATCHFILES += 5009-drm-display-add-hw_params-callback-function-to-drm_c.patch
+PATCHFILES += 5010-drm-gpu-fix-4K-30-fps.patch
+PATCHFILES += 5011-phy-qcom-qmp-ufs-Fix-HS-G4-PHY-init-table-for-sc7280.patch
+PATCHFILES += 5012-scsi-ufs-qcom-temporarily-force-to-rate-A.patch
+PATCHFILES += 5013-scsi-ufs-qcom-Add-support-for-UFS-module-detection.patch
+PATCHFILES += 5014-spi-spi-qcom-qspi-Add-support-for-polling.patch
+PATCHFILES += 5016-media-venus-helpers-handle-correctly-vbuf-field.patch
+# qcs6490 board dts additions
+PATCHFILES += 5200-arm64-dts-qcom-qcs6490-audioreach-Modify-LPASS-macro.patch
+PATCHFILES += 5201-arm64-dts-qcom-sc7280-add-OPP-table-support-to-PCIe-.patch
+PATCHFILES += 5202-arm64-dts-qcom-sc7280-Add-cci-aliases.patch
+PATCHFILES += 5203-arm64-dts-qcom-sc7280-Add-psci-label.patch
+PATCHFILES += 5204-arm64-dts-qcom-improve-support-for-radxa-dragon-q6a.patch
 endif
 #------------------------------------------------------------
 

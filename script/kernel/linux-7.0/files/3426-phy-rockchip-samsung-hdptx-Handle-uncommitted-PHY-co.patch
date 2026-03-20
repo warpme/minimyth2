@@ -1,0 +1,196 @@
+From a0805279c6f792bae5f639573715bc53b7e7316b Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Tue, 17 Feb 2026 22:34:37 +0200
+Subject: [PATCH 017/114] phy: rockchip: samsung-hdptx: Handle uncommitted PHY
+ config changes
+
+Any changes to the PHY link rate and/or color depth done via the HDMI
+PHY configuration API are not immediately programmed into the hardware,
+but are delayed until the PHY usage count gets incremented from 0 to 1,
+that is when it is powered on or when the PLL clock exposed through
+the CCF API is prepared, whichever comes first.
+
+Since the clock might remain in prepared state after subsequent PHY
+config changes, the programming can also be triggered via
+clk_ops.set_rate().  However, from the clock consumer perspective (i.e.
+VOP2 display controller), the (pixel) clock rate doesn't vary with bpc,
+as that is handled internally by the PHY and reflected in the TDMS
+character rate only.
+
+As a consequence, changing the bpc while preserving the modeline may
+lead to out-of-sync issues between CCF and HDMI PHY config state,
+because the .set_rate() callback is not invoked when clock rate remains
+constant.  This may also happen when the PHY PLL has been pre-programmed
+by an external entity, e.g. the bootloader, which is actually a
+regression introduced by the recent FRL patches.
+
+Introduce a pll_config_dirty flag to keep track of uncommitted PHY
+config changes and use it in clk_ops.determine_rate() to invalidate the
+current clock rate (as known by CCF) and, consequently, ensure those
+changes are programmed into hardware via clk_ops.set_rate().
+
+Moreover, proceed with a similar fix in phy_ops.power_on() callback, to
+handle the scenario where the CCF API is not used due to operating in
+FRL mode, while the clock is still in a prepared state and thus
+preventing rk_hdptx_phy_consumer_get() to apply the updated PHY
+configuration.
+
+Fixes: de5dba833118 ("phy: rockchip: samsung-hdptx: Add HDMI 2.1 FRL support")
+Fixes: 9d0ec51d7c22 ("phy: rockchip: samsung-hdptx: Add high color depth management")
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../phy/rockchip/phy-rockchip-samsung-hdptx.c | 86 ++++++++++---------
+ 1 file changed, 46 insertions(+), 40 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+index 7fb1c22318..14d266c8df 100644
+--- a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
++++ b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+@@ -413,6 +413,7 @@ struct rk_hdptx_phy {
+ 
+ 	/* clk provider */
+ 	struct clk_hw hw;
++	bool pll_config_dirty;
+ 	bool restrict_rate_change;
+ 
+ 	atomic_t usage_count;
+@@ -1260,13 +1261,19 @@ static int rk_hdptx_tmds_ropll_cmn_config(struct rk_hdptx_phy *hdptx)
+ 
+ static int rk_hdptx_pll_cmn_config(struct rk_hdptx_phy *hdptx)
+ {
++	int ret;
++
+ 	if (hdptx->hdmi_cfg.rate <= HDMI20_MAX_RATE)
+-		return rk_hdptx_tmds_ropll_cmn_config(hdptx);
++		ret = rk_hdptx_tmds_ropll_cmn_config(hdptx);
++	else if (hdptx->hdmi_cfg.rate == FRL_8G4L_RATE)
++		ret = rk_hdptx_frl_lcpll_ropll_cmn_config(hdptx);
++	else
++		ret = rk_hdptx_frl_lcpll_cmn_config(hdptx);
+ 
+-	if (hdptx->hdmi_cfg.rate == FRL_8G4L_RATE)
+-		return rk_hdptx_frl_lcpll_ropll_cmn_config(hdptx);
++	if (!ret)
++		hdptx->pll_config_dirty = false;
+ 
+-	return rk_hdptx_frl_lcpll_cmn_config(hdptx);
++	return ret;
+ }
+ 
+ static int rk_hdptx_frl_lcpll_mode_config(struct rk_hdptx_phy *hdptx)
+@@ -1347,25 +1354,17 @@ static int rk_hdptx_phy_consumer_get(struct rk_hdptx_phy *hdptx)
+ 		return 0;
+ 
+ 	ret = regmap_read(hdptx->grf, GRF_HDPTX_STATUS, &status);
+-	if (ret)
+-		goto dec_usage;
+-
+-	if (status & HDPTX_O_PLL_LOCK_DONE)
+-		dev_warn(hdptx->dev, "PLL locked by unknown consumer!\n");
++	if (ret) {
++		atomic_dec(&hdptx->usage_count);
++		return ret;
++	}
+ 
+-	if (mode == PHY_MODE_DP) {
++	if (mode == PHY_MODE_DP)
+ 		rk_hdptx_dp_reset(hdptx);
+-	} else {
+-		ret = rk_hdptx_pll_cmn_config(hdptx);
+-		if (ret)
+-			goto dec_usage;
+-	}
++	else
++		rk_hdptx_pll_cmn_config(hdptx);
+ 
+ 	return 0;
+-
+-dec_usage:
+-	atomic_dec(&hdptx->usage_count);
+-	return ret;
+ }
+ 
+ static int rk_hdptx_phy_consumer_put(struct rk_hdptx_phy *hdptx, bool force)
+@@ -1700,16 +1699,20 @@ static int rk_hdptx_phy_power_on(struct phy *phy)
+ 		if (ret)
+ 			rk_hdptx_phy_consumer_put(hdptx, true);
+ 	} else {
+-		regmap_write(hdptx->grf, GRF_HDPTX_CON0,
+-			     HDPTX_MODE_SEL << 16 | FIELD_PREP(HDPTX_MODE_SEL, 0x0));
++		if (hdptx->pll_config_dirty)
++			ret = rk_hdptx_pll_cmn_config(hdptx);
+ 
+-		if (hdptx->hdmi_cfg.mode == PHY_HDMI_MODE_FRL)
+-			ret = rk_hdptx_frl_lcpll_mode_config(hdptx);
+-		else
+-			ret = rk_hdptx_tmds_ropll_mode_config(hdptx);
++		if (!ret) {
++			regmap_write(hdptx->grf, GRF_HDPTX_CON0,
++				     HDPTX_MODE_SEL << 16 | FIELD_PREP(HDPTX_MODE_SEL, 0x0));
+ 
+-		if (ret)
++			if (hdptx->hdmi_cfg.mode == PHY_HDMI_MODE_FRL)
++				ret = rk_hdptx_frl_lcpll_mode_config(hdptx);
++			else
++				ret = rk_hdptx_tmds_ropll_mode_config(hdptx);
++		} else {
+ 			rk_hdptx_phy_consumer_put(hdptx, true);
++		}
+ 	}
+ 
+ 	return ret;
+@@ -2081,7 +2084,10 @@ static int rk_hdptx_phy_configure(struct phy *phy, union phy_configure_opts *opt
+ 			dev_err(hdptx->dev, "invalid hdmi params for phy configure\n");
+ 		} else {
+ 			hdptx->restrict_rate_change = true;
+-			dev_dbg(hdptx->dev, "%s rate=%llu bpc=%u\n", __func__,
++			hdptx->pll_config_dirty = true;
++
++			dev_dbg(hdptx->dev, "%s %s rate=%llu bpc=%u\n", __func__,
++				hdptx->hdmi_cfg.mode ? "FRL" : "TMDS",
+ 				hdptx->hdmi_cfg.rate, hdptx->hdmi_cfg.bpc);
+ 		}
+ 
+@@ -2303,8 +2309,19 @@ static int rk_hdptx_phy_clk_determine_rate(struct clk_hw *hw,
+ {
+ 	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
+ 
+-	if (hdptx->hdmi_cfg.mode == PHY_HDMI_MODE_FRL)
+-		return hdptx->hdmi_cfg.rate;
++	/*
++	 * Invalidate current clock rate to ensure rk_hdptx_phy_clk_set_rate()
++	 * will be invoked to commit PLL configuration.
++	 */
++	if (hdptx->pll_config_dirty) {
++		req->rate = 0;
++		return 0;
++	}
++
++	if (hdptx->hdmi_cfg.mode == PHY_HDMI_MODE_FRL) {
++		req->rate = hdptx->hdmi_cfg.rate;
++		return 0;
++	}
+ 
+ 	/*
+ 	 * FIXME: Temporarily allow altering TMDS char rate via CCF.
+@@ -2336,17 +2353,6 @@ static int rk_hdptx_phy_clk_set_rate(struct clk_hw *hw, unsigned long rate,
+ 				     unsigned long parent_rate)
+ {
+ 	struct rk_hdptx_phy *hdptx = to_rk_hdptx_phy(hw);
+-	unsigned long long link_rate = rate;
+-
+-	if (hdptx->hdmi_cfg.mode != PHY_HDMI_MODE_FRL)
+-		link_rate = DIV_ROUND_CLOSEST_ULL(rate * hdptx->hdmi_cfg.bpc, 8);
+-
+-	/* Revert any unlikely link rate change since determine_rate() */
+-	if (hdptx->hdmi_cfg.rate != link_rate) {
+-		dev_warn(hdptx->dev, "Reverting unexpected rate change from %llu to %llu\n",
+-			 link_rate, hdptx->hdmi_cfg.rate);
+-		hdptx->hdmi_cfg.rate = link_rate;
+-	}
+ 
+ 	/*
+ 	 * The link rate would be normally programmed in HW during
+-- 
+2.53.0
+

@@ -1,0 +1,70 @@
+From 7535b27fd466a406cf140fdd3cbf43810ad621d7 Mon Sep 17 00:00:00 2001
+From: Sebastian Reichel <sebastian.reichel@collabora.com>
+Date: Thu, 5 Mar 2026 18:12:53 +0100
+Subject: [PATCH 096/114] [USB-DP] drm/bridge: synopsys: dw-dp: Add follow-up
+ bridge support
+
+Add support to use USB-C connectors with the DP altmode helper code on
+devicetree based platforms. To get this working there must be a DRM
+bridge chain from the DisplayPort controller to the USB-C connector.
+E.g. on Rockchip RK3576:
+
+root@rk3576 # cat /sys/kernel/debug/dri/0/encoder-0/bridges
+bridge[0]: dw_dp_bridge_funcs
+        refcount: 7
+        type: [10] DP
+        OF: /soc/dp@27e40000:rockchip,rk3576-dp
+        ops: [0x47] detect edid hpd
+bridge[1]: drm_aux_bridge_funcs
+        refcount: 4
+        type: [0] Unknown
+        OF: /soc/phy@2b010000:rockchip,rk3576-usbdp-phy
+        ops: [0x0]
+bridge[2]: drm_aux_hpd_bridge_funcs
+        refcount: 5
+        type: [10] DP
+        OF: /soc/i2c@2ac50000/typec-portc@22/connector:usb-c-connector
+        ops: [0x4] hpd
+
+Signed-off-by: Sebastian Reichel <sebastian.reichel@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-dp.c | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-dp.c b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+index 507b525642..6acab402f2 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-dp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-dp.c
+@@ -1979,7 +1979,7 @@ struct dw_dp *dw_dp_bind(struct device *dev, struct drm_encoder *encoder,
+ {
+ 	struct platform_device *pdev = to_platform_device(dev);
+ 	struct dw_dp *dp;
+-	struct drm_bridge *bridge;
++	struct drm_bridge *bridge, *next_bridge;
+ 	void __iomem *res;
+ 	int ret;
+ 
+@@ -2073,6 +2073,20 @@ struct dw_dp *dw_dp_bind(struct device *dev, struct drm_encoder *encoder,
+ 		goto unregister_aux;
+ 	}
+ 
++	next_bridge = devm_drm_of_get_bridge(dev, dev->of_node, 1, 0);
++	if (IS_ERR(next_bridge)) {
++		ret = PTR_ERR(next_bridge);
++		dev_err_probe(dev, ret, "failed to get follow-up bridge.\n");
++		goto unregister_aux;
++	}
++
++	ret = drm_bridge_attach(encoder, next_bridge, bridge,
++				DRM_BRIDGE_ATTACH_NO_CONNECTOR);
++	if (ret) {
++		dev_err_probe(dev, ret, "Failed to attach next bridge\n");
++		goto unregister_aux;
++	}
++
+ 	dw_dp_init_hw(dp);
+ 
+ 	ret = phy_init(dp->phy);
+-- 
+2.53.0
+

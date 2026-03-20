@@ -1,0 +1,412 @@
+From 03bbe67c799de4e86a3692a4e696acaa1ccf560c Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Wed, 18 Mar 2026 02:45:40 +0200
+Subject: [PATCH 114/114] [WIP] dw-hdmi-qp: Adjust FFE level
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c  | 155 ++++++++++--------
+ .../gpu/drm/rockchip/dw_hdmi_qp-rockchip.c    |  22 +++
+ include/drm/bridge/dw_hdmi_qp.h               |   1 +
+ 3 files changed, 107 insertions(+), 71 deletions(-)
+
+diff --git a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+index 5c4759c9a4..d3a7a2779c 100644
+--- a/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
++++ b/drivers/gpu/drm/bridge/synopsys/dw-hdmi-qp.c
+@@ -827,7 +827,7 @@ static struct i2c_adapter *dw_hdmi_qp_i2c_adapter(struct dw_hdmi_qp *hdmi)
+ 	return adap;
+ }
+ 
+-enum dw_hdmi_qp_flt_state {
++enum dw_hdmi_qp_frl_lts {
+ 	LTS1,	/* Read EDID */
+ 	LTS2,	/* Prepare for FRL */
+ 	LTS3,	/* Training in progress */
+@@ -838,14 +838,16 @@ enum dw_hdmi_qp_flt_state {
+ };
+ 
+ /* FRL training max ffe level: 0..3 */
+-//TODO: support ffe > 0?!
+-#define MAX_FFE_LEVEL	0
++//TODO: add to platform config as optional feature
++#define FRL_FFE_MAX_LEVEL	3
+ 
+-/* Check sink version and FLT no-timeout mode. */
+-static int dw_hdmi_qp_flt_lts1(struct dw_hdmi_qp *hdmi)
++/*
++ * Check sink version and FLT no-timeout mode.
++ */
++static int dw_hdmi_qp_frl_lts1(struct dw_hdmi_qp *hdmi)
+ {
+-	u8 val = 0;
+ 	int ret;
++	u8 val;
+ 
+ 	if (!hdmi->tmds_char_rate) {
+ 		dev_dbg(hdmi->dev, "lts1: hdmi disabled\n");
+@@ -865,7 +867,7 @@ static int dw_hdmi_qp_flt_lts1(struct dw_hdmi_qp *hdmi)
+ 	}
+ 
+ 	if (!val) {
+-		dev_err(hdmi->dev, "lts1: SCDC sink version is zero\n");
++		dev_warn(hdmi->dev, "lts1: SCDC sink version is zero\n");
+ 		return LTSL;
+ 	}
+ 
+@@ -888,14 +890,13 @@ static int dw_hdmi_qp_flt_lts1(struct dw_hdmi_qp *hdmi)
+ }
+ 
+ /*
+- * Check if sink is ready to training.
+- * Set source output frl rate & max ffe level.
++ * Check if sink is ready to training. Set FRL rate & max FFE level.
+  */
+-static int dw_hdmi_qp_flt_lts2(struct dw_hdmi_qp *hdmi)
++static int dw_hdmi_qp_frl_lts2(struct dw_hdmi_qp *hdmi)
+ {
+ 	const struct dw_hdmi_qp_link_config *link_cfg;
+-	u8 val = 0;
+ 	int ret, i;
++	u8 val;
+ 
+ 	for (i = 0; i < 20; i++) {
+ 		ret = drm_scdc_readb(hdmi->bridge.ddc, SCDC_STATUS_FLAGS_0, &val);
+@@ -908,10 +909,10 @@ static int dw_hdmi_qp_flt_lts2(struct dw_hdmi_qp *hdmi)
+ 			link_cfg = hdmi->phy.ops->get_link_cfg(hdmi, hdmi->phy.data);
+ 
+ 			dev_dbg(hdmi->dev, "lts2: rate=%ux%u maxffe=%d\n",
+-				link_cfg->frl_rate_per_lane, link_cfg->frl_lanes, MAX_FFE_LEVEL);
++				link_cfg->frl_rate_per_lane, link_cfg->frl_lanes, FRL_FFE_MAX_LEVEL);
+ 
+ 			ret = drm_scdc_set_frl(hdmi->curr_conn, link_cfg->frl_rate_per_lane,
+-					       link_cfg->frl_lanes, MAX_FFE_LEVEL);
++					       link_cfg->frl_lanes, FRL_FFE_MAX_LEVEL);
+ 			if (ret)
+ 				ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_CONFIG_0, 0);
+ 			else
+@@ -933,16 +934,16 @@ static int dw_hdmi_qp_flt_lts2(struct dw_hdmi_qp *hdmi)
+ }
+ 
+ /*
+- * Conduct link training for the specified frl rate.
+- * Send sink request ltp or change ffe level.
++ * Conduct link training for the specified FRL rate.
+  */
+-static int dw_hdmi_qp_flt_lts3(struct dw_hdmi_qp *hdmi)
++static int dw_hdmi_qp_frl_lts3(struct dw_hdmi_qp *hdmi)
+ {
+ 	u8 val, ffe_lv = 0;
+ 	int i, ret;
+ 
+ 	/* Set 2s timeout */
+ 	i = 4000;
++
+ 	while (i-- > 0 || hdmi->flt_no_timeout) {
+ 		/* Poll FLT_update flag every 2ms or less */
+ 		usleep_range(400, 500);
+@@ -974,25 +975,20 @@ static int dw_hdmi_qp_flt_lts3(struct dw_hdmi_qp *hdmi)
+ 				dev_dbg(hdmi->dev, "lts3: enter test mode\n");
+ 				hdmi->flt_no_timeout = true;
+ 			}
+-		}
+ 
+-		if (!(val & SCDC_CONFIG_0)) {
+-			if (val & SCDC_SOURCE_TEST_UPDATE) {
+-				/* Clear SOURCE_TEST_UPDATE flag */
+-				ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0, val);
+-				if (ret) {
+-					dev_err(hdmi->dev, "lts3: SCDC write failed\n");
+-					return LTSL;
+-				}
++			/* Clear SCDC_SOURCE_TEST_UPDATE flag */
++			ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0,
++					      SCDC_SOURCE_TEST_UPDATE);
++			if (ret) {
++				dev_err(hdmi->dev, "lts3: SCDC write failed\n");
++				return LTSL;
+ 			}
+-
+-			continue;
+ 		}
+ 
+ 		if (val & SCDC_FLT_UPDATE) {
++			//TODO: handle only 3 active lanes
+ 			u8 status, ln0, ln1, ln2, ln3;
+ 			u32 flt_cfg;
+-			int lts_next = 0;
+ 
+ 			ret = drm_scdc_readb(hdmi->bridge.ddc, SCDC_STATUS_FLAGS_1, &status);
+ 			if (ret) {
+@@ -1017,20 +1013,26 @@ static int dw_hdmi_qp_flt_lts3(struct dw_hdmi_qp *hdmi)
+ 
+ 			if (!ln0 && !ln1 && !ln2 && !ln3) {
+ 				dw_hdmi_qp_write(hdmi, 0, FLT_CONFIG1);
+-				lts_next = LTSP;
+-			} else if ((ln0 == 0xf) || (ln1 == 0xf) || (ln2 == 0xf) || (ln3 == 0xf)) {
++				return LTSP;
++			}
++
++			if ((ln0 == 0xf) && (ln1 == 0xf) && (ln2 == 0xf) && (ln3 == 0xf)) {
+ 				dev_dbg(hdmi->dev, "lts3: rate change request\n");
+-				lts_next = LTS4;
+-			} else if ((ln0 == 0xe) || (ln1 == 0xe) || (ln2 == 0xe) || (ln3 == 0xe)) {
+-				if (ffe_lv < 3) {
+-					++ffe_lv;
+-					dev_dbg(hdmi->dev, "lts3: set ffe=%d\n", ffe_lv);
+-					//TODO: set_ffe()
+-					/* hdmi->phy.ops->set_ffe(hdmi, hdmi->phy.data, ffe_lv); */
+-				} else {
++				return LTS4;
++			}
++
++			if ((ln0 == 0xe) || (ln1 == 0xe) || (ln2 == 0xe) || (ln3 == 0xe)) {
++				if (ffe_lv >= 3) {
+ 					dev_err(hdmi->dev, "lts3: ffe level out of range\n");
+-					lts_next = LTSL;
++					return LTSL;
+ 				}
++
++				ffe_lv++;
++				dev_dbg(hdmi->dev, "lts3: set ffe=%d\n", ffe_lv);
++
++				ret = hdmi->phy.ops->set_ffe_level(hdmi, hdmi->phy.data, ffe_lv);
++				if (ret)
++					return LTSL;
+ 			} else {
+ 				flt_cfg = (ln3 << 16) | (ln2 << 12) | (ln1 << 8) |
+ 					  (ln0 << 4) | 0xf;
+@@ -1039,18 +1041,17 @@ static int dw_hdmi_qp_flt_lts3(struct dw_hdmi_qp *hdmi)
+ 				if (!hdmi->flt_no_timeout && flt_cfg == 0x3333f)
+ 					flt_cfg = dw_hdmi_qp_read(hdmi, FLT_CONFIG1);
+ 
++				//TODO: ELSE IF Ln(x)_LTP_req register = (1 through 8)
+ 				dw_hdmi_qp_write(hdmi, flt_cfg, FLT_CONFIG1);
+ 			}
+ 
+-			/* Clear FLT_UPDATE flag */
+-			ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0, val);
++			/* Clear FLT_update flag */
++			ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0,
++					      SCDC_FLT_UPDATE);
+ 			if (ret) {
+ 				dev_err(hdmi->dev, "lts3: SCDC write failed\n");
+ 				return LTSL;
+ 			}
+-
+-			if (lts_next)
+-				return lts_next;
+ 		}
+ 	}
+ 
+@@ -1058,8 +1059,10 @@ static int dw_hdmi_qp_flt_lts3(struct dw_hdmi_qp *hdmi)
+ 	return LTSL;
+ }
+ 
+-/* Sink requests frl rate change, start training for a new rate. */
+-static int dw_hdmi_qp_flt_lts4(struct dw_hdmi_qp *hdmi)
++/*
++ * Handle FRL rate change request from sink.
++ */
++static int dw_hdmi_qp_frl_lts4(struct dw_hdmi_qp *hdmi)
+ {
+ 	const struct dw_hdmi_qp_link_config *link_cfg;
+ 	u8 try_rate_per_lane, try_lanes;
+@@ -1102,9 +1105,10 @@ static int dw_hdmi_qp_flt_lts4(struct dw_hdmi_qp *hdmi)
+ 
+ 	/* Set new rate */
+ 	ret = drm_scdc_set_frl(hdmi->curr_conn, try_rate_per_lane, try_lanes,
+-			       MAX_FFE_LEVEL);
++			       FRL_FFE_MAX_LEVEL);
+ 	if (ret)
+-		ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0, SCDC_FLT_UPDATE);
++		ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0,
++				      SCDC_FLT_UPDATE);
+ 	else
+ 		ret = -EIO;
+ 
+@@ -1117,17 +1121,24 @@ static int dw_hdmi_qp_flt_lts4(struct dw_hdmi_qp *hdmi)
+ }
+ 
+ /*
+- * Training passed, start sink polling to check if sink requests changing rate
+- * or exiting frl mode.
++ * Training passed, wait for further changes.
+  */
+-static int dw_hdmi_qp_flt_ltsp(struct dw_hdmi_qp *hdmi)
++static int dw_hdmi_qp_frl_ltsp(struct dw_hdmi_qp *hdmi)
+ {
+-	int i = 4000;
++	int i, ret;
+ 	u8 val;
+-	int ret;
+ 
+-	/* Wait for FRL start by polling FLT_update flag every 2ms or less */
++	ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0, SCDC_FLT_UPDATE);
++	if (ret) {
++		dev_err(hdmi->dev, "ltsp: SCDC write failed\n");
++		return LTSL;
++	}
++
++	/* Set 2s timeout */
++	i = 4000;
++
+ 	while (i--) {
++		/* Poll Update Flags every 2ms or less */
+ 		usleep_range(400, 500);
+ 
+ 		if (!hdmi->tmds_char_rate) {
+@@ -1141,13 +1152,12 @@ static int dw_hdmi_qp_flt_ltsp(struct dw_hdmi_qp *hdmi)
+ 			return LTSL;
+ 		}
+ 
+-		if (!(val & SCDC_CONFIG_0))
+-			continue;
+-
+ 		if (val & SCDC_FRL_START) {
+-			dw_hdmi_qp_mod(hdmi, 0, AVP_DATAPATH_VIDEO_SWDISABLE, GLOBAL_SWDISABLE);
++			dw_hdmi_qp_mod(hdmi, 0, AVP_DATAPATH_VIDEO_SWDISABLE,
++				       GLOBAL_SWDISABLE);
+ 
+-			ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0, SCDC_FRL_START);
++			ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0,
++					      SCDC_FRL_START);
+ 			if (ret) {
+ 				dev_err(hdmi->dev, "ltsp: SCDC write failed\n");
+ 				return LTSL;
+@@ -1165,7 +1175,8 @@ static int dw_hdmi_qp_flt_ltsp(struct dw_hdmi_qp *hdmi)
+ 			dw_hdmi_qp_mod(hdmi, AVP_DATAPATH_VIDEO_SWDISABLE,
+ 				       AVP_DATAPATH_VIDEO_SWDISABLE, GLOBAL_SWDISABLE);
+ 
+-			ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0, SCDC_FLT_UPDATE);
++			ret = drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0,
++					      SCDC_FLT_UPDATE);
+ 			if (ret) {
+ 				dev_err(hdmi->dev, "ltsp: SCDC write failed\n");
+ 				return LTSL;
+@@ -1227,19 +1238,21 @@ static int dw_hdmi_qp_flt_ltsp(struct dw_hdmi_qp *hdmi)
+ 	return LTSL;
+ }
+ 
+-/* Exit frl mode, i.e. for training failures or hdmi disabled. */
+-static int dw_hdmi_qp_flt_ltsl(struct dw_hdmi_qp *hdmi)
++/*
++ * Exit frl mode, i.e. for training failures or hdmi disabled.
++ */
++static int dw_hdmi_qp_frl_ltsl(struct dw_hdmi_qp *hdmi)
+ {
+ 	enum drm_connector_status status;
+ 	/* if (hdmi->frl_switch) */
+ 	/* 	return -EINVAL; */
+ 
+-	dev_dbg(hdmi->dev, "ltsl: exit flr\n");
++	dev_dbg(hdmi->dev, "ltsl: exit frl\n");
+ 
+ 	status = hdmi->phy.ops->read_hpd(hdmi, hdmi->phy.data);
+ 
+ 	if (status != connector_status_disconnected) {
+-		drm_scdc_writeb(hdmi->bridge.ddc, SCDC_CONFIG_1, 0);
++		drm_scdc_set_frl(hdmi->curr_conn, 0, 0, 0);
+ 		drm_scdc_writeb(hdmi->bridge.ddc, SCDC_UPDATE_0, SCDC_FLT_UPDATE);
+ 	}
+ 
+@@ -1249,7 +1262,7 @@ static int dw_hdmi_qp_flt_ltsl(struct dw_hdmi_qp *hdmi)
+ static void dw_hdmi_qp_flt_work(struct work_struct *work)
+ {
+ 	struct dw_hdmi_qp *hdmi = container_of(work, struct dw_hdmi_qp, flt_work);
+-	enum dw_hdmi_qp_flt_state state = LTS1;
++	enum dw_hdmi_qp_frl_lts state = LTS1;
+ 
+ 	/* if (hdmi->frl_switch) */
+ 	/* 	return; */
+@@ -1257,22 +1270,22 @@ static void dw_hdmi_qp_flt_work(struct work_struct *work)
+ 	while (true) {
+ 		switch (state) {
+ 		case LTS1:
+-			state = dw_hdmi_qp_flt_lts1(hdmi);
++			state = dw_hdmi_qp_frl_lts1(hdmi);
+ 			break;
+ 		case LTS2:
+-			state = dw_hdmi_qp_flt_lts2(hdmi);
++			state = dw_hdmi_qp_frl_lts2(hdmi);
+ 			break;
+ 		case LTS3:
+-			state = dw_hdmi_qp_flt_lts3(hdmi);
++			state = dw_hdmi_qp_frl_lts3(hdmi);
+ 			break;
+ 		case LTS4:
+-			state = dw_hdmi_qp_flt_lts4(hdmi);
++			state = dw_hdmi_qp_frl_lts4(hdmi);
+ 			break;
+ 		case LTSP:
+-			state = dw_hdmi_qp_flt_ltsp(hdmi);
++			state = dw_hdmi_qp_frl_ltsp(hdmi);
+ 			break;
+ 		case LTSL:
+-			state = dw_hdmi_qp_flt_ltsl(hdmi);
++			state = dw_hdmi_qp_frl_ltsl(hdmi);
+ 			break;
+ 		case LTSU:
+ 			return;
+diff --git a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+index d7d8b062e5..56a6fada0e 100644
+--- a/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
++++ b/drivers/gpu/drm/rockchip/dw_hdmi_qp-rockchip.c
+@@ -413,6 +413,26 @@ static int dw_hdmi_qp_rk3588_force_link_rate(struct dw_hdmi_qp *dw_hdmi, void *d
+ 					      hdmi->tmds_char_rate, rks->output_bpc);
+ }
+ 
++static int dw_hdmi_qp_rk3588_set_ffe_level(struct dw_hdmi_qp *dw_hdmi, void *data,
++					   u8 ffe_level)
++{
++	struct rockchip_hdmi_qp *hdmi = (struct rockchip_hdmi_qp *)data;
++	union phy_configure_opts phy_cfg = {};
++	int ret;
++
++	if (!hdmi->link_cfg.frl_enabled)
++		return -EINVAL;
++
++	phy_cfg.hdmi.frl.ffe_level = ffe_level;
++	phy_cfg.hdmi.frl.set_ffe_level = true;
++
++	ret = phy_configure(hdmi->phy, &phy_cfg);
++	if (ret)
++		dev_err(hdmi->dev, "Failed to set ffe level: %d\n", ret);
++
++	return ret;
++}
++
+ static const struct dw_hdmi_qp_phy_ops rk3588_hdmi_phy_ops = {
+ 	.init		= dw_hdmi_qp_rk3588_phy_init,
+ 	.disable	= dw_hdmi_qp_rk3588_phy_disable,
+@@ -420,6 +440,7 @@ static const struct dw_hdmi_qp_phy_ops rk3588_hdmi_phy_ops = {
+ 	.setup_hpd	= dw_hdmi_qp_rk3588_setup_hpd,
+ 	.get_link_cfg	= dw_hdmi_qp_rk3588_get_link_cfg,
+ 	.force_link_rate = dw_hdmi_qp_rk3588_force_link_rate,
++	.set_ffe_level = dw_hdmi_qp_rk3588_set_ffe_level,
+ };
+ 
+ static enum drm_connector_status
+@@ -453,6 +474,7 @@ static const struct dw_hdmi_qp_phy_ops rk3576_hdmi_phy_ops = {
+ 	.setup_hpd	= dw_hdmi_qp_rk3576_setup_hpd,
+ 	.get_link_cfg	= dw_hdmi_qp_rk3588_get_link_cfg,
+ 	.force_link_rate = dw_hdmi_qp_rk3588_force_link_rate,
++	.set_ffe_level = dw_hdmi_qp_rk3588_set_ffe_level,
+ };
+ 
+ static void dw_hdmi_qp_rk3588_hpd_work(struct work_struct *work)
+diff --git a/include/drm/bridge/dw_hdmi_qp.h b/include/drm/bridge/dw_hdmi_qp.h
+index 2bd4a442cd..8cc57468cf 100644
+--- a/include/drm/bridge/dw_hdmi_qp.h
++++ b/include/drm/bridge/dw_hdmi_qp.h
+@@ -29,6 +29,7 @@ struct dw_hdmi_qp_phy_ops {
+ 	struct dw_hdmi_qp_link_config *(*get_link_cfg)(struct dw_hdmi_qp *hdmi, void *data);
+ 	int (*force_link_rate)(struct dw_hdmi_qp *hdmi, void *data,
+ 			       u8 frl_rate_per_lane, u8 frl_lanes);
++	int (*set_ffe_level)(struct dw_hdmi_qp *hdmi, void *data, u8 ffe_level);
+ };
+ 
+ struct dw_hdmi_qp_plat_data {
+-- 
+2.53.0
+

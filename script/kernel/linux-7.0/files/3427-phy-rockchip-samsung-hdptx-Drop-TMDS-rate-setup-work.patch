@@ -1,0 +1,80 @@
+From 95f08e3a28ad2e014e6a28fe051cef4c4143a726 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Fri, 20 Feb 2026 00:09:13 +0200
+Subject: [PATCH 018/114] phy: rockchip: samsung-hdptx: Drop TMDS rate setup
+ workaround
+
+Since commit ba9c2fe18c17 ("drm/rockchip: dw_hdmi_qp: Switch to
+phy_configure()") the TMDS rate setup doesn't rely anymore on the
+unconventional usage of the bus width, instead it is managed exclusively
+through the HDMI PHY configuration API.
+
+Drop the now obsolete workaround to retrieve the TMDS character rate via
+phy_get_bus_width() during power_on().
+
+While at it, get rid of the extra call to rk_hdptx_phy_consumer_put() by
+moving the statement at the end of the function.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../phy/rockchip/phy-rockchip-samsung-hdptx.c | 26 +++++--------------
+ 1 file changed, 6 insertions(+), 20 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+index 14d266c8df..b56360b5df 100644
+--- a/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
++++ b/drivers/phy/rockchip/phy-rockchip-samsung-hdptx.c
+@@ -1655,22 +1655,6 @@ static int rk_hdptx_phy_power_on(struct phy *phy)
+ 	enum phy_mode mode = phy_get_mode(phy);
+ 	int ret, lane;
+ 
+-	if (mode != PHY_MODE_DP) {
+-		if (!hdptx->hdmi_cfg.rate && hdptx->hdmi_cfg.mode != PHY_HDMI_MODE_FRL) {
+-			/*
+-			 * FIXME: Temporary workaround to setup TMDS char rate
+-			 * from the RK DW HDMI QP bridge driver.
+-			 * Will be removed as soon the switch to the HDMI PHY
+-			 * configuration API has been completed on both ends.
+-			 */
+-			hdptx->hdmi_cfg.rate = phy_get_bus_width(hdptx->phy) & 0xfffffff;
+-			hdptx->hdmi_cfg.rate *= 100;
+-		}
+-
+-		dev_dbg(hdptx->dev, "%s rate=%llu bpc=%u\n", __func__,
+-			hdptx->hdmi_cfg.rate, hdptx->hdmi_cfg.bpc);
+-	}
+-
+ 	ret = rk_hdptx_phy_consumer_get(hdptx);
+ 	if (ret)
+ 		return ret;
+@@ -1696,9 +1680,10 @@ static int rk_hdptx_phy_power_on(struct phy *phy)
+ 		rk_hdptx_dp_pll_init(hdptx);
+ 
+ 		ret = rk_hdptx_dp_aux_init(hdptx);
+-		if (ret)
+-			rk_hdptx_phy_consumer_put(hdptx, true);
+ 	} else {
++		dev_dbg(hdptx->dev, "%s rate=%llu bpc=%u\n", __func__,
++			hdptx->hdmi_cfg.rate, hdptx->hdmi_cfg.bpc);
++
+ 		if (hdptx->pll_config_dirty)
+ 			ret = rk_hdptx_pll_cmn_config(hdptx);
+ 
+@@ -1710,11 +1695,12 @@ static int rk_hdptx_phy_power_on(struct phy *phy)
+ 				ret = rk_hdptx_frl_lcpll_mode_config(hdptx);
+ 			else
+ 				ret = rk_hdptx_tmds_ropll_mode_config(hdptx);
+-		} else {
+-			rk_hdptx_phy_consumer_put(hdptx, true);
+ 		}
+ 	}
+ 
++	if (ret)
++		rk_hdptx_phy_consumer_put(hdptx, true);
++
+ 	return ret;
+ }
+ 
+-- 
+2.53.0
+

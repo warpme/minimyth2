@@ -1,0 +1,641 @@
+From 42a21c7ede94350d31e864f3f4961559dbb0d959 Mon Sep 17 00:00:00 2001
+From: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+Date: Sat, 7 Feb 2026 03:33:57 +0200
+Subject: [PATCH 093/114] [WIP] video/hdmi: Add support for ALLM
+
+Provide initial HF-VSIF support (including the HDMI 2.1 specific ALLM
+feature) which passes the edid-decode compliance verification.
+
+Additionally, add a dedicated DRM connector property named "allm enable"
+that can be used to toggle ALLM on/off, assuming the sink advertises the
+feature through its EDID.
+
+Note there are still a bunch of TODOs remaining to be handled, it
+remains to be seen if the current implementation is good enough to
+successfully support running an end-2-end test.
+
+Signed-off-by: Cristian Ciocaltea <cristian.ciocaltea@collabora.com>
+---
+ .../gpu/drm/display/drm_hdmi_state_helper.c   |  21 +-
+ drivers/gpu/drm/drm_atomic.c                  |   1 +
+ drivers/gpu/drm/drm_atomic_helper.c           |   4 +
+ drivers/gpu/drm/drm_atomic_uapi.c             |   4 +
+ drivers/gpu/drm/drm_connector.c               |  31 +++
+ drivers/gpu/drm/drm_edid.c                    |  36 +++
+ drivers/video/hdmi.c                          | 224 +++++++++++++++++-
+ include/drm/drm_connector.h                   |  13 +
+ include/drm/drm_edid.h                        |   6 +-
+ include/linux/hdmi.h                          |  52 +++-
+ 10 files changed, 378 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/gpu/drm/display/drm_hdmi_state_helper.c b/drivers/gpu/drm/display/drm_hdmi_state_helper.c
+index ceabfdb30f..02bd0ca27d 100644
+--- a/drivers/gpu/drm/display/drm_hdmi_state_helper.c
++++ b/drivers/gpu/drm/display/drm_hdmi_state_helper.c
+@@ -781,8 +781,6 @@ static int hdmi_generate_hdmi_vendor_infoframe(const struct drm_connector *conne
+ 		connector_state_get_mode(conn_state);
+ 	struct drm_connector_hdmi_infoframe *infoframe =
+ 		&conn_state->hdmi.infoframes.hdmi;
+-	struct hdmi_vendor_infoframe *frame =
+-		&infoframe->data.vendor.hdmi;
+ 	int ret;
+ 
+ 	infoframe->set = false;
+@@ -790,7 +788,24 @@ static int hdmi_generate_hdmi_vendor_infoframe(const struct drm_connector *conne
+ 	if (!info->has_hdmi_infoframe)
+ 		return 0;
+ 
+-	ret = drm_hdmi_vendor_infoframe_from_display_mode(frame, connector, mode);
++	/*
++	 * TODO: When a Source is utilizing the HF-VSIF for 3D Video signaling
++	 * and changes its transmission from 3D to 2D, the Source shall signal
++	 * the end of 3D transmission by sending an appropriate HF-VSIF
++	 * (with 3D_Valid=0) after the change from 3D to 2D, for at least 2
++	 * seconds or until re-start of HDMI video is necessary.
++	 */
++	if (info->hdmi.allm && conn_state->allm_enable) {
++		struct hdmi_forum_vendor_infoframe *frame =
++			&infoframe->data.vendor.hdmi_forum;
++		ret = drm_hdmi_forum_vendor_infoframe_from_display_mode(frame, connector, mode);
++		frame->allm = conn_state->allm_enable;
++	} else {
++		struct hdmi_vendor_infoframe *frame =
++			&infoframe->data.vendor.hdmi;
++		ret = drm_hdmi_vendor_infoframe_from_display_mode(frame, connector, mode);
++	}
++
+ 	if (ret)
+ 		return ret;
+ 
+diff --git a/drivers/gpu/drm/drm_atomic.c b/drivers/gpu/drm/drm_atomic.c
+index 4a1e77773f..a8a977fbff 100644
+--- a/drivers/gpu/drm/drm_atomic.c
++++ b/drivers/gpu/drm/drm_atomic.c
+@@ -1361,6 +1361,7 @@ static void drm_atomic_connector_print_state(struct drm_printer *p,
+ 	drm_printf(p, "connector[%u]: %s\n", connector->base.id, connector->name);
+ 	drm_printf(p, "\tcrtc=%s\n", state->crtc ? state->crtc->name : "(null)");
+ 	drm_printf(p, "\tself_refresh_aware=%d\n", state->self_refresh_aware);
++	drm_printf(p, "\tallm_enable=%d\n", state->allm_enable);
+ 	drm_printf(p, "\tinterlace_allowed=%d\n", connector->interlace_allowed);
+ 	drm_printf(p, "\tycbcr_420_allowed=%d\n", connector->ycbcr_420_allowed);
+ 	drm_printf(p, "\tmax_requested_bpc=%d\n", state->max_requested_bpc);
+diff --git a/drivers/gpu/drm/drm_atomic_helper.c b/drivers/gpu/drm/drm_atomic_helper.c
+index b7753454b7..66ad4b1cd6 100644
+--- a/drivers/gpu/drm/drm_atomic_helper.c
++++ b/drivers/gpu/drm/drm_atomic_helper.c
+@@ -738,6 +738,10 @@ drm_atomic_helper_check_modeset(struct drm_device *dev,
+ 			    new_connector_state->max_requested_bpc)
+ 				new_crtc_state->connectors_changed = true;
+ 
++			if (old_connector_state->allm_enable !=
++			    new_connector_state->allm_enable)
++				new_crtc_state->connectors_changed = true;
++
+ 			if (old_connector_state->color_format !=
+ 			    new_connector_state->color_format)
+ 				new_crtc_state->connectors_changed = true;
+diff --git a/drivers/gpu/drm/drm_atomic_uapi.c b/drivers/gpu/drm/drm_atomic_uapi.c
+index 7b4137be81..8c44e68552 100644
+--- a/drivers/gpu/drm/drm_atomic_uapi.c
++++ b/drivers/gpu/drm/drm_atomic_uapi.c
+@@ -931,6 +931,8 @@ static int drm_atomic_connector_set_property(struct drm_connector *connector,
+ 						   fence_ptr);
+ 	} else if (property == connector->max_bpc_property) {
+ 		state->max_requested_bpc = val;
++	} else if (property == connector->allm_enable_property) {
++		state->allm_enable = val;
+ 	} else if (property == connector->privacy_screen_sw_state_property) {
+ 		state->privacy_screen_sw_state = val;
+ 	} else if (property == connector->broadcast_rgb_property) {
+@@ -1025,6 +1027,8 @@ drm_atomic_connector_get_property(struct drm_connector *connector,
+ 		*val = 0;
+ 	} else if (property == connector->max_bpc_property) {
+ 		*val = state->max_requested_bpc;
++	} else if (property == connector->allm_enable_property) {
++		*val = state->allm_enable;
+ 	} else if (property == connector->privacy_screen_sw_state_property) {
+ 		*val = state->privacy_screen_sw_state;
+ 	} else if (property == connector->broadcast_rgb_property) {
+diff --git a/drivers/gpu/drm/drm_connector.c b/drivers/gpu/drm/drm_connector.c
+index 92bb581e7b..b14dadb263 100644
+--- a/drivers/gpu/drm/drm_connector.c
++++ b/drivers/gpu/drm/drm_connector.c
+@@ -628,6 +628,8 @@ int drmm_connector_hdmi_init(struct drm_device *dev,
+ 	if (max_bpc > 8)
+ 		drm_connector_attach_hdr_output_metadata_property(connector);
+ 
++	drm_connector_attach_allm_enable_property(connector);
++
+ 	if (supported_formats & BIT(HDMI_COLORSPACE_RGB))
+ 		supported_drm_formats |= DRM_COLOR_FORMAT_RGB444;
+ 	if (supported_formats & BIT(HDMI_COLORSPACE_YUV444))
+@@ -2471,6 +2473,35 @@ int drm_connector_attach_vrr_capable_property(
+ }
+ EXPORT_SYMBOL(drm_connector_attach_vrr_capable_property);
+ 
++/**
++ * drm_connector_attach_allm_enable_property - attach "allm enable" property
++ * @connector: connector to attach the property on.
++ *
++ * This is used to allow the userspace to control the Sink’s Auto Low-Latency
++ * Mode, if supported.
++ *
++ * Returns:
++ * Zero on success, negative errno on failure.
++ */
++int drm_connector_attach_allm_enable_property(struct drm_connector *connector)
++{
++	struct drm_device *dev = connector->dev;
++	struct drm_property *prop;
++
++	if (!connector->allm_enable_property) {
++		prop = drm_property_create_bool(dev, 0, "allm enable");
++		if (!prop)
++			return -ENOMEM;
++
++		connector->allm_enable_property = prop;
++		drm_object_attach_property(&connector->base, prop, 0);
++	}
++
++
++	return 0;
++}
++EXPORT_SYMBOL(drm_connector_attach_allm_enable_property);
++
+ /**
+  * drm_connector_attach_scaling_mode_property - attach atomic scaling mode property
+  * @connector: connector to attach scaling mode property on.
+diff --git a/drivers/gpu/drm/drm_edid.c b/drivers/gpu/drm/drm_edid.c
+index 4992a89227..95e55c1c91 100644
+--- a/drivers/gpu/drm/drm_edid.c
++++ b/drivers/gpu/drm/drm_edid.c
+@@ -7533,6 +7533,42 @@ drm_hdmi_vendor_infoframe_from_display_mode(struct hdmi_vendor_infoframe *frame,
+ }
+ EXPORT_SYMBOL(drm_hdmi_vendor_infoframe_from_display_mode);
+ 
++/**
++ * drm_hdmi_forum_vendor_infoframe_from_display_mode() - fill an HF-VSIF with
++ * data from a DRM display mode
++ * @frame: HDMI Forum Vendor InfoFrame
++ * @connector: the connector
++ * @mode: DRM display mode
++ *
++ * TODO: update comment: HDMI 2.1 spec provides list of features that require
++ * transmission of the HF-VSIF, however we only consider ALLM for now.
++ *
++ * Return: 0 on success or a negative error code on failure.
++ */
++int
++drm_hdmi_forum_vendor_infoframe_from_display_mode(struct hdmi_forum_vendor_infoframe *frame,
++						  const struct drm_connector *connector,
++						  const struct drm_display_mode *mode)
++{
++	bool has_hdmi_infoframe = connector ?
++		connector->display_info.has_hdmi_infoframe : false;
++	int err;
++
++	if (!frame || !mode || !has_hdmi_infoframe)
++		return -EINVAL;
++
++	err = hdmi_forum_vendor_infoframe_init(frame);
++	if (err < 0)
++		return err;
++
++	//TODO: handle HDMI VIC as part of AVI infoframe?!
++	frame->s3d_f_struct = s3d_structure_from_display_mode(mode);
++	frame->s3d_valid = (frame->s3d_f_struct != HDMI_3D_STRUCTURE_INVALID);
++
++	return 0;
++}
++EXPORT_SYMBOL(drm_hdmi_forum_vendor_infoframe_from_display_mode);
++
+ static void drm_parse_tiled_block(struct drm_connector *connector,
+ 				  const struct displayid_block *block)
+ {
+diff --git a/drivers/video/hdmi.c b/drivers/video/hdmi.c
+index 45b42f14a7..9ecc68a1b9 100644
+--- a/drivers/video/hdmi.c
++++ b/drivers/video/hdmi.c
+@@ -684,6 +684,205 @@ ssize_t hdmi_vendor_infoframe_pack(struct hdmi_vendor_infoframe *frame,
+ }
+ EXPORT_SYMBOL(hdmi_vendor_infoframe_pack);
+ 
++/**
++ * hdmi_forum_vendor_infoframe_init() - initialize a HF-VSIF
++ * @frame: HDMI Forum Vendor InfoFrame
++ *
++ * Returns 0 on success or a negative error code on failure.
++ */
++int hdmi_forum_vendor_infoframe_init(struct hdmi_forum_vendor_infoframe *frame)
++{
++	memset(frame, 0, sizeof(*frame));
++
++	frame->type = HDMI_INFOFRAME_TYPE_VENDOR;
++	frame->version = 1;
++
++	frame->oui = HDMI_FORUM_IEEE_OUI;
++	frame->hf_vsif_ver = 1;
++
++	frame->s3d_f_struct = HDMI_3D_STRUCTURE_INVALID;
++	frame->length = HDMI_FORUM_VENDOR_INFOFRAME_SIZE;
++
++	return 0;
++}
++EXPORT_SYMBOL(hdmi_forum_vendor_infoframe_init);
++
++static size_t hdmi_forum_vendor_infoframe_length(const struct hdmi_forum_vendor_infoframe *frame)
++{
++	size_t length = HDMI_FORUM_VENDOR_INFOFRAME_SIZE;
++
++	if (!frame->s3d_valid)
++		return length;
++
++	length++;
++
++	/* For side by side (half) we also need to provide 3D_Ext_Data */
++	if (frame->s3d_f_struct >= HDMI_3D_STRUCTURE_SIDE_BY_SIDE_HALF)
++		length++;
++
++	if (frame->s3d_addinfo_present)
++		length++;
++
++	if (frame->s3d_dispdata_present)
++		length += frame->s3d_dispdata_length + 1;
++
++	if (frame->s3d_metadata_present)
++		length += frame->s3d_metadata_length + 1;
++
++	return length;
++}
++
++static int hdmi_forum_vendor_infoframe_check_only(const struct hdmi_forum_vendor_infoframe *frame)
++{
++	if (frame->type != HDMI_INFOFRAME_TYPE_VENDOR ||
++	    frame->version != 1 ||
++	    frame->oui != HDMI_FORUM_IEEE_OUI ||
++	    frame->hf_vsif_ver != 1)
++		return -EINVAL;
++
++	if (frame->s3d_valid) {
++		if (frame->s3d_f_struct == HDMI_3D_STRUCTURE_INVALID)
++			return -EINVAL;
++		if (frame->s3d_dispdata_present && !frame->s3d_dispdata_length)
++			return -EINVAL;
++		if (frame->s3d_metadata_present && !frame->s3d_metadata_length)
++			return -EINVAL;
++	}
++
++	if (frame->length != hdmi_forum_vendor_infoframe_length(frame) ||
++	    frame->length > HDMI_MAX_INFOFRAME_SIZE)
++		return -EINVAL;
++
++	return 0;
++}
++
++/**
++ * hdmi_forum_vendor_infoframe_check() - check a HF-VSIF
++ * @frame: HDMI Forum Vendor InfoFrame
++ *
++ * Validates that the infoframe is consistent and updates derived fields
++ * (eg. length) based on other fields.
++ *
++ * Returns 0 on success or a negative error code on failure.
++ */
++int hdmi_forum_vendor_infoframe_check(struct hdmi_forum_vendor_infoframe *frame)
++{
++	frame->length = hdmi_forum_vendor_infoframe_length(frame);
++
++	return hdmi_forum_vendor_infoframe_check_only(frame);
++}
++EXPORT_SYMBOL(hdmi_forum_vendor_infoframe_check);
++
++/**
++ * hdmi_forum_vendor_infoframe_pack_only() - write a HF-VSIF to binary buffer
++ * @frame: HDMI Forum Vendor InfoFrame
++ * @buffer: destination buffer
++ * @size: size of buffer
++ *
++ * Packs the information contained in the @frame structure into a binary
++ * representation that can be written into the corresponding controller
++ * registers. Also computes the checksum as required by section 5.3.5 of
++ * the HDMI 1.4 specification.
++ *
++ * Returns the number of bytes packed into the binary buffer or a negative
++ * error code on failure.
++ */
++ssize_t hdmi_forum_vendor_infoframe_pack_only(const struct hdmi_forum_vendor_infoframe *frame,
++					      void *buffer, size_t size)
++{
++	u8 *ptr = buffer;
++	size_t length;
++	int ret;
++
++	ret = hdmi_forum_vendor_infoframe_check_only(frame);
++	if (ret)
++		return ret;
++
++	length = HDMI_INFOFRAME_HEADER_SIZE + frame->length;
++
++	if (size < length)
++		return -ENOSPC;
++
++	memset(buffer, 0, size);
++
++	ptr[0] = frame->type;
++	ptr[1] = frame->version;
++	ptr[2] = frame->length;
++	ptr[3] = 0; /* checksum */
++
++	/* HDMI Forum OUI */
++	ptr[4] = 0xd8;
++	ptr[5] = 0x5d;
++	ptr[6] = 0xc4;
++
++	ptr[7] = frame->hf_vsif_ver;
++
++	ptr[8] = ((frame->ccbpc & 0xf) << 4) | (frame->allm << 1) | frame->s3d_valid;
++
++	if (frame->s3d_valid) {
++		ptr[9] = ((frame->s3d_f_struct & 0xf) << 4) |
++			 (frame->s3d_addinfo_present << 3) |
++			 (frame->s3d_dispdata_present << 2) |
++			 (frame->s3d_metadata_present << 1);
++
++		ptr += 10;
++		if (frame->s3d_f_struct >= HDMI_3D_STRUCTURE_SIDE_BY_SIDE_HALF)
++			*ptr++ = (frame->s3d_f_ext_data & 0xf) << 4;
++
++		if (frame->s3d_addinfo_present)
++			*ptr++ = (frame->s3d_dualview << 4) |
++				 ((frame->s3d_view_depend & 0x2) << 2) |
++				 (frame->s3d_pref_2d_view & 0x2);
++
++		if (frame->s3d_dispdata_present) {
++			*ptr++ = ((frame->s3d_dispdata_version & 0x7) << 5) |
++				 (frame->s3d_dispdata_length & 0x1f);
++			memcpy(ptr, frame->s3d_data, frame->s3d_dispdata_length);
++			ptr += frame->s3d_dispdata_length;
++		}
++
++		if (frame->s3d_metadata_present) {
++			*ptr++ = ((frame->s3d_metadata_type & 0x7) << 5) |
++				 (frame->s3d_metadata_length & 0x1f);
++			memcpy(ptr, frame->s3d_data, frame->s3d_metadata_length);
++		}
++	}
++
++	hdmi_infoframe_set_checksum(buffer, length);
++
++	return length;
++}
++EXPORT_SYMBOL(hdmi_forum_vendor_infoframe_pack_only);
++
++/**
++ * hdmi_forum_vendor_infoframe_pack() - check a HF-VSIF and write it to binary buffer
++ * @frame: HDMI Forum Vendor infoframe
++ * @buffer: destination buffer
++ * @size: size of buffer
++ *
++ * Validates that the infoframe is consistent and updates derived fields
++ * (eg. length) based on other fields, after which it packs the information
++ * contained in the @frame structure into a binary representation that
++ * can be written into the corresponding controller registers. This function
++ * also computes the checksum as required by section 5.3.5 of the HDMI 1.4
++ * specification.
++ *
++ * Returns the number of bytes packed into the binary buffer or a negative
++ * error code on failure.
++ */
++ssize_t hdmi_forum_vendor_infoframe_pack(struct hdmi_forum_vendor_infoframe *frame,
++					 void *buffer, size_t size)
++{
++	int ret;
++
++	ret = hdmi_forum_vendor_infoframe_check(frame);
++	if (ret)
++		return ret;
++
++	return hdmi_forum_vendor_infoframe_pack_only(frame, buffer, size);
++}
++EXPORT_SYMBOL(hdmi_forum_vendor_infoframe_pack);
++
+ static int
+ hdmi_vendor_any_infoframe_check_only(const union hdmi_vendor_any_infoframe *frame)
+ {
+@@ -850,11 +1049,13 @@ hdmi_vendor_any_infoframe_check(union hdmi_vendor_any_infoframe *frame)
+ 	if (ret)
+ 		return ret;
+ 
+-	/* we only know about HDMI vendor infoframes */
+-	if (frame->any.oui != HDMI_IEEE_OUI)
+-		return -EINVAL;
++	if (frame->any.oui == HDMI_IEEE_OUI)
++		return hdmi_vendor_infoframe_check(&frame->hdmi);
+ 
+-	return hdmi_vendor_infoframe_check(&frame->hdmi);
++	if (frame->any.oui == HDMI_FORUM_IEEE_OUI)
++		return hdmi_forum_vendor_infoframe_check(&frame->hdmi_forum);
++
++	return -EINVAL;
+ }
+ 
+ /*
+@@ -870,11 +1071,14 @@ hdmi_vendor_any_infoframe_pack_only(const union hdmi_vendor_any_infoframe *frame
+ 	if (ret)
+ 		return ret;
+ 
+-	/* we only know about HDMI vendor infoframes */
+-	if (frame->any.oui != HDMI_IEEE_OUI)
+-		return -EINVAL;
++	if (frame->any.oui == HDMI_IEEE_OUI)
++		return hdmi_vendor_infoframe_pack_only(&frame->hdmi, buffer, size);
+ 
+-	return hdmi_vendor_infoframe_pack_only(&frame->hdmi, buffer, size);
++	if (frame->any.oui == HDMI_FORUM_IEEE_OUI)
++		return hdmi_forum_vendor_infoframe_pack_only(&frame->hdmi_forum,
++							     buffer, size);
++
++	return -EINVAL;
+ }
+ 
+ /*
+@@ -1500,6 +1704,8 @@ hdmi_vendor_any_infoframe_log(const char *level,
+ 		hdmi_log("    not a HDMI vendor infoframe\n");
+ 		return;
+ 	}
++	//TODO: HF-VSIF
++
+ 	if (hvf->vic == 0 && hvf->s3d_struct == HDMI_3D_STRUCTURE_INVALID) {
+ 		hdmi_log("    empty frame\n");
+ 		return;
+@@ -1750,6 +1956,8 @@ hdmi_vendor_any_infoframe_unpack(union hdmi_vendor_any_infoframe *frame,
+ 	    (ptr[2] != 0x00))
+ 		return -EINVAL;
+ 
++	//TODO: handle HF-VSIF
++
+ 	hdmi_video_format = ptr[3] >> 5;
+ 
+ 	if (hdmi_video_format > 0x2)
+diff --git a/include/drm/drm_connector.h b/include/drm/drm_connector.h
+index 7ebcea40fb..6c20b5a447 100644
+--- a/include/drm/drm_connector.h
++++ b/include/drm/drm_connector.h
+@@ -1117,6 +1117,12 @@ struct drm_connector_state {
+ 	 */
+ 	bool self_refresh_aware;
+ 
++	/**
++	 * @allm_enable: Connector property to enable the Sink’s Auto
++	 * Low-Latency Mode, if supported.
++	 */
++	bool allm_enable;
++
+ 	/**
+ 	 * @picture_aspect_ratio: Connector property to control the
+ 	 * HDMI infoframe aspect ratio setting.
+@@ -2158,6 +2164,12 @@ struct drm_connector {
+ 	 */
+ 	struct drm_property *vrr_capable_property;
+ 
++	/**
++	 * @allm_enable_property: Connector property to enable the Sink’s
++	 * Auto Low-Latency Mode, if supported.
++	 */
++	struct drm_property *allm_enable_property;
++
+ 	/**
+ 	 * @colorspace_property: Connector property to set the suitable
+ 	 * colorspace supported by the sink.
+@@ -2558,6 +2570,7 @@ int drm_connector_attach_scaling_mode_property(struct drm_connector *connector,
+ 					       u32 scaling_mode_mask);
+ int drm_connector_attach_vrr_capable_property(
+ 		struct drm_connector *connector);
++int drm_connector_attach_allm_enable_property(struct drm_connector *connector);
+ void drm_connector_attach_panel_type_property(struct drm_connector *connector);
+ int drm_connector_attach_broadcast_rgb_property(struct drm_connector *connector);
+ int drm_connector_attach_colorspace_property(struct drm_connector *connector);
+diff --git a/include/drm/drm_edid.h b/include/drm/drm_edid.h
+index 04f7a7f1f1..8192cc3771 100644
+--- a/include/drm/drm_edid.h
++++ b/include/drm/drm_edid.h
+@@ -33,6 +33,7 @@ struct drm_edid;
+ struct drm_printer;
+ struct hdmi_avi_infoframe;
+ struct hdmi_vendor_infoframe;
++struct hdmi_forum_vendor_infoframe;
+ struct i2c_adapter;
+ 
+ #define EDID_LENGTH 128
+@@ -369,7 +370,10 @@ int
+ drm_hdmi_vendor_infoframe_from_display_mode(struct hdmi_vendor_infoframe *frame,
+ 					    const struct drm_connector *connector,
+ 					    const struct drm_display_mode *mode);
+-
++int
++drm_hdmi_forum_vendor_infoframe_from_display_mode(struct hdmi_forum_vendor_infoframe *frame,
++						  const struct drm_connector *connector,
++						  const struct drm_display_mode *mode);
+ void
+ drm_hdmi_avi_infoframe_quant_range(struct hdmi_avi_infoframe *frame,
+ 				   const struct drm_connector *connector,
+diff --git a/include/linux/hdmi.h b/include/linux/hdmi.h
+index 96bda41d91..e19e44ffbd 100644
+--- a/include/linux/hdmi.h
++++ b/include/linux/hdmi.h
+@@ -50,14 +50,15 @@ enum hdmi_infoframe_type {
+ 	HDMI_INFOFRAME_TYPE_DRM = 0x87,
+ };
+ 
+-#define HDMI_IEEE_OUI 0x000c03
+-#define HDMI_FORUM_IEEE_OUI 0xc45dd8
++#define HDMI_IEEE_OUI		0x000c03
++#define HDMI_FORUM_IEEE_OUI	0xc45dd8
+ #define HDMI_INFOFRAME_HEADER_SIZE  4
+ #define HDMI_AVI_INFOFRAME_SIZE    13
+ #define HDMI_SPD_INFOFRAME_SIZE    25
+ #define HDMI_AUDIO_INFOFRAME_SIZE  10
+ #define HDMI_DRM_INFOFRAME_SIZE    26
+ #define HDMI_VENDOR_INFOFRAME_SIZE  4
++#define HDMI_FORUM_VENDOR_INFOFRAME_SIZE  5
+ 
+ /*
+  * HDMI 1.3a table 5-14 states that the largest InfoFrame_length is 27,
+@@ -364,6 +365,19 @@ enum hdmi_3d_structure {
+ 	HDMI_3D_STRUCTURE_SIDE_BY_SIDE_HALF = 8,
+ };
+ 
++enum hdmi_3d_pref_2d_view {
++	HDMI_3D_PREF_2D_VIEW_NONE = 0,
++	HDMI_3D_PREF_2D_VIEW_RIGHT,
++	HDMI_3D_PREF_2D_VIEW_LEFT,
++	HDMI_3D_PREF_2D_VIEW_ANY,
++};
++
++enum hdmi_3d_view_depend {
++	HDMI_3D_VIEW_DEPEND_NONE = 0,
++	HDMI_3D_VIEW_DEPEND_RIGHT,
++	HDMI_3D_VIEW_DEPEND_LEFT,
++	HDMI_3D_VIEW_DEPEND_BOTH,
++};
+ 
+ struct hdmi_vendor_infoframe {
+ 	enum hdmi_infoframe_type type;
+@@ -375,6 +389,32 @@ struct hdmi_vendor_infoframe {
+ 	unsigned int s3d_ext_data;
+ };
+ 
++struct hdmi_forum_vendor_infoframe {
++	enum hdmi_infoframe_type type;
++	unsigned char version;
++	unsigned char length;
++	unsigned int oui;
++	unsigned char hf_vsif_ver;
++	bool s3d_valid;
++	bool allm;
++	unsigned char ccbpc;
++	bool s3d_metadata_present;
++	bool s3d_dispdata_present;
++	bool s3d_addinfo_present;
++	enum hdmi_3d_structure s3d_f_struct;
++	unsigned int s3d_f_ext_data;
++	enum hdmi_3d_pref_2d_view s3d_pref_2d_view;
++	enum hdmi_3d_view_depend s3d_view_depend;
++	bool s3d_dualview;
++	unsigned char s3d_dispdata_length;
++	unsigned char s3d_dispdata_version;
++	unsigned char s3d_metadata_length;
++	/* TODO: check enum hdmi_metadata_type and HDMI 1.4 spec */
++	unsigned char s3d_metadata_type;
++	/* disparitydata + metadata content */
++	unsigned char s3d_data[21];
++};
++
+ /* HDR Metadata as per 861.G spec */
+ struct hdr_static_metadata {
+ 	__u8 eotf;
+@@ -409,6 +449,13 @@ ssize_t hdmi_vendor_infoframe_pack_only(const struct hdmi_vendor_infoframe *fram
+ 					void *buffer, size_t size);
+ int hdmi_vendor_infoframe_check(struct hdmi_vendor_infoframe *frame);
+ 
++int hdmi_forum_vendor_infoframe_init(struct hdmi_forum_vendor_infoframe *frame);
++ssize_t hdmi_forum_vendor_infoframe_pack(struct hdmi_forum_vendor_infoframe *frame,
++					 void *buffer, size_t size);
++ssize_t hdmi_forum_vendor_infoframe_pack_only(const struct hdmi_forum_vendor_infoframe *frame,
++					      void *buffer, size_t size);
++int hdmi_forum_vendor_infoframe_check(struct hdmi_forum_vendor_infoframe *frame);
++
+ union hdmi_vendor_any_infoframe {
+ 	struct {
+ 		enum hdmi_infoframe_type type;
+@@ -417,6 +464,7 @@ union hdmi_vendor_any_infoframe {
+ 		unsigned int oui;
+ 	} any;
+ 	struct hdmi_vendor_infoframe hdmi;
++	struct hdmi_forum_vendor_infoframe hdmi_forum;
+ };
+ 
+ /**
+-- 
+2.53.0
+
