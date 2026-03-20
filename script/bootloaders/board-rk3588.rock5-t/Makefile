@@ -9,9 +9,6 @@ DISTFILES    = \
 
 SOC_TYPE                  = rk3588
 mm_U-BOOT_BOARD_TYPE      = board-rk3588.rock5-t
-
-# uncomment and set this for dedicated defconfig.
-# if commented out, generic defconfig 'generic-<soc>_defconfig' will be used...
-# mm_U-BOOT_BOARD_DEFCONFIG =
+mm_U-BOOT_BOARD_DEFCONFIG = rock5b-rk3588_defconfig
 
 include ../bootloader/install-board-bootloader-rk.mk
