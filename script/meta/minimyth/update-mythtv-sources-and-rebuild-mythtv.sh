@@ -25,8 +25,8 @@ use_test_branch_as_master="no"
 # 'test' branch will be from: https://github.com/ulmus-scott/mythtv.git
 # repo branch: portchecker
 test_branch_git_url="https://github.com/ulmus-scott/mythtv.git"
-test_branch_name="portchecker"
-test_git_src_dir="git-mythtv-portchecker"
+test_branch_name="ffmpeg/8.1"
+test_git_src_dir="git-mythtv-ffmpeg8.1"
 
 # 'test' branch will be 'ffmpeg-resync' from mythtv official repo
 #test_branch_git_url="https://github.com/MythTV/mythtv.git"
