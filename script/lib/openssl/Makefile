@@ -1,12 +1,12 @@
 
 GARNAME      = openssl
-GARVERSION   = 1.1.1k
+GARVERSION   = 3.6.1
 CATEGORIES   = lib
 MASTER_SITES = https://www.openssl.org/source/
 DISTFILES    = $(DISTNAME).tar.gz
 LICENSE      = $(GARNAME)
 
-$(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE
+$(GARNAME)_LICENSE_TEXT = $(WORKSRC)/LICENSE.txt
 
 DESCRIPTION = 
 define BLURB
