@@ -88,7 +88,7 @@ PATCHFILES += 0158-ffmpeg8-libavutil-add-extra-fourcc.patch
 # add initial v4l2_requet av1 support
 PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
-#todo after ffmpeg8.1 updgrade PATCHFILES += 0161-hack-hack-hack-ffmpeg8-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_2.patch
+PATCHFILES += 0161-hack-hack-hack-ffmpeg8.1-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_1.patch
 # rkvdec2 hevc long sps/rps support https://gitlab.collabora.com/detlev/ffmpeg/-/commits/v4l2-request-ext-sps-rps-n8.0.1
 # PATCHFILES += 0162-ffmpeg8-libavcodec-hevc-wip-add-support-for-sps_st_rps-control.patch
 # support for NV15 NV30
