@@ -1,14 +1,16 @@
 
 GARNAME      = cmake
-GARVERSION   = 4.1.0
+GARVERSION   = 4.3.0
 CATEGORIES   = devel
-MASTER_SITES = http://www.cmake.org/files/v4.1/
+MASTER_SITES = http://www.cmake.org/files/v4.3/
 DISTFILES    = $(DISTNAME).tar.gz
 LICENSE      = BSD_3_Clause
 
 DESCRIPTION = 
 define BLURB
 endef
+
+DEPENDS = lib/openssl
 
 CONFIGURE_SCRIPTS = $(WORKSRC)/configure
 BUILD_SCRIPTS     = $(WORKSRC)/Makefile
