@@ -2,8 +2,9 @@
 # Script to automate uploading SD card image to remote host and burining it
 # remotelly with balena-etcher
 # Script:
-# -copy via scp SD_image to {remote_dir} at {remote_addr}
-# -ssh with command "sudo {remote_password} {balena_etcher_command} --drive {remote_flash_drive} SD_image
+# -copy via scp SD_image.xz to {remote_dir} at {remote_addr}
+# -ssh to unpack on remote hast SD_image.xz
+# -ssh to flash with command "sudo {remote_password} | {balena_etcher_command} --drive {remote_flash_drive} SD_image
 #
 # In macOS - remember to set "allow remote users full disk access" in macOS Preferences/Sharing/Remote Login
 
@@ -15,10 +16,10 @@
 # remote_addr="<user@host_ip"
 # remote_dir="<>dir"
 # remote_password="<password>"
-# default_remote_flash_drive="/dev/disk2"
+# default_remote_flash_drive="/dev/disk4"
 # scp_command="scp -c aes128-ctr "
 # ssh_command="ssh "
-# balena_etcher_command="/usr/local/bin/balena-etcher"
+# balena_etcher_command="/usr/local/bin/balena"
 
 
 
@@ -26,7 +27,7 @@
 
 
 
-ver="1.0"
+ver="2.0"
 
 if [ ! -f ${mm_conf_file} ] ; then
     echo " "
@@ -44,7 +45,7 @@ if [ ! -f ${mm_home}/script/meta/minimyth/Makefile ] ; then
     exit 1
 fi
 
-sd_drive=`${ssh_command} ${remote_addr} "df -h | grep "BOOT" | cut -c 1-10"`
+sd_drive=`${ssh_command} ${remote_addr} "diskutil list external physical | grep /dev/disk | cut -d \" \" -f 1 | head -n 1"`
 if [ x${sd_drive} = "x" ] ; then
     echo "Can't determine SD crd drive. Will use default drive [${default_remote_flash_drive}]"
     remote_flash_drive=${default_remote_flash_drive}
@@ -82,40 +83,64 @@ for board in ${boards} ; do
     boards_list=${board}-${boards_list}
 done
 
-echo " "
-echo "---- Uploading SD image... ----"
-echo " "
-echo "  branch   : ${branch}"
-echo "  version  : ${version}"
-echo "  arch     : ${arch}"
-echo "  board    : ${boards_list}"
-echo "  SD drive : ${remote_flash_drive}"
-echo " "
+image_file="MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img"
 
-if [ ! -e ${mm_build_dir}/stage/MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img.xz ] ; then
+if [ ! -e ${mm_build_dir}/stage/${image_file}.xz ] ; then
     echo "ERROR: there is no file:"
-    echo "MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img.xz"
+    echo "${image_file}.xz"
     echo "at"
-    echo "${mm_build_dir}/stage/"
-    echo "Exiting..."
+    echo "[${mm_build_dir}/stage/]"
+    echo "Exiting ..."
     exit 1
 
 fi
 
 echo " "
-echo "--> Uploading file to destimation (${remote_addr})..."
-echo "(This may require account remote_password on target machine)"
+echo "---- Uploading SD image... ----"
 echo " "
-${scp_command} ${mm_build_dir}/stage/MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img.xz ${remote_addr}:${remote_dir}/MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img.xz
-echo '--> Image upload done!';
+echo "  branch     : ${branch}"
+echo "  version    : ${version}"
+echo "  arch       : ${arch}"
+echo "  board      : ${boards_list}"
+echo "  image file : ${image_file}"
+echo "  SD drive   : ${remote_flash_drive}"
+echo " "
 
 echo " "
-echo "--> Burning image on destination..."
+echo "==> Uploading file to destination: ${remote_addr} ..."
 echo "(This may require account remote_password on target machine)"
 echo " "
-echo "Cmd executed by SSH:[${ssh_command} ${remote_addr} \"cd ${remote_dir}; echo ${remote_password} | sudo -S ${balena_etcher_command} --drive ${remote_flash_drive} --yes ./MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img.xz;\"]"
-echo " "
-${ssh_command} ${remote_addr} "cd ${remote_dir}; echo ${remote_password} | sudo -S ${balena_etcher_command} --drive ${remote_flash_drive} --yes ./MiniMyth2-${arch}-${branch}-${version}-${boards_list}SD-Image.img.xz;"
-echo " "
-echo "--> Done :-)"
+${scp_command} ${mm_build_dir}/stage/${image_file}.xz ${remote_addr}:${remote_dir}/${image_file}.xz
+echo '==> Image upload done ...'
 
+echo " "
+echo "==> Remotelly unpacking ${image_file}.xz ..."
+echo " "
+${ssh_command} ${remote_addr} "cd ${remote_dir}; /opt/local/bin/xz -df ${image_file}.xz"
+
+echo " "
+echo "==> Remotelly unmouting ${remote_flash_drive} ..."
+echo " "
+${ssh_command} ${remote_addr} "diskutil unmountDisk ${remote_flash_drive}"
+
+flash_cmd="cd ${remote_dir} && echo '${remote_password}' | sudo -S ${balena_etcher_command} local flash ./${image_file} --yes --drive ${remote_flash_drive}"
+
+echo " "
+echo "==> Remotelly burning image ..."
+echo "(This may require account remote_password on target machine)"
+echo " "
+# echo "Flash CMD: ${ssh_command} ${remote_addr} \"${flash_cmd}\""
+${ssh_command} ${remote_addr} "${flash_cmd}"
+
+echo " "
+echo "==> Remotelly unmouting ${remote_flash_drive} ..."
+echo " "
+${ssh_command} ${remote_addr} "diskutil unmountDisk ${remote_flash_drive}"
+
+echo " "
+echo "==> Remotelly delete unpacked image ${image_file} ..."
+echo " "
+${ssh_command} ${remote_addr} "cd ${remote_dir}; rm -f ${image_file}"
+
+echo " "
+echo "==> Done :-)"
