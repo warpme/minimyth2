@@ -327,7 +327,6 @@ PATCHFILES += 3435-drm-bridge-dw-hdmi-qp-Provide-HDMI-Vendor-Specific-I.patch
 PATCHFILES += 3436-drm-bridge-dw-hdmi-qp-Provide-SPD-InfoFrame.patch
 PATCHFILES += 3437-drm-bridge-dw-hdmi-qp-Rework-AVI-InfoFrame-handler.patch
 PATCHFILES += 3438-drm-bridge-dw-hdmi-qp-Rework-DRM-InfoFrame-handler.patch
-PATCHFILES += 3439-drm-bridge-dw-hdmi-qp-Rework-Audio-InfoFrame-handler.patch
 PATCHFILES += 3440-drm-rockchip-dw_hdmi_qp-Do-not-send-HPD-events-for-a.patch
 PATCHFILES += 3441-FROM-ML-drm-Add-new-general-DRM-property-color-forma.patch
 PATCHFILES += 3442-FROM-ML-drm-Add-enum-conversions-between-DRM_COLOR_F.patch
