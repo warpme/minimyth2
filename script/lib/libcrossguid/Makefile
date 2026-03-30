@@ -21,3 +21,8 @@ CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
 
 include ../../gar.mk
+
+post-install:
+	@sed -e "s|/usr/lib/libcrossguid.a|\$${CMAKE_SYSROOT}/usr/lib/libcrossguid.a|g" \
+	  -i $(DESTDIR)/usr/share/crossguid/cmake/crossguid-config-release.cmake
+	@$(MAKECOOKIE)
