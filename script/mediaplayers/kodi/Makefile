@@ -48,6 +48,7 @@ DEPENDS = \
 	opengl/opengl \
 	utils/gperf \
 	lib/bluez \
+	lib/libcrossguid \
 	lib/exiv2 \
 	lib/flatbuffers \
 	lib/ffmpeg8.0-mythtv \
@@ -61,6 +62,7 @@ DEPENDS = \
 	lib/libbluray \
 	lib/libcdio \
 	lib/libcec \
+	lib/libcrossguid \
 	lib/libdisplay-info \
 	lib/fribidi \
 	lib/libinput \
@@ -77,6 +79,7 @@ DEPENDS = \
 	lib/tinyxml2 \
 	net/curl \
 	net/libnfs \
+	gtk/harfbuzz \
 	python3/python \
 	python3/python-simplejson \
 	system/lirc \
@@ -107,14 +110,29 @@ BUILD_SCRIPTS     = $(WORKBLD)/Makefile
 INSTALL_SCRIPTS   = $(WORKBLD)/Makefile
 
 CMAKE_CONFIGURE_ARGS = \
-	-DCMAKE_VERBOSE_MAKEFILE=ON \
+	-DCMAKE_INSTALL_PREFIX="$(prefix)" \
+	-DCMAKE_SYSROOT="$(DESTDIR)" \
+	-DCMAKE_FIND_ROOT_PATH="$(DESTDIR)$(prefix)" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM="NEVER" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY="ONLY" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE="ONLY" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE="ONLY" \
+	-DCMAKE_C_COMPILER="$(build_DESTDIR)$(build_bindir)/$(CC)" \
+	-DCMAKE_CXX_COMPILER="$(build_DESTDIR)$(build_bindir)/$(CXX)" \
+	-DCMAKE_AR="$(build_DESTDIR)$(build_bindir)/$(AR)" \
+	-DCMAKE_LINKER="$(build_DESTDIR)$(build_bindir)/$(LD)" \
+	-DCMAKE_NM="$(build_DESTDIR)$(build_bindir)/$(NM)" \
+	-DCMAKE_OBJCOPY="$(build_DESTDIR)$(build_bindir)/$(OBJCOPY)" \
+	-DCMAKE_OBJDUMP="$(build_DESTDIR)$(build_bindir)/$(OBJDUMP)" \
+	-DCMAKE_RANLIB="$(build_DESTDIR)$(build_bindir)/$(RANLIB)" \
+	-DCMAKE_STRIP="$(build_DESTDIR)$(build_bindir)/$(STRIP)" \
+	-DCMAKE_INSTALL_LIBDIR="$(libdir)" \
+	-DCMAKE_BUILD_PARALLEL_LEVEL=$(CPUS) \
 	$(if $(filter i386,  $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="i386") \
 	$(if $(filter x86_64,$(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="x86_64") \
 	$(if $(filter arm,   $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="arm") \
 	$(if $(filter arm64, $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="aarch64") \
 	-DCMAKE_BUILD_TYPE=Release \
-	-DCMAKE_INSTALL_PREFIX=/usr \
-	-DCMAKE_INSTALL_LIBDIR=/usr/lib \
 	-DENABLE_INTERNAL_FFMPEG=OFF \
 	-DFFMPEG_PATH=$(DESTDIR)$(prefix) \
 	-DPYTHON_PATH=$(DESTDIR)$(prefix) \
@@ -147,7 +165,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DENABLE_LIRCCLIENT=ON \
 	-DENABLE_INTERNAL_FMT=OFF \
 	-DENABLE_INTERNAL_SPDLOG=OFF \
-	-DENABLE_INTERNAL_CROSSGUID=ON \
+	-DENABLE_INTERNAL_CROSSGUID=OFF \
 	-DENABLE_INTERNAL_FSTRCMP=OFF \
 	-DENABLE_INTERNAL_FLATBUFFERS=OFF \
 	-DENABLE_INTERNAL_UDFREAD=OFF \
@@ -157,12 +175,10 @@ CMAKE_CONFIGURE_ARGS = \
 	-DLIBDVDREAD_URL=../../../download/libdvdread-6.1.3.tar.bz2 \
 	-DUDFREAD_URL=../../../download/libudfread-1.1.2.tar.gz \
 	$(if $(filter i386 x86_64, $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=x11 -DAPP_RENDER_SYSTEM=gl) \
-	$(if $(filter arm arm64,   $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=gbm -DAPP_RENDER_SYSTEM=gles) \
-	-DCMAKE_VERBOSE_MAKEFILE="OFF" \
-	-DCMAKE_C_FLAGS="$(BUILDFLAGS)" \
-	-DCMAKE_CXX_FLAGS="$(BUILDFLAGS)" \
-	-DCMAKE_EXE_LINKER_FLAGS="$(BUILDFLAGS)" \
+	$(if $(filter arm arm64,   $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=gbm -DAPP_RENDER_SYSTEM=gl) \
+	-DCMAKE_VERBOSE_MAKEFILE=OFF \
 
+# this is for fixing buil dir. Without this kodi is building in $(main_DESTFIR)/$(HOME)/$(main_DESTFIR)
 BUILD_ARGS   = \
 	DESTDIR="" \
 
