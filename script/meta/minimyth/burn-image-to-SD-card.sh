@@ -45,12 +45,55 @@ if [ ! -f ${mm_home}/script/meta/minimyth/Makefile ] ; then
     exit 1
 fi
 
-sd_drive=`${ssh_command} ${remote_addr} "diskutil list external physical | grep /dev/disk | cut -d \" \" -f 1 | head -n 1"`
-if [ x${sd_drive} = "x" ] ; then
-    echo "Can't determine SD crd drive. Will use default drive [${default_remote_flash_drive}]"
-    remote_flash_drive=${default_remote_flash_drive}
+external_drives=`${ssh_command} ${remote_addr} "diskutil list external physical | grep \"/dev/disk\" | cut -d \" \" -f 1"`
+if [ "${external_drives}" = "" ] ; then
+    echo " "
+    echo "Can't determine any SD card drive !"
+    echo " "
+    echo "Exiting..."
+    echo " "
+    exit 1
 else
-    remote_flash_drive=${sd_drive}
+    remote_flash_drive=""
+    for disk in ${external_drives}; do
+        disk_info=`${ssh_command} ${remote_addr} "diskutil info ${disk}"`
+
+        disk_protocol=$(echo "${disk_info}" | grep "Protocol:" | awk '{print $2}')
+            disk_name=$(echo "${disk_info}" | grep "Device / Media Name:" | cut -d ":" -f 2 | xargs)
+            disk_size=$(echo "${disk_info}" | grep "Disk Size:" | cut -d ":" -f 2 | awk '{print $1, $2}')
+              disk_id=$(echo "${disk_info}" | grep "Device Identifier:" | awk '{print $3}')
+
+        if [[ "${disk_protocol}" == *"SD"* ]] || [[ "${disk_protocol}" == "Apple Fabric" ]] || [[ "${disk_name}" == *"Card Reader"* ]] || [[ "${disk_name}" == *"SD"* ]]; then
+            echo "==> SD card found at [/dev/r${disk_id}]. Good!"
+            remote_flash_drive="/dev/r${disk_id}"
+        else
+            echo " "
+            echo "Unknown external device found!"
+            echo "To use this device: set 'default_remote_flash_drive' to '/dev/r${disk_id}' in .conf file ... "
+            echo " "
+        fi
+
+        echo "   Device   : [/dev/${disk_id}]"
+        echo "   Model    : ${disk_name}"
+        echo "   Size     : ${disk_size}"
+        echo "   Protocol : ${disk_protocol}"
+
+    done
+
+    if [ "${remote_flash_drive}" = "" ] ; then
+        echo " "
+        echo "Are you sure You want to use '${default_remote_flash_drive}' as device to flash ?"
+        echo " "
+        read sel
+        if [ "${sel}" = "y" ] ; then
+            remote_flash_drive=${default_remote_flash_drive}
+        else
+            echo " "
+            echo "Exiting due no selection of device to flash ..."
+            echo " "
+            exit 1
+        fi
+    fi
 fi
 
 boards=$1
