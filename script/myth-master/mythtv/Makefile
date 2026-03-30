@@ -69,12 +69,12 @@ PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 # some fixes to build on minimyth2
 PATCHFILES += 0119-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
+# update ffmpeg to 8.1
+PATCHFILES += 0151-ffmpeg-pull1328-Update-FFmpeg-to-version-8.1.patch
 # v4l2_m2m and v4l2_request patches
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
 PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
-# update ffmpeg to 8.1
-PATCHFILES += 0151-ffmpeg-pull1328-Update-FFmpeg-to-version-8.1.patch
 # v4l2-request support in ffmpeg (requires also kernel patching)
 PATCHFILES += 0155-ffmpeg8-add-v4l2_request-support-v4l2request-n8.0.1-21122025.patch
 # fix for 10bit hevc decoding
@@ -136,7 +136,7 @@ PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.pa
 
 # Various mythzoneminder patches
 PATCHFILES += 0500-mythzmserver-update-to-support-zm1.36.13.patch
-PATCHFILES += 0501-mythzmserver-fix-event-streaming.patch
+# PATCHFILES += 0501-mythzmserver-fix-event-streaming.patch
 
 endif
 
@@ -185,6 +185,7 @@ DEPENDS = \
 	lib/openssl \
 	lib/SDL2 \
 	lib/taglib \
+	gtk/harfbuzz \
 	devel/zlib \
 	devel/yasm \
 	python3/python \
