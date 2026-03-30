@@ -1,6 +1,6 @@
 
 GARNAME      = harfbuzz
-GARVERSION   = 7.3.0
+GARVERSION   = 13.2.1
 CATEGORIES   = gtk
 MASTER_SITES = https://github.com/harfbuzz/harfbuzz/releases/download/$(GARVERSION)/
 DISTFILES    = $(DISTNAME).tar.xz
