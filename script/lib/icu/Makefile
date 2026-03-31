@@ -1,9 +1,9 @@
 
 GARNAME      = icu
-GARVERSION   = 4c-76_1
+GARVERSION   = 4c-78.3
 CATEGORIES   = lib
-MASTER_SITES = https://github.com/unicode-org/icu/releases/download/release-76-1/
-DISTFILES    = $(GARNAME)$(GARVERSION)-src.tgz
+MASTER_SITES = https://github.com/unicode-org/icu/releases/download/release-78.3/
+DISTFILES    = $(GARNAME)$(GARVERSION)-sources.tgz
 LICENSE      = GPL2
 WORKSRC      = $(WORKDIR)/icu/source
 
