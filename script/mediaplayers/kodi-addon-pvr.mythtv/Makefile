@@ -7,7 +7,7 @@ MASTER_SITES = https://github.com/janbar/pvr.mythtv/archive/
 DISTFILES    = $(GARVERSION).zip
 LICENSE      = GPL2
 
-DEPENDS = lang/c
+DEPENDS = lang/c mediaplayers/kodi
 
 WORKBLD = $(WORKSRC)_build
 
