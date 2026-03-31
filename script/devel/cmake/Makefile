@@ -4,6 +4,7 @@ GARVERSION   = 4.3.0
 CATEGORIES   = devel
 MASTER_SITES = http://www.cmake.org/files/v4.3/
 DISTFILES    = $(DISTNAME).tar.gz
+PATCHFILES   = FindICU-stop-looking-first-in-lib64.patch
 LICENSE      = BSD_3_Clause
 
 DESCRIPTION = 
