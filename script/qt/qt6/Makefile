@@ -2,14 +2,15 @@
 BUILD_QTWEBENGINE = no
 
 GARNAME      = qt-everywhere-src
-GARVERSION   = 6.10.0
+GARVERSION   = 6.11.0
 CATEGORIES   = qt
-MASTER_SITES = http://download.qt.io/official_releases/qt/6.10/$(GARVERSION)/single/
+MASTER_SITES = http://download.qt.io/official_releases/qt/6.11/$(GARVERSION)/single/
 DISTFILES    = $(DISTNAME).tar.xz
 PATCHFILES   = $(DISTNAME)-eglfskmsgbmscreen-add-dynamic-refresh-switching.patch
 PATCHFILES  += $(DISTNAME)-eglfskmsintegration-add-dynamic-refresh-switching.patch
+PATCHFILES  += $(DISTNAME)-qtdoc-uncoditionally-stop-building.patch
 # todo: PATCHFILES  += $(DISTNAME)-qtwebengine-hack-to-crosscompile.patch
-LICENSE      = LGPL2_1
+# LICENSE      = LGPL2_1
 
 DESCRIPTION = 
 define BLURB
@@ -68,6 +69,36 @@ INSTALL_SCRIPTS   = custom
 
 include ../../gar.mk
 
+ifeq ($(DESTIMG),build)
+# build
+CONFIGURE_ARGS = \
+	-nomake tests \
+	-platform $(PLATFORM_GARBUILD_NAME) \
+	-DCMAKE_SYSROOT="$(build_DESTDIR)" \
+	-DCMAKE_FIND_ROOT_PATH="$(build_DESTDIR)" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM="NEVER" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY="ONLY" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE="ONLY" \
+	-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE="ONLY" \
+	-DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF \
+	-DCMAKE_FIND_USE_CMAKE_SYSTEM_PATH=OFF \
+	-DCMAKE_FIND_USE_CMAKE_PATH=OFF \
+	-DCMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH=OFF \
+	-DCMAKE_FIND_USE_CMAKE_SYSTEM_PATH=OFF \
+	-DCMAKE_FIND_USE_INSTALL_PREFIX=OFF \
+	-DCMAKE_C_COMPILER="$(build_DESTDIR)$(build_bindir)/$(CC)" \
+	-DCMAKE_CXX_COMPILER="$(build_DESTDIR)$(build_bindir)/$(CXX)" \
+	-DCMAKE_AR="$(build_DESTDIR)$(build_bindir)/$(AR)" \
+	-DCMAKE_LINKER="$(build_DESTDIR)$(build_bindir)/$(LD)" \
+	-DCMAKE_NM="$(build_DESTDIR)$(build_bindir)/$(NM)" \
+	-DCMAKE_OBJCOPY="$(build_DESTDIR)$(build_bindir)/$(OBJCOPY)" \
+	-DCMAKE_OBJDUMP="$(build_DESTDIR)$(build_bindir)/$(OBJDUMP)" \
+	-DCMAKE_RANLIB="$(build_DESTDIR)$(build_bindir)/$(RANLIB)" \
+	-DCMAKE_STRIP="$(build_DESTDIR)$(build_bindir)/$(STRIP)" \
+	-DCMAKE_BUILD_PARALLEL_LEVEL=$(CPUS) \
+
+else
+# target
 CONFIGURE_ARGS = \
 	-prefix $(DESTDIR)$(qt6prefix) \
 	-release \
@@ -79,61 +110,12 @@ CONFIGURE_ARGS = \
 	-nomake examples \
 	-nomake tests \
 	-shared \
-	-make tools \
-
-ifeq ($(DESTIMG),build)
-# build
-CONFIGURE_ARGS += \
-	-platform $(PLATFORM_GARBUILD_NAME) \
-	-no-{glib,icu,openssl,opengl,pcre} \
-	-no-sql-{db2,ibase,mysql,oci,odbc,psql} \
-	-qt-{zlib,libjpeg,libpng,freetype,pcre,harfbuzz} \
-	-no-ltcg \
-	-optimize-size \
-	-skip qt3d \
-	-skip qt5compat \
-	-skip qtcharts \
-	-skip qtcoap \
-	-skip qtconnectivity \
-	-skip qtdatavis3d \
-	-skip qtdoc \
-	-skip qtgraphs \
-	-skip qtimageformats \
-	-skip qtlocation \
-	-skip qtlottie \
-	-skip qtmqtt \
-	-skip qtmultimedia \
-	-skip qtnetworkauth \
-	-skip qtopcua \
-	-skip qtquick3d \
-	-skip qtpositioning \
-	-skip qtquick3dphysics \
-	-skip qtquicktimeline \
-	-skip qtremoteobjects \
-	-skip qtscxml \
-	-skip qtsensors \
-	-skip qtserialbus \
-	-skip qtserialport \
-	-skip qtspeech \
-	-skip qttranslations \
-	-skip qtvirtualkeyboard \
-	-skip qtwebchannel \
-	-skip qtwebengine \
-	-skip qtwebsockets \
-	-skip qtwebview \
-
-else
-# target
-CONFIGURE_ARGS += \
 	-xplatform $(PLATFORM_GARHOST_NAME) \
-	-qt-host-path $(build_qt6prefix) \
 	-no-sql-{db2,ibase,oci,odbc,psql,sqlite} \
-	-qt-doubleconversion \
 	-sql-mysql \
-	-qt-pcre \
 	-ltcg \
 	-feature-optimize_full \
-	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
+	-qt-host-path "../../build.d/$(GARNAME)-$(GARVERSION)_build" \
 	-skip qt3d \
 	-skip qtcharts \
 	-skip qtcoap \
@@ -167,14 +149,8 @@ CONFIGURE_ARGS += \
 	$(if $(filter arm,   $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="arm") \
 	$(if $(filter arm64, $(GARCH_FAMILY)),-DCMAKE_SYSTEM_PROCESSOR="aarch64") \
 	-DCMAKE_SYSROOT="$(DESTDIR)" \
-	-DQT_WILL_BUILD_TOOLS="ON" \
-	-DQT_FORCE_BUILD_TOOLS="ON" \
-	-DMySQL_INCLUDE_DIR="$(DESTDIR)$(includedir)/mysql" \
+	-DQT_HOST_PATH_CMAKE_DIR=$(shell pwd)/work/build.d/$(GARNAME)-$(GARVERSION)_build/qtbase/lib/cmake/ \
 	-DBUILD_ONLY_GN="ON" \
-
-#	-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-
-#	-DQT_HOST_GN_PATH="/home/piotro/minimyth2-aarch64-next/images/build/usr/bin/gn" \
 
 endif
 
@@ -187,12 +163,20 @@ configure-custom:
 
 build-custom:
 	@echo " ==> Running build in $(WORKBLD)"
+ifeq ($(DESTIMG),build)
+	@cd $(WORKBLD) && $(CMAKE) --build . --parallel $(PARALLELMFLAGS) --target host_tools
+else
 	@cd $(WORKBLD) && $(CMAKE) --build . --parallel $(PARALLELMFLAGS)
+endif
 	@$(MAKECOOKIE)
 
 install-custom:
+ifeq ($(DESTIMG),build)
+	@echo " ==> Skipping install as this is BUILD tqrget"
+else
 	@echo " ==> Running install in $(WORKBLD)"
 	@cd $(WORKBLD) && $(CMAKE) --install .
+endif
 	@$(MAKECOOKIE)
 
 PLATFORM_GARBUILD_BASE_NAME = $(strip \
@@ -279,7 +263,7 @@ pre-install:
 post-install:
 	@rm -f $(DESTDIR)$(qt6libdir)/*.la
 	@rm -f $(PLATFORM_DEFAULT_PATH)
-	@ln -sf $(PLATFORM_GARHOST_NAME) $(PLATFORM_DEFAULT_PATH)
+	@#ln -sf $(PLATFORM_GARHOST_NAME) $(PLATFORM_DEFAULT_PATH)
 	@$(call GLIBC_ADD_LIB_PATH, $(qt6libdir))
 	@if [ -e $(DESTDIR)$(qt6bindir)/target_qt.conf ] ; then \
 	 sed -i 's/^SysrootifyPrefix=.*/SysrootifyPrefix=false/g' $(DESTDIR)$(qt6bindir)/target_qt.conf ; \
