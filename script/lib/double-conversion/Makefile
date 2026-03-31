@@ -20,3 +20,8 @@ CMAKE_CONFIGURE_ARGS = \
 	-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
 
 include ../../gar.mk
+
+post-install:
+	@sed -e "s|/usr|\$${CMAKE_SYSROOT}/usr|g" \
+	  -i $(DESTDIR)/usr/lib/cmake/double-conversion/double-conversion*.cmake
+	@$(MAKECOOKIE)
