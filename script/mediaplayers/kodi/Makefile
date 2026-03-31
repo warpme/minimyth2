@@ -22,11 +22,6 @@ DISTFILES     = \
 
 PATCHFILES   += 0001-WIP-DVDVideoCodecDRMPRIME-add-support-for-filters.patch
 PATCHFILES   += 0002-WIP-DRMPRIME-deinterlace-filter.patch
-PATCHFILES   += 0003-DVDVideoCodecDRMPRIME-Avoid-exception-with-AV_PIX_FM.patch
-PATCHFILES   += 0004-DVDVideoCodecDRMPRIME-Leave-deinterlace-filter-activ.patch
-PATCHFILES   += 0005-SetVideoInterlaced-Set-and-unset-deinterlace-method-.patch
-PATCHFILES   += 0006-DVDVideoCodecDRMPRIME-Close-deinterlace-filter-on-er.patch
-PATCHFILES   += 0007-DVDVideoCodecDRMPRIME-Fix-missing-flush-after-eof.patch
 PATCHFILES   += 0051-update-libdvdread-sha.patch
 PATCHFILES   += 0052-update-libdvdnav-sha.patch
 PATCHFILES   += 0053-stop-uncoditionally-building-udfread.patch
@@ -175,7 +170,7 @@ CMAKE_CONFIGURE_ARGS = \
 	-DLIBDVDREAD_URL=../../../download/libdvdread-6.1.3.tar.bz2 \
 	-DUDFREAD_URL=../../../download/libudfread-1.1.2.tar.gz \
 	$(if $(filter i386 x86_64, $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=x11 -DAPP_RENDER_SYSTEM=gl) \
-	$(if $(filter arm arm64,   $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=gbm -DAPP_RENDER_SYSTEM=gl) \
+	$(if $(filter arm arm64,   $(GARCH_FAMILY)),-DCORE_PLATFORM_NAME=gbm -DAPP_RENDER_SYSTEM=gles) \
 	-DCMAKE_VERBOSE_MAKEFILE=OFF \
 
 # this is for fixing buil dir. Without this kodi is building in $(main_DESTFIR)/$(HOME)/$(main_DESTFIR)
