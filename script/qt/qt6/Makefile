@@ -115,6 +115,7 @@ CONFIGURE_ARGS = \
 	-sql-mysql \
 	-ltcg \
 	-feature-optimize_full \
+	$(if $(filter arm arm64,$(GARCH_FAMILY)),-opengl es2) \
 	-qt-host-path "../../build.d/$(GARNAME)-$(GARVERSION)_build" \
 	-skip qt3d \
 	-skip qtcharts \
