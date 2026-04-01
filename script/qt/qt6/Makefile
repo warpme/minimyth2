@@ -172,7 +172,10 @@ endif
 
 install-custom:
 ifeq ($(DESTIMG),build)
-	@echo " ==> Skipping install as this is BUILD tqrget"
+	@echo " ==> Skipping install as this is cross-compile host_tools build ..."
+	@ln -srf $(WORKBLD)/qtbase/bin/qmake $(WORKBLD)/qtbase/bin/qmake6
+	@ln -srf $(WORKBLD)/qtbase/bin $(WORKBLD)/bin
+	@ln -srf $(WORKBLD)/qtbase/libexec $(WORKBLD)/libexec
 else
 	@echo " ==> Running install in $(WORKBLD)"
 	@cd $(WORKBLD) && $(CMAKE) --install .
