@@ -69,7 +69,7 @@ $(DESTIMG)_qt6prefix ?= $(main_qt6prefix)
 $(DESTIMG)_qt6bindir ?= $(main_qt6bindir)
 $(DESTIMG)_qt6includedir ?= $(main_qt6includedir)
 $(DESTIMG)_qt6libdir ?= $(main_qt6libdir)
-$(DESTIMG)_qt6qmake ?= $(DESTDIR)$(qt6bindir)/host-qmake
+$(DESTIMG)_qt6qmake ?= $(DESTDIR)$(qt6bindir)/qmake
 
 $(DESTIMG)_DESTDIR ?= $(main_DESTDIR)
 
