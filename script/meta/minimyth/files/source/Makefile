@@ -1157,12 +1157,14 @@ install: build
 				fi                                                                    ; \
 				                                                                        \
 				echo '  copying rootfs'                                               ; \
+				mkdir -p $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)             ; \
 				tar -jxf $(top_build)/stage/rootfs.tar.bz2 -C                           \
 				  $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)                    ; \
 				                                                                        \
 				echo '  copying extras'                                               ; \
+				mkdir -p $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/extras      ; \
 				tar -jxf $(top_build)/stage/extras.tar.bz2 -C                           \
-				  $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)                    ; \
+				  $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/extras             ; \
 				mv $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/extras/*            \
 				  $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/rootfs/rootfs-ro$(extras_rootdir) ; \
 				rmdir $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/extras         ; \
