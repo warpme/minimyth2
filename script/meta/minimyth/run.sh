@@ -124,7 +124,8 @@ case "${selection}" in
         make -C ../../myth/mythtv clean clean-all
         make clean install mm_DEBUG="yes" mm_STRIP_IMAGE="no" ;;
 
-    n)  make \
+    n)  cd work/main.d/minimyth-*/source
+        make \
         mm_DISTRIBUTION_SHARE="no" \
         mm_INSTALL_ONLINE_UPDATES="no" \
         mm_DISTRIBUTION_RAM="no" \
@@ -132,7 +133,7 @@ case "${selection}" in
         mm_DISTRIBUTION_NFS="yes" \
         mm_INSTALL_NFS_BOOT="yes" \
         mm_DISTRIBUTION_SDCARD="no" \
-        reinstall
+        install
         ;;
 
     o)  make \
