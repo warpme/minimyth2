@@ -29,7 +29,7 @@ DESCRIPTION =.
 define BLURB
 endef
 
-DEPENDS = lang/c lib/alsa-lib lib/ffmpeg8.0-mythtv lib/libass lib/SDL2 xorg/libdrm lib/libplacebo xorg/libXss xorg/libXpresent lib/libdisplay-info
+DEPENDS = lang/c lib/alsa-lib lib/ffmpeg lib/libass lib/SDL2 xorg/libdrm lib/libplacebo xorg/libXss xorg/libXpresent lib/libdisplay-info
 
 CONFIGURE_SCRIPTS  = meson
 BUILD_SCRIPTS      = meson
