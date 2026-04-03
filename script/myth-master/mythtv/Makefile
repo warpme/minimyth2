@@ -13,9 +13,7 @@ include ../../minimyth.conf.mk
 PATCHFILES  =
 PATCHFILES += 0000-hack-to-make-dvdnav-compiling.patch
 PATCHFILES += 0000-cmake-stop-checking-libx264.patch
-# PATCHFILES += 0000-cmake-enable-x11-on-crosscompile.patch
 PATCHFILES += 0000-cmake-stop-checking-python-perl-deps-in-plugins-on-crosscompile.patch
-# PATCHFILES += 0000-cmake-enable-dbus-webengine-on-crosscompile.patch
 
 # backend related patches
 PATCHFILES += 0000-mythprotoserver-add-option-to-ignore-proto-DB-version-checks.patch
@@ -76,9 +74,9 @@ ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
 PATCHFILES += 0150-libmythtv-decoders-mythv4l2m2mcontext-update-to-ffmpeg7.patch
 # v4l2-request support in ffmpeg (requires also kernel patching)
-PATCHFILES += 0155-ffmpeg8-add-v4l2_request-support-v4l2request-n8.0.1-21122025.patch
-# fix for 10bit hevc decoding
-PATCHFILES += 0155-ffmpeg8-v4l2request_select_capture_format.patch
+PATCHFILES += 0155-ffmpeg-add-v4l2_request-support-v4l2request-n8.1-15032026.patch
+# add support of old rpi hevc decoder
+PATCHFILES += 0156-ffmpeg8.1-add-nv12-sand128-for-old-rpi-hevc-decoder.patch
 # Fix for opposite fields usec in opengl di
 PATCHFILES += 0156-mythdrmprimeinterop-swap-ttf-bff-and-set-di-level.patch
 # make v4l2_request seeking on h264 content working
@@ -86,12 +84,10 @@ PATCHFILES += 0157-ffmpeg-libavcodec-h264dec.c-disable-ctx-reinit-at-flush.patch
 # add some extra fourcc
 PATCHFILES += 0158-ffmpeg8-libavutil-add-extra-fourcc.patch
 # add v4l2_m2m deinterlace filter
-#PATCHFILES += 0159-ffmpeg8-libavfilter-add-v4l2m2m-deinterlace-filter.patch
 PATCHFILES += 0159-ffmpeg8.1-libavfilter-add-v4l2m2m-deinterlace-filter.patch
 # add initial v4l2_requet av1 support
 PATCHFILES += 0160-libmythtv-decoders-mythv4l2m2mcontext-add-av1_request-support.patch
 # hack for smooth seeking on rpi3/4 statefull v4l2_m2m h264 decoder
-# PATCHFILES += 0161-hack-hack-hack-ffmpeg8-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_2.patch
 PATCHFILES += 0161-hack-hack-hack-ffmpeg8.1-libavcodec-v4l2-m2m-backport-rpi-seek-improvements-import_1.patch
 # rkvdec2 hevc long sps/rps support https://gitlab.collabora.com/detlev/ffmpeg/-/commits/v4l2-request-ext-sps-rps-n8.0.1
 # PATCHFILES += 0162-ffmpeg8-libavcodec-hevc-wip-add-support-for-sps_st_rps-control.patch
@@ -136,7 +132,6 @@ PATCHFILES += 0450-MythWeather-Prevent-log-error-report-when-widget-not-found.pa
 
 # Various mythzoneminder patches
 PATCHFILES += 0500-mythzmserver-update-to-support-zm1.36.13.patch
-# PATCHFILES += 0501-mythzmserver-fix-event-streaming.patch
 
 endif
 

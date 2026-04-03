@@ -1,0 +1,57 @@
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c	2026-04-03 14:44:13.388888812 +0200
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavcodec/v4l2_request_hevc.c	2026-04-02 19:55:06.627512356 +0200
+@@ -571,6 +570,7 @@
+     V4L2RequestControlsHEVC *controls = h->cur_frame->hwaccel_picture_private;
+     const SliceHeader *sh = &h->sh;
+     int ret, slice = controls->num_slice_params;
++    uint32_t extra_size = 0;
+ 
+     if (ctx->decode_mode == V4L2_STATELESS_HEVC_DECODE_MODE_SLICE_BASED &&
+         (slice >= ctx->max_slice_params || (ctx->max_entry_point_offsets &&
+@@ -590,6 +590,7 @@
+                                             nalu_slice_start_code, 3);
+         if (ret)
+             return ret;
++        extra_size = 3;
+     }
+ 
+     if (ctx->max_slice_params) {
+@@ -615,6 +615,9 @@
+     if (ret)
+         return ret;
+ 
++    if (ctx->max_slice_params)
++        controls->frame_slice_params[slice].bit_size = (size + extra_size) * 8;
++
+     controls->num_slice_params++;
+     return 0;
+ }
+diff --speed-large-files --no-dereference --minimal -Naur mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c
+--- mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c	2026-04-03 14:44:13.440322995 +0200
++++ mythtv-3c115a232c586233e81ae7838bdc8b7943c969d9/mythtv/external/FFmpeg/libavutil/hwcontext_v4l2request.c	2026-04-02 19:55:06.695519994 +0200
+@@ -164,9 +158,21 @@
+     },
+ #endif
+ #if defined(V4L2_PIX_FMT_NV12_COL128) && defined(V4L2_PIX_FMT_NV12_10_COL128)
+-    { V4L2_PIX_FMT_NV12_COL128, AV_PIX_FMT_YUV420P, DRM_FORMAT_NV12, DRM_FORMAT_MOD_BROADCOM_SAND128, 8 },
++    {
++        .pixelformat = V4L2_PIX_FMT_NV12_COL128,
++        .sw_format = AV_PIX_FMT_YUV420P,
++        .drm_format = DRM_FORMAT_NV12,
++        .format_modifier = DRM_FORMAT_MOD_BROADCOM_SAND128,
++        .bit_depth = 8,
++    },
+ #if defined(DRM_FORMAT_P030)
+-    { V4L2_PIX_FMT_NV12_10_COL128, AV_PIX_FMT_YUV420P10, DRM_FORMAT_P030, DRM_FORMAT_MOD_BROADCOM_SAND128, 10 },
++    {
++        .pixelformat = V4L2_PIX_FMT_NV12_10_COL128,
++        .sw_format = AV_PIX_FMT_YUV420P10,
++        .drm_format = DRM_FORMAT_P030,
++        .format_modifier = DRM_FORMAT_MOD_BROADCOM_SAND128,
++        .bit_depth = 10,
++    },
+ #endif
+ #endif
+ };
+
