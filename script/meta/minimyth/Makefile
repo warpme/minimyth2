@@ -231,6 +231,7 @@ BUILDDEPS = \
 	utils/module-init-tools \
 	utils/squashfs \
 	utils/tar \
+	utils/lbzip2 \
 	utils/util-linux \
 	perl/perlstrip \
 	devel/meson \
