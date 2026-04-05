@@ -9,6 +9,8 @@ top_build  := $(shell cd $(top_build)  ; pwd)
 
 cookiedir  := $(top_build)/cookie
 
+lbzip2 = $(build_bindir)/lbzip2
+
 include $(top_build)/config.mk
 
 mm_NAME := minimyth2-$(mm_VERSION)
@@ -1158,12 +1160,12 @@ install: build
 				                                                                        \
 				echo '  copying rootfs'                                               ; \
 				mkdir -p $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)             ; \
-				tar -jxf $(top_build)/stage/rootfs.tar.bz2 -C                           \
+				tar -I $(lbzip2) -xf $(top_build)/stage/rootfs.tar.bz2 -C               \
 				  $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)                    ; \
 				                                                                        \
 				echo '  copying extras'                                               ; \
 				mkdir -p $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/extras      ; \
-				tar -jxf $(top_build)/stage/extras.tar.bz2 -C                           \
+				tar -I $(lbzip2) -xf $(top_build)/stage/extras.tar.bz2 -C               \
 				  $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/extras             ; \
 				mv $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/extras/*            \
 				  $(mm_NFS_ROOT)/nfs-$(mm_GARCH_FAMILY)-$(mm_NAME)/rootfs/rootfs-ro$(extras_rootdir) ; \
