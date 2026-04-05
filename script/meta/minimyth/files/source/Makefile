@@ -937,7 +937,7 @@ $(top_build)/stage/rootfs.tar.bz2: $(top_build)/stage/image/rootfs $(top_build)/
 	@echo "making the tarball version of the root file system"
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
-	@fakeroot -i $<.fakeroot sh -c "tar -C $(<D) -jcf $@~ $(<F)"
+	@fakeroot -i $<.fakeroot sh -c "tar -C $(<D) --use-compress-program=$(lbzip2) -cf $@~ $(<F)"
 	@chmod 0644 $@~
 	@touch $@~
 	@mv $@~ $@
@@ -946,7 +946,7 @@ $(top_build)/stage/extras.tar.bz2: $(top_build)/stage/image/extras
 	@echo "making the tarball version of the extras file system"
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
-	@fakeroot                sh -c "tar -C $(<D) -jcf $@~ $(<F)"
+	@fakeroot                sh -c "tar -C $(<D) --use-compress-program=$(lbzip2) -cf $@~ $(<F)"
 	@chmod 0644 $@~
 	@touch $@~
 	@mv $@~ $@
@@ -955,7 +955,7 @@ $(top_build)/stage/themes.tar.bz2: $(top_build)/stage/image/themes
 	@echo "making the tarball version of the themes file system"
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
-	@fakeroot                sh -c "tar -C $(<D) -jcf $@~ $(<F)"
+	@fakeroot                sh -c "tar -C $(<D) --use-compress-program=$(lbzip2) -cf $@~ $(<F)"
 	@chmod 0644 $@~
 	@touch $@~
 	@mv $@~ $@
@@ -973,7 +973,7 @@ $(top_build)/stage/%.tar.bz2: $(top_build)/stage/%
 	@echo "making the tarball file of $(patsubst $(top)%,[...]%,$<)"
 	@mkdir -m 0755 -p $(@D)
 	@rm -rf $@ $@~
-	@fakeroot                sh -c "tar -C $(<D) -jcf $@~ $(<F)"
+	@fakeroot                sh -c "tar -C $(<D) --use-compress-program=$(lbzip2) -cf $@~ $(<F)"
 	@chmod 0644 $@~
 	@touch $@~
 	@mv $@~ $@
