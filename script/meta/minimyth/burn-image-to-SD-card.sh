@@ -27,7 +27,20 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 ver="2.0"
+
+echo " "
+echo "Script version:${ver}"
 
 if [ ! -f ${mm_conf_file} ] ; then
     echo " "
@@ -63,42 +76,50 @@ else
             disk_size=$(echo "${disk_info}" | grep "Disk Size:" | cut -d ":" -f 2 | awk '{print $1, $2}')
               disk_id=$(echo "${disk_info}" | grep "Device Identifier:" | awk '{print $3}')
 
-        if [[ "${disk_protocol}" == *"SD"* ]] || [[ "${disk_protocol}" == "Apple Fabric" ]] || [[ "${disk_name}" == *"Card Reader"* ]] || [[ "${disk_name}" == *"SD"* ]]; then
-            echo "==> SD card found at [/dev/r${disk_id}]. Good!"
-            remote_flash_drive="/dev/r${disk_id}"
-        else
-            echo " "
-            echo "Unknown external device found!"
-            echo "To use this device: set 'default_remote_flash_drive' to '/dev/r${disk_id}' in .conf file ... "
-            echo " "
-        fi
-
+        echo " "
+        echo "---------Detected devce---------- "
         echo "   Device   : [/dev/${disk_id}]"
         echo "   Model    : ${disk_name}"
         echo "   Size     : ${disk_size}"
         echo "   Protocol : ${disk_protocol}"
+        echo "--------------------------------- "
+
+        if [[ "${disk_protocol}" == *"SD"* ]] || [[ "${disk_protocol}" == "Apple Fabric" ]] || [[ "${disk_name}" == *"Card Reader"* ]] || [[ "${disk_name}" == *"SD"* ]]; then
+            echo "==> SD card found at [/dev/${disk_id}]. Good!"
+            remote_flash_drive="/dev/${disk_id}"
+        else
+            echo " "
+            echo "This detected external device has unknown type..."
+            echo " "
+
+            if [ "${default_remote_flash_drive}" = "/dev/${disk_id}" ] ; then
+                echo "Press 'y' if You want to use this detected '/dev/r${disk_id}' device as device to flash ..."
+            else
+                echo " "
+                echo "Press 'y' to use this detected '/dev/${disk_id}' device as device to flash or"
+                echo "Press 'd' to use .conf defined '${default_remote_flash_drive}' as device device to flash"
+                echo " "
+            fi
+
+            read sel
+
+            if [ "${sel}" = "y" ] ; then
+                remote_flash_drive="/dev/${disk_id}"
+            elif [ "${sel}" = "d" ] ; then
+                remote_flash_drive=${default_remote_flash_drive}
+            else
+                echo " "
+                echo "Exiting due no selection of device to flash ..."
+                echo " "
+                exit 1
+            fi
+        fi
 
     done
 
-    if [ "${remote_flash_drive}" = "" ] ; then
-        echo " "
-        echo "Are you sure You want to use '${default_remote_flash_drive}' as device to flash ?"
-        echo " "
-        read sel
-        if [ "${sel}" = "y" ] ; then
-            remote_flash_drive=${default_remote_flash_drive}
-        else
-            echo " "
-            echo "Exiting due no selection of device to flash ..."
-            echo " "
-            exit 1
-        fi
-    fi
 fi
 
 boards=$1
-
-echo "Script version:${ver}"
 
 if [ x${board} = "x" ] ; then
     boards=`  grep "^mm_BOARD_TYPE "       ${mm_conf_file} | sed -e 's/.*\?=//'`
@@ -139,15 +160,14 @@ if [ ! -e ${mm_build_dir}/stage/${image_file}.xz ] ; then
 fi
 
 echo " "
-echo "---- Uploading SD image... ----"
-echo " "
+echo "---------Flashing details----------"
 echo "  branch     : ${branch}"
 echo "  version    : ${version}"
 echo "  arch       : ${arch}"
 echo "  board      : ${boards_list}"
 echo "  image file : ${image_file}"
-echo "  SD drive   : ${remote_flash_drive}"
-echo " "
+echo "  SD drive   : [${remote_flash_drive}]"
+echo "-----------------------------------"
 
 echo " "
 echo "==> Uploading file to destination: ${remote_addr} ..."
