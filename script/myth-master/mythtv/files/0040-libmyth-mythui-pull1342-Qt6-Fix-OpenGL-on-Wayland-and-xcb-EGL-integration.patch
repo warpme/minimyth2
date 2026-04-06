@@ -1,0 +1,65 @@
+From 373bce861d0b00ee972f3882e8386664b37fd93b Mon Sep 17 00:00:00 2001
+From: Scott Theisen <scott.the.elm@gmail.com>
+Date: Sun, 5 Apr 2026 20:57:17 -0400
+Subject: [PATCH] Qt6: Fix OpenGL on Wayland and xcb EGL integration
+
+On Wayland, it previously deadlocked in QWaylandGLContext::makeCurrent()
+when MythRenderOpenGL::makeCurrent() is called in MythRenderOpenGL::Init().
+
+Forcing the xcb QPA with the environment variable QT_QPA_PLATFORM=xcb
+or the `--platform xcb` command-line flag causes
+`QEGLPlatformContext: eglMakeCurrent failed: 300d` (EGL_BAD_SURFACE)
+and a subsequent segmentation fault.
+
+The original code never destroyed the original QWindow::RasterSurface
+surface after setting the surface type to QWindow::OpenGLSurface, so
+Qt thought the QWindow::RasterSurface was a QWindow::OpenGLSurface
+which are incompatible.
+
+Destroying and then creating a new surface immediately after setting
+the surface type destroys the QWindow::RasterSurface and creates
+the desired QWindow::OpenGLSurface.
+
+Fixes:
+https://github.com/MythTV/mythtv/issues/754
+https://github.com/MythTV/mythtv/issues/1334
+---
+ mythtv/libs/libmythui/opengl/mythrenderopengl.cpp | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/mythtv/libs/libmythui/opengl/mythrenderopengl.cpp b/mythtv/libs/libmythui/opengl/mythrenderopengl.cpp
+index 0b023f69291..f4f709bfe8c 100644
+--- a/mythtv/libs/libmythui/opengl/mythrenderopengl.cpp
++++ b/mythtv/libs/libmythui/opengl/mythrenderopengl.cpp
+@@ -96,6 +96,7 @@ MythRenderOpenGL* MythRenderOpenGL::Create(QWidget *Widget)
+     bool opengles = !qEnvironmentVariableIsEmpty("MYTHTV_OPENGL_ES");
+     bool core     = !qEnvironmentVariableIsEmpty("MYTHTV_OPENGL_CORE");
+     QSurfaceFormat format = QSurfaceFormat::defaultFormat();
++    format.setRenderableType(QSurfaceFormat::OpenGL);
+     if (core)
+     {
+         format.setProfile(QSurfaceFormat::CoreProfile);
+@@ -117,6 +118,7 @@ MythRenderOpenGL* MythRenderOpenGL::Create(QWidget *Widget)
+     if (VERBOSE_LEVEL_CHECK(VB_GPU, LOG_INFO))
+         format.setOption(QSurfaceFormat::DebugContext);
+ 
++    QSurfaceFormat::setDefaultFormat(format);
+     return new MythRenderOpenGL(format, Widget);
+ }
+ 
+@@ -545,8 +547,14 @@ void MythRenderOpenGL::SetWidget(QWidget *Widget)
+ #if defined(Q_OS_ANDROID) || (QT_VERSION > QT_VERSION_CHECK(6,3,0))
+     // Ensure surface type is always OpenGL
+     m_window->setSurfaceType(QWindow::OpenGLSurface);
+-    if (native && native->windowHandle())
++    m_window->destroy();
++    m_window->create();
++    if (native && native->windowHandle() != m_window)
++    {
+         native->windowHandle()->setSurfaceType(QWindow::OpenGLSurface);
++        native->windowHandle()->destroy();
++        native->windowHandle()->create();
++    }
+ #endif
+ 
+ #ifdef CONFIG_QTWEBENGINE

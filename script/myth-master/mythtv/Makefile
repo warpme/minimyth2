@@ -32,7 +32,6 @@ PATCHFILES += 0013-MythMainWindow-not-use-qRound-in-MythUIScreenBounds.patch
 # UPnP patches
 PATCHFILES += 0030-UPnP-Change-reported-ver-to-1.patch
 PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music.patch
-
 # Some patches for better logging
 PATCHFILES += 0051-Loging-Add-better-TID-verbosity.patch
 PATCHFILES += 0053-Loging-Add-verbose-dvb-lock-loging.patch
@@ -68,7 +67,7 @@ PATCHFILES += 0118-configure-add-option-to-disable-ffmpeg-inline-asm.patch
 PATCHFILES += 0119-configure-disable-checks-perl-python-in-cross-compile.patch
 PATCHFILES += 0120-configure-set-to-GAR-perl-python.patch.gar
 # update ffmpeg to 8.1
-PATCHFILES += 0151-ffmpeg-pull1328-Update-FFmpeg-to-version-8.1.patch
+PATCHFILES += 0151-ffmpeg-pull1328-Update-FFmpeg-to-version-8.1-05042026.patch
 # v4l2_m2m and v4l2_request patches
 ifneq (,$(filter armv7 armv8,$(mm_GARCH)))
 # prepre mythtv's v4l2 infra for ffmpeg7
