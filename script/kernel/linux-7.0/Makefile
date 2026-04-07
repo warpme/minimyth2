@@ -330,6 +330,10 @@ PATCHFILES += 3440-drm-rockchip-dw_hdmi_qp-Do-not-send-HPD-events-for-a.patch
 PATCHFILES += 3441-drm-bridge-synopsys-dw-dp-Set-pixel-mode-by-platform-data.patch
 PATCHFILES += 3442-drm-rockchip-dw_dp-Add-DisplayPort-support-for-rk3576.patch
 PATCHFILES += 3443-drm-bridge-synopsys-dw-dp-Set-pixel-mode-by-platform-data.patch
+# misc backports
+PATCHFILES += 3444-usb-typec-mux-avoid-duplicated-orientation-sw.patch
+PATCHFILES += 3445-usb-typec-mux-avoid-duplicated-mux-switches.patch
+PATCHFILES += 3446-usb-typec-fusb302-add-DRM-DP-HPD-bridge-suppo.patch
 # https://patchwork.kernel.org/project/linux-rockchip/list/?series=1061804
 PATCHFILES += 3450-connector-Introduce-drm_output_color_format-enum.patch
 PATCHFILES += 3451-edid-Convert-to-drm_output_color_format-enum.patch
