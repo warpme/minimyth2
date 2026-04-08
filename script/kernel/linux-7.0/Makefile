@@ -404,6 +404,7 @@ PATCHFILES += 3603-arm64-dtsi-rk3588s-add-vop2-clock-resets.patch
 PATCHFILES += 3604-arm64-dtsi-rockchip-rk3588-enable-dwc3simple-for-usb-boot.patch
 PATCHFILES += 3605-arm64-dtsi-rockchip-rk356x-add-rkvdec2-video-decoder-nodes.patch
 PATCHFILES += 3607-arm64-dtsi-rk3588s-increas-vop-clk.patch
+PATCHFILES += 3608-arm64-dtsi-rk3588-enable-dp0-dp1-audio-support.patch
 # PATCHFILES += 3609-arm64-dtsi-rockchip-disable-vpu121.patch
 PATCHFILES += 3610-arm64-dtsi-rockchip-rk3576-enable-dwc3simple-for-usb-boot.patch
 # rk35xx board dts additions
