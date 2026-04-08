@@ -9,6 +9,6 @@ DISTFILES    = \
 
 SOC_TYPE                  = rk3588
 mm_U-BOOT_BOARD_TYPE      = board-rk3588.rock5-t
-mm_U-BOOT_BOARD_DEFCONFIG = rock5b-rk3588_defconfig
+mm_U-BOOT_BOARD_DEFCONFIG = rock5t-rk3588_defconfig
 
 include ../bootloader/install-board-bootloader-rk.mk
