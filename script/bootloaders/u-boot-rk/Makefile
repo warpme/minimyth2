@@ -79,6 +79,9 @@ PATCHFILES  += 57-rk3399-orangepi-fix-nonworking-ddc.patch
 PATCHFILES  += 58-rk3576-generic_defconfig-enable-ufs-boot.patch
 PATCHFILES  += 59-rk3576-rock4d_defconfig-enable-ufs-support.patch
 PATCHFILES  += 60-rk3588-generic_defconfig-enable-spi-building.patch
+PATCHFILES  += 61-rk3588-rock5a-rk3588s_defconfig-enable-spi-building.patch
+PATCHFILES  += 62-rk3588-orange5-5plus-set-default-pxeconfig-filename.patch
+PATCHFILES  += 63-rk3588-add-rock5t_defconfig.patch
 
 CATEGORIES   = bootloaders
 LICENSE = GPL2
