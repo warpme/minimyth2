@@ -1,0 +1,107 @@
+From 7fb14ca0d296ef54d566efed621a364cf52b2364 Mon Sep 17 00:00:00 2001
+From: Scott Theisen <scott.the.elm@gmail.com>
+Date: Wed, 8 Apr 2026 16:26:40 -0400
+Subject: [PATCH] Qt6: Revise the fix for OpenGL on Wayland and xcb EGL
+ integration
+
+The original fix, 373bce861d0b00ee972f3882e8386664b37fd93b,
+broke the GUI for the eglfs QPA platform.
+
+Setting the surface type in the MythPainterWindowOpenGL
+constructor before creating the QWindow, which both winId()
+and setVisible(true) would do, is simpler and avoids the
+delay caused by destroying and creating a new surface.
+
+References:
+https://github.com/MythTV/mythtv/issues/754
+https://github.com/MythTV/mythtv/issues/1099
+https://github.com/MythTV/mythtv/issues/1334
+https://github.com/MythTV/mythtv/pull/1341
+---
+ .../opengl/mythpainterwindowopengl.cpp        | 14 +++++++++++--
+ .../libmythui/opengl/mythrenderopengl.cpp     | 20 -------------------
+ 2 files changed, 12 insertions(+), 22 deletions(-)
+
+diff --git a/mythtv/libs/libmythui/opengl/mythpainterwindowopengl.cpp b/mythtv/libs/libmythui/opengl/mythpainterwindowopengl.cpp
+index 2334cf1c653..4cd99f7b5dc 100644
+--- a/mythtv/libs/libmythui/opengl/mythpainterwindowopengl.cpp
++++ b/mythtv/libs/libmythui/opengl/mythpainterwindowopengl.cpp
+@@ -1,7 +1,10 @@
+-// MythTV
++#include "mythpainterwindowopengl.h"
++
++#include <QGuiApplication>
++#include <QWindow>
++
+ #include "libmythbase/mythlogging.h"
+ #include "mythmainwindow.h"
+-#include "opengl/mythpainterwindowopengl.h"
+ 
+ #define LOC QString("GLPaintWin: ")
+ 
+@@ -12,6 +15,13 @@ MythPainterWindowOpenGL::MythPainterWindowOpenGL(MythMainWindow *MainWin)
+     setAttribute(Qt::WA_NoSystemBackground);
+     setAttribute(Qt::WA_NativeWindow);
+     setAttribute(Qt::WA_DontCreateNativeAncestors);
++    // The eglfs QPA platform works without setting the surface type and
++    // can only have one OpenGLSurface, which must be the top level widget
++    // (which for us is currently the MythMainWindow).
++    if (QGuiApplication::platformName() != "eglfs" && windowHandle() != nullptr)
++    {
++        windowHandle()->setSurfaceType(QWindow::OpenGLSurface);
++    }
+     winId();
+ #ifdef Q_OS_MACOS
+      // must be visible before OpenGL initialisation on OSX
+diff --git a/mythtv/libs/libmythui/opengl/mythrenderopengl.cpp b/mythtv/libs/libmythui/opengl/mythrenderopengl.cpp
+index f4f709bfe8c..12a61f6d799 100644
+--- a/mythtv/libs/libmythui/opengl/mythrenderopengl.cpp
++++ b/mythtv/libs/libmythui/opengl/mythrenderopengl.cpp
+@@ -24,11 +24,6 @@
+ 
+ #define LOC QString("OpenGL: ")
+ 
+-#ifdef Q_OS_ANDROID
+-#include <android/log.h>
+-#include <QWindow>
+-#endif
+-
+ static constexpr GLuint VERTEX_INDEX  { 0 };
+ static constexpr GLuint COLOR_INDEX   { 1 };
+ static constexpr GLuint TEXTURE_INDEX { 2 };
+@@ -96,7 +91,6 @@ MythRenderOpenGL* MythRenderOpenGL::Create(QWidget *Widget)
+     bool opengles = !qEnvironmentVariableIsEmpty("MYTHTV_OPENGL_ES");
+     bool core     = !qEnvironmentVariableIsEmpty("MYTHTV_OPENGL_CORE");
+     QSurfaceFormat format = QSurfaceFormat::defaultFormat();
+-    format.setRenderableType(QSurfaceFormat::OpenGL);
+     if (core)
+     {
+         format.setProfile(QSurfaceFormat::CoreProfile);
+@@ -118,7 +112,6 @@ MythRenderOpenGL* MythRenderOpenGL::Create(QWidget *Widget)
+     if (VERBOSE_LEVEL_CHECK(VB_GPU, LOG_INFO))
+         format.setOption(QSurfaceFormat::DebugContext);
+ 
+-    QSurfaceFormat::setDefaultFormat(format);
+     return new MythRenderOpenGL(format, Widget);
+ }
+ 
+@@ -544,19 +537,6 @@ void MythRenderOpenGL::SetWidget(QWidget *Widget)
+         return;
+     }
+ 
+-#if defined(Q_OS_ANDROID) || (QT_VERSION > QT_VERSION_CHECK(6,3,0))
+-    // Ensure surface type is always OpenGL
+-    m_window->setSurfaceType(QWindow::OpenGLSurface);
+-    m_window->destroy();
+-    m_window->create();
+-    if (native && native->windowHandle() != m_window)
+-    {
+-        native->windowHandle()->setSurfaceType(QWindow::OpenGLSurface);
+-        native->windowHandle()->destroy();
+-        native->windowHandle()->create();
+-    }
+-#endif
+-
+ #ifdef CONFIG_QTWEBENGINE
+     auto * globalcontext = QOpenGLContext::globalShareContext();
+     if (globalcontext)
