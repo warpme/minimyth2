@@ -305,6 +305,7 @@ PATCHFILES += 3406-mfd-rk8xx-Fix-shutdown-handler.patch
 PATCHFILES += 3407-net-ethernet-add-yt6801-gige-pcie-controller.patch
 PATCHFILES += 3408-net-phy-realtek-Reset-after-clock-enable.patch
 PATCHFILES += 3409-net-phy-realtek-re-init-after-reset.patch
+PATCHFILES += 3410-clk-rockchip-rk3588-Don-t-change-PLL-rates-w.patch
 # drm enhacements from collabora
 PATCHFILES += 3420-uapi-Provide-DIV_ROUND_CLOSEST.patch
 PATCHFILES += 3421-drm-Add-CRTC-background-color-property.patch
