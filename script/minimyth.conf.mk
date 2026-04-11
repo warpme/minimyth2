@@ -38,6 +38,9 @@ mm_SOFTWARE               ?= \
                             monitorix \
                             $(if $(filter $(mm_DEBUG),yes),debug)
 
+#                             mythfrontend_v36 \
+#                             mythfrontend_v35 \
+#                             mythfrontend_v34 \
 #                             gstreamer \
 #                             mythnetvision \
 #                             mythwebbrowser \
