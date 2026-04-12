@@ -29,6 +29,8 @@ PATCHFILES += 0012-revert-Check-start-byte-of-next-table-in-packet.patch
 ifeq (1,1)
 # Fixes issue with only 3 menu entries in MythMediaStream theme.
 PATCHFILES += 0013-MythMainWindow-not-use-qRound-in-MythUIScreenBounds.patch
+# fix qt6 crash in subtitles
+PATCHFILES += 0020-fix1351-qt6-fix-carsh-in-subitles-handling.patch
 # UPnP patches
 PATCHFILES += 0030-UPnP-Change-reported-ver-to-1.patch
 PATCHFILES += 0032-UPnP-Add-playlist-recently-added-played-entries-to-upnp-music.patch
